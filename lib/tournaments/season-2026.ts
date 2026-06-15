@@ -1,7 +1,7 @@
 export type SeasonSegmentKey =
   | "lck-cup"
   | "first-stand"
-  | "lck-rounds"
+  | "lck"
   | "msi"
   | "ewc"
   | "worlds"
@@ -17,7 +17,7 @@ export const SEASON_2026_SEGMENTS: SeasonSegment[] = [
   { key: "all", label: "2026 전체", description: "2026 시즌 전체 경기" },
   { key: "lck-cup", label: "LCK Cup", description: "LCK 2026 컵" },
   { key: "first-stand", label: "First Stand", description: "국제 대회 · First Stand" },
-  { key: "lck-rounds", label: "LCK Rounds 1-4", description: "라운드 1-2, Road to MSI, 라운드 3-4, 플레이오프" },
+  { key: "lck", label: "LCK", description: "LCK 정규 리그" },
   { key: "msi", label: "MSI", description: "Mid-Season Invitational" },
   { key: "ewc", label: "EWC", description: "Esports World Cup" },
   { key: "worlds", label: "Worlds", description: "World Championship" },
@@ -59,8 +59,9 @@ export const SEASON_2026_TOURNAMENTS: SeasonTournamentConfig[] = [
     startDate: "2026-03-16",
     endDate: "2026-03-22",
   },
+  // LCK 정규 리그 (라운드만, Road to MSI / 플레이오프 제외)
   {
-    segmentKey: "lck-rounds",
+    segmentKey: "lck",
     name: "LCK 2026 Rounds 1-2",
     overviewPage: "LCK/2026 Season/Rounds 1-2",
     split: "Rounds 1-2",
@@ -71,18 +72,7 @@ export const SEASON_2026_TOURNAMENTS: SeasonTournamentConfig[] = [
     endDate: "2026-05-31",
   },
   {
-    segmentKey: "lck-rounds",
-    name: "LCK 2026 Road to MSI",
-    overviewPage: "LCK/2026 Season/Road to MSI",
-    split: "Road to MSI",
-    category: "domestic",
-    region: "Korea",
-    league: "LCK",
-    startDate: "2026-06-06",
-    endDate: "2026-06-14",
-  },
-  {
-    segmentKey: "lck-rounds",
+    segmentKey: "lck",
     name: "LCK 2026 Rounds 3-4",
     overviewPage: "LCK/2026 Season/Rounds 3-4",
     split: "Rounds 3-4",
@@ -91,28 +81,6 @@ export const SEASON_2026_TOURNAMENTS: SeasonTournamentConfig[] = [
     league: "LCK",
     startDate: "2026-07-01",
     endDate: "2026-08-31",
-  },
-  {
-    segmentKey: "lck-rounds",
-    name: "LCK 2026 Season Play-In",
-    overviewPage: "LCK/2026 Season/Season Play-In",
-    split: "Season Play-In",
-    category: "domestic",
-    region: "Korea",
-    league: "LCK",
-    startDate: "2026-09-01",
-    endDate: "2026-09-14",
-  },
-  {
-    segmentKey: "lck-rounds",
-    name: "LCK 2026 Season Playoffs",
-    overviewPage: "LCK/2026 Season/Season Playoffs",
-    split: "Season Playoffs",
-    category: "domestic",
-    region: "Korea",
-    league: "LCK",
-    startDate: "2026-09-15",
-    endDate: "2026-09-30",
   },
   {
     segmentKey: "msi",

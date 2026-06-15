@@ -7,13 +7,52 @@ import { StatCard } from "@/components/ui/stat-card";
 import {
   getFanRatings,
   getMatches,
+  getPlayerAwards,
   getPlayerBySlug,
   getPlayerStatLines,
   getPlayers,
   getTeams,
 } from "@/lib/data/lck";
+import type { TeamAward } from "@/lib/types";
 import { calculatePlayerStats } from "@/lib/stats";
 import { buildPlayerSummary, formatDateTime, teamLabel } from "@/lib/view-data";
+
+const PLAYER_AWARD_META: Record<string, { label: string; icon: string; style: string }> = {
+  lck_finals_mvp: { label: "LCK Finals MVP", icon: "🏅", style: "bg-yellow-500 text-white border-yellow-600" },
+  worlds_mvp:     { label: "Worlds MVP",      icon: "🌍", style: "bg-amber-500 text-white border-amber-600" },
+  msi_mvp:        { label: "MSI MVP",         icon: "⭐", style: "bg-sky-500 text-white border-sky-600" },
+  all_lck_first:  { label: "All-LCK 1팀",    icon: "✨", style: "bg-emerald-500 text-white border-emerald-600" },
+  all_lck_second: { label: "All-LCK 2팀",    icon: "✨", style: "bg-teal-500 text-white border-teal-600" },
+  rookie_of_year: { label: "신인상",          icon: "🌱", style: "bg-pink-500 text-white border-pink-600" },
+};
+
+function PlayerAwardHistory({ awards }: { awards: TeamAward[] }) {
+  if (awards.length === 0) return null;
+  return (
+    <div className="overflow-hidden rounded-lg border border-border">
+      {awards.map((award, i) => {
+        const meta = PLAYER_AWARD_META[award.awardType];
+        return (
+          <div
+            key={award.id}
+            className={`flex items-center gap-4 px-5 py-3.5 ${i !== 0 ? "border-t border-border" : ""}`}
+          >
+            <span className="w-10 shrink-0 text-sm font-bold tabular-nums text-foreground">
+              {award.year}
+            </span>
+            <span
+              className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-semibold ${meta?.style ?? "bg-surface border-border text-foreground"}`}
+            >
+              <span>{meta?.icon}</span>
+              {meta?.label ?? award.awardType}
+            </span>
+            <span className="text-sm text-muted">{award.tournamentName}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 export default async function PlayerDetailPage({
   params,
@@ -27,12 +66,13 @@ export default async function PlayerDetailPage({
     notFound();
   }
 
-  const [teams, players, matches, statLines, fanRatings] = await Promise.all([
+  const [teams, players, matches, statLines, fanRatings, awards] = await Promise.all([
     getTeams(),
     getPlayers(),
     getMatches(),
     getPlayerStatLines(),
     getFanRatings(),
+    getPlayerAwards(player.name, player.id),
   ]);
   const summary = buildPlayerSummary({
     player,
@@ -70,6 +110,13 @@ export default async function PlayerDetailPage({
         <StatCard label="팬 POG 집계" value={summary.fanPogCount} />
         <StatCard label="공식 POM" value={summary.officialPomCount} />
       </section>
+
+      {awards.length > 0 && (
+        <section className="flex flex-col gap-4" aria-labelledby="player-awards">
+          <h2 id="player-awards" className="text-xl font-semibold">수상 내역</h2>
+          <PlayerAwardHistory awards={awards} />
+        </section>
+      )}
 
       <section className="flex flex-col gap-4" aria-labelledby="current-stats">
         <h2 id="current-stats" className="text-xl font-semibold">

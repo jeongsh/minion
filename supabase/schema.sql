@@ -58,6 +58,7 @@ create table public.players (
   riot_puuid text,
   riot_game_name text,
   riot_tagline text,
+  is_starter boolean not null default false,
   created_at timestamptz not null default now()
 );
 
@@ -308,6 +309,62 @@ create table public.derived_player_stats (
   created_at timestamptz not null default now(),
   unique (player_id, tournament_id, stage_id, period_key)
 );
+
+create table public.team_standings (
+  id uuid primary key default gen_random_uuid(),
+  tournament_id uuid not null references public.tournaments(id) on delete cascade,
+  team_id uuid not null references public.teams(id) on delete cascade,
+  rank integer not null,
+  wins integer not null default 0,
+  losses integer not null default 0,
+  set_diff integer not null default 0,
+  win_rate numeric(5,4),
+  kda numeric(6,2),
+  kills integer not null default 0,
+  deaths integer not null default 0,
+  assists integer not null default 0,
+  created_at timestamptz not null default now(),
+  unique (tournament_id, team_id)
+);
+
+create index idx_team_standings_tournament on public.team_standings(tournament_id);
+create index idx_team_standings_team on public.team_standings(team_id);
+
+alter table public.team_standings enable row level security;
+create policy "public read team standings" on public.team_standings for select using (true);
+
+create table public.team_awards (
+  id uuid primary key default gen_random_uuid(),
+  team_id uuid references public.teams(id) on delete cascade,
+  year integer not null,
+  tournament_name text not null,
+  award_type text not null check (award_type in (
+    'lck_champion', 'lck_runner_up',
+    'worlds_champion', 'worlds_runner_up',
+    'msi_champion', 'msi_runner_up',
+    'first_stand_champion', 'first_stand_runner_up',
+    'ewc_champion', 'ewc_runner_up',
+    'lck_finals_mvp', 'worlds_mvp', 'msi_mvp',
+    'all_lck_first', 'all_lck_second',
+    'rookie_of_year'
+  )),
+  player_id uuid references public.players(id) on delete set null,
+  player_name text,
+  notes text,
+  source text not null default 'leaguepedia',
+  leaguepedia_page text,
+  created_at timestamptz not null default now()
+);
+
+create index idx_team_awards_team_id on public.team_awards(team_id);
+create index idx_team_awards_year on public.team_awards(year desc);
+create index idx_team_awards_type on public.team_awards(award_type);
+
+alter table public.team_awards enable row level security;
+create policy "public read team awards" on public.team_awards for select using (true);
+
+grant select on public.team_awards to anon, authenticated;
+grant all on public.team_awards to service_role;
 
 create table public.derived_team_stats (
   id uuid primary key default gen_random_uuid(),

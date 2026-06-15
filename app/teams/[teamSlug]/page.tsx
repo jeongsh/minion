@@ -9,9 +9,11 @@ import {
   getMatches,
   getPlayers,
   getSets,
+  getTeamAwards,
   getTeamBySlug,
   getTeams,
 } from "@/lib/data/lck";
+import type { TeamAward } from "@/lib/types";
 import {
   buildTeamStandingRows,
   buildTeamStatSummary,
@@ -22,6 +24,72 @@ import {
   teamLabel,
   topFanRatingForMatch,
 } from "@/lib/view-data";
+
+// 팀 수상만 표시 (개인 수상은 선수 상세 페이지에서 보여줌)
+const TEAM_AWARD_TYPES = new Set([
+  "lck_champion", "lck_runner_up",
+  "worlds_champion", "worlds_runner_up",
+  "msi_champion", "msi_runner_up",
+  "first_stand_champion", "first_stand_runner_up",
+  "ewc_champion", "ewc_runner_up",
+]);
+
+const AWARD_META: Record<string, { label: string; icon: string; style: string }> = {
+  lck_champion:          { label: "LCK 우승",          icon: "🏆", style: "bg-yellow-500 text-white border-yellow-600" },
+  lck_runner_up:         { label: "LCK 준우승",        icon: "🥈", style: "bg-zinc-500 text-white border-zinc-600" },
+  worlds_champion:       { label: "Worlds 우승",       icon: "🏆", style: "bg-amber-500 text-white border-amber-600" },
+  worlds_runner_up:      { label: "Worlds 준우승",     icon: "🥈", style: "bg-zinc-500 text-white border-zinc-600" },
+  msi_champion:          { label: "MSI 우승",          icon: "🏆", style: "bg-sky-500 text-white border-sky-600" },
+  msi_runner_up:         { label: "MSI 준우승",        icon: "🥈", style: "bg-zinc-500 text-white border-zinc-600" },
+  first_stand_champion:  { label: "First Stand 우승",  icon: "🏆", style: "bg-violet-500 text-white border-violet-600" },
+  first_stand_runner_up: { label: "First Stand 준우승", icon: "🥈", style: "bg-zinc-500 text-white border-zinc-600" },
+  ewc_champion:          { label: "EWC 우승",          icon: "🏆", style: "bg-rose-500 text-white border-rose-600" },
+  ewc_runner_up:         { label: "EWC 준우승",        icon: "🥈", style: "bg-zinc-500 text-white border-zinc-600" },
+};
+
+function AwardHistory({ awards }: { awards: TeamAward[] }) {
+  const teamAwards = awards.filter((a) => TEAM_AWARD_TYPES.has(a.awardType));
+
+  const byYear = new Map<number, TeamAward[]>();
+  for (const a of teamAwards) {
+    const arr = byYear.get(a.year) ?? [];
+    arr.push(a);
+    byYear.set(a.year, arr);
+  }
+  const years = [...byYear.keys()].sort((a, b) => b - a);
+
+  return (
+    <div className="overflow-hidden rounded-lg border border-border">
+      {years.map((year, i) => {
+        const yearAwards = byYear.get(year) ?? [];
+        return (
+          <div
+            key={year}
+            className={`flex items-center gap-4 px-5 py-3.5 ${i !== 0 ? "border-t border-border" : ""}`}
+          >
+            <span className="w-10 shrink-0 text-sm font-bold tabular-nums text-foreground">
+              {year}
+            </span>
+            <div className="flex flex-wrap gap-2">
+              {yearAwards.map((award) => {
+                const meta = AWARD_META[award.awardType];
+                return (
+                  <span
+                    key={award.id}
+                    className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-semibold ${meta?.style ?? "bg-surface border-border text-foreground"}`}
+                  >
+                    <span>{meta?.icon}</span>
+                    {meta?.label ?? award.awardType}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 const positions = ["TOP", "JGL", "MID", "BOT", "SUP"] as const;
 
@@ -37,13 +105,14 @@ export default async function TeamDetailPage({
     notFound();
   }
 
-  const [teams, players, matches, sets, fanRatings, communityPosts] = await Promise.all([
+  const [teams, players, matches, sets, fanRatings, communityPosts, awards] = await Promise.all([
     getTeams(),
     getPlayers(),
     getMatches(),
     getSets(),
     getFanRatings(),
     getCommunityPosts(),
+    getTeamAwards(team.id),
   ]);
   const standings = buildTeamStandingRows(teams, matches, sets);
   const standing = standings.find((row) => row.team.id === team.id);
@@ -106,6 +175,13 @@ export default async function TeamDetailPage({
           ]}
         />
       </section>
+
+      {awards.filter((a) => TEAM_AWARD_TYPES.has(a.awardType)).length > 0 && (
+        <section className="flex flex-col gap-4" aria-labelledby="team-awards">
+          <h2 id="team-awards" className="text-xl font-semibold">수상 내역</h2>
+          <AwardHistory awards={awards} />
+        </section>
+      )}
 
       <section className="flex flex-col gap-4" aria-labelledby="team-stats">
         <h2 id="team-stats" className="text-xl font-semibold">

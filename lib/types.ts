@@ -31,6 +31,52 @@ export type TeamIdentityHistory = {
   note?: string;
 };
 
+export type TeamStanding = {
+  id: string;
+  tournamentId: string;
+  teamId: string;
+  rank: number;
+  wins: number;
+  losses: number;
+  setDiff: number;
+  winRate: number | null;
+  kda: number | null;
+  kills: number;
+  deaths: number;
+  assists: number;
+};
+
+export type AwardType =
+  | "lck_champion"
+  | "lck_runner_up"
+  | "worlds_champion"
+  | "worlds_runner_up"
+  | "msi_champion"
+  | "msi_runner_up"
+  | "first_stand_champion"
+  | "first_stand_runner_up"
+  | "ewc_champion"
+  | "ewc_runner_up"
+  | "lck_finals_mvp"
+  | "worlds_mvp"
+  | "msi_mvp"
+  | "all_lck_first"
+  | "all_lck_second"
+  | "rookie_of_year";
+
+export type TeamAward = {
+  id: string;
+  teamId: string;
+  year: number;
+  tournamentName: string;
+  awardType: AwardType;
+  playerId?: string | null;
+  playerName?: string | null;
+  notes?: string | null;
+  source: string;
+  leaguepediaPage?: string | null;
+};
+
 export type PlayerPosition = "TOP" | "JGL" | "MID" | "BOT" | "SUP";
 
 export type Player = {
@@ -43,6 +89,7 @@ export type Player = {
   profileImageUrl: string;
   streamUrl?: string;
   soloQueueAccount?: string;
+  isStarter?: boolean;
 };
 
 export type Tournament = {

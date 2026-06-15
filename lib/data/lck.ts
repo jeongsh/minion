@@ -12,6 +12,8 @@ import type {
   Team,
   TeamIdentityHistory,
   TeamSocialPost,
+  TeamAward,
+  TeamStanding,
   TeamVideo,
   Tournament,
 } from "@/lib/types";
@@ -58,6 +60,7 @@ type PlayerRow = {
   profile_image_url: string | null;
   stream_url: string | null;
   solo_queue_account: string | null;
+  is_starter: boolean | null;
 };
 
 type ChampionRow = {
@@ -278,6 +281,7 @@ function mapPlayer(row: PlayerRow): Player {
     profileImageUrl: row.profile_image_url ?? "",
     streamUrl: row.stream_url ?? undefined,
     soloQueueAccount: row.solo_queue_account ?? undefined,
+    isStarter: row.is_starter ?? false,
   };
 }
 
@@ -390,6 +394,50 @@ function mapFanRating(row: FanRatingRow): FanRating {
   };
 }
 
+export async function getTeamStandings(tournamentId?: string): Promise<TeamStanding[]> {
+  return fromSupabase(async () => {
+    let query = createSupabaseServerClient()
+      .from("team_standings")
+      .select("*")
+      .order("rank", { ascending: true });
+
+    if (tournamentId) {
+      query = query.eq("tournament_id", tournamentId);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    return (data as {
+      id: string;
+      tournament_id: string;
+      team_id: string;
+      rank: number;
+      wins: number;
+      losses: number;
+      set_diff: number;
+      win_rate: number | null;
+      kda: number | null;
+      kills: number;
+      deaths: number;
+      assists: number;
+    }[]).map((row) => ({
+      id: row.id,
+      tournamentId: row.tournament_id,
+      teamId: row.team_id,
+      rank: row.rank,
+      wins: row.wins,
+      losses: row.losses,
+      setDiff: row.set_diff,
+      winRate: row.win_rate,
+      kda: row.kda,
+      kills: row.kills,
+      deaths: row.deaths,
+      assists: row.assists,
+    }));
+  }, []);
+}
+
 export async function getTeams() {
   return fromSupabase(async () => {
     const { data, error } = await createSupabaseServerClient()
@@ -403,6 +451,83 @@ export async function getTeams() {
 
     return (data as TeamRow[]).map(mapTeam);
   }, []);
+}
+
+export async function getPlayerAwards(playerName: string, playerId?: string): Promise<TeamAward[]> {
+  return fromSupabase(async () => {
+    const conditions = [`player_name.eq.${playerName}`];
+    if (playerId) conditions.push(`player_id.eq.${playerId}`);
+
+    const { data, error } = await createSupabaseServerClient()
+      .from("team_awards")
+      .select("*")
+      .or(conditions.join(","))
+      .order("year", { ascending: false });
+
+    if (error) throw error;
+
+    return (data as {
+      id: string; team_id: string; year: number; tournament_name: string;
+      award_type: string; player_id: string | null; player_name: string | null;
+      notes: string | null; source: string; leaguepedia_page: string | null;
+    }[]).map((row) => ({
+      id: row.id, teamId: row.team_id, year: row.year,
+      tournamentName: row.tournament_name,
+      awardType: row.award_type as TeamAward["awardType"],
+      playerId: row.player_id, playerName: row.player_name,
+      notes: row.notes, source: row.source, leaguepediaPage: row.leaguepedia_page,
+    }));
+  }, []);
+}
+
+export async function getTeamAwards(teamId?: string): Promise<TeamAward[]> {
+  return fromSupabase(async () => {
+    let query = createSupabaseServerClient()
+      .from("team_awards")
+      .select("*")
+      .order("year", { ascending: false })
+      .order("tournament_name", { ascending: true });
+
+    if (teamId) query = query.eq("team_id", teamId);
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    return (data as {
+      id: string;
+      team_id: string;
+      year: number;
+      tournament_name: string;
+      award_type: string;
+      player_id: string | null;
+      player_name: string | null;
+      notes: string | null;
+      source: string;
+      leaguepedia_page: string | null;
+    }[]).map((row) => ({
+      id: row.id,
+      teamId: row.team_id,
+      year: row.year,
+      tournamentName: row.tournament_name,
+      awardType: row.award_type as TeamAward["awardType"],
+      playerId: row.player_id,
+      playerName: row.player_name,
+      notes: row.notes,
+      source: row.source,
+      leaguepediaPage: row.leaguepedia_page,
+    }));
+  }, []);
+}
+
+export async function getTeamsSortedByRank(): Promise<Team[]> {
+  const [teams, standings] = await Promise.all([getTeams(), getTeamStandings()]);
+  const rankMap = new Map(standings.map((s) => [s.teamId, s.rank]));
+  return [...teams].sort((a, b) => {
+    const ra = rankMap.get(a.id) ?? 9999;
+    const rb = rankMap.get(b.id) ?? 9999;
+    if (ra !== rb) return ra - rb;
+    return a.name.localeCompare(b.name);
+  });
 }
 
 export async function getTeamBySlug(slug: string) {

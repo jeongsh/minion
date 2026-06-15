@@ -164,9 +164,23 @@ export function buildTeamStandingRows(
     const completedMatches = teamMatches.filter((match) => match.status === "completed");
     const matchWins = completedMatches.filter((match) => match.winnerTeamId === team.id).length;
     const matchLosses = completedMatches.length - matchWins;
+    // 세트 전적: sets 테이블 우선, 없으면 match 스코어에서 산출
     const teamSets = sets.filter((set) => set.blueTeamId === team.id || set.redTeamId === team.id);
-    const setWins = teamSets.filter((set) => set.winnerTeamId === team.id).length;
-    const setLosses = teamSets.filter((set) => set.winnerTeamId && set.winnerTeamId !== team.id).length;
+    let setWins: number;
+    let setLosses: number;
+    if (teamSets.length > 0) {
+      setWins = teamSets.filter((set) => set.winnerTeamId === team.id).length;
+      setLosses = teamSets.filter((set) => set.winnerTeamId && set.winnerTeamId !== team.id).length;
+    } else {
+      setWins = completedMatches.reduce((acc, match) => {
+        const score = match.teamAId === team.id ? match.teamAScore : match.teamBScore;
+        return acc + (score ?? 0);
+      }, 0);
+      setLosses = completedMatches.reduce((acc, match) => {
+        const score = match.teamAId === team.id ? match.teamBScore : match.teamAScore;
+        return acc + (score ?? 0);
+      }, 0);
+    }
     const nextMatch = teamMatches
       .filter((match) => match.status !== "completed")
       .sort((a, b) => new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime())[0];
@@ -174,6 +188,8 @@ export function buildTeamStandingRows(
     return {
       rank: 0,
       team,
+      matchWins,
+      matchLosses,
       matchRecord: `${matchWins}-${matchLosses}`,
       setRecord: `${setWins}-${setLosses}`,
       winRate:
@@ -188,10 +204,12 @@ export function buildTeamStandingRows(
       nextMatch,
     };
   }).sort((a, b) => {
-    if (b.setDiff !== a.setDiff) {
-      return b.setDiff - a.setDiff;
-    }
-    return a.team.name.localeCompare(b.team.name);
+    // 1순위: 승수 내림차순
+    if (b.matchWins !== a.matchWins) return b.matchWins - a.matchWins;
+    // 2순위: 패수 오름차순
+    if (a.matchLosses !== b.matchLosses) return a.matchLosses - b.matchLosses;
+    // 3순위: 세트 득실 내림차순
+    return b.setDiff - a.setDiff;
   }).map((row, index) => ({ ...row, rank: index + 1 }));
 }
 
