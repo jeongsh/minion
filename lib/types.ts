@@ -4,6 +4,7 @@ export type Team = {
   name: string;
   shortName: string;
   logoUrl: string;
+  logoWhiteUrl: string;
   backgroundUrl: string;
   primaryColor: string;
   secondaryColor: string;

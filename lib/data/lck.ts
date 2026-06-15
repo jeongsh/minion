@@ -22,6 +22,7 @@ type TeamRow = {
   name: string;
   short_name: string;
   logo_url: string | null;
+  logo_white_url: string | null;
   background_url: string | null;
   primary_color: string;
   secondary_color: string;
@@ -237,6 +238,7 @@ function mapTeam(row: TeamRow): Team {
     name: row.name,
     shortName: row.short_name,
     logoUrl: row.logo_url ?? "",
+    logoWhiteUrl: row.logo_white_url ?? "",
     backgroundUrl: row.background_url ?? "",
     primaryColor: row.primary_color,
     secondaryColor: row.secondary_color,

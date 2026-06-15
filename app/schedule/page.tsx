@@ -53,7 +53,16 @@ function TeamMark({ team, align = "left" }: { team?: Team; align?: "left" | "rig
     return <span className="font-semibold">-</span>;
   }
 
-  const badge = (
+  const badge = team.logoUrl ? (
+    <img
+      src={team.logoUrl}
+      alt=""
+      width={32}
+      height={32}
+      className="size-8 shrink-0 object-contain"
+      aria-hidden="true"
+    />
+  ) : (
     <span
       className="grid size-8 shrink-0 place-items-center rounded-full border border-border bg-surface-muted text-xs font-bold"
       style={{ color: team.primaryColor }}

@@ -2,6 +2,7 @@ import { SectionHeader } from "@/components/layout/section-header";
 import { DataTable } from "@/components/ui/data-table";
 import { getTeamIdentityHistories, getTeams } from "@/lib/data/lck";
 import { fanSiteHosts } from "@/lib/team-themes";
+import { teamLogoPath, teamWhiteLogoPath } from "@/lib/team-logos";
 import type { Team } from "@/lib/types";
 
 import { createTeamAction, createTeamIdentityHistoryAction, updateTeamAction } from "./actions";
@@ -47,7 +48,21 @@ function TeamFields({ team }: { team?: Team }) {
       </label>
       <label className="flex flex-col gap-1 text-sm font-semibold md:col-span-2">
         로고 URL
-        <input name="logoUrl" defaultValue={team?.logoUrl ?? ""} className={inputClassName()} />
+        <input
+          name="logoUrl"
+          defaultValue={team?.logoUrl ?? (team?.slug ? teamLogoPath(team.slug) : "")}
+          placeholder={team?.slug ? teamLogoPath(team.slug) : "/logos/{slug}.svg"}
+          className={inputClassName()}
+        />
+      </label>
+      <label className="flex flex-col gap-1 text-sm font-semibold md:col-span-2">
+        화이트 로고 URL
+        <input
+          name="logoWhiteUrl"
+          defaultValue={team?.logoWhiteUrl ?? (team?.slug ? teamWhiteLogoPath(team.slug) : "")}
+          placeholder={team?.slug ? teamWhiteLogoPath(team.slug) : "/logos/{slug}-white.svg"}
+          className={inputClassName()}
+        />
       </label>
       <label className="flex flex-col gap-1 text-sm font-semibold md:col-span-2">
         배경 URL
@@ -195,6 +210,7 @@ export default async function AdminTeamsPage() {
             { key: "name", label: "팀명", render: (row) => row.name },
             { key: "short", label: "축약명", render: (row) => row.shortName },
             { key: "logo", label: "로고 URL", render: (row) => row.logoUrl },
+            { key: "logoWhite", label: "화이트 로고 URL", render: (row) => row.logoWhiteUrl },
             { key: "color", label: "포인트 컬러", render: (row) => row.primaryColor },
           ]}
         />

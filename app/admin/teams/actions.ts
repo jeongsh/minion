@@ -35,6 +35,7 @@ function teamPayload(formData: FormData) {
     name: requiredText(formData, "name", "팀명"),
     short_name: requiredText(formData, "shortName", "축약명"),
     logo_url: textOrNull(formData.get("logoUrl")),
+    logo_white_url: textOrNull(formData.get("logoWhiteUrl")),
     background_url: textOrNull(formData.get("backgroundUrl")),
     primary_color: requiredText(formData, "primaryColor", "기본 색상"),
     secondary_color: requiredText(formData, "secondaryColor", "보조 색상"),

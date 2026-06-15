@@ -10,6 +10,7 @@ create table public.teams (
   name text not null,
   short_name text not null,
   logo_url text,
+  logo_white_url text,
   primary_color text not null,
   secondary_color text not null,
   background_url text,
