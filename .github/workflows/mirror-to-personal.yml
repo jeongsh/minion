@@ -1,0 +1,52 @@
+name: Mirror dev to Personal main (Vercel deploy)
+
+on:
+  push:
+    branches:
+      - dev
+  workflow_dispatch:
+
+concurrency:
+  group: mirror-to-personal-dev
+  cancel-in-progress: true
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout source repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Configure git identity
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Push dev branch to personal main repo
+        env:
+          MIRROR_REPO: ${{ secrets.MIRROR_REPO }}
+          MIRROR_TOKEN: ${{ secrets.MIRROR_TOKEN }}
+        run: |
+          if [ -z "${MIRROR_REPO}" ]; then
+            echo "MIRROR_REPO is empty. Set it to <username>/<repo> in GitHub Actions secrets."
+            exit 1
+          fi
+          if [ -z "${MIRROR_TOKEN}" ]; then
+            echo "MIRROR_TOKEN is empty. Add a fine-grained PAT with repo contents write access."
+            exit 1
+          fi
+          if ! echo "${MIRROR_REPO}" | grep -Eq '^[^/]+/[^/]+$'; then
+            echo "MIRROR_REPO format is invalid. Use <username>/<repo>."
+            exit 1
+          fi
+          echo "Mirror target: ${MIRROR_REPO}"
+          git remote add mirror "https://x-access-token:${MIRROR_TOKEN}@github.com/${MIRROR_REPO}.git"
+          git ls-remote mirror >/dev/null
+          git push mirror HEAD:main --force

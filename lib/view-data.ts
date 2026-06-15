@@ -9,13 +9,50 @@ import type {
   Team,
 } from "@/lib/types";
 
+export const KST_TIMEZONE = "Asia/Seoul";
+
 export function formatDateTime(value: string) {
   return new Intl.DateTimeFormat("ko-KR", {
+    timeZone: KST_TIMEZONE,
     month: "short",
     day: "numeric",
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(value));
+}
+
+export function formatTimeKST(value: string) {
+  return new Intl.DateTimeFormat("ko-KR", {
+    timeZone: KST_TIMEZONE,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(new Date(value));
+}
+
+export function formatDateHeaderKST(value: string) {
+  return new Intl.DateTimeFormat("ko-KR", {
+    timeZone: KST_TIMEZONE,
+    month: "2-digit",
+    day: "2-digit",
+    weekday: "short",
+  }).format(new Date(value));
+}
+
+export function getMonthKST(value: string) {
+  return Number(
+    new Intl.DateTimeFormat("en-US", { timeZone: KST_TIMEZONE, month: "numeric" }).format(
+      new Date(value),
+    ),
+  );
+}
+
+export function getYearKST(value: string) {
+  return Number(
+    new Intl.DateTimeFormat("en-US", { timeZone: KST_TIMEZONE, year: "numeric" }).format(
+      new Date(value),
+    ),
+  );
 }
 
 export function findTeam(teams: Team[], teamId: string | null | undefined) {

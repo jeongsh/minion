@@ -1,22 +1,13 @@
 import Link from "next/link";
 import type { Match, Team } from "@/lib/types";
-import { teamLabel } from "@/lib/view-data";
-
-function formatMatchDate(value: string) {
-  return new Intl.DateTimeFormat("ko-KR", {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(value));
-}
+import { formatDateTime, teamLabel } from "@/lib/view-data";
 
 export function MatchCard({ match, teams = [] }: { match: Match; teams?: Team[] }) {
   return (
     <article className="rounded-md border border-border bg-surface p-4">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-sm text-muted">{formatMatchDate(match.matchDate)}</p>
+          <p className="text-sm text-muted">{formatDateTime(match.matchDate)}</p>
           <h2 className="mt-2 text-lg font-semibold">{match.name}</h2>
         </div>
         <span className="rounded-md bg-surface-muted px-2 py-1 text-xs font-semibold text-muted">
