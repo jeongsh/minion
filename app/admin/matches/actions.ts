@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { parseDateTimeLocalKST } from "@/lib/view-data";
 
 function textOrNull(value: FormDataEntryValue | null) {
   const text = typeof value === "string" ? value.trim() : "";
@@ -36,7 +37,7 @@ function matchPayload(formData: FormData) {
     tournament_id: textOrNull(formData.get("tournamentId")),
     stage_id: textOrNull(formData.get("stageId")),
     name,
-    match_date: new Date(matchDate).toISOString(),
+    match_date: parseDateTimeLocalKST(matchDate),
     status,
     team_a_id: textOrNull(formData.get("teamAId")),
     team_b_id: textOrNull(formData.get("teamBId")),

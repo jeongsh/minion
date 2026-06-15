@@ -1,16 +1,5 @@
 import type { Match, Player, Stage, Team, Tournament } from "@/lib/types";
-
-function formatDateTimeLocal(value: string) {
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return "";
-  }
-
-  const offset = date.getTimezoneOffset();
-  const localDate = new Date(date.getTime() - offset * 60 * 1000);
-  return localDate.toISOString().slice(0, 16);
-}
+import { formatDateTimeLocalKST } from "@/lib/view-data";
 
 function SelectFields({
   teams,
@@ -152,7 +141,7 @@ export function MatchFields({
         <input
           name="matchDate"
           type="datetime-local"
-          defaultValue={match ? formatDateTimeLocal(match.matchDate) : ""}
+          defaultValue={match ? formatDateTimeLocalKST(match.matchDate) : ""}
           required
           className="rounded-md border border-border bg-background px-3 py-2"
         />

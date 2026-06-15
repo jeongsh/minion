@@ -159,7 +159,6 @@ export default async function SchedulePage({
                 {groupMatches.map((match) => {
                   const teamA = teamById(teams, match.teamAId);
                   const teamB = teamById(teams, match.teamBId);
-                  const hasVod = Boolean(match.vodUrl);
 
                   return (
                     <div
@@ -180,24 +179,12 @@ export default async function SchedulePage({
                       <Link href={`/teams/${teamB?.slug ?? ""}`} className="min-w-0">
                         <TeamMark team={teamB} />
                       </Link>
-                      <div className="flex flex-col gap-1">
-                        <Link
-                          href={`/matches/${match.id}`}
-                          className="rounded-md border border-border px-3 py-2 text-center text-sm font-semibold"
-                        >
-                          상세
-                        </Link>
-                        {hasVod ? (
-                          <a
-                            href={match.vodUrl ?? "#"}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="rounded-md border border-border px-3 py-2 text-center text-xs font-semibold text-muted"
-                          >
-                            다시보기
-                          </a>
-                        ) : null}
-                      </div>
+                      <Link
+                        href={`/matches/${match.id}`}
+                        className="rounded-md border border-border px-3 py-2 text-center text-sm font-semibold"
+                      >
+                        상세
+                      </Link>
                       <span className="text-sm text-muted md:text-right">{match.venue ?? "경기장 미정"}</span>
                     </div>
                   );
