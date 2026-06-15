@@ -13,6 +13,7 @@ import {
   getPlayerStatLines,
   getPlayers,
   getTeams,
+  getTournaments,
 } from "@/lib/data/lck";
 import type { TeamAward } from "@/lib/types";
 import { calculatePlayerStats } from "@/lib/stats";
@@ -67,7 +68,7 @@ export default async function PlayerDetailPage({
     notFound();
   }
 
-  const [teams, players, matches, statLines, fanRatings, awards, pomCount] = await Promise.all([
+  const [teams, players, matches, statLines, fanRatings, awards, pomCount, tournaments] = await Promise.all([
     getTeams(),
     getPlayers(),
     getMatches(),
@@ -75,17 +76,25 @@ export default async function PlayerDetailPage({
     getFanRatings(),
     getPlayerAwards(player.name, player.id),
     getPlayerPomCount(player.id),
+    getTournaments(),
   ]);
+
+  const latestSeason = Math.max(...tournaments.map((t) => t.season));
+  const currentSeasonIds = new Set(
+    tournaments.filter((t) => t.season === latestSeason).map((t) => t.id),
+  );
+  const currentSeasonMatches = matches.filter((m) => currentSeasonIds.has(m.tournamentId));
+
   const summary = buildPlayerSummary({
     player,
     teams,
     players,
     playerStatLines: statLines,
     fanRatings,
-    matches,
+    matches: currentSeasonMatches,
   });
   const derived = summary.stats;
-  const teamMatches = matches.filter(
+  const teamMatches = currentSeasonMatches.filter(
     (match) => match.teamAId === player.teamId || match.teamBId === player.teamId,
   );
   const positionRows = statLines

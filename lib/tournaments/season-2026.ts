@@ -26,6 +26,7 @@ export const SEASON_2026_SEGMENTS: SeasonSegment[] = [
 
 export type SeasonTournamentConfig = {
   segmentKey: SeasonSegmentKey;
+  season: number;
   name: string;
   overviewPage: string;
   split: string;
@@ -39,6 +40,7 @@ export type SeasonTournamentConfig = {
 export const SEASON_2026_TOURNAMENTS: SeasonTournamentConfig[] = [
   {
     segmentKey: "lck-cup",
+    season: 2026,
     name: "LCK Cup 2026",
     overviewPage: "LCK/2026 Season/Cup",
     split: "Cup",
@@ -50,6 +52,7 @@ export const SEASON_2026_TOURNAMENTS: SeasonTournamentConfig[] = [
   },
   {
     segmentKey: "first-stand",
+    season: 2026,
     name: "First Stand 2026",
     overviewPage: "2026 First Stand",
     split: "First Stand",
@@ -59,9 +62,9 @@ export const SEASON_2026_TOURNAMENTS: SeasonTournamentConfig[] = [
     startDate: "2026-03-16",
     endDate: "2026-03-22",
   },
-  // LCK 정규 리그 (라운드만, Road to MSI / 플레이오프 제외)
   {
     segmentKey: "lck",
+    season: 2026,
     name: "LCK 2026 Rounds 1-2",
     overviewPage: "LCK/2026 Season/Rounds 1-2",
     split: "Rounds 1-2",
@@ -73,6 +76,7 @@ export const SEASON_2026_TOURNAMENTS: SeasonTournamentConfig[] = [
   },
   {
     segmentKey: "lck",
+    season: 2026,
     name: "LCK 2026 Rounds 3-4",
     overviewPage: "LCK/2026 Season/Rounds 3-4",
     split: "Rounds 3-4",
@@ -84,6 +88,7 @@ export const SEASON_2026_TOURNAMENTS: SeasonTournamentConfig[] = [
   },
   {
     segmentKey: "msi",
+    season: 2026,
     name: "MSI 2026",
     overviewPage: "2026 Mid-Season Invitational",
     split: "MSI",
@@ -95,6 +100,7 @@ export const SEASON_2026_TOURNAMENTS: SeasonTournamentConfig[] = [
   },
   {
     segmentKey: "ewc",
+    season: 2026,
     name: "EWC 2026",
     overviewPage: "Esports World Cup/2026/League of Legends",
     split: "EWC",
@@ -106,6 +112,7 @@ export const SEASON_2026_TOURNAMENTS: SeasonTournamentConfig[] = [
   },
   {
     segmentKey: "worlds",
+    season: 2026,
     name: "Worlds 2026",
     overviewPage: "2026 Season World Championship",
     split: "Worlds",
@@ -117,6 +124,7 @@ export const SEASON_2026_TOURNAMENTS: SeasonTournamentConfig[] = [
   },
   {
     segmentKey: "enc",
+    season: 2026,
     name: "ENC 2026",
     overviewPage: "2026 Esports Nations Cup",
     split: "ENC",

@@ -8,6 +8,8 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
+    "sync:lck-2025": "node --experimental-strip-types scripts/sync-leaguepedia-lck-2025.ts",
+    "sync:lck-2025:full": "node --experimental-strip-types scripts/sync-leaguepedia-lck-2025.ts --full",
     "sync:lck-2026": "node --experimental-strip-types scripts/sync-leaguepedia-lck-2026.ts",
     "sync:lck-2026:full": "node --experimental-strip-types scripts/sync-leaguepedia-lck-2026.ts --full",
     "sync:pom": "node --experimental-strip-types scripts/sync-pom.ts",

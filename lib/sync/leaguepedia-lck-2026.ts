@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import { SEASON_2026_TOURNAMENTS, type SeasonTournamentConfig } from "@/lib/tournaments/season-2026";
+import { SEASON_2026_TOURNAMENTS, type SeasonTournamentConfig } from "../tournaments/season-2026.ts";
 
 const CARGO_API = "https://lol.fandom.com/api.php";
 const REQUEST_DELAY_MS = 3000;
@@ -34,8 +34,7 @@ type TeamRow = {
 
 type CargoMatchRow = {
   MatchId: string;
-  DateTime_UTC: string;
-  GameDateTime?: string;
+  MatchDateTime: string;
   Team1: string;
   Team2: string;
   Team1Score?: string;
@@ -65,10 +64,15 @@ const TEAM_ALIASES = new Map([
   ["kiwoom drx", "drx"],
   ["drx", "drx"],
   ["hanjin brion", "bro"],
+  ["oksavingsbank brion", "bro"],
+  ["ok brion", "bro"],
   ["brion", "bro"],
   ["bro", "bro"],
   ["bnk fearx", "fox"],
   ["bfx", "fox"],
+  // 2025: Kwangdong → DN Freecs → later DN Soopers
+  ["dn freecs", "soop"],
+  ["kwangdong freecs", "soop"],
   ["dn soopers", "soop"],
   ["dns", "soop"],
   ["soop", "soop"],
@@ -156,7 +160,7 @@ function parseMatchDate(value: string | undefined) {
 }
 
 function matchDateFromRow(row: CargoMatchRow) {
-  return parseMatchDate(row.DateTime_UTC) ?? parseMatchDate(row.GameDateTime);
+  return parseMatchDate(row.MatchDateTime);
 }
 
 function matchDayKST(isoDate: string) {
@@ -181,7 +185,7 @@ function buildWhereClause(overviewPage: string, cursorIso: string | null, mode: 
     return base;
   }
 
-  return `${base} AND (MS.DateTime_UTC > "${formatCargoDateTime(cursorIso)}" OR SG.DateTime_UTC > "${formatCargoDateTime(cursorIso)}")`;
+  return `${base} AND MS.DateTime_UTC > "${formatCargoDateTime(cursorIso)}"`;
 }
 
 function isAfterCursor(matchDateIso: string, cursorIso: string | null, mode: LeaguepediaSyncMode) {
@@ -256,12 +260,10 @@ async function fetchTournamentMatches(
   while (true) {
     const batch = await cargoQuery(
       {
-        tables: "MatchSchedule=MS, ScoreboardGames=SG",
-        join: "MS.MatchId=SG.MatchId",
+        tables: "MatchSchedule=MS",
         fields:
-          "MS.MatchId,MS.DateTime_UTC,MIN(SG.DateTime_UTC)=GameDateTime,MS.Team1,MS.Team2,MS.Team1Score,MS.Team2Score,MS.Winner,MS.BestOf,MS.Tab,MS.Round,MS.ShownName,MS.OverviewPage,MS.FF",
+          "MS.MatchId,MS.DateTime_UTC=MatchDateTime,MS.Team1,MS.Team2,MS.Team1Score,MS.Team2Score,MS.Winner,MS.BestOf,MS.Tab,MS.Round,MS.ShownName,MS.OverviewPage,MS.FF",
         where,
-        group_by: "MS.MatchId",
         order_by: "MS.DateTime_UTC",
         order_by_options: "ASC",
       },
@@ -340,7 +342,7 @@ async function findOrCreateTournament(supabase: SupabaseClient, tournament: Seas
 
   const payload = {
     name: tournament.name,
-    season: 2026,
+    season: tournament.season,
     category: tournament.category,
     region: tournament.region,
     league: tournament.league,
@@ -474,11 +476,13 @@ export async function syncLeaguepediaLck2026(
     mode?: LeaguepediaSyncMode;
     initialDelayMs?: number;
     onRetry?: (waitMs: number) => void;
+    tournaments?: SeasonTournamentConfig[];
   } = {},
 ): Promise<LeaguepediaSyncSummary> {
   const mode = options.mode ?? "incremental";
   const initialDelayMs = options.initialDelayMs ?? 0;
   const onRetry = options.onRetry;
+  const tournamentConfigs = options.tournaments ?? SEASON_2026_TOURNAMENTS;
 
   if (initialDelayMs > 0) {
     await sleep(initialDelayMs);
@@ -498,11 +502,20 @@ export async function syncLeaguepediaLck2026(
     skipped: [],
   };
 
-  for (const tournament of SEASON_2026_TOURNAMENTS) {
+  for (const tournament of tournamentConfigs) {
     const tournamentId = await findOrCreateTournament(supabase, tournament);
     summary.tournaments += 1;
 
-    const rows = await fetchTournamentMatches(tournament.overviewPage, cursor, mode, onRetry);
+    let rows: CargoMatchRow[];
+    try {
+      rows = await fetchTournamentMatches(tournament.overviewPage, cursor, mode, onRetry);
+    } catch (err) {
+      summary.skipped.push({
+        reason: `leaguepedia_fetch_error:${tournament.overviewPage}:${(err as Error).message}`,
+      });
+      await sleep(REQUEST_DELAY_MS);
+      continue;
+    }
     summary.matchesFetched += rows.length;
 
     const stageOrder = new Map<string, number>();

@@ -12,6 +12,7 @@ import {
   getTeamAwards,
   getTeamBySlug,
   getTeams,
+  getTournaments,
 } from "@/lib/data/lck";
 import type { TeamAward } from "@/lib/types";
 import {
@@ -116,7 +117,7 @@ export default async function TeamDetailPage({
     notFound();
   }
 
-  const [teams, players, matches, sets, fanRatings, communityPosts, awards] = await Promise.all([
+  const [teams, players, matches, sets, fanRatings, communityPosts, awards, tournaments] = await Promise.all([
     getTeams(),
     getPlayers(),
     getMatches(),
@@ -124,12 +125,20 @@ export default async function TeamDetailPage({
     getFanRatings(),
     getCommunityPosts(),
     getTeamAwards(team.id),
+    getTournaments(),
   ]);
-  const standings = buildTeamStandingRows(teams, matches, sets);
+
+  const latestSeason = Math.max(...tournaments.map((t) => t.season));
+  const currentSeasonIds = new Set(
+    tournaments.filter((t) => t.season === latestSeason).map((t) => t.id),
+  );
+  const currentSeasonMatches = matches.filter((m) => currentSeasonIds.has(m.tournamentId));
+
+  const standings = buildTeamStandingRows(teams, currentSeasonMatches, sets);
   const standing = standings.find((row) => row.team.id === team.id);
   const stats = buildTeamStatSummary(team.id, sets);
   const teamPlayers = players.filter((player) => player.teamId === team.id);
-  const teamMatches = matches.filter(
+  const teamMatches = currentSeasonMatches.filter(
     (match) => match.teamAId === team.id || match.teamBId === team.id,
   );
   const rosterRows = positions.map((position) => ({
