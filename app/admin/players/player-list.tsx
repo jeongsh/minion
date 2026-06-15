@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { Player, Team } from "@/lib/types";
 import { DeleteButton } from "./delete-button";
+import { PlayerCreateModal } from "./player-create-modal";
 import { PlayerEditModal } from "./player-edit-modal";
 
 const POS_ORDER = ["TOP", "JGL", "MID", "BOT", "SUP"];
@@ -40,14 +41,17 @@ export function PlayerList({ players, teams }: { players: Player[]; teams: Team[
 
   return (
     <div className="flex flex-col gap-6">
-      {/* 검색 */}
-      <input
-        type="search"
-        placeholder="선수명 또는 본명 검색..."
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        className="w-full max-w-sm rounded-md border border-border bg-background px-4 py-2 text-sm outline-none focus:border-accent"
-      />
+      {/* 검색 + 추가 버튼 */}
+      <div className="flex items-center gap-3">
+        <input
+          type="search"
+          placeholder="선수명 또는 본명 검색..."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          className="w-full max-w-sm rounded-md border border-border bg-background px-4 py-2 text-sm outline-none focus:border-accent"
+        />
+        <PlayerCreateModal teams={teams} />
+      </div>
 
       {filtered.length === 0 && (
         <p className="text-sm text-muted">검색 결과가 없습니다.</p>

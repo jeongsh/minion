@@ -8,6 +8,41 @@ function revalidate() {
   revalidatePath("/players");
 }
 
+export async function createPlayerAction(formData: FormData) {
+  const name = (formData.get("name") as string).trim();
+  const realName = (formData.get("real_name") as string).trim();
+  const teamId = formData.get("team_id") as string | null;
+  const position = formData.get("position") as string;
+  const isStarter = formData.get("is_starter") === "true";
+
+  if (!name || !position) return;
+
+  const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+
+  const supabase = createSupabaseAdminClient();
+
+  // 주전 설정 시 같은 팀·포지션의 기존 주전을 서브로 내림
+  if (isStarter && teamId && position) {
+    await supabase
+      .from("players")
+      .update({ is_starter: false })
+      .eq("team_id", teamId)
+      .eq("position", position)
+      .eq("is_starter", true);
+  }
+
+  await supabase.from("players").insert({
+    name,
+    slug,
+    real_name: realName || null,
+    team_id: teamId || null,
+    position,
+    is_starter: isStarter,
+  });
+
+  revalidate();
+}
+
 export async function updatePlayerAction(formData: FormData) {
   const id = formData.get("id") as string;
   const name = (formData.get("name") as string).trim();

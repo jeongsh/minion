@@ -835,6 +835,18 @@ export async function getFanRatings() {
   }, []);
 }
 
+export async function getPlayerPomCount(playerId: string): Promise<number> {
+  return fromSupabase(async () => {
+    const { count, error } = await createSupabaseServerClient()
+      .from("matches")
+      .select("*", { count: "exact", head: true })
+      .eq("official_pom_player_id", playerId);
+
+    if (error) throw error;
+    return count ?? 0;
+  }, 0);
+}
+
 export async function getFanPogVotes(): Promise<FanPogVote[]> {
   return fromSupabase(async () => {
     const { data, error } = await createSupabaseServerClient()

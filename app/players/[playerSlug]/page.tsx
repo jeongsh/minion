@@ -9,6 +9,7 @@ import {
   getMatches,
   getPlayerAwards,
   getPlayerBySlug,
+  getPlayerPomCount,
   getPlayerStatLines,
   getPlayers,
   getTeams,
@@ -66,13 +67,14 @@ export default async function PlayerDetailPage({
     notFound();
   }
 
-  const [teams, players, matches, statLines, fanRatings, awards] = await Promise.all([
+  const [teams, players, matches, statLines, fanRatings, awards, pomCount] = await Promise.all([
     getTeams(),
     getPlayers(),
     getMatches(),
     getPlayerStatLines(),
     getFanRatings(),
     getPlayerAwards(player.name, player.id),
+    getPlayerPomCount(player.id),
   ]);
   const summary = buildPlayerSummary({
     player,
@@ -108,7 +110,7 @@ export default async function PlayerDetailPage({
         <StatCard label="포지션" value={player.position} />
         <StatCard label="팬 평점 평균" value={summary.avgFanRating} />
         <StatCard label="팬 POG 집계" value={summary.fanPogCount} />
-        <StatCard label="공식 POM" value={summary.officialPomCount} />
+        <StatCard label="공식 POM" value={pomCount} />
       </section>
 
       {awards.length > 0 && (
@@ -117,6 +119,41 @@ export default async function PlayerDetailPage({
           <PlayerAwardHistory awards={awards} />
         </section>
       )}
+
+      {(() => {
+        const pomMatches = teamMatches
+          .filter((m) => m.officialPomPlayerId === player.id)
+          .sort((a, b) => new Date(b.matchDate).getTime() - new Date(a.matchDate).getTime());
+        if (pomMatches.length === 0) return null;
+        return (
+          <section className="flex flex-col gap-4" aria-labelledby="pom-history">
+            <h2 id="pom-history" className="text-xl font-semibold">
+              공식 POM 선정 내역{" "}
+              <span className="text-base font-normal text-muted">({pomMatches.length}회)</span>
+            </h2>
+            <DataTable
+              rows={pomMatches}
+              columns={[
+                { key: "date", label: "경기 일시", render: (row) => formatDateTime(row.matchDate) },
+                { key: "match", label: "경기", render: (row) => <Link href={`/matches/${row.id}`}>{row.name}</Link> },
+                {
+                  key: "opponent",
+                  label: "상대팀",
+                  render: (row) => teamLabel(teams, row.teamAId === player.teamId ? row.teamBId : row.teamAId),
+                },
+                {
+                  key: "result",
+                  label: "결과",
+                  render: (row) =>
+                    row.teamAScore === null || row.teamBScore === null
+                      ? row.status
+                      : `${row.teamAScore}:${row.teamBScore}`,
+                },
+              ]}
+            />
+          </section>
+        );
+      })()}
 
       <section className="flex flex-col gap-4" aria-labelledby="current-stats">
         <h2 id="current-stats" className="text-xl font-semibold">
@@ -174,11 +211,6 @@ export default async function PlayerDetailPage({
                 row.teamAScore === null || row.teamBScore === null
                   ? row.status
                   : `${row.teamAScore}:${row.teamBScore}`,
-            },
-            {
-              key: "pom",
-              label: "공식 POM",
-              render: (row) => row.officialPomPlayerId === player.id ? "선정" : "-",
             },
             { key: "link", label: "이동", render: (row) => <Link href={`/matches/${row.id}`}>경기 상세</Link> },
           ]}
