@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import Link from "next/link";
 
 import { SeasonSegmentFilter } from "@/components/domain/season-segment-filter";
 import { SectionHeader } from "@/components/layout/section-header";
@@ -114,13 +115,21 @@ export default async function AdminMatchesPage({
               key: "actions",
               label: "",
               render: (row) => (
-                <MatchEditModal
-                  match={row}
-                  teams={teams}
-                  tournaments={tournaments}
-                  stages={stages}
-                  players={players}
-                />
+                <div className="flex items-center gap-2">
+                  <Link
+                    href={`/matches/${row.id}`}
+                    className="rounded-md border border-border px-3 py-1.5 text-sm font-semibold hover:bg-surface-muted"
+                  >
+                    상세보기
+                  </Link>
+                  <MatchEditModal
+                    match={row}
+                    teams={teams}
+                    tournaments={tournaments}
+                    stages={stages}
+                    players={players}
+                  />
+                </div>
               ),
             },
           ]}

@@ -35,6 +35,7 @@ type TeamRow = {
 type CargoMatchRow = {
   MatchId: string;
   DateTime_UTC: string;
+  GameDateTime?: string;
   Team1: string;
   Team2: string;
   Team1Score?: string;
@@ -154,6 +155,10 @@ function parseMatchDate(value: string | undefined) {
   return date.toISOString();
 }
 
+function matchDateFromRow(row: CargoMatchRow) {
+  return parseMatchDate(row.DateTime_UTC) ?? parseMatchDate(row.GameDateTime);
+}
+
 function matchDayKST(isoDate: string) {
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Seoul",
@@ -171,12 +176,12 @@ function formatCargoDateTime(isoDate: string) {
 }
 
 function buildWhereClause(overviewPage: string, cursorIso: string | null, mode: LeaguepediaSyncMode) {
-  const base = `OverviewPage="${overviewPage}"`;
+  const base = `MS.OverviewPage="${overviewPage}"`;
   if (mode !== "incremental" || !cursorIso) {
     return base;
   }
 
-  return `${base} AND DateTime_UTC > "${formatCargoDateTime(cursorIso)}"`;
+  return `${base} AND (MS.DateTime_UTC > "${formatCargoDateTime(cursorIso)}" OR SG.DateTime_UTC > "${formatCargoDateTime(cursorIso)}")`;
 }
 
 function isAfterCursor(matchDateIso: string, cursorIso: string | null, mode: LeaguepediaSyncMode) {
@@ -251,11 +256,13 @@ async function fetchTournamentMatches(
   while (true) {
     const batch = await cargoQuery(
       {
-        tables: "MatchSchedule",
+        tables: "MatchSchedule=MS, ScoreboardGames=SG",
+        join: "MS.MatchId=SG.MatchId",
         fields:
-          "MatchId,DateTime_UTC,Team1,Team2,Team1Score,Team2Score,Winner,BestOf,Tab,Round,ShownName,OverviewPage,FF",
+          "MS.MatchId,MS.DateTime_UTC,MIN(SG.DateTime_UTC)=GameDateTime,MS.Team1,MS.Team2,MS.Team1Score,MS.Team2Score,MS.Winner,MS.BestOf,MS.Tab,MS.Round,MS.ShownName,MS.OverviewPage,MS.FF",
         where,
-        order_by: "DateTime_UTC",
+        group_by: "MS.MatchId",
+        order_by: "MS.DateTime_UTC",
         order_by_options: "ASC",
       },
       offset,
@@ -445,20 +452,18 @@ async function findExistingMatchId(
   const { data: legacyRows, error: legacyError } = await supabase
     .from("matches")
     .select("id, team_a_id, team_b_id, leaguepedia_match_id")
-    .eq("tournament_id", payload.tournament_id)
     .gte("match_date", dayStart)
     .lte("match_date", dayEnd)
     .or(
       `and(team_a_id.eq.${payload.team_a_id},team_b_id.eq.${payload.team_b_id}),and(team_a_id.eq.${payload.team_b_id},team_b_id.eq.${payload.team_a_id})`,
-    );
+    )
+    .like("leaguepedia_match_id", "gol:%");
 
   if (legacyError) {
     throw legacyError;
   }
 
-  const legacyMatch = (legacyRows ?? []).find((row) =>
-    String(row.leaguepedia_match_id ?? "").startsWith("gol:"),
-  );
+  const legacyMatch = legacyRows?.[0];
 
   return legacyMatch?.id ?? null;
 }
@@ -530,7 +535,7 @@ export async function syncLeaguepediaLck2026(
         continue;
       }
 
-      const matchDate = parseMatchDate(row.DateTime_UTC);
+      const matchDate = matchDateFromRow(row);
       if (!matchDate) {
         summary.skipped.push({
           matchId: row.MatchId,
