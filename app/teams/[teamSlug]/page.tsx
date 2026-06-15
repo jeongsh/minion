@@ -47,6 +47,16 @@ const AWARD_META: Record<string, { label: string; icon: string; style: string }>
   ewc_runner_up:         { label: "EWC 준우승",        icon: "🥈", style: "bg-zinc-500 text-white border-zinc-600" },
 };
 
+/** tournamentName에서 시즌(Spring/Summer/Season/Cup 등)을 추출해 라벨에 붙인다. */
+function buildAwardLabel(award: TeamAward, baseLabel: string): string {
+  // LCK 계열만 시즌 구분이 필요
+  if (!award.awardType.startsWith("lck_")) return baseLabel;
+  const m = award.tournamentName.match(/\b(Spring|Summer|Winter|Season|Cup)\b/i);
+  if (!m) return baseLabel;
+  const suffix = award.awardType === "lck_champion" ? "우승" : "준우승";
+  return `LCK ${m[1]} ${suffix}`;
+}
+
 function AwardHistory({ awards }: { awards: TeamAward[] }) {
   const teamAwards = awards.filter((a) => TEAM_AWARD_TYPES.has(a.awardType));
 
@@ -73,13 +83,14 @@ function AwardHistory({ awards }: { awards: TeamAward[] }) {
             <div className="flex flex-wrap gap-2">
               {yearAwards.map((award) => {
                 const meta = AWARD_META[award.awardType];
+                const label = buildAwardLabel(award, meta?.label ?? award.awardType);
                 return (
                   <span
                     key={award.id}
                     className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-semibold ${meta?.style ?? "bg-surface border-border text-foreground"}`}
                   >
                     <span>{meta?.icon}</span>
-                    {meta?.label ?? award.awardType}
+                    {label}
                   </span>
                 );
               })}
