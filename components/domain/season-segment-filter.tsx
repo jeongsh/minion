@@ -33,7 +33,8 @@ export function SeasonSegmentFilter({
     }
 
     const query = params.toString();
-    router.push(query ? `${basePath}?${query}` : basePath);
+    const href = query ? `${basePath}?${query}` : basePath;
+    router.push(href, { scroll: false });
   }
 
   return (

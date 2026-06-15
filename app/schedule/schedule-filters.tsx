@@ -21,7 +21,7 @@ export function ScheduleFilters({
 
     params.set("year", String(year));
     params.set("month", String(month));
-    router.push(`/schedule?${params.toString()}`);
+    router.push(`/schedule?${params.toString()}`, { scroll: false });
   }
 
   return (
