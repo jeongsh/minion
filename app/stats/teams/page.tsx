@@ -1,19 +1,48 @@
 import Link from "next/link";
+import { Suspense } from "react";
+
+import { SeasonSegmentFilter } from "@/components/domain/season-segment-filter";
 import { SectionHeader } from "@/components/layout/section-header";
 import { DataTable } from "@/components/ui/data-table";
-import { getMatches, getSets, getTeams } from "@/lib/data/lck";
+import { getMatches, getSets, getTeams, getTournaments } from "@/lib/data/lck";
+import {
+  filterMatchesBySegment,
+  filterSetsByMatches,
+  parseSeasonSegment,
+  segmentLabel,
+} from "@/lib/tournament-filters";
 import { buildTeamStandingRows, buildTeamStatSummary } from "@/lib/view-data";
 
-export default async function TeamStatsPage() {
-  const [teams, matches, sets] = await Promise.all([getTeams(), getMatches(), getSets()]);
-  const rows = buildTeamStandingRows(teams, matches, sets).map((standing) => ({
+export default async function TeamStatsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ segment?: string }>;
+}) {
+  const params = await searchParams;
+  const activeSegment = parseSeasonSegment(params.segment);
+
+  const [teams, matches, sets, tournaments] = await Promise.all([
+    getTeams(),
+    getMatches(),
+    getSets(),
+    getTournaments(),
+  ]);
+
+  const segmentMatches = filterMatchesBySegment(matches, tournaments, activeSegment);
+  const segmentSets = filterSetsByMatches(sets, segmentMatches);
+  const rows = buildTeamStandingRows(teams, segmentMatches, segmentSets).map((standing) => ({
     ...standing,
-    stats: buildTeamStatSummary(standing.team.id, sets),
+    stats: buildTeamStatSummary(standing.team.id, segmentSets),
   }));
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-[var(--page-inline)] py-10">
-      <SectionHeader eyebrow="스탯" title="팀 스탯" />
+      <SectionHeader eyebrow="스탯" title={`${segmentLabel(activeSegment)} 팀 스탯`} />
+
+      <Suspense fallback={null}>
+        <SeasonSegmentFilter activeSegment={activeSegment} basePath="/stats/teams" />
+      </Suspense>
+
       <DataTable
         rows={rows}
         columns={[

@@ -118,6 +118,13 @@ type TournamentRow = {
   name: string;
   season: number;
   category: string;
+  split?: string | null;
+  region?: string | null;
+  league?: string | null;
+  start_date?: string | null;
+  end_date?: string | null;
+  source?: string | null;
+  source_tournament_id?: string | null;
 };
 
 type StageRow = {
@@ -308,6 +315,13 @@ function mapTournament(row: TournamentRow): Tournament {
     name: row.name,
     season: row.season,
     category: row.category,
+    split: row.split ?? null,
+    region: row.region ?? null,
+    league: row.league ?? null,
+    startDate: row.start_date ?? null,
+    endDate: row.end_date ?? null,
+    source: row.source ?? null,
+    sourceTournamentId: row.source_tournament_id ?? null,
   };
 }
 
@@ -433,8 +447,10 @@ export async function getTournaments() {
   return fromSupabase(async () => {
     const { data, error } = await createSupabaseServerClient()
       .from("tournaments")
-      .select("id, name, season, category")
-      .order("season", { ascending: false });
+      .select(
+        "id, name, season, category, split, region, league, start_date, end_date, source, source_tournament_id",
+      )
+      .order("start_date", { ascending: true, nullsFirst: false });
 
     if (error) {
       throw error;
@@ -596,6 +612,7 @@ export async function getPlayerStatLines(setId?: string) {
     }
 
     return (data as SetPlayerStatsRow[]).map((row) => ({
+      setId: row.set_id,
       playerId: row.player_id,
       teamId: row.team_id,
       position: row.position,

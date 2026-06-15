@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "sync:lck-2026": "node scripts/sync-gol-lck-2026.mjs"
+    "sync:lck-2026": "node --experimental-strip-types scripts/sync-leaguepedia-lck-2026.ts",
+    "sync:lck-2026:full": "node --experimental-strip-types scripts/sync-leaguepedia-lck-2026.ts --full"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.108.1",

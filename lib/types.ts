@@ -49,6 +49,13 @@ export type Tournament = {
   name: string;
   season: number;
   category: string;
+  split?: string | null;
+  region?: string | null;
+  league?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  source?: string | null;
+  sourceTournamentId?: string | null;
 };
 
 export type Stage = {
@@ -122,6 +129,7 @@ export type SetPickBan = {
 };
 
 export type PlayerStatLine = {
+  setId: string;
   playerId: string;
   teamId: string;
   position: PlayerPosition;

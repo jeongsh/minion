@@ -1,8 +1,14 @@
 import Link from "next/link";
 import { Suspense } from "react";
 
+import { SeasonSegmentFilter } from "@/components/domain/season-segment-filter";
 import { SourceNotice } from "@/components/domain/source-notice";
 import { getMatches, getStages, getTeams, getTournaments } from "@/lib/data/lck";
+import {
+  filterMatchesBySegment,
+  parseSeasonSegment,
+  segmentLabel,
+} from "@/lib/tournament-filters";
 import type { Match, Team } from "@/lib/types";
 import {
   formatDateHeaderKST,
@@ -81,10 +87,11 @@ function currentKSTMonthYear() {
 export default async function SchedulePage({
   searchParams,
 }: {
-  searchParams: Promise<{ month?: string; year?: string }>;
+  searchParams: Promise<{ month?: string; year?: string; segment?: string }>;
 }) {
   const params = await searchParams;
   const { month: defaultMonth, year: defaultYear } = currentKSTMonthYear();
+  const activeSegment = parseSeasonSegment(params.segment);
 
   const [matches, teams, tournaments, stages] = await Promise.all([
     getMatches(),
@@ -96,7 +103,8 @@ export default async function SchedulePage({
   const activeYear = params.year ? Number(params.year) : defaultYear;
   const activeMonth = params.month ? Number(params.month) : defaultMonth;
 
-  const filteredMatches = matches.filter(
+  const segmentMatches = filterMatchesBySegment(matches, tournaments, activeSegment);
+  const filteredMatches = segmentMatches.filter(
     (match) => getYearKST(match.matchDate) === activeYear && getMonthKST(match.matchDate) === activeMonth,
   );
 
@@ -104,7 +112,6 @@ export default async function SchedulePage({
     (a, b) => new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime(),
   );
 
-  const activeTournament = tournaments[0];
   const dateGroups = sortedMatches.reduce<Record<string, Match[]>>((groups, match) => {
     const key = formatDateHeaderKST(match.matchDate);
 
@@ -118,36 +125,26 @@ export default async function SchedulePage({
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-[var(--page-inline)] py-8">
       <section className="flex flex-col gap-6" aria-labelledby="schedule-title">
         <h1 id="schedule-title" className="text-2xl font-bold">
-          {activeTournament?.name ?? "LCK"} 경기 일정
+          {segmentLabel(activeSegment)} 경기 일정
         </h1>
+
+        <Suspense fallback={null}>
+          <SeasonSegmentFilter
+            activeSegment={activeSegment}
+            basePath="/schedule"
+            preserveKeys={["year", "month"]}
+          />
+        </Suspense>
 
         <Suspense fallback={null}>
           <ScheduleFilters activeYear={activeYear} activeMonth={activeMonth} />
         </Suspense>
-
-        <div className="flex items-center gap-4 overflow-x-auto border-b border-border pb-4">
-          <button type="button" className="flex items-center gap-2 pr-4 text-sm font-semibold">
-            <span className="text-2xl leading-none">≡</span>
-            전체
-          </button>
-          {teams.map((team) => (
-            <button key={team.id} type="button" className="flex min-w-fit items-center gap-2 text-sm text-muted">
-              <span
-                className="grid size-7 place-items-center rounded-full bg-surface-muted text-[10px] font-bold"
-                style={{ color: team.primaryColor }}
-              >
-                {team.shortName.slice(0, 3)}
-              </span>
-              {team.shortName}
-            </button>
-          ))}
-        </div>
       </section>
 
       <section className="overflow-hidden rounded-md border border-border bg-surface" aria-label="경기 목록">
         {Object.keys(dateGroups).length === 0 ? (
           <div className="px-5 py-10 text-center text-sm text-muted">
-            {activeYear}년 {activeMonth}월에 예정된 경기가 없습니다.
+            {activeYear}년 {activeMonth}월 · {segmentLabel(activeSegment)} 구간에 예정된 경기가 없습니다.
           </div>
         ) : (
           Object.entries(dateGroups).map(([date, groupMatches]) => (

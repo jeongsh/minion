@@ -4,21 +4,25 @@ import { getMatches, getPlayers, getStages, getTeams, getTournaments } from "@/l
 import type { Team } from "@/lib/types";
 import { formatDateTime } from "@/lib/view-data";
 
-import { createMatchAction } from "./actions";
+import { createMatchAction, getLeaguepediaSyncCursor } from "./actions";
 import { MatchEditModal } from "./match-edit-modal";
 import { MatchFields } from "./match-fields";
+import { SyncLeaguepediaButton } from "./sync-leaguepedia-button";
+
+export const maxDuration = 120;
 
 function teamName(teams: Team[], teamId: string) {
   return teams.find((team) => team.id === teamId)?.shortName ?? "-";
 }
 
 export default async function AdminMatchesPage() {
-  const [matches, teams, tournaments, stages, players] = await Promise.all([
+  const [matches, teams, tournaments, stages, players, syncCursor] = await Promise.all([
     getMatches(),
     getTeams(),
     getTournaments(),
     getStages(),
     getPlayers(),
+    getLeaguepediaSyncCursor(),
   ]);
 
   const sortedMatches = [...matches].sort(
@@ -28,6 +32,13 @@ export default async function AdminMatchesPage() {
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-[var(--page-inline)] py-10">
       <SectionHeader eyebrow="관리자" title="경기 관리" />
+
+      <section className="rounded-md border border-border bg-surface p-5">
+        <h2 className="text-lg font-semibold">Leaguepedia 동기화</h2>
+        <div className="mt-4">
+          <SyncLeaguepediaButton cursor={syncCursor} />
+        </div>
+      </section>
 
       <section className="rounded-md border border-border bg-surface p-5">
         <h2 className="text-lg font-semibold">경기 생성</h2>

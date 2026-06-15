@@ -2,8 +2,46 @@
 
 import { revalidatePath } from "next/cache";
 
+import {
+  getLastCompletedMatchCursor,
+  syncLeaguepediaLck2026,
+  type LeaguepediaSyncSummary,
+} from "@/lib/sync/leaguepedia-lck-2026";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { parseDateTimeLocalKST } from "@/lib/view-data";
+
+export type SyncLeaguepediaActionResult =
+  | {
+      ok: true;
+      summary: LeaguepediaSyncSummary;
+    }
+  | {
+      ok: false;
+      error: string;
+    };
+
+export async function syncLeaguepediaMatchesAction(
+  mode: "incremental" | "full" = "incremental",
+): Promise<SyncLeaguepediaActionResult> {
+  try {
+    const supabase = createSupabaseAdminClient();
+    const summary = await syncLeaguepediaLck2026(supabase, { mode });
+
+    revalidatePath("/admin/matches");
+    revalidatePath("/schedule");
+    revalidatePath("/");
+
+    return { ok: true, summary };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Leaguepedia 동기화에 실패했습니다.";
+    return { ok: false, error: message };
+  }
+}
+
+export async function getLeaguepediaSyncCursor() {
+  const supabase = createSupabaseAdminClient();
+  return getLastCompletedMatchCursor(supabase);
+}
 
 function textOrNull(value: FormDataEntryValue | null) {
   const text = typeof value === "string" ? value.trim() : "";
