@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Match, Team } from "@/lib/types";
-import { formatDateTime, teamLabel } from "@/lib/view-data";
+import { formatDateTime, matchHref, teamLabel } from "@/lib/view-data";
 
 export function MatchCard({ match, teams = [] }: { match: Match; teams?: Team[] }) {
   return (
@@ -22,7 +22,7 @@ export function MatchCard({ match, teams = [] }: { match: Match; teams?: Team[] 
         <span className="text-right">{teamLabel(teams, match.teamBId)}</span>
       </div>
       <Link
-        href={`/matches/${match.id}`}
+        href={matchHref(match)}
         className="mt-4 inline-flex rounded-md border border-border px-3 py-2 text-sm font-semibold hover:bg-surface-muted"
       >
         경기 상세 보기

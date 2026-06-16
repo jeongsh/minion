@@ -257,7 +257,13 @@
 - [ ] `/stats/form` 데이터를 Supabase query로 교체
 - [ ] `/stats/fan-ratings` 데이터를 Supabase query로 교체
 - [ ] `/stats/pom` 데이터를 Supabase query로 교체
+- [ ] 공통 `RadarChart` 컴포넌트 구현
+- [ ] `/players/[playerSlug]`에 선수 6각형 표시
+- [ ] `/teams/[teamSlug]`에 팀 6각형 표시
+- [ ] 팀/선수 미니모달의 6각형 축소 표시 구현 여부 결정
+- [ ] 6각형 empty/placeholder 상태 구현
 - [ ] 최근 폼 계산에 팬 평점이 섞이지 않는지 확인
+- [ ] 6각형 계산에 팬 평점이 섞이지 않는지 확인
 - [ ] 팬 평점 랭킹이 최근 폼과 분리되어 보이는지 확인
 - [ ] MVP 제외 지표가 UI에 노출되지 않는지 확인
 

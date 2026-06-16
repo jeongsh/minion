@@ -1,7 +1,7 @@
 import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
-import { MiniModalLink } from "@/components/domain/mini-modal-link";
-import { SectionHeader } from "@/components/layout/section-header";
+
 import { DataTable } from "@/components/ui/data-table";
 import {
   getChampions,
@@ -11,69 +11,380 @@ import {
   getPlayers,
   getSetById,
   getSetPicksBans,
+  getSetsByMatchId,
   getTeams,
 } from "@/lib/data/lck";
 import { calculatePlayerStats } from "@/lib/stats";
-import type { Player, SetPickBan } from "@/lib/types";
-import { durationLabel, playerLabel, teamLabel } from "@/lib/view-data";
+import type { Champion, DerivedPlayerStats, Player, PlayerStatLine, SetResult, Team } from "@/lib/types";
+import { durationLabel, matchHref, playerLabel, setHref, teamLabel } from "@/lib/view-data";
 
-function fiveSlots<T>(items: T[]) {
-  return Array.from({ length: 5 }, (_, index) => items[index] ?? null);
-}
+import { SetDraftView } from "./set-draft-view";
 
 function goldLabel(value: number | null | undefined) {
-  if (!value) {
-    return "-";
-  }
-
+  if (!value) return "-";
   return `${(value / 1000).toFixed(1)}K`;
 }
 
-function DraftChampionTile({
-  draft,
-  championName,
-  player,
+function damageLabel(value: number | null | undefined) {
+  if (!value) return "-";
+  return value >= 1000 ? `${(value / 1000).toFixed(1)}K` : value.toLocaleString("ko-KR");
+}
+
+function numberLabel(value: number | null | undefined) {
+  return value == null ? "-" : value.toLocaleString("ko-KR");
+}
+
+function normalizedDdragonId(champion?: Champion) {
+  const value = champion?.ddragonId || champion?.slug || champion?.name || "";
+  const compact = value.replace(/[^A-Za-z0-9]/g, "");
+  const exceptions: Record<string, string> = {
+    BelVeth: "Belveth",
+    ChoGath: "Chogath",
+    JarvanIv: "JarvanIV",
+    JarvanIV: "JarvanIV",
+    Ksante: "KSante",
+    KSante: "KSante",
+    NunuWillump: "Nunu",
+    Reksai: "RekSai",
+    RenataGlasc: "Renata",
+    VelKoz: "Velkoz",
+  };
+  return exceptions[compact] ?? compact;
+}
+
+function championImage(champion?: Champion) {
+  if (!champion) return "";
+  if (champion.imageUrl) return champion.imageUrl;
+  const ddragonId = normalizedDdragonId(champion);
+  return ddragonId ? `https://ddragon.leagueoflegends.com/cdn/img/champion/tiles/${ddragonId}_0.jpg` : "";
+}
+
+function itemImage(itemId: number, version: string) {
+  return `https://ddragon.leagueoflegends.com/cdn/${version}/img/item/${itemId}.png`;
+}
+
+function dragonTypeItems(set: SetResult, side: "blue" | "red") {
+  const prefix = side === "blue" ? "blue" : "red";
+  const entries = [
+    ["바람", set[`${prefix}Clouds` as keyof SetResult]],
+    ["화염", set[`${prefix}Infernals` as keyof SetResult]],
+    ["대지", set[`${prefix}Mountains` as keyof SetResult]],
+    ["바다", set[`${prefix}Oceans` as keyof SetResult]],
+    ["마공", set[`${prefix}Hextechs` as keyof SetResult]],
+    ["화공", set[`${prefix}Chemtechs` as keyof SetResult]],
+    ["장로", set[`${prefix}Elders` as keyof SetResult]],
+  ] as const;
+
+  return entries
+    .map(([label, value]) => ({ label, value: typeof value === "number" ? value : 0 }))
+    .filter((item) => item.value > 0);
+}
+
+function dragonText(set: SetResult, side: "blue" | "red") {
+  const items = dragonTypeItems(set, side);
+  return items.length > 0 ? items.map((item) => `${item.label} ${item.value}`).join(" / ") : "-";
+}
+
+function kdaText(rows: Array<{ line: { kills: number; deaths: number; assists: number } }>) {
+  const totals = rows.reduce(
+    (acc, row) => ({
+      kills: acc.kills + row.line.kills,
+      deaths: acc.deaths + row.line.deaths,
+      assists: acc.assists + row.line.assists,
+    }),
+    { kills: 0, deaths: 0, assists: 0 },
+  );
+  return `${totals.kills}/${totals.deaths}/${totals.assists}`;
+}
+
+function matchScoreForTeam(match: { teamAId: string; teamBId: string; teamAScore: number | null; teamBScore: number | null }, teamId: string) {
+  if (match.teamAId === teamId) return match.teamAScore;
+  if (match.teamBId === teamId) return match.teamBScore;
+  return null;
+}
+
+function TeamHeader({
+  teamName,
+  score,
+  result,
   align = "left",
-  muted = false,
 }: {
-  draft: SetPickBan | null;
-  championName: string;
-  player?: Player;
+  teamName: string;
+  score: number | null;
+  result: "WIN" | "LOSS";
   align?: "left" | "right";
-  muted?: boolean;
 }) {
   return (
     <div
-      className={`relative min-h-20 overflow-hidden rounded-md border border-border bg-background p-3 ${
-        muted ? "opacity-75" : ""
+      className={`flex items-center gap-4 bg-foreground px-5 py-4 text-background ${
+        align === "right" ? "justify-end bg-accent" : ""
       }`}
     >
-      <div className={`flex h-full flex-col justify-between gap-2 ${align === "right" ? "items-end text-right" : ""}`}>
-        <span className="text-xs font-semibold text-muted">{player?.position ?? draft?.phase ?? "대기"}</span>
-        <div>
-          <p className="text-base font-semibold">
-            {draft ? (
-              <MiniModalLink
-                href="/stats/champions"
-                label={championName}
-                eyebrow="챔피언"
-                title={championName}
-                rows={[
-                  { label: "픽", value: "집계 예정" },
-                  { label: "밴", value: "집계 예정" },
-                  { label: "승률", value: "집계 예정" },
-                ]}
-                cta="챔피언 스탯 보기"
-              />
-            ) : (
-              "미입력"
-            )}
-          </p>
-          <p className="text-xs text-muted">{player?.name ?? "선수 미입력"}</p>
-        </div>
-      </div>
-      {muted ? <div className="absolute inset-x-3 top-1/2 h-px rotate-[-18deg] bg-muted" /> : null}
+      {align === "left" ? <strong className="text-xl">{teamName}</strong> : null}
+      <span className="text-4xl font-semibold">{score ?? "-"}</span>
+      <span className="h-8 w-px bg-background/35" />
+      <span className="text-xl font-semibold">{result}</span>
+      {align === "right" ? <strong className="text-xl">{teamName}</strong> : null}
     </div>
+  );
+}
+
+function StatRow({ label, left, right }: { label: string; left: string; right: string }) {
+  return (
+    <div className="grid grid-cols-[1fr_7.5rem_1fr] items-center border-b border-border px-4 py-3 last:border-b-0">
+      <strong className="text-right text-base">{left}</strong>
+      <span className="text-center text-xs font-semibold text-muted">{label}</span>
+      <strong className="text-base">{right}</strong>
+    </div>
+  );
+}
+
+function DamageRows({
+  rows,
+  champions,
+  maxDamage,
+  side,
+}: {
+  rows: Array<{
+    line: {
+      championId?: string | null;
+      damageToChampions: number;
+    };
+    player?: Player;
+  }>;
+  champions: Champion[];
+  maxDamage: number;
+  side: "blue" | "red";
+}) {
+  return (
+    <div className="grid gap-2">
+      {rows.map((row) => {
+        const champion = champions.find((item) => item.id === row.line.championId);
+        const image = championImage(champion);
+        return (
+          <div
+            key={`${side}-${row.player?.id ?? row.line.championId}`}
+            className={`grid grid-cols-[2.25rem_minmax(0,1fr)] items-center gap-2 ${
+              side === "red" ? "grid-cols-[minmax(0,1fr)_2.25rem]" : ""
+            }`}
+          >
+            {side === "blue" && image ? (
+              <Image src={image} alt="" width={36} height={36} className="h-9 w-9 rounded object-cover" />
+            ) : null}
+            <div className={`min-w-0 ${side === "red" ? "text-right" : ""}`}>
+              <div
+                className={`grid items-center gap-2 text-sm ${
+                  side === "red" ? "grid-cols-[auto_minmax(0,1fr)]" : "grid-cols-[minmax(0,1fr)_auto]"
+                }`}
+              >
+                {side === "red" ? (
+                  <span className="shrink-0 tabular-nums">{damageLabel(row.line.damageToChampions)}</span>
+                ) : null}
+                <span className="truncate font-semibold">{row.player?.name ?? "-"}</span>
+                {side === "blue" ? (
+                  <span className="shrink-0 tabular-nums">{damageLabel(row.line.damageToChampions)}</span>
+                ) : null}
+              </div>
+              <div className="mt-1 h-2 overflow-hidden rounded-full bg-surface-muted">
+                <div
+                  className={`h-full rounded-full ${side === "blue" ? "bg-accent" : "ml-auto bg-rose-500"}`}
+                  style={{ width: `${Math.max(4, (row.line.damageToChampions / maxDamage) * 100)}%` }}
+                />
+              </div>
+            </div>
+            {side === "red" && image ? (
+              <Image src={image} alt="" width={36} height={36} className="h-9 w-9 rounded object-cover" />
+            ) : null}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+type PlayerStatRow = {
+  line: PlayerStatLine;
+  player?: Player;
+  stats: DerivedPlayerStats;
+  rating?: { rating: number };
+};
+
+function PlayerStatBoard({
+  blueRows,
+  redRows,
+  champions,
+  maxDamage,
+  teams,
+  blueTeamId,
+  redTeamId,
+  winnerTeamId,
+  itemVersion,
+}: {
+  blueRows: PlayerStatRow[];
+  redRows: PlayerStatRow[];
+  champions: Champion[];
+  maxDamage: number;
+  teams: Team[];
+  blueTeamId: string;
+  redTeamId: string;
+  winnerTeamId: string | null;
+  itemVersion: string;
+}) {
+  const renderTeamRows = (rows: PlayerStatRow[], side: "blue" | "red") =>
+    rows.map((row) => {
+      const champion = champions.find((item) => item.id === row.line.championId);
+      const image = championImage(champion);
+      const damageWidth = Math.max(4, (row.line.damageToChampions / maxDamage) * 100);
+      const accent = side === "blue" ? "bg-accent" : "bg-rose-500";
+
+      return (
+        <div
+          key={`${side}-${row.line.playerId}`}
+          className="grid min-w-[58rem] grid-cols-[14rem_9rem_11rem_7rem_7rem_1fr] items-center gap-4 border-t border-border px-4 py-2.5 text-sm"
+        >
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded bg-surface-muted">
+              {image ? (
+                <Image src={image} alt="" width={44} height={44} className="h-full w-full object-cover" />
+              ) : null}
+              <span className="absolute bottom-0 right-0 rounded-tl bg-background/90 px-1 text-[10px] font-semibold">
+                {row.line.position}
+              </span>
+            </div>
+            <div className="min-w-0">
+              <p className="truncate font-semibold">{teamLabel(teams, row.line.teamId)} {row.player?.name ?? "-"}</p>
+              <p className="truncate text-xs text-muted">{champion?.name ?? "-"}</p>
+            </div>
+          </div>
+
+          <div className="text-center">
+            <p className="font-semibold tabular-nums">
+              {row.line.kills} / {row.line.deaths} / {row.line.assists}
+            </p>
+            <p className="text-xs font-semibold text-muted tabular-nums">{row.stats.kda.toFixed(2)}</p>
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between gap-3">
+              <span className="font-semibold tabular-nums">{numberLabel(row.line.damageToChampions)}</span>
+              <span className="text-xs text-muted tabular-nums">DPM {row.stats.dpm}</span>
+            </div>
+            <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-surface-muted">
+              <div className={`h-full rounded-full ${accent}`} style={{ width: `${damageWidth}%` }} />
+            </div>
+          </div>
+
+          <div className="text-center font-semibold tabular-nums">{row.line.visionScore}</div>
+
+          <div className="text-center">
+            <p className="font-semibold tabular-nums">{row.line.cs}</p>
+            <p className="text-xs text-muted tabular-nums">{row.stats.csm.toFixed(1)}</p>
+          </div>
+
+          <div className="flex flex-wrap gap-1">
+            {row.line.itemIds.some((itemId) => itemId && itemId > 0) ? (
+              row.line.itemIds.map((itemId, index) =>
+                itemId && itemId > 0 ? (
+                  <Image
+                    key={`${itemId}-${index}`}
+                    src={itemImage(itemId, itemVersion)}
+                    alt=""
+                    width={28}
+                    height={28}
+                    className="h-7 w-7 rounded border border-border bg-surface-muted object-cover"
+                  />
+                ) : (
+                  <span
+                    key={`empty-${index}`}
+                    className="h-7 w-7 rounded border border-dashed border-border bg-surface-muted"
+                    aria-hidden="true"
+                  />
+                ),
+              )
+            ) : (
+              <span className="text-xs font-semibold text-muted">Riot 아이템 미동기화</span>
+            )}
+          </div>
+        </div>
+      );
+    });
+
+  const teamBlock = (teamId: string, side: "blue" | "red", rows: PlayerStatRow[]) => {
+    const won = winnerTeamId === teamId;
+    return (
+      <div>
+        <div className="flex items-center justify-between gap-3 bg-surface-muted px-4 py-3">
+          <div className="flex items-center gap-2">
+            <strong>{teamLabel(teams, teamId)}</strong>
+            <span className={`text-xs font-semibold ${won ? "text-accent" : "text-muted"}`}>
+              {won ? "Victory" : "Defeat"}
+            </span>
+          </div>
+          <span className="text-xs font-semibold text-muted">{side === "blue" ? "Blue Side" : "Red Side"}</span>
+        </div>
+        {renderTeamRows(rows, side)}
+      </div>
+    );
+  };
+
+  return (
+    <section className="flex flex-col gap-4" aria-labelledby="player-stats">
+      <h2 id="player-stats" className="text-xl font-semibold">
+        선수 스탯
+      </h2>
+      {blueRows.length + redRows.length === 0 ? (
+        <div className="rounded-md border border-border bg-surface p-6 text-sm text-muted">
+          선수 스탯이 아직 연결되지 않았습니다.
+        </div>
+      ) : (
+        <div className="overflow-x-auto rounded-md border border-border bg-surface">
+          <div className="grid min-w-[58rem] grid-cols-[14rem_9rem_11rem_7rem_7rem_1fr] gap-4 px-4 py-3 text-xs font-semibold uppercase text-muted">
+            <span>Champion / Player</span>
+            <span className="text-center">KDA</span>
+            <span>Damage</span>
+            <span className="text-center">Sight</span>
+            <span className="text-center">CS</span>
+            <span>Items</span>
+          </div>
+          {teamBlock(blueTeamId, "blue", blueRows)}
+          {teamBlock(redTeamId, "red", redRows)}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function SetNavigation({
+  match,
+  sets,
+  currentSetId,
+}: {
+  match: Parameters<typeof setHref>[0];
+  sets: SetResult[];
+  currentSetId: string;
+}) {
+  if (sets.length <= 1) return null;
+
+  return (
+    <nav className="flex flex-wrap gap-2" aria-label="같은 매치 세트 이동">
+      {sets.map((item) => {
+        const active = item.id === currentSetId;
+        return (
+          <Link
+            key={item.id}
+            href={setHref(match, item)}
+            aria-current={active ? "page" : undefined}
+            className={`rounded-md border px-3 py-2 text-sm font-semibold ${
+              active
+                ? "border-accent bg-accent text-accent-foreground"
+                : "border-border bg-surface hover:bg-surface-muted"
+            }`}
+          >
+            {item.setNumber}세트
+          </Link>
+        );
+      })}
+    </nav>
   );
 }
 
@@ -89,24 +400,25 @@ export default async function SetDetailPage({
     notFound();
   }
 
-  const [teams, players, champions, picksBans, playerStatLines, fanRatings] = await Promise.all([
+  const [teams, players, champions, picksBans, playerStatLines, fanRatings, matchSets] = await Promise.all([
     getTeams(),
     getPlayers(),
     getChampions(),
     getSetPicksBans(set.id),
     getPlayerStatLines(set.id),
     getFanRatings(),
+    getSetsByMatchId(match.id),
   ]);
-  const championName = (championId: string) =>
-    champions.find((champion) => champion.id === championId)?.name ?? "-";
+
   const sideDraftItems = (side: "blue" | "red", actionType: "pick" | "ban") =>
     picksBans
       .filter((item) => item.side === side && item.actionType === actionType)
       .sort((a, b) => a.orderIndex - b.orderIndex);
-  const blueBans = sideDraftItems("blue", "ban");
-  const redBans = sideDraftItems("red", "ban");
-  const bluePicks = sideDraftItems("blue", "pick");
-  const redPicks = sideDraftItems("red", "pick");
+  const lineDraftItems = (teamId: string) =>
+    positions.map((position) => {
+      const statLine = playerStatLines.find((line) => line.teamId === teamId && line.position === position);
+      return picksBans.find((item) => item.actionType === "pick" && item.championId === statLine?.championId) ?? null;
+    });
   const playerByPosition = (teamId: string, position: Player["position"]) =>
     players.find((player) => player.teamId === teamId && player.position === position);
   const positions: Player["position"][] = ["TOP", "JGL", "MID", "BOT", "SUP"];
@@ -128,182 +440,108 @@ export default async function SetDetailPage({
       rating: relatedRatings.find((rating) => rating.playerId === line.playerId),
     };
   });
+  const positionOrder = new Map<Player["position"], number>(positions.map((position, index) => [position, index]));
+  const byPosition = (a: PlayerStatRow, b: PlayerStatRow) =>
+    (positionOrder.get(a.line.position) ?? 99) - (positionOrder.get(b.line.position) ?? 99);
+  const blueRows = playerRows
+    .filter((row) => row.line.teamId === set.blueTeamId)
+    .sort(byPosition);
+  const redRows = playerRows
+    .filter((row) => row.line.teamId === set.redTeamId)
+    .sort(byPosition);
   const blueWon = set.winnerTeamId === set.blueTeamId;
   const redWon = set.winnerTeamId === set.redTeamId;
-  const finalGoldDiff =
-    set.blueGold !== null && set.redGold !== null ? Math.abs(set.blueGold - set.redGold) : null;
+  const maxDamage = Math.max(...playerRows.map((row) => row.line.damageToChampions), 1);
+  const itemVersion = champions.find((champion) => champion.ddragonVersion)?.ddragonVersion ?? "16.12.1";
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-[var(--page-inline)] py-10">
-      <SectionHeader eyebrow="세트 상세" title={`${match.name} · ${set.setNumber}세트`} />
+      <section className="flex flex-col gap-2">
+        <p className="text-sm font-semibold text-accent">세트 상세</p>
+        <h1 className="text-3xl font-semibold tracking-normal md:text-4xl">
+          {teamLabel(teams, set.blueTeamId)} vs {teamLabel(teams, set.redTeamId)} · {set.setNumber}세트
+        </h1>
+        <SetNavigation match={match} sets={matchSets} currentSetId={set.id} />
+      </section>
 
-      <section className="flex flex-col gap-4" aria-labelledby="set-summary">
-        <h2 id="set-summary" className="text-xl font-semibold">
-          세트 종합 결과
-        </h2>
-        <div className="overflow-hidden rounded-md border border-border bg-surface">
-          <div className="grid gap-3 border-b border-border bg-surface-muted p-4 md:grid-cols-[1fr_auto_1fr] md:items-center">
-            <div className="flex items-center justify-between gap-3">
-              <strong className="text-2xl">{teamLabel(teams, set.blueTeamId)}</strong>
-              <span className="text-2xl font-semibold">{blueWon ? "WIN" : "LOSS"}</span>
-            </div>
-            <div className="text-center">
-              <p className="text-xs font-semibold text-muted">GAME TIME</p>
-              <p className="text-3xl font-semibold">{durationLabel(set.durationSeconds)}</p>
-              <p className="text-xs text-muted">{match.name} · GAME {set.setNumber}</p>
-            </div>
-            <div className="flex items-center justify-between gap-3 md:flex-row-reverse">
-              <strong className="text-2xl">{teamLabel(teams, set.redTeamId)}</strong>
-              <span className="text-2xl font-semibold">{redWon ? "WIN" : "LOSS"}</span>
-            </div>
+      <section className="overflow-hidden rounded-md border border-border bg-surface" aria-labelledby="set-summary">
+        <div className="grid bg-foreground text-background lg:grid-cols-[1fr_15rem_1fr]">
+          <TeamHeader
+            teamName={teamLabel(teams, set.blueTeamId)}
+            score={matchScoreForTeam(match, set.blueTeamId)}
+            result={blueWon ? "WIN" : "LOSS"}
+          />
+          <div className="grid place-items-center border-y border-background/20 px-5 py-4 text-center lg:border-x lg:border-y-0">
+            <p className="text-xs font-semibold text-background/70">GAME TIME</p>
+            <p className="text-3xl font-semibold">{durationLabel(set.durationSeconds)}</p>
+            <p className="text-xs text-background/70">GAME {set.setNumber} · PATCH {set.patch ?? "-"}</p>
+          </div>
+          <TeamHeader
+            teamName={teamLabel(teams, set.redTeamId)}
+            score={matchScoreForTeam(match, set.redTeamId)}
+            result={redWon ? "WIN" : "LOSS"}
+            align="right"
+          />
+        </div>
+
+        <div className="grid gap-6 p-4 lg:grid-cols-[0.9fr_1.1fr]">
+          <div className="rounded-md border border-border bg-background">
+            <div className="border-b border-border px-4 py-3 text-center text-sm font-semibold">GAME STATS</div>
+            <StatRow label="KDA" left={kdaText(blueRows)} right={kdaText(redRows)} />
+            <StatRow label="GOLD" left={goldLabel(set.blueGold)} right={goldLabel(set.redGold)} />
+            <StatRow label="TOWERS" left={`${set.blueTowers ?? "-"}`} right={`${set.redTowers ?? "-"}`} />
+            <StatRow label="DRAKES" left={`${set.blueDragons ?? "-"}`} right={`${set.redDragons ?? "-"}`} />
+            <StatRow label="DRAKE TYPES" left={dragonText(set, "blue")} right={dragonText(set, "red")} />
+            <StatRow label="BARONS" left={`${set.blueBarons ?? "-"}`} right={`${set.redBarons ?? "-"}`} />
           </div>
 
-          <div className="grid gap-6 p-4 lg:grid-cols-[0.9fr_1.1fr]">
-            <div className="rounded-md border border-border bg-background">
-              {[
-                ["KILLS", `${set.blueKills ?? "-"}`, `${set.redKills ?? "-"}`],
-                ["GOLD", goldLabel(set.blueGold), goldLabel(set.redGold)],
-                ["TOWERS", `${set.blueTowers ?? "-"}`, `${set.redTowers ?? "-"}`],
-                ["DRAKES", `${set.blueDragons ?? "-"}`, `${set.redDragons ?? "-"}`],
-                ["BARONS", `${set.blueBarons ?? "-"}`, `${set.redBarons ?? "-"}`],
-              ].map(([label, left, right]) => (
-                <div
-                  key={label}
-                  className="grid grid-cols-[1fr_7rem_1fr] items-center border-b border-border px-4 py-3 last:border-b-0"
-                >
-                  <strong className="text-right text-lg">{left}</strong>
-                  <span className="text-center text-xs font-semibold text-muted">{label}</span>
-                  <strong className="text-lg">{right}</strong>
-                </div>
-              ))}
-            </div>
-
-            <div className="rounded-md border border-border bg-background p-4">
-              <h3 className="text-base font-semibold">골드 흐름</h3>
-              <div className="mt-4 grid min-h-40 place-items-center rounded-md border border-dashed border-border bg-surface p-4 text-center">
-                <div>
-                  <p className="text-2xl font-semibold">
-                    {finalGoldDiff ? `${goldLabel(finalGoldDiff)} 차이` : "골드 타임라인 데이터 준비 중"}
-                  </p>
-                  <p className="mt-2 text-sm text-muted">
-                    Riot match timeline이 연결되기 전까지는 최종 골드 차이만 표시합니다.
-                  </p>
-                </div>
+          <div className="rounded-md border border-border bg-background p-4">
+            <h2 id="set-summary" className="text-center text-sm font-semibold">
+              챔피언 대상 피해량
+            </h2>
+            {playerRows.length === 0 ? (
+              <div className="mt-4 grid min-h-40 place-items-center rounded-md border border-dashed border-border bg-surface p-4 text-center text-sm text-muted">
+                선수 스탯이 아직 연결되지 않았습니다.
               </div>
-            </div>
+            ) : (
+              <div className="mt-4 grid gap-5 xl:grid-cols-2">
+                <DamageRows rows={blueRows} champions={champions} maxDamage={maxDamage} side="blue" />
+                <DamageRows rows={redRows} champions={champions} maxDamage={maxDamage} side="red" />
+              </div>
+            )}
           </div>
         </div>
       </section>
 
-      <section className="flex flex-col gap-4" aria-labelledby="pick-ban">
-        <h2 id="pick-ban" className="text-xl font-semibold">
-          밴픽
-        </h2>
-        <div className="grid gap-3 rounded-md border border-border bg-surface p-4">
-          <div className="grid gap-3 md:grid-cols-2">
-            <div>
-              <div className="mb-2 flex items-center justify-between gap-3 text-sm font-semibold">
-                <span>{teamLabel(teams, set.blueTeamId)} 밴</span>
-                <span className="text-muted">BLUE</span>
-              </div>
-              <div className="grid grid-cols-5 gap-2">
-                {fiveSlots(blueBans).map((draft, index) => (
-                  <DraftChampionTile
-                    key={draft?.id ?? `blue-ban-${index}`}
-                    draft={draft}
-                    championName={draft ? championName(draft.championId) : "-"}
-                    muted
-                  />
-                ))}
-              </div>
-            </div>
-            <div>
-              <div className="mb-2 flex items-center justify-between gap-3 text-sm font-semibold">
-                <span className="text-muted">RED</span>
-                <span>{teamLabel(teams, set.redTeamId)} 밴</span>
-              </div>
-              <div className="grid grid-cols-5 gap-2">
-                {fiveSlots(redBans).map((draft, index) => (
-                  <DraftChampionTile
-                    key={draft?.id ?? `red-ban-${index}`}
-                    draft={draft}
-                    championName={draft ? championName(draft.championId) : "-"}
-                    align="right"
-                    muted
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
+      <SetDraftView
+        champions={champions}
+        blue={{
+          teamName: teamLabel(teams, set.blueTeamId),
+          bans: sideDraftItems("blue", "ban"),
+          picks: sideDraftItems("blue", "pick"),
+          linePicks: lineDraftItems(set.blueTeamId),
+          lineup: blueLineup,
+        }}
+        red={{
+          teamName: teamLabel(teams, set.redTeamId),
+          bans: sideDraftItems("red", "ban"),
+          picks: sideDraftItems("red", "pick"),
+          linePicks: lineDraftItems(set.redTeamId),
+          lineup: redLineup,
+        }}
+      />
 
-          <div className="grid gap-3 lg:grid-cols-[1fr_16rem_1fr]">
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-5 lg:grid-cols-5">
-              {fiveSlots(bluePicks).map((draft, index) => (
-                <DraftChampionTile
-                  key={draft?.id ?? `blue-pick-${index}`}
-                  draft={draft}
-                  championName={draft ? championName(draft.championId) : "-"}
-                  player={blueLineup[index]?.player}
-                />
-              ))}
-            </div>
-            <div className="flex min-h-36 flex-col items-center justify-center rounded-md border border-border bg-background p-4 text-center">
-              <p className="text-xs font-semibold text-muted">MATCH</p>
-              <p className="mt-2 text-lg font-semibold">{match.name}</p>
-              <div className="mt-4 grid w-full grid-cols-[1fr_auto_1fr] items-center gap-3">
-                <strong>{teamLabel(teams, set.blueTeamId)}</strong>
-                <span className="text-sm text-muted">vs</span>
-                <strong>{teamLabel(teams, set.redTeamId)}</strong>
-              </div>
-              <p className="mt-4 text-3xl font-semibold">{set.setNumber}</p>
-              <p className="mt-1 text-xs text-muted">PATCH {set.patch ?? "-"}</p>
-            </div>
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-5 lg:grid-cols-5">
-              {fiveSlots(redPicks).map((draft, index) => (
-                <DraftChampionTile
-                  key={draft?.id ?? `red-pick-${index}`}
-                  draft={draft}
-                  championName={draft ? championName(draft.championId) : "-"}
-                  player={redLineup[index]?.player}
-                  align="right"
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <DataTable
-          rows={picksBans}
-          columns={[
-            { key: "phase", label: "단계", render: (row) => row.phase },
-            { key: "order", label: "순서", render: (row) => row.orderIndex },
-            { key: "side", label: "진영", render: (row) => (row.side === "blue" ? "블루" : "레드") },
-            { key: "team", label: "팀", render: (row) => teamLabel(teams, row.teamId) },
-            { key: "action", label: "구분", render: (row) => (row.actionType === "pick" ? "픽" : "밴") },
-            { key: "champion", label: "챔피언", render: (row) => championName(row.championId) },
-          ]}
-        />
-      </section>
-
-      <section className="flex flex-col gap-4" aria-labelledby="player-stats">
-        <h2 id="player-stats" className="text-xl font-semibold">
-          선수 스탯
-        </h2>
-        <DataTable
-          rows={playerRows}
-          columns={[
-            { key: "player", label: "선수", render: (row) => row.player?.name ?? "-" },
-            { key: "team", label: "팀", render: (row) => teamLabel(teams, row.line.teamId) },
-            { key: "position", label: "포지션", render: (row) => row.line.position },
-            { key: "kda", label: "KDA", render: (row) => row.stats.kda },
-            { key: "kp", label: "KP%", render: (row) => `${row.stats.kp}%` },
-            { key: "dpm", label: "DPM", render: (row) => row.stats.dpm },
-            { key: "csm", label: "CSM", render: (row) => row.stats.csm },
-            { key: "gpm", label: "GPM", render: (row) => row.stats.gpm },
-            { key: "rating", label: "팬 평점", render: (row) => row.rating?.rating.toFixed(1) ?? "-" },
-          ]}
-        />
-      </section>
+      <PlayerStatBoard
+        blueRows={blueRows}
+        redRows={redRows}
+        champions={champions}
+        maxDamage={maxDamage}
+        teams={teams}
+        blueTeamId={set.blueTeamId}
+        redTeamId={set.redTeamId}
+        winnerTeamId={set.winnerTeamId}
+        itemVersion={itemVersion}
+      />
 
       <section className="flex flex-col gap-4" aria-labelledby="set-reviews">
         <h2 id="set-reviews" className="text-xl font-semibold">
@@ -321,7 +559,7 @@ export default async function SetDetailPage({
 
       <section className="flex flex-wrap gap-2" aria-label="이동">
         <Link
-          href={`/matches/${match.id}`}
+          href={matchHref(match)}
           className="rounded-md border border-border bg-surface px-3 py-2 text-sm font-semibold hover:bg-surface-muted"
         >
           매치 상세

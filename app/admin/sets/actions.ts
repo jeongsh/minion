@@ -1,8 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { resolveChampionIds } from "@/lib/champions-admin";
 
 function textOrNull(value: FormDataEntryValue | null) {
   const text = typeof value === "string" ? value.trim() : "";
@@ -18,6 +20,18 @@ function numberOrNull(value: FormDataEntryValue | null) {
 
   const parsed = Number(text);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function numberOrZero(value: FormDataEntryValue | null) {
+  return numberOrNull(value) ?? 0;
+}
+
+function countValue(formData: FormData, name: string) {
+  return numberOrNull(formData.get(name)) ?? 0;
+}
+
+function isPresent<T>(value: T | null): value is T {
+  return value !== null;
 }
 
 function setPayload(formData: FormData) {
@@ -41,6 +55,20 @@ function setPayload(formData: FormData) {
     red_gold: numberOrNull(formData.get("redGold")),
     blue_dragons: numberOrNull(formData.get("blueDragons")),
     red_dragons: numberOrNull(formData.get("redDragons")),
+    blue_clouds: numberOrNull(formData.get("blueClouds")),
+    red_clouds: numberOrNull(formData.get("redClouds")),
+    blue_infernals: numberOrNull(formData.get("blueInfernals")),
+    red_infernals: numberOrNull(formData.get("redInfernals")),
+    blue_mountains: numberOrNull(formData.get("blueMountains")),
+    red_mountains: numberOrNull(formData.get("redMountains")),
+    blue_oceans: numberOrNull(formData.get("blueOceans")),
+    red_oceans: numberOrNull(formData.get("redOceans")),
+    blue_hextechs: numberOrNull(formData.get("blueHextechs")),
+    red_hextechs: numberOrNull(formData.get("redHextechs")),
+    blue_chemtechs: numberOrNull(formData.get("blueChemtechs")),
+    red_chemtechs: numberOrNull(formData.get("redChemtechs")),
+    blue_elders: numberOrNull(formData.get("blueElders")),
+    red_elders: numberOrNull(formData.get("redElders")),
     blue_barons: numberOrNull(formData.get("blueBarons")),
     red_barons: numberOrNull(formData.get("redBarons")),
     blue_towers: numberOrNull(formData.get("blueTowers")),
@@ -54,6 +82,7 @@ function setPayload(formData: FormData) {
 
 export async function createSetAction(formData: FormData) {
   const payload = setPayload(formData);
+  const redirectTo = textOrNull(formData.get("redirectTo"));
   const { error } = await createSupabaseAdminClient().from("sets").insert(payload);
 
   if (error) {
@@ -62,17 +91,23 @@ export async function createSetAction(formData: FormData) {
 
   revalidatePath("/admin/sets");
   revalidatePath(`/matches/${payload.match_id}`);
+
+  if (redirectTo) {
+    redirect(redirectTo);
+  }
 }
 
 export async function updateSetAction(formData: FormData) {
   const setId = textOrNull(formData.get("setId"));
+  const redirectTo = textOrNull(formData.get("redirectTo"));
 
   if (!setId) {
     throw new Error("수정할 세트 ID가 없습니다.");
   }
 
   const payload = setPayload(formData);
-  const { error } = await createSupabaseAdminClient()
+  const supabase = createSupabaseAdminClient();
+  const { error } = await supabase
     .from("sets")
     .update(payload)
     .eq("id", setId);
@@ -81,7 +116,116 @@ export async function updateSetAction(formData: FormData) {
     throw new Error(error.message);
   }
 
+  const pickBanCount = countValue(formData, "pickBanCount");
+  const playerStatCount = countValue(formData, "playerStatCount");
+  const championIdsToResolve: Array<string | null> = [];
+
+  if (pickBanCount > 0) {
+    for (let index = 0; index < pickBanCount; index += 1) {
+      championIdsToResolve.push(textOrNull(formData.get(`pickBan.${index}.championId`)));
+    }
+  }
+
+  if (playerStatCount > 0) {
+    for (let index = 0; index < playerStatCount; index += 1) {
+      championIdsToResolve.push(textOrNull(formData.get(`playerStat.${index}.championId`)));
+    }
+  }
+
+  const resolvedChampionIds = await resolveChampionIds(supabase, championIdsToResolve);
+
+  if (pickBanCount > 0) {
+    const pickBanPayload = Array.from({ length: pickBanCount }, (_, index) => {
+      const rawChampionId = textOrNull(formData.get(`pickBan.${index}.championId`));
+      const championId = rawChampionId ? resolvedChampionIds.get(rawChampionId) ?? rawChampionId : null;
+      const teamId = textOrNull(formData.get(`pickBan.${index}.teamId`));
+      const phase = textOrNull(formData.get(`pickBan.${index}.phase`));
+      const actionType = textOrNull(formData.get(`pickBan.${index}.actionType`));
+      const side = textOrNull(formData.get(`pickBan.${index}.side`));
+
+      if (!championId || !teamId || !phase || !actionType || !side) {
+        return null;
+      }
+
+      return {
+        set_id: setId,
+        phase,
+        action_type: actionType,
+        order_index: numberOrZero(formData.get(`pickBan.${index}.orderIndex`)),
+        team_id: teamId,
+        champion_id: championId,
+        side,
+      };
+    }).filter(isPresent);
+
+    const { error: deletePickBanError } = await supabase.from("set_picks_bans").delete().eq("set_id", setId);
+    if (deletePickBanError) {
+      throw new Error(deletePickBanError.message);
+    }
+
+    if (pickBanPayload.length > 0) {
+      const { error: insertPickBanError } = await supabase.from("set_picks_bans").insert(pickBanPayload);
+      if (insertPickBanError) {
+        throw new Error(insertPickBanError.message);
+      }
+    }
+  }
+
+  if (playerStatCount > 0) {
+    const statPayload = Array.from({ length: playerStatCount }, (_, index) => {
+      const playerId = textOrNull(formData.get(`playerStat.${index}.playerId`));
+      const teamId = textOrNull(formData.get(`playerStat.${index}.teamId`));
+      const position = textOrNull(formData.get(`playerStat.${index}.position`));
+      const side = textOrNull(formData.get(`playerStat.${index}.side`));
+      const rawChampionId = textOrNull(formData.get(`playerStat.${index}.championId`));
+      const championId = rawChampionId ? resolvedChampionIds.get(rawChampionId) ?? rawChampionId : null;
+
+      if (!playerId || !teamId || !position || !side) {
+        return null;
+      }
+
+      return {
+        set_id: setId,
+        player_id: playerId,
+        team_id: teamId,
+        side,
+        position,
+        champion_id: championId,
+        kills: numberOrZero(formData.get(`playerStat.${index}.kills`)),
+        deaths: numberOrZero(formData.get(`playerStat.${index}.deaths`)),
+        assists: numberOrZero(formData.get(`playerStat.${index}.assists`)),
+        cs: numberOrZero(formData.get(`playerStat.${index}.cs`)),
+        gold: numberOrZero(formData.get(`playerStat.${index}.gold`)),
+        damage_to_champions: numberOrZero(formData.get(`playerStat.${index}.damageToChampions`)),
+        vision_score: numberOrZero(formData.get(`playerStat.${index}.visionScore`)),
+        item0: numberOrNull(formData.get(`playerStat.${index}.item0`)),
+        item1: numberOrNull(formData.get(`playerStat.${index}.item1`)),
+        item2: numberOrNull(formData.get(`playerStat.${index}.item2`)),
+        item3: numberOrNull(formData.get(`playerStat.${index}.item3`)),
+        item4: numberOrNull(formData.get(`playerStat.${index}.item4`)),
+        item5: numberOrNull(formData.get(`playerStat.${index}.item5`)),
+        item6: numberOrNull(formData.get(`playerStat.${index}.item6`)),
+      };
+    }).filter(isPresent);
+
+    const { error: deleteStatsError } = await supabase.from("set_player_stats").delete().eq("set_id", setId);
+    if (deleteStatsError) {
+      throw new Error(deleteStatsError.message);
+    }
+
+    if (statPayload.length > 0) {
+      const { error: insertStatsError } = await supabase.from("set_player_stats").insert(statPayload);
+      if (insertStatsError) {
+        throw new Error(insertStatsError.message);
+      }
+    }
+  }
+
   revalidatePath("/admin/sets");
   revalidatePath(`/matches/${payload.match_id}`);
   revalidatePath(`/matches/${payload.match_id}/sets/${setId}`);
+
+  if (redirectTo) {
+    redirect(redirectTo);
+  }
 }

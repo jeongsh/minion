@@ -106,6 +106,18 @@ export function playerLabel(players: Player[], playerId: string | null | undefin
   return findPlayer(players, playerId)?.name ?? "-";
 }
 
+export function matchRouteId(match: Match) {
+  return encodeURIComponent(match.leaguepediaMatchId || match.id);
+}
+
+export function matchHref(match: Match) {
+  return `/matches/${matchRouteId(match)}`;
+}
+
+export function setHref(match: Match, set: SetResult) {
+  return `${matchHref(match)}/sets/${set.id}`;
+}
+
 export function durationLabel(seconds: number | null | undefined) {
   if (!seconds) {
     return "-";

@@ -2,8 +2,6 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-import { SEASON_2026_TOURNAMENTS } from "../lib/tournaments/season-2026";
-
 const CARGO_API = "https://lol.fandom.com/api.php";
 const REQUEST_DELAY_MS = 4000;
 const MAX_RETRIES = 10;
@@ -40,19 +38,6 @@ const TEAM_ALIASES = new Map([
 ]);
 
 type TeamRow = { id: string; slug: string; short_name: string };
-type DbMatch = {
-  id: string;
-  name: string;
-  match_date: string;
-  team_a_id: string;
-  team_b_id: string;
-  team_a_score: number | null;
-  team_b_score: number | null;
-  status: string;
-  leaguepedia_match_id: string | null;
-  tournament_id: string;
-  stage_id: string | null;
-};
 type CargoRow = {
   MatchId: string;
   DateTime_UTC: string;

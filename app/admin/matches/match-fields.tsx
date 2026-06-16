@@ -153,9 +153,9 @@ export function MatchFields({
           defaultValue={match?.status ?? "scheduled"}
           className="rounded-md border border-border bg-background px-3 py-2"
         >
-          <option value="scheduled">scheduled</option>
-          <option value="live">live</option>
-          <option value="completed">completed</option>
+          <option value="scheduled">예정</option>
+          <option value="live">진행 중</option>
+          <option value="completed">종료</option>
         </select>
       </label>
       <label className="flex flex-col gap-2 text-sm font-medium">
@@ -195,7 +195,7 @@ export function MatchFields({
           name="leaguepediaMatchId"
           defaultValue={match?.leaguepediaMatchId ?? ""}
           className="rounded-md border border-border bg-background px-3 py-2"
-          placeholder="Leaguepedia 내부 ID"
+          placeholder="Leaguepedia Match ID"
         />
       </label>
       <label className="flex flex-col gap-2 text-sm font-medium">

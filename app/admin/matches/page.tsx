@@ -11,10 +11,9 @@ import {
   segmentLabel,
 } from "@/lib/tournament-filters";
 import type { Team } from "@/lib/types";
-import { formatDateTime } from "@/lib/view-data";
+import { formatDateTime, matchHref, matchRouteId } from "@/lib/view-data";
 
 import { createMatchAction, getLeaguepediaSyncCursor } from "./actions";
-import { MatchEditModal } from "./match-edit-modal";
 import { MatchFields } from "./match-fields";
 import { SyncLeaguepediaButton } from "./sync-leaguepedia-button";
 
@@ -110,25 +109,23 @@ export default async function AdminMatchesPage({
               render: (row) => `${row.teamAScore ?? "-"} : ${row.teamBScore ?? "-"}`,
             },
             { key: "status", label: "상태", render: (row) => row.status },
-            { key: "venue", label: "경기장", render: (row) => row.venue ?? "-" },
             {
               key: "actions",
               label: "",
               render: (row) => (
                 <div className="flex items-center gap-2">
                   <Link
-                    href={`/matches/${row.id}`}
+                    href={matchHref(row)}
                     className="rounded-md border border-border px-3 py-1.5 text-sm font-semibold hover:bg-surface-muted"
                   >
-                    상세보기
+                    상세
                   </Link>
-                  <MatchEditModal
-                    match={row}
-                    teams={teams}
-                    tournaments={tournaments}
-                    stages={stages}
-                    players={players}
-                  />
+                  <Link
+                    href={`/admin/matches/${matchRouteId(row)}/edit`}
+                    className="rounded-md border border-border px-3 py-1.5 text-sm font-semibold hover:bg-surface-muted"
+                  >
+                    수정
+                  </Link>
                 </div>
               ),
             },

@@ -17,7 +17,7 @@ import {
 } from "@/lib/data/lck";
 import type { TeamAward } from "@/lib/types";
 import { calculatePlayerStats } from "@/lib/stats";
-import { buildPlayerSummary, formatDateTime, teamLabel } from "@/lib/view-data";
+import { buildPlayerSummary, formatDateTime, matchHref, teamLabel } from "@/lib/view-data";
 
 const PLAYER_AWARD_META: Record<string, { label: string; icon: string; style: string }> = {
   lck_finals_mvp: { label: "LCK Finals MVP", icon: "🏅", style: "bg-yellow-500 text-white border-yellow-600" },
@@ -144,7 +144,7 @@ export default async function PlayerDetailPage({
               rows={pomMatches}
               columns={[
                 { key: "date", label: "경기 일시", render: (row) => formatDateTime(row.matchDate) },
-                { key: "match", label: "경기", render: (row) => <Link href={`/matches/${row.id}`}>{row.name}</Link> },
+                { key: "match", label: "경기", render: (row) => <Link href={matchHref(row)}>{row.name}</Link> },
                 {
                   key: "opponent",
                   label: "상대팀",
@@ -221,7 +221,12 @@ export default async function PlayerDetailPage({
                   ? row.status
                   : `${row.teamAScore}:${row.teamBScore}`,
             },
-            { key: "link", label: "이동", render: (row) => <Link href={`/matches/${row.id}`}>경기 상세</Link> },
+            {
+              key: "pom",
+              label: "공식 POM",
+              render: (row) => (row.officialPomPlayerId === player.id ? "선정" : "-"),
+            },
+            { key: "link", label: "이동", render: (row) => <Link href={matchHref(row)}>경기 상세</Link> },
           ]}
         />
       </section>

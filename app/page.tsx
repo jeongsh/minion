@@ -8,6 +8,7 @@ import {
   buildTeamStandingRows,
   fanPogSummaryForMatch,
   formatDateTime,
+  matchHref,
   matchSetScore,
   playerLabel,
   teamLabel,
@@ -57,7 +58,7 @@ export default async function HomePage() {
                 <span className="text-right">{teamLabel(teams, match.teamBId)}</span>
               </div>
               <Link
-                href={`/matches/${match.id}`}
+                href={matchHref(match)}
                 className="mt-4 inline-flex rounded-md border border-border px-3 py-2 text-sm font-semibold hover:bg-surface-muted"
               >
                 경기 상세
@@ -80,7 +81,7 @@ export default async function HomePage() {
               label: "경기",
               render: (row) => (
                 <MiniModalLink
-                  href={`/matches/${row.id}`}
+                  href={matchHref(row)}
                   label={row.name}
                   eyebrow="경기"
                   title={row.name}
@@ -94,7 +95,7 @@ export default async function HomePage() {
             },
             { key: "teams", label: "팀", render: (row) => `${teamLabel(teams, row.teamAId)} vs ${teamLabel(teams, row.teamBId)}` },
             { key: "status", label: "상태", render: (row) => row.status },
-            { key: "link", label: "이동", render: (row) => <Link href={`/matches/${row.id}`}>상세</Link> },
+            { key: "link", label: "이동", render: (row) => <Link href={matchHref(row)}>상세</Link> },
           ]}
         />
       </section>

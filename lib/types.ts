@@ -148,6 +148,20 @@ export type SetResult = {
   redGold: number | null;
   blueDragons: number | null;
   redDragons: number | null;
+  blueClouds?: number | null;
+  redClouds?: number | null;
+  blueInfernals?: number | null;
+  redInfernals?: number | null;
+  blueMountains?: number | null;
+  redMountains?: number | null;
+  blueOceans?: number | null;
+  redOceans?: number | null;
+  blueHextechs?: number | null;
+  redHextechs?: number | null;
+  blueChemtechs?: number | null;
+  redChemtechs?: number | null;
+  blueElders?: number | null;
+  redElders?: number | null;
   blueBarons: number | null;
   redBarons: number | null;
   blueTowers: number | null;
@@ -163,6 +177,9 @@ export type Champion = {
   slug: string;
   name: string;
   imageUrl?: string;
+  ddragonId?: string;
+  ddragonKey?: string;
+  ddragonVersion?: string;
 };
 
 export type SetPickBan = {
@@ -181,6 +198,7 @@ export type PlayerStatLine = {
   playerId: string;
   teamId: string;
   position: PlayerPosition;
+  championId?: string | null;
   kills: number;
   deaths: number;
   assists: number;
@@ -191,6 +209,7 @@ export type PlayerStatLine = {
   teamDamage: number;
   gameMinutes: number;
   visionScore: number;
+  itemIds: Array<number | null>;
 };
 
 export type DerivedPlayerStats = {

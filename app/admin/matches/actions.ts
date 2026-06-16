@@ -1,19 +1,49 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 import {
   getLastCompletedMatchCursor,
   syncLeaguepediaLck2026,
   type LeaguepediaSyncSummary,
 } from "@/lib/sync/leaguepedia-lck-2026";
+import {
+  syncLeaguepediaMatchSets,
+  type LeaguepediaMatchSetsSyncSummary,
+} from "@/lib/sync/leaguepedia-match-sets";
+import {
+  syncRiotMatchItems,
+  type RiotMatchItemsSyncSummary,
+} from "@/lib/sync/riot-match-items";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { parseDateTimeLocalKST } from "@/lib/view-data";
+import { matchRouteId, parseDateTimeLocalKST } from "@/lib/view-data";
+import type { Match } from "@/lib/types";
 
 export type SyncLeaguepediaActionResult =
   | {
       ok: true;
       summary: LeaguepediaSyncSummary;
+    }
+  | {
+      ok: false;
+      error: string;
+    };
+
+export type SyncLeaguepediaSetsActionResult =
+  | {
+      ok: true;
+      summary: LeaguepediaMatchSetsSyncSummary;
+    }
+  | {
+      ok: false;
+      error: string;
+    };
+
+export type SyncRiotItemsActionResult =
+  | {
+      ok: true;
+      summary: RiotMatchItemsSyncSummary;
     }
   | {
       ok: false;
@@ -41,6 +71,74 @@ export async function syncLeaguepediaMatchesAction(
 export async function getLeaguepediaSyncCursor() {
   const supabase = createSupabaseAdminClient();
   return getLastCompletedMatchCursor(supabase);
+}
+
+export async function syncLeaguepediaMatchSetsAction(
+  matchId: string,
+): Promise<SyncLeaguepediaSetsActionResult> {
+  try {
+    const supabase = createSupabaseAdminClient();
+    const summary = await syncLeaguepediaMatchSets(supabase, matchId);
+
+    const { data: match } = await supabase
+      .from("matches")
+      .select("id, leaguepedia_match_id")
+      .eq("id", matchId)
+      .maybeSingle();
+
+    revalidatePath("/admin/matches");
+    revalidatePath("/admin/sets");
+    revalidatePath(`/matches/${matchId}`);
+
+    if (match) {
+      const routeId = matchRouteId({
+        id: match.id,
+        leaguepediaMatchId: match.leaguepedia_match_id,
+      } as Match);
+      revalidatePath(`/admin/matches/${routeId}/edit`);
+      revalidatePath(`/matches/${routeId}`);
+    }
+
+    return { ok: true, summary };
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Leaguepedia 세트 정보 불러오기에 실패했습니다.";
+    return { ok: false, error: message };
+  }
+}
+
+export async function syncRiotMatchItemsAction(
+  matchId: string,
+): Promise<SyncRiotItemsActionResult> {
+  try {
+    const supabase = createSupabaseAdminClient();
+    const summary = await syncRiotMatchItems(supabase, matchId);
+
+    const { data: match } = await supabase
+      .from("matches")
+      .select("id, leaguepedia_match_id")
+      .eq("id", matchId)
+      .maybeSingle();
+
+    revalidatePath("/admin/matches");
+    revalidatePath("/admin/sets");
+    revalidatePath(`/matches/${matchId}`);
+
+    if (match) {
+      const routeId = matchRouteId({
+        id: match.id,
+        leaguepediaMatchId: match.leaguepedia_match_id,
+      } as Match);
+      revalidatePath(`/admin/matches/${routeId}/edit`);
+      revalidatePath(`/matches/${routeId}`);
+    }
+
+    return { ok: true, summary };
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Riot 아이템 동기화에 실패했습니다.";
+    return { ok: false, error: message };
+  }
 }
 
 function textOrNull(value: FormDataEntryValue | null) {
@@ -103,6 +201,7 @@ export async function createMatchAction(formData: FormData) {
 
 export async function updateMatchAction(formData: FormData) {
   const matchId = textOrNull(formData.get("matchId"));
+  const redirectTo = textOrNull(formData.get("redirectTo"));
 
   if (!matchId) {
     throw new Error("수정할 경기 ID가 없습니다.");
@@ -121,4 +220,8 @@ export async function updateMatchAction(formData: FormData) {
   revalidatePath("/admin/matches");
   revalidatePath("/schedule");
   revalidatePath(`/matches/${matchId}`);
+
+  if (redirectTo) {
+    redirect(redirectTo);
+  }
 }

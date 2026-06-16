@@ -89,6 +89,7 @@ type SetPlayerStatsRow = {
   player_id: string;
   team_id: string;
   position: PlayerStatLine["position"];
+  champion_id: string | null;
   kills: number;
   deaths: number;
   assists: number;
@@ -96,6 +97,21 @@ type SetPlayerStatsRow = {
   gold: number;
   damage_to_champions: number;
   vision_score: number;
+  item0?: number | null;
+  item1?: number | null;
+  item2?: number | null;
+  item3?: number | null;
+  item4?: number | null;
+  item5?: number | null;
+  item6?: number | null;
+  sets?:
+    | {
+    duration_seconds: number | null;
+      }
+    | Array<{
+        duration_seconds: number | null;
+      }>
+    | null;
 };
 
 type MatchRow = {
@@ -152,6 +168,20 @@ type SetRow = {
   red_gold: number | null;
   blue_dragons: number | null;
   red_dragons: number | null;
+  blue_clouds?: number | null;
+  red_clouds?: number | null;
+  blue_infernals?: number | null;
+  red_infernals?: number | null;
+  blue_mountains?: number | null;
+  red_mountains?: number | null;
+  blue_oceans?: number | null;
+  red_oceans?: number | null;
+  blue_hextechs?: number | null;
+  red_hextechs?: number | null;
+  blue_chemtechs?: number | null;
+  red_chemtechs?: number | null;
+  blue_elders?: number | null;
+  red_elders?: number | null;
   blue_barons: number | null;
   red_barons: number | null;
   blue_towers: number | null;
@@ -291,6 +321,9 @@ function mapChampion(row: ChampionRow): Champion {
     slug: row.slug,
     name: row.name,
     imageUrl: row.image_url ?? undefined,
+    ddragonId: row.ddragon_id ?? undefined,
+    ddragonKey: row.ddragon_key ?? undefined,
+    ddragonVersion: row.ddragon_version ?? undefined,
   };
 }
 
@@ -355,6 +388,20 @@ function mapSet(row: SetRow): SetResult {
     redGold: row.red_gold,
     blueDragons: row.blue_dragons,
     redDragons: row.red_dragons,
+    blueClouds: row.blue_clouds ?? null,
+    redClouds: row.red_clouds ?? null,
+    blueInfernals: row.blue_infernals ?? null,
+    redInfernals: row.red_infernals ?? null,
+    blueMountains: row.blue_mountains ?? null,
+    redMountains: row.red_mountains ?? null,
+    blueOceans: row.blue_oceans ?? null,
+    redOceans: row.red_oceans ?? null,
+    blueHextechs: row.blue_hextechs ?? null,
+    redHextechs: row.red_hextechs ?? null,
+    blueChemtechs: row.blue_chemtechs ?? null,
+    redChemtechs: row.red_chemtechs ?? null,
+    blueElders: row.blue_elders ?? null,
+    redElders: row.red_elders ?? null,
     blueBarons: row.blue_barons,
     redBarons: row.red_barons,
     blueTowers: row.blue_towers,
@@ -623,8 +670,11 @@ export async function getMatches() {
 }
 
 export async function getMatchById(matchId: string) {
+  const decodedMatchId = decodeURIComponent(matchId);
   const matches = await getMatches();
-  return matches.find((match) => match.id === matchId);
+  return matches.find(
+    (match) => match.id === decodedMatchId || match.leaguepediaMatchId === decodedMatchId,
+  );
 }
 
 export async function getSetsByMatchId(matchId: string) {
@@ -724,7 +774,7 @@ export async function getPlayerStatLines(setId?: string) {
     let query = createSupabaseServerClient()
       .from("set_player_stats")
       .select(
-        "set_id, player_id, team_id, position, kills, deaths, assists, cs, gold, damage_to_champions, vision_score",
+        "set_id, player_id, team_id, position, champion_id, kills, deaths, assists, cs, gold, damage_to_champions, vision_score, item0, item1, item2, item3, item4, item5, item6, sets(duration_seconds)",
       )
       .order("position", { ascending: true });
 
@@ -738,11 +788,22 @@ export async function getPlayerStatLines(setId?: string) {
       throw error;
     }
 
-    return (data as SetPlayerStatsRow[]).map((row) => ({
+    const rows = data as unknown as SetPlayerStatsRow[];
+    const teamDamageBySetTeam = new Map<string, number>();
+    for (const row of rows) {
+      const key = `${row.set_id}:${row.team_id}`;
+      teamDamageBySetTeam.set(
+        key,
+        (teamDamageBySetTeam.get(key) ?? 0) + (row.damage_to_champions ?? 0),
+      );
+    }
+
+    return rows.map((row) => ({
       setId: row.set_id,
       playerId: row.player_id,
       teamId: row.team_id,
       position: row.position,
+      championId: row.champion_id,
       kills: row.kills,
       deaths: row.deaths,
       assists: row.assists,
@@ -750,9 +811,15 @@ export async function getPlayerStatLines(setId?: string) {
       gold: row.gold,
       damageToChampions: row.damage_to_champions,
       teamKills: 0,
-      teamDamage: 0,
-      gameMinutes: 0,
+      teamDamage: teamDamageBySetTeam.get(`${row.set_id}:${row.team_id}`) ?? 0,
+      gameMinutes:
+        (Array.isArray(row.sets)
+          ? row.sets[0]?.duration_seconds ?? 0
+          : row.sets?.duration_seconds ?? 0) / 60,
       visionScore: row.vision_score,
+      itemIds: [row.item0, row.item1, row.item2, row.item3, row.item4, row.item5, row.item6].map(
+        (itemId) => itemId ?? null,
+      ),
     }));
   }, []);
 }

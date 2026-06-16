@@ -20,6 +20,7 @@ import {
   buildTeamStatSummary,
   durationLabel,
   formatDateTime,
+  matchHref,
   matchSetScore,
   playerLabel,
   teamLabel,
@@ -225,7 +226,7 @@ export default async function TeamDetailPage({
           rows={teamMatches}
           columns={[
             { key: "date", label: "일시", render: (row) => formatDateTime(row.matchDate) },
-            { key: "match", label: "경기", render: (row) => <Link href={`/matches/${row.id}`}>{row.name}</Link> },
+            { key: "match", label: "경기", render: (row) => <Link href={matchHref(row)}>{row.name}</Link> },
             {
               key: "score",
               label: "스코어",

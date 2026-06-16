@@ -16,6 +16,7 @@ import {
   getMonthKST,
   getYearKST,
   KST_TIMEZONE,
+  matchHref,
 } from "@/lib/view-data";
 
 import { ScheduleFilters } from "./schedule-filters";
@@ -179,14 +180,14 @@ export default async function SchedulePage({
                       <Link href={`/teams/${teamA?.slug ?? ""}`} className="min-w-0">
                         <TeamMark team={teamA} align="right" />
                       </Link>
-                      <Link href={`/matches/${match.id}`} className="text-center text-2xl font-black">
+                      <Link href={matchHref(match)} className="text-center text-2xl font-black">
                         {scoreText(match)}
                       </Link>
                       <Link href={`/teams/${teamB?.slug ?? ""}`} className="min-w-0">
                         <TeamMark team={teamB} />
                       </Link>
                       <Link
-                        href={`/matches/${match.id}`}
+                        href={matchHref(match)}
                         className="rounded-md border border-border px-3 py-2 text-center text-sm font-semibold"
                       >
                         상세
