@@ -35,6 +35,7 @@ export const adminNavItems: NavItem[] = [
   { href: "/admin/matches", label: "경기 관리" },
   { href: "/admin/sets", label: "세트 관리" },
   { href: "/admin/stats", label: "스탯 입력" },
+  { href: "/admin/international-teams", label: "해외팀 관리" },
   { href: "/admin/teams", label: "팀 관리" },
   { href: "/admin/players", label: "선수 관리" },
   { href: "/admin/ratings", label: "팬 평점 관리" },

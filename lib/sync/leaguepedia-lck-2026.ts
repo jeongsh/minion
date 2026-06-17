@@ -92,7 +92,9 @@ function normalizeTeamName(value: string | undefined) {
 }
 
 function normalizeLookupKey(value: string | undefined | null) {
-  return normalizeTeamName(value ?? "").replace(/[_\s]+/g, " ");
+  return normalizeTeamName(value ?? "")
+    .replace(/\s*\([^)]*\)\s*$/g, "")
+    .replace(/[_\s]+/g, " ");
 }
 
 function teamSlugFor(name: string) {

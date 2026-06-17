@@ -26,6 +26,7 @@ type TeamRow = {
   short_name: string;
   logo_url: string | null;
   logo_white_url: string | null;
+  profile_image_url?: string | null;
   background_url: string | null;
   primary_color: string;
   secondary_color: string;
@@ -115,6 +116,16 @@ type SetPlayerStatsRow = {
   gold: number;
   damage_to_champions: number;
   vision_score: number;
+  dpm?: number | null;
+  damage_share?: number | null;
+  vision_score_per_minute?: number | null;
+  cs_per_minute?: number | null;
+  gold_diff_at_10?: number | null;
+  xp_diff_at_10?: number | null;
+  cs_diff_at_10?: number | null;
+  gold_diff_at_15?: number | null;
+  xp_diff_at_15?: number | null;
+  cs_diff_at_15?: number | null;
   item0?: number | null;
   item1?: number | null;
   item2?: number | null;
@@ -298,6 +309,7 @@ function mapTeam(row: TeamRow): Team {
     shortName: row.short_name,
     logoUrl: row.logo_url ?? "",
     logoWhiteUrl: row.logo_white_url ?? "",
+    profileImageUrl: row.profile_image_url ?? "",
     backgroundUrl: row.background_url ?? "",
     primaryColor: row.primary_color,
     secondaryColor: row.secondary_color,
@@ -902,24 +914,37 @@ export async function getSetPicksBans(setId?: string) {
 
 export async function getPlayerStatLines(setId?: string) {
   return fromSupabase(async () => {
-    let query = createSupabaseServerClient()
-      .from("set_player_stats")
-      .select(
-        "set_id, player_id, team_id, position, champion_id, kills, deaths, assists, cs, gold, damage_to_champions, vision_score, item0, item1, item2, item3, item4, item5, item6, spell0, spell1, rune0, rune1, sets(duration_seconds)",
-      )
-      .order("position", { ascending: true });
+    const supabase = createSupabaseServerClient();
+    const rows: SetPlayerStatsRow[] = [];
+    const pageSize = 1000;
 
-    if (setId) {
-      query = query.eq("set_id", setId);
+    for (let from = 0; ; from += pageSize) {
+      let query = supabase
+        .from("set_player_stats")
+        .select(
+          "set_id, player_id, team_id, position, champion_id, kills, deaths, assists, cs, gold, damage_to_champions, vision_score, dpm, damage_share, vision_score_per_minute, cs_per_minute, gold_diff_at_10, xp_diff_at_10, cs_diff_at_10, gold_diff_at_15, xp_diff_at_15, cs_diff_at_15, item0, item1, item2, item3, item4, item5, item6, spell0, spell1, rune0, rune1, sets(duration_seconds)",
+        )
+        .order("position", { ascending: true })
+        .order("set_id", { ascending: true })
+        .range(from, from + pageSize - 1);
+
+      if (setId) {
+        query = query.eq("set_id", setId);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        throw error;
+      }
+
+      rows.push(...((data ?? []) as unknown as SetPlayerStatsRow[]));
+
+      if (!data || data.length < pageSize) {
+        break;
+      }
     }
 
-    const { data, error } = await query;
-
-    if (error) {
-      throw error;
-    }
-
-    const rows = data as unknown as SetPlayerStatsRow[];
     const teamDamageBySetTeam = new Map<string, number>();
     for (const row of rows) {
       const key = `${row.set_id}:${row.team_id}`;
@@ -948,6 +973,16 @@ export async function getPlayerStatLines(setId?: string) {
           ? row.sets[0]?.duration_seconds ?? 0
           : row.sets?.duration_seconds ?? 0) / 60,
       visionScore: row.vision_score,
+      dpm: row.dpm ?? null,
+      damageShare: row.damage_share ?? null,
+      visionScorePerMinute: row.vision_score_per_minute ?? null,
+      csPerMinute: row.cs_per_minute ?? null,
+      goldDiffAt10: row.gold_diff_at_10 ?? null,
+      xpDiffAt10: row.xp_diff_at_10 ?? null,
+      csDiffAt10: row.cs_diff_at_10 ?? null,
+      goldDiffAt15: row.gold_diff_at_15 ?? null,
+      xpDiffAt15: row.xp_diff_at_15 ?? null,
+      csDiffAt15: row.cs_diff_at_15 ?? null,
       itemIds: [row.item0, row.item1, row.item2, row.item3, row.item4, row.item5, row.item6].map(
         (itemId) => itemId ?? null,
       ),

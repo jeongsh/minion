@@ -350,7 +350,7 @@ function goldForSide(args: {
 function roleToPosition(role: string | null | undefined) {
   const value = normalizeName(role);
   if (["top", "1"].includes(value)) return "TOP";
-  if (["jungle", "jgl", "2"].includes(value)) return "JGL";
+  if (["jungle", "jgl", "jng", "2"].includes(value)) return "JGL";
   if (["mid", "middle", "3"].includes(value)) return "MID";
   if (["bot", "bottom", "adc", "4"].includes(value)) return "BOT";
   if (["support", "sup", "5"].includes(value)) return "SUP";

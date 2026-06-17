@@ -12,6 +12,10 @@
     "sync:lck-2025:full": "node --experimental-strip-types scripts/sync-leaguepedia-lck-2025.ts --full",
     "sync:lck-2026": "node --experimental-strip-types scripts/sync-leaguepedia-lck-2026.ts",
     "sync:lck-2026:full": "node --experimental-strip-types scripts/sync-leaguepedia-lck-2026.ts --full",
+    "backfill:leaguepedia-sets": "node --experimental-strip-types scripts/backfill-leaguepedia-sets.ts",
+    "backfill:leaguepedia-set-ids": "node --experimental-strip-types scripts/backfill-leaguepedia-set-ids.ts",
+    "backfill:leaguepedia-set-picks-bans": "node --experimental-strip-types scripts/backfill-leaguepedia-set-picks-bans.ts",
+    "backfill:csv-set-player-stats": "node --experimental-strip-types scripts/backfill-csv-set-player-stats.ts",
     "sync:international-rosters": "node --experimental-strip-types scripts/import-international-rosters.ts",
     "sync:pom": "node --experimental-strip-types scripts/sync-pom.ts",
     "sync:pom:full": "node --experimental-strip-types scripts/sync-pom.ts --full",
@@ -20,7 +24,8 @@
     "sync:career-history:all": "node --experimental-strip-types scripts/sync-career-history.ts --all",
     "sync:player-images": "node --experimental-strip-types scripts/sync-player-images.ts",
     "sync:player-images:all": "node --experimental-strip-types scripts/sync-player-images.ts --all",
-    "sync:player-social": "node --experimental-strip-types scripts/sync-player-social.ts"
+    "sync:player-social": "node --experimental-strip-types scripts/sync-player-social.ts",
+    "champions:cleanup": "node --experimental-strip-types scripts/cleanup-champions.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.108.1",

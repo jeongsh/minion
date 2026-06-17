@@ -5,6 +5,7 @@ export type Team = {
   shortName: string;
   logoUrl: string;
   logoWhiteUrl: string;
+  profileImageUrl?: string;
   backgroundUrl: string;
   primaryColor: string;
   secondaryColor: string;
@@ -241,6 +242,17 @@ export type PlayerStatLine = {
   teamDamage: number;
   gameMinutes: number;
   visionScore: number;
+  visionScoreAverage?: number | null;
+  dpm?: number | null;
+  damageShare?: number | null;
+  visionScorePerMinute?: number | null;
+  csPerMinute?: number | null;
+  goldDiffAt10?: number | null;
+  xpDiffAt10?: number | null;
+  csDiffAt10?: number | null;
+  goldDiffAt15?: number | null;
+  xpDiffAt15?: number | null;
+  csDiffAt15?: number | null;
   itemIds: Array<number | null>;
   spellIds: Array<number | null>;
   runeIds: Array<number | null>;
@@ -254,13 +266,19 @@ export type DerivedPlayerStats = {
   csm: number;
   gpm: number;
   visionScoreAvg: number;
+  goldDiffAt10: number;
+  xpDiffAt10: number;
+  goldDiffAt15: number;
+  xpDiffAt15: number;
   formScore: number;
-  radarGrowth: number;
-  radarFight: number;
-  radarDamage: number;
-  radarSurvival: number;
+  radarKda: number;
+  radarDpm: number;
   radarVision: number;
-  radarEfficiency: number;
+  radarCsm: number;
+  radarGoldDiffAt10: number;
+  radarXpDiffAt10: number;
+  radarGoldDiffAt15: number;
+  radarXpDiffAt15: number;
 };
 
 export type FanRating = {

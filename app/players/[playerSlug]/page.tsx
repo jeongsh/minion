@@ -25,8 +25,8 @@ import {
   getTeamStandings,
   getTournaments,
 } from "@/lib/data/lck";
-import { calculatePlayerStats } from "@/lib/stats";
-import type { FanRating, Match, Player, PlayerStatLine, SetResult, Team, TeamAward } from "@/lib/types";
+import { aggregatePlayerStatLine, calculatePlayerStats, createPlayerRadarBenchmark, type PlayerRadarBenchmark } from "@/lib/stats";
+import type { FanRating, Match, Player, PlayerStatLine, SetResult, Team, TeamAward, Tournament } from "@/lib/types";
 import {
   filterMatchesBySegment,
   filterPicksBansByMatches,
@@ -48,8 +48,35 @@ const PLAYER_AWARD_META: Record<string, { label: string }> = {
 };
 
 const POSITIONS: Player["position"][] = ["TOP", "JGL", "MID", "BOT", "SUP"];
-const EVENT_SEGMENTS: SeasonSegmentKey[] = ["first-stand", "msi", "ewc", "worlds", "enc"];
-const TOURNAMENT_SEGMENTS: SeasonSegmentKey[] = ["lck-cup"];
+const PLAYER_PAGE_SEGMENTS: Array<SeasonSegmentKey | "all"> = [
+  "all",
+  "lck-cup",
+  "lck",
+  "first-stand",
+  "msi",
+  "ewc",
+  "worlds",
+  "enc",
+];
+
+function playerSegmentLabel(segment: SeasonSegmentKey | "all") {
+  if (segment === "all") return "2026 전체";
+  if (segment === "lck") return "2026 LCK 통합";
+  return segmentLabel(segment);
+}
+
+function segmentHasPlayerData(
+  segment: SeasonSegmentKey | "all",
+  playerId: string,
+  matches: Match[],
+  tournaments: Tournament[],
+  statLines: PlayerStatLine[],
+  sets: SetResult[],
+) {
+  const segmentMatches = filterMatchesBySegment(matches, tournaments, segment);
+  const segmentSetIds = new Set(filterSetsByMatches(sets, segmentMatches).map((set) => set.id));
+  return statLines.some((line) => line.playerId === playerId && segmentSetIds.has(line.setId));
+}
 
 type EnrichedLine = PlayerStatLine & {
   match: Match;
@@ -83,55 +110,17 @@ function compactDate(value: string | null | undefined) {
   }).format(new Date(value));
 }
 
-function aggregateLines(lines: PlayerStatLine[]) {
-  if (lines.length === 0) return null;
-
-  const total = lines.reduce(
-    (acc, line) => ({
-      kills: acc.kills + line.kills,
-      deaths: acc.deaths + line.deaths,
-      assists: acc.assists + line.assists,
-      cs: acc.cs + line.cs,
-      gold: acc.gold + line.gold,
-      damageToChampions: acc.damageToChampions + line.damageToChampions,
-      teamKills: acc.teamKills + line.teamKills,
-      teamDamage: acc.teamDamage + line.teamDamage,
-      gameMinutes: acc.gameMinutes + line.gameMinutes,
-      visionScore: acc.visionScore + line.visionScore,
-    }),
-    {
-      kills: 0,
-      deaths: 0,
-      assists: 0,
-      cs: 0,
-      gold: 0,
-      damageToChampions: 0,
-      teamKills: 0,
-      teamDamage: 0,
-      gameMinutes: 0,
-      visionScore: 0,
-    },
-  );
-
-  return calculatePlayerStats({
-    setId: "aggregate",
-    playerId: lines[0].playerId,
-    teamId: lines[0].teamId,
-    position: lines[0].position,
-    championId: null,
-    ...total,
-    itemIds: [],
-    spellIds: [],
-    runeIds: [],
-  });
+function aggregateLines(lines: PlayerStatLine[], radarBenchmark?: PlayerRadarBenchmark) {
+  const line = aggregatePlayerStatLine(lines);
+  return line ? calculatePlayerStats(line, radarBenchmark) : null;
 }
 
-function enrichLines(lines: PlayerStatLine[], sets: SetResult[], matches: Match[]): EnrichedLine[] {
+function enrichLines(lines: PlayerStatLine[], sets: SetResult[], matches: Match[], teamKillSourceLines: PlayerStatLine[] = lines): EnrichedLine[] {
   const setById = new Map(sets.map((set) => [set.id, set]));
   const matchById = new Map(matches.map((match) => [match.id, match]));
   const teamKillsBySetTeam = new Map<string, number>();
 
-  for (const line of lines) {
+  for (const line of teamKillSourceLines) {
     const key = `${line.setId}:${line.teamId}`;
     teamKillsBySetTeam.set(key, (teamKillsBySetTeam.get(key) ?? 0) + line.kills);
   }
@@ -235,25 +224,35 @@ function MetricTile({
   );
 }
 
-function RadarChart({ stats }: { stats: NonNullable<ReturnType<typeof aggregateLines>> }) {
+function RadarChart({
+  stats,
+  averageStats,
+}: {
+  stats: NonNullable<ReturnType<typeof aggregateLines>>;
+  averageStats?: NonNullable<ReturnType<typeof aggregateLines>>;
+}) {
   const axes = [
-    ["성장", stats.radarGrowth],
-    ["교전", stats.radarFight],
-    ["화력", stats.radarDamage],
-    ["생존", stats.radarSurvival],
-    ["시야", stats.radarVision],
-    ["효율성", stats.radarEfficiency],
+    { label: "KDA", score: stats.radarKda, raw: stats.kda, averageScore: averageStats?.radarKda, averageRaw: averageStats?.kda, decimals: 2 },
+    { label: "DPM", score: stats.radarDpm, raw: stats.dpm, averageScore: averageStats?.radarDpm, averageRaw: averageStats?.dpm, decimals: 1 },
+    { label: "VS", score: stats.radarVision, raw: stats.visionScoreAvg, averageScore: averageStats?.radarVision, averageRaw: averageStats?.visionScoreAvg, decimals: 2 },
+    { label: "CSM", score: stats.radarCsm, raw: stats.csm, averageScore: averageStats?.radarCsm, averageRaw: averageStats?.csm, decimals: 1 },
+    { label: "GD10", score: stats.radarGoldDiffAt10, raw: stats.goldDiffAt10, averageScore: averageStats?.radarGoldDiffAt10, averageRaw: averageStats?.goldDiffAt10, decimals: 1 },
+    { label: "XPD10", score: stats.radarXpDiffAt10, raw: stats.xpDiffAt10, averageScore: averageStats?.radarXpDiffAt10, averageRaw: averageStats?.xpDiffAt10, decimals: 1 },
+    { label: "GD15", score: stats.radarGoldDiffAt15, raw: stats.goldDiffAt15, averageScore: averageStats?.radarGoldDiffAt15, averageRaw: averageStats?.goldDiffAt15, decimals: 1 },
+    { label: "XPD15", score: stats.radarXpDiffAt15, raw: stats.xpDiffAt15, averageScore: averageStats?.radarXpDiffAt15, averageRaw: averageStats?.xpDiffAt15, decimals: 1 },
   ] as const;
   const center = 110;
   const maxRadius = 76;
-  const points = axes.map(([, value], index) => {
+  const toPoints = (values: number[]) => values.map((value, index) => {
     const angle = -Math.PI / 2 + (index * Math.PI * 2) / axes.length;
     const radius = (value / 100) * maxRadius;
     return `${center + Math.cos(angle) * radius},${center + Math.sin(angle) * radius}`;
   });
+  const playerPoints = toPoints(axes.map((axis) => axis.score));
+  const averagePoints = averageStats ? toPoints(axes.map((axis) => axis.averageScore ?? 0)) : null;
   const grid = [0.25, 0.5, 0.75, 1].map((scale) =>
     axes
-      .map(([,], index) => {
+      .map((_, index) => {
         const angle = -Math.PI / 2 + (index * Math.PI * 2) / axes.length;
         const radius = maxRadius * scale;
         return `${center + Math.cos(angle) * radius},${center + Math.sin(angle) * radius}`;
@@ -262,12 +261,12 @@ function RadarChart({ stats }: { stats: NonNullable<ReturnType<typeof aggregateL
   );
 
   return (
-    <div className="grid gap-4 md:grid-cols-[1fr_12rem] md:items-center">
+    <div className="grid gap-4 md:grid-cols-[1fr_16rem] md:items-center">
       <svg viewBox="0 0 220 220" className="mx-auto h-56 w-56">
         {grid.map((polygon) => (
           <polygon key={polygon} points={polygon} className="fill-surface-muted stroke-border" />
         ))}
-        {axes.map(([,], index) => {
+        {axes.map((_, index) => {
           const angle = -Math.PI / 2 + (index * Math.PI * 2) / axes.length;
           return (
             <line
@@ -280,24 +279,39 @@ function RadarChart({ stats }: { stats: NonNullable<ReturnType<typeof aggregateL
             />
           );
         })}
-        <polygon points={points.join(" ")} className="fill-surface-muted stroke-accent" strokeWidth="2" />
-        {axes.map(([label, value], index) => {
+        {averagePoints ? (
+          <polygon points={averagePoints.join(" ")} fill="rgb(59 130 246 / 0.14)" stroke="rgb(59 130 246)" strokeWidth="2" />
+        ) : null}
+        <polygon points={playerPoints.join(" ")} fill="rgb(217 119 6 / 0.18)" stroke="rgb(217 119 6)" strokeWidth="2" />
+        {axes.map((axis, index) => {
           const angle = -Math.PI / 2 + (index * Math.PI * 2) / axes.length;
           const x = center + Math.cos(angle) * (maxRadius + 24);
           const y = center + Math.sin(angle) * (maxRadius + 18);
           return (
-            <text key={label} x={x} y={y} textAnchor="middle" className="fill-foreground text-[10px] font-semibold">
-              <tspan x={x}>{label}</tspan>
-              <tspan x={x} dy="12">{Math.round(value)}</tspan>
+            <text key={axis.label} x={x} y={y} textAnchor="middle" className="fill-foreground text-[10px] font-semibold">
+              <tspan x={x}>{axis.label}</tspan>
+              <tspan x={x} dy="12">{Math.round(axis.score)}</tspan>
             </text>
           );
         })}
       </svg>
       <div className="grid grid-cols-2 gap-2 md:grid-cols-1">
-        {axes.map(([label, value]) => (
-          <div key={label} className="flex items-center justify-between rounded-md border border-border bg-background/45 px-3 py-2 text-sm">
-            <span className="text-muted">{label}</span>
-            <strong>{Math.round(value)}</strong>
+        <div className="col-span-2 flex items-center gap-3 text-xs text-muted md:col-span-1">
+          <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-[rgb(217,119,6)]" />이 선수</span>
+          <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-[rgb(59,130,246)]" />동 포지션 평균</span>
+        </div>
+        {axes.map((axis) => (
+          <div key={axis.label} className="rounded-md border border-border bg-background/45 px-3 py-2 text-sm">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-muted">{axis.label}</span>
+              <strong>{Math.round(axis.score)} <span className="font-normal text-muted">({statValue(axis.raw, axis.decimals)})</span></strong>
+            </div>
+            {axis.averageScore != null ? (
+              <div className="mt-1 flex items-center justify-between gap-2 text-xs text-muted">
+                <span>동 포지션 평균</span>
+                <span>{Math.round(axis.averageScore)} ({statValue(axis.averageRaw, axis.decimals)})</span>
+              </div>
+            ) : null}
           </div>
         ))}
       </div>
@@ -331,29 +345,25 @@ function FilterLink({
 function PlayerCriteriaFilter({
   playerSlug,
   activeSegment,
-  career,
+  visibleSegments,
 }: {
   playerSlug: string;
   activeSegment: SeasonSegmentKey | "all";
-  career: boolean;
+  visibleSegments: Array<SeasonSegmentKey | "all">;
 }) {
   const basePath = `/players/${playerSlug}`;
 
   return (
     <section className="flex flex-wrap gap-2" aria-label="기준 필터">
-      <FilterLink href={basePath} active={!career && activeSegment === "all"}>현재 구간</FilterLink>
-      <FilterLink href={`${basePath}?segment=lck`} active={!career && activeSegment === "lck"}>2026 LCK 통합</FilterLink>
-      {TOURNAMENT_SEGMENTS.map((segment) => (
-        <FilterLink key={segment} href={`${basePath}?segment=${segment}`} active={!career && activeSegment === segment}>
-          대회별
+      {visibleSegments.map((segment) => (
+        <FilterLink
+          key={segment}
+          href={segment === "all" ? `${basePath}?segment=all` : `${basePath}?segment=${segment}`}
+          active={activeSegment === segment}
+        >
+          {playerSegmentLabel(segment)}
         </FilterLink>
       ))}
-      {EVENT_SEGMENTS.map((segment, index) => (
-        <FilterLink key={segment} href={`${basePath}?segment=${segment}`} active={!career && activeSegment === segment}>
-          {index === 0 ? "국제 / 이벤트" : segmentLabel(segment)}
-        </FilterLink>
-      ))}
-      <FilterLink href={`${basePath}?scope=career`} active={career}>커리어</FilterLink>
     </section>
   );
 }
@@ -528,11 +538,9 @@ export default async function PlayerDetailPage({
   searchParams,
 }: {
   params: Promise<{ playerSlug: string }>;
-  searchParams: Promise<{ segment?: string; scope?: string }>;
+  searchParams: Promise<{ segment?: string }>;
 }) {
   const [{ playerSlug }, query] = await Promise.all([params, searchParams]);
-  const activeSegment = parseSeasonSegment(query.segment);
-  const careerScope = query.scope === "career";
   const player = await getPlayerBySlug(playerSlug);
 
   if (!player) {
@@ -569,12 +577,20 @@ export default async function PlayerDetailPage({
     getTeamStandings(),
   ]);
 
-  const segmentMatches = careerScope ? matches : filterMatchesBySegment(matches, tournaments, activeSegment);
+  const visibleSegments = PLAYER_PAGE_SEGMENTS.filter((segment) =>
+    segmentHasPlayerData(segment, player.id, matches, tournaments, statLines, sets),
+  );
+  const requestedSegment = query.segment == null ? "all" : parseSeasonSegment(query.segment);
+  const activeSegment = visibleSegments.includes(requestedSegment)
+    ? requestedSegment
+    : (visibleSegments[0] ?? "all");
+  const segmentMatches = filterMatchesBySegment(matches, tournaments, activeSegment);
   const segmentSets = filterSetsByMatches(sets, segmentMatches);
   const scopedLines = filterStatLinesByMatchIds(statLines, sets, segmentMatches);
   const scopedPicksBans = filterPicksBansByMatches(picksBans, sets, segmentMatches);
-  const playerLines = enrichLines(scopedLines.filter((line) => line.playerId === player.id), segmentSets, segmentMatches);
-  const aggregateStats = aggregateLines(playerLines);
+  const playerLines = enrichLines(scopedLines.filter((line) => line.playerId === player.id), segmentSets, segmentMatches, scopedLines);
+  const radarBenchmark = createPlayerRadarBenchmark(scopedLines.filter((line) => line.position === player.position));
+  const aggregateStats = aggregateLines(playerLines, radarBenchmark);
   const playerTeam = teams.find((team) => team.id === player.teamId);
   const sameTeamPlayers = players
     .filter((item) => item.teamId === player.teamId && item.id !== player.id)
@@ -592,7 +608,7 @@ export default async function PlayerDetailPage({
   const completedPlayerMatches = [...new Map(playerLines.map((line) => [line.match.id, line.match])).values()]
     .sort((a, b) => new Date(b.matchDate).getTime() - new Date(a.matchDate).getTime());
   const recentMatchIds = new Set(completedPlayerMatches.slice(0, 3).map((match) => match.id));
-  const recentStats = aggregateLines(playerLines.filter((line) => recentMatchIds.has(line.match.id)));
+  const recentStats = aggregateLines(playerLines.filter((line) => recentMatchIds.has(line.match.id)), radarBenchmark);
 
   const championRows = [...new Set(playerLines.map((line) => line.championId).filter(Boolean) as string[])]
     .map((championId) => {
@@ -647,14 +663,13 @@ export default async function PlayerDetailPage({
 
   const wins = playerLines.filter((line) => line.set.winnerTeamId === player.teamId).length;
   const losses = Math.max(playerLines.length - wins, 0);
-  const topChampion = championRows[0];
   const featuredMatch = recentMatchRows[0];
   const playerKdaLine =
     playerLines.length === 0
       ? "-"
       : `${playerLines.reduce((sum, line) => sum + line.kills, 0)} / ${playerLines.reduce((sum, line) => sum + line.deaths, 0)} / ${playerLines.reduce((sum, line) => sum + line.assists, 0)}`;
   const teammates = sameTeamPlayers.map((teammate) => {
-    const teammateLines = enrichLines(scopedLines.filter((line) => line.playerId === teammate.id), segmentSets, segmentMatches);
+    const teammateLines = enrichLines(scopedLines.filter((line) => line.playerId === teammate.id), segmentSets, segmentMatches, scopedLines);
     const teammateRecentIds = new Set(
       [...new Map(teammateLines.map((line) => [line.match.id, line.match])).values()]
         .sort((a, b) => new Date(b.matchDate).getTime() - new Date(a.matchDate).getTime())
@@ -683,11 +698,15 @@ export default async function PlayerDetailPage({
             <span>선수 상세</span>
           </div>
           <div className="rounded-md border border-border bg-surface px-3 py-2 text-xs">
-            현재 구간 : {careerScope ? "커리어" : segmentLabel(activeSegment)}
+            현재 구간 : {playerSegmentLabel(activeSegment)}
           </div>
         </div>
 
-        <PlayerCriteriaFilter playerSlug={player.slug} activeSegment={activeSegment} career={careerScope} />
+        <PlayerCriteriaFilter
+          playerSlug={player.slug}
+          activeSegment={activeSegment}
+          visibleSegments={visibleSegments}
+        />
 
         <div className="grid gap-3 lg:grid-cols-[0.95fr_1.05fr]">
           <section className="grid overflow-hidden rounded-lg border border-border bg-surface md:grid-cols-[15rem_1fr]" aria-labelledby="player-summary">
@@ -730,8 +749,8 @@ export default async function PlayerDetailPage({
           </section>
 
           <div className="grid gap-3">
-            <SectionCard title="선수 6각형" className="min-h-full">
-              {aggregateStats ? <RadarChart stats={aggregateStats} /> : <p className="text-sm text-muted">표시할 경기 지표가 없습니다.</p>}
+            <SectionCard title="선수 지표 비교" className="min-h-full">
+              {aggregateStats ? <RadarChart stats={aggregateStats} averageStats={radarBenchmark?.average} /> : <p className="text-sm text-muted">표시할 경기 지표가 없습니다.</p>}
             </SectionCard>
           </div>
         </div>
