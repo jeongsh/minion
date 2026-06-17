@@ -46,6 +46,8 @@ function teamPayload(formData: FormData) {
     official_instagram_url: textOrNull(formData.get("officialInstagramUrl")),
     leaguepedia_page: textOrNull(formData.get("leaguepediaPage")),
     source_team_id: textOrNull(formData.get("sourceTeamId")),
+    head_coach: textOrNull(formData.get("headCoach")),
+    coaches: textOrNull(formData.get("coaches")),
   };
 }
 

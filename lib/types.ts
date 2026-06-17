@@ -18,6 +18,8 @@ export type Team = {
   isLckTeam?: boolean;
   importedScope?: "lck" | "international_event" | "manual";
   isActive?: boolean;
+  headCoach?: string | null;
+  coaches?: string | null;
   identityHistory?: TeamIdentityHistory[];
 };
 
@@ -96,6 +98,18 @@ export type Player = {
   isLckPlayer?: boolean;
   importedScope?: "lck" | "international_event" | "manual";
   isActive?: boolean;
+  retiredAt?: string | null;
+};
+
+export type PlayerCareerHistory = {
+  id: string;
+  playerId: string;
+  teamId: string | null;
+  teamName: string | null;
+  position: string;
+  startDate: string;
+  endDate: string | null;
+  notes: string | null;
 };
 
 export type Tournament = {

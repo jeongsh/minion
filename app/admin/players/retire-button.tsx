@@ -1,0 +1,45 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { retirePlayerAction } from "./actions";
+
+export function RetireButton({ id, name }: { id: string; name: string }) {
+  const [confirm, setConfirm] = useState(false);
+
+  useEffect(() => {
+    setConfirm(false);
+  }, [id]);
+
+  if (confirm) {
+    return (
+      <div className="flex items-center gap-1">
+        <form action={retirePlayerAction}>
+          <input type="hidden" name="id" value={id} />
+          <button
+            type="submit"
+            className="rounded bg-amber-500 px-2 py-1 text-xs font-semibold text-white"
+          >
+            확인
+          </button>
+        </form>
+        <button
+          type="button"
+          onClick={() => setConfirm(false)}
+          className="rounded border border-border px-2 py-1 text-xs font-semibold"
+        >
+          취소
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => setConfirm(true)}
+      className="rounded border border-amber-500/40 px-2 py-1 text-xs font-semibold text-amber-600 hover:bg-amber-500/10"
+    >
+      은퇴
+    </button>
+  );
+}

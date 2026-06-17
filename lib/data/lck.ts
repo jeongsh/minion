@@ -5,6 +5,7 @@ import type {
   FanRating,
   Match,
   Player,
+  PlayerCareerHistory,
   PlayerStatLine,
   SetPickBan,
   SetResult,
@@ -38,6 +39,8 @@ type TeamRow = {
   is_lck_team: boolean | null;
   imported_scope: Team["importedScope"] | null;
   is_active: boolean | null;
+  head_coach: string | null;
+  coaches: string | null;
 };
 
 type TeamIdentityHistoryRow = {
@@ -67,6 +70,7 @@ type PlayerRow = {
   is_lck_player: boolean | null;
   imported_scope: Player["importedScope"] | null;
   is_active: boolean | null;
+  retired_at: string | null;
 };
 
 type ChampionRow = {
@@ -291,6 +295,8 @@ function mapTeam(row: TeamRow): Team {
     isLckTeam: row.is_lck_team ?? true,
     importedScope: row.imported_scope ?? "lck",
     isActive: row.is_active ?? true,
+    headCoach: row.head_coach ?? null,
+    coaches: row.coaches ?? null,
   };
 }
 
@@ -324,6 +330,7 @@ function mapPlayer(row: PlayerRow): Player {
     isLckPlayer: row.is_lck_player ?? true,
     importedScope: row.imported_scope ?? "lck",
     isActive: row.is_active ?? true,
+    retiredAt: row.retired_at ?? null,
   };
 }
 
@@ -636,13 +643,52 @@ export async function getPlayers() {
       .from("players")
       .select("*")
       .eq("is_lck_player", true)
+      .neq("is_active", false)
       .order("name", { ascending: true });
 
-    if (error) {
-      throw error;
-    }
-
+    if (error) throw error;
     return (data as PlayerRow[]).map(mapPlayer);
+  }, []);
+}
+
+export async function getRetiredPlayers() {
+  return fromSupabase(async () => {
+    const { data, error } = await createSupabaseServerClient()
+      .from("players")
+      .select("*")
+      .eq("is_lck_player", true)
+      .eq("is_active", false)
+      .order("name", { ascending: true });
+
+    if (error) throw error;
+    return (data as PlayerRow[]).map(mapPlayer);
+  }, []);
+}
+
+export async function getPlayerCareerHistories(playerIds: string[]): Promise<PlayerCareerHistory[]> {
+  if (playerIds.length === 0) return [];
+  return fromSupabase(async () => {
+    const { data, error } = await createSupabaseServerClient()
+      .from("player_career_history")
+      .select("*")
+      .in("player_id", playerIds)
+      .order("start_date", { ascending: false });
+
+    if (error) throw error;
+
+    return (data as {
+      id: string; player_id: string; team_id: string | null; team_name: string | null;
+      position: string; start_date: string; end_date: string | null; notes: string | null;
+    }[]).map((row) => ({
+      id: row.id,
+      playerId: row.player_id,
+      teamId: row.team_id,
+      teamName: row.team_name,
+      position: row.position,
+      startDate: row.start_date,
+      endDate: row.end_date,
+      notes: row.notes,
+    }));
   }, []);
 }
 

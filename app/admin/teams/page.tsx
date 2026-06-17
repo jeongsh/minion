@@ -92,6 +92,14 @@ function TeamFields({ team }: { team?: Team }) {
         Source Team ID
         <input name="sourceTeamId" defaultValue={team?.sourceTeamId ?? ""} className={inputClassName()} />
       </label>
+      <label className="flex flex-col gap-1 text-sm font-semibold">
+        감독
+        <input name="headCoach" defaultValue={team?.headCoach ?? ""} placeholder="예: Bengi" className={inputClassName()} />
+      </label>
+      <label className="flex flex-col gap-1 text-sm font-semibold">
+        코치
+        <input name="coaches" defaultValue={team?.coaches ?? ""} placeholder="예: Roach, Moment" className={inputClassName()} />
+      </label>
     </>
   );
 }

@@ -83,3 +83,91 @@ export async function deletePlayerAction(formData: FormData) {
 
   revalidate();
 }
+
+export async function retirePlayerAction(formData: FormData) {
+  const id = formData.get("id") as string;
+  if (!id) return;
+
+  const today = new Date().toISOString().slice(0, 10);
+  const supabase = createSupabaseAdminClient();
+
+  // 현재 팀 정보 조회 후 경력 기록에 자동 추가
+  const { data: player } = await supabase
+    .from("players")
+    .select("team_id, position")
+    .eq("id", id)
+    .single();
+
+  if (player?.team_id) {
+    // 해당 팀에 아직 종료 날짜 없는 경력이 있으면 종료 처리
+    const { data: openEntry } = await supabase
+      .from("player_career_history")
+      .select("id")
+      .eq("player_id", id)
+      .eq("team_id", player.team_id)
+      .is("end_date", null)
+      .maybeSingle();
+
+    if (openEntry) {
+      await supabase
+        .from("player_career_history")
+        .update({ end_date: today })
+        .eq("id", openEntry.id);
+    }
+  }
+
+  await supabase
+    .from("players")
+    .update({ is_active: false, retired_at: today, team_id: null, is_starter: false })
+    .eq("id", id);
+
+  revalidate();
+}
+
+export async function reactivatePlayerAction(formData: FormData) {
+  const id = formData.get("id") as string;
+  if (!id) return;
+
+  const supabase = createSupabaseAdminClient();
+  await supabase
+    .from("players")
+    .update({ is_active: true, retired_at: null })
+    .eq("id", id);
+
+  revalidate();
+}
+
+export async function addCareerHistoryAction(formData: FormData) {
+  const playerId = formData.get("player_id") as string;
+  const teamId = (formData.get("team_id") as string) || null;
+  const teamName = (formData.get("team_name") as string)?.trim() || null;
+  const position = formData.get("position") as string;
+  const startDate = formData.get("start_date") as string;
+  const endDate = (formData.get("end_date") as string) || null;
+  const notes = (formData.get("notes") as string)?.trim() || null;
+
+  if (!playerId || !position || !startDate) return;
+
+  const supabase = createSupabaseAdminClient();
+  await supabase.from("player_career_history").insert({
+    player_id: playerId,
+    team_id: teamId,
+    team_name: teamName,
+    position,
+    start_date: startDate,
+    end_date: endDate,
+    notes,
+  });
+
+  revalidate();
+}
+
+export async function deleteCareerHistoryAction(formData: FormData) {
+  const id = formData.get("id") as string;
+  if (!id) return;
+
+  const supabase = createSupabaseAdminClient();
+  await supabase.from("player_career_history").delete().eq("id", id);
+
+  revalidate();
+}

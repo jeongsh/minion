@@ -14,27 +14,50 @@ export default async function TeamsPage() {
           <Link
             key={team.id}
             href={`/teams/${team.slug}`}
-            className="group flex flex-col items-center gap-3 rounded-lg border border-border bg-surface p-6 transition-colors hover:border-accent hover:bg-surface-muted"
+            style={{ backgroundColor: team.primaryColor }}
+            className="group flex flex-col overflow-hidden rounded-xl transition-transform duration-200 hover:scale-[1.03] hover:shadow-xl"
           >
-            {team.logoUrl ? (
-              <img
-                src={team.logoUrl}
-                alt={team.name}
-                className="h-16 w-16 object-contain"
-              />
-            ) : (
-              <div
-                className="flex h-16 w-16 items-center justify-center rounded-full text-xl font-bold text-white"
-                style={{ backgroundColor: team.primaryColor }}
-              >
-                {team.shortName?.slice(0, 2)}
+            {/* 로고 + 팀명 영역 */}
+            <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 py-10">
+              {team.logoWhiteUrl || team.logoUrl ? (
+                <img
+                  src={team.logoWhiteUrl || team.logoUrl}
+                  alt={team.name}
+                  className="h-24 w-24 object-contain drop-shadow-lg"
+                />
+              ) : (
+                <div className="flex h-24 w-24 items-center justify-center rounded-full bg-white/20 text-2xl font-bold text-white">
+                  {team.shortName?.slice(0, 2)}
+                </div>
+              )}
+              <div className="text-center">
+                <p className="text-sm font-bold leading-tight text-white drop-shadow">
+                  {team.name}
+                </p>
+                <p className="mt-0.5 text-xs text-white/60">{team.shortName}</p>
               </div>
-            )}
-            <div className="text-center">
-              <p className="text-sm font-bold leading-tight group-hover:text-accent">
-                {team.name}
-              </p>
-              <p className="mt-0.5 text-xs text-muted">{team.shortName}</p>
+            </div>
+
+            {/* 하단 감독/코치 */}
+            <div className="bg-black/40 px-4 py-3 backdrop-blur-sm">
+              {team.headCoach || team.coaches ? (
+                <div className="space-y-0.5">
+                  {team.headCoach && (
+                    <p className="text-xs text-white/80">
+                      <span className="text-white/50">감독</span>{" "}
+                      {team.headCoach}
+                    </p>
+                  )}
+                  {team.coaches && (
+                    <p className="text-xs text-white/80">
+                      <span className="text-white/50">코치</span>{" "}
+                      {team.coaches}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <p className="text-xs text-white/30">정보 없음</p>
+              )}
             </div>
           </Link>
         ))}
