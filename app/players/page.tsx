@@ -27,12 +27,42 @@ function pickStarters(players: Player[]): (Player | null)[] {
   });
 }
 
+function PlayerPhoto({
+  src,
+  alt,
+  className,
+}: {
+  src?: string | null;
+  alt: string;
+  className: string;
+}) {
+  if (!src) {
+    return (
+      <div
+        className={`${className} flex items-center justify-center bg-surface-muted text-sm font-semibold text-muted`}
+        aria-label={alt}
+      >
+        {alt.slice(0, 2).toUpperCase()}
+      </div>
+    );
+  }
+
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={src} alt={alt} className={className} />
+  );
+}
+
 function StarterCard({ player, position }: { player: Player | null; position: string }) {
   if (!player) {
     return (
-      <div className="flex flex-col rounded-md border border-dashed border-border bg-surface-muted p-4 opacity-40">
-        <span className="text-xs font-semibold text-muted">{POSITION_LABEL[position]}</span>
-        <span className="mt-2 text-sm text-muted">미정</span>
+      <div className="flex flex-col overflow-hidden rounded-md border border-dashed border-border bg-surface-muted opacity-40">
+        <div className="flex aspect-[4/5] items-center justify-center bg-surface-muted">
+          <span className="text-sm text-muted">미정</span>
+        </div>
+        <div className="p-3">
+          <span className="text-xs font-semibold text-muted">{POSITION_LABEL[position]}</span>
+        </div>
       </div>
     );
   }
@@ -40,15 +70,26 @@ function StarterCard({ player, position }: { player: Player | null; position: st
   return (
     <Link
       href={`/players/${player.slug}`}
-      className="group flex flex-col rounded-md border border-border bg-surface p-4 transition-colors hover:border-accent hover:bg-surface-muted"
+      className="group flex flex-col overflow-hidden rounded-md border border-border bg-surface transition-colors hover:border-accent hover:bg-surface-muted"
     >
-      <span className="text-xs font-semibold text-accent">{POSITION_LABEL[position]}</span>
-      <span className="mt-2 text-base font-bold leading-tight group-hover:text-accent">
-        {player.name}
-      </span>
-      {player.realName && (
-        <span className="mt-1 truncate text-xs text-muted">{player.realName}</span>
-      )}
+      <div className="relative aspect-[4/5] overflow-hidden bg-surface-muted">
+        <PlayerPhoto
+          src={player.profileImageUrl}
+          alt={player.name}
+          className="h-full w-full object-cover object-top transition-transform duration-300 group-hover:scale-[1.03]"
+        />
+        <span className="absolute left-2 top-2 rounded-md bg-background/80 px-2 py-0.5 text-xs font-semibold text-accent backdrop-blur-sm">
+          {POSITION_LABEL[position]}
+        </span>
+      </div>
+      <div className="flex flex-col gap-0.5 p-3">
+        <span className="truncate text-base font-bold leading-tight group-hover:text-accent">
+          {player.name}
+        </span>
+        {player.realName && (
+          <span className="truncate text-xs text-muted">{player.realName}</span>
+        )}
+      </div>
     </Link>
   );
 }
@@ -83,7 +124,7 @@ function TeamRosterSection({
       </div>
 
       <div className="px-5 pb-5">
-        <div className="grid grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
           {POSITION_ORDER.map((pos, i) => (
             <StarterCard key={pos} player={starters[i] ?? null} position={pos} />
           ))}

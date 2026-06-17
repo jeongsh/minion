@@ -15,7 +15,10 @@
     "sync:international-rosters": "node --experimental-strip-types scripts/import-international-rosters.ts",
     "sync:pom": "node --experimental-strip-types scripts/sync-pom.ts",
     "sync:pom:full": "node --experimental-strip-types scripts/sync-pom.ts --full",
-    "sync:staff": "node --experimental-strip-types scripts/sync-staff.ts"
+    "sync:staff": "node --experimental-strip-types scripts/sync-staff.ts",
+    "sync:player-images": "node --experimental-strip-types scripts/sync-player-images.ts",
+    "sync:player-images:all": "node --experimental-strip-types scripts/sync-player-images.ts --all",
+    "sync:player-social": "node --experimental-strip-types scripts/sync-player-social.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.108.1",

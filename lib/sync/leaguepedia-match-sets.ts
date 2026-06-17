@@ -186,6 +186,11 @@ function normalizeName(value: string | null | undefined) {
     .toLowerCase();
 }
 
+import {
+  displayNameFromLeaguepediaPage,
+  leaguepediaSourcePlayerId,
+} from "../leaguepedia-player.ts";
+
 function parseInteger(value: string | null | undefined) {
   if (value == null || value === "") {
     return null;
@@ -372,6 +377,7 @@ type ExistingPlayer = {
   name: string;
   team_id: string | null;
   position: string;
+  leaguepedia_page?: string | null;
 };
 
 function isLckTeamId(teamId: string | null, match: MatchRow) {
@@ -439,7 +445,9 @@ async function getChampionMap(supabase: SupabaseClient, championNames: string[])
 }
 
 async function getPlayerMap(supabase: SupabaseClient) {
-  const { data, error } = await supabase.from("players").select("id, slug, name, team_id, position");
+  const { data, error } = await supabase
+    .from("players")
+    .select("id, slug, name, team_id, position, leaguepedia_page");
 
   if (error) {
     throw error;
@@ -449,8 +457,71 @@ async function getPlayerMap(supabase: SupabaseClient) {
   for (const player of data as ExistingPlayer[]) {
     byName.set(normalizeName(player.name), player);
     byName.set(normalizeName(player.slug), player);
+    if (player.leaguepedia_page) {
+      byName.set(normalizeName(player.leaguepedia_page), player);
+      byName.set(normalizeName(displayNameFromLeaguepediaPage(player.leaguepedia_page)), player);
+    }
   }
   return byName;
+}
+
+function playerForLeaguepediaLink(
+  playerMap: Map<string, ExistingPlayer>,
+  link: string | null | undefined,
+) {
+  const pageName = String(link ?? "").trim();
+  const displayName = displayNameFromLeaguepediaPage(pageName);
+
+  return (
+    playerMap.get(normalizeName(pageName)) ??
+    playerMap.get(normalizeName(displayName)) ??
+    playerMap.get(normalizeName(slugify(displayName)))
+  );
+}
+
+async function backfillLeaguepediaPages({
+  supabase,
+  playerMap,
+  playerRows,
+}: {
+  supabase: SupabaseClient;
+  playerMap: Map<string, ExistingPlayer>;
+  playerRows: CargoPlayerRow[];
+}) {
+  const patches = new Map<string, { leaguepedia_page: string; source_player_id: string }>();
+
+  for (const row of playerRows) {
+    const leaguepediaPage = String(row.Link ?? "").trim();
+    if (!leaguepediaPage) {
+      continue;
+    }
+
+    const player = playerForLeaguepediaLink(playerMap, leaguepediaPage);
+    if (!player?.id || player.leaguepedia_page?.trim() === leaguepediaPage) {
+      continue;
+    }
+
+    patches.set(player.id, {
+      leaguepedia_page: leaguepediaPage,
+      source_player_id: leaguepediaSourcePlayerId(leaguepediaPage),
+    });
+  }
+
+  for (const [id, patch] of patches) {
+    const { error } = await supabase.from("players").update(patch).eq("id", id);
+    if (error) {
+      throw error;
+    }
+
+    const player = [...playerMap.values()].find((entry) => entry.id === id);
+    if (!player) {
+      continue;
+    }
+
+    player.leaguepedia_page = patch.leaguepedia_page;
+    playerMap.set(normalizeName(patch.leaguepedia_page), player);
+    playerMap.set(normalizeName(displayNameFromLeaguepediaPage(patch.leaguepedia_page)), player);
+  }
 }
 
 async function ensurePlayersForStats({
@@ -473,6 +544,8 @@ async function ensurePlayersForStats({
     red_team_id: string | null;
   }>;
 }) {
+  await backfillLeaguepediaPages({ supabase, playerMap, playerRows });
+
   const payloadBySlug = new Map<string, {
     slug: string;
     name: string;
@@ -484,10 +557,11 @@ async function ensurePlayersForStats({
   }>();
 
   for (const row of playerRows) {
-    const playerName = String(row.Link ?? "").trim();
+    const leaguepediaPage = String(row.Link ?? "").trim();
+    const playerName = displayNameFromLeaguepediaPage(leaguepediaPage);
     const position = roleToPosition(row.Role);
     const set = setByGameId.get(row.GameId ?? "");
-    if (!playerName || !position || !set || playerMap.has(normalizeName(playerName))) {
+    if (!playerName || !position || !set || playerForLeaguepediaLink(playerMap, leaguepediaPage)) {
       continue;
     }
 
@@ -505,7 +579,7 @@ async function ensurePlayersForStats({
       name: playerName,
       team_id: teamId,
       position,
-      leaguepedia_page: playerName,
+      leaguepedia_page: leaguepediaPage,
       is_lck_player: isLckTeamId(teamId, match),
       imported_scope: isLckTeamId(teamId, match) ? "lck" : "international_event",
     });
@@ -519,7 +593,7 @@ async function ensurePlayersForStats({
   const { data, error } = await supabase
     .from("players")
     .upsert(payload, { onConflict: "slug" })
-    .select("id, slug, name, team_id, position");
+    .select("id, slug, name, team_id, position, leaguepedia_page");
 
   if (error) {
     throw error;
@@ -528,6 +602,10 @@ async function ensurePlayersForStats({
   for (const player of data as ExistingPlayer[]) {
     playerMap.set(normalizeName(player.name), player);
     playerMap.set(normalizeName(player.slug), player);
+    if (player.leaguepedia_page) {
+      playerMap.set(normalizeName(player.leaguepedia_page), player);
+      playerMap.set(normalizeName(displayNameFromLeaguepediaPage(player.leaguepedia_page)), player);
+    }
   }
 }
 
@@ -1210,7 +1288,7 @@ export async function syncLeaguepediaMatchSets(
 
     const statPayload = playerRows.flatMap((row) => {
       const set = setByGameId.get(row.GameId ?? "");
-      const player = playerMap.get(normalizeName(row.Link));
+      const player = playerForLeaguepediaLink(playerMap, row.Link);
       const position = roleToPosition(row.Role);
       if (!set || !player || !position) {
         return [];

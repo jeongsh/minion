@@ -93,12 +93,19 @@ export type Player = {
   position: PlayerPosition;
   profileImageUrl: string;
   streamUrl?: string;
+  twitterUrl?: string;
+  instagramUrl?: string;
+  youtubeUrl?: string;
+  facebookUrl?: string;
+  discordUrl?: string;
   soloQueueAccount?: string;
   isStarter?: boolean;
   isLckPlayer?: boolean;
   importedScope?: "lck" | "international_event" | "manual";
   isActive?: boolean;
   retiredAt?: string | null;
+  leaguepediaPage?: string;
+  sourcePlayerId?: string;
 };
 
 export type PlayerCareerHistory = {

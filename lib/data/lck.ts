@@ -65,12 +65,19 @@ type PlayerRow = {
   position: Player["position"];
   profile_image_url: string | null;
   stream_url: string | null;
+  twitter_url: string | null;
+  instagram_url: string | null;
+  youtube_url: string | null;
+  facebook_url: string | null;
+  discord_url: string | null;
   solo_queue_account: string | null;
   is_starter: boolean | null;
   is_lck_player: boolean | null;
   imported_scope: Player["importedScope"] | null;
   is_active: boolean | null;
   retired_at: string | null;
+  leaguepedia_page: string | null;
+  source_player_id: string | null;
 };
 
 type ChampionRow = {
@@ -333,12 +340,19 @@ function mapPlayer(row: PlayerRow): Player {
     position: row.position,
     profileImageUrl: row.profile_image_url ?? "",
     streamUrl: row.stream_url ?? undefined,
+    twitterUrl: row.twitter_url ?? undefined,
+    instagramUrl: row.instagram_url ?? undefined,
+    youtubeUrl: row.youtube_url ?? undefined,
+    facebookUrl: row.facebook_url ?? undefined,
+    discordUrl: row.discord_url ?? undefined,
     soloQueueAccount: row.solo_queue_account ?? undefined,
     isStarter: row.is_starter ?? false,
     isLckPlayer: row.is_lck_player ?? true,
     importedScope: row.imported_scope ?? "lck",
     isActive: row.is_active ?? true,
     retiredAt: row.retired_at ?? null,
+    leaguepediaPage: row.leaguepedia_page ?? undefined,
+    sourcePlayerId: row.source_player_id ?? undefined,
   };
 }
 
@@ -754,6 +768,19 @@ export async function getStages() {
 export async function getPlayerBySlug(slug: string) {
   const players = await getAllPlayers();
   return players.find((player) => player.slug === slug);
+}
+
+export async function getPlayerById(id: string) {
+  return fromSupabase(async () => {
+    const { data, error } = await createSupabaseServerClient()
+      .from("players")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (error) throw error;
+    return data ? mapPlayer(data as PlayerRow) : null;
+  }, null);
 }
 
 export async function getMatches() {

@@ -2,6 +2,8 @@ export type DataTableColumn<T> = {
   key: string;
   label: string;
   render: (row: T) => React.ReactNode;
+  headerClassName?: string;
+  cellClassName?: string;
 };
 
 export function DataTable<T>({
@@ -27,7 +29,7 @@ export function DataTable<T>({
         <thead className="bg-surface-muted text-xs uppercase text-muted">
           <tr>
             {columns.map((column) => (
-              <th key={column.key} scope="col" className="px-4 py-3 font-semibold">
+              <th key={column.key} scope="col" className={`px-4 py-3 font-semibold ${column.headerClassName ?? ""}`}>
                 {column.label}
               </th>
             ))}
@@ -35,9 +37,9 @@ export function DataTable<T>({
         </thead>
         <tbody className="divide-y divide-border">
           {rows.map((row, index) => (
-            <tr key={index} className="align-top">
+            <tr key={index} className="align-middle">
               {columns.map((column) => (
-                <td key={column.key} className="px-4 py-3">
+                <td key={column.key} className={`px-4 py-3 ${column.cellClassName ?? ""}`}>
                   {column.render(row)}
                 </td>
               ))}

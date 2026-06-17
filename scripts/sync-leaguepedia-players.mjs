@@ -156,6 +156,38 @@ function makeSlug(name) {
     .replace(/[^a-z0-9-]/g, "");
 }
 
+function displayNameFromLeaguepediaPage(pageName) {
+  return String(pageName ?? "")
+    .replace(/\s*\([^)]*\)\s*$/, "")
+    .trim();
+}
+
+async function findExistingPlayerId(supabase, { slug, leaguepediaPage, displayName }) {
+  const { data: byPage, error: byPageError } = await supabase
+    .from("players")
+    .select("id")
+    .eq("leaguepedia_page", leaguepediaPage)
+    .maybeSingle();
+  if (byPageError) throw byPageError;
+  if (byPage?.id) return byPage.id;
+
+  const { data: bySlug, error: bySlugError } = await supabase
+    .from("players")
+    .select("id")
+    .eq("slug", slug)
+    .maybeSingle();
+  if (bySlugError) throw bySlugError;
+  if (bySlug?.id) return bySlug.id;
+
+  const { data: byName, error: byNameError } = await supabase
+    .from("players")
+    .select("id")
+    .eq("name", displayName)
+    .maybeSingle();
+  if (byNameError) throw byNameError;
+  return byName?.id ?? null;
+}
+
 function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
@@ -236,12 +268,215 @@ async function fetchTournamentPlayers(tournament) {
   });
 }
 
+/** Leaguepedia Image 필드(파일명)를 실제 URL로 변환한다. */
+async function resolveImageUrls(filenames) {
+  const result = new Map();
+  const toResolve = [...new Set(
+    filenames
+      .map((value) => value?.trim())
+      .filter(Boolean)
+      .map((value) => value.replace(/^File:/i, ""))
+      .filter((value) => !/^https?:\/\//i.test(value)),
+  )];
+
+  for (const value of filenames) {
+    const trimmed = value?.trim();
+    if (trimmed && /^https?:\/\//i.test(trimmed)) {
+      result.set(trimmed, trimmed);
+    }
+  }
+
+  const CHUNK = 40;
+  for (let i = 0; i < toResolve.length; i += CHUNK) {
+    const chunk = toResolve.slice(i, i + CHUNK);
+    const titles = chunk.map((name) => `File:${name}`).join("|");
+    const url = new URL(LEAGUEPEDIA_API);
+    url.searchParams.set("action", "query");
+    url.searchParams.set("format", "json");
+    url.searchParams.set("prop", "imageinfo");
+    url.searchParams.set("iiprop", "url");
+    url.searchParams.set("titles", titles);
+
+    const response = await fetch(url.toString(), {
+      headers: { "User-Agent": USER_AGENT },
+    });
+    if (!response.ok) throw new Error(`Leaguepedia image HTTP ${response.status}`);
+
+    const json = await response.json();
+    if (json.error) {
+      throw new Error(`Leaguepedia image [${json.error.code}]: ${json.error.info}`);
+    }
+
+    for (const page of Object.values(json.query?.pages ?? {})) {
+      const imageUrl = page.imageinfo?.[0]?.url?.trim();
+      if (!imageUrl || !page.title) continue;
+      result.set(page.title.replace(/^File:/i, ""), imageUrl);
+    }
+
+    await sleep(2000);
+  }
+
+  return result;
+}
+
+const PLAYER_IMAGE_PLACEHOLDER = "Unknown Infobox Image - Player.png";
+const PLAYER_IMAGE_FIELDS = "PI.Link,PI.FileName,PI.IsProfileImage,PI.SortDate,PI.Tournament";
+
+function isValidPlayerImageFilename(filename) {
+  const normalized = filename?.trim();
+  return !!normalized && normalized !== PLAYER_IMAGE_PLACEHOLDER;
+}
+
+function imageYearFromFilename(filename) {
+  const years = [...filename.matchAll(/\b(20\d{2})\b/g)].map((match) => Number(match[1]));
+  return years.length > 0 ? Math.max(...years) : 0;
+}
+
+function imageSplitFromFilename(filename) {
+  const split = filename.match(/Split\s*(\d+)/i);
+  if (split) return Number(split[1]);
+  if (/\b(Worlds|World Championship|WC|MSI|Cup|Road to MSI)\b/i.test(filename)) return 99;
+  return 0;
+}
+
+function comparePlayerImageCandidates(left, right) {
+  const profileDelta = Number(right.IsProfileImage === "1") - Number(left.IsProfileImage === "1");
+  if (profileDelta !== 0) return profileDelta;
+
+  const leftName = left.FileName?.trim() ?? "";
+  const rightName = right.FileName?.trim() ?? "";
+  const yearDelta = imageYearFromFilename(rightName) - imageYearFromFilename(leftName);
+  if (yearDelta !== 0) return yearDelta;
+
+  const splitDelta = imageSplitFromFilename(rightName) - imageSplitFromFilename(leftName);
+  if (splitDelta !== 0) return splitDelta;
+
+  const sortDateDelta = (right.SortDate?.trim() ?? "").localeCompare(left.SortDate?.trim() ?? "");
+  if (sortDateDelta !== 0) return sortDateDelta;
+
+  return rightName.localeCompare(leftName);
+}
+
+function pickBestPlayerImage(rows) {
+  const valid = rows.filter((row) => isValidPlayerImageFilename(row.FileName));
+  if (valid.length === 0) return null;
+  valid.sort(comparePlayerImageCandidates);
+  return valid[0]?.FileName?.trim() ?? null;
+}
+
+function pickBestImageForLinks(rows, links) {
+  const linkSet = new Set(links.map((link) => link.trim()).filter(Boolean));
+  return pickBestPlayerImage(rows.filter((row) => linkSet.has(row.Link?.trim() ?? "")));
+}
+
+function pickProfileImageFilename(playersImage, imageRows, links) {
+  const bestFromImages = pickBestImageForLinks(imageRows, links);
+  const normalizedPlayersImage = playersImage?.trim();
+
+  if (!isValidPlayerImageFilename(normalizedPlayersImage)) {
+    return bestFromImages;
+  }
+  if (!bestFromImages) {
+    return normalizedPlayersImage;
+  }
+
+  const left = { FileName: normalizedPlayersImage, IsProfileImage: "1" };
+  const right = { FileName: bestFromImages, IsProfileImage: "1" };
+  return comparePlayerImageCandidates(left, right) >= 0 ? bestFromImages : normalizedPlayersImage;
+}
+
+/** PlayerImages / PlayerRedirects / Players.Image 순으로 최신 프로필 이미지 파일명을 조회한다. */
+async function fetchPlayerImagesByPages(pageNames) {
+  const result = new Map();
+  const CHUNK = 40;
+
+  for (let i = 0; i < pageNames.length; i += CHUNK) {
+    const chunk = pageNames.slice(i, i + CHUNK);
+    const escaped = chunk.map((name) => name.replace(/'/g, "\\'"));
+
+    const playerRows = await cargoQuery({
+      tables: "Players",
+      fields: "ID,Image",
+      where: `ID IN ('${escaped.join("','")}')`,
+      limit: String(CHUNK + 10),
+    });
+    const playerImageByPage = new Map(
+      playerRows
+        .map((row) => [row.ID?.trim(), row.Image?.trim()])
+        .filter(([page, image]) => page && isValidPlayerImageFilename(image)),
+    );
+
+    const imageRows = await cargoQuery({
+      tables: "PlayerImages=PI",
+      fields: PLAYER_IMAGE_FIELDS,
+      where: `PI.Link IN ('${escaped.join("','")}')`,
+      limit: "500",
+    });
+
+    for (const page of chunk) {
+      const best = pickProfileImageFilename(playerImageByPage.get(page), imageRows, [page]);
+      if (best) result.set(page, best);
+    }
+
+    const missing = chunk.filter((name) => !result.has(name));
+    if (missing.length > 0) {
+      const missingEscaped = missing.map((name) => name.replace(/'/g, "\\'"));
+      const redirectRows = await cargoQuery({
+        tables: "PlayerRedirects=PR",
+        fields: "PR.OverviewPage,PR.AllName",
+        where: `PR.OverviewPage IN ('${missingEscaped.join("','")}')`,
+        limit: "500",
+      });
+
+      const redirectNamesByOverview = new Map();
+      for (const redirect of redirectRows) {
+        const overviewPage = redirect.OverviewPage?.trim();
+        const allName = redirect.AllName?.trim();
+        if (!overviewPage || !allName) continue;
+        const names = redirectNamesByOverview.get(overviewPage) ?? [];
+        names.push(allName);
+        redirectNamesByOverview.set(overviewPage, names);
+      }
+
+      const redirectNames = [...new Set([...redirectNamesByOverview.values()].flat())];
+      if (redirectNames.length > 0) {
+        const redirectEscaped = redirectNames.map((name) => name.replace(/'/g, "\\'"));
+        const redirectImages = await cargoQuery({
+          tables: "PlayerImages=PI",
+          fields: PLAYER_IMAGE_FIELDS,
+          where: `PI.Link IN ('${redirectEscaped.join("','")}')`,
+          limit: "500",
+        });
+
+        for (const [overviewPage, names] of redirectNamesByOverview) {
+          const best = pickProfileImageFilename(
+            playerImageByPage.get(overviewPage),
+            redirectImages,
+            names,
+          );
+          if (best) result.set(overviewPage, best);
+        }
+      }
+    }
+  }
+
+  return result;
+}
+
+function profileImageUrlFor(page, imageByPage, imageUrls) {
+  const rawImage = imageByPage.get(page)?.trim();
+  if (!rawImage) return null;
+  if (/^https?:\/\//i.test(rawImage)) return rawImage;
+  const filename = rawImage.replace(/^File:/i, "");
+  return imageUrls.get(filename) ?? null;
+}
+
 /** Players 테이블에서 팀별 직접 조회 (폴백 2) */
 async function fetchPlayersByTeamNames(teamNames) {
   const escaped = teamNames.map((n) => n.replace(/'/g, "\\'"));
   return cargoQuery({
     tables: "Players",
-    fields: "ID,Name,NationalityPrimary,Birthdate,Role,Team",
+    fields: "ID,Name,NationalityPrimary,Birthdate,Role,Team,Image",
     where: `Team IN ('${escaped.join("','")}')`,
     order_by: "Team,Role",
     limit: "300",
@@ -256,7 +491,7 @@ async function fetchPlayersByTeamLike(patterns) {
   const conditions = patterns.map((p) => `Team LIKE '%${p.replace(/'/g, "\\'")}%'`);
   return cargoQuery({
     tables: "Players",
-    fields: "ID,Name,NationalityPrimary,Birthdate,Role,Team",
+    fields: "ID,Name,NationalityPrimary,Birthdate,Role,Team,Image",
     where: conditions.join(" OR "),
     order_by: "Team,Role",
     limit: "200",
@@ -275,7 +510,7 @@ async function fetchPlayerDetailsByIds(pageNames) {
     const escaped = chunk.map((n) => n.replace(/'/g, "\\'"));
     const rows = await cargoQuery({
       tables: "Players",
-      fields: "ID,Name,NationalityPrimary,Birthdate,Role,Team",
+      fields: "ID,Name,NationalityPrimary,Birthdate,Role,Team,Image",
       where: `ID IN ('${escaped.join("','")}')`,
       limit: String(CHUNK + 10),
     });
@@ -508,6 +743,15 @@ async function sync() {
   const playerDetails = await fetchPlayerDetailsByIds(allPageNames);
   console.log(`  Details fetched: ${playerDetails.size}`);
 
+  console.log(`\nFetching profile images for ${allPageNames.length} player(s)...`);
+  const imageByPage = await fetchPlayerImagesByPages(allPageNames);
+  console.log(`  Image filenames fetched: ${imageByPage.size}`);
+
+  const imageFilenames = [...imageByPage.values()];
+  console.log(`\nResolving ${imageFilenames.length} profile image(s)...`);
+  const imageUrls = await resolveImageUrls(imageFilenames);
+  console.log(`  Image URLs resolved: ${imageUrls.size}`);
+
   // 5. Supabase upsert
   const summary = { created: 0, updated: 0, skipped: [] };
 
@@ -529,7 +773,8 @@ async function sync() {
         continue;
       }
 
-      const slug = makeSlug(playerRef.page);
+      const displayName = displayNameFromLeaguepediaPage(playerRef.page);
+      const slug = makeSlug(displayName);
 
       const rawDate = details?.Birthdate?.trim();
       const birthDate =
@@ -537,7 +782,7 @@ async function sync() {
 
       const payload = {
         slug,
-        name: playerRef.page,
+        name: displayName,
         real_name: details?.Name?.trim() || null,
         team_id: teamId,
         position,
@@ -545,29 +790,28 @@ async function sync() {
         birth_date: birthDate,
         leaguepedia_page: playerRef.page,
         source_player_id: `lp:${playerRef.page}`,
+        profile_image_url: profileImageUrlFor(playerRef.page, imageByPage, imageUrls),
       };
 
-      const { data: existing, error: selErr } = await supabase
-        .from("players")
-        .select("id")
-        .eq("slug", slug)
-        .maybeSingle();
+      const existingId = await findExistingPlayerId(supabase, {
+        slug,
+        leaguepediaPage: playerRef.page,
+        displayName,
+      });
 
-      if (selErr) throw selErr;
-
-      if (existing) {
+      if (existingId) {
         const { error } = await supabase
           .from("players")
           .update(payload)
-          .eq("id", existing.id);
+          .eq("id", existingId);
         if (error) throw error;
         summary.updated++;
-        console.log(`  Updated: ${playerRef.page} [${position}]`);
+        console.log(`  Updated: ${displayName} (${playerRef.page}) [${position}]`);
       } else {
         const { error } = await supabase.from("players").insert(payload);
         if (error) throw error;
         summary.created++;
-        console.log(`  Created: ${playerRef.page} [${position}]`);
+        console.log(`  Created: ${displayName} (${playerRef.page}) [${position}]`);
       }
     }
   }

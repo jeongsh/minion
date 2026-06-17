@@ -1,12 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import type { Player, PlayerCareerHistory, Team } from "@/lib/types";
 import { reactivatePlayerAction } from "./actions";
 import { CareerHistoryPanel } from "./career-history-panel";
 import { DeleteButton } from "./delete-button";
 import { PlayerCreateModal } from "./player-create-modal";
-import { PlayerEditModal } from "./player-edit-modal";
 import { RetireButton } from "./retire-button";
 
 const POS_ORDER = ["TOP", "JGL", "MID", "BOT", "SUP"];
@@ -125,7 +125,12 @@ export function PlayerList({
                       </td>
                       <td className="px-4 py-2.5">
                         <div className="flex flex-row flex-wrap items-center gap-1.5">
-                          <PlayerEditModal player={p} teams={teams} />
+                          <Link
+                            href={`/admin/players/${p.id}`}
+                            className="rounded border border-border px-2 py-1 text-xs font-semibold hover:bg-surface-muted"
+                          >
+                            수정
+                          </Link>
                           <RetireButton id={p.id} name={p.name} />
                           <DeleteButton id={p.id} name={p.name} />
                           <CareerHistoryPanel
@@ -197,6 +202,12 @@ export function PlayerList({
 
                       {/* 액션 버튼 */}
                       <div className="flex items-center gap-2">
+                        <Link
+                          href={`/admin/players/${p.id}`}
+                          className="rounded border border-border px-3 py-1.5 text-xs font-semibold hover:bg-surface-muted"
+                        >
+                          관리
+                        </Link>
                         <form action={reactivatePlayerAction}>
                           <input type="hidden" name="id" value={p.id} />
                           <button
