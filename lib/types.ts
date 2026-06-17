@@ -101,6 +101,7 @@ export type Player = {
   facebookUrl?: string;
   discordUrl?: string;
   soloQueueAccount?: string;
+  contractExpiry?: string | null;
   isStarter?: boolean;
   isLckPlayer?: boolean;
   importedScope?: "lck" | "international_event" | "manual";

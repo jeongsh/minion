@@ -2,7 +2,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SectionHeader } from "@/components/layout/section-header";
 import { DataTable } from "@/components/ui/data-table";
-import { StatCard } from "@/components/ui/stat-card";
 import {
   getCommunityPosts,
   getFanRatings,
@@ -21,7 +20,6 @@ import {
   durationLabel,
   formatDateTime,
   matchHref,
-  matchSetScore,
   playerLabel,
   teamLabel,
   topFanRatingForMatch,
@@ -144,6 +142,69 @@ function AwardHistory({ awards }: { awards: TeamAward[] }) {
   );
 }
 
+function TeamRadarChart({ stats }: { stats: ReturnType<typeof buildTeamStatSummary> }) {
+  const axes = [
+    ["교전", stats.radarFight],
+    ["화력", stats.radarFirepower],
+    ["골드", stats.radarGold],
+    ["타워", stats.radarTower],
+    ["오브젝트", stats.radarObjective],
+  ] as const;
+  const center = 110;
+  const maxRadius = 76;
+  const points = axes.map(([, value], index) => {
+    const angle = -Math.PI / 2 + (index * Math.PI * 2) / axes.length;
+    const radius = (value / 100) * maxRadius;
+    return `${center + Math.cos(angle) * radius},${center + Math.sin(angle) * radius}`;
+  });
+  const grid = [0.25, 0.5, 0.75, 1].map((scale) =>
+    axes.map(([,], index) => {
+      const angle = -Math.PI / 2 + (index * Math.PI * 2) / axes.length;
+      const r = maxRadius * scale;
+      return `${center + Math.cos(angle) * r},${center + Math.sin(angle) * r}`;
+    }).join(" "),
+  );
+
+  return (
+    <div className="flex flex-col gap-4">
+      <svg viewBox="0 0 220 220" className="mx-auto h-52 w-52">
+        {grid.map((polygon) => (
+          <polygon key={polygon} points={polygon} className="fill-surface-muted stroke-border" />
+        ))}
+        {axes.map(([,], index) => {
+          const angle = -Math.PI / 2 + (index * Math.PI * 2) / axes.length;
+          return (
+            <line key={index} x1={center} y1={center}
+              x2={center + Math.cos(angle) * maxRadius}
+              y2={center + Math.sin(angle) * maxRadius}
+              className="stroke-border" />
+          );
+        })}
+        <polygon points={points.join(" ")} className="fill-accent/20 stroke-accent" strokeWidth="2" />
+        {axes.map(([label, value], index) => {
+          const angle = -Math.PI / 2 + (index * Math.PI * 2) / axes.length;
+          const x = center + Math.cos(angle) * (maxRadius + 24);
+          const y = center + Math.sin(angle) * (maxRadius + 18);
+          return (
+            <text key={label} x={x} y={y} textAnchor="middle" className="fill-foreground text-[10px] font-semibold">
+              <tspan x={x}>{label}</tspan>
+              <tspan x={x} dy="12">{Math.round(value)}</tspan>
+            </text>
+          );
+        })}
+      </svg>
+      <div className="grid grid-cols-2 gap-1.5">
+        {axes.map(([label, value]) => (
+          <div key={label} className="flex items-center justify-between rounded-md border border-border bg-surface px-2.5 py-1.5 text-sm">
+            <span className="text-muted">{label}</span>
+            <strong>{Math.round(value)}</strong>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 const POS_ORDER = ["TOP", "JGL", "MID", "BOT", "SUP"] as const;
 const POS_LABEL: Record<string, string> = {
   TOP: "탑", JGL: "정글", MID: "미드", BOT: "원딜", SUP: "서폿",
@@ -203,16 +264,23 @@ export default async function TeamDetailPage({
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-[var(--page-inline)] py-10">
-      <div className="max-w-3xl">
-        <p className="text-sm font-semibold text-accent">팀 상세</p>
-        <div className="mt-2 flex items-center gap-3">
+      <div className="text-sm text-muted">
+        <Link href="/teams" className="hover:text-foreground">팀</Link>
+        <span className="mx-2">›</span>
+        <span>팀 상세</span>
+      </div>
+      <div className="flex items-center gap-3">
+        {team.logoUrl && (
+          <img src={team.logoUrl} alt={team.name} className="h-20 w-20 object-contain md:h-24 md:w-24" />
+        )}
+        <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-3xl font-semibold tracking-normal md:text-4xl">{team.name}</h1>
           {team.globalPowerRank != null && (
             <a
               href="https://lolesports.com/ko-KR/gpr/"
               target="_blank"
               rel="noopener noreferrer"
-              className="rounded-full border border-border bg-surface px-4 py-1.5 text-lg font-bold text-black hover:bg-surface-muted"
+              className="rounded-full border border-border bg-surface px-3 py-1 text-sm font-bold text-black hover:bg-surface-muted"
             >
               글로벌 {team.globalPowerRank}위
             </a>
@@ -221,8 +289,6 @@ export default async function TeamDetailPage({
       </div>
 
       <section className="flex flex-col gap-8" aria-labelledby="team-roster">
-        <h2 id="team-roster" className="text-xl font-semibold">로스터</h2>
-
         {/* 주전 선수 */}
         {starters.length > 0 && (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
@@ -235,8 +301,7 @@ export default async function TeamDetailPage({
                 {/* 포지션 라벨 */}
                 <div className="px-3 pt-2.5">
                   <span
-                    className="text-xs font-bold tracking-wider"
-                    style={{ color: team.primaryColor }}
+                    className="text-xs font-bold tracking-wider text-black"
                   >
                     {player.position}
                   </span>
@@ -266,6 +331,11 @@ export default async function TeamDetailPage({
                   {player.realName && (
                     <p className="mt-0.5 text-xs text-muted">{player.realName}</p>
                   )}
+                  {player.contractExpiry && (
+                    <p className="mt-1.5 text-xs text-muted">
+                      계약 <span className="font-semibold text-foreground">{player.contractExpiry.slice(0, 7)}</span>
+                    </p>
+                  )}
                 </div>
               </Link>
             ))}
@@ -276,27 +346,32 @@ export default async function TeamDetailPage({
           <p className="text-sm text-muted">등록된 선수가 없습니다.</p>
         )}
 
-        {/* 코칭 스태프 */}
-        {(team.headCoach || team.coaches) && (
-          <div
-            className="flex flex-wrap items-center gap-x-8 gap-y-3 rounded-xl border border-border bg-surface px-6 py-4"
-            style={{ borderLeftColor: team.primaryColor, borderLeftWidth: 4 }}
-          >
-            <p className="text-sm font-bold text-muted">코칭 스태프</p>
-            {team.headCoach && (
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold text-muted">감독</span>
-                <span className="font-semibold">{team.headCoach}</span>
-              </div>
-            )}
-            {team.coaches && (
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold text-muted">코치</span>
-                <span className="font-semibold">{team.coaches}</span>
-              </div>
-            )}
-          </div>
-        )}
+        {/* 코칭 스태프 + 5각형 */}
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
+          {(team.headCoach || team.coaches) && (
+            <div
+              className="flex flex-wrap items-center gap-x-8 gap-y-3 rounded-xl border border-border bg-surface px-6 py-4 lg:flex-1"
+              style={{ borderLeftColor: team.primaryColor, borderLeftWidth: 4 }}
+            >
+              <p className="text-sm font-bold text-muted">코칭 스태프</p>
+              {team.headCoach && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-muted">감독</span>
+                  <span className="font-semibold">{team.headCoach}</span>
+                </div>
+              )}
+              {team.coaches && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-muted">코치</span>
+                  <span className="font-semibold">{team.coaches}</span>
+                </div>
+              )}
+            </div>
+          )}
+          {/* <div className="rounded-xl border border-border bg-surface p-5 lg:w-72">
+            <TeamRadarChart stats={stats} />
+          </div> */}
+        </div>
       </section>
 
       {awards.filter((a) => TEAM_AWARD_TYPES.has(a.awardType)).length > 0 && (
@@ -306,40 +381,102 @@ export default async function TeamDetailPage({
         </section>
       )}
 
-      <section className="flex flex-col gap-4" aria-labelledby="team-stats">
-        <h2 id="team-stats" className="text-xl font-semibold">
-          팀 스탯 요약
-        </h2>
-        <div className="page-grid">
-          <StatCard label="평균 킬" value={stats.avgKills.toFixed(1)} />
-          <StatCard label="평균 데스" value={stats.avgDeaths.toFixed(1)} />
-          <StatCard label="평균 골드" value={stats.avgGold.toLocaleString("ko-KR")} />
-          <StatCard label="평균 타워" value={stats.avgTowers} />
-          <StatCard label="팬 평점 평균" value={avgFanRating} />
-          <StatCard label="최근 리뷰" value={recentReviews.length} />
-        </div>
-      </section>
-
       <section className="flex flex-col gap-4" aria-labelledby="team-recent-matches">
-        <h2 id="team-recent-matches" className="text-xl font-semibold">
-          최근 경기
-        </h2>
-        <DataTable
-          rows={teamMatches}
-          columns={[
-            { key: "date", label: "일시", render: (row) => formatDateTime(row.matchDate) },
-            { key: "match", label: "경기", render: (row) => <Link href={matchHref(row)}>{row.name}</Link> },
-            {
-              key: "score",
-              label: "스코어",
-              render: (row) => `${row.teamAScore ?? "-"}:${row.teamBScore ?? "-"}`,
-            },
-            { key: "sets", label: "세트", render: (row) => matchSetScore(row, sets, teams) },
-            { key: "duration", label: "최근 세트 시간", render: (row) => durationLabel(sets.find((set) => set.matchId === row.id)?.durationSeconds) },
-            { key: "pom", label: "공식 POM", render: (row) => playerLabel(players, row.officialPomPlayerId) },
-            { key: "rating", label: "팬 평점 1위", render: (row) => topFanRatingForMatch(row.id, fanRatings, players) },
-          ]}
-        />
+        <h2 id="team-recent-matches" className="text-xl font-semibold">최근 경기</h2>
+
+        {/* 간략 요약 */}
+        <div className="flex flex-wrap gap-2">
+          {[...teamMatches].reverse().slice(0, 5).map((row) => {
+            const opponentId = row.teamAId === team.id ? row.teamBId : row.teamAId;
+            const opponent = teams.find((t) => t.id === opponentId);
+            const myScore = row.teamAId === team.id ? row.teamAScore : row.teamBScore;
+            const opScore = row.teamAId === team.id ? row.teamBScore : row.teamAScore;
+            if (myScore == null || opScore == null) return null;
+            const win = myScore > opScore;
+            return (
+              <Link
+                key={row.id}
+                href={matchHref(row)}
+                className="inline-flex items-center gap-2 rounded-xl border border-border bg-surface px-4 py-2.5 text-sm hover:bg-surface-muted"
+              >
+                <span className="text-muted">{opponent?.shortName ?? "?"}</span>
+                <span className={`font-bold ${win ? "text-blue-600" : "text-red-500"}`}>
+                  {win ? "승" : "패"}
+                </span>
+                <span className="text-muted">{myScore}:{opScore}</span>
+              </Link>
+            );
+          })}
+        </div>
+
+        {/* 전체 경기 토글 */}
+        <details className="group overflow-hidden rounded-lg border border-border">
+          <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm font-semibold hover:bg-surface-muted">
+            <span>전체 경기 이력</span>
+            <span className="text-muted transition-transform group-open:rotate-180">▾</span>
+          </summary>
+          <div className="border-t border-border">
+            <DataTable
+              rows={teamMatches}
+              columns={[
+                { key: "match", label: "경기", render: (row) => <Link href={matchHref(row)}>{row.name}</Link> },
+                {
+                  key: "opponent",
+                  label: "상대",
+                  render: (row) => {
+                    const opponentId = row.teamAId === team.id ? row.teamBId : row.teamAId;
+                    const opponent = teams.find((t) => t.id === opponentId);
+                    return opponent?.shortName ?? "?";
+                  },
+                },
+                {
+                  key: "result",
+                  label: "결과",
+                  render: (row) => {
+                    const myScore = row.teamAId === team.id ? row.teamAScore : row.teamBScore;
+                    const opScore = row.teamAId === team.id ? row.teamBScore : row.teamAScore;
+                    if (myScore == null || opScore == null) return "-";
+                    const win = myScore > opScore;
+                    return (
+                      <span className={`font-bold ${win ? "text-blue-600" : "text-red-500"}`}>
+                        {win ? "승" : "패"}
+                      </span>
+                    );
+                  },
+                },
+                {
+                  key: "score",
+                  label: "스코어",
+                  render: (row) => `${row.teamAScore ?? "-"}:${row.teamBScore ?? "-"}`,
+                },
+                {
+                  key: "sets",
+                  label: "세트",
+                  render: (row) => {
+                    const relatedSets = sets
+                      .filter((s) => s.matchId === row.id)
+                      .sort((a, b) => a.setNumber - b.setNumber);
+                    if (relatedSets.length === 0) return "-";
+                    return (
+                      <span className="flex gap-0.5">
+                        {relatedSets.map((s) =>
+                          s.winnerTeamId === team.id ? (
+                            <span key={s.id} className="font-bold text-blue-600">승</span>
+                          ) : (
+                            <span key={s.id} className="font-bold text-red-500">패</span>
+                          )
+                        )}
+                      </span>
+                    );
+                  },
+                },
+                { key: "duration", label: "세트 시간", render: (row) => durationLabel(sets.find((set) => set.matchId === row.id)?.durationSeconds) },
+                { key: "pom", label: "POM", render: (row) => playerLabel(players, row.officialPomPlayerId) },
+                { key: "date", label: "일시", render: (row) => formatDateTime(row.matchDate) },
+              ]}
+            />
+          </div>
+        </details>
       </section>
 
       <section className="flex flex-wrap gap-2" aria-label="팀 이동">

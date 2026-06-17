@@ -193,6 +193,7 @@ export function normalizedDdragonId(champion?: Champion) {
     MasterYi: "MasterYi",
     MissFortune: "MissFortune",
     MonkeyKing: "MonkeyKing",
+    Wukong: "MonkeyKing",
     NunuWillump: "Nunu",
     Reksai: "RekSai",
     RenataGlasc: "Renata",

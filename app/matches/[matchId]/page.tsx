@@ -3,18 +3,22 @@ import { notFound } from "next/navigation";
 
 import { SourceNotice } from "@/components/domain/source-notice";
 import { DataTable } from "@/components/ui/data-table";
+import { MatchDraftSummary } from "./match-draft-summary";
 import {
   getAllPlayers,
   getAllTeams,
   getChampions,
   getFanRatings,
   getMatchById,
+  getPlayerStatLines,
   getSetPicksBans,
   getSetsByMatchId,
   getStages,
   getTournaments,
 } from "@/lib/data/lck";
-import type { MatchStatus, SetPickBan, SetResult } from "@/lib/types";
+import { fetchRuneImages } from "@/lib/runes";
+import { fetchSpellCatalog } from "@/lib/spells";
+import type { MatchStatus, SetResult } from "@/lib/types";
 import {
   durationLabel,
   formatDateTime,
@@ -56,43 +60,6 @@ function winnerLabel({
   return winnerTeamId ? teamLabel(teams, winnerTeamId) : "-";
 }
 
-function DraftPills({ items }: { items: string[] }) {
-  return (
-    <div className="flex flex-wrap gap-1">
-      {items.length === 0 ? (
-        <span className="text-xs text-muted">-</span>
-      ) : (
-        items.map((item, index) => (
-          <span
-            key={`${item}-${index}`}
-            className="rounded-md bg-surface-muted px-2 py-1 text-xs font-semibold"
-          >
-            {item}
-          </span>
-        ))
-      )}
-    </div>
-  );
-}
-
-function setDraftItems({
-  picksBans,
-  setId,
-  side,
-  actionType,
-  championName,
-}: {
-  picksBans: SetPickBan[];
-  setId: string;
-  side: "blue" | "red";
-  actionType: "pick" | "ban";
-  championName: (championId: string) => string;
-}) {
-  return picksBans
-    .filter((item) => item.setId === setId && item.side === side && item.actionType === actionType)
-    .sort((a, b) => a.orderIndex - b.orderIndex)
-    .map((item) => championName(item.championId));
-}
 
 function TeamScoreBlock({
   align = "left",
@@ -133,25 +100,31 @@ export default async function MatchDetailPage({
     notFound();
   }
 
-  const [teams, players, sets, fanRatings, champions, picksBans, tournaments, stages] =
+  const [teams, players, sets, fanRatings, champions, tournaments, stages] =
     await Promise.all([
       getAllTeams(),
       getAllPlayers(),
       getSetsByMatchId(match.id),
       getFanRatings(),
       getChampions(),
-      getSetPicksBans(),
       getTournaments(),
       getStages(),
     ]);
+
+  const itemVersion = champions.find((c) => c.ddragonVersion)?.ddragonVersion ?? "16.12.1";
+  const setIds = sets.map((s) => s.id);
+  const [picksBans, playerStatLines, spells, runeImages] = await Promise.all([
+    getSetPicksBans(setIds),
+    getPlayerStatLines(setIds),
+    fetchSpellCatalog(itemVersion),
+    fetchRuneImages(itemVersion),
+  ]);
 
   const tournament = tournaments.find((item) => item.id === match.tournamentId);
   const stage = stages.find((item) => item.id === match.stageId);
   const matchRatings = fanRatings.filter((rating) => rating.matchId === match.id);
   const teamAName = teamLabel(teams, match.teamAId);
   const teamBName = teamLabel(teams, match.teamBId);
-  const championName = (championId: string) =>
-    champions.find((champion) => champion.id === championId)?.name ?? "-";
   const teamAResult = match.winnerTeamId
     ? match.winnerTeamId === match.teamAId
       ? "WIN"
@@ -252,74 +225,18 @@ export default async function MatchDetailPage({
 
       <section className="flex flex-col gap-4" aria-labelledby="set-drafts">
         <h2 id="set-drafts" className="text-xl font-semibold">
-          세트별 밴픽 요약
+          세트별 밴픽
         </h2>
-        <DataTable
-          rows={sets}
-          emptyText="밴픽은 세트 상세가 연결된 뒤 세트별 목록으로 표시됩니다."
-          columns={[
-            { key: "set", label: "세트", render: setLabel },
-            {
-              key: "blue-bans",
-              label: "블루 밴",
-              render: (row) => (
-                <DraftPills
-                  items={setDraftItems({
-                    picksBans,
-                    setId: row.id,
-                    side: "blue",
-                    actionType: "ban",
-                    championName,
-                  })}
-                />
-              ),
-            },
-            {
-              key: "blue-picks",
-              label: "블루 픽",
-              render: (row) => (
-                <DraftPills
-                  items={setDraftItems({
-                    picksBans,
-                    setId: row.id,
-                    side: "blue",
-                    actionType: "pick",
-                    championName,
-                  })}
-                />
-              ),
-            },
-            {
-              key: "red-bans",
-              label: "레드 밴",
-              render: (row) => (
-                <DraftPills
-                  items={setDraftItems({
-                    picksBans,
-                    setId: row.id,
-                    side: "red",
-                    actionType: "ban",
-                    championName,
-                  })}
-                />
-              ),
-            },
-            {
-              key: "red-picks",
-              label: "레드 픽",
-              render: (row) => (
-                <DraftPills
-                  items={setDraftItems({
-                    picksBans,
-                    setId: row.id,
-                    side: "red",
-                    actionType: "pick",
-                    championName,
-                  })}
-                />
-              ),
-            },
-          ]}
+        <MatchDraftSummary
+          sets={sets}
+          picksBans={picksBans}
+          champions={champions}
+          teams={teams}
+          statLines={playerStatLines}
+          players={players}
+          spells={spells}
+          itemVersion={itemVersion}
+          runeImages={runeImages}
         />
       </section>
 

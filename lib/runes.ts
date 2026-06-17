@@ -87,3 +87,26 @@ export async function fetchRuneCatalog(version = "16.12.1"): Promise<RuneCatalog
 
   return { keystones, trees };
 }
+
+export async function fetchRuneImages(version = "16.12.1"): Promise<Record<string, string>> {
+  try {
+    const response = await fetch(
+      `https://ddragon.leagueoflegends.com/cdn/${version}/data/ko_KR/runesReforged.json`,
+      { next: { revalidate: 60 * 60 * 24 } },
+    );
+    if (!response.ok) return {};
+    const data = (await response.json()) as DdragonRuneTree[];
+    const result: Record<string, string> = {};
+    for (const style of data) {
+      result[String(style.id)] = `https://ddragon.leagueoflegends.com/cdn/img/${style.icon}`;
+      for (const slot of style.slots) {
+        for (const rune of slot.runes) {
+          result[String(rune.id)] = `https://ddragon.leagueoflegends.com/cdn/img/${rune.icon}`;
+        }
+      }
+    }
+    return result;
+  } catch {
+    return {};
+  }
+}

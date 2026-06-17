@@ -73,6 +73,7 @@ type PlayerRow = {
   facebook_url: string | null;
   discord_url: string | null;
   solo_queue_account: string | null;
+  contract_expiry: string | null;
   is_starter: boolean | null;
   is_lck_player: boolean | null;
   imported_scope: Player["importedScope"] | null;
@@ -360,6 +361,7 @@ function mapPlayer(row: PlayerRow): Player {
     facebookUrl: row.facebook_url ?? undefined,
     discordUrl: row.discord_url ?? undefined,
     soloQueueAccount: row.solo_queue_account ?? undefined,
+    contractExpiry: row.contract_expiry ?? null,
     isStarter: row.is_starter ?? false,
     isLckPlayer: row.is_lck_player ?? true,
     importedScope: row.imported_scope ?? "lck",
@@ -882,14 +884,16 @@ export async function getChampions() {
   }, []);
 }
 
-export async function getSetPicksBans(setId?: string) {
+export async function getSetPicksBans(setId?: string | string[]) {
   return fromSupabase(async () => {
     let query = createSupabaseServerClient()
       .from("set_picks_bans")
       .select("*")
       .order("order_index", { ascending: true });
 
-    if (setId) {
+    if (Array.isArray(setId)) {
+      query = query.in("set_id", setId);
+    } else if (setId) {
       query = query.eq("set_id", setId);
     }
 
@@ -912,7 +916,7 @@ export async function getSetPicksBans(setId?: string) {
   }, []);
 }
 
-export async function getPlayerStatLines(setId?: string) {
+export async function getPlayerStatLines(setId?: string | string[]) {
   return fromSupabase(async () => {
     const supabase = createSupabaseServerClient();
     const rows: SetPlayerStatsRow[] = [];
@@ -928,9 +932,11 @@ export async function getPlayerStatLines(setId?: string) {
         .order("set_id", { ascending: true })
         .range(from, from + pageSize - 1);
 
-      if (setId) {
-        query = query.eq("set_id", setId);
-      }
+    if (Array.isArray(setId)) {
+      query = query.in("set_id", setId);
+    } else if (setId) {
+      query = query.eq("set_id", setId);
+    }
 
       const { data, error } = await query;
 
@@ -973,16 +979,6 @@ export async function getPlayerStatLines(setId?: string) {
           ? row.sets[0]?.duration_seconds ?? 0
           : row.sets?.duration_seconds ?? 0) / 60,
       visionScore: row.vision_score,
-      dpm: row.dpm ?? null,
-      damageShare: row.damage_share ?? null,
-      visionScorePerMinute: row.vision_score_per_minute ?? null,
-      csPerMinute: row.cs_per_minute ?? null,
-      goldDiffAt10: row.gold_diff_at_10 ?? null,
-      xpDiffAt10: row.xp_diff_at_10 ?? null,
-      csDiffAt10: row.cs_diff_at_10 ?? null,
-      goldDiffAt15: row.gold_diff_at_15 ?? null,
-      xpDiffAt15: row.xp_diff_at_15 ?? null,
-      csDiffAt15: row.cs_diff_at_15 ?? null,
       itemIds: [row.item0, row.item1, row.item2, row.item3, row.item4, row.item5, row.item6].map(
         (itemId) => itemId ?? null,
       ),

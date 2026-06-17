@@ -27,9 +27,9 @@ export function filterItems(items: GameItem[], query: string, limit = 40) {
   return filtered.slice(0, limit);
 }
 
-export async function fetchItemCatalog(version = "16.12.1"): Promise<GameItem[]> {
+export async function fetchItemCatalog(version = "16.12.1", locale = "ko_KR"): Promise<GameItem[]> {
   const response = await fetch(
-    `https://ddragon.leagueoflegends.com/cdn/${version}/data/ko_KR/item.json`,
+    `https://ddragon.leagueoflegends.com/cdn/${version}/data/${locale}/item.json`,
     { next: { revalidate: 60 * 60 * 24 } },
   );
 

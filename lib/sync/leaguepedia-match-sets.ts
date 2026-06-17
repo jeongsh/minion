@@ -1,5 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { fetchItemCatalog } from "../items";
+import { fetchSpellCatalog, type GameSpell } from "../spells";
+
 const CARGO_API = "https://lol.fandom.com/api.php";
 const REQUEST_DELAY_MS = 3000;
 const MAX_RETRIES = 8;
@@ -105,6 +108,8 @@ type CargoPlayerRow = {
   Team?: string;
   Role?: string;
   Side?: string;
+  Items?: string;
+  SummonerSpells?: string;
 };
 
 type PreservedPlayerBuild = {
@@ -170,6 +175,8 @@ export type LeaguepediaMatchSetsSyncSummary = {
   upserted: number;
   picksBansUpserted: number;
   playerStatsUpserted: number;
+  itemsResolved: number;
+  spellsResolved: number;
 };
 
 function sleep(ms: number) {
@@ -190,6 +197,51 @@ import {
   displayNameFromLeaguepediaPage,
   leaguepediaSourcePlayerId,
 } from "../leaguepedia-player.ts";
+
+async function buildItemNameToIdMap(version: string): Promise<Map<string, number>> {
+  try {
+    const items = await fetchItemCatalog(version, "en_US");
+    return new Map(items.map((item) => [item.name.toLowerCase(), item.id]));
+  } catch {
+    return new Map();
+  }
+}
+
+function buildSpellKeyToIdMap(spells: GameSpell[]): Map<string, number> {
+  const map = new Map<string, number>();
+  for (const spell of spells) {
+    map.set(spell.name.toLowerCase(), spell.id);
+    const key = spell.imageName.replace(/\.png$/i, "");
+    map.set(key.toLowerCase(), spell.id);
+    const shortName = key.replace(/^Summoner/i, "").toLowerCase();
+    if (shortName) map.set(shortName, spell.id);
+  }
+  return map;
+}
+
+function parseLeaguepediaItems(
+  itemsStr: string | null | undefined,
+  nameToId: Map<string, number>,
+): (number | null)[] {
+  if (!itemsStr?.trim()) return [];
+  const parts = itemsStr.split(",").map((s) => s.trim());
+  const result = parts.map((name) => (name ? (nameToId.get(name.toLowerCase()) ?? null) : null));
+  while (result.length < 7) result.push(null);
+  return result.slice(0, 7);
+}
+
+function parseLeaguepediaSpells(
+  spellsStr: string | null | undefined,
+  nameToId: Map<string, number>,
+): (number | null)[] {
+  if (!spellsStr?.trim()) return [null, null];
+  const parts = spellsStr.split(",").map((s) => s.trim());
+  return Array.from({ length: 2 }, (_, i) => {
+    const name = parts[i];
+    if (!name) return null;
+    return nameToId.get(name.toLowerCase()) ?? nameToId.get(name.replace(/^Summoner/i, "").toLowerCase()) ?? null;
+  });
+}
 
 function parseInteger(value: string | null | undefined) {
   if (value == null || value === "") {
@@ -864,6 +916,8 @@ async function fetchPlayerRows(leaguepediaMatchId: string) {
       "SP.Team=Team",
       "SP.Role=Role",
       "SP.Side=Side",
+      "SP.Items=Items",
+      "SP.SummonerSpells=SummonerSpells",
     ].join(","),
     where: `SP.MatchId="${escapeCargoValue(leaguepediaMatchId)}"`,
     order_by: "SP.GameId ASC, SP.Side ASC, SP.Role_Number ASC",
@@ -1176,6 +1230,8 @@ export async function syncLeaguepediaMatchSets(
   );
   let picksBansUpserted = 0;
   let playerStatsUpserted = 0;
+  let itemsResolved = 0;
+  let spellsResolved = 0;
 
   if (setIds.length > 0) {
     const [pickBanRows, playerRows] = await Promise.all([
@@ -1207,10 +1263,21 @@ export async function syncLeaguepediaMatchSets(
       ]),
       ...playerRows.map((row) => row.Champion),
     ].filter(Boolean) as string[];
-    const [championMap, playerMap] = await Promise.all([
+    const { data: versionRow } = await supabase
+      .from("champions")
+      .select("ddragon_version")
+      .not("ddragon_version", "is", null)
+      .limit(1)
+      .maybeSingle();
+    const ddragonVersion = (versionRow as { ddragon_version: string } | null)?.ddragon_version ?? "16.12.1";
+
+    const [championMap, playerMap, itemNameToId, spellCatalog] = await Promise.all([
       getChampionMap(supabase, championNames),
       getPlayerMap(supabase),
+      buildItemNameToIdMap(ddragonVersion),
+      fetchSpellCatalog(ddragonVersion).catch(() => [] as GameSpell[]),
     ]);
+    const spellKeyToId = buildSpellKeyToIdMap(spellCatalog);
     await ensurePlayersForStats({
       supabase,
       playerMap,
@@ -1304,6 +1371,13 @@ export async function syncLeaguepediaMatchSets(
       const resolvedSide = side ?? (teamId === set.blue_team_id ? "blue" : "red");
       const preservedBuild = itemBySetPlayer.get(playerItemsKey(set.id, player.id));
 
+      const parsedItems = parseLeaguepediaItems(row.Items, itemNameToId);
+      const parsedSpells = parseLeaguepediaSpells(row.SummonerSpells, spellKeyToId);
+      const hasItems = parsedItems.some((id) => id !== null);
+      const hasSpells = parsedSpells.some((id) => id !== null);
+      if (hasItems) itemsResolved += parsedItems.filter((id) => id !== null).length;
+      if (hasSpells) spellsResolved += parsedSpells.filter((id) => id !== null).length;
+
       return [
         {
           set_id: set.id,
@@ -1319,7 +1393,17 @@ export async function syncLeaguepediaMatchSets(
           gold: parseGold(row.Gold) ?? 0,
           damage_to_champions: parseInteger(row.DamageToChampions) ?? 0,
           vision_score: parseInteger(row.VisionScore) ?? 0,
-          ...(preservedBuild ?? {}),
+          item0: hasItems ? parsedItems[0] : (preservedBuild?.item0 ?? null),
+          item1: hasItems ? parsedItems[1] : (preservedBuild?.item1 ?? null),
+          item2: hasItems ? parsedItems[2] : (preservedBuild?.item2 ?? null),
+          item3: hasItems ? parsedItems[3] : (preservedBuild?.item3 ?? null),
+          item4: hasItems ? parsedItems[4] : (preservedBuild?.item4 ?? null),
+          item5: hasItems ? parsedItems[5] : (preservedBuild?.item5 ?? null),
+          item6: hasItems ? parsedItems[6] : (preservedBuild?.item6 ?? null),
+          spell0: hasSpells ? parsedSpells[0] : (preservedBuild?.spell0 ?? null),
+          spell1: hasSpells ? parsedSpells[1] : (preservedBuild?.spell1 ?? null),
+          rune0: preservedBuild?.rune0 ?? null,
+          rune1: preservedBuild?.rune1 ?? null,
         },
       ];
     });
@@ -1343,5 +1427,7 @@ export async function syncLeaguepediaMatchSets(
     upserted: data?.length ?? 0,
     picksBansUpserted,
     playerStatsUpserted,
+    itemsResolved,
+    spellsResolved,
   };
 }

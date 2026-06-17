@@ -8,6 +8,7 @@ import { CareerHistoryPanel } from "./career-history-panel";
 import { DeleteButton } from "./delete-button";
 import { PlayerCreateModal } from "./player-create-modal";
 import { RetireButton } from "./retire-button";
+import { SyncContractButton } from "./sync-contract-button";
 
 const POS_ORDER = ["TOP", "JGL", "MID", "BOT", "SUP"];
 const POS_LABEL: Record<string, string> = {
@@ -73,6 +74,7 @@ export function PlayerList({
           className="w-full max-w-sm rounded-md border border-border bg-background px-4 py-2 text-sm outline-none focus:border-accent"
         />
         <PlayerCreateModal teams={teams} />
+        <SyncContractButton />
       </div>
 
       {/* ── 현역 선수 ── */}

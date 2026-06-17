@@ -279,26 +279,40 @@ export function buildTeamStatSummary(teamId: string, sets: SetResult[]) {
       const value = set.blueTeamId === teamId ? set[blueKey] : set[redKey];
       return sum + (typeof value === "number" ? value : 0);
     }, 0);
+  const sumOppSide = (blueKey: keyof SetResult, redKey: keyof SetResult) =>
+    teamSets.reduce((sum, set) => {
+      const value = set.blueTeamId === teamId ? set[redKey] : set[blueKey];
+      return sum + (typeof value === "number" ? value : 0);
+    }, 0);
+
+  const cap = (v: number) => Math.min(Math.max(Math.round(v), 0), 100);
+
+  const avgKills = sumBySide("blueKills", "redKills") / count;
+  const avgDeaths = sumOppSide("blueKills", "redKills") / count;
+  const avgGold = sumBySide("blueGold", "redGold") / count;
+  const avgTowers = sumBySide("blueTowers", "redTowers") / count;
+  const avgDragons = sumBySide("blueDragons", "redDragons") / count;
+  const avgBarons = sumBySide("blueBarons", "redBarons") / count;
+
+  // 교전: 킬/(킬+데스) 비율 — 교전에서 얼마나 이기는지
+  const totalKills = avgKills + avgDeaths;
+  const engagementRatio = totalKills > 0 ? avgKills / totalKills : 0.5;
+
+  // 화력: 분당 킬 (KPM) — 게임 내 킬 생산 속도
+  const avgDuration = teamSets.reduce((sum, s) => sum + (s.durationSeconds ?? 0), 0) / count;
+  const avgKpm = avgDuration > 0 ? avgKills / (avgDuration / 60) : 0;
 
   return {
-    avgKills: sumBySide("blueKills", "redKills") / count,
-    avgDeaths: teamSets.reduce((sum, set) => {
-      const value = set.blueTeamId === teamId ? set.redKills : set.blueKills;
-      return sum + (value ?? 0);
-    }, 0) / count,
-    avgGold: Math.round(sumBySide("blueGold", "redGold") / count),
-    avgCs: 0,
-    dragonRate: "-",
-    baronRate: "-",
-    avgTowers: (sumBySide("blueTowers", "redTowers") / count).toFixed(1),
-    avgDpm: 0,
-    avgVisionScore: 0,
-    radarFight: 0,
-    radarDamage: 0,
-    radarGrowth: 0,
-    radarVision: 0,
-    radarObjective: 0,
-    radarStability: 0,
+    avgKills,
+    avgDeaths,
+    avgGold: Math.round(avgGold),
+    avgTowers: avgTowers.toFixed(1),
+    // 레이더 (0~100 정규화)
+    radarFight: cap(engagementRatio * 100 * 1.4),   // 교전 승률 50% → ~70, 70% → 100
+    radarFirepower: cap(avgKpm / 0.6 * 100),          // 화력: 0.6 KPM = 100
+    radarGold: cap(avgGold / 72000 * 100),
+    radarTower: cap(avgTowers / 8 * 100),
+    radarObjective: cap((avgDragons + avgBarons) / 6 * 100),
   };
 }
 
