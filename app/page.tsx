@@ -3,7 +3,7 @@ import { MiniModalLink } from "@/components/domain/mini-modal-link";
 import { SourceNotice } from "@/components/domain/source-notice";
 import { SectionHeader } from "@/components/layout/section-header";
 import { DataTable } from "@/components/ui/data-table";
-import { getCommunityPosts, getFanRatings, getMatches, getPlayers, getSets, getTeams } from "@/lib/data/lck";
+import { getAllPlayers, getAllTeams, getCommunityPosts, getFanRatings, getMatches, getSets } from "@/lib/data/lck";
 import {
   buildTeamStandingRows,
   fanPogSummaryForMatch,
@@ -17,8 +17,8 @@ import {
 
 export default async function HomePage() {
   const [teams, players, matches, sets, fanRatings, communityPosts] = await Promise.all([
-    getTeams(),
-    getPlayers(),
+    getAllTeams(),
+    getAllPlayers(),
     getMatches(),
     getSets(),
     getFanRatings(),

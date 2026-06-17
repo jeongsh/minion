@@ -4,7 +4,7 @@ import Link from "next/link";
 import { SeasonSegmentFilter } from "@/components/domain/season-segment-filter";
 import { SectionHeader } from "@/components/layout/section-header";
 import { DataTable } from "@/components/ui/data-table";
-import { getMatches, getPlayers, getStages, getTeams, getTournaments } from "@/lib/data/lck";
+import { getAllPlayers, getAllTeams, getMatches, getStages, getTournaments } from "@/lib/data/lck";
 import {
   filterMatchesBySegment,
   parseSeasonSegment,
@@ -40,10 +40,10 @@ export default async function AdminMatchesPage({
 
   const [matches, teams, tournaments, stages, players, syncCursor] = await Promise.all([
     getMatches(),
-    getTeams(),
+    getAllTeams(),
     getTournaments(),
     getStages(),
-    getPlayers(),
+    getAllPlayers(),
     getLeaguepediaSyncCursor(),
   ]);
 

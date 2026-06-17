@@ -4,9 +4,11 @@ import Link from "next/link";
 import { AdminDraftEditor } from "@/components/domain/admin-draft-editor";
 import { ChampionPicker } from "@/components/domain/champion-picker";
 import { DataTable } from "@/components/ui/data-table";
+import { PlayerStatItemsEditor } from "@/components/domain/player-stat-items-editor";
 import { championImage } from "@/lib/champions";
 import { draftEditorChampions } from "@/lib/draft-champions";
 import { teamDraftSide } from "@/lib/draft-slots";
+import { itemImageUrl, type GameItem } from "@/lib/items";
 import { calculatePlayerStats } from "@/lib/stats";
 import type {
   Champion,
@@ -49,7 +51,7 @@ function numberLabel(value: number | null | undefined) {
 }
 
 function itemImage(itemId: number, version: string) {
-  return `https://ddragon.leagueoflegends.com/cdn/${version}/img/item/${itemId}.png`;
+  return itemImageUrl(itemId, version);
 }
 
 function dragonText(set: SetResult, side: "blue" | "red") {
@@ -509,6 +511,8 @@ function AdminPlayerStatEditor({
   teams,
   players,
   champions,
+  items,
+  itemVersion,
   blueRows,
   redRows,
 }: {
@@ -516,6 +520,8 @@ function AdminPlayerStatEditor({
   teams: Team[];
   players: Player[];
   champions: Champion[];
+  items: GameItem[];
+  itemVersion: string;
   blueRows: PlayerStatRow[];
   redRows: PlayerStatRow[];
 }) {
@@ -576,7 +582,7 @@ function AdminPlayerStatEditor({
       </h2>
       <input type="hidden" name="playerStatCount" value={rows.length} />
       <div className="overflow-x-auto rounded-md border border-border bg-surface">
-        <div className="grid min-w-[70rem] grid-cols-[6rem_13rem_10rem_8rem_11rem_13rem_5rem_5rem_5rem_6rem_7rem_8rem_6rem] gap-2 px-4 py-3 text-xs font-semibold uppercase text-muted">
+        <div className="grid min-w-[82rem] grid-cols-[6rem_13rem_10rem_8rem_11rem_13rem_5rem_5rem_5rem_6rem_7rem_20rem_6rem] gap-2 px-4 py-3 text-xs font-semibold uppercase text-muted">
           <span>Side</span>
           <span>Player</span>
           <span>Team</span>
@@ -595,7 +601,7 @@ function AdminPlayerStatEditor({
           return (
             <div
               key={`${row.side}-${row.line.position}`}
-              className="grid min-w-[70rem] grid-cols-[6rem_13rem_10rem_8rem_11rem_13rem_5rem_5rem_5rem_6rem_7rem_8rem_6rem] items-center gap-2 border-t border-border px-4 py-2 text-sm"
+              className="grid min-w-[82rem] grid-cols-[6rem_13rem_10rem_8rem_11rem_13rem_5rem_5rem_5rem_6rem_7rem_20rem_6rem] items-center gap-2 border-t border-border px-4 py-2 text-sm"
             >
               <input type="hidden" name={`playerStat.${index}.side`} value={row.side} />
               <span className="text-xs font-semibold uppercase text-muted">{row.side}</span>
@@ -626,16 +632,12 @@ function AdminPlayerStatEditor({
                 className="px-1 text-center"
               />
               <span className="text-xs font-semibold text-muted tabular-nums">{row.stats.dpm}</span>
-              <div className="grid grid-cols-7 gap-1">
-                {Array.from({ length: 7 }, (_, itemIndex) => (
-                  <AdminNumberInput
-                    key={itemIndex}
-                    name={`playerStat.${index}.item${itemIndex}`}
-                    defaultValue={row.line.itemIds[itemIndex]}
-                    className="min-w-8 px-1 text-center"
-                  />
-                ))}
-              </div>
+              <PlayerStatItemsEditor
+                namePrefix={`playerStat.${index}`}
+                defaultItemIds={row.line.itemIds}
+                items={items}
+                itemVersion={itemVersion}
+              />
               <span className="text-xs font-semibold text-muted tabular-nums">{Math.round(row.stats.kp)}%</span>
             </div>
           );
@@ -687,6 +689,8 @@ export function AdminSetEditor({
   submitLabel,
   players = [],
   champions = [],
+  items = [],
+  itemVersion = "16.12.1",
   picksBans = [],
   playerStatLines = [],
   fanRatings = [],
@@ -702,6 +706,8 @@ export function AdminSetEditor({
   submitLabel: string;
   players?: Player[];
   champions?: Champion[];
+  items?: GameItem[];
+  itemVersion?: string;
   picksBans?: SetPickBan[];
   playerStatLines?: PlayerStatLine[];
   fanRatings?: FanRating[];
@@ -750,7 +756,8 @@ export function AdminSetEditor({
   const blueRows = playerRows.filter((row) => row.line.teamId === activeSet.blueTeamId).sort(byPosition);
   const redRows = playerRows.filter((row) => row.line.teamId === activeSet.redTeamId).sort(byPosition);
   const maxDamage = Math.max(...playerRows.map((row) => row.line.damageToChampions), 1);
-  const itemVersion = champions.find((champion) => champion.ddragonVersion)?.ddragonVersion ?? "16.12.1";
+  const itemVersionResolved =
+    itemVersion || champions.find((champion) => champion.ddragonVersion)?.ddragonVersion || "16.12.1";
   const pickerChampionsList = draftEditorChampions(champions, picksBans, playerStatLines);
   const playerByPosition = (teamId: string, position: Player["position"]) =>
     players.find((player) => player.teamId === teamId && player.position === position);
@@ -769,12 +776,6 @@ export function AdminSetEditor({
             <h1 className="text-3xl font-semibold tracking-normal md:text-4xl">{title}</h1>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Link
-              href={matchHref(match)}
-              className="rounded-md border border-border bg-surface px-3 py-2 text-sm font-semibold hover:bg-surface-muted"
-            >
-              Public match
-            </Link>
             <Link
               href={adminMatchPath}
               className="rounded-md border border-border bg-surface px-3 py-2 text-sm font-semibold hover:bg-surface-muted"
@@ -938,6 +939,8 @@ export function AdminSetEditor({
           teams={teams}
           players={players}
           champions={pickerChampionsList}
+          items={items}
+          itemVersion={itemVersionResolved}
           blueRows={blueRows}
           redRows={redRows}
         />

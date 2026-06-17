@@ -12,13 +12,9 @@ import {
   syncLeaguepediaMatchSets,
   type LeaguepediaMatchSetsSyncSummary,
 } from "@/lib/sync/leaguepedia-match-sets";
-import {
-  syncRiotMatchItems,
-  type RiotMatchItemsSyncSummary,
-} from "@/lib/sync/riot-match-items";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { matchRouteId, parseDateTimeLocalKST } from "@/lib/view-data";
 import type { Match } from "@/lib/types";
+import { matchRouteId, parseDateTimeLocalKST } from "@/lib/view-data";
 
 export type SyncLeaguepediaActionResult =
   | {
@@ -34,16 +30,6 @@ export type SyncLeaguepediaSetsActionResult =
   | {
       ok: true;
       summary: LeaguepediaMatchSetsSyncSummary;
-    }
-  | {
-      ok: false;
-      error: string;
-    };
-
-export type SyncRiotItemsActionResult =
-  | {
-      ok: true;
-      summary: RiotMatchItemsSyncSummary;
     }
   | {
       ok: false;
@@ -103,40 +89,6 @@ export async function syncLeaguepediaMatchSetsAction(
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Leaguepedia 세트 정보 불러오기에 실패했습니다.";
-    return { ok: false, error: message };
-  }
-}
-
-export async function syncRiotMatchItemsAction(
-  matchId: string,
-): Promise<SyncRiotItemsActionResult> {
-  try {
-    const supabase = createSupabaseAdminClient();
-    const summary = await syncRiotMatchItems(supabase, matchId);
-
-    const { data: match } = await supabase
-      .from("matches")
-      .select("id, leaguepedia_match_id")
-      .eq("id", matchId)
-      .maybeSingle();
-
-    revalidatePath("/admin/matches");
-    revalidatePath("/admin/sets");
-    revalidatePath(`/matches/${matchId}`);
-
-    if (match) {
-      const routeId = matchRouteId({
-        id: match.id,
-        leaguepediaMatchId: match.leaguepedia_match_id,
-      } as Match);
-      revalidatePath(`/admin/matches/${routeId}/edit`);
-      revalidatePath(`/matches/${routeId}`);
-    }
-
-    return { ok: true, summary };
-  } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Riot 아이템 동기화에 실패했습니다.";
     return { ok: false, error: message };
   }
 }

@@ -5,14 +5,14 @@ import { SectionHeader } from "@/components/layout/section-header";
 import { DataTable } from "@/components/ui/data-table";
 import { StatCard } from "@/components/ui/stat-card";
 import {
+  getAllPlayers,
+  getAllTeams,
   getFanRatings,
   getMatches,
   getPlayerAwards,
   getPlayerBySlug,
   getPlayerPomCount,
   getPlayerStatLines,
-  getPlayers,
-  getTeams,
   getTournaments,
 } from "@/lib/data/lck";
 import type { TeamAward } from "@/lib/types";
@@ -69,8 +69,8 @@ export default async function PlayerDetailPage({
   }
 
   const [teams, players, matches, statLines, fanRatings, awards, pomCount, tournaments] = await Promise.all([
-    getTeams(),
-    getPlayers(),
+    getAllTeams(),
+    getAllPlayers(),
     getMatches(),
     getPlayerStatLines(),
     getFanRatings(),

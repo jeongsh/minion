@@ -7,6 +7,8 @@ export type SeasonSegmentKey =
   | "worlds"
   | "enc";
 
+export const DEFAULT_SEASON_YEAR = 2026;
+
 export type SeasonSegment = {
   key: SeasonSegmentKey | "all";
   label: string;
@@ -77,6 +79,18 @@ export const SEASON_2026_TOURNAMENTS: SeasonTournamentConfig[] = [
   {
     segmentKey: "lck",
     season: 2026,
+    name: "LCK 2026 Road to MSI",
+    overviewPage: "LCK/2026 Season/Road to MSI",
+    split: "Road to MSI",
+    category: "domestic",
+    region: "Korea",
+    league: "LCK",
+    startDate: "2026-06-06",
+    endDate: "2026-06-14",
+  },
+  {
+    segmentKey: "lck",
+    season: 2026,
     name: "LCK 2026 Rounds 3-4",
     overviewPage: "LCK/2026 Season/Rounds 3-4",
     split: "Rounds 3-4",
@@ -85,6 +99,30 @@ export const SEASON_2026_TOURNAMENTS: SeasonTournamentConfig[] = [
     league: "LCK",
     startDate: "2026-07-01",
     endDate: "2026-08-31",
+  },
+  {
+    segmentKey: "lck",
+    season: 2026,
+    name: "LCK 2026 Season Play-In",
+    overviewPage: "LCK/2026 Season/Season Play-In",
+    split: "Season Play-In",
+    category: "domestic",
+    region: "Korea",
+    league: "LCK",
+    startDate: "2026-09-01",
+    endDate: "2026-09-14",
+  },
+  {
+    segmentKey: "lck",
+    season: 2026,
+    name: "LCK 2026 Season Playoffs",
+    overviewPage: "LCK/2026 Season/Season Playoffs",
+    split: "Season Playoffs",
+    category: "domestic",
+    region: "Korea",
+    league: "LCK",
+    startDate: "2026-09-15",
+    endDate: "2026-09-30",
   },
   {
     segmentKey: "msi",
@@ -137,11 +175,17 @@ export const SEASON_2026_TOURNAMENTS: SeasonTournamentConfig[] = [
 ];
 
 const SEGMENT_BY_OVERVIEW_PAGE = new Map(
-  SEASON_2026_TOURNAMENTS.map((tournament) => [tournament.overviewPage, tournament.segmentKey]),
+  SEASON_2026_TOURNAMENTS.map((tournament) => [
+    `${tournament.season}:${tournament.overviewPage}`,
+    tournament.segmentKey,
+  ]),
 );
 
 const SEGMENT_BY_SPLIT = new Map(
-  SEASON_2026_TOURNAMENTS.map((tournament) => [tournament.split, tournament.segmentKey]),
+  SEASON_2026_TOURNAMENTS.map((tournament) => [
+    `${tournament.season}:${tournament.split}`,
+    tournament.segmentKey,
+  ]),
 );
 
 export function parseSeasonSegment(value: string | undefined): SeasonSegmentKey | "all" {
@@ -154,24 +198,31 @@ export function parseSeasonSegment(value: string | undefined): SeasonSegmentKey 
     : "all";
 }
 
-export function segmentLabel(segment: SeasonSegmentKey | "all") {
-  return SEASON_2026_SEGMENTS.find((item) => item.key === segment)?.label ?? "2026 전체";
+export function segmentLabel(segment: SeasonSegmentKey | "all", seasonYear = DEFAULT_SEASON_YEAR) {
+  if (segment === "all") {
+    return `${seasonYear} 전체`;
+  }
+
+  return SEASON_2026_SEGMENTS.find((item) => item.key === segment)?.label ?? `${seasonYear} 전체`;
 }
 
 export function segmentForTournament(tournament: {
+  season?: number | null;
   sourceTournamentId?: string | null;
   split?: string | null;
   league?: string | null;
 }): SeasonSegmentKey | null {
+  const season = tournament.season ?? DEFAULT_SEASON_YEAR;
+
   if (tournament.sourceTournamentId) {
-    const byOverview = SEGMENT_BY_OVERVIEW_PAGE.get(tournament.sourceTournamentId);
+    const byOverview = SEGMENT_BY_OVERVIEW_PAGE.get(`${season}:${tournament.sourceTournamentId}`);
     if (byOverview) {
       return byOverview;
     }
   }
 
   if (tournament.split) {
-    const bySplit = SEGMENT_BY_SPLIT.get(tournament.split);
+    const bySplit = SEGMENT_BY_SPLIT.get(`${season}:${tournament.split}`);
     if (bySplit) {
       return bySplit;
     }
@@ -181,19 +232,52 @@ export function segmentForTournament(tournament: {
     return "lck-cup";
   }
 
+  if (tournament.league === "LCK") {
+    return "lck";
+  }
+
+  if (tournament.league === "First Stand" || tournament.split === "First Stand") {
+    return "first-stand";
+  }
+
+  if (tournament.league === "MSI" || tournament.split === "MSI") {
+    return "msi";
+  }
+
+  if (tournament.league === "EWC" || tournament.split === "EWC") {
+    return "ewc";
+  }
+
+  if (tournament.league === "Worlds" || tournament.split === "Worlds") {
+    return "worlds";
+  }
+
+  if (tournament.league === "ENC" || tournament.split === "ENC") {
+    return "enc";
+  }
+
   return null;
 }
 
 export function tournamentIdsForSegment(
-  tournaments: Array<{ id: string; sourceTournamentId?: string | null; split?: string | null; league?: string | null }>,
+  tournaments: Array<{
+    id: string;
+    season?: number | null;
+    sourceTournamentId?: string | null;
+    split?: string | null;
+    league?: string | null;
+  }>,
   segment: SeasonSegmentKey | "all",
+  seasonYear = DEFAULT_SEASON_YEAR,
 ) {
+  const seasonTournaments = tournaments.filter((tournament) => tournament.season === seasonYear);
+
   if (segment === "all") {
-    return new Set(tournaments.map((tournament) => tournament.id));
+    return new Set(seasonTournaments.map((tournament) => tournament.id));
   }
 
   return new Set(
-    tournaments
+    seasonTournaments
       .filter((tournament) => segmentForTournament(tournament) === segment)
       .map((tournament) => tournament.id),
   );

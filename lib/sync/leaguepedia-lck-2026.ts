@@ -91,6 +91,10 @@ function normalizeTeamName(value: string | undefined) {
     .toLowerCase();
 }
 
+function normalizeLookupKey(value: string | undefined | null) {
+  return normalizeTeamName(value ?? "").replace(/[_\s]+/g, " ");
+}
+
 function teamSlugFor(name: string) {
   return TEAM_ALIASES.get(normalizeTeamName(name));
 }
@@ -293,11 +297,15 @@ async function getRequiredTeams(supabase: SupabaseClient) {
   }
 
   const bySlug = new Map(data.map((team) => [team.slug, team]));
-  const byLeaguepediaPage = new Map(
-    data
-      .filter((team) => team.leaguepedia_page)
-      .map((team) => [team.leaguepedia_page!.toLowerCase(), team]),
-  );
+  const byLeaguepediaPage = new Map<string, TeamRow>();
+  for (const team of data) {
+    for (const key of [team.leaguepedia_page, team.name, team.short_name]) {
+      const normalized = normalizeLookupKey(key);
+      if (normalized) {
+        byLeaguepediaPage.set(normalized, team);
+      }
+    }
+  }
 
   return { bySlug, byLeaguepediaPage };
 }
@@ -308,7 +316,7 @@ function resolveTeam(name: string, teams: Awaited<ReturnType<typeof getRequiredT
     return teams.bySlug.get(slug) ?? null;
   }
 
-  const pageKey = normalizeTeamName(name).replace(/\s+/g, "_");
+  const pageKey = normalizeLookupKey(name);
   return teams.byLeaguepediaPage.get(pageKey) ?? null;
 }
 

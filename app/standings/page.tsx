@@ -3,7 +3,7 @@ import { Suspense } from "react";
 
 import { SectionHeader } from "@/components/layout/section-header";
 import { DataTable } from "@/components/ui/data-table";
-import { getMatches, getPlayers, getTeamStandings, getTeams, getTournaments } from "@/lib/data/lck";
+import { getAllPlayers, getAllTeams, getMatches, getTeamStandings, getTournaments } from "@/lib/data/lck";
 import { buildTeamStandingRows, formatDateTime, teamLabel } from "@/lib/view-data";
 import { StandingsFilter } from "./standings-filter";
 
@@ -20,11 +20,11 @@ export default async function StandingsPage({
   const activeView = parseView(params.view);
 
   const [teams, matches, tournaments, savedStandings, players] = await Promise.all([
-    getTeams(),
+    getAllTeams(),
     getMatches(),
     getTournaments(),
     getTeamStandings(),
-    getPlayers(),
+    getAllPlayers(),
   ]);
 
   // 사용 가능한 시즌 목록 (내림차순)

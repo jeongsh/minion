@@ -10,6 +10,7 @@ type MatchTeamRow = {
   name: string;
   short_name: string;
   leaguepedia_page: string | null;
+  is_lck_team?: boolean | null;
 };
 
 type MatchRow = {
@@ -351,6 +352,22 @@ type ExistingPlayer = {
   position: string;
 };
 
+function isLckTeamId(teamId: string | null, match: MatchRow) {
+  if (!teamId) {
+    return true;
+  }
+
+  if (match.team_a?.id === teamId) {
+    return match.team_a.is_lck_team ?? true;
+  }
+
+  if (match.team_b?.id === teamId) {
+    return match.team_b.is_lck_team ?? true;
+  }
+
+  return true;
+}
+
 async function getChampionMap(supabase: SupabaseClient, championNames: string[]) {
   const normalizedNames = Array.from(
     new Set(championNames.map(normalizeChampionName).filter(Boolean)),
@@ -440,6 +457,8 @@ async function ensurePlayersForStats({
     team_id: string | null;
     position: string;
     leaguepedia_page: string;
+    is_lck_player: boolean;
+    imported_scope: "lck" | "international_event";
   }>();
 
   for (const row of playerRows) {
@@ -465,6 +484,8 @@ async function ensurePlayersForStats({
       team_id: teamId,
       position,
       leaguepedia_page: playerName,
+      is_lck_player: isLckTeamId(teamId, match),
+      imported_scope: isLckTeamId(teamId, match) ? "lck" : "international_event",
     });
   }
 
@@ -768,7 +789,7 @@ export async function syncLeaguepediaMatchSets(
   const { data: match, error: matchError } = await supabase
     .from("matches")
     .select(
-      "id, leaguepedia_match_id, team_a_id, team_b_id, team_a:team_a_id(id, slug, name, short_name, leaguepedia_page), team_b:team_b_id(id, slug, name, short_name, leaguepedia_page)",
+      "id, leaguepedia_match_id, team_a_id, team_b_id, team_a:team_a_id(id, slug, name, short_name, leaguepedia_page, is_lck_team), team_b:team_b_id(id, slug, name, short_name, leaguepedia_page, is_lck_team)",
     )
     .eq("id", matchId)
     .single();

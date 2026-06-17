@@ -1,10 +1,10 @@
 import { SectionHeader } from "@/components/layout/section-header";
 import { DataTable } from "@/components/ui/data-table";
-import { getFanRatings, getPlayers } from "@/lib/data/lck";
+import { getAllPlayers, getFanRatings } from "@/lib/data/lck";
 import { playerLabel } from "@/lib/view-data";
 
 export default async function AdminRatingsPage() {
-  const [fanRatings, players] = await Promise.all([getFanRatings(), getPlayers()]);
+  const [fanRatings, players] = await Promise.all([getFanRatings(), getAllPlayers()]);
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-[var(--page-inline)] py-10">

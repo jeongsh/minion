@@ -1,0 +1,24 @@
+{
+  "events": [
+    {
+      "event": "msi",
+      "sourceUrl": "https://lol.fandom.com/wiki/2026_Mid-Season_Invitational",
+      "teams": [
+        {
+          "name": "Team Liquid",
+          "shortName": "TL",
+          "region": "North America",
+          "league": "LCS",
+          "leaguepediaPage": "Team Liquid",
+          "players": [
+            { "name": "Morgan", "position": "TOP", "leaguepediaPage": "Morgan" },
+            { "name": "Josedeodo", "position": "JGL", "leaguepediaPage": "Josedeodo" },
+            { "name": "Quid", "position": "MID", "leaguepediaPage": "Quid" },
+            { "name": "Yeon", "position": "BOT", "leaguepediaPage": "Yeon" },
+            { "name": "CoreJJ", "position": "SUP", "leaguepediaPage": "CoreJJ" }
+          ]
+        }
+      ]
+    }
+  ]
+}

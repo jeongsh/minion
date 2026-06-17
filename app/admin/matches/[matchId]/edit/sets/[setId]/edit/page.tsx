@@ -1,17 +1,18 @@
 import { notFound } from "next/navigation";
 
 import {
+  getAllPlayers,
+  getAllTeams,
   getChampions,
   getFanRatings,
   getMatchById,
   getMatches,
   getPlayerStatLines,
-  getPlayers,
   getSetById,
   getSetPicksBans,
   getSetsByMatchId,
-  getTeams,
 } from "@/lib/data/lck";
+import { fetchItemCatalog } from "@/lib/items";
 import { matchRouteId, teamLabel } from "@/lib/view-data";
 
 import { updateSetAction } from "../../../../../../sets/actions";
@@ -32,14 +33,16 @@ export default async function AdminMatchSetEditPage({
   const [matches, teams, players, champions, picksBans, playerStatLines, fanRatings, matchSets] =
     await Promise.all([
       getMatches(),
-      getTeams(),
-      getPlayers(),
+      getAllTeams(),
+      getAllPlayers(),
       getChampions(),
       getSetPicksBans(set.id),
       getPlayerStatLines(set.id),
       getFanRatings(),
       getSetsByMatchId(match.id),
     ]);
+  const itemVersion = champions.find((champion) => champion.ddragonVersion)?.ddragonVersion ?? "16.12.1";
+  const items = await fetchItemCatalog(itemVersion);
   const adminMatchPath = `/admin/matches/${matchRouteId(match)}/edit`;
 
   return (
@@ -54,6 +57,8 @@ export default async function AdminMatchSetEditPage({
       submitLabel="Save set"
       players={players}
       champions={champions}
+      items={items}
+      itemVersion={itemVersion}
       picksBans={picksBans}
       playerStatLines={playerStatLines}
       fanRatings={fanRatings}

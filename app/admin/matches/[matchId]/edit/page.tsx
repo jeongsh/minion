@@ -4,11 +4,11 @@ import { notFound } from "next/navigation";
 import { SectionHeader } from "@/components/layout/section-header";
 import { DataTable } from "@/components/ui/data-table";
 import {
+  getAllPlayers,
+  getAllTeams,
   getMatchById,
-  getPlayers,
   getSetsByMatchId,
   getStages,
-  getTeams,
   getTournaments,
 } from "@/lib/data/lck";
 import { durationLabel, matchHref, matchRouteId, teamLabel } from "@/lib/view-data";
@@ -16,7 +16,6 @@ import { durationLabel, matchHref, matchRouteId, teamLabel } from "@/lib/view-da
 import { updateMatchAction } from "../../actions";
 import { MatchFields } from "../../match-fields";
 import { SyncMatchSetsButton } from "./sync-match-sets-button";
-import { SyncRiotItemsButton } from "./sync-riot-items-button";
 
 export default async function AdminMatchEditPage({
   params,
@@ -31,8 +30,8 @@ export default async function AdminMatchEditPage({
   }
 
   const [teams, players, tournaments, stages, sets] = await Promise.all([
-    getTeams(),
-    getPlayers(),
+    getAllTeams(),
+    getAllPlayers(),
     getTournaments(),
     getStages(),
     getSetsByMatchId(match.id),
@@ -87,7 +86,6 @@ export default async function AdminMatchEditPage({
           <h2 className="text-lg font-semibold">세트 결과 ({sets.length}개)</h2>
           <div className="flex flex-wrap items-start gap-2">
             <SyncMatchSetsButton matchId={match.id} />
-            <SyncRiotItemsButton matchId={match.id} />
             <Link
               href={`${adminMatchPath}/sets/new`}
               className="rounded-md bg-foreground px-4 py-2 text-sm font-semibold text-background"

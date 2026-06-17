@@ -15,6 +15,9 @@ export type Team = {
   officialInstagramUrl: string;
   leaguepediaPage?: string;
   sourceTeamId?: string;
+  isLckTeam?: boolean;
+  importedScope?: "lck" | "international_event" | "manual";
+  isActive?: boolean;
   identityHistory?: TeamIdentityHistory[];
 };
 
@@ -90,6 +93,9 @@ export type Player = {
   streamUrl?: string;
   soloQueueAccount?: string;
   isStarter?: boolean;
+  isLckPlayer?: boolean;
+  importedScope?: "lck" | "international_event" | "manual";
+  isActive?: boolean;
 };
 
 export type Tournament = {

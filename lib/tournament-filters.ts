@@ -13,8 +13,9 @@ export function filterMatchesBySegment(
   matches: Match[],
   tournaments: Tournament[],
   segment: SeasonSegmentKey | "all",
+  seasonYear?: number,
 ) {
-  const tournamentIds = tournamentIdsForSegment(tournaments, segment);
+  const tournamentIds = tournamentIdsForSegment(tournaments, segment, seasonYear);
 
   return matches.filter((match) => tournamentIds.has(match.tournamentId));
 }
@@ -24,12 +25,22 @@ export function filterSetsByMatches(sets: SetResult[], matches: Match[]) {
   return sets.filter((set) => matchIds.has(set.matchId));
 }
 
-export function tournamentsInSegment(tournaments: Tournament[], segment: SeasonSegmentKey | "all") {
+export function tournamentsInSegment(
+  tournaments: Tournament[],
+  segment: SeasonSegmentKey | "all",
+  seasonYear?: number,
+) {
   if (segment === "all") {
-    return tournaments;
+    return seasonYear == null
+      ? tournaments
+      : tournaments.filter((tournament) => tournament.season === seasonYear);
   }
 
-  return tournaments.filter((tournament) => segmentForTournament(tournament) === segment);
+  return tournaments.filter(
+    (tournament) =>
+      (seasonYear == null || tournament.season === seasonYear) &&
+      segmentForTournament(tournament) === segment,
+  );
 }
 
 export function filterStatLinesByMatchIds<T extends { setId: string }>(

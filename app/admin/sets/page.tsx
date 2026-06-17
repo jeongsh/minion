@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { SectionHeader } from "@/components/layout/section-header";
 import { DataTable } from "@/components/ui/data-table";
-import { getMatches, getSets, getTeams } from "@/lib/data/lck";
+import { getAllTeams, getMatches, getSets } from "@/lib/data/lck";
 import type { Match, Team } from "@/lib/types";
 import { matchRouteId } from "@/lib/view-data";
 
@@ -23,7 +23,7 @@ function matchAdminPath(matches: Match[], matchId: string) {
 }
 
 export default async function AdminSetsPage() {
-  const [sets, matches, teams] = await Promise.all([getSets(), getMatches(), getTeams()]);
+  const [sets, matches, teams] = await Promise.all([getSets(), getMatches(), getAllTeams()]);
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-[var(--page-inline)] py-10">

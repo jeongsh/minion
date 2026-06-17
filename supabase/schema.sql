@@ -14,7 +14,7 @@ create table public.teams (
   primary_color text not null,
   secondary_color text not null,
   background_url text,
-  fan_site_host text not null unique check (
+  fan_site_host text unique check (
     fan_site_host in ('t1', 'geng', 'hle', 'dk', 'kt', 'drx', 'ns', 'bro', 'fox', 'soop')
   ),
   official_homepage_url text,
@@ -23,6 +23,9 @@ create table public.teams (
   official_instagram_url text,
   leaguepedia_page text,
   source_team_id text,
+  is_lck_team boolean not null default true,
+  imported_scope text not null default 'lck' check (imported_scope in ('lck', 'international_event', 'manual')),
+  is_active boolean not null default true,
   created_at timestamptz not null default now()
 );
 
@@ -59,6 +62,9 @@ create table public.players (
   riot_game_name text,
   riot_tagline text,
   is_starter boolean not null default false,
+  is_lck_player boolean not null default true,
+  imported_scope text not null default 'lck' check (imported_scope in ('lck', 'international_event', 'manual')),
+  is_active boolean not null default true,
   created_at timestamptz not null default now()
 );
 
@@ -609,6 +615,10 @@ create index idx_soloq_matches_account_id on public.soloq_matches(soloq_account_
 create index idx_soloq_matches_champion_id on public.soloq_matches(champion_id);
 create index idx_champion_stats_pro_champion_id on public.champion_stats_pro(champion_id);
 create index idx_champion_stats_pro_tournament_id on public.champion_stats_pro(tournament_id);
+create index idx_teams_is_lck_team on public.teams(is_lck_team);
+create index idx_teams_imported_scope on public.teams(imported_scope);
+create index idx_players_is_lck_player on public.players(is_lck_player);
+create index idx_players_imported_scope on public.players(imported_scope);
 
 alter table public.teams enable row level security;
 alter table public.team_identity_histories enable row level security;

@@ -4,14 +4,14 @@ import { notFound } from "next/navigation";
 import { SourceNotice } from "@/components/domain/source-notice";
 import { DataTable } from "@/components/ui/data-table";
 import {
+  getAllPlayers,
+  getAllTeams,
   getChampions,
   getFanRatings,
   getMatchById,
-  getPlayers,
   getSetPicksBans,
   getSetsByMatchId,
   getStages,
-  getTeams,
   getTournaments,
 } from "@/lib/data/lck";
 import type { MatchStatus, SetPickBan, SetResult } from "@/lib/types";
@@ -51,7 +51,7 @@ function winnerLabel({
   teams,
 }: {
   winnerTeamId: string | null | undefined;
-  teams: Awaited<ReturnType<typeof getTeams>>;
+  teams: Awaited<ReturnType<typeof getAllTeams>>;
 }) {
   return winnerTeamId ? teamLabel(teams, winnerTeamId) : "-";
 }
@@ -135,8 +135,8 @@ export default async function MatchDetailPage({
 
   const [teams, players, sets, fanRatings, champions, picksBans, tournaments, stages] =
     await Promise.all([
-      getTeams(),
-      getPlayers(),
+      getAllTeams(),
+      getAllPlayers(),
       getSetsByMatchId(match.id),
       getFanRatings(),
       getChampions(),

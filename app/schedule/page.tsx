@@ -3,13 +3,13 @@ import { Suspense } from "react";
 
 import { SeasonSegmentFilter } from "@/components/domain/season-segment-filter";
 import { SourceNotice } from "@/components/domain/source-notice";
-import { getMatches, getStages, getTeams, getTournaments } from "@/lib/data/lck";
+import { getAllTeams, getMatches, getStages, getTournaments } from "@/lib/data/lck";
 import {
   filterMatchesBySegment,
   parseSeasonSegment,
   segmentLabel,
 } from "@/lib/tournament-filters";
-import type { Match, Team } from "@/lib/types";
+import type { Match, Team, Tournament } from "@/lib/types";
 import {
   formatDateHeaderKST,
   formatTimeKST,
@@ -35,6 +35,30 @@ function statusLabel(status: Match["status"]) {
 
 function stageName(stages: Awaited<ReturnType<typeof getStages>>, stageId: string) {
   return stages.find((stage) => stage.id === stageId)?.name ?? "-";
+}
+
+function tournamentById(tournaments: Tournament[], tournamentId: string) {
+  return tournaments.find((tournament) => tournament.id === tournamentId);
+}
+
+function tournamentTypeLabel(tournament?: Tournament) {
+  if (!tournament) {
+    return "-";
+  }
+
+  if (tournament.split === "Cup") {
+    return "LCK Cup";
+  }
+
+  if (tournament.split === "First Stand" || tournament.league === "First Stand") {
+    return "First Stand";
+  }
+
+  if (tournament.category === "international") {
+    return tournament.league ?? tournament.split ?? tournament.name;
+  }
+
+  return tournament.split ? `LCK ${tournament.split}` : tournament.league ?? tournament.name;
 }
 
 function teamById(teams: Team[], teamId: string) {
@@ -105,7 +129,7 @@ export default async function SchedulePage({
 
   const [matches, teams, tournaments, stages] = await Promise.all([
     getMatches(),
-    getTeams(),
+    getAllTeams(),
     getTournaments(),
     getStages(),
   ]);
@@ -113,7 +137,7 @@ export default async function SchedulePage({
   const activeYear = params.year ? Number(params.year) : defaultYear;
   const activeMonth = params.month ? Number(params.month) : defaultMonth;
 
-  const segmentMatches = filterMatchesBySegment(matches, tournaments, activeSegment);
+  const segmentMatches = filterMatchesBySegment(matches, tournaments, activeSegment, activeYear);
   const filteredMatches = segmentMatches.filter(
     (match) => getYearKST(match.matchDate) === activeYear && getMonthKST(match.matchDate) === activeMonth,
   );
@@ -135,7 +159,7 @@ export default async function SchedulePage({
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-[var(--page-inline)] py-8">
       <section className="flex flex-col gap-6" aria-labelledby="schedule-title">
         <h1 id="schedule-title" className="text-2xl font-bold">
-          {segmentLabel(activeSegment)} 경기 일정
+          {segmentLabel(activeSegment, activeYear)} 경기 일정
         </h1>
 
         <Suspense fallback={null}>
@@ -143,6 +167,7 @@ export default async function SchedulePage({
             activeSegment={activeSegment}
             basePath="/schedule"
             preserveKeys={["year", "month"]}
+            seasonYear={activeYear}
           />
         </Suspense>
 
@@ -154,7 +179,7 @@ export default async function SchedulePage({
       <section className="overflow-hidden rounded-md border border-border bg-surface" aria-label="경기 목록">
         {Object.keys(dateGroups).length === 0 ? (
           <div className="px-5 py-10 text-center text-sm text-muted">
-            {activeYear}년 {activeMonth}월 · {segmentLabel(activeSegment)} 구간에 예정된 경기가 없습니다.
+            {activeYear}년 {activeMonth}월 · {segmentLabel(activeSegment, activeYear)} 구간에 예정된 경기가 없습니다.
           </div>
         ) : (
           Object.entries(dateGroups).map(([date, groupMatches]) => (
@@ -166,15 +191,19 @@ export default async function SchedulePage({
                 {groupMatches.map((match) => {
                   const teamA = teamById(teams, match.teamAId);
                   const teamB = teamById(teams, match.teamBId);
+                  const tournament = tournamentById(tournaments, match.tournamentId);
 
                   return (
                     <div
                       key={match.id}
-                      className="grid gap-4 px-5 py-4 md:grid-cols-[4.5rem_4.5rem_7rem_minmax(12rem,1fr)_5rem_minmax(12rem,1fr)_6rem_8rem] md:items-center"
+                      className="grid gap-4 px-5 py-4 md:grid-cols-[4.5rem_4.5rem_9rem_8rem_minmax(12rem,1fr)_5rem_minmax(12rem,1fr)_6rem_8rem] md:items-center"
                     >
                       <time className="text-base font-bold">{formatTimeKST(match.matchDate)}</time>
                       <span className="w-fit rounded bg-surface-muted px-2 py-1 text-xs font-semibold text-muted">
                         {statusLabel(match.status)}
+                      </span>
+                      <span className="w-fit rounded-md border border-border bg-background px-2.5 py-1 text-xs font-bold text-foreground">
+                        {tournamentTypeLabel(tournament)}
                       </span>
                       <span className="text-sm text-muted">{stageName(stages, match.stageId)}</span>
                       <Link href={`/teams/${teamA?.slug ?? ""}`} className="min-w-0">

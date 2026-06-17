@@ -2,16 +2,22 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 
-import { SEASON_2026_SEGMENTS, type SeasonSegmentKey } from "@/lib/tournaments/season-2026";
+import {
+  DEFAULT_SEASON_YEAR,
+  SEASON_2026_SEGMENTS,
+  type SeasonSegmentKey,
+} from "@/lib/tournaments/season-2026";
 
 export function SeasonSegmentFilter({
   activeSegment,
   basePath,
   preserveKeys = [],
+  seasonYear = DEFAULT_SEASON_YEAR,
 }: {
   activeSegment: SeasonSegmentKey | "all";
   basePath: string;
   preserveKeys?: string[];
+  seasonYear?: number;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -44,15 +50,15 @@ export function SeasonSegmentFilter({
           <button
             key={segment.key}
             type="button"
-            title={segment.description}
+            title={segment.key === "all" ? `${seasonYear} 시즌 전체 경기` : segment.description}
             onClick={() => navigate(segment.key)}
             className={`rounded-md border px-3 py-2 text-sm font-semibold ${
               activeSegment === segment.key
                 ? "border-accent bg-accent/10 text-accent"
                 : "border-border bg-surface text-muted hover:bg-surface-muted hover:text-foreground"
-            }`}
+              }`}
           >
-            {segment.label}
+            {segment.key === "all" ? `${seasonYear} 전체` : segment.label}
           </button>
         ))}
       </div>

@@ -1,0 +1,244 @@
+{
+  "events": [
+    {
+      "event": "first-stand",
+      "sourceUrl": "https://lol.fandom.com/wiki/2026_First_Stand",
+      "teams": [
+        {
+          "name": "Bilibili Gaming",
+          "shortName": "BLG",
+          "region": "China",
+          "league": "LPL",
+          "leaguepediaPage": "Bilibili Gaming",
+          "players": [
+            { "name": "Bin", "position": "TOP", "leaguepediaPage": "Bin" },
+            { "name": "Xun", "position": "JGL", "leaguepediaPage": "Xun" },
+            { "name": "Knight", "position": "MID", "leaguepediaPage": "Knight" },
+            { "name": "Viper", "position": "BOT", "leaguepediaPage": "Viper" },
+            { "name": "ON", "position": "SUP", "leaguepediaPage": "ON" }
+          ]
+        },
+        {
+          "name": "G2 Esports",
+          "shortName": "G2",
+          "region": "EMEA",
+          "league": "LEC",
+          "leaguepediaPage": "G2 Esports",
+          "players": [
+            { "name": "BrokenBlade", "position": "TOP", "leaguepediaPage": "BrokenBlade" },
+            { "name": "SkewMond", "position": "JGL", "leaguepediaPage": "SkewMond" },
+            { "name": "Caps", "position": "MID", "leaguepediaPage": "Caps" },
+            { "name": "Hans Sama", "position": "BOT", "leaguepediaPage": "Hans Sama" },
+            { "name": "Labrov", "position": "SUP", "leaguepediaPage": "Labrov" }
+          ]
+        },
+        {
+          "name": "Team Secret Whales",
+          "shortName": "TSW",
+          "region": "Asia-Pacific",
+          "league": "LCP",
+          "leaguepediaPage": "Team Secret Whales",
+          "players": [
+            { "name": "Pun", "position": "TOP", "leaguepediaPage": "Pun" },
+            { "name": "Hizto", "position": "JGL", "leaguepediaPage": "Hizto" },
+            { "name": "Dire", "position": "MID", "leaguepediaPage": "Dire" },
+            { "name": "Eddie", "position": "BOT", "leaguepediaPage": "Eddie" },
+            { "name": "Bie", "position": "SUP", "leaguepediaPage": "Bie" }
+          ]
+        },
+        {
+          "name": "LYON",
+          "shortName": "LYON",
+          "region": "North America",
+          "league": "LCS",
+          "leaguepediaPage": "LYON",
+          "players": [
+            { "name": "Dhokla", "position": "TOP", "leaguepediaPage": "Dhokla" },
+            { "name": "Inspired", "position": "JGL", "leaguepediaPage": "Inspired" },
+            { "name": "Saint", "position": "MID", "leaguepediaPage": "Saint" },
+            { "name": "Berserker", "position": "BOT", "leaguepediaPage": "Berserker" },
+            { "name": "Isles", "position": "SUP", "leaguepediaPage": "Isles" }
+          ]
+        },
+        {
+          "name": "LOUD",
+          "shortName": "LLL",
+          "region": "Brazil",
+          "league": "CBLOL",
+          "leaguepediaPage": "LOUD",
+          "players": [
+            { "name": "Xyno", "position": "TOP", "leaguepediaPage": "Xyno" },
+            { "name": "YoungJae", "position": "JGL", "leaguepediaPage": "YoungJae" },
+            { "name": "Envy", "position": "MID", "leaguepediaPage": "Envy" },
+            { "name": "Bull", "position": "BOT", "leaguepediaPage": "Bull" },
+            { "name": "RedBert", "position": "SUP", "leaguepediaPage": "RedBert" }
+          ]
+        },
+        {
+          "name": "JD Gaming",
+          "shortName": "JDG",
+          "region": "China",
+          "league": "LPL",
+          "leaguepediaPage": "JD Gaming",
+          "players": [
+            { "name": "Xiaoxu", "position": "TOP", "leaguepediaPage": "Xiaoxu" },
+            { "name": "JunJia", "position": "JGL", "leaguepediaPage": "JunJia" },
+            { "name": "HongQ", "position": "MID", "leaguepediaPage": "HongQ" },
+            { "name": "GALA", "position": "BOT", "leaguepediaPage": "GALA" },
+            { "name": "Vampire", "position": "SUP", "leaguepediaPage": "Vampire" }
+          ]
+        }
+      ]
+    },
+    {
+      "event": "msi",
+      "sourceUrl": "https://lol.fandom.com/wiki/2026_Mid-Season_Invitational",
+      "teams": [
+        {
+          "name": "Bilibili Gaming",
+          "shortName": "BLG",
+          "region": "China",
+          "league": "LPL",
+          "leaguepediaPage": "Bilibili Gaming",
+          "players": [
+            { "name": "Bin", "position": "TOP", "leaguepediaPage": "Bin" },
+            { "name": "Xun", "position": "JGL", "leaguepediaPage": "Xun" },
+            { "name": "Knight", "position": "MID", "leaguepediaPage": "Knight" },
+            { "name": "Viper", "position": "BOT", "leaguepediaPage": "Viper" },
+            { "name": "ON", "position": "SUP", "leaguepediaPage": "ON" }
+          ]
+        },
+        {
+          "name": "Top Esports",
+          "shortName": "TES",
+          "region": "China",
+          "league": "LPL",
+          "leaguepediaPage": "Top Esports",
+          "players": [
+            { "name": "ZUIAN", "position": "TOP", "leaguepediaPage": "ZUIAN" },
+            { "name": "Tian", "position": "JGL", "leaguepediaPage": "Tian" },
+            { "name": "Creme", "position": "MID", "leaguepediaPage": "Creme" },
+            { "name": "JackeyLove", "position": "BOT", "leaguepediaPage": "JackeyLove" },
+            { "name": "fengyue", "position": "SUP", "leaguepediaPage": "fengyue" }
+          ]
+        },
+        {
+          "name": "G2 Esports",
+          "shortName": "G2",
+          "region": "EMEA",
+          "league": "LEC",
+          "leaguepediaPage": "G2 Esports",
+          "players": [
+            { "name": "BrokenBlade", "position": "TOP", "leaguepediaPage": "BrokenBlade" },
+            { "name": "SkewMond", "position": "JGL", "leaguepediaPage": "SkewMond" },
+            { "name": "Caps", "position": "MID", "leaguepediaPage": "Caps" },
+            { "name": "Hans Sama", "position": "BOT", "leaguepediaPage": "Hans Sama" },
+            { "name": "Labrov", "position": "SUP", "leaguepediaPage": "Labrov" }
+          ]
+        },
+        {
+          "name": "Karmine Corp",
+          "shortName": "KC",
+          "region": "EMEA",
+          "league": "LEC",
+          "leaguepediaPage": "Karmine Corp",
+          "players": [
+            { "name": "Canna", "position": "TOP", "leaguepediaPage": "Canna" },
+            { "name": "Yike", "position": "JGL", "leaguepediaPage": "Yike" },
+            { "name": "kyeahoo", "position": "MID", "leaguepediaPage": "kyeahoo" },
+            { "name": "Caliste", "position": "BOT", "leaguepediaPage": "Caliste" },
+            { "name": "Busio", "position": "SUP", "leaguepediaPage": "Busio" }
+          ]
+        },
+        {
+          "name": "LYON",
+          "shortName": "LYON",
+          "region": "North America",
+          "league": "LCS",
+          "leaguepediaPage": "LYON",
+          "players": [
+            { "name": "Dhokla", "position": "TOP", "leaguepediaPage": "Dhokla" },
+            { "name": "Inspired", "position": "JGL", "leaguepediaPage": "Inspired" },
+            { "name": "Saint", "position": "MID", "leaguepediaPage": "Saint" },
+            { "name": "Berserker", "position": "BOT", "leaguepediaPage": "Berserker" },
+            { "name": "Isles", "position": "SUP", "leaguepediaPage": "Isles" }
+          ]
+        },
+        {
+          "name": "Team Liquid",
+          "shortName": "TL",
+          "region": "North America",
+          "league": "LCS",
+          "leaguepediaPage": "Team Liquid",
+          "players": [
+            { "name": "Morgan", "position": "TOP", "leaguepediaPage": "Morgan" },
+            { "name": "Josedeodo", "position": "JGL", "leaguepediaPage": "Josedeodo" },
+            { "name": "Quid", "position": "MID", "leaguepediaPage": "Quid" },
+            { "name": "Yeon", "position": "BOT", "leaguepediaPage": "Yeon" },
+            { "name": "CoreJJ", "position": "SUP", "leaguepediaPage": "CoreJJ" }
+          ]
+        },
+        {
+          "name": "Team Secret Whales",
+          "shortName": "TSW",
+          "region": "Asia-Pacific",
+          "league": "LCP",
+          "leaguepediaPage": "Team Secret Whales",
+          "players": [
+            { "name": "Pun", "position": "TOP", "leaguepediaPage": "Pun" },
+            { "name": "Hizto", "position": "JGL", "leaguepediaPage": "Hizto" },
+            { "name": "Dire", "position": "MID", "leaguepediaPage": "Dire" },
+            { "name": "Eddie", "position": "BOT", "leaguepediaPage": "Eddie" },
+            { "name": "Bie", "position": "SUP", "leaguepediaPage": "Bie" }
+          ]
+        },
+        {
+          "name": "Deep Cross Gaming",
+          "shortName": "DCG",
+          "region": "Asia-Pacific",
+          "league": "LCP",
+          "leaguepediaPage": "Deep Cross Gaming",
+          "players": [
+            { "name": "Flauren", "position": "TOP", "leaguepediaPage": "Flauren" },
+            { "name": "Pop9", "position": "JGL", "leaguepediaPage": "Pop9" },
+            { "name": "HongSuo", "position": "MID", "leaguepediaPage": "HongSuo" },
+            { "name": "Feng", "position": "BOT", "leaguepediaPage": "Feng" },
+            { "name": "ShiauC", "position": "SUP", "leaguepediaPage": "ShiauC" }
+          ]
+        },
+        {
+          "name": "FURIA",
+          "shortName": "FUR",
+          "region": "Brazil",
+          "league": "CBLOL",
+          "leaguepediaPage": "FURIA",
+          "players": [
+            { "name": "Guigo", "position": "TOP", "leaguepediaPage": "Guigo" },
+            { "name": "Tatu", "position": "JGL", "leaguepediaPage": "Tatu" },
+            { "name": "Tutsz", "position": "MID", "leaguepediaPage": "Tutsz" },
+            { "name": "Ayu", "position": "BOT", "leaguepediaPage": "Ayu" },
+            { "name": "JoJo", "position": "SUP", "leaguepediaPage": "JoJo" }
+          ]
+        }
+      ]
+    },
+    {
+      "event": "ewc",
+      "sourceUrl": "https://esportsworldcup.com/en/competitions/2026/league-of-legends",
+      "teams": [
+        { "name": "Sentinels", "shortName": "SEN", "region": "North America", "league": "EWC", "leaguepediaPage": "Sentinels" },
+        { "name": "Karmine Corp", "shortName": "KC", "region": "EMEA", "league": "EWC", "leaguepediaPage": "Karmine Corp" },
+        { "name": "Movistar KOI", "shortName": "MKOI", "region": "EMEA", "league": "EWC", "leaguepediaPage": "Movistar KOI" },
+        { "name": "GAM Esports", "shortName": "GAM", "region": "Asia-Pacific", "league": "EWC", "leaguepediaPage": "GAM Esports" },
+        { "name": "AG.AL", "shortName": "AG.AL", "region": "China", "league": "EWC", "leaguepediaPage": "AG.AL" },
+        { "name": "JD Gaming", "shortName": "JDG", "region": "China", "league": "EWC", "leaguepediaPage": "JD Gaming" },
+        { "name": "Bilibili Gaming", "shortName": "BLG", "region": "China", "league": "EWC", "leaguepediaPage": "Bilibili Gaming" },
+        { "name": "G2 Esports", "shortName": "G2", "region": "EMEA", "league": "EWC", "leaguepediaPage": "G2 Esports" },
+        { "name": "LYON", "shortName": "LYON", "region": "North America", "league": "EWC", "leaguepediaPage": "LYON" },
+        { "name": "FURIA", "shortName": "FUR", "region": "Brazil", "league": "EWC", "leaguepediaPage": "FURIA" },
+        { "name": "Team Secret", "shortName": "TS", "region": "Asia-Pacific", "league": "EWC", "leaguepediaPage": "Team Secret" },
+        { "name": "Los Grandes", "shortName": "LOS", "region": "Brazil", "league": "EWC", "leaguepediaPage": "Los Grandes" }
+      ]
+    }
+  ]
+}

@@ -28,13 +28,16 @@ type TeamRow = {
   background_url: string | null;
   primary_color: string;
   secondary_color: string;
-  fan_site_host: string;
+  fan_site_host: string | null;
   official_homepage_url: string | null;
   official_youtube_url: string | null;
   official_x_url: string | null;
   official_instagram_url: string | null;
   leaguepedia_page: string | null;
   source_team_id: string | null;
+  is_lck_team: boolean | null;
+  imported_scope: Team["importedScope"] | null;
+  is_active: boolean | null;
 };
 
 type TeamIdentityHistoryRow = {
@@ -61,6 +64,9 @@ type PlayerRow = {
   stream_url: string | null;
   solo_queue_account: string | null;
   is_starter: boolean | null;
+  is_lck_player: boolean | null;
+  imported_scope: Player["importedScope"] | null;
+  is_active: boolean | null;
 };
 
 type ChampionRow = {
@@ -275,13 +281,16 @@ function mapTeam(row: TeamRow): Team {
     backgroundUrl: row.background_url ?? "",
     primaryColor: row.primary_color,
     secondaryColor: row.secondary_color,
-    fanSiteHost: row.fan_site_host,
+    fanSiteHost: row.fan_site_host ?? "",
     officialHomepageUrl: row.official_homepage_url ?? "",
     officialYoutubeUrl: row.official_youtube_url ?? "",
     officialXUrl: row.official_x_url ?? "",
     officialInstagramUrl: row.official_instagram_url ?? "",
     leaguepediaPage: row.leaguepedia_page ?? "",
     sourceTeamId: row.source_team_id ?? "",
+    isLckTeam: row.is_lck_team ?? true,
+    importedScope: row.imported_scope ?? "lck",
+    isActive: row.is_active ?? true,
   };
 }
 
@@ -312,6 +321,9 @@ function mapPlayer(row: PlayerRow): Player {
     streamUrl: row.stream_url ?? undefined,
     soloQueueAccount: row.solo_queue_account ?? undefined,
     isStarter: row.is_starter ?? false,
+    isLckPlayer: row.is_lck_player ?? true,
+    importedScope: row.imported_scope ?? "lck",
+    isActive: row.is_active ?? true,
   };
 }
 
@@ -490,6 +502,22 @@ export async function getTeams() {
     const { data, error } = await createSupabaseServerClient()
       .from("teams")
       .select("*")
+      .eq("is_lck_team", true)
+      .order("name", { ascending: true });
+
+    if (error) {
+      throw error;
+    }
+
+    return (data as TeamRow[]).map(mapTeam);
+  }, []);
+}
+
+export async function getAllTeams() {
+  return fromSupabase(async () => {
+    const { data, error } = await createSupabaseServerClient()
+      .from("teams")
+      .select("*")
       .order("name", { ascending: true });
 
     if (error) {
@@ -607,6 +635,22 @@ export async function getPlayers() {
     const { data, error } = await createSupabaseServerClient()
       .from("players")
       .select("*")
+      .eq("is_lck_player", true)
+      .order("name", { ascending: true });
+
+    if (error) {
+      throw error;
+    }
+
+    return (data as PlayerRow[]).map(mapPlayer);
+  }, []);
+}
+
+export async function getAllPlayers() {
+  return fromSupabase(async () => {
+    const { data, error } = await createSupabaseServerClient()
+      .from("players")
+      .select("*")
       .order("name", { ascending: true });
 
     if (error) {
@@ -650,7 +694,7 @@ export async function getStages() {
 }
 
 export async function getPlayerBySlug(slug: string) {
-  const players = await getPlayers();
+  const players = await getAllPlayers();
   return players.find((player) => player.slug === slug);
 }
 

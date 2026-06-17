@@ -1,14 +1,14 @@
 import Link from "next/link";
 import { SectionHeader } from "@/components/layout/section-header";
 import { DataTable } from "@/components/ui/data-table";
-import { getFanRatings, getPlayers, getTeams } from "@/lib/data/lck";
+import { getAllPlayers, getAllTeams, getFanRatings } from "@/lib/data/lck";
 import { teamLabel } from "@/lib/view-data";
 
 export default async function FanRatingsPage() {
   const [fanRatings, players, teams] = await Promise.all([
     getFanRatings(),
-    getPlayers(),
-    getTeams(),
+    getAllPlayers(),
+    getAllTeams(),
   ]);
   const rows = players
     .map((player) => {

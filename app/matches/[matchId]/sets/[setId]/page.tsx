@@ -4,15 +4,15 @@ import { notFound } from "next/navigation";
 
 import { DataTable } from "@/components/ui/data-table";
 import {
+  getAllPlayers,
+  getAllTeams,
   getChampions,
   getFanRatings,
   getMatchById,
   getPlayerStatLines,
-  getPlayers,
   getSetById,
   getSetPicksBans,
   getSetsByMatchId,
-  getTeams,
 } from "@/lib/data/lck";
 import { calculatePlayerStats } from "@/lib/stats";
 import type { Champion, DerivedPlayerStats, Player, PlayerStatLine, SetResult, Team } from "@/lib/types";
@@ -302,7 +302,7 @@ function PlayerStatBoard({
                 ),
               )
             ) : (
-              <span className="text-xs font-semibold text-muted">Riot 아이템 미동기화</span>
+              <span className="text-xs font-semibold text-muted">아이템 데이터 없음</span>
             )}
           </div>
         </div>
@@ -401,8 +401,8 @@ export default async function SetDetailPage({
   }
 
   const [teams, players, champions, picksBans, playerStatLines, fanRatings, matchSets] = await Promise.all([
-    getTeams(),
-    getPlayers(),
+    getAllTeams(),
+    getAllPlayers(),
     getChampions(),
     getSetPicksBans(set.id),
     getPlayerStatLines(set.id),
