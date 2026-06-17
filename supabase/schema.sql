@@ -139,6 +139,10 @@ create table public.sets (
   red_chemtechs integer,
   blue_elders integer,
   red_elders integer,
+  blue_rift_heralds integer,
+  red_rift_heralds integer,
+  blue_void_grubs integer,
+  red_void_grubs integer,
   blue_barons integer,
   red_barons integer,
   blue_towers integer,
@@ -198,6 +202,10 @@ create table public.set_player_stats (
   item4 integer,
   item5 integer,
   item6 integer,
+  spell0 integer,
+  spell1 integer,
+  rune0 integer,
+  rune1 integer,
   created_at timestamptz not null default now(),
   unique (set_id, player_id)
 );

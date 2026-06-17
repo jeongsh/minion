@@ -30,6 +30,21 @@ function countValue(formData: FormData, name: string) {
   return numberOrNull(formData.get(name)) ?? 0;
 }
 
+function dragonTotal(formData: FormData, side: "blue" | "red") {
+  const explicitName = side === "blue" ? "blueDragons" : "redDragons";
+  if (formData.has(explicitName)) {
+    return numberOrNull(formData.get(explicitName));
+  }
+
+  const prefix = side === "blue" ? "blue" : "red";
+  const values = ["Clouds", "Infernals", "Mountains", "Oceans", "Hextechs", "Chemtechs"].map((suffix) =>
+    numberOrNull(formData.get(`${prefix}${suffix}`)),
+  );
+  const hasAnyValue = values.some((value) => value != null);
+
+  return hasAnyValue ? values.reduce<number>((sum, value) => sum + (value ?? 0), 0) : null;
+}
+
 function isPresent<T>(value: T | null): value is T {
   return value !== null;
 }
@@ -53,8 +68,8 @@ function setPayload(formData: FormData) {
     red_kills: numberOrNull(formData.get("redKills")),
     blue_gold: numberOrNull(formData.get("blueGold")),
     red_gold: numberOrNull(formData.get("redGold")),
-    blue_dragons: numberOrNull(formData.get("blueDragons")),
-    red_dragons: numberOrNull(formData.get("redDragons")),
+    blue_dragons: dragonTotal(formData, "blue"),
+    red_dragons: dragonTotal(formData, "red"),
     blue_clouds: numberOrNull(formData.get("blueClouds")),
     red_clouds: numberOrNull(formData.get("redClouds")),
     blue_infernals: numberOrNull(formData.get("blueInfernals")),
@@ -69,6 +84,10 @@ function setPayload(formData: FormData) {
     red_chemtechs: numberOrNull(formData.get("redChemtechs")),
     blue_elders: numberOrNull(formData.get("blueElders")),
     red_elders: numberOrNull(formData.get("redElders")),
+    blue_rift_heralds: numberOrNull(formData.get("blueRiftHeralds")),
+    red_rift_heralds: numberOrNull(formData.get("redRiftHeralds")),
+    blue_void_grubs: numberOrNull(formData.get("blueVoidGrubs")),
+    red_void_grubs: numberOrNull(formData.get("redVoidGrubs")),
     blue_barons: numberOrNull(formData.get("blueBarons")),
     red_barons: numberOrNull(formData.get("redBarons")),
     blue_towers: numberOrNull(formData.get("blueTowers")),
@@ -205,6 +224,10 @@ export async function updateSetAction(formData: FormData) {
         item4: numberOrNull(formData.get(`playerStat.${index}.item4`)),
         item5: numberOrNull(formData.get(`playerStat.${index}.item5`)),
         item6: numberOrNull(formData.get(`playerStat.${index}.item6`)),
+        spell0: numberOrNull(formData.get(`playerStat.${index}.spell0`)),
+        spell1: numberOrNull(formData.get(`playerStat.${index}.spell1`)),
+        rune0: numberOrNull(formData.get(`playerStat.${index}.rune0`)),
+        rune1: numberOrNull(formData.get(`playerStat.${index}.rune1`)),
       };
     }).filter(isPresent);
 

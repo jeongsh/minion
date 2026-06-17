@@ -114,6 +114,10 @@ type SetPlayerStatsRow = {
   item4?: number | null;
   item5?: number | null;
   item6?: number | null;
+  spell0?: number | null;
+  spell1?: number | null;
+  rune0?: number | null;
+  rune1?: number | null;
   sets?:
     | {
     duration_seconds: number | null;
@@ -192,6 +196,10 @@ type SetRow = {
   red_chemtechs?: number | null;
   blue_elders?: number | null;
   red_elders?: number | null;
+  blue_rift_heralds?: number | null;
+  red_rift_heralds?: number | null;
+  blue_void_grubs?: number | null;
+  red_void_grubs?: number | null;
   blue_barons: number | null;
   red_barons: number | null;
   blue_towers: number | null;
@@ -421,6 +429,10 @@ function mapSet(row: SetRow): SetResult {
     redChemtechs: row.red_chemtechs ?? null,
     blueElders: row.blue_elders ?? null,
     redElders: row.red_elders ?? null,
+    blueRiftHeralds: row.blue_rift_heralds ?? null,
+    redRiftHeralds: row.red_rift_heralds ?? null,
+    blueVoidGrubs: row.blue_void_grubs ?? null,
+    redVoidGrubs: row.red_void_grubs ?? null,
     blueBarons: row.blue_barons,
     redBarons: row.red_barons,
     blueTowers: row.blue_towers,
@@ -864,7 +876,7 @@ export async function getPlayerStatLines(setId?: string) {
     let query = createSupabaseServerClient()
       .from("set_player_stats")
       .select(
-        "set_id, player_id, team_id, position, champion_id, kills, deaths, assists, cs, gold, damage_to_champions, vision_score, item0, item1, item2, item3, item4, item5, item6, sets(duration_seconds)",
+        "set_id, player_id, team_id, position, champion_id, kills, deaths, assists, cs, gold, damage_to_champions, vision_score, item0, item1, item2, item3, item4, item5, item6, spell0, spell1, rune0, rune1, sets(duration_seconds)",
       )
       .order("position", { ascending: true });
 
@@ -910,6 +922,8 @@ export async function getPlayerStatLines(setId?: string) {
       itemIds: [row.item0, row.item1, row.item2, row.item3, row.item4, row.item5, row.item6].map(
         (itemId) => itemId ?? null,
       ),
+      spellIds: [row.spell0, row.spell1].map((spellId) => spellId ?? null),
+      runeIds: [row.rune0, row.rune1].map((runeId) => runeId ?? null),
     }));
   }, []);
 }

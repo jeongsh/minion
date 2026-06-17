@@ -8,10 +8,14 @@ function NumberField({
   name,
   label,
   defaultValue,
+  min = 0,
+  required = false,
 }: {
   name: string;
   label: string;
   defaultValue?: number | null;
+  min?: number;
+  required?: boolean;
 }) {
   return (
     <label className="flex flex-col gap-2 text-sm font-medium">
@@ -19,8 +23,33 @@ function NumberField({
       <input
         name={name}
         type="number"
-        min="0"
+        min={min}
+        required={required}
         defaultValue={numberValue(defaultValue)}
+        className="rounded-md border border-border bg-background px-3 py-2"
+      />
+    </label>
+  );
+}
+
+function TextField({
+  name,
+  label,
+  defaultValue,
+  placeholder,
+}: {
+  name: string;
+  label: string;
+  defaultValue?: string | null;
+  placeholder?: string;
+}) {
+  return (
+    <label className="flex flex-col gap-2 text-sm font-medium">
+      {label}
+      <input
+        name={name}
+        defaultValue={defaultValue ?? ""}
+        placeholder={placeholder}
         className="rounded-md border border-border bg-background px-3 py-2"
       />
     </label>
@@ -93,17 +122,7 @@ export function SetFields({
           </select>
         </label>
       )}
-      <label className="flex flex-col gap-2 text-sm font-medium">
-        세트 번호
-        <input
-          name="setNumber"
-          type="number"
-          min="1"
-          required
-          defaultValue={set?.setNumber ?? 1}
-          className="rounded-md border border-border bg-background px-3 py-2"
-        />
-      </label>
+      <NumberField name="setNumber" label="세트 번호" defaultValue={set?.setNumber ?? 1} min={1} required />
       <TeamSelect name="winnerTeamId" label="승리 팀" teams={teams} defaultValue={set?.winnerTeamId} />
       <TeamSelect name="blueTeamId" label="블루 팀" teams={teams} defaultValue={set?.blueTeamId} />
       <TeamSelect name="redTeamId" label="레드 팀" teams={teams} defaultValue={set?.redTeamId} />
@@ -112,8 +131,12 @@ export function SetFields({
       <NumberField name="redKills" label="레드 킬" defaultValue={set?.redKills} />
       <NumberField name="blueGold" label="블루 골드" defaultValue={set?.blueGold} />
       <NumberField name="redGold" label="레드 골드" defaultValue={set?.redGold} />
-      <NumberField name="blueDragons" label="블루 드래곤" defaultValue={set?.blueDragons} />
-      <NumberField name="redDragons" label="레드 드래곤" defaultValue={set?.redDragons} />
+      <NumberField name="blueTowers" label="블루 타워" defaultValue={set?.blueTowers} />
+      <NumberField name="redTowers" label="레드 타워" defaultValue={set?.redTowers} />
+      <NumberField name="blueVoidGrubs" label="블루 유충" defaultValue={set?.blueVoidGrubs} />
+      <NumberField name="redVoidGrubs" label="레드 유충" defaultValue={set?.redVoidGrubs} />
+      <NumberField name="blueRiftHeralds" label="블루 전령" defaultValue={set?.blueRiftHeralds} />
+      <NumberField name="redRiftHeralds" label="레드 전령" defaultValue={set?.redRiftHeralds} />
       <NumberField name="blueClouds" label="블루 바람용" defaultValue={set?.blueClouds} />
       <NumberField name="redClouds" label="레드 바람용" defaultValue={set?.redClouds} />
       <NumberField name="blueInfernals" label="블루 화염용" defaultValue={set?.blueInfernals} />
@@ -130,42 +153,10 @@ export function SetFields({
       <NumberField name="redElders" label="레드 장로" defaultValue={set?.redElders} />
       <NumberField name="blueBarons" label="블루 바론" defaultValue={set?.blueBarons} />
       <NumberField name="redBarons" label="레드 바론" defaultValue={set?.redBarons} />
-      <NumberField name="blueTowers" label="블루 타워" defaultValue={set?.blueTowers} />
-      <NumberField name="redTowers" label="레드 타워" defaultValue={set?.redTowers} />
-      <label className="flex flex-col gap-2 text-sm font-medium">
-        패치
-        <input
-          name="patch"
-          defaultValue={set?.patch ?? ""}
-          placeholder="26.10"
-          className="rounded-md border border-border bg-background px-3 py-2"
-        />
-      </label>
-      <label className="flex flex-col gap-2 text-sm font-medium">
-        Leaguepedia Game ID
-        <input
-          name="leaguepediaGameId"
-          defaultValue={set?.leaguepediaGameId ?? ""}
-          className="rounded-md border border-border bg-background px-3 py-2"
-        />
-      </label>
-      <label className="flex flex-col gap-2 text-sm font-medium">
-        Riot Match ID
-        <input
-          name="riotMatchId"
-          defaultValue={set?.riotMatchId ?? ""}
-          placeholder="KR_1234567890"
-          className="rounded-md border border-border bg-background px-3 py-2"
-        />
-      </label>
-      <label className="flex flex-col gap-2 text-sm font-medium">
-        Riot Platform Game ID
-        <input
-          name="riotPlatformGameId"
-          defaultValue={set?.riotPlatformGameId ?? ""}
-          className="rounded-md border border-border bg-background px-3 py-2"
-        />
-      </label>
+      <TextField name="patch" label="패치" defaultValue={set?.patch} placeholder="26.10" />
+      <TextField name="leaguepediaGameId" label="Leaguepedia Game ID" defaultValue={set?.leaguepediaGameId} />
+      <TextField name="riotMatchId" label="Riot Match ID" defaultValue={set?.riotMatchId} placeholder="KR_1234567890" />
+      <TextField name="riotPlatformGameId" label="Riot Platform Game ID" defaultValue={set?.riotPlatformGameId} />
     </>
   );
 }

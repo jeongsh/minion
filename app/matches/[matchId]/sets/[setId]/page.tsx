@@ -15,6 +15,9 @@ import {
   getSetsByMatchId,
 } from "@/lib/data/lck";
 import { calculatePlayerStats } from "@/lib/stats";
+import { itemImageUrl } from "@/lib/items";
+import { runeImageUrlById, fetchRuneCatalog, type RuneCatalog } from "@/lib/runes";
+import { spellImageUrlById, fetchSpellCatalog, type GameSpell } from "@/lib/spells";
 import type { Champion, DerivedPlayerStats, Player, PlayerStatLine, SetResult, Team } from "@/lib/types";
 import { durationLabel, matchHref, playerLabel, setHref, teamLabel } from "@/lib/view-data";
 
@@ -60,7 +63,42 @@ function championImage(champion?: Champion) {
 }
 
 function itemImage(itemId: number, version: string) {
-  return `https://ddragon.leagueoflegends.com/cdn/${version}/img/item/${itemId}.png`;
+  return itemImageUrl(itemId, version);
+}
+
+function renderIconSlots({
+  ids,
+  imageFor,
+  emptyLabel,
+  sizeClass = "h-7 w-7",
+}: {
+  ids: Array<number | null>;
+  imageFor: (id: number) => string;
+  emptyLabel: string;
+  sizeClass?: string;
+}) {
+  if (!ids.some((id) => id && id > 0)) {
+    return <span className="text-xs font-semibold text-muted">{emptyLabel}</span>;
+  }
+
+  return ids.map((id, index) =>
+    id && id > 0 ? (
+      <Image
+        key={`${id}-${index}`}
+        src={imageFor(id)}
+        alt=""
+        width={28}
+        height={28}
+        className={`${sizeClass} rounded border border-border bg-surface-muted object-cover`}
+      />
+    ) : (
+      <span
+        key={`empty-${index}`}
+        className={`${sizeClass} rounded border border-dashed border-border bg-surface-muted`}
+        aria-hidden="true"
+      />
+    ),
+  );
 }
 
 function dragonTypeItems(set: SetResult, side: "blue" | "red") {
@@ -76,6 +114,7 @@ function dragonTypeItems(set: SetResult, side: "blue" | "red") {
   ] as const;
 
   return entries
+    .slice(0, 6)
     .map(([label, value]) => ({ label, value: typeof value === "number" ? value : 0 }))
     .filter((item) => item.value > 0);
 }
@@ -219,6 +258,8 @@ function PlayerStatBoard({
   redTeamId,
   winnerTeamId,
   itemVersion,
+  spells,
+  runeCatalog,
 }: {
   blueRows: PlayerStatRow[];
   redRows: PlayerStatRow[];
@@ -229,6 +270,8 @@ function PlayerStatBoard({
   redTeamId: string;
   winnerTeamId: string | null;
   itemVersion: string;
+  spells: GameSpell[];
+  runeCatalog: RuneCatalog;
 }) {
   const renderTeamRows = (rows: PlayerStatRow[], side: "blue" | "red") =>
     rows.map((row) => {
@@ -240,7 +283,7 @@ function PlayerStatBoard({
       return (
         <div
           key={`${side}-${row.line.playerId}`}
-          className="grid min-w-[58rem] grid-cols-[14rem_9rem_11rem_7rem_7rem_1fr] items-center gap-4 border-t border-border px-4 py-2.5 text-sm"
+          className="grid min-w-[66rem] grid-cols-[14rem_9rem_11rem_7rem_7rem_4.5rem_4rem_1fr] items-center gap-4 border-t border-border px-4 py-2.5 text-sm"
         >
           <div className="flex min-w-0 items-center gap-3">
             <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded bg-surface-muted">
@@ -282,28 +325,45 @@ function PlayerStatBoard({
           </div>
 
           <div className="flex flex-wrap gap-1">
-            {row.line.itemIds.some((itemId) => itemId && itemId > 0) ? (
-              row.line.itemIds.map((itemId, index) =>
-                itemId && itemId > 0 ? (
-                  <Image
-                    key={`${itemId}-${index}`}
-                    src={itemImage(itemId, itemVersion)}
-                    alt=""
-                    width={28}
-                    height={28}
-                    className="h-7 w-7 rounded border border-border bg-surface-muted object-cover"
-                  />
-                ) : (
-                  <span
-                    key={`empty-${index}`}
-                    className="h-7 w-7 rounded border border-dashed border-border bg-surface-muted"
-                    aria-hidden="true"
-                  />
-                ),
-              )
+            {renderIconSlots({
+              ids: row.line.spellIds,
+              imageFor: (id) => spellImageUrlById(spells, id, itemVersion),
+              emptyLabel: "-",
+              sizeClass: "h-7 w-7",
+            })}
+          </div>
+
+          <div className="flex items-end gap-0.5">
+            {row.line.runeIds[0] ? (
+              <Image
+                src={runeImageUrlById(runeCatalog.keystones, row.line.runeIds[0])}
+                alt=""
+                width={32}
+                height={32}
+                className="h-8 w-8 rounded border border-border bg-surface-muted object-cover"
+              />
             ) : (
-              <span className="text-xs font-semibold text-muted">아이템 데이터 없음</span>
+              <span className="h-8 w-8 rounded border border-dashed border-border bg-surface-muted" aria-hidden="true" />
             )}
+            {row.line.runeIds[1] ? (
+              <Image
+                src={runeImageUrlById(runeCatalog.trees, row.line.runeIds[1])}
+                alt=""
+                width={22}
+                height={22}
+                className="h-5 w-5 rounded-sm border border-border bg-surface-muted object-cover"
+              />
+            ) : (
+              <span className="h-5 w-5 rounded-sm border border-dashed border-border bg-surface-muted" aria-hidden="true" />
+            )}
+          </div>
+
+          <div className="flex flex-wrap gap-1">
+            {renderIconSlots({
+              ids: row.line.itemIds,
+              imageFor: (id) => itemImage(id, itemVersion),
+              emptyLabel: "아이템 데이터 없음",
+            })}
           </div>
         </div>
       );
@@ -453,6 +513,7 @@ export default async function SetDetailPage({
   const redWon = set.winnerTeamId === set.redTeamId;
   const maxDamage = Math.max(...playerRows.map((row) => row.line.damageToChampions), 1);
   const itemVersion = champions.find((champion) => champion.ddragonVersion)?.ddragonVersion ?? "16.12.1";
+  const [spells, runeCatalog] = await Promise.all([fetchSpellCatalog(itemVersion), fetchRuneCatalog(itemVersion)]);
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-[var(--page-inline)] py-10">
@@ -490,8 +551,10 @@ export default async function SetDetailPage({
             <StatRow label="KDA" left={kdaText(blueRows)} right={kdaText(redRows)} />
             <StatRow label="GOLD" left={goldLabel(set.blueGold)} right={goldLabel(set.redGold)} />
             <StatRow label="TOWERS" left={`${set.blueTowers ?? "-"}`} right={`${set.redTowers ?? "-"}`} />
-            <StatRow label="DRAKES" left={`${set.blueDragons ?? "-"}`} right={`${set.redDragons ?? "-"}`} />
-            <StatRow label="DRAKE TYPES" left={dragonText(set, "blue")} right={dragonText(set, "red")} />
+            <StatRow label="VOID GRUBS" left={`${set.blueVoidGrubs ?? "-"}`} right={`${set.redVoidGrubs ?? "-"}`} />
+            <StatRow label="HERALDS" left={`${set.blueRiftHeralds ?? "-"}`} right={`${set.redRiftHeralds ?? "-"}`} />
+            <StatRow label="DRAKES" left={dragonText(set, "blue")} right={dragonText(set, "red")} />
+            <StatRow label="ELDERS" left={`${set.blueElders ?? "-"}`} right={`${set.redElders ?? "-"}`} />
             <StatRow label="BARONS" left={`${set.blueBarons ?? "-"}`} right={`${set.redBarons ?? "-"}`} />
           </div>
 
@@ -541,6 +604,8 @@ export default async function SetDetailPage({
         redTeamId={set.redTeamId}
         winnerTeamId={set.winnerTeamId}
         itemVersion={itemVersion}
+        spells={spells}
+        runeCatalog={runeCatalog}
       />
 
       <section className="flex flex-col gap-4" aria-labelledby="set-reviews">

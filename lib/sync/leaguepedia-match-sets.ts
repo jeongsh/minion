@@ -51,6 +51,10 @@ type CargoSetRow = {
   Team2Chemtechs?: string;
   Team1Elders?: string;
   Team2Elders?: string;
+  Team1RiftHeralds?: string;
+  Team2RiftHeralds?: string;
+  Team1VoidGrubs?: string;
+  Team2VoidGrubs?: string;
   Team1Barons?: string;
   Team2Barons?: string;
   Team1Towers?: string;
@@ -101,6 +105,20 @@ type CargoPlayerRow = {
   Team?: string;
   Role?: string;
   Side?: string;
+};
+
+type PreservedPlayerBuild = {
+  item0: number | null;
+  item1: number | null;
+  item2: number | null;
+  item3: number | null;
+  item4: number | null;
+  item5: number | null;
+  item6: number | null;
+  spell0: number | null;
+  spell1: number | null;
+  rune0: number | null;
+  rune1: number | null;
 };
 
 type CargoScheduleGameRow = {
@@ -187,6 +205,10 @@ function normalizeChampionName(value: string | null | undefined) {
   return String(value ?? "")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function playerItemsKey(setId: string, playerId: string) {
+  return `${setId}:${playerId}`;
 }
 
 function parseGold(value: string | null | undefined) {
@@ -681,6 +703,10 @@ async function fetchScoreboardGameRows(leaguepediaMatchId: string) {
       "SG.Team2Chemtechs=Team2Chemtechs",
       "SG.Team1Elders=Team1Elders",
       "SG.Team2Elders=Team2Elders",
+      "SG.Team1RiftHeralds=Team1RiftHeralds",
+      "SG.Team2RiftHeralds=Team2RiftHeralds",
+      "SG.Team1VoidGrubs=Team1VoidGrubs",
+      "SG.Team2VoidGrubs=Team2VoidGrubs",
       "SG.Team1Barons=Team1Barons",
       "SG.Team2Barons=Team2Barons",
       "SG.Team1Towers=Team1Towers",
@@ -970,6 +996,42 @@ export async function syncLeaguepediaMatchSets(
         team1Value: row.Team1Elders,
         team2Value: row.Team2Elders,
       }),
+      blue_rift_heralds: parseInteger(
+        statForSide({
+          sideTeamId: blueTeamId,
+          row,
+          match: typedMatch,
+          team1Value: row.Team1RiftHeralds,
+          team2Value: row.Team2RiftHeralds,
+        }),
+      ),
+      red_rift_heralds: parseInteger(
+        statForSide({
+          sideTeamId: redTeamId,
+          row,
+          match: typedMatch,
+          team1Value: row.Team1RiftHeralds,
+          team2Value: row.Team2RiftHeralds,
+        }),
+      ),
+      blue_void_grubs: parseInteger(
+        statForSide({
+          sideTeamId: blueTeamId,
+          row,
+          match: typedMatch,
+          team1Value: row.Team1VoidGrubs,
+          team2Value: row.Team2VoidGrubs,
+        }),
+      ),
+      red_void_grubs: parseInteger(
+        statForSide({
+          sideTeamId: redTeamId,
+          row,
+          match: typedMatch,
+          team1Value: row.Team1VoidGrubs,
+          team2Value: row.Team2VoidGrubs,
+        }),
+      ),
       blue_barons: parseInteger(
         statForSide({
           sideTeamId: blueTeamId,
@@ -1086,6 +1148,31 @@ export async function syncLeaguepediaMatchSets(
     if (deletePickBanError) {
       throw deletePickBanError;
     }
+    const { data: existingStats, error: existingStatsError } = await supabase
+      .from("set_player_stats")
+      .select("set_id, player_id, item0, item1, item2, item3, item4, item5, item6, spell0, spell1, rune0, rune1")
+      .in("set_id", setIds);
+    if (existingStatsError) {
+      throw existingStatsError;
+    }
+    const itemBySetPlayer = new Map(
+      ((existingStats ?? []) as Array<{ set_id: string; player_id: string } & PreservedPlayerBuild>).map((stat) => [
+        playerItemsKey(stat.set_id, stat.player_id),
+        {
+          item0: stat.item0,
+          item1: stat.item1,
+          item2: stat.item2,
+          item3: stat.item3,
+          item4: stat.item4,
+          item5: stat.item5,
+          item6: stat.item6,
+          spell0: stat.spell0,
+          spell1: stat.spell1,
+          rune0: stat.rune0,
+          rune1: stat.rune1,
+        },
+      ]),
+    );
     const { error: deleteStatsError } = await supabase
       .from("set_player_stats")
       .delete()
@@ -1137,6 +1224,7 @@ export async function syncLeaguepediaMatchSets(
         return [];
       }
       const resolvedSide = side ?? (teamId === set.blue_team_id ? "blue" : "red");
+      const preservedBuild = itemBySetPlayer.get(playerItemsKey(set.id, player.id));
 
       return [
         {
@@ -1153,6 +1241,7 @@ export async function syncLeaguepediaMatchSets(
           gold: parseGold(row.Gold) ?? 0,
           damage_to_champions: parseInteger(row.DamageToChampions) ?? 0,
           vision_score: parseInteger(row.VisionScore) ?? 0,
+          ...(preservedBuild ?? {}),
         },
       ];
     });

@@ -13,6 +13,8 @@ import {
   getSetsByMatchId,
 } from "@/lib/data/lck";
 import { fetchItemCatalog } from "@/lib/items";
+import { fetchRuneCatalog } from "@/lib/runes";
+import { fetchSpellCatalog } from "@/lib/spells";
 import { matchRouteId, teamLabel } from "@/lib/view-data";
 
 import { updateSetAction } from "../../../../../../sets/actions";
@@ -42,7 +44,11 @@ export default async function AdminMatchSetEditPage({
       getSetsByMatchId(match.id),
     ]);
   const itemVersion = champions.find((champion) => champion.ddragonVersion)?.ddragonVersion ?? "16.12.1";
-  const items = await fetchItemCatalog(itemVersion);
+  const [items, spells, runeCatalog] = await Promise.all([
+    fetchItemCatalog(itemVersion),
+    fetchSpellCatalog(itemVersion),
+    fetchRuneCatalog(itemVersion),
+  ]);
   const adminMatchPath = `/admin/matches/${matchRouteId(match)}/edit`;
 
   return (
@@ -58,6 +64,8 @@ export default async function AdminMatchSetEditPage({
       players={players}
       champions={champions}
       items={items}
+      spells={spells}
+      runeCatalog={runeCatalog}
       itemVersion={itemVersion}
       picksBans={picksBans}
       playerStatLines={playerStatLines}

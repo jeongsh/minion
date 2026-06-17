@@ -182,6 +182,10 @@ export type SetResult = {
   redChemtechs?: number | null;
   blueElders?: number | null;
   redElders?: number | null;
+  blueRiftHeralds?: number | null;
+  redRiftHeralds?: number | null;
+  blueVoidGrubs?: number | null;
+  redVoidGrubs?: number | null;
   blueBarons: number | null;
   redBarons: number | null;
   blueTowers: number | null;
@@ -230,6 +234,8 @@ export type PlayerStatLine = {
   gameMinutes: number;
   visionScore: number;
   itemIds: Array<number | null>;
+  spellIds: Array<number | null>;
+  runeIds: Array<number | null>;
 };
 
 export type DerivedPlayerStats = {

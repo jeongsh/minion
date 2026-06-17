@@ -5,10 +5,14 @@ import { AdminDraftEditor } from "@/components/domain/admin-draft-editor";
 import { ChampionPicker } from "@/components/domain/champion-picker";
 import { DataTable } from "@/components/ui/data-table";
 import { PlayerStatItemsEditor } from "@/components/domain/player-stat-items-editor";
+import { PlayerStatRunesEditor } from "@/components/domain/player-stat-runes-editor";
+import { PlayerStatSpellsEditor } from "@/components/domain/player-stat-spells-editor";
 import { championImage } from "@/lib/champions";
 import { draftEditorChampions } from "@/lib/draft-champions";
 import { teamDraftSide } from "@/lib/draft-slots";
 import { itemImageUrl, type GameItem } from "@/lib/items";
+import { type RuneCatalog } from "@/lib/runes";
+import { type GameSpell } from "@/lib/spells";
 import { calculatePlayerStats } from "@/lib/stats";
 import type {
   Champion,
@@ -66,6 +70,7 @@ function dragonText(set: SetResult, side: "blue" | "red") {
     ["Elder", set[`${prefix}Elders` as keyof SetResult]],
   ] as const;
   const items = entries
+    .slice(0, 6)
     .map(([label, value]) => ({ label, value: typeof value === "number" ? value : 0 }))
     .filter((item) => item.value > 0);
 
@@ -279,11 +284,10 @@ function DragonInputGroup({ side, set }: { side: "blue" | "red"; set: SetResult 
     ["O", `${prefix}Oceans`, set[`${prefix}Oceans` as keyof SetResult]],
     ["H", `${prefix}Hextechs`, set[`${prefix}Hextechs` as keyof SetResult]],
     ["Ch", `${prefix}Chemtechs`, set[`${prefix}Chemtechs` as keyof SetResult]],
-    ["E", `${prefix}Elders`, set[`${prefix}Elders` as keyof SetResult]],
   ] as const;
 
   return (
-    <div className="grid grid-cols-7 gap-1">
+    <div className="grid grid-cols-6 gap-1">
       {fields.map(([label, name, value]) => (
         <label key={name} className="grid gap-1 text-[10px] font-semibold text-muted">
           {label}
@@ -512,6 +516,8 @@ function AdminPlayerStatEditor({
   players,
   champions,
   items,
+  spells,
+  runeCatalog,
   itemVersion,
   blueRows,
   redRows,
@@ -521,6 +527,8 @@ function AdminPlayerStatEditor({
   players: Player[];
   champions: Champion[];
   items: GameItem[];
+  spells: GameSpell[];
+  runeCatalog: RuneCatalog;
   itemVersion: string;
   blueRows: PlayerStatRow[];
   redRows: PlayerStatRow[];
@@ -549,6 +557,8 @@ function AdminPlayerStatEditor({
         gameMinutes: 0,
         visionScore: 0,
         itemIds: [null, null, null, null, null, null, null],
+        spellIds: [null, null],
+        runeIds: [null, null],
       },
       stats: calculatePlayerStats({
         setId: set.id,
@@ -567,6 +577,8 @@ function AdminPlayerStatEditor({
         gameMinutes: 0,
         visionScore: 0,
         itemIds: [null, null, null, null, null, null, null],
+        spellIds: [null, null],
+        runeIds: [null, null],
       }),
     } satisfies PlayerStatRow & { side: "blue" | "red" };
   };
@@ -582,7 +594,7 @@ function AdminPlayerStatEditor({
       </h2>
       <input type="hidden" name="playerStatCount" value={rows.length} />
       <div className="overflow-x-auto rounded-md border border-border bg-surface">
-        <div className="grid min-w-[82rem] grid-cols-[6rem_13rem_10rem_8rem_11rem_13rem_5rem_5rem_5rem_6rem_7rem_20rem_6rem] gap-2 px-4 py-3 text-xs font-semibold uppercase text-muted">
+        <div className="grid min-w-[86rem] grid-cols-[6rem_13rem_10rem_8rem_11rem_13rem_5rem_5rem_5rem_6rem_7rem_5rem_5rem_20rem] gap-2 px-4 py-3 text-xs font-semibold uppercase text-muted">
           <span>Side</span>
           <span>Player</span>
           <span>Team</span>
@@ -594,14 +606,15 @@ function AdminPlayerStatEditor({
           <span>Damage</span>
           <span>Vision</span>
           <span>DPM</span>
+          <span>Spells</span>
+          <span>Runes</span>
           <span>Items 0-6</span>
-          <span>KP</span>
         </div>
         {rows.map((row, index) => {
           return (
             <div
               key={`${row.side}-${row.line.position}`}
-              className="grid min-w-[82rem] grid-cols-[6rem_13rem_10rem_8rem_11rem_13rem_5rem_5rem_5rem_6rem_7rem_20rem_6rem] items-center gap-2 border-t border-border px-4 py-2 text-sm"
+              className="grid min-w-[86rem] grid-cols-[6rem_13rem_10rem_8rem_11rem_13rem_5rem_5rem_5rem_6rem_7rem_5rem_5rem_20rem] items-center gap-2 border-t border-border px-4 py-2 text-sm"
             >
               <input type="hidden" name={`playerStat.${index}.side`} value={row.side} />
               <span className="text-xs font-semibold uppercase text-muted">{row.side}</span>
@@ -632,13 +645,23 @@ function AdminPlayerStatEditor({
                 className="px-1 text-center"
               />
               <span className="text-xs font-semibold text-muted tabular-nums">{row.stats.dpm}</span>
+              <PlayerStatSpellsEditor
+                namePrefix={`playerStat.${index}`}
+                defaultSpellIds={row.line.spellIds}
+                spells={spells}
+                itemVersion={itemVersion}
+              />
+              <PlayerStatRunesEditor
+                namePrefix={`playerStat.${index}`}
+                defaultRuneIds={row.line.runeIds}
+                runeCatalog={runeCatalog}
+              />
               <PlayerStatItemsEditor
                 namePrefix={`playerStat.${index}`}
                 defaultItemIds={row.line.itemIds}
                 items={items}
                 itemVersion={itemVersion}
               />
-              <span className="text-xs font-semibold text-muted tabular-nums">{Math.round(row.stats.kp)}%</span>
             </div>
           );
         })}
@@ -690,6 +713,8 @@ export function AdminSetEditor({
   players = [],
   champions = [],
   items = [],
+  spells = [],
+  runeCatalog = { keystones: [], trees: [] },
   itemVersion = "16.12.1",
   picksBans = [],
   playerStatLines = [],
@@ -707,6 +732,8 @@ export function AdminSetEditor({
   players?: Player[];
   champions?: Champion[];
   items?: GameItem[];
+  spells?: GameSpell[];
+  runeCatalog?: RuneCatalog;
   itemVersion?: string;
   picksBans?: SetPickBan[];
   playerStatLines?: PlayerStatLine[];
@@ -729,6 +756,10 @@ export function AdminSetEditor({
       redGold: null,
       blueDragons: null,
       redDragons: null,
+      blueRiftHeralds: null,
+      redRiftHeralds: null,
+      blueVoidGrubs: null,
+      redVoidGrubs: null,
       blueBarons: null,
       redBarons: null,
       blueTowers: null,
@@ -791,6 +822,8 @@ export function AdminSetEditor({
         {set ? <input type="hidden" name="setId" value={set.id} /> : null}
         <input type="hidden" name="matchId" value={match.id} />
         <input type="hidden" name="redirectTo" value={redirectTo} />
+        <input type="hidden" name="blueKills" value={numberValue(activeSet.blueKills)} />
+        <input type="hidden" name="redKills" value={numberValue(activeSet.redKills)} />
 
         <section className="overflow-hidden rounded-md border border-border bg-surface" aria-labelledby="set-summary">
           <div className="grid bg-foreground text-background lg:grid-cols-[1fr_15rem_1fr]">
@@ -834,13 +867,6 @@ export function AdminSetEditor({
               <div className="border-b border-border px-4 py-3 text-center text-sm font-semibold">GAME STATS</div>
               <StatRow label="KDA" left={kdaText(blueRows)} right={kdaText(redRows)} />
               <StatInputRow
-                label="KILLS"
-                leftName="blueKills"
-                rightName="redKills"
-                leftDefault={activeSet.blueKills}
-                rightDefault={activeSet.redKills}
-              />
-              <StatInputRow
                 label="GOLD"
                 leftName="blueGold"
                 rightName="redGold"
@@ -855,17 +881,31 @@ export function AdminSetEditor({
                 rightDefault={activeSet.redTowers}
               />
               <StatInputRow
-                label="DRAKES"
-                leftName="blueDragons"
-                rightName="redDragons"
-                leftDefault={activeSet.blueDragons}
-                rightDefault={activeSet.redDragons}
+                label="VOID GRUBS"
+                leftName="blueVoidGrubs"
+                rightName="redVoidGrubs"
+                leftDefault={activeSet.blueVoidGrubs}
+                rightDefault={activeSet.redVoidGrubs}
+              />
+              <StatInputRow
+                label="HERALDS"
+                leftName="blueRiftHeralds"
+                rightName="redRiftHeralds"
+                leftDefault={activeSet.blueRiftHeralds}
+                rightDefault={activeSet.redRiftHeralds}
               />
               <div className="grid grid-cols-[1fr_7.5rem_1fr] items-center border-b border-border px-4 py-3">
                 <DragonInputGroup side="blue" set={activeSet} />
-                <span className="text-center text-xs font-semibold text-muted">DRAKE TYPES</span>
+                <span className="text-center text-xs font-semibold text-muted">DRAKES</span>
                 <DragonInputGroup side="red" set={activeSet} />
               </div>
+              <StatInputRow
+                label="ELDERS"
+                leftName="blueElders"
+                rightName="redElders"
+                leftDefault={activeSet.blueElders}
+                rightDefault={activeSet.redElders}
+              />
               <StatInputRow
                 label="BARONS"
                 leftName="blueBarons"
@@ -940,6 +980,8 @@ export function AdminSetEditor({
           players={players}
           champions={pickerChampionsList}
           items={items}
+          spells={spells}
+          runeCatalog={runeCatalog}
           itemVersion={itemVersionResolved}
           blueRows={blueRows}
           redRows={redRows}

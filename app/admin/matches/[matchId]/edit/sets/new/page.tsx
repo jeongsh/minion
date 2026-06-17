@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 
 import { getAllTeams, getChampions, getMatchById, getMatches } from "@/lib/data/lck";
 import { fetchItemCatalog } from "@/lib/items";
+import { fetchRuneCatalog } from "@/lib/runes";
+import { fetchSpellCatalog } from "@/lib/spells";
 import { matchRouteId, teamLabel } from "@/lib/view-data";
 
 import { createSetAction } from "../../../../../sets/actions";
@@ -21,7 +23,11 @@ export default async function AdminMatchSetCreatePage({
 
   const [matches, teams, champions] = await Promise.all([getMatches(), getAllTeams(), getChampions()]);
   const itemVersion = champions.find((champion) => champion.ddragonVersion)?.ddragonVersion ?? "16.12.1";
-  const items = await fetchItemCatalog(itemVersion);
+  const [items, spells, runeCatalog] = await Promise.all([
+    fetchItemCatalog(itemVersion),
+    fetchSpellCatalog(itemVersion),
+    fetchRuneCatalog(itemVersion),
+  ]);
   const adminMatchPath = `/admin/matches/${matchRouteId(match)}/edit`;
 
   return (
@@ -32,6 +38,8 @@ export default async function AdminMatchSetCreatePage({
       matches={matches}
       champions={champions}
       items={items}
+      spells={spells}
+      runeCatalog={runeCatalog}
       itemVersion={itemVersion}
       adminMatchPath={adminMatchPath}
       action={createSetAction}
