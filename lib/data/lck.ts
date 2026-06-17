@@ -41,6 +41,7 @@ type TeamRow = {
   is_active: boolean | null;
   head_coach: string | null;
   coaches: string | null;
+  global_power_rank: number | null;
 };
 
 type TeamIdentityHistoryRow = {
@@ -312,6 +313,7 @@ function mapTeam(row: TeamRow): Team {
     isActive: row.is_active ?? true,
     headCoach: row.head_coach ?? null,
     coaches: row.coaches ?? null,
+    globalPowerRank: row.global_power_rank ?? null,
   };
 }
 

@@ -16,6 +16,8 @@
     "sync:pom": "node --experimental-strip-types scripts/sync-pom.ts",
     "sync:pom:full": "node --experimental-strip-types scripts/sync-pom.ts --full",
     "sync:staff": "node --experimental-strip-types scripts/sync-staff.ts",
+    "sync:career-history": "node --experimental-strip-types scripts/sync-career-history.ts",
+    "sync:career-history:all": "node --experimental-strip-types scripts/sync-career-history.ts --all",
     "sync:player-images": "node --experimental-strip-types scripts/sync-player-images.ts",
     "sync:player-images:all": "node --experimental-strip-types scripts/sync-player-images.ts --all",
     "sync:player-social": "node --experimental-strip-types scripts/sync-player-social.ts"

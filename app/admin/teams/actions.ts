@@ -48,16 +48,27 @@ function teamPayload(formData: FormData) {
     source_team_id: textOrNull(formData.get("sourceTeamId")),
     head_coach: textOrNull(formData.get("headCoach")),
     coaches: textOrNull(formData.get("coaches")),
+    global_power_rank: (() => {
+      const v = textOrNull(formData.get("globalPowerRank"));
+      return v ? parseInt(v, 10) : null;
+    })(),
   };
 }
 
 export async function createTeamAction(formData: FormData) {
   const payload = teamPayload(formData);
-  const { error } = await createSupabaseAdminClient().from("teams").insert(payload);
+  const supabase = createSupabaseAdminClient();
 
-  if (error) {
-    throw new Error(error.message);
-  }
+  const [slugCheck, hostCheck] = await Promise.all([
+    supabase.from("teams").select("id").eq("slug", payload.slug).maybeSingle(),
+    supabase.from("teams").select("id").eq("fan_site_host", payload.fan_site_host).maybeSingle(),
+  ]);
+
+  if (slugCheck.data) throw new Error(`slug '${payload.slug}'는 이미 사용 중입니다.`);
+  if (hostCheck.data) throw new Error(`팬사이트 호스트 '${payload.fan_site_host}'는 이미 사용 중입니다.`);
+
+  const { error } = await supabase.from("teams").insert(payload);
+  if (error) throw new Error(error.message);
 
   revalidatePath("/admin/teams");
   revalidatePath("/teams");
@@ -66,14 +77,18 @@ export async function createTeamAction(formData: FormData) {
 export async function updateTeamAction(formData: FormData) {
   const teamId = requiredText(formData, "teamId", "팀 ID");
   const payload = teamPayload(formData);
-  const { error } = await createSupabaseAdminClient()
-    .from("teams")
-    .update(payload)
-    .eq("id", teamId);
+  const supabase = createSupabaseAdminClient();
 
-  if (error) {
-    throw new Error(error.message);
-  }
+  const [slugCheck, hostCheck] = await Promise.all([
+    supabase.from("teams").select("id").eq("slug", payload.slug).neq("id", teamId).maybeSingle(),
+    supabase.from("teams").select("id").eq("fan_site_host", payload.fan_site_host).neq("id", teamId).maybeSingle(),
+  ]);
+
+  if (slugCheck.data) throw new Error(`slug '${payload.slug}'는 다른 팀이 이미 사용 중입니다.`);
+  if (hostCheck.data) throw new Error(`팬사이트 호스트 '${payload.fan_site_host}'는 다른 팀이 이미 사용 중입니다.`);
+
+  const { error } = await supabase.from("teams").update(payload).eq("id", teamId);
+  if (error) throw new Error(error.message);
 
   revalidatePath("/admin/teams");
   revalidatePath("/teams");
@@ -89,7 +104,29 @@ export async function createTeamIdentityHistoryAction(formData: FormData) {
     throw new Error("적용 종료일은 시작일보다 빠를 수 없습니다.");
   }
 
-  const { error } = await createSupabaseAdminClient().from("team_identity_histories").insert({
+  // 기존 이력과 구간 충돌 검증
+  const supabase = createSupabaseAdminClient();
+  const { data: existingHistories } = await supabase
+    .from("team_identity_histories")
+    .select("effective_from, effective_to")
+    .eq("team_id", teamId);
+
+  const FAR_FUTURE = "9999-12-31";
+  const newFrom = effectiveFrom;
+  const newTo = effectiveTo ?? FAR_FUTURE;
+
+  for (const h of existingHistories ?? []) {
+    const hFrom = h.effective_from as string;
+    const hTo = (h.effective_to as string | null) ?? FAR_FUTURE;
+    const overlaps = newFrom <= hTo && hFrom <= newTo;
+    if (overlaps) {
+      throw new Error(
+        `입력한 적용 구간이 기존 이력(${hFrom} ~ ${h.effective_to ?? "현재"})과 겹칩니다.`,
+      );
+    }
+  }
+
+  const { error } = await supabase.from("team_identity_histories").insert({
     team_id: teamId,
     name: requiredText(formData, "historyName", "변경 이력 팀명"),
     short_name: requiredText(formData, "historyShortName", "변경 이력 축약명"),
@@ -101,9 +138,7 @@ export async function createTeamIdentityHistoryAction(formData: FormData) {
     note: textOrNull(formData.get("note")),
   });
 
-  if (error) {
-    throw new Error(error.message);
-  }
+  if (error) throw new Error(error.message);
 
   revalidatePath("/admin/teams");
 }

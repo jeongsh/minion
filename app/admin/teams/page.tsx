@@ -100,6 +100,10 @@ function TeamFields({ team }: { team?: Team }) {
         코치
         <input name="coaches" defaultValue={team?.coaches ?? ""} placeholder="예: Roach, Moment" className={inputClassName()} />
       </label>
+      <label className="flex flex-col gap-1 text-sm font-semibold">
+        글로벌 파워랭킹
+        <input name="globalPowerRank" type="number" min="1" defaultValue={team?.globalPowerRank ?? ""} placeholder="예: 3" className={inputClassName()} />
+      </label>
     </>
   );
 }

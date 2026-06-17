@@ -20,6 +20,7 @@ export type Team = {
   isActive?: boolean;
   headCoach?: string | null;
   coaches?: string | null;
+  globalPowerRank?: number | null;
   identityHistory?: TeamIdentityHistory[];
 };
 
