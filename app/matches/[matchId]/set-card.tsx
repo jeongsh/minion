@@ -6,6 +6,7 @@ import Image from "next/image";
 import { championImage, championLabel } from "@/lib/champions";
 import { spellImageUrlById, type GameSpell } from "@/lib/spells";
 import type { Champion, Player, PlayerStatLine, SetPickBan, SetResult, Team } from "@/lib/types";
+import { durationLabel } from "@/lib/view-data";
 
 // ─── Ban/Pick 렌더링 ──────────────────────────────────────────
 
@@ -88,10 +89,13 @@ function SpellIcon({ src }: { src: string }) {
   );
 }
 
-function RuneIcon({ src }: { src: string }) {
+function RuneIcon({ src, isTree = false }: { src: string; isTree?: boolean }) {
   return (
-    <div className="relative h-[20px] w-[20px] shrink-0 overflow-hidden rounded-full bg-black/40">
-      {src && <Image src={src} alt="" fill sizes="20px" className="object-contain p-0.5" />}
+    <div
+      className={`relative shrink-0 overflow-hidden rounded-full ${isTree ? "h-[18px] w-[18px]" : "h-[20px] w-[20px] border border-white/10"}`}
+      style={isTree ? undefined : { background: "#0d1117" }}
+    >
+      {src && <Image src={src} alt="" fill sizes="20px" className="object-contain" />}
     </div>
   );
 }
@@ -106,6 +110,7 @@ function PlayerRow({
   spells,
   itemVersion,
   runeImages,
+  isPom,
 }: {
   line: PlayerStatLine;
   player?: Player;
@@ -116,6 +121,7 @@ function PlayerRow({
   spells: GameSpell[];
   itemVersion: string;
   runeImages: Record<string, string>;
+  isPom?: boolean;
 }) {
   const img = championImage(champion);
   const kp = killParticipation(line, teamKills);
@@ -128,7 +134,7 @@ function PlayerRow({
   const rune1Url = line.runeIds[1] ? (runeImages[String(line.runeIds[1])] ?? "") : "";
 
   return (
-    <div className="grid min-w-[660px] grid-cols-[220px_1fr_140px_50px_70px_170px] items-center gap-3 border-t border-border px-3 py-2.5">
+    <div className="grid min-w-[780px] grid-cols-[200px_1fr_130px_48px_65px_210px] items-center gap-2 border-t border-border px-3 py-2.5">
       <div className="flex items-center gap-2">
         {/* 챔피언 이미지 */}
         <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-md border border-border bg-surface-muted">
@@ -142,7 +148,7 @@ function PlayerRow({
           </div>
           <div className="flex gap-0.5">
             <SpellIcon src={spell1Url} />
-            <RuneIcon src={rune1Url} />
+            <RuneIcon src={rune1Url} isTree />
           </div>
         </div>
         {/* 닉네임 / 챔피언명 */}
@@ -174,12 +180,32 @@ function PlayerRow({
         <p className="text-[10px] text-muted">분 {csm}</p>
       </div>
       <div className="flex items-center gap-0.5">
-        {line.itemIds.slice(0, 7).map((id, i) => (
-          <ItemIcon
-            key={`it${i}`}
-            src={id ? `https://ddragon.leagueoflegends.com/cdn/${itemVersion}/img/item/${id}.png` : ""}
-          />
-        ))}
+        {[...line.itemIds.slice(0, 6).filter((id) => id !== null), ...Array(6).fill(null)]
+          .slice(0, 6)
+          .map((id, i) => (
+            <ItemIcon
+              key={`it${i}`}
+              src={id ? `https://ddragon.leagueoflegends.com/cdn/${itemVersion}/img/item/${id}.png` : ""}
+            />
+          ))}
+        {line.roleBoundItem ? (
+          <>
+            <div className="mx-0.5 h-3.5 w-px shrink-0 bg-border/50" />
+            <ItemIcon
+              key="rolebound"
+              src={`https://ddragon.leagueoflegends.com/cdn/${itemVersion}/img/item/${line.roleBoundItem}.png`}
+            />
+          </>
+        ) : null}
+        <div className="mx-0.5 h-3.5 w-px shrink-0 bg-border/50" />
+        <ItemIcon
+          key="trinket"
+          src={
+            line.itemIds[6]
+              ? `https://ddragon.leagueoflegends.com/cdn/${itemVersion}/img/item/${line.itemIds[6]}.png`
+              : ""
+          }
+        />
       </div>
     </div>
   );
@@ -218,6 +244,7 @@ function TeamStats({
   spells,
   itemVersion,
   runeImages,
+  pomPlayerId,
 }: {
   set: SetResult;
   lines: PlayerStatLine[];
@@ -228,6 +255,7 @@ function TeamStats({
   spells: GameSpell[];
   itemVersion: string;
   runeImages: Record<string, string>;
+  pomPlayerId?: string | null;
 }) {
   const teamId = side === "blue" ? set.blueTeamId : set.redTeamId;
   const teamLines = lines
@@ -242,17 +270,16 @@ function TeamStats({
 
   return (
     <div>
-      <div className={`flex items-center gap-3 px-3 py-2 ${headerBg}`}>
-        <span className={`text-sm font-bold ${headerText}`}>{team?.shortName ?? (side === "blue" ? "블루" : "레드")}</span>
-        {won && <span className="rounded bg-accent px-1.5 py-0.5 text-[11px] font-bold text-accent-foreground">승</span>}
-        <div className="ml-auto hidden min-w-[660px] grid-cols-[220px_1fr_140px_50px_70px_170px] gap-3 text-[10px] font-semibold uppercase text-muted md:grid">
-          <span />
-          <span>KDA</span>
-          <span>딜량</span>
-          <span className="text-center">시야</span>
-          <span className="text-center">CS</span>
-          <span>아이템</span>
-        </div>
+      <div className={`grid min-w-[780px] grid-cols-[200px_1fr_130px_48px_65px_210px] items-center gap-2 px-3 py-2 ${headerBg}`}>
+        <span className={`text-sm font-bold ${headerText}`}>
+          {team?.shortName ?? (side === "blue" ? "블루" : "레드")}
+          {won && <span className="ml-1.5 rounded bg-accent px-1.5 py-0.5 text-[11px] font-bold text-accent-foreground">승</span>}
+        </span>
+        <span className="text-[10px] font-semibold uppercase text-muted">KDA</span>
+        <span className="text-[10px] font-semibold uppercase text-muted">딜량</span>
+        <span className="text-center text-[10px] font-semibold uppercase text-muted">시야</span>
+        <span className="text-center text-[10px] font-semibold uppercase text-muted">CS</span>
+        <span className="text-[10px] font-semibold uppercase text-muted">아이템</span>
       </div>
       <div className="overflow-x-auto">
         {teamLines.map((line) => (
@@ -267,6 +294,7 @@ function TeamStats({
             spells={spells}
             itemVersion={itemVersion}
             runeImages={runeImages}
+            isPom={!!pomPlayerId && line.playerId === pomPlayerId}
           />
         ))}
       </div>
@@ -294,6 +322,7 @@ export function SetCard({
   spells,
   itemVersion,
   runeImages,
+  pomPlayerId,
 }: {
   set: SetResult;
   blueBans: SetPickBan[];
@@ -312,6 +341,7 @@ export function SetCard({
   spells: GameSpell[];
   itemVersion: string;
   runeImages: Record<string, string>;
+  pomPlayerId?: string | null;
 }) {
   const [showStats, setShowStats] = useState(false);
   const hasStats = statLines.length > 0;
@@ -321,13 +351,15 @@ export function SetCard({
   const redKills = redLines.reduce((s, l) => s + l.kills, 0);
   const blueGold = blueLines.reduce((s, l) => s + l.gold, 0);
   const redGold = redLines.reduce((s, l) => s + l.gold, 0);
+  const blueDamage = blueLines.reduce((s, l) => s + l.damageToChampions, 0);
+  const redDamage = redLines.reduce((s, l) => s + l.damageToChampions, 0);
 
   return (
     <div className="overflow-hidden rounded-md border border-border bg-surface">
       {/* 헤더 */}
       <div className="flex items-center gap-3 border-b border-border px-4 py-2.5">
         <span className="text-sm font-semibold">{set.setNumber}세트</span>
-        <span className="text-xs text-muted">{set.blueKills ?? "-"} : {set.redKills ?? "-"}</span>
+        <span className="text-xs text-muted">{durationLabel(set.durationSeconds)}</span>
         {!hasPickBan && <span className="text-xs text-muted">밴픽 데이터 없음</span>}
         {hasStats && (
           <button
@@ -342,12 +374,47 @@ export function SetCard({
 
       {/* 밴픽 */}
       {hasPickBan ? (
-        <div className="grid grid-cols-[1fr_24px_1fr] items-center gap-2 p-4">
+        <div className="grid grid-cols-[1fr_minmax(160px,200px)_1fr] items-center gap-3 p-4">
           <SideDraft teamName={blueTeamName} bans={blueBans} picks={bluePicks} champions={champions} won={blueWon} />
-          <div className="flex flex-col items-center gap-8 text-[10px] font-semibold text-muted">
-            <span>BAN</span>
-            <span>PICK</span>
+
+          {/* 중앙 스탯 */}
+          <div className="flex flex-col gap-3">
+            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1">
+              <span className="text-right text-2xl font-bold tabular-nums text-blue-500">{set.blueKills ?? "-"}</span>
+              <span className="px-2 text-center text-[10px] font-semibold text-muted">KILLS</span>
+              <span className="text-left text-2xl font-bold tabular-nums text-red-500">{set.redKills ?? "-"}</span>
+            </div>
+            {(blueDamage > 0 || redDamage > 0) && (
+              <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1">
+                <span className="text-right text-sm font-semibold tabular-nums text-blue-400">{blueDamage >= 1000 ? `${(blueDamage / 1000).toFixed(1)}K` : blueDamage}</span>
+                <span className="px-2 text-center text-[10px] font-semibold text-muted">딜량</span>
+                <span className="text-left text-sm font-semibold tabular-nums text-red-400">{redDamage >= 1000 ? `${(redDamage / 1000).toFixed(1)}K` : redDamage}</span>
+              </div>
+            )}
+            {(blueGold > 0 || redGold > 0) && (
+              <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1">
+                <span className="text-right text-sm font-semibold tabular-nums text-blue-400">{blueGold >= 1000 ? `${(blueGold / 1000).toFixed(1)}K` : blueGold}</span>
+                <span className="px-2 text-center text-[10px] font-semibold text-muted">골드</span>
+                <span className="text-left text-sm font-semibold tabular-nums text-red-400">{redGold >= 1000 ? `${(redGold / 1000).toFixed(1)}K` : redGold}</span>
+              </div>
+            )}
+            <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+              {[
+                { label: "드래곤", blue: set.blueDragons, red: set.redDragons },
+                { label: "바론", blue: set.blueBarons, red: set.redBarons },
+                { label: "전령", blue: set.blueRiftHeralds, red: set.redRiftHeralds },
+                { label: "포탑", blue: set.blueTowers, red: set.redTowers },
+                { label: "공허충", blue: set.blueVoidGrubs, red: set.redVoidGrubs },
+              ].map(({ label, blue, red }) => (
+                <div key={label} className="grid grid-cols-[auto_1fr_auto] items-center gap-1">
+                  <span className="text-xs font-bold tabular-nums text-blue-400">{blue ?? "-"}</span>
+                  <span className="text-center text-[10px] font-semibold text-muted">{label}</span>
+                  <span className="text-xs font-bold tabular-nums text-red-400">{red ?? "-"}</span>
+                </div>
+              ))}
+            </div>
           </div>
+
           <SideDraft teamName={redTeamName} bans={redBans} picks={redPicks} champions={champions} won={redWon} flip />
         </div>
       ) : (
@@ -357,7 +424,7 @@ export function SetCard({
       {/* 선수 스탯 (토글) */}
       {showStats && hasStats && (
         <div className="border-t border-border">
-          <TeamStats set={set} lines={statLines} players={players} champions={champions} teams={teams} spells={spells} itemVersion={itemVersion} runeImages={runeImages} side="blue" />
+          <TeamStats set={set} lines={statLines} players={players} champions={champions} teams={teams} spells={spells} itemVersion={itemVersion} runeImages={runeImages} side="blue" pomPlayerId={pomPlayerId} />
           <div className="border-y border-border bg-surface-muted py-1">
             <ComparisonBar label="Total Kill" blueValue={blueKills} redValue={redKills} />
             <ComparisonBar label="Total Gold" blueValue={blueGold} redValue={redGold} format={(v) => `${(v / 1000).toFixed(1)}K`} />

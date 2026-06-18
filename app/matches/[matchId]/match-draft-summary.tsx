@@ -12,6 +12,7 @@ export function MatchDraftSummary({
   spells,
   itemVersion,
   runeImages,
+  pomPlayerId,
 }: {
   sets: SetResult[];
   picksBans: SetPickBan[];
@@ -22,6 +23,7 @@ export function MatchDraftSummary({
   spells: GameSpell[];
   itemVersion: string;
   runeImages: Record<string, string>;
+  pomPlayerId?: string | null;
 }) {
   if (sets.length === 0) {
     return (
@@ -68,6 +70,7 @@ export function MatchDraftSummary({
             spells={spells}
             itemVersion={itemVersion}
             runeImages={runeImages}
+            pomPlayerId={pomPlayerId}
           />
         );
       })}

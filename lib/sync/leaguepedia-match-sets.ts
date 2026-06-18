@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { championCatalogEntryForValue } from "../champions";
 import { fetchItemCatalog } from "../items";
+import { fetchRuneNameToIdMap } from "../runes";
 import { fetchSpellCatalog, type GameSpell } from "../spells";
 
 const CARGO_API = "https://lol.fandom.com/api.php";
@@ -111,6 +112,10 @@ type CargoPlayerRow = {
   Side?: string;
   Items?: string;
   SummonerSpells?: string;
+  Trinket?: string;
+  RoleBoundItem?: string;
+  KeystoneRune?: string;
+  SecondaryTree?: string;
 };
 
 type PreservedPlayerBuild = {
@@ -125,6 +130,7 @@ type PreservedPlayerBuild = {
   spell1: number | null;
   rune0: number | null;
   rune1: number | null;
+  role_bound_item: number | null;
 };
 
 type CargoScheduleGameRow = {
@@ -178,6 +184,7 @@ export type LeaguepediaMatchSetsSyncSummary = {
   playerStatsUpserted: number;
   itemsResolved: number;
   spellsResolved: number;
+  runesResolved: number;
 };
 
 function sleep(ms: number) {
@@ -225,10 +232,24 @@ function parseLeaguepediaItems(
   nameToId: Map<string, number>,
 ): (number | null)[] {
   if (!itemsStr?.trim()) return [];
-  const parts = itemsStr.split(",").map((s) => s.trim());
+  const parts = itemsStr.split(";").map((s) => s.trim());
   const result = parts.map((name) => (name ? (nameToId.get(name.toLowerCase()) ?? null) : null));
   while (result.length < 7) result.push(null);
   return result.slice(0, 7);
+}
+
+function parseLeaguepediaRune(
+  runeStr: string | null | undefined,
+  nameToId: Map<string, number>,
+): number | null {
+  if (!runeStr?.trim()) return null;
+  const name = runeStr.split(",")[0].trim();
+  if (!name) return null;
+  return (
+    nameToId.get(name.toLowerCase()) ??
+    nameToId.get(name.replace(/\s+/g, "").toLowerCase()) ??
+    null
+  );
 }
 
 function parseLeaguepediaSpells(
@@ -937,6 +958,10 @@ async function fetchPlayerRows(leaguepediaMatchId: string) {
       "SP.Side=Side",
       "SP.Items=Items",
       "SP.SummonerSpells=SummonerSpells",
+      "SP.Trinket=Trinket",
+      "SP.RoleBoundItem=RoleBoundItem",
+      "SP.KeystoneRune=KeystoneRune",
+      "SP.SecondaryTree=SecondaryTree",
     ].join(","),
     where: `SP.MatchId="${escapeCargoValue(leaguepediaMatchId)}"`,
     order_by: "SP.GameId ASC, SP.Side ASC, SP.Role_Number ASC",
@@ -1251,6 +1276,7 @@ export async function syncLeaguepediaMatchSets(
   let playerStatsUpserted = 0;
   let itemsResolved = 0;
   let spellsResolved = 0;
+  let runesResolved = 0;
 
   if (setIds.length > 0) {
     const [pickBanRows, playerRows] = await Promise.all([
@@ -1290,11 +1316,12 @@ export async function syncLeaguepediaMatchSets(
       .maybeSingle();
     const ddragonVersion = (versionRow as { ddragon_version: string } | null)?.ddragon_version ?? "16.12.1";
 
-    const [championMap, playerMap, itemNameToId, spellCatalog] = await Promise.all([
+    const [championMap, playerMap, itemNameToId, spellCatalog, runeNameToId] = await Promise.all([
       getChampionMap(supabase, championNames),
       getPlayerMap(supabase),
       buildItemNameToIdMap(ddragonVersion),
       fetchSpellCatalog(ddragonVersion).catch(() => [] as GameSpell[]),
+      fetchRuneNameToIdMap(ddragonVersion).catch(() => new Map<string, number>()),
     ]);
     const spellKeyToId = buildSpellKeyToIdMap(spellCatalog);
     await ensurePlayersForStats({
@@ -1314,7 +1341,7 @@ export async function syncLeaguepediaMatchSets(
     }
     const { data: existingStats, error: existingStatsError } = await supabase
       .from("set_player_stats")
-      .select("set_id, player_id, item0, item1, item2, item3, item4, item5, item6, spell0, spell1, rune0, rune1")
+      .select("set_id, player_id, item0, item1, item2, item3, item4, item5, item6, spell0, spell1, rune0, rune1, role_bound_item")
       .in("set_id", setIds);
     if (existingStatsError) {
       throw existingStatsError;
@@ -1334,6 +1361,7 @@ export async function syncLeaguepediaMatchSets(
           spell1: stat.spell1,
           rune0: stat.rune0,
           rune1: stat.rune1,
+          role_bound_item: stat.role_bound_item,
         },
       ]),
     );
@@ -1391,11 +1419,24 @@ export async function syncLeaguepediaMatchSets(
       const preservedBuild = itemBySetPlayer.get(playerItemsKey(set.id, player.id));
 
       const parsedItems = parseLeaguepediaItems(row.Items, itemNameToId);
+      const trinketName = String(row.Trinket ?? "").trim().toLowerCase();
+      parsedItems[6] = trinketName ? (itemNameToId.get(trinketName) ?? null) : null;
+      const roleBoundName = String(row.RoleBoundItem ?? "").trim().toLowerCase();
+      const parsedRoleBoundItem = roleBoundName ? (itemNameToId.get(roleBoundName) ?? null) : null;
+
       const parsedSpells = parseLeaguepediaSpells(row.SummonerSpells, spellKeyToId);
+
+      const keystoneName = String(row.KeystoneRune ?? "").trim().toLowerCase();
+      const secondaryName = String(row.SecondaryTree ?? "").trim().toLowerCase();
+      const parsedRune0 = keystoneName ? (runeNameToId.get(keystoneName) ?? null) : null;
+      const parsedRune1 = secondaryName ? (runeNameToId.get(secondaryName) ?? null) : null;
+
       const hasItems = parsedItems.some((id) => id !== null);
       const hasSpells = parsedSpells.some((id) => id !== null);
       if (hasItems) itemsResolved += parsedItems.filter((id) => id !== null).length;
       if (hasSpells) spellsResolved += parsedSpells.filter((id) => id !== null).length;
+      if (parsedRune0 !== null) runesResolved++;
+      if (parsedRune1 !== null) runesResolved++;
 
       return [
         {
@@ -1421,8 +1462,9 @@ export async function syncLeaguepediaMatchSets(
           item6: hasItems ? parsedItems[6] : (preservedBuild?.item6 ?? null),
           spell0: hasSpells ? parsedSpells[0] : (preservedBuild?.spell0 ?? null),
           spell1: hasSpells ? parsedSpells[1] : (preservedBuild?.spell1 ?? null),
-          rune0: preservedBuild?.rune0 ?? null,
-          rune1: preservedBuild?.rune1 ?? null,
+          rune0: parsedRune0 ?? (preservedBuild?.rune0 ?? null),
+          rune1: parsedRune1 ?? (preservedBuild?.rune1 ?? null),
+          role_bound_item: parsedRoleBoundItem ?? (preservedBuild?.role_bound_item ?? null),
         },
       ];
     });
@@ -1448,5 +1490,6 @@ export async function syncLeaguepediaMatchSets(
     playerStatsUpserted,
     itemsResolved,
     spellsResolved,
+    runesResolved,
   };
 }

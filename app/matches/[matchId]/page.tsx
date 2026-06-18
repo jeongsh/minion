@@ -237,6 +237,7 @@ export default async function MatchDetailPage({
           spells={spells}
           itemVersion={itemVersion}
           runeImages={runeImages}
+          pomPlayerId={match.officialPomPlayerId}
         />
       </section>
 

@@ -499,29 +499,56 @@ function RecentMatchSetRows({
                     emptyText: "스펠 없음",
                   })}
                 </div>
-                <div className="flex items-end gap-1">
-                  {line.runeIds[0] ? (
-                    <PlayerImage
-                      src={runeImageUrlById(runeCatalog.keystones, line.runeIds[0])}
-                      alt=""
-                      className="h-8 w-8 rounded border border-border bg-surface-muted object-cover"
-                    />
-                  ) : null}
-                  {line.runeIds[1] ? (
-                    <PlayerImage
-                      src={runeImageUrlById(runeCatalog.trees, line.runeIds[1])}
-                      alt=""
-                      className="h-6 w-6 rounded border border-border bg-surface-muted object-cover"
-                    />
-                  ) : null}
-                  {!line.runeIds.some((id) => id && id > 0) ? <span className="text-xs font-semibold text-muted">룬 없음</span> : null}
+                <div className="flex flex-col gap-0.5">
+                  {(() => {
+                    const keystoneUrl = line.runeIds[0] ? runeImageUrlById(runeCatalog.keystones, line.runeIds[0]) : "";
+                    const treeUrl = line.runeIds[1] ? runeImageUrlById(runeCatalog.trees, line.runeIds[1]) : "";
+                    if (!keystoneUrl && !treeUrl) return <span className="text-xs font-semibold text-muted">룬 없음</span>;
+                    return (
+                      <div className="flex items-center gap-1">
+                        <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full border border-white/10" style={{ background: "#0d1117" }}>
+                          {keystoneUrl && (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={keystoneUrl} alt="" className="absolute inset-0 h-full w-full object-contain" />
+                          )}
+                        </div>
+                        {treeUrl && (
+                          <div className="relative h-6 w-6 shrink-0 overflow-hidden rounded-full">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={treeUrl} alt="" className="absolute inset-0 h-full w-full object-contain" />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
                 <div className="flex items-center gap-3">
-                  {iconSlots({
-                    ids: line.itemIds,
-                    imageFor: (id) => itemImageUrl(id, itemVersion),
-                    emptyText: "아이템 데이터 없음",
-                  })}
+                  <span className="flex flex-wrap items-center gap-1">
+                    {(() => {
+                      const regularItems = line.itemIds.slice(0, 6).filter((id): id is number => Boolean(id && id > 0));
+                      const hasSomething = regularItems.length > 0 || line.roleBoundItem || line.itemIds[6];
+                      if (!hasSomething) return <span className="text-xs font-semibold text-muted">아이템 데이터 없음</span>;
+                      return (
+                        <>
+                          {regularItems.map((id, i) => (
+                            <PlayerImage key={`it${i}`} src={itemImageUrl(id, itemVersion)} alt="" className="h-8 w-8 rounded border border-border bg-surface-muted object-cover" />
+                          ))}
+                          {line.roleBoundItem ? (
+                            <>
+                              <span className="h-5 w-px bg-border/50" />
+                              <PlayerImage src={itemImageUrl(line.roleBoundItem, itemVersion)} alt="" className="h-8 w-8 rounded border border-border bg-surface-muted object-cover" />
+                            </>
+                          ) : null}
+                          {line.itemIds[6] ? (
+                            <>
+                              <span className="h-5 w-px bg-border/50" />
+                              <PlayerImage src={itemImageUrl(line.itemIds[6], itemVersion)} alt="" className="h-8 w-8 rounded border border-border bg-surface-muted object-cover" />
+                            </>
+                          ) : null}
+                        </>
+                      );
+                    })()}
+                  </span>
                   <span className="shrink-0 text-xs text-muted">평점 {rating ? rating.rating.toFixed(1) : "-"}</span>
                 </div>
               </div>

@@ -88,6 +88,33 @@ export async function fetchRuneCatalog(version = "16.12.1"): Promise<RuneCatalog
   return { keystones, trees };
 }
 
+export async function fetchRuneNameToIdMap(version = "16.12.1"): Promise<Map<string, number>> {
+  try {
+    const response = await fetch(
+      `https://ddragon.leagueoflegends.com/cdn/${version}/data/en_US/runesReforged.json`,
+      { next: { revalidate: 60 * 60 * 24 } },
+    );
+    if (!response.ok) return new Map();
+    const json = (await response.json()) as DdragonRuneTree[];
+    const map = new Map<string, number>();
+    for (const tree of json) {
+      map.set(tree.name.toLowerCase(), tree.id);
+      const noSpaceTree = tree.name.replace(/\s+/g, "").toLowerCase();
+      if (noSpaceTree !== tree.name.toLowerCase()) map.set(noSpaceTree, tree.id);
+      for (const slot of tree.slots) {
+        for (const rune of slot.runes) {
+          map.set(rune.name.toLowerCase(), rune.id);
+          const noSpace = rune.name.replace(/\s+/g, "").toLowerCase();
+          if (noSpace !== rune.name.toLowerCase()) map.set(noSpace, rune.id);
+        }
+      }
+    }
+    return map;
+  } catch {
+    return new Map();
+  }
+}
+
 export async function fetchRuneImages(version = "16.12.1"): Promise<Record<string, string>> {
   try {
     const response = await fetch(

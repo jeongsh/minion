@@ -24,8 +24,9 @@ export function SyncMatchSetsButton({ matchId }: { matchId: string }) {
       const { summary } = result;
       const itemMsg = summary.itemsResolved > 0 ? ` · 아이템 ${summary.itemsResolved}개` : " · 아이템 없음";
       const spellMsg = summary.spellsResolved > 0 ? ` · 스펠 ${summary.spellsResolved}개` : "";
+      const runeMsg = summary.runesResolved > 0 ? ` · 특성 ${summary.runesResolved}개` : "";
       setMessage(
-        `Leaguepedia 세트 ${summary.fetched}개 조회, 세트 ${summary.upserted}개, 밴픽 ${summary.picksBansUpserted}개, 선수 스탯 ${summary.playerStatsUpserted}개 저장 완료${itemMsg}${spellMsg}`,
+        `Leaguepedia 세트 ${summary.fetched}개 조회, 세트 ${summary.upserted}개, 밴픽 ${summary.picksBansUpserted}개, 선수 스탯 ${summary.playerStatsUpserted}개 저장 완료${itemMsg}${spellMsg}${runeMsg}`,
       );
     });
   }

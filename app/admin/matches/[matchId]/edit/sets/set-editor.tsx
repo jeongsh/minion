@@ -559,6 +559,7 @@ function AdminPlayerStatEditor({
         itemIds: [null, null, null, null, null, null, null],
         spellIds: [null, null],
         runeIds: [null, null],
+        roleBoundItem: null,
       },
       stats: calculatePlayerStats({
         setId: set.id,
@@ -579,6 +580,7 @@ function AdminPlayerStatEditor({
         itemIds: [null, null, null, null, null, null, null],
         spellIds: [null, null],
         runeIds: [null, null],
+        roleBoundItem: null,
       }),
     } satisfies PlayerStatRow & { side: "blue" | "red" };
   };
