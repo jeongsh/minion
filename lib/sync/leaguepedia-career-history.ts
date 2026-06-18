@@ -4,9 +4,6 @@ const CARGO_API = "https://lol.fandom.com/api.php";
 const REQUEST_DELAY_MS = 4000;
 const MAX_RETRIES = 8;
 
-// LCK team IDs in our DB (slug → id resolved at runtime)
-const LCK_SLUGS = new Set(["hle", "geng", "t1", "dk", "kt", "bro", "fox", "ns", "drx", "soop"]);
-
 const TEAM_ALIASES = new Map([
   ["t1", "t1"],
   ["skt t1", "t1"],
@@ -58,13 +55,10 @@ const POSITION_MAP: Record<string, string> = {
   sup: "SUP",
 };
 
-type HistoryRow = {
-  Player: string;
+type TournamentRow = {
   Team: string;
-  League: string;
-  Year: string;
-  Split: string;
   Role: string;
+  OverviewPage: string;
 };
 
 type PlayerRecord = {
@@ -97,20 +91,40 @@ function normalizePosition(role: string, fallback: string): string {
   return mapped ?? fallback;
 }
 
-// year + split 을 날짜 범위로 변환
+function escapeCargoValue(value: string) {
+  return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+}
+
+// OverviewPage 예시:
+//   "LCK/2024 Season/Spring Season"
+//   "LCK/2024 Season/Summer Season"
+//   "LCK 2025 Split 1"
+//   "LCK 2026 Split 2"
+function parseTournamentPage(overviewPage: string): { year: number; split: string } | null {
+  const yearMatch = overviewPage.match(/(\d{4})/);
+  if (!yearMatch) return null;
+  const year = parseInt(yearMatch[1], 10);
+
+  const lower = overviewPage.toLowerCase();
+  if (/spring|split.?1/i.test(lower)) return { year, split: "Spring" };
+  if (/summer|split.?2/i.test(lower)) return { year, split: "Summer" };
+
+  // playoffs/regional finals 등 → split 추정 불가, 해당 연도 내 마지막 split으로 처리
+  if (lower.includes("regional") || lower.includes("playoff") || lower.includes("final")) {
+    return { year, split: "Summer" };
+  }
+
+  return { year, split: "" };
+}
+
 function splitToDateRange(year: number, split: string): { start: string; end: string } {
   const s = split.toLowerCase();
-  if (s.includes("spring") || s === "1") {
-    return { start: `${year}-01-01`, end: `${year}-05-31` };
-  }
-  if (s.includes("summer") || s === "2") {
-    return { start: `${year}-06-01`, end: `${year}-11-30` };
-  }
-  // fallback: treat as full year
+  if (s === "spring") return { start: `${year}-01-01`, end: `${year}-05-31` };
+  if (s === "summer") return { start: `${year}-06-01`, end: `${year}-11-30` };
   return { start: `${year}-01-01`, end: `${year}-12-31` };
 }
 
-async function cargoQuery(params: Record<string, string>, offset = 0): Promise<HistoryRow[]> {
+async function cargoQuery(params: Record<string, string>, offset = 0): Promise<TournamentRow[]> {
   const searchParams = new URLSearchParams({
     action: "cargoquery",
     format: "json",
@@ -127,13 +141,21 @@ async function cargoQuery(params: Record<string, string>, offset = 0): Promise<H
     if (!res.ok) throw new Error(`Leaguepedia fetch failed: ${res.status}`);
 
     const body = (await res.json()) as {
-      cargoquery?: Array<{ title: HistoryRow }>;
+      cargoquery?: Array<{ title: TournamentRow }>;
       error?: { code?: string; info?: string };
     };
 
     if (body.error?.code === "ratelimited") {
       const waitMs = REQUEST_DELAY_MS * (attempt + 2);
       console.warn(`[rate-limit] Retry ${attempt + 1}/${MAX_RETRIES} in ${waitMs}ms...`);
+      await sleep(waitMs);
+      continue;
+    }
+
+    if (body.error?.code === "internal_api_error_MWException") {
+      if (attempt >= 2) throw new Error(`Cargo error [${body.error.code}]: ${body.error.info}`);
+      const waitMs = REQUEST_DELAY_MS * 2;
+      console.warn(`[mw-exception] Retry ${attempt + 1}/3 in ${waitMs}ms...`);
       await sleep(waitMs);
       continue;
     }
@@ -148,17 +170,18 @@ async function cargoQuery(params: Record<string, string>, offset = 0): Promise<H
   throw new Error("Rate limit retries exhausted.");
 }
 
-async function fetchPlayerHistory(leaguepediaPage: string): Promise<HistoryRow[]> {
-  const rows: HistoryRow[] = [];
+async function fetchPlayerHistory(leaguepediaPage: string): Promise<TournamentRow[]> {
+  const rows: TournamentRow[] = [];
   let offset = 0;
 
   while (true) {
     const batch = await cargoQuery(
       {
-        tables: "PlayerLeagueHistory=PLH",
-        fields: "PLH.Player,PLH.Team,PLH.League,PLH.Year,PLH.Split,PLH.Role",
-        where: `PLH.Player="${leaguepediaPage.replace(/"/g, '\\"')}"`,
-        order_by: "PLH.Year, PLH.Split",
+        tables: "ScoreboardPlayers=SP",
+        fields: "SP.Team,SP.Role,SP.OverviewPage",
+        where: `SP.Link="${escapeCargoValue(leaguepediaPage)}" AND SP.OverviewPage LIKE "LCK%"`,
+        group_by: "SP.OverviewPage,SP.Team,SP.Role",
+        order_by: "SP.OverviewPage ASC",
       },
       offset,
     );
@@ -173,9 +196,8 @@ async function fetchPlayerHistory(leaguepediaPage: string): Promise<HistoryRow[]
   return rows;
 }
 
-// 연속된 같은 팀 스플릿을 하나의 경력 record로 병합
 function mergeIntoCareerEntries(
-  rows: HistoryRow[],
+  rows: TournamentRow[],
   playerPosition: string,
   teamById: Map<string, TeamRecord>,
   bySlug: Map<string, TeamRecord>,
@@ -193,10 +215,11 @@ function mergeIntoCareerEntries(
   let current: Entry | null = null;
 
   for (const row of rows) {
-    const year = parseInt(row.Year ?? "0", 10);
-    if (!year) continue;
+    const parsed = parseTournamentPage(row.OverviewPage ?? "");
+    if (!parsed || !parsed.year) continue;
 
-    const { start, end } = splitToDateRange(year, row.Split ?? "");
+    const { year, split } = parsed;
+    const { start, end } = splitToDateRange(year, split);
     const position = normalizePosition(row.Role ?? "", playerPosition);
     const teamSlug = slugFor(row.Team ?? "");
     const team = teamSlug ? bySlug.get(teamSlug) ?? null : null;
@@ -209,11 +232,10 @@ function mergeIntoCareerEntries(
       (current.teamId ?? current.teamName ?? "") === canonicalTeamKey &&
       current.position === position
     ) {
-      // same team → extend the end date
       current.endDate = end;
     } else {
       if (current) entries.push(current);
-      current = { teamId, teamName, position, startDate: start, endDate: end, league: row.League ?? "" };
+      current = { teamId, teamName, position, startDate: start, endDate: end, league: "LCK" };
     }
   }
 
@@ -240,7 +262,6 @@ export async function syncCareerHistories(
     errors: [],
   };
 
-  // DB에서 LCK 팀 ID 목록 로드
   const { data: teamsData, error: teamsError } = await supabase
     .from("teams")
     .select("id, slug, name")
@@ -252,7 +273,6 @@ export async function syncCareerHistories(
   const teamById = new Map(teams.map((t) => [t.id, t]));
   const lckTeamIds = new Set(teams.map((t) => t.id));
 
-  // DB에서 leaguepedia_page가 있는 LCK 선수 목록 로드
   const { data: playersData, error: playersError } = await supabase
     .from("players")
     .select("id, name, position, leaguepedia_page, team_id")
@@ -263,7 +283,6 @@ export async function syncCareerHistories(
     lckTeamIds.has((p as any).team_id),
   );
 
-  // 이미 경력 이력이 있는 선수 ID 세트
   let existingPlayerIds = new Set<string>();
   if (options.skipExisting) {
     const { data: existingData } = await supabase
@@ -281,7 +300,7 @@ export async function syncCareerHistories(
 
     console.log(`[sync] ${player.name} (${player.leaguepedia_page})...`);
 
-    let rows: HistoryRow[];
+    let rows: TournamentRow[];
     try {
       rows = await fetchPlayerHistory(player.leaguepedia_page);
       await sleep(REQUEST_DELAY_MS);
@@ -293,7 +312,7 @@ export async function syncCareerHistories(
     }
 
     if (rows.length === 0) {
-      console.log(`  → 결과 없음 (Leaguepedia에 이력 없음)`);
+      console.log(`  → 결과 없음 (Leaguepedia에 LCK 이력 없음)`);
       summary.playersProcessed++;
       continue;
     }
@@ -307,19 +326,25 @@ export async function syncCareerHistories(
       position: e.position,
       start_date: e.startDate,
       end_date: e.endDate,
-      notes: e.league && e.league !== "LCK" ? `${e.league} 활동` : null,
+      notes: null,
     }));
 
     if (toInsert.length > 0) {
-      const { error: insertError } = await supabase
+      const { error: insertError, data: inserted } = await supabase
         .from("player_career_history")
-        .insert(toInsert);
+        .upsert(toInsert, {
+          onConflict: "player_id,position,start_date",
+          ignoreDuplicates: true,
+        })
+        .select("id");
 
       if (insertError) {
         summary.errors.push({ player: player.name, reason: insertError.message });
       } else {
-        summary.recordsInserted += toInsert.length;
-        console.log(`  → ${toInsert.length}개 경력 저장`);
+        const count = inserted?.length ?? 0;
+        const skipped = toInsert.length - count;
+        summary.recordsInserted += count;
+        console.log(`  → ${count}개 경력 저장${skipped > 0 ? ` (${skipped}개 중복 스킵)` : ""}`);
       }
     }
 

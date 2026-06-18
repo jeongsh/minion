@@ -19,6 +19,7 @@ import {
   getMatches,
   getPlayerAwards,
   getPlayerBySlug,
+  getPlayerCareerHistories,
   getPlayerPomCount,
   getPlayerStatLines,
   getSetPicksBans,
@@ -27,7 +28,7 @@ import {
   getTournaments,
 } from "@/lib/data/lck";
 import { aggregatePlayerStatLine, calculatePlayerStats, createPlayerRadarBenchmark, type PlayerRadarBenchmark } from "@/lib/stats";
-import type { FanRating, Match, Player, PlayerStatLine, SetResult, Team, TeamAward, Tournament } from "@/lib/types";
+import type { FanRating, Match, Player, PlayerCareerHistory, PlayerStatLine, SetResult, Team, TeamAward, Tournament } from "@/lib/types";
 import {
   filterMatchesBySegment,
   filterPicksBansByMatches,
@@ -390,6 +391,83 @@ function PlayerAwardHistory({ awards }: { awards: TeamAward[] }) {
   );
 }
 
+function CareerTimeline({
+  histories,
+  teams,
+  currentTeamId,
+}: {
+  histories: PlayerCareerHistory[];
+  teams: Team[];
+  currentTeamId?: string | null;
+}) {
+  if (histories.length === 0) {
+    return <p className="text-sm text-muted">경력 데이터가 없습니다.</p>;
+  }
+
+  const now = new Date();
+
+  function durationLabel(startDate: string, endDate: string | null) {
+    const start = new Date(startDate);
+    const end = endDate ? new Date(endDate) : now;
+    const months = Math.max(
+      0,
+      (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()),
+    );
+    if (months < 12) return `${months}개월`;
+    const years = Math.floor(months / 12);
+    const rem = months % 12;
+    return rem > 0 ? `${years}년 ${rem}개월` : `${years}년`;
+  }
+
+  function dateLabel(date: string | null) {
+    if (!date) return "현재";
+    return new Intl.DateTimeFormat("ko-KR", { year: "numeric", month: "long" }).format(new Date(date));
+  }
+
+  return (
+    <div className="relative">
+      <div className="absolute left-[7px] top-2 h-[calc(100%-1rem)] w-px bg-border" />
+      <div className="flex flex-col gap-4">
+        {histories.map((entry, i) => {
+          const team = entry.teamId ? teams.find((t) => t.id === entry.teamId) : null;
+          const teamName = team?.shortName ?? entry.teamName ?? "알 수 없음";
+          const isCurrent = !entry.endDate || (entry.teamId ? entry.teamId === currentTeamId : false);
+
+          return (
+            <div key={entry.id} className="relative flex gap-4 pl-6">
+              <div
+                className={`absolute left-0 top-1 h-3.5 w-3.5 rounded-full border-2 ${
+                  isCurrent
+                    ? "border-accent bg-accent"
+                    : "border-border bg-surface-muted"
+                }`}
+              />
+              <div className="flex min-w-0 flex-1 flex-wrap items-start justify-between gap-x-4 gap-y-1">
+                <div className="min-w-0">
+                  <p className="font-semibold">
+                    {teamName}
+                    {isCurrent && (
+                      <span className="ml-2 rounded-full bg-accent px-2 py-0.5 text-[11px] font-bold text-accent-foreground">현재</span>
+                    )}
+                  </p>
+                  <p className="mt-0.5 text-xs text-muted">
+                    {dateLabel(entry.startDate)} – {dateLabel(entry.endDate)}
+                    <span className="ml-2 text-muted/60">({durationLabel(entry.startDate, entry.endDate)})</span>
+                  </p>
+                  {entry.notes && <p className="mt-1 text-xs text-muted">{entry.notes}</p>}
+                </div>
+                <span className="shrink-0 rounded-md border border-border bg-background/45 px-2 py-0.5 text-xs font-semibold text-muted">
+                  {entry.position}
+                </span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function iconSlots({
   ids,
   imageFor,
@@ -593,6 +671,7 @@ export default async function PlayerDetailPage({
     champions,
     picksBans,
     standings,
+    careerHistories,
   ] = await Promise.all([
     getAllTeams(),
     getAllPlayers(),
@@ -607,6 +686,7 @@ export default async function PlayerDetailPage({
     getChampions(),
     getSetPicksBans(),
     getTeamStandings(),
+    getPlayerCareerHistories([player.id]),
   ]);
 
   const visibleSegments = PLAYER_PAGE_SEGMENTS.filter((segment) =>
@@ -972,6 +1052,12 @@ export default async function PlayerDetailPage({
         {awards.length > 0 ? (
           <SectionCard title="수상 내역">
             <PlayerAwardHistory awards={awards} />
+          </SectionCard>
+        ) : null}
+
+        {careerHistories.length > 0 ? (
+          <SectionCard title="경력">
+            <CareerTimeline histories={careerHistories} teams={teams} currentTeamId={player.teamId} />
           </SectionCard>
         ) : null}
 
