@@ -132,10 +132,15 @@ export type StaffSyncSummary = {
   skipped: Array<{ team: string; role: string; reason: string }>;
 };
 
-export async function syncLckStaff(supabase: SupabaseClient): Promise<StaffSyncSummary> {
+export async function syncLckStaff(
+  supabase: SupabaseClient,
+  options: { skipExisting?: boolean } = {},
+): Promise<StaffSyncSummary> {
+  const skipExisting = options.skipExisting ?? false;
+
   const { data: teamsData, error: teamsError } = await supabase
     .from("teams")
-    .select("id, slug, name, short_name, leaguepedia_page")
+    .select("id, slug, name, short_name, leaguepedia_page, head_coach")
     .eq("is_lck_team", true);
 
   if (teamsError) throw teamsError;
@@ -205,7 +210,14 @@ export async function syncLckStaff(supabase: SupabaseClient): Promise<StaffSyncS
     }
   }
 
+  const teamsById = new Map((teams as (TeamRecord & { head_coach?: string | null })[]).map((t) => [t.id, t]));
+
   for (const [teamId, { headCoach, coaches }] of staffMap) {
+    if (skipExisting && teamsById.get(teamId)?.head_coach) {
+      summary.skipped.push({ team: teamId, role: "", reason: "already_has_staff" });
+      continue;
+    }
+
     const { error } = await supabase
       .from("teams")
       .update({

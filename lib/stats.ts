@@ -161,6 +161,7 @@ export function aggregatePlayerStatLine(lines: PlayerStatLine[]): PlayerStatLine
     spellIds: [],
     runeIds: [],
     roleBoundItem: null,
+    patch: null,
   };
 }
 
@@ -220,6 +221,7 @@ export function createPlayerRadarBenchmark(lines: PlayerStatLine[]): PlayerRadar
     spellIds: [],
     runeIds: [],
     roleBoundItem: null,
+    patch: null,
   } satisfies PlayerStatLine;
 
   const averageStats = calculatePlayerStats(averageLine, benchmark);

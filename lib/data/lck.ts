@@ -140,12 +140,8 @@ type SetPlayerStatsRow = {
   rune1?: number | null;
   role_bound_item?: number | null;
   sets?:
-    | {
-    duration_seconds: number | null;
-      }
-    | Array<{
-        duration_seconds: number | null;
-      }>
+    | { duration_seconds: number | null; patch: string | null }
+    | Array<{ duration_seconds: number | null; patch: string | null }>
     | null;
 };
 
@@ -929,7 +925,7 @@ export async function getPlayerStatLines(setId?: string | string[]) {
       let query = supabase
         .from("set_player_stats")
         .select(
-          "set_id, player_id, team_id, position, champion_id, kills, deaths, assists, cs, gold, damage_to_champions, vision_score, dpm, damage_share, vision_score_per_minute, cs_per_minute, gold_diff_at_10, xp_diff_at_10, cs_diff_at_10, gold_diff_at_15, xp_diff_at_15, cs_diff_at_15, item0, item1, item2, item3, item4, item5, item6, spell0, spell1, rune0, rune1, role_bound_item, sets(duration_seconds)",
+          "set_id, player_id, team_id, position, champion_id, kills, deaths, assists, cs, gold, damage_to_champions, vision_score, dpm, damage_share, vision_score_per_minute, cs_per_minute, gold_diff_at_10, xp_diff_at_10, cs_diff_at_10, gold_diff_at_15, xp_diff_at_15, cs_diff_at_15, item0, item1, item2, item3, item4, item5, item6, spell0, spell1, rune0, rune1, role_bound_item, sets(duration_seconds, patch)",
         )
         .order("position", { ascending: true })
         .order("set_id", { ascending: true })
@@ -998,6 +994,7 @@ export async function getPlayerStatLines(setId?: string | string[]) {
       spellIds: [row.spell0, row.spell1].map((spellId) => spellId ?? null),
       runeIds: [row.rune0, row.rune1].map((runeId) => runeId ?? null),
       roleBoundItem: row.role_bound_item ?? null,
+      patch: Array.isArray(row.sets) ? (row.sets[0]?.patch ?? null) : (row.sets?.patch ?? null),
     }));
   }, []);
 }
@@ -1090,6 +1087,51 @@ export async function getPlayerPomCount(playerId: string): Promise<number> {
     if (error) throw error;
     return count ?? 0;
   }, 0);
+}
+
+export type TimelineEvent = {
+  id: string;
+  setId: string;
+  timestampMs: number;
+  minute: number;
+  eventType: "CHAMPION_KILL" | "ELITE_MONSTER_KILL" | "BUILDING_KILL";
+  teamId: string | null;
+  playerId: string | null;
+  killerPlayerId: string | null;
+  victimPlayerId: string | null;
+  assistPlayerIds: string[];
+  monsterType: string | null;
+  buildingType: string | null;
+  laneType: string | null;
+};
+
+export async function getTimelineEvents(setId: string): Promise<TimelineEvent[]> {
+  return fromSupabase(async () => {
+    const { data, error } = await createSupabaseServerClient()
+      .from("timeline_events")
+      .select("id, set_id, timestamp_ms, minute, event_type, team_id, player_id, killer_player_id, victim_player_id, assist_player_ids, monster_type, building_type, lane_type")
+      .eq("set_id", setId)
+      .in("event_type", ["CHAMPION_KILL", "ELITE_MONSTER_KILL", "BUILDING_KILL"])
+      .order("timestamp_ms", { ascending: true });
+
+    if (error) throw error;
+
+    return (data ?? []).map((row) => ({
+      id: row.id as string,
+      setId: row.set_id as string,
+      timestampMs: row.timestamp_ms as number,
+      minute: row.minute as number,
+      eventType: row.event_type as TimelineEvent["eventType"],
+      teamId: row.team_id as string | null,
+      playerId: row.player_id as string | null,
+      killerPlayerId: row.killer_player_id as string | null,
+      victimPlayerId: row.victim_player_id as string | null,
+      assistPlayerIds: (row.assist_player_ids as string[]) ?? [],
+      monsterType: row.monster_type as string | null,
+      buildingType: row.building_type as string | null,
+      laneType: row.lane_type as string | null,
+    }));
+  }, []);
 }
 
 export async function getFanPogVotes(): Promise<FanPogVote[]> {

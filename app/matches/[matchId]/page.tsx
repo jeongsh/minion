@@ -15,6 +15,8 @@ import {
   getSetsByMatchId,
   getStages,
   getTournaments,
+  getTimelineEvents,
+  type TimelineEvent,
 } from "@/lib/data/lck";
 import { fetchRuneImages } from "@/lib/runes";
 import { fetchSpellCatalog } from "@/lib/spells";
@@ -114,18 +116,18 @@ export default async function MatchDetailPage({
 
   const setIds = sets.map((s) => s.id);
   const itemVersions = uniqueDdragonVersionsForPatches(sets.map((set) => set.patch));
-  const [picksBans, playerStatLines, versionedAssets] = await Promise.all([
+
+  const [picksBans, playerStatLines, spellsPerVersion, runeImagesPerVersion, timelineArrays] = await Promise.all([
     getSetPicksBans(setIds),
     getPlayerStatLines(setIds),
-    Promise.all(
-      itemVersions.map(async (version) => {
-        const [spells, runeImages] = await Promise.all([fetchSpellCatalog(version), fetchRuneImages(version)]);
-        return [version, { spells, runeImages }] as const;
-      }),
-    ),
+    Promise.all(itemVersions.map(async (v) => ({ version: v, data: await fetchSpellCatalog(v) }))),
+    Promise.all(itemVersions.map(async (v) => ({ version: v, data: await fetchRuneImages(v) }))),
+    Promise.all(setIds.map(async (id) => ({ setId: id, events: await getTimelineEvents(id) }))),
   ]);
-  const spellsByVersion = Object.fromEntries(versionedAssets.map(([version, assets]) => [version, assets.spells]));
-  const runeImagesByVersion = Object.fromEntries(versionedAssets.map(([version, assets]) => [version, assets.runeImages]));
+
+  const spellsByVersion = Object.fromEntries(spellsPerVersion.map(({ version, data }) => [version, data]));
+  const runeImagesByVersion = Object.fromEntries(runeImagesPerVersion.map(({ version, data }) => [version, data]));
+  const timelineEventsBySetId = Object.fromEntries(timelineArrays.map(({ setId, events }) => [setId, events]));
 
   const tournament = tournaments.find((item) => item.id === match.tournamentId);
   const stage = stages.find((item) => item.id === match.stageId);
@@ -244,6 +246,7 @@ export default async function MatchDetailPage({
           spellsByVersion={spellsByVersion}
           runeImagesByVersion={runeImagesByVersion}
           pomPlayerId={match.officialPomPlayerId}
+          timelineEventsBySetId={timelineEventsBySetId}
         />
       </section>
 

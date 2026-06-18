@@ -258,6 +258,7 @@ export type PlayerStatLine = {
   spellIds: Array<number | null>;
   runeIds: Array<number | null>;
   roleBoundItem: number | null;
+  patch: string | null;
 };
 
 export type DerivedPlayerStats = {

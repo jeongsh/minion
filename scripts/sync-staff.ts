@@ -28,14 +28,15 @@ function requireEnv(name: string) {
 async function main() {
   loadEnvFile();
 
+  const force = process.argv.includes("--force");
   const supabase = createClient(
     requireEnv("NEXT_PUBLIC_SUPABASE_URL"),
     requireEnv("SUPABASE_SERVICE_ROLE_KEY"),
     { auth: { autoRefreshToken: false, persistSession: false } },
   );
 
-  console.log("Fetching LCK staff from Leaguepedia...");
-  const summary = await syncLckStaff(supabase);
+  console.log(`LCK 스태프 동기화 시작... (skipExisting=${!force}, 전체 덮어쓰기: --force)`);
+  const summary = await syncLckStaff(supabase, { skipExisting: !force });
   console.log(JSON.stringify(summary, null, 2));
 }
 

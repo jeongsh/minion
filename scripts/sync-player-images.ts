@@ -28,7 +28,7 @@ function requireEnv(name: string) {
 async function main() {
   loadEnvFile();
 
-  const onlyMissing = !process.argv.includes("--all");
+  const onlyMissing = !process.argv.includes("--force");
   const supabase = createClient(
     requireEnv("NEXT_PUBLIC_SUPABASE_URL"),
     requireEnv("SUPABASE_SERVICE_ROLE_KEY"),

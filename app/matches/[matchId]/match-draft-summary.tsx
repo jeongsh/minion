@@ -1,6 +1,7 @@
 import type { Champion, Player, PlayerStatLine, SetPickBan, SetResult, Team } from "@/lib/types";
 import type { GameSpell } from "@/lib/spells";
 import { DEFAULT_DDRAGON_VERSION, ddragonVersionFromPatch } from "@/lib/ddragon";
+import type { TimelineEvent } from "@/lib/data/lck";
 import { SetCard } from "./set-card";
 
 export function MatchDraftSummary({
@@ -13,6 +14,7 @@ export function MatchDraftSummary({
   spellsByVersion,
   runeImagesByVersion,
   pomPlayerId,
+  timelineEventsBySetId,
 }: {
   sets: SetResult[];
   picksBans: SetPickBan[];
@@ -23,6 +25,7 @@ export function MatchDraftSummary({
   spellsByVersion: Record<string, GameSpell[]>;
   runeImagesByVersion: Record<string, Record<string, string>>;
   pomPlayerId?: string | null;
+  timelineEventsBySetId?: Record<string, TimelineEvent[]>;
 }) {
   if (sets.length === 0) {
     return (
@@ -73,6 +76,7 @@ export function MatchDraftSummary({
             itemVersion={itemVersion}
             runeImages={runeImages}
             pomPlayerId={pomPlayerId}
+            timelineEvents={timelineEventsBySetId?.[set.id] ?? []}
           />
         );
       })}

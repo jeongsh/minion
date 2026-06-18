@@ -167,6 +167,8 @@ async function fetchLeaguepediaGameRows(leaguepediaMatchIds: string[]) {
 async function main() {
   loadEnvFile();
 
+  const force = process.argv.includes("--force");
+
   const supabase = createClient(
     requireEnv("NEXT_PUBLIC_SUPABASE_URL"),
     requireEnv("SUPABASE_SERVICE_ROLE_KEY"),
@@ -177,6 +179,18 @@ async function main() {
       },
     },
   );
+
+  // --force 없으면 leaguepedia_game_id가 null인 세트가 있는 매치만 처리
+  let matchIdsNeedingUpdate: Set<string> | null = null;
+  if (!force) {
+    const { data: missingSets, error: setsErr } = await supabase
+      .from("sets")
+      .select("match_id")
+      .is("leaguepedia_game_id", null);
+    if (setsErr) throw setsErr;
+    matchIdsNeedingUpdate = new Set((missingSets ?? []).map((s) => s.match_id as string));
+    console.log(`leaguepedia_game_id 없는 세트가 있는 매치: ${matchIdsNeedingUpdate.size}개 (전체 덮어쓰기: --force)`);
+  }
 
   const { data: matches, error } = await supabase
     .from("matches")
@@ -194,7 +208,9 @@ async function main() {
   let setsUpdated = 0;
   const chunkSize = 50;
 
-  const matchGroups = rows.filter((match) => match.leaguepedia_match_id);
+  const matchGroups = rows.filter(
+    (match) => match.leaguepedia_match_id && (!matchIdsNeedingUpdate || matchIdsNeedingUpdate.has(match.id)),
+  );
 
   for (let index = 0; index < matchGroups.length; index += chunkSize) {
     const batch = matchGroups.slice(index, index + chunkSize);

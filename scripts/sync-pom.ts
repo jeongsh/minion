@@ -37,7 +37,7 @@ function requireEnv(name: string) {
 async function main() {
   loadEnvFile();
 
-  const mode = process.argv.includes("--full") ? "full" : "incremental";
+  const mode = process.argv.includes("--force") ? "full" : "incremental";
   const supabase = createClient(
     requireEnv("NEXT_PUBLIC_SUPABASE_URL"),
     requireEnv("SUPABASE_SERVICE_ROLE_KEY"),

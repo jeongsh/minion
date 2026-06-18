@@ -471,6 +471,8 @@ function chunk<T>(items: T[], size: number) {
 
 async function main() {
   loadEnvFile();
+  const force = process.argv.includes("--force");
+
   const supabase = createClient(
     requireEnv("NEXT_PUBLIC_SUPABASE_URL"),
     requireEnv("SUPABASE_SERVICE_ROLE_KEY"),
@@ -479,6 +481,7 @@ async function main() {
   const [
     { data: matches, error: matchesError },
     { data: sets, error: setsError },
+    { data: existingPb, error: pbError },
   ] = await Promise.all([
     supabase
       .from("matches")
@@ -490,7 +493,11 @@ async function main() {
     supabase
       .from("sets")
       .select("id, match_id, set_number, leaguepedia_game_id, blue_team_id, red_team_id"),
+    force
+      ? Promise.resolve({ data: [], error: null })
+      : supabase.from("set_picks_bans").select("set_id"),
   ]);
+  if (pbError) throw pbError;
 
   if (matchesError) {
     throw matchesError;
@@ -508,7 +515,17 @@ async function main() {
     setsByMatchId.set(set.match_id, list);
   }
 
-  const eligibleMatches = typedMatches.filter((match) => (setsByMatchId.get(match.id) ?? []).length > 0);
+  // --force 없으면 밴픽 데이터가 없는 세트만 처리
+  const setsWithPickBans = new Set((existingPb ?? []).map((r) => r.set_id as string));
+  if (!force) {
+    console.log(`이미 밴픽 있는 세트: ${setsWithPickBans.size}개 (전체 덮어쓰기: --force)`);
+  }
+
+  const eligibleMatches = typedMatches.filter((match) => {
+    const matchSets = setsByMatchId.get(match.id) ?? [];
+    if (matchSets.length === 0) return false;
+    return force || matchSets.some((s) => !setsWithPickBans.has(s.id));
+  });
   const matchChunks = chunk(eligibleMatches, MATCH_CHUNK_SIZE);
   let matchesProcessed = 0;
   let rowsFetched = 0;
@@ -566,6 +583,7 @@ async function main() {
         ),
       );
       for (const set of matchSets) {
+        if (!force && setsWithPickBans.has(set.id)) continue;
         setIds.add(set.id);
       }
     }

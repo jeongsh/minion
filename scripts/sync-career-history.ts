@@ -23,10 +23,10 @@ if (!supabaseUrl || !supabaseKey) {
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-const skipExisting = !process.argv.includes("--all");
+const skipExisting = !process.argv.includes("--force");
 console.log(`경력 이력 동기화 시작... (skipExisting=${skipExisting})`);
 if (skipExisting) {
-  console.log("  ※ 이미 경력 데이터가 있는 선수는 건너뜁니다. 전체 재동기화: --all");
+  console.log("  ※ 이미 경력 데이터가 있는 선수는 건너뜁니다. 전체 재동기화: --force");
 }
 
 const summary = await syncCareerHistories(supabase, { skipExisting });
