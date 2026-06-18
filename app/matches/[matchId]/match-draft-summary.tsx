@@ -1,5 +1,6 @@
 import type { Champion, Player, PlayerStatLine, SetPickBan, SetResult, Team } from "@/lib/types";
 import type { GameSpell } from "@/lib/spells";
+import { DEFAULT_DDRAGON_VERSION, ddragonVersionFromPatch } from "@/lib/ddragon";
 import { SetCard } from "./set-card";
 
 export function MatchDraftSummary({
@@ -9,9 +10,8 @@ export function MatchDraftSummary({
   teams,
   statLines,
   players,
-  spells,
-  itemVersion,
-  runeImages,
+  spellsByVersion,
+  runeImagesByVersion,
   pomPlayerId,
 }: {
   sets: SetResult[];
@@ -20,9 +20,8 @@ export function MatchDraftSummary({
   teams: Team[];
   statLines: PlayerStatLine[];
   players: Player[];
-  spells: GameSpell[];
-  itemVersion: string;
-  runeImages: Record<string, string>;
+  spellsByVersion: Record<string, GameSpell[]>;
+  runeImagesByVersion: Record<string, Record<string, string>>;
   pomPlayerId?: string | null;
 }) {
   if (sets.length === 0) {
@@ -49,6 +48,9 @@ export function MatchDraftSummary({
         const redWon = set.winnerTeamId === set.redTeamId;
         const hasPickBan = setPicksBans.length > 0;
         const setStatLines = statLines.filter((l) => l.setId === set.id);
+        const itemVersion = ddragonVersionFromPatch(set.patch);
+        const spells = spellsByVersion[itemVersion] ?? spellsByVersion[DEFAULT_DDRAGON_VERSION] ?? [];
+        const runeImages = runeImagesByVersion[itemVersion] ?? runeImagesByVersion[DEFAULT_DDRAGON_VERSION] ?? {};
 
         return (
           <SetCard

@@ -6,6 +6,7 @@ import { MiniModalLink } from "@/components/domain/mini-modal-link";
 import { SourceNotice } from "@/components/domain/source-notice";
 import { DataTable } from "@/components/ui/data-table";
 import { championLabel } from "@/lib/champions";
+import { DEFAULT_DDRAGON_VERSION, ddragonVersionFromPatch, uniqueDdragonVersionsForPatches } from "@/lib/ddragon";
 import { itemImageUrl } from "@/lib/items";
 import { fetchRuneCatalog, runeImageUrlById, type RuneCatalog } from "@/lib/runes";
 import { fetchSpellCatalog, spellImageUrlById, type GameSpell } from "@/lib/spells";
@@ -426,9 +427,8 @@ function RecentMatchSetRows({
   ratings,
   fanPog,
   officialPomName,
-  itemVersion,
-  spells,
-  runeCatalog,
+  spellsByVersion,
+  runeCatalogByVersion,
 }: {
   player: Player;
   teams: Team[];
@@ -438,9 +438,8 @@ function RecentMatchSetRows({
   ratings: FanRating[];
   fanPog: boolean;
   officialPomName: string;
-  itemVersion: string;
-  spells: GameSpell[];
-  runeCatalog: RuneCatalog;
+  spellsByVersion: Record<string, GameSpell[]>;
+  runeCatalogByVersion: Record<string, RuneCatalog>;
 }) {
   const opponent = teamLabel(teams, opponentId(match, player.teamId));
   const matchRating = averageRating(ratings);
@@ -465,6 +464,12 @@ function RecentMatchSetRows({
           lines.map((line) => {
             const champion = champions.find((item) => item.id === line.championId);
             const rating = ratings.find((item) => item.setId === line.setId);
+            const itemVersion = ddragonVersionFromPatch(line.set.patch);
+            const spells = spellsByVersion[itemVersion] ?? spellsByVersion[DEFAULT_DDRAGON_VERSION] ?? [];
+            const runeCatalog = runeCatalogByVersion[itemVersion] ?? runeCatalogByVersion[DEFAULT_DDRAGON_VERSION] ?? {
+              keystones: [],
+              trees: [],
+            };
             return (
               <div
                 key={line.setId}
@@ -712,8 +717,15 @@ export default async function PlayerDetailPage({
 
     return { teammate, teammateStats, recentChampions };
   });
-  const itemVersion = champions.find((champion) => champion.ddragonVersion)?.ddragonVersion ?? "16.12.1";
-  const [spells, runeCatalog] = await Promise.all([fetchSpellCatalog(itemVersion), fetchRuneCatalog(itemVersion)]);
+  const itemVersions = uniqueDdragonVersionsForPatches(playerLines.map((line) => line.set.patch));
+  const versionedAssets = await Promise.all(
+    itemVersions.map(async (version) => {
+      const [spells, runeCatalog] = await Promise.all([fetchSpellCatalog(version), fetchRuneCatalog(version)]);
+      return [version, { spells, runeCatalog }] as const;
+    }),
+  );
+  const spellsByVersion = Object.fromEntries(versionedAssets.map(([version, assets]) => [version, assets.spells]));
+  const runeCatalogByVersion = Object.fromEntries(versionedAssets.map(([version, assets]) => [version, assets.runeCatalog]));
 
   return (
     <main className="min-h-screen bg-background text-foreground">
@@ -918,9 +930,8 @@ export default async function PlayerDetailPage({
                   ratings={row.ratings}
                   fanPog={row.fanPog}
                   officialPomName={row.officialPomName}
-                  itemVersion={itemVersion}
-                  spells={spells}
-                  runeCatalog={runeCatalog}
+                  spellsByVersion={spellsByVersion}
+                  runeCatalogByVersion={runeCatalogByVersion}
                 />
               ))}
             </div>

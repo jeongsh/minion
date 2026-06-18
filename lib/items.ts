@@ -4,7 +4,13 @@ export type GameItem = {
 };
 
 type DdragonItemJson = {
-  data: Record<string, { name: string }>;
+  data: Record<string, { name: string; maps?: Record<string, boolean> }>;
+};
+
+type DdragonItemEntry = {
+  id: number;
+  name: string;
+  maps?: Record<string, boolean>;
 };
 
 export function itemImageUrl(itemId: number, version: string) {
@@ -27,6 +33,46 @@ export function filterItems(items: GameItem[], query: string, limit = 40) {
   return filtered.slice(0, limit);
 }
 
+function itemPreference(item: DdragonItemEntry) {
+  const isSummonersRift = item.maps?.["11"] === true;
+  const isModeVariant = item.id >= 100000;
+
+  return [
+    isSummonersRift ? 0 : 1,
+    isModeVariant ? 1 : 0,
+    item.id,
+  ] as const;
+}
+
+function compareItemPreference(a: DdragonItemEntry, b: DdragonItemEntry) {
+  const left = itemPreference(a);
+  const right = itemPreference(b);
+
+  for (let i = 0; i < left.length; i++) {
+    if (left[i] !== right[i]) return left[i] - right[i];
+  }
+
+  return 0;
+}
+
+export function preferSummonersRiftItems(items: DdragonItemEntry[]): GameItem[] {
+  const byName = new Map<string, DdragonItemEntry>();
+
+  for (const item of items) {
+    if (!Number.isFinite(item.id) || item.id <= 0 || item.name.length === 0) continue;
+
+    const key = item.name.toLowerCase();
+    const current = byName.get(key);
+    if (!current || compareItemPreference(item, current) < 0) {
+      byName.set(key, item);
+    }
+  }
+
+  return [...byName.values()]
+    .map((item) => ({ id: item.id, name: item.name }))
+    .sort((a, b) => a.name.localeCompare(b.name, "ko"));
+}
+
 export async function fetchItemCatalog(version = "16.12.1", locale = "ko_KR"): Promise<GameItem[]> {
   const response = await fetch(
     `https://ddragon.leagueoflegends.com/cdn/${version}/data/${locale}/item.json`,
@@ -39,8 +85,11 @@ export async function fetchItemCatalog(version = "16.12.1", locale = "ko_KR"): P
 
   const json = (await response.json()) as DdragonItemJson;
 
-  return Object.entries(json.data)
-    .map(([id, item]) => ({ id: Number(id), name: item.name }))
-    .filter((item) => Number.isFinite(item.id) && item.id > 0 && item.name.length > 0)
-    .sort((a, b) => a.name.localeCompare(b.name, "ko"));
+  return preferSummonersRiftItems(
+    Object.entries(json.data).map(([id, item]) => ({
+      id: Number(id),
+      name: item.name,
+      maps: item.maps,
+    })),
+  );
 }

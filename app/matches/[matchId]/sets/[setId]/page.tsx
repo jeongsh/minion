@@ -16,6 +16,7 @@ import {
 } from "@/lib/data/lck";
 import { calculatePlayerStats } from "@/lib/stats";
 import { championImage } from "@/lib/champions";
+import { ddragonVersionFromPatch } from "@/lib/ddragon";
 import { itemImageUrl } from "@/lib/items";
 import { runeImageUrlById, fetchRuneCatalog, type RuneCatalog } from "@/lib/runes";
 import { spellImageUrlById, fetchSpellCatalog, type GameSpell } from "@/lib/spells";
@@ -488,7 +489,7 @@ export default async function SetDetailPage({
   const blueWon = set.winnerTeamId === set.blueTeamId;
   const redWon = set.winnerTeamId === set.redTeamId;
   const maxDamage = Math.max(...playerRows.map((row) => row.line.damageToChampions), 1);
-  const itemVersion = champions.find((champion) => champion.ddragonVersion)?.ddragonVersion ?? "16.12.1";
+  const itemVersion = ddragonVersionFromPatch(set.patch);
   const [spells, runeCatalog] = await Promise.all([fetchSpellCatalog(itemVersion), fetchRuneCatalog(itemVersion)]);
 
   return (

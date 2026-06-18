@@ -18,6 +18,7 @@ import {
 } from "@/lib/data/lck";
 import { fetchRuneImages } from "@/lib/runes";
 import { fetchSpellCatalog } from "@/lib/spells";
+import { uniqueDdragonVersionsForPatches } from "@/lib/ddragon";
 import type { MatchStatus, SetResult } from "@/lib/types";
 import {
   durationLabel,
@@ -111,14 +112,20 @@ export default async function MatchDetailPage({
       getStages(),
     ]);
 
-  const itemVersion = champions.find((c) => c.ddragonVersion)?.ddragonVersion ?? "16.12.1";
   const setIds = sets.map((s) => s.id);
-  const [picksBans, playerStatLines, spells, runeImages] = await Promise.all([
+  const itemVersions = uniqueDdragonVersionsForPatches(sets.map((set) => set.patch));
+  const [picksBans, playerStatLines, versionedAssets] = await Promise.all([
     getSetPicksBans(setIds),
     getPlayerStatLines(setIds),
-    fetchSpellCatalog(itemVersion),
-    fetchRuneImages(itemVersion),
+    Promise.all(
+      itemVersions.map(async (version) => {
+        const [spells, runeImages] = await Promise.all([fetchSpellCatalog(version), fetchRuneImages(version)]);
+        return [version, { spells, runeImages }] as const;
+      }),
+    ),
   ]);
+  const spellsByVersion = Object.fromEntries(versionedAssets.map(([version, assets]) => [version, assets.spells]));
+  const runeImagesByVersion = Object.fromEntries(versionedAssets.map(([version, assets]) => [version, assets.runeImages]));
 
   const tournament = tournaments.find((item) => item.id === match.tournamentId);
   const stage = stages.find((item) => item.id === match.stageId);
@@ -234,9 +241,8 @@ export default async function MatchDetailPage({
           teams={teams}
           statLines={playerStatLines}
           players={players}
-          spells={spells}
-          itemVersion={itemVersion}
-          runeImages={runeImages}
+          spellsByVersion={spellsByVersion}
+          runeImagesByVersion={runeImagesByVersion}
           pomPlayerId={match.officialPomPlayerId}
         />
       </section>

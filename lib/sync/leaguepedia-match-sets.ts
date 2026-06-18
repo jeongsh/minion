@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { championCatalogEntryForValue } from "../champions";
+import { ddragonVersionFromPatch, uniqueDdragonVersionsForPatches } from "../ddragon";
 import { fetchItemCatalog } from "../items";
 import { fetchRuneNameToIdMap } from "../runes";
 import { fetchSpellCatalog, type GameSpell } from "../spells";
@@ -1254,7 +1255,7 @@ export async function syncLeaguepediaMatchSets(
   const { data, error } = await supabase
     .from("sets")
     .upsert(payload, { onConflict: "match_id,set_number" })
-    .select("id,set_number,leaguepedia_game_id,duration_seconds,blue_team_id,red_team_id");
+    .select("id,set_number,leaguepedia_game_id,duration_seconds,blue_team_id,red_team_id,patch");
 
   if (error) {
     throw error;
@@ -1266,6 +1267,7 @@ export async function syncLeaguepediaMatchSets(
     duration_seconds: number | null;
     blue_team_id: string | null;
     red_team_id: string | null;
+    patch: string | null;
   }>;
   const setIds = setRows.map((set) => set.id);
   const setByNumber = new Map(setRows.map((set) => [set.set_number, set]));
@@ -1308,22 +1310,29 @@ export async function syncLeaguepediaMatchSets(
       ]),
       ...playerRows.map((row) => row.Champion),
     ].filter(Boolean) as string[];
-    const { data: versionRow } = await supabase
-      .from("champions")
-      .select("ddragon_version")
-      .not("ddragon_version", "is", null)
-      .limit(1)
-      .maybeSingle();
-    const ddragonVersion = (versionRow as { ddragon_version: string } | null)?.ddragon_version ?? "16.12.1";
-
-    const [championMap, playerMap, itemNameToId, spellCatalog, runeNameToId] = await Promise.all([
+    const ddragonVersions = uniqueDdragonVersionsForPatches(setRows.map((set) => set.patch));
+    const [championMap, playerMap, versionedCatalogs] = await Promise.all([
       getChampionMap(supabase, championNames),
       getPlayerMap(supabase),
-      buildItemNameToIdMap(ddragonVersion),
-      fetchSpellCatalog(ddragonVersion).catch(() => [] as GameSpell[]),
-      fetchRuneNameToIdMap(ddragonVersion).catch(() => new Map<string, number>()),
+      Promise.all(
+        ddragonVersions.map(async (version) => {
+          const [itemNameToId, spellCatalog, runeNameToId] = await Promise.all([
+            buildItemNameToIdMap(version),
+            fetchSpellCatalog(version).catch(() => [] as GameSpell[]),
+            fetchRuneNameToIdMap(version).catch(() => new Map<string, number>()),
+          ]);
+          return [
+            version,
+            {
+              itemNameToId,
+              spellKeyToId: buildSpellKeyToIdMap(spellCatalog),
+              runeNameToId,
+            },
+          ] as const;
+        }),
+      ),
     ]);
-    const spellKeyToId = buildSpellKeyToIdMap(spellCatalog);
+    const catalogsByVersion = new Map(versionedCatalogs);
     await ensurePlayersForStats({
       supabase,
       playerMap,
@@ -1417,6 +1426,10 @@ export async function syncLeaguepediaMatchSets(
       }
       const resolvedSide = side ?? (teamId === set.blue_team_id ? "blue" : "red");
       const preservedBuild = itemBySetPlayer.get(playerItemsKey(set.id, player.id));
+      const catalog = catalogsByVersion.get(ddragonVersionFromPatch(set.patch));
+      const itemNameToId = catalog?.itemNameToId ?? new Map<string, number>();
+      const spellKeyToId = catalog?.spellKeyToId ?? new Map<string, number>();
+      const runeNameToId = catalog?.runeNameToId ?? new Map<string, number>();
 
       const parsedItems = parseLeaguepediaItems(row.Items, itemNameToId);
       const trinketName = String(row.Trinket ?? "").trim().toLowerCase();

@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { getAllTeams, getChampions, getMatchById, getMatches } from "@/lib/data/lck";
+import { DEFAULT_DDRAGON_VERSION } from "@/lib/ddragon";
 import { fetchItemCatalog } from "@/lib/items";
 import { fetchRuneCatalog } from "@/lib/runes";
 import { fetchSpellCatalog } from "@/lib/spells";
@@ -22,7 +23,7 @@ export default async function AdminMatchSetCreatePage({
   }
 
   const [matches, teams, champions] = await Promise.all([getMatches(), getAllTeams(), getChampions()]);
-  const itemVersion = champions.find((champion) => champion.ddragonVersion)?.ddragonVersion ?? "16.12.1";
+  const itemVersion = DEFAULT_DDRAGON_VERSION;
   const [items, spells, runeCatalog] = await Promise.all([
     fetchItemCatalog(itemVersion),
     fetchSpellCatalog(itemVersion),

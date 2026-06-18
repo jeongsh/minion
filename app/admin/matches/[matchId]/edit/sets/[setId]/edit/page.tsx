@@ -15,6 +15,7 @@ import {
 import { fetchItemCatalog } from "@/lib/items";
 import { fetchRuneCatalog } from "@/lib/runes";
 import { fetchSpellCatalog } from "@/lib/spells";
+import { ddragonVersionFromPatch } from "@/lib/ddragon";
 import { matchRouteId, teamLabel } from "@/lib/view-data";
 
 import { updateSetAction } from "../../../../../../sets/actions";
@@ -43,7 +44,7 @@ export default async function AdminMatchSetEditPage({
       getFanRatings(),
       getSetsByMatchId(match.id),
     ]);
-  const itemVersion = champions.find((champion) => champion.ddragonVersion)?.ddragonVersion ?? "16.12.1";
+  const itemVersion = ddragonVersionFromPatch(set.patch);
   const [items, spells, runeCatalog] = await Promise.all([
     fetchItemCatalog(itemVersion),
     fetchSpellCatalog(itemVersion),

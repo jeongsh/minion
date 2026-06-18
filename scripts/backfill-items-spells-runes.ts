@@ -5,13 +5,14 @@
  * 실행:
  *   npx tsx scripts/backfill-items-spells-runes.ts [--force]
  *
- * --force 없이 실행하면 item0이 null인 행만 업데이트합니다.
+ * --force 없이 실행하면 item0, rune0, rune1 중 하나가 null인 행만 업데이트합니다.
  * --force 로 실행하면 이미 아이템이 있는 행도 덮어씁니다.
  */
 
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { createClient } from "@supabase/supabase-js";
+import { ddragonVersionFromPatch, uniqueDdragonVersionsForPatches } from "../lib/ddragon";
 
 // ─── 환경 변수 ──────────────────────────────────────────────────
 
@@ -44,6 +45,7 @@ type SetRow = {
   match_id: string;
   blue_team_id: string | null;
   red_team_id: string | null;
+  patch: string | null;
 };
 
 type StatRow = {
@@ -53,6 +55,8 @@ type StatRow = {
   team_id: string;
   position: string;
   item0: number | null;
+  rune0: number | null;
+  rune1: number | null;
 };
 
 
@@ -182,15 +186,54 @@ async function fetchRuneNameToIdMap(version: string): Promise<Map<string, number
   return map;
 }
 
+type DdragonItemEntry = {
+  id: number;
+  name: string;
+  maps?: Record<string, boolean>;
+};
+
+function itemPreference(item: DdragonItemEntry) {
+  const isSummonersRift = item.maps?.["11"] === true;
+  const isModeVariant = item.id >= 100000;
+
+  return [
+    isSummonersRift ? 0 : 1,
+    isModeVariant ? 1 : 0,
+    item.id,
+  ] as const;
+}
+
+function compareItemPreference(a: DdragonItemEntry, b: DdragonItemEntry) {
+  const left = itemPreference(a);
+  const right = itemPreference(b);
+
+  for (let i = 0; i < left.length; i++) {
+    if (left[i] !== right[i]) return left[i] - right[i];
+  }
+
+  return 0;
+}
+
 async function fetchItemNameToIdMap(version: string): Promise<Map<string, number>> {
   const res = await fetch(
     `https://ddragon.leagueoflegends.com/cdn/${version}/data/en_US/item.json`,
   );
   if (!res.ok) return new Map();
-  const json = (await res.json()) as { data: Record<string, { name: string }> };
-  return new Map(
-    Object.entries(json.data).map(([id, item]) => [item.name.toLowerCase(), Number(id)]),
-  );
+  const json = (await res.json()) as { data: Record<string, { name: string; maps?: Record<string, boolean> }> };
+  const byName = new Map<string, DdragonItemEntry>();
+
+  for (const [id, item] of Object.entries(json.data)) {
+    const entry = { id: Number(id), name: item.name, maps: item.maps };
+    if (!Number.isFinite(entry.id) || entry.id <= 0 || entry.name.length === 0) continue;
+
+    const key = entry.name.toLowerCase();
+    const current = byName.get(key);
+    if (!current || compareItemPreference(entry, current) < 0) {
+      byName.set(key, entry);
+    }
+  }
+
+  return new Map([...byName.entries()].map(([name, item]) => [name, item.id]));
 }
 
 async function fetchSpellCatalog(version: string): Promise<GameSpell[]> {
@@ -257,29 +300,22 @@ async function main() {
     requireEnv("SUPABASE_SERVICE_ROLE_KEY"),
   );
 
-  console.log("DDragon 카탈로그 로드 중...");
-  const ddragonVersion = "16.12.1";
-  const [itemNameToId, spellCatalog, runeNameToId] = await Promise.all([
-    fetchItemNameToIdMap(ddragonVersion),
-    fetchSpellCatalog(ddragonVersion),
-    fetchRuneNameToIdMap(ddragonVersion),
-  ]);
-  const spellKeyToId = buildSpellKeyToIdMap(spellCatalog);
-  console.log(`아이템 ${itemNameToId.size}개, 스펠 ${spellCatalog.length}개, 룬 ${runeNameToId.size}개 로드 완료`);
-
   // 모든 세트 (leaguepedia_game_id 없어도 set_number로 매칭)
   const { data: sets, error: setsError } = await supabase
     .from("sets")
-    .select("id, leaguepedia_game_id, set_number, match_id, blue_team_id, red_team_id")
+    .select("id, leaguepedia_game_id, set_number, match_id, blue_team_id, red_team_id, patch")
     .limit(5000);
 
   if (setsError) throw setsError;
   const setRows = (sets ?? []) as SetRow[];
   console.log(`전체 세트: ${setRows.length}개`);
 
-  // item0이 null인 선수 통계 목록 (force면 전체)
-  let statsQuery = supabase.from("set_player_stats").select("id, set_id, player_id, team_id, position, item0").limit(20000);
-  if (!force) statsQuery = statsQuery.is("item0", null);
+  // item/rune이 비어 있는 선수 통계 목록 (force면 전체)
+  let statsQuery = supabase
+    .from("set_player_stats")
+    .select("id, set_id, player_id, team_id, position, item0, rune0, rune1")
+    .limit(20000);
+  if (!force) statsQuery = statsQuery.or("item0.is.null,rune0.is.null,rune1.is.null");
   const { data: statsData, error: statsError } = await statsQuery;
   if (statsError) throw statsError;
   const statsRows = (statsData ?? []) as StatRow[];
@@ -308,6 +344,28 @@ async function main() {
 
   // 세트를 매치별로 그룹핑
   const setsToUpdate = setRows.filter((s) => setsNeedingUpdate.has(s.id));
+  console.log("DDragon 카탈로그 로드 중...");
+  const ddragonVersions = uniqueDdragonVersionsForPatches(setsToUpdate.map((set) => set.patch));
+  const versionedCatalogs = await Promise.all(
+    ddragonVersions.map(async (version) => {
+      const [itemNameToId, spellCatalog, runeNameToId] = await Promise.all([
+        fetchItemNameToIdMap(version),
+        fetchSpellCatalog(version),
+        fetchRuneNameToIdMap(version),
+      ]);
+      console.log(`${version}: 아이템 ${itemNameToId.size}개, 스펠 ${spellCatalog.length}개, 룬 ${runeNameToId.size}개 로드 완료`);
+      return [
+        version,
+        {
+          itemNameToId,
+          spellKeyToId: buildSpellKeyToIdMap(spellCatalog),
+          runeNameToId,
+        },
+      ] as const;
+    }),
+  );
+  const catalogsByVersion = new Map(versionedCatalogs);
+
   const setsByMatch = new Map<string, SetRow[]>();
   for (const set of setsToUpdate) {
     const list = setsByMatch.get(set.match_id) ?? [];
@@ -401,7 +459,12 @@ async function main() {
         // 이 세트+플레이어 통계 행 찾기
         const statRow = statsRows.find((s) => s.set_id === set.id && s.player_id === player.id);
         if (!statRow) continue;
-        if (!force && statRow.item0 !== null) continue;
+        if (!force && statRow.item0 !== null && statRow.rune0 !== null && statRow.rune1 !== null) continue;
+
+        const catalog = catalogsByVersion.get(ddragonVersionFromPatch(set.patch));
+        const itemNameToId = catalog?.itemNameToId ?? new Map<string, number>();
+        const spellKeyToId = catalog?.spellKeyToId ?? new Map<string, number>();
+        const runeNameToId = catalog?.runeNameToId ?? new Map<string, number>();
 
         const parsedItems = parseItems(row.Items, itemNameToId);
         const trinketName = String(row.Trinket ?? "").trim().toLowerCase();
