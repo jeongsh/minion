@@ -3,6 +3,8 @@ import { resolve } from "node:path";
 import readline from "node:readline";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
+import { championCatalogEntryForValue } from "../lib/champions";
+
 type SetRow = {
   id: string;
   riot_platform_game_id: string | null;
@@ -353,25 +355,48 @@ async function ensureChampions(
   }
 
   const byName = new Map<string, string>();
-  for (const champion of (data ?? []) as ExistingChampion[]) {
-    const id = champion.id;
-    byName.set(normalizeName(champion.ddragon_id || champion.name || champion.slug), id);
-    byName.set(championKey(champion.ddragon_id || champion.name || champion.slug), id);
+  function addChampionKeys(champion: ExistingChampion) {
+    for (const value of [champion.ddragon_id, champion.slug, champion.name]) {
+      if (!value) continue;
+      byName.set(normalizeName(value), champion.id);
+      byName.set(championKey(value), champion.id);
+
+      const catalogEntry = championCatalogEntryForValue(value);
+      if (catalogEntry) {
+        for (const catalogValue of [catalogEntry.ddragon_id, catalogEntry.slug, catalogEntry.name]) {
+          byName.set(normalizeName(catalogValue), champion.id);
+          byName.set(championKey(catalogValue), champion.id);
+        }
+      }
+    }
   }
 
-  const missing = normalizedNames.filter(
-    (name) => !byName.has(normalizeName(name)) && !byName.has(championKey(name)),
-  );
+  for (const champion of (data ?? []) as ExistingChampion[]) {
+    addChampionKeys(champion);
+  }
+
+  const missing = normalizedNames.filter((name) => {
+    const catalogEntry = championCatalogEntryForValue(name);
+    return (
+      !byName.has(normalizeName(name)) &&
+      !byName.has(championKey(name)) &&
+      !byName.has(normalizeName(catalogEntry?.ddragon_id)) &&
+      !byName.has(championKey(catalogEntry?.ddragon_id ?? ""))
+    );
+  });
 
   if (missing.length > 0) {
     const { data: inserted, error: insertError } = await supabase
       .from("champions")
       .upsert(
-        missing.map((name) => ({
-          slug: slugify(name),
-          name,
-          ddragon_id: name.replace(/\s+/g, ""),
-        })),
+        missing.map((name) => {
+          const catalogEntry = championCatalogEntryForValue(name);
+          return catalogEntry ?? {
+            slug: slugify(name),
+            name,
+            ddragon_id: name.replace(/\s+/g, ""),
+          };
+        }),
         { onConflict: "slug" },
       )
       .select("id, slug, name, ddragon_id");
@@ -381,10 +406,7 @@ async function ensureChampions(
     }
 
     for (const champion of (inserted ?? []) as ExistingChampion[]) {
-      byName.set(normalizeName(champion.ddragon_id || champion.name || champion.slug), champion.id);
-      byName.set(championKey(champion.ddragon_id || champion.name || champion.slug), champion.id);
-      byName.set(normalizeName(champion.name), champion.id);
-      byName.set(championKey(champion.name), champion.id);
+      addChampionKeys(champion);
     }
   }
 

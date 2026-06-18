@@ -880,7 +880,9 @@ export async function getChampions() {
       throw error;
     }
 
-    return (data as ChampionRow[]).map(mapChampion);
+    return (data as ChampionRow[])
+      .map(mapChampion)
+      .sort((a, b) => a.name.localeCompare(b.name, "ko"));
   }, []);
 }
 

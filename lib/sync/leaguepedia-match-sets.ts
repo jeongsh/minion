@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { championCatalogEntryForValue } from "../champions";
 import { fetchItemCatalog } from "../items";
 import { fetchSpellCatalog, type GameSpell } from "../spells";
 
@@ -461,24 +462,43 @@ async function getChampionMap(supabase: SupabaseClient, championNames: string[])
     throw error;
   }
 
-  const byName = new Map(
-    (existing as ExistingChampion[]).map((champion) => [
-      normalizeName(champion.ddragon_id || champion.name || champion.slug),
-      champion.id,
-    ]),
-  );
+  const byName = new Map<string, string>();
 
-  const missing = normalizedNames.filter((name) => !byName.has(normalizeName(name)));
+  function addChampionKeys(champion: ExistingChampion) {
+    for (const value of [champion.ddragon_id, champion.slug, champion.name]) {
+      if (!value) continue;
+      byName.set(normalizeName(value), champion.id);
+
+      const catalogEntry = championCatalogEntryForValue(value);
+      if (catalogEntry) {
+        byName.set(normalizeName(catalogEntry.ddragon_id), champion.id);
+        byName.set(normalizeName(catalogEntry.slug), champion.id);
+        byName.set(normalizeName(catalogEntry.name), champion.id);
+      }
+    }
+  }
+
+  for (const champion of existing as ExistingChampion[]) {
+    addChampionKeys(champion);
+  }
+
+  const missing = normalizedNames.filter((name) => {
+    const catalogEntry = championCatalogEntryForValue(name);
+    return !byName.has(normalizeName(name)) && !byName.has(normalizeName(catalogEntry?.ddragon_id));
+  });
 
   if (missing.length > 0) {
     const { data: inserted, error: insertError } = await supabase
       .from("champions")
       .upsert(
-        missing.map((name) => ({
-          slug: slugify(name),
-          name,
-          ddragon_id: name.replace(/\s+/g, ""),
-        })),
+        missing.map((name) => {
+          const catalogEntry = championCatalogEntryForValue(name);
+          return catalogEntry ?? {
+            slug: slugify(name),
+            name,
+            ddragon_id: name.replace(/\s+/g, ""),
+          };
+        }),
         { onConflict: "slug" },
       )
       .select("id, slug, name, ddragon_id");
@@ -488,8 +508,7 @@ async function getChampionMap(supabase: SupabaseClient, championNames: string[])
     }
 
     for (const champion of inserted as ExistingChampion[]) {
-      byName.set(normalizeName(champion.ddragon_id || champion.name || champion.slug), champion.id);
-      byName.set(normalizeName(champion.name), champion.id);
+      addChampionKeys(champion);
     }
   }
 

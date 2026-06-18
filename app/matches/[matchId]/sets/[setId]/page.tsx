@@ -15,6 +15,7 @@ import {
   getSetsByMatchId,
 } from "@/lib/data/lck";
 import { calculatePlayerStats } from "@/lib/stats";
+import { championImage } from "@/lib/champions";
 import { itemImageUrl } from "@/lib/items";
 import { runeImageUrlById, fetchRuneCatalog, type RuneCatalog } from "@/lib/runes";
 import { spellImageUrlById, fetchSpellCatalog, type GameSpell } from "@/lib/spells";
@@ -35,31 +36,6 @@ function damageLabel(value: number | null | undefined) {
 
 function numberLabel(value: number | null | undefined) {
   return value == null ? "-" : value.toLocaleString("ko-KR");
-}
-
-function normalizedDdragonId(champion?: Champion) {
-  const value = champion?.ddragonId || champion?.slug || champion?.name || "";
-  const compact = value.replace(/[^A-Za-z0-9]/g, "");
-  const exceptions: Record<string, string> = {
-    BelVeth: "Belveth",
-    ChoGath: "Chogath",
-    JarvanIv: "JarvanIV",
-    JarvanIV: "JarvanIV",
-    Ksante: "KSante",
-    KSante: "KSante",
-    NunuWillump: "Nunu",
-    Reksai: "RekSai",
-    RenataGlasc: "Renata",
-    VelKoz: "Velkoz",
-  };
-  return exceptions[compact] ?? compact;
-}
-
-function championImage(champion?: Champion) {
-  if (!champion) return "";
-  if (champion.imageUrl) return champion.imageUrl;
-  const ddragonId = normalizedDdragonId(champion);
-  return ddragonId ? `https://ddragon.leagueoflegends.com/cdn/img/champion/tiles/${ddragonId}_0.jpg` : "";
 }
 
 function itemImage(itemId: number, version: string) {

@@ -1,6 +1,6 @@
 import type { Champion } from "@/lib/types";
 
-const CHAMPION_KO: Record<string, string> = {
+export const CHAMPION_KO: Record<string, string> = {
   Aatrox: "아트록스",
   Ahri: "아리",
   Akali: "아칼리",
@@ -163,8 +163,10 @@ const CHAMPION_KO: Record<string, string> = {
   Yasuo: "야스오",
   Yone: "요네",
   Yorick: "요릭",
+  Yunara: "유나라",
   Yuumi: "유미",
   Zac: "자크",
+  Zaahen: "자헨",
   Zed: "제드",
   Zeri: "제리",
   Ziggs: "직스",
@@ -183,7 +185,9 @@ export function normalizedDdragonId(champion?: Champion) {
     DrMundo: "DrMundo",
     JarvanIv: "JarvanIV",
     JarvanIV: "JarvanIV",
+    KaiSa: "Kaisa",
     Kaisa: "Kaisa",
+    KhaZix: "Khazix",
     Khazix: "Khazix",
     KogMaw: "KogMaw",
     Ksante: "KSante",
@@ -214,8 +218,7 @@ export function championImage(champion?: Champion) {
 
 export function championLabel(champion?: Champion) {
   if (!champion) return "미입력";
-  const ddragonId = normalizedDdragonId(champion);
-  return CHAMPION_KO[ddragonId] ?? champion.name;
+  return champion.name;
 }
 
 export function championSearchText(champion: Champion) {
@@ -239,7 +242,7 @@ function catalogSlug(ddragonId: string) {
 }
 
 function catalogName(ddragonId: string) {
-  return ddragonId.replace(/([a-z])([A-Z])/g, "$1 $2");
+  return CHAMPION_KO[ddragonId] ?? ddragonId.replace(/([a-z])([A-Z])/g, "$1 $2");
 }
 
 export function championCatalogEntries() {
@@ -248,6 +251,27 @@ export function championCatalogEntries() {
     name: catalogName(ddragonId),
     ddragon_id: ddragonId,
   }));
+}
+
+export function championCatalogEntryForValue(value: string | null | undefined) {
+  const text = String(value ?? "").trim();
+  if (!text) return null;
+
+  const ddragonId = normalizedDdragonId({
+    id: text,
+    slug: text,
+    name: text,
+  });
+
+  if (!CHAMPION_KO[ddragonId]) {
+    return null;
+  }
+
+  return {
+    slug: catalogSlug(ddragonId),
+    name: catalogName(ddragonId),
+    ddragon_id: ddragonId,
+  };
 }
 
 export const CATALOG_CHAMPION_ID_PREFIX = "catalog:";

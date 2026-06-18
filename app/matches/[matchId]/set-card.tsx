@@ -362,7 +362,7 @@ export function SetCard({
             <ComparisonBar label="Total Kill" blueValue={blueKills} redValue={redKills} />
             <ComparisonBar label="Total Gold" blueValue={blueGold} redValue={redGold} format={(v) => `${(v / 1000).toFixed(1)}K`} />
           </div>
-          <TeamStats set={set} lines={statLines} players={players} champions={champions} teams={teams} spells={spells} itemVersion={itemVersion} side="red" />
+          <TeamStats set={set} lines={statLines} players={players} champions={champions} teams={teams} spells={spells} itemVersion={itemVersion} runeImages={runeImages} side="red" />
         </div>
       )}
     </div>
