@@ -979,6 +979,16 @@ export async function getPlayerStatLines(setId?: string | string[]) {
           ? row.sets[0]?.duration_seconds ?? 0
           : row.sets?.duration_seconds ?? 0) / 60,
       visionScore: row.vision_score,
+      dpm: row.dpm ?? null,
+      damageShare: row.damage_share ?? null,
+      visionScorePerMinute: row.vision_score_per_minute ?? null,
+      csPerMinute: row.cs_per_minute ?? null,
+      goldDiffAt10: row.gold_diff_at_10 ?? null,
+      xpDiffAt10: row.xp_diff_at_10 ?? null,
+      csDiffAt10: row.cs_diff_at_10 ?? null,
+      goldDiffAt15: row.gold_diff_at_15 ?? null,
+      xpDiffAt15: row.xp_diff_at_15 ?? null,
+      csDiffAt15: row.cs_diff_at_15 ?? null,
       itemIds: [row.item0, row.item1, row.item2, row.item3, row.item4, row.item5, row.item6].map(
         (itemId) => itemId ?? null,
       ),

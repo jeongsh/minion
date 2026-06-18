@@ -921,8 +921,8 @@ export default async function PlayerDetailPage({
                   <p className="mt-1">{statValue(teammateStats?.kda, 2)} / {percentValue(teammateStats?.kp)} / {statValue(teammateStats?.dpm)}</p>
                 </div>
                 <div className="mt-3 flex justify-center gap-2">
-                  {recentChampions.map((champion) =>
-                    champion ? <PlayerImage key={champion.id} src={championImageUrl(champion)} alt="" className="h-8 w-8 rounded-full object-cover" /> : null,
+                  {recentChampions.map((champion, index) =>
+                    champion ? <PlayerImage key={`${champion.id}-${index}`} src={championImageUrl(champion)} alt="" className="h-8 w-8 rounded-full object-cover" /> : null,
                   )}
                 </div>
                 <Link href={`/players/${teammate.slug}`} className="mt-4 block rounded-md bg-surface-muted px-3 py-2 text-center text-sm font-semibold">선수 상세 보기</Link>
