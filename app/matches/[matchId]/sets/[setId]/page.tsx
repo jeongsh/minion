@@ -106,46 +106,74 @@ function kdaText(
   return `${totals.kills}/${totals.deaths}/${totals.assists}`;
 }
 
-function matchScoreForTeam(
-  match: {
-    teamAId: string;
-    teamBId: string;
-    teamAScore: number | null;
-    teamBScore: number | null;
-  },
-  teamId: string,
-) {
-  if (match.teamAId === teamId) return match.teamAScore;
-  if (match.teamBId === teamId) return match.teamBScore;
+function setKillsForTeam(set: SetResult, teamId: string) {
+  if (set.blueTeamId === teamId) return set.blueKills;
+  if (set.redTeamId === teamId) return set.redKills;
   return null;
 }
 
-function TeamHeader({
-  teamName,
-  score,
-  result,
-  align = "left",
-}: {
-  teamName: string;
-  score: number | null;
-  result: "WIN" | "LOSS";
-  align?: "left" | "right";
-}) {
+function TeamLogoBadge({ team }: { team?: Team }) {
+  if (!team) {
+    return (
+      <span className="grid size-8 shrink-0 place-items-center rounded-full border border-background/30 bg-background/10 text-xs font-bold">
+        -
+      </span>
+    );
+  }
+
+  if (team.logoUrl) {
+    return (
+      <img
+        src={team.logoUrl}
+        alt=""
+        width={32}
+        height={32}
+        className="size-8 shrink-0 object-contain"
+        aria-hidden="true"
+      />
+    );
+  }
+
   return (
-    <div
-      className={`flex items-center gap-4 bg-foreground px-5 py-4 text-background ${
-        align === "right" ? "justify-end bg-accent" : ""
-      }`}
+    <span
+      className="grid size-8 shrink-0 place-items-center rounded-full border border-background/30 bg-background/10 text-xs font-bold"
+      style={{ color: team.primaryColor }}
+      aria-hidden="true"
     >
-      {align === "left" ? (
-        <strong className="text-xl">{teamName}</strong>
-      ) : null}
-      <span className="text-4xl font-semibold">{score ?? "-"}</span>
-      <span className="h-8 w-px bg-background/35" />
-      <span className="text-xl font-semibold">{result}</span>
-      {align === "right" ? (
-        <strong className="text-xl">{teamName}</strong>
-      ) : null}
+      {team.shortName.slice(0, 3)}
+    </span>
+  );
+}
+
+function SetSummaryHeader({
+  set,
+  match,
+  teams,
+}: {
+  set: SetResult;
+  match: { teamAId: string; teamBId: string };
+  teams: Team[];
+}) {
+  const teamA = teams.find((item) => item.id === match.teamAId);
+  const teamB = teams.find((item) => item.id === match.teamBId);
+  const teamAKills = setKillsForTeam(set, match.teamAId);
+  const teamBKills = setKillsForTeam(set, match.teamBId);
+
+  return (
+    <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 bg-foreground px-5 py-4 text-background">
+      <span className="justify-self-start text-2xl font-semibold tabular-nums">
+        {durationLabel(set.durationSeconds)}
+      </span>
+      <div className="flex items-center gap-3">
+        <TeamLogoBadge team={teamA} />
+        <span className="text-2xl font-semibold tabular-nums">
+          {teamAKills ?? "-"} : {teamBKills ?? "-"}
+        </span>
+        <TeamLogoBadge team={teamB} />
+      </div>
+      <span className="justify-self-end text-sm font-semibold text-background/80">
+        PATCH {set.patch ?? "-"}
+      </span>
     </div>
   );
 }
@@ -650,8 +678,6 @@ export async function SetDetailContent({
   const redRows = playerRows
     .filter((row) => row.line.teamId === set.redTeamId)
     .sort(byPosition);
-  const blueWon = set.winnerTeamId === set.blueTeamId;
-  const redWon = set.winnerTeamId === set.redTeamId;
   const maxDamage = Math.max(
     ...playerRows.map((row) => row.line.damageToChampions),
     1,
@@ -686,30 +712,7 @@ export async function SetDetailContent({
         className="overflow-hidden rounded-md border border-border bg-surface"
         aria-labelledby="set-summary"
       >
-        <div className="grid bg-foreground text-background lg:grid-cols-[1fr_15rem_1fr]">
-          <TeamHeader
-            teamName={teamLabel(teams, set.blueTeamId)}
-            score={matchScoreForTeam(match, set.blueTeamId)}
-            result={blueWon ? "WIN" : "LOSS"}
-          />
-          <div className="grid place-items-center border-y border-background/20 px-5 py-4 text-center lg:border-x lg:border-y-0">
-            <p className="text-xs font-semibold text-background/70">
-              GAME TIME
-            </p>
-            <p className="text-3xl font-semibold">
-              {durationLabel(set.durationSeconds)}
-            </p>
-            <p className="text-xs text-background/70">
-              GAME {set.setNumber} · PATCH {set.patch ?? "-"}
-            </p>
-          </div>
-          <TeamHeader
-            teamName={teamLabel(teams, set.redTeamId)}
-            score={matchScoreForTeam(match, set.redTeamId)}
-            result={redWon ? "WIN" : "LOSS"}
-            align="right"
-          />
-        </div>
+        <SetSummaryHeader set={set} match={match} teams={teams} />
 
         <div className="grid gap-6 p-4 lg:grid-cols-[0.9fr_1.1fr]">
           <div className="rounded-md border border-border bg-background">

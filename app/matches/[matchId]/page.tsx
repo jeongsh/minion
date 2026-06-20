@@ -58,16 +58,6 @@ function matchScoreLabel(teamAScore: number | null, teamBScore: number | null) {
   return `${scoreLabel(teamAScore)} : ${scoreLabel(teamBScore)}`;
 }
 
-function winnerLabel({
-  winnerTeamId,
-  teams,
-}: {
-  winnerTeamId: string | null | undefined;
-  teams: Awaited<ReturnType<typeof getAllTeams>>;
-}) {
-  return winnerTeamId ? teamLabel(teams, winnerTeamId) : "-";
-}
-
 function TeamScoreBlock({
   align = "left",
   seedLabel,
@@ -312,28 +302,19 @@ export default async function MatchDetailPage({
             resultLabel={teamBResult}
           />
         </div>
-      </section>
-      <section
-        className="grid gap-3 md:grid-cols-3"
-        aria-label="매치 핵심 정보"
-      >
-        <div className="rounded-md border border-border bg-surface p-4">
-          <p className="text-xs font-semibold text-muted">승리 팀</p>
-          <p className="mt-2 text-lg font-semibold">
-            {winnerLabel({ winnerTeamId: match.winnerTeamId, teams })}
-          </p>
-        </div>
-        <div className="rounded-md border border-border bg-surface p-4">
-          <p className="text-xs font-semibold text-muted">공식 POM</p>
-          <p className="mt-2 text-lg font-semibold">
-            {playerLabel(players, match.officialPomPlayerId)}
-          </p>
-        </div>
-        <div className="rounded-md border border-border bg-surface p-4">
-          <p className="text-xs font-semibold text-muted">팬 평점 1위</p>
-          <p className="mt-2 text-lg font-semibold">
-            {topFanRatingForMatch(match.id, fanRatings, players)}
-          </p>
+        <div className="grid gap-4 border-t border-border px-6 py-4 sm:grid-cols-2">
+          <div>
+            <p className="text-xs font-semibold text-muted">공식 POM</p>
+            <p className="mt-1 text-base font-semibold">
+              {playerLabel(players, match.officialPomPlayerId)}
+            </p>
+          </div>
+          <div className="sm:text-right">
+            <p className="text-xs font-semibold text-muted">팬 평점 1위</p>
+            <p className="mt-1 text-base font-semibold">
+              {topFanRatingForMatch(match.id, fanRatings, players)}
+            </p>
+          </div>
         </div>
       </section>
 

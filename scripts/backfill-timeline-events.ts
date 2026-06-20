@@ -3,10 +3,11 @@
  * timeline_events 테이블에 저장하는 백필 스크립트.
  *
  * 실행:
- *   npx tsx scripts/backfill-timeline-events.ts [--force] [--match <matchId>]
+ *   npx tsx scripts/backfill-timeline-events.ts [--force] [--match <matchId>] [--set <setId>]
  *
  * --force: 이미 이벤트가 있는 세트도 덮어씀
  * --match: 특정 매치 ID만 처리
+ * --set: 특정 세트 ID만 처리
  */
 
 import { readFileSync } from "node:fs";
@@ -38,6 +39,7 @@ function requireEnv(name: string) {
 type SetRow = {
   id: string;
   leaguepedia_game_id: string | null;
+  riot_platform_game_id: string | null;
   blue_team_id: string;
   red_team_id: string;
   duration_seconds: number | null;
@@ -86,6 +88,10 @@ function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
+function isRateLimited(body: { error?: { code?: string } } | null | undefined) {
+  return body?.error?.code === "ratelimited";
+}
+
 async function cargoQuery(params: Record<string, string>): Promise<Record<string, string>[]> {
   const urlParams = new URLSearchParams({ action: "cargoquery", format: "json", limit: "500" });
   for (const [k, v] of Object.entries(params)) urlParams.set(k, v);
@@ -99,7 +105,14 @@ async function cargoQuery(params: Record<string, string>): Promise<Record<string
       continue;
     }
     if (!res.ok) throw new Error(`Cargo 요청 실패: ${res.status}`);
-    const body = (await res.json()) as { cargoquery?: Array<{ title: Record<string, string> }> };
+    const body = (await res.json()) as {
+      cargoquery?: Array<{ title: Record<string, string> }>;
+      error?: { code?: string };
+    };
+    if (isRateLimited(body)) {
+      await sleep(REQUEST_DELAY_MS * (attempt + 2));
+      continue;
+    }
     return (body.cargoquery ?? []).map((row) => row.title);
   }
   throw new Error("Cargo 요청 최대 재시도 초과");
@@ -125,7 +138,12 @@ async function fetchWikiPage(title: string): Promise<string | null> {
     if (!res.ok) throw new Error(`Wiki 페이지 요청 실패: ${res.status}`);
     const body = (await res.json()) as {
       query?: { pages?: Record<string, { revisions?: Array<{ "*": string }> }> };
+      error?: { code?: string };
     };
+    if (isRateLimited(body)) {
+      await sleep(REQUEST_DELAY_MS * (attempt + 2));
+      continue;
+    }
     const pages = body.query?.pages ?? {};
     const page = Object.values(pages)[0];
     if (!page || !page.revisions?.length) return null;
@@ -263,6 +281,11 @@ function parseTimelineEvents(
   return rows;
 }
 
+function timelinePageFromPlatformGameId(platformGameId: string | null | undefined) {
+  if (!platformGameId) return null;
+  return `V5 data:${platformGameId.replace(/_/g, " ")}/Timeline`;
+}
+
 // ─── 메인 ──────────────────────────────────────────────────────
 
 async function main() {
@@ -273,14 +296,17 @@ async function main() {
   const force = args.includes("--force");
   const matchIdx = args.indexOf("--match");
   const matchId = matchIdx !== -1 ? args[matchIdx + 1] : null;
+  const setIdx = args.indexOf("--set");
+  const setId = setIdx !== -1 ? args[setIdx + 1] : null;
 
   // 1. 처리할 세트 목록 조회
   let setsQuery = supabase
     .from("sets")
-    .select("id, leaguepedia_game_id, blue_team_id, red_team_id, duration_seconds")
+    .select("id, leaguepedia_game_id, riot_platform_game_id, blue_team_id, red_team_id, duration_seconds")
     .not("leaguepedia_game_id", "is", null);
 
   if (matchId) setsQuery = setsQuery.eq("match_id", matchId);
+  if (setId) setsQuery = setsQuery.eq("id", setId);
 
   const { data: sets, error: setsError } = await setsQuery;
   if (setsError || !sets) throw new Error(`세트 조회 실패: ${setsError?.message}`);
@@ -315,12 +341,13 @@ async function main() {
         limit: "1",
       });
 
-      if (!metaRows.length || !metaRows[0].TimelinePage) {
+      const timelinePage =
+        metaRows[0]?.TimelinePage ?? timelinePageFromPlatformGameId(set.riot_platform_game_id);
+
+      if (!timelinePage) {
         console.log("타임라인 페이지 없음 — 스킵");
         continue;
       }
-
-      const timelinePage = metaRows[0].TimelinePage;
 
       // 3. 위키 페이지에서 타임라인 JSON 가져오기
       await sleep(REQUEST_DELAY_MS);
