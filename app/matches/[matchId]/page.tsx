@@ -1,40 +1,45 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 
+import { WinnerPredictionPoll } from "@/components/domain/winner-prediction-poll";
 import { SourceNotice } from "@/components/domain/source-notice";
-import { DataTable } from "@/components/ui/data-table";
-import { MatchDraftSummary } from "./match-draft-summary";
 import {
   getAllPlayers,
   getAllTeams,
-  getChampions,
+  getFanMatchPredictions,
   getFanRatings,
   getMatchById,
-  getPlayerStatLines,
-  getSetPicksBans,
+  getMatches,
+  getSets,
   getSetsByMatchId,
   getStages,
   getTournaments,
-  getTimelineEvents,
-  type TimelineEvent,
 } from "@/lib/data/lck";
-import { fetchRuneImages } from "@/lib/runes";
-import { fetchSpellCatalog } from "@/lib/spells";
-import { uniqueDdragonVersionsForPatches } from "@/lib/ddragon";
 import type { MatchStatus, SetResult } from "@/lib/types";
 import {
-  durationLabel,
   formatDateTime,
   playerLabel,
-  setHref,
   teamLabel,
   topFanRatingForMatch,
 } from "@/lib/view-data";
+
+import { predictMatchWinnerAction } from "./actions";
+import { MatchPreview } from "./match-preview";
+import { SetDetailContent } from "./sets/[setId]/page";
+
+type MatchTab = "preview" | "data" | "video";
 
 const MATCH_STATUS_LABEL: Record<MatchStatus, string> = {
   scheduled: "예정",
   live: "진행 중",
   completed: "종료",
+};
+
+const TAB_LABELS: Record<MatchTab, string> = {
+  preview: "프리뷰",
+  data: "매치 데이터",
+  video: "영상",
 };
 
 function setLabel(set: SetResult) {
@@ -63,7 +68,6 @@ function winnerLabel({
   return winnerTeamId ? teamLabel(teams, winnerTeamId) : "-";
 }
 
-
 function TeamScoreBlock({
   align = "left",
   seedLabel,
@@ -78,60 +82,164 @@ function TeamScoreBlock({
   resultLabel: string;
 }) {
   return (
-    <div className={`flex min-w-0 flex-col gap-3 ${align === "right" ? "items-end text-right" : ""}`}>
-      <p className="text-xs font-semibold uppercase tracking-wide text-muted">{seedLabel}</p>
-      <div className={`flex items-center gap-3 ${align === "right" ? "flex-row-reverse" : ""}`}>
+    <div
+      className={`flex min-w-0 flex-col gap-3 ${align === "right" ? "items-end text-right" : ""}`}
+    >
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+        {seedLabel}
+      </p>
+      <div
+        className={`flex items-center gap-3 ${align === "right" ? "flex-row-reverse" : ""}`}
+      >
         <div>
           <p className="text-2xl font-semibold md:text-3xl">{teamName}</p>
           <p className="mt-1 text-sm font-semibold text-muted">{resultLabel}</p>
         </div>
-        <span className="text-5xl font-semibold md:text-6xl">{score ?? "-"}</span>
+        <span className="text-5xl font-semibold md:text-6xl">
+          {score ?? "-"}
+        </span>
       </div>
+    </div>
+  );
+}
+
+function tabHref(tab: MatchTab, setId?: string) {
+  const params = new URLSearchParams({ tab });
+
+  if (setId) {
+    params.set("set", setId);
+  }
+
+  return `?${params.toString()}`;
+}
+
+function normalizeTab(value: string | undefined, fallback: MatchTab): MatchTab {
+  return value === "preview" || value === "data" || value === "video"
+    ? value
+    : fallback;
+}
+
+function youtubeEmbedUrl(value: string | null | undefined) {
+  if (!value) return null;
+
+  try {
+    const url = new URL(value);
+
+    if (url.hostname.includes("youtu.be")) {
+      const id = url.pathname.split("/").filter(Boolean)[0];
+      return id ? `https://www.youtube.com/embed/${id}` : null;
+    }
+
+    if (url.hostname.includes("youtube.com")) {
+      const id =
+        url.searchParams.get("v") ??
+        url.pathname.split("/").filter(Boolean).pop();
+      return id ? `https://www.youtube.com/embed/${id}` : null;
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
+function TabNav({
+  activeTab,
+  firstSetId,
+}: {
+  activeTab: MatchTab;
+  firstSetId?: string;
+}) {
+  return (
+    <nav className="flex flex-wrap gap-2" aria-label="매치 상세 탭">
+      {(Object.keys(TAB_LABELS) as MatchTab[]).map((tab) => (
+        <Link
+          key={tab}
+          href={tabHref(tab, tab === "data" ? firstSetId : undefined)}
+          className={`rounded-md border px-4 py-2 text-sm font-semibold ${
+            activeTab === tab
+              ? "border-foreground bg-foreground text-background"
+              : "border-border bg-surface hover:bg-surface-muted"
+          }`}
+        >
+          {TAB_LABELS[tab]}
+        </Link>
+      ))}
+    </nav>
+  );
+}
+
+function SetSelector({
+  sets,
+  activeSet,
+}: {
+  sets: SetResult[];
+  activeSet?: SetResult;
+}) {
+  if (sets.length === 0) return null;
+
+  return (
+    <div className="flex flex-wrap gap-2">
+      {sets.map((set) => (
+        <Link
+          key={set.id}
+          href={tabHref("data", set.id)}
+          className={`rounded-md border px-3 py-2 text-sm font-semibold ${
+            activeSet?.id === set.id
+              ? "border-accent bg-accent text-accent-foreground"
+              : "border-border bg-surface hover:bg-surface-muted"
+          }`}
+        >
+          {setLabel(set)}
+        </Link>
+      ))}
     </div>
   );
 }
 
 export default async function MatchDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ matchId: string }>;
+  searchParams: Promise<{ tab?: string; set?: string }>;
 }) {
-  const { matchId } = await params;
+  const [{ matchId }, query] = await Promise.all([params, searchParams]);
   const match = await getMatchById(matchId);
 
   if (!match) {
     notFound();
   }
 
-  const [teams, players, sets, fanRatings, champions, tournaments, stages] =
-    await Promise.all([
-      getAllTeams(),
-      getAllPlayers(),
-      getSetsByMatchId(match.id),
-      getFanRatings(),
-      getChampions(),
-      getTournaments(),
-      getStages(),
-    ]);
-
-  const setIds = sets.map((s) => s.id);
-  const itemVersions = uniqueDdragonVersionsForPatches(sets.map((set) => set.patch));
-
-  const [picksBans, playerStatLines, spellsPerVersion, runeImagesPerVersion, timelineArrays] = await Promise.all([
-    getSetPicksBans(setIds),
-    getPlayerStatLines(setIds),
-    Promise.all(itemVersions.map(async (v) => ({ version: v, data: await fetchSpellCatalog(v) }))),
-    Promise.all(itemVersions.map(async (v) => ({ version: v, data: await fetchRuneImages(v) }))),
-    Promise.all(setIds.map(async (id) => ({ setId: id, events: await getTimelineEvents(id) }))),
+  const [
+    teams,
+    players,
+    matchSets,
+    allSets,
+    fanRatings,
+    predictions,
+    tournaments,
+    stages,
+    matches,
+  ] = await Promise.all([
+    getAllTeams(),
+    getAllPlayers(),
+    getSetsByMatchId(match.id),
+    getSets(),
+    getFanRatings(),
+    getFanMatchPredictions(match.id),
+    getTournaments(),
+    getStages(),
+    getMatches(),
   ]);
 
-  const spellsByVersion = Object.fromEntries(spellsPerVersion.map(({ version, data }) => [version, data]));
-  const runeImagesByVersion = Object.fromEntries(runeImagesPerVersion.map(({ version, data }) => [version, data]));
-  const timelineEventsBySetId = Object.fromEntries(timelineArrays.map(({ setId, events }) => [setId, events]));
-
+  const defaultTab: MatchTab =
+    match.status === "completed" && matchSets.length > 0 ? "data" : "preview";
+  const activeTab = normalizeTab(query.tab, defaultTab);
+  const activeSet =
+    matchSets.find((set) => set.id === query.set) ?? matchSets[0];
   const tournament = tournaments.find((item) => item.id === match.tournamentId);
   const stage = stages.find((item) => item.id === match.stageId);
-  const matchRatings = fanRatings.filter((rating) => rating.matchId === match.id);
   const teamAName = teamLabel(teams, match.teamAId);
   const teamBName = teamLabel(teams, match.teamBId);
   const teamAResult = match.winnerTeamId
@@ -144,13 +252,38 @@ export default async function MatchDetailPage({
       ? "WIN"
       : "LOSS"
     : MATCH_STATUS_LABEL[match.status];
+  const cookieStore = await cookies();
+  const voterKey = cookieStore.get("lckhub_match_prediction_voter")?.value;
+  const predictionClosed = match.status !== "scheduled";
 
+  const activeSetCard = activeSet ? (
+    <SetDetailContent matchId={matchId} setId={activeSet.id} embedded />
+  ) : (
+    <div className="rounded-md border border-dashed border-border bg-surface p-4 text-sm text-muted">
+      세트 데이터가 아직 연결되지 않았습니다.
+    </div>
+  );
+
+  const poll = (
+    <WinnerPredictionPoll
+      match={match}
+      teams={teams}
+      predictions={predictions}
+      voterKey={voterKey}
+      closed={predictionClosed}
+      action={predictMatchWinnerAction}
+    />
+  );
+  const embedUrl = youtubeEmbedUrl(match.vodUrl);
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-[var(--page-inline)] py-10">
-      <section className="overflow-hidden rounded-md border border-border bg-surface" aria-label="매치 요약">
+      <section
+        className="overflow-hidden rounded-md border border-border bg-surface"
+        aria-label="매치 요약"
+      >
         <div className="grid gap-6 p-6 lg:grid-cols-[1fr_auto_1fr] lg:items-center">
           <TeamScoreBlock
-            seedLabel="1st"
+            seedLabel="Team A"
             teamName={teamAName}
             score={match.teamAScore}
             resultLabel={teamAResult}
@@ -161,7 +294,9 @@ export default async function MatchDetailPage({
               {tournament?.name ?? "대회 미지정"}
               {stage ? ` · ${stage.name}` : ""}
             </p>
-            <p className="mt-2 text-4xl font-semibold">{matchScoreLabel(match.teamAScore, match.teamBScore)}</p>
+            <p className="mt-2 text-4xl font-semibold">
+              {matchScoreLabel(match.teamAScore, match.teamBScore)}
+            </p>
             <div className="mt-3 flex flex-wrap justify-center gap-2 text-xs font-semibold text-muted">
               <span>{formatDateTime(match.matchDate)}</span>
               <span>Bo{match.bestOf ?? "-"}</span>
@@ -171,109 +306,90 @@ export default async function MatchDetailPage({
 
           <TeamScoreBlock
             align="right"
-            seedLabel="4th"
+            seedLabel="Team B"
             teamName={teamBName}
             score={match.teamBScore}
             resultLabel={teamBResult}
           />
         </div>
-
       </section>
-
-      <section className="grid gap-3 md:grid-cols-3" aria-label="매치 핵심 정보">
+      <section
+        className="grid gap-3 md:grid-cols-3"
+        aria-label="매치 핵심 정보"
+      >
         <div className="rounded-md border border-border bg-surface p-4">
           <p className="text-xs font-semibold text-muted">승리 팀</p>
-          <p className="mt-2 text-lg font-semibold">{winnerLabel({ winnerTeamId: match.winnerTeamId, teams })}</p>
+          <p className="mt-2 text-lg font-semibold">
+            {winnerLabel({ winnerTeamId: match.winnerTeamId, teams })}
+          </p>
         </div>
         <div className="rounded-md border border-border bg-surface p-4">
           <p className="text-xs font-semibold text-muted">공식 POM</p>
-          <p className="mt-2 text-lg font-semibold">{playerLabel(players, match.officialPomPlayerId)}</p>
+          <p className="mt-2 text-lg font-semibold">
+            {playerLabel(players, match.officialPomPlayerId)}
+          </p>
         </div>
         <div className="rounded-md border border-border bg-surface p-4">
           <p className="text-xs font-semibold text-muted">팬 평점 1위</p>
-          <p className="mt-2 text-lg font-semibold">{topFanRatingForMatch(match.id, fanRatings, players)}</p>
+          <p className="mt-2 text-lg font-semibold">
+            {topFanRatingForMatch(match.id, fanRatings, players)}
+          </p>
         </div>
       </section>
 
-      <section className="flex flex-col gap-4" aria-labelledby="set-results">
-        <h2 id="set-results" className="text-xl font-semibold">
-          세트 결과
-        </h2>
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          {sets.length === 0 ? (
-            <div className="rounded-md border border-dashed border-border bg-surface p-4 text-sm text-muted">
-              세트 상세 데이터가 아직 연결되지 않았습니다.
+      <TabNav activeTab={activeTab} firstSetId={matchSets[0]?.id} />
+
+      {activeTab === "preview" ? (
+        <MatchPreview
+          match={match}
+          teams={teams}
+          matches={matches}
+          sets={allSets}
+          poll={poll}
+        />
+      ) : null}
+
+      {activeTab === "data" ? (
+        <div className="flex flex-col gap-3">
+          <SetSelector sets={matchSets} activeSet={activeSet} />
+          {activeSetCard}
+        </div>
+      ) : null}
+
+      {activeTab === "video" ? (
+        <section
+          className="rounded-md border border-border bg-surface p-4"
+          aria-labelledby="match-video"
+        >
+          <h2 id="match-video" className="text-xl font-semibold">
+            영상
+          </h2>
+          {match.vodUrl ? (
+            <div className="mt-4 flex flex-col gap-3">
+              {embedUrl ? (
+                <iframe
+                  src={embedUrl}
+                  title={`${match.name} VOD`}
+                  className="aspect-video w-full rounded-md border border-border"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                />
+              ) : null}
+              <Link
+                href={match.vodUrl}
+                className="text-sm font-semibold text-accent"
+                target="_blank"
+              >
+                원본 영상 열기
+              </Link>
             </div>
           ) : (
-            sets.map((set) => (
-              <Link
-                key={set.id}
-                href={setHref(match, set)}
-                className="rounded-md border border-border bg-surface p-4 hover:bg-surface-muted"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <strong>{setLabel(set)}</strong>
-                  <span className="text-sm font-semibold text-accent">{teamLabel(teams, set.winnerTeamId)} 승</span>
-                </div>
-                <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-center gap-3 text-sm">
-                  <span>{teamLabel(teams, set.blueTeamId)}</span>
-                  <strong>
-                    {set.blueKills ?? "-"} : {set.redKills ?? "-"}
-                  </strong>
-                  <span className="text-right">{teamLabel(teams, set.redTeamId)}</span>
-                </div>
-                <div className="mt-3 text-xs text-muted">
-                  {durationLabel(set.durationSeconds)} · 드래곤 {set.blueDragons ?? "-"}:{set.redDragons ?? "-"} · 바론{" "}
-                  {set.blueBarons ?? "-"}:{set.redBarons ?? "-"}
-                </div>
-              </Link>
-            ))
+            <p className="mt-4 rounded-md border border-dashed border-border p-4 text-sm text-muted">
+              아직 연결된 영상 URL이 없습니다.
+            </p>
           )}
-        </div>
-      </section>
-
-      <section className="flex flex-col gap-4" aria-labelledby="set-drafts">
-        <h2 id="set-drafts" className="text-xl font-semibold">
-          세트별 밴픽
-        </h2>
-        <MatchDraftSummary
-          sets={sets}
-          picksBans={picksBans}
-          champions={champions}
-          teams={teams}
-          statLines={playerStatLines}
-          players={players}
-          spellsByVersion={spellsByVersion}
-          runeImagesByVersion={runeImagesByVersion}
-          pomPlayerId={match.officialPomPlayerId}
-          timelineEventsBySetId={timelineEventsBySetId}
-        />
-      </section>
-
-      <section className="grid gap-4 md:grid-cols-[1fr_1fr]" aria-labelledby="match-reactions">
-        <div className="rounded-md border border-border bg-surface p-4">
-          <h2 id="match-reactions" className="text-xl font-semibold">
-            매치 반응
-          </h2>
-          <p className="mt-4 text-sm text-muted">{matchRatings.length}개 반응</p>
-          <div className="mt-4 rounded-md border border-dashed border-border p-4 text-sm text-muted">
-            팬 반응/한줄평 입력 영역은 커뮤니티 기능과 연결해서 확장할 수 있습니다.
-          </div>
-        </div>
-
-        <div className="rounded-md border border-border bg-surface p-4">
-          <h2 className="text-xl font-semibold">팬 평가</h2>
-          <DataTable
-            rows={matchRatings}
-            emptyText="아직 등록된 평가가 없습니다."
-            columns={[
-              { key: "player", label: "선수", render: (row) => playerLabel(players, row.playerId) },
-              { key: "rating", label: "평점", render: (row) => row.rating.toFixed(1) },
-              { key: "review", label: "리뷰", render: (row) => row.review || "-" },
-            ]}
-          />
-        </div>
-      </section>
+        </section>
+      ) : null}
 
       <SourceNotice />
     </main>

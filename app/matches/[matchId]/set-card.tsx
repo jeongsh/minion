@@ -9,6 +9,7 @@ import type { Champion, Player, PlayerStatLine, SetPickBan, SetResult, Team } fr
 import type { TimelineEvent } from "@/lib/data/lck";
 import { durationLabel } from "@/lib/view-data";
 import { GameTimeline } from "./game-timeline";
+import { PlayerItemSlots } from "./player-item-slots";
 
 // ─── Ban/Pick 렌더링 ──────────────────────────────────────────
 
@@ -75,14 +76,6 @@ function killParticipation(line: PlayerStatLine, teamKills: number) {
 }
 
 
-function ItemIcon({ src }: { src: string }) {
-  return (
-    <div className="relative h-[22px] w-[22px] shrink-0 overflow-hidden rounded border border-border/50 bg-surface-muted">
-      {src && <Image src={src} alt="" fill sizes="22px" className="object-cover" />}
-    </div>
-  );
-}
-
 function SpellIcon({ src }: { src: string }) {
   return (
     <div className="relative h-[20px] w-[20px] shrink-0 overflow-hidden rounded-sm border border-border/60 bg-surface-muted">
@@ -140,7 +133,7 @@ function PlayerRow({
   const rune1Url = line.runeIds[1] ? (runeImages[String(line.runeIds[1])] ?? "") : "";
 
   return (
-    <div className="grid min-w-[880px] grid-cols-[200px_1fr_120px_100px_48px_65px_210px] items-center gap-2 border-t border-border px-3 py-2.5">
+    <div className="grid min-w-[920px] grid-cols-[200px_1fr_120px_100px_48px_65px_250px] items-center gap-2 border-t border-border px-3 py-2.5">
       <div className="flex items-center gap-2">
         {/* 챔피언 이미지 */}
         <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-md border border-border bg-surface-muted">
@@ -191,34 +184,14 @@ function PlayerRow({
         <p className="text-sm font-semibold tabular-nums">{line.cs}</p>
         <p className="text-[10px] text-muted">분 {csm}</p>
       </div>
-      <div className="flex items-center gap-0.5">
-        {[...line.itemIds.slice(0, 6).filter((id) => id !== null), ...Array(6).fill(null)]
-          .slice(0, 6)
-          .map((id, i) => (
-            <ItemIcon
-              key={`it${i}`}
-              src={id ? `https://ddragon.leagueoflegends.com/cdn/${itemVersion}/img/item/${id}.png` : ""}
-            />
-          ))}
-        {line.roleBoundItem ? (
-          <>
-            <div className="mx-0.5 h-3.5 w-px shrink-0 bg-border/50" />
-            <ItemIcon
-              key="rolebound"
-              src={`https://ddragon.leagueoflegends.com/cdn/${itemVersion}/img/item/${line.roleBoundItem}.png`}
-            />
-          </>
-        ) : null}
-        <div className="mx-0.5 h-3.5 w-px shrink-0 bg-border/50" />
-        <ItemIcon
-          key="trinket"
-          src={
-            line.itemIds[6]
-              ? `https://ddragon.leagueoflegends.com/cdn/${itemVersion}/img/item/${line.itemIds[6]}.png`
-              : ""
-          }
-        />
-      </div>
+      <PlayerItemSlots
+        itemIds={line.itemIds}
+        roleBoundItem={line.roleBoundItem}
+        version={itemVersion}
+        slotClassName="h-[22px] w-[22px]"
+        separatorClassName="h-3.5 w-px"
+        imageSizes="22px"
+      />
     </div>
   );
 }
@@ -258,7 +231,7 @@ function TeamStats({
   const maxGold = Math.max(...teamLines.map((l) => l.gold), 1);
   const headerBg = side === "blue" ? "bg-blue-500/10" : "bg-red-500/10";
   const headerText = side === "blue" ? "text-blue-600" : "text-red-500";
-  const ROW_GRID = "grid min-w-[880px] grid-cols-[200px_1fr_120px_100px_48px_65px_210px]";
+  const ROW_GRID = "grid min-w-[920px] grid-cols-[200px_1fr_120px_100px_48px_65px_250px]";
 
   return (
     <div className="overflow-x-auto">
@@ -296,15 +269,6 @@ function TeamStats({
 
 // ─── 양방향 선수 비교 테이블 ─────────────────────────────────────
 
-function MiniItem({ itemId, version }: { itemId: number | null; version: string }) {
-  const src = itemId ? `https://ddragon.leagueoflegends.com/cdn/${version}/img/item/${itemId}.png` : "";
-  return (
-    <div className="relative h-[18px] w-[18px] shrink-0 overflow-hidden rounded-sm border border-border/40 bg-surface-muted">
-      {src && <Image src={src} alt="" fill sizes="18px" className="object-cover" />}
-    </div>
-  );
-}
-
 function DualPlayerChart({
   blueLines,
   redLines,
@@ -322,66 +286,37 @@ function DualPlayerChart({
   itemVersion: string;
   runeImages: Record<string, string>;
 }) {
-  const [metric, setMetric] = useState<"damage" | "gold">("damage");
-
   const sortByPos = (lines: PlayerStatLine[]) =>
     [...lines].sort((a, b) => (POSITION_ORDER[a.position] ?? 9) - (POSITION_ORDER[b.position] ?? 9));
 
   const bLines = sortByPos(blueLines);
   const rLines = sortByPos(redLines);
-  const getValue = (line: PlayerStatLine): number =>
-    metric === "damage" ? line.damageToChampions : line.gold;
+  const getValue = (line: PlayerStatLine): number => line.damageToChampions;
   const fmtVal = (v: number) =>
     v >= 1000 ? `${(v / 1000).toFixed(1)}K` : String(v);
-  const csm = (l: PlayerStatLine) =>
-    l.gameMinutes > 0 ? (l.cs / l.gameMinutes).toFixed(1) : "-";
+  const goldVal = (line: PlayerStatLine) => `${fmtVal(line.gold)} G`;
 
   const rowCount = Math.max(bLines.length, rLines.length);
   const maxVal = Math.max(...[...bLines, ...rLines].map(getValue), 1);
-
-
-  const TABS = [
-    { key: "damage" as const, label: "딜량" },
-    { key: "gold" as const, label: "골드" },
-  ];
-  const TITLES = { damage: "TOTAL DAMAGE DEALT", gold: "TOTAL GOLD EARNED", cs: "TOTAL CS" };
-
   // grid: [champ_b][spells_b][name_b][cs_b][items_b][bar_b] | [bar_r][items_r][cs_r][name_r][spells_r][champ_r]
-  const GRID = "grid w-full grid-cols-[40px_42px_80px_58px_160px_1fr_1fr_160px_58px_80px_42px_40px]";
+  const GRID = "grid w-full grid-cols-[40px_42px_minmax(94px,110px)_76px_172px_minmax(110px,1fr)_minmax(110px,1fr)_172px_76px_minmax(94px,110px)_42px_40px]";
 
   return (
     <div className="border-b border-border">
-      {/* 탭 */}
-      <div className="flex items-center justify-center gap-1 px-4 pb-2 pt-3">
-        {TABS.map(({ key, label }) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => setMetric(key)}
-            className={`rounded px-3 py-1 text-xs font-semibold transition-colors ${
-              metric === key
-                ? "bg-surface-muted text-foreground ring-1 ring-border"
-                : "text-muted hover:text-foreground"
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
       <p className="pb-1.5 text-center text-[10px] font-bold uppercase tracking-widest text-muted">
-        {TITLES[metric]}
+        딜량 (DAMAGE)
       </p>
 
       {/* 컬럼 헤더 */}
-      <div className={`${GRID} items-center gap-x-2 border-t border-border/40 px-4 py-1`}>
+      <div className={`${GRID} items-center gap-x-1 border-t border-border/40 px-4 py-1`}>
         <span /><span />
         <span className="text-right text-[10px] font-semibold uppercase text-muted">선수</span>
-        <span className="text-right text-[10px] font-semibold uppercase text-muted">CS</span>
+        <span className="text-right text-[10px] font-semibold uppercase text-muted">CS · 골드</span>
         <span className="text-right text-[10px] font-semibold uppercase text-muted">아이템</span>
-        <span className="text-right text-[10px] font-semibold uppercase text-muted pr-2">{TABS.find(t => t.key === metric)?.label}</span>
-        <span className="text-left text-[10px] font-semibold uppercase text-muted pl-2">{TABS.find(t => t.key === metric)?.label}</span>
+        <span />
+        <span />
         <span className="text-left text-[10px] font-semibold uppercase text-muted">아이템</span>
-        <span className="text-left text-[10px] font-semibold uppercase text-muted">CS</span>
+        <span className="text-left text-[10px] font-semibold uppercase text-muted">골드 · CS</span>
         <span className="text-left text-[10px] font-semibold uppercase text-muted">선수</span>
         <span /><span />
       </div>
@@ -409,14 +344,8 @@ function DualPlayerChart({
           const rRune0 = rl?.runeIds[0] ? (runeImages[String(rl.runeIds[0])] ?? "") : "";
           const rRune1 = rl?.runeIds[1] ? (runeImages[String(rl.runeIds[1])] ?? "") : "";
 
-          const bItems = bl ? bl.itemIds.slice(0, 6) : [];
-          const bTrinket = bl?.itemIds[6] ?? null;
-          const bRolebound = bl?.roleBoundItem ?? null;
-          const rItems = rl ? rl.itemIds.slice(0, 6) : [];
-          const rTrinket = rl?.itemIds[6] ?? null;
-          const rRolebound = rl?.roleBoundItem ?? null;
           return (
-            <div key={i} className={`${GRID} items-center gap-x-2 border-t border-border/40 px-4 py-2`}>
+            <div key={i} className={`${GRID} items-center gap-x-1 border-t border-border/40 px-4 py-2`}>
               {/* 블루 챔피언 */}
               <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md border border-border bg-surface-muted">
                 {bImg && <Image src={bImg} alt="" fill sizes="40px" className="object-cover" />}
@@ -442,19 +371,20 @@ function DualPlayerChart({
 
               {/* 블루 CS */}
               <div className="text-right">
-                <p className="text-xs tabular-nums font-semibold">{bl?.cs ?? "-"}</p>
-                <p className="text-[10px] tabular-nums text-muted">{bl ? `분당 ${csm(bl)}` : ""}</p>
+                <p className="text-xs tabular-nums font-semibold">{bl ? `${bl.cs} CS` : "-"}</p>
+                <p className="text-[10px] tabular-nums text-muted">{bl ? goldVal(bl) : ""}</p>
               </div>
 
               {/* 블루 아이템 */}
-              <div className="flex items-center justify-end gap-0.5">
-                {Array.from({ length: 6 }, (_, j) => (
-                  <MiniItem key={j} itemId={bItems[j] ?? null} version={itemVersion} />
-                ))}
-                {bRolebound && <><div className="h-3 w-px shrink-0 bg-border/50" /><MiniItem itemId={bRolebound} version={itemVersion} /></>}
-                <div className="h-3 w-px shrink-0 bg-border/50" />
-                <MiniItem itemId={bTrinket} version={itemVersion} />
-              </div>
+              <PlayerItemSlots
+                itemIds={bl?.itemIds ?? []}
+                roleBoundItem={bl?.roleBoundItem}
+                version={itemVersion}
+                className="justify-end"
+                slotClassName="h-[18px] w-[18px] rounded-sm"
+                separatorClassName="h-3 w-px"
+                imageSizes="18px"
+              />
 
               {/* 블루 바 + 값 */}
               <div className="flex h-5 items-center justify-end gap-1.5 pr-px">
@@ -473,19 +403,19 @@ function DualPlayerChart({
               </div>
 
               {/* 레드 아이템 */}
-              <div className="flex items-center gap-0.5">
-                <MiniItem itemId={rTrinket} version={itemVersion} />
-                <div className="h-3 w-px shrink-0 bg-border/50" />
-                {rRolebound && <><MiniItem itemId={rRolebound} version={itemVersion} /><div className="h-3 w-px shrink-0 bg-border/50" /></>}
-                {Array.from({ length: 6 }, (_, j) => (
-                  <MiniItem key={j} itemId={rItems[j] ?? null} version={itemVersion} />
-                ))}
-              </div>
+              <PlayerItemSlots
+                itemIds={rl?.itemIds ?? []}
+                roleBoundItem={rl?.roleBoundItem}
+                version={itemVersion}
+                slotClassName="h-[18px] w-[18px] rounded-sm"
+                separatorClassName="h-3 w-px"
+                imageSizes="18px"
+              />
 
               {/* 레드 CS */}
               <div className="text-left">
-                <p className="text-xs tabular-nums font-semibold">{rl?.cs ?? "-"}</p>
-                <p className="text-[10px] tabular-nums text-muted">{rl ? `분당 ${csm(rl)}` : ""}</p>
+                <p className="text-xs tabular-nums font-semibold">{rl ? goldVal(rl) : "-"}</p>
+                <p className="text-[10px] tabular-nums text-muted">{rl ? `${rl.cs} CS` : ""}</p>
               </div>
 
               {/* 레드 이름 */}

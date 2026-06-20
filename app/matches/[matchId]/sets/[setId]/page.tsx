@@ -13,16 +13,39 @@ import {
   getSetById,
   getSetPicksBans,
   getSetsByMatchId,
+  getTimelineEvents,
 } from "@/lib/data/lck";
 import { calculatePlayerStats } from "@/lib/stats";
 import { championImage } from "@/lib/champions";
 import { ddragonVersionFromPatch } from "@/lib/ddragon";
-import { itemImageUrl } from "@/lib/items";
-import { runeImageUrlById, fetchRuneCatalog, type RuneCatalog } from "@/lib/runes";
-import { spellImageUrlById, fetchSpellCatalog, type GameSpell } from "@/lib/spells";
-import type { Champion, DerivedPlayerStats, Player, PlayerStatLine, SetResult, Team } from "@/lib/types";
-import { durationLabel, matchHref, playerLabel, setHref, teamLabel } from "@/lib/view-data";
+import {
+  runeImageUrlById,
+  fetchRuneCatalog,
+  type RuneCatalog,
+} from "@/lib/runes";
+import {
+  spellImageUrlById,
+  fetchSpellCatalog,
+  type GameSpell,
+} from "@/lib/spells";
+import type {
+  Champion,
+  DerivedPlayerStats,
+  Player,
+  PlayerStatLine,
+  SetResult,
+  Team,
+} from "@/lib/types";
+import {
+  durationLabel,
+  matchHref,
+  playerLabel,
+  setHref,
+  teamLabel,
+} from "@/lib/view-data";
 
+import { PlayerItemSlots } from "../../player-item-slots";
+import { GameTimeline } from "../../game-timeline";
 import { SetDraftView } from "./set-draft-view";
 
 function goldLabel(value: number | null | undefined) {
@@ -32,50 +55,13 @@ function goldLabel(value: number | null | undefined) {
 
 function damageLabel(value: number | null | undefined) {
   if (!value) return "-";
-  return value >= 1000 ? `${(value / 1000).toFixed(1)}K` : value.toLocaleString("ko-KR");
+  return value >= 1000
+    ? `${(value / 1000).toFixed(1)}K`
+    : value.toLocaleString("ko-KR");
 }
 
 function numberLabel(value: number | null | undefined) {
   return value == null ? "-" : value.toLocaleString("ko-KR");
-}
-
-function itemImage(itemId: number, version: string) {
-  return itemImageUrl(itemId, version);
-}
-
-function renderIconSlots({
-  ids,
-  imageFor,
-  emptyLabel,
-  sizeClass = "h-7 w-7",
-}: {
-  ids: Array<number | null>;
-  imageFor: (id: number) => string;
-  emptyLabel: string;
-  sizeClass?: string;
-}) {
-  if (!ids.some((id) => id && id > 0)) {
-    return <span className="text-xs font-semibold text-muted">{emptyLabel}</span>;
-  }
-
-  return ids.map((id, index) =>
-    id && id > 0 ? (
-      <Image
-        key={`${id}-${index}`}
-        src={imageFor(id)}
-        alt=""
-        width={28}
-        height={28}
-        className={`${sizeClass} rounded border border-border bg-surface-muted object-cover`}
-      />
-    ) : (
-      <span
-        key={`empty-${index}`}
-        className={`${sizeClass} rounded border border-dashed border-border bg-surface-muted`}
-        aria-hidden="true"
-      />
-    ),
-  );
 }
 
 function dragonTypeItems(set: SetResult, side: "blue" | "red") {
@@ -92,16 +78,23 @@ function dragonTypeItems(set: SetResult, side: "blue" | "red") {
 
   return entries
     .slice(0, 6)
-    .map(([label, value]) => ({ label, value: typeof value === "number" ? value : 0 }))
+    .map(([label, value]) => ({
+      label,
+      value: typeof value === "number" ? value : 0,
+    }))
     .filter((item) => item.value > 0);
 }
 
 function dragonText(set: SetResult, side: "blue" | "red") {
   const items = dragonTypeItems(set, side);
-  return items.length > 0 ? items.map((item) => `${item.label} ${item.value}`).join(" / ") : "-";
+  return items.length > 0
+    ? items.map((item) => `${item.label} ${item.value}`).join(" / ")
+    : "-";
 }
 
-function kdaText(rows: Array<{ line: { kills: number; deaths: number; assists: number } }>) {
+function kdaText(
+  rows: Array<{ line: { kills: number; deaths: number; assists: number } }>,
+) {
   const totals = rows.reduce(
     (acc, row) => ({
       kills: acc.kills + row.line.kills,
@@ -113,7 +106,15 @@ function kdaText(rows: Array<{ line: { kills: number; deaths: number; assists: n
   return `${totals.kills}/${totals.deaths}/${totals.assists}`;
 }
 
-function matchScoreForTeam(match: { teamAId: string; teamBId: string; teamAScore: number | null; teamBScore: number | null }, teamId: string) {
+function matchScoreForTeam(
+  match: {
+    teamAId: string;
+    teamBId: string;
+    teamAScore: number | null;
+    teamBScore: number | null;
+  },
+  teamId: string,
+) {
   if (match.teamAId === teamId) return match.teamAScore;
   if (match.teamBId === teamId) return match.teamBScore;
   return null;
@@ -136,20 +137,44 @@ function TeamHeader({
         align === "right" ? "justify-end bg-accent" : ""
       }`}
     >
-      {align === "left" ? <strong className="text-xl">{teamName}</strong> : null}
+      {align === "left" ? (
+        <strong className="text-xl">{teamName}</strong>
+      ) : null}
       <span className="text-4xl font-semibold">{score ?? "-"}</span>
       <span className="h-8 w-px bg-background/35" />
       <span className="text-xl font-semibold">{result}</span>
-      {align === "right" ? <strong className="text-xl">{teamName}</strong> : null}
+      {align === "right" ? (
+        <strong className="text-xl">{teamName}</strong>
+      ) : null}
     </div>
   );
 }
 
-function StatRow({ label, left, right }: { label: string; left: string; right: string }) {
+export default async function SetDetailPage({
+  params,
+}: {
+  params: Promise<{ matchId: string; setId: string }>;
+}) {
+  const { matchId, setId } = await params;
+
+  return <SetDetailContent matchId={matchId} setId={setId} />;
+}
+
+function StatRow({
+  label,
+  left,
+  right,
+}: {
+  label: string;
+  left: string;
+  right: string;
+}) {
   return (
     <div className="grid grid-cols-[1fr_7.5rem_1fr] items-center border-b border-border px-4 py-3 last:border-b-0">
       <strong className="text-right text-base">{left}</strong>
-      <span className="text-center text-xs font-semibold text-muted">{label}</span>
+      <span className="text-center text-xs font-semibold text-muted">
+        {label}
+      </span>
       <strong className="text-base">{right}</strong>
     </div>
   );
@@ -175,7 +200,9 @@ function DamageRows({
   return (
     <div className="grid gap-2">
       {rows.map((row) => {
-        const champion = champions.find((item) => item.id === row.line.championId);
+        const champion = champions.find(
+          (item) => item.id === row.line.championId,
+        );
         const image = championImage(champion);
         return (
           <div
@@ -185,31 +212,53 @@ function DamageRows({
             }`}
           >
             {side === "blue" && image ? (
-              <Image src={image} alt="" width={36} height={36} className="h-9 w-9 rounded object-cover" />
+              <Image
+                src={image}
+                alt=""
+                width={36}
+                height={36}
+                className="h-9 w-9 rounded object-cover"
+              />
             ) : null}
             <div className={`min-w-0 ${side === "red" ? "text-right" : ""}`}>
               <div
                 className={`grid items-center gap-2 text-sm ${
-                  side === "red" ? "grid-cols-[auto_minmax(0,1fr)]" : "grid-cols-[minmax(0,1fr)_auto]"
+                  side === "red"
+                    ? "grid-cols-[auto_minmax(0,1fr)]"
+                    : "grid-cols-[minmax(0,1fr)_auto]"
                 }`}
               >
                 {side === "red" ? (
-                  <span className="shrink-0 tabular-nums">{damageLabel(row.line.damageToChampions)}</span>
+                  <span className="shrink-0 tabular-nums">
+                    {damageLabel(row.line.damageToChampions)}
+                  </span>
                 ) : null}
-                <span className="truncate font-semibold">{row.player?.name ?? "-"}</span>
+                <span className="truncate font-semibold">
+                  {row.player?.name ?? "-"}
+                </span>
                 {side === "blue" ? (
-                  <span className="shrink-0 tabular-nums">{damageLabel(row.line.damageToChampions)}</span>
+                  <span className="shrink-0 tabular-nums">
+                    {damageLabel(row.line.damageToChampions)}
+                  </span>
                 ) : null}
               </div>
               <div className="mt-1 h-2 overflow-hidden rounded-full bg-surface-muted">
                 <div
                   className={`h-full rounded-full ${side === "blue" ? "bg-accent" : "ml-auto bg-rose-500"}`}
-                  style={{ width: `${Math.max(4, (row.line.damageToChampions / maxDamage) * 100)}%` }}
+                  style={{
+                    width: `${Math.max(4, (row.line.damageToChampions / maxDamage) * 100)}%`,
+                  }}
                 />
               </div>
             </div>
             {side === "red" && image ? (
-              <Image src={image} alt="" width={36} height={36} className="h-9 w-9 rounded object-cover" />
+              <Image
+                src={image}
+                alt=""
+                width={36}
+                height={36}
+                className="h-9 w-9 rounded object-cover"
+              />
             ) : null}
           </div>
         );
@@ -252,28 +301,117 @@ function PlayerStatBoard({
 }) {
   const renderTeamRows = (rows: PlayerStatRow[], side: "blue" | "red") =>
     rows.map((row) => {
-      const champion = champions.find((item) => item.id === row.line.championId);
+      const champion = champions.find(
+        (item) => item.id === row.line.championId,
+      );
       const image = championImage(champion);
-      const damageWidth = Math.max(4, (row.line.damageToChampions / maxDamage) * 100);
+      const damageWidth = Math.max(
+        4,
+        (row.line.damageToChampions / maxDamage) * 100,
+      );
       const accent = side === "blue" ? "bg-accent" : "bg-rose-500";
+      const spell0Url = spellImageUrlById(
+        spells,
+        row.line.spellIds[0],
+        itemVersion,
+      );
+      const spell1Url = spellImageUrlById(
+        spells,
+        row.line.spellIds[1],
+        itemVersion,
+      );
+      const rune0Url = row.line.runeIds[0]
+        ? runeImageUrlById(runeCatalog.keystones, row.line.runeIds[0])
+        : "";
+      const rune1Url = row.line.runeIds[1]
+        ? runeImageUrlById(runeCatalog.trees, row.line.runeIds[1])
+        : "";
 
       return (
         <div
           key={`${side}-${row.line.playerId}`}
-          className="grid min-w-[66rem] grid-cols-[14rem_9rem_11rem_7rem_7rem_4.5rem_4rem_1fr] items-center gap-4 border-t border-border px-4 py-2.5 text-sm"
+          className="grid grid-cols-[10.25rem_7.25rem_minmax(8rem,1fr)_3.5rem_4rem_5rem_13rem] items-center gap-3 border-t border-border px-3 py-2.5 text-sm"
         >
-          <div className="flex min-w-0 items-center gap-3">
+          <div className="flex min-w-0 items-center gap-2">
             <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded bg-surface-muted">
               {image ? (
-                <Image src={image} alt="" width={44} height={44} className="h-full w-full object-cover" />
+                <Image
+                  src={image}
+                  alt=""
+                  width={44}
+                  height={44}
+                  className="h-full w-full object-cover"
+                />
               ) : null}
               <span className="absolute bottom-0 right-0 rounded-tl bg-background/90 px-1 text-[10px] font-semibold">
                 {row.line.position}
               </span>
             </div>
+            <div className="grid shrink-0 grid-cols-2 gap-0.5">
+              {spell0Url ? (
+                <Image
+                  src={spell0Url}
+                  alt=""
+                  width={20}
+                  height={20}
+                  className="h-5 w-5 rounded-sm border border-border/60 bg-surface-muted object-cover"
+                />
+              ) : (
+                <span
+                  className="h-5 w-5 rounded-sm border border-dashed border-border bg-surface-muted"
+                  aria-hidden="true"
+                />
+              )}
+              {rune0Url ? (
+                <Image
+                  src={rune0Url}
+                  alt=""
+                  width={20}
+                  height={20}
+                  className="h-5 w-5 rounded-full border border-white/10 bg-[#0d1117] object-contain"
+                />
+              ) : (
+                <span
+                  className="h-5 w-5 rounded-full border border-dashed border-border bg-surface-muted"
+                  aria-hidden="true"
+                />
+              )}
+              {spell1Url ? (
+                <Image
+                  src={spell1Url}
+                  alt=""
+                  width={20}
+                  height={20}
+                  className="h-5 w-5 rounded-sm border border-border/60 bg-surface-muted object-cover"
+                />
+              ) : (
+                <span
+                  className="h-5 w-5 rounded-sm border border-dashed border-border bg-surface-muted"
+                  aria-hidden="true"
+                />
+              )}
+              {rune1Url ? (
+                <Image
+                  src={rune1Url}
+                  alt=""
+                  width={18}
+                  height={18}
+                  className="h-5 w-5 rounded-full object-contain"
+                />
+              ) : (
+                <span
+                  className="h-5 w-5 rounded-full border border-dashed border-border bg-surface-muted"
+                  aria-hidden="true"
+                />
+              )}
+            </div>
             <div className="min-w-0">
-              <p className="truncate font-semibold">{teamLabel(teams, row.line.teamId)} {row.player?.name ?? "-"}</p>
-              <p className="truncate text-xs text-muted">{champion?.name ?? "-"}</p>
+              <p className="truncate font-semibold">
+                {row.player?.name ?? "-"}
+              </p>
+              <p className="truncate text-xs text-muted">
+                {champion?.name ?? "-"}
+              </p>
             </div>
           </div>
 
@@ -281,83 +419,75 @@ function PlayerStatBoard({
             <p className="font-semibold tabular-nums">
               {row.line.kills} / {row.line.deaths} / {row.line.assists}
             </p>
-            <p className="text-xs font-semibold text-muted tabular-nums">{row.stats.kda.toFixed(2)}</p>
+            <p className="text-xs font-semibold text-muted tabular-nums">
+              {row.stats.kda.toFixed(2)}
+            </p>
           </div>
 
           <div>
             <div className="flex items-center justify-between gap-3">
-              <span className="font-semibold tabular-nums">{numberLabel(row.line.damageToChampions)}</span>
-              <span className="text-xs text-muted tabular-nums">DPM {row.stats.dpm}</span>
+              <span className="font-semibold tabular-nums">
+                {numberLabel(row.line.damageToChampions)}
+              </span>
+              <span className="text-xs text-muted tabular-nums">
+                DPM {row.stats.dpm}
+              </span>
             </div>
             <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-surface-muted">
-              <div className={`h-full rounded-full ${accent}`} style={{ width: `${damageWidth}%` }} />
+              <div
+                className={`h-full rounded-full ${accent}`}
+                style={{ width: `${damageWidth}%` }}
+              />
             </div>
           </div>
 
-          <div className="text-center font-semibold tabular-nums">{row.line.visionScore}</div>
+          <div className="text-center font-semibold tabular-nums">
+            {row.line.visionScore}
+          </div>
 
           <div className="text-center">
             <p className="font-semibold tabular-nums">{row.line.cs}</p>
-            <p className="text-xs text-muted tabular-nums">{row.stats.csm.toFixed(1)}</p>
+            <p className="text-xs text-muted tabular-nums">
+              {row.stats.csm.toFixed(1)}
+            </p>
           </div>
 
-          <div className="flex flex-wrap gap-1">
-            {renderIconSlots({
-              ids: row.line.spellIds,
-              imageFor: (id) => spellImageUrlById(spells, id, itemVersion),
-              emptyLabel: "-",
-              sizeClass: "h-7 w-7",
-            })}
+          <div className="text-center font-semibold tabular-nums">
+            {numberLabel(row.line.gold)}
           </div>
 
-          <div className="flex items-end gap-0.5">
-            {row.line.runeIds[0] ? (
-              <Image
-                src={runeImageUrlById(runeCatalog.keystones, row.line.runeIds[0])}
-                alt=""
-                width={32}
-                height={32}
-                className="h-8 w-8 rounded border border-border bg-surface-muted object-cover"
-              />
-            ) : (
-              <span className="h-8 w-8 rounded border border-dashed border-border bg-surface-muted" aria-hidden="true" />
-            )}
-            {row.line.runeIds[1] ? (
-              <Image
-                src={runeImageUrlById(runeCatalog.trees, row.line.runeIds[1])}
-                alt=""
-                width={22}
-                height={22}
-                className="h-5 w-5 rounded-sm border border-border bg-surface-muted object-cover"
-              />
-            ) : (
-              <span className="h-5 w-5 rounded-sm border border-dashed border-border bg-surface-muted" aria-hidden="true" />
-            )}
-          </div>
-
-          <div className="flex flex-wrap gap-1">
-            {renderIconSlots({
-              ids: row.line.itemIds,
-              imageFor: (id) => itemImage(id, itemVersion),
-              emptyLabel: "아이템 데이터 없음",
-            })}
-          </div>
+          <PlayerItemSlots
+            itemIds={row.line.itemIds}
+            roleBoundItem={row.line.roleBoundItem}
+            version={itemVersion}
+            slotClassName="h-[22px] w-[22px]"
+            separatorClassName="h-3.5 w-px"
+            imageSizes="22px"
+          />
         </div>
       );
     });
 
-  const teamBlock = (teamId: string, side: "blue" | "red", rows: PlayerStatRow[]) => {
+  const teamBlock = (
+    teamId: string,
+    side: "blue" | "red",
+    rows: PlayerStatRow[],
+  ) => {
     const won = winnerTeamId === teamId;
     return (
       <div>
         <div className="flex items-center justify-between gap-3 bg-surface-muted px-4 py-3">
           <div className="flex items-center gap-2">
             <strong>{teamLabel(teams, teamId)}</strong>
-            <span className={`text-xs font-semibold ${won ? "text-accent" : "text-muted"}`}>
+            <span
+              className={`text-xs font-semibold ${won ? "text-accent" : "text-muted"}`}
+            >
               {won ? "Victory" : "Defeat"}
             </span>
           </div>
-          <span className="text-xs font-semibold text-muted">{side === "blue" ? "Blue Side" : "Red Side"}</span>
+          <span className="text-xs font-semibold text-muted">
+            {side === "blue" ? "Blue Side" : "Red Side"}
+          </span>
         </div>
         {renderTeamRows(rows, side)}
       </div>
@@ -375,16 +505,19 @@ function PlayerStatBoard({
         </div>
       ) : (
         <div className="overflow-x-auto rounded-md border border-border bg-surface">
-          <div className="grid min-w-[58rem] grid-cols-[14rem_9rem_11rem_7rem_7rem_1fr] gap-4 px-4 py-3 text-xs font-semibold uppercase text-muted">
-            <span>Champion / Player</span>
-            <span className="text-center">KDA</span>
-            <span>Damage</span>
-            <span className="text-center">Sight</span>
-            <span className="text-center">CS</span>
-            <span>Items</span>
+          <div className="min-w-[58rem]">
+            <div className="grid grid-cols-[10.25rem_7.25rem_minmax(8rem,1fr)_3.5rem_4rem_5rem_13rem] gap-3 px-3 py-3 text-xs font-semibold uppercase text-muted">
+              <span>Champion / Player</span>
+              <span className="text-center">KDA</span>
+              <span>Damage</span>
+              <span className="text-center">Sight</span>
+              <span className="text-center">CS</span>
+              <span className="text-center">Gold</span>
+              <span>Items</span>
+            </div>
+            {teamBlock(blueTeamId, "blue", blueRows)}
+            {teamBlock(redTeamId, "red", redRows)}
           </div>
-          {teamBlock(blueTeamId, "blue", blueRows)}
-          {teamBlock(redTeamId, "red", redRows)}
         </div>
       )}
     </section>
@@ -425,19 +558,34 @@ function SetNavigation({
   );
 }
 
-export default async function SetDetailPage({
-  params,
+export async function SetDetailContent({
+  matchId,
+  setId,
+  embedded = false,
 }: {
-  params: Promise<{ matchId: string; setId: string }>;
+  matchId: string;
+  setId: string;
+  embedded?: boolean;
 }) {
-  const { matchId, setId } = await params;
-  const [match, set] = await Promise.all([getMatchById(matchId), getSetById(setId)]);
+  const [match, set] = await Promise.all([
+    getMatchById(matchId),
+    getSetById(setId),
+  ]);
 
   if (!match || !set || set.matchId !== match.id) {
     notFound();
   }
 
-  const [teams, players, champions, picksBans, playerStatLines, fanRatings, matchSets] = await Promise.all([
+  const [
+    teams,
+    players,
+    champions,
+    picksBans,
+    playerStatLines,
+    fanRatings,
+    matchSets,
+    timelineEvents,
+  ] = await Promise.all([
     getAllTeams(),
     getAllPlayers(),
     getChampions(),
@@ -445,6 +593,7 @@ export default async function SetDetailPage({
     getPlayerStatLines(set.id),
     getFanRatings(),
     getSetsByMatchId(match.id),
+    getTimelineEvents(set.id),
   ]);
 
   const sideDraftItems = (side: "blue" | "red", actionType: "pick" | "ban") =>
@@ -453,11 +602,21 @@ export default async function SetDetailPage({
       .sort((a, b) => a.orderIndex - b.orderIndex);
   const lineDraftItems = (teamId: string) =>
     positions.map((position) => {
-      const statLine = playerStatLines.find((line) => line.teamId === teamId && line.position === position);
-      return picksBans.find((item) => item.actionType === "pick" && item.championId === statLine?.championId) ?? null;
+      const statLine = playerStatLines.find(
+        (line) => line.teamId === teamId && line.position === position,
+      );
+      return (
+        picksBans.find(
+          (item) =>
+            item.actionType === "pick" &&
+            item.championId === statLine?.championId,
+        ) ?? null
+      );
     });
   const playerByPosition = (teamId: string, position: Player["position"]) =>
-    players.find((player) => player.teamId === teamId && player.position === position);
+    players.find(
+      (player) => player.teamId === teamId && player.position === position,
+    );
   const positions: Player["position"][] = ["TOP", "JGL", "MID", "BOT", "SUP"];
   const blueLineup = positions.map((position) => ({
     position,
@@ -474,12 +633,17 @@ export default async function SetDetailPage({
       line,
       player,
       stats: calculatePlayerStats(line),
-      rating: relatedRatings.find((rating) => rating.playerId === line.playerId),
+      rating: relatedRatings.find(
+        (rating) => rating.playerId === line.playerId,
+      ),
     };
   });
-  const positionOrder = new Map<Player["position"], number>(positions.map((position, index) => [position, index]));
+  const positionOrder = new Map<Player["position"], number>(
+    positions.map((position, index) => [position, index]),
+  );
   const byPosition = (a: PlayerStatRow, b: PlayerStatRow) =>
-    (positionOrder.get(a.line.position) ?? 99) - (positionOrder.get(b.line.position) ?? 99);
+    (positionOrder.get(a.line.position) ?? 99) -
+    (positionOrder.get(b.line.position) ?? 99);
   const blueRows = playerRows
     .filter((row) => row.line.teamId === set.blueTeamId)
     .sort(byPosition);
@@ -488,21 +652,40 @@ export default async function SetDetailPage({
     .sort(byPosition);
   const blueWon = set.winnerTeamId === set.blueTeamId;
   const redWon = set.winnerTeamId === set.redTeamId;
-  const maxDamage = Math.max(...playerRows.map((row) => row.line.damageToChampions), 1);
+  const maxDamage = Math.max(
+    ...playerRows.map((row) => row.line.damageToChampions),
+    1,
+  );
   const itemVersion = ddragonVersionFromPatch(set.patch);
-  const [spells, runeCatalog] = await Promise.all([fetchSpellCatalog(itemVersion), fetchRuneCatalog(itemVersion)]);
+  const [spells, runeCatalog] = await Promise.all([
+    fetchSpellCatalog(itemVersion),
+    fetchRuneCatalog(itemVersion),
+  ]);
+  const Shell = embedded ? "div" : "main";
 
   return (
-    <main className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-[var(--page-inline)] py-10">
-      <section className="flex flex-col gap-2">
-        <p className="text-sm font-semibold text-accent">세트 상세</p>
-        <h1 className="text-3xl font-semibold tracking-normal md:text-4xl">
-          {teamLabel(teams, set.blueTeamId)} vs {teamLabel(teams, set.redTeamId)} · {set.setNumber}세트
-        </h1>
-        <SetNavigation match={match} sets={matchSets} currentSetId={set.id} />
-      </section>
+    <Shell
+      className={
+        embedded
+          ? "flex w-full flex-col gap-6"
+          : "mx-auto flex w-full max-w-7xl flex-col gap-10 px-[var(--page-inline)] py-10"
+      }
+    >
+      {embedded ? null : (
+        <section className="flex flex-col gap-2">
+          <p className="text-sm font-semibold text-accent">세트 상세</p>
+          <h1 className="text-3xl font-semibold tracking-normal md:text-4xl">
+            {teamLabel(teams, set.blueTeamId)} vs{" "}
+            {teamLabel(teams, set.redTeamId)} · {set.setNumber}세트
+          </h1>
+          <SetNavigation match={match} sets={matchSets} currentSetId={set.id} />
+        </section>
+      )}
 
-      <section className="overflow-hidden rounded-md border border-border bg-surface" aria-labelledby="set-summary">
+      <section
+        className="overflow-hidden rounded-md border border-border bg-surface"
+        aria-labelledby="set-summary"
+      >
         <div className="grid bg-foreground text-background lg:grid-cols-[1fr_15rem_1fr]">
           <TeamHeader
             teamName={teamLabel(teams, set.blueTeamId)}
@@ -510,9 +693,15 @@ export default async function SetDetailPage({
             result={blueWon ? "WIN" : "LOSS"}
           />
           <div className="grid place-items-center border-y border-background/20 px-5 py-4 text-center lg:border-x lg:border-y-0">
-            <p className="text-xs font-semibold text-background/70">GAME TIME</p>
-            <p className="text-3xl font-semibold">{durationLabel(set.durationSeconds)}</p>
-            <p className="text-xs text-background/70">GAME {set.setNumber} · PATCH {set.patch ?? "-"}</p>
+            <p className="text-xs font-semibold text-background/70">
+              GAME TIME
+            </p>
+            <p className="text-3xl font-semibold">
+              {durationLabel(set.durationSeconds)}
+            </p>
+            <p className="text-xs text-background/70">
+              GAME {set.setNumber} · PATCH {set.patch ?? "-"}
+            </p>
           </div>
           <TeamHeader
             teamName={teamLabel(teams, set.redTeamId)}
@@ -524,15 +713,49 @@ export default async function SetDetailPage({
 
         <div className="grid gap-6 p-4 lg:grid-cols-[0.9fr_1.1fr]">
           <div className="rounded-md border border-border bg-background">
-            <div className="border-b border-border px-4 py-3 text-center text-sm font-semibold">GAME STATS</div>
-            <StatRow label="KDA" left={kdaText(blueRows)} right={kdaText(redRows)} />
-            <StatRow label="GOLD" left={goldLabel(set.blueGold)} right={goldLabel(set.redGold)} />
-            <StatRow label="TOWERS" left={`${set.blueTowers ?? "-"}`} right={`${set.redTowers ?? "-"}`} />
-            <StatRow label="VOID GRUBS" left={`${set.blueVoidGrubs ?? "-"}`} right={`${set.redVoidGrubs ?? "-"}`} />
-            <StatRow label="HERALDS" left={`${set.blueRiftHeralds ?? "-"}`} right={`${set.redRiftHeralds ?? "-"}`} />
-            <StatRow label="DRAKES" left={dragonText(set, "blue")} right={dragonText(set, "red")} />
-            <StatRow label="ELDERS" left={`${set.blueElders ?? "-"}`} right={`${set.redElders ?? "-"}`} />
-            <StatRow label="BARONS" left={`${set.blueBarons ?? "-"}`} right={`${set.redBarons ?? "-"}`} />
+            <div className="border-b border-border px-4 py-3 text-center text-sm font-semibold">
+              GAME STATS
+            </div>
+            <StatRow
+              label="KDA"
+              left={kdaText(blueRows)}
+              right={kdaText(redRows)}
+            />
+            <StatRow
+              label="GOLD"
+              left={goldLabel(set.blueGold)}
+              right={goldLabel(set.redGold)}
+            />
+            <StatRow
+              label="TOWERS"
+              left={`${set.blueTowers ?? "-"}`}
+              right={`${set.redTowers ?? "-"}`}
+            />
+            <StatRow
+              label="VOID GRUBS"
+              left={`${set.blueVoidGrubs ?? "-"}`}
+              right={`${set.redVoidGrubs ?? "-"}`}
+            />
+            <StatRow
+              label="HERALDS"
+              left={`${set.blueRiftHeralds ?? "-"}`}
+              right={`${set.redRiftHeralds ?? "-"}`}
+            />
+            <StatRow
+              label="DRAKES"
+              left={dragonText(set, "blue")}
+              right={dragonText(set, "red")}
+            />
+            <StatRow
+              label="ELDERS"
+              left={`${set.blueElders ?? "-"}`}
+              right={`${set.redElders ?? "-"}`}
+            />
+            <StatRow
+              label="BARONS"
+              left={`${set.blueBarons ?? "-"}`}
+              right={`${set.redBarons ?? "-"}`}
+            />
           </div>
 
           <div className="rounded-md border border-border bg-background p-4">
@@ -545,8 +768,18 @@ export default async function SetDetailPage({
               </div>
             ) : (
               <div className="mt-4 grid gap-5 xl:grid-cols-2">
-                <DamageRows rows={blueRows} champions={champions} maxDamage={maxDamage} side="blue" />
-                <DamageRows rows={redRows} champions={champions} maxDamage={maxDamage} side="red" />
+                <DamageRows
+                  rows={blueRows}
+                  champions={champions}
+                  maxDamage={maxDamage}
+                  side="blue"
+                />
+                <DamageRows
+                  rows={redRows}
+                  champions={champions}
+                  maxDamage={maxDamage}
+                  side="red"
+                />
               </div>
             )}
           </div>
@@ -585,6 +818,23 @@ export default async function SetDetailPage({
         runeCatalog={runeCatalog}
       />
 
+      <section className="flex flex-col gap-4" aria-labelledby="set-timeline">
+        <h2 id="set-timeline" className="text-xl font-semibold">
+          타임라인
+        </h2>
+        <div className="rounded-md border border-border bg-surface p-4">
+          <GameTimeline
+            events={timelineEvents}
+            durationSeconds={set.durationSeconds}
+            blueTeamId={set.blueTeamId}
+            redTeamId={set.redTeamId}
+            blueTeamName={teamLabel(teams, set.blueTeamId)}
+            redTeamName={teamLabel(teams, set.redTeamId)}
+            players={players}
+          />
+        </div>
+      </section>
+
       <section className="flex flex-col gap-4" aria-labelledby="set-reviews">
         <h2 id="set-reviews" className="text-xl font-semibold">
           세트 평점 / 리뷰
@@ -592,21 +842,31 @@ export default async function SetDetailPage({
         <DataTable
           rows={relatedRatings}
           columns={[
-            { key: "player", label: "선수", render: (row) => playerLabel(players, row.playerId) },
-            { key: "rating", label: "평점", render: (row) => row.rating.toFixed(1) },
+            {
+              key: "player",
+              label: "선수",
+              render: (row) => playerLabel(players, row.playerId),
+            },
+            {
+              key: "rating",
+              label: "평점",
+              render: (row) => row.rating.toFixed(1),
+            },
             { key: "review", label: "리뷰", render: (row) => row.review },
           ]}
         />
       </section>
 
-      <section className="flex flex-wrap gap-2" aria-label="이동">
-        <Link
-          href={matchHref(match)}
-          className="rounded-md border border-border bg-surface px-3 py-2 text-sm font-semibold hover:bg-surface-muted"
-        >
-          매치 상세
-        </Link>
-      </section>
-    </main>
+      {embedded ? null : (
+        <section className="flex flex-wrap gap-2" aria-label="이동">
+          <Link
+            href={matchHref(match)}
+            className="rounded-md border border-border bg-surface px-3 py-2 text-sm font-semibold hover:bg-surface-muted"
+          >
+            매치 상세
+          </Link>
+        </section>
+      )}
+    </Shell>
   );
 }

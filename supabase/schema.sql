@@ -270,6 +270,15 @@ create table public.fan_pog_votes (
   unique (set_id, author_id)
 );
 
+create table public.fan_match_predictions (
+  id uuid primary key default gen_random_uuid(),
+  match_id uuid not null references public.matches(id) on delete cascade,
+  team_id uuid not null references public.teams(id) on delete cascade,
+  voter_key text not null,
+  created_at timestamptz not null default now(),
+  unique (match_id, voter_key)
+);
+
 create table public.community_posts (
   id uuid primary key default gen_random_uuid(),
   board_type text not null,
@@ -619,6 +628,8 @@ create index idx_fan_pog_votes_match_id on public.fan_pog_votes(match_id);
 create index idx_fan_pog_votes_player_id on public.fan_pog_votes(player_id);
 create index idx_fan_pog_votes_team_id on public.fan_pog_votes(team_id);
 create index idx_fan_pog_votes_author_id on public.fan_pog_votes(author_id);
+create index idx_fan_match_predictions_match_id on public.fan_match_predictions(match_id);
+create index idx_fan_match_predictions_team_id on public.fan_match_predictions(team_id);
 create index idx_team_social_posts_team_id on public.team_social_posts(team_id);
 create index idx_team_videos_team_id on public.team_videos(team_id);
 create index idx_player_broadcasts_player_id on public.player_broadcasts(player_id);
@@ -657,6 +668,7 @@ alter table public.set_player_stats enable row level security;
 alter table public.set_team_stats enable row level security;
 alter table public.fan_ratings enable row level security;
 alter table public.fan_pog_votes enable row level security;
+alter table public.fan_match_predictions enable row level security;
 alter table public.community_posts enable row level security;
 alter table public.community_comments enable row level security;
 alter table public.team_social_posts enable row level security;
@@ -705,6 +717,7 @@ to anon, authenticated;
 grant select on
   public.fan_ratings,
   public.fan_pog_votes,
+  public.fan_match_predictions,
   public.community_posts,
   public.community_comments
 to anon, authenticated;
@@ -755,6 +768,8 @@ create policy "authenticated insert fan ratings" on public.fan_ratings
 create policy "public read fan pog votes" on public.fan_pog_votes for select using (true);
 create policy "authenticated insert fan pog votes" on public.fan_pog_votes
   for insert to authenticated with check ((select auth.uid()) = author_id);
+
+create policy "public read fan match predictions" on public.fan_match_predictions for select using (true);
 
 create policy "public read community posts" on public.community_posts for select using (true);
 create policy "authenticated insert community posts" on public.community_posts

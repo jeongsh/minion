@@ -295,6 +295,14 @@ export type FanRating = {
   createdAt: string;
 };
 
+export type FanMatchPrediction = {
+  id: string;
+  matchId: string;
+  teamId: string;
+  voterKey: string;
+  createdAt: string;
+};
+
 export type CommunityPost = {
   id: string;
   boardType: string;

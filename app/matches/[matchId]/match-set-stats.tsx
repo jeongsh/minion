@@ -1,9 +1,9 @@
 import Image from "next/image";
 
 import { championImage, championLabel } from "@/lib/champions";
-import { itemImageUrl } from "@/lib/items";
 import { spellImageUrlById, type GameSpell } from "@/lib/spells";
 import type { Champion, Player, PlayerStatLine, SetResult, Team } from "@/lib/types";
+import { PlayerItemSlots } from "./player-item-slots";
 
 const POSITION_ORDER: Record<string, number> = { TOP: 0, JGL: 1, MID: 2, BOT: 3, SUP: 4 };
 
@@ -15,23 +15,6 @@ function kdaRatio(line: PlayerStatLine) {
 function killParticipation(line: PlayerStatLine, teamKills: number) {
   if (teamKills === 0) return 0;
   return Math.round(((line.kills + line.assists) / teamKills) * 100);
-}
-
-function ItemSlot({ itemId, version }: { itemId: number | null; version: string }) {
-  if (!itemId || itemId === 0) {
-    return <div className="h-6 w-6 rounded border border-border bg-surface-muted" />;
-  }
-  return (
-    <div className="relative h-6 w-6 overflow-hidden rounded border border-border">
-      <Image
-        src={itemImageUrl(itemId, version)}
-        alt=""
-        fill
-        sizes="24px"
-        className="object-cover"
-      />
-    </div>
-  );
 }
 
 function SpellSlot({ spellId, spells, version }: { spellId: number | null; spells: GameSpell[]; version: string }) {
@@ -68,11 +51,9 @@ function PlayerRow({
   const dmgPct = maxDamage > 0 ? (line.damageToChampions / maxDamage) * 100 : 0;
   const csm = line.gameMinutes > 0 ? (line.cs / line.gameMinutes).toFixed(1) : "-";
   const barColor = side === "blue" ? "bg-blue-500" : "bg-red-500";
-  const items = line.itemIds.slice(0, 6);
-  const trinket = line.itemIds[6] ?? null;
 
   return (
-    <div className="grid min-w-[700px] grid-cols-[220px_1fr_140px_50px_70px_160px] items-center gap-3 border-t border-border px-3 py-2.5">
+    <div className="grid min-w-[760px] grid-cols-[220px_1fr_140px_50px_70px_220px] items-center gap-3 border-t border-border px-3 py-2.5">
       {/* 챔피언 + 스펠 + 선수 */}
       <div className="flex items-center gap-2">
         <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-md border border-border bg-surface-muted">
@@ -120,13 +101,14 @@ function PlayerRow({
       </div>
 
       {/* 아이템 */}
-      <div className="flex items-center gap-0.5">
-        {items.map((id, i) => (
-          <ItemSlot key={i} itemId={id} version={itemVersion} />
-        ))}
-        <div className="ml-0.5 h-5 w-px bg-border" />
-        <ItemSlot itemId={trinket} version={itemVersion} />
-      </div>
+      <PlayerItemSlots
+        itemIds={line.itemIds}
+        roleBoundItem={line.roleBoundItem}
+        version={itemVersion}
+        slotClassName="h-6 w-6"
+        separatorClassName="h-4 w-px"
+        imageSizes="24px"
+      />
     </div>
   );
 }
@@ -206,7 +188,7 @@ function TeamSection({
         )}
         <div className="ml-auto" />
         {/* 컬럼 레이블 */}
-        <div className="hidden min-w-[700px] grid-cols-[220px_1fr_140px_50px_70px_160px] gap-3 text-[10px] font-semibold uppercase text-muted md:grid">
+        <div className="hidden min-w-[760px] grid-cols-[220px_1fr_140px_50px_70px_220px] gap-3 text-[10px] font-semibold uppercase text-muted md:grid">
           <span />
           <span>KDA</span>
           <span>딜량</span>

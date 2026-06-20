@@ -2,6 +2,7 @@ import { canQuerySupabase, createSupabaseServerClient } from "@/lib/supabase/ser
 import type {
   Champion,
   CommunityPost,
+  FanMatchPrediction,
   FanRating,
   Match,
   Player,
@@ -288,6 +289,14 @@ type FanPogVoteRow = {
   match_id: string;
   player_id: string;
   team_id: string;
+  created_at: string;
+};
+
+type FanMatchPredictionRow = {
+  id: string;
+  match_id: string;
+  team_id: string;
+  voter_key: string;
   created_at: string;
 };
 
@@ -1151,6 +1160,33 @@ export async function getFanPogVotes(): Promise<FanPogVote[]> {
       matchId: row.match_id,
       playerId: row.player_id,
       teamId: row.team_id,
+      createdAt: row.created_at,
+    }));
+  }, []);
+}
+
+export async function getFanMatchPredictions(matchId?: string): Promise<FanMatchPrediction[]> {
+  return fromSupabase(async () => {
+    let query = createSupabaseServerClient()
+      .from("fan_match_predictions")
+      .select("id, match_id, team_id, voter_key, created_at")
+      .order("created_at", { ascending: false });
+
+    if (matchId) {
+      query = query.eq("match_id", matchId);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      throw error;
+    }
+
+    return (data as FanMatchPredictionRow[]).map((row) => ({
+      id: row.id,
+      matchId: row.match_id,
+      teamId: row.team_id,
+      voterKey: row.voter_key,
       createdAt: row.created_at,
     }));
   }, []);

@@ -4,7 +4,7 @@ import { hubNavItems } from "@/lib/navigation";
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen">
-      <header className="sticky top-0 z-20 border-b border-border bg-surface/95 backdrop-blur">
+      <header className="sticky top-0 z-20 border-b border-border bg-surface">
         <div className="mx-auto flex max-w-7xl flex-col gap-3 px-[var(--page-inline)] py-4 md:flex-row md:items-center md:justify-between">
           <Link href="/" className="flex items-baseline gap-2">
             <span className="text-lg font-semibold">LCK Hub</span>
