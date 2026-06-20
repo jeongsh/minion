@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
+import type { ReactNode } from "react";
 
 import { DataTable } from "@/components/ui/data-table";
 import {
@@ -17,6 +18,14 @@ import {
 } from "@/lib/data/lck";
 import { calculatePlayerStats } from "@/lib/stats";
 import { championImage } from "@/lib/champions";
+import { ObjectiveIconSlots } from "@/components/domain/objective-icon-slots";
+import {
+  baronIconsForSide,
+  dragonIconsForSide,
+  elderIconsForSide,
+  heraldIconsForSide,
+  voidGrubIconsForSide,
+} from "@/lib/objectives";
 import { ddragonVersionFromPatch } from "@/lib/ddragon";
 import {
   runeImageUrlById,
@@ -64,32 +73,24 @@ function numberLabel(value: number | null | undefined) {
   return value == null ? "-" : value.toLocaleString("ko-KR");
 }
 
-function dragonTypeItems(set: SetResult, side: "blue" | "red") {
-  const prefix = side === "blue" ? "blue" : "red";
-  const entries = [
-    ["바람", set[`${prefix}Clouds` as keyof SetResult]],
-    ["화염", set[`${prefix}Infernals` as keyof SetResult]],
-    ["대지", set[`${prefix}Mountains` as keyof SetResult]],
-    ["바다", set[`${prefix}Oceans` as keyof SetResult]],
-    ["마공", set[`${prefix}Hextechs` as keyof SetResult]],
-    ["화공", set[`${prefix}Chemtechs` as keyof SetResult]],
-    ["장로", set[`${prefix}Elders` as keyof SetResult]],
-  ] as const;
-
-  return entries
-    .slice(0, 6)
-    .map(([label, value]) => ({
-      label,
-      value: typeof value === "number" ? value : 0,
-    }))
-    .filter((item) => item.value > 0);
-}
-
-function dragonText(set: SetResult, side: "blue" | "red") {
-  const items = dragonTypeItems(set, side);
-  return items.length > 0
-    ? items.map((item) => `${item.label} ${item.value}`).join(" / ")
-    : "-";
+function StatRow({
+  label,
+  left,
+  right,
+}: {
+  label: string;
+  left: ReactNode;
+  right: ReactNode;
+}) {
+  return (
+    <div className="grid grid-cols-[1fr_7.5rem_1fr] items-center border-b border-border px-4 py-3 last:border-b-0">
+      <div className="flex justify-end">{left}</div>
+      <span className="text-center text-xs font-semibold text-muted">
+        {label}
+      </span>
+      <div>{right}</div>
+    </div>
+  );
 }
 
 function kdaText(
@@ -186,26 +187,6 @@ export default async function SetDetailPage({
   const { matchId, setId } = await params;
 
   return <SetDetailContent matchId={matchId} setId={setId} />;
-}
-
-function StatRow({
-  label,
-  left,
-  right,
-}: {
-  label: string;
-  left: string;
-  right: string;
-}) {
-  return (
-    <div className="grid grid-cols-[1fr_7.5rem_1fr] items-center border-b border-border px-4 py-3 last:border-b-0">
-      <strong className="text-right text-base">{left}</strong>
-      <span className="text-center text-xs font-semibold text-muted">
-        {label}
-      </span>
-      <strong className="text-base">{right}</strong>
-    </div>
-  );
 }
 
 function DamageRows({
@@ -736,28 +717,37 @@ export async function SetDetailContent({
             />
             <StatRow
               label="VOID GRUBS"
-              left={`${set.blueVoidGrubs ?? "-"}`}
-              right={`${set.redVoidGrubs ?? "-"}`}
+              left={<ObjectiveIconSlots icons={voidGrubIconsForSide(set, "blue")} align="right" />}
+              right={<ObjectiveIconSlots icons={voidGrubIconsForSide(set, "red")} />}
             />
             <StatRow
               label="HERALDS"
-              left={`${set.blueRiftHeralds ?? "-"}`}
-              right={`${set.redRiftHeralds ?? "-"}`}
+              left={<ObjectiveIconSlots icons={heraldIconsForSide(set, "blue")} align="right" />}
+              right={<ObjectiveIconSlots icons={heraldIconsForSide(set, "red")} />}
             />
             <StatRow
               label="DRAKES"
-              left={dragonText(set, "blue")}
-              right={dragonText(set, "red")}
+              left={
+                <ObjectiveIconSlots
+                  icons={dragonIconsForSide(set, "blue", { includeElder: false })}
+                  align="right"
+                />
+              }
+              right={
+                <ObjectiveIconSlots
+                  icons={dragonIconsForSide(set, "red", { includeElder: false })}
+                />
+              }
             />
             <StatRow
               label="ELDERS"
-              left={`${set.blueElders ?? "-"}`}
-              right={`${set.redElders ?? "-"}`}
+              left={<ObjectiveIconSlots icons={elderIconsForSide(set, "blue")} align="right" />}
+              right={<ObjectiveIconSlots icons={elderIconsForSide(set, "red")} />}
             />
             <StatRow
               label="BARONS"
-              left={`${set.blueBarons ?? "-"}`}
-              right={`${set.redBarons ?? "-"}`}
+              left={<ObjectiveIconSlots icons={baronIconsForSide(set, "blue")} align="right" />}
+              right={<ObjectiveIconSlots icons={baronIconsForSide(set, "red")} />}
             />
           </div>
 

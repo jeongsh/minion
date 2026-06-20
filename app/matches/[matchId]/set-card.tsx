@@ -4,6 +4,13 @@ import { useState } from "react";
 import Image from "next/image";
 
 import { championImage, championLabel } from "@/lib/champions";
+import { ObjectiveIconSlots } from "@/components/domain/objective-icon-slots";
+import {
+  baronIconsForSide,
+  dragonIconsForSide,
+  heraldIconsForSide,
+  voidGrubIconsForSide,
+} from "@/lib/objectives";
 import { spellImageUrlById, type GameSpell } from "@/lib/spells";
 import type { Champion, Player, PlayerStatLine, SetPickBan, SetResult, Team } from "@/lib/types";
 import type { TimelineEvent } from "@/lib/data/lck";
@@ -551,16 +558,36 @@ export function SetCard({
             )}
             <div className="grid grid-cols-2 gap-x-3 gap-y-1">
               {[
-                { label: "드래곤", blue: set.blueDragons, red: set.redDragons },
-                { label: "바론", blue: set.blueBarons, red: set.redBarons },
-                { label: "전령", blue: set.blueRiftHeralds, red: set.redRiftHeralds },
-                { label: "포탑", blue: set.blueTowers, red: set.redTowers },
-                { label: "공허충", blue: set.blueVoidGrubs, red: set.redVoidGrubs },
+                {
+                  label: "드래곤",
+                  blue: <ObjectiveIconSlots icons={dragonIconsForSide(set, "blue")} align="right" />,
+                  red: <ObjectiveIconSlots icons={dragonIconsForSide(set, "red")} align="left" />,
+                },
+                {
+                  label: "바론",
+                  blue: <ObjectiveIconSlots icons={baronIconsForSide(set, "blue")} align="right" />,
+                  red: <ObjectiveIconSlots icons={baronIconsForSide(set, "red")} align="left" />,
+                },
+                {
+                  label: "전령",
+                  blue: <ObjectiveIconSlots icons={heraldIconsForSide(set, "blue")} align="right" />,
+                  red: <ObjectiveIconSlots icons={heraldIconsForSide(set, "red")} align="left" />,
+                },
+                {
+                  label: "포탑",
+                  blue: <span className="text-xs font-bold tabular-nums text-blue-400">{set.blueTowers ?? "-"}</span>,
+                  red: <span className="text-xs font-bold tabular-nums text-red-400">{set.redTowers ?? "-"}</span>,
+                },
+                {
+                  label: "공허충",
+                  blue: <ObjectiveIconSlots icons={voidGrubIconsForSide(set, "blue")} align="right" />,
+                  red: <ObjectiveIconSlots icons={voidGrubIconsForSide(set, "red")} align="left" />,
+                },
               ].map(({ label, blue, red }) => (
                 <div key={label} className="grid grid-cols-[auto_1fr_auto] items-center gap-1">
-                  <span className="text-xs font-bold tabular-nums text-blue-400">{blue ?? "-"}</span>
+                  <span className="text-right">{blue}</span>
                   <span className="text-center text-[10px] font-semibold text-muted">{label}</span>
-                  <span className="text-xs font-bold tabular-nums text-red-400">{red ?? "-"}</span>
+                  <span className="text-left">{red}</span>
                 </div>
               ))}
             </div>

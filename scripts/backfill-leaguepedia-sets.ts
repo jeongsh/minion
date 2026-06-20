@@ -263,7 +263,7 @@ async function cargoQuery(query: Record<string, string>) {
     params.set(key, value);
   }
 
-  for (let attempt = 0; attempt < 8; attempt += 1) {
+  for (let attempt = 0; attempt < 12; attempt += 1) {
     const response = await fetch(`https://lol.fandom.com/api.php?${params.toString()}`, {
       headers: {
         "user-agent": "LCKHubMinion/0.1 (leaguepedia set backfill; contact: local-dev)",
@@ -271,7 +271,7 @@ async function cargoQuery(query: Record<string, string>) {
     });
 
     if (!response.ok && (response.status === 429 || response.status >= 500)) {
-      await sleep(3000 * (attempt + 2));
+      await sleep(Math.min(60_000, 5000 * (attempt + 1)));
       continue;
     }
 
@@ -285,7 +285,7 @@ async function cargoQuery(query: Record<string, string>) {
     };
 
     if (body.error?.code === "ratelimited") {
-      await sleep(3000 * (attempt + 2));
+      await sleep(Math.min(60_000, 5000 * (attempt + 1)));
       continue;
     }
 
@@ -415,6 +415,7 @@ function splitIntoChunks<T>(items: T[], chunkSize: number) {
 
 async function main() {
   loadEnvFile();
+  const force = process.argv.includes("--force");
 
   const supabase = createClient(
     requireEnv("NEXT_PUBLIC_SUPABASE_URL"),
@@ -436,18 +437,33 @@ async function main() {
   if (error) throw error;
 
   const matchRows = ((matches ?? [])
-    .filter(
-      (match) =>
+    .filter((match) => {
+      if (force) return true;
+      return (
         !("sets" in match) ||
         !Array.isArray((match as { sets?: unknown[] }).sets) ||
-        ((match as { sets?: unknown[] }).sets?.length ?? 0) === 0,
-    )) as unknown as MatchRow[];
+        ((match as { sets?: unknown[] }).sets?.length ?? 0) === 0
+      );
+    })) as unknown as MatchRow[];
   const chunks = splitIntoChunks(matchRows, 10);
   let createdOrUpdated = 0;
 
   for (const batch of chunks) {
     const batchIds = batch.map((match) => match.leaguepedia_match_id!).filter(Boolean);
-    const leaguepediaRows = await fetchLeaguepediaSetRows(batchIds);
+    let leaguepediaRows: MergedCargoSetRow[] = [];
+    for (let batchAttempt = 0; batchAttempt < 5; batchAttempt += 1) {
+      try {
+        leaguepediaRows = await fetchLeaguepediaSetRows(batchIds);
+        break;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        const rateLimited = message.includes("요청 제한");
+        if (!rateLimited || batchAttempt === 4) throw error;
+        const waitMs = 90_000 * (batchAttempt + 1);
+        console.log(JSON.stringify({ rateLimited: true, batchAttempt: batchAttempt + 1, waitMs }));
+        await sleep(waitMs);
+      }
+    }
 
     const rowsByMatch = new Map<string, MergedCargoSetRow[]>();
     for (const row of leaguepediaRows) {
@@ -706,6 +722,7 @@ async function main() {
   }
 
   console.log(JSON.stringify({
+    force,
     matchesProcessed: matchRows.length,
     setsUpserted: createdOrUpdated,
   }, null, 2));

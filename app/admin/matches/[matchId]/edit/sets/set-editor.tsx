@@ -287,14 +287,14 @@ function DragonInputGroup({ side, set }: { side: "blue" | "red"; set: SetResult 
   ] as const;
 
   return (
-    <div className="grid grid-cols-6 gap-1">
+    <div className="grid grid-cols-3 gap-x-2 gap-y-1.5">
       {fields.map(([label, name, value]) => (
-        <label key={name} className="grid gap-1 text-[10px] font-semibold text-muted">
+        <label key={name} className="grid gap-1 text-xs font-semibold text-muted">
           {label}
           <AdminNumberInput
             name={name}
             defaultValue={typeof value === "number" ? value : null}
-            className="min-w-9 px-1 text-center"
+            className="text-center"
           />
         </label>
       ))}
@@ -898,9 +898,9 @@ export function AdminSetEditor({
                 leftDefault={activeSet.blueRiftHeralds}
                 rightDefault={activeSet.redRiftHeralds}
               />
-              <div className="grid grid-cols-[1fr_7.5rem_1fr] items-center border-b border-border px-4 py-3">
+              <div className="grid grid-cols-[1fr_7.5rem_1fr] items-center gap-y-2 border-b border-border px-4 py-4">
                 <DragonInputGroup side="blue" set={activeSet} />
-                <span className="text-center text-xs font-semibold text-muted">DRAKES</span>
+                <span className="self-center text-center text-xs font-semibold text-muted">DRAKES</span>
                 <DragonInputGroup side="red" set={activeSet} />
               </div>
               <StatInputRow

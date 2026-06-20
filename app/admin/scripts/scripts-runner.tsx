@@ -40,7 +40,9 @@ const SCRIPTS: ScriptDef[] = [
   {
     id: "backfill-leaguepedia-sets",
     label: "세트 데이터 백필",
-    description: "Leaguepedia에서 세트(게임) 통계를 동기화합니다. 이미 세트가 있는 경기는 건너뜁니다.",
+    description:
+      "Leaguepedia에서 세트(게임) 통계를 동기화합니다. 기본은 세트가 없는 경기만 처리하고, --force 시 기존 세트 통계도 덮어씁니다.",
+    args: [{ flag: "--force", label: "기존 세트 포함 전체 동기화 (--force)" }],
   },
   {
     id: "backfill-leaguepedia-set-picks-bans",
