@@ -128,7 +128,7 @@ export default async function HomePage() {
             { key: "sets", label: "세트", render: (row) => matchSetScore(row, sets, teams) },
             { key: "pom", label: "공식 POM", render: (row) => playerLabel(players, row.officialPomPlayerId) },
             { key: "rating", label: "팬 평점 1위", render: (row) => topFanRatingForMatch(row.id, fanRatings, players) },
-            { key: "pog", label: "팬 POG", render: (row) => fanPogSummaryForMatch(row.id, sets) },
+            { key: "pog", label: "팬 POG", render: (row) => fanPogSummaryForMatch(row.id, sets, fanRatings, players) },
           ]}
         />
       </section>

@@ -12,6 +12,7 @@ import { draftEditorChampions } from "@/lib/draft-champions";
 import { teamDraftSide } from "@/lib/draft-slots";
 import { itemImageUrl, type GameItem } from "@/lib/items";
 import { type RuneCatalog } from "@/lib/runes";
+import { SET_STATUS_OPTIONS } from "@/lib/set-status";
 import { type GameSpell } from "@/lib/spells";
 import { calculatePlayerStats } from "@/lib/stats";
 import type {
@@ -750,6 +751,7 @@ export function AdminSetEditor({
       id: "",
       matchId: match.id,
       setNumber: 1,
+      status: "scheduled",
       winnerTeamId: null,
       blueTeamId: match.teamAId,
       redTeamId: match.teamBId,
@@ -851,6 +853,20 @@ export function AdminSetEditor({
                   <AdminTextInput name="patch" defaultValue={activeSet.patch} placeholder="26.10" className="text-center" />
                 </label>
               </div>
+              <label className="grid gap-1 text-xs font-semibold text-background/70">
+                STATUS
+                <select
+                  name="status"
+                  defaultValue={activeSet.status}
+                  className="rounded-md border border-background/30 bg-background px-2 py-1 text-center text-sm font-semibold text-foreground"
+                >
+                  {SET_STATUS_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
               <label className="grid gap-1 text-xs font-semibold text-background/70">
                 WINNER
                 <TeamSelect name="winnerTeamId" teams={teams} defaultValue={activeSet.winnerTeamId} />

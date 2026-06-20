@@ -17,6 +17,7 @@ import {
   getTournaments,
 } from "@/lib/data/lck";
 import type { MatchStatus, SetResult } from "@/lib/types";
+import { isSetRatingOpen } from "@/lib/set-status";
 import {
   formatDateTime,
   playerLabel,
@@ -29,6 +30,7 @@ import { MatchPreview } from "./match-preview";
 import { SetDetailContent } from "./sets/[setId]/page";
 
 type MatchTab = "preview" | "data" | "video";
+const RECENT_SET_FOCUS_WINDOW_MS = 30 * 60 * 1000;
 
 const MATCH_STATUS_LABEL: Record<MatchStatus, string> = {
   scheduled: "예정",
@@ -44,6 +46,25 @@ const TAB_LABELS: Record<MatchTab, string> = {
 
 function setLabel(set: SetResult) {
   return `${set.setNumber}세트`;
+}
+
+function latestRecentlyFinishedSet(sets: SetResult[], now = Date.now()) {
+  return [...sets]
+    .filter((set) => {
+      if (!isSetRatingOpen(set) || !set.resultRecordedAt) return false;
+      const recordedAt = new Date(set.resultRecordedAt).getTime();
+      return (
+        Number.isFinite(recordedAt) &&
+        now - recordedAt >= 0 &&
+        now - recordedAt <= RECENT_SET_FOCUS_WINDOW_MS
+      );
+    })
+    .sort((a, b) => {
+      const aTime = new Date(a.resultRecordedAt ?? 0).getTime();
+      const bTime = new Date(b.resultRecordedAt ?? 0).getTime();
+      if (bTime !== aTime) return bTime - aTime;
+      return b.setNumber - a.setNumber;
+    })[0];
 }
 
 function scoreLabel(score: number | null | undefined) {
@@ -223,11 +244,20 @@ export default async function MatchDetailPage({
     getMatches(),
   ]);
 
+  const requestedSet = matchSets.find((set) => set.id === query.set);
+  const defaultSet =
+    requestedSet ??
+    latestRecentlyFinishedSet(matchSets) ??
+    matchSets[0];
   const defaultTab: MatchTab =
-    match.status === "completed" && matchSets.length > 0 ? "data" : "preview";
+    requestedSet ||
+    (defaultSet &&
+    (match.status !== "scheduled" ||
+      defaultSet.status !== "scheduled"))
+      ? "data"
+      : "preview";
   const activeTab = normalizeTab(query.tab, defaultTab);
-  const activeSet =
-    matchSets.find((set) => set.id === query.set) ?? matchSets[0];
+  const activeSet = requestedSet ?? defaultSet;
   const tournament = tournaments.find((item) => item.id === match.tournamentId);
   const stage = stages.find((item) => item.id === match.stageId);
   const teamAName = teamLabel(teams, match.teamAId);

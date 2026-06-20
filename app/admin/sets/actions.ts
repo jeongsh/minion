@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { resolveChampionIds } from "@/lib/champions-admin";
+import { normalizeSetStatus } from "@/lib/set-status";
 
 function textOrNull(value: FormDataEntryValue | null) {
   const text = typeof value === "string" ? value.trim() : "";
@@ -60,6 +61,7 @@ function setPayload(formData: FormData) {
   return {
     match_id: matchId,
     set_number: setNumber,
+    status: normalizeSetStatus(textOrNull(formData.get("status"))),
     winner_team_id: textOrNull(formData.get("winnerTeamId")),
     blue_team_id: textOrNull(formData.get("blueTeamId")),
     red_team_id: textOrNull(formData.get("redTeamId")),

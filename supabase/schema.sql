@@ -121,7 +121,15 @@ create table public.sets (
   id uuid primary key default gen_random_uuid(),
   match_id uuid not null references public.matches(id) on delete cascade,
   set_number integer not null,
+  status text not null default 'scheduled' check (status in (
+    'scheduled',
+    'draft_in_progress',
+    'draft_done',
+    'finished',
+    'data_synced'
+  )),
   winner_team_id uuid references public.teams(id) on delete set null,
+  result_recorded_at timestamptz,
   blue_team_id uuid references public.teams(id) on delete set null,
   red_team_id uuid references public.teams(id) on delete set null,
   duration_seconds integer,
@@ -254,9 +262,11 @@ create table public.fan_ratings (
   player_id uuid not null references public.players(id) on delete cascade,
   team_id uuid not null references public.teams(id) on delete cascade,
   author_id uuid references auth.users(id) on delete set null,
+  voter_key text,
   rating numeric(2, 1) not null check (rating >= 1 and rating <= 5),
   review text,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  unique (set_id, player_id, voter_key)
 );
 
 create table public.fan_pog_votes (
@@ -585,6 +595,31 @@ create table public.data_sources (
   created_at timestamptz not null default now()
 );
 
+create or replace function public.set_sets_result_recorded_at()
+returns trigger
+language plpgsql
+as $$
+begin
+  if new.status in ('finished', 'data_synced')
+    and (TG_OP = 'INSERT' or old.status not in ('finished', 'data_synced'))
+    and new.result_recorded_at is null then
+    new.result_recorded_at = now();
+  end if;
+
+  if new.status not in ('finished', 'data_synced') then
+    new.result_recorded_at = null;
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists set_sets_result_recorded_at on public.sets;
+create trigger set_sets_result_recorded_at
+before insert or update on public.sets
+for each row
+execute function public.set_sets_result_recorded_at();
+
 create index idx_players_team_id on public.players(team_id);
 create index idx_stages_tournament_id on public.stages(tournament_id);
 create index idx_matches_tournament_id on public.matches(tournament_id);
@@ -598,9 +633,11 @@ create index idx_matches_leaguepedia_match_id on public.matches(leaguepedia_matc
 create index idx_team_identity_histories_team_id on public.team_identity_histories(team_id);
 create index idx_team_identity_histories_effective_from on public.team_identity_histories(effective_from);
 create index idx_sets_match_id on public.sets(match_id);
+create index idx_sets_status on public.sets(status);
 create index idx_sets_winner_team_id on public.sets(winner_team_id);
 create index idx_sets_blue_team_id on public.sets(blue_team_id);
 create index idx_sets_red_team_id on public.sets(red_team_id);
+create index idx_sets_result_recorded_at on public.sets(result_recorded_at);
 create index idx_sets_riot_match_id on public.sets(riot_match_id);
 create index idx_sets_leaguepedia_game_id on public.sets(leaguepedia_game_id);
 create index idx_set_picks_bans_set_id on public.set_picks_bans(set_id);
@@ -624,6 +661,7 @@ create index idx_fan_ratings_set_id on public.fan_ratings(set_id);
 create index idx_fan_ratings_player_id on public.fan_ratings(player_id);
 create index idx_fan_ratings_team_id on public.fan_ratings(team_id);
 create index idx_fan_ratings_author_id on public.fan_ratings(author_id);
+create index idx_fan_ratings_set_voter_key on public.fan_ratings(set_id, voter_key);
 create index idx_fan_pog_votes_match_id on public.fan_pog_votes(match_id);
 create index idx_fan_pog_votes_player_id on public.fan_pog_votes(player_id);
 create index idx_fan_pog_votes_team_id on public.fan_pog_votes(team_id);

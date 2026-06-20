@@ -1,4 +1,5 @@
 import type { Match, SetResult, Team } from "@/lib/types";
+import { SET_STATUS_OPTIONS } from "@/lib/set-status";
 
 function numberValue(value: number | null | undefined) {
   return value ?? "";
@@ -86,6 +87,25 @@ function TeamSelect({
   );
 }
 
+function StatusSelect({ defaultValue }: { defaultValue?: string | null }) {
+  return (
+    <label className="flex flex-col gap-2 text-sm font-medium">
+      세트 상태
+      <select
+        name="status"
+        defaultValue={defaultValue ?? "scheduled"}
+        className="rounded-md border border-border bg-background px-3 py-2"
+      >
+        {SET_STATUS_OPTIONS.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
 export function SetFields({
   set,
   matches,
@@ -123,6 +143,7 @@ export function SetFields({
         </label>
       )}
       <NumberField name="setNumber" label="세트 번호" defaultValue={set?.setNumber ?? 1} min={1} required />
+      <StatusSelect defaultValue={set?.status} />
       <TeamSelect name="winnerTeamId" label="승리 팀" teams={teams} defaultValue={set?.winnerTeamId} />
       <TeamSelect name="blueTeamId" label="블루 팀" teams={teams} defaultValue={set?.blueTeamId} />
       <TeamSelect name="redTeamId" label="레드 팀" teams={teams} defaultValue={set?.redTeamId} />

@@ -71,7 +71,7 @@
 - [x] `service_role` 전용 작업 범위 정리
 - [x] `auth.users` 참조 컬럼의 null 허용 여부 확인
 - [ ] fan rating 중복 제출 정책 확정
-- [ ] fan POG 중복 투표 정책 확정
+- [x] fan POG 중복 투표 정책 확정
 - [ ] community post/comment 수정/삭제 정책 확정
 - [x] Leaguepedia 원본 ID 컬럼 추가 여부 확정
 - [x] Riot `matchId` / platform game id 컬럼 추가 여부 확정
@@ -155,8 +155,8 @@
 - [x] 공식 POM 선수 선택 연결
 - [x] 경기장 입력 연결
 - [x] 다시보기 URL 입력 연결
-- [ ] 저장 후 `/schedule` 반영 확인
-- [ ] 저장 후 `/matches/[matchId]` 반영 확인
+- [x] 저장 후 `/schedule` 반영 확인
+- [x] 저장 후 `/matches/[matchId]` 반영 확인
 
 ### 세트 관리
 
@@ -169,35 +169,35 @@
 - [x] blue/red team 선택 연결
 - [x] duration 입력 연결
 - [x] kill/gold/dragon/baron/tower 입력 연결
-- [ ] 저장 후 경기 상세 세트 목록 반영 확인
-- [ ] 저장 후 세트 상세 반영 확인
+- [x] 저장 후 경기 상세 세트 목록 반영 확인
+- [x] 저장 후 세트 상세 반영 확인
 
 ### 밴픽 관리
 
-- [ ] set picks/bans 입력 화면 경로 결정
-- [ ] 밴픽 phase 입력 구조 확정
-- [ ] pick/ban action type 입력 연결
-- [ ] order index 입력 연결
-- [ ] team 선택 연결
-- [ ] champion 선택 연결
-- [ ] side 선택 연결
-- [ ] 저장 후 세트 상세에 밴픽 표시
+- [x] set picks/bans 입력 화면 경로 결정
+- [x] 밴픽 phase 입력 구조 확정
+- [x] pick/ban action type 입력 연결
+- [x] order index 입력 연결
+- [x] team 선택 연결
+- [x] champion 선택 연결
+- [x] side 선택 연결
+- [x] 저장 후 세트 상세에 밴픽 표시
 
 ### 선수/팀 스탯 입력
 
-- [ ] set player stats 입력 화면 경로 결정
-- [ ] 선수별 K/D/A 입력 연결
-- [ ] 선수별 CS 입력 연결
-- [ ] 선수별 gold 입력 연결
-- [ ] 선수별 damage 입력 연결
-- [ ] 선수별 vision score 입력 연결
+- [x] set player stats 입력 화면 경로 결정
+- [x] 선수별 K/D/A 입력 연결
+- [x] 선수별 CS 입력 연결
+- [x] 선수별 gold 입력 연결
+- [x] 선수별 damage 입력 연결
+- [x] 선수별 vision score 입력 연결
 - [ ] set team stats 입력 화면 경로 결정
 - [ ] 팀별 kills/deaths/assists 입력 연결
 - [ ] 팀별 total gold/cs/damage 입력 연결
 - [ ] 팀별 objective 입력 연결
-- [ ] 저장 후 `/stats/players` 반영 확인
+- [x] 저장 후 `/stats/players` 반영 확인
 - [ ] 저장 후 `/stats/teams` 반영 확인
-- [ ] 저장 후 `/stats/form` 반영 확인
+- [x] 저장 후 `/stats/form` 반영 확인
 
 ### 팀/선수 관리
 
@@ -239,41 +239,41 @@
 
 ### LCK 허브
 
-- [ ] `/` 홈 데이터를 Supabase query로 교체
-- [ ] `/schedule` 데이터를 Supabase query로 교체
-- [ ] `/standings` 데이터를 Supabase query로 교체
-- [ ] `/matches/[matchId]` 데이터를 Supabase query로 교체
-- [ ] `/matches/[matchId]/sets/[setId]` 데이터를 Supabase query로 교체
-- [ ] `/teams` 데이터를 Supabase query로 교체
-- [ ] `/teams/[teamSlug]` 데이터를 Supabase query로 교체
-- [ ] `/players` 데이터를 Supabase query로 교체
-- [ ] `/players/[playerSlug]` 데이터를 Supabase query로 교체
+- [x] `/` 홈 데이터를 Supabase query로 교체
+- [x] `/schedule` 데이터를 Supabase query로 교체
+- [x] `/standings` 데이터를 Supabase query로 교체
+- [x] `/matches/[matchId]` 데이터를 Supabase query로 교체
+- [x] `/matches/[matchId]/sets/[setId]` 데이터를 Supabase query로 교체
+- [x] `/teams` 데이터를 Supabase query로 교체
+- [x] `/teams/[teamSlug]` 데이터를 Supabase query로 교체
+- [x] `/players` 데이터를 Supabase query로 교체
+- [x] `/players/[playerSlug]` 데이터를 Supabase query로 교체
 
 ### 스탯
 
-- [ ] `/stats/teams` 데이터를 Supabase query로 교체
-- [ ] `/stats/players` 데이터를 Supabase query로 교체
-- [ ] `/stats/champions` 데이터를 Supabase query로 교체
-- [ ] `/stats/form` 데이터를 Supabase query로 교체
-- [ ] `/stats/fan-ratings` 데이터를 Supabase query로 교체
-- [ ] `/stats/pom` 데이터를 Supabase query로 교체
+- [x] `/stats/teams` 데이터를 Supabase query로 교체
+- [x] `/stats/players` 데이터를 Supabase query로 교체
+- [x] `/stats/champions` 데이터를 Supabase query로 교체
+- [x] `/stats/form` 데이터를 Supabase query로 교체
+- [x] `/stats/fan-ratings` 데이터를 Supabase query로 교체
+- [x] `/stats/pom` 데이터를 Supabase query로 교체
 - [ ] 공통 `RadarChart` 컴포넌트 구현
-- [ ] `/players/[playerSlug]`에 선수 6각형 표시
-- [ ] `/teams/[teamSlug]`에 팀 6각형 표시
+- [x] `/players/[playerSlug]`에 선수 6각형 표시
+- [x] `/teams/[teamSlug]`에 팀 6각형 표시
 - [ ] 팀/선수 미니모달의 6각형 축소 표시 구현 여부 결정
 - [ ] 6각형 empty/placeholder 상태 구현
-- [ ] 최근 폼 계산에 팬 평점이 섞이지 않는지 확인
-- [ ] 6각형 계산에 팬 평점이 섞이지 않는지 확인
-- [ ] 팬 평점 랭킹이 최근 폼과 분리되어 보이는지 확인
+- [x] 최근 폼 계산에 팬 평점이 섞이지 않는지 확인
+- [x] 6각형 계산에 팬 평점이 섞이지 않는지 확인
+- [x] 팬 평점 랭킹이 최근 폼과 분리되어 보이는지 확인
 - [ ] MVP 제외 지표가 UI에 노출되지 않는지 확인
 
 ### 팀별 팬 사이트
 
-- [ ] `/fan/[teamSlug]` 데이터를 Supabase query로 교체
-- [ ] `/fan/[teamSlug]/news` 데이터를 Supabase query로 교체
-- [ ] `/fan/[teamSlug]/players` 데이터를 Supabase query로 교체
-- [ ] `/fan/[teamSlug]/matches` 데이터를 Supabase query로 교체
-- [ ] `/fan/[teamSlug]/community` 데이터를 Supabase query로 교체
+- [x] `/fan/[teamSlug]` 데이터를 Supabase query로 교체
+- [x] `/fan/[teamSlug]/news` 데이터를 Supabase query로 교체
+- [x] `/fan/[teamSlug]/players` 데이터를 Supabase query로 교체
+- [x] `/fan/[teamSlug]/matches` 데이터를 Supabase query로 교체
+- [x] `/fan/[teamSlug]/community` 데이터를 Supabase query로 교체
 - [ ] `/fan/[teamSlug]/info` 데이터를 Supabase query로 교체
 - [ ] 팀별 테마 토큰이 DB 값으로 반영되는지 확인
 - [ ] `/teams/[teamSlug]`에는 강한 팬 사이트 테마가 들어가지 않는지 확인
@@ -282,7 +282,7 @@
 
 ### 커뮤니티 게시판
 
-- [ ] community post 목록 query 추가
+- [x] community post 목록 query 추가
 - [ ] community post 상세 라우트 설계
 - [ ] community post 작성 폼 추가
 - [ ] community post 수정 폼 추가
@@ -296,22 +296,22 @@
 
 ### 팬 평점
 
-- [ ] 팬 평점 제출 UI 추가
-- [ ] set 단위 선수 평점 입력 연결
-- [ ] rating 범위 검증
-- [ ] review 길이 제한 결정
-- [ ] 중복 제출 처리 UX 결정
+- [x] 팬 평점 제출 UI 추가
+- [x] set 단위 선수 평점 입력 연결
+- [x] rating 범위 검증
+- [x] review 길이 제한 결정
+- [x] 중복 제출 처리 UX 결정
 - [ ] 제출 후 `/stats/fan-ratings` 반영 확인
-- [ ] 팬 평점이 최근 폼 계산에 포함되지 않는지 재확인
+- [x] 팬 평점이 최근 폼 계산에 포함되지 않는지 재확인
 
 ### 팬 POG
 
-- [ ] 팬 POG 투표 UI 추가
-- [ ] set 단위 후보 선수 목록 query 추가
-- [ ] 중복 투표 처리 UX 결정
-- [ ] 투표 결과 집계 query 추가
-- [ ] 경기 상세에 팬 POG 반영
-- [ ] 세트 상세에 팬 POG 반영
+- [x] 팬 POG를 별도 투표가 아닌 세트별 평균 평점 1위로 파생하기로 결정
+- [x] set 단위 후보 선수 목록 query 추가
+- [x] 평점 중복 제출은 쿠키 기반 동일 선수/세트 upsert로 처리
+- [x] 평점 기반 POG 집계 함수 추가
+- [x] 경기 상세에 평점 기반 팬 POG 반영
+- [x] 세트 상세에 평점 기반 팬 POG 반영
 
 ## 6단계: 출처와 데이터 입력 고도화
 
@@ -320,14 +320,14 @@
 - [ ] 선수 스탯별 출처 연결 정책 결정
 - [ ] SourceNotice 문구 위치 재검토
 - [ ] `docs/api-data-plan.md` 기준 데이터 수집 정책을 README 또는 운영 문서에 연결
-- [ ] Data Dragon 클라이언트 작성
+- [x] Data Dragon 클라이언트 작성
 - [ ] Data Dragon 최신 버전 확인 함수 작성
-- [ ] 챔피언 이미지 URL 생성 함수 작성
-- [ ] Leaguepedia Cargo Query 함수 작성
-- [ ] Leaguepedia 경기 일정 동기화 함수 작성
-- [ ] Leaguepedia 경기 결과/세트/밴픽/선수 기록 동기화 함수 작성
+- [x] 챔피언 이미지 URL 생성 함수 작성
+- [x] Leaguepedia Cargo Query 함수 작성
+- [x] Leaguepedia 경기 일정 동기화 함수 작성
+- [x] Leaguepedia 경기 결과/세트/밴픽/선수 기록 동기화 함수 작성
 - [ ] Riot API 서버 전용 클라이언트 작성
-- [ ] Riot Timeline 파싱 함수 작성
+- [x] Riot Timeline 파싱 함수 작성
 - [ ] 골드 차이 그래프용 데이터 변환 함수 작성
 - [ ] Riot matchId가 없는 세트의 그래프 fallback 정책 구현
 - [ ] 선수 솔랭 계정 수집 함수 작성
@@ -337,7 +337,7 @@
 - [ ] 외부 API 429 rate limit 대응 정책 구현
 - [ ] 외부 API 404/누락 응답 fallback 처리
 - [ ] Vercel Cron 작업 목록 설계
-- [ ] Leaguepedia 참고 URL 저장 필드 연결
+- [x] Leaguepedia 참고 URL 저장 필드 연결
 - [ ] Leaguepedia import 후보 데이터 preview 화면 설계
 - [ ] import 전 수동 검토 흐름 추가
 - [ ] import 후 중복 데이터 검증 추가

@@ -143,25 +143,90 @@ export function topFanRatingForMatch(
   fanRatings: FanRating[],
   players: Player[],
 ) {
-  const rating = fanRatings
-    .filter((item) => item.matchId === matchId)
-    .sort((a, b) => b.rating - a.rating)[0];
+  const leader = fanRatingLeader(
+    fanRatings.filter((item) => item.matchId === matchId),
+  );
 
-  if (!rating) {
+  if (!leader) {
     return "-";
   }
 
-  return `${playerLabel(players, rating.playerId)} ${rating.rating.toFixed(1)}`;
+  return `${playerLabel(players, leader.playerId)} ${leader.average.toFixed(1)} (${leader.count})`;
 }
 
-export function fanPogSummaryForMatch(matchId: string, sets: SetResult[]) {
+export function fanRatingLeader(fanRatings: FanRating[]) {
+  const byPlayer = new Map<
+    string,
+    { playerId: string; total: number; count: number; latestAt: string }
+  >();
+
+  for (const rating of fanRatings) {
+    const current = byPlayer.get(rating.playerId);
+
+    if (!current) {
+      byPlayer.set(rating.playerId, {
+        playerId: rating.playerId,
+        total: rating.rating,
+        count: 1,
+        latestAt: rating.createdAt,
+      });
+      continue;
+    }
+
+    current.total += rating.rating;
+    current.count += 1;
+    if (new Date(rating.createdAt).getTime() > new Date(current.latestAt).getTime()) {
+      current.latestAt = rating.createdAt;
+    }
+  }
+
+  return (
+    [...byPlayer.values()]
+      .map((item) => ({
+        ...item,
+        average: item.total / item.count,
+      }))
+      .sort((a, b) => {
+        if (b.average !== a.average) return b.average - a.average;
+        if (b.count !== a.count) return b.count - a.count;
+        return new Date(b.latestAt).getTime() - new Date(a.latestAt).getTime();
+      })[0] ?? null
+  );
+}
+
+export function fanPogPlayerIdForSet(setId: string, fanRatings: FanRating[]) {
+  return (
+    fanRatingLeader(fanRatings.filter((rating) => rating.setId === setId))
+      ?.playerId ?? null
+  );
+}
+
+export function fanPogSummaryForMatch(
+  matchId: string,
+  sets: SetResult[],
+  fanRatings: FanRating[],
+  players: Player[],
+) {
   const relatedSets = sets.filter((set) => set.matchId === matchId);
 
   if (relatedSets.length === 0) {
     return "-";
   }
 
-  return relatedSets.map((set) => `${set.setNumber}세트 집계 예정`).join(" / ");
+  return relatedSets
+    .sort((a, b) => a.setNumber - b.setNumber)
+    .map((set) => {
+      const leader = fanRatingLeader(
+        fanRatings.filter((rating) => rating.setId === set.id),
+      );
+
+      if (!leader) {
+        return `${set.setNumber}세트 -`;
+      }
+
+      return `${set.setNumber}세트 ${playerLabel(players, leader.playerId)} ${leader.average.toFixed(1)}`;
+    })
+    .join(" / ");
 }
 
 export function buildTeamStandingRows(

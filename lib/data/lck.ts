@@ -10,6 +10,7 @@ import type {
   PlayerStatLine,
   SetPickBan,
   SetResult,
+  SetStatus,
   Stage,
   Team,
   TeamIdentityHistory,
@@ -19,6 +20,7 @@ import type {
   TeamVideo,
   Tournament,
 } from "@/lib/types";
+import { normalizeSetStatus } from "@/lib/set-status";
 
 type TeamRow = {
   id: string;
@@ -190,7 +192,9 @@ type SetRow = {
   id: string;
   match_id: string;
   set_number: number;
+  status?: SetStatus | null;
   winner_team_id: string | null;
+  result_recorded_at?: string | null;
   blue_team_id: string | null;
   red_team_id: string | null;
   duration_seconds: number | null;
@@ -441,7 +445,9 @@ function mapSet(row: SetRow): SetResult {
     id: row.id,
     matchId: row.match_id,
     setNumber: row.set_number,
+    status: normalizeSetStatus(row.status),
     winnerTeamId: row.winner_team_id,
+    resultRecordedAt: row.result_recorded_at ?? null,
     blueTeamId: row.blue_team_id ?? "",
     redTeamId: row.red_team_id ?? "",
     durationSeconds: row.duration_seconds,
@@ -1075,7 +1081,7 @@ export async function getFanRatings() {
   return fromSupabase(async () => {
     const { data, error } = await createSupabaseServerClient()
       .from("fan_ratings")
-      .select("*")
+      .select("id, set_id, match_id, player_id, team_id, rating, review, created_at")
       .order("created_at", { ascending: false });
 
     if (error) {

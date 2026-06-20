@@ -14,7 +14,6 @@ import {
   getAllPlayers,
   getAllTeams,
   getChampions,
-  getFanPogVotes,
   getFanRatings,
   getMatches,
   getPlayerAwards,
@@ -38,7 +37,7 @@ import {
   segmentLabel,
   type SeasonSegmentKey,
 } from "@/lib/tournament-filters";
-import { matchHref, teamLabel } from "@/lib/view-data";
+import { fanPogPlayerIdForSet, matchHref, teamLabel } from "@/lib/view-data";
 
 const PLAYER_AWARD_META: Record<string, { label: string }> = {
   lck_finals_mvp: { label: "LCK Finals MVP" },
@@ -664,7 +663,6 @@ export default async function PlayerDetailPage({
     sets,
     statLines,
     fanRatings,
-    fanPogVotes,
     awards,
     pomCount,
     tournaments,
@@ -679,7 +677,6 @@ export default async function PlayerDetailPage({
     getSets(),
     getPlayerStatLines(),
     getFanRatings(),
-    getFanPogVotes(),
     getPlayerAwards(player.name, player.id),
     getPlayerPomCount(player.id),
     getTournaments(),
@@ -716,7 +713,11 @@ export default async function PlayerDetailPage({
     .map((match) => (match.winnerTeamId === player.teamId ? "W" : "L"))
     .join("-");
   const playerRatings = fanRatings.filter((rating) => playerLines.some((line) => line.setId === rating.setId) && rating.playerId === player.id);
-  const playerFanPogVotes = fanPogVotes.filter((vote) => playerLines.some((line) => line.setId === vote.setId) && vote.playerId === player.id);
+  const playerFanPogSetIds = new Set(
+    playerLines
+      .filter((line) => fanPogPlayerIdForSet(line.setId, fanRatings) === player.id)
+      .map((line) => line.setId),
+  );
   const completedPlayerMatches = [...new Map(playerLines.map((line) => [line.match.id, line.match])).values()]
     .sort((a, b) => new Date(b.matchDate).getTime() - new Date(a.matchDate).getTime());
   const recentMatchIds = new Set(completedPlayerMatches.slice(0, 3).map((match) => match.id));
@@ -729,7 +730,7 @@ export default async function PlayerDetailPage({
       const stats = aggregateLines(lines);
       const wins = lines.filter((line) => line.set.winnerTeamId === player.teamId).length;
       const championRatings = fanRatings.filter((rating) => rating.playerId === player.id && lines.some((line) => line.setId === rating.setId));
-      const championPogCount = fanPogVotes.filter((vote) => vote.playerId === player.id && lines.some((line) => line.setId === vote.setId)).length;
+      const championPogCount = lines.filter((line) => playerFanPogSetIds.has(line.setId)).length;
       const pickCount = scopedPicksBans.filter((item) => item.championId === championId && item.actionType === "pick").length;
       const banCount = scopedPicksBans.filter((item) => item.championId === championId && item.actionType === "ban").length;
       const mainUsers =
@@ -761,7 +762,7 @@ export default async function PlayerDetailPage({
       .filter((line) => line.match.id === match.id)
       .sort((a, b) => a.set.setNumber - b.set.setNumber);
     const matchRatings = fanRatings.filter((rating) => rating.matchId === match.id && rating.playerId === player.id);
-    const matchPogCount = fanPogVotes.filter((vote) => vote.matchId === match.id && vote.playerId === player.id).length;
+    const matchPogCount = lines.filter((line) => playerFanPogSetIds.has(line.setId)).length;
     const officialPomName = players.find((item) => item.id === match.officialPomPlayerId)?.name ?? "-";
 
     return {
@@ -899,7 +900,7 @@ export default async function PlayerDetailPage({
             <div className="grid grid-cols-2 rounded-md border border-border bg-background/45">
               <div className="grid place-items-center border-r border-border p-4 text-center">
                 <p className="text-sm text-muted">팬 POG 횟수</p>
-                <p className="mt-3 text-4xl font-semibold">{playerFanPogVotes.length}</p>
+                <p className="mt-3 text-4xl font-semibold">{playerFanPogSetIds.size}</p>
               </div>
               <div className="grid place-items-center p-4 text-center">
                 <p className="text-sm text-muted">공식 POM 횟수</p>

@@ -168,7 +168,9 @@ export type SetResult = {
   id: string;
   matchId: string;
   setNumber: number;
+  status: SetStatus;
   winnerTeamId: string | null;
+  resultRecordedAt?: string | null;
   blueTeamId: string;
   redTeamId: string;
   durationSeconds: number | null;
@@ -205,6 +207,13 @@ export type SetResult = {
   riotMatchId?: string | null;
   riotPlatformGameId?: string | null;
 };
+
+export type SetStatus =
+  | "scheduled"
+  | "draft_in_progress"
+  | "draft_done"
+  | "finished"
+  | "data_synced";
 
 export type Champion = {
   id: string;
