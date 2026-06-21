@@ -7,7 +7,6 @@ import {
   getAllPlayers,
   getAllTeams,
   getChampions,
-  getFanRatings,
   getMatchById,
   getPlayerStatLines,
   getSetById,
@@ -39,7 +38,6 @@ import {
 import type {
   Champion,
   DerivedPlayerStats,
-  FanRating,
   Player,
   PlayerStatLine,
   SetResult,
@@ -47,15 +45,11 @@ import type {
 } from "@/lib/types";
 import {
   durationLabel,
-  fanRatingLeader,
   matchHref,
-  playerLabel,
   setHref,
   teamLabel,
 } from "@/lib/view-data";
-import { isSetRatingOpen } from "@/lib/set-status";
 
-import { submitSetPlayerRatingAction } from "../../actions";
 import { PlayerItemSlots } from "../../player-item-slots";
 import { GameTimeline } from "../../game-timeline";
 import { SetDraftView } from "./set-draft-view";
@@ -283,7 +277,6 @@ type PlayerStatRow = {
   line: PlayerStatLine;
   player?: Player;
   stats: DerivedPlayerStats;
-  rating?: { rating: number };
 };
 
 function PlayerStatBoard({
@@ -536,183 +529,6 @@ function PlayerStatBoard({
   );
 }
 
-const ratingOptions = [5, 4.5, 4, 3.5, 3, 2.5, 2, 1.5, 1];
-const ratingPositionOrder = new Map<Player["position"], number>(
-  ["TOP", "JGL", "MID", "BOT", "SUP"].map((position, index) => [
-    position as Player["position"],
-    index,
-  ]),
-);
-
-function averageRatingLabel(ratings: FanRating[]) {
-  if (ratings.length === 0) return "-";
-  const average =
-    ratings.reduce((sum, rating) => sum + rating.rating, 0) / ratings.length;
-  return average.toFixed(1);
-}
-
-function FanRatingBoard({
-  matchId,
-  set,
-  rows,
-  ratings,
-  players,
-  teams,
-}: {
-  matchId: string;
-  set: SetResult;
-  rows: PlayerStatRow[];
-  ratings: FanRating[];
-  players: Player[];
-  teams: Team[];
-}) {
-  const ratingOpen = isSetRatingOpen(set);
-  const leader = fanRatingLeader(ratings);
-  const orderedRows = [...rows].sort((a, b) => {
-    if (a.line.teamId !== b.line.teamId) {
-      return a.line.teamId === set.blueTeamId ? -1 : 1;
-    }
-    return (
-      (ratingPositionOrder.get(a.line.position) ?? 99) -
-      (ratingPositionOrder.get(b.line.position) ?? 99)
-    );
-  });
-
-  return (
-    <section className="flex flex-col gap-4" aria-labelledby="set-reviews">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h2 id="set-reviews" className="text-xl font-semibold">
-            팬 평점
-          </h2>
-          <p className="mt-1 text-sm text-muted">
-            POG는 별도 투표 없이 평균 평점이 가장 높은 선수로 집계됩니다.
-          </p>
-        </div>
-        <span
-          className={`rounded-md border px-3 py-2 text-xs font-semibold ${
-            ratingOpen
-              ? "border-accent bg-accent text-accent-foreground"
-              : "border-border bg-surface text-muted"
-          }`}
-        >
-          {ratingOpen ? "평점 가능" : "결과 입력 대기"}
-        </span>
-      </div>
-
-      <div className="rounded-md border border-border bg-surface p-4">
-        {leader ? (
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
-            <div>
-              <p className="text-xs font-semibold uppercase text-muted">
-                FAN POG
-              </p>
-              <p className="mt-1 text-2xl font-semibold">
-                {playerLabel(players, leader.playerId)}
-              </p>
-            </div>
-            <div className="text-right">
-              <p className="text-3xl font-semibold tabular-nums">
-                {leader.average.toFixed(1)}
-                <span className="text-base text-muted"> / 5</span>
-              </p>
-              <p className="mt-1 text-sm text-muted">{leader.count}개 평점</p>
-            </div>
-          </div>
-        ) : null}
-
-        {!ratingOpen ? (
-          <div className="mt-4 rounded-md border border-dashed border-border bg-background p-4 text-sm text-muted">
-            세트 결과를 입력하면 평점 제출이 열립니다. 밴픽과 라인업은 먼저
-            보여도 제출은 경기 종료 후에만 가능합니다.
-          </div>
-        ) : null}
-
-        {orderedRows.length === 0 ? (
-          <div className="mt-4 rounded-md border border-dashed border-border bg-background p-4 text-sm text-muted">
-            라인업 또는 선수 스탯을 입력하면 평점 대상 선수가 표시됩니다.
-          </div>
-        ) : (
-          <div className="mt-4 grid gap-3 lg:grid-cols-2">
-            {orderedRows.map((row) => {
-              const playerRatings = ratings.filter(
-                (rating) => rating.playerId === row.line.playerId,
-              );
-              const latestReview = playerRatings.find(
-                (rating) => rating.review,
-              )?.review;
-
-              return (
-                <form
-                  key={`${row.line.setId}-${row.line.playerId}`}
-                  action={submitSetPlayerRatingAction}
-                  className="rounded-md border border-border bg-background p-4"
-                >
-                  <input type="hidden" name="matchId" value={matchId} />
-                  <input type="hidden" name="setId" value={set.id} />
-                  <input type="hidden" name="playerId" value={row.line.playerId} />
-
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-xs font-semibold text-muted">
-                        {teamLabel(teams, row.line.teamId)} · {row.line.position}
-                      </p>
-                      <p className="mt-1 text-lg font-semibold">
-                        {row.player?.name ?? "-"}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xl font-semibold tabular-nums">
-                        {averageRatingLabel(playerRatings)}
-                      </p>
-                      <p className="text-xs text-muted">
-                        {playerRatings.length}개
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 grid gap-2 sm:grid-cols-[8rem_1fr_auto]">
-                    <select
-                      name="rating"
-                      defaultValue=""
-                      required
-                      disabled={!ratingOpen}
-                      className="rounded-md border border-border bg-surface px-3 py-2 text-sm font-semibold disabled:opacity-50"
-                    >
-                      <option value="" disabled>
-                        평점
-                      </option>
-                      {ratingOptions.map((value) => (
-                        <option key={value} value={value}>
-                          {value.toFixed(1)}
-                        </option>
-                      ))}
-                    </select>
-                    <input
-                      name="review"
-                      maxLength={240}
-                      disabled={!ratingOpen}
-                      placeholder={latestReview ?? "짧은 리뷰"}
-                      className="min-w-0 rounded-md border border-border bg-surface px-3 py-2 text-sm disabled:opacity-50"
-                    />
-                    <button
-                      type="submit"
-                      disabled={!ratingOpen}
-                      className="rounded-md border border-foreground bg-foreground px-4 py-2 text-sm font-semibold text-background disabled:cursor-not-allowed disabled:border-border disabled:bg-surface-muted disabled:text-muted"
-                    >
-                      제출
-                    </button>
-                  </div>
-                </form>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    </section>
-  );
-}
-
 function SetNavigation({
   match,
   sets,
@@ -771,7 +587,6 @@ export async function SetDetailContent({
     champions,
     picksBans,
     playerStatLines,
-    fanRatings,
     matchSets,
     timelineEvents,
   ] = await Promise.all([
@@ -780,7 +595,6 @@ export async function SetDetailContent({
     getChampions(),
     getSetPicksBans(set.id),
     getPlayerStatLines(set.id),
-    getFanRatings(),
     getSetsByMatchId(match.id),
     getTimelineEvents(set.id),
   ]);
@@ -815,16 +629,12 @@ export async function SetDetailContent({
     position,
     player: playerByPosition(set.redTeamId, position),
   }));
-  const relatedRatings = fanRatings.filter((rating) => rating.setId === set.id);
   const playerRows = playerStatLines.map((line) => {
     const player = players.find((item) => item.id === line.playerId);
     return {
       line,
       player,
       stats: calculatePlayerStats(line),
-      rating: relatedRatings.find(
-        (rating) => rating.playerId === line.playerId,
-      ),
     };
   });
   const positionOrder = new Map<Player["position"], number>(
@@ -1007,15 +817,6 @@ export async function SetDetailContent({
           />
         </div>
       </section>
-
-      <FanRatingBoard
-        matchId={matchId}
-        set={set}
-        rows={playerRows}
-        ratings={relatedRatings}
-        players={players}
-        teams={teams}
-      />
 
       {embedded ? null : (
         <section className="flex flex-wrap gap-2" aria-label="이동">
