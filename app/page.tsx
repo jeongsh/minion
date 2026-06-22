@@ -2,6 +2,7 @@ import Link from "next/link";
 import { SourceNotice } from "@/components/domain/source-notice";
 import {
   getAllTeams,
+  getFanMatchPredictions,
   getHubCommunityPosts,
   getLatestTeamVideos,
   getMatches,
@@ -9,7 +10,7 @@ import {
   getTournaments,
 } from "@/lib/data/lck";
 import { teams as themeTeams } from "@/lib/team-themes";
-import type { CommunityPost, Team, TeamVideo } from "@/lib/types";
+import type { CommunityPost, FanMatchPrediction, Team, TeamVideo } from "@/lib/types";
 import { formatDateTime, matchHref } from "@/lib/view-data";
 import type { Match } from "@/lib/types";
 
@@ -29,22 +30,23 @@ function MatchPreviewCard({
   teamB,
   standingA,
   standingB,
+  predictions,
 }: {
   match: Match;
   teamA?: Team;
   teamB?: Team;
   standingA?: StandingRow;
   standingB?: StandingRow;
+  predictions: FanMatchPrediction[];
 }) {
   const isLive = match.status === "live";
 
-  // 승률 기반 예상 확률
-  const wrA = standingA?.winRate ?? 0.5;
-  const wrB = standingB?.winRate ?? 0.5;
-  const total = wrA + wrB || 1;
-  const probA = Math.round((wrA / total) * 100);
-  const probB = 100 - probA;
-  const favorA = probA >= probB;
+  const teamACount = predictions.filter((p) => p.teamId === match.teamAId).length;
+  const teamBCount = predictions.filter((p) => p.teamId === match.teamBId).length;
+  const voteTotal = teamACount + teamBCount;
+  const probA = voteTotal > 0 ? Math.round((teamACount / voteTotal) * 100) : 50;
+  const probB = voteTotal > 0 ? 100 - probA : 50;
+  const favorA = voteTotal > 0 ? teamACount >= teamBCount : null;
 
   return (
     <Link
@@ -106,33 +108,38 @@ function MatchPreviewCard({
         </div>
       </div>
 
-      {/* AI 프리뷰 */}
+      {/* 승자예측 */}
       <div className="border-t border-[#f0f2f5] bg-[#f8f9fc] px-4 py-4">
         <div className="mb-3 flex items-center gap-1.5">
-          <span className="text-sm">✨</span>
-          <span className="text-[11px] font-black text-[#667085]">AI 프리뷰</span>
-          <span className="ml-auto rounded-full bg-accent/10 px-2 py-0.5 text-[10px] font-black text-accent">
-            {favorA ? teamA?.shortName : teamB?.shortName} 예상 승리
-          </span>
+          <span className="text-[11px] font-black text-[#667085]">승자예측</span>
+          {voteTotal > 0 ? (
+            <span className="ml-auto rounded-full bg-accent/10 px-2 py-0.5 text-[10px] font-black text-accent">
+              {favorA ? teamA?.shortName : teamB?.shortName} {favorA ? probA : probB}%
+            </span>
+          ) : (
+            <span className="ml-auto text-[10px] font-semibold text-[#98a2b3]">투표 모집 중</span>
+          )}
         </div>
 
-        {/* 승률 바 */}
         <div className="flex overflow-hidden rounded-full">
           <div
-            className="h-2 rounded-l-full bg-accent transition-all"
+            className={`h-2 rounded-l-full transition-all ${voteTotal > 0 && favorA ? "bg-accent" : voteTotal > 0 ? "bg-[#d0d5dd]" : "bg-[#e4e7ec]"}`}
             style={{ width: `${probA}%` }}
           />
           <div
-            className="h-2 rounded-r-full bg-[#d0d5dd] transition-all"
+            className={`h-2 rounded-r-full transition-all ${voteTotal > 0 && !favorA ? "bg-accent" : voteTotal > 0 ? "bg-[#d0d5dd]" : "bg-[#e4e7ec]"}`}
             style={{ width: `${probB}%` }}
           />
         </div>
         <div className="mt-1.5 flex justify-between">
           <span className={`text-[11px] font-black ${favorA ? "text-accent" : "text-[#98a2b3]"}`}>
-            {teamA?.shortName} {probA}%
+            {teamA?.shortName} {voteTotal > 0 ? `${probA}%` : "-"}
           </span>
-          <span className={`text-[11px] font-black ${!favorA ? "text-accent" : "text-[#98a2b3]"}`}>
-            {probB}% {teamB?.shortName}
+          <span className="text-[10px] font-semibold text-[#98a2b3]">
+            {voteTotal > 0 ? `${voteTotal.toLocaleString("ko-KR")}표` : ""}
+          </span>
+          <span className={`text-[11px] font-black ${favorA === false ? "text-accent" : "text-[#98a2b3]"}`}>
+            {voteTotal > 0 ? `${probB}%` : "-"} {teamB?.shortName}
           </span>
         </div>
       </div>
@@ -369,6 +376,11 @@ export default async function HomePage() {
     .sort((a, b) => new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime())
     .slice(0, 4);
 
+  const predictionEntries = await Promise.all(
+    upcomingMatches.map(async (match) => [match.id, await getFanMatchPredictions(match.id)] as const),
+  );
+  const predictionsByMatchId = new Map(predictionEntries);
+
   const latestSeason =
     tournaments.length > 0 ? Math.max(...tournaments.map((t) => t.season)) : 2026;
   const seasonTournamentIds = new Set(
@@ -429,6 +441,7 @@ export default async function HomePage() {
                   teamB={teamMap.get(match.teamBId)}
                   standingA={standingByTeamId.get(match.teamAId)}
                   standingB={standingByTeamId.get(match.teamBId)}
+                  predictions={predictionsByMatchId.get(match.id) ?? []}
                 />
               ))}
             </div>
