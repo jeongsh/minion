@@ -41,6 +41,7 @@ export const adminNavItems: NavItem[] = [
   { href: "/admin/players", label: "선수 관리" },
   { href: "/admin/ratings", label: "팬 평점 관리" },
   { href: "/admin/fan-sites", label: "팬 사이트 설정" },
+  { href: "/admin/news", label: "소식 관리" },
   { href: "/admin/scripts", label: "스크립트 실행" },
 ];
 

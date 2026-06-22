@@ -1199,6 +1199,45 @@ export async function getCommunityPosts() {
   }, []);
 }
 
+export async function getLatestTeamVideos(limit = 8) {
+  return fromSupabase(async () => {
+    const { data, error } = await createSupabaseServerClient()
+      .from("team_videos")
+      .select("*")
+      .order("published_at", { ascending: false, nullsFirst: false })
+      .limit(limit);
+
+    if (error) throw error;
+    return (data as TeamVideoRow[]).map(mapTeamVideo);
+  }, []);
+}
+
+export async function getAllTeamVideos() {
+  return fromSupabase(async () => {
+    const { data, error } = await createSupabaseServerClient()
+      .from("team_videos")
+      .select("*")
+      .order("published_at", { ascending: false, nullsFirst: false });
+
+    if (error) throw error;
+    return (data as TeamVideoRow[]).map(mapTeamVideo);
+  }, []);
+}
+
+export async function getHubCommunityPosts(limit = 5) {
+  return fromSupabase(async () => {
+    const { data, error } = await createSupabaseServerClient()
+      .from("community_posts")
+      .select("*")
+      .eq("site_scope", "hub")
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    if (error) throw error;
+    return (data as CommunityPostRow[]).map(mapCommunityPost);
+  }, []);
+}
+
 export async function getFanRatings() {
   return fromSupabase(async () => {
     const { data, error } = await createSupabaseServerClient()
