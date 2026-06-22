@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@import "swiper/css";
+@import "swiper/css/navigation";
 
 :root {
   --background: #f7f8fb;

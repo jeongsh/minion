@@ -78,6 +78,21 @@ const SCRIPTS: ScriptDef[] = [
     args: [{ type: "flag", flag: "--force", label: "전체 덮어쓰기 (--force)" }],
   },
   {
+    id: "sync-youtube-videos",
+    label: "YouTube videos",
+    description: "Sync 2026 YouTube videos for team and current player fan pages.",
+    args: [
+      { type: "input", name: "since", label: "since", default: "2026-01-01", inputType: "text" },
+      { type: "flag", flag: "--dry-run", label: "dry run (--dry-run)" },
+    ],
+  },
+  {
+    id: "subscribe-youtube-webhooks",
+    label: "YouTube webhook subscribe",
+    description: "Subscribe team and player YouTube feeds to the configured public webhook callback.",
+    args: [{ type: "flag", flag: "--unsubscribe", label: "unsubscribe (--unsubscribe)" }],
+  },
+  {
     id: "sync-pom",
     label: "POM 동기화",
     description: "공식 Player of the Match 데이터를 동기화합니다.",

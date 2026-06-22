@@ -11,6 +11,8 @@ const ALLOWED_SCRIPTS = [
   "sync-leaguepedia-lck",
   "sync-career-history",
   "sync-player-images",
+  "sync-youtube-videos",
+  "subscribe-youtube-webhooks",
   "sync-pom",
   "sync-staff",
 ] as const;

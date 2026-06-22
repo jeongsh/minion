@@ -7,6 +7,7 @@ import type {
   Match,
   Player,
   PlayerCareerHistory,
+  PlayerVideo,
   PlayerStatLine,
   SetPickBan,
   SetResult,
@@ -21,6 +22,7 @@ import type {
   Tournament,
 } from "@/lib/types";
 import { normalizeSetStatus } from "@/lib/set-status";
+import { normalizeYoutubeVideo } from "@/lib/youtube";
 
 type TeamRow = {
   id: string;
@@ -249,9 +251,31 @@ type TeamVideoRow = {
   platform: TeamVideo["platform"];
   title: string;
   video_url: string;
+  youtube_video_id?: string | null;
+  embed_url?: string | null;
   thumbnail_url: string | null;
   published_at: string | null;
   view_count: number;
+  is_new?: boolean | null;
+  first_seen_at?: string | null;
+  last_seen_at?: string | null;
+};
+
+type PlayerVideoRow = {
+  id: string;
+  player_id: string;
+  team_id: string | null;
+  platform: PlayerVideo["platform"];
+  title: string;
+  video_url: string;
+  youtube_video_id?: string | null;
+  embed_url?: string | null;
+  thumbnail_url: string | null;
+  published_at: string | null;
+  view_count: number;
+  is_new?: boolean | null;
+  first_seen_at?: string | null;
+  last_seen_at?: string | null;
 };
 
 type CommunityPostRow = {
@@ -501,6 +525,57 @@ function mapCommunityPost(row: CommunityPostRow): CommunityPost {
   };
 }
 
+function mapTeamVideo(row: TeamVideoRow): TeamVideo {
+  const normalized = normalizeYoutubeVideo({
+    videoUrl: row.video_url,
+    youtubeVideoId: row.youtube_video_id,
+    embedUrl: row.embed_url,
+    thumbnailUrl: row.thumbnail_url,
+  });
+
+  return {
+    id: row.id,
+    teamId: row.team_id,
+    platform: row.platform,
+    title: row.title,
+    videoUrl: row.video_url,
+    youtubeVideoId: normalized.youtubeVideoId ?? undefined,
+    embedUrl: normalized.embedUrl,
+    thumbnailUrl: normalized.thumbnailUrl,
+    publishedAt: row.published_at ?? "",
+    viewCount: row.view_count,
+    isNew: row.is_new ?? false,
+    firstSeenAt: row.first_seen_at ?? undefined,
+    lastSeenAt: row.last_seen_at ?? undefined,
+  };
+}
+
+function mapPlayerVideo(row: PlayerVideoRow): PlayerVideo {
+  const normalized = normalizeYoutubeVideo({
+    videoUrl: row.video_url,
+    youtubeVideoId: row.youtube_video_id,
+    embedUrl: row.embed_url,
+    thumbnailUrl: row.thumbnail_url,
+  });
+
+  return {
+    id: row.id,
+    playerId: row.player_id,
+    teamId: row.team_id ?? "",
+    platform: row.platform,
+    title: row.title,
+    videoUrl: row.video_url,
+    youtubeVideoId: normalized.youtubeVideoId ?? undefined,
+    embedUrl: normalized.embedUrl,
+    thumbnailUrl: normalized.thumbnailUrl,
+    publishedAt: row.published_at ?? "",
+    viewCount: row.view_count,
+    isNew: row.is_new ?? false,
+    firstSeenAt: row.first_seen_at ?? undefined,
+    lastSeenAt: row.last_seen_at ?? undefined,
+  };
+}
+
 function mapFanRating(row: FanRatingRow): FanRating {
   return {
     id: row.id,
@@ -664,6 +739,22 @@ export async function getTeamsSortedByRank(): Promise<Team[]> {
     if (ra !== rb) return ra - rb;
     return a.name.localeCompare(b.name);
   });
+}
+
+export async function getTeamById(id: string) {
+  return fromSupabase(async () => {
+    const { data, error } = await createSupabaseServerClient()
+      .from("teams")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (error) {
+      throw error;
+    }
+
+    return data ? mapTeam(data as TeamRow) : undefined;
+  }, undefined);
 }
 
 export async function getTeamBySlug(slug: string) {
@@ -1038,16 +1129,7 @@ export async function getTeamNews(teamId: string) {
     }
 
     return {
-      videos: (videosResult.data as TeamVideoRow[]).map((row) => ({
-        id: row.id,
-        teamId: row.team_id,
-        platform: row.platform,
-        title: row.title,
-        videoUrl: row.video_url,
-        thumbnailUrl: row.thumbnail_url ?? "",
-        publishedAt: row.published_at ?? "",
-        viewCount: row.view_count,
-      })),
+      videos: (videosResult.data as TeamVideoRow[]).map(mapTeamVideo),
       socialPosts: (socialPostsResult.data as TeamSocialPostRow[]).map((row) => ({
         id: row.id,
         teamId: row.team_id,
@@ -1060,6 +1142,46 @@ export async function getTeamNews(teamId: string) {
       })),
     };
   }, { videos: [], socialPosts: [] });
+}
+
+export async function getFanVideoFeed(teamId: string, playerIds: string[]) {
+  return fromSupabase(async () => {
+    const supabase = createSupabaseServerClient();
+    const [teamVideosResult, playerVideosResult] = await Promise.all([
+      supabase
+        .from("team_videos")
+        .select("*")
+        .eq("team_id", teamId)
+        .order("published_at", { ascending: false, nullsFirst: false }),
+      playerIds.length === 0
+        ? Promise.resolve({ data: [], error: null })
+        : supabase
+            .from("player_videos")
+            .select("*")
+            .eq("team_id", teamId)
+            .in("player_id", playerIds)
+            .order("published_at", { ascending: false, nullsFirst: false }),
+    ]);
+
+    if (teamVideosResult.error) {
+      throw teamVideosResult.error;
+    }
+    if (
+      playerVideosResult.error &&
+      !(
+        typeof playerVideosResult.error === "object" &&
+        "code" in playerVideosResult.error &&
+        playerVideosResult.error.code === "PGRST205"
+      )
+    ) {
+      throw playerVideosResult.error;
+    }
+
+    return {
+      teamVideos: (teamVideosResult.data as TeamVideoRow[]).map(mapTeamVideo),
+      playerVideos: ((playerVideosResult.data ?? []) as PlayerVideoRow[]).map(mapPlayerVideo),
+    };
+  }, { teamVideos: [], playerVideos: [] });
 }
 
 export async function getCommunityPosts() {
