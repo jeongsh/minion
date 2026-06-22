@@ -9,7 +9,6 @@ type TeamStyle = React.CSSProperties & {
 
 const fanHeaderItems = [
   { label: "홈", path: "" },
-  { label: "뉴스", path: "/news" },
   { label: "경기", path: "/matches" },
   { label: "선수", path: "/players" },
   { label: "커뮤니티", path: "/community" },

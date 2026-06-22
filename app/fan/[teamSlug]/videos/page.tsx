@@ -21,6 +21,8 @@ type VideoItem = {
   isNew?: boolean;
 };
 
+const NEW_VIDEO_WITHIN_MS = 5 * 24 * 60 * 60 * 1000;
+
 function dateLabel(value: string) {
   if (!value) return "게시일 미확인";
 
@@ -30,6 +32,15 @@ function dateLabel(value: string) {
     month: "2-digit",
     day: "2-digit",
   }).format(new Date(value));
+}
+
+function isNewVideo(publishedAt: string) {
+  if (!publishedAt) return false;
+
+  const publishedTime = new Date(publishedAt).getTime();
+  if (!publishedTime) return false;
+
+  return Date.now() - publishedTime <= NEW_VIDEO_WITHIN_MS;
 }
 
 function videoTime(value: string) {
@@ -45,7 +56,7 @@ function teamVideoItem(video: TeamVideo, ownerName: string): VideoItem {
     videoUrl: video.videoUrl,
     thumbnailUrl: video.thumbnailUrl,
     publishedAt: video.publishedAt,
-    isNew: video.isNew,
+    isNew: isNewVideo(video.publishedAt),
   };
 }
 
@@ -61,7 +72,7 @@ function playerVideoItem(video: PlayerVideo, playersById: Map<string, Player>): 
     videoUrl: video.videoUrl,
     thumbnailUrl: video.thumbnailUrl,
     publishedAt: video.publishedAt,
-    isNew: video.isNew,
+    isNew: isNewVideo(video.publishedAt),
   };
 }
 
@@ -126,7 +137,6 @@ export default async function FanVideosPage({
       return item ? [item] : [];
     }),
   ].sort((a, b) => videoTime(b.publishedAt) - videoTime(a.publishedAt));
-  const newVideos = videos.filter((video) => video.isNew);
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-[var(--page-inline)] py-10">
@@ -134,26 +144,6 @@ export default async function FanVideosPage({
       <p className="-mt-6 max-w-3xl text-sm text-muted">
         구단 공식 영상과 현재 소속 선수 영상을 썸네일과 제목으로 모아봅니다.
       </p>
-
-      {newVideos.length > 0 ? (
-        <section className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-950">
-          <p className="text-sm font-black">새 영상 {newVideos.length}개</p>
-          <div className="mt-3 grid gap-2">
-            {newVideos.slice(0, 4).map((video) => (
-              <Link
-                key={video.id}
-                href={video.videoUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex min-w-0 items-center justify-between gap-3 rounded-md bg-white px-3 py-2 text-sm hover:bg-red-100"
-              >
-                <span className="truncate font-semibold">{video.title}</span>
-                <span className="shrink-0 text-xs">{video.ownerName}</span>
-              </Link>
-            ))}
-          </div>
-        </section>
-      ) : null}
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {videos.length > 0 ? (
