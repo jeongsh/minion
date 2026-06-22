@@ -91,6 +91,7 @@ export async function updateTeamAction(formData: FormData) {
   if (error) throw new Error(error.message);
 
   revalidatePath("/admin/teams");
+  revalidatePath(`/admin/teams/${teamId}`);
   revalidatePath("/teams");
   revalidatePath(`/teams/${payload.slug}`);
 }
@@ -141,4 +142,5 @@ export async function createTeamIdentityHistoryAction(formData: FormData) {
   if (error) throw new Error(error.message);
 
   revalidatePath("/admin/teams");
+  revalidatePath(`/admin/teams/${teamId}`);
 }

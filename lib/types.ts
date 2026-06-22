@@ -331,9 +331,31 @@ export type TeamVideo = {
   platform: "youtube" | "twitch" | "afreecatv";
   title: string;
   videoUrl: string;
+  youtubeVideoId?: string;
+  embedUrl?: string;
   thumbnailUrl: string;
   publishedAt: string;
   viewCount: number;
+  isNew?: boolean;
+  firstSeenAt?: string;
+  lastSeenAt?: string;
+};
+
+export type PlayerVideo = {
+  id: string;
+  playerId: string;
+  teamId: string;
+  platform: "youtube";
+  title: string;
+  videoUrl: string;
+  youtubeVideoId?: string;
+  embedUrl?: string;
+  thumbnailUrl: string;
+  publishedAt: string;
+  viewCount: number;
+  isNew?: boolean;
+  firstSeenAt?: string;
+  lastSeenAt?: string;
 };
 
 export type TeamSocialPost = {

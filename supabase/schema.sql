@@ -20,6 +20,7 @@ create table public.teams (
   ),
   official_homepage_url text,
   official_youtube_url text,
+  official_youtube_channel_id text,
   official_x_url text,
   official_instagram_url text,
   leaguepedia_page text,
@@ -57,6 +58,7 @@ create table public.players (
   twitter_url text,
   instagram_url text,
   youtube_url text,
+  youtube_channel_id text,
   facebook_url text,
   discord_url text,
   solo_queue_account text,
@@ -334,9 +336,32 @@ create table public.team_videos (
   platform text not null,
   title text not null,
   video_url text not null,
+  youtube_video_id text,
+  embed_url text,
   thumbnail_url text,
   published_at timestamptz,
   view_count integer not null default 0,
+  is_new boolean not null default true,
+  first_seen_at timestamptz not null default now(),
+  last_seen_at timestamptz not null default now(),
+  created_at timestamptz not null default now()
+);
+
+create table public.player_videos (
+  id uuid primary key default gen_random_uuid(),
+  player_id uuid not null references public.players(id) on delete cascade,
+  team_id uuid references public.teams(id) on delete set null,
+  platform text not null default 'youtube' check (platform in ('youtube')),
+  title text not null,
+  video_url text not null,
+  youtube_video_id text,
+  embed_url text,
+  thumbnail_url text,
+  published_at timestamptz,
+  view_count integer not null default 0,
+  is_new boolean not null default true,
+  first_seen_at timestamptz not null default now(),
+  last_seen_at timestamptz not null default now(),
   created_at timestamptz not null default now()
 );
 
@@ -670,6 +695,14 @@ create index idx_fan_match_predictions_match_id on public.fan_match_predictions(
 create index idx_fan_match_predictions_team_id on public.fan_match_predictions(team_id);
 create index idx_team_social_posts_team_id on public.team_social_posts(team_id);
 create index idx_team_videos_team_id on public.team_videos(team_id);
+create unique index idx_team_videos_youtube_video_id on public.team_videos(youtube_video_id) where youtube_video_id is not null;
+create index idx_team_videos_published_at on public.team_videos(published_at desc);
+create index idx_team_videos_is_new on public.team_videos(is_new) where is_new = true;
+create unique index idx_player_videos_youtube_video_id on public.player_videos(youtube_video_id) where youtube_video_id is not null;
+create index idx_player_videos_player_id on public.player_videos(player_id);
+create index idx_player_videos_team_id on public.player_videos(team_id);
+create index idx_player_videos_published_at on public.player_videos(published_at desc);
+create index idx_player_videos_is_new on public.player_videos(is_new) where is_new = true;
 create index idx_player_broadcasts_player_id on public.player_broadcasts(player_id);
 create index idx_player_broadcasts_team_id on public.player_broadcasts(team_id);
 create index idx_derived_player_stats_tournament_id on public.derived_player_stats(tournament_id);
@@ -711,6 +744,7 @@ alter table public.community_posts enable row level security;
 alter table public.community_comments enable row level security;
 alter table public.team_social_posts enable row level security;
 alter table public.team_videos enable row level security;
+alter table public.player_videos enable row level security;
 alter table public.player_broadcasts enable row level security;
 alter table public.derived_player_stats enable row level security;
 alter table public.derived_team_stats enable row level security;
@@ -739,6 +773,7 @@ grant select on
   public.set_team_stats,
   public.team_social_posts,
   public.team_videos,
+  public.player_videos,
   public.player_broadcasts,
   public.derived_player_stats,
   public.derived_team_stats,
@@ -787,6 +822,7 @@ create policy "public read set player stats" on public.set_player_stats for sele
 create policy "public read set team stats" on public.set_team_stats for select using (true);
 create policy "public read team social posts" on public.team_social_posts for select using (true);
 create policy "public read team videos" on public.team_videos for select using (true);
+create policy "public read player videos" on public.player_videos for select using (true);
 create policy "public read player broadcasts" on public.player_broadcasts for select using (true);
 create policy "public read derived player stats" on public.derived_player_stats for select using (true);
 create policy "public read derived team stats" on public.derived_team_stats for select using (true);
