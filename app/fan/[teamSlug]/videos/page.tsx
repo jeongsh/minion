@@ -14,10 +14,8 @@ type VideoItem = {
   id: string;
   ownerType: "team" | "player";
   ownerName: string;
-  ownerSlug?: string;
   title: string;
   videoUrl: string;
-  embedUrl?: string;
   thumbnailUrl: string;
   publishedAt: string;
   isNew?: boolean;
@@ -25,6 +23,7 @@ type VideoItem = {
 
 function dateLabel(value: string) {
   if (!value) return "게시일 미확인";
+
   return new Intl.DateTimeFormat("ko-KR", {
     timeZone: "Asia/Seoul",
     year: "numeric",
@@ -44,7 +43,6 @@ function teamVideoItem(video: TeamVideo, ownerName: string): VideoItem {
     ownerName,
     title: video.title,
     videoUrl: video.videoUrl,
-    embedUrl: video.embedUrl,
     thumbnailUrl: video.thumbnailUrl,
     publishedAt: video.publishedAt,
     isNew: video.isNew,
@@ -59,10 +57,8 @@ function playerVideoItem(video: PlayerVideo, playersById: Map<string, Player>): 
     id: `player-${video.id}`,
     ownerType: "player",
     ownerName: player.name,
-    ownerSlug: player.slug,
     title: video.title,
     videoUrl: video.videoUrl,
-    embedUrl: video.embedUrl,
     thumbnailUrl: video.thumbnailUrl,
     publishedAt: video.publishedAt,
     isNew: video.isNew,
@@ -71,18 +67,14 @@ function playerVideoItem(video: PlayerVideo, playersById: Map<string, Player>): 
 
 function VideoCard({ video }: { video: VideoItem }) {
   return (
-    <article className="overflow-hidden rounded-lg border border-border bg-surface">
+    <Link
+      href={video.videoUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="block overflow-hidden rounded-lg border border-border bg-surface transition hover:border-accent"
+    >
       <div className="relative aspect-video bg-black">
-        {video.embedUrl ? (
-          <iframe
-            src={video.embedUrl}
-            title={video.title}
-            className="h-full w-full"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            allowFullScreen
-            loading="lazy"
-          />
-        ) : video.thumbnailUrl ? (
+        {video.thumbnailUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={video.thumbnailUrl} alt="" className="h-full w-full object-cover" />
         ) : (
@@ -101,25 +93,12 @@ function VideoCard({ video }: { video: VideoItem }) {
           <span className="rounded-md border border-border bg-background px-2 py-1">
             {video.ownerType === "team" ? "구단" : "선수"}
           </span>
-          {video.ownerSlug ? (
-            <Link href={`/players/${video.ownerSlug}`} className="hover:text-accent">
-              {video.ownerName}
-            </Link>
-          ) : (
-            <span>{video.ownerName}</span>
-          )}
+          <span>{video.ownerName}</span>
           <span>{dateLabel(video.publishedAt)}</span>
         </div>
         <h2 className="line-clamp-2 min-h-12 text-base font-semibold leading-6">{video.title}</h2>
-        <Link
-          href={video.videoUrl}
-          className="mt-4 inline-flex rounded-md border border-border px-3 py-2 text-sm font-semibold hover:bg-surface-muted"
-          target="_blank"
-        >
-          YouTube에서 열기
-        </Link>
       </div>
-    </article>
+    </Link>
   );
 }
 
@@ -151,12 +130,9 @@ export default async function FanVideosPage({
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-[var(--page-inline)] py-10">
-      <SectionHeader
-        eyebrow={team.shortName}
-        title="영상"
-      />
+      <SectionHeader eyebrow={team.shortName} title="영상" />
       <p className="-mt-6 max-w-3xl text-sm text-muted">
-        구단 공식 YouTube와 현재 소속 선수 YouTube 영상만 모아 봅니다.
+        구단 공식 영상과 현재 소속 선수 영상을 썸네일과 제목으로 모아봅니다.
       </p>
 
       {newVideos.length > 0 ? (
@@ -168,6 +144,7 @@ export default async function FanVideosPage({
                 key={video.id}
                 href={video.videoUrl}
                 target="_blank"
+                rel="noopener noreferrer"
                 className="flex min-w-0 items-center justify-between gap-3 rounded-md bg-white px-3 py-2 text-sm hover:bg-red-100"
               >
                 <span className="truncate font-semibold">{video.title}</span>
@@ -183,7 +160,7 @@ export default async function FanVideosPage({
           videos.map((video) => <VideoCard key={video.id} video={video} />)
         ) : (
           <div className="rounded-lg border border-border bg-surface p-6 text-sm text-muted md:col-span-2 xl:col-span-3">
-            아직 동기화된 YouTube 영상이 없습니다. 관리자 스크립트에서 YouTube 영상 동기화를 실행하면 이곳에 표시됩니다.
+            아직 동기화된 YouTube 영상이 없습니다.
           </div>
         )}
       </section>

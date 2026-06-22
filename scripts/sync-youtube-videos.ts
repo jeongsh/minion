@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { createSupabaseAdminClient } from "../lib/supabase/admin.ts";
-import { fetchYoutubeFeedEntries } from "../lib/youtube-feed.ts";
+import { fetchYoutubeVideoEntries } from "../lib/youtube-feed.ts";
 import {
   getYoutubeVideoOwners,
   resolveOwnerChannelId,
@@ -47,9 +47,7 @@ async function main() {
         continue;
       }
 
-      const entries = (await fetchYoutubeFeedEntries(channelId)).filter(
-        (entry) => new Date(entry.publishedAt) >= since,
-      );
+      const entries = await fetchYoutubeVideoEntries(channelId, { since });
       checked += entries.length;
 
       for (const entry of entries) {

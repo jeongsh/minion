@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { fetchYoutubeFeedEntries, parseYoutubeFeedEntries } from "@/lib/youtube-feed";
+import { fetchYoutubeVideoEntry, parseYoutubeFeedEntries } from "@/lib/youtube-feed";
 import { findYoutubeOwnerByChannelId, upsertYoutubeVideo } from "@/lib/sync/youtube-videos";
 
 export async function GET(request: Request) {
@@ -39,9 +39,7 @@ export async function POST(request: Request) {
       continue;
     }
 
-    const verifiedEntry = (await fetchYoutubeFeedEntries(pushedEntry.channelId)).find(
-      (entry) => entry.videoId === pushedEntry.videoId,
-    );
+    const verifiedEntry = await fetchYoutubeVideoEntry(pushedEntry.channelId, pushedEntry.videoId);
 
     if (!verifiedEntry || new Date(verifiedEntry.publishedAt) < since) {
       skipped += 1;

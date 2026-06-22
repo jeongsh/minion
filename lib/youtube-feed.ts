@@ -1,3 +1,4 @@
+import { fetchYoutubeApiVideoEntries, fetchYoutubeApiVideoEntry } from "./youtube-api.ts";
 import { youtubeThumbnailUrl } from "./youtube.ts";
 
 export type YoutubeFeedEntry = {
@@ -55,6 +56,8 @@ export async function resolveYoutubeChannelId(url: string) {
 
   const html = await response.text();
   return (
+    html.match(/<link rel="canonical" href="https:\/\/www\.youtube\.com\/channel\/(UC[A-Za-z0-9_-]+)"/)?.[1] ??
+    html.match(/"externalId":"(UC[^"]+)"/)?.[1] ??
     html.match(/"channelId":"(UC[^"]+)"/)?.[1] ??
     html.match(/youtube\.com\/channel\/(UC[A-Za-z0-9_-]+)/)?.[1] ??
     null
@@ -87,4 +90,28 @@ export async function fetchYoutubeFeedEntries(channelId: string) {
   }
 
   return parseYoutubeFeedEntries(await response.text());
+}
+
+export async function fetchYoutubeVideoEntries(
+  channelId: string,
+  options: { since?: Date } = {},
+) {
+  const apiKey = process.env.YOUTUBE_API_KEY;
+  if (apiKey) {
+    return fetchYoutubeApiVideoEntries(channelId, { since: options.since, apiKey });
+  }
+
+  const entries = await fetchYoutubeFeedEntries(channelId);
+  if (!options.since) return entries;
+
+  return entries.filter((entry) => new Date(entry.publishedAt) >= options.since!);
+}
+
+export async function fetchYoutubeVideoEntry(channelId: string, videoId: string) {
+  const apiKey = process.env.YOUTUBE_API_KEY;
+  if (apiKey) {
+    return fetchYoutubeApiVideoEntry(videoId, apiKey);
+  }
+
+  return (await fetchYoutubeFeedEntries(channelId)).find((entry) => entry.videoId === videoId) ?? null;
 }

@@ -27,10 +27,12 @@ export async function getYoutubeVideoOwners(supabase: SupabaseClient): Promise<Y
     supabase
       .from("teams")
       .select("id, name, short_name, official_youtube_url, official_youtube_channel_id")
+      .eq("is_lck_team", true)
       .not("official_youtube_url", "is", null),
     supabase
       .from("players")
       .select("id, name, team_id, youtube_url, youtube_channel_id")
+      .eq("is_lck_player", true)
       .not("youtube_url", "is", null)
       .not("team_id", "is", null),
   ]);
@@ -103,11 +105,13 @@ export async function findYoutubeOwnerByChannelId(
     supabase
       .from("teams")
       .select("id, name, short_name, official_youtube_url, official_youtube_channel_id")
+      .eq("is_lck_team", true)
       .eq("official_youtube_channel_id", channelId)
       .maybeSingle(),
     supabase
       .from("players")
       .select("id, name, team_id, youtube_url, youtube_channel_id")
+      .eq("is_lck_player", true)
       .eq("youtube_channel_id", channelId)
       .maybeSingle(),
   ]);

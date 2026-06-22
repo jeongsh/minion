@@ -79,15 +79,25 @@ export async function updateTeamAction(formData: FormData) {
   const payload = teamPayload(formData);
   const supabase = createSupabaseAdminClient();
 
-  const [slugCheck, hostCheck] = await Promise.all([
+  const [slugCheck, hostCheck, existingTeam] = await Promise.all([
     supabase.from("teams").select("id").eq("slug", payload.slug).neq("id", teamId).maybeSingle(),
     supabase.from("teams").select("id").eq("fan_site_host", payload.fan_site_host).neq("id", teamId).maybeSingle(),
+    supabase.from("teams").select("official_youtube_url").eq("id", teamId).maybeSingle(),
   ]);
 
   if (slugCheck.data) throw new Error(`slug '${payload.slug}'는 다른 팀이 이미 사용 중입니다.`);
   if (hostCheck.data) throw new Error(`팬사이트 호스트 '${payload.fan_site_host}'는 다른 팀이 이미 사용 중입니다.`);
 
-  const { error } = await supabase.from("teams").update(payload).eq("id", teamId);
+  if (existingTeam.error) throw new Error(existingTeam.error.message);
+
+  const updatePayload = {
+    ...payload,
+    ...(existingTeam.data?.official_youtube_url !== payload.official_youtube_url
+      ? { official_youtube_channel_id: null }
+      : {}),
+  };
+
+  const { error } = await supabase.from("teams").update(updatePayload).eq("id", teamId);
   if (error) throw new Error(error.message);
 
   revalidatePath("/admin/teams");
