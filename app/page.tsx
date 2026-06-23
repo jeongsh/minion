@@ -253,6 +253,17 @@ function FormTable({ rows }: { rows: StandingRow[] }) {
 }
 
 function VideoSection({ videos, teamsById }: { videos: TeamVideo[]; teamsById: Map<string, Team> }) {
+  if (videos.length === 0) {
+    return (
+      <Card className="p-4">
+        <h2 className="mb-3 text-lg font-black text-[#111827]">추천 영상</h2>
+        <div className="rounded-lg border border-dashed border-[#e8ecf5] bg-[#f8f9fc] px-4 py-10 text-center text-sm font-semibold text-[#64708f]">
+          등록된 추천 영상이 없습니다.
+        </div>
+      </Card>
+    );
+  }
+
   const [mainVideo, ...sideVideos] = videos;
 
   return (
@@ -260,48 +271,43 @@ function VideoSection({ videos, teamsById }: { videos: TeamVideo[]; teamsById: M
       <h2 className="mb-3 text-lg font-black text-[#111827]">추천 영상</h2>
       <div className="grid gap-4 md:grid-cols-[1.15fr_1fr]">
         <a
-          href={mainVideo?.videoUrl ?? "/"}
+          href={mainVideo.videoUrl}
           className="group relative min-h-36 overflow-hidden rounded-lg bg-[#101322]"
-          target={mainVideo ? "_blank" : undefined}
-          rel={mainVideo ? "noopener noreferrer" : undefined}
+          target="_blank"
+          rel="noopener noreferrer"
         >
-          {mainVideo?.thumbnailUrl ? (
+          {mainVideo.thumbnailUrl ? (
             <img src={mainVideo.thumbnailUrl} alt={mainVideo.title} className="h-full w-full object-cover opacity-85" />
           ) : (
-            <div className="grid h-full min-h-36 place-items-center bg-[#161b2d] text-2xl font-black text-white">HIGHLIGHTS</div>
+            <div className="grid h-full min-h-36 place-items-center bg-[#161b2d] text-sm font-bold text-white/70">No thumbnail</div>
           )}
           <span className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
-          <span className="absolute bottom-4 left-4 text-base font-black text-white">{mainVideo?.title ?? "T1 vs HLE"}</span>
+          <span className="absolute bottom-4 left-4 text-base font-black text-white">{mainVideo.title}</span>
           <span className="absolute left-1/2 top-1/2 grid h-12 w-12 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border border-white/60 bg-black/35 text-white">
             ▶
           </span>
         </a>
         <div className="flex flex-col gap-3">
-          {(sideVideos.length > 0 ? sideVideos.slice(0, 3) : [null, null, null]).map((video, index) => {
-            const team = video ? teamsById.get(video.teamId) : undefined;
+          {sideVideos.slice(0, 3).map((video) => {
+            const team = teamsById.get(video.teamId);
             return (
               <a
-                key={video?.id ?? index}
-                href={video?.videoUrl ?? "/"}
-                target={video ? "_blank" : undefined}
-                rel={video ? "noopener noreferrer" : undefined}
+                key={video.id}
+                href={video.videoUrl}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="grid grid-cols-[74px_1fr] gap-3"
               >
                 <div className="relative h-12 overflow-hidden rounded-lg bg-[#eef2f8]">
-                  {video?.thumbnailUrl ? (
+                  {video.thumbnailUrl ? (
                     <img src={video.thumbnailUrl} alt="" className="h-full w-full object-cover" />
                   ) : (
                     <div className="h-full w-full bg-[#dfe4ee]" />
                   )}
-                  <span className="absolute bottom-1 right-1 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-bold text-white">
-                    08:23
-                  </span>
                 </div>
                 <div className="min-w-0">
-                  <p className="line-clamp-2 text-sm font-semibold leading-snug text-[#64708f]">
-                    {video?.title ?? "LCK 2026 스프링 최고의 플레이"}
-                  </p>
-                  <p className="mt-1 text-xs font-semibold text-[#a0a8bb]">{team?.shortName ?? "하이라이트"}</p>
+                  <p className="line-clamp-2 text-sm font-semibold leading-snug text-[#64708f]">{video.title}</p>
+                  {team ? <p className="mt-1 text-xs font-semibold text-[#a0a8bb]">{team.shortName}</p> : null}
                 </div>
               </a>
             );
@@ -424,21 +430,12 @@ export default async function HomePage() {
       teams: `${teamA?.shortName ?? "TBD"} vs ${teamB?.shortName ?? "TBD"}`,
     };
   });
-  const managedHeroSlides = homeHeroSlides.map((slide) => ({
+  const heroSlides = homeHeroSlides.map((slide) => ({
     id: slide.id,
     imageUrl: slide.imageUrl,
     alt: slide.title,
     href: slide.linkUrl,
   }));
-  const fallbackHeroSlides = latestVideos
-    .filter((video) => video.thumbnailUrl)
-    .map((video) => ({
-      id: video.id,
-      imageUrl: video.thumbnailUrl,
-      alt: video.title,
-      href: video.videoUrl,
-    }));
-  const heroSlides = managedHeroSlides.length > 0 ? managedHeroSlides : fallbackHeroSlides;
 
   return (
     <main className="mx-auto flex w-full max-w-[1240px] flex-col gap-5 px-4 pb-8 pt-6 sm:px-6">

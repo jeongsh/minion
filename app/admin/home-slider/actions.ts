@@ -1,5 +1,6 @@
 "use server";
 
+import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -17,9 +18,39 @@ function numberValue(formData: FormData, key: string) {
   return Number.isFinite(value) ? value : 0;
 }
 
-function slidePayload(formData: FormData) {
+async function uploadSlideImage(slideId: string, file: File) {
+  const supabase = createSupabaseAdminClient();
+  const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
+  const path = `${slideId}/${Date.now()}.${extension}`;
+  const buffer = Buffer.from(await file.arrayBuffer());
+
+  const { error } = await supabase.storage.from("home-hero-slides").upload(path, buffer, {
+    contentType: file.type || "image/jpeg",
+    upsert: true,
+  });
+
+  if (error) throw error;
+
+  const { data } = supabase.storage.from("home-hero-slides").getPublicUrl(path);
+  return data.publicUrl;
+}
+
+async function resolveImageUrl(formData: FormData, slideId: string, requireImage: boolean) {
+  const imageFile = formData.get("image_file");
+  if (imageFile instanceof File && imageFile.size > 0) {
+    return uploadSlideImage(slideId, imageFile);
+  }
+
+  const existingUrl = textValue(formData, "image_url");
+  if (existingUrl) return existingUrl;
+  if (requireImage) return null;
+
+  return null;
+}
+
+async function slidePayload(formData: FormData, slideId: string, requireImage: boolean) {
   const title = textValue(formData, "title");
-  const imageUrl = textValue(formData, "image_url");
+  const imageUrl = await resolveImageUrl(formData, slideId, requireImage);
   const linkUrl = textValue(formData, "link_url");
 
   if (!title || !imageUrl) return null;
@@ -34,11 +65,12 @@ function slidePayload(formData: FormData) {
 }
 
 export async function createHomeHeroSlideAction(formData: FormData) {
-  const payload = slidePayload(formData);
+  const id = randomUUID();
+  const payload = await slidePayload(formData, id, true);
   if (!payload) return;
 
   const supabase = createSupabaseAdminClient();
-  const { error } = await supabase.from("home_hero_slides").insert(payload);
+  const { error } = await supabase.from("home_hero_slides").insert({ id, ...payload });
   if (error) throw error;
 
   revalidate();
@@ -46,7 +78,7 @@ export async function createHomeHeroSlideAction(formData: FormData) {
 
 export async function updateHomeHeroSlideAction(formData: FormData) {
   const id = textValue(formData, "id");
-  const payload = slidePayload(formData);
+  const payload = await slidePayload(formData, id, false);
   if (!id || !payload) return;
 
   const supabase = createSupabaseAdminClient();
