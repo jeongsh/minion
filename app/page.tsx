@@ -1,604 +1,521 @@
 import Link from "next/link";
-import { SourceNotice } from "@/components/domain/source-notice";
+import { HomeHeroSwiper } from "@/components/domain/home-hero-swiper";
+import { HomeMatchCalendar, type HomeCalendarMatch } from "@/components/domain/home-match-calendar";
 import {
   getAllTeams,
   getFanMatchPredictions,
-  getHubCommunityPosts,
+  getHomeHeroSlides,
   getLatestTeamVideos,
   getMatches,
   getTeamStandings,
   getTournaments,
 } from "@/lib/data/lck";
 import { teams as themeTeams } from "@/lib/team-themes";
-import type { CommunityPost, FanMatchPrediction, Team, TeamVideo } from "@/lib/types";
-import { formatDateTime, matchHref } from "@/lib/view-data";
-import type { Match } from "@/lib/types";
+import type { FanMatchPrediction, Match, Team, TeamVideo } from "@/lib/types";
+import { formatDateTime, formatTimeKST, matchHref } from "@/lib/view-data";
 
-// ── 예정 경기 프리뷰 카드 ─────────────────────────────────────
+const TEAM_SHORTCUT_ORDER = ["T1", "GEN", "GENG", "HLE", "DK", "KT", "DRX", "NS", "FOX", "BRO", "KDF", "SOOP"];
 
 type StandingRow = {
+  team: Team;
   teamId: string;
   rank: number;
   wins: number;
   losses: number;
-  winRate: number | null;
+  setDiff: number;
+  recent: Array<"W" | "L">;
 };
 
-function MatchPreviewCard({
+function Card({
+  children,
+  className = "",
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <section className={`rounded-2xl border border-[#e8ecf5] bg-white ${className}`}>
+      {children}
+    </section>
+  );
+}
+
+function TeamLogo({
+  team,
+  size = "md",
+  plain = false,
+}: {
+  team?: Team;
+  size?: "sm" | "md" | "lg" | "xl";
+  plain?: boolean;
+}) {
+  const sizeClass = {
+    sm: "h-6 w-6",
+    md: "h-12 w-12",
+    lg: "h-14 w-14 sm:h-16 sm:w-16",
+    xl: "h-14 w-14 sm:h-[68px] sm:w-[68px]",
+  }[size];
+
+  if (!team) {
+    return <span className={`${sizeClass} rounded-xl bg-[#eef2f8]`} />;
+  }
+
+  return (
+    <span className={`grid ${sizeClass} place-items-center ${plain ? "" : "rounded-xl bg-white"}`}>
+      {team.logoUrl ? (
+        <img src={team.logoUrl} alt={team.name} className="h-full w-full object-contain" />
+      ) : (
+        <span className="text-xs font-black text-[#6b7280]">{team.shortName.slice(0, 3)}</span>
+      )}
+    </span>
+  );
+}
+
+function votePercents(match: Match, predictions: FanMatchPrediction[]) {
+  const left = predictions.filter((item) => item.teamId === match.teamAId).length;
+  const right = predictions.filter((item) => item.teamId === match.teamBId).length;
+  const total = left + right;
+
+  if (total === 0) {
+    return { left: 50, right: 50 };
+  }
+
+  const leftPercent = Math.round((left / total) * 100);
+  return { left: leftPercent, right: 100 - leftPercent };
+}
+
+function matchTitle(match: Match, teamA?: Team, teamB?: Team) {
+  const fallback = `${teamA?.shortName ?? "TBD"} vs ${teamB?.shortName ?? "TBD"}`;
+  return match.name?.trim() || fallback;
+}
+
+function MatchPollCard({
   match,
   teamA,
   teamB,
-  standingA,
-  standingB,
   predictions,
 }: {
   match: Match;
   teamA?: Team;
   teamB?: Team;
-  standingA?: StandingRow;
-  standingB?: StandingRow;
   predictions: FanMatchPrediction[];
 }) {
-  const isLive = match.status === "live";
-
-  const teamACount = predictions.filter((p) => p.teamId === match.teamAId).length;
-  const teamBCount = predictions.filter((p) => p.teamId === match.teamBId).length;
-  const voteTotal = teamACount + teamBCount;
-  const probA = voteTotal > 0 ? Math.round((teamACount / voteTotal) * 100) : 50;
-  const probB = voteTotal > 0 ? 100 - probA : 50;
-  const favorA = voteTotal > 0 ? teamACount >= teamBCount : null;
+  const percents = votePercents(match, predictions);
+  const accent = teamA?.primaryColor || "#ff315d";
 
   return (
     <Link
       href={matchHref(match)}
-      className="group flex flex-col overflow-hidden rounded-xl border border-[#e8eaf0] bg-white transition-all hover:border-[#c7cbda] hover:shadow-md"
+      className="rounded-2xl border border-[#e7ebf3] bg-white px-5 py-4 transition hover:-translate-y-0.5 hover:shadow-lg"
     >
-      {/* 날짜 헤더 */}
-      <div className="flex items-center justify-between border-b border-[#f0f2f5] px-4 py-3">
-        <span className="text-xs font-semibold text-[#98a2b3]">
-          {formatDateTime(match.matchDate)}
-        </span>
-        <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-black ${
-          isLive ? "bg-red-50 text-red-500" : "bg-[#f0f2f5] text-[#667085]"
-        }`}>
-          {isLive ? "● LIVE" : match.bestOf ? `BO${match.bestOf}` : "예정"}
-        </span>
-      </div>
-
-      {/* 팀 대전 */}
-      <div className="flex flex-1 flex-col items-center gap-5 px-4 py-7">
-        {/* 팀 A */}
-        <div className="flex flex-col items-center gap-2.5">
-          <div className="grid h-16 w-16 place-items-center rounded-2xl bg-[#f8f9fc] p-2">
-            {teamA?.logoUrl ? (
-              <img src={teamA.logoUrl} alt={teamA.name} className="h-full w-full object-contain transition-transform group-hover:scale-105" />
-            ) : (
-              <span className="text-lg font-black text-[#98a2b3]">{teamA?.shortName?.slice(0, 3) ?? "?"}</span>
-            )}
-          </div>
-          <div className="text-center">
-            <p className="text-base font-black text-[#111827]">{teamA?.shortName ?? "-"}</p>
-            {standingA && (
-              <p className="text-[11px] text-[#98a2b3]">
-                {standingA.rank}위 · {standingA.wins}승 {standingA.losses}패
-              </p>
-            )}
-          </div>
+      <p className="text-xs font-semibold text-[#64708f]">{formatDateTime(match.matchDate)}</p>
+      <p className="mt-2 line-clamp-1 text-center text-sm font-black text-[#111827]">
+        {matchTitle(match, teamA, teamB)}
+      </p>
+      <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-center gap-3 sm:gap-4">
+        <div className="flex flex-col items-center gap-2 text-center">
+          <TeamLogo team={teamA} size="lg" />
+          <span className="min-h-8 text-sm font-black leading-tight text-[#111827]">
+            {teamA?.shortName ?? "TBD"}
+          </span>
         </div>
-
-        <span className="text-sm font-black text-[#d0d5dd]">vs</span>
-
-        {/* 팀 B */}
-        <div className="flex flex-col items-center gap-2.5">
-          <div className="grid h-16 w-16 place-items-center rounded-2xl bg-[#f8f9fc] p-2">
-            {teamB?.logoUrl ? (
-              <img src={teamB.logoUrl} alt={teamB.name} className="h-full w-full object-contain transition-transform group-hover:scale-105" />
-            ) : (
-              <span className="text-lg font-black text-[#98a2b3]">{teamB?.shortName?.slice(0, 3) ?? "?"}</span>
-            )}
-          </div>
-          <div className="text-center">
-            <p className="text-base font-black text-[#111827]">{teamB?.shortName ?? "-"}</p>
-            {standingB && (
-              <p className="text-[11px] text-[#98a2b3]">
-                {standingB.rank}위 · {standingB.wins}승 {standingB.losses}패
-              </p>
-            )}
-          </div>
+        <span className="text-lg font-black text-[#111827]">VS</span>
+        <div className="flex flex-col items-center gap-2 text-center">
+          <TeamLogo team={teamB} size="lg" />
+          <span className="min-h-8 text-sm font-black leading-tight text-[#111827]">
+            {teamB?.shortName ?? "TBD"}
+          </span>
         </div>
       </div>
-
-      {/* 승자예측 */}
-      <div className="border-t border-[#f0f2f5] bg-[#f8f9fc] px-4 py-4">
-        <div className="mb-3 flex items-center gap-1.5">
-          <span className="text-[11px] font-black text-[#667085]">승자예측</span>
-          {voteTotal > 0 ? (
-            <span className="ml-auto rounded-full bg-accent/10 px-2 py-0.5 text-[10px] font-black text-accent">
-              {favorA ? teamA?.shortName : teamB?.shortName} {favorA ? probA : probB}%
-            </span>
-          ) : (
-            <span className="ml-auto text-[10px] font-semibold text-[#98a2b3]">투표 모집 중</span>
-          )}
-        </div>
-
-        <div className="flex overflow-hidden rounded-full">
-          <div
-            className={`h-2 rounded-l-full transition-all ${voteTotal > 0 && favorA ? "bg-accent" : voteTotal > 0 ? "bg-[#d0d5dd]" : "bg-[#e4e7ec]"}`}
-            style={{ width: `${probA}%` }}
-          />
-          <div
-            className={`h-2 rounded-r-full transition-all ${voteTotal > 0 && !favorA ? "bg-accent" : voteTotal > 0 ? "bg-[#d0d5dd]" : "bg-[#e4e7ec]"}`}
-            style={{ width: `${probB}%` }}
-          />
-        </div>
-        <div className="mt-1.5 flex justify-between">
-          <span className={`text-[11px] font-black ${favorA ? "text-accent" : "text-[#98a2b3]"}`}>
-            {teamA?.shortName} {voteTotal > 0 ? `${probA}%` : "-"}
-          </span>
-          <span className="text-[10px] font-semibold text-[#98a2b3]">
-            {voteTotal > 0 ? `${voteTotal.toLocaleString("ko-KR")}표` : ""}
-          </span>
-          <span className={`text-[11px] font-black ${favorA === false ? "text-accent" : "text-[#98a2b3]"}`}>
-            {voteTotal > 0 ? `${probB}%` : "-"} {teamB?.shortName}
-          </span>
-        </div>
+      <div className="mt-5 flex items-center justify-between text-sm font-black">
+        <span>{percents.left}%</span>
+        <span className="text-[#69738d]">{percents.right}%</span>
+      </div>
+      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#e3e7ef]">
+        <div className="h-full rounded-full" style={{ width: `${percents.left}%`, backgroundColor: accent }} />
       </div>
     </Link>
   );
 }
 
-// ── 미니 캘린더 ───────────────────────────────────────────────
-
-function MiniCalendar({ matches }: { matches: Match[] }) {
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = today.getMonth();
-
-  const matchDays = new Set(
-    matches
-      .filter((m) => {
-        const d = new Date(m.matchDate);
-        return d.getFullYear() === year && d.getMonth() === month;
-      })
-      .map((m) => new Date(m.matchDate).getDate()),
-  );
-
-  const firstDow = new Date(year, month, 1).getDay();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const cells: (number | null)[] = [
-    ...Array<null>(firstDow).fill(null),
-    ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
-  ];
-  while (cells.length % 7 !== 0) cells.push(null);
-
-  const monthLabel = new Intl.DateTimeFormat("ko-KR", {
+function dateKeyKST(value: string | Date) {
+  const date = typeof value === "string" ? new Date(value) : value;
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Seoul",
     year: "numeric",
-    month: "long",
-  }).format(today);
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const part = (type: Intl.DateTimeFormatPartTypes) => parts.find((item) => item.type === type)?.value ?? "";
+
+  return `${part("year")}-${part("month")}-${part("day")}`;
+}
+
+function yearMonthKeyKST(value: string) {
+  return dateKeyKST(value).slice(0, 7);
+}
+
+function StandingsTable({ rows }: { rows: StandingRow[] }) {
+  return (
+    <Card className="p-4">
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-lg font-black text-[#111827]">LCK 순위</h2>
+        <Link href="/standings" className="rounded-lg border border-[#e8ecf5] px-3 py-2 text-xs font-bold text-[#64708f]">
+          전체 시즌
+        </Link>
+      </div>
+      <div className="grid grid-cols-[40px_1fr_58px_62px_44px] border-b border-[#eef1f7] pb-2 text-xs font-black text-[#7c86a0]">
+        <span>순위</span>
+        <span>팀</span>
+        <span className="text-right">승-패</span>
+        <span className="text-right">득실차</span>
+        <span className="text-right">연속</span>
+      </div>
+      <div className="divide-y divide-[#f1f4f8]">
+        {rows.slice(0, 5).map((row) => (
+          <Link
+            href={`/teams/${row.team.slug}`}
+            key={row.teamId}
+            className="grid grid-cols-[40px_1fr_58px_62px_44px] items-center py-2 text-sm"
+          >
+            <span className="font-black text-[#111827]">{row.rank}</span>
+            <span className="flex items-center gap-2 font-semibold text-[#64708f]">
+              <TeamLogo team={row.team} size="sm" />
+              {row.team.shortName}
+            </span>
+            <span className="text-right font-semibold text-[#64708f]">
+              {row.wins}-{row.losses}
+            </span>
+            <span className="text-right font-semibold text-[#64708f]">{row.setDiff > 0 ? `+${row.setDiff}` : row.setDiff}</span>
+            <span className="text-right font-semibold text-[#64708f]">{row.recent[0] ?? "-"}</span>
+          </Link>
+        ))}
+      </div>
+      <Link
+        href="/standings"
+        className="mx-auto mt-2 flex h-8 w-48 items-center justify-center rounded-full border border-[#e8ecf5] text-xs font-bold text-[#64708f]"
+      >
+        전체 순위 보기 {'>'}
+      </Link>
+    </Card>
+  );
+}
+
+function FormTable({ rows }: { rows: StandingRow[] }) {
+  return (
+    <Card className="p-4">
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-lg font-black text-[#111827]">팀 최근 폼</h2>
+        <Link href="/stats/form" className="rounded-lg border border-[#e8ecf5] px-3 py-2 text-xs font-bold text-[#64708f]">
+          최근 5경기 기준
+        </Link>
+      </div>
+      <div className="grid grid-cols-[40px_1fr_118px] border-b border-[#eef1f7] pb-2 text-xs font-black text-[#7c86a0]">
+        <span>순위</span>
+        <span>팀</span>
+        <span className="text-right">최근 5경기</span>
+      </div>
+      <div className="divide-y divide-[#f1f4f8]">
+        {rows.slice(0, 5).map((row) => (
+          <Link
+            href={`/teams/${row.team.slug}`}
+            key={row.teamId}
+            className="grid grid-cols-[40px_1fr_118px] items-center py-2 text-sm"
+          >
+            <span className="font-black text-[#111827]">{row.rank}</span>
+            <span className="flex items-center gap-2 font-semibold text-[#64708f]">
+              <TeamLogo team={row.team} size="sm" />
+              {row.team.shortName}
+            </span>
+            <span className="flex justify-end gap-1">
+              {(row.recent.length > 0 ? row.recent : ["W", "W", "L", "W", "L"]).slice(0, 5).map((result, index) => (
+                <span
+                  key={`${row.teamId}-${index}`}
+                  className={`grid h-5 w-5 place-items-center rounded text-[10px] font-black text-white ${
+                    result === "W" ? "bg-[#14c784]" : "bg-[#c72f4a]"
+                  }`}
+                >
+                  {result}
+                </span>
+              ))}
+            </span>
+          </Link>
+        ))}
+      </div>
+      <Link
+        href="/stats/form"
+        className="mx-auto mt-2 flex h-8 w-48 items-center justify-center rounded-full border border-[#e8ecf5] text-xs font-bold text-[#64708f]"
+      >
+        전체 팀 보기 {'>'}
+      </Link>
+    </Card>
+  );
+}
+
+function VideoSection({ videos, teamsById }: { videos: TeamVideo[]; teamsById: Map<string, Team> }) {
+  const [mainVideo, ...sideVideos] = videos;
 
   return (
-    <div className="rounded-xl border border-[#e8eaf0] bg-white p-4">
-      <p className="mb-3 text-center text-sm font-black text-[#111827]">{monthLabel}</p>
-      <div className="grid grid-cols-7 text-center">
-        {["일", "월", "화", "수", "목", "금", "토"].map((d) => (
-          <div key={d} className="pb-1 text-[10px] font-bold text-[#98a2b3]">
-            {d}
-          </div>
-        ))}
-        {cells.map((day, i) => {
-          const isToday = day === today.getDate();
-          const hasMatch = day != null && matchDays.has(day);
-          const col = i % 7;
-          const colorCls =
-            day == null
-              ? ""
-              : isToday
-                ? "bg-accent text-white font-black"
-                : col === 0
-                  ? "text-red-400 font-semibold"
-                  : col === 6
-                    ? "text-blue-400 font-semibold"
-                    : "text-[#111827]";
-          return (
-            <div key={i} className="flex flex-col items-center gap-0.5 py-0.5">
-              <span
-                className={`flex h-6 w-6 items-center justify-center rounded-full text-[11px] ${colorCls}`}
+    <Card className="p-4">
+      <h2 className="mb-3 text-lg font-black text-[#111827]">추천 영상</h2>
+      <div className="grid gap-4 md:grid-cols-[1.15fr_1fr]">
+        <a
+          href={mainVideo?.videoUrl ?? "/"}
+          className="group relative min-h-36 overflow-hidden rounded-lg bg-[#101322]"
+          target={mainVideo ? "_blank" : undefined}
+          rel={mainVideo ? "noopener noreferrer" : undefined}
+        >
+          {mainVideo?.thumbnailUrl ? (
+            <img src={mainVideo.thumbnailUrl} alt={mainVideo.title} className="h-full w-full object-cover opacity-85" />
+          ) : (
+            <div className="grid h-full min-h-36 place-items-center bg-[#161b2d] text-2xl font-black text-white">HIGHLIGHTS</div>
+          )}
+          <span className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
+          <span className="absolute bottom-4 left-4 text-base font-black text-white">{mainVideo?.title ?? "T1 vs HLE"}</span>
+          <span className="absolute left-1/2 top-1/2 grid h-12 w-12 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border border-white/60 bg-black/35 text-white">
+            ▶
+          </span>
+        </a>
+        <div className="flex flex-col gap-3">
+          {(sideVideos.length > 0 ? sideVideos.slice(0, 3) : [null, null, null]).map((video, index) => {
+            const team = video ? teamsById.get(video.teamId) : undefined;
+            return (
+              <a
+                key={video?.id ?? index}
+                href={video?.videoUrl ?? "/"}
+                target={video ? "_blank" : undefined}
+                rel={video ? "noopener noreferrer" : undefined}
+                className="grid grid-cols-[74px_1fr] gap-3"
               >
-                {day ?? ""}
+                <div className="relative h-12 overflow-hidden rounded-lg bg-[#eef2f8]">
+                  {video?.thumbnailUrl ? (
+                    <img src={video.thumbnailUrl} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="h-full w-full bg-[#dfe4ee]" />
+                  )}
+                  <span className="absolute bottom-1 right-1 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                    08:23
+                  </span>
+                </div>
+                <div className="min-w-0">
+                  <p className="line-clamp-2 text-sm font-semibold leading-snug text-[#64708f]">
+                    {video?.title ?? "LCK 2026 스프링 최고의 플레이"}
+                  </p>
+                  <p className="mt-1 text-xs font-semibold text-[#a0a8bb]">{team?.shortName ?? "하이라이트"}</p>
+                </div>
+              </a>
+            );
+          })}
+        </div>
+      </div>
+      <Link
+        href="/stats"
+        className="mx-auto mt-3 flex h-8 w-48 items-center justify-center rounded-full border border-[#e8ecf5] text-xs font-bold text-[#64708f]"
+      >
+        전체 영상 보기 {'>'}
+      </Link>
+    </Card>
+  );
+}
+
+function TeamShortcutGrid({ teams }: { teams: Team[] }) {
+  const sortedTeams = [...teams].sort((a, b) => {
+    const aIndex = TEAM_SHORTCUT_ORDER.indexOf(a.shortName.toUpperCase());
+    const bIndex = TEAM_SHORTCUT_ORDER.indexOf(b.shortName.toUpperCase());
+    const safeA = aIndex === -1 ? 999 : aIndex;
+    const safeB = bIndex === -1 ? 999 : bIndex;
+    if (safeA !== safeB) return safeA - safeB;
+    return a.shortName.localeCompare(b.shortName);
+  });
+
+  return (
+    <Card className="p-4">
+      <h2 className="mb-3 text-lg font-black text-[#111827]">팀별 팬사이트 바로가기</h2>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        {sortedTeams.slice(0, 10).map((team) => {
+          const themeTeam = themeTeams.find((item) => item.id === team.id);
+          const fanSlug = themeTeam?.fanSiteHost ?? team.slug;
+
+          return (
+            <Link
+              key={team.id}
+              href={`/fan/${fanSlug}`}
+              className="group relative flex min-h-[104px] flex-col items-center justify-center gap-2 overflow-hidden rounded-xl border border-[#d9dee8] bg-white p-3 text-center transition hover:-translate-y-0.5 hover:border-[#b9c1d0] hover:shadow-md"
+            >
+              <span className="relative grid h-[76px] w-[76px] place-items-center p-1.5">
+                <TeamLogo team={team} size="xl" plain />
               </span>
-              <span
-                className={`h-1 w-1 rounded-full transition-opacity ${
-                  hasMatch ? "bg-accent opacity-100" : "opacity-0"
-                }`}
-              />
-            </div>
+              <span className="relative text-xs font-black text-[#111827]">{team.shortName}</span>
+            </Link>
           );
         })}
       </div>
-    </div>
+    </Card>
   );
 }
 
-// ── 팀 팬사이트 카드 ───────────────────────────────────────────
 
-function TeamFanCard({ team, rank }: { team: Team; rank?: number }) {
-  const themeTeam = themeTeams.find((t) => t.id === team.id);
-  const fanSlug = themeTeam?.fanSiteHost ?? team.slug;
-
-  return (
-    <Link
-      href={`/fan/${fanSlug}`}
-      className="group relative flex flex-col items-center justify-center gap-3 overflow-hidden rounded-xl p-5 transition-all hover:brightness-110 hover:shadow-md"
-      style={{ backgroundColor: team.primaryColor, minHeight: "210px" }}
-    >
-      {/* 배경 그라디언트 */}
-      <div
-        className="absolute inset-0"
-        style={{
-          background: `linear-gradient(160deg, rgba(255,255,255,0.10) 0%, rgba(0,0,0,0.30) 100%)`,
-        }}
-      />
-
-      {/* 순위 뱃지 */}
-      {rank != null && (
-        <span className="absolute left-2.5 top-2.5 text-[10px] font-black text-white/50">
-          #{rank}
-        </span>
-      )}
-
-      {/* 로고 (흰 원 배경) */}
-      <div className="relative grid h-14 w-14 shrink-0 place-items-center rounded-full bg-white shadow-sm transition-transform group-hover:scale-110">
-        {team.logoUrl ? (
-          <img
-            src={team.logoUrl}
-            alt={team.name}
-            className="h-10 w-10 object-contain"
-          />
-        ) : (
-          <span
-            className="text-sm font-black"
-            style={{ color: team.primaryColor }}
-          >
-            {team.shortName.slice(0, 3)}
-          </span>
-        )}
-      </div>
-
-      {/* 팀명 */}
-      <span className="relative text-sm font-black text-white">{team.shortName}</span>
-
-      {/* 호버 안내 */}
-      <span className="absolute bottom-2.5 left-0 right-0 text-center text-[10px] font-semibold text-white/0 transition-all group-hover:text-white/80">
-        팬페이지 바로가기
-      </span>
-    </Link>
-  );
+function buildRecentForm(teamId: string, matches: Match[]) {
+  return matches
+    .filter((match) => match.status === "completed" && (match.teamAId === teamId || match.teamBId === teamId))
+    .sort((a, b) => new Date(b.matchDate).getTime() - new Date(a.matchDate).getTime())
+    .slice(0, 5)
+    .map((match) => (match.winnerTeamId === teamId ? "W" : "L") as "W" | "L");
 }
-
-// ── 소식 카드 (영상) ──────────────────────────────────────────
-
-function NewsVideoCard({ video, team }: { video: TeamVideo; team?: Team }) {
-  const thumb =
-    video.thumbnailUrl ??
-    (video.youtubeVideoId
-      ? `https://img.youtube.com/vi/${video.youtubeVideoId}/mqdefault.jpg`
-      : null);
-
-  const publishedDate = video.publishedAt
-    ? new Intl.DateTimeFormat("ko-KR", { month: "short", day: "numeric" }).format(
-        new Date(video.publishedAt),
-      )
-    : null;
-
-  return (
-    <a
-      href={video.videoUrl}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="group flex gap-3 rounded-xl border border-[#e8eaf0] bg-white p-3 transition-all hover:border-[#c7cbda] hover:shadow-sm"
-    >
-      {/* 썸네일 */}
-      <div className="relative h-[62px] w-[110px] shrink-0 overflow-hidden rounded-lg bg-[#f0f2f5]">
-        {thumb ? (
-          <img src={thumb} alt={video.title} className="h-full w-full object-cover" />
-        ) : (
-          <span className="flex h-full w-full items-center justify-center text-2xl text-[#d0d5dd]">
-            ▶
-          </span>
-        )}
-        <span className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/20">
-          <span className="scale-0 text-xl text-white drop-shadow transition-transform group-hover:scale-100">▶</span>
-        </span>
-      </div>
-
-      {/* 텍스트 */}
-      <div className="flex min-w-0 flex-col justify-between gap-1 py-0.5">
-        <p className="line-clamp-2 text-[13px] font-semibold leading-snug text-[#111827] group-hover:text-accent">
-          {video.title}
-        </p>
-        <div className="flex items-center gap-1.5">
-          {team?.logoUrl ? (
-            <img src={team.logoUrl} alt={team.shortName} className="h-4 w-4 object-contain" />
-          ) : null}
-          <span className="text-[11px] font-semibold text-[#98a2b3]">
-            {team?.shortName ?? "LCK"}
-          </span>
-          {publishedDate && (
-            <>
-              <span className="text-[#d0d5dd]">·</span>
-              <span className="text-[11px] text-[#98a2b3]">{publishedDate}</span>
-            </>
-          )}
-        </div>
-      </div>
-    </a>
-  );
-}
-
-// ── 공지 카드 ─────────────────────────────────────────────────
-
-function NoticeCard({ post }: { post: CommunityPost }) {
-  const date = new Intl.DateTimeFormat("ko-KR", { month: "short", day: "numeric" }).format(
-    new Date(post.createdAt),
-  );
-  return (
-    <Link
-      href={`/community/${post.boardType}/${post.id}`}
-      className="flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-[#f4f5f8]"
-    >
-      <div className="flex min-w-0 items-center gap-2">
-        <span className="shrink-0 rounded bg-accent/10 px-1.5 py-0.5 text-[10px] font-black text-accent">
-          공지
-        </span>
-        <span className="truncate text-sm font-semibold text-[#111827]">{post.title}</span>
-      </div>
-      <span className="shrink-0 text-xs text-[#98a2b3]">{date}</span>
-    </Link>
-  );
-}
-
-// ── 페이지 ────────────────────────────────────────────────────
 
 export default async function HomePage() {
-  const [teams, matches, savedStandings, tournaments, latestVideos, hubPosts] = await Promise.all([
+  const [teams, matches, savedStandings, tournaments, latestVideos, homeHeroSlides] = await Promise.all([
     getAllTeams(),
     getMatches(),
     getTeamStandings(),
     getTournaments(),
-    getLatestTeamVideos(8),
-    getHubCommunityPosts(5),
+    getLatestTeamVideos(4),
+    getHomeHeroSlides({ limit: 8 }),
   ]);
 
-  const teamMap = new Map(teams.map((t) => [t.id, t]));
+  const teamsById = new Map(teams.map((team) => [team.id, team]));
+  const latestSeason = tournaments.length > 0 ? Math.max(...tournaments.map((tournament) => tournament.season)) : 2026;
+  const latestTournamentIds = new Set(tournaments.filter((tournament) => tournament.season === latestSeason).map((tournament) => tournament.id));
+  const standingRows = savedStandings
+    .filter((standing) => latestTournamentIds.has(standing.tournamentId))
+    .map((standing) => {
+      const team = teamsById.get(standing.teamId);
+      if (!team) return null;
+      return {
+        team,
+        teamId: standing.teamId,
+        rank: standing.rank,
+        wins: standing.wins,
+        losses: standing.losses,
+        setDiff: standing.setDiff,
+        recent: buildRecentForm(standing.teamId, matches),
+      };
+    })
+    .filter((row): row is StandingRow => row !== null)
+    .sort((a, b) => a.rank - b.rank);
 
+  const rankedIds = new Set(standingRows.map((row) => row.teamId));
+  const lckTeams = [
+    ...standingRows.map((row) => row.team),
+    ...teams.filter((team) => team.isLckTeam && team.isActive !== false && !rankedIds.has(team.id)),
+  ];
   const upcomingMatches = matches
-    .filter((m) => m.status !== "completed")
+    .filter((match) => match.status !== "completed")
     .sort((a, b) => new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime())
-    .slice(0, 4);
-
+    .slice(0, 2);
   const predictionEntries = await Promise.all(
     upcomingMatches.map(async (match) => [match.id, await getFanMatchPredictions(match.id)] as const),
   );
   const predictionsByMatchId = new Map(predictionEntries);
+  const calendarMonthKey = upcomingMatches[0]?.matchDate ? yearMonthKeyKST(upcomingMatches[0].matchDate) : yearMonthKeyKST(new Date().toISOString());
+  const calendarMatches = matches
+    .filter((match) => yearMonthKeyKST(match.matchDate) === calendarMonthKey)
+    .sort((a, b) => new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime());
+  const calendarClientMatches: HomeCalendarMatch[] = calendarMatches.map((match) => {
+    const teamA = teamsById.get(match.teamAId);
+    const teamB = teamsById.get(match.teamBId);
 
-  const latestSeason =
-    tournaments.length > 0 ? Math.max(...tournaments.map((t) => t.season)) : 2026;
-  const seasonTournamentIds = new Set(
-    tournaments.filter((t) => t.season === latestSeason).map((t) => t.id),
-  );
-  const savedForSeason = savedStandings.filter((s) => seasonTournamentIds.has(s.tournamentId));
-  const standingRows = savedForSeason
-    .map((s) => {
-      const team = teamMap.get(s.teamId);
-      if (!team) return null;
-      return {
-        rank: s.rank,
-        team,
-        teamId: s.teamId,
-        wins: s.wins,
-        losses: s.losses,
-        matchRecord: `${s.wins}-${s.losses}`,
-        winRate: s.winRate,
-        winRateLabel: s.winRate != null ? `${Math.round(s.winRate * 100)}%` : "-",
-        setDiff: s.setDiff > 0 ? `+${s.setDiff}` : `${s.setDiff}`,
-      };
-    })
-    .filter((r): r is NonNullable<typeof r> => r !== null)
-    .sort((a, b) => a.rank - b.rank);
-
-  // TeamId → standing 맵 (MatchPreviewCard용)
-  const standingByTeamId = new Map(standingRows.map((r) => [r.teamId, r]));
-
-  const rankedTeamIds = new Set(standingRows.map((r) => r.team.id));
-  const lckTeams = [
-    ...standingRows.map((r) => r.team),
-    ...teams.filter((t) => t.isLckTeam && t.isActive !== false && !rankedTeamIds.has(t.id)),
-  ];
+    return {
+      id: match.id,
+      dateKey: dateKeyKST(match.matchDate),
+      href: matchHref(match),
+      time: formatTimeKST(match.matchDate),
+      title: matchTitle(match, teamA, teamB),
+      teams: `${teamA?.shortName ?? "TBD"} vs ${teamB?.shortName ?? "TBD"}`,
+    };
+  });
+  const managedHeroSlides = homeHeroSlides.map((slide) => ({
+    id: slide.id,
+    imageUrl: slide.imageUrl,
+    alt: slide.title,
+    href: slide.linkUrl,
+  }));
+  const fallbackHeroSlides = latestVideos
+    .filter((video) => video.thumbnailUrl)
+    .map((video) => ({
+      id: video.id,
+      imageUrl: video.thumbnailUrl,
+      alt: video.title,
+      href: video.videoUrl,
+    }));
+  const heroSlides = managedHeroSlides.length > 0 ? managedHeroSlides : fallbackHeroSlides;
 
   return (
-    <main className="mx-auto flex w-full max-w-[1180px] flex-col gap-10 px-5 py-8">
+    <main className="mx-auto flex w-full max-w-[1240px] flex-col gap-5 px-4 pb-8 pt-6 sm:px-6">
+      <section className="grid gap-5 lg:grid-cols-[minmax(0,2.35fr)_minmax(300px,0.85fr)]">
+        <HomeHeroSwiper slides={heroSlides} />
 
-      {/* ── 예정 경기 프리뷰 ────────────────────────────────── */}
-      <section className="flex flex-col gap-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-[15px] font-black text-[#111827]">예정 경기</h2>
-          <Link href="/schedule" className="text-xs font-semibold text-[#98a2b3] hover:text-accent">
-            전체 일정 →
+        <Card className="relative overflow-hidden !bg-[#eef0ff] p-8">
+          <div className="pointer-events-none absolute right-6 top-7 h-14 w-14 rounded-full bg-white/45 blur-sm" />
+          <div className="pointer-events-none absolute right-9 top-20 h-5 w-5 rounded-full bg-[#ff7ab6]/70 shadow-[24px_30px_0_rgba(255,207,92,0.75),-18px_78px_0_rgba(255,163,201,0.7)]" />
+          <div className="pointer-events-none absolute bottom-5 left-6 h-4 w-4 rounded-full bg-[#ffe48a]/80 shadow-[26px_-8px_0_rgba(177,162,255,0.8)]" />
+          <div className="relative z-10">
+          <span className="rounded-full border border-[#a9a3ff] bg-white/70 px-4 py-2 text-sm font-black text-[#6f63ff]">
+            참여 이벤트
+          </span>
+          <h2 className="mt-8 text-3xl font-black leading-tight text-[#111827]">
+            최근 경기
+            <br />
+            평점 투표 참여하기
+          </h2>
+          <p className="mt-6 max-w-[230px] text-sm font-semibold leading-6 text-[#59647c]">
+            최근 경기의 플레이와 선수 활약을 직접 평가해주세요! 여러분의 한 표가 큰 힘이 됩니다.
+          </p>
+          <Link
+            href="/stats/fan-ratings"
+            className="mt-7 inline-flex h-12 items-center gap-3 rounded-full bg-[#101a3d] px-6 text-sm font-black text-white"
+            style={{ color: "#ffffff" }}
+          >
+            <span>평점 투표 참여하기</span>
+            <span>›</span>
           </Link>
-        </div>
-        <div className="grid items-start gap-4 lg:grid-cols-[1fr_220px]">
-          {upcomingMatches.length === 0 ? (
-            <p className="rounded-xl border border-[#e8eaf0] bg-white p-8 text-center text-sm text-[#98a2b3]">
-              예정된 경기가 없습니다.
-            </p>
-          ) : (
-            <div className="grid gap-4 sm:grid-cols-2">
+          </div>
+          <div className="absolute bottom-0 right-0 z-0 hidden h-28 w-32 place-items-center rounded-tl-[36px] bg-white/45 text-xs font-black text-[#8a91a8] md:grid">
+            캐릭터 이미지
+          </div>
+        </Card>
+      </section>
+
+      <section className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(300px,0.9fr)]">
+        <Card className="p-5">
+          <h2 className="mb-4 text-xl font-black text-[#111827]">다가오는 경기</h2>
+          {upcomingMatches.length > 0 ? (
+            <div className="grid gap-6 md:grid-cols-2">
               {upcomingMatches.map((match) => (
-                <MatchPreviewCard
+                <MatchPollCard
                   key={match.id}
                   match={match}
-                  teamA={teamMap.get(match.teamAId)}
-                  teamB={teamMap.get(match.teamBId)}
-                  standingA={standingByTeamId.get(match.teamAId)}
-                  standingB={standingByTeamId.get(match.teamBId)}
+                  teamA={teamsById.get(match.teamAId)}
+                  teamB={teamsById.get(match.teamBId)}
                   predictions={predictionsByMatchId.get(match.id) ?? []}
                 />
               ))}
             </div>
+          ) : (
+            <p className="rounded-xl border border-dashed border-[#ccd3e0] py-16 text-center text-sm font-semibold text-[#7c86a0]">
+              예정된 경기가 없습니다.
+            </p>
           )}
-          <MiniCalendar matches={matches} />
+        </Card>
+        <HomeMatchCalendar initialMonthKey={calendarMonthKey} matches={calendarClientMatches} />
+      </section>
+
+      <section className="grid gap-4 lg:grid-cols-[1fr_1fr_0.95fr]">
+        <StandingsTable rows={standingRows} />
+        <FormTable rows={standingRows} />
+        <div className="grid min-h-[300px] place-items-center rounded-2xl bg-[#e6e7eb] text-2xl font-black text-[#666]">
+          광고영역
         </div>
       </section>
 
-      {/* ── 순위 + 팀 팬페이지 ─────────────────────────────── */}
-      <div className="grid items-start gap-8 lg:grid-cols-[1fr_320px]">
+      <section className="grid gap-4 lg:grid-cols-[0.85fr_1fr]">
+        <VideoSection videos={latestVideos} teamsById={teamsById} />
+        <TeamShortcutGrid teams={lckTeams} />
+      </section>
 
-        {/* 팀 팬페이지 그리드 */}
-        {lckTeams.length > 0 && (
-          <section className="flex flex-col gap-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-[15px] font-black text-[#111827]">LCK 팀</h2>
-              <Link href="/teams" className="text-xs font-semibold text-[#98a2b3] hover:text-accent">
-                전체 보기 →
-              </Link>
-            </div>
-            <div className="grid grid-cols-5 gap-2.5">
-              {lckTeams.map((team) => {
-                const row = standingRows.find((r) => r.team.id === team.id);
-                return (
-                  <TeamFanCard key={team.id} team={team} rank={row?.rank} />
-                );
-              })}
-            </div>
-          </section>
-        )}
-
-        {/* 순위표 */}
-        <section className="flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-[15px] font-black text-[#111827]">{latestSeason} LCK 순위</h2>
-            <Link href="/standings" className="text-xs font-semibold text-[#98a2b3] hover:text-accent">
-              전체 →
-            </Link>
-          </div>
-
-          {standingRows.length > 0 ? (
-            <div className="overflow-hidden rounded-xl border border-[#e8eaf0] bg-white">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-[#f0f2f5] bg-[#f8f9fc] text-left">
-                    <th className="px-4 py-2.5 text-[11px] font-black text-[#98a2b3]">#</th>
-                    <th className="px-3 py-2.5 text-[11px] font-black text-[#98a2b3]">팀</th>
-                    <th className="px-3 py-2.5 text-right text-[11px] font-black text-[#98a2b3]">W-L</th>
-                    <th className="px-4 py-2.5 text-right text-[11px] font-black text-[#98a2b3]">승률</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#f0f2f5]">
-                  {standingRows.map((row) => {
-                    const isTop = row.rank <= 3;
-                    const isBottom = row.rank > standingRows.length - 2;
-                    return (
-                      <tr
-                        key={row.team.id}
-                        className="transition-colors hover:bg-[#f8f9fc]"
-                      >
-                        <td className="px-4 py-2.5">
-                          <span
-                            className={`text-sm font-black tabular-nums ${
-                              isTop ? "text-accent" : isBottom ? "text-red-400" : "text-[#98a2b3]"
-                            }`}
-                          >
-                            {row.rank}
-                          </span>
-                        </td>
-                        <td className="px-3 py-2.5">
-                          <Link
-                            href={`/teams/${row.team.slug}`}
-                            className="flex items-center gap-2 hover:text-accent"
-                          >
-                            {row.team.logoUrl ? (
-                              <img
-                                src={row.team.logoUrl}
-                                alt=""
-                                aria-hidden
-                                className="h-5 w-5 shrink-0 object-contain"
-                              />
-                            ) : (
-                              <span
-                                className="grid h-5 w-5 shrink-0 place-items-center rounded-full text-[9px] font-black"
-                                style={{
-                                  backgroundColor: `${row.team.primaryColor}20`,
-                                  color: row.team.primaryColor,
-                                }}
-                              >
-                                {row.team.shortName.slice(0, 2)}
-                              </span>
-                            )}
-                            <span className="font-black text-[#111827]">{row.team.shortName}</span>
-                          </Link>
-                        </td>
-                        <td className="px-3 py-2.5 text-right tabular-nums text-[#667085]">
-                          {row.matchRecord}
-                        </td>
-                        <td className="px-4 py-2.5 text-right tabular-nums font-semibold text-[#111827]">
-                          {row.winRateLabel}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <p className="rounded-xl border border-[#e8eaf0] bg-white p-8 text-center text-sm text-[#98a2b3]">
-              순위 데이터가 없습니다.
-            </p>
-          )}
-        </section>
+      <div className="grid h-14 place-items-center rounded-xl bg-[#e6e7eb] text-2xl font-black text-[#666]">
+        광고영역
       </div>
-
-      {/* ── 전체 소식 ────────────────────────────────────────── */}
-      {(latestVideos.length > 0 || hubPosts.length > 0) && (
-        <section className="flex flex-col gap-4">
-          <h2 className="text-[15px] font-black text-[#111827]">전체 소식</h2>
-
-          <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
-            {/* 최신 영상 */}
-            {latestVideos.length > 0 && (
-              <div className="flex flex-col gap-2">
-                <p className="text-[11px] font-black uppercase tracking-wide text-[#98a2b3]">
-                  최신 영상
-                </p>
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {latestVideos.map((video) => (
-                    <NewsVideoCard
-                      key={video.id}
-                      video={video}
-                      team={teamMap.get(video.teamId)}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* 공지사항 */}
-            {hubPosts.length > 0 && (
-              <div className="flex flex-col gap-2">
-                <p className="text-[11px] font-black uppercase tracking-wide text-[#98a2b3]">
-                  공지사항
-                </p>
-                <div className="overflow-hidden rounded-xl border border-[#e8eaf0] bg-white py-1">
-                  {hubPosts.map((post) => (
-                    <NoticeCard key={post.id} post={post} />
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </section>
-      )}
-
-      <SourceNotice />
     </main>
   );
 }

@@ -341,6 +341,16 @@ export type TeamVideo = {
   lastSeenAt?: string;
 };
 
+export type HomeHeroSlide = {
+  id: string;
+  title: string;
+  imageUrl: string;
+  linkUrl?: string;
+  orderIndex: number;
+  isActive: boolean;
+  createdAt: string;
+};
+
 export type PlayerVideo = {
   id: string;
   playerId: string;

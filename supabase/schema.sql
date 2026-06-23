@@ -363,6 +363,16 @@ create table public.team_videos (
   created_at timestamptz not null default now()
 );
 
+create table public.home_hero_slides (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  image_url text not null,
+  link_url text,
+  order_index integer not null default 0,
+  is_active boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
 create table public.player_videos (
   id uuid primary key default gen_random_uuid(),
   player_id uuid not null references public.players(id) on delete cascade,
@@ -719,6 +729,7 @@ create index idx_team_videos_team_id on public.team_videos(team_id);
 create unique index idx_team_videos_youtube_video_id on public.team_videos(youtube_video_id) where youtube_video_id is not null;
 create index idx_team_videos_published_at on public.team_videos(published_at desc);
 create index idx_team_videos_is_new on public.team_videos(is_new) where is_new = true;
+create index idx_home_hero_slides_order on public.home_hero_slides(is_active, order_index, created_at desc);
 create unique index idx_player_videos_youtube_video_id on public.player_videos(youtube_video_id) where youtube_video_id is not null;
 create index idx_player_videos_player_id on public.player_videos(player_id);
 create index idx_player_videos_team_id on public.player_videos(team_id);
@@ -766,6 +777,7 @@ alter table public.community_comments enable row level security;
 alter table public.team_social_posts enable row level security;
 alter table public.player_social_posts enable row level security;
 alter table public.team_videos enable row level security;
+alter table public.home_hero_slides enable row level security;
 alter table public.player_videos enable row level security;
 alter table public.player_broadcasts enable row level security;
 alter table public.derived_player_stats enable row level security;
@@ -796,6 +808,7 @@ grant select on
   public.team_social_posts,
   public.player_social_posts,
   public.team_videos,
+  public.home_hero_slides,
   public.player_videos,
   public.player_broadcasts,
   public.derived_player_stats,
@@ -846,6 +859,7 @@ create policy "public read set team stats" on public.set_team_stats for select u
 create policy "public read team social posts" on public.team_social_posts for select using (true);
 create policy "public read player social posts" on public.player_social_posts for select using (true);
 create policy "public read team videos" on public.team_videos for select using (true);
+create policy "public read home hero slides" on public.home_hero_slides for select using (true);
 create policy "public read player videos" on public.player_videos for select using (true);
 create policy "public read player broadcasts" on public.player_broadcasts for select using (true);
 create policy "public read derived player stats" on public.derived_player_stats for select using (true);

@@ -5,7 +5,6 @@ export default function FanCommunityReviewsPage() {
     <StaticRoutePage
       eyebrow="팀 커뮤니티"
       title="팀 경기 후기"
-      notice={false}
     />
   );
 }

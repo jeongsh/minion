@@ -18,7 +18,7 @@ export const hubNavItems: NavItem[] = [
 export const statsNavItems: NavItem[] = [
   { href: "/stats/teams", label: "팀 스탯" },
   { href: "/stats/players", label: "선수 스탯" },
-  { href: "/stats/champions", label: "챔피언/밴픽" },
+  { href: "/stats/champions", label: "챔피언 밴픽" },
   { href: "/stats/form", label: "최근 폼" },
   { href: "/stats/fan-ratings", label: "팬 평점" },
   { href: "/stats/pom", label: "공식 POM" },
@@ -40,7 +40,8 @@ export const adminNavItems: NavItem[] = [
   { href: "/admin/teams", label: "팀 관리" },
   { href: "/admin/players", label: "선수 관리" },
   { href: "/admin/ratings", label: "팬 평점 관리" },
-  { href: "/admin/fan-sites", label: "팬 사이트 설정" },
+  { href: "/admin/fan-sites", label: "팬사이트 설정" },
+  { href: "/admin/home-slider", label: "홈 슬라이더 관리" },
   { href: "/admin/news", label: "소식 관리" },
   { href: "/admin/scripts", label: "스크립트 실행" },
 ];

@@ -2,7 +2,6 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import { SeasonSegmentFilter } from "@/components/domain/season-segment-filter";
-import { SourceNotice } from "@/components/domain/source-notice";
 import { getAllTeams, getMatches, getStages, getTournaments } from "@/lib/data/lck";
 import {
   filterMatchesBySegment,
@@ -231,7 +230,6 @@ export default async function SchedulePage({
         )}
       </section>
 
-      <SourceNotice />
     </main>
   );
 }

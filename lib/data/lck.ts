@@ -5,6 +5,7 @@ import type {
   FanMatchPrediction,
   FanRating,
   InstagramStory,
+  HomeHeroSlide,
   Match,
   Player,
   PlayerCareerHistory,
@@ -261,6 +262,16 @@ type TeamVideoRow = {
   is_new?: boolean | null;
   first_seen_at?: string | null;
   last_seen_at?: string | null;
+};
+
+type HomeHeroSlideRow = {
+  id: string;
+  title: string;
+  image_url: string;
+  link_url: string | null;
+  order_index: number;
+  is_active: boolean;
+  created_at: string;
 };
 
 type PlayerVideoRow = {
@@ -549,6 +560,18 @@ function mapTeamVideo(row: TeamVideoRow): TeamVideo {
     isNew: row.is_new ?? false,
     firstSeenAt: row.first_seen_at ?? undefined,
     lastSeenAt: row.last_seen_at ?? undefined,
+  };
+}
+
+function mapHomeHeroSlide(row: HomeHeroSlideRow): HomeHeroSlide {
+  return {
+    id: row.id,
+    title: row.title,
+    imageUrl: row.image_url,
+    linkUrl: row.link_url ?? undefined,
+    orderIndex: row.order_index,
+    isActive: row.is_active,
+    createdAt: row.created_at,
   };
 }
 
@@ -1211,6 +1234,43 @@ export async function getLatestTeamVideos(limit = 8) {
 
     if (error) throw error;
     return (data as TeamVideoRow[]).map(mapTeamVideo);
+  }, []);
+}
+
+function isMissingTableError(error: unknown) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error.code === "PGRST205" || error.code === "42P01")
+  );
+}
+
+export async function getHomeHeroSlides({ activeOnly = true, limit }: { activeOnly?: boolean; limit?: number } = {}) {
+  return fromSupabase(async () => {
+    const supabase = createSupabaseServerClient();
+    let query = supabase
+      .from("home_hero_slides")
+      .select("*")
+      .order("order_index", { ascending: true })
+      .order("created_at", { ascending: false });
+
+    if (activeOnly) {
+      query = query.eq("is_active", true);
+    }
+
+    if (limit) {
+      query = query.limit(limit);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      if (isMissingTableError(error)) return [];
+      throw error;
+    }
+
+    return (data as HomeHeroSlideRow[]).map(mapHomeHeroSlide);
   }, []);
 }
 

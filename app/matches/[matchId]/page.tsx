@@ -3,7 +3,6 @@ import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 
 import { WinnerPredictionPoll } from "@/components/domain/winner-prediction-poll";
-import { SourceNotice } from "@/components/domain/source-notice";
 import {
   getAllPlayers,
   getAllTeams,
@@ -735,7 +734,6 @@ export default async function MatchDetailPage({
         </section>
       ) : null}
 
-      <SourceNotice />
     </main>
   );
 }

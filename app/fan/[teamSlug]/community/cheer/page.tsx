@@ -5,7 +5,6 @@ export default function FanCommunityCheerPage() {
     <StaticRoutePage
       eyebrow="팀 커뮤니티"
       title="응원 게시판"
-      notice={false}
     />
   );
 }

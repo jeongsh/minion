@@ -1,19 +1,16 @@
 import Link from "next/link";
 import { SectionHeader } from "@/components/layout/section-header";
-import { SourceNotice } from "@/components/domain/source-notice";
 import type { NavItem } from "@/lib/navigation";
 
 export function StaticRoutePage({
   eyebrow,
   title,
   items,
-  notice = true,
 }: {
   eyebrow?: string;
   title: string;
   description?: string;
   items?: NavItem[];
-  notice?: boolean;
 }) {
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-[var(--page-inline)] py-10">
@@ -31,7 +28,6 @@ export function StaticRoutePage({
           ))}
         </section>
       ) : null}
-      {notice ? <SourceNotice /> : null}
     </main>
   );
 }

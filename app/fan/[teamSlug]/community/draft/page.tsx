@@ -5,7 +5,6 @@ export default function FanCommunityDraftPage() {
     <StaticRoutePage
       eyebrow="팀 커뮤니티"
       title="팀 밴픽 토론"
-      notice={false}
     />
   );
 }

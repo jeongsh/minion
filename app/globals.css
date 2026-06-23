@@ -1,9 +1,12 @@
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css");
 @import "tailwindcss";
 @import "swiper/css";
 @import "swiper/css/navigation";
+@import "swiper/css/pagination";
+@import "react-day-picker/style.css";
 
 :root {
-  --background: #f7f8fb;
+  --background: #fff;
   --foreground: #111827;
   --surface: #ffffff;
   --surface-muted: #eef2f7;
@@ -40,7 +43,13 @@ body {
   margin: 0;
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family:
+    "Pretendard",
+    -apple-system,
+    BlinkMacSystemFont,
+    system-ui,
+    "Segoe UI",
+    sans-serif;
 }
 
 a {
@@ -64,4 +73,108 @@ textarea {
 .team-surface {
   --accent: var(--team-primary);
   --accent-foreground: #ffffff;
+}
+
+.home-hero-swiper .swiper-pagination-bullet {
+  width: 8px;
+  height: 8px;
+  background: rgb(255 255 255 / 0.7);
+  opacity: 1;
+}
+
+.home-hero-swiper .swiper-pagination-bullet-active {
+  width: 28px;
+  border-radius: 999px;
+  background: #ffffff;
+}
+
+.home-match-calendar {
+  --rdp-accent-color: #6a66ff;
+  --rdp-accent-background-color: #f2f1ff;
+  --rdp-day-height: 39px;
+  --rdp-day-width: 39px;
+  --rdp-day_button-height: 32px;
+  --rdp-day_button-width: 32px;
+  --rdp-day_button-border-radius: 999px;
+  margin: 0;
+  width: 100%;
+  display: block;
+}
+
+.home-match-calendar .rdp-months,
+.home-match-calendar .rdp-month,
+.home-match-calendar .rdp-month_grid {
+  width: 100%;
+}
+
+.home-match-calendar .rdp-month_grid {
+  table-layout: fixed;
+}
+
+.home-match-calendar .rdp-day {
+  width: auto;
+}
+
+.home-match-calendar .rdp-day_button {
+  margin-inline: auto;
+}
+
+.home-match-calendar .rdp-month_caption {
+  height: 2.5rem;
+  font-size: 1.25rem;
+  font-weight: 900;
+  color: #111827;
+}
+
+.home-match-calendar .rdp-nav {
+  top: 0;
+}
+
+.home-match-calendar .rdp-button_next,
+.home-match-calendar .rdp-button_previous {
+  border: 1px solid #e7ebf3;
+  border-radius: 999px;
+  color: #9aa4bb;
+  background: #ffffff;
+}
+
+.home-match-calendar .rdp-weekday {
+  padding: 0.35rem 0 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 900;
+  color: #69738d;
+  opacity: 1;
+}
+
+.home-match-calendar .rdp-day {
+  position: relative;
+}
+
+.home-match-calendar .home-calendar-has-match .rdp-day_button {
+  background: #f0efff;
+  border-color: #c5c1ff;
+  color: #5b55ff;
+  font-weight: 900;
+  box-shadow: 0 8px 18px rgb(106 102 255 / 0.14);
+}
+
+.home-match-calendar .home-calendar-has-match::after {
+  position: absolute;
+  right: 4px;
+  bottom: 6px;
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: #6a66ff;
+  content: "";
+}
+
+.home-match-calendar .rdp-outside {
+  color: #aeb6c8;
+}
+
+.home-match-calendar .rdp-selected .rdp-day_button {
+  background: #6a66ff;
+  border-color: #6a66ff;
+  color: #ffffff;
 }

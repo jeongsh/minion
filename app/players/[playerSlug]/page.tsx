@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 import { PlayerSocialLinks } from "@/components/domain/player-social-links";
 
 import { MiniModalLink } from "@/components/domain/mini-modal-link";
-import { SourceNotice } from "@/components/domain/source-notice";
 import { DataTable } from "@/components/ui/data-table";
 import { championLabel } from "@/lib/champions";
 import { DEFAULT_DDRAGON_VERSION, ddragonVersionFromPatch, uniqueDdragonVersionsForPatches } from "@/lib/ddragon";
@@ -1069,7 +1068,6 @@ export default async function PlayerDetailPage({
           {featuredMatch ? <Link href={matchHref(featuredMatch.match)} className="rounded-lg border border-border bg-surface p-5 text-center text-base font-semibold hover:bg-surface-muted">최근 경기 이동</Link> : null}
         </section>
 
-        <SourceNotice />
       </div>
     </main>
   );

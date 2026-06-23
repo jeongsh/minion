@@ -2,7 +2,6 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import { SeasonSegmentFilter } from "@/components/domain/season-segment-filter";
-import { SourceNotice } from "@/components/domain/source-notice";
 import { SectionHeader } from "@/components/layout/section-header";
 import { DataTable } from "@/components/ui/data-table";
 import { getMatches, getPlayerStatLines, getPlayers, getSets, getTeams, getTournaments } from "@/lib/data/lck";
@@ -80,7 +79,6 @@ export default async function FormStatsPage({
           { key: "pom", label: "공식 POM", render: (row) => row.officialPomCount },
         ]}
       />
-      <SourceNotice />
     </main>
   );
 }

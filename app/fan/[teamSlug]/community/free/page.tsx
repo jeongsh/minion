@@ -5,7 +5,6 @@ export default function FanCommunityFreePage() {
     <StaticRoutePage
       eyebrow="팀 커뮤니티"
       title="팀 자유 게시판"
-      notice={false}
     />
   );
 }
