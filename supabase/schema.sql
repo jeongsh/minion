@@ -330,6 +330,22 @@ create table public.team_social_posts (
   created_at timestamptz not null default now()
 );
 
+create table public.player_social_posts (
+  id uuid primary key default gen_random_uuid(),
+  player_id uuid not null references public.players(id) on delete cascade,
+  team_id uuid references public.teams(id) on delete set null,
+  platform text not null default 'instagram' check (platform in ('instagram', 'x')),
+  post_id text,
+  caption text,
+  source_url text not null,
+  image_url text,
+  likes_count integer,
+  comments_count integer,
+  posted_at timestamptz,
+  scraped_at timestamptz not null default now(),
+  created_at timestamptz not null default now()
+);
+
 create table public.team_videos (
   id uuid primary key default gen_random_uuid(),
   team_id uuid not null references public.teams(id) on delete cascade,
@@ -693,7 +709,12 @@ create index idx_fan_pog_votes_team_id on public.fan_pog_votes(team_id);
 create index idx_fan_pog_votes_author_id on public.fan_pog_votes(author_id);
 create index idx_fan_match_predictions_match_id on public.fan_match_predictions(match_id);
 create index idx_fan_match_predictions_team_id on public.fan_match_predictions(team_id);
+create unique index idx_team_social_posts_source_url on public.team_social_posts(source_url);
 create index idx_team_social_posts_team_id on public.team_social_posts(team_id);
+create unique index idx_player_social_posts_source_url on public.player_social_posts(source_url);
+create index idx_player_social_posts_player_id on public.player_social_posts(player_id);
+create index idx_player_social_posts_team_id on public.player_social_posts(team_id);
+create index idx_player_social_posts_posted_at on public.player_social_posts(posted_at desc nulls last);
 create index idx_team_videos_team_id on public.team_videos(team_id);
 create unique index idx_team_videos_youtube_video_id on public.team_videos(youtube_video_id) where youtube_video_id is not null;
 create index idx_team_videos_published_at on public.team_videos(published_at desc);
@@ -743,6 +764,7 @@ alter table public.fan_match_predictions enable row level security;
 alter table public.community_posts enable row level security;
 alter table public.community_comments enable row level security;
 alter table public.team_social_posts enable row level security;
+alter table public.player_social_posts enable row level security;
 alter table public.team_videos enable row level security;
 alter table public.player_videos enable row level security;
 alter table public.player_broadcasts enable row level security;
@@ -772,6 +794,7 @@ grant select on
   public.set_player_stats,
   public.set_team_stats,
   public.team_social_posts,
+  public.player_social_posts,
   public.team_videos,
   public.player_videos,
   public.player_broadcasts,
@@ -821,6 +844,7 @@ create policy "public read picks bans" on public.set_picks_bans for select using
 create policy "public read set player stats" on public.set_player_stats for select using (true);
 create policy "public read set team stats" on public.set_team_stats for select using (true);
 create policy "public read team social posts" on public.team_social_posts for select using (true);
+create policy "public read player social posts" on public.player_social_posts for select using (true);
 create policy "public read team videos" on public.team_videos for select using (true);
 create policy "public read player videos" on public.player_videos for select using (true);
 create policy "public read player broadcasts" on public.player_broadcasts for select using (true);

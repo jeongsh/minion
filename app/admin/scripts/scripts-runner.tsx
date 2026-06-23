@@ -104,6 +104,19 @@ const SCRIPTS: ScriptDef[] = [
     description: "감독/코치 정보를 동기화합니다.",
     args: [{ type: "flag", flag: "--force", label: "전체 덮어쓰기 (--force)" }],
   },
+  {
+    id: "sync-instagram",
+    label: "인스타그램 동기화",
+    description: "Playwright(브라우저) 기반으로 게시물·스토리를 수집합니다. RapidAPI 할당량이 남아있으면 자동으로 보조 사용합니다. 스토리는 24시간 후 자동 만료.",
+    args: [
+      { type: "input", name: "engine", label: "engine (auto / browser / rapidapi)", default: "auto", inputType: "text" },
+      { type: "input", name: "mode", label: "mode (all / posts / stories)", default: "all", inputType: "text" },
+      { type: "input", name: "limit", label: "limit (계정 수)", default: "30", inputType: "number", min: 1, max: 100 },
+      { type: "input", name: "offset", label: "offset (건너뛸 수)", default: "0", inputType: "number", min: 0, max: 999 },
+      { type: "input", name: "only", label: "only (players / teams / 비워두면 전체)", default: "", inputType: "text" },
+      { type: "flag", flag: "--dry-run", label: "dry run" },
+    ],
+  },
 ];
 
 // ─── 단일 스크립트 패널 ─────────────────────────────────────────

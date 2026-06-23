@@ -15,6 +15,7 @@ const ALLOWED_SCRIPTS = [
   "subscribe-youtube-webhooks",
   "sync-pom",
   "sync-staff",
+  "sync-instagram",
 ] as const;
 
 type AllowedScript = (typeof ALLOWED_SCRIPTS)[number];

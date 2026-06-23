@@ -1,14 +1,17 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { FanInstagramFeed } from "@/components/fan/fan-instagram-feed";
 import { FanPlayerProfiles } from "@/components/fan/fan-player-profiles";
 import {
   getAllTeams,
   getFanVideoFeed,
+  getInstagramStories,
   getMatches,
   getPlayers,
   getTeamByFanSiteHost,
   getTeamBySlug,
+  getTeamInstagramFeed,
   getTeamNews,
 } from "@/lib/data/lck";
 import type { Match, Player, PlayerVideo, Team, TeamSocialPost, TeamVideo } from "@/lib/types";
@@ -336,6 +339,12 @@ export default async function FanHomePage({
   const teamPlayers = players
     .filter((player) => player.teamId === team.id)
     .sort((a, b) => POSITION_ORDER.indexOf(a.position) - POSITION_ORDER.indexOf(b.position));
+  const playerIds = teamPlayers.map((p) => p.id);
+  const [instagramFeed, instagramStories, videoFeed] = await Promise.all([
+    getTeamInstagramFeed(team.id, playerIds),
+    getInstagramStories(team.id, playerIds),
+    getFanVideoFeed(team.id, playerIds),
+  ]);
   const teamMatches = matches
     .filter((match) => match.teamAId === team.id || match.teamBId === team.id)
     .sort(byMatchDate);
@@ -345,7 +354,6 @@ export default async function FanHomePage({
     [...teamMatches].reverse()[0];
   const opponent = upcomingMatch ? teamForMatch(upcomingMatch, team, teams) : undefined;
   const playersById = new Map(teamPlayers.map((player) => [player.id, player]));
-  const videoFeed = await getFanVideoFeed(team.id, teamPlayers.map((player) => player.id));
   const videos = [
     ...videoFeed.teamVideos.map((video) => toTeamVideoItem(video, team)),
     ...videoFeed.playerVideos.flatMap((video) => {
@@ -359,7 +367,15 @@ export default async function FanHomePage({
       <Hero team={team} />
       <NextMatchCard team={team} opponent={opponent} match={upcomingMatch} />
       <FanPlayerProfiles players={teamPlayers} />
-      <SocialSection posts={news.socialPosts} />
+      <FanInstagramFeed
+        teamName={team.shortName}
+        teamInstagramUrl={team.officialInstagramUrl}
+        teamPosts={instagramFeed.teamPosts}
+        playerPosts={instagramFeed.playerPosts}
+        stories={instagramStories}
+        players={teamPlayers}
+      />
+      <SocialSection posts={news.socialPosts.filter((p) => p.platform !== "instagram")} />
       <VideoSection teamSlug={team.fanSiteHost} videos={videos} />
       <OfficialLinks team={team} />
     </main>

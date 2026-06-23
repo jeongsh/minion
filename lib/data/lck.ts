@@ -4,9 +4,11 @@ import type {
   CommunityPost,
   FanMatchPrediction,
   FanRating,
+  InstagramStory,
   Match,
   Player,
   PlayerCareerHistory,
+  PlayerSocialPost,
   PlayerVideo,
   PlayerStatLine,
   SetPickBan,
@@ -1356,5 +1358,156 @@ export async function getFanMatchPredictions(matchId?: string): Promise<FanMatch
       voterKey: row.voter_key,
       createdAt: row.created_at,
     }));
+  }, []);
+}
+
+type PlayerSocialPostRow = {
+  id: string;
+  player_id: string;
+  team_id: string | null;
+  platform: string;
+  post_id: string | null;
+  caption: string | null;
+  source_url: string;
+  image_url: string | null;
+  likes_count: number | null;
+  comments_count: number | null;
+  posted_at: string | null;
+  scraped_at: string;
+  created_at: string;
+};
+
+function mapPlayerSocialPost(row: PlayerSocialPostRow): PlayerSocialPost {
+  return {
+    id: row.id,
+    playerId: row.player_id,
+    teamId: row.team_id ?? undefined,
+    platform: row.platform as PlayerSocialPost["platform"],
+    postId: row.post_id ?? undefined,
+    caption: row.caption ?? "",
+    sourceUrl: row.source_url,
+    imageUrl: row.image_url ?? undefined,
+    likesCount: row.likes_count ?? undefined,
+    commentsCount: row.comments_count ?? undefined,
+    postedAt: row.posted_at ?? undefined,
+    scrapedAt: row.scraped_at,
+  };
+}
+
+export async function getTeamInstagramFeed(
+  teamId: string,
+  playerIds: string[],
+  limit = 48,
+): Promise<{ teamPosts: TeamSocialPost[]; playerPosts: PlayerSocialPost[] }> {
+  return fromSupabase(async () => {
+    const supabase = createSupabaseServerClient();
+
+    const [teamResult, playerResult] = await Promise.all([
+      supabase
+        .from("team_social_posts")
+        .select("*")
+        .eq("team_id", teamId)
+        .eq("platform", "instagram")
+        .order("published_at", { ascending: false, nullsFirst: false })
+        .limit(limit),
+      playerIds.length === 0
+        ? Promise.resolve({ data: [], error: null })
+        : supabase
+            .from("player_social_posts")
+            .select("*")
+            .eq("team_id", teamId)
+            .in("player_id", playerIds)
+            .eq("platform", "instagram")
+            .order("posted_at", { ascending: false, nullsFirst: false })
+            .limit(limit),
+    ]);
+
+    if (teamResult.error) throw teamResult.error;
+    if (playerResult.error) throw playerResult.error;
+
+    return {
+      teamPosts: (teamResult.data as TeamSocialPostRow[]).map((row) => ({
+        id: row.id,
+        teamId: row.team_id,
+        platform: row.platform as TeamSocialPost["platform"],
+        title: row.title,
+        content: row.content ?? "",
+        sourceUrl: row.source_url,
+        thumbnailUrl: row.thumbnail_url ?? undefined,
+        publishedAt: row.published_at ?? "",
+      })),
+      playerPosts: ((playerResult.data ?? []) as PlayerSocialPostRow[]).map(mapPlayerSocialPost),
+    };
+  }, { teamPosts: [], playerPosts: [] });
+}
+
+type InstagramStoryRow = {
+  id: string;
+  owner_type: string;
+  owner_id: string;
+  team_id: string | null;
+  story_pk: string;
+  media_url: string;
+  media_type: string;
+  thumbnail_url: string | null;
+  expires_at: string;
+  taken_at: string | null;
+  scraped_at: string;
+};
+
+function mapInstagramStory(row: InstagramStoryRow): InstagramStory {
+  return {
+    id: row.id,
+    ownerType: row.owner_type as InstagramStory["ownerType"],
+    ownerId: row.owner_id,
+    teamId: row.team_id ?? undefined,
+    storyPk: row.story_pk,
+    mediaUrl: row.media_url,
+    mediaType: row.media_type as InstagramStory["mediaType"],
+    thumbnailUrl: row.thumbnail_url ?? undefined,
+    expiresAt: row.expires_at,
+    takenAt: row.taken_at ?? undefined,
+    scrapedAt: row.scraped_at,
+  };
+}
+
+export async function getInstagramStories(
+  teamId: string,
+  playerIds: string[],
+): Promise<InstagramStory[]> {
+  return fromSupabase(async () => {
+    const supabase = createSupabaseServerClient();
+    const now = new Date().toISOString();
+
+    const [teamResult, playerResult] = await Promise.all([
+      supabase
+        .from("instagram_stories")
+        .select("*")
+        .eq("owner_type", "team")
+        .eq("owner_id", teamId)
+        .gt("expires_at", now)
+        .order("taken_at", { ascending: false }),
+      playerIds.length === 0
+        ? Promise.resolve({ data: [], error: null })
+        : supabase
+            .from("instagram_stories")
+            .select("*")
+            .eq("owner_type", "player")
+            .in("owner_id", playerIds)
+            .gt("expires_at", now)
+            .order("taken_at", { ascending: false }),
+    ]);
+
+    if (teamResult.error) throw teamResult.error;
+    if (playerResult.error) throw playerResult.error;
+
+    return [
+      ...(teamResult.data as InstagramStoryRow[]).map(mapInstagramStory),
+      ...((playerResult.data ?? []) as InstagramStoryRow[]).map(mapInstagramStory),
+    ].sort((a, b) => {
+      const ta = a.takenAt ? new Date(a.takenAt).getTime() : 0;
+      const tb = b.takenAt ? new Date(b.takenAt).getTime() : 0;
+      return tb - ta;
+    });
   }, []);
 }

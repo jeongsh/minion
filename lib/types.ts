@@ -368,3 +368,32 @@ export type TeamSocialPost = {
   thumbnailUrl?: string;
   publishedAt: string;
 };
+
+export type PlayerSocialPost = {
+  id: string;
+  playerId: string;
+  teamId?: string;
+  platform: "instagram" | "x";
+  postId?: string;
+  caption: string;
+  sourceUrl: string;
+  imageUrl?: string;
+  likesCount?: number;
+  commentsCount?: number;
+  postedAt?: string;
+  scrapedAt: string;
+};
+
+export type InstagramStory = {
+  id: string;
+  ownerType: "player" | "team";
+  ownerId: string;
+  teamId?: string;
+  storyPk: string;
+  mediaUrl: string;
+  mediaType: "image" | "video";
+  thumbnailUrl?: string;
+  expiresAt: string;
+  takenAt?: string;
+  scrapedAt: string;
+};
