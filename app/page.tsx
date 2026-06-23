@@ -14,6 +14,8 @@ import { teams as themeTeams } from "@/lib/team-themes";
 import type { FanMatchPrediction, Match, Team, TeamVideo } from "@/lib/types";
 import { formatDateTime, formatTimeKST, matchHref } from "@/lib/view-data";
 
+export const dynamic = "force-dynamic";
+
 const TEAM_SHORTCUT_ORDER = ["T1", "GEN", "GENG", "HLE", "DK", "KT", "DRX", "NS", "FOX", "BRO", "KDF", "SOOP"];
 
 type StandingRow = {

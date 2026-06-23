@@ -10,6 +10,8 @@ import {
 } from "@/lib/data/lck";
 import type { Player, PlayerVideo, TeamVideo } from "@/lib/types";
 
+export const dynamic = "force-dynamic";
+
 type VideoItem = {
   id: string;
   ownerType: "team" | "player";

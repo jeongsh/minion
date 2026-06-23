@@ -16,6 +16,8 @@ import {
 } from "@/lib/data/lck";
 import type { Match, Player, PlayerVideo, Team, TeamSocialPost, TeamVideo } from "@/lib/types";
 
+export const dynamic = "force-dynamic";
+
 const POSITION_ORDER: Player["position"][] = ["TOP", "JGL", "MID", "BOT", "SUP"];
 
 type VideoItem = {
