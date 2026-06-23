@@ -34,6 +34,32 @@ export function runeImageUrlById(options: GameRuneOption[], runeId: number | nul
   return rune ? runeImageUrl(rune) : "";
 }
 
+/** runeIds에서 키스톤(크게)과 보조 계열(작게) URL을 판별한다. 저장 순서가 바뀐 데이터도 처리한다. */
+export function resolveRunePairUrls(
+  runeIds: Array<number | null | undefined>,
+  catalog: RuneCatalog,
+): { keystoneUrl: string; treeUrl: string } {
+  let keystoneUrl = "";
+  let treeUrl = "";
+
+  for (const runeId of runeIds) {
+    if (typeof runeId !== "number" || runeId <= 0) continue;
+
+    const keystone = catalog.keystones.find((entry) => entry.id === runeId);
+    if (keystone) {
+      keystoneUrl = runeImageUrl(keystone);
+      continue;
+    }
+
+    const tree = catalog.trees.find((entry) => entry.id === runeId);
+    if (tree) {
+      treeUrl = runeImageUrl(tree);
+    }
+  }
+
+  return { keystoneUrl, treeUrl };
+}
+
 export function runeLabel(options: GameRuneOption[], runeId: number | null | undefined) {
   if (!runeId) return "";
   return options.find((entry) => entry.id === runeId)?.name ?? `#${runeId}`;

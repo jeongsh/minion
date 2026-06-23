@@ -25,11 +25,8 @@ import {
   voidGrubIconsForSide,
 } from "@/lib/objectives";
 import { ddragonVersionFromPatch } from "@/lib/ddragon";
-import {
-  runeImageUrlById,
-  fetchRuneCatalog,
-  type RuneCatalog,
-} from "@/lib/runes";
+import { RunePair } from "@/components/domain/rune-pair";
+import { fetchRuneCatalog, type RuneCatalog } from "@/lib/runes";
 import {
   spellImageUrlById,
   fetchSpellCatalog,
@@ -325,13 +322,6 @@ function PlayerStatBoard({
         row.line.spellIds[1],
         itemVersion,
       );
-      const rune0Url = row.line.runeIds[0]
-        ? runeImageUrlById(runeCatalog.keystones, row.line.runeIds[0])
-        : "";
-      const rune1Url = row.line.runeIds[1]
-        ? runeImageUrlById(runeCatalog.trees, row.line.runeIds[1])
-        : "";
-
       return (
         <div
           key={`${side}-${row.line.playerId}`}
@@ -352,32 +342,19 @@ function PlayerStatBoard({
                 {row.line.position}
               </span>
             </div>
-            <div className="grid shrink-0 grid-cols-2 gap-0.5">
+            <div className="flex shrink-0 items-center gap-1">
+              <div className="flex flex-col gap-1">
               {spell0Url ? (
                 <Image
                   src={spell0Url}
                   alt=""
-                  width={20}
-                  height={20}
-                  className="h-5 w-5 rounded-sm border border-border/60 bg-surface-muted object-cover"
+                  width={32}
+                  height={32}
+                  className="h-8 w-8 rounded-sm border border-border/60 bg-surface-muted object-cover"
                 />
               ) : (
                 <span
-                  className="h-5 w-5 rounded-sm border border-dashed border-border bg-surface-muted"
-                  aria-hidden="true"
-                />
-              )}
-              {rune0Url ? (
-                <Image
-                  src={rune0Url}
-                  alt=""
-                  width={20}
-                  height={20}
-                  className="h-5 w-5 rounded-full border border-white/10 bg-[#0d1117] object-contain"
-                />
-              ) : (
-                <span
-                  className="h-5 w-5 rounded-full border border-dashed border-border bg-surface-muted"
+                  className="h-8 w-8 rounded-sm border border-dashed border-border bg-surface-muted"
                   aria-hidden="true"
                 />
               )}
@@ -385,30 +362,18 @@ function PlayerStatBoard({
                 <Image
                   src={spell1Url}
                   alt=""
-                  width={20}
-                  height={20}
-                  className="h-5 w-5 rounded-sm border border-border/60 bg-surface-muted object-cover"
+                  width={32}
+                  height={32}
+                  className="h-8 w-8 rounded-sm border border-border/60 bg-surface-muted object-cover"
                 />
               ) : (
                 <span
-                  className="h-5 w-5 rounded-sm border border-dashed border-border bg-surface-muted"
+                  className="h-8 w-8 rounded-sm border border-dashed border-border bg-surface-muted"
                   aria-hidden="true"
                 />
               )}
-              {rune1Url ? (
-                <Image
-                  src={rune1Url}
-                  alt=""
-                  width={18}
-                  height={18}
-                  className="h-5 w-5 rounded-full object-contain"
-                />
-              ) : (
-                <span
-                  className="h-5 w-5 rounded-full border border-dashed border-border bg-surface-muted"
-                  aria-hidden="true"
-                />
-              )}
+              </div>
+              <RunePair runeIds={row.line.runeIds} catalog={runeCatalog} />
             </div>
             <div className="min-w-0">
               <p className="truncate font-semibold">
@@ -465,9 +430,9 @@ function PlayerStatBoard({
             itemIds={row.line.itemIds}
             roleBoundItem={row.line.roleBoundItem}
             version={itemVersion}
-            slotClassName="h-[22px] w-[22px]"
-            separatorClassName="h-3.5 w-px"
-            imageSizes="22px"
+            slotClassName="h-8 w-8"
+            separatorClassName="h-5 w-px"
+            imageSizes="32px"
           />
         </div>
       );

@@ -85,17 +85,17 @@ function killParticipation(line: PlayerStatLine, teamKills: number) {
 
 function SpellIcon({ src }: { src: string }) {
   return (
-    <div className="relative h-[20px] w-[20px] shrink-0 overflow-hidden rounded-sm border border-border/60 bg-surface-muted">
-      {src && <Image src={src} alt="" fill sizes="20px" className="object-cover" />}
+    <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-sm border border-border/60 bg-surface-muted">
+      {src && <Image src={src} alt="" fill sizes="32px" className="object-cover" />}
     </div>
   );
 }
 
 function RuneIcon({ src, isTree = false }: { src: string; isTree?: boolean }) {
-  const size = isTree ? 18 : 20;
+  const size = isTree ? 16 : 32;
   return (
     <div
-      className={`relative shrink-0 overflow-hidden rounded-full ${isTree ? "h-[18px] w-[18px]" : "h-[20px] w-[20px] border border-white/10"}`}
+      className={`relative shrink-0 overflow-hidden rounded-full ${isTree ? "h-4 w-4" : "h-8 w-8 border border-white/10"}`}
       style={isTree ? undefined : { background: "#0d1117" }}
     >
       {src && <Image src={src} alt="" width={size} height={size} unoptimized className="h-full w-full object-contain" />}
@@ -114,7 +114,6 @@ function PlayerRow({
   spells,
   itemVersion,
   runeImages,
-  isPom,
 }: {
   line: PlayerStatLine;
   player?: Player;
@@ -126,7 +125,6 @@ function PlayerRow({
   spells: GameSpell[];
   itemVersion: string;
   runeImages: Record<string, string>;
-  isPom?: boolean;
 }) {
   const img = championImage(champion);
   const kp = killParticipation(line, teamKills);
@@ -147,14 +145,16 @@ function PlayerRow({
           {img && <Image src={img} alt={championLabel(champion)} fill sizes="48px" className="object-cover" />}
         </div>
         {/* 스펠 + 룬 2×2 */}
-        <div className="flex shrink-0 flex-col gap-0.5">
-          <div className="flex gap-0.5">
+          <div className="flex shrink-0 items-center gap-1">
+          <div className="flex flex-col gap-1">
             <SpellIcon src={spell0Url} />
-            <RuneIcon src={rune0Url} />
-          </div>
-          <div className="flex gap-0.5">
             <SpellIcon src={spell1Url} />
-            <RuneIcon src={rune1Url} isTree />
+          </div>
+          <div className="relative h-8 w-8">
+            <RuneIcon src={rune0Url} />
+            <span className="absolute -bottom-0.5 -right-0.5">
+              <RuneIcon src={rune1Url} isTree />
+            </span>
           </div>
         </div>
         {/* 닉네임 / 챔피언명 */}
@@ -195,9 +195,9 @@ function PlayerRow({
         itemIds={line.itemIds}
         roleBoundItem={line.roleBoundItem}
         version={itemVersion}
-        slotClassName="h-[22px] w-[22px]"
-        separatorClassName="h-3.5 w-px"
-        imageSizes="22px"
+        slotClassName="h-8 w-8"
+        separatorClassName="h-5 w-px"
+        imageSizes="32px"
       />
     </div>
   );
@@ -214,7 +214,6 @@ function TeamStats({
   spells,
   itemVersion,
   runeImages,
-  pomPlayerId,
 }: {
   set: SetResult;
   lines: PlayerStatLine[];
@@ -225,7 +224,6 @@ function TeamStats({
   spells: GameSpell[];
   itemVersion: string;
   runeImages: Record<string, string>;
-  pomPlayerId?: string | null;
 }) {
   const teamId = side === "blue" ? set.blueTeamId : set.redTeamId;
   const teamLines = lines
@@ -267,7 +265,6 @@ function TeamStats({
           spells={spells}
           itemVersion={itemVersion}
           runeImages={runeImages}
-          isPom={!!pomPlayerId && line.playerId === pomPlayerId}
         />
       ))}
     </div>
@@ -475,7 +472,6 @@ export function SetCard({
   spells,
   itemVersion,
   runeImages,
-  pomPlayerId,
   timelineEvents,
 }: {
   set: SetResult;
@@ -495,7 +491,6 @@ export function SetCard({
   spells: GameSpell[];
   itemVersion: string;
   runeImages: Record<string, string>;
-  pomPlayerId?: string | null;
   timelineEvents?: TimelineEvent[];
 }) {
   const [showStats, setShowStats] = useState(false);
@@ -616,8 +611,8 @@ export function SetCard({
           </div>
           {/* 모바일: 팀별 상세 스탯 */}
           <div className="block md:hidden">
-            <TeamStats set={set} lines={statLines} players={players} champions={champions} teams={teams} spells={spells} itemVersion={itemVersion} runeImages={runeImages} side="blue" pomPlayerId={pomPlayerId} />
-            <TeamStats set={set} lines={statLines} players={players} champions={champions} teams={teams} spells={spells} itemVersion={itemVersion} runeImages={runeImages} side="red" pomPlayerId={pomPlayerId} />
+            <TeamStats set={set} lines={statLines} players={players} champions={champions} teams={teams} spells={spells} itemVersion={itemVersion} runeImages={runeImages} side="blue" />
+            <TeamStats set={set} lines={statLines} players={players} champions={champions} teams={teams} spells={spells} itemVersion={itemVersion} runeImages={runeImages} side="red" />
           </div>
           {timelineEvents && timelineEvents.length > 0 && (
             <div className="border-y border-border bg-surface-muted px-4 py-3">

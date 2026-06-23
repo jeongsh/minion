@@ -19,10 +19,10 @@ function killParticipation(line: PlayerStatLine, teamKills: number) {
 
 function SpellSlot({ spellId, spells, version }: { spellId: number | null; spells: GameSpell[]; version: string }) {
   const url = spellImageUrlById(spells, spellId ?? undefined, version);
-  if (!url) return <div className="h-4 w-4 rounded border border-border bg-surface-muted" />;
+  if (!url) return <div className="h-8 w-8 rounded border border-border bg-surface-muted" />;
   return (
-    <div className="relative h-4 w-4 overflow-hidden rounded border border-border">
-      <Image src={url} alt="" fill sizes="16px" className="object-cover" />
+    <div className="relative h-8 w-8 overflow-hidden rounded border border-border">
+      <Image src={url} alt="" fill sizes="32px" className="object-cover" />
     </div>
   );
 }
@@ -105,9 +105,9 @@ function PlayerRow({
         itemIds={line.itemIds}
         roleBoundItem={line.roleBoundItem}
         version={itemVersion}
-        slotClassName="h-6 w-6"
-        separatorClassName="h-4 w-px"
-        imageSizes="24px"
+        slotClassName="h-8 w-8"
+        separatorClassName="h-5 w-px"
+        imageSizes="32px"
       />
     </div>
   );

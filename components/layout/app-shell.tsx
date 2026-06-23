@@ -9,8 +9,9 @@ const headerNavItems = [
   { id: "schedule", href: "/schedule", label: "일정" },
   { id: "standings", href: "/standings", label: "순위" },
   { id: "teams", href: "/teams", label: "팀" },
+  { id: "players", href: "/players", label: "선수" },
+  { id: "stats", href: "/stats", label: "스탯" },
   { id: "community", href: "/community", label: "커뮤니티" },
-  { id: "fan-zone", href: "/fan/t1", label: "팬존" },
 ];
 
 function isHeaderNavActive(item: (typeof headerNavItems)[number], pathname: string) {
