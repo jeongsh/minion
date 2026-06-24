@@ -26,6 +26,10 @@ export function youtubeFeedUrl(channelId: string) {
   return `https://www.youtube.com/feeds/videos.xml?channel_id=${encodeURIComponent(channelId)}`;
 }
 
+export function youtubeWebsubTopicUrl(channelId: string) {
+  return `https://www.youtube.com/xml/feeds/videos.xml?channel_id=${encodeURIComponent(channelId)}`;
+}
+
 export function channelIdFromUrl(url: string) {
   try {
     const parsed = new URL(url);

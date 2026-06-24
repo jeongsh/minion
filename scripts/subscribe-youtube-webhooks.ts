@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { createSupabaseAdminClient } from "../lib/supabase/admin.ts";
-import { youtubeFeedUrl } from "../lib/youtube-feed.ts";
+import { youtubeWebsubTopicUrl } from "../lib/youtube-feed.ts";
 import { getYoutubeVideoOwners, resolveOwnerChannelId } from "../lib/sync/youtube-videos.ts";
 
 const HUB_URL = "https://pubsubhubbub.appspot.com/subscribe";
@@ -70,9 +70,12 @@ async function main() {
         continue;
       }
 
-      await subscribeTopic(callbackUrl, youtubeFeedUrl(channelId));
+      const topicUrl = youtubeWebsubTopicUrl(channelId);
+      await subscribeTopic(callbackUrl, topicUrl);
       subscribed += 1;
-      console.log(`[ok] ${unsubscribe ? "unsubscribed" : "subscribed"} ${owner.kind}:${owner.name}`);
+      console.log(
+        `[ok] ${unsubscribe ? "unsubscribed" : "subscribed"} ${owner.kind}:${owner.name} ${topicUrl}`,
+      );
     } catch (error) {
       skipped += 1;
       console.error(`[error] ${owner.kind}:${owner.name} ${(error as Error).message}`);
