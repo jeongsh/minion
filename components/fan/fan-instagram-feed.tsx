@@ -21,6 +21,11 @@ type StoryItem = InstagramStory & { ownerName: string; ownerImageUrl?: string };
 
 // ─── 유틸 ──────────────────────────────────────────────────────
 
+function proxyUrl(url?: string | null): string | undefined {
+  if (!url) return undefined;
+  return `/api/proxy/image?url=${encodeURIComponent(url)}`;
+}
+
 function relativeTime(iso?: string) {
   if (!iso) return "";
   const diff = Date.now() - new Date(iso).getTime();
@@ -73,7 +78,7 @@ function StoryViewer({
           <div className="h-8 w-8 rounded-full bg-white/20 overflow-hidden">
             {story.ownerImageUrl && (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={story.ownerImageUrl} alt="" className="h-full w-full object-cover" />
+              <img src={proxyUrl(story.ownerImageUrl)} alt="" className="h-full w-full object-cover" />
             )}
           </div>
           <span className="text-sm font-bold text-white">{story.ownerName}</span>
@@ -86,8 +91,8 @@ function StoryViewer({
           {story.mediaType === "video" ? (
             // eslint-disable-next-line jsx-a11y/media-has-caption
             <video
-              src={story.mediaUrl}
-              poster={story.thumbnailUrl}
+              src={proxyUrl(story.mediaUrl)}
+              poster={proxyUrl(story.thumbnailUrl)}
               autoPlay
               loop
               playsInline
@@ -95,7 +100,7 @@ function StoryViewer({
             />
           ) : (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={story.mediaUrl} alt="" className="h-full w-full object-contain" />
+            <img src={proxyUrl(story.mediaUrl)} alt="" className="h-full w-full object-contain" />
           )}
 
           {/* 이전/다음 */}
@@ -127,7 +132,7 @@ function StoryViewer({
 
 function StoryBubble({ story, onClick }: { story: StoryItem; onClick: () => void }) {
   const isVideo = story.mediaType === "video";
-  const previewUrl = story.thumbnailUrl ?? story.mediaUrl;
+  const previewUrl = proxyUrl(story.thumbnailUrl ?? story.mediaUrl);
 
   return (
     <button
@@ -231,7 +236,7 @@ function PostCard({ item, onClick }: { item: PostItem; onClick: () => void }) {
         {item.imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={item.imageUrl}
+            src={proxyUrl(item.imageUrl)}
             alt=""
             className="h-full w-full object-cover transition group-hover:scale-105"
           />

@@ -181,21 +181,14 @@ async function fetchStories(
     const items = await fetchUserStories(username);
     return items.map(normalizeStory).filter((s): s is NormalizedStory => s !== null);
   }
-  // auto: browser 우선
+  // auto: browser 우선, 예외 발생 시에만 RapidAPI fallback
   try {
-    const stories = await scrapeInstagramStories(username, sessionCookie);
-    if (stories.length > 0) return stories;
+    return await scrapeInstagramStories(username, sessionCookie);
   } catch {
     // browser 실패 시 RapidAPI 시도
   }
-  try {
-    const items = await fetchUserStories(username);
-    return items.map(normalizeStory).filter((s): s is NormalizedStory => s !== null);
-  } catch (err) {
-    const msg = (err as Error).message;
-    if (msg.includes("MONTHLY") || msg.includes("quota")) throw err;
-    throw err;
-  }
+  const items = await fetchUserStories(username);
+  return items.map(normalizeStory).filter((s): s is NormalizedStory => s !== null);
 }
 
 // ─── upsert: 게시물 ──────────────────────────────────────────────
@@ -265,12 +258,12 @@ export async function syncOwnerStories(
   supabase: SupabaseClient,
   owner: InstagramOwner,
   opts: { dryRun?: boolean; engine?: SyncEngine; sessionCookie?: string } = {},
-): Promise<{ inserted: number; checked: number }> {
+): Promise<{ inserted: number; checked: number; newStories: NormalizedStory[] }> {
   const username = extractUsername(owner.instagramUrl!);
   const engine = opts.engine ?? "auto";
   const stories = await fetchStories(username, engine, opts.sessionCookie);
 
-  if (opts.dryRun) return { inserted: 0, checked: stories.length };
+  if (opts.dryRun) return { inserted: 0, checked: stories.length, newStories: [] };
 
   // 만료된 스토리 삭제
   await supabase
@@ -279,6 +272,15 @@ export async function syncOwnerStories(
     .eq("owner_type", owner.kind)
     .eq("owner_id", owner.id)
     .lt("expires_at", new Date().toISOString());
+
+  // 새 스토리 감지용: upsert 전 기존 story_pk 조회
+  const { data: existing } = await supabase
+    .from("instagram_stories")
+    .select("story_pk")
+    .eq("owner_type", owner.kind)
+    .eq("owner_id", owner.id);
+  const existingPks = new Set((existing ?? []).map((r) => r.story_pk as string));
+  const newStories = stories.filter((s) => !existingPks.has(s.storyPk));
 
   let inserted = 0;
   for (const story of stories) {
@@ -304,5 +306,5 @@ export async function syncOwnerStories(
     inserted += data?.length ?? 0;
   }
 
-  return { inserted, checked: stories.length };
+  return { inserted, checked: stories.length, newStories };
 }
