@@ -177,9 +177,10 @@ function TabNav({
           )}
           className={`rounded-md border px-4 py-2 text-sm font-semibold ${
             activeTab === tab
-              ? "border-foreground bg-foreground text-background"
+              ? "border-foreground bg-foreground"
               : "border-border bg-surface hover:bg-surface-muted"
           }`}
+          style={activeTab === tab ? { color: "#ffffff" } : undefined}
         >
           {TAB_LABELS[tab]}
         </Link>

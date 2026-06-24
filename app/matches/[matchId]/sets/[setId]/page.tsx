@@ -325,7 +325,7 @@ function PlayerStatBoard({
       return (
         <div
           key={`${side}-${row.line.playerId}`}
-          className="grid grid-cols-[10.25rem_7.25rem_minmax(8rem,1fr)_3.5rem_4rem_5rem_13rem] items-center gap-3 border-t border-border px-3 py-2.5 text-sm"
+          className="grid grid-cols-[14rem_7.25rem_minmax(5.5rem,0.7fr)_3.5rem_4rem_5rem_13rem] items-center gap-3 border-t border-border px-3 py-2.5 text-sm"
         >
           <div className="flex min-w-0 items-center gap-2">
             <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded bg-surface-muted">
@@ -476,7 +476,7 @@ function PlayerStatBoard({
       ) : (
         <div className="overflow-x-auto rounded-md border border-border bg-surface">
           <div className="min-w-[58rem]">
-            <div className="grid grid-cols-[10.25rem_7.25rem_minmax(8rem,1fr)_3.5rem_4rem_5rem_13rem] gap-3 px-3 py-3 text-xs font-semibold uppercase text-muted">
+            <div className="grid grid-cols-[14rem_7.25rem_minmax(5.5rem,0.7fr)_3.5rem_4rem_5rem_13rem] gap-3 px-3 py-3 text-xs font-semibold uppercase text-muted">
               <span>Champion / Player</span>
               <span className="text-center">KDA</span>
               <span>Damage</span>
@@ -734,6 +734,25 @@ export async function SetDetailContent({
         </div>
       </section>
 
+      <section className="flex flex-col gap-4" aria-labelledby="set-timeline">
+        <h2 id="set-timeline" className="text-xl font-semibold">
+          타임라인
+        </h2>
+        <div className="rounded-md border border-border bg-surface p-4">
+          <GameTimeline
+            events={timelineEvents}
+            durationSeconds={set.durationSeconds}
+            blueTeamId={set.blueTeamId}
+            redTeamId={set.redTeamId}
+            blueTeamName={teamLabel(teams, set.blueTeamId)}
+            redTeamName={teamLabel(teams, set.redTeamId)}
+            players={players}
+            blueGold={set.blueGold}
+            redGold={set.redGold}
+          />
+        </div>
+      </section>
+
       <SetDraftView
         champions={champions}
         blue={{
@@ -765,25 +784,6 @@ export async function SetDetailContent({
         spells={spells}
         runeCatalog={runeCatalog}
       />
-
-      <section className="flex flex-col gap-4" aria-labelledby="set-timeline">
-        <h2 id="set-timeline" className="text-xl font-semibold">
-          타임라인
-        </h2>
-        <div className="rounded-md border border-border bg-surface p-4">
-          <GameTimeline
-            events={timelineEvents}
-            durationSeconds={set.durationSeconds}
-            blueTeamId={set.blueTeamId}
-            redTeamId={set.redTeamId}
-            blueTeamName={teamLabel(teams, set.blueTeamId)}
-            redTeamName={teamLabel(teams, set.redTeamId)}
-            players={players}
-            blueGold={set.blueGold}
-            redGold={set.redGold}
-          />
-        </div>
-      </section>
 
       {embedded ? null : (
         <section className="flex flex-wrap gap-2" aria-label="이동">
