@@ -35,6 +35,7 @@ export const OBJECTIVE_ICONS = {
   hextech: `${MINIMAP_BASE}/dragon_hextech.png`,
   chemtech: `${MINIMAP_BASE}/dragon_chemtech.png`,
   elder: `${MINIMAP_BASE}/dragon_elder.png`,
+  tower: `${MINIMAP_BASE}/tower.png`,
 } as const;
 
 type Side = "blue" | "red";

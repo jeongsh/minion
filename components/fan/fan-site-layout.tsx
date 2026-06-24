@@ -70,7 +70,15 @@ export function FanSiteLayout({
             ))}
           </nav>
 
-          <div className="ml-auto hidden items-center gap-3 md:flex">
+          <div className="ml-auto flex items-center gap-3">
+            <Link
+              href="/"
+              className="shrink-0 text-xs font-bold text-[#98a2b3] hover:text-accent transition-colors"
+            >
+              ← 메인
+            </Link>
+
+            <div className="hidden items-center gap-3 md:flex">
             <label className="flex h-10 w-44 items-center gap-2 rounded-md border border-[#e0e4eb] bg-white px-3 text-sm text-[#98a2b3] xl:w-52">
               <span className="sr-only">검색</span>
               <input
@@ -95,6 +103,7 @@ export function FanSiteLayout({
             >
               로그인
             </button>
+            </div>
           </div>
         </div>
       </header>

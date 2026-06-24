@@ -779,6 +779,8 @@ export async function SetDetailContent({
             blueTeamName={teamLabel(teams, set.blueTeamId)}
             redTeamName={teamLabel(teams, set.redTeamId)}
             players={players}
+            blueGold={set.blueGold}
+            redGold={set.redGold}
           />
         </div>
       </section>
