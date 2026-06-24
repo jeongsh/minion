@@ -1015,25 +1015,43 @@ export async function getChampions() {
 }
 
 export async function getSetPicksBans(setId?: string | string[]) {
+  if (Array.isArray(setId) && setId.length === 0) {
+    return [];
+  }
+
   return fromSupabase(async () => {
-    let query = createSupabaseServerClient()
-      .from("set_picks_bans")
-      .select("*")
-      .order("order_index", { ascending: true });
+    const supabase = createSupabaseServerClient();
+    const rows: SetPickBanRow[] = [];
+    const pageSize = 1000;
 
-    if (Array.isArray(setId)) {
-      query = query.in("set_id", setId);
-    } else if (setId) {
-      query = query.eq("set_id", setId);
+    for (let from = 0; ; from += pageSize) {
+      let query = supabase
+        .from("set_picks_bans")
+        .select("*")
+        .order("order_index", { ascending: true })
+        .order("set_id", { ascending: true })
+        .range(from, from + pageSize - 1);
+
+      if (Array.isArray(setId)) {
+        query = query.in("set_id", setId);
+      } else if (setId) {
+        query = query.eq("set_id", setId);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        throw error;
+      }
+
+      rows.push(...((data ?? []) as SetPickBanRow[]));
+
+      if (!data || data.length < pageSize) {
+        break;
+      }
     }
 
-    const { data, error } = await query;
-
-    if (error) {
-      throw error;
-    }
-
-    return (data as SetPickBanRow[]).map((row) => ({
+    return rows.map((row) => ({
       id: row.id,
       setId: row.set_id,
       phase: row.phase,
