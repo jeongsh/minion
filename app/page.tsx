@@ -208,9 +208,9 @@ function FormTable({ rows }: { rows: StandingRow[] }) {
     <Card className="p-4">
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-lg font-black text-[#111827]">팀 최근 폼</h2>
-        <Link href="/stats/form" className="rounded-lg border border-[#e8ecf5] px-3 py-2 text-xs font-bold text-[#64708f]">
+        <span className="rounded-lg border border-[#e8ecf5] px-3 py-2 text-xs font-bold text-[#64708f]">
           최근 5경기 기준
-        </Link>
+        </span>
       </div>
       <div className="grid grid-cols-[40px_1fr_118px] border-b border-[#eef1f7] pb-2 text-xs font-black text-[#7c86a0]">
         <span>순위</span>
@@ -245,7 +245,7 @@ function FormTable({ rows }: { rows: StandingRow[] }) {
         ))}
       </div>
       <Link
-        href="/stats/form"
+        href="/standings"
         className="mx-auto mt-2 flex h-8 w-48 items-center justify-center rounded-full border border-[#e8ecf5] text-xs font-bold text-[#64708f]"
       >
         전체 팀 보기 {'>'}
@@ -316,12 +316,6 @@ function VideoSection({ videos, teamsById }: { videos: TeamVideo[]; teamsById: M
           })}
         </div>
       </div>
-      <Link
-        href="/stats"
-        className="mx-auto mt-3 flex h-8 w-48 items-center justify-center rounded-full border border-[#e8ecf5] text-xs font-bold text-[#64708f]"
-      >
-        전체 영상 보기 {'>'}
-      </Link>
     </Card>
   );
 }
@@ -461,7 +455,7 @@ export default async function HomePage() {
             최근 경기의 플레이와 선수 활약을 직접 평가해주세요! 여러분의 한 표가 큰 힘이 됩니다.
           </p>
           <Link
-            href="/stats/fan-ratings"
+            href="/schedule"
             className="mt-7 inline-flex h-12 items-center gap-3 rounded-full bg-[#101a3d] px-6 text-sm font-black text-white"
             style={{ color: "#ffffff" }}
           >
