@@ -823,7 +823,6 @@ export default async function PlayerDetailPage({
         <section className="grid gap-3 md:grid-cols-4" aria-label="이동">
           {playerTeam ? <Link href={`/teams/${playerTeam.slug}`} className="rounded-lg border border-border bg-surface p-5 text-center text-base font-semibold hover:bg-surface-muted">팀 상세 이동</Link> : null}
           <Link href="/players" className="rounded-lg border border-border bg-surface p-5 text-center text-base font-semibold hover:bg-surface-muted">같은 팀원 이동</Link>
-          <Link href="/stats/players" className="rounded-lg border border-border bg-surface p-5 text-center text-base font-semibold hover:bg-surface-muted">포지션별 선수 스탯</Link>
           {featuredMatch ? <Link href={matchHref(featuredMatch.match)} className="rounded-lg border border-border bg-surface p-5 text-center text-base font-semibold hover:bg-surface-muted">최근 경기 이동</Link> : null}
         </section>
 

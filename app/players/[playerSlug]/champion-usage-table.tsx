@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { MiniModalLink } from "@/components/domain/mini-modal-link";
 import { championLabel } from "@/lib/champions";
 
 type ChampionLike = {
@@ -58,21 +57,7 @@ function ChampionCell({ row }: { row: ChampionUsageRow }) {
     <span className="inline-flex items-center gap-2">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={championImageUrl(row.champion)} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" />
-      <MiniModalLink
-        href="/stats/champions"
-        label={championLabel(row.champion)}
-        eyebrow="챔피언 미니모달"
-        title={championLabel(row.champion)}
-        placement="top"
-        rows={[
-          { label: "픽 수", value: row.pickCount },
-          { label: "밴 수", value: row.banCount },
-          { label: "픽밴률", value: percentValue(row.pickBanRate) },
-          { label: "승률", value: percentValue(row.winRate) },
-          { label: "주요 사용 선수", value: row.mainUsers },
-        ]}
-        cta="챔피언 스탯 보기"
-      />
+      <span className="font-semibold text-foreground">{championLabel(row.champion)}</span>
     </span>
   );
 }

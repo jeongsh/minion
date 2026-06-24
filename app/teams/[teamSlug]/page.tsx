@@ -486,12 +486,6 @@ export default async function TeamDetailPage({
         >
           팬 사이트
         </Link>
-        <Link
-          href="/stats/teams"
-          className="rounded-md border border-border bg-surface px-3 py-2 text-sm font-semibold hover:bg-surface-muted"
-        >
-          팀 스탯
-        </Link>
       </section>
     </main>
   );

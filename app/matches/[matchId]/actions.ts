@@ -177,5 +177,4 @@ export async function submitSetPlayerRatingAction(formData: FormData) {
   revalidatePath(`/matches/${set.match_id}/sets/${set.id}`);
   revalidatePath(`/matches/${routeMatchId}`);
   revalidatePath(`/matches/${routeMatchId}/sets/${set.id}`);
-  revalidatePath("/stats/fan-ratings");
 }

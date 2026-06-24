@@ -10,18 +10,8 @@ export const hubNavItems: NavItem[] = [
   { href: "/standings", label: "순위" },
   { href: "/teams", label: "팀" },
   { href: "/players", label: "선수" },
-  { href: "/stats", label: "스탯" },
   { href: "/community", label: "커뮤니티" },
   { href: "/admin", label: "관리" },
-];
-
-export const statsNavItems: NavItem[] = [
-  { href: "/stats/teams", label: "팀 스탯" },
-  { href: "/stats/players", label: "선수 스탯" },
-  { href: "/stats/champions", label: "챔피언 밴픽" },
-  { href: "/stats/form", label: "최근 폼" },
-  { href: "/stats/fan-ratings", label: "팬 평점" },
-  { href: "/stats/pom", label: "공식 POM" },
 ];
 
 export const communityNavItems: NavItem[] = [

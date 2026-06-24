@@ -10,7 +10,6 @@ const headerNavItems = [
   { id: "standings", href: "/standings", label: "순위" },
   { id: "teams", href: "/teams", label: "팀" },
   { id: "players", href: "/players", label: "선수" },
-  { id: "stats", href: "/stats", label: "스탯" },
   { id: "community", href: "/community", label: "커뮤니티" },
 ];
 
