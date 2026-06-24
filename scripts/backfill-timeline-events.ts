@@ -396,18 +396,32 @@ async function main() {
         continue;
       }
 
-      // 6. 기존 이벤트 삭제 후 upsert
+      // 6. 이벤트 삽입 (중복은 skip)
       if (force) {
         await supabase.from("timeline_events").delete().eq("set_id", set.id);
       }
 
       const BATCH = 200;
+      let inserted = 0;
+      let skipped = 0;
       for (let i = 0; i < events.length; i += BATCH) {
-        const { error } = await supabase.from("timeline_events").insert(events.slice(i, i + BATCH));
-        if (error) throw new Error(`insert 실패: ${error.message}`);
+        const batch = events.slice(i, i + BATCH);
+        const { error } = await supabase.from("timeline_events").insert(batch);
+        if (!error) {
+          inserted += batch.length;
+          continue;
+        }
+        if (error.code !== "23505") throw new Error(`insert 실패: ${error.message}`);
+        // 배치에 중복 포함 → 개별 삽입으로 폴백
+        for (const ev of batch) {
+          const { error: e2 } = await supabase.from("timeline_events").insert(ev);
+          if (!e2) inserted++;
+          else if (e2.code === "23505") skipped++;
+          else throw new Error(`insert 실패: ${e2.message}`);
+        }
       }
 
-      console.log(`완료 (${events.length}개 이벤트)`);
+      console.log(`완료 (${inserted}개 삽입${skipped ? `, ${skipped}개 중복 skip` : ""})`);
       processed++;
     } catch (err) {
       console.log(`오류: ${err instanceof Error ? err.message : String(err)}`);

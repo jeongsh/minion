@@ -5,18 +5,38 @@ import type { TimelineEvent } from "@/lib/data/lck";
 import type { Player } from "@/lib/types";
 import { OBJECTIVE_ICONS } from "@/lib/objectives";
 
-const SVG_W     = 800;
-const PAD_X     = 48;
-const ITEM_SZ   = 14;
-const ITEM_SLT  = 18;   // px per stacking row
-const KILL_R    = 4;
-const TOP_MAR   = 10;
-const BOT_MAR   = 18;   // for minute labels
-const MIN_HALF  = 70;   // minimum half height (kill-diff visibility)
-const CTR_GAP   = 6;    // gap on each side of center line
+const SVG_W    = 800;
+const PAD_X    = 48;
+const ITEM_SZ  = 16;   // icon diameter
+const ITEM_SLT = 20;   // px per row
+const KILL_R   = 5;    // kill dot radius
+const TOP_MAR  = 10;
+const BOT_MAR  = 18;
+const MIN_HALF = 70;
+const CTR_GAP  = 6;
+const BADGE_R  = 5;    // count badge radius
 
 function toX(ms: number, duration: number): number {
   return PAD_X + (ms / 1000 / duration) * (SVG_W - PAD_X * 2);
+}
+
+// ── 이벤트 종류 식별 (클러스터링 키) ─────────────────────────────
+
+function getEventKind(e: TimelineEvent): string {
+  if (e.eventType === "CHAMPION_KILL") return "kill";
+  if (e.eventType === "BUILDING_KILL") return "tower";
+  const mt = (e.monsterType ?? "").toUpperCase();
+  if (mt.includes("BARON"))                              return "baron";
+  if (mt.includes("ELDER"))                              return "elder";
+  if (mt.includes("RIFTHERALD") || mt === "RIFTHERALD") return "herald";
+  if (mt.includes("HORDE"))                             return "voidgrub";
+  if (mt.includes("INFERNAL") || mt.includes("FIRE"))   return "dragon_fire";
+  if (mt.includes("OCEAN")    || mt.includes("WATER"))  return "dragon_ocean";
+  if (mt.includes("CLOUD")    || mt.includes("AIR"))    return "dragon_cloud";
+  if (mt.includes("MOUNTAIN") || mt.includes("EARTH"))  return "dragon_mountain";
+  if (mt.includes("HEXTECH"))                           return "dragon_hextech";
+  if (mt.includes("CHEMTECH"))                          return "dragon_chemtech";
+  return "dragon";
 }
 
 type ObjInfo = { label: string; color: string; iconUrl?: string };
@@ -56,25 +76,109 @@ function makeTooltip(e: TimelineEvent, players: Player[]): string {
   return `${t}  ${lane} 포탑`;
 }
 
-type PlacedItem = { ms: number; kind: "kill" | "obj"; e: TimelineEvent; row: number };
+// ── 1분 윈도우 클러스터링 ─────────────────────────────────────────
 
-function assignRows(raw: Omit<PlacedItem, "row">[], windowMs = 15_000): PlacedItem[] {
+type Cluster = {
+  id: string;
+  kind: string;
+  count: number;
+  ms: number;           // 클러스터 대표 timestamp (첫 이벤트)
+  info: ObjInfo | null; // kill이면 null
+  tooltipLines: string[];
+};
+
+function clusterTeamEvents(
+  teamEvents: TimelineEvent[],
+  windowMs: number,
+  players: Player[],
+): Cluster[] {
+  // 종류별 그룹화
+  const byKind = new Map<string, TimelineEvent[]>();
+  for (const e of teamEvents) {
+    const k = getEventKind(e);
+    if (!byKind.has(k)) byKind.set(k, []);
+    byKind.get(k)!.push(e);
+  }
+
+  const clusters: Cluster[] = [];
+  for (const [kind, evs] of byKind) {
+    const sorted = [...evs].sort((a, b) => a.timestampMs - b.timestampMs);
+    let i = 0;
+    while (i < sorted.length) {
+      const start = sorted[i].timestampMs;
+      const group: TimelineEvent[] = [sorted[i]];
+      let j = i + 1;
+      while (j < sorted.length && sorted[j].timestampMs - start < windowMs) {
+        group.push(sorted[j]);
+        j++;
+      }
+      clusters.push({
+        id: `${kind}-${start}`,
+        kind,
+        count: group.length,
+        ms: start,
+        info: kind === "kill" ? null : getObjInfo(group[0]),
+        tooltipLines: group.map((e) => makeTooltip(e, players)),
+      });
+      i = j;
+    }
+  }
+
+  return clusters.sort((a, b) => a.ms - b.ms);
+}
+
+// ── 행 배치 (클러스터 간 겹침 방지) ──────────────────────────────
+
+type PlacedCluster = Cluster & { row: number };
+
+function assignRows(clusters: Cluster[], windowMs = 12_000): PlacedCluster[] {
   const rowEnd: number[] = [];
-  return raw.map((item) => {
+  return clusters.map((c) => {
     let row = 0;
-    while (rowEnd[row] != null && item.ms - rowEnd[row] < windowMs) row++;
-    rowEnd[row] = item.ms;
-    return { ...item, row };
+    while (rowEnd[row] != null && c.ms - rowEnd[row] < windowMs) row++;
+    rowEnd[row] = c.ms;
+    return { ...c, row };
   });
 }
 
-function ObjIcon({ cx, cy, info, onHover }: { cx: number; cy: number; info: ObjInfo; onHover: () => void }) {
+// ── 아이콘 렌더러 ─────────────────────────────────────────────────
+
+function ClusterIcon({
+  cx, cy, cluster, onHover, uid,
+}: {
+  cx: number; cy: number; cluster: PlacedCluster; uid: string; onHover: () => void;
+}) {
   const half = ITEM_SZ / 2;
+  const { info, count } = cluster;
+
+  const badge = count > 1 ? (
+    <g>
+      <circle cx={cx + half} cy={cy - half} r={BADGE_R} fill="#0f172a" stroke="#e5e7eb" strokeWidth={0.8} />
+      <text x={cx + half} y={cy - half + 3.5} textAnchor="middle" fontSize={6} fill="#f1f5f9" fontWeight="800">
+        {count}
+      </text>
+    </g>
+  ) : null;
+
+  if (!info) {
+    // 킬 도트
+    return (
+      <g className="cursor-pointer" onMouseEnter={onHover}>
+        <circle cx={cx} cy={cy} r={count > 1 ? KILL_R + 2 : KILL_R}
+          fill="currentColor" filter={`url(#${uid}-glow)`} />
+        {count > 1 && (
+          <text x={cx} y={cy + 3.5} textAnchor="middle" fontSize={7} fill="#0f172a" fontWeight="800">{count}</text>
+        )}
+      </g>
+    );
+  }
+
   if (info.iconUrl) {
     return (
       <g className="cursor-pointer" onMouseEnter={onHover}>
         <circle cx={cx} cy={cy} r={half + 1} fill={info.color} fillOpacity={0.3} />
         <image href={info.iconUrl} x={cx - half} y={cy - half} width={ITEM_SZ} height={ITEM_SZ} />
+        {badge}
       </g>
     );
   }
@@ -82,9 +186,12 @@ function ObjIcon({ cx, cy, info, onHover }: { cx: number; cy: number; info: ObjI
     <g className="cursor-pointer" onMouseEnter={onHover}>
       <circle cx={cx} cy={cy} r={half} fill={info.color} />
       <text x={cx} y={cy + 3} textAnchor="middle" fontSize={6} fill="#000" fontWeight="800">{info.label}</text>
+      {badge}
     </g>
   );
 }
+
+// ── 컴포넌트 ─────────────────────────────────────────────────────
 
 export function GameTimeline({
   events,
@@ -108,7 +215,7 @@ export function GameTimeline({
   redGold?: number | null;
 }) {
   const uid = useId().replace(/:/g, "");
-  const [tooltip, setTooltip] = useState<{ text: string; xPct: number } | null>(null);
+  const [tooltip, setTooltip] = useState<{ lines: string[]; xPct: number } | null>(null);
 
   if (!events.length) {
     return <div className="flex items-center justify-center py-6 text-xs text-muted">타임라인 데이터 없음</div>;
@@ -117,30 +224,26 @@ export function GameTimeline({
   const duration = durationSeconds ?? Math.ceil((events.at(-1)?.timestampMs ?? 0) / 1000);
   const tx = (ms: number) => toX(ms, duration);
 
-  const killEvents = events.filter((e) => e.eventType === "CHAMPION_KILL").sort((a, b) => a.timestampMs - b.timestampMs);
-  const objEvents  = events.filter((e) => e.eventType !== "CHAMPION_KILL" && !(e.buildingType ?? "").includes("INHIBITOR")).sort((a, b) => a.timestampMs - b.timestampMs);
+  const uniqueEvents = Array.from(new Map(events.map((e) => [e.id, e])).values());
+  const killEvents = uniqueEvents.filter((e) => e.eventType === "CHAMPION_KILL").sort((a, b) => a.timestampMs - b.timestampMs);
+  const objEvents  = uniqueEvents.filter((e) => e.eventType !== "CHAMPION_KILL" && !(e.buildingType ?? "").includes("INHIBITOR")).sort((a, b) => a.timestampMs - b.timestampMs);
 
   const blueKills = killEvents.filter((e) => e.teamId === blueTeamId).length;
   const redKills  = killEvents.filter((e) => e.teamId === redTeamId).length;
   const goldDiff  = blueGold != null && redGold != null ? blueGold - redGold : null;
   const goldFmt   = (g: number) => `${g >= 0 ? "+" : ""}${(g / 1000).toFixed(1)}K`;
 
-  const toItems = (teamId: string) =>
-    [
-      ...killEvents.filter((e) => e.teamId === teamId).map((e) => ({ ms: e.timestampMs, kind: "kill" as const, e })),
-      ...objEvents .filter((e) => e.teamId === teamId).map((e) => ({ ms: e.timestampMs, kind: "obj"  as const, e })),
-    ].sort((a, b) => a.ms - b.ms);
+  // 1분 클러스터링 → 행 배치
+  const blueRaw = [...killEvents, ...objEvents].filter((e) => e.teamId === blueTeamId);
+  const redRaw  = [...killEvents, ...objEvents].filter((e) => e.teamId === redTeamId);
 
-  const blueItems = assignRows(toItems(blueTeamId));
-  const redItems  = assignRows(toItems(redTeamId));
+  const blueClusters = assignRows(clusterTeamEvents(blueRaw, 60_000, players));
+  const redClusters  = assignRows(clusterTeamEvents(redRaw,  60_000, players));
 
-  const maxBlueRow = blueItems.length > 0 ? Math.max(...blueItems.map((i) => i.row)) : 0;
-  const maxRedRow  = redItems.length  > 0 ? Math.max(...redItems.map( (i) => i.row)) : 0;
+  const maxBlueRow = blueClusters.length > 0 ? Math.max(...blueClusters.map((c) => c.row)) : 0;
+  const maxRedRow  = redClusters.length  > 0 ? Math.max(...redClusters.map( (c) => c.row)) : 0;
 
-  // ── 단일 그래프 레이아웃 ──────────────────────────────────────────
-  // 블루 절반 높이 (최소 MIN_HALF 보장)
   const blueH = Math.max((maxBlueRow + 1) * ITEM_SLT, MIN_HALF);
-  // 레드 절반 높이 (최소 MIN_HALF 보장)
   const redH  = Math.max((maxRedRow  + 1) * ITEM_SLT, MIN_HALF);
 
   const graphTop = TOP_MAR;
@@ -152,20 +255,17 @@ export function GameTimeline({
   const blueCY = (row: number) => graphTop + ITEM_SZ / 2 + row * ITEM_SLT;
   const redCY  = (row: number) => centerY  + CTR_GAP + ITEM_SZ / 2 + row * ITEM_SLT;
 
-  // ── 킬 차이 곡선 ─────────────────────────────────────────────────
+  // 킬 차이 곡선
   let tmpDiff = 0;
   let maxDiff = 5;
   for (const e of killEvents) {
     if (e.teamId === blueTeamId) tmpDiff++; else tmpDiff--;
     maxDiff = Math.max(maxDiff, Math.abs(tmpDiff));
   }
-  // 진폭 = 각 절반 높이의 92% (거의 끝까지 채움)
   const ampBlue = blueH * 0.92;
   const ampRed  = redH  * 0.92;
   const dy = (d: number) =>
-    d >= 0
-      ? centerY - (d / maxDiff) * ampBlue
-      : centerY + (-d / maxDiff) * ampRed;
+    d >= 0 ? centerY - (d / maxDiff) * ampBlue : centerY + (-d / maxDiff) * ampRed;
 
   let diff = 0;
   const pts: string[] = [`M ${PAD_X} ${dy(0)}`];
@@ -178,13 +278,13 @@ export function GameTimeline({
   const lineD = pts.join(" ");
   const areaD = `${lineD} L ${endX} ${centerY} L ${PAD_X} ${centerY} Z`;
 
-  // 분 눈금
   const mins: number[] = [];
   for (let m = 5; m * 60 < duration; m += 5) mins.push(m);
 
+  const yStep = maxDiff <= 4 ? 1 : maxDiff <= 8 ? 2 : Math.ceil(maxDiff / 4);
+
   return (
     <div className="relative select-none">
-      {/* 킬 / 골드 요약 */}
       <div className="mb-2 flex items-center justify-between px-1 text-xs font-semibold">
         <span className="flex items-center gap-1.5 text-blue-400">
           {blueTeamName}
@@ -227,29 +327,21 @@ export function GameTimeline({
           </linearGradient>
         </defs>
 
-        {/* 블루 절반 배경 */}
         <rect x={PAD_X} y={graphTop} width={SVG_W - PAD_X * 2} height={blueH + CTR_GAP} fill="#0d1e3a" />
-        {/* 레드 절반 배경 */}
-        <rect x={PAD_X} y={centerY} width={SVG_W - PAD_X * 2} height={CTR_GAP + redH} fill="#1e0a0d" />
+        <rect x={PAD_X} y={centerY}  width={SVG_W - PAD_X * 2} height={CTR_GAP + redH}  fill="#1e0a0d" />
 
-        {/* 킬차이 그라디언트 fill */}
         <path d={areaD} fill={`url(#${uid}-gb)`} clipPath={`url(#${uid}-bc)`} />
         <path d={areaD} fill={`url(#${uid}-gr)`} clipPath={`url(#${uid}-rc)`} />
 
-        {/* y축 실선 그리드 (1K 단위) */}
+        {/* y축 그리드 */}
         {Array.from({ length: maxDiff * 2 + 1 }, (_, i) => i - maxDiff).map((d) => {
           const y = dy(d);
-          const isCenter = d === 0;
-          const showLabel = d % (maxDiff <= 4 ? 1 : maxDiff <= 8 ? 2 : Math.ceil(maxDiff / 4)) === 0;
+          const show = d % yStep === 0;
           return (
             <g key={`gy${d}`}>
-              <line
-                x1={PAD_X} y1={y} x2={SVG_W - PAD_X} y2={y}
-                stroke="#ffffff"
-                strokeWidth={isCenter ? 1 : 0.5}
-                strokeOpacity={isCenter ? 0.25 : 0.1}
-              />
-              {showLabel && (
+              <line x1={PAD_X} y1={y} x2={SVG_W - PAD_X} y2={y}
+                stroke="#ffffff" strokeWidth={d === 0 ? 1 : 0.5} strokeOpacity={d === 0 ? 0.25 : 0.1} />
+              {show && (
                 <text x={PAD_X - 4} y={y + 3} textAnchor="end" fontSize={7}
                   fill={d > 0 ? "#60a5fa" : d < 0 ? "#f87171" : "#9ca3af"} fontWeight="500">
                   {d > 0 ? `+${d}K` : d < 0 ? `${d}K` : "0"}
@@ -259,22 +351,18 @@ export function GameTimeline({
           );
         })}
 
-        {/* 킬차이 곡선 - 글로우 레이어 + 실선 */}
         <path d={lineD} fill="none" stroke="#ffffff" strokeWidth={4} strokeOpacity={0.15} filter={`url(#${uid}-line-glow)`} />
         <path d={lineD} fill="none" stroke="#e5e7eb" strokeWidth={2} />
 
-        {/* 팀 레이블 (그래프 안 좌측) */}
         <text x={PAD_X + 6} y={graphTop + blueH / 2 + 3} textAnchor="start" fontSize={8} fontWeight="700" fill="#60a5fa" fillOpacity={0.7}>{blueTeamName}</text>
         <text x={PAD_X + 6} y={centerY + CTR_GAP + redH / 2 + 3} textAnchor="start" fontSize={8} fontWeight="700" fill="#f87171" fillOpacity={0.7}>{redTeamName}</text>
 
-        {/* 시간 세로 가이드선 */}
         {mins.map((m) => {
           const x = tx(m * 60 * 1000);
           return <line key={`g${m}`} x1={x} y1={graphTop} x2={x} y2={graphBot}
             stroke="#ffffff" strokeWidth={0.3} strokeOpacity={0.08} strokeDasharray="2 4" />;
         })}
 
-        {/* 시간 축 */}
         <line x1={PAD_X} y1={axisY} x2={SVG_W - PAD_X} y2={axisY} stroke="#374151" strokeWidth={0.8} />
         {mins.map((m) => {
           const x = tx(m * 60 * 1000);
@@ -286,40 +374,40 @@ export function GameTimeline({
           );
         })}
 
-        {/* ── 블루 이벤트 ── */}
-        {blueItems.map(({ ms, kind, e, row }) => {
-          const x = tx(ms);
-          const cy = blueCY(row);
-          const tip = () => setTooltip({ text: makeTooltip(e, players), xPct: (x / SVG_W) * 100 });
-          return kind === "kill"
-            ? <circle key={`b${e.id}`} cx={x} cy={cy} r={KILL_R} fill="#93c5fd"
-                filter={`url(#${uid}-glow)`} className="cursor-pointer" onMouseEnter={tip} />
-            : <ObjIcon key={`b${e.id}`} cx={x} cy={cy} info={getObjInfo(e)} onHover={tip} />;
+        {/* 블루 클러스터 */}
+        {blueClusters.map((c) => {
+          const x = tx(c.ms);
+          const cy = blueCY(c.row);
+          return (
+            <g key={`b-${c.id}`} style={{ color: "#93c5fd" }}>
+              <ClusterIcon cx={x} cy={cy} cluster={c} uid={uid}
+                onHover={() => setTooltip({ lines: c.tooltipLines, xPct: (x / SVG_W) * 100 })} />
+            </g>
+          );
         })}
 
-        {/* ── 레드 이벤트 ── */}
-        {redItems.map(({ ms, kind, e, row }) => {
-          const x = tx(ms);
-          const cy = redCY(row);
-          const tip = () => setTooltip({ text: makeTooltip(e, players), xPct: (x / SVG_W) * 100 });
-          return kind === "kill"
-            ? <circle key={`r${e.id}`} cx={x} cy={cy} r={KILL_R} fill="#fca5a5"
-                filter={`url(#${uid}-glow)`} className="cursor-pointer" onMouseEnter={tip} />
-            : <ObjIcon key={`r${e.id}`} cx={x} cy={cy} info={getObjInfo(e)} onHover={tip} />;
+        {/* 레드 클러스터 */}
+        {redClusters.map((c) => {
+          const x = tx(c.ms);
+          const cy = redCY(c.row);
+          return (
+            <g key={`r-${c.id}`} style={{ color: "#fca5a5" }}>
+              <ClusterIcon cx={x} cy={cy} cluster={c} uid={uid}
+                onHover={() => setTooltip({ lines: c.tooltipLines, xPct: (x / SVG_W) * 100 })} />
+            </g>
+          );
         })}
       </svg>
 
-      {/* 툴팁 */}
       {tooltip && (
         <div
           className="pointer-events-none absolute top-0 z-10 whitespace-nowrap rounded bg-background/95 px-2 py-1 text-xs shadow-md ring-1 ring-border"
-          style={{ left: `${Math.min(Math.max(tooltip.xPct, 5), 65)}%` }}
+          style={{ left: `${Math.min(Math.max(tooltip.xPct, 5), 60)}%` }}
         >
-          {tooltip.text}
+          {tooltip.lines.map((line, i) => <div key={i}>{line}</div>)}
         </div>
       )}
 
-      {/* 범례 */}
       <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 px-1 text-[10px] text-muted">
         <span className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-blue-400/80" />블루 킬</span>
         <span className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-red-400/80" />레드 킬</span>
