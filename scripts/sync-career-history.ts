@@ -23,21 +23,16 @@ if (!supabaseUrl || !supabaseKey) {
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-const skipExisting = !process.argv.includes("--force");
-console.log(`경력 이력 동기화 시작... (skipExisting=${skipExisting})`);
-if (skipExisting) {
-  console.log("  ※ 이미 경력 데이터가 있는 선수는 건너뜁니다. 전체 재동기화: --force");
-}
+console.log("경력 이력 동기화 시작... (기존 레코드는 유지, 새 정보만 추가)");
 
 const summary = await syncCareerHistories(supabase, {
-  skipExisting,
   onProgress: (msg) => console.log(msg),
 });
 
 console.log("\n=== 동기화 완료 ===");
 console.log(`처리됨: ${summary.playersProcessed}명`);
-console.log(`건너뜀: ${summary.playersSkipped}명 (기존 데이터 있음)`);
-console.log(`저장된 경력: ${summary.recordsInserted}개`);
+console.log(`스킵 (변경 없음): ${summary.playersSkipped}명`);
+console.log(`신규 저장: ${summary.recordsInserted}개`);
 if (summary.errors.length > 0) {
   console.log(`오류 ${summary.errors.length}건:`);
   for (const e of summary.errors) {

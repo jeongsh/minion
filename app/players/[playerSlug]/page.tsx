@@ -411,15 +411,13 @@ function CareerTimeline({
       0,
       (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()),
     );
-    if (months < 12) return `${months}개월`;
-    const years = Math.floor(months / 12);
-    const rem = months % 12;
-    return rem > 0 ? `${years}년 ${rem}개월` : `${years}년`;
+    const yearNum = Math.floor(months / 12) + 1;
+    return `${yearNum}년차`;
   }
 
   function dateLabel(date: string | null) {
     if (!date) return "현재";
-    return new Intl.DateTimeFormat("ko-KR", { year: "numeric", month: "long" }).format(new Date(date));
+    return `${new Date(date).getFullYear()}년`;
   }
 
   return (

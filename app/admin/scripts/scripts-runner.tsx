@@ -68,8 +68,7 @@ const SCRIPTS: ScriptDef[] = [
   {
     id: "sync-career-history",
     label: "선수 경력 동기화",
-    description: "선수들의 팀 이동 이력을 동기화합니다.",
-    args: [{ type: "flag", flag: "--force", label: "전체 덮어쓰기 (--force)" }],
+    description: "선수들의 팀 이동 이력을 동기화합니다. 기존 레코드는 유지하고 새 정보만 추가합니다.",
   },
   {
     id: "sync-player-images",

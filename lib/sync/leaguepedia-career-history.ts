@@ -259,11 +259,10 @@ export type CareerSyncSummary = {
 export async function syncCareerHistories(
   supabase: SupabaseClient,
   options: {
-    skipExisting?: boolean;
     onProgress?: (message: string) => void;
-  } = { skipExisting: true },
+  } = {},
 ): Promise<CareerSyncSummary> {
-  const { skipExisting = true, onProgress } = options;
+  const { onProgress } = options;
 
   const summary: CareerSyncSummary = {
     playersProcessed: 0,
@@ -294,38 +293,25 @@ export async function syncCareerHistories(
     lckTeamIds.has(p.team_id),
   );
 
-  // 이미 경력 데이터가 있는 선수 ID 수집
-  let existingPlayerIds = new Set<string>();
-  if (skipExisting) {
-    const { data: existingData } = await supabase
-      .from("player_career_history")
-      .select("player_id");
-    existingPlayerIds = new Set(existingData?.map((e: any) => e.player_id) ?? []);
+  // 기존 레코드 전체 로드 → 중복 키 Set 생성
+  // 키: player_id::position::start_date::team_id(또는 team_name 또는 __null__)
+  const { data: existingRows } = await supabase
+    .from("player_career_history")
+    .select("player_id, position, start_date, team_id, team_name");
+
+  const existingSet = new Set<string>();
+  for (const r of existingRows ?? []) {
+    const teamKey = r.team_id ?? r.team_name ?? "__null__";
+    existingSet.add(`${r.player_id}::${r.position}::${r.start_date}::${teamKey}`);
   }
 
-  const playersToProcess = skipExisting
-    ? players.filter((p) => !existingPlayerIds.has(p.id))
-    : players;
-
-  if (playersToProcess.length === 0) {
-    onProgress?.("모든 선수 경력 데이터가 이미 존재합니다.");
-    summary.playersSkipped = players.length;
-    return summary;
-  }
-
-  onProgress?.(
-    `처리 대상: ${playersToProcess.length}명 (스킵: ${players.length - playersToProcess.length}명)`,
-  );
-  summary.playersSkipped = players.length - playersToProcess.length;
+  onProgress?.(`기존 레코드 ${existingSet.size}개 로드 완료`);
 
   // Leaguepedia 전체 LCK ScoreboardPlayers를 한 번에 조회
   const scoreboardByLink = await fetchAllLckScoreboardData(onProgress);
 
-  // 처리 대상 leaguepedia_page Set
-  const targetLinks = new Set(playersToProcess.map((p) => p.leaguepedia_page));
-
   // 선수별 경력 데이터 처리
-  for (const player of playersToProcess) {
+  for (const player of players) {
     const rows = scoreboardByLink.get(player.leaguepedia_page) ?? [];
 
     if (rows.length === 0) {
@@ -336,31 +322,41 @@ export async function syncCareerHistories(
 
     const entries = mergeIntoCareerEntries(rows, player.position, bySlug);
 
-    const toInsert = entries.map((e) => ({
-      player_id: player.id,
-      team_id: e.teamId,
-      team_name: e.teamName,
-      position: e.position,
-      start_date: e.startDate,
-      end_date: e.endDate,
-      notes: null,
-    }));
+    const seen = new Set<string>();
+    const toInsert = entries
+      .map((e) => ({
+        player_id: player.id,
+        team_id: e.teamId,
+        team_name: e.teamName,
+        position: e.position,
+        start_date: e.startDate,
+        end_date: e.endDate,
+        notes: null,
+      }))
+      .filter((r) => {
+        const teamKey = r.team_id ?? r.team_name ?? "__null__";
+        const key = `${r.player_id}::${r.position}::${r.start_date}::${teamKey}`;
+        if (existingSet.has(key) || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
 
     if (toInsert.length === 0) {
+      onProgress?.(`[skip] ${player.name} - 새 경력 없음`);
+      summary.playersSkipped++;
       summary.playersProcessed++;
       continue;
     }
 
-    const { error: insertError, count: inserted } = await supabase
+    const { error: insertError } = await supabase
       .from("player_career_history")
-      .insert(toInsert, { count: "exact" });
+      .insert(toInsert);
 
     if (insertError) {
       summary.errors.push({ player: player.name, reason: insertError.message });
     } else {
-      const count = inserted ?? toInsert.length;
-      summary.recordsInserted += count;
-      onProgress?.(`[done] ${player.name} → ${count}개 경력 저장`);
+      summary.recordsInserted += toInsert.length;
+      onProgress?.(`[done] ${player.name} → ${toInsert.length}개 신규 경력 저장`);
     }
 
     summary.playersProcessed++;
