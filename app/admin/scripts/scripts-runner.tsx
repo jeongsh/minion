@@ -93,6 +93,24 @@ const SCRIPTS: ScriptDef[] = [
     args: [{ type: "flag", flag: "--unsubscribe", label: "unsubscribe (--unsubscribe)" }],
   },
   {
+    id: "sync-lck-awards",
+    label: "LCK 팀 수상 동기화",
+    description: "Leaguepedia에서 LCK·MSI·Worlds·EWC·First Stand 우승/준우승 이력을 가져와 저장합니다.",
+    args: [
+      { type: "input", name: "from-year", label: "시작 연도", default: "2012", inputType: "number", min: 2012, max: 2099 },
+      { type: "flag", flag: "--force", label: "전체 덮어쓰기 (--force)" },
+    ],
+  },
+  {
+    id: "sync-lck-player-awards",
+    label: "LCK 개인 수상 동기화",
+    description: "Liquipedia에서 LCK Awards 연간 수상(MVP·포지션별·신인상 등)을 가져와 저장합니다.",
+    args: [
+      { type: "input", name: "years", label: "연도 (쉼표 구분)", default: String(new Date().getFullYear()), inputType: "text" },
+      { type: "flag", flag: "--force", label: "전체 덮어쓰기 (--force)" },
+    ],
+  },
+  {
     id: "sync-pom",
     label: "POM 동기화",
     description: "공식 Player of the Match 데이터를 동기화합니다.",
@@ -139,11 +157,13 @@ function ScriptPanel({ script }: { script: ScriptDef }) {
   const abortRef = useRef<AbortController | null>(null);
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const logEndRef = useRef<HTMLDivElement>(null);
+  const logContainerRef = useRef<HTMLDivElement>(null);
 
-  // 로그 자동 스크롤
+  // 로그 자동 스크롤 (페이지가 아닌 컨테이너만)
   useEffect(() => {
-    logEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const el = logContainerRef.current;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
   }, [logs]);
 
   // 언마운트 시 정리
@@ -396,11 +416,10 @@ function ScriptPanel({ script }: { script: ScriptDef }) {
       {/* 로그 */}
       {logs.length > 0 && (
         <div className="border-t border-border">
-          <div className="max-h-48 overflow-y-auto bg-background p-3 font-mono text-[11px] leading-relaxed">
+          <div ref={logContainerRef} className="max-h-48 overflow-y-auto bg-background p-3 font-mono text-[11px] leading-relaxed">
             {logs.map((line, i) => (
               <div key={i} className="whitespace-pre-wrap text-foreground/80">{line}</div>
             ))}
-            <div ref={logEndRef} />
           </div>
           <div className="flex justify-end border-t border-border px-3 py-1">
             <button

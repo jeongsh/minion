@@ -262,7 +262,7 @@ function RadarChart({
 
   return (
     <div className="grid gap-4 md:grid-cols-[1fr_16rem] md:items-center">
-      <svg viewBox="0 0 220 220" className="mx-auto h-56 w-56">
+      <svg viewBox="0 0 220 220" className="mx-auto h-80 w-80">
         {grid.map((polygon) => (
           <polygon key={polygon} points={polygon} className="fill-surface-muted stroke-border" />
         ))}
@@ -652,42 +652,48 @@ export default async function PlayerDetailPage({
           visibleSegments={visibleSegments}
         />
 
-        <div className="grid gap-3 lg:grid-cols-[0.95fr_1.05fr]">
-          <section className="grid overflow-hidden rounded-lg border border-border bg-surface md:grid-cols-[15rem_1fr]" aria-labelledby="player-summary">
-            <div className="bg-surface-muted p-4">
-              <PlayerImage src={player.profileImageUrl} alt={player.name} className="h-full min-h-64 w-full rounded-md object-cover object-top" />
+        <div className="grid gap-3 lg:grid-cols-[1fr_1.6fr]">
+          <section className="overflow-hidden rounded-lg border border-border bg-surface" aria-labelledby="player-summary">
+            {/* 선수 사진 */}
+            <div className="p-4">
+              <div className="relative h-72 overflow-hidden rounded-xl bg-surface-muted shadow-sm">
+                <PlayerImage src={player.profileImageUrl} alt={player.name} className="h-full w-full object-cover object-top" />
+                {/* 포지션 뱃지 */}
+                <span className="absolute bottom-3 right-3 rounded-full bg-black/60 px-3 py-1 text-xs font-bold text-white backdrop-blur-sm">
+                  {player.position}
+                </span>
+              </div>
             </div>
-            <div className="flex flex-col justify-between gap-5 p-6">
+            {/* 선수 정보 */}
+            <div className="flex flex-col gap-4 p-5">
               <div>
-                <div className="flex items-center gap-2">
-                  <h1 id="player-summary" className="text-4xl font-semibold tracking-normal">{player.name}</h1>
+                <h1 id="player-summary" className="text-3xl font-bold tracking-normal">{player.name}</h1>
+                <p className="mt-1 text-base text-muted">{player.realName || ""}</p>
+                <PlayerSocialLinks player={player} className="mt-3" />
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-sm">
+                <div className="flex flex-col items-center rounded-lg border border-border bg-background/60 px-3 py-2.5 text-center">
+                  <span className="text-xs text-muted">팀</span>
+                  <strong className="mt-0.5 text-base">{playerTeam?.shortName ?? "-"}</strong>
                 </div>
-                <p className="mt-2 text-lg font-semibold">{player.realName || "-"}</p>
-                <PlayerSocialLinks player={player} className="mt-4" />
-                <div className="mt-4 grid gap-2 text-sm text-muted sm:grid-cols-2">
-                  <div className="rounded-md border border-border bg-background px-3 py-2">
-                    <span>팀</span>
-                    <strong className="ml-2 text-foreground">{playerTeam?.shortName ?? "-"}</strong>
-                  </div>
-                  <div className="rounded-md border border-border bg-background px-3 py-2">
-                    <span>현재 순위</span>
-                    <strong className="ml-2 text-foreground">{teamStanding ? `${teamStanding.rank}위` : "-"}</strong>
-                  </div>
-                  <div className="rounded-md border border-border bg-background px-3 py-2">
-                    <span>최근 5경기</span>
-                    <strong className="ml-2 text-foreground">{teamRecent || "-"}</strong>
-                  </div>
-                  <div className="rounded-md border border-border bg-background px-3 py-2">
-                    <span>포지션</span>
-                    <strong className="ml-2 text-foreground">{player.position}</strong>
-                  </div>
+                <div className="flex flex-col items-center rounded-lg border border-border bg-background/60 px-3 py-2.5 text-center">
+                  <span className="text-xs text-muted">순위</span>
+                  <strong className="mt-0.5 text-base">{teamStanding ? `${teamStanding.rank}위` : "-"}</strong>
+                </div>
+                <div className="flex flex-col items-center rounded-lg border border-border bg-background/60 px-3 py-2.5 text-center">
+                  <span className="text-xs text-muted">최근 5경기</span>
+                  <strong className="mt-0.5 text-sm leading-tight">{teamRecent || "-"}</strong>
                 </div>
               </div>
-              <div className="grid gap-3">
-                <div className="flex flex-wrap gap-2">
-                  {playerTeam ? <Link href={`/teams/${playerTeam.slug}`} className="rounded-md border border-border bg-background px-3 py-2 text-sm font-semibold hover:bg-surface-muted">팀 상세 보기</Link> : null}
-                  <Link href="#teammates" className="rounded-md border border-border bg-background px-3 py-2 text-sm font-semibold hover:bg-surface-muted">팀원 보기</Link>
-                </div>
+              <div className="flex flex-wrap gap-2">
+                {playerTeam ? (
+                  <Link href={`/teams/${playerTeam.slug}`} className="rounded-md border border-border bg-background px-3 py-2 text-sm font-semibold hover:bg-surface-muted">
+                    팀 상세 보기
+                  </Link>
+                ) : null}
+                <Link href="#teammates" className="rounded-md border border-border bg-background px-3 py-2 text-sm font-semibold hover:bg-surface-muted">
+                  팀원 보기
+                </Link>
               </div>
             </div>
           </section>
@@ -698,6 +704,12 @@ export default async function PlayerDetailPage({
             </SectionCard>
           </div>
         </div>
+
+        {careerHistories.length > 0 ? (
+          <SectionCard title="경력 이력">
+            <CareerTimeline histories={careerHistories} teams={teams} currentTeamId={player.teamId} />
+          </SectionCard>
+        ) : null}
 
         <SectionCard title="현재 구간 경기 지표">
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
@@ -812,12 +824,6 @@ export default async function PlayerDetailPage({
           <SectionCard title="수상 내역">
             <PlayerAwardHistory awards={awards} />
           </SectionCard>
-        ) : null}
-
-        {careerHistories.length > 0 ? (
-          <CollapsibleSection title="경력">
-            <CareerTimeline histories={careerHistories} teams={teams} currentTeamId={player.teamId} />
-          </CollapsibleSection>
         ) : null}
 
         <section className="grid gap-3 md:grid-cols-4" aria-label="이동">

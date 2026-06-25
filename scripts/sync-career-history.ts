@@ -29,7 +29,10 @@ if (skipExisting) {
   console.log("  ※ 이미 경력 데이터가 있는 선수는 건너뜁니다. 전체 재동기화: --force");
 }
 
-const summary = await syncCareerHistories(supabase, { skipExisting });
+const summary = await syncCareerHistories(supabase, {
+  skipExisting,
+  onProgress: (msg) => console.log(msg),
+});
 
 console.log("\n=== 동기화 완료 ===");
 console.log(`처리됨: ${summary.playersProcessed}명`);
