@@ -1,19 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import {
-  fetchUserFeed,
-  fetchUserStories,
-  getBestImageUrl,
-  getCaption,
-  getShortcode,
-  type RapidApiMediaItem,
-} from "@/lib/instagram-api";
-import {
   scrapeInstagramPosts,
   scrapeInstagramStories,
 } from "@/lib/scraper/instagram-browser";
 
-export type SyncEngine = "browser" | "rapidapi" | "auto";
+export type SyncEngine = "browser" | "auto";
 
 // ─── 공통 타입 ──────────────────────────────────────────────────
 
@@ -43,54 +35,6 @@ export interface NormalizedStory {
   thumbnailUrl?: string;
   takenAt: Date;
   expiresAt: Date;
-}
-
-// ─── 파싱 ───────────────────────────────────────────────────────
-
-function normalizePost(item: RapidApiMediaItem): NormalizedPost | null {
-  if (!item.pk) return null;
-  const shortcode = getShortcode(item);
-  const imageUrl = getBestImageUrl(item);
-
-  // carousel의 경우 첫 번째 미디어 이미지 사용
-  const firstCarousel = item.carousel_media?.[0];
-  const finalImageUrl = imageUrl || (firstCarousel ? getBestImageUrl(firstCarousel) : "");
-
-  return {
-    postId: item.pk,
-    shortcode,
-    imageUrl: finalImageUrl,
-    caption: getCaption(item),
-    postedAt: item.taken_at ? new Date(item.taken_at * 1000) : new Date(0),
-    likesCount: item.like_count ?? 0,
-    commentsCount: item.comment_count ?? 0,
-    sourceUrl: `https://www.instagram.com/p/${shortcode}/`,
-  };
-}
-
-function normalizeStory(item: RapidApiMediaItem): NormalizedStory | null {
-  if (!item.pk) return null;
-  const isVideo = item.media_type === 2;
-  const mediaUrl = isVideo
-    ? (item.video_url ?? getBestImageUrl(item))
-    : getBestImageUrl(item);
-
-  if (!mediaUrl) return null;
-
-  const takenAt = item.taken_at ? new Date(item.taken_at * 1000) : new Date();
-  // Instagram 스토리 만료: 24시간 (expiring_at 필드가 없으면 24h 후로 설정)
-  const expiresAt = item.expiring_at
-    ? new Date(item.expiring_at * 1000)
-    : new Date(takenAt.getTime() + 24 * 60 * 60 * 1000);
-
-  return {
-    storyPk: item.pk,
-    mediaUrl,
-    mediaType: isVideo ? "video" : "image",
-    thumbnailUrl: isVideo ? getBestImageUrl(item) : undefined,
-    takenAt,
-    expiresAt,
-  };
 }
 
 // ─── DB 헬퍼 ────────────────────────────────────────────────────
@@ -138,59 +82,6 @@ export async function getInstagramOwners(supabase: SupabaseClient): Promise<Inst
   ];
 }
 
-// ─── 엔진별 데이터 가져오기 ──────────────────────────────────────
-
-async function fetchPosts(
-  username: string,
-  engine: SyncEngine,
-  sessionCookie?: string,
-): Promise<NormalizedPost[]> {
-  if (engine === "browser") {
-    return scrapeInstagramPosts(username, sessionCookie);
-  }
-  if (engine === "rapidapi") {
-    const items = await fetchUserFeed(username);
-    return items.map(normalizePost).filter((p): p is NormalizedPost => p !== null);
-  }
-  // auto: browser 우선, RapidAPI는 fallback
-  try {
-    const posts = await scrapeInstagramPosts(username, sessionCookie);
-    if (posts.length > 0) return posts;
-  } catch {
-    // browser 실패 시 RapidAPI 시도
-  }
-  try {
-    const items = await fetchUserFeed(username);
-    return items.map(normalizePost).filter((p): p is NormalizedPost => p !== null);
-  } catch (err) {
-    const msg = (err as Error).message;
-    if (msg.includes("MONTHLY") || msg.includes("quota")) throw err; // 할당량 소진 시 상위로 전파
-    throw err;
-  }
-}
-
-async function fetchStories(
-  username: string,
-  engine: SyncEngine,
-  sessionCookie?: string,
-): Promise<NormalizedStory[]> {
-  if (engine === "browser") {
-    return scrapeInstagramStories(username, sessionCookie);
-  }
-  if (engine === "rapidapi") {
-    const items = await fetchUserStories(username);
-    return items.map(normalizeStory).filter((s): s is NormalizedStory => s !== null);
-  }
-  // auto: browser 우선, 예외 발생 시에만 RapidAPI fallback
-  try {
-    return await scrapeInstagramStories(username, sessionCookie);
-  } catch {
-    // browser 실패 시 RapidAPI 시도
-  }
-  const items = await fetchUserStories(username);
-  return items.map(normalizeStory).filter((s): s is NormalizedStory => s !== null);
-}
-
 // ─── upsert: 게시물 ──────────────────────────────────────────────
 
 export async function syncOwnerPosts(
@@ -199,8 +90,7 @@ export async function syncOwnerPosts(
   opts: { dryRun?: boolean; engine?: SyncEngine; sessionCookie?: string } = {},
 ): Promise<{ inserted: number; checked: number }> {
   const username = extractUsername(owner.instagramUrl!);
-  const engine = opts.engine ?? "auto";
-  const posts = await fetchPosts(username, engine, opts.sessionCookie);
+  const posts = await scrapeInstagramPosts(username, opts.sessionCookie);
 
   if (opts.dryRun) return { inserted: 0, checked: posts.length };
 
@@ -260,8 +150,7 @@ export async function syncOwnerStories(
   opts: { dryRun?: boolean; engine?: SyncEngine; sessionCookie?: string } = {},
 ): Promise<{ inserted: number; checked: number; newStories: NormalizedStory[] }> {
   const username = extractUsername(owner.instagramUrl!);
-  const engine = opts.engine ?? "auto";
-  const stories = await fetchStories(username, engine, opts.sessionCookie);
+  const stories = await scrapeInstagramStories(username, opts.sessionCookie);
 
   if (opts.dryRun) return { inserted: 0, checked: stories.length, newStories: [] };
 
