@@ -30,12 +30,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {!isFanSite ? (
         <header className="sticky top-0 z-20 border-b border-[#edf0f6] bg-white/95 backdrop-blur">
           <div className="mx-auto flex h-[72px] max-w-[1240px] items-center gap-8 px-4 sm:px-6">
-            <Link href="/" className="flex shrink-0 items-center gap-3" aria-label="LCK 홈">
-              <span className="relative h-7 w-9 overflow-hidden">
-                <span className="absolute left-0 top-2 h-0 w-0 border-y-[8px] border-l-[30px] border-y-transparent border-l-[#071332]" />
-                <span className="absolute bottom-1 right-0 h-1.5 w-4 -rotate-12 bg-[#071332]" />
-              </span>
-              <span className="text-2xl font-black tracking-[0.04em] text-[#071332]">LCK</span>
+            <Link href="/" className="flex shrink-0 items-center" aria-label="MINION 홈">
+              <span className="brand-logo-text text-3xl font-black tracking-normal text-[#071332]">MINION</span>
             </Link>
 
             <nav aria-label="주요 메뉴" className="hidden min-w-0 flex-1 items-center gap-2 lg:flex">

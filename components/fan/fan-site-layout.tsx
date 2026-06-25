@@ -39,15 +39,10 @@ export function FanSiteLayout({
         <div className="mx-auto flex h-[76px] max-w-[1180px] items-center gap-5 px-5">
           <Link
             href={`/fan/${team.fanSiteHost}`}
-            className="flex shrink-0 items-center gap-3"
+            className="flex shrink-0 items-center"
             aria-label={`${team.shortName} 팬페이지 홈`}
           >
-            {team.logoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={team.logoUrl} alt={`${team.name} 로고`} className="h-9 w-20 object-contain" />
-            ) : (
-              <span className="text-2xl font-black text-accent">{team.shortName}</span>
-            )}
+            <span className="brand-logo-text text-2xl font-black tracking-normal text-accent">{team.shortName}.MINION</span>
           </Link>
 
           <nav
