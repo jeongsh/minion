@@ -336,48 +336,102 @@ export function buildTeamSummary({
   };
 }
 
-export function buildTeamStatSummary(teamId: string, sets: SetResult[]) {
+export type LeagueAverageInput = {
+  avgKda: number;
+  avgDmg: number;
+  avgGoldDiff: number;
+  avgObjectives: number;
+};
+
+export function buildLeagueRadarStats(league: LeagueAverageInput) {
+  const cap = (v: number) => Math.min(Math.max(Math.round(v), 0), 100);
+  return {
+    radarKda:       cap((league.avgKda / 5) * 100),
+    radarWinRate:   cap(50 * (10 / 6)),
+    radarGoldDiff:  cap(((league.avgGoldDiff + 3000) / 6000) * 100),
+    radarDamage:    cap((league.avgDmg / 120000) * 100),
+    radarObjective: cap((league.avgObjectives / 6) * 100),
+  };
+}
+
+type TeamPlayerStatRow = {
+  set_id: string;
+  kills: number;
+  deaths: number;
+  assists: number;
+  damage_to_champions: number;
+  gold_diff_at_15: number | null;
+};
+
+export function buildTeamStatSummary(
+  teamId: string,
+  sets: SetResult[],
+  playerStats: TeamPlayerStatRow[] = [],
+) {
   const teamSets = sets.filter((set) => set.blueTeamId === teamId || set.redTeamId === teamId);
   const count = Math.max(teamSets.length, 1);
+  const teamSetIds = new Set(teamSets.map((s) => s.id));
+
   const sumBySide = (blueKey: keyof SetResult, redKey: keyof SetResult) =>
     teamSets.reduce((sum, set) => {
       const value = set.blueTeamId === teamId ? set[blueKey] : set[redKey];
       return sum + (typeof value === "number" ? value : 0);
     }, 0);
-  const sumOppSide = (blueKey: keyof SetResult, redKey: keyof SetResult) =>
-    teamSets.reduce((sum, set) => {
-      const value = set.blueTeamId === teamId ? set[redKey] : set[blueKey];
-      return sum + (typeof value === "number" ? value : 0);
-    }, 0);
 
   const cap = (v: number) => Math.min(Math.max(Math.round(v), 0), 100);
 
-  const avgKills = sumBySide("blueKills", "redKills") / count;
-  const avgDeaths = sumOppSide("blueKills", "redKills") / count;
-  const avgGold = sumBySide("blueGold", "redGold") / count;
-  const avgTowers = sumBySide("blueTowers", "redTowers") / count;
+  // sets 기반
+  const wins = teamSets.filter((s) => s.winnerTeamId === teamId).length;
   const avgDragons = sumBySide("blueDragons", "redDragons") / count;
   const avgBarons = sumBySide("blueBarons", "redBarons") / count;
+  const avgGold = sumBySide("blueGold", "redGold") / count;
+  const oppGold = teamSets.reduce((sum, s) => {
+    const v = s.blueTeamId === teamId ? s.redGold : s.blueGold;
+    return sum + (typeof v === "number" ? v : 0);
+  }, 0) / count;
 
-  // 교전: 킬/(킬+데스) 비율 — 교전에서 얼마나 이기는지
-  const totalKills = avgKills + avgDeaths;
-  const engagementRatio = totalKills > 0 ? avgKills / totalKills : 0.5;
+  // set_player_stats 기반
+  const relevantStats = playerStats.filter((r) => teamSetIds.has(r.set_id));
+  const statsBySet = new Map<string, { kills: number; deaths: number; assists: number; dmg: number; goldDiff: number | null }>();
+  for (const r of relevantStats) {
+    const cur = statsBySet.get(r.set_id) ?? { kills: 0, deaths: 0, assists: 0, dmg: 0, goldDiff: null };
+    cur.kills += r.kills;
+    cur.deaths += r.deaths;
+    cur.assists += r.assists;
+    cur.dmg += r.damage_to_champions;
+    if (r.gold_diff_at_15 != null) cur.goldDiff = (cur.goldDiff ?? 0) + r.gold_diff_at_15;
+    statsBySet.set(r.set_id, cur);
+  }
+  const setStatArr = [...statsBySet.values()];
+  const psCount = Math.max(setStatArr.length, 1);
 
-  // 화력: 분당 킬 (KPM) — 게임 내 킬 생산 속도
-  const avgDuration = teamSets.reduce((sum, s) => sum + (s.durationSeconds ?? 0), 0) / count;
-  const avgKpm = avgDuration > 0 ? avgKills / (avgDuration / 60) : 0;
+  const avgKills = setStatArr.reduce((s, r) => s + r.kills, 0) / psCount;
+  const avgDeaths = setStatArr.reduce((s, r) => s + r.deaths, 0) / psCount;
+  const avgAssists = setStatArr.reduce((s, r) => s + r.assists, 0) / psCount;
+  const avgDmg = setStatArr.reduce((s, r) => s + r.dmg, 0) / psCount;
+  const goldDiffSets = setStatArr.filter((r) => r.goldDiff != null);
+  const avgGoldDiff = goldDiffSets.length > 0
+    ? goldDiffSets.reduce((s, r) => s + (r.goldDiff ?? 0), 0) / goldDiffSets.length
+    : (avgGold - oppGold);
+
+  const kda = avgDeaths > 0 ? (avgKills + avgAssists) / avgDeaths : avgKills + avgAssists;
+  const winRate = wins / count;
 
   return {
-    avgKills,
-    avgDeaths,
-    avgGold: Math.round(avgGold),
-    avgTowers: avgTowers.toFixed(1),
+    avgKills: avgKills.toFixed(1),
+    avgDeaths: avgDeaths.toFixed(1),
+    avgAssists: avgAssists.toFixed(1),
+    kda: kda.toFixed(2),
+    winRate: Math.round(winRate * 100),
+    avgGoldDiff: Math.round(avgGoldDiff),
+    avgDmg: Math.round(avgDmg),
+    setCount: teamSets.length,
     // 레이더 (0~100 정규화)
-    radarFight: cap(engagementRatio * 100 * 1.4),   // 교전 승률 50% → ~70, 70% → 100
-    radarFirepower: cap(avgKpm / 0.6 * 100),          // 화력: 0.6 KPM = 100
-    radarGold: cap(avgGold / 72000 * 100),
-    radarTower: cap(avgTowers / 8 * 100),
-    radarObjective: cap((avgDragons + avgBarons) / 6 * 100),
+    radarKda: cap((kda / 5) * 100),                         // 5 KDA = 100
+    radarWinRate: cap(winRate * 100 * (10 / 6)),             // 60% = 100
+    radarGoldDiff: cap(((avgGoldDiff + 3000) / 6000) * 100), // ±3000 범위
+    radarDamage: cap((avgDmg / 120000) * 100),               // 120000 dmg/set = 100
+    radarObjective: cap(((avgDragons + avgBarons) / 6) * 100),
   };
 }
 

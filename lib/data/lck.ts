@@ -1148,6 +1148,67 @@ export async function getPlayerStatLines(setId?: string | string[]) {
   }, []);
 }
 
+export async function getLeagueAverageStats() {
+  return fromSupabase(async () => {
+    const supabase = createSupabaseServerClient();
+    const [{ data: pRows }, { data: sRows }] = await Promise.all([
+      supabase
+        .from("set_player_stats")
+        .select("set_id, team_id, kills, deaths, assists, damage_to_champions, gold_diff_at_15"),
+      supabase
+        .from("sets")
+        .select("blue_dragons, red_dragons, blue_barons, red_barons"),
+    ]);
+
+    // 세트×팀 단위로 집계
+    const bySetTeam = new Map<string, { kills: number; deaths: number; assists: number; dmg: number; goldDiff: number; n: number }>();
+    for (const r of pRows ?? []) {
+      const key = `${r.set_id}:${r.team_id}`;
+      const cur = bySetTeam.get(key) ?? { kills: 0, deaths: 0, assists: 0, dmg: 0, goldDiff: 0, n: 0 };
+      cur.kills += r.kills ?? 0;
+      cur.deaths += r.deaths ?? 0;
+      cur.assists += r.assists ?? 0;
+      cur.dmg += r.damage_to_champions ?? 0;
+      cur.goldDiff += r.gold_diff_at_15 ?? 0;
+      cur.n += 1;
+      bySetTeam.set(key, cur);
+    }
+
+    const entries = [...bySetTeam.values()];
+    const n = Math.max(entries.length, 1);
+    const avgKda = entries.reduce((s, e) => s + (e.deaths > 0 ? (e.kills + e.assists) / e.deaths : e.kills + e.assists), 0) / n;
+    const avgDmg = entries.reduce((s, e) => s + e.dmg, 0) / n;
+    const avgGoldDiff = entries.reduce((s, e) => s + e.goldDiff / Math.max(e.n, 1), 0) / n;
+
+    const setN = Math.max((sRows ?? []).length, 1);
+    const avgObjectives = (sRows ?? []).reduce(
+      (s, r) => s + ((r.blue_dragons ?? 0) + (r.red_dragons ?? 0) + (r.blue_barons ?? 0) + (r.red_barons ?? 0)) / 2,
+      0,
+    ) / setN;
+
+    return { avgKda, avgDmg, avgGoldDiff, avgObjectives };
+  }, { avgKda: 3.5, avgDmg: 91520, avgGoldDiff: 0, avgObjectives: 2.64 });
+}
+
+export async function getPlayerStatLinesByTeam(teamId: string) {
+  return fromSupabase(async () => {
+    const supabase = createSupabaseServerClient();
+    const { data, error } = await supabase
+      .from("set_player_stats")
+      .select("set_id, kills, deaths, assists, damage_to_champions, gold_diff_at_15")
+      .eq("team_id", teamId);
+    if (error) throw error;
+    return (data ?? []) as {
+      set_id: string;
+      kills: number;
+      deaths: number;
+      assists: number;
+      damage_to_champions: number;
+      gold_diff_at_15: number | null;
+    }[];
+  }, []);
+}
+
 export async function getTeamNews(teamId: string) {
   return fromSupabase(async () => {
     const supabase = createSupabaseServerClient();
