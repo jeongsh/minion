@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SectionHeader } from "@/components/layout/section-header";
 import { DataTable } from "@/components/ui/data-table";
+import { TeamMatchHistory } from "@/components/domain/team-match-history";
 import {
   getCommunityPosts,
   getFanRatings,
@@ -249,6 +250,11 @@ export default async function TeamDetailPage({
   const teamMatches = currentSeasonMatches.filter(
     (match) => match.teamAId === team.id || match.teamBId === team.id,
   );
+
+  const allTeamMatches = matches.filter(
+    (match) => match.teamAId === team.id || match.teamBId === team.id,
+  );
+
   const relatedRatings = fanRatings.filter((rating) => rating.teamId === team.id);
   const avgFanRating =
     relatedRatings.length === 0
@@ -287,6 +293,72 @@ export default async function TeamDetailPage({
           )}
         </div>
       </div>
+
+      {(team.officialHomepageUrl || team.officialYoutubeUrl || team.officialXUrl || team.officialInstagramUrl) && (
+        <section className="flex flex-col gap-4" aria-labelledby="team-sns">
+          <h2 id="team-sns" className="text-xl font-semibold">공식 채널</h2>
+          <div className="flex flex-wrap gap-3">
+            <Link
+              href={`/fan/${team.slug}`}
+              className="inline-flex items-center gap-2 rounded-xl border border-border bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground hover:opacity-90"
+            >
+              팬 사이트
+            </Link>
+            {team.officialHomepageUrl && (
+              <a
+                href={team.officialHomepageUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-xl border border-border bg-surface px-4 py-2.5 text-sm font-semibold hover:bg-surface-muted"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4 fill-current text-muted">
+                  <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm6.9 6h-2.8a15.6 15.6 0 0 0-1.4-3.6A8 8 0 0 1 18.9 8zM12 4.1c.8 1.1 1.5 2.5 1.9 3.9h-3.8c.4-1.4 1.1-2.8 1.9-3.9zM4.3 14a8.2 8.2 0 0 1 0-4h3.1a16.7 16.7 0 0 0 0 4zm.8 2h2.8a15.6 15.6 0 0 0 1.4 3.6A8 8 0 0 1 5.1 16zm2.8-8H5.1A8 8 0 0 1 9.3 4.4 15.6 15.6 0 0 0 7.9 8zM12 19.9c-.8-1.1-1.5-2.5-1.9-3.9h3.8c-.4 1.4-1.1 2.8-1.9 3.9zM14.3 14H9.7a14.8 14.8 0 0 1 0-4h4.6a14.8 14.8 0 0 1 0 4zm.4 5.6a15.6 15.6 0 0 0 1.4-3.6h2.8a8 8 0 0 1-4.2 3.6zM16.6 14a16.7 16.7 0 0 0 0-4h3.1a8.2 8.2 0 0 1 0 4z" />
+                </svg>
+                공식 홈페이지
+              </a>
+            )}
+            {team.officialYoutubeUrl && (
+              <a
+                href={team.officialYoutubeUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-xl border border-border bg-surface px-4 py-2.5 text-sm font-semibold hover:bg-surface-muted"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4 fill-current text-red-500">
+                  <path d="M21.6 7.2a2.8 2.8 0 0 0-2-2C17.8 4.6 12 4.6 12 4.6s-5.8 0-7.6.6a2.8 2.8 0 0 0-2 2A29.4 29.4 0 0 0 2 12a29.4 29.4 0 0 0 .4 4.8 2.8 2.8 0 0 0 2 2c1.8.6 7.6.6 7.6.6s5.8 0 7.6-.6a2.8 2.8 0 0 0 2-2 29.4 29.4 0 0 0 .4-4.8 29.4 29.4 0 0 0-.4-4.8zM10 15.5v-7l6 3.5z" />
+                </svg>
+                유튜브
+              </a>
+            )}
+            {team.officialXUrl && (
+              <a
+                href={team.officialXUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-xl border border-border bg-surface px-4 py-2.5 text-sm font-semibold hover:bg-surface-muted"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4 fill-current">
+                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                </svg>
+                X
+              </a>
+            )}
+            {team.officialInstagramUrl && (
+              <a
+                href={team.officialInstagramUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-xl border border-border bg-surface px-4 py-2.5 text-sm font-semibold hover:bg-surface-muted"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4 fill-current text-pink-500">
+                  <path d="M7 2h10a5 5 0 0 1 5 5v10a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V7a5 5 0 0 1 5-5zm10 2H7a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V7a3 3 0 0 0-3-3zm-5 3.5A5.5 5.5 0 1 1 6.5 13 5.5 5.5 0 0 1 12 7.5zm0 2A3.5 3.5 0 1 0 15.5 13 3.5 3.5 0 0 0 12 9.5zM18 6.3a1.2 1.2 0 1 1-1.2 1.2 1.2 1.2 0 0 1 1.2-1.2z" />
+                </svg>
+                인스타그램
+              </a>
+            )}
+          </div>
+        </section>
+      )}
 
       <section className="flex flex-col gap-8" aria-labelledby="team-roster">
         {/* 주전 선수 */}
@@ -409,84 +481,17 @@ export default async function TeamDetailPage({
           })}
         </div>
 
-        {/* 전체 경기 토글 */}
-        <details className="group overflow-hidden rounded-lg border border-border">
-          <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm font-semibold hover:bg-surface-muted">
-            <span>전체 경기 이력</span>
-            <span className="text-muted transition-transform group-open:rotate-180">▾</span>
-          </summary>
-          <div className="border-t border-border">
-            <DataTable
-              rows={teamMatches}
-              columns={[
-                { key: "match", label: "경기", render: (row) => <Link href={matchHref(row)}>{row.name}</Link> },
-                {
-                  key: "opponent",
-                  label: "상대",
-                  render: (row) => {
-                    const opponentId = row.teamAId === team.id ? row.teamBId : row.teamAId;
-                    const opponent = teams.find((t) => t.id === opponentId);
-                    return opponent?.shortName ?? "?";
-                  },
-                },
-                {
-                  key: "result",
-                  label: "결과",
-                  render: (row) => {
-                    const myScore = row.teamAId === team.id ? row.teamAScore : row.teamBScore;
-                    const opScore = row.teamAId === team.id ? row.teamBScore : row.teamAScore;
-                    if (myScore == null || opScore == null) return "-";
-                    const win = myScore > opScore;
-                    return (
-                      <span className={`font-bold ${win ? "text-blue-600" : "text-red-500"}`}>
-                        {win ? "승" : "패"}
-                      </span>
-                    );
-                  },
-                },
-                {
-                  key: "score",
-                  label: "스코어",
-                  render: (row) => `${row.teamAScore ?? "-"}:${row.teamBScore ?? "-"}`,
-                },
-                {
-                  key: "sets",
-                  label: "세트",
-                  render: (row) => {
-                    const relatedSets = sets
-                      .filter((s) => s.matchId === row.id)
-                      .sort((a, b) => a.setNumber - b.setNumber);
-                    if (relatedSets.length === 0) return "-";
-                    return (
-                      <span className="flex gap-0.5">
-                        {relatedSets.map((s) =>
-                          s.winnerTeamId === team.id ? (
-                            <span key={s.id} className="font-bold text-blue-600">승</span>
-                          ) : (
-                            <span key={s.id} className="font-bold text-red-500">패</span>
-                          )
-                        )}
-                      </span>
-                    );
-                  },
-                },
-                { key: "duration", label: "세트 시간", render: (row) => durationLabel(sets.find((set) => set.matchId === row.id)?.durationSeconds) },
-                { key: "pom", label: "POM", render: (row) => playerLabel(players, row.officialPomPlayerId) },
-                { key: "date", label: "일시", render: (row) => formatDateTime(row.matchDate) },
-              ]}
-            />
-          </div>
-        </details>
+        <TeamMatchHistory
+          teamId={team.id}
+          matches={allTeamMatches}
+          sets={sets}
+          teams={teams}
+          players={players}
+          tournaments={tournaments}
+        />
       </section>
 
-      <section className="flex flex-wrap gap-2" aria-label="팀 이동">
-        <Link
-          href={`/fan/${team.slug}`}
-          className="rounded-md bg-accent px-3 py-2 text-sm font-semibold text-accent-foreground"
-        >
-          팬 사이트
-        </Link>
-      </section>
+
     </main>
   );
 }
