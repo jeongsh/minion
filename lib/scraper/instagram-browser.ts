@@ -7,7 +7,7 @@
 
 import { chromium, type Browser } from "playwright";
 
-import type { NormalizedPost, NormalizedStory } from "@/lib/sync/instagram";
+import type { NormalizedPost, NormalizedStory } from "../sync/instagram.ts";
 
 // ─── 브라우저 싱글턴 ────────────────────────────────────────────
 

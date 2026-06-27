@@ -3,7 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   scrapeInstagramPosts,
   scrapeInstagramStories,
-} from "@/lib/scraper/instagram-browser";
+} from "../scraper/instagram-browser.ts";
 
 export type SyncEngine = "browser" | "auto";
 
