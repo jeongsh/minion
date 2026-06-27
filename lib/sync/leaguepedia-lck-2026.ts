@@ -157,7 +157,10 @@ function parseMatchDate(value: string | undefined) {
     return null;
   }
 
-  const date = new Date(value);
+  // Leaguepedia DateTime_UTC는 UTC 기준이지만 timezone suffix 없음 → 명시적으로 Z 추가
+  const normalized = value.trim().replace(" ", "T");
+  const withZ = /[+Z]/i.test(normalized) ? normalized : `${normalized}Z`;
+  const date = new Date(withZ);
   if (Number.isNaN(date.getTime())) {
     return null;
   }

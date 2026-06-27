@@ -6,6 +6,7 @@ import { TeamMatchHistory } from "@/components/domain/team-match-history";
 import {
   getCommunityPosts,
   getFanRatings,
+  getAllTeams,
   getLeagueAverageStats,
   getMatches,
   getPlayerStatLinesByTeam,
@@ -243,8 +244,9 @@ export default async function TeamDetailPage({
     notFound();
   }
 
-  const [teams, players, matches, sets, fanRatings, communityPosts, awards, tournaments, playerStats, leagueAvgInput] = await Promise.all([
+  const [teams, allTeams, players, matches, sets, fanRatings, communityPosts, awards, tournaments, playerStats, leagueAvgInput] = await Promise.all([
     getTeams(),
+    getAllTeams(),
     getPlayers(),
     getMatches(),
     getSets(),
@@ -539,7 +541,7 @@ export default async function TeamDetailPage({
         <div className="flex flex-wrap gap-2">
           {[...teamMatches].reverse().slice(0, 5).map((row) => {
             const opponentId = row.teamAId === team.id ? row.teamBId : row.teamAId;
-            const opponent = teams.find((t) => t.id === opponentId);
+            const opponent = allTeams.find((t) => t.id === opponentId);
             const myScore = row.teamAId === team.id ? row.teamAScore : row.teamBScore;
             const opScore = row.teamAId === team.id ? row.teamBScore : row.teamAScore;
             if (myScore == null || opScore == null) return null;
@@ -564,7 +566,7 @@ export default async function TeamDetailPage({
           teamId={team.id}
           matches={allTeamMatches}
           sets={sets}
-          teams={teams}
+          teams={allTeams}
           players={players}
           tournaments={tournaments}
         />

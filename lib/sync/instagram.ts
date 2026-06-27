@@ -54,14 +54,16 @@ export async function getInstagramOwners(supabase: SupabaseClient): Promise<Inst
   const [{ data: players }, { data: teams }] = await Promise.all([
     supabase
       .from("players")
-      .select("id, name, instagram_url, team_id")
+      .select("id, name, instagram_url, team_id, teams!inner(is_lck_team)")
       .not("instagram_url", "is", null)
-      .eq("is_active", true),
+      .eq("is_active", true)
+      .eq("teams.is_lck_team", true),
     supabase
       .from("teams")
       .select("id, short_name, official_instagram_url")
       .not("official_instagram_url", "is", null)
-      .eq("is_active", true),
+      .eq("is_active", true)
+      .eq("is_lck_team", true),
   ]);
 
   return [

@@ -21,12 +21,8 @@ import { createSupabaseAdminClient } from "../lib/supabase/admin.ts";
 import {
   getInstagramOwners,
   syncOwnerPosts,
-  syncOwnerStories,
-  type InstagramOwner,
-  type NormalizedStory,
 } from "../lib/sync/instagram.ts";
 import { closeBrowser } from "../lib/scraper/instagram-browser.ts";
-import { sendDiscordStoryAlert } from "../lib/notify/discord.ts";
 
 const argv = process.argv.slice(2);
 const argSet = new Set(argv);
@@ -79,9 +75,7 @@ async function main() {
   );
 
   let postsInserted = 0;
-  let storiesInserted = 0;
   let errors = 0;
-  const newStoryMap: Array<{ owner: InstagramOwner; stories: NormalizedStory[] }> = [];
 
   for (const owner of owners) {
     if (!owner.instagramUrl) continue;
@@ -99,45 +93,45 @@ async function main() {
       await delay(DELAY_MS);
     }
 
-    // ── 스토리 ──
-    if (modeArg === "all" || modeArg === "stories") {
-      try {
-        const result = await syncOwnerStories(supabase, owner, { dryRun, sessionCookie });
-        storiesInserted += result.inserted;
-        if (result.newStories.length > 0) {
-          newStoryMap.push({ owner, stories: result.newStories });
-        }
-        console.log(
-          `[stories] ${owner.kind}:${owner.name} — checked=${result.checked} new=${result.newStories.length} updated=${result.inserted}`,
-        );
-      } catch (err) {
-        errors += 1;
-        console.error(`[error] ${owner.kind}:${owner.name} stories — ${(err as Error).message}`);
-      }
-      await delay(DELAY_MS);
-    }
+    // ── 스토리 (비활성화) ──
+    // if (modeArg === "all" || modeArg === "stories") {
+    //   try {
+    //     const result = await syncOwnerStories(supabase, owner, { dryRun, sessionCookie });
+    //     storiesInserted += result.inserted;
+    //     if (result.newStories.length > 0) {
+    //       newStoryMap.push({ owner, stories: result.newStories });
+    //     }
+    //     console.log(
+    //       `[stories] ${owner.kind}:${owner.name} — checked=${result.checked} new=${result.newStories.length} updated=${result.inserted}`,
+    //     );
+    //   } catch (err) {
+    //     errors += 1;
+    //     console.error(`[error] ${owner.kind}:${owner.name} stories — ${(err as Error).message}`);
+    //   }
+    //   await delay(DELAY_MS);
+    // }
   }
 
   console.log(
-    `\nDone. posts_new=${postsInserted} stories_upserted=${storiesInserted} errors=${errors} dryRun=${dryRun}`,
+    `\nDone. posts_new=${postsInserted} errors=${errors} dryRun=${dryRun}`,
   );
 
-  // Discord 알림: 새 스토리가 있을 때만
-  const discordWebhook = process.env.DISCORD_WEBHOOK_URL?.trim();
-  if (discordWebhook && newStoryMap.length > 0 && !dryRun) {
-    console.log(`[discord] 새 스토리 알림 발송 (${newStoryMap.length}명)`);
-    await sendDiscordStoryAlert(
-      discordWebhook,
-      newStoryMap.map(({ owner, stories }) => ({
-        ownerName: owner.name,
-        ownerKind: owner.kind,
-        instagramUrl: owner.instagramUrl ?? "",
-        newCount: stories.length,
-        thumbnailUrl: stories.find((s) => s.thumbnailUrl ?? s.mediaType === "image")
-          ?.thumbnailUrl ?? stories[0]?.mediaUrl,
-      })),
-    );
-  }
+  // Discord 알림 (스토리 비활성화로 미사용)
+  // const discordWebhook = process.env.DISCORD_WEBHOOK_URL?.trim();
+  // if (discordWebhook && newStoryMap.length > 0 && !dryRun) {
+  //   console.log(`[discord] 새 스토리 알림 발송 (${newStoryMap.length}명)`);
+  //   await sendDiscordStoryAlert(
+  //     discordWebhook,
+  //     newStoryMap.map(({ owner, stories }) => ({
+  //       ownerName: owner.name,
+  //       ownerKind: owner.kind,
+  //       instagramUrl: owner.instagramUrl ?? "",
+  //       newCount: stories.length,
+  //       thumbnailUrl: stories.find((s) => s.thumbnailUrl ?? s.mediaType === "image")
+  //         ?.thumbnailUrl ?? stories[0]?.mediaUrl,
+  //     })),
+  //   );
+  // }
 
   await closeBrowser();
 }

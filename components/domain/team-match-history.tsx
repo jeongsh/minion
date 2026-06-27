@@ -186,7 +186,7 @@ export function TeamMatchHistory({ teamId, matches, sets, teams, players, tourna
             label: "세트",
             render: (row) => {
               const relatedSets = sets
-                .filter((s) => s.matchId === row.id)
+                .filter((s) => s.matchId === row.id && s.winnerTeamId !== null)
                 .sort((a, b) => a.setNumber - b.setNumber);
               if (relatedSets.length === 0) return "-";
               return (
