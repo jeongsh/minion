@@ -47,6 +47,35 @@ function requireEnv(name: string) {
   return value;
 }
 
+function parseSegmentArg() {
+  const arg = process.argv.find((a) => a.startsWith("--segment="));
+  return arg ? arg.split("=")[1]?.trim() || null : null;
+}
+
+async function tournamentIdsForSegment(
+  supabase: ReturnType<typeof createClient>,
+  segment: string,
+): Promise<string[]> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let q: any = supabase.from("tournaments").select("id");
+  switch (segment) {
+    case "lck":           q = q.eq("league", "LCK"); break;
+    case "lck-cup":       q = q.eq("league", "LCK").eq("split", "Cup"); break;
+    case "first-stand":   q = q.eq("league", "First Stand"); break;
+    case "msi":           q = q.eq("league", "MSI"); break;
+    case "ewc":           q = q.eq("league", "EWC"); break;
+    case "worlds":        q = q.eq("league", "Worlds"); break;
+    case "enc":           q = q.eq("league", "ENC"); break;
+    case "international": q = q.eq("category", "international"); break;
+    default:
+      console.warn(`알 수 없는 세그먼트: ${segment}, 전체 처리`);
+      return [];
+  }
+  const { data, error } = await q;
+  if (error) throw error;
+  return (data ?? []).map((t: { id: string }) => t.id);
+}
+
 function parseInteger(value: string | null | undefined) {
   if (value == null || value === "") return null;
   const parsed = Number.parseInt(value, 10);
@@ -180,24 +209,41 @@ async function main() {
     },
   );
 
+  const segment = parseSegmentArg();
+  let tournamentIds: string[] | null = null;
+  if (segment) {
+    tournamentIds = await tournamentIdsForSegment(supabase, segment);
+    if (tournamentIds.length === 0) {
+      console.log(`세그먼트 '${segment}'에 해당하는 토너먼트가 없습니다.`);
+      return;
+    }
+    console.log(`리그 필터: ${segment} (토너먼트 ${tournamentIds.length}개)`);
+  }
+
   // --force 없으면 leaguepedia_game_id가 null인 세트가 있는 매치만 처리
   let matchIdsNeedingUpdate: Set<string> | null = null;
   if (!force) {
-    const { data: missingSets, error: setsErr } = await supabase
-      .from("sets")
-      .select("match_id")
-      .is("leaguepedia_game_id", null);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let missingSetsQuery: any = supabase.from("sets").select("match_id").is("leaguepedia_game_id", null);
+    if (tournamentIds) {
+      const { data: mIds } = await supabase.from("matches").select("id").in("tournament_id", tournamentIds);
+      missingSetsQuery = missingSetsQuery.in("match_id", (mIds ?? []).map((m: { id: string }) => m.id));
+    }
+    const { data: missingSets, error: setsErr } = await missingSetsQuery;
     if (setsErr) throw setsErr;
     matchIdsNeedingUpdate = new Set((missingSets ?? []).map((s) => s.match_id as string));
     console.log(`leaguepedia_game_id 없는 세트가 있는 매치: ${matchIdsNeedingUpdate.size}개 (전체 덮어쓰기: --force)`);
   }
 
-  const { data: matches, error } = await supabase
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let matchesQuery: any = supabase
     .from("matches")
     .select("id, leaguepedia_match_id, name, match_date")
     .not("leaguepedia_match_id", "is", null)
     .neq("leaguepedia_match_id", "")
     .order("match_date", { ascending: true });
+  if (tournamentIds) matchesQuery = matchesQuery.in("tournament_id", tournamentIds);
+  const { data: matches, error } = await matchesQuery;
 
   if (error) {
     throw error;

@@ -51,6 +51,7 @@ type TeamRow = {
   head_coach: string | null;
   coaches: string | null;
   global_power_rank: number | null;
+  popularity: number | null;
 };
 
 type TeamIdentityHistoryRow = {
@@ -374,6 +375,7 @@ function mapTeam(row: TeamRow): Team {
     headCoach: row.head_coach ?? null,
     coaches: row.coaches ?? null,
     globalPowerRank: row.global_power_rank ?? null,
+    popularity: row.popularity ?? 0,
   };
 }
 
@@ -1351,6 +1353,41 @@ export async function getHomeHeroSlides({ activeOnly = true, limit }: { activeOn
 
     return (data as HomeHeroSlideRow[]).map(mapHomeHeroSlide);
   }, []);
+}
+
+export async function getTeamEngagementStatus(teamId: string, hashedVoterKey: string) {
+  return fromSupabase(async () => {
+    const supabase = createSupabaseServerClient();
+    const todayKST = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Seoul" });
+
+    const [{ data: fan }, { data: checkin }] = await Promise.all([
+      supabase
+        .from("team_fans")
+        .select("id")
+        .eq("team_id", teamId)
+        .eq("voter_key", hashedVoterKey)
+        .maybeSingle(),
+      supabase
+        .from("team_checkins")
+        .select("id")
+        .eq("voter_key", hashedVoterKey)
+        .eq("checkin_date", todayKST)
+        .maybeSingle(),
+    ]);
+
+    return { isFan: !!fan, isCheckedInToday: !!checkin };
+  }, { isFan: false, isCheckedInToday: false });
+}
+
+export async function getTeamFanCount(teamId: string) {
+  return fromSupabase(async () => {
+    const { count, error } = await createSupabaseServerClient()
+      .from("team_fans")
+      .select("id", { count: "exact", head: true })
+      .eq("team_id", teamId);
+    if (error) throw error;
+    return count ?? 0;
+  }, 0);
 }
 
 export async function getAllTeamVideos() {

@@ -483,6 +483,314 @@ async function findExistingMatchId(
   return legacyMatch?.id ?? null;
 }
 
+// ─── 국제대회 동기화 ────────────────────────────────────────────
+
+function slugifyTeamName(name: string) {
+  return name
+    .normalize("NFKD")
+    .toLowerCase()
+    .replace(/['.]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
+
+type TeamRowWithLck = TeamRow & { is_lck_team: boolean | null };
+
+async function getTeamsForIntl(supabase: SupabaseClient) {
+  const { data, error } = await supabase
+    .from("teams")
+    .select("id, slug, name, short_name, leaguepedia_page, is_lck_team");
+
+  if (error) {
+    throw error;
+  }
+
+  const bySlug = new Map(data.map((t) => [t.slug, t as TeamRowWithLck]));
+  const byLeaguepediaPage = new Map<string, TeamRowWithLck>();
+  for (const team of data) {
+    for (const key of [team.leaguepedia_page, team.name, team.short_name]) {
+      const normalized = normalizeLookupKey(key);
+      if (normalized) {
+        byLeaguepediaPage.set(normalized, team as TeamRowWithLck);
+      }
+    }
+  }
+
+  return { bySlug, byLeaguepediaPage };
+}
+
+function resolveTeamIntl(name: string, teams: Awaited<ReturnType<typeof getTeamsForIntl>>) {
+  const slug = teamSlugFor(name);
+  if (slug) {
+    return teams.bySlug.get(slug) ?? null;
+  }
+
+  const pageKey = normalizeLookupKey(name);
+  return teams.byLeaguepediaPage.get(pageKey) ?? null;
+}
+
+function isLckTeam(name: string, team: TeamRowWithLck | null) {
+  // LCK 팀이면 TEAM_ALIASES에 이름이 있거나 DB에 is_lck_team=true
+  return teamSlugFor(name) != null || team?.is_lck_team === true;
+}
+
+async function upsertInternationalTeam(
+  supabase: SupabaseClient,
+  name: string,
+  teams: Awaited<ReturnType<typeof getTeamsForIntl>>,
+): Promise<TeamRowWithLck | null> {
+  const slug = slugifyTeamName(name);
+  if (!slug) {
+    return null;
+  }
+
+  // 슬러그로 이미 존재하는지 재확인 (캐시 갱신 전에 생성됐을 수 있음)
+  const cached = teams.bySlug.get(slug);
+  if (cached) {
+    return cached;
+  }
+
+  const shortName = name.length <= 12 ? name : name.split(/\s+/)[0].substring(0, 20);
+
+  const { data, error } = await supabase
+    .from("teams")
+    .upsert(
+      {
+        slug,
+        name,
+        short_name: shortName,
+        primary_color: "#52525B",
+        secondary_color: "#18181B",
+        fan_site_host: null,
+        leaguepedia_page: name,
+        source_team_id: `lp:${name}`,
+        is_lck_team: false,
+        imported_scope: "international_event",
+        is_active: true,
+      },
+      { onConflict: "slug" },
+    )
+    .select("id, slug, name, short_name, leaguepedia_page, is_lck_team")
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  const team = data as TeamRowWithLck;
+
+  // 로컬 캐시 업데이트 (같은 실행 내 중복 upsert 방지)
+  teams.bySlug.set(team.slug, team);
+  const normalized = normalizeLookupKey(team.leaguepedia_page ?? team.name);
+  if (normalized) {
+    teams.byLeaguepediaPage.set(normalized, team);
+  }
+
+  return team;
+}
+
+export type IntlSyncSummary = LeaguepediaSyncSummary & {
+  teamsAutoCreated: number;
+};
+
+export async function syncInternationalMatches2026(
+  supabase: SupabaseClient,
+  options: {
+    mode?: LeaguepediaSyncMode;
+    initialDelayMs?: number;
+    onRetry?: (waitMs: number) => void;
+    tournaments?: SeasonTournamentConfig[];
+  } = {},
+): Promise<IntlSyncSummary> {
+  const mode = options.mode ?? "incremental";
+  const initialDelayMs = options.initialDelayMs ?? 0;
+  const onRetry = options.onRetry;
+  const allTournaments = options.tournaments ?? SEASON_2026_TOURNAMENTS;
+
+  // 국제대회만 필터링
+  const tournamentConfigs = allTournaments.filter((t) => t.category === "international");
+
+  if (initialDelayMs > 0) {
+    await sleep(initialDelayMs);
+  }
+
+  const cursor = mode === "incremental" ? await getLastCompletedMatchCursor(supabase) : null;
+  const teams = await getTeamsForIntl(supabase);
+
+  const summary: IntlSyncSummary = {
+    mode,
+    cursor,
+    tournaments: 0,
+    stages: 0,
+    matchesFetched: 0,
+    matchesCreated: 0,
+    matchesUpdated: 0,
+    teamsAutoCreated: 0,
+    skipped: [],
+  };
+
+  for (const tournament of tournamentConfigs) {
+    const tournamentId = await findOrCreateTournament(supabase, tournament);
+    summary.tournaments += 1;
+
+    let rows: CargoMatchRow[];
+    try {
+      rows = await fetchTournamentMatches(tournament.overviewPage, cursor, mode, onRetry);
+    } catch (err) {
+      summary.skipped.push({
+        reason: `leaguepedia_fetch_error:${tournament.overviewPage}:${(err as Error).message}`,
+      });
+      await sleep(REQUEST_DELAY_MS);
+      continue;
+    }
+    summary.matchesFetched += rows.length;
+
+    const stageOrder = new Map<string, number>();
+    const seenStages = new Set<string>();
+
+    for (const row of rows) {
+      const teamAName = row.Team1?.trim();
+      const teamBName = row.Team2?.trim();
+
+      if (!teamAName || !teamBName || teamAName === "TBD" || teamBName === "TBD") {
+        summary.skipped.push({
+          matchId: row.MatchId,
+          teamAName,
+          teamBName,
+          reason: "team_tbd_or_missing",
+        });
+        continue;
+      }
+
+      let teamA = resolveTeamIntl(teamAName, teams);
+      let teamB = resolveTeamIntl(teamBName, teams);
+
+      const teamAIsLck = isLckTeam(teamAName, teamA);
+      const teamBIsLck = isLckTeam(teamBName, teamB);
+
+      // 한국팀이 한 팀도 없으면 스킵
+      if (!teamAIsLck && !teamBIsLck) {
+        summary.skipped.push({
+          matchId: row.MatchId,
+          teamAName,
+          teamBName,
+          reason: "no_lck_team_involved",
+        });
+        continue;
+      }
+
+      // 미등록 팀 자동 생성
+      if (!teamA) {
+        teamA = await upsertInternationalTeam(supabase, teamAName, teams);
+        if (teamA) {
+          summary.teamsAutoCreated += 1;
+        }
+      }
+
+      if (!teamB) {
+        teamB = await upsertInternationalTeam(supabase, teamBName, teams);
+        if (teamB) {
+          summary.teamsAutoCreated += 1;
+        }
+      }
+
+      if (!teamA || !teamB) {
+        summary.skipped.push({
+          matchId: row.MatchId,
+          teamAName,
+          teamBName,
+          reason: "team_create_failed",
+        });
+        continue;
+      }
+
+      const matchDate = matchDateFromRow(row);
+      if (!matchDate) {
+        summary.skipped.push({
+          matchId: row.MatchId,
+          teamAName,
+          teamBName,
+          reason: "invalid_or_missing_match_date",
+        });
+        continue;
+      }
+
+      if (!isAfterCursor(matchDate, cursor, mode)) {
+        summary.skipped.push({
+          matchId: row.MatchId,
+          teamAName,
+          teamBName,
+          reason: "before_sync_cursor",
+        });
+        continue;
+      }
+
+      const stageName = stageNameFromRow(row);
+      if (!stageOrder.has(stageName)) {
+        stageOrder.set(stageName, stageOrder.size + 1);
+      }
+
+      const stageId = await findOrCreateStage(
+        supabase,
+        tournamentId,
+        stageName,
+        stageOrder.get(stageName)!,
+      );
+
+      if (!seenStages.has(stageId)) {
+        seenStages.add(stageId);
+        summary.stages += 1;
+      }
+
+      const existingId = await findExistingMatchId(supabase, {
+        tournament_id: tournamentId,
+        team_a_id: teamA.id,
+        team_b_id: teamB.id,
+        match_date: matchDate,
+        leaguepedia_match_id: row.MatchId,
+      });
+
+      const payload = {
+        tournament_id: tournamentId,
+        stage_id: stageId,
+        name: row.ShownName?.trim() || `${teamA.short_name} vs ${teamB.short_name}`,
+        match_date: matchDate,
+        status: statusFromRow(row),
+        team_a_id: teamA.id,
+        team_b_id: teamB.id,
+        team_a_score: parseInteger(row.Team1Score),
+        team_b_score: parseInteger(row.Team2Score),
+        best_of: parseInteger(row.BestOf),
+        winner_team_id: winnerTeamIdFromRow(row, teamA, teamB),
+        leaguepedia_match_id: row.MatchId,
+        venue: null,
+        vod_url: null,
+      };
+
+      if (existingId) {
+        const { error } = await supabase.from("matches").update(payload).eq("id", existingId);
+        if (error) {
+          throw error;
+        }
+        summary.matchesUpdated += 1;
+        continue;
+      }
+
+      const { error } = await supabase.from("matches").insert(payload);
+      if (error) {
+        throw error;
+      }
+      summary.matchesCreated += 1;
+    }
+
+    await sleep(REQUEST_DELAY_MS);
+  }
+
+  return summary;
+}
+
+// ─── LCK 동기화 ─────────────────────────────────────────────────
+
 export async function syncLeaguepediaLck2026(
   supabase: SupabaseClient,
   options: {

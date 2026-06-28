@@ -27,33 +27,6 @@ function orderNumber(item: SetPickBan, items: SetPickBan[]) {
   return items.findIndex((draft) => draft.id === item.id) + 1;
 }
 
-function EmptyDraftTile({
-  label,
-  subLabel,
-  align = "left",
-}: {
-  label?: string;
-  subLabel?: string;
-  align?: "left" | "right";
-}) {
-  return (
-    <div className="relative h-24 overflow-hidden rounded-md border border-border bg-background">
-      <div className="absolute inset-0 grid place-items-center bg-surface-muted text-xs font-semibold text-muted">
-        미입력
-      </div>
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent" />
-      <div
-        className={`relative z-10 flex h-full flex-col justify-end p-2 text-white ${
-          align === "right" ? "items-end text-right" : ""
-        }`}
-      >
-        <p className="text-xs font-semibold text-white/75">{label ?? ""}</p>
-        <p className="line-clamp-1 text-sm font-semibold">미입력</p>
-        {subLabel ? <p className="line-clamp-1 text-xs text-white/75">{subLabel}</p> : null}
-      </div>
-    </div>
-  );
-}
 
 function DraftSlotPicker({
   formIndex,
@@ -223,19 +196,13 @@ function AdminDraftGrid({
         <div className="grid grid-cols-5 gap-2">
           {displayLineEntries.map(({ line, positionIndex }) => {
             const linePick = side.linePicks[positionIndex] ?? null;
-            const formIndex = linePickFormIndex(slots, sideKey, orderedPicks, linePick);
+            const matchedFormIndex = linePickFormIndex(slots, sideKey, orderedPicks, linePick);
+            // stat line 매칭이 없으면 포지션 순서(TOP=1,JGL=2...) 슬롯으로 폴백
+            const formIndex =
+              matchedFormIndex >= 0
+                ? matchedFormIndex
+                : draftSlotFormIndex(slots, sideKey, "pick", positionIndex + 1);
             const championId = lineDisplayChampionId(linePick, formIndex, championIds);
-
-            if (formIndex < 0) {
-              return (
-                <EmptyDraftTile
-                  key={`${sideKey}-pick-${line.position}`}
-                  label={line.position}
-                  subLabel={line.player?.name}
-                  align={align}
-                />
-              );
-            }
 
             return (
               <DraftSlotPicker

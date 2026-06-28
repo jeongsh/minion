@@ -34,6 +34,35 @@ function requireEnv(name: string) {
   return value;
 }
 
+function parseSegmentArg() {
+  const arg = process.argv.find((a) => a.startsWith("--segment="));
+  return arg ? arg.split("=")[1]?.trim() || null : null;
+}
+
+async function tournamentIdsForSegment(
+  supabase: ReturnType<typeof createClient>,
+  segment: string,
+): Promise<string[]> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let q: any = supabase.from("tournaments").select("id");
+  switch (segment) {
+    case "lck":           q = q.eq("league", "LCK"); break;
+    case "lck-cup":       q = q.eq("league", "LCK").eq("split", "Cup"); break;
+    case "first-stand":   q = q.eq("league", "First Stand"); break;
+    case "msi":           q = q.eq("league", "MSI"); break;
+    case "ewc":           q = q.eq("league", "EWC"); break;
+    case "worlds":        q = q.eq("league", "Worlds"); break;
+    case "enc":           q = q.eq("league", "ENC"); break;
+    case "international": q = q.eq("category", "international"); break;
+    default:
+      console.warn(`알 수 없는 세그먼트: ${segment}, 전체 처리`);
+      return [];
+  }
+  const { data, error } = await q;
+  if (error) throw error;
+  return (data ?? []).map((t: { id: string }) => t.id);
+}
+
 // ─── 타입 ──────────────────────────────────────────────────────
 
 type SetRow = {
@@ -299,14 +328,29 @@ async function main() {
   const setIdx = args.indexOf("--set");
   const setId = setIdx !== -1 ? args[setIdx + 1] : null;
 
+  const segment = parseSegmentArg();
+  let segMatchIds: string[] | null = null;
+  if (segment) {
+    const tIds = await tournamentIdsForSegment(supabase, segment);
+    if (tIds.length === 0) {
+      console.log(`세그먼트 '${segment}'에 해당하는 토너먼트가 없습니다.`);
+      return;
+    }
+    const { data: mData } = await supabase.from("matches").select("id").in("tournament_id", tIds);
+    segMatchIds = (mData ?? []).map((m: { id: string }) => m.id);
+    console.log(`리그 필터: ${segment} (매치 ${segMatchIds.length}개)`);
+  }
+
   // 1. 처리할 세트 목록 조회
-  let setsQuery = supabase
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let setsQuery: any = supabase
     .from("sets")
     .select("id, leaguepedia_game_id, riot_platform_game_id, blue_team_id, red_team_id, duration_seconds")
     .not("leaguepedia_game_id", "is", null);
 
   if (matchId) setsQuery = setsQuery.eq("match_id", matchId);
   if (setId) setsQuery = setsQuery.eq("id", setId);
+  if (segMatchIds) setsQuery = setsQuery.in("match_id", segMatchIds);
 
   const { data: sets, error: setsError } = await setsQuery;
   if (setsError || !sets) throw new Error(`세트 조회 실패: ${setsError?.message}`);

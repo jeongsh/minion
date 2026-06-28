@@ -134,6 +134,35 @@ function requireEnv(name: string) {
   return value;
 }
 
+function parseSegmentArg() {
+  const arg = process.argv.find((a) => a.startsWith("--segment="));
+  return arg ? arg.split("=")[1]?.trim() || null : null;
+}
+
+async function tournamentIdsForSegment(
+  supabase: SupabaseClient,
+  segment: string,
+): Promise<string[]> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let q: any = supabase.from("tournaments").select("id");
+  switch (segment) {
+    case "lck":           q = q.eq("league", "LCK"); break;
+    case "lck-cup":       q = q.eq("league", "LCK").eq("split", "Cup"); break;
+    case "first-stand":   q = q.eq("league", "First Stand"); break;
+    case "msi":           q = q.eq("league", "MSI"); break;
+    case "ewc":           q = q.eq("league", "EWC"); break;
+    case "worlds":        q = q.eq("league", "Worlds"); break;
+    case "enc":           q = q.eq("league", "ENC"); break;
+    case "international": q = q.eq("category", "international"); break;
+    default:
+      console.warn(`알 수 없는 세그먼트: ${segment}, 전체 처리`);
+      return [];
+  }
+  const { data, error } = await q;
+  if (error) throw error;
+  return (data ?? []).map((t: { id: string }) => t.id);
+}
+
 function sleep(ms: number) {
   return new Promise((resolveSleep) => setTimeout(resolveSleep, ms));
 }
@@ -425,7 +454,19 @@ async function main() {
     },
   );
 
-  const { data: matches, error } = await supabase
+  const segment = parseSegmentArg();
+  let tournamentIds: string[] | null = null;
+  if (segment) {
+    tournamentIds = await tournamentIdsForSegment(supabase, segment);
+    if (tournamentIds.length === 0) {
+      console.log(`세그먼트 '${segment}'에 해당하는 토너먼트가 없습니다.`);
+      return;
+    }
+    console.log(`리그 필터: ${segment} (토너먼트 ${tournamentIds.length}개)`);
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let matchesQuery: any = supabase
     .from("matches")
     .select(
       "id, leaguepedia_match_id, team_a_id, team_b_id, team_a:team_a_id(id, slug, name, short_name, leaguepedia_page, is_lck_team), team_b:team_b_id(id, slug, name, short_name, leaguepedia_page, is_lck_team), sets(id)",
@@ -433,6 +474,8 @@ async function main() {
     .not("leaguepedia_match_id", "is", null)
     .neq("leaguepedia_match_id", "")
     .order("match_date", { ascending: true });
+  if (tournamentIds) matchesQuery = matchesQuery.in("tournament_id", tournamentIds);
+  const { data: matches, error } = await matchesQuery;
 
   if (error) throw error;
 

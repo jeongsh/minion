@@ -22,6 +22,7 @@ export type Team = {
   headCoach?: string | null;
   coaches?: string | null;
   globalPowerRank?: number | null;
+  popularity?: number;
   identityHistory?: TeamIdentityHistory[];
 };
 

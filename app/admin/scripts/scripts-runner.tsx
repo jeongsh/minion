@@ -14,7 +14,26 @@ type ScriptArgInput = {
   min?: number;
   max?: number;
 };
-type ScriptArg = ScriptArgFlag | ScriptArgInput;
+type ScriptArgSelect = {
+  type: "select";
+  name: string;
+  label: string;
+  default: string;
+  options: Array<{ value: string; label: string }>;
+};
+type ScriptArg = ScriptArgFlag | ScriptArgInput | ScriptArgSelect;
+
+const LEAGUE_OPTIONS: Array<{ value: string; label: string }> = [
+  { value: "", label: "전체" },
+  { value: "lck", label: "LCK 전체" },
+  { value: "lck-cup", label: "LCK Cup" },
+  { value: "first-stand", label: "First Stand" },
+  { value: "msi", label: "MSI" },
+  { value: "ewc", label: "EWC" },
+  { value: "worlds", label: "Worlds" },
+  { value: "enc", label: "ENC" },
+  { value: "international", label: "국제대회 전체" },
+];
 
 type ScriptDef = {
   id: string;
@@ -29,32 +48,47 @@ const SCRIPTS: ScriptDef[] = [
     id: "backfill-timeline-events",
     label: "타임라인 이벤트 백필",
     description: "Leaguepedia PostgameJsonMetadata에서 게임 타임라인(킬/오브젝트/포탑)을 가져와 저장합니다.",
-    args: [{ flag: "--force", label: "전체 덮어쓰기 (--force)" }],
+    args: [
+      { type: "select", name: "segment", label: "리그", default: "", options: LEAGUE_OPTIONS },
+      { flag: "--force", label: "전체 덮어쓰기 (--force)" },
+    ],
   },
   {
     id: "backfill-items-spells-runes",
     label: "아이템·스펠·룬 백필",
     description: "set_player_stats에서 아이템/스펠/룬 컬럼이 비어있는 행을 채웁니다.",
-    args: [{ flag: "--force", label: "전체 덮어쓰기 (--force)" }],
+    args: [
+      { type: "select", name: "segment", label: "리그", default: "", options: LEAGUE_OPTIONS },
+      { flag: "--force", label: "전체 덮어쓰기 (--force)" },
+    ],
   },
   {
     id: "backfill-leaguepedia-sets",
     label: "세트 데이터 백필",
     description:
       "Leaguepedia에서 세트(게임) 통계를 동기화합니다. 기본은 세트가 없는 경기만 처리하고, --force 시 기존 세트 통계도 덮어씁니다.",
-    args: [{ flag: "--force", label: "기존 세트 포함 전체 동기화 (--force)" }],
+    args: [
+      { type: "select", name: "segment", label: "리그", default: "", options: LEAGUE_OPTIONS },
+      { flag: "--force", label: "기존 세트 포함 전체 동기화 (--force)" },
+    ],
   },
   {
     id: "backfill-leaguepedia-set-picks-bans",
     label: "밴픽 백필",
     description: "Leaguepedia에서 밴픽 데이터를 가져와 저장합니다.",
-    args: [{ type: "flag", flag: "--force", label: "전체 덮어쓰기 (--force)" }],
+    args: [
+      { type: "select", name: "segment", label: "리그", default: "", options: LEAGUE_OPTIONS },
+      { type: "flag", flag: "--force", label: "전체 덮어쓰기 (--force)" },
+    ],
   },
   {
     id: "backfill-leaguepedia-set-ids",
     label: "세트 ID 백필",
     description: "세트의 Leaguepedia Game ID를 채웁니다.",
-    args: [{ type: "flag", flag: "--force", label: "전체 덮어쓰기 (--force)" }],
+    args: [
+      { type: "select", name: "segment", label: "리그", default: "", options: LEAGUE_OPTIONS },
+      { type: "flag", flag: "--force", label: "전체 덮어쓰기 (--force)" },
+    ],
   },
   {
     id: "sync-leaguepedia-lck",
@@ -62,6 +96,14 @@ const SCRIPTS: ScriptDef[] = [
     description: "Leaguepedia에서 LCK 시즌 경기 일정/결과를 동기화합니다.",
     args: [
       { type: "input", name: "year", label: "연도", default: String(new Date().getFullYear()), inputType: "number", min: 2020, max: 2099 },
+      { type: "flag", flag: "--full", label: "전체 재동기화 (--full)" },
+    ],
+  },
+  {
+    id: "sync-international-matches",
+    label: "국제대회 동기화",
+    description: "MSI·Worlds·EWC·First Stand·ENC에서 한국팀이 참가하는 경기를 동기화합니다. 미등록 상대팀은 자동으로 생성됩니다.",
+    args: [
       { type: "flag", flag: "--full", label: "전체 재동기화 (--full)" },
     ],
   },
@@ -348,6 +390,24 @@ function ScriptPanel({ script }: { script: ScriptDef }) {
       {/* 옵션 */}
       <div className="flex flex-wrap items-center gap-4 border-t border-border px-4 py-2">
         {script.args?.map((arg) => {
+          if (arg.type === "select") {
+            return (
+              <div key={arg.name} className="flex items-center gap-1.5 text-xs">
+                <span className="text-muted">{arg.label}</span>
+                <select
+                  value={inputArgs[arg.name] ?? arg.default}
+                  onChange={(e) =>
+                    setInputArgs((prev) => ({ ...prev, [arg.name]: e.target.value }))
+                  }
+                  className="rounded border border-border bg-background px-2 py-0.5 text-xs"
+                >
+                  {arg.options.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+            );
+          }
           if (arg.type === "input") {
             return (
               <div key={arg.name} className="flex items-center gap-1.5 text-xs">
