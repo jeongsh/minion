@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { fanSiteHosts } from "@/lib/team-themes";
+import { attachRefreshedSession } from "@/lib/supabase/auth-middleware";
 
 const RESERVED_SUBDOMAINS = new Set(["www", "api", "admin"]);
 
@@ -22,10 +23,13 @@ function getSubdomain(host: string) {
   return null;
 }
 
-export function proxy(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const host = request.headers.get("host") ?? "";
   const subdomain = getSubdomain(host);
   const { pathname, search } = request.nextUrl;
+
+  // 기존 서브도메인 rewrite 동작을 유지하면서, 응답에 갱신된 인증 세션 쿠키를 심는다.
+  let response: NextResponse;
 
   if (
     !subdomain ||
@@ -33,14 +37,17 @@ export function proxy(request: NextRequest) {
     !fanSiteHosts.includes(subdomain as (typeof fanSiteHosts)[number]) ||
     pathname.startsWith(`/fan/${subdomain}`)
   ) {
-    return NextResponse.next();
+    response = NextResponse.next();
+  } else {
+    const rewriteUrl = request.nextUrl.clone();
+    rewriteUrl.pathname = `/fan/${subdomain}${pathname === "/" ? "" : pathname}`;
+    rewriteUrl.search = search;
+    response = NextResponse.rewrite(rewriteUrl);
   }
 
-  const rewriteUrl = request.nextUrl.clone();
-  rewriteUrl.pathname = `/fan/${subdomain}${pathname === "/" ? "" : pathname}`;
-  rewriteUrl.search = search;
+  await attachRefreshedSession(request, response);
 
-  return NextResponse.rewrite(rewriteUrl);
+  return response;
 }
 
 export const config = {
