@@ -51,39 +51,6 @@ function teamSetSummary(sets: SetResult[], teamId: string) {
   };
 }
 
-function buildPreviewLines({
-  teamAName,
-  teamBName,
-  teamARecent,
-  teamBRecent,
-  h2h,
-}: {
-  teamAName: string;
-  teamBName: string;
-  teamARecent: ReturnType<typeof teamRecentRecord>;
-  teamBRecent: ReturnType<typeof teamRecentRecord>;
-  h2h: Match[];
-}) {
-  const teamAEdge = teamARecent.wins - teamBRecent.wins;
-
-  if (teamARecent.games === 0 && teamBRecent.games === 0) {
-    return [
-      `${teamAName}와 ${teamBName} 모두 최근 공식 데이터가 충분하지 않아 초반 운영 안정성이 핵심 변수입니다.`,
-      "승부예측은 경기 시작 전까지 열려 있으니 라인업 공개 이후 흐름을 다시 확인할 필요가 있습니다.",
-    ];
-  }
-
-  const leadingTeam = teamAEdge >= 0 ? teamAName : teamBName;
-  const trailingTeam = teamAEdge >= 0 ? teamBName : teamAName;
-
-  return [
-    `최근 5경기 흐름은 ${leadingTeam} 쪽이 조금 더 안정적이지만, ${trailingTeam}도 한타 변수를 만들 여지는 충분합니다.`,
-    h2h.length > 0
-      ? `최근 맞대결 ${h2h.length}경기 기준으로는 초반 세트 주도권이 승부예측의 가장 큰 분기점입니다.`
-      : `최근 맞대결 표본이 적어 당일 밴픽과 첫 세트 경기력이 예측 신뢰도를 크게 좌우합니다.`,
-  ];
-}
-
 function TeamPowerCard({
   label,
   record,
@@ -138,23 +105,10 @@ export function MatchPreview({
   const teamBRecent = teamRecentRecord(previousMatches, match.teamBId);
   const teamASummary = teamSetSummary(sets, match.teamAId);
   const teamBSummary = teamSetSummary(sets, match.teamBId);
-  const previewLines = buildPreviewLines({ teamAName, teamBName, teamARecent, teamBRecent, h2h });
 
   return (
     <div className="grid gap-4 lg:grid-cols-[1fr_22rem]">
       <div className="flex flex-col gap-4">
-        <section className="rounded-md border border-border bg-surface p-4" aria-labelledby="match-ai-preview">
-          <p className="text-xs font-semibold uppercase text-muted">AI preview</p>
-          <h2 id="match-ai-preview" className="mt-1 text-xl font-semibold">
-            {teamAName} vs {teamBName}
-          </h2>
-          <div className="mt-4 space-y-2 text-sm leading-6 text-muted">
-            {previewLines.map((line) => (
-              <p key={line}>{line}</p>
-            ))}
-          </div>
-        </section>
-
         <section className="grid gap-3 md:grid-cols-2" aria-label="양팀 전력비교">
           <TeamPowerCard label={teamAName} record={teamARecent} summary={teamASummary} />
           <TeamPowerCard label={teamBName} record={teamBRecent} summary={teamBSummary} />

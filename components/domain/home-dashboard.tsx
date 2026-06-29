@@ -83,33 +83,6 @@ function TeamLogo({
   );
 }
 
-function AiBriefingPlaceholder() {
-  return (
-    <Card className="relative min-h-[380px] overflow-hidden bg-[#f4f5ff] p-7" data-testid="ai-briefing-placeholder">
-      <div className="relative z-10 flex h-full flex-col">
-        <span className="w-fit rounded-full border border-[#b8b4ff] bg-white px-3 py-1.5 text-xs font-black text-[#655cff]">
-          AI 브리핑
-        </span>
-        <h2 className="mt-5 text-3xl font-black leading-tight text-[#111827]">오늘의 LCK</h2>
-        <p className="mt-2 text-xs font-bold text-[#8a93a8]">업데이트 준비 중</p>
-        <p className="mt-6 max-w-[245px] text-sm font-semibold leading-6 text-[#59647c]">
-          오늘의 경기와 주요 이슈를 한눈에 볼 수 있는 브리핑 영역입니다.
-        </p>
-        <span className="mt-6 inline-flex h-11 w-fit items-center rounded-full bg-[#101a3d] px-5 text-sm font-black text-white">
-          AI 브리핑 준비 중
-        </span>
-        <div className="mt-auto flex flex-wrap gap-2 pt-6">
-          <span className="rounded-full bg-white px-3 py-2 text-xs font-bold text-[#667085]">핵심 이슈</span>
-          <span className="rounded-full bg-white px-3 py-2 text-xs font-bold text-[#667085]">선수별 TOP 5</span>
-        </div>
-      </div>
-      <div className="absolute bottom-7 right-7 grid h-24 w-24 place-items-center rounded-lg border border-white bg-white/80 text-3xl font-black text-[#746cf5] shadow-sm">
-        AI
-      </div>
-    </Card>
-  );
-}
-
 function ParticipationSection({ upcomingMatches }: { upcomingMatches: Match[] }) {
   const entries = [
     {
@@ -241,7 +214,6 @@ function MatchPollCard({
         <span className="h-full flex-1" style={{ backgroundColor: opposingAccent }} />
       </div>
       <div className="mt-4 flex flex-wrap gap-2 border-t border-[#eef1f6] pt-3">
-        <span className="rounded-full bg-[#f3f2ff] px-3 py-1.5 text-[11px] font-bold text-[#746cf5]">AI 코멘트 준비 중</span>
         <span className="rounded-full bg-[#f4f6f9] px-3 py-1.5 text-[11px] font-bold text-[#667085] transition group-hover:bg-[#eceff4]">
           팬 예측 보기
         </span>
@@ -372,32 +344,6 @@ function RecentMatchCard({
   );
 }
 
-function AiSummaryPlaceholder() {
-  const rows = ["경기 흐름", "팀 전력 변화", "선수 퍼포먼스"];
-
-  return (
-    <Card className="h-full p-5" data-testid="ai-summary-placeholder">
-      <div className="flex items-center justify-between gap-4">
-        <h2 className="text-lg font-black text-[#111827]">AI 최근 흐름 요약</h2>
-        <span className="rounded bg-[#f3f2ff] px-2 py-1 text-[10px] font-black text-[#655cff]">준비 중</span>
-      </div>
-      <div className="mt-5 space-y-4">
-        {rows.map((row, index) => (
-          <div key={row} className="grid grid-cols-[32px_1fr] items-center gap-3">
-            <span className={`grid h-8 w-8 place-items-center rounded-lg text-[10px] font-black ${index === 1 ? "bg-[#fff5d9] text-[#b98200]" : index === 2 ? "bg-[#e8f9f2] text-[#0b9b67]" : "bg-[#f0efff] text-[#655cff]"}`}>
-              AI
-            </span>
-            <div>
-              <p className="text-xs font-black text-[#59647c]">{row}</p>
-              <div className="mt-2 h-2 w-full rounded-full bg-[#edf0f5]" />
-            </div>
-          </div>
-        ))}
-      </div>
-    </Card>
-  );
-}
-
 function VideoSection({ videos, teamsById }: { videos: TeamVideo[]; teamsById: Map<string, Team> }) {
   return (
     <section>
@@ -508,9 +454,8 @@ export function HomeDashboard({
 
   return (
     <main data-testid="home-dashboard" className="mx-auto flex w-full max-w-[1240px] flex-col gap-6 px-4 pb-8 pt-6 sm:px-6">
-      <section className="grid gap-5 lg:grid-cols-[minmax(0,2.35fr)_minmax(300px,0.85fr)]">
+      <section>
         <HomeHeroSwiper slides={heroSlides} />
-        <AiBriefingPlaceholder />
       </section>
 
       <section className="grid items-stretch gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(300px,0.9fr)]">
@@ -552,31 +497,28 @@ export function HomeDashboard({
         <AdPlaceholder className="min-h-[300px]" />
       </section>
 
-      <section className="grid items-stretch gap-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(300px,0.95fr)]">
-        <section aria-labelledby="recent-matches-title">
-          <div className="mb-3 flex items-center justify-between gap-4">
-            <h2 id="recent-matches-title" className="text-lg font-black text-[#111827]">최근 종료 경기</h2>
-            <Link href="/schedule" className="text-xs font-bold text-[#7c86a0] transition hover:text-[#4f46e5]">
-              전체 보기 <span aria-hidden="true">&gt;</span>
-            </Link>
+      <section aria-labelledby="recent-matches-title">
+        <div className="mb-3 flex items-center justify-between gap-4">
+          <h2 id="recent-matches-title" className="text-lg font-black text-[#111827]">최근 종료 경기</h2>
+          <Link href="/schedule" className="text-xs font-bold text-[#7c86a0] transition hover:text-[#4f46e5]">
+            전체 보기 <span aria-hidden="true">&gt;</span>
+          </Link>
+        </div>
+        {recentMatches.length > 0 ? (
+          <div className="grid gap-3 md:grid-cols-2">
+            {recentMatches.map((match) => (
+              <RecentMatchCard
+                key={match.id}
+                match={match}
+                teamA={teamsById.get(match.teamAId)}
+                teamB={teamsById.get(match.teamBId)}
+                tournamentName={tournamentNamesById.get(match.tournamentId)}
+              />
+            ))}
           </div>
-          {recentMatches.length > 0 ? (
-            <div className="grid gap-3 md:grid-cols-2">
-              {recentMatches.map((match) => (
-                <RecentMatchCard
-                  key={match.id}
-                  match={match}
-                  teamA={teamsById.get(match.teamAId)}
-                  teamB={teamsById.get(match.teamBId)}
-                  tournamentName={tournamentNamesById.get(match.tournamentId)}
-                />
-              ))}
-            </div>
-          ) : (
-            <p className="rounded-lg border border-dashed border-[#ccd3e0] py-12 text-center text-sm font-semibold text-[#7c86a0]">최근 종료 경기가 없습니다.</p>
-          )}
-        </section>
-        <AiSummaryPlaceholder />
+        ) : (
+          <p className="rounded-lg border border-dashed border-[#ccd3e0] py-12 text-center text-sm font-semibold text-[#7c86a0]">최근 종료 경기가 없습니다.</p>
+        )}
       </section>
 
       <section className="grid gap-6 border-t border-[#edf0f5] pt-6 lg:grid-cols-[0.85fr_1fr]">
