@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { Suspense } from "react";
 
-import { SeasonSegmentFilter } from "@/components/domain/season-segment-filter";
 import { getAllTeams, getMatches, getStages, getTournaments } from "@/lib/data/lck";
 import {
   filterMatchesBySegment,
@@ -136,6 +135,13 @@ export default async function SchedulePage({
   const activeYear = params.year ? Number(params.year) : defaultYear;
   const activeMonth = params.month ? Number(params.month) : defaultMonth;
 
+  const years = Array.from(
+    new Set([
+      ...tournaments.map((tournament) => tournament.season).filter((season): season is number => Boolean(season)),
+      activeYear,
+    ]),
+  ).sort((a, b) => b - a);
+
   const segmentMatches = filterMatchesBySegment(matches, tournaments, activeSegment, activeYear);
   const filteredMatches = segmentMatches.filter(
     (match) => getYearKST(match.matchDate) === activeYear && getMonthKST(match.matchDate) === activeMonth,
@@ -157,21 +163,14 @@ export default async function SchedulePage({
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-[var(--page-inline)] py-8">
       <section className="flex flex-col gap-6" aria-labelledby="schedule-title">
-        <h1 id="schedule-title" className="text-2xl font-bold">
-          {segmentLabel(activeSegment, activeYear)} 경기 일정
-        </h1>
 
         <Suspense fallback={null}>
-          <SeasonSegmentFilter
+          <ScheduleFilters
+            activeYear={activeYear}
+            activeMonth={activeMonth}
             activeSegment={activeSegment}
-            basePath="/schedule"
-            preserveKeys={["year", "month"]}
-            seasonYear={activeYear}
+            years={years}
           />
-        </Suspense>
-
-        <Suspense fallback={null}>
-          <ScheduleFilters activeYear={activeYear} activeMonth={activeMonth} />
         </Suspense>
       </section>
 
@@ -195,32 +194,39 @@ export default async function SchedulePage({
                   return (
                     <div
                       key={match.id}
-                      className="grid gap-4 px-5 py-4 md:grid-cols-[4.5rem_4.5rem_9rem_8rem_minmax(12rem,1fr)_5rem_minmax(12rem,1fr)_6rem_8rem] md:items-center"
+                      className="px-4 py-4 lg:grid lg:grid-cols-[3.5rem_3.5rem_8rem_5.5rem_minmax(0,1fr)_4rem_minmax(0,1fr)_4rem] lg:items-center lg:gap-4 lg:px-5"
                     >
-                      <time className="text-base font-bold">{formatTimeKST(match.matchDate)}</time>
-                      <span className="w-fit rounded bg-surface-muted px-2 py-1 text-xs font-semibold text-muted">
-                        {statusLabel(match.status)}
-                      </span>
-                      <span className="w-fit rounded-md border border-border bg-background px-2.5 py-1 text-xs font-bold text-foreground">
-                        {tournamentTypeLabel(tournament)}
-                      </span>
-                      <span className="text-sm text-muted">{stageName(stages, match.stageId)}</span>
-                      <Link href={`/teams/${teamA?.slug ?? ""}`} className="min-w-0">
-                        <TeamMark team={teamA} align="right" />
-                      </Link>
-                      <Link href={matchHref(match)} className="text-center text-2xl font-black">
-                        {scoreText(match)}
-                      </Link>
-                      <Link href={`/teams/${teamB?.slug ?? ""}`} className="min-w-0">
-                        <TeamMark team={teamB} />
-                      </Link>
-                      <Link
-                        href={matchHref(match)}
-                        className="rounded-md border border-border px-3 py-2 text-center text-sm font-semibold"
-                      >
-                        상세
-                      </Link>
-                      <span className="text-sm text-muted md:text-right">{match.venue ?? "경기장 미정"}</span>
+                      <div className="mb-3 flex flex-wrap items-center gap-2 lg:mb-0 lg:contents">
+                        <time className="text-base font-bold">{formatTimeKST(match.matchDate)}</time>
+                        <span className="w-fit shrink-0 rounded bg-surface-muted px-2 py-1 text-xs font-semibold text-muted">
+                          {statusLabel(match.status)}
+                        </span>
+                        <span className="w-fit shrink-0 truncate rounded-md border border-border bg-background px-2.5 py-1 text-xs font-bold text-foreground lg:max-w-full">
+                          {tournamentTypeLabel(tournament)}
+                        </span>
+                        <span className="truncate text-sm text-muted">{stageName(stages, match.stageId)}</span>
+                      </div>
+
+                      <div className="flex items-center justify-center gap-3 lg:contents">
+                        <Link href={`/teams/${teamA?.slug ?? ""}`} className="min-w-0 flex-1 lg:flex-none">
+                          <TeamMark team={teamA} align="right" />
+                        </Link>
+                        <Link href={matchHref(match)} className="shrink-0 text-center text-2xl font-black">
+                          {scoreText(match)}
+                        </Link>
+                        <Link href={`/teams/${teamB?.slug ?? ""}`} className="min-w-0 flex-1 lg:flex-none">
+                          <TeamMark team={teamB} />
+                        </Link>
+                      </div>
+
+                      <div className="mt-3 lg:mt-0 lg:contents">
+                        <Link
+                          href={matchHref(match)}
+                          className="block w-full rounded-md border border-border px-3 py-2 text-center text-sm font-semibold lg:w-auto"
+                        >
+                          상세
+                        </Link>
+                      </div>
                     </div>
                   );
                 })}
