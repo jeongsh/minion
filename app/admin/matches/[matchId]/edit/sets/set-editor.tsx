@@ -461,6 +461,16 @@ function PlayerStatBoard({
             ) : (
               <span className="text-xs font-semibold text-muted">Riot items not synced</span>
             )}
+            {row.line.roleBoundItem ? (
+              <Image
+                src={itemImage(row.line.roleBoundItem, itemVersion)}
+                alt=""
+                width={28}
+                height={28}
+                className="h-7 w-7 rounded border border-accent bg-surface-muted object-cover"
+                title="퀘스트 아이템"
+              />
+            ) : null}
           </div>
         </div>
       );
@@ -661,12 +671,24 @@ function AdminPlayerStatEditor({
                 defaultRuneIds={row.line.runeIds}
                 runeCatalog={runeCatalog}
               />
-              <PlayerStatItemsEditor
-                namePrefix={`playerStat.${index}`}
-                defaultItemIds={row.line.itemIds}
-                items={items}
-                itemVersion={itemVersion}
-              />
+              <div className="flex items-center gap-1">
+                <PlayerStatItemsEditor
+                  namePrefix={`playerStat.${index}`}
+                  defaultItemIds={row.line.itemIds}
+                  items={items}
+                  itemVersion={itemVersion}
+                />
+                {row.line.roleBoundItem ? (
+                  <Image
+                    src={itemImage(row.line.roleBoundItem, itemVersion)}
+                    alt=""
+                    width={28}
+                    height={28}
+                    className="h-7 w-7 shrink-0 rounded border border-accent bg-surface-muted object-cover"
+                    title="퀘스트 아이템"
+                  />
+                ) : null}
+              </div>
             </div>
           );
         })}

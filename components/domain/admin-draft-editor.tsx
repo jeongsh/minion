@@ -173,6 +173,7 @@ function AdminDraftGrid({
             const item = displayBans[index] ?? null;
             const slotNumber = banPickSlotNumber(orderedBans, item, index);
             const formIndex = banFormIndex(slotNumber);
+            const banNumber = item ? orderedBans.findIndex((b) => b.id === item.id) + 1 : null;
             return (
               <DraftSlotPicker
                 key={`${sideKey}-ban-${index}`}
@@ -182,7 +183,7 @@ function AdminDraftGrid({
                 champions={champions}
                 align={align}
                 muted
-                label={item?.phase ?? `${index + 1}번 밴`}
+                label={banNumber ? `ban${banNumber}` : `${index + 1}번 밴`}
               />
             );
           })}

@@ -2,28 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-// ─── 스크립트 정의 ─────────────────────────────────────────────
+// ─── 데이터 정의 ──────────────────────────────────────────────
 
-type ScriptArgFlag = { type?: "flag"; flag: string; label: string };
-type ScriptArgInput = {
-  type: "input";
-  name: string;
-  label: string;
-  default: string;
-  inputType?: "number" | "text";
-  min?: number;
-  max?: number;
-};
-type ScriptArgSelect = {
-  type: "select";
-  name: string;
-  label: string;
-  default: string;
-  options: Array<{ value: string; label: string }>;
-};
-type ScriptArg = ScriptArgFlag | ScriptArgInput | ScriptArgSelect;
-
-const LEAGUE_OPTIONS: Array<{ value: string; label: string }> = [
+const LEAGUE_OPTIONS = [
   { value: "", label: "전체" },
   { value: "lck", label: "LCK 전체" },
   { value: "lck-cup", label: "LCK Cup" },
@@ -35,164 +16,92 @@ const LEAGUE_OPTIONS: Array<{ value: string; label: string }> = [
   { value: "international", label: "국제대회 전체" },
 ];
 
-type ScriptDef = {
+type RunState = "idle" | "running" | "done" | "error";
+
+type ScriptEntry = {
   id: string;
   label: string;
-  description: string;
-  args?: ScriptArg[];
-  defaultAutoArgs?: string[];
+  addYear?: boolean;
+  addSegment?: boolean;
+  staticArgs?: string[];
 };
 
-const SCRIPTS: ScriptDef[] = [
+type GroupDef = {
+  id: string;
+  label: string;
+  scripts: ScriptEntry[];
+  sharedFlag?: string;
+  showSegment?: boolean;
+  showYear?: boolean;
+};
+
+const GROUPS: GroupDef[] = [
   {
-    id: "backfill-timeline-events",
-    label: "타임라인 이벤트 백필",
-    description: "Leaguepedia PostgameJsonMetadata에서 게임 타임라인(킬/오브젝트/포탑)을 가져와 저장합니다.",
-    args: [
-      { type: "select", name: "segment", label: "리그", default: "", options: LEAGUE_OPTIONS },
-      { flag: "--force", label: "전체 덮어쓰기 (--force)" },
+    id: "tournament",
+    label: "대회 동기화",
+    sharedFlag: "--full",
+    showYear: true,
+    scripts: [
+      { id: "sync-leaguepedia-lck", label: "LCK", addYear: true },
+      { id: "sync-international-matches", label: "국제대회" },
     ],
   },
   {
-    id: "backfill-items-spells-runes",
-    label: "아이템·스펠·룬 백필",
-    description: "set_player_stats에서 아이템/스펠/룬 컬럼이 비어있는 행을 채웁니다.",
-    args: [
-      { type: "select", name: "segment", label: "리그", default: "", options: LEAGUE_OPTIONS },
-      { flag: "--force", label: "전체 덮어쓰기 (--force)" },
+    id: "sns",
+    label: "SNS 동기화",
+    scripts: [
+      { id: "sync-youtube-videos", label: "유튜브 비디오" },
+      { id: "subscribe-youtube-webhooks", label: "유튜브 웹훅" },
+      { id: "sync-instagram", label: "인스타그램" },
     ],
   },
   {
-    id: "backfill-leaguepedia-sets",
-    label: "세트 데이터 백필",
-    description:
-      "Leaguepedia에서 세트(게임) 통계를 동기화합니다. 기본은 세트가 없는 경기만 처리하고, --force 시 기존 세트 통계도 덮어씁니다.",
-    args: [
-      { type: "select", name: "segment", label: "리그", default: "", options: LEAGUE_OPTIONS },
-      { flag: "--force", label: "기존 세트 포함 전체 동기화 (--force)" },
+    id: "player",
+    label: "선수 동기화",
+    sharedFlag: "--force",
+    scripts: [
+      { id: "sync-career-history", label: "경력" },
+      { id: "sync-player-images", label: "이미지" },
     ],
   },
   {
-    id: "backfill-leaguepedia-set-picks-bans",
-    label: "밴픽 백필",
-    description: "Leaguepedia에서 밴픽 데이터를 가져와 저장합니다.",
-    args: [
-      { type: "select", name: "segment", label: "리그", default: "", options: LEAGUE_OPTIONS },
-      { type: "flag", flag: "--force", label: "전체 덮어쓰기 (--force)" },
+    id: "misc",
+    label: "기타",
+    sharedFlag: "--force",
+    scripts: [
+      { id: "sync-staff", label: "스태프" },
+      { id: "sync-pom", label: "POM" },
+      { id: "sync-lck-awards", label: "팀 수상" },
     ],
   },
   {
-    id: "backfill-leaguepedia-set-ids",
-    label: "세트 ID 백필",
-    description: "세트의 Leaguepedia Game ID를 채웁니다.",
-    args: [
-      { type: "select", name: "segment", label: "리그", default: "", options: LEAGUE_OPTIONS },
-      { type: "flag", flag: "--force", label: "전체 덮어쓰기 (--force)" },
-    ],
-  },
-  {
-    id: "sync-leaguepedia-lck",
-    label: "LCK 동기화",
-    description: "Leaguepedia에서 LCK 시즌 경기 일정/결과를 동기화합니다.",
-    args: [
-      { type: "input", name: "year", label: "연도", default: String(new Date().getFullYear()), inputType: "number", min: 2020, max: 2099 },
-      { type: "flag", flag: "--full", label: "전체 재동기화 (--full)" },
-    ],
-  },
-  {
-    id: "sync-international-matches",
-    label: "국제대회 동기화",
-    description: "MSI·Worlds·EWC·First Stand·ENC에서 한국팀이 참가하는 경기를 동기화합니다. 미등록 상대팀은 자동으로 생성됩니다.",
-    args: [
-      { type: "flag", flag: "--full", label: "전체 재동기화 (--full)" },
-    ],
-  },
-  {
-    id: "sync-career-history",
-    label: "선수 경력 동기화",
-    description: "선수들의 팀 이동 이력을 동기화합니다. 기존 레코드는 유지하고 새 정보만 추가합니다.",
-  },
-  {
-    id: "sync-player-images",
-    label: "선수 이미지 동기화",
-    description: "Leaguepedia에서 선수 프로필 이미지 URL을 동기화합니다.",
-    args: [{ type: "flag", flag: "--force", label: "전체 덮어쓰기 (--force)" }],
-  },
-  {
-    id: "sync-youtube-videos",
-    label: "YouTube videos",
-    description: "Sync 2026 YouTube videos for team and current player fan pages.",
-    args: [
-      { type: "input", name: "since", label: "since", default: "2026-01-01", inputType: "text" },
-      { type: "flag", flag: "--dry-run", label: "dry run (--dry-run)" },
-    ],
-  },
-  {
-    id: "subscribe-youtube-webhooks",
-    label: "YouTube webhook subscribe",
-    description: "Subscribe team and player YouTube feeds to the configured public webhook callback.",
-    args: [{ type: "flag", flag: "--unsubscribe", label: "unsubscribe (--unsubscribe)" }],
-  },
-  {
-    id: "sync-lck-awards",
-    label: "LCK 팀 수상 동기화",
-    description: "Leaguepedia에서 LCK·MSI·Worlds·EWC·First Stand 우승/준우승 이력을 가져와 저장합니다.",
-    args: [
-      { type: "input", name: "from-year", label: "시작 연도", default: "2012", inputType: "number", min: 2012, max: 2099 },
-      { type: "flag", flag: "--force", label: "전체 덮어쓰기 (--force)" },
-    ],
-  },
-  {
-    id: "sync-lck-player-awards",
-    label: "LCK 개인 수상 동기화",
-    description: "Liquipedia에서 LCK Awards 연간 수상(MVP·포지션별·신인상 등)을 가져와 저장합니다.",
-    args: [
-      { type: "input", name: "years", label: "연도 (쉼표 구분)", default: String(new Date().getFullYear()), inputType: "text" },
-      { type: "flag", flag: "--force", label: "전체 덮어쓰기 (--force)" },
-    ],
-  },
-  {
-    id: "sync-pom",
-    label: "POM 동기화",
-    description: "공식 Player of the Match 데이터를 동기화합니다.",
-    args: [{ type: "flag", flag: "--force", label: "전체 덮어쓰기 (--force)" }],
-  },
-  {
-    id: "sync-staff",
-    label: "스태프 동기화",
-    description: "감독/코치 정보를 동기화합니다.",
-    args: [{ type: "flag", flag: "--force", label: "전체 덮어쓰기 (--force)" }],
-  },
-  {
-    id: "sync-instagram",
-    label: "인스타그램 동기화",
-    description: "Playwright(브라우저) 기반으로 게시물을 수집합니다. 스토리는 24시간 후 자동 만료.",
-    args: [
-      { type: "input", name: "only", label: "only (players / teams / 비워두면 전체)", default: "", inputType: "text" },
+    id: "match",
+    label: "경기 동기화",
+    sharedFlag: "--force",
+    showSegment: true,
+    scripts: [
+      { id: "backfill-timeline-events", label: "타임라인", addSegment: true },
+      { id: "backfill-leaguepedia-sets", label: "세트", addSegment: true },
+      { id: "backfill-leaguepedia-set-ids", label: "세트 ID", addSegment: true },
     ],
   },
 ];
 
-// ─── 단일 스크립트 패널 ─────────────────────────────────────────
+// ─── GroupPanel ────────────────────────────────────────────────
 
-type RunState = "idle" | "running" | "done" | "error";
+type ScriptInfo = { state: RunState; exitCode: number | null };
 
-function ScriptPanel({ script }: { script: ScriptDef }) {
-  const [state, setState] = useState<RunState>("idle");
-  const [logs, setLogs] = useState<string[]>([]);
-  const [exitCode, setExitCode] = useState<number | null>(null);
-  const [checkedArgs, setCheckedArgs] = useState<Set<string>>(new Set());
-  const [inputArgs, setInputArgs] = useState<Record<string, string>>(() => {
-    const defaults: Record<string, string> = {};
-    for (const arg of script.args ?? []) {
-      if (arg.type === "input") defaults[arg.name] = arg.default;
-    }
-    return defaults;
-  });
-  const inputArgsRef = useRef(inputArgs);
-  inputArgsRef.current = inputArgs;
+function GroupPanel({ group }: { group: GroupDef }) {
+  const [flagChecked, setFlagChecked] = useState(false);
   const [autoRetry, setAutoRetry] = useState(false);
   const [retryIntervalSec, setRetryIntervalSec] = useState(60);
+  const [segment, setSegment] = useState("");
+  const [year, setYear] = useState(String(new Date().getFullYear()));
+  const [scriptInfos, setScriptInfos] = useState<Record<string, ScriptInfo>>(() =>
+    Object.fromEntries(group.scripts.map((s) => [s.id, { state: "idle", exitCode: null }])),
+  );
+  const [activeScriptId, setActiveScriptId] = useState<string | null>(null);
+  const [logs, setLogs] = useState<string[]>([]);
   const [countdown, setCountdown] = useState(0);
 
   const abortRef = useRef<AbortController | null>(null);
@@ -200,14 +109,11 @@ function ScriptPanel({ script }: { script: ScriptDef }) {
   const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const logContainerRef = useRef<HTMLDivElement>(null);
 
-  // 로그 자동 스크롤 (페이지가 아닌 컨테이너만)
   useEffect(() => {
     const el = logContainerRef.current;
-    if (!el) return;
-    el.scrollTop = el.scrollHeight;
+    if (el) el.scrollTop = el.scrollHeight;
   }, [logs]);
 
-  // 언마운트 시 정리
   useEffect(() => {
     return () => {
       abortRef.current?.abort();
@@ -229,225 +135,172 @@ function ScriptPanel({ script }: { script: ScriptDef }) {
     }, 1000);
   }, []);
 
-  const run = useCallback(async () => {
+  const stopAll = useCallback(() => {
     abortRef.current?.abort();
     if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
     if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
     setCountdown(0);
-
-    const controller = new AbortController();
-    abortRef.current = controller;
-
-    setState("running");
-    setLogs([]);
-    setExitCode(null);
-
-    const args = [
-      ...Object.entries(inputArgsRef.current).flatMap(([k, v]) => v !== "" ? [`--${k}=${v}`] : []),
-      ...checkedArgs,
-    ];
-
-    try {
-      const res = await fetch("/api/admin/run-script", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ script: script.id, args }),
-        signal: controller.signal,
-      });
-
-      if (!res.ok || !res.body) {
-        setLogs((prev) => [...prev, `HTTP 오류: ${res.status}`]);
-        setState("error");
-        return;
+    setActiveScriptId((prev) => {
+      if (prev) {
+        setScriptInfos((infos) => ({ ...infos, [prev]: { state: "idle", exitCode: null } }));
       }
+      return null;
+    });
+  }, []);
 
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
+  const runScript = useCallback(
+    async (script: ScriptEntry) => {
+      abortRef.current?.abort();
+      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+      if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
+      setCountdown(0);
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+      const controller = new AbortController();
+      abortRef.current = controller;
 
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() ?? "";
+      setActiveScriptId(script.id);
+      setLogs([]);
+      setScriptInfos((prev) => ({ ...prev, [script.id]: { state: "running", exitCode: null } }));
 
-        for (const line of lines) {
-          const exitMatch = line.match(/__EXIT__:(-?\d+)/);
-          if (exitMatch) {
-            const code = parseInt(exitMatch[1], 10);
-            setExitCode(code);
-            setState(code === 0 ? "done" : "error");
-          } else if (line) {
-            setLogs((prev) => [...prev, line]);
+      const args: string[] = [];
+      if (group.sharedFlag && flagChecked) args.push(group.sharedFlag);
+      if (script.addYear && year) args.push(`--year=${year}`);
+      if (script.addSegment && segment) args.push(`--segment=${segment}`);
+      if (script.staticArgs) args.push(...script.staticArgs);
+
+      const setInfo = (state: RunState, exitCode: number | null) =>
+        setScriptInfos((prev) => ({ ...prev, [script.id]: { state, exitCode } }));
+
+      try {
+        const res = await fetch("/api/admin/run-script", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ script: script.id, args }),
+          signal: controller.signal,
+        });
+
+        if (!res.ok || !res.body) {
+          setLogs((prev) => [...prev, `HTTP 오류: ${res.status}`]);
+          setInfo("error", null);
+          return;
+        }
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() ?? "";
+          for (const line of lines) {
+            const m = line.match(/__EXIT__:(-?\d+)/);
+            if (m) {
+              const code = parseInt(m[1], 10);
+              setInfo(code === 0 ? "done" : "error", code);
+            } else if (line) {
+              setLogs((prev) => [...prev, line]);
+            }
           }
         }
-      }
-
-      if (buffer) {
-        const exitMatch = buffer.match(/__EXIT__:(-?\d+)/);
-        if (exitMatch) {
-          const code = parseInt(exitMatch[1], 10);
-          setExitCode(code);
-          setState(code === 0 ? "done" : "error");
-        } else if (buffer) {
-          setLogs((prev) => [...prev, buffer]);
+        if (buffer) {
+          const m = buffer.match(/__EXIT__:(-?\d+)/);
+          if (m) {
+            const code = parseInt(m[1], 10);
+            setInfo(code === 0 ? "done" : "error", code);
+          } else if (buffer) {
+            setLogs((prev) => [...prev, buffer]);
+          }
+        }
+      } catch (err) {
+        if ((err as Error).name !== "AbortError") {
+          setLogs((prev) => [...prev, `오류: ${(err as Error).message}`]);
+          setInfo("error", null);
+        } else {
+          setInfo("idle", null);
+          return;
         }
       }
-    } catch (err) {
-      if ((err as Error).name !== "AbortError") {
-        setLogs((prev) => [...prev, `오류: ${(err as Error).message}`]);
-        setState("error");
-      } else {
-        setState("idle");
-        return;
+
+      if (autoRetry) {
+        startCountdown(retryIntervalSec, () => runScript(script));
       }
-    }
+    },
+    [group.sharedFlag, flagChecked, year, segment, autoRetry, retryIntervalSec, startCountdown],
+  );
 
-    // 자동 재실행
-    if (autoRetry) {
-      startCountdown(retryIntervalSec, run);
-    }
-  }, [script.id, checkedArgs, autoRetry, retryIntervalSec, startCountdown]);
+  const anyRunning = Object.values(scriptInfos).some((s) => s.state === "running");
 
-  const stop = () => {
-    abortRef.current?.abort();
-    if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
-    if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
-    setCountdown(0);
-    setState("idle");
-  };
+  const flagLabel =
+    group.sharedFlag === "--full" ? "전체 재동기화 (--full)" : "전체 덮어쓰기 (--force)";
 
-  const stateColor: Record<RunState, string> = {
-    idle: "text-muted",
-    running: "text-yellow-500",
-    done: "text-green-500",
-    error: "text-red-500",
-  };
-  const stateLabel: Record<RunState, string> = {
-    idle: "대기",
-    running: "실행 중",
-    done: "완료",
-    error: "오류",
+  const btnClass = (state: RunState, isActive: boolean): string => {
+    if (state === "running") return "border-yellow-500/40 bg-yellow-500/10 text-yellow-500";
+    if (state === "done") return "border-green-500/40 bg-green-500/10 text-green-500";
+    if (state === "error") return "border-red-500/40 bg-red-500/10 text-red-500";
+    if (anyRunning && !isActive) return "border-border bg-surface text-muted opacity-40 cursor-not-allowed";
+    return "border-border bg-surface text-foreground hover:bg-surface-muted";
   };
 
   return (
-    <div className="rounded-md border border-border bg-surface">
+    <div className="overflow-hidden rounded-xl border border-border bg-surface">
       {/* 헤더 */}
-      <div className="flex items-start justify-between gap-4 p-4">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <h3 className="font-semibold">{script.label}</h3>
-            <span className={`text-xs font-semibold ${stateColor[state]}`}>
-              {state === "running" ? (
-                <span className="flex items-center gap-1">
-                  <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-yellow-500" />
-                  실행 중
-                </span>
-              ) : stateLabel[state]}
-            </span>
-            {exitCode !== null && state !== "running" && (
-              <span className={`text-xs ${exitCode === 0 ? "text-green-500" : "text-red-500"}`}>
-                (exit {exitCode})
-              </span>
-            )}
-          </div>
-          <p className="mt-0.5 text-xs text-muted">{script.description}</p>
-        </div>
-
-        <div className="flex shrink-0 items-center gap-2">
-          {state === "running" ? (
-            <button
-              type="button"
-              onClick={stop}
-              className="rounded border border-red-500/50 bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-500 hover:bg-red-500/20"
-            >
-              중지
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={run}
-              disabled={countdown > 0}
-              className="rounded bg-foreground px-3 py-1.5 text-xs font-semibold text-background disabled:opacity-50 hover:opacity-80"
-            >
-              {countdown > 0 ? `${countdown}초 후 재실행` : "실행"}
-            </button>
-          )}
-          {countdown > 0 && (
-            <button
-              type="button"
-              onClick={stop}
-              className="rounded border border-border px-2 py-1.5 text-xs text-muted hover:bg-surface-muted"
-            >
-              취소
-            </button>
-          )}
-        </div>
+      <div className="flex items-center justify-between bg-surface-muted/50 px-5 py-3">
+        <h3 className="text-sm font-semibold tracking-wide">{group.label}</h3>
+        {anyRunning && (
+          <button
+            type="button"
+            onClick={stopAll}
+            className="rounded border border-red-500/40 bg-red-500/10 px-2.5 py-1 text-xs font-medium text-red-500 hover:bg-red-500/20"
+          >
+            중지
+          </button>
+        )}
       </div>
 
       {/* 옵션 */}
-      <div className="flex flex-wrap items-center gap-4 border-t border-border px-4 py-2">
-        {script.args?.map((arg) => {
-          if (arg.type === "select") {
-            return (
-              <div key={arg.name} className="flex items-center gap-1.5 text-xs">
-                <span className="text-muted">{arg.label}</span>
-                <select
-                  value={inputArgs[arg.name] ?? arg.default}
-                  onChange={(e) =>
-                    setInputArgs((prev) => ({ ...prev, [arg.name]: e.target.value }))
-                  }
-                  className="rounded border border-border bg-background px-2 py-0.5 text-xs"
-                >
-                  {arg.options.map((opt) => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
-              </div>
-            );
-          }
-          if (arg.type === "input") {
-            return (
-              <div key={arg.name} className="flex items-center gap-1.5 text-xs">
-                <span className="text-muted">{arg.label}</span>
-                <input
-                  type={arg.inputType ?? "text"}
-                  min={arg.min}
-                  max={arg.max}
-                  value={inputArgs[arg.name] ?? arg.default}
-                  onChange={(e) =>
-                    setInputArgs((prev) => ({ ...prev, [arg.name]: e.target.value }))
-                  }
-                  className="w-20 rounded border border-border bg-background px-2 py-0.5 text-center text-xs"
-                />
-              </div>
-            );
-          }
-          const flag = (arg as ScriptArgFlag).flag;
-          return (
-            <label key={flag} className="flex cursor-pointer items-center gap-1.5 text-xs">
-              <input
-                type="checkbox"
-                checked={checkedArgs.has(flag)}
-                onChange={(e) => {
-                  setCheckedArgs((prev) => {
-                    const next = new Set(prev);
-                    if (e.target.checked) next.add(flag);
-                    else next.delete(flag);
-                    return next;
-                  });
-                }}
-                className="rounded"
-              />
-              <span>{arg.label}</span>
-            </label>
-          );
-        })}
-
-        {/* 자동 재실행 */}
-        <label className="flex cursor-pointer items-center gap-1.5 text-xs">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-border px-5 py-2.5 text-xs text-muted">
+        {group.showSegment && (
+          <div className="flex items-center gap-1.5">
+            <span>리그</span>
+            <select
+              value={segment}
+              onChange={(e) => setSegment(e.target.value)}
+              className="rounded border border-border bg-background px-2 py-0.5 text-xs text-foreground"
+            >
+              {LEAGUE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </div>
+        )}
+        {group.showYear && (
+          <div className="flex items-center gap-1.5">
+            <span>연도</span>
+            <input
+              type="number"
+              min={2020}
+              max={2099}
+              value={year}
+              onChange={(e) => setYear(e.target.value)}
+              className="w-20 rounded border border-border bg-background px-2 py-0.5 text-center text-xs text-foreground"
+            />
+          </div>
+        )}
+        {group.sharedFlag && (
+          <label className="flex cursor-pointer items-center gap-1.5">
+            <input
+              type="checkbox"
+              checked={flagChecked}
+              onChange={(e) => setFlagChecked(e.target.checked)}
+              className="rounded"
+            />
+            <span>{flagLabel}</span>
+          </label>
+        )}
+        <label className="flex cursor-pointer items-center gap-1.5">
           <input
             type="checkbox"
             checked={autoRetry}
@@ -457,25 +310,67 @@ function ScriptPanel({ script }: { script: ScriptDef }) {
           <span>자동 재실행</span>
         </label>
         {autoRetry && (
-          <div className="flex items-center gap-1.5 text-xs">
-            <span className="text-muted">간격</span>
+          <div className="flex items-center gap-1.5">
+            <span>간격</span>
             <input
               type="number"
               min={10}
               max={3600}
               value={retryIntervalSec}
               onChange={(e) => setRetryIntervalSec(Math.max(10, parseInt(e.target.value) || 60))}
-              className="w-16 rounded border border-border bg-background px-2 py-0.5 text-center text-xs"
+              className="w-16 rounded border border-border bg-background px-2 py-0.5 text-center text-xs text-foreground"
             />
-            <span className="text-muted">초</span>
+            <span>초</span>
           </div>
+        )}
+      </div>
+
+      {/* 스크립트 버튼 */}
+      <div className="flex flex-wrap items-center gap-2 px-5 py-4">
+        {group.scripts.map((script) => {
+          const info = scriptInfos[script.id];
+          const isActive = activeScriptId === script.id;
+          return (
+            <button
+              key={script.id}
+              type="button"
+              disabled={anyRunning && !isActive}
+              onClick={() => (isActive && info.state === "running" ? stopAll() : runScript(script))}
+              className={`flex items-center gap-2 rounded-lg border px-5 py-2 text-sm font-medium transition-colors ${btnClass(info.state, isActive)}`}
+            >
+              {info.state === "running" && (
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-yellow-500" />
+              )}
+              {script.label}
+              {info.state === "done" && (
+                <span className="text-[10px] opacity-60">완료</span>
+              )}
+              {info.state === "error" && (
+                <span className="text-[10px] opacity-60">
+                  오류{info.exitCode !== null ? ` (${info.exitCode})` : ""}
+                </span>
+              )}
+            </button>
+          );
+        })}
+        {countdown > 0 && (
+          <button
+            type="button"
+            onClick={stopAll}
+            className="rounded-lg border border-border px-4 py-2 text-sm text-muted hover:bg-surface-muted"
+          >
+            {countdown}초 후 재실행 · 취소
+          </button>
         )}
       </div>
 
       {/* 로그 */}
       {logs.length > 0 && (
         <div className="border-t border-border">
-          <div ref={logContainerRef} className="max-h-48 overflow-y-auto bg-background p-3 font-mono text-[11px] leading-relaxed">
+          <div
+            ref={logContainerRef}
+            className="max-h-48 overflow-y-auto bg-background p-3 font-mono text-[11px] leading-relaxed"
+          >
             {logs.map((line, i) => (
               <div key={i} className="whitespace-pre-wrap text-foreground/80">{line}</div>
             ))}
@@ -495,14 +390,18 @@ function ScriptPanel({ script }: { script: ScriptDef }) {
   );
 }
 
-// ─── 메인 페이지 컴포넌트 ──────────────────────────────────────
+// ─── 메인 ─────────────────────────────────────────────────────
 
 export function ScriptsRunner() {
   return (
-    <div className="flex flex-col gap-3">
-      {SCRIPTS.map((script) => (
-        <ScriptPanel key={script.id} script={script} />
-      ))}
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <GroupPanel group={GROUPS[0]} /> {/* 대회 */}
+      <GroupPanel group={GROUPS[1]} /> {/* SNS */}
+      <GroupPanel group={GROUPS[2]} /> {/* 선수 */}
+      <GroupPanel group={GROUPS[3]} /> {/* 기타 */}
+      <div className="lg:col-span-2">
+        <GroupPanel group={GROUPS[4]} /> {/* 경기 (전체 너비) */}
+      </div>
     </div>
   );
 }

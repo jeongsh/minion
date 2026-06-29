@@ -107,6 +107,10 @@ export function teamDraftSide({
       ) ?? null
     );
   });
+  const roleBoundItems = DRAFT_POSITIONS.map((position) => {
+    const statLine = playerStatLines.find((line) => line.teamId === teamId && line.position === position);
+    return statLine?.roleBoundItem ?? null;
+  });
 
   return {
     teamName,
@@ -114,6 +118,7 @@ export function teamDraftSide({
     bans,
     picks,
     linePicks,
+    roleBoundItems,
     lineup,
   };
 }

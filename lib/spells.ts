@@ -41,8 +41,8 @@ export function filterSpells(spells: GameSpell[], query: string, limit = 40) {
   return filtered.slice(0, limit);
 }
 
-export async function fetchSpellCatalog(version = "16.12.1"): Promise<GameSpell[]> {
-  const response = await fetch(`https://ddragon.leagueoflegends.com/cdn/${version}/data/ko_KR/summoner.json`, {
+export async function fetchSpellCatalog(version = "16.12.1", locale = "ko_KR"): Promise<GameSpell[]> {
+  const response = await fetch(`https://ddragon.leagueoflegends.com/cdn/${version}/data/${locale}/summoner.json`, {
     next: { revalidate: 60 * 60 * 24 },
   });
 

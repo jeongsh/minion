@@ -704,7 +704,13 @@ async function ensurePlayersForStats({
 
 function championIdFor(map: Map<string, string>, name: string | null | undefined) {
   const normalized = normalizeChampionName(name);
-  return map.get(normalizeName(normalized)) ?? map.get(normalizeName(normalized.replace(/\s+/g, ""))) ?? null;
+  const direct = map.get(normalizeName(normalized)) ?? map.get(normalizeName(normalized.replace(/\s+/g, "")));
+  if (direct) return direct;
+  const catalogEntry = championCatalogEntryForValue(name);
+  if (catalogEntry) {
+    return map.get(normalizeName(catalogEntry.ddragon_id)) ?? map.get(normalizeName(catalogEntry.slug)) ?? null;
+  }
+  return null;
 }
 
 function pickBanRowsForSet({
@@ -1318,7 +1324,7 @@ export async function syncLeaguepediaMatchSets(
         ddragonVersions.map(async (version) => {
           const [itemNameToId, spellCatalog, runeNameToId] = await Promise.all([
             buildItemNameToIdMap(version),
-            fetchSpellCatalog(version).catch(() => [] as GameSpell[]),
+            fetchSpellCatalog(version, "en_US").catch(() => [] as GameSpell[]),
             fetchRuneNameToIdMap(version).catch(() => new Map<string, number>()),
           ]);
           return [

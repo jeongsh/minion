@@ -152,8 +152,9 @@ function DraftGrid({
         </div>
         <div className="grid grid-cols-5 gap-2">
           {Array.from({ length: 5 }, (_, index) => {
-            const item = displayBans[index] ?? null;
-            return <DraftTile key={item?.id ?? `ban-${index}`} item={item} muted label={item?.phase ?? ""} />;
+            const item = displayOrderedBans[index] ?? null;
+            const banNumber = item ? orderedBans.findIndex((b) => b.id === item.id) + 1 : null;
+            return <DraftTile key={item?.id ?? `ban-${index}`} item={item} muted label={banNumber ? `ban${banNumber}` : ""} />;
           })}
         </div>
       </div>

@@ -12,6 +12,10 @@ import {
   syncLeaguepediaMatchSets,
   type LeaguepediaMatchSetsSyncSummary,
 } from "@/lib/sync/leaguepedia-match-sets";
+import {
+  syncMatchTimeline,
+  type TimelineSyncSummary,
+} from "@/lib/sync/timeline-events";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { Match } from "@/lib/types";
 import { matchRouteId, parseDateTimeLocalKST } from "@/lib/view-data";
@@ -89,6 +93,22 @@ export async function syncLeaguepediaMatchSetsAction(
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Leaguepedia 세트 정보 불러오기에 실패했습니다.";
+    return { ok: false, error: message };
+  }
+}
+
+export type SyncTimelineActionResult =
+  | { ok: true; summary: TimelineSyncSummary }
+  | { ok: false; error: string };
+
+export async function syncTimelineAction(matchId: string): Promise<SyncTimelineActionResult> {
+  try {
+    const supabase = createSupabaseAdminClient();
+    const summary = await syncMatchTimeline(supabase, matchId, true);
+    revalidatePath(`/matches/${matchId}`);
+    return { ok: true, summary };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "타임라인 불러오기에 실패했습니다.";
     return { ok: false, error: message };
   }
 }
