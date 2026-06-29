@@ -50,6 +50,14 @@ export async function updatePlayerDetailAction(formData: FormData) {
 
   const supabase = createSupabaseAdminClient();
 
+  // 이적 감지용: 기존 팀 조회 (팀이 바뀌면 과거 SNS 데이터의 team_id도 함께 이동)
+  const { data: existingPlayer } = await supabase
+    .from("players")
+    .select("team_id")
+    .eq("id", id)
+    .single();
+  const previousTeamId = existingPlayer?.team_id ?? null;
+
   if (isStarter && teamId && position) {
     await supabase
       .from("players")
@@ -84,6 +92,20 @@ export async function updatePlayerDetailAction(formData: FormData) {
       discord_url: textOrNull(formData.get("discord_url")),
     })
     .eq("id", id);
+
+  // 이적: 팀이 바뀐 경우 이미 수집된 게시물·영상·스토리의 team_id도 새 팀으로 이동.
+  // 그래야 과거 데이터가 옛 팀에서 사라지고 이적팀 피드에 바로 표시된다.
+  if (previousTeamId !== teamId) {
+    await Promise.all([
+      supabase.from("player_social_posts").update({ team_id: teamId }).eq("player_id", id),
+      supabase.from("player_videos").update({ team_id: teamId }).eq("player_id", id),
+      supabase
+        .from("instagram_stories")
+        .update({ team_id: teamId })
+        .eq("owner_type", "player")
+        .eq("owner_id", id),
+    ]);
+  }
 
   revalidatePlayerPaths(id, slug ?? undefined);
   redirect(`/admin/players/${id}`);
