@@ -31,13 +31,25 @@
     "champions:cleanup": "node --experimental-strip-types scripts/cleanup-champions.ts"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "2.108.1",
+    "@tiptap/extension-color": "^3.27.1",
+    "@tiptap/extension-highlight": "^3.27.1",
+    "@tiptap/extension-image": "^3.27.1",
+    "@tiptap/extension-text-style": "^3.27.1",
+    "@tiptap/extension-underline": "^3.27.1",
+    "@tiptap/extension-youtube": "^3.27.1",
+    "@tiptap/pm": "^3.27.1",
+    "@tiptap/react": "^3.27.1",
+    "@tiptap/starter-kit": "^3.27.1",
+    "lucide-react": "^1.22.0",
     "next": "16.2.9",
     "playwright": "^1.61.0",
     "react": "19.2.7",
     "react-day-picker": "^10.0.1",
     "react-dom": "19.2.7",
-    "swiper": "^12.2.0"
+    "swiper": "^12.2.0",
+    "tiptap-extension-resize-image": "^1.4.3"
   },
   "overrides": {
     "postcss": "8.5.10"

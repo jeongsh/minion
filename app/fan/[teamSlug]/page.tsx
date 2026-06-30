@@ -91,7 +91,7 @@ function Card({
   className?: string;
 }) {
   return (
-    <section className={`rounded-md border border-border bg-surface shadow-sm ${className}`}>
+    <section className={`rounded-3xl border border-[#e6e9ef] bg-white shadow-sm ${className}`}>
       {children}
     </section>
   );
@@ -114,26 +114,24 @@ function TeamLogo({ team, className }: { team?: Team; className: string }) {
 
 function Hero({ team }: { team: Team }) {
   return (
-    <section className="relative overflow-hidden rounded-md border border-[#1f1f24] bg-[#111] px-6 py-10 text-white shadow-sm md:px-14 md:py-14">
+    <section className="relative min-h-[290px] overflow-hidden rounded-[28px] border border-[#1f1f24] bg-[#111] px-6 py-7 text-white shadow-xl shadow-black/10 md:min-h-[360px] md:px-10 md:py-10">
       <div
         className="absolute inset-0 opacity-80"
         style={{
-          background: `linear-gradient(110deg, #111 0%, ${team.secondaryColor} 42%, ${team.primaryColor} 100%)`,
+          background: `radial-gradient(circle at 88% 18%, ${team.primaryColor} 0%, transparent 42%), linear-gradient(145deg, #0b0c0f 8%, ${team.secondaryColor} 100%)`,
         }}
       />
-      <div className="relative z-10 grid gap-8 md:grid-cols-[1fr_0.8fr] md:items-center">
-        <div>
-          <p className="text-xl font-bold">팬 사이트</p>
-          <h1 className="mt-4 text-4xl font-black tracking-normal md:text-6xl">
+      <div className="absolute -bottom-8 -right-10 z-0 opacity-25 md:bottom-2 md:right-2 md:opacity-70">
+        <TeamLogo team={team} className="h-48 w-64 drop-shadow-2xl md:h-56 md:w-72" />
+      </div>
+      <div className="relative z-10 flex h-full max-w-xl flex-col">
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-white/60">{team.shortName} fan hub</p>
+          <h1 className="mt-3 text-5xl font-black tracking-[-0.05em] md:text-6xl">
             {team.shortName}
           </h1>
-          <p className="mt-4 max-w-xl text-sm text-white/75 md:text-base">
-            팀 소식, SNS, 영상, 선수와 경기 정보를 한곳에서 모아봅니다.
+          <p className="mt-3 max-w-sm text-sm leading-6 text-white/70">
+            오늘의 경기와 우리 팀 최신 업데이트를 가장 빠르게 확인하세요.
           </p>
-        </div>
-        <div className="flex justify-center md:justify-end">
-          <TeamLogo team={team} className="h-36 w-52 drop-shadow-2xl md:h-48 md:w-80" />
-        </div>
       </div>
     </section>
   );
@@ -143,50 +141,60 @@ function NextMatchCard({
   team,
   opponent,
   match,
+  mode,
 }: {
   team: Team;
   opponent?: Team;
   match?: Match;
+  mode: "live" | "upcoming" | "recent" | "empty";
 }) {
+  const title = mode === "live" ? "진행 중인 경기" : mode === "upcoming" ? "다음 경기" : mode === "recent" ? "최근 경기" : "경기 일정";
+  const badge = mode === "live" ? "LIVE" : mode === "upcoming" ? "UP NEXT" : mode === "recent" ? "RESULT" : "SCHEDULE";
+
   return (
-    <Card className="p-5 md:p-6">
+    <Card className="flex min-h-[300px] flex-col p-5 md:min-h-[360px] md:p-8">
       <div className="flex items-center justify-between gap-4">
-        <h2 className="text-xl font-black tracking-normal">다음 경기</h2>
-        <Link href="/schedule" className="text-sm font-bold text-accent">
-          일정
-        </Link>
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.16em] text-accent">Match center</p>
+          <h2 className="mt-1 text-2xl font-black tracking-[-0.02em]">{title}</h2>
+        </div>
+        <span className={`rounded-full px-3 py-1 text-[11px] font-black tracking-[0.12em] ${mode === "live" ? "bg-red-500 text-white" : "bg-accent/10 text-accent"}`}>
+          {badge}
+        </span>
       </div>
-      <div className="mt-4 grid gap-5 md:grid-cols-[1.1fr_1fr] md:items-center">
-        <div className="rounded-md border border-border bg-background p-4">
+      <div className="mt-5 flex flex-1 flex-col justify-between gap-5">
+        <div className="rounded-2xl border border-[#e8ebf0] bg-[#f8f9fb] p-5">
           <p className="text-center text-sm font-bold text-muted">
             {match?.name ?? "예정된 경기가 없습니다"}
           </p>
-          <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-center gap-4">
-            <div className="flex items-center justify-center gap-3">
-              <span className="text-2xl font-black">{team.shortName}</span>
-              <TeamLogo team={team} className="h-14 w-20" />
+          <div className="mt-5 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+            <div className="flex flex-col items-center justify-center gap-2 sm:flex-row">
+              <TeamLogo team={team} className="h-14 w-16" />
+              <span className="text-xl font-black">{team.shortName}</span>
             </div>
-            <span className="text-sm font-bold text-muted">VS</span>
-            <div className="flex items-center justify-center gap-3">
-              <TeamLogo team={opponent} className="h-14 w-20" />
-              <span className="text-2xl font-black">{opponent?.shortName ?? "-"}</span>
+            <div className="text-center">
+              {mode === "recent" && match?.teamAScore != null && match?.teamBScore != null ? (
+                <span className="text-2xl font-black tabular-nums">{match?.teamAScore} : {match?.teamBScore}</span>
+              ) : (
+                <span className="text-xs font-black text-muted">VS</span>
+              )}
+            </div>
+            <div className="flex flex-col-reverse items-center justify-center gap-2 sm:flex-row">
+              <span className="text-xl font-black">{opponent?.shortName ?? "-"}</span>
+              <TeamLogo team={opponent} className="h-14 w-16" />
             </div>
           </div>
         </div>
-        <div className="grid gap-3 text-sm">
-          <p>
-            <span className="font-bold">일시: </span>
-            {match ? formatDateTime(match.matchDate) : "-"}
-          </p>
-          <p>
-            <span className="font-bold">장소: </span>
-            {match?.venue ?? "-"}
-          </p>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="text-sm">
+            <p className="font-black">{match ? formatDateTime(match.matchDate) : "일정 미정"}</p>
+            <p className="mt-1 text-xs text-muted">{match?.venue || "장소 미정"}</p>
+          </div>
           <Link
             href={match ? `/matches/${match.id}` : "/schedule"}
-            className="rounded-md border border-accent px-4 py-3 text-center text-sm font-bold text-accent hover:bg-surface-muted"
+            className="rounded-full bg-accent px-5 py-3 text-center text-sm font-black text-white transition hover:opacity-90"
           >
-            경기 상세
+            {match ? "경기 상세 →" : "전체 일정 →"}
           </Link>
         </div>
       </div>
@@ -195,20 +203,22 @@ function NextMatchCard({
 }
 
 function SocialSection({ posts }: { posts: TeamSocialPost[] }) {
+  if (posts.length === 0) return null;
+
   return (
-    <Card className="p-5">
+    <section className="py-2">
       <div className="flex items-center justify-between gap-4">
-        <h2 className="text-xl font-black tracking-normal">SNS</h2>
+        <h2 className="text-2xl font-black tracking-[-0.02em]">최신 소식</h2>
         <span className="text-sm font-bold text-muted">{posts.length}개</span>
       </div>
       <div className="mt-4 grid gap-4 md:grid-cols-3">
-        {posts.slice(0, 6).map((post) => (
+        {posts.slice(0, 3).map((post) => (
           <Link
             key={post.id}
             href={post.sourceUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="block min-w-0 rounded-md border border-border bg-background p-4 transition hover:border-accent"
+            className="block min-w-0 rounded-2xl border border-[#e6e9ef] bg-white p-4 transition hover:-translate-y-0.5 hover:border-accent hover:shadow-lg hover:shadow-black/5"
           >
             <div className="flex items-center justify-between gap-3 text-xs font-bold text-muted">
               <span className="uppercase">{post.platform}</span>
@@ -223,41 +233,39 @@ function SocialSection({ posts }: { posts: TeamSocialPost[] }) {
             ) : null}
           </Link>
         ))}
-        {posts.length === 0 ? (
-          <div className="rounded-md border border-border bg-background p-4 text-sm text-muted md:col-span-3">
-            아직 동기화된 SNS 게시물이 없습니다.
-          </div>
-        ) : null}
       </div>
-    </Card>
+    </section>
   );
 }
 
 function VideoSection({ teamSlug, videos }: { teamSlug: string; videos: VideoItem[] }) {
   return (
-    <Card className="p-5">
+    <section className="py-2">
       <div className="flex items-center justify-between gap-4">
-        <h2 className="text-xl font-black tracking-normal">영상</h2>
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.16em] text-accent">Watch now</p>
+          <h2 className="mt-1 text-2xl font-black tracking-[-0.02em]">최신 영상</h2>
+        </div>
         <Link
           href={`/fan/${teamSlug}/videos`}
-          className="rounded-md border border-accent px-3 py-2 text-sm font-bold text-accent"
+          className="rounded-full border border-[#dfe3ea] px-4 py-2 text-sm font-bold text-[#475467] transition hover:border-accent hover:text-accent"
         >
           전체 영상
         </Link>
       </div>
-      <div className="mt-4 grid gap-4 md:grid-cols-4">
-        {videos.slice(0, 4).map((video) => (
+      <div className="scrollbar-none mt-4 grid grid-flow-col auto-cols-[82%] gap-4 overflow-x-auto pb-2 sm:grid-flow-row sm:grid-cols-2 sm:overflow-visible sm:pb-0 lg:grid-cols-3">
+        {videos.slice(0, 3).map((video) => (
           <Link
             key={video.id}
             href={video.videoUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="block min-w-0 overflow-hidden rounded-md border border-border bg-background transition hover:border-accent"
+            className="group block min-w-0 overflow-hidden rounded-2xl border border-[#e6e9ef] bg-white transition hover:-translate-y-0.5 hover:border-accent hover:shadow-lg hover:shadow-black/5"
           >
             <div className="relative aspect-video bg-black">
               {video.thumbnailUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={video.thumbnailUrl} alt="" className="h-full w-full object-cover" />
+                <img src={video.thumbnailUrl} alt="" className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]" />
               ) : (
                 <div className="grid h-full place-items-center text-sm font-semibold text-white/70">
                   YouTube
@@ -274,11 +282,11 @@ function VideoSection({ teamSlug, videos }: { teamSlug: string; videos: VideoIte
         ))}
         {videos.length === 0 ? (
           <div className="rounded-md border border-border bg-background p-4 text-sm text-muted md:col-span-4">
-            아직 동기화된 영상이 없습니다.
+            아직 새 영상이 없습니다.
           </div>
         ) : null}
       </div>
-    </Card>
+    </section>
   );
 }
 
@@ -291,22 +299,22 @@ function OfficialLinks({ team }: { team: Team }) {
   ].filter((link) => link.href);
 
   return (
-    <Card className="p-5">
-      <h2 className="text-xl font-black tracking-normal">공식 링크</h2>
-      <div className="mt-4 flex flex-wrap gap-3">
+    <section className="flex flex-col gap-4 rounded-2xl border border-[#e6e9ef] bg-white px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+      <h2 className="text-sm font-black">공식 채널</h2>
+      <div className="flex flex-wrap gap-2">
         {links.map((link) => (
           <Link
             key={link.label}
             href={link.href}
             target="_blank"
             rel="noopener noreferrer"
-            className="rounded-md border border-border bg-background px-4 py-3 text-sm font-bold hover:border-accent hover:text-accent"
+            className="rounded-full bg-[#f4f5f8] px-3.5 py-2 text-xs font-bold text-[#475467] transition hover:bg-accent/10 hover:text-accent"
           >
             {link.label}
           </Link>
         ))}
       </div>
-    </Card>
+    </section>
   );
 }
 
@@ -340,11 +348,25 @@ export default async function FanHomePage({
   const teamMatches = matches
     .filter((match) => match.teamAId === team.id || match.teamBId === team.id)
     .sort(byMatchDate);
-  const upcomingMatch =
-    teamMatches.find((match) => match.status === "live") ??
-    teamMatches.find((match) => match.status === "scheduled") ??
-    [...teamMatches].reverse()[0];
-  const opponent = upcomingMatch ? teamForMatch(upcomingMatch, team, teams) : undefined;
+  // This page is force-dynamic; request time is required to exclude stale scheduled matches.
+  // eslint-disable-next-line react-hooks/purity
+  const now = Date.now();
+  const liveMatch = teamMatches.find((match) => match.status === "live");
+  const nextMatch = teamMatches.find(
+    (match) => match.status === "scheduled" && new Date(match.matchDate).getTime() >= now,
+  );
+  const recentMatch = [...teamMatches]
+    .reverse()
+    .find((match) => match.status === "completed" || new Date(match.matchDate).getTime() < now);
+  const featuredMatch = liveMatch ?? nextMatch ?? recentMatch;
+  const featuredMatchMode = liveMatch
+    ? "live"
+    : nextMatch
+      ? "upcoming"
+      : recentMatch
+        ? "recent"
+        : "empty";
+  const opponent = featuredMatch ? teamForMatch(featuredMatch, team, teams) : undefined;
   const playersById = new Map(teamPlayers.map((player) => [player.id, player]));
   const videos = [
     ...videoFeed.teamVideos.map((video) => toTeamVideoItem(video, team)),
@@ -355,20 +377,24 @@ export default async function FanHomePage({
   ].sort((a, b) => videoTime(b.publishedAt) - videoTime(a.publishedAt));
 
   return (
-    <main className="mx-auto flex w-full max-w-[1180px] flex-col gap-5 px-5 py-6">
-      <Hero team={team} />
-      <NextMatchCard team={team} opponent={opponent} match={upcomingMatch} />
-      <FanPlayerProfiles players={teamPlayers} />
+    <main className="mx-auto flex w-full max-w-[1240px] flex-col gap-7 px-4 py-6 sm:px-6 md:py-8">
+      <section className="grid gap-5 lg:grid-cols-[0.85fr_1.15fr]">
+        <Hero team={team} />
+        <NextMatchCard team={team} opponent={opponent} match={featuredMatch} mode={featuredMatchMode} />
+      </section>
       <FanInstagramFeed
+        teamSlug={team.fanSiteHost}
         teamName={team.shortName}
         teamInstagramUrl={team.officialInstagramUrl}
         teamPosts={instagramFeed.teamPosts}
         playerPosts={instagramFeed.playerPosts}
         stories={instagramStories}
         players={teamPlayers}
+        variant="preview"
       />
       <SocialSection posts={news.socialPosts.filter((p) => p.platform !== "instagram")} />
       <VideoSection teamSlug={team.fanSiteHost} videos={videos} />
+      <FanPlayerProfiles players={teamPlayers} teamSlug={team.fanSiteHost} />
       <OfficialLinks team={team} />
     </main>
   );
