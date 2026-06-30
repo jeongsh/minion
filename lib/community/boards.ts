@@ -30,6 +30,16 @@ export const teamBoards: BoardDef[] = [
   { slug: "fanart", label: "팬아트·굿즈", scope: "team" },
 ];
 
+/** scope 별 말머리(카테고리) 목록. 단일 피드의 필터 칩/글쓰기 드롭다운에 사용. */
+export function categoriesForScope(scope: BoardScope): BoardDef[] {
+  return scope === "hub" ? hubBoards : teamBoards;
+}
+
+/** 글쓰기 기본 말머리(첫 번째 = 자유). */
+export function defaultCategory(scope: BoardScope): string {
+  return categoriesForScope(scope)[0]?.slug ?? "free";
+}
+
 export function getHubBoard(slug: string): BoardDef | undefined {
   return hubBoards.find((board) => board.slug === slug);
 }

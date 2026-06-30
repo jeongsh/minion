@@ -15,18 +15,22 @@ export type Tier =
   | "grandmaster"
   | "challenger";
 
+// 아이언 구간 최저 LP(이하로 내려가지 않음). LP < bronze 임계면 아이언.
+export const MIN_LP = -100;
+
 // LP 임계값(누적 LP가 이 값 이상이면 해당 티어). 오름차순.
+// iron은 lp < bronze(0)일 때 적용되며, iron 키 값은 진행도 표시용 하한(MIN_LP)이다.
 // challenger는 임계값(grandmaster와 동일선상) + "상위 50명 cap"으로 별도 처리한다.
 export const TIER_THRESHOLDS: Record<Exclude<Tier, "challenger">, number> = {
-  iron: 0,
+  iron: MIN_LP,
   bronze: 0, // 가입 시작 등급
-  silver: 100,
-  gold: 250,
-  platinum: 500,
-  emerald: 900,
-  diamond: 1400,
-  master: 2200,
-  grandmaster: 3200,
+  silver: 1000,
+  gold: 2500,
+  platinum: 5000,
+  emerald: 9000,
+  diamond: 14000,
+  master: 22000,
+  grandmaster: 32000,
 };
 
 // 한글 라벨 매핑
@@ -77,7 +81,10 @@ export const LP_DELTAS: Record<LpReason, number> = {
 // 누적 LP만으로 결정되는 "기본 티어"(챌린저 cap 미반영).
 // grandmaster 임계 이상은 모두 grandmaster로 본다. challenger 승격은 cap 로직에서 처리.
 export function baseTierForLp(lp: number): Exclude<Tier, "challenger"> {
-  const clamped = Math.max(0, Math.floor(lp));
+  const floored = Math.floor(lp);
+  if (floored < TIER_THRESHOLDS.bronze) {
+    return "iron";
+  }
   // 높은 티어부터 검사
   const ordered: Exclude<Tier, "challenger">[] = [
     "grandmaster",
@@ -90,7 +97,7 @@ export function baseTierForLp(lp: number): Exclude<Tier, "challenger"> {
     "bronze",
   ];
   for (const tier of ordered) {
-    if (clamped >= TIER_THRESHOLDS[tier]) {
+    if (floored >= TIER_THRESHOLDS[tier]) {
       return tier;
     }
   }
@@ -112,8 +119,27 @@ export type TierProgress = {
 };
 
 export function tierProgress(tier: Tier, lp: number): TierProgress {
-  const clamped = Math.max(0, Math.floor(lp));
+  const clamped = Math.max(MIN_LP, Math.floor(lp));
   const idx = TIER_ORDER.indexOf(tier);
+
+  if (tier === "iron") {
+    const bronzeThreshold = TIER_THRESHOLDS.bronze;
+    const ironFloor = TIER_THRESHOLDS.iron;
+    const span = bronzeThreshold - ironFloor;
+    const into = clamped - ironFloor;
+    return {
+      tier,
+      label: TIER_LABELS.iron,
+      lp: clamped,
+      nextTier: "bronze",
+      nextTierLabel: TIER_LABELS.bronze,
+      currentThreshold: ironFloor,
+      nextThreshold: bronzeThreshold,
+      lpIntoTier: into,
+      lpForNext: span,
+      progressRatio: span > 0 ? Math.min(1, Math.max(0, into / span)) : 0,
+    };
+  }
 
   // challenger 또는 마지막 티어: 진행도 100%
   if (tier === "challenger") {

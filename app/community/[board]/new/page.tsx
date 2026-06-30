@@ -1,23 +1,11 @@
-import { notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 
-import { NewPostPage } from "@/components/community/new-post-page";
-import { getHubBoard } from "@/lib/community/boards";
-
-export default async function HubNewPostPage({
+// 구 게시판별 글쓰기 경로 → 통합 글쓰기로 리다이렉트(말머리 기본값으로 board 전달).
+export default async function HubBoardNewRedirect({
   params,
 }: {
   params: Promise<{ board: string }>;
 }) {
-  const { board: boardSlug } = await params;
-  const board = getHubBoard(boardSlug);
-  if (!board) notFound();
-
-  return (
-    <NewPostPage
-      scope="hub"
-      boardSlug={board.slug}
-      boardLabel={board.label}
-      eyebrow="커뮤니티"
-    />
-  );
+  const { board } = await params;
+  redirect(`/community/new?cat=${board}`);
 }

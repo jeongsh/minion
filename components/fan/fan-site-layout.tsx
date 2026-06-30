@@ -26,7 +26,7 @@ export function FanSiteLayout({
   };
 
   return (
-    <div className="team-surface min-h-screen bg-[#f6f7fb]" style={style}>
+    <div className="team-surface min-h-[calc(100vh-73px)] bg-[#f6f7fb]" style={style}>
       <FanSiteNavigation team={team} />
       {children}
     </div>

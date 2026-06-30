@@ -28,11 +28,9 @@ const LOGIN_REQUIRED: ActionResult = {
   requiresLogin: true,
 };
 
-/** 보드 베이스 경로(revalidate 용). */
-function boardBasePath(scope: BoardScope, teamSlug: string | undefined, boardType: string): string {
-  return scope === "team" && teamSlug
-    ? `/fan/${teamSlug}/community/${boardType}`
-    : `/community/${boardType}`;
+/** 커뮤니티 피드 인덱스 경로(revalidate 용). 단일 피드라 말머리 구분 없이 인덱스만 갱신. */
+function communityIndexPath(scope: BoardScope, teamSlug: string | undefined): string {
+  return scope === "team" && teamSlug ? `/fan/${teamSlug}/community` : `/community`;
 }
 
 function postPath(scope: BoardScope, teamSlug: string | undefined, postId: string): string {
@@ -72,7 +70,7 @@ export async function createPostAction(input: {
 
   await recordLpEvent({ userId: user.id, reason: "post_created", postId: id });
 
-  revalidatePath(boardBasePath(input.scope, input.teamSlug, input.boardType));
+  revalidatePath(communityIndexPath(input.scope, input.teamSlug));
   return { ok: true, message: "작성되었습니다." };
 }
 

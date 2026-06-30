@@ -30,10 +30,10 @@ export default async function FanPostDetailPage({
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-[var(--page-inline)] py-10">
       <Link
-        href={`/fan/${teamSlug}/community/${post.boardType}`}
+        href={`/fan/${teamSlug}/community`}
         className="text-sm font-semibold text-accent hover:underline"
       >
-        ← {boardLabel("team", post.boardType)}
+        ← 커뮤니티 · {boardLabel("team", post.boardType)}
       </Link>
       <PostView
         post={post}

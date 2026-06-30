@@ -1,27 +1,6 @@
-import { notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 
-import { BoardPage } from "@/components/community/board-page";
-import { getHubBoard, hubBoards } from "@/lib/community/boards";
-
-export function generateStaticParams() {
-  return hubBoards.map((board) => ({ board: board.slug }));
-}
-
-export default async function HubBoardPage({
-  params,
-}: {
-  params: Promise<{ board: string }>;
-}) {
-  const { board: boardSlug } = await params;
-  const board = getHubBoard(boardSlug);
-  if (!board) notFound();
-
-  return (
-    <BoardPage
-      scope="hub"
-      boardSlug={board.slug}
-      boardLabel={board.label}
-      eyebrow="커뮤니티"
-    />
-  );
+// 구 게시판별 경로는 단일 피드로 통합됨 → 인덱스로 리다이렉트.
+export default function HubBoardRedirect() {
+  redirect(`/community`);
 }

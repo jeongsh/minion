@@ -26,10 +26,10 @@ export default async function HubPostDetailPage({
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-[var(--page-inline)] py-10">
       <Link
-        href={`/community/${post.boardType}`}
+        href={`/community`}
         className="text-sm font-semibold text-accent hover:underline"
       >
-        ← {boardLabel("hub", post.boardType)}
+        ← 커뮤니티 · {boardLabel("hub", post.boardType)}
       </Link>
       <PostView post={post} comments={comments} honored={honored} scope="hub" />
     </main>

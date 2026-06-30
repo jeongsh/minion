@@ -1,10 +1,10 @@
 // 공유 seam: 랭크(LP) 트랙이 구현, 게시판 트랙이 호출한다.
-// LP 원장 기록 + profiles.lp 갱신(0 미만 clamp) + 기본 티어 재계산.
+// LP 원장 기록 + profiles.lp 갱신(MIN_LP 미만 clamp) + 기본 티어 재계산.
 // 챌린저 50명 cap은 읽기 시 ranked_profiles 뷰에서 동적 계산하므로 여기선 base tier만 갱신.
 // 게시판 트랙은 이 시그니처에만 의존하므로 export 형태/타입은 유지한다.
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { LP_DELTAS, baseTierForLp } from "@/lib/rank/config";
+import { LP_DELTAS, MIN_LP, baseTierForLp } from "@/lib/rank/config";
 
 export type LpReason =
   | "attendance" // 출첵
@@ -50,7 +50,7 @@ export async function recordLpEvent(input: RecordLpInput): Promise<void> {
     return;
   }
 
-  const nextLp = Math.max(0, profile.lp + delta);
+  const nextLp = Math.max(MIN_LP, profile.lp + delta);
   const nextTier = baseTierForLp(nextLp);
 
   // 원장 기록.

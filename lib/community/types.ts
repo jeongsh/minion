@@ -17,6 +17,10 @@ export type CommunityPostDetail = {
   viewCount: number;
   reportCount: number;
   createdAt: string;
+  /** 갤러리 보기용 대표 썸네일(본문 첫 이미지). 없으면 null. */
+  thumbnailUrl: string | null;
+  /** 갤러리 카드 보조 텍스트(본문 평문 일부). */
+  excerpt: string;
 };
 
 export type CommunityCommentItem = {

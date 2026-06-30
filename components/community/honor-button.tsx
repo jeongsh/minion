@@ -5,7 +5,7 @@ import { useState, useTransition } from "react";
 import { toggleHonorAction } from "@/lib/community/actions";
 import type { BoardScope } from "@/lib/community/boards";
 
-// 명예 버튼(토글). 비로그인/자기 글 등은 서버 액션이 막고 메시지를 돌려준다.
+// 명예 버튼(토글) — 시안 2a. 중앙 배치용 알약형. 하트만 accent, 본문은 중립.
 export function HonorButton({
   postId,
   scope,
@@ -39,15 +39,22 @@ export function HonorButton({
   };
 
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col items-center gap-1">
       <button
         type="button"
         onClick={onClick}
         disabled={pending}
         aria-pressed={honored}
-        className="inline-flex items-center gap-2 rounded-md border border-border bg-surface px-4 py-2 text-sm font-semibold hover:bg-surface-muted disabled:opacity-60"
+        className={`inline-flex items-center gap-2 rounded-xl border px-6 py-3 text-sm font-bold transition-colors disabled:opacity-60 ${
+          honored
+            ? "border-accent bg-accent/10 text-accent"
+            : "border-border bg-surface text-foreground hover:bg-surface-muted"
+        }`}
       >
-        <span>{honored ? "명예 취소" : "명예"}</span>
+        <span className={honored ? "text-accent" : "text-accent"} aria-hidden>
+          {honored ? "♥" : "♡"}
+        </span>
+        <span>명예</span>
         <span className="tabular-nums">{count}</span>
       </button>
       {message ? <p className="text-xs text-muted">{message}</p> : null}

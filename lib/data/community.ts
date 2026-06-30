@@ -4,6 +4,7 @@
 
 import { canQuerySupabase, createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { extractPlainText, extractThumbnail } from "@/lib/community/extract-thumbnail";
 import type { BoardScope } from "@/lib/community/boards";
 import type {
   CommunityCommentItem,
@@ -51,6 +52,8 @@ function mapPost(row: PostRow): CommunityPostDetail {
     viewCount: row.view_count,
     reportCount: row.report_count ?? 0,
     createdAt: row.created_at,
+    thumbnailUrl: extractThumbnail(row.content),
+    excerpt: extractPlainText(row.content),
   };
 }
 
@@ -65,10 +68,14 @@ function mapComment(row: CommentRow): CommunityCommentItem {
   };
 }
 
-/** 보드별 글 목록 조회. teamId 는 team scope 에서만 사용. */
+/**
+ * 커뮤니티 글 목록 조회(단일 피드).
+ * boardType 미지정 시 전체 말머리 글을 한 번에 조회(전체 탭).
+ * teamId 는 team scope 에서만 사용.
+ */
 export async function getBoardPosts(params: {
   scope: BoardScope;
-  boardType: string;
+  boardType?: string | null;
   teamId?: string | null;
 }): Promise<CommunityPostDetail[]> {
   if (!canQuerySupabase()) return [];
@@ -77,8 +84,11 @@ export async function getBoardPosts(params: {
     .from("community_posts")
     .select(POST_COLUMNS)
     .eq("site_scope", params.scope)
-    .eq("board_type", params.boardType)
     .order("created_at", { ascending: false });
+
+  if (params.boardType) {
+    query = query.eq("board_type", params.boardType);
+  }
 
   if (params.scope === "team" && params.teamId) {
     query = query.eq("team_id", params.teamId);

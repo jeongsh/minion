@@ -1,22 +1,26 @@
 import { notFound } from "next/navigation";
 
-import { CommunityFeedPage } from "@/components/community/community-feed-page";
+import { NewPostPage } from "@/components/community/new-post-page";
 import { getTeamByFanSiteHost, getTeamBySlug } from "@/lib/data/lck";
 
-export default async function FanCommunityPage({
+export default async function FanNewPostPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ teamSlug: string }>;
+  searchParams: Promise<{ cat?: string }>;
 }) {
   const { teamSlug } = await params;
+  const { cat } = await searchParams;
+
   const team = (await getTeamByFanSiteHost(teamSlug)) ?? (await getTeamBySlug(teamSlug));
   if (!team) notFound();
 
   return (
-    <CommunityFeedPage
+    <NewPostPage
       scope="team"
       eyebrow={`${team.shortName} 커뮤니티`}
-      title="팀 팬 커뮤니티"
+      initialCategory={cat}
       teamId={team.id}
       teamSlug={teamSlug}
     />
