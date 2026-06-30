@@ -37,6 +37,63 @@ export interface NormalizedStory {
   expiresAt: Date;
 }
 
+// ─── 이미지 영구 저장 (Supabase Storage) ─────────────────────────
+
+export const INSTAGRAM_MEDIA_BUCKET = "instagram-media";
+
+const IMAGE_FETCH_HEADERS = {
+  "User-Agent":
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+  Referer: "https://www.instagram.com/",
+};
+
+export function isStoredImageUrl(url: string): boolean {
+  return url.includes(`/storage/v1/object/public/${INSTAGRAM_MEDIA_BUCKET}/`);
+}
+
+function sanitizeStorageKey(key: string): string {
+  return key.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 120);
+}
+
+/**
+ * 인스타 CDN 이미지를 내려받아 Supabase Storage(instagram-media)에 올리고
+ * 만료되지 않는 공개 URL을 돌려준다. 실패하면 null.
+ * 이미 우리 스토리지 URL이면 그대로 반환한다.
+ */
+export async function storeInstagramImage(
+  supabase: SupabaseClient,
+  key: string,
+  sourceUrl: string | null | undefined,
+): Promise<string | null> {
+  if (!sourceUrl) return null;
+  if (isStoredImageUrl(sourceUrl)) return sourceUrl;
+
+  try {
+    const res = await fetch(sourceUrl, { headers: IMAGE_FETCH_HEADERS });
+    if (!res.ok) return null;
+
+    const contentType = res.headers.get("content-type") ?? "image/jpeg";
+    if (!contentType.startsWith("image/")) return null;
+
+    const ext = contentType.includes("png")
+      ? "png"
+      : contentType.includes("webp")
+        ? "webp"
+        : "jpg";
+    const path = `posts/${sanitizeStorageKey(key)}.${ext}`;
+
+    const { error } = await supabase.storage
+      .from(INSTAGRAM_MEDIA_BUCKET)
+      .upload(path, await res.arrayBuffer(), { contentType, upsert: true });
+    if (error) return null;
+
+    const { data } = supabase.storage.from(INSTAGRAM_MEDIA_BUCKET).getPublicUrl(path);
+    return data.publicUrl || null;
+  } catch {
+    return null;
+  }
+}
+
 // ─── DB 헬퍼 ────────────────────────────────────────────────────
 
 function extractUsername(instagramUrl: string): string {
@@ -119,7 +176,18 @@ export async function syncOwnerPosts(
         )
         .select("id");
       if (error) throw error;
-      inserted += data?.length ?? 0;
+      // 새로 추가된 게시물만 이미지를 영구 저장(만료 전 신선한 URL을 즉시 보관).
+      if (data?.length) {
+        inserted += data.length;
+        const stored = await storeInstagramImage(
+          supabase,
+          `player_${post.shortcode || post.postId}`,
+          post.imageUrl,
+        );
+        if (stored && stored !== post.imageUrl) {
+          await supabase.from("player_social_posts").update({ image_url: stored }).eq("id", data[0].id);
+        }
+      }
     } else {
       const { data, error } = await supabase
         .from("team_social_posts")
@@ -137,11 +205,90 @@ export async function syncOwnerPosts(
         )
         .select("id");
       if (error) throw error;
-      inserted += data?.length ?? 0;
+      if (data?.length) {
+        inserted += data.length;
+        const stored = await storeInstagramImage(
+          supabase,
+          `team_${post.shortcode || post.postId}`,
+          post.imageUrl,
+        );
+        if (stored && stored !== post.imageUrl) {
+          await supabase.from("team_social_posts").update({ thumbnail_url: stored }).eq("id", data[0].id);
+        }
+      }
     }
   }
 
   return { inserted, checked: posts.length };
+}
+
+// ─── 1회용: 기존 게시물 이미지 복구 ──────────────────────────────
+// 프로필을 새로 스크랩해, DB에 있는 게시물 중 아직 Storage 이미지가 없는
+// 항목을 신선한 URL로 내려받아 저장한다. (만료된 기존 이미지 치료용)
+
+export async function restoreOwnerImages(
+  supabase: SupabaseClient,
+  owner: InstagramOwner,
+  opts: { dryRun?: boolean; sessionCookie?: string } = {},
+): Promise<{ checked: number; restored: number; missingInDb: number }> {
+  const username = extractUsername(owner.instagramUrl!);
+  const posts = await scrapeInstagramPosts(username, opts.sessionCookie);
+
+  let restored = 0;
+  let missingInDb = 0;
+  for (const post of posts) {
+    if (owner.kind === "player") {
+      const { data } = await supabase
+        .from("player_social_posts")
+        .select("id, image_url")
+        .eq("source_url", post.sourceUrl)
+        .maybeSingle();
+      if (!data) {
+        missingInDb += 1;
+        continue;
+      }
+      if (data.image_url && isStoredImageUrl(data.image_url)) continue;
+      if (opts.dryRun) {
+        restored += 1;
+        continue;
+      }
+      const stored = await storeInstagramImage(
+        supabase,
+        `player_${post.shortcode || post.postId}`,
+        post.imageUrl,
+      );
+      if (stored && stored !== post.imageUrl) {
+        await supabase.from("player_social_posts").update({ image_url: stored }).eq("id", data.id);
+        restored += 1;
+      }
+    } else {
+      const { data } = await supabase
+        .from("team_social_posts")
+        .select("id, thumbnail_url")
+        .eq("source_url", post.sourceUrl)
+        .maybeSingle();
+      if (!data) {
+        missingInDb += 1;
+        continue;
+      }
+      if (data.thumbnail_url && isStoredImageUrl(data.thumbnail_url)) continue;
+      if (opts.dryRun) {
+        restored += 1;
+        continue;
+      }
+      const stored = await storeInstagramImage(
+        supabase,
+        `team_${post.shortcode || post.postId}`,
+        post.imageUrl,
+      );
+      if (stored && stored !== post.imageUrl) {
+        await supabase.from("team_social_posts").update({ thumbnail_url: stored }).eq("id", data.id);
+        restored += 1;
+      }
+    }
+  }
+
+  return { checked: posts.length, restored, missingInDb };
 }
 
 // ─── upsert: 스토리 ──────────────────────────────────────────────
