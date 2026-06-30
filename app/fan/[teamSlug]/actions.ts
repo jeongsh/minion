@@ -40,13 +40,11 @@ export async function toggleFanAction(teamId: string, teamSlug: string): Promise
   if (existing) {
     const { error } = await supabase.from("team_fans").delete().eq("id", existing.id);
     if (error) return { ok: false, isFan: true, error: error.message };
-    await supabase.rpc("adjust_team_popularity", { p_team_id: teamId, p_delta: -5 });
     revalidatePath(`/fan/${teamSlug}`);
     return { ok: true, isFan: false };
   } else {
     const { error } = await supabase.from("team_fans").insert({ team_id: teamId, voter_key: voterKey });
     if (error) return { ok: false, isFan: false, error: error.message };
-    await supabase.rpc("adjust_team_popularity", { p_team_id: teamId, p_delta: 5 });
     revalidatePath(`/fan/${teamSlug}`);
     return { ok: true, isFan: true };
   }
@@ -69,7 +67,6 @@ export async function checkinAction(teamId: string, teamSlug: string): Promise<{
     return { ok: false, error: alreadyCheckedIn ? "오늘은 이미 다른 팀에서 출석체크를 했어요." : error.message };
   }
 
-  await supabase.rpc("adjust_team_popularity", { p_team_id: teamId, p_delta: 1 });
   revalidatePath(`/fan/${teamSlug}`);
   return { ok: true };
 }

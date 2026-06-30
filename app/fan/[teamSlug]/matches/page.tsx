@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { MatchCard } from "@/components/domain/match-card";
 import { SectionHeader } from "@/components/layout/section-header";
-import { getMatches, getTeamByFanSiteHost, getTeamBySlug, getTeams } from "@/lib/data/lck";
+import { getMatches, getTeamByFanSiteHost, getTeamBySlug, getAllTeams } from "@/lib/data/lck";
 
 export default async function FanMatchesPage({
   params,
@@ -15,10 +15,10 @@ export default async function FanMatchesPage({
     notFound();
   }
 
-  const [teams, matches] = await Promise.all([getTeams(), getMatches()]);
-  const teamMatches = matches.filter(
-    (match) => match.teamAId === team.id || match.teamBId === team.id,
-  );
+  const [teams, matches] = await Promise.all([getAllTeams(), getMatches()]);
+  const teamMatches = matches
+    .filter((match) => match.teamAId === team.id || match.teamBId === team.id)
+    .sort((a, b) => new Date(b.matchDate).getTime() - new Date(a.matchDate).getTime());
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-[var(--page-inline)] py-10">

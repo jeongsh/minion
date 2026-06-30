@@ -6,14 +6,12 @@ import { toggleFanAction, checkinAction } from "@/app/fan/[teamSlug]/actions";
 export function FanEngagementBar({
   teamId,
   teamSlug,
-  popularity,
   fanCount,
   isFan: initialIsFan,
   isCheckedInToday: initialCheckedIn,
 }: {
   teamId: string;
   teamSlug: string;
-  popularity: number;
   fanCount: number;
   isFan: boolean;
   isCheckedInToday: boolean;
@@ -21,7 +19,6 @@ export function FanEngagementBar({
   const [isPending, startTransition] = useTransition();
   const [isFan, setIsFan] = useState(initialIsFan);
   const [isCheckedIn, setIsCheckedIn] = useState(initialCheckedIn);
-  const [localPopularity, setLocalPopularity] = useState(popularity);
   const [localFanCount, setLocalFanCount] = useState(fanCount);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
@@ -36,12 +33,10 @@ export function FanEngagementBar({
       if (result.ok) {
         if (result.isFan) {
           setIsFan(true);
-          setLocalPopularity((p) => p + 5);
           setLocalFanCount((c) => c + 1);
-          showToast("팬이 되었어요! 인기도 +5", "success");
+          showToast("팬이 되었어요!", "success");
         } else {
           setIsFan(false);
-          setLocalPopularity((p) => Math.max(0, p - 5));
           setLocalFanCount((c) => Math.max(0, c - 1));
           showToast("팬을 취소했어요.", "success");
         }
@@ -56,8 +51,7 @@ export function FanEngagementBar({
       const result = await checkinAction(teamId, teamSlug);
       if (result.ok) {
         setIsCheckedIn(true);
-        setLocalPopularity((p) => p + 1);
-        showToast("출석체크 완료! 인기도 +1", "success");
+        showToast("출석체크 완료!", "success");
       } else {
         showToast(result.error ?? "오류가 발생했어요.", "error");
       }
@@ -86,14 +80,6 @@ export function FanEngagementBar({
       )}
 
       <div className="flex flex-wrap items-center gap-3">
-        {/* 인기도 */}
-        <div className="flex items-center gap-2 rounded-xl border border-white/20 bg-black/25 px-4 py-2.5 backdrop-blur-sm">
-          <span className="text-xs font-bold text-white/60">인기도</span>
-          <span className="text-xl font-black text-white tabular-nums">
-            {localPopularity.toLocaleString()}
-          </span>
-        </div>
-
         {/* 팬 버튼 */}
         <button
           type="button"

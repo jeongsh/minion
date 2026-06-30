@@ -1,9 +1,6 @@
-import { createHash } from "crypto";
-import { cookies } from "next/headers";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { FanEngagementBar } from "@/components/fan/fan-engagement-bar";
 import { FanInstagramFeed } from "@/components/fan/fan-instagram-feed";
 import { FanPlayerProfiles } from "@/components/fan/fan-player-profiles";
 import {
@@ -14,8 +11,6 @@ import {
   getPlayers,
   getTeamByFanSiteHost,
   getTeamBySlug,
-  getTeamEngagementStatus,
-  getTeamFanCount,
   getTeamInstagramFeed,
   getTeamNews,
 } from "@/lib/data/lck";
@@ -117,21 +112,7 @@ function TeamLogo({ team, className }: { team?: Team; className: string }) {
   );
 }
 
-function Hero({
-  team,
-  teamSlug,
-  popularity,
-  fanCount,
-  isFan,
-  isCheckedInToday,
-}: {
-  team: Team;
-  teamSlug: string;
-  popularity: number;
-  fanCount: number;
-  isFan: boolean;
-  isCheckedInToday: boolean;
-}) {
+function Hero({ team }: { team: Team }) {
   return (
     <section className="relative overflow-hidden rounded-md border border-[#1f1f24] bg-[#111] px-6 py-10 text-white shadow-sm md:px-14 md:py-14">
       <div
@@ -149,16 +130,6 @@ function Hero({
           <p className="mt-4 max-w-xl text-sm text-white/75 md:text-base">
             팀 소식, SNS, 영상, 선수와 경기 정보를 한곳에서 모아봅니다.
           </p>
-          <div className="mt-6">
-            <FanEngagementBar
-              teamId={team.id}
-              teamSlug={teamSlug}
-              popularity={popularity}
-              fanCount={fanCount}
-              isFan={isFan}
-              isCheckedInToday={isCheckedInToday}
-            />
-          </div>
         </div>
         <div className="flex justify-center md:justify-end">
           <TeamLogo team={team} className="h-36 w-52 drop-shadow-2xl md:h-48 md:w-80" />
@@ -351,19 +322,11 @@ export default async function FanHomePage({
     notFound();
   }
 
-  const cookieStore = await cookies();
-  const rawVoterKey = cookieStore.get("lckhub_fan_voter")?.value;
-  const hashedVoterKey = rawVoterKey
-    ? createHash("sha256").update(rawVoterKey).digest("hex")
-    : null;
-
-  const [teams, players, matches, news, engagement, fanCount] = await Promise.all([
+  const [teams, players, matches, news] = await Promise.all([
     getAllTeams(),
     getPlayers(),
     getMatches(),
     getTeamNews(team.id),
-    hashedVoterKey ? getTeamEngagementStatus(team.id, hashedVoterKey) : Promise.resolve({ isFan: false, isCheckedInToday: false }),
-    getTeamFanCount(team.id),
   ]);
   const teamPlayers = players
     .filter((player) => player.teamId === team.id)
@@ -393,14 +356,7 @@ export default async function FanHomePage({
 
   return (
     <main className="mx-auto flex w-full max-w-[1180px] flex-col gap-5 px-5 py-6">
-      <Hero
-        team={team}
-        teamSlug={teamSlug}
-        popularity={team.popularity ?? 0}
-        fanCount={fanCount}
-        isFan={engagement.isFan}
-        isCheckedInToday={engagement.isCheckedInToday}
-      />
+      <Hero team={team} />
       <NextMatchCard team={team} opponent={opponent} match={upcomingMatch} />
       <FanPlayerProfiles players={teamPlayers} />
       <FanInstagramFeed

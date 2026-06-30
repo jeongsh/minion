@@ -85,32 +85,39 @@ function TeamScoreBlock({
   align = "left",
   seedLabel,
   teamName,
-  score,
+  logoUrl,
+  isWinner,
+  isLoser,
   resultLabel,
 }: {
   align?: "left" | "right";
   seedLabel: string;
   teamName: string;
-  score: number | null;
+  logoUrl?: string;
+  isWinner: boolean;
+  isLoser: boolean;
   resultLabel: string;
 }) {
   return (
     <div
-      className={`flex min-w-0 flex-col gap-3 ${align === "right" ? "items-end text-right" : ""}`}
+      className={`flex min-w-0 flex-col gap-2 ${align === "right" ? "items-end text-right" : ""}`}
     >
-      <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+      <p className="text-sm font-bold uppercase tracking-wide text-muted">
         {seedLabel}
       </p>
-      <div
-        className={`flex items-center gap-3 ${align === "right" ? "flex-row-reverse" : ""}`}
-      >
-        <div>
-          <p className="text-2xl font-semibold md:text-3xl">{teamName}</p>
-          <p className="mt-1 text-sm font-semibold text-muted">{resultLabel}</p>
+      <div className={`flex items-center gap-4 ${align === "right" ? "flex-row-reverse" : ""}`}>
+        {/* 로고 + 팀명 + WIN/LOSS */}
+        <div className={`flex flex-col ${align === "right" ? "items-end" : ""}`}>
+          {logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={logoUrl} alt={teamName} className="h-20 w-20 object-contain md:h-24 md:w-24" />
+          ) : (
+            <div className="h-20 w-20 md:h-24 md:w-24" />
+          )}
+          <p className="mt-2 text-lg font-semibold md:text-xl">{teamName}</p>
+          <p className="mt-0.5 text-sm font-semibold text-muted">{resultLabel}</p>
         </div>
-        <span className="text-5xl font-semibold md:text-6xl">
-          {score ?? "-"}
-        </span>
+        {/* 승리/패배 마크 — 임시 숨김 */}
       </div>
     </div>
   );
@@ -581,6 +588,8 @@ export default async function MatchDetailPage({
   const stage = stages.find((item) => item.id === match.stageId);
   const teamAName = teamLabel(teams, match.teamAId);
   const teamBName = teamLabel(teams, match.teamBId);
+  const teamALogoUrl = teams.find((t) => t.id === match.teamAId)?.logoUrl;
+  const teamBLogoUrl = teams.find((t) => t.id === match.teamBId)?.logoUrl;
   const teamAResult = match.winnerTeamId
     ? match.winnerTeamId === match.teamAId
       ? "WIN"
@@ -591,6 +600,12 @@ export default async function MatchDetailPage({
       ? "WIN"
       : "LOSS"
     : MATCH_STATUS_LABEL[match.status];
+  const matchSetIds = new Set(matchSets.map((s) => s.id));
+  const matchFanRatings = fanRatings.filter((r) => matchSetIds.has(r.setId));
+  const topFanLeader = fanRatingLeader(matchFanRatings);
+  const pomPlayer = players.find((p) => p.id === match.officialPomPlayerId);
+  const topFanPlayer = topFanLeader ? players.find((p) => p.id === topFanLeader.playerId) : undefined;
+
   const cookieStore = await cookies();
   const voterKey = cookieStore.get("lckhub_match_prediction_voter")?.value;
   const predictionClosed = match.status !== "scheduled";
@@ -620,50 +635,83 @@ export default async function MatchDetailPage({
         className="overflow-hidden rounded-md border border-border bg-surface"
         aria-label="매치 요약"
       >
-        <div className="grid gap-6 p-6 lg:grid-cols-[1fr_auto_1fr] lg:items-center">
-          <TeamScoreBlock
-            seedLabel="Team A"
-            teamName={teamAName}
-            score={match.teamAScore}
-            resultLabel={teamAResult}
-          />
+        <div className="grid gap-4 p-4 lg:grid-cols-[3fr_1fr_1fr]">
+          {/* 좌 60%: 경기 결과 */}
+          <div className="flex flex-col gap-4 rounded-md border border-border bg-surface-muted p-6">
+            <p className="text-base font-bold text-foreground">경기결과</p>
+            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-6">
+            <TeamScoreBlock
+              seedLabel="Team A"
+              teamName={teamAName}
+              logoUrl={teamALogoUrl}
+              isWinner={match.winnerTeamId === match.teamAId}
+              isLoser={match.winnerTeamId !== null && match.winnerTeamId !== match.teamAId}
+              resultLabel={teamAResult}
+            />
 
-          <div className="rounded-md border border-border bg-surface-muted px-6 py-5 text-center">
-            <p className="text-xs font-semibold text-muted">
-              {tournament?.name ?? "대회 미지정"}
-              {stage ? ` · ${stage.name}` : ""}
-            </p>
-            <p className="mt-2 text-4xl font-semibold">
-              {matchScoreLabel(match.teamAScore, match.teamBScore)}
-            </p>
-            <div className="mt-3 flex flex-wrap justify-center gap-2 text-xs font-semibold text-muted">
-              <span>{formatDateTime(match.matchDate)}</span>
-              <span>Bo{match.bestOf ?? "-"}</span>
-              <span>{MATCH_STATUS_LABEL[match.status]}</span>
+            <div className="rounded-md border border-border bg-surface px-6 py-5 text-center">
+              <p className="text-xs font-semibold text-muted">
+                {tournament?.name ?? "대회 미지정"}
+                {stage ? ` · ${stage.name}` : ""}
+              </p>
+              <p className="mt-2 text-4xl font-semibold">
+                {matchScoreLabel(match.teamAScore, match.teamBScore)}
+              </p>
+              <div className="mt-3 flex flex-wrap justify-center gap-2 text-xs font-semibold text-muted">
+                <span>{formatDateTime(match.matchDate)}</span>
+                <span>Bo{match.bestOf ?? "-"}</span>
+                <span>{MATCH_STATUS_LABEL[match.status]}</span>
+              </div>
+            </div>
+
+            <TeamScoreBlock
+              align="right"
+              seedLabel="Team B"
+              teamName={teamBName}
+              logoUrl={teamBLogoUrl}
+              isWinner={match.winnerTeamId === match.teamBId}
+              isLoser={match.winnerTeamId !== null && match.winnerTeamId !== match.teamBId}
+              resultLabel={teamBResult}
+            />
+          </div>
+          </div>
+
+          {/* 중 20%: POM */}
+          <div className="flex flex-col gap-4 rounded-md border border-border bg-surface-muted p-5">
+            <p className="text-base font-bold text-foreground">POM</p>
+            <div className="flex flex-1 flex-col items-center justify-center gap-3">
+              <div className="flex h-44 w-full items-center justify-center rounded-md bg-white p-4">
+                {pomPlayer?.profileImageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={pomPlayer.profileImageUrl} alt={pomPlayer.name} className="h-36 w-36 rounded-md object-cover object-top" />
+                ) : (
+                  <div className="flex h-36 w-36 items-center justify-center rounded-md bg-surface-muted text-sm font-semibold">
+                    {pomPlayer?.name?.slice(0, 2) ?? "-"}
+                  </div>
+                )}
+              </div>
+              <p className="text-sm font-bold">{pomPlayer?.name ?? "-"}</p>
             </div>
           </div>
 
-          <TeamScoreBlock
-            align="right"
-            seedLabel="Team B"
-            teamName={teamBName}
-            score={match.teamBScore}
-            resultLabel={teamBResult}
-          />
-        </div>
-        <div className="grid gap-4 border-t border-border px-6 py-4 sm:grid-cols-2">
-          <div>
-            <p className="text-xs font-semibold text-muted">공식 POM</p>
-            <p className="mt-1 text-base font-semibold">
-              {playerLabel(players, match.officialPomPlayerId)}
-            </p>
+          {/* 우 20%: 팬 평점 1위 */}
+          <div className="flex flex-col gap-4 rounded-md border border-border bg-surface-muted p-5">
+            <p className="text-base font-bold text-foreground">팬 평점 1위</p>
+            <div className="flex flex-1 flex-col items-center justify-center gap-3">
+              <div className="flex h-44 w-full items-center justify-center rounded-md bg-white p-4">
+                {topFanPlayer?.profileImageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={topFanPlayer.profileImageUrl} alt={topFanPlayer.name} className="h-36 w-36 rounded-md object-cover object-top" />
+                ) : (
+                  <div className="flex h-36 w-36 items-center justify-center rounded-md bg-surface-muted text-sm font-semibold">
+                    {topFanPlayer?.name?.slice(0, 2) ?? "-"}
+                  </div>
+                )}
+              </div>
+              <p className="text-sm font-bold">{topFanPlayer?.name ?? "-"}</p>
+            </div>
           </div>
-          <div className="sm:text-right">
-            <p className="text-xs font-semibold text-muted">팬 평점 1위</p>
-            <p className="mt-1 text-base font-semibold">
-              {topFanRatingForMatch(match.id, fanRatings, players)}
-            </p>
-          </div>
+
         </div>
       </section>
 

@@ -149,24 +149,31 @@ function SetSummaryHeader({
   match: { teamAId: string; teamBId: string };
   teams: Team[];
 }) {
-  const teamA = teams.find((item) => item.id === match.teamAId);
-  const teamB = teams.find((item) => item.id === match.teamBId);
-  const teamAKills = setKillsForTeam(set, match.teamAId);
-  const teamBKills = setKillsForTeam(set, match.teamBId);
+  const teamA = teams.find((item) => item.id === set.blueTeamId);
+  const teamB = teams.find((item) => item.id === set.redTeamId);
+  const teamAKills = set.blueKills;
+  const teamBKills = set.redKills;
 
   return (
-    <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 bg-foreground px-5 py-4 text-background">
-      <span className="justify-self-start text-2xl font-semibold tabular-nums">
-        {durationLabel(set.durationSeconds)}
-      </span>
-      <div className="flex items-center gap-3">
-        <TeamLogoBadge team={teamA} />
-        <span className="text-2xl font-semibold tabular-nums">
-          {teamAKills ?? "-"} : {teamBKills ?? "-"}
-        </span>
-        <TeamLogoBadge team={teamB} />
+    <div className="relative flex items-center justify-center gap-8 bg-foreground px-5 py-4 text-background">
+      {/* 중앙 좌: 양팀 스코어 */}
+      <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
+          <TeamLogoBadge team={teamA} />
+          <span className="text-2xl font-bold tabular-nums">{teamAKills ?? "-"}</span>
+        </div>
+        <span className="text-sm font-semibold text-background/50">:</span>
+        <div className="flex items-center gap-2">
+          <span className="text-2xl font-bold tabular-nums">{teamBKills ?? "-"}</span>
+          <TeamLogoBadge team={teamB} />
+        </div>
       </div>
-      <span className="justify-self-end text-sm font-semibold text-background/80">
+
+      {/* 중앙 우: 게임 시간 */}
+      <p className="text-xl font-bold tabular-nums">{durationLabel(set.durationSeconds)}</p>
+
+      {/* 우하단 고정: 패치 버전 */}
+      <span className="absolute bottom-1.5 right-4 text-xs font-semibold text-background/50">
         PATCH {set.patch ?? "-"}
       </span>
     </div>
