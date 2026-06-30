@@ -22,6 +22,7 @@ type MatchTeamRow = {
 type MatchRow = {
   id: string;
   leaguepedia_match_id: string | null;
+  best_of: number | null;
   team_a_id: string | null;
   team_b_id: string | null;
   team_a: MatchTeamRow | null;
@@ -998,7 +999,7 @@ export async function syncLeaguepediaMatchSets(
   const { data: match, error: matchError } = await supabase
     .from("matches")
     .select(
-      "id, leaguepedia_match_id, team_a_id, team_b_id, team_a:team_a_id(id, slug, name, short_name, leaguepedia_page, is_lck_team), team_b:team_b_id(id, slug, name, short_name, leaguepedia_page, is_lck_team)",
+      "id, leaguepedia_match_id, best_of, team_a_id, team_b_id, team_a:team_a_id(id, slug, name, short_name, leaguepedia_page, is_lck_team), team_b:team_b_id(id, slug, name, short_name, leaguepedia_page, is_lck_team)",
     )
     .eq("id", matchId)
     .single();
@@ -1027,6 +1028,8 @@ export async function syncLeaguepediaMatchSets(
     return {
       match_id: typedMatch.id,
       set_number: setNumber,
+      // 스코어보드 상세 데이터가 존재하는 세트이므로 '상세데이터 동기화'로 마킹
+      status: "data_synced" as const,
       winner_team_id: winnerTeamId(row, typedMatch),
       blue_team_id: blueTeamId,
       red_team_id: redTeamId,
@@ -1266,6 +1269,31 @@ export async function syncLeaguepediaMatchSets(
   if (error) {
     throw error;
   }
+
+  // 세트 상세 데이터가 다 들어왔는지(= 한 팀이 과반 승리) 판정하여 매치를 종료 처리
+  let winsA = 0;
+  let winsB = 0;
+  for (const set of payload) {
+    if (set.winner_team_id && set.winner_team_id === typedMatch.team_a_id) {
+      winsA += 1;
+    } else if (set.winner_team_id && set.winner_team_id === typedMatch.team_b_id) {
+      winsB += 1;
+    }
+  }
+  const winsNeeded = typedMatch.best_of ? Math.floor(typedMatch.best_of / 2) + 1 : null;
+  const matchDecided = winsNeeded
+    ? Math.max(winsA, winsB) >= winsNeeded
+    : winsA + winsB > 0;
+  if (matchDecided) {
+    const { error: matchStatusError } = await supabase
+      .from("matches")
+      .update({ status: "completed" })
+      .eq("id", typedMatch.id);
+    if (matchStatusError) {
+      throw matchStatusError;
+    }
+  }
+
   const setRows = (data ?? []) as Array<{
     id: string;
     set_number: number;
