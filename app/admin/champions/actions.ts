@@ -38,5 +38,4 @@ export async function updateChampionMappingAction(formData: FormData) {
   }
 
   revalidatePath("/admin/champions");
-  revalidatePath("/community/draft");
 }

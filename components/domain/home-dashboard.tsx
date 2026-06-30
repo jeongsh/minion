@@ -152,7 +152,6 @@ function AdPlaceholder({ className = "", compact = false }: { className?: string
         compact ? "min-h-14" : "min-h-[170px]"
       } ${className}`}
     >
-      광고영역
     </aside>
   );
 }
