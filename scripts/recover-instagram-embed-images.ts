@@ -69,6 +69,7 @@ async function recoverTable(
   scraper: Awaited<ReturnType<typeof createEmbedImageScraper>>,
   table: "player_social_posts" | "team_social_posts",
   column: "image_url" | "thumbnail_url",
+  orderColumn: "posted_at" | "published_at",
   keyPrefix: string,
 ) {
   const { data, error } = await supabase
@@ -78,7 +79,7 @@ async function recoverTable(
     .not(column, "is", null)
     .neq(column, "")
     .not(column, "ilike", `%${INSTAGRAM_MEDIA_BUCKET}%`)
-    .order("posted_at", { ascending: false, nullsFirst: false });
+    .order(orderColumn, { ascending: false, nullsFirst: false });
   if (error) throw error;
 
   let rows = (data ?? []) as Row[];
@@ -156,10 +157,10 @@ async function main() {
 
   try {
     if (!onlyArg || onlyArg === "players") {
-      await recoverTable(supabase, scraper, "player_social_posts", "image_url", "player");
+      await recoverTable(supabase, scraper, "player_social_posts", "image_url", "posted_at", "player");
     }
     if (!onlyArg || onlyArg === "teams") {
-      await recoverTable(supabase, scraper, "team_social_posts", "thumbnail_url", "team");
+      await recoverTable(supabase, scraper, "team_social_posts", "thumbnail_url", "published_at", "team");
     }
   } finally {
     await scraper.close();

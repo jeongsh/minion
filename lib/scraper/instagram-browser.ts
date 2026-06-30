@@ -365,38 +365,55 @@ export async function createEmbedImageScraper(
   const context = await createContext(sessionCookie);
   const page = await context.newPage();
 
-  return {
-    async fetch(shortcode: string): Promise<string | null> {
-      try {
-        await page.goto(
-          `https://www.instagram.com/p/${shortcode}/embed/captioned/`,
-          { waitUntil: "networkidle", timeout: 40_000 },
-        );
-        // 메인 이미지가 로드될 때까지 잠깐 대기 (삭제·비공개면 안 뜸)
-        await page
-          .waitForSelector("img.EmbeddedMediaImage", { timeout: 8_000 })
-          .catch(() => null);
+  // embed는 부하 시 일시적으로 500/빈 페이지를 주므로(삭제 아님) 재시도한다.
+  async function attempt(shortcode: string): Promise<string | null> {
+    try {
+      await page.goto(
+        `https://www.instagram.com/p/${shortcode}/embed/captioned/`,
+        { waitUntil: "networkidle", timeout: 40_000 },
+      );
+      // 메인 이미지가 로드될 때까지 잠깐 대기 (삭제·비공개면 안 뜸)
+      await page
+        .waitForSelector("img.EmbeddedMediaImage", { timeout: 8_000 })
+        .catch(() => null);
 
-        return await page.evaluate(() => {
-          const isFeed = (s: string) => s.includes("/t51.82787-15/");
-          // 1순위: 메인 미디어 이미지
+      return await page.evaluate(() => {
+          // 피드 미디어는 사진 `t51.{...}-15`, 영상 썸네일도 `t51.{...}-15`
+          // (예: 사진 t51.82787-15, 영상 t51.71878-15). 프로필 아바타만 `-19`.
+          const isAvatar = (s: string) => /\/t51\.\d+-19\//.test(s);
+          const isFeed = (s: string) => /\/t51\.\d+-15\//.test(s);
+
+          // 1순위: 메인 미디어 이미지 (사진·영상 썸네일 모두 여기 잡힘)
           const main = document.querySelector<HTMLImageElement>(
             "img.EmbeddedMediaImage",
           );
           const mainSrc = main?.currentSrc || main?.src;
-          if (mainSrc && isFeed(mainSrc)) return mainSrc;
+          if (mainSrc && mainSrc.includes("cdninstagram") && !isAvatar(mainSrc)) {
+            return mainSrc;
+          }
 
-          // 2순위: 피드 이미지(t51.82787-15) 중 가장 큰 것
-          // — 아바타(t51.2885-19)와 하단 "더 보기" 썸네일(150px)은 제외
+          // 2순위: 피드 이미지 중 가장 큰 것
+          // — 아바타(-19)와 하단 "더 보기" 썸네일(150px)은 제외
           const imgs = Array.from(document.querySelectorAll("img"))
             .map((e) => ({ src: e.currentSrc || e.src, w: e.naturalWidth }))
-            .filter((x) => x.src && isFeed(x.src) && x.w >= 320)
+            .filter((x) => x.src && isFeed(x.src) && !isAvatar(x.src) && x.w >= 320)
             .sort((a, b) => b.w - a.w);
           return imgs[0]?.src ?? null;
         });
       } catch {
         return null;
       }
+    }
+
+  return {
+    async fetch(shortcode: string): Promise<string | null> {
+      // 최대 3회: 일시적 500/throttle은 backoff 후 재시도하면 대부분 회복된다.
+      for (let i = 0; i < 3; i++) {
+        const url = await attempt(shortcode);
+        if (url) return url;
+        if (i < 2) await page.waitForTimeout(1_500 * (i + 1));
+      }
+      return null;
     },
     async close() {
       await context.close();
