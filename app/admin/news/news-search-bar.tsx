@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useRef } from "react";
 
+import { useNavigationTransition } from "@/components/navigation/navigation-transition-provider";
+
 const SORT_OPTIONS = [
   { value: "date_desc", label: "최신순" },
   { value: "date_asc", label: "오래된순" },
@@ -33,6 +35,7 @@ export function NewsSearchBar({
   currentSort: string;
 }) {
   const router = useRouter();
+  const { isNavigating, startNavigation } = useNavigationTransition();
   const inputRef = useRef<HTMLInputElement>(null);
 
   const base = { q: defaultQuery, type: currentType, sort: currentSort };
@@ -40,11 +43,17 @@ export function NewsSearchBar({
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
     const q = inputRef.current?.value.trim() ?? "";
-    router.push(buildUrl(base, { q, page: "1" }));
+    const href = buildUrl(base, { q, page: "1" });
+    if (startNavigation(href)) {
+      router.push(href);
+    }
   }
 
   function handleSortChange(e: React.ChangeEvent<HTMLSelectElement>) {
-    router.push(buildUrl(base, { sort: e.target.value, page: "1" }));
+    const href = buildUrl(base, { sort: e.target.value, page: "1" });
+    if (startNavigation(href)) {
+      router.push(href);
+    }
   }
 
   return (
@@ -53,12 +62,14 @@ export function NewsSearchBar({
         <input
           ref={inputRef}
           type="text"
+          disabled={isNavigating}
           defaultValue={defaultQuery}
           placeholder="제목 검색…"
           className="h-full w-48 min-w-0 bg-transparent px-3 text-sm outline-none placeholder:text-muted"
         />
         <button
           type="submit"
+          disabled={isNavigating}
           className="flex h-full items-center px-3 text-muted transition-colors hover:text-foreground"
           aria-label="검색"
         >
@@ -69,6 +80,7 @@ export function NewsSearchBar({
       <select
         className="h-9 rounded-md border border-border bg-surface pl-3 pr-7 text-sm text-foreground focus:outline-none"
         defaultValue={currentSort}
+        disabled={isNavigating}
         onChange={handleSortChange}
         aria-label="정렬"
       >

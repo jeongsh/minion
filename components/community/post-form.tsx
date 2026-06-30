@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import CommunityEditor from "@/components/community/editor/community-editor";
+import { useNavigationTransition } from "@/components/navigation/navigation-transition-provider";
 import { createPostAction } from "@/lib/community/actions";
 import type { BoardScope } from "@/lib/community/boards";
 
@@ -47,6 +48,7 @@ export function PostForm({
   teamSlug?: string;
 }) {
   const router = useRouter();
+  const { startNavigation } = useNavigationTransition();
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [message, setMessage] = useState<string | null>(null);
@@ -78,7 +80,9 @@ export function PostForm({
         content,
       });
       if (result.ok) {
-        router.push(boardPath);
+        if (startNavigation(boardPath)) {
+          router.push(boardPath);
+        }
       } else {
         setMessage(result.error);
       }

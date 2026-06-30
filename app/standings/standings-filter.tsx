@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 
+import { useNavigationTransition } from "@/components/navigation/navigation-transition-provider";
 import type { ChampionRankingMode } from "@/lib/champion-rankings";
 import type { PlayerPosition } from "@/lib/types";
 
@@ -53,6 +54,7 @@ export function StandingsFilter({
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { isNavigating, startNavigation } = useNavigationTransition();
   const showSecondaryFilter = activeView === "players" || activeView === "champions";
 
   function navigate(updates: Record<string, string | null>) {
@@ -67,16 +69,23 @@ export function StandingsFilter({
     }
 
     const query = params.toString();
-    router.push(query ? `/standings?${query}` : "/standings", { scroll: false });
+    const href = query ? `/standings?${query}` : "/standings";
+    if (startNavigation(href)) {
+      router.push(href, { scroll: false });
+    }
   }
 
   return (
     <section className="overflow-hidden rounded-lg border border-border bg-surface">
-      <div className={showSecondaryFilter ? "grid lg:grid-cols-4" : "grid md:grid-cols-3"}>
+      <div
+        aria-busy={isNavigating}
+        className={showSecondaryFilter ? "grid lg:grid-cols-4" : "grid md:grid-cols-3"}
+      >
         <label className="border-b border-border p-5 md:border-r lg:border-b-0">
           <span className="block text-xs font-semibold text-accent">년도</span>
           <select
             value={activeSeason}
+            disabled={isNavigating}
             onChange={(event) =>
               navigate({
                 year: event.target.value,
@@ -100,7 +109,7 @@ export function StandingsFilter({
           <span className="block text-xs font-semibold text-accent">대회</span>
           <select
             value={activeCompetitionId}
-            disabled={competitions.length === 0}
+            disabled={isNavigating || competitions.length === 0}
             onChange={(event) => navigate({ tournament: event.target.value, position: null })}
             className="mt-2 w-full bg-transparent text-lg font-bold text-foreground outline-none disabled:text-muted"
           >
@@ -120,6 +129,7 @@ export function StandingsFilter({
           <span className="block text-xs font-semibold text-accent">유형</span>
           <select
             value={activeView}
+            disabled={isNavigating}
             onChange={(event) => {
               const nextView = event.target.value as StandingsView;
 
@@ -144,6 +154,7 @@ export function StandingsFilter({
             <span className="block text-xs font-semibold text-accent">포지션</span>
             <select
               value={activePosition}
+              disabled={isNavigating}
               onChange={(event) =>
                 navigate({ position: event.target.value === "all" ? null : event.target.value })
               }
@@ -163,6 +174,7 @@ export function StandingsFilter({
             <span className="block text-xs font-semibold text-accent">순위</span>
             <select
               value={activeChampionRankMode}
+              disabled={isNavigating}
               onChange={(event) =>
                 navigate({
                   championRank:

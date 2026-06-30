@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { AppShell, type AppShellUser } from "@/components/layout/app-shell";
+import { NavigationTransitionProvider } from "@/components/navigation/navigation-transition-provider";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { getRankSummary } from "@/lib/rank/queries";
 import "./globals.css";
@@ -25,7 +26,9 @@ export default async function RootLayout({
   return (
     <html lang="ko">
       <body>
-        <AppShell currentUser={shellUser}>{children}</AppShell>
+        <NavigationTransitionProvider>
+          <AppShell currentUser={shellUser}>{children}</AppShell>
+        </NavigationTransitionProvider>
       </body>
     </html>
   );

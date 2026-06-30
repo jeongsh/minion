@@ -66,6 +66,47 @@ body {
     sans-serif;
 }
 
+html[data-navigation-pending="true"] body {
+  cursor: progress;
+}
+
+html[data-navigation-pending="true"] :is(a, button, input, select, textarea, [role="button"], [role="tab"]) {
+  pointer-events: none !important;
+}
+
+.navigation-progress-track {
+  position: fixed;
+  inset: 0 0 auto;
+  height: 3px;
+  overflow: hidden;
+  background: rgb(97 88 255 / 0.12);
+}
+
+.navigation-progress-bar {
+  display: block;
+  width: 38%;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #6158ff, #8b5cf6);
+  animation: navigation-progress 1.05s ease-in-out infinite;
+}
+
+@keyframes navigation-progress {
+  0% {
+    transform: translateX(-110%);
+  }
+  100% {
+    transform: translateX(370%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .navigation-progress-bar {
+    width: 100%;
+    animation: none;
+  }
+}
+
 .brand-logo-text {
   font-family:
     "HancomMalrangmalrang",

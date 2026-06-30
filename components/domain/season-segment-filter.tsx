@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 
+import { useNavigationTransition } from "@/components/navigation/navigation-transition-provider";
 import {
   DEFAULT_SEASON_YEAR,
   SEASON_2026_SEGMENTS,
@@ -21,6 +22,7 @@ export function SeasonSegmentFilter({
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { isNavigating, startNavigation } = useNavigationTransition();
 
   function navigate(segment: SeasonSegmentKey | "all") {
     const params = new URLSearchParams(searchParams.toString());
@@ -40,7 +42,9 @@ export function SeasonSegmentFilter({
 
     const query = params.toString();
     const href = query ? `${basePath}?${query}` : basePath;
-    router.push(href, { scroll: false });
+    if (startNavigation(href)) {
+      router.push(href, { scroll: false });
+    }
   }
 
   return (
@@ -50,9 +54,10 @@ export function SeasonSegmentFilter({
           <button
             key={segment.key}
             type="button"
+            disabled={isNavigating}
             title={segment.key === "all" ? `${seasonYear} 시즌 전체 경기` : segment.description}
             onClick={() => navigate(segment.key)}
-            className={`rounded-md border px-3 py-2 text-sm font-semibold ${
+            className={`rounded-md border px-3 py-2 text-sm font-semibold disabled:cursor-wait disabled:opacity-60 ${
               activeSegment === segment.key
                 ? "border-accent bg-accent/10 text-accent"
                 : "border-border bg-surface text-muted hover:bg-surface-muted hover:text-foreground"
