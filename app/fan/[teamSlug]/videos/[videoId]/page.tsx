@@ -68,8 +68,8 @@ export default async function FanVideoDetailPage({
     .slice(0, 16);
 
   return (
-    <main className="mx-auto grid w-full max-w-[1440px] gap-7 px-4 py-6 sm:px-6 lg:grid-cols-[minmax(0,1fr)_390px] lg:py-8">
-      <article className="min-w-0">
+    <main className="mx-auto grid w-full max-w-[1440px] gap-7 px-4 py-6 sm:px-6 lg:box-border lg:h-[calc(100vh-130px)] lg:grid-cols-[minmax(0,1fr)_390px] lg:grid-rows-[minmax(0,1fr)] lg:overflow-hidden lg:py-6">
+      <article className="min-w-0 lg:min-h-0 lg:overflow-y-auto lg:pr-1">
         <div className="aspect-video overflow-hidden rounded-xl bg-black shadow-sm">
           {embedUrl ? (
             <iframe
@@ -123,12 +123,12 @@ export default async function FanVideoDetailPage({
         </section>
       </article>
 
-      <aside className="min-w-0">
-        <div className="mb-4 flex items-center justify-between">
+      <aside className="flex min-w-0 flex-col lg:min-h-0 lg:overflow-hidden">
+        <div className="mb-4 flex shrink-0 items-center justify-between">
           <h2 className="text-base font-bold text-[#0f0f0f]">관련 영상</h2>
           <Link href={`/fan/${team.fanSiteHost}/videos`} className="text-xs font-semibold text-[#606060] hover:text-accent">전체 보기</Link>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+        <div className="grid gap-3 sm:grid-cols-2 lg:min-h-0 lg:flex-1 lg:grid-cols-1 lg:overflow-y-auto lg:pr-1">
           {related.map((item) => <RelatedVideo key={item.id} teamSlug={team.fanSiteHost} video={item} />)}
         </div>
       </aside>
