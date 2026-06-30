@@ -4,6 +4,7 @@ import { championCatalogEntryForValue } from "../champions";
 import { ddragonVersionFromPatch, uniqueDdragonVersionsForPatches } from "../ddragon";
 import { fetchItemCatalog } from "../items";
 import { fetchRuneNameToIdMap } from "../runes";
+import { deriveSetStatus } from "../set-status";
 import { fetchSpellCatalog, type GameSpell } from "../spells";
 
 const CARGO_API = "https://lol.fandom.com/api.php";
@@ -1028,8 +1029,9 @@ export async function syncLeaguepediaMatchSets(
     return {
       match_id: typedMatch.id,
       set_number: setNumber,
-      // 스코어보드 상세 데이터가 존재하는 세트이므로 '상세데이터 동기화'로 마킹
-      status: "data_synced" as const,
+      // 스코어보드(경기 통계) 데이터가 있는 세트이므로 최소 '경기종료'.
+      // 선수 상세 스탯까지 동기화되면 아래 최종 패스에서 'data_synced'로 격상한다.
+      status: "finished" as const,
       winner_team_id: winnerTeamId(row, typedMatch),
       blue_team_id: blueTeamId,
       red_team_id: redTeamId,
@@ -1525,6 +1527,56 @@ export async function syncLeaguepediaMatchSets(
         throw statsError;
       }
       playerStatsUpserted = insertedStats?.length ?? 0;
+    }
+
+    // 세트별 실제 데이터 보유 현황(경기통계/밴픽/선수상세)으로 상태를 도출해 반영한다.
+    const gameStatsBySetNumber = new Map(
+      payload.map((entry) => [
+        entry.set_number,
+        entry.winner_team_id != null ||
+          entry.duration_seconds != null ||
+          entry.blue_kills != null ||
+          entry.red_kills != null,
+      ]),
+    );
+    const pickCountBySet = new Map<string, number>();
+    const banCountBySet = new Map<string, number>();
+    for (const entry of pickBanPayload) {
+      const counter = entry.action_type === "pick" ? pickCountBySet : banCountBySet;
+      counter.set(entry.set_id, (counter.get(entry.set_id) ?? 0) + 1);
+    }
+    const playerStatCountBySet = new Map<string, number>();
+    for (const entry of statPayload) {
+      playerStatCountBySet.set(
+        entry.set_id,
+        (playerStatCountBySet.get(entry.set_id) ?? 0) + 1,
+      );
+    }
+
+    const setIdsByStatus = new Map<string, string[]>();
+    for (const set of setRows) {
+      const status = deriveSetStatus({
+        hasGameStats: gameStatsBySetNumber.get(set.set_number) ?? false,
+        hasPlayerStats: (playerStatCountBySet.get(set.id) ?? 0) > 0,
+        pickCount: pickCountBySet.get(set.id) ?? 0,
+        banCount: banCountBySet.get(set.id) ?? 0,
+      });
+      const ids = setIdsByStatus.get(status);
+      if (ids) {
+        ids.push(set.id);
+      } else {
+        setIdsByStatus.set(status, [set.id]);
+      }
+    }
+
+    for (const [status, ids] of setIdsByStatus) {
+      const { error: statusError } = await supabase
+        .from("sets")
+        .update({ status })
+        .in("id", ids);
+      if (statusError) {
+        throw statusError;
+      }
     }
   }
 

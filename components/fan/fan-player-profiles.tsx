@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
+import type { Swiper as SwiperInstance } from "swiper";
 import { Navigation } from "swiper/modules";
 import { Swiper, SwiperSlide } from "swiper/react";
 import type { Player } from "@/lib/types";
@@ -61,6 +63,30 @@ function PlayerProfileCard({ player }: { player: Player }) {
 export function FanPlayerProfiles({ players, teamSlug }: { players: Player[]; teamSlug: string }) {
   const orderedPlayers = [...players].sort(byRosterPriority);
   const hasMultiplePlayers = orderedPlayers.length > 1;
+  const [isSwiperReady, setIsSwiperReady] = useState(false);
+  const readyFrameRef = useRef<number | null>(null);
+
+  function handleSwiperReady(swiper: SwiperInstance) {
+    swiper.update();
+
+    if (readyFrameRef.current !== null) {
+      window.cancelAnimationFrame(readyFrameRef.current);
+    }
+
+    readyFrameRef.current = window.requestAnimationFrame(() => {
+      swiper.update();
+      setIsSwiperReady(true);
+      readyFrameRef.current = null;
+    });
+  }
+
+  useEffect(() => {
+    return () => {
+      if (readyFrameRef.current !== null) {
+        window.cancelAnimationFrame(readyFrameRef.current);
+      }
+    };
+  }, []);
 
   return (
     <section id="players" className="rounded-3xl border border-[#e6e9ef] bg-white p-5 shadow-sm md:p-6">
@@ -82,46 +108,71 @@ export function FanPlayerProfiles({ players, teamSlug }: { players: Player[]; te
           {hasMultiplePlayers ? (
             <div className="flex gap-2">
               <button
-                className="fan-player-swiper-prev rounded-full border border-border px-3 py-2 text-sm font-black hover:border-accent hover:text-accent"
+                className="fan-player-swiper-prev rounded-full border border-border px-3 py-2 text-sm font-black hover:border-accent hover:text-accent disabled:cursor-wait disabled:opacity-50"
                 type="button"
                 aria-label="이전 선수"
+                disabled={!isSwiperReady}
               >
                 ‹
               </button>
               <button
-                className="fan-player-swiper-next rounded-full border border-border px-3 py-2 text-sm font-black hover:border-accent hover:text-accent"
+                className="fan-player-swiper-next rounded-full border border-border px-3 py-2 text-sm font-black hover:border-accent hover:text-accent disabled:cursor-wait disabled:opacity-50"
                 type="button"
                 aria-label="다음 선수"
+                disabled={!isSwiperReady}
               >
                 ›
               </button>
             </div>
           ) : null}
         </div>
-        <Swiper
-          modules={[Navigation]}
-          navigation={
-            hasMultiplePlayers
-              ? {
-                  prevEl: ".fan-player-swiper-prev",
-                  nextEl: ".fan-player-swiper-next",
-                }
-              : false
-          }
-          spaceBetween={14}
-          slidesPerView={2.15}
-          breakpoints={{
-            640: { slidesPerView: 3.25 },
-            768: { slidesPerView: 4.25 },
-            1024: { slidesPerView: 5 },
-          }}
+        <div
+          className="relative"
+          aria-busy={!isSwiperReady}
+          data-page-readiness={isSwiperReady ? "ready" : "pending"}
         >
-          {orderedPlayers.map((player) => (
-            <SwiperSlide key={player.id} className="h-auto">
-              <PlayerProfileCard player={player} />
-            </SwiperSlide>
-          ))}
-        </Swiper>
+          <div
+            className={`${
+              isSwiperReady ? "invisible absolute inset-x-0 top-0" : "relative"
+            } grid grid-cols-2 gap-[14px] sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5`}
+            aria-hidden={isSwiperReady}
+          >
+            {orderedPlayers.slice(0, 5).map((player) => (
+              <PlayerProfileCard key={player.id} player={player} />
+            ))}
+          </div>
+
+          <div
+            className={isSwiperReady ? "relative" : "invisible absolute inset-x-0 top-0"}
+            aria-hidden={!isSwiperReady}
+          >
+            <Swiper
+              modules={[Navigation]}
+              navigation={
+                hasMultiplePlayers
+                  ? {
+                      prevEl: ".fan-player-swiper-prev",
+                      nextEl: ".fan-player-swiper-next",
+                    }
+                  : false
+              }
+              onAfterInit={handleSwiperReady}
+              spaceBetween={14}
+              slidesPerView={2.15}
+              breakpoints={{
+                640: { slidesPerView: 3.25 },
+                768: { slidesPerView: 4.25 },
+                1024: { slidesPerView: 5 },
+              }}
+            >
+              {orderedPlayers.map((player) => (
+                <SwiperSlide key={player.id} className="h-auto">
+                  <PlayerProfileCard player={player} />
+                </SwiperSlide>
+              ))}
+            </Swiper>
+          </div>
+        </div>
       </div>
     </section>
   );

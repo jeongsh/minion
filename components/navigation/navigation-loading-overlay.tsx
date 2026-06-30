@@ -1,11 +1,11 @@
 export function NavigationLoadingOverlay({
-  label = "페이지를 불러오는 중입니다",
+  label = "페이지 데이터를 불러오는 중입니다",
 }: {
   label?: string;
 }) {
   return (
     <div
-      className="fixed inset-0 z-[100] grid cursor-progress place-items-center bg-white/55 px-4 backdrop-blur-[2px]"
+      className="fixed inset-0 z-[100] grid cursor-progress place-items-center bg-white px-4"
       data-testid="navigation-loading-overlay"
     >
       <span className="navigation-progress-track" aria-hidden="true">

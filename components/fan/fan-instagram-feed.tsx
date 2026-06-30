@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { FanFeedTabs, buildOwnerTabs } from "@/components/fan/fan-feed-tabs";
+import { preloadImage } from "@/lib/preload-image";
 import type { InstagramStory, Player, PlayerSocialPost, TeamSocialPost } from "@/lib/types";
 
 // ─── 타입 ──────────────────────────────────────────────────────
@@ -26,6 +27,14 @@ type StoryItem = InstagramStory & { ownerName: string; ownerImageUrl?: string };
 function proxyUrl(url?: string | null): string | undefined {
   if (!url) return undefined;
   return `/api/proxy/image?url=${encodeURIComponent(url)}`;
+}
+
+function preloadPostImages(posts: PostItem[]) {
+  const urls = posts.flatMap((post) => {
+    const url = proxyUrl(post.imageUrl);
+    return url ? [url] : [];
+  });
+  return Promise.all(urls.map(preloadImage));
 }
 
 function relativeTime(iso?: string) {
@@ -386,7 +395,11 @@ function PostCard({
       >
         {item.imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={proxyUrl(item.imageUrl)} alt="" className="h-full w-full object-cover" />
+          <img
+            src={proxyUrl(item.imageUrl)}
+            alt=""
+            className="h-full w-full object-cover"
+          />
         ) : (
           <span className="grid h-full place-items-center">
             <InstagramIcon className="h-8 w-8 text-[#a8a8a8]" />
@@ -482,39 +495,47 @@ export function FanInstagramFeed({
   const INITIAL_LIMIT = variant === "preview" ? 4 : 12;
   const [visibleCount, setVisibleCount] = useState(INITIAL_LIMIT);
   const [isTabPending, setIsTabPending] = useState(false);
+  const [isBatchLoading, setIsBatchLoading] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const tabLockRef = useRef(false);
   const tabUnlockTimerRef = useRef<number | null>(null);
 
-  const playersById = new Map(players.map((p) => [p.id, p]));
+  const playersById = useMemo(
+    () => new Map(players.map((p) => [p.id, p])),
+    [players],
+  );
 
-  // 게시물 통합 정렬
-  const posts: PostItem[] = [
-    ...teamPosts.map((p) => ({
-      id: `team-${p.id}`,
-      ownerType: "team" as const,
-      ownerName: teamName,
-      caption: p.content || p.title,
-      imageUrl: p.thumbnailUrl,
-      sourceUrl: p.sourceUrl,
-      postedAt: p.publishedAt,
-      likesCount: undefined,
-    })),
-    ...playerPosts.map((p) => ({
-      id: `player-${p.id}`,
-      ownerType: "player" as const,
-      ownerName: playersById.get(p.playerId)?.name ?? "선수",
-      caption: p.caption,
-      imageUrl: p.imageUrl,
-      sourceUrl: p.sourceUrl,
-      postedAt: p.postedAt,
-      likesCount: p.likesCount,
-    })),
-  ].sort((a, b) => {
-    const ta = a.postedAt ? new Date(a.postedAt).getTime() : 0;
-    const tb = b.postedAt ? new Date(b.postedAt).getTime() : 0;
-    return tb - ta;
-  });
+  // 게시물 통합 정렬 — 무한스크롤 effect 의존성으로 쓰이므로 참조를 안정화한다.
+  const posts: PostItem[] = useMemo(
+    () =>
+      [
+        ...teamPosts.map((p) => ({
+          id: `team-${p.id}`,
+          ownerType: "team" as const,
+          ownerName: teamName,
+          caption: p.content || p.title,
+          imageUrl: p.thumbnailUrl,
+          sourceUrl: p.sourceUrl,
+          postedAt: p.publishedAt,
+          likesCount: undefined,
+        })),
+        ...playerPosts.map((p) => ({
+          id: `player-${p.id}`,
+          ownerType: "player" as const,
+          ownerName: playersById.get(p.playerId)?.name ?? "선수",
+          caption: p.caption,
+          imageUrl: p.imageUrl,
+          sourceUrl: p.sourceUrl,
+          postedAt: p.postedAt,
+          likesCount: p.likesCount,
+        })),
+      ].sort((a, b) => {
+        const ta = a.postedAt ? new Date(a.postedAt).getTime() : 0;
+        const tb = b.postedAt ? new Date(b.postedAt).getTime() : 0;
+        return tb - ta;
+      }),
+    [teamPosts, playerPosts, playersById, teamName],
+  );
 
   // 스토리에 ownerName 붙이기
   const storyItems: StoryItem[] = stories.map((s) => ({
@@ -528,20 +549,26 @@ export function FanInstagramFeed({
   // 탭 필터링 (전체 / 구단 / 선수 개개인) — 전체 보기에서만 노출
   const tabs = buildOwnerTabs(posts, teamName);
 
-  const filteredPosts =
-    activeKey === "all" ? posts : posts.filter((p) => p.ownerName === activeKey);
+  const filteredPosts = useMemo(
+    () =>
+      activeKey === "all" ? posts : posts.filter((p) => p.ownerName === activeKey),
+    [posts, activeKey],
+  );
   const filteredStories =
     activeKey === "all" ? storyItems : storyItems.filter((s) => s.ownerName === activeKey);
 
   const hasStories = filteredStories.length > 0;
   const hasPosts = filteredPosts.length > 0;
+  const visiblePosts = filteredPosts.slice(0, visibleCount);
 
-  // 탭을 바꾸면 처음부터 다시 보여준다.
-  const handleTabChange = (key: string) => {
+  // 다음 탭의 첫 화면 이미지를 먼저 받은 뒤 완성된 화면으로 교체한다.
+  const handleTabChange = async (key: string) => {
     if (key === activeKey || tabLockRef.current) return;
 
     tabLockRef.current = true;
     setIsTabPending(true);
+    const nextPosts = key === "all" ? posts : posts.filter((post) => post.ownerName === key);
+    await preloadPostImages(nextPosts.slice(0, INITIAL_LIMIT));
     setActiveKey(key);
     setVisibleCount(INITIAL_LIMIT);
 
@@ -549,7 +576,7 @@ export function FanInstagramFeed({
       tabLockRef.current = false;
       setIsTabPending(false);
       tabUnlockTimerRef.current = null;
-    }, 160);
+    }, 0);
   };
 
   useEffect(() => {
@@ -566,33 +593,39 @@ export function FanInstagramFeed({
     const target = sentinelRef.current;
     if (!target) return;
 
-    const loadNextBatch = () => {
-      setVisibleCount((count) => Math.min(filteredPosts.length, count + 12));
+    // cancelled: 탭 전환 등으로 effect가 정리되면 진행 중이던 배치 결과를 버린다.
+    // loading: 같은 화면에서 옵저버가 연속 발화해도 한 번만 불러온다.
+    let cancelled = false;
+    let loading = false;
+
+    const loadNextBatch = async () => {
+      if (loading) return;
+      loading = true;
+      setIsBatchLoading(true);
+
+      const nextCount = Math.min(filteredPosts.length, visibleCount + 12);
+      await preloadPostImages(filteredPosts.slice(visibleCount, nextCount));
+      if (cancelled) return;
+
+      setIsBatchLoading(false);
+      setVisibleCount(nextCount);
     };
 
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (!entry?.isIntersecting) return;
-        loadNextBatch();
+        void loadNextBatch();
       },
-      { rootMargin: "500px 0px" },
+      { rootMargin: "120px 0px" },
     );
 
-    const handleScroll = () => {
-      const remaining = document.documentElement.scrollHeight - window.scrollY - window.innerHeight;
-      if (remaining < 600) loadNextBatch();
-    };
-
     observer.observe(target);
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    document.addEventListener("scroll", handleScroll, { passive: true, capture: true });
-    handleScroll();
     return () => {
+      cancelled = true;
       observer.disconnect();
-      window.removeEventListener("scroll", handleScroll);
-      document.removeEventListener("scroll", handleScroll, true);
+      setIsBatchLoading(false);
     };
-  }, [filteredPosts.length, variant, visibleCount]);
+  }, [filteredPosts, variant, visibleCount]);
 
   return (
     <section className={variant === "full" ? "" : "rounded-3xl border border-[#e6e9ef] bg-white shadow-sm"}>
@@ -648,10 +681,8 @@ export function FanInstagramFeed({
 
       {/* 게시물 그리드 */}
       <div
-        aria-busy={isTabPending}
-        className={`${variant === "full" ? "" : `border-t border-[#eceef2] p-5 md:p-6 ${hasStories ? "border-t" : ""}`} transition-opacity ${
-          isTabPending ? "opacity-60" : "opacity-100"
-        }`}
+        aria-busy={isTabPending || isBatchLoading}
+        className={variant === "full" ? "" : `border-t border-[#eceef2] p-5 md:p-6 ${hasStories ? "border-t" : ""}`}
       >
         {hasPosts ? (
           <>
@@ -665,13 +696,26 @@ export function FanInstagramFeed({
                   : "grid grid-cols-2 gap-3 sm:grid-cols-4"
               }
             >
-              {filteredPosts.slice(0, visibleCount).map((item, index) => (
-                <PostCard key={item.id} item={item} compact={variant === "preview"} onClick={() => setEmbedPostIndex(index)} />
+              {visiblePosts.map((item, index) => (
+                <PostCard
+                  key={item.id}
+                  item={item}
+                  compact={variant === "preview"}
+                  onClick={() => setEmbedPostIndex(index)}
+                />
               ))}
             </div>
             {variant === "full" && filteredPosts.length > visibleCount ? (
-              <div ref={sentinelRef} data-testid="instagram-infinite-sentinel" className="grid h-24 place-items-center">
-                <span className="h-7 w-7 animate-spin rounded-full border-2 border-[#dbdbdb] border-t-[#262626]" />
+              <div
+                ref={sentinelRef}
+                data-testid="instagram-infinite-sentinel"
+                className="grid h-24 place-items-center"
+              >
+                {isBatchLoading ? (
+                  <span className="h-7 w-7 animate-spin rounded-full border-2 border-[#dbdbdb] border-t-[#262626]" />
+                ) : (
+                  <span className="sr-only">다음 게시물 준비</span>
+                )}
               </div>
             ) : variant === "full" && filteredPosts.length > INITIAL_LIMIT ? (
               <p className="py-8 text-center text-xs text-[#8e8e8e]">모든 게시물을 확인했습니다.</p>

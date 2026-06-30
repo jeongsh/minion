@@ -2,13 +2,21 @@
 
 import { Play } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { FanFeedTabs, buildOwnerTabs } from "@/components/fan/fan-feed-tabs";
 import { fanVideoMetaLabel, type FanVideoItem } from "@/lib/fan-video-items";
+import { preloadImage } from "@/lib/preload-image";
 
 const INITIAL_LIMIT = 12;
 const BATCH_SIZE = 12;
+
+function preloadVideoImages(videos: FanVideoItem[]) {
+  const urls = videos.flatMap((video) =>
+    video.thumbnailUrl ? [video.thumbnailUrl] : [],
+  );
+  return Promise.all(urls.map(preloadImage));
+}
 
 function VideoOwnerAvatar({ video }: { video: FanVideoItem }) {
   return (
@@ -35,20 +43,29 @@ export function FanVideoFeed({
   const [activeKey, setActiveKey] = useState("all");
   const [visibleCount, setVisibleCount] = useState(INITIAL_LIMIT);
   const [isTabPending, setIsTabPending] = useState(false);
+  const [isBatchLoading, setIsBatchLoading] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const tabLockRef = useRef(false);
   const tabUnlockTimerRef = useRef<number | null>(null);
 
   const tabs = buildOwnerTabs(videos, teamName);
-  const filteredVideos =
-    activeKey === "all" ? videos : videos.filter((video) => video.ownerName === activeKey);
+  const filteredVideos = useMemo(
+    () =>
+      activeKey === "all"
+        ? videos
+        : videos.filter((video) => video.ownerName === activeKey),
+    [videos, activeKey],
+  );
 
-  // 탭을 바꾸면 처음부터 다시 보여준다.
-  const handleTabChange = (key: string) => {
+  // 다음 탭의 첫 화면 썸네일을 먼저 받은 뒤 완성된 화면으로 교체한다.
+  const handleTabChange = async (key: string) => {
     if (key === activeKey || tabLockRef.current) return;
 
     tabLockRef.current = true;
     setIsTabPending(true);
+    const nextVideos =
+      key === "all" ? videos : videos.filter((video) => video.ownerName === key);
+    await preloadVideoImages(nextVideos.slice(0, INITIAL_LIMIT));
     setActiveKey(key);
     setVisibleCount(INITIAL_LIMIT);
 
@@ -56,7 +73,7 @@ export function FanVideoFeed({
       tabLockRef.current = false;
       setIsTabPending(false);
       tabUnlockTimerRef.current = null;
-    }, 160);
+    }, 0);
   };
 
   useEffect(() => {
@@ -73,33 +90,39 @@ export function FanVideoFeed({
     const target = sentinelRef.current;
     if (!target) return;
 
-    const loadNextBatch = () => {
-      setVisibleCount((current) => Math.min(filteredVideos.length, current + BATCH_SIZE));
+    // cancelled: 탭 전환 등으로 effect가 정리되면 진행 중이던 배치 결과를 버린다.
+    // loading: 같은 화면에서 옵저버가 연속 발화해도 한 번만 불러온다.
+    let cancelled = false;
+    let loading = false;
+
+    const loadNextBatch = async () => {
+      if (loading) return;
+      loading = true;
+      setIsBatchLoading(true);
+
+      const nextCount = Math.min(filteredVideos.length, visibleCount + BATCH_SIZE);
+      await preloadVideoImages(filteredVideos.slice(visibleCount, nextCount));
+      if (cancelled) return;
+
+      setIsBatchLoading(false);
+      setVisibleCount(nextCount);
     };
 
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (!entry?.isIntersecting) return;
-        loadNextBatch();
+        void loadNextBatch();
       },
-      { rootMargin: "500px 0px" },
+      { rootMargin: "120px 0px" },
     );
 
-    const handleScroll = () => {
-      const remaining = document.documentElement.scrollHeight - window.scrollY - window.innerHeight;
-      if (remaining < 600) loadNextBatch();
-    };
-
     observer.observe(target);
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    document.addEventListener("scroll", handleScroll, { passive: true, capture: true });
-    handleScroll();
     return () => {
+      cancelled = true;
       observer.disconnect();
-      window.removeEventListener("scroll", handleScroll);
-      document.removeEventListener("scroll", handleScroll, true);
+      setIsBatchLoading(false);
     };
-  }, [filteredVideos.length, visibleCount]);
+  }, [filteredVideos, visibleCount]);
 
   if (videos.length === 0) {
     return (
@@ -124,10 +147,8 @@ export function FanVideoFeed({
       />
 
       <section
-        aria-busy={isTabPending}
-        className={`grid items-start gap-x-4 gap-y-9 transition-opacity sm:grid-cols-2 lg:grid-cols-3 ${
-          isTabPending ? "opacity-60" : "opacity-100"
-        }`}
+        aria-busy={isTabPending || isBatchLoading}
+        className="grid items-start gap-x-4 gap-y-9 sm:grid-cols-2 lg:grid-cols-3"
       >
         {filteredVideos.slice(0, visibleCount).map((video) => (
           <Link
@@ -170,7 +191,11 @@ export function FanVideoFeed({
 
       {visibleCount < filteredVideos.length ? (
         <div ref={sentinelRef} data-testid="video-infinite-sentinel" className="grid h-28 place-items-center">
-          <span className="h-8 w-8 animate-spin rounded-full border-2 border-[#d9d9d9] border-t-[#0f0f0f]" />
+          {isBatchLoading ? (
+            <span className="h-8 w-8 animate-spin rounded-full border-2 border-[#d9d9d9] border-t-[#0f0f0f]" />
+          ) : (
+            <span className="sr-only">다음 영상 준비</span>
+          )}
         </div>
       ) : filteredVideos.length > INITIAL_LIMIT ? (
         <p className="py-10 text-center text-xs text-[#606060]">모든 영상을 확인했습니다.</p>
