@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import { getAllTeams, getMatches, getStages, getTournaments } from "@/lib/data/lck";
+import { matchStatusLabel, stageName, tournamentTypeLabel } from "@/lib/match-display";
 import {
   filterMatchesBySegment,
   parseSeasonSegment,
@@ -19,44 +20,8 @@ import {
 
 import { ScheduleFilters } from "./schedule-filters";
 
-function statusLabel(status: Match["status"]) {
-  if (status === "completed") {
-    return "종료";
-  }
-
-  if (status === "live") {
-    return "진행";
-  }
-
-  return "예정";
-}
-
-function stageName(stages: Awaited<ReturnType<typeof getStages>>, stageId: string) {
-  return stages.find((stage) => stage.id === stageId)?.name ?? "-";
-}
-
 function tournamentById(tournaments: Tournament[], tournamentId: string) {
   return tournaments.find((tournament) => tournament.id === tournamentId);
-}
-
-function tournamentTypeLabel(tournament?: Tournament) {
-  if (!tournament) {
-    return "-";
-  }
-
-  if (tournament.split === "Cup") {
-    return "LCK Cup";
-  }
-
-  if (tournament.split === "First Stand" || tournament.league === "First Stand") {
-    return "First Stand";
-  }
-
-  if (tournament.category === "international") {
-    return tournament.league ?? tournament.split ?? tournament.name;
-  }
-
-  return tournament.split ? `LCK ${tournament.split}` : tournament.league ?? tournament.name;
 }
 
 function teamById(teams: Team[], teamId: string) {
@@ -199,7 +164,7 @@ export default async function SchedulePage({
                       <div className="mb-3 flex flex-wrap items-center gap-2 lg:mb-0 lg:contents">
                         <time className="text-base font-bold">{formatTimeKST(match.matchDate)}</time>
                         <span className="w-fit shrink-0 rounded bg-surface-muted px-2 py-1 text-xs font-semibold text-muted">
-                          {statusLabel(match.status)}
+                          {matchStatusLabel(match.status)}
                         </span>
                         <span className="w-fit shrink-0 truncate rounded-md border border-border bg-background px-2.5 py-1 text-xs font-bold text-foreground lg:max-w-full">
                           {tournamentTypeLabel(tournament)}
