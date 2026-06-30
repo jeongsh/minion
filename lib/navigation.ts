@@ -1,3 +1,5 @@
+import { hubBoards, teamBoards } from "@/lib/community/boards";
+
 export type NavItem = {
   href: string;
   label: string;
@@ -14,12 +16,10 @@ export const hubNavItems: NavItem[] = [
   { href: "/admin", label: "관리" },
 ];
 
-export const communityNavItems: NavItem[] = [
-  { href: "/community/reviews", label: "경기 리뷰" },
-  { href: "/community/draft", label: "밴픽 토론" },
-  { href: "/community/issues", label: "LCK 이슈" },
-  { href: "/community/free", label: "자유 게시판" },
-];
+export const communityNavItems: NavItem[] = hubBoards.map((board) => ({
+  href: `/community/${board.slug}`,
+  label: board.label,
+}));
 
 export const adminNavItems: NavItem[] = [
   { href: "/admin/matches", label: "경기 관리" },
@@ -39,19 +39,17 @@ export const adminNavItems: NavItem[] = [
 export function fanNavItems(teamSlug: string): NavItem[] {
   return [
     { href: `/fan/${teamSlug}`, label: "홈" },
-    { href: `/fan/${teamSlug}/players`, label: "선수" },
     { href: `/fan/${teamSlug}/matches`, label: "경기" },
+    { href: `/fan/${teamSlug}/players`, label: "선수" },
     { href: `/fan/${teamSlug}/community`, label: "커뮤니티" },
-    { href: `/fan/${teamSlug}/info`, label: "정보" },
+    { href: `/fan/${teamSlug}/instagram`, label: "인스타그램" },
+    { href: `/fan/${teamSlug}/videos`, label: "영상" },
   ];
 }
 
 export function fanCommunityNavItems(teamSlug: string): NavItem[] {
-  return [
-    { href: `/fan/${teamSlug}/community/free`, label: "자유" },
-    { href: `/fan/${teamSlug}/community/cheer`, label: "응원" },
-    { href: `/fan/${teamSlug}/community/reviews`, label: "경기 후기" },
-    { href: `/fan/${teamSlug}/community/draft`, label: "밴픽 토론" },
-    { href: `/fan/${teamSlug}/community/players`, label: "선수 이야기" },
-  ];
+  return teamBoards.map((board) => ({
+    href: `/fan/${teamSlug}/community/${board.slug}`,
+    label: board.label,
+  }));
 }

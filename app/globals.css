@@ -205,3 +205,54 @@ body {
   border-color: #6a66ff;
   color: #ffffff;
 }
+
+/* 커뮤니티 에디터 / 본문 뷰어 공용 스타일 (typography 플러그인 미사용). */
+.community-prose {
+  color: var(--foreground);
+  word-break: break-word;
+}
+.community-prose p {
+  margin: 0.35rem 0;
+  min-height: 1.2em;
+}
+.community-prose h1 { font-size: 1.6em; font-weight: 700; margin: 0.6em 0 0.3em; }
+.community-prose h2 { font-size: 1.35em; font-weight: 700; margin: 0.6em 0 0.3em; }
+.community-prose h3 { font-size: 1.15em; font-weight: 700; margin: 0.6em 0 0.3em; }
+.community-prose ul { list-style: disc; padding-left: 1.5rem; margin: 0.4rem 0; }
+.community-prose ol { list-style: decimal; padding-left: 1.5rem; margin: 0.4rem 0; }
+.community-prose li { margin: 0.15rem 0; }
+.community-prose blockquote {
+  border-left: 3px solid var(--border);
+  padding-left: 0.85rem;
+  margin: 0.5rem 0;
+  color: var(--muted);
+}
+.community-prose a { color: var(--accent); text-decoration: underline; }
+.community-prose pre {
+  background: var(--surface-muted);
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem;
+  overflow-x: auto;
+  margin: 0.5rem 0;
+}
+.community-prose code {
+  background: var(--surface-muted);
+  border-radius: 4px;
+  padding: 0.1em 0.3em;
+  font-size: 0.9em;
+}
+.community-prose pre code { background: transparent; padding: 0; }
+.community-prose img { display: block; margin: 0; max-width: 100%; height: auto; }
+.community-prose hr { border: 0; border-top: 1px solid var(--border); margin: 1rem 0; }
+.community-prose mark { color: inherit; }
+.community-prose iframe { max-width: 100%; }
+
+/* 에디터 placeholder */
+.community-editor .ProseMirror { outline: none !important; }
+.community-editor .ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: var(--muted);
+  pointer-events: none;
+  height: 0;
+}
