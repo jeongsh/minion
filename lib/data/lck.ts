@@ -1573,7 +1573,6 @@ function mapPlayerSocialPost(row: PlayerSocialPostRow): PlayerSocialPost {
 export async function getTeamInstagramFeed(
   teamId: string,
   playerIds: string[],
-  limit = 48,
 ): Promise<{ teamPosts: TeamSocialPost[]; playerPosts: PlayerSocialPost[] }> {
   return fromSupabase(async () => {
     const supabase = createSupabaseServerClient();
@@ -1584,8 +1583,7 @@ export async function getTeamInstagramFeed(
         .select("*")
         .eq("team_id", teamId)
         .eq("platform", "instagram")
-        .order("published_at", { ascending: false, nullsFirst: false })
-        .limit(limit),
+        .order("published_at", { ascending: false, nullsFirst: false }),
       playerIds.length === 0
         ? Promise.resolve({ data: [], error: null })
         : supabase
@@ -1594,8 +1592,7 @@ export async function getTeamInstagramFeed(
             .eq("team_id", teamId)
             .in("player_id", playerIds)
             .eq("platform", "instagram")
-            .order("posted_at", { ascending: false, nullsFirst: false })
-            .limit(limit),
+            .order("posted_at", { ascending: false, nullsFirst: false }),
     ]);
 
     if (teamResult.error) throw teamResult.error;
