@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 type MatchRow = {
   id: string;
@@ -53,7 +53,7 @@ function parseSegmentArg() {
 }
 
 async function tournamentIdsForSegment(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClient,
   segment: string,
 ): Promise<string[]> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -231,7 +231,7 @@ async function main() {
     }
     const { data: missingSets, error: setsErr } = await missingSetsQuery;
     if (setsErr) throw setsErr;
-    matchIdsNeedingUpdate = new Set((missingSets ?? []).map((s) => s.match_id as string));
+    matchIdsNeedingUpdate = new Set((missingSets ?? []).map((s: { match_id: string }) => s.match_id));
     console.log(`leaguepedia_game_id 없는 세트가 있는 매치: ${matchIdsNeedingUpdate.size}개 (전체 덮어쓰기: --force)`);
   }
 

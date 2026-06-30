@@ -11,7 +11,7 @@
 
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { ddragonVersionFromPatch, uniqueDdragonVersionsForPatches } from "../lib/ddragon";
 
 // ─── 환경 변수 ──────────────────────────────────────────────────
@@ -42,7 +42,7 @@ function parseSegmentArg() {
 }
 
 async function tournamentIdsForSegment(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClient,
   segment: string,
 ): Promise<string[]> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
