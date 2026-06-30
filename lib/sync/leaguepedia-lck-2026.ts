@@ -441,8 +441,8 @@ async function findExistingMatchId(
   supabase: SupabaseClient,
   payload: {
     tournament_id: string;
-    team_a_id: string;
-    team_b_id: string;
+    team_a_id: string | null;
+    team_b_id: string | null;
     match_date: string;
     leaguepedia_match_id: string;
   },
@@ -458,6 +458,11 @@ async function findExistingMatchId(
   }
   if (byLeaguepediaId) {
     return byLeaguepediaId.id;
+  }
+
+  // 레거시(gol:%) 매칭은 양 팀이 모두 확정된 경우에만 가능
+  if (!payload.team_a_id || !payload.team_b_id) {
+    return null;
   }
 
   const day = matchDayKST(payload.match_date);
@@ -527,11 +532,6 @@ function resolveTeamIntl(name: string, teams: Awaited<ReturnType<typeof getTeams
 
   const pageKey = normalizeLookupKey(name);
   return teams.byLeaguepediaPage.get(pageKey) ?? null;
-}
-
-function isLckTeam(name: string, team: TeamRowWithLck | null) {
-  // LCK 팀이면 TEAM_ALIASES에 이름이 있거나 DB에 is_lck_team=true
-  return teamSlugFor(name) != null || team?.is_lck_team === true;
 }
 
 async function upsertInternationalTeam(
@@ -652,49 +652,30 @@ export async function syncInternationalMatches2026(
       const teamAName = row.Team1?.trim();
       const teamBName = row.Team2?.trim();
 
-      if (!teamAName || !teamBName || teamAName === "TBD" || teamBName === "TBD") {
-        summary.skipped.push({
-          matchId: row.MatchId,
-          teamAName,
-          teamBName,
-          reason: "team_tbd_or_missing",
-        });
-        continue;
-      }
+      // 팀이 아직 미정(TBD)이면 팀 없이 일정만 저장한다
+      const teamAIsTbd = !teamAName || teamAName === "TBD";
+      const teamBIsTbd = !teamBName || teamBName === "TBD";
 
-      let teamA = resolveTeamIntl(teamAName, teams);
-      let teamB = resolveTeamIntl(teamBName, teams);
+      let teamA = teamAIsTbd ? null : resolveTeamIntl(teamAName, teams);
+      let teamB = teamBIsTbd ? null : resolveTeamIntl(teamBName, teams);
 
-      const teamAIsLck = isLckTeam(teamAName, teamA);
-      const teamBIsLck = isLckTeam(teamBName, teamB);
-
-      // 한국팀이 한 팀도 없으면 스킵
-      if (!teamAIsLck && !teamBIsLck) {
-        summary.skipped.push({
-          matchId: row.MatchId,
-          teamAName,
-          teamBName,
-          reason: "no_lck_team_involved",
-        });
-        continue;
-      }
-
-      // 미등록 팀 자동 생성
-      if (!teamA) {
+      // 미등록 팀 자동 생성 (실팀일 때만)
+      if (!teamAIsTbd && !teamA) {
         teamA = await upsertInternationalTeam(supabase, teamAName, teams);
         if (teamA) {
           summary.teamsAutoCreated += 1;
         }
       }
 
-      if (!teamB) {
+      if (!teamBIsTbd && !teamB) {
         teamB = await upsertInternationalTeam(supabase, teamBName, teams);
         if (teamB) {
           summary.teamsAutoCreated += 1;
         }
       }
 
-      if (!teamA || !teamB) {
+      // 실팀인데 생성에 실패한 경우만 스킵 (TBD는 통과)
+      if ((!teamAIsTbd && !teamA) || (!teamBIsTbd && !teamB)) {
         summary.skipped.push({
           matchId: row.MatchId,
           teamAName,
@@ -744,8 +725,8 @@ export async function syncInternationalMatches2026(
 
       const existingId = await findExistingMatchId(supabase, {
         tournament_id: tournamentId,
-        team_a_id: teamA.id,
-        team_b_id: teamB.id,
+        team_a_id: teamA?.id ?? null,
+        team_b_id: teamB?.id ?? null,
         match_date: matchDate,
         leaguepedia_match_id: row.MatchId,
       });
@@ -753,15 +734,17 @@ export async function syncInternationalMatches2026(
       const payload = {
         tournament_id: tournamentId,
         stage_id: stageId,
-        name: row.ShownName?.trim() || `${teamA.short_name} vs ${teamB.short_name}`,
+        name:
+          row.ShownName?.trim() ||
+          `${teamA?.short_name ?? "TBD"} vs ${teamB?.short_name ?? "TBD"}`,
         match_date: matchDate,
         status: statusFromRow(row),
-        team_a_id: teamA.id,
-        team_b_id: teamB.id,
+        team_a_id: teamA?.id ?? null,
+        team_b_id: teamB?.id ?? null,
         team_a_score: parseInteger(row.Team1Score),
         team_b_score: parseInteger(row.Team2Score),
         best_of: parseInteger(row.BestOf),
-        winner_team_id: winnerTeamIdFromRow(row, teamA, teamB),
+        winner_team_id: teamA && teamB ? winnerTeamIdFromRow(row, teamA, teamB) : null,
         leaguepedia_match_id: row.MatchId,
         venue: null,
         vod_url: null,
@@ -846,20 +829,15 @@ export async function syncLeaguepediaLck2026(
       const teamAName = row.Team1?.trim();
       const teamBName = row.Team2?.trim();
 
-      if (!teamAName || !teamBName || teamAName === "TBD" || teamBName === "TBD") {
-        summary.skipped.push({
-          matchId: row.MatchId,
-          teamAName,
-          teamBName,
-          reason: "team_tbd_or_missing",
-        });
-        continue;
-      }
+      // 팀이 아직 미정(TBD)이면 팀 없이 일정만 저장한다
+      const teamAIsTbd = !teamAName || teamAName === "TBD";
+      const teamBIsTbd = !teamBName || teamBName === "TBD";
 
-      const teamA = resolveTeam(teamAName, teams);
-      const teamB = resolveTeam(teamBName, teams);
+      const teamA = teamAIsTbd ? null : resolveTeam(teamAName, teams);
+      const teamB = teamBIsTbd ? null : resolveTeam(teamBName, teams);
 
-      if (!teamA || !teamB) {
+      // 실팀인데 별칭을 못 찾은 경우만 스킵 (TBD는 통과)
+      if ((!teamAIsTbd && !teamA) || (!teamBIsTbd && !teamB)) {
         summary.skipped.push({
           matchId: row.MatchId,
           teamAName,
@@ -909,8 +887,8 @@ export async function syncLeaguepediaLck2026(
 
       const existingId = await findExistingMatchId(supabase, {
         tournament_id: tournamentId,
-        team_a_id: teamA.id,
-        team_b_id: teamB.id,
+        team_a_id: teamA?.id ?? null,
+        team_b_id: teamB?.id ?? null,
         match_date: matchDate,
         leaguepedia_match_id: row.MatchId,
       });
@@ -918,15 +896,17 @@ export async function syncLeaguepediaLck2026(
       const payload = {
         tournament_id: tournamentId,
         stage_id: stageId,
-        name: row.ShownName?.trim() || `${teamA.short_name} vs ${teamB.short_name}`,
+        name:
+          row.ShownName?.trim() ||
+          `${teamA?.short_name ?? "TBD"} vs ${teamB?.short_name ?? "TBD"}`,
         match_date: matchDate,
         status: statusFromRow(row),
-        team_a_id: teamA.id,
-        team_b_id: teamB.id,
+        team_a_id: teamA?.id ?? null,
+        team_b_id: teamB?.id ?? null,
         team_a_score: parseInteger(row.Team1Score),
         team_b_score: parseInteger(row.Team2Score),
         best_of: parseInteger(row.BestOf),
-        winner_team_id: winnerTeamIdFromRow(row, teamA, teamB),
+        winner_team_id: teamA && teamB ? winnerTeamIdFromRow(row, teamA, teamB) : null,
         leaguepedia_match_id: row.MatchId,
         venue: null,
         vod_url: null,

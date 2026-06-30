@@ -48,7 +48,46 @@ export async function updateInternationalTeamMediaAction(formData: FormData) {
   }
 
   revalidatePath("/admin/international-teams");
+  revalidatePath(`/admin/international-teams/${teamId}`);
   revalidatePath("/admin/teams");
   revalidatePath("/teams");
   revalidatePath(`/teams/${team.slug}`);
+}
+
+export async function updateInternationalPlayerImageAction(formData: FormData) {
+  const playerId = requiredText(formData, "playerId", "선수 ID");
+  const profileImageUrl = textOrNull(formData.get("profileImageUrl"));
+
+  const client = createSupabaseAdminClient();
+  const { data: player, error: lookupError } = await client
+    .from("players")
+    .select("slug, team_id, teams(slug)")
+    .eq("id", playerId)
+    .maybeSingle<{ slug: string; team_id: string | null; teams: { slug: string } | null }>();
+
+  if (lookupError) {
+    throw new Error(lookupError.message);
+  }
+
+  if (!player) {
+    throw new Error("선수를 찾을 수 없습니다.");
+  }
+
+  const { error } = await client
+    .from("players")
+    .update({ profile_image_url: profileImageUrl })
+    .eq("id", playerId);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath("/admin/international-teams");
+  if (player.team_id) {
+    revalidatePath(`/admin/international-teams/${player.team_id}`);
+  }
+  revalidatePath(`/players/${player.slug}`);
+  if (player.teams?.slug) {
+    revalidatePath(`/teams/${player.teams.slug}`);
+  }
 }

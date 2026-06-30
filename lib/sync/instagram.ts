@@ -96,6 +96,16 @@ export async function storeInstagramImage(
 
 // ─── DB 헬퍼 ────────────────────────────────────────────────────
 
+/** source_url(.../p/{shortcode}/, /reel/, /tv/)에서 shortcode를 뽑는다. */
+export function extractShortcode(sourceUrl: string): string | null {
+  try {
+    const { pathname } = new URL(sourceUrl);
+    return pathname.match(/\/(?:p|reel|tv)\/([A-Za-z0-9_-]+)/)?.[1] ?? null;
+  } catch {
+    return null;
+  }
+}
+
 function extractUsername(instagramUrl: string): string {
   const trimmed = instagramUrl.trim();
   if (!trimmed.includes("instagram.com")) return trimmed.replace(/^@/, "");

@@ -18,6 +18,7 @@
     "backfill:leaguepedia-set-picks-bans": "node --experimental-strip-types scripts/backfill-leaguepedia-set-picks-bans.ts",
     "backfill:csv-set-player-stats": "node --experimental-strip-types scripts/backfill-csv-set-player-stats.ts",
     "backfill:instagram-images": "node --experimental-strip-types scripts/backfill-instagram-images.ts",
+    "recover:instagram-embed-images": "node --experimental-strip-types scripts/recover-instagram-embed-images.ts",
     "sync:international-rosters": "node --experimental-strip-types scripts/import-international-rosters.ts",
     "sync:pom": "node --experimental-strip-types scripts/sync-pom.ts",
     "sync:pom:full": "node --experimental-strip-types scripts/sync-pom.ts --full",

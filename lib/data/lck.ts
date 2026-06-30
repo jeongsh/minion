@@ -837,6 +837,20 @@ export async function getRetiredPlayers() {
   }, []);
 }
 
+export async function getPlayersByTeamId(teamId: string) {
+  return fromSupabase(async () => {
+    const { data, error } = await createSupabaseServerClient()
+      .from("players")
+      .select("*")
+      .eq("team_id", teamId)
+      .neq("is_active", false)
+      .order("name", { ascending: true });
+
+    if (error) throw error;
+    return (data as PlayerRow[]).map(mapPlayer);
+  }, []);
+}
+
 export async function getPlayerCareerHistories(playerIds: string[]): Promise<PlayerCareerHistory[]> {
   if (playerIds.length === 0) return [];
   return fromSupabase(async () => {

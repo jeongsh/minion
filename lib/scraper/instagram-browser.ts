@@ -342,6 +342,68 @@ export async function scrapeInstagramPosts(
   }
 }
 
+// ─── 공개 API: embed 이미지 복구 ─────────────────────────────────
+//
+// 만료된 CDN URL을 든 옛 게시물은 프로필 스크랩 창에 안 잡혀 복구가 안 된다.
+// 하지만 embed 페이지(/p/{shortcode}/embed/)는 shortcode만 있으면 게시물
+// 나이와 무관하게 인스타가 클라이언트에서 메인 이미지를 렌더해 준다.
+// 실제 브라우저로 렌더한 뒤 그 신선한 URL을 뽑아낸다. (로그인 불필요)
+
+export interface EmbedImageScraper {
+  fetch: (shortcode: string) => Promise<string | null>;
+  close: () => Promise<void>;
+}
+
+/**
+ * embed 페이지를 재사용 가능한 단일 페이지로 렌더해 게시물의 신선한
+ * 메인 이미지 URL을 뽑는 스크래퍼를 만든다. 많은 shortcode를 처리할 때
+ * 컨텍스트를 한 번만 띄우고 페이지만 갈아끼우므로 효율적이다.
+ */
+export async function createEmbedImageScraper(
+  sessionCookie?: string,
+): Promise<EmbedImageScraper> {
+  const context = await createContext(sessionCookie);
+  const page = await context.newPage();
+
+  return {
+    async fetch(shortcode: string): Promise<string | null> {
+      try {
+        await page.goto(
+          `https://www.instagram.com/p/${shortcode}/embed/captioned/`,
+          { waitUntil: "networkidle", timeout: 40_000 },
+        );
+        // 메인 이미지가 로드될 때까지 잠깐 대기 (삭제·비공개면 안 뜸)
+        await page
+          .waitForSelector("img.EmbeddedMediaImage", { timeout: 8_000 })
+          .catch(() => null);
+
+        return await page.evaluate(() => {
+          const isFeed = (s: string) => s.includes("/t51.82787-15/");
+          // 1순위: 메인 미디어 이미지
+          const main = document.querySelector<HTMLImageElement>(
+            "img.EmbeddedMediaImage",
+          );
+          const mainSrc = main?.currentSrc || main?.src;
+          if (mainSrc && isFeed(mainSrc)) return mainSrc;
+
+          // 2순위: 피드 이미지(t51.82787-15) 중 가장 큰 것
+          // — 아바타(t51.2885-19)와 하단 "더 보기" 썸네일(150px)은 제외
+          const imgs = Array.from(document.querySelectorAll("img"))
+            .map((e) => ({ src: e.currentSrc || e.src, w: e.naturalWidth }))
+            .filter((x) => x.src && isFeed(x.src) && x.w >= 320)
+            .sort((a, b) => b.w - a.w);
+          return imgs[0]?.src ?? null;
+        });
+      } catch {
+        return null;
+      }
+    },
+    async close() {
+      await context.close();
+    },
+  };
+}
+
 // ─── 공개 API: 스토리 ────────────────────────────────────────────
 
 export async function scrapeInstagramStories(
