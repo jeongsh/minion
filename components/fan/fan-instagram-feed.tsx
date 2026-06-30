@@ -1,14 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
+import { FanFeedTabs, buildOwnerTabs } from "@/components/fan/fan-feed-tabs";
 import type { InstagramStory, Player, PlayerSocialPost, TeamSocialPost } from "@/lib/types";
 
 // ─── 타입 ──────────────────────────────────────────────────────
 
 type PostItem = {
   id: string;
+  ownerType: "team" | "player";
   ownerName: string;
   caption: string;
   imageUrl?: string;
@@ -363,12 +365,49 @@ function PostEmbedModal({
 
 // ─── 게시물 카드 ─────────────────────────────────────────────────
 
-function PostCard({ item, onClick, compact = false }: { item: PostItem; onClick: () => void; compact?: boolean }) {
+function PostCard({
+  item,
+  onClick,
+  compact = false,
+  profileGrid = false,
+}: {
+  item: PostItem;
+  onClick: () => void;
+  compact?: boolean;
+  profileGrid?: boolean;
+}) {
+  if (profileGrid) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className="group relative aspect-square overflow-hidden bg-[#efefef]"
+        aria-label={`${item.ownerName} Instagram 게시물 열기`}
+      >
+        {item.imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={proxyUrl(item.imageUrl)} alt="" className="h-full w-full object-cover" />
+        ) : (
+          <span className="grid h-full place-items-center">
+            <InstagramIcon className="h-8 w-8 text-[#a8a8a8]" />
+          </span>
+        )}
+        <span className="absolute inset-0 hidden items-center justify-center bg-black/45 text-white group-hover:flex">
+          {item.likesCount ? (
+            <span className="text-sm font-black">♥ {item.likesCount.toLocaleString()}</span>
+          ) : (
+            <InstagramIcon className="h-6 w-6" />
+          )}
+        </span>
+      </button>
+    );
+  }
+
   return (
     <button
       type="button"
       onClick={onClick}
-      className="group block w-full overflow-hidden rounded-2xl border border-[#e6e9ef] bg-white text-left transition duration-200 hover:-translate-y-0.5 hover:border-accent hover:shadow-lg hover:shadow-black/5"
+      className="group block w-full overflow-hidden border border-[#e6e9ef] bg-white text-left transition duration-200 hover:-translate-y-0.5 hover:border-accent hover:shadow-lg hover:shadow-black/5"
     >
       <div className="relative aspect-square overflow-hidden bg-surface-muted">
         {item.imageUrl ? (
@@ -390,18 +429,16 @@ function PostCard({ item, onClick, compact = false }: { item: PostItem; onClick:
           </span>
         </div>
       </div>
-      <div className={compact ? "p-3" : "p-3.5"}>
-        <div className="flex items-center justify-between text-[10px] text-muted">
-          <span className="font-bold text-accent truncate">@{item.ownerName}</span>
-          <span className="shrink-0" suppressHydrationWarning>{relativeTime(item.postedAt)}</span>
+      <div className={compact ? "p-3" : "flex h-[84px] flex-col p-3.5"}>
+        <div className="flex items-center justify-between gap-2 text-[10px] text-muted">
+          <span className="truncate font-bold text-accent">@{item.ownerName}</span>
+          <span className="shrink-0 whitespace-nowrap" suppressHydrationWarning>
+            {!compact && item.likesCount ? `♥ ${item.likesCount.toLocaleString()} · ` : ""}
+            {relativeTime(item.postedAt)}
+          </span>
         </div>
-        {!compact && item.likesCount !== undefined && item.likesCount > 0 && (
-          <p className="mt-1 text-[11px] font-bold text-muted">
-            ♥ {item.likesCount.toLocaleString()}
-          </p>
-        )}
-        {!compact && item.caption && (
-          <p className="mt-0.5 line-clamp-2 text-xs leading-relaxed">{item.caption}</p>
+        {!compact && (
+          <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-[#262626]">{item.caption}</p>
         )}
       </div>
     </button>
@@ -423,7 +460,6 @@ function InstagramIcon({ className }: { className?: string }) {
 export function FanInstagramFeed({
   teamSlug,
   teamName,
-  teamInstagramUrl,
   teamPosts,
   playerPosts,
   stories,
@@ -432,6 +468,7 @@ export function FanInstagramFeed({
 }: {
   teamSlug: string;
   teamName: string;
+  teamLogoUrl?: string;
   teamInstagramUrl?: string | null;
   teamPosts: TeamSocialPost[];
   playerPosts: PlayerSocialPost[];
@@ -441,8 +478,13 @@ export function FanInstagramFeed({
 }) {
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const [embedPostIndex, setEmbedPostIndex] = useState<number | null>(null);
+  const [activeKey, setActiveKey] = useState("all");
   const INITIAL_LIMIT = variant === "preview" ? 4 : 12;
   const [visibleCount, setVisibleCount] = useState(INITIAL_LIMIT);
+  const [isTabPending, setIsTabPending] = useState(false);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const tabLockRef = useRef(false);
+  const tabUnlockTimerRef = useRef<number | null>(null);
 
   const playersById = new Map(players.map((p) => [p.id, p]));
 
@@ -450,6 +492,7 @@ export function FanInstagramFeed({
   const posts: PostItem[] = [
     ...teamPosts.map((p) => ({
       id: `team-${p.id}`,
+      ownerType: "team" as const,
       ownerName: teamName,
       caption: p.content || p.title,
       imageUrl: p.thumbnailUrl,
@@ -459,6 +502,7 @@ export function FanInstagramFeed({
     })),
     ...playerPosts.map((p) => ({
       id: `player-${p.id}`,
+      ownerType: "player" as const,
       ownerName: playersById.get(p.playerId)?.name ?? "선수",
       caption: p.caption,
       imageUrl: p.imageUrl,
@@ -481,53 +525,117 @@ export function FanInstagramFeed({
         : (playersById.get(s.ownerId)?.name ?? "선수"),
   }));
 
-  const hasStories = storyItems.length > 0;
-  const hasPosts = posts.length > 0;
+  // 탭 필터링 (전체 / 구단 / 선수 개개인) — 전체 보기에서만 노출
+  const tabs = buildOwnerTabs(posts, teamName);
+
+  const filteredPosts =
+    activeKey === "all" ? posts : posts.filter((p) => p.ownerName === activeKey);
+  const filteredStories =
+    activeKey === "all" ? storyItems : storyItems.filter((s) => s.ownerName === activeKey);
+
+  const hasStories = filteredStories.length > 0;
+  const hasPosts = filteredPosts.length > 0;
+
+  // 탭을 바꾸면 처음부터 다시 보여준다.
+  const handleTabChange = (key: string) => {
+    if (key === activeKey || tabLockRef.current) return;
+
+    tabLockRef.current = true;
+    setIsTabPending(true);
+    setActiveKey(key);
+    setVisibleCount(INITIAL_LIMIT);
+
+    tabUnlockTimerRef.current = window.setTimeout(() => {
+      tabLockRef.current = false;
+      setIsTabPending(false);
+      tabUnlockTimerRef.current = null;
+    }, 160);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (tabUnlockTimerRef.current !== null) {
+        window.clearTimeout(tabUnlockTimerRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (variant !== "full" || visibleCount >= filteredPosts.length) return;
+
+    const target = sentinelRef.current;
+    if (!target) return;
+
+    const loadNextBatch = () => {
+      setVisibleCount((count) => Math.min(filteredPosts.length, count + 12));
+    };
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry?.isIntersecting) return;
+        loadNextBatch();
+      },
+      { rootMargin: "500px 0px" },
+    );
+
+    const handleScroll = () => {
+      const remaining = document.documentElement.scrollHeight - window.scrollY - window.innerHeight;
+      if (remaining < 600) loadNextBatch();
+    };
+
+    observer.observe(target);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    document.addEventListener("scroll", handleScroll, { passive: true, capture: true });
+    handleScroll();
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("scroll", handleScroll);
+      document.removeEventListener("scroll", handleScroll, true);
+    };
+  }, [filteredPosts.length, variant, visibleCount]);
 
   return (
-    <section className="rounded-3xl border border-[#e6e9ef] bg-white shadow-sm">
-      {/* 헤더 */}
-      <div className="flex items-center justify-between gap-4 p-5 md:px-6">
-        <div className="flex items-center gap-2">
-          <InstagramIcon className="h-5 w-5 text-accent" />
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-accent">Social update</p>
-            <h2 className="mt-1 text-2xl font-black tracking-[-0.02em]">인스타그램</h2>
+    <section className={variant === "full" ? "" : "rounded-3xl border border-[#e6e9ef] bg-white shadow-sm"}>
+      {/* 프리뷰 헤더 (전체 보기에서는 페이지가 헤더를 가진다) */}
+      {variant === "preview" ? (
+        <div className="flex items-center justify-between gap-4 p-5 md:px-6">
+          <div className="flex items-center gap-2">
+            <InstagramIcon className="h-5 w-5 text-accent" />
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.16em] text-accent">Social update</p>
+              <h2 className="mt-1 text-2xl font-black tracking-[-0.02em]">인스타그램</h2>
+            </div>
+            {hasStories && (
+              <span className="rounded-full bg-accent/10 px-2 py-0.5 text-xs font-bold text-accent">
+                스토리 {storyItems.length}
+              </span>
+            )}
           </div>
-          {hasStories && (
-            <span className="rounded-full bg-accent/10 px-2 py-0.5 text-xs font-bold text-accent">
-              스토리 {storyItems.length}
-            </span>
-          )}
+          <Link
+            href={`/fan/${teamSlug}/instagram`}
+            className="rounded-full border border-[#dfe3ea] px-4 py-2 text-sm font-bold text-[#475467] transition hover:border-accent hover:text-accent"
+          >
+            전체 보기 →
+          </Link>
         </div>
-        <div className="flex items-center gap-2">
-          {variant === "preview" ? (
-            <Link
-              href={`/fan/${teamSlug}/instagram`}
-              className="rounded-full border border-[#dfe3ea] px-4 py-2 text-sm font-bold text-[#475467] transition hover:border-accent hover:text-accent"
-            >
-              전체 보기 →
-            </Link>
-          ) : null}
-          {variant === "full" && teamInstagramUrl ? (
-            <Link
-              href={teamInstagramUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="rounded-full border border-[#dfe3ea] px-4 py-2 text-sm font-bold text-[#475467] transition hover:border-accent hover:text-accent"
-            >
-              팀 계정 ↗
-            </Link>
-          ) : null}
-        </div>
-      </div>
+      ) : null}
+
+      {/* 탭 필터 (전체 / 구단 / 선수 개개인) */}
+      {variant === "full" ? (
+        <FanFeedTabs
+          tabs={tabs}
+          activeKey={activeKey}
+          onChange={handleTabChange}
+          isPending={isTabPending}
+        />
+      ) : null}
 
       {/* 스토리 버블 */}
       {hasStories && (
-        <div className="border-t border-[#eceef2] px-5 py-4 md:px-6">
+        <div className={variant === "full" ? "mb-8" : "border-t border-[#eceef2] px-5 py-4 md:px-6"}>
           <p className="mb-3 text-xs font-bold text-muted uppercase tracking-wide">스토리</p>
           <div className="flex gap-4 overflow-x-auto pb-1 scrollbar-none">
-            {storyItems.map((story, i) => (
+            {filteredStories.map((story, i) => (
               <StoryBubble
                 key={story.id}
                 story={story}
@@ -539,34 +647,45 @@ export function FanInstagramFeed({
       )}
 
       {/* 게시물 그리드 */}
-      <div className={`border-t border-[#eceef2] p-5 md:p-6 ${hasStories ? "border-t" : ""}`}>
+      <div
+        aria-busy={isTabPending}
+        className={`${variant === "full" ? "" : `border-t border-[#eceef2] p-5 md:p-6 ${hasStories ? "border-t" : ""}`} transition-opacity ${
+          isTabPending ? "opacity-60" : "opacity-100"
+        }`}
+      >
         {hasPosts ? (
           <>
-            <p className="mb-3 text-xs font-bold text-muted uppercase tracking-wide">게시물</p>
-            <div className={`grid grid-cols-2 gap-3 ${variant === "preview" ? "sm:grid-cols-4" : "sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6"}`}>
-              {posts.slice(0, visibleCount).map((item, index) => (
+            {variant === "preview" ? (
+              <p className="mb-3 text-xs font-bold text-muted uppercase tracking-wide">게시물</p>
+            ) : null}
+            <div
+              className={
+                variant === "full"
+                  ? "grid items-start sm:grid-cols-2 lg:grid-cols-3"
+                  : "grid grid-cols-2 gap-3 sm:grid-cols-4"
+              }
+            >
+              {filteredPosts.slice(0, visibleCount).map((item, index) => (
                 <PostCard key={item.id} item={item} compact={variant === "preview"} onClick={() => setEmbedPostIndex(index)} />
               ))}
             </div>
-            {variant === "full" && posts.length > visibleCount && (
-              <button
-                type="button"
-                onClick={() => setVisibleCount((count) => Math.min(posts.length, count + 12))}
-                className="mt-5 w-full rounded-full border border-border py-3 text-sm font-bold text-muted transition-colors hover:border-accent hover:text-accent"
-              >
-                게시물 더 보기 ({posts.length - visibleCount}개 남음)
-              </button>
-            )}
+            {variant === "full" && filteredPosts.length > visibleCount ? (
+              <div ref={sentinelRef} data-testid="instagram-infinite-sentinel" className="grid h-24 place-items-center">
+                <span className="h-7 w-7 animate-spin rounded-full border-2 border-[#dbdbdb] border-t-[#262626]" />
+              </div>
+            ) : variant === "full" && filteredPosts.length > INITIAL_LIMIT ? (
+              <p className="py-8 text-center text-xs text-[#8e8e8e]">모든 게시물을 확인했습니다.</p>
+            ) : null}
           </>
         ) : !hasStories ? (
-          <p className="py-8 text-center text-sm text-muted">아직 새 게시물이 없습니다.</p>
+          <p className="py-16 text-center text-sm text-muted">아직 새 게시물이 없습니다.</p>
         ) : null}
       </div>
 
       {/* 스토리 뷰어 모달 */}
       {viewerIndex !== null && (
         <StoryViewer
-          stories={storyItems}
+          stories={filteredStories}
           startIndex={viewerIndex}
           onClose={() => setViewerIndex(null)}
         />
@@ -575,7 +694,7 @@ export function FanInstagramFeed({
       {/* 게시물 임베드 모달 */}
       {embedPostIndex !== null && (
         <PostEmbedModal
-          items={posts}
+          items={filteredPosts}
           startIndex={embedPostIndex}
           onClose={() => setEmbedPostIndex(null)}
         />

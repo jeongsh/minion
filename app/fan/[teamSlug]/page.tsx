@@ -385,6 +385,7 @@ export default async function FanHomePage({
       <FanInstagramFeed
         teamSlug={team.fanSiteHost}
         teamName={team.shortName}
+        teamLogoUrl={team.logoUrl}
         teamInstagramUrl={team.officialInstagramUrl}
         teamPosts={instagramFeed.teamPosts}
         playerPosts={instagramFeed.playerPosts}
