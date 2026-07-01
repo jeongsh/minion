@@ -3,16 +3,21 @@ import { resolve } from "node:path";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import { diagnoseMatches } from "../lib/match-diagnostics.ts";
+import { reconcileMatchFromSets } from "../lib/match-reconcile.ts";
 import type { MatchStatus, SetStatus } from "../lib/types.ts";
 
 /**
- * 매치/세트 상태 불일치를 읽기 전용으로 진단한다. 이 스크립트는 어떤 테이블도 쓰지 않는다.
- * 실제 데이터 복구(쓰기)는 별도 단계에서 이 스크립트의 결과를 검토한 뒤 진행한다.
+ * 매치/세트 상태 불일치를 진단한다. --apply 없이는 어떤 테이블도 쓰지 않는다.
  *
  * 사용법:
  *   npm run diagnose:match-set-status -- --all
  *   npm run diagnose:match-set-status -- --tournament=<uuid-or-name>
  *   npm run diagnose:match-set-status -- --match=<uuid-or-leaguepedia-id>
+ *   npm run diagnose:match-set-status -- --match=<...> --apply   (실제로 고침, 반드시 좁은 범위로 먼저)
+ *
+ * --apply가 있으면: matchMismatches는 reconcileMatchFromSets()로, setStatusMismatches는
+ * 재계산된 status로 갱신한다. 참가팀 밖 승자/블루=레드/세트번호 이상/불완전 선수스탯은
+ * 기계적으로 판단할 수 없어 --apply로도 고치지 않고 계속 진단만 한다(반드시 사람이 확인).
  */
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -23,6 +28,7 @@ type MatchRow = {
   id: string;
   name: string;
   leaguepedia_match_id: string | null;
+  match_date: string;
   team_a_id: string | null;
   team_b_id: string | null;
   best_of: number | null;
@@ -43,6 +49,7 @@ type SetRow = {
   duration_seconds: number | null;
   blue_kills: number | null;
   red_kills: number | null;
+  result_recorded_at: string | null;
 };
 
 function loadEnvFile() {
@@ -85,6 +92,8 @@ function chunk<T>(items: T[], size: number): T[][] {
   return result;
 }
 
+const PAGE_SIZE = 1000;
+
 async function selectInChunks<T>(
   supabase: SupabaseClient,
   table: string,
@@ -94,11 +103,24 @@ async function selectInChunks<T>(
 ): Promise<T[]> {
   const rows: T[] = [];
   for (const batch of chunk(ids, CHUNK_SIZE)) {
-    const { data, error } = await supabase.from(table).select(columns).in(column, batch);
-    if (error) {
-      throw error;
+    // 청크 하나(최대 CHUNK_SIZE개 id)의 결과도 PostgREST 기본 상한(1000행)을
+    // 넘을 수 있어(예: set_picks_bans는 세트당 20건 안팎) range로 끝까지 페이지네이션한다.
+    let from = 0;
+    while (true) {
+      const { data, error } = await supabase
+        .from(table)
+        .select(columns)
+        .in(column, batch)
+        .range(from, from + PAGE_SIZE - 1);
+      if (error) {
+        throw error;
+      }
+      rows.push(...((data ?? []) as T[]));
+      if (!data || data.length < PAGE_SIZE) {
+        break;
+      }
+      from += PAGE_SIZE;
     }
-    rows.push(...((data ?? []) as T[]));
   }
   return rows;
 }
@@ -184,7 +206,7 @@ async function main() {
   let matchesQuery = supabase
     .from("matches")
     .select(
-      "id, name, leaguepedia_match_id, team_a_id, team_b_id, best_of, status, team_a_score, team_b_score, winner_team_id",
+      "id, name, leaguepedia_match_id, match_date, team_a_id, team_b_id, best_of, status, team_a_score, team_b_score, winner_team_id",
     );
   if (matchIds) {
     matchesQuery = matchesQuery.in("id", matchIds);
@@ -195,11 +217,12 @@ async function main() {
   }
   const matches = (matchData ?? []) as MatchRow[];
   const allMatchIds = matches.map((match) => match.id);
+  const matchById = new Map(matches.map((match) => [match.id, match]));
 
   const setRows = await selectInChunks<SetRow>(
     supabase,
     "sets",
-    "id, match_id, set_number, status, winner_team_id, blue_team_id, red_team_id, duration_seconds, blue_kills, red_kills",
+    "id, match_id, set_number, status, winner_team_id, blue_team_id, red_team_id, duration_seconds, blue_kills, red_kills, result_recorded_at",
     "match_id",
     allMatchIds,
   );
@@ -359,6 +382,53 @@ async function main() {
       2,
     ),
   );
+
+  const apply = process.argv.includes("--apply");
+  if (!apply) {
+    console.log("");
+    console.log("(dry-run — 실제로 고치려면 --apply를 추가하세요)");
+    return;
+  }
+
+  console.log("");
+  console.log("=== --apply: 실제로 고치는 중 ===");
+
+  const setById = new Map(setRows.map((set) => [set.id, set]));
+  let setsFixed = 0;
+  for (const mismatch of setStatusMismatches) {
+    const set = setById.get(mismatch.setId);
+    const match = matchById.get(mismatch.matchId);
+    if (!set || !match) continue;
+
+    const enteringResultStatus =
+      (mismatch.after === "finished" || mismatch.after === "data_synced") &&
+      mismatch.before !== "finished" &&
+      mismatch.before !== "data_synced";
+
+    const update: { status: SetStatus; result_recorded_at?: string } = { status: mismatch.after };
+    if (enteringResultStatus && !set.result_recorded_at) {
+      // 트리거(set_sets_result_recorded_at)가 now()로 채우면 평점 입력창이 다시 열리므로,
+      // 실제 결과 시각을 알 수 없는 과거 데이터는 매치 일시로 대신 채운다.
+      update.result_recorded_at = match.match_date;
+    }
+
+    const { error: updateError } = await supabase.from("sets").update(update).eq("id", mismatch.setId);
+    if (updateError) {
+      throw updateError;
+    }
+    setsFixed += 1;
+  }
+  console.log(`세트 상태 ${setsFixed}건 갱신 완료`);
+
+  let matchesFixed = 0;
+  const matchIdsToReconcile = new Set(matchMismatches.map((mismatch) => mismatch.matchId));
+  for (const matchId of matchIdsToReconcile) {
+    const result = await reconcileMatchFromSets(supabase, matchId);
+    if (result.changed) {
+      matchesFixed += 1;
+    }
+  }
+  console.log(`매치 스코어/상태/승자 ${matchesFixed}건 갱신 완료`);
 }
 
 main().catch((error) => {
