@@ -108,6 +108,75 @@ function extractOverviewPage(leaguepediaMatchId: string): string | null {
   return leaguepediaMatchId.slice(0, underscoreIdx);
 }
 
+export type SinglePomSyncResult =
+  | { updated: true; playerId: string; playerName: string }
+  | {
+      updated: false;
+      reason: "already_set" | "no_leaguepedia_match_id" | "no_pom_in_leaguepedia" | "player_not_found";
+      mvpName?: string;
+    };
+
+/**
+ * 매치 하나만 POM을 동기화한다. 기존 벌크 syncPom()과 동일한 Cargo 조회 로직을
+ * 재사용하되, 이 매치의 대회 overviewPage 한 건만 조회한다. 이미 공식 POM이
+ * 수동으로 지정돼 있으면(문서 8.2절 — 수동 관리 값은 외부 값으로 덮어쓰지 않음)
+ * force가 아닌 한 건드리지 않는다.
+ */
+export async function syncPomForMatch(
+  supabase: SupabaseClient,
+  matchId: string,
+  options: { force?: boolean; onRetry?: (waitMs: number) => void } = {},
+): Promise<SinglePomSyncResult> {
+  const { data: match, error: matchError } = await supabase
+    .from("matches")
+    .select("id, leaguepedia_match_id, official_pom_player_id")
+    .eq("id", matchId)
+    .single();
+  if (matchError) {
+    throw matchError;
+  }
+
+  if (!options.force && match.official_pom_player_id) {
+    return { updated: false, reason: "already_set" };
+  }
+
+  const overviewPage = match.leaguepedia_match_id ? extractOverviewPage(match.leaguepedia_match_id) : null;
+  if (!overviewPage) {
+    return { updated: false, reason: "no_leaguepedia_match_id" };
+  }
+
+  const pomMap = await fetchPomForOverviewPage(overviewPage, options.onRetry);
+  const mvpName = pomMap.get(match.leaguepedia_match_id!)?.trim();
+  // Leaguepedia는 MVP가 기록되지 않은 경기에 빈 값 대신 "N/A" 같은 자리표시자를
+  // 넣어두기도 한다 — 이걸 선수 이름으로 해석 시도하지 않는다.
+  if (!mvpName || /^(n\/?a|tbd|-|없음)$/i.test(mvpName)) {
+    return { updated: false, reason: "no_pom_in_leaguepedia" };
+  }
+
+  const { data: players, error: playersError } = await supabase.from("players").select("id, name");
+  if (playersError) {
+    throw playersError;
+  }
+
+  const playerByName = new Map(players.map((p) => [p.name.toLowerCase(), p.id]));
+  const gameName = mvpName.replace(/\s*\(.*\)\s*$/, "").trim();
+  const playerId = playerByName.get(gameName.toLowerCase());
+  if (!playerId) {
+    return { updated: false, reason: "player_not_found", mvpName };
+  }
+
+  const { error: updateError } = await supabase
+    .from("matches")
+    .update({ official_pom_player_id: playerId })
+    .eq("id", matchId);
+  if (updateError) {
+    throw updateError;
+  }
+
+  const playerName = players.find((p) => p.id === playerId)?.name ?? gameName;
+  return { updated: true, playerId, playerName };
+}
+
 export async function syncPom(
   supabase: SupabaseClient,
   options: {

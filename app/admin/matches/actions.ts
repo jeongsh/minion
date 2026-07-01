@@ -15,6 +15,7 @@ import {
   syncLeaguepediaMatchSets,
   type LeaguepediaMatchSetsSyncSummary,
 } from "@/lib/sync/leaguepedia-match-sets";
+import { syncPomForMatch, type SinglePomSyncResult } from "@/lib/sync/sync-pom";
 import {
   syncMatchTimeline,
   type TimelineSyncSummary,
@@ -127,14 +128,17 @@ export type SyncMatchDataActionResult =
       setsSummary: LeaguepediaMatchSetsSyncSummary;
       timelineSummary: TimelineSyncSummary | null;
       timelineError: string | null;
+      pomResult: SinglePomSyncResult | null;
+      pomError: string | null;
     }
   | { ok: false; error: string };
 
 /**
  * "경기 데이터 동기화" 통합 액션: 세트 결과(+밴픽/선수스탯/매치 재조정) 동기화 후,
- * Game ID가 준비된 세트에 한해 타임라인도 이어서 동기화한다(문서 8.1절 순서 중
- * 2~7단계 — 1단계 Leaguepedia MatchSchedule 단일 매치 새로고침은 이번 범위 제외).
- * 타임라인 단계가 실패해도 이미 끝난 세트 동기화 결과는 버리지 않고 함께 반환한다.
+ * Game ID가 준비된 세트에 한해 타임라인도, 공식 POM도 이어서 동기화한다(문서 8.1절
+ * 순서 중 2~7단계 — 1단계 Leaguepedia MatchSchedule 단일 매치 새로고침은 이번 범위
+ * 제외). 타임라인/POM 단계가 실패해도 이미 끝난 세트 동기화 결과는 버리지 않고
+ * 함께 반환한다. POM은 이미 수동으로 지정돼 있으면 덮어쓰지 않는다.
  */
 export async function syncMatchDataAction(matchId: string): Promise<SyncMatchDataActionResult> {
   const supabase = createSupabaseAdminClient();
@@ -156,9 +160,17 @@ export async function syncMatchDataAction(matchId: string): Promise<SyncMatchDat
     timelineError = error instanceof Error ? error.message : "타임라인 동기화에 실패했습니다.";
   }
 
+  let pomResult: SinglePomSyncResult | null = null;
+  let pomError: string | null = null;
+  try {
+    pomResult = await syncPomForMatch(supabase, matchId);
+  } catch (error) {
+    pomError = error instanceof Error ? error.message : "POM 동기화에 실패했습니다.";
+  }
+
   await revalidateMatchPaths(supabase, matchId);
 
-  return { ok: true, setsSummary, timelineSummary, timelineError };
+  return { ok: true, setsSummary, timelineSummary, timelineError, pomResult, pomError };
 }
 
 export type CheckMatchConsistencyActionResult =

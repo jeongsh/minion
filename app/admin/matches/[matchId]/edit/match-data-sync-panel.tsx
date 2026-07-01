@@ -84,7 +84,7 @@ export function MatchDataSyncPanel({
         setError(result.error);
         return;
       }
-      const { setsSummary, timelineSummary, timelineError } = result;
+      const { setsSummary, timelineSummary, timelineError, pomResult, pomError } = result;
       const parts = [
         `세트 ${setsSummary.upserted}개, 밴픽 ${setsSummary.picksBansUpserted}개, 선수 스탯 ${setsSummary.playerStatsUpserted}개 저장`,
       ];
@@ -92,6 +92,15 @@ export function MatchDataSyncPanel({
         parts.push(`타임라인 세트 ${timelineSummary.setsProcessed}개 처리, 이벤트 ${timelineSummary.eventsInserted}개 저장`);
       } else if (timelineError) {
         parts.push(`타임라인 동기화 실패: ${timelineError}`);
+      }
+      if (pomResult?.updated) {
+        parts.push(`공식 POM: ${pomResult.playerName}`);
+      } else if (pomResult && !pomResult.updated && pomResult.reason === "no_pom_in_leaguepedia") {
+        parts.push("공식 POM: Leaguepedia에 정보 없음");
+      } else if (pomResult && !pomResult.updated && pomResult.reason === "player_not_found") {
+        parts.push(`공식 POM: 선수 매칭 실패(${pomResult.mvpName ?? "-"})`);
+      } else if (pomError) {
+        parts.push(`공식 POM 동기화 실패: ${pomError}`);
       }
       setMessage(parts.join(" · "));
     });
