@@ -982,6 +982,61 @@ export async function getSetsByMatchId(matchId: string) {
   }, []);
 }
 
+export type SetDataCompletion = {
+  pickCount: number;
+  banCount: number;
+  playerStatCount: number;
+  timelineEventCount: number;
+};
+
+/** 세트 목록 화면에 표시할 세트별 픽/밴/선수스탯/타임라인 개수. 매치 하나가 가진 세트 수(3~5개) 기준이라 청크 없이 조회한다. */
+export async function getSetDataCompletionBySetId(
+  setIds: string[],
+): Promise<Map<string, SetDataCompletion>> {
+  const result = new Map<string, SetDataCompletion>();
+  if (setIds.length === 0) {
+    return result;
+  }
+
+  return fromSupabase(async () => {
+    const supabase = createSupabaseServerClient();
+    const [pickBanRes, playerStatRes, timelineRes] = await Promise.all([
+      supabase.from("set_picks_bans").select("set_id, action_type").in("set_id", setIds),
+      supabase.from("set_player_stats").select("set_id").in("set_id", setIds),
+      supabase.from("timeline_events").select("set_id").in("set_id", setIds),
+    ]);
+
+    if (pickBanRes.error) throw pickBanRes.error;
+    if (playerStatRes.error) throw playerStatRes.error;
+    if (timelineRes.error) throw timelineRes.error;
+
+    function entry(setId: string) {
+      const existing = result.get(setId);
+      if (existing) return existing;
+      const created = { pickCount: 0, banCount: 0, playerStatCount: 0, timelineEventCount: 0 };
+      result.set(setId, created);
+      return created;
+    }
+
+    for (const row of (pickBanRes.data ?? []) as Array<{ set_id: string; action_type: string }>) {
+      const target = entry(row.set_id);
+      if (row.action_type === "pick") {
+        target.pickCount += 1;
+      } else {
+        target.banCount += 1;
+      }
+    }
+    for (const row of (playerStatRes.data ?? []) as Array<{ set_id: string }>) {
+      entry(row.set_id).playerStatCount += 1;
+    }
+    for (const row of (timelineRes.data ?? []) as Array<{ set_id: string }>) {
+      entry(row.set_id).timelineEventCount += 1;
+    }
+
+    return result;
+  }, result);
+}
+
 export async function getSets() {
   return fromSupabase(async () => {
     const { data, error } = await createSupabaseServerClient()

@@ -92,21 +92,6 @@ function SelectFields({
         </select>
       </label>
       <label className="flex flex-col gap-2 text-sm font-medium">
-        승리 팀
-        <select
-          name="winnerTeamId"
-          defaultValue={match?.winnerTeamId ?? ""}
-          className="rounded-md border border-border bg-background px-3 py-2"
-        >
-          <option value="">선택 안 함</option>
-          {teams.map((team) => (
-            <option key={team.id} value={team.id}>
-              {team.shortName}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="flex flex-col gap-2 text-sm font-medium">
         VOD URL
         <input
           name="vodUrl"
@@ -156,18 +141,6 @@ export function MatchFields({
         />
       </label>
       <label className="flex flex-col gap-2 text-sm font-medium">
-        상태
-        <select
-          name="status"
-          defaultValue={match?.status ?? "scheduled"}
-          className="rounded-md border border-border bg-background px-3 py-2"
-        >
-          <option value="scheduled">예정</option>
-          <option value="live">진행 중</option>
-          <option value="completed">종료</option>
-        </select>
-      </label>
-      <label className="flex flex-col gap-2 text-sm font-medium">
         Best of
         <input
           name="bestOf"
@@ -178,26 +151,6 @@ export function MatchFields({
         />
       </label>
       <SelectFields teams={teams} tournaments={tournaments} stages={stages} players={players} match={match} />
-      <label className="flex flex-col gap-2 text-sm font-medium">
-        팀 A 스코어
-        <input
-          name="teamAScore"
-          type="number"
-          min="0"
-          defaultValue={match?.teamAScore ?? ""}
-          className="rounded-md border border-border bg-background px-3 py-2"
-        />
-      </label>
-      <label className="flex flex-col gap-2 text-sm font-medium">
-        팀 B 스코어
-        <input
-          name="teamBScore"
-          type="number"
-          min="0"
-          defaultValue={match?.teamBScore ?? ""}
-          className="rounded-md border border-border bg-background px-3 py-2"
-        />
-      </label>
       <label className="flex flex-col gap-2 text-sm font-medium">
         Leaguepedia Match ID
         <input

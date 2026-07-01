@@ -2,8 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-import { computeMatchAggregate } from "../lib/match-reconcile.ts";
-import { deriveSetStatus, hasCompletePlayerStats } from "../lib/set-status.ts";
+import { diagnoseMatches } from "../lib/match-diagnostics.ts";
 import type { MatchStatus, SetStatus } from "../lib/types.ts";
 
 /**
@@ -172,21 +171,6 @@ async function resolveMatchIds(supabase: SupabaseClient): Promise<{ matchIds: st
   return { matchIds: ids, label: `--tournament=${tournamentArgValue}` };
 }
 
-type MatchMismatch = {
-  matchId: string;
-  name: string;
-  before: { score: string; status: MatchStatus; winnerTeamId: string | null };
-  after: { score: string; status: MatchStatus; winnerTeamId: string | null };
-};
-
-type SetMismatch = {
-  setId: string;
-  matchId: string;
-  setNumber: number;
-  before: SetStatus;
-  after: SetStatus;
-};
-
 async function main() {
   loadEnvFile();
 
@@ -236,185 +220,49 @@ async function main() {
     allSetIds,
   );
 
-  const setsByMatch = new Map<string, SetRow[]>();
-  for (const set of setRows) {
-    const list = setsByMatch.get(set.match_id);
-    if (list) {
-      list.push(set);
-    } else {
-      setsByMatch.set(set.match_id, [set]);
-    }
-  }
-
-  const pickCountBySet = new Map<string, number>();
-  const banCountBySet = new Map<string, number>();
-  for (const row of pickBanRows) {
-    const counter = row.action_type === "pick" ? pickCountBySet : banCountBySet;
-    counter.set(row.set_id, (counter.get(row.set_id) ?? 0) + 1);
-  }
-
-  const playerStatsBySet = new Map<string, Array<{ playerId: string; teamId: string; position: string }>>();
-  for (const row of playerStatRows) {
-    const list = playerStatsBySet.get(row.set_id);
-    const entry = { playerId: row.player_id, teamId: row.team_id, position: row.position };
-    if (list) {
-      list.push(entry);
-    } else {
-      playerStatsBySet.set(row.set_id, [entry]);
-    }
-  }
-
-  // --- 세트 단위 진단 ---
-  const setStatusMismatches: SetMismatch[] = [];
-  const setStatusTransitionCounts = new Map<string, number>();
-  const winnerButScheduled: SetMismatch[] = [];
-  const hasDataButEarlyStatus: SetMismatch[] = [];
-  const incompletePlayerStats: SetRow[] = [];
-  const setWinnerOutsideParticipants: SetRow[] = [];
-  const setSameBlueRedTeam: SetRow[] = [];
-  const setTeamOutsideMatch: SetRow[] = [];
-  const setNumberAnomalies: Array<{ matchId: string; issue: string; setIds: string[] }> = [];
-
-  for (const match of matches) {
-    const sets = setsByMatch.get(match.id) ?? [];
-
-    const setNumbers = new Map<number, string[]>();
-    for (const set of sets) {
-      const list = setNumbers.get(set.set_number) ?? [];
-      list.push(set.id);
-      setNumbers.set(set.set_number, list);
-    }
-    for (const [setNumber, ids] of setNumbers) {
-      if (ids.length > 1) {
-        setNumberAnomalies.push({ matchId: match.id, issue: `세트 번호 ${setNumber} 중복(${ids.length}건)`, setIds: ids });
-      }
-    }
-    if (match.best_of) {
-      const overflow = sets.filter((set) => set.set_number > match.best_of!);
-      if (overflow.length > 0) {
-        setNumberAnomalies.push({
-          matchId: match.id,
-          issue: `best_of(${match.best_of})보다 큰 세트 번호`,
-          setIds: overflow.map((set) => set.id),
-        });
-      }
-    }
-
-    for (const set of sets) {
-      if (set.blue_team_id && set.red_team_id && set.blue_team_id === set.red_team_id) {
-        setSameBlueRedTeam.push(set);
-      }
-      const participantIds = new Set([match.team_a_id, match.team_b_id].filter(Boolean));
-      if ((set.blue_team_id && !participantIds.has(set.blue_team_id)) || (set.red_team_id && !participantIds.has(set.red_team_id))) {
-        setTeamOutsideMatch.push(set);
-      }
-      if (set.winner_team_id && set.winner_team_id !== set.blue_team_id && set.winner_team_id !== set.red_team_id) {
-        setWinnerOutsideParticipants.push(set);
-      }
-
-      const hasGameStats =
-        set.winner_team_id != null || set.duration_seconds != null || set.blue_kills != null || set.red_kills != null;
-      const pickCount = pickCountBySet.get(set.id) ?? 0;
-      const banCount = banCountBySet.get(set.id) ?? 0;
-      const playerStats = playerStatsBySet.get(set.id) ?? [];
-      const complete = hasCompletePlayerStats(playerStats, set.blue_team_id, set.red_team_id);
-
-      if (playerStats.length > 0 && !complete) {
-        incompletePlayerStats.push(set);
-      }
-
-      const recomputedStatus = deriveSetStatus({
-        hasGameStats,
-        hasPlayerStats: complete,
-        pickCount,
-        banCount,
-      });
-
-      if (recomputedStatus !== set.status) {
-        const mismatch: SetMismatch = {
-          setId: set.id,
-          matchId: match.id,
-          setNumber: set.set_number,
-          before: set.status,
-          after: recomputedStatus,
-        };
-        setStatusMismatches.push(mismatch);
-        const key = `${set.status} -> ${recomputedStatus}`;
-        setStatusTransitionCounts.set(key, (setStatusTransitionCounts.get(key) ?? 0) + 1);
-      }
-
-      if (set.winner_team_id && set.status === "scheduled") {
-        winnerButScheduled.push({
-          setId: set.id,
-          matchId: match.id,
-          setNumber: set.set_number,
-          before: set.status,
-          after: recomputedStatus,
-        });
-      }
-
-      const hasAnyResultData = hasGameStats || complete || pickCount > 0 || banCount > 0;
-      if (hasAnyResultData && (set.status === "scheduled" || set.status === "draft_in_progress" || set.status === "draft_done")) {
-        hasDataButEarlyStatus.push({
-          setId: set.id,
-          matchId: match.id,
-          setNumber: set.set_number,
-          before: set.status,
-          after: recomputedStatus,
-        });
-      }
-    }
-  }
-
-  // --- 매치 단위 진단 ---
-  const matchMismatches: MatchMismatch[] = [];
-  const matchWinnerOutsideParticipants: MatchRow[] = [];
-  const matchSameTeams: MatchRow[] = [];
-  const matchesSkippedNoTeams: MatchRow[] = [];
-
-  for (const match of matches) {
-    if (match.team_a_id && match.team_b_id && match.team_a_id === match.team_b_id) {
-      matchSameTeams.push(match);
-    }
-    if (match.winner_team_id && match.winner_team_id !== match.team_a_id && match.winner_team_id !== match.team_b_id) {
-      matchWinnerOutsideParticipants.push(match);
-    }
-    if (!match.team_a_id || !match.team_b_id) {
-      matchesSkippedNoTeams.push(match);
-      continue;
-    }
-
-    const confirmedSets = (setsByMatch.get(match.id) ?? []).filter((set) => set.winner_team_id != null);
-    const next = computeMatchAggregate({
+  const diagnosis = diagnoseMatches(
+    matches.map((match) => ({
+      id: match.id,
+      name: match.name,
       teamAId: match.team_a_id,
       teamBId: match.team_b_id,
       bestOf: match.best_of,
-      setResults: confirmedSets.map((set) => ({ winnerTeamId: set.winner_team_id })),
-    });
+      status: match.status,
+      teamAScore: match.team_a_score,
+      teamBScore: match.team_b_score,
+      winnerTeamId: match.winner_team_id,
+    })),
+    setRows.map((set) => ({
+      id: set.id,
+      matchId: set.match_id,
+      setNumber: set.set_number,
+      status: set.status,
+      winnerTeamId: set.winner_team_id,
+      blueTeamId: set.blue_team_id,
+      redTeamId: set.red_team_id,
+      durationSeconds: set.duration_seconds,
+      blueKills: set.blue_kills,
+      redKills: set.red_kills,
+    })),
+    pickBanRows.map((row) => ({ setId: row.set_id, actionType: row.action_type })),
+    playerStatRows.map((row) => ({ setId: row.set_id, playerId: row.player_id, teamId: row.team_id, position: row.position })),
+  );
 
-    const changed =
-      (match.team_a_score ?? 0) !== next.teamAScore ||
-      (match.team_b_score ?? 0) !== next.teamBScore ||
-      match.status !== next.status ||
-      match.winner_team_id !== next.winnerTeamId;
-
-    if (changed) {
-      matchMismatches.push({
-        matchId: match.id,
-        name: match.name,
-        before: {
-          score: `${match.team_a_score ?? "null"}:${match.team_b_score ?? "null"}`,
-          status: match.status,
-          winnerTeamId: match.winner_team_id,
-        },
-        after: {
-          score: `${next.teamAScore}:${next.teamBScore}`,
-          status: next.status,
-          winnerTeamId: next.winnerTeamId,
-        },
-      });
-    }
-  }
+  const {
+    matchMismatches,
+    matchWinnerOutsideParticipants,
+    matchSameTeams,
+    matchesSkippedNoTeams,
+    setStatusMismatches,
+    setStatusTransitionCounts,
+    winnerButScheduled,
+    hasDataButEarlyStatus,
+    incompletePlayerStats,
+    setWinnerOutsideParticipants,
+    setSameBlueRedTeam,
+    setTeamOutsideMatch,
+    setNumberAnomalies,
+  } = diagnosis;
 
   // --- 리포트 출력 ---
   console.log("");
@@ -437,7 +285,7 @@ async function main() {
   console.log("");
   console.log(`[매치] 참가 팀 밖의 승자: ${matchWinnerOutsideParticipants.length}건`);
   for (const match of matchWinnerOutsideParticipants.slice(0, MAX_EXAMPLES)) {
-    console.log(`  - ${match.name} (${match.id}): winner_team_id=${match.winner_team_id}`);
+    console.log(`  - ${match.name} (${match.id}): winner_team_id=${match.winnerTeamId}`);
   }
 
   console.log("");
@@ -448,7 +296,7 @@ async function main() {
 
   console.log("");
   console.log(`[세트] 현재 deriveSetStatus() 기준 상태 불일치: ${setStatusMismatches.length}건`);
-  for (const [transition, count] of setStatusTransitionCounts) {
+  for (const [transition, count] of Object.entries(setStatusTransitionCounts)) {
     console.log(`  - ${transition}: ${count}건`);
   }
 
@@ -467,14 +315,14 @@ async function main() {
   console.log("");
   console.log(`[세트] 참가 팀 밖의 승자: ${setWinnerOutsideParticipants.length}건`);
   for (const set of setWinnerOutsideParticipants.slice(0, MAX_EXAMPLES)) {
-    console.log(`  - set ${set.id} (match ${set.match_id}, #${set.set_number}): winner_team_id=${set.winner_team_id}`);
+    console.log(`  - set ${set.id} (match ${set.matchId}, #${set.setNumber}): winner_team_id=${set.winnerTeamId}`);
   }
 
   console.log("");
   console.log(`[세트] 블루/레드 팀 동일: ${setSameBlueRedTeam.length}건`);
   console.log(`[세트] 블루/레드가 매치 참가팀 밖: ${setTeamOutsideMatch.length}건`);
   for (const set of setTeamOutsideMatch.slice(0, MAX_EXAMPLES)) {
-    console.log(`  - set ${set.id} (match ${set.match_id}, #${set.set_number}): blue=${set.blue_team_id}, red=${set.red_team_id}`);
+    console.log(`  - set ${set.id} (match ${set.matchId}, #${set.setNumber}): blue=${set.blueTeamId}, red=${set.redTeamId}`);
   }
 
   console.log("");
@@ -486,7 +334,7 @@ async function main() {
   console.log("");
   console.log(`[세트] 불완전 선수 스탯(1~9명): ${incompletePlayerStats.length}건`);
   for (const set of incompletePlayerStats.slice(0, MAX_EXAMPLES)) {
-    console.log(`  - set ${set.id} (match ${set.match_id}, #${set.set_number})`);
+    console.log(`  - set ${set.id} (match ${set.matchId}, #${set.setNumber})`);
   }
 
   console.log("");
