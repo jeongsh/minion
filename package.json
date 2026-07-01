@@ -9,6 +9,7 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types --test lib/set-status.test.ts lib/match-reconcile.test.ts",
     "sync:lck-2025": "node --experimental-strip-types scripts/sync-leaguepedia-lck-2025.ts",
     "sync:lck-2025:full": "node --experimental-strip-types scripts/sync-leaguepedia-lck-2025.ts --full",
     "sync:lck-2026": "node --experimental-strip-types scripts/sync-leaguepedia-lck-2026.ts",

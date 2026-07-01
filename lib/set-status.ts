@@ -74,10 +74,46 @@ export function isSetRatingSnapshotReady(
 /** 한 세트에 들어온 픽은 팀당 5개씩 총 10개 → 전부 들어오면 밴픽완료로 본다 */
 const DRAFT_COMPLETE_PICK_COUNT = 10;
 
+const REQUIRED_POSITIONS = ["TOP", "JGL", "MID", "BOT", "SUP"] as const;
+
+type PlayerStatCompletenessInput = {
+  playerId: string;
+  teamId: string;
+  position: string;
+};
+
+/**
+ * 세트의 선수 스탯이 "완전"한지 검사한다: 양 팀 5명씩 총 10명,
+ * 선수/포지션 중복 없이 TOP/JGL/MID/BOT/SUP가 모두 채워져 있어야 한다.
+ * 1건이라도 있으면 완료로 보던 기존 판정(선수 스탯 1건 -> data_synced 오판)을 대체한다.
+ */
+export function hasCompletePlayerStats(
+  stats: PlayerStatCompletenessInput[],
+  blueTeamId: string | null,
+  redTeamId: string | null,
+): boolean {
+  if (!blueTeamId || !redTeamId || stats.length !== DRAFT_COMPLETE_PICK_COUNT) {
+    return false;
+  }
+
+  if (new Set(stats.map((stat) => stat.playerId)).size !== DRAFT_COMPLETE_PICK_COUNT) {
+    return false;
+  }
+
+  return [blueTeamId, redTeamId].every((teamId) => {
+    const teamStats = stats.filter((stat) => stat.teamId === teamId);
+    if (teamStats.length !== 5) {
+      return false;
+    }
+    const positions = new Set(teamStats.map((stat) => stat.position));
+    return positions.size === 5 && REQUIRED_POSITIONS.every((position) => positions.has(position));
+  });
+}
+
 /**
  * 세트에 존재하는 데이터로부터 상태를 도출한다.
  * 우선순위(높을수록 진행도가 큼):
- *  - hasPlayerStats(상세 동기화 완료) → data_synced(상세데이터 동기화)
+ *  - hasPlayerStats(완전한 선수 상세 스탯 10명, hasCompletePlayerStats() 참고) → data_synced(상세데이터 동기화)
  *  - hasGameStats(경기 통계 존재)     → finished(경기종료)
  *  - 픽이 전부(10개) 들어옴            → draft_done(밴픽완료)
  *  - 밴픽 데이터가 일부라도 존재        → draft_in_progress(밴픽중)

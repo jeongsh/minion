@@ -3,8 +3,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { championCatalogEntryForValue } from "../champions";
 import { ddragonVersionFromPatch, uniqueDdragonVersionsForPatches } from "../ddragon";
 import { fetchItemCatalog } from "../items";
+import { reconcileMatchFromSets } from "../match-reconcile";
 import { fetchRuneNameToIdMap } from "../runes";
-import { deriveSetStatus } from "../set-status";
+import { deriveSetStatus, hasCompletePlayerStats } from "../set-status";
 import { fetchSpellCatalog, type GameSpell } from "../spells";
 
 const CARGO_API = "https://lol.fandom.com/api.php";
@@ -1272,49 +1273,6 @@ export async function syncLeaguepediaMatchSets(
     throw error;
   }
 
-  // 각 세트의 승자를 집계해 매치 스코어에 자동 반영한다.
-  // 한 팀이 과반 승리하면 매치를 종료(승자 확정) 처리한다.
-  let winsA = 0;
-  let winsB = 0;
-  for (const set of payload) {
-    if (set.winner_team_id && set.winner_team_id === typedMatch.team_a_id) {
-      winsA += 1;
-    } else if (set.winner_team_id && set.winner_team_id === typedMatch.team_b_id) {
-      winsB += 1;
-    }
-  }
-  const winsNeeded = typedMatch.best_of ? Math.floor(typedMatch.best_of / 2) + 1 : null;
-  const matchDecided = winsNeeded
-    ? Math.max(winsA, winsB) >= winsNeeded
-    : winsA + winsB > 0;
-
-  const matchUpdate: {
-    team_a_score: number;
-    team_b_score: number;
-    status?: "completed";
-    winner_team_id?: string | null;
-  } = {
-    team_a_score: winsA,
-    team_b_score: winsB,
-  };
-  if (matchDecided) {
-    matchUpdate.status = "completed";
-    matchUpdate.winner_team_id =
-      winsA > winsB
-        ? typedMatch.team_a_id
-        : winsB > winsA
-          ? typedMatch.team_b_id
-          : null;
-  }
-
-  const { error: matchUpdateError } = await supabase
-    .from("matches")
-    .update(matchUpdate)
-    .eq("id", typedMatch.id);
-  if (matchUpdateError) {
-    throw matchUpdateError;
-  }
-
   const setRows = (data ?? []) as Array<{
     id: string;
     set_number: number;
@@ -1396,13 +1354,6 @@ export async function syncLeaguepediaMatchSets(
       setByGameId,
     });
 
-    const { error: deletePickBanError } = await supabase
-      .from("set_picks_bans")
-      .delete()
-      .in("set_id", setIds);
-    if (deletePickBanError) {
-      throw deletePickBanError;
-    }
     const { data: existingStats, error: existingStatsError } = await supabase
       .from("set_player_stats")
       .select("set_id, player_id, item0, item1, item2, item3, item4, item5, item6, spell0, spell1, rune0, rune1, role_bound_item")
@@ -1410,8 +1361,11 @@ export async function syncLeaguepediaMatchSets(
     if (existingStatsError) {
       throw existingStatsError;
     }
+    const typedExistingStats = (existingStats ?? []) as Array<
+      { set_id: string; player_id: string } & PreservedPlayerBuild
+    >;
     const itemBySetPlayer = new Map(
-      ((existingStats ?? []) as Array<{ set_id: string; player_id: string } & PreservedPlayerBuild>).map((stat) => [
+      typedExistingStats.map((stat) => [
         playerItemsKey(stat.set_id, stat.player_id),
         {
           item0: stat.item0,
@@ -1429,12 +1383,14 @@ export async function syncLeaguepediaMatchSets(
         },
       ]),
     );
-    const { error: deleteStatsError } = await supabase
-      .from("set_player_stats")
-      .delete()
-      .in("set_id", setIds);
-    if (deleteStatsError) {
-      throw deleteStatsError;
+    const existingPlayerIdsBySet = new Map<string, string[]>();
+    for (const stat of typedExistingStats) {
+      const list = existingPlayerIdsBySet.get(stat.set_id);
+      if (list) {
+        list.push(stat.player_id);
+      } else {
+        existingPlayerIdsBySet.set(stat.set_id, [stat.player_id]);
+      }
     }
 
     const pickBanPayload = pickBanRows.flatMap((row) => {
@@ -1454,6 +1410,18 @@ export async function syncLeaguepediaMatchSets(
     });
 
     if (pickBanPayload.length > 0) {
+      // 삭제 후 삽입 순서를 뒤집는다: 새 데이터가 이미 준비된 세트의 기존 행 id만
+      // 미리 확보해두고, 삽입이 성공한 뒤에만 지운다. 삽입 도중 실패해도 기존
+      // 밴픽 데이터가 사라지지 않는다. 응답에 없던 세트의 기존 데이터는 그대로 둔다.
+      const touchedSetIds = Array.from(new Set(pickBanPayload.map((entry) => entry.set_id)));
+      const { data: oldPickBans, error: oldPickBanError } = await supabase
+        .from("set_picks_bans")
+        .select("id")
+        .in("set_id", touchedSetIds);
+      if (oldPickBanError) {
+        throw oldPickBanError;
+      }
+
       const { data: insertedPickBans, error: pickBanError } = await supabase
         .from("set_picks_bans")
         .insert(pickBanPayload)
@@ -1462,6 +1430,17 @@ export async function syncLeaguepediaMatchSets(
         throw pickBanError;
       }
       picksBansUpserted = insertedPickBans?.length ?? 0;
+
+      const oldPickBanIds = (oldPickBans ?? []).map((row) => row.id as string);
+      if (oldPickBanIds.length > 0) {
+        const { error: deleteOldPickBanError } = await supabase
+          .from("set_picks_bans")
+          .delete()
+          .in("id", oldPickBanIds);
+        if (deleteOldPickBanError) {
+          throw deleteOldPickBanError;
+        }
+      }
     }
 
     const statPayload = playerRows.flatMap((row) => {
@@ -1538,14 +1517,42 @@ export async function syncLeaguepediaMatchSets(
     });
 
     if (statPayload.length > 0) {
-      const { data: insertedStats, error: statsError } = await supabase
+      // delete-then-insert 대신 (set_id, player_id) upsert를 사용해 삽입 실패 시에도
+      // 기존 스탯이 사라지지 않게 한다. 새 데이터에서 빠진 선수만 별도로 정리한다.
+      const { data: upsertedStats, error: statsError } = await supabase
         .from("set_player_stats")
-        .insert(statPayload)
+        .upsert(statPayload, { onConflict: "set_id,player_id" })
         .select("id");
       if (statsError) {
         throw statsError;
       }
-      playerStatsUpserted = insertedStats?.length ?? 0;
+      playerStatsUpserted = upsertedStats?.length ?? 0;
+
+      const keepPlayerIdsBySet = new Map<string, Set<string>>();
+      for (const entry of statPayload) {
+        const set = keepPlayerIdsBySet.get(entry.set_id);
+        if (set) {
+          set.add(entry.player_id);
+        } else {
+          keepPlayerIdsBySet.set(entry.set_id, new Set([entry.player_id]));
+        }
+      }
+
+      for (const [setId, keepPlayerIds] of keepPlayerIdsBySet) {
+        const stalePlayerIds = (existingPlayerIdsBySet.get(setId) ?? []).filter(
+          (playerId) => !keepPlayerIds.has(playerId),
+        );
+        if (stalePlayerIds.length > 0) {
+          const { error: cleanupStatsError } = await supabase
+            .from("set_player_stats")
+            .delete()
+            .eq("set_id", setId)
+            .in("player_id", stalePlayerIds);
+          if (cleanupStatsError) {
+            throw cleanupStatsError;
+          }
+        }
+      }
     }
 
     // 세트별 실제 데이터 보유 현황(경기통계/밴픽/선수상세)으로 상태를 도출해 반영한다.
@@ -1564,19 +1571,29 @@ export async function syncLeaguepediaMatchSets(
       const counter = entry.action_type === "pick" ? pickCountBySet : banCountBySet;
       counter.set(entry.set_id, (counter.get(entry.set_id) ?? 0) + 1);
     }
-    const playerStatCountBySet = new Map<string, number>();
+    const playerStatEntriesBySet = new Map<
+      string,
+      Array<{ playerId: string; teamId: string; position: string }>
+    >();
     for (const entry of statPayload) {
-      playerStatCountBySet.set(
-        entry.set_id,
-        (playerStatCountBySet.get(entry.set_id) ?? 0) + 1,
-      );
+      const list = playerStatEntriesBySet.get(entry.set_id);
+      const record = { playerId: entry.player_id, teamId: entry.team_id, position: entry.position };
+      if (list) {
+        list.push(record);
+      } else {
+        playerStatEntriesBySet.set(entry.set_id, [record]);
+      }
     }
 
     const setIdsByStatus = new Map<string, string[]>();
     for (const set of setRows) {
       const status = deriveSetStatus({
         hasGameStats: gameStatsBySetNumber.get(set.set_number) ?? false,
-        hasPlayerStats: (playerStatCountBySet.get(set.id) ?? 0) > 0,
+        hasPlayerStats: hasCompletePlayerStats(
+          playerStatEntriesBySet.get(set.id) ?? [],
+          set.blue_team_id,
+          set.red_team_id,
+        ),
         pickCount: pickCountBySet.get(set.id) ?? 0,
         banCount: banCountBySet.get(set.id) ?? 0,
       });
@@ -1598,6 +1615,9 @@ export async function syncLeaguepediaMatchSets(
       }
     }
   }
+
+  // 세트 상태가 모두 확정된 뒤, 확정된 세트 결과로부터 매치 스코어/상태/승자를 재조정한다.
+  await reconcileMatchFromSets(supabase, typedMatch.id);
 
   return {
     matchId: typedMatch.id,

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { resolveChampionIds } from "@/lib/champions-admin";
+import { reconcileMatchFromSets } from "@/lib/match-reconcile";
 import { normalizeSetStatus } from "@/lib/set-status";
 
 function textOrNull(value: FormDataEntryValue | null) {
@@ -141,11 +142,14 @@ function setPayload(formData: FormData) {
 export async function createSetAction(formData: FormData) {
   const payload = setPayload(formData);
   const redirectTo = textOrNull(formData.get("redirectTo"));
-  const { error } = await createSupabaseAdminClient().from("sets").insert(payload);
+  const supabase = createSupabaseAdminClient();
+  const { error } = await supabase.from("sets").insert(payload);
 
   if (error) {
     throw new Error(error.message);
   }
+
+  await reconcileMatchFromSets(supabase, payload.match_id);
 
   revalidatePath("/admin/sets");
   revalidatePath(`/matches/${payload.match_id}`);
@@ -216,15 +220,33 @@ export async function updateSetAction(formData: FormData) {
       };
     }).filter(isPresent);
 
-    const { error: deletePickBanError } = await supabase.from("set_picks_bans").delete().eq("set_id", setId);
-    if (deletePickBanError) {
-      throw new Error(deletePickBanError.message);
+    if (pickBanPayload.length === 0) {
+      throw new Error("저장할 밴픽 데이터가 유효하지 않습니다.");
     }
 
-    if (pickBanPayload.length > 0) {
-      const { error: insertPickBanError } = await supabase.from("set_picks_bans").insert(pickBanPayload);
-      if (insertPickBanError) {
-        throw new Error(insertPickBanError.message);
+    // 삭제 후 삽입 대신, 기존 행 id를 먼저 확보해두고 새 데이터 삽입이 성공한 뒤에만 지운다.
+    // 삽입 도중 실패해도 기존 밴픽 데이터가 사라지지 않는다.
+    const { data: oldPickBans, error: oldPickBanError } = await supabase
+      .from("set_picks_bans")
+      .select("id")
+      .eq("set_id", setId);
+    if (oldPickBanError) {
+      throw new Error(oldPickBanError.message);
+    }
+
+    const { error: insertPickBanError } = await supabase.from("set_picks_bans").insert(pickBanPayload);
+    if (insertPickBanError) {
+      throw new Error(insertPickBanError.message);
+    }
+
+    const oldPickBanIds = (oldPickBans ?? []).map((row) => row.id as string);
+    if (oldPickBanIds.length > 0) {
+      const { error: deletePickBanError } = await supabase
+        .from("set_picks_bans")
+        .delete()
+        .in("id", oldPickBanIds);
+      if (deletePickBanError) {
+        throw new Error(deletePickBanError.message);
       }
     }
   }
@@ -270,18 +292,44 @@ export async function updateSetAction(formData: FormData) {
       };
     }).filter(isPresent);
 
-    const { error: deleteStatsError } = await supabase.from("set_player_stats").delete().eq("set_id", setId);
-    if (deleteStatsError) {
-      throw new Error(deleteStatsError.message);
+    if (statPayload.length === 0) {
+      throw new Error("저장할 선수 스탯 데이터가 유효하지 않습니다.");
     }
 
-    if (statPayload.length > 0) {
-      const { error: insertStatsError } = await supabase.from("set_player_stats").insert(statPayload);
-      if (insertStatsError) {
-        throw new Error(insertStatsError.message);
+    // delete-then-insert 대신 (set_id, player_id) upsert로 갱신하고,
+    // 새 데이터에서 빠진 선수의 스탯만 별도로 정리한다.
+    const { data: existingStatRows, error: existingStatsError } = await supabase
+      .from("set_player_stats")
+      .select("player_id")
+      .eq("set_id", setId);
+    if (existingStatsError) {
+      throw new Error(existingStatsError.message);
+    }
+
+    const { error: upsertStatsError } = await supabase
+      .from("set_player_stats")
+      .upsert(statPayload, { onConflict: "set_id,player_id" });
+    if (upsertStatsError) {
+      throw new Error(upsertStatsError.message);
+    }
+
+    const keepPlayerIds = new Set(statPayload.map((stat) => stat.player_id));
+    const stalePlayerIds = (existingStatRows ?? [])
+      .map((row) => row.player_id as string)
+      .filter((playerId) => !keepPlayerIds.has(playerId));
+    if (stalePlayerIds.length > 0) {
+      const { error: cleanupStatsError } = await supabase
+        .from("set_player_stats")
+        .delete()
+        .eq("set_id", setId)
+        .in("player_id", stalePlayerIds);
+      if (cleanupStatsError) {
+        throw new Error(cleanupStatsError.message);
       }
     }
   }
+
+  await reconcileMatchFromSets(supabase, payload.match_id);
 
   revalidatePath("/admin/sets");
   revalidatePath(`/matches/${payload.match_id}`);
