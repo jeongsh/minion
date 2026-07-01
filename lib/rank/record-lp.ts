@@ -13,6 +13,7 @@ export type LpReason =
   | "honor_received" // 명예(좋아요) 받음 +
   | "honor_removed" // 명예 취소 -
   | "dishonor_received" // 디스(싫어요) 받음 -
+  | "dishonor_removed" // 디스(싫어요) 취소 +
   | "reported"; // 리폿 누적 제재 -
 
 export type RecordLpInput = {

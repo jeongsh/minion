@@ -75,6 +75,7 @@ export const LP_DELTAS: Record<LpReason, number> = {
   honor_received: 3, // 명예(좋아요) 받음
   honor_removed: -3, // 명예 취소
   dishonor_received: -3, // 디스(싫어요) 받음
+  dishonor_removed: 3, // 디스(싫어요) 취소(원복)
   reported: -10, // 리폿 누적 제재
 };
 

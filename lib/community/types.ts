@@ -4,6 +4,13 @@
 
 import type { BoardScope } from "@/lib/community/boards";
 
+/** 리액션 종류. honor=명예(좋아요), dislike=싫어요(디스). */
+export type ReactionKind = "honor" | "dislike";
+/** 리액션 대상. */
+export type ReactionTarget = "post" | "comment";
+/** 현재 사용자의 대상에 대한 stance. 상호 배타(둘 중 하나 또는 없음). */
+export type ReactionState = ReactionKind | null;
+
 export type CommunityPostDetail = {
   id: string;
   boardType: string;
@@ -13,6 +20,7 @@ export type CommunityPostDetail = {
   content: string;
   authorId: string | null;
   likeCount: number;
+  dislikeCount: number;
   commentCount: number;
   viewCount: number;
   reportCount: number;
@@ -29,6 +37,7 @@ export type CommunityCommentItem = {
   authorId: string | null;
   content: string;
   likeCount: number;
+  dislikeCount: number;
   createdAt: string;
 };
 

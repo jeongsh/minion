@@ -5,8 +5,7 @@ import { SectionHeader } from "@/components/layout/section-header";
 import type { BoardScope } from "@/lib/community/boards";
 import { getBoardPosts } from "@/lib/data/community";
 
-// 단일 피드 페이지(허브/팀 공용). 전체 말머리 글을 한 번에 보여주고
-// 필터/보기 토글은 CommunityFeed(클라이언트)가 처리한다.
+// 커뮤니티 피드 페이지 — 시안 1b 헤더. 글쓰기 버튼을 프라이머리(accent)로.
 export async function CommunityFeedPage({
   scope,
   eyebrow,
@@ -23,9 +22,7 @@ export async function CommunityFeedPage({
   const posts = await getBoardPosts({ scope, teamId });
 
   const newPath =
-    scope === "team" && teamSlug
-      ? `/fan/${teamSlug}/community/new`
-      : `/community/new`;
+    scope === "team" && teamSlug ? `/fan/${teamSlug}/community/new` : `/community/new`;
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-[var(--page-inline)] py-10">
@@ -33,9 +30,9 @@ export async function CommunityFeedPage({
         <SectionHeader eyebrow={eyebrow} title={title} />
         <Link
           href={newPath}
-          className="rounded-md border border-border bg-surface px-4 py-2 text-sm font-semibold hover:bg-surface-muted"
+          className="inline-flex items-center gap-[7px] rounded-[9px] bg-accent px-[18px] py-3 text-[14px] font-bold text-accent-foreground shadow-[0_6px_16px_-6px] shadow-accent/60 transition-opacity hover:opacity-90"
         >
-          글쓰기
+          ＋ 글쓰기
         </Link>
       </div>
       <CommunityFeed posts={posts} scope={scope} teamSlug={teamSlug} />

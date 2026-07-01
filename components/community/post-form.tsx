@@ -8,7 +8,6 @@ import { useNavigationTransition } from "@/components/navigation/navigation-tran
 import { createPostAction } from "@/lib/community/actions";
 import type { BoardDef, BoardScope } from "@/lib/community/boards";
 
-// 본문이 비었는지(빈 문단/공백만) 판별.
 function isEmptyDoc(json: string): boolean {
   try {
     const doc = JSON.parse(json) as unknown;
@@ -33,8 +32,7 @@ function isEmptyDoc(json: string): boolean {
   }
 }
 
-// 글 작성 폼 — 시안 3a + 4b. 말머리를 제목 입력칸 왼쪽에 인라인으로 붙인 한 줄 구성.
-// 색상은 토큰만 사용 → 팀 프라이머리(--accent)를 그대로 따른다.
+// 글 작성 폼 — 시안 3a + 4b(인라인 말머리). 정확값 동기화 버전.
 export function PostForm({
   scope,
   categories,
@@ -92,8 +90,8 @@ export function PostForm({
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-4">
       {/* 말머리(좌) + 제목(우) 인라인 한 줄 */}
-      <div className="flex items-stretch overflow-hidden rounded-lg border border-border focus-within:border-accent">
-        <div className="relative flex items-center border-r border-border bg-surface-muted">
+      <div className="flex items-stretch overflow-hidden rounded-[9px] border border-[#e4e8ef] focus-within:border-accent">
+        <div className="relative flex items-center border-r border-[#e4e8ef] bg-[#f3f6fd]">
           <label htmlFor="post-category" className="sr-only">
             말머리
           </label>
@@ -102,7 +100,7 @@ export function PostForm({
             name="category"
             value={boardType}
             onChange={(e) => setBoardType(e.target.value)}
-            className="appearance-none bg-transparent py-3 pl-3.5 pr-8 text-sm font-semibold text-accent outline-none"
+            className="appearance-none bg-transparent py-[10px] pl-[13px] pr-8 text-[13px] font-semibold text-accent outline-none"
           >
             {categories.map((cat) => (
               <option key={cat.slug} value={cat.slug}>
@@ -110,7 +108,7 @@ export function PostForm({
               </option>
             ))}
           </select>
-          <span className="pointer-events-none absolute right-3 text-xs text-accent/60" aria-hidden>
+          <span className="pointer-events-none absolute right-[11px] text-[11px] text-accent/50" aria-hidden>
             ▾
           </span>
         </div>
@@ -125,7 +123,7 @@ export function PostForm({
           onChange={(e) => setTitle(e.target.value)}
           required
           placeholder="제목을 입력하세요"
-          className="min-w-0 flex-1 bg-surface px-3.5 py-3 text-base font-semibold text-foreground outline-none placeholder:font-medium placeholder:text-muted"
+          className="min-w-0 flex-1 bg-white px-[13px] py-[10px] text-[16px] font-semibold text-[#151b2b] outline-none placeholder:font-semibold placeholder:text-[#aab2c2]"
         />
       </div>
 
@@ -135,13 +133,13 @@ export function PostForm({
       </div>
 
       <div className="flex items-center justify-between gap-3">
-        <p className="text-xs text-muted">서로 존중하는 커뮤니티를 위해 비방·욕설은 삼가주세요.</p>
+        <p className="text-[12px] text-[#9aa3b5]">서로 존중하는 커뮤니티를 위해 비방·욕설은 삼가주세요.</p>
         <div className="flex items-center gap-2">
-          {message ? <p className="text-sm text-muted">{message}</p> : null}
+          {message ? <p className="text-[13px] text-[#8a93a6]">{message}</p> : null}
           <button
             type="submit"
             disabled={pending}
-            className="rounded-lg bg-accent px-6 py-2.5 text-sm font-bold text-accent-foreground transition-opacity hover:opacity-90 disabled:opacity-60"
+            className="rounded-[9px] bg-accent px-[22px] py-[12px] text-[14px] font-bold text-accent-foreground shadow-[0_6px_16px_-6px] shadow-accent/50 transition-opacity hover:opacity-90 disabled:opacity-60"
           >
             등록
           </button>

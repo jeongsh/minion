@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { formatRelativeOrDate } from "@/components/community/format";
 import { boardLabel, type BoardScope } from "@/lib/community/boards";
+import { isHotPost } from "@/lib/community/hot";
 import type { CommunityPostDetail } from "@/lib/community/types";
 
 // 갤러리(카드 그리드) 보기. 본문 첫 이미지를 썸네일로 사용.
@@ -54,6 +55,11 @@ export function PostGallery({
               <span className="absolute left-2 top-2 rounded bg-black/55 px-1.5 py-0.5 text-xs font-medium text-white">
                 {boardLabel(scope, post.boardType)}
               </span>
+              {isHotPost(post) && (
+                <span className="absolute right-2 top-2 rounded bg-accent px-1.5 py-0.5 text-xs font-bold text-accent-foreground">
+                  인기
+                </span>
+              )}
             </div>
             <div className="flex flex-col gap-1 p-2.5">
               <h3 className="line-clamp-2 text-sm font-medium">{post.title}</h3>

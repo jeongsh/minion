@@ -9,6 +9,9 @@ import type { BoardScope } from "@/lib/community/boards";
 import type {
   CommunityCommentItem,
   CommunityPostDetail,
+  ReactionKind,
+  ReactionState,
+  ReactionTarget,
 } from "@/lib/community/types";
 
 type PostRow = {
@@ -20,6 +23,7 @@ type PostRow = {
   content: string;
   author_id: string | null;
   like_count: number;
+  dislike_count: number | null;
   comment_count: number;
   view_count: number;
   report_count: number | null;
@@ -32,11 +36,15 @@ type CommentRow = {
   author_id: string | null;
   content: string;
   like_count: number;
+  dislike_count: number | null;
   created_at: string;
 };
 
 const POST_COLUMNS =
-  "id, board_type, site_scope, team_id, title, content, author_id, like_count, comment_count, view_count, report_count, created_at";
+  "id, board_type, site_scope, team_id, title, content, author_id, like_count, dislike_count, comment_count, view_count, report_count, created_at";
+
+const COMMENT_COLUMNS =
+  "id, post_id, author_id, content, like_count, dislike_count, created_at";
 
 function mapPost(row: PostRow): CommunityPostDetail {
   return {
@@ -48,6 +56,7 @@ function mapPost(row: PostRow): CommunityPostDetail {
     content: row.content,
     authorId: row.author_id,
     likeCount: row.like_count,
+    dislikeCount: row.dislike_count ?? 0,
     commentCount: row.comment_count,
     viewCount: row.view_count,
     reportCount: row.report_count ?? 0,
@@ -64,6 +73,7 @@ function mapComment(row: CommentRow): CommunityCommentItem {
     authorId: row.author_id,
     content: row.content,
     likeCount: row.like_count,
+    dislikeCount: row.dislike_count ?? 0,
     createdAt: row.created_at,
   };
 }
@@ -144,7 +154,7 @@ export async function getPostComments(postId: string): Promise<CommunityCommentI
 
   const { data, error } = await createSupabaseServerClient()
     .from("community_comments")
-    .select("id, post_id, author_id, content, like_count, created_at")
+    .select(COMMENT_COLUMNS)
     .eq("post_id", postId)
     .order("created_at", { ascending: true });
 
@@ -211,62 +221,148 @@ export async function createComment(params: {
   return { id: (data as { id: string }).id };
 }
 
-/** 사용자가 이미 명예를 줬는지 여부. */
-export async function hasHonored(postId: string, userId: string): Promise<boolean> {
-  if (!canQuerySupabase()) return false;
+// 리액션(명예/싫어요) 저장소 메타.
+// 글/댓글 × 명예/싫어요 조합별로 행 테이블·FK·집계 카운트 위치를 매핑한다.
+type ReactionMeta = {
+  table: string;
+  fk: "post_id" | "comment_id";
+  countTable: "community_posts" | "community_comments";
+  countCol: "like_count" | "dislike_count";
+};
 
+const REACTION_META: Record<ReactionTarget, Record<ReactionKind, ReactionMeta>> = {
+  post: {
+    honor: { table: "post_honors", fk: "post_id", countTable: "community_posts", countCol: "like_count" },
+    dislike: { table: "post_dislikes", fk: "post_id", countTable: "community_posts", countCol: "dislike_count" },
+  },
+  comment: {
+    honor: { table: "comment_honors", fk: "comment_id", countTable: "community_comments", countCol: "like_count" },
+    dislike: { table: "comment_dislikes", fk: "comment_id", countTable: "community_comments", countCol: "dislike_count" },
+  },
+};
+
+async function existsReaction(
+  target: ReactionTarget,
+  kind: ReactionKind,
+  targetId: string,
+  userId: string,
+): Promise<boolean> {
+  const meta = REACTION_META[target][kind];
   const { data, error } = await createSupabaseServerClient()
-    .from("post_honors")
+    .from(meta.table)
     .select("id")
-    .eq("post_id", postId)
+    .eq(meta.fk, targetId)
     .eq("user_id", userId)
     .maybeSingle();
-
   if (error) throw error;
   return !!data;
 }
 
-/**
- * 명예 토글. added=true 면 추가, false 면 취소.
- * like_count 를 명예 수로 함께 갱신한다.
- */
-export async function toggleHonor(params: {
-  postId: string;
+/** 현재 사용자의 대상에 대한 stance(명예/싫어요/없음). */
+export async function getUserReaction(params: {
+  target: ReactionTarget;
+  targetId: string;
   userId: string;
-}): Promise<{ added: boolean }> {
-  const supabase = createSupabaseAdminClient();
-  const already = await hasHonored(params.postId, params.userId);
-  const post = await getPostById(params.postId);
-  const currentCount = post?.likeCount ?? 0;
+}): Promise<ReactionState> {
+  if (!canQuerySupabase()) return null;
+  if (await existsReaction(params.target, "honor", params.targetId, params.userId)) return "honor";
+  if (await existsReaction(params.target, "dislike", params.targetId, params.userId)) return "dislike";
+  return null;
+}
 
-  if (already) {
+/** 집계 카운트를 delta 만큼 증감(0 미만으로는 내려가지 않음). */
+async function adjustCount(
+  supabase: ReturnType<typeof createSupabaseAdminClient>,
+  meta: ReactionMeta,
+  id: string,
+  delta: number,
+): Promise<void> {
+  const { data, error } = await supabase
+    .from(meta.countTable)
+    .select(meta.countCol)
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw error;
+  const current = (data as Record<string, number> | null)?.[meta.countCol] ?? 0;
+  await supabase
+    .from(meta.countTable)
+    .update({ [meta.countCol]: Math.max(0, current + delta) })
+    .eq("id", id);
+}
+
+/**
+ * 리액션 설정(토글 + 상호 배타).
+ * 누른 버튼(kind)이 현재 stance 와 같으면 해제, 아니면 그 stance 로 전환한다.
+ * 명예↔싫어요 전환 시 이전 행을 제거하고 새 행을 추가한다.
+ * 반환된 before/after 로 호출부에서 작성자 LP 를 반영한다.
+ */
+export async function setReaction(params: {
+  target: ReactionTarget;
+  targetId: string;
+  userId: string;
+  kind: ReactionKind;
+}): Promise<{ before: ReactionState; after: ReactionState }> {
+  const before = await getUserReaction(params);
+  const after: ReactionState = before === params.kind ? null : params.kind;
+  if (before === after) return { before, after };
+
+  const supabase = createSupabaseAdminClient();
+
+  // 이전 stance 행 제거.
+  if (before) {
+    const meta = REACTION_META[params.target][before];
     const { error } = await supabase
-      .from("post_honors")
+      .from(meta.table)
       .delete()
-      .eq("post_id", params.postId)
+      .eq(meta.fk, params.targetId)
       .eq("user_id", params.userId);
     if (error) throw error;
-
-    await supabase
-      .from("community_posts")
-      .update({ like_count: Math.max(0, currentCount - 1) })
-      .eq("id", params.postId);
-
-    return { added: false };
+    await adjustCount(supabase, meta, params.targetId, -1);
   }
 
-  const { error } = await supabase.from("post_honors").insert({
-    post_id: params.postId,
-    user_id: params.userId,
-  });
-  if (error) throw error;
+  // 새 stance 행 추가.
+  if (after) {
+    const meta = REACTION_META[params.target][after];
+    const { error } = await supabase
+      .from(meta.table)
+      .insert({ [meta.fk]: params.targetId, user_id: params.userId });
+    if (error) throw error;
+    await adjustCount(supabase, meta, params.targetId, 1);
+  }
 
-  await supabase
-    .from("community_posts")
-    .update({ like_count: currentCount + 1 })
-    .eq("id", params.postId);
+  return { before, after };
+}
 
-  return { added: true };
+/** 여러 댓글에 대한 현재 사용자 stance 를 한 번에 조회(상세 페이지 초기 상태용). */
+export async function getUserReactionsForComments(
+  commentIds: string[],
+  userId: string,
+): Promise<Record<string, ReactionState>> {
+  const result: Record<string, ReactionState> = {};
+  if (!canQuerySupabase() || commentIds.length === 0) return result;
+  const supabase = createSupabaseServerClient();
+
+  const { data: honors, error: honorErr } = await supabase
+    .from("comment_honors")
+    .select("comment_id")
+    .in("comment_id", commentIds)
+    .eq("user_id", userId);
+  if (honorErr) throw honorErr;
+  for (const row of (honors ?? []) as { comment_id: string }[]) {
+    result[row.comment_id] = "honor";
+  }
+
+  const { data: dislikes, error: dislikeErr } = await supabase
+    .from("comment_dislikes")
+    .select("comment_id")
+    .in("comment_id", commentIds)
+    .eq("user_id", userId);
+  if (dislikeErr) throw dislikeErr;
+  for (const row of (dislikes ?? []) as { comment_id: string }[]) {
+    result[row.comment_id] = "dislike";
+  }
+
+  return result;
 }
 
 /** 리폿 생성. post 또는 comment 중 하나를 대상으로. report_count 증가(글 대상일 때). */
@@ -309,7 +405,7 @@ export async function getCommentById(commentId: string): Promise<CommunityCommen
 
   const { data, error } = await createSupabaseServerClient()
     .from("community_comments")
-    .select("id, post_id, author_id, content, like_count, created_at")
+    .select(COMMENT_COLUMNS)
     .eq("id", commentId)
     .maybeSingle();
 
