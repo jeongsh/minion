@@ -27,6 +27,43 @@ function numberOrZero(value: FormDataEntryValue | null) {
   return numberOrNull(value) ?? 0;
 }
 
+// "27:35" -> 1655, "1655" -> 1655 (Leaguepedia sends raw seconds)
+function durationToSeconds(value: FormDataEntryValue | null) {
+  const text = typeof value === "string" ? value.trim() : "";
+
+  if (!text) {
+    return null;
+  }
+
+  if (text.includes(":")) {
+    const [minutePart, secondPart = "0"] = text.split(":");
+    const minutes = Number(minutePart);
+    const seconds = Number(secondPart);
+
+    if (!Number.isFinite(minutes) || !Number.isFinite(seconds)) {
+      return null;
+    }
+
+    return Math.round(minutes) * 60 + Math.round(seconds);
+  }
+
+  const parsed = Number(text);
+  return Number.isFinite(parsed) ? Math.round(parsed) : null;
+}
+
+// K 단위 입력(80.4 -> 80400)은 blueGoldK/redGoldK로, 정확한 값은 blueGold/redGold로 들어온다.
+function goldValue(formData: FormData, side: "blue" | "red") {
+  const kName = side === "blue" ? "blueGoldK" : "redGoldK";
+  const rawName = side === "blue" ? "blueGold" : "redGold";
+
+  if (formData.has(kName)) {
+    const k = numberOrNull(formData.get(kName));
+    return k == null ? null : Math.round(k * 1000);
+  }
+
+  return numberOrNull(formData.get(rawName));
+}
+
 function countValue(formData: FormData, name: string) {
   return numberOrNull(formData.get(name)) ?? 0;
 }
@@ -65,11 +102,11 @@ function setPayload(formData: FormData) {
     winner_team_id: textOrNull(formData.get("winnerTeamId")),
     blue_team_id: textOrNull(formData.get("blueTeamId")),
     red_team_id: textOrNull(formData.get("redTeamId")),
-    duration_seconds: numberOrNull(formData.get("durationSeconds")),
+    duration_seconds: durationToSeconds(formData.get("durationSeconds")),
     blue_kills: numberOrNull(formData.get("blueKills")),
     red_kills: numberOrNull(formData.get("redKills")),
-    blue_gold: numberOrNull(formData.get("blueGold")),
-    red_gold: numberOrNull(formData.get("redGold")),
+    blue_gold: goldValue(formData, "blue"),
+    red_gold: goldValue(formData, "red"),
     blue_dragons: dragonTotal(formData, "blue"),
     red_dragons: dragonTotal(formData, "red"),
     blue_clouds: numberOrNull(formData.get("blueClouds")),

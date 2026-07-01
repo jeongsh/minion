@@ -1,5 +1,5 @@
 import type { FanMatchPrediction, Match, Team } from "@/lib/types";
-import { formatDateTime, teamLabel } from "@/lib/view-data";
+import { teamLabel } from "@/lib/view-data";
 
 type VoteAction = (formData: FormData) => Promise<void>;
 
@@ -53,8 +53,8 @@ export function WinnerPredictionPoll({
             {hasTbd
               ? "대진이 확정되면 예측이 열립니다."
               : closed
-                ? "경기 시작으로 투표가 마감되었습니다."
-                : `${formatDateTime(match.matchDate)} 자동 마감`}
+                ? "경기가 종료되어 투표가 마감되었습니다."
+                : "경기가 종료되면 자동 마감됩니다."}
           </p>
         </div>
         <span className="rounded-md bg-surface-muted px-2 py-1 text-xs font-semibold text-muted">

@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { HomeHeroSwiper, type HomeHeroSwiperSlide } from "@/components/domain/home-hero-swiper";
 import { HomeMatchCalendar, type HomeCalendarMatch } from "@/components/domain/home-match-calendar";
+import { isMatchLive } from "@/lib/match-display";
 import { teams as themeTeams } from "@/lib/team-themes";
 import type { FanMatchPrediction, Match, Team, TeamVideo } from "@/lib/types";
 import { formatDateTime, matchHref } from "@/lib/view-data";
@@ -184,6 +185,7 @@ function MatchPollCard({
   const accent = teamA?.primaryColor || "#ff315d";
   const opposingAccent = teamB?.primaryColor || "#315efb";
   const hasTbd = !teamA || !teamB;
+  const live = !hasTbd && isMatchLive(match);
 
   const cardClassName =
     "group rounded-lg border border-[#e7ebf3] bg-white px-5 py-4 transition hover:-translate-y-0.5 hover:border-[#cfd5e3] hover:shadow-lg";
@@ -191,7 +193,15 @@ function MatchPollCard({
   const body = (
     <>
       <div className="flex items-start justify-between gap-3">
-        <p className="line-clamp-1 text-xs font-black text-[#111827]">{tournamentName ?? match.name}</p>
+        <div className="flex min-w-0 items-center gap-1.5">
+          {live ? (
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[#ffe9ec] px-2 py-0.5 text-[10px] font-black text-[#f0324f]">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#f0324f]" />
+              경기중
+            </span>
+          ) : null}
+          <p className="line-clamp-1 text-xs font-black text-[#111827]">{tournamentName ?? match.name}</p>
+        </div>
         <p className="shrink-0 text-[11px] font-semibold text-[#7c86a0]">{formatDateTime(match.matchDate)}</p>
       </div>
       <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-center gap-3 sm:gap-4">
@@ -218,9 +228,13 @@ function MatchPollCard({
           <span className="rounded-full bg-[#f1f2f5] px-3 py-1.5 text-[11px] font-bold text-[#a0a8bb]">
             상대 미정
           </span>
+        ) : live ? (
+          <span className="rounded-full bg-[#ffe9ec] px-3 py-1.5 text-[11px] font-black text-[#f0324f] transition group-hover:bg-[#ffdfe4]">
+            투표하러 가기
+          </span>
         ) : (
           <span className="rounded-full bg-[#f4f6f9] px-3 py-1.5 text-[11px] font-bold text-[#667085] transition group-hover:bg-[#eceff4]">
-            팬 예측 보기
+            투표하러 가기
           </span>
         )}
       </div>
@@ -236,7 +250,7 @@ function MatchPollCard({
   }
 
   return (
-    <Link href={matchHref(match)} className={cardClassName}>
+    <Link href={`${matchHref(match)}?tab=preview`} className={cardClassName}>
       {body}
     </Link>
   );

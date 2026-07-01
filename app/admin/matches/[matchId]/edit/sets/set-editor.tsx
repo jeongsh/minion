@@ -41,6 +41,19 @@ function numberValue(value: number | null | undefined) {
   return value ?? "";
 }
 
+// 1655초 -> "27:35" (수동 입력을 위한 mm:ss 표기)
+function clockValue(seconds: number | null | undefined) {
+  if (seconds == null) return "";
+  const safe = Math.max(0, Math.round(seconds));
+  return `${Math.floor(safe / 60)}:${String(safe % 60).padStart(2, "0")}`;
+}
+
+// 80400 -> "80.4" (방송 화면의 K 단위 입력을 위한 표기)
+function goldKValue(value: number | null | undefined) {
+  if (value == null) return "";
+  return String(value / 1000);
+}
+
 function goldLabel(value: number | null | undefined) {
   if (!value) return "-";
   return `${(value / 1000).toFixed(1)}K`;
@@ -850,8 +863,6 @@ export function AdminSetEditor({
         {set ? <input type="hidden" name="setId" value={set.id} /> : null}
         <input type="hidden" name="matchId" value={match.id} />
         <input type="hidden" name="redirectTo" value={redirectTo} />
-        <input type="hidden" name="blueKills" value={numberValue(activeSet.blueKills)} />
-        <input type="hidden" name="redKills" value={numberValue(activeSet.redKills)} />
 
         <section className="overflow-hidden rounded-md border border-border bg-surface" aria-labelledby="set-summary">
           <div className="grid bg-foreground text-background lg:grid-cols-[1fr_15rem_1fr]">
@@ -864,7 +875,12 @@ export function AdminSetEditor({
             />
             <div className="grid gap-2 border-y border-background/20 px-5 py-4 text-center lg:border-x lg:border-y-0">
               <p className="text-xs font-semibold text-background/70">GAME TIME</p>
-              <AdminNumberInput name="durationSeconds" defaultValue={activeSet.durationSeconds} className="text-center text-2xl" />
+              <AdminTextInput
+                name="durationSeconds"
+                defaultValue={clockValue(activeSet.durationSeconds)}
+                placeholder="27:35"
+                className="text-center text-2xl"
+              />
               <div className="grid grid-cols-2 gap-2">
                 <label className="grid gap-1 text-xs font-semibold text-background/70">
                   GAME
@@ -907,14 +923,19 @@ export function AdminSetEditor({
           <div className="grid gap-6 p-4 lg:grid-cols-[0.9fr_1.1fr]">
             <div className="rounded-md border border-border bg-background">
               <div className="border-b border-border px-4 py-3 text-center text-sm font-semibold">GAME STATS</div>
-              <StatRow label="KDA" left={kdaText(blueRows)} right={kdaText(redRows)} />
               <StatInputRow
-                label="GOLD"
-                leftName="blueGold"
-                rightName="redGold"
-                leftDefault={activeSet.blueGold}
-                rightDefault={activeSet.redGold}
+                label="KILLS"
+                leftName="blueKills"
+                rightName="redKills"
+                leftDefault={activeSet.blueKills}
+                rightDefault={activeSet.redKills}
               />
+              <StatRow label="KDA (선수합)" left={kdaText(blueRows)} right={kdaText(redRows)} />
+              <div className="grid grid-cols-[1fr_7.5rem_1fr] items-center border-b border-border px-4 py-3">
+                <AdminTextInput name="blueGoldK" defaultValue={goldKValue(activeSet.blueGold)} placeholder="80.4" className="text-right" />
+                <span className="text-center text-xs font-semibold text-muted">GOLD (K)</span>
+                <AdminTextInput name="redGoldK" defaultValue={goldKValue(activeSet.redGold)} placeholder="87.4" />
+              </div>
               <StatInputRow
                 label="TOWERS"
                 leftName="blueTowers"

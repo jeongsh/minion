@@ -17,7 +17,12 @@ import {
   getTournaments,
 } from "@/lib/data/lck";
 import type { FanRating, MatchStatus, Player, PlayerStatLine, SetResult, Team } from "@/lib/types";
-import { isSetRatingOpen } from "@/lib/set-status";
+import {
+  SET_RATING_OPEN_WINDOW_MS,
+  getSetRatingStartedAt,
+  isSetRatingOpen,
+  isSetRatingSnapshotReady,
+} from "@/lib/set-status";
 import {
   fanRatingLeader,
   formatDateTime,
@@ -369,7 +374,16 @@ function MatchRatingPanel({
 
   const setLines = playerStatLines.filter((line) => line.setId === set.id);
   const setRatings = fanRatings.filter((rating) => rating.setId === set.id);
+  const ratingStartedAt = getSetRatingStartedAt(set);
   const ratingOpen = isSetRatingOpen(set);
+  const snapshotReady = isSetRatingSnapshotReady(set);
+  // 입력이 시작됐지만(경기 종료) 3시간이 지나 마감된 상태
+  const ratingClosed = ratingStartedAt !== null && !ratingOpen;
+  const ratingDeadline =
+    ratingStartedAt !== null
+      ? new Date(ratingStartedAt + SET_RATING_OPEN_WINDOW_MS)
+      : null;
+  const snapshotHref = `/matches/${matchId}/sets/${set.id}/snapshot`;
   const leader = fanRatingLeader(setRatings);
   const leaderPlayer = leader
     ? players.find((player) => player.id === leader.playerId)
@@ -474,13 +488,31 @@ function MatchRatingPanel({
               제출
             </button>
           </div>
-          {!ratingOpen ? (
+          {ratingOpen && ratingDeadline ? (
+            <p className="mt-3 text-sm text-muted">
+              평점 입력 마감: {formatDateTime(ratingDeadline.toISOString())} (경기 종료 후 3시간)
+            </p>
+          ) : ratingClosed ? (
+            <p className="mt-3 text-sm text-muted">
+              평점 입력이 마감되었습니다. (경기 종료 후 3시간)
+            </p>
+          ) : (
             <p className="mt-3 text-sm text-muted">
               세트 상태가 경기종료 또는 상세데이터 동기화일 때 투표가 열립니다.
             </p>
-          ) : null}
+          )}
         </form>
       </section>
+
+      {snapshotReady ? (
+        <Link
+          href={snapshotHref}
+          className="flex items-center justify-between gap-3 rounded-md border border-border bg-surface px-4 py-3 text-sm font-semibold hover:bg-surface-muted"
+        >
+          <span>커뮤니티 공유용 스냅샷 보기</span>
+          <span aria-hidden="true" className="text-muted">&gt;</span>
+        </Link>
+      ) : null}
 
       <section className="grid gap-4 lg:grid-cols-2">
         <TeamRatingColumn
@@ -608,7 +640,8 @@ export default async function MatchDetailPage({
 
   const cookieStore = await cookies();
   const voterKey = cookieStore.get("lckhub_match_prediction_voter")?.value;
-  const predictionClosed = match.status !== "scheduled";
+  // 경기중(예정이 아니어도 아직 완료 전)에도 승자예측 투표를 열어두고, 경기 종료 시 마감
+  const predictionClosed = match.status === "completed";
 
   const activeSetCard = activeSet ? (
     <SetDetailContent matchId={matchId} setId={activeSet.id} embedded />

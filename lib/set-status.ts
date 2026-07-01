@@ -1,4 +1,4 @@
-import type { SetResult, SetStatus } from "@/lib/types";
+import type { SetStatus } from "@/lib/types";
 
 export const SET_STATUS_OPTIONS: Array<{ value: SetStatus; label: string }> = [
   { value: "scheduled", label: "예정" },
@@ -24,10 +24,51 @@ export function setStatusLabel(status: SetStatus | null | undefined) {
   );
 }
 
-export function isSetRatingOpen(
-  set: Pick<SetResult, "status"> | { status?: SetStatus | null },
+/** 평점 입력은 결과 기록(경기 종료) 시점부터 3시간 동안 열려 있다. */
+export const SET_RATING_OPEN_WINDOW_MS = 3 * 60 * 60 * 1000;
+/** 커뮤니티 공유용 스냅샷은 결과 기록 20분 후부터 제공한다. */
+export const SET_RATING_SNAPSHOT_DELAY_MS = 20 * 60 * 1000;
+
+type SetRatingTiming = {
+  status?: SetStatus | null;
+  resultRecordedAt?: string | null;
+};
+
+/**
+ * 평점 입력이 열린(경기종료/상세동기화) 세트의 시작 시각(ms).
+ * 상태가 아직 아니거나 기록 시각이 없으면 null.
+ */
+export function getSetRatingStartedAt(set: SetRatingTiming): number | null {
+  if (set.status !== "finished" && set.status !== "data_synced") {
+    return null;
+  }
+  if (!set.resultRecordedAt) {
+    return null;
+  }
+  const startedAt = new Date(set.resultRecordedAt).getTime();
+  return Number.isFinite(startedAt) ? startedAt : null;
+}
+
+/** 지금 평점 입력이 가능한지 (경기 종료 후 3시간 이내). */
+export function isSetRatingOpen(set: SetRatingTiming, now: number = Date.now()) {
+  const startedAt = getSetRatingStartedAt(set);
+  if (startedAt === null) {
+    return false;
+  }
+  const elapsed = now - startedAt;
+  return elapsed >= 0 && elapsed <= SET_RATING_OPEN_WINDOW_MS;
+}
+
+/** 커뮤니티 공유용 스냅샷을 제공할 수 있는지 (경기 종료 후 20분 경과). */
+export function isSetRatingSnapshotReady(
+  set: SetRatingTiming,
+  now: number = Date.now(),
 ) {
-  return set.status === "finished" || set.status === "data_synced";
+  const startedAt = getSetRatingStartedAt(set);
+  if (startedAt === null) {
+    return false;
+  }
+  return now - startedAt >= SET_RATING_SNAPSHOT_DELAY_MS;
 }
 
 /** 한 세트에 들어온 픽은 팀당 5개씩 총 10개 → 전부 들어오면 밴픽완료로 본다 */

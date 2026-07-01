@@ -124,7 +124,7 @@ export async function submitSetPlayerRatingAction(formData: FormData) {
   const supabase = createSupabaseAdminClient();
   const { data: set, error: setError } = await supabase
     .from("sets")
-    .select("id, match_id, status")
+    .select("id, match_id, status, result_recorded_at")
     .eq("id", setId)
     .maybeSingle();
 
@@ -136,8 +136,13 @@ export async function submitSetPlayerRatingAction(formData: FormData) {
     throw new Error("세트를 찾을 수 없습니다.");
   }
 
-  if (!isSetRatingOpen({ status: normalizeSetStatus(set.status) })) {
-    throw new Error("세트 상태를 경기종료로 변경하면 평점이 열립니다.");
+  if (
+    !isSetRatingOpen({
+      status: normalizeSetStatus(set.status),
+      resultRecordedAt: set.result_recorded_at,
+    })
+  ) {
+    throw new Error("평점 입력 시간이 아니거나 마감되었습니다. (경기 종료 후 3시간)");
   }
 
   const { data: line, error: lineError } = await supabase

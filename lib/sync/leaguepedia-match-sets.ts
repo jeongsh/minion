@@ -1272,7 +1272,8 @@ export async function syncLeaguepediaMatchSets(
     throw error;
   }
 
-  // 세트 상세 데이터가 다 들어왔는지(= 한 팀이 과반 승리) 판정하여 매치를 종료 처리
+  // 각 세트의 승자를 집계해 매치 스코어에 자동 반영한다.
+  // 한 팀이 과반 승리하면 매치를 종료(승자 확정) 처리한다.
   let winsA = 0;
   let winsB = 0;
   for (const set of payload) {
@@ -1286,14 +1287,32 @@ export async function syncLeaguepediaMatchSets(
   const matchDecided = winsNeeded
     ? Math.max(winsA, winsB) >= winsNeeded
     : winsA + winsB > 0;
+
+  const matchUpdate: {
+    team_a_score: number;
+    team_b_score: number;
+    status?: "completed";
+    winner_team_id?: string | null;
+  } = {
+    team_a_score: winsA,
+    team_b_score: winsB,
+  };
   if (matchDecided) {
-    const { error: matchStatusError } = await supabase
-      .from("matches")
-      .update({ status: "completed" })
-      .eq("id", typedMatch.id);
-    if (matchStatusError) {
-      throw matchStatusError;
-    }
+    matchUpdate.status = "completed";
+    matchUpdate.winner_team_id =
+      winsA > winsB
+        ? typedMatch.team_a_id
+        : winsB > winsA
+          ? typedMatch.team_b_id
+          : null;
+  }
+
+  const { error: matchUpdateError } = await supabase
+    .from("matches")
+    .update(matchUpdate)
+    .eq("id", typedMatch.id);
+  if (matchUpdateError) {
+    throw matchUpdateError;
   }
 
   const setRows = (data ?? []) as Array<{
