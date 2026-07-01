@@ -125,6 +125,63 @@ async function selectInChunks<T>(
   return rows;
 }
 
+/**
+ * Leaguepedia 원본 자체가 일부 세트의 승자를 파싱하지 못하는 경우가 있다
+ * (예: 2026 First Stand_Groups Day 2_2 — 게임 시간 등 통계는 있지만 승자 필드만
+ * 계속 비어 있음, 재동기화해도 동일). 이런 세트를 세트 집계 기준으로 그대로
+ * 두면 이미 완료된 매치가 "진행 중"으로 다운그레이드된다.
+ *
+ * 대신 이미 신뢰할 수 있는 매치 최종 스코어/승자/best_of(문서 4.2절 — 매치가
+ * 직접 소유하는 값, Leaguepedia MatchSchedule 대량 동기화로 들어온 값이라
+ * 세트별 파싱 문제와 무관)로부터 역산한다: 시리즈는 한 팀이 승수 기준에
+ * 도달하면 끝나므로, 패배팀의 확정 승수가 이미 최종 스코어와 일치하고
+ * 승자 없는(그러나 경기 데이터는 있는) 세트 수가 승리팀에게 남은 필요
+ * 승수와 정확히 같을 때만 — 애매하지 않을 때만 — 그 세트들을 전부
+ * 승리팀 몫으로 채운다.
+ */
+function inferMissingSetWinners(
+  match: MatchRow,
+  matchSets: SetRow[],
+): Array<{ setId: string; winnerTeamId: string }> {
+  if (
+    !match.best_of ||
+    !match.winner_team_id ||
+    !match.team_a_id ||
+    !match.team_b_id ||
+    match.team_a_score == null ||
+    match.team_b_score == null
+  ) {
+    return [];
+  }
+
+  const winnerTeamId = match.winner_team_id;
+  const loserTeamId = winnerTeamId === match.team_a_id ? match.team_b_id : match.team_a_id;
+  const winnerScore = winnerTeamId === match.team_a_id ? match.team_a_score : match.team_b_score;
+  const loserScore = winnerTeamId === match.team_a_id ? match.team_b_score : match.team_a_score;
+  const winsNeeded = Math.floor(match.best_of / 2) + 1;
+  if (winnerScore < winsNeeded) {
+    return []; // 저장된 스코어 자체가 완결된 시리즈처럼 보이지 않으면 역산하지 않는다.
+  }
+
+  const confirmedWinnerWins = matchSets.filter((set) => set.winner_team_id === winnerTeamId).length;
+  const confirmedLoserWins = matchSets.filter((set) => set.winner_team_id === loserTeamId).length;
+  const unresolvedSets = matchSets.filter(
+    (set) =>
+      set.winner_team_id == null &&
+      (set.duration_seconds != null || set.blue_kills != null || set.red_kills != null),
+  );
+
+  if (confirmedLoserWins !== loserScore) {
+    return []; // 패배팀 확정 승수가 최종 스코어와 안 맞으면 애매하니 건너뛴다.
+  }
+  const neededForWinner = winnerScore - confirmedWinnerWins;
+  if (neededForWinner <= 0 || neededForWinner !== unresolvedSets.length) {
+    return []; // 필요 승수와 미확정 세트 수가 정확히 같을 때만 안전하게 역산 가능.
+  }
+
+  return unresolvedSets.map((set) => ({ setId: set.id, winnerTeamId }));
+}
+
 async function resolveMatchIds(supabase: SupabaseClient): Promise<{ matchIds: string[] | null; label: string }> {
   const all = process.argv.includes("--all");
   const matchArg = argValue("--match");
@@ -394,6 +451,45 @@ async function main() {
   console.log("=== --apply: 실제로 고치는 중 ===");
 
   const setById = new Map(setRows.map((set) => [set.id, set]));
+  const setsByMatchId = new Map<string, SetRow[]>();
+  for (const set of setRows) {
+    const list = setsByMatchId.get(set.match_id);
+    if (list) list.push(set);
+    else setsByMatchId.set(set.match_id, [set]);
+  }
+
+  // 매치 재조정보다 먼저: Leaguepedia 원본이 승자를 못 채운 세트를, 이미 신뢰하는
+  // 매치 최종 스코어/승자로부터 역산해 백필한다(애매하면 건너뛰고 별도로 보고).
+  let winnersBackfilled = 0;
+  const ambiguousDowngradeMatchIds = new Set<string>();
+  const ambiguousDowngradeLabels: string[] = [];
+  for (const mismatch of matchMismatches) {
+    const match = matchById.get(mismatch.matchId);
+    if (!match) continue;
+    const isDowngrade = mismatch.after.status !== "completed" && mismatch.before.status === "completed";
+    if (!isDowngrade) continue;
+
+    const inferred = inferMissingSetWinners(match, setsByMatchId.get(match.id) ?? []);
+    if (inferred.length === 0) {
+      ambiguousDowngradeMatchIds.add(match.id);
+      ambiguousDowngradeLabels.push(`${match.name} (${match.id})`);
+      continue;
+    }
+    for (const { setId, winnerTeamId } of inferred) {
+      const { error: winnerError } = await supabase.from("sets").update({ winner_team_id: winnerTeamId }).eq("id", setId);
+      if (winnerError) {
+        throw winnerError;
+      }
+      winnersBackfilled += 1;
+    }
+  }
+  console.log(`세트 승자 역산 백필 ${winnersBackfilled}건 완료`);
+  if (ambiguousDowngradeLabels.length > 0) {
+    console.log(
+      `  (역산 불가 — 다운그레이드 위험이라 이번 --apply에서 건너뜀, 사람 확인 필요: ${ambiguousDowngradeLabels.join(", ")})`,
+    );
+  }
+
   let setsFixed = 0;
   for (const mismatch of setStatusMismatches) {
     const set = setById.get(mismatch.setId);
@@ -421,7 +517,9 @@ async function main() {
   console.log(`세트 상태 ${setsFixed}건 갱신 완료`);
 
   let matchesFixed = 0;
-  const matchIdsToReconcile = new Set(matchMismatches.map((mismatch) => mismatch.matchId));
+  const matchIdsToReconcile = new Set(
+    matchMismatches.map((mismatch) => mismatch.matchId).filter((id) => !ambiguousDowngradeMatchIds.has(id)),
+  );
   for (const matchId of matchIdsToReconcile) {
     const result = await reconcileMatchFromSets(supabase, matchId);
     if (result.changed) {
@@ -429,6 +527,9 @@ async function main() {
     }
   }
   console.log(`매치 스코어/상태/승자 ${matchesFixed}건 갱신 완료`);
+  if (ambiguousDowngradeMatchIds.size > 0) {
+    console.log(`매치 ${ambiguousDowngradeMatchIds.size}건은 다운그레이드 위험으로 재조정하지 않고 건너뜀`);
+  }
 }
 
 main().catch((error) => {
