@@ -183,12 +183,13 @@ function MatchPollCard({
   const percents = votePercents(match, predictions);
   const accent = teamA?.primaryColor || "#ff315d";
   const opposingAccent = teamB?.primaryColor || "#315efb";
+  const hasTbd = !teamA || !teamB;
 
-  return (
-    <Link
-      href={matchHref(match)}
-      className="group rounded-lg border border-[#e7ebf3] bg-white px-5 py-4 transition hover:-translate-y-0.5 hover:border-[#cfd5e3] hover:shadow-lg"
-    >
+  const cardClassName =
+    "group rounded-lg border border-[#e7ebf3] bg-white px-5 py-4 transition hover:-translate-y-0.5 hover:border-[#cfd5e3] hover:shadow-lg";
+
+  const body = (
+    <>
       <div className="flex items-start justify-between gap-3">
         <p className="line-clamp-1 text-xs font-black text-[#111827]">{tournamentName ?? match.name}</p>
         <p className="shrink-0 text-[11px] font-semibold text-[#7c86a0]">{formatDateTime(match.matchDate)}</p>
@@ -213,10 +214,30 @@ function MatchPollCard({
         <span className="h-full flex-1" style={{ backgroundColor: opposingAccent }} />
       </div>
       <div className="mt-4 flex flex-wrap gap-2 border-t border-[#eef1f6] pt-3">
-        <span className="rounded-full bg-[#f4f6f9] px-3 py-1.5 text-[11px] font-bold text-[#667085] transition group-hover:bg-[#eceff4]">
-          팬 예측 보기
-        </span>
+        {hasTbd ? (
+          <span className="rounded-full bg-[#f1f2f5] px-3 py-1.5 text-[11px] font-bold text-[#a0a8bb]">
+            상대 미정
+          </span>
+        ) : (
+          <span className="rounded-full bg-[#f4f6f9] px-3 py-1.5 text-[11px] font-bold text-[#667085] transition group-hover:bg-[#eceff4]">
+            팬 예측 보기
+          </span>
+        )}
       </div>
+    </>
+  );
+
+  if (hasTbd) {
+    return (
+      <div className={`${cardClassName} cursor-not-allowed opacity-60 hover:translate-y-0 hover:border-[#e7ebf3] hover:shadow-none`}>
+        {body}
+      </div>
+    );
+  }
+
+  return (
+    <Link href={matchHref(match)} className={cardClassName}>
+      {body}
     </Link>
   );
 }

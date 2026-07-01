@@ -24,6 +24,10 @@ export function WinnerPredictionPoll({
 }) {
   const teamAName = teamLabel(teams, match.teamAId);
   const teamBName = teamLabel(teams, match.teamBId);
+  const hasTbd =
+    !teams.some((team) => team.id === match.teamAId) ||
+    !teams.some((team) => team.id === match.teamBId);
+  const votingDisabled = closed || hasTbd;
   const teamACount = voteCount(predictions, match.teamAId);
   const teamBCount = voteCount(predictions, match.teamBId);
   const total = teamACount + teamBCount;
@@ -46,7 +50,11 @@ export function WinnerPredictionPoll({
             승자예측
           </h2>
           <p className="mt-1 text-xs text-muted">
-            {closed ? "경기 시작으로 투표가 마감되었습니다." : `${formatDateTime(match.matchDate)} 자동 마감`}
+            {hasTbd
+              ? "대진이 확정되면 예측이 열립니다."
+              : closed
+                ? "경기 시작으로 투표가 마감되었습니다."
+                : `${formatDateTime(match.matchDate)} 자동 마감`}
           </p>
         </div>
         <span className="rounded-md bg-surface-muted px-2 py-1 text-xs font-semibold text-muted">
@@ -66,9 +74,9 @@ export function WinnerPredictionPoll({
             <div className="h-2 overflow-hidden rounded-full bg-surface-muted">
               <div className="h-full rounded-full bg-accent" style={{ width: `${row.percent}%` }} />
             </div>
-            {closed ? (
+            {votingDisabled ? (
               <div className="rounded-md border border-border px-3 py-2 text-center text-sm font-semibold text-muted">
-                {myVote === row.teamId ? "내 선택" : "마감"}
+                {hasTbd ? "상대 미정" : myVote === row.teamId ? "내 선택" : "마감"}
               </div>
             ) : (
               <form action={action}>
