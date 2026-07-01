@@ -193,18 +193,12 @@ export default async function AdminMatchEditPage({
         <DataTable
           rows={sets}
           emptyText="아직 등록된 세트 결과가 없습니다."
+          getRowHref={(row) => `${adminMatchPath}/sets/${row.id}/edit`}
           columns={[
             {
               key: "set",
               label: "세트",
-              render: (row) => (
-                <Link
-                  href={`${adminMatchPath}/sets/${row.id}/edit`}
-                  className="font-semibold text-foreground hover:underline"
-                >
-                  {row.setNumber}세트
-                </Link>
-              ),
+              render: (row) => <span className="font-semibold text-foreground">{row.setNumber}세트</span>,
             },
             { key: "status", label: "상태", render: (row) => setStatusLabel(row.status) },
             { key: "winner", label: "승리 팀", render: (row) => teamLabel(teams, row.winnerTeamId) },

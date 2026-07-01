@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export type DataTableColumn<T> = {
   key: string;
   label: string;
@@ -10,10 +12,13 @@ export function DataTable<T>({
   columns,
   rows,
   emptyText = "표시할 데이터가 없습니다.",
+  getRowHref,
 }: {
   columns: DataTableColumn<T>[];
   rows: T[];
   emptyText?: string;
+  /** 지정하면 각 행 전체가 이 링크로 클릭 가능해진다(행 안 다른 링크/버튼과 겹치지 않는 표에서만 사용). */
+  getRowHref?: (row: T) => string | undefined;
 }) {
   if (rows.length === 0) {
     return (
@@ -36,15 +41,23 @@ export function DataTable<T>({
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
-          {rows.map((row, index) => (
-            <tr key={index} className="align-middle">
-              {columns.map((column) => (
-                <td key={column.key} className={`px-4 py-3 ${column.cellClassName ?? ""}`}>
-                  {column.render(row)}
-                </td>
-              ))}
-            </tr>
-          ))}
+          {rows.map((row, index) => {
+            const href = getRowHref?.(row);
+            return (
+              <tr key={index} className={`align-middle ${href ? "relative hover:bg-surface-muted" : ""}`}>
+                {columns.map((column, columnIndex) => (
+                  <td key={column.key} className={`px-4 py-3 ${column.cellClassName ?? ""}`}>
+                    {href && columnIndex === 0 ? (
+                      <Link href={href} className="absolute inset-0 z-10" aria-label="상세 보기">
+                        <span className="sr-only">상세 보기</span>
+                      </Link>
+                    ) : null}
+                    {column.render(row)}
+                  </td>
+                ))}
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
