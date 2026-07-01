@@ -11,8 +11,9 @@ import { championImage } from "@/lib/champions";
 import { draftEditorChampions } from "@/lib/draft-champions";
 import { teamDraftSide } from "@/lib/draft-slots";
 import { itemImageUrl, type GameItem } from "@/lib/items";
+import { matchStatusLabel } from "@/lib/match-display";
 import { type RuneCatalog } from "@/lib/runes";
-import { SET_STATUS_OPTIONS } from "@/lib/set-status";
+import { SET_STATUS_OPTIONS, setStatusLabel } from "@/lib/set-status";
 import { type GameSpell } from "@/lib/spells";
 import { calculatePlayerStats } from "@/lib/stats";
 import type {
@@ -27,6 +28,11 @@ import type {
   Team,
 } from "@/lib/types";
 import { durationLabel, matchHref, playerLabel, teamLabel } from "@/lib/view-data";
+
+import { overrideSetResultAction } from "../../../../sets/actions";
+import { SetFormShell } from "./set-form-shell";
+import { SetTimelineSection } from "./set-timeline-section";
+import { SwapSidesButton } from "./swap-sides-button";
 
 type PlayerStatRow = {
   line: PlayerStatLine;
@@ -103,15 +109,6 @@ function kdaText(rows: Array<{ line: { kills: number; deaths: number; assists: n
   return `${totals.kills}/${totals.deaths}/${totals.assists}`;
 }
 
-function matchScoreForTeam(
-  match: { teamAId: string; teamBId: string; teamAScore: number | null; teamBScore: number | null },
-  teamId: string,
-) {
-  if (match.teamAId === teamId) return match.teamAScore;
-  if (match.teamBId === teamId) return match.teamBScore;
-  return null;
-}
-
 function AdminNumberInput({
   name,
   defaultValue,
@@ -154,11 +151,13 @@ function AdminTextInput({
 }
 
 function TeamSelect({
+  id,
   name,
   teams,
   defaultValue,
   className = "",
 }: {
+  id?: string;
   name: string;
   teams: Team[];
   defaultValue?: string | null;
@@ -166,6 +165,7 @@ function TeamSelect({
 }) {
   return (
     <select
+      id={id}
       name={name}
       defaultValue={defaultValue ?? ""}
       className={`w-full rounded border border-border bg-background px-2 py-1.5 text-sm font-semibold text-foreground ${className}`}
@@ -227,14 +227,14 @@ function AdminTeamHeader({
   teams,
   teamId,
   teamField,
-  score,
+  selectId,
   result,
   align = "left",
 }: {
   teams: Team[];
   teamId: string;
   teamField: string;
-  score: number | null;
+  selectId: string;
   result: "WIN" | "LOSS";
   align?: "left" | "right";
 }) {
@@ -245,13 +245,11 @@ function AdminTeamHeader({
       }`}
     >
       {align === "left" ? (
-        <TeamSelect name={teamField} teams={teams} defaultValue={teamId} className="max-w-[16rem]" />
+        <TeamSelect id={selectId} name={teamField} teams={teams} defaultValue={teamId} className="max-w-[16rem]" />
       ) : null}
-      <span className="text-4xl font-semibold">{score ?? "-"}</span>
-      <span className="h-8 w-px bg-background/35" />
       <span className="text-xl font-semibold">{result}</span>
       {align === "right" ? (
-        <TeamSelect name={teamField} teams={teams} defaultValue={teamId} className="max-w-[16rem]" />
+        <TeamSelect id={selectId} name={teamField} teams={teams} defaultValue={teamId} className="max-w-[16rem]" />
       ) : null}
     </div>
   );
@@ -760,6 +758,7 @@ export function AdminSetEditor({
   playerStatLines = [],
   fanRatings = [],
   matchSets = [],
+  timelineEventCount = 0,
 }: {
   title: string;
   match: Match;
@@ -779,6 +778,7 @@ export function AdminSetEditor({
   playerStatLines?: PlayerStatLine[];
   fanRatings?: FanRating[];
   matchSets?: SetResult[];
+  timelineEventCount?: number;
 }) {
   const activeSet: SetResult =
     set ??
@@ -838,6 +838,10 @@ export function AdminSetEditor({
   const redirectTo = set
     ? `/admin/matches/${encodeURIComponent(match.leaguepediaMatchId || match.id)}/edit/sets/${set.id}/edit`
     : adminMatchPath;
+  // 세트의 팀 선택은 상위 매치 참가팀 두 곳으로만 제한한다(문서 10.2절).
+  const participantTeams = teams.filter((team) => team.id === match.teamAId || team.id === match.teamBId);
+  const timelineReady =
+    Boolean(activeSet.leaguepediaGameId) && (activeSet.status === "finished" || activeSet.status === "data_synced");
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-[var(--page-inline)] py-10">
@@ -846,31 +850,41 @@ export function AdminSetEditor({
           <div className="flex flex-col gap-2">
             <p className="text-sm font-semibold text-accent">Set edit</p>
             <h1 className="text-3xl font-semibold tracking-normal md:text-4xl">{title}</h1>
+            <p className="text-sm text-muted">
+              {match.name} · {activeSet.setNumber}세트 · 시리즈 스코어{" "}
+              <span className="font-semibold text-foreground">
+                {teamLabel(teams, match.teamAId)} {match.teamAScore ?? "-"} : {match.teamBScore ?? "-"}{" "}
+                {teamLabel(teams, match.teamBId)}
+              </span>{" "}
+              · 매치 상태 <span className="font-semibold text-foreground">{matchStatusLabel(match.status)}</span>
+            </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Link
               href={adminMatchPath}
               className="rounded-md border border-border bg-surface px-3 py-2 text-sm font-semibold hover:bg-surface-muted"
             >
-              Back to match edit
+              ← 매치 관리
             </Link>
           </div>
         </div>
         <AdminSetNavigation match={match} sets={matchSets} currentSetId={activeSet.id} />
       </section>
 
-      <form action={action} className="contents">
+      <SetFormShell action={action} submitLabel={submitLabel}>
         {set ? <input type="hidden" name="setId" value={set.id} /> : null}
         <input type="hidden" name="matchId" value={match.id} />
+        <input type="hidden" name="matchTeamAId" value={match.teamAId} />
+        <input type="hidden" name="matchTeamBId" value={match.teamBId} />
         <input type="hidden" name="redirectTo" value={redirectTo} />
 
         <section className="overflow-hidden rounded-md border border-border bg-surface" aria-labelledby="set-summary">
           <div className="grid bg-foreground text-background lg:grid-cols-[1fr_15rem_1fr]">
             <AdminTeamHeader
-              teams={teams}
+              teams={participantTeams}
               teamId={activeSet.blueTeamId}
               teamField="blueTeamId"
-              score={matchScoreForTeam(match, activeSet.blueTeamId)}
+              selectId="set-blue-team-select"
               result={blueWon ? "WIN" : "LOSS"}
             />
             <div className="grid gap-2 border-y border-background/20 px-5 py-4 text-center lg:border-x lg:border-y-0">
@@ -891,30 +905,23 @@ export function AdminSetEditor({
                   <AdminTextInput name="patch" defaultValue={activeSet.patch} placeholder="26.10" className="text-center" />
                 </label>
               </div>
-              <label className="grid gap-1 text-xs font-semibold text-background/70">
-                STATUS
-                <select
-                  name="status"
-                  defaultValue={activeSet.status}
-                  className="rounded-md border border-background/30 bg-background px-2 py-1 text-center text-sm font-semibold text-foreground"
-                >
-                  {SET_STATUS_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <div className="grid gap-1 text-xs font-semibold text-background/70">
+                STATUS (세트 결과로부터 자동 계산됨)
+                <span className="rounded-md border border-background/30 bg-background px-2 py-1 text-center text-sm font-semibold text-foreground">
+                  {setStatusLabel(activeSet.status)}
+                </span>
+              </div>
               <label className="grid gap-1 text-xs font-semibold text-background/70">
                 WINNER
-                <TeamSelect name="winnerTeamId" teams={teams} defaultValue={activeSet.winnerTeamId} />
+                <TeamSelect name="winnerTeamId" teams={participantTeams} defaultValue={activeSet.winnerTeamId} />
               </label>
+              <SwapSidesButton blueSelectId="set-blue-team-select" redSelectId="set-red-team-select" />
             </div>
             <AdminTeamHeader
-              teams={teams}
+              teams={participantTeams}
               teamId={activeSet.redTeamId}
               teamField="redTeamId"
-              score={matchScoreForTeam(match, activeSet.redTeamId)}
+              selectId="set-red-team-select"
               result={redWon ? "WIN" : "LOSS"}
               align="right"
             />
@@ -1010,66 +1017,111 @@ export function AdminSetEditor({
             </label>
           </div>
 
-          <div className="flex justify-end border-t border-border p-4">
-            <button type="submit" className="rounded-md bg-foreground px-4 py-2 text-sm font-semibold text-background">
-              {submitLabel}
-            </button>
-          </div>
         </section>
 
-        <AdminDraftEditor
-          set={activeSet}
-          champions={pickerChampionsList}
-          picksBans={picksBans}
-          blue={teamDraftSide({
-            teamId: activeSet.blueTeamId,
-            teamName: teamLabel(teams, activeSet.blueTeamId),
-            picksBans,
-            playerStatLines,
-            lineup: blueLineup,
-          })}
-          red={teamDraftSide({
-            teamId: activeSet.redTeamId,
-            teamName: teamLabel(teams, activeSet.redTeamId),
-            picksBans,
-            playerStatLines,
-            lineup: redLineup,
-          })}
-        />
+        <details open className="rounded-md border border-border bg-surface">
+          <summary className="cursor-pointer px-4 py-3 text-sm font-semibold hover:bg-surface-muted">밴픽</summary>
+          <div className="border-t border-border p-4">
+            <AdminDraftEditor
+              set={activeSet}
+              champions={pickerChampionsList}
+              picksBans={picksBans}
+              blue={teamDraftSide({
+                teamId: activeSet.blueTeamId,
+                teamName: teamLabel(teams, activeSet.blueTeamId),
+                picksBans,
+                playerStatLines,
+                lineup: blueLineup,
+              })}
+              red={teamDraftSide({
+                teamId: activeSet.redTeamId,
+                teamName: teamLabel(teams, activeSet.redTeamId),
+                picksBans,
+                playerStatLines,
+                lineup: redLineup,
+              })}
+            />
+          </div>
+        </details>
 
-        <AdminPlayerStatEditor
-          set={activeSet}
-          teams={teams}
-          players={players}
-          champions={pickerChampionsList}
-          items={items}
-          spells={spells}
-          runeCatalog={runeCatalog}
-          itemVersion={itemVersionResolved}
-          blueRows={blueRows}
-          redRows={redRows}
-        />
+        <details open className="rounded-md border border-border bg-surface">
+          <summary className="cursor-pointer px-4 py-3 text-sm font-semibold hover:bg-surface-muted">선수 스탯</summary>
+          <div className="border-t border-border p-4">
+            <AdminPlayerStatEditor
+              set={activeSet}
+              teams={teams}
+              players={players}
+              champions={pickerChampionsList}
+              items={items}
+              spells={spells}
+              runeCatalog={runeCatalog}
+              itemVersion={itemVersionResolved}
+              blueRows={blueRows}
+              redRows={redRows}
+            />
+          </div>
+        </details>
+      </SetFormShell>
 
-        <div className="flex justify-end">
-          <button type="submit" className="rounded-md bg-foreground px-5 py-2.5 text-sm font-semibold text-background">
-            {submitLabel}
-          </button>
+      <details className="rounded-md border border-border bg-surface">
+        <summary className="cursor-pointer px-4 py-3 text-sm font-semibold hover:bg-surface-muted">
+          고급 설정 · 세트 상태 수동 보정
+        </summary>
+        <div className="border-t border-border p-4">
+          {set ? (
+            <form action={overrideSetResultAction} className="flex flex-wrap items-end gap-4">
+              <input type="hidden" name="setId" value={set.id} />
+              <input type="hidden" name="redirectTo" value={redirectTo} />
+              <p className="w-full text-xs text-muted">
+                상태는 저장/동기화 시 자동으로 다시 계산됩니다. 예외적으로 임시 고정이 필요할 때만 사용하세요.
+              </p>
+              <label className="grid gap-2 text-sm font-medium">
+                상태
+                <select
+                  name="status"
+                  defaultValue={activeSet.status}
+                  className="rounded-md border border-border bg-background px-3 py-2"
+                >
+                  {SET_STATUS_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button
+                type="submit"
+                className="rounded-md border border-border px-4 py-2 text-sm font-semibold hover:bg-surface-muted"
+              >
+                수동 보정 저장
+              </button>
+            </form>
+          ) : (
+            <p className="text-sm text-muted">세트를 먼저 생성한 뒤 상태를 수동 보정할 수 있습니다.</p>
+          )}
         </div>
-      </form>
+      </details>
 
-      <section className="flex flex-col gap-4" aria-labelledby="set-reviews">
-        <h2 id="set-reviews" className="text-xl font-semibold">
-          Set ratings / reviews
-        </h2>
-        <DataTable
-          rows={relatedRatings}
-          columns={[
-            { key: "player", label: "Player", render: (row) => playerLabel(players, row.playerId) },
-            { key: "rating", label: "Rating", render: (row) => row.rating.toFixed(1) },
-            { key: "review", label: "Review", render: (row) => row.review },
-          ]}
-        />
-      </section>
+      <details className="rounded-md border border-border bg-surface">
+        <summary className="cursor-pointer px-4 py-3 text-sm font-semibold hover:bg-surface-muted">타임라인</summary>
+        <SetTimelineSection matchId={match.id} eventCount={timelineEventCount} ready={timelineReady} />
+      </details>
+
+      <details className="rounded-md border border-border bg-surface" aria-labelledby="set-reviews">
+        <summary className="cursor-pointer px-4 py-3 text-sm font-semibold hover:bg-surface-muted" id="set-reviews">
+          평점 / 리뷰 확인
+        </summary>
+        <div className="border-t border-border p-4">
+          <DataTable
+            rows={relatedRatings}
+            columns={[
+              { key: "player", label: "Player", render: (row) => playerLabel(players, row.playerId) },
+              { key: "rating", label: "Rating", render: (row) => row.rating.toFixed(1) },
+              { key: "review", label: "Review", render: (row) => row.review },
+            ]}
+          />
+        </div>
+      </details>
     </main>
   );
 }

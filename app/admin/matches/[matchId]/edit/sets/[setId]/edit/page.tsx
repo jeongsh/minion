@@ -9,6 +9,7 @@ import {
   getMatches,
   getPlayerStatLines,
   getSetById,
+  getSetDataCompletionBySetId,
   getSetPicksBans,
   getSetsByMatchId,
 } from "@/lib/data/lck";
@@ -50,6 +51,7 @@ export default async function AdminMatchSetEditPage({
     fetchSpellCatalog(itemVersion),
     fetchRuneCatalog(itemVersion),
   ]);
+  const completion = (await getSetDataCompletionBySetId([set.id])).get(set.id);
   const adminMatchPath = `/admin/matches/${matchRouteId(match)}/edit`;
 
   return (
@@ -72,6 +74,7 @@ export default async function AdminMatchSetEditPage({
       playerStatLines={playerStatLines}
       fanRatings={fanRatings}
       matchSets={matchSets}
+      timelineEventCount={completion?.timelineEventCount ?? 0}
     />
   );
 }

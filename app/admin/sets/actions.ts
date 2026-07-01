@@ -2,11 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { resolveChampionIds } from "@/lib/champions-admin";
 import { reconcileMatchFromSets } from "@/lib/match-reconcile";
-import { normalizeSetStatus } from "@/lib/set-status";
+import { deriveSetStatus, hasCompletePlayerStats, normalizeSetStatus } from "@/lib/set-status";
 
 function textOrNull(value: FormDataEntryValue | null) {
   const text = typeof value === "string" ? value.trim() : "";
@@ -88,6 +89,8 @@ function isPresent<T>(value: T | null): value is T {
   return value !== null;
 }
 
+// 세트 상태(status)는 여기서 다루지 않는다 — 픽밴/선수스탯이 확정된 뒤
+// deriveSetStatus()로 자동 계산해서 별도로 저장한다(createSetAction/updateSetAction 참고).
 function setPayload(formData: FormData) {
   const matchId = textOrNull(formData.get("matchId"));
   const setNumber = numberOrNull(formData.get("setNumber"));
@@ -96,13 +99,35 @@ function setPayload(formData: FormData) {
     throw new Error("경기와 세트 번호는 필수입니다.");
   }
 
+  const blueTeamId = textOrNull(formData.get("blueTeamId"));
+  const redTeamId = textOrNull(formData.get("redTeamId"));
+  const winnerTeamId = textOrNull(formData.get("winnerTeamId"));
+  const matchTeamAId = textOrNull(formData.get("matchTeamAId"));
+  const matchTeamBId = textOrNull(formData.get("matchTeamBId"));
+
+  // 매치 참가팀 정보가 함께 제출된 경우에만 검증한다(문서 5.2 불변조건).
+  if (matchTeamAId && matchTeamBId) {
+    const participantIds = new Set([matchTeamAId, matchTeamBId]);
+    if (blueTeamId && redTeamId && blueTeamId === redTeamId) {
+      throw new Error("블루팀과 레드팀은 서로 달라야 합니다.");
+    }
+    if (blueTeamId && !participantIds.has(blueTeamId)) {
+      throw new Error("블루팀은 매치 참가팀 중 하나여야 합니다.");
+    }
+    if (redTeamId && !participantIds.has(redTeamId)) {
+      throw new Error("레드팀은 매치 참가팀 중 하나여야 합니다.");
+    }
+    if (winnerTeamId && winnerTeamId !== blueTeamId && winnerTeamId !== redTeamId) {
+      throw new Error("세트 승자는 블루팀 또는 레드팀 중 하나여야 합니다.");
+    }
+  }
+
   return {
     match_id: matchId,
     set_number: setNumber,
-    status: normalizeSetStatus(textOrNull(formData.get("status"))),
-    winner_team_id: textOrNull(formData.get("winnerTeamId")),
-    blue_team_id: textOrNull(formData.get("blueTeamId")),
-    red_team_id: textOrNull(formData.get("redTeamId")),
+    winner_team_id: winnerTeamId,
+    blue_team_id: blueTeamId,
+    red_team_id: redTeamId,
     duration_seconds: durationToSeconds(formData.get("durationSeconds")),
     blue_kills: numberOrNull(formData.get("blueKills")),
     red_kills: numberOrNull(formData.get("redKills")),
@@ -139,45 +164,22 @@ function setPayload(formData: FormData) {
   };
 }
 
-export async function createSetAction(formData: FormData) {
-  const payload = setPayload(formData);
-  const redirectTo = textOrNull(formData.get("redirectTo"));
-  const supabase = createSupabaseAdminClient();
-  const { error } = await supabase.from("sets").insert(payload);
+type SetDetailsResult = {
+  pickCount: number;
+  banCount: number;
+  playerStats: Array<{ playerId: string; teamId: string; position: string }>;
+};
 
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  await reconcileMatchFromSets(supabase, payload.match_id);
-
-  revalidatePath("/admin/sets");
-  revalidatePath(`/matches/${payload.match_id}`);
-
-  if (redirectTo) {
-    redirect(redirectTo);
-  }
-}
-
-export async function updateSetAction(formData: FormData) {
-  const setId = textOrNull(formData.get("setId"));
-  const redirectTo = textOrNull(formData.get("redirectTo"));
-
-  if (!setId) {
-    throw new Error("수정할 세트 ID가 없습니다.");
-  }
-
-  const payload = setPayload(formData);
-  const supabase = createSupabaseAdminClient();
-  const { error } = await supabase
-    .from("sets")
-    .update(payload)
-    .eq("id", setId);
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
+/**
+ * 픽밴/선수스탯을 저장한다. createSetAction/updateSetAction이 공유 — 이전에는
+ * updateSetAction에만 있어서 세트를 새로 만들 때 입력한 픽밴/스탯이 저장되지
+ * 않는 결함이 있었다.
+ */
+async function applySetDetails(
+  supabase: SupabaseClient,
+  setId: string,
+  formData: FormData,
+): Promise<SetDetailsResult> {
   const pickBanCount = countValue(formData, "pickBanCount");
   const playerStatCount = countValue(formData, "playerStatCount");
   const championIdsToResolve: Array<string | null> = [];
@@ -195,6 +197,9 @@ export async function updateSetAction(formData: FormData) {
   }
 
   const resolvedChampionIds = await resolveChampionIds(supabase, championIdsToResolve);
+
+  let pickCount = 0;
+  let banCount = 0;
 
   if (pickBanCount > 0) {
     const pickBanPayload = Array.from({ length: pickBanCount }, (_, index) => {
@@ -249,7 +254,12 @@ export async function updateSetAction(formData: FormData) {
         throw new Error(deletePickBanError.message);
       }
     }
+
+    pickCount = pickBanPayload.filter((entry) => entry.action_type === "pick").length;
+    banCount = pickBanPayload.filter((entry) => entry.action_type === "ban").length;
   }
+
+  let playerStats: SetDetailsResult["playerStats"] = [];
 
   if (playerStatCount > 0) {
     const statPayload = Array.from({ length: playerStatCount }, (_, index) => {
@@ -327,13 +337,120 @@ export async function updateSetAction(formData: FormData) {
         throw new Error(cleanupStatsError.message);
       }
     }
+
+    playerStats = statPayload.map((stat) => ({
+      playerId: stat.player_id,
+      teamId: stat.team_id,
+      position: stat.position,
+    }));
+  }
+
+  return { pickCount, banCount, playerStats };
+}
+
+async function saveSetAndReconcile(
+  supabase: SupabaseClient,
+  setId: string,
+  payload: ReturnType<typeof setPayload>,
+  formData: FormData,
+) {
+  const { pickCount, banCount, playerStats } = await applySetDetails(supabase, setId, formData);
+
+  const hasGameStats =
+    payload.winner_team_id != null ||
+    payload.duration_seconds != null ||
+    payload.blue_kills != null ||
+    payload.red_kills != null;
+  const status = deriveSetStatus({
+    hasGameStats,
+    hasPlayerStats: hasCompletePlayerStats(playerStats, payload.blue_team_id, payload.red_team_id),
+    pickCount,
+    banCount,
+  });
+
+  const { error: statusError } = await supabase.from("sets").update({ status }).eq("id", setId);
+  if (statusError) {
+    throw new Error(statusError.message);
   }
 
   await reconcileMatchFromSets(supabase, payload.match_id);
+}
+
+export async function createSetAction(formData: FormData) {
+  const payload = setPayload(formData);
+  const redirectTo = textOrNull(formData.get("redirectTo"));
+  const supabase = createSupabaseAdminClient();
+  const { data: inserted, error } = await supabase.from("sets").insert(payload).select("id").single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const setId = inserted.id as string;
+  await saveSetAndReconcile(supabase, setId, payload, formData);
+
+  revalidatePath("/admin/sets");
+  revalidatePath(`/matches/${payload.match_id}`);
+
+  if (redirectTo) {
+    redirect(redirectTo);
+  }
+}
+
+export async function updateSetAction(formData: FormData) {
+  const setId = textOrNull(formData.get("setId"));
+  const redirectTo = textOrNull(formData.get("redirectTo"));
+
+  if (!setId) {
+    throw new Error("수정할 세트 ID가 없습니다.");
+  }
+
+  const payload = setPayload(formData);
+  const supabase = createSupabaseAdminClient();
+  const { error } = await supabase.from("sets").update(payload).eq("id", setId);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  await saveSetAndReconcile(supabase, setId, payload, formData);
 
   revalidatePath("/admin/sets");
   revalidatePath(`/matches/${payload.match_id}`);
   revalidatePath(`/matches/${payload.match_id}/sets/${setId}`);
+
+  if (redirectTo) {
+    redirect(redirectTo);
+  }
+}
+
+export async function overrideSetResultAction(formData: FormData) {
+  const setId = textOrNull(formData.get("setId"));
+  const redirectTo = textOrNull(formData.get("redirectTo"));
+
+  if (!setId) {
+    throw new Error("보정할 세트 ID가 없습니다.");
+  }
+
+  const status = normalizeSetStatus(textOrNull(formData.get("status")));
+  const supabase = createSupabaseAdminClient();
+  const { data: updated, error } = await supabase
+    .from("sets")
+    .update({ status })
+    .eq("id", setId)
+    .select("match_id")
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const matchId = updated.match_id as string;
+  await reconcileMatchFromSets(supabase, matchId);
+
+  revalidatePath("/admin/sets");
+  revalidatePath(`/matches/${matchId}`);
+  revalidatePath(`/matches/${matchId}/sets/${setId}`);
 
   if (redirectTo) {
     redirect(redirectTo);
