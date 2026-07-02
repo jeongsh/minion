@@ -9,7 +9,7 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types --test lib/set-status.test.ts lib/match-reconcile.test.ts lib/match-diagnostics.test.ts",
+    "test": "node --experimental-strip-types --test lib/set-status.test.ts lib/match-reconcile.test.ts lib/match-diagnostics.test.ts lib/lolesports-match-matcher.test.ts",
     "diagnose:match-set-status": "node --experimental-strip-types scripts/reconcile-match-set-status.ts",
     "backup:match-set-tables": "node --experimental-strip-types scripts/backup-match-set-tables.ts",
     "sync:lck-2025": "node --experimental-strip-types scripts/sync-leaguepedia-lck-2025.ts",

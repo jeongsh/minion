@@ -169,6 +169,7 @@ type MatchRow = {
   winner_team_id?: string | null;
   official_pom_player_id: string | null;
   leaguepedia_match_id?: string | null;
+  lolesports_match_id?: string | null;
   venue?: string | null;
   vod_url?: string | null;
 };
@@ -449,6 +450,7 @@ function mapMatch(row: MatchRow): Match {
     winnerTeamId: row.winner_team_id ?? null,
     officialPomPlayerId: row.official_pom_player_id,
     leaguepediaMatchId: row.leaguepedia_match_id ?? null,
+    lolesportsMatchId: row.lolesports_match_id ?? null,
     venue: row.venue ?? null,
     vodUrl: row.vod_url ?? null,
   };
@@ -962,7 +964,10 @@ export async function getMatchById(matchId: string) {
   const decodedMatchId = decodeURIComponent(matchId);
   const matches = await getMatches();
   return matches.find(
-    (match) => match.id === decodedMatchId || match.leaguepediaMatchId === decodedMatchId,
+    (match) =>
+      match.id === decodedMatchId ||
+      match.leaguepediaMatchId === decodedMatchId ||
+      match.lolesportsMatchId === decodedMatchId,
   );
 }
 

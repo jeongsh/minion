@@ -161,6 +161,7 @@ export type Match = {
   winnerTeamId?: string | null;
   officialPomPlayerId: string | null;
   leaguepediaMatchId?: string | null;
+  lolesportsMatchId?: string | null;
   venue?: string | null;
   vodUrl?: string | null;
 };

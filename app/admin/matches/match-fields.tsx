@@ -161,6 +161,15 @@ export function MatchFields({
         />
       </label>
       <label className="flex flex-col gap-2 text-sm font-medium">
+        LoL Esports Match ID
+        <input
+          name="lolesportsMatchId"
+          defaultValue={match?.lolesportsMatchId ?? ""}
+          className="rounded-md border border-border bg-background px-3 py-2"
+          placeholder="lolesports.com match ID (자동 매칭 가능)"
+        />
+      </label>
+      <label className="flex flex-col gap-2 text-sm font-medium">
         경기장
         <input
           name="venue"

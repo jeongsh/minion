@@ -287,6 +287,7 @@ function basicMatchPayload(formData: FormData) {
     best_of: numberOrNull(formData.get("bestOf")),
     official_pom_player_id: textOrNull(formData.get("officialPomPlayerId")),
     leaguepedia_match_id: textOrNull(formData.get("leaguepediaMatchId")),
+    lolesports_match_id: textOrNull(formData.get("lolesportsMatchId")),
     venue: textOrNull(formData.get("venue")),
     vod_url: textOrNull(formData.get("vodUrl")),
   };

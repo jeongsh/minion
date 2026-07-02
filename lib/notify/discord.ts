@@ -33,3 +33,58 @@ export async function sendDiscordStoryAlert(
     }
   }
 }
+
+export type MatchAutomationDiscordEvent = {
+  eventType: "set_rating_opened" | "match_completed";
+  matchId: string;
+  matchName: string;
+  setNumber?: number | null;
+  teamAScore: number;
+  teamBScore: number;
+};
+
+export async function sendDiscordMatchAutomationAlert(
+  webhookUrl: string,
+  event: MatchAutomationDiscordEvent,
+  siteUrl?: string,
+): Promise<void> {
+  const url = new URL(webhookUrl);
+  url.searchParams.set("wait", "true");
+
+  const isSet = event.eventType === "set_rating_opened";
+  const matchUrl = siteUrl
+    ? `${siteUrl.replace(/\/$/, "")}/matches/${encodeURIComponent(event.matchId)}${
+        isSet && event.setNumber ? `?tab=rating&set=${event.setNumber}` : ""
+      }`
+    : undefined;
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      allowed_mentions: { parse: [] },
+      embeds: [
+        {
+          title: isSet
+            ? `Set ${event.setNumber ?? "?"} 팬 평점 오픈`
+            : "경기 종료",
+          description: `${event.matchName}\n스코어 ${event.teamAScore} : ${event.teamBScore}`,
+          url: matchUrl,
+          color: isSet ? 0x22c55e : 0xf59e0b,
+          timestamp: new Date().toISOString(),
+          footer: { text: "LCKHub Minion 자동 감지" },
+        },
+      ],
+    }),
+  });
+
+  if (!response.ok) {
+    const retryAfter = response.headers.get("retry-after");
+    const details = (await response.text()).slice(0, 500);
+    throw new Error(
+      `Discord webhook failed (${response.status})${
+        retryAfter ? `; retry-after=${retryAfter}` : ""
+      }: ${details}`,
+    );
+  }
+}
