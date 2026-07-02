@@ -1145,6 +1145,7 @@ as $$
 declare
   v_site_url text;
   v_cron_secret text;
+  v_vercel_bypass text;
   v_request_id bigint;
 begin
   select decrypted_secret
@@ -1157,7 +1158,14 @@ begin
   from vault.decrypted_secrets
   where name = 'lckhub_automation_secret';
 
-  if nullif(v_site_url, '') is null or nullif(v_cron_secret, '') is null then
+  select decrypted_secret
+  into v_vercel_bypass
+  from vault.decrypted_secrets
+  where name = 'lckhub_vercel_bypass';
+
+  if nullif(v_site_url, '') is null
+    or nullif(v_cron_secret, '') is null
+    or nullif(v_vercel_bypass, '') is null then
     raise exception 'LoL Esports automation Vault secrets are not configured';
   end if;
 
@@ -1165,6 +1173,7 @@ begin
     url := rtrim(v_site_url, '/') || '/api/cron/lolesports-ratings',
     headers := jsonb_build_object(
       'Authorization', 'Bearer ' || v_cron_secret,
+      'X-Vercel-Protection-Bypass', v_vercel_bypass,
       'User-Agent', 'Supabase-Cron/LCKHub-Minion'
     ),
     timeout_milliseconds := 25000

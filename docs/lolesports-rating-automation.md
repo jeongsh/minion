@@ -115,7 +115,7 @@ apollographql-client-version: 0.1.0
 - `lib/lolesports-rating-automation.ts`: 오늘 경기 조회, 외부 상태 대조, Supabase RPC, Discord outbox 처리
 - `app/api/cron/lolesports-ratings/route.ts`: `CRON_SECRET`으로 보호된 Cron Route Handler
 - `supabase/migrations/20260702010652_add_lolesports_rating_automation.sql`: 원자적 세트 오픈과 중복 방지
-- `supabase/migrations/20260702010329_schedule_lolesports_rating_automation.sql`: Vault, `pg_cron`, `pg_net` 기반 1분 스케줄
+- `supabase/migrations/20260702012441_schedule_lolesports_rating_automation.sql`: Vault, `pg_cron`, `pg_net` 기반 1분 스케줄
 
 DB 함수는 match row를 `FOR UPDATE`로 잠그고, `(match_id, set_number)` unique constraint와 outbox `dedupe_key`를 함께 사용한다. 같은 Cron이 중복 실행돼도 이미 `finished`/`data_synced`인 세트는 다시 열리지 않는다. Discord 전송 실패는 outbox에 남아 다음 실행에서 재시도된다.
 
@@ -129,12 +129,15 @@ NEXT_PUBLIC_SUPABASE_URL=...
 SUPABASE_SERVICE_ROLE_KEY=...
 ```
 
-Supabase Vault에는 다음 두 값을 저장한다. 비밀값은 migration 파일에 커밋하지 않는다.
+Supabase Vault에는 다음 세 값을 저장한다. 비밀값은 migration 파일에 커밋하지 않는다.
 
 ```text
 lckhub_automation_url=https://minion-mu-five.vercel.app
 lckhub_automation_secret=<Vercel CRON_SECRET와 동일한 값>
+lckhub_vercel_bypass=<Vercel Protection Bypass for Automation 값>
 ```
+
+`lckhub_vercel_bypass`는 Vercel Firewall의 자동화 요청 차단을 통과시키는 전용 비밀값이다. Supabase Cron은 이를 `X-Vercel-Protection-Bypass` Header로 전달하며, 애플리케이션 인증은 별도의 `Authorization: Bearer <CRON_SECRET>` Header가 담당한다.
 
 APQ ID가 변경된 경우에만 아래 값을 추가한다.
 
