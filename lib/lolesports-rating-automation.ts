@@ -220,7 +220,6 @@ export async function runLolesportsRatingAutomation(
     )
     .gte("match_date", start.toISOString())
     .lt("match_date", end.toISOString())
-    .lte("match_date", now.toISOString())
     .neq("status", "completed")
     .order("match_date", { ascending: true });
   if (matchError) throw new Error(`Failed to load today's matches: ${matchError.message}`);
