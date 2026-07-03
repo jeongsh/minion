@@ -41,7 +41,7 @@ export const adminNavItems: NavItem[] = [
 export function fanNavItems(teamSlug: string): NavItem[] {
   return [
     { href: `/fan/${teamSlug}`, label: "홈" },
-    { href: `/fan/${teamSlug}/matches`, label: "경기" },
+    { href: `/fan/${teamSlug}/matches`, label: "일정" },
     { href: `/fan/${teamSlug}/players`, label: "선수" },
     { href: `/fan/${teamSlug}/community`, label: "커뮤니티" },
     { href: `/fan/${teamSlug}/instagram`, label: "인스타그램" },

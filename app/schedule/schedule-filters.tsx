@@ -13,17 +13,25 @@ export function ScheduleFilters({
   activeMonth,
   activeSegment,
   years,
+  teams,
+  activeTeam = "all",
+  pathname = "/schedule",
+  lockTeam = false,
 }: {
   activeYear: number;
   activeMonth: number;
   activeSegment: string;
   years: number[];
+  teams: { id: string; name: string; shortName: string }[];
+  activeTeam?: string;
+  pathname?: string;
+  lockTeam?: boolean;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isNavigating, startNavigation } = useNavigationTransition();
 
-  function navigate(next: { year?: number; month?: number; segment?: string }) {
+  function navigate(next: { year?: number; month?: number; segment?: string; team?: string }) {
     const params = new URLSearchParams(searchParams.toString());
 
     params.set("year", String(next.year ?? activeYear));
@@ -36,7 +44,11 @@ export function ScheduleFilters({
       params.set("segment", segment);
     }
 
-    const href = `/schedule?${params.toString()}`;
+    const team = next.team ?? activeTeam;
+    if (team === "all") params.delete("team");
+    else params.set("team", team);
+
+    const href = `${pathname}?${params.toString()}`;
     if (startNavigation(href)) {
       router.push(href, { scroll: false });
     }
@@ -74,6 +86,19 @@ export function ScheduleFilters({
         }))}
         onSelect={(value) => navigate({ segment: value })}
         disabled={isNavigating}
+      />
+
+      <Divider />
+
+      <FilterDropdown
+        ariaLabel="팀 선택"
+        selected={activeTeam}
+        options={[
+          ...(lockTeam ? [] : [{ value: "all", label: "전체 팀" }]),
+          ...teams.map((team) => ({ value: team.id, label: team.shortName || team.name })),
+        ]}
+        onSelect={(value) => navigate({ team: value })}
+        disabled={isNavigating || lockTeam}
       />
     </div>
   );

@@ -112,6 +112,62 @@ html[data-navigation-pending="true"] :is(a, button, input, select, textarea, [ro
   font-family: "Archivo", "Pretendard", system-ui, sans-serif;
 }
 
+/* ─────────────────────────────────────────────────────────────
+   서브페이지 핸드오프 디자인 토큰 (일정 · 선수 상세 · 커뮤니티)
+   잉크/베이지 언어. 팀 액센트는 --tp (페이지 루트에서 주입,
+   허브 페이지는 아래 기본값 사용).
+   ───────────────────────────────────────────────────────────── */
+.subpage {
+  --ink: #16151b;
+  --ink-2: #6d6c76;
+  --ink-3: #8a8892;
+  --sub-muted: #9c9aa3;
+  --sub-muted-weak: #b6b4bd;
+  /* 중립 모노톤 표면 — 팀 컬러(특히 차가운 색)와 어울리도록 베이지 대신 뉴트럴 그레이. */
+  --surface-1: #f1f2f4;
+  --surface-2: #f7f8f9;
+  --hairline: #ebecef;
+  --card-border: #e7e8eb;
+  --input-border: #e2e3e7;
+  --btn-border: #e2e3e7;
+  --surface-1-hover: #e6e7ea;
+  --row-soft-hover: #f8f9fa;
+  /* 허브 기본 팀 액센트(사이트 퍼플). 팬/선수 컨텍스트에서 override. */
+  --tp: #6158ff;
+  /* 기존 accent 기반 컴포넌트(리액션 버튼 등)를 --tp에 맞춘다. */
+  --accent: var(--tp);
+  --accent-foreground: #fff;
+  color: var(--ink);
+  background: #fff;
+}
+
+/* 커뮤니티 중립 모노톤 토큰 — 팀 컬러(특히 차가운 색)와 충돌하는
+   베이지 계열을 뉴트럴 그레이로 치환. 팬 커뮤니티 피드/글 컨텍스트에서
+   말머리·버튼·hover 배경이 어떤 팀 색과도 어울리게 한다. */
+.community-neutral {
+  --surface-1: #f1f2f4;
+  --surface-2: #f7f8f9;
+  --hairline: #ebecef;
+  --card-border: #e7e8eb;
+  --input-border: #e2e3e7;
+  --btn-border: #e2e3e7;
+  --surface-1-hover: #e6e7ea;
+  --row-soft-hover: #f8f9fa;
+}
+
+/* Archive 900 대문자 + 하단 2px 잉크 라인 섹션 헤딩 */
+.section-rule {
+  border-bottom: 2px solid var(--ink);
+}
+
+/* 리스트 행 hover — 배경만, radius·shadow·transform 없음 */
+.row-hover:hover {
+  background: #eef0f2;
+}
+.row-hover-soft:hover {
+  background: var(--row-soft-hover, #f8f9fa);
+}
+
 /* 로스터 칩 호버 시 팀 컬러 보더 (--tp는 조상 요소에서 주입) */
 .fan-roster-chip:hover {
   border-color: var(--tp);
@@ -119,9 +175,19 @@ html[data-navigation-pending="true"] :is(a, button, input, select, textarea, [ro
 
 /* 팬 홈 히어로 티커 마퀴 (선택적 애니메이션) */
 .fan-ticker-track {
-  display: inline-block;
+  display: flex;
+  width: max-content;
   white-space: nowrap;
   animation: fan-ticker-scroll 26s linear infinite;
+}
+
+.fan-ticker-group {
+  display: flex;
+  min-width: 100vw;
+  width: max-content;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-around;
 }
 
 @keyframes fan-ticker-scroll {

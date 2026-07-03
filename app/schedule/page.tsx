@@ -1,206 +1,76 @@
 import Link from "next/link";
 import { Suspense } from "react";
 
+import { ScheduleList } from "@/components/domain/schedule-list";
+import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { getAllTeams, getMatches, getStages, getTournaments } from "@/lib/data/lck";
-import { matchStatusLabel, stageName, tournamentTypeLabel } from "@/lib/match-display";
-import {
-  filterMatchesBySegment,
-  parseSeasonSegment,
-  segmentLabel,
-} from "@/lib/tournament-filters";
-import type { Match, Team, Tournament } from "@/lib/types";
-import {
-  formatDateHeaderKST,
-  formatTimeKST,
-  getMonthKST,
-  getYearKST,
-  KST_TIMEZONE,
-  matchHref,
-} from "@/lib/view-data";
+import { filterMatchesBySegment, parseSeasonSegment, segmentLabel } from "@/lib/tournament-filters";
+import { getMonthKST, getYearKST, KST_TIMEZONE } from "@/lib/view-data";
 
 import { ScheduleFilters } from "./schedule-filters";
-
-function tournamentById(tournaments: Tournament[], tournamentId: string) {
-  return tournaments.find((tournament) => tournament.id === tournamentId);
-}
-
-function teamById(teams: Team[], teamId: string) {
-  return teams.find((team) => team.id === teamId);
-}
-
-function scoreText(match: Match) {
-  if (match.teamAScore === null || match.teamBScore === null) {
-    return "vs";
-  }
-
-  return `${match.teamAScore} : ${match.teamBScore}`;
-}
-
-function TeamMark({ team, align = "left" }: { team?: Team; align?: "left" | "right" }) {
-  if (!team) {
-    return <span className="font-semibold">-</span>;
-  }
-
-  const badge = team.logoUrl ? (
-    <img
-      src={team.logoUrl}
-      alt=""
-      width={32}
-      height={32}
-      className="size-8 shrink-0 object-contain"
-      aria-hidden="true"
-    />
-  ) : (
-    <span
-      className="grid size-8 shrink-0 place-items-center rounded-full border border-border bg-surface-muted text-xs font-bold"
-      style={{ color: team.primaryColor }}
-      aria-hidden="true"
-    >
-      {team.shortName.slice(0, 3)}
-    </span>
-  );
-
-  return (
-    <span className={`flex items-center gap-3 ${align === "right" ? "justify-end" : ""}`}>
-      {align === "right" ? null : badge}
-      <span className="font-semibold">{team.name}</span>
-      {align === "right" ? badge : null}
-    </span>
-  );
-}
 
 function currentKSTMonthYear() {
   const now = new Date();
   return {
-    month: Number(
-      new Intl.DateTimeFormat("en-US", { timeZone: KST_TIMEZONE, month: "numeric" }).format(now),
-    ),
-    year: Number(
-      new Intl.DateTimeFormat("en-US", { timeZone: KST_TIMEZONE, year: "numeric" }).format(now),
-    ),
+    month: Number(new Intl.DateTimeFormat("en-US", { timeZone: KST_TIMEZONE, month: "numeric" }).format(now)),
+    year: Number(new Intl.DateTimeFormat("en-US", { timeZone: KST_TIMEZONE, year: "numeric" }).format(now)),
   };
 }
 
 export default async function SchedulePage({
   searchParams,
 }: {
-  searchParams: Promise<{ month?: string; year?: string; segment?: string }>;
+  searchParams: Promise<{ month?: string; year?: string; segment?: string; team?: string }>;
 }) {
   const params = await searchParams;
-  const { month: defaultMonth, year: defaultYear } = currentKSTMonthYear();
+  const defaults = currentKSTMonthYear();
+  const activeYear = params.year ? Number(params.year) : defaults.year;
+  const activeMonth = params.month ? Number(params.month) : defaults.month;
   const activeSegment = parseSeasonSegment(params.segment);
+  const activeTeam = params.team ?? "all";
 
   const [matches, teams, tournaments, stages] = await Promise.all([
-    getMatches(),
-    getAllTeams(),
-    getTournaments(),
-    getStages(),
+    getMatches(), getAllTeams(), getTournaments(), getStages(),
   ]);
-
-  const activeYear = params.year ? Number(params.year) : defaultYear;
-  const activeMonth = params.month ? Number(params.month) : defaultMonth;
-
-  const years = Array.from(
-    new Set([
-      ...tournaments.map((tournament) => tournament.season).filter((season): season is number => Boolean(season)),
-      activeYear,
-    ]),
-  ).sort((a, b) => b - a);
-
-  const segmentMatches = filterMatchesBySegment(matches, tournaments, activeSegment, activeYear);
-  const filteredMatches = segmentMatches.filter(
-    (match) => getYearKST(match.matchDate) === activeYear && getMonthKST(match.matchDate) === activeMonth,
-  );
-
-  const sortedMatches = [...filteredMatches].sort(
-    (a, b) => new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime(),
-  );
-
-  const dateGroups = sortedMatches.reduce<Record<string, Match[]>>((groups, match) => {
-    const key = formatDateHeaderKST(match.matchDate);
-
-    return {
-      ...groups,
-      [key]: [...(groups[key] ?? []), match],
-    };
-  }, {});
+  const years = Array.from(new Set([
+    ...tournaments.map((item) => item.season).filter((year): year is number => Boolean(year)),
+    activeYear,
+  ])).sort((a, b) => b - a);
+  const selectedTeam = teams.find((team) => team.id === activeTeam);
+  const filtered = filterMatchesBySegment(matches, tournaments, activeSegment, activeYear)
+    .filter((match) =>
+      getYearKST(match.matchDate) === activeYear &&
+      getMonthKST(match.matchDate) === activeMonth &&
+      (!selectedTeam || match.teamAId === selectedTeam.id || match.teamBId === selectedTeam.id))
+    .sort((a, b) => new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime());
 
   return (
-    <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-[var(--page-inline)] py-8">
-      <section className="flex flex-col gap-6" aria-labelledby="schedule-title">
-
-        <Suspense fallback={null}>
-          <ScheduleFilters
-            activeYear={activeYear}
-            activeMonth={activeMonth}
-            activeSegment={activeSegment}
-            years={years}
+    <main className="subpage min-h-screen">
+      <div className="mx-auto w-full max-w-[1240px] px-10 py-8 max-md:px-5">
+        <Breadcrumb items={[{ label: "홈", href: "/" }, { label: "일정" }]} />
+        <div className="mt-[30px] flex flex-wrap items-center justify-between gap-y-4">
+          <Suspense fallback={null}>
+            <ScheduleFilters
+              activeYear={activeYear}
+              activeMonth={activeMonth}
+              activeSegment={activeSegment}
+              activeTeam={activeTeam}
+              years={years}
+              teams={teams}
+            />
+          </Suspense>
+          <Link href="/schedule" className="text-sm text-[var(--ink-3)] transition-colors hover:text-[var(--ink)]">필터 초기화</Link>
+        </div>
+        <div className="mt-8">
+          <ScheduleList
+            matches={filtered}
+            teams={teams}
+            tournaments={tournaments}
+            stages={stages}
+            emptyMessage={`${activeYear}년 ${activeMonth}월 · ${segmentLabel(activeSegment, activeYear)} 조건에 해당하는 경기가 없습니다.`}
           />
-        </Suspense>
-      </section>
-
-      <section className="overflow-hidden rounded-md border border-border bg-surface" aria-label="경기 목록">
-        {Object.keys(dateGroups).length === 0 ? (
-          <div className="px-5 py-10 text-center text-sm text-muted">
-            {activeYear}년 {activeMonth}월 · {segmentLabel(activeSegment, activeYear)} 구간에 예정된 경기가 없습니다.
-          </div>
-        ) : (
-          Object.entries(dateGroups).map(([date, groupMatches]) => (
-            <div key={date}>
-              <div className="border-b border-border bg-surface-muted px-5 py-4">
-                <h2 className="text-[24px] font-black">{date}</h2>
-              </div>
-              <div className="divide-y divide-border">
-                {groupMatches.map((match) => {
-                  const teamA = teamById(teams, match.teamAId);
-                  const teamB = teamById(teams, match.teamBId);
-                  const tournament = tournamentById(tournaments, match.tournamentId);
-
-                  return (
-                    <div
-                      key={match.id}
-                      className="px-4 py-4 lg:grid lg:grid-cols-[3.5rem_3.5rem_8rem_5.5rem_minmax(0,1fr)_4rem_minmax(0,1fr)_4rem] lg:items-center lg:gap-4 lg:px-5"
-                    >
-                      <div className="mb-3 flex flex-wrap items-center gap-2 lg:mb-0 lg:contents">
-                        <time className="text-base font-bold">{formatTimeKST(match.matchDate)}</time>
-                        <span className="w-fit shrink-0 rounded bg-surface-muted px-2 py-1 text-xs font-semibold text-muted">
-                          {matchStatusLabel(match.status)}
-                        </span>
-                        <span className="w-fit shrink-0 truncate rounded-md border border-border bg-background px-2.5 py-1 text-xs font-bold text-foreground lg:max-w-full">
-                          {tournamentTypeLabel(tournament)}
-                        </span>
-                        <span className="truncate text-sm text-muted">{stageName(stages, match.stageId)}</span>
-                      </div>
-
-                      <div className="flex items-center justify-center gap-3 lg:contents">
-                        <Link href={`/teams/${teamA?.slug ?? ""}`} className="min-w-0 flex-1 lg:flex-none">
-                          <TeamMark team={teamA} align="right" />
-                        </Link>
-                        <Link href={matchHref(match)} className="shrink-0 text-center text-2xl font-black">
-                          {scoreText(match)}
-                        </Link>
-                        <Link href={`/teams/${teamB?.slug ?? ""}`} className="min-w-0 flex-1 lg:flex-none">
-                          <TeamMark team={teamB} />
-                        </Link>
-                      </div>
-
-                      <div className="mt-3 lg:mt-0 lg:contents">
-                        <Link
-                          href={matchHref(match)}
-                          className="block w-full rounded-md border border-border px-3 py-2 text-center text-sm font-semibold lg:w-auto"
-                        >
-                          상세
-                        </Link>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ))
-        )}
-      </section>
-
+        </div>
+      </div>
     </main>
   );
 }

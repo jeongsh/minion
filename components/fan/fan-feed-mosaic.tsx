@@ -30,10 +30,10 @@ type MergedItem =
 
 // ─── 카드 ──────────────────────────────────────────────────────
 
-const HATCH = "repeating-linear-gradient(45deg, #f4f2ee 0 12px, #edeae5 12px 24px)";
+const HATCH = "repeating-linear-gradient(45deg, #eef0f2 0 12px, #e6e8ec 12px 24px)";
 
 function cardShell(extra = "") {
-  return `group relative block aspect-square overflow-hidden rounded-[14px] bg-[#edeae5] transition duration-150 ease-out hover:-translate-y-[3px] hover:shadow-[0_14px_30px_rgba(60,50,60,0.14)] ${extra}`;
+  return `group relative block aspect-square overflow-hidden rounded-[14px] bg-[#e9eaee] transition duration-150 ease-out hover:-translate-y-[3px] hover:shadow-[0_14px_30px_rgba(50,52,60,0.14)] ${extra}`;
 }
 
 function MediaBg({ src }: { src?: string }) {
@@ -102,8 +102,8 @@ function InstaCell({ item, onOpen }: { item: FeedInstaItem; onOpen: () => void }
 
 function AdCell() {
   return (
-    <div className="grid aspect-square place-items-center rounded-[14px] border-[1.5px] border-dashed border-[#d8d5cf] bg-[#faf9f7]">
-      <span className="font-mono text-xs text-[#9a968f]">광고영역</span>
+    <div className="grid aspect-square place-items-center rounded-[14px] border-[1.5px] border-dashed border-[#dcdde1] bg-[#f9fafb]">
+      <span className="font-mono text-xs text-[#97979f]">광고영역</span>
     </div>
   );
 }
@@ -151,13 +151,13 @@ export function FanFeedMosaic({
         <div className="ml-auto flex gap-[8px]">
           <Link
             href={`/fan/${teamSlug}/videos`}
-            className="rounded-full border border-[#e4e1db] px-[15px] py-[7px] text-xs font-extrabold text-[#4a4954] transition hover:border-[#16151b] hover:text-[#16151b]"
+            className="rounded-full border border-[#e3e4e8] px-[15px] py-[7px] text-xs font-extrabold text-[#4a4954] transition hover:border-[#16151b] hover:text-[#16151b]"
           >
             영상 →
           </Link>
           <Link
             href={`/fan/${teamSlug}/instagram`}
-            className="rounded-full border border-[#e4e1db] px-[15px] py-[7px] text-xs font-extrabold text-[#4a4954] transition hover:border-[#16151b] hover:text-[#16151b]"
+            className="rounded-full border border-[#e3e4e8] px-[15px] py-[7px] text-xs font-extrabold text-[#4a4954] transition hover:border-[#16151b] hover:text-[#16151b]"
           >
             인스타 →
           </Link>
@@ -165,7 +165,7 @@ export function FanFeedMosaic({
       </div>
 
       {content.length === 0 ? (
-        <div className="grid place-items-center rounded-[14px] border border-dashed border-[#e0ddd7] bg-[#faf9f7] py-16 text-sm text-[#9a968f]">
+        <div className="grid place-items-center rounded-[14px] border border-dashed border-[#dddee2] bg-[#f9fafb] py-16 text-sm text-[#97979f]">
           아직 새 콘텐츠가 없어요.
         </div>
       ) : (

@@ -255,7 +255,7 @@ export function RecentMatchHistoryModal({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="rounded-md border border-border bg-background px-3 py-2 text-sm font-semibold text-foreground hover:bg-surface-muted"
+        className="rounded-full bg-[#16151b] px-4 py-2 text-[14px] font-semibold text-white transition-opacity hover:opacity-90"
       >
         전체 기록 보기
       </button>

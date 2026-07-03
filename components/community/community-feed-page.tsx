@@ -1,21 +1,18 @@
-import Link from "next/link";
-
+import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { CommunityFeed } from "@/components/community/community-feed";
-import { SectionHeader } from "@/components/layout/section-header";
 import type { BoardScope } from "@/lib/community/boards";
 import { getBoardPosts } from "@/lib/data/community";
 
-// 커뮤니티 피드 페이지 — 시안 1b 헤더. 글쓰기 버튼을 프라이머리(accent)로.
+// 커뮤니티 목록 — 핸드오프 2c. 말머리 필터 + 게시글 테이블.
 export async function CommunityFeedPage({
   scope,
-  eyebrow,
   title,
   teamId,
   teamSlug,
 }: {
   scope: BoardScope;
-  eyebrow: string;
-  title: string;
+  eyebrow?: string;
+  title?: string;
   teamId?: string | null;
   teamSlug?: string;
 }) {
@@ -24,24 +21,26 @@ export async function CommunityFeedPage({
   const newPath =
     scope === "team" && teamSlug ? `/fan/${teamSlug}/community/new` : `/community/new`;
 
+  if (scope === "team") {
+    return (
+      <main className="community-neutral fan-page-container flex flex-col gap-5 py-7 md:py-9" style={{ ["--tp" as string]: "var(--team-primary, #6158ff)" }}>
+        <Breadcrumb
+          items={[
+            { label: title ?? "팬페이지", href: teamSlug ? `/fan/${teamSlug}` : undefined },
+            { label: "커뮤니티" },
+          ]}
+        />
+        <CommunityFeed posts={posts} scope={scope} teamSlug={teamSlug} newPath={newPath} />
+      </main>
+    );
+  }
+
   return (
-    <main
-      className={
-        scope === "team"
-          ? "fan-page-container flex flex-col gap-6 py-7 md:py-9"
-          : "mx-auto flex w-full max-w-7xl flex-col gap-6 px-[var(--page-inline)] py-10"
-      }
-    >
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <SectionHeader eyebrow={eyebrow} title={title} />
-        <Link
-          href={newPath}
-          className="inline-flex items-center gap-[7px] rounded-[9px] bg-accent px-[18px] py-3 text-[14px] font-bold text-accent-foreground shadow-[0_6px_16px_-6px] shadow-accent/60 transition-opacity hover:opacity-90"
-        >
-          ＋ 글쓰기
-        </Link>
+    <main className="subpage min-h-screen">
+      <div className="mx-auto flex w-full max-w-[1240px] flex-col gap-5 px-10 py-8 max-md:px-5">
+        <Breadcrumb items={[{ label: "홈", href: "/" }, { label: "커뮤니티" }]} />
+        <CommunityFeed posts={posts} scope={scope} teamSlug={teamSlug} newPath={newPath} />
       </div>
-      <CommunityFeed posts={posts} scope={scope} teamSlug={teamSlug} />
     </main>
   );
 }

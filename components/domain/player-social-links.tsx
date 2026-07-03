@@ -47,15 +47,23 @@ function SocialIcon({ id }: { id: string }) {
 export function PlayerSocialLinks({
   player,
   className = "",
+  variant = "default",
 }: {
   player: Pick<
     Player,
     "streamUrl" | "twitterUrl" | "instagramUrl" | "youtubeUrl" | "facebookUrl" | "discordUrl"
   >;
   className?: string;
+  /** "overlay" — 어두운 포트레잇 스크림 위에 올리는 흰색 반투명 아이콘 */
+  variant?: "default" | "overlay";
 }) {
   const links = getPlayerSocialLinks(player);
   if (links.length === 0) return null;
+
+  const itemClass =
+    variant === "overlay"
+      ? "inline-flex h-[27px] w-[27px] items-center justify-center rounded-full border border-white/60 text-white transition hover:bg-white/15"
+      : "inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-background text-foreground transition hover:border-accent hover:text-accent";
 
   return (
     <div className={`flex flex-wrap items-center gap-2 ${className}`}>
@@ -67,7 +75,7 @@ export function PlayerSocialLinks({
           rel="noopener noreferrer"
           aria-label={link.label}
           title={link.label}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-background text-foreground transition hover:border-accent hover:text-accent"
+          className={itemClass}
         >
           <SocialIcon id={link.id} />
         </a>

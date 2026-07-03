@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { SectionHeader } from "@/components/layout/section-header";
+import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { getTeamsSortedByRank } from "@/lib/data/lck";
 
 export default async function TeamsPage() {
@@ -7,7 +7,7 @@ export default async function TeamsPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-[var(--page-inline)] py-10">
-      <SectionHeader eyebrow="팀" title="LCK 팀 목록" />
+      <Breadcrumb items={[{ label: "홈", href: "/" }, { label: "팀" }]} />
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
         {teams.map((team) => (

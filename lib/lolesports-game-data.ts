@@ -194,18 +194,67 @@ async function fetchJson<T>(url: string, fetchImpl: typeof fetch): Promise<T> {
   return (await response.json()) as T;
 }
 
+function liveStatsCursor(value: number) {
+  return new Date(Math.ceil(value / 10_000) * 10_000).toISOString();
+}
+
+async function fetchWindowPage(
+  url: string,
+  fetchImpl: typeof fetch,
+): Promise<LiveWindowPayload | null> {
+  const response = await fetchImpl(url, {
+    cache: "no-store",
+    headers: { "User-Agent": "LCKHub-Minion/0.1 (+https://lolesports.com)" },
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (response.status === 400) return null;
+  if (!response.ok) throw new Error(`LoL Esports live stats failed (${response.status})`);
+  return (await response.json()) as LiveWindowPayload;
+}
+
+async function findFinalWindow(
+  gameId: string,
+  initialWindow: LiveWindowPayload,
+  fetchImpl: typeof fetch,
+) {
+  let best = initialWindow;
+  let bestTimestamp = timestamp(latestFrame(initialWindow.frames)?.rfc460Timestamp);
+  if (bestTimestamp === null) return initialWindow;
+
+  // Live Stats rejects a cursor that is too far beyond the game with HTTP 400.
+  // Walk from the API's own first frame instead of using the application server clock.
+  for (let page = 0; page < 36; page += 1) {
+    const cursor = liveStatsCursor(bestTimestamp + 10 * 60 * 1000);
+    const next = await fetchWindowPage(
+      `${LIVE_STATS_BASE}/window/${gameId}?startingTime=${encodeURIComponent(cursor)}`,
+      fetchImpl,
+    );
+    if (!next) break;
+    const nextTimestamp = timestamp(latestFrame(next.frames)?.rfc460Timestamp);
+    if (nextTimestamp === null || nextTimestamp <= bestTimestamp) break;
+    best = next;
+    bestTimestamp = nextTimestamp;
+  }
+  return best;
+}
+
 export async function fetchLolesportsGameData(
   gameId: string,
-  observedAt = new Date(),
+  _observedAt = new Date(),
   fetchImpl: typeof fetch = fetch,
 ) {
+  void _observedAt;
   const encodedId = encodeURIComponent(gameId);
-  const startingTime = encodeURIComponent(observedAt.toISOString());
-  const [initialWindow, finalWindow, details] = await Promise.all([
-    fetchJson<LiveWindowPayload>(`${LIVE_STATS_BASE}/window/${encodedId}`, fetchImpl),
-    fetchJson<LiveWindowPayload>(`${LIVE_STATS_BASE}/window/${encodedId}?startingTime=${startingTime}`, fetchImpl),
-    fetchJson<LiveDetailsPayload>(`${LIVE_STATS_BASE}/details/${encodedId}?startingTime=${startingTime}`, fetchImpl),
-  ]);
+  const initialWindow = await fetchJson<LiveWindowPayload>(
+    `${LIVE_STATS_BASE}/window/${encodedId}`,
+    fetchImpl,
+  );
+  const finalWindow = await findFinalWindow(encodedId, initialWindow, fetchImpl);
+  const finalTimestamp = timestamp(latestFrame(finalWindow.frames)?.rfc460Timestamp);
+  const detailsUrl = finalTimestamp !== null
+    ? `${LIVE_STATS_BASE}/details/${encodedId}?startingTime=${encodeURIComponent(liveStatsCursor(finalTimestamp))}`
+    : `${LIVE_STATS_BASE}/details/${encodedId}`;
+  const details = await fetchJson<LiveDetailsPayload>(detailsUrl, fetchImpl);
   return parseLolesportsGameData(initialWindow, finalWindow, details);
 }
 

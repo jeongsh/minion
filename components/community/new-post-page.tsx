@@ -1,4 +1,4 @@
-import { SectionHeader } from "@/components/layout/section-header";
+import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PostForm } from "@/components/community/post-form";
 import { categoriesForScope, defaultCategory, type BoardScope } from "@/lib/community/boards";
 
@@ -31,7 +31,22 @@ export function NewPostPage({
           : "mx-auto flex w-full max-w-5xl flex-col gap-6 px-[var(--page-inline)] py-10"
       }
     >
-      <SectionHeader eyebrow={eyebrow} title="글쓰기" />
+      {scope === "team" ? (
+        <Breadcrumb
+          items={[
+            { label: eyebrow, href: teamSlug ? `/fan/${teamSlug}/community` : undefined },
+            { label: "글쓰기" },
+          ]}
+        />
+      ) : (
+        <Breadcrumb
+          items={[
+            { label: "홈", href: "/" },
+            { label: "커뮤니티", href: "/community" },
+            { label: "글쓰기" },
+          ]}
+        />
+      )}
       <PostForm
         scope={scope}
         categories={categories}

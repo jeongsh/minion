@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
+import { Breadcrumb } from "@/components/layout/breadcrumb";
 import type { ReactNode } from "react";
 
 import {
@@ -641,12 +642,17 @@ export async function SetDetailContent({
       }
     >
       {embedded ? null : (
-        <section className="flex flex-col gap-2">
-          <p className="text-sm font-semibold text-accent">세트 상세</p>
-          <h1 className="text-[32px] font-semibold tracking-normal md:text-[32px]">
-            {teamLabel(teams, set.blueTeamId)} vs{" "}
-            {teamLabel(teams, set.redTeamId)} · {set.setNumber}세트
-          </h1>
+        <section className="flex flex-col gap-6">
+          <Breadcrumb
+            items={[
+              { label: "홈", href: "/" },
+              {
+                label: `${teamLabel(teams, match.teamAId)} vs ${teamLabel(teams, match.teamBId)}`,
+                href: `/matches/${match.id}`,
+              },
+              { label: `${set.setNumber}세트` },
+            ]}
+          />
           <SetNavigation match={match} sets={matchSets} currentSetId={set.id} />
         </section>
       )}
