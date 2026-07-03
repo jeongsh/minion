@@ -40,7 +40,8 @@ export type MatchAutomationDiscordEvent = {
     | "set_rating_opened"
     | "match_completed"
     | "set_data_sync_succeeded"
-    | "set_data_sync_failed";
+    | "set_data_sync_failed"
+    | "set_data_sync_rate_limited";
   matchId: string;
   matchName: string;
   setNumber?: number | null;
@@ -60,6 +61,7 @@ export async function sendDiscordMatchAutomationAlert(
 
   const isSyncSuccess = event.eventType === "set_data_sync_succeeded";
   const isSyncFailure = event.eventType === "set_data_sync_failed";
+  const isRateLimited = event.eventType === "set_data_sync_rate_limited";
   const isSet = event.eventType !== "match_completed";
   const matchUrl = siteUrl
     ? `${siteUrl.replace(/\/$/, "")}/matches/${encodeURIComponent(event.matchId)}${
@@ -67,8 +69,10 @@ export async function sendDiscordMatchAutomationAlert(
       }`
     : undefined;
 
-  const title = isSyncSuccess
-    ? `Set ${event.setNumber ?? "?"} 데이터 동기화 성공`
+  const title = isRateLimited
+    ? `Set ${event.setNumber ?? "?"} Leaguepedia 레이트 리밋`
+    : isSyncSuccess
+    ? `Set ${event.setNumber ?? "?"} 전체 데이터 동기화 성공`
     : isSyncFailure
       ? `Set ${event.setNumber ?? "?"} 데이터 동기화 실패`
       : event.eventType === "set_rating_opened"
@@ -78,7 +82,8 @@ export async function sendDiscordMatchAutomationAlert(
     event.matchName,
     `스코어 ${event.teamAScore} : ${event.teamBScore}`,
     isSyncSuccess ? `선수 데이터 ${event.playerStatsUpserted ?? 0}/10명 저장` : null,
-    isSyncFailure && event.error ? `오류: ${event.error}` : null,
+    (isSyncFailure || isRateLimited) && event.error ? `오류: ${event.error}` : null,
+    isRateLimited ? "10분 후 자동으로 다시 시도합니다." : null,
   ].filter(Boolean).join("\n");
 
   const response = await fetch(url, {
@@ -90,7 +95,7 @@ export async function sendDiscordMatchAutomationAlert(
         title,
         description,
         url: matchUrl,
-        color: isSyncFailure ? 0xef4444 : isSyncSuccess ? 0x3b82f6 : isSet ? 0x22c55e : 0xf59e0b,
+        color: isSyncFailure ? 0xef4444 : isRateLimited ? 0xf97316 : isSyncSuccess ? 0x3b82f6 : isSet ? 0x22c55e : 0xf59e0b,
         timestamp: new Date().toISOString(),
         footer: { text: "LCKHub Minion 자동 감지" },
       }],

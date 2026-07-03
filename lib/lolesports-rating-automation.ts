@@ -11,6 +11,10 @@ import {
 } from "@/lib/lolesports-match-matcher";
 import { sendDiscordMatchAutomationAlert } from "@/lib/notify/discord";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import {
+  LeaguepediaRateLimitError,
+  syncLeaguepediaMatchSets,
+} from "@/lib/sync/leaguepedia-match-sets";
 
 type MatchRow = {
   id: string;
@@ -23,6 +27,7 @@ type MatchRow = {
   team_b_score: number | null;
   best_of: number | null;
   lolesports_match_id: string | null;
+  leaguepedia_match_id: string | null;
 };
 
 type TeamRow = {
@@ -37,7 +42,8 @@ type AutomationEventRow = {
     | "set_rating_opened"
     | "match_completed"
     | "set_data_sync_succeeded"
-    | "set_data_sync_failed";
+    | "set_data_sync_failed"
+    | "set_data_sync_rate_limited";
   payload: {
     matchId: string;
     matchName: string;
@@ -58,6 +64,7 @@ export type LolesportsAutomationSummary = {
   completedMatchIds: string[];
   snapshottedSets: Array<{ matchId: string; setNumbers: number[] }>;
   detailedSets: Array<{ matchId: string; setNumbers: number[] }>;
+  enrichedSets: Array<{ matchId: string; setNumbers: number[] }>;
   deliveredNotificationCount: number;
   warnings: string[];
 };
@@ -130,7 +137,7 @@ async function queueSetDataSyncNotification({
   setNumber,
   teamAScore,
   teamBScore,
-  succeeded,
+  outcome,
   playerStatsUpserted,
   error,
 }: {
@@ -139,14 +146,23 @@ async function queueSetDataSyncNotification({
   setNumber: number;
   teamAScore: number;
   teamBScore: number;
-  succeeded: boolean;
+  outcome: "succeeded" | "failed" | "rate_limited";
   playerStatsUpserted?: number;
   error?: string;
 }) {
-  const eventType = succeeded ? "set_data_sync_succeeded" : "set_data_sync_failed";
+  const eventType = outcome === "succeeded"
+    ? "set_data_sync_succeeded"
+    : outcome === "rate_limited"
+      ? "set_data_sync_rate_limited"
+      : "set_data_sync_failed";
+  const dedupeType = outcome === "succeeded"
+    ? "set-full-data-sync-succeeded"
+    : outcome === "rate_limited"
+      ? "set-leaguepedia-rate-limited"
+      : eventType;
   const supabase = createSupabaseAdminClient();
   const { error: insertError } = await supabase.from("match_automation_events").upsert({
-    dedupe_key: `${eventType}:${match.id}:${setNumber}`,
+    dedupe_key: `${dedupeType}:${match.id}:${setNumber}`,
     match_id: match.id,
     set_id: setId,
     event_type: eventType,
@@ -163,6 +179,111 @@ async function queueSetDataSyncNotification({
   }, { onConflict: "dedupe_key", ignoreDuplicates: true });
   if (insertError) {
     throw new Error(`Failed to queue set sync notification: ${insertError.message}`);
+  }
+}
+
+async function runLeaguepediaEnrichment({
+  match,
+  teamAScore,
+  teamBScore,
+  now,
+}: {
+  match: MatchRow;
+  teamAScore: number;
+  teamBScore: number;
+  now: Date;
+}) {
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("set_result_snapshots")
+    .select("id, set_id, set_number, leaguepedia_sync_attempts")
+    .eq("match_id", match.id)
+    .neq("leaguepedia_sync_status", "succeeded")
+    .or(`leaguepedia_retry_at.is.null,leaguepedia_retry_at.lte.${now.toISOString()}`);
+  if (error) throw new Error(`Failed to load Leaguepedia enrichment queue: ${error.message}`);
+  const pending = data ?? [];
+  if (pending.length === 0) return [] as number[];
+
+  const retryAt = new Date(now.getTime() + 10 * 60 * 1000).toISOString();
+  const updatePending = async (
+    status: "rate_limited" | "failed",
+    message: string,
+  ) => {
+    for (const row of pending) {
+      await supabase.from("set_result_snapshots").update({
+        leaguepedia_sync_status: status,
+        leaguepedia_sync_attempts: (row.leaguepedia_sync_attempts ?? 0) + 1,
+        leaguepedia_retry_at: retryAt,
+        leaguepedia_last_error: message.slice(0, 1000),
+      }).eq("id", row.id);
+      await queueSetDataSyncNotification({
+        match,
+        setId: row.set_id,
+        setNumber: row.set_number,
+        teamAScore,
+        teamBScore,
+        outcome: status === "rate_limited" ? "rate_limited" : "failed",
+        error: message,
+      });
+    }
+  };
+
+  if (!match.leaguepedia_match_id) {
+    await updatePending("failed", "Leaguepedia Match ID is missing");
+    return [];
+  }
+
+  try {
+    const summary = await syncLeaguepediaMatchSets(supabase, match.id, { maxRetries: 1 });
+    const setIds = pending.map((row) => row.set_id);
+    const [{ data: pickBans }, { data: playerStats }] = await Promise.all([
+      supabase.from("set_picks_bans").select("set_id, action_type").in("set_id", setIds),
+      supabase.from("set_player_stats").select("set_id, damage_to_champions").in("set_id", setIds),
+    ]);
+    const succeeded: number[] = [];
+    for (const row of pending) {
+      const setDraft = (pickBans ?? []).filter((entry) => entry.set_id === row.set_id);
+      const setPlayers = (playerStats ?? []).filter((entry) => entry.set_id === row.set_id);
+      const picks = setDraft.filter((entry) => entry.action_type === "pick").length;
+      const bans = setDraft.filter((entry) => entry.action_type === "ban").length;
+      const hasDamage = setPlayers.some((entry) => (entry.damage_to_champions ?? 0) > 0);
+      const complete = picks >= 10 && bans >= 10 && setPlayers.length >= 10 && hasDamage;
+      if (!complete) {
+        await supabase.from("set_result_snapshots").update({
+          leaguepedia_sync_status: "failed",
+          leaguepedia_sync_attempts: (row.leaguepedia_sync_attempts ?? 0) + 1,
+          leaguepedia_retry_at: retryAt,
+          leaguepedia_last_error: `Incomplete Leaguepedia data: picks=${picks}, bans=${bans}, players=${setPlayers.length}`,
+        }).eq("id", row.id);
+        continue;
+      }
+      await supabase.from("set_result_snapshots").update({
+        leaguepedia_sync_status: "succeeded",
+        leaguepedia_sync_attempts: (row.leaguepedia_sync_attempts ?? 0) + 1,
+        leaguepedia_retry_at: null,
+        leaguepedia_last_error: null,
+        leaguepedia_synced_at: now.toISOString(),
+      }).eq("id", row.id);
+      await queueSetDataSyncNotification({
+        match,
+        setId: row.set_id,
+        setNumber: row.set_number,
+        teamAScore,
+        teamBScore,
+        outcome: "succeeded",
+        playerStatsUpserted: summary.playerStatsUpserted,
+      });
+      succeeded.push(row.set_number);
+    }
+    return succeeded;
+  } catch (enrichmentError) {
+    const message = enrichmentError instanceof Error ? enrichmentError.message : String(enrichmentError);
+    if (enrichmentError instanceof LeaguepediaRateLimitError) {
+      await updatePending("rate_limited", message);
+    } else {
+      await updatePending("failed", message);
+    }
+    return [];
   }
 }
 
@@ -216,11 +337,10 @@ export async function runLolesportsRatingAutomation(
   const { data: matchData, error: matchError } = await supabase
     .from("matches")
     .select(
-      "id, name, match_date, status, team_a_id, team_b_id, team_a_score, team_b_score, best_of, lolesports_match_id",
+      "id, name, match_date, status, team_a_id, team_b_id, team_a_score, team_b_score, best_of, lolesports_match_id, leaguepedia_match_id",
     )
     .gte("match_date", start.toISOString())
     .lt("match_date", end.toISOString())
-    .neq("status", "completed")
     .order("match_date", { ascending: true });
   if (matchError) throw new Error(`Failed to load today's matches: ${matchError.message}`);
 
@@ -235,6 +355,7 @@ export async function runLolesportsRatingAutomation(
       completedMatchIds: [],
       snapshottedSets: [],
       detailedSets: [],
+      enrichedSets: [],
       deliveredNotificationCount: beforeDelivery.delivered,
       warnings,
     };
@@ -275,6 +396,7 @@ export async function runLolesportsRatingAutomation(
   const completedMatchIds: string[] = [];
   const snapshottedSets: Array<{ matchId: string; setNumbers: number[] }> = [];
   const detailedSets: Array<{ matchId: string; setNumbers: number[] }> = [];
+  const enrichedSets: Array<{ matchId: string; setNumbers: number[] }> = [];
 
   for (const candidate of candidates) {
     const external = findLolesportsMatch(candidate, events);
@@ -355,7 +477,7 @@ export async function runLolesportsRatingAutomation(
               setNumber: localSet.set_number,
               teamAScore: external.teamAScore,
               teamBScore: external.teamBScore,
-              succeeded: false,
+              outcome: "failed",
               error: message,
             });
             continue;
@@ -371,16 +493,18 @@ export async function runLolesportsRatingAutomation(
               observedAt: now,
             });
             if (detailResult.updated) detailedSetNumbers.push(localSet.set_number);
-            await queueSetDataSyncNotification({
-              match,
-              setId: localSet.id,
-              setNumber: localSet.set_number,
-              teamAScore: external.teamAScore,
-              teamBScore: external.teamBScore,
-              succeeded: detailResult.updated && detailResult.playerStatsUpserted === 10,
-              playerStatsUpserted: detailResult.playerStatsUpserted,
-              error: detailResult.warning ?? undefined,
-            });
+            if (!detailResult.updated || detailResult.playerStatsUpserted !== 10) {
+              await queueSetDataSyncNotification({
+                match,
+                setId: localSet.id,
+                setNumber: localSet.set_number,
+                teamAScore: external.teamAScore,
+                teamBScore: external.teamBScore,
+                outcome: "failed",
+                playerStatsUpserted: detailResult.playerStatsUpserted,
+                error: detailResult.warning ?? "LoL Esports basic data is incomplete",
+              });
+            }
             if (detailResult.warning) warnings.push(`Match ${candidate.id} set ${localSet.set_number}: ${detailResult.warning}`);
           } catch (detailError) {
             const message = detailError instanceof Error ? detailError.message : String(detailError);
@@ -392,7 +516,7 @@ export async function runLolesportsRatingAutomation(
                 setNumber: localSet.set_number,
                 teamAScore: external.teamAScore,
                 teamBScore: external.teamBScore,
-                succeeded: false,
+                outcome: "failed",
                 error: message,
               });
             } catch (notificationError) {
@@ -410,6 +534,21 @@ export async function runLolesportsRatingAutomation(
     } catch (snapshotError) {
       const message = snapshotError instanceof Error ? snapshotError.message : String(snapshotError);
       warnings.push(`Match ${candidate.id}: set data workflow failed: ${message}`);
+    }
+    const match = matches.find((item) => item.id === candidate.id);
+    if (match) {
+      try {
+        const setNumbers = await runLeaguepediaEnrichment({
+          match,
+          teamAScore: external.teamAScore,
+          teamBScore: external.teamBScore,
+          now,
+        });
+        if (setNumbers.length) enrichedSets.push({ matchId: candidate.id, setNumbers });
+      } catch (enrichmentError) {
+        const message = enrichmentError instanceof Error ? enrichmentError.message : String(enrichmentError);
+        warnings.push(`Match ${candidate.id}: Leaguepedia enrichment workflow failed: ${message}`);
+      }
     }
     if (result.matchCompleted) completedMatchIds.push(candidate.id);
     revalidatePath(`/matches/${candidate.id}`);
@@ -430,6 +569,7 @@ export async function runLolesportsRatingAutomation(
     completedMatchIds,
     snapshottedSets,
     detailedSets,
+    enrichedSets,
     deliveredNotificationCount: beforeDelivery.delivered + afterDelivery.delivered,
     warnings,
   };

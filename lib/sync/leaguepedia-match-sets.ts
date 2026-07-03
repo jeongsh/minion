@@ -191,6 +191,15 @@ export type LeaguepediaMatchSetsSyncSummary = {
   runesResolved: number;
 };
 
+export class LeaguepediaRateLimitError extends Error {
+  constructor(message = "Leaguepedia rate limit") {
+    super(message);
+    this.name = "LeaguepediaRateLimitError";
+  }
+}
+
+type LeaguepediaSyncOptions = { maxRetries?: number };
+
 function sleep(ms: number) {
   return new Promise((resolveSleep) => {
     setTimeout(resolveSleep, ms);
@@ -240,20 +249,6 @@ function parseLeaguepediaItems(
   const result = parts.map((name) => (name ? (nameToId.get(name.toLowerCase()) ?? null) : null));
   while (result.length < 7) result.push(null);
   return result.slice(0, 7);
-}
-
-function parseLeaguepediaRune(
-  runeStr: string | null | undefined,
-  nameToId: Map<string, number>,
-): number | null {
-  if (!runeStr?.trim()) return null;
-  const name = runeStr.split(",")[0].trim();
-  if (!name) return null;
-  return (
-    nameToId.get(name.toLowerCase()) ??
-    nameToId.get(name.replace(/\s+/g, "").toLowerCase()) ??
-    null
-  );
 }
 
 function parseLeaguepediaSpells(
@@ -804,7 +799,7 @@ function escapeCargoValue(value: string) {
   return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
 
-async function cargoQuery(query: Record<string, string>) {
+async function cargoQuery(query: Record<string, string>, options: LeaguepediaSyncOptions = {}) {
   const params = new URLSearchParams({
     action: "cargoquery",
     format: "json",
@@ -815,14 +810,20 @@ async function cargoQuery(query: Record<string, string>) {
     params.set(key, value);
   }
 
-  for (let attempt = 0; attempt < MAX_RETRIES; attempt += 1) {
+  const maxRetries = options.maxRetries ?? MAX_RETRIES;
+  for (let attempt = 0; attempt < maxRetries; attempt += 1) {
     const response = await fetch(`${CARGO_API}?${params.toString()}`, {
       headers: {
         "user-agent": "LCKHubMinion/0.1 (Leaguepedia set sync; contact: local-dev)",
       },
     });
 
-    if (!response.ok && (response.status === 429 || response.status >= 500)) {
+    if (response.status === 429) {
+      if (maxRetries === 1) throw new LeaguepediaRateLimitError();
+      await sleep(REQUEST_DELAY_MS * (attempt + 2));
+      continue;
+    }
+    if (!response.ok && response.status >= 500) {
       await sleep(REQUEST_DELAY_MS * (attempt + 2));
       continue;
     }
@@ -837,6 +838,7 @@ async function cargoQuery(query: Record<string, string>) {
     };
 
     if (body.error?.code === "ratelimited") {
+      if (maxRetries === 1) throw new LeaguepediaRateLimitError(body.error.info);
       await sleep(REQUEST_DELAY_MS * (attempt + 2));
       continue;
     }
@@ -851,7 +853,7 @@ async function cargoQuery(query: Record<string, string>) {
   throw new Error("Leaguepedia 요청 제한으로 세트 정보를 가져오지 못했습니다.");
 }
 
-async function fetchScoreboardGameRows(leaguepediaMatchId: string) {
+async function fetchScoreboardGameRows(leaguepediaMatchId: string, options?: LeaguepediaSyncOptions) {
   return cargoQuery({
     tables: "ScoreboardGames=SG",
     fields: [
@@ -897,10 +899,10 @@ async function fetchScoreboardGameRows(leaguepediaMatchId: string) {
     ].join(","),
     where: `SG.MatchId="${escapeCargoValue(leaguepediaMatchId)}"`,
     order_by: "SG.N_GameInMatch ASC",
-  }) as Promise<CargoSetRow[]>;
+  }, options) as Promise<CargoSetRow[]>;
 }
 
-async function fetchScheduleGameRows(leaguepediaMatchId: string) {
+async function fetchScheduleGameRows(leaguepediaMatchId: string, options?: LeaguepediaSyncOptions) {
   return cargoQuery({
     tables: "MatchScheduleGame=MSG",
     fields: [
@@ -912,10 +914,10 @@ async function fetchScheduleGameRows(leaguepediaMatchId: string) {
     ].join(","),
     where: `MSG.MatchId="${escapeCargoValue(leaguepediaMatchId)}"`,
     order_by: "MSG.N_GameInMatch ASC",
-  }) as Promise<CargoScheduleGameRow[]>;
+  }, options) as Promise<CargoScheduleGameRow[]>;
 }
 
-async function fetchPickBanRows(leaguepediaMatchId: string) {
+async function fetchPickBanRows(leaguepediaMatchId: string, options?: LeaguepediaSyncOptions) {
   return cargoQuery({
     tables: "PicksAndBansS7=PB",
     fields: [
@@ -946,10 +948,10 @@ async function fetchPickBanRows(leaguepediaMatchId: string) {
     ].join(","),
     where: `PB.MatchId="${escapeCargoValue(leaguepediaMatchId)}"`,
     order_by: "PB.N_GameInMatch ASC",
-  }) as Promise<CargoPickBanRow[]>;
+  }, options) as Promise<CargoPickBanRow[]>;
 }
 
-async function fetchPlayerRows(leaguepediaMatchId: string) {
+async function fetchPlayerRows(leaguepediaMatchId: string, options?: LeaguepediaSyncOptions) {
   return cargoQuery({
     tables: "ScoreboardPlayers=SP",
     fields: [
@@ -975,13 +977,16 @@ async function fetchPlayerRows(leaguepediaMatchId: string) {
     ].join(","),
     where: `SP.MatchId="${escapeCargoValue(leaguepediaMatchId)}"`,
     order_by: "SP.GameId ASC, SP.Side ASC, SP.Role_Number ASC",
-  }) as Promise<CargoPlayerRow[]>;
+  }, options) as Promise<CargoPlayerRow[]>;
 }
 
-async function fetchLeaguepediaSetRows(leaguepediaMatchId: string): Promise<MergedCargoSetRow[]> {
+async function fetchLeaguepediaSetRows(
+  leaguepediaMatchId: string,
+  options?: LeaguepediaSyncOptions,
+): Promise<MergedCargoSetRow[]> {
   const [scoreboardRows, scheduleRows] = await Promise.all([
-    fetchScoreboardGameRows(leaguepediaMatchId),
-    fetchScheduleGameRows(leaguepediaMatchId),
+    fetchScoreboardGameRows(leaguepediaMatchId, options),
+    fetchScheduleGameRows(leaguepediaMatchId, options),
   ]);
   const scheduleBySetNumber = new Map(
     scheduleRows.map((row) => [parseInteger(row.N_GameInMatch), row]),
@@ -997,6 +1002,7 @@ async function fetchLeaguepediaSetRows(leaguepediaMatchId: string): Promise<Merg
 export async function syncLeaguepediaMatchSets(
   supabase: SupabaseClient,
   matchId: string,
+  options: LeaguepediaSyncOptions = {},
 ): Promise<LeaguepediaMatchSetsSyncSummary> {
   const { data: match, error: matchError } = await supabase
     .from("matches")
@@ -1016,7 +1022,7 @@ export async function syncLeaguepediaMatchSets(
     throw new Error("Leaguepedia Match ID가 없는 경기입니다.");
   }
 
-  const rows = await fetchLeaguepediaSetRows(typedMatch.leaguepedia_match_id);
+  const rows = await fetchLeaguepediaSetRows(typedMatch.leaguepedia_match_id, options);
 
   if (rows.length === 0) {
     throw new Error("Leaguepedia에서 세트 정보를 찾지 못했습니다.");
@@ -1262,7 +1268,7 @@ export async function syncLeaguepediaMatchSets(
       riot_match_id: row.RiotGameId || null,
       riot_platform_game_id: row.RiotPlatformGameId || null,
     };
-  });
+  }, options);
 
   const { data, error } = await supabase
     .from("sets")
@@ -1295,8 +1301,8 @@ export async function syncLeaguepediaMatchSets(
 
   if (setIds.length > 0) {
     const [pickBanRows, playerRows] = await Promise.all([
-      fetchPickBanRows(typedMatch.leaguepedia_match_id),
-      fetchPlayerRows(typedMatch.leaguepedia_match_id),
+      fetchPickBanRows(typedMatch.leaguepedia_match_id, options),
+      fetchPlayerRows(typedMatch.leaguepedia_match_id, options),
     ]);
     const championNames = [
       ...pickBanRows.flatMap((row) => [
