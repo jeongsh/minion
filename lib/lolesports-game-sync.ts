@@ -44,8 +44,9 @@ function localTeamId(
   externalId: string | null | undefined,
   input: Pick<SyncSetInput, "externalTeamAId" | "externalTeamBId" | "localTeamAId" | "localTeamBId">,
 ) {
-  if (externalId && externalId === input.externalTeamAId) return input.localTeamAId;
-  if (externalId && externalId === input.externalTeamBId) return input.localTeamBId;
+  const canonical = (value: string | null | undefined) => value?.split(":").at(-1) ?? null;
+  if (externalId && canonical(externalId) === canonical(input.externalTeamAId)) return input.localTeamAId;
+  if (externalId && canonical(externalId) === canonical(input.externalTeamBId)) return input.localTeamBId;
   return null;
 }
 
