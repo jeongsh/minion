@@ -166,6 +166,7 @@ export type Match = {
   vodUrl?: string | null;
   bracketSide?: "upper" | "lower" | null;
   bracketOrder?: number | null;
+  advancesToMatchId?: string | null;
 };
 
 export type SetResult = {

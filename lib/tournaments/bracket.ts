@@ -5,8 +5,7 @@ export type StageColumn = {
   matches: Match[];
 };
 
-/** 스테이지(라운드)별로 매치를 묶고, 첫 경기 일시가 이른 순으로 열을 정렬한다. */
-export function buildStageColumns(stages: Stage[], matches: Match[]): StageColumn[] {
+function groupMatchesByStage(stages: Stage[], matches: Match[]): StageColumn[] {
   const matchesByStage = new Map<string, Match[]>();
 
   for (const match of matches) {
@@ -15,15 +14,18 @@ export function buildStageColumns(stages: Stage[], matches: Match[]): StageColum
     matchesByStage.set(match.stageId, bucket);
   }
 
-  const columns = stages.map((stage) => {
+  return stages.map((stage) => {
     const stageMatches = (matchesByStage.get(stage.id) ?? []).sort(
       (a, b) => new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime(),
     );
 
     return { stage, matches: stageMatches };
   });
+}
 
-  return columns
+/** 스테이지(라운드)별로 매치를 묶고, 첫 경기 일시가 이른 순으로 열을 정렬한다. 매치가 없는 스테이지는 제외한다(공개 페이지용). */
+export function buildStageColumns(stages: Stage[], matches: Match[]): StageColumn[] {
+  return groupMatchesByStage(stages, matches)
     .filter((column) => column.matches.length > 0)
     .sort((a, b) => {
       const aTime = new Date(a.matches[0].matchDate).getTime();
@@ -31,6 +33,17 @@ export function buildStageColumns(stages: Stage[], matches: Match[]): StageColum
       if (aTime !== bTime) return aTime - bTime;
       return a.stage.orderIndex - b.stage.orderIndex;
     });
+}
+
+/**
+ * 관리자 편집 화면용: 매치가 아직 없는 새 라운드도 빈 열로 보여줘서 그 라운드로
+ * 매치를 끌어다 놓을 수 있게 한다. orderIndex 순서를 그대로 열 순서로 쓰므로,
+ * 관리자가 라운드를 추가할 때 지정한 위치가 곧 화면에 보이는 위치가 된다.
+ * (라운드 추가 시 createStageAction이 orderIndex를 항상 빈틈없이 재정렬해두므로
+ * 단순 orderIndex 정렬만으로 충분하다.)
+ */
+export function buildAllStageColumns(stages: Stage[], matches: Match[]): StageColumn[] {
+  return groupMatchesByStage(stages, matches).sort((a, b) => a.stage.orderIndex - b.stage.orderIndex);
 }
 
 function byMatchDate(a: Match, b: Match) {

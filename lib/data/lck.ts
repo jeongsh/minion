@@ -175,6 +175,7 @@ type MatchRow = {
   vod_url?: string | null;
   bracket_side?: "upper" | "lower" | null;
   bracket_order?: number | null;
+  advances_to_match_id?: string | null;
 };
 
 type TournamentRow = {
@@ -458,6 +459,7 @@ function mapMatch(row: MatchRow): Match {
     vodUrl: row.vod_url ?? null,
     bracketSide: row.bracket_side ?? null,
     bracketOrder: row.bracket_order ?? null,
+    advancesToMatchId: row.advances_to_match_id ?? null,
   };
 }
 

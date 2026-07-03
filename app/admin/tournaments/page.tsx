@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { SectionHeader } from "@/components/layout/section-header";
 import { getAllTeams, getMatches, getStages, getTournaments } from "@/lib/data/lck";
-import { buildStageColumns, splitBracketSides } from "@/lib/tournaments/bracket";
+import { buildAllStageColumns, splitBracketSides } from "@/lib/tournaments/bracket";
 import {
   INTERNATIONAL_SEGMENTS,
   internationalSegmentByKey,
@@ -10,7 +10,12 @@ import {
 import { segmentForTournament } from "@/lib/tournaments/season-2026";
 import type { Match, Team } from "@/lib/types";
 
-import { TournamentBracketEditor, type EditorMatch } from "./stage-bracket-editor";
+import { createStageAction } from "./actions";
+import {
+  TournamentBracketEditor,
+  type EditorMatch,
+  type MatchOptionGroup,
+} from "./stage-bracket-editor";
 
 function toEditorMatch(match: Match, teamMap: Map<string, Team>): EditorMatch {
   return {
@@ -21,6 +26,7 @@ function toEditorMatch(match: Match, teamMap: Map<string, Team>): EditorMatch {
     teamBName: teamMap.get(match.teamBId)?.shortName ?? "TBD",
     teamAScore: match.teamAScore,
     teamBScore: match.teamBScore,
+    advancesToMatchId: match.advancesToMatchId ?? null,
   };
 }
 
@@ -54,12 +60,23 @@ export default async function AdminTournamentsPage({
     (tournament) => tournament.season === activeSeason,
   );
   const tournamentIds = new Set(activeTournaments.map((tournament) => tournament.id));
+  const primaryTournamentId = activeTournaments[0]?.id ?? null;
 
   const segmentStages = stages.filter((stage) => tournamentIds.has(stage.tournamentId));
   const segmentMatches = matches.filter((match) => tournamentIds.has(match.tournamentId));
   const teamMap = new Map(teams.map((team) => [team.id, team]));
 
-  const columns = buildStageColumns(segmentStages, segmentMatches);
+  const columns = buildAllStageColumns(segmentStages, segmentMatches);
+  const matchOptions: MatchOptionGroup[] = columns.map(({ stage, matches: stageMatches }) => ({
+    stageId: stage.id,
+    stageName: stage.name,
+    matches: stageMatches.map((match) => ({
+      id: match.id,
+      label: `${teamMap.get(match.teamAId)?.shortName ?? "TBD"} vs ${
+        teamMap.get(match.teamBId)?.shortName ?? "TBD"
+      }`,
+    })),
+  }));
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-[var(--page-inline)] py-10">
@@ -99,6 +116,47 @@ export default async function AdminTournamentsPage({
         </section>
       ) : null}
 
+      {primaryTournamentId ? (
+        <form
+          action={createStageAction}
+          className="flex flex-wrap items-end gap-2 rounded-lg border border-border bg-surface p-4"
+        >
+          <input type="hidden" name="segmentKey" value={segmentTheme.key} />
+          <input type="hidden" name="tournamentId" value={primaryTournamentId} />
+          <label className="flex flex-col gap-1 text-sm font-semibold text-foreground">
+            라운드 이름
+            <input
+              type="text"
+              name="name"
+              required
+              placeholder="예: Bracket Round 5"
+              className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm font-semibold text-foreground">
+            추가할 위치
+            <select
+              name="afterStageId"
+              defaultValue=""
+              className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+            >
+              <option value="">맨 앞에 추가</option>
+              {columns.map(({ stage }) => (
+                <option key={stage.id} value={stage.id}>
+                  {stage.name} 다음에 추가
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            type="submit"
+            className="rounded-md bg-foreground px-4 py-2 text-sm font-semibold text-background"
+          >
+            라운드 추가
+          </button>
+        </form>
+      ) : null}
+
       {columns.length === 0 ? (
         <p className="rounded-lg border border-border bg-surface px-5 py-10 text-center text-sm text-muted">
           {activeSeason ? `${activeSeason} ${segmentTheme.name}에 등록된 대진이 없습니다.` : "등록된 대회가 없습니다."}
@@ -110,7 +168,9 @@ export default async function AdminTournamentsPage({
           </p>
           <TournamentBracketEditor
             segmentKey={segmentTheme.key}
+            tournamentId={primaryTournamentId ?? ""}
             stages={columns.map(({ stage }) => ({ id: stage.id, name: stage.name }))}
+            matchOptions={matchOptions}
             initialBoard={Object.fromEntries(
               columns.map(({ stage, matches: stageMatches }) => {
                 const { upper, lower } = splitBracketSides(stageMatches);
