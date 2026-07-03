@@ -5,8 +5,6 @@ import { boardLabel, type BoardScope } from "@/lib/community/boards";
 import { isHotPost } from "@/lib/community/hot";
 import type { CommunityPostDetail } from "@/lib/community/types";
 
-// 갤러리(카드 그리드) 보기. 본문 첫 이미지를 썸네일로 사용.
-// 이미지 없는 글은 텍스트 카드(썸네일 영역에 제목/요약)로 대체.
 export function PostGallery({
   posts,
   scope,
@@ -23,50 +21,53 @@ export function PostGallery({
 
   if (posts.length === 0) {
     return (
-      <p className="rounded-md border border-border bg-surface p-8 text-center text-sm text-muted">
+      <p className="rounded-[14px] border border-[#e4e8ef] bg-white p-8 text-center text-[12px] text-[#8a93a6]">
         아직 게시글이 없습니다. 첫 글을 작성해 보세요.
       </p>
     );
   }
 
   return (
-    <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+    <ul className="overflow-hidden rounded-[14px] border border-[#d8dee9] bg-white shadow-[0_8px_24px_-12px_rgba(20,30,60,0.28),0_1px_3px_rgba(20,30,60,0.08)]">
       {posts.map((post) => (
-        <li key={post.id}>
+        <li key={post.id} className="border-b border-[#e8ecf2] last:border-b-0">
           <Link
             href={detailHref(post.id)}
-            className="group flex flex-col overflow-hidden rounded-md border border-border bg-surface transition-colors hover:bg-surface-muted"
+            className="grid grid-cols-[88px_1fr] items-center gap-[14px] px-4 py-3 transition-colors hover:bg-[#f2f5f9]"
           >
-            <div className="relative aspect-[4/3] w-full overflow-hidden bg-surface-muted">
+            <div className="h-[56px] w-[88px] overflow-hidden rounded-[9px] border border-[#e2e7ef] bg-[#e9eef5]">
               {post.thumbnailUrl ? (
-                // 외부/스토리지 URL 혼재 → next/image 대신 일반 img 사용.
                 // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={post.thumbnailUrl}
-                  alt=""
-                  loading="lazy"
-                  className="h-full w-full object-cover transition-transform group-hover:scale-105"
-                />
+                <img src={post.thumbnailUrl} alt="" loading="lazy" className="h-full w-full object-cover" />
               ) : (
-                <div className="flex h-full w-full items-center justify-center p-3">
-                  <p className="line-clamp-4 text-xs text-muted">{post.excerpt || "내용 없음"}</p>
+                <div className="flex h-full w-full items-center justify-center p-2">
+                  <p className="line-clamp-3 text-center text-[12px] leading-tight text-[#8791a5]">
+                    {post.excerpt || "내용 없음"}
+                  </p>
                 </div>
               )}
-              <span className="absolute left-2 top-2 rounded bg-black/55 px-1.5 py-0.5 text-xs font-medium text-white">
-                {boardLabel(scope, post.boardType)}
-              </span>
-              {isHotPost(post) && (
-                <span className="absolute right-2 top-2 rounded bg-accent px-1.5 py-0.5 text-xs font-bold text-accent-foreground">
-                  인기
-                </span>
-              )}
             </div>
-            <div className="flex flex-col gap-1 p-2.5">
-              <h3 className="line-clamp-2 text-sm font-medium">{post.title}</h3>
-              <div className="flex items-center gap-2 text-xs text-muted">
+
+            <div className="grid h-[56px] min-w-0 grid-rows-[16px_16px_16px] content-between">
+              <div className="flex h-[16px] items-center gap-[5px]">
+                <span className="inline-flex h-[16px] items-center rounded-[5px] bg-accent/10 px-[7px] text-[12px] font-bold leading-none text-accent">
+                  {boardLabel(scope, post.boardType)}
+                </span>
+                {isHotPost(post) && (
+                  <span className="inline-flex h-[16px] items-center rounded-[5px] bg-accent px-[7px] text-[12px] font-bold leading-none text-accent-foreground">
+                    인기
+                  </span>
+                )}
+              </div>
+              <h3 className="h-[16px] truncate text-[14px] font-extrabold leading-[16px] text-[#0b1020]">{post.title}</h3>
+              <div className="flex h-[16px] items-center gap-x-2 overflow-hidden whitespace-nowrap text-[12px] font-semibold leading-[16px] text-[#69738a]">
                 <span>{formatRelativeOrDate(post.createdAt)}</span>
-                <span>· 명예 {post.likeCount}</span>
-                <span>· 댓글 {post.commentCount}</span>
+                <span aria-hidden>·</span>
+                <span>명예 {post.likeCount}</span>
+                <span aria-hidden>·</span>
+                <span>댓글 {post.commentCount}</span>
+                <span aria-hidden>·</span>
+                <span>조회 {post.viewCount}</span>
               </div>
             </div>
           </Link>

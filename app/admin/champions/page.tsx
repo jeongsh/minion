@@ -21,11 +21,11 @@ function ChampionMappingCard({ champion }: { champion: Champion }) {
           {previewUrl ? (
             <img src={previewUrl} alt={`${champion.name} 이미지`} className="h-full w-full object-cover" />
           ) : (
-            <span className="px-2 text-center text-[10px] text-muted">NO IMG</span>
+            <span className="px-2 text-center text-[12px] text-muted">NO IMG</span>
           )}
         </div>
         <div className="min-w-0">
-          <h3 className="truncate text-lg font-semibold">{champion.name}</h3>
+          <h3 className="truncate text-[16px] font-semibold">{champion.name}</h3>
           <p className="mt-1 text-sm text-muted">{champion.slug}</p>
           <p className="mt-1 text-sm text-muted">Data Dragon: {champion.ddragonId || "-"}</p>
         </div>
@@ -58,7 +58,7 @@ export default async function AdminChampionsPage() {
 
       <section className="flex flex-col gap-4" aria-labelledby="champion-mapping">
         <div>
-          <h2 id="champion-mapping" className="text-xl font-semibold">
+          <h2 id="champion-mapping" className="text-[24px] font-semibold">
             이름 / 이미지 매핑
           </h2>
           <p className="mt-1 text-sm text-muted">

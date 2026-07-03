@@ -1,3 +1,4 @@
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { canQuerySupabase, createSupabaseServerClient } from "@/lib/supabase/server";
 import type {
   Champion,
@@ -1431,7 +1432,8 @@ export async function getHomeHeroSlides({ activeOnly = true, limit }: { activeOn
 
 export async function getTeamEngagementStatus(teamId: string, hashedVoterKey: string) {
   return fromSupabase(async () => {
-    const supabase = createSupabaseServerClient();
+    // team_fans/team_checkins는 RLS로 anon 조회가 막혀 있어 admin 클라이언트로 읽는다(쓰기 액션과 동일).
+    const supabase = createSupabaseAdminClient();
     const todayKST = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Seoul" });
 
     const [{ data: fan }, { data: checkin }] = await Promise.all([
@@ -1455,7 +1457,8 @@ export async function getTeamEngagementStatus(teamId: string, hashedVoterKey: st
 
 export async function getTeamFanCount(teamId: string) {
   return fromSupabase(async () => {
-    const { count, error } = await createSupabaseServerClient()
+    // team_fans는 RLS로 anon 집계가 막혀 있어 admin 클라이언트로 카운트한다.
+    const { count, error } = await createSupabaseAdminClient()
       .from("team_fans")
       .select("id", { count: "exact", head: true })
       .eq("team_id", teamId);

@@ -170,7 +170,7 @@ function SetSummaryHeader({
       </div>
 
       {/* 중앙 우: 게임 시간 */}
-      <p className="text-xl font-bold tabular-nums">{durationLabel(set.durationSeconds)}</p>
+      <p className="text-[24px] font-bold tabular-nums">{durationLabel(set.durationSeconds)}</p>
 
       {/* 우하단 고정: 패치 버전 */}
       <span className="absolute bottom-1.5 right-4 text-xs font-semibold text-background/50">
@@ -345,7 +345,7 @@ function PlayerStatBoard({
                   className="h-full w-full object-cover"
                 />
               ) : null}
-              <span className="absolute bottom-0 right-0 rounded-tl bg-background/90 px-1 text-[10px] font-semibold">
+              <span className="absolute bottom-0 right-0 rounded-tl bg-background/90 px-1 text-[12px] font-semibold">
                 {row.line.position}
               </span>
             </div>
@@ -473,7 +473,7 @@ function PlayerStatBoard({
 
   return (
     <section className="flex flex-col gap-4" aria-labelledby="player-stats">
-      <h2 id="player-stats" className="text-xl font-semibold">
+      <h2 id="player-stats" className="text-[24px] font-semibold">
         선수 스탯
       </h2>
       {blueRows.length + redRows.length === 0 ? (
@@ -643,7 +643,7 @@ export async function SetDetailContent({
       {embedded ? null : (
         <section className="flex flex-col gap-2">
           <p className="text-sm font-semibold text-accent">세트 상세</p>
-          <h1 className="text-3xl font-semibold tracking-normal md:text-4xl">
+          <h1 className="text-[32px] font-semibold tracking-normal md:text-[32px]">
             {teamLabel(teams, set.blueTeamId)} vs{" "}
             {teamLabel(teams, set.redTeamId)} · {set.setNumber}세트
           </h1>
@@ -742,7 +742,7 @@ export async function SetDetailContent({
       </section>
 
       <section className="flex flex-col gap-4" aria-labelledby="set-timeline">
-        <h2 id="set-timeline" className="text-xl font-semibold">
+        <h2 id="set-timeline" className="text-[24px] font-semibold">
           타임라인
         </h2>
         <div className="rounded-md border border-border bg-surface p-4">

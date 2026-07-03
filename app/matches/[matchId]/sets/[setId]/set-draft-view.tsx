@@ -194,7 +194,7 @@ export function SetDraftView({
   return (
     <div className="grid gap-4 rounded-md border border-border bg-surface p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-xl font-semibold">밴픽</h2>
+        <h2 className="text-[24px] font-semibold">밴픽</h2>
         <div className="inline-flex rounded-md border border-border bg-background p-1">
           <button
             type="button"

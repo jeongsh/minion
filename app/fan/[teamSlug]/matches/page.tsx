@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { FanPageShell } from "@/components/fan/fan-page-shell";
 
 import {
   getAllTeams,
@@ -85,7 +86,7 @@ function TeamCrest({ team, size = "h-9 w-9" }: { team?: Team; size?: string }) {
 
   return (
     <span
-      className={`${size} grid shrink-0 place-items-center rounded-full border border-[#e6e9ef] bg-[#f4f5f8] text-[10px] font-bold`}
+      className={`${size} grid shrink-0 place-items-center rounded-full border border-[#e6e9ef] bg-[#f4f5f8] text-[12px] font-bold`}
     >
       {team?.shortName?.slice(0, 3) ?? "-"}
     </span>
@@ -115,7 +116,7 @@ function FeaturedMatch({
     >
       <div className="flex items-center gap-4">
         <span
-          className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-black tracking-[0.1em] ${
+          className={`shrink-0 rounded-full px-3 py-1 text-[12px] font-black tracking-[0.1em] ${
             mode === "live" ? "bg-red-500 text-white" : "bg-accent/10 text-accent"
           }`}
         >
@@ -123,12 +124,12 @@ function FeaturedMatch({
         </span>
         <div className="flex items-center gap-2.5">
           <TeamCrest team={team} size="h-11 w-11" />
-          <span className="text-lg font-black">{team.shortName}</span>
+          <span className="text-[16px] font-black">{team.shortName}</span>
           <span className="px-1 text-base font-black tabular-nums text-muted">
             {view.result ? `${view.ourScore} : ${view.oppScore}` : "VS"}
           </span>
           <TeamCrest team={view.opponent} size="h-11 w-11" />
-          <span className="text-lg font-black">{view.opponent?.shortName ?? "-"}</span>
+          <span className="text-[16px] font-black">{view.opponent?.shortName ?? "-"}</span>
         </div>
       </div>
       <div className="flex items-center justify-between gap-4 sm:justify-end">
@@ -293,7 +294,7 @@ export default async function FanMatchesPage({
   const featuredMode = liveMatch ? "live" : nextMatch ? "upcoming" : "recent";
 
   return (
-    <main className="mx-auto flex w-full max-w-[1240px] flex-col gap-6 px-4 py-6 sm:px-6 md:py-8">
+    <FanPageShell eyebrow={`${team.shortName} Matches`} title="경기 일정 / 결과">
       {featuredMatch ? (
         <FeaturedMatch
           team={team}
@@ -326,7 +327,7 @@ export default async function FanMatchesPage({
             >
               <div className="flex items-center justify-between gap-3 border-b border-[#eef0f4] bg-[#f8f9fb] px-5 py-3">
                 <div className="min-w-0">
-                  <p className="text-[11px] font-black uppercase tracking-[0.14em] text-accent">
+                  <p className="text-[12px] font-black uppercase tracking-[0.14em] text-accent">
                     {tournamentTypeLabel(tournament)}
                   </p>
                   <h2 className="truncate text-sm font-black text-foreground">
@@ -344,6 +345,6 @@ export default async function FanMatchesPage({
           ))}
         </div>
       )}
-    </main>
+    </FanPageShell>
   );
 }

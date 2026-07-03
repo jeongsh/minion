@@ -24,7 +24,13 @@ export function NewPostPage({
       : defaultCategory(scope);
 
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-[var(--page-inline)] py-10">
+    <main
+      className={
+        scope === "team"
+          ? "fan-page-container flex max-w-5xl flex-col gap-6 py-7 md:py-9"
+          : "mx-auto flex w-full max-w-5xl flex-col gap-6 px-[var(--page-inline)] py-10"
+      }
+    >
       <SectionHeader eyebrow={eyebrow} title="글쓰기" />
       <PostForm
         scope={scope}

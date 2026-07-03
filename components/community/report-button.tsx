@@ -45,11 +45,11 @@ export function ReportButton({
         type="button"
         onClick={onClick}
         disabled={pending || done}
-        className="text-xs font-semibold text-muted underline hover:text-foreground disabled:opacity-60"
+        className="text-[12px] font-semibold text-muted underline hover:text-foreground disabled:opacity-60"
       >
         리폿
       </button>
-      {message ? <span className="text-xs text-muted">{message}</span> : null}
+      {message ? <span className="text-[12px] text-muted">{message}</span> : null}
     </span>
   );
 }

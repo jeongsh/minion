@@ -148,7 +148,7 @@ export default async function SchedulePage({
           Object.entries(dateGroups).map(([date, groupMatches]) => (
             <div key={date}>
               <div className="border-b border-border bg-surface-muted px-5 py-4">
-                <h2 className="text-xl font-black">{date}</h2>
+                <h2 className="text-[24px] font-black">{date}</h2>
               </div>
               <div className="divide-y divide-border">
                 {groupMatches.map((match) => {

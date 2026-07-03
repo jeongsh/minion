@@ -95,7 +95,7 @@ export function StandingsFilter({
                 championRank: null,
               })
             }
-            className="mt-2 w-full bg-transparent text-lg font-bold text-foreground outline-none"
+            className="mt-2 w-full bg-transparent text-[16px] font-bold text-foreground outline-none"
           >
             {seasons.map((season) => (
               <option key={season} value={season}>
@@ -111,7 +111,7 @@ export function StandingsFilter({
             value={activeCompetitionId}
             disabled={isNavigating || competitions.length === 0}
             onChange={(event) => navigate({ tournament: event.target.value, position: null })}
-            className="mt-2 w-full bg-transparent text-lg font-bold text-foreground outline-none disabled:text-muted"
+            className="mt-2 w-full bg-transparent text-[16px] font-bold text-foreground outline-none disabled:text-muted"
           >
             {competitions.length === 0 ? (
               <option value="">대회 없음</option>
@@ -139,7 +139,7 @@ export function StandingsFilter({
                 championRank: null,
               });
             }}
-            className="mt-2 w-full bg-transparent text-lg font-bold text-foreground outline-none"
+            className="mt-2 w-full bg-transparent text-[16px] font-bold text-foreground outline-none"
           >
             {viewOptions.map((view) => (
               <option key={view.id} value={view.id}>
@@ -158,7 +158,7 @@ export function StandingsFilter({
               onChange={(event) =>
                 navigate({ position: event.target.value === "all" ? null : event.target.value })
               }
-              className="mt-2 w-full bg-transparent text-lg font-bold text-foreground outline-none"
+              className="mt-2 w-full bg-transparent text-[16px] font-bold text-foreground outline-none"
             >
               {positionOptions.map((position) => (
                 <option key={position.id} value={position.id}>
@@ -181,7 +181,7 @@ export function StandingsFilter({
                     event.target.value === "combined" ? null : event.target.value,
                 })
               }
-              className="mt-2 w-full bg-transparent text-lg font-bold text-foreground outline-none"
+              className="mt-2 w-full bg-transparent text-[16px] font-bold text-foreground outline-none"
             >
               {championRankOptions.map((option) => (
                 <option key={option.id} value={option.id}>

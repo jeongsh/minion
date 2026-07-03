@@ -115,7 +115,7 @@ function TeamRosterSection({
         <div className="flex flex-col">
           <Link
             href={`/teams/${team.slug}`}
-            className="text-lg font-bold hover:text-accent"
+            className="text-[16px] font-bold hover:text-accent"
           >
             {team.name}
           </Link>

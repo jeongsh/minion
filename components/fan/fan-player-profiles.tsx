@@ -91,10 +91,7 @@ export function FanPlayerProfiles({ players, teamSlug }: { players: Player[]; te
   return (
     <section id="players" className="rounded-3xl border border-[#e6e9ef] bg-white p-5 shadow-sm md:p-6">
       <div className="flex items-center justify-between gap-4">
-        <div>
-          <p className="text-xs font-black uppercase tracking-[0.16em] text-accent">Team roster</p>
-          <h2 className="mt-1 text-2xl font-black tracking-[-0.02em]">우리 팀 선수</h2>
-        </div>
+        <h2 className="text-xl font-bold tracking-[-0.01em]">선수</h2>
         <Link
           href={`/fan/${teamSlug}/players`}
           className="rounded-full border border-[#dfe3ea] px-4 py-2 text-sm font-bold text-[#475467] transition hover:border-accent hover:text-accent"

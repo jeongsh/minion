@@ -175,7 +175,7 @@ export function RecentMatchSetRows({
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={championImageUrl(champion)} alt="" className="h-full w-full object-cover" />
                     ) : null}
-                    <span className="absolute bottom-0 left-0 rounded-tr bg-background/90 px-1 text-[10px] font-semibold">
+                    <span className="absolute bottom-0 left-0 rounded-tr bg-background/90 px-1 text-[12px] font-semibold">
                       {line.set.setNumber}세트
                     </span>
                   </div>
@@ -270,7 +270,7 @@ export function RecentMatchHistoryModal({
           >
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
               <div>
-                <h2 className="text-lg font-semibold">최근 경기 기록</h2>
+                <h2 className="text-[16px] font-semibold">최근 경기 기록</h2>
                 <p className="mt-1 text-sm text-muted">3매치씩 확인하고 기간으로 좁혀볼 수 있습니다.</p>
               </div>
               <button

@@ -25,7 +25,13 @@ export async function CommunityFeedPage({
     scope === "team" && teamSlug ? `/fan/${teamSlug}/community/new` : `/community/new`;
 
   return (
-    <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-[var(--page-inline)] py-10">
+    <main
+      className={
+        scope === "team"
+          ? "fan-page-container flex flex-col gap-6 py-7 md:py-9"
+          : "mx-auto flex w-full max-w-7xl flex-col gap-6 px-[var(--page-inline)] py-10"
+      }
+    >
       <div className="flex flex-wrap items-end justify-between gap-4">
         <SectionHeader eyebrow={eyebrow} title={title} />
         <Link

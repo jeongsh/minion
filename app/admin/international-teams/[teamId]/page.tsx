@@ -82,7 +82,7 @@ export default async function AdminInternationalTeamDetailPage({
       </div>
 
       <section className="flex flex-col gap-4" aria-labelledby="team-media">
-        <h2 id="team-media" className="text-xl font-semibold">
+        <h2 id="team-media" className="text-[24px] font-semibold">
           팀 로고 / 프로필 이미지
         </h2>
         <form
@@ -96,7 +96,7 @@ export default async function AdminInternationalTeamDetailPage({
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={team.logoUrl} alt={`${team.name} 로고`} className="h-full w-full object-contain p-1" />
               ) : (
-                <span className="text-[10px] text-muted">NO LOGO</span>
+                <span className="text-[12px] text-muted">NO LOGO</span>
               )}
             </div>
             <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-md border border-border bg-background">
@@ -104,7 +104,7 @@ export default async function AdminInternationalTeamDetailPage({
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={team.profileImageUrl} alt={`${team.name} 프로필`} className="h-full w-full object-cover" />
               ) : (
-                <span className="text-[10px] text-muted">NO IMG</span>
+                <span className="text-[12px] text-muted">NO IMG</span>
               )}
             </div>
           </div>
@@ -124,7 +124,7 @@ export default async function AdminInternationalTeamDetailPage({
 
       <section className="flex flex-col gap-4" aria-labelledby="player-images">
         <div>
-          <h2 id="player-images" className="text-xl font-semibold">
+          <h2 id="player-images" className="text-[24px] font-semibold">
             선수 프로필 이미지
           </h2>
           <p className="mt-1 text-sm text-muted">

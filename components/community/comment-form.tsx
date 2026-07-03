@@ -45,17 +45,17 @@ export function CommentForm({
         rows={3}
         required
         placeholder="댓글을 입력하세요"
-        className="w-full rounded-md border border-border bg-surface p-3 text-sm"
+        className="w-full rounded-md border border-border bg-surface p-3 text-[14px]"
       />
       <div className="flex items-center gap-3">
         <button
           type="submit"
           disabled={pending}
-          className="rounded-md border border-border bg-surface px-4 py-2 text-sm font-semibold hover:bg-surface-muted disabled:opacity-60"
+          className="rounded-md border border-border bg-surface px-4 py-2 text-[14px] font-semibold hover:bg-surface-muted disabled:opacity-60"
         >
           댓글 등록
         </button>
-        {message ? <p className="text-xs text-muted">{message}</p> : null}
+        {message ? <p className="text-[12px] text-muted">{message}</p> : null}
       </div>
     </form>
   );

@@ -8,9 +8,9 @@ export function SectionHeader({
   return (
     <div className="max-w-3xl">
       {eyebrow ? (
-        <p className="text-sm font-semibold text-accent">{eyebrow}</p>
+        <p className="text-[14px] font-semibold text-accent">{eyebrow}</p>
       ) : null}
-      <h1 className="mt-2 text-3xl font-semibold tracking-normal md:text-4xl">
+      <h1 className="mt-2 text-[32px] font-semibold tracking-normal">
         {title}
       </h1>
     </div>

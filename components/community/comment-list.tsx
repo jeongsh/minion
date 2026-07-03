@@ -25,13 +25,13 @@ export function CommentList({
       {comments.map((comment) => (
         <li key={comment.id} className="flex gap-[11px]">
           {/* TODO: 작성자 표시명/아바타 join 시 교체 */}
-          <span className="flex h-[34px] w-[34px] flex-none items-center justify-center rounded-full bg-[#e9edf4] text-[10px] font-bold text-[#6b7488]">
+          <span className="flex h-[34px] w-[34px] flex-none items-center justify-center rounded-full bg-[#e9edf4] text-[12px] font-bold text-[#6b7488]">
             글
           </span>
           <div className="min-w-0 flex-1">
             <div className="mb-[5px] flex items-center gap-[7px]">
-              <span className="text-[13px] font-bold text-[#28324a]">작성자</span>
-              <span className="text-[11.5px] text-[#a4acbb]">{formatRelativeOrDate(comment.createdAt)}</span>
+              <span className="text-[12px] font-bold text-[#28324a]">작성자</span>
+              <span className="text-[12px] text-[#a4acbb]">{formatRelativeOrDate(comment.createdAt)}</span>
             </div>
             <p className="whitespace-pre-wrap text-[14px] leading-[1.6] text-[#3a4356]">{comment.content}</p>
             <div className="mt-[7px] flex flex-wrap items-center gap-2 text-[12px] font-semibold text-[#9aa3b5]">

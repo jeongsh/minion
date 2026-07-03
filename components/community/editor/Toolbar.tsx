@@ -183,7 +183,7 @@ export default function Toolbar({ editor, allowMedia = true }: Props) {
       {/* 폰트 크기 */}
       <select
         onChange={(e) => editor.chain().focus().setFontSize(e.target.value).run()}
-        className="h-7 rounded border border-border bg-surface text-[11px] text-foreground outline-none"
+        className="h-7 rounded border border-border bg-surface text-[12px] text-foreground outline-none"
         value={editor.getAttributes("textStyle").fontSize || "16px"}
       >
         <option value="12px">12</option>

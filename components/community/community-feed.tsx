@@ -10,7 +10,7 @@ import type { CommunityPostDetail } from "@/lib/community/types";
 
 type ViewMode = "list" | "gallery";
 
-const VIEW_STORAGE_KEY = "community:view";
+const VIEW_STORAGE_KEY = "community:view:v2";
 // "인기"는 말머리(board_type)가 아니라 정렬 필터.
 const HOT = "__hot__";
 
@@ -26,13 +26,13 @@ export function CommunityFeed({
 }) {
   const categories = categoriesForScope(scope);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
-  const [view, setView] = useState<ViewMode>("list");
+  const [view, setView] = useState<ViewMode>("gallery");
 
   useEffect(() => {
     const saved = window.localStorage.getItem(VIEW_STORAGE_KEY);
     // 저장된 보기 설정은 마운트 후에만 읽는다(SSR 하이드레이션 불일치 방지).
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (saved === "list" || saved === "gallery") setView(saved);
+    if (saved === "list") setView(saved);
   }, []);
 
   const changeView = (next: ViewMode) => {

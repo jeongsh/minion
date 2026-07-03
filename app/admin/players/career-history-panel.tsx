@@ -65,11 +65,11 @@ function CareerAddForm({ player, teams, onDone }: {
           ))}
         </select>
         <div className="flex flex-col gap-0.5">
-          <label className="text-[10px] text-muted">시작일</label>
+          <label className="text-[12px] text-muted">시작일</label>
           <input type="date" name="start_date" required className={inputCls()} />
         </div>
         <div className="flex flex-col gap-0.5">
-          <label className="text-[10px] text-muted">종료일 (현역이면 비움)</label>
+          <label className="text-[12px] text-muted">종료일 (현역이면 비움)</label>
           <input type="date" name="end_date" className={inputCls()} />
         </div>
       </div>

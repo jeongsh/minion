@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { FanInstagramFeed } from "@/components/fan/fan-instagram-feed";
+import { FanPageShell } from "@/components/fan/fan-page-shell";
 import {
   getInstagramStories,
   getPlayers,
@@ -29,10 +30,14 @@ export default async function FanInstagramPage({
   ]);
 
   return (
-    <main className="mx-auto w-full max-w-[1240px] px-4 py-8 sm:px-6 md:py-10">
+    <FanPageShell
+      eyebrow={`${team.shortName} Instagram`}
+      title="인스타그램"
+      description="구단 공식 계정과 현재 소속 선수들의 Instagram 게시물을 함께 봅니다."
+    >
       <header className="mb-8">
         <p className="text-xs font-black uppercase tracking-[0.18em] text-accent">{team.shortName} Instagram</p>
-        <h1 className="mt-2 text-3xl font-black tracking-[-0.04em] text-[#0f0f0f] md:text-4xl">인스타그램</h1>
+        <h1 className="mt-2 text-[32px] font-black tracking-[-0.04em] text-[#0f0f0f] md:text-[32px]">인스타그램</h1>
         <p className="mt-3 text-sm text-[#606060]">구단 공식 계정과 현재 소속 선수들의 Instagram 게시물을 함께 봅니다.</p>
       </header>
 
@@ -46,6 +51,6 @@ export default async function FanInstagramPage({
         stories={stories}
         players={teamPlayers}
       />
-    </main>
+    </FanPageShell>
   );
 }

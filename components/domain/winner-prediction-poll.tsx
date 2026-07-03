@@ -46,7 +46,7 @@ export function WinnerPredictionPoll({
     <section className="rounded-md border border-border bg-surface p-4" aria-labelledby="winner-prediction">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 id="winner-prediction" className="text-lg font-semibold">
+          <h2 id="winner-prediction" className="text-[16px] font-semibold">
             승자예측
           </h2>
           <p className="mt-1 text-xs text-muted">

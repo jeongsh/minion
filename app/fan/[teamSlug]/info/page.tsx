@@ -1,5 +1,6 @@
 ﻿import { SectionHeader } from "@/components/layout/section-header";
 import { DataTable } from "@/components/ui/data-table";
+import { FanPageShell } from "@/components/fan/fan-page-shell";
 import { getTeamByRouteKey } from "@/lib/team-themes";
 
 export default async function FanInfoPage({
@@ -19,7 +20,7 @@ export default async function FanInfoPage({
     : [];
 
   return (
-    <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-[var(--page-inline)] py-10">
+    <FanPageShell eyebrow={`${team?.shortName ?? "Team"} Official`} title="팀 정보 / 공식 링크">
       <SectionHeader
         eyebrow={team?.shortName}
         title="팀 정보 / 공식 링크"
@@ -31,6 +32,6 @@ export default async function FanInfoPage({
           { key: "value", label: "링크", render: (row) => row.value },
         ]}
       />
-    </main>
+    </FanPageShell>
   );
 }

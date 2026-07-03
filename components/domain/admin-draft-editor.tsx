@@ -252,7 +252,7 @@ export function AdminDraftEditor({
   return (
     <section className="grid gap-4 rounded-md border border-border bg-surface p-4" aria-labelledby="draft-edit">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 id="draft-edit" className="text-xl font-semibold">
+        <h2 id="draft-edit" className="text-[24px] font-semibold">
           밴픽
         </h2>
         <div className="inline-flex rounded-md border border-border bg-background p-1">

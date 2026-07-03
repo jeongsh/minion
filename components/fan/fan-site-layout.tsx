@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import { FanSiteNavigation } from "@/components/fan/fan-site-navigation";
 import { getTeamByRouteKey } from "@/lib/team-themes";
 
 type TeamStyle = React.CSSProperties & {
@@ -26,8 +25,7 @@ export function FanSiteLayout({
   };
 
   return (
-    <div className="team-surface min-h-[calc(100vh-73px)] bg-[#f6f7fb]" style={style}>
-      <FanSiteNavigation team={team} />
+    <div className="team-surface min-h-[calc(100vh-73px)]" style={style}>
       {children}
     </div>
   );

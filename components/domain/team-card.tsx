@@ -7,7 +7,7 @@ export function TeamCard({ team }: { team: Team }) {
       <div className="flex items-center justify-between gap-4">
         <div>
           <p className="text-sm text-muted">{team.shortName}</p>
-          <h2 className="mt-1 text-xl font-semibold">{team.name}</h2>
+          <h2 className="mt-1 text-[24px] font-semibold">{team.name}</h2>
         </div>
         <span
           aria-hidden="true"

@@ -288,7 +288,7 @@ function RadarChart({
           const x = center + Math.cos(angle) * (maxRadius + 24);
           const y = center + Math.sin(angle) * (maxRadius + 18);
           return (
-            <text key={axis.label} x={x} y={y} textAnchor="middle" className="fill-foreground text-[10px] font-semibold">
+            <text key={axis.label} x={x} y={y} textAnchor="middle" className="fill-foreground text-[12px] font-semibold">
               <tspan x={x}>{axis.label}</tspan>
               <tspan x={x} dy="12">{Math.round(axis.score)}</tspan>
             </text>
@@ -443,7 +443,7 @@ function CareerTimeline({
                   <p className="font-semibold">
                     {teamName}
                     {isCurrent && (
-                      <span className="ml-2 rounded-full bg-accent px-2 py-0.5 text-[11px] font-bold text-accent-foreground">현재</span>
+                      <span className="ml-2 rounded-full bg-accent px-2 py-0.5 text-[12px] font-bold text-accent-foreground">현재</span>
                     )}
                   </p>
                   <p className="mt-0.5 text-xs text-muted">
@@ -665,7 +665,7 @@ export default async function PlayerDetailPage({
             {/* 선수 정보 */}
             <div className="flex flex-col gap-4 p-5">
               <div>
-                <h1 id="player-summary" className="text-3xl font-bold tracking-normal">{player.name}</h1>
+                <h1 id="player-summary" className="text-[32px] font-bold tracking-normal">{player.name}</h1>
                 <p className="mt-1 text-base text-muted">{player.realName || ""}</p>
                 <PlayerSocialLinks player={player} className="mt-3" />
               </div>
@@ -722,17 +722,17 @@ export default async function PlayerDetailPage({
           <div className="grid gap-3 lg:grid-cols-[1fr_1.65fr_1.45fr]">
             <div className="rounded-md border border-border bg-background/45 p-4 text-center">
               <p className="text-sm text-muted">세트 팬 평점 기반 평균</p>
-              <p className="mt-3 text-4xl font-semibold">{averageRating(playerRatings)} <span className="text-base text-muted">/ 5</span></p>
+              <p className="mt-3 text-[32px] font-semibold">{averageRating(playerRatings)} <span className="text-base text-muted">/ 5</span></p>
               <p className="mt-2 text-2xl">★★★★★</p>
             </div>
             <div className="grid grid-cols-2 rounded-md border border-border bg-background/45">
               <div className="grid place-items-center border-r border-border p-4 text-center">
                 <p className="text-sm text-muted">팬 POG 횟수</p>
-                <p className="mt-3 text-4xl font-semibold">{playerFanPogSetIds.size}</p>
+                <p className="mt-3 text-[32px] font-semibold">{playerFanPogSetIds.size}</p>
               </div>
               <div className="grid place-items-center p-4 text-center">
                 <p className="text-sm text-muted">공식 POM 횟수</p>
-                <p className="mt-3 text-4xl font-semibold">{pomCount}</p>
+                <p className="mt-3 text-[32px] font-semibold">{pomCount}</p>
               </div>
             </div>
             <div className="rounded-md border border-border bg-background/45 p-4">

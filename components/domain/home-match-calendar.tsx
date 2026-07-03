@@ -113,9 +113,9 @@ export function HomeMatchCalendar({
                 href={match.href}
                 className="rounded-lg border border-[#edf0f6] bg-white px-3 py-2 transition hover:border-[#6a66ff] hover:bg-[#f7f6ff]"
               >
-                <span className="block text-[11px] font-bold text-[#64708f]">{match.time}</span>
+                <span className="block text-[12px] font-bold text-[#64708f]">{match.time}</span>
                 <span className="mt-1 block text-xs font-black leading-snug text-[#111827]">{match.title}</span>
-                <span className="mt-1 block text-[11px] font-semibold text-[#7c86a0]">{match.teams}</span>
+                <span className="mt-1 block text-[12px] font-semibold text-[#7c86a0]">{match.teams}</span>
               </Link>
             ))}
           </div>

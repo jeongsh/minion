@@ -68,7 +68,7 @@ export default async function FanVideoDetailPage({
     .slice(0, 16);
 
   return (
-    <main className="mx-auto grid w-full max-w-[1440px] gap-7 px-4 py-6 sm:px-6 lg:box-border lg:h-[calc(100vh-130px)] lg:grid-cols-[minmax(0,1fr)_390px] lg:grid-rows-[minmax(0,1fr)] lg:overflow-hidden lg:py-6">
+    <main className="fan-page-container grid gap-7 py-6 lg:box-border lg:h-[calc(100vh-130px)] lg:grid-cols-[minmax(0,1fr)_360px] lg:grid-rows-[minmax(0,1fr)] lg:overflow-hidden">
       <article className="min-w-0 lg:min-h-0 lg:overflow-y-auto lg:pr-1">
         <div className="aspect-video overflow-hidden rounded-xl bg-black shadow-sm">
           {embedUrl ? (
@@ -91,7 +91,7 @@ export default async function FanVideoDetailPage({
           )}
         </div>
 
-        <h1 className="mt-4 text-xl font-bold leading-7 tracking-[-0.02em] text-[#0f0f0f]">{video.title}</h1>
+        <h1 className="mt-4 text-[24px] font-bold leading-7 tracking-[-0.02em] text-[#0f0f0f]">{video.title}</h1>
 
         <div className="mt-4 flex flex-col gap-4 border-b border-[#e5e5e5] pb-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 items-center gap-3">

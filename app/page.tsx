@@ -112,6 +112,24 @@ export default async function HomePage() {
     href: slide.linkUrl,
   }));
 
+  // 상단 일정 스트립: 오늘부터 일주일 치 경기. 이번 주 경기가 없으면 가장 가까운 경기일로 대체한다.
+  const byDateAsc = (a: Match, b: Match) => new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime();
+  const today = new Date();
+  const todayKey = dateKeyKST(today);
+  const weekEndKey = dateKeyKST(new Date(today.getTime() + 6 * 86400000));
+  const hasKnownTeam = (match: Match) => teamsById.has(match.teamAId) || teamsById.has(match.teamBId);
+  let stripMatches = matches
+    .filter((match) => {
+      const key = dateKeyKST(match.matchDate);
+      return key >= todayKey && key <= weekEndKey && hasKnownTeam(match);
+    })
+    .sort(byDateAsc)
+    .slice(0, 12);
+  if (stripMatches.length === 0 && upcomingMatches[0]) {
+    const nextKey = dateKeyKST(upcomingMatches[0].matchDate);
+    stripMatches = matches.filter((match) => dateKeyKST(match.matchDate) === nextKey).sort(byDateAsc);
+  }
+
   return (
     <HomeDashboard
       teams={teams}
@@ -124,6 +142,8 @@ export default async function HomePage() {
       calendarMatches={calendarClientMatches}
       latestVideos={latestVideos}
       heroSlides={heroSlides}
+      stripMatches={stripMatches}
+      stripTodayKey={todayKey}
     />
   );
 }

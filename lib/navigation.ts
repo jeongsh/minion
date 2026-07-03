@@ -6,14 +6,14 @@ export type NavItem = {
   description?: string;
 };
 
+// GNB는 한 줄: 허브에서는 hubNavItems, 팬페이지에서는 fanNavItems가 같은 자리에 노출된다.
+// 허브 홈은 로고가 담당하고, 팀 전환은 팬페이지의 TeamSwitcher가 담당한다.
 export const hubNavItems: NavItem[] = [
-  { href: "/", label: "홈" },
   { href: "/schedule", label: "일정" },
   { href: "/standings", label: "순위" },
   { href: "/teams", label: "팀" },
   { href: "/players", label: "선수" },
   { href: "/community", label: "커뮤니티" },
-  { href: "/admin", label: "관리" },
 ];
 
 export const communityNavItems: NavItem[] = hubBoards.map((board) => ({

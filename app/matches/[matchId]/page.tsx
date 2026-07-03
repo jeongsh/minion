@@ -119,7 +119,7 @@ function TeamScoreBlock({
           ) : (
             <div className="h-20 w-20 md:h-24 md:w-24" />
           )}
-          <p className="mt-2 text-lg font-semibold md:text-xl">{teamName}</p>
+          <p className="mt-2 text-[16px] font-semibold md:text-[24px]">{teamName}</p>
           <p className="mt-0.5 text-sm font-semibold text-muted">{resultLabel}</p>
         </div>
         {/* 승리/패배 마크 — 임시 숨김 */}
@@ -296,7 +296,7 @@ function RatingPlayerRow({
         <p className="text-xs text-muted">{line.position}</p>
       </div>
       <div className="text-right">
-        <p className="text-lg font-semibold tabular-nums">
+        <p className="text-[16px] font-semibold tabular-nums">
           {average == null ? "-" : average.toFixed(1)}
         </p>
         <p className="text-xs text-muted">{ratings.length}개</p>
@@ -420,7 +420,7 @@ function MatchRatingPanel({
                 <p className="mt-1 text-sm text-muted">
                   {teamLabel(teams, leaderPlayer?.teamId)} · {leader.count}개 평점
                 </p>
-                <p className="mt-3 text-4xl font-semibold tabular-nums">
+                <p className="mt-3 text-[32px] font-semibold tabular-nums">
                   {leader.average.toFixed(1)}
                   <span className="text-base text-muted"> / 5</span>
                 </p>
@@ -532,7 +532,7 @@ function MatchRatingPanel({
       </section>
 
       <section className="rounded-md border border-border bg-surface p-5">
-        <h3 className="text-lg font-semibold">한줄평</h3>
+        <h3 className="text-[16px] font-semibold">한줄평</h3>
         {reviewRows.length === 0 ? (
           <p className="mt-3 text-sm text-muted">아직 작성된 한줄평이 없습니다.</p>
         ) : (
@@ -687,7 +687,7 @@ export default async function MatchDetailPage({
                 {tournament?.name ?? "대회 미지정"}
                 {stage ? ` · ${stage.name}` : ""}
               </p>
-              <p className="mt-2 text-4xl font-semibold">
+              <p className="mt-2 text-[32px] font-semibold">
                 {matchScoreLabel(match.teamAScore, match.teamBScore)}
               </p>
               <div className="mt-3 flex flex-wrap justify-center gap-2 text-xs font-semibold text-muted">
@@ -786,7 +786,7 @@ export default async function MatchDetailPage({
           className="rounded-md border border-border bg-surface p-4"
           aria-labelledby="match-video"
         >
-          <h2 id="match-video" className="text-xl font-semibold">
+          <h2 id="match-video" className="text-[24px] font-semibold">
             영상
           </h2>
           {match.vodUrl ? (

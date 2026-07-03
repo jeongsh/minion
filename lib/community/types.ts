@@ -19,6 +19,8 @@ export type CommunityPostDetail = {
   title: string;
   content: string;
   authorId: string | null;
+  /** 목록/카드에 표시할 작성자 닉네임. 탈퇴 계정은 null. */
+  authorName: string | null;
   likeCount: number;
   dislikeCount: number;
   commentCount: number;

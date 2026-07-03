@@ -62,7 +62,7 @@ function TeamLogo({ team }: { team?: Team }) {
   }
 
   return (
-    <span className="grid h-8 w-8 place-items-center rounded bg-surface-muted text-[10px] font-bold text-muted">
+    <span className="grid h-8 w-8 place-items-center rounded bg-surface-muted text-[12px] font-bold text-muted">
       {team?.shortName.slice(0, 3) ?? "-"}
     </span>
   );
@@ -90,7 +90,7 @@ function RatingRow({
         <p className="truncate text-sm font-semibold">{player?.name ?? "-"}</p>
         <p className="text-xs text-muted">{ratings.length}개 평점</p>
       </div>
-      <p className="text-lg font-semibold tabular-nums">
+      <p className="text-[16px] font-semibold tabular-nums">
         {average == null ? "-" : average.toFixed(1)}
       </p>
     </div>
@@ -220,12 +220,12 @@ export default async function SetRatingSnapshotPage({
           <div className="mt-3 flex items-center gap-4">
             <Avatar player={leaderPlayer} size="lg" />
             <div className="min-w-0">
-              <p className="truncate text-xl font-semibold">{leaderPlayer?.name ?? "-"}</p>
+              <p className="truncate text-[24px] font-semibold">{leaderPlayer?.name ?? "-"}</p>
               <p className="mt-0.5 text-sm text-muted">
                 {teamLabel(teams, leaderPlayer?.teamId)} · {leader.count}개 평점
               </p>
             </div>
-            <p className="ml-auto text-3xl font-semibold tabular-nums">
+            <p className="ml-auto text-[32px] font-semibold tabular-nums">
               {leader.average.toFixed(1)}
               <span className="text-sm text-muted"> / 5</span>
             </p>

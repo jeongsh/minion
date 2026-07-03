@@ -27,7 +27,7 @@ function CompactTile({ champion, ban = false }: { champion?: Champion; ban?: boo
       {img ? (
         <Image src={img} alt={championLabel(champion)} fill sizes="56px" className={`object-cover ${ban ? "grayscale opacity-60" : ""}`} />
       ) : (
-        <div className="absolute inset-0 flex items-center justify-center text-[10px] text-muted">-</div>
+        <div className="absolute inset-0 flex items-center justify-center text-[12px] text-muted">-</div>
       )}
       {ban && <div className="absolute inset-x-1 top-1/2 h-px rotate-[-18deg] bg-white/70" />}
     </div>
@@ -56,7 +56,7 @@ function SideDraft({
     <div className={`flex flex-col gap-2 ${flip ? "items-end" : ""}`}>
       <p className={`flex items-center gap-1.5 text-sm font-semibold ${flip ? "flex-row-reverse text-red-500" : "text-blue-500"}`}>
         <span>{teamName}</span>
-        {won && <span className="rounded bg-accent px-1.5 py-0.5 text-[11px] font-bold text-accent-foreground">승</span>}
+        {won && <span className="rounded bg-accent px-1.5 py-0.5 text-[12px] font-bold text-accent-foreground">승</span>}
       </p>
       <div className={`flex gap-1 ${flip ? "flex-row-reverse" : ""}`}>
         {Array.from({ length: 5 }, (_, i) => <CompactTile key={i} champion={banChampions[i]} ban />)}
@@ -160,14 +160,14 @@ function PlayerRow({
         {/* 닉네임 / 챔피언명 */}
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold">{player?.name ?? "-"}</p>
-          <p className="truncate text-[11px] text-muted">{champion?.name ?? "-"}</p>
+          <p className="truncate text-[12px] text-muted">{champion?.name ?? "-"}</p>
         </div>
       </div>
       <div>
         <p className="text-sm font-semibold tabular-nums">
           {line.kills} / <span className="text-red-400">{line.deaths}</span> / {line.assists}
         </p>
-        <p className="text-[11px] text-muted">
+        <p className="text-[12px] text-muted">
           {kdaRatio(line)} &nbsp;<span className="font-semibold text-foreground/70">({kp}%)</span>
         </p>
       </div>
@@ -185,11 +185,11 @@ function PlayerRow({
       </div>
       <div className="text-center">
         <p className="text-sm font-semibold tabular-nums">{line.visionScore}</p>
-        <p className="text-[10px] text-muted">시야</p>
+        <p className="text-[12px] text-muted">시야</p>
       </div>
       <div className="text-center">
         <p className="text-sm font-semibold tabular-nums">{line.cs}</p>
-        <p className="text-[10px] text-muted">분 {csm}</p>
+        <p className="text-[12px] text-muted">분 {csm}</p>
       </div>
       <PlayerItemSlots
         itemIds={line.itemIds}
@@ -243,14 +243,14 @@ function TeamStats({
       <div className={`${ROW_GRID} items-center gap-2 px-3 py-2 ${headerBg}`}>
         <span className={`text-sm font-bold ${headerText}`}>
           {team?.shortName ?? (side === "blue" ? "블루" : "레드")}
-          {won && <span className="ml-1.5 rounded bg-accent px-1.5 py-0.5 text-[11px] font-bold text-accent-foreground">승</span>}
+          {won && <span className="ml-1.5 rounded bg-accent px-1.5 py-0.5 text-[12px] font-bold text-accent-foreground">승</span>}
         </span>
-        <span className="text-[10px] font-semibold uppercase text-muted">KDA</span>
-        <span className="text-[10px] font-semibold uppercase text-muted">딜량</span>
-        <span className="text-[10px] font-semibold uppercase text-muted">골드</span>
-        <span className="text-center text-[10px] font-semibold uppercase text-muted">시야</span>
-        <span className="text-center text-[10px] font-semibold uppercase text-muted">CS</span>
-        <span className="text-[10px] font-semibold uppercase text-muted">아이템</span>
+        <span className="text-[12px] font-semibold uppercase text-muted">KDA</span>
+        <span className="text-[12px] font-semibold uppercase text-muted">딜량</span>
+        <span className="text-[12px] font-semibold uppercase text-muted">골드</span>
+        <span className="text-center text-[12px] font-semibold uppercase text-muted">시야</span>
+        <span className="text-center text-[12px] font-semibold uppercase text-muted">CS</span>
+        <span className="text-[12px] font-semibold uppercase text-muted">아이템</span>
       </div>
       {teamLines.map((line) => (
         <PlayerRow
@@ -307,21 +307,21 @@ function DualPlayerChart({
 
   return (
     <div className="border-b border-border">
-      <p className="pb-1.5 text-center text-[10px] font-bold uppercase tracking-widest text-muted">
+      <p className="pb-1.5 text-center text-[12px] font-bold uppercase tracking-widest text-muted">
         딜량 (DAMAGE)
       </p>
 
       {/* 컬럼 헤더 */}
       <div className={`${GRID} items-center gap-x-1 border-t border-border/40 px-4 py-1`}>
         <span /><span />
-        <span className="text-right text-[10px] font-semibold uppercase text-muted">선수</span>
-        <span className="text-right text-[10px] font-semibold uppercase text-muted">CS · 골드</span>
-        <span className="text-right text-[10px] font-semibold uppercase text-muted">아이템</span>
+        <span className="text-right text-[12px] font-semibold uppercase text-muted">선수</span>
+        <span className="text-right text-[12px] font-semibold uppercase text-muted">CS · 골드</span>
+        <span className="text-right text-[12px] font-semibold uppercase text-muted">아이템</span>
         <span />
         <span />
-        <span className="text-left text-[10px] font-semibold uppercase text-muted">아이템</span>
-        <span className="text-left text-[10px] font-semibold uppercase text-muted">골드 · CS</span>
-        <span className="text-left text-[10px] font-semibold uppercase text-muted">선수</span>
+        <span className="text-left text-[12px] font-semibold uppercase text-muted">아이템</span>
+        <span className="text-left text-[12px] font-semibold uppercase text-muted">골드 · CS</span>
+        <span className="text-left text-[12px] font-semibold uppercase text-muted">선수</span>
         <span /><span />
       </div>
 
@@ -370,13 +370,13 @@ function DualPlayerChart({
               {/* 블루 이름 */}
               <div className="text-right">
                 <p className="truncate text-xs font-semibold">{bPlayer?.name ?? "-"}</p>
-                <p className="truncate text-[10px] text-muted">{champions.find((c) => c.id === bl?.championId)?.name ?? ""}</p>
+                <p className="truncate text-[12px] text-muted">{champions.find((c) => c.id === bl?.championId)?.name ?? ""}</p>
               </div>
 
               {/* 블루 CS */}
               <div className="text-right">
                 <p className="text-xs tabular-nums font-semibold">{bl ? `${bl.cs} CS` : "-"}</p>
-                <p className="text-[10px] tabular-nums text-muted">{bl ? goldVal(bl) : ""}</p>
+                <p className="text-[12px] tabular-nums text-muted">{bl ? goldVal(bl) : ""}</p>
               </div>
 
               {/* 블루 아이템 */}
@@ -392,7 +392,7 @@ function DualPlayerChart({
 
               {/* 블루 바 + 값 */}
               <div className="flex h-5 items-center justify-end gap-1.5 pr-px">
-                <span className="shrink-0 text-[11px] font-semibold tabular-nums text-blue-400">{fmtVal(bv)}</span>
+                <span className="shrink-0 text-[12px] font-semibold tabular-nums text-blue-400">{fmtVal(bv)}</span>
                 <div className="flex flex-1 justify-end">
                   <div className="h-3.5 rounded-l-sm bg-blue-500/80" style={{ width: `${bPct}%` }} />
                 </div>
@@ -403,7 +403,7 @@ function DualPlayerChart({
                 <div className="flex flex-1">
                   <div className="h-3.5 rounded-r-sm bg-red-500/80" style={{ width: `${rPct}%` }} />
                 </div>
-                <span className="shrink-0 text-[11px] font-semibold tabular-nums text-red-400">{fmtVal(rv)}</span>
+                <span className="shrink-0 text-[12px] font-semibold tabular-nums text-red-400">{fmtVal(rv)}</span>
               </div>
 
               {/* 레드 아이템 */}
@@ -419,13 +419,13 @@ function DualPlayerChart({
               {/* 레드 CS */}
               <div className="text-left">
                 <p className="text-xs tabular-nums font-semibold">{rl ? goldVal(rl) : "-"}</p>
-                <p className="text-[10px] tabular-nums text-muted">{rl ? `${rl.cs} CS` : ""}</p>
+                <p className="text-[12px] tabular-nums text-muted">{rl ? `${rl.cs} CS` : ""}</p>
               </div>
 
               {/* 레드 이름 */}
               <div className="text-left">
                 <p className="truncate text-xs font-semibold">{rPlayer?.name ?? "-"}</p>
-                <p className="truncate text-[10px] text-muted">{champions.find((c) => c.id === rl?.championId)?.name ?? ""}</p>
+                <p className="truncate text-[12px] text-muted">{champions.find((c) => c.id === rl?.championId)?.name ?? ""}</p>
               </div>
 
               {/* 레드 스펠 + 룬 */}
@@ -534,20 +534,20 @@ export function SetCard({
           <div className="flex flex-col gap-3">
             <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1">
               <span className="text-right text-2xl font-bold tabular-nums text-blue-500">{set.blueKills ?? "-"}</span>
-              <span className="px-2 text-center text-[10px] font-semibold text-muted">KILLS</span>
+              <span className="px-2 text-center text-[12px] font-semibold text-muted">KILLS</span>
               <span className="text-left text-2xl font-bold tabular-nums text-red-500">{set.redKills ?? "-"}</span>
             </div>
             {(blueDamage > 0 || redDamage > 0) && (
               <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1">
                 <span className="text-right text-sm font-semibold tabular-nums text-blue-400">{blueDamage >= 1000 ? `${(blueDamage / 1000).toFixed(1)}K` : blueDamage}</span>
-                <span className="px-2 text-center text-[10px] font-semibold text-muted">딜량</span>
+                <span className="px-2 text-center text-[12px] font-semibold text-muted">딜량</span>
                 <span className="text-left text-sm font-semibold tabular-nums text-red-400">{redDamage >= 1000 ? `${(redDamage / 1000).toFixed(1)}K` : redDamage}</span>
               </div>
             )}
             {(blueGold > 0 || redGold > 0) && (
               <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1">
                 <span className="text-right text-sm font-semibold tabular-nums text-blue-400">{blueGold >= 1000 ? `${(blueGold / 1000).toFixed(1)}K` : blueGold}</span>
-                <span className="px-2 text-center text-[10px] font-semibold text-muted">골드</span>
+                <span className="px-2 text-center text-[12px] font-semibold text-muted">골드</span>
                 <span className="text-left text-sm font-semibold tabular-nums text-red-400">{redGold >= 1000 ? `${(redGold / 1000).toFixed(1)}K` : redGold}</span>
               </div>
             )}
@@ -581,7 +581,7 @@ export function SetCard({
               ].map(({ label, blue, red }) => (
                 <div key={label} className="grid grid-cols-[auto_1fr_auto] items-center gap-1">
                   <span className="text-right">{blue}</span>
-                  <span className="text-center text-[10px] font-semibold text-muted">{label}</span>
+                  <span className="text-center text-[12px] font-semibold text-muted">{label}</span>
                   <span className="text-left">{red}</span>
                 </div>
               ))}
@@ -616,7 +616,7 @@ export function SetCard({
           </div>
           {timelineEvents && timelineEvents.length > 0 && (
             <div className="border-y border-border bg-surface-muted px-4 py-3">
-              <p className="mb-2 text-[10px] font-semibold uppercase text-muted">타임라인</p>
+              <p className="mb-2 text-[12px] font-semibold uppercase text-muted">타임라인</p>
               <GameTimeline
                 events={timelineEvents}
                 durationSeconds={set.durationSeconds}

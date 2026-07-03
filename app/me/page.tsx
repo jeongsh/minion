@@ -89,7 +89,7 @@ export default async function MePage() {
         style={{ borderColor: "var(--border)", backgroundColor: "var(--surface)" }}
       >
         <div className="mb-3 flex items-baseline justify-between">
-          <span className="text-lg font-bold">{progress.label}</span>
+          <span className="text-[16px] font-bold">{progress.label}</span>
           <span className="text-sm" style={{ color: "var(--muted)" }}>
             {summary.lp} LP
             {summary.overallRank ? ` · 전체 ${summary.overallRank}위` : ""}

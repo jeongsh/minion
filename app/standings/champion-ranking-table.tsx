@@ -93,7 +93,7 @@ export function ChampionRankingTable({
               <tr key={row.champion.id} className="align-middle">
                 <td className="min-w-[12rem] px-4 py-3">
                   <div className="flex items-center gap-3">
-                    <span className="w-8 shrink-0 text-center text-xl font-black italic tabular-nums">
+                    <span className="w-8 shrink-0 text-center text-[24px] font-black italic tabular-nums">
                       {row.rank}
                     </span>
                     {/* eslint-disable-next-line @next/next/no-img-element */}

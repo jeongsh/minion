@@ -408,7 +408,7 @@ export function GameTimeline({
         </div>
       )}
 
-      <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 px-1 text-[10px] text-muted">
+      <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 px-1 text-[12px] text-muted">
         <span className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-blue-400/80" />블루 킬</span>
         <span className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-red-400/80" />레드 킬</span>
         {[

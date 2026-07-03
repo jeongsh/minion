@@ -100,7 +100,7 @@ export function PostForm({
             name="category"
             value={boardType}
             onChange={(e) => setBoardType(e.target.value)}
-            className="appearance-none bg-transparent py-[10px] pl-[13px] pr-8 text-[13px] font-semibold text-accent outline-none"
+            className="appearance-none bg-transparent py-[10px] pl-[13px] pr-8 text-[12px] font-semibold text-accent outline-none"
           >
             {categories.map((cat) => (
               <option key={cat.slug} value={cat.slug}>
@@ -108,7 +108,7 @@ export function PostForm({
               </option>
             ))}
           </select>
-          <span className="pointer-events-none absolute right-[11px] text-[11px] text-accent/50" aria-hidden>
+          <span className="pointer-events-none absolute right-[11px] text-[12px] text-accent/50" aria-hidden>
             ▾
           </span>
         </div>
@@ -135,7 +135,7 @@ export function PostForm({
       <div className="flex items-center justify-between gap-3">
         <p className="text-[12px] text-[#9aa3b5]">서로 존중하는 커뮤니티를 위해 비방·욕설은 삼가주세요.</p>
         <div className="flex items-center gap-2">
-          {message ? <p className="text-[13px] text-[#8a93a6]">{message}</p> : null}
+          {message ? <p className="text-[12px] text-[#8a93a6]">{message}</p> : null}
           <button
             type="submit"
             disabled={pending}

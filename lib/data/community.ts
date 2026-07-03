@@ -46,7 +46,7 @@ const POST_COLUMNS =
 const COMMENT_COLUMNS =
   "id, post_id, author_id, content, like_count, dislike_count, created_at";
 
-function mapPost(row: PostRow): CommunityPostDetail {
+function mapPost(row: PostRow, authorName: string | null = null): CommunityPostDetail {
   return {
     id: row.id,
     boardType: row.board_type,
@@ -55,6 +55,7 @@ function mapPost(row: PostRow): CommunityPostDetail {
     title: row.title,
     content: row.content,
     authorId: row.author_id,
+    authorName,
     likeCount: row.like_count,
     dislikeCount: row.dislike_count ?? 0,
     commentCount: row.comment_count,
@@ -64,6 +65,25 @@ function mapPost(row: PostRow): CommunityPostDetail {
     thumbnailUrl: extractThumbnail(row.content),
     excerpt: extractPlainText(row.content),
   };
+}
+
+async function mapPostsWithAuthors(rows: PostRow[]): Promise<CommunityPostDetail[]> {
+  const authorIds = [...new Set(rows.flatMap((row) => (row.author_id ? [row.author_id] : [])))];
+  if (authorIds.length === 0) return rows.map((row) => mapPost(row));
+
+  const { data, error } = await createSupabaseServerClient()
+    .from("profiles")
+    .select("id, nickname")
+    .in("id", authorIds);
+  if (error) throw error;
+
+  const names = new Map(
+    ((data ?? []) as { id: string; nickname: string }[]).map((profile) => [
+      profile.id,
+      profile.nickname,
+    ]),
+  );
+  return rows.map((row) => mapPost(row, row.author_id ? names.get(row.author_id) ?? null : null));
 }
 
 function mapComment(row: CommentRow): CommunityCommentItem {
@@ -106,7 +126,7 @@ export async function getBoardPosts(params: {
 
   const { data, error } = await query;
   if (error) throw error;
-  return (data as PostRow[]).map(mapPost);
+  return mapPostsWithAuthors(data as PostRow[]);
 }
 
 /** 단건 조회(조회수 증가 X — 순수 조회). */
@@ -120,7 +140,8 @@ export async function getPostById(postId: string): Promise<CommunityPostDetail |
     .maybeSingle();
 
   if (error) throw error;
-  return data ? mapPost(data as PostRow) : null;
+  if (!data) return null;
+  return (await mapPostsWithAuthors([data as PostRow]))[0] ?? null;
 }
 
 /** 단건 조회 + 조회수 증가. 상세 페이지 진입 시 사용. */

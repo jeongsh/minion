@@ -67,7 +67,7 @@ export function PlayerEditForm({
         <input type="hidden" name="is_starter" value={isStarter ? "true" : "false"} />
 
         <div>
-          <h2 className="text-lg font-semibold">기본 정보</h2>
+          <h2 className="text-[16px] font-semibold">기본 정보</h2>
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             <label className="flex flex-col gap-1.5">
               <span className="text-sm font-medium">선수명 (ID)</span>
@@ -126,7 +126,7 @@ export function PlayerEditForm({
         </div>
 
         <div>
-          <h2 className="text-lg font-semibold">프로필 사진 설정</h2>
+          <h2 className="text-[16px] font-semibold">프로필 사진 설정</h2>
           <div className="mt-4 grid gap-4">
             <label className="flex flex-col gap-1.5">
               <span className="text-sm font-medium">이미지 URL</span>
@@ -157,7 +157,7 @@ export function PlayerEditForm({
         </div>
 
         <div>
-          <h2 className="text-lg font-semibold">SNS / 방송</h2>
+          <h2 className="text-[16px] font-semibold">SNS / 방송</h2>
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             <label className="flex flex-col gap-1.5">
               <span className="text-sm font-medium">X (Twitter)</span>

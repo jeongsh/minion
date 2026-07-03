@@ -1,4 +1,5 @@
 @import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css");
+@import url("https://fonts.googleapis.com/css2?family=Archivo:wght@700;800;900&display=swap");
 @import "tailwindcss";
 @import "swiper/css";
 @import "swiper/css/navigation";
@@ -107,6 +108,37 @@ html[data-navigation-pending="true"] :is(a, button, input, select, textarea, [ro
   }
 }
 
+.font-archivo {
+  font-family: "Archivo", "Pretendard", system-ui, sans-serif;
+}
+
+/* 로스터 칩 호버 시 팀 컬러 보더 (--tp는 조상 요소에서 주입) */
+.fan-roster-chip:hover {
+  border-color: var(--tp);
+}
+
+/* 팬 홈 히어로 티커 마퀴 (선택적 애니메이션) */
+.fan-ticker-track {
+  display: inline-block;
+  white-space: nowrap;
+  animation: fan-ticker-scroll 26s linear infinite;
+}
+
+@keyframes fan-ticker-scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fan-ticker-track {
+    animation: none;
+  }
+}
+
 .brand-logo-text {
   font-family:
     "HancomMalrangmalrang",
@@ -141,6 +173,13 @@ html[data-navigation-pending="true"] :is(a, button, input, select, textarea, [ro
 .team-surface {
   --accent: var(--team-primary);
   --accent-foreground: #ffffff;
+  background: #ffffff;
+}
+
+.fan-page-container {
+  width: min(100%, 1240px);
+  margin-inline: auto;
+  padding-inline: clamp(1rem, 3.2vw, 2.5rem);
 }
 
 .home-hero-swiper .swiper-pagination-bullet {
@@ -189,7 +228,7 @@ html[data-navigation-pending="true"] :is(a, button, input, select, textarea, [ro
 
 .home-match-calendar .rdp-month_caption {
   height: 2.5rem;
-  font-size: 1.25rem;
+  font-size: 24px;
   font-weight: 900;
   color: #111827;
 }
@@ -208,7 +247,7 @@ html[data-navigation-pending="true"] :is(a, button, input, select, textarea, [ro
 
 .home-match-calendar .rdp-weekday {
   padding: 0.35rem 0 0.5rem;
-  font-size: 0.75rem;
+  font-size: 12px;
   font-weight: 900;
   color: #69738d;
   opacity: 1;

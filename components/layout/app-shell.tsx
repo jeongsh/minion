@@ -3,8 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { SiteFooter } from "@/components/layout/site-footer";
+import { TeamSwitcher } from "@/components/layout/team-switcher";
 import { RankBadge } from "@/components/rank/rank-badge";
 import { LogoutButton } from "@/components/auth/logout-button";
+import { fanNavItems, hubNavItems, type NavItem } from "@/lib/navigation";
 import type { Tier } from "@/lib/rank/config";
 import { getTeamByRouteKey } from "@/lib/team-themes";
 
@@ -13,19 +15,12 @@ export type AppShellUser = {
   tier: Tier;
 } | null;
 
-const headerNavItems = [
-  { id: "home", href: "/", label: "홈" },
-  { id: "schedule", href: "/schedule", label: "일정" },
-  { id: "standings", href: "/standings", label: "순위" },
-  { id: "teams", href: "/teams", label: "팀" },
-  { id: "players", href: "/players", label: "선수" },
-  { id: "community", href: "/community", label: "커뮤니티" },
-];
-
-function isHeaderNavActive(item: (typeof headerNavItems)[number], pathname: string) {
-  if (item.id === "teams" && pathname.startsWith("/fan/")) return true;
-  if (item.href === "/") return pathname === "/";
-  return pathname === item.href || pathname.startsWith(`${item.href}/`);
+// GNB는 한 줄이고, 컨텍스트에 따라 내용이 바뀐다.
+// 허브: LCK 전체 메뉴 / 팬페이지: 팀 스위처 + 해당 팀 메뉴 (허브 복귀는 로고)
+function isNavActive(item: NavItem, pathname: string, contextHome: string) {
+  if (item.href === pathname) return true;
+  if (item.href === contextHome) return false;
+  return pathname.startsWith(`${item.href}/`);
 }
 
 export function AppShell({
@@ -41,49 +36,53 @@ export function AppShell({
   const showSiteFooter = !isFanSite && !isAdmin;
   const fanRouteKey = isFanSite ? pathname.split("/")[2] : undefined;
   const fanTeam = fanRouteKey ? getTeamByRouteKey(fanRouteKey) : undefined;
+  const contextHome = fanTeam ? `/fan/${fanTeam.fanSiteHost}` : "/";
+  const navItems = fanTeam ? fanNavItems(fanTeam.fanSiteHost) : hubNavItems;
+  // 헤더는 team-surface 래퍼(FanSiteLayout) 바깥에 있으므로 팀 테마 변수를 직접 주입한다.
+  const headerStyle = fanTeam
+    ? ({
+        "--team-primary": fanTeam.primaryColor,
+        "--team-secondary": fanTeam.secondaryColor,
+      } as React.CSSProperties)
+    : undefined;
+  const activeTextClass = fanTeam ? "text-accent" : "text-[#172554]";
+  const activeBarClass = fanTeam ? "bg-accent" : "bg-[#6158ff]";
+  const hoverTextClass = fanTeam ? "hover:text-accent" : "hover:text-[#4f46e5]";
+  const mobileActiveClass = fanTeam ? "bg-accent/10 text-accent" : "bg-[#ebeaff] text-[#554cff]";
 
   return (
     <div className="min-h-screen">
-        <header className="sticky top-0 z-40 border-b border-[#edf0f6] bg-white/95 backdrop-blur-xl">
-          <div className="mx-auto flex h-[72px] max-w-[1240px] items-center gap-8 px-4 sm:px-6">
-            <div className="flex min-w-0 shrink-0 items-center gap-2.5">
+        <header
+          className={`sticky top-0 z-40 border-b border-[#edf0f6] bg-white/95 backdrop-blur-xl ${fanTeam ? "team-surface" : ""}`}
+          style={headerStyle}
+        >
+          <div className="mx-auto flex h-[72px] max-w-[1240px] items-center gap-5 px-4 sm:px-6">
+            <div className="flex min-w-0 shrink-0 items-center gap-3">
               <Link href="/" className="flex shrink-0 items-center" aria-label="MINION 홈">
-                <span className="brand-logo-text text-3xl font-black tracking-normal text-[#071332]">MINION</span>
+                <span className="brand-logo-text text-[32px] font-black tracking-normal text-[#071332]">MINION</span>
               </Link>
-              {fanTeam ? (
-                <>
-                  <span className="text-lg font-light text-[#c7ccd6]" aria-hidden="true">/</span>
-                  <Link
-                    href={`/fan/${fanTeam.fanSiteHost}`}
-                    className="flex min-w-0 items-center gap-2 rounded-full border border-[#e8eaf0] bg-[#f8f9fb] py-1 pl-1.5 pr-3 transition hover:border-[#cfd4df]"
-                    aria-label={`${fanTeam.name} 팬페이지 홈`}
-                  >
-                    {fanTeam.logoUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={fanTeam.logoUrl} alt="" className="h-7 w-7 rounded-full bg-white object-contain p-1" />
-                    ) : null}
-                    <span className="truncate text-sm font-black text-[#111827]">{fanTeam.shortName}</span>
-                  </Link>
-                </>
-              ) : null}
+              <TeamSwitcher team={fanTeam} pathname={pathname} />
             </div>
 
-            <nav aria-label="주요 메뉴" className="hidden min-w-0 flex-1 items-center gap-2 lg:flex">
-              {headerNavItems.map((item) => {
-                const isActive = isHeaderNavActive(item, pathname);
+            <nav
+              aria-label={fanTeam ? `${fanTeam.name} 팬페이지 메뉴` : "주요 메뉴"}
+              className="hidden min-w-0 flex-1 items-center gap-2 lg:flex"
+            >
+              {navItems.map((item) => {
+                const isActive = isNavActive(item, pathname, contextHome);
                 return (
                   <Link
-                    key={item.id}
+                    key={item.href}
                     href={item.href}
                     className={`relative whitespace-nowrap px-3 py-[27px] text-sm font-black transition-colors ${
-                      isActive ? "text-[#172554]" : "text-[#111827] hover:text-[#4f46e5]"
+                      isActive ? activeTextClass : `text-[#111827] ${hoverTextClass}`
                     }`}
                   >
                     <span className="inline-flex items-center gap-1">
                       {item.label}
                     </span>
                     {isActive ? (
-                      <span className="absolute bottom-3 left-1/2 h-0.5 w-4 -translate-x-1/2 rounded-full bg-[#6158ff]" />
+                      <span className={`absolute bottom-3 left-1/2 h-0.5 w-4 -translate-x-1/2 rounded-full ${activeBarClass}`} />
                     ) : null}
                   </Link>
                 );
@@ -131,24 +130,22 @@ export function AppShell({
             </div>
           </div>
 
-          {!isFanSite ? (
-            <nav aria-label="모바일 메뉴" className="scrollbar-none flex gap-1 overflow-x-auto border-t border-[#f0f2f5] px-4 pb-2 pt-1.5 lg:hidden">
-              {headerNavItems.map((item) => {
-                const isActive = isHeaderNavActive(item, pathname);
-                return (
-                  <Link
-                    key={item.id}
-                    href={item.href}
-                    className={`shrink-0 rounded-full px-3 py-1.5 text-sm font-bold transition-colors ${
-                      isActive ? "bg-[#ebeaff] text-[#554cff]" : "text-[#667085] hover:bg-[#f4f5f8] hover:text-[#111827]"
-                    }`}
-                  >
-                    {item.label}
-                  </Link>
-                );
-              })}
-            </nav>
-          ) : null}
+          <nav aria-label="모바일 메뉴" className="scrollbar-none flex gap-1 overflow-x-auto border-t border-[#f0f2f5] px-4 pb-2 pt-1.5 lg:hidden">
+            {navItems.map((item) => {
+              const isActive = isNavActive(item, pathname, contextHome);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`shrink-0 rounded-full px-3 py-1.5 text-sm font-bold transition-colors ${
+                    isActive ? mobileActiveClass : "text-[#667085] hover:bg-[#f4f5f8] hover:text-[#111827]"
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
         </header>
       {children}
       {showSiteFooter ? <SiteFooter /> : null}

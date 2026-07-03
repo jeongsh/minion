@@ -343,10 +343,10 @@ function GroupPanel({ group }: { group: GroupDef }) {
               )}
               {script.label}
               {info.state === "done" && (
-                <span className="text-[10px] opacity-60">완료</span>
+                <span className="text-[12px] opacity-60">완료</span>
               )}
               {info.state === "error" && (
-                <span className="text-[10px] opacity-60">
+                <span className="text-[12px] opacity-60">
                   오류{info.exitCode !== null ? ` (${info.exitCode})` : ""}
                 </span>
               )}
@@ -369,7 +369,7 @@ function GroupPanel({ group }: { group: GroupDef }) {
         <div className="border-t border-border">
           <div
             ref={logContainerRef}
-            className="max-h-48 overflow-y-auto bg-background p-3 font-mono text-[11px] leading-relaxed"
+            className="max-h-48 overflow-y-auto bg-background p-3 font-mono text-[12px] leading-relaxed"
           >
             {logs.map((line, i) => (
               <div key={i} className="whitespace-pre-wrap text-foreground/80">{line}</div>
@@ -379,7 +379,7 @@ function GroupPanel({ group }: { group: GroupDef }) {
             <button
               type="button"
               onClick={() => setLogs([])}
-              className="text-[10px] text-muted hover:text-foreground"
+              className="text-[12px] text-muted hover:text-foreground"
             >
               로그 지우기
             </button>

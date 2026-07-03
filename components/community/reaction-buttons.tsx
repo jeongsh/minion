@@ -84,7 +84,7 @@ export function ReactionButtons({
           <span aria-hidden>👎</span>
           <span>싫어요 {dislikeCount}</span>
         </button>
-        {message ? <span className="text-[11px] text-[#c06868]">{message}</span> : null}
+        {message ? <span className="text-[12px] text-[#c06868]">{message}</span> : null}
       </div>
     );
   }

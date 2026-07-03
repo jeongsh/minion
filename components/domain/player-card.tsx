@@ -55,7 +55,7 @@ export function PlayerCard({ player }: { player: Player }) {
         </span>
       </div>
       <div className="flex flex-col gap-1 p-4">
-        <h2 className="truncate text-lg font-bold leading-tight group-hover:text-accent">
+        <h2 className="truncate text-[16px] font-bold leading-tight group-hover:text-accent">
           {player.name}
         </h2>
         <p className="truncate text-sm text-muted">

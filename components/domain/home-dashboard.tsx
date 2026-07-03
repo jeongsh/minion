@@ -5,7 +5,7 @@ import { HomeMatchCalendar, type HomeCalendarMatch } from "@/components/domain/h
 import { isMatchLive } from "@/lib/match-display";
 import { teams as themeTeams } from "@/lib/team-themes";
 import type { FanMatchPrediction, Match, Team, TeamVideo } from "@/lib/types";
-import { formatDateTime, matchHref } from "@/lib/view-data";
+import { formatDateTime, formatTimeKST, matchHref } from "@/lib/view-data";
 
 const TEAM_SHORTCUT_ORDER = ["T1", "GEN", "GENG", "HLE", "DK", "KT", "DRX", "NS", "FOX", "BRO", "KDF", "SOOP"];
 
@@ -30,6 +30,8 @@ type HomeDashboardProps = {
   calendarMatches: HomeCalendarMatch[];
   latestVideos: TeamVideo[];
   heroSlides: HomeHeroSwiperSlide[];
+  stripMatches: Match[];
+  stripTodayKey: string;
 };
 
 function Card({ children, className = "", ...props }: React.ComponentPropsWithoutRef<"section">) {
@@ -43,7 +45,7 @@ function Card({ children, className = "", ...props }: React.ComponentPropsWithou
 function SectionHeading({ title, href, linkLabel }: { title: string; href?: string; linkLabel?: string }) {
   return (
     <div className="mb-3 flex items-center justify-between gap-4">
-      <h2 className="text-lg font-black text-[#111827]">{title}</h2>
+      <h2 className="text-[16px] font-black text-[#111827]">{title}</h2>
       {href && linkLabel ? (
         <Link href={href} className="text-xs font-bold text-[#7c86a0] transition hover:text-[#4f46e5]">
           {linkLabel} <span aria-hidden="true">&gt;</span>
@@ -84,6 +86,102 @@ function TeamLogo({
   );
 }
 
+function dateKeyKST(value: string) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(value));
+}
+
+function stripDateLabel(matchDate: string, todayKey: string) {
+  if (dateKeyKST(matchDate) === todayKey) return "오늘";
+
+  const parts = new Intl.DateTimeFormat("ko-KR", {
+    timeZone: "Asia/Seoul",
+    month: "numeric",
+    day: "numeric",
+    weekday: "short",
+  }).formatToParts(new Date(matchDate));
+  const part = (type: Intl.DateTimeFormatPartTypes) => parts.find((item) => item.type === type)?.value ?? "";
+
+  return `${part("month")}.${part("day")} (${part("weekday")})`;
+}
+
+function WeekStrip({
+  matches,
+  todayKey,
+  teamsById,
+}: {
+  matches: Match[];
+  todayKey: string;
+  teamsById: Map<string, Team>;
+}) {
+  return (
+    <section
+      aria-label="이번 주 경기 일정"
+      className="flex items-center gap-3 rounded-lg border border-[#e8ecf5] bg-white px-4 py-2.5"
+    >
+      {matches.length === 0 ? (
+        <span className="text-sm text-[#7c86a0]">예정된 경기가 없습니다</span>
+      ) : (
+        <div className="scrollbar-none flex min-w-0 flex-1 items-center gap-2 overflow-x-auto">
+          {matches.map((match) => {
+            const teamA = teamsById.get(match.teamAId);
+            const teamB = teamsById.get(match.teamBId);
+            const live = isMatchLive(match);
+            const done = match.status === "completed";
+            const isToday = dateKeyKST(match.matchDate) === todayKey;
+
+            return (
+              <Link
+                key={match.id}
+                href={matchHref(match)}
+                className={`flex shrink-0 items-center gap-2 rounded-full border py-1.5 pl-3 pr-3.5 text-sm transition hover:border-[#cfd5e3] ${
+                  isToday ? "border-[#dfe3ee] bg-white" : "border-[#eef1f6] bg-[#f8f9fb]"
+                }`}
+              >
+                {live ? (
+                  <span className="inline-flex items-center gap-1 text-xs font-bold text-[#f0324f]">
+                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#f0324f]" />
+                    경기중
+                  </span>
+                ) : (
+                  <span className={`text-xs ${isToday ? "font-bold text-[#111827]" : "font-semibold text-[#7c86a0]"}`}>
+                    {stripDateLabel(match.matchDate, todayKey)} {formatTimeKST(match.matchDate)}
+                  </span>
+                )}
+                <span className="flex items-center gap-1.5">
+                  <TeamLogo team={teamA} size="sm" />
+                  <span className="text-xs font-bold text-[#344054]">{teamA?.shortName ?? "TBD"}</span>
+                </span>
+                {done ? (
+                  <span className="text-xs font-bold tabular-nums text-[#111827]">
+                    {match.teamAScore ?? "-"}:{match.teamBScore ?? "-"}
+                  </span>
+                ) : (
+                  <span className="text-[12px] font-semibold text-[#a0a8bb]">vs</span>
+                )}
+                <span className="flex items-center gap-1.5">
+                  <span className="text-xs font-bold text-[#344054]">{teamB?.shortName ?? "TBD"}</span>
+                  <TeamLogo team={teamB} size="sm" />
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+      )}
+      <Link
+        href="/schedule"
+        className="ml-auto shrink-0 text-xs font-bold text-[#7c86a0] transition hover:text-[#4f46e5]"
+      >
+        전체 일정 <span aria-hidden="true">&gt;</span>
+      </Link>
+    </section>
+  );
+}
+
 function ParticipationSection({ upcomingMatches }: { upcomingMatches: Match[] }) {
   const entries = [
     {
@@ -115,7 +213,7 @@ function ParticipationSection({ upcomingMatches }: { upcomingMatches: Match[] })
   return (
     <section aria-labelledby="participation-title">
       <div className="mb-3 flex items-center justify-between gap-4">
-        <h2 id="participation-title" className="text-lg font-black text-[#111827]">
+        <h2 id="participation-title" className="text-[16px] font-black text-[#111827]">
           지금 참여 가능
         </h2>
         <Link href="/schedule" className="text-xs font-bold text-[#7c86a0] transition hover:text-[#4f46e5]">
@@ -133,7 +231,7 @@ function ParticipationSection({ upcomingMatches }: { upcomingMatches: Match[] })
               <span className={`grid h-10 min-w-10 place-items-center rounded-lg px-2 text-xs font-black ${entry.accent}`}>
                 {entry.icon}
               </span>
-              <span className="rounded bg-[#fff0f3] px-2 py-1 text-[10px] font-black text-[#f04465]">{entry.status}</span>
+              <span className="rounded bg-[#fff0f3] px-2 py-1 text-[12px] font-black text-[#f04465]">{entry.status}</span>
             </div>
             <p className="mt-3 text-sm font-black text-[#111827]">{entry.label}</p>
             <p className="mt-1 text-xs font-semibold text-[#7c86a0]">{entry.description}</p>
@@ -149,7 +247,7 @@ function AdPlaceholder({ className = "", compact = false }: { className?: string
   return (
     <aside
       aria-label="광고 영역"
-      className={`grid place-items-center rounded-lg bg-[#e6e7eb] text-xl font-black text-[#666b76] ${
+      className={`grid place-items-center rounded-lg bg-[#e6e7eb] text-[24px] font-black text-[#666b76] ${
         compact ? "min-h-14" : "min-h-[170px]"
       } ${className}`}
     >
@@ -195,14 +293,14 @@ function MatchPollCard({
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-1.5">
           {live ? (
-            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[#ffe9ec] px-2 py-0.5 text-[10px] font-black text-[#f0324f]">
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[#ffe9ec] px-2 py-0.5 text-[12px] font-black text-[#f0324f]">
               <span className="h-1.5 w-1.5 rounded-full bg-[#f0324f]" />
               경기중
             </span>
           ) : null}
           <p className="line-clamp-1 text-xs font-black text-[#111827]">{tournamentName ?? match.name}</p>
         </div>
-        <p className="shrink-0 text-[11px] font-semibold text-[#7c86a0]">{formatDateTime(match.matchDate)}</p>
+        <p className="shrink-0 text-[12px] font-semibold text-[#7c86a0]">{formatDateTime(match.matchDate)}</p>
       </div>
       <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-center gap-3 sm:gap-4">
         <div className="flex flex-col items-center gap-2 text-center">
@@ -225,15 +323,15 @@ function MatchPollCard({
       </div>
       <div className="mt-4 flex flex-wrap gap-2 border-t border-[#eef1f6] pt-3">
         {hasTbd ? (
-          <span className="rounded-full bg-[#f1f2f5] px-3 py-1.5 text-[11px] font-bold text-[#a0a8bb]">
+          <span className="rounded-full bg-[#f1f2f5] px-3 py-1.5 text-[12px] font-bold text-[#a0a8bb]">
             상대 미정
           </span>
         ) : live ? (
-          <span className="rounded-full bg-[#ffe9ec] px-3 py-1.5 text-[11px] font-black text-[#f0324f] transition group-hover:bg-[#ffdfe4]">
+          <span className="rounded-full bg-[#ffe9ec] px-3 py-1.5 text-[12px] font-black text-[#f0324f] transition group-hover:bg-[#ffdfe4]">
             투표하러 가기
           </span>
         ) : (
-          <span className="rounded-full bg-[#f4f6f9] px-3 py-1.5 text-[11px] font-bold text-[#667085] transition group-hover:bg-[#eceff4]">
+          <span className="rounded-full bg-[#f4f6f9] px-3 py-1.5 text-[12px] font-bold text-[#667085] transition group-hover:bg-[#eceff4]">
             투표하러 가기
           </span>
         )}
@@ -316,7 +414,7 @@ function FormTable({ rows }: { rows: HomeStandingRow[] }) {
               {row.recent.slice(0, 5).map((result, index) => (
                 <span
                   key={`${row.teamId}-${index}`}
-                  className={`grid h-5 w-5 place-items-center rounded text-[10px] font-black text-white ${
+                  className={`grid h-5 w-5 place-items-center rounded text-[12px] font-black text-white ${
                     result === "W" ? "bg-[#14c784]" : "bg-[#c72f4a]"
                   }`}
                 >
@@ -344,7 +442,7 @@ function RecentMatchCard({
 }) {
   return (
     <article className="rounded-lg border border-[#e7ebf3] bg-white p-4">
-      <div className="flex items-center justify-between gap-3 text-[11px] font-bold text-[#7c86a0]">
+      <div className="flex items-center justify-between gap-3 text-[12px] font-bold text-[#7c86a0]">
         <span className="truncate">{tournamentName ?? match.name}</span>
         <span className="shrink-0">{formatDateTime(match.matchDate)}</span>
       </div>
@@ -421,7 +519,7 @@ function VideoSection({ videos, teamsById }: { videos: TeamVideo[]; teamsById: M
                   </div>
                   <div className="min-w-0 self-center">
                     <p className="line-clamp-2 text-xs font-semibold leading-snug text-[#59647c]">{video.title}</p>
-                    {team ? <p className="mt-1 text-[11px] font-bold text-[#a0a8bb]">{team.shortName}</p> : null}
+                    {team ? <p className="mt-1 text-[12px] font-bold text-[#a0a8bb]">{team.shortName}</p> : null}
                   </div>
                 </a>
               );
@@ -478,6 +576,8 @@ export function HomeDashboard({
   calendarMatches,
   latestVideos,
   heroSlides,
+  stripMatches,
+  stripTodayKey,
 }: HomeDashboardProps) {
   const teamsById = new Map(teams.map((team) => [team.id, team]));
   const rankedIds = new Set(standingRows.map((row) => row.teamId));
@@ -488,6 +588,8 @@ export function HomeDashboard({
 
   return (
     <main data-testid="home-dashboard" className="mx-auto flex w-full max-w-[1240px] flex-col gap-6 px-4 pb-8 pt-6 sm:px-6">
+      <WeekStrip matches={stripMatches} todayKey={stripTodayKey} teamsById={teamsById} />
+
       <section>
         <HomeHeroSwiper slides={heroSlides} />
       </section>
@@ -500,7 +602,7 @@ export function HomeDashboard({
       <section className="grid items-stretch gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(300px,0.9fr)]">
         <section aria-labelledby="upcoming-matches-title">
           <div className="mb-3 flex items-center justify-between gap-4">
-            <h2 id="upcoming-matches-title" className="text-lg font-black text-[#111827]">다가오는 경기</h2>
+            <h2 id="upcoming-matches-title" className="text-[16px] font-black text-[#111827]">다가오는 경기</h2>
             <Link href="/schedule" className="text-xs font-bold text-[#7c86a0] transition hover:text-[#4f46e5]">
               전체 일정 <span aria-hidden="true">&gt;</span>
             </Link>
@@ -533,7 +635,7 @@ export function HomeDashboard({
 
       <section aria-labelledby="recent-matches-title">
         <div className="mb-3 flex items-center justify-between gap-4">
-          <h2 id="recent-matches-title" className="text-lg font-black text-[#111827]">최근 종료 경기</h2>
+          <h2 id="recent-matches-title" className="text-[16px] font-black text-[#111827]">최근 종료 경기</h2>
           <Link href="/schedule" className="text-xs font-bold text-[#7c86a0] transition hover:text-[#4f46e5]">
             전체 보기 <span aria-hidden="true">&gt;</span>
           </Link>

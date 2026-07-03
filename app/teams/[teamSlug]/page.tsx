@@ -189,9 +189,9 @@ function TeamRadarChart({
           const x = center + Math.cos(angle) * (maxRadius + 24);
           const y = center + Math.sin(angle) * (maxRadius + 18);
           return (
-            <text key={axis.label} x={x} y={y} textAnchor="middle" dominantBaseline="middle" className="fill-foreground text-[10px] font-semibold">
+            <text key={axis.label} x={x} y={y} textAnchor="middle" dominantBaseline="middle" className="fill-foreground text-[12px] font-semibold">
               <tspan x={x} dy="-6">{axis.label}</tspan>
-              <tspan x={x} dy="13" className="fill-accent text-[9px]">{Math.round(axis.score)}</tspan>
+              <tspan x={x} dy="13" className="fill-accent text-[12px]">{Math.round(axis.score)}</tspan>
             </text>
           );
         })}
@@ -306,7 +306,7 @@ export default async function TeamDetailPage({
         )}
         <div className="flex flex-col gap-3">
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-3xl font-semibold tracking-normal md:text-4xl">{team.name}</h1>
+            <h1 className="text-[32px] font-semibold tracking-normal md:text-[32px]">{team.name}</h1>
             {team.globalPowerRank != null && (
               <a
                 href="https://lolesports.com/ko-KR/gpr/"
@@ -418,7 +418,7 @@ export default async function TeamDetailPage({
                     />
                   ) : (
                     <div
-                      className="flex h-full w-full items-center justify-center text-4xl font-bold"
+                      className="flex h-full w-full items-center justify-center text-[32px] font-bold"
                       style={{ backgroundColor: team.primaryColor + "22", color: team.primaryColor }}
                     >
                       {player.name.slice(0, 2).toUpperCase()}
@@ -459,7 +459,7 @@ export default async function TeamDetailPage({
                 className="flex flex-col gap-4 rounded-xl border border-border bg-surface px-6 py-5"
                 style={{ borderLeftColor: team.primaryColor, borderLeftWidth: 4 }}
               >
-                <p className="text-xl font-bold">팀 정보</p>
+                <p className="text-[24px] font-bold">팀 정보</p>
 
                 {/* 코칭 스태프 */}
                 <div className="flex flex-col gap-2">
@@ -467,13 +467,13 @@ export default async function TeamDetailPage({
                   {team.headCoach && (
                     <div className="flex items-center gap-3">
                       <span className="w-8 text-sm text-muted">감독</span>
-                      <span className="text-lg font-semibold">{team.headCoach}</span>
+                      <span className="text-[16px] font-semibold">{team.headCoach}</span>
                     </div>
                   )}
                   {team.coaches && team.coaches.split(",").map((c) => c.trim()).filter(Boolean).map((coach) => (
                     <div key={coach} className="flex items-center gap-3">
                       <span className="w-8 text-sm text-muted">코치</span>
-                      <span className="text-lg font-semibold">{coach}</span>
+                      <span className="text-[16px] font-semibold">{coach}</span>
                     </div>
                   ))}
                 </div>
@@ -518,7 +518,7 @@ export default async function TeamDetailPage({
           {stats.setCount > 0 && (
             <div className="rounded-xl border border-border bg-surface p-4 md:p-6">
               <div className="mb-4 flex items-center justify-between">
-                <p className="text-xl font-bold">팀 스탯</p>
+                <p className="text-[24px] font-bold">팀 스탯</p>
                 <p className="text-xs text-muted">{stats.setCount}세트 기준</p>
               </div>
               <TeamRadarChart stats={stats} leagueAvg={leagueAvg} leagueAvgRaw={leagueAvgInput} />
@@ -529,13 +529,13 @@ export default async function TeamDetailPage({
 
       {awards.filter((a) => TEAM_AWARD_TYPES.has(a.awardType)).length > 0 && (
         <section className="flex flex-col gap-4" aria-labelledby="team-awards">
-          <h2 id="team-awards" className="text-xl font-semibold">수상 내역</h2>
+          <h2 id="team-awards" className="text-[24px] font-semibold">수상 내역</h2>
           <AwardHistory awards={awards} />
         </section>
       )}
 
       <section className="flex flex-col gap-4" aria-labelledby="team-recent-matches">
-        <h2 id="team-recent-matches" className="text-xl font-semibold">최근 경기</h2>
+        <h2 id="team-recent-matches" className="text-[24px] font-semibold">최근 경기</h2>
 
         {/* 간략 요약 */}
         <div className="flex flex-wrap gap-2">

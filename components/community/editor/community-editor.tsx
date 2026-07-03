@@ -29,7 +29,7 @@ export default function CommunityEditor({ content, onChange, allowMedia = true, 
     editorProps: {
       attributes: {
         "data-placeholder": placeholder ?? "내용을 입력하세요",
-        class: "community-prose max-w-none focus:outline-none min-h-[300px] p-4 text-sm leading-7",
+        class: "community-prose max-w-none focus:outline-none min-h-[300px] p-4 text-[16px] leading-7",
       },
       handlePaste: (_view, event) => {
         if (!allowMedia || !editor) return false;
@@ -89,7 +89,7 @@ export default function CommunityEditor({ content, onChange, allowMedia = true, 
     <div ref={containerRef} className="community-editor relative flex flex-col overflow-hidden rounded-md border border-border bg-surface">
       {allowMedia ? <Toolbar editor={editor} allowMedia={allowMedia} /> : <Toolbar editor={editor} allowMedia={false} />}
       {uploadingDropImage ? (
-        <div className="border-b border-border bg-surface-muted px-4 py-2 text-xs text-muted">이미지 업로드 중...</div>
+        <div className="border-b border-border bg-surface-muted px-4 py-2 text-[12px] text-muted">이미지 업로드 중...</div>
       ) : null}
       <EditorContent editor={editor} />
     </div>

@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { FanVideoFeed } from "@/components/fan/fan-video-feed";
+import { FanPageShell } from "@/components/fan/fan-page-shell";
 import {
   getFanVideoFeed,
   getPlayers,
@@ -33,14 +34,18 @@ export default async function FanVideosPage({
   });
 
   return (
-    <main className="mx-auto w-full max-w-[1240px] px-4 py-8 sm:px-6 md:py-10">
+    <FanPageShell
+      eyebrow={`${team.shortName} YouTube`}
+      title="영상"
+      description="구단 공식 영상과 현재 소속 선수 영상을 함께 봅니다."
+    >
       <header className="mb-8">
         <p className="text-xs font-black uppercase tracking-[0.18em] text-accent">{team.shortName} YouTube</p>
-        <h1 className="mt-2 text-3xl font-black tracking-[-0.04em] text-[#0f0f0f] md:text-4xl">영상</h1>
+        <h1 className="mt-2 text-[32px] font-black tracking-[-0.04em] text-[#0f0f0f] md:text-[32px]">영상</h1>
         <p className="mt-3 text-sm text-[#606060]">구단 공식 영상과 현재 소속 선수 영상을 함께 봅니다.</p>
       </header>
 
       <FanVideoFeed teamSlug={team.fanSiteHost} teamName={team.shortName} videos={videos} />
-    </main>
+    </FanPageShell>
   );
 }

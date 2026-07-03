@@ -62,7 +62,7 @@ function TeamPowerCard({
 }) {
   return (
     <div className="rounded-md border border-border bg-surface p-4">
-      <h3 className="text-lg font-semibold">{label}</h3>
+      <h3 className="text-[16px] font-semibold">{label}</h3>
       <dl className="mt-4 grid grid-cols-3 gap-3 text-sm">
         <div>
           <dt className="text-xs font-semibold text-muted">최근 5전</dt>
@@ -115,7 +115,7 @@ export function MatchPreview({
         </section>
 
         <section className="rounded-md border border-border bg-surface p-4" aria-labelledby="head-to-head">
-          <h2 id="head-to-head" className="text-lg font-semibold">
+          <h2 id="head-to-head" className="text-[16px] font-semibold">
             최근 맞대결
           </h2>
           <div className="mt-4 flex flex-col divide-y divide-border">
