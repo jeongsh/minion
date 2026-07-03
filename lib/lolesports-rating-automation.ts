@@ -2,6 +2,7 @@ import { revalidatePath } from "next/cache";
 
 import { fetchTrackedLolesportsEvents } from "@/lib/lolesports";
 import { buildLolesportsSetResultSnapshot } from "@/lib/lolesports-set-result-snapshot";
+import { syncLolesportsSetGameData } from "@/lib/lolesports-game-sync";
 import {
   findLolesportsMatch,
   hasConsistentCompletedScore,
@@ -32,13 +33,19 @@ type TeamRow = {
 
 type AutomationEventRow = {
   id: string;
-  event_type: "set_rating_opened" | "match_completed";
+  event_type:
+    | "set_rating_opened"
+    | "match_completed"
+    | "set_data_sync_succeeded"
+    | "set_data_sync_failed";
   payload: {
     matchId: string;
     matchName: string;
     setNumber?: number;
     teamAScore: number;
     teamBScore: number;
+    playerStatsUpserted?: number;
+    error?: string;
   };
 };
 
@@ -50,6 +57,7 @@ export type LolesportsAutomationSummary = {
   openedSets: Array<{ matchId: string; setNumbers: number[] }>;
   completedMatchIds: string[];
   snapshottedSets: Array<{ matchId: string; setNumbers: number[] }>;
+  detailedSets: Array<{ matchId: string; setNumbers: number[] }>;
   deliveredNotificationCount: number;
   warnings: string[];
 };
@@ -114,6 +122,48 @@ function publicSiteUrl() {
     return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
   }
   return undefined;
+}
+
+async function queueSetDataSyncNotification({
+  match,
+  setId,
+  setNumber,
+  teamAScore,
+  teamBScore,
+  succeeded,
+  playerStatsUpserted,
+  error,
+}: {
+  match: MatchRow;
+  setId: string;
+  setNumber: number;
+  teamAScore: number;
+  teamBScore: number;
+  succeeded: boolean;
+  playerStatsUpserted?: number;
+  error?: string;
+}) {
+  const eventType = succeeded ? "set_data_sync_succeeded" : "set_data_sync_failed";
+  const supabase = createSupabaseAdminClient();
+  const { error: insertError } = await supabase.from("match_automation_events").upsert({
+    dedupe_key: `${eventType}:${match.id}:${setNumber}`,
+    match_id: match.id,
+    set_id: setId,
+    event_type: eventType,
+    set_number: setNumber,
+    payload: {
+      matchId: match.id,
+      matchName: match.name,
+      setNumber,
+      teamAScore,
+      teamBScore,
+      playerStatsUpserted: playerStatsUpserted ?? null,
+      error: error?.slice(0, 500) ?? null,
+    },
+  }, { onConflict: "dedupe_key", ignoreDuplicates: true });
+  if (insertError) {
+    throw new Error(`Failed to queue set sync notification: ${insertError.message}`);
+  }
 }
 
 async function deliverPendingDiscordEvents() {
@@ -185,6 +235,7 @@ export async function runLolesportsRatingAutomation(
       openedSets: [],
       completedMatchIds: [],
       snapshottedSets: [],
+      detailedSets: [],
       deliveredNotificationCount: beforeDelivery.delivered,
       warnings,
     };
@@ -224,6 +275,7 @@ export async function runLolesportsRatingAutomation(
   const openedSets: Array<{ matchId: string; setNumbers: number[] }> = [];
   const completedMatchIds: string[] = [];
   const snapshottedSets: Array<{ matchId: string; setNumbers: number[] }> = [];
+  const detailedSets: Array<{ matchId: string; setNumbers: number[] }> = [];
 
   for (const candidate of candidates) {
     const external = findLolesportsMatch(candidate, events);
@@ -272,17 +324,93 @@ export async function runLolesportsRatingAutomation(
     try {
       const match = matches.find((item) => item.id === candidate.id);
       if (match && completedSetNumbers.length) {
-        const setNumbers = await upsertSetResultSnapshots({
-          match,
-          external,
-          setNumbers: completedSetNumbers,
-          observedAt: now,
-        });
-        if (setNumbers.length) snapshottedSets.push({ matchId: candidate.id, setNumbers });
+        try {
+          const setNumbers = await upsertSetResultSnapshots({
+            match,
+            external,
+            setNumbers: completedSetNumbers,
+            observedAt: now,
+          });
+          if (setNumbers.length) snapshottedSets.push({ matchId: candidate.id, setNumbers });
+        } catch (snapshotError) {
+          const message = snapshotError instanceof Error ? snapshotError.message : String(snapshotError);
+          warnings.push(`Match ${candidate.id}: result snapshot failed: ${message}`);
+        }
+
+        const { data: localSets, error: localSetsError } = await supabase
+          .from("sets")
+          .select("id, set_number, status")
+          .eq("match_id", candidate.id)
+          .in("set_number", completedSetNumbers);
+        if (localSetsError) throw localSetsError;
+        const detailedSetNumbers: number[] = [];
+        for (const localSet of localSets ?? []) {
+          if (localSet.status === "data_synced") continue;
+          const game = external.event.match?.games?.find((item) => item?.number === localSet.set_number);
+          if (!game?.id) {
+            const message = "LoL Esports game ID is missing";
+            warnings.push(`Match ${candidate.id} set ${localSet.set_number}: ${message}`);
+            await queueSetDataSyncNotification({
+              match,
+              setId: localSet.id,
+              setNumber: localSet.set_number,
+              teamAScore: external.teamAScore,
+              teamBScore: external.teamBScore,
+              succeeded: false,
+              error: message,
+            });
+            continue;
+          }
+          try {
+            const detailResult = await syncLolesportsSetGameData({
+              setId: localSet.id,
+              gameId: game.id,
+              localTeamAId: external.localTeamAId,
+              localTeamBId: external.localTeamBId,
+              externalTeamAId: external.externalTeamAId,
+              externalTeamBId: external.externalTeamBId,
+              observedAt: now,
+            });
+            if (detailResult.updated) detailedSetNumbers.push(localSet.set_number);
+            await queueSetDataSyncNotification({
+              match,
+              setId: localSet.id,
+              setNumber: localSet.set_number,
+              teamAScore: external.teamAScore,
+              teamBScore: external.teamBScore,
+              succeeded: detailResult.updated && detailResult.playerStatsUpserted === 10,
+              playerStatsUpserted: detailResult.playerStatsUpserted,
+              error: detailResult.warning ?? undefined,
+            });
+            if (detailResult.warning) warnings.push(`Match ${candidate.id} set ${localSet.set_number}: ${detailResult.warning}`);
+          } catch (detailError) {
+            const message = detailError instanceof Error ? detailError.message : String(detailError);
+            warnings.push(`Match ${candidate.id} set ${localSet.set_number}: detail sync failed: ${message}`);
+            try {
+              await queueSetDataSyncNotification({
+                match,
+                setId: localSet.id,
+                setNumber: localSet.set_number,
+                teamAScore: external.teamAScore,
+                teamBScore: external.teamBScore,
+                succeeded: false,
+                error: message,
+              });
+            } catch (notificationError) {
+              const notificationMessage = notificationError instanceof Error
+                ? notificationError.message
+                : String(notificationError);
+              warnings.push(`Match ${candidate.id} set ${localSet.set_number}: ${notificationMessage}`);
+            }
+          }
+        }
+        if (detailedSetNumbers.length) {
+          detailedSets.push({ matchId: candidate.id, setNumbers: detailedSetNumbers });
+        }
       }
     } catch (snapshotError) {
       const message = snapshotError instanceof Error ? snapshotError.message : String(snapshotError);
-      warnings.push(`Match ${candidate.id}: snapshot failed: ${message}`);
+      warnings.push(`Match ${candidate.id}: set data workflow failed: ${message}`);
     }
     if (result.matchCompleted) completedMatchIds.push(candidate.id);
     revalidatePath(`/matches/${candidate.id}`);
@@ -302,6 +430,7 @@ export async function runLolesportsRatingAutomation(
     openedSets,
     completedMatchIds,
     snapshottedSets,
+    detailedSets,
     deliveredNotificationCount: beforeDelivery.delivered + afterDelivery.delivered,
     warnings,
   };

@@ -324,6 +324,7 @@ function DamageRows({
     line: {
       championId?: string | null;
       damageToChampions: number;
+      damageShare?: number | null;
     };
     player?: Player;
   }>;
@@ -336,6 +337,14 @@ function DamageRows({
       {rows.map((row) => {
         const champion = champions.find((item) => item.id === row.line.championId);
         const image = championImage(champion);
+        const hasDamage = row.line.damageToChampions > 0;
+        const damageShare = row.line.damageShare ?? 0;
+        const valueLabel = hasDamage
+          ? damageLabel(row.line.damageToChampions)
+          : `${(damageShare * 100).toFixed(1)}%`;
+        const width = hasDamage
+          ? Math.max(4, (row.line.damageToChampions / maxDamage) * 100)
+          : Math.max(4, damageShare * 100);
         return (
           <div
             key={`${side}-${row.player?.id ?? row.line.championId}`}
@@ -353,17 +362,17 @@ function DamageRows({
                 }`}
               >
                 {side === "red" ? (
-                  <span className="shrink-0 tabular-nums">{damageLabel(row.line.damageToChampions)}</span>
+                  <span className="shrink-0 tabular-nums">{valueLabel}</span>
                 ) : null}
                 <span className="truncate font-semibold">{row.player?.name ?? "-"}</span>
                 {side === "blue" ? (
-                  <span className="shrink-0 tabular-nums">{damageLabel(row.line.damageToChampions)}</span>
+                  <span className="shrink-0 tabular-nums">{valueLabel}</span>
                 ) : null}
               </div>
               <div className="mt-1 h-2 overflow-hidden rounded-full bg-surface-muted">
                 <div
                   className={`h-full rounded-full ${side === "blue" ? "bg-accent" : "ml-auto bg-rose-500"}`}
-                  style={{ width: `${Math.max(4, (row.line.damageToChampions / maxDamage) * 100)}%` }}
+                  style={{ width: `${width}%` }}
                 />
               </div>
             </div>
