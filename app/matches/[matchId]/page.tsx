@@ -38,7 +38,6 @@ import { MatchPreview } from "./match-preview";
 import { SetDetailContent } from "./sets/[setId]/page";
 
 type MatchTab = "preview" | "data" | "rating" | "video";
-const RECENT_SET_FOCUS_WINDOW_MS = 30 * 60 * 1000;
 
 const MATCH_STATUS_LABEL: Record<MatchStatus, string> = {
   scheduled: "예정",
@@ -55,25 +54,6 @@ const TAB_LABELS: Record<MatchTab, string> = {
 
 function setLabel(set: SetResult) {
   return `${set.setNumber}세트`;
-}
-
-function latestRecentlyFinishedSet(sets: SetResult[], now = Date.now()) {
-  return [...sets]
-    .filter((set) => {
-      if (!isSetRatingOpen(set) || !set.resultRecordedAt) return false;
-      const recordedAt = new Date(set.resultRecordedAt).getTime();
-      return (
-        Number.isFinite(recordedAt) &&
-        now - recordedAt >= 0 &&
-        now - recordedAt <= RECENT_SET_FOCUS_WINDOW_MS
-      );
-    })
-    .sort((a, b) => {
-      const aTime = new Date(a.resultRecordedAt ?? 0).getTime();
-      const bTime = new Date(b.resultRecordedAt ?? 0).getTime();
-      if (bTime !== aTime) return bTime - aTime;
-      return b.setNumber - a.setNumber;
-    })[0];
 }
 
 function scoreLabel(score: number | null | undefined) {
@@ -603,19 +583,13 @@ export default async function MatchDetailPage({
   const requestedSet = matchSets.find((set) => set.id === query.set);
   const defaultSet =
     requestedSet ??
-    latestRecentlyFinishedSet(matchSets) ??
+    matchSets.find((set) => set.setNumber === 1) ??
     matchSets[0];
   const matchPlayerStatLines =
     matchSets.length > 0
       ? await getPlayerStatLines(matchSets.map((set) => set.id))
       : [];
-  const defaultTab: MatchTab =
-    requestedSet ||
-    (defaultSet &&
-    (match.status !== "scheduled" ||
-      defaultSet.status !== "scheduled"))
-      ? "data"
-      : "preview";
+  const defaultTab: MatchTab = defaultSet ? "data" : "preview";
   const activeTab = normalizeTab(query.tab, defaultTab);
   const activeSet = requestedSet ?? defaultSet;
   const tournament = tournaments.find((item) => item.id === match.tournamentId);

@@ -539,7 +539,7 @@ export default async function PlayerDetailPage({
       className="subpage min-h-screen"
       style={{ ["--tp" as string]: playerTeam?.primaryColor ?? "#6158ff" }}
     >
-      <div className="mx-auto flex w-full max-w-[1240px] flex-col gap-[26px] px-10 py-8 max-md:px-5">
+      <div className="mx-auto flex w-full max-w-[1240px] flex-col gap-12 px-10 py-8 max-md:px-5">
         {/* 1. 브레드크럼 + 대회 세그먼트 */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Breadcrumb items={[{ label: "선수단", href: "/players" }, { label: player.position }, { label: player.name }]} />
@@ -562,16 +562,16 @@ export default async function PlayerDetailPage({
             )}
           </div>
           <span className="hidden h-[22px] w-px bg-[#f0ede8] sm:block" aria-hidden />
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-[12px] text-[var(--ink-3)]">순위</span>
+          <div className="flex items-baseline gap-2">
+            <span className="text-[14px] text-[var(--ink-3)]">순위</span>
             <span className="text-[16px] font-bold" style={{ color: "var(--tp)" }}>
               {teamStanding ? `${teamStanding.rank}위` : "-"}
             </span>
           </div>
           <span className="hidden h-[22px] w-px bg-[#f0ede8] sm:block" aria-hidden />
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-[12px] text-[var(--ink-3)]">최근 5경기</span>
-            <span className="font-archivo text-[14px] font-bold tracking-wide text-[var(--ink)]">{teamRecent || "-"}</span>
+          <div className="flex items-baseline gap-2">
+            <span className="text-[14px] text-[var(--ink-3)]">최근 5경기</span>
+            <span className="text-[16px] font-bold tracking-wide text-[var(--ink)]">{teamRecent || "-"}</span>
           </div>
           <div className="ml-auto flex flex-wrap gap-2">
             {playerTeam ? (

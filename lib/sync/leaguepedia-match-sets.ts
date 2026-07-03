@@ -7,8 +7,8 @@ import { reconcileMatchFromSets } from "../match-reconcile";
 import { fetchRuneNameToIdMap } from "../runes";
 import { deriveSetStatus, hasCompletePlayerStats } from "../set-status";
 import { fetchSpellCatalog, type GameSpell } from "../spells";
+import { fetchAuthenticatedLeaguepediaApi } from "./leaguepedia-api";
 
-const CARGO_API = "https://lol.fandom.com/api.php";
 const REQUEST_DELAY_MS = 3000;
 const MAX_RETRIES = 8;
 
@@ -812,11 +812,7 @@ async function cargoQuery(query: Record<string, string>, options: LeaguepediaSyn
 
   const maxRetries = options.maxRetries ?? MAX_RETRIES;
   for (let attempt = 0; attempt < maxRetries; attempt += 1) {
-    const response = await fetch(`${CARGO_API}?${params.toString()}`, {
-      headers: {
-        "user-agent": "LCKHubMinion/0.1 (Leaguepedia set sync; contact: local-dev)",
-      },
-    });
+    const response = await fetchAuthenticatedLeaguepediaApi(params);
 
     if (response.status === 429) {
       if (maxRetries === 1) throw new LeaguepediaRateLimitError();
