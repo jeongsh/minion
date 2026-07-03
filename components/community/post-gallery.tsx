@@ -49,13 +49,13 @@ export function PostGallery({
             </div>
 
             <div className="grid h-[56px] min-w-0 grid-rows-[16px_16px_16px] content-between">
-              <div className="flex h-[16px] items-center gap-[5px]">
-                <span className="inline-flex h-[16px] items-center rounded-[5px] bg-accent/10 px-[7px] text-[12px] font-bold leading-none text-accent">
+              <div className="flex items-center gap-[5px]">
+                <span className="inline-flex rounded-[4px] bg-[var(--surface-1,#f2f0ec)] px-2 py-[3px] text-[12px] font-semibold leading-none text-[var(--ink-2,#6d6c76)]">
                   {boardLabel(scope, post.boardType)}
                 </span>
                 {isHotPost(post) && (
-                  <span className="inline-flex h-[16px] items-center rounded-[5px] bg-accent px-[7px] text-[12px] font-bold leading-none text-accent-foreground">
-                    인기
+                  <span className="inline-flex rounded-[4px] bg-[var(--ink,#16151b)] px-1.5 py-[1px] text-[11px] font-bold leading-none text-white">
+                    HOT
                   </span>
                 )}
               </div>

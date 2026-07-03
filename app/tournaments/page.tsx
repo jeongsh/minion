@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { getTournaments } from "@/lib/data/lck";
 import { INTERNATIONAL_SEGMENTS } from "@/lib/tournaments/international-segments";
 import { segmentForTournament } from "@/lib/tournaments/season-2026";
@@ -63,7 +64,7 @@ export default async function TournamentsPage({
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-[var(--page-inline)] py-10">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-2xl font-black text-foreground">대회</h1>
+        <Breadcrumb items={[{ label: "홈", href: "/" }, { label: "대회" }]} />
         {seasons.length > 1 ? (
           <div className="flex gap-2">
             {seasons.map((season) => (

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { getAllTeams, getMatches, getStages, getTournaments } from "@/lib/data/lck";
 import { buildStageColumns, splitBracketSidesForDisplay } from "@/lib/tournaments/bracket";
 import {
@@ -191,9 +192,13 @@ export default async function TournamentBracketPage({
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-[var(--page-inline)] py-10">
-      <Link href="/tournaments" className="w-fit text-sm font-semibold text-muted hover:text-foreground">
-        ← 대회 목록
-      </Link>
+      <Breadcrumb
+        items={[
+          { label: "홈", href: "/" },
+          { label: "대회", href: "/tournaments" },
+          { label: segmentTheme.name },
+        ]}
+      />
 
       <section className="relative overflow-hidden rounded-3xl bg-[#0a0e1a] p-6 shadow-2xl md:p-10">
         <div

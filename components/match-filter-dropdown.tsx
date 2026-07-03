@@ -73,7 +73,7 @@ export function FilterDropdown({
         aria-label={ariaLabel}
         disabled={disabled}
         onClick={() => setOpen((value) => !value)}
-        className="inline-flex items-center gap-1.5 text-[32px] font-black tracking-tight text-foreground disabled:cursor-wait disabled:opacity-60"
+        className="inline-flex items-center gap-1.5 text-[24px] font-black tracking-tight text-foreground disabled:cursor-wait disabled:opacity-60"
       >
         {triggerLabel}
         <Chevron open={open} />

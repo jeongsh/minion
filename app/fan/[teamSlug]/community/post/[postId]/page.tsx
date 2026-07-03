@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { PostView } from "@/components/community/post-view";
@@ -6,7 +5,6 @@ import {
   getCommentReactionStates,
   getPostReactionState,
 } from "@/lib/community/actions";
-import { boardLabel } from "@/lib/community/boards";
 import {
   getPostByIdAndIncrementView,
   getPostComments,
@@ -32,13 +30,7 @@ export default async function FanPostDetailPage({
   ]);
 
   return (
-    <main className="fan-page-container flex max-w-5xl flex-col gap-6 py-7 md:py-9">
-      <Link
-        href={`/fan/${teamSlug}/community`}
-        className="text-sm font-semibold text-accent hover:underline"
-      >
-        ← 커뮤니티 · {boardLabel("team", post.boardType)}
-      </Link>
+    <main className="community-neutral fan-page-container py-7 md:py-9">
       <PostView
         post={post}
         comments={comments}

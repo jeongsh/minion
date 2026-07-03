@@ -1,4 +1,6 @@
 import Link from "next/link";
+
+import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 
@@ -664,6 +666,13 @@ export default async function MatchDetailPage({
   const embedUrl = youtubeEmbedUrl(match.vodUrl);
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-[var(--page-inline)] py-10">
+      <Breadcrumb
+        items={[
+          { label: "홈", href: "/" },
+          { label: "일정", href: "/schedule" },
+          { label: `${teamAName} vs ${teamBName}` },
+        ]}
+      />
       <section
         className="overflow-hidden rounded-md border border-border bg-surface"
         aria-label="매치 요약"

@@ -119,7 +119,7 @@ function mockKda(id: string) {
 function TeamLogoImg({ team, className }: { team?: Team; className: string }) {
   if (!team?.logoUrl) {
     return (
-      <span className={`${className} grid place-items-center rounded bg-[#f2f0ec] text-[10px] font-black text-[#8a8892]`}>
+      <span className={`${className} grid place-items-center rounded bg-[#f1f2f4] text-[10px] font-black text-[#8a8892]`}>
         {team?.shortName ?? "-"}
       </span>
     );
@@ -254,8 +254,13 @@ function Hero({
       {/* 티커 */}
       <div className="relative overflow-hidden bg-black/20 py-[9px]">
         <div className="font-archivo fan-ticker-track text-xs font-extrabold tracking-[0.2em] text-white/85">
-          <span className="px-2">{`${tickerText}  ·  `.repeat(2)}</span>
-          <span className="px-2" aria-hidden="true">{`${tickerText}  ·  `.repeat(2)}</span>
+          {[false, true].map((hidden) => (
+            <div key={String(hidden)} className="fan-ticker-group" aria-hidden={hidden || undefined}>
+              {Array.from({ length: 4 }, (_, index) => (
+                <span key={index} className="px-4">{tickerText}  · </span>
+              ))}
+            </div>
+          ))}
         </div>
       </div>
     </div>
@@ -308,9 +313,9 @@ function CommunityColumn({ teamSlug, posts }: { teamSlug: string; posts: Communi
             <div
               key={`empty-${i}`}
               aria-hidden="true"
-              className="flex min-h-[58px] items-center gap-[14px] border-b border-[#f2f0ec] py-2"
+              className="flex min-h-[58px] items-center gap-[14px] border-b border-[#ebecef] py-2"
             >
-              <span className="font-archivo w-[22px] text-[17px] font-black text-[#e4e1db]">{i + 1}</span>
+              <span className="font-archivo w-[22px] text-[17px] font-black text-[#e3e4e8]">{i + 1}</span>
             </div>
           );
         }
@@ -318,7 +323,7 @@ function CommunityColumn({ teamSlug, posts }: { teamSlug: string; posts: Communi
           <Link
             key={post.id}
             href={`/fan/${teamSlug}/community/post/${post.id}`}
-            className="flex min-h-[58px] items-center gap-[14px] border-b border-[#f2f0ec] py-2"
+            className="flex min-h-[58px] items-center gap-[14px] border-b border-[#ebecef] py-2"
           >
             <span
               className="font-archivo w-[22px] text-[17px] font-black"
@@ -367,7 +372,7 @@ function MatchRow({
   const score = scheduled ? "0:0" : scoreLabel(match, team);
 
   return (
-    <div className="flex min-h-[58px] items-center gap-3 border-b border-[#f2f0ec] py-2">
+    <div className="flex min-h-[58px] items-center gap-3 border-b border-[#ebecef] py-2">
       <span
         className="font-archivo grid h-7 w-[34px] shrink-0 place-items-center rounded-lg text-xs font-black text-white"
         style={{ background: badgeBg }}
@@ -440,7 +445,7 @@ function MatchesColumn({
             <div
               key={`empty-${i}`}
               aria-hidden="true"
-              className="flex min-h-[58px] items-center border-b border-[#f2f0ec] py-2 text-[11px] font-semibold text-[#c8c5bf]"
+              className="flex min-h-[58px] items-center border-b border-[#ebecef] py-2 text-[11px] font-semibold text-[#c5c6cc]"
             >
               경기 없음
             </div>

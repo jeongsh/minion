@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { SectionHeader } from "@/components/layout/section-header";
+import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { DataTable } from "@/components/ui/data-table";
 import { TeamMatchHistory } from "@/components/domain/team-match-history";
 import {
@@ -295,11 +295,7 @@ export default async function TeamDetailPage({
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-[var(--page-inline)] py-10">
-      <div className="text-sm text-muted">
-        <Link href="/teams" className="hover:text-foreground">팀</Link>
-        <span className="mx-2">›</span>
-        <span>팀 상세</span>
-      </div>
+      <Breadcrumb items={[{ label: "홈", href: "/" }, { label: "팀", href: "/teams" }, { label: team.name }]} />
       <div className="flex items-center gap-6">
         {team.logoUrl && (
           <img src={team.logoUrl} alt={team.name} className="h-28 w-28 object-contain md:h-36 md:w-36" />

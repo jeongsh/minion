@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 
+import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { DataTable } from "@/components/ui/data-table";
 import { buildChampionRankings, type ChampionRankingMode } from "@/lib/champion-rankings";
 import {
@@ -418,6 +419,7 @@ export default async function StandingsPage({
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-[var(--page-inline)] py-10">
+      <Breadcrumb items={[{ label: "홈", href: "/" }, { label: "순위" }]} />
       <h1 className="sr-only">{title}</h1>
 
       <Suspense fallback={null}>

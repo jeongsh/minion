@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { FanVideoActions } from "@/components/fan/fan-video-actions";
+import { Breadcrumb } from "@/components/layout/breadcrumb";
 import {
   getFanVideoFeed,
   getPlayers,
@@ -68,7 +69,15 @@ export default async function FanVideoDetailPage({
     .slice(0, 16);
 
   return (
-    <main className="fan-page-container grid gap-7 py-6 lg:box-border lg:h-[calc(100vh-130px)] lg:grid-cols-[minmax(0,1fr)_360px] lg:grid-rows-[minmax(0,1fr)] lg:overflow-hidden">
+    <main className="fan-page-container grid gap-7 py-6 lg:box-border lg:h-[calc(100vh-130px)] lg:grid-cols-[minmax(0,1fr)_360px] lg:grid-rows-[auto_minmax(0,1fr)] lg:overflow-hidden">
+      <Breadcrumb
+        items={[
+          { label: team.shortName, href: `/fan/${teamSlug}` },
+          { label: "영상", href: `/fan/${teamSlug}/videos` },
+          { label: video.title },
+        ]}
+        className="lg:col-span-2"
+      />
       <article className="min-w-0 lg:min-h-0 lg:overflow-y-auto lg:pr-1">
         <div className="aspect-video overflow-hidden rounded-xl bg-black shadow-sm">
           {embedUrl ? (

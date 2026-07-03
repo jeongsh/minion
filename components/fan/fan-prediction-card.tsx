@@ -95,7 +95,7 @@ export function FanPredictionCard({
       </div>
 
       {!votable ? (
-        <div className="rounded-full bg-[#f2f0ec] py-[11px] text-center text-[13px] font-black text-[#8a8892]">
+        <div className="rounded-full bg-[#f1f2f4] py-[11px] text-center text-[13px] font-black text-[#8a8892]">
           {matchId ? "예측 마감" : "경기가 확정되면 열려요"}
         </div>
       ) : myVote ? (
@@ -118,7 +118,7 @@ export function FanPredictionCard({
             type="button"
             onClick={() => opponentId && vote(opponentId)}
             disabled={isPending}
-            className="flex-1 rounded-full border border-[#d8d5cf] py-[11px] text-[13px] font-black text-[#16151b] transition hover:bg-[#f7f5f2] disabled:opacity-70"
+            className="flex-1 rounded-full border border-[#dcdde1] py-[11px] text-[13px] font-black text-[#16151b] transition hover:bg-[#f2f3f5] disabled:opacity-70"
           >
             {opponentName} 승
           </button>
