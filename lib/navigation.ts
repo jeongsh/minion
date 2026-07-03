@@ -11,6 +11,7 @@ export type NavItem = {
 export const hubNavItems: NavItem[] = [
   { href: "/schedule", label: "일정" },
   { href: "/standings", label: "순위" },
+  { href: "/tournaments", label: "대회" },
   { href: "/teams", label: "팀" },
   { href: "/players", label: "선수" },
   { href: "/community", label: "커뮤니티" },
@@ -23,6 +24,7 @@ export const communityNavItems: NavItem[] = hubBoards.map((board) => ({
 
 export const adminNavItems: NavItem[] = [
   { href: "/admin/matches", label: "경기 관리" },
+  { href: "/admin/tournaments", label: "대회 관리" },
   { href: "/admin/sets", label: "세트 관리" },
   { href: "/admin/stats", label: "스탯 입력" },
   { href: "/admin/champions", label: "챔피언 관리" },

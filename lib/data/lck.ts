@@ -173,6 +173,8 @@ type MatchRow = {
   lolesports_match_id?: string | null;
   venue?: string | null;
   vod_url?: string | null;
+  bracket_side?: "upper" | "lower" | null;
+  bracket_order?: number | null;
 };
 
 type TournamentRow = {
@@ -454,6 +456,8 @@ function mapMatch(row: MatchRow): Match {
     lolesportsMatchId: row.lolesports_match_id ?? null,
     venue: row.venue ?? null,
     vodUrl: row.vod_url ?? null,
+    bracketSide: row.bracket_side ?? null,
+    bracketOrder: row.bracket_order ?? null,
   };
 }
 

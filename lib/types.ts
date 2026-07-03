@@ -164,6 +164,8 @@ export type Match = {
   lolesportsMatchId?: string | null;
   venue?: string | null;
   vodUrl?: string | null;
+  bracketSide?: "upper" | "lower" | null;
+  bracketOrder?: number | null;
 };
 
 export type SetResult = {
