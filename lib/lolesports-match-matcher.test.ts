@@ -55,7 +55,7 @@ test("스코어 합계와 completed 게임 수가 다르면 처리하지 않는�
   const inconsistent = event({
     match: {
       ...event().match,
-      games: event().match.games.map((game, index) =>
+      games: event().match!.games!.map((game, index) =>
         index === 2 ? { ...game, state: "inProgress" as const } : game,
       ),
     },
@@ -94,7 +94,7 @@ test("스폰서명이 붙은 API 팀 이름도 기존 로컬 팀과 매칭한다
     match: {
       ...event().match,
       state: "completed",
-      games: event().match.games.slice(0, 3).map((game) => ({ ...game, state: "completed" })),
+      games: event().match!.games!.slice(0, 3).map((game) => ({ ...game, state: "completed" })),
     },
   });
   const matched = findLolesportsMatch(msiLocal, [msiEvent]);

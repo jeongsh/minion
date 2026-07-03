@@ -21,9 +21,14 @@ export type AlignedLolesportsMatch = {
   teamAScore: number;
   teamBScore: number;
   completedGameCount: number;
+  localTeamAId: string;
+  localTeamBId: string;
+  externalTeamAId: string | null;
+  externalTeamBId: string | null;
 };
 
-function normalizeTeamName(value: string) {
+function normalizeTeamName(value: string | null | undefined) {
+  if (!value) return "";
   return value.normalize("NFKC").toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
 
@@ -45,12 +50,23 @@ function teamMatches(local: LocalTeamIdentity, external: LolesportsTeam) {
 }
 
 function alignEvent(local: LocalMatchCandidate, event: LolesportsEvent) {
-  const [first, second] = event.matchTeams;
+  const [first, second] = event.matchTeams ?? [];
+  if (!first || !second) return null;
   if (teamMatches(local.teamA, first) && teamMatches(local.teamB, second)) {
-    return { teamAScore: first.result.gameWins, teamBScore: second.result.gameWins };
+    return {
+      teamAScore: first.result?.gameWins,
+      teamBScore: second.result?.gameWins,
+      externalTeamAId: first.id ?? null,
+      externalTeamBId: second.id ?? null,
+    };
   }
   if (teamMatches(local.teamA, second) && teamMatches(local.teamB, first)) {
-    return { teamAScore: second.result.gameWins, teamBScore: first.result.gameWins };
+    return {
+      teamAScore: second.result?.gameWins,
+      teamBScore: first.result?.gameWins,
+      externalTeamAId: second.id ?? null,
+      externalTeamBId: first.id ?? null,
+    };
   }
   return null;
 }
@@ -61,7 +77,7 @@ export function findLolesportsMatch(
 ): AlignedLolesportsMatch | null {
   const externalId = local.lolesportsMatchId;
   const idMatched = externalId
-    ? events.filter((event) => event.match.id === externalId || event.id === externalId)
+    ? events.filter((event) => event.match?.id === externalId || event.id === externalId)
     : [];
   const pool = idMatched.length > 0 ? idMatched : events;
 
@@ -70,32 +86,47 @@ export function findLolesportsMatch(
     .filter(
       (candidate): candidate is {
         event: LolesportsEvent;
-        scores: { teamAScore: number; teamBScore: number };
-      } => candidate.scores !== null,
+        scores: {
+          teamAScore: number;
+          teamBScore: number;
+          externalTeamAId: string | null;
+          externalTeamBId: string | null;
+        };
+      } => candidate.scores !== null &&
+        typeof candidate.scores.teamAScore === "number" &&
+        typeof candidate.scores.teamBScore === "number",
     )
     .sort(
       (a, b) =>
-        Math.abs(Date.parse(a.event.startTime) - Date.parse(local.matchDate)) -
-        Math.abs(Date.parse(b.event.startTime) - Date.parse(local.matchDate)),
+        Math.abs(Date.parse(a.event.startTime ?? "") - Date.parse(local.matchDate)) -
+        Math.abs(Date.parse(b.event.startTime ?? "") - Date.parse(local.matchDate)),
     );
 
   const selected = candidates[0];
   if (!selected) return null;
 
   const timeDifference = Math.abs(
-    Date.parse(selected.event.startTime) - Date.parse(local.matchDate),
+    Date.parse(selected.event.startTime ?? "") - Date.parse(local.matchDate),
   );
-  if (!externalId && timeDifference > 12 * 60 * 60 * 1000) return null;
+  if (!externalId && (!Number.isFinite(timeDifference) || timeDifference > 12 * 60 * 60 * 1000)) return null;
+
+  const matchId = selected.event.match?.id;
+  const state = selected.event.match?.state ?? selected.event.state;
+  if (!matchId || !state) return null;
 
   return {
     event: selected.event,
-    lolesportsMatchId: selected.event.match.id,
-    state: selected.event.match.state ?? selected.event.state,
+    lolesportsMatchId: matchId,
+    state,
     teamAScore: selected.scores.teamAScore,
     teamBScore: selected.scores.teamBScore,
-    completedGameCount: selected.event.match.games.filter(
-      (game) => game.state === "completed",
+    completedGameCount: (selected.event.match?.games ?? []).filter(
+      (game) => game?.state === "completed",
     ).length,
+    localTeamAId: local.teamA.id,
+    localTeamBId: local.teamB.id,
+    externalTeamAId: selected.scores.externalTeamAId,
+    externalTeamBId: selected.scores.externalTeamBId,
   };
 }
 

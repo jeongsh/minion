@@ -15,27 +15,31 @@ export type LolesportsState = "unstarted" | "inProgress" | "completed";
 export type LolesportsGameState = LolesportsState | "unneeded";
 
 export type LolesportsTeam = {
-  id: string;
-  name: string;
-  code: string;
-  result: {
-    gameWins: number;
-    outcome: "win" | "loss" | "tie" | null;
-  };
+  id?: string | null;
+  name?: string | null;
+  code?: string | null;
+  result?: {
+    gameWins?: number | null;
+    outcome?: "win" | "loss" | "tie" | null;
+  } | null;
 };
 
 export type LolesportsEvent = {
-  id: string;
-  startTime: string;
-  state: LolesportsState;
-  league: { id: string; slug: string; name: string };
-  matchTeams: LolesportsTeam[];
-  match: {
-    id: string;
-    state: LolesportsState;
-    strategy: { type: "bestOf" | "playAll"; count: number };
-    games: Array<{ id: string; number: number; state: LolesportsGameState }>;
-  };
+  id?: string | null;
+  startTime?: string | null;
+  state?: LolesportsState | null;
+  league?: { id?: string | null; slug?: string | null; name?: string | null } | null;
+  matchTeams?: Array<LolesportsTeam | null> | null;
+  match?: {
+    id?: string | null;
+    state?: LolesportsState | null;
+    strategy?: { type?: "bestOf" | "playAll" | null; count?: number | null } | null;
+    games?: Array<{
+      id?: string | null;
+      number?: number | null;
+      state?: LolesportsGameState | null;
+    } | null> | null;
+  } | null;
 };
 
 type HomeEventsResponse = {
@@ -113,9 +117,9 @@ export async function fetchTrackedLolesportsEvents({
 
 function isLolesportsMatchEvent(event: LolesportsEvent | { id: string }): event is LolesportsEvent {
   return (
-    "match" in event &&
+    "match" in event && Boolean(event.match) &&
     Array.isArray(event.matchTeams) &&
     event.matchTeams.length === 2 &&
-    Array.isArray(event.match.games)
+    Array.isArray(event.match?.games)
   );
 }

@@ -1,6 +1,7 @@
 import { revalidatePath } from "next/cache";
 
 import { fetchTrackedLolesportsEvents } from "@/lib/lolesports";
+import { buildLolesportsSetResultSnapshot } from "@/lib/lolesports-set-result-snapshot";
 import {
   findLolesportsMatch,
   hasConsistentCompletedScore,
@@ -48,6 +49,7 @@ export type LolesportsAutomationSummary = {
   reconciledMatchIds: string[];
   openedSets: Array<{ matchId: string; setNumbers: number[] }>;
   completedMatchIds: string[];
+  snapshottedSets: Array<{ matchId: string; setNumbers: number[] }>;
   deliveredNotificationCount: number;
   warnings: string[];
 };
@@ -64,6 +66,46 @@ function koreaDayBounds(now: Date) {
   const dateKey = `${value("year")}-${value("month")}-${value("day")}`;
   const start = new Date(`${dateKey}T00:00:00+09:00`);
   return { start, end: new Date(start.getTime() + 24 * 60 * 60 * 1000) };
+}
+
+async function upsertSetResultSnapshots({
+  match,
+  external,
+  setNumbers,
+  observedAt,
+}: {
+  match: MatchRow;
+  external: NonNullable<ReturnType<typeof findLolesportsMatch>>;
+  setNumbers: number[];
+  observedAt: Date;
+}) {
+  if (setNumbers.length === 0) return [];
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("sets")
+    .select("id, set_number, winner_team_id")
+    .eq("match_id", match.id)
+    .in("set_number", setNumbers)
+    .in("status", ["finished", "data_synced"]);
+  if (error) throw new Error(`Failed to load finished sets for snapshots: ${error.message}`);
+
+  const rows = (data ?? []).map((set) => buildLolesportsSetResultSnapshot(
+    {
+      setId: set.id,
+      matchId: match.id,
+      setNumber: set.set_number,
+      winnerTeamId: set.winner_team_id ?? null,
+    },
+    external,
+    observedAt,
+  ));
+  if (rows.length === 0) return [];
+
+  const { error: upsertError } = await supabase
+    .from("set_result_snapshots")
+    .upsert(rows, { onConflict: "set_id,source" });
+  if (upsertError) throw new Error(`Failed to upsert set result snapshots: ${upsertError.message}`);
+  return rows.map((row) => row.set_number);
 }
 
 function publicSiteUrl() {
@@ -142,6 +184,7 @@ export async function runLolesportsRatingAutomation(
       reconciledMatchIds: [],
       openedSets: [],
       completedMatchIds: [],
+      snapshottedSets: [],
       deliveredNotificationCount: beforeDelivery.delivered,
       warnings,
     };
@@ -180,6 +223,7 @@ export async function runLolesportsRatingAutomation(
   const reconciledMatchIds: string[] = [];
   const openedSets: Array<{ matchId: string; setNumbers: number[] }> = [];
   const completedMatchIds: string[] = [];
+  const snapshottedSets: Array<{ matchId: string; setNumbers: number[] }> = [];
 
   for (const candidate of candidates) {
     const external = findLolesportsMatch(candidate, events);
@@ -217,6 +261,29 @@ export async function runLolesportsRatingAutomation(
     if (result.openedSetNumbers?.length) {
       openedSets.push({ matchId: candidate.id, setNumbers: result.openedSetNumbers });
     }
+
+    // Retry every completed game on every poll. The unique (set_id, source) key makes
+    // repeated end events idempotent and also recovers from a transient snapshot failure.
+    const completedSetNumbers = [...new Set(
+      (external.event.match?.games ?? [])
+        .filter((game) => game?.state === "completed" && typeof game.number === "number")
+        .map((game) => game!.number!),
+    )];
+    try {
+      const match = matches.find((item) => item.id === candidate.id);
+      if (match && completedSetNumbers.length) {
+        const setNumbers = await upsertSetResultSnapshots({
+          match,
+          external,
+          setNumbers: completedSetNumbers,
+          observedAt: now,
+        });
+        if (setNumbers.length) snapshottedSets.push({ matchId: candidate.id, setNumbers });
+      }
+    } catch (snapshotError) {
+      const message = snapshotError instanceof Error ? snapshotError.message : String(snapshotError);
+      warnings.push(`Match ${candidate.id}: snapshot failed: ${message}`);
+    }
     if (result.matchCompleted) completedMatchIds.push(candidate.id);
     revalidatePath(`/matches/${candidate.id}`);
     revalidatePath("/schedule");
@@ -234,6 +301,7 @@ export async function runLolesportsRatingAutomation(
     reconciledMatchIds,
     openedSets,
     completedMatchIds,
+    snapshottedSets,
     deliveredNotificationCount: beforeDelivery.delivered + afterDelivery.delivered,
     warnings,
   };
