@@ -136,9 +136,24 @@ export async function syncPlayerSocialLinks(
     return summary;
   }
 
+  const { data: aliasRows, error: aliasError } = await supabase
+    .from("leaguepedia_player_aliases")
+    .select("player_id, page_name")
+    .in("player_id", players.map((player) => player.id));
+  if (aliasError) throw aliasError;
+  const aliasesByPlayer = new Map<string, string[]>();
+  for (const alias of aliasRows ?? []) {
+    const pages = aliasesByPlayer.get(alias.player_id) ?? [];
+    pages.push(alias.page_name);
+    aliasesByPlayer.set(alias.player_id, pages);
+  }
+
   options.onProgress?.(`Fetching Leaguepedia SNS for ${players.length} player(s)...`);
 
-  const pageNames = [...new Set(players.map((player) => player.leaguepedia_page!).filter(Boolean))];
+  const pageNames = [...new Set(players.flatMap((player) => [
+    player.leaguepedia_page!,
+    ...(aliasesByPlayer.get(player.id) ?? []),
+  ]).filter(Boolean))];
   const socialByPage = await fetchPlayerSocialByPages(pageNames);
 
   for (const player of players) {
@@ -148,7 +163,9 @@ export async function syncPlayerSocialLinks(
       continue;
     }
 
-    const social = socialByPage.get(page);
+    const social = [page, ...(aliasesByPlayer.get(player.id) ?? [])]
+      .map((candidate) => socialByPage.get(candidate))
+      .find(Boolean);
     if (!social) {
       summary.skipped.push({ player: player.name, reason: "no_social_in_leaguepedia" });
       continue;

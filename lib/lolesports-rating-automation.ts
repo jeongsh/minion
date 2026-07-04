@@ -55,6 +55,17 @@ type AutomationEventRow = {
   };
 };
 
+function errorMessage(error: unknown) {
+  if (error instanceof Error) return error.message;
+  if (error && typeof error === "object") {
+    const record = error as Record<string, unknown>;
+    const parts = [record.message, record.details, record.hint, record.code]
+      .filter((value): value is string => typeof value === "string" && value.length > 0);
+    if (parts.length > 0) return parts.join(" | ");
+  }
+  return String(error);
+}
+
 export type LolesportsAutomationSummary = {
   polled: boolean;
   candidateCount: number;
@@ -277,7 +288,7 @@ async function runLeaguepediaEnrichment({
     }
     return succeeded;
   } catch (enrichmentError) {
-    const message = enrichmentError instanceof Error ? enrichmentError.message : String(enrichmentError);
+    const message = errorMessage(enrichmentError);
     if (enrichmentError instanceof LeaguepediaRateLimitError) {
       await updatePending("rate_limited", message);
     } else {
@@ -315,7 +326,7 @@ async function deliverPendingDiscordEvents() {
       if (updateError) throw updateError;
       delivered += 1;
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
+      const message = errorMessage(error);
       await supabase
         .from("match_automation_events")
         .update({ last_error: message.slice(0, 1000) })
@@ -454,7 +465,7 @@ export async function runLolesportsRatingAutomation(
           });
           if (setNumbers.length) snapshottedSets.push({ matchId: candidate.id, setNumbers });
         } catch (snapshotError) {
-          const message = snapshotError instanceof Error ? snapshotError.message : String(snapshotError);
+          const message = errorMessage(snapshotError);
           warnings.push(`Match ${candidate.id}: result snapshot failed: ${message}`);
         }
 
@@ -507,7 +518,7 @@ export async function runLolesportsRatingAutomation(
             }
             if (detailResult.warning) warnings.push(`Match ${candidate.id} set ${localSet.set_number}: ${detailResult.warning}`);
           } catch (detailError) {
-            const message = detailError instanceof Error ? detailError.message : String(detailError);
+            const message = errorMessage(detailError);
             warnings.push(`Match ${candidate.id} set ${localSet.set_number}: detail sync failed: ${message}`);
             try {
               await queueSetDataSyncNotification({
@@ -532,7 +543,7 @@ export async function runLolesportsRatingAutomation(
         }
       }
     } catch (snapshotError) {
-      const message = snapshotError instanceof Error ? snapshotError.message : String(snapshotError);
+      const message = errorMessage(snapshotError);
       warnings.push(`Match ${candidate.id}: set data workflow failed: ${message}`);
     }
     const match = matches.find((item) => item.id === candidate.id);
@@ -546,7 +557,7 @@ export async function runLolesportsRatingAutomation(
         });
         if (setNumbers.length) enrichedSets.push({ matchId: candidate.id, setNumbers });
       } catch (enrichmentError) {
-        const message = enrichmentError instanceof Error ? enrichmentError.message : String(enrichmentError);
+        const message = errorMessage(enrichmentError);
         warnings.push(`Match ${candidate.id}: Leaguepedia enrichment workflow failed: ${message}`);
       }
     }

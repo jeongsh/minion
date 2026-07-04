@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import { championCatalogEntryForValue } from "../lib/champions";
+import { resolveLeaguepediaIdentity } from "../lib/leaguepedia-identity.ts";
 
 type MatchTeamRow = {
   id: string;
@@ -10,6 +11,7 @@ type MatchTeamRow = {
   name: string;
   short_name: string;
   leaguepedia_page: string | null;
+  source_team_id?: string | null;
   is_lck_team?: boolean | null;
 };
 
@@ -179,33 +181,20 @@ function parseInteger(value: string | null | undefined) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-function teamNameKeys(team: MatchTeamRow | null | undefined) {
-  if (!team) {
-    return [];
-  }
-
-  return [team.id, team.slug, team.name, team.short_name, team.leaguepedia_page]
-    .filter(Boolean)
-    .map((value) => normalizeName(String(value)));
-}
-
 function resolveTeamId(
   value: string | null | undefined,
   match: MatchRow,
 ) {
   const normalized = normalizeName(value);
   const aliasedSlug = TEAM_ALIASES.get(normalized);
-  const teamAKeys = teamNameKeys(match.team_a);
-  const teamBKeys = teamNameKeys(match.team_b);
-
-  if (teamAKeys.includes(normalized) || (aliasedSlug && teamAKeys.includes(aliasedSlug))) {
-    return match.team_a_id;
+  const teams = [match.team_a, match.team_b].filter(
+    (team): team is MatchTeamRow => Boolean(team),
+  ).map((team) => ({ ...team, source_id: team.source_team_id }));
+  if (aliasedSlug) {
+    const aliased = teams.find((team) => team.slug === aliasedSlug);
+    if (aliased) return aliased.id;
   }
-  if (teamBKeys.includes(normalized) || (aliasedSlug && teamBKeys.includes(aliasedSlug))) {
-    return match.team_b_id;
-  }
-
-  return null;
+  return resolveLeaguepediaIdentity(value, teams)?.id ?? null;
 }
 
 function normalizeChampionName(value: string | null | undefined) {
@@ -519,7 +508,7 @@ async function main() {
   let matchesQ: any = supabase
     .from("matches")
     .select(
-      "id, leaguepedia_match_id, team_a_id, team_b_id, team_a:team_a_id(id, slug, name, short_name, leaguepedia_page, is_lck_team), team_b:team_b_id(id, slug, name, short_name, leaguepedia_page, is_lck_team)",
+      "id, leaguepedia_match_id, team_a_id, team_b_id, team_a:team_a_id(id, slug, name, short_name, leaguepedia_page, source_team_id, is_lck_team), team_b:team_b_id(id, slug, name, short_name, leaguepedia_page, source_team_id, is_lck_team)",
     )
     .not("leaguepedia_match_id", "is", null)
     .order("match_date", { ascending: true });

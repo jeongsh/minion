@@ -7,6 +7,10 @@ import { reconcileMatchFromSets } from "../match-reconcile";
 import { fetchRuneNameToIdMap } from "../runes";
 import { deriveSetStatus, hasCompletePlayerStats } from "../set-status";
 import { fetchSpellCatalog, type GameSpell } from "../spells";
+import {
+  resolveLeaguepediaIdentity,
+  type LeaguepediaAlias,
+} from "../leaguepedia-identity.ts";
 import { fetchAuthenticatedLeaguepediaApi } from "./leaguepedia-api";
 
 const REQUEST_DELAY_MS = 3000;
@@ -18,6 +22,7 @@ type MatchTeamRow = {
   name: string;
   short_name: string;
   leaguepedia_page: string | null;
+  source_team_id?: string | null;
   is_lck_team?: boolean | null;
 };
 
@@ -29,6 +34,7 @@ type MatchRow = {
   team_b_id: string | null;
   team_a: MatchTeamRow | null;
   team_b: MatchTeamRow | null;
+  team_aliases?: LeaguepediaAlias[];
 };
 
 type CargoSetRow = {
@@ -317,33 +323,20 @@ function parseDurationSeconds(value: string | null | undefined) {
   return Number.isFinite(numeric) ? numeric : null;
 }
 
-function teamNameKeys(team: MatchTeamRow | null | undefined) {
-  if (!team) {
-    return [];
-  }
-
-  return [team.id, team.slug, team.name, team.short_name, team.leaguepedia_page]
-    .filter(Boolean)
-    .map((value) => normalizeName(String(value)));
-}
-
 function resolveTeamId(
   value: string | null | undefined,
   match: MatchRow,
 ) {
   const normalized = normalizeName(value);
   const aliasedSlug = TEAM_ALIASES.get(normalized);
-  const teamAKeys = teamNameKeys(match.team_a);
-  const teamBKeys = teamNameKeys(match.team_b);
-
-  if (teamAKeys.includes(normalized) || (aliasedSlug && teamAKeys.includes(aliasedSlug))) {
-    return match.team_a_id;
+  const teams = [match.team_a, match.team_b].filter(
+    (team): team is MatchTeamRow => Boolean(team),
+  ).map((team) => ({ ...team, source_id: team.source_team_id }));
+  if (aliasedSlug) {
+    const aliased = teams.find((team) => team.slug === aliasedSlug);
+    if (aliased) return aliased.id;
   }
-  if (teamBKeys.includes(normalized) || (aliasedSlug && teamBKeys.includes(aliasedSlug))) {
-    return match.team_b_id;
-  }
-
-  return null;
+  return resolveLeaguepediaIdentity(value, teams, match.team_aliases)?.id ?? null;
 }
 
 function numericWinnerTeamId(row: MergedCargoSetRow, match: MatchRow) {
@@ -536,22 +529,36 @@ async function getChampionMap(supabase: SupabaseClient, championNames: string[])
 }
 
 async function getPlayerMap(supabase: SupabaseClient) {
-  const { data, error } = await supabase
-    .from("players")
-    .select("id, slug, name, team_id, position, leaguepedia_page");
+  const [{ data, error }, { data: aliasRows, error: aliasError }] = await Promise.all([
+    supabase
+      .from("players")
+      .select("id, slug, name, team_id, position, leaguepedia_page"),
+    supabase
+      .from("leaguepedia_player_aliases")
+      .select("player_id, page_name"),
+  ]);
 
   if (error) {
     throw error;
   }
+  if (aliasError) throw aliasError;
 
   const byName = new Map<string, ExistingPlayer>();
-  for (const player of data as ExistingPlayer[]) {
+  const players = data as ExistingPlayer[];
+  const byId = new Map(players.map((player) => [player.id, player]));
+  for (const player of players) {
     byName.set(normalizeName(player.name), player);
     byName.set(normalizeName(player.slug), player);
     if (player.leaguepedia_page) {
       byName.set(normalizeName(player.leaguepedia_page), player);
       byName.set(normalizeName(displayNameFromLeaguepediaPage(player.leaguepedia_page)), player);
     }
+  }
+  for (const alias of aliasRows ?? []) {
+    const player = byId.get(alias.player_id);
+    if (!player) continue;
+    byName.set(normalizeName(alias.page_name), player);
+    byName.set(normalizeName(displayNameFromLeaguepediaPage(alias.page_name)), player);
   }
   return byName;
 }
@@ -603,6 +610,13 @@ async function backfillLeaguepediaPages({
     if (error) {
       throw error;
     }
+    const { error: aliasError } = await supabase
+      .from("leaguepedia_player_aliases")
+      .upsert(
+        { player_id: id, page_name: patch.leaguepedia_page },
+        { onConflict: "page_name", ignoreDuplicates: true },
+      );
+    if (aliasError) throw aliasError;
 
     const player = [...playerMap.values()].find((entry) => entry.id === id);
     if (!player) {
@@ -643,6 +657,7 @@ async function ensurePlayersForStats({
     team_id: string | null;
     position: string;
     leaguepedia_page: string;
+    source_player_id: string;
     is_lck_player: boolean;
     imported_scope: "lck" | "international_event";
   }>();
@@ -671,6 +686,7 @@ async function ensurePlayersForStats({
       team_id: teamId,
       position,
       leaguepedia_page: leaguepediaPage,
+      source_player_id: leaguepediaSourcePlayerId(leaguepediaPage),
       is_lck_player: isLckTeamId(teamId, match),
       imported_scope: isLckTeamId(teamId, match) ? "lck" : "international_event",
     });
@@ -697,6 +713,17 @@ async function ensurePlayersForStats({
       playerMap.set(normalizeName(player.leaguepedia_page), player);
       playerMap.set(normalizeName(displayNameFromLeaguepediaPage(player.leaguepedia_page)), player);
     }
+  }
+  const aliases = (data as ExistingPlayer[]).flatMap((player) =>
+    player.leaguepedia_page
+      ? [{ player_id: player.id, page_name: player.leaguepedia_page }]
+      : []
+  );
+  if (aliases.length > 0) {
+    const { error: aliasError } = await supabase
+      .from("leaguepedia_player_aliases")
+      .upsert(aliases, { onConflict: "page_name", ignoreDuplicates: true });
+    if (aliasError) throw aliasError;
   }
 }
 
@@ -1003,7 +1030,7 @@ export async function syncLeaguepediaMatchSets(
   const { data: match, error: matchError } = await supabase
     .from("matches")
     .select(
-      "id, leaguepedia_match_id, best_of, team_a_id, team_b_id, team_a:team_a_id(id, slug, name, short_name, leaguepedia_page, is_lck_team), team_b:team_b_id(id, slug, name, short_name, leaguepedia_page, is_lck_team)",
+      "id, leaguepedia_match_id, best_of, team_a_id, team_b_id, team_a:team_a_id(id, slug, name, short_name, leaguepedia_page, source_team_id, is_lck_team), team_b:team_b_id(id, slug, name, short_name, leaguepedia_page, source_team_id, is_lck_team)",
     )
     .eq("id", matchId)
     .single();
@@ -1014,6 +1041,19 @@ export async function syncLeaguepediaMatchSets(
 
   const typedMatch = match as unknown as MatchRow;
 
+  const teamIds = [typedMatch.team_a_id, typedMatch.team_b_id].filter(
+    (id): id is string => Boolean(id),
+  );
+  const { data: teamAliasRows, error: teamAliasError } = await supabase
+    .from("leaguepedia_team_aliases")
+    .select("team_id, page_name")
+    .in("team_id", teamIds);
+  if (teamAliasError) throw teamAliasError;
+  typedMatch.team_aliases = (teamAliasRows ?? []).map((alias) => ({
+    entity_id: alias.team_id,
+    page_name: alias.page_name,
+  }));
+
   if (!typedMatch.leaguepedia_match_id) {
     throw new Error("Leaguepedia Match ID가 없는 경기입니다.");
   }
@@ -1022,6 +1062,25 @@ export async function syncLeaguepediaMatchSets(
 
   if (rows.length === 0) {
     throw new Error("Leaguepedia에서 세트 정보를 찾지 못했습니다.");
+  }
+
+  const observedTeamAliases = new Map<string, string>();
+  for (const row of rows) {
+    for (const pageName of [row.Team1, row.Team2, row.WinTeam, row.Blue, row.Red]) {
+      const resolvedTeamId = resolveTeamId(pageName, typedMatch);
+      if (resolvedTeamId && pageName?.trim()) {
+        observedTeamAliases.set(pageName.trim(), resolvedTeamId);
+      }
+    }
+  }
+  if (observedTeamAliases.size > 0) {
+    const { error: aliasUpsertError } = await supabase
+      .from("leaguepedia_team_aliases")
+      .upsert(
+        [...observedTeamAliases].map(([page_name, team_id]) => ({ team_id, page_name })),
+        { onConflict: "page_name", ignoreDuplicates: true },
+      );
+    if (aliasUpsertError) throw aliasUpsertError;
   }
 
   const payload = rows.map((row, index) => {

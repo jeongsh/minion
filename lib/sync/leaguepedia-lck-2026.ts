@@ -1,5 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import {
+  displayNameFromLeaguepediaPage,
+  leaguepediaSourceId,
+  normalizeLeaguepediaKey,
+} from "../leaguepedia-identity.ts";
 import { SEASON_2026_TOURNAMENTS, type SeasonTournamentConfig } from "../tournaments/season-2026.ts";
 
 const CARGO_API = "https://lol.fandom.com/api.php";
@@ -30,6 +35,7 @@ type TeamRow = {
   name: string;
   short_name: string;
   leaguepedia_page: string | null;
+  source_team_id?: string | null;
 };
 
 type CargoMatchRow = {
@@ -92,9 +98,7 @@ function normalizeTeamName(value: string | undefined) {
 }
 
 function normalizeLookupKey(value: string | undefined | null) {
-  return normalizeTeamName(value ?? "")
-    .replace(/\s*\([^)]*\)\s*$/g, "")
-    .replace(/[_\s]+/g, " ");
+  return normalizeLeaguepediaKey(displayNameFromLeaguepediaPage(value));
 }
 
 function teamSlugFor(name: string) {
@@ -295,7 +299,7 @@ async function fetchTournamentMatches(
 async function getRequiredTeams(supabase: SupabaseClient) {
   const { data, error } = await supabase
     .from("teams")
-    .select("id, slug, name, short_name, leaguepedia_page");
+    .select("id, slug, name, short_name, leaguepedia_page, source_team_id");
 
   if (error) {
     throw error;
@@ -304,7 +308,7 @@ async function getRequiredTeams(supabase: SupabaseClient) {
   const bySlug = new Map(data.map((team) => [team.slug, team]));
   const byLeaguepediaPage = new Map<string, TeamRow>();
   for (const team of data) {
-    for (const key of [team.leaguepedia_page, team.name, team.short_name]) {
+    for (const key of [team.leaguepedia_page, team.source_team_id, team.name, team.short_name]) {
       const normalized = normalizeLookupKey(key);
       if (normalized) {
         byLeaguepediaPage.set(normalized, team);
@@ -504,7 +508,7 @@ type TeamRowWithLck = TeamRow & { is_lck_team: boolean | null };
 async function getTeamsForIntl(supabase: SupabaseClient) {
   const { data, error } = await supabase
     .from("teams")
-    .select("id, slug, name, short_name, leaguepedia_page, is_lck_team");
+    .select("id, slug, name, short_name, leaguepedia_page, source_team_id, is_lck_team");
 
   if (error) {
     throw error;
@@ -513,7 +517,7 @@ async function getTeamsForIntl(supabase: SupabaseClient) {
   const bySlug = new Map(data.map((t) => [t.slug, t as TeamRowWithLck]));
   const byLeaguepediaPage = new Map<string, TeamRowWithLck>();
   for (const team of data) {
-    for (const key of [team.leaguepedia_page, team.name, team.short_name]) {
+    for (const key of [team.leaguepedia_page, team.source_team_id, team.name, team.short_name]) {
       const normalized = normalizeLookupKey(key);
       if (normalized) {
         byLeaguepediaPage.set(normalized, team as TeamRowWithLck);
@@ -539,7 +543,8 @@ async function upsertInternationalTeam(
   name: string,
   teams: Awaited<ReturnType<typeof getTeamsForIntl>>,
 ): Promise<TeamRowWithLck | null> {
-  const slug = slugifyTeamName(name);
+  const displayName = displayNameFromLeaguepediaPage(name);
+  const slug = slugifyTeamName(displayName);
   if (!slug) {
     return null;
   }
@@ -550,27 +555,29 @@ async function upsertInternationalTeam(
     return cached;
   }
 
-  const shortName = name.length <= 12 ? name : name.split(/\s+/)[0].substring(0, 20);
+  const shortName = displayName.length <= 12
+    ? displayName
+    : displayName.split(/\s+/)[0].substring(0, 20);
 
   const { data, error } = await supabase
     .from("teams")
     .upsert(
       {
         slug,
-        name,
+        name: displayName,
         short_name: shortName,
         primary_color: "#52525B",
         secondary_color: "#18181B",
         fan_site_host: null,
         leaguepedia_page: name,
-        source_team_id: `lp:${name}`,
+        source_team_id: leaguepediaSourceId(name),
         is_lck_team: false,
         imported_scope: "international_event",
         is_active: true,
       },
       { onConflict: "slug" },
     )
-    .select("id, slug, name, short_name, leaguepedia_page, is_lck_team")
+    .select("id, slug, name, short_name, leaguepedia_page, source_team_id, is_lck_team")
     .single();
 
   if (error) {

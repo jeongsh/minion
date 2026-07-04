@@ -1,5 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import {
+  displayNameFromLeaguepediaPage,
+  normalizeLeaguepediaKey,
+} from "../leaguepedia-identity.ts";
+
 const CARGO_API = "https://lol.fandom.com/api.php";
 const REQUEST_DELAY_MS = 3_000;
 const RATE_LIMIT_BASE_MS = 30_000; // rate limit 발생 시 첫 대기 30초, 이후 선형 증가
@@ -203,6 +208,21 @@ async function fetchAllLckScoreboardData(
   return byLink;
 }
 
+function scoreboardRowsForPage(
+  rowsByLink: Map<string, ScoreboardRow[]>,
+  pageName: string,
+) {
+  const exactKey = normalizeLeaguepediaKey(pageName);
+  const exact = [...rowsByLink].find(([link]) => normalizeLeaguepediaKey(link) === exactKey);
+  if (exact) return exact[1];
+
+  const displayKey = normalizeLeaguepediaKey(displayNameFromLeaguepediaPage(pageName));
+  const matches = [...rowsByLink].filter(([link]) =>
+    normalizeLeaguepediaKey(displayNameFromLeaguepediaPage(link)) === displayKey
+  );
+  return matches.length === 1 ? matches[0][1] : [];
+}
+
 function mergeIntoCareerEntries(
   rows: ScoreboardRow[],
   playerPosition: string,
@@ -312,7 +332,7 @@ export async function syncCareerHistories(
 
   // 선수별 경력 데이터 처리
   for (const player of players) {
-    const rows = scoreboardByLink.get(player.leaguepedia_page) ?? [];
+    const rows = scoreboardRowsForPage(scoreboardByLink, player.leaguepedia_page);
 
     if (rows.length === 0) {
       onProgress?.(`[skip] ${player.name} - Leaguepedia LCK 이력 없음`);
