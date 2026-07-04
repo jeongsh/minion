@@ -36,7 +36,7 @@ export function PostView({
 
   return (
     <article
-      className="mx-auto w-full max-w-[830px]"
+      className="mx-auto w-full max-w-[1240px] px-10 py-8 max-md:px-5"
       style={{ ["--acc" as string]: "var(--tp, var(--team-primary, #6158ff))" }}
     >
       <Breadcrumb

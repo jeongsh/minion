@@ -1097,6 +1097,16 @@ export async function getChampions() {
   }, []);
 }
 
+/** setId 배열을 URL 길이 제한에 걸리지 않도록 청크 단위로 나눈다. 배열이 아니면 단일 조회용으로 [null]을 반환. */
+function setIdChunks(setId?: string | string[], size = 100): (string | string[] | null)[] {
+  if (!Array.isArray(setId)) return [setId ?? null];
+  const chunks: string[][] = [];
+  for (let i = 0; i < setId.length; i += size) {
+    chunks.push(setId.slice(i, i + size));
+  }
+  return chunks;
+}
+
 export async function getSetPicksBans(setId?: string | string[]) {
   if (Array.isArray(setId) && setId.length === 0) {
     return [];
@@ -1107,30 +1117,32 @@ export async function getSetPicksBans(setId?: string | string[]) {
     const rows: SetPickBanRow[] = [];
     const pageSize = 1000;
 
-    for (let from = 0; ; from += pageSize) {
-      let query = supabase
-        .from("set_picks_bans")
-        .select("*")
-        .order("order_index", { ascending: true })
-        .order("set_id", { ascending: true })
-        .range(from, from + pageSize - 1);
+    for (const ids of setIdChunks(setId)) {
+      for (let from = 0; ; from += pageSize) {
+        let query = supabase
+          .from("set_picks_bans")
+          .select("*")
+          .order("order_index", { ascending: true })
+          .order("set_id", { ascending: true })
+          .range(from, from + pageSize - 1);
 
-      if (Array.isArray(setId)) {
-        query = query.in("set_id", setId);
-      } else if (setId) {
-        query = query.eq("set_id", setId);
-      }
+        if (Array.isArray(ids)) {
+          query = query.in("set_id", ids);
+        } else if (ids) {
+          query = query.eq("set_id", ids);
+        }
 
-      const { data, error } = await query;
+        const { data, error } = await query;
 
-      if (error) {
-        throw error;
-      }
+        if (error) {
+          throw error;
+        }
 
-      rows.push(...((data ?? []) as SetPickBanRow[]));
+        rows.push(...((data ?? []) as SetPickBanRow[]));
 
-      if (!data || data.length < pageSize) {
-        break;
+        if (!data || data.length < pageSize) {
+          break;
+        }
       }
     }
 
@@ -1153,32 +1165,34 @@ export async function getPlayerStatLines(setId?: string | string[]) {
     const rows: SetPlayerStatsRow[] = [];
     const pageSize = 1000;
 
-    for (let from = 0; ; from += pageSize) {
-      let query = supabase
-        .from("set_player_stats")
-        .select(
-          "set_id, player_id, team_id, position, champion_id, kills, deaths, assists, cs, gold, damage_to_champions, vision_score, dpm, damage_share, vision_score_per_minute, cs_per_minute, gold_diff_at_10, xp_diff_at_10, cs_diff_at_10, gold_diff_at_15, xp_diff_at_15, cs_diff_at_15, item0, item1, item2, item3, item4, item5, item6, spell0, spell1, rune0, rune1, role_bound_item, sets(duration_seconds, patch)",
-        )
-        .order("position", { ascending: true })
-        .order("set_id", { ascending: true })
-        .range(from, from + pageSize - 1);
+    for (const ids of setIdChunks(setId)) {
+      for (let from = 0; ; from += pageSize) {
+        let query = supabase
+          .from("set_player_stats")
+          .select(
+            "set_id, player_id, team_id, position, champion_id, kills, deaths, assists, cs, gold, damage_to_champions, vision_score, dpm, damage_share, vision_score_per_minute, cs_per_minute, gold_diff_at_10, xp_diff_at_10, cs_diff_at_10, gold_diff_at_15, xp_diff_at_15, cs_diff_at_15, item0, item1, item2, item3, item4, item5, item6, spell0, spell1, rune0, rune1, role_bound_item, sets(duration_seconds, patch)",
+          )
+          .order("position", { ascending: true })
+          .order("set_id", { ascending: true })
+          .range(from, from + pageSize - 1);
 
-    if (Array.isArray(setId)) {
-      query = query.in("set_id", setId);
-    } else if (setId) {
-      query = query.eq("set_id", setId);
-    }
+        if (Array.isArray(ids)) {
+          query = query.in("set_id", ids);
+        } else if (ids) {
+          query = query.eq("set_id", ids);
+        }
 
-      const { data, error } = await query;
+        const { data, error } = await query;
 
-      if (error) {
-        throw error;
-      }
+        if (error) {
+          throw error;
+        }
 
-      rows.push(...((data ?? []) as unknown as SetPlayerStatsRow[]));
+        rows.push(...((data ?? []) as unknown as SetPlayerStatsRow[]));
 
-      if (!data || data.length < pageSize) {
-        break;
+        if (!data || data.length < pageSize) {
+          break;
+        }
       }
     }
 

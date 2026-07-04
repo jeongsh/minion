@@ -15,17 +15,11 @@ import {
   getTeamStandings,
   getTournaments,
 } from "@/lib/data/lck";
-import {
-  filterPicksBansByMatches,
-  filterSetsByMatches,
-  filterStatLinesByMatchIds,
-} from "@/lib/tournament-filters";
+import { filterSetsByMatches } from "@/lib/tournament-filters";
 import { segmentForTournament, type SeasonSegmentKey } from "@/lib/tournaments/season-2026";
 import type {
   Match,
   PlayerPosition,
-  PlayerStatLine,
-  SetPickBan,
   SetResult,
   Team,
   TeamStanding,
@@ -100,15 +94,11 @@ function hasCompetitionData({
   tournamentIds,
   matches,
   sets,
-  picksBans,
-  statLines,
   standings,
 }: {
   tournamentIds: Set<string>;
   matches: Match[];
   sets: SetResult[];
-  picksBans: SetPickBan[];
-  statLines: PlayerStatLine[];
   standings: TeamStanding[];
 }) {
   const matchIds = new Set<string>();
@@ -122,14 +112,12 @@ function hasCompetitionData({
     }
   }
 
-  const setIds = new Set<string>();
   let hasResultSet = false;
-
   for (const set of sets) {
     if (!matchIds.has(set.matchId)) continue;
-    setIds.add(set.id);
     if (set.winnerTeamId || set.status === "finished" || set.status === "data_synced") {
       hasResultSet = true;
+      break;
     }
   }
 
@@ -139,9 +127,7 @@ function hasCompetitionData({
         tournamentIds.has(standing.tournamentId) && hasMeaningfulStandingData(standing),
     ) ||
     hasCompletedMatch ||
-    hasResultSet ||
-    picksBans.some((item) => setIds.has(item.setId)) ||
-    statLines.some((line) => setIds.has(line.setId))
+    hasResultSet
   );
 }
 
@@ -149,15 +135,11 @@ function buildCompetitionOptions({
   tournaments,
   matches,
   sets,
-  picksBans,
-  statLines,
   standings,
 }: {
   tournaments: Tournament[];
   matches: Match[];
   sets: SetResult[];
-  picksBans: SetPickBan[];
-  statLines: PlayerStatLine[];
   standings: TeamStanding[];
 }) {
   return STANDINGS_COMPETITIONS.map((competition) => {
@@ -173,8 +155,6 @@ function buildCompetitionOptions({
       tournamentIds,
       matches,
       sets,
-      picksBans,
-      statLines,
       standings,
     });
 
@@ -296,7 +276,7 @@ export default async function StandingsPage({
   const activePosition = parsePosition(params.position);
   const activeChampionRankMode = parseChampionRankMode(params.championRank);
 
-  const [teams, matches, tournaments, savedStandings, players, champions, sets, picksBans, statLines] =
+  const [teams, matches, tournaments, savedStandings, players, champions, sets] =
     await Promise.all([
       getAllTeams(),
       getMatches(),
@@ -305,8 +285,6 @@ export default async function StandingsPage({
       getAllPlayers(),
       getChampions(),
       getSets(),
-      getSetPicksBans(),
-      getPlayerStatLines(),
     ]);
 
   const seasons = [...new Set(tournaments.map((tournament) => tournament.season))].sort((a, b) => b - a);
@@ -317,8 +295,6 @@ export default async function StandingsPage({
     tournaments: seasonTournaments,
     matches,
     sets,
-    picksBans,
-    statLines,
     standings: savedStandings,
   });
   const requestedCompetitionKey = competitionKeyFromParam(params.tournament, seasonTournaments);
@@ -403,8 +379,16 @@ export default async function StandingsPage({
       count: row.count,
     }));
 
-  const scopedPicksBans = filterPicksBansByMatches(picksBans, sets, scopedMatches);
-  const scopedStatLines = filterStatLinesByMatchIds(statLines, sets, scopedMatches);
+  // 밴픽·선수스탯은 전체 테이블이 크고(수만 행) 챔피언 뷰에서만 쓰이므로,
+  // 해당 뷰일 때 현재 대회 세트로만 좁혀서 조회한다.
+  const scopedSetIds = scopedSets.map((set) => set.id);
+  const [scopedPicksBans, scopedStatLines] =
+    activeView === "champions" && scopedSetIds.length > 0
+      ? await Promise.all([getSetPicksBans(scopedSetIds), getPlayerStatLines(scopedSetIds)])
+      : [
+          [] as Awaited<ReturnType<typeof getSetPicksBans>>,
+          [] as Awaited<ReturnType<typeof getPlayerStatLines>>,
+        ];
   const championRows = buildChampionRankings(
     scopedPicksBans,
     scopedSets,
