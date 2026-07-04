@@ -290,11 +290,12 @@ html[data-navigation-pending="true"] :is(a, button, input, select, textarea, [ro
 
 .home-match-calendar .rdp-day_button {
   margin-inline: auto;
+  font-size: 14px;
 }
 
 .home-match-calendar .rdp-month_caption {
   height: 2.5rem;
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 900;
   color: #111827;
 }
