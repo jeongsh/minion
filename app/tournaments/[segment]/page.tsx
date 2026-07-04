@@ -75,6 +75,56 @@ function deriveCrossGroups(matches: Match[]): Map<string, 0 | 1> | null {
   return color;
 }
 
+/**
+ * 일부 시즌의 정규시즌 후반(예: 2025 Rounds 3-5)은 크로스 그룹이 아니라 같은 조끼리만
+ * 맞붙는 방식으로 진행된다. 이 경우 매치 상대 관계 그래프는 조별로 서로 연결되지 않은
+ * 컴포넌트 2개로 쪼개진다. 정확히 2개로 나뉘지 않으면(조 구분이 없거나 다른 형식이면)
+ * null을 반환해 표시를 건너뛴다.
+ */
+function deriveMatchGroups(matches: Match[]): Map<string, 0 | 1> | null {
+  const adjacency = new Map<string, Set<string>>();
+  const teamIds = new Set<string>();
+
+  for (const match of matches) {
+    teamIds.add(match.teamAId);
+    teamIds.add(match.teamBId);
+    if (!adjacency.has(match.teamAId)) adjacency.set(match.teamAId, new Set());
+    if (!adjacency.has(match.teamBId)) adjacency.set(match.teamBId, new Set());
+    adjacency.get(match.teamAId)!.add(match.teamBId);
+    adjacency.get(match.teamBId)!.add(match.teamAId);
+  }
+
+  const componentOf = new Map<string, number>();
+  let componentCount = 0;
+
+  for (const teamId of teamIds) {
+    if (componentOf.has(teamId)) continue;
+
+    componentOf.set(teamId, componentCount);
+    const queue = [teamId];
+
+    while (queue.length > 0) {
+      const current = queue.shift()!;
+      for (const neighbor of adjacency.get(current) ?? []) {
+        if (!componentOf.has(neighbor)) {
+          componentOf.set(neighbor, componentCount);
+          queue.push(neighbor);
+        }
+      }
+    }
+
+    componentCount += 1;
+  }
+
+  if (componentCount !== 2) return null;
+
+  const color = new Map<string, 0 | 1>();
+  for (const [teamId, component] of componentOf) {
+    color.set(teamId, component === 0 ? 0 : 1);
+  }
+  return color;
+}
+
 function GroupStandingsTable({
   title,
   rows,
@@ -758,11 +808,39 @@ export default async function TournamentBracketPage({
     const roadToMsiStages = segmentStages.filter((stage) => roadToMsiTournamentIds.has(stage.tournamentId));
     const roadToMsiColumns = buildStageColumns(roadToMsiStages, segmentMatches);
 
-    // 스플릿 3: Rounds 3-4 정규시즌 순위 + 롤드컵으로 가는 길(시즌 플레이인+플레이오프) 토너먼트.
+    // 스플릿 3: Rounds 3-4(시즌에 따라 "Rounds 3-5"로 불리기도 함) 정규시즌 순위 +
+    // 롤드컵으로 가는 길(시즌 플레이인+플레이오프) 토너먼트.
     const rounds34Matches = segmentMatches.filter((match) =>
-      activeTournaments.some((tournament) => tournament.id === match.tournamentId && tournament.split === "Rounds 3-4"),
+      activeTournaments.some(
+        (tournament) => tournament.id === match.tournamentId && /^Rounds 3-\d+$/.test(tournament.split ?? ""),
+      ),
     );
-    const split3Standings = <RegularStandingsTable rows={buildTeamStandingRows(lckTeams, rounds34Matches, [])} />;
+
+    // "정규리그" 순위는 시즌 누적 기록이라 Rounds 1-2와 Rounds 3-4/5를 합쳐서 계산한다.
+    // 조 구분(레전드/라이즈)은 Rounds 3-4/5에서만 명시적으로 드러나므로 조 판별은 그 데이터로만 한다.
+    const regularSeasonMatches = [...rounds12Matches, ...rounds34Matches];
+
+    // 일부 시즌(예: 2025)은 이 라운드도 LCK컵처럼 두 그룹으로 나뉘어 진행된다. 매치 데이터가
+    // 실제로 두 그룹으로 깔끔하게 갈리면(=서로 다른 그룹끼리는 안 붙는 경우) 그룹별 표로,
+    // 아니면(예: 2026처럼 그룹 구분 없이 전원이 맞붙는 경우) 통합 순위표로 보여준다.
+    let split3Standings: React.ReactNode = (
+      <RegularStandingsTable rows={buildTeamStandingRows(lckTeams, regularSeasonMatches, [])} />
+    );
+    const rounds34GroupColors = deriveMatchGroups(rounds34Matches);
+    if (rounds34GroupColors) {
+      const genG = teams.find((team) => team.shortName === "GEN" || /gen\.?g/i.test(team.name));
+      const legendColor: 0 | 1 = (genG ? rounds34GroupColors.get(genG.id) : undefined) ?? 0;
+      const riseColor: 0 | 1 = legendColor === 0 ? 1 : 0;
+      const legendTeams = teams.filter((team) => rounds34GroupColors.get(team.id) === legendColor);
+      const riseTeams = teams.filter((team) => rounds34GroupColors.get(team.id) === riseColor);
+
+      split3Standings = (
+        <div className="grid gap-4 sm:grid-cols-2">
+          <GroupStandingsTable title="레전드조" rows={buildTeamStandingRows(legendTeams, regularSeasonMatches, [])} />
+          <GroupStandingsTable title="라이즈조" rows={buildTeamStandingRows(riseTeams, regularSeasonMatches, [])} />
+        </div>
+      );
+    }
 
     const activePhase: "playin" | "playoffs" = search.phase === "playoffs" ? "playoffs" : "playin";
     const playInTournamentIds = new Set(
