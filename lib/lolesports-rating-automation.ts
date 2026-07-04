@@ -15,6 +15,7 @@ import {
   LeaguepediaRateLimitError,
   syncLeaguepediaMatchSets,
 } from "@/lib/sync/leaguepedia-match-sets";
+import { leaguepediaRetryAt } from "@/lib/sync/leaguepedia-retry-policy";
 import { syncLeaguepediaTimelineForSet } from "@/lib/sync/leaguepedia-timeline";
 
 type MatchRow = {
@@ -217,11 +218,11 @@ async function runLeaguepediaEnrichment({
   const pending = data ?? [];
   if (pending.length === 0) return [] as number[];
 
-  const retryAt = new Date(now.getTime() + 10 * 60 * 1000).toISOString();
   const updatePending = async (
     status: "rate_limited" | "failed",
     message: string,
   ) => {
+    const retryAt = leaguepediaRetryAt(now, status);
     for (const row of pending) {
       await supabase.from("set_result_snapshots").update({
         leaguepedia_sync_status: status,
@@ -265,7 +266,7 @@ async function runLeaguepediaEnrichment({
         await supabase.from("set_result_snapshots").update({
           leaguepedia_sync_status: "failed",
           leaguepedia_sync_attempts: (row.leaguepedia_sync_attempts ?? 0) + 1,
-          leaguepedia_retry_at: retryAt,
+          leaguepedia_retry_at: leaguepediaRetryAt(now, "failed"),
           leaguepedia_last_error: `Incomplete Leaguepedia data: picks=${picks}, bans=${bans}, players=${setPlayers.length}`,
         }).eq("id", row.id);
         continue;
@@ -314,7 +315,6 @@ async function runTimelineEnrichment({ matchId, now }: { matchId: string; now: D
   const row = data?.[0];
   if (!row) return null;
 
-  const retryAt = new Date(now.getTime() + 10 * 60 * 1000).toISOString();
   const attempts = (row.timeline_sync_attempts ?? 0) + 1;
   try {
     const result = await syncLeaguepediaTimelineForSet(supabase, row.set_id);
@@ -339,7 +339,7 @@ async function runTimelineEnrichment({ matchId, now }: { matchId: string; now: D
       .update({
         timeline_sync_status: result.status,
         timeline_sync_attempts: attempts,
-        timeline_retry_at: retryAt,
+        timeline_retry_at: leaguepediaRetryAt(now, result.status),
         timeline_last_error: result.reason,
       })
       .eq("id", row.id);
@@ -352,7 +352,7 @@ async function runTimelineEnrichment({ matchId, now }: { matchId: string; now: D
       .update({
         timeline_sync_status: "failed",
         timeline_sync_attempts: attempts,
-        timeline_retry_at: retryAt,
+        timeline_retry_at: leaguepediaRetryAt(now, "failed"),
         timeline_last_error: message.slice(0, 1000),
       })
       .eq("id", row.id);
