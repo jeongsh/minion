@@ -106,6 +106,30 @@ export function playerLabel(players: Player[], playerId: string | null | undefin
   return findPlayer(players, playerId)?.name ?? "-";
 }
 
+/** "3.16" 또는 "3.16 ~ 3.22" 형태로 대회 기간을 포맷한다. */
+/** "7월" 또는 "1월 ~ 2월"처럼 월 단위로 대회 기간을 포맷한다(일자는 표시하지 않는다). */
+export function formatDateRange(start: string | null | undefined, end: string | null | undefined) {
+  if (!start) return null;
+
+  const monthOf = (value: string) => Number(value.split("-")[1]);
+  const startMonth = monthOf(start);
+  const endMonth = end ? monthOf(end) : startMonth;
+
+  return startMonth === endMonth ? `${startMonth}월` : `${startMonth}월 ~ ${endMonth}월`;
+}
+
+export type TournamentStatus = "upcoming" | "ongoing" | "completed";
+
+export function tournamentStatus(
+  start: string | null | undefined,
+  end: string | null | undefined,
+  now: Date = new Date(),
+): TournamentStatus {
+  if (start && now < new Date(start)) return "upcoming";
+  if (end && now > new Date(`${end}T23:59:59+09:00`)) return "completed";
+  return "ongoing";
+}
+
 export function matchRouteId(match: Match) {
   return encodeURIComponent(match.leaguepediaMatchId || match.id);
 }

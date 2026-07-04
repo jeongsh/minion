@@ -259,6 +259,25 @@ export function segmentForTournament(tournament: {
   return null;
 }
 
+/**
+ * 일정/순위 페이지는 LCK컵을 별도 경쟁으로 필터링할 수 있어야 해서 segmentForTournament는
+ * 그대로 "lck-cup"을 반환한다. 하지만 대회 허브/상세/관리 화면에서는 LCK컵이 LCK의
+ * "스플릿 1"이라 "lck"에 합쳐서 보여준다. 그 병합 규칙만 여기 따로 둔다.
+ */
+export function matchesTournamentSegment(
+  tournament: {
+    season?: number | null;
+    sourceTournamentId?: string | null;
+    split?: string | null;
+    league?: string | null;
+  },
+  segmentKey: string,
+): boolean {
+  const actual = segmentForTournament(tournament);
+  if (actual === segmentKey) return true;
+  return segmentKey === "lck" && actual === "lck-cup";
+}
+
 export function tournamentIdsForSegment(
   tournaments: Array<{
     id: string;

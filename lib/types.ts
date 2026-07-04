@@ -137,9 +137,17 @@ export type Tournament = {
   sourceTournamentId?: string | null;
 };
 
+export type BracketStage = {
+  id: string;
+  tournamentId: string;
+  name: string;
+  orderIndex: number;
+};
+
 export type Stage = {
   id: string;
   tournamentId: string;
+  bracketStageId: string;
   name: string;
   orderIndex: number;
 };
@@ -167,6 +175,8 @@ export type Match = {
   bracketSide?: "upper" | "lower" | null;
   bracketOrder?: number | null;
   advancesToMatchId?: string | null;
+  /** 같은 라운드/브래킷 사이드 안에서 서로 독립적으로 진행되는 여러 그룹(예: 그룹 A/B)을 구분한다. 기본 0. */
+  groupIndex: number;
 };
 
 export type SetResult = {

@@ -2,26 +2,16 @@ import Link from "next/link";
 
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { getTournaments } from "@/lib/data/lck";
-import { INTERNATIONAL_SEGMENTS } from "@/lib/tournaments/international-segments";
-import { segmentForTournament } from "@/lib/tournaments/season-2026";
+import { DOMESTIC_SEGMENTS, INTERNATIONAL_SEGMENTS } from "@/lib/tournaments/international-segments";
+import { matchesTournamentSegment } from "@/lib/tournaments/season-2026";
 import type { Tournament } from "@/lib/types";
+import { formatDateRange } from "@/lib/view-data";
 
-function formatDateRange(start: string | null, end: string | null) {
-  if (!start) return null;
-
-  const format = (value: string) => {
-    const [, month, day] = value.split("-");
-    return `${Number(month)}.${Number(day)}`;
-  };
-
-  return end && end !== start ? `${format(start)} ~ ${format(end)}` : format(start);
-}
+const ALL_SEGMENTS = [...DOMESTIC_SEGMENTS, ...INTERNATIONAL_SEGMENTS];
 
 function buildTournamentCards(tournaments: Tournament[]) {
-  return INTERNATIONAL_SEGMENTS.map((segment) => {
-    const matched = tournaments.filter(
-      (tournament) => segmentForTournament(tournament) === segment.key,
-    );
+  return ALL_SEGMENTS.map((segment) => {
+    const matched = tournaments.filter((tournament) => matchesTournamentSegment(tournament, segment.key));
 
     if (matched.length === 0) return null;
 
@@ -85,7 +75,7 @@ export default async function TournamentsPage({
       </div>
 
       {cards.length === 0 ? (
-        <p className="text-sm text-muted">{activeSeason} 시즌에 등록된 국제 대회가 없습니다.</p>
+        <p className="text-sm text-muted">{activeSeason} 시즌에 등록된 대회가 없습니다.</p>
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {cards.map((card) => {

@@ -5,6 +5,11 @@ export type StageColumn = {
   matches: Match[];
 };
 
+/** LCK컵의 "Week N" 스테이지는 브래킷이 아니라 크로스 그룹 라운드로빈이라 별도 취급한다. */
+export function isWeekStage(stageName: string) {
+  return /^week\s*\d+$/i.test(stageName.trim());
+}
+
 function groupMatchesByStage(stages: Stage[], matches: Match[]): StageColumn[] {
   const matchesByStage = new Map<string, Match[]>();
 

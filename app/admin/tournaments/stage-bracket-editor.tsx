@@ -3,10 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 
 import {
+  deleteMatchAction,
   deleteStageAction,
   moveStageAction,
+  moveStageToBracketStageAction,
   saveBracketColumnsAction,
   setMatchAdvancesToAction,
+  setMatchGroupIndexAction,
   type BracketColumnUpdate,
 } from "./actions";
 
@@ -19,9 +22,15 @@ export type EditorMatch = {
   teamAScore: number | null;
   teamBScore: number | null;
   advancesToMatchId: string | null;
+  groupIndex: number;
 };
 
 export type EditorStage = {
+  id: string;
+  name: string;
+};
+
+export type EditorBracketStage = {
   id: string;
   name: string;
 };
@@ -56,20 +65,32 @@ function Card({
   match,
   matchOptions,
   isDragging,
+  isFirst,
+  isLast,
   onDragStartCard,
   onDragEndCard,
   onDropBefore,
   onMoveToOtherSide,
+  onMoveUp,
+  onMoveDown,
   onSetAdvancesTo,
+  onSetGroupIndex,
+  onDeleteMatch,
 }: {
   match: EditorMatch;
   matchOptions: MatchOptionGroup[];
   isDragging: boolean;
+  isFirst: boolean;
+  isLast: boolean;
   onDragStartCard: (id: string) => void;
   onDragEndCard: () => void;
   onDropBefore: (id: string) => void;
   onMoveToOtherSide: (id: string) => void;
+  onMoveUp: (id: string) => void;
+  onMoveDown: (id: string) => void;
   onSetAdvancesTo: (matchId: string, advancesToMatchId: string | null) => void;
+  onSetGroupIndex: (matchId: string, groupIndex: number) => void;
+  onDeleteMatch: (matchId: string) => void;
 }) {
   return (
     <div
@@ -86,9 +107,19 @@ function Card({
         isDragging ? "opacity-30" : ""
       }`}
     >
-      <div className="mb-1 flex items-center justify-between text-[10px] font-semibold uppercase tracking-wide text-white/40">
-        <span>{formatMatchDate(match.matchDate)}</span>
-        {match.bestOf ? <span>Bo{match.bestOf}</span> : null}
+      <div className="mb-1 flex items-center justify-between gap-2 text-[10px] font-semibold uppercase tracking-wide text-white/40">
+        <span className="truncate">{formatMatchDate(match.matchDate)}</span>
+        <span className="flex shrink-0 items-center gap-1.5">
+          {match.bestOf ? <span>Bo{match.bestOf}</span> : null}
+          <button
+            type="button"
+            onClick={() => onDeleteMatch(match.id)}
+            className="rounded border border-white/10 px-1.5 py-0.5 text-red-400/70 hover:border-red-400/40 hover:text-red-400"
+            aria-label="이 경기 삭제"
+          >
+            삭제
+          </button>
+        </span>
       </div>
       <div className="flex items-center justify-between gap-2 text-xs font-semibold text-white/80">
         <span className="truncate">{match.teamAName}</span>
@@ -97,13 +128,33 @@ function Card({
         </span>
         <span className="truncate text-right">{match.teamBName}</span>
       </div>
-      <button
-        type="button"
-        onClick={() => onMoveToOtherSide(match.id)}
-        className="mt-1.5 w-full rounded border border-white/10 py-1 text-[10px] font-bold text-white/50 hover:border-white/30 hover:text-white"
-      >
-        승자조 ↔ 패자조
-      </button>
+      <div className="mt-1.5 flex gap-1">
+        <button
+          type="button"
+          disabled={isFirst}
+          onClick={() => onMoveUp(match.id)}
+          className="rounded border border-white/10 px-2 py-1 text-[10px] font-bold text-white/60 hover:border-white/30 hover:text-white disabled:opacity-20"
+          aria-label="이 경기를 위로 이동"
+        >
+          ↑
+        </button>
+        <button
+          type="button"
+          disabled={isLast}
+          onClick={() => onMoveDown(match.id)}
+          className="rounded border border-white/10 px-2 py-1 text-[10px] font-bold text-white/60 hover:border-white/30 hover:text-white disabled:opacity-20"
+          aria-label="이 경기를 아래로 이동"
+        >
+          ↓
+        </button>
+        <button
+          type="button"
+          onClick={() => onMoveToOtherSide(match.id)}
+          className="flex-1 rounded border border-white/10 py-1 text-[10px] font-bold text-white/50 hover:border-white/30 hover:text-white"
+        >
+          승자조 ↔ 패자조
+        </button>
+      </div>
       <select
         value={match.advancesToMatchId ?? ""}
         onChange={(event) => onSetAdvancesTo(match.id, event.target.value || null)}
@@ -125,19 +176,33 @@ function Card({
           );
         })}
       </select>
+      <div className="mt-1.5 flex items-center gap-1.5">
+        <span className="text-[10px] font-bold text-white/40" title="같은 라운드 안에서 독립적으로 진행되는 그룹(예: 그룹 A/B)을 구분한다. 기본 0">
+          그룹
+        </span>
+        <input
+          type="number"
+          min={0}
+          value={match.groupIndex}
+          onChange={(event) => onSetGroupIndex(match.id, Math.max(0, Number(event.target.value) || 0))}
+          className="w-14 rounded border border-white/10 bg-[#0a0e1a] px-1.5 py-1 text-[10px] font-semibold text-white/70"
+        />
+      </div>
     </div>
   );
 }
 
 export function TournamentBracketEditor({
   segmentKey,
-  tournamentId,
+  bracketStageId,
+  bracketStages,
   stages,
   initialBoard,
   matchOptions,
 }: {
   segmentKey: string;
-  tournamentId: string;
+  bracketStageId: string;
+  bracketStages: EditorBracketStage[];
   stages: EditorStage[];
   initialBoard: Board;
   matchOptions: MatchOptionGroup[];
@@ -244,6 +309,26 @@ export function TournamentBracketEditor({
     moveTo(stageId, isInUpper ? "lower" : "upper", null);
   }
 
+  function reorderCard(stageId: string, side: BracketSide, id: string, direction: "up" | "down") {
+    setBoard((prev) => {
+      const list = stageBoardOf(prev, stageId)[side];
+      const index = list.findIndex((item) => item.id === id);
+      if (index === -1) return prev;
+
+      const targetIndex = direction === "up" ? index - 1 : index + 1;
+      if (targetIndex < 0 || targetIndex >= list.length) return prev;
+
+      const nextList = [...list];
+      [nextList[index], nextList[targetIndex]] = [nextList[targetIndex], nextList[index]];
+
+      const next: Board = { ...prev, [stageId]: { ...stageBoardOf(prev, stageId), [side]: nextList } };
+
+      void persist([{ stageId, side, matchIds: nextList.map((item) => item.id) }]);
+
+      return next;
+    });
+  }
+
   async function setAdvancesTo(matchId: string, advancesToMatchId: string | null) {
     setBoard((prev) => {
       const next: Board = { ...prev };
@@ -269,9 +354,45 @@ export function TournamentBracketEditor({
     }
   }
 
+  async function setGroupIndex(matchId: string, groupIndex: number) {
+    setBoard((prev) => {
+      const next: Board = { ...prev };
+      for (const stageId of Object.keys(next)) {
+        for (const side of ["upper", "lower"] as const) {
+          const list = stageBoardOf(next, stageId)[side];
+          const index = list.findIndex((item) => item.id === matchId);
+          if (index === -1) continue;
+
+          const updatedList = [...list];
+          updatedList[index] = { ...updatedList[index], groupIndex };
+          next[stageId] = { ...stageBoardOf(next, stageId), [side]: updatedList };
+        }
+      }
+      return next;
+    });
+
+    setSaving(true);
+    const result = await setMatchGroupIndexAction(segmentKey, matchId, groupIndex);
+    setSaving(false);
+    if (!result.ok) {
+      window.alert(result.error);
+    }
+  }
+
   async function moveStage(stageId: string, direction: "left" | "right") {
     setSaving(true);
-    const result = await moveStageAction(segmentKey, tournamentId, stageId, direction);
+    const result = await moveStageAction(segmentKey, bracketStageId, stageId, direction);
+    setSaving(false);
+    if (!result.ok) {
+      window.alert(result.error);
+    }
+  }
+
+  async function moveStageToBracket(stageId: string, targetBracketStageId: string) {
+    if (!targetBracketStageId) return;
+
+    setSaving(true);
+    const result = await moveStageToBracketStageAction(segmentKey, stageId, targetBracketStageId);
     setSaving(false);
     if (!result.ok) {
       window.alert(result.error);
@@ -291,6 +412,31 @@ export function TournamentBracketEditor({
     }
   }
 
+  async function deleteMatch(matchId: string) {
+    if (!window.confirm("이 경기를 삭제할까요? 연결된 세트/평점 등도 함께 삭제되며 되돌릴 수 없습니다.")) {
+      return;
+    }
+
+    setBoard((prev) => {
+      const next: Board = { ...prev };
+      for (const stageId of Object.keys(next)) {
+        for (const side of ["upper", "lower"] as const) {
+          const list = stageBoardOf(next, stageId)[side];
+          if (!list.some((item) => item.id === matchId)) continue;
+          next[stageId] = { ...stageBoardOf(next, stageId), [side]: list.filter((item) => item.id !== matchId) };
+        }
+      }
+      return next;
+    });
+
+    setSaving(true);
+    const result = await deleteMatchAction(segmentKey, matchId);
+    setSaving(false);
+    if (!result.ok) {
+      window.alert(result.error);
+    }
+  }
+
   function renderList(stageId: string, side: BracketSide, list: EditorMatch[]) {
     return (
       <div
@@ -304,12 +450,14 @@ export function TournamentBracketEditor({
         {list.length === 0 ? (
           <p className="py-2 text-center text-[11px] text-white/25">여기로 끌어다 놓기</p>
         ) : (
-          list.map((match) => (
+          list.map((match, index) => (
             <Card
               key={match.id}
               match={match}
               matchOptions={matchOptions}
               isDragging={draggingId === match.id}
+              isFirst={index === 0}
+              isLast={index === list.length - 1}
               onDragStartCard={(id) => {
                 dragId.current = id;
                 setDraggingId(id);
@@ -320,7 +468,11 @@ export function TournamentBracketEditor({
               }}
               onDropBefore={(beforeId) => moveTo(stageId, side, beforeId)}
               onMoveToOtherSide={(matchId) => moveToOtherSide(stageId, matchId)}
+              onMoveUp={(matchId) => reorderCard(stageId, side, matchId, "up")}
+              onMoveDown={(matchId) => reorderCard(stageId, side, matchId, "down")}
               onSetAdvancesTo={setAdvancesTo}
+              onSetGroupIndex={setGroupIndex}
+              onDeleteMatch={deleteMatch}
             />
           ))
         )}
@@ -374,6 +526,27 @@ export function TournamentBracketEditor({
                 </button>
               </div>
             </div>
+
+            {bracketStages.length > 1 ? (
+              <select
+                defaultValue=""
+                onChange={(event) => {
+                  const targetId = event.target.value;
+                  event.target.value = "";
+                  void moveStageToBracket(stage.id, targetId);
+                }}
+                className="w-full rounded border border-white/10 bg-[#0a0e1a] px-2 py-1 text-[11px] font-semibold text-white/60"
+              >
+                <option value="">다른 브래킷으로 이동…</option>
+                {bracketStages
+                  .filter((bs) => bs.id !== bracketStageId)
+                  .map((bs) => (
+                    <option key={bs.id} value={bs.id}>
+                      {bs.name}
+                    </option>
+                  ))}
+              </select>
+            ) : null}
 
             <div className="flex flex-col gap-1.5">
               <span className="text-[10px] font-black uppercase tracking-widest text-white/40">승자조</span>

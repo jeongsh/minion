@@ -13,12 +13,15 @@ export function DataTable<T>({
   rows,
   emptyText = "표시할 데이터가 없습니다.",
   getRowHref,
+  compact = false,
 }: {
   columns: DataTableColumn<T>[];
   rows: T[];
   emptyText?: string;
   /** 지정하면 각 행 전체가 이 링크로 클릭 가능해진다(행 안 다른 링크/버튼과 겹치지 않는 표에서만 사용). */
   getRowHref?: (row: T) => string | undefined;
+  /** 컬럼이 적고 좁은 컨테이너(예: 2단 그리드)에 놓일 때 42rem 최소 너비를 강제하지 않는다. */
+  compact?: boolean;
 }) {
   if (rows.length === 0) {
     return (
@@ -30,7 +33,7 @@ export function DataTable<T>({
 
   return (
     <div className="overflow-x-auto rounded-md border border-border bg-surface">
-      <table className="w-full min-w-[42rem] border-collapse text-left text-sm">
+      <table className={`w-full border-collapse text-left text-sm ${compact ? "" : "min-w-[42rem]"}`}>
         <thead className="bg-surface-muted text-xs uppercase text-muted">
           <tr>
             {columns.map((column) => (

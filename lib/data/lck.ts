@@ -1,6 +1,7 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { canQuerySupabase, createSupabaseServerClient } from "@/lib/supabase/server";
 import type {
+  BracketStage,
   Champion,
   CommunityPost,
   FanMatchPrediction,
@@ -176,6 +177,7 @@ type MatchRow = {
   bracket_side?: "upper" | "lower" | null;
   bracket_order?: number | null;
   advances_to_match_id?: string | null;
+  group_index?: number | null;
 };
 
 type TournamentRow = {
@@ -193,6 +195,14 @@ type TournamentRow = {
 };
 
 type StageRow = {
+  id: string;
+  tournament_id: string;
+  bracket_stage_id: string;
+  name: string;
+  order_index: number;
+};
+
+type BracketStageRow = {
   id: string;
   tournament_id: string;
   name: string;
@@ -460,6 +470,7 @@ function mapMatch(row: MatchRow): Match {
     bracketSide: row.bracket_side ?? null,
     bracketOrder: row.bracket_order ?? null,
     advancesToMatchId: row.advances_to_match_id ?? null,
+    groupIndex: row.group_index ?? 0,
   };
 }
 
@@ -480,6 +491,16 @@ function mapTournament(row: TournamentRow): Tournament {
 }
 
 function mapStage(row: StageRow): Stage {
+  return {
+    id: row.id,
+    tournamentId: row.tournament_id,
+    bracketStageId: row.bracket_stage_id,
+    name: row.name,
+    orderIndex: row.order_index,
+  };
+}
+
+function mapBracketStage(row: BracketStageRow): BracketStage {
   return {
     id: row.id,
     tournamentId: row.tournament_id,
@@ -923,7 +944,7 @@ export async function getStages() {
   return fromSupabase(async () => {
     const { data, error } = await createSupabaseServerClient()
       .from("stages")
-      .select("id, tournament_id, name, order_index")
+      .select("id, tournament_id, bracket_stage_id, name, order_index")
       .order("order_index", { ascending: true });
 
     if (error) {
@@ -931,6 +952,21 @@ export async function getStages() {
     }
 
     return (data as StageRow[]).map(mapStage);
+  }, []);
+}
+
+export async function getBracketStages() {
+  return fromSupabase(async () => {
+    const { data, error } = await createSupabaseServerClient()
+      .from("bracket_stages")
+      .select("id, tournament_id, name, order_index")
+      .order("order_index", { ascending: true });
+
+    if (error) {
+      throw error;
+    }
+
+    return (data as BracketStageRow[]).map(mapBracketStage);
   }, []);
 }
 

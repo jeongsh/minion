@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const DRAG_THRESHOLD = 5;
 const MOMENTUM_FRICTION = 0.95;
@@ -28,8 +28,31 @@ export function BracketScroller({ children }: { children: React.ReactNode }) {
     velocity: 0,
   });
   const momentumFrame = useRef<number | null>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
 
   useEffect(() => stopMomentum, []);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+
+    function updateScrollState() {
+      if (!el) return;
+      setCanScrollLeft(el.scrollLeft > 1);
+      setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
+    }
+
+    updateScrollState();
+    el.addEventListener("scroll", updateScrollState, { passive: true });
+    const observer = new ResizeObserver(updateScrollState);
+    observer.observe(el);
+
+    return () => {
+      el.removeEventListener("scroll", updateScrollState);
+      observer.disconnect();
+    };
+  }, []);
 
   function stopMomentum() {
     if (momentumFrame.current !== null) {
@@ -112,14 +135,16 @@ export function BracketScroller({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="relative">
-      <button
-        type="button"
-        aria-label="이전 라운드"
-        onClick={() => slide(-1)}
-        className="absolute left-0 top-1/2 z-10 hidden -translate-y-1/2 items-center justify-center rounded-full border border-border bg-surface p-2 text-foreground shadow-md transition-colors hover:bg-surface-muted md:flex"
-      >
-        <SlideArrow direction="left" />
-      </button>
+      {canScrollLeft ? (
+        <button
+          type="button"
+          aria-label="이전 라운드"
+          onClick={() => slide(-1)}
+          className="absolute left-0 top-1/2 z-10 hidden -translate-y-1/2 items-center justify-center rounded-full border border-border bg-surface p-2 text-foreground shadow-md transition-colors hover:bg-surface-muted md:flex"
+        >
+          <SlideArrow direction="left" />
+        </button>
+      ) : null}
 
       <div
         ref={scrollRef}
@@ -134,14 +159,16 @@ export function BracketScroller({ children }: { children: React.ReactNode }) {
         {children}
       </div>
 
-      <button
-        type="button"
-        aria-label="다음 라운드"
-        onClick={() => slide(1)}
-        className="absolute right-0 top-1/2 z-10 hidden -translate-y-1/2 items-center justify-center rounded-full border border-border bg-surface p-2 text-foreground shadow-md transition-colors hover:bg-surface-muted md:flex"
-      >
-        <SlideArrow direction="right" />
-      </button>
+      {canScrollRight ? (
+        <button
+          type="button"
+          aria-label="다음 라운드"
+          onClick={() => slide(1)}
+          className="absolute right-0 top-1/2 z-10 hidden -translate-y-1/2 items-center justify-center rounded-full border border-border bg-surface p-2 text-foreground shadow-md transition-colors hover:bg-surface-muted md:flex"
+        >
+          <SlideArrow direction="right" />
+        </button>
+      ) : null}
     </div>
   );
 }
