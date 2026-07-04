@@ -244,15 +244,17 @@ function TeamRow({
   score,
   isWinner,
   accentColor,
+  rowIndex,
 }: {
   team: Team | undefined;
   placeholder?: string;
   score: number | null;
   isWinner: boolean;
   accentColor: string;
+  rowIndex: 0 | 1;
 }) {
   return (
-    <div className="flex items-center gap-2 px-2.5 py-1.5">
+    <div data-team-row={rowIndex} className="flex items-center gap-2 px-2.5 py-1.5">
       <span
         className="h-5 w-1 shrink-0 self-stretch rounded-full"
         style={{ backgroundColor: accentColor }}
@@ -269,7 +271,7 @@ function TeamRow({
           isWinner ? "font-bold text-foreground" : "font-medium text-muted"
         }`}
       >
-        {team?.shortName ?? placeholder ?? "TBD"}
+        {team?.name ?? placeholder ?? "TBD"}
       </span>
       <span
         className={`shrink-0 text-xs tabular-nums ${
@@ -302,9 +304,21 @@ function MatchCard({
       data-match-id={match.id}
       className="block overflow-hidden rounded-md border border-border bg-surface transition-colors hover:border-accent"
     >
-      <TeamRow team={teamA} score={match.teamAScore} isWinner={winnerA} accentColor={teamA?.primaryColor ?? accent} />
+      <TeamRow
+        team={teamA}
+        score={match.teamAScore}
+        isWinner={winnerA}
+        accentColor={teamA?.primaryColor ?? accent}
+        rowIndex={0}
+      />
       <div className="h-px bg-border" />
-      <TeamRow team={teamB} score={match.teamBScore} isWinner={winnerB} accentColor={teamB?.primaryColor ?? accent} />
+      <TeamRow
+        team={teamB}
+        score={match.teamBScore}
+        isWinner={winnerB}
+        accentColor={teamB?.primaryColor ?? accent}
+        rowIndex={1}
+      />
     </Link>
   );
 }
@@ -336,6 +350,7 @@ function GrandFinalsCard({
         score={match.teamAScore}
         isWinner={winnerA}
         accentColor={teamA?.primaryColor ?? accent}
+        rowIndex={0}
       />
       <div className="h-px bg-border" />
       <TeamRow
@@ -344,6 +359,7 @@ function GrandFinalsCard({
         score={match.teamBScore}
         isWinner={winnerB}
         accentColor={teamB?.primaryColor ?? accent}
+        rowIndex={1}
       />
     </Link>
   );
@@ -560,11 +576,27 @@ function BracketGrid({
   const useGroupLabels = groups.length > 1;
   const firstContentRow = groups[0]?.upperRow ?? UPPER_ROW;
 
+  const matchById = new Map(columns.flatMap((column) => column.matches).map((match) => [match.id, match]));
+
   const connections: BracketConnection[] = [];
   for (const column of columns) {
     for (const match of column.matches) {
       if (match.advancesToMatchId) {
-        connections.push({ fromMatchId: match.id, toMatchId: match.advancesToMatchId });
+        const toMatch = matchById.get(match.advancesToMatchId);
+        const fromRow: 0 | 1 | undefined = match.winnerTeamId
+          ? match.winnerTeamId === match.teamAId
+            ? 0
+            : 1
+          : undefined;
+        const toRow: 0 | 1 | undefined =
+          toMatch && match.winnerTeamId
+            ? toMatch.teamAId === match.winnerTeamId
+              ? 0
+              : toMatch.teamBId === match.winnerTeamId
+                ? 1
+                : undefined
+            : undefined;
+        connections.push({ fromMatchId: match.id, toMatchId: match.advancesToMatchId, fromRow, toRow });
       }
     }
   }
@@ -574,7 +606,7 @@ function BracketGrid({
       <div
         className="grid gap-x-4 gap-y-2"
         style={{
-          gridTemplateColumns: `repeat(${trackColumnCount}, 14rem)${finalsColumn ? " 15rem" : ""}`,
+          gridTemplateColumns: `repeat(${trackColumnCount}, 12.5rem)${finalsColumn ? " 13.5rem" : ""}`,
         }}
       >
         {gapRows.map((row) => (
@@ -645,7 +677,7 @@ function BracketGrid({
 
         {finalsColumn && finalsMatch ? (
           <div
-            data-finals-slot="true"
+            data-merge-slot="true"
             style={{
               gridColumn: trackColumnCount + 1,
               gridRow: `${firstContentRow} / span ${lastRow - firstContentRow + 1}`,
@@ -746,6 +778,7 @@ export default async function TournamentBracketPage({
       : "1";
     const activeView: "standings" | "bracket" = search.view === "bracket" ? "bracket" : "standings";
     const viewLabels = LCK_SPLIT_VIEW_LABELS[activeSplit];
+    const activePhase: "playin" | "playoffs" = search.phase === "playoffs" ? "playoffs" : "playin";
 
     const bracketOrEmpty = (columns: StageColumn[]) =>
       columns.length === 0 ? (
@@ -760,7 +793,8 @@ export default async function TournamentBracketPage({
         </div>
       );
 
-    // 스플릿 1: LCK컵 — Week 스테이지는 크로스 그룹 순위, 나머지(플레이인/플레이오프/결승)는 토너먼트.
+    // 스플릿 1: LCK컵 — Week 스테이지는 크로스 그룹 순위, 나머지(플레이인/플레이오프)는 각각 따로
+    // 토너먼트로 보여준다(스플릿 3과 동일한 패턴).
     const cupTournamentIds = new Set(
       activeTournaments.filter((tournament) => tournament.split === "Cup").map((tournament) => tournament.id),
     );
@@ -768,7 +802,18 @@ export default async function TournamentBracketPage({
     const cupWeekStages = cupStages.filter((stage) => isWeekStage(stage.name));
     const cupOtherStages = cupStages.filter((stage) => !isWeekStage(stage.name));
     const cupWeekMatches = segmentMatches.filter((match) => cupWeekStages.some((stage) => stage.id === match.stageId));
-    const cupBracketColumns = buildStageColumns(cupOtherStages, segmentMatches);
+
+    const cupBracketStages = bracketStages.filter((bracketStage) => cupTournamentIds.has(bracketStage.tournamentId));
+    const cupPlayInBracketStage = cupBracketStages.find((bracketStage) => /플레이.?인/.test(bracketStage.name));
+    const cupPlayoffBracketStage = cupBracketStages.find((bracketStage) => /플레이오프/.test(bracketStage.name));
+    const cupPlayInColumns = buildStageColumns(
+      cupOtherStages.filter((stage) => stage.bracketStageId === cupPlayInBracketStage?.id),
+      segmentMatches,
+    );
+    const cupPlayoffColumns = buildStageColumns(
+      cupOtherStages.filter((stage) => stage.bracketStageId === cupPlayoffBracketStage?.id),
+      segmentMatches,
+    );
 
     let split1Standings: React.ReactNode = (
       <p className="rounded-lg border border-border bg-surface px-5 py-10 text-center text-sm text-muted">
@@ -842,7 +887,6 @@ export default async function TournamentBracketPage({
       );
     }
 
-    const activePhase: "playin" | "playoffs" = search.phase === "playoffs" ? "playoffs" : "playin";
     const playInTournamentIds = new Set(
       activeTournaments.filter((tournament) => tournament.split === "Season Play-In").map((tournament) => tournament.id),
     );
@@ -855,6 +899,7 @@ export default async function TournamentBracketPage({
     const playoffsStages = segmentStages.filter((stage) => playoffsTournamentIds.has(stage.tournamentId));
     const playoffsColumns = buildStageColumns(playoffsStages, segmentMatches);
 
+    const split1Bracket = bracketOrEmpty(activePhase === "playoffs" ? cupPlayoffColumns : cupPlayInColumns);
     const split3Bracket = bracketOrEmpty(activePhase === "playoffs" ? playoffsColumns : playInColumns);
 
     const splitStandingsContent: Record<LckSplitKey, React.ReactNode> = {
@@ -863,7 +908,7 @@ export default async function TournamentBracketPage({
       "3": split3Standings,
     };
     const splitBracketContent: Record<LckSplitKey, React.ReactNode> = {
-      "1": bracketOrEmpty(cupBracketColumns),
+      "1": split1Bracket,
       "2": bracketOrEmpty(roadToMsiColumns),
       "3": split3Bracket,
     };
@@ -882,7 +927,7 @@ export default async function TournamentBracketPage({
           />
         </div>
 
-        {activeSplit === "3" ? (
+        {activeSplit === "1" || activeSplit === "3" ? (
           <div className="flex flex-wrap gap-2">
             {(
               [
@@ -893,7 +938,7 @@ export default async function TournamentBracketPage({
             ).map((tab) => {
               const isActive =
                 tab.key === "standings" ? activeView === "standings" : activeView === "bracket" && activePhase === tab.key;
-              const query = new URLSearchParams({ year: String(activeSeason), split: "3", ...tab.query });
+              const query = new URLSearchParams({ year: String(activeSeason), split: activeSplit, ...tab.query });
 
               return (
                 <Link

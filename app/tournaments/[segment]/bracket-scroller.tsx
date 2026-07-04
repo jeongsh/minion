@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-const DRAG_THRESHOLD = 5;
+const DRAG_THRESHOLD = 10;
 const MOMENTUM_FRICTION = 0.95;
 const MOMENTUM_MIN_VELOCITY = 0.05;
 
@@ -95,7 +95,10 @@ export function BracketScroller({ children }: { children: React.ReactNode }) {
       lastTime: now,
       velocity: 0,
     };
-    el.setPointerCapture(e.pointerId);
+    // 여기서 바로 포인터를 캡처하면(드래그가 아니라 단순 클릭이어도) 이후 pointerup/click이
+    // 전부 이 스크롤러로만 향하게 되어, 카드 안 링크가 클릭되지 않는다. 그래서 실제로 드래그
+    // 임계값을 넘은 뒤(onPointerMove)에만 캡처해서, 일반 클릭은 원래 타겟(링크)에 그대로
+    // 도달하게 한다.
   }
 
   function onPointerMove(e: React.PointerEvent<HTMLDivElement>) {
@@ -103,7 +106,10 @@ export function BracketScroller({ children }: { children: React.ReactNode }) {
     const state = dragState.current;
     if (!el || !state.isDown) return;
     const delta = e.clientX - state.startX;
-    if (Math.abs(delta) > DRAG_THRESHOLD) state.moved = true;
+    if (Math.abs(delta) > DRAG_THRESHOLD && !state.moved) {
+      state.moved = true;
+      el.setPointerCapture(e.pointerId);
+    }
     el.scrollLeft = state.startScrollLeft - delta;
 
     const now = performance.now();
