@@ -11,7 +11,7 @@ import {
 import { matchesTournamentSegment } from "@/lib/tournaments/season-2026";
 import type { Match, Team, Tournament } from "@/lib/types";
 
-import { createBracketStageAction, createStageAction, updateTournamentScheduleAction } from "./actions";
+import { createBracketStageAction, createStageAction } from "./actions";
 import { BracketStageTabs, type BracketStageTab } from "./bracket-stage-tabs";
 import {
   TournamentBracketEditor,
@@ -39,8 +39,6 @@ const LCK_SPLIT_GROUP_BY_RAW_SPLIT: Record<string, "1" | "2" | "3"> = {
   "Season Play-In": "3",
   "Season Playoffs": "3",
 };
-const MONTH_OPTIONS = Array.from({ length: 12 }, (_, index) => index + 1);
-
 function formatMatchDateShort(value: string) {
   return new Intl.DateTimeFormat("ko-KR", {
     timeZone: "Asia/Seoul",
@@ -190,9 +188,6 @@ export default async function AdminTournamentsPage({
           .filter((option): option is SplitOption => Boolean(option))
       : [];
   const primaryTournamentId = activeSplit?.tournamentId ?? activeTournaments[0]?.id ?? null;
-  const primaryTournament = activeTournaments.find((tournament) => tournament.id === primaryTournamentId) ?? null;
-  const currentStartMonth = primaryTournament?.startDate ? Number(primaryTournament.startDate.split("-")[1]) : 1;
-  const currentEndMonth = primaryTournament?.endDate ? Number(primaryTournament.endDate.split("-")[1]) : 12;
 
   // LCK컵(스플릿 1)의 "Week" 스테이지는 브래킷이 아니라 공개 페이지에서 순위표로 따로
   // 보여주므로, 라운드 편집기에도 노출하지 않는다.
@@ -318,52 +313,6 @@ export default async function AdminTournamentsPage({
           activeKey={activeSplit?.key ?? ""}
         />
       )}
-
-      {primaryTournament?.split ? (
-        <form
-          key={primaryTournamentId}
-          action={updateTournamentScheduleAction}
-          className="flex flex-wrap items-end gap-2 rounded-lg border border-border bg-surface p-4"
-        >
-          <input type="hidden" name="segmentKey" value={segmentTheme.key} />
-          <input type="hidden" name="splitKey" value={primaryTournament.split} />
-          <input type="hidden" name="season" value={activeSeason} />
-          <label className="flex flex-col gap-1 text-sm font-semibold text-foreground">
-            일정 (시작월 ~ 종료월)
-            <div className="flex items-center gap-2">
-              <select
-                name="startMonth"
-                defaultValue={currentStartMonth}
-                className="rounded-md border border-border bg-background px-3 py-2 text-sm"
-              >
-                {MONTH_OPTIONS.map((month) => (
-                  <option key={month} value={month}>
-                    {month}월
-                  </option>
-                ))}
-              </select>
-              <span className="text-muted">~</span>
-              <select
-                name="endMonth"
-                defaultValue={currentEndMonth}
-                className="rounded-md border border-border bg-background px-3 py-2 text-sm"
-              >
-                {MONTH_OPTIONS.map((month) => (
-                  <option key={month} value={month}>
-                    {month}월
-                  </option>
-                ))}
-              </select>
-            </div>
-          </label>
-          <button
-            type="submit"
-            className="rounded-md bg-foreground px-4 py-2 text-sm font-semibold text-background"
-          >
-            저장
-          </button>
-        </form>
-      ) : null}
 
       {primaryTournamentId ? (
         <section className="flex flex-wrap items-start gap-3">

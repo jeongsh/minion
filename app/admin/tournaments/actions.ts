@@ -3,7 +3,6 @@
 import { revalidatePath } from "next/cache";
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { segmentForTournament } from "@/lib/tournaments/season-2026";
 
 export type SaveBracketLayoutResult = { ok: true } | { ok: false; error: string };
 
@@ -463,75 +462,3 @@ export async function deleteMatchAction(segmentKey: string, matchId: string): Pr
   }
 }
 
-/**
- * 대회 카드/상세 페이지 상단에 나오는 일정(예: "1월 ~ 2월")을 관리자가 직접 고친다.
- * 날짜가 아니라 월 단위로만 받는다 — 시작월 1일부터 종료월 마지막 날까지로 저장한다.
- * 같은 스플릿이 두 소스(gol.gg/Leaguepedia)에서 중복 수집된 경우가 있어, 특정 대회 하나만
- * 고치면 공개 페이지의 집계(전체 대회 중 최소 시작일~최대 종료일)가 어긋날 수 있다. 그래서
- * 같은 세그먼트·시즌·스플릿에 속한 대회를 전부 찾아 함께 갱신한다.
- */
-export async function updateTournamentScheduleAction(formData: FormData): Promise<void> {
-  const segmentKey = String(formData.get("segmentKey") ?? "");
-  const season = Number(formData.get("season"));
-  const splitKey = String(formData.get("splitKey") ?? "");
-  const startMonth = Number(formData.get("startMonth"));
-  const endMonth = Number(formData.get("endMonth"));
-
-  if (!segmentKey || !splitKey) {
-    throw new Error("대회를 찾을 수 없습니다.");
-  }
-  if (!Number.isInteger(season)) {
-    throw new Error("시즌 연도를 확인해주세요.");
-  }
-  if (!Number.isInteger(startMonth) || startMonth < 1 || startMonth > 12) {
-    throw new Error("시작월은 1~12 사이여야 합니다.");
-  }
-  if (!Number.isInteger(endMonth) || endMonth < 1 || endMonth > 12) {
-    throw new Error("종료월은 1~12 사이여야 합니다.");
-  }
-
-  const supabase = createSupabaseAdminClient();
-
-  const { data: candidates, error: fetchError } = await supabase
-    .from("tournaments")
-    .select("id, season, split, league, source_tournament_id")
-    .eq("season", season)
-    .eq("split", splitKey);
-
-  if (fetchError) {
-    throw fetchError;
-  }
-
-  const matchingIds = (candidates ?? [])
-    .filter(
-      (row) =>
-        segmentForTournament({
-          season: row.season,
-          sourceTournamentId: row.source_tournament_id,
-          split: row.split,
-          league: row.league,
-        }) === segmentKey,
-    )
-    .map((row) => row.id);
-
-  if (matchingIds.length === 0) {
-    throw new Error("대회를 찾을 수 없습니다.");
-  }
-
-  const startDate = `${season}-${String(startMonth).padStart(2, "0")}-01`;
-  const lastDayOfEndMonth = new Date(season, endMonth, 0).getDate();
-  const endDate = `${season}-${String(endMonth).padStart(2, "0")}-${String(lastDayOfEndMonth).padStart(2, "0")}`;
-
-  const { error } = await supabase
-    .from("tournaments")
-    .update({ start_date: startDate, end_date: endDate })
-    .in("id", matchingIds);
-
-  if (error) {
-    throw error;
-  }
-
-  revalidatePath("/admin/tournaments");
-  revalidatePath(`/tournaments/${segmentKey}`);
-  revalidatePath("/tournaments");
-}
