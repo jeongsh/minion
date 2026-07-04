@@ -1,3 +1,4 @@
+import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { SectionHeader } from "@/components/layout/section-header";
 import { getChampions } from "@/lib/data/lck";
 import type { Champion } from "@/lib/types";
@@ -54,7 +55,10 @@ export default async function AdminChampionsPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-[var(--page-inline)] py-10">
-      <SectionHeader eyebrow="관리자" title="챔피언 관리" />
+      <div className="flex flex-col gap-2">
+        <Breadcrumb items={[{ label: "관리자", href: "/admin" }, { label: "챔피언 관리" }]} />
+        <SectionHeader title="챔피언 관리" />
+      </div>
 
       <section className="flex flex-col gap-4" aria-labelledby="champion-mapping">
         <div>

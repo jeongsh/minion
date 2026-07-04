@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { SectionHeader } from "@/components/layout/section-header";
 import { getHomeHeroSlides } from "@/lib/data/lck";
 import type { HomeHeroSlide } from "@/lib/types";
@@ -18,8 +19,9 @@ export default async function AdminHomeSliderPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-[var(--page-inline)] py-10">
+      <Breadcrumb items={[{ label: "관리자", href: "/admin" }, { label: "홈 상단 슬라이더 관리" }]} />
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <SectionHeader eyebrow="관리자" title="홈 상단 슬라이더 관리" />
+        <SectionHeader title="홈 상단 슬라이더 관리" />
         <div className="flex flex-wrap items-center gap-2">
           <SlideFormModal mode="create" />
           <Link

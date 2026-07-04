@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { SectionHeader } from "@/components/layout/section-header";
 import { DataTable } from "@/components/ui/data-table";
 import {
@@ -49,11 +50,17 @@ export default async function AdminMatchEditPage({
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-[var(--page-inline)] py-10">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <SectionHeader eyebrow="경기 관리" title={`${teamLabel(teams, match.teamAId)} vs ${teamLabel(teams, match.teamBId)}`} />
+        <div className="flex flex-col gap-2">
+          <Breadcrumb
+            items={[
+              { label: "관리자", href: "/admin" },
+              { label: "경기 관리", href: "/admin/matches" },
+              { label: `${teamLabel(teams, match.teamAId)} vs ${teamLabel(teams, match.teamBId)}` },
+            ]}
+          />
+          <SectionHeader title={`${teamLabel(teams, match.teamAId)} vs ${teamLabel(teams, match.teamBId)}`} />
+        </div>
         <div className="flex items-center gap-4 text-sm font-medium text-muted">
-          <Link href="/admin/matches" className="hover:text-foreground hover:underline">
-            ← 경기 목록
-          </Link>
           <Link href={matchHref(match)} className="hover:text-foreground hover:underline">
             공개 페이지
           </Link>

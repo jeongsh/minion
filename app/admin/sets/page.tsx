@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { SectionHeader } from "@/components/layout/section-header";
 import { DataTable } from "@/components/ui/data-table";
 import { getAllTeams, getMatches, getSets } from "@/lib/data/lck";
@@ -28,7 +29,10 @@ export default async function AdminSetsPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-[var(--page-inline)] py-10">
-      <SectionHeader eyebrow="관리자" title="세트 관리" />
+      <div className="flex flex-col gap-2">
+        <Breadcrumb items={[{ label: "관리자", href: "/admin" }, { label: "세트 관리" }]} />
+        <SectionHeader title="세트 관리" />
+      </div>
 
       <section className="rounded-md border border-border bg-surface p-5">
         <h2 className="text-[16px] font-semibold">세트 생성</h2>

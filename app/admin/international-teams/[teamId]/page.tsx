@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { SectionHeader } from "@/components/layout/section-header";
 import { getPlayersByTeamId, getTeamById } from "@/lib/data/lck";
 import type { Player } from "@/lib/types";
@@ -72,10 +72,14 @@ export default async function AdminInternationalTeamDetailPage({
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-[var(--page-inline)] py-10">
       <div className="flex flex-col gap-2">
-        <Link href="/admin/international-teams" className="text-sm text-muted hover:text-foreground">
-          ← 해외팀 목록
-        </Link>
-        <SectionHeader eyebrow="해외팀 관리" title={team.name} />
+        <Breadcrumb
+          items={[
+            { label: "관리자", href: "/admin" },
+            { label: "해외팀 관리", href: "/admin/international-teams" },
+            { label: team.name },
+          ]}
+        />
+        <SectionHeader title={team.name} />
         <p className="text-sm text-muted">
           {team.slug} · {team.leaguepediaPage || "Leaguepedia page 없음"}
         </p>
