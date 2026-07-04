@@ -1278,7 +1278,7 @@ begin
       'X-Vercel-Protection-Bypass', v_vercel_bypass,
       'User-Agent', 'Supabase-Cron/LCKHub-Minion'
     ),
-    timeout_milliseconds := 55000
+    timeout_milliseconds := 280000
   ) into v_request_id;
 
   return v_request_id;

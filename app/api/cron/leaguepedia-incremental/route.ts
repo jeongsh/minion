@@ -4,7 +4,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { syncLeaguepediaLck2026 } from "@/lib/sync/leaguepedia-lck-2026";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 export async function GET(request: Request) {
   const cronSecret = process.env.CRON_SECRET;
