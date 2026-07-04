@@ -15,6 +15,7 @@ import {
   LeaguepediaRateLimitError,
   syncLeaguepediaMatchSets,
 } from "@/lib/sync/leaguepedia-match-sets";
+import { syncLeaguepediaTimelineForSet } from "@/lib/sync/leaguepedia-timeline";
 
 type MatchRow = {
   id: string;
@@ -76,6 +77,7 @@ export type LolesportsAutomationSummary = {
   snapshottedSets: Array<{ matchId: string; setNumbers: number[] }>;
   detailedSets: Array<{ matchId: string; setNumbers: number[] }>;
   enrichedSets: Array<{ matchId: string; setNumbers: number[] }>;
+  timelineSets: Array<{ matchId: string; setNumber: number; eventCount: number }>;
   deliveredNotificationCount: number;
   warnings: string[];
 };
@@ -298,6 +300,66 @@ async function runLeaguepediaEnrichment({
   }
 }
 
+async function runTimelineEnrichment({ matchId, now }: { matchId: string; now: Date }) {
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("set_result_snapshots")
+    .select("id, set_id, set_number, timeline_sync_attempts")
+    .eq("match_id", matchId)
+    .neq("timeline_sync_status", "succeeded")
+    .or(`timeline_retry_at.is.null,timeline_retry_at.lte.${now.toISOString()}`)
+    .order("created_at", { ascending: true })
+    .limit(1);
+  if (error) throw new Error(`Failed to load timeline enrichment queue: ${error.message}`);
+  const row = data?.[0];
+  if (!row) return null;
+
+  const retryAt = new Date(now.getTime() + 10 * 60 * 1000).toISOString();
+  const attempts = (row.timeline_sync_attempts ?? 0) + 1;
+  try {
+    const result = await syncLeaguepediaTimelineForSet(supabase, row.set_id);
+    if (result.status === "succeeded") {
+      const { error: updateError } = await supabase
+        .from("set_result_snapshots")
+        .update({
+          timeline_sync_status: "succeeded",
+          timeline_sync_attempts: attempts,
+          timeline_retry_at: null,
+          timeline_last_error: null,
+          timeline_synced_at: now.toISOString(),
+          timeline_event_count: result.eventCount,
+        })
+        .eq("id", row.id);
+      if (updateError) throw updateError;
+      return { setNumber: row.set_number, eventCount: result.eventCount };
+    }
+
+    const { error: updateError } = await supabase
+      .from("set_result_snapshots")
+      .update({
+        timeline_sync_status: result.status,
+        timeline_sync_attempts: attempts,
+        timeline_retry_at: retryAt,
+        timeline_last_error: result.reason,
+      })
+      .eq("id", row.id);
+    if (updateError) throw updateError;
+    return null;
+  } catch (timelineError) {
+    const message = errorMessage(timelineError);
+    await supabase
+      .from("set_result_snapshots")
+      .update({
+        timeline_sync_status: "failed",
+        timeline_sync_attempts: attempts,
+        timeline_retry_at: retryAt,
+        timeline_last_error: message.slice(0, 1000),
+      })
+      .eq("id", row.id);
+    return null;
+  }
+}
+
 async function deliverPendingDiscordEvents() {
   const webhookUrl = process.env.DISCORD_MATCH_WEBHOOK_URL;
   if (!webhookUrl) return { delivered: 0, warning: "DISCORD_MATCH_WEBHOOK_URL is not configured" };
@@ -367,6 +429,7 @@ export async function runLolesportsRatingAutomation(
       snapshottedSets: [],
       detailedSets: [],
       enrichedSets: [],
+      timelineSets: [],
       deliveredNotificationCount: beforeDelivery.delivered,
       warnings,
     };
@@ -408,6 +471,7 @@ export async function runLolesportsRatingAutomation(
   const snapshottedSets: Array<{ matchId: string; setNumbers: number[] }> = [];
   const detailedSets: Array<{ matchId: string; setNumbers: number[] }> = [];
   const enrichedSets: Array<{ matchId: string; setNumbers: number[] }> = [];
+  const timelineSets: Array<{ matchId: string; setNumber: number; eventCount: number }> = [];
 
   for (const candidate of candidates) {
     const external = findLolesportsMatch(candidate, events);
@@ -560,6 +624,12 @@ export async function runLolesportsRatingAutomation(
         const message = errorMessage(enrichmentError);
         warnings.push(`Match ${candidate.id}: Leaguepedia enrichment workflow failed: ${message}`);
       }
+      try {
+        const timeline = await runTimelineEnrichment({ matchId: match.id, now });
+        if (timeline) timelineSets.push({ matchId: match.id, ...timeline });
+      } catch (timelineError) {
+        warnings.push(`Match ${candidate.id}: timeline enrichment workflow failed: ${errorMessage(timelineError)}`);
+      }
     }
     if (result.matchCompleted) completedMatchIds.push(candidate.id);
     revalidatePath(`/matches/${candidate.id}`);
@@ -581,6 +651,7 @@ export async function runLolesportsRatingAutomation(
     snapshottedSets,
     detailedSets,
     enrichedSets,
+    timelineSets,
     deliveredNotificationCount: beforeDelivery.delivered + afterDelivery.delivered,
     warnings,
   };
