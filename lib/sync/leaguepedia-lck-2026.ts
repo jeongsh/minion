@@ -9,7 +9,7 @@ import { SEASON_2026_TOURNAMENTS, type SeasonTournamentConfig } from "../tournam
 import { fetchAuthenticatedLeaguepediaApi } from "./leaguepedia-api.ts";
 
 const REQUEST_DELAY_MS = 3000;
-const MAX_RETRIES = 8;
+const MAX_RETRIES = 5;
 
 export type LeaguepediaSyncMode = "incremental" | "full";
 
@@ -192,8 +192,14 @@ function formatCargoDateTime(isoDate: string) {
   return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())} ${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}:${pad(date.getUTCSeconds())}`;
 }
 
-function buildWhereClause(overviewPage: string, cursorIso: string | null, mode: LeaguepediaSyncMode) {
-  const base = `MS.OverviewPage="${overviewPage}"`;
+function escapeCargoValue(value: string) {
+  return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+}
+
+function buildWhereClause(overviewPages: string[], cursorIso: string | null, mode: LeaguepediaSyncMode) {
+  const base = `(${overviewPages
+    .map((overviewPage) => `MS.OverviewPage="${escapeCargoValue(overviewPage)}"`)
+    .join(" OR ")})`;
   if (mode !== "incremental" || !cursorIso) {
     return base;
   }
@@ -257,14 +263,14 @@ async function cargoQuery(
 }
 
 async function fetchTournamentMatches(
-  overviewPage: string,
+  overviewPages: string[],
   cursorIso: string | null,
   mode: LeaguepediaSyncMode,
   onRetry?: (waitMs: number) => void,
 ) {
   const rows: CargoMatchRow[] = [];
   let offset = 0;
-  const where = buildWhereClause(overviewPage, cursorIso, mode);
+  const where = buildWhereClause(overviewPages, cursorIso, mode);
 
   while (true) {
     const batch = await cargoQuery(
@@ -290,6 +296,23 @@ async function fetchTournamentMatches(
   }
 
   return rows;
+}
+
+function matchesByOverviewPage(rows: CargoMatchRow[]) {
+  const grouped = new Map<string, CargoMatchRow[]>();
+
+  for (const row of rows) {
+    const overviewPage = row.OverviewPage?.trim();
+    if (!overviewPage) continue;
+    const existing = grouped.get(overviewPage);
+    if (existing) {
+      existing.push(row);
+    } else {
+      grouped.set(overviewPage, [row]);
+    }
+  }
+
+  return grouped;
 }
 
 async function getRequiredTeams(supabase: SupabaseClient) {
@@ -421,10 +444,41 @@ async function findOrCreateStage(
     return existing.id;
   }
 
+  const { data: existingBracketStage, error: bracketStageSelectError } = await supabase
+    .from("bracket_stages")
+    .select("id")
+    .eq("tournament_id", tournamentId)
+    .order("order_index", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (bracketStageSelectError) {
+    throw bracketStageSelectError;
+  }
+
+  let bracketStageId = existingBracketStage?.id;
+  if (!bracketStageId) {
+    const { data: createdBracketStage, error: bracketStageInsertError } = await supabase
+      .from("bracket_stages")
+      .insert({
+        tournament_id: tournamentId,
+        name: "메인 브래킷",
+        order_index: 0,
+      })
+      .select("id")
+      .single();
+
+    if (bracketStageInsertError) {
+      throw bracketStageInsertError;
+    }
+    bracketStageId = createdBracketStage.id;
+  }
+
   const { data, error } = await supabase
     .from("stages")
     .insert({
       tournament_id: tournamentId,
+      bracket_stage_id: bracketStageId,
       name: stageName,
       order_index: index,
     })
@@ -632,21 +686,27 @@ export async function syncInternationalMatches2026(
     skipped: [],
   };
 
+  let fetchedRows: CargoMatchRow[];
+  try {
+    fetchedRows = await fetchTournamentMatches(
+      tournamentConfigs.map((tournament) => tournament.overviewPage),
+      cursor,
+      mode,
+      onRetry,
+    );
+  } catch (err) {
+    summary.skipped.push({
+      reason: `leaguepedia_fetch_error:${(err as Error).message}`,
+    });
+    return summary;
+  }
+  summary.matchesFetched = fetchedRows.length;
+  const rowsByOverviewPage = matchesByOverviewPage(fetchedRows);
+
   for (const tournament of tournamentConfigs) {
     const tournamentId = await findOrCreateTournament(supabase, tournament);
     summary.tournaments += 1;
-
-    let rows: CargoMatchRow[];
-    try {
-      rows = await fetchTournamentMatches(tournament.overviewPage, cursor, mode, onRetry);
-    } catch (err) {
-      summary.skipped.push({
-        reason: `leaguepedia_fetch_error:${tournament.overviewPage}:${(err as Error).message}`,
-      });
-      await sleep(REQUEST_DELAY_MS);
-      continue;
-    }
-    summary.matchesFetched += rows.length;
+    const rows = rowsByOverviewPage.get(tournament.overviewPage) ?? [];
 
     const stageOrder = new Map<string, number>();
     const seenStages = new Set<string>();
@@ -769,7 +829,6 @@ export async function syncInternationalMatches2026(
       summary.matchesCreated += 1;
     }
 
-    await sleep(REQUEST_DELAY_MS);
   }
 
   return summary;
@@ -809,21 +868,27 @@ export async function syncLeaguepediaLck2026(
     skipped: [],
   };
 
+  let fetchedRows: CargoMatchRow[];
+  try {
+    fetchedRows = await fetchTournamentMatches(
+      tournamentConfigs.map((tournament) => tournament.overviewPage),
+      cursor,
+      mode,
+      onRetry,
+    );
+  } catch (err) {
+    summary.skipped.push({
+      reason: `leaguepedia_fetch_error:${(err as Error).message}`,
+    });
+    return summary;
+  }
+  summary.matchesFetched = fetchedRows.length;
+  const rowsByOverviewPage = matchesByOverviewPage(fetchedRows);
+
   for (const tournament of tournamentConfigs) {
     const tournamentId = await findOrCreateTournament(supabase, tournament);
     summary.tournaments += 1;
-
-    let rows: CargoMatchRow[];
-    try {
-      rows = await fetchTournamentMatches(tournament.overviewPage, cursor, mode, onRetry);
-    } catch (err) {
-      summary.skipped.push({
-        reason: `leaguepedia_fetch_error:${tournament.overviewPage}:${(err as Error).message}`,
-      });
-      await sleep(REQUEST_DELAY_MS);
-      continue;
-    }
-    summary.matchesFetched += rows.length;
+    const rows = rowsByOverviewPage.get(tournament.overviewPage) ?? [];
 
     const stageOrder = new Map<string, number>();
     const seenStages = new Set<string>();
@@ -931,7 +996,6 @@ export async function syncLeaguepediaLck2026(
       summary.matchesCreated += 1;
     }
 
-    await sleep(REQUEST_DELAY_MS);
   }
 
   return summary;
