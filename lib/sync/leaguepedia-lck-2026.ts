@@ -6,8 +6,8 @@ import {
   normalizeLeaguepediaKey,
 } from "../leaguepedia-identity.ts";
 import { SEASON_2026_TOURNAMENTS, type SeasonTournamentConfig } from "../tournaments/season-2026.ts";
+import { fetchAuthenticatedLeaguepediaApi } from "./leaguepedia-api.ts";
 
-const CARGO_API = "https://lol.fandom.com/api.php";
 const REQUEST_DELAY_MS = 3000;
 const MAX_RETRIES = 8;
 
@@ -226,11 +226,7 @@ async function cargoQuery(
   }
 
   for (let attempt = 0; attempt < MAX_RETRIES; attempt += 1) {
-    const response = await fetch(`${CARGO_API}?${params.toString()}`, {
-      headers: {
-        "user-agent": "LCKHubMinion/0.1 (Leaguepedia sync; contact: local-dev)",
-      },
-    });
+    const response = await fetchAuthenticatedLeaguepediaApi(params);
 
     if (!response.ok) {
       throw new Error(`Leaguepedia fetch failed: ${response.status}`);
