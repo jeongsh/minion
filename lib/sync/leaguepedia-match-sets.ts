@@ -12,6 +12,7 @@ import {
   type LeaguepediaAlias,
 } from "../leaguepedia-identity.ts";
 import { fetchAuthenticatedLeaguepediaApi } from "./leaguepedia-api";
+import { resolveLeaguepediaPickBanRows } from "./leaguepedia-pick-ban";
 
 const REQUEST_DELAY_MS = 3000;
 const MAX_RETRIES = 8;
@@ -38,6 +39,7 @@ type MatchRow = {
 };
 
 type CargoSetRow = {
+  GameId?: string;
   N_GameInMatch?: string;
   Team1?: string;
   Team2?: string;
@@ -77,6 +79,10 @@ type CargoSetRow = {
   Patch?: string;
   RiotPlatformGameId?: string;
   RiotGameId?: string;
+  Team1Bans?: string;
+  Team2Bans?: string;
+  Team1Picks?: string;
+  Team2Picks?: string;
 };
 
 type CargoPickBanRow = {
@@ -881,6 +887,7 @@ async function fetchScoreboardGameRows(leaguepediaMatchId: string, options?: Lea
     tables: "ScoreboardGames=SG",
     fields: [
       "SG.N_GameInMatch=N_GameInMatch",
+      "SG.GameId=GameId",
       "SG.Team1=Team1",
       "SG.Team2=Team2",
       "SG.WinTeam=WinTeam",
@@ -919,6 +926,10 @@ async function fetchScoreboardGameRows(leaguepediaMatchId: string, options?: Lea
       "SG.Patch=Patch",
       "SG.RiotPlatformGameId=RiotPlatformGameId",
       "SG.RiotGameId=RiotGameId",
+      "SG.Team1Bans=Team1Bans",
+      "SG.Team2Bans=Team2Bans",
+      "SG.Team1Picks=Team1Picks",
+      "SG.Team2Picks=Team2Picks",
     ].join(","),
     where: `SG.MatchId="${escapeCargoValue(leaguepediaMatchId)}"`,
     order_by: "SG.N_GameInMatch ASC",
@@ -1355,10 +1366,11 @@ export async function syncLeaguepediaMatchSets(
   let runesResolved = 0;
 
   if (setIds.length > 0) {
-    const [pickBanRows, playerRows] = await Promise.all([
+    const [picksAndBansRows, playerRows] = await Promise.all([
       fetchPickBanRows(typedMatch.leaguepedia_match_id, options),
       fetchPlayerRows(typedMatch.leaguepedia_match_id, options),
     ]);
+    const pickBanRows = resolveLeaguepediaPickBanRows(rows, picksAndBansRows);
     const championNames = [
       ...pickBanRows.flatMap((row) => [
         row.Team1Ban1,
