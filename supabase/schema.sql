@@ -820,11 +820,13 @@ begin
       on conflict (match_id, set_number) do nothing;
 
       update public.sets
-      set status = 'finished',
+      set status = case
+            when status = 'data_synced' then 'data_synced'
+            else 'finished'
+          end,
           winner_team_id = coalesce(winner_team_id, v_set_winner_team_id)
       where match_id = p_match_id
         and set_number = v_set_number
-        and status in ('scheduled', 'draft_in_progress', 'draft_done')
       returning id into v_set_id;
 
       if found then

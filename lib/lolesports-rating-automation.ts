@@ -263,12 +263,23 @@ async function runLeaguepediaEnrichment({
       const hasDamage = setPlayers.some((entry) => (entry.damage_to_champions ?? 0) > 0);
       const complete = picks >= 10 && bans >= 10 && setPlayers.length >= 10 && hasDamage;
       if (!complete) {
+        const message = `Incomplete Leaguepedia data: picks=${picks}, bans=${bans}, players=${setPlayers.length}`;
         await supabase.from("set_result_snapshots").update({
           leaguepedia_sync_status: "failed",
           leaguepedia_sync_attempts: (row.leaguepedia_sync_attempts ?? 0) + 1,
           leaguepedia_retry_at: leaguepediaRetryAt(now, "failed"),
-          leaguepedia_last_error: `Incomplete Leaguepedia data: picks=${picks}, bans=${bans}, players=${setPlayers.length}`,
+          leaguepedia_last_error: message,
         }).eq("id", row.id);
+        await queueSetDataSyncNotification({
+          match,
+          setId: row.set_id,
+          setNumber: row.set_number,
+          teamAScore,
+          teamBScore,
+          outcome: "failed",
+          playerStatsUpserted: setPlayers.length,
+          error: message,
+        });
         continue;
       }
       await supabase.from("set_result_snapshots").update({
