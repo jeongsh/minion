@@ -34,8 +34,32 @@ type RiotEvent = {
   laneType?: string;
 };
 
-type RiotFrame = { timestamp: number; events: RiotEvent[] };
+type RiotFrame = {
+  timestamp: number;
+  events: RiotEvent[];
+  participantFrames?: Record<string, { level?: number }>;
+};
 type RiotTimeline = { frames: RiotFrame[] };
+
+async function syncFinalParticipantLevels(
+  supabase: SupabaseClient,
+  timeline: RiotTimeline,
+  setId: string,
+  participantMap: Map<number, { playerId: string; teamId: string }>,
+) {
+  const finalFrame = timeline.frames.at(-1);
+  for (const [participantId, frame] of Object.entries(finalFrame?.participantFrames ?? {})) {
+    const participant = participantMap.get(Number(participantId));
+    const level = frame.level;
+    if (!participant || typeof level !== "number" || !Number.isInteger(level) || level < 1 || level > 18) continue;
+    const { error } = await supabase
+      .from("set_player_stats")
+      .update({ champion_level: level })
+      .eq("set_id", setId)
+      .eq("player_id", participant.playerId);
+    if (error) throw error;
+  }
+}
 
 export type TimelineSyncSummary = {
   matchId: string;
@@ -247,6 +271,8 @@ async function syncSetTimeline(
     set.blue_team_id,
     set.red_team_id,
   );
+
+  await syncFinalParticipantLevels(supabase, timeline, set.id, participantMap);
 
   const events = parseTimelineEvents(timeline, set.id, set.blue_team_id, set.red_team_id, participantMap);
   if (!events.length) return { inserted: 0, skipped: true };

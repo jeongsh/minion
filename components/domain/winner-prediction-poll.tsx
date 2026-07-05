@@ -7,6 +7,16 @@ function voteCount(predictions: FanMatchPrediction[], teamId: string) {
   return predictions.filter((prediction) => prediction.teamId === teamId).length;
 }
 
+function predictionColor(team: Team | undefined, fallback: string) {
+  const primary = team?.primaryColor || fallback;
+  const match = primary.match(/^#([\da-f]{2})([\da-f]{2})([\da-f]{2})$/i);
+
+  if (!match) return primary;
+
+  const luminance = (0.2126 * Number.parseInt(match[1], 16) + 0.7152 * Number.parseInt(match[2], 16) + 0.0722 * Number.parseInt(match[3], 16)) / 255;
+  return luminance < 0.16 && team?.secondaryColor ? team.secondaryColor : primary;
+}
+
 export function WinnerPredictionPoll({
   match,
   teams,
@@ -24,6 +34,10 @@ export function WinnerPredictionPoll({
 }) {
   const teamAName = teamLabel(teams, match.teamAId);
   const teamBName = teamLabel(teams, match.teamBId);
+  const teamA = teams.find((team) => team.id === match.teamAId);
+  const teamB = teams.find((team) => team.id === match.teamBId);
+  const teamAColor = predictionColor(teamA, "#3b82f6");
+  const teamBColor = predictionColor(teamB, "#ef4444");
   const hasTbd =
     !teams.some((team) => team.id === match.teamAId) ||
     !teams.some((team) => team.id === match.teamBId);
@@ -33,13 +47,14 @@ export function WinnerPredictionPoll({
   const total = teamACount + teamBCount;
   const teamAPercent = total > 0 ? Math.round((teamACount / total) * 100) : 0;
   const teamBPercent = total > 0 ? 100 - teamAPercent : 0;
+  const teamADisplayPercent = total > 0 ? teamAPercent : 50;
   const myVote = voterKey
     ? predictions.find((prediction) => prediction.voterKey === voterKey)?.teamId
     : undefined;
 
   const rows = [
-    { teamId: match.teamAId, name: teamAName, count: teamACount, percent: teamAPercent },
-    { teamId: match.teamBId, name: teamBName, count: teamBCount, percent: teamBPercent },
+    { teamId: match.teamAId, name: teamAName, count: teamACount, color: teamAColor },
+    { teamId: match.teamBId, name: teamBName, count: teamBCount, color: teamBColor },
   ];
 
   return (
@@ -62,21 +77,29 @@ export function WinnerPredictionPoll({
         </span>
       </div>
 
-      <div className="mt-4 flex flex-col gap-3">
+      <div className="mt-5">
+        <div className="flex items-end justify-between gap-4 text-sm">
+          <div>
+            <strong>{teamAName}</strong>
+            <p className="mt-1 text-[24px] font-black tabular-nums" style={{ color: teamAColor }}>{teamAPercent}%</p>
+          </div>
+          <div className="text-right">
+            <strong>{teamBName}</strong>
+            <p className="mt-1 text-[24px] font-black tabular-nums" style={{ color: teamBColor }}>{teamBPercent}%</p>
+          </div>
+        </div>
+        <div className="mt-3 flex h-3 overflow-hidden rounded-full bg-surface-muted" aria-label={`${teamAName} ${teamAPercent}%, ${teamBName} ${teamBPercent}%`}>
+          <span className="h-full transition-[width]" style={{ width: `${teamADisplayPercent}%`, backgroundColor: teamAColor }} />
+          <span className="h-full flex-1" style={{ backgroundColor: teamBColor }} />
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
         {rows.map((row) => (
           <div key={row.teamId} className="flex flex-col gap-2">
-            <div className="flex items-center justify-between gap-3 text-sm">
-              <strong>{row.name}</strong>
-              <span className="text-muted">
-                {row.percent}% · {row.count.toLocaleString("ko-KR")}표
-              </span>
-            </div>
-            <div className="h-2 overflow-hidden rounded-full bg-surface-muted">
-              <div className="h-full rounded-full bg-accent" style={{ width: `${row.percent}%` }} />
-            </div>
             {votingDisabled ? (
               <div className="rounded-md border border-border px-3 py-2 text-center text-sm font-semibold text-muted">
-                {hasTbd ? "상대 미정" : myVote === row.teamId ? "내 선택" : "마감"}
+                {hasTbd ? "상대 미정" : myVote === row.teamId ? `내 선택 · ${row.count.toLocaleString("ko-KR")}표` : `마감 · ${row.count.toLocaleString("ko-KR")}표`}
               </div>
             ) : (
               <form action={action}>
@@ -86,9 +109,10 @@ export function WinnerPredictionPoll({
                   type="submit"
                   className={`w-full rounded-md border px-3 py-2 text-sm font-semibold ${
                     myVote === row.teamId
-                      ? "border-accent bg-accent text-accent-foreground"
+                      ? "text-white"
                       : "border-border hover:bg-surface-muted"
                   }`}
+                  style={myVote === row.teamId ? { borderColor: row.color, backgroundColor: row.color } : { borderColor: `color-mix(in srgb, ${row.color} 50%, var(--ui-border))` }}
                 >
                   {myVote === row.teamId ? "선택됨" : `${row.name} 승리 예측`}
                 </button>

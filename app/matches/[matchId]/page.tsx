@@ -79,10 +79,9 @@ function TeamScoreBlock({
   resultLabel: string;
 }) {
   return (
-    <div className={`flex min-w-0 flex-col items-center text-center ${align === "right" ? "lg:items-end lg:text-right" : "lg:items-start lg:text-left"}`}>
+    <div className={`relative z-10 flex min-w-0 flex-col items-center text-center ${align === "right" ? "lg:items-end lg:text-right" : "lg:items-start lg:text-left"}`}>
       <p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--ui-muted)]">{seedLabel}</p>
-      <TeamLogo team={team} size="mt-4 h-20 w-20 md:h-24 md:w-24" plain />
-      <p className="mt-3 max-w-full truncate text-[16px] font-black text-[var(--ui-ink)] md:text-[24px]">
+      <p className="mt-5 max-w-full truncate text-[18px] font-black text-[var(--ui-ink)] md:text-[24px]">
         {team?.name ?? "TBD"}
       </p>
       <p className="mt-1 text-xs font-bold text-[var(--ui-muted)]">{resultLabel}</p>
@@ -652,13 +651,19 @@ export default async function MatchDetailPage({
         eyebrow="MATCH DETAIL"
         title={`${teamAName} vs ${teamBName}`}
         action={
-          <span className="rounded-full bg-[var(--ui-surface-muted)] px-3 py-1.5 text-xs font-bold text-[var(--ui-muted)]">
-            {MATCH_STATUS_LABEL[match.status]}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="rounded-full bg-[var(--ui-surface-muted)] px-3 py-1.5 text-xs font-bold text-[var(--ui-muted)]">BO{match.bestOf ?? "-"}</span>
+            <span className="rounded-full bg-[var(--ui-ink)] px-3 py-1.5 text-xs font-bold text-[var(--ui-surface)]">{MATCH_STATUS_LABEL[match.status]}</span>
+          </div>
         }
       />
 
-      <section className="overflow-hidden rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)]" aria-label="매치 요약">
+      <section className="relative overflow-hidden rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] shadow-[0_18px_50px_rgba(24,25,28,0.08)]" aria-label="매치 요약">
+        <div
+          className="h-1 w-full"
+          style={{ background: `linear-gradient(90deg, ${teamA?.primaryColor ?? "#73767c"} 0 50%, ${teamB?.primaryColor ?? "#73767c"} 50% 100%)` }}
+          aria-hidden="true"
+        />
         <div className="flex flex-wrap items-center gap-2 border-b border-[var(--ui-border)] px-5 py-4 text-xs font-bold text-[var(--ui-muted)]">
           <span className="text-[var(--ui-ink)]">{tournament?.name ?? "대회 미지정"}</span>
           {stage ? <><span aria-hidden>·</span><span>{stage.name}</span></> : null}
@@ -668,11 +673,18 @@ export default async function MatchDetailPage({
           <span>BO{match.bestOf ?? "-"}</span>
         </div>
 
-        <div className="grid lg:grid-cols-[minmax(0,1fr)_320px]">
-          <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4 p-5 sm:gap-8 sm:p-8">
+        <div>
+          <div className="relative isolate grid min-h-[260px] grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4 overflow-hidden p-5 sm:gap-8 sm:p-10">
+            <div className="pointer-events-none absolute inset-y-0 left-0 z-0 flex w-[44%] items-center justify-start overflow-hidden" aria-hidden="true">
+              <TeamLogo team={teamA} size="h-[230px] w-[230px] -translate-x-[18%] opacity-[0.11] blur-[3px] sm:h-[310px] sm:w-[310px]" plain />
+            </div>
+            <div className="pointer-events-none absolute inset-y-0 right-0 z-0 flex w-[44%] items-center justify-end overflow-hidden" aria-hidden="true">
+              <TeamLogo team={teamB} size="h-[230px] w-[230px] translate-x-[18%] opacity-[0.11] blur-[3px] sm:h-[310px] sm:w-[310px]" plain />
+            </div>
+            <div className="pointer-events-none absolute inset-0 z-0 bg-[linear-gradient(90deg,var(--ui-surface)_0%,transparent_22%,var(--ui-surface)_48%,var(--ui-surface)_52%,transparent_78%,var(--ui-surface)_100%)] opacity-70" aria-hidden="true" />
             <TeamScoreBlock seedLabel="Team A" team={teamA} resultLabel={teamAResult} />
 
-            <div className="min-w-[112px] text-center sm:min-w-[160px]">
+            <div className="relative z-10 min-w-[112px] text-center sm:min-w-[180px]">
               <p className="text-xs font-bold text-[var(--ui-muted)]">FINAL SCORE</p>
               <p className="mt-2 text-[32px] font-black tabular-nums text-[var(--ui-ink)] sm:text-[40px]">
                 {matchScoreLabel(match.teamAScore, match.teamBScore)}
@@ -683,9 +695,9 @@ export default async function MatchDetailPage({
             <TeamScoreBlock align="right" seedLabel="Team B" team={teamB} resultLabel={teamBResult} />
           </div>
 
-          <aside className="grid border-t border-[var(--ui-border)] bg-[var(--ui-surface-muted)] sm:grid-cols-2 lg:grid-cols-1 lg:border-l lg:border-t-0">
+          <aside className="grid border-t border-[var(--ui-border)] bg-[var(--ui-surface-muted)] sm:grid-cols-2">
             <PlayerHighlight label="Official POM" player={pomPlayer} detail="공식 선정" />
-            <div className="border-t border-[var(--ui-border)] sm:border-l sm:border-t-0 lg:border-l-0 lg:border-t">
+            <div className="border-t border-[var(--ui-border)] sm:border-l sm:border-t-0">
               <PlayerHighlight
                 label="Fan Rating #1"
                 player={topFanPlayer}

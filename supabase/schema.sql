@@ -242,6 +242,7 @@ create table public.set_player_stats (
   side text check (side in ('blue', 'red')),
   position text not null check (position in ('TOP', 'JGL', 'MID', 'BOT', 'SUP')),
   champion_id uuid references public.champions(id) on delete set null,
+  champion_level smallint check (champion_level between 1 and 18),
   kills integer not null default 0,
   deaths integer not null default 0,
   assists integer not null default 0,

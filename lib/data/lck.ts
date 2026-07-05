@@ -121,6 +121,7 @@ type SetPlayerStatsRow = {
   team_id: string;
   position: PlayerStatLine["position"];
   champion_id: string | null;
+  champion_level?: number | null;
   kills: number;
   deaths: number;
   assists: number;
@@ -1206,7 +1207,7 @@ export async function getPlayerStatLines(setId?: string | string[]) {
         let query = supabase
           .from("set_player_stats")
           .select(
-            "set_id, player_id, team_id, position, champion_id, kills, deaths, assists, cs, gold, damage_to_champions, vision_score, dpm, damage_share, vision_score_per_minute, cs_per_minute, gold_diff_at_10, xp_diff_at_10, cs_diff_at_10, gold_diff_at_15, xp_diff_at_15, cs_diff_at_15, item0, item1, item2, item3, item4, item5, item6, spell0, spell1, rune0, rune1, role_bound_item, sets(duration_seconds, patch)",
+            "set_id, player_id, team_id, position, champion_id, champion_level, kills, deaths, assists, cs, gold, damage_to_champions, vision_score, dpm, damage_share, vision_score_per_minute, cs_per_minute, gold_diff_at_10, xp_diff_at_10, cs_diff_at_10, gold_diff_at_15, xp_diff_at_15, cs_diff_at_15, item0, item1, item2, item3, item4, item5, item6, spell0, spell1, rune0, rune1, role_bound_item, sets(duration_seconds, patch)",
           )
           .order("position", { ascending: true })
           .order("set_id", { ascending: true })
@@ -1247,6 +1248,7 @@ export async function getPlayerStatLines(setId?: string | string[]) {
       teamId: row.team_id,
       position: row.position,
       championId: row.champion_id,
+      championLevel: row.champion_level ?? null,
       kills: row.kills,
       deaths: row.deaths,
       assists: row.assists,

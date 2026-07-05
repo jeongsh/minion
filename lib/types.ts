@@ -257,6 +257,7 @@ export type PlayerStatLine = {
   teamId: string;
   position: PlayerPosition;
   championId?: string | null;
+  championLevel?: number | null;
   kills: number;
   deaths: number;
   assists: number;

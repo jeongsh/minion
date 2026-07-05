@@ -20,6 +20,28 @@ function toX(ms: number, duration: number): number {
   return PAD_X + (ms / 1000 / duration) * (SVG_W - PAD_X * 2);
 }
 
+type ChartPoint = { x: number; y: number };
+
+function smoothPath(points: ChartPoint[]): string {
+  if (points.length === 0) return "";
+  if (points.length === 1) return `M ${points[0].x} ${points[0].y}`;
+  const commands = [`M ${points[0].x} ${points[0].y}`];
+
+  for (let index = 1; index < points.length - 1; index++) {
+    const current = points[index];
+    const next = points[index + 1];
+    const midpointX = (current.x + next.x) / 2;
+    const midpointY = (current.y + next.y) / 2;
+    commands.push(`Q ${current.x} ${current.y}, ${midpointX} ${midpointY}`);
+  }
+
+  const last = points.at(-1)!;
+  const penultimate = points.at(-2)!;
+  commands.push(`Q ${penultimate.x} ${penultimate.y}, ${last.x} ${last.y}`);
+
+  return commands.join(" ");
+}
+
 // ── 이벤트 종류 식별 (클러스터링 키) ─────────────────────────────
 
 function getEventKind(e: TimelineEvent): string {
@@ -144,9 +166,9 @@ function assignRows(clusters: Cluster[], windowMs = 12_000): PlacedCluster[] {
 // ── 아이콘 렌더러 ─────────────────────────────────────────────────
 
 function ClusterIcon({
-  cx, cy, cluster, onHover, uid,
+  cx, cy, cluster, onHover,
 }: {
-  cx: number; cy: number; cluster: PlacedCluster; uid: string; onHover: () => void;
+  cx: number; cy: number; cluster: PlacedCluster; onHover: () => void;
 }) {
   const half = ITEM_SZ / 2;
   const { info, count } = cluster;
@@ -165,7 +187,7 @@ function ClusterIcon({
     return (
       <g className="cursor-pointer" onMouseEnter={onHover}>
         <circle cx={cx} cy={cy} r={count > 1 ? KILL_R + 2 : KILL_R}
-          fill="currentColor" filter={`url(#${uid}-glow)`} />
+          fill="currentColor" stroke="var(--timeline-chart-surface)" strokeWidth={1.5} />
         {count > 1 && (
           <text x={cx} y={cy + 3.5} textAnchor="middle" fontSize={7} fill="#0f172a" fontWeight="800">{count}</text>
         )}
@@ -267,15 +289,34 @@ export function GameTimeline({
   const dy = (d: number) =>
     d >= 0 ? centerY - (d / maxDiff) * ampBlue : centerY + (-d / maxDiff) * ampRed;
 
-  let diff = 0;
-  const pts: string[] = [`M ${PAD_X} ${dy(0)}`];
-  for (const e of killEvents) {
-    if (e.teamId === blueTeamId) diff++; else diff--;
-    pts.push(`L ${tx(e.timestampMs)} ${dy(diff)}`);
+  const transitionSeconds = Math.min(90, Math.max(45, duration / 5));
+  const sampleStep = Math.max(5, duration / 140);
+  const eventTransitions = killEvents.map((event) => {
+    const eventSeconds = event.timestampMs / 1000;
+    const start = Math.max(0, Math.min(eventSeconds - transitionSeconds / 2, duration - transitionSeconds));
+    return {
+      start,
+      end: Math.min(duration, start + transitionSeconds),
+      delta: event.teamId === blueTeamId ? 1 : -1,
+    };
+  });
+  const smoothStep = (value: number) => {
+    const clamped = Math.min(1, Math.max(0, value));
+    return clamped * clamped * (3 - 2 * clamped);
+  };
+  const displayDiffAt = (seconds: number) => eventTransitions.reduce((sum, transition) => {
+    const progress = transition.end === transition.start
+      ? 1
+      : (seconds - transition.start) / (transition.end - transition.start);
+    return sum + transition.delta * smoothStep(progress);
+  }, 0);
+  const chartPoints: ChartPoint[] = [];
+  for (let seconds = 0; seconds < duration; seconds += sampleStep) {
+    chartPoints.push({ x: toX(seconds * 1000, duration), y: dy(displayDiffAt(seconds)) });
   }
   const endX = SVG_W - PAD_X;
-  pts.push(`L ${endX} ${dy(diff)}`);
-  const lineD = pts.join(" ");
+  chartPoints.push({ x: endX, y: dy(displayDiffAt(duration)) });
+  const lineD = smoothPath(chartPoints);
   const areaD = `${lineD} L ${endX} ${centerY} L ${PAD_X} ${centerY} Z`;
 
   const mins: number[] = [];
@@ -284,19 +325,19 @@ export function GameTimeline({
   const yStep = maxDiff <= 4 ? 1 : maxDiff <= 8 ? 2 : Math.ceil(maxDiff / 4);
 
   return (
-    <div className="relative w-full select-none pt-4">
-      <div className="mb-3 flex items-center justify-between px-5 text-xs font-semibold">
-        <span className="flex items-center gap-1.5 text-blue-400">
+    <div className="game-timeline-chart relative w-full select-none">
+      <div className="flex items-center justify-between border-b border-border px-5 py-4 text-xs font-semibold">
+        <span className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400">
           {blueTeamName}
-          <span className="rounded bg-blue-400/15 px-1.5 py-0.5 text-white tabular-nums">{blueKills} K</span>
+          <span className="rounded-full bg-blue-500/10 px-2 py-0.5 tabular-nums">{blueKills} K</span>
         </span>
         {goldDiff !== null && (
-          <span className={`rounded px-2 py-0.5 tabular-nums ${goldDiff > 0 ? "bg-blue-400/10 text-blue-300" : goldDiff < 0 ? "bg-red-400/10 text-red-300" : "bg-white/5 text-muted"}`}>
+          <span className={`rounded-full px-2.5 py-1 tabular-nums ${goldDiff > 0 ? "bg-blue-500/10 text-blue-600 dark:text-blue-300" : goldDiff < 0 ? "bg-red-500/10 text-red-600 dark:text-red-300" : "bg-surface-muted text-muted"}`}>
             골드 {goldFmt(goldDiff)}
           </span>
         )}
-        <span className="flex items-center gap-1.5 text-red-400">
-          <span className="rounded bg-red-400/15 px-1.5 py-0.5 text-white tabular-nums">{redKills} K</span>
+        <span className="flex items-center gap-1.5 text-red-600 dark:text-red-400">
+          <span className="rounded-full bg-red-500/10 px-2 py-0.5 tabular-nums">{redKills} K</span>
           {redTeamName}
         </span>
       </div>
@@ -309,26 +350,17 @@ export function GameTimeline({
           <clipPath id={`${uid}-rc`}>
             <rect x={PAD_X} y={centerY} width={SVG_W - PAD_X * 2} height={CTR_GAP + redH} />
           </clipPath>
-          <filter id={`${uid}-glow`} x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur in="SourceGraphic" stdDeviation="2" result="b" />
-            <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
-          </filter>
-          <filter id={`${uid}-line-glow`} x="-20%" y="-100%" width="140%" height="300%">
-            <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur" />
-            <feMerge><feMergeNode in="blur" /><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-          </filter>
           <linearGradient id={`${uid}-gb`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#60a5fa" stopOpacity="0.7" />
-            <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.0" />
+            <stop offset="0%" stopColor="#4c8dff" stopOpacity="0.3" />
+            <stop offset="100%" stopColor="#4c8dff" stopOpacity="0.03" />
           </linearGradient>
           <linearGradient id={`${uid}-gr`} x1="0" y1="1" x2="0" y2="0">
-            <stop offset="0%" stopColor="#f87171" stopOpacity="0.7" />
-            <stop offset="100%" stopColor="#ef4444" stopOpacity="0.0" />
+            <stop offset="0%" stopColor="#ff5b6e" stopOpacity="0.3" />
+            <stop offset="100%" stopColor="#ff5b6e" stopOpacity="0.03" />
           </linearGradient>
         </defs>
 
-        <rect x={PAD_X} y={graphTop} width={SVG_W - PAD_X * 2} height={blueH + CTR_GAP} fill="#0d1e3a" />
-        <rect x={PAD_X} y={centerY}  width={SVG_W - PAD_X * 2} height={CTR_GAP + redH}  fill="#1e0a0d" />
+        <rect x={PAD_X} y={graphTop} width={SVG_W - PAD_X * 2} height={graphBot - graphTop} rx={8} fill="var(--timeline-chart-surface)" />
 
         <path d={areaD} fill={`url(#${uid}-gb)`} clipPath={`url(#${uid}-bc)`} />
         <path d={areaD} fill={`url(#${uid}-gr)`} clipPath={`url(#${uid}-rc)`} />
@@ -340,10 +372,10 @@ export function GameTimeline({
           return (
             <g key={`gy${d}`}>
               <line x1={PAD_X} y1={y} x2={SVG_W - PAD_X} y2={y}
-                stroke="#ffffff" strokeWidth={d === 0 ? 1 : 0.5} strokeOpacity={d === 0 ? 0.25 : 0.1} />
+                stroke="var(--timeline-chart-grid)" strokeWidth={d === 0 ? 1.2 : 0.7} />
               {show && (
                 <text x={PAD_X - 4} y={y + 3} textAnchor="end" fontSize={7}
-                  fill={d > 0 ? "#60a5fa" : d < 0 ? "#f87171" : "#9ca3af"} fontWeight="500">
+                  fill={d > 0 ? "#4c8dff" : d < 0 ? "#ff5b6e" : "var(--timeline-chart-muted)"} fontWeight="600">
                   {d > 0 ? `+${d}K` : d < 0 ? `${d}K` : "0"}
                 </text>
               )}
@@ -351,8 +383,8 @@ export function GameTimeline({
           );
         })}
 
-        <path d={lineD} fill="none" stroke="#ffffff" strokeWidth={4} strokeOpacity={0.15} filter={`url(#${uid}-line-glow)`} />
-        <path d={lineD} fill="none" stroke="#e5e7eb" strokeWidth={2} />
+        <path d={lineD} fill="none" stroke="#4c8dff" strokeWidth={2.5} clipPath={`url(#${uid}-bc)`} />
+        <path d={lineD} fill="none" stroke="#ff5b6e" strokeWidth={2.5} clipPath={`url(#${uid}-rc)`} />
 
         <text x={PAD_X + 6} y={graphTop + blueH / 2 + 3} textAnchor="start" fontSize={8} fontWeight="700" fill="#60a5fa" fillOpacity={0.7}>{blueTeamName}</text>
         <text x={PAD_X + 6} y={centerY + CTR_GAP + redH / 2 + 3} textAnchor="start" fontSize={8} fontWeight="700" fill="#f87171" fillOpacity={0.7}>{redTeamName}</text>
@@ -360,16 +392,16 @@ export function GameTimeline({
         {mins.map((m) => {
           const x = tx(m * 60 * 1000);
           return <line key={`g${m}`} x1={x} y1={graphTop} x2={x} y2={graphBot}
-            stroke="#ffffff" strokeWidth={0.3} strokeOpacity={0.08} strokeDasharray="2 4" />;
+            stroke="var(--timeline-chart-grid)" strokeWidth={0.7} strokeDasharray="2 4" />;
         })}
 
-        <line x1={PAD_X} y1={axisY} x2={SVG_W - PAD_X} y2={axisY} stroke="#374151" strokeWidth={0.8} />
+        <line x1={PAD_X} y1={axisY} x2={SVG_W - PAD_X} y2={axisY} stroke="var(--timeline-chart-grid)" strokeWidth={0.8} />
         {mins.map((m) => {
           const x = tx(m * 60 * 1000);
           return (
             <g key={m}>
-              <line x1={x} y1={axisY} x2={x} y2={axisY + 3} stroke="#4b5563" strokeWidth={0.8} />
-              <text x={x} y={axisY + 11} textAnchor="middle" fontSize={7} fill="#6b7280">{m}&apos;</text>
+              <line x1={x} y1={axisY} x2={x} y2={axisY + 3} stroke="var(--timeline-chart-muted)" strokeWidth={0.8} />
+              <text x={x} y={axisY + 11} textAnchor="middle" fontSize={7} fill="var(--timeline-chart-muted)">{m}&apos;</text>
             </g>
           );
         })}
@@ -380,7 +412,7 @@ export function GameTimeline({
           const cy = blueCY(c.row);
           return (
             <g key={`b-${c.id}`} style={{ color: "#93c5fd" }}>
-              <ClusterIcon cx={x} cy={cy} cluster={c} uid={uid}
+              <ClusterIcon cx={x} cy={cy} cluster={c}
                 onHover={() => setTooltip({ lines: c.tooltipLines, xPct: (x / SVG_W) * 100 })} />
             </g>
           );
@@ -392,7 +424,7 @@ export function GameTimeline({
           const cy = redCY(c.row);
           return (
             <g key={`r-${c.id}`} style={{ color: "#fca5a5" }}>
-              <ClusterIcon cx={x} cy={cy} cluster={c} uid={uid}
+              <ClusterIcon cx={x} cy={cy} cluster={c}
                 onHover={() => setTooltip({ lines: c.tooltipLines, xPct: (x / SVG_W) * 100 })} />
             </g>
           );

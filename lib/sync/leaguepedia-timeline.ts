@@ -31,7 +31,11 @@ type RiotEvent = {
 };
 
 type RiotTimeline = {
-  frames?: Array<{ timestamp: number; events?: RiotEvent[] }>;
+  frames?: Array<{
+    timestamp: number;
+    events?: RiotEvent[];
+    participantFrames?: Record<string, { level?: number }>;
+  }>;
 };
 
 export type LeaguepediaTimelineSyncResult = {
@@ -65,6 +69,26 @@ function teamIdFromRiot(
   if (riotTeamId === 100) return blueTeamId;
   if (riotTeamId === 200) return redTeamId;
   return null;
+}
+
+async function syncFinalParticipantLevels(
+  supabase: SupabaseClient,
+  timeline: RiotTimeline,
+  setId: string,
+  participantMap: Map<number, { playerId: string; teamId: string }>,
+) {
+  const finalFrame = timeline.frames?.at(-1);
+  for (const [participantId, frame] of Object.entries(finalFrame?.participantFrames ?? {})) {
+    const participant = participantMap.get(Number(participantId));
+    const level = frame.level;
+    if (!participant || typeof level !== "number" || !Number.isInteger(level) || level < 1 || level > 18) continue;
+    const { error } = await supabase
+      .from("set_player_stats")
+      .update({ champion_level: level })
+      .eq("set_id", setId)
+      .eq("player_id", participant.playerId);
+    if (error) throw error;
+  }
 }
 
 export function parseLeaguepediaTimelineEvents(
@@ -244,12 +268,19 @@ export async function syncLeaguepediaTimelineForSet(
     return { status: "waiting_for_source", eventCount: 0, inserted: 0, skipped: 0, reason: "Timeline frames are not available yet" };
   }
 
+  const participantMap = buildParticipantMap(
+    (stats ?? []) as PlayerStatRow[],
+    typedSet.blue_team_id,
+    typedSet.red_team_id,
+  );
+  await syncFinalParticipantLevels(supabase, timelineResult.timeline, setId, participantMap);
+
   const events = parseLeaguepediaTimelineEvents(
     timelineResult.timeline,
     setId,
     typedSet.blue_team_id,
     typedSet.red_team_id,
-    buildParticipantMap((stats ?? []) as PlayerStatRow[], typedSet.blue_team_id, typedSet.red_team_id),
+    participantMap,
   );
   if (events.length === 0) {
     return { status: "waiting_for_source", eventCount: 0, inserted: 0, skipped: 0, reason: "Timeline contains no supported events" };

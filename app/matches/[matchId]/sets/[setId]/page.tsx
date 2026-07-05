@@ -347,7 +347,7 @@ function PlayerStatBoard({
                 />
               ) : null}
               <span className="absolute bottom-0 right-0 rounded-tl bg-background/90 px-1 text-[12px] font-semibold">
-                {row.line.position}
+                LV {row.line.championLevel ?? "-"}
               </span>
             </div>
             <div className="flex shrink-0 items-center gap-1">
@@ -388,7 +388,7 @@ function PlayerStatBoard({
                 {row.player?.name ?? "-"}
               </p>
               <p className="truncate text-xs text-muted">
-                {champion?.name ?? "-"}
+                {champion?.name ?? "-"} · {row.line.position}
               </p>
             </div>
           </div>
@@ -767,6 +767,20 @@ export async function SetDetailContent({
         </div>
       </section>
 
+      <PlayerStatBoard
+        blueRows={blueRows}
+        redRows={redRows}
+        champions={champions}
+        maxDamage={maxDamage}
+        teams={teams}
+        blueTeamId={set.blueTeamId}
+        redTeamId={set.redTeamId}
+        winnerTeamId={set.winnerTeamId}
+        itemVersion={itemVersion}
+        spells={spells}
+        runeCatalog={runeCatalog}
+      />
+
       <section className="flex flex-col gap-4" aria-labelledby="set-timeline">
         <h2 id="set-timeline" className="text-[24px] font-semibold">
           타임라인
@@ -785,20 +799,6 @@ export async function SetDetailContent({
           />
         </div>
       </section>
-
-      <PlayerStatBoard
-        blueRows={blueRows}
-        redRows={redRows}
-        champions={champions}
-        maxDamage={maxDamage}
-        teams={teams}
-        blueTeamId={set.blueTeamId}
-        redTeamId={set.redTeamId}
-        winnerTeamId={set.winnerTeamId}
-        itemVersion={itemVersion}
-        spells={spells}
-        runeCatalog={runeCatalog}
-      />
 
       {embedded ? null : (
         <section className="flex flex-wrap gap-2" aria-label="이동">

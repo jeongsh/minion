@@ -162,6 +162,7 @@ export async function syncLolesportsSetGameData(input: SyncSetInput) {
       side: participant.side,
       position,
       champion_id: champion?.id ?? null,
+      champion_level: finite(window?.level),
       kills: finite(detail?.kills) ?? finite(window?.kills) ?? 0,
       deaths: finite(detail?.deaths) ?? finite(window?.deaths) ?? 0,
       assists: finite(detail?.assists) ?? finite(window?.assists) ?? 0,

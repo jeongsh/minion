@@ -304,8 +304,7 @@ export default async function FanHomePage({
             </div>
           </div>
           <div className="flex flex-col gap-6">
-            <StandingPanel standing={standing} recent={recentForm} />
-            <AdSlot className="h-[200px] w-full" />
+            <AdSlot className="h-[322px] w-full" />
           </div>
         </section>
 
