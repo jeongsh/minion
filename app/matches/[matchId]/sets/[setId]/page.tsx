@@ -83,7 +83,7 @@ function StatRow({
       <span className="text-center text-xs font-semibold text-muted">
         {label}
       </span>
-      <div>{right}</div>
+      <div className="flex justify-start">{right}</div>
     </div>
   );
 }
@@ -358,11 +358,11 @@ function PlayerStatBoard({
                   alt=""
                   width={32}
                   height={32}
-                  className="h-8 w-8 rounded-sm border border-border/60 bg-surface-muted object-cover"
+                  className="h-5 w-5 rounded-sm border border-border/60 bg-surface-muted object-cover"
                 />
               ) : (
                 <span
-                  className="h-8 w-8 rounded-sm border border-dashed border-border bg-surface-muted"
+                  className="h-5 w-5 rounded-sm border border-dashed border-border bg-surface-muted"
                   aria-hidden="true"
                 />
               )}
@@ -372,11 +372,11 @@ function PlayerStatBoard({
                   alt=""
                   width={32}
                   height={32}
-                  className="h-8 w-8 rounded-sm border border-border/60 bg-surface-muted object-cover"
+                  className="h-5 w-5 rounded-sm border border-border/60 bg-surface-muted object-cover"
                 />
               ) : (
                 <span
-                  className="h-8 w-8 rounded-sm border border-dashed border-border bg-surface-muted"
+                  className="h-5 w-5 rounded-sm border border-dashed border-border bg-surface-muted"
                   aria-hidden="true"
                 />
               )}
@@ -719,30 +719,50 @@ export async function SetDetailContent({
             />
           </div>
 
-          <div className="rounded-md border border-border bg-background p-4">
-            <h2 id="set-summary" className="text-center text-sm font-semibold">
-              챔피언 대상 피해량
-            </h2>
-            {playerRows.length === 0 ? (
-              <div className="mt-4 grid min-h-40 place-items-center rounded-md border border-dashed border-border bg-surface p-4 text-center text-sm text-muted">
-                선수 스탯이 아직 연결되지 않았습니다.
-              </div>
-            ) : (
-              <div className="mt-4 grid gap-5 xl:grid-cols-2">
-                <DamageRows
-                  rows={blueRows}
-                  champions={champions}
-                  maxDamage={maxDamage}
-                  side="blue"
-                />
-                <DamageRows
-                  rows={redRows}
-                  champions={champions}
-                  maxDamage={maxDamage}
-                  side="red"
-                />
-              </div>
-            )}
+          <div className="flex flex-col gap-6">
+            <div className="rounded-md border border-border bg-background p-4">
+              <h2 id="set-summary" className="text-center text-sm font-semibold">
+                챔피언 대상 피해량
+              </h2>
+              {playerRows.length === 0 ? (
+                <div className="mt-4 grid min-h-40 place-items-center rounded-md border border-dashed border-border bg-surface p-4 text-center text-sm text-muted">
+                  선수 스탯이 아직 연결되지 않았습니다.
+                </div>
+              ) : (
+                <div className="mt-4 grid gap-5 xl:grid-cols-2">
+                  <DamageRows
+                    rows={blueRows}
+                    champions={champions}
+                    maxDamage={maxDamage}
+                    side="blue"
+                  />
+                  <DamageRows
+                    rows={redRows}
+                    champions={champions}
+                    maxDamage={maxDamage}
+                    side="red"
+                  />
+                </div>
+              )}
+            </div>
+
+            <SetDraftView
+              champions={champions}
+              blue={{
+                teamName: teamLabel(teams, set.blueTeamId),
+                bans: sideDraftItems("blue", "ban"),
+                picks: sideDraftItems("blue", "pick"),
+                linePicks: lineDraftItems(set.blueTeamId),
+                lineup: blueLineup,
+              }}
+              red={{
+                teamName: teamLabel(teams, set.redTeamId),
+                bans: sideDraftItems("red", "ban"),
+                picks: sideDraftItems("red", "pick"),
+                linePicks: lineDraftItems(set.redTeamId),
+                lineup: redLineup,
+              }}
+            />
           </div>
         </div>
       </section>
@@ -751,7 +771,7 @@ export async function SetDetailContent({
         <h2 id="set-timeline" className="text-[24px] font-semibold">
           타임라인
         </h2>
-        <div className="rounded-md border border-border bg-surface p-4">
+        <div className="overflow-hidden rounded-2xl border border-border bg-surface">
           <GameTimeline
             events={timelineEvents}
             durationSeconds={set.durationSeconds}
@@ -765,24 +785,6 @@ export async function SetDetailContent({
           />
         </div>
       </section>
-
-      <SetDraftView
-        champions={champions}
-        blue={{
-          teamName: teamLabel(teams, set.blueTeamId),
-          bans: sideDraftItems("blue", "ban"),
-          picks: sideDraftItems("blue", "pick"),
-          linePicks: lineDraftItems(set.blueTeamId),
-          lineup: blueLineup,
-        }}
-        red={{
-          teamName: teamLabel(teams, set.redTeamId),
-          bans: sideDraftItems("red", "ban"),
-          picks: sideDraftItems("red", "pick"),
-          linePicks: lineDraftItems(set.redTeamId),
-          lineup: redLineup,
-        }}
-      />
 
       <PlayerStatBoard
         blueRows={blueRows}

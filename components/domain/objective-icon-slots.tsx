@@ -11,7 +11,7 @@ function ObjectiveIcon({ src, label, size = 20 }: { src: string; label: string; 
       height={size}
       unoptimized
       title={label}
-      className="h-5 w-5 shrink-0 object-contain"
+      className="h-6 w-6 shrink-0 object-contain"
     />
   );
 }

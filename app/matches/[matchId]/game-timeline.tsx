@@ -6,14 +6,14 @@ import type { Player } from "@/lib/types";
 import { OBJECTIVE_ICONS } from "@/lib/objectives";
 
 const SVG_W    = 800;
-const PAD_X    = 48;
-const ITEM_SZ  = 16;   // icon diameter
-const ITEM_SLT = 20;   // px per row
+const PAD_X    = 28;
+const ITEM_SZ  = 18;   // icon diameter
+const ITEM_SLT = 28;   // px per row
 const KILL_R   = 5;    // kill dot radius
-const TOP_MAR  = 10;
-const BOT_MAR  = 18;
-const MIN_HALF = 70;
-const CTR_GAP  = 6;
+const TOP_MAR  = 18;
+const BOT_MAR  = 28;
+const MIN_HALF = 110;
+const CTR_GAP  = 10;
 const BADGE_R  = 5;    // count badge radius
 
 function toX(ms: number, duration: number): number {
@@ -284,8 +284,8 @@ export function GameTimeline({
   const yStep = maxDiff <= 4 ? 1 : maxDiff <= 8 ? 2 : Math.ceil(maxDiff / 4);
 
   return (
-    <div className="relative select-none">
-      <div className="mb-2 flex items-center justify-between px-1 text-xs font-semibold">
+    <div className="relative w-full select-none pt-4">
+      <div className="mb-3 flex items-center justify-between px-5 text-xs font-semibold">
         <span className="flex items-center gap-1.5 text-blue-400">
           {blueTeamName}
           <span className="rounded bg-blue-400/15 px-1.5 py-0.5 text-white tabular-nums">{blueKills} K</span>
@@ -301,7 +301,7 @@ export function GameTimeline({
         </span>
       </div>
 
-      <svg viewBox={`0 0 ${SVG_W} ${svgH}`} className="w-full" onMouseLeave={() => setTooltip(null)}>
+      <svg viewBox={`0 0 ${SVG_W} ${svgH}`} className="block w-full" onMouseLeave={() => setTooltip(null)}>
         <defs>
           <clipPath id={`${uid}-bc`}>
             <rect x={PAD_X} y={graphTop} width={SVG_W - PAD_X * 2} height={blueH + CTR_GAP} />
@@ -369,7 +369,7 @@ export function GameTimeline({
           return (
             <g key={m}>
               <line x1={x} y1={axisY} x2={x} y2={axisY + 3} stroke="#4b5563" strokeWidth={0.8} />
-              <text x={x} y={axisY + 11} textAnchor="middle" fontSize={7} fill="#6b7280">{m}'</text>
+              <text x={x} y={axisY + 11} textAnchor="middle" fontSize={7} fill="#6b7280">{m}&apos;</text>
             </g>
           );
         })}
@@ -408,7 +408,7 @@ export function GameTimeline({
         </div>
       )}
 
-      <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 px-1 text-[12px] text-muted">
+      <div className="flex flex-wrap gap-x-3 gap-y-1 px-5 pb-4 pt-2 text-[12px] text-muted">
         <span className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-blue-400/80" />블루 킬</span>
         <span className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-red-400/80" />레드 킬</span>
         {[
