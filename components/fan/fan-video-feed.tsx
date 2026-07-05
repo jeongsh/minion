@@ -126,7 +126,7 @@ export function FanVideoFeed({
 
   if (videos.length === 0) {
     return (
-      <div className="grid min-h-64 place-items-center rounded-2xl border border-[#e5e5e5] bg-white p-8 text-center">
+      <div className="grid min-h-64 place-items-center rounded-2xl border border-[#e5e5e5] bg-surface-muted p-8 text-center">
         <div>
           <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-[#f2f2f2]">
             <Play className="h-6 w-6 text-[#606060]" />

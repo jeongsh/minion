@@ -37,7 +37,7 @@ function PlayerProfileCard({ player }: { player: Player }) {
   return (
     <Link
       href={`/players/${player.slug}`}
-      className="group block h-full overflow-hidden rounded-2xl border border-[#e6e9ef] bg-white transition duration-200 hover:-translate-y-0.5 hover:border-accent hover:shadow-lg hover:shadow-black/5"
+      className="group block h-full overflow-hidden rounded-2xl border border-[#e6e9ef] bg-surface-muted transition duration-200 hover:-translate-y-0.5 hover:border-accent hover:shadow-lg hover:shadow-black/5"
     >
       <div className="relative aspect-square bg-[#eef1f6]">
         {player.profileImageUrl ? (
@@ -48,7 +48,7 @@ function PlayerProfileCard({ player }: { player: Player }) {
             {player.name.slice(0, 2)}
           </div>
         )}
-        <span className="absolute left-2.5 top-2.5 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-black text-accent shadow-sm backdrop-blur">
+        <span className="absolute left-2.5 top-2.5 rounded-full bg-surface-muted/90 px-2.5 py-1 text-[11px] font-black text-accent shadow-sm backdrop-blur">
           {POSITION_LABEL[player.position]}
         </span>
       </div>
@@ -89,7 +89,7 @@ export function FanPlayerProfiles({ players, teamSlug }: { players: Player[]; te
   }, []);
 
   return (
-    <section id="players" className="rounded-3xl border border-[#e6e9ef] bg-white p-5 shadow-sm md:p-6">
+    <section id="players" className="rounded-3xl border border-[#e6e9ef] bg-surface-muted p-5 shadow-sm md:p-6">
       <div className="flex items-center justify-between gap-4">
         <h2 className="text-xl font-bold tracking-[-0.01em]">선수</h2>
         <Link

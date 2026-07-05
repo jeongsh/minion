@@ -15,8 +15,8 @@ export default async function FanCommunityPage({
   return (
     <CommunityFeedPage
       scope="team"
-      eyebrow={`${team.shortName} 커뮤니티`}
-      title="팀 팬 커뮤니티"
+      eyebrow={`${team.shortName} Community`}
+      title="커뮤니티"
       teamId={team.id}
       teamSlug={teamSlug}
     />

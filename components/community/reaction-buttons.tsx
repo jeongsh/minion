@@ -100,7 +100,7 @@ export function ReactionButtons({
           disabled={pending}
           aria-pressed={honored}
           className={`${base} ${
-            honored ? "border-accent bg-accent/10" : "border-[#e4e8ef] bg-white hover:bg-[#f7f9fc]"
+            honored ? "border-accent bg-accent/10" : "border-[#e4e8ef] bg-surface hover:bg-[#f7f9fc]"
           }`}
         >
           <span className="text-accent" aria-hidden>
@@ -115,7 +115,7 @@ export function ReactionButtons({
           disabled={pending}
           aria-pressed={disliked}
           className={`${base} ${
-            disliked ? "border-[#f0c2c2] bg-[#fdeeee]" : "border-[#e4e8ef] bg-white hover:bg-[#f7f9fc]"
+            disliked ? "border-[#f0c2c2] bg-[#fdeeee]" : "border-[#e4e8ef] bg-surface hover:bg-[#f7f9fc]"
           }`}
         >
           <span aria-hidden>👎</span>

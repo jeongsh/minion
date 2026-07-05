@@ -1,4 +1,3 @@
-import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { DataTable } from "@/components/ui/data-table";
 import { FanPageShell } from "@/components/fan/fan-page-shell";
 import { getTeamByRouteKey } from "@/lib/team-themes";
@@ -21,12 +20,6 @@ export default async function FanInfoPage({
 
   return (
     <FanPageShell eyebrow={`${team?.shortName ?? "Team"} Official`} title="팀 정보 / 공식 링크">
-      <Breadcrumb
-        items={[
-          { label: team?.shortName ?? "팀", href: `/fan/${teamSlug}` },
-          { label: "팀 정보 / 공식 링크" },
-        ]}
-      />
       <DataTable
         rows={rows}
         columns={[

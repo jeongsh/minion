@@ -37,7 +37,7 @@ function MatchCard({ match }: { match: MatchData }) {
   return (
     <Link
       href={match.href}
-      className="group flex flex-col overflow-hidden rounded-xl border border-[#e8eaf0] bg-white transition-all hover:border-[#c7cbda] hover:shadow-md"
+      className="group flex flex-col overflow-hidden rounded-xl border border-[#e8eaf0] bg-surface-muted transition-all hover:border-[#c7cbda] hover:shadow-md"
     >
       <div className="flex items-center justify-between border-b border-[#f0f2f5] px-4 py-3">
         <span className="text-xs font-semibold text-[#98a2b3]">
@@ -205,7 +205,7 @@ export function MatchPreviewSection({
       <div className="grid items-start gap-4 lg:grid-cols-[1fr_300px]">
         {/* 경기 카드 */}
         {displayMatches.length === 0 ? (
-          <p className="rounded-xl border border-[#e8eaf0] bg-white p-8 text-center text-sm text-[#98a2b3]">
+          <p className="rounded-xl border border-[#e8eaf0] bg-surface-muted p-8 text-center text-sm text-[#98a2b3]">
             {selectedDay != null
               ? `${selectedDay}일에는 경기가 없습니다.`
               : "예정된 경기가 없습니다."}
@@ -219,7 +219,7 @@ export function MatchPreviewSection({
         )}
 
         {/* 캘린더 */}
-        <div className="rounded-xl border border-[#e8eaf0] bg-white p-5">
+        <div className="rounded-xl border border-[#e8eaf0] bg-surface-muted p-5">
           <div className="mb-4 flex items-center justify-between">
             <p className="text-sm font-black text-[#111827]">{monthLabel}</p>
             {selectedDay != null && (

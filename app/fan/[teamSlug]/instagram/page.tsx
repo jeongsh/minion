@@ -2,7 +2,6 @@ import { notFound } from "next/navigation";
 
 import { FanInstagramFeed } from "@/components/fan/fan-instagram-feed";
 import { FanPageShell } from "@/components/fan/fan-page-shell";
-import { Breadcrumb } from "@/components/layout/breadcrumb";
 import {
   getInstagramStories,
   getPlayers,
@@ -31,13 +30,7 @@ export default async function FanInstagramPage({
   ]);
 
   return (
-    <FanPageShell
-      eyebrow={`${team.shortName} Instagram`}
-      title="인스타그램"
-      description="구단 공식 계정과 현재 소속 선수들의 Instagram 게시물을 함께 봅니다."
-    >
-      <Breadcrumb items={[{ label: team.shortName, href: `/fan/${teamSlug}` }, { label: "인스타그램" }]} />
-
+    <FanPageShell eyebrow={`${team.shortName} Instagram`} title="인스타그램">
       <FanInstagramFeed
         teamSlug={team.fanSiteHost}
         teamName={team.shortName}

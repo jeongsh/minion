@@ -19,6 +19,7 @@ export function FanPredictionCard({
   initialOpponentVotes,
   initialMyVote,
   canVote,
+  showDetailsLink = true,
 }: {
   matchId?: string;
   teamId: string;
@@ -30,6 +31,7 @@ export function FanPredictionCard({
   initialOpponentVotes: number;
   initialMyVote?: string;
   canVote: boolean;
+  showDetailsLink?: boolean;
 }) {
   const router = useRouter();
   const [teamVotes, setTeamVotes] = useState(initialTeamVotes);
@@ -127,7 +129,7 @@ export function FanPredictionCard({
 
       {error ? <p className="text-center text-[11px] font-bold text-[#d24]">{error}</p> : null}
 
-      {matchId ? (
+      {matchId && showDetailsLink ? (
         <Link
           href={`/matches/${matchId}`}
           className="text-center text-[11px] font-bold text-[#9c9aa3] transition hover:text-[#16151b]"

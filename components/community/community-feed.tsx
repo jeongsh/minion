@@ -93,7 +93,7 @@ export function CommunityFeed({
 
   const toggleBtn = (active: boolean) =>
     `px-3 py-[7px] text-[14px] ${
-      active ? "bg-[var(--surface-1,#f2f0ec)] font-bold text-[var(--ink,#16151b)]" : "bg-white text-[var(--sub-muted,#9c9aa3)]"
+      active ? "bg-[var(--surface-1,#f2f0ec)] font-bold text-[var(--ink,#16151b)]" : "text-[var(--sub-muted,#9c9aa3)]"
     }`;
 
   return (
@@ -134,7 +134,7 @@ export function CommunityFeed({
         </div>
 
         <div className="flex items-center gap-2.5">
-          <label className="flex h-[38px] w-[220px] items-center gap-2 rounded-full border border-[var(--input-border,#e5e3df)] bg-white px-4 text-[14px] max-sm:w-[160px]">
+          <label className="flex h-[38px] w-[220px] items-center gap-2 rounded-full border border-[var(--input-border,#e5e3df)] bg-surface px-4 text-[14px] max-sm:w-[160px]">
             <span aria-hidden className="text-[var(--sub-muted,#9c9aa3)]">⌕</span>
             <span className="sr-only">게시글 검색</span>
             <input

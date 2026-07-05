@@ -6,7 +6,7 @@ export type FilterOption = { value: string; label: string };
 
 export function Divider() {
   return (
-    <span aria-hidden="true" className="text-2xl text-border">
+    <span aria-hidden="true" className="text-2xl text-[var(--ui-border)]">
       ·
     </span>
   );
@@ -19,6 +19,7 @@ export function FilterDropdown({
   onSelect,
   variant = "list",
   disabled = false,
+  triggerClassName = "",
 }: {
   ariaLabel: string;
   options: FilterOption[];
@@ -26,6 +27,7 @@ export function FilterDropdown({
   onSelect: (value: string) => void;
   variant?: "list" | "grid";
   disabled?: boolean;
+  triggerClassName?: string;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -73,7 +75,7 @@ export function FilterDropdown({
         aria-label={ariaLabel}
         disabled={disabled}
         onClick={() => setOpen((value) => !value)}
-        className="inline-flex items-center gap-1.5 text-[24px] font-black tracking-tight text-foreground disabled:cursor-wait disabled:opacity-60"
+        className={`inline-flex items-center gap-1.5 text-[24px] font-black tracking-tight text-[var(--ui-ink)] disabled:cursor-wait disabled:opacity-60 ${triggerClassName}`}
       >
         {triggerLabel}
         <Chevron open={open} />
@@ -83,7 +85,7 @@ export function FilterDropdown({
         <div
           role="listbox"
           aria-label={ariaLabel}
-          className={`absolute left-0 top-full z-30 mt-2 rounded-xl border border-border bg-surface p-1.5 shadow-lg ${
+          className={`absolute left-0 top-full z-30 mt-2 rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-1.5 shadow-lg ${
             variant === "grid" ? "w-56" : "min-w-[11rem]"
           }`}
         >
@@ -102,8 +104,8 @@ export function FilterDropdown({
                     onClick={() => choose(option.value)}
                     className={`rounded-lg px-2 py-2.5 text-sm font-bold transition ${
                       isSelected
-                        ? "bg-accent/10 text-accent"
-                        : "text-muted hover:bg-surface-muted hover:text-foreground"
+                        ? "bg-[var(--ui-surface-muted)] text-[var(--ui-ink)]"
+                        : "text-[var(--ui-muted)] hover:bg-[var(--ui-surface-muted)] hover:text-[var(--ui-ink)]"
                     }`}
                   >
                     {option.label}
@@ -125,8 +127,8 @@ export function FilterDropdown({
                   onClick={() => choose(option.value)}
                   className={`flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-bold transition ${
                     isSelected
-                      ? "bg-accent/10 text-accent"
-                      : "text-muted hover:bg-surface-muted hover:text-foreground"
+                      ? "bg-[var(--ui-surface-muted)] text-[var(--ui-ink)]"
+                      : "text-[var(--ui-muted)] hover:bg-[var(--ui-surface-muted)] hover:text-[var(--ui-ink)]"
                   }`}
                 >
                   <span>{option.label}</span>
@@ -146,7 +148,7 @@ function Chevron({ open }: { open: boolean }) {
     <svg
       aria-hidden="true"
       viewBox="0 0 24 24"
-      className={`size-5 text-muted transition-transform ${open ? "rotate-180" : ""}`}
+      className={`size-5 text-[var(--ui-muted)] transition-transform ${open ? "rotate-180" : ""}`}
       fill="none"
       stroke="currentColor"
       strokeWidth="2.5"

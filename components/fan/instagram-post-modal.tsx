@@ -140,10 +140,10 @@ export function InstagramPostModal({
         </div>
 
         <div className="relative min-h-0 flex-1 overflow-visible sm:h-[min(720px,calc(100dvh-112px))] sm:flex-none">
-          <div className="grid h-full min-h-0 overflow-hidden bg-white sm:grid-cols-[minmax(0,560px)_minmax(300px,1fr)] sm:rounded-2xl">
-            <div className="relative min-h-0 bg-white">
+          <div className="grid h-full min-h-0 overflow-hidden bg-surface sm:grid-cols-[minmax(0,560px)_minmax(300px,1fr)] sm:rounded-2xl">
+            <div className="relative min-h-0 bg-surface">
               {isLoading && embedUrl ? (
-                <div className="absolute inset-0 z-0 grid place-items-center bg-white">
+                <div className="absolute inset-0 z-0 grid place-items-center bg-surface">
                   <div className="flex flex-col items-center gap-3 text-sm font-bold text-[#667085]">
                     <span className="h-8 w-8 animate-spin rounded-full border-2 border-[#e4e7ec] border-t-accent" />
                     Instagram 게시물을 불러오는 중
@@ -157,7 +157,7 @@ export function InstagramPostModal({
                   src={embedUrl}
                   width="100%"
                   height="720"
-                  className="relative z-10 h-[calc(100dvh-64px)] w-full border-0 bg-white sm:h-[min(720px,calc(100dvh-112px))]"
+                  className="relative z-10 h-[calc(100dvh-64px)] w-full border-0 bg-surface sm:h-[min(720px,calc(100dvh-112px))]"
                   scrolling="yes"
                   allow="encrypted-media; picture-in-picture; web-share"
                   allowFullScreen
@@ -165,7 +165,7 @@ export function InstagramPostModal({
                   title={`Instagram post by ${item.ownerName}`}
                 />
               ) : (
-                <div className="grid h-[calc(100dvh-64px)] place-items-center bg-white p-8 text-center sm:h-96">
+                <div className="grid h-[calc(100dvh-64px)] place-items-center bg-surface p-8 text-center sm:h-96">
                   <div>
                     <p className="text-sm font-bold text-[#344054]">이 게시물은 임베드로 표시할 수 없습니다.</p>
                     <Link
@@ -181,7 +181,7 @@ export function InstagramPostModal({
               )}
             </div>
 
-            <aside className="hidden min-h-0 flex-col border-l border-[#eceef2] bg-white p-6 sm:flex">
+            <aside className="hidden min-h-0 flex-col border-l border-[#eceef2] bg-surface p-6 sm:flex">
               <div className="flex items-center gap-3 border-b border-[#eceef2] pb-5">
                 <div className="flex h-11 w-11 items-center justify-center rounded-full bg-accent/10 text-accent">
                   <InstagramIcon className="h-5 w-5" />

@@ -54,7 +54,7 @@ export function MatchCalendar({ matches }: { matches: CalendarMatch[] }) {
   while (cells.length % 7 !== 0) cells.push(null);
 
   return (
-    <div className="overflow-hidden rounded-xl border border-[#e8eaf0] bg-white">
+    <div className="overflow-hidden rounded-xl border border-[#e8eaf0] bg-surface-muted">
       {/* 헤더 */}
       <div className="flex items-center justify-between border-b border-[#e8eaf0] px-5 py-4">
         <button
@@ -105,12 +105,11 @@ export function MatchCalendar({ matches }: { matches: CalendarMatch[] }) {
           const dow = (firstDow + day - 1) % 7;
           const isSun = dow === 0;
           const isSat = dow === 6;
-          const hasMatch = dayMatches.length > 0;
 
           return (
             <div
               key={dateKey}
-              className={`flex min-h-[80px] flex-col gap-1 p-1.5 ${hasMatch ? "bg-white" : "bg-white"}`}
+              className="flex min-h-[80px] flex-col gap-1 p-1.5"
             >
               {/* 날짜 */}
               <span

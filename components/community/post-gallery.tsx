@@ -21,14 +21,14 @@ export function PostGallery({
 
   if (posts.length === 0) {
     return (
-      <p className="rounded-[14px] border border-[#e4e8ef] bg-white p-8 text-center text-[12px] text-[#8a93a6]">
+      <p className="rounded-[14px] border border-[#e4e8ef] bg-surface-muted p-8 text-center text-[12px] text-[#8a93a6]">
         아직 게시글이 없습니다. 첫 글을 작성해 보세요.
       </p>
     );
   }
 
   return (
-    <ul className="overflow-hidden rounded-[14px] border border-[#d8dee9] bg-white shadow-[0_8px_24px_-12px_rgba(20,30,60,0.28),0_1px_3px_rgba(20,30,60,0.08)]">
+    <ul className="overflow-hidden rounded-[14px] border border-[#d8dee9] bg-surface-muted shadow-[0_8px_24px_-12px_rgba(20,30,60,0.28),0_1px_3px_rgba(20,30,60,0.08)]">
       {posts.map((post) => (
         <li key={post.id} className="border-b border-[#e8ecf2] last:border-b-0">
           <Link

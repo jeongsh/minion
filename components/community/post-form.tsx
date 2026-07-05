@@ -123,7 +123,7 @@ export function PostForm({
           onChange={(e) => setTitle(e.target.value)}
           required
           placeholder="제목을 입력하세요"
-          className="min-w-0 flex-1 bg-white px-[13px] py-[10px] text-[16px] font-semibold text-[#151b2b] outline-none placeholder:font-semibold placeholder:text-[#aab2c2]"
+          className="min-w-0 flex-1 bg-surface px-[13px] py-[10px] text-[16px] font-semibold text-[#151b2b] outline-none placeholder:font-semibold placeholder:text-[#aab2c2]"
         />
       </div>
 

@@ -10,6 +10,7 @@ import {
   getTournaments,
 } from "@/lib/data/lck";
 import type { Match } from "@/lib/types";
+import { getBoardPosts } from "@/lib/data/community";
 import { formatTimeKST, matchHref } from "@/lib/view-data";
 
 export const dynamic = "force-dynamic";
@@ -40,13 +41,14 @@ function buildRecentForm(teamId: string, matches: Match[]) {
 }
 
 export default async function HomePage() {
-  const [teams, matches, savedStandings, tournaments, latestVideos, homeHeroSlides] = await Promise.all([
+  const [teams, matches, savedStandings, tournaments, latestVideos, homeHeroSlides, communityPosts] = await Promise.all([
     getAllTeams(),
     getMatches(),
     getTeamStandings(),
     getTournaments(),
     getLatestTeamVideos(4),
     getHomeHeroSlides({ limit: 8 }),
+    getBoardPosts({ scope: "hub" }),
   ]);
 
   const teamsById = new Map(teams.map((team) => [team.id, team]));
@@ -76,19 +78,30 @@ export default async function HomePage() {
   const upcomingMatches = matches
     .filter((match) => match.status !== "completed")
     .sort((a, b) => new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime())
-    .slice(0, 2);
+    .slice(0, 8);
   const recentMatches = matches
     .filter((match) => match.status === "completed")
     .sort((a, b) => new Date(b.matchDate).getTime() - new Date(a.matchDate).getTime())
     .slice(0, 2);
+  const todayKey = dateKeyKST(new Date());
+  const matchesByDate = new Map<string, Match[]>();
+  for (const match of matches) {
+    const key = dateKeyKST(match.matchDate);
+    matchesByDate.set(key, [...(matchesByDate.get(key) ?? []), match]);
+  }
+  const displayDateKey = matchesByDate.has(todayKey)
+    ? todayKey
+    : [...matchesByDate.keys()].filter((key) => key < todayKey).sort().at(-1) ?? todayKey;
+  const todayMatches = (matchesByDate.get(displayDateKey) ?? []).sort(
+    (a, b) => new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime(),
+  );
+  const predictionTargets = new Map([...upcomingMatches, ...todayMatches].map((match) => [match.id, match]));
   const predictionEntries = await Promise.all(
-    upcomingMatches.map(async (match) => [match.id, await getFanMatchPredictions(match.id)] as const),
+    [...predictionTargets.values()].map(async (match) => [match.id, await getFanMatchPredictions(match.id)] as const),
   );
   const predictionsByMatchId = new Map(predictionEntries);
   const tournamentNamesById = new Map(tournaments.map((tournament) => [tournament.id, tournament.name]));
-  const calendarMonthKey = upcomingMatches[0]?.matchDate
-    ? yearMonthKeyKST(upcomingMatches[0].matchDate)
-    : yearMonthKeyKST(new Date().toISOString());
+  const calendarMonthKey = todayKey.slice(0, 7);
   const calendarMatches = matches
     .filter((match) => yearMonthKeyKST(match.matchDate) === calendarMonthKey)
     .sort((a, b) => new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime());
@@ -115,13 +128,13 @@ export default async function HomePage() {
   // 상단 일정 스트립: 오늘부터 일주일 치 경기. 이번 주 경기가 없으면 가장 가까운 경기일로 대체한다.
   const byDateAsc = (a: Match, b: Match) => new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime();
   const today = new Date();
-  const todayKey = dateKeyKST(today);
+  const stripTodayKey = dateKeyKST(today);
   const weekEndKey = dateKeyKST(new Date(today.getTime() + 6 * 86400000));
   const hasKnownTeam = (match: Match) => teamsById.has(match.teamAId) || teamsById.has(match.teamBId);
   let stripMatches = matches
     .filter((match) => {
       const key = dateKeyKST(match.matchDate);
-      return key >= todayKey && key <= weekEndKey && hasKnownTeam(match);
+      return key >= stripTodayKey && key <= weekEndKey && hasKnownTeam(match);
     })
     .sort(byDateAsc)
     .slice(0, 12);
@@ -136,14 +149,16 @@ export default async function HomePage() {
       standingRows={standingRows}
       upcomingMatches={upcomingMatches}
       recentMatches={recentMatches}
+      todayMatches={todayMatches}
       predictionsByMatchId={predictionsByMatchId}
       tournamentNamesById={tournamentNamesById}
       calendarMonthKey={calendarMonthKey}
       calendarMatches={calendarClientMatches}
       latestVideos={latestVideos}
       heroSlides={heroSlides}
+      communityPosts={communityPosts.slice(0, 12)}
       stripMatches={stripMatches}
-      stripTodayKey={todayKey}
+      stripTodayKey={stripTodayKey}
     />
   );
 }

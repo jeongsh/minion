@@ -15,14 +15,14 @@ export function HomeHeroSwiper({ slides }: { slides: HomeHeroSwiperSlide[] }) {
   const safeSlides = slides.filter((slide) => slide.imageUrl);
 
   return (
-    <section className="relative min-h-[380px] overflow-hidden rounded-2xl bg-[#071332] shadow-sm">
+    <section className="relative min-h-[390px] overflow-hidden rounded-2xl bg-[#071332] shadow-sm">
       {safeSlides.length > 0 ? (
         <Swiper
           modules={[Autoplay, Pagination]}
           autoplay={{ delay: 4500, disableOnInteraction: false }}
           loop={safeSlides.length > 1}
           pagination={{ clickable: true }}
-          className="home-hero-swiper h-[380px]"
+          className="home-hero-swiper h-[390px]"
         >
           {safeSlides.map((slide) => (
             <SwiperSlide key={slide.id}>
@@ -37,7 +37,7 @@ export function HomeHeroSwiper({ slides }: { slides: HomeHeroSwiperSlide[] }) {
           ))}
         </Swiper>
       ) : (
-        <div className="h-[380px] bg-[#071332]" />
+        <div className="h-[390px] bg-[#071332]" />
       )}
     </section>
   );

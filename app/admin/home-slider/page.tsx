@@ -73,7 +73,7 @@ export default async function AdminHomeSliderPage() {
                       <input type="hidden" name="id" value={slide.id} />
                       <button
                         type="submit"
-                        className="rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-black text-red-600 transition hover:bg-red-50"
+                        className="rounded-lg border border-red-200 bg-surface px-4 py-2 text-sm font-black text-red-600 transition hover:bg-red-50"
                       >
                         삭제
                       </button>

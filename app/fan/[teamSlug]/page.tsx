@@ -1,58 +1,31 @@
-import { createHash } from "crypto";
-
 import Link from "next/link";
-import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
+import { ChevronRight } from "lucide-react";
 
-import { FanCheerButton } from "@/components/fan/fan-cheer-button";
-import {
-  FanFeedMosaic,
-  type FeedInstaItem,
-  type FeedVideoItem,
-} from "@/components/fan/fan-feed-mosaic";
-import { FanPredictionCard } from "@/components/fan/fan-prediction-card";
-import { boardLabel } from "@/lib/community/boards";
-import { formatRelativeOrDate } from "@/components/community/format";
-import { isHotPost } from "@/lib/community/hot";
-import type { CommunityPostDetail } from "@/lib/community/types";
-import { getBoardPosts } from "@/lib/data/community";
+import type { FeedInstaItem, FeedVideoItem } from "@/components/fan/fan-feed-mosaic";
+import { HomeBoardCarousel } from "@/components/domain/home-board-carousel";
+import { FanPageShell } from "@/components/fan/fan-page-shell";
+import { FanSocialPreview } from "@/components/fan/fan-social-preview";
+import { AdSlot } from "@/components/ui/ad-slot";
+import { SectionHeading } from "@/components/ui/section-heading";
+import { TeamLogo } from "@/components/ui/team-logo";
 import {
   getAllTeams,
-  getFanMatchPredictions,
   getFanVideoFeed,
   getMatches,
   getPlayers,
   getTeamByFanSiteHost,
   getTeamBySlug,
-  getTeamEngagementStatus,
-  getTeamFanCount,
   getTeamInstagramFeed,
   getTeamStandings,
 } from "@/lib/data/lck";
+import { getBoardPosts } from "@/lib/data/community";
 import { buildFanVideoItems } from "@/lib/fan-video-items";
 import type { Match, Player, Team, TeamStanding } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
 const POSITION_ORDER: Player["position"][] = ["TOP", "JGL", "MID", "BOT", "SUP"];
-
-// COMMUNITY 5행 = MATCHES 4행 + 순위표 카드 1행. 두 컬럼의 행 높이/바닥선을 일치시킨다.
-const COMMUNITY_ROWS = 5;
-const MATCH_ROWS = 4;
-
-function formatDateTime(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "-";
-  return new Intl.DateTimeFormat("ko-KR", {
-    timeZone: "Asia/Seoul",
-    month: "long",
-    day: "numeric",
-    weekday: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).format(date);
-}
 
 function formatMatchDay(value: string) {
   const date = new Date(value);
@@ -63,23 +36,6 @@ function formatMatchDay(value: string) {
     day: "numeric",
     weekday: "short",
   }).format(date);
-}
-
-function dateKeyKST(value: string | Date) {
-  const date = typeof value === "string" ? new Date(value) : value;
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Seoul",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(date);
-}
-
-function ddayLabel(matchDate: string) {
-  const diff = Math.round(
-    (Date.parse(dateKeyKST(matchDate)) - Date.parse(dateKeyKST(new Date()))) / 86400000,
-  );
-  return diff <= 0 ? "D-DAY" : `D-${diff}`;
 }
 
 function byMatchDate(a: Match, b: Match) {
@@ -102,7 +58,7 @@ function teamResult(match: Match, team: Team): "W" | "L" | null {
 }
 
 function scoreLabel(match: Match, team: Team): string {
-  if (match.teamAScore == null || match.teamBScore == null) return "0:0";
+  if (match.teamAScore == null || match.teamBScore == null) return "0 : 0";
   const isA = match.teamAId === team.id;
   const own = isA ? match.teamAScore : match.teamBScore;
   const opp = isA ? match.teamBScore : match.teamAScore;
@@ -116,362 +72,87 @@ function mockKda(id: string) {
   return (2.6 + (hash % 280) / 100).toFixed(1);
 }
 
-function TeamLogoImg({ team, className }: { team?: Team; className: string }) {
-  if (!team?.logoUrl) {
-    return (
-      <span className={`${className} grid place-items-center rounded bg-[#f1f2f4] text-[10px] font-black text-[#8a8892]`}>
-        {team?.shortName ?? "-"}
-      </span>
-    );
-  }
-  return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img src={team.logoUrl} alt={`${team.name} 로고`} className={`${className} object-contain`} />
-  );
-}
+// ─── 섹션: 매치 행 (일정 페이지 매치 로우 언어를 팬 홈용으로 압축) ──
 
-// ─── 섹션: 히어로 밴드 ──────────────────────────────────────────
-
-function Hero({
-  team,
-  opponent,
-  match,
-  mode,
-  fanCount,
-  isFan,
-  teamVotes,
-  opponentVotes,
-  myVote,
-  canVote,
-}: {
-  team: Team;
-  opponent?: Team;
-  match?: Match;
-  mode: "live" | "upcoming" | "recent" | "empty";
-  fanCount: number;
-  isFan: boolean;
-  teamVotes: number;
-  opponentVotes: number;
-  myVote?: string;
-  canVote: boolean;
-}) {
-  const tp = team.primaryColor;
-  const badge =
-    mode === "live"
-      ? "LIVE"
-      : mode === "upcoming" && match
-        ? ddayLabel(match.matchDate)
-        : mode === "recent"
-          ? "경기 종료"
-          : "일정 없음";
-  const stage =
-    match?.name?.trim() || (mode === "empty" ? "다가올 경기를 기다리는 중" : "LCK 서머 정규리그");
-  const venue = match?.venue?.trim() || "LoL PARK";
-  const dateLine = match ? `${formatDateTime(match.matchDate)} · ${venue}` : "";
-  const oppShort = opponent?.shortName ?? "TBD";
-  const tickerText = match
-    ? `MATCH DAY · ${formatMatchDay(match.matchDate)} · ${venue} · ${team.shortName} VS ${oppShort} · 승부예측 참여 중`
-    : `${team.shortName} FAN · 다음 매치데이를 기다리는 중 · 응원은 계속된다`;
-
-  return (
-    <div className="relative overflow-hidden text-white" style={{ background: tp }}>
-      <div className="relative mx-auto max-w-[1240px] px-10">
-        <span
-          aria-hidden="true"
-          className="font-archivo pointer-events-none absolute -right-2 -top-16 text-[250px] font-black leading-none tracking-[-0.05em]"
-          style={{ color: "rgba(255,255,255,0.07)" }}
-        >
-          {team.shortName}
-        </span>
-
-        <div className="relative grid items-center gap-11 pb-10 pt-11 lg:grid-cols-[1fr_380px]">
-        {/* 좌측 */}
-        <div className="flex flex-col gap-[18px]">
-          <div className="flex items-center gap-3">
-            <span
-              className="font-archivo rounded-[4px] bg-white px-[10px] py-1 text-[13px] font-black"
-              style={{ color: tp }}
-            >
-              {badge}
-            </span>
-            <span className="font-archivo text-xs font-extrabold tracking-[0.22em] text-white/80">
-              {stage}
-            </span>
-          </div>
-
-          <div className="flex items-baseline gap-5">
-            <span className="font-archivo text-[96px] font-black leading-[0.92] tracking-[-0.02em]">
-              {team.shortName}
-            </span>
-            <span className="font-archivo text-[30px] font-black text-white/55">VS</span>
-            <span
-              className="font-archivo text-[96px] font-black leading-[0.92] tracking-[-0.02em]"
-              style={{ color: "transparent", WebkitTextStroke: "2px rgba(255,255,255,0.85)" }}
-            >
-              {oppShort}
-            </span>
-          </div>
-
-          {dateLine ? (
-            <p className="text-[15px] font-bold text-white/85">{dateLine}</p>
-          ) : (
-            <p className="text-[15px] font-bold text-white/85">예정된 경기가 없습니다</p>
-          )}
-
-          <div className="mt-1 flex gap-[10px]">
-            <FanCheerButton
-              teamId={team.id}
-              teamSlug={team.fanSiteHost}
-              initialCount={fanCount}
-              initialCheered={isFan}
-              teamColor={tp}
-            />
-            <Link
-              href={match ? `/matches/${match.id}` : `/fan/${team.fanSiteHost}/matches`}
-              className="rounded-full border-[1.5px] border-white/55 px-[26px] py-[13px] text-sm font-extrabold text-white transition hover:bg-white/10"
-            >
-              {match ? "경기 상세" : "전체 일정"}
-            </Link>
-          </div>
-        </div>
-
-        {/* 우측 — 승부예측 카드 (실제 집계 반영) */}
-        <FanPredictionCard
-          matchId={match?.id}
-          teamId={team.id}
-          teamName={team.shortName}
-          opponentId={opponent?.id}
-          opponentName={oppShort}
-          teamColor={tp}
-          initialTeamVotes={teamVotes}
-          initialOpponentVotes={opponentVotes}
-          initialMyVote={myVote}
-          canVote={canVote}
-        />
-        </div>
-      </div>
-
-      {/* 티커 */}
-      <div className="relative overflow-hidden bg-black/20 py-[9px]">
-        <div className="font-archivo fan-ticker-track text-xs font-extrabold tracking-[0.2em] text-white/85">
-          {[false, true].map((hidden) => (
-            <div key={String(hidden)} className="fan-ticker-group" aria-hidden={hidden || undefined}>
-              {Array.from({ length: 4 }, (_, index) => (
-                <span key={index} className="px-4">{tickerText}  · </span>
-              ))}
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── 섹션 헤더 공통 ─────────────────────────────────────────────
-
-function SectionHeader({
-  title,
-  desc,
-  action,
-}: {
-  title: string;
-  desc: string;
-  action: React.ReactNode;
-}) {
-  return (
-    <div className="flex h-10 shrink-0 items-center gap-[14px] border-b-2 border-[#16151b] pb-[10px]">
-      <h2 className="font-archivo m-0 text-[26px] font-black tracking-[-0.01em]">{title}</h2>
-      <span className="text-[13px] font-semibold text-[#8a8892]">{desc}</span>
-      <div className="ml-auto">{action}</div>
-    </div>
-  );
-}
-
-// ─── 섹션: 커뮤니티 + 매치 ──────────────────────────────────────
-
-function CommunityColumn({ teamSlug, posts }: { teamSlug: string; posts: CommunityPostDetail[] }) {
-  return (
-    <div className="flex flex-col gap-1">
-      <SectionHeader
-        title="COMMUNITY"
-        desc="지금 팬들이 하는 얘기"
-        action={
-          <Link
-            href={`/fan/${teamSlug}/community/new`}
-            className="rounded-full px-4 py-2 text-xs font-black text-white transition hover:opacity-90"
-            style={{ background: "var(--tp)" }}
-          >
-            글쓰기
-          </Link>
-        }
-      />
-      {/* 매치 컬럼과 바닥선을 맞추기 위해 항상 5행(부족하면 빈 슬롯)으로 채운다. */}
-      {Array.from({ length: COMMUNITY_ROWS }, (_, i) => {
-        const post = posts[i];
-        if (!post) {
-          return (
-            <div
-              key={`empty-${i}`}
-              aria-hidden="true"
-              className="flex min-h-[58px] items-center gap-[14px] border-b border-[#ebecef] py-2"
-            >
-              <span className="font-archivo w-[22px] text-[17px] font-black text-[#e3e4e8]">{i + 1}</span>
-            </div>
-          );
-        }
-        return (
-          <Link
-            key={post.id}
-            href={`/fan/${teamSlug}/community/post/${post.id}`}
-            className="flex min-h-[58px] items-center gap-[14px] border-b border-[#ebecef] py-2"
-          >
-            <span
-              className="font-archivo w-[22px] text-[17px] font-black"
-              style={{ color: "var(--tp)" }}
-            >
-              {i + 1}
-            </span>
-            <div className="flex min-w-0 flex-1 flex-col">
-              <span className="truncate text-[16px] font-extrabold">{post.title}</span>
-              <span className="text-[12px] font-bold text-[#9c9aa3]">
-                {boardLabel("team", post.boardType)} ·{" "}
-                <span suppressHydrationWarning>{formatRelativeOrDate(post.createdAt)}</span>
-              </span>
-            </div>
-            {isHotPost(post) ? (
-              <span className="shrink-0 rounded-[4px] bg-[#16151b] px-[7px] py-[2px] text-[10px] font-black text-white">
-                HOT
-              </span>
-            ) : null}
-            {post.commentCount > 0 ? (
-              <span className="shrink-0 text-[12px] font-extrabold text-[#9c9aa3]">
-                💬 {post.commentCount}
-              </span>
-            ) : null}
-          </Link>
-        );
-      })}
-    </div>
-  );
-}
-
-function MatchRow({
-  match,
-  team,
-  teams,
-}: {
-  match: Match;
-  team: Team;
-  teams: Team[];
-}) {
+function MatchRow({ match, team, teams }: { match: Match; team: Team; teams: Team[] }) {
   const opponent = teamForMatch(match, team, teams);
   const result = teamResult(match, team);
   const scheduled = match.status !== "completed";
-  const badgeText = scheduled ? "일정" : result ?? "-";
-  const badgeBg = scheduled ? "#16151b" : result === "W" ? "var(--tp)" : "#b9b7c0";
-  const score = scheduled ? "0:0" : scoreLabel(match, team);
+  const badgeText = scheduled ? "예정" : result ?? "-";
+  const score = scheduled ? "VS" : scoreLabel(match, team);
 
   return (
-    <div className="flex min-h-[58px] items-center gap-3 border-b border-[#ebecef] py-2">
+    <div className="flex items-center gap-3 px-4 py-3.5 md:px-5">
       <span
-        className="font-archivo grid h-7 w-[34px] shrink-0 place-items-center rounded-lg text-xs font-black text-white"
-        style={{ background: badgeBg }}
+        className={`font-archivo grid h-9 w-11 shrink-0 place-items-center rounded-lg text-xs font-black ${
+          scheduled ? "bg-[var(--ui-surface-muted)] text-[var(--ui-ink)]" : "text-white"
+        }`}
+        style={scheduled ? undefined : { background: result === "W" ? "var(--tp)" : "var(--ui-muted)" }}
       >
         {badgeText}
       </span>
-      <TeamLogoImg team={opponent} className="h-[34px] w-[34px] shrink-0" />
+      <TeamLogo team={opponent} size="h-10 w-10" />
       <div className="flex min-w-0 flex-1 flex-col">
-        <span className="text-[16px] font-black">
-          {score}
+        <span className="flex items-baseline gap-2 text-[15px] font-black text-[var(--ui-ink)]">
+          <span className="truncate">{opponent?.shortName ?? "TBD"}</span>
+          <span className="shrink-0 tabular-nums text-[var(--ui-text)]">{score}</span>
         </span>
-        <span className="text-[12px] font-semibold text-[#9c9aa3]">
+        <span className="truncate text-[12px] font-semibold text-[var(--ui-muted)]">
           {formatMatchDay(match.matchDate)}
           {match.name?.trim() ? ` · ${match.name.trim()}` : ""}
         </span>
       </div>
-      {scheduled ? (
-        <Link
-          href={`/matches/${match.id}`}
-          className="shrink-0 text-xs font-extrabold"
-          style={{ color: "var(--tp)" }}
-        >
-          승부예측 →
-        </Link>
-      ) : (
-        <Link href={`/matches/${match.id}`} className="shrink-0 text-xs font-extrabold text-[#8a8892]">
-          매치 데이터→
-        </Link>
-      )}
+      <Link
+        href={`/matches/${match.id}`}
+        className="flex shrink-0 items-center gap-0.5 text-xs font-extrabold"
+        style={scheduled ? { color: "var(--tp)" } : undefined}
+      >
+        <span className={scheduled ? "" : "text-[var(--ui-muted)]"}>{scheduled ? "승부예측" : "매치 데이터"}</span>
+        <ChevronRight size={15} className={scheduled ? "" : "text-[var(--ui-muted)]"} />
+      </Link>
     </div>
   );
 }
 
-function MatchesColumn({
-  teamSlug,
-  team,
-  teams,
-  rows,
-  standing,
-  recentForm,
-}: {
-  teamSlug: string;
-  team: Team;
-  teams: Team[];
-  rows: Match[];
-  standing?: TeamStanding;
-  recentForm: string[];
-}) {
-  const rankText = standing ? `${standing.rank}위` : "-";
-  const recordText = standing
-    ? `${standing.wins}승 ${standing.losses}패 · 세트 ${standing.setDiff >= 0 ? "+" : ""}${standing.setDiff}`
-    : "기록 집계 중";
+// ─── 섹션: 순위·최근 폼 패널 (메인 페이지 순위/폼 언어를 카드로) ──
 
+function StandingPanel({ standing, recent }: { standing?: TeamStanding; recent: Array<"W" | "L"> }) {
   return (
-    <div className="flex flex-col gap-1">
-      <SectionHeader
-        title="MATCHES"
-        desc="일정 & 결과"
-        action={
-          <Link href={`/fan/${teamSlug}/matches`} className="text-[13px] font-semibold text-[#8a8892]">
-            전체 일정 →
-          </Link>
-        }
-      />
-      {/* 커뮤니티 컬럼과 바닥선을 맞추기 위해 항상 4행(부족하면 빈 슬롯) + 순위표 카드. */}
-      {Array.from({ length: MATCH_ROWS }, (_, i) => {
-        const match = rows[i];
-        if (!match) {
-          return (
-            <div
-              key={`empty-${i}`}
-              aria-hidden="true"
-              className="flex min-h-[58px] items-center border-b border-[#ebecef] py-2 text-[11px] font-semibold text-[#c5c6cc]"
-            >
-              경기 없음
-            </div>
-          );
-        }
-        return <MatchRow key={match.id} match={match} team={team} teams={teams} />;
-      })}
-      <div
-        className="flex min-h-[58px] items-center justify-between rounded-[14px] px-[18px] py-2"
-        style={{ background: "color-mix(in oklab, var(--tp) 8%, #fff)" }}
-      >
-        <div className="flex flex-col gap-[2px]">
-          <span className="text-[14px] font-black">
-            현재 <b style={{ color: "var(--tp)" }}>{rankText}</b> · {recordText}
+    <div className="rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-5">
+      <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--ui-muted)]">Season Standing</p>
+      <div className="mt-4 flex items-end gap-4">
+        <p className="flex items-baseline gap-1">
+          <span className="font-archivo text-[46px] font-black leading-none" style={{ color: "var(--tp)" }}>
+            {standing?.rank ?? "-"}
           </span>
-          <span className="text-[12px] font-bold text-[#8a8892]">
-            최근 {recentForm.length}경기 {recentForm.length ? recentForm.join(" ") : "기록 없음"}
+          <span className="text-lg font-black text-[var(--ui-muted)]">위</span>
+        </p>
+        <div className="flex flex-col pb-1.5">
+          <span className="text-[15px] font-black text-[var(--ui-ink)]">
+            {standing ? `${standing.wins}승 ${standing.losses}패` : "집계 중"}
+          </span>
+          <span className="text-xs font-semibold text-[var(--ui-muted)]">
+            {standing ? `세트 득실 ${standing.setDiff > 0 ? "+" : ""}${standing.setDiff}` : "정규시즌"}
           </span>
         </div>
-        <Link
-          href="/standings"
-          className="shrink-0 text-xs font-black"
-          style={{ color: "var(--tp)" }}
-        >
-          순위표 →
-        </Link>
+      </div>
+      <div className="mt-5 border-t border-[var(--ui-border)] pt-4">
+        <p className="mb-2.5 text-xs font-bold text-[var(--ui-muted)]">최근 5경기</p>
+        {recent.length ? (
+          <div className="flex gap-1.5">
+            {recent.map((value, index) => (
+              <span
+                key={index}
+                className="grid h-7 w-7 place-items-center rounded-full text-[11px] font-black text-white"
+                style={{ background: value === "W" ? "var(--tp)" : "var(--ui-muted)" }}
+              >
+                {value}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <p className="text-xs text-[var(--ui-muted)]">기록이 없습니다.</p>
+        )}
       </div>
     </div>
   );
@@ -481,24 +162,16 @@ function MatchesColumn({
 
 function Roster({ players, teamSlug }: { players: Player[]; teamSlug: string }) {
   return (
-    <div className="px-10">
-      <SectionHeader
-        title="ROSTER"
-        desc="2026 서머"
-        action={
-          <Link href={`/fan/${teamSlug}/players`} className="text-[13px] font-semibold text-[#8a8892]">
-            선수 상세 · 스탯 →
-          </Link>
-        }
-      />
-      <div className="grid grid-cols-5 gap-[14px] pb-[26px] pt-[18px]">
+    <div>
+      <SectionHeading href={`/fan/${teamSlug}/players`}>선수단</SectionHeading>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         {players.slice(0, 5).map((player) => (
           <Link
             key={player.id}
             href={`/players/${player.slug}`}
-            className="fan-roster-chip group flex items-center gap-3 rounded-full border border-[#eeece8] py-2 pl-2 pr-4 transition hover:shadow-[0_8px_20px_rgba(60,50,60,0.1)]"
+            className="fan-roster-chip group flex items-center gap-3 rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-4 transition"
           >
-            <span className="h-11 w-11 shrink-0 overflow-hidden rounded-full bg-[#eef1f6]">
+            <span className="h-14 w-14 shrink-0 overflow-hidden rounded-full bg-[var(--ui-surface-muted)]">
               {player.profileImageUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -507,56 +180,20 @@ function Roster({ players, teamSlug }: { players: Player[]; teamSlug: string }) 
                   className="h-full w-full object-cover object-top"
                 />
               ) : (
-                <span className="grid h-full place-items-center text-[10px] font-black text-[#9a968f]">
+                <span className="grid h-full place-items-center text-[10px] font-black text-[var(--ui-muted)]">
                   {player.name.slice(0, 2)}
                 </span>
               )}
             </span>
             <div className="flex min-w-0 flex-col gap-[1px]">
-              <span className="font-archivo truncate text-[15px] font-black">{player.name}</span>
+              <span className="font-archivo truncate text-[15px] font-black text-[var(--ui-ink)]">{player.name}</span>
               <span className="text-[12px] font-extrabold" style={{ color: "var(--tp)" }}>
                 {player.position}{" "}
-                <span className="font-bold text-[#9c9aa3]">· KDA {mockKda(player.id)}</span>
+                <span className="font-bold text-[var(--ui-muted)]">· KDA {mockKda(player.id)}</span>
               </span>
             </div>
           </Link>
         ))}
-      </div>
-    </div>
-  );
-}
-
-// ─── 섹션: 푸터 ─────────────────────────────────────────────────
-
-function Footer({ team }: { team: Team }) {
-  const links = [
-    { label: "홈페이지", href: team.officialHomepageUrl },
-    { label: "YouTube", href: team.officialYoutubeUrl },
-    { label: "X", href: team.officialXUrl },
-    { label: "Instagram", href: team.officialInstagramUrl },
-  ].filter((l) => l.href);
-
-  return (
-    <div className="bg-[#16151b] text-white">
-      <div className="mx-auto flex max-w-[1240px] items-center gap-[14px] px-10 py-[22px]">
-        {team.logoWhiteUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={team.logoWhiteUrl} alt="" className="h-6 w-[30px] object-contain" />
-        ) : null}
-        <span className="font-archivo text-sm font-black tracking-[0.08em]">{team.shortName} FAN</span>
-        <div className="ml-auto flex flex-wrap gap-2">
-          {links.map((link) => (
-            <Link
-              key={link.label}
-              href={link.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="rounded-full border border-white/25 px-[13px] py-[6px] text-[11px] font-extrabold text-white/75 transition hover:border-white/60 hover:text-white"
-            >
-              {link.label}
-            </Link>
-          ))}
-        </div>
       </div>
     </div>
   );
@@ -576,14 +213,6 @@ export default async function FanHomePage({
     notFound();
   }
 
-  // 쿠키 기반 voterKey — 응원(팬)/승부예측 상태를 사용자별로 식별한다.
-  const cookieStore = await cookies();
-  const fanVoterRaw = cookieStore.get("lckhub_fan_voter")?.value;
-  const hashedFanVoter = fanVoterRaw
-    ? createHash("sha256").update(fanVoterRaw).digest("hex")
-    : null;
-  const predictionVoterKey = cookieStore.get("lckhub_match_prediction_voter")?.value;
-
   const [teams, players, matches, boardPosts, standings] = await Promise.all([
     getAllTeams(),
     getPlayers(),
@@ -597,13 +226,9 @@ export default async function FanHomePage({
     .sort((a, b) => POSITION_ORDER.indexOf(a.position) - POSITION_ORDER.indexOf(b.position));
   const playerIds = teamPlayers.map((p) => p.id);
 
-  const [instagramFeed, videoFeed, fanCount, engagement] = await Promise.all([
+  const [instagramFeed, videoFeed] = await Promise.all([
     getTeamInstagramFeed(team.id, playerIds),
     getFanVideoFeed(team.id, playerIds),
-    getTeamFanCount(team.id),
-    hashedFanVoter
-      ? getTeamEngagementStatus(team.id, hashedFanVoter)
-      : Promise.resolve({ isFan: false, isCheckedInToday: false }),
   ]);
 
   const teamMatches = matches
@@ -612,45 +237,25 @@ export default async function FanHomePage({
   // 이 페이지는 force-dynamic이라 요청 시각으로 지난 예정 경기를 걸러낸다.
   // eslint-disable-next-line react-hooks/purity
   const now = Date.now();
-  const liveMatch = teamMatches.find((match) => match.status === "live");
   const upcomingMatches = teamMatches.filter(
     (match) => match.status === "scheduled" && new Date(match.matchDate).getTime() >= now,
   );
   const completedMatches = [...teamMatches]
     .filter((match) => match.status === "completed" || new Date(match.matchDate).getTime() < now)
     .reverse();
-  const nextMatch = upcomingMatches[0];
-  const recentMatch = completedMatches[0];
-  const featuredMatch = liveMatch ?? nextMatch ?? recentMatch;
-  const featuredMatchMode = liveMatch
-    ? "live"
-    : nextMatch
-      ? "upcoming"
-      : recentMatch
-        ? "recent"
-        : "empty";
-  const opponent = featuredMatch ? teamForMatch(featuredMatch, team, teams) : undefined;
 
-  // 승부예측 — 대표 경기의 실제 집계와 내 예측을 불러온다. 시작 전에만 투표 가능.
-  const predictions = featuredMatch ? await getFanMatchPredictions(featuredMatch.id) : [];
-  const teamVotes = predictions.filter((p) => p.teamId === team.id).length;
-  const opponentVotes = opponent
-    ? predictions.filter((p) => p.teamId === opponent.id).length
-    : 0;
-  const myVote = predictionVoterKey
-    ? predictions.find((p) => p.voterKey === predictionVoterKey)?.teamId
-    : undefined;
-  const canVote = featuredMatchMode === "upcoming";
-
-  // MATCHES 컬럼: 예정 2 + 결과 2
+  // MATCHES 미니 리스트: 예정 2 + 결과 2
   const matchRows = [...upcomingMatches.slice(0, 2), ...completedMatches.slice(0, 2)];
-  const recentForm = completedMatches
-    .slice(0, 5)
-    .map((match) => teamResult(match, team))
-    .filter((r): r is "W" | "L" => r !== null);
   const standing = standings
     .filter((s) => s.teamId === team.id)
     .sort((a, b) => b.wins + b.losses - (a.wins + a.losses))[0];
+  // 최근 폼: 실제 승패가 확정된 완료 경기에서 최근 5경기.
+  const recentForm = [...teamMatches]
+    .filter((match) => match.status === "completed")
+    .reverse()
+    .map((match) => teamResult(match, team))
+    .filter((result): result is "W" | "L" => result !== null)
+    .slice(0, 5);
 
   // FEED 데이터 준비 — 영상은 상세 페이지 라우팅용 routeId를 포함해 만든다.
   const playersById = new Map(teamPlayers.map((player) => [player.id, player]));
@@ -681,52 +286,77 @@ export default async function FanHomePage({
   ].sort((a, b) => (b.postedAt ? new Date(b.postedAt).getTime() : 0) - (a.postedAt ? new Date(a.postedAt).getTime() : 0));
 
   return (
-    <main
-      className="w-full text-[#16151b]"
-      style={{ "--tp": team.primaryColor } as React.CSSProperties}
-    >
-      {/* 최상단: 팀 컬러 밴드 (전체 폭) */}
-      <Hero
-        team={team}
-        opponent={opponent}
-        match={featuredMatch}
-        mode={featuredMatchMode}
-        fanCount={fanCount}
-        isFan={engagement.isFan}
-        teamVotes={teamVotes}
-        opponentVotes={opponentVotes}
-        myVote={myVote}
-        canVote={canVote}
-      />
-
-      {/* 본문: 흰색 밴드 (전체 폭), 콘텐츠는 1240 중앙 정렬 */}
-      <div className="bg-white">
-        <div className="mx-auto flex max-w-[1240px] flex-col gap-[34px] pt-[34px] pb-9">
-          <FanFeedMosaic
-            videos={feedVideos}
-            insta={feedInsta}
-            teamSlug={team.fanSiteHost}
-            teamColor={team.primaryColor}
-          />
-
-          <div className="grid grid-cols-[1.55fr_1fr] gap-9 px-10">
-            <CommunityColumn teamSlug={team.fanSiteHost} posts={boardPosts.slice(0, 5)} />
-            <MatchesColumn
-              teamSlug={team.fanSiteHost}
-              team={team}
-              teams={teams}
-              rows={matchRows}
-              standing={standing}
-              recentForm={recentForm}
-            />
+    <FanPageShell eyebrow={`${team.shortName} Fan Channel`} title="홈" contentClassName="">
+      <div
+        className="flex flex-col gap-12 text-[var(--ui-ink)]"
+        style={{ "--tp": team.primaryColor } as React.CSSProperties}
+      >
+        {/* 경기 일정 + 순위 요약 */}
+        <section className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
+          <div>
+            <SectionHeading href={`/fan/${team.fanSiteHost}/matches`}>경기 일정</SectionHeading>
+            <div className="divide-y divide-[var(--ui-border)] overflow-hidden rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)]">
+              {matchRows.length ? (
+                matchRows.map((match) => <MatchRow key={match.id} match={match} team={team} teams={teams} />)
+              ) : (
+                <p className="px-5 py-12 text-center text-sm text-[var(--ui-muted)]">등록된 경기가 없습니다.</p>
+              )}
+            </div>
           </div>
+          <div className="flex flex-col gap-6">
+            <StandingPanel standing={standing} recent={recentForm} />
+            <AdSlot className="h-[200px] w-full" />
+          </div>
+        </section>
 
+        {/* 선수단 */}
+        <section>
           <Roster players={teamPlayers} teamSlug={team.fanSiteHost} />
-        </div>
-      </div>
+        </section>
 
-      {/* 최하단: 검은색 밴드 (전체 폭) */}
-      <Footer team={team} />
-    </main>
+        {/* 소셜 피드 */}
+        <section>
+          <SectionHeading href={`/fan/${team.fanSiteHost}/instagram`}>소셜 피드</SectionHeading>
+          <FanSocialPreview items={feedInsta} />
+        </section>
+
+        {/* 게시판 */}
+        <section>
+          <SectionHeading href={`/fan/${team.fanSiteHost}/community`}>게시판</SectionHeading>
+          <HomeBoardCarousel posts={boardPosts.slice(0, 12)} />
+        </section>
+
+        {/* 최신 영상 */}
+        <section>
+          <SectionHeading href={`/fan/${team.fanSiteHost}/videos`}>최신 영상</SectionHeading>
+          {feedVideos.length ? (
+            <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+              {feedVideos.slice(0, 8).map((video) => (
+                <Link key={video.id} href={`/fan/${team.fanSiteHost}/videos/${video.routeId}`} className="group">
+                  <div className="relative aspect-video overflow-hidden rounded-2xl bg-[#17181b]">
+                    {video.thumbnailUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={video.thumbnailUrl}
+                        alt=""
+                        className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                      />
+                    ) : null}
+                    <span className="absolute inset-0 bg-gradient-to-t from-black/55 to-transparent" />
+                  </div>
+                  <b className="mt-3 line-clamp-2 block text-sm leading-5 text-[var(--ui-ink)]">{video.title}</b>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="grid min-h-48 place-items-center rounded-2xl bg-[var(--ui-surface-muted)] text-sm text-[var(--ui-muted)]">
+              등록된 영상이 없습니다.
+            </div>
+          )}
+        </section>
+
+        <AdSlot className="h-24" />
+      </div>
+    </FanPageShell>
   );
 }

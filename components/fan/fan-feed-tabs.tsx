@@ -65,7 +65,7 @@ export function FanFeedTabs({
             className={`shrink-0 rounded-full px-4 py-2 text-sm font-bold transition disabled:cursor-default ${
               isActive
                 ? "bg-[#0f0f0f] text-white"
-                : "border border-[#e5e5e5] bg-white text-[#606060] hover:border-[#0f0f0f] hover:text-[#0f0f0f]"
+                : "border border-[#e5e5e5] bg-surface text-[#606060] hover:border-[#0f0f0f] hover:text-[#0f0f0f]"
             }`}
           >
             {tab.label}

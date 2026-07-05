@@ -21,6 +21,8 @@ export type CommunityPostDetail = {
   authorId: string | null;
   /** 목록/카드에 표시할 작성자 닉네임. 탈퇴 계정은 null. */
   authorName: string | null;
+  /** 공개 프로필 이미지. 없으면 UI에서 서비스 기본 아바타를 사용한다. */
+  authorImageUrl: string | null;
   likeCount: number;
   dislikeCount: number;
   commentCount: number;

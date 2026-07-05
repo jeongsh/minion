@@ -27,7 +27,7 @@ export function NewPostPage({
     <main
       className={
         scope === "team"
-          ? "fan-page-container flex max-w-5xl flex-col gap-6 py-7 md:py-9"
+          ? "fan-page-container flex flex-col gap-6 py-7 md:py-9"
           : "mx-auto flex w-full max-w-5xl flex-col gap-6 px-[var(--page-inline)] py-10"
       }
     >

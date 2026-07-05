@@ -73,7 +73,7 @@ function MiniCalendar({
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-[#e8eaf0] bg-white">
+    <div className="overflow-hidden rounded-xl border border-[#e8eaf0] bg-surface-muted">
       {/* 헤더 */}
       <div className="flex items-center justify-between border-b border-[#e8eaf0] px-5 py-4">
         <div className="flex items-center gap-2">
@@ -196,7 +196,7 @@ function MatchCard({ match }: { match: ScheduleMatch }) {
   return (
     <Link
       href={match.href}
-      className="group flex flex-col gap-3 rounded-xl border border-[#e8eaf0] bg-white p-4 transition-all hover:border-[#c7cbda] hover:shadow-sm"
+      className="group flex flex-col gap-3 rounded-xl border border-[#e8eaf0] bg-surface-muted p-4 transition-all hover:border-[#c7cbda] hover:shadow-sm"
     >
       <div className="flex items-center justify-between">
         <span className="text-xs font-semibold text-[#98a2b3]">{match.datetime}</span>
@@ -277,7 +277,7 @@ export function ScheduleSection({ matches }: { matches: ScheduleMatch[] }) {
         </div>
 
         {displayMatches.length === 0 ? (
-          <div className="rounded-xl border border-[#e8eaf0] bg-white p-8 text-center text-sm text-[#98a2b3]">
+          <div className="rounded-xl border border-[#e8eaf0] bg-surface-muted p-8 text-center text-sm text-[#98a2b3]">
             {selectedDate ? "이 날 예정된 경기가 없습니다." : "예정된 경기가 없습니다."}
           </div>
         ) : (

@@ -4,7 +4,6 @@ import { Suspense } from "react";
 
 import { ScheduleList } from "@/components/domain/schedule-list";
 import { FanPageShell } from "@/components/fan/fan-page-shell";
-import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { getAllTeams, getMatches, getStages, getTeamByFanSiteHost, getTeamBySlug, getTournaments } from "@/lib/data/lck";
 import { filterMatchesBySegment, parseSeasonSegment, segmentLabel } from "@/lib/tournament-filters";
 import { getMonthKST, getYearKST, KST_TIMEZONE } from "@/lib/view-data";
@@ -54,8 +53,7 @@ export default async function FanSchedulePage({
 
   return (
     <FanPageShell eyebrow={`${team.shortName} Schedule`} title="일정">
-      <div className="subpage flex flex-col gap-6">
-        <Breadcrumb items={[{ label: team.shortName, href: `/fan/${teamSlug}` }, { label: "일정" }]} />
+      <div className="subpage flex flex-col gap-6 !bg-[var(--ui-surface)]">
         <div className="flex flex-wrap items-center justify-between gap-y-4">
           <Suspense fallback={null}>
             <ScheduleFilters

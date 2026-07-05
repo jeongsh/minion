@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { Breadcrumb } from "@/components/layout/breadcrumb";
+import { PageHeader } from "@/components/ui/page-header";
 import { getTournaments } from "@/lib/data/lck";
 import { DOMESTIC_SEGMENTS, INTERNATIONAL_SEGMENTS } from "@/lib/tournaments/international-segments";
 import { matchesTournamentSegment } from "@/lib/tournaments/season-2026";
@@ -53,26 +53,29 @@ export default async function TournamentsPage({
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-[var(--page-inline)] py-10">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <Breadcrumb items={[{ label: "홈", href: "/" }, { label: "대회" }]} />
-        {seasons.length > 1 ? (
-          <div className="flex gap-2">
-            {seasons.map((season) => (
-              <Link
-                key={season}
-                href={`/tournaments?year=${season}`}
-                className={`rounded-full px-4 py-1.5 text-sm font-bold transition-colors ${
-                  season === activeSeason
-                    ? "bg-accent text-accent-foreground"
-                    : "bg-surface-muted text-muted hover:text-foreground"
-                }`}
-              >
-                {season}
-              </Link>
-            ))}
-          </div>
-        ) : null}
-      </div>
+      <PageHeader
+        eyebrow="TOURNAMENTS"
+        title="대회"
+        action={
+          seasons.length > 1 ? (
+            <div className="flex gap-2">
+              {seasons.map((season) => (
+                <Link
+                  key={season}
+                  href={`/tournaments?year=${season}`}
+                  className={`rounded-full px-4 py-1.5 text-sm font-bold transition-colors ${
+                    season === activeSeason
+                      ? "bg-accent text-accent-foreground"
+                      : "bg-surface-muted text-muted hover:text-foreground"
+                  }`}
+                >
+                  {season}
+                </Link>
+              ))}
+            </div>
+          ) : null
+        }
+      />
 
       {cards.length === 0 ? (
         <p className="text-sm text-muted">{activeSeason} 시즌에 등록된 대회가 없습니다.</p>

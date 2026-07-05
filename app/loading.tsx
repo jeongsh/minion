@@ -3,7 +3,7 @@ import { NavigationLoadingOverlay } from "@/components/navigation/navigation-loa
 export default function Loading() {
   return (
     <>
-      <main className="min-h-[calc(100vh-72px)] bg-[#f7f8fb]" aria-hidden="true" />
+    <main className="min-h-[calc(100vh-72px)] bg-[var(--ui-surface)]" aria-hidden="true" />
       <NavigationLoadingOverlay />
     </>
   );

@@ -55,7 +55,6 @@ LCK 통합 허브:
 
 - `/`
 - `/schedule`
-- `/standings`
 - `/matches/[matchId]`
 - `/matches/[matchId]/sets/[setId]`
 - `/teams`

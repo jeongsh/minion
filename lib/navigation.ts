@@ -10,7 +10,6 @@ export type NavItem = {
 // 허브 홈은 로고가 담당하고, 팀 전환은 팬페이지의 TeamSwitcher가 담당한다.
 export const hubNavItems: NavItem[] = [
   { href: "/schedule", label: "일정" },
-  { href: "/standings", label: "순위" },
   { href: "/tournaments", label: "대회" },
   { href: "/teams", label: "팀" },
   { href: "/players", label: "선수" },

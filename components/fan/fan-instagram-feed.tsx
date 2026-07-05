@@ -209,7 +209,7 @@ function PostCard({
     <button
       type="button"
       onClick={onClick}
-      className="group block w-full overflow-hidden border border-[#e6e9ef] bg-white text-left transition duration-200 hover:-translate-y-0.5 hover:border-accent hover:shadow-lg hover:shadow-black/5"
+      className="group block w-full overflow-hidden border border-[#e6e9ef] bg-surface-muted text-left transition duration-200 hover:-translate-y-0.5 hover:border-accent hover:shadow-lg hover:shadow-black/5"
     >
       <div className="relative aspect-square overflow-hidden bg-surface-muted">
         {item.imageUrl ? (
@@ -407,7 +407,7 @@ export function FanInstagramFeed({
   }, [filteredPosts, variant, visibleCount]);
 
   return (
-    <section className={variant === "full" ? "" : "rounded-3xl border border-[#e6e9ef] bg-white shadow-sm"}>
+    <section className={variant === "full" ? "" : "rounded-3xl border border-[#e6e9ef] bg-surface-muted shadow-sm"}>
       {/* 프리뷰 헤더 (전체 보기에서는 페이지가 헤더를 가진다) */}
       {variant === "preview" ? (
         <div className="flex items-center justify-between gap-4 p-5 md:px-6">

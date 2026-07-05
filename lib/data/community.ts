@@ -46,7 +46,7 @@ const POST_COLUMNS =
 const COMMENT_COLUMNS =
   "id, post_id, author_id, content, like_count, dislike_count, created_at";
 
-function mapPost(row: PostRow, authorName: string | null = null): CommunityPostDetail {
+function mapPost(row: PostRow, authorName: string | null = null, authorImageUrl: string | null = null): CommunityPostDetail {
   return {
     id: row.id,
     boardType: row.board_type,
@@ -56,6 +56,7 @@ function mapPost(row: PostRow, authorName: string | null = null): CommunityPostD
     content: row.content,
     authorId: row.author_id,
     authorName,
+    authorImageUrl,
     likeCount: row.like_count,
     dislikeCount: row.dislike_count ?? 0,
     commentCount: row.comment_count,
@@ -73,17 +74,17 @@ async function mapPostsWithAuthors(rows: PostRow[]): Promise<CommunityPostDetail
 
   const { data, error } = await createSupabaseServerClient()
     .from("profiles")
-    .select("id, nickname")
+    .select("id, nickname, profile_image_url")
     .in("id", authorIds);
   if (error) throw error;
 
-  const names = new Map(
-    ((data ?? []) as { id: string; nickname: string }[]).map((profile) => [
-      profile.id,
-      profile.nickname,
-    ]),
+  const profiles = new Map(
+    ((data ?? []) as { id: string; nickname: string; profile_image_url: string | null }[]).map((profile) => [profile.id, profile]),
   );
-  return rows.map((row) => mapPost(row, row.author_id ? names.get(row.author_id) ?? null : null));
+  return rows.map((row) => {
+    const profile = row.author_id ? profiles.get(row.author_id) : undefined;
+    return mapPost(row, profile?.nickname ?? null, profile?.profile_image_url ?? null);
+  });
 }
 
 function mapComment(row: CommentRow): CommunityCommentItem {

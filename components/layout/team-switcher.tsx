@@ -71,7 +71,7 @@ export function TeamSwitcher({ team, pathname }: { team?: Team; pathname: string
         <div
           role="menu"
           aria-label="팀 팬페이지 이동"
-          className="absolute left-0 top-[calc(100%+10px)] z-50 w-60 rounded-2xl border border-[#e8eaf0] bg-white p-2 shadow-xl shadow-black/10"
+          className="absolute left-0 top-[calc(100%+10px)] z-50 w-60 rounded-2xl border border-[#e8eaf0] bg-surface p-2 shadow-xl shadow-black/10"
         >
           <div className="max-h-[60vh] overflow-y-auto">
             <Link

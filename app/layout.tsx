@@ -24,7 +24,10 @@ export default async function RootLayout({
   }
 
   return (
-    <html lang="ko">
+    <html lang="ko" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: `(function(){try{var t=localStorage.getItem('minion-theme');var d=t?t==='dark':window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.classList.toggle('dark',d)}catch(e){}})()` }} />
+      </head>
       <body>
         <NavigationTransitionProvider>
           <AppShell currentUser={shellUser}>{children}</AppShell>

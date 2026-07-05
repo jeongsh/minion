@@ -303,7 +303,7 @@ function PlayerSegmentChips({
             className={`rounded-full px-3 py-1.5 text-[14px] font-semibold transition-colors ${
               active
                 ? "bg-[var(--tp)] text-white"
-                : "border border-[var(--btn-border)] bg-white text-[var(--ink-2)] hover:bg-[var(--surface-2)]"
+                : "border border-[var(--btn-border)] bg-surface text-[var(--ink-2)] hover:bg-[var(--surface-2)]"
             }`}
           >
             {playerSegmentLabel(segment)}
@@ -536,7 +536,7 @@ export default async function PlayerDetailPage({
 
   return (
     <main
-      className="subpage min-h-screen"
+      className="subpage min-h-screen !bg-[var(--ui-surface)]"
       style={{ ["--tp" as string]: playerTeam?.primaryColor ?? "#6158ff" }}
     >
       <div className="mx-auto flex w-full max-w-[1240px] flex-col gap-12 px-10 py-8 max-md:px-5">

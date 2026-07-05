@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Breadcrumb } from "@/components/layout/breadcrumb";
+import { PageHeader } from "@/components/ui/page-header";
 import { getPlayers, getTeamsSortedByRank } from "@/lib/data/lck";
 import type { Player, Team } from "@/lib/types";
 
@@ -150,7 +150,7 @@ export default async function PlayersPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-[var(--page-inline)] py-10">
-      <Breadcrumb items={[{ label: "홈", href: "/" }, { label: "선수" }]} />
+      <PageHeader eyebrow="PLAYERS" title="선수" />
       <div className="flex flex-col gap-6">
         {teamsWithPlayers.map((team) => (
           <TeamRosterSection

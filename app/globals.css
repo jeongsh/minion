@@ -6,6 +6,8 @@
 @import "swiper/css/pagination";
 @import "react-day-picker/style.css";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @font-face {
   font-family: "HancomMalrangmalrang";
   src: url("https://cdn.jsdelivr.net/gh/projectnoonnu/2406-1@1.0/HancomMalangMalang-Regular.woff2") format("woff2");
@@ -20,7 +22,27 @@
   font-display: swap;
 }
 
+@font-face {
+  font-family: 'Paperozi';
+  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-7Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-display: swap;
+}
 :root {
+  --ui-ink: #18191c;
+  --ui-text: #2d2f33;
+  --ui-muted: #73767c;
+  --ui-surface: #ffffff;
+  --ui-surface-muted: #eeeeef;
+  --ui-border: #dedfe2;
+  --ui-ad-surface: #e7e8ea;
+  --ui-card-radius: 16px;
+  --ui-control-radius: 8px;
+  --ui-title-size: 20px;
+  --ui-header-height: 64px;
+  --ui-sidebar-width: 240px;
+  --ui-match-card-height: 260px;
+  --ui-calendar-card-height: 330px;
   --background: #fff;
   --foreground: #111827;
   --surface: #ffffff;
@@ -34,12 +56,12 @@
 }
 
 @theme inline {
-  --color-background: #fff;
-  --color-foreground: #111827;
-  --color-surface: #ffffff;
-  --color-surface-muted: #eef2f7;
-  --color-border: #d8dee9;
-  --color-muted: #667085;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-border: var(--border);
+  --color-muted: var(--muted);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --radius-md: var(--radius);
@@ -108,8 +130,78 @@ html[data-navigation-pending="true"] :is(a, button, input, select, textarea, [ro
   }
 }
 
+html[class~="dark"] .navigation-progress-track {
+  background: rgb(40 191 255 / 0.15);
+}
+
+html[class~="dark"] .navigation-progress-bar {
+  background: linear-gradient(90deg, #28bfff, #6158ff);
+}
+
 .font-archivo {
   font-family: "Archivo", "Pretendard", system-ui, sans-serif;
+}
+
+.home-section-title {
+  font-family: "Paperozi", "Pretendard", sans-serif;
+  font-weight: normal;
+  line-height: 1.35;
+}
+
+html[class~="dark"] {
+  color-scheme: dark;
+  --ui-ink: #f8f8f8;
+  --ui-text: #e8e9ec;
+  --ui-muted: #8f98a8;
+  --ui-surface: #141517;
+  --ui-surface-muted: #1c1e22;
+  --ui-border: #383c44;
+  --ui-ad-surface: #1c1e22;
+  --background: #141517;
+  --foreground: #f8f8f8;
+  --surface: #141517;
+  --surface-muted: #1c1e22;
+  --border: #383c44;
+  --muted: #8f98a8;
+  --accent: #28bfff;
+  --accent-foreground: #061018;
+}
+
+
+html[class~="dark"] [class*="bg-[#f"] { background-color: #1c1e22 !important; }
+html[class~="dark"] :is(.text-\[\#0f0f0f\], .text-\[\#111827\], .text-\[\#141517\], .text-\[\#16151b\], .text-\[\#18191c\], .text-\[\#1c192b\], .text-\[\#28324a\], .text-\[\#344054\]) { color: #f8f8f8 !important; }
+html[class~="dark"] :is(.text-\[\#4a4954\], .text-\[\#606060\], .text-\[\#667085\], .text-\[\#6f737a\], .text-\[\#777b82\]) { color: #a7acb5 !important; }
+html[class~="dark"] [class*="border-[#e"] { border-color: #383c44 !important; }
+
+/* ── 좌측 내비(LNB) 다크모드 ──────────────────────────────
+   [class*="bg-[#f"] 스윕이 LNB의 hover 전용
+   버튼까지 상시 채워버리고, active용 bg-[#eeeeef]는 스윕에 안 잡혀
+   밝게 남아 선택 항목이 흰 알약처럼 튀는 문제를 바로잡는다.
+   전역 규칙이 !important라 스코프 명시도를 높여 되돌린다. */
+html[class~="dark"] .app-lnb :is(a, button) {
+  background-color: transparent !important;
+}
+html[class~="dark"] .app-lnb :is(a, button):hover {
+  background-color: #282c31 !important;
+}
+html[class~="dark"] .app-lnb a[data-active="true"] {
+  background-color: #31363d !important;
+}
+
+.home-today-match-grid > article {
+  height: 260px;
+}
+
+.home-today-match-grid > article > div:last-child a {
+  display: grid;
+  min-height: 42px;
+  place-items: center;
+  padding-block: 0.625rem;
+  font-size: 12px;
+}
+
+.home-today-match-grid .bg-\[\#f1f0f4\] {
+  background-color: #eceeef !important;
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -138,7 +230,7 @@ html[data-navigation-pending="true"] :is(a, button, input, select, textarea, [ro
   --accent: var(--tp);
   --accent-foreground: #fff;
   color: var(--ink);
-  background: #fff;
+  background: var(--ui-surface);
 }
 
 /* 커뮤니티 중립 모노톤 토큰 — 팀 컬러(특히 차가운 색)와 충돌하는
@@ -239,13 +331,55 @@ html[data-navigation-pending="true"] :is(a, button, input, select, textarea, [ro
 .team-surface {
   --accent: var(--team-primary);
   --accent-foreground: #ffffff;
-  background: #ffffff;
 }
 
 .fan-page-container {
-  width: min(100%, 1240px);
+  width: min(100%, 1400px);
   margin-inline: auto;
-  padding-inline: clamp(1rem, 3.2vw, 2.5rem);
+  padding-inline: 1.25rem;
+}
+
+html[class~="dark"] .community-neutral {
+  --ink: var(--ui-ink);
+  --ink-2: var(--ui-text);
+  --ink-3: var(--ui-muted);
+  --sub-muted: var(--ui-muted);
+  --sub-muted-weak: #6f7784;
+  --surface-1: var(--ui-surface-muted);
+  --surface-2: var(--ui-surface);
+  --hairline: var(--ui-border);
+  --card-border: var(--ui-border);
+  --input-border: var(--ui-border);
+  --btn-border: var(--ui-border);
+  --surface-1-hover: #2a2f35;
+  --row-soft-hover: #1c1e22;
+  color: var(--ui-text);
+  background: var(--ui-surface);
+}
+
+html[class~="dark"] .match-detail-page .bg-surface {
+  background-color: var(--ui-surface) !important;
+}
+
+html[class~="dark"] .match-detail-page .bg-background,
+html[class~="dark"] .match-detail-page .bg-surface-muted {
+  background-color: var(--ui-surface-muted) !important;
+}
+
+html[class~="dark"] .match-detail-page .bg-foreground {
+  background-color: var(--ui-surface-muted) !important;
+}
+
+html[class~="dark"] .match-detail-page :is(.border-border, .border-foreground) {
+  border-color: var(--ui-border) !important;
+}
+
+html[class~="dark"] .match-detail-page :is(.text-foreground, .text-background) {
+  color: var(--ui-ink) !important;
+}
+
+html[class~="dark"] .match-detail-page .text-muted {
+  color: var(--ui-muted) !important;
 }
 
 .home-hero-swiper .swiper-pagination-bullet {
@@ -264,10 +398,10 @@ html[data-navigation-pending="true"] :is(a, button, input, select, textarea, [ro
 .home-match-calendar {
   --rdp-accent-color: #6a66ff;
   --rdp-accent-background-color: #f2f1ff;
-  --rdp-day-height: 39px;
-  --rdp-day-width: 39px;
-  --rdp-day_button-height: 32px;
-  --rdp-day_button-width: 32px;
+  --rdp-day-height: 34px;
+  --rdp-day-width: 34px;
+  --rdp-day_button-height: 28px;
+  --rdp-day_button-width: 28px;
   --rdp-day_button-border-radius: 999px;
   margin: 0;
   width: 100%;
@@ -294,10 +428,11 @@ html[data-navigation-pending="true"] :is(a, button, input, select, textarea, [ro
 }
 
 .home-match-calendar .rdp-month_caption {
-  height: 2.5rem;
-  font-size: 20px;
+  height: 2rem;
+  font-size: 18px;
   font-weight: 900;
   color: #111827;
+  margin-bottom: 1rem;
 }
 
 .home-match-calendar .rdp-nav {
@@ -306,10 +441,15 @@ html[data-navigation-pending="true"] :is(a, button, input, select, textarea, [ro
 
 .home-match-calendar .rdp-button_next,
 .home-match-calendar .rdp-button_previous {
+  width: 24px;
+  height: 24px;
   border: 1px solid #e7ebf3;
   border-radius: 999px;
   color: #9aa4bb;
   background: #ffffff;
+}
+.home-match-calendar .rdp-button_next{
+  margin-left: 0.5rem;
 }
 
 .home-match-calendar .rdp-weekday {
@@ -352,6 +492,67 @@ html[data-navigation-pending="true"] :is(a, button, input, select, textarea, [ro
   border-color: #6a66ff;
   color: #ffffff;
 }
+
+.hub-home .home-match-calendar {
+  --rdp-accent-color: #18191c;
+  --rdp-accent-background-color: #eeeeef;
+}
+
+.hub-home .home-match-calendar .home-calendar-has-match .rdp-day_button {
+  border-color: #a9abb0;
+  background: #eeeeef;
+  color: #18191c;
+  box-shadow: 0 8px 18px rgb(24 25 28 / 0.1);
+}
+
+.hub-home .home-match-calendar .home-calendar-has-match::after,
+.hub-home .home-match-calendar .rdp-selected .rdp-day_button {
+  border-color: #18191c;
+  background: #18191c;
+}
+
+.hub-home .home-match-calendar .rdp-selected .rdp-day_button {
+  color: #fff !important;
+}
+
+.home-board-carousel {
+  padding-inline: 1.25rem;
+  margin-inline: -1.25rem;
+}
+
+.home-board-carousel .swiper-button-prev,
+.home-board-carousel .swiper-button-next {
+  width: 42px;
+  height: 42px;
+  margin-top: -21px;
+  border: 1px solid #d9d6df;
+  border-radius: 999px;
+  background: #fff;
+  color: #18191c;
+  box-shadow: 0 6px 18px rgb(28 25 43 / 0.12);
+}
+
+.home-board-carousel .swiper-button-prev { left: 0; }
+.home-board-carousel .swiper-button-next { right: 0; }
+.home-board-carousel .swiper-button-prev::after,
+.home-board-carousel .swiper-button-next::after { font-size: 15px; font-weight: 900; }
+.home-board-carousel .swiper-button-disabled { display: none; }
+
+.hub-home .bg-\[\#00b979\],
+.hub-home .bg-\[\#00e58e\] {
+  background-color: #18191c !important;
+  color: #fff;
+}
+
+.hub-home .bg-\[\#1c192b\] { background-color: #18191c !important; }
+.hub-home .text-\[\#1c192b\] { color: #18191c !important; }
+.hub-home .bg-\[\#efedf5\],
+.hub-home .bg-\[\#ebe8f1\],
+.hub-home .bg-\[\#f7f6f9\] { background-color: #f1f2f3 !important; }
+.hub-home .border-\[\#e3e1e8\] { border-color: #dedfe2 !important; }
+.hub-home .h-\[330px\] { height: 330px !important; }
+.hub-home .h-\[66px\] { height: 66px !important; }
+
 
 /* 커뮤니티 에디터 / 본문 뷰어 공용 스타일 (typography 플러그인 미사용). */
 .community-prose {

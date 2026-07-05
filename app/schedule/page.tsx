@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import { ScheduleList } from "@/components/domain/schedule-list";
-import { Breadcrumb } from "@/components/layout/breadcrumb";
+import { PageHeader } from "@/components/ui/page-header";
 import { getAllTeams, getMatches, getStages, getTournaments } from "@/lib/data/lck";
 import { filterMatchesBySegment, parseSeasonSegment, segmentLabel } from "@/lib/tournament-filters";
 import { getMonthKST, getYearKST, KST_TIMEZONE } from "@/lib/view-data";
@@ -45,23 +45,33 @@ export default async function SchedulePage({
     .sort((a, b) => new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime());
 
   return (
-    <main className="subpage min-h-screen">
-      <div className="mx-auto w-full max-w-[1240px] px-10 py-8 max-md:px-5">
-        <Breadcrumb items={[{ label: "홈", href: "/" }, { label: "일정" }]} />
-        <div className="mt-[30px] flex flex-wrap items-center justify-between gap-y-4">
-          <Suspense fallback={null}>
-            <ScheduleFilters
-              activeYear={activeYear}
-              activeMonth={activeMonth}
-              activeSegment={activeSegment}
-              activeTeam={activeTeam}
-              years={years}
-              teams={teams}
-            />
-          </Suspense>
-          <Link href="/schedule" className="text-sm text-[var(--ink-3)] transition-colors hover:text-[var(--ink)]">필터 초기화</Link>
+    <main className="schedule-page min-h-screen bg-[var(--ui-surface)] text-[var(--ui-text)]">
+      <div className="mx-auto w-full max-w-[1500px] px-5 pb-16 pt-8 xl:px-10">
+        <PageHeader
+          eyebrow="MATCH SCHEDULE"
+          title="경기 일정"
+          action={
+            <p className="rounded-full bg-[var(--ui-surface-muted)] px-3 py-1.5 text-xs font-bold text-[var(--ui-muted)]">
+              {filtered.length} MATCHES
+            </p>
+          }
+        />
+        <div className="sticky top-16 z-30 -mx-5 mt-8 border-b border-[#e8e8eb] bg-[var(--ui-surface)]/95 px-5 py-4 backdrop-blur dark:border-[#383c44] xl:-mx-10 xl:px-10">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <Suspense fallback={null}>
+              <ScheduleFilters
+                activeYear={activeYear}
+                activeMonth={activeMonth}
+                activeSegment={activeSegment}
+                activeTeam={activeTeam}
+                years={years}
+                teams={teams}
+              />
+            </Suspense>
+            <Link href="/schedule" className="text-xs font-bold text-[var(--ui-muted)] transition-colors hover:text-[var(--ui-ink)]">필터 초기화</Link>
+          </div>
         </div>
-        <div className="mt-8">
+        <div className="mt-10">
           <ScheduleList
             matches={filtered}
             teams={teams}
