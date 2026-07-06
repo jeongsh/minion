@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { Swiper as SwiperInstance } from "swiper";
 import { Navigation } from "swiper/modules";
 import { Swiper, SwiperSlide } from "swiper/react";
@@ -105,20 +106,20 @@ export function FanPlayerProfiles({ players, teamSlug }: { players: Player[]; te
           {hasMultiplePlayers ? (
             <div className="flex gap-2">
               <button
-                className="fan-player-swiper-prev rounded-full border border-border px-3 py-2 text-sm font-black hover:border-accent hover:text-accent disabled:cursor-wait disabled:opacity-50"
+                className="fan-player-swiper-prev grid h-10 w-10 place-items-center rounded-full border border-border transition hover:border-accent hover:text-accent disabled:cursor-wait disabled:opacity-50"
                 type="button"
                 aria-label="이전 선수"
                 disabled={!isSwiperReady}
               >
-                ‹
+                <ChevronLeft size={18} strokeWidth={2.75} />
               </button>
               <button
-                className="fan-player-swiper-next rounded-full border border-border px-3 py-2 text-sm font-black hover:border-accent hover:text-accent disabled:cursor-wait disabled:opacity-50"
+                className="fan-player-swiper-next grid h-10 w-10 place-items-center rounded-full border border-border transition hover:border-accent hover:text-accent disabled:cursor-wait disabled:opacity-50"
                 type="button"
                 aria-label="다음 선수"
                 disabled={!isSwiperReady}
               >
-                ›
+                <ChevronRight size={18} strokeWidth={2.75} />
               </button>
             </div>
           ) : null}

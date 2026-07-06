@@ -89,6 +89,7 @@ export async function createPostAction(input: {
 export async function createCommentAction(input: {
   postId: string;
   content: string;
+  parentId?: string | null;
   scope: BoardScope;
   teamSlug?: string;
 }): Promise<ActionResult> {
@@ -97,11 +98,20 @@ export async function createCommentAction(input: {
 
   const content = input.content.trim();
   if (!content) return { ok: false, error: "댓글 내용을 입력하세요." };
+  if (content.length > 5000) return { ok: false, error: "댓글은 5,000자까지 입력할 수 있습니다." };
+
+  if (input.parentId) {
+    const parent = await getCommentById(input.parentId);
+    if (!parent || parent.postId !== input.postId) {
+      return { ok: false, error: "답글을 작성할 댓글을 찾을 수 없습니다." };
+    }
+  }
 
   const { id } = await createComment({
     postId: input.postId,
     content,
     authorId: user.id,
+    parentId: input.parentId ?? null,
   });
 
   await recordLpEvent({ userId: user.id, reason: "comment_created", commentId: id });

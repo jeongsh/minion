@@ -38,7 +38,10 @@ export type CommunityPostDetail = {
 export type CommunityCommentItem = {
   id: string;
   postId: string;
+  parentId: string | null;
   authorId: string | null;
+  authorName: string | null;
+  authorImageUrl: string | null;
   content: string;
   likeCount: number;
   dislikeCount: number;

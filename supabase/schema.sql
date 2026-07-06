@@ -355,6 +355,7 @@ create table public.community_comments (
   post_id uuid not null references public.community_posts(id) on delete cascade,
   author_id uuid references auth.users(id) on delete set null,
   content text not null,
+  parent_id uuid references public.community_comments(id) on delete cascade,
   like_count integer not null default 0,
   created_at timestamptz not null default now()
 );

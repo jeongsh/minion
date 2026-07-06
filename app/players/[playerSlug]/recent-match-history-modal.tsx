@@ -80,7 +80,7 @@ function championImageUrl(champion: ChampionLike | undefined) {
 
 function GameIcon({ src, className }: { src: string; className: string }) {
   return (
-    <span className={`relative shrink-0 overflow-hidden bg-surface-muted ${className}`}>
+    <span className={`relative shrink-0 overflow-hidden bg-[var(--ui-surface-muted)] ${className}`}>
       {src ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={src} alt="" className="h-full w-full object-cover" />
@@ -105,7 +105,7 @@ function ItemSlots({ line, version }: { line: EnrichedLine; version: string }) {
         <GameIcon
           key={`${id ?? "empty"}-${index}`}
           src={id ? itemImageUrl(id, version) : ""}
-          className="h-8 w-8 rounded border border-border/60"
+          className="h-8 w-8 rounded border border-[var(--ui-border)]"
         />
       ))}
     </div>
@@ -138,20 +138,20 @@ export function RecentMatchSetRows({
   const opponent = teamLabel(teams, opponentId(match, player.teamId));
 
   return (
-    <article className="overflow-hidden rounded-md border border-border bg-background/30">
-      <div className="grid gap-3 border-b border-border bg-surface-muted px-4 py-3 text-sm md:grid-cols-[1fr_auto_auto_auto] md:items-center">
+    <article className="overflow-hidden rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)]">
+      <div className="grid gap-3 border-b border-[var(--ui-border)] bg-[var(--ui-surface-muted)] px-4 py-3 text-sm text-[var(--ui-ink)] md:grid-cols-[1fr_auto_auto_auto] md:items-center">
         <div>
           <p className="font-semibold">{compactDate(match.matchDate)} · vs {opponent}</p>
-          <p className="mt-1 text-xs text-muted">{match.name}</p>
+          <p className="mt-1 text-xs text-[var(--ui-muted)]">{match.name}</p>
         </div>
-        <div><span className="text-muted">매치 결과 </span><strong>{matchResultForPlayer(match, player.teamId)}</strong></div>
-        <div><span className="text-muted">팬 POG </span><strong>{fanPog ? "선정" : "-"}</strong></div>
-        <div><span className="text-muted">공식 POM </span><strong>{officialPomName}</strong></div>
+        <div><span className="text-[var(--ui-muted)]">매치 결과 </span><strong>{matchResultForPlayer(match, player.teamId)}</strong></div>
+        <div><span className="text-[var(--ui-muted)]">팬 POG </span><strong>{fanPog ? "선정" : "-"}</strong></div>
+        <div><span className="text-[var(--ui-muted)]">공식 POM </span><strong>{officialPomName}</strong></div>
       </div>
 
-      <div className="divide-y divide-border overflow-x-auto">
+      <div className="divide-y divide-[var(--ui-border)] overflow-x-auto text-[var(--ui-ink)]">
         {lines.length === 0 ? (
-          <div className="px-4 py-4 text-sm text-muted">이 매치에 연결된 선수 세트 기록이 없습니다.</div>
+          <div className="px-4 py-4 text-sm text-[var(--ui-muted)]">이 매치에 연결된 선수 세트 기록이 없습니다.</div>
         ) : (
           lines.map((line) => {
             const champion = champions.find((item) => item.id === line.championId);
@@ -170,40 +170,40 @@ export function RecentMatchSetRows({
                 className="grid min-w-[72rem] grid-cols-[12rem_6rem_8rem_4rem_5rem_6rem_minmax(18rem,1fr)_4rem] items-center gap-4 px-4 py-3 text-sm"
               >
                 <div className="flex min-w-0 items-center gap-2">
-                  <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded border border-border bg-surface-muted">
+                  <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded border border-[var(--ui-border)] bg-[var(--ui-surface-muted)]">
                     {champion ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={championImageUrl(champion)} alt="" className="h-full w-full object-cover" />
                     ) : null}
-                    <span className="absolute bottom-0 left-0 rounded-tr bg-background/90 px-1 text-[12px] font-semibold">
+                    <span className="absolute bottom-0 left-0 rounded-tr bg-[var(--ui-surface)]/90 px-1 text-[12px] font-semibold">
                       {line.set.setNumber}세트
                     </span>
                   </div>
                   <div className="grid shrink-0 grid-cols-2 gap-1">
-                    <GameIcon src={spell0Url} className="h-8 w-8 rounded-sm border border-border/60" />
+                    <GameIcon src={spell0Url} className="h-8 w-8 rounded-sm border border-[var(--ui-border)]" />
                     <RunePair runeIds={line.runeIds} catalog={runeCatalog} />
-                    <GameIcon src={spell1Url} className="h-8 w-8 rounded-sm border border-border/60" />
+                    <GameIcon src={spell1Url} className="h-8 w-8 rounded-sm border border-[var(--ui-border)]" />
                   </div>
                   <p className="min-w-0 truncate font-semibold">{champion ? championLabel(champion) : "-"}</p>
                 </div>
                 <div className="text-center">
                   <p className="font-semibold tabular-nums">{line.kills} / {line.deaths} / {line.assists}</p>
-                  <p className="text-xs text-muted">{line.stats.kda.toFixed(2)}</p>
+                  <p className="text-xs text-[var(--ui-muted)]">{line.stats.kda.toFixed(2)}</p>
                 </div>
                 <div>
                   <p className="font-semibold tabular-nums">{line.damageToChampions.toLocaleString("ko-KR")}</p>
-                  <p className="text-xs text-muted">DPM {line.stats.dpm}</p>
+                  <p className="text-xs text-[var(--ui-muted)]">DPM {line.stats.dpm}</p>
                 </div>
                 <div className="text-center font-semibold tabular-nums">{line.visionScore}</div>
                 <div className="text-center">
                   <p className="font-semibold tabular-nums">{line.cs}</p>
-                  <p className="text-xs text-muted">{line.stats.csm}</p>
+                  <p className="text-xs text-[var(--ui-muted)]">{line.stats.csm}</p>
                 </div>
                 <div className="text-center font-semibold tabular-nums">
                   {line.gold.toLocaleString("ko-KR")}
                 </div>
                 <ItemSlots line={line} version={itemVersion} />
-                <div className="text-right text-xs text-muted">평점 {rating ? rating.rating.toFixed(1) : "-"}</div>
+                <div className="text-right text-xs text-[var(--ui-muted)]">평점 {rating ? rating.rating.toFixed(1) : "-"}</div>
               </div>
             );
           })
@@ -255,7 +255,7 @@ export function RecentMatchHistoryModal({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="rounded-full bg-[#16151b] px-4 py-2 text-[14px] font-semibold text-white transition-opacity hover:opacity-90"
+        className="rounded-full bg-[var(--ui-ink)] px-4 py-2 text-[14px] font-semibold text-[var(--ui-surface)] transition-opacity hover:opacity-90"
       >
         전체 기록 보기
       </button>
@@ -266,23 +266,23 @@ export function RecentMatchHistoryModal({
             role="dialog"
             aria-modal="true"
             aria-label="최근 경기 기록"
-            className="mx-auto flex max-h-[92vh] w-full max-w-7xl flex-col overflow-hidden rounded-lg border border-border bg-surface shadow-2xl"
+            className="mx-auto flex max-h-[92vh] w-full max-w-7xl flex-col overflow-hidden rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] text-[var(--ui-ink)] shadow-2xl"
           >
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--ui-border)] px-5 py-4">
               <div>
-                <h2 className="text-[16px] font-semibold">최근 경기 기록</h2>
-                <p className="mt-1 text-sm text-muted">3매치씩 확인하고 기간으로 좁혀볼 수 있습니다.</p>
+                <h2 className="home-section-title text-[24px] text-[var(--ui-ink)]">최근 경기 기록</h2>
+                <p className="mt-1 text-sm text-[var(--ui-muted)]">3매치씩 확인하고 기간으로 좁혀볼 수 있습니다.</p>
               </div>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="rounded-md border border-border bg-background px-3 py-2 text-sm font-semibold hover:bg-surface-muted"
+                className="rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 py-2 text-sm font-semibold hover:bg-[var(--ui-surface-muted)]"
               >
                 닫기
               </button>
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-3">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--ui-border)] px-5 py-3">
               <div className="flex flex-wrap items-center gap-3 text-sm">
                 <label className="flex items-center gap-2">
                   <span className="font-semibold">시작</span>
@@ -290,7 +290,7 @@ export function RecentMatchHistoryModal({
                     type="date"
                     value={startDate}
                     onChange={(event) => updateRange(event.target.value, endDate)}
-                    className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+                    className="rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 py-2 text-sm"
                   />
                 </label>
                 <label className="flex items-center gap-2">
@@ -299,14 +299,14 @@ export function RecentMatchHistoryModal({
                     type="date"
                     value={endDate}
                     onChange={(event) => updateRange(startDate, event.target.value)}
-                    className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+                    className="rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 py-2 text-sm"
                   />
                 </label>
               </div>
               <button
                 type="button"
                 onClick={() => updateRange("", "")}
-                className="rounded-md border border-border bg-background px-3 py-2 text-sm font-semibold hover:bg-surface-muted"
+                className="rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 py-2 text-sm font-semibold hover:bg-[var(--ui-surface-muted)]"
               >
                 전체 기간
               </button>
@@ -314,7 +314,7 @@ export function RecentMatchHistoryModal({
 
             <div className="flex-1 overflow-y-auto px-5 py-4">
               {visibleRows.length === 0 ? (
-                <div className="rounded-md border border-border bg-background/45 p-6 text-sm text-muted">
+                <div className="rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-6 text-sm text-[var(--ui-muted)]">
                   선택한 기간의 경기 기록이 없습니다.
                 </div>
               ) : (
@@ -338,14 +338,14 @@ export function RecentMatchHistoryModal({
               )}
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-5 py-4 text-sm">
-              <span className="text-muted">{filteredRows.length}매치 · {currentPage + 1} / {pageCount}</span>
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--ui-border)] px-5 py-4 text-sm">
+              <span className="text-[var(--ui-muted)]">{filteredRows.length}매치 · {currentPage + 1} / {pageCount}</span>
               <div className="flex gap-2">
                 <button
                   type="button"
                   disabled={currentPage === 0}
                   onClick={() => setPage((value) => Math.max(value - 1, 0))}
-                  className="rounded-md border border-border bg-background px-3 py-2 font-semibold hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-40"
+                  className="rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 py-2 font-semibold hover:bg-[var(--ui-surface-muted)] disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   이전
                 </button>
@@ -353,7 +353,7 @@ export function RecentMatchHistoryModal({
                   type="button"
                   disabled={currentPage >= pageCount - 1}
                   onClick={() => setPage((value) => Math.min(value + 1, pageCount - 1))}
-                  className="rounded-md border border-border bg-background px-3 py-2 font-semibold hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-40"
+                  className="rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 py-2 font-semibold hover:bg-[var(--ui-surface-muted)] disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   다음
                 </button>

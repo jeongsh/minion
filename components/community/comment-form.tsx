@@ -1,61 +1,130 @@
 "use client";
 
+import { Smile } from "lucide-react";
 import { useRef, useState, useTransition } from "react";
 
 import { createCommentAction } from "@/lib/community/actions";
 import type { BoardScope } from "@/lib/community/boards";
 
-// 댓글 작성 폼. 비로그인 시 서버 액션이 로그인 유도 메시지를 돌려준다.
+const MAX_LENGTH = 5000;
+const EMOJIS = ["😀", "😂", "😍", "😮", "😢", "😡", "👍", "👏", "🔥", "🎉"];
+
 export function CommentForm({
   postId,
   scope,
   teamSlug,
+  parentId,
+  onSubmitted,
 }: {
   postId: string;
   scope: BoardScope;
   teamSlug?: string;
+  parentId?: string;
+  onSubmitted?: () => void;
 }) {
+  const [content, setContent] = useState("");
   const [message, setMessage] = useState<string | null>(null);
+  const [emojiOpen, setEmojiOpen] = useState(false);
   const [pending, startTransition] = useTransition();
-  const formRef = useRef<HTMLFormElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const appendEmoji = (emoji: string) => {
+    const textarea = textareaRef.current;
+    const start = textarea?.selectionStart ?? content.length;
+    const end = textarea?.selectionEnd ?? content.length;
+    const next =
+      `${content.slice(0, start)}${emoji}${content.slice(end)}`.slice(
+        0,
+        MAX_LENGTH,
+      );
+    setContent(next);
+    setEmojiOpen(false);
+    requestAnimationFrame(() => {
+      textarea?.focus();
+      textarea?.setSelectionRange(start + emoji.length, start + emoji.length);
+    });
+  };
 
   const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const content = String(new FormData(event.currentTarget).get("content") ?? "");
-
     startTransition(async () => {
-      const result = await createCommentAction({ postId, content, scope, teamSlug });
+      const result = await createCommentAction({
+        postId,
+        content,
+        parentId,
+        scope,
+        teamSlug,
+      });
       if (result.ok) {
-        setMessage(result.message ?? "등록되었습니다.");
-        formRef.current?.reset();
-      } else {
-        setMessage(result.error);
-      }
+        setContent("");
+        setMessage(null);
+        onSubmitted?.();
+      } else setMessage(result.error);
     });
   };
 
   return (
-    <form ref={formRef} onSubmit={onSubmit} className="flex flex-col gap-2">
-      <label htmlFor="comment-content" className="sr-only">
-        댓글
+    <form onSubmit={onSubmit}>
+      <label
+        htmlFor={`comment-content-${parentId ?? "root"}`}
+        className="sr-only"
+      >
+        {parentId ? "답글 작성" : "댓글 작성"}
       </label>
-      <textarea
-        id="comment-content"
-        name="content"
-        rows={3}
-        required
-        placeholder="댓글을 입력하세요"
-        className="w-full rounded-md border border-border bg-surface p-3 text-[14px]"
-      />
-      <div className="flex items-center gap-3">
-        <button
-          type="submit"
-          disabled={pending}
-          className="rounded-md border border-border bg-surface px-4 py-2 text-[14px] font-semibold hover:bg-surface-muted disabled:opacity-60"
-        >
-          댓글 등록
-        </button>
-        {message ? <p className="text-[12px] text-muted">{message}</p> : null}
+      <div className="rounded-[var(--ui-card-radius)] border border-[var(--ui-border)] bg-[var(--ui-surface)] p-4 focus-within:border-[var(--ui-muted)]">
+        <textarea
+          ref={textareaRef}
+          id={`comment-content-${parentId ?? "root"}`}
+          name="content"
+          value={content}
+          onChange={(event) => setContent(event.target.value)}
+          rows={parentId ? 3 : 4}
+          maxLength={MAX_LENGTH}
+          required
+          placeholder="댓글을 입력해 주세요."
+          className="block w-full resize-none border-0 bg-transparent p-0 text-[14px] leading-relaxed text-[var(--ui-text)] outline-none placeholder:text-[var(--ui-muted)]"
+        />
+        <div className="mt-3 flex items-center gap-3">
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setEmojiOpen((open) => !open)}
+              className="grid h-8 w-8 place-items-center rounded-full text-[var(--ui-muted)] hover:bg-[var(--ui-surface-muted)] hover:text-[var(--ui-ink)]"
+              aria-label="이모지 선택"
+              aria-expanded={emojiOpen}
+            >
+              <Smile size={20} strokeWidth={1.6} />
+            </button>
+            {emojiOpen ? (
+              <div className="absolute bottom-10 left-0 z-10 grid w-[184px] grid-cols-5 gap-1 rounded-[var(--ui-control-radius)] border border-[var(--ui-border)] bg-[var(--ui-surface)] p-2 shadow-lg">
+                {EMOJIS.map((emoji) => (
+                  <button
+                    key={emoji}
+                    type="button"
+                    onClick={() => appendEmoji(emoji)}
+                    className="grid h-8 w-8 place-items-center rounded hover:bg-[var(--ui-surface-muted)]"
+                    aria-label={`${emoji} 입력`}
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </div>
+          {message ? (
+            <p className="text-[12px] text-[var(--ui-muted)]">{message}</p>
+          ) : null}
+          <span className="ml-auto text-[12px] tabular-nums text-[var(--ui-muted)]">
+            {content.length.toLocaleString("ko-KR")}/5,000자
+          </span>
+          <button
+            type="submit"
+            disabled={pending || content.trim().length === 0}
+            className="h-9 rounded-[var(--ui-control-radius)] border border-[var(--tp)] px-4 text-m font-semibold text-[var(--tp)] hover:bg-[var(--ui-surface-muted)] disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {pending ? "등록 중" : "등록"}
+          </button>
+        </div>
       </div>
     </form>
   );

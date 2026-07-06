@@ -53,6 +53,10 @@
   --accent-foreground: #ffffff;
   --radius: 8px;
   --page-inline: clamp(1rem, 3vw, 2rem);
+  /* 게임 타임라인 차트 (라이트) — 플롯 배경 · 그리드/축 라인 · 축 라벨 */
+  --timeline-chart-surface: #f4f6fb;
+  --timeline-chart-grid: #e3e8f0;
+  --timeline-chart-muted: #8a93a3;
 }
 
 @theme inline {
@@ -147,6 +151,10 @@ html[class~="dark"] .navigation-progress-bar {
   font-weight: normal;
   line-height: 1.35;
 }
+.font-paperozi{
+  font-family: "Paperozi", "Pretendard", sans-serif;
+  font-weight: normal;
+}
 
 html[class~="dark"] {
   color-scheme: dark;
@@ -165,6 +173,10 @@ html[class~="dark"] {
   --muted: #8f98a8;
   --accent: #28bfff;
   --accent-foreground: #061018;
+  /* 게임 타임라인 차트 (다크) — 표면은 한 단계 밝게, 라인은 은은하게 */
+  --timeline-chart-surface: #1c1e22;
+  --timeline-chart-grid: #2c313a;
+  --timeline-chart-muted: #8f98a8;
 }
 
 
@@ -443,10 +455,10 @@ html[class~="dark"] .match-detail-page .text-muted {
 .home-match-calendar .rdp-button_previous {
   width: 24px;
   height: 24px;
-  border: 1px solid #e7ebf3;
+  border: 1px solid var(--ui-border);
   border-radius: 999px;
-  color: #9aa4bb;
-  background: #ffffff;
+  color: #a0a3a8;
+  background: var(--ui-surface);
 }
 .home-match-calendar .rdp-button_next{
   margin-left: 0.5rem;
@@ -456,7 +468,7 @@ html[class~="dark"] .match-detail-page .text-muted {
   padding: 0.35rem 0 0.5rem;
   font-size: 12px;
   font-weight: 900;
-  color: #69738d;
+  color: var(--ui-muted);
   opacity: 1;
 }
 
@@ -484,7 +496,7 @@ html[class~="dark"] .match-detail-page .text-muted {
 }
 
 .home-match-calendar .rdp-outside {
-  color: #aeb6c8;
+  color: #b0b3b8;
 }
 
 .home-match-calendar .rdp-selected .rdp-day_button {
@@ -515,28 +527,37 @@ html[class~="dark"] .match-detail-page .text-muted {
   color: #fff !important;
 }
 
-.home-board-carousel {
-  padding-inline: 1.25rem;
-  margin-inline: -1.25rem;
-}
-
-.home-board-carousel .swiper-button-prev,
-.home-board-carousel .swiper-button-next {
-  width: 42px;
-  height: 42px;
-  margin-top: -21px;
-  border: 1px solid #d9d6df;
+/* Lucide 아이콘 기반 공용 캐러셀 네비게이션 버튼 */
+.swiper-nav-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid #e3e1e8;
   border-radius: 999px;
   background: #fff;
   color: #18191c;
-  box-shadow: 0 6px 18px rgb(28 25 43 / 0.12);
+  box-shadow: 0 8px 22px rgb(28 25 43 / 0.16);
+  transition: color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
 }
 
-.home-board-carousel .swiper-button-prev { left: 0; }
-.home-board-carousel .swiper-button-next { right: 0; }
-.home-board-carousel .swiper-button-prev::after,
-.home-board-carousel .swiper-button-next::after { font-size: 15px; font-weight: 900; }
-.home-board-carousel .swiper-button-disabled { display: none; }
+.swiper-nav-btn:hover {
+  border-color: #18191c;
+  transform: translateY(-50%) scale(1.06);
+}
+
+/* 버튼 중심이 카드 모서리 선에 오도록 폭(44px)의 절반만큼 바깥으로 */
+.swiper-nav-btn--prev { left: -22px; }
+.swiper-nav-btn--next { right: -22px; }
+
+.swiper-nav-btn.swiper-button-disabled {
+  opacity: 0;
+  pointer-events: none;
+}
 
 .hub-home .bg-\[\#00b979\],
 .hub-home .bg-\[\#00e58e\] {

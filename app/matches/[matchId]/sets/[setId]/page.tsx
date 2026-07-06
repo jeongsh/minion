@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
+import { TeamLogo } from "@/components/ui/team-logo";
 import type { ReactNode } from "react";
 
 import {
@@ -78,9 +79,9 @@ function StatRow({
   right: ReactNode;
 }) {
   return (
-    <div className="grid grid-cols-[1fr_7.5rem_1fr] items-center border-b border-border px-4 py-3 last:border-b-0">
+    <div className="grid grid-cols-[1fr_7.5rem_1fr] items-center border-b border-[var(--ui-border)] px-4 py-3 last:border-b-0">
       <div className="flex justify-end">{left}</div>
-      <span className="text-center text-xs font-semibold text-muted">
+      <span className="text-center text-xs font-bold text-[var(--ui-muted)]">
         {label}
       </span>
       <div className="flex justify-start">{right}</div>
@@ -108,74 +109,58 @@ function setKillsForTeam(set: SetResult, teamId: string) {
   return null;
 }
 
-function TeamLogoBadge({ team }: { team?: Team }) {
-  if (!team) {
-    return (
-      <span className="grid size-8 shrink-0 place-items-center rounded-full border border-background/30 bg-background/10 text-xs font-bold">
-        -
-      </span>
-    );
-  }
-
-  if (team.logoUrl) {
-    return (
-      <img
-        src={team.logoUrl}
-        alt=""
-        width={32}
-        height={32}
-        className="size-8 shrink-0 object-contain"
-        aria-hidden="true"
-      />
-    );
-  }
-
-  return (
-    <span
-      className="grid size-8 shrink-0 place-items-center rounded-full border border-background/30 bg-background/10 text-xs font-bold"
-      style={{ color: team.primaryColor }}
-      aria-hidden="true"
-    >
-      {team.shortName.slice(0, 3)}
-    </span>
-  );
-}
-
 function SetSummaryHeader({
   set,
-  match,
   teams,
 }: {
   set: SetResult;
-  match: { teamAId: string; teamBId: string };
   teams: Team[];
 }) {
   const teamA = teams.find((item) => item.id === set.blueTeamId);
   const teamB = teams.find((item) => item.id === set.redTeamId);
   const teamAKills = set.blueKills;
   const teamBKills = set.redKills;
+  const decided = set.winnerTeamId != null;
+  const teamAWon = decided && set.winnerTeamId === set.blueTeamId;
+  const teamBWon = decided && set.winnerTeamId === set.redTeamId;
+  const killClass = (won: boolean) =>
+    `font-archivo text-[26px] font-black leading-none tabular-nums sm:text-[30px] ${
+      !decided || won ? "text-[var(--ui-ink)]" : "text-[var(--ui-muted)]"
+    }`;
 
   return (
-    <div className="relative flex items-center justify-center gap-8 bg-foreground px-5 py-4 text-background">
-      {/* 중앙 좌: 양팀 스코어 */}
-      <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2">
-          <TeamLogoBadge team={teamA} />
-          <span className="text-2xl font-bold tabular-nums">{teamAKills ?? "-"}</span>
-        </div>
-        <span className="text-sm font-semibold text-background/50">:</span>
-        <div className="flex items-center gap-2">
-          <span className="text-2xl font-bold tabular-nums">{teamBKills ?? "-"}</span>
-          <TeamLogoBadge team={teamB} />
-        </div>
+    <div className="relative flex items-center justify-center gap-4 border-b border-[var(--ui-border)] bg-[var(--ui-surface-muted)] px-4 py-4 sm:gap-6 sm:px-8">
+      {/* 블루팀 */}
+      <div className="flex flex-1 items-center justify-end gap-2.5 sm:gap-3">
+        <span className="hidden truncate text-[15px] font-black text-[var(--ui-ink)] sm:inline">
+          {teamA?.name ?? "블루"}
+        </span>
+        <TeamLogo team={teamA} size="h-9 w-9 sm:h-11 sm:w-11" plain />
       </div>
 
-      {/* 중앙 우: 게임 시간 */}
-      <p className="text-[24px] font-bold tabular-nums">{durationLabel(set.durationSeconds)}</p>
+      {/* 중앙: 킬 스코어 + 게임 시간 */}
+      <div className="flex shrink-0 flex-col items-center">
+        <div className="flex items-center gap-2.5 sm:gap-3">
+          <span className={killClass(teamAWon)}>{teamAKills ?? "-"}</span>
+          <span className="text-sm font-bold text-[var(--ui-muted)]">:</span>
+          <span className={killClass(teamBWon)}>{teamBKills ?? "-"}</span>
+        </div>
+        <span className="mt-1.5 rounded-full bg-[var(--ui-surface)] px-2.5 py-0.5 text-[11px] font-bold tabular-nums text-[var(--ui-muted)]">
+          {durationLabel(set.durationSeconds)}
+        </span>
+      </div>
 
-      {/* 우하단 고정: 패치 버전 */}
-      <span className="absolute bottom-1.5 right-4 text-xs font-semibold text-background/50">
-        PATCH {set.patch ?? "-"}
+      {/* 레드팀 */}
+      <div className="flex flex-1 items-center gap-2.5 sm:gap-3">
+        <TeamLogo team={teamB} size="h-9 w-9 sm:h-11 sm:w-11" plain />
+        <span className="hidden truncate text-[15px] font-black text-[var(--ui-ink)] sm:inline">
+          {teamB?.name ?? "레드"}
+        </span>
+      </div>
+
+      {/* 우하단: 패치 버전 */}
+      <span className="absolute bottom-1.5 right-3 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--ui-muted)]">
+        Patch {set.patch ?? "-"}
       </span>
     </div>
   );
@@ -189,6 +174,16 @@ export default async function SetDetailPage({
   const { matchId, setId } = await params;
 
   return <SetDetailContent matchId={matchId} setId={setId} />;
+}
+
+function ChampAvatar({ image }: { image?: string | null }) {
+  return (
+    <span className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-lg bg-[var(--ui-surface-muted)]">
+      {image ? (
+        <Image src={image} alt="" width={36} height={36} className="h-full w-full object-cover" />
+      ) : null}
+    </span>
+  );
 }
 
 function DamageRows({
@@ -208,69 +203,49 @@ function DamageRows({
   maxDamage: number;
   side: "blue" | "red";
 }) {
+  // 블루사이드/레드사이드는 LoL 관례상 색 자체가 정체성 → 타임라인 차트와 동일한 사이드 색 사용
+  const barColor = side === "blue" ? "#4c8dff" : "#ff5b6e";
+
   return (
-    <div className="grid gap-2">
+    <div className="grid gap-2.5">
       {rows.map((row) => {
-        const champion = champions.find(
-          (item) => item.id === row.line.championId,
-        );
+        const champion = champions.find((item) => item.id === row.line.championId);
         const image = championImage(champion);
+        const width = `${Math.max(4, (row.line.damageToChampions / maxDamage) * 100)}%`;
+
+        const name = (
+          <span className={`min-w-0 flex-1 truncate text-[13px] font-bold text-[var(--ui-ink)] ${side === "red" ? "text-right" : ""}`}>
+            {row.player?.name ?? "-"}
+          </span>
+        );
+        const value = (
+          <span className="shrink-0 text-[13px] font-bold tabular-nums text-[var(--ui-muted)]">
+            {damageLabel(row.line.damageToChampions)}
+          </span>
+        );
+
         return (
           <div
             key={`${side}-${row.player?.id ?? row.line.championId}`}
-            className={`grid grid-cols-[2.25rem_minmax(0,1fr)] items-center gap-2 ${
-              side === "red" ? "grid-cols-[minmax(0,1fr)_2.25rem]" : ""
-            }`}
+            className="flex items-center gap-2.5"
           >
-            {side === "blue" && image ? (
-              <Image
-                src={image}
-                alt=""
-                width={36}
-                height={36}
-                className="h-9 w-9 rounded object-cover"
-              />
-            ) : null}
-            <div className={`min-w-0 ${side === "red" ? "text-right" : ""}`}>
-              <div
-                className={`grid items-center gap-2 text-sm ${
-                  side === "red"
-                    ? "grid-cols-[auto_minmax(0,1fr)]"
-                    : "grid-cols-[minmax(0,1fr)_auto]"
-                }`}
-              >
-                {side === "red" ? (
-                  <span className="shrink-0 tabular-nums">
-                    {damageLabel(row.line.damageToChampions)}
-                  </span>
-                ) : null}
-                <span className="truncate font-semibold">
-                  {row.player?.name ?? "-"}
-                </span>
+            {side === "blue" ? <ChampAvatar image={image} /> : null}
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
                 {side === "blue" ? (
-                  <span className="shrink-0 tabular-nums">
-                    {damageLabel(row.line.damageToChampions)}
-                  </span>
-                ) : null}
+                  <>{name}{value}</>
+                ) : (
+                  <>{value}{name}</>
+                )}
               </div>
-              <div className="mt-1 h-2 overflow-hidden rounded-full bg-surface-muted">
+              <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-[var(--ui-surface-muted)]">
                 <div
-                  className={`h-full rounded-full ${side === "blue" ? "bg-accent" : "ml-auto bg-rose-500"}`}
-                  style={{
-                    width: `${Math.max(4, (row.line.damageToChampions / maxDamage) * 100)}%`,
-                  }}
+                  className={`h-full rounded-full ${side === "red" ? "ml-auto" : ""}`}
+                  style={{ width, backgroundColor: barColor }}
                 />
               </div>
             </div>
-            {side === "red" && image ? (
-              <Image
-                src={image}
-                alt=""
-                width={36}
-                height={36}
-                className="h-9 w-9 rounded object-cover"
-              />
-            ) : null}
+            {side === "red" ? <ChampAvatar image={image} /> : null}
           </div>
         );
       })}
@@ -474,7 +449,7 @@ function PlayerStatBoard({
 
   return (
     <section className="flex flex-col gap-4" aria-labelledby="player-stats">
-      <h2 id="player-stats" className="text-[24px] font-semibold">
+      <h2 id="player-stats" className="home-section-title text-[20px] text-[var(--ui-ink)]">
         선수 스탯
       </h2>
       {blueRows.length + redRows.length === 0 ? (
@@ -658,14 +633,14 @@ export async function SetDetailContent({
       )}
 
       <section
-        className="overflow-hidden rounded-md border border-border bg-surface"
+        className="overflow-hidden rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)]"
         aria-labelledby="set-summary"
       >
-        <SetSummaryHeader set={set} match={match} teams={teams} />
+        <SetSummaryHeader set={set} teams={teams} />
 
         <div className="grid gap-6 p-4 lg:grid-cols-[0.9fr_1.1fr]">
-          <div className="rounded-md border border-border bg-background">
-            <div className="border-b border-border px-4 py-3 text-center text-sm font-semibold">
+          <div className="rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)]">
+            <div className="border-b border-[var(--ui-border)] px-4 py-3 text-center text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--ui-muted)]">
               GAME STATS
             </div>
             <StatRow
@@ -720,8 +695,8 @@ export async function SetDetailContent({
           </div>
 
           <div className="flex flex-col gap-6">
-            <div className="rounded-md border border-border bg-background p-4">
-              <h2 id="set-summary" className="text-center text-sm font-semibold">
+            <div className="rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-4">
+              <h2 id="set-summary" className="text-center text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--ui-muted)]">
                 챔피언 대상 피해량
               </h2>
               {playerRows.length === 0 ? (
@@ -782,10 +757,10 @@ export async function SetDetailContent({
       />
 
       <section className="flex flex-col gap-4" aria-labelledby="set-timeline">
-        <h2 id="set-timeline" className="text-[24px] font-semibold">
+        <h2 id="set-timeline" className="home-section-title text-[20px] text-[var(--ui-ink)]">
           타임라인
         </h2>
-        <div className="overflow-hidden rounded-2xl border border-border bg-surface">
+        <div className="overflow-hidden rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)]">
           <GameTimeline
             events={timelineEvents}
             durationSeconds={set.durationSeconds}

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AtSign, ExternalLink, Globe2, Play } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { DataTable } from "@/components/ui/data-table";
 import { TeamMatchHistory } from "@/components/domain/team-match-history";
@@ -93,18 +94,18 @@ function AwardHistory({ awards }: { awards: TeamAward[] }) {
   return (
     <div className="flex flex-col gap-3">
       {/* 전체 이력 토글 */}
-      <details className="group overflow-hidden rounded-lg border border-border">
-        <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm font-semibold hover:bg-surface-muted">
+      <details className="group overflow-hidden rounded-2xl border border-[var(--ui-border)]">
+        <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm font-semibold hover:bg-[var(--ui-surface-muted)]">
           <span>전체 수상 이력</span>
-          <span className="text-muted transition-transform group-open:rotate-180">▾</span>
+          <span className="text-[var(--ui-muted)] transition-transform group-open:rotate-180">▾</span>
         </summary>
-        <div className="border-t border-border">
+        <div className="border-t border-[var(--ui-border)]">
           {years.map((year, i) => {
             const yearAwards = byYear.get(year) ?? [];
             return (
               <div
                 key={year}
-                className={`flex items-center gap-4 px-4 py-3 ${i !== 0 ? "border-t border-border" : ""}`}
+                className={`flex items-center gap-4 px-4 py-3 ${i !== 0 ? "border-t border-[var(--ui-border)]" : ""}`}
               >
                 <span className="w-10 shrink-0 text-sm font-bold tabular-nums">
                   {year}
@@ -129,6 +130,33 @@ function AwardHistory({ awards }: { awards: TeamAward[] }) {
           })}
         </div>
       </details>
+    </div>
+  );
+}
+
+function TeamSectionTitle({
+  title,
+  caption,
+  aside,
+}: {
+  title: string;
+  caption?: React.ReactNode;
+  aside?: React.ReactNode;
+}) {
+  return (
+    <div className="mb-5 flex items-end justify-between gap-4">
+      <h2 className="home-section-title text-[length:var(--ui-title-size)] text-[var(--ui-ink)]">{title}</h2>
+      {aside ?? (caption ? <span className="pb-0.5 text-[12px] font-semibold text-[var(--ui-muted)]">{caption}</span> : null)}
+    </div>
+  );
+}
+
+function TeamMetricCard({ label, value, helper }: { label: string; value: React.ReactNode; helper?: React.ReactNode }) {
+  return (
+    <div className="rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-4">
+      <p className="text-[12px] font-semibold text-[var(--ui-muted)]">{label}</p>
+      <p className="font-archivo mt-2 text-[32px] font-black leading-none tracking-tight text-[var(--ui-ink)]">{value}</p>
+      {helper ? <p className="mt-1.5 text-[12px] text-[var(--ui-muted)]">{helper}</p> : null}
     </div>
   );
 }
@@ -294,118 +322,121 @@ export default async function TeamDetailPage({
   const nextMatch = standing?.nextMatch;
 
   return (
-    <main className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-[var(--page-inline)] py-10">
-      <Breadcrumb items={[{ label: "홈", href: "/" }, { label: "팀", href: "/teams" }, { label: team.name }]} />
-      <div className="flex items-center gap-6">
-        {team.logoUrl && (
-          <img src={team.logoUrl} alt={team.name} className="h-28 w-28 object-contain md:h-36 md:w-36" />
-        )}
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-[32px] font-semibold tracking-normal md:text-[32px]">{team.name}</h1>
-            {team.globalPowerRank != null && (
-              <a
-                href="https://lolesports.com/ko-KR/gpr/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="rounded-full border border-border bg-surface px-3 py-1 text-sm font-bold text-foreground hover:bg-surface-muted"
-              >
-                글로벌 {team.globalPowerRank}위
-              </a>
-            )}
+    <main
+      className="min-h-screen bg-[var(--ui-surface)] text-[var(--ui-text)]"
+      style={{ "--tp": team.primaryColor } as React.CSSProperties}
+    >
+      <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-12 px-5 pb-16 pt-8 xl:px-10">
+        <Breadcrumb items={[{ label: "팀", href: "/teams" }, { label: team.name }]} />
+
+        <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-[var(--ui-border)] px-5 py-3.5">
+          <div className="flex items-baseline gap-2">
+            <span className="text-[12px] text-[var(--ui-muted)]">시즌</span>
+            <strong className="text-[14px] text-[var(--ui-ink)]">{latestSeason} LCK</strong>
           </div>
-          <div className="flex items-center gap-2">
-            {/* 팬 사이트 */}
-            <Link
-              href={`/fan/${team.slug}`}
-              title="팬 사이트"
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-accent bg-accent text-accent-foreground hover:opacity-90"
-            >
-              <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current" aria-hidden="true">
-                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-              </svg>
-            </Link>
-            {/* 공식 홈페이지 */}
-            {team.officialHomepageUrl && (
-              <a
-                href={team.officialHomepageUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                title="공식 홈페이지"
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-surface hover:bg-surface-muted"
-              >
-                <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current text-muted" aria-hidden="true">
-                  <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm6.9 6h-2.8a15.6 15.6 0 0 0-1.4-3.6A8 8 0 0 1 18.9 8zM12 4.1c.8 1.1 1.5 2.5 1.9 3.9h-3.8c.4-1.4 1.1-2.8 1.9-3.9zM4.3 14a8.2 8.2 0 0 1 0-4h3.1a16.7 16.7 0 0 0 0 4zm.8 2h2.8a15.6 15.6 0 0 0 1.4 3.6A8 8 0 0 1 5.1 16zm2.8-8H5.1A8 8 0 0 1 9.3 4.4 15.6 15.6 0 0 0 7.9 8zM12 19.9c-.8-1.1-1.5-2.5-1.9-3.9h3.8c-.4 1.4-1.1 2.8-1.9 3.9zM14.3 14H9.7a14.8 14.8 0 0 1 0-4h4.6a14.8 14.8 0 0 1 0 4zm.4 5.6a15.6 15.6 0 0 0 1.4-3.6h2.8a8 8 0 0 1-4.2 3.6zM16.6 14a16.7 16.7 0 0 0 0-4h3.1a8.2 8.2 0 0 1 0 4z" />
-                </svg>
-              </a>
-            )}
-            {/* 유튜브 */}
-            {team.officialYoutubeUrl && (
-              <a
-                href={team.officialYoutubeUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                title="유튜브"
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-surface hover:bg-surface-muted"
-              >
-                <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current text-red-500" aria-hidden="true">
-                  <path d="M21.6 7.2a2.8 2.8 0 0 0-2-2C17.8 4.6 12 4.6 12 4.6s-5.8 0-7.6.6a2.8 2.8 0 0 0-2 2A29.4 29.4 0 0 0 2 12a29.4 29.4 0 0 0 .4 4.8 2.8 2.8 0 0 0 2 2c1.8.6 7.6.6 7.6.6s5.8 0 7.6-.6a2.8 2.8 0 0 0 2-2 29.4 29.4 0 0 0 .4-4.8 29.4 29.4 0 0 0-.4-4.8zM10 15.5v-7l6 3.5z" />
-                </svg>
-              </a>
-            )}
-            {/* X */}
-            {team.officialXUrl && (
-              <a
-                href={team.officialXUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                title="X (Twitter)"
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-surface hover:bg-surface-muted"
-              >
-                <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current" aria-hidden="true">
-                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-                </svg>
-              </a>
-            )}
-            {/* 인스타그램 */}
-            {team.officialInstagramUrl && (
-              <a
-                href={team.officialInstagramUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                title="인스타그램"
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-surface hover:bg-surface-muted"
-              >
-                <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current text-pink-500" aria-hidden="true">
-                  <path d="M7 2h10a5 5 0 0 1 5 5v10a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V7a5 5 0 0 1 5-5zm10 2H7a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V7a3 3 0 0 0-3-3zm-5 3.5A5.5 5.5 0 1 1 6.5 13 5.5 5.5 0 0 1 12 7.5zm0 2A3.5 3.5 0 1 0 15.5 13 3.5 3.5 0 0 0 12 9.5zM18 6.3a1.2 1.2 0 1 1-1.2 1.2 1.2 1.2 0 0 1 1.2-1.2z" />
-                </svg>
-              </a>
-            )}
+          <span className="hidden h-[22px] w-px bg-[var(--ui-border)] sm:block" aria-hidden />
+          <div className="flex items-baseline gap-2">
+            <span className="text-[12px] text-[var(--ui-muted)]">순위</span>
+            <strong className="text-[16px]" style={{ color: "var(--tp)" }}>{standing ? `${standing.rank}위` : "-"}</strong>
           </div>
+          <span className="hidden h-[22px] w-px bg-[var(--ui-border)] sm:block" aria-hidden />
+          <div className="flex items-baseline gap-2">
+            <span className="text-[12px] text-[var(--ui-muted)]">최근 5경기</span>
+            <strong className="font-archivo text-[14px] tracking-wide text-[var(--ui-ink)]">{standing?.recent ?? "-"}</strong>
+          </div>
+          <Link href={`/fan/${team.fanSiteHost || team.slug}`} className="ml-auto rounded-full bg-[var(--ui-ink)] px-4 py-2 text-[14px] font-semibold text-[var(--ui-surface)] transition-opacity hover:opacity-90">
+            팬 채널
+          </Link>
         </div>
-      </div>
+
+        <section className="grid gap-10 lg:grid-cols-[330px_1fr]">
+          <div
+            className="relative aspect-[4/5] w-full overflow-hidden rounded-2xl bg-[var(--ui-surface-muted)]"
+            style={{
+              backgroundColor: `color-mix(in oklab, var(--tp) 12%, var(--ui-surface-muted))`,
+              backgroundImage: team.backgroundUrl ? `url("${team.backgroundUrl}")` : undefined,
+              backgroundPosition: "center",
+              backgroundSize: "cover",
+            }}
+          >
+            <div className="absolute inset-0 bg-gradient-to-t from-[rgba(12,11,15,0.9)] via-[rgba(12,11,15,0.16)] to-transparent" />
+            {team.logoUrl ? <img src={team.logoUrl} alt={team.name} className="absolute left-1/2 top-[42%] h-36 w-36 -translate-x-1/2 -translate-y-1/2 object-contain drop-shadow-xl" /> : null}
+            <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 px-4 pb-4 pt-20">
+              <div className="min-w-0">
+                <p className="font-archivo text-[12px] font-black uppercase tracking-[0.16em] text-white/65">{team.shortName}</p>
+                <h1 className="mt-1 text-[32px] font-black leading-tight tracking-tight text-white">{team.name}</h1>
+              </div>
+              <div className="flex shrink-0 gap-1.5">
+                {team.officialHomepageUrl ? <a href={team.officialHomepageUrl} target="_blank" rel="noopener noreferrer" title="공식 홈페이지" className="grid h-8 w-8 place-items-center rounded-full bg-white/14 text-white backdrop-blur hover:bg-white/25"><Globe2 size={15} /></a> : null}
+                {team.officialYoutubeUrl ? <a href={team.officialYoutubeUrl} target="_blank" rel="noopener noreferrer" title="유튜브" className="grid h-8 w-8 place-items-center rounded-full bg-white/14 text-white backdrop-blur hover:bg-white/25"><Play size={14} /></a> : null}
+                {team.officialXUrl ? <a href={team.officialXUrl} target="_blank" rel="noopener noreferrer" title="X" className="grid h-8 w-8 place-items-center rounded-full bg-white/14 text-[11px] font-black text-white backdrop-blur hover:bg-white/25">X</a> : null}
+                {team.officialInstagramUrl ? <a href={team.officialInstagramUrl} target="_blank" rel="noopener noreferrer" title="인스타그램" className="grid h-8 w-8 place-items-center rounded-full bg-white/14 text-white backdrop-blur hover:bg-white/25"><AtSign size={14} /></a> : null}
+              </div>
+            </div>
+          </div>
+
+          <section aria-labelledby="team-stats-overview">
+            <TeamSectionTitle
+              title="팀 지표"
+              aside={team.globalPowerRank != null ? <a href="https://lolesports.com/ko-KR/gpr/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 pb-0.5 text-[12px] font-bold text-[var(--ui-muted)] hover:text-[var(--ui-ink)]">글로벌 {team.globalPowerRank}위 <ExternalLink size={13} /></a> : undefined}
+            />
+            {stats.setCount > 0 ? <TeamRadarChart stats={stats} leagueAvg={leagueAvg} leagueAvgRaw={leagueAvgInput} /> : <p className="text-[14px] text-[var(--ui-muted)]">표시할 팀 지표가 없습니다.</p>}
+          </section>
+        </section>
+
+        <section>
+          <TeamSectionTitle title="시즌 요약" caption={`${latestSeason} LCK`} />
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <TeamMetricCard label="시즌 전적" value={standing?.matchRecord ?? "-"} helper={`${standing?.matchWins ?? 0}W ${standing?.matchLosses ?? 0}L`} />
+            <TeamMetricCard label="세트 전적" value={standing?.setRecord ?? "-"} helper={`세트 득실 ${standing && standing.setDiff > 0 ? "+" : ""}${standing?.setDiff ?? 0}`} />
+            <TeamMetricCard label="승률" value={standing?.winRate ?? "-"} />
+            <TeamMetricCard label="다음 경기" value={nextMatch ? "예정" : "-"} helper={nextMatch ? formatDateTime(nextMatch.matchDate) : "예정된 경기가 없습니다."} />
+          </div>
+        </section>
+
+        <section>
+          <TeamSectionTitle title="팬 평가" />
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-2xl border border-[var(--ui-border)] p-4" style={{ background: "color-mix(in oklab, var(--tp) 6%, var(--ui-surface))" }}>
+              <p className="text-[12px] font-semibold text-[var(--ui-muted)]">팀 팬 평점</p>
+              <p className="font-archivo mt-2 text-[32px] font-black leading-none text-[var(--ui-ink)]">{avgFanRating}<span className="ml-1 font-sans text-[14px] font-semibold text-[var(--ui-muted)]">/ 5</span></p>
+            </div>
+            <TeamMetricCard label="평가 수" value={relatedRatings.length} />
+            <TeamMetricCard label="팀 게시글" value={recentReviews.length} />
+            <div className="flex flex-col justify-between rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-4">
+              <div><p className="text-[12px] font-semibold text-[var(--ui-muted)]">팬 채널</p><p className="mt-2 text-[14px] leading-6 text-[var(--ui-text)]">경기와 선수 소식을 팀 팬들과 함께 확인하세요.</p></div>
+              <Link href={`/fan/${team.fanSiteHost || team.slug}`} className="mt-3 text-right text-[12px] font-bold" style={{ color: "var(--tp)" }}>팬 채널 보기 →</Link>
+            </div>
+          </div>
+        </section>
 
       <section className="flex flex-col gap-8" aria-labelledby="team-roster">
         {/* 주전 선수 */}
         {starters.length > 0 && (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
+          <div>
+            <div className="mb-4 flex items-end justify-between border-b border-[var(--ui-border)] pb-3">
+              <h2 id="team-roster" className="home-section-title text-[length:var(--ui-title-size)] text-[var(--ui-ink)]">주전 선수</h2>
+              <span className="text-[12px] text-[var(--ui-muted)]">STARTING FIVE</span>
+            </div>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
             {starters.map((player) => (
               <Link
                 key={player.id}
                 href={`/players/${player.slug}`}
-                className="group flex flex-col overflow-hidden rounded-xl border border-border bg-surface transition-transform duration-150 hover:scale-[1.02] hover:shadow-lg"
+                className="group flex flex-col overflow-hidden rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] transition-colors hover:bg-[var(--ui-surface-muted)]"
               >
                 {/* 포지션 라벨 */}
                 <div className="px-3 pt-2.5">
                   <span
-                    className="text-xs font-bold tracking-wider text-muted"
+                    className="text-xs font-bold tracking-wider"
+                    style={{ color: "var(--tp)" }}
                   >
                     {player.position}
                   </span>
                 </div>
 
                 {/* 포트레이트 이미지 */}
-                <div className="mx-3 mb-0 mt-1.5 overflow-hidden rounded-lg border border-border bg-surface-muted" style={{ aspectRatio: "3/4" }}>
+                <div className="mx-3 mb-0 mt-1.5 overflow-hidden rounded-xl bg-[var(--ui-surface-muted)]" style={{ aspectRatio: "3/4" }}>
                   {player.profileImageUrl ? (
                     <img
                       src={player.profileImageUrl}
@@ -426,49 +457,48 @@ export default async function TeamDetailPage({
                 <div className="px-3 py-3">
                   <p className="font-bold leading-tight group-hover:text-accent">{player.name}</p>
                   {player.realName && (
-                    <p className="mt-0.5 text-xs text-muted">{player.realName}</p>
+                    <p className="mt-0.5 text-xs text-[var(--ui-muted)]">{player.realName}</p>
                   )}
                   {player.contractExpiry && (
-                    <p className="mt-1.5 text-xs text-muted">
-                      계약 <span className="font-semibold text-foreground">{player.contractExpiry.slice(0, 7)}</span>
+                    <p className="mt-1.5 text-xs text-[var(--ui-muted)]">
+                      계약 <span className="font-semibold text-[var(--ui-ink)]">{player.contractExpiry.slice(0, 7)}</span>
                     </p>
                   )}
                 </div>
               </Link>
             ))}
+            </div>
           </div>
         )}
 
         {starters.length === 0 && (
-          <p className="text-sm text-muted">등록된 선수가 없습니다.</p>
+          <p className="text-sm text-[var(--ui-muted)]">등록된 선수가 없습니다.</p>
         )}
 
-        {/* 코칭 스태프 + 팀 스탯 */}
-        <div className="grid gap-4 md:grid-cols-[2fr_3fr]">
+        {/* 코칭 스태프 */}
+        <div>
           {(team.headCoach || team.coaches) && (() => {
             const teamAwards = awards.filter((a) => TEAM_AWARD_TYPES.has(a.awardType));
             const countByType = new Map<string, number>();
             for (const a of teamAwards) countByType.set(a.awardType, (countByType.get(a.awardType) ?? 0) + 1);
-            const summaryItems = SUMMARY_ORDER.filter((s) => (countByType.get(s.type) ?? 0) > 0);
             return (
               <div
-                className="flex flex-col gap-4 rounded-xl border border-border bg-surface px-6 py-5"
-                style={{ borderLeftColor: team.primaryColor, borderLeftWidth: 4 }}
+                className="flex flex-col gap-4 rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] px-6 py-5"
               >
-                <p className="text-[24px] font-bold">팀 정보</p>
+                <p className="home-section-title border-b border-[var(--ui-border)] pb-3 text-[length:var(--ui-title-size)] text-[var(--ui-ink)]">팀 정보</p>
 
                 {/* 코칭 스태프 */}
                 <div className="flex flex-col gap-2">
-                  <p className="text-base font-bold text-muted">코칭 스태프</p>
+                  <p className="text-sm font-bold text-[var(--ui-muted)]">코칭 스태프</p>
                   {team.headCoach && (
                     <div className="flex items-center gap-3">
-                      <span className="w-8 text-sm text-muted">감독</span>
+                      <span className="w-8 text-sm text-[var(--ui-muted)]">감독</span>
                       <span className="text-[16px] font-semibold">{team.headCoach}</span>
                     </div>
                   )}
                   {team.coaches && team.coaches.split(",").map((c) => c.trim()).filter(Boolean).map((coach) => (
                     <div key={coach} className="flex items-center gap-3">
-                      <span className="w-8 text-sm text-muted">코치</span>
+                      <span className="w-8 text-sm text-[var(--ui-muted)]">코치</span>
                       <span className="text-[16px] font-semibold">{coach}</span>
                     </div>
                   ))}
@@ -488,8 +518,8 @@ export default async function TeamDetailPage({
                   );
                   if (rows.length === 0) return null;
                   return (
-                    <div className="flex flex-col gap-2 border-t border-border pt-4">
-                      <p className="text-base font-bold text-muted">우승 이력</p>
+                    <div className="flex flex-col gap-2 border-t border-[var(--ui-border)] pt-4">
+                      <p className="text-sm font-bold text-[var(--ui-muted)]">우승 이력</p>
                       <div className="flex flex-col gap-2">
                         {rows.map((r) => {
                           const champ = countByType.get(r.champion) ?? 0;
@@ -510,28 +540,18 @@ export default async function TeamDetailPage({
               </div>
             );
           })()}
-
-          {stats.setCount > 0 && (
-            <div className="rounded-xl border border-border bg-surface p-4 md:p-6">
-              <div className="mb-4 flex items-center justify-between">
-                <p className="text-[24px] font-bold">팀 스탯</p>
-                <p className="text-xs text-muted">{stats.setCount}세트 기준</p>
-              </div>
-              <TeamRadarChart stats={stats} leagueAvg={leagueAvg} leagueAvgRaw={leagueAvgInput} />
-            </div>
-          )}
         </div>
       </section>
 
       {awards.filter((a) => TEAM_AWARD_TYPES.has(a.awardType)).length > 0 && (
         <section className="flex flex-col gap-4" aria-labelledby="team-awards">
-          <h2 id="team-awards" className="text-[24px] font-semibold">수상 내역</h2>
+          <h2 id="team-awards" className="home-section-title border-b border-[var(--ui-border)] pb-3 text-[length:var(--ui-title-size)] text-[var(--ui-ink)]">수상 내역</h2>
           <AwardHistory awards={awards} />
         </section>
       )}
 
       <section className="flex flex-col gap-4" aria-labelledby="team-recent-matches">
-        <h2 id="team-recent-matches" className="text-[24px] font-semibold">최근 경기</h2>
+        <h2 id="team-recent-matches" className="home-section-title border-b border-[var(--ui-border)] pb-3 text-[length:var(--ui-title-size)] text-[var(--ui-ink)]">최근 경기</h2>
 
         {/* 간략 요약 */}
         <div className="flex flex-wrap gap-2">
@@ -546,7 +566,7 @@ export default async function TeamDetailPage({
               <Link
                 key={row.id}
                 href={matchHref(row)}
-                className="inline-flex items-center gap-2 rounded-xl border border-border bg-surface px-4 py-2.5 text-sm hover:bg-surface-muted"
+                className="inline-flex items-center gap-2 rounded-full border border-[var(--ui-border)] bg-[var(--ui-surface)] px-4 py-2.5 text-sm hover:bg-[var(--ui-surface-muted)]"
               >
                 <span className="text-muted">{opponent?.shortName ?? "?"}</span>
                 <span className={`font-bold ${win ? "text-blue-600" : "text-red-500"}`}>
@@ -567,8 +587,7 @@ export default async function TeamDetailPage({
           tournaments={tournaments}
         />
       </section>
-
-
+      </div>
     </main>
   );
 }

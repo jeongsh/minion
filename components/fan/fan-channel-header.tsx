@@ -29,7 +29,7 @@ export async function FanChannelHeader({ teamSlug }: { teamSlug: string }) {
   const links = [["홈페이지",team.officialHomepageUrl],["YouTube",team.officialYoutubeUrl],["X",team.officialXUrl],["Instagram",team.officialInstagramUrl]].filter((item): item is [string,string] => Boolean(item[1]));
   return <>
     <header className="relative overflow-hidden text-white" style={{background:team.primaryColor}}>
-      <div className="relative mx-auto max-w-[1240px] px-5 md:px-10"><span aria-hidden className="font-archivo pointer-events-none absolute -right-2 -top-16 text-[250px] font-black leading-none text-white/[0.07]">{team.shortName}</span>
+      <div className="relative mx-auto max-w-[1400px] px-5"><span aria-hidden className="font-archivo pointer-events-none absolute -right-2 -top-16 text-[250px] font-black leading-none text-white/[0.07]">{team.shortName}</span>
         <div className="relative grid items-center gap-11 pb-10 pt-11 lg:grid-cols-[1fr_380px]">
           <div className="flex flex-col gap-[18px]">
             <div className="flex items-center gap-3"><span className="font-archivo rounded bg-white px-[10px] py-1 text-[13px] font-black" style={{color:team.primaryColor}}>{badge}</span><span className="font-archivo text-xs font-extrabold tracking-[0.22em] text-white/80">{match?.name?.trim() || "다가올 경기를 기다리는 중"}</span></div>

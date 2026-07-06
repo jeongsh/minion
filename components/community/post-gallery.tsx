@@ -21,27 +21,27 @@ export function PostGallery({
 
   if (posts.length === 0) {
     return (
-      <p className="rounded-[14px] border border-[#e4e8ef] bg-surface-muted p-8 text-center text-[12px] text-[#8a93a6]">
+      <p className="rounded-[14px] border border-[var(--ui-border)] bg-white p-8 text-center text-[12px] text-[var(--ui-muted)] dark:bg-[var(--ui-surface-muted)]">
         아직 게시글이 없습니다. 첫 글을 작성해 보세요.
       </p>
     );
   }
 
   return (
-    <ul className="overflow-hidden rounded-[14px] border border-[#d8dee9] bg-surface-muted shadow-[0_8px_24px_-12px_rgba(20,30,60,0.28),0_1px_3px_rgba(20,30,60,0.08)]">
+    <ul className="overflow-hidden rounded-[14px] border border-[var(--ui-border)] bg-[var(--ui-surface)]">
       {posts.map((post) => (
-        <li key={post.id} className="border-b border-[#e8ecf2] last:border-b-0">
+        <li key={post.id} className="border-b border-[var(--ui-border)] last:border-b-0">
           <Link
             href={detailHref(post.id)}
-            className="grid grid-cols-[88px_1fr] items-center gap-[14px] px-4 py-3 transition-colors hover:bg-[#f2f5f9]"
+            className="grid grid-cols-[88px_1fr] items-center gap-[14px] px-4 py-3 transition-colors hover:bg-[var(--ui-surface-muted)]"
           >
-            <div className="h-[56px] w-[88px] overflow-hidden rounded-[9px] border border-[#e2e7ef] bg-[#e9eef5]">
+            <div className="h-[56px] w-[88px] overflow-hidden rounded-[9px] border border-[var(--ui-border)] bg-[var(--ui-surface-muted)]">
               {post.thumbnailUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={post.thumbnailUrl} alt="" loading="lazy" className="h-full w-full object-cover" />
               ) : (
                 <div className="flex h-full w-full items-center justify-center p-2">
-                  <p className="line-clamp-3 text-center text-[12px] leading-tight text-[#8791a5]">
+                  <p className="line-clamp-3 text-center text-[12px] leading-tight text-[var(--ui-muted)]">
                     {post.excerpt || "내용 없음"}
                   </p>
                 </div>
@@ -59,8 +59,8 @@ export function PostGallery({
                   </span>
                 )}
               </div>
-              <h3 className="h-[16px] truncate text-[14px] font-extrabold leading-[16px] text-[#0b1020]">{post.title}</h3>
-              <div className="flex h-[16px] items-center gap-x-2 overflow-hidden whitespace-nowrap text-[12px] font-semibold leading-[16px] text-[#69738a]">
+              <h3 className="h-[16px] truncate text-[14px] font-extrabold leading-[16px] text-[var(--ui-ink)]">{post.title}</h3>
+              <div className="flex h-[16px] items-center gap-x-2 overflow-hidden whitespace-nowrap text-[12px] font-semibold leading-[16px] text-[var(--ui-muted)]">
                 <span>{formatRelativeOrDate(post.createdAt)}</span>
                 <span aria-hidden>·</span>
                 <span>명예 {post.likeCount}</span>

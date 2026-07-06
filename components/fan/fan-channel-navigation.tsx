@@ -7,7 +7,7 @@ const tabs = [
   { label: "홈", segment: "" },
   { label: "일정", segment: "matches" },
   { label: "선수", segment: "players" },
-  { label: "게시판", segment: "community" },
+  { label: "커뮤니티", segment: "community" },
   { label: "소셜", segment: "instagram" },
   { label: "영상", segment: "videos" },
 ];
@@ -26,7 +26,7 @@ export function FanChannelNavigation({ teamSlug }: { teamSlug: string }) {
             <Link
               key={href}
               href={href}
-              className={`shrink-0 border-b-[3px] py-4 text-sm font-extrabold transition-colors ${
+              className={`shrink-0 border-b-[3px] py-3 px-2 text-m font-paperozi transition-colors ${
                 active ? "border-[var(--team-primary)] text-[var(--team-primary)]" : "border-transparent text-[#6f737a] hover:text-[#18191c]"
               }`}
             >

@@ -65,7 +65,7 @@ export function HomeMatchCalendar({
   }, []);
 
   return (
-    <section ref={containerRef} className="relative h-[330px] overflow-visible rounded-2xl border border-[#e8ecf5] bg-surface-muted p-5">
+    <section ref={containerRef} className="relative h-[330px] overflow-visible rounded-2xl border border-[var(--ui-border)] bg-white p-5 dark:bg-[var(--ui-surface-muted)]">
       <DayPicker
         mode="single"
         selected={selected}
@@ -109,20 +109,20 @@ export function HomeMatchCalendar({
       />
       {popupPosition && selectedMatches.length > 0 ? (
         <div
-          className="absolute z-30 w-[248px] rounded-xl border border-[#dfe3ee] bg-surface-muted p-3 text-left shadow-[0_18px_44px_rgba(15,23,42,0.16)]"
+          className="absolute z-30 w-[248px] rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface-muted)] p-3 text-left shadow-[0_18px_44px_rgba(0,0,0,0.16)]"
           style={{ left: popupPosition.left, top: popupPosition.top }}
         >
-          <p className="mb-2 text-xs font-black text-[#111827]">{selected?.getDate()}일 경기</p>
+          <p className="mb-2 text-xs font-black text-[var(--ui-ink)]">{selected?.getDate()}일 경기</p>
           <div className="flex flex-col gap-2">
             {selectedMatches.map((match) => (
               <Link
                 key={match.id}
                 href={match.href}
-                className="rounded-lg border border-[#edf0f6] bg-surface px-3 py-2 transition hover:border-[#6a66ff] hover:bg-[#f7f6ff]"
+                className="rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 py-2 transition hover:border-[var(--ui-ink)] hover:bg-[var(--ui-surface-muted)]"
               >
-                <span className="block text-[12px] font-bold text-[#64708f]">{match.time}</span>
-                <span className="mt-1 block text-xs font-black leading-snug text-[#111827]">{match.title}</span>
-                <span className="mt-1 block text-[12px] font-semibold text-[#7c86a0]">{match.teams}</span>
+                <span className="block text-[12px] font-bold text-[var(--ui-muted)]">{match.time}</span>
+                <span className="mt-1 block text-xs font-black leading-snug text-[var(--ui-ink)]">{match.title}</span>
+                <span className="mt-1 block text-[12px] font-semibold text-[var(--ui-muted)]">{match.teams}</span>
               </Link>
             ))}
           </div>

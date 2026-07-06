@@ -27,7 +27,7 @@ export default async function HubPostDetailPage({
 
   return (
     <main className="subpage min-h-screen !bg-[var(--ui-surface)]">
-      <div className="px-10 py-9 max-md:px-5">
+      <div className="px-5 py-8 sm:px-8 lg:px-10">
         <PostView
           post={post}
           comments={comments}

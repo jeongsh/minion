@@ -1,19 +1,16 @@
+import { Eye } from "lucide-react";
+import Link from "next/link";
+
 import { CommentForm } from "@/components/community/comment-form";
 import { CommentList } from "@/components/community/comment-list";
 import { PostContentViewer } from "@/components/community/editor/post-content-viewer";
 import { formatRelativeOrDate } from "@/components/community/format";
 import { ReactionButtons } from "@/components/community/reaction-buttons";
 import { ReportButton } from "@/components/community/report-button";
-import { SectionHeading } from "@/components/layout/section-heading";
-import { Breadcrumb } from "@/components/layout/breadcrumb";
-import { boardLabel, type BoardScope } from "@/lib/community/boards";
-import type {
-  CommunityCommentItem,
-  CommunityPostDetail,
-  ReactionState,
-} from "@/lib/community/types";
+import { SurfacePanel } from "@/components/ui/surface-panel";
+import type { BoardScope } from "@/lib/community/boards";
+import type { CommunityCommentItem, CommunityPostDetail, ReactionState } from "@/lib/community/types";
 
-// 글 상세 — 핸드오프 2d. 단일 컬럼 본문 + 추천 + 댓글.
 export function PostView({
   post,
   comments,
@@ -29,81 +26,69 @@ export function PostView({
   scope: BoardScope;
   teamSlug?: string;
 }) {
-  const boardHref =
-    scope === "team" && teamSlug ? `/fan/${teamSlug}/community` : `/community`;
-  const label = boardLabel(scope, post.boardType);
+  const boardHref = scope === "team" && teamSlug ? `/fan/${teamSlug}/community` : "/community";
   const initial = (post.authorName ?? "글").trim().charAt(0) || "글";
 
   return (
-    <article
-      className={
-        scope === "team"
-          ? "w-full"
-          : "mx-auto w-full max-w-[1240px] px-10 py-8 max-md:px-5"
-      }
-      style={{ ["--acc" as string]: "var(--tp, var(--team-primary, #6158ff))" }}
-    >
-      <Breadcrumb
-        items={[{ label: "커뮤니티", href: boardHref }, { label }, { label: "글 보기" }]}
-        className="mb-4"
-      />
+    <article className={scope === "team" ? "w-full" : "mx-auto w-full max-w-[1120px]"}>
+      <SurfacePanel>
+        <header className="px-5 pb-5 pt-6 sm:px-8 sm:pb-6 sm:pt-8">
+          <Link href={boardHref} className="inline-flex text-[14px] font-normal text-[var(--tp)] hover:opacity-70">
+            목록으로
+          </Link>
+          <h1 className="mt-1 text-[24px] font-semibold leading-[1.4] tracking-[-0.02em] text-[var(--ui-ink)] sm:text-[26px]">
+            {post.title}
+          </h1>
 
-      {/* 글 헤더 */}
-      <header className="section-rule pb-5">
-        <span className="inline-flex rounded-[4px] px-2 py-[3px] text-[12px] font-bold text-[var(--acc)] [background:color-mix(in_oklab,var(--acc)_9%,#fff)]">
-          {label}
-        </span>
-        <h1 className="mt-3 text-[24px] font-black leading-[1.35] text-[#16151b]">{post.title}</h1>
-
-        <div className="mt-4 flex items-center gap-3">
-          <span className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-full text-[13px] font-bold text-[var(--acc)] [background:color-mix(in_oklab,var(--acc)_10%,#fff)]">
-            {initial}
-          </span>
-          <div className="min-w-0">
-            <div className="text-[14px] font-bold text-[#16151b]">{post.authorName ?? "작성자"}</div>
-            <div className="mt-0.5 text-[12px] text-[#9c9aa3]">
-              {formatRelativeOrDate(post.createdAt)} · 조회 {post.viewCount.toLocaleString()} · 추천 {post.likeCount}
+          <div className="mt-2 flex items-center gap-3">
+            <span className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full bg-[var(--ui-surface-muted)] text-[14px] font-bold text-[var(--ui-muted)]">
+              {post.authorImageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={post.authorImageUrl} alt="" className="h-full w-full object-cover" />
+              ) : initial}
+            </span>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-bold text-[var(--ui-ink)]">{post.authorName ?? "작성자"}</p>
+              <div className="mt-0.5 flex items-center gap-2 text-[12px] text-[var(--ui-muted)]">
+                <span>{formatRelativeOrDate(post.createdAt)}</span>
+                <span aria-hidden>·</span>
+                <span className="inline-flex items-center gap-1"><Eye size={13} strokeWidth={1.8} />{post.viewCount.toLocaleString("ko-KR")}</span>
+              </div>
             </div>
           </div>
-          <div className="ml-auto">
-            <ReportButton target="post" postId={post.id} scope={scope} teamSlug={teamSlug} />
+        </header>
+
+        <div className="mx-5 border-t border-[var(--ui-border)] sm:mx-8" />
+
+        <div className="community-prose min-h-[200px] px-5 py-8 text-m leading-[1.8] text-[var(--ui-text)] sm:min-h-[240px] sm:px-8 sm:py-10">
+          <PostContentViewer content={post.content} />
+        </div>
+
+        <div className="flex items-center justify-between gap-4 px-5 py-6 sm:px-8">
+          <ReactionButtons
+            target="post"
+            targetId={post.id}
+            postId={post.id}
+            scope={scope}
+            teamSlug={teamSlug}
+            initialState={reaction}
+            initialHonorCount={post.likeCount}
+            initialDislikeCount={post.dislikeCount}
+          />
+          <ReportButton target="post" postId={post.id} scope={scope} teamSlug={teamSlug} />
+        </div>
+
+        <section aria-label="댓글">
+          <div className="flex items-baseline gap-1 px-5 py-5 sm:px-8">
+            <h2 className="text-[16px] font-bold text-[var(--ui-ink)]">댓글</h2>
+            <span className="text-m font-semibold text-[var(--tp)]">{post.commentCount}</span>
           </div>
-        </div>
-      </header>
-
-      {/* 본문 */}
-      <div className="community-prose py-7 text-[16px] leading-[1.75] text-[#33323b]">
-        <PostContentViewer content={post.content} />
-      </div>
-
-      {/* 추천 */}
-      <div className="flex flex-col items-center gap-2 border-y border-[var(--hairline,#ebecef)] py-7">
-        <ReactionButtons
-          target="post"
-          targetId={post.id}
-          postId={post.id}
-          scope={scope}
-          teamSlug={teamSlug}
-          initialState={reaction}
-          initialHonorCount={post.likeCount}
-          initialDislikeCount={post.dislikeCount}
-        />
-        <p className="text-[12px] text-[#b6b4bd]">이 글이 좋았다면 명예를, 별로였다면 싫어요를 눌러주세요</p>
-      </div>
-
-      {/* 댓글 */}
-      <section className="pt-8" aria-label="댓글">
-        <SectionHeading title="COMMENTS" caption={`${post.commentCount}개`} className="mb-5" />
-        <CommentList
-          comments={comments}
-          commentReactions={commentReactions}
-          scope={scope}
-          teamSlug={teamSlug}
-        />
-        <div className="mt-6">
-          <CommentForm postId={post.id} scope={scope} teamSlug={teamSlug} />
-        </div>
-      </section>
+          <div className="px-5 pb-6 sm:px-8 sm:pb-8">
+            <CommentForm postId={post.id} scope={scope} teamSlug={teamSlug} />
+          </div>
+          <CommentList comments={comments} commentReactions={commentReactions} scope={scope} teamSlug={teamSlug} />
+        </section>
+      </SurfacePanel>
     </article>
   );
 }

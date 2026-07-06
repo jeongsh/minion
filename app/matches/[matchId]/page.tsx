@@ -71,20 +71,37 @@ function TeamScoreBlock({
   align = "left",
   seedLabel,
   team,
-  resultLabel,
+  result,
+  statusLabel,
 }: {
   align?: "left" | "right";
   seedLabel: string;
   team?: Team;
-  resultLabel: string;
+  result: "WIN" | "LOSS" | null;
+  statusLabel: string;
 }) {
+  const isRight = align === "right";
   return (
-    <div className={`relative z-10 flex min-w-0 flex-col items-center text-center ${align === "right" ? "lg:items-end lg:text-right" : "lg:items-start lg:text-left"}`}>
-      <p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--ui-muted)]">{seedLabel}</p>
-      <p className="mt-5 max-w-full truncate text-[18px] font-black text-[var(--ui-ink)] md:text-[24px]">
-        {team?.name ?? "TBD"}
-      </p>
-      <p className="mt-1 text-xs font-bold text-[var(--ui-muted)]">{resultLabel}</p>
+    <div className={`relative z-10 flex min-w-0 flex-col items-center gap-4 ${isRight ? "sm:items-end" : "sm:items-start"}`}>
+      <TeamLogo team={team} size="h-20 w-20 sm:h-24 sm:w-24" plain />
+      <div className={`flex min-w-0 flex-col items-center gap-1.5 text-center ${isRight ? "sm:items-end sm:text-right" : "sm:items-start sm:text-left"}`}>
+        <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--ui-muted)]">{seedLabel}</p>
+        <p className="max-w-full truncate text-[20px] font-black leading-tight text-[var(--ui-ink)] md:text-[26px]">
+          {team?.name ?? "TBD"}
+        </p>
+        {result ? (
+          <span
+            className="rounded-full px-3 py-0.5 text-[11px] font-black uppercase tracking-wide text-white"
+            style={{ background: result === "WIN" ? team?.primaryColor ?? "var(--ui-ink)" : "var(--ui-muted)" }}
+          >
+            {result}
+          </span>
+        ) : (
+          <span className="rounded-full bg-[var(--ui-surface-muted)] px-3 py-0.5 text-[11px] font-bold text-[var(--ui-muted)]">
+            {statusLabel}
+          </span>
+        )}
+      </div>
     </div>
   );
 }
@@ -109,8 +126,8 @@ function PlayerHighlight({
         )}
       </div>
       <div className="min-w-0">
-        <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--ui-muted)]">{label}</p>
-        <p className="mt-1 truncate text-base font-black text-[var(--ui-ink)]">{player?.name ?? "집계 전"}</p>
+        <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--ui-muted)]">{label}</p>
+        <p className="mt-1 truncate text-[15px] font-black text-[var(--ui-ink)]">{player?.name ?? "집계 전"}</p>
         <p className="mt-1 text-xs font-semibold text-[var(--ui-muted)]">{detail}</p>
       </div>
     </div>
@@ -246,14 +263,14 @@ function PlayerAvatar({
       <img
         src={player.profileImageUrl}
         alt=""
-        className={`${sizeClass} shrink-0 rounded-md object-cover object-top`}
+        className={`${sizeClass} shrink-0 rounded-xl object-cover object-top`}
       />
     );
   }
 
   return (
     <span
-      className={`${sizeClass} grid shrink-0 place-items-center rounded-md border border-border bg-surface-muted text-sm font-semibold`}
+      className={`${sizeClass} grid shrink-0 place-items-center rounded-xl bg-[var(--ui-surface-muted)] text-sm font-black text-[var(--ui-muted)]`}
       aria-hidden="true"
     >
       {player ? playerInitial(player.name) : "-"}
@@ -278,17 +295,17 @@ function RatingPlayerRow({
   const average = averageRating(ratings);
 
   return (
-    <div className="grid grid-cols-[2.75rem_minmax(0,1fr)_auto] items-center gap-3 border-b border-border px-3 py-3 last:border-b-0">
+    <div className="grid grid-cols-[2.75rem_minmax(0,1fr)_auto] items-center gap-3 border-b border-[var(--ui-border)] px-4 py-3 last:border-b-0">
       <PlayerAvatar player={player} />
       <div className="min-w-0">
-        <p className="truncate text-sm font-semibold">{player?.name ?? "-"}</p>
-        <p className="text-xs text-muted">{line.position}</p>
+        <p className="truncate text-sm font-black text-[var(--ui-ink)]">{player?.name ?? "-"}</p>
+        <p className="text-xs font-bold text-[var(--ui-muted)]">{line.position}</p>
       </div>
       <div className="text-right">
-        <p className="text-[16px] font-semibold tabular-nums">
+        <p className="font-archivo text-[18px] font-black tabular-nums text-[var(--ui-ink)]">
           {average == null ? "-" : average.toFixed(1)}
         </p>
-        <p className="text-xs text-muted">{ratings.length}개</p>
+        <p className="text-xs font-semibold text-[var(--ui-muted)]">{ratings.length}개</p>
       </div>
     </div>
   );
@@ -316,12 +333,12 @@ function TeamRatingColumn({
     );
 
   return (
-    <section className="overflow-hidden rounded-md border border-border bg-surface">
-      <h3 className="border-b border-border px-4 py-3 text-sm font-semibold">
+    <section className="overflow-hidden rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)]">
+      <h3 className="border-b border-[var(--ui-border)] px-4 py-3 text-[15px] font-black text-[var(--ui-ink)]">
         {title}
       </h3>
       {teamRows.length === 0 ? (
-        <p className="p-4 text-sm text-muted">평점 대상 선수가 없습니다.</p>
+        <p className="p-4 text-sm text-[var(--ui-muted)]">평점 대상 선수가 없습니다.</p>
       ) : (
         teamRows.map((line) => (
           <RatingPlayerRow
@@ -355,7 +372,7 @@ function MatchRatingPanel({
 }) {
   if (!set) {
     return (
-      <div className="rounded-md border border-dashed border-border bg-surface p-4 text-sm text-muted">
+      <div className="rounded-2xl border border-dashed border-[var(--ui-border)] bg-[var(--ui-surface)] p-4 text-sm text-[var(--ui-muted)]">
         투표할 세트가 없습니다.
       </div>
     );
@@ -397,32 +414,32 @@ function MatchRatingPanel({
       <SetSelector sets={sets} activeSet={set} tab="rating" />
 
       <section className="grid gap-4 lg:grid-cols-[20rem_minmax(0,1fr)]">
-        <div className="rounded-md border border-border bg-surface p-5">
-          <p className="text-xs font-semibold uppercase text-muted">SET POG</p>
+        <div className="rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-5">
+          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--ui-muted)]">SET POG</p>
           {leader ? (
             <div className="mt-4 flex items-center gap-4">
               <PlayerAvatar player={leaderPlayer} size="lg" />
               <div className="min-w-0">
-                <p className="truncate text-2xl font-semibold">
+                <p className="truncate text-[20px] font-black text-[var(--ui-ink)]">
                   {leaderPlayer?.name ?? "-"}
                 </p>
-                <p className="mt-1 text-sm text-muted">
+                <p className="mt-1 text-sm font-semibold text-[var(--ui-muted)]">
                   {teamLabel(teams, leaderPlayer?.teamId)} · {leader.count}개 평점
                 </p>
-                <p className="mt-3 text-[32px] font-semibold tabular-nums">
+                <p className="mt-3 font-archivo text-[36px] font-black leading-none tabular-nums text-[var(--ui-ink)]">
                   {leader.average.toFixed(1)}
-                  <span className="text-base text-muted"> / 5</span>
+                  <span className="text-base font-bold text-[var(--ui-muted)]"> / 5</span>
                 </p>
               </div>
             </div>
           ) : (
-            <p className="mt-4 text-sm text-muted">아직 집계된 평점이 없습니다.</p>
+            <p className="mt-4 text-sm text-[var(--ui-muted)]">아직 집계된 평점이 없습니다.</p>
           )}
         </div>
 
         <form
           action={submitSetPlayerRatingAction}
-          className="rounded-md border border-border bg-surface p-5"
+          className="rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-5"
         >
           <input type="hidden" name="matchId" value={matchId} />
           <input type="hidden" name="setId" value={set.id} />
@@ -432,7 +449,7 @@ function MatchRatingPanel({
               required
               disabled={!ratingOpen || selectableLines.length === 0}
               defaultValue=""
-              className="rounded-md border border-border bg-background px-3 py-2 text-sm font-semibold disabled:opacity-50"
+              className="rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface-muted)] px-3 py-2 text-sm font-bold text-[var(--ui-ink)] disabled:opacity-50"
             >
               <option value="" disabled>
                 선수 선택
@@ -451,7 +468,7 @@ function MatchRatingPanel({
               required
               disabled={!ratingOpen || selectableLines.length === 0}
               defaultValue=""
-              className="rounded-md border border-border bg-background px-3 py-2 text-sm font-semibold disabled:opacity-50"
+              className="rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface-muted)] px-3 py-2 text-sm font-bold text-[var(--ui-ink)] disabled:opacity-50"
             >
               <option value="" disabled>
                 점수
@@ -467,26 +484,26 @@ function MatchRatingPanel({
               maxLength={240}
               disabled={!ratingOpen || selectableLines.length === 0}
               placeholder="한줄평"
-              className="min-w-0 rounded-md border border-border bg-background px-3 py-2 text-sm disabled:opacity-50"
+              className="min-w-0 rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface-muted)] px-3 py-2 text-sm text-[var(--ui-ink)] placeholder:text-[var(--ui-muted)] disabled:opacity-50"
             />
             <button
               type="submit"
               disabled={!ratingOpen || selectableLines.length === 0}
-              className="rounded-md border border-foreground bg-foreground px-5 py-2 text-sm font-semibold text-background disabled:cursor-not-allowed disabled:border-border disabled:bg-surface-muted disabled:text-muted"
+              className="rounded-lg bg-[var(--ui-ink)] px-5 py-2 text-sm font-bold text-[var(--ui-surface)] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:bg-[var(--ui-surface-muted)] disabled:text-[var(--ui-muted)]"
             >
               제출
             </button>
           </div>
           {ratingOpen && ratingDeadline ? (
-            <p className="mt-3 text-sm text-muted">
+            <p className="mt-3 text-sm font-semibold text-[var(--ui-muted)]">
               평점 입력 마감: {formatDateTime(ratingDeadline.toISOString())} (경기 종료 후 3시간)
             </p>
           ) : ratingClosed ? (
-            <p className="mt-3 text-sm text-muted">
+            <p className="mt-3 text-sm font-semibold text-[var(--ui-muted)]">
               평점 입력이 마감되었습니다. (경기 종료 후 3시간)
             </p>
           ) : (
-            <p className="mt-3 text-sm text-muted">
+            <p className="mt-3 text-sm font-semibold text-[var(--ui-muted)]">
               세트 상태가 경기종료 또는 상세데이터 동기화일 때 투표가 열립니다.
             </p>
           )}
@@ -496,10 +513,10 @@ function MatchRatingPanel({
       {snapshotReady ? (
         <Link
           href={snapshotHref}
-          className="flex items-center justify-between gap-3 rounded-md border border-border bg-surface px-4 py-3 text-sm font-semibold hover:bg-surface-muted"
+          className="flex items-center justify-between gap-3 rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] px-4 py-3 text-sm font-bold text-[var(--ui-ink)] transition-colors hover:bg-[var(--ui-surface-muted)]"
         >
           <span>커뮤니티 공유용 스냅샷 보기</span>
-          <span aria-hidden="true" className="text-muted">&gt;</span>
+          <span aria-hidden="true" className="text-[var(--ui-muted)]">&gt;</span>
         </Link>
       ) : null}
 
@@ -520,10 +537,10 @@ function MatchRatingPanel({
         />
       </section>
 
-      <section className="rounded-md border border-border bg-surface p-5">
-        <h3 className="text-[16px] font-semibold">한줄평</h3>
+      <section className="rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-5">
+        <h3 className="text-[15px] font-black text-[var(--ui-ink)]">한줄평</h3>
         {reviewRows.length === 0 ? (
-          <p className="mt-3 text-sm text-muted">아직 작성된 한줄평이 없습니다.</p>
+          <p className="mt-3 text-sm text-[var(--ui-muted)]">아직 작성된 한줄평이 없습니다.</p>
         ) : (
           <div className="mt-4 grid gap-3">
             {reviewRows.map((rating) => {
@@ -531,14 +548,14 @@ function MatchRatingPanel({
               return (
                 <article
                   key={rating.id}
-                  className="grid grid-cols-[2.75rem_minmax(0,1fr)_auto] gap-3 rounded-md border border-border bg-background p-3"
+                  className="grid grid-cols-[2.75rem_minmax(0,1fr)_auto] items-center gap-3 rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface-muted)] p-3"
                 >
                   <PlayerAvatar player={player} />
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold">{player?.name ?? "-"}</p>
-                    <p className="mt-1 text-sm text-muted">{rating.review}</p>
+                    <p className="text-sm font-black text-[var(--ui-ink)]">{player?.name ?? "-"}</p>
+                    <p className="mt-1 text-sm text-[var(--ui-text)]">{rating.review}</p>
                   </div>
-                  <p className="text-sm font-semibold tabular-nums">
+                  <p className="font-archivo text-[16px] font-black tabular-nums text-[var(--ui-ink)]">
                     {rating.rating.toFixed(1)}
                   </p>
                 </article>
@@ -605,16 +622,12 @@ export default async function MatchDetailPage({
   const teamB = teams.find((team) => team.id === match.teamBId);
   const teamAName = teamLabel(teams, match.teamAId);
   const teamBName = teamLabel(teams, match.teamBId);
-  const teamAResult = match.winnerTeamId
-    ? match.winnerTeamId === match.teamAId
-      ? "WIN"
-      : "LOSS"
-    : MATCH_STATUS_LABEL[match.status];
-  const teamBResult = match.winnerTeamId
-    ? match.winnerTeamId === match.teamBId
-      ? "WIN"
-      : "LOSS"
-    : MATCH_STATUS_LABEL[match.status];
+  const teamAResult: "WIN" | "LOSS" | null = match.winnerTeamId
+    ? match.winnerTeamId === match.teamAId ? "WIN" : "LOSS"
+    : null;
+  const teamBResult: "WIN" | "LOSS" | null = match.winnerTeamId
+    ? match.winnerTeamId === match.teamBId ? "WIN" : "LOSS"
+    : null;
   const matchSetIds = new Set(matchSets.map((s) => s.id));
   const matchFanRatings = fanRatings.filter((r) => matchSetIds.has(r.setId));
   const topFanLeader = fanRatingLeader(matchFanRatings);
@@ -674,25 +687,27 @@ export default async function MatchDetailPage({
         </div>
 
         <div>
-          <div className="relative isolate grid min-h-[260px] grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4 overflow-hidden p-5 sm:gap-8 sm:p-10">
-            <div className="pointer-events-none absolute inset-y-0 left-0 z-0 flex w-[44%] items-center justify-start overflow-hidden" aria-hidden="true">
-              <TeamLogo team={teamA} size="h-[230px] w-[230px] -translate-x-[18%] opacity-[0.11] blur-[3px] sm:h-[310px] sm:w-[310px]" plain />
-            </div>
-            <div className="pointer-events-none absolute inset-y-0 right-0 z-0 flex w-[44%] items-center justify-end overflow-hidden" aria-hidden="true">
-              <TeamLogo team={teamB} size="h-[230px] w-[230px] translate-x-[18%] opacity-[0.11] blur-[3px] sm:h-[310px] sm:w-[310px]" plain />
-            </div>
-            <div className="pointer-events-none absolute inset-0 z-0 bg-[linear-gradient(90deg,var(--ui-surface)_0%,transparent_22%,var(--ui-surface)_48%,var(--ui-surface)_52%,transparent_78%,var(--ui-surface)_100%)] opacity-70" aria-hidden="true" />
-            <TeamScoreBlock seedLabel="Team A" team={teamA} resultLabel={teamAResult} />
+          <div className="relative isolate grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4 overflow-hidden px-5 py-8 sm:gap-10 sm:px-10 sm:py-10">
+            <div
+              className="pointer-events-none absolute inset-0 z-0 opacity-[0.07]"
+              style={{ background: `radial-gradient(58% 130% at 0% 50%, ${teamA?.primaryColor ?? "#73767c"} 0%, transparent 62%), radial-gradient(58% 130% at 100% 50%, ${teamB?.primaryColor ?? "#73767c"} 0%, transparent 62%)` }}
+              aria-hidden="true"
+            />
+            <TeamScoreBlock seedLabel="Team A" team={teamA} result={teamAResult} statusLabel={MATCH_STATUS_LABEL[match.status]} />
 
-            <div className="relative z-10 min-w-[112px] text-center sm:min-w-[180px]">
-              <p className="text-xs font-bold text-[var(--ui-muted)]">FINAL SCORE</p>
-              <p className="mt-2 text-[32px] font-black tabular-nums text-[var(--ui-ink)] sm:text-[40px]">
+            <div className="relative z-10 flex min-w-[104px] flex-col items-center sm:min-w-[160px]">
+              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--ui-muted)]">
+                {match.status === "completed" ? "Final Score" : match.status === "live" ? "Live Score" : "Match Up"}
+              </p>
+              <p className="font-archivo mt-2 text-[44px] font-black leading-none tabular-nums text-[var(--ui-ink)] sm:text-[56px]">
                 {matchScoreLabel(match.teamAScore, match.teamBScore)}
               </p>
-              <p className="mt-2 text-xs font-bold text-[var(--ui-muted)]">{MATCH_STATUS_LABEL[match.status]}</p>
+              <span className="mt-3 rounded-full bg-[var(--ui-surface-muted)] px-3 py-1 text-[11px] font-bold text-[var(--ui-muted)]">
+                {MATCH_STATUS_LABEL[match.status]}
+              </span>
             </div>
 
-            <TeamScoreBlock align="right" seedLabel="Team B" team={teamB} resultLabel={teamBResult} />
+            <TeamScoreBlock align="right" seedLabel="Team B" team={teamB} result={teamBResult} statusLabel={MATCH_STATUS_LABEL[match.status]} />
           </div>
 
           <aside className="grid border-t border-[var(--ui-border)] bg-[var(--ui-surface-muted)] sm:grid-cols-2">

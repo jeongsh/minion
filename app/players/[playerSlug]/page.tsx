@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Star } from "lucide-react";
 import { PlayerSocialLinks } from "@/components/domain/player-social-links";
-import { SectionHeading } from "@/components/layout/section-heading";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
+import { SectionHeading } from "@/components/ui/section-heading";
 
 import { uniqueDdragonVersionsForPatches } from "@/lib/ddragon";
 import { fetchRuneCatalog } from "@/lib/runes";
@@ -136,7 +137,7 @@ function PlayerImage({
   className: string;
 }) {
   if (!src) {
-    return <div className={`${className} bg-surface-muted`} aria-label={alt} />;
+    return <div className={`${className} bg-[var(--ui-surface-muted)]`} aria-label={alt} />;
   }
 
   return (
@@ -157,15 +158,15 @@ function MetricCard({
   className?: string;
 }) {
   return (
-    <div className={`rounded-[14px] border border-[var(--card-border)] p-4 ${className}`}>
-      <p className="text-[12px] text-[var(--ink-3)]">{label}</p>
-      <p className="mt-2 font-archivo text-[32px] font-black leading-none tracking-tight text-[var(--ink)]">{value}</p>
-      {helper ? <p className="mt-1.5 text-[12px] text-[var(--sub-muted)]">{helper}</p> : null}
+    <div className={`rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-4 ${className}`}>
+      <p className="text-[14px] font-semibold text-[var(--ui-muted)]">{label}</p>
+      <p className="mt-2 text-[24px] font-bold leading-none tracking-tight text-[var(--ui-ink)]">{value}</p>
+      {helper ? <p className="mt-1.5 text-[12px] text-[var(--ui-muted)]">{helper}</p> : null}
     </div>
   );
 }
 
-// 8축 레이더 + 지표 바 리스트 (STATS OVERVIEW 내부)
+// 8축 레이더 + 지표 바 리스트 (선수 지표 내부)
 function StatsOverview({
   stats,
   averageStats,
@@ -216,8 +217,8 @@ function StatsOverview({
             <polygon
               key={polygon}
               points={polygon}
-              fill={index % 2 === 0 ? "#eef0f2" : "#f9fafb"}
-              stroke="#e7e8eb"
+              fill={index % 2 === 0 ? "var(--ui-surface-muted)" : "var(--ui-surface)"}
+              stroke="var(--ui-border)"
             />
           ))}
         {axes.map((_, index) => {
@@ -229,12 +230,12 @@ function StatsOverview({
               y1={center}
               x2={center + Math.cos(angle) * maxRadius}
               y2={center + Math.sin(angle) * maxRadius}
-              stroke="#e7e8eb"
+              stroke="var(--ui-border)"
             />
           );
         })}
         {averagePoints ? (
-          <polygon points={averagePoints} fill="rgba(154,163,181,0.16)" stroke="#9aa3b5" strokeWidth="2" />
+          <polygon points={averagePoints} fill="color-mix(in oklab, var(--ui-muted) 18%, transparent)" stroke="var(--ui-muted)" strokeWidth="2" />
         ) : null}
         <polygon
           points={playerPoints}
@@ -247,9 +248,9 @@ function StatsOverview({
           const x = center + Math.cos(angle) * (maxRadius + 20);
           const y = center + Math.sin(angle) * (maxRadius + 16);
           return (
-            <text key={axis.label} x={x} y={y} textAnchor="middle" className="font-archivo fill-[var(--ink)] text-[11px] font-bold">
+            <text key={axis.label} x={x} y={y} textAnchor="middle" className="fill-[var(--ui-ink)] text-[12px] font-bold">
               <tspan x={x}>{axis.label}</tspan>
-              <tspan x={x} dy="12" className="fill-[var(--sub-muted)] font-semibold">{Math.round(axis.score)}</tspan>
+              <tspan x={x} dy="12" className="fill-[var(--ui-muted)] font-semibold">{Math.round(axis.score)}</tspan>
             </text>
           );
         })}
@@ -259,18 +260,18 @@ function StatsOverview({
       <ul className="grid grid-cols-[42px_minmax(0,1fr)_auto_auto] items-center gap-x-3 gap-y-3 text-[12px]">
         {axes.map((axis) => (
           <li key={axis.label} className="contents">
-            <span className="font-archivo font-bold text-[var(--ink)]">{axis.label}</span>
-            <span className="h-[7px] w-full overflow-hidden rounded-full bg-[var(--surface-1)]">
+            <span className="font-bold text-[var(--ui-ink)]">{axis.label}</span>
+            <span className="h-[7px] w-full overflow-hidden rounded-full bg-[var(--ui-surface-muted)]">
               <span
                 className="block h-full rounded-full bg-[var(--tp)]"
                 style={{ width: `${Math.max(0, Math.min(100, axis.score))}%` }}
               />
             </span>
-            <span className="text-right font-bold tabular-nums text-[var(--ink)]">
+            <span className="text-right font-bold tabular-nums text-[var(--ui-ink)]">
               {Math.round(axis.score)}
-              <span className="ml-1 font-normal text-[var(--sub-muted)]">({statValue(axis.raw, axis.decimals)})</span>
+              <span className="ml-1 font-normal text-[var(--ui-muted)]">({statValue(axis.raw, axis.decimals)})</span>
             </span>
-            <span className="min-w-[64px] text-right tabular-nums text-[#9aa3b5]">
+            <span className="min-w-[64px] text-right tabular-nums text-[var(--ui-muted)]">
               {axis.averageScore != null
                 ? `${Math.round(axis.averageScore)} (${statValue(axis.averageRaw, axis.decimals)})`
                 : "-"}
@@ -303,7 +304,7 @@ function PlayerSegmentChips({
             className={`rounded-full px-3 py-1.5 text-[14px] font-semibold transition-colors ${
               active
                 ? "bg-[var(--tp)] text-white"
-                : "border border-[var(--btn-border)] bg-surface text-[var(--ink-2)] hover:bg-[var(--surface-2)]"
+                : "border border-[var(--ui-border)] bg-[var(--ui-surface)] text-[var(--ui-text)] hover:bg-[var(--ui-surface-muted)]"
             }`}
           >
             {playerSegmentLabel(segment)}
@@ -322,10 +323,10 @@ function PlayerAwardHistory({ awards }: { awards: TeamAward[] }) {
       {awards.map((award, i) => {
         const meta = PLAYER_AWARD_META[award.awardType];
         return (
-          <li key={award.id} className={`flex items-center gap-3 py-2.5 ${i !== 0 ? "border-t border-[var(--hairline)]" : ""}`}>
-            <span className="w-9 shrink-0 font-archivo text-[14px] font-black tabular-nums text-[var(--ink)]">{award.year}</span>
-            <span className="text-[14px] font-semibold text-[var(--ink)]">{meta?.label ?? award.awardType}</span>
-            <span className="ml-auto truncate text-[12px] text-[var(--sub-muted)]">{award.tournamentName}</span>
+          <li key={award.id} className={`flex items-center gap-3 py-2.5 ${i !== 0 ? "border-t border-[var(--ui-border)]" : ""}`}>
+            <span className="w-9 shrink-0 text-[14px] font-bold tabular-nums text-[var(--ui-ink)]">{award.year}</span>
+            <span className="text-[14px] font-semibold text-[var(--ui-ink)]">{meta?.label ?? award.awardType}</span>
+            <span className="ml-auto truncate text-[12px] text-[var(--ui-muted)]">{award.tournamentName}</span>
           </li>
         );
       })}
@@ -343,7 +344,7 @@ function CareerTimeline({
   currentTeamId?: string | null;
 }) {
   if (histories.length === 0) {
-    return <p className="text-[12px] text-[var(--sub-muted)]">경력 데이터가 없습니다.</p>;
+    return <p className="text-[12px] text-[var(--ui-muted)]">경력 데이터가 없습니다.</p>;
   }
 
   function dateLabel(date: string | null) {
@@ -353,7 +354,7 @@ function CareerTimeline({
 
   return (
     <div className="relative pl-4">
-      <div className="absolute left-[3px] top-1.5 h-[calc(100%-0.75rem)] w-px bg-[var(--card-border)]" />
+      <div className="absolute left-[3px] top-1.5 h-[calc(100%-0.75rem)] w-px bg-[var(--ui-border)]" />
       <ul className="flex flex-col gap-3">
         {histories.map((entry) => {
           const team = entry.teamId ? teams.find((t) => t.id === entry.teamId) : null;
@@ -362,15 +363,15 @@ function CareerTimeline({
           return (
             <li key={entry.id} className="relative">
               <span
-                className={`absolute -left-4 top-1 h-[7px] w-[7px] rounded-full ${isCurrent ? "bg-[var(--tp)]" : "bg-[var(--sub-muted-weak)]"}`}
+                className={`absolute -left-4 top-1 h-[7px] w-[7px] rounded-full ${isCurrent ? "bg-[var(--tp)]" : "bg-[var(--ui-muted)]"}`}
               />
               <div className="flex items-baseline justify-between gap-2">
-                <span className="text-[14px] font-semibold text-[var(--ink)]">{teamName}</span>
-                <span className="text-[12px] text-[var(--sub-muted)]">
+                <span className="text-[14px] font-semibold text-[var(--ui-ink)]">{teamName}</span>
+                <span className="text-[12px] text-[var(--ui-muted)]">
                   {dateLabel(entry.startDate)}–{dateLabel(entry.endDate)}
                 </span>
               </div>
-              <p className="mt-0.5 text-[12px] text-[var(--ink-3)]">{entry.position}</p>
+              <p className="mt-0.5 text-[12px] text-[var(--ui-muted)]">{entry.position}</p>
             </li>
           );
         })}
@@ -536,10 +537,18 @@ export default async function PlayerDetailPage({
 
   return (
     <main
-      className="subpage min-h-screen !bg-[var(--ui-surface)]"
-      style={{ ["--tp" as string]: playerTeam?.primaryColor ?? "#6158ff" }}
+      className="min-h-screen bg-[var(--ui-surface)] text-[var(--ui-text)]"
+      style={
+        {
+          "--tp": playerTeam?.primaryColor ?? "#6158ff",
+          // Breadcrumb 등 공용 컴포넌트가 참조하는 서브페이지 토큰을 --ui-* 로 브리지(다크모드 대응).
+          "--ink": "var(--ui-ink)",
+          "--ink-3": "var(--ui-muted)",
+          "--sub-muted-weak": "var(--ui-border)",
+        } as React.CSSProperties
+      }
     >
-      <div className="mx-auto flex w-full max-w-[1240px] flex-col gap-12 px-10 py-8 max-md:px-5">
+      <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-12 px-5 pb-16 pt-8 xl:px-10">
         {/* 1. 브레드크럼 + 대회 세그먼트 */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Breadcrumb items={[{ label: "선수단", href: "/players" }, { label: player.position }, { label: player.name }]} />
@@ -551,56 +560,56 @@ export default async function PlayerDetailPage({
         </div>
 
         {/* 2. 팀 메타 스트립 */}
-        <div className="flex flex-wrap items-center gap-4 rounded-[16px] border border-[var(--card-border)] px-5 py-3.5">
+        <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] px-5 py-3.5">
           <div className="flex items-center gap-2.5">
-            <span className="text-[12px] text-[var(--ink-3)]">팀</span>
+            <span className="text-[12px] text-[var(--ui-muted)]">팀</span>
             {playerTeam?.logoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={playerTeam.logoUrl} alt={playerTeam.name} className="h-[30px] w-auto object-contain" />
             ) : (
-              <span className="text-[14px] font-bold">{playerTeam?.shortName ?? "-"}</span>
+              <span className="text-[14px] font-bold text-[var(--ui-ink)]">{playerTeam?.shortName ?? "-"}</span>
             )}
           </div>
-          <span className="hidden h-[22px] w-px bg-[#f0ede8] sm:block" aria-hidden />
+          <span className="hidden h-[22px] w-px bg-[var(--ui-border)] sm:block" aria-hidden />
           <div className="flex items-baseline gap-2">
-            <span className="text-[14px] text-[var(--ink-3)]">순위</span>
+            <span className="text-[14px] text-[var(--ui-muted)]">순위</span>
             <span className="text-[16px] font-bold" style={{ color: "var(--tp)" }}>
               {teamStanding ? `${teamStanding.rank}위` : "-"}
             </span>
           </div>
-          <span className="hidden h-[22px] w-px bg-[#f0ede8] sm:block" aria-hidden />
+          <span className="hidden h-[22px] w-px bg-[var(--ui-border)] sm:block" aria-hidden />
           <div className="flex items-baseline gap-2">
-            <span className="text-[14px] text-[var(--ink-3)]">최근 5경기</span>
-            <span className="text-[16px] font-bold tracking-wide text-[var(--ink)]">{teamRecent || "-"}</span>
+            <span className="text-[14px] text-[var(--ui-muted)]">최근 5경기</span>
+            <span className="text-[16px] font-bold tracking-wide text-[var(--ui-ink)]">{teamRecent || "-"}</span>
           </div>
           <div className="ml-auto flex flex-wrap gap-2">
             {playerTeam ? (
               <Link
                 href={`/teams/${playerTeam.slug}`}
-                className="rounded-full bg-[var(--ink)] px-4 py-2 text-[14px] font-semibold text-white transition-opacity hover:opacity-90"
+                className="rounded-full bg-[var(--ui-ink)] px-4 py-2 text-[14px] font-semibold text-[var(--ui-surface)] transition-opacity hover:opacity-90"
               >
                 팀 상세 보기
               </Link>
             ) : null}
             <Link
               href="#teammates"
-              className="rounded-full border border-[var(--btn-border)] px-4 py-2 text-[14px] font-semibold text-[var(--ink-2)] transition-colors hover:bg-[var(--surface-2)]"
+              className="rounded-full border border-[var(--ui-border)] px-4 py-2 text-[14px] font-semibold text-[var(--ui-text)] transition-colors hover:bg-[var(--ui-surface-muted)]"
             >
               팀원 보기
             </Link>
           </div>
         </div>
 
-        {/* 3. 메인 그리드 — 포트레잇 + STATS OVERVIEW */}
+        {/* 3. 메인 그리드 — 포트레잇 + 선수 지표 */}
         <div className="grid gap-10 lg:grid-cols-[330px_1fr]">
-          <div className="relative aspect-[4/5] w-full overflow-hidden rounded-[18px] bg-[var(--surface-1)]">
+          <div className="relative aspect-[4/5] w-full overflow-hidden rounded-2xl bg-[var(--ui-surface-muted)]">
             <PlayerImage src={player.profileImageUrl} alt={player.name} className="h-full w-full object-cover object-top" />
-            <span className="absolute left-3 top-3 rounded-[4px] px-2 py-1 text-[12px] font-bold text-white" style={{ background: "var(--tp)" }}>
+            <span className="absolute left-3 top-3 rounded-lg px-2 py-1 text-[12px] font-bold text-white" style={{ background: "var(--tp)" }}>
               {player.position}
             </span>
             <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 bg-gradient-to-t from-[rgba(12,11,15,0.82)] via-[rgba(12,11,15,0.4)] to-transparent px-4 pb-4 pt-14">
               <div className="min-w-0">
-                <h1 className="font-archivo text-[32px] font-black leading-none tracking-tight text-white">{player.name}</h1>
+                <h1 className="home-section-title text-[32px] leading-none tracking-tight text-white">{player.name}</h1>
                 {player.realName ? <p className="mt-1.5 text-[12px] text-white/75">{player.realName}</p> : null}
               </div>
               <PlayerSocialLinks player={player} variant="overlay" className="shrink-0" />
@@ -609,32 +618,29 @@ export default async function PlayerDetailPage({
 
           <section aria-labelledby="stats-overview">
             <SectionHeading
-              title="STATS OVERVIEW"
               aside={
-                <div className="flex items-center gap-3 pb-[2px] text-[12px] text-[var(--ink-3)]">
+                <div className="flex items-center gap-3 pb-0.5 text-[12px] text-[var(--ui-muted)]">
                   <span className="inline-flex items-center gap-1">
                     <span className="h-2 w-2 rounded-full" style={{ background: "var(--tp)" }} />선수
                   </span>
                   <span className="inline-flex items-center gap-1">
-                    <span className="h-2 w-2 rounded-full bg-[#9aa3b5]" />동 포지션 평균
+                    <span className="h-2 w-2 rounded-full bg-[var(--ui-muted)]" />동 포지션 평균
                   </span>
                 </div>
               }
-            />
-            <div className="mt-5">
-              {aggregateStats ? (
-                <StatsOverview stats={aggregateStats} averageStats={radarBenchmark?.average} />
-              ) : (
-                <p className="text-[14px] text-[var(--sub-muted)]">표시할 경기 지표가 없습니다.</p>
-              )}
-            </div>
+            >선수 지표</SectionHeading>
+            {aggregateStats ? (
+              <StatsOverview stats={aggregateStats} averageStats={radarBenchmark?.average} />
+            ) : (
+              <p className="text-[14px] text-[var(--ui-muted)]">표시할 경기 지표가 없습니다.</p>
+            )}
           </section>
         </div>
 
-        {/* 4. CURRENT SPLIT */}
+        {/* 4. 시즌 요약 */}
         <section>
-          <SectionHeading title="CURRENT SPLIT" caption={playerSegmentLabel(activeSegment)} />
-          <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <SectionHeading caption={playerSegmentLabel(activeSegment)}>시즌 요약</SectionHeading>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <MetricCard label="출전 세트 수" value={playerLines.length} />
             <MetricCard
               label="승률"
@@ -646,48 +652,56 @@ export default async function PlayerDetailPage({
           </div>
         </section>
 
-        {/* 5. FAN & AWARDS */}
+        {/* 5. 팬 평가 */}
         <section>
-          <SectionHeading title="FAN & AWARDS" />
-          <div className="mt-5 grid gap-3 lg:grid-cols-[1.2fr_0.8fr_0.8fr_1.6fr]">
+          <SectionHeading>팬 평가</SectionHeading>
+          <div className="grid gap-3 lg:grid-cols-[1.2fr_0.8fr_0.8fr_1.6fr]">
             <div
-              className="rounded-[14px] border border-[var(--card-border)] p-4"
-              style={{ background: "color-mix(in oklab, var(--tp) 5%, #fff)" }}
+              className="rounded-2xl border border-[var(--ui-border)] p-4"
+              style={{ background: "color-mix(in oklab, var(--tp) 6%, var(--ui-surface))" }}
             >
-              <p className="text-[12px] text-[var(--ink-3)]">세트 팬 평점</p>
-              <p className="mt-2 font-archivo text-[32px] font-black leading-none text-[var(--ink)]">
+              <p className="text-[14px] font-semibold text-[var(--ui-muted)]">세트 팬 평점</p>
+              <p className="mt-2 text-[24px] font-bold leading-none text-[var(--ui-ink)]">
                 {fanRatingValue}
-                <span className="ml-1 font-sans text-[14px] font-semibold text-[var(--sub-muted)]">/ 5</span>
+                <span className="ml-1 text-[14px] font-semibold text-[var(--ui-muted)]">/ 5</span>
               </p>
-              <p className="mt-2 text-[16px] tracking-[2px]" style={{ color: "var(--tp)" }}>
-                {"★".repeat(filledStars)}
-                <span className="text-[var(--sub-muted-weak)]">{"★".repeat(Math.max(0, 5 - filledStars))}</span>
-              </p>
+              <div className="mt-2 flex items-center gap-1" aria-label={`별점 ${filledStars}점 / 5점`}>
+                {Array.from({ length: 5 }, (_, index) => {
+                  const filled = index < filledStars;
+                  return (
+                    <Star
+                      key={index}
+                      aria-hidden="true"
+                      className={filled ? "text-[var(--tp)]" : "text-[var(--ui-border)]"}
+                      fill={filled ? "currentColor" : "none"}
+                      size={16}
+                      strokeWidth={2}
+                    />
+                  );
+                })}
+              </div>
             </div>
             <MetricCard label="팬 POG" value={playerFanPogSetIds.size} />
             <MetricCard label="공식 POM" value={pomCount} />
-            <div className="flex flex-col rounded-[14px] border border-[var(--card-border)] p-4">
-              <p className="text-[12px] font-semibold text-[var(--ink-3)]">선수 리뷰</p>
-              <p className="mt-2 line-clamp-3 flex-1 text-[14px] leading-6 text-[var(--ink-2)]">
+            <div className="flex flex-col rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-4">
+              <p className="text-[14px] font-semibold text-[var(--ui-muted)]">선수 리뷰</p>
+              <p className="mt-2 line-clamp-3 flex-1 text-[14px] leading-6 text-[var(--ui-text)]">
                 {reviewQuote ? `“${reviewQuote}”` : "팬 평점 리뷰가 아직 충분하지 않습니다."}
               </p>
-              <p className="mt-3 text-right text-[12px] text-[var(--sub-muted)]">리뷰 {reviewCount}개 · 전체 보기 →</p>
+              <p className="mt-3 text-right text-[12px] text-[var(--ui-muted)]">리뷰 {reviewCount}개 · 전체 보기 →</p>
             </div>
           </div>
         </section>
 
-        {/* 6. CHAMPIONS */}
+        {/* 6. 챔피언 */}
         <section>
-          <SectionHeading title="CHAMPIONS" caption="사용 챔피언" />
-          <div className="mt-1.5">
-            <ChampionUsageTable rows={championRows} />
-          </div>
+          <SectionHeading caption="사용 챔피언">챔피언</SectionHeading>
+          <ChampionUsageTable rows={championRows} />
         </section>
 
-        {/* 7. RECENT MATCH */}
+        {/* 7. 최근 경기 */}
         <section>
           <SectionHeading
-            title="RECENT MATCH"
             aside={
               <RecentMatchHistoryModal
                 player={player}
@@ -698,68 +712,66 @@ export default async function PlayerDetailPage({
                 runeCatalogByVersion={runeCatalogByVersion}
               />
             }
-          />
-          <div className="mt-5">
-            {recentMatchRows.length === 0 ? (
-              <div className="rounded-[16px] border border-[var(--card-border)] p-6 text-[14px] text-[var(--sub-muted)]">
-                최근 경기 데이터가 없습니다.
-              </div>
-            ) : (
-              recentMatchRows.slice(0, 1).map((row) => (
-                <RecentMatchSetRows
-                  key={row.match.id}
-                  player={player}
-                  teams={teams}
-                  match={row.match}
-                  lines={row.lines}
-                  champions={champions}
-                  ratings={row.ratings}
-                  fanPog={row.fanPog}
-                  officialPomName={row.officialPomName}
-                  spellsByVersion={spellsByVersion}
-                  runeCatalogByVersion={runeCatalogByVersion}
-                />
-              ))
-            )}
-          </div>
+          >최근 경기</SectionHeading>
+          {recentMatchRows.length === 0 ? (
+            <div className="rounded-2xl border border-[var(--ui-border)] p-6 text-[14px] text-[var(--ui-muted)]">
+              최근 경기 데이터가 없습니다.
+            </div>
+          ) : (
+            recentMatchRows.slice(0, 1).map((row) => (
+              <RecentMatchSetRows
+                key={row.match.id}
+                player={player}
+                teams={teams}
+                match={row.match}
+                lines={row.lines}
+                champions={champions}
+                ratings={row.ratings}
+                fanPog={row.fanPog}
+                officialPomName={row.officialPomName}
+                spellsByVersion={spellsByVersion}
+                runeCatalogByVersion={runeCatalogByVersion}
+              />
+            ))
+          )}
         </section>
 
-        {/* 8. CAREER / AWARDS / TEAMMATES */}
+        {/* 8. 커리어 / 수상 / 팀원 */}
         <div id="teammates" className="grid gap-8 scroll-mt-24 md:grid-cols-3">
           <section>
-            <h3 className="border-b border-[var(--btn-border)] pb-2 text-[14px] font-bold text-[var(--ink-2)]">CAREER</h3>
+            <h3 className="border-b border-[var(--ui-border)] pb-2 text-[16px] font-bold text-[var(--ui-ink)]">커리어</h3>
             <div className="mt-4">
               <CareerTimeline histories={careerHistories} teams={teams} currentTeamId={player.teamId} />
             </div>
           </section>
 
           <section>
-            <h3 className="border-b border-[var(--btn-border)] pb-2 text-[14px] font-bold text-[var(--ink-2)]">AWARDS</h3>
+            <h3 className="border-b border-[var(--ui-border)] pb-2 text-[16px] font-bold text-[var(--ui-ink)]">수상</h3>
             <div className="mt-4">
               {awards.length > 0 ? (
                 <PlayerAwardHistory awards={awards} />
               ) : (
-                <p className="text-[12px] text-[var(--sub-muted)]">수상 내역이 없습니다.</p>
+                <p className="text-[12px] text-[var(--ui-muted)]">수상 내역이 없습니다.</p>
               )}
             </div>
           </section>
 
           <section>
-            <h3 className="border-b border-[var(--btn-border)] pb-2 text-[14px] font-bold text-[var(--ink-2)]">TEAMMATES</h3>
+            <h3 className="border-b border-[var(--ui-border)] pb-2 text-[16px] font-bold text-[var(--ui-ink)]">팀원</h3>
             <div className="mt-4 flex flex-wrap gap-2">
               {teammates.length === 0 ? (
-                <p className="text-[12px] text-[var(--sub-muted)]">등록된 팀원이 없습니다.</p>
+                <p className="text-[12px] text-[var(--ui-muted)]">등록된 팀원이 없습니다.</p>
               ) : (
                 teammates.map(({ teammate }) => (
                   <Link
                     key={teammate.id}
                     href={`/players/${teammate.slug}`}
-                    className="fan-roster-chip inline-flex items-center gap-1.5 rounded-full border border-[var(--card-border)] px-3.5 py-2 transition-colors hover:bg-[var(--surface-2)]"
+                    className="fan-roster-chip inline-flex items-center gap-1.5 rounded-full border border-[var(--ui-border)] px-3.5 py-2 transition-colors hover:bg-[var(--ui-surface-muted)]"
                   >
-                    <span className="text-[11px] font-extrabold" style={{ color: "var(--tp)" }}>
+                    <span className="text-[12px] font-bold" style={{ color: "var(--tp)" }}>
                       {teammate.position}
                     </span>
-                    <span className="font-archivo text-[14px] font-black text-[var(--ink)]">{teammate.name}</span>
+                    <span className="text-[14px] font-bold text-[var(--ui-ink)]">{teammate.name}</span>
                   </Link>
                 ))
               )}

@@ -58,13 +58,13 @@ export function WinnerPredictionPoll({
   ];
 
   return (
-    <section className="rounded-md border border-border bg-surface p-4" aria-labelledby="winner-prediction">
+    <section className="rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-5" aria-labelledby="winner-prediction">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 id="winner-prediction" className="text-[16px] font-semibold">
+          <h2 id="winner-prediction" className="text-[15px] font-black text-[var(--ui-ink)]">
             승자예측
           </h2>
-          <p className="mt-1 text-xs text-muted">
+          <p className="mt-1 text-xs font-semibold text-[var(--ui-muted)]">
             {hasTbd
               ? "대진이 확정되면 예측이 열립니다."
               : closed
@@ -72,23 +72,23 @@ export function WinnerPredictionPoll({
                 : "경기가 종료되면 자동 마감됩니다."}
           </p>
         </div>
-        <span className="rounded-md bg-surface-muted px-2 py-1 text-xs font-semibold text-muted">
+        <span className="rounded-full bg-[var(--ui-surface-muted)] px-2.5 py-1 text-xs font-bold text-[var(--ui-muted)]">
           {total.toLocaleString("ko-KR")}표
         </span>
       </div>
 
       <div className="mt-5">
-        <div className="flex items-end justify-between gap-4 text-sm">
+        <div className="flex items-end justify-between gap-4">
           <div>
-            <strong>{teamAName}</strong>
-            <p className="mt-1 text-[24px] font-black tabular-nums" style={{ color: teamAColor }}>{teamAPercent}%</p>
+            <strong className="text-sm font-black text-[var(--ui-ink)]">{teamAName}</strong>
+            <p className="mt-1 font-archivo text-[28px] font-black leading-none tabular-nums" style={{ color: teamAColor }}>{teamAPercent}%</p>
           </div>
           <div className="text-right">
-            <strong>{teamBName}</strong>
-            <p className="mt-1 text-[24px] font-black tabular-nums" style={{ color: teamBColor }}>{teamBPercent}%</p>
+            <strong className="text-sm font-black text-[var(--ui-ink)]">{teamBName}</strong>
+            <p className="mt-1 font-archivo text-[28px] font-black leading-none tabular-nums" style={{ color: teamBColor }}>{teamBPercent}%</p>
           </div>
         </div>
-        <div className="mt-3 flex h-3 overflow-hidden rounded-full bg-surface-muted" aria-label={`${teamAName} ${teamAPercent}%, ${teamBName} ${teamBPercent}%`}>
+        <div className="mt-3 flex h-3 overflow-hidden rounded-full bg-[var(--ui-surface-muted)]" aria-label={`${teamAName} ${teamAPercent}%, ${teamBName} ${teamBPercent}%`}>
           <span className="h-full transition-[width]" style={{ width: `${teamADisplayPercent}%`, backgroundColor: teamAColor }} />
           <span className="h-full flex-1" style={{ backgroundColor: teamBColor }} />
         </div>
@@ -98,7 +98,7 @@ export function WinnerPredictionPoll({
         {rows.map((row) => (
           <div key={row.teamId} className="flex flex-col gap-2">
             {votingDisabled ? (
-              <div className="rounded-md border border-border px-3 py-2 text-center text-sm font-semibold text-muted">
+              <div className="rounded-lg border border-[var(--ui-border)] px-3 py-2.5 text-center text-sm font-bold text-[var(--ui-muted)]">
                 {hasTbd ? "상대 미정" : myVote === row.teamId ? `내 선택 · ${row.count.toLocaleString("ko-KR")}표` : `마감 · ${row.count.toLocaleString("ko-KR")}표`}
               </div>
             ) : (
@@ -107,10 +107,10 @@ export function WinnerPredictionPoll({
                 <input type="hidden" name="teamId" value={row.teamId} />
                 <button
                   type="submit"
-                  className={`w-full rounded-md border px-3 py-2 text-sm font-semibold ${
+                  className={`w-full rounded-lg border px-3 py-2.5 text-sm font-bold transition-colors ${
                     myVote === row.teamId
                       ? "text-white"
-                      : "border-border hover:bg-surface-muted"
+                      : "border-[var(--ui-border)] text-[var(--ui-ink)] hover:bg-[var(--ui-surface-muted)]"
                   }`}
                   style={myVote === row.teamId ? { borderColor: row.color, backgroundColor: row.color } : { borderColor: `color-mix(in srgb, ${row.color} 50%, var(--ui-border))` }}
                 >

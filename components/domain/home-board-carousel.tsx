@@ -6,6 +6,7 @@ import { Navigation } from "swiper/modules";
 import { Swiper, SwiperSlide } from "swiper/react";
 import type { CommunityPostDetail } from "@/lib/community/types";
 import { boardLabel } from "@/lib/community/boards";
+import { SwiperNav, useSwiperNav } from "@/components/ui/swiper-nav";
 
 function timeLabel(value: string) {
   const date = new Date(value);
@@ -15,8 +16,9 @@ function timeLabel(value: string) {
 }
 
 export function HomeBoardCarousel({ posts }: { posts: CommunityPostDetail[] }) {
+  const { setPrevEl, setNextEl, navigationProps } = useSwiperNav();
   if (posts.length === 0) return <div className="rounded-2xl border border-dashed border-[#d8d5dd] py-14 text-center text-sm text-[#827e89] dark:border-transparent">등록된 허브 커뮤니티 글이 없습니다.</div>;
-  return <Swiper className="home-board-carousel" modules={[Navigation]} navigation spaceBetween={16} slidesPerView={1.08} breakpoints={{ 720: { slidesPerView: 2 }, 1180: { slidesPerView: 3 } }}>
+  return <div className="relative"><Swiper modules={[Navigation]} {...navigationProps} spaceBetween={16} slidesPerView={1.08} breakpoints={{ 720: { slidesPerView: 2 }, 1280: { slidesPerView: 3 } }}>
     {posts.slice(0,12).map((post) => (
       <SwiperSlide key={post.id} className="h-auto">
         <Link href={`/community/post/${post.id}`} className={`relative grid min-h-[210px] gap-4 rounded-2xl border border-[#dedfe2] bg-[#f1f2f3] p-5 transition hover:border-[#b9bcc2] dark:border-transparent dark:hover:border-transparent ${post.thumbnailUrl ? "grid-cols-[minmax(0,1fr)_92px]" : "grid-cols-1"}`}>
@@ -37,5 +39,7 @@ export function HomeBoardCarousel({ posts }: { posts: CommunityPostDetail[] }) {
         </Link>
       </SwiperSlide>
     ))}
-  </Swiper>;
+  </Swiper>
+    <SwiperNav setPrevEl={setPrevEl} setNextEl={setNextEl} />
+  </div>;
 }

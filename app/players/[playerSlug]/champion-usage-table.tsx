@@ -51,13 +51,13 @@ function championImageUrl(champion: ChampionLike | undefined) {
 }
 
 function ChampionCell({ row }: { row: ChampionUsageRow }) {
-  if (!row.champion) return <span className="text-[var(--sub-muted,#9c9aa3)]">-</span>;
+  if (!row.champion) return <span className="text-[var(--ui-muted)]">-</span>;
 
   return (
     <span className="inline-flex items-center gap-2.5">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={championImageUrl(row.champion)} alt="" className="h-[30px] w-[30px] shrink-0 rounded-full object-cover" />
-      <span className="font-semibold text-[var(--ink,#16151b)]">{championLabel(row.champion)}</span>
+      <span className="font-semibold text-[var(--ui-ink)]">{championLabel(row.champion)}</span>
     </span>
   );
 }
@@ -69,7 +69,7 @@ export function ChampionUsageTable({ rows, initialRows = 5 }: { rows: ChampionUs
 
   if (rows.length === 0) {
     return (
-      <div className="border-t-2 border-[var(--ink,#16151b)] py-10 text-center text-[14px] text-[var(--sub-muted,#9c9aa3)]">
+      <div className="rounded-2xl border border-[var(--ui-border)] py-10 text-center text-[14px] text-[var(--ui-muted)]">
         표시할 데이터가 없습니다.
       </div>
     );
@@ -79,7 +79,7 @@ export function ChampionUsageTable({ rows, initialRows = 5 }: { rows: ChampionUs
     <div className="overflow-x-auto">
       <table className="w-full min-w-[42rem] border-collapse text-left text-[14px]">
         <thead>
-          <tr className="text-[12px] font-semibold text-[var(--sub-muted-weak,#b6b4bd)]">
+          <tr className="border-b border-[var(--ui-border)] text-[12px] font-semibold text-[var(--ui-muted)]">
             <th scope="col" className="min-w-[9rem] px-3 py-2.5 font-semibold">챔피언</th>
             <th scope="col" className="whitespace-nowrap px-3 py-2.5 text-center font-semibold">사용 세트</th>
             <th scope="col" className="whitespace-nowrap px-3 py-2.5 text-center font-semibold">승률</th>
@@ -91,14 +91,14 @@ export function ChampionUsageTable({ rows, initialRows = 5 }: { rows: ChampionUs
         </thead>
         <tbody>
           {visibleRows.map((row, index) => (
-            <tr key={row.champion?.id ?? index} className="border-b border-[var(--hairline,#ebecef)] align-middle">
+            <tr key={row.champion?.id ?? index} className="border-b border-[var(--ui-border)] align-middle">
               <td className="min-w-[9rem] px-3 py-3"><ChampionCell row={row} /></td>
-              <td className="px-3 py-3 text-center tabular-nums text-[var(--ink,#16151b)]">{row.lines.length}</td>
+              <td className="px-3 py-3 text-center tabular-nums text-[var(--ui-ink)]">{row.lines.length}</td>
               <td className="px-3 py-3 text-center font-semibold tabular-nums text-[var(--tp)]">{percentValue(row.winRate)}</td>
-              <td className="px-3 py-3 text-center tabular-nums text-[var(--ink,#16151b)]">{statValue(row.stats?.kda, 2)}</td>
-              <td className="px-3 py-3 text-center tabular-nums text-[var(--ink-2,#6d6c76)]">{row.avgRating}</td>
-              <td className="px-3 py-3 text-center tabular-nums text-[var(--ink-2,#6d6c76)]">{row.fanPogCount}</td>
-              <td className="px-3 py-3 text-center text-[12px] tabular-nums text-[var(--sub-muted,#9c9aa3)]">{compactDate(row.recentDate)}</td>
+              <td className="px-3 py-3 text-center tabular-nums text-[var(--ui-ink)]">{statValue(row.stats?.kda, 2)}</td>
+              <td className="px-3 py-3 text-center tabular-nums text-[var(--ui-text)]">{row.avgRating}</td>
+              <td className="px-3 py-3 text-center tabular-nums text-[var(--ui-text)]">{row.fanPogCount}</td>
+              <td className="px-3 py-3 text-center text-[12px] tabular-nums text-[var(--ui-muted)]">{compactDate(row.recentDate)}</td>
             </tr>
           ))}
         </tbody>
@@ -107,7 +107,7 @@ export function ChampionUsageTable({ rows, initialRows = 5 }: { rows: ChampionUs
         <button
           type="button"
           onClick={() => setVisibleCount(rows.length)}
-          className="mt-3 text-[14px] font-semibold text-[var(--ink-2,#6d6c76)] transition-colors hover:text-[var(--ink,#16151b)]"
+          className="mt-3 text-[14px] font-semibold text-[var(--ui-text)] transition-colors hover:text-[var(--ui-ink)]"
         >
           더보기 ({remainingCount}개) →
         </button>

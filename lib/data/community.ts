@@ -33,6 +33,7 @@ type PostRow = {
 type CommentRow = {
   id: string;
   post_id: string;
+  parent_id: string | null;
   author_id: string | null;
   content: string;
   like_count: number;
@@ -44,7 +45,7 @@ const POST_COLUMNS =
   "id, board_type, site_scope, team_id, title, content, author_id, like_count, dislike_count, comment_count, view_count, report_count, created_at";
 
 const COMMENT_COLUMNS =
-  "id, post_id, author_id, content, like_count, dislike_count, created_at";
+  "id, post_id, parent_id, author_id, content, like_count, dislike_count, created_at";
 
 function mapPost(row: PostRow, authorName: string | null = null, authorImageUrl: string | null = null): CommunityPostDetail {
   return {
@@ -87,16 +88,39 @@ async function mapPostsWithAuthors(rows: PostRow[]): Promise<CommunityPostDetail
   });
 }
 
-function mapComment(row: CommentRow): CommunityCommentItem {
+function mapComment(row: CommentRow, authorName: string | null = null, authorImageUrl: string | null = null): CommunityCommentItem {
   return {
     id: row.id,
     postId: row.post_id,
+    parentId: row.parent_id,
     authorId: row.author_id,
+    authorName,
+    authorImageUrl,
     content: row.content,
     likeCount: row.like_count,
     dislikeCount: row.dislike_count ?? 0,
     createdAt: row.created_at,
   };
+}
+
+async function mapCommentsWithAuthors(rows: CommentRow[]): Promise<CommunityCommentItem[]> {
+  const authorIds = [...new Set(rows.flatMap((row) => (row.author_id ? [row.author_id] : [])))];
+  if (authorIds.length === 0) return rows.map((row) => mapComment(row));
+
+  const { data, error } = await createSupabaseServerClient()
+    .from("profiles")
+    .select("id, nickname, profile_image_url")
+    .in("id", authorIds);
+  if (error) throw error;
+
+  const profiles = new Map(
+    ((data ?? []) as { id: string; nickname: string; profile_image_url: string | null }[])
+      .map((profile) => [profile.id, profile]),
+  );
+  return rows.map((row) => {
+    const profile = row.author_id ? profiles.get(row.author_id) : undefined;
+    return mapComment(row, profile?.nickname ?? null, profile?.profile_image_url ?? null);
+  });
 }
 
 /**
@@ -181,7 +205,7 @@ export async function getPostComments(postId: string): Promise<CommunityCommentI
     .order("created_at", { ascending: true });
 
   if (error) throw error;
-  return (data as CommentRow[]).map(mapComment);
+  return mapCommentsWithAuthors(data as CommentRow[]);
 }
 
 /** 글 생성. author_id 는 호출부(서버 액션)에서 getCurrentUser().id 로 전달. */
@@ -218,12 +242,14 @@ export async function createComment(params: {
   postId: string;
   content: string;
   authorId: string;
+  parentId?: string | null;
 }): Promise<{ id: string }> {
   const supabase = createSupabaseAdminClient();
   const { data, error } = await supabase
     .from("community_comments")
     .insert({
       post_id: params.postId,
+      parent_id: params.parentId ?? null,
       content: params.content,
       author_id: params.authorId,
     })
@@ -432,5 +458,5 @@ export async function getCommentById(commentId: string): Promise<CommunityCommen
     .maybeSingle();
 
   if (error) throw error;
-  return data ? mapComment(data as CommentRow) : null;
+  return data ? (await mapCommentsWithAuthors([data as CommentRow]))[0] ?? null : null;
 }

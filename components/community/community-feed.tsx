@@ -1,22 +1,15 @@
 "use client";
 
+import { Search, SquarePen } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
-import { PostGallery } from "@/components/community/post-gallery";
 import { PostList } from "@/components/community/post-list";
 import { categoriesForScope, type BoardScope } from "@/lib/community/boards";
-import { hotScore, isHotPost } from "@/lib/community/hot";
 import type { CommunityPostDetail } from "@/lib/community/types";
 
-type ViewMode = "list" | "gallery";
-
-const VIEW_STORAGE_KEY = "community:view:v2";
-// "인기"는 말머리(board_type)가 아니라 정렬 필터.
-const HOT = "__hot__";
 const PAGE_SIZE = 15;
 
-// 단일 피드 — 핸드오프 2c. 말머리 칩 + 검색 + 글쓰기 + 테이블.
 export function CommunityFeed({
   posts,
   scope,
@@ -30,201 +23,114 @@ export function CommunityFeed({
 }) {
   const categories = categoriesForScope(scope);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
-  const [view, setView] = useState<ViewMode>("list");
   const [query, setQuery] = useState("");
+  const [submittedQuery, setSubmittedQuery] = useState("");
   const [page, setPage] = useState(1);
 
-  useEffect(() => {
-    const saved = window.localStorage.getItem(VIEW_STORAGE_KEY);
-    // 저장된 보기 설정은 마운트 후에만 읽는다(SSR 하이드레이션 불일치 방지).
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (saved === "gallery") setView(saved);
-  }, []);
-
-  const changeView = (next: ViewMode) => {
-    setView(next);
-    window.localStorage.setItem(VIEW_STORAGE_KEY, next);
-  };
-
   const filtered = useMemo(() => {
-    const base =
-      activeCategory === HOT
-        ? posts
-            .filter(isHotPost)
-            .sort((a, b) => hotScore(b) - hotScore(a) || b.likeCount - a.likeCount)
-        : activeCategory
-          ? posts.filter((p) => p.boardType === activeCategory)
-          : posts;
-    const q = query.trim().toLowerCase();
-    if (!q) return base;
-    return base.filter(
-      (p) =>
-        p.title.toLowerCase().includes(q) ||
-        (p.authorName ?? "").toLowerCase().includes(q),
-    );
-  }, [posts, activeCategory, query]);
+    const byCategory = activeCategory
+      ? posts.filter((post) => post.boardType === activeCategory)
+      : posts;
+    const keyword = submittedQuery.trim().toLocaleLowerCase("ko-KR");
 
-  // 필터/검색 변경 시 첫 페이지로.
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setPage(1);
-  }, [activeCategory, query, view]);
+    if (!keyword) return byCategory;
+    return byCategory.filter((post) =>
+      [post.title, post.excerpt, post.authorName ?? ""]
+        .some((value) => value.toLocaleLowerCase("ko-KR").includes(keyword)),
+    );
+  }, [activeCategory, posts, submittedQuery]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
-  const paged =
-    view === "list"
-      ? filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
-      : filtered;
-
-  const chip = (active: boolean) =>
-    `rounded-full px-3.5 py-[7px] text-[14px] font-semibold transition-colors ${
-      active
-        ? "bg-[var(--ink,#16151b)] text-[var(--background)]"
-        : "bg-[var(--surface-1,#f2f0ec)] text-[var(--ink-2,#6d6c76)] hover:bg-[var(--surface-1-hover,#e9e6e1)]"
-    }`;
-
-  const hotChip = (active: boolean) =>
-    `rounded-full px-3.5 py-[7px] text-[14px] font-semibold transition-colors ${
-      active
-        ? "bg-[var(--tp)] text-white"
-        : "bg-[var(--surface-1,#f2f0ec)] text-[var(--tp)] hover:bg-[var(--surface-1-hover,#e9e6e1)]"
-    }`;
-
-  const toggleBtn = (active: boolean) =>
-    `px-3 py-[7px] text-[14px] ${
-      active ? "bg-[var(--surface-1,#f2f0ec)] font-bold text-[var(--ink,#16151b)]" : "text-[var(--sub-muted,#9c9aa3)]"
-    }`;
+  const paged = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   return (
-    <div className="flex flex-col gap-5">
-      {/* 필터 줄 */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap gap-[6px]" role="tablist" aria-label="말머리 필터">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeCategory === null}
-            onClick={() => setActiveCategory(null)}
-            className={chip(activeCategory === null)}
-          >
-            전체
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeCategory === HOT}
-            onClick={() => setActiveCategory(HOT)}
-            className={hotChip(activeCategory === HOT)}
-          >
-            인기
-          </button>
-          {categories.map((cat) => (
-            <button
-              key={cat.slug}
-              type="button"
-              role="tab"
-              aria-selected={activeCategory === cat.slug}
-              onClick={() => setActiveCategory(cat.slug)}
-              className={chip(activeCategory === cat.slug)}
-            >
-              {cat.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="flex items-center gap-2.5">
-          <label className="flex h-[38px] w-[220px] items-center gap-2 rounded-full border border-[var(--input-border,#e5e3df)] bg-surface px-4 text-[14px] max-sm:w-[160px]">
-            <span aria-hidden className="text-[var(--sub-muted,#9c9aa3)]">⌕</span>
-            <span className="sr-only">게시글 검색</span>
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="제목, 글쓴이 검색"
-              className="min-w-0 flex-1 border-0 bg-transparent outline-none placeholder:text-[var(--sub-muted-weak,#b6b4bd)]"
-            />
-          </label>
-
-          <div
-            className="hidden shrink-0 overflow-hidden rounded-full border border-[var(--btn-border,#e3e0da)] sm:flex"
-            role="group"
-            aria-label="보기 방식"
-          >
-            <button type="button" onClick={() => changeView("list")} aria-pressed={view === "list"} className={toggleBtn(view === "list")}>
-              목록
-            </button>
-            <button
-              type="button"
-              onClick={() => changeView("gallery")}
-              aria-pressed={view === "gallery"}
-              className={`border-l border-[var(--btn-border,#e3e0da)] ${toggleBtn(view === "gallery")}`}
-            >
-              갤러리
-            </button>
+    <section className="flex flex-col gap-5" aria-label="커뮤니티 게시글">
+      <div className="overflow-hidden rounded-[var(--ui-card-radius)] border border-[var(--ui-border)] bg-[var(--ui-surface)]">
+        <div className="flex min-h-16 flex-wrap items-center gap-3 border-b border-[var(--ui-border)] px-4">
+          <div className="flex min-w-0 flex-1 self-stretch gap-7 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="tablist" aria-label="게시판 말머리">
+            <CategoryButton active={activeCategory === null} onClick={() => { setActiveCategory(null); setPage(1); }}>
+              전체
+            </CategoryButton>
+            {categories.map((category) => (
+              <CategoryButton
+                key={category.slug}
+                active={activeCategory === category.slug}
+                onClick={() => { setActiveCategory(category.slug); setPage(1); }}
+              >
+                {category.label}
+              </CategoryButton>
+            ))}
           </div>
 
+          <div className="flex shrink-0 items-center gap-2">
+            <Link
+              href={newPath}
+              className="inline-flex h-10 items-center gap-2 rounded-[var(--ui-control-radius)] bg-[var(--ui-ink)] px-4 text-[14px] font-bold text-[var(--ui-surface)] transition-opacity hover:opacity-85 active:translate-y-px"
+            >
+              <SquarePen size={16} strokeWidth={2} />
+              <span className="hidden sm:inline">글쓰기</span>
+            </Link>
+          </div>
         </div>
+
+        <PostList posts={paged} scope={scope} teamSlug={teamSlug} />
       </div>
 
-      {view === "list" ? (
-        <>
-          <PostList posts={paged} scope={scope} teamSlug={teamSlug} />
-          {totalPages > 1 ? (
-            <Pagination page={currentPage} totalPages={totalPages} onChange={setPage} />
-          ) : null}
-        </>
-      ) : (
-        <PostGallery posts={paged} scope={scope} teamSlug={teamSlug} />
-      )}
-
-      <div className="flex justify-end">
-        <Link
-          href={newPath}
-          className="inline-flex h-[38px] items-center gap-1 rounded-full bg-[var(--tp)] px-[18px] text-[14px] font-bold text-white transition-opacity hover:opacity-90"
+      <div className="grid items-center gap-4 lg:grid-cols-[1fr_auto_1fr]">
+        <form
+          className="flex h-10 w-full max-w-[360px] overflow-hidden rounded-[var(--ui-control-radius)] border border-[var(--ui-border)] bg-[var(--ui-surface)] focus-within:border-[var(--ui-ink)] lg:justify-self-start"
+          onSubmit={(event) => {
+            event.preventDefault();
+            setSubmittedQuery(query);
+            setPage(1);
+          }}
         >
-          ＋ 글쓰기
-        </Link>
+          <label htmlFor="community-search" className="sr-only">게시글 검색</label>
+          <input
+            id="community-search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="제목, 내용, 작성자 검색"
+            className="min-w-0 flex-1 bg-transparent px-3 text-[14px] text-[var(--ui-text)] outline-none placeholder:text-[var(--ui-muted)]"
+          />
+          <button type="submit" className="grid w-11 place-items-center border-l border-[var(--ui-border)] text-[var(--ui-muted)] hover:bg-[var(--ui-surface-muted)] hover:text-[var(--ui-ink)]" aria-label="검색">
+            <Search size={17} strokeWidth={2} />
+          </button>
+        </form>
+
+        <Pagination page={currentPage} totalPages={totalPages} onChange={setPage} />
+        {submittedQuery ? (
+          <button type="button" onClick={() => { setQuery(""); setSubmittedQuery(""); setPage(1); }} className="text-left text-[12px] font-semibold text-[var(--ui-muted)] hover:text-[var(--ui-ink)] lg:justify-self-end">
+            검색 초기화
+          </button>
+        ) : <span />}
       </div>
-    </div>
+    </section>
   );
 }
 
-function Pagination({
-  page,
-  totalPages,
-  onChange,
-}: {
-  page: number;
-  totalPages: number;
-  onChange: (page: number) => void;
-}) {
-  const pages = Array.from({ length: totalPages }, (_, index) => index + 1);
+function CategoryButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
-    <nav className="flex items-center justify-center gap-1.5 pt-2" aria-label="페이지네이션">
-      {pages.map((p) => (
-        <button
-          key={p}
-          type="button"
-          onClick={() => onChange(p)}
-          aria-current={p === page ? "page" : undefined}
-          className={`grid h-9 min-w-9 place-items-center rounded-[10px] px-2 text-[14px] font-semibold transition-colors ${
-            p === page
-              ? "bg-[var(--ink,#16151b)] text-white"
-              : "text-[var(--ink-2,#6d6c76)] hover:bg-[var(--surface-1,#f2f0ec)]"
-          }`}
-        >
-          {p}
+    <button type="button" role="tab" aria-selected={active} onClick={onClick} className={`relative shrink-0 text-[16px] font-semibold transition-colors ${active ? "text-[var(--ui-ink)] after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:bg-[var(--ui-ink)]" : "text-[var(--ui-muted)] hover:text-[var(--ui-text)]"}`}>
+      {children}
+    </button>
+  );
+}
+
+function Pagination({ page, totalPages, onChange }: { page: number; totalPages: number; onChange: (page: number) => void }) {
+  const start = Math.max(1, Math.min(page - 2, totalPages - 4));
+  const pages = Array.from({ length: Math.min(5, totalPages) }, (_, index) => start + index);
+
+  return (
+    <nav className="flex items-center justify-center gap-1" aria-label="페이지 이동">
+      <button type="button" onClick={() => onChange(page - 1)} disabled={page === 1} className="h-9 px-2 text-[14px] font-semibold text-[var(--ui-muted)] disabled:opacity-30">이전</button>
+      {pages.map((number) => (
+        <button key={number} type="button" onClick={() => onChange(number)} aria-current={number === page ? "page" : undefined} className={`grid h-9 min-w-9 place-items-center rounded-[var(--ui-control-radius)] px-2 text-[14px] font-bold ${number === page ? "bg-[var(--ui-ink)] text-[var(--ui-surface)]" : "text-[var(--ui-muted)] hover:bg-[var(--ui-surface-muted)] hover:text-[var(--ui-ink)]"}`}>
+          {number}
         </button>
       ))}
-      {page < totalPages ? (
-        <button
-          type="button"
-          onClick={() => onChange(page + 1)}
-          className="grid h-9 place-items-center rounded-[10px] px-3 text-[14px] font-semibold text-[var(--ink-2,#6d6c76)] hover:bg-[var(--surface-1,#f2f0ec)]"
-        >
-          다음 →
-        </button>
-      ) : null}
+      <button type="button" onClick={() => onChange(page + 1)} disabled={page === totalPages} className="h-9 px-2 text-[14px] font-semibold text-[var(--ui-muted)] disabled:opacity-30">다음</button>
     </nav>
   );
 }
