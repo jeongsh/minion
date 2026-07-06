@@ -52,63 +52,103 @@ function PlayerRow({
   const csm = line.gameMinutes > 0 ? (line.cs / line.gameMinutes).toFixed(1) : "-";
   const barColor = side === "blue" ? "bg-blue-500" : "bg-red-500";
 
+  const championBlock = (
+    <div className="flex min-w-0 items-center gap-2">
+      <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-md border border-border bg-surface-muted">
+        {img && <Image src={img} alt={championLabel(champion)} fill sizes="48px" className="object-cover" />}
+      </div>
+      <div className="flex shrink-0 flex-col gap-0.5">
+        <SpellSlot spellId={line.spellIds[0] ?? null} spells={spells} version={itemVersion} />
+        <SpellSlot spellId={line.spellIds[1] ?? null} spells={spells} version={itemVersion} />
+      </div>
+      <div className="min-w-0">
+        <p className="truncate text-sm font-semibold">{player?.name ?? "-"}</p>
+        <p className="truncate text-xs text-muted">{champion?.name ?? "-"}</p>
+      </div>
+    </div>
+  );
+
   return (
-    <div className="grid min-w-[760px] grid-cols-[220px_1fr_140px_50px_70px_220px] items-center gap-3 border-t border-border px-3 py-2.5">
-      {/* 챔피언 + 스펠 + 선수 */}
-      <div className="flex items-center gap-2">
-        <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-md border border-border bg-surface-muted">
-          {img && <Image src={img} alt={championLabel(champion)} fill sizes="48px" className="object-cover" />}
+    <div className="border-t border-border px-3 py-2.5">
+      {/* 모바일: 세로로 쌓아서 가로 스크롤 없이 보이게 */}
+      <div className="flex flex-col gap-2.5 lg:hidden">
+        {championBlock}
+        <div className="grid grid-cols-4 gap-2 text-center">
+          <div>
+            <p className="text-sm font-semibold tabular-nums">
+              {line.kills}/<span className="text-red-400">{line.deaths}</span>/{line.assists}
+            </p>
+            <p className="text-[11px] text-muted">{kdaRatio(line)} ({kp}%)</p>
+          </div>
+          <div>
+            <p className="text-sm tabular-nums font-semibold">{line.damageToChampions.toLocaleString("ko-KR")}</p>
+            <p className="text-[11px] text-muted">딜량</p>
+          </div>
+          <div>
+            <p className="text-sm font-semibold tabular-nums">{line.visionScore}</p>
+            <p className="text-[11px] text-muted">시야</p>
+          </div>
+          <div>
+            <p className="text-sm font-semibold tabular-nums">{line.cs}</p>
+            <p className="text-[11px] text-muted">분 {csm}</p>
+          </div>
         </div>
-        <div className="flex flex-col gap-0.5">
-          <SpellSlot spellId={line.spellIds[0] ?? null} spells={spells} version={itemVersion} />
-          <SpellSlot spellId={line.spellIds[1] ?? null} spells={spells} version={itemVersion} />
+        <PlayerItemSlots
+          itemIds={line.itemIds}
+          roleBoundItem={line.roleBoundItem}
+          version={itemVersion}
+          className="flex-wrap justify-center"
+          slotClassName="h-7 w-7"
+          separatorClassName="h-4 w-px"
+          imageSizes="28px"
+        />
+      </div>
+
+      {/* 데스크톱: 고정 컬럼 그리드 */}
+      <div className="hidden lg:grid lg:grid-cols-[220px_1fr_140px_50px_70px_220px] lg:items-center lg:gap-3">
+        {championBlock}
+
+        {/* KDA */}
+        <div>
+          <p className="text-sm font-semibold tabular-nums">
+            {line.kills} / <span className="text-red-400">{line.deaths}</span> / {line.assists}
+          </p>
+          <p className="text-xs text-muted">
+            {kdaRatio(line)} &nbsp;
+            <span className="font-semibold text-foreground/70">({kp}%)</span>
+          </p>
         </div>
-        <div className="min-w-0">
-          <p className="truncate text-sm font-semibold">{player?.name ?? "-"}</p>
-          <p className="truncate text-xs text-muted">{champion?.name ?? "-"}</p>
+
+        {/* 딜량 + 바 */}
+        <div>
+          <p className="text-sm tabular-nums font-semibold">{line.damageToChampions.toLocaleString("ko-KR")}</p>
+          <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-surface-muted">
+            <div className={`h-full rounded-full ${barColor}`} style={{ width: `${dmgPct}%` }} />
+          </div>
         </div>
-      </div>
 
-      {/* KDA */}
-      <div>
-        <p className="text-sm font-semibold tabular-nums">
-          {line.kills} / <span className="text-red-400">{line.deaths}</span> / {line.assists}
-        </p>
-        <p className="text-xs text-muted">
-          {kdaRatio(line)} &nbsp;
-          <span className="font-semibold text-foreground/70">({kp}%)</span>
-        </p>
-      </div>
-
-      {/* 딜량 + 바 */}
-      <div>
-        <p className="text-sm tabular-nums font-semibold">{line.damageToChampions.toLocaleString("ko-KR")}</p>
-        <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-surface-muted">
-          <div className={`h-full rounded-full ${barColor}`} style={{ width: `${dmgPct}%` }} />
+        {/* 시야 */}
+        <div className="text-center">
+          <p className="text-sm font-semibold tabular-nums">{line.visionScore}</p>
+          <p className="text-xs text-muted">시야</p>
         </div>
-      </div>
 
-      {/* 시야 */}
-      <div className="text-center">
-        <p className="text-sm font-semibold tabular-nums">{line.visionScore}</p>
-        <p className="text-xs text-muted">시야</p>
-      </div>
+        {/* CS */}
+        <div className="text-center">
+          <p className="text-sm font-semibold tabular-nums">{line.cs}</p>
+          <p className="text-xs text-muted">분 {csm}</p>
+        </div>
 
-      {/* CS */}
-      <div className="text-center">
-        <p className="text-sm font-semibold tabular-nums">{line.cs}</p>
-        <p className="text-xs text-muted">분 {csm}</p>
+        {/* 아이템 */}
+        <PlayerItemSlots
+          itemIds={line.itemIds}
+          roleBoundItem={line.roleBoundItem}
+          version={itemVersion}
+          slotClassName="h-8 w-8"
+          separatorClassName="h-5 w-px"
+          imageSizes="32px"
+        />
       </div>
-
-      {/* 아이템 */}
-      <PlayerItemSlots
-        itemIds={line.itemIds}
-        roleBoundItem={line.roleBoundItem}
-        version={itemVersion}
-        slotClassName="h-8 w-8"
-        separatorClassName="h-5 w-px"
-        imageSizes="32px"
-      />
     </div>
   );
 }
@@ -188,7 +228,7 @@ function TeamSection({
         )}
         <div className="ml-auto" />
         {/* 컬럼 레이블 */}
-        <div className="hidden min-w-[760px] grid-cols-[220px_1fr_140px_50px_70px_220px] gap-3 text-xs font-semibold uppercase text-muted md:grid">
+        <div className="hidden grid-cols-[220px_1fr_140px_50px_70px_220px] gap-3 text-xs font-semibold uppercase text-muted lg:grid">
           <span />
           <span>KDA</span>
           <span>딜량</span>
@@ -198,7 +238,7 @@ function TeamSection({
         </div>
       </div>
       {/* 선수 행 */}
-      <div className="overflow-x-auto">
+      <div>
         {teamLines.map((line) => (
           <PlayerRow
             key={line.playerId}
