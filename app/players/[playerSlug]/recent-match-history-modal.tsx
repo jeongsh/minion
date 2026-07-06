@@ -3,10 +3,10 @@
 import { useMemo, useState } from "react";
 import { championLabel } from "@/lib/champions";
 import { DEFAULT_DDRAGON_VERSION, ddragonVersionFromPatch } from "@/lib/ddragon";
-import { itemImageUrl } from "@/lib/items";
-import { RunePair } from "@/components/domain/rune-pair";
+import { PlayerLoadout } from "@/components/domain/player-loadout";
+import { PlayerItemSlots } from "@/app/matches/[matchId]/player-item-slots";
 import type { RuneCatalog } from "@/lib/runes";
-import { spellImageUrlById, type GameSpell } from "@/lib/spells";
+import type { GameSpell } from "@/lib/spells";
 import type { FanRating, Match, Player, PlayerStatLine, SetResult, Team } from "@/lib/types";
 import { teamLabel } from "@/lib/view-data";
 
@@ -71,47 +71,6 @@ function opponentId(match: Match, teamId: string) {
   return match.teamAId === teamId ? match.teamBId : match.teamAId;
 }
 
-function championImageUrl(champion: ChampionLike | undefined) {
-  if (!champion) return "";
-  if (champion.imageUrl) return champion.imageUrl;
-  const fallback = champion.ddragonId || champion.slug || champion.name;
-  return `https://ddragon.leagueoflegends.com/cdn/img/champion/tiles/${fallback.replace(/[^A-Za-z0-9]/g, "")}_0.jpg`;
-}
-
-function GameIcon({ src, className }: { src: string; className: string }) {
-  return (
-    <span className={`relative shrink-0 overflow-hidden bg-[var(--ui-surface-muted)] ${className}`}>
-      {src ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={src} alt="" className="h-full w-full object-cover" />
-      ) : null}
-    </span>
-  );
-}
-
-function ItemSlots({ line, version }: { line: EnrichedLine; version: string }) {
-  const regularItems = line.itemIds.slice(0, 6).filter((id): id is number => Boolean(id && id > 0));
-  const trinket = line.itemIds[6];
-  const entries = [
-    ...regularItems,
-    ...Array<number | null>(Math.max(0, 6 - regularItems.length)).fill(null),
-    trinket ?? null,
-    line.roleBoundItem ?? null,
-  ];
-
-  return (
-    <div className="flex items-center gap-1">
-      {entries.map((id, index) => (
-        <GameIcon
-          key={`${id ?? "empty"}-${index}`}
-          src={id ? itemImageUrl(id, version) : ""}
-          className="h-8 w-8 rounded border border-[var(--ui-border)]"
-        />
-      ))}
-    </div>
-  );
-}
-
 export function RecentMatchSetRows({
   player,
   teams,
@@ -136,6 +95,7 @@ export function RecentMatchSetRows({
   runeCatalogByVersion: Record<string, RuneCatalog>;
 }) {
   const opponent = teamLabel(teams, opponentId(match, player.teamId));
+  const maxDamage = Math.max(...lines.map((line) => line.damageToChampions), 1);
 
   return (
     <article className="overflow-hidden rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)]">
@@ -162,37 +122,37 @@ export function RecentMatchSetRows({
               keystones: [],
               trees: [],
             };
-            const spell0Url = spellImageUrlById(spells, line.spellIds[0], itemVersion);
-            const spell1Url = spellImageUrlById(spells, line.spellIds[1], itemVersion);
+            const damageWidth = Math.max(4, (line.damageToChampions / maxDamage) * 100);
             return (
               <div
                 key={line.setId}
-                className="grid min-w-[72rem] grid-cols-[12rem_6rem_8rem_4rem_5rem_6rem_minmax(18rem,1fr)_4rem] items-center gap-4 px-4 py-3 text-sm"
+                className="grid min-w-[72rem] grid-cols-[14rem_7.25rem_minmax(5.5rem,0.7fr)_3.5rem_4rem_5rem_13rem_4rem] items-center gap-3 px-3 py-2.5 text-sm"
               >
-                <div className="flex min-w-0 items-center gap-2">
-                  <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded border border-[var(--ui-border)] bg-[var(--ui-surface-muted)]">
-                    {champion ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={championImageUrl(champion)} alt="" className="h-full w-full object-cover" />
-                    ) : null}
-                    <span className="absolute bottom-0 left-0 rounded-tr bg-[var(--ui-surface)]/90 px-1 text-[12px] font-semibold">
-                      {line.set.setNumber}세트
-                    </span>
-                  </div>
-                  <div className="grid shrink-0 grid-cols-2 gap-1">
-                    <GameIcon src={spell0Url} className="h-8 w-8 rounded-sm border border-[var(--ui-border)]" />
-                    <RunePair runeIds={line.runeIds} catalog={runeCatalog} />
-                    <GameIcon src={spell1Url} className="h-8 w-8 rounded-sm border border-[var(--ui-border)]" />
-                  </div>
-                  <p className="min-w-0 truncate font-semibold">{champion ? championLabel(champion) : "-"}</p>
+                <div>
+                  <PlayerLoadout
+                    champion={champion}
+                    spellIds={line.spellIds}
+                    runeIds={line.runeIds}
+                    spells={spells}
+                    version={itemVersion}
+                    runeCatalog={runeCatalog}
+                    primaryLabel={champion ? championLabel(champion) : "-"}
+                    badge={`${line.set.setNumber}세트`}
+                    size="sm"
+                  />
                 </div>
                 <div className="text-center">
                   <p className="font-semibold tabular-nums">{line.kills} / {line.deaths} / {line.assists}</p>
                   <p className="text-xs text-[var(--ui-muted)]">{line.stats.kda.toFixed(2)}</p>
                 </div>
                 <div>
-                  <p className="font-semibold tabular-nums">{line.damageToChampions.toLocaleString("ko-KR")}</p>
-                  <p className="text-xs text-[var(--ui-muted)]">DPM {line.stats.dpm}</p>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="font-semibold tabular-nums">{line.damageToChampions.toLocaleString("ko-KR")}</span>
+                    <span className="text-xs text-[var(--ui-muted)] tabular-nums">DPM {line.stats.dpm}</span>
+                  </div>
+                  <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-surface-muted">
+                    <div className="h-full rounded-full bg-blue-500" style={{ width: `${damageWidth}%` }} />
+                  </div>
                 </div>
                 <div className="text-center font-semibold tabular-nums">{line.visionScore}</div>
                 <div className="text-center">
@@ -202,7 +162,14 @@ export function RecentMatchSetRows({
                 <div className="text-center font-semibold tabular-nums">
                   {line.gold.toLocaleString("ko-KR")}
                 </div>
-                <ItemSlots line={line} version={itemVersion} />
+                <PlayerItemSlots
+                  itemIds={line.itemIds}
+                  roleBoundItem={line.roleBoundItem}
+                  version={itemVersion}
+                  slotClassName="h-8 w-8"
+                  separatorClassName="h-5 w-px"
+                  imageSizes="32px"
+                />
                 <div className="text-right text-xs text-[var(--ui-muted)]">평점 {rating ? rating.rating.toFixed(1) : "-"}</div>
               </div>
             );
@@ -255,7 +222,7 @@ export function RecentMatchHistoryModal({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="rounded-full bg-[var(--ui-ink)] px-4 py-2 text-[14px] font-semibold text-[var(--ui-surface)] transition-opacity hover:opacity-90"
+        className="rounded-full bg-[var(--ui-ink)] px-4 py-2 text-sm font-semibold text-[var(--ui-surface)] transition-opacity hover:opacity-90"
       >
         전체 기록 보기
       </button>
@@ -270,7 +237,7 @@ export function RecentMatchHistoryModal({
           >
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--ui-border)] px-5 py-4">
               <div>
-                <h2 className="home-section-title text-[24px] text-[var(--ui-ink)]">최근 경기 기록</h2>
+                <h2 className="home-section-title text-2xl text-[var(--ui-ink)]">최근 경기 기록</h2>
                 <p className="mt-1 text-sm text-[var(--ui-muted)]">3매치씩 확인하고 기간으로 좁혀볼 수 있습니다.</p>
               </div>
               <button

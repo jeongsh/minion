@@ -69,7 +69,7 @@ export function ChampionUsageTable({ rows, initialRows = 5 }: { rows: ChampionUs
 
   if (rows.length === 0) {
     return (
-      <div className="rounded-2xl border border-[var(--ui-border)] py-10 text-center text-[14px] text-[var(--ui-muted)]">
+      <div className="rounded-2xl border border-[var(--ui-border)] py-10 text-center text-sm text-[var(--ui-muted)]">
         표시할 데이터가 없습니다.
       </div>
     );
@@ -77,9 +77,9 @@ export function ChampionUsageTable({ rows, initialRows = 5 }: { rows: ChampionUs
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[42rem] border-collapse text-left text-[14px]">
+      <table className="w-full min-w-[42rem] border-collapse text-left text-sm">
         <thead>
-          <tr className="border-b border-[var(--ui-border)] text-[12px] font-semibold text-[var(--ui-muted)]">
+          <tr className="border-b border-[var(--ui-border)] text-xs font-semibold text-[var(--ui-muted)]">
             <th scope="col" className="min-w-[9rem] px-3 py-2.5 font-semibold">챔피언</th>
             <th scope="col" className="whitespace-nowrap px-3 py-2.5 text-center font-semibold">사용 세트</th>
             <th scope="col" className="whitespace-nowrap px-3 py-2.5 text-center font-semibold">승률</th>
@@ -98,7 +98,7 @@ export function ChampionUsageTable({ rows, initialRows = 5 }: { rows: ChampionUs
               <td className="px-3 py-3 text-center tabular-nums text-[var(--ui-ink)]">{statValue(row.stats?.kda, 2)}</td>
               <td className="px-3 py-3 text-center tabular-nums text-[var(--ui-text)]">{row.avgRating}</td>
               <td className="px-3 py-3 text-center tabular-nums text-[var(--ui-text)]">{row.fanPogCount}</td>
-              <td className="px-3 py-3 text-center text-[12px] tabular-nums text-[var(--ui-muted)]">{compactDate(row.recentDate)}</td>
+              <td className="px-3 py-3 text-center text-xs tabular-nums text-[var(--ui-muted)]">{compactDate(row.recentDate)}</td>
             </tr>
           ))}
         </tbody>
@@ -107,7 +107,7 @@ export function ChampionUsageTable({ rows, initialRows = 5 }: { rows: ChampionUs
         <button
           type="button"
           onClick={() => setVisibleCount(rows.length)}
-          className="mt-3 text-[14px] font-semibold text-[var(--ui-text)] transition-colors hover:text-[var(--ui-ink)]"
+          className="mt-3 text-sm font-semibold text-[var(--ui-text)] transition-colors hover:text-[var(--ui-ink)]"
         >
           더보기 ({remainingCount}개) →
         </button>

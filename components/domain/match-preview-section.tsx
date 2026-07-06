@@ -44,7 +44,7 @@ function MatchCard({ match }: { match: MatchData }) {
           {formatDateTime(match.matchDate)}
         </span>
         <span
-          className={`rounded-full px-2.5 py-0.5 text-[12px] font-black ${
+          className={`rounded-full px-2.5 py-0.5 text-xs font-black ${
             isLive ? "bg-red-50 text-red-500" : "bg-[#f0f2f5] text-[#667085]"
           }`}
         >
@@ -62,7 +62,7 @@ function MatchCard({ match }: { match: MatchData }) {
                 className="h-full w-full object-contain transition-transform group-hover:scale-105"
               />
             ) : (
-              <span className="text-[16px] font-black text-[#98a2b3]">
+              <span className="text-base font-black text-[#98a2b3]">
                 {match.teamA?.shortName?.slice(0, 3) ?? "?"}
               </span>
             )}
@@ -72,7 +72,7 @@ function MatchCard({ match }: { match: MatchData }) {
               {match.teamA?.shortName ?? "-"}
             </p>
             {match.standingA && (
-              <p className="text-[12px] text-[#98a2b3]">
+              <p className="text-xs text-[#98a2b3]">
                 {match.standingA.rank}위 · {match.standingA.wins}승 {match.standingA.losses}패
               </p>
             )}
@@ -90,7 +90,7 @@ function MatchCard({ match }: { match: MatchData }) {
                 className="h-full w-full object-contain transition-transform group-hover:scale-105"
               />
             ) : (
-              <span className="text-[16px] font-black text-[#98a2b3]">
+              <span className="text-base font-black text-[#98a2b3]">
                 {match.teamB?.shortName?.slice(0, 3) ?? "?"}
               </span>
             )}
@@ -100,7 +100,7 @@ function MatchCard({ match }: { match: MatchData }) {
               {match.teamB?.shortName ?? "-"}
             </p>
             {match.standingB && (
-              <p className="text-[12px] text-[#98a2b3]">
+              <p className="text-xs text-[#98a2b3]">
                 {match.standingB.rank}위 · {match.standingB.wins}승 {match.standingB.losses}패
               </p>
             )}
@@ -111,8 +111,8 @@ function MatchCard({ match }: { match: MatchData }) {
       <div className="border-t border-[#f0f2f5] bg-[#f8f9fc] px-4 py-4">
         <div className="mb-3 flex items-center gap-1.5">
           <span className="text-sm">✨</span>
-          <span className="text-[12px] font-black text-[#667085]">AI 프리뷰</span>
-          <span className="ml-auto rounded-full bg-accent/10 px-2 py-0.5 text-[12px] font-black text-accent">
+          <span className="text-xs font-black text-[#667085]">AI 프리뷰</span>
+          <span className="ml-auto rounded-full bg-accent/10 px-2 py-0.5 text-xs font-black text-accent">
             {favorA ? match.teamA?.shortName : match.teamB?.shortName} 예상 승리
           </span>
         </div>
@@ -128,12 +128,12 @@ function MatchCard({ match }: { match: MatchData }) {
         </div>
         <div className="mt-1.5 flex justify-between">
           <span
-            className={`text-[12px] font-black ${favorA ? "text-accent" : "text-[#98a2b3]"}`}
+            className={`text-xs font-black ${favorA ? "text-accent" : "text-[#98a2b3]"}`}
           >
             {match.teamA?.shortName} {probA}%
           </span>
           <span
-            className={`text-[12px] font-black ${!favorA ? "text-accent" : "text-[#98a2b3]"}`}
+            className={`text-xs font-black ${!favorA ? "text-accent" : "text-[#98a2b3]"}`}
           >
             {probB}% {match.teamB?.shortName}
           </span>
@@ -193,7 +193,7 @@ export function MatchPreviewSection({
   return (
     <section className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-[14px] font-black text-[#111827]">예정 경기</h2>
+        <h2 className="text-sm font-black text-[#111827]">예정 경기</h2>
         <Link
           href="/schedule"
           className="text-xs font-semibold text-[#98a2b3] hover:text-accent"
@@ -225,7 +225,7 @@ export function MatchPreviewSection({
             {selectedDay != null && (
               <button
                 onClick={() => setSelectedDay(null)}
-                className="text-[12px] font-semibold text-[#98a2b3] hover:text-accent"
+                className="text-xs font-semibold text-[#98a2b3] hover:text-accent"
               >
                 전체 보기
               </button>

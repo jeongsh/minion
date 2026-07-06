@@ -28,7 +28,7 @@ function DraftIcon({
           className={`object-cover ${ban ? "grayscale opacity-65" : ""}`}
         />
       ) : (
-        <div className="absolute inset-0 grid place-items-center text-[12px] text-muted">-</div>
+        <div className="absolute inset-0 grid place-items-center text-xs text-muted">-</div>
       )}
       {ban ? <div className="absolute inset-x-1 top-1/2 h-px rotate-[-18deg] bg-white/75" /> : null}
     </div>
@@ -80,14 +80,14 @@ function TeamDraftSummary({
       <p className="truncate text-sm font-semibold">{label}</p>
       <div className={`flex flex-col gap-1.5 ${align === "right" ? "items-end" : ""}`}>
         <div className="flex items-center gap-2">
-          {align === "left" ? <span className="w-8 text-[12px] font-semibold text-muted">BAN</span> : null}
+          {align === "left" ? <span className="w-8 text-xs font-semibold text-muted">BAN</span> : null}
           <DraftList items={bans} champions={champions} ban />
-          {align === "right" ? <span className="w-8 text-[12px] font-semibold text-muted">BAN</span> : null}
+          {align === "right" ? <span className="w-8 text-xs font-semibold text-muted">BAN</span> : null}
         </div>
         <div className="flex items-center gap-2">
-          {align === "left" ? <span className="w-8 text-[12px] font-semibold text-muted">PICK</span> : null}
+          {align === "left" ? <span className="w-8 text-xs font-semibold text-muted">PICK</span> : null}
           <DraftList items={picks} champions={champions} />
-          {align === "right" ? <span className="w-8 text-[12px] font-semibold text-muted">PICK</span> : null}
+          {align === "right" ? <span className="w-8 text-xs font-semibold text-muted">PICK</span> : null}
         </div>
       </div>
     </div>

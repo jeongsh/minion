@@ -8,7 +8,7 @@ export function MatchCard({ match, teams = [] }: { match: Match; teams?: Team[] 
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-sm text-muted">{formatDateTime(match.matchDate)}</p>
-          <h2 className="mt-2 text-[16px] font-semibold">{match.name}</h2>
+          <h2 className="mt-2 text-base font-semibold">{match.name}</h2>
         </div>
         <span className="rounded-md bg-surface-muted px-2 py-1 text-xs font-semibold text-muted">
           {match.status}

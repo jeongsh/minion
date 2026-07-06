@@ -159,9 +159,9 @@ function MetricCard({
 }) {
   return (
     <div className={`rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-4 ${className}`}>
-      <p className="text-[14px] font-semibold text-[var(--ui-muted)]">{label}</p>
-      <p className="mt-2 text-[24px] font-bold leading-none tracking-tight text-[var(--ui-ink)]">{value}</p>
-      {helper ? <p className="mt-1.5 text-[12px] text-[var(--ui-muted)]">{helper}</p> : null}
+      <p className="text-sm font-semibold text-[var(--ui-muted)]">{label}</p>
+      <p className="mt-2 text-2xl font-bold leading-none tracking-tight text-[var(--ui-ink)]">{value}</p>
+      {helper ? <p className="mt-1.5 text-xs text-[var(--ui-muted)]">{helper}</p> : null}
     </div>
   );
 }
@@ -248,7 +248,7 @@ function StatsOverview({
           const x = center + Math.cos(angle) * (maxRadius + 20);
           const y = center + Math.sin(angle) * (maxRadius + 16);
           return (
-            <text key={axis.label} x={x} y={y} textAnchor="middle" className="fill-[var(--ui-ink)] text-[12px] font-bold">
+            <text key={axis.label} x={x} y={y} textAnchor="middle" className="fill-[var(--ui-ink)] text-xs font-bold">
               <tspan x={x}>{axis.label}</tspan>
               <tspan x={x} dy="12" className="fill-[var(--ui-muted)] font-semibold">{Math.round(axis.score)}</tspan>
             </text>
@@ -257,7 +257,7 @@ function StatsOverview({
       </svg>
 
       {/* 한 개의 그리드로 묶어 라벨/바/점수 열을 행 간 정렬한다(바 트랙 폭 통일). */}
-      <ul className="grid grid-cols-[42px_minmax(0,1fr)_auto_auto] items-center gap-x-3 gap-y-3 text-[12px]">
+      <ul className="grid grid-cols-[42px_minmax(0,1fr)_auto_auto] items-center gap-x-3 gap-y-3 text-xs">
         {axes.map((axis) => (
           <li key={axis.label} className="contents">
             <span className="font-bold text-[var(--ui-ink)]">{axis.label}</span>
@@ -301,7 +301,7 @@ function PlayerSegmentChips({
           <Link
             key={segment}
             href={segment === "all" ? `${basePath}?segment=all` : `${basePath}?segment=${segment}`}
-            className={`rounded-full px-3 py-1.5 text-[14px] font-semibold transition-colors ${
+            className={`rounded-full px-3 py-1.5 text-sm font-semibold transition-colors ${
               active
                 ? "bg-[var(--tp)] text-white"
                 : "border border-[var(--ui-border)] bg-[var(--ui-surface)] text-[var(--ui-text)] hover:bg-[var(--ui-surface-muted)]"
@@ -324,9 +324,9 @@ function PlayerAwardHistory({ awards }: { awards: TeamAward[] }) {
         const meta = PLAYER_AWARD_META[award.awardType];
         return (
           <li key={award.id} className={`flex items-center gap-3 py-2.5 ${i !== 0 ? "border-t border-[var(--ui-border)]" : ""}`}>
-            <span className="w-9 shrink-0 text-[14px] font-bold tabular-nums text-[var(--ui-ink)]">{award.year}</span>
-            <span className="text-[14px] font-semibold text-[var(--ui-ink)]">{meta?.label ?? award.awardType}</span>
-            <span className="ml-auto truncate text-[12px] text-[var(--ui-muted)]">{award.tournamentName}</span>
+            <span className="w-9 shrink-0 text-sm font-bold tabular-nums text-[var(--ui-ink)]">{award.year}</span>
+            <span className="text-sm font-semibold text-[var(--ui-ink)]">{meta?.label ?? award.awardType}</span>
+            <span className="ml-auto truncate text-xs text-[var(--ui-muted)]">{award.tournamentName}</span>
           </li>
         );
       })}
@@ -344,7 +344,7 @@ function CareerTimeline({
   currentTeamId?: string | null;
 }) {
   if (histories.length === 0) {
-    return <p className="text-[12px] text-[var(--ui-muted)]">경력 데이터가 없습니다.</p>;
+    return <p className="text-xs text-[var(--ui-muted)]">경력 데이터가 없습니다.</p>;
   }
 
   function dateLabel(date: string | null) {
@@ -366,12 +366,12 @@ function CareerTimeline({
                 className={`absolute -left-4 top-1 h-[7px] w-[7px] rounded-full ${isCurrent ? "bg-[var(--tp)]" : "bg-[var(--ui-muted)]"}`}
               />
               <div className="flex items-baseline justify-between gap-2">
-                <span className="text-[14px] font-semibold text-[var(--ui-ink)]">{teamName}</span>
-                <span className="text-[12px] text-[var(--ui-muted)]">
+                <span className="text-sm font-semibold text-[var(--ui-ink)]">{teamName}</span>
+                <span className="text-xs text-[var(--ui-muted)]">
                   {dateLabel(entry.startDate)}–{dateLabel(entry.endDate)}
                 </span>
               </div>
-              <p className="mt-0.5 text-[12px] text-[var(--ui-muted)]">{entry.position}</p>
+              <p className="mt-0.5 text-xs text-[var(--ui-muted)]">{entry.position}</p>
             </li>
           );
         })}
@@ -562,38 +562,38 @@ export default async function PlayerDetailPage({
         {/* 2. 팀 메타 스트립 */}
         <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] px-5 py-3.5">
           <div className="flex items-center gap-2.5">
-            <span className="text-[12px] text-[var(--ui-muted)]">팀</span>
+            <span className="text-xs text-[var(--ui-muted)]">팀</span>
             {playerTeam?.logoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={playerTeam.logoUrl} alt={playerTeam.name} className="h-[30px] w-auto object-contain" />
             ) : (
-              <span className="text-[14px] font-bold text-[var(--ui-ink)]">{playerTeam?.shortName ?? "-"}</span>
+              <span className="text-sm font-bold text-[var(--ui-ink)]">{playerTeam?.shortName ?? "-"}</span>
             )}
           </div>
           <span className="hidden h-[22px] w-px bg-[var(--ui-border)] sm:block" aria-hidden />
           <div className="flex items-baseline gap-2">
-            <span className="text-[14px] text-[var(--ui-muted)]">순위</span>
-            <span className="text-[16px] font-bold" style={{ color: "var(--tp)" }}>
+            <span className="text-sm text-[var(--ui-muted)]">순위</span>
+            <span className="text-base font-bold" style={{ color: "var(--tp)" }}>
               {teamStanding ? `${teamStanding.rank}위` : "-"}
             </span>
           </div>
           <span className="hidden h-[22px] w-px bg-[var(--ui-border)] sm:block" aria-hidden />
           <div className="flex items-baseline gap-2">
-            <span className="text-[14px] text-[var(--ui-muted)]">최근 5경기</span>
-            <span className="text-[16px] font-bold tracking-wide text-[var(--ui-ink)]">{teamRecent || "-"}</span>
+            <span className="text-sm text-[var(--ui-muted)]">최근 5경기</span>
+            <span className="text-base font-bold tracking-wide text-[var(--ui-ink)]">{teamRecent || "-"}</span>
           </div>
           <div className="ml-auto flex flex-wrap gap-2">
             {playerTeam ? (
               <Link
                 href={`/teams/${playerTeam.slug}`}
-                className="rounded-full bg-[var(--ui-ink)] px-4 py-2 text-[14px] font-semibold text-[var(--ui-surface)] transition-opacity hover:opacity-90"
+                className="rounded-full bg-[var(--ui-ink)] px-4 py-2 text-sm font-semibold text-[var(--ui-surface)] transition-opacity hover:opacity-90"
               >
                 팀 상세 보기
               </Link>
             ) : null}
             <Link
               href="#teammates"
-              className="rounded-full border border-[var(--ui-border)] px-4 py-2 text-[14px] font-semibold text-[var(--ui-text)] transition-colors hover:bg-[var(--ui-surface-muted)]"
+              className="rounded-full border border-[var(--ui-border)] px-4 py-2 text-sm font-semibold text-[var(--ui-text)] transition-colors hover:bg-[var(--ui-surface-muted)]"
             >
               팀원 보기
             </Link>
@@ -604,13 +604,13 @@ export default async function PlayerDetailPage({
         <div className="grid gap-10 lg:grid-cols-[330px_1fr]">
           <div className="relative aspect-[4/5] w-full overflow-hidden rounded-2xl bg-[var(--ui-surface-muted)]">
             <PlayerImage src={player.profileImageUrl} alt={player.name} className="h-full w-full object-cover object-top" />
-            <span className="absolute left-3 top-3 rounded-lg px-2 py-1 text-[12px] font-bold text-white" style={{ background: "var(--tp)" }}>
+            <span className="absolute left-3 top-3 rounded-lg px-2 py-1 text-xs font-bold text-white" style={{ background: "var(--tp)" }}>
               {player.position}
             </span>
             <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 bg-gradient-to-t from-[rgba(12,11,15,0.82)] via-[rgba(12,11,15,0.4)] to-transparent px-4 pb-4 pt-14">
               <div className="min-w-0">
                 <h1 className="home-section-title text-[32px] leading-none tracking-tight text-white">{player.name}</h1>
-                {player.realName ? <p className="mt-1.5 text-[12px] text-white/75">{player.realName}</p> : null}
+                {player.realName ? <p className="mt-1.5 text-xs text-white/75">{player.realName}</p> : null}
               </div>
               <PlayerSocialLinks player={player} variant="overlay" className="shrink-0" />
             </div>
@@ -619,7 +619,7 @@ export default async function PlayerDetailPage({
           <section aria-labelledby="stats-overview">
             <SectionHeading
               aside={
-                <div className="flex items-center gap-3 pb-0.5 text-[12px] text-[var(--ui-muted)]">
+                <div className="flex items-center gap-3 pb-0.5 text-xs text-[var(--ui-muted)]">
                   <span className="inline-flex items-center gap-1">
                     <span className="h-2 w-2 rounded-full" style={{ background: "var(--tp)" }} />선수
                   </span>
@@ -632,7 +632,7 @@ export default async function PlayerDetailPage({
             {aggregateStats ? (
               <StatsOverview stats={aggregateStats} averageStats={radarBenchmark?.average} />
             ) : (
-              <p className="text-[14px] text-[var(--ui-muted)]">표시할 경기 지표가 없습니다.</p>
+              <p className="text-sm text-[var(--ui-muted)]">표시할 경기 지표가 없습니다.</p>
             )}
           </section>
         </div>
@@ -660,10 +660,10 @@ export default async function PlayerDetailPage({
               className="rounded-2xl border border-[var(--ui-border)] p-4"
               style={{ background: "color-mix(in oklab, var(--tp) 6%, var(--ui-surface))" }}
             >
-              <p className="text-[14px] font-semibold text-[var(--ui-muted)]">세트 팬 평점</p>
-              <p className="mt-2 text-[24px] font-bold leading-none text-[var(--ui-ink)]">
+              <p className="text-sm font-semibold text-[var(--ui-muted)]">세트 팬 평점</p>
+              <p className="mt-2 text-2xl font-bold leading-none text-[var(--ui-ink)]">
                 {fanRatingValue}
-                <span className="ml-1 text-[14px] font-semibold text-[var(--ui-muted)]">/ 5</span>
+                <span className="ml-1 text-sm font-semibold text-[var(--ui-muted)]">/ 5</span>
               </p>
               <div className="mt-2 flex items-center gap-1" aria-label={`별점 ${filledStars}점 / 5점`}>
                 {Array.from({ length: 5 }, (_, index) => {
@@ -684,11 +684,11 @@ export default async function PlayerDetailPage({
             <MetricCard label="팬 POG" value={playerFanPogSetIds.size} />
             <MetricCard label="공식 POM" value={pomCount} />
             <div className="flex flex-col rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-4">
-              <p className="text-[14px] font-semibold text-[var(--ui-muted)]">선수 리뷰</p>
-              <p className="mt-2 line-clamp-3 flex-1 text-[14px] leading-6 text-[var(--ui-text)]">
+              <p className="text-sm font-semibold text-[var(--ui-muted)]">선수 리뷰</p>
+              <p className="mt-2 line-clamp-3 flex-1 text-sm leading-6 text-[var(--ui-text)]">
                 {reviewQuote ? `“${reviewQuote}”` : "팬 평점 리뷰가 아직 충분하지 않습니다."}
               </p>
-              <p className="mt-3 text-right text-[12px] text-[var(--ui-muted)]">리뷰 {reviewCount}개 · 전체 보기 →</p>
+              <p className="mt-3 text-right text-xs text-[var(--ui-muted)]">리뷰 {reviewCount}개 · 전체 보기 →</p>
             </div>
           </div>
         </section>
@@ -714,7 +714,7 @@ export default async function PlayerDetailPage({
             }
           >최근 경기</SectionHeading>
           {recentMatchRows.length === 0 ? (
-            <div className="rounded-2xl border border-[var(--ui-border)] p-6 text-[14px] text-[var(--ui-muted)]">
+            <div className="rounded-2xl border border-[var(--ui-border)] p-6 text-sm text-[var(--ui-muted)]">
               최근 경기 데이터가 없습니다.
             </div>
           ) : (
@@ -739,28 +739,28 @@ export default async function PlayerDetailPage({
         {/* 8. 커리어 / 수상 / 팀원 */}
         <div id="teammates" className="grid gap-8 scroll-mt-24 md:grid-cols-3">
           <section>
-            <h3 className="border-b border-[var(--ui-border)] pb-2 text-[16px] font-bold text-[var(--ui-ink)]">커리어</h3>
+            <h3 className="border-b border-[var(--ui-border)] pb-2 text-base font-bold text-[var(--ui-ink)]">커리어</h3>
             <div className="mt-4">
               <CareerTimeline histories={careerHistories} teams={teams} currentTeamId={player.teamId} />
             </div>
           </section>
 
           <section>
-            <h3 className="border-b border-[var(--ui-border)] pb-2 text-[16px] font-bold text-[var(--ui-ink)]">수상</h3>
+            <h3 className="border-b border-[var(--ui-border)] pb-2 text-base font-bold text-[var(--ui-ink)]">수상</h3>
             <div className="mt-4">
               {awards.length > 0 ? (
                 <PlayerAwardHistory awards={awards} />
               ) : (
-                <p className="text-[12px] text-[var(--ui-muted)]">수상 내역이 없습니다.</p>
+                <p className="text-xs text-[var(--ui-muted)]">수상 내역이 없습니다.</p>
               )}
             </div>
           </section>
 
           <section>
-            <h3 className="border-b border-[var(--ui-border)] pb-2 text-[16px] font-bold text-[var(--ui-ink)]">팀원</h3>
+            <h3 className="border-b border-[var(--ui-border)] pb-2 text-base font-bold text-[var(--ui-ink)]">팀원</h3>
             <div className="mt-4 flex flex-wrap gap-2">
               {teammates.length === 0 ? (
-                <p className="text-[12px] text-[var(--ui-muted)]">등록된 팀원이 없습니다.</p>
+                <p className="text-xs text-[var(--ui-muted)]">등록된 팀원이 없습니다.</p>
               ) : (
                 teammates.map(({ teammate }) => (
                   <Link
@@ -768,10 +768,10 @@ export default async function PlayerDetailPage({
                     href={`/players/${teammate.slug}`}
                     className="fan-roster-chip inline-flex items-center gap-1.5 rounded-full border border-[var(--ui-border)] px-3.5 py-2 transition-colors hover:bg-[var(--ui-surface-muted)]"
                   >
-                    <span className="text-[12px] font-bold" style={{ color: "var(--tp)" }}>
+                    <span className="text-xs font-bold" style={{ color: "var(--tp)" }}>
                       {teammate.position}
                     </span>
-                    <span className="text-[14px] font-bold text-[var(--ui-ink)]">{teammate.name}</span>
+                    <span className="text-sm font-bold text-[var(--ui-ink)]">{teammate.name}</span>
                   </Link>
                 ))
               )}

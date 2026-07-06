@@ -60,7 +60,7 @@ function TeamRosterSection({
           >
             {team.name}
           </Link>
-          <span className="text-[12px] font-semibold text-[var(--ui-muted)]">{team.shortName}</span>
+          <span className="text-xs font-semibold text-[var(--ui-muted)]">{team.shortName}</span>
         </div>
         <Link
           href={`/teams/${team.slug}`}

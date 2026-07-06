@@ -146,7 +146,7 @@ function TeamSectionTitle({
   return (
     <div className="mb-5 flex items-end justify-between gap-4">
       <h2 className="home-section-title text-[length:var(--ui-title-size)] text-[var(--ui-ink)]">{title}</h2>
-      {aside ?? (caption ? <span className="pb-0.5 text-[12px] font-semibold text-[var(--ui-muted)]">{caption}</span> : null)}
+      {aside ?? (caption ? <span className="pb-0.5 text-xs font-semibold text-[var(--ui-muted)]">{caption}</span> : null)}
     </div>
   );
 }
@@ -154,9 +154,9 @@ function TeamSectionTitle({
 function TeamMetricCard({ label, value, helper }: { label: string; value: React.ReactNode; helper?: React.ReactNode }) {
   return (
     <div className="rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-4">
-      <p className="text-[12px] font-semibold text-[var(--ui-muted)]">{label}</p>
+      <p className="text-xs font-semibold text-[var(--ui-muted)]">{label}</p>
       <p className="font-archivo mt-2 text-[32px] font-black leading-none tracking-tight text-[var(--ui-ink)]">{value}</p>
-      {helper ? <p className="mt-1.5 text-[12px] text-[var(--ui-muted)]">{helper}</p> : null}
+      {helper ? <p className="mt-1.5 text-xs text-[var(--ui-muted)]">{helper}</p> : null}
     </div>
   );
 }
@@ -217,9 +217,9 @@ function TeamRadarChart({
           const x = center + Math.cos(angle) * (maxRadius + 24);
           const y = center + Math.sin(angle) * (maxRadius + 18);
           return (
-            <text key={axis.label} x={x} y={y} textAnchor="middle" dominantBaseline="middle" className="fill-foreground text-[12px] font-semibold">
+            <text key={axis.label} x={x} y={y} textAnchor="middle" dominantBaseline="middle" className="fill-foreground text-xs font-semibold">
               <tspan x={x} dy="-6">{axis.label}</tspan>
-              <tspan x={x} dy="13" className="fill-accent text-[12px]">{Math.round(axis.score)}</tspan>
+              <tspan x={x} dy="13" className="fill-accent text-xs">{Math.round(axis.score)}</tspan>
             </text>
           );
         })}
@@ -331,20 +331,20 @@ export default async function TeamDetailPage({
 
         <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-[var(--ui-border)] px-5 py-3.5">
           <div className="flex items-baseline gap-2">
-            <span className="text-[12px] text-[var(--ui-muted)]">시즌</span>
-            <strong className="text-[14px] text-[var(--ui-ink)]">{latestSeason} LCK</strong>
+            <span className="text-xs text-[var(--ui-muted)]">시즌</span>
+            <strong className="text-sm text-[var(--ui-ink)]">{latestSeason} LCK</strong>
           </div>
           <span className="hidden h-[22px] w-px bg-[var(--ui-border)] sm:block" aria-hidden />
           <div className="flex items-baseline gap-2">
-            <span className="text-[12px] text-[var(--ui-muted)]">순위</span>
-            <strong className="text-[16px]" style={{ color: "var(--tp)" }}>{standing ? `${standing.rank}위` : "-"}</strong>
+            <span className="text-xs text-[var(--ui-muted)]">순위</span>
+            <strong className="text-base" style={{ color: "var(--tp)" }}>{standing ? `${standing.rank}위` : "-"}</strong>
           </div>
           <span className="hidden h-[22px] w-px bg-[var(--ui-border)] sm:block" aria-hidden />
           <div className="flex items-baseline gap-2">
-            <span className="text-[12px] text-[var(--ui-muted)]">최근 5경기</span>
-            <strong className="font-archivo text-[14px] tracking-wide text-[var(--ui-ink)]">{standing?.recent ?? "-"}</strong>
+            <span className="text-xs text-[var(--ui-muted)]">최근 5경기</span>
+            <strong className="font-archivo text-sm tracking-wide text-[var(--ui-ink)]">{standing?.recent ?? "-"}</strong>
           </div>
-          <Link href={`/fan/${team.fanSiteHost || team.slug}`} className="ml-auto rounded-full bg-[var(--ui-ink)] px-4 py-2 text-[14px] font-semibold text-[var(--ui-surface)] transition-opacity hover:opacity-90">
+          <Link href={`/fan/${team.fanSiteHost || team.slug}`} className="ml-auto rounded-full bg-[var(--ui-ink)] px-4 py-2 text-sm font-semibold text-[var(--ui-surface)] transition-opacity hover:opacity-90">
             팬 채널
           </Link>
         </div>
@@ -363,7 +363,7 @@ export default async function TeamDetailPage({
             {team.logoUrl ? <img src={team.logoUrl} alt={team.name} className="absolute left-1/2 top-[42%] h-36 w-36 -translate-x-1/2 -translate-y-1/2 object-contain drop-shadow-xl" /> : null}
             <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 px-4 pb-4 pt-20">
               <div className="min-w-0">
-                <p className="font-archivo text-[12px] font-black uppercase tracking-[0.16em] text-white/65">{team.shortName}</p>
+                <p className="font-archivo text-xs font-black uppercase tracking-[0.16em] text-white/65">{team.shortName}</p>
                 <h1 className="mt-1 text-[32px] font-black leading-tight tracking-tight text-white">{team.name}</h1>
               </div>
               <div className="flex shrink-0 gap-1.5">
@@ -378,9 +378,9 @@ export default async function TeamDetailPage({
           <section aria-labelledby="team-stats-overview">
             <TeamSectionTitle
               title="팀 지표"
-              aside={team.globalPowerRank != null ? <a href="https://lolesports.com/ko-KR/gpr/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 pb-0.5 text-[12px] font-bold text-[var(--ui-muted)] hover:text-[var(--ui-ink)]">글로벌 {team.globalPowerRank}위 <ExternalLink size={13} /></a> : undefined}
+              aside={team.globalPowerRank != null ? <a href="https://lolesports.com/ko-KR/gpr/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 pb-0.5 text-xs font-bold text-[var(--ui-muted)] hover:text-[var(--ui-ink)]">글로벌 {team.globalPowerRank}위 <ExternalLink size={13} /></a> : undefined}
             />
-            {stats.setCount > 0 ? <TeamRadarChart stats={stats} leagueAvg={leagueAvg} leagueAvgRaw={leagueAvgInput} /> : <p className="text-[14px] text-[var(--ui-muted)]">표시할 팀 지표가 없습니다.</p>}
+            {stats.setCount > 0 ? <TeamRadarChart stats={stats} leagueAvg={leagueAvg} leagueAvgRaw={leagueAvgInput} /> : <p className="text-sm text-[var(--ui-muted)]">표시할 팀 지표가 없습니다.</p>}
           </section>
         </section>
 
@@ -398,14 +398,14 @@ export default async function TeamDetailPage({
           <TeamSectionTitle title="팬 평가" />
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div className="rounded-2xl border border-[var(--ui-border)] p-4" style={{ background: "color-mix(in oklab, var(--tp) 6%, var(--ui-surface))" }}>
-              <p className="text-[12px] font-semibold text-[var(--ui-muted)]">팀 팬 평점</p>
-              <p className="font-archivo mt-2 text-[32px] font-black leading-none text-[var(--ui-ink)]">{avgFanRating}<span className="ml-1 font-sans text-[14px] font-semibold text-[var(--ui-muted)]">/ 5</span></p>
+              <p className="text-xs font-semibold text-[var(--ui-muted)]">팀 팬 평점</p>
+              <p className="font-archivo mt-2 text-[32px] font-black leading-none text-[var(--ui-ink)]">{avgFanRating}<span className="ml-1 font-sans text-sm font-semibold text-[var(--ui-muted)]">/ 5</span></p>
             </div>
             <TeamMetricCard label="평가 수" value={relatedRatings.length} />
             <TeamMetricCard label="팀 게시글" value={recentReviews.length} />
             <div className="flex flex-col justify-between rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-4">
-              <div><p className="text-[12px] font-semibold text-[var(--ui-muted)]">팬 채널</p><p className="mt-2 text-[14px] leading-6 text-[var(--ui-text)]">경기와 선수 소식을 팀 팬들과 함께 확인하세요.</p></div>
-              <Link href={`/fan/${team.fanSiteHost || team.slug}`} className="mt-3 text-right text-[12px] font-bold" style={{ color: "var(--tp)" }}>팬 채널 보기 →</Link>
+              <div><p className="text-xs font-semibold text-[var(--ui-muted)]">팬 채널</p><p className="mt-2 text-sm leading-6 text-[var(--ui-text)]">경기와 선수 소식을 팀 팬들과 함께 확인하세요.</p></div>
+              <Link href={`/fan/${team.fanSiteHost || team.slug}`} className="mt-3 text-right text-xs font-bold" style={{ color: "var(--tp)" }}>팬 채널 보기 →</Link>
             </div>
           </div>
         </section>
@@ -416,7 +416,7 @@ export default async function TeamDetailPage({
           <div>
             <div className="mb-4 flex items-end justify-between border-b border-[var(--ui-border)] pb-3">
               <h2 id="team-roster" className="home-section-title text-[length:var(--ui-title-size)] text-[var(--ui-ink)]">주전 선수</h2>
-              <span className="text-[12px] text-[var(--ui-muted)]">STARTING FIVE</span>
+              <span className="text-xs text-[var(--ui-muted)]">STARTING FIVE</span>
             </div>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
             {starters.map((player) => (
@@ -493,13 +493,13 @@ export default async function TeamDetailPage({
                   {team.headCoach && (
                     <div className="flex items-center gap-3">
                       <span className="w-8 text-sm text-[var(--ui-muted)]">감독</span>
-                      <span className="text-[16px] font-semibold">{team.headCoach}</span>
+                      <span className="text-base font-semibold">{team.headCoach}</span>
                     </div>
                   )}
                   {team.coaches && team.coaches.split(",").map((c) => c.trim()).filter(Boolean).map((coach) => (
                     <div key={coach} className="flex items-center gap-3">
                       <span className="w-8 text-sm text-[var(--ui-muted)]">코치</span>
-                      <span className="text-[16px] font-semibold">{coach}</span>
+                      <span className="text-base font-semibold">{coach}</span>
                     </div>
                   ))}
                 </div>

@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 
 import { WinnerPredictionPoll } from "@/components/domain/winner-prediction-poll";
+import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { TeamLogo } from "@/components/ui/team-logo";
 import {
@@ -86,7 +87,7 @@ function TeamScoreBlock({
       <TeamLogo team={team} size="h-20 w-20 sm:h-24 sm:w-24" plain />
       <div className={`flex min-w-0 flex-col items-center gap-1.5 text-center ${isRight ? "sm:items-end sm:text-right" : "sm:items-start sm:text-left"}`}>
         <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--ui-muted)]">{seedLabel}</p>
-        <p className="max-w-full truncate text-[20px] font-black leading-tight text-[var(--ui-ink)] md:text-[26px]">
+        <p className="max-w-full truncate text-xl font-black leading-tight text-[var(--ui-ink)] md:text-[26px]">
           {team?.name ?? "TBD"}
         </p>
         {result ? (
@@ -420,7 +421,7 @@ function MatchRatingPanel({
             <div className="mt-4 flex items-center gap-4">
               <PlayerAvatar player={leaderPlayer} size="lg" />
               <div className="min-w-0">
-                <p className="truncate text-[20px] font-black text-[var(--ui-ink)]">
+                <p className="truncate text-xl font-black text-[var(--ui-ink)]">
                   {leaderPlayer?.name ?? "-"}
                 </p>
                 <p className="mt-1 text-sm font-semibold text-[var(--ui-muted)]">
@@ -486,13 +487,12 @@ function MatchRatingPanel({
               placeholder="한줄평"
               className="min-w-0 rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface-muted)] px-3 py-2 text-sm text-[var(--ui-ink)] placeholder:text-[var(--ui-muted)] disabled:opacity-50"
             />
-            <button
+            <Button
               type="submit"
               disabled={!ratingOpen || selectableLines.length === 0}
-              className="rounded-lg bg-[var(--ui-ink)] px-5 py-2 text-sm font-bold text-[var(--ui-surface)] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:bg-[var(--ui-surface-muted)] disabled:text-[var(--ui-muted)]"
             >
               제출
-            </button>
+            </Button>
           </div>
           {ratingOpen && ratingDeadline ? (
             <p className="mt-3 text-sm font-semibold text-[var(--ui-muted)]">
@@ -555,7 +555,7 @@ function MatchRatingPanel({
                     <p className="text-sm font-black text-[var(--ui-ink)]">{player?.name ?? "-"}</p>
                     <p className="mt-1 text-sm text-[var(--ui-text)]">{rating.review}</p>
                   </div>
-                  <p className="font-archivo text-[16px] font-black tabular-nums text-[var(--ui-ink)]">
+                  <p className="font-archivo text-base font-black tabular-nums text-[var(--ui-ink)]">
                     {rating.rating.toFixed(1)}
                   </p>
                 </article>
@@ -761,7 +761,7 @@ export default async function MatchDetailPage({
           className="rounded-md border border-border bg-surface p-4"
           aria-labelledby="match-video"
         >
-          <h2 id="match-video" className="text-[24px] font-semibold">
+          <h2 id="match-video" className="text-2xl font-semibold">
             영상
           </h2>
           {match.vodUrl ? (

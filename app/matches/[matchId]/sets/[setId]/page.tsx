@@ -20,6 +20,7 @@ import {
 import { calculatePlayerStats } from "@/lib/stats";
 import { championImage } from "@/lib/champions";
 import { ObjectiveIconSlots } from "@/components/domain/objective-icon-slots";
+import { PlayerLoadout } from "@/components/domain/player-loadout";
 import {
   baronIconsForSide,
   dragonIconsForSide,
@@ -28,10 +29,8 @@ import {
   voidGrubIconsForSide,
 } from "@/lib/objectives";
 import { ddragonVersionFromPatch } from "@/lib/ddragon";
-import { RunePair } from "@/components/domain/rune-pair";
 import { fetchRuneCatalog, type RuneCatalog } from "@/lib/runes";
 import {
-  spellImageUrlById,
   fetchSpellCatalog,
   type GameSpell,
 } from "@/lib/spells";
@@ -290,83 +289,29 @@ function PlayerStatBoard({
       const champion = champions.find(
         (item) => item.id === row.line.championId,
       );
-      const image = championImage(champion);
       const damageWidth = Math.max(
         4,
         (row.line.damageToChampions / maxDamage) * 100,
       );
-      const accent = side === "blue" ? "bg-accent" : "bg-rose-500";
-      const spell0Url = spellImageUrlById(
-        spells,
-        row.line.spellIds[0],
-        itemVersion,
-      );
-      const spell1Url = spellImageUrlById(
-        spells,
-        row.line.spellIds[1],
-        itemVersion,
-      );
+      const accent = side === "blue" ? "bg-blue-500" : "bg-red-500";
       return (
         <div
           key={`${side}-${row.line.playerId}`}
           className="grid grid-cols-[14rem_7.25rem_minmax(5.5rem,0.7fr)_3.5rem_4rem_5rem_13rem] items-center gap-3 border-t border-border px-3 py-2.5 text-sm"
         >
-          <div className="flex min-w-0 items-center gap-2">
-            <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded bg-surface-muted">
-              {image ? (
-                <Image
-                  src={image}
-                  alt=""
-                  width={44}
-                  height={44}
-                  className="h-full w-full object-cover"
-                />
-              ) : null}
-              <span className="absolute bottom-0 right-0 rounded-tl bg-background/90 px-1 text-[12px] font-semibold">
-                LV {row.line.championLevel ?? "-"}
-              </span>
-            </div>
-            <div className="flex shrink-0 items-center gap-1">
-              <div className="flex flex-col gap-1">
-              {spell0Url ? (
-                <Image
-                  src={spell0Url}
-                  alt=""
-                  width={32}
-                  height={32}
-                  className="h-5 w-5 rounded-sm border border-border/60 bg-surface-muted object-cover"
-                />
-              ) : (
-                <span
-                  className="h-5 w-5 rounded-sm border border-dashed border-border bg-surface-muted"
-                  aria-hidden="true"
-                />
-              )}
-              {spell1Url ? (
-                <Image
-                  src={spell1Url}
-                  alt=""
-                  width={32}
-                  height={32}
-                  className="h-5 w-5 rounded-sm border border-border/60 bg-surface-muted object-cover"
-                />
-              ) : (
-                <span
-                  className="h-5 w-5 rounded-sm border border-dashed border-border bg-surface-muted"
-                  aria-hidden="true"
-                />
-              )}
-              </div>
-              <RunePair runeIds={row.line.runeIds} catalog={runeCatalog} />
-            </div>
-            <div className="min-w-0">
-              <p className="truncate font-semibold">
-                {row.player?.name ?? "-"}
-              </p>
-              <p className="truncate text-xs text-muted">
-                {champion?.name ?? "-"} · {row.line.position}
-              </p>
-            </div>
+          <div>
+            <PlayerLoadout
+              champion={champion}
+              spellIds={row.line.spellIds}
+              runeIds={row.line.runeIds}
+              spells={spells}
+              version={itemVersion}
+              runeCatalog={runeCatalog}
+              primaryLabel={row.player?.name ?? "-"}
+              secondaryLabel={`${champion?.name ?? "-"} · ${row.line.position}`}
+              badge={`LV ${row.line.championLevel ?? "-"}`}
+              size="sm"
+            />
           </div>
 
           <div className="text-center">
@@ -450,7 +395,7 @@ function PlayerStatBoard({
 
   return (
     <section className="flex flex-col gap-4" aria-labelledby="player-stats">
-      <h2 id="player-stats" className="home-section-title text-[20px] text-[var(--ui-ink)]">
+      <h2 id="player-stats" className="home-section-title text-xl text-[var(--ui-ink)]">
         선수 스탯
       </h2>
       {blueRows.length + redRows.length === 0 ? (
@@ -760,7 +705,7 @@ export async function SetDetailContent({
       />
 
       <section className="flex flex-col gap-4" aria-labelledby="set-timeline">
-        <h2 id="set-timeline" className="home-section-title text-[20px] text-[var(--ui-ink)]">
+        <h2 id="set-timeline" className="home-section-title text-xl text-[var(--ui-ink)]">
           타임라인
         </h2>
         <div className="overflow-hidden rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)]">

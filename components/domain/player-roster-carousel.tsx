@@ -75,7 +75,7 @@ export function PlayerRosterCarousel({ players }: { players: Player[] }) {
                 {player.name}
               </span>
               {player.realName && (
-                <span className="truncate text-[12px] font-semibold text-[var(--ui-muted)]">
+                <span className="truncate text-xs font-semibold text-[var(--ui-muted)]">
                   {player.realName}
                 </span>
               )}
