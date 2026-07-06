@@ -1,4 +1,6 @@
 import { cookies } from "next/headers";
+import { getIsFan } from "@/app/fan/[teamSlug]/actions";
+import { FanFollowButton } from "@/components/fan/fan-follow-button";
 import { FanPredictionCard } from "@/components/fan/fan-prediction-card";
 import { FanChannelNavigation } from "@/components/fan/fan-channel-navigation";
 import { getAllTeams, getFanMatchPredictions, getMatches, getTeamByFanSiteHost, getTeamBySlug, getTeamFanCount } from "@/lib/data/lck";
@@ -23,7 +25,7 @@ export async function FanChannelHeader({ teamSlug }: { teamSlug: string }) {
   const opponent = match ? opponentOf(match, team, teams) : undefined;
   const cookieStore = await cookies();
   const predictionVoterKey = cookieStore.get("lckhub_match_prediction_voter")?.value;
-  const [fanCount, predictions] = await Promise.all([getTeamFanCount(team.id), match ? getFanMatchPredictions(match.id) : Promise.resolve([])]);
+  const [fanCount, isFan, predictions] = await Promise.all([getTeamFanCount(team.id), getIsFan(team.id), match ? getFanMatchPredictions(match.id) : Promise.resolve([])]);
   const opponentName = opponent?.shortName ?? "TBD";
   const badge = mode === "live" ? "LIVE" : mode === "upcoming" && match ? dday(match.matchDate) : mode === "recent" ? "경기 종료" : "일정 없음";
   const links = [["홈페이지",team.officialHomepageUrl],["YouTube",team.officialYoutubeUrl],["X",team.officialXUrl],["Instagram",team.officialInstagramUrl]].filter((item): item is [string,string] => Boolean(item[1]));
@@ -35,7 +37,7 @@ export async function FanChannelHeader({ teamSlug }: { teamSlug: string }) {
             <div className="flex items-center gap-3"><span className="font-archivo rounded bg-white px-[10px] py-1 text-[13px] font-black" style={{color:team.primaryColor}}>{badge}</span><span className="font-archivo text-xs font-extrabold tracking-[0.22em] text-white/80">{match?.name?.trim() || "다가올 경기를 기다리는 중"}</span></div>
             <div className="flex items-baseline gap-5"><span className="font-archivo text-[clamp(58px,7vw,96px)] font-black leading-[0.92]">{team.shortName}</span><span className="font-archivo text-[30px] font-black text-white/55">VS</span><span className="font-archivo text-[clamp(58px,7vw,96px)] font-black leading-[0.92] text-transparent [-webkit-text-stroke:2px_rgba(255,255,255,0.85)]">{opponentName}</span></div>
             <p className="text-[15px] font-bold text-white/85">{match ? `${dateTime(match.matchDate)} · ${match.venue?.trim() || "LoL PARK"}` : "예정된 경기가 없습니다"}</p>
-            <div className="flex flex-wrap items-center gap-2"><button type="button" className="rounded-full bg-white px-5 py-2.5 text-sm font-extrabold" style={{color:team.primaryColor}}>팔로우 <span className="ml-1 opacity-60">{fanCount.toLocaleString("ko-KR")}</span></button><button type="button" className="rounded-full border border-white/50 px-5 py-2.5 text-sm font-extrabold">알람</button>{links.map(([label,href])=><a key={label} href={href} target="_blank" rel="noreferrer" className="rounded-full border border-white/35 px-4 py-2.5 text-xs font-bold text-white/85 hover:bg-white/10 hover:text-white">{label}</a>)}</div>
+            <div className="flex flex-wrap items-center gap-2"><FanFollowButton teamId={team.id} teamSlug={team.fanSiteHost} teamName={team.shortName} initialCount={fanCount} initialFollowing={isFan} teamColor={team.primaryColor}/><button type="button" className="rounded-full border border-white/50 px-5 py-2.5 text-sm font-extrabold">알람</button>{links.map(([label,href])=><a key={label} href={href} target="_blank" rel="noreferrer" className="rounded-full border border-white/35 px-4 py-2.5 text-xs font-bold text-white/85 hover:bg-white/10 hover:text-white">{label}</a>)}</div>
           </div>
           <FanPredictionCard showDetailsLink={false} matchId={match?.id} teamId={team.id} teamName={team.shortName} opponentId={opponent?.id} opponentName={opponentName} teamColor={team.primaryColor} initialTeamVotes={predictions.filter((item)=>item.teamId===team.id).length} initialOpponentVotes={predictions.filter((item)=>item.teamId===opponent?.id).length} initialMyVote={predictionVoterKey ? predictions.find((item)=>item.voterKey===predictionVoterKey)?.teamId : undefined} canVote={mode==="upcoming"}/>
         </div>

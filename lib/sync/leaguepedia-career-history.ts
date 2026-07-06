@@ -98,6 +98,27 @@ function normalizePosition(role: string, fallback: string): string {
   return mapped ?? fallback;
 }
 
+// Worlds/MSI 등 국제 대회는 소속팀 계약이 아니라 "그 팀 소속으로 참가한 대회"라 별도 경력으로 치지 않는다.
+// (그 기간의 실제 소속은 이미 해당 팀의 정규 시즌 경력 구간에 포함돼 있음)
+const INTERNATIONAL_TOURNAMENT_KEYWORDS = [
+  "worlds",
+  "world championship",
+  "msi",
+  "mid-season invitational",
+  "mid season invitational",
+  "first stand",
+  "ewc",
+  "esports world cup",
+  "rift rivals",
+  "all-star",
+  "all star",
+];
+
+function isInternationalTournamentPage(overviewPage: string): boolean {
+  const lower = overviewPage.toLowerCase();
+  return INTERNATIONAL_TOURNAMENT_KEYWORDS.some((keyword) => lower.includes(keyword));
+}
+
 function parseTournamentPage(overviewPage: string): { year: number; split: string } | null {
   const yearMatch = overviewPage.match(/(\d{4})/);
   if (!yearMatch) return null;
@@ -167,40 +188,53 @@ async function cargoQuery(params: Record<string, string>, offset = 0): Promise<S
   throw new Error("Rate limit retries exhausted.");
 }
 
-// LCK ScoreboardPlayers 전체를 한 번에 페이지네이션으로 조회
-async function fetchAllLckScoreboardData(
+const PLAYER_FETCH_CHUNK = 40;
+
+// 우리가 추적하는 선수들의 ScoreboardPlayers 전체를 조회한다.
+// LCK 페이지로 제한하지 않아 LPL/LEC/LCS 등 해외 리그 소속 계약 경력도 함께 들어온다
+// (Worlds/MSI 같은 국제 대회 참가 기록은 mergeIntoCareerEntries에서 별도로 걸러낸다 —
+// 그건 소속 변경이 아니라 기존 팀 소속으로 참가한 대회이기 때문).
+// Leaguepedia 전체를 훑지 않고 우리 선수 Link 목록으로만 좁혀서 가져온다.
+async function fetchScoreboardDataForPlayerPages(
+  pages: string[],
   onProgress?: (message: string) => void,
 ): Promise<Map<string, ScoreboardRow[]>> {
   const byLink = new Map<string, ScoreboardRow[]>();
-  let offset = 0;
+  const uniquePages = [...new Set(pages)];
   let totalFetched = 0;
 
-  while (true) {
-    onProgress?.(`ScoreboardPlayers 조회 중... (offset=${offset})`);
+  for (let i = 0; i < uniquePages.length; i += PLAYER_FETCH_CHUNK) {
+    const chunk = uniquePages.slice(i, i + PLAYER_FETCH_CHUNK);
+    const inList = chunk.map((page) => `"${page.replace(/"/g, '\\"')}"`).join(",");
 
-    const batch = await cargoQuery(
-      {
-        tables: "ScoreboardPlayers=SP",
-        fields: "SP.Link,SP.Team,SP.Role,SP.OverviewPage",
-        where: 'SP.OverviewPage LIKE "LCK%"',
-        group_by: "SP.Link,SP.OverviewPage,SP.Team,SP.Role",
-        order_by: "SP.Link ASC,SP.OverviewPage ASC",
-      },
-      offset,
-    );
+    onProgress?.(`선수 전체 리그 전적 조회 중... (${Math.min(i + PLAYER_FETCH_CHUNK, uniquePages.length)}/${uniquePages.length}명)`);
 
-    for (const row of batch) {
-      const link = row.Link?.trim();
-      if (!link) continue;
-      if (!byLink.has(link)) byLink.set(link, []);
-      byLink.get(link)!.push(row);
+    let offset = 0;
+    while (true) {
+      const batch = await cargoQuery(
+        {
+          tables: "ScoreboardPlayers=SP",
+          fields: "SP.Link,SP.Team,SP.Role,SP.OverviewPage",
+          where: `SP.Link IN (${inList})`,
+          group_by: "SP.Link,SP.OverviewPage,SP.Team,SP.Role",
+          order_by: "SP.Link ASC,SP.OverviewPage ASC",
+        },
+        offset,
+      );
+
+      for (const row of batch) {
+        const link = row.Link?.trim();
+        if (!link) continue;
+        if (!byLink.has(link)) byLink.set(link, []);
+        byLink.get(link)!.push(row);
+      }
+
+      totalFetched += batch.length;
+      if (batch.length < 500) break;
+      offset += 500;
+      await sleep(REQUEST_DELAY_MS);
     }
 
-    totalFetched += batch.length;
-
-    if (batch.length < 500) break;
-
-    offset += 500;
     await sleep(REQUEST_DELAY_MS);
   }
 
@@ -240,6 +274,8 @@ function mergeIntoCareerEntries(
   let current: Entry | null = null;
 
   for (const row of rows) {
+    if (isInternationalTournamentPage(row.OverviewPage ?? "")) continue;
+
     const parsed = parseTournamentPage(row.OverviewPage ?? "");
     if (!parsed || !parsed.year) continue;
 
@@ -327,8 +363,11 @@ export async function syncCareerHistories(
 
   onProgress?.(`기존 레코드 ${existingSet.size}개 로드 완료`);
 
-  // Leaguepedia 전체 LCK ScoreboardPlayers를 한 번에 조회
-  const scoreboardByLink = await fetchAllLckScoreboardData(onProgress);
+  // 선수별로 전체 리그(LCK + 해외/국제 대회) 전적을 조회
+  const scoreboardByLink = await fetchScoreboardDataForPlayerPages(
+    players.map((p) => p.leaguepedia_page),
+    onProgress,
+  );
 
   // 선수별 경력 데이터 처리
   for (const player of players) {

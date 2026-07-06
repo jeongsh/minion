@@ -73,7 +73,7 @@ export function HomeMatchCalendar({
           const key = dateKeyFromLocalDate(day);
           const dayMatches = matchesByDate.get(key) ?? [];
 
-          if (dayMatches.length === 0) {
+          if (dayMatches.length === 0 || (selected && dateKeyFromLocalDate(selected) === key)) {
             setSelected(undefined);
             setPopupPosition(null);
             return;

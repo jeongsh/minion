@@ -201,18 +201,18 @@ function TodayMatchCard({
         href={matchHref(match)}
         className="mt-5 grid grid-cols-[1fr_auto_1fr] items-center gap-5"
       >
-        <div className="flex items-center justify-center gap-3">
+        <div className="flex min-w-0 items-center justify-center gap-3">
           <Logo team={a} size="h-16 w-16" plain />
-          <b className="text-lg">{a?.shortName}</b>
+          <b className="min-w-0 truncate text-lg">{a?.shortName}</b>
         </div>
-        <strong className="text-2xl">
+        <strong className="shrink-0 text-2xl">
           {scheduled
             ? "VS"
             : `${match.teamAScore ?? 0} : ${match.teamBScore ?? 0}`}
         </strong>
-        <div className="flex flex-row-reverse items-center justify-center gap-3">
+        <div className="flex min-w-0 flex-row-reverse items-center justify-center gap-3">
           <Logo team={b} size="h-16 w-16" plain />
-          <b className="text-lg">{b?.shortName}</b>
+          <b className="min-w-0 truncate text-lg">{b?.shortName}</b>
         </div>
       </Link>
       <PredictionScore match={match} teams={teams} predictions={predictions} />

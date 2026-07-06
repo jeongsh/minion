@@ -26,6 +26,24 @@ async function getOrCreateVoterKey() {
   return createHash("sha256").update(raw).digest("hex");
 }
 
+/** 팔로우 버튼의 초기 상태 표시용 — 쿠키가 없으면(첫 방문) 그냥 false, 새로 만들지 않는다. */
+export async function getIsFan(teamId: string): Promise<boolean> {
+  const cookieStore = await cookies();
+  const raw = cookieStore.get(FAN_VOTER_COOKIE)?.value;
+  if (!raw) return false;
+
+  const voterKey = createHash("sha256").update(raw).digest("hex");
+  const supabase = createSupabaseAdminClient();
+  const { data } = await supabase
+    .from("team_fans")
+    .select("id")
+    .eq("team_id", teamId)
+    .eq("voter_key", voterKey)
+    .maybeSingle();
+
+  return Boolean(data);
+}
+
 export async function toggleFanAction(teamId: string, teamSlug: string): Promise<{ ok: boolean; isFan: boolean; error?: string }> {
   const voterKey = await getOrCreateVoterKey();
   const supabase = createSupabaseAdminClient();

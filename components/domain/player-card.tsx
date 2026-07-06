@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { getTeamById } from "@/lib/team-themes";
 import type { Player } from "@/lib/types";
 
 const POSITION_LABEL: Record<string, string> = {
@@ -37,8 +36,6 @@ function PlayerPhoto({
 }
 
 export function PlayerCard({ player }: { player: Player }) {
-  const team = getTeamById(player.teamId);
-
   return (
     <Link
       href={`/players/${player.slug}`}
@@ -58,11 +55,7 @@ export function PlayerCard({ player }: { player: Player }) {
         <h2 className="truncate text-base font-bold leading-tight group-hover:text-accent">
           {player.name}
         </h2>
-        <p className="truncate text-sm text-muted">
-          {player.realName}
-          {player.realName && team?.shortName ? " · " : ""}
-          {team?.shortName ?? "소속 미정"}
-        </p>
+        <p className="truncate text-sm text-muted">{player.realName}</p>
       </div>
     </Link>
   );
