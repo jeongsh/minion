@@ -237,6 +237,27 @@ export async function createPost(params: {
   return { id: (data as { id: string }).id };
 }
 
+export async function updatePost(params: {
+  postId: string;
+  boardType: string;
+  title: string;
+  content: string;
+}): Promise<void> {
+  const { error } = await createSupabaseAdminClient()
+    .from("community_posts")
+    .update({ board_type: params.boardType, title: params.title, content: params.content })
+    .eq("id", params.postId);
+  if (error) throw error;
+}
+
+export async function deletePost(postId: string): Promise<void> {
+  const { error } = await createSupabaseAdminClient()
+    .from("community_posts")
+    .delete()
+    .eq("id", postId);
+  if (error) throw error;
+}
+
 /** 댓글 생성. comment_count 증가도 함께 처리. */
 export async function createComment(params: {
   postId: string;

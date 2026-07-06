@@ -87,7 +87,7 @@ export function ColorPicker({ value, onChange, onBeforeCustomPick, icon, quickSe
               onChange(quickSetValue);
               setOpen(false);
             }}
-            className="mb-1.5 w-full rounded border border-border py-0.5 text-[12px] text-muted hover:bg-surface-muted"
+            className="mb-1.5 w-full rounded border border-border py-0.5 text-xs text-muted hover:bg-surface-muted"
           >
             {quickSetLabel}
           </button>
@@ -110,7 +110,7 @@ export function ColorPicker({ value, onChange, onBeforeCustomPick, icon, quickSe
           <div className="mt-1.5 border-t border-border pt-1.5">
             <button
               type="button"
-              className="w-full rounded border border-border py-0.5 text-[12px] text-muted hover:bg-surface-muted"
+              className="w-full rounded border border-border py-0.5 text-xs text-muted hover:bg-surface-muted"
               onMouseDown={() => onBeforeCustomPick()}
               onClick={() => {
                 setOpen(false);

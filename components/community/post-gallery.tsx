@@ -21,7 +21,7 @@ export function PostGallery({
 
   if (posts.length === 0) {
     return (
-      <p className="rounded-[14px] border border-[var(--ui-border)] bg-white p-8 text-center text-[12px] text-[var(--ui-muted)] dark:bg-[var(--ui-surface-muted)]">
+      <p className="rounded-[14px] border border-[var(--ui-border)] bg-white p-8 text-center text-xs text-[var(--ui-muted)] dark:bg-[var(--ui-surface-muted)]">
         아직 게시글이 없습니다. 첫 글을 작성해 보세요.
       </p>
     );
@@ -41,7 +41,7 @@ export function PostGallery({
                 <img src={post.thumbnailUrl} alt="" loading="lazy" className="h-full w-full object-cover" />
               ) : (
                 <div className="flex h-full w-full items-center justify-center p-2">
-                  <p className="line-clamp-3 text-center text-[12px] leading-tight text-[var(--ui-muted)]">
+                  <p className="line-clamp-3 text-center text-xs leading-tight text-[var(--ui-muted)]">
                     {post.excerpt || "내용 없음"}
                   </p>
                 </div>
@@ -50,7 +50,7 @@ export function PostGallery({
 
             <div className="grid h-[56px] min-w-0 grid-rows-[16px_16px_16px] content-between">
               <div className="flex items-center gap-[5px]">
-                <span className="inline-flex rounded-[4px] bg-[var(--surface-1,#f2f0ec)] px-2 py-[3px] text-[12px] font-semibold leading-none text-[var(--ink-2,#6d6c76)]">
+                <span className="inline-flex rounded-[4px] bg-[var(--surface-1,#f2f0ec)] px-2 py-[3px] text-xs font-semibold leading-none text-[var(--ink-2,#6d6c76)]">
                   {boardLabel(scope, post.boardType)}
                 </span>
                 {isHotPost(post) && (
@@ -59,8 +59,8 @@ export function PostGallery({
                   </span>
                 )}
               </div>
-              <h3 className="h-[16px] truncate text-[14px] font-extrabold leading-[16px] text-[var(--ui-ink)]">{post.title}</h3>
-              <div className="flex h-[16px] items-center gap-x-2 overflow-hidden whitespace-nowrap text-[12px] font-semibold leading-[16px] text-[var(--ui-muted)]">
+              <h3 className="h-[16px] truncate text-sm font-extrabold leading-[16px] text-[var(--ui-ink)]">{post.title}</h3>
+              <div className="flex h-[16px] items-center gap-x-2 overflow-hidden whitespace-nowrap text-xs font-semibold leading-[16px] text-[var(--ui-muted)]">
                 <span>{formatRelativeOrDate(post.createdAt)}</span>
                 <span aria-hidden>·</span>
                 <span>명예 {post.likeCount}</span>

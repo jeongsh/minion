@@ -119,8 +119,8 @@ export async function uploadAndInsertEditorImage(params: { editor: Editor; file:
     .setImage({
       src: url,
       width: initialWidth,
-      containerStyle: `width: ${initialWidth}px; height: auto; cursor: pointer; margin: 0.5rem auto;`,
-      wrapperStyle: "display: flex; margin: 0;",
+      containerStyle: `width: ${initialWidth}px; height: auto; cursor: pointer; margin: 0.5rem 0;`,
+      wrapperStyle: "display: flex; justify-content: flex-start; margin: 0;",
     } as never)
     .run();
 }

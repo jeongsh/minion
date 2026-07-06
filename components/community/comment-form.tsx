@@ -3,6 +3,7 @@
 import { Smile } from "lucide-react";
 import { useRef, useState, useTransition } from "react";
 
+import { Button } from "@/components/ui/button";
 import { createCommentAction } from "@/lib/community/actions";
 import type { BoardScope } from "@/lib/community/boards";
 
@@ -82,7 +83,7 @@ export function CommentForm({
           maxLength={MAX_LENGTH}
           required
           placeholder="댓글을 입력해 주세요."
-          className="block w-full resize-none border-0 bg-transparent p-0 text-[14px] leading-relaxed text-[var(--ui-text)] outline-none placeholder:text-[var(--ui-muted)]"
+          className="block w-full resize-none border-0 bg-transparent p-0 text-sm leading-relaxed text-[var(--ui-text)] outline-none placeholder:text-[var(--ui-muted)]"
         />
         <div className="mt-3 flex items-center gap-3">
           <div className="relative">
@@ -112,18 +113,18 @@ export function CommentForm({
             ) : null}
           </div>
           {message ? (
-            <p className="text-[12px] text-[var(--ui-muted)]">{message}</p>
+            <p className="text-xs text-[var(--ui-muted)]">{message}</p>
           ) : null}
-          <span className="ml-auto text-[12px] tabular-nums text-[var(--ui-muted)]">
+          <span className="ml-auto text-xs tabular-nums text-[var(--ui-muted)]">
             {content.length.toLocaleString("ko-KR")}/5,000자
           </span>
-          <button
+          <Button
             type="submit"
             disabled={pending || content.trim().length === 0}
-            className="h-9 rounded-[var(--ui-control-radius)] border border-[var(--tp)] px-4 text-m font-semibold text-[var(--tp)] hover:bg-[var(--ui-surface-muted)] disabled:cursor-not-allowed disabled:opacity-40"
+            variant="secondary"
           >
             {pending ? "등록 중" : "등록"}
-          </button>
+          </Button>
         </div>
       </div>
     </form>

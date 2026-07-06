@@ -48,7 +48,7 @@ export function CommunityFeed({
     <section className="flex flex-col gap-5" aria-label="커뮤니티 게시글">
       <div className="overflow-hidden rounded-[var(--ui-card-radius)] border border-[var(--ui-border)] bg-[var(--ui-surface)]">
         <div className="flex min-h-16 flex-wrap items-center gap-3 border-b border-[var(--ui-border)] px-4">
-          <div className="flex min-w-0 flex-1 self-stretch gap-7 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="tablist" aria-label="게시판 말머리">
+          <div className="flex min-w-0 flex-1 self-stretch overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="tablist" aria-label="게시판 말머리">
             <CategoryButton active={activeCategory === null} onClick={() => { setActiveCategory(null); setPage(1); }}>
               전체
             </CategoryButton>
@@ -66,7 +66,7 @@ export function CommunityFeed({
           <div className="flex shrink-0 items-center gap-2">
             <Link
               href={newPath}
-              className="inline-flex h-10 items-center gap-2 rounded-[var(--ui-control-radius)] bg-[var(--ui-ink)] px-4 text-[14px] font-bold text-[var(--ui-surface)] transition-opacity hover:opacity-85 active:translate-y-px"
+              className="inline-flex h-10 items-center gap-2 rounded-[var(--ui-control-radius)] bg-[var(--ui-ink)] px-4 text-sm font-bold text-[var(--ui-surface)] transition-opacity hover:opacity-85 active:translate-y-px"
             >
               <SquarePen size={16} strokeWidth={2} />
               <span className="hidden sm:inline">글쓰기</span>
@@ -92,7 +92,7 @@ export function CommunityFeed({
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="제목, 내용, 작성자 검색"
-            className="min-w-0 flex-1 bg-transparent px-3 text-[14px] text-[var(--ui-text)] outline-none placeholder:text-[var(--ui-muted)]"
+            className="min-w-0 flex-1 bg-transparent px-3 text-sm text-[var(--ui-text)] outline-none placeholder:text-[var(--ui-muted)]"
           />
           <button type="submit" className="grid w-11 place-items-center border-l border-[var(--ui-border)] text-[var(--ui-muted)] hover:bg-[var(--ui-surface-muted)] hover:text-[var(--ui-ink)]" aria-label="검색">
             <Search size={17} strokeWidth={2} />
@@ -101,7 +101,7 @@ export function CommunityFeed({
 
         <Pagination page={currentPage} totalPages={totalPages} onChange={setPage} />
         {submittedQuery ? (
-          <button type="button" onClick={() => { setQuery(""); setSubmittedQuery(""); setPage(1); }} className="text-left text-[12px] font-semibold text-[var(--ui-muted)] hover:text-[var(--ui-ink)] lg:justify-self-end">
+          <button type="button" onClick={() => { setQuery(""); setSubmittedQuery(""); setPage(1); }} className="text-left text-xs font-semibold text-[var(--ui-muted)] hover:text-[var(--ui-ink)] lg:justify-self-end">
             검색 초기화
           </button>
         ) : <span />}
@@ -112,7 +112,7 @@ export function CommunityFeed({
 
 function CategoryButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
-    <button type="button" role="tab" aria-selected={active} onClick={onClick} className={`relative shrink-0 text-[16px] font-semibold transition-colors ${active ? "text-[var(--ui-ink)] after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:bg-[var(--ui-ink)]" : "text-[var(--ui-muted)] hover:text-[var(--ui-text)]"}`}>
+    <button type="button" role="tab" aria-selected={active} onClick={onClick} className={`px-2 relative shrink-0 text-lg font-bold font-paperozi transition-colors ${active ? "text-[var(--ui-ink)] after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:bg-[var(--ui-ink)]" : "text-[var(--ui-muted)] hover:text-[var(--ui-text)]"}`}>
       {children}
     </button>
   );
@@ -124,13 +124,13 @@ function Pagination({ page, totalPages, onChange }: { page: number; totalPages: 
 
   return (
     <nav className="flex items-center justify-center gap-1" aria-label="페이지 이동">
-      <button type="button" onClick={() => onChange(page - 1)} disabled={page === 1} className="h-9 px-2 text-[14px] font-semibold text-[var(--ui-muted)] disabled:opacity-30">이전</button>
+      <button type="button" onClick={() => onChange(page - 1)} disabled={page === 1} className="h-9 px-2 text-sm font-semibold text-[var(--ui-muted)] disabled:opacity-30">이전</button>
       {pages.map((number) => (
-        <button key={number} type="button" onClick={() => onChange(number)} aria-current={number === page ? "page" : undefined} className={`grid h-9 min-w-9 place-items-center rounded-[var(--ui-control-radius)] px-2 text-[14px] font-bold ${number === page ? "bg-[var(--ui-ink)] text-[var(--ui-surface)]" : "text-[var(--ui-muted)] hover:bg-[var(--ui-surface-muted)] hover:text-[var(--ui-ink)]"}`}>
+        <button key={number} type="button" onClick={() => onChange(number)} aria-current={number === page ? "page" : undefined} className={`grid h-9 min-w-9 place-items-center rounded-[var(--ui-control-radius)] px-2 text-sm font-bold ${number === page ? "bg-[var(--ui-ink)] text-[var(--ui-surface)]" : "text-[var(--ui-muted)] hover:bg-[var(--ui-surface-muted)] hover:text-[var(--ui-ink)]"}`}>
           {number}
         </button>
       ))}
-      <button type="button" onClick={() => onChange(page + 1)} disabled={page === totalPages} className="h-9 px-2 text-[14px] font-semibold text-[var(--ui-muted)] disabled:opacity-30">다음</button>
+      <button type="button" onClick={() => onChange(page + 1)} disabled={page === totalPages} className="h-9 px-2 text-sm font-semibold text-[var(--ui-muted)] disabled:opacity-30">다음</button>
     </nav>
   );
 }

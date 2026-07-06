@@ -5,7 +5,8 @@ import { useState, useTransition } from "react";
 
 import CommunityEditor from "@/components/community/editor/community-editor";
 import { useNavigationTransition } from "@/components/navigation/navigation-transition-provider";
-import { createPostAction } from "@/lib/community/actions";
+import { Button } from "@/components/ui/button";
+import { createPostAction, updatePostAction } from "@/lib/community/actions";
 import type { BoardDef, BoardScope } from "@/lib/community/boards";
 
 function isEmptyDoc(json: string): boolean {
@@ -39,18 +40,24 @@ export function PostForm({
   defaultCategory,
   teamId,
   teamSlug,
+  postId,
+  initialTitle = "",
+  initialContent = "",
 }: {
   scope: BoardScope;
   categories: BoardDef[];
   defaultCategory: string;
   teamId?: string | null;
   teamSlug?: string;
+  postId?: string;
+  initialTitle?: string;
+  initialContent?: string;
 }) {
   const router = useRouter();
   const { startNavigation } = useNavigationTransition();
   const [boardType, setBoardType] = useState(defaultCategory);
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
+  const [title, setTitle] = useState(initialTitle);
+  const [content, setContent] = useState(initialContent);
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -69,17 +76,17 @@ export function PostForm({
     }
 
     startTransition(async () => {
-      const result = await createPostAction({
-        scope,
-        boardType,
-        teamId,
-        teamSlug,
-        title: title.trim(),
-        content,
-      });
+      const result = postId
+        ? await updatePostAction({ postId, scope, boardType, teamSlug, title: title.trim(), content })
+        : await createPostAction({ scope, boardType, teamId, teamSlug, title: title.trim(), content });
       if (result.ok) {
-        if (startNavigation(boardPath)) {
-          router.push(boardPath);
+        const destination = postId
+          ? scope === "team" && teamSlug
+            ? `/fan/${teamSlug}/community/post/${postId}`
+            : `/community/post/${postId}`
+          : boardPath;
+        if (startNavigation(destination)) {
+          router.push(destination);
         }
       } else {
         setMessage(result.error);
@@ -90,8 +97,8 @@ export function PostForm({
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-4">
       {/* 말머리(좌) + 제목(우) 인라인 한 줄 */}
-      <div className="flex items-stretch overflow-hidden rounded-[9px] border border-[#e4e8ef] focus-within:border-accent">
-        <div className="relative flex items-center border-r border-[#e4e8ef] bg-[#f3f6fd]">
+      <div className="flex items-stretch overflow-hidden rounded-[var(--ui-control-radius)] border border-[var(--ui-border)] focus-within:border-[var(--ui-ink)]">
+        <div className="relative flex items-center border-r border-[var(--ui-border)] bg-[var(--ui-surface-muted)]">
           <label htmlFor="post-category" className="sr-only">
             말머리
           </label>
@@ -100,7 +107,7 @@ export function PostForm({
             name="category"
             value={boardType}
             onChange={(e) => setBoardType(e.target.value)}
-            className="appearance-none bg-transparent py-[10px] pl-[13px] pr-8 text-[12px] font-semibold text-accent outline-none"
+            className="appearance-none bg-transparent py-[10px] pl-[13px] pr-8 text-m font-semibold text-[var(--ui-text)] outline-none"
           >
             {categories.map((cat) => (
               <option key={cat.slug} value={cat.slug}>
@@ -108,7 +115,7 @@ export function PostForm({
               </option>
             ))}
           </select>
-          <span className="pointer-events-none absolute right-[11px] text-[12px] text-accent/50" aria-hidden>
+          <span className="pointer-events-none absolute right-[11px] text-[12px] text-[var(--ui-muted)]" aria-hidden>
             ▾
           </span>
         </div>
@@ -123,7 +130,7 @@ export function PostForm({
           onChange={(e) => setTitle(e.target.value)}
           required
           placeholder="제목을 입력하세요"
-          className="min-w-0 flex-1 bg-surface px-[13px] py-[10px] text-[16px] font-semibold text-[#151b2b] outline-none placeholder:font-semibold placeholder:text-[#aab2c2]"
+          className="min-w-0 flex-1 bg-[var(--ui-surface)] px-[13px] py-[10px] text-[16px] font-semibold text-[var(--ui-ink)] outline-none placeholder:font-normal placeholder:text-[var(--ui-muted)]"
         />
       </div>
 
@@ -133,16 +140,16 @@ export function PostForm({
       </div>
 
       <div className="flex items-center justify-between gap-3">
-        <p className="text-[12px] text-[#9aa3b5]">서로 존중하는 커뮤니티를 위해 비방·욕설은 삼가주세요.</p>
+        <p className="text-[12px] text-[var(--ui-muted)]">서로 존중하는 커뮤니티를 위해 비방·욕설은 삼가주세요.</p>
         <div className="flex items-center gap-2">
-          {message ? <p className="text-[12px] text-[#8a93a6]">{message}</p> : null}
-          <button
+          {message ? <p className="text-[12px] text-[var(--ui-muted)]">{message}</p> : null}
+          <Button
             type="submit"
+            variant="neutral"
             disabled={pending}
-            className="rounded-[9px] bg-accent px-[22px] py-[12px] text-[14px] font-bold text-accent-foreground shadow-[0_6px_16px_-6px] shadow-accent/50 transition-opacity hover:opacity-90 disabled:opacity-60"
           >
-            등록
-          </button>
+            {postId ? "수정" : "등록"}
+          </Button>
         </div>
       </div>
     </form>

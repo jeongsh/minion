@@ -1,4 +1,5 @@
 import { CommunityFeed } from "@/components/community/community-feed";
+import { CommunityContentLayout } from "@/components/community/community-content-layout";
 import { PageHeader } from "@/components/ui/page-header";
 import type { BoardScope } from "@/lib/community/boards";
 import { getBoardPosts } from "@/lib/data/community";
@@ -26,7 +27,9 @@ export async function CommunityFeedPage({
     return (
       <main className="community-neutral fan-page-container flex flex-col gap-5 py-7 md:py-9" style={{ ["--tp" as string]: "var(--team-primary, #6158ff)" }}>
         <PageHeader eyebrow={eyebrow ?? "COMMUNITY"} title={title ?? "커뮤니티"} />
-        <CommunityFeed posts={posts} scope={scope} teamSlug={teamSlug} newPath={newPath} />
+        <CommunityContentLayout posts={posts} scope={scope} teamSlug={teamSlug}>
+          <CommunityFeed posts={posts} scope={scope} teamSlug={teamSlug} newPath={newPath} />
+        </CommunityContentLayout>
       </main>
     );
   }
@@ -35,7 +38,9 @@ export async function CommunityFeedPage({
     <main className="subpage community-neutral min-h-screen !bg-[var(--ui-surface)]">
       <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-5 px-10 py-8 max-md:px-5">
         <PageHeader eyebrow={eyebrow ?? "COMMUNITY"} title={title ?? "커뮤니티"} />
-        <CommunityFeed posts={posts} scope={scope} teamSlug={teamSlug} newPath={newPath} />
+        <CommunityContentLayout posts={posts} scope={scope} teamSlug={teamSlug}>
+          <CommunityFeed posts={posts} scope={scope} teamSlug={teamSlug} newPath={newPath} />
+        </CommunityContentLayout>
       </div>
     </main>
   );

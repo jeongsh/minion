@@ -6,5 +6,5 @@ export default async function HubNewPostPage({
   searchParams: Promise<{ cat?: string }>;
 }) {
   const { cat } = await searchParams;
-  return <NewPostPage scope="hub" eyebrow="커뮤니티" initialCategory={cat} />;
+  return <NewPostPage scope="hub" eyebrow="COMMUNITY" initialCategory={cat} />;
 }

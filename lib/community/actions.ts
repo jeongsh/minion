@@ -20,12 +20,14 @@ import type {
 import {
   createComment,
   createPost,
+  deletePost,
   createReport,
   getCommentById,
   getPostById,
   getUserReaction,
   getUserReactionsForComments,
   setReaction,
+  updatePost,
 } from "@/lib/data/community";
 
 const LOGIN_REQUIRED: ActionResult = {
@@ -83,6 +85,52 @@ export async function createPostAction(input: {
 
   revalidatePath(communityIndexPath(input.scope, input.teamSlug));
   return { ok: true, message: "작성되었습니다." };
+}
+
+export async function updatePostAction(input: {
+  postId: string;
+  scope: BoardScope;
+  boardType: string;
+  teamSlug?: string;
+  title: string;
+  content: string;
+}): Promise<ActionResult> {
+  const user = await getCurrentUser();
+  if (!user) return LOGIN_REQUIRED;
+
+  const post = await getPostById(input.postId);
+  if (!post || post.authorId !== user.id || post.siteScope !== input.scope) {
+    return { ok: false, error: "게시글을 수정할 권한이 없습니다." };
+  }
+  if (!getBoard(input.scope, input.boardType)) return { ok: false, error: "존재하지 않는 게시판입니다." };
+
+  const title = input.title.trim();
+  const content = input.content.trim();
+  if (!title) return { ok: false, error: "제목을 입력하세요." };
+  if (!content) return { ok: false, error: "내용을 입력하세요." };
+
+  await updatePost({ postId: input.postId, boardType: input.boardType, title, content });
+  revalidatePath(postPath(input.scope, input.teamSlug, input.postId));
+  revalidatePath(communityIndexPath(input.scope, input.teamSlug));
+  return { ok: true, message: "수정되었습니다." };
+}
+
+export async function deletePostAction(input: {
+  postId: string;
+  scope: BoardScope;
+  teamSlug?: string;
+}): Promise<ActionResult> {
+  const user = await getCurrentUser();
+  if (!user) return LOGIN_REQUIRED;
+
+  const post = await getPostById(input.postId);
+  if (!post || post.authorId !== user.id || post.siteScope !== input.scope) {
+    return { ok: false, error: "게시글을 삭제할 권한이 없습니다." };
+  }
+
+  await deletePost(input.postId);
+  revalidatePath(communityIndexPath(input.scope, input.teamSlug));
+  return { ok: true, message: "삭제되었습니다." };
 }
 
 /** 댓글 작성. */

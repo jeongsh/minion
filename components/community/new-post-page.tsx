@@ -1,59 +1,23 @@
-import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PostForm } from "@/components/community/post-form";
+import { PageHeader } from "@/components/ui/page-header";
+import { SurfacePanel } from "@/components/ui/surface-panel";
 import { categoriesForScope, defaultCategory, type BoardScope } from "@/lib/community/boards";
 
-// 글 작성 페이지(허브/팀 공용). 말머리 선택 + 작성.
-// initialCategory 가 유효한 말머리면 기본 선택값으로 사용(구 보드 링크 호환).
-export function NewPostPage({
-  scope,
-  eyebrow,
-  initialCategory,
-  teamId,
-  teamSlug,
-}: {
-  scope: BoardScope;
-  eyebrow: string;
-  initialCategory?: string;
-  teamId?: string | null;
-  teamSlug?: string;
-}) {
+export function NewPostPage({ scope, eyebrow, initialCategory, teamId, teamSlug }: { scope: BoardScope; eyebrow: string; initialCategory?: string; teamId?: string | null; teamSlug?: string }) {
   const categories = categoriesForScope(scope);
-  const fallback =
-    initialCategory && categories.some((c) => c.slug === initialCategory)
-      ? initialCategory
-      : defaultCategory(scope);
+  const fallback = initialCategory && categories.some((category) => category.slug === initialCategory)
+    ? initialCategory
+    : defaultCategory(scope);
 
   return (
-    <main
-      className={
-        scope === "team"
-          ? "fan-page-container flex flex-col gap-6 py-7 md:py-9"
-          : "mx-auto flex w-full max-w-5xl flex-col gap-6 px-[var(--page-inline)] py-10"
-      }
-    >
-      {scope === "team" ? (
-        <Breadcrumb
-          items={[
-            { label: eyebrow, href: teamSlug ? `/fan/${teamSlug}/community` : undefined },
-            { label: "글쓰기" },
-          ]}
-        />
-      ) : (
-        <Breadcrumb
-          items={[
-            { label: "홈", href: "/" },
-            { label: "커뮤니티", href: "/community" },
-            { label: "글쓰기" },
-          ]}
-        />
-      )}
-      <PostForm
-        scope={scope}
-        categories={categories}
-        defaultCategory={fallback}
-        teamId={teamId}
-        teamSlug={teamSlug}
-      />
+    <main className={scope === "team"
+      ? "fan-page-container flex flex-col gap-5 py-7 md:py-9"
+      : "mx-auto flex w-full max-w-[1400px] flex-col gap-5 px-10 py-8 max-md:px-5"
+    }>
+      <PageHeader eyebrow={eyebrow} title="글쓰기" />
+      <SurfacePanel className="p-5 sm:p-8">
+        <PostForm scope={scope} categories={categories} defaultCategory={fallback} teamId={teamId} teamSlug={teamSlug} />
+      </SurfacePanel>
     </main>
   );
 }
