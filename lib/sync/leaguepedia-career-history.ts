@@ -270,8 +270,15 @@ function mergeIntoCareerEntries(
     endDate: string;
   };
 
-  const entries: Entry[] = [];
-  let current: Entry | null = null;
+  type Parsed = {
+    start: string;
+    end: string;
+    position: string;
+    teamId: string | null;
+    teamName: string | null;
+  };
+
+  const parsedRows: Parsed[] = [];
 
   for (const row of rows) {
     if (isInternationalTournamentPage(row.OverviewPage ?? "")) continue;
@@ -286,17 +293,31 @@ function mergeIntoCareerEntries(
     const team = teamSlug ? bySlug.get(teamSlug) ?? null : null;
     const teamId = team?.id ?? null;
     const teamName = team ? null : (row.Team?.trim() ?? null);
-    const canonicalTeamKey = teamId ?? teamName ?? "";
+
+    parsedRows.push({ start, end, position, teamId, teamName });
+  }
+
+  // OverviewPage 문자열 정렬(SP.Link ASC, SP.OverviewPage ASC)은 리그마다 표기 방식이
+  // 달라 실제 시간 순서와 다를 수 있다(예: LCK와 LPL 페이지가 뒤섞이면 알파벳 순서가
+  // 연대기 순서를 깨뜨림). 그래서 여기서 실제 파싱된 시작일 기준으로 다시 정렬한 뒤
+  // 병합해야 같은 팀 소속 기간이 여러 조각으로 쪼개지지 않는다.
+  parsedRows.sort((a, b) => a.start.localeCompare(b.start));
+
+  const entries: Entry[] = [];
+  let current: Entry | null = null;
+
+  for (const parsed of parsedRows) {
+    const canonicalTeamKey = parsed.teamId ?? parsed.teamName ?? "";
 
     if (
       current &&
       (current.teamId ?? current.teamName ?? "") === canonicalTeamKey &&
-      current.position === position
+      current.position === parsed.position
     ) {
-      current.endDate = end;
+      if (parsed.end > current.endDate) current.endDate = parsed.end;
     } else {
       if (current) entries.push(current);
-      current = { teamId, teamName, position, startDate: start, endDate: end };
+      current = { teamId: parsed.teamId, teamName: parsed.teamName, position: parsed.position, startDate: parsed.start, endDate: parsed.end };
     }
   }
 
