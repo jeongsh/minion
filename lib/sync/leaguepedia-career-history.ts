@@ -282,6 +282,8 @@ function mergeIntoCareerEntries(
 
   for (const row of rows) {
     if (isInternationalTournamentPage(row.OverviewPage ?? "")) continue;
+    // 아시안게임 등 국가대표 소집은 소속팀 계약이 아니라 국가대표 차출이라 경력으로 치지 않는다.
+    if (/national team/i.test(row.Team ?? "")) continue;
 
     const parsed = parseTournamentPage(row.OverviewPage ?? "");
     if (!parsed || !parsed.year) continue;

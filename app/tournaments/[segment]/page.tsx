@@ -4,7 +4,7 @@ import { Fragment } from "react";
 
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { DataTable } from "@/components/ui/data-table";
-import { getAllTeams, getBracketStages, getMatches, getStages, getTournaments } from "@/lib/data/lck";
+import { getAllTeams, getBracketStages, getMatches, getPlayers, getStages, getTournaments } from "@/lib/data/lck";
 import {
   buildStageColumns,
   isWeekStage,
@@ -13,7 +13,7 @@ import {
 } from "@/lib/tournaments/bracket";
 import { segmentThemeByKey } from "@/lib/tournaments/international-segments";
 import { matchesTournamentSegment } from "@/lib/tournaments/season-2026";
-import type { Match, Team, Tournament } from "@/lib/types";
+import type { Match, Player, Team, Tournament } from "@/lib/types";
 import {
   buildTeamStandingRows,
   formatDateRange,
@@ -232,6 +232,70 @@ function RegularStandingsTable({ rows }: { rows: ReturnType<typeof buildTeamStan
           headerClassName: "text-center",
           cellClassName: "text-center tabular-nums",
           render: (row) => row.winRate,
+        },
+      ]}
+    />
+  );
+}
+
+type PomRow = { rank: number; player: Player; team?: Team; count: number };
+
+function buildPomRankingRows(segmentMatches: Match[], players: Player[], teamMap: Map<string, Team>): PomRow[] {
+  const counts = new Map<string, number>();
+  for (const match of segmentMatches) {
+    if (!match.officialPomPlayerId) continue;
+    counts.set(match.officialPomPlayerId, (counts.get(match.officialPomPlayerId) ?? 0) + 1);
+  }
+
+  const unranked: Array<{ player: Player; team?: Team; count: number }> = [];
+  for (const [playerId, count] of counts) {
+    const player = players.find((item) => item.id === playerId);
+    if (player) unranked.push({ player, team: teamMap.get(player.teamId), count });
+  }
+
+  return unranked
+    .sort((a, b) => b.count - a.count)
+    .map((row, index) => ({ ...row, rank: index + 1 }));
+}
+
+function PomRankingTable({ rows }: { rows: PomRow[] }) {
+  return (
+    <DataTable
+      rows={rows}
+      emptyText="아직 선정된 POM이 없습니다."
+      getRowHref={(row) => `/players/${row.player.slug}`}
+      columns={[
+        {
+          key: "player",
+          label: "선수",
+          headerClassName: "min-w-[18rem]",
+          cellClassName: "min-w-[18rem]",
+          render: (row) => (
+            <div className="flex items-center gap-4">
+              <span className="w-9 shrink-0 text-center text-2xl font-black italic tabular-nums">{row.rank}</span>
+              <div className="flex min-w-0 items-center gap-3">
+                {row.player.profileImageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={row.player.profileImageUrl}
+                    alt={row.player.name}
+                    className="h-9 w-9 shrink-0 rounded-full object-cover"
+                  />
+                ) : null}
+                <div className="min-w-0">
+                  <p className="truncate font-semibold">{row.player.name}</p>
+                  <p className="truncate text-xs text-muted">{row.team?.shortName ?? "-"}</p>
+                </div>
+              </div>
+            </div>
+          ),
+        },
+        {
+          key: "count",
+          label: "POM",
+          headerClassName: "text-center",
+          cellClassName: "text-center font-bold tabular-nums",
+          render: (row) => row.count,
         },
       ]}
     />
@@ -708,12 +772,13 @@ export default async function TournamentBracketPage({
   }
 
   const search = await searchParams;
-  const [tournaments, stages, matches, teams, bracketStages] = await Promise.all([
+  const [tournaments, stages, matches, teams, bracketStages, players] = await Promise.all([
     getTournaments(),
     getStages(),
     getMatches(),
     getAllTeams(),
     getBracketStages(),
+    getPlayers(),
   ]);
 
   const segmentTournaments = tournaments.filter((tournament) =>
@@ -777,7 +842,9 @@ export default async function TournamentBracketPage({
     const activeSplit: LckSplitKey = ["1", "2", "3"].includes(search.split ?? "")
       ? (search.split as LckSplitKey)
       : "1";
-    const activeView: "standings" | "bracket" = search.view === "bracket" ? "bracket" : "standings";
+    const activeView: "standings" | "bracket" | "pom" =
+      search.view === "bracket" ? "bracket" : search.view === "pom" ? "pom" : "standings";
+    const pomRows = buildPomRankingRows(segmentMatches, players, teamMap);
     const viewLabels = LCK_SPLIT_VIEW_LABELS[activeSplit];
     const activePhase: "playin" | "playoffs" = search.phase === "playoffs" ? "playoffs" : "playin";
 
@@ -932,13 +999,18 @@ export default async function TournamentBracketPage({
           <div className="flex flex-wrap gap-2">
             {(
               [
+                { key: "pom", label: "POM", query: { view: "pom" } },
                 { key: "standings", label: viewLabels.standings, query: { view: "standings" } },
                 { key: "playin", label: "플레이-인", query: { view: "bracket", phase: "playin" } },
                 { key: "playoffs", label: "플레이오프", query: { view: "bracket", phase: "playoffs" } },
               ] as const
             ).map((tab) => {
               const isActive =
-                tab.key === "standings" ? activeView === "standings" : activeView === "bracket" && activePhase === tab.key;
+                tab.key === "pom"
+                  ? activeView === "pom"
+                  : tab.key === "standings"
+                    ? activeView === "standings"
+                    : activeView === "bracket" && activePhase === tab.key;
               const query = new URLSearchParams({ year: String(activeSeason), split: activeSplit, ...tab.query });
 
               return (
@@ -956,7 +1028,7 @@ export default async function TournamentBracketPage({
           </div>
         ) : (
           <ViewTabs
-            labels={{ standings: viewLabels.standings, bracket: viewLabels.bracket }}
+            labels={{ pom: "순위", standings: viewLabels.standings, bracket: viewLabels.bracket }}
             activeTab={activeView}
             segmentKey={segmentTheme.key}
             activeSeason={activeSeason}
@@ -965,7 +1037,13 @@ export default async function TournamentBracketPage({
           />
         )}
 
-        {activeView === "standings" ? splitStandingsContent[activeSplit] : splitBracketContent[activeSplit]}
+        {activeView === "pom" ? (
+          <PomRankingTable rows={pomRows} />
+        ) : activeView === "standings" ? (
+          splitStandingsContent[activeSplit]
+        ) : (
+          splitBracketContent[activeSplit]
+        )}
       </section>
     );
   } else {
