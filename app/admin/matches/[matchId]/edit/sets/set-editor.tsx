@@ -247,7 +247,7 @@ function AdminTeamHeader({
       {align === "left" ? (
         <TeamSelect id={selectId} name={teamField} teams={teams} defaultValue={teamId} className="max-w-[16rem]" />
       ) : null}
-      <span className="text-[24px] font-semibold">{result}</span>
+      <span className="text-2xl font-semibold">{result}</span>
       {align === "right" ? (
         <TeamSelect id={selectId} name={teamField} teams={teams} defaultValue={teamId} className="max-w-[16rem]" />
       ) : null}
@@ -422,7 +422,7 @@ function PlayerStatBoard({
           <div className="flex min-w-0 items-center gap-3">
             <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded bg-surface-muted">
               {image ? <Image src={image} alt="" width={44} height={44} className="h-full w-full object-cover" /> : null}
-              <span className="absolute bottom-0 right-0 rounded-tl bg-background/90 px-1 text-[12px] font-semibold">
+              <span className="absolute bottom-0 right-0 rounded-tl bg-background/90 px-1 text-xs font-semibold">
                 {row.line.position}
               </span>
             </div>
@@ -516,7 +516,7 @@ function PlayerStatBoard({
 
   return (
     <section className="flex flex-col gap-4" aria-labelledby="player-stats">
-      <h2 id="player-stats" className="text-[24px] font-semibold">
+      <h2 id="player-stats" className="text-2xl font-semibold">
         Player stats
       </h2>
       {blueRows.length + redRows.length === 0 ? (
@@ -624,7 +624,7 @@ function AdminPlayerStatEditor({
 
   return (
     <section className="flex flex-col gap-4" aria-labelledby="player-stats-edit">
-      <h2 id="player-stats-edit" className="text-[24px] font-semibold">
+      <h2 id="player-stats-edit" className="text-2xl font-semibold">
         Player stats
       </h2>
       <input type="hidden" name="playerStatCount" value={rows.length} />

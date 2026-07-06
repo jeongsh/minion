@@ -5,6 +5,7 @@ import { SeasonSegmentFilter } from "@/components/domain/season-segment-filter";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { SectionHeader } from "@/components/layout/section-header";
 import { DataTable } from "@/components/ui/data-table";
+import { Button } from "@/components/ui/button";
 import { getAllPlayers, getAllTeams, getMatches, getStages, getTournaments } from "@/lib/data/lck";
 import {
   filterMatchesBySegment,
@@ -61,30 +62,27 @@ export default async function AdminMatchesPage({
       </div>
 
       <section className="rounded-md border border-border bg-surface p-5">
-        <h2 className="text-[16px] font-semibold">Leaguepedia 동기화</h2>
+        <h2 className="text-base font-semibold">Leaguepedia 동기화</h2>
         <div className="mt-4">
           <SyncLeaguepediaButton cursor={syncCursor} />
         </div>
       </section>
 
       <section className="rounded-md border border-border bg-surface p-5">
-        <h2 className="text-[16px] font-semibold">경기 생성</h2>
+        <h2 className="text-base font-semibold">경기 생성</h2>
         <form action={createMatchAction} className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           <MatchFields teams={teams} tournaments={tournaments} stages={stages} players={players} />
           <div className="flex items-end">
-            <button
-              type="submit"
-              className="w-full rounded-md bg-foreground px-4 py-2 text-sm font-semibold text-background"
-            >
+            <Button type="submit" className="w-full">
               경기 생성
-            </button>
+            </Button>
           </div>
         </form>
       </section>
 
       <section className="flex flex-col gap-4">
         <div className="flex flex-col gap-3">
-          <h2 className="text-[16px] font-semibold">
+          <h2 className="text-base font-semibold">
             {segmentLabel(activeSegment)} 경기 목록 ({sortedMatches.length}건)
           </h2>
           <Suspense fallback={null}>

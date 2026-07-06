@@ -61,7 +61,7 @@ export function MatchCalendar({ matches }: { matches: CalendarMatch[] }) {
           onClick={prevMonth}
           type="button"
           aria-label="이전 달"
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-[16px] text-[#667085] transition-colors hover:bg-[#f4f5f8] hover:text-[#111827]"
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-base text-[#667085] transition-colors hover:bg-[#f4f5f8] hover:text-[#111827]"
         >
           ‹
         </button>
@@ -72,7 +72,7 @@ export function MatchCalendar({ matches }: { matches: CalendarMatch[] }) {
           onClick={nextMonth}
           type="button"
           aria-label="다음 달"
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-[16px] text-[#667085] transition-colors hover:bg-[#f4f5f8] hover:text-[#111827]"
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-base text-[#667085] transition-colors hover:bg-[#f4f5f8] hover:text-[#111827]"
         >
           ›
         </button>
@@ -83,7 +83,7 @@ export function MatchCalendar({ matches }: { matches: CalendarMatch[] }) {
         {WEEKDAYS.map((d, i) => (
           <div
             key={d}
-            className={`py-2.5 text-center text-[12px] font-black ${
+            className={`py-2.5 text-center text-xs font-black ${
               i === 0 ? "text-red-400" : i === 6 ? "text-[#5c88da]" : "text-[#98a2b3]"
             }`}
           >
@@ -113,7 +113,7 @@ export function MatchCalendar({ matches }: { matches: CalendarMatch[] }) {
             >
               {/* 날짜 */}
               <span
-                className={`inline-flex h-6 w-6 items-center justify-center self-start rounded-full text-[12px] font-black ${
+                className={`inline-flex h-6 w-6 items-center justify-center self-start rounded-full text-xs font-black ${
                   isToday
                     ? "bg-accent text-white"
                     : isSun
@@ -138,18 +138,18 @@ export function MatchCalendar({ matches }: { matches: CalendarMatch[] }) {
                     {m.teamALogo ? (
                       <img src={m.teamALogo} alt={m.teamAShort} className="h-4 w-4 object-contain" />
                     ) : (
-                      <span className="text-[12px] font-black text-[#667085]">{m.teamAShort.slice(0, 2)}</span>
+                      <span className="text-xs font-black text-[#667085]">{m.teamAShort.slice(0, 2)}</span>
                     )}
-                    <span className="text-[12px] font-black text-[#98a2b3] group-hover:text-accent">vs</span>
+                    <span className="text-xs font-black text-[#98a2b3] group-hover:text-accent">vs</span>
                     {m.teamBLogo ? (
                       <img src={m.teamBLogo} alt={m.teamBShort} className="h-4 w-4 object-contain" />
                     ) : (
-                      <span className="text-[12px] font-black text-[#667085]">{m.teamBShort.slice(0, 2)}</span>
+                      <span className="text-xs font-black text-[#667085]">{m.teamBShort.slice(0, 2)}</span>
                     )}
                   </a>
                 ))}
                 {dayMatches.length > 2 && (
-                  <span className="text-center text-[12px] font-semibold text-[#98a2b3]">
+                  <span className="text-center text-xs font-semibold text-[#98a2b3]">
                     +{dayMatches.length - 2}경기
                   </span>
                 )}

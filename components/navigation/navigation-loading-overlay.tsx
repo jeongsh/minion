@@ -17,7 +17,7 @@ export function NavigationLoadingOverlay({
         className="flex items-center gap-3 rounded-full border border-[var(--ui-border)] bg-[var(--ui-surface)] px-5 py-3 text-sm font-bold text-[var(--ui-ink)] shadow-xl shadow-[#172554]/10 dark:shadow-black/40"
       >
         <span
-          className="h-5 w-5 animate-spin rounded-full border-2 border-[#d9dcff] border-t-[#6158ff] dark:border-[#383c44] dark:border-t-[var(--accent)]"
+          className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--ui-border)] border-t-[var(--accent)]"
           aria-hidden="true"
         />
         <span>{label}</span>

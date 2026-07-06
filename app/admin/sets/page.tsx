@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { SectionHeader } from "@/components/layout/section-header";
 import { DataTable } from "@/components/ui/data-table";
+import { Button } from "@/components/ui/button";
 import { getAllTeams, getMatches, getSets } from "@/lib/data/lck";
 import { setStatusLabel } from "@/lib/set-status";
 import type { Match, Team } from "@/lib/types";
@@ -35,22 +36,19 @@ export default async function AdminSetsPage() {
       </div>
 
       <section className="rounded-md border border-border bg-surface p-5">
-        <h2 className="text-[16px] font-semibold">세트 생성</h2>
+        <h2 className="text-base font-semibold">세트 생성</h2>
         <form action={createSetAction} className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           <SetFields matches={matches} teams={teams} />
           <div className="flex items-end">
-            <button
-              type="submit"
-              className="w-full rounded-md bg-foreground px-4 py-2 text-sm font-semibold text-background"
-            >
+              <Button type="submit" className="w-full">
               세트 생성
-            </button>
+              </Button>
           </div>
         </form>
       </section>
 
       <section className="flex flex-col gap-4">
-        <h2 className="text-[16px] font-semibold">세트 목록</h2>
+        <h2 className="text-base font-semibold">세트 목록</h2>
         <DataTable
           rows={sets}
           columns={[

@@ -15,7 +15,7 @@ function TeamCard({ team, players }: { team: Team; players: Player[] }) {
     >
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <h3 className="truncate text-[16px] font-semibold">{team.name}</h3>
+          <h3 className="truncate text-base font-semibold">{team.name}</h3>
           <p className="mt-1 text-sm text-muted">
             {team.slug} · {team.leaguepediaPage || "Leaguepedia page 없음"}
           </p>
@@ -25,7 +25,7 @@ function TeamCard({ team, players }: { team: Team; players: Player[] }) {
             // eslint-disable-next-line @next/next/no-img-element
             <img src={team.logoUrl} alt={`${team.name} 로고`} className="h-full w-full object-contain p-1" />
           ) : (
-            <span className="text-[12px] text-muted">NO LOGO</span>
+            <span className="text-xs text-muted">NO LOGO</span>
           )}
         </div>
       </div>
@@ -67,7 +67,7 @@ export default async function AdminInternationalTeamsPage() {
 
       <section className="flex flex-col gap-4" aria-labelledby="international-team-list">
         <div>
-          <h2 id="international-team-list" className="text-[24px] font-semibold">
+          <h2 id="international-team-list" className="text-2xl font-semibold">
             팀 선택
           </h2>
           <p className="mt-1 text-sm text-muted">

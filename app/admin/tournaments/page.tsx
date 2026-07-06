@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { SectionHeader } from "@/components/layout/section-header";
+import { Button } from "@/components/ui/button";
 import { getAllTeams, getBracketStages, getMatches, getStages, getTournaments } from "@/lib/data/lck";
 import { buildAllStageColumns, isWeekStage, splitBracketSides } from "@/lib/tournaments/bracket";
 import {
@@ -344,12 +345,9 @@ export default async function AdminTournamentsPage({
                 className="rounded-md border border-border bg-background px-3 py-1.5 text-sm"
               />
             </label>
-            <button
-              type="submit"
-              className="rounded-md bg-foreground px-3 py-1.5 text-xs font-semibold text-background"
-            >
+            <Button type="submit" size="sm">
               추가
-            </button>
+            </Button>
           </form>
         </section>
       ) : null}
@@ -387,12 +385,9 @@ export default async function AdminTournamentsPage({
               ))}
             </select>
           </label>
-          <button
-            type="submit"
-            className="rounded-md bg-foreground px-4 py-2 text-sm font-semibold text-background"
-          >
+          <Button type="submit">
             라운드 추가
-          </button>
+          </Button>
         </form>
       ) : null}
 

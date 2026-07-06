@@ -8,7 +8,7 @@ export function SectionHeader({
   return (
     <div className="max-w-3xl">
       {eyebrow ? (
-        <p className="text-[14px] font-semibold text-accent">{eyebrow}</p>
+        <p className="text-sm font-semibold text-accent">{eyebrow}</p>
       ) : null}
       <h1 className="mt-2 text-[32px] font-semibold tracking-normal">
         {title}

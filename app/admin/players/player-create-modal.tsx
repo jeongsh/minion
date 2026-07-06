@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
 import type { Team } from "@/lib/types";
 import { createPlayerAction } from "./actions";
 
@@ -28,13 +29,12 @@ export function PlayerCreateModal({ teams }: { teams: Team[] }) {
 
   return (
     <>
-      <button
+      <Button
         type="button"
         onClick={() => setOpen(true)}
-        className="rounded-md bg-foreground px-4 py-2 text-sm font-semibold text-background"
       >
         + 선수 추가
-      </button>
+      </Button>
 
       <dialog
         ref={dialogRef}
@@ -44,13 +44,13 @@ export function PlayerCreateModal({ teams }: { teams: Team[] }) {
         <div className="p-5">
           <div className="mb-5 flex items-center justify-between gap-3">
             <h3 className="font-semibold">선수 추가</h3>
-            <button
+            <Button
               type="button"
               onClick={handleClose}
-              className="rounded-md border border-border px-3 py-1.5 text-sm font-semibold"
+              variant="secondary"
             >
               닫기
-            </button>
+            </Button>
           </div>
 
           <form
@@ -125,12 +125,12 @@ export function PlayerCreateModal({ teams }: { teams: Team[] }) {
               )}
             </label>
 
-            <button
-              type="submit"
-              className="mt-1 rounded-md bg-foreground px-4 py-2 text-sm font-semibold text-background"
-            >
+              <Button
+                type="submit"
+                className="mt-1"
+              >
               추가
-            </button>
+              </Button>
           </form>
         </div>
       </dialog>

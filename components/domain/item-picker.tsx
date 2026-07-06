@@ -66,7 +66,7 @@ export function ItemPicker({
         {value && imageUrl ? (
           <Image src={imageUrl} alt={selectedName} width={40} height={40} className="h-full w-full object-cover" />
         ) : (
-          <span className="grid h-full w-full place-items-center text-[12px] font-semibold text-muted">
+          <span className="grid h-full w-full place-items-center text-xs font-semibold text-muted">
             {slotLabel ?? "+"}
           </span>
         )}

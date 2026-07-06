@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
 import { retirePlayerAction } from "./actions";
 
 export function RetireButton({ id, name }: { id: string; name: string }) {
@@ -15,31 +16,30 @@ export function RetireButton({ id, name }: { id: string; name: string }) {
       <div className="flex items-center gap-1">
         <form action={retirePlayerAction}>
           <input type="hidden" name="id" value={id} />
-          <button
-            type="submit"
-            className="rounded bg-amber-500 px-2 py-1 text-xs font-semibold text-white"
-          >
+          <Button type="submit" variant="danger" size="sm">
             확인
-          </button>
+          </Button>
         </form>
-        <button
+        <Button
           type="button"
           onClick={() => setConfirm(false)}
-          className="rounded border border-border px-2 py-1 text-xs font-semibold"
+          variant="secondary"
+          size="sm"
         >
           취소
-        </button>
+        </Button>
       </div>
     );
   }
 
   return (
-    <button
+    <Button
       type="button"
       onClick={() => setConfirm(true)}
-      className="rounded border border-amber-500/40 px-2 py-1 text-xs font-semibold text-amber-600 hover:bg-amber-500/10"
+      variant="danger"
+      size="sm"
     >
       은퇴
-    </button>
+    </Button>
   );
 }

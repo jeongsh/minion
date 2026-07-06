@@ -123,7 +123,7 @@ function ChampionPickerModal({
                         />
                       ) : null}
                     </div>
-                    <p className="line-clamp-2 px-1 py-1.5 text-center text-[12px] font-semibold leading-tight">
+                    <p className="line-clamp-2 px-1 py-1.5 text-center text-xs font-semibold leading-tight">
                       {championLabel(champion)}
                     </p>
                   </button>

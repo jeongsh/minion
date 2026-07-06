@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useActionState } from "react";
 
+import { Button } from "@/components/ui/button";
 import { signUpAction } from "@/lib/auth/actions";
 import { INITIAL_AUTH_STATE } from "@/lib/auth/action-state";
 
@@ -54,14 +55,12 @@ export function SignupForm() {
         </p>
       ) : null}
 
-      <button
+      <Button
         type="submit"
         disabled={pending}
-        className="rounded-md px-4 py-2 text-sm font-bold text-[var(--accent-foreground)] disabled:opacity-60"
-        style={{ backgroundColor: "var(--accent)" }}
       >
         {pending ? "가입 중…" : "회원가입"}
-      </button>
+      </Button>
 
       <p className="text-sm" style={{ color: "var(--muted)" }}>
         이미 계정이 있으신가요?{" "}

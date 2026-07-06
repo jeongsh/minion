@@ -307,7 +307,7 @@ export default async function AdminNewsPage({
                     <td className="px-4 py-3 text-muted">{row.boardType}</td>
                     <td className="px-4 py-3">
                       <span
-                        className={`rounded-full px-2 py-0.5 text-[12px] font-semibold ${
+                        className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
                           row.siteScope === "hub"
                             ? "bg-accent/10 text-accent"
                             : "bg-surface-muted text-muted"

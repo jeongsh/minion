@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 
+import { Button } from "@/components/ui/button";
 import { updateNicknameAction } from "@/lib/auth/actions";
 import { INITIAL_PROFILE_STATE } from "@/lib/auth/action-state";
 
@@ -43,14 +44,13 @@ export function ProfileForm({ initialNickname }: { initialNickname: string }) {
         </p>
       ) : null}
 
-      <button
+      <Button
         type="submit"
         disabled={pending}
-        className="self-start rounded-md px-4 py-2 text-sm font-bold text-[var(--accent-foreground)] disabled:opacity-60"
-        style={{ backgroundColor: "var(--accent)" }}
+        className="self-start"
       >
         {pending ? "저장 중…" : "닉네임 저장"}
-      </button>
+      </Button>
     </form>
   );
 }

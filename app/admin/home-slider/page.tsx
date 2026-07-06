@@ -35,7 +35,7 @@ export default async function AdminHomeSliderPage() {
 
       <section className="grid gap-4">
         <div className="flex items-end justify-between gap-3">
-          <h2 className="text-[16px] font-black text-foreground">등록된 슬라이드</h2>
+          <h2 className="text-base font-black text-foreground">등록된 슬라이드</h2>
           <p className="text-sm font-semibold text-muted">총 {slides.length}개</p>
         </div>
 

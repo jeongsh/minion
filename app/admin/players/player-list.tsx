@@ -155,7 +155,7 @@ export function PlayerList({
       {(retiredPlayers.length > 0 || q) && (
         <section className="flex flex-col gap-4">
           <div className="flex items-center gap-3 border-t border-border pt-8">
-            <h2 className="text-[24px] font-bold">은퇴 선수</h2>
+            <h2 className="text-2xl font-bold">은퇴 선수</h2>
             <span className="rounded-full bg-muted/20 px-2.5 py-0.5 text-sm text-muted">
               {filteredRetired.length}명
             </span>
@@ -178,12 +178,12 @@ export function PlayerList({
                     {/* 선수 기본 정보 */}
                     <div className="flex flex-wrap items-start justify-between gap-4">
                       <div className="flex items-center gap-4">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted/20 text-[16px] font-bold text-muted">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted/20 text-base font-bold text-muted">
                           {p.name.slice(0, 2).toUpperCase()}
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className="font-bold text-[16px]">{p.name}</span>
+                            <span className="font-bold text-base">{p.name}</span>
                             <span className="rounded bg-muted/20 px-1.5 py-0.5 text-xs text-muted">
                               {POS_LABEL[p.position]}
                             </span>

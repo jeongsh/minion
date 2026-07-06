@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useActionState } from "react";
 
+import { Button } from "@/components/ui/button";
 import { signInAction } from "@/lib/auth/actions";
 import { INITIAL_AUTH_STATE } from "@/lib/auth/action-state";
 
@@ -50,14 +51,12 @@ export function LoginForm() {
         </p>
       ) : null}
 
-      <button
+      <Button
         type="submit"
         disabled={pending}
-        className="rounded-md px-4 py-2 text-sm font-bold text-[var(--accent-foreground)] disabled:opacity-60"
-        style={{ backgroundColor: "var(--accent)" }}
       >
         {pending ? "로그인 중…" : "로그인"}
-      </button>
+      </Button>
 
       <p className="text-sm" style={{ color: "var(--muted)" }}>
         계정이 없으신가요?{" "}

@@ -63,7 +63,12 @@ export function AppShell({ children, currentUser = null }: { children: React.Rea
           {teamsOpen && <div className="mt-1 space-y-1">{teams.map((team) => {
             const active = fanKey === team.fanSiteHost;
             return <Link key={team.id} href={`/fan/${team.fanSiteHost}`} title={team.name} data-active={active} className={`flex h-10 items-center gap-3 rounded-xl px-3 text-sm font-semibold ${active ? "bg-[#f0f1f2]" : "hover:bg-[#f6f6f7]"}`}>
-              <span className="grid h-7 w-7 shrink-0 place-items-center overflow-hidden rounded-full bg-[#f1f2f4]">{team.logoUrl ? <img src={team.logoUrl} alt="" className="h-6 w-6 object-contain" /> : team.shortName.slice(0,1)}</span>
+              <span className="grid h-7 w-7 shrink-0 place-items-center overflow-hidden rounded-full bg-[#f1f2f4]">
+                {team.logoUrl ? team.logoWhiteUrl ? <>
+                  <img src={team.logoUrl} alt="" className="h-6 w-6 object-contain dark:hidden" />
+                  <img src={team.logoWhiteUrl} alt="" aria-hidden="true" className="hidden h-6 w-6 object-contain dark:block" />
+                </> : <img src={team.logoUrl} alt="" className="h-6 w-6 object-contain" /> : team.shortName.slice(0,1)}
+              </span>
               {!collapsed && <><span className="truncate">{team.shortName}</span>{active && <span className="ml-auto h-2 w-2 rounded-full bg-[#18191c]" />}</>}
             </Link>;
           })}</div>}

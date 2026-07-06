@@ -15,12 +15,12 @@ export function SectionHeading({
   className?: string;
 }) {
   const trailing = aside ?? (href ? (
-    <Link href={href} className="ml-auto flex items-center text-[14px] font-bold text-[var(--ui-muted)]">
+    <Link href={href} className="ml-auto flex items-center text-sm font-bold text-[var(--ui-muted)]">
       전체보기
       <ChevronRight size={16} />
     </Link>
   ) : caption ? (
-    <span className="pb-0.5 text-[12px] font-semibold text-[var(--ui-muted)]">{caption}</span>
+    <span className="pb-0.5 text-xs font-semibold text-[var(--ui-muted)]">{caption}</span>
   ) : null);
 
   return (

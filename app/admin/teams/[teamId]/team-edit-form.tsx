@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import type { Team, TeamIdentityHistory } from "@/lib/types";
 import { createTeamIdentityHistoryAction, updateTeamAction } from "../actions";
 import {
@@ -104,7 +105,7 @@ export function TeamEditForm({
           }}
         >
           <section>
-            <h2 className="text-[16px] font-semibold">기본 정보</h2>
+            <h2 className="text-base font-semibold">기본 정보</h2>
             <p className="mt-1 text-sm text-muted">팀명, slug, 팬사이트 호스트, 스태프</p>
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               <TeamBasicFields team={team} />
@@ -112,7 +113,7 @@ export function TeamEditForm({
           </section>
 
           <section>
-            <h2 className="text-[16px] font-semibold">브랜딩</h2>
+            <h2 className="text-base font-semibold">브랜딩</h2>
             <p className="mt-1 text-sm text-muted">팀 컬러, 로고, 배경 이미지</p>
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               <TeamBrandingFields team={team} />
@@ -120,7 +121,7 @@ export function TeamEditForm({
           </section>
 
           <section>
-            <h2 className="text-[16px] font-semibold">공식 링크</h2>
+            <h2 className="text-base font-semibold">공식 링크</h2>
             <p className="mt-1 text-sm text-muted">홈페이지 및 SNS 채널</p>
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               <TeamLinkFields team={team} />
@@ -128,7 +129,7 @@ export function TeamEditForm({
           </section>
 
           <section>
-            <h2 className="text-[16px] font-semibold">연동 / 메타</h2>
+            <h2 className="text-base font-semibold">연동 / 메타</h2>
             <p className="mt-1 text-sm text-muted">Leaguepedia, 소스 ID, 파워랭킹</p>
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               <TeamMetaFields team={team} />
@@ -136,12 +137,9 @@ export function TeamEditForm({
           </section>
 
           <div className="flex justify-end border-t border-border pt-4">
-            <button
-              type="submit"
-              className="rounded-md bg-accent px-5 py-2.5 text-sm font-semibold text-accent-foreground"
-            >
+            <Button type="submit">
               변경사항 저장
-            </button>
+            </Button>
           </div>
         </form>
       </div>
@@ -149,16 +147,16 @@ export function TeamEditForm({
       <section className="rounded-lg border border-border bg-surface p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-[16px] font-semibold">팀명 / 로고 변경 이력</h2>
+            <h2 className="text-base font-semibold">팀명 / 로고 변경 이력</h2>
             <p className="mt-1 text-sm text-muted">네이밍 스폰서 변경이나 리브랜딩 기록</p>
           </div>
-          <button
+          <Button
             type="button"
             onClick={() => setShowHistoryForm((value) => !value)}
-            className="rounded-md border border-border px-3 py-2 text-sm font-semibold hover:bg-surface-muted"
+            variant="secondary"
           >
             {showHistoryForm ? "추가 폼 닫기" : "+ 이력 추가"}
-          </button>
+          </Button>
         </div>
 
         {histories.length === 0 ? (
@@ -206,12 +204,9 @@ export function TeamEditForm({
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               <IdentityHistoryFields team={team} />
             </div>
-            <button
-              type="submit"
-              className="mt-4 rounded-md bg-foreground px-4 py-2 text-sm font-semibold text-background"
-            >
+            <Button type="submit" className="mt-4">
               이력 추가
-            </button>
+            </Button>
           </form>
         ) : null}
       </section>

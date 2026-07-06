@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clock3 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { DayPicker } from "react-day-picker";
 import { ko } from "react-day-picker/locale";
@@ -65,7 +65,7 @@ export function HomeMatchCalendar({
   }, []);
 
   return (
-    <section ref={containerRef} className="relative h-[330px] overflow-visible rounded-2xl border border-[var(--ui-border)] bg-white p-5 dark:bg-[var(--ui-surface-muted)]">
+    <section ref={containerRef} className="home-calendar-shell relative h-[330px] overflow-visible rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-5">
       <DayPicker
         mode="single"
         selected={selected}
@@ -109,20 +109,23 @@ export function HomeMatchCalendar({
       />
       {popupPosition && selectedMatches.length > 0 ? (
         <div
-          className="absolute z-30 w-[248px] rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface-muted)] p-3 text-left shadow-[0_18px_44px_rgba(0,0,0,0.16)]"
+          className="absolute z-30 w-[248px] rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-2.5 text-left shadow-[0_20px_55px_rgba(0,0,0,0.18)]"
           style={{ left: popupPosition.left, top: popupPosition.top }}
         >
-          <p className="mb-2 text-xs font-black text-[var(--ui-ink)]">{selected?.getDate()}일 경기</p>
-          <div className="flex flex-col gap-2">
+          <div className="mb-2 flex items-center justify-between px-1 py-0.5">
+            <p className="text-sm font-black text-[var(--ui-ink)]">{selected?.getDate()}일 경기</p>
+            <span className="rounded-full bg-[var(--ui-surface-muted)] px-2 py-1 text-[10px] font-black text-[var(--ui-muted)]">{selectedMatches.length} MATCHES</span>
+          </div>
+          <div className="flex max-h-[210px] flex-col gap-1.5 overflow-y-auto">
             {selectedMatches.map((match) => (
               <Link
                 key={match.id}
                 href={match.href}
-                className="rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 py-2 transition hover:border-[var(--ui-ink)] hover:bg-[var(--ui-surface-muted)]"
+                className="group rounded-xl border border-transparent bg-[var(--ui-surface-muted)] px-3 py-2.5 transition hover:border-[var(--ui-border)]"
               >
-                <span className="block text-[12px] font-bold text-[var(--ui-muted)]">{match.time}</span>
-                <span className="mt-1 block text-xs font-black leading-snug text-[var(--ui-ink)]">{match.title}</span>
-                <span className="mt-1 block text-[12px] font-semibold text-[var(--ui-muted)]">{match.teams}</span>
+                <span className="flex items-center gap-1 text-[11px] font-bold text-[var(--ui-muted)]"><Clock3 className="size-3" strokeWidth={2.25} />{match.time}</span>
+                <span className="mt-1.5 block text-xs font-black leading-snug text-[var(--ui-ink)]">{match.title}</span>
+                <span className="mt-1 block truncate text-xs font-semibold text-[var(--ui-muted)] transition-colors group-hover:text-[var(--ui-ink)]">{match.teams}</span>
               </Link>
             ))}
           </div>

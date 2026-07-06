@@ -56,7 +56,7 @@ export function TeamList({ teams }: { teams: Team[] }) {
                     className="h-12 w-12 object-contain drop-shadow"
                   />
                 ) : (
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/20 text-[16px] font-bold text-white">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/20 text-base font-bold text-white">
                     {team.shortName?.slice(0, 2)}
                   </div>
                 )}

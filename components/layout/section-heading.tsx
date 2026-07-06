@@ -19,10 +19,10 @@ export function SectionHeading({
 }) {
   return (
     <div className={`section-rule flex items-end justify-between gap-4 pb-2 ${className}`}>
-      <h2 className="font-archivo text-[24px] font-black uppercase leading-none tracking-tight text-[var(--ink)]">
+      <h2 className="font-archivo text-2xl font-black uppercase leading-none tracking-tight text-[var(--ink)]">
         {title}
       </h2>
-      {aside ?? (caption ? <span className="pb-[2px] text-[12px] text-[var(--ink-3)]">{caption}</span> : null)}
+      {aside ?? (caption ? <span className="pb-[2px] text-xs text-[var(--ink-3)]">{caption}</span> : null)}
     </div>
   );
 }

@@ -88,7 +88,7 @@ export function SlideFormModal({ mode, slide }: { mode: "create" | "edit"; slide
       >
         <div className="p-6">
           <div className="mb-5 flex items-center justify-between gap-3">
-            <h3 className="text-[16px] font-black text-foreground">
+            <h3 className="text-base font-black text-foreground">
               {mode === "create" ? "슬라이드 등록" : "슬라이드 수정"}
             </h3>
             <button
@@ -143,7 +143,7 @@ export function SlideFormModal({ mode, slide }: { mode: "create" | "edit"; slide
                   }}
                 />
                 {mode === "edit" ? (
-                  <span className="text-[12px] font-semibold text-muted">비워두면 기존 이미지를 유지합니다.</span>
+                  <span className="text-xs font-semibold text-muted">비워두면 기존 이미지를 유지합니다.</span>
                 ) : null}
               </label>
             </div>

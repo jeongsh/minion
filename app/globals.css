@@ -49,7 +49,7 @@
   --surface-muted: #eef2f7;
   --border: #d8dee9;
   --muted: #667085;
-  --accent: #2258d8;
+  --accent: #21bf0d;
   --accent-foreground: #ffffff;
   --radius: 8px;
   --page-inline: clamp(1rem, 3vw, 2rem);
@@ -106,7 +106,7 @@ html[data-navigation-pending="true"] :is(a, button, input, select, textarea, [ro
   inset: 0 0 auto;
   height: 3px;
   overflow: hidden;
-  background: rgb(97 88 255 / 0.12);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
 }
 
 .navigation-progress-bar {
@@ -114,7 +114,11 @@ html[data-navigation-pending="true"] :is(a, button, input, select, textarea, [ro
   width: 38%;
   height: 100%;
   border-radius: 999px;
-  background: linear-gradient(90deg, #6158ff, #8b5cf6);
+  background: linear-gradient(
+    90deg,
+    var(--accent),
+    color-mix(in srgb, var(--accent) 78%, white)
+  );
   animation: navigation-progress 1.05s ease-in-out infinite;
 }
 
@@ -135,11 +139,15 @@ html[data-navigation-pending="true"] :is(a, button, input, select, textarea, [ro
 }
 
 html[class~="dark"] .navigation-progress-track {
-  background: rgb(40 191 255 / 0.15);
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
 }
 
 html[class~="dark"] .navigation-progress-bar {
-  background: linear-gradient(90deg, #28bfff, #6158ff);
+  background: linear-gradient(
+    90deg,
+    var(--accent),
+    color-mix(in srgb, var(--accent) 78%, white)
+  );
 }
 
 .font-archivo {
@@ -171,7 +179,7 @@ html[class~="dark"] {
   --surface-muted: #1c1e22;
   --border: #383c44;
   --muted: #8f98a8;
-  --accent: #28bfff;
+  --accent: #47e50b;
   --accent-foreground: #061018;
   /* 게임 타임라인 차트 (다크) — 표면은 한 단계 밝게, 라인은 은은하게 */
   --timeline-chart-surface: #1c1e22;
@@ -209,7 +217,6 @@ html[class~="dark"] .app-lnb a[data-active="true"] {
   min-height: 42px;
   place-items: center;
   padding-block: 0.625rem;
-  font-size: 12px;
 }
 
 .home-today-match-grid .bg-\[\#f1f0f4\] {
@@ -236,13 +243,17 @@ html[class~="dark"] .app-lnb a[data-active="true"] {
   --btn-border: #e2e3e7;
   --surface-1-hover: #e6e7ea;
   --row-soft-hover: #f8f9fa;
-  /* 허브 기본 팀 액센트(사이트 퍼플). 팬/선수 컨텍스트에서 override. */
-  --tp: #6158ff;
-  /* 기존 accent 기반 컴포넌트(리액션 버튼 등)를 --tp에 맞춘다. */
-  --accent: var(--tp);
-  --accent-foreground: #fff;
+  /* 통합 서브페이지는 전역 accent를 사용한다. */
+  --tp: var(--accent);
   color: var(--ink);
   background: var(--ui-surface);
+}
+
+/* Fan subpages keep their team-specific accent. */
+.team-surface .subpage {
+  --tp: var(--team-primary);
+  --accent: var(--tp);
+  --accent-foreground: #fff;
 }
 
 /* 커뮤니티 중립 모노톤 토큰 — 팀 컬러(특히 차가운 색)와 충돌하는
@@ -321,6 +332,10 @@ html[class~="dark"] .app-lnb a[data-active="true"] {
 }
 
 @layer base {
+  :is(a, button, [role="button"], [role="link"]) {
+    cursor: pointer;
+  }
+
   a {
     color: inherit;
     text-decoration: none;
@@ -408,16 +423,20 @@ html[class~="dark"] .match-detail-page .text-muted {
 }
 
 .home-match-calendar {
-  --rdp-accent-color: #6a66ff;
-  --rdp-accent-background-color: #f2f1ff;
-  --rdp-day-height: 34px;
-  --rdp-day-width: 34px;
-  --rdp-day_button-height: 28px;
-  --rdp-day_button-width: 28px;
-  --rdp-day_button-border-radius: 999px;
+  --rdp-accent-color: var(--ui-ink);
+  --rdp-accent-background-color: var(--ui-surface-muted);
+  --rdp-day-height: 38px;
+  --rdp-day-width: 38px;
+  --rdp-day_button-height: 32px;
+  --rdp-day_button-width: 32px;
+  --rdp-day_button-border-radius: 10px;
   margin: 0;
   width: 100%;
   display: block;
+}
+
+.home-calendar-shell {
+  box-shadow: 0 14px 34px rgb(24 25 28 / 0.06);
 }
 
 .home-match-calendar .rdp-months,
@@ -436,15 +455,25 @@ html[class~="dark"] .match-detail-page .text-muted {
 
 .home-match-calendar .rdp-day_button {
   margin-inline: auto;
-  font-size: 14px;
+  border: 1px solid transparent;
+  font-size: 13px;
+  font-weight: 700;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+.home-match-calendar .rdp-day_button:hover {
+  border-color: var(--ui-border);
+  background: var(--ui-surface-muted);
+  transform: translateY(-1px);
 }
 
 .home-match-calendar .rdp-month_caption {
-  height: 2rem;
-  font-size: 18px;
+  height: 1.875rem;
+  font-size: 17px;
   font-weight: 900;
-  color: #111827;
-  margin-bottom: 1rem;
+  letter-spacing: -0.025em;
+  color: var(--ui-ink);
+  margin-bottom: 0.35rem;
 }
 
 .home-match-calendar .rdp-nav {
@@ -453,20 +482,28 @@ html[class~="dark"] .match-detail-page .text-muted {
 
 .home-match-calendar .rdp-button_next,
 .home-match-calendar .rdp-button_previous {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   border: 1px solid var(--ui-border);
   border-radius: 999px;
-  color: #a0a3a8;
-  background: var(--ui-surface);
+  color: var(--ui-muted);
+  background: color-mix(in srgb, var(--ui-surface) 85%, transparent);
+  transition: border-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
 }
 .home-match-calendar .rdp-button_next{
-  margin-left: 0.5rem;
+  margin-left: 0.35rem;
+}
+
+.home-match-calendar .rdp-button_next:hover,
+.home-match-calendar .rdp-button_previous:hover {
+  border-color: var(--ui-ink);
+  color: var(--ui-ink);
+  transform: scale(1.04);
 }
 
 .home-match-calendar .rdp-weekday {
-  padding: 0.35rem 0 0.5rem;
-  font-size: 12px;
+  padding: 0.15rem 0 0.3rem;
+  font-size: 11px;
   font-weight: 900;
   color: var(--ui-muted);
   opacity: 1;
@@ -477,22 +514,15 @@ html[class~="dark"] .match-detail-page .text-muted {
 }
 
 .home-match-calendar .home-calendar-has-match .rdp-day_button {
-  background: #f0efff;
-  border-color: #c5c1ff;
-  color: #5b55ff;
+  background: color-mix(in srgb, var(--accent) 10%, var(--ui-surface));
+  border-color: color-mix(in srgb, var(--accent) 28%, var(--ui-border));
+  color: var(--ui-ink);
   font-weight: 900;
-  box-shadow: 0 8px 18px rgb(106 102 255 / 0.14);
+  box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--accent) 75%, transparent);
 }
 
 .home-match-calendar .home-calendar-has-match::after {
-  position: absolute;
-  right: 4px;
-  bottom: 6px;
-  width: 4px;
-  height: 4px;
-  border-radius: 999px;
-  background: #6a66ff;
-  content: "";
+  content: none;
 }
 
 .home-match-calendar .rdp-outside {
@@ -500,9 +530,10 @@ html[class~="dark"] .match-detail-page .text-muted {
 }
 
 .home-match-calendar .rdp-selected .rdp-day_button {
-  background: #6a66ff;
-  border-color: #6a66ff;
-  color: #ffffff;
+  background: var(--ui-ink);
+  border-color: var(--ui-ink);
+  color: var(--ui-surface);
+  box-shadow: 0 7px 16px rgb(24 25 28 / 0.18);
 }
 
 .hub-home .home-match-calendar {
@@ -511,20 +542,17 @@ html[class~="dark"] .match-detail-page .text-muted {
 }
 
 .hub-home .home-match-calendar .home-calendar-has-match .rdp-day_button {
-  border-color: #a9abb0;
-  background: #eeeeef;
-  color: #18191c;
-  box-shadow: 0 8px 18px rgb(24 25 28 / 0.1);
-}
-
-.hub-home .home-match-calendar .home-calendar-has-match::after,
-.hub-home .home-match-calendar .rdp-selected .rdp-day_button {
-  border-color: #18191c;
-  background: #18191c;
+  border-color: color-mix(in srgb, var(--accent) 28%, var(--ui-border));
+  background: color-mix(in srgb, var(--accent) 10%, var(--ui-surface));
+  color: var(--ui-ink);
+  box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--accent) 75%, transparent);
 }
 
 .hub-home .home-match-calendar .rdp-selected .rdp-day_button {
+  border-color: var(--ui-ink);
+  background: var(--ui-ink);
   color: #fff !important;
+  box-shadow: 0 7px 16px rgb(24 25 28 / 0.18);
 }
 
 /* Lucide 아이콘 기반 공용 캐러셀 네비게이션 버튼 */

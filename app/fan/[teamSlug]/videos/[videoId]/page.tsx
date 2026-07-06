@@ -100,7 +100,7 @@ export default async function FanVideoDetailPage({
           )}
         </div>
 
-        <h1 className="mt-4 text-[24px] font-bold leading-7 tracking-[-0.02em] text-[#0f0f0f]">{video.title}</h1>
+          <h1 className="mt-4 text-2xl font-bold leading-7 tracking-[-0.02em] text-[#0f0f0f]">{video.title}</h1>
 
         <div className="mt-4 flex flex-col gap-4 border-b border-[#e5e5e5] pb-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 items-center gap-3">

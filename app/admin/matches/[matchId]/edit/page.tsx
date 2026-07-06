@@ -68,7 +68,7 @@ export default async function AdminMatchEditPage({
       </div>
 
       <section className="rounded-md border border-border bg-surface p-5">
-        <h2 className="text-[16px] font-semibold">경기 기본정보</h2>
+        <h2 className="text-base font-semibold">경기 기본정보</h2>
         <p className="mt-2 text-sm text-muted">
           현재 상태 <span className="font-semibold text-foreground">{matchStatusLabel(match.status)}</span> · 스코어{" "}
           <span className="font-semibold text-foreground">
@@ -173,7 +173,7 @@ export default async function AdminMatchEditPage({
 
       <section className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-[16px] font-semibold">경기 데이터 · 세트 결과 ({sets.length}개)</h2>
+          <h2 className="text-base font-semibold">경기 데이터 · 세트 결과 ({sets.length}개)</h2>
           {!hasLeaguepediaMatchId ? (
             <Link
               href={`${adminMatchPath}/sets/new`}

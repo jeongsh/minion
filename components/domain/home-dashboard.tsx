@@ -107,7 +107,7 @@ function UpcomingCard({
     b = teams.get(match.teamBId);
   return (
     <article className="h-[154px] overflow-hidden rounded-xl bg-[#fafafa] p-3 dark:border-[#e3e1e8] dark:border">
-      <div className="flex justify-between text-[12px] font-semibold text-[#777b82]">
+      <div className="flex justify-between text-xs font-semibold text-[#777b82]">
         <span>{tournament ?? match.name}</span>
         <span>{formatDateTime(match.matchDate)}</span>
       </div>
@@ -151,7 +151,7 @@ function PredictionScore({
   const ap = total ? Math.round((av / total) * 100) : 50;
   return (
     <div className="home-prediction-score mt-3">
-      <div className="flex justify-between text-[12px] font-black">
+      <div className="flex justify-between text-xs font-black">
         <span>
           {a?.shortName ?? "TBD"} {ap}%
         </span>
@@ -205,7 +205,7 @@ function TodayMatchCard({
           <Logo team={a} size="h-16 w-16" plain />
           <b className="text-lg">{a?.shortName}</b>
         </div>
-        <strong className="text-[24px]">
+        <strong className="text-2xl">
           {scheduled
             ? "VS"
             : `${match.teamAScore ?? 0} : ${match.teamBScore ?? 0}`}
@@ -268,7 +268,7 @@ export function HomeDashboard({
         <div className="h-[390px] overflow-hidden rounded-2xl border border-[#e3e1e8] bg-white p-4 dark:bg-[var(--ui-surface-muted)]">
           <div className="mb-3 flex items-center gap-2 text-[#18191c]">
             <CalendarDays size={20} />
-            <h2 className="home-section-title text-[20px]">다가오는 경기</h2>
+            <h2 className="home-section-title text-xl">다가오는 경기</h2>
             <span className="ml-auto rounded-full bg-[#eeeeef] px-2 py-1 text-[11px] font-black text-[#18191c] dark:bg-[#2a2f35]">
               PREDICTION
             </span>
@@ -304,6 +304,7 @@ export function HomeDashboard({
               >
                 <Logo
                   team={team}
+                  themeAware
                   size="h-[76px] w-[76px] sm:h-[88px] sm:w-[88px] transition group-hover:-translate-y-1 group-hover:shadow-lg"
                 />
               </Link>
@@ -371,6 +372,7 @@ export function HomeDashboard({
                     <span
                       key={i}
                       className={`grid h-7 w-7 place-items-center rounded-full text-[11px] font-black text-white ${v === "W" ? "bg-[#00b979]" : "bg-[#b7bac0]"}`}
+                      style={{lineHeight: `1`}}
                     >
                       {v}
                     </span>

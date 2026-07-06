@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
 import type { Team } from "@/lib/types";
 import { createPostAction, updatePostAction } from "./actions";
 
@@ -76,13 +77,13 @@ export function PostFormModal({
         <div className="p-6">
           <div className="mb-5 flex items-center justify-between gap-3">
             <h3 className="font-semibold">{mode === "create" ? "글 추가" : "글 수정"}</h3>
-            <button
+            <Button
               type="button"
               onClick={handleClose}
-              className="rounded-md border border-border px-3 py-1.5 text-sm font-semibold"
+              variant="secondary"
             >
               닫기
-            </button>
+            </Button>
           </div>
 
           <form
@@ -178,12 +179,9 @@ export function PostFormModal({
               />
             </label>
 
-            <button
-              type="submit"
-              className="mt-1 rounded-md bg-foreground px-4 py-2 text-sm font-semibold text-background"
-            >
+            <Button type="submit" className="mt-1">
               {mode === "create" ? "추가" : "저장"}
-            </button>
+            </Button>
           </form>
         </div>
       </dialog>
