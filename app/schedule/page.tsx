@@ -46,7 +46,7 @@ export default async function SchedulePage({
 
   return (
     <main className="schedule-page min-h-screen bg-[var(--ui-surface)] text-[var(--ui-text)]">
-      <div className="mx-auto w-full max-w-[1500px] px-5 pb-16 pt-8 xl:px-10">
+      <div className="mx-auto w-full max-w-[1500px] px-5 pt-8 xl:px-10">
         <PageHeader
           eyebrow="MATCH SCHEDULE"
           title="경기 일정"
@@ -56,7 +56,9 @@ export default async function SchedulePage({
             </p>
           }
         />
-        <div className="sticky top-16 z-30 -mx-5 mt-8 border-b border-[#e8e8eb] bg-[var(--ui-surface)]/95 px-5 py-4 backdrop-blur dark:border-[#383c44] xl:-mx-10 xl:px-10">
+      </div>
+      <div className="sticky top-16 z-30 mt-8 border-b border-[#e8e8eb] bg-[var(--ui-surface)]/95 backdrop-blur dark:border-[#383c44]">
+        <div className="mx-auto w-full max-w-[1500px] px-5 py-4 xl:px-10">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <Suspense fallback={null}>
               <ScheduleFilters
@@ -71,6 +73,8 @@ export default async function SchedulePage({
             <Link href="/schedule" className="text-xs font-bold text-[var(--ui-muted)] transition-colors hover:text-[var(--ui-ink)]">필터 초기화</Link>
           </div>
         </div>
+      </div>
+      <div className="mx-auto w-full max-w-[1500px] px-5 pb-16 xl:px-10">
         <div className="mt-10">
           <ScheduleList
             matches={filtered}
