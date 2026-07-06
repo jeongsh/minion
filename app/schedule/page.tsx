@@ -51,17 +51,9 @@ export default async function SchedulePage({
           eyebrow="MATCH SCHEDULE"
           title="경기 일정"
           action={
-            <div className="flex items-center gap-2">
-              <p className="rounded-full bg-[var(--ui-surface-muted)] px-3 py-1.5 text-xs font-bold text-[var(--ui-muted)]">
-                {filtered.length} MATCHES
-              </p>
-              <Link
-                href="/schedule/renewal"
-                className="rounded-full bg-[var(--accent)] px-3 py-1.5 text-xs font-bold text-[var(--accent-foreground)] transition-opacity hover:opacity-90"
-              >
-                새 디자인 보기
-              </Link>
-            </div>
+            <p className="rounded-full bg-[var(--ui-surface-muted)] px-3 py-1.5 text-xs font-bold text-[var(--ui-muted)]">
+              {filtered.length} MATCHES
+            </p>
           }
         />
         <div className="sticky top-16 z-30 -mx-5 mt-8 border-b border-[#e8e8eb] bg-[var(--ui-surface)]/95 px-5 py-4 backdrop-blur dark:border-[#383c44] xl:-mx-10 xl:px-10">
