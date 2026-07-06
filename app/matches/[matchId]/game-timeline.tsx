@@ -267,17 +267,11 @@ export function GameTimeline({
   const maxBlueRow = blueClusters.length > 0 ? Math.max(...blueClusters.map((c) => c.row)) : 0;
   const maxRedRow  = redClusters.length  > 0 ? Math.max(...redClusters.map( (c) => c.row)) : 0;
 
-  const blueH = Math.max((maxBlueRow + 1) * ITEM_SLT, MIN_HALF);
-  const redH  = Math.max((maxRedRow  + 1) * ITEM_SLT, MIN_HALF);
-
-  const graphTop = TOP_MAR;
-  const centerY  = graphTop + blueH + CTR_GAP;
-  const graphBot = centerY  + CTR_GAP + redH;
-  const axisY    = graphBot;
-  const svgH     = axisY + BOT_MAR;
-
-  const blueCY = (row: number) => graphTop + ITEM_SZ / 2 + row * ITEM_SLT;
-  const redCY  = (row: number) => centerY  + CTR_GAP + ITEM_SZ / 2 + row * ITEM_SLT;
+  // 아이콘(킬/오브젝트)이 실제로 필요로 하는 최소 높이(겹치면 안 되는 진짜 하한)
+  const blueIconMin = (maxBlueRow + 1) * ITEM_SLT;
+  const redIconMin  = (maxRedRow  + 1) * ITEM_SLT;
+  // 기존과 동일한 전체 높이(변하지 않음) — 이 안에서만 블루/레드 비중을 재분배한다
+  const totalH = Math.max(blueIconMin, MIN_HALF) + Math.max(redIconMin, MIN_HALF);
 
   // 골드 프레임 동기화가 있으면 실제 분당 골드 차이를 쓰고, 없으면 킬 차이로 대체한다(이 경우 단위는 킬 개수).
   const goldPoints = frames
@@ -290,11 +284,13 @@ export function GameTimeline({
   const hasGoldFrames = goldPoints.length >= 2;
   const unit: "gold" | "kills" = hasGoldFrames ? "gold" : "kills";
 
-  let maxDiff: number;
+  let maxBlueLead: number;
+  let maxRedLead: number;
   let displayDiffAt: (seconds: number) => number;
 
   if (hasGoldFrames) {
-    maxDiff = Math.max(1000, ...goldPoints.map((p) => Math.abs(p.diff)));
+    maxBlueLead = Math.max(0, ...goldPoints.map((p) => p.diff));
+    maxRedLead  = Math.max(0, ...goldPoints.map((p) => -p.diff));
     displayDiffAt = (seconds: number) => {
       if (seconds <= goldPoints[0].seconds) return goldPoints[0].diff;
       const last = goldPoints[goldPoints.length - 1];
@@ -310,10 +306,12 @@ export function GameTimeline({
     };
   } else {
     let tmpDiff = 0;
-    maxDiff = 5;
+    maxBlueLead = 0;
+    maxRedLead = 0;
     for (const e of killEvents) {
       if (e.teamId === blueTeamId) tmpDiff++; else tmpDiff--;
-      maxDiff = Math.max(maxDiff, Math.abs(tmpDiff));
+      maxBlueLead = Math.max(maxBlueLead, tmpDiff);
+      maxRedLead = Math.max(maxRedLead, -tmpDiff);
     }
     const transitionSeconds = Math.min(90, Math.max(45, duration / 5));
     const eventTransitions = killEvents.map((event) => {
@@ -337,10 +335,36 @@ export function GameTimeline({
     }, 0);
   }
 
+  // 한쪽 팀이 계속 우세해서 다른 쪽이 거의 0 근처에만 머무는 경우, 전체 높이(totalH)는
+  // 그대로 둔 채 그 안에서만 블루/레드 비중을 골드(킬) 차이 비율에 맞게 재분배한다.
+  // 아이콘이 겹치면 안 되므로 각자의 진짜 최소 높이(blueIconMin/redIconMin) 밑으로는
+  // 줄이지 않고, 모자란 만큼은 반대쪽에서 가져온다.
+  const totalLead = maxBlueLead + maxRedLead;
+  const blueLeadRatio = totalLead > 0 ? maxBlueLead / totalLead : 0.5;
+  let blueH = totalH * blueLeadRatio;
+  let redH  = totalH - blueH;
+  if (blueH < blueIconMin) { blueH = blueIconMin; redH = totalH - blueH; }
+  if (redH < redIconMin)   { redH = redIconMin;   blueH = totalH - redH; }
+
+  const graphTop = TOP_MAR;
+  const centerY  = graphTop + blueH + CTR_GAP;
+  const graphBot = centerY  + CTR_GAP + redH;
+  const axisY    = graphBot;
+  const svgH     = axisY + BOT_MAR;
+
+  const blueCY = (row: number) => graphTop + ITEM_SZ / 2 + row * ITEM_SLT;
+  const redCY  = (row: number) => centerY  + CTR_GAP + ITEM_SZ / 2 + row * ITEM_SLT;
+
+  // 두 팀 y축 단위를 통일하지 않고, 각자 실제 최대치에 맞춰 독립적으로 스케일링한다
+  // (한쪽이 크게 앞서도 반대쪽의 작은 변화가 눌려 보이지 않게).
+  const scaleFloor = unit === "kills" ? 5 : 1000;
+  const blueScaleMax = Math.max(scaleFloor, maxBlueLead);
+  const redScaleMax  = Math.max(scaleFloor, maxRedLead);
+
   const ampBlue = blueH * 0.92;
   const ampRed  = redH  * 0.92;
   const dy = (d: number) =>
-    d >= 0 ? centerY - (d / maxDiff) * ampBlue : centerY + (-d / maxDiff) * ampRed;
+    d >= 0 ? centerY - (d / blueScaleMax) * ampBlue : centerY + (-d / redScaleMax) * ampRed;
 
   const sampleStep = Math.max(5, duration / 140);
   const chartPoints: ChartPoint[] = [];
@@ -356,19 +380,20 @@ export function GameTimeline({
   for (let m = 5; m * 60 < duration; m += 5) mins.push(m);
 
   // y축 그리드 간격: 킬 단위는 1~2 단위로, 골드 단위는 라운드 넘버(1000/2000/5000 등)로 잡는다.
-  const gridStep = unit === "kills"
-    ? (maxDiff <= 4 ? 1 : maxDiff <= 8 ? 2 : Math.ceil(maxDiff / 4))
-    : (() => {
-        const rough = maxDiff / 4;
-        const magnitude = 10 ** Math.floor(Math.log10(rough));
-        const normalized = rough / magnitude;
-        const niceNormalized = normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10;
-        return niceNormalized * magnitude;
-      })();
-  const gridValues: number[] = [0];
-  for (let d = gridStep; d <= maxDiff; d += gridStep) {
-    gridValues.push(d, -d);
+  // 블루/레드 각자의 최대치를 기준으로 따로 계산해 서로 다른 단위 간격을 쓸 수 있다.
+  function computeGridStep(maxVal: number) {
+    if (unit === "kills") return maxVal <= 4 ? 1 : maxVal <= 8 ? 2 : Math.ceil(maxVal / 4);
+    const rough = maxVal / 4;
+    const magnitude = 10 ** Math.floor(Math.log10(rough));
+    const normalized = rough / magnitude;
+    const niceNormalized = normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10;
+    return niceNormalized * magnitude;
   }
+  const blueGridStep = computeGridStep(blueScaleMax);
+  const redGridStep  = computeGridStep(redScaleMax);
+  const gridValues: number[] = [0];
+  for (let d = blueGridStep; d <= blueScaleMax; d += blueGridStep) gridValues.push(d);
+  for (let d = redGridStep; d <= redScaleMax; d += redGridStep) gridValues.push(-d);
   const formatDiffLabel = (d: number) => {
     if (d === 0) return "0";
     if (unit === "kills") return `${d > 0 ? "+" : ""}${d}`;
@@ -424,14 +449,15 @@ export function GameTimeline({
         <path d={areaD} fill={`url(#${uid}-gb)`} clipPath={`url(#${uid}-bc)`} />
         <path d={areaD} fill={`url(#${uid}-gr)`} clipPath={`url(#${uid}-rc)`} />
 
-        {/* y축 그리드 */}
+        {/* y축 그리드 — 0 기준선만 그리고, 나머지 값은 라벨만 표시해 잔선을 없앤다 */}
         {gridValues.map((d) => {
           const y = dy(d);
           return (
             <g key={`gy${d}`}>
-              <line x1={PAD_X} y1={y} x2={SVG_W - PAD_X} y2={y}
-                stroke={d === 0 ? "var(--timeline-chart-muted)" : "var(--timeline-chart-grid)"}
-                strokeWidth={d === 0 ? 1.6 : 0.7} />
+              {d === 0 && (
+                <line x1={PAD_X} y1={y} x2={SVG_W - PAD_X} y2={y}
+                  stroke="var(--timeline-chart-muted)" strokeWidth={1.6} />
+              )}
               <text x={PAD_X - 4} y={y + 3} textAnchor="end" fontSize={7}
                 fill={d > 0 ? "#4c8dff" : d < 0 ? "#ff5b6e" : "var(--timeline-chart-muted)"} fontWeight="600">
                 {formatDiffLabel(d)}
