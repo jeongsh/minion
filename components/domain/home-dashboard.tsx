@@ -106,7 +106,7 @@ function UpcomingCard({
   const a = teams.get(match.teamAId),
     b = teams.get(match.teamBId);
   return (
-    <article className="h-[154px] overflow-hidden rounded-xl bg-[#f5f6f7] p-3">
+    <article className="h-[154px] overflow-hidden rounded-xl bg-[#fafafa] p-3 dark:border-[#e3e1e8] dark:border">
       <div className="flex justify-between text-[12px] font-semibold text-[#777b82]">
         <span>{tournament ?? match.name}</span>
         <span>{formatDateTime(match.matchDate)}</span>
