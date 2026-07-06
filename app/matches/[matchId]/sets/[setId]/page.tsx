@@ -15,6 +15,7 @@ import {
   getSetPicksBans,
   getSetsByMatchId,
   getTimelineEvents,
+  getTimelineFrames,
 } from "@/lib/data/lck";
 import { calculatePlayerStats } from "@/lib/stats";
 import { championImage } from "@/lib/champions";
@@ -537,6 +538,7 @@ export async function SetDetailContent({
     playerStatLines,
     matchSets,
     timelineEvents,
+    timelineFrames,
   ] = await Promise.all([
     getAllTeams(),
     getAllPlayers(),
@@ -545,6 +547,7 @@ export async function SetDetailContent({
     getPlayerStatLines(set.id),
     getSetsByMatchId(match.id),
     getTimelineEvents(set.id),
+    getTimelineFrames(set.id),
   ]);
 
   const sideDraftItems = (side: "blue" | "red", actionType: "pick" | "ban") =>
@@ -763,6 +766,7 @@ export async function SetDetailContent({
         <div className="overflow-hidden rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)]">
           <GameTimeline
             events={timelineEvents}
+            frames={timelineFrames}
             durationSeconds={set.durationSeconds}
             blueTeamId={set.blueTeamId}
             redTeamId={set.redTeamId}

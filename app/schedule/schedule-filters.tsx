@@ -22,7 +22,7 @@ export function ScheduleFilters({
   activeMonth: number;
   activeSegment: string;
   years: number[];
-  teams: { id: string; name: string; shortName: string }[];
+  teams: { id: string; name: string; shortName: string; isLckTeam?: boolean }[];
   activeTeam?: string;
   pathname?: string;
   lockTeam?: boolean;
@@ -95,7 +95,7 @@ export function ScheduleFilters({
         selected={activeTeam}
         options={[
           ...(lockTeam ? [] : [{ value: "all", label: "전체 팀" }]),
-          ...teams.map((team) => ({ value: team.id, label: team.shortName || team.name })),
+          ...teams.filter((team) => team.isLckTeam !== false).map((team) => ({ value: team.id, label: team.shortName || team.name })),
         ]}
         onSelect={(value) => navigate({ team: value })}
         disabled={isNavigating || lockTeam}

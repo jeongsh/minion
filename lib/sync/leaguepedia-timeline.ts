@@ -30,11 +30,19 @@ type RiotEvent = {
   laneType?: string;
 };
 
+type RiotParticipantFrame = {
+  level?: number;
+  totalGold?: number;
+  xp?: number;
+  minionsKilled?: number;
+  jungleMinionsKilled?: number;
+};
+
 type RiotTimeline = {
   frames?: Array<{
     timestamp: number;
     events?: RiotEvent[];
-    participantFrames?: Record<string, { level?: number }>;
+    participantFrames?: Record<string, RiotParticipantFrame>;
   }>;
 };
 
@@ -43,6 +51,7 @@ export type LeaguepediaTimelineSyncResult = {
   eventCount: number;
   inserted: number;
   skipped: number;
+  framesInserted: number;
   reason: string | null;
 };
 
@@ -172,6 +181,72 @@ export function parseLeaguepediaTimelineEvents(
   return rows;
 }
 
+/** 라이엇 타임라인의 프레임별 participantFrames를 팀 단위 골드/경험치/CS 합계로 집계한다(분당 스냅샷). */
+export function parseLeaguepediaTimelineFrames(
+  timeline: RiotTimeline,
+  setId: string,
+  blueTeamId: string,
+  redTeamId: string,
+  participantMap: Map<number, { playerId: string; teamId: string }>,
+) {
+  const byMinute = new Map<number, {
+    set_id: string;
+    minute: number;
+    timestamp_ms: number;
+    blue_total_gold: number;
+    red_total_gold: number;
+    gold_diff: number;
+    blue_total_xp: number;
+    red_total_xp: number;
+    xp_diff: number;
+    blue_total_cs: number;
+    red_total_cs: number;
+    cs_diff: number;
+  }>();
+
+  for (const frame of timeline.frames ?? []) {
+    const participantFrames = frame.participantFrames ?? {};
+    let blueGold = 0, redGold = 0, blueXp = 0, redXp = 0, blueCs = 0, redCs = 0;
+    let hasBlue = false, hasRed = false;
+
+    for (const [participantId, pf] of Object.entries(participantFrames)) {
+      const participant = participantMap.get(Number(participantId));
+      if (!participant) continue;
+      const isBlue = participant.teamId === blueTeamId;
+      const isRed = participant.teamId === redTeamId;
+      if (!isBlue && !isRed) continue;
+
+      const gold = typeof pf.totalGold === "number" ? pf.totalGold : 0;
+      const xp = typeof pf.xp === "number" ? pf.xp : 0;
+      const cs = (typeof pf.minionsKilled === "number" ? pf.minionsKilled : 0)
+        + (typeof pf.jungleMinionsKilled === "number" ? pf.jungleMinionsKilled : 0);
+
+      if (isBlue) { blueGold += gold; blueXp += xp; blueCs += cs; hasBlue = true; }
+      else { redGold += gold; redXp += xp; redCs += cs; hasRed = true; }
+    }
+
+    if (!hasBlue || !hasRed) continue; // 참가자 매핑이 안 된 프레임은 건너뛴다
+
+    const minute = Math.floor(frame.timestamp / 60_000);
+    byMinute.set(minute, {
+      set_id: setId,
+      minute,
+      timestamp_ms: frame.timestamp,
+      blue_total_gold: blueGold,
+      red_total_gold: redGold,
+      gold_diff: blueGold - redGold,
+      blue_total_xp: blueXp,
+      red_total_xp: redXp,
+      xp_diff: blueXp - redXp,
+      blue_total_cs: blueCs,
+      red_total_cs: redCs,
+      cs_diff: blueCs - redCs,
+    });
+  }
+
+  return [...byMinute.values()].sort((a, b) => a.minute - b.minute);
+}
+
 function timelinePageFromPlatformGameId(platformGameId: string | null) {
   return platformGameId ? `V5 data:${platformGameId.replace(/_/g, " ")}/Timeline` : null;
 }
@@ -239,7 +314,7 @@ export async function syncLeaguepediaTimelineForSet(
   if (setError) throw setError;
   const typedSet = set as SetRow;
   if (!typedSet.leaguepedia_game_id || !typedSet.blue_team_id || !typedSet.red_team_id) {
-    return { status: "waiting_for_source", eventCount: 0, inserted: 0, skipped: 0, reason: "Set source IDs or sides are missing" };
+    return { status: "waiting_for_source", eventCount: 0, inserted: 0, skipped: 0, framesInserted: 0, reason: "Set source IDs or sides are missing" };
   }
 
   const { data: stats, error: statsError } = await supabase
@@ -248,24 +323,24 @@ export async function syncLeaguepediaTimelineForSet(
     .eq("set_id", setId);
   if (statsError) throw statsError;
   if ((stats ?? []).length < 10) {
-    return { status: "waiting_for_source", eventCount: 0, inserted: 0, skipped: 0, reason: `Player mapping is incomplete: players=${stats?.length ?? 0}` };
+    return { status: "waiting_for_source", eventCount: 0, inserted: 0, skipped: 0, framesInserted: 0, reason: `Player mapping is incomplete: players=${stats?.length ?? 0}` };
   }
 
   const pageResult = await fetchTimelinePage(typedSet.leaguepedia_game_id);
   if (pageResult.status === "rate_limited") {
-    return { status: "rate_limited", eventCount: 0, inserted: 0, skipped: 0, reason: "Leaguepedia timeline metadata was rate limited" };
+    return { status: "rate_limited", eventCount: 0, inserted: 0, skipped: 0, framesInserted: 0, reason: "Leaguepedia timeline metadata was rate limited" };
   }
   const pageName = pageResult.pageName ?? timelinePageFromPlatformGameId(typedSet.riot_platform_game_id);
   if (!pageName) {
-    return { status: "waiting_for_source", eventCount: 0, inserted: 0, skipped: 0, reason: "TimelinePage is not available yet" };
+    return { status: "waiting_for_source", eventCount: 0, inserted: 0, skipped: 0, framesInserted: 0, reason: "TimelinePage is not available yet" };
   }
 
   const timelineResult = await fetchTimelineJson(pageName);
   if (timelineResult.status === "rate_limited") {
-    return { status: "rate_limited", eventCount: 0, inserted: 0, skipped: 0, reason: "Leaguepedia timeline page was rate limited" };
+    return { status: "rate_limited", eventCount: 0, inserted: 0, skipped: 0, framesInserted: 0, reason: "Leaguepedia timeline page was rate limited" };
   }
   if (!timelineResult.timeline?.frames?.length) {
-    return { status: "waiting_for_source", eventCount: 0, inserted: 0, skipped: 0, reason: "Timeline frames are not available yet" };
+    return { status: "waiting_for_source", eventCount: 0, inserted: 0, skipped: 0, framesInserted: 0, reason: "Timeline frames are not available yet" };
   }
 
   const participantMap = buildParticipantMap(
@@ -282,8 +357,15 @@ export async function syncLeaguepediaTimelineForSet(
     typedSet.red_team_id,
     participantMap,
   );
-  if (events.length === 0) {
-    return { status: "waiting_for_source", eventCount: 0, inserted: 0, skipped: 0, reason: "Timeline contains no supported events" };
+  const frames = parseLeaguepediaTimelineFrames(
+    timelineResult.timeline,
+    setId,
+    typedSet.blue_team_id,
+    typedSet.red_team_id,
+    participantMap,
+  );
+  if (events.length === 0 && frames.length === 0) {
+    return { status: "waiting_for_source", eventCount: 0, inserted: 0, skipped: 0, framesInserted: 0, reason: "Timeline contains no supported events" };
   }
 
   let inserted = 0;
@@ -303,5 +385,14 @@ export async function syncLeaguepediaTimelineForSet(
       else throw eventError;
     }
   }
-  return { status: "succeeded", eventCount: events.length, inserted, skipped, reason: null };
+
+  let framesInserted = 0;
+  for (let index = 0; index < frames.length; index += 200) {
+    const batch = frames.slice(index, index + 200);
+    const { error } = await supabase.from("match_timeline_frames").upsert(batch, { onConflict: "set_id,minute" });
+    if (error) throw error;
+    framesInserted += batch.length;
+  }
+
+  return { status: "succeeded", eventCount: events.length, inserted, skipped, framesInserted, reason: null };
 }

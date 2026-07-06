@@ -89,7 +89,7 @@ export function MatchDataSyncPanel({
         `세트 ${setsSummary.upserted}개, 밴픽 ${setsSummary.picksBansUpserted}개, 선수 스탯 ${setsSummary.playerStatsUpserted}개 저장`,
       ];
       if (timelineSummary) {
-        parts.push(`타임라인 세트 ${timelineSummary.setsProcessed}개 처리, 이벤트 ${timelineSummary.eventsInserted}개 저장`);
+        parts.push(`타임라인 세트 ${timelineSummary.setsProcessed}개 처리, 이벤트 ${timelineSummary.eventsInserted}개 · 골드 프레임 ${timelineSummary.framesInserted}개 저장`);
       } else if (timelineError) {
         parts.push(`타임라인 동기화 실패: ${timelineError}`);
       }
@@ -132,7 +132,7 @@ export function MatchDataSyncPanel({
         return;
       }
       const { summary } = result;
-      setMessage(`세트 ${summary.setsProcessed}개 처리, 이벤트 ${summary.eventsInserted}개 저장`);
+      setMessage(`세트 ${summary.setsProcessed}개 처리, 이벤트 ${summary.eventsInserted}개 · 골드 프레임 ${summary.framesInserted}개 저장`);
     });
   }
 
@@ -150,7 +150,7 @@ export function MatchDataSyncPanel({
         `세트 ${setsResult.summary.upserted}개, 밴픽 ${setsResult.summary.picksBansUpserted}개, 선수 스탯 ${setsResult.summary.playerStatsUpserted}개 저장`,
       ];
       if (timelineResult.ok) {
-        parts.push(`타임라인 세트 ${timelineResult.summary.setsProcessed}개 처리, 이벤트 ${timelineResult.summary.eventsInserted}개 저장`);
+        parts.push(`타임라인 세트 ${timelineResult.summary.setsProcessed}개 처리, 이벤트 ${timelineResult.summary.eventsInserted}개 · 골드 프레임 ${timelineResult.summary.framesInserted}개 저장`);
       } else {
         parts.push(`타임라인 동기화 실패: ${timelineResult.error}`);
       }

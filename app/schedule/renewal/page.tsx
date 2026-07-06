@@ -1,13 +1,13 @@
 import Link from "next/link";
 import { Suspense } from "react";
 
-import { ScheduleList } from "@/components/domain/schedule-list";
+import { ScheduleListRenewal } from "@/components/domain/schedule-list-renewal";
 import { PageHeader } from "@/components/ui/page-header";
 import { getAllTeams, getMatches, getStages, getTournaments } from "@/lib/data/lck";
 import { filterMatchesBySegment, parseSeasonSegment, segmentLabel } from "@/lib/tournament-filters";
 import { getMonthKST, getYearKST, KST_TIMEZONE } from "@/lib/view-data";
 
-import { ScheduleFilters } from "./schedule-filters";
+import { ScheduleFilters } from "../schedule-filters";
 
 function currentKSTMonthYear() {
   const now = new Date();
@@ -17,7 +17,7 @@ function currentKSTMonthYear() {
   };
 }
 
-export default async function SchedulePage({
+export default async function ScheduleRenewalPage({
   searchParams,
 }: {
   searchParams: Promise<{ month?: string; year?: string; segment?: string; team?: string }>;
@@ -48,20 +48,15 @@ export default async function SchedulePage({
     <main className="schedule-page min-h-screen bg-[var(--ui-surface)] text-[var(--ui-text)]">
       <div className="mx-auto w-full max-w-[1500px] px-5 pb-16 pt-8 xl:px-10">
         <PageHeader
-          eyebrow="MATCH SCHEDULE"
+          eyebrow="MATCH SCHEDULE · RENEWAL"
           title="경기 일정"
           action={
-            <div className="flex items-center gap-2">
-              <p className="rounded-full bg-[var(--ui-surface-muted)] px-3 py-1.5 text-xs font-bold text-[var(--ui-muted)]">
-                {filtered.length} MATCHES
-              </p>
-              <Link
-                href="/schedule/renewal"
-                className="rounded-full bg-[var(--accent)] px-3 py-1.5 text-xs font-bold text-[var(--accent-foreground)] transition-opacity hover:opacity-90"
-              >
-                새 디자인 보기
-              </Link>
-            </div>
+            <Link
+              href="/schedule"
+              className="rounded-full bg-[var(--ui-surface-muted)] px-3 py-1.5 text-xs font-bold text-[var(--ui-muted)] transition-colors hover:text-[var(--ui-ink)]"
+            >
+              예전 디자인으로
+            </Link>
           }
         />
         <div className="sticky top-16 z-30 -mx-5 mt-8 border-b border-[#e8e8eb] bg-[var(--ui-surface)]/95 px-5 py-4 backdrop-blur dark:border-[#383c44] xl:-mx-10 xl:px-10">
@@ -74,13 +69,14 @@ export default async function SchedulePage({
                 activeTeam={activeTeam}
                 years={years}
                 teams={teams}
+                pathname="/schedule/renewal"
               />
             </Suspense>
-            <Link href="/schedule" className="text-xs font-bold text-[var(--ui-muted)] transition-colors hover:text-[var(--ui-ink)]">필터 초기화</Link>
+            <Link href="/schedule/renewal" className="text-xs font-bold text-[var(--ui-muted)] transition-colors hover:text-[var(--ui-ink)]">필터 초기화</Link>
           </div>
         </div>
         <div className="mt-10">
-          <ScheduleList
+          <ScheduleListRenewal
             matches={filtered}
             teams={teams}
             tournaments={tournaments}

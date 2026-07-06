@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { ScheduleTodayScroll } from "@/components/domain/schedule-today-scroll";
 import { TeamLogo } from "@/components/ui/team-logo";
-import { matchStatusLabel, stageName, tournamentTypeLabel } from "@/lib/match-display";
+import { isMatchLive, matchStatusLabel, stageName, tournamentTypeLabel } from "@/lib/match-display";
 import type { Match, Stage, Team, Tournament } from "@/lib/types";
 import { formatTimeKST, KST_TIMEZONE, matchHref } from "@/lib/view-data";
 
@@ -73,32 +73,55 @@ export function ScheduleList({
               const teamA = teams.find((team) => team.id === match.teamAId);
               const teamB = teams.find((team) => team.id === match.teamBId);
               const tournament = tournaments.find((item) => item.id === match.tournamentId);
+              const completed = match.status === "completed";
+              const live = isMatchLive(match);
               const score = match.teamAScore === null || match.teamBScore === null
-                ? "vs"
+                ? "VS"
                 : `${match.teamAScore} : ${match.teamBScore}`;
+              const winnerId = match.winnerTeamId ??
+                (completed && match.teamAScore !== null && match.teamBScore !== null
+                  ? match.teamAScore > match.teamBScore
+                    ? match.teamAId
+                    : match.teamBScore > match.teamAScore
+                      ? match.teamBId
+                      : null
+                  : null);
+              const teamNameClass = (teamId?: string) =>
+                `min-w-0 truncate text-[15px] font-black ${
+                  completed && winnerId ? (teamId === winnerId ? "text-[var(--ui-ink)]" : "text-[var(--ui-muted)]") : "text-[var(--ui-ink)]"
+                }`;
 
               return (
                 <Link
                   href={matchHref(match)}
                   key={match.id}
-                  className="grid grid-cols-1 items-center gap-4 border-b border-[var(--ui-border)] px-4 py-4 transition-colors last:border-b-0 hover:bg-[var(--ui-surface-muted)] md:grid-cols-[180px_minmax(0,1fr)_180px] md:px-5"
+                  className="flex flex-col gap-3 border-b border-[var(--ui-border)] px-4 py-4 transition-colors last:border-b-0 hover:bg-[var(--ui-surface-muted)] md:grid md:grid-cols-[140px_minmax(0,1fr)_160px] md:items-center md:gap-4 md:px-5"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="flex w-[66px] shrink-0 flex-col gap-1">
-                      <time className="text-base font-black tracking-tight text-[var(--ui-ink)]">{formatTimeKST(match.matchDate)}</time>
-                      <span className="w-fit rounded-full bg-[var(--ui-surface-muted)] px-2 py-1 text-[12px] font-bold text-[var(--ui-ink)]">
+                  <div className="flex items-center gap-2 md:flex-col md:items-start md:gap-1.5">
+                    <time className="text-base font-black tabular-nums tracking-tight text-[var(--ui-ink)]">{formatTimeKST(match.matchDate)}</time>
+                    {live ? (
+                      <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-red-500/15 px-2 py-1 text-[11px] font-bold text-red-500">
+                        <span className="h-1.5 w-1.5 rounded-full bg-red-500 motion-safe:animate-pulse" />
+                        LIVE
+                      </span>
+                    ) : (
+                      <span className="w-fit rounded-full bg-[var(--ui-surface-muted)] px-2 py-1 text-[12px] font-bold text-[var(--ui-muted)]">
                         {matchStatusLabel(match.status)}
                       </span>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-center gap-2.5 sm:gap-3.5">
+                    <div className="flex min-w-0 flex-1 items-center justify-end gap-2.5">
+                      <p className={`${teamNameClass(match.teamAId)} text-right`}>{teamA?.name ?? "TBD"}</p>
+                      <TeamLogo team={teamA} size="h-11 w-11 shrink-0" plain />
+                    </div>
+                    <p className="w-16 shrink-0 text-center text-[20px] font-black tabular-nums text-[var(--ui-ink)]">{score}</p>
+                    <div className="flex min-w-0 flex-1 items-center gap-2.5">
+                      <TeamLogo team={teamB} size="h-11 w-11 shrink-0" plain />
+                      <p className={teamNameClass(match.teamBId)}>{teamB?.name ?? "TBD"}</p>
                     </div>
                   </div>
-                  <div className="flex items-center justify-center gap-3.5">
-                    <p className="flex min-w-0 flex-1 justify-end text-sm font-black text-[var(--ui-ink)]"><span className="truncate">{teamA?.name ?? "TBD"}</span></p>
-                    <TeamLogo team={teamA} size="h-12 w-12" plain />
-                    <p className="w-16 shrink-0 text-center text-[24px] font-black tabular-nums text-[var(--ui-ink)]">{score}</p>
-                    <TeamLogo team={teamB} size="h-12 w-12" plain />
-                    <p className="flex min-w-0 flex-1 text-sm font-black text-[var(--ui-ink)]"><span className="truncate">{teamB?.name ?? "TBD"}</span></p>
-                  </div>
-                  <div className="flex flex-col text-right">
+                  <div className="flex items-center justify-between gap-2 md:flex-col md:items-end md:justify-center md:gap-0.5">
                     <p className="truncate text-sm font-bold text-[var(--ui-text)]">{tournamentTypeLabel(tournament)}</p>
                     <p className="truncate text-xs font-semibold text-[var(--ui-muted)]">{stageName(stages, match.stageId)}</p>
                   </div>

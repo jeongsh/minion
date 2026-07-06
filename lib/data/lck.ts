@@ -1623,6 +1623,51 @@ export async function getTimelineEvents(setId: string): Promise<TimelineEvent[]>
   }, []);
 }
 
+/** 세트의 분당(프레임) 골드/경험치/CS 스냅샷. 라이엇 타임라인 프레임 동기화가 없으면 빈 배열. */
+export type MatchTimelineFrame = {
+  id: string;
+  setId: string;
+  minute: number;
+  timestampMs: number;
+  blueTotalGold: number | null;
+  redTotalGold: number | null;
+  goldDiff: number | null;
+  blueTotalXp: number | null;
+  redTotalXp: number | null;
+  xpDiff: number | null;
+  blueTotalCs: number | null;
+  redTotalCs: number | null;
+  csDiff: number | null;
+};
+
+export async function getTimelineFrames(setId: string): Promise<MatchTimelineFrame[]> {
+  return fromSupabase(async () => {
+    const { data, error } = await createSupabaseServerClient()
+      .from("match_timeline_frames")
+      .select("id, set_id, minute, timestamp_ms, blue_total_gold, red_total_gold, gold_diff, blue_total_xp, red_total_xp, xp_diff, blue_total_cs, red_total_cs, cs_diff")
+      .eq("set_id", setId)
+      .order("minute", { ascending: true });
+
+    if (error) throw error;
+
+    return (data ?? []).map((row) => ({
+      id: row.id as string,
+      setId: row.set_id as string,
+      minute: row.minute as number,
+      timestampMs: row.timestamp_ms as number,
+      blueTotalGold: row.blue_total_gold as number | null,
+      redTotalGold: row.red_total_gold as number | null,
+      goldDiff: row.gold_diff as number | null,
+      blueTotalXp: row.blue_total_xp as number | null,
+      redTotalXp: row.red_total_xp as number | null,
+      xpDiff: row.xp_diff as number | null,
+      blueTotalCs: row.blue_total_cs as number | null,
+      redTotalCs: row.red_total_cs as number | null,
+      csDiff: row.cs_diff as number | null,
+    }));
+  }, []);
+}
+
 export async function getFanPogVotes(): Promise<FanPogVote[]> {
   return fromSupabase(async () => {
     const { data, error } = await createSupabaseServerClient()

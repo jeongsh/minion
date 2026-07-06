@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
-import type { TimelineEvent } from "@/lib/data/lck";
+import type { MatchTimelineFrame, TimelineEvent } from "@/lib/data/lck";
 import type { Player } from "@/lib/types";
 import { OBJECTIVE_ICONS } from "@/lib/objectives";
 
@@ -217,6 +217,7 @@ function ClusterIcon({
 
 export function GameTimeline({
   events,
+  frames = [],
   durationSeconds,
   blueTeamId,
   redTeamId,
@@ -227,6 +228,7 @@ export function GameTimeline({
   redGold,
 }: {
   events: TimelineEvent[];
+  frames?: MatchTimelineFrame[];
   durationSeconds: number | null;
   blueTeamId: string;
   redTeamId: string;
@@ -277,39 +279,70 @@ export function GameTimeline({
   const blueCY = (row: number) => graphTop + ITEM_SZ / 2 + row * ITEM_SLT;
   const redCY  = (row: number) => centerY  + CTR_GAP + ITEM_SZ / 2 + row * ITEM_SLT;
 
-  // 킬 차이 곡선
-  let tmpDiff = 0;
-  let maxDiff = 5;
-  for (const e of killEvents) {
-    if (e.teamId === blueTeamId) tmpDiff++; else tmpDiff--;
-    maxDiff = Math.max(maxDiff, Math.abs(tmpDiff));
+  // 골드 프레임 동기화가 있으면 실제 분당 골드 차이를 쓰고, 없으면 킬 차이로 대체한다(이 경우 단위는 킬 개수).
+  const goldPoints = frames
+    .filter((f) => f.goldDiff !== null || (f.blueTotalGold !== null && f.redTotalGold !== null))
+    .map((f) => ({
+      seconds: f.timestampMs / 1000,
+      diff: (f.goldDiff ?? (f.blueTotalGold as number) - (f.redTotalGold as number)),
+    }))
+    .sort((a, b) => a.seconds - b.seconds);
+  const hasGoldFrames = goldPoints.length >= 2;
+  const unit: "gold" | "kills" = hasGoldFrames ? "gold" : "kills";
+
+  let maxDiff: number;
+  let displayDiffAt: (seconds: number) => number;
+
+  if (hasGoldFrames) {
+    maxDiff = Math.max(1000, ...goldPoints.map((p) => Math.abs(p.diff)));
+    displayDiffAt = (seconds: number) => {
+      if (seconds <= goldPoints[0].seconds) return goldPoints[0].diff;
+      const last = goldPoints[goldPoints.length - 1];
+      if (seconds >= last.seconds) return last.diff;
+      for (let i = 0; i < goldPoints.length - 1; i++) {
+        const a = goldPoints[i], b = goldPoints[i + 1];
+        if (seconds >= a.seconds && seconds <= b.seconds) {
+          const t = (seconds - a.seconds) / (b.seconds - a.seconds);
+          return a.diff + (b.diff - a.diff) * t;
+        }
+      }
+      return 0;
+    };
+  } else {
+    let tmpDiff = 0;
+    maxDiff = 5;
+    for (const e of killEvents) {
+      if (e.teamId === blueTeamId) tmpDiff++; else tmpDiff--;
+      maxDiff = Math.max(maxDiff, Math.abs(tmpDiff));
+    }
+    const transitionSeconds = Math.min(90, Math.max(45, duration / 5));
+    const eventTransitions = killEvents.map((event) => {
+      const eventSeconds = event.timestampMs / 1000;
+      const start = Math.max(0, Math.min(eventSeconds - transitionSeconds / 2, duration - transitionSeconds));
+      return {
+        start,
+        end: Math.min(duration, start + transitionSeconds),
+        delta: event.teamId === blueTeamId ? 1 : -1,
+      };
+    });
+    const smoothStep = (value: number) => {
+      const clamped = Math.min(1, Math.max(0, value));
+      return clamped * clamped * (3 - 2 * clamped);
+    };
+    displayDiffAt = (seconds: number) => eventTransitions.reduce((sum, transition) => {
+      const progress = transition.end === transition.start
+        ? 1
+        : (seconds - transition.start) / (transition.end - transition.start);
+      return sum + transition.delta * smoothStep(progress);
+    }, 0);
   }
+
   const ampBlue = blueH * 0.92;
   const ampRed  = redH  * 0.92;
   const dy = (d: number) =>
     d >= 0 ? centerY - (d / maxDiff) * ampBlue : centerY + (-d / maxDiff) * ampRed;
 
-  const transitionSeconds = Math.min(90, Math.max(45, duration / 5));
   const sampleStep = Math.max(5, duration / 140);
-  const eventTransitions = killEvents.map((event) => {
-    const eventSeconds = event.timestampMs / 1000;
-    const start = Math.max(0, Math.min(eventSeconds - transitionSeconds / 2, duration - transitionSeconds));
-    return {
-      start,
-      end: Math.min(duration, start + transitionSeconds),
-      delta: event.teamId === blueTeamId ? 1 : -1,
-    };
-  });
-  const smoothStep = (value: number) => {
-    const clamped = Math.min(1, Math.max(0, value));
-    return clamped * clamped * (3 - 2 * clamped);
-  };
-  const displayDiffAt = (seconds: number) => eventTransitions.reduce((sum, transition) => {
-    const progress = transition.end === transition.start
-      ? 1
-      : (seconds - transition.start) / (transition.end - transition.start);
-    return sum + transition.delta * smoothStep(progress);
-  }, 0);
   const chartPoints: ChartPoint[] = [];
   for (let seconds = 0; seconds < duration; seconds += sampleStep) {
     chartPoints.push({ x: toX(seconds * 1000, duration), y: dy(displayDiffAt(seconds)) });
@@ -322,7 +355,26 @@ export function GameTimeline({
   const mins: number[] = [];
   for (let m = 5; m * 60 < duration; m += 5) mins.push(m);
 
-  const yStep = maxDiff <= 4 ? 1 : maxDiff <= 8 ? 2 : Math.ceil(maxDiff / 4);
+  // y축 그리드 간격: 킬 단위는 1~2 단위로, 골드 단위는 라운드 넘버(1000/2000/5000 등)로 잡는다.
+  const gridStep = unit === "kills"
+    ? (maxDiff <= 4 ? 1 : maxDiff <= 8 ? 2 : Math.ceil(maxDiff / 4))
+    : (() => {
+        const rough = maxDiff / 4;
+        const magnitude = 10 ** Math.floor(Math.log10(rough));
+        const normalized = rough / magnitude;
+        const niceNormalized = normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10;
+        return niceNormalized * magnitude;
+      })();
+  const gridValues: number[] = [0];
+  for (let d = gridStep; d <= maxDiff; d += gridStep) {
+    gridValues.push(d, -d);
+  }
+  const formatDiffLabel = (d: number) => {
+    if (d === 0) return "0";
+    if (unit === "kills") return `${d > 0 ? "+" : ""}${d}`;
+    const k = d / 1000;
+    return `${d > 0 ? "+" : ""}${Number.isInteger(k) ? k : k.toFixed(1)}K`;
+  };
 
   return (
     <div className="game-timeline-chart relative w-full select-none">
@@ -366,19 +418,16 @@ export function GameTimeline({
         <path d={areaD} fill={`url(#${uid}-gr)`} clipPath={`url(#${uid}-rc)`} />
 
         {/* y축 그리드 */}
-        {Array.from({ length: maxDiff * 2 + 1 }, (_, i) => i - maxDiff).map((d) => {
+        {gridValues.map((d) => {
           const y = dy(d);
-          const show = d % yStep === 0;
           return (
             <g key={`gy${d}`}>
               <line x1={PAD_X} y1={y} x2={SVG_W - PAD_X} y2={y}
                 stroke="var(--timeline-chart-grid)" strokeWidth={d === 0 ? 1.2 : 0.7} />
-              {show && (
-                <text x={PAD_X - 4} y={y + 3} textAnchor="end" fontSize={7}
-                  fill={d > 0 ? "#4c8dff" : d < 0 ? "#ff5b6e" : "var(--timeline-chart-muted)"} fontWeight="600">
-                  {d > 0 ? `+${d}K` : d < 0 ? `${d}K` : "0"}
-                </text>
-              )}
+              <text x={PAD_X - 4} y={y + 3} textAnchor="end" fontSize={7}
+                fill={d > 0 ? "#4c8dff" : d < 0 ? "#ff5b6e" : "var(--timeline-chart-muted)"} fontWeight="600">
+                {formatDiffLabel(d)}
+              </text>
             </g>
           );
         })}

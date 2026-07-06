@@ -26,7 +26,7 @@ export function SetTimelineSection({
         setError(result.error);
         return;
       }
-      setMessage(`세트 ${result.summary.setsProcessed}개 처리, 이벤트 ${result.summary.eventsInserted}개 저장`);
+      setMessage(`세트 ${result.summary.setsProcessed}개 처리, 이벤트 ${result.summary.eventsInserted}개 · 골드 프레임 ${result.summary.framesInserted}개 저장`);
     });
   }
 

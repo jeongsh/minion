@@ -34,10 +34,17 @@ type RiotEvent = {
   laneType?: string;
 };
 
+type RiotParticipantFrame = {
+  level?: number;
+  totalGold?: number;
+  xp?: number;
+  minionsKilled?: number;
+  jungleMinionsKilled?: number;
+};
 type RiotFrame = {
   timestamp: number;
   events: RiotEvent[];
-  participantFrames?: Record<string, { level?: number }>;
+  participantFrames?: Record<string, RiotParticipantFrame>;
 };
 type RiotTimeline = { frames: RiotFrame[] };
 
@@ -66,6 +73,7 @@ export type TimelineSyncSummary = {
   setsProcessed: number;
   setsFailed: number;
   eventsInserted: number;
+  framesInserted: number;
 };
 
 function sleep(ms: number) {
@@ -225,6 +233,72 @@ function parseTimelineEvents(
   return rows;
 }
 
+/** 라이엇 타임라인의 프레임별 participantFrames를 팀 단위 골드/경험치/CS 합계로 집계한다(분당 스냅샷). */
+function parseTimelineFrames(
+  timeline: RiotTimeline,
+  setId: string,
+  blueTeamId: string,
+  redTeamId: string,
+  participantMap: Map<number, { playerId: string; teamId: string }>,
+) {
+  const byMinute = new Map<number, {
+    set_id: string;
+    minute: number;
+    timestamp_ms: number;
+    blue_total_gold: number;
+    red_total_gold: number;
+    gold_diff: number;
+    blue_total_xp: number;
+    red_total_xp: number;
+    xp_diff: number;
+    blue_total_cs: number;
+    red_total_cs: number;
+    cs_diff: number;
+  }>();
+
+  for (const frame of timeline.frames) {
+    const participantFrames = frame.participantFrames ?? {};
+    let blueGold = 0, redGold = 0, blueXp = 0, redXp = 0, blueCs = 0, redCs = 0;
+    let hasBlue = false, hasRed = false;
+
+    for (const [participantId, pf] of Object.entries(participantFrames)) {
+      const participant = participantMap.get(Number(participantId));
+      if (!participant) continue;
+      const isBlue = participant.teamId === blueTeamId;
+      const isRed = participant.teamId === redTeamId;
+      if (!isBlue && !isRed) continue;
+
+      const gold = typeof pf.totalGold === "number" ? pf.totalGold : 0;
+      const xp = typeof pf.xp === "number" ? pf.xp : 0;
+      const cs = (typeof pf.minionsKilled === "number" ? pf.minionsKilled : 0)
+        + (typeof pf.jungleMinionsKilled === "number" ? pf.jungleMinionsKilled : 0);
+
+      if (isBlue) { blueGold += gold; blueXp += xp; blueCs += cs; hasBlue = true; }
+      else { redGold += gold; redXp += xp; redCs += cs; hasRed = true; }
+    }
+
+    if (!hasBlue || !hasRed) continue; // 참가자 매핑이 안 된 프레임은 건너뛴다
+
+    const minute = Math.floor(frame.timestamp / 60_000);
+    byMinute.set(minute, {
+      set_id: setId,
+      minute,
+      timestamp_ms: frame.timestamp,
+      blue_total_gold: blueGold,
+      red_total_gold: redGold,
+      gold_diff: blueGold - redGold,
+      blue_total_xp: blueXp,
+      red_total_xp: redXp,
+      xp_diff: blueXp - redXp,
+      blue_total_cs: blueCs,
+      red_total_cs: redCs,
+      cs_diff: blueCs - redCs,
+    });
+  }
+
+  return [...byMinute.values()].sort((a, b) => a.minute - b.minute);
+}
+
 function timelinePageFromPlatformGameId(platformGameId: string | null | undefined) {
   if (!platformGameId) return null;
   return `V5 data:${platformGameId.replace(/_/g, " ")}/Timeline`;
@@ -234,7 +308,7 @@ async function syncSetTimeline(
   supabase: SupabaseClient,
   set: SetRow,
   force: boolean,
-): Promise<{ inserted: number; skipped: boolean }> {
+): Promise<{ inserted: number; framesInserted: number; skipped: boolean }> {
   await sleep(REQUEST_DELAY_MS);
   const metaRows = await cargoQuery({
     tables: "PostgameJsonMetadata",
@@ -246,20 +320,20 @@ async function syncSetTimeline(
   const timelinePage =
     metaRows[0]?.TimelinePage ?? timelinePageFromPlatformGameId(set.riot_platform_game_id);
 
-  if (!timelinePage) return { inserted: 0, skipped: true };
+  if (!timelinePage) return { inserted: 0, framesInserted: 0, skipped: true };
 
   await sleep(REQUEST_DELAY_MS);
   const rawContent = await fetchWikiPage(timelinePage);
-  if (!rawContent) return { inserted: 0, skipped: true };
+  if (!rawContent) return { inserted: 0, framesInserted: 0, skipped: true };
 
   let timeline: RiotTimeline;
   try {
     timeline = JSON.parse(rawContent) as RiotTimeline;
   } catch {
-    return { inserted: 0, skipped: true };
+    return { inserted: 0, framesInserted: 0, skipped: true };
   }
 
-  if (!timeline.frames?.length) return { inserted: 0, skipped: true };
+  if (!timeline.frames?.length) return { inserted: 0, framesInserted: 0, skipped: true };
 
   const { data: playerStats } = await supabase
     .from("set_player_stats")
@@ -275,10 +349,12 @@ async function syncSetTimeline(
   await syncFinalParticipantLevels(supabase, timeline, set.id, participantMap);
 
   const events = parseTimelineEvents(timeline, set.id, set.blue_team_id, set.red_team_id, participantMap);
-  if (!events.length) return { inserted: 0, skipped: true };
+  const frames = parseTimelineFrames(timeline, set.id, set.blue_team_id, set.red_team_id, participantMap);
+  if (!events.length && !frames.length) return { inserted: 0, framesInserted: 0, skipped: true };
 
   if (force) {
     await supabase.from("timeline_events").delete().eq("set_id", set.id);
+    await supabase.from("match_timeline_frames").delete().eq("set_id", set.id);
   }
 
   const BATCH = 200;
@@ -298,7 +374,77 @@ async function syncSetTimeline(
     }
   }
 
-  return { inserted, skipped: false };
+  let framesInserted = 0;
+  for (let i = 0; i < frames.length; i += BATCH) {
+    const batch = frames.slice(i, i + BATCH);
+    const { error } = await supabase
+      .from("match_timeline_frames")
+      .upsert(batch, { onConflict: "set_id,minute" });
+    if (error) throw new Error(`골드 프레임 저장 실패: ${error.message}`);
+    framesInserted += batch.length;
+  }
+
+  return { inserted, framesInserted, skipped: false };
+}
+
+/**
+ * 이미 timeline_events가 있는 세트에 골드 프레임만 추가로 채운다(이벤트는 건드리지 않음).
+ * 과거 경기 백필용 — 라이엇 타임라인 JSON을 다시 받아 프레임만 파싱해 upsert한다.
+ */
+export async function backfillSetTimelineFrames(
+  supabase: SupabaseClient,
+  set: SetRow,
+): Promise<{ framesInserted: number; skipped: boolean; reason?: string }> {
+  await sleep(REQUEST_DELAY_MS);
+  const metaRows = await cargoQuery({
+    tables: "PostgameJsonMetadata",
+    fields: "TimelinePage,RiotVersion",
+    where: `GameId="${set.leaguepedia_game_id!.replace(/"/g, '\\"')}"`,
+    limit: "1",
+  });
+
+  const timelinePage =
+    metaRows[0]?.TimelinePage ?? timelinePageFromPlatformGameId(set.riot_platform_game_id);
+  if (!timelinePage) return { framesInserted: 0, skipped: true, reason: "TimelinePage 없음" };
+
+  await sleep(REQUEST_DELAY_MS);
+  const rawContent = await fetchWikiPage(timelinePage);
+  if (!rawContent) return { framesInserted: 0, skipped: true, reason: "타임라인 페이지 없음" };
+
+  let timeline: RiotTimeline;
+  try {
+    timeline = JSON.parse(rawContent) as RiotTimeline;
+  } catch {
+    return { framesInserted: 0, skipped: true, reason: "타임라인 JSON 파싱 실패" };
+  }
+  if (!timeline.frames?.length) return { framesInserted: 0, skipped: true, reason: "프레임 없음" };
+
+  const { data: playerStats } = await supabase
+    .from("set_player_stats")
+    .select("set_id, player_id, team_id, position")
+    .eq("set_id", set.id);
+
+  const participantMap = buildParticipantMap(
+    (playerStats ?? []) as PlayerStatRow[],
+    set.blue_team_id,
+    set.red_team_id,
+  );
+
+  const frames = parseTimelineFrames(timeline, set.id, set.blue_team_id, set.red_team_id, participantMap);
+  if (!frames.length) return { framesInserted: 0, skipped: true, reason: "참가자 매핑된 프레임 없음" };
+
+  const BATCH = 200;
+  let framesInserted = 0;
+  for (let i = 0; i < frames.length; i += BATCH) {
+    const batch = frames.slice(i, i + BATCH);
+    const { error } = await supabase
+      .from("match_timeline_frames")
+      .upsert(batch, { onConflict: "set_id,minute" });
+    if (error) throw new Error(`골드 프레임 저장 실패: ${error.message}`);
+    framesInserted += batch.length;
+  }
+
+  return { framesInserted, skipped: false };
 }
 
 export async function syncMatchTimeline(
@@ -326,18 +472,20 @@ export async function syncMatchTimeline(
   }
 
   if (!targetSets.length) {
-    return { matchId, setsProcessed: 0, setsFailed: 0, eventsInserted: 0 };
+    return { matchId, setsProcessed: 0, setsFailed: 0, eventsInserted: 0, framesInserted: 0 };
   }
 
   let setsProcessed = 0;
   let setsFailed = 0;
   let eventsInserted = 0;
+  let framesInserted = 0;
 
   for (const set of targetSets) {
     try {
       const result = await syncSetTimeline(supabase, set, force);
       if (!result.skipped) {
         eventsInserted += result.inserted;
+        framesInserted += result.framesInserted;
         setsProcessed++;
       }
     } catch {
@@ -345,5 +493,5 @@ export async function syncMatchTimeline(
     }
   }
 
-  return { matchId, setsProcessed, setsFailed, eventsInserted };
+  return { matchId, setsProcessed, setsFailed, eventsInserted, framesInserted };
 }
