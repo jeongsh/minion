@@ -1,9 +1,54 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import {
+  Chart,
+  Interaction,
+  LineController,
+  LineElement,
+  PointElement,
+  LinearScale,
+  Filler,
+  Tooltip,
+} from "chart.js";
 import type { MatchTimelineFrame, TimelineEvent } from "@/lib/data/lck";
 import type { Player } from "@/lib/types";
 import { OBJECTIVE_ICONS } from "@/lib/objectives";
+
+Chart.register(LineController, LineElement, PointElement, LinearScale, Filler, Tooltip);
+
+// 그래프 캔버스 전체가 아니라, 실제로 색칠된 영역(라인과 중앙선 사이) 위에 마우스가 있을 때만
+// 호버/툴팁이 뜨도록 커스텀 interaction 모드를 하나 등록한다. 데이터는 (dy(diff) - centerY)라서
+// "0 = 중앙선"이다.
+const FILL_AREA_MODE = "fillArea" as const;
+if (!(Interaction.modes as unknown as Record<string, unknown>)[FILL_AREA_MODE]) {
+  (Interaction.modes as unknown as Record<string, typeof Interaction.modes.index>)[FILL_AREA_MODE] = (chart, e, options) => {
+    const data = chart.data.datasets[0]?.data as { x: number; y: number }[] | undefined;
+    const xScale = chart.scales.x;
+    const yScale = chart.scales.y;
+    if (!data || data.length < 2 || !xScale || !yScale || e.x == null || e.y == null) return [];
+
+    let idx = -1;
+    for (let i = 0; i < data.length - 1; i++) {
+      const x1 = xScale.getPixelForValue(data[i].x);
+      const x2 = xScale.getPixelForValue(data[i + 1].x);
+      if (e.x >= x1 && e.x <= x2) { idx = i; break; }
+    }
+    if (idx === -1) return [];
+
+    const x1 = xScale.getPixelForValue(data[idx].x);
+    const x2 = xScale.getPixelForValue(data[idx + 1].x);
+    const y1 = yScale.getPixelForValue(data[idx].y);
+    const y2 = yScale.getPixelForValue(data[idx + 1].y);
+    const t = x2 === x1 ? 0 : (e.x - x1) / (x2 - x1);
+    const curvePx = y1 + (y2 - y1) * t;
+    const originPx = yScale.getPixelForValue(0);
+    const within = curvePx <= originPx ? (e.y >= curvePx && e.y <= originPx) : (e.y <= curvePx && e.y >= originPx);
+    if (!within) return [];
+
+    return Interaction.modes.index(chart, e, options);
+  };
+}
 
 const SVG_W    = 800;
 const PAD_X    = 28;
@@ -15,32 +60,13 @@ const BOT_MAR  = 28;
 const MIN_HALF = 110;
 const CTR_GAP  = 10;
 const BADGE_R  = 5;    // count badge radius
+const CARD_RX  = 16;   // 카드 모서리 반경(라운드 코너 밖으로 축선이 튀어나오지 않게 인셋 계산에도 사용)
 
 function toX(ms: number, duration: number): number {
   return PAD_X + (ms / 1000 / duration) * (SVG_W - PAD_X * 2);
 }
 
 type ChartPoint = { x: number; y: number };
-
-function smoothPath(points: ChartPoint[]): string {
-  if (points.length === 0) return "";
-  if (points.length === 1) return `M ${points[0].x} ${points[0].y}`;
-  const commands = [`M ${points[0].x} ${points[0].y}`];
-
-  for (let index = 1; index < points.length - 1; index++) {
-    const current = points[index];
-    const next = points[index + 1];
-    const midpointX = (current.x + next.x) / 2;
-    const midpointY = (current.y + next.y) / 2;
-    commands.push(`Q ${current.x} ${current.y}, ${midpointX} ${midpointY}`);
-  }
-
-  const last = points.at(-1)!;
-  const penultimate = points.at(-2)!;
-  commands.push(`Q ${penultimate.x} ${penultimate.y}, ${last.x} ${last.y}`);
-
-  return commands.join(" ");
-}
 
 // ── 이벤트 종류 식별 (클러스터링 키) ─────────────────────────────
 
@@ -166,12 +192,15 @@ function assignRows(clusters: Cluster[], windowMs = 12_000): PlacedCluster[] {
 // ── 아이콘 렌더러 ─────────────────────────────────────────────────
 
 function ClusterIcon({
-  cx, cy, cluster, onHover,
+  cx, cy, cluster, onHover, onLeave,
 }: {
-  cx: number; cy: number; cluster: PlacedCluster; onHover: () => void;
+  cx: number; cy: number; cluster: PlacedCluster; onHover: () => void; onLeave: () => void;
 }) {
   const half = ITEM_SZ / 2;
   const { info, count } = cluster;
+  // 전경 SVG 전체는 pointer-events:none이라 아이콘 위에서만 다시 auto로 켜서
+  // 호버를 받고, 그 외 투명한 배경은 아래 chart.js 캔버스로 이벤트가 그대로 통과한다.
+  const interactiveProps = { className: "cursor-pointer", style: { pointerEvents: "auto" as const }, onMouseEnter: onHover, onMouseLeave: onLeave };
 
   const badge = count > 1 ? (
     <g>
@@ -185,7 +214,7 @@ function ClusterIcon({
   if (!info) {
     // 킬 도트
     return (
-      <g className="cursor-pointer" onMouseEnter={onHover}>
+      <g {...interactiveProps}>
         <circle cx={cx} cy={cy} r={count > 1 ? KILL_R + 2 : KILL_R}
           fill="currentColor" stroke="var(--timeline-chart-surface)" strokeWidth={1.5} />
         {count > 1 && (
@@ -197,7 +226,7 @@ function ClusterIcon({
 
   if (info.iconUrl) {
     return (
-      <g className="cursor-pointer" onMouseEnter={onHover}>
+      <g {...interactiveProps}>
         <circle cx={cx} cy={cy} r={half + 1} fill={info.color} fillOpacity={0.3} />
         <image href={info.iconUrl} x={cx - half} y={cy - half} width={ITEM_SZ} height={ITEM_SZ} />
         {badge}
@@ -205,7 +234,7 @@ function ClusterIcon({
     );
   }
   return (
-    <g className="cursor-pointer" onMouseEnter={onHover}>
+    <g {...interactiveProps}>
       <circle cx={cx} cy={cy} r={half} fill={info.color} />
       <text x={cx} y={cy + 3} textAnchor="middle" fontSize={6} fill="#000" fontWeight="800">{info.label}</text>
       {badge}
@@ -238,12 +267,10 @@ export function GameTimeline({
   blueGold?: number | null;
   redGold?: number | null;
 }) {
-  const uid = useId().replace(/:/g, "");
-  const [tooltip, setTooltip] = useState<{ lines: string[]; xPct: number } | null>(null);
-
-  if (!events.length) {
-    return <div className="flex items-center justify-center py-6 text-xs text-muted">타임라인 데이터 없음</div>;
-  }
+  const [tooltip, setTooltip] = useState<{ lines: string[]; xPct: number; yPct: number } | null>(null);
+  const [showObjectives, setShowObjectives] = useState(true);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const chartRef = useRef<Chart | null>(null);
 
   const duration = durationSeconds ?? Math.ceil((events.at(-1)?.timestampMs ?? 0) / 1000);
   const tx = (ms: number) => toX(ms, duration);
@@ -261,8 +288,13 @@ export function GameTimeline({
   const blueRaw = [...killEvents, ...objEvents].filter((e) => e.teamId === blueTeamId);
   const redRaw  = [...killEvents, ...objEvents].filter((e) => e.teamId === redTeamId);
 
-  const blueClusters = assignRows(clusterTeamEvents(blueRaw, 60_000, players));
-  const redClusters  = assignRows(clusterTeamEvents(redRaw,  60_000, players));
+  // 같은 행에 놓아도 되는 최소 시간 간격을 "고정 초 단위"가 아니라 실제 화면 픽셀 간격
+  // 기준으로 계산한다. 게임이 길어질수록 초당 픽셀 폭이 좁아지므로, 고정된 밀리초 값만
+  // 쓰면 아이콘끼리 화면상 겹쳐 보인다.
+  const pxPerMs = (SVG_W - PAD_X * 2) / (duration * 1000 || 1);
+  const rowWindowMs = (ITEM_SZ * 1.4) / pxPerMs;
+  const blueClusters = assignRows(clusterTeamEvents(blueRaw, 60_000, players), rowWindowMs);
+  const redClusters  = assignRows(clusterTeamEvents(redRaw,  60_000, players), rowWindowMs);
 
   const maxBlueRow = blueClusters.length > 0 ? Math.max(...blueClusters.map((c) => c.row)) : 0;
   const maxRedRow  = redClusters.length  > 0 ? Math.max(...redClusters.map( (c) => c.row)) : 0;
@@ -270,8 +302,6 @@ export function GameTimeline({
   // 아이콘(킬/오브젝트)이 실제로 필요로 하는 최소 높이(겹치면 안 되는 진짜 하한)
   const blueIconMin = (maxBlueRow + 1) * ITEM_SLT;
   const redIconMin  = (maxRedRow  + 1) * ITEM_SLT;
-  // 기존과 동일한 전체 높이(변하지 않음) — 이 안에서만 블루/레드 비중을 재분배한다
-  const totalH = Math.max(blueIconMin, MIN_HALF) + Math.max(redIconMin, MIN_HALF);
 
   // 골드 프레임 동기화가 있으면 실제 분당 골드 차이를 쓰고, 없으면 킬 차이로 대체한다(이 경우 단위는 킬 개수).
   const goldPoints = frames
@@ -335,13 +365,18 @@ export function GameTimeline({
     }, 0);
   }
 
-  // 한쪽 팀이 계속 우세해서 다른 쪽이 거의 0 근처에만 머무는 경우, 전체 높이(totalH)는
-  // 그대로 둔 채 그 안에서만 블루/레드 비중을 골드(킬) 차이 비율에 맞게 재분배한다.
-  // 아이콘이 겹치면 안 되므로 각자의 진짜 최소 높이(blueIconMin/redIconMin) 밑으로는
-  // 줄이지 않고, 모자란 만큼은 반대쪽에서 가져온다.
-  const totalLead = maxBlueLead + maxRedLead;
-  const blueLeadRatio = totalLead > 0 ? maxBlueLead / totalLead : 0.5;
-  let blueH = totalH * blueLeadRatio;
+  // 블루/레드 각자의 최댓값에 맞춰 독립적으로 스케일링한다(이기고 있는 쪽 격차가 크면 그쪽에
+  // 더 많은 세로 공간을 준다). 골드 단위일 땐 무조건 1000 골드 단위로 올림해서 딱 떨어지는
+  // 눈금으로 만든다(예: 5.8K → 6K, 13.2K → 14K).
+  const roundScale = (v: number) => (unit === "kills" ? Math.max(5, v) : Math.max(1000, Math.ceil(v / 1000) * 1000));
+  const blueScaleMax = roundScale(maxBlueLead);
+  const redScaleMax  = roundScale(maxRedLead);
+
+  // 전체 높이는 고정하고, 그 안에서 블루/레드 비중을 각자 최댓값 비율대로 나눈다. 아이콘이
+  // 겹치면 안 되므로 각자의 진짜 최소 높이(blueIconMin/redIconMin) 밑으로는 줄이지 않는다.
+  const totalH = Math.max(blueIconMin, MIN_HALF) + Math.max(redIconMin, MIN_HALF);
+  const blueRatio = totalH > 0 ? blueScaleMax / (blueScaleMax + redScaleMax) : 0.5;
+  let blueH = totalH * blueRatio;
   let redH  = totalH - blueH;
   if (blueH < blueIconMin) { blueH = blueIconMin; redH = totalH - blueH; }
   if (redH < redIconMin)   { redH = redIconMin;   blueH = totalH - redH; }
@@ -355,51 +390,133 @@ export function GameTimeline({
   const blueCY = (row: number) => graphTop + ITEM_SZ / 2 + row * ITEM_SLT;
   const redCY  = (row: number) => centerY  + CTR_GAP + ITEM_SZ / 2 + row * ITEM_SLT;
 
-  // 두 팀 y축 단위를 통일하지 않고, 각자 실제 최대치에 맞춰 독립적으로 스케일링한다
-  // (한쪽이 크게 앞서도 반대쪽의 작은 변화가 눌려 보이지 않게).
-  const scaleFloor = unit === "kills" ? 5 : 1000;
-  const blueScaleMax = Math.max(scaleFloor, maxBlueLead);
-  const redScaleMax  = Math.max(scaleFloor, maxRedLead);
-
   const ampBlue = blueH * 0.92;
   const ampRed  = redH  * 0.92;
   const dy = (d: number) =>
     d >= 0 ? centerY - (d / blueScaleMax) * ampBlue : centerY + (-d / redScaleMax) * ampRed;
 
-  const sampleStep = Math.max(5, duration / 140);
-  const chartPoints: ChartPoint[] = [];
-  for (let seconds = 0; seconds < duration; seconds += sampleStep) {
-    chartPoints.push({ x: toX(seconds * 1000, duration), y: dy(displayDiffAt(seconds)) });
-  }
-  const endX = SVG_W - PAD_X;
-  chartPoints.push({ x: endX, y: dy(displayDiffAt(duration)) });
-  const lineD = smoothPath(chartPoints);
-  const areaD = `${lineD} L ${endX} ${centerY} L ${PAD_X} ${centerY} Z`;
+  // chart.js의 단일 선형 스케일은 블루/레드가 서로 다른 기울기(비대칭 스케일링)를 가지는
+  // dy()를 정확히 재현할 수 없다(스케일 하나엔 기울기가 하나뿐). 그래서 축 근사값을 맞추려고
+  // 하는 대신, 애초에 dy()로 미리 변환한 픽셀 좌표를 그대로 넣어서 SVG 그리드선과 100%
+  // 동일한 위치에 그려지도록 한다(툴팁에는 실제 값을 별도로 다시 계산해서 보여준다).
+  // centerY만큼 미리 빼서 "0 = 중앙선"이 되게 하면, chart.js 기본 fill:'origin'(값 0 기준
+  // 채우기)을 그대로 쓸 수 있어 라인과 채우기가 항상 완전히 일치한다(직접 그리던 방식은
+  // 베지어 곡선을 손으로 재현하다 보니 미세하게 어긋나는 지점이 생겼었음).
+  const chartPoints: ChartPoint[] = hasGoldFrames
+    ? goldPoints.map((p) => ({ x: toX(p.seconds * 1000, duration), y: dy(p.diff) - centerY }))
+    : (() => {
+        const sampleStep = Math.max(5, duration / 140);
+        const points: ChartPoint[] = [];
+        for (let seconds = 0; seconds < duration; seconds += sampleStep) {
+          points.push({ x: toX(seconds * 1000, duration), y: dy(displayDiffAt(seconds)) - centerY });
+        }
+        points.push({ x: SVG_W - PAD_X, y: dy(displayDiffAt(duration)) - centerY });
+        return points;
+      })();
 
   const mins: number[] = [];
   for (let m = 5; m * 60 < duration; m += 5) mins.push(m);
 
-  // y축 그리드 간격: 킬 단위는 1~2 단위로, 골드 단위는 라운드 넘버(1000/2000/5000 등)로 잡는다.
-  // 블루/레드 각자의 최대치를 기준으로 따로 계산해 서로 다른 단위 간격을 쓸 수 있다.
-  function computeGridStep(maxVal: number) {
-    if (unit === "kills") return maxVal <= 4 ? 1 : maxVal <= 8 ? 2 : Math.ceil(maxVal / 4);
-    const rough = maxVal / 4;
-    const magnitude = 10 ** Math.floor(Math.log10(rough));
-    const normalized = rough / magnitude;
-    const niceNormalized = normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10;
-    return niceNormalized * magnitude;
-  }
-  const blueGridStep = computeGridStep(blueScaleMax);
-  const redGridStep  = computeGridStep(redScaleMax);
-  const gridValues: number[] = [0];
-  for (let d = blueGridStep; d <= blueScaleMax; d += blueGridStep) gridValues.push(d);
-  for (let d = redGridStep; d <= redScaleMax; d += redGridStep) gridValues.push(-d);
+  // y축은 각 방향(블루/레드)마다 최댓값과 그 중간값 두 개만 보여줘서 잔눈금 없이 깔끔하게 표시한다.
+  const midOf = (max: number) => (unit === "kills" ? Math.round(max / 2) : max / 2);
+  const gridValues: number[] = [0, midOf(blueScaleMax), blueScaleMax, -midOf(redScaleMax), -redScaleMax];
   const formatDiffLabel = (d: number) => {
     if (d === 0) return "0";
     if (unit === "kills") return `${d > 0 ? "+" : ""}${d}`;
     const k = d / 1000;
     return `${d > 0 ? "+" : ""}${Number.isInteger(k) ? k : k.toFixed(1)}K`;
   };
+
+  // 라인/영역만 chart.js가 그리고, 축 라벨·그리드·킬/오브젝트 아이콘은 기존처럼 SVG로 그려서 위에 겹친다.
+  // chartPoints 등은 events/frames/duration 등 props에서 결정론적으로 파생되므로, 매 렌더마다
+  // 새로 생기는 배열 레퍼런스 대신 실제 입력 props만 의존성으로 둬서 불필요한 재생성을 막는다.
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || chartPoints.length === 0) return;
+
+    // chartPoints는 dy()로 변환한 픽셀 좌표에서 centerY(중앙선)를 뺀 값이라 "0 = 중앙선"이다.
+    // 그래서 chart.js 기본 fill:'origin'(값 0 기준 채우기)을 그대로 쓸 수 있고, 라인과 채우기가
+    // 항상 완전히 같은 곡선을 기준으로 그려져 어긋나는 지점이 생기지 않는다. 색은 단색 대신
+    // 위(블루)에서 아래(레드)로 이어지는 세로 그라데이션으로 채운다.
+    chartRef.current?.destroy();
+    chartRef.current = new Chart(canvas, {
+      type: "line",
+      data: {
+        datasets: [
+          {
+            data: chartPoints,
+            fill: "origin",
+            borderWidth: 1.8,
+            pointRadius: 0,
+            tension: 0.28,
+            clip: 0,
+            segment: {
+              borderColor: (ctx) => ((ctx.p0.parsed.y ?? 0) + (ctx.p1.parsed.y ?? 0)) / 2 <= 0 ? "#4c8dff" : "#ff5b6e",
+            },
+            backgroundColor: (ctx) => {
+              const { chart } = ctx;
+              const area = chart.chartArea;
+              if (!area) return "rgba(76,141,255,0.2)";
+              const centerFrac = (centerY - graphTop) / (graphBot - graphTop);
+              const gradient = chart.ctx.createLinearGradient(0, area.top, 0, area.bottom);
+              gradient.addColorStop(0, "rgba(76,141,255,0.4)");
+              gradient.addColorStop(centerFrac, "rgba(76,141,255,0.05)");
+              gradient.addColorStop(centerFrac, "rgba(255,91,110,0.05)");
+              gradient.addColorStop(1, "rgba(255,91,110,0.4)");
+              return gradient;
+            },
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        layout: { padding: 0 },
+        // chart.js 타입이 내장 모드 이름만 허용해서, 위에서 등록한 커스텀 모드 이름은 캐스팅이 필요하다.
+        interaction: { mode: FILL_AREA_MODE as unknown as "index", intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            mode: FILL_AREA_MODE as unknown as "index",
+            intersect: false,
+            callbacks: {
+              title: (items) => {
+                const xPx = items[0]?.parsed.x ?? PAD_X;
+                const seconds = ((xPx - PAD_X) / (SVG_W - PAD_X * 2)) * duration;
+                const m = Math.floor(seconds / 60);
+                const s = Math.floor(seconds % 60);
+                return `${m}:${String(s).padStart(2, "0")}`;
+              },
+              label: (items) => {
+                const xPx = items.parsed.x ?? PAD_X;
+                const seconds = ((xPx - PAD_X) / (SVG_W - PAD_X * 2)) * duration;
+                const v = displayDiffAt(seconds);
+                const leader = v > 0 ? blueTeamName : v < 0 ? redTeamName : "동점";
+                const abs = Math.abs(v);
+                const magnitude = unit === "kills" ? `${abs}` : `${Number.isInteger(abs / 1000) ? abs / 1000 : (abs / 1000).toFixed(1)}K`;
+                return `${leader} ${magnitude}`;
+              },
+            },
+          },
+        },
+        scales: {
+          x: { type: "linear", min: PAD_X, max: SVG_W - PAD_X, display: false },
+          y: { type: "linear", min: graphTop - centerY, max: graphBot - centerY, reverse: true, display: false },
+        },
+      },
+    });
+
+    return () => {
+      chartRef.current?.destroy();
+      chartRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- chartPoints/centerY/graphTop/graphBot는 아래 props에서 결정론적으로 파생됨
+  }, [events, frames, durationSeconds, blueTeamId, redTeamId]);
+
+  if (!events.length) {
+    return <div className="flex items-center justify-center py-6 text-xs text-muted">타임라인 데이터 없음</div>;
+  }
 
   return (
     <div className="game-timeline-chart relative w-full select-none">
@@ -413,116 +530,112 @@ export function GameTimeline({
             골드 {goldFmt(goldDiff)}
           </span>
         )}
-        <span className="flex items-center gap-1.5 text-red-600 dark:text-red-400">
-          <span className="rounded-full bg-red-500/10 px-2 py-0.5 tabular-nums">{redKills} K</span>
-          {redTeamName}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="flex items-center gap-1.5 text-red-600 dark:text-red-400">
+            <span className="rounded-full bg-red-500/10 px-2 py-0.5 tabular-nums">{redKills} K</span>
+            {redTeamName}
+          </span>
+          <button
+            type="button"
+            onClick={() => setShowObjectives((v) => !v)}
+            className="rounded-full border border-border px-2 py-1 text-[11px] font-semibold text-muted hover:bg-surface-muted"
+          >
+            {showObjectives ? "오브젝트 숨기기" : "오브젝트 보기"}
+          </button>
+        </div>
       </div>
 
-      <svg viewBox={`0 0 ${SVG_W} ${svgH}`} className="block w-full" onMouseLeave={() => setTooltip(null)}>
-        <defs>
-          <clipPath id={`${uid}-bc`}>
-            <rect x={PAD_X} y={graphTop} width={SVG_W - PAD_X * 2} height={blueH + CTR_GAP} />
-          </clipPath>
-          <clipPath id={`${uid}-rc`}>
-            <rect x={PAD_X} y={centerY} width={SVG_W - PAD_X * 2} height={CTR_GAP + redH} />
-          </clipPath>
-          <linearGradient id={`${uid}-gb`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#4c8dff" stopOpacity="0.75" />
-            <stop offset="100%" stopColor="#4c8dff" stopOpacity="0.05" />
-          </linearGradient>
-          <linearGradient id={`${uid}-gr`} x1="0" y1="1" x2="0" y2="0">
-            <stop offset="0%" stopColor="#ff5b6e" stopOpacity="0.75" />
-            <stop offset="100%" stopColor="#ff5b6e" stopOpacity="0.05" />
-          </linearGradient>
-          <filter id={`${uid}-glow`} x="-30%" y="-30%" width="160%" height="160%">
-            <feGaussianBlur stdDeviation="3.2" result="blur" />
-            <feMerge>
-              <feMergeNode in="blur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-        </defs>
+      <div className="relative w-full">
+        {/* 배경 레이어: 카드 배경, y축 그리드/라벨, 팀명, 시간 눈금 */}
+        <svg viewBox={`0 0 ${SVG_W} ${svgH}`} className="block w-full">
+          <rect x={PAD_X} y={graphTop} width={SVG_W - PAD_X * 2} height={graphBot - graphTop} rx={CARD_RX} fill="var(--timeline-chart-surface)" />
 
-        <rect x={PAD_X} y={graphTop} width={SVG_W - PAD_X * 2} height={graphBot - graphTop} rx={8} fill="var(--timeline-chart-surface)" />
-
-        <path d={areaD} fill={`url(#${uid}-gb)`} clipPath={`url(#${uid}-bc)`} />
-        <path d={areaD} fill={`url(#${uid}-gr)`} clipPath={`url(#${uid}-rc)`} />
-
-        {/* y축 그리드 — 0 기준선만 그리고, 나머지 값은 라벨만 표시해 잔선을 없앤다 */}
-        {gridValues.map((d) => {
-          const y = dy(d);
-          return (
-            <g key={`gy${d}`}>
-              {d === 0 && (
+          {gridValues.map((d) => {
+            const y = dy(d);
+            return (
+              <g key={`gy${d}`}>
                 <line x1={PAD_X} y1={y} x2={SVG_W - PAD_X} y2={y}
-                  stroke="var(--timeline-chart-muted)" strokeWidth={1.6} />
-              )}
-              <text x={PAD_X - 4} y={y + 3} textAnchor="end" fontSize={7}
-                fill={d > 0 ? "#4c8dff" : d < 0 ? "#ff5b6e" : "var(--timeline-chart-muted)"} fontWeight="600">
-                {formatDiffLabel(d)}
-              </text>
-            </g>
-          );
-        })}
+                  stroke="var(--timeline-chart-grid)" strokeWidth={d === 0 ? 1.2 : 0.7} />
+                <text x={PAD_X - 4} y={y + 3} textAnchor="end" fontSize={7}
+                  fill={d > 0 ? "#4c8dff" : d < 0 ? "#ff5b6e" : "var(--timeline-chart-muted)"} fontWeight="600">
+                  {formatDiffLabel(d)}
+                </text>
+              </g>
+            );
+          })}
 
-        <path d={lineD} fill="none" stroke="#4c8dff" strokeWidth={3.2} clipPath={`url(#${uid}-bc)`} filter={`url(#${uid}-glow)`} />
-        <path d={lineD} fill="none" stroke="#ff5b6e" strokeWidth={3.2} clipPath={`url(#${uid}-rc)`} filter={`url(#${uid}-glow)`} />
+          <text x={PAD_X + 6} y={graphTop + blueH / 2 + 3} textAnchor="start" fontSize={8} fontWeight="700" fill="#60a5fa" fillOpacity={0.7}>{blueTeamName}</text>
+          <text x={PAD_X + 6} y={centerY + CTR_GAP + redH / 2 + 3} textAnchor="start" fontSize={8} fontWeight="700" fill="#f87171" fillOpacity={0.7}>{redTeamName}</text>
 
-        <text x={PAD_X + 6} y={graphTop + blueH / 2 + 3} textAnchor="start" fontSize={8} fontWeight="700" fill="#60a5fa" fillOpacity={0.7}>{blueTeamName}</text>
-        <text x={PAD_X + 6} y={centerY + CTR_GAP + redH / 2 + 3} textAnchor="start" fontSize={8} fontWeight="700" fill="#f87171" fillOpacity={0.7}>{redTeamName}</text>
+          {mins.map((m) => {
+            const x = tx(m * 60 * 1000);
+            return (
+              <text key={m} x={x} y={axisY + 11} textAnchor="middle" fontSize={7} fill="var(--timeline-chart-muted)">{m}&apos;</text>
+            );
+          })}
+        </svg>
 
-        {mins.map((m) => {
-          const x = tx(m * 60 * 1000);
-          return <line key={`g${m}`} x1={x} y1={graphTop} x2={x} y2={graphBot}
-            stroke="var(--timeline-chart-grid)" strokeWidth={0.7} strokeDasharray="2 4" />;
-        })}
-
-        <line x1={PAD_X} y1={axisY} x2={SVG_W - PAD_X} y2={axisY} stroke="var(--timeline-chart-grid)" strokeWidth={0.8} />
-        {mins.map((m) => {
-          const x = tx(m * 60 * 1000);
-          return (
-            <g key={m}>
-              <line x1={x} y1={axisY} x2={x} y2={axisY + 3} stroke="var(--timeline-chart-muted)" strokeWidth={0.8} />
-              <text x={x} y={axisY + 11} textAnchor="middle" fontSize={7} fill="var(--timeline-chart-muted)">{m}&apos;</text>
-            </g>
-          );
-        })}
-
-        {/* 블루 클러스터 */}
-        {blueClusters.map((c) => {
-          const x = tx(c.ms);
-          const cy = blueCY(c.row);
-          return (
-            <g key={`b-${c.id}`} style={{ color: "#93c5fd" }}>
-              <ClusterIcon cx={x} cy={cy} cluster={c}
-                onHover={() => setTooltip({ lines: c.tooltipLines, xPct: (x / SVG_W) * 100 })} />
-            </g>
-          );
-        })}
-
-        {/* 레드 클러스터 */}
-        {redClusters.map((c) => {
-          const x = tx(c.ms);
-          const cy = redCY(c.row);
-          return (
-            <g key={`r-${c.id}`} style={{ color: "#fca5a5" }}>
-              <ClusterIcon cx={x} cy={cy} cluster={c}
-                onHover={() => setTooltip({ lines: c.tooltipLines, xPct: (x / SVG_W) * 100 })} />
-            </g>
-          );
-        })}
-      </svg>
-
-      {tooltip && (
+        {/* 중간 레이어: chart.js가 그리는 골드/킬 차이 라인+영역.
+            chart.js는 responsive:true일 때 캔버스 크기를 "부모 요소" 기준으로 자기가 다시 계산해서
+            강제로 채워버리므로, 위치/크기/둥근모서리는 별도 wrapper div에 주고 canvas는 그 안에서
+            100%/100%로만 채우게 한다(그래야 chart.js가 부모=wrapper 크기에 맞춰 정확히 리사이즈됨). */}
         <div
-          className="pointer-events-none absolute top-0 z-10 whitespace-nowrap rounded bg-background/95 px-2 py-1 text-xs shadow-md ring-1 ring-border"
-          style={{ left: `${Math.min(Math.max(tooltip.xPct, 5), 60)}%` }}
+          className="absolute overflow-hidden"
+          style={{
+            left: `${(PAD_X / SVG_W) * 100}%`,
+            top: `${(graphTop / svgH) * 100}%`,
+            width: `${((SVG_W - PAD_X * 2) / SVG_W) * 100}%`,
+            height: `${((graphBot - graphTop) / svgH) * 100}%`,
+            borderRadius: `${(CARD_RX / SVG_W) * 100}%`,
+          }}
         >
-          {tooltip.lines.map((line, i) => <div key={i}>{line}</div>)}
+          <canvas ref={canvasRef} className="block h-full w-full" />
         </div>
-      )}
 
+        {/* 전경 레이어: 킬/오브젝트 클러스터 아이콘 (호버 툴팁 포함).
+            svg 전체를 pointer-events:none으로 비워서, 아이콘이 없는 투명한 부분은 마우스 이벤트가
+            아래 chart.js 캔버스로 그대로 통과해 그래프 자체 호버 툴팁도 같이 동작하게 한다. */}
+        <svg
+          viewBox={`0 0 ${SVG_W} ${svgH}`}
+          className="absolute inset-0 block h-full w-full"
+          style={{ pointerEvents: "none" }}
+        >
+          {showObjectives && blueClusters.map((c) => {
+            const x = tx(c.ms);
+            const cy = blueCY(c.row);
+            return (
+              <g key={`b-${c.id}`} style={{ color: "#93c5fd" }}>
+                <ClusterIcon cx={x} cy={cy} cluster={c}
+                  onHover={() => setTooltip({ lines: c.tooltipLines, xPct: (x / SVG_W) * 100, yPct: (cy / svgH) * 100 })}
+                  onLeave={() => setTooltip(null)} />
+              </g>
+            );
+          })}
+
+          {showObjectives && redClusters.map((c) => {
+            const x = tx(c.ms);
+            const cy = redCY(c.row);
+            return (
+              <g key={`r-${c.id}`} style={{ color: "#fca5a5" }}>
+                <ClusterIcon cx={x} cy={cy} cluster={c}
+                  onHover={() => setTooltip({ lines: c.tooltipLines, xPct: (x / SVG_W) * 100, yPct: (cy / svgH) * 100 })}
+                  onLeave={() => setTooltip(null)} />
+              </g>
+            );
+          })}
+        </svg>
+
+        {showObjectives && tooltip && (
+          <div
+            className="pointer-events-none absolute z-10 whitespace-nowrap rounded bg-background/95 px-2 py-1 text-xs shadow-md ring-1 ring-border"
+            style={{ left: `${Math.min(Math.max(tooltip.xPct, 5), 85)}%`, top: `calc(${tooltip.yPct}% + ${ITEM_SZ / 2 + 6}px)` }}
+          >
+            {tooltip.lines.map((line, i) => <div key={i}>{line}</div>)}
+          </div>
+        )}
+      </div>
+
+      {showObjectives && (
       <div className="flex flex-wrap gap-x-3 gap-y-1 px-5 pb-4 pt-2 text-xs text-muted">
         <span className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-blue-400/80" />블루 킬</span>
         <span className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-red-400/80" />레드 킬</span>
@@ -541,6 +654,7 @@ export function GameTimeline({
           </span>
         ))}
       </div>
+      )}
     </div>
   );
 }

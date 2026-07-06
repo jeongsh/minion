@@ -889,7 +889,9 @@ export async function getPlayerCareerHistories(playerIds: string[]): Promise<Pla
       .from("player_career_history")
       .select("*")
       .in("player_id", playerIds)
-      .order("start_date", { ascending: false });
+      .order("start_date", { ascending: false })
+      .order("end_date", { ascending: false })
+      .order("team_id", { ascending: false, nullsFirst: false });
 
     if (error) throw error;
 

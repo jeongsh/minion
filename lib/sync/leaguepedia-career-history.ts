@@ -45,6 +45,15 @@ const TEAM_ALIASES = new Map([
   ["dn freecs", "soop"],
   ["dn suprs", "soop"],
   ["soop", "soop"],
+  // 아래는 메인 로스터엔 안 쓰이지만, 유스/챌린저스 팀 이름의 스폰서명 변경(예: BNK FEARX Youth ↔
+  // FearX Youth)을 같은 팀으로 묶기 위해 필요한 과거 표기.
+  ["dwg kia", "dk"],
+  ["t1 esports", "t1"],
+  ["fredit brion", "bro"],
+  ["oksavingsbank brion", "bro"],
+  ["kwangdong freecs", "soop"],
+  ["gen.g global", "geng"],
+  ["nongshim esports", "ns"],
 ]);
 
 const POSITION_MAP: Record<string, string> = {
@@ -257,6 +266,23 @@ function scoreboardRowsForPage(
   return matches.length === 1 ? matches[0][1] : [];
 }
 
+// 유스/챌린저스 팀은 우리 teams 테이블에 없어 항상 team_name 문자열로만 남는데, 스폰서명이
+// 여러 번 바뀌어도(BNK FEARX Youth ↔ FearX Youth 등) 같은 팀으로 묶이도록 접미사를 떼고
+// 본체 이름을 TEAM_ALIASES로 정규화한 값을 그룹핑 키로 쓴다. 실제 표시용 team_name은 그대로 둔다.
+function academyGroupKey(teamName: string): string {
+  const suffixMatch = teamName.match(/^(.*?)\s+(Youth|Challengers|Academy|Global Academy)$/i);
+  if (!suffixMatch) return teamName;
+  const base = suffixMatch[1].trim();
+  const slug = slugFor(base);
+  return slug ? `${slug}::academy` : `${normalizeTeam(base)}::academy`;
+}
+
+function groupKeyFor(teamId: string | null, teamName: string | null): string {
+  if (teamId) return teamId;
+  if (!teamName) return "";
+  return academyGroupKey(teamName);
+}
+
 function mergeIntoCareerEntries(
   rows: ScoreboardRow[],
   playerPosition: string,
@@ -268,6 +294,7 @@ function mergeIntoCareerEntries(
     position: string;
     startDate: string;
     endDate: string;
+    groupKey: string;
   };
 
   type Parsed = {
@@ -276,6 +303,7 @@ function mergeIntoCareerEntries(
     position: string;
     teamId: string | null;
     teamName: string | null;
+    groupKey: string;
   };
 
   const parsedRows: Parsed[] = [];
@@ -295,8 +323,9 @@ function mergeIntoCareerEntries(
     const team = teamSlug ? bySlug.get(teamSlug) ?? null : null;
     const teamId = team?.id ?? null;
     const teamName = team ? null : (row.Team?.trim() ?? null);
+    const groupKey = groupKeyFor(teamId, teamName);
 
-    parsedRows.push({ start, end, position, teamId, teamName });
+    parsedRows.push({ start, end, position, teamId, teamName, groupKey });
   }
 
   // OverviewPage 문자열 정렬(SP.Link ASC, SP.OverviewPage ASC)은 리그마다 표기 방식이
@@ -309,23 +338,67 @@ function mergeIntoCareerEntries(
   let current: Entry | null = null;
 
   for (const parsed of parsedRows) {
-    const canonicalTeamKey = parsed.teamId ?? parsed.teamName ?? "";
-
     if (
       current &&
-      (current.teamId ?? current.teamName ?? "") === canonicalTeamKey &&
+      current.groupKey === parsed.groupKey &&
       current.position === parsed.position
     ) {
       if (parsed.end > current.endDate) current.endDate = parsed.end;
+      // 정렬 순서상 나중 항목이 더 최신 표기이므로 팀명을 최신 것으로 갱신한다.
+      current.teamId = parsed.teamId ?? current.teamId;
+      current.teamName = parsed.teamName ?? current.teamName;
     } else {
       if (current) entries.push(current);
-      current = { teamId: parsed.teamId, teamName: parsed.teamName, position: parsed.position, startDate: parsed.start, endDate: parsed.end };
+      current = { teamId: parsed.teamId, teamName: parsed.teamName, position: parsed.position, startDate: parsed.start, endDate: parsed.end, groupKey: parsed.groupKey };
     }
   }
 
   if (current) entries.push(current);
 
-  return entries;
+  // 리그마다 페이지 표기가 달라 같은 팀 소속 기간이 다른 팀 기록 사이에 끼어 들어오는 경우가 있다
+  // (예: A팀(2025) - B팀(2025) - A팀(2026) 순서로 원본이 뒤섞여 연속 병합에서 걸러지지 않음).
+  // 그래서 팀+포지션이 같고 기간이 겹치거나 맞닿아 있는(3일 이내) 항목은 순서와 무관하게 한 번 더 합친다.
+  return mergeOverlappingSameTeam(entries);
+}
+
+function mergeOverlappingSameTeam(entries: {
+  teamId: string | null;
+  teamName: string | null;
+  position: string;
+  startDate: string;
+  endDate: string;
+  groupKey: string;
+}[]) {
+  const groups = new Map<string, typeof entries>();
+  for (const entry of entries) {
+    const key = `${entry.groupKey}::${entry.position}`;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(entry);
+  }
+
+  const merged: typeof entries = [];
+  for (const group of groups.values()) {
+    const sorted = [...group].sort((a, b) => a.startDate.localeCompare(b.startDate));
+    let current: (typeof entries)[number] | null = null;
+    for (const entry of sorted) {
+      const gapDays = current
+        ? (Date.parse(entry.startDate) - Date.parse(current.endDate)) / 86_400_000
+        : Infinity;
+      if (current && gapDays <= 3) {
+        if (entry.endDate > current.endDate) {
+          current.endDate = entry.endDate;
+          current.teamId = entry.teamId ?? current.teamId;
+          current.teamName = entry.teamName ?? current.teamName;
+        }
+      } else {
+        if (current) merged.push(current);
+        current = { ...entry };
+      }
+    }
+    if (current) merged.push(current);
+  }
+
+  return merged.sort((a, b) => a.startDate.localeCompare(b.startDate));
 }
 
 export type CareerSyncSummary = {
