@@ -80,7 +80,7 @@ export function CommunityFeed({
   const chip = (active: boolean) =>
     `rounded-full px-3.5 py-[7px] text-[14px] font-semibold transition-colors ${
       active
-        ? "bg-[var(--ink,#16151b)] text-white"
+        ? "bg-[var(--ink,#16151b)] text-[var(--background)]"
         : "bg-[var(--surface-1,#f2f0ec)] text-[var(--ink-2,#6d6c76)] hover:bg-[var(--surface-1-hover,#e9e6e1)]"
     }`;
 

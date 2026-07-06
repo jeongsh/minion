@@ -308,7 +308,7 @@ export default async function TeamDetailPage({
                 href="https://lolesports.com/ko-KR/gpr/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="rounded-full border border-border bg-surface px-3 py-1 text-sm font-bold text-black hover:bg-surface-muted"
+                className="rounded-full border border-border bg-surface px-3 py-1 text-sm font-bold text-foreground hover:bg-surface-muted"
               >
                 글로벌 {team.globalPowerRank}위
               </a>
@@ -398,7 +398,7 @@ export default async function TeamDetailPage({
                 {/* 포지션 라벨 */}
                 <div className="px-3 pt-2.5">
                   <span
-                    className="text-xs font-bold tracking-wider text-black"
+                    className="text-xs font-bold tracking-wider text-muted"
                   >
                     {player.position}
                   </span>

@@ -92,11 +92,11 @@ export function ScheduleList({
                     </div>
                   </div>
                   <div className="flex items-center justify-center gap-3.5">
-                    <p className="flex min-w-0 flex-1 justify-end text-sm font-black"><span className="truncate">{teamA?.name ?? "TBD"}</span></p>
+                    <p className="flex min-w-0 flex-1 justify-end text-sm font-black text-[var(--ui-ink)]"><span className="truncate">{teamA?.name ?? "TBD"}</span></p>
                     <TeamLogo team={teamA} size="h-12 w-12" plain />
                     <p className="w-16 shrink-0 text-center text-[24px] font-black tabular-nums text-[var(--ui-ink)]">{score}</p>
                     <TeamLogo team={teamB} size="h-12 w-12" plain />
-                    <p className="flex min-w-0 flex-1 text-sm font-black"><span className="truncate">{teamB?.name ?? "TBD"}</span></p>
+                    <p className="flex min-w-0 flex-1 text-sm font-black text-[var(--ui-ink)]"><span className="truncate">{teamB?.name ?? "TBD"}</span></p>
                   </div>
                   <div className="flex flex-col text-right">
                     <p className="truncate text-sm font-bold text-[var(--ui-text)]">{tournamentTypeLabel(tournament)}</p>

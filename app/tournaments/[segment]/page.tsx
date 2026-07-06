@@ -384,9 +384,10 @@ function SeasonTabs({
           href={`/tournaments/${segmentKey}?year=${season}`}
           className={`rounded-full px-4 py-1.5 text-sm font-bold transition-colors ${
             season === activeSeason
-              ? "bg-white text-foreground"
+              ? "bg-white"
               : "bg-white/10 text-white/70 hover:bg-white/15 hover:text-white"
           }`}
+          style={season === activeSeason ? { color: "#111827" } : undefined}
         >
           {season}
         </Link>

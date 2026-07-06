@@ -54,7 +54,7 @@ export function PostGallery({
                   {boardLabel(scope, post.boardType)}
                 </span>
                 {isHotPost(post) && (
-                  <span className="inline-flex rounded-[4px] bg-[var(--ink,#16151b)] px-1.5 py-[1px] text-[11px] font-bold leading-none text-white">
+                  <span className="inline-flex rounded-[4px] bg-[var(--ink,#16151b)] px-1.5 py-[1px] text-[11px] font-bold leading-none text-[var(--background)]">
                     HOT
                   </span>
                 )}

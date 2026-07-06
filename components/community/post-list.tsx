@@ -64,7 +64,7 @@ export function PostList({
                       {post.title}
                     </span>
                     {hot ? (
-                      <span className="shrink-0 rounded-[4px] bg-[var(--ink,#16151b)] px-1.5 py-[1px] text-[11px] font-bold text-white">
+                      <span className="shrink-0 rounded-[4px] bg-[var(--ink,#16151b)] px-1.5 py-[1px] text-[11px] font-bold text-[var(--background)]">
                         HOT
                       </span>
                     ) : null}

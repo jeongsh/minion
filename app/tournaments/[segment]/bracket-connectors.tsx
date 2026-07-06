@@ -155,7 +155,7 @@ export function BracketConnectors({
             key={path.id}
             d={path.d}
             fill="none"
-            stroke="rgba(17,24,39,0.28)"
+            stroke="var(--border)"
             strokeWidth={2}
           />
         ))}

@@ -74,7 +74,10 @@ export function FanPredictionCard({
   }
 
   return (
-    <div className="flex flex-col gap-[14px] rounded-2xl bg-white px-6 py-[22px] text-[#16151b] shadow-[0_20px_44px_rgba(0,0,0,0.22)]">
+    <div
+      className="flex flex-col gap-[14px] rounded-2xl bg-white px-6 py-[22px] shadow-[0_20px_44px_rgba(0,0,0,0.22)]"
+      style={{ color: "#16151b" }}
+    >
       <div className="flex items-center justify-between">
         <span className="text-[13px] font-black">팬 승부예측</span>
         <span className="text-[11px] font-bold text-[#9c9aa3]">
@@ -97,7 +100,7 @@ export function FanPredictionCard({
       </div>
 
       {!votable ? (
-        <div className="rounded-full bg-[#f1f2f4] py-[11px] text-center text-[13px] font-black text-[#8a8892]">
+        <div className="rounded-full bg-[rgb(241,242,244)] py-[11px] text-center text-[13px] font-black text-[#8a8892]">
           {matchId ? "예측 마감" : "경기가 확정되면 열려요"}
         </div>
       ) : myVote ? (
@@ -120,7 +123,8 @@ export function FanPredictionCard({
             type="button"
             onClick={() => opponentId && vote(opponentId)}
             disabled={isPending}
-            className="flex-1 rounded-full border border-[#dcdde1] py-[11px] text-[13px] font-black text-[#16151b] transition hover:bg-[#f2f3f5] disabled:opacity-70"
+            className="flex-1 rounded-full border border-[#dcdde1] py-[11px] text-[13px] font-black transition hover:bg-[rgb(242,243,245)] disabled:opacity-70"
+            style={{ color: "#16151b" }}
           >
             {opponentName} 승
           </button>
