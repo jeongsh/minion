@@ -403,13 +403,20 @@ export function GameTimeline({
             <rect x={PAD_X} y={centerY} width={SVG_W - PAD_X * 2} height={CTR_GAP + redH} />
           </clipPath>
           <linearGradient id={`${uid}-gb`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#4c8dff" stopOpacity="0.3" />
-            <stop offset="100%" stopColor="#4c8dff" stopOpacity="0.03" />
+            <stop offset="0%" stopColor="#4c8dff" stopOpacity="0.75" />
+            <stop offset="100%" stopColor="#4c8dff" stopOpacity="0.05" />
           </linearGradient>
           <linearGradient id={`${uid}-gr`} x1="0" y1="1" x2="0" y2="0">
-            <stop offset="0%" stopColor="#ff5b6e" stopOpacity="0.3" />
-            <stop offset="100%" stopColor="#ff5b6e" stopOpacity="0.03" />
+            <stop offset="0%" stopColor="#ff5b6e" stopOpacity="0.75" />
+            <stop offset="100%" stopColor="#ff5b6e" stopOpacity="0.05" />
           </linearGradient>
+          <filter id={`${uid}-glow`} x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur stdDeviation="3.2" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
         </defs>
 
         <rect x={PAD_X} y={graphTop} width={SVG_W - PAD_X * 2} height={graphBot - graphTop} rx={8} fill="var(--timeline-chart-surface)" />
@@ -423,7 +430,8 @@ export function GameTimeline({
           return (
             <g key={`gy${d}`}>
               <line x1={PAD_X} y1={y} x2={SVG_W - PAD_X} y2={y}
-                stroke="var(--timeline-chart-grid)" strokeWidth={d === 0 ? 1.2 : 0.7} />
+                stroke={d === 0 ? "var(--timeline-chart-muted)" : "var(--timeline-chart-grid)"}
+                strokeWidth={d === 0 ? 1.6 : 0.7} />
               <text x={PAD_X - 4} y={y + 3} textAnchor="end" fontSize={7}
                 fill={d > 0 ? "#4c8dff" : d < 0 ? "#ff5b6e" : "var(--timeline-chart-muted)"} fontWeight="600">
                 {formatDiffLabel(d)}
@@ -432,8 +440,8 @@ export function GameTimeline({
           );
         })}
 
-        <path d={lineD} fill="none" stroke="#4c8dff" strokeWidth={2.5} clipPath={`url(#${uid}-bc)`} />
-        <path d={lineD} fill="none" stroke="#ff5b6e" strokeWidth={2.5} clipPath={`url(#${uid}-rc)`} />
+        <path d={lineD} fill="none" stroke="#4c8dff" strokeWidth={3.2} clipPath={`url(#${uid}-bc)`} filter={`url(#${uid}-glow)`} />
+        <path d={lineD} fill="none" stroke="#ff5b6e" strokeWidth={3.2} clipPath={`url(#${uid}-rc)`} filter={`url(#${uid}-glow)`} />
 
         <text x={PAD_X + 6} y={graphTop + blueH / 2 + 3} textAnchor="start" fontSize={8} fontWeight="700" fill="#60a5fa" fillOpacity={0.7}>{blueTeamName}</text>
         <text x={PAD_X + 6} y={centerY + CTR_GAP + redH / 2 + 3} textAnchor="start" fontSize={8} fontWeight="700" fill="#f87171" fillOpacity={0.7}>{redTeamName}</text>
