@@ -15,13 +15,23 @@ function timeLabel(value: string) {
   return new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", year: "numeric", month: "2-digit", day: "2-digit" }).format(date).replace(/\. /g, "-").replace(".", "");
 }
 
-export function HomeBoardCarousel({ posts }: { posts: CommunityPostDetail[] }) {
+export function HomeBoardCarousel({
+  posts,
+  scope = "hub",
+  teamSlug,
+}: {
+  posts: CommunityPostDetail[];
+  scope?: "hub" | "team";
+  teamSlug?: string;
+}) {
   const { setPrevEl, setNextEl, navigationProps } = useSwiperNav();
-  if (posts.length === 0) return <div className="rounded-2xl border border-dashed border-[#d8d5dd] py-14 text-center text-sm text-[#827e89] dark:border-transparent">등록된 허브 커뮤니티 글이 없습니다.</div>;
+  const detailHref = (postId: string) =>
+    scope === "team" && teamSlug ? `/fan/${teamSlug}/community/post/${postId}` : `/community/post/${postId}`;
+  if (posts.length === 0) return <div className="rounded-2xl border border-dashed border-[#d8d5dd] py-14 text-center text-sm text-[#827e89] dark:border-transparent">등록된 {scope === "team" ? "팬" : "허브"} 커뮤니티 글이 없습니다.</div>;
   return <div className="relative"><Swiper modules={[Navigation]} {...navigationProps} spaceBetween={16} slidesPerView={1.08} breakpoints={{ 720: { slidesPerView: 2 }, 1280: { slidesPerView: 3 } }}>
     {posts.slice(0,12).map((post) => (
       <SwiperSlide key={post.id} className="h-auto">
-        <Link href={`/community/post/${post.id}`} className={`relative grid min-h-[210px] gap-4 rounded-2xl border border-[#dedfe2] bg-[#f1f2f3] p-5 transition hover:border-[#b9bcc2] dark:border-transparent dark:hover:border-transparent ${post.thumbnailUrl ? "grid-cols-[minmax(0,1fr)_92px]" : "grid-cols-1"}`}>
+        <Link href={detailHref(post.id)} className={`relative grid min-h-[210px] gap-4 rounded-2xl border border-[#dedfe2] bg-[#f1f2f3] p-5 transition hover:border-[#b9bcc2] dark:border-transparent dark:hover:border-transparent ${post.thumbnailUrl ? "grid-cols-[minmax(0,1fr)_92px]" : "grid-cols-1"}`}>
           <span className="absolute right-5 top-5 text-xs text-[#85818d]">{timeLabel(post.createdAt)}</span>
           <div className="min-w-0 overflow-hidden">
             <div className="flex min-w-0 items-center gap-2 pr-24">
@@ -29,7 +39,7 @@ export function HomeBoardCarousel({ posts }: { posts: CommunityPostDetail[] }) {
               <b className="min-w-0 truncate text-sm">{post.authorName ?? "MINION"}</b>
             </div>
             <div className="mt-5 flex min-w-0 items-center gap-2 overflow-hidden">
-              <span className="shrink-0 rounded bg-[#dfe1e4] px-2 py-1 text-[11px] font-black text-[#35373b]">{boardLabel("hub", post.boardType)}</span>
+              <span className="shrink-0 rounded bg-[#dfe1e4] px-2 py-1 text-[11px] font-black text-[#35373b]">{boardLabel(scope, post.boardType)}</span>
               <strong className="min-w-0 flex-1 truncate text-sm">{post.title}</strong>
             </div>
             <p className="mt-3 line-clamp-2 max-w-full [overflow-wrap:anywhere] text-sm leading-6 text-[#666a70]">{post.excerpt || "내용을 확인하려면 게시글을 열어보세요."}</p>

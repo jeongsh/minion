@@ -322,7 +322,7 @@ export default async function FanHomePage({
         {/* 게시판 */}
         <section>
           <SectionHeading href={`/fan/${team.fanSiteHost}/community`}>게시판</SectionHeading>
-          <HomeBoardCarousel posts={boardPosts.slice(0, 12)} />
+          <HomeBoardCarousel posts={boardPosts.slice(0, 12)} scope="team" teamSlug={team.fanSiteHost} />
         </section>
 
         {/* 최신 영상 */}
