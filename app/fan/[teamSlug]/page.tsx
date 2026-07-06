@@ -286,7 +286,7 @@ export default async function FanHomePage({
   ].sort((a, b) => (b.postedAt ? new Date(b.postedAt).getTime() : 0) - (a.postedAt ? new Date(a.postedAt).getTime() : 0));
 
   return (
-    <FanPageShell eyebrow={`${team.shortName} Fan Channel`} title="홈" contentClassName="">
+    <FanPageShell contentClassName="">
       <div
         className="flex flex-col gap-12 text-[var(--ui-ink)]"
         style={{ "--tp": team.primaryColor } as React.CSSProperties}
