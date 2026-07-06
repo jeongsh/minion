@@ -4,6 +4,7 @@
 import { createSupabaseAuthClient } from "@/lib/supabase/auth-server";
 import { DEFAULT_TIER, type Tier } from "@/lib/rank/config";
 import type { LpReason } from "@/lib/rank/record-lp";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export type LedgerEntry = {
   id: string;
@@ -20,6 +21,31 @@ export type RankSummary = {
   recentLedger: LedgerEntry[];
   checkedInToday: boolean;
 };
+
+export type LeaderboardEntry = {
+  id: string;
+  nickname: string;
+  lp: number;
+  tier: Tier;
+  rank: number;
+};
+
+export async function getTopRankedProfiles(limit = 10): Promise<LeaderboardEntry[]> {
+  const { data, error } = await createSupabaseServerClient()
+    .from("ranked_profiles")
+    .select("id, nickname, lp, effective_tier, overall_rank")
+    .order("overall_rank", { ascending: true })
+    .limit(limit);
+
+  if (error) return [];
+  return data.map((row) => ({
+    id: row.id,
+    nickname: row.nickname,
+    lp: row.lp,
+    tier: asTier(row.effective_tier),
+    rank: Number(row.overall_rank),
+  }));
+}
 
 const VALID_TIERS = new Set<Tier>([
   "iron",

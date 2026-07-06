@@ -653,3 +653,27 @@ html[class~="dark"] .match-detail-page .text-muted {
   pointer-events: none;
   height: 0;
 }
+
+.prediction-match-card--selected-left {
+  background:
+    radial-gradient(circle at left center, color-mix(in srgb, var(--prediction-team-color) 36%, transparent) 0%, transparent 58%),
+    linear-gradient(90deg, #eef0f2 0%, #ffffff 100%);
+}
+
+.prediction-match-card--selected-right {
+  background:
+    radial-gradient(circle at right center, color-mix(in srgb, var(--prediction-team-color) 36%, transparent) 0%, transparent 58%),
+    linear-gradient(270deg, #eef0f2 0%, #ffffff 100%);
+}
+
+.dark .prediction-match-card--selected-left {
+  background:
+    radial-gradient(circle at left center, color-mix(in srgb, var(--prediction-team-color) 42%, transparent) 0%, transparent 58%),
+    linear-gradient(90deg, #24272c 0%, #15161a 100%);
+}
+
+.dark .prediction-match-card--selected-right {
+  background:
+    radial-gradient(circle at right center, color-mix(in srgb, var(--prediction-team-color) 42%, transparent) 0%, transparent 58%),
+    linear-gradient(270deg, #24272c 0%, #15161a 100%);
+}

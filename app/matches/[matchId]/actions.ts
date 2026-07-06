@@ -53,7 +53,7 @@ function hashVoterKey(value: string) {
   return createHash("sha256").update(value).digest("hex");
 }
 
-export async function predictMatchWinnerAction(formData: FormData) {
+export async function updateMatchPredictionAction(formData: FormData) {
   const matchId = textOrNull(formData.get("matchId"));
   const teamId = textOrNull(formData.get("teamId"));
 
@@ -100,10 +100,69 @@ export async function predictMatchWinnerAction(formData: FormData) {
   }
 
   revalidatePath(`/matches/${match.id}`);
+  revalidatePath("/predictions");
 
   if (match.leaguepedia_match_id) {
     revalidatePath(`/matches/${encodeURIComponent(match.leaguepedia_match_id as string)}`);
   }
+
+  return getPredictionTally(supabase, match.id, match.team_a_id, match.team_b_id, teamId);
+}
+
+export async function predictMatchWinnerAction(formData: FormData): Promise<void> {
+  await updateMatchPredictionAction(formData);
+}
+
+async function getPredictionTally(
+  supabase: ReturnType<typeof createSupabaseAdminClient>,
+  matchId: string,
+  teamAId: string,
+  teamBId: string,
+  selectedTeamId: string | null,
+) {
+  const { data, error } = await supabase
+    .from("fan_match_predictions")
+    .select("team_id")
+    .eq("match_id", matchId);
+
+  if (error) throw new Error(error.message);
+
+  return {
+    selectedTeamId,
+    teamACount: data.filter((row) => row.team_id === teamAId).length,
+    teamBCount: data.filter((row) => row.team_id === teamBId).length,
+  };
+}
+
+export async function cancelMatchPredictionAction(formData: FormData) {
+  const matchId = textOrNull(formData.get("matchId"));
+  if (!matchId) throw new Error("취소할 경기를 확인해 주세요.");
+
+  const supabase = createSupabaseAdminClient();
+  const { data: match, error: matchError } = await supabase
+    .from("matches")
+    .select("id, match_date, team_a_id, team_b_id")
+    .eq("id", matchId)
+    .maybeSingle();
+
+  if (matchError) throw new Error(matchError.message);
+  if (!match) throw new Error("경기를 찾을 수 없습니다.");
+  if (new Date(match.match_date as string).getTime() <= Date.now()) {
+    throw new Error("경기 시작 이후에는 예측을 취소할 수 없습니다.");
+  }
+
+  const voterKey = await getOrCreateCookie(VOTER_COOKIE);
+  const { error } = await supabase
+    .from("fan_match_predictions")
+    .delete()
+    .eq("match_id", match.id)
+    .eq("voter_key", voterKey);
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/matches/${match.id}`);
+  revalidatePath("/predictions");
+  return getPredictionTally(supabase, match.id, match.team_a_id, match.team_b_id, null);
 }
 
 export async function submitSetPlayerRatingAction(formData: FormData) {

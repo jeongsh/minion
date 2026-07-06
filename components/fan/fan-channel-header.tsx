@@ -9,7 +9,15 @@ import type { Match, Team } from "@/lib/types";
 function dateKey(value: string | Date) { return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul", year: "numeric", month: "2-digit", day: "2-digit" }).format(typeof value === "string" ? new Date(value) : value); }
 function dday(value: string) { const diff = Math.round((Date.parse(dateKey(value)) - Date.parse(dateKey(new Date()))) / 86400000); return diff <= 0 ? "D-DAY" : `D-${diff}`; }
 function dateTime(value: string) { return new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", month: "long", day: "numeric", weekday: "short", hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date(value)); }
+function tickerDateTime(value: string) { return new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", month: "numeric", day: "numeric", weekday: "short", hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date(value)); }
 function opponentOf(match: Match, team: Team, teams: Team[]) { return teams.find((item) => item.id === (match.teamAId === team.id ? match.teamBId : match.teamAId)); }
+function resultOf(match: Match, team: Team) {
+  const isTeamA = match.teamAId === team.id;
+  const ownScore = isTeamA ? match.teamAScore : match.teamBScore;
+  const opponentScore = isTeamA ? match.teamBScore : match.teamAScore;
+  if (ownScore == null || opponentScore == null) return "결과 확인 중";
+  return `${ownScore > opponentScore ? "승" : "패"} ${ownScore}:${opponentScore}`;
+}
 
 export async function FanChannelHeader({ teamSlug }: { teamSlug: string }) {
   const [team, teams, matches] = await Promise.all([getTeamByFanSiteHost(teamSlug).then((value) => value ?? getTeamBySlug(teamSlug)), getAllTeams(), getMatches()]);
@@ -18,8 +26,10 @@ export async function FanChannelHeader({ teamSlug }: { teamSlug: string }) {
   const now = Date.now();
   const ownMatches = matches.filter((match) => match.teamAId === team.id || match.teamBId === team.id);
   const live = ownMatches.find((match) => match.status === "live");
-  const upcoming = ownMatches.filter((match) => match.status === "scheduled" && new Date(match.matchDate).getTime() >= now).sort((a,b) => new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime())[0];
-  const recent = ownMatches.filter((match) => match.status === "completed" || new Date(match.matchDate).getTime() < now).sort((a,b) => new Date(b.matchDate).getTime() - new Date(a.matchDate).getTime())[0];
+  const upcomingMatches = ownMatches.filter((match) => match.status === "scheduled" && new Date(match.matchDate).getTime() >= now).sort((a,b) => new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime());
+  const recentMatches = ownMatches.filter((match) => match.status === "completed" || new Date(match.matchDate).getTime() < now).sort((a,b) => new Date(b.matchDate).getTime() - new Date(a.matchDate).getTime());
+  const upcoming = upcomingMatches[0];
+  const recent = recentMatches[0];
   const match = live ?? upcoming ?? recent;
   const mode = live ? "live" : upcoming ? "upcoming" : recent ? "recent" : "empty";
   const opponent = match ? opponentOf(match, team, teams) : undefined;
@@ -29,6 +39,16 @@ export async function FanChannelHeader({ teamSlug }: { teamSlug: string }) {
   const opponentName = opponent?.shortName ?? "TBD";
   const badge = mode === "live" ? "LIVE" : mode === "upcoming" && match ? dday(match.matchDate) : mode === "recent" ? "경기 종료" : "일정 없음";
   const links = [["홈페이지",team.officialHomepageUrl],["YouTube",team.officialYoutubeUrl],["X",team.officialXUrl],["Instagram",team.officialInstagramUrl]].filter((item): item is [string,string] => Boolean(item[1]));
+  const tickerItems = [
+    ...(live ? [`LIVE · ${team.shortName} VS ${opponentOf(live, team, teams)?.shortName ?? "TBD"} · ${live.name?.trim() || "경기 진행 중"}`] : []),
+    ...upcomingMatches.slice(0, 4).map((item, index) => {
+      const opponent = opponentOf(item, team, teams)?.shortName ?? "TBD";
+      const context = item.name?.trim() || item.venue?.trim();
+      return `NEXT ${index + 1} · ${tickerDateTime(item.matchDate)} · ${team.shortName} VS ${opponent}${context ? ` · ${context}` : ""}`;
+    }),
+    ...recentMatches.slice(0, 2).map((item) => `RECENT · ${team.shortName} ${resultOf(item, team)} ${opponentOf(item, team, teams)?.shortName ?? "TBD"} · ${tickerDateTime(item.matchDate)}`),
+  ];
+  if (!tickerItems.length) tickerItems.push(`${team.shortName} · 등록된 경기 일정이 없습니다`);
   return <>
     <header className="relative overflow-hidden text-white" style={{background:team.primaryColor}}>
       <div className="relative mx-auto max-w-[1400px] px-5"><span aria-hidden className="font-archivo pointer-events-none absolute -right-2 -top-16 text-[250px] font-black leading-none text-white/[0.07]">{team.shortName}</span>
@@ -42,7 +62,7 @@ export async function FanChannelHeader({ teamSlug }: { teamSlug: string }) {
           <FanPredictionCard showDetailsLink={false} matchId={match?.id} teamId={team.id} teamName={team.shortName} opponentId={opponent?.id} opponentName={opponentName} teamColor={team.primaryColor} initialTeamVotes={predictions.filter((item)=>item.teamId===team.id).length} initialOpponentVotes={predictions.filter((item)=>item.teamId===opponent?.id).length} initialMyVote={predictionVoterKey ? predictions.find((item)=>item.voterKey===predictionVoterKey)?.teamId : undefined} canVote={mode==="upcoming"}/>
         </div>
       </div>
-      <div className="overflow-hidden bg-black/20 py-[9px]"><div className="font-archivo fan-ticker-track text-xs font-extrabold tracking-[0.2em] text-white/85">{[false,true].map((hidden)=><div key={String(hidden)} className="fan-ticker-group" aria-hidden={hidden||undefined}>{Array.from({length:4},(_,i)=><span key={i} className="px-4">MATCH DAY · {team.shortName} VS {opponentName} · 응원은 계속된다 · </span>)}</div>)}</div></div>
+      <div className="overflow-hidden bg-black/20 py-[9px]"><div className="font-archivo fan-ticker-track text-xs font-extrabold tracking-[0.12em] text-white/85">{[false,true].map((hidden)=><div key={String(hidden)} className="fan-ticker-group" aria-hidden={hidden||undefined}>{tickerItems.map((item)=><span key={item} className="px-5">{item}<span className="ml-10 text-white/45">•</span></span>)}</div>)}</div></div>
     </header>
     <FanChannelNavigation teamSlug={team.fanSiteHost}/>
   </>;

@@ -64,7 +64,7 @@ export function ScheduleList({
 
         return (
         <section key={date} id={date === scrollTargetKey ? TODAY_SECTION_ID : undefined} className="scroll-mt-40">
-          <h2 className="home-section-title mb-3 flex items-center gap-2 text-[20px] text-[var(--ui-ink)]">
+          <h2 className="home-section-title mb-3 flex items-center gap-2 text-[18px] text-[var(--ui-ink)]">
             {date}
             {isToday && <span className="rounded-full bg-[var(--accent)] px-2 py-0.5 text-[11px] font-bold text-[var(--accent-foreground)]">오늘</span>}
           </h2>
