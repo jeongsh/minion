@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { notFound } from "next/navigation";
 
-import { PredictionMarketLine } from "@/components/domain/prediction-market-line";
+import { HomeUpcomingPredictionCard } from "@/components/domain/home-upcoming-prediction-card";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { TeamLogo } from "@/components/ui/team-logo";
@@ -31,6 +31,7 @@ import {
   teamLabel,
 } from "@/lib/view-data";
 import { getPredictionMarketData } from "@/lib/predictions";
+import { getCurrentUser } from "@/lib/auth/current-user";
 
 import { submitSetPlayerRatingAction } from "./actions";
 import { MatchPreview } from "./match-preview";
@@ -581,6 +582,8 @@ export default async function MatchDetailPage({
     notFound();
   }
 
+  const currentUser = await getCurrentUser();
+
   const [
     teams,
     players,
@@ -597,7 +600,7 @@ export default async function MatchDetailPage({
     getSetsByMatchId(match.id),
     getSets(),
     getFanRatings(),
-    getPredictionMarketData(),
+    getPredictionMarketData(currentUser?.id),
     getTournaments(),
     getStages(),
     getMatches(),
@@ -644,7 +647,7 @@ export default async function MatchDetailPage({
   const poll = (
     <section>
       <div className="mb-3 flex items-end justify-between gap-3"><h2 className="text-[15px] font-black text-[var(--ui-ink)]">LP 승부예측</h2><span className="text-xs font-semibold text-[var(--ui-muted)]">예상 배당은 마감 전까지 변동됩니다</span></div>
-      <PredictionMarketLine match={match} teams={teams} bets={predictionMarket.bets.filter((bet) => bet.matchId === match.id)} />
+      <HomeUpcomingPredictionCard match={match} teamA={teamA} teamB={teamB} tournament={tournament?.name} bets={predictionMarket.bets.filter((bet) => bet.matchId === match.id)} currentUserId={currentUser?.id} balance={predictionMarket.balance}/>
     </section>
   );
   const embedUrl = youtubeEmbedUrl(match.vodUrl);

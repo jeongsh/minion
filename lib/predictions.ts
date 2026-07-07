@@ -19,6 +19,10 @@ export type PredictionRanking = {
   rank: number;
 };
 
+export function predictionMaxStake(balance: number) {
+  return Math.min(5_000, Math.floor((Math.max(0, balance) * 0.2) / 100) * 100);
+}
+
 export function predictionMarketForMatch(bets: PredictionBet[], matchId: string, teamAId: string, teamBId: string) {
   const marketBets = bets.filter(
     (bet) => bet.matchId === matchId && bet.status !== "refunded",

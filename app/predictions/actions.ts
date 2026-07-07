@@ -13,6 +13,7 @@ function predictionError(message: string) {
   if (message.includes("LOGIN_REQUIRED")) return "로그인이 필요합니다.";
   if (message.includes("MIN_STAKE_100")) return "최소 참여 금액은 100 LP입니다.";
   if (message.includes("INSUFFICIENT_SP")) return "보유 LP가 부족합니다.";
+  if (message.includes("MAX_STAKE_EXCEEDED")) return "경기당 베팅 한도는 보유 LP의 20%, 최대 5,000 LP입니다.";
   if (message.includes("BET_ALREADY_EXISTS")) return "기존 예측을 취소한 뒤 다시 참여해 주세요.";
   if (message.includes("PREDICTION_CLOSED")) return "이미 마감된 경기입니다.";
   if (message.includes("BET_NOT_FOUND")) return "취소할 예측을 찾을 수 없습니다.";
@@ -34,6 +35,7 @@ export async function placePredictionBetAction(formData: FormData) {
   if (error) throw new Error(predictionError(error.message));
 
   revalidatePath("/predictions");
+  revalidatePath("/");
   return { balance: Number(data?.[0]?.balance ?? 0) };
 }
 
@@ -46,5 +48,6 @@ export async function cancelPredictionBetAction(formData: FormData) {
   if (error) throw new Error(predictionError(error.message));
 
   revalidatePath("/predictions");
+  revalidatePath("/");
   return { balance: Number(data ?? 0) };
 }

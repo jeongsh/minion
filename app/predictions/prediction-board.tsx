@@ -6,7 +6,7 @@ import { ChevronLeft, ChevronRight, Clock3, Coins, RotateCcw, Trophy, X } from "
 
 import { cancelPredictionBetAction, placePredictionBetAction } from "@/app/predictions/actions";
 import { TeamLogo } from "@/components/ui/team-logo";
-import { predictionMarketForMatch, type PredictionBet, type PredictionRanking } from "@/lib/predictions";
+import { predictionMarketForMatch, predictionMaxStake, type PredictionBet, type PredictionRanking } from "@/lib/predictions";
 import type { Match, Team, Tournament } from "@/lib/types";
 
 type PredictionBoardProps = {
@@ -286,8 +286,9 @@ function BetAmountDialog({
   onCancelBet: () => void;
 }) {
   const amount = Number(stake);
-  const valid = Number.isSafeInteger(amount) && amount >= 100 && amount <= balance;
-  const presets = [0.1, 0.25, 0.5, 1];
+  const maxStake = predictionMaxStake(balance);
+  const valid = Number.isSafeInteger(amount) && amount >= 100 && amount <= maxStake;
+  const presets = [0.25, 0.5, 0.75, 1];
 
   return (
     <div className="fixed inset-0 z-[80] grid place-items-center bg-black/55 px-4 backdrop-blur-sm" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
@@ -310,16 +311,16 @@ function BetAmountDialog({
           <>
             <div className="mt-6 flex items-end justify-between gap-3">
               <label htmlFor="prediction-stake" className="text-sm font-bold text-[var(--ui-ink)]">사용할 LP</label>
-              <span className="text-xs font-semibold text-[var(--ui-muted)]">보유 {balance.toLocaleString("ko-KR")} LP</span>
+              <span className="text-xs font-semibold text-[var(--ui-muted)]">1회 한도 {maxStake.toLocaleString("ko-KR")} LP</span>
             </div>
             <div className="mt-2 flex h-14 items-center rounded-xl border border-[var(--ui-border)] px-4 focus-within:border-[var(--ui-ink)]">
-              <input id="prediction-stake" type="number" min={100} max={balance} step={100} value={stake} onChange={(event) => onStakeChange(event.target.value)} className="min-w-0 flex-1 bg-transparent text-2xl font-black tabular-nums text-[var(--ui-ink)] outline-none" />
+              <input id="prediction-stake" type="number" min={100} max={maxStake} step={100} value={stake} onChange={(event) => onStakeChange(event.target.value)} className="min-w-0 flex-1 bg-transparent text-2xl font-black tabular-nums text-[var(--ui-ink)] outline-none" />
               <span className="text-sm font-black text-[var(--ui-muted)]">LP</span>
             </div>
             <div className="mt-3 grid grid-cols-4 gap-2">
-              {presets.map((ratio) => <button key={ratio} type="button" onClick={() => onStakeChange(String(Math.max(100, Math.floor((balance * ratio) / 100) * 100)))} className="h-9 rounded-lg bg-[var(--ui-surface-muted)] text-xs font-bold text-[var(--ui-text)] hover:opacity-80">{ratio === 1 ? "전액" : `${ratio * 100}%`}</button>)}
+              {presets.map((ratio) => <button key={ratio} type="button" onClick={() => onStakeChange(String(Math.max(100, Math.floor((maxStake * ratio) / 100) * 100)))} className="h-9 rounded-lg bg-[var(--ui-surface-muted)] text-xs font-bold text-[var(--ui-text)] hover:opacity-80">{ratio === 1 ? "최대" : `${ratio * 100}%`}</button>)}
             </div>
-            <p className={`mt-3 text-xs font-semibold ${valid ? "text-[var(--ui-muted)]" : "text-red-500"}`}>{valid ? "경기 마감 전까지 취소하면 사용한 LP가 전액 환불됩니다." : `100 LP 이상 ${balance.toLocaleString("ko-KR")} LP 이하로 입력해 주세요.`}</p>
+            <p className={`mt-3 text-xs font-semibold ${valid ? "text-[var(--ui-muted)]" : "text-red-500"}`}>{valid ? `보유 ${balance.toLocaleString("ko-KR")} LP · 경기당 최대 20%, 상한 5,000 LP` : `100 LP 이상 ${maxStake.toLocaleString("ko-KR")} LP 이하로 입력해 주세요.`}</p>
             <button type="button" onClick={onSubmit} disabled={!valid || pending} className="mt-5 h-12 w-full rounded-xl bg-[var(--ui-ink)] text-sm font-black text-[var(--ui-surface)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40">{pending ? "처리 중..." : `${amount.toLocaleString("ko-KR")} LP로 확정`}</button>
           </>
         )}
