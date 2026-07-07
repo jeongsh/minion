@@ -1,16 +1,14 @@
 import Link from "next/link";
 
-import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 
-import { WinnerPredictionPoll } from "@/components/domain/winner-prediction-poll";
+import { PredictionMarketLine } from "@/components/domain/prediction-market-line";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { TeamLogo } from "@/components/ui/team-logo";
 import {
   getAllPlayers,
   getAllTeams,
-  getFanMatchPredictions,
   getFanRatings,
   getMatchById,
   getMatches,
@@ -32,8 +30,9 @@ import {
   formatDateTime,
   teamLabel,
 } from "@/lib/view-data";
+import { getPredictionMarketData } from "@/lib/predictions";
 
-import { predictMatchWinnerAction, submitSetPlayerRatingAction } from "./actions";
+import { submitSetPlayerRatingAction } from "./actions";
 import { MatchPreview } from "./match-preview";
 import { SetDetailContent } from "./sets/[setId]/page";
 
@@ -588,7 +587,7 @@ export default async function MatchDetailPage({
     matchSets,
     allSets,
     fanRatings,
-    predictions,
+    predictionMarket,
     tournaments,
     stages,
     matches,
@@ -598,7 +597,7 @@ export default async function MatchDetailPage({
     getSetsByMatchId(match.id),
     getSets(),
     getFanRatings(),
-    getFanMatchPredictions(match.id),
+    getPredictionMarketData(),
     getTournaments(),
     getStages(),
     getMatches(),
@@ -634,11 +633,6 @@ export default async function MatchDetailPage({
   const pomPlayer = players.find((p) => p.id === match.officialPomPlayerId);
   const topFanPlayer = topFanLeader ? players.find((p) => p.id === topFanLeader.playerId) : undefined;
 
-  const cookieStore = await cookies();
-  const voterKey = cookieStore.get("lckhub_match_prediction_voter")?.value;
-  // 경기중(예정이 아니어도 아직 완료 전)에도 승자예측 투표를 열어두고, 경기 종료 시 마감
-  const predictionClosed = match.status === "completed";
-
   const activeSetCard = activeSet ? (
     <SetDetailContent matchId={matchId} setId={activeSet.id} embedded />
   ) : (
@@ -648,14 +642,10 @@ export default async function MatchDetailPage({
   );
 
   const poll = (
-    <WinnerPredictionPoll
-      match={match}
-      teams={teams}
-      predictions={predictions}
-      voterKey={voterKey}
-      closed={predictionClosed}
-      action={predictMatchWinnerAction}
-    />
+    <section>
+      <div className="mb-3 flex items-end justify-between gap-3"><h2 className="text-[15px] font-black text-[var(--ui-ink)]">LP 승부예측</h2><span className="text-xs font-semibold text-[var(--ui-muted)]">예상 배당은 마감 전까지 변동됩니다</span></div>
+      <PredictionMarketLine match={match} teams={teams} bets={predictionMarket.bets.filter((bet) => bet.matchId === match.id)} />
+    </section>
   );
   const embedUrl = youtubeEmbedUrl(match.vodUrl);
   return (

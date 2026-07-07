@@ -16,21 +16,21 @@ export type Tier =
   | "challenger";
 
 // 아이언 구간 최저 LP(이하로 내려가지 않음). LP < bronze 임계면 아이언.
-export const MIN_LP = -100;
+export const MIN_LP = 0;
 
 // LP 임계값(누적 LP가 이 값 이상이면 해당 티어). 오름차순.
 // iron은 lp < bronze(0)일 때 적용되며, iron 키 값은 진행도 표시용 하한(MIN_LP)이다.
 // challenger는 임계값(grandmaster와 동일선상) + "상위 50명 cap"으로 별도 처리한다.
 export const TIER_THRESHOLDS: Record<Exclude<Tier, "challenger">, number> = {
   iron: MIN_LP,
-  bronze: 0, // 가입 시작 등급
-  silver: 1000,
-  gold: 2500,
-  platinum: 5000,
-  emerald: 9000,
-  diamond: 14000,
-  master: 22000,
-  grandmaster: 32000,
+  bronze: 10000,
+  silver: 20000,
+  gold: 40000,
+  platinum: 70000,
+  emerald: 110000,
+  diamond: 160000,
+  master: 230000,
+  grandmaster: 320000,
 };
 
 // 한글 라벨 매핑
@@ -69,14 +69,14 @@ export const CHALLENGER_CAP = 50;
 
 // LP reason별 delta (조정 가능)
 export const LP_DELTAS: Record<LpReason, number> = {
-  attendance: 10, // 출첵
-  post_created: 5, // 글 작성
-  comment_created: 2, // 댓글 작성
-  honor_received: 3, // 명예(좋아요) 받음
-  honor_removed: -3, // 명예 취소
-  dishonor_received: -3, // 디스(싫어요) 받음
-  dishonor_removed: 3, // 디스(싫어요) 취소(원복)
-  reported: -10, // 리폿 누적 제재
+  attendance: 100, // 출첵
+  post_created: 50, // 글 작성
+  comment_created: 20, // 댓글 작성
+  honor_received: 30, // 명예(좋아요) 받음
+  honor_removed: -30, // 명예 취소
+  dishonor_received: -30, // 디스(싫어요) 받음
+  dishonor_removed: 30, // 디스(싫어요) 취소(원복)
+  reported: -100, // 리폿 누적 제재
 };
 
 // 누적 LP만으로 결정되는 "기본 티어"(챌린저 cap 미반영).

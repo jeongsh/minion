@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { CalendarDays, Play } from "lucide-react";
-import { predictMatchWinnerAction } from "@/app/matches/[matchId]/actions";
+import { HomeUpcomingPredictionCard } from "@/components/domain/home-upcoming-prediction-card";
 import {
   HomeHeroSwiper,
   type HomeHeroSwiperSlide,
@@ -12,7 +12,8 @@ import {
 import { HomeBoardCarousel } from "@/components/domain/home-board-carousel";
 import { isMatchLive } from "@/lib/match-display";
 import { teams as themeTeams } from "@/lib/team-themes";
-import type { FanMatchPrediction, Match, Team, TeamVideo } from "@/lib/types";
+import { predictionMarketForMatch, type PredictionBet } from "@/lib/predictions";
+import type { Match, Team, TeamVideo } from "@/lib/types";
 import { formatDateTime, matchHref } from "@/lib/view-data";
 import type { CommunityPostDetail } from "@/lib/community/types";
 import { SectionHeading as Heading } from "@/components/ui/section-heading";
@@ -34,7 +35,9 @@ type Props = {
   upcomingMatches: Match[];
   recentMatches: Match[];
   todayMatches: Match[];
-  predictionsByMatchId: Map<string, FanMatchPrediction[]>;
+  predictionBetsByMatchId: Map<string, PredictionBet[]>;
+  currentUserId?: string;
+  predictionBalance: number | null;
   tournamentNamesById: Map<string, string>;
   calendarMonthKey: string;
   calendarMatches: HomeCalendarMatch[];
@@ -45,141 +48,41 @@ type Props = {
   stripTodayKey: string;
 };
 
-function CompactPrediction({
-  match,
-  teams,
-  predictions,
-}: {
-  match: Match;
-  teams: Map<string, Team>;
-  predictions: FanMatchPrediction[];
-}) {
-  const a = teams.get(match.teamAId),
-    b = teams.get(match.teamBId);
-  const av = predictions.filter((p) => p.teamId === match.teamAId).length,
-    bv = predictions.filter((p) => p.teamId === match.teamBId).length,
-    total = av + bv;
-  const ap = total ? Math.round((av / total) * 100) : 50;
-  return (
-    <div className="mt-3">
-      <div className="mb-2 flex h-1.5 overflow-hidden rounded-full bg-[#e4e2e8]">
-        <span
-          style={{ width: `${ap}%`, background: a?.primaryColor || "#1c192b" }}
-        />
-        <span
-          className="flex-1"
-          style={{ background: b?.primaryColor || "#777080" }}
-        />
-      </div>
-      <div className="grid grid-cols-2 gap-2">
-        {[a, b].map((team, index) => (
-          <form
-            action={predictMatchWinnerAction}
-            key={`${match.id}-${team?.id ?? `tbd-${index}`}`}
-          >
-            <input type="hidden" name="matchId" value={match.id} />
-            <input type="hidden" name="teamId" value={team?.id} />
-            <button
-              disabled={!team}
-              className="w-full rounded-lg border border-[#dcd9e2] py-2 text-xs font-black hover:border-[#1c192b] hover:bg-[#f1eff5]"
-            >
-              {team?.shortName ?? "TBD"} 승리 예측
-            </button>
-          </form>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 function UpcomingCard({
   match,
   teams,
-  predictions,
+  bets,
   tournament,
+  currentUserId,
+  balance,
 }: {
   match: Match;
   teams: Map<string, Team>;
-  predictions: FanMatchPrediction[];
+  bets: PredictionBet[];
   tournament?: string;
+  currentUserId?: string;
+  balance: number | null;
 }) {
-  const a = teams.get(match.teamAId),
-    b = teams.get(match.teamBId);
+  const a = teams.get(match.teamAId), b = teams.get(match.teamBId);
   return (
-    <article className="h-[154px] overflow-hidden rounded-xl bg-[#fafafa] p-3 dark:border-[#e3e1e8] dark:border">
-      <div className="flex justify-between text-xs font-semibold text-[#777b82]">
-        <span>{tournament ?? match.name}</span>
-        <span>{formatDateTime(match.matchDate)}</span>
-      </div>
-      <Link
-        href={matchHref(match)}
-        className="mt-2 grid grid-cols-[1fr_auto_1fr] items-center gap-3"
-      >
-        <div className="flex items-center gap-2">
-          <Logo team={a} size="h-8 w-8" plain />
-          <b>{a?.shortName ?? "TBD"}</b>
-        </div>
-        <span className="text-xs font-black text-[#a0a3a8]">VS</span>
-        <div className="flex items-center justify-end gap-2">
-          <b>{b?.shortName ?? "TBD"}</b>
-          <Logo team={b} size="h-8 w-8" plain />
-        </div>
-      </Link>
-      <CompactPrediction
-        match={match}
-        teams={teams}
-        predictions={predictions}
-      />
-    </article>
+    <HomeUpcomingPredictionCard match={match} teamA={a} teamB={b} tournament={tournament} bets={bets} currentUserId={currentUserId} balance={balance}/>
   );
 }
 
-function PredictionScore({
-  match,
-  teams,
-  predictions,
-}: {
-  match: Match;
-  teams: Map<string, Team>;
-  predictions: FanMatchPrediction[];
-}) {
-  const a = teams.get(match.teamAId),
-    b = teams.get(match.teamBId);
-  const av = predictions.filter((item) => item.teamId === match.teamAId).length,
-    bv = predictions.filter((item) => item.teamId === match.teamBId).length,
-    total = av + bv;
-  const ap = total ? Math.round((av / total) * 100) : 50;
-  return (
-    <div className="home-prediction-score mt-3">
-      <div className="flex justify-between text-xs font-black">
-        <span>
-          {a?.shortName ?? "TBD"} {ap}%
-        </span>
-        <span>
-          {100 - ap}% {b?.shortName ?? "TBD"}
-        </span>
-      </div>
-      <div className="mt-1.5 flex h-2 overflow-hidden rounded-full bg-[#e4e2e8]">
-        <span
-          style={{ width: `${ap}%`, background: a?.primaryColor || "#18191c" }}
-        />
-        <span
-          className="flex-1"
-          style={{ background: b?.primaryColor || "#73767c" }}
-        />
-      </div>
-    </div>
-  );
+function PredictionScore({ match, teams, bets }: { match: Match; teams: Map<string, Team>; bets: PredictionBet[] }) {
+  const a = teams.get(match.teamAId), b = teams.get(match.teamBId);
+  const market = predictionMarketForMatch(bets, match.id, match.teamAId, match.teamBId);
+  return <div className="home-prediction-score mt-3"><div className="flex justify-between text-xs font-black"><span>{a?.shortName ?? "TBD"} {market.teamAPercent}%</span><span>{market.teamBPercent}% {b?.shortName ?? "TBD"}</span></div><div className="mt-1.5 flex h-2 overflow-hidden rounded-full bg-[#e4e2e8]"><span style={{width:`${market.teamAPercent}%`,background:a?.primaryColor||"#18191c"}}/><span className="flex-1" style={{background:b?.primaryColor||"#73767c"}}/></div></div>;
 }
 
 function TodayMatchCard({
   match,
   teams,
-  predictions,
+  bets,
 }: {
   match: Match;
   teams: Map<string, Team>;
-  predictions: FanMatchPrediction[];
+  bets: PredictionBet[];
 }) {
   const a = teams.get(match.teamAId),
     b = teams.get(match.teamBId),
@@ -215,7 +118,7 @@ function TodayMatchCard({
           <b className="min-w-0 truncate text-lg">{b?.shortName}</b>
         </div>
       </Link>
-      <PredictionScore match={match} teams={teams} predictions={predictions} />
+      <PredictionScore match={match} teams={teams} bets={bets} />
       <div className="mt-4 grid grid-cols-2 gap-2">
         <Link
           href={matchHref(match)}
@@ -239,7 +142,9 @@ export function HomeDashboard({
   standingRows,
   upcomingMatches,
   todayMatches,
-  predictionsByMatchId,
+  predictionBetsByMatchId,
+  currentUserId,
+  predictionBalance,
   tournamentNamesById,
   calendarMonthKey,
   calendarMatches,
@@ -279,8 +184,10 @@ export function HomeDashboard({
                 key={m.id}
                 match={m}
                 teams={byId}
-                predictions={predictionsByMatchId.get(m.id) ?? []}
+                bets={predictionBetsByMatchId.get(m.id) ?? []}
                 tournament={tournamentNamesById.get(m.tournamentId)}
+                currentUserId={currentUserId}
+                balance={predictionBalance}
               />
             ))}
           </div>
@@ -322,7 +229,7 @@ export function HomeDashboard({
                 key={m.id}
                 match={m}
                 teams={byId}
-                predictions={predictionsByMatchId.get(m.id) ?? []}
+                bets={predictionBetsByMatchId.get(m.id) ?? []}
               />
             ))}
           </div>

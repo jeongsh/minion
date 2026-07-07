@@ -2,7 +2,6 @@ import { HomeDashboard, type HomeStandingRow } from "@/components/domain/home-da
 import type { HomeCalendarMatch } from "@/components/domain/home-match-calendar";
 import {
   getAllTeams,
-  getFanMatchPredictions,
   getHomeHeroSlides,
   getLatestTeamVideos,
   getMatches,
@@ -12,6 +11,8 @@ import {
 import type { Match } from "@/lib/types";
 import { getBoardPosts } from "@/lib/data/community";
 import { formatTimeKST, matchHref } from "@/lib/view-data";
+import { getPredictionMarketData } from "@/lib/predictions";
+import { getCurrentUser } from "@/lib/auth/current-user";
 
 export const dynamic = "force-dynamic";
 
@@ -41,7 +42,8 @@ function buildRecentForm(teamId: string, matches: Match[]) {
 }
 
 export default async function HomePage() {
-  const [teams, matches, savedStandings, tournaments, latestVideos, homeHeroSlides, communityPosts] = await Promise.all([
+  const user = await getCurrentUser();
+  const [teams, matches, savedStandings, tournaments, latestVideos, homeHeroSlides, communityPosts, predictionMarket] = await Promise.all([
     getAllTeams(),
     getMatches(),
     getTeamStandings(),
@@ -49,6 +51,7 @@ export default async function HomePage() {
     getLatestTeamVideos(4),
     getHomeHeroSlides({ limit: 8 }),
     getBoardPosts({ scope: "hub" }),
+    getPredictionMarketData(user?.id),
   ]);
 
   const teamsById = new Map(teams.map((team) => [team.id, team]));
@@ -95,11 +98,10 @@ export default async function HomePage() {
   const todayMatches = (matchesByDate.get(displayDateKey) ?? []).sort(
     (a, b) => new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime(),
   );
-  const predictionTargets = new Map([...upcomingMatches, ...todayMatches].map((match) => [match.id, match]));
-  const predictionEntries = await Promise.all(
-    [...predictionTargets.values()].map(async (match) => [match.id, await getFanMatchPredictions(match.id)] as const),
-  );
-  const predictionsByMatchId = new Map(predictionEntries);
+  const predictionBetsByMatchId = new Map<string, typeof predictionMarket.bets>();
+  for (const bet of predictionMarket.bets) {
+    predictionBetsByMatchId.set(bet.matchId, [...(predictionBetsByMatchId.get(bet.matchId) ?? []), bet]);
+  }
   const tournamentNamesById = new Map(tournaments.map((tournament) => [tournament.id, tournament.name]));
   const calendarMonthKey = todayKey.slice(0, 7);
   const calendarMatches = matches
@@ -150,7 +152,9 @@ export default async function HomePage() {
       upcomingMatches={upcomingMatches}
       recentMatches={recentMatches}
       todayMatches={todayMatches}
-      predictionsByMatchId={predictionsByMatchId}
+      predictionBetsByMatchId={predictionBetsByMatchId}
+      currentUserId={user?.id}
+      predictionBalance={predictionMarket.balance}
       tournamentNamesById={tournamentNamesById}
       calendarMonthKey={calendarMonthKey}
       calendarMatches={calendarClientMatches}

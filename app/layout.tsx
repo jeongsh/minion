@@ -20,7 +20,7 @@ export default async function RootLayout({
   let shellUser: AppShellUser = null;
   if (user) {
     const summary = await getRankSummary(user.id);
-    shellUser = { nickname: user.nickname, tier: summary.tier };
+    shellUser = { nickname: user.nickname, tier: summary.tier, lp: summary.lp };
   }
 
   return (

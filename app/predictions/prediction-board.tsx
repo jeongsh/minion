@@ -6,7 +6,7 @@ import { ChevronLeft, ChevronRight, Clock3, Coins, RotateCcw, Trophy, X } from "
 
 import { cancelPredictionBetAction, placePredictionBetAction } from "@/app/predictions/actions";
 import { TeamLogo } from "@/components/ui/team-logo";
-import type { PredictionBet, PredictionRanking } from "@/lib/predictions";
+import { predictionMarketForMatch, type PredictionBet, type PredictionRanking } from "@/lib/predictions";
 import type { Match, Team, Tournament } from "@/lib/types";
 
 type PredictionBoardProps = {
@@ -143,7 +143,7 @@ export function PredictionBoard({ matches, teams, tournaments, bets, currentUser
           </div>
           <div className="ml-auto flex shrink-0 items-center gap-1.5 text-sm font-black text-[var(--ui-ink)]">
             <Coins size={16} />
-            {balance === null ? "로그인" : `${balance.toLocaleString("ko-KR")} SP`}
+            {balance === null ? "로그인" : `${balance.toLocaleString("ko-KR")} LP`}
           </div>
         </div>
       </section>
@@ -164,10 +164,8 @@ export function PredictionBoard({ matches, teams, tournaments, bets, currentUser
                 const matchBets = bets.filter((item) => item.matchId === match.id && item.status === "open");
                 const myBet = currentUserId ? matchBets.find((item) => item.userId === currentUserId) : undefined;
                 const myVote = myBet?.teamId;
-                const aStake = matchBets.filter((item) => item.teamId === match.teamAId).reduce((sum, item) => sum + item.stake, 0);
-                const bStake = matchBets.filter((item) => item.teamId === match.teamBId).reduce((sum, item) => sum + item.stake, 0);
-                const total = aStake + bStake;
-                const aPercent = total ? Math.round((aStake / total) * 100) : 50;
+                const market = predictionMarketForMatch(matchBets, match.id, match.teamAId, match.teamBId);
+                const aPercent = market.teamAPercent;
                 const closed = new Date(match.matchDate).getTime() <= now || match.status !== "scheduled";
 
                 return (
@@ -178,7 +176,7 @@ export function PredictionBoard({ matches, teams, tournaments, bets, currentUser
                         <span className="truncate text-[var(--ui-muted)]">{tournamentMap.get(match.tournamentId)?.name ?? "LEAGUE"}</span>
                       </div>
                       <div className="flex shrink-0 items-center gap-3 text-[12px] text-[var(--ui-muted)]">
-                        {myBet ? <span className="font-black text-[var(--ui-ink)]">내 예측 {myBet.stake.toLocaleString("ko-KR")} SP</span> : null}
+                        {myBet ? <span className="font-black text-[var(--ui-ink)]">내 예측 {myBet.stake.toLocaleString("ko-KR")} LP</span> : null}
                         <span className="flex items-center gap-1.5"><Clock3 size={13} />{deadlineLabel(match.matchDate, closed, now)}</span>
                       </div>
                     </div>
@@ -186,9 +184,9 @@ export function PredictionBoard({ matches, teams, tournaments, bets, currentUser
                       className={`prediction-match-card grid h-[68px] grid-cols-[minmax(0,1fr)_32px_minmax(0,1fr)] overflow-hidden rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] dark:bg-[var(--ui-surface-muted)] sm:h-[76px] sm:grid-cols-[minmax(0,1fr)_48px_minmax(0,1fr)] ${myVote === match.teamAId ? "prediction-match-card--selected-left" : myVote === match.teamBId ? "prediction-match-card--selected-right" : ""}`}
                       style={myVote ? { "--prediction-team-color": teamColor(myVote === match.teamAId ? teamA : teamB) } as React.CSSProperties : undefined}
                     >
-                      <TeamChoice team={teamA} percent={aPercent} selected={myVote === match.teamAId} disabled={closed || isPending} onClick={() => openBetDialog(match, teamA)} />
+                      <TeamChoice team={teamA} percent={aPercent} odds={market.teamAOdds} selected={myVote === match.teamAId} disabled={closed || isPending} onClick={() => openBetDialog(match, teamA)} />
                       <div className="grid place-items-center text-sm font-black text-[var(--ui-muted)]">VS</div>
-                      <TeamChoice team={teamB} percent={100 - aPercent} selected={myVote === match.teamBId} disabled={closed || isPending} onClick={() => openBetDialog(match, teamB)} right />
+                      <TeamChoice team={teamB} percent={market.teamBPercent} odds={market.teamBOdds} selected={myVote === match.teamBId} disabled={closed || isPending} onClick={() => openBetDialog(match, teamB)} right />
                     </div>
                   </article>
                 );
@@ -221,7 +219,7 @@ function FilterButton({ active, onClick, children }: { active: boolean; onClick:
   return <button type="button" onClick={onClick} className={`h-9 shrink-0 rounded-lg px-3.5 text-[13px] font-bold transition active:scale-[0.98] ${active ? "bg-[var(--ui-ink)] text-[var(--ui-surface)]" : "text-[var(--ui-muted)] hover:bg-[var(--ui-surface)] hover:text-[var(--ui-ink)]"}`}>{children}</button>;
 }
 
-function TeamChoice({ team, percent, selected, disabled, onClick, right = false }: { team?: Team; percent: number; selected: boolean; disabled: boolean; onClick: () => void; right?: boolean }) {
+function TeamChoice({ team, percent, odds, selected, disabled, onClick, right = false }: { team?: Team; percent: number; odds: number | null; selected: boolean; disabled: boolean; onClick: () => void; right?: boolean }) {
   const color = teamColor(team);
   return (
     <button
@@ -234,7 +232,10 @@ function TeamChoice({ team, percent, selected, disabled, onClick, right = false 
       title={selected ? "다시 누르면 선택 취소" : undefined}
     >
       <TeamLogo team={team} size="h-8 w-8 sm:h-10 sm:w-10" plain themeAware />
-      <span className={`min-w-0 flex-1 truncate text-[13px] font-black text-[var(--ui-ink)] transition-colors sm:text-[15px] ${disabled ? "" : "group-hover:text-[var(--prediction-choice-color)]"}`}>{team?.shortName ?? "TBD"}</span>
+      <span className={`flex min-w-0 flex-1 items-center gap-1.5 ${right ? "flex-row-reverse" : ""}`}>
+        <span className={`truncate text-[13px] font-black text-[var(--ui-ink)] transition-colors sm:text-[15px] ${disabled ? "" : "group-hover:text-[var(--prediction-choice-color)]"}`}>{team?.shortName ?? "TBD"}</span>
+        <small className="shrink-0 text-[10px] font-bold text-[var(--ui-muted)]">{odds === null ? "—" : `${odds.toFixed(2)}배`}</small>
+      </span>
       <span className={`shrink-0 text-[20px] font-black leading-none tabular-nums text-[var(--ui-ink)] transition-colors sm:text-[26px] ${disabled ? "" : "group-hover:text-[var(--prediction-choice-color)]"}`}>{percent}<span className="ml-0.5 text-xs text-[var(--ui-muted)] sm:text-sm">%</span></span>
     </button>
   );
@@ -248,19 +249,19 @@ function PredictionLeaderboard({ entries }: { entries: PredictionRanking[] }) {
           <p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--ui-muted)]">USER RANKING</p>
           <h2 className="mt-1 text-lg font-black text-[var(--ui-ink)]">유저 랭킹</h2>
         </div>
-        <span className="text-xs font-bold text-[var(--ui-muted)]">SP</span>
+        <span className="text-xs font-bold text-[var(--ui-muted)]">예측 수익</span>
       </div>
       <ol className="mt-4 divide-y divide-[var(--ui-border)]">
         {entries.map((entry) => (
           <li key={entry.userId} className="grid grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-2 py-3 text-sm">
             <span className={`font-black ${entry.rank <= 3 ? "text-[var(--ui-ink)]" : "text-[var(--ui-muted)]"}`}>{entry.rank}</span>
             <span className="truncate font-bold text-[var(--ui-text)]">{entry.nickname}</span>
-            <span className="font-black tabular-nums text-[var(--ui-ink)]">{entry.balance.toLocaleString("ko-KR")}</span>
+            <span className={`font-black tabular-nums ${entry.profit > 0 ? "text-emerald-600" : entry.profit < 0 ? "text-red-500" : "text-[var(--ui-ink)]"}`}>{entry.profit > 0 ? "+" : ""}{entry.profit.toLocaleString("ko-KR")} LP</span>
           </li>
         ))}
       </ol>
       {!entries.length ? <p className="py-8 text-center text-sm text-[var(--ui-muted)]">랭킹 데이터가 없습니다.</p> : null}
-      <p className="mt-3 text-xs leading-5 text-[var(--ui-muted)]">한 번 이상 SP 예측에 참여한 유저만 표시됩니다.</p>
+      <p className="mt-3 text-xs leading-5 text-[var(--ui-muted)]">한 번 이상 LP 예측에 참여한 유저를 순수익 기준으로 표시합니다.</p>
     </aside>
   );
 }
@@ -293,7 +294,7 @@ function BetAmountDialog({
       <section className="w-full max-w-md rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-5 shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="bet-dialog-title">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-bold text-[var(--ui-muted)]">SP PREDICTION</p>
+            <p className="text-xs font-bold text-[var(--ui-muted)]">LP PREDICTION</p>
             <h2 id="bet-dialog-title" className="mt-1 text-xl font-black text-[var(--ui-ink)]">{dialog.teamName} 승리 예측</h2>
           </div>
           <button type="button" onClick={onClose} className="grid h-9 w-9 place-items-center rounded-lg text-[var(--ui-muted)] hover:bg-[var(--ui-surface-muted)]" aria-label="닫기"><X size={18} /></button>
@@ -301,25 +302,25 @@ function BetAmountDialog({
 
         {dialog.existingBet ? (
           <div className="mt-6 rounded-xl bg-[var(--ui-surface-muted)] p-4">
-            <p className="text-sm font-bold text-[var(--ui-ink)]">이미 이 경기에 {dialog.existingBet.stake.toLocaleString("ko-KR")} SP를 사용했습니다.</p>
+            <p className="text-sm font-bold text-[var(--ui-ink)]">이미 이 경기에 {dialog.existingBet.stake.toLocaleString("ko-KR")} LP를 사용했습니다.</p>
             <p className="mt-1 text-xs text-[var(--ui-muted)]">팀이나 금액을 바꾸려면 기존 예측을 취소한 뒤 다시 참여해 주세요.</p>
-            <button type="button" onClick={onCancelBet} disabled={pending} className="mt-4 h-10 w-full rounded-lg border border-red-500/30 text-sm font-bold text-red-500 transition hover:bg-red-500/10 disabled:opacity-50">예측 취소하고 SP 환불</button>
+            <button type="button" onClick={onCancelBet} disabled={pending} className="mt-4 h-10 w-full rounded-lg border border-red-500/30 text-sm font-bold text-red-500 transition hover:bg-red-500/10 disabled:opacity-50">예측 취소하고 LP 환불</button>
           </div>
         ) : (
           <>
             <div className="mt-6 flex items-end justify-between gap-3">
-              <label htmlFor="prediction-stake" className="text-sm font-bold text-[var(--ui-ink)]">사용할 SP</label>
-              <span className="text-xs font-semibold text-[var(--ui-muted)]">보유 {balance.toLocaleString("ko-KR")} SP</span>
+              <label htmlFor="prediction-stake" className="text-sm font-bold text-[var(--ui-ink)]">사용할 LP</label>
+              <span className="text-xs font-semibold text-[var(--ui-muted)]">보유 {balance.toLocaleString("ko-KR")} LP</span>
             </div>
             <div className="mt-2 flex h-14 items-center rounded-xl border border-[var(--ui-border)] px-4 focus-within:border-[var(--ui-ink)]">
               <input id="prediction-stake" type="number" min={100} max={balance} step={100} value={stake} onChange={(event) => onStakeChange(event.target.value)} className="min-w-0 flex-1 bg-transparent text-2xl font-black tabular-nums text-[var(--ui-ink)] outline-none" />
-              <span className="text-sm font-black text-[var(--ui-muted)]">SP</span>
+              <span className="text-sm font-black text-[var(--ui-muted)]">LP</span>
             </div>
             <div className="mt-3 grid grid-cols-4 gap-2">
               {presets.map((ratio) => <button key={ratio} type="button" onClick={() => onStakeChange(String(Math.max(100, Math.floor((balance * ratio) / 100) * 100)))} className="h-9 rounded-lg bg-[var(--ui-surface-muted)] text-xs font-bold text-[var(--ui-text)] hover:opacity-80">{ratio === 1 ? "전액" : `${ratio * 100}%`}</button>)}
             </div>
-            <p className={`mt-3 text-xs font-semibold ${valid ? "text-[var(--ui-muted)]" : "text-red-500"}`}>{valid ? "경기 마감 전까지 취소하면 사용한 SP가 전액 환불됩니다." : `100 SP 이상 ${balance.toLocaleString("ko-KR")} SP 이하로 입력해 주세요.`}</p>
-            <button type="button" onClick={onSubmit} disabled={!valid || pending} className="mt-5 h-12 w-full rounded-xl bg-[var(--ui-ink)] text-sm font-black text-[var(--ui-surface)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40">{pending ? "처리 중..." : `${amount.toLocaleString("ko-KR")} SP로 확정`}</button>
+            <p className={`mt-3 text-xs font-semibold ${valid ? "text-[var(--ui-muted)]" : "text-red-500"}`}>{valid ? "경기 마감 전까지 취소하면 사용한 LP가 전액 환불됩니다." : `100 LP 이상 ${balance.toLocaleString("ko-KR")} LP 이하로 입력해 주세요.`}</p>
+            <button type="button" onClick={onSubmit} disabled={!valid || pending} className="mt-5 h-12 w-full rounded-xl bg-[var(--ui-ink)] text-sm font-black text-[var(--ui-surface)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40">{pending ? "처리 중..." : `${amount.toLocaleString("ko-KR")} LP로 확정`}</button>
           </>
         )}
       </section>

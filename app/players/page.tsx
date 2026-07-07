@@ -92,7 +92,7 @@ export default async function PlayersPage() {
 
   return (
     <main className="min-h-screen bg-[var(--ui-surface)] text-[var(--ui-text)]">
-      <div className="mx-auto w-full max-w-[1500px] px-5 pb-16 pt-8 xl:px-10">
+      <div className="mx-auto w-full max-w-[1400px] px-5 pb-16 pt-8 xl:px-10">
         <PageHeader
           eyebrow="PLAYERS"
           title="선수"

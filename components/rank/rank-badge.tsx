@@ -44,7 +44,7 @@ export function RankBadge({ tier, lp, size = "sm", className }: RankBadgeProps) 
           backgroundColor: "color-mix(in srgb, var(--tier-color) 12%, transparent)",
         } as React.CSSProperties
       }
-      title={typeof lp === "number" ? `${label} · ${lp} LP` : label}
+      title={typeof lp === "number" ? `${label} · ${lp.toLocaleString()} LP` : label}
     >
       <span
         aria-hidden="true"
@@ -53,7 +53,7 @@ export function RankBadge({ tier, lp, size = "sm", className }: RankBadgeProps) 
       />
       <span>{label}</span>
       {typeof lp === "number" ? (
-        <span className="font-semibold opacity-80">{lp} LP</span>
+        <span className="font-semibold opacity-80">{lp.toLocaleString()} LP</span>
       ) : null}
     </span>
   );

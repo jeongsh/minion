@@ -11,8 +11,8 @@ function text(formData: FormData, key: string) {
 
 function predictionError(message: string) {
   if (message.includes("LOGIN_REQUIRED")) return "로그인이 필요합니다.";
-  if (message.includes("MIN_STAKE_100")) return "최소 참여 금액은 100 SP입니다.";
-  if (message.includes("INSUFFICIENT_SP")) return "보유 SP가 부족합니다.";
+  if (message.includes("MIN_STAKE_100")) return "최소 참여 금액은 100 LP입니다.";
+  if (message.includes("INSUFFICIENT_SP")) return "보유 LP가 부족합니다.";
   if (message.includes("BET_ALREADY_EXISTS")) return "기존 예측을 취소한 뒤 다시 참여해 주세요.";
   if (message.includes("PREDICTION_CLOSED")) return "이미 마감된 경기입니다.";
   if (message.includes("BET_NOT_FOUND")) return "취소할 예측을 찾을 수 없습니다.";

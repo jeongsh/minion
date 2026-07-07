@@ -19,6 +19,29 @@ export type PredictionRanking = {
   rank: number;
 };
 
+export function predictionMarketForMatch(bets: PredictionBet[], matchId: string, teamAId: string, teamBId: string) {
+  const marketBets = bets.filter(
+    (bet) => bet.matchId === matchId && bet.status !== "refunded",
+  );
+  const teamAStake = marketBets
+    .filter((bet) => bet.teamId === teamAId)
+    .reduce((sum, bet) => sum + bet.stake, 0);
+  const teamBStake = marketBets
+    .filter((bet) => bet.teamId === teamBId)
+    .reduce((sum, bet) => sum + bet.stake, 0);
+  const totalStake = teamAStake + teamBStake;
+  const teamAPercent = totalStake > 0 ? Math.round((teamAStake / totalStake) * 100) : 50;
+  return {
+    teamAStake,
+    teamBStake,
+    totalStake,
+    teamAPercent,
+    teamBPercent: 100 - teamAPercent,
+    teamAOdds: teamAStake > 0 ? totalStake / teamAStake : null,
+    teamBOdds: teamBStake > 0 ? totalStake / teamBStake : null,
+  };
+}
+
 export async function getPredictionMarketData(userId?: string) {
   const supabase = createSupabaseServerClient();
   const [betsResult, rankingsResult, walletResult] = await Promise.all([
@@ -31,7 +54,7 @@ export async function getPredictionMarketData(userId?: string) {
       .order("rank", { ascending: true })
       .limit(10),
     userId
-      ? supabase.from("prediction_wallets").select("balance").eq("user_id", userId).maybeSingle()
+      ? supabase.from("profiles").select("lp").eq("id", userId).maybeSingle()
       : Promise.resolve({ data: null, error: null }),
   ]);
 
@@ -56,6 +79,6 @@ export async function getPredictionMarketData(userId?: string) {
   return {
     bets,
     rankings,
-    balance: userId ? Number(walletResult.data?.balance ?? 10_000) : null,
+    balance: userId ? Number(walletResult.data?.lp ?? 10_000) : null,
   };
 }

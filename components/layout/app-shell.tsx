@@ -3,14 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { BarChart3, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Menu, Moon, Search, Shield, Sparkles, Sun, Swords, Users, UserRound } from "lucide-react";
+import { BarChart3, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Coins, Menu, Moon, Search, Shield, Sparkles, Sun, Swords, Users, UserRound } from "lucide-react";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { RankBadge } from "@/components/rank/rank-badge";
 import { teams } from "@/lib/team-themes";
 import type { Tier } from "@/lib/rank/config";
 
-export type AppShellUser = { nickname: string | null; tier: Tier } | null;
+export type AppShellUser = { nickname: string | null; tier: Tier; lp: number } | null;
 
 const nav = [
   { href: "/schedule", label: "일정", icon: CalendarDays },
@@ -48,7 +48,7 @@ export function AppShell({ children, currentUser = null }: { children: React.Rea
           <Moon size={20} className="dark:hidden" />
           <Sun size={20} className="hidden dark:block" />
         </button>
-        {currentUser ? <div className="flex items-center gap-2"><Link href="/me" className="flex items-center gap-2 text-sm font-bold">{currentUser.nickname ?? "프로필"}<RankBadge tier={currentUser.tier} /></Link><LogoutButton /></div> : <Link href="/login" className="rounded-lg bg-[#141517] px-4 py-2 text-sm font-bold text-white">로그인</Link>}
+        {currentUser ? <div className="flex items-center gap-2"><Link href="/me" className="flex items-center gap-2 text-sm font-bold"><span className="hidden items-center gap-1 text-xs font-black text-[var(--ui-muted)] sm:flex"><Coins size={14} />{currentUser.lp.toLocaleString("ko-KR")} LP</span>{currentUser.nickname ?? "프로필"}<RankBadge tier={currentUser.tier} /></Link><LogoutButton /></div> : <Link href="/login" className="rounded-lg bg-[#141517] px-4 py-2 text-sm font-bold text-white">로그인</Link>}
       </header>
 
       <aside className={`app-lnb fixed bottom-0 left-0 top-16 z-40 hidden border-r border-[#ececef] bg-background transition-[width] lg:block ${collapsed ? "w-[76px]" : "w-[240px]"}`}>

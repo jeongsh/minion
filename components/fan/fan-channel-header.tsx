@@ -1,9 +1,10 @@
-import { cookies } from "next/headers";
 import { getIsFan } from "@/app/fan/[teamSlug]/actions";
+import { getCurrentUser } from "@/lib/auth/current-user";
 import { FanFollowButton } from "@/components/fan/fan-follow-button";
 import { FanPredictionCard } from "@/components/fan/fan-prediction-card";
 import { FanChannelNavigation } from "@/components/fan/fan-channel-navigation";
-import { getAllTeams, getFanMatchPredictions, getMatches, getTeamByFanSiteHost, getTeamBySlug, getTeamFanCount } from "@/lib/data/lck";
+import { getAllTeams, getMatches, getTeamByFanSiteHost, getTeamBySlug, getTeamFanCount } from "@/lib/data/lck";
+import { getPredictionMarketData } from "@/lib/predictions";
 import type { Match, Team } from "@/lib/types";
 
 function dateKey(value: string | Date) { return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul", year: "numeric", month: "2-digit", day: "2-digit" }).format(typeof value === "string" ? new Date(value) : value); }
@@ -33,9 +34,8 @@ export async function FanChannelHeader({ teamSlug }: { teamSlug: string }) {
   const match = live ?? upcoming ?? recent;
   const mode = live ? "live" : upcoming ? "upcoming" : recent ? "recent" : "empty";
   const opponent = match ? opponentOf(match, team, teams) : undefined;
-  const cookieStore = await cookies();
-  const predictionVoterKey = cookieStore.get("lckhub_match_prediction_voter")?.value;
-  const [fanCount, isFan, predictions] = await Promise.all([getTeamFanCount(team.id), getIsFan(team.id), match ? getFanMatchPredictions(match.id) : Promise.resolve([])]);
+  const user = await getCurrentUser();
+  const [fanCount, isFan, predictionMarket] = await Promise.all([getTeamFanCount(team.id), getIsFan(team.id), getPredictionMarketData(user?.id)]);
   const opponentName = opponent?.shortName ?? "TBD";
   const badge = mode === "live" ? "LIVE" : mode === "upcoming" && match ? dday(match.matchDate) : mode === "recent" ? "경기 종료" : "일정 없음";
   const links = [["홈페이지",team.officialHomepageUrl],["YouTube",team.officialYoutubeUrl],["X",team.officialXUrl],["Instagram",team.officialInstagramUrl]].filter((item): item is [string,string] => Boolean(item[1]));
@@ -59,7 +59,7 @@ export async function FanChannelHeader({ teamSlug }: { teamSlug: string }) {
             <p className="text-[15px] font-bold text-white/85">{match ? `${dateTime(match.matchDate)} · ${match.venue?.trim() || "LoL PARK"}` : "예정된 경기가 없습니다"}</p>
             <div className="flex flex-wrap items-center gap-2"><FanFollowButton teamId={team.id} teamSlug={team.fanSiteHost} teamName={team.shortName} initialCount={fanCount} initialFollowing={isFan} teamColor={team.primaryColor}/><button type="button" className="rounded-full border border-white/50 px-5 py-2.5 text-sm font-extrabold">알람</button>{links.map(([label,href])=><a key={label} href={href} target="_blank" rel="noreferrer" className="rounded-full border border-white/35 px-4 py-2.5 text-xs font-bold text-white/85 hover:bg-white/10 hover:text-white">{label}</a>)}</div>
           </div>
-          <FanPredictionCard showDetailsLink={false} matchId={match?.id} teamId={team.id} teamName={team.shortName} opponentId={opponent?.id} opponentName={opponentName} teamColor={team.primaryColor} initialTeamVotes={predictions.filter((item)=>item.teamId===team.id).length} initialOpponentVotes={predictions.filter((item)=>item.teamId===opponent?.id).length} initialMyVote={predictionVoterKey ? predictions.find((item)=>item.voterKey===predictionVoterKey)?.teamId : undefined} canVote={mode==="upcoming"}/>
+          <FanPredictionCard showDetailsLink={false} matchId={match?.id} teamId={team.id} teamName={team.shortName} opponentId={opponent?.id} opponentName={opponentName} teamColor={team.primaryColor} bets={predictionMarket.bets} currentUserId={user?.id} balance={predictionMarket.balance} canVote={mode==="upcoming"}/>
         </div>
       </div>
       <div className="overflow-hidden bg-black/20 py-[9px]"><div className="font-archivo fan-ticker-track text-xs font-extrabold tracking-[0.12em] text-white/85">{[false,true].map((hidden)=><div key={String(hidden)} className="fan-ticker-group" aria-hidden={hidden||undefined}>{tickerItems.map((item)=><span key={item} className="px-5">{item}<span className="ml-10 text-white/45">•</span></span>)}</div>)}</div></div>
