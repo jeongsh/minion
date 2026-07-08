@@ -312,6 +312,10 @@ async function runLeaguepediaEnrichment({
   }
 }
 
+// waiting_for_source는 5분 간격으로 재시도되므로(leaguepedia-retry-policy.ts), 6회면 최대 30분간
+// 골드 프레임이 뒤늦게 채워지길 기다린 뒤 포기한다(옛날 경기 등 프레임 데이터가 원천적으로 없는 경우 대비).
+const MAX_FRAME_WAIT_ATTEMPTS = 6;
+
 async function runTimelineEnrichment({ matchId, now }: { matchId: string; now: Date }) {
   const supabase = createSupabaseAdminClient();
   const { data, error } = await supabase
@@ -330,6 +334,25 @@ async function runTimelineEnrichment({ matchId, now }: { matchId: string; now: D
   try {
     const result = await syncLeaguepediaTimelineForSet(supabase, row.set_id);
     if (result.status === "succeeded") {
+      // Leaguepedia는 이벤트(킬/오브젝트)를 골드 프레임보다 먼저 공개하는 경우가 있다.
+      // 이벤트만 들어오고 골드 프레임이 비어 있으면 아직 succeeded로 확정하지 않고
+      // 몇 번 더 재시도해서 프레임 데이터가 뒤늦게 채워지길 기다린다(최대 시도 이후엔 포기).
+      const framesStillMissing = result.framesInserted === 0 && attempts < MAX_FRAME_WAIT_ATTEMPTS;
+      if (framesStillMissing) {
+        const { error: updateError } = await supabase
+          .from("set_result_snapshots")
+          .update({
+            timeline_sync_status: "waiting_for_source",
+            timeline_sync_attempts: attempts,
+            timeline_retry_at: leaguepediaRetryAt(now, "waiting_for_source"),
+            timeline_last_error: "Gold frames not yet available from Leaguepedia timeline; retrying",
+            timeline_event_count: result.eventCount,
+          })
+          .eq("id", row.id);
+        if (updateError) throw updateError;
+        return null;
+      }
+
       const { error: updateError } = await supabase
         .from("set_result_snapshots")
         .update({
