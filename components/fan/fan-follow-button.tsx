@@ -49,7 +49,7 @@ export function FanFollowButton({
       disabled={isPending}
       aria-pressed={following}
       className={`rounded-full px-5 py-2.5 text-sm font-extrabold transition active:scale-[0.97] disabled:opacity-70 ${
-        following ? "border border-white/50 bg-transparent text-white" : "bg-white"
+        following ? "border border-white/50 bg-transparent text-white hover:bg-white/10" : "bg-white hover:opacity-90"
       }`}
       style={following ? undefined : { color: teamColor }}
     >

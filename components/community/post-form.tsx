@@ -110,7 +110,11 @@ export function PostForm({
             className="appearance-none bg-transparent py-[10px] pl-[13px] pr-8 text-m font-semibold text-[var(--ui-text)] outline-none"
           >
             {categories.map((cat) => (
-              <option key={cat.slug} value={cat.slug}>
+              <option
+                key={cat.slug}
+                value={cat.slug}
+                className="bg-[var(--ui-surface)] text-[var(--ui-text)]"
+              >
                 {cat.label}
               </option>
             ))}

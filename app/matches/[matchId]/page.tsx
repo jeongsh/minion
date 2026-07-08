@@ -3,7 +3,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { HomeUpcomingPredictionCard } from "@/components/domain/home-upcoming-prediction-card";
-import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { TeamLogo } from "@/components/ui/team-logo";
 import {
@@ -33,9 +32,9 @@ import {
 import { getPredictionMarketData } from "@/lib/predictions";
 import { getCurrentUser } from "@/lib/auth/current-user";
 
-import { submitSetPlayerRatingAction } from "./actions";
 import { MatchPreview } from "./match-preview";
 import { SetDetailContent } from "./sets/[setId]/page";
+import { SetRatingForm } from "./set-rating-form";
 
 type MatchTab = "preview" | "data" | "rating" | "video";
 
@@ -438,62 +437,20 @@ function MatchRatingPanel({
           )}
         </div>
 
-        <form
-          action={submitSetPlayerRatingAction}
-          className="rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-5"
-        >
-          <input type="hidden" name="matchId" value={matchId} />
-          <input type="hidden" name="setId" value={set.id} />
-          <div className="grid gap-3 lg:grid-cols-[minmax(10rem,1fr)_8rem_minmax(12rem,1.5fr)_auto]">
-            <select
-              name="playerId"
-              required
-              disabled={!ratingOpen || selectableLines.length === 0}
-              defaultValue=""
-              className="rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface-muted)] px-3 py-2 text-sm font-bold text-[var(--ui-ink)] disabled:opacity-50"
-            >
-              <option value="" disabled>
-                선수 선택
-              </option>
-              {selectableLines.map((line) => {
-                const player = players.find((item) => item.id === line.playerId);
-                return (
-                  <option key={`${line.setId}-${line.playerId}`} value={line.playerId}>
-                    {teamLabel(teams, line.teamId)} · {line.position} · {player?.name ?? "-"}
-                  </option>
-                );
-              })}
-            </select>
-            <select
-              name="rating"
-              required
-              disabled={!ratingOpen || selectableLines.length === 0}
-              defaultValue=""
-              className="rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface-muted)] px-3 py-2 text-sm font-bold text-[var(--ui-ink)] disabled:opacity-50"
-            >
-              <option value="" disabled>
-                점수
-              </option>
-              {ratingOptions.map((value) => (
-                <option key={value} value={value}>
-                  {value.toFixed(1)}
-                </option>
-              ))}
-            </select>
-            <input
-              name="review"
-              maxLength={240}
-              disabled={!ratingOpen || selectableLines.length === 0}
-              placeholder="한줄평"
-              className="min-w-0 rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface-muted)] px-3 py-2 text-sm text-[var(--ui-ink)] placeholder:text-[var(--ui-muted)] disabled:opacity-50"
-            />
-            <Button
-              type="submit"
-              disabled={!ratingOpen || selectableLines.length === 0}
-            >
-              제출
-            </Button>
-          </div>
+        <div className="rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-5">
+          <SetRatingForm
+            matchId={matchId}
+            setId={set.id}
+            ratingOpen={ratingOpen}
+            playerOptions={selectableLines.map((line) => {
+              const player = players.find((item) => item.id === line.playerId);
+              return {
+                value: line.playerId,
+                label: `${teamLabel(teams, line.teamId)} · ${line.position} · ${player?.name ?? "-"}`,
+              };
+            })}
+            ratingOptions={ratingOptions}
+          />
           {ratingOpen && ratingDeadline ? (
             <p className="mt-3 text-sm font-semibold text-[var(--ui-muted)]">
               평점 입력 마감: {formatDateTime(ratingDeadline.toISOString())} (경기 종료 후 3시간)
@@ -507,7 +464,7 @@ function MatchRatingPanel({
               세트 상태가 경기종료 또는 상세데이터 동기화일 때 투표가 열립니다.
             </p>
           )}
-        </form>
+        </div>
       </section>
 
       {snapshotReady ? (

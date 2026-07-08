@@ -165,80 +165,88 @@ export async function cancelMatchPredictionAction(formData: FormData) {
   return getPredictionTally(supabase, match.id, match.team_a_id, match.team_b_id, null);
 }
 
-export async function submitSetPlayerRatingAction(formData: FormData) {
-  const routeMatchId = textOrNull(formData.get("matchId"));
-  const setId = textOrNull(formData.get("setId"));
-  const playerId = textOrNull(formData.get("playerId"));
-  const rating = parseRating(formData.get("rating"));
-  const review = textOrNull(formData.get("review"));
+export async function submitSetPlayerRatingAction(
+  formData: FormData,
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const routeMatchId = textOrNull(formData.get("matchId"));
+    const setId = textOrNull(formData.get("setId"));
+    const playerId = textOrNull(formData.get("playerId"));
+    const rating = parseRating(formData.get("rating"));
+    const review = textOrNull(formData.get("review"));
 
-  if (!routeMatchId || !setId || !playerId) {
-    throw new Error("평점을 제출할 세트와 선수를 확인해주세요.");
+    if (!routeMatchId || !setId || !playerId) {
+      throw new Error("평점을 제출할 세트와 선수를 확인해주세요.");
+    }
+
+    if (review && review.length > MAX_REVIEW_LENGTH) {
+      throw new Error(`리뷰는 ${MAX_REVIEW_LENGTH}자 이내로 입력해주세요.`);
+    }
+
+    const supabase = createSupabaseAdminClient();
+    const { data: set, error: setError } = await supabase
+      .from("sets")
+      .select("id, match_id, status, result_recorded_at")
+      .eq("id", setId)
+      .maybeSingle();
+
+    if (setError) {
+      throw new Error(setError.message);
+    }
+
+    if (!set) {
+      throw new Error("세트를 찾을 수 없습니다.");
+    }
+
+    if (
+      !isSetRatingOpen({
+        status: normalizeSetStatus(set.status),
+        resultRecordedAt: set.result_recorded_at,
+      })
+    ) {
+      throw new Error("평점 입력 시간이 아니거나 마감되었습니다. (경기 종료 후 3시간)");
+    }
+
+    const { data: line, error: lineError } = await supabase
+      .from("set_player_stats")
+      .select("player_id, team_id")
+      .eq("set_id", set.id)
+      .eq("player_id", playerId)
+      .maybeSingle();
+
+    if (lineError) {
+      throw new Error(lineError.message);
+    }
+
+    if (!line) {
+      throw new Error("해당 세트의 평점 대상 선수가 아닙니다.");
+    }
+
+    const voterKey = hashVoterKey(await getOrCreateCookie(RATING_VOTER_COOKIE));
+    const { error } = await supabase.from("fan_ratings").upsert(
+      {
+        set_id: set.id,
+        match_id: set.match_id,
+        player_id: line.player_id,
+        team_id: line.team_id,
+        voter_key: voterKey,
+        rating,
+        review,
+      },
+      { onConflict: "set_id,player_id,voter_key" },
+    );
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    revalidatePath(`/matches/${set.match_id}`);
+    revalidatePath(`/matches/${set.match_id}/sets/${set.id}`);
+    revalidatePath(`/matches/${routeMatchId}`);
+    revalidatePath(`/matches/${routeMatchId}/sets/${set.id}`);
+
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "평점 제출에 실패했습니다." };
   }
-
-  if (review && review.length > MAX_REVIEW_LENGTH) {
-    throw new Error(`리뷰는 ${MAX_REVIEW_LENGTH}자 이내로 입력해주세요.`);
-  }
-
-  const supabase = createSupabaseAdminClient();
-  const { data: set, error: setError } = await supabase
-    .from("sets")
-    .select("id, match_id, status, result_recorded_at")
-    .eq("id", setId)
-    .maybeSingle();
-
-  if (setError) {
-    throw new Error(setError.message);
-  }
-
-  if (!set) {
-    throw new Error("세트를 찾을 수 없습니다.");
-  }
-
-  if (
-    !isSetRatingOpen({
-      status: normalizeSetStatus(set.status),
-      resultRecordedAt: set.result_recorded_at,
-    })
-  ) {
-    throw new Error("평점 입력 시간이 아니거나 마감되었습니다. (경기 종료 후 3시간)");
-  }
-
-  const { data: line, error: lineError } = await supabase
-    .from("set_player_stats")
-    .select("player_id, team_id")
-    .eq("set_id", set.id)
-    .eq("player_id", playerId)
-    .maybeSingle();
-
-  if (lineError) {
-    throw new Error(lineError.message);
-  }
-
-  if (!line) {
-    throw new Error("해당 세트의 평점 대상 선수가 아닙니다.");
-  }
-
-  const voterKey = hashVoterKey(await getOrCreateCookie(RATING_VOTER_COOKIE));
-  const { error } = await supabase.from("fan_ratings").upsert(
-    {
-      set_id: set.id,
-      match_id: set.match_id,
-      player_id: line.player_id,
-      team_id: line.team_id,
-      voter_key: voterKey,
-      rating,
-      review,
-    },
-    { onConflict: "set_id,player_id,voter_key" },
-  );
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  revalidatePath(`/matches/${set.match_id}`);
-  revalidatePath(`/matches/${set.match_id}/sets/${set.id}`);
-  revalidatePath(`/matches/${routeMatchId}`);
-  revalidatePath(`/matches/${routeMatchId}/sets/${set.id}`);
 }
