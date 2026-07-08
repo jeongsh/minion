@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type CSSProperties } from "react";
 import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp } from "lucide-react";
 import { DayPicker, type DayButtonProps } from "react-day-picker";
 import { ko } from "react-day-picker/locale";
@@ -67,9 +67,9 @@ export function CelebrationCalendar({
   const upcoming = events.slice(0, 8);
 
   return (
-    <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,340px)] lg:items-start">
+    <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,340px)] lg:items-stretch">
       {/* D-day 레일 */}
-      <div className="rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-2">
+      <div className="flex h-full flex-col rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-2">
         {upcoming.length === 0 ? (
           <p className="grid min-h-[280px] place-items-center px-4 text-center text-sm text-[var(--ui-muted)]">
             등록된 기념일이 없어요.
@@ -117,7 +117,11 @@ export function CelebrationCalendar({
       </div>
 
       {/* 월 달력 */}
-      <div className="celebration-calendar relative rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-4">
+      <div className="relative flex h-full flex-col rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-4">
+        {/* globals.css의 커스텀 CSS는 빌드 시 var(--ui-ink) 같은 CSS 변수가 라이트 모드 값으로
+            굳어버리는 문제가 있어(다크모드에서 안 먹음), 월/연도 캡션 색만은 빌드 파이프라인을
+            거치지 않는 인라인 style 태그로 직접 덮어써서 다크모드에서도 제대로 보이게 한다. */}
+        <style>{`.home-match-calendar .rdp-month_caption { color: var(--ui-ink) !important; }`}</style>
         <DayPicker
           defaultMonth={new Date(initYear, (initMonth || 1) - 1, 1)}
           locale={ko}
@@ -128,6 +132,13 @@ export function CelebrationCalendar({
             const has = (eventsByMonthDay.get(md) ?? []).length > 0;
             setSelectedMonthDay(has && selectedMonthDay !== md ? md : null);
           }}
+          style={
+            {
+              "--rdp-day-height": "44px",
+              "--rdp-day_button-height": "40px",
+              "--rdp-day_button-width": "40px",
+            } as CSSProperties
+          }
           components={{
             Chevron: ({ orientation, className }) => {
               const Icon =
@@ -141,20 +152,25 @@ export function CelebrationCalendar({
               return <Icon className={className} size={14} strokeWidth={2.25} />;
             },
             DayButton: (props: DayButtonProps) => {
-              const { day, modifiers: _modifiers, ...buttonProps } = props;
+              const { day, modifiers, className, ...buttonProps } = props;
               const md = monthDayOf(day.date);
               const dayEvents = eventsByMonthDay.get(md) ?? [];
               const types = Array.from(new Set(dayEvents.map((e) => e.type)));
               return (
-                <button {...buttonProps}>
+                <button
+                  {...buttonProps}
+                  className={`${className ?? ""} flex! flex-col items-center justify-center gap-0.5 leading-none ${
+                    modifiers.today && !modifiers.selected
+                      ? "text-[var(--ui-ink)]! ring-1! ring-inset! ring-[var(--ui-ink)]/35!"
+                      : ""
+                  }`}
+                >
                   <span>{day.date.getDate()}</span>
-                  {types.length > 0 ? (
-                    <span className="celebration-dots">
-                      {types.slice(0, 3).map((t) => (
-                        <span key={t} className="celebration-dot" style={{ background: TYPE_META[t].color }} />
-                      ))}
-                    </span>
-                  ) : null}
+                  <span className="flex h-1 items-center justify-center gap-0.5">
+                    {types.slice(0, 3).map((t) => (
+                      <span key={t} className="h-1 w-1 rounded-full" style={{ background: TYPE_META[t].color }} />
+                    ))}
+                  </span>
                 </button>
               );
             },
@@ -163,7 +179,7 @@ export function CelebrationCalendar({
         />
 
         {selectedMonthDay && selectedEvents.length > 0 ? (
-          <div className="mt-3 flex flex-col gap-1.5 border-t border-[var(--ui-border)] pt-3">
+          <div className="mt-auto flex flex-col gap-1.5 border-t border-[var(--ui-border)] pt-3">
             {selectedEvents.map((event) => {
               const meta = TYPE_META[event.type];
               return (
@@ -180,7 +196,7 @@ export function CelebrationCalendar({
             })}
           </div>
         ) : (
-          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-[var(--ui-border)] pt-3">
+          <div className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-[var(--ui-border)] pt-3">
             {(Object.keys(TYPE_META) as CalendarEventType[]).map((t) => (
               <span key={t} className="flex items-center gap-1.5 text-[11px] font-bold text-[var(--ui-muted)]">
                 <span className="h-2 w-2 rounded-full" style={{ background: TYPE_META[t].color }} />
