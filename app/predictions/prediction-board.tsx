@@ -170,7 +170,7 @@ export function PredictionBoard({ matches, teams, tournaments, bets, currentUser
 
                 return (
                   <article key={match.id}>
-                    <div className="mb-2 flex items-center justify-between gap-3 px-1 text-[13px] font-bold">
+                    <div className="mb-2 flex items-center justify-between gap-3 px-1 text-sm font-bold">
                       <div className="flex min-w-0 items-center gap-2">
                         <time className="shrink-0 text-[var(--ui-ink)]">{timeLabel(match.matchDate)}</time>
                         <span className="truncate text-[var(--ui-muted)]">{tournamentMap.get(match.tournamentId)?.name ?? "LEAGUE"}</span>
@@ -232,9 +232,9 @@ function TeamChoice({ team, percent, odds, selected, disabled, onClick, right = 
       title={selected ? "다시 누르면 선택 취소" : undefined}
     >
       <TeamLogo team={team} size="h-8 w-8 sm:h-10 sm:w-10" plain themeAware />
-      <span className={`flex min-w-0 flex-1 items-center gap-1.5 ${right ? "flex-row-reverse" : ""}`}>
-        <span className={`truncate text-[13px] font-black text-[var(--ui-ink)] transition-colors sm:text-[15px] ${disabled ? "" : "group-hover:text-[var(--prediction-choice-color)]"}`}>{team?.shortName ?? "TBD"}</span>
-        <small className="shrink-0 text-[10px] font-bold text-[var(--ui-muted)]">{odds === null ? "—" : `${odds.toFixed(2)}배`}</small>
+      <span className={`flex min-w-0 flex-1 items-center gap-3 ${right ? "flex-row-reverse" : ""}`}>
+        <span className={`truncate text-m font-black text-[var(--ui-ink)] transition-colors sm:text-xl ${disabled ? "" : "group-hover:text-[var(--prediction-choice-color)]"}`}>{team?.shortName ?? "TBD"}</span>
+        <span className="shrink-0 text-lg font-bold text-[var(--ui-muted)] flex items-center">{odds === null ? "1" : `${odds.toFixed(2)}`}<span className="text-sm">&nbsp;배</span></span>
       </span>
       <span className={`shrink-0 text-[20px] font-black leading-none tabular-nums text-[var(--ui-ink)] transition-colors sm:text-[26px] ${disabled ? "" : "group-hover:text-[var(--prediction-choice-color)]"}`}>{percent}<span className="ml-0.5 text-xs text-[var(--ui-muted)] sm:text-sm">%</span></span>
     </button>
