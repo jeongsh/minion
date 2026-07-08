@@ -17,6 +17,8 @@ const ALLOWED_SCRIPTS = [
   "sync-staff",
   "sync-instagram",
   "sync-international-matches",
+  "import-international-rosters",
+  "sync-international-rosters",
 ] as const;
 
 type AllowedScript = (typeof ALLOWED_SCRIPTS)[number];

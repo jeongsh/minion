@@ -4,6 +4,7 @@ import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { SectionHeader } from "@/components/layout/section-header";
 import { getAllPlayers, getAllTeams } from "@/lib/data/lck";
 import type { Player, Team } from "@/lib/types";
+import { InternationalRosterScriptHint } from "./script-hint";
 
 function TeamCard({ team, players }: { team: Team; players: Player[] }) {
   const missingImages = players.filter((player) => !player.profileImageUrl).length;
@@ -64,6 +65,8 @@ export default async function AdminInternationalTeamsPage() {
         <Breadcrumb items={[{ label: "관리자", href: "/admin" }, { label: "해외팀 관리" }]} />
         <SectionHeader title="해외팀 관리" />
       </div>
+
+      <InternationalRosterScriptHint />
 
       <section className="flex flex-col gap-4" aria-labelledby="international-team-list">
         <div>
