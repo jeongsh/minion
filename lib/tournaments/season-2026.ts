@@ -140,7 +140,7 @@ export const SEASON_2026_TOURNAMENTS: SeasonTournamentConfig[] = [
     segmentKey: "ewc",
     season: 2026,
     name: "EWC 2026",
-    overviewPage: "Esports World Cup/2026/League of Legends",
+    overviewPage: "Esports World Cup 2026",
     split: "EWC",
     category: "international",
     region: "International",
