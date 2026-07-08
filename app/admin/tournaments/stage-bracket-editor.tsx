@@ -7,11 +7,26 @@ import {
   deleteStageAction,
   moveStageAction,
   moveStageToBracketStageAction,
+  renameStageAction,
   saveBracketColumnsAction,
   setMatchAdvancesToAction,
   setMatchGroupIndexAction,
   type BracketColumnUpdate,
 } from "./actions";
+
+function PencilIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" className="h-3 w-3 shrink-0">
+      <path
+        d="M11.5 2.5L13.5 4.5L5 13H3V11L11.5 2.5Z"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
 
 export type EditorMatch = {
   id: string;
@@ -211,6 +226,8 @@ export function TournamentBracketEditor({
   const [saving, setSaving] = useState(false);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const dragId = useRef<string | null>(null);
+  const [renamingStageId, setRenamingStageId] = useState<string | null>(null);
+  const [renameDraft, setRenameDraft] = useState("");
 
   // 서버 재검증(revalidatePath) 이후 다시 렌더링될 때 stages 목록에 새로 등장한
   // 스테이지(예: 방금 매치가 처음 옮겨진 라운드)가 있으면 로컬 board에 채워 넣는다.
@@ -399,6 +416,24 @@ export function TournamentBracketEditor({
     }
   }
 
+  function startRenameStage(stageId: string, currentName: string) {
+    setRenamingStageId(stageId);
+    setRenameDraft(currentName);
+  }
+
+  async function submitRenameStage(stageId: string) {
+    const trimmed = renameDraft.trim();
+    setRenamingStageId(null);
+    if (!trimmed) return;
+
+    setSaving(true);
+    const result = await renameStageAction(segmentKey, stageId, trimmed);
+    setSaving(false);
+    if (!result.ok) {
+      window.alert(result.error);
+    }
+  }
+
   async function deleteStage(stageId: string, stageName: string) {
     if (!window.confirm(`"${stageName}" 라운드를 삭제할까요? 되돌릴 수 없습니다.`)) {
       return;
@@ -494,9 +529,36 @@ export function TournamentBracketEditor({
         return (
           <div key={stage.id} className="flex w-64 shrink-0 flex-col gap-3">
             <div className="flex items-center justify-between gap-2">
-              <span className="rounded-sm bg-white/10 px-2 py-1 text-[11px] font-black uppercase tracking-widest text-white">
-                {stage.name}
-              </span>
+              {renamingStageId === stage.id ? (
+                <form
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    void submitRenameStage(stage.id);
+                  }}
+                  className="min-w-0 flex-1"
+                >
+                  <input
+                    autoFocus
+                    value={renameDraft}
+                    onChange={(event) => setRenameDraft(event.target.value)}
+                    onBlur={() => void submitRenameStage(stage.id)}
+                    disabled={saving}
+                    className="w-full min-w-0 rounded border border-white/20 bg-[#0a0e1a] px-1.5 py-1 text-[11px] font-black uppercase tracking-widest text-white"
+                  />
+                </form>
+              ) : (
+                <span className="flex min-w-0 items-center gap-1.5 rounded-sm bg-white/10 px-2 py-1 text-[11px] font-black uppercase tracking-widest text-white">
+                  <span className="truncate">{stage.name}</span>
+                  <button
+                    type="button"
+                    onClick={() => startRenameStage(stage.id, stage.name)}
+                    aria-label="이 라운드 이름 수정"
+                    className="shrink-0 text-white/50 hover:text-white"
+                  >
+                    <PencilIcon />
+                  </button>
+                </span>
+              )}
               <div className="flex shrink-0 gap-1">
                 <button
                   type="button"

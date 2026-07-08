@@ -6,11 +6,10 @@ import {
   type HomeHeroSwiperSlide,
 } from "@/components/domain/home-hero-swiper";
 import {
-  HomeMatchCalendar,
+  HomeCalendar,
   type HomeCalendarMatch,
-} from "@/components/domain/home-match-calendar";
+} from "@/components/domain/home-calendar";
 import { HomeBoardCarousel } from "@/components/domain/home-board-carousel";
-import { CelebrationCalendar } from "@/components/domain/celebration-calendar";
 import { CelebrationBanner, type CelebrationBannerItem } from "@/components/domain/celebration-banner";
 import type { CalendarEvent } from "@/lib/calendar/events";
 import { isMatchLive } from "@/lib/match-display";
@@ -255,11 +254,6 @@ export function HomeDashboard({
       </section>
 
       <section className="mt-10">
-        <Heading caption="선수 생일·데뷔·우승 기념일">덕질 달력</Heading>
-        <CelebrationCalendar events={calendarEvents} initialMonthKey={calendarMonthKey} />
-      </section>
-
-      <section className="mt-10">
         <Heading href="/community">게시판</Heading>
         <HomeBoardCarousel posts={communityPosts} />
       </section>
@@ -267,15 +261,15 @@ export function HomeDashboard({
       <section className="mt-10 grid items-stretch gap-4 xl:grid-cols-3">
         <div>
           <Heading>실시간 순위</Heading>
-          <div className="h-[330px] overflow-hidden rounded-2xl border border-[#e6e7ea]">
+          <div className="h-[400px] overflow-hidden rounded-2xl border border-[#e6e7ea]">
             {standingRows.slice(0, 5).map((r) => (
               <Link
                 href={`/teams/${r.team.slug}`}
                 key={r.teamId}
-                className="flex h-[66px] items-center gap-3 border-b border-[#efeff1] px-4 last:border-0"
+                className="flex h-[80px] items-center gap-3 border-b border-[#efeff1] px-4 last:border-0"
               >
                 <b className="w-5 text-center">{r.rank}</b>
-                <Logo team={r.team} size="h-9 w-9" />
+                <Logo team={r.team} size="h-10 w-10" />
                 <b className="flex-1 text-sm">{r.team.shortName}</b>
                 <span className="text-sm font-bold">
                   {r.wins}승 {r.losses}패
@@ -286,19 +280,19 @@ export function HomeDashboard({
         </div>
         <div>
           <Heading>팀 최근 폼</Heading>
-          <div className="h-[330px] overflow-hidden rounded-2xl border border-[#e6e7ea]">
+          <div className="h-[400px] overflow-hidden rounded-2xl border border-[#e6e7ea]">
             {standingRows.slice(0, 5).map((r) => (
               <div
                 key={r.teamId}
-                className="flex h-[66px] items-center gap-3 border-b border-[#efeff1] px-4 last:border-0"
+                className="flex h-[80px] items-center gap-3 border-b border-[#efeff1] px-4 last:border-0"
               >
-                <Logo team={r.team} size="h-9 w-9" />
+                <Logo team={r.team} size="h-10 w-10" />
                 <b className="flex-1 text-sm">{r.team.shortName}</b>
                 <div className="flex gap-1">
                   {r.recent.map((v, i) => (
                     <span
                       key={i}
-                      className={`grid h-7 w-7 place-items-center rounded-full text-[11px] font-black text-white ${v === "W" ? "bg-[#00b979]" : "bg-[#b7bac0]"}`}
+                      className={`grid h-8 w-8 place-items-center rounded-full text-[11px] font-black text-white ${v === "W" ? "bg-[#00b979]" : "bg-[#b7bac0]"}`}
                       style={{lineHeight: `1`}}
                     >
                       {v}
@@ -310,10 +304,11 @@ export function HomeDashboard({
           </div>
         </div>
         <div>
-          <Heading href="/schedule">경기 캘린더</Heading>
-          <HomeMatchCalendar
+          <Heading href="/schedule">캘린더</Heading>
+          <HomeCalendar
             initialMonthKey={calendarMonthKey}
             matches={calendarMatches}
+            events={calendarEvents}
           />
         </div>
       </section>

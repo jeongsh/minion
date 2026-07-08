@@ -622,6 +622,11 @@ function buildPositionedGroups(regularColumns: StageColumn[]) {
   return { groups, gapRows, lastRow: rowCursor - 1 };
 }
 
+/** groupIndex 0/1/2/3... → "A조"/"B조"/"C조"/"D조"... (EWC 같은 4팀 조별 그룹 스테이지 표시용). */
+function groupLetterLabel(groupIndex: number) {
+  return `${String.fromCharCode(65 + groupIndex)}조`;
+}
+
 function BracketGrid({
   columns,
   teamMap,
@@ -687,9 +692,11 @@ function BracketGrid({
               >
                 <ColumnHeader
                   label={
-                    useGroupLabels || group.hasLower
-                      ? `상위권 대진 - ${columnIndex + 1}라운드`
-                      : (regularColumns[columnIndex]?.stage.name ?? `${columnIndex + 1}라운드`)
+                    useGroupLabels
+                      ? `${groupLetterLabel(group.groupIndex)} · ${regularColumns[columnIndex]?.stage.name ?? `${columnIndex + 1}라운드`}`
+                      : group.hasLower
+                        ? `상위권 대진 - ${regularColumns[columnIndex]?.stage.name ?? `${columnIndex + 1}라운드`}`
+                        : (regularColumns[columnIndex]?.stage.name ?? `${columnIndex + 1}라운드`)
                   }
                 />
               </div>
@@ -713,7 +720,13 @@ function BracketGrid({
                     key={`lower-head-${group.groupIndex}-${columnIndex}`}
                     style={{ gridColumn: columnIndex + 1, gridRow: group.lowerLabelRow! }}
                   >
-                    <ColumnHeader label={`하위권 대진 - ${columnIndex + 1}라운드`} />
+                    <ColumnHeader
+                      label={
+                        useGroupLabels
+                          ? `${groupLetterLabel(group.groupIndex)} · ${regularColumns[columnIndex]?.stage.name ?? `${columnIndex + 1}라운드`} · 패자조`
+                          : `하위권 대진 - ${regularColumns[columnIndex]?.stage.name ?? `${columnIndex + 1}라운드`}`
+                      }
+                    />
                   </div>
                 ))
               : null}

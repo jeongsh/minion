@@ -184,6 +184,39 @@ export async function createStageAction(formData: FormData): Promise<void> {
 }
 
 /**
+ * 라운드(스테이지)의 이름을 바꾼다(공개 대진표 페이지의 컬럼 헤더에도 그대로 반영됨).
+ */
+export async function renameStageAction(
+  segmentKey: string,
+  stageId: string,
+  name: string,
+): Promise<SaveBracketLayoutResult> {
+  try {
+    const trimmed = name.trim();
+    if (!trimmed) {
+      throw new Error("라운드 이름을 입력해주세요.");
+    }
+
+    const supabase = createSupabaseAdminClient();
+    const { error } = await supabase.from("stages").update({ name: trimmed }).eq("id", stageId);
+
+    if (error) {
+      throw error;
+    }
+
+    revalidatePath("/admin/tournaments");
+    if (segmentKey) {
+      revalidatePath(`/tournaments/${segmentKey}`);
+    }
+
+    return { ok: true };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "라운드 이름 변경에 실패했습니다.";
+    return { ok: false, error: message };
+  }
+}
+
+/**
  * 새 브래킷 스테이지(예: 플레이-인 / 토너먼트 스테이지)를 만든다. 같은 대회의 기존
  * 브래킷 스테이지들 뒤에 순서대로 추가된다.
  */

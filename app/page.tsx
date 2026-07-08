@@ -1,5 +1,5 @@
 import { HomeDashboard, type HomeStandingRow } from "@/components/domain/home-dashboard";
-import type { HomeCalendarMatch } from "@/components/domain/home-match-calendar";
+import type { HomeCalendarMatch } from "@/components/domain/home-calendar";
 import {
   getAllTeams,
   getHomeHeroSlides,
@@ -115,6 +115,7 @@ export default async function HomePage() {
     predictionBetsByMatchId.set(bet.matchId, [...(predictionBetsByMatchId.get(bet.matchId) ?? []), bet]);
   }
   const tournamentNamesById = new Map(tournaments.map((tournament) => [tournament.id, tournament.name]));
+  const tournamentLeagueById = new Map(tournaments.map((tournament) => [tournament.id, tournament.league ?? ""]));
   const calendarMonthKey = todayKey.slice(0, 7);
   const calendarMatches = matches
     .filter((match) => yearMonthKeyKST(match.matchDate) === calendarMonthKey)
@@ -128,8 +129,11 @@ export default async function HomePage() {
       dateKey: dateKeyKST(match.matchDate),
       href: matchHref(match),
       time: formatTimeKST(match.matchDate),
-      title: match.name?.trim() || `${teamA?.shortName ?? "TBD"} vs ${teamB?.shortName ?? "TBD"}`,
-      teams: `${teamA?.shortName ?? "TBD"} vs ${teamB?.shortName ?? "TBD"}`,
+      league: tournamentLeagueById.get(match.tournamentId) || "",
+      teamAName: teamA?.shortName ?? "TBD",
+      teamBName: teamB?.shortName ?? "TBD",
+      teamALogoUrl: teamA?.logoUrl ?? null,
+      teamBLogoUrl: teamB?.logoUrl ?? null,
     };
   });
   const heroSlides = homeHeroSlides.map((slide) => ({
