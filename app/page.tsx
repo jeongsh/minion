@@ -13,6 +13,8 @@ import { getBoardPosts } from "@/lib/data/community";
 import { formatTimeKST, matchHref } from "@/lib/view-data";
 import { getPredictionMarketData } from "@/lib/predictions";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { getCalendarEvents, getCelebrationMessages, getTodayCelebrations } from "@/lib/calendar/events";
+import type { CelebrationBannerItem } from "@/components/domain/celebration-banner";
 
 export const dynamic = "force-dynamic";
 
@@ -43,7 +45,7 @@ function buildRecentForm(teamId: string, matches: Match[]) {
 
 export default async function HomePage() {
   const user = await getCurrentUser();
-  const [teams, matches, savedStandings, tournaments, latestVideos, homeHeroSlides, communityPosts, predictionMarket] = await Promise.all([
+  const [teams, matches, savedStandings, tournaments, latestVideos, homeHeroSlides, communityPosts, predictionMarket, calendarEvents] = await Promise.all([
     getAllTeams(),
     getMatches(),
     getTeamStandings(),
@@ -52,7 +54,17 @@ export default async function HomePage() {
     getHomeHeroSlides({ limit: 8 }),
     getBoardPosts({ scope: "hub" }),
     getPredictionMarketData(user?.id),
+    getCalendarEvents(),
   ]);
+
+  // 오늘의 기념일 + 각 축하 보드 초기 메시지.
+  const todayCelebrations = getTodayCelebrations(calendarEvents);
+  const celebrationItems: CelebrationBannerItem[] = await Promise.all(
+    todayCelebrations.map(async (event) => ({
+      event,
+      messages: await getCelebrationMessages(event.key),
+    })),
+  );
 
   const teamsById = new Map(teams.map((team) => [team.id, team]));
   const latestSeason = tournaments.length > 0 ? Math.max(...tournaments.map((tournament) => tournament.season)) : 2026;
@@ -158,6 +170,9 @@ export default async function HomePage() {
       tournamentNamesById={tournamentNamesById}
       calendarMonthKey={calendarMonthKey}
       calendarMatches={calendarClientMatches}
+      calendarEvents={calendarEvents}
+      celebrationItems={celebrationItems}
+      isLoggedIn={Boolean(user)}
       latestVideos={latestVideos}
       heroSlides={heroSlides}
       communityPosts={communityPosts.slice(0, 12)}

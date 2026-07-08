@@ -10,6 +10,9 @@ import {
   type HomeCalendarMatch,
 } from "@/components/domain/home-match-calendar";
 import { HomeBoardCarousel } from "@/components/domain/home-board-carousel";
+import { CelebrationCalendar } from "@/components/domain/celebration-calendar";
+import { CelebrationBanner, type CelebrationBannerItem } from "@/components/domain/celebration-banner";
+import type { CalendarEvent } from "@/lib/calendar/events";
 import { isMatchLive } from "@/lib/match-display";
 import { teams as themeTeams } from "@/lib/team-themes";
 import { predictionMarketForMatch, type PredictionBet } from "@/lib/predictions";
@@ -41,6 +44,9 @@ type Props = {
   tournamentNamesById: Map<string, string>;
   calendarMonthKey: string;
   calendarMatches: HomeCalendarMatch[];
+  calendarEvents: CalendarEvent[];
+  celebrationItems: CelebrationBannerItem[];
+  isLoggedIn: boolean;
   latestVideos: TeamVideo[];
   heroSlides: HomeHeroSwiperSlide[];
   communityPosts: CommunityPostDetail[];
@@ -148,6 +154,9 @@ export function HomeDashboard({
   tournamentNamesById,
   calendarMonthKey,
   calendarMatches,
+  calendarEvents,
+  celebrationItems,
+  isLoggedIn,
   latestVideos,
   heroSlides,
   communityPosts,
@@ -194,6 +203,12 @@ export function HomeDashboard({
         </div>
       </section>
 
+      {celebrationItems.length > 0 ? (
+        <section className="mt-6">
+          <CelebrationBanner items={celebrationItems} isLoggedIn={isLoggedIn} />
+        </section>
+      ) : null}
+
       <Ad className="mt-8 h-24" />
       <section className="mt-8">
         <Heading href="/teams">팀 채널</Heading>
@@ -237,6 +252,11 @@ export function HomeDashboard({
         <div className="flex flex-col">
           <Ad className="h-[305px]" />
         </div>
+      </section>
+
+      <section className="mt-10">
+        <Heading caption="선수 생일·데뷔·우승 기념일">덕질 달력</Heading>
+        <CelebrationCalendar events={calendarEvents} initialMonthKey={calendarMonthKey} />
       </section>
 
       <section className="mt-10">

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { BarChart3, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Coins, Menu, Moon, Search, Shield, Sparkles, Sun, Swords, Users, UserRound } from "lucide-react";
+import { BarChart3, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Coins, Menu, Moon, Newspaper, Search, Shield, Sparkles, Sun, Swords, Users, UserRound } from "lucide-react";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { RankBadge } from "@/components/rank/rank-badge";
@@ -18,6 +18,7 @@ const nav = [
   { href: "/predictions", label: "승부예측", icon: Sparkles },
   { href: "/records", label: "기록실", icon: BarChart3 },
   { href: "/players", label: "선수", icon: UserRound },
+  { href: "/reports", label: "위클리 리포트", icon: Newspaper },
   { href: "/community", label: "커뮤니티", icon: Users },
 ];
 

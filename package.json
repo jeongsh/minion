@@ -34,7 +34,8 @@
     "sync:player-social": "node --experimental-strip-types scripts/sync-player-social.ts",
     "sync:youtube-videos": "node --experimental-strip-types scripts/sync-youtube-videos.ts",
     "subscribe:youtube-webhooks": "node --experimental-strip-types scripts/subscribe-youtube-webhooks.ts",
-    "champions:cleanup": "node --experimental-strip-types scripts/cleanup-champions.ts"
+    "champions:cleanup": "node --experimental-strip-types scripts/cleanup-champions.ts",
+    "report:weekly": "node --experimental-strip-types scripts/generate-weekly-report.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",

@@ -31,6 +31,7 @@ export const adminNavItems: NavItem[] = [
   { href: "/admin/international-teams", label: "해외팀 관리" },
   { href: "/admin/teams", label: "팀 관리" },
   { href: "/admin/players", label: "선수 관리" },
+  { href: "/admin/calendar", label: "기념일 관리" },
   { href: "/admin/ratings", label: "팬 평점 관리" },
   { href: "/admin/fan-sites", label: "팬사이트 설정" },
   { href: "/admin/home-slider", label: "홈 슬라이더 관리" },

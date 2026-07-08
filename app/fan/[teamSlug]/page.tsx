@@ -21,6 +21,10 @@ import {
 } from "@/lib/data/lck";
 import { getBoardPosts } from "@/lib/data/community";
 import { buildFanVideoItems } from "@/lib/fan-video-items";
+import { getCalendarEvents, getCelebrationMessages, getTodayCelebrations } from "@/lib/calendar/events";
+import { getCurrentUser } from "@/lib/auth/current-user";
+import { CelebrationCalendar } from "@/components/domain/celebration-calendar";
+import { CelebrationBanner, type CelebrationBannerItem } from "@/components/domain/celebration-banner";
 import type { Match, Player, Team, TeamStanding } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -213,13 +217,31 @@ export default async function FanHomePage({
     notFound();
   }
 
-  const [teams, players, matches, boardPosts, standings] = await Promise.all([
+  const [teams, players, matches, boardPosts, standings, calendarEvents, user] = await Promise.all([
     getAllTeams(),
     getPlayers(),
     getMatches(),
     getBoardPosts({ scope: "team", teamId: team.id }),
     getTeamStandings(),
+    getCalendarEvents({ teamId: team.id }),
+    getCurrentUser(),
   ]);
+
+  const todayCelebrations = getTodayCelebrations(calendarEvents);
+  const celebrationItems: CelebrationBannerItem[] = await Promise.all(
+    todayCelebrations.map(async (event) => ({
+      event,
+      messages: await getCelebrationMessages(event.key),
+    })),
+  );
+  const calendarMonthKey = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  })
+    .format(new Date())
+    .slice(0, 7);
 
   const teamPlayers = players
     .filter((player) => player.teamId === team.id)
@@ -291,6 +313,11 @@ export default async function FanHomePage({
         className="flex flex-col gap-12 text-[var(--ui-ink)]"
         style={{ "--tp": team.primaryColor } as React.CSSProperties}
       >
+        {/* 오늘의 기념일 배너 */}
+        {celebrationItems.length > 0 ? (
+          <CelebrationBanner items={celebrationItems} isLoggedIn={Boolean(user)} />
+        ) : null}
+
         {/* 경기 일정 + 순위 요약 */}
         <section className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
           <div>
@@ -311,6 +338,12 @@ export default async function FanHomePage({
         {/* 선수단 */}
         <section>
           <Roster players={teamPlayers} teamSlug={team.fanSiteHost} />
+        </section>
+
+        {/* 덕질 달력 */}
+        <section>
+          <SectionHeading caption="생일·데뷔·우승 기념일">덕질 달력</SectionHeading>
+          <CelebrationCalendar events={calendarEvents} initialMonthKey={calendarMonthKey} />
         </section>
 
         {/* 소셜 피드 */}
