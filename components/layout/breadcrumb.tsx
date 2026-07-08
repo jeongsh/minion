@@ -18,7 +18,7 @@ export function Breadcrumb({ items, className = "" }: { items: Crumb[]; classNam
             {item.href && !isLast ? (
               <Link
                 href={item.href}
-                className="text-[var(--ink-3,#8a8892)] transition-colors hover:text-[var(--ink,#16151b)]"
+                className="text-[var(--ink-3,var(--ui-muted))] transition-colors hover:text-[var(--ink,var(--ui-ink))]"
               >
                 {item.label}
               </Link>
@@ -26,8 +26,8 @@ export function Breadcrumb({ items, className = "" }: { items: Crumb[]; classNam
               <span
                 className={
                   isLast
-                    ? "font-semibold text-[var(--ink,#16151b)]"
-                    : "text-[var(--ink-3,#8a8892)]"
+                    ? "font-semibold text-[var(--ink,var(--ui-ink))]"
+                    : "text-[var(--ink-3,var(--ui-muted))]"
                 }
                 aria-current={isLast ? "page" : undefined}
               >
@@ -35,7 +35,7 @@ export function Breadcrumb({ items, className = "" }: { items: Crumb[]; classNam
               </span>
             )}
             {!isLast ? (
-              <span className="text-[var(--sub-muted-weak,#b6b4bd)]" aria-hidden>
+              <span className="text-[var(--sub-muted-weak,var(--ui-border))]" aria-hidden>
                 /
               </span>
             ) : null}
