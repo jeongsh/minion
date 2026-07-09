@@ -597,6 +597,7 @@ async function getTeamsForIntl(supabase: SupabaseClient) {
   }
 
   const bySlug = new Map(data.map((t) => [t.slug, t as TeamRowWithLck]));
+  const byId = new Map(data.map((t) => [t.id, t as TeamRowWithLck]));
   const byLeaguepediaPage = new Map<string, TeamRowWithLck>();
   for (const team of data) {
     for (const key of [team.leaguepedia_page, team.source_team_id, team.name, team.short_name]) {
@@ -604,6 +605,24 @@ async function getTeamsForIntl(supabase: SupabaseClient) {
       if (normalized) {
         byLeaguepediaPage.set(normalized, team as TeamRowWithLck);
       }
+    }
+  }
+
+  // leaguepedia_team_aliases에는 세트별 동기화(syncLeaguepediaMatchSets)가 팀을 찾을 때마다
+  // 관찰한 페이지명이 쌓인다(리그피디아가 같은 팀을 여러 페이지명으로 부르는 경우가 있어서,
+  // 예: 개명 전/후 페이지, disambiguation 페이지). 이 국제대회 동기화도 같은 별칭을 알아야
+  // 이미 등록된 팀을 "새 팀"으로 잘못 판단해 중복 생성하지 않는다.
+  const { data: aliasRows, error: aliasError } = await supabase
+    .from("leaguepedia_team_aliases")
+    .select("team_id, page_name");
+  if (aliasError) {
+    throw aliasError;
+  }
+  for (const alias of aliasRows ?? []) {
+    const team = byId.get(alias.team_id);
+    const normalized = normalizeLookupKey(alias.page_name);
+    if (team && normalized && !byLeaguepediaPage.has(normalized)) {
+      byLeaguepediaPage.set(normalized, team);
     }
   }
 
