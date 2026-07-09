@@ -23,6 +23,13 @@ export type ReportChampionStat = {
   losses: number;
   winRate: number; // 0~1, 픽 기준
   presenceRate: number; // 0~1, (픽+밴)/세트
+  // 챔피언 경기 지표(픽된 세트 평균) — 티어 판정 근거
+  kda: number | null;
+  avgDpm: number | null;
+  avgGd15: number | null; // 15분 골드 차이
+  // 스탯 점수(0~100): KDA·15분 골드차 정규화 평균. 종합 점수 = 밴픽률 30% + 보정승률 40% + 스탯 30%.
+  statScore: number | null;
+  score: number | null;
 };
 
 export type ReportStatLeader = {
@@ -88,7 +95,6 @@ export type WeeklyReportContent = {
     teamWeekly: Array<{ team: ReportTeamRef; wins: number; losses: number; setWins: number; setLosses: number }>;
   };
   review: {
-    matchNotes: Array<{ title: string; body: string }>;
     teamOfWeek: { team: ReportTeamRef | null; title: string; body: string };
     playersOfWeek: Array<{
       playerName: string;
@@ -104,6 +110,8 @@ export type WeeklyReportContent = {
     summary: string[];
     positions: ReportPositionMeta[];
     banSpotlight: { championSlug: string; comment: string } | null;
+    // 웹 검색(커뮤니티·전문가·기사)에서 참고한 자료. 구버전 리포트에는 없을 수 있다.
+    sources?: Array<{ title: string; url: string }>;
   };
   preview: {
     intro: string;

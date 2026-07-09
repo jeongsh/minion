@@ -61,12 +61,17 @@ function SectionHead({ eyebrow, title, icon: Icon }: { eyebrow: string; title: s
   );
 }
 
-function WinRateBadge({ stat }: { stat: ReportChampionStat }) {
-  const rate = pct(stat.winRate);
-  const strong = stat.picks >= 2 && rate >= 60;
+// 종합 점수(밴픽률 30% + 보정승률 40% + 스탯 30%, 0~100) 배지.
+// 구버전 리포트(score 없음)는 승률 표기로 대체한다.
+function ScoreBadge({ stat }: { stat: ReportChampionStat }) {
+  if (stat.score == null) {
+    return <span className="rounded-md bg-[var(--ui-surface-muted)] px-1.5 py-0.5 font-archivo text-[11px] font-extrabold text-[var(--ui-muted)]">{pct(stat.winRate)}%</span>;
+  }
+  const breakdown = `밴픽률 ${pct(stat.presenceRate)}% · 승률 ${pct(stat.winRate)}% · 스탯 ${stat.statScore ?? "-"}점`;
+  const strong = stat.score >= 75;
   return (
-    <span className={`rounded-md px-1.5 py-0.5 font-archivo text-[11px] font-extrabold ${strong ? "bg-[color-mix(in_srgb,var(--accent)_16%,transparent)] text-[var(--ui-ink)]" : "bg-[var(--ui-surface-muted)] text-[var(--ui-muted)]"}`}>
-      {rate}%
+    <span title={breakdown} className={`rounded-md px-1.5 py-0.5 text-[11px] font-extrabold ${strong ? "bg-[color-mix(in_srgb,var(--accent)_16%,transparent)] text-[var(--ui-ink)]" : "bg-[var(--ui-surface-muted)] text-[var(--ui-muted)]"}`}>
+      종합 <span className="font-archivo">{stat.score}</span>
     </span>
   );
 }
@@ -76,7 +81,7 @@ export function WeeklyReportView({ report, index }: { report: WeeklyReportRow; i
   const { stats, review, meta, preview } = content;
   const championBySlug = new Map(stats.champions.map((champion) => [champion.slug, champion]));
   const weekNumber = report.week_key.split("-W")[1] ?? report.week_key;
-  const presenceTop = [...stats.champions].sort((a, b) => b.presenceRate - a.presenceRate).slice(0, 8);
+  const presenceTop = [...stats.champions].sort((a, b) => b.presenceRate - a.presenceRate).slice(0, 5);
   const banSpotlightChampion = meta.banSpotlight ? championBySlug.get(meta.banSpotlight.championSlug) : undefined;
   const generatedAt = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", dateStyle: "long", timeStyle: "short" }).format(new Date(report.generated_at));
 
@@ -137,7 +142,7 @@ export function WeeklyReportView({ report, index }: { report: WeeklyReportRow; i
       {/* 총평 */}
       <section className="mt-14">
         <SectionHead eyebrow="Overview" title="위클리 브리핑" icon={NotebookPen} />
-        <div className="max-w-[760px] space-y-4 text-[15.5px] font-medium leading-[1.85] text-[var(--ui-text)]">
+        <div className="max-w-[760px] space-y-4 text-[16px] font-medium leading-[1.85] text-[var(--ui-text)]">
           {content.overview.map((paragraph, orderIndex) => (
             <p key={orderIndex}>{paragraph}</p>
           ))}
@@ -187,7 +192,7 @@ export function WeeklyReportView({ report, index }: { report: WeeklyReportRow; i
               <div className="min-w-0">
                 <h3 className="text-xl font-black tracking-tight text-[var(--ui-ink)]">{review.teamOfWeek.team.name}</h3>
                 <p className="mt-1 text-sm font-bold text-[var(--ui-muted)]">{review.teamOfWeek.title}</p>
-                <p className="mt-3 max-w-[680px] text-[14.5px] font-medium leading-[1.8] text-[var(--ui-text)]">{review.teamOfWeek.body}</p>
+                <p className="mt-3 max-w-[680px] text-[16px] font-medium leading-[1.8] text-[var(--ui-text)]">{review.teamOfWeek.body}</p>
               </div>
             </div>
           </article>
@@ -212,19 +217,9 @@ export function WeeklyReportView({ report, index }: { report: WeeklyReportRow; i
                   </div>
                 </div>
                 {player.championNames.length > 0 && (
-                  <p className="mt-3 text-[11.5px] font-bold text-[var(--ui-muted)]">이번 주 챔피언 — {player.championNames.join(" · ")}</p>
+                  <p className="mt-3 text-[12px] font-bold text-[var(--ui-muted)]">이번 주 챔피언 — {player.championNames.join(" · ")}</p>
                 )}
-                <p className="mt-2.5 text-[13.5px] font-medium leading-[1.75] text-[var(--ui-text)]">{player.body}</p>
-              </article>
-            ))}
-          </div>
-        )}
-        {review.matchNotes.length > 0 && (
-          <div className="mt-4 grid gap-4 md:grid-cols-2">
-            {review.matchNotes.map((note) => (
-              <article key={note.title} className="rounded-2xl bg-[var(--ui-surface-muted)] p-5">
-                <h4 className="flex items-center gap-2 text-[15px] font-black text-[var(--ui-ink)]"><Flame size={16} className="shrink-0 text-[var(--ui-muted)]" />{note.title}</h4>
-                <p className="mt-2 text-[13.5px] font-medium leading-[1.75] text-[var(--ui-text)]">{note.body}</p>
+                <p className="mt-2.5 text-[14px] font-medium leading-[1.75] text-[var(--ui-text)]">{player.body}</p>
               </article>
             ))}
           </div>
@@ -234,7 +229,7 @@ export function WeeklyReportView({ report, index }: { report: WeeklyReportRow; i
       {/* 메타 리포트 */}
       <section className="mt-14">
         <SectionHead eyebrow="Meta Report" title="이번 주 메타" icon={TrendingUp} />
-        <div className="max-w-[760px] space-y-4 text-[15.5px] font-medium leading-[1.85] text-[var(--ui-text)]">
+        <div className="max-w-[760px] space-y-4 text-[16px] font-medium leading-[1.85] text-[var(--ui-text)]">
           {meta.summary.map((paragraph, orderIndex) => (
             <p key={orderIndex}>{paragraph}</p>
           ))}
@@ -243,21 +238,26 @@ export function WeeklyReportView({ report, index }: { report: WeeklyReportRow; i
         <div className="mt-8 grid gap-4 lg:grid-cols-[1.25fr_1fr]">
           {/* 프레즌스 상위 */}
           <article className="rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-6">
-            <h3 className="font-archivo text-[12px] font-extrabold uppercase tracking-[0.18em] text-[var(--ui-muted)]">Pick + Ban Presence Top 8</h3>
+            <h3 className="text-[12px] font-extrabold uppercase tracking-[0.12em] text-[var(--ui-muted)]">밴픽률 TOP 5</h3>
             <ul className="mt-5 space-y-3.5">
               {presenceTop.map((champion) => (
                 <li key={champion.slug} className="flex items-center gap-3">
                   <ChampionFace champion={champion} size="h-9 w-9" />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-baseline justify-between gap-2">
-                      <span className="truncate text-[13.5px] font-black text-[var(--ui-ink)]">{champion.name}</span>
-                      <span className="shrink-0 text-[11px] font-bold text-[var(--ui-muted)]">픽 {champion.picks} · 밴 {champion.bans} · 승률 {pct(champion.winRate)}%</span>
+                      <span className="truncate text-[14px] font-black text-[var(--ui-ink)]">{champion.name}</span>
+                      <span className="shrink-0 text-[12px] font-bold text-[var(--ui-muted)]">
+                        픽 {champion.picks}·밴 {champion.bans} · 승률 {pct(champion.winRate)}%{champion.score != null ? ` · 종합 ${champion.score}점` : ""}
+                      </span>
                     </div>
                     <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-[var(--ui-surface-muted)]">
                       <span className="block h-full rounded-full bg-[var(--ui-ink)]" style={{ width: `${Math.min(100, pct(champion.presenceRate))}%` }} />
                     </div>
                   </div>
-                  <span className="w-11 shrink-0 text-right font-archivo text-[13px] font-black text-[var(--ui-ink)]">{pct(champion.presenceRate)}%</span>
+                  <span className="w-12 shrink-0 text-right">
+                    <span className="block font-archivo text-[13px] font-black leading-tight text-[var(--ui-ink)]">{pct(champion.presenceRate)}%</span>
+                    <span className="block text-[10px] font-bold text-[var(--ui-muted)]">밴픽률</span>
+                  </span>
                 </li>
               ))}
             </ul>
@@ -272,10 +272,10 @@ export function WeeklyReportView({ report, index }: { report: WeeklyReportRow; i
                   {banSpotlightChampion.imageUrl && <img src={banSpotlightChampion.imageUrl} alt={banSpotlightChampion.name} className="h-16 w-16 rounded-2xl object-cover" />}
                   <div>
                     <p className="text-xl font-black tracking-tight">{banSpotlightChampion.name}</p>
-                    <p className="mt-1 font-archivo text-[12px] font-extrabold text-white/60">밴 {banSpotlightChampion.bans}회 · 프레즌스 {pct(banSpotlightChampion.presenceRate)}%</p>
+                    <p className="mt-1 font-archivo text-[12px] font-extrabold text-white/60">밴 {banSpotlightChampion.bans}회 · 밴픽률 {pct(banSpotlightChampion.presenceRate)}%</p>
                   </div>
                 </div>
-                <p className="mt-4 text-[13.5px] font-medium leading-[1.75] text-white/75">{meta.banSpotlight.comment}</p>
+                <p className="mt-4 text-[14px] font-medium leading-[1.75] text-white/75">{meta.banSpotlight.comment}</p>
               </div>
             </article>
           )}
@@ -315,7 +315,7 @@ export function WeeklyReportView({ report, index }: { report: WeeklyReportRow; i
                               <span key={slug} className="flex items-center gap-2 rounded-xl border border-[var(--ui-border)] py-1.5 pl-1.5 pr-2.5">
                                 <ChampionFace champion={champion} size="h-8 w-8" />
                                 <span className="text-[13px] font-extrabold text-[var(--ui-ink)]">{champion.name}</span>
-                                <WinRateBadge stat={champion} />
+                                <ScoreBadge stat={champion} />
                               </span>
                             );
                           })}
@@ -324,11 +324,23 @@ export function WeeklyReportView({ report, index }: { report: WeeklyReportRow; i
                     );
                   })}
                 </div>
-                {position.comment && <p className="mt-4 border-t border-[var(--ui-border)] pt-3.5 text-[13.5px] font-medium leading-[1.75] text-[var(--ui-text)]">{position.comment}</p>}
+                {position.comment && <p className="mt-4 border-t border-[var(--ui-border)] pt-3.5 text-[14px] font-medium leading-[1.75] text-[var(--ui-text)]">{position.comment}</p>}
               </article>
             );
           })}
         </div>
+
+        {(meta.sources?.length ?? 0) > 0 && (
+          <p className="mt-5 text-[12px] font-semibold leading-relaxed text-[var(--ui-muted)]">
+            참고 자료 —{" "}
+            {meta.sources!.map((source, orderIndex) => (
+              <span key={source.url}>
+                {orderIndex > 0 && " · "}
+                <a href={source.url} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-[var(--ui-ink)]">{source.title}</a>
+              </span>
+            ))}
+          </p>
+        )}
       </section>
 
       {/* 데이터 하이라이트 */}
@@ -357,11 +369,6 @@ export function WeeklyReportView({ report, index }: { report: WeeklyReportRow; i
                   </p>
                 </div>
               </div>
-              {leader.runnersUp.length > 0 && (
-                <p className="mt-3 border-t border-[var(--ui-border)] pt-2.5 text-[11px] font-bold text-[var(--ui-muted)]">
-                  {leader.runnersUp.map((runner) => `${runner.playerName} ${runner.value}`).join(" · ")}
-                </p>
-              )}
             </article>
           ))}
         </div>
@@ -370,12 +377,12 @@ export function WeeklyReportView({ report, index }: { report: WeeklyReportRow; i
       {/* 다음 주 프리뷰 */}
       <section className="mt-14">
         <SectionHead eyebrow="Next Week + AI Pick" title="다음 주 프리뷰" icon={Sparkles} />
-        <p className="max-w-[760px] text-[15.5px] font-medium leading-[1.85] text-[var(--ui-text)]">{preview.intro}</p>
+        <p className="max-w-[760px] text-[16px] font-medium leading-[1.85] text-[var(--ui-text)]">{preview.intro}</p>
         {preview.matches.length > 0 ? (
           <div className="mt-6 grid gap-4 md:grid-cols-2">
             {preview.matches.map((match) => {
               const picked = match.pickTeamSlug === match.teamA?.slug ? match.teamA : match.teamB;
-              const other = picked === match.teamA ? match.teamB : match.teamA;
+              const teamAShare = match.pickTeamSlug === match.teamA?.slug ? match.confidence : 100 - match.confidence;
               return (
                 <article key={match.matchId} className="rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-6">
                   <p className="text-xs font-bold text-[var(--ui-muted)]">
@@ -400,12 +407,13 @@ export function WeeklyReportView({ report, index }: { report: WeeklyReportRow; i
                         </span>
                         <span className="text-sm font-black text-[var(--ui-ink)]">{picked.shortName} 승리 <span className="font-archivo">{match.confidence}%</span></span>
                       </div>
-                      <div className="mt-2.5 flex h-2 overflow-hidden rounded-full bg-[var(--ui-border)]">
-                        <span style={{ width: `${match.confidence}%`, background: picked.color }} />
-                        <span className="flex-1" style={{ background: `color-mix(in srgb, ${other?.color ?? "#73767c"} 45%, transparent)` }} />
+                      {/* 메인 승부예측 카드와 같은 방식: 좌측은 팀A, 우측은 팀B 색으로 채운다. */}
+                      <div className="mt-2.5 flex h-2 overflow-hidden rounded-full">
+                        <span style={{ width: `${teamAShare}%`, background: match.teamA?.color ?? "#73767c" }} />
+                        <span className="flex-1" style={{ background: match.teamB?.color ?? "#73767c" }} />
                       </div>
-                      <p className="mt-3 text-[13px] font-medium leading-[1.7] text-[var(--ui-text)]">{match.reasoning}</p>
-                      <p className="mt-2.5 flex items-start gap-1.5 text-[12px] font-bold text-[var(--ui-muted)]">
+                      <p className="mt-3 text-[14px] font-medium leading-[1.7] text-[var(--ui-text)]">{match.reasoning}</p>
+                      <p className="mt-2.5 flex items-start gap-1.5 text-[13px] font-bold text-[var(--ui-muted)]">
                         <Flame size={13} className="mt-0.5 shrink-0" />관전 포인트 — {match.keyPoint}
                       </p>
                     </div>
@@ -415,13 +423,13 @@ export function WeeklyReportView({ report, index }: { report: WeeklyReportRow; i
             })}
           </div>
         ) : (
-          <p className="mt-6 rounded-2xl bg-[var(--ui-surface-muted)] px-5 py-6 text-sm font-bold text-[var(--ui-muted)]">다음 주에 예정된 경기가 아직 없어요. 일정이 잡히면 이 자리에서 AI 픽과 함께 소개할게요.</p>
+          <p className="mt-6 rounded-2xl bg-[var(--ui-surface-muted)] px-5 py-6 text-sm font-bold text-[var(--ui-muted)]">다음 주 일정은 아직 확정되지 않았다. 대진이 잡히면 AI 픽과 함께 이 자리에 추가된다.</p>
         )}
-        <p className="mt-5 text-[12px] font-semibold text-[var(--ui-muted)]">* AI 분석실의 예측은 경기 데이터 기반의 재미 요소예요. 결과는 언제나 무대 위 선수들이 만들어요.</p>
+        <p className="mt-5 text-[12px] font-semibold text-[var(--ui-muted)]">* AI 분석실의 예측은 경기 데이터 기반의 참고용 콘텐츠다. 결과는 무대 위 선수들이 만든다.</p>
       </section>
 
       <footer className="mt-16 border-t border-[var(--ui-border)] pt-5 text-[12px] font-semibold text-[var(--ui-muted)]">
-        MINION AI 분석실 · {generatedAt} 발행{report.model ? ` · ${report.model}` : ""} · 통계는 LCK 경기 기록에서 집계했어요.
+        MINION AI 분석실 · {generatedAt} 발행{report.model ? ` · ${report.model}` : ""} · 모든 통계는 LCK 경기 기록 집계 기준.
       </footer>
     </div>
   );

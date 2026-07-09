@@ -12,6 +12,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
+import { championImage } from "../lib/champions.ts";
 import type {
   ReportChampionStat,
   ReportMatchResult,
@@ -93,7 +94,7 @@ type TeamRow = {
   logo_url: string | null; logo_white_url: string | null; primary_color: string;
 };
 type PlayerRow = { id: string; slug: string; name: string; position: string; team_id: string | null; profile_image_url: string | null };
-type ChampionRow = { id: string; slug: string; name: string; image_url: string | null };
+type ChampionRow = { id: string; slug: string; name: string; image_url: string | null; ddragon_id: string | null };
 type MatchRow = {
   id: string; name: string; match_date: string; status: string; tournament_id: string | null;
   team_a_id: string | null; team_b_id: string | null; team_a_score: number | null; team_b_score: number | null;
@@ -107,6 +108,7 @@ type StatRow = {
   damage_to_champions: number; vision_score: number;
   dpm: number | string | null; damage_share: number | string | null;
   vision_score_per_minute: number | string | null; cs_per_minute: number | string | null;
+  gold_diff_at_15: number | string | null;
 };
 
 async function fetchAll<T>(supabase: SupabaseClient, table: string, select: string, filter?: (q: any) => any): Promise<T[]> {
@@ -126,6 +128,25 @@ function toNumber(value: number | string | null | undefined) {
   if (value == null) return null;
   const num = typeof value === "string" ? Number(value) : value;
   return Number.isFinite(num) ? num : null;
+}
+
+// 종합 점수(0~100) = 밴픽률 30% + 보정 승률 40% + 스탯 점수 30%.
+// - 보정 승률: 라플라스 보정 (wins+1)/(picks+2) — 1~2픽 표본의 0%/100% 왜곡을 완화한다.
+// - 스탯 점수: KDA(0~6)와 15분 골드차(±600)를 0~100으로 정규화한 평균. 밴만 된 챔피언은 중립값 50.
+function championScores(
+  agg: { picks: number; bans: number; wins: number; kills: number; deaths: number; assists: number; gd15Sum: number; gd15N: number },
+  setCount: number,
+) {
+  const clamp01 = (value: number) => Math.max(0, Math.min(1, value));
+  const banPick = setCount > 0 ? (agg.picks + agg.bans) / setCount : 0;
+  const winAdj = (agg.wins + 1) / (agg.picks + 2);
+  const kdaScore = clamp01((agg.kills + agg.assists) / Math.max(1, agg.deaths) / 6);
+  const gd15Score = agg.gd15N > 0 ? clamp01((agg.gd15Sum / agg.gd15N + 600) / 1200) : null;
+  const statScore = agg.picks === 0 ? 0.5 : gd15Score == null ? kdaScore : (kdaScore + gd15Score) / 2;
+  return {
+    statScore: Math.round(statScore * 100),
+    score: Math.round((0.3 * clamp01(banPick) + 0.4 * winAdj + 0.3 * statScore) * 100),
+  };
 }
 
 function teamRef(team: TeamRow | undefined | null): ReportTeamRef | null {
@@ -153,18 +174,8 @@ const AI_OUTPUT_SCHEMA = {
     review: {
       type: "object",
       additionalProperties: false,
-      required: ["matchNotes", "teamOfWeek", "playersOfWeek"],
+      required: ["teamOfWeek", "playersOfWeek"],
       properties: {
-        matchNotes: {
-          type: "array",
-          description: "이번 주 하이라이트 노트 3~5개",
-          items: {
-            type: "object",
-            additionalProperties: false,
-            required: ["title", "body"],
-            properties: { title: { type: "string" }, body: { type: "string" } },
-          },
-        },
         teamOfWeek: {
           type: "object",
           additionalProperties: false,
@@ -186,9 +197,19 @@ const AI_OUTPUT_SCHEMA = {
     meta: {
       type: "object",
       additionalProperties: false,
-      required: ["summary", "positions", "banSpotlight"],
+      required: ["summary", "positions", "banSpotlight", "sources"],
       properties: {
         summary: { type: "array", items: { type: "string" }, description: "이번 주 메타 총평 1~2문단" },
+        sources: {
+          type: "array",
+          description: "웹 검색에서 실제로 참고한 자료 3~5개",
+          items: {
+            type: "object",
+            additionalProperties: false,
+            required: ["title", "url"],
+            properties: { title: { type: "string" }, url: { type: "string" } },
+          },
+        },
         positions: {
           type: "array",
           description: "TOP/JGL/MID/BOT/SUP 5개 포지션 전부",
@@ -198,7 +219,7 @@ const AI_OUTPUT_SCHEMA = {
             required: ["position", "comment", "sTier", "aTier", "bTier", "rising"],
             properties: {
               position: { type: "string", enum: ["TOP", "JGL", "MID", "BOT", "SUP"] },
-              comment: { type: "string" },
+              comment: { type: "string", description: "최소 6문장. 주요 챔피언의 종합점수 구성(밴픽률·승률·스탯점수) 풀이 + 그 수치가 나온 이유 분석 + 하락 챔피언의 원인" },
               sTier: { type: "array", items: { type: "string" } },
               aTier: { type: "array", items: { type: "string" } },
               bTier: { type: "array", items: { type: "string" } },
@@ -240,35 +261,76 @@ const AI_OUTPUT_SCHEMA = {
   },
 } as const;
 
-const SYSTEM_PROMPT = `너는 LCK 팬 커뮤니티 'MINION'의 AI 분석실이다. 매주 월요일에 발행되는 주간 리포트의 글을 쓴다.
+const SYSTEM_PROMPT = `너는 LCK 팬 커뮤니티 'MINION'의 AI 분석실이다. 매주 발행되는 주간 리포트의 글을 쓴다.
 
-[독자와 톤]
-- 독자는 아이돌 덕질하듯 LCK를 응원하는 10~30대 팬(여성 비중 높음)이다.
-- 존댓말("~했어요", "~예요")로, 따뜻하고 밝게, 그러나 데이터에 근거해 정확하게 쓴다.
-- 과한 이모지·유행어는 쓰지 않는다. 세련된 스포츠 매거진의 온기 있는 문체를 유지한다.
+[문체 — 스포츠 기사체]
+- 네이버 스포츠 e스포츠 기사처럼 간결한 문어체로 쓴다. 문장은 "~했다", "~이다", "~된다"로 끝낸다. 존댓말("~했어요")은 쓰지 않는다.
+- 이모지·유행어·감탄사 금지. 짧고 명확한 문장. 한 문장에 하나의 사실만 담는다.
 
-[절대 규칙 — 부정 프레임 금지]
-- 특정 선수·팀이 "못했다", "부진했다", "throw했다" 같은 비판·비하·조롱은 어떤 형태로도 쓰지 않는다.
+[분량 — 매우 간결하게, 전체가 A4 두 장 안에 들어와야 한다]
+- overview: 1개 문단, 3문장 이내. 이번 주의 핵심만.
+- teamOfWeek.body: 2문장 이내. playersOfWeek body: 각 2문장 이내.
+- meta.summary: 1개 문단, 4문장 이내. positions comment: 각 최소 6문장~8문장(아래 메타 규칙 참고). banSpotlight comment: 1~2문장.
+- preview intro: 1~2문장. reasoning: 2문장 이내. keyPoint: 한 구절(문장 하나).
+- 수치 나열은 문장당 최대 2개까지만(메타 positions comment의 종합점수 풀이는 예외). 나머지는 UI의 차트·카드가 보여주므로 글에서 반복하지 않는다.
+
+[절대 규칙 — 선수·팀 부정 프레임 금지]
+- 특정 선수·팀이 "못했다", "부진했다" 같은 비판·비하·조롱은 어떤 형태로도 쓰지 않는다.
 - 패배한 팀은 스코어 등 중립적 사실까지만 언급하고, 평가하지 않는다.
-- 잘한 선수·팀에 대한 칭찬, 흥미로운 메타 흐름, 기대되는 매치업만 다룬다.
 - 승부예측 근거도 "상대가 약해서"가 아니라 "이 팀의 이런 강점 때문에"로 쓴다.
+- 단, 챔피언(캐릭터)에 대해서는 데이터에 근거한 하락·부진 서술이 허용된다(예: "나르는 승률 38%에 그치며 힘이 빠졌다"). 챔피언 평가를 그 챔피언을 플레이한 선수 개인의 평가로 이어가지는 않는다.
+
+[외부 컨텍스트 — 웹 검색 필수]
+- web_search 도구로 이번 패치·대회의 메타에 대한 (1) 커뮤니티 여론(인벤, 레딧, 디시 등), (2) 전문가·방송 분석(해설진, 프로 관계자, 분석 유튜브), (3) 기사(네이버 e스포츠 등)를 반드시 조사한다.
+- 최우선 참고 채널 두 곳을 반드시 먼저 검색한다: ① '프로관전러 PS'(youtube.com/@ProfessionalSpectator)의 이번 패치 티어리스트·메타 분석, ② '클라우드템플러'(youtube.com/@CloudTemplar_official)의 '찍어' 시리즈 주요 경기 분석. 영상 제목·설명·커뮤니티 요약·기사 인용을 통해 이들의 관점을 파악하고 메타 코멘트에 적극 반영한다. 인용할 때는 "클템은 찍어 시리즈에서 ~라고 짚었다", "PS 티어리스트에서는 ~로 평가됐다"처럼 출처를 드러낸다. 해당 패치 자료를 못 찾으면 억지로 지어내지 말고 생략한다.
+- 검색으로 얻은 맥락(패치 변경점, 아이템·룬 트렌드, 챔피언 재평가, 대회 이슈)을 메타 분석(summary, positions comment)과 프리뷰 근거에 녹인다.
+- 단, 티어 순위와 모든 수치는 제공된 경기 데이터가 우선이다. 외부 자료와 상충하면 경기 데이터를 따르고, 외부 여론은 "커뮤니티에서는 ~라는 평가다"처럼 출처의 성격을 드러내며 인용한다.
+- 실제로 참고한 자료만 sources 배열에 제목+URL로 담는다(3~5개).
+
+[메타 티어 규칙 — 밴픽만으로 판정하지 않는다]
+- 각 챔피언에는 totalScore(밴픽률 30% + 보정승률 40% + 스탯점수 30%, 0~100)가 제공된다. 티어(S/A/B)는 totalScore 순위를 기본으로 삼되, 표본 크기·역할·검색으로 얻은 메타 맥락을 감안해 조정한다.
+- '프레즌스'라는 용어는 쓰지 않는다. 픽+밴 비율은 반드시 '밴픽률'이라고 부른다.
+- positions comment는 최소 6문장, 8문장까지 쓴다. 반드시 담을 것:
+  (1) 상위 티어 챔피언 2~3개는 종합점수가 왜 그렇게 나왔는지 구성 요소를 풀어서 쓴다 — 예: "럼블은 밴픽률 57%(픽 7·밴 13)에 승률 43%, 스탯 점수 61점이 더해져 종합 58점에 그쳤다".
+  (2) 각 수치가 나온 경기 내적 이유를 분석한다 — 챔피언의 역할과 강점, 패치·아이템 맥락, 어떤 조합·운영과 맞물렸는지, 커뮤니티·전문가 평가와 일치하는지.
+  (3) 티어가 내려온 챔피언은 어떤 구성 요소(승률인지 스탯인지)가 점수를 깎았는지와 그 이유(견제 밴, 카운터 등장, 라인전 열세 등)를 짚는다.
+  (4) 포지션마다 최소 2문장은 실제 선수 활용 사례여야 한다 — 각 챔피언의 playedBy 목록에 있는 선수만 언급하고, "누가 어떤 방식으로 활용해서 좋았는지"를 구체적으로 쓴다(예: "Zeka는 카시오페아를 후방 광역 유지력 축으로 굴리며 6세트 전승의 중심이 됐다"). 경기 내용 묘사는 검색으로 확인된 사실이나 스탯에서 추론 가능한 수준까지만 쓰고, 보지 않은 장면을 지어내지 않는다.
+  수치만 나열한 문장을 이어붙이지 말고, 모든 수치 뒤에는 해석을 붙인다. 지표 얘기만 하는 코멘트는 실패작이다 — 독자는 "누가, 무엇으로, 어떻게"를 읽고 싶어 한다.
+- 표본이 적은 챔피언(1픽)은 과대평가하지 않는다. 각 포지션의 티어에는 그 포지션 챔피언 목록에 있는 slug만 배치하고, 3개 티어 합쳐 4~8개면 충분하다.
 
 [데이터 규칙]
 - 제공된 JSON의 수치만 사용한다. 새로운 수치·기록을 만들어내지 않는다.
 - slug는 JSON의 slug 필드에만 사용한다. 문장 본문(overview, body, comment, reasoning 등)에는 slug를 절대 쓰지 않고 반드시 표기 이름(name)을 사용한다. 예: "bilibili-gaming"(X) → "Bilibili Gaming"(O).
-- 챔피언 티어(S/A/B)는 해당 포지션의 픽 수·밴 수·승률·프레즌스를 근거로 판정하고, comment에 근거를 한 문장 이상 담는다.
-- 각 포지션의 티어에는 그 포지션 챔피언 목록에 있는 slug만 배치한다. 3개 티어 합쳐 4~8개면 충분하다. 표본이 적은 챔피언(1픽)은 과대평가하지 않는다.
 - 승부예측 confidence는 55~90 사이 정수. 데이터(주간 성적, 최근 폼, 시즌 성적)에 근거하되 겸손하게.
 
 [출력]
-- 전부 한국어. 제공된 JSON 스키마 형식으로만 출력한다.`;
+- 전부 한국어. 제공된 JSON 스키마 형식으로만 출력한다.
+- 문장 본문에 URL·마크다운 링크·출처 각주를 넣지 않는다. 출처는 sources 배열에만 담는다.`;
+
+// 본문에 섞여 들어온 마크다운 링크/출처 각주를 제거한다. 예: "문장이다. ([site.com](https://...))"
+function stripMarkdownCitations<T>(value: T): T {
+  if (typeof value === "string") {
+    return value
+      .replace(/\s*\(\[[^\]]*\]\([^)]*\)\)/g, "")
+      .replace(/\[([^\]]*)\]\(https?:[^)]*\)/g, "$1") as T;
+  }
+  if (Array.isArray(value)) return value.map(stripMarkdownCitations) as T;
+  if (value && typeof value === "object") {
+    for (const key of Object.keys(value as Record<string, unknown>)) {
+      // sources의 url 필드는 링크 그 자체이므로 건드리지 않는다.
+      if (key === "url") continue;
+      (value as Record<string, unknown>)[key] = stripMarkdownCitations((value as Record<string, unknown>)[key]);
+    }
+    return value;
+  }
+  return value;
+}
 
 type AiOutput = {
   headline: string;
   subtitle: string;
   overview: string[];
   review: {
-    matchNotes: Array<{ title: string; body: string }>;
     teamOfWeek: { teamSlug: string; title: string; body: string };
     playersOfWeek: Array<{ playerSlug: string; body: string }>;
   };
@@ -276,6 +338,7 @@ type AiOutput = {
     summary: string[];
     positions: Array<{ position: Position; comment: string; sTier: string[]; aTier: string[]; bTier: string[]; rising: string | null }>;
     banSpotlight: { championSlug: string; comment: string };
+    sources: Array<{ title: string; url: string }>;
   };
   preview: {
     intro: string;
@@ -289,6 +352,8 @@ async function callOpenAi(model: string, payload: unknown): Promise<{ output: Ai
     model,
     reasoning: { effort: "high" },
     max_output_tokens: 32000,
+    tools: [{ type: "web_search" }],
+    tool_choice: "auto",
     input: [
       { role: "system", content: SYSTEM_PROMPT },
       {
@@ -324,12 +389,14 @@ async function callOpenAi(model: string, payload: unknown): Promise<{ output: Ai
     if (json.status === "incomplete") {
       throw new Error(`OpenAI 응답이 잘렸습니다: ${JSON.stringify(json.incomplete_details)}`);
     }
-    const message = (json.output ?? []).find((item: any) => item.type === "message");
+    // web_search 도구 호출이 섞여 있으므로 마지막 message 아이템에서 본문을 찾는다.
+    const messages = (json.output ?? []).filter((item: any) => item.type === "message");
+    const message = messages[messages.length - 1];
     const textPart = message?.content?.find((part: any) => part.type === "output_text");
     if (!textPart?.text) throw new Error("OpenAI 응답에서 본문을 찾지 못했습니다.");
 
     return {
-      output: JSON.parse(textPart.text) as AiOutput,
+      output: stripMarkdownCitations(JSON.parse(textPart.text) as AiOutput),
       usage: { input: json.usage?.input_tokens ?? 0, output: json.usage?.output_tokens ?? 0 },
     };
   }
@@ -341,7 +408,7 @@ async function main() {
   loadEnvFile();
 
   const dryRun = process.argv.includes("--dry-run");
-  const model = argValue("model") ?? process.env.OPENAI_WEEKLY_REPORT_MODEL ?? "gpt-5.1";
+  const model = argValue("model") ?? process.env.OPENAI_WEEKLY_REPORT_MODEL ?? "gpt-5.5";
   const fallback = defaultPeriod();
   const periodStart = argValue("start") ?? fallback.start;
   const periodEnd = argValue("end") ?? fallback.end;
@@ -358,7 +425,7 @@ async function main() {
   // 1. 기준 데이터
   const [teams, champions, tournaments] = await Promise.all([
     fetchAll<TeamRow>(supabase, "teams", "id,slug,name,short_name,logo_url,logo_white_url,primary_color"),
-    fetchAll<ChampionRow>(supabase, "champions", "id,slug,name,image_url"),
+    fetchAll<ChampionRow>(supabase, "champions", "id,slug,name,image_url,ddragon_id"),
     fetchAll<{ id: string; name: string }>(supabase, "tournaments", "id,name"),
   ]);
   const teamById = new Map(teams.map((team) => [team.id, team]));
@@ -385,7 +452,7 @@ async function main() {
     fetchAll<StatRow>(
       supabase,
       "set_player_stats",
-      "set_id,player_id,team_id,position,champion_id,kills,deaths,assists,cs,gold,damage_to_champions,vision_score,dpm,damage_share,vision_score_per_minute,cs_per_minute",
+      "set_id,player_id,team_id,position,champion_id,kills,deaths,assists,cs,gold,damage_to_champions,vision_score,dpm,damage_share,vision_score_per_minute,cs_per_minute,gold_diff_at_15",
       (q) => q.in("set_id", setIds),
     ),
   ]);
@@ -428,11 +495,15 @@ async function main() {
 
   // 4. 집계 ─ 챔피언
   const setCount = sets.length;
-  const champAgg = new Map<string, { picks: number; bans: number; wins: number; positions: Map<string, number> }>();
+  const champAgg = new Map<string, {
+    picks: number; bans: number; wins: number; positions: Map<string, number>;
+    kills: number; deaths: number; assists: number;
+    dpmSum: number; dpmN: number; gd15Sum: number; gd15N: number;
+  }>();
   const aggFor = (championId: string) => {
     let agg = champAgg.get(championId);
     if (!agg) {
-      agg = { picks: 0, bans: 0, wins: 0, positions: new Map() };
+      agg = { picks: 0, bans: 0, wins: 0, positions: new Map(), kills: 0, deaths: 0, assists: 0, dpmSum: 0, dpmN: 0, gd15Sum: 0, gd15N: 0 };
       champAgg.set(championId, agg);
     }
     return agg;
@@ -443,10 +514,39 @@ async function main() {
     agg.picks += 1;
     agg.positions.set(row.position, (agg.positions.get(row.position) ?? 0) + 1);
     if (setById.get(row.set_id)?.winner_team_id === row.team_id) agg.wins += 1;
+    agg.kills += row.kills;
+    agg.deaths += row.deaths;
+    agg.assists += row.assists;
+    const duration = setById.get(row.set_id)?.duration_seconds ?? null;
+    const dpm = toNumber(row.dpm) ?? (duration ? (row.damage_to_champions * 60) / duration : null);
+    if (dpm != null) { agg.dpmSum += dpm; agg.dpmN += 1; }
+    const gd15 = toNumber(row.gold_diff_at_15);
+    if (gd15 != null) { agg.gd15Sum += gd15; agg.gd15N += 1; }
   }
   for (const row of picksBans) {
     if (row.action_type !== "ban" || !row.champion_id) continue;
     aggFor(row.champion_id).bans += 1;
+  }
+
+  // 챔피언별 "누가 플레이했는지" 집계 — AI가 선수 활용 사례를 쓸 수 있게 페이로드에 넣는다.
+  const champPlayerAgg = new Map<string, Map<string, { sets: number; wins: number; kills: number; deaths: number; assists: number }>>();
+  for (const row of statRows) {
+    if (!row.champion_id) continue;
+    let byPlayer = champPlayerAgg.get(row.champion_id);
+    if (!byPlayer) {
+      byPlayer = new Map();
+      champPlayerAgg.set(row.champion_id, byPlayer);
+    }
+    let usage = byPlayer.get(row.player_id);
+    if (!usage) {
+      usage = { sets: 0, wins: 0, kills: 0, deaths: 0, assists: 0 };
+      byPlayer.set(row.player_id, usage);
+    }
+    usage.sets += 1;
+    if (setById.get(row.set_id)?.winner_team_id === row.team_id) usage.wins += 1;
+    usage.kills += row.kills;
+    usage.deaths += row.deaths;
+    usage.assists += row.assists;
   }
 
   const championStats: ReportChampionStat[] = [...champAgg.entries()]
@@ -454,10 +554,12 @@ async function main() {
       const champion = championById.get(championId);
       if (!champion) return null;
       const modalPosition = [...agg.positions.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+      // image_url이 비어 있는 챔피언이 많아 사이트 공통 규칙(ddragon 타일)으로 이미지를 확정해 저장한다.
+      const imageUrl = championImage({ id: championId, slug: champion.slug, name: champion.name, imageUrl: champion.image_url ?? undefined, ddragonId: champion.ddragon_id ?? undefined });
       return {
         slug: champion.slug,
         name: champion.name,
-        imageUrl: champion.image_url,
+        imageUrl: imageUrl || null,
         position: modalPosition,
         picks: agg.picks,
         bans: agg.bans,
@@ -465,6 +567,10 @@ async function main() {
         losses: agg.picks - agg.wins,
         winRate: agg.picks > 0 ? agg.wins / agg.picks : 0,
         presenceRate: setCount > 0 ? (agg.picks + agg.bans) / setCount : 0,
+        kda: agg.picks > 0 ? Number(((agg.kills + agg.assists) / Math.max(1, agg.deaths)).toFixed(2)) : null,
+        avgDpm: agg.dpmN > 0 ? Math.round(agg.dpmSum / agg.dpmN) : null,
+        avgGd15: agg.gd15N > 0 ? Math.round(agg.gd15Sum / agg.gd15N) : null,
+        ...championScores(agg, setCount),
       } satisfies ReportChampionStat;
     })
     .filter((stat): stat is ReportChampionStat => stat !== null)
@@ -587,7 +693,40 @@ async function main() {
   for (const position of POSITIONS) {
     championsByPosition[position] = championStats
       .filter((stat) => stat.position === position)
-      .map((stat) => ({ slug: stat.slug, name: stat.name, picks: stat.picks, bans: stat.bans, wins: stat.wins, winRatePct: pct(stat.winRate), presencePct: pct(stat.presenceRate) }));
+      .map((stat) => {
+        const championId = championBySlug.get(stat.slug)?.id;
+        const playedBy = [...(championId ? champPlayerAgg.get(championId) ?? new Map() : new Map()).entries()]
+          .map(([playerId, usage]: [string, { sets: number; wins: number; kills: number; deaths: number; assists: number }]) => {
+            const player = playerById.get(playerId);
+            if (!player) return null;
+            return {
+              player: player.name,
+              playerSlug: player.slug,
+              teamSlug: player.team_id ? teamById.get(player.team_id)?.slug ?? null : null,
+              sets: usage.sets,
+              wins: usage.wins,
+              kda: Number(((usage.kills + usage.assists) / Math.max(1, usage.deaths)).toFixed(1)),
+            };
+          })
+          .filter((entry): entry is NonNullable<typeof entry> => entry !== null)
+          .sort((a, b) => b.sets - a.sets)
+          .slice(0, 3);
+        return {
+          slug: stat.slug,
+          name: stat.name,
+          picks: stat.picks,
+          bans: stat.bans,
+          wins: stat.wins,
+          winRatePct: pct(stat.winRate),
+          banPickRatePct: pct(stat.presenceRate),
+          kda: stat.kda,
+          dpm: stat.avgDpm,
+          goldDiffAt15: stat.avgGd15,
+          statScore: stat.statScore,
+          totalScore: stat.score,
+          playedBy,
+        };
+      });
   }
   const aiPayload = {
     period: { start: periodStart, end: periodEnd, patches, setCount, matchCount: weekMatches.length },
@@ -603,7 +742,7 @@ async function main() {
     teamWeekly: teamWeekly.map((row) => ({ slug: row.team.slug, name: row.team.name, wins: row.wins, losses: row.losses, setWins: row.setWins, setLosses: row.setLosses })),
     championsByPosition,
     topBans: championStats.filter((stat) => stat.bans > 0).sort((a, b) => b.bans - a.bans).slice(0, 8)
-      .map((stat) => ({ slug: stat.slug, name: stat.name, bans: stat.bans, presencePct: pct(stat.presenceRate) })),
+      .map((stat) => ({ slug: stat.slug, name: stat.name, bans: stat.bans, banPickRatePct: pct(stat.presenceRate) })),
     statLeaders: statLeaders.map((leader) => ({
       metric: leader.label,
       playerSlug: leader.playerSlug,
@@ -643,8 +782,7 @@ async function main() {
 
   console.log("OpenAI 호출 중... (추론 강도 high, 수 분 걸릴 수 있어요)");
   const { output: ai, usage } = await callOpenAi(model, aiPayload);
-  const estimatedUsd = (usage.input * 1.25 + usage.output * 10) / 1_000_000;
-  console.log(`OpenAI 완료 — 입력 ${usage.input.toLocaleString()} · 출력 ${usage.output.toLocaleString()} 토큰 (약 $${estimatedUsd.toFixed(2)})`);
+  console.log(`OpenAI 완료 — 입력 ${usage.input.toLocaleString()} · 출력 ${usage.output.toLocaleString()} 토큰`);
 
   // 8. AI 출력 검증 + 병합
   const appearedBySlug = new Map(championStats.map((stat) => [stat.slug, stat]));
@@ -727,7 +865,6 @@ async function main() {
       teamWeekly,
     },
     review: {
-      matchNotes: ai.review.matchNotes.slice(0, 6),
       teamOfWeek: {
         team: teamRef(teamOfWeekTeam) ?? topWeeklyTeam,
         title: ai.review.teamOfWeek.title,
@@ -738,6 +875,9 @@ async function main() {
     meta: {
       summary: ai.meta.summary,
       positions: positionsMeta,
+      sources: (ai.meta.sources ?? [])
+        .filter((source) => typeof source.url === "string" && /^https?:\/\//.test(source.url) && source.title)
+        .slice(0, 5),
       banSpotlight: banSpotlightValid
         ? { championSlug: ai.meta.banSpotlight.championSlug, comment: ai.meta.banSpotlight.comment }
         : topBan
