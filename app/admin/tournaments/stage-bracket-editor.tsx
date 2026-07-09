@@ -260,64 +260,61 @@ export function TournamentBracketEditor({
     setDraggingId(null);
     if (!id) return;
 
-    setBoard((prev) => {
-      let match: EditorMatch | undefined;
-      let sourceStageId: string | undefined;
-      let sourceSide: BracketSide | undefined;
+    let match: EditorMatch | undefined;
+    let sourceStageId: string | undefined;
+    let sourceSide: BracketSide | undefined;
 
-      for (const stageId of Object.keys(prev)) {
-        const found = prev[stageId].upper.find((item) => item.id === id);
-        if (found) {
-          match = found;
-          sourceStageId = stageId;
-          sourceSide = "upper";
-          break;
-        }
-        const foundLower = prev[stageId].lower.find((item) => item.id === id);
-        if (foundLower) {
-          match = foundLower;
-          sourceStageId = stageId;
-          sourceSide = "lower";
-          break;
-        }
+    for (const stageId of Object.keys(board)) {
+      const found = board[stageId].upper.find((item) => item.id === id);
+      if (found) {
+        match = found;
+        sourceStageId = stageId;
+        sourceSide = "upper";
+        break;
       }
-
-      if (!match || !sourceStageId || !sourceSide) return prev;
-
-      const next: Board = { ...prev };
-      next[sourceStageId] = {
-        ...stageBoardOf(next, sourceStageId),
-        [sourceSide]: stageBoardOf(next, sourceStageId)[sourceSide].filter((item) => item.id !== id),
-      };
-
-      const targetColumn = stageBoardOf(next, targetStageId);
-      const targetList = [...targetColumn[targetSide]];
-      const insertAt = beforeId ? targetList.findIndex((item) => item.id === beforeId) : -1;
-
-      if (insertAt === -1) {
-        targetList.push(match);
-      } else {
-        targetList.splice(insertAt, 0, match);
+      const foundLower = board[stageId].lower.find((item) => item.id === id);
+      if (foundLower) {
+        match = foundLower;
+        sourceStageId = stageId;
+        sourceSide = "lower";
+        break;
       }
+    }
 
-      next[targetStageId] = { ...targetColumn, [targetSide]: targetList };
+    if (!match || !sourceStageId || !sourceSide) return;
 
-      const affected: BracketColumnUpdate[] = [
-        { stageId: targetStageId, side: targetSide, matchIds: targetList.map((item) => item.id) },
-      ];
+    const next: Board = { ...board };
+    next[sourceStageId] = {
+      ...stageBoardOf(next, sourceStageId),
+      [sourceSide]: stageBoardOf(next, sourceStageId)[sourceSide].filter((item) => item.id !== id),
+    };
 
-      if (sourceStageId !== targetStageId || sourceSide !== targetSide) {
-        affected.push({
-          stageId: sourceStageId,
-          side: sourceSide,
-          matchIds: stageBoardOf(next, sourceStageId)[sourceSide].map((item) => item.id),
-        });
-      }
+    const targetColumn = stageBoardOf(next, targetStageId);
+    const targetList = [...targetColumn[targetSide]];
+    const insertAt = beforeId ? targetList.findIndex((item) => item.id === beforeId) : -1;
 
-      void persist(affected);
+    if (insertAt === -1) {
+      targetList.push(match);
+    } else {
+      targetList.splice(insertAt, 0, match);
+    }
 
-      return next;
-    });
+    next[targetStageId] = { ...targetColumn, [targetSide]: targetList };
+
+    const affected: BracketColumnUpdate[] = [
+      { stageId: targetStageId, side: targetSide, matchIds: targetList.map((item) => item.id) },
+    ];
+
+    if (sourceStageId !== targetStageId || sourceSide !== targetSide) {
+      affected.push({
+        stageId: sourceStageId,
+        side: sourceSide,
+        matchIds: stageBoardOf(next, sourceStageId)[sourceSide].map((item) => item.id),
+      });
+    }
+
+    setBoard(next);
+    void persist(affected);
   }
 
   function moveToOtherSide(stageId: string, id: string) {
@@ -327,23 +324,20 @@ export function TournamentBracketEditor({
   }
 
   function reorderCard(stageId: string, side: BracketSide, id: string, direction: "up" | "down") {
-    setBoard((prev) => {
-      const list = stageBoardOf(prev, stageId)[side];
-      const index = list.findIndex((item) => item.id === id);
-      if (index === -1) return prev;
+    const list = stageBoardOf(board, stageId)[side];
+    const index = list.findIndex((item) => item.id === id);
+    if (index === -1) return;
 
-      const targetIndex = direction === "up" ? index - 1 : index + 1;
-      if (targetIndex < 0 || targetIndex >= list.length) return prev;
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= list.length) return;
 
-      const nextList = [...list];
-      [nextList[index], nextList[targetIndex]] = [nextList[targetIndex], nextList[index]];
+    const nextList = [...list];
+    [nextList[index], nextList[targetIndex]] = [nextList[targetIndex], nextList[index]];
 
-      const next: Board = { ...prev, [stageId]: { ...stageBoardOf(prev, stageId), [side]: nextList } };
+    const next: Board = { ...board, [stageId]: { ...stageBoardOf(board, stageId), [side]: nextList } };
 
-      void persist([{ stageId, side, matchIds: nextList.map((item) => item.id) }]);
-
-      return next;
-    });
+    setBoard(next);
+    void persist([{ stageId, side, matchIds: nextList.map((item) => item.id) }]);
   }
 
   async function setAdvancesTo(matchId: string, advancesToMatchId: string | null) {
