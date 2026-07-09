@@ -17,6 +17,7 @@ import type { Match, Player, Team, Tournament } from "@/lib/types";
 import {
   buildTeamStandingRows,
   formatDateRange,
+  formatDateTime,
   matchHref,
   tournamentStatus,
   type TournamentStatus,
@@ -370,6 +371,9 @@ function MatchCard({
       data-match-id={match.id}
       className="block overflow-hidden rounded-md border border-border bg-surface transition-colors hover:border-accent"
     >
+      <div className="truncate px-2.5 pt-1.5 text-[10px] font-semibold text-muted">
+        {formatDateTime(match.matchDate)}
+      </div>
       <TeamRow
         team={teamA}
         score={match.teamAScore}
@@ -410,6 +414,9 @@ function GrandFinalsCard({
       style={{ borderColor: accent }}
       className="block overflow-hidden rounded-md border-2 bg-surface transition-colors hover:bg-surface-muted"
     >
+      <div className="truncate px-2.5 pt-1.5 text-[10px] font-semibold text-muted">
+        {formatDateTime(match.matchDate)}
+      </div>
       <TeamRow
         team={teamA}
         placeholder="승자조 승자"
