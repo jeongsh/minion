@@ -418,30 +418,61 @@ async function findOrCreateTournament(supabase: SupabaseClient, tournament: Seas
 async function findOrCreateStage(
   supabase: SupabaseClient,
   tournamentId: string,
-  stageName: string,
+  stageKey: string,
   index: number,
 ) {
-  const { data: existing, error: selectError } = await supabase
+  // 매칭은 항상 리그피디아 원본 키(source_stage_key)로 한다. 관리자가 화면에 보이는
+  // name을 자유롭게 바꿔도(예: "Quarterfinals" -> "8강") 다음 동기화에서 같은 라운드로
+  // 인식되어야 하며, 절대 중복 스테이지를 만들거나 name/bracket_stage_id를 덮어써서는 안 된다.
+  const { data: existingByKey, error: selectByKeyError } = await supabase
     .from("stages")
     .select("id")
     .eq("tournament_id", tournamentId)
-    .eq("name", stageName)
+    .eq("source_stage_key", stageKey)
     .maybeSingle();
 
-  if (selectError) {
-    throw selectError;
+  if (selectByKeyError) {
+    throw selectByKeyError;
   }
 
-  if (existing) {
+  if (existingByKey) {
     const { error } = await supabase
       .from("stages")
       .update({ order_index: index })
-      .eq("id", existing.id);
+      .eq("id", existingByKey.id);
 
     if (error) {
       throw error;
     }
-    return existing.id;
+    return existingByKey.id;
+  }
+
+  // source_stage_key가 아직 채워지지 않은 레거시 행(이 컬럼 도입 이전에 생성됨)은
+  // name으로 한 번만 찾아서 키를 채워준다. 관리자가 이미 이름을 바꿔놓은 행은
+  // 여기서도 못 찾겠지만, 그 경우는 새 스테이지 생성이 아니라 수동 데이터 정리로
+  // 해결해야 한다 (이름만 보고는 안전하게 매칭할 수 없기 때문).
+  const { data: existingByName, error: selectByNameError } = await supabase
+    .from("stages")
+    .select("id")
+    .eq("tournament_id", tournamentId)
+    .eq("name", stageKey)
+    .is("source_stage_key", null)
+    .maybeSingle();
+
+  if (selectByNameError) {
+    throw selectByNameError;
+  }
+
+  if (existingByName) {
+    const { error } = await supabase
+      .from("stages")
+      .update({ order_index: index, source_stage_key: stageKey })
+      .eq("id", existingByName.id);
+
+    if (error) {
+      throw error;
+    }
+    return existingByName.id;
   }
 
   const { data: existingBracketStage, error: bracketStageSelectError } = await supabase
@@ -479,7 +510,8 @@ async function findOrCreateStage(
     .insert({
       tournament_id: tournamentId,
       bracket_stage_id: bracketStageId,
-      name: stageName,
+      name: stageKey,
+      source_stage_key: stageKey,
       order_index: index,
     })
     .select("id")
@@ -827,7 +859,14 @@ export async function syncInternationalMatches2026(
       };
 
       if (existingId) {
-        const { error } = await supabase.from("matches").update(payload).eq("id", existingId);
+        // stage_id는 여기서 다시 덮어쓰지 않는다. 리그피디아 원본은 그룹 스테이지 안의
+        // 라운드(1경기/승자전·패자전/최종전 등)를 구분해주지 않아서 매번 같은 키로
+        // 계산되는데, 그대로 덮어쓰면 관리자가 브래킷 편집기로 라운드별 컬럼을 나눠둔
+        // 결과가 다음 동기화 때마다 하나로 다시 뭉개진다. bracket_side/bracket_order/
+        // group_index/advances_to_match_id와 마찬가지로 stage_id도 최초 생성 이후에는
+        // 관리자 소유 필드로 취급한다.
+        const { stage_id: _stageId, ...updatePayload } = payload;
+        const { error } = await supabase.from("matches").update(updatePayload).eq("id", existingId);
         if (error) {
           throw error;
         }
@@ -994,7 +1033,14 @@ export async function syncLeaguepediaLck2026(
       };
 
       if (existingId) {
-        const { error } = await supabase.from("matches").update(payload).eq("id", existingId);
+        // stage_id는 여기서 다시 덮어쓰지 않는다. 리그피디아 원본은 그룹 스테이지 안의
+        // 라운드(1경기/승자전·패자전/최종전 등)를 구분해주지 않아서 매번 같은 키로
+        // 계산되는데, 그대로 덮어쓰면 관리자가 브래킷 편집기로 라운드별 컬럼을 나눠둔
+        // 결과가 다음 동기화 때마다 하나로 다시 뭉개진다. bracket_side/bracket_order/
+        // group_index/advances_to_match_id와 마찬가지로 stage_id도 최초 생성 이후에는
+        // 관리자 소유 필드로 취급한다.
+        const { stage_id: _stageId, ...updatePayload } = payload;
+        const { error } = await supabase.from("matches").update(updatePayload).eq("id", existingId);
         if (error) {
           throw error;
         }

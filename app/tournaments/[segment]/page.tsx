@@ -25,8 +25,10 @@ import {
 import { BracketConnectors, type BracketConnection } from "./bracket-connectors";
 import { BracketScroller } from "./bracket-scroller";
 
+const FINALS_STAGE_NAMES = new Set(["finals", "grand finals", "grand final", "결승"]);
+
 function isFinalsStage(stageName: string) {
-  return stageName.trim().toLowerCase() === "finals";
+  return FINALS_STAGE_NAMES.has(stageName.trim().toLowerCase());
 }
 
 /**
