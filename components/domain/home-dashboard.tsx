@@ -261,12 +261,12 @@ export function HomeDashboard({
       <section className="mt-10 grid items-stretch gap-4 xl:grid-cols-3">
         <div>
           <Heading>실시간 순위</Heading>
-          <div className="h-[400px] overflow-hidden rounded-2xl border border-[#e6e7ea]">
+          <div className="h-[360px] overflow-hidden rounded-2xl border border-[#e6e7ea]">
             {standingRows.slice(0, 5).map((r) => (
               <Link
                 href={`/teams/${r.team.slug}`}
                 key={r.teamId}
-                className="flex h-[80px] items-center gap-3 border-b border-[#efeff1] px-4 last:border-0"
+                className="flex h-[72px] items-center gap-3 border-b border-[#efeff1] px-4 last:border-0"
               >
                 <b className="w-5 text-center">{r.rank}</b>
                 <Logo team={r.team} size="h-10 w-10" />
@@ -280,11 +280,11 @@ export function HomeDashboard({
         </div>
         <div>
           <Heading>팀 최근 폼</Heading>
-          <div className="h-[400px] overflow-hidden rounded-2xl border border-[#e6e7ea]">
+          <div className="h-[360px] overflow-hidden rounded-2xl border border-[#e6e7ea]">
             {standingRows.slice(0, 5).map((r) => (
               <div
                 key={r.teamId}
-                className="flex h-[80px] items-center gap-3 border-b border-[#efeff1] px-4 last:border-0"
+                className="flex h-[72px] items-center gap-3 border-b border-[#efeff1] px-4 last:border-0"
               >
                 <Logo team={r.team} size="h-10 w-10" />
                 <b className="flex-1 text-sm">{r.team.shortName}</b>

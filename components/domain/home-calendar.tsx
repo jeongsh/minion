@@ -109,7 +109,7 @@ export function HomeCalendar({
   return (
     <section
       ref={containerRef}
-      className="relative flex h-[400px] flex-col overflow-visible rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-4 shadow-[0_14px_34px_rgb(24_25_28_/_0.06)]"
+      className="relative flex h-[360px] flex-col overflow-visible rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-3 shadow-[0_14px_34px_rgb(24_25_28_/_0.06)]"
     >
       {/* globals.css의 커스텀 CSS는 빌드 시 var(--ui-ink) 같은 CSS 변수가 라이트 모드 값으로
           굳어버리는 문제가 있어(다크모드에서 안 먹음), 월/연도 캡션 색만은 빌드 파이프라인을
@@ -150,9 +150,9 @@ export function HomeCalendar({
         fixedWeeks
         style={
           {
-            "--rdp-day-height": "44px",
-            "--rdp-day_button-height": "40px",
-            "--rdp-day_button-width": "40px",
+            "--rdp-day-height": "38px",
+            "--rdp-day_button-height": "32px",
+            "--rdp-day_button-width": "32px",
           } as CSSProperties
         }
         components={{

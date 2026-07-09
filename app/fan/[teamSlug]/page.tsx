@@ -4,6 +4,7 @@ import { ChevronRight } from "lucide-react";
 
 import type { FeedInstaItem, FeedVideoItem } from "@/components/fan/fan-feed-mosaic";
 import { HomeBoardCarousel } from "@/components/domain/home-board-carousel";
+import { HomeCalendar, type HomeCalendarMatch } from "@/components/domain/home-calendar";
 import { FanPageShell } from "@/components/fan/fan-page-shell";
 import { FanSocialPreview } from "@/components/fan/fan-social-preview";
 import { AdSlot } from "@/components/ui/ad-slot";
@@ -23,7 +24,7 @@ import { getBoardPosts } from "@/lib/data/community";
 import { buildFanVideoItems } from "@/lib/fan-video-items";
 import { getCalendarEvents, getCelebrationMessages, getTodayCelebrations } from "@/lib/calendar/events";
 import { getCurrentUser } from "@/lib/auth/current-user";
-import { CelebrationCalendar } from "@/components/domain/celebration-calendar";
+import { formatTimeKST, matchHref } from "@/lib/view-data";
 import { CelebrationBanner, type CelebrationBannerItem } from "@/components/domain/celebration-banner";
 import type { Match, Player, Team, TeamStanding } from "@/lib/types";
 
@@ -44,6 +45,23 @@ function formatMatchDay(value: string) {
 
 function byMatchDate(a: Match, b: Match) {
   return new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime();
+}
+
+function dateKeyKST(value: string | Date) {
+  const date = typeof value === "string" ? new Date(value) : value;
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const part = (type: Intl.DateTimeFormatPartTypes) => parts.find((item) => item.type === type)?.value ?? "";
+
+  return `${part("year")}-${part("month")}-${part("day")}`;
+}
+
+function yearMonthKeyKST(value: string) {
+  return dateKeyKST(value).slice(0, 7);
 }
 
 function teamForMatch(match: Match, team: Team, teams: Team[]) {
@@ -86,7 +104,7 @@ function MatchRow({ match, team, teams }: { match: Match; team: Team; teams: Tea
   const score = scheduled ? "VS" : scoreLabel(match, team);
 
   return (
-    <div className="flex items-center gap-3 px-4 py-3.5 md:px-5">
+    <div className="flex h-[72px] items-center gap-3 px-4 md:px-5">
       <span
         className={`font-archivo grid h-9 w-11 shrink-0 place-items-center rounded-lg text-xs font-black ${
           scheduled ? "bg-[var(--ui-surface-muted)] text-[var(--ui-ink)]" : "text-white"
@@ -256,6 +274,25 @@ export default async function FanHomePage({
   const teamMatches = matches
     .filter((match) => match.teamAId === team.id || match.teamBId === team.id)
     .sort(byMatchDate);
+
+  const teamsById = new Map(teams.map((t) => [t.id, t]));
+  const calendarMatches = teamMatches.filter((match) => yearMonthKeyKST(match.matchDate) === calendarMonthKey);
+  const calendarClientMatches: HomeCalendarMatch[] = calendarMatches.map((match) => {
+    const teamA = teamsById.get(match.teamAId);
+    const teamB = teamsById.get(match.teamBId);
+
+    return {
+      id: match.id,
+      dateKey: dateKeyKST(match.matchDate),
+      href: matchHref(match),
+      time: formatTimeKST(match.matchDate),
+      league: "",
+      teamAName: teamA?.shortName ?? "TBD",
+      teamBName: teamB?.shortName ?? "TBD",
+      teamALogoUrl: teamA?.logoUrl ?? null,
+      teamBLogoUrl: teamB?.logoUrl ?? null,
+    };
+  });
   // 이 페이지는 force-dynamic이라 요청 시각으로 지난 예정 경기를 걸러낸다.
   // eslint-disable-next-line react-hooks/purity
   const now = Date.now();
@@ -266,8 +303,8 @@ export default async function FanHomePage({
     .filter((match) => match.status === "completed" || new Date(match.matchDate).getTime() < now)
     .reverse();
 
-  // MATCHES 미니 리스트: 예정 2 + 결과 2
-  const matchRows = [...upcomingMatches.slice(0, 2), ...completedMatches.slice(0, 2)];
+  // MATCHES 미니 리스트: 예정 3 + 결과 2
+  const matchRows = [...upcomingMatches.slice(0, 3), ...completedMatches.slice(0, 2)];
   const standing = standings
     .filter((s) => s.teamId === team.id)
     .sort((a, b) => b.wins + b.losses - (a.wins + a.losses))[0];
@@ -318,11 +355,11 @@ export default async function FanHomePage({
           <CelebrationBanner items={celebrationItems} isLoggedIn={Boolean(user)} />
         ) : null}
 
-        {/* 경기 일정 + 순위 요약 */}
+        {/* 경기 일정 + 캘린더 */}
         <section className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
           <div>
             <SectionHeading href={`/fan/${team.fanSiteHost}/matches`}>경기 일정</SectionHeading>
-            <div className="divide-y divide-[var(--ui-border)] overflow-hidden rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)]">
+            <div className="h-[360px] divide-y divide-[var(--ui-border)] overflow-hidden rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)]">
               {matchRows.length ? (
                 matchRows.map((match) => <MatchRow key={match.id} match={match} team={team} teams={teams} />)
               ) : (
@@ -330,20 +367,19 @@ export default async function FanHomePage({
               )}
             </div>
           </div>
-          <div className="flex flex-col gap-6">
-            <AdSlot className="h-[322px] w-full" />
+          <div>
+            <SectionHeading>캘린더</SectionHeading>
+            <HomeCalendar
+              initialMonthKey={calendarMonthKey}
+              matches={calendarClientMatches}
+              events={calendarEvents}
+            />
           </div>
         </section>
 
         {/* 선수단 */}
         <section>
           <Roster players={teamPlayers} teamSlug={team.fanSiteHost} />
-        </section>
-
-        {/* 덕질 달력 */}
-        <section>
-          <SectionHeading caption="생일·데뷔·우승 기념일">덕질 달력</SectionHeading>
-          <CelebrationCalendar events={calendarEvents} initialMonthKey={calendarMonthKey} />
         </section>
 
         {/* 소셜 피드 */}
