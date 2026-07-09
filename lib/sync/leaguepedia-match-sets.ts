@@ -1,18 +1,18 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import { championCatalogEntryForValue } from "../champions";
-import { ddragonVersionFromPatch, uniqueDdragonVersionsForPatches } from "../ddragon";
-import { fetchItemCatalog } from "../items";
-import { reconcileMatchFromSets } from "../match-reconcile";
-import { fetchRuneNameToIdMap } from "../runes";
-import { deriveSetStatus, hasCompletePlayerStats } from "../set-status";
-import { fetchSpellCatalog, type GameSpell } from "../spells";
+import { championCatalogEntryForValue } from "../champions.ts";
+import { ddragonVersionFromPatch, uniqueDdragonVersionsForPatches } from "../ddragon.ts";
+import { fetchItemCatalog } from "../items.ts";
+import { reconcileMatchFromSets } from "../match-reconcile.ts";
+import { fetchRuneNameToIdMap } from "../runes.ts";
+import { deriveSetStatus, hasCompletePlayerStats } from "../set-status.ts";
+import { fetchSpellCatalog, type GameSpell } from "../spells.ts";
 import {
   resolveLeaguepediaIdentity,
   type LeaguepediaAlias,
 } from "../leaguepedia-identity.ts";
-import { fetchAuthenticatedLeaguepediaApi } from "./leaguepedia-api";
-import { resolveLeaguepediaPickBanRows } from "./leaguepedia-pick-ban";
+import { fetchAuthenticatedLeaguepediaApi } from "./leaguepedia-api.ts";
+import { resolveLeaguepediaPickBanRows } from "./leaguepedia-pick-ban.ts";
 
 const REQUEST_DELAY_MS = 3000;
 const MAX_RETRIES = 8;

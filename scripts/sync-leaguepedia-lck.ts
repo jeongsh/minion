@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { createClient } from "@supabase/supabase-js";
 
 import { syncLeaguepediaLck2026 } from "../lib/sync/leaguepedia-lck-2026.ts";
+import { syncMatchDataForRecentCompletedMatches } from "../lib/sync/match-data-bulk.ts";
 import { SEASON_2025_TOURNAMENTS } from "../lib/tournaments/season-2025.ts";
 import { SEASON_2026_TOURNAMENTS } from "../lib/tournaments/season-2026.ts";
 
@@ -61,6 +62,15 @@ async function main() {
   });
 
   console.log(JSON.stringify(summary, null, 2));
+
+  // 일정 동기화는 스코어/일정만 채운다. 세트 결과·밴픽·선수 스탯·타임라인(골드 그래프)·
+  // 공식 POM은 매치별로 따로 동기화해야 했는데, 최근 종료된 경기에 한해 여기서 이어서
+  // 자동으로 채워준다(관리자가 매치마다 "경기 데이터 동기화" 버튼을 눌러줄 필요 없게).
+  console.log("최근 종료 경기 데이터(세트/타임라인/POM) 동기화 시작");
+  const matchDataSummary = await syncMatchDataForRecentCompletedMatches(supabase, {
+    onProgress: (message) => console.log(message),
+  });
+  console.log(JSON.stringify(matchDataSummary, null, 2));
 }
 
 main().catch((error) => {
