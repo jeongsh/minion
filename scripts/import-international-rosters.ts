@@ -123,10 +123,39 @@ async function main() {
         continue;
       }
 
-      const { data: teamRow, error: teamError } = await supabase
+      // 기존 팀은 수동 관리 필드(primary/secondary_color, 로고 등)를 절대 덮어쓰지 않는다.
+      // 과거 무조건 upsert 방식이 관리자가 넣어둔 팀 색상을 기본 회색으로 리셋하는 사고가 있었다.
+      const { data: existingTeam, error: existingError } = await supabase
         .from("teams")
-        .upsert(
-          {
+        .select("id")
+        .eq("slug", slug)
+        .maybeSingle();
+      if (existingError) {
+        throw existingError;
+      }
+
+      let teamRow: { id: string };
+      if (existingTeam) {
+        const { data, error: updateError } = await supabase
+          .from("teams")
+          .update({
+            name: team.name,
+            short_name: team.shortName ?? team.name,
+            leaguepedia_page: team.leaguepediaPage ?? team.name,
+            source_team_id: `lp:${team.leaguepediaPage ?? team.name}`,
+            is_active: true,
+          })
+          .eq("id", existingTeam.id)
+          .select("id")
+          .single();
+        if (updateError) {
+          throw updateError;
+        }
+        teamRow = data;
+      } else {
+        const { data, error: insertError } = await supabase
+          .from("teams")
+          .insert({
             slug,
             name: team.name,
             short_name: team.shortName ?? team.name,
@@ -138,14 +167,13 @@ async function main() {
             is_lck_team: false,
             imported_scope: "international_event",
             is_active: true,
-          },
-          { onConflict: "slug" },
-        )
-        .select("id")
-        .single();
-
-      if (teamError) {
-        throw teamError;
+          })
+          .select("id")
+          .single();
+        if (insertError) {
+          throw insertError;
+        }
+        teamRow = data;
       }
       summary.teamsCreatedOrUpdated += 1;
 

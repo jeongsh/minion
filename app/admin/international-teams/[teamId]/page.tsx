@@ -5,7 +5,7 @@ import { SectionHeader } from "@/components/layout/section-header";
 import { getPlayersByTeamId, getTeamById } from "@/lib/data/lck";
 import type { Player } from "@/lib/types";
 
-import { updateInternationalPlayerImageAction, updateInternationalTeamMediaAction } from "../actions";
+import { updateInternationalPlayerImageAction, updateInternationalTeamColorsAction, updateInternationalTeamMediaAction } from "../actions";
 
 function inputClassName() {
   return "min-w-0 rounded-md border border-border bg-background px-3 py-2 font-normal";
@@ -121,6 +121,40 @@ export default async function AdminInternationalTeamDetailPage({
             <input name="profileImageUrl" defaultValue={team.profileImageUrl ?? ""} placeholder="선택" className={inputClassName()} />
           </label>
           <button type="submit" className="self-start rounded-md bg-accent px-3 py-2 text-sm font-semibold text-accent-foreground">
+            저장
+          </button>
+        </form>
+      </section>
+
+      <section className="flex flex-col gap-4" aria-labelledby="team-colors">
+        <div>
+          <h2 id="team-colors" className="text-2xl font-semibold">
+            팀 컬러
+          </h2>
+          <p className="mt-1 text-sm text-muted">
+            승부예측 바, 위클리 리포트 등에서 팀을 나타내는 색입니다. 저장하면 발행된 리포트에도 바로 반영됩니다.
+          </p>
+        </div>
+        <form
+          action={updateInternationalTeamColorsAction}
+          className="flex flex-col gap-4 rounded-md border border-border bg-surface p-4 sm:flex-row sm:items-end"
+        >
+          <input type="hidden" name="teamId" value={team.id} />
+          <label className="flex flex-col gap-1 text-sm font-semibold">
+            메인 컬러
+            <span className="flex items-center gap-2">
+              <input type="color" name="primaryColor" defaultValue={team.primaryColor} className="h-10 w-14 cursor-pointer rounded-md border border-border bg-background p-1" />
+              <code className="text-xs text-muted">{team.primaryColor}</code>
+            </span>
+          </label>
+          <label className="flex flex-col gap-1 text-sm font-semibold">
+            보조 컬러
+            <span className="flex items-center gap-2">
+              <input type="color" name="secondaryColor" defaultValue={team.secondaryColor} className="h-10 w-14 cursor-pointer rounded-md border border-border bg-background p-1" />
+              <code className="text-xs text-muted">{team.secondaryColor}</code>
+            </span>
+          </label>
+          <button type="submit" className="self-start rounded-md bg-accent px-3 py-2 text-sm font-semibold text-accent-foreground sm:self-end">
             저장
           </button>
         </form>

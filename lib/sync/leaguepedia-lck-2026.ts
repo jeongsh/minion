@@ -609,6 +609,7 @@ async function upsertInternationalTeam(
     ? displayName
     : displayName.split(/\s+/)[0].substring(0, 20);
 
+  // ignoreDuplicates: 이미 존재하는 팀이면 아무것도 덮어쓰지 않는다(수동 관리하는 팀 색상 보호).
   const { data, error } = await supabase
     .from("teams")
     .upsert(
@@ -625,16 +626,28 @@ async function upsertInternationalTeam(
         imported_scope: "international_event",
         is_active: true,
       },
-      { onConflict: "slug" },
+      { onConflict: "slug", ignoreDuplicates: true },
     )
     .select("id, slug, name, short_name, leaguepedia_page, source_team_id, is_lck_team")
-    .single();
+    .maybeSingle();
 
   if (error) {
     throw error;
   }
 
-  const team = data as TeamRowWithLck;
+  let team = data as TeamRowWithLck | null;
+  if (!team) {
+    // 충돌로 insert가 스킵된 경우(캐시에 없던 기존 팀) — 기존 행을 그대로 사용한다.
+    const { data: existing, error: existingError } = await supabase
+      .from("teams")
+      .select("id, slug, name, short_name, leaguepedia_page, source_team_id, is_lck_team")
+      .eq("slug", slug)
+      .single();
+    if (existingError) {
+      throw existingError;
+    }
+    team = existing as TeamRowWithLck;
+  }
 
   // 로컬 캐시 업데이트 (같은 실행 내 중복 upsert 방지)
   teams.bySlug.set(team.slug, team);
