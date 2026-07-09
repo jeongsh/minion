@@ -67,8 +67,10 @@ export const DEFAULT_TIER: Tier = "bronze";
 // 챌린저 정원(상위 50명 제한)
 export const CHALLENGER_CAP = 50;
 
-// LP reason별 delta (조정 가능)
-export const LP_DELTAS: Record<LpReason, number> = {
+// LP reason별 delta (조정 가능).
+// 승부예측 관련 reason(prediction_bet_*)은 베팅 금액에 따라 delta가 가변이라 여기 없음 —
+// recordLpEvent()가 아니라 SQL 함수가 직접 lp_ledger에 기록한다.
+export const LP_DELTAS: Partial<Record<LpReason, number>> = {
   attendance: 100, // 출첵
   post_created: 50, // 글 작성
   comment_created: 20, // 댓글 작성

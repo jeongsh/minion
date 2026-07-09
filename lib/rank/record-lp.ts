@@ -14,7 +14,13 @@ export type LpReason =
   | "honor_removed" // 명예 취소 -
   | "dishonor_received" // 디스(싫어요) 받음 -
   | "dishonor_removed" // 디스(싫어요) 취소 +
-  | "reported"; // 리폿 누적 제재 -
+  | "reported" // 리폿 누적 제재 -
+  // 아래 4개는 승부예측 SQL 함수(place/cancel/settle_prediction_bet*)에서 직접 lp_ledger에 기록한다.
+  // recordLpEvent()의 LP_DELTAS 고정값 방식이 아니라 베팅 금액만큼 가변 delta로 기록되므로 LP_DELTAS에는 없다.
+  | "prediction_bet_placed"
+  | "prediction_bet_cancelled"
+  | "prediction_bet_won"
+  | "prediction_bet_refunded";
 
 export type RecordLpInput = {
   userId: string;

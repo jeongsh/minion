@@ -19,7 +19,12 @@ const REASON_LABELS: Record<string, string> = {
   honor_received: "명예 받음",
   honor_removed: "명예 취소",
   dishonor_received: "비추 받음",
+  dishonor_removed: "비추 취소",
   reported: "신고 제재",
+  prediction_bet_placed: "승부예측 참가",
+  prediction_bet_cancelled: "승부예측 취소",
+  prediction_bet_won: "승부예측 적중",
+  prediction_bet_refunded: "승부예측 환불",
 };
 
 function formatDate(iso: string) {
