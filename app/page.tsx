@@ -1,35 +1,15 @@
 import { HomeDashboard, type HomeStandingRow } from "@/components/domain/home-dashboard";
 import type { HomeCalendarMatch } from "@/components/domain/home-calendar";
-import {
-  getAllTeams,
-  getHomeHeroSlides,
-  getLatestTeamVideos,
-  getMatches,
-  getTeamStandings,
-  getTournaments,
-} from "@/lib/data/lck";
+import { getHomePagePublicData } from "@/lib/data/home-cache";
 import type { Match } from "@/lib/types";
 import { getBoardPosts } from "@/lib/data/community";
-import { formatTimeKST, matchHref } from "@/lib/view-data";
+import { dateKeyKST, formatTimeKST, matchHref } from "@/lib/view-data";
 import { getPredictionMarketData } from "@/lib/predictions";
 import { getCurrentUser } from "@/lib/auth/current-user";
-import { getCalendarEvents, getCelebrationMessages, getTodayCelebrations } from "@/lib/calendar/events";
+import { getCelebrationMessages, getTodayCelebrations } from "@/lib/calendar/events";
 import type { CelebrationBannerItem } from "@/components/domain/celebration-banner";
 
 export const dynamic = "force-dynamic";
-
-function dateKeyKST(value: string | Date) {
-  const date = typeof value === "string" ? new Date(value) : value;
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Seoul",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(date);
-  const part = (type: Intl.DateTimeFormatPartTypes) => parts.find((item) => item.type === type)?.value ?? "";
-
-  return `${part("year")}-${part("month")}-${part("day")}`;
-}
 
 function yearMonthKeyKST(value: string) {
   return dateKeyKST(value).slice(0, 7);
@@ -45,17 +25,12 @@ function buildRecentForm(teamId: string, matches: Match[]) {
 
 export default async function HomePage() {
   const user = await getCurrentUser();
-  const [teams, matches, savedStandings, tournaments, latestVideos, homeHeroSlides, communityPosts, predictionMarket, calendarEvents] = await Promise.all([
-    getAllTeams(),
-    getMatches(),
-    getTeamStandings(),
-    getTournaments(),
-    getLatestTeamVideos(4),
-    getHomeHeroSlides({ limit: 8 }),
+  const [homeData, communityPosts, predictionMarket] = await Promise.all([
+    getHomePagePublicData(),
     getBoardPosts({ scope: "hub" }),
     getPredictionMarketData(user?.id),
-    getCalendarEvents(),
   ]);
+  const { teams, matches, savedStandings, tournaments, latestVideos, homeHeroSlides, calendarEvents } = homeData;
 
   // 오늘의 기념일 + 각 축하 보드 초기 메시지.
   const todayCelebrations = getTodayCelebrations(calendarEvents);

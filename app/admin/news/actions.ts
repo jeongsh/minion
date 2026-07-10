@@ -1,11 +1,13 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { HOME_PUBLIC_DATA_TAG } from "@/lib/data/home-cache";
 
 function revalidate() {
   revalidatePath("/admin/news");
   revalidatePath("/");
+  updateTag(HOME_PUBLIC_DATA_TAG);
 }
 
 function extractYoutubeId(url: string): string | null {

@@ -1,10 +1,11 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { getMatchById, getSetsByMatchId } from "@/lib/data/lck";
+import { HOME_PUBLIC_DATA_TAG } from "@/lib/data/home-cache";
 import { diagnoseMatches, type MatchDiagnosis } from "@/lib/match-diagnostics";
 import {
   getLastCompletedMatchCursor,
@@ -75,6 +76,7 @@ export async function syncLeaguepediaMatchesAction(
     revalidatePath("/admin/matches");
     revalidatePath("/schedule");
     revalidatePath("/");
+    updateTag(HOME_PUBLIC_DATA_TAG);
 
     return { ok: true, summary };
   } catch (error) {
