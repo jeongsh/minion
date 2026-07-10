@@ -163,6 +163,7 @@ export function FanVideoFeed({
                 <img
                   src={video.thumbnailUrl}
                   alt=""
+                  loading="lazy"
                   className="h-full w-full object-cover transition duration-200 group-hover:scale-[1.02]"
                 />
               ) : (

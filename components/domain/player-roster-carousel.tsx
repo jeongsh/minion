@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { Navigation } from "swiper/modules";
 import { Swiper, SwiperSlide } from "swiper/react";
+import "swiper/css";
+import "swiper/css/navigation";
 import type { Player } from "@/lib/types";
 import { SwiperNav, useSwiperNav } from "@/components/ui/swiper-nav";
 
@@ -36,7 +38,7 @@ function PlayerPhoto({
 
   return (
     // eslint-disable-next-line @next/next/no-img-element
-    <img src={src} alt={alt} className={className} />
+    <img src={src} alt={alt} loading="lazy" className={className} />
   );
 }
 

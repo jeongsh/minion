@@ -1,10 +1,5 @@
 @import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css");
-@import url("https://fonts.googleapis.com/css2?family=Archivo:wght@700;800;900&display=swap");
 @import "tailwindcss";
-@import "swiper/css";
-@import "swiper/css/navigation";
-@import "swiper/css/pagination";
-@import "react-day-picker/style.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -151,7 +146,7 @@ html[class~="dark"] .navigation-progress-bar {
 }
 
 .font-archivo {
-  font-family: "Archivo", "Pretendard", system-ui, sans-serif;
+  font-family: var(--font-archivo), "Pretendard", system-ui, sans-serif;
 }
 
 .home-section-title {

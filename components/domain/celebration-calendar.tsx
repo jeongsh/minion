@@ -5,6 +5,7 @@ import { useMemo, useState, type CSSProperties } from "react";
 import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp } from "lucide-react";
 import { DayPicker, type DayButtonProps } from "react-day-picker";
 import { ko } from "react-day-picker/locale";
+import "react-day-picker/style.css";
 
 import type { CalendarEvent, CalendarEventType } from "@/lib/calendar/events";
 

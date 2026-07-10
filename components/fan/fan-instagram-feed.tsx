@@ -187,6 +187,7 @@ function PostCard({
           <img
             src={proxyUrl(item.imageUrl)}
             alt=""
+            loading="lazy"
             className="h-full w-full object-cover"
           />
         ) : (
@@ -217,6 +218,7 @@ function PostCard({
           <img
             src={proxyUrl(item.imageUrl)}
             alt=""
+            loading="lazy"
             className="h-full w-full object-cover transition group-hover:scale-105"
           />
         ) : (

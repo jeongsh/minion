@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { Autoplay, Pagination } from "swiper/modules";
 import { Swiper, SwiperSlide } from "swiper/react";
+import "swiper/css";
+import "swiper/css/pagination";
 
 export type HomeHeroSwiperSlide = {
   id: string;

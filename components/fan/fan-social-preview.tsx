@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { Navigation } from "swiper/modules";
 import { Swiper, SwiperSlide } from "swiper/react";
+import "swiper/css";
+import "swiper/css/navigation";
 import { InstagramIcon, InstagramPostModal, proxyUrl } from "@/components/fan/instagram-post-modal";
 import type { FeedInstaItem } from "@/components/fan/fan-feed-mosaic";
 import { SwiperNav, useSwiperNav } from "@/components/ui/swiper-nav";

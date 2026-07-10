@@ -4,6 +4,8 @@ import Link from "next/link";
 import { Eye, MessageCircle } from "lucide-react";
 import { Navigation } from "swiper/modules";
 import { Swiper, SwiperSlide } from "swiper/react";
+import "swiper/css";
+import "swiper/css/navigation";
 import type { CommunityPostDetail } from "@/lib/community/types";
 import { boardLabel } from "@/lib/community/boards";
 import { SwiperNav, useSwiperNav } from "@/components/ui/swiper-nav";

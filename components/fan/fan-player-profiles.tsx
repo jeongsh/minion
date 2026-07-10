@@ -6,6 +6,8 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { Swiper as SwiperInstance } from "swiper";
 import { Navigation } from "swiper/modules";
 import { Swiper, SwiperSlide } from "swiper/react";
+import "swiper/css";
+import "swiper/css/navigation";
 import type { Player } from "@/lib/types";
 
 const POSITION_LABEL: Record<Player["position"], string> = {
