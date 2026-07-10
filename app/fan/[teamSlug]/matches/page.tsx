@@ -52,7 +52,7 @@ export default async function FanSchedulePage({
   const pathname = `/fan/${teamSlug}/matches`;
 
   return (
-    <FanPageShell eyebrow={`${team.shortName} Schedule`} title="일정">
+    <FanPageShell>
       <div className="subpage flex flex-col gap-6 !bg-[var(--ui-surface)]">
         <div className="flex flex-wrap items-center justify-between gap-y-4">
           <Suspense fallback={null}>

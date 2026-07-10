@@ -34,7 +34,7 @@ export default async function FanVideosPage({
   });
 
   return (
-    <FanPageShell eyebrow={`${team.shortName} YouTube`} title="영상">
+    <FanPageShell>
       <FanVideoFeed teamSlug={team.fanSiteHost} teamName={team.shortName} videos={videos} />
     </FanPageShell>
   );

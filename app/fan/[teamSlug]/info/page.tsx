@@ -19,7 +19,7 @@ export default async function FanInfoPage({
     : [];
 
   return (
-    <FanPageShell eyebrow={`${team?.shortName ?? "Team"} Official`} title="팀 정보 / 공식 링크">
+    <FanPageShell>
       <DataTable
         rows={rows}
         columns={[

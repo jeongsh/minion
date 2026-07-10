@@ -30,7 +30,7 @@ export default async function FanInstagramPage({
   ]);
 
   return (
-    <FanPageShell eyebrow={`${team.shortName} Instagram`} title="인스타그램">
+    <FanPageShell>
       <FanInstagramFeed
         teamSlug={team.fanSiteHost}
         teamName={team.shortName}

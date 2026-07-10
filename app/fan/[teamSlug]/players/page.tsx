@@ -18,7 +18,7 @@ export default async function FanPlayersPage({
   const players = (await getPlayers()).filter((player) => player.teamId === team.id);
 
   return (
-    <FanPageShell eyebrow={`${team.shortName} Roster`} title="선수 / 방송">
+    <FanPageShell>
       <section className="page-grid">
         {players.map((player) => (
           <PlayerCard key={player.id} player={player} />

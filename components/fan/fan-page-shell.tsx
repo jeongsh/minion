@@ -1,5 +1,3 @@
-import { PageHeader } from "@/components/ui/page-header";
-
 type FanPageShellProps = {
   children: React.ReactNode;
   contentClassName?: string;
