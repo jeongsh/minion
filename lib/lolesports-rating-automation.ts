@@ -196,6 +196,11 @@ async function queueSetDataSyncNotification({
   }
 }
 
+// 경기 종료 직후 첫 시도는 리그피디아 위키가 아직 갱신 전이라 항상 실패한다.
+// 그 시점에 바로 "실패" 알림을 보내면 실제로는 계속 재시도 중인데도 마치
+// 멈춘 것처럼 보이므로, 일정 횟수 이상(약 15분) 계속 실패할 때만 알린다.
+const MIN_ATTEMPTS_BEFORE_FAILURE_ALERT = 3;
+
 async function runLeaguepediaEnrichment({
   match,
   teamAScore,
@@ -224,21 +229,24 @@ async function runLeaguepediaEnrichment({
   ) => {
     const retryAt = leaguepediaRetryAt(now, status);
     for (const row of pending) {
+      const attempts = (row.leaguepedia_sync_attempts ?? 0) + 1;
       await supabase.from("set_result_snapshots").update({
         leaguepedia_sync_status: status,
-        leaguepedia_sync_attempts: (row.leaguepedia_sync_attempts ?? 0) + 1,
+        leaguepedia_sync_attempts: attempts,
         leaguepedia_retry_at: retryAt,
         leaguepedia_last_error: message.slice(0, 1000),
       }).eq("id", row.id);
-      await queueSetDataSyncNotification({
-        match,
-        setId: row.set_id,
-        setNumber: row.set_number,
-        teamAScore,
-        teamBScore,
-        outcome: status === "rate_limited" ? "rate_limited" : "failed",
-        error: message,
-      });
+      if (status === "rate_limited" || attempts >= MIN_ATTEMPTS_BEFORE_FAILURE_ALERT) {
+        await queueSetDataSyncNotification({
+          match,
+          setId: row.set_id,
+          setNumber: row.set_number,
+          teamAScore,
+          teamBScore,
+          outcome: status === "rate_limited" ? "rate_limited" : "failed",
+          error: message,
+        });
+      }
     }
   };
 
@@ -264,22 +272,25 @@ async function runLeaguepediaEnrichment({
       const complete = picks >= 10 && bans >= 10 && setPlayers.length >= 10 && hasDamage;
       if (!complete) {
         const message = `Incomplete Leaguepedia data: picks=${picks}, bans=${bans}, players=${setPlayers.length}`;
+        const attempts = (row.leaguepedia_sync_attempts ?? 0) + 1;
         await supabase.from("set_result_snapshots").update({
           leaguepedia_sync_status: "failed",
-          leaguepedia_sync_attempts: (row.leaguepedia_sync_attempts ?? 0) + 1,
+          leaguepedia_sync_attempts: attempts,
           leaguepedia_retry_at: leaguepediaRetryAt(now, "failed"),
           leaguepedia_last_error: message,
         }).eq("id", row.id);
-        await queueSetDataSyncNotification({
-          match,
-          setId: row.set_id,
-          setNumber: row.set_number,
-          teamAScore,
-          teamBScore,
-          outcome: "failed",
-          playerStatsUpserted: setPlayers.length,
-          error: message,
-        });
+        if (attempts >= MIN_ATTEMPTS_BEFORE_FAILURE_ALERT) {
+          await queueSetDataSyncNotification({
+            match,
+            setId: row.set_id,
+            setNumber: row.set_number,
+            teamAScore,
+            teamBScore,
+            outcome: "failed",
+            playerStatsUpserted: setPlayers.length,
+            error: message,
+          });
+        }
         continue;
       }
       await supabase.from("set_result_snapshots").update({
@@ -314,6 +325,9 @@ async function runLeaguepediaEnrichment({
 
 // waiting_for_source는 5분 간격으로 재시도되므로(leaguepedia-retry-policy.ts), 6회면 최대 30분간
 // 골드 프레임이 뒤늦게 채워지길 기다린 뒤 포기한다(옛날 경기 등 프레임 데이터가 원천적으로 없는 경우 대비).
+// 아래 쿼리가 leaguepedia_sync_status = 'succeeded'인 세트만 대상으로 삼기 때문에,
+// 이 시도 횟수는 순수하게 "세트 정보(밴픽·선수 스탯)는 이미 다 채워졌는데 골드
+// 프레임만 아직 안 올라온" 상황만 센다 - 세트 정보 자체를 기다리는 시간은 여기 안 섞인다.
 const MAX_FRAME_WAIT_ATTEMPTS = 6;
 
 async function runTimelineEnrichment({ matchId, now }: { matchId: string; now: Date }) {
@@ -322,6 +336,7 @@ async function runTimelineEnrichment({ matchId, now }: { matchId: string; now: D
     .from("set_result_snapshots")
     .select("id, set_id, set_number, timeline_sync_attempts")
     .eq("match_id", matchId)
+    .eq("leaguepedia_sync_status", "succeeded")
     .neq("timeline_sync_status", "succeeded")
     .or(`timeline_retry_at.is.null,timeline_retry_at.lte.${now.toISOString()}`)
     .order("created_at", { ascending: true })
