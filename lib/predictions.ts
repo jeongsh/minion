@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export type PredictionBet = {
@@ -46,7 +47,7 @@ export function predictionMarketForMatch(bets: PredictionBet[], matchId: string,
   };
 }
 
-export async function getPredictionMarketData(userId?: string) {
+export const getPredictionMarketData = cache(async function getPredictionMarketData(userId?: string) {
   const supabase = createSupabaseServerClient();
   const [betsResult, rankingsResult, walletResult] = await Promise.all([
     supabase
@@ -85,4 +86,4 @@ export async function getPredictionMarketData(userId?: string) {
     rankings,
     balance: userId ? Number(walletResult.data?.lp ?? 10_000) : null,
   };
-}
+});

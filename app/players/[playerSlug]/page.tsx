@@ -28,9 +28,7 @@ import { aggregatePlayerStatLine, calculatePlayerStats, createPlayerRadarBenchma
 import type { FanRating, Match, Player, PlayerCareerHistory, PlayerStatLine, SetResult, Team, TeamAward, Tournament } from "@/lib/types";
 import {
   filterMatchesBySegment,
-  filterPicksBansByMatches,
   filterSetsByMatches,
-  filterStatLinesByMatchIds,
   parseSeasonSegment,
   segmentLabel,
   type SeasonSegmentKey,
@@ -66,17 +64,17 @@ function playerSegmentLabel(segment: SeasonSegmentKey | "all") {
   return segmentLabel(segment);
 }
 
+/** playerLines 는 이미 해당 선수 본인의 스탯라인만 담고 있으므로 setId 소속만 확인한다. */
 function segmentHasPlayerData(
   segment: SeasonSegmentKey | "all",
-  playerId: string,
+  playerLines: PlayerStatLine[],
   matches: Match[],
   tournaments: Tournament[],
-  statLines: PlayerStatLine[],
   sets: SetResult[],
 ) {
   const segmentMatches = filterMatchesBySegment(matches, tournaments, segment);
   const segmentSetIds = new Set(filterSetsByMatches(sets, segmentMatches).map((set) => set.id));
-  return statLines.some((line) => line.playerId === playerId && segmentSetIds.has(line.setId));
+  return playerLines.some((line) => segmentSetIds.has(line.setId));
 }
 
 type EnrichedLine = PlayerStatLine & {
@@ -399,13 +397,12 @@ export default async function PlayerDetailPage({
     players,
     matches,
     sets,
-    statLines,
+    playerOwnLines,
     fanRatings,
     awards,
     pomCount,
     tournaments,
     champions,
-    picksBans,
     standings,
     careerHistories,
   ] = await Promise.all([
@@ -413,19 +410,19 @@ export default async function PlayerDetailPage({
     getAllPlayers(),
     getMatches(),
     getSets(),
-    getPlayerStatLines(),
+    // 이 선수 본인의 스탯라인만(리그 전체가 아님) — 구간 탭 표시 여부 판단용.
+    getPlayerStatLines(undefined, player.id),
     getFanRatings(),
     getPlayerAwards(player.name, player.id),
     getPlayerPomCount(player.id),
     getTournaments(),
     getChampions(),
-    getSetPicksBans(),
     getTeamStandings(),
     getPlayerCareerHistories([player.id]),
   ]);
 
   const visibleSegments = PLAYER_PAGE_SEGMENTS.filter((segment) =>
-    segmentHasPlayerData(segment, player.id, matches, tournaments, statLines, sets),
+    segmentHasPlayerData(segment, playerOwnLines, matches, tournaments, sets),
   );
   const requestedSegment = query.segment == null ? "all" : parseSeasonSegment(query.segment);
   const activeSegment = visibleSegments.includes(requestedSegment)
@@ -433,8 +430,11 @@ export default async function PlayerDetailPage({
     : (visibleSegments[0] ?? "all");
   const segmentMatches = filterMatchesBySegment(matches, tournaments, activeSegment);
   const segmentSets = filterSetsByMatches(sets, segmentMatches);
-  const scopedLines = filterStatLinesByMatchIds(statLines, sets, segmentMatches);
-  const scopedPicksBans = filterPicksBansByMatches(picksBans, sets, segmentMatches);
+  const segmentSetIds = segmentSets.map((set) => set.id);
+  // 포지션 벤치마크·챔피언 픽밴 집계는 리그 전체가 필요하지만, 활성 시즌 구간으로만 좁혀서 조회한다.
+  const [scopedLines, scopedPicksBans] = segmentSetIds.length
+    ? await Promise.all([getPlayerStatLines(segmentSetIds), getSetPicksBans(segmentSetIds)])
+    : [[], []];
   const playerLines = enrichLines(scopedLines.filter((line) => line.playerId === player.id), segmentSets, segmentMatches, scopedLines);
   const radarBenchmark = createPlayerRadarBenchmark(scopedLines.filter((line) => line.position === player.position));
   const aggregateStats = aggregateLines(playerLines, radarBenchmark);

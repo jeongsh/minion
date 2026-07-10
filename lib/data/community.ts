@@ -2,6 +2,7 @@
 // lib/data/lck.ts 의 읽기 함수와 별개로 이 트랙 전용 read/write 를 둔다.
 // 쓰기는 항상 author_id/user_id 를 getCurrentUser().id 로 채운다(서버 액션에서 사용).
 
+import { cache } from "react";
 import { canQuerySupabase, createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { extractPlainText, extractThumbnail } from "@/lib/community/extract-thumbnail";
@@ -128,7 +129,7 @@ async function mapCommentsWithAuthors(rows: CommentRow[]): Promise<CommunityComm
  * boardType 미지정 시 전체 말머리 글을 한 번에 조회(전체 탭).
  * teamId 는 team scope 에서만 사용.
  */
-export async function getBoardPosts(params: {
+export const getBoardPosts = cache(async function getBoardPosts(params: {
   scope: BoardScope;
   boardType?: string | null;
   teamId?: string | null;
@@ -152,10 +153,12 @@ export async function getBoardPosts(params: {
   const { data, error } = await query;
   if (error) throw error;
   return mapPostsWithAuthors(data as PostRow[]);
-}
+});
 
 /** 단건 조회(조회수 증가 X — 순수 조회). */
-export async function getPostById(postId: string): Promise<CommunityPostDetail | null> {
+export const getPostById = cache(async function getPostById(
+  postId: string,
+): Promise<CommunityPostDetail | null> {
   if (!canQuerySupabase()) return null;
 
   const { data, error } = await createSupabaseServerClient()
@@ -167,7 +170,7 @@ export async function getPostById(postId: string): Promise<CommunityPostDetail |
   if (error) throw error;
   if (!data) return null;
   return (await mapPostsWithAuthors([data as PostRow]))[0] ?? null;
-}
+});
 
 /** 단건 조회 + 조회수 증가. 상세 페이지 진입 시 사용. */
 export async function getPostByIdAndIncrementView(
@@ -195,7 +198,9 @@ export async function getPostByIdAndIncrementView(
 }
 
 /** 댓글 목록 조회(오래된 순). */
-export async function getPostComments(postId: string): Promise<CommunityCommentItem[]> {
+export const getPostComments = cache(async function getPostComments(
+  postId: string,
+): Promise<CommunityCommentItem[]> {
   if (!canQuerySupabase()) return [];
 
   const { data, error } = await createSupabaseServerClient()
@@ -206,7 +211,7 @@ export async function getPostComments(postId: string): Promise<CommunityCommentI
 
   if (error) throw error;
   return mapCommentsWithAuthors(data as CommentRow[]);
-}
+});
 
 /** 글 생성. author_id 는 호출부(서버 액션)에서 getCurrentUser().id 로 전달. */
 export async function createPost(params: {
@@ -328,7 +333,7 @@ async function existsReaction(
 }
 
 /** 현재 사용자의 대상에 대한 stance(명예/싫어요/없음). */
-export async function getUserReaction(params: {
+export const getUserReaction = cache(async function getUserReaction(params: {
   target: ReactionTarget;
   targetId: string;
   userId: string;
@@ -337,7 +342,7 @@ export async function getUserReaction(params: {
   if (await existsReaction(params.target, "honor", params.targetId, params.userId)) return "honor";
   if (await existsReaction(params.target, "dislike", params.targetId, params.userId)) return "dislike";
   return null;
-}
+});
 
 /** 집계 카운트를 delta 만큼 증감(0 미만으로는 내려가지 않음). */
 async function adjustCount(
@@ -403,7 +408,7 @@ export async function setReaction(params: {
 }
 
 /** 여러 댓글에 대한 현재 사용자 stance 를 한 번에 조회(상세 페이지 초기 상태용). */
-export async function getUserReactionsForComments(
+export const getUserReactionsForComments = cache(async function getUserReactionsForComments(
   commentIds: string[],
   userId: string,
 ): Promise<Record<string, ReactionState>> {
@@ -432,7 +437,7 @@ export async function getUserReactionsForComments(
   }
 
   return result;
-}
+});
 
 /** 리폿 생성. post 또는 comment 중 하나를 대상으로. report_count 증가(글 대상일 때). */
 export async function createReport(params: {
@@ -469,7 +474,9 @@ export async function createReport(params: {
 }
 
 /** 단건 댓글 조회(리폿 대상 작성자 확인용). */
-export async function getCommentById(commentId: string): Promise<CommunityCommentItem | null> {
+export const getCommentById = cache(async function getCommentById(
+  commentId: string,
+): Promise<CommunityCommentItem | null> {
   if (!canQuerySupabase()) return null;
 
   const { data, error } = await createSupabaseServerClient()
@@ -480,4 +487,4 @@ export async function getCommentById(commentId: string): Promise<CommunityCommen
 
   if (error) throw error;
   return data ? (await mapCommentsWithAuthors([data as CommentRow]))[0] ?? null : null;
-}
+});

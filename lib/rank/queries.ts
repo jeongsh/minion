@@ -1,6 +1,7 @@
 // /me 페이지 등에서 쓰는 랭크 조회 헬퍼.
 // 쿠키 인증 클라이언트로 본인 데이터를 읽는다(RLS: profiles/lp_ledger public read, attendance 본인).
 
+import { cache } from "react";
 import { createSupabaseAuthClient } from "@/lib/supabase/auth-server";
 import { DEFAULT_TIER, type Tier } from "@/lib/rank/config";
 import type { LpReason } from "@/lib/rank/record-lp";
@@ -30,7 +31,9 @@ export type LeaderboardEntry = {
   rank: number;
 };
 
-export async function getTopRankedProfiles(limit = 10): Promise<LeaderboardEntry[]> {
+export const getTopRankedProfiles = cache(async function getTopRankedProfiles(
+  limit = 10,
+): Promise<LeaderboardEntry[]> {
   const { data, error } = await createSupabaseServerClient()
     .from("ranked_profiles")
     .select("id, nickname, lp, effective_tier, overall_rank")
@@ -45,7 +48,7 @@ export async function getTopRankedProfiles(limit = 10): Promise<LeaderboardEntry
     tier: asTier(row.effective_tier),
     rank: Number(row.overall_rank),
   }));
-}
+});
 
 const VALID_TIERS = new Set<Tier>([
   "iron",
@@ -64,7 +67,7 @@ function asTier(value: string | null | undefined): Tier {
   return value && VALID_TIERS.has(value as Tier) ? (value as Tier) : DEFAULT_TIER;
 }
 
-export async function getRankSummary(userId: string): Promise<RankSummary> {
+export const getRankSummary = cache(async function getRankSummary(userId: string): Promise<RankSummary> {
   const supabase = await createSupabaseAuthClient();
 
   // 챌린저 cap 반영된 effective_tier는 ranked_profiles 뷰에서.
@@ -98,4 +101,4 @@ export async function getRankSummary(userId: string): Promise<RankSummary> {
     recentLedger: (ledgerRes.data ?? []) as LedgerEntry[],
     checkedInToday: Boolean(attendanceRes.data),
   };
-}
+});

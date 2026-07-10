@@ -1,4 +1,5 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { cache } from "react";
 import { canQuerySupabase, createSupabaseServerClient } from "@/lib/supabase/server";
 import type {
   BracketStage,
@@ -647,7 +648,7 @@ function mapFanRating(row: FanRatingRow): FanRating {
   };
 }
 
-export async function getTeamStandings(tournamentId?: string): Promise<TeamStanding[]> {
+async function getTeamStandingsBase(tournamentId?: string): Promise<TeamStanding[]> {
   return fromSupabase(async () => {
     let query = createSupabaseServerClient()
       .from("team_standings")
@@ -691,7 +692,7 @@ export async function getTeamStandings(tournamentId?: string): Promise<TeamStand
   }, []);
 }
 
-export async function getTeams() {
+async function getTeamsBase() {
   return fromSupabase(async () => {
     const { data, error } = await createSupabaseServerClient()
       .from("teams")
@@ -707,7 +708,7 @@ export async function getTeams() {
   }, []);
 }
 
-export async function getAllTeams() {
+async function getAllTeamsBase() {
   return fromSupabase(async () => {
     const { data, error } = await createSupabaseServerClient()
       .from("teams")
@@ -722,7 +723,7 @@ export async function getAllTeams() {
   }, []);
 }
 
-export async function getPlayerAwards(playerName: string, playerId?: string): Promise<TeamAward[]> {
+async function getPlayerAwardsBase(playerName: string, playerId?: string): Promise<TeamAward[]> {
   return fromSupabase(async () => {
     const conditions = [`player_name.eq.${playerName}`];
     if (playerId) conditions.push(`player_id.eq.${playerId}`);
@@ -749,7 +750,7 @@ export async function getPlayerAwards(playerName: string, playerId?: string): Pr
   }, []);
 }
 
-export async function getTeamAwards(teamId?: string): Promise<TeamAward[]> {
+async function getTeamAwardsBase(teamId?: string): Promise<TeamAward[]> {
   return fromSupabase(async () => {
     let query = createSupabaseServerClient()
       .from("team_awards")
@@ -788,7 +789,7 @@ export async function getTeamAwards(teamId?: string): Promise<TeamAward[]> {
   }, []);
 }
 
-export async function getTeamsSortedByRank(): Promise<Team[]> {
+async function getTeamsSortedByRankBase(): Promise<Team[]> {
   const [teams, standings] = await Promise.all([getTeams(), getTeamStandings()]);
   const rankMap = new Map(standings.map((s) => [s.teamId, s.rank]));
   return [...teams].sort((a, b) => {
@@ -799,7 +800,7 @@ export async function getTeamsSortedByRank(): Promise<Team[]> {
   });
 }
 
-export async function getTeamById(id: string) {
+async function getTeamByIdBase(id: string) {
   return fromSupabase(async () => {
     const { data, error } = await createSupabaseServerClient()
       .from("teams")
@@ -815,17 +816,17 @@ export async function getTeamById(id: string) {
   }, undefined);
 }
 
-export async function getTeamBySlug(slug: string) {
+async function getTeamBySlugBase(slug: string) {
   const teams = await getTeams();
   return teams.find((team) => team.slug === slug);
 }
 
-export async function getTeamByFanSiteHost(host: string) {
+async function getTeamByFanSiteHostBase(host: string) {
   const teams = await getTeams();
   return teams.find((team) => team.fanSiteHost === host);
 }
 
-export async function getTeamIdentityHistories() {
+async function getTeamIdentityHistoriesBase() {
   return fromSupabase(async () => {
     const { data, error } = await createSupabaseServerClient()
       .from("team_identity_histories")
@@ -840,7 +841,7 @@ export async function getTeamIdentityHistories() {
   }, []);
 }
 
-export async function getPlayers() {
+async function getPlayersBase() {
   return fromSupabase(async () => {
     const { data, error } = await createSupabaseServerClient()
       .from("players")
@@ -854,7 +855,7 @@ export async function getPlayers() {
   }, []);
 }
 
-export async function getRetiredPlayers() {
+async function getRetiredPlayersBase() {
   return fromSupabase(async () => {
     const { data, error } = await createSupabaseServerClient()
       .from("players")
@@ -868,7 +869,7 @@ export async function getRetiredPlayers() {
   }, []);
 }
 
-export async function getPlayersByTeamId(teamId: string) {
+async function getPlayersByTeamIdBase(teamId: string) {
   return fromSupabase(async () => {
     const { data, error } = await createSupabaseServerClient()
       .from("players")
@@ -882,7 +883,7 @@ export async function getPlayersByTeamId(teamId: string) {
   }, []);
 }
 
-export async function getPlayerCareerHistories(playerIds: string[]): Promise<PlayerCareerHistory[]> {
+async function getPlayerCareerHistoriesBase(playerIds: string[]): Promise<PlayerCareerHistory[]> {
   if (playerIds.length === 0) return [];
   return fromSupabase(async () => {
     const { data, error } = await createSupabaseServerClient()
@@ -911,7 +912,7 @@ export async function getPlayerCareerHistories(playerIds: string[]): Promise<Pla
   }, []);
 }
 
-export async function getAllPlayers() {
+async function getAllPlayersBase() {
   return fromSupabase(async () => {
     const { data, error } = await createSupabaseServerClient()
       .from("players")
@@ -926,7 +927,7 @@ export async function getAllPlayers() {
   }, []);
 }
 
-export async function getTournaments() {
+async function getTournamentsBase() {
   return fromSupabase(async () => {
     const { data, error } = await createSupabaseServerClient()
       .from("tournaments")
@@ -943,7 +944,7 @@ export async function getTournaments() {
   }, []);
 }
 
-export async function getStages() {
+async function getStagesBase() {
   return fromSupabase(async () => {
     const { data, error } = await createSupabaseServerClient()
       .from("stages")
@@ -958,7 +959,7 @@ export async function getStages() {
   }, []);
 }
 
-export async function getBracketStages() {
+async function getBracketStagesBase() {
   return fromSupabase(async () => {
     const { data, error } = await createSupabaseServerClient()
       .from("bracket_stages")
@@ -973,12 +974,12 @@ export async function getBracketStages() {
   }, []);
 }
 
-export async function getPlayerBySlug(slug: string) {
+async function getPlayerBySlugBase(slug: string) {
   const players = await getAllPlayers();
   return players.find((player) => player.slug === slug);
 }
 
-export async function getPlayerById(id: string) {
+async function getPlayerByIdBase(id: string) {
   return fromSupabase(async () => {
     const { data, error } = await createSupabaseServerClient()
       .from("players")
@@ -991,7 +992,7 @@ export async function getPlayerById(id: string) {
   }, null);
 }
 
-export async function getMatches() {
+async function getMatchesBase() {
   return fromSupabase(async () => {
     const { data, error } = await createSupabaseServerClient()
       .from("matches")
@@ -1006,18 +1007,45 @@ export async function getMatches() {
   }, []);
 }
 
-export async function getMatchById(matchId: string) {
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// matchId 는 내부 UUID 또는 leaguepedia/lolesports 원본 매치 ID 중 하나일 수 있다.
+// 전체 매치를 가져와 find()하는 대신, 셋 중 해당하는 컬럼만 직접 조회한다.
+async function getMatchByIdBase(matchId: string) {
   const decodedMatchId = decodeURIComponent(matchId);
-  const matches = await getMatches();
-  return matches.find(
-    (match) =>
-      match.id === decodedMatchId ||
-      match.leaguepediaMatchId === decodedMatchId ||
-      match.lolesportsMatchId === decodedMatchId,
-  );
+  const isUuid = UUID_PATTERN.test(decodedMatchId);
+
+  return fromSupabase(async () => {
+    const supabase = createSupabaseServerClient();
+    const byId = isUuid
+      ? supabase.from("matches").select("*").eq("id", decodedMatchId).maybeSingle()
+      : Promise.resolve({ data: null, error: null });
+    const byLeaguepediaId = supabase
+      .from("matches")
+      .select("*")
+      .eq("leaguepedia_match_id", decodedMatchId)
+      .maybeSingle();
+    const byLolesportsId = supabase
+      .from("matches")
+      .select("*")
+      .eq("lolesports_match_id", decodedMatchId)
+      .maybeSingle();
+
+    const [idResult, leaguepediaResult, lolesportsResult] = await Promise.all([
+      byId,
+      byLeaguepediaId,
+      byLolesportsId,
+    ]);
+    if (idResult.error) throw idResult.error;
+    if (leaguepediaResult.error) throw leaguepediaResult.error;
+    if (lolesportsResult.error) throw lolesportsResult.error;
+
+    const row = idResult.data ?? leaguepediaResult.data ?? lolesportsResult.data;
+    return row ? mapMatch(row as MatchRow) : undefined;
+  }, undefined);
 }
 
-export async function getSetsByMatchId(matchId: string) {
+async function getSetsByMatchIdBase(matchId: string) {
   return fromSupabase(async () => {
     const { data, error } = await createSupabaseServerClient()
       .from("sets")
@@ -1041,7 +1069,7 @@ export type SetDataCompletion = {
 };
 
 /** 세트 목록 화면에 표시할 세트별 픽/밴/선수스탯/타임라인 개수. 매치 하나가 가진 세트 수(3~5개) 기준이라 청크 없이 조회한다. */
-export async function getSetDataCompletionBySetId(
+async function getSetDataCompletionBySetIdBase(
   setIds: string[],
 ): Promise<Map<string, SetDataCompletion>> {
   const result = new Map<string, SetDataCompletion>();
@@ -1088,7 +1116,7 @@ export async function getSetDataCompletionBySetId(
   }, result);
 }
 
-export async function getSets() {
+async function getSetsBase() {
   return fromSupabase(async () => {
     const { data, error } = await createSupabaseServerClient()
       .from("sets")
@@ -1103,7 +1131,7 @@ export async function getSets() {
   }, []);
 }
 
-export async function getSetById(setId: string) {
+async function getSetByIdBase(setId: string) {
   return fromSupabase(async () => {
     const { data, error } = await createSupabaseServerClient()
       .from("sets")
@@ -1119,7 +1147,7 @@ export async function getSetById(setId: string) {
   }, undefined);
 }
 
-export async function getChampions() {
+async function getChampionsBase() {
   return fromSupabase(async () => {
     const { data, error } = await createSupabaseServerClient()
       .from("champions")
@@ -1146,7 +1174,7 @@ function setIdChunks(setId?: string | string[], size = 100): (string | string[] 
   return chunks;
 }
 
-export async function getSetPicksBans(setId?: string | string[]) {
+async function getSetPicksBansBase(setId?: string | string[]) {
   if (Array.isArray(setId) && setId.length === 0) {
     return [];
   }
@@ -1198,7 +1226,7 @@ export async function getSetPicksBans(setId?: string | string[]) {
   }, []);
 }
 
-export async function getPlayerStatLines(setId?: string | string[]) {
+async function getPlayerStatLinesBase(setId?: string | string[], playerId?: string) {
   return fromSupabase(async () => {
     const supabase = createSupabaseServerClient();
     const rows: SetPlayerStatsRow[] = [];
@@ -1219,6 +1247,10 @@ export async function getPlayerStatLines(setId?: string | string[]) {
           query = query.in("set_id", ids);
         } else if (ids) {
           query = query.eq("set_id", ids);
+        }
+
+        if (playerId) {
+          query = query.eq("player_id", playerId);
         }
 
         const { data, error } = await query;
@@ -1285,7 +1317,7 @@ export async function getPlayerStatLines(setId?: string | string[]) {
   }, []);
 }
 
-export async function getLeagueAverageStats() {
+async function getLeagueAverageStatsBase() {
   return fromSupabase(async () => {
     const supabase = createSupabaseServerClient();
     const [{ data: pRows }, { data: sRows }] = await Promise.all([
@@ -1327,7 +1359,7 @@ export async function getLeagueAverageStats() {
   }, { avgKda: 3.5, avgDmg: 91520, avgGoldDiff: 0, avgObjectives: 2.64 });
 }
 
-export async function getPlayerStatLinesByTeam(teamId: string) {
+async function getPlayerStatLinesByTeamBase(teamId: string) {
   return fromSupabase(async () => {
     const supabase = createSupabaseServerClient();
     const { data, error } = await supabase
@@ -1346,7 +1378,7 @@ export async function getPlayerStatLinesByTeam(teamId: string) {
   }, []);
 }
 
-export async function getTeamNews(teamId: string) {
+async function getTeamNewsBase(teamId: string) {
   return fromSupabase(async () => {
     const supabase = createSupabaseServerClient();
     const [videosResult, socialPostsResult] = await Promise.all([
@@ -1385,7 +1417,7 @@ export async function getTeamNews(teamId: string) {
   }, { videos: [], socialPosts: [] });
 }
 
-export async function getFanVideoFeed(teamId: string, playerIds: string[]) {
+async function getFanVideoFeedBase(teamId: string, playerIds: string[]) {
   return fromSupabase(async () => {
     const supabase = createSupabaseServerClient();
     const [teamVideosResult, playerVideosResult] = await Promise.all([
@@ -1425,7 +1457,7 @@ export async function getFanVideoFeed(teamId: string, playerIds: string[]) {
   }, { teamVideos: [], playerVideos: [] });
 }
 
-export async function getCommunityPosts() {
+async function getCommunityPostsBase() {
   return fromSupabase(async () => {
     const { data, error } = await createSupabaseServerClient()
       .from("community_posts")
@@ -1440,7 +1472,7 @@ export async function getCommunityPosts() {
   }, []);
 }
 
-export async function getLatestTeamVideos(limit = 8) {
+async function getLatestTeamVideosBase(limit = 8) {
   return fromSupabase(async () => {
     const { data, error } = await createSupabaseServerClient()
       .from("team_videos")
@@ -1462,7 +1494,7 @@ function isMissingTableError(error: unknown) {
   );
 }
 
-export async function getHomeHeroSlides({ activeOnly = true, limit }: { activeOnly?: boolean; limit?: number } = {}) {
+async function getHomeHeroSlidesBase({ activeOnly = true, limit }: { activeOnly?: boolean; limit?: number } = {}) {
   return fromSupabase(async () => {
     const supabase = createSupabaseServerClient();
     let query = supabase
@@ -1490,7 +1522,7 @@ export async function getHomeHeroSlides({ activeOnly = true, limit }: { activeOn
   }, []);
 }
 
-export async function getTeamEngagementStatus(teamId: string, hashedVoterKey: string) {
+async function getTeamEngagementStatusBase(teamId: string, hashedVoterKey: string) {
   return fromSupabase(async () => {
     // team_fans/team_checkins는 RLS로 anon 조회가 막혀 있어 admin 클라이언트로 읽는다(쓰기 액션과 동일).
     const supabase = createSupabaseAdminClient();
@@ -1515,7 +1547,7 @@ export async function getTeamEngagementStatus(teamId: string, hashedVoterKey: st
   }, { isFan: false, isCheckedInToday: false });
 }
 
-export async function getTeamFanCount(teamId: string) {
+async function getTeamFanCountBase(teamId: string) {
   return fromSupabase(async () => {
     // team_fans는 RLS로 anon 집계가 막혀 있어 admin 클라이언트로 카운트한다.
     const { count, error } = await createSupabaseAdminClient()
@@ -1527,7 +1559,7 @@ export async function getTeamFanCount(teamId: string) {
   }, 0);
 }
 
-export async function getAllTeamVideos() {
+async function getAllTeamVideosBase() {
   return fromSupabase(async () => {
     const { data, error } = await createSupabaseServerClient()
       .from("team_videos")
@@ -1539,7 +1571,7 @@ export async function getAllTeamVideos() {
   }, []);
 }
 
-export async function getHubCommunityPosts(limit = 5) {
+async function getHubCommunityPostsBase(limit = 5) {
   return fromSupabase(async () => {
     const { data, error } = await createSupabaseServerClient()
       .from("community_posts")
@@ -1553,7 +1585,7 @@ export async function getHubCommunityPosts(limit = 5) {
   }, []);
 }
 
-export async function getFanRatings() {
+async function getFanRatingsBase() {
   return fromSupabase(async () => {
     const { data, error } = await createSupabaseServerClient()
       .from("fan_ratings")
@@ -1568,7 +1600,7 @@ export async function getFanRatings() {
   }, []);
 }
 
-export async function getPlayerPomCount(playerId: string): Promise<number> {
+async function getPlayerPomCountBase(playerId: string): Promise<number> {
   return fromSupabase(async () => {
     const { count, error } = await createSupabaseServerClient()
       .from("matches")
@@ -1596,7 +1628,7 @@ export type TimelineEvent = {
   laneType: string | null;
 };
 
-export async function getTimelineEvents(setId: string): Promise<TimelineEvent[]> {
+async function getTimelineEventsBase(setId: string): Promise<TimelineEvent[]> {
   return fromSupabase(async () => {
     const { data, error } = await createSupabaseServerClient()
       .from("timeline_events")
@@ -1642,7 +1674,7 @@ export type MatchTimelineFrame = {
   csDiff: number | null;
 };
 
-export async function getTimelineFrames(setId: string): Promise<MatchTimelineFrame[]> {
+async function getTimelineFramesBase(setId: string): Promise<MatchTimelineFrame[]> {
   return fromSupabase(async () => {
     const { data, error } = await createSupabaseServerClient()
       .from("match_timeline_frames")
@@ -1670,7 +1702,7 @@ export async function getTimelineFrames(setId: string): Promise<MatchTimelineFra
   }, []);
 }
 
-export async function getFanPogVotes(): Promise<FanPogVote[]> {
+async function getFanPogVotesBase(): Promise<FanPogVote[]> {
   return fromSupabase(async () => {
     const { data, error } = await createSupabaseServerClient()
       .from("fan_pog_votes")
@@ -1692,7 +1724,7 @@ export async function getFanPogVotes(): Promise<FanPogVote[]> {
   }, []);
 }
 
-export async function getFanMatchPredictions(matchId?: string): Promise<FanMatchPrediction[]> {
+async function getFanMatchPredictionsBase(matchId?: string): Promise<FanMatchPrediction[]> {
   return fromSupabase(async () => {
     let query = createSupabaseServerClient()
       .from("fan_match_predictions")
@@ -1752,7 +1784,7 @@ function mapPlayerSocialPost(row: PlayerSocialPostRow): PlayerSocialPost {
   };
 }
 
-export async function getTeamInstagramFeed(
+async function getTeamInstagramFeedBase(
   teamId: string,
   playerIds: string[],
 ): Promise<{ teamPosts: TeamSocialPost[]; playerPosts: PlayerSocialPost[] }> {
@@ -1826,7 +1858,7 @@ function mapInstagramStory(row: InstagramStoryRow): InstagramStory {
   };
 }
 
-export async function getInstagramStories(
+async function getInstagramStoriesBase(
   teamId: string,
   playerIds: string[],
 ): Promise<InstagramStory[]> {
@@ -1866,3 +1898,53 @@ export async function getInstagramStories(
     });
   }, []);
 }
+
+// 요청(render) 내 동일 인자 재호출을 dedupe하기 위한 캐시 래핑.
+export const getTeamStandings = cache(getTeamStandingsBase);
+export const getTeams = cache(getTeamsBase);
+export const getAllTeams = cache(getAllTeamsBase);
+export const getPlayerAwards = cache(getPlayerAwardsBase);
+export const getTeamAwards = cache(getTeamAwardsBase);
+export const getTeamsSortedByRank = cache(getTeamsSortedByRankBase);
+export const getTeamById = cache(getTeamByIdBase);
+export const getTeamBySlug = cache(getTeamBySlugBase);
+export const getTeamByFanSiteHost = cache(getTeamByFanSiteHostBase);
+export const getTeamIdentityHistories = cache(getTeamIdentityHistoriesBase);
+export const getPlayers = cache(getPlayersBase);
+export const getRetiredPlayers = cache(getRetiredPlayersBase);
+export const getPlayersByTeamId = cache(getPlayersByTeamIdBase);
+export const getPlayerCareerHistories = cache(getPlayerCareerHistoriesBase);
+export const getAllPlayers = cache(getAllPlayersBase);
+export const getTournaments = cache(getTournamentsBase);
+export const getStages = cache(getStagesBase);
+export const getBracketStages = cache(getBracketStagesBase);
+export const getPlayerBySlug = cache(getPlayerBySlugBase);
+export const getPlayerById = cache(getPlayerByIdBase);
+export const getMatches = cache(getMatchesBase);
+export const getMatchById = cache(getMatchByIdBase);
+export const getSetsByMatchId = cache(getSetsByMatchIdBase);
+export const getSetDataCompletionBySetId = cache(getSetDataCompletionBySetIdBase);
+export const getSets = cache(getSetsBase);
+export const getSetById = cache(getSetByIdBase);
+export const getChampions = cache(getChampionsBase);
+export const getSetPicksBans = cache(getSetPicksBansBase);
+export const getPlayerStatLines = cache(getPlayerStatLinesBase);
+export const getLeagueAverageStats = cache(getLeagueAverageStatsBase);
+export const getPlayerStatLinesByTeam = cache(getPlayerStatLinesByTeamBase);
+export const getTeamNews = cache(getTeamNewsBase);
+export const getFanVideoFeed = cache(getFanVideoFeedBase);
+export const getCommunityPosts = cache(getCommunityPostsBase);
+export const getLatestTeamVideos = cache(getLatestTeamVideosBase);
+export const getHomeHeroSlides = cache(getHomeHeroSlidesBase);
+export const getTeamEngagementStatus = cache(getTeamEngagementStatusBase);
+export const getTeamFanCount = cache(getTeamFanCountBase);
+export const getAllTeamVideos = cache(getAllTeamVideosBase);
+export const getHubCommunityPosts = cache(getHubCommunityPostsBase);
+export const getFanRatings = cache(getFanRatingsBase);
+export const getPlayerPomCount = cache(getPlayerPomCountBase);
+export const getTimelineEvents = cache(getTimelineEventsBase);
+export const getTimelineFrames = cache(getTimelineFramesBase);
+export const getFanPogVotes = cache(getFanPogVotesBase);
+export const getFanMatchPredictions = cache(getFanMatchPredictionsBase);
+export const getTeamInstagramFeed = cache(getTeamInstagramFeedBase);
+export const getInstagramStories = cache(getInstagramStoriesBase);

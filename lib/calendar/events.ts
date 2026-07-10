@@ -2,6 +2,7 @@
 // 선수 생일(players.birth_date, 자동)과 관리자 입력 기념일(fan_calendar_events)을
 // 하나의 CalendarEvent로 정규화하고, KST 기준 D-day / n주년을 계산한다.
 
+import { cache } from "react";
 import { canQuerySupabase, createSupabaseServerClient } from "@/lib/supabase/server";
 import { getAllTeams } from "@/lib/data/lck";
 
@@ -99,7 +100,9 @@ type FanCalendarRow = {
  * 덕질 달력 이벤트 목록. dday 오름차순 정렬.
  * @param opts.teamId 지정 시 해당 팀 선수 생일 + 해당 팀 기념일만 반환(팬페이지용).
  */
-export async function getCalendarEvents(opts?: { teamId?: string }): Promise<CalendarEvent[]> {
+export const getCalendarEvents = cache(async function getCalendarEvents(opts?: {
+  teamId?: string;
+}): Promise<CalendarEvent[]> {
   if (!canQuerySupabase()) return [];
 
   const teamId = opts?.teamId;
@@ -195,7 +198,7 @@ export async function getCalendarEvents(opts?: { teamId?: string }): Promise<Cal
 
   events.sort((a, b) => a.dday - b.dday || a.title.localeCompare(b.title));
   return events;
-}
+});
 
 /** dday === 0 (오늘) 인 이벤트만. */
 export function getTodayCelebrations(events: CalendarEvent[]): CalendarEvent[] {
@@ -211,7 +214,9 @@ export type CelebrationMessage = {
 };
 
 /** 특정 이벤트의 축하 메시지 목록(최신순). */
-export async function getCelebrationMessages(eventKey: string): Promise<CelebrationMessage[]> {
+export const getCelebrationMessages = cache(async function getCelebrationMessages(
+  eventKey: string,
+): Promise<CelebrationMessage[]> {
   if (!canQuerySupabase()) return [];
   const { data } = await createSupabaseServerClient()
     .from("celebration_messages")
@@ -229,7 +234,7 @@ export async function getCelebrationMessages(eventKey: string): Promise<Celebrat
       createdAt: row.created_at,
     }),
   );
-}
+});
 
 export type FanCalendarEventRow = {
   id: string;
@@ -242,7 +247,9 @@ export type FanCalendarEventRow = {
 };
 
 /** 관리자 화면용 원본 기념일 목록(생일 제외, event_date 최신순). */
-export async function getFanCalendarEvents(): Promise<FanCalendarEventRow[]> {
+export const getFanCalendarEvents = cache(async function getFanCalendarEvents(): Promise<
+  FanCalendarEventRow[]
+> {
   if (!canQuerySupabase()) return [];
   const { data } = await createSupabaseServerClient()
     .from("fan_calendar_events")
@@ -258,6 +265,6 @@ export async function getFanCalendarEvents(): Promise<FanCalendarEventRow[]> {
     eventDate: row.event_date,
     isRecurring: row.is_recurring,
   }));
-}
+});
 
 export { TYPE_LABEL };
