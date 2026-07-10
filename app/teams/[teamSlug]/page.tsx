@@ -2,7 +2,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AtSign, ExternalLink, Globe2, Play } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
-import { DataTable } from "@/components/ui/data-table";
 import { TeamMatchHistory } from "@/components/domain/team-match-history";
 import {
   getCommunityPosts,
@@ -23,12 +22,8 @@ import {
   buildLeagueRadarStats,
   buildTeamStandingRows,
   buildTeamStatSummary,
-  durationLabel,
   formatDateTime,
   matchHref,
-  playerLabel,
-  teamLabel,
-  topFanRatingForMatch,
   type LeagueAverageInput,
 } from "@/lib/view-data";
 
@@ -64,14 +59,6 @@ function buildAwardLabel(award: TeamAward, baseLabel: string): string {
   return `LCK ${m[1]} ${suffix}`;
 }
 
-const SUMMARY_ORDER = [
-  { type: "lck_champion",          label: "LCK 우승",           icon: "🏆", champion: true },
-  { type: "worlds_champion",       label: "Worlds 우승",         icon: "🌍", champion: true },
-  { type: "msi_champion",          label: "MSI 우승",            icon: "🏆", champion: true },
-  { type: "first_stand_champion",  label: "First Stand 우승",    icon: "🏆", champion: true },
-  { type: "ewc_champion",          label: "EWC 우승",            icon: "🏆", champion: true },
-];
-
 function AwardHistory({ awards }: { awards: TeamAward[] }) {
   const teamAwards = awards.filter((a) => TEAM_AWARD_TYPES.has(a.awardType));
 
@@ -80,8 +67,6 @@ function AwardHistory({ awards }: { awards: TeamAward[] }) {
   for (const a of teamAwards) {
     countByType.set(a.awardType, (countByType.get(a.awardType) ?? 0) + 1);
   }
-  const summaryItems = SUMMARY_ORDER.filter((s) => (countByType.get(s.type) ?? 0) > 0);
-
   // 전체 이력: 연도별 그룹
   const byYear = new Map<number, TeamAward[]>();
   for (const a of teamAwards) {
@@ -256,9 +241,6 @@ function TeamRadarChart({
 }
 
 const POS_ORDER = ["TOP", "JGL", "MID", "BOT", "SUP"] as const;
-const POS_LABEL: Record<string, string> = {
-  TOP: "탑", JGL: "정글", MID: "미드", BOT: "원딜", SUP: "서폿",
-};
 
 export default async function TeamDetailPage({
   params,

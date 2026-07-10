@@ -116,7 +116,6 @@ type CargoPlayerRow = {
 };
 
 type GameSpell = { id: number; name: string; imageName: string };
-type GameItem = { id: number; name: string };
 
 // ─── Cargo API ──────────────────────────────────────────────────
 

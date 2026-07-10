@@ -4,7 +4,7 @@ import { ScheduleTodayScroll } from "@/components/domain/schedule-today-scroll";
 import { TeamLogo } from "@/components/ui/team-logo";
 import { isMatchLive, matchStatusLabel, stageName, tournamentTypeLabel } from "@/lib/match-display";
 import type { Match, Stage, Team, Tournament } from "@/lib/types";
-import { formatTimeKST, KST_TIMEZONE, matchHref } from "@/lib/view-data";
+import { dateKeyKST, formatTimeKST, KST_TIMEZONE, matchHref } from "@/lib/view-data";
 
 const TODAY_SECTION_ID = "schedule-today";
 
@@ -15,16 +15,6 @@ function dateHeading(value: string) {
     day: "numeric",
     weekday: "long",
   }).format(new Date(value));
-}
-
-/** KST 기준 YYYY-MM-DD 키 (오늘 날짜 비교용) */
-function dateKeyKST(value: Date | string) {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: KST_TIMEZONE,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(typeof value === "string" ? new Date(value) : value);
 }
 
 export function ScheduleList({

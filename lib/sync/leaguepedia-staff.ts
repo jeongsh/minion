@@ -4,12 +4,6 @@ const CARGO_API = "https://lol.fandom.com/api.php";
 const REQUEST_DELAY_MS = 3000;
 const MAX_RETRIES = 8;
 
-const HEAD_COACH_ROLES = new Set(["Head Coach"]);
-const COACH_ROLES = new Set(["Coach", "Assistant Coach"]);
-
-// LCK team slugs used in our DB
-const LCK_SLUGS = new Set(["hle", "geng", "t1", "dk", "kt", "bro", "fox", "ns", "drx", "soop"]);
-
 type StaffRow = {
   Player: string;
   Team: string;

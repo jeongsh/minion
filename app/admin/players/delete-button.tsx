@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { deletePlayerAction } from "./actions";
 
-export function DeleteButton({ id, name }: { id: string; name: string }) {
+export function DeleteButton({ id }: { id: string }) {
   const [confirm, setConfirm] = useState(false);
 
   useEffect(() => {

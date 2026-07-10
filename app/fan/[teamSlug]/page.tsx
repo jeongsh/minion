@@ -18,15 +18,14 @@ import {
   getTeamByFanSiteHost,
   getTeamBySlug,
   getTeamInstagramFeed,
-  getTeamStandings,
 } from "@/lib/data/lck";
 import { getBoardPosts } from "@/lib/data/community";
 import { buildFanVideoItems } from "@/lib/fan-video-items";
 import { getCalendarEvents, getCelebrationMessages, getTodayCelebrations } from "@/lib/calendar/events";
 import { getCurrentUser } from "@/lib/auth/current-user";
-import { formatTimeKST, matchHref } from "@/lib/view-data";
+import { dateKeyKST, formatTimeKST, matchHref } from "@/lib/view-data";
 import { CelebrationBanner, type CelebrationBannerItem } from "@/components/domain/celebration-banner";
-import type { Match, Player, Team, TeamStanding } from "@/lib/types";
+import type { Match, Player, Team } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -45,19 +44,6 @@ function formatMatchDay(value: string) {
 
 function byMatchDate(a: Match, b: Match) {
   return new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime();
-}
-
-function dateKeyKST(value: string | Date) {
-  const date = typeof value === "string" ? new Date(value) : value;
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Seoul",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(date);
-  const part = (type: Intl.DateTimeFormatPartTypes) => parts.find((item) => item.type === type)?.value ?? "";
-
-  return `${part("year")}-${part("month")}-${part("day")}`;
 }
 
 function yearMonthKeyKST(value: string) {
@@ -136,50 +122,6 @@ function MatchRow({ match, team, teams }: { match: Match; team: Team; teams: Tea
   );
 }
 
-// ─── 섹션: 순위·최근 폼 패널 (메인 페이지 순위/폼 언어를 카드로) ──
-
-function StandingPanel({ standing, recent }: { standing?: TeamStanding; recent: Array<"W" | "L"> }) {
-  return (
-    <div className="rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-5">
-      <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--ui-muted)]">Season Standing</p>
-      <div className="mt-4 flex items-end gap-4">
-        <p className="flex items-baseline gap-1">
-          <span className="font-archivo text-[46px] font-black leading-none" style={{ color: "var(--tp)" }}>
-            {standing?.rank ?? "-"}
-          </span>
-          <span className="text-lg font-black text-[var(--ui-muted)]">위</span>
-        </p>
-        <div className="flex flex-col pb-1.5">
-          <span className="text-[15px] font-black text-[var(--ui-ink)]">
-            {standing ? `${standing.wins}승 ${standing.losses}패` : "집계 중"}
-          </span>
-          <span className="text-xs font-semibold text-[var(--ui-muted)]">
-            {standing ? `세트 득실 ${standing.setDiff > 0 ? "+" : ""}${standing.setDiff}` : "정규시즌"}
-          </span>
-        </div>
-      </div>
-      <div className="mt-5 border-t border-[var(--ui-border)] pt-4">
-        <p className="mb-2.5 text-xs font-bold text-[var(--ui-muted)]">최근 5경기</p>
-        {recent.length ? (
-          <div className="flex gap-1.5">
-            {recent.map((value, index) => (
-              <span
-                key={index}
-                className="grid h-7 w-7 place-items-center rounded-full text-[11px] font-black text-white"
-                style={{ background: value === "W" ? "var(--tp)" : "var(--ui-muted)" }}
-              >
-                {value}
-              </span>
-            ))}
-          </div>
-        ) : (
-          <p className="text-xs text-[var(--ui-muted)]">기록이 없습니다.</p>
-        )}
-      </div>
-    </div>
-  );
-}
-
 // ─── 섹션: 로스터 ───────────────────────────────────────────────
 
 function Roster({ players, teamSlug }: { players: Player[]; teamSlug: string }) {
@@ -235,12 +177,11 @@ export default async function FanHomePage({
     notFound();
   }
 
-  const [teams, players, matches, boardPosts, standings, calendarEvents, user] = await Promise.all([
+  const [teams, players, matches, boardPosts, calendarEvents, user] = await Promise.all([
     getAllTeams(),
     getPlayers(),
     getMatches(),
     getBoardPosts({ scope: "team", teamId: team.id }),
-    getTeamStandings(),
     getCalendarEvents({ teamId: team.id }),
     getCurrentUser(),
   ]);
@@ -305,17 +246,6 @@ export default async function FanHomePage({
 
   // MATCHES 미니 리스트: 예정 3 + 결과 2
   const matchRows = [...upcomingMatches.slice(0, 3), ...completedMatches.slice(0, 2)];
-  const standing = standings
-    .filter((s) => s.teamId === team.id)
-    .sort((a, b) => b.wins + b.losses - (a.wins + a.losses))[0];
-  // 최근 폼: 실제 승패가 확정된 완료 경기에서 최근 5경기.
-  const recentForm = [...teamMatches]
-    .filter((match) => match.status === "completed")
-    .reverse()
-    .map((match) => teamResult(match, team))
-    .filter((result): result is "W" | "L" => result !== null)
-    .slice(0, 5);
-
   // FEED 데이터 준비 — 영상은 상세 페이지 라우팅용 routeId를 포함해 만든다.
   const playersById = new Map(teamPlayers.map((player) => [player.id, player]));
   const feedVideos: FeedVideoItem[] = buildFanVideoItems({

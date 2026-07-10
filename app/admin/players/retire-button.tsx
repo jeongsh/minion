@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { retirePlayerAction } from "./actions";
 
-export function RetireButton({ id, name }: { id: string; name: string }) {
+export function RetireButton({ id }: { id: string }) {
   const [confirm, setConfirm] = useState(false);
 
   useEffect(() => {

@@ -80,7 +80,6 @@ export function WeeklyReportView({ report, index }: { report: WeeklyReportRow; i
   const content = report.content;
   const { stats, review, meta, preview } = content;
   const championBySlug = new Map(stats.champions.map((champion) => [champion.slug, champion]));
-  const weekNumber = report.week_key.split("-W")[1] ?? report.week_key;
   const presenceTop = [...stats.champions].sort((a, b) => b.presenceRate - a.presenceRate).slice(0, 5);
   const banSpotlightChampion = meta.banSpotlight ? championBySlug.get(meta.banSpotlight.championSlug) : undefined;
   const generatedAt = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", dateStyle: "long", timeStyle: "short" }).format(new Date(report.generated_at));

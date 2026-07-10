@@ -27,7 +27,7 @@ import type {
   SetResult,
   Team,
 } from "@/lib/types";
-import { durationLabel, matchHref, playerLabel, teamLabel } from "@/lib/view-data";
+import { playerLabel, teamLabel } from "@/lib/view-data";
 
 import { overrideSetResultAction } from "../../../../sets/actions";
 import { SetFormShell } from "./set-form-shell";
@@ -60,41 +60,13 @@ function goldKValue(value: number | null | undefined) {
   return String(value / 1000);
 }
 
-function goldLabel(value: number | null | undefined) {
-  if (!value) return "-";
-  return `${(value / 1000).toFixed(1)}K`;
-}
-
 function damageLabel(value: number | null | undefined) {
   if (!value) return "-";
   return value >= 1000 ? `${(value / 1000).toFixed(1)}K` : value.toLocaleString("ko-KR");
 }
 
-function numberLabel(value: number | null | undefined) {
-  return value == null ? "-" : value.toLocaleString("ko-KR");
-}
-
 function itemImage(itemId: number, version: string) {
   return itemImageUrl(itemId, version);
-}
-
-function dragonText(set: SetResult, side: "blue" | "red") {
-  const prefix = side === "blue" ? "blue" : "red";
-  const entries = [
-    ["Cloud", set[`${prefix}Clouds` as keyof SetResult]],
-    ["Infernal", set[`${prefix}Infernals` as keyof SetResult]],
-    ["Mountain", set[`${prefix}Mountains` as keyof SetResult]],
-    ["Ocean", set[`${prefix}Oceans` as keyof SetResult]],
-    ["Hextech", set[`${prefix}Hextechs` as keyof SetResult]],
-    ["Chemtech", set[`${prefix}Chemtechs` as keyof SetResult]],
-    ["Elder", set[`${prefix}Elders` as keyof SetResult]],
-  ] as const;
-  const items = entries
-    .slice(0, 6)
-    .map(([label, value]) => ({ label, value: typeof value === "number" ? value : 0 }))
-    .filter((item) => item.value > 0);
-
-  return items.length > 0 ? items.map((item) => `${item.label} ${item.value}`).join(" / ") : "-";
 }
 
 function kdaText(rows: Array<{ line: { kills: number; deaths: number; assists: number } }>) {
@@ -383,161 +355,6 @@ function DamageRows({
         );
       })}
     </div>
-  );
-}
-
-function PlayerStatBoard({
-  blueRows,
-  redRows,
-  champions,
-  maxDamage,
-  teams,
-  blueTeamId,
-  redTeamId,
-  winnerTeamId,
-  itemVersion,
-}: {
-  blueRows: PlayerStatRow[];
-  redRows: PlayerStatRow[];
-  champions: Champion[];
-  maxDamage: number;
-  teams: Team[];
-  blueTeamId: string;
-  redTeamId: string;
-  winnerTeamId: string | null;
-  itemVersion: string;
-}) {
-  const renderTeamRows = (rows: PlayerStatRow[], side: "blue" | "red") =>
-    rows.map((row) => {
-      const champion = champions.find((item) => item.id === row.line.championId);
-      const image = championImage(champion);
-      const damageWidth = Math.max(4, (row.line.damageToChampions / maxDamage) * 100);
-      const accent = side === "blue" ? "bg-accent" : "bg-rose-500";
-
-      return (
-        <div
-          key={`${side}-${row.line.playerId}`}
-          className="grid min-w-[58rem] grid-cols-[14rem_9rem_11rem_7rem_7rem_1fr] items-center gap-4 border-t border-border px-4 py-2.5 text-sm"
-        >
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded bg-surface-muted">
-              {image ? <Image src={image} alt="" width={44} height={44} className="h-full w-full object-cover" /> : null}
-              <span className="absolute bottom-0 right-0 rounded-tl bg-background/90 px-1 text-xs font-semibold">
-                {row.line.position}
-              </span>
-            </div>
-            <div className="min-w-0">
-              <p className="truncate font-semibold">
-                {teamLabel(teams, row.line.teamId)} {row.player?.name ?? "-"}
-              </p>
-              <p className="truncate text-xs text-muted">{champion?.name ?? "-"}</p>
-            </div>
-          </div>
-
-          <div className="text-center">
-            <p className="font-semibold tabular-nums">
-              {row.line.kills} / {row.line.deaths} / {row.line.assists}
-            </p>
-            <p className="text-xs font-semibold text-muted tabular-nums">{row.stats.kda.toFixed(2)}</p>
-          </div>
-
-          <div>
-            <div className="flex items-center justify-between gap-3">
-              <span className="font-semibold tabular-nums">{numberLabel(row.line.damageToChampions)}</span>
-              <span className="text-xs text-muted tabular-nums">DPM {row.stats.dpm}</span>
-            </div>
-            <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-surface-muted">
-              <div className={`h-full rounded-full ${accent}`} style={{ width: `${damageWidth}%` }} />
-            </div>
-          </div>
-
-          <div className="text-center font-semibold tabular-nums">{row.line.visionScore}</div>
-
-          <div className="text-center">
-            <p className="font-semibold tabular-nums">{row.line.cs}</p>
-            <p className="text-xs text-muted tabular-nums">{row.stats.csm.toFixed(1)}</p>
-          </div>
-
-          <div className="flex flex-wrap gap-1">
-            {row.line.itemIds.some((itemId) => itemId && itemId > 0) ? (
-              row.line.itemIds.map((itemId, index) =>
-                itemId && itemId > 0 ? (
-                  <Image
-                    key={`${itemId}-${index}`}
-                    src={itemImage(itemId, itemVersion)}
-                    alt=""
-                    width={28}
-                    height={28}
-                    className="h-7 w-7 rounded border border-border bg-surface-muted object-cover"
-                  />
-                ) : (
-                  <span
-                    key={`empty-${index}`}
-                    className="h-7 w-7 rounded border border-dashed border-border bg-surface-muted"
-                    aria-hidden="true"
-                  />
-                ),
-              )
-            ) : (
-              <span className="text-xs font-semibold text-muted">Riot items not synced</span>
-            )}
-            {row.line.roleBoundItem ? (
-              <Image
-                src={itemImage(row.line.roleBoundItem, itemVersion)}
-                alt=""
-                width={28}
-                height={28}
-                className="h-7 w-7 rounded border border-accent bg-surface-muted object-cover"
-                title="퀘스트 아이템"
-              />
-            ) : null}
-          </div>
-        </div>
-      );
-    });
-
-  const teamBlock = (teamId: string, side: "blue" | "red", rows: PlayerStatRow[]) => {
-    const won = winnerTeamId === teamId;
-    return (
-      <div>
-        <div className="flex items-center justify-between gap-3 bg-surface-muted px-4 py-3">
-          <div className="flex items-center gap-2">
-            <strong>{teamLabel(teams, teamId)}</strong>
-            <span className={`text-xs font-semibold ${won ? "text-accent" : "text-muted"}`}>
-              {won ? "Victory" : "Defeat"}
-            </span>
-          </div>
-          <span className="text-xs font-semibold text-muted">{side === "blue" ? "Blue Side" : "Red Side"}</span>
-        </div>
-        {renderTeamRows(rows, side)}
-      </div>
-    );
-  };
-
-  return (
-    <section className="flex flex-col gap-4" aria-labelledby="player-stats">
-      <h2 id="player-stats" className="text-2xl font-semibold">
-        Player stats
-      </h2>
-      {blueRows.length + redRows.length === 0 ? (
-        <div className="rounded-md border border-border bg-surface p-6 text-sm text-muted">
-          Player stats have not been synced yet.
-        </div>
-      ) : (
-        <div className="overflow-x-auto rounded-md border border-border bg-surface">
-          <div className="grid min-w-[58rem] grid-cols-[14rem_9rem_11rem_7rem_7rem_1fr] gap-4 px-4 py-3 text-xs font-semibold uppercase text-muted">
-            <span>Champion / Player</span>
-            <span className="text-center">KDA</span>
-            <span>Damage</span>
-            <span className="text-center">Sight</span>
-            <span className="text-center">CS</span>
-            <span>Items</span>
-          </div>
-          {teamBlock(blueTeamId, "blue", blueRows)}
-          {teamBlock(redTeamId, "red", redRows)}
-        </div>
-      )}
-    </section>
   );
 }
 

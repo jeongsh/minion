@@ -7,6 +7,7 @@ import { ChevronLeft, ChevronRight, Clock3, Coins, RotateCcw, Trophy, X } from "
 import { cancelPredictionBetAction, placePredictionBetAction } from "@/app/predictions/actions";
 import { TeamLogo } from "@/components/ui/team-logo";
 import { predictionMarketForMatch, predictionMaxStake, type PredictionBet, type PredictionRanking } from "@/lib/predictions";
+import { dateKeyKST } from "@/lib/view-data";
 import type { Match, Team, Tournament } from "@/lib/types";
 
 type PredictionBoardProps = {
@@ -23,10 +24,6 @@ type PredictionBoardProps = {
 type BetDialog = { matchId: string; teamId: string; teamName: string; existingBet?: PredictionBet };
 
 const KST_OFFSET = 9 * 60 * 60 * 1000;
-
-function kstDateKey(date: string) {
-  return new Date(new Date(date).getTime() + KST_OFFSET).toISOString().slice(0, 10);
-}
 
 function weekStartKey(date: string) {
   const value = new Date(new Date(date).getTime() + KST_OFFSET);
@@ -72,7 +69,7 @@ export function PredictionBoard({ matches, teams, tournaments, bets, currentUser
   const filteredMatches = weekMatches
     .filter((match) => selectedTournament === "all" || match.tournamentId === selectedTournament)
     .sort((a, b) => new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime());
-  const grouped = Object.groupBy(filteredMatches, (match) => kstDateKey(match.matchDate));
+  const grouped = Object.groupBy(filteredMatches, (match) => dateKeyKST(match.matchDate));
 
   function moveWeek(direction: number) {
     const next = weekKeys[weekIndex + direction];
@@ -155,7 +152,7 @@ export function PredictionBoard({ matches, teams, tournaments, bets, currentUser
           <section key={date}>
             <h2 className="home-section-title mb-3 flex items-center gap-2 text-[18px] text-[var(--ui-ink)]">
               {dateLabel(dayMatches[0].matchDate)}
-              {date === kstDateKey(new Date().toISOString()) ? <span className="rounded-full bg-[var(--accent)] px-2 py-0.5 text-[11px] font-bold text-[var(--accent-foreground)]">오늘</span> : null}
+              {date === dateKeyKST(new Date().toISOString()) ? <span className="rounded-full bg-[var(--accent)] px-2 py-0.5 text-[11px] font-bold text-[var(--accent-foreground)]">오늘</span> : null}
             </h2>
             <div className="flex flex-col gap-3">
               {dayMatches.map((match) => {

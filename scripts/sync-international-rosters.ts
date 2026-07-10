@@ -190,16 +190,6 @@ async function loadTeamsCache(supabase: any) {
   return { bySlug, byLeaguepediaKey };
 }
 
-function resolveTeam(leaguepediaTeamName: string, cache: Awaited<ReturnType<typeof loadTeamsCache>>) {
-  const displayName = displayNameFromLeaguepediaPage(leaguepediaTeamName);
-  const slug = slugifyTeamName(displayName);
-  if (slug && cache.bySlug.has(slug)) return cache.bySlug.get(slug) ?? null;
-
-  const key = normalizeLookupKey(leaguepediaTeamName);
-  if (key) return cache.byLeaguepediaKey.get(key) ?? null;
-  return null;
-}
-
 async function findOrCreateInternationalTeam(
   supabase: any,
   leaguepediaTeamName: string,

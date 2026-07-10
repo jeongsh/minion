@@ -103,12 +103,6 @@ function kdaText(
   return `${totals.kills}/${totals.deaths}/${totals.assists}`;
 }
 
-function setKillsForTeam(set: SetResult, teamId: string) {
-  if (set.blueTeamId === teamId) return set.blueKills;
-  if (set.redTeamId === teamId) return set.redKills;
-  return null;
-}
-
 function SetSummaryHeader({
   set,
   teams,

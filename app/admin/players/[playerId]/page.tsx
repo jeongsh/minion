@@ -5,10 +5,6 @@ import { SectionHeader } from "@/components/layout/section-header";
 import { getPlayerById, getPlayerCareerHistories, getTeamsSortedByRank } from "@/lib/data/lck";
 import { PlayerEditForm } from "./player-edit-form";
 
-function leaguepediaWikiUrl(pageName: string) {
-  return `https://lol.fandom.com/wiki/${pageName.replace(/ /g, "_")}`;
-}
-
 export default async function AdminPlayerDetailPage({
   params,
 }: {

@@ -25,22 +25,12 @@ function draftWithChampion(draft: SetPickBan[], champions: Champion[]) {
   }));
 }
 
-function orderNumber(item: SetPickBan, items: SetPickBan[]) {
-  return items.findIndex((draft) => draft.id === item.id) + 1;
-}
-
 function DraftTile({
   item,
-  label,
-  subLabel,
   muted = false,
-  align = "left",
 }: {
   item: DraftItem | null;
-  label?: string;
-  subLabel?: string;
   muted?: boolean;
-  align?: "left" | "right";
 }) {
   const image = championImage(item?.champion);
   return (
@@ -69,22 +59,8 @@ function DraftGrid({
   reverse?: boolean;
 }) {
   const bans = draftWithChampion(side.bans, champions);
-  const picks = draftWithChampion(side.picks, champions);
   const orderedBans = [...bans].sort((a, b) => a.orderIndex - b.orderIndex);
-  const orderedPicks = [...picks].sort((a, b) => a.orderIndex - b.orderIndex);
-  const displayBans = reverse ? [...bans].reverse() : bans;
   const displayOrderedBans = reverse ? [...orderedBans].reverse() : orderedBans;
-  const displayOrderedPicks = reverse ? [...orderedPicks].reverse() : orderedPicks;
-  const lineEntries = side.lineup.map((line, index) => {
-    const item = side.linePicks[index]
-      ? {
-          ...side.linePicks[index],
-          champion: champions.find((champion) => champion.id === side.linePicks[index]?.championId),
-        }
-      : null;
-    return { line, item };
-  });
-  const displayLineEntries = reverse ? [...lineEntries].reverse() : lineEntries;
 
   if (mode === "order") {
     return (
@@ -97,12 +73,7 @@ function DraftGrid({
             {Array.from({ length: 5 }, (_, index) => {
               const item = displayOrderedBans[index] ?? null;
               return (
-                <DraftTile
-                  key={item?.id ?? `ban-order-${index}`}
-                  item={item}
-                  muted
-                  label={item ? `${orderNumber(item, orderedBans)}번 밴` : `${index + 1}번 밴`}
-                />
+                <DraftTile key={item?.id ?? `ban-order-${index}`} item={item} muted />
               );
             })}
           </div>
@@ -120,8 +91,7 @@ function DraftGrid({
         <div className="grid grid-cols-5 gap-2">
           {Array.from({ length: 5 }, (_, index) => {
             const item = displayOrderedBans[index] ?? null;
-            const banNumber = item ? orderedBans.findIndex((b) => b.id === item.id) + 1 : null;
-            return <DraftTile key={item?.id ?? `ban-${index}`} item={item} muted label={banNumber ? `ban${banNumber}` : ""} />;
+            return <DraftTile key={item?.id ?? `ban-${index}`} item={item} muted />;
           })}
         </div>
       </div>
@@ -138,7 +108,7 @@ export function SetDraftView({
   red: DraftSide;
   champions: Champion[];
 }) {
-  const [mode, setMode] = useState<"line" | "order">("line");
+  const [mode] = useState<"line" | "order">("line");
 
   return (
     <div className="grid gap-4 rounded-md border border-border bg-surface p-4">

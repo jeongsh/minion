@@ -8,7 +8,7 @@ import { PlayerItemSlots } from "@/app/matches/[matchId]/player-item-slots";
 import type { RuneCatalog } from "@/lib/runes";
 import type { GameSpell } from "@/lib/spells";
 import type { FanRating, Match, Player, PlayerStatLine, SetResult, Team } from "@/lib/types";
-import { teamLabel } from "@/lib/view-data";
+import { dateKeyKST, teamLabel } from "@/lib/view-data";
 
 type ChampionLike = {
   id: string;
@@ -44,17 +44,6 @@ function compactDate(value: string | null | undefined) {
     month: "2-digit",
     day: "2-digit",
   }).format(new Date(value));
-}
-
-function dateKeyKST(value: string) {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Seoul",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(new Date(value));
-  const data = Object.fromEntries(parts.map((part) => [part.type, part.value]));
-  return `${data.year}-${data.month}-${data.day}`;
 }
 
 function matchScore(match: Match) {

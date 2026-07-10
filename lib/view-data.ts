@@ -39,6 +39,20 @@ export function formatDateHeaderKST(value: string) {
   }).format(new Date(value));
 }
 
+/** KST 기준 "YYYY-MM-DD" 날짜 키. 캘린더/일정 화면에서 날짜별로 묶을 때 쓴다. */
+export function dateKeyKST(value: string | Date) {
+  const date = typeof value === "string" ? new Date(value) : value;
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: KST_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const part = (type: Intl.DateTimeFormatPartTypes) => parts.find((item) => item.type === type)?.value ?? "";
+
+  return `${part("year")}-${part("month")}-${part("day")}`;
+}
+
 export function getMonthKST(value: string) {
   return Number(
     new Intl.DateTimeFormat("en-US", { timeZone: KST_TIMEZONE, month: "numeric" }).format(

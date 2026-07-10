@@ -89,8 +89,6 @@ export function InternationalRosterScriptHint() {
     }
   }, []);
 
-  const disabled = state === "running";
-
   return (
     <section className="flex flex-col gap-3 rounded-md border border-border bg-surface p-4 text-sm">
       <div className="flex flex-col gap-1">

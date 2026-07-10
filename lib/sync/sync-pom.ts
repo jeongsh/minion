@@ -1,7 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 const CARGO_API = "https://lol.fandom.com/api.php";
-const REQUEST_DELAY_MS = 5000;
 const RATE_LIMIT_BASE_MS = 20000;
 const MAX_RETRIES = 15;
 const PAGE_DELAY_MS = 15000;

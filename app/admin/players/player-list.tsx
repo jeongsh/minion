@@ -133,8 +133,8 @@ export function PlayerList({
                           >
                             수정
                           </Link>
-                          <RetireButton id={p.id} name={p.name} />
-                          <DeleteButton id={p.id} name={p.name} />
+                          <RetireButton id={p.id} />
+                          <DeleteButton id={p.id} />
                           <CareerHistoryPanel
                             player={p}
                             histories={careerHistories}
@@ -219,7 +219,7 @@ export function PlayerList({
                             복귀
                           </button>
                         </form>
-                        <DeleteButton id={p.id} name={p.name} />
+                        <DeleteButton id={p.id} />
                       </div>
                     </div>
 
@@ -241,7 +241,7 @@ export function PlayerList({
                           {/* 세로 타임라인 선 */}
                           <div className="absolute left-[7px] top-2 bottom-2 w-px bg-border" />
 
-                          {mine.map((h, i) => {
+                          {mine.map((h) => {
                             const team = h.teamId ? teamMap.get(h.teamId) : null;
                             const teamLabel =
                               team?.name ?? h.teamName ?? "팀 없음";
