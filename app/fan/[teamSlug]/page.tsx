@@ -5,8 +5,10 @@ import { ChevronRight } from "lucide-react";
 import type { FeedInstaItem, FeedVideoItem } from "@/components/fan/fan-feed-mosaic";
 import { HomeBoardCarousel } from "@/components/domain/home-board-carousel";
 import { HomeCalendar, type HomeCalendarMatch } from "@/components/domain/home-calendar";
+import { FanChannelHeader } from "@/components/fan/fan-channel-header";
 import { FanPageShell } from "@/components/fan/fan-page-shell";
 import { FanSocialPreview } from "@/components/fan/fan-social-preview";
+import { FanTemperatureCard } from "@/components/fan/fan-temperature-card";
 import { AdSlot } from "@/components/ui/ad-slot";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { TeamLogo } from "@/components/ui/team-logo";
@@ -20,6 +22,7 @@ import {
   getTeamInstagramFeed,
 } from "@/lib/data/lck";
 import { getBoardPosts } from "@/lib/data/community";
+import { getFanTemperatureSnapshot } from "@/lib/data/fan-pulse";
 import { buildFanVideoItems } from "@/lib/fan-video-items";
 import { getCalendarEvents, getCelebrationMessages, getTodayCelebrations } from "@/lib/calendar/events";
 import { getCurrentUser } from "@/lib/auth/current-user";
@@ -177,13 +180,14 @@ export default async function FanHomePage({
     notFound();
   }
 
-  const [teams, players, matches, boardPosts, calendarEvents, user] = await Promise.all([
+  const [teams, players, matches, boardPosts, calendarEvents, user, fanTemperature] = await Promise.all([
     getAllTeams(),
     getPlayers(),
     getMatches(),
     getBoardPosts({ scope: "team", teamId: team.id }),
     getCalendarEvents({ teamId: team.id }),
     getCurrentUser(),
+    getFanTemperatureSnapshot(team.id),
   ]);
 
   const todayCelebrations = getTodayCelebrations(calendarEvents);
@@ -275,7 +279,9 @@ export default async function FanHomePage({
   ].sort((a, b) => (b.postedAt ? new Date(b.postedAt).getTime() : 0) - (a.postedAt ? new Date(a.postedAt).getTime() : 0));
 
   return (
-    <FanPageShell contentClassName="">
+    <>
+      <FanChannelHeader teamSlug={teamSlug} />
+      <FanPageShell contentClassName="">
       <div
         className="flex flex-col gap-12 text-[var(--ui-ink)]"
         style={{ "--tp": team.primaryColor } as React.CSSProperties}
@@ -284,6 +290,14 @@ export default async function FanHomePage({
         {celebrationItems.length > 0 ? (
           <CelebrationBanner items={celebrationItems} isLoggedIn={Boolean(user)} />
         ) : null}
+
+        <FanTemperatureCard
+          teamId={team.id}
+          teamSlug={team.fanSiteHost}
+          teamName={team.shortName}
+          teamColor={team.primaryColor}
+          initialSnapshot={fanTemperature}
+        />
 
         {/* 경기 일정 + 캘린더 */}
         <section className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
@@ -355,6 +369,7 @@ export default async function FanHomePage({
 
         <AdSlot className="h-24" />
       </div>
-    </FanPageShell>
+      </FanPageShell>
+    </>
   );
 }

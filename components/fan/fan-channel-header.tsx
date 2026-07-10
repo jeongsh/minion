@@ -2,7 +2,6 @@ import { getIsFan } from "@/app/fan/[teamSlug]/actions";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { FanFollowButton } from "@/components/fan/fan-follow-button";
 import { FanPredictionCard } from "@/components/fan/fan-prediction-card";
-import { FanChannelNavigation } from "@/components/fan/fan-channel-navigation";
 import { getAllTeams, getMatches, getTeamByFanSiteHost, getTeamBySlug, getTeamFanCount } from "@/lib/data/lck";
 import { getPredictionMarketData } from "@/lib/predictions";
 import type { Match, Team } from "@/lib/types";
@@ -49,7 +48,7 @@ export async function FanChannelHeader({ teamSlug }: { teamSlug: string }) {
     ...recentMatches.slice(0, 2).map((item) => `RECENT · ${team.shortName} ${resultOf(item, team)} ${opponentOf(item, team, teams)?.shortName ?? "TBD"} · ${tickerDateTime(item.matchDate)}`),
   ];
   if (!tickerItems.length) tickerItems.push(`${team.shortName} · 등록된 경기 일정이 없습니다`);
-  return <>
+  return (
     <header className="relative overflow-hidden text-white" style={{background:team.primaryColor}}>
       <div className="relative mx-auto max-w-[1400px] px-5"><span aria-hidden className="font-archivo pointer-events-none absolute -right-2 -top-16 text-[250px] font-black leading-none text-white/[0.07]">{team.shortName}</span>
         <div className="relative grid items-center gap-11 pb-10 pt-11 lg:grid-cols-[1fr_380px]">
@@ -64,6 +63,5 @@ export async function FanChannelHeader({ teamSlug }: { teamSlug: string }) {
       </div>
       <div className="overflow-hidden bg-black/20 py-[9px]"><div className="font-archivo fan-ticker-track text-xs font-extrabold tracking-[0.12em] text-white/85">{[false,true].map((hidden)=><div key={String(hidden)} className="fan-ticker-group" aria-hidden={hidden||undefined}>{tickerItems.map((item)=><span key={item} className="px-5">{item}<span className="ml-10 text-white/45">•</span></span>)}</div>)}</div></div>
     </header>
-    <FanChannelNavigation teamSlug={team.fanSiteHost}/>
-  </>;
+  );
 }

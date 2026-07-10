@@ -1,6 +1,6 @@
 import { FanSiteLayout } from "@/components/fan/fan-site-layout";
-import { FanChannelHeader } from "@/components/fan/fan-channel-header";
-import { fanSiteHosts } from "@/lib/team-themes";
+import { FanChannelNavigation } from "@/components/fan/fan-channel-navigation";
+import { fanSiteHosts, getTeamByRouteKey } from "@/lib/team-themes";
 
 export function generateStaticParams() {
   return fanSiteHosts.map((teamSlug) => ({ teamSlug }));
@@ -14,10 +14,11 @@ export default async function FanTeamLayout({
   params: Promise<{ teamSlug: string }>;
 }) {
   const { teamSlug } = await params;
+  const team = getTeamByRouteKey(teamSlug);
 
   return (
     <FanSiteLayout teamSlug={teamSlug}>
-      <FanChannelHeader teamSlug={teamSlug} />
+      <FanChannelNavigation teamSlug={team?.fanSiteHost ?? teamSlug} />
       {children}
     </FanSiteLayout>
   );
