@@ -14,7 +14,7 @@ export function TeamCard({ team }: { team: Team }) {
         <TeamLogo team={team} size="h-20 w-20 sm:h-24 sm:w-24" plain />
 
         <div className="min-w-0 flex-1">
-          <p className="font-archivo text-xs font-black uppercase tracking-[0.14em] text-[var(--ui-muted)]">
+          <p className="text-xs font-black uppercase tracking-[0.1em] text-[var(--ui-muted)]">
             {team.shortName}
           </p>
           <h2 className="mt-1 text-base font-black leading-6 text-[var(--ui-ink)] sm:text-lg">

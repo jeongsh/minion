@@ -118,7 +118,7 @@ function SetSummaryHeader({
   const teamAWon = decided && set.winnerTeamId === set.blueTeamId;
   const teamBWon = decided && set.winnerTeamId === set.redTeamId;
   const killClass = (won: boolean) =>
-    `font-archivo text-[26px] font-black leading-none tabular-nums sm:text-[30px] ${
+    `text-[26px] font-black leading-none tabular-nums sm:text-[30px] ${
       !decided || won ? "text-[var(--ui-ink)]" : "text-[var(--ui-muted)]"
     }`;
 

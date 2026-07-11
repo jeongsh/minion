@@ -81,11 +81,11 @@ export function WinnerPredictionPoll({
         <div className="flex items-end justify-between gap-4">
           <div>
             <strong className="text-sm font-black text-[var(--ui-ink)]">{teamAName}</strong>
-            <p className="mt-1 font-archivo text-[28px] font-black leading-none tabular-nums" style={{ color: teamAColor }}>{teamAPercent}%</p>
+            <p className="mt-1 text-[28px] font-black leading-none tabular-nums" style={{ color: teamAColor }}>{teamAPercent}%</p>
           </div>
           <div className="text-right">
             <strong className="text-sm font-black text-[var(--ui-ink)]">{teamBName}</strong>
-            <p className="mt-1 font-archivo text-[28px] font-black leading-none tabular-nums" style={{ color: teamBColor }}>{teamBPercent}%</p>
+            <p className="mt-1 text-[28px] font-black leading-none tabular-nums" style={{ color: teamBColor }}>{teamBPercent}%</p>
           </div>
         </div>
         <div className="mt-3 flex h-3 overflow-hidden rounded-full bg-[var(--ui-surface-muted)]" aria-label={`${teamAName} ${teamAPercent}%, ${teamBName} ${teamBPercent}%`}>

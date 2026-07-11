@@ -20,9 +20,9 @@ export function FanChannelNavigation({ teamSlug }: { teamSlug: string }) {
   return (
     <nav
       aria-label="팬페이지 메뉴"
-      className="sticky top-16 z-30 border-b border-[#e8e8eb] bg-[var(--ui-surface)]/95 backdrop-blur dark:border-[#383c44]"
+      className="sticky top-16 z-30 border-b border-[var(--ui-border)] bg-[var(--ui-surface)]"
     >
-      <div className="mx-auto flex max-w-[1400px] gap-7 overflow-x-auto px-5">
+      <div className="fan-nav-scroll mx-auto flex max-w-[1400px] gap-5 overflow-x-auto px-5 sm:gap-7">
         {tabs.map((tab) => {
           const href = tab.segment ? `${home}/${tab.segment}` : home;
           const active = tab.segment ? pathname.startsWith(href) : pathname === home;
@@ -32,8 +32,8 @@ export function FanChannelNavigation({ teamSlug }: { teamSlug: string }) {
               href={href}
               className={`shrink-0 border-b-[3px] px-2 py-3 text-sm font-bold transition-colors ${
                 active
-                  ? "border-[var(--team-primary)] text-[var(--team-primary)]"
-                  : "border-transparent text-[#6f737a] hover:text-[#18191c]"
+                  ? "border-[var(--team-accent-text)] text-[var(--team-accent-text)]"
+                  : "border-transparent text-[var(--ui-muted)] hover:text-[var(--ui-ink)]"
               }`}
             >
               {tab.label}

@@ -73,7 +73,7 @@ export function PlayerRosterCarousel({ players }: { players: Player[] }) {
               </span>
             </div>
             <div className="flex flex-col gap-0.5 p-3.5">
-              <span className="font-archivo truncate text-[15px] font-black leading-tight text-[var(--ui-ink)] transition-colors group-hover:text-[var(--tp)]">
+              <span className="truncate text-[15px] font-black leading-tight text-[var(--ui-ink)] transition-colors group-hover:text-[var(--tp)]">
                 {player.name}
               </span>
               {player.realName && (

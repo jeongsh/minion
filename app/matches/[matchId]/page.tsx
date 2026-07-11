@@ -302,7 +302,7 @@ function RatingPlayerRow({
         <p className="text-xs font-bold text-[var(--ui-muted)]">{line.position}</p>
       </div>
       <div className="text-right">
-        <p className="font-archivo text-[18px] font-black tabular-nums text-[var(--ui-ink)]">
+        <p className="text-[18px] font-black tabular-nums text-[var(--ui-ink)]">
           {average == null ? "-" : average.toFixed(1)}
         </p>
         <p className="text-xs font-semibold text-[var(--ui-muted)]">{ratings.length}개</p>
@@ -426,7 +426,7 @@ function MatchRatingPanel({
                 <p className="mt-1 text-sm font-semibold text-[var(--ui-muted)]">
                   {teamLabel(teams, leaderPlayer?.teamId)} · {leader.count}개 평점
                 </p>
-                <p className="mt-3 font-archivo text-[36px] font-black leading-none tabular-nums text-[var(--ui-ink)]">
+                <p className="mt-3 text-[36px] font-black leading-none tabular-nums text-[var(--ui-ink)]">
                   {leader.average.toFixed(1)}
                   <span className="text-base font-bold text-[var(--ui-muted)]"> / 5</span>
                 </p>
@@ -512,7 +512,7 @@ function MatchRatingPanel({
                     <p className="text-sm font-black text-[var(--ui-ink)]">{player?.name ?? "-"}</p>
                     <p className="mt-1 text-sm text-[var(--ui-text)]">{rating.review}</p>
                   </div>
-                  <p className="font-archivo text-base font-black tabular-nums text-[var(--ui-ink)]">
+                  <p className="text-base font-black tabular-nums text-[var(--ui-ink)]">
                     {rating.rating.toFixed(1)}
                   </p>
                 </article>
@@ -649,7 +649,7 @@ export default async function MatchDetailPage({
               <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--ui-muted)]">
                 {match.status === "completed" ? "Final Score" : match.status === "live" ? "Live Score" : "Match Up"}
               </p>
-              <p className="font-archivo mt-2 text-[44px] font-black leading-none tabular-nums text-[var(--ui-ink)] sm:text-[56px]">
+              <p className="mt-2 text-[44px] font-black leading-none tabular-nums text-[var(--ui-ink)] sm:text-[56px]">
                 {matchScoreLabel(match.teamAScore, match.teamBScore)}
               </p>
               <span className="mt-3 rounded-full bg-[var(--ui-surface-muted)] px-3 py-1 text-[11px] font-bold text-[var(--ui-muted)]">

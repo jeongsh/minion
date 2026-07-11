@@ -8,7 +8,6 @@ import { HomeCalendar, type HomeCalendarMatch } from "@/components/domain/home-c
 import { FanChannelHeader } from "@/components/fan/fan-channel-header";
 import { FanPageShell } from "@/components/fan/fan-page-shell";
 import { FanSocialPreview } from "@/components/fan/fan-social-preview";
-import { FanTemperatureCard } from "@/components/fan/fan-temperature-card";
 import { AdSlot } from "@/components/ui/ad-slot";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { TeamLogo } from "@/components/ui/team-logo";
@@ -95,7 +94,7 @@ function MatchRow({ match, team, teams }: { match: Match; team: Team; teams: Tea
   return (
     <div className="flex h-[72px] items-center gap-3 px-4 md:px-5">
       <span
-        className={`font-archivo grid h-9 w-11 shrink-0 place-items-center rounded-lg text-xs font-black ${
+        className={`grid h-9 w-11 shrink-0 place-items-center rounded-lg text-xs font-black tabular-nums ${
           scheduled ? "bg-[var(--ui-surface-muted)] text-[var(--ui-ink)]" : "text-white"
         }`}
         style={scheduled ? undefined : { background: result === "W" ? "var(--tp)" : "var(--ui-muted)" }}
@@ -153,7 +152,7 @@ function Roster({ players, teamSlug }: { players: Player[]; teamSlug: string }) 
               )}
             </span>
             <div className="flex min-w-0 flex-col gap-[1px]">
-              <span className="font-archivo truncate text-[15px] font-black text-[var(--ui-ink)]">{player.name}</span>
+              <span className="truncate text-[15px] font-black text-[var(--ui-ink)]">{player.name}</span>
               <span className="text-[12px] font-extrabold" style={{ color: "var(--tp)" }}>
                 {player.position}{" "}
                 <span className="font-bold text-[var(--ui-muted)]">· KDA {mockKda(player.id)}</span>
@@ -280,10 +279,10 @@ export default async function FanHomePage({
 
   return (
     <>
-      <FanChannelHeader teamSlug={teamSlug} />
+      <FanChannelHeader teamSlug={teamSlug} fanTemperature={fanTemperature} />
       <FanPageShell contentClassName="">
       <div
-        className="flex flex-col gap-12 text-[var(--ui-ink)]"
+        className="flex flex-col gap-8 text-[var(--ui-ink)] md:gap-10"
         style={{ "--tp": team.primaryColor } as React.CSSProperties}
       >
         {/* 오늘의 기념일 배너 */}
@@ -291,19 +290,11 @@ export default async function FanHomePage({
           <CelebrationBanner items={celebrationItems} isLoggedIn={Boolean(user)} />
         ) : null}
 
-        <FanTemperatureCard
-          teamId={team.id}
-          teamSlug={team.fanSiteHost}
-          teamName={team.shortName}
-          teamColor={team.primaryColor}
-          initialSnapshot={fanTemperature}
-        />
-
         {/* 경기 일정 + 캘린더 */}
         <section className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
           <div>
             <SectionHeading href={`/fan/${team.fanSiteHost}/matches`}>경기 일정</SectionHeading>
-            <div className="h-[360px] divide-y divide-[var(--ui-border)] overflow-hidden rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)]">
+            <div className="h-[360px] divide-y divide-[var(--ui-surface-muted)] overflow-hidden">
               {matchRows.length ? (
                 matchRows.map((match) => <MatchRow key={match.id} match={match} team={team} teams={teams} />)
               ) : (

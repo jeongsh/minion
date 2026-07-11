@@ -69,7 +69,7 @@ export default async function FanVideoDetailPage({
     .slice(0, 16);
 
   return (
-    <main className="fan-page-container grid gap-7 py-6 lg:box-border lg:h-[calc(100vh-130px)] lg:grid-cols-[minmax(0,1fr)_360px] lg:grid-rows-[auto_minmax(0,1fr)] lg:overflow-hidden">
+    <main className="fan-page-container grid gap-7 py-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
       <Breadcrumb
         items={[
           { label: team.shortName, href: `/fan/${teamSlug}` },
@@ -78,7 +78,7 @@ export default async function FanVideoDetailPage({
         ]}
         className="lg:col-span-2"
       />
-      <article className="min-w-0 lg:min-h-0 lg:overflow-y-auto lg:pr-1">
+      <article className="min-w-0">
         <div className="aspect-video overflow-hidden rounded-xl bg-black shadow-sm">
           {embedUrl ? (
             <iframe
@@ -100,7 +100,7 @@ export default async function FanVideoDetailPage({
           )}
         </div>
 
-          <h1 className="mt-4 text-2xl font-bold leading-7 tracking-[-0.02em] text-[#0f0f0f]">{video.title}</h1>
+          <h1 className="mt-4 text-2xl font-bold leading-7 tracking-[-0.02em] text-[var(--ui-ink)]">{video.title}</h1>
 
         <div className="mt-4 flex flex-col gap-4 border-b border-[#e5e5e5] pb-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 items-center gap-3">
@@ -124,7 +124,7 @@ export default async function FanVideoDetailPage({
           <FanVideoActions videoUrl={video.videoUrl} />
         </div>
 
-        <section className="mt-4 rounded-xl bg-[#f2f2f2] p-4 text-sm text-[#0f0f0f]">
+        <section className="mt-4 rounded-xl bg-[var(--ui-surface-muted)] p-4 text-sm text-[var(--ui-ink)]">
           <p className="font-semibold">{fanVideoMetaLabel(video)}</p>
           <p className="mt-2 leading-6 text-[#3f3f3f]">
             {video.ownerName} 채널의 {fanVideoDateLabel(video.publishedAt)} 게시 영상입니다. 영상 설명과 댓글은 YouTube 원문에서 확인할 수 있습니다.
@@ -132,12 +132,12 @@ export default async function FanVideoDetailPage({
         </section>
       </article>
 
-      <aside className="flex min-w-0 flex-col lg:min-h-0 lg:overflow-hidden">
+      <aside className="flex min-w-0 flex-col lg:sticky lg:top-32">
         <div className="mb-4 flex shrink-0 items-center justify-between">
           <h2 className="text-base font-bold text-[#0f0f0f]">관련 영상</h2>
           <Link href={`/fan/${team.fanSiteHost}/videos`} className="text-xs font-semibold text-[#606060] hover:text-accent">전체 보기</Link>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2 lg:min-h-0 lg:flex-1 lg:grid-cols-1 lg:overflow-y-auto lg:pr-1">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
           {related.map((item) => <RelatedVideo key={item.id} teamSlug={team.fanSiteHost} video={item} />)}
         </div>
       </aside>

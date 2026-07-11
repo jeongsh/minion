@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 /**
- * 핸드오프 섹션 헤딩: Archivo 900 대문자 타이틀 + 우측 12px 보조 설명/범례
+ * 서비스 공통 섹션 헤딩: Pretendard 굵은 제목 + 우측 12px 보조 설명/범례
  * + 하단 2px 잉크 라인. 선수 상세·커뮤니티 등 서브페이지 공용.
  */
 export function SectionHeading({
@@ -19,7 +19,7 @@ export function SectionHeading({
 }) {
   return (
     <div className={`section-rule flex items-end justify-between gap-4 pb-2 ${className}`}>
-      <h2 className="font-archivo text-2xl font-black uppercase leading-none tracking-tight text-[var(--ink)]">
+      <h2 className="text-2xl font-extrabold leading-tight tracking-[-0.02em] text-[var(--ink)]">
         {title}
       </h2>
       {aside ?? (caption ? <span className="pb-[2px] text-xs text-[var(--ink-3)]">{caption}</span> : null)}

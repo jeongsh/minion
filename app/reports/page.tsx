@@ -15,7 +15,7 @@ export default async function ReportsPage() {
   if (!latest) {
     return (
       <div className="mx-auto w-full max-w-[1080px] px-[var(--page-inline)] py-24 text-center">
-        <p className="font-archivo text-[11px] font-black uppercase tracking-[0.3em] text-[var(--ui-muted)]">Minion Weekly Report</p>
+        <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[var(--ui-muted)]">Minion Weekly Report</p>
         <h1 className="home-section-title mt-3 text-2xl text-[var(--ui-ink)]">첫 리포트를 준비하고 있어요</h1>
         <p className="mt-3 text-sm font-semibold text-[var(--ui-muted)]">매주 월요일, 한 주의 LCK를 정리한 AI 리포트가 이곳에 발행돼요.</p>
       </div>

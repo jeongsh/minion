@@ -140,7 +140,7 @@ function TeamMetricCard({ label, value, helper }: { label: string; value: React.
   return (
     <div className="rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-4">
       <p className="text-xs font-semibold text-[var(--ui-muted)]">{label}</p>
-      <p className="font-archivo mt-2 text-[32px] font-black leading-none tracking-tight text-[var(--ui-ink)]">{value}</p>
+      <p className="mt-2 text-[32px] font-black leading-none tracking-tight tabular-nums text-[var(--ui-ink)]">{value}</p>
       {helper ? <p className="mt-1.5 text-xs text-[var(--ui-muted)]">{helper}</p> : null}
     </div>
   );
@@ -324,7 +324,7 @@ export default async function TeamDetailPage({
           <span className="hidden h-[22px] w-px bg-[var(--ui-border)] sm:block" aria-hidden />
           <div className="flex items-baseline gap-2">
             <span className="text-xs text-[var(--ui-muted)]">최근 5경기</span>
-            <strong className="font-archivo text-sm tracking-wide text-[var(--ui-ink)]">{standing?.recent ?? "-"}</strong>
+            <strong className="text-sm font-bold tabular-nums text-[var(--ui-ink)]">{standing?.recent ?? "-"}</strong>
           </div>
           <Link href={`/fan/${team.fanSiteHost || team.slug}`} className="ml-auto rounded-full bg-[var(--ui-ink)] px-4 py-2 text-sm font-semibold text-[var(--ui-surface)] transition-opacity hover:opacity-90">
             팬 채널
@@ -345,7 +345,7 @@ export default async function TeamDetailPage({
             {team.logoUrl ? <img src={team.logoUrl} alt={team.name} className="absolute left-1/2 top-[42%] h-36 w-36 -translate-x-1/2 -translate-y-1/2 object-contain drop-shadow-xl" /> : null}
             <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 px-4 pb-4 pt-20">
               <div className="min-w-0">
-                <p className="font-archivo text-xs font-black uppercase tracking-[0.16em] text-white/65">{team.shortName}</p>
+                <p className="text-xs font-black uppercase tracking-[0.1em] text-white/65">{team.shortName}</p>
                 <h1 className="mt-1 text-[32px] font-black leading-tight tracking-tight text-white">{team.name}</h1>
               </div>
               <div className="flex shrink-0 gap-1.5">
@@ -381,7 +381,7 @@ export default async function TeamDetailPage({
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div className="rounded-2xl border border-[var(--ui-border)] p-4" style={{ background: "color-mix(in oklab, var(--tp) 6%, var(--ui-surface))" }}>
               <p className="text-xs font-semibold text-[var(--ui-muted)]">팀 팬 평점</p>
-              <p className="font-archivo mt-2 text-[32px] font-black leading-none text-[var(--ui-ink)]">{avgFanRating}<span className="ml-1 font-sans text-sm font-semibold text-[var(--ui-muted)]">/ 5</span></p>
+              <p className="mt-2 text-[32px] font-black leading-none tabular-nums text-[var(--ui-ink)]">{avgFanRating}<span className="ml-1 text-sm font-semibold text-[var(--ui-muted)]">/ 5</span></p>
             </div>
             <TeamMetricCard label="평가 수" value={relatedRatings.length} />
             <TeamMetricCard label="팀 게시글" value={recentReviews.length} />

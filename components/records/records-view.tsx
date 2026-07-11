@@ -15,7 +15,7 @@ const percent = (value: number) => `${number.format(value)}%`;
 const signed = (value: number | null) => value == null ? "-" : `${value > 0 ? "+" : ""}${number.format(value)}`;
 
 const playerColumns: DataTableColumn<RankedPlayer>[] = [
-  { key: "rank", label: "순위", render: (row) => <span className="font-archivo text-sm font-black">{row.rank}</span>, cellClassName: "w-16" },
+  { key: "rank", label: "순위", render: (row) => <span className="text-sm font-black tabular-nums">{row.rank}</span>, cellClassName: "w-16" },
   { key: "player", label: "선수", render: (row) => <div className="relative z-20 flex items-center gap-3"><TeamLogo team={row.team} size="h-8 w-8" themeAware /><div><p className="font-bold text-[var(--ui-ink)]">{row.player.name}</p><p className="text-xs font-semibold text-[var(--ui-muted)]">{row.team?.shortName ?? "-"} · {row.player.position}</p></div></div> },
   { key: "games", label: "세트", render: (row) => row.games, headerClassName: "text-right", cellClassName: "text-right tabular-nums" },
   { key: "winRate", label: "승률", render: (row) => percent((row.wins / row.games) * 100), headerClassName: "text-right", cellClassName: "text-right tabular-nums font-semibold" },
@@ -27,7 +27,7 @@ const playerColumns: DataTableColumn<RankedPlayer>[] = [
 ];
 
 const teamColumns: DataTableColumn<RankedTeam>[] = [
-  { key: "rank", label: "순위", render: (row) => <span className="font-archivo text-sm font-black">{row.rank}</span>, cellClassName: "w-16" },
+  { key: "rank", label: "순위", render: (row) => <span className="text-sm font-black tabular-nums">{row.rank}</span>, cellClassName: "w-16" },
   { key: "team", label: "팀", render: (row) => <div className="relative z-20 flex items-center gap-3"><TeamLogo team={row.team} size="h-9 w-9" themeAware /><div><p className="font-bold text-[var(--ui-ink)]">{row.team.name}</p><p className="text-xs font-semibold text-[var(--ui-muted)]">{row.team.shortName}</p></div></div> },
   { key: "matches", label: "매치", render: (row) => `${row.matchWins}-${row.matches - row.matchWins}`, headerClassName: "text-right", cellClassName: "text-right tabular-nums" },
   { key: "games", label: "세트", render: (row) => row.games, headerClassName: "text-right", cellClassName: "text-right tabular-nums" },

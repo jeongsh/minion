@@ -20,7 +20,7 @@ export function FanSocialPreview({ items }: { items: FeedInstaItem[] }) {
         <SwiperSlide key={item.id} className="h-auto">
           <button type="button" onClick={() => setOpenIndex(index)} className="group relative block aspect-[4/5] w-full overflow-hidden rounded-2xl bg-[#f1f2f4] text-left">
             {item.imageUrl ? <img src={proxyUrl(item.imageUrl)} alt="" className="h-full w-full object-cover transition duration-300 group-hover:scale-105"/> : null}
-            <InstagramIcon className="absolute right-3 top-3 h-5 w-5 text-white drop-shadow"/>
+            <InstagramIcon className="absolute right-3 top-3 h-5 w-5 text-white"/>
             <span className="absolute inset-x-0 bottom-0 truncate bg-gradient-to-t from-black/75 px-3 pb-3 pt-8 text-xs font-bold text-white">{item.ownerName}</span>
           </button>
         </SwiperSlide>

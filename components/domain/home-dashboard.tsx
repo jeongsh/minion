@@ -186,7 +186,7 @@ export function HomeDashboard({
               PREDICTION
             </span>
           </div>
-          <div className="h-[330px] space-y-3 overflow-y-auto pr-1">
+          <div className="space-y-3">
             {upcomingMatches.map((m) => (
               <UpcomingCard
                 key={m.id}

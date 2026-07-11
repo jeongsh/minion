@@ -64,7 +64,7 @@ function VideoCell({ video, teamSlug, teamColor }: { video: FeedVideoItem; teamS
         style={{ background: "linear-gradient(transparent, rgba(20,18,24,0.82))" }}
       >
         <span
-          className="font-archivo self-start rounded-[3px] px-[7px] py-[3px] text-[10px] font-black"
+          className="self-start rounded-[3px] px-[7px] py-[3px] text-[10px] font-black"
           style={{ background: teamColor }}
         >
           영상
@@ -146,7 +146,7 @@ export function FanFeedMosaic({
   return (
     <div className="flex flex-col gap-[18px] px-10">
       <div className="flex items-baseline gap-[14px] border-b-2 border-[#16151b] pb-[10px]">
-        <h2 className="font-archivo m-0 text-[26px] font-black tracking-[-0.01em]">FEED</h2>
+        <h2 className="m-0 text-[26px] font-black tracking-[-0.04em]">FEED</h2>
         <span className="text-[13px] font-semibold text-[#8a8892]">오늘 새로 올라온 것</span>
         <div className="ml-auto flex gap-[8px]">
           <Link

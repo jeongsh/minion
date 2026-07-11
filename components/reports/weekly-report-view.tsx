@@ -52,7 +52,7 @@ function ChampionFace({ champion, size = "h-10 w-10" }: { champion: ReportChampi
 function SectionHead({ eyebrow, title, icon: Icon }: { eyebrow: string; title: string; icon: React.ComponentType<{ size?: number | string; className?: string }> }) {
   return (
     <div className="mb-6">
-      <p className="font-archivo text-[11px] font-extrabold uppercase tracking-[0.22em] text-[var(--ui-muted)]">{eyebrow}</p>
+      <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-[var(--ui-muted)]">{eyebrow}</p>
       <div className="mt-1.5 flex items-center gap-2.5 border-b-2 border-[var(--ui-ink)] pb-3">
         <Icon size={22} className="text-[var(--ui-ink)]" />
         <h2 className="home-section-title text-[22px] text-[var(--ui-ink)]">{title}</h2>
@@ -65,13 +65,13 @@ function SectionHead({ eyebrow, title, icon: Icon }: { eyebrow: string; title: s
 // 구버전 리포트(score 없음)는 승률 표기로 대체한다.
 function ScoreBadge({ stat }: { stat: ReportChampionStat }) {
   if (stat.score == null) {
-    return <span className="rounded-md bg-[var(--ui-surface-muted)] px-1.5 py-0.5 font-archivo text-[11px] font-extrabold text-[var(--ui-muted)]">{pct(stat.winRate)}%</span>;
+    return <span className="rounded-md bg-[var(--ui-surface-muted)] px-1.5 py-0.5 text-[11px] font-extrabold tabular-nums text-[var(--ui-muted)]">{pct(stat.winRate)}%</span>;
   }
   const breakdown = `밴픽률 ${pct(stat.presenceRate)}% · 승률 ${pct(stat.winRate)}% · 스탯 ${stat.statScore ?? "-"}점`;
   const strong = stat.score >= 75;
   return (
     <span title={breakdown} className={`rounded-md px-1.5 py-0.5 text-[11px] font-extrabold ${strong ? "bg-[color-mix(in_srgb,var(--accent)_16%,transparent)] text-[var(--ui-ink)]" : "bg-[var(--ui-surface-muted)] text-[var(--ui-muted)]"}`}>
-      종합 <span className="font-archivo">{stat.score}</span>
+      종합 <span className="tabular-nums">{stat.score}</span>
     </span>
   );
 }
@@ -96,7 +96,7 @@ export function WeeklyReportView({ report, index }: { report: WeeklyReportRow; i
               <Link
                 key={item.week_key}
                 href={`/reports/${item.week_key}`}
-                className={`rounded-full border px-3.5 py-1.5 font-archivo text-xs font-extrabold tracking-wide transition ${
+                className={`rounded-full border px-3.5 py-1.5 text-xs font-extrabold transition ${
                   active
                     ? "border-[var(--ui-ink)] bg-[var(--ui-ink)] text-[var(--ui-surface)]"
                     : "border-[var(--ui-border)] text-[var(--ui-muted)] hover:border-[var(--ui-ink)] hover:text-[var(--ui-ink)]"
@@ -115,10 +115,10 @@ export function WeeklyReportView({ report, index }: { report: WeeklyReportRow; i
         style={{ backgroundImage: "radial-gradient(820px 300px at 88% -10%, rgb(71 229 11 / 0.22), transparent 62%), radial-gradient(560px 260px at -6% 110%, rgb(71 229 11 / 0.1), transparent 60%)" }}
       >
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-          <span className="font-archivo text-[11px] font-black uppercase tracking-[0.3em] text-[#47e50b]">Minion Weekly Report</span>
-          <span className="font-archivo text-[11px] font-bold uppercase tracking-[0.2em] text-white/50">{report.week_key}</span>
+          <span className="text-[11px] font-black uppercase tracking-[0.16em] text-[#47e50b]">Minion Weekly Report</span>
+          <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-white/50">{report.week_key}</span>
         </div>
-        <p className="mt-6 font-archivo text-sm font-extrabold uppercase tracking-[0.14em] text-white/60">
+        <p className="mt-6 text-sm font-extrabold tracking-[-0.01em] text-white/60">
           {formatPeriod(report.period_start, report.period_end)} · LCK
         </p>
         <h1 className="home-section-title mt-3 max-w-[760px] text-[clamp(28px,4.6vw,44px)] leading-[1.25] text-white">{content.headline}</h1>
@@ -132,7 +132,7 @@ export function WeeklyReportView({ report, index }: { report: WeeklyReportRow; i
           ].map((chip) => (
             <div key={chip.label} className="rounded-xl border border-white/12 bg-white/[0.05] px-4 py-3">
               <dt className="text-[11px] font-bold text-white/50">{chip.label}</dt>
-              <dd className="mt-1 font-archivo text-xl font-black tracking-tight">{chip.value}</dd>
+              <dd className="mt-1 text-xl font-black tracking-tight tabular-nums">{chip.value}</dd>
             </div>
           ))}
         </dl>
@@ -163,7 +163,7 @@ export function WeeklyReportView({ report, index }: { report: WeeklyReportRow; i
                     <TeamLogo team={match.teamA} />
                     <b className="min-w-0 truncate text-[15px] text-[var(--ui-ink)]">{match.teamA?.shortName ?? "TBD"}</b>
                   </div>
-                  <strong className="font-archivo text-xl font-black tracking-tight text-[var(--ui-ink)]">
+                  <strong className="text-xl font-black tracking-tight tabular-nums text-[var(--ui-ink)]">
                     {match.scoreA}<span className="mx-1 text-[var(--ui-muted)]">:</span>{match.scoreB}
                   </strong>
                   <div className={`flex min-w-0 flex-row-reverse items-center gap-2.5 ${bWin ? "" : "opacity-55"}`}>
@@ -185,7 +185,7 @@ export function WeeklyReportView({ report, index }: { report: WeeklyReportRow; i
             className="relative overflow-hidden rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-6 sm:p-8"
             style={{ backgroundImage: `radial-gradient(640px 220px at 100% 0%, color-mix(in srgb, ${review.teamOfWeek.team.color} 14%, transparent), transparent 65%)` }}
           >
-            <p className="font-archivo text-[11px] font-black uppercase tracking-[0.24em]" style={{ color: review.teamOfWeek.team.color }}>Team of the Week</p>
+            <p className="text-[11px] font-black uppercase tracking-[0.16em]" style={{ color: review.teamOfWeek.team.color }}>Team of the Week</p>
             <div className="mt-4 flex items-start gap-5">
               <TeamLogo team={review.teamOfWeek.team} size="h-16 w-16" />
               <div className="min-w-0">
@@ -204,7 +204,7 @@ export function WeeklyReportView({ report, index }: { report: WeeklyReportRow; i
                   {player.playerImageUrl ? (
                     <img src={player.playerImageUrl} alt={player.playerName} className="h-12 w-12 rounded-full bg-[var(--ui-surface-muted)] object-cover object-top" />
                   ) : (
-                    <span className="grid h-12 w-12 place-items-center rounded-full bg-[var(--ui-surface-muted)] font-archivo text-sm font-black text-[var(--ui-muted)]">{player.playerName.slice(0, 2)}</span>
+                    <span className="grid h-12 w-12 place-items-center rounded-full bg-[var(--ui-surface-muted)] text-sm font-black text-[var(--ui-muted)]">{player.playerName.slice(0, 2)}</span>
                   )}
                   <div className="min-w-0">
                     <p className="truncate text-[16px] font-black text-[var(--ui-ink)]">
@@ -254,7 +254,7 @@ export function WeeklyReportView({ report, index }: { report: WeeklyReportRow; i
                     </div>
                   </div>
                   <span className="w-12 shrink-0 text-right">
-                    <span className="block font-archivo text-[13px] font-black leading-tight text-[var(--ui-ink)]">{pct(champion.presenceRate)}%</span>
+                    <span className="block text-[13px] font-black leading-tight tabular-nums text-[var(--ui-ink)]">{pct(champion.presenceRate)}%</span>
                     <span className="block text-[10px] font-bold text-[var(--ui-muted)]">밴픽률</span>
                   </span>
                 </li>
@@ -266,12 +266,12 @@ export function WeeklyReportView({ report, index }: { report: WeeklyReportRow; i
           {meta.banSpotlight && banSpotlightChampion && (
             <article className="flex flex-col justify-between rounded-2xl bg-[#18191c] p-6 text-white" style={{ backgroundImage: "radial-gradient(420px 200px at 100% 0%, rgb(255 49 88 / 0.18), transparent 60%)" }}>
               <div>
-                <h3 className="flex items-center gap-2 font-archivo text-[12px] font-extrabold uppercase tracking-[0.18em] text-white/55"><ShieldBan size={15} />This Week&apos;s Ban Target</h3>
+                <h3 className="flex items-center gap-2 text-[12px] font-extrabold uppercase tracking-[0.12em] text-white/55"><ShieldBan size={15} />This Week&apos;s Ban Target</h3>
                 <div className="mt-5 flex items-center gap-4">
                   {banSpotlightChampion.imageUrl && <img src={banSpotlightChampion.imageUrl} alt={banSpotlightChampion.name} className="h-16 w-16 rounded-2xl object-cover" />}
                   <div>
                     <p className="text-xl font-black tracking-tight">{banSpotlightChampion.name}</p>
-                    <p className="mt-1 font-archivo text-[12px] font-extrabold text-white/60">밴 {banSpotlightChampion.bans}회 · 밴픽률 {pct(banSpotlightChampion.presenceRate)}%</p>
+                    <p className="mt-1 text-[12px] font-extrabold tabular-nums text-white/60">밴 {banSpotlightChampion.bans}회 · 밴픽률 {pct(banSpotlightChampion.presenceRate)}%</p>
                   </div>
                 </div>
                 <p className="mt-4 text-[14px] font-medium leading-[1.75] text-white/75">{meta.banSpotlight.comment}</p>
@@ -289,7 +289,7 @@ export function WeeklyReportView({ report, index }: { report: WeeklyReportRow; i
             return (
               <article key={position.position} className="rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-6">
                 <div className="flex flex-wrap items-center gap-3">
-                  <h3 className="font-archivo text-lg font-black uppercase tracking-[0.08em] text-[var(--ui-ink)]">{position.position}</h3>
+                  <h3 className="text-lg font-black uppercase tracking-[0.04em] text-[var(--ui-ink)]">{position.position}</h3>
                   <span className="text-sm font-bold text-[var(--ui-muted)]">{POSITION_LABELS[position.position]}</span>
                   {risingChampion && (
                     <span className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] px-3 py-1 text-[11.5px] font-black text-[var(--ui-ink)]">
@@ -303,7 +303,7 @@ export function WeeklyReportView({ report, index }: { report: WeeklyReportRow; i
                     if (slugs.length === 0) return null;
                     return (
                       <div key={tier.key} className="flex items-start gap-3">
-                        <span className={`mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-xl font-archivo text-[15px] font-black ${
+                        <span className={`mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-xl text-[15px] font-black tabular-nums ${
                           tier.label === "S" ? "bg-[var(--ui-ink)] text-[var(--ui-surface)]" : tier.label === "A" ? "bg-[var(--ui-surface-muted)] text-[var(--ui-ink)]" : "border border-[var(--ui-border)] text-[var(--ui-muted)]"
                         }`}>{tier.label}</span>
                         <div className="flex flex-wrap gap-2">
@@ -349,7 +349,7 @@ export function WeeklyReportView({ report, index }: { report: WeeklyReportRow; i
           {stats.statLeaders.map((leader) => (
             <article key={leader.key} className="rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-5">
               <p className="text-xs font-extrabold text-[var(--ui-muted)]">{leader.label}</p>
-              <p className="mt-2.5 font-archivo text-[34px] font-black leading-none tracking-tight text-[var(--ui-ink)]">
+              <p className="mt-2.5 text-[34px] font-black leading-none tracking-tight tabular-nums text-[var(--ui-ink)]">
                 {leader.value}<span className="ml-1.5 text-sm font-extrabold text-[var(--ui-muted)]">{leader.unit}</span>
               </p>
               <div className="mt-4 flex items-center gap-2.5">
@@ -392,7 +392,7 @@ export function WeeklyReportView({ report, index }: { report: WeeklyReportRow; i
                       <TeamLogo team={match.teamA} size="h-12 w-12" />
                       <b className="max-w-full truncate text-sm text-[var(--ui-ink)]">{match.teamA?.shortName ?? "TBD"}</b>
                     </div>
-                    <span className="font-archivo text-sm font-black text-[var(--ui-muted)]">VS</span>
+                    <span className="text-sm font-black text-[var(--ui-muted)]">VS</span>
                     <div className="flex min-w-0 flex-col items-center gap-2 text-center">
                       <TeamLogo team={match.teamB} size="h-12 w-12" />
                       <b className="max-w-full truncate text-sm text-[var(--ui-ink)]">{match.teamB?.shortName ?? "TBD"}</b>
@@ -401,10 +401,10 @@ export function WeeklyReportView({ report, index }: { report: WeeklyReportRow; i
                   {picked && (
                     <div className="mt-5 rounded-xl bg-[var(--ui-surface-muted)] p-4">
                       <div className="flex items-center justify-between gap-3">
-                        <span className="inline-flex items-center gap-1.5 font-archivo text-[11px] font-black uppercase tracking-[0.16em] text-[var(--ui-muted)]">
+                        <span className="inline-flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.1em] text-[var(--ui-muted)]">
                           <Sparkles size={13} />AI Pick
                         </span>
-                        <span className="text-sm font-black text-[var(--ui-ink)]">{picked.shortName} 승리 <span className="font-archivo">{match.confidence}%</span></span>
+                        <span className="text-sm font-black text-[var(--ui-ink)]">{picked.shortName} 승리 <span className="tabular-nums">{match.confidence}%</span></span>
                       </div>
                       {/* 메인 승부예측 카드와 같은 방식: 좌측은 팀A, 우측은 팀B 색으로 채운다. */}
                       <div className="mt-2.5 flex h-2 overflow-hidden rounded-full">

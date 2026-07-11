@@ -2,7 +2,9 @@ import { getIsFan } from "@/app/fan/[teamSlug]/actions";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { FanFollowButton } from "@/components/fan/fan-follow-button";
 import { FanPredictionCard } from "@/components/fan/fan-prediction-card";
+// import { FanTemperatureCard } from "@/components/fan/fan-temperature-card";
 import { getAllTeams, getMatches, getTeamByFanSiteHost, getTeamBySlug, getTeamFanCount } from "@/lib/data/lck";
+import type { FanTemperatureSnapshot } from "@/lib/data/fan-pulse";
 import { getPredictionMarketData } from "@/lib/predictions";
 import type { Match, Team } from "@/lib/types";
 
@@ -19,7 +21,7 @@ function resultOf(match: Match, team: Team) {
   return `${ownScore > opponentScore ? "승" : "패"} ${ownScore}:${opponentScore}`;
 }
 
-export async function FanChannelHeader({ teamSlug }: { teamSlug: string }) {
+export async function FanChannelHeader({ teamSlug }: { teamSlug: string; fanTemperature: FanTemperatureSnapshot }) {
   const [team, teams, matches] = await Promise.all([getTeamByFanSiteHost(teamSlug).then((value) => value ?? getTeamBySlug(teamSlug)), getAllTeams(), getMatches()]);
   if (!team) return null;
   // eslint-disable-next-line react-hooks/purity
@@ -49,19 +51,29 @@ export async function FanChannelHeader({ teamSlug }: { teamSlug: string }) {
   ];
   if (!tickerItems.length) tickerItems.push(`${team.shortName} · 등록된 경기 일정이 없습니다`);
   return (
-    <header className="relative overflow-hidden text-white" style={{background:team.primaryColor}}>
-      <div className="relative mx-auto max-w-[1400px] px-5"><span aria-hidden className="font-archivo pointer-events-none absolute -right-2 -top-16 text-[250px] font-black leading-none text-white/[0.07]">{team.shortName}</span>
+    <header className="relative overflow-hidden bg-[var(--team-primary)] text-[var(--team-on-primary)]">
+      <div className="relative mx-auto max-w-[1400px] px-5"><span aria-hidden className="pointer-events-none absolute -right-2 -top-16 text-[250px] font-black leading-none text-white/[0.07]">{team.shortName}</span>
         <div className="relative grid items-center gap-11 pb-10 pt-11 lg:grid-cols-[1fr_380px]">
           <div className="flex flex-col gap-[18px]">
-            <div className="flex items-center gap-3"><span className="font-archivo rounded bg-white px-[10px] py-1 text-[13px] font-black" style={{color:team.primaryColor}}>{badge}</span><span className="font-archivo text-xs font-extrabold tracking-[0.22em] text-white/80">{match?.name?.trim() || "다가올 경기를 기다리는 중"}</span></div>
-            <div className="flex items-baseline gap-5"><span className="font-archivo text-[clamp(58px,7vw,96px)] font-black leading-[0.92]">{team.shortName}</span><span className="font-archivo text-[30px] font-black text-white/55">VS</span><span className="font-archivo text-[clamp(58px,7vw,96px)] font-black leading-[0.92] text-transparent [-webkit-text-stroke:2px_rgba(255,255,255,0.85)]">{opponentName}</span></div>
-            <p className="text-[15px] font-bold text-white/85">{match ? `${dateTime(match.matchDate)} · ${match.venue?.trim() || "LoL PARK"}` : "예정된 경기가 없습니다"}</p>
+            <div className="flex items-center gap-3"><span className="rounded bg-[var(--team-on-primary)] px-[10px] py-1 text-[13px] font-black text-[var(--team-primary)]">{badge}</span><span className="text-xs font-extrabold tracking-[0.12em] opacity-80">{match?.name?.trim() || "다가올 경기를 기다리는 중"}</span></div>
+            <div className="flex items-baseline gap-5"><span className="text-[clamp(58px,7vw,96px)] font-black leading-[0.92] tracking-[-0.04em]">{team.shortName}</span><span className="text-[30px] font-black text-white/55">VS</span><span className="text-[clamp(58px,7vw,96px)] font-black leading-[0.92] tracking-[-0.04em] text-transparent [-webkit-text-stroke:2px_rgba(255,255,255,0.85)]">{opponentName}</span></div>
+            <p className="text-[15px] font-bold opacity-85">{match ? `${dateTime(match.matchDate)} · ${match.venue?.trim() || "LoL PARK"}` : "예정된 경기가 없습니다"}</p>
             <div className="flex flex-wrap items-center gap-2"><FanFollowButton teamId={team.id} teamSlug={team.fanSiteHost} teamName={team.shortName} initialCount={fanCount} initialFollowing={isFan} teamColor={team.primaryColor}/><button type="button" className="rounded-full border border-white/50 px-5 py-2.5 text-sm font-extrabold transition hover:bg-white/10">알람</button>{links.map(([label,href])=><a key={label} href={href} target="_blank" rel="noreferrer" className="rounded-full border border-white/35 px-4 py-2.5 text-xs font-bold text-white/85 hover:bg-white/10 hover:text-white">{label}</a>)}</div>
           </div>
           <FanPredictionCard showDetailsLink={false} matchId={match?.id} teamId={team.id} teamName={team.shortName} opponentId={opponent?.id} opponentName={opponentName} teamColor={team.primaryColor} bets={predictionMarket.bets} currentUserId={user?.id} balance={predictionMarket.balance} canVote={mode==="upcoming"}/>
         </div>
+        {/* 팬 반응 임시 비노출
+        <FanTemperatureCard
+          variant="header"
+          teamId={team.id}
+          teamSlug={team.fanSiteHost}
+          teamName={team.shortName}
+          teamColor={team.primaryColor}
+          initialSnapshot={fanTemperature}
+        />
+        */}
       </div>
-      <div className="overflow-hidden bg-black/20 py-[9px]"><div className="font-archivo fan-ticker-track text-xs font-extrabold tracking-[0.12em] text-white/85">{[false,true].map((hidden)=><div key={String(hidden)} className="fan-ticker-group" aria-hidden={hidden||undefined}>{tickerItems.map((item)=><span key={item} className="px-5">{item}<span className="ml-10 text-white/45">•</span></span>)}</div>)}</div></div>
+      <div className="overflow-hidden bg-black/20 py-[9px]"><div className="fan-ticker-track text-xs font-extrabold tracking-[0.08em] text-white/85">{[false,true].map((hidden)=><div key={String(hidden)} className="fan-ticker-group" aria-hidden={hidden||undefined}>{tickerItems.map((item)=><span key={item} className="px-5">{item}<span className="ml-10 text-white/45">•</span></span>)}</div>)}</div></div>
     </header>
   );
 }

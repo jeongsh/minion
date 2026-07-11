@@ -61,7 +61,7 @@ export function CelebrationBoard({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-baseline justify-between">
-        <h3 className="font-archivo text-base font-black text-[var(--ui-ink)]">축하 메시지 보드</h3>
+        <h3 className="text-base font-black text-[var(--ui-ink)]">축하 메시지 보드</h3>
         <span className="text-xs font-bold text-[var(--ui-muted)]">
           {messages.length.toLocaleString("ko-KR")}개의 축하
         </span>

@@ -35,7 +35,7 @@
   --ui-control-radius: 8px;
   --ui-title-size: 20px;
   --ui-header-height: 64px;
-  --ui-sidebar-width: 240px;
+  --ui-sidebar-width: 216px;
   --ui-match-card-height: 260px;
   --ui-calendar-card-height: 330px;
   --background: #fff;
@@ -143,10 +143,6 @@ html[class~="dark"] .navigation-progress-bar {
     var(--accent),
     color-mix(in srgb, var(--accent) 78%, white)
   );
-}
-
-.font-archivo {
-  font-family: var(--font-archivo), "Pretendard", system-ui, sans-serif;
 }
 
 .home-section-title {
@@ -352,13 +348,35 @@ html[class~="dark"] .app-lnb a[data-active="true"] {
 
 .team-surface {
   --accent: var(--team-primary);
-  --accent-foreground: #ffffff;
+  --accent-foreground: var(--team-on-primary);
 }
+
+.fan-nav-scroll {
+  scrollbar-width: none;
+  mask-image: linear-gradient(to right, transparent, black 1.25rem, black calc(100% - 1.25rem), transparent);
+}
+.fan-nav-scroll::-webkit-scrollbar { display: none; }
 
 .fan-page-container {
   width: min(100%, 1400px);
   margin-inline: auto;
   padding-inline: 1.25rem;
+}
+
+/* Fan pages use a flat, content-first surface. Separation comes from spacing and rules. */
+.fan-page-shell {
+  background: var(--ui-surface);
+}
+
+.fan-card {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.fan-page-shell .home-match-calendar {
+  border: 0;
 }
 
 html[class~="dark"] .community-neutral {

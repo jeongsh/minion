@@ -55,7 +55,7 @@ function StatCell({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <dt className="text-xs font-bold text-[var(--ui-muted)]">{label}</dt>
-      <dd className="mt-1.5 font-archivo text-xl font-black tabular-nums text-[var(--ui-ink)]">{value}</dd>
+      <dd className="mt-1.5 text-xl font-black tabular-nums text-[var(--ui-ink)]">{value}</dd>
     </div>
   );
 }
