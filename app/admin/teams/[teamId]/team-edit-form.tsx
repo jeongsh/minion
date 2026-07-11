@@ -21,7 +21,7 @@ function ExternalLink({ href, label }: { href: string; label: string }) {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="rounded-md border border-border px-3 py-1.5 text-xs font-semibold hover:bg-surface-muted"
+      className="rounded-md border border-border px-3 py-1.5 text-[13px] font-semibold hover:bg-surface-muted"
     >
       {label}
     </a>
@@ -49,13 +49,13 @@ export function TeamEditForm({
         <ExternalLink href={team.officialInstagramUrl} label="Instagram" />
         <Link
           href={`/teams/${team.slug}`}
-          className="rounded-md border border-border px-3 py-1.5 text-xs font-semibold hover:bg-surface-muted"
+          className="rounded-md border border-border px-3 py-1.5 text-[13px] font-semibold hover:bg-surface-muted"
         >
           팀 상세 보기
         </Link>
         <Link
           href={`/fan/${team.slug}`}
-          className="rounded-md border border-border px-3 py-1.5 text-xs font-semibold hover:bg-surface-muted"
+          className="rounded-md border border-border px-3 py-1.5 text-[13px] font-semibold hover:bg-surface-muted"
         >
           팬 사이트 보기
         </Link>
@@ -80,12 +80,12 @@ export function TeamEditForm({
               )}
               <div className="text-center">
                 <p className="font-bold text-white drop-shadow">{team.name}</p>
-                <p className="text-xs text-white/70">{team.fanSiteHost}</p>
+                <p className="text-[13px] text-white/70">{team.fanSiteHost}</p>
               </div>
             </div>
           </section>
 
-          <section className="rounded-lg border border-border bg-surface p-4 text-xs text-muted">
+          <section className="rounded-lg border border-border bg-surface p-4 text-[13px] text-muted">
             <p>팀 ID</p>
             <p className="mt-1 break-all font-mono text-foreground">{team.id}</p>
           </section>
@@ -105,7 +105,7 @@ export function TeamEditForm({
           }}
         >
           <section>
-            <h2 className="text-base font-semibold">기본 정보</h2>
+            <h2 className="text-lg font-semibold">기본 정보</h2>
             <p className="mt-1 text-sm text-muted">팀명, slug, 팬사이트 호스트, 스태프</p>
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               <TeamBasicFields team={team} />
@@ -113,7 +113,7 @@ export function TeamEditForm({
           </section>
 
           <section>
-            <h2 className="text-base font-semibold">브랜딩</h2>
+            <h2 className="text-lg font-semibold">브랜딩</h2>
             <p className="mt-1 text-sm text-muted">팀 컬러, 로고, 배경 이미지</p>
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               <TeamBrandingFields team={team} />
@@ -121,7 +121,7 @@ export function TeamEditForm({
           </section>
 
           <section>
-            <h2 className="text-base font-semibold">공식 링크</h2>
+            <h2 className="text-lg font-semibold">공식 링크</h2>
             <p className="mt-1 text-sm text-muted">홈페이지 및 SNS 채널</p>
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               <TeamLinkFields team={team} />
@@ -129,7 +129,7 @@ export function TeamEditForm({
           </section>
 
           <section>
-            <h2 className="text-base font-semibold">연동 / 메타</h2>
+            <h2 className="text-lg font-semibold">연동 / 메타</h2>
             <p className="mt-1 text-sm text-muted">Leaguepedia, 소스 ID, 파워랭킹</p>
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               <TeamMetaFields team={team} />
@@ -147,7 +147,7 @@ export function TeamEditForm({
       <section className="rounded-lg border border-border bg-surface p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-base font-semibold">팀명 / 로고 변경 이력</h2>
+            <h2 className="text-lg font-semibold">팀명 / 로고 변경 이력</h2>
             <p className="mt-1 text-sm text-muted">네이밍 스폰서 변경이나 리브랜딩 기록</p>
           </div>
           <Button
@@ -165,7 +165,7 @@ export function TeamEditForm({
           <div className="mt-4 overflow-x-auto">
             <table className="w-full min-w-[36rem] text-sm">
               <thead>
-                <tr className="border-b border-border text-left text-xs text-muted">
+                <tr className="border-b border-border text-left text-[13px] text-muted">
                   <th className="px-3 py-2 font-medium">팀명</th>
                   <th className="px-3 py-2 font-medium">스폰서</th>
                   <th className="px-3 py-2 font-medium">slug</th>
@@ -178,10 +178,10 @@ export function TeamEditForm({
                   <tr key={history.id} className="border-b border-border/50 last:border-0">
                     <td className="px-3 py-3">
                       <p className="font-medium">{history.name}</p>
-                      <p className="text-xs text-muted">{history.shortName}</p>
+                      <p className="text-[13px] text-muted">{history.shortName}</p>
                     </td>
                     <td className="px-3 py-3 text-muted">{history.sponsorName ?? "-"}</td>
-                    <td className="px-3 py-3 font-mono text-xs">{history.slug}</td>
+                    <td className="px-3 py-3 font-mono text-[13px]">{history.slug}</td>
                     <td className="px-3 py-3 text-muted">
                       {history.effectiveFrom}
                       {" ~ "}
@@ -200,7 +200,7 @@ export function TeamEditForm({
             action={createTeamIdentityHistoryAction}
             className="mt-6 rounded-md border border-dashed border-border p-4"
           >
-            <h3 className="text-sm font-semibold">새 변경 이력</h3>
+            <h3 className="text-[15px] font-semibold">새 변경 이력</h3>
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               <IdentityHistoryFields team={team} />
             </div>

@@ -47,7 +47,7 @@ export default async function AdminPlayerDetailPage({
 
       {careerHistories.length > 0 ? (
         <section className="rounded-lg border border-border bg-surface p-6">
-          <h2 className="text-base font-semibold">경력 기록</h2>
+          <h2 className="text-lg font-semibold">경력 기록</h2>
           <ul className="mt-4 space-y-2 text-sm text-muted">
             {careerHistories.map((history) => (
               <li key={history.id}>

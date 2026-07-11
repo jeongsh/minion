@@ -26,7 +26,7 @@ function TeamCard({ team, players }: { team: Team; players: Player[] }) {
             // eslint-disable-next-line @next/next/no-img-element
             <img src={team.logoUrl} alt={`${team.name} 로고`} className="h-full w-full object-contain p-1" />
           ) : (
-            <span className="text-xs text-muted">NO LOGO</span>
+            <span className="text-[13px] text-muted">NO LOGO</span>
           )}
         </div>
       </div>

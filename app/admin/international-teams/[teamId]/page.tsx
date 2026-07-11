@@ -31,12 +31,12 @@ function PlayerImageRow({ player }: { player: Player }) {
             // eslint-disable-next-line @next/next/no-img-element
             <img src={player.profileImageUrl} alt={`${player.name} 프로필`} className="h-full w-full object-cover" />
           ) : (
-            <span className="text-xs font-semibold text-muted">{initials(player.name)}</span>
+            <span className="text-[13px] font-semibold text-muted">{initials(player.name)}</span>
           )}
         </div>
         <div className="min-w-0">
           <p className="truncate font-semibold">{player.name}</p>
-          <p className="text-xs text-muted">{player.position}</p>
+          <p className="text-[13px] text-muted">{player.position}</p>
         </div>
       </div>
 
@@ -100,7 +100,7 @@ export default async function AdminInternationalTeamDetailPage({
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={team.logoUrl} alt={`${team.name} 로고`} className="h-full w-full object-contain p-1" />
               ) : (
-                <span className="text-xs text-muted">NO LOGO</span>
+                <span className="text-[13px] text-muted">NO LOGO</span>
               )}
             </div>
             <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-md border border-border bg-background">
@@ -108,7 +108,7 @@ export default async function AdminInternationalTeamDetailPage({
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={team.profileImageUrl} alt={`${team.name} 프로필`} className="h-full w-full object-cover" />
               ) : (
-                <span className="text-xs text-muted">NO IMG</span>
+                <span className="text-[13px] text-muted">NO IMG</span>
               )}
             </div>
           </div>
@@ -144,14 +144,14 @@ export default async function AdminInternationalTeamDetailPage({
             메인 컬러
             <span className="flex items-center gap-2">
               <input type="color" name="primaryColor" defaultValue={team.primaryColor} className="h-10 w-14 cursor-pointer rounded-md border border-border bg-background p-1" />
-              <code className="text-xs text-muted">{team.primaryColor}</code>
+              <code className="text-[13px] text-muted">{team.primaryColor}</code>
             </span>
           </label>
           <label className="flex flex-col gap-1 text-sm font-semibold">
             보조 컬러
             <span className="flex items-center gap-2">
               <input type="color" name="secondaryColor" defaultValue={team.secondaryColor} className="h-10 w-14 cursor-pointer rounded-md border border-border bg-background p-1" />
-              <code className="text-xs text-muted">{team.secondaryColor}</code>
+              <code className="text-[13px] text-muted">{team.secondaryColor}</code>
             </span>
           </label>
           <button type="submit" className="self-start rounded-md bg-accent px-3 py-2 text-sm font-semibold text-accent-foreground sm:self-end">

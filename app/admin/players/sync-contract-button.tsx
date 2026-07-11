@@ -35,7 +35,7 @@ export function SyncContractButton() {
         {state === "loading" ? "동기화 중..." : "계약 업데이트"}
       </button>
       {message && (
-        <span className={`text-xs ${state === "error" ? "text-red-500" : "text-muted"}`}>
+        <span className={`text-[13px] ${state === "error" ? "text-red-500" : "text-muted"}`}>
           {message}
         </span>
       )}

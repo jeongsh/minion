@@ -68,7 +68,7 @@ export default async function AdminMatchEditPage({
       </div>
 
       <section className="rounded-md border border-border bg-surface p-5">
-        <h2 className="text-base font-semibold">경기 기본정보</h2>
+        <h2 className="text-lg font-semibold">경기 기본정보</h2>
         <p className="mt-2 text-sm text-muted">
           현재 상태 <span className="font-semibold text-foreground">{matchStatusLabel(match.status)}</span> · 스코어{" "}
           <span className="font-semibold text-foreground">
@@ -78,7 +78,7 @@ export default async function AdminMatchEditPage({
           <span className="font-semibold text-foreground">
             {match.winnerTeamId ? teamLabel(teams, match.winnerTeamId) : "없음"}
           </span>
-          <span className="ml-1 text-xs">(세트 결과로부터 자동 계산됩니다)</span>
+          <span className="ml-1 text-[13px]">(세트 결과로부터 자동 계산됩니다)</span>
         </p>
         <form action={updateMatchAction} className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           <input type="hidden" name="redirectTo" value={adminMatchPath} />
@@ -104,7 +104,7 @@ export default async function AdminMatchEditPage({
             고급 설정 · 결과 수동 보정
           </summary>
           <div className="border-t border-border p-4">
-            <p className="mb-3 text-xs text-muted">
+            <p className="mb-3 text-[13px] text-muted">
               세트 결과가 있으면 스코어/상태/승자는 다음 세트 저장·동기화 시 자동으로 다시 계산되어 여기서
               바꾼 값을 덮어씁니다. 세트 데이터가 없거나 예외적으로 결과를 임시 고정해야 할 때만 사용하세요.
             </p>
@@ -173,7 +173,7 @@ export default async function AdminMatchEditPage({
 
       <section className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-base font-semibold">경기 데이터 · 세트 결과 ({sets.length}개)</h2>
+          <h2 className="text-lg font-semibold">경기 데이터 · 세트 결과 ({sets.length}개)</h2>
           {!hasLeaguepediaMatchId ? (
             <Link
               href={`${adminMatchPath}/sets/new`}
@@ -231,7 +231,7 @@ export default async function AdminMatchEditPage({
           ]}
         />
         {hasLeaguepediaMatchId ? (
-          <p className="text-xs text-muted">
+          <p className="text-[13px] text-muted">
             이미 Leaguepedia와 연동된 경기입니다. 세트를 직접 추가해야 한다면{" "}
             <Link href={`${adminMatchPath}/sets/new`} className="underline hover:text-foreground">
               수동 세트 추가

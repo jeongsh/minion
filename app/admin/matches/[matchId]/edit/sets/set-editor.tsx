@@ -231,7 +231,7 @@ function StatRow({ label, left, right }: { label: string; left: string; right: s
   return (
     <div className="grid grid-cols-[1fr_7.5rem_1fr] items-center border-b border-border px-4 py-3 last:border-b-0">
       <strong className="text-right text-base">{left}</strong>
-      <span className="text-center text-xs font-semibold text-muted">{label}</span>
+      <span className="text-center text-[13px] font-semibold text-muted">{label}</span>
       <strong className="text-base">{right}</strong>
     </div>
   );
@@ -253,7 +253,7 @@ function StatInputRow({
   return (
     <div className="grid grid-cols-[1fr_7.5rem_1fr] items-center border-b border-border px-4 py-3 last:border-b-0">
       <AdminNumberInput name={leftName} defaultValue={leftDefault} className="text-right" />
-      <span className="text-center text-xs font-semibold text-muted">{label}</span>
+      <span className="text-center text-[13px] font-semibold text-muted">{label}</span>
       <AdminNumberInput name={rightName} defaultValue={rightDefault} />
     </div>
   );
@@ -273,7 +273,7 @@ function DragonInputGroup({ side, set }: { side: "blue" | "red"; set: SetResult 
   return (
     <div className="grid grid-cols-3 gap-x-2 gap-y-1.5">
       {fields.map(([label, name, value]) => (
-        <label key={name} className="grid gap-1 text-xs font-semibold text-muted">
+        <label key={name} className="grid gap-1 text-[13px] font-semibold text-muted">
           {label}
           <AdminNumberInput
             name={name}
@@ -446,7 +446,7 @@ function AdminPlayerStatEditor({
       </h2>
       <input type="hidden" name="playerStatCount" value={rows.length} />
       <div className="overflow-x-auto rounded-md border border-border bg-surface">
-        <div className="grid min-w-[86rem] grid-cols-[6rem_13rem_10rem_8rem_11rem_13rem_5rem_5rem_5rem_6rem_7rem_5rem_5rem_20rem] gap-2 px-4 py-3 text-xs font-semibold uppercase text-muted">
+        <div className="grid min-w-[86rem] grid-cols-[6rem_13rem_10rem_8rem_11rem_13rem_5rem_5rem_5rem_6rem_7rem_5rem_5rem_20rem] gap-2 px-4 py-3 text-[13px] font-semibold uppercase text-muted">
           <span>Side</span>
           <span>Player</span>
           <span>Team</span>
@@ -469,7 +469,7 @@ function AdminPlayerStatEditor({
               className="grid min-w-[86rem] grid-cols-[6rem_13rem_10rem_8rem_11rem_13rem_5rem_5rem_5rem_6rem_7rem_5rem_5rem_20rem] items-center gap-2 border-t border-border px-4 py-2 text-sm"
             >
               <input type="hidden" name={`playerStat.${index}.side`} value={row.side} />
-              <span className="text-xs font-semibold uppercase text-muted">{row.side}</span>
+              <span className="text-[13px] font-semibold uppercase text-muted">{row.side}</span>
               <PlayerSelect name={`playerStat.${index}.playerId`} players={players} defaultValue={row.line.playerId} />
               <TeamSelect name={`playerStat.${index}.teamId`} teams={teams} defaultValue={row.line.teamId} />
               <PositionSelect name={`playerStat.${index}.position`} defaultValue={row.line.position} />
@@ -496,7 +496,7 @@ function AdminPlayerStatEditor({
                 defaultValue={row.line.visionScore}
                 className="px-1 text-center"
               />
-              <span className="text-xs font-semibold text-muted tabular-nums">{row.stats.dpm}</span>
+              <span className="text-[13px] font-semibold text-muted tabular-nums">{row.stats.dpm}</span>
               <PlayerStatSpellsEditor
                 namePrefix={`playerStat.${index}`}
                 defaultSpellIds={row.line.spellIds}
@@ -675,7 +675,7 @@ export function AdminSetEditor({
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex flex-col gap-2">
             <p className="text-sm font-semibold text-accent">Set edit</p>
-            <h1 className="text-[32px] font-semibold tracking-normal md:text-[32px]">{title}</h1>
+            <h1 className="text-[28px] font-semibold tracking-normal md:text-[28px]">{title}</h1>
             <p className="text-sm text-muted">
               {match.name} · {activeSet.setNumber}세트 · 시리즈 스코어{" "}
               <span className="font-semibold text-foreground">
@@ -714,7 +714,7 @@ export function AdminSetEditor({
               result={blueWon ? "WIN" : "LOSS"}
             />
             <div className="grid gap-2 border-y border-background/20 px-5 py-4 text-center lg:border-x lg:border-y-0">
-              <p className="text-xs font-semibold text-background/70">GAME TIME</p>
+              <p className="text-[13px] font-semibold text-background/70">GAME TIME</p>
               <AdminTextInput
                 name="durationSeconds"
                 defaultValue={clockValue(activeSet.durationSeconds)}
@@ -722,22 +722,22 @@ export function AdminSetEditor({
                 className="text-center text-2xl"
               />
               <div className="grid grid-cols-2 gap-2">
-                <label className="grid gap-1 text-xs font-semibold text-background/70">
+                <label className="grid gap-1 text-[13px] font-semibold text-background/70">
                   GAME
                   <AdminNumberInput name="setNumber" defaultValue={activeSet.setNumber} className="text-center" />
                 </label>
-                <label className="grid gap-1 text-xs font-semibold text-background/70">
+                <label className="grid gap-1 text-[13px] font-semibold text-background/70">
                   PATCH
                   <AdminTextInput name="patch" defaultValue={activeSet.patch} placeholder="26.10" className="text-center" />
                 </label>
               </div>
-              <div className="grid gap-1 text-xs font-semibold text-background/70">
+              <div className="grid gap-1 text-[13px] font-semibold text-background/70">
                 STATUS (세트 결과로부터 자동 계산됨)
                 <span className="rounded-md border border-background/30 bg-background px-2 py-1 text-center text-sm font-semibold text-foreground">
                   {setStatusLabel(activeSet.status)}
                 </span>
               </div>
-              <label className="grid gap-1 text-xs font-semibold text-background/70">
+              <label className="grid gap-1 text-[13px] font-semibold text-background/70">
                 WINNER
                 <TeamSelect name="winnerTeamId" teams={participantTeams} defaultValue={activeSet.winnerTeamId} />
               </label>
@@ -766,7 +766,7 @@ export function AdminSetEditor({
               <StatRow label="KDA (선수합)" left={kdaText(blueRows)} right={kdaText(redRows)} />
               <div className="grid grid-cols-[1fr_7.5rem_1fr] items-center border-b border-border px-4 py-3">
                 <AdminTextInput name="blueGoldK" defaultValue={goldKValue(activeSet.blueGold)} placeholder="80.4" className="text-right" />
-                <span className="text-center text-xs font-semibold text-muted">GOLD (K)</span>
+                <span className="text-center text-[13px] font-semibold text-muted">GOLD (K)</span>
                 <AdminTextInput name="redGoldK" defaultValue={goldKValue(activeSet.redGold)} placeholder="87.4" />
               </div>
               <StatInputRow
@@ -792,7 +792,7 @@ export function AdminSetEditor({
               />
               <div className="grid grid-cols-[1fr_7.5rem_1fr] items-center gap-y-2 border-b border-border px-4 py-4">
                 <DragonInputGroup side="blue" set={activeSet} />
-                <span className="self-center text-center text-xs font-semibold text-muted">DRAKES</span>
+                <span className="self-center text-center text-[13px] font-semibold text-muted">DRAKES</span>
                 <DragonInputGroup side="red" set={activeSet} />
               </div>
               <StatInputRow
@@ -812,7 +812,7 @@ export function AdminSetEditor({
             </div>
 
             <div className="rounded-md border border-border bg-background p-4">
-              <h2 id="set-summary" className="text-center text-sm font-semibold">
+              <h2 id="set-summary" className="text-center text-lg font-semibold">
                 Champion damage share
               </h2>
               {playerRows.length === 0 ? (
@@ -898,7 +898,7 @@ export function AdminSetEditor({
             <form action={overrideSetResultAction} className="flex flex-wrap items-end gap-4">
               <input type="hidden" name="setId" value={set.id} />
               <input type="hidden" name="redirectTo" value={redirectTo} />
-              <p className="w-full text-xs text-muted">
+              <p className="w-full text-[13px] text-muted">
                 상태는 저장/동기화 시 자동으로 다시 계산됩니다. 예외적으로 임시 고정이 필요할 때만 사용하세요.
               </p>
               <label className="grid gap-2 text-sm font-medium">

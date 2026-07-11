@@ -62,14 +62,14 @@ export default async function AdminMatchesPage({
       </div>
 
       <section className="rounded-md border border-border bg-surface p-5">
-        <h2 className="text-base font-semibold">Leaguepedia 동기화</h2>
+        <h2 className="text-lg font-semibold">Leaguepedia 동기화</h2>
         <div className="mt-4">
           <SyncLeaguepediaButton cursor={syncCursor} />
         </div>
       </section>
 
       <section className="rounded-md border border-border bg-surface p-5">
-        <h2 className="text-base font-semibold">경기 생성</h2>
+        <h2 className="text-lg font-semibold">경기 생성</h2>
         <form action={createMatchAction} className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           <MatchFields teams={teams} tournaments={tournaments} stages={stages} players={players} />
           <div className="flex items-end">
@@ -82,7 +82,7 @@ export default async function AdminMatchesPage({
 
       <section className="flex flex-col gap-4">
         <div className="flex flex-col gap-3">
-          <h2 className="text-base font-semibold">
+          <h2 className="text-lg font-semibold">
             {segmentLabel(activeSegment)} 경기 목록 ({sortedMatches.length}건)
           </h2>
           <Suspense fallback={null}>

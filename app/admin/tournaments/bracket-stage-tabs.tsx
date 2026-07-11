@@ -93,7 +93,7 @@ export function BracketStageTabs({
             }`}
           >
             <span
-              className={`text-[10px] font-bold uppercase tracking-widest ${
+              className={`text-xs font-bold uppercase tracking-widest ${
                 isActive ? "text-background/60" : "text-muted/70"
               }`}
             >

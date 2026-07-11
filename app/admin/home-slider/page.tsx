@@ -35,7 +35,7 @@ export default async function AdminHomeSliderPage() {
 
       <section className="grid gap-4">
         <div className="flex items-end justify-between gap-3">
-          <h2 className="text-base font-black text-foreground">등록된 슬라이드</h2>
+          <h2 className="text-lg font-black text-foreground">등록된 슬라이드</h2>
           <p className="text-sm font-semibold text-muted">총 {slides.length}개</p>
         </div>
 
@@ -51,11 +51,11 @@ export default async function AdminHomeSliderPage() {
                 <div className="flex flex-col gap-3">
                   <div className="flex flex-wrap items-center gap-2">
                     <h3 className="text-base font-black text-foreground">{slide.title}</h3>
-                    <span className="rounded-full bg-surface-muted px-3 py-1 text-xs font-black text-muted">
+                    <span className="rounded-full bg-surface-muted px-3 py-1 text-[13px] font-black text-muted">
                       순서 {slide.orderIndex}
                     </span>
                     <span
-                      className={`rounded-full px-3 py-1 text-xs font-black ${
+                      className={`rounded-full px-3 py-1 text-[13px] font-black ${
                         slide.isActive ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"
                       }`}
                     >

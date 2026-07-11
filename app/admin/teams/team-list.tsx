@@ -62,12 +62,12 @@ export function TeamList({ teams }: { teams: Team[] }) {
                 )}
                 <div className="min-w-0 flex-1">
                   <h2 className="truncate font-bold text-white drop-shadow">{team.name}</h2>
-                  <p className="truncate text-xs text-white/70">{team.fanSiteHost}</p>
+                  <p className="truncate text-[13px] text-white/70">{team.fanSiteHost}</p>
                 </div>
               </div>
 
               <div className="flex flex-col gap-3 p-4">
-                <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+                <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-[13px]">
                   <div>
                     <dt className="text-muted">slug</dt>
                     <dd className="font-medium">{team.slug}</dd>
@@ -85,19 +85,19 @@ export function TeamList({ teams }: { teams: Team[] }) {
                 <div className="flex flex-wrap gap-2 border-t border-border pt-3">
                   <Link
                     href={`/admin/teams/${team.id}`}
-                    className="rounded-md bg-accent px-3 py-1.5 text-xs font-semibold text-accent-foreground"
+                    className="rounded-md bg-accent px-3 py-1.5 text-[13px] font-semibold text-accent-foreground"
                   >
                     관리
                   </Link>
                   <Link
                     href={`/teams/${team.slug}`}
-                    className="rounded-md border border-border px-3 py-1.5 text-xs font-semibold hover:bg-surface-muted"
+                    className="rounded-md border border-border px-3 py-1.5 text-[13px] font-semibold hover:bg-surface-muted"
                   >
                     팀 상세
                   </Link>
                   <Link
                     href={`/fan/${team.slug}`}
-                    className="rounded-md border border-border px-3 py-1.5 text-xs font-semibold hover:bg-surface-muted"
+                    className="rounded-md border border-border px-3 py-1.5 text-[13px] font-semibold hover:bg-surface-muted"
                   >
                     팬 사이트
                   </Link>

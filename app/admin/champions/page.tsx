@@ -22,7 +22,7 @@ function ChampionMappingCard({ champion }: { champion: Champion }) {
           {previewUrl ? (
             <img src={previewUrl} alt={`${champion.name} 이미지`} className="h-full w-full object-cover" />
           ) : (
-            <span className="px-2 text-center text-xs text-muted">NO IMG</span>
+            <span className="px-2 text-center text-[13px] text-muted">NO IMG</span>
           )}
         </div>
         <div className="min-w-0">

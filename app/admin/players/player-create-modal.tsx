@@ -121,7 +121,7 @@ export function PlayerCreateModal({ teams }: { teams: Team[] }) {
               </div>
               <span className="text-sm font-medium">주전 선수</span>
               {isStarter && (
-                <span className="text-xs text-muted">같은 포지션 기존 주전은 자동으로 서브 처리</span>
+                <span className="text-[13px] text-muted">같은 포지션 기존 주전은 자동으로 서브 처리</span>
               )}
             </label>
 

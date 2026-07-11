@@ -63,7 +63,7 @@ export function PostFormModal({
         className={
           mode === "create"
             ? "rounded-md bg-foreground px-4 py-2 text-sm font-semibold text-background"
-            : "rounded-md border border-border px-2.5 py-1 text-xs font-semibold hover:bg-surface-muted"
+            : "rounded-md border border-border px-2.5 py-1 text-[13px] font-semibold hover:bg-surface-muted"
         }
       >
         {mode === "create" ? "+ 글 추가" : "수정"}

@@ -335,7 +335,7 @@ export default async function AdminTournamentsPage({
           >
             <input type="hidden" name="segmentKey" value={segmentTheme.key} />
             <input type="hidden" name="tournamentId" value={primaryTournamentId} />
-            <label className="flex flex-col gap-1 text-xs font-semibold text-foreground">
+            <label className="flex flex-col gap-1 text-[13px] font-semibold text-foreground">
               새 브래킷 스테이지
               <input
                 type="text"
@@ -405,7 +405,7 @@ export default async function AdminTournamentsPage({
         </p>
       ) : (
         <section className="overflow-hidden rounded-2xl bg-[#0a0e1a] p-6 shadow-2xl">
-          <p className="mb-4 text-xs font-semibold text-white/40">
+          <p className="mb-4 text-[13px] font-semibold text-white/40">
             카드를 드래그해서 다른 라운드나 조로 자유롭게 옮기거나 순서를 바꿀 수 있습니다. 버튼으로도 조를 바꿀 수 있습니다.
           </p>
           <TournamentBracketEditor

@@ -20,7 +20,7 @@ function Field({
   required?: boolean;
 }) {
   return (
-    <label className="flex flex-col gap-1 text-xs font-bold text-muted">
+    <label className="flex flex-col gap-1 text-[13px] font-bold text-muted">
       {label}
       <input
         name={name}
@@ -128,14 +128,14 @@ export function SlideFormModal({ mode, slide }: { mode: "create" | "edit"; slide
                 placeholder="예: T1 우승 하이라이트"
                 required
               />
-              <label className="flex flex-col gap-1 text-xs font-bold text-muted">
+              <label className="flex flex-col gap-1 text-[13px] font-bold text-muted">
                 슬라이드 이미지
                 <input
                   name="image_file"
                   type="file"
                   accept="image/*"
                   required={mode === "create"}
-                  className="rounded-lg border border-border bg-surface px-3 py-2 text-sm font-semibold text-foreground outline-none transition focus:border-primary file:mr-3 file:rounded-md file:border-0 file:bg-primary/10 file:px-3 file:py-1 file:text-xs file:font-bold file:text-primary"
+                  className="rounded-lg border border-border bg-surface px-3 py-2 text-sm font-semibold text-foreground outline-none transition focus:border-primary file:mr-3 file:rounded-md file:border-0 file:bg-primary/10 file:px-3 file:py-1 file:text-[13px] file:font-bold file:text-primary"
                   onChange={(event) => {
                     const file = event.target.files?.[0];
                     if (!file) return;
@@ -143,7 +143,7 @@ export function SlideFormModal({ mode, slide }: { mode: "create" | "edit"; slide
                   }}
                 />
                 {mode === "edit" ? (
-                  <span className="text-xs font-semibold text-muted">비워두면 기존 이미지를 유지합니다.</span>
+                  <span className="text-[13px] font-semibold text-muted">비워두면 기존 이미지를 유지합니다.</span>
                 ) : null}
               </label>
             </div>

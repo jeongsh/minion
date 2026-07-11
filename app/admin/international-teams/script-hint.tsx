@@ -92,7 +92,7 @@ export function InternationalRosterScriptHint() {
   return (
     <section className="flex flex-col gap-3 rounded-md border border-border bg-surface p-4 text-sm">
       <div className="flex flex-col gap-1">
-        <h2 className="text-base font-semibold">해외팀/선수 목록 동기화 (Leaguepedia)</h2>
+        <h2 className="text-lg font-semibold">해외팀/선수 목록 동기화 (Leaguepedia)</h2>
         <p className="text-muted">
           Leaguepedia Cargo API에서 국제대회 로스터/선수 정보를 가져와 팀/선수 목록을 DB에 반영합니다. 실행 중에는
           스크립트 실행 페이지와 동일하게 로그가 아래에 표시됩니다.
@@ -100,7 +100,7 @@ export function InternationalRosterScriptHint() {
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <label className="flex cursor-pointer items-center gap-2 text-xs text-muted">
+        <label className="flex cursor-pointer items-center gap-2 text-[13px] text-muted">
           <input
             type="checkbox"
             checked={fullMode}
@@ -112,23 +112,23 @@ export function InternationalRosterScriptHint() {
         <button
           type="button"
           onClick={state === "running" ? stop : run}
-          className="rounded-md bg-foreground px-4 py-2 text-xs font-semibold text-background disabled:opacity-50"
+          className="rounded-md bg-foreground px-4 py-2 text-[13px] font-semibold text-background disabled:opacity-50"
           disabled={false}
         >
           {state === "running" ? "실행 중... (중지)" : "해외팀/선수 동기화 실행"}
         </button>
         {state === "done" && (
-          <span className="text-xs text-emerald-500">완료 (exit {exitCode ?? 0})</span>
+          <span className="text-[13px] text-emerald-500">완료 (exit {exitCode ?? 0})</span>
         )}
         {state === "error" && (
-          <span className="text-xs text-red-500">
+          <span className="text-[13px] text-red-500">
             오류{exitCode !== null ? ` (exit ${exitCode})` : ""}
           </span>
         )}
       </div>
 
       {logs.length > 0 && (
-        <div className="mt-2 max-h-64 overflow-y-auto rounded-md border border-border bg-background p-2 font-mono text-[11px] leading-relaxed">
+        <div className="mt-2 max-h-64 overflow-y-auto rounded-md border border-border bg-background p-2 font-mono text-xs leading-relaxed">
           <div ref={logContainerRef}>
             {logs.map((line, index) => (
               <div key={index} className="whitespace-pre-wrap text-foreground/80">

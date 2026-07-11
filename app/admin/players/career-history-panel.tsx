@@ -10,7 +10,7 @@ const POS_LABEL: Record<string, string> = {
 const POSITIONS = ["TOP", "JGL", "MID", "BOT", "SUP"] as const;
 
 function inputCls() {
-  return "rounded border border-border bg-background px-2 py-1.5 text-xs outline-none focus:border-accent";
+  return "rounded border border-border bg-background px-2 py-1.5 text-[13px] outline-none focus:border-accent";
 }
 
 function CareerAddForm({ player, teams, onDone }: {
@@ -29,10 +29,10 @@ function CareerAddForm({ player, teams, onDone }: {
       className="mt-3 flex flex-col gap-2 rounded-md border border-border bg-surface-muted p-3"
     >
       <input type="hidden" name="player_id" value={player.id} />
-      <p className="text-xs font-semibold text-muted">경력 추가</p>
+      <p className="text-[13px] font-semibold text-muted">경력 추가</p>
 
       <div className="flex items-center gap-2">
-        <label className="flex items-center gap-1 text-xs">
+        <label className="flex items-center gap-1 text-[13px]">
           <input
             type="checkbox"
             checked={useCustomTeam}
@@ -65,11 +65,11 @@ function CareerAddForm({ player, teams, onDone }: {
           ))}
         </select>
         <div className="flex flex-col gap-0.5">
-          <label className="text-xs text-muted">시작일</label>
+          <label className="text-[13px] text-muted">시작일</label>
           <input type="date" name="start_date" required className={inputCls()} />
         </div>
         <div className="flex flex-col gap-0.5">
-          <label className="text-xs text-muted">종료일 (현역이면 비움)</label>
+          <label className="text-[13px] text-muted">종료일 (현역이면 비움)</label>
           <input type="date" name="end_date" className={inputCls()} />
         </div>
       </div>
@@ -83,14 +83,14 @@ function CareerAddForm({ player, teams, onDone }: {
       <div className="flex gap-2">
         <button
           type="submit"
-          className="rounded bg-foreground px-3 py-1 text-xs font-semibold text-background"
+          className="rounded bg-foreground px-3 py-1 text-[13px] font-semibold text-background"
         >
           추가
         </button>
         <button
           type="button"
           onClick={onDone}
-          className="rounded border border-border px-3 py-1 text-xs font-semibold"
+          className="rounded border border-border px-3 py-1 text-[13px] font-semibold"
         >
           취소
         </button>
@@ -121,7 +121,7 @@ export function CareerHistoryPanel({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-1 rounded border border-border px-2 py-1 text-xs font-semibold hover:bg-surface-muted"
+        className="flex items-center gap-1 rounded border border-border px-2 py-1 text-[13px] font-semibold hover:bg-surface-muted"
       >
         경력 {mine.length > 0 && <span className="text-accent">({mine.length})</span>}
         <span className="text-muted">{open ? "▲" : "▼"}</span>
@@ -130,7 +130,7 @@ export function CareerHistoryPanel({
       {open && (
         <div className="mt-2 rounded-md border border-border bg-surface p-3">
           {mine.length === 0 ? (
-            <p className="text-xs text-muted">기록된 경력이 없습니다.</p>
+            <p className="text-[13px] text-muted">기록된 경력이 없습니다.</p>
           ) : (
             <div className="flex flex-col gap-1">
               {mine.map((h) => {
@@ -140,7 +140,7 @@ export function CareerHistoryPanel({
                 return (
                   <div
                     key={h.id}
-                    className="flex items-center justify-between gap-2 rounded bg-surface-muted px-3 py-2 text-xs"
+                    className="flex items-center justify-between gap-2 rounded bg-surface-muted px-3 py-2 text-[13px]"
                   >
                     <div className="flex items-center gap-2">
                       <span
@@ -182,7 +182,7 @@ export function CareerHistoryPanel({
             <button
               type="button"
               onClick={() => setAdding(true)}
-              className="mt-2 text-xs text-accent hover:underline"
+              className="mt-2 text-[13px] text-accent hover:underline"
             >
               + 경력 추가
             </button>

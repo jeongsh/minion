@@ -43,7 +43,7 @@ export function PlayerEditForm({
 
       <div className="grid gap-8 lg:grid-cols-[18rem_1fr]">
       <section className="rounded-lg border border-border bg-surface p-5">
-        <h2 className="mb-4 text-sm font-semibold">프로필 사진</h2>
+        <h2 className="mb-4 text-lg font-semibold">프로필 사진</h2>
         <div className="overflow-hidden rounded-md border border-border bg-surface-muted">
           {previewUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -65,7 +65,7 @@ export function PlayerEditForm({
         <input type="hidden" name="is_starter" value={isStarter ? "true" : "false"} />
 
         <div>
-          <h2 className="text-base font-semibold">기본 정보</h2>
+          <h2 className="text-lg font-semibold">기본 정보</h2>
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             <label className="flex flex-col gap-1.5">
               <span className="text-sm font-medium">선수명 (ID)</span>
@@ -104,7 +104,7 @@ export function PlayerEditForm({
                 placeholder="Lucid (Choi Yong-hyeok)"
                 className={inputClassName()}
               />
-              <span className="text-xs text-muted">
+              <span className="text-[13px] text-muted">
                 리그피디아 API 조회용 식별자입니다. 화면에는 위 선수명만 표시됩니다.
               </span>
             </label>
@@ -124,7 +124,7 @@ export function PlayerEditForm({
         </div>
 
         <div>
-          <h2 className="text-base font-semibold">프로필 사진 설정</h2>
+          <h2 className="text-lg font-semibold">프로필 사진 설정</h2>
           <div className="mt-4 grid gap-4">
             <label className="flex flex-col gap-1.5">
               <span className="text-sm font-medium">이미지 URL</span>
@@ -149,13 +149,13 @@ export function PlayerEditForm({
                   setPreviewUrl(URL.createObjectURL(file));
                 }}
               />
-              <span className="text-xs text-muted">URL과 파일을 함께 넣으면 파일 업로드가 우선 적용됩니다.</span>
+              <span className="text-[13px] text-muted">URL과 파일을 함께 넣으면 파일 업로드가 우선 적용됩니다.</span>
             </label>
           </div>
         </div>
 
         <div>
-          <h2 className="text-base font-semibold">SNS / 방송</h2>
+          <h2 className="text-lg font-semibold">SNS / 방송</h2>
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             <label className="flex flex-col gap-1.5">
               <span className="text-sm font-medium">X (Twitter)</span>
@@ -182,7 +182,7 @@ export function PlayerEditForm({
               <input name="stream_url" defaultValue={player.streamUrl ?? ""} placeholder="https://..." className={inputClassName()} />
             </label>
           </div>
-          <p className="mt-2 text-xs text-muted">비워두면 공개 선수 상세 페이지에 표시되지 않습니다.</p>
+          <p className="mt-2 text-[13px] text-muted">비워두면 공개 선수 상세 페이지에 표시되지 않습니다.</p>
         </div>
 
         <div className="flex justify-end">

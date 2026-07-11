@@ -248,12 +248,12 @@ function GroupPanel({ group }: { group: GroupDef }) {
     <div className="overflow-hidden rounded-xl border border-border bg-surface">
       {/* 헤더 */}
       <div className="flex items-center justify-between bg-surface-muted/50 px-5 py-3">
-        <h3 className="text-sm font-semibold tracking-wide">{group.label}</h3>
+        <h3 className="text-[15px] font-semibold tracking-wide">{group.label}</h3>
         {anyRunning && (
           <button
             type="button"
             onClick={stopAll}
-            className="rounded border border-red-500/40 bg-red-500/10 px-2.5 py-1 text-xs font-medium text-red-500 hover:bg-red-500/20"
+            className="rounded border border-red-500/40 bg-red-500/10 px-2.5 py-1 text-[13px] font-medium text-red-500 hover:bg-red-500/20"
           >
             중지
           </button>
@@ -261,14 +261,14 @@ function GroupPanel({ group }: { group: GroupDef }) {
       </div>
 
       {/* 옵션 */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-border px-5 py-2.5 text-xs text-muted">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-border px-5 py-2.5 text-[13px] text-muted">
         {group.showSegment && (
           <div className="flex items-center gap-1.5">
             <span>리그</span>
             <select
               value={segment}
               onChange={(e) => setSegment(e.target.value)}
-              className="rounded border border-border bg-background px-2 py-0.5 text-xs text-foreground"
+              className="rounded border border-border bg-background px-2 py-0.5 text-[13px] text-foreground"
             >
               {LEAGUE_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -285,7 +285,7 @@ function GroupPanel({ group }: { group: GroupDef }) {
               max={2099}
               value={year}
               onChange={(e) => setYear(e.target.value)}
-              className="w-20 rounded border border-border bg-background px-2 py-0.5 text-center text-xs text-foreground"
+              className="w-20 rounded border border-border bg-background px-2 py-0.5 text-center text-[13px] text-foreground"
             />
           </div>
         )}
@@ -318,7 +318,7 @@ function GroupPanel({ group }: { group: GroupDef }) {
               max={3600}
               value={retryIntervalSec}
               onChange={(e) => setRetryIntervalSec(Math.max(10, parseInt(e.target.value) || 60))}
-              className="w-16 rounded border border-border bg-background px-2 py-0.5 text-center text-xs text-foreground"
+              className="w-16 rounded border border-border bg-background px-2 py-0.5 text-center text-[13px] text-foreground"
             />
             <span>초</span>
           </div>
@@ -343,10 +343,10 @@ function GroupPanel({ group }: { group: GroupDef }) {
               )}
               {script.label}
               {info.state === "done" && (
-                <span className="text-xs opacity-60">완료</span>
+                <span className="text-[13px] opacity-60">완료</span>
               )}
               {info.state === "error" && (
-                <span className="text-xs opacity-60">
+                <span className="text-[13px] opacity-60">
                   오류{info.exitCode !== null ? ` (${info.exitCode})` : ""}
                 </span>
               )}
@@ -369,7 +369,7 @@ function GroupPanel({ group }: { group: GroupDef }) {
         <div className="border-t border-border">
           <div
             ref={logContainerRef}
-            className="max-h-48 overflow-y-auto bg-background p-3 font-mono text-xs leading-relaxed"
+            className="max-h-48 overflow-y-auto bg-background p-3 font-mono text-[13px] leading-relaxed"
           >
             {logs.map((line, i) => (
               <div key={i} className="whitespace-pre-wrap text-foreground/80">{line}</div>
@@ -379,7 +379,7 @@ function GroupPanel({ group }: { group: GroupDef }) {
             <button
               type="button"
               onClick={() => setLogs([])}
-              className="text-xs text-muted hover:text-foreground"
+              className="text-[13px] text-muted hover:text-foreground"
             >
               로그 지우기
             </button>

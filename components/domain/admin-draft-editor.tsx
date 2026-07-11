@@ -49,7 +49,7 @@ function DraftSlotPicker({
 }) {
   if (formIndex < 0) {
     return (
-      <div className="relative grid h-24 place-items-center rounded-md border border-dashed border-border bg-background text-xs font-semibold text-muted">
+      <div className="relative grid h-24 place-items-center rounded-md border border-dashed border-border bg-background text-[13px] font-semibold text-muted">
         슬롯 없음
       </div>
     );

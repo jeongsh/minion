@@ -212,7 +212,7 @@ export default async function AdminNewsPage({
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border bg-surface-muted text-left text-xs text-muted">
+              <tr className="border-b border-border bg-surface-muted text-left text-[13px] text-muted">
                 {type === "video" ? (
                   <>
                     <th className="w-12 px-4 py-3 font-semibold">#</th>
@@ -274,7 +274,7 @@ export default async function AdminNewsPage({
                             href={row.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="rounded-md border border-border px-2.5 py-1 text-xs font-semibold hover:bg-surface-muted"
+                            className="rounded-md border border-border px-2.5 py-1 text-[13px] font-semibold hover:bg-surface-muted"
                           >
                             보기
                           </a>
@@ -307,7 +307,7 @@ export default async function AdminNewsPage({
                     <td className="px-4 py-3 text-muted">{row.boardType}</td>
                     <td className="px-4 py-3">
                       <span
-                        className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                        className={`rounded-full px-2 py-0.5 text-[13px] font-semibold ${
                           row.siteScope === "hub"
                             ? "bg-accent/10 text-accent"
                             : "bg-surface-muted text-muted"
@@ -326,7 +326,7 @@ export default async function AdminNewsPage({
                       <div className="flex items-center gap-1.5">
                         <Link
                           href={row.url}
-                          className="rounded-md border border-border px-2.5 py-1 text-xs font-semibold hover:bg-surface-muted"
+                          className="rounded-md border border-border px-2.5 py-1 text-[13px] font-semibold hover:bg-surface-muted"
                         >
                           보기
                         </Link>

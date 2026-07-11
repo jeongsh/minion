@@ -24,7 +24,7 @@ export function SwapSidesButton({
     <button
       type="button"
       onClick={swap}
-      className="rounded-md border border-background/30 bg-background/10 px-2 py-1 text-xs font-semibold text-background hover:bg-background/20"
+      className="rounded-md border border-background/30 bg-background/10 px-2 py-1 text-[13px] font-semibold text-background hover:bg-background/20"
     >
       진영 교체
     </button>

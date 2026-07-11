@@ -30,7 +30,7 @@ function Chip({ label, value, tone }: { label: string; value: string; tone: Chip
         : "border-border bg-surface-muted text-muted";
 
   return (
-    <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${toneClass}`}>
+    <span className={`rounded-full border px-3 py-1 text-[13px] font-semibold ${toneClass}`}>
       {label} · {value}
     </span>
   );

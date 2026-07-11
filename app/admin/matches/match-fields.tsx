@@ -131,7 +131,7 @@ export function MatchFields({
         />
       </label>
       <label className="flex flex-col gap-2 text-sm font-medium">
-        경기 일시 <span className="text-xs font-normal text-muted">(한국 시간 KST 기준)</span>
+        경기 일시 <span className="text-[13px] font-normal text-muted">(한국 시간 KST 기준)</span>
         <input
           name="matchDate"
           type="datetime-local"

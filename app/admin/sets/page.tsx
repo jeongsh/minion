@@ -36,7 +36,7 @@ export default async function AdminSetsPage() {
       </div>
 
       <section className="rounded-md border border-border bg-surface p-5">
-        <h2 className="text-base font-semibold">세트 생성</h2>
+        <h2 className="text-lg font-semibold">세트 생성</h2>
         <form action={createSetAction} className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           <SetFields matches={matches} teams={teams} />
           <div className="flex items-end">
@@ -48,7 +48,7 @@ export default async function AdminSetsPage() {
       </section>
 
       <section className="flex flex-col gap-4">
-        <h2 className="text-base font-semibold">세트 목록</h2>
+        <h2 className="text-lg font-semibold">세트 목록</h2>
         <DataTable
           rows={sets}
           columns={[

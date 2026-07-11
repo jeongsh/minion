@@ -49,7 +49,7 @@ export function CalendarEventManager({
         action={createCalendarEventAction}
         className="grid gap-3 rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-5 sm:grid-cols-2"
       >
-        <label className="flex flex-col gap-1 text-xs font-bold text-[var(--ui-muted)]">
+        <label className="flex flex-col gap-1 text-[13px] font-bold text-[var(--ui-muted)]">
           종류
           <select name="event_type" className={inputClass} defaultValue="debut">
             {TYPE_OPTIONS.map((o) => (
@@ -60,12 +60,12 @@ export function CalendarEventManager({
           </select>
         </label>
 
-        <label className="flex flex-col gap-1 text-xs font-bold text-[var(--ui-muted)]">
+        <label className="flex flex-col gap-1 text-[13px] font-bold text-[var(--ui-muted)]">
           날짜 (YYYY-MM-DD)
           <input type="date" name="event_date" required className={inputClass} />
         </label>
 
-        <label className="flex flex-col gap-1 text-xs font-bold text-[var(--ui-muted)]">
+        <label className="flex flex-col gap-1 text-[13px] font-bold text-[var(--ui-muted)]">
           팀
           <select
             name="team_id"
@@ -82,7 +82,7 @@ export function CalendarEventManager({
           </select>
         </label>
 
-        <label className="flex flex-col gap-1 text-xs font-bold text-[var(--ui-muted)]">
+        <label className="flex flex-col gap-1 text-[13px] font-bold text-[var(--ui-muted)]">
           선수 (선택)
           <select name="player_id" className={inputClass} defaultValue="">
             <option value="">선택 안 함</option>
@@ -94,12 +94,12 @@ export function CalendarEventManager({
           </select>
         </label>
 
-        <label className="flex flex-col gap-1 text-xs font-bold text-[var(--ui-muted)] sm:col-span-2">
+        <label className="flex flex-col gap-1 text-[13px] font-bold text-[var(--ui-muted)] sm:col-span-2">
           제목 (예: 데뷔, 월즈 우승)
           <input type="text" name="title" required placeholder="데뷔" className={inputClass} />
         </label>
 
-        <label className="flex items-center gap-2 text-xs font-bold text-[var(--ui-muted)] sm:col-span-2">
+        <label className="flex items-center gap-2 text-[13px] font-bold text-[var(--ui-muted)] sm:col-span-2">
           <input type="checkbox" name="is_recurring" value="true" defaultChecked className="h-4 w-4" />
           매년 반복 (월·일 기준으로 D-day 표시)
         </label>
@@ -113,7 +113,7 @@ export function CalendarEventManager({
 
       {/* 목록 */}
       <div className="overflow-hidden rounded-2xl border border-[var(--ui-border)]">
-        <div className="grid grid-cols-[80px_110px_1fr_1fr_60px] gap-2 border-b border-[var(--ui-border)] bg-[var(--ui-surface-muted)] px-4 py-2.5 text-xs font-black text-[var(--ui-muted)]">
+        <div className="grid grid-cols-[80px_110px_1fr_1fr_60px] gap-2 border-b border-[var(--ui-border)] bg-[var(--ui-surface-muted)] px-4 py-2.5 text-[13px] font-black text-[var(--ui-muted)]">
           <span>종류</span>
           <span>날짜</span>
           <span>제목</span>
@@ -146,7 +146,7 @@ export function CalendarEventManager({
                 <input type="hidden" name="id" value={event.id} />
                 <button
                   type="submit"
-                  className="rounded-lg px-2 py-1 text-xs font-bold text-[#ff3158] hover:bg-[#ff31581a]"
+                  className="rounded-lg px-2 py-1 text-[13px] font-bold text-[#ff3158] hover:bg-[#ff31581a]"
                 >
                   삭제
                 </button>

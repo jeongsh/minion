@@ -101,7 +101,7 @@ export function PlayerList({
                 }}
               >
                 <span className="font-bold">{team.name}</span>
-                <span className="text-xs text-muted">({sorted.length}명)</span>
+                <span className="text-[13px] text-muted">({sorted.length}명)</span>
               </div>
 
               <table className="w-full text-sm">
@@ -111,25 +111,25 @@ export function PlayerList({
                       key={p.id}
                       className="border-b border-border/50 last:border-0 hover:bg-surface-muted"
                     >
-                      <td className="w-14 px-4 py-2.5 text-xs text-muted">
+                      <td className="w-14 px-4 py-2.5 text-[13px] text-muted">
                         {POS_LABEL[p.position]}
                       </td>
                       <td className="px-2 py-2.5 font-medium">{p.name}</td>
-                      <td className="px-2 py-2.5 text-xs text-muted">{p.realName || "-"}</td>
+                      <td className="px-2 py-2.5 text-[13px] text-muted">{p.realName || "-"}</td>
                       <td className="w-14 px-2 py-2.5">
                         {p.isStarter ? (
-                          <span className="rounded-full bg-accent/10 px-2 py-0.5 text-xs font-semibold text-accent">
+                          <span className="rounded-full bg-accent/10 px-2 py-0.5 text-[13px] font-semibold text-accent">
                             주전
                           </span>
                         ) : (
-                          <span className="text-xs text-muted">서브</span>
+                          <span className="text-[13px] text-muted">서브</span>
                         )}
                       </td>
                       <td className="px-4 py-2.5">
                         <div className="flex flex-row flex-wrap items-center gap-1.5">
                           <Link
                             href={`/admin/players/${p.id}`}
-                            className="rounded border border-border px-2 py-1 text-xs font-semibold hover:bg-surface-muted"
+                            className="rounded border border-border px-2 py-1 text-[13px] font-semibold hover:bg-surface-muted"
                           >
                             수정
                           </Link>
@@ -184,10 +184,10 @@ export function PlayerList({
                         <div>
                           <div className="flex items-center gap-2">
                             <span className="font-bold text-base">{p.name}</span>
-                            <span className="rounded bg-muted/20 px-1.5 py-0.5 text-xs text-muted">
+                            <span className="rounded bg-muted/20 px-1.5 py-0.5 text-[13px] text-muted">
                               {POS_LABEL[p.position]}
                             </span>
-                            <span className="rounded bg-red-500/10 px-1.5 py-0.5 text-xs font-semibold text-red-500">
+                            <span className="rounded bg-red-500/10 px-1.5 py-0.5 text-[13px] font-semibold text-red-500">
                               은퇴
                             </span>
                           </div>
@@ -195,7 +195,7 @@ export function PlayerList({
                             <p className="text-sm text-muted">{p.realName}</p>
                           )}
                           {p.retiredAt && (
-                            <p className="text-xs text-muted">
+                            <p className="text-[13px] text-muted">
                               은퇴일: {p.retiredAt}
                             </p>
                           )}
@@ -206,7 +206,7 @@ export function PlayerList({
                       <div className="flex items-center gap-2">
                         <Link
                           href={`/admin/players/${p.id}`}
-                          className="rounded border border-border px-3 py-1.5 text-xs font-semibold hover:bg-surface-muted"
+                          className="rounded border border-border px-3 py-1.5 text-[13px] font-semibold hover:bg-surface-muted"
                         >
                           관리
                         </Link>
@@ -214,7 +214,7 @@ export function PlayerList({
                           <input type="hidden" name="id" value={p.id} />
                           <button
                             type="submit"
-                            className="rounded border border-accent/40 px-3 py-1.5 text-xs font-semibold text-accent hover:bg-accent/10"
+                            className="rounded border border-accent/40 px-3 py-1.5 text-[13px] font-semibold text-accent hover:bg-accent/10"
                           >
                             복귀
                           </button>
@@ -235,7 +235,7 @@ export function PlayerList({
                       </div>
 
                       {mine.length === 0 ? (
-                        <p className="text-xs text-muted">기록된 경력이 없습니다. 우측 버튼으로 추가하세요.</p>
+                        <p className="text-[13px] text-muted">기록된 경력이 없습니다. 우측 버튼으로 추가하세요.</p>
                       ) : (
                         <div className="relative ml-2 flex flex-col gap-0">
                           {/* 세로 타임라인 선 */}
@@ -257,17 +257,17 @@ export function PlayerList({
                                 <div className="flex flex-col gap-0.5">
                                   <div className="flex items-center gap-2">
                                     <span className="text-sm font-semibold">{teamLabel}</span>
-                                    <span className="text-xs text-muted">
+                                    <span className="text-[13px] text-muted">
                                       {POS_LABEL[h.position] ?? h.position}
                                     </span>
                                   </div>
-                                  <span className="text-xs text-muted">
+                                  <span className="text-[13px] text-muted">
                                     {h.startDate.slice(0, 7)}
                                     {" ~ "}
                                     {h.endDate ? h.endDate.slice(0, 7) : "현재"}
                                   </span>
                                   {h.notes && (
-                                    <span className="text-xs text-muted italic">{h.notes}</span>
+                                    <span className="text-[13px] text-muted italic">{h.notes}</span>
                                   )}
                                 </div>
                               </div>
