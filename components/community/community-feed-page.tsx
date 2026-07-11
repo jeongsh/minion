@@ -26,7 +26,11 @@ export async function CommunityFeedPage({
   if (scope === "team") {
     return (
       <main className="community-neutral fan-page-container flex flex-col gap-5 py-7 md:py-9" style={{ ["--tp" as string]: "var(--team-primary, #6158ff)" }}>
-        <PageHeader eyebrow={eyebrow ?? "COMMUNITY"} title={title ?? "커뮤니티"} />
+        <PageHeader
+          eyebrow={eyebrow ?? "COMMUNITY"}
+          title={title ?? "커뮤니티"}
+          breadcrumbs={teamSlug ? [{ label: "팀 홈", href: `/fan/${teamSlug}` }, { label: title ?? "커뮤니티" }] : undefined}
+        />
         <CommunityContentLayout posts={posts} scope={scope} teamSlug={teamSlug}>
           <CommunityFeed posts={posts} scope={scope} teamSlug={teamSlug} newPath={newPath} />
         </CommunityContentLayout>

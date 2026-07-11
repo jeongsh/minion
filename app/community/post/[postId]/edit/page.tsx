@@ -15,7 +15,14 @@ export default async function EditCommunityPostPage({ params }: { params: Promis
 
   return (
     <main className="subpage mx-auto flex min-h-screen w-full max-w-[1400px] flex-col gap-5 bg-[var(--ui-surface)] px-10 py-8 max-md:px-5">
-      <PageHeader eyebrow="COMMUNITY" title="게시글 수정" />
+      <PageHeader
+        title="게시글 수정"
+        breadcrumbs={[
+          { label: "커뮤니티", href: "/community" },
+          { label: "게시글", href: `/community/post/${post.id}` },
+          { label: "수정" },
+        ]}
+      />
       <SurfacePanel className="p-5 sm:p-8">
         <PostForm scope="hub" categories={categoriesForScope("hub")} defaultCategory={post.boardType} postId={post.id} initialTitle={post.title} initialContent={post.content} />
       </SurfacePanel>

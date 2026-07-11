@@ -37,7 +37,13 @@ export default async function FanPostDetailPage({
 
   return (
     <main className="community-neutral fan-page-container flex flex-col gap-5 py-7 md:py-9">
-      <PageHeader eyebrow="COMMUNITY" title="커뮤니티" />
+      <PageHeader
+        title="게시글"
+        breadcrumbs={[
+          { label: "커뮤니티", href: `/fan/${teamSlug}/community` },
+          { label: "게시글" },
+        ]}
+      />
       <CommunityContentLayout posts={posts} scope="team" teamSlug={teamSlug} currentPostId={post.id}>
         <PostView
           post={post}

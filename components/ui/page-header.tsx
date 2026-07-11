@@ -1,19 +1,27 @@
-// 페이지 공통 상단 헤더 — 영문 eyebrow + 한글 타이틀 2줄.
-// 일정 페이지 최상단 스타일을 디자인 토큰(--ui-*) 기반으로 추출해 전 페이지에서 재사용한다.
+// 사용자 페이지 공통 상단 헤더 — 선택적 브레드크럼 + 한글 타이틀.
+import { Breadcrumb, type Crumb } from "@/components/layout/breadcrumb";
+
 export function PageHeader({
-  eyebrow,
   title,
   action,
+  breadcrumbs,
+  className = "",
 }: {
-  eyebrow: string;
+  eyebrow?: string;
   title: string;
   action?: React.ReactNode;
+  breadcrumbs?: Crumb[];
+  className?: string;
 }) {
+  const resolvedBreadcrumbs = breadcrumbs?.length
+    ? breadcrumbs
+    : [{ label: "홈", href: "/" }, { label: title }];
+
   return (
-    <header>
-      <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--ui-muted)]">{eyebrow}</p>
-      <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
-        <h1 className="home-section-title text-[32px] text-[var(--ui-ink)]">{title}</h1>
+    <header className={`flex flex-col gap-3 ${className}`}>
+      <Breadcrumb items={resolvedBreadcrumbs} />
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <h1 className="home-section-title text-[28px] text-[var(--ui-ink)]">{title}</h1>
         {action ? <div className="shrink-0">{action}</div> : null}
       </div>
     </header>

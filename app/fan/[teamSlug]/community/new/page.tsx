@@ -19,7 +19,6 @@ export default async function FanNewPostPage({
   return (
     <NewPostPage
       scope="team"
-      eyebrow={`${team.shortName} 커뮤니티`}
       initialCategory={cat}
       teamId={team.id}
       teamSlug={teamSlug}

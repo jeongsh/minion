@@ -9,13 +9,15 @@ export type Crumb = { label: string; href?: string };
  * `.subpage` 토큰이 없는 페이지에서도 동일하게 보이도록 색상 폴백을 포함한다.
  */
 export function Breadcrumb({ items, className = "" }: { items: Crumb[]; className?: string }) {
+  const visibleItems = items.length > 1 ? items.slice(0, -1) : items;
+
   return (
     <nav aria-label="위치" className={`flex flex-wrap items-center gap-1.5 text-sm ${className}`}>
-      {items.map((item, index) => {
-        const isLast = index === items.length - 1;
+      {visibleItems.map((item, index) => {
+        const isLast = index === visibleItems.length - 1;
         return (
           <Fragment key={`${item.label}-${index}`}>
-            {item.href && !isLast ? (
+            {item.href ? (
               <Link
                 href={item.href}
                 className="text-[var(--ink-3,var(--ui-muted))] transition-colors hover:text-[var(--ink,var(--ui-ink))]"
@@ -23,14 +25,7 @@ export function Breadcrumb({ items, className = "" }: { items: Crumb[]; classNam
                 {item.label}
               </Link>
             ) : (
-              <span
-                className={
-                  isLast
-                    ? "font-semibold text-[var(--ink,var(--ui-ink))]"
-                    : "text-[var(--ink-3,var(--ui-muted))]"
-                }
-                aria-current={isLast ? "page" : undefined}
-              >
+              <span className="text-[var(--ink-3,var(--ui-muted))]">
                 {item.label}
               </span>
             )}
