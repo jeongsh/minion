@@ -89,7 +89,7 @@ export default function CommunityEditor({ content, onChange, allowMedia = true, 
     <div ref={containerRef} className="community-editor relative flex flex-col overflow-hidden rounded-[var(--ui-control-radius)] border border-[var(--ui-border)] bg-[var(--ui-surface)] focus-within:border-[var(--ui-ink)]">
       {allowMedia ? <Toolbar editor={editor} allowMedia={allowMedia} /> : <Toolbar editor={editor} allowMedia={false} />}
       {uploadingDropImage ? (
-        <div className="border-b border-border bg-surface-muted px-4 py-2 text-xs text-muted">이미지 업로드 중...</div>
+        <div className="border-b border-border bg-surface-muted px-4 py-2 text-[13px] text-muted">이미지 업로드 중...</div>
       ) : null}
       <EditorContent editor={editor} />
     </div>

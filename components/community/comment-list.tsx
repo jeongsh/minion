@@ -24,7 +24,7 @@ export function CommentList({ comments, commentReactions, scope, teamSlug }: { c
   const item = (comment: CommunityCommentItem, reply = false) => (
     <div key={comment.id} className={reply ? "relative ml-10 border-t border-[var(--ui-border)] py-5 pl-5 before:absolute before:left-0 before:top-6 before:h-3 before:w-3 before:border-b before:border-l before:border-[var(--ui-border)] sm:ml-14" : "py-5"}>
       <div className="flex gap-3">
-        <span className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full bg-[var(--ui-surface-muted)] text-xs font-bold text-[var(--ui-muted)]">
+        <span className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full bg-[var(--ui-surface-muted)] text-[13px] font-bold text-[var(--ui-muted)]">
           {comment.authorImageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={comment.authorImageUrl} alt="" className="h-full w-full object-cover" />
@@ -33,13 +33,13 @@ export function CommentList({ comments, commentReactions, scope, teamSlug }: { c
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-sm font-bold text-[var(--ui-ink)]">{comment.authorName ?? "작성자"}</span>
-            <span className="text-xs text-[var(--ui-muted)]">{formatRelativeOrDate(comment.createdAt)}</span>
+            <span className="text-[13px] text-[var(--ui-muted)]">{formatRelativeOrDate(comment.createdAt)}</span>
             <div className="ml-auto"><ReactionButtons target="comment" targetId={comment.id} postId={comment.postId} scope={scope} teamSlug={teamSlug} initialState={commentReactions[comment.id] ?? null} initialHonorCount={comment.likeCount} initialDislikeCount={comment.dislikeCount} size="sm" /></div>
           </div>
-          <p className="mt-2 whitespace-pre-wrap text-sm leading-[1.65] text-[var(--ui-text)]">{comment.content}</p>
+          <p className="mt-2 whitespace-pre-wrap text-[15px] leading-[1.7] text-[var(--ui-text)]">{comment.content}</p>
           {!reply ? (
             <div className="mt-3 flex items-center gap-3">
-              <button type="button" onClick={() => setReplyTo((current) => current === comment.id ? null : comment.id)} className="text-xs font-semibold text-[var(--ui-muted)] hover:text-[var(--ui-ink)]">답글쓰기</button>
+              <button type="button" onClick={() => setReplyTo((current) => current === comment.id ? null : comment.id)} className="text-[13px] font-semibold text-[var(--ui-muted)] hover:text-[var(--ui-ink)]">답글쓰기</button>
               <ReportButton target="comment" commentId={comment.id} postId={comment.postId} scope={scope} teamSlug={teamSlug} />
             </div>
           ) : <div className="mt-3"><ReportButton target="comment" commentId={comment.id} postId={comment.postId} scope={scope} teamSlug={teamSlug} /></div>}

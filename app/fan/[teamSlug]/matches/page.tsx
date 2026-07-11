@@ -54,7 +54,10 @@ export default async function FanSchedulePage({
   return (
     <FanPageShell>
       <div className="subpage flex flex-col gap-6 !bg-[var(--ui-surface)]">
-        <FanSubpageHeader title={`${team.shortName} 경기 일정`} description="월과 대회를 선택해 예정 경기와 지난 결과를 확인하세요." />
+        <FanSubpageHeader
+          title="경기 일정"
+          breadcrumbs={[{ label: team.shortName, href: `/fan/${teamSlug}` }, { label: "경기 일정" }]}
+        />
         <div className="flex flex-wrap items-center justify-between gap-y-4">
           <Suspense fallback={null}>
             <ScheduleFilters

@@ -61,8 +61,8 @@ export function CelebrationBoard({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-baseline justify-between">
-        <h3 className="text-base font-black text-[var(--ui-ink)]">축하 메시지 보드</h3>
-        <span className="text-xs font-bold text-[var(--ui-muted)]">
+        <h3 className="text-[15px] font-black text-[var(--ui-ink)]">축하 메시지 보드</h3>
+        <span className="text-[13px] font-bold text-[var(--ui-muted)]">
           {messages.length.toLocaleString("ko-KR")}개의 축하
         </span>
       </div>
@@ -95,8 +95,8 @@ export function CelebrationBoard({
                   {emoji}
                 </button>
               ))}
-              {error ? <p className="text-xs text-[#ff3158]">{error}</p> : null}
-              <span className="ml-auto text-xs tabular-nums text-[var(--ui-muted)]">
+              {error ? <p className="text-[13px] text-[#ff3158]">{error}</p> : null}
+              <span className="ml-auto text-[13px] tabular-nums text-[var(--ui-muted)]">
                 {value.length}/{MAX_LENGTH}
               </span>
               <Button type="submit" disabled={pending || value.trim().length === 0} variant="secondary">
@@ -110,7 +110,7 @@ export function CelebrationBoard({
           <p className="text-sm font-semibold text-[var(--ui-muted)]">로그인하고 축하 메시지를 남겨보세요.</p>
           <Link
             href="/login"
-            className="shrink-0 rounded-full px-3.5 py-1.5 text-xs font-black text-white"
+            className="shrink-0 rounded-full px-3.5 py-1.5 text-[13px] font-black text-white"
             style={{ background: accent }}
           >
             로그인
@@ -122,8 +122,8 @@ export function CelebrationBoard({
         <ul className="flex flex-col gap-2">
           {messages.map((m) => (
             <li key={m.id} className="rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] px-4 py-3">
-              <p className="text-sm leading-relaxed text-[var(--ui-text)]">{m.message}</p>
-              <p className="mt-1.5 flex items-center gap-1.5 text-xs font-semibold text-[var(--ui-muted)]">
+              <p className="text-[15px] leading-relaxed text-[var(--ui-text)]">{m.message}</p>
+              <p className="mt-1.5 flex items-center gap-1.5 text-[13px] font-semibold text-[var(--ui-muted)]">
                 <span className="text-[var(--ui-ink)]">{m.authorName ?? "익명의 팬"}</span>
                 <span aria-hidden>·</span>
                 <span>{formatWhen(m.createdAt)}</span>

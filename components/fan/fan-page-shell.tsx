@@ -1,3 +1,5 @@
+import { Breadcrumb, type Crumb } from "@/components/layout/breadcrumb";
+
 type FanPageShellProps = {
   children: React.ReactNode;
   contentClassName?: string;
@@ -16,11 +18,11 @@ export function FanPageShell({
   );
 }
 
-export function FanSubpageHeader({ title, description }: { title: string; description?: string }) {
+export function FanSubpageHeader({ title, breadcrumbs }: { title: string; breadcrumbs: Crumb[] }) {
   return (
-    <header>
-      <h1 className="text-[32px] font-black leading-tight tracking-[-0.035em] text-[var(--ui-ink)]">{title}</h1>
-      {description ? <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--ui-muted)]">{description}</p> : null}
+    <header className="flex flex-col gap-3">
+      <Breadcrumb items={breadcrumbs} />
+      <h1 className="home-section-title text-[28px] leading-tight tracking-[-0.035em] text-[var(--ui-ink)]">{title}</h1>
     </header>
   );
 }

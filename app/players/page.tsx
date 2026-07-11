@@ -60,7 +60,7 @@ function TeamRosterSection({
           >
             {team.name}
           </Link>
-          <span className="text-xs font-semibold text-[var(--ui-muted)]">{team.shortName}</span>
+          <span className="text-[13px] font-semibold text-[var(--ui-muted)]">{team.shortName}</span>
         </div>
         <Link
           href={`/teams/${team.slug}`}
@@ -97,7 +97,7 @@ export default async function PlayersPage() {
           eyebrow="PLAYERS"
           title="선수"
           action={
-            <p className="rounded-full bg-[var(--ui-surface-muted)] px-3 py-1.5 text-xs font-bold text-[var(--ui-muted)]">
+            <p className="rounded-full bg-[var(--ui-surface-muted)] px-3 py-1.5 text-[13px] font-bold text-[var(--ui-muted)]">
               {teamsWithPlayers.length} TEAMS
             </p>
           }

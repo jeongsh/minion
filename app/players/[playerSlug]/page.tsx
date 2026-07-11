@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Star } from "lucide-react";
 import { PlayerSocialLinks } from "@/components/domain/player-social-links";
-import { Breadcrumb } from "@/components/layout/breadcrumb";
+import { PageHeader } from "@/components/ui/page-header";
 import { SectionHeading } from "@/components/ui/section-heading";
 
 import { uniqueDdragonVersionsForPatches } from "@/lib/ddragon";
@@ -159,7 +159,7 @@ function MetricCard({
     <div className={`rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-4 ${className}`}>
       <p className="text-sm font-semibold text-[var(--ui-muted)]">{label}</p>
       <p className="mt-2 text-2xl font-bold leading-none tracking-tight text-[var(--ui-ink)]">{value}</p>
-      {helper ? <p className="mt-1.5 text-xs text-[var(--ui-muted)]">{helper}</p> : null}
+      {helper ? <p className="mt-1.5 text-[13px] text-[var(--ui-muted)]">{helper}</p> : null}
     </div>
   );
 }
@@ -246,7 +246,7 @@ function StatsOverview({
           const x = center + Math.cos(angle) * (maxRadius + 20);
           const y = center + Math.sin(angle) * (maxRadius + 16);
           return (
-            <text key={axis.label} x={x} y={y} textAnchor="middle" className="fill-[var(--ui-ink)] text-xs font-bold">
+            <text key={axis.label} x={x} y={y} textAnchor="middle" className="fill-[var(--ui-ink)] text-[13px] font-bold">
               <tspan x={x}>{axis.label}</tspan>
               <tspan x={x} dy="12" className="fill-[var(--ui-muted)] font-semibold">{Math.round(axis.score)}</tspan>
             </text>
@@ -255,7 +255,7 @@ function StatsOverview({
       </svg>
 
       {/* 한 개의 그리드로 묶어 라벨/바/점수 열을 행 간 정렬한다(바 트랙 폭 통일). */}
-      <ul className="grid grid-cols-[42px_minmax(0,1fr)_auto_auto] items-center gap-x-3 gap-y-3 text-xs">
+      <ul className="grid grid-cols-[42px_minmax(0,1fr)_auto_auto] items-center gap-x-3 gap-y-3 text-[13px]">
         {axes.map((axis) => (
           <li key={axis.label} className="contents">
             <span className="font-bold text-[var(--ui-ink)]">{axis.label}</span>
@@ -324,7 +324,7 @@ function PlayerAwardHistory({ awards }: { awards: TeamAward[] }) {
           <li key={award.id} className={`flex items-center gap-3 py-2.5 ${i !== 0 ? "border-t border-[var(--ui-border)]" : ""}`}>
             <span className="w-9 shrink-0 text-sm font-bold tabular-nums text-[var(--ui-ink)]">{award.year}</span>
             <span className="text-sm font-semibold text-[var(--ui-ink)]">{meta?.label ?? award.awardType}</span>
-            <span className="ml-auto truncate text-xs text-[var(--ui-muted)]">{award.tournamentName}</span>
+            <span className="ml-auto truncate text-[13px] text-[var(--ui-muted)]">{award.tournamentName}</span>
           </li>
         );
       })}
@@ -342,7 +342,7 @@ function CareerTimeline({
   currentTeamId?: string | null;
 }) {
   if (histories.length === 0) {
-    return <p className="text-xs text-[var(--ui-muted)]">경력 데이터가 없습니다.</p>;
+    return <p className="text-[13px] text-[var(--ui-muted)]">경력 데이터가 없습니다.</p>;
   }
 
   function dateLabel(date: string | null) {
@@ -365,11 +365,11 @@ function CareerTimeline({
               />
               <div className="flex items-baseline justify-between gap-2">
                 <span className="text-sm font-semibold text-[var(--ui-ink)]">{teamName}</span>
-                <span className="text-xs text-[var(--ui-muted)]">
+                <span className="text-[13px] text-[var(--ui-muted)]">
                   {dateLabel(entry.startDate)}–{dateLabel(entry.endDate)}
                 </span>
               </div>
-              <p className="mt-0.5 text-xs text-[var(--ui-muted)]">{entry.position}</p>
+              <p className="mt-0.5 text-[13px] text-[var(--ui-muted)]">{entry.position}</p>
             </li>
           );
         })}
@@ -550,19 +550,22 @@ export default async function PlayerDetailPage({
     >
       <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-12 px-5 pb-16 pt-8 xl:px-10">
         {/* 1. 브레드크럼 + 대회 세그먼트 */}
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <Breadcrumb items={[{ label: "선수단", href: "/players" }, { label: player.position }, { label: player.name }]} />
-          <PlayerSegmentChips
-            playerSlug={player.slug}
-            activeSegment={activeSegment}
-            visibleSegments={visibleSegments}
-          />
-        </div>
+        <PageHeader
+          title={player.name}
+          breadcrumbs={[{ label: "선수단", href: "/players" }, { label: player.position }, { label: player.name }]}
+          action={
+            <PlayerSegmentChips
+              playerSlug={player.slug}
+              activeSegment={activeSegment}
+              visibleSegments={visibleSegments}
+            />
+          }
+        />
 
         {/* 2. 팀 메타 스트립 */}
         <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] px-5 py-3.5">
           <div className="flex items-center gap-2.5">
-            <span className="text-xs text-[var(--ui-muted)]">팀</span>
+            <span className="text-[13px] text-[var(--ui-muted)]">팀</span>
             {playerTeam?.logoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={playerTeam.logoUrl} alt={playerTeam.name} className="h-[30px] w-auto object-contain" />
@@ -604,13 +607,12 @@ export default async function PlayerDetailPage({
         <div className="grid gap-10 lg:grid-cols-[330px_1fr]">
           <div className="relative aspect-[4/5] w-full overflow-hidden rounded-2xl bg-[var(--ui-surface-muted)]">
             <PlayerImage src={player.profileImageUrl} alt={player.name} className="h-full w-full object-cover object-top" />
-            <span className="absolute left-3 top-3 rounded-lg px-2 py-1 text-xs font-bold text-white" style={{ background: "var(--tp)" }}>
+            <span className="absolute left-3 top-3 rounded-lg px-2 py-1 text-[13px] font-bold text-white" style={{ background: "var(--tp)" }}>
               {player.position}
             </span>
             <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 bg-gradient-to-t from-[rgba(12,11,15,0.82)] via-[rgba(12,11,15,0.4)] to-transparent px-4 pb-4 pt-14">
               <div className="min-w-0">
-                <h1 className="home-section-title text-[32px] leading-none tracking-tight text-white">{player.name}</h1>
-                {player.realName ? <p className="mt-1.5 text-xs text-white/75">{player.realName}</p> : null}
+                {player.realName ? <p className="mt-1.5 text-[13px] text-white/75">{player.realName}</p> : null}
               </div>
               <PlayerSocialLinks player={player} variant="overlay" className="shrink-0" />
             </div>
@@ -619,7 +621,7 @@ export default async function PlayerDetailPage({
           <section aria-labelledby="stats-overview">
             <SectionHeading
               aside={
-                <div className="flex items-center gap-3 pb-0.5 text-xs text-[var(--ui-muted)]">
+                <div className="flex items-center gap-3 pb-0.5 text-[13px] text-[var(--ui-muted)]">
                   <span className="inline-flex items-center gap-1">
                     <span className="h-2 w-2 rounded-full" style={{ background: "var(--tp)" }} />선수
                   </span>
@@ -685,10 +687,10 @@ export default async function PlayerDetailPage({
             <MetricCard label="공식 POM" value={pomCount} />
             <div className="flex flex-col rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-4">
               <p className="text-sm font-semibold text-[var(--ui-muted)]">선수 리뷰</p>
-              <p className="mt-2 line-clamp-3 flex-1 text-sm leading-6 text-[var(--ui-text)]">
+              <p className="mt-2 line-clamp-3 flex-1 text-[15px] leading-6 text-[var(--ui-text)]">
                 {reviewQuote ? `“${reviewQuote}”` : "팬 평점 리뷰가 아직 충분하지 않습니다."}
               </p>
-              <p className="mt-3 text-right text-xs text-[var(--ui-muted)]">리뷰 {reviewCount}개 · 전체 보기 →</p>
+              <p className="mt-3 text-right text-[13px] text-[var(--ui-muted)]">리뷰 {reviewCount}개 · 전체 보기 →</p>
             </div>
           </div>
         </section>
@@ -751,7 +753,7 @@ export default async function PlayerDetailPage({
               {awards.length > 0 ? (
                 <PlayerAwardHistory awards={awards} />
               ) : (
-                <p className="text-xs text-[var(--ui-muted)]">수상 내역이 없습니다.</p>
+                <p className="text-[13px] text-[var(--ui-muted)]">수상 내역이 없습니다.</p>
               )}
             </div>
           </section>
@@ -760,7 +762,7 @@ export default async function PlayerDetailPage({
             <h3 className="border-b border-[var(--ui-border)] pb-2 text-base font-bold text-[var(--ui-ink)]">팀원</h3>
             <div className="mt-4 flex flex-wrap gap-2">
               {teammates.length === 0 ? (
-                <p className="text-xs text-[var(--ui-muted)]">등록된 팀원이 없습니다.</p>
+                <p className="text-[13px] text-[var(--ui-muted)]">등록된 팀원이 없습니다.</p>
               ) : (
                 teammates.map(({ teammate }) => (
                   <Link
@@ -768,7 +770,7 @@ export default async function PlayerDetailPage({
                     href={`/players/${teammate.slug}`}
                     className="fan-roster-chip inline-flex items-center gap-1.5 rounded-full border border-[var(--ui-border)] px-3.5 py-2 transition-colors hover:bg-[var(--ui-surface-muted)]"
                   >
-                    <span className="text-xs font-bold" style={{ color: "var(--tp)" }}>
+                    <span className="text-[13px] font-bold" style={{ color: "var(--tp)" }}>
                       {teammate.position}
                     </span>
                     <span className="text-sm font-bold text-[var(--ui-ink)]">{teammate.name}</span>

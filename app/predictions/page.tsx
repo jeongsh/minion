@@ -32,7 +32,7 @@ export default async function PredictionsPage() {
           eyebrow="MATCH PREDICTION"
           title="승부예측"
           action={
-            <span className="rounded-full bg-[var(--ui-surface-muted)] px-3 py-1.5 text-xs font-bold text-[var(--ui-muted)]">
+            <span className="rounded-full bg-[var(--ui-surface-muted)] px-3 py-1.5 text-[13px] font-bold text-[var(--ui-muted)]">
               {visibleMatches.filter((match) => new Date(match.matchDate).getTime() > now).length} OPEN
             </span>
           }

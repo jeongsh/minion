@@ -38,6 +38,16 @@
   --ui-sidebar-width: 216px;
   --ui-match-card-height: 260px;
   --ui-calendar-card-height: 330px;
+  /* CHZZK-inspired type hierarchy: badge 12, meta 13, UI 14, card 15,
+     body 16, subheading 18, section 20, page 28. */
+  --type-badge: 12px;
+  --type-meta: 13px;
+  --type-ui: 14px;
+  --type-card: 15px;
+  --type-body: 16px;
+  --type-subheading: 18px;
+  --type-section: 20px;
+  --type-page: 28px;
   --background: #fff;
   --foreground: #111827;
   --surface: #ffffff;
@@ -448,10 +458,6 @@ html[class~="dark"] .match-detail-page .text-muted {
   display: block;
 }
 
-.home-calendar-shell {
-  box-shadow: 0 14px 34px rgb(24 25 28 / 0.06);
-}
-
 .home-match-calendar .rdp-months,
 .home-match-calendar .rdp-month,
 .home-match-calendar .rdp-month_grid {
@@ -469,7 +475,7 @@ html[class~="dark"] .match-detail-page .text-muted {
 .home-match-calendar .rdp-day_button {
   margin-inline: auto;
   border: 1px solid transparent;
-  font-size: 13px;
+  font-size:13px;
   font-weight: 700;
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
 }
@@ -516,7 +522,7 @@ html[class~="dark"] .match-detail-page .text-muted {
 
 .home-match-calendar .rdp-weekday {
   padding: 0.15rem 0 0.3rem;
-  font-size: 11px;
+  font-size:13px;
   font-weight: 900;
   color: var(--ui-muted);
   opacity: 1;

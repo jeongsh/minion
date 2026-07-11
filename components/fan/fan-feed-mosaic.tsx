@@ -64,13 +64,13 @@ function VideoCell({ video, teamSlug, teamColor }: { video: FeedVideoItem; teamS
         style={{ background: "linear-gradient(transparent, rgba(20,18,24,0.82))" }}
       >
         <span
-          className="self-start rounded-[3px] px-[7px] py-[3px] text-[10px] font-black"
+          className="self-start rounded-[3px] px-[7px] py-[3px] text-xs font-black"
           style={{ background: teamColor }}
         >
           영상
         </span>
-        <span className="text-[14px] font-black leading-snug line-clamp-2">{video.title}</span>
-        <span className="text-[11px] font-semibold text-white/75">
+        <span className="text-sm font-black leading-snug line-clamp-2">{video.title}</span>
+        <span className="text-xs font-semibold text-white/75">
           {video.ownerName} · <span suppressHydrationWarning>{relativeTime(video.publishedAt)}</span>
         </span>
       </div>
@@ -92,7 +92,7 @@ function InstaCell({ item, onOpen }: { item: FeedInstaItem; onOpen: () => void }
         <span className="text-[13px] font-extrabold leading-snug line-clamp-2">
           {item.caption || "Instagram"}
         </span>
-        <span className="text-[11px] font-semibold text-white/75">
+        <span className="text-xs font-semibold text-white/75">
           @{item.ownerName} · <span suppressHydrationWarning>{relativeTime(item.postedAt)}</span>
         </span>
       </div>
@@ -103,7 +103,7 @@ function InstaCell({ item, onOpen }: { item: FeedInstaItem; onOpen: () => void }
 function AdCell() {
   return (
     <div className="grid aspect-square place-items-center rounded-[14px] border-[1.5px] border-dashed border-[#dcdde1] bg-[#f9fafb]">
-      <span className="font-mono text-xs text-[#97979f]">광고영역</span>
+      <span className="font-mono text-[13px] text-[#97979f]">광고영역</span>
     </div>
   );
 }
@@ -151,13 +151,13 @@ export function FanFeedMosaic({
         <div className="ml-auto flex gap-[8px]">
           <Link
             href={`/fan/${teamSlug}/videos`}
-            className="rounded-full border border-[#e3e4e8] px-[15px] py-[7px] text-xs font-extrabold text-[#4a4954] transition hover:border-[#16151b] hover:text-[#16151b]"
+            className="rounded-full border border-[#e3e4e8] px-[15px] py-[7px] text-[13px] font-extrabold text-[#4a4954] transition hover:border-[#16151b] hover:text-[#16151b]"
           >
             영상 →
           </Link>
           <Link
             href={`/fan/${teamSlug}/instagram`}
-            className="rounded-full border border-[#e3e4e8] px-[15px] py-[7px] text-xs font-extrabold text-[#4a4954] transition hover:border-[#16151b] hover:text-[#16151b]"
+            className="rounded-full border border-[#e3e4e8] px-[15px] py-[7px] text-[13px] font-extrabold text-[#4a4954] transition hover:border-[#16151b] hover:text-[#16151b]"
           >
             인스타 →
           </Link>

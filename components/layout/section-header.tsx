@@ -10,7 +10,7 @@ export function SectionHeader({
       {eyebrow ? (
         <p className="text-sm font-semibold text-accent">{eyebrow}</p>
       ) : null}
-      <h1 className="mt-2 text-[32px] font-semibold tracking-normal">
+      <h1 className="home-section-title mt-2 text-[28px] tracking-normal">
         {title}
       </h1>
     </div>

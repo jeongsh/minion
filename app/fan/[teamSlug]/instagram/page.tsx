@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { FanInstagramFeed } from "@/components/fan/fan-instagram-feed";
-import { FanPageShell } from "@/components/fan/fan-page-shell";
+import { FanPageShell, FanSubpageHeader } from "@/components/fan/fan-page-shell";
 import {
   getInstagramStories,
   getPlayers,
@@ -31,6 +31,10 @@ export default async function FanInstagramPage({
 
   return (
     <FanPageShell>
+      <FanSubpageHeader
+        title="인스타그램"
+        breadcrumbs={[{ label: team.shortName, href: `/fan/${teamSlug}` }, { label: "인스타그램" }]}
+      />
       <FanInstagramFeed
         teamSlug={team.fanSiteHost}
         teamName={team.shortName}

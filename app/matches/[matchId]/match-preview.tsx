@@ -54,7 +54,7 @@ function teamSetSummary(sets: SetResult[], teamId: string) {
 function StatCell({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-xs font-bold text-[var(--ui-muted)]">{label}</dt>
+      <dt className="text-[13px] font-bold text-[var(--ui-muted)]">{label}</dt>
       <dd className="mt-1.5 text-xl font-black tabular-nums text-[var(--ui-ink)]">{value}</dd>
     </div>
   );
@@ -78,13 +78,13 @@ function TeamPowerCard({
         <StatCell label="평균 킬" value={summary.avgKills > 0 ? summary.avgKills.toFixed(1) : "-"} />
       </dl>
       <div className="mt-4 flex items-center gap-2 border-t border-[var(--ui-border)] pt-4">
-        <span className="text-xs font-bold text-[var(--ui-muted)]">최근 폼</span>
+        <span className="text-[13px] font-bold text-[var(--ui-muted)]">최근 폼</span>
         <div className="flex gap-1">
           {record.form.length ? (
             record.form.map((result, index) => (
               <span
                 key={index}
-                className={`grid h-5 w-5 place-items-center rounded-full text-[10px] font-black ${
+                className={`grid h-5 w-5 place-items-center rounded-full text-xs font-black ${
                   result === "W"
                     ? "bg-[var(--ui-ink)] text-[var(--ui-surface)]"
                     : "bg-[var(--ui-surface-muted)] text-[var(--ui-muted)]"
@@ -94,7 +94,7 @@ function TeamPowerCard({
               </span>
             ))
           ) : (
-            <span className="text-xs text-[var(--ui-muted)]">-</span>
+            <span className="text-[13px] text-[var(--ui-muted)]">-</span>
           )}
         </div>
       </div>
@@ -144,13 +144,13 @@ export function MatchPreview({
             ) : (
               h2h.map((item) => (
                 <div key={item.id} className="grid gap-1 py-3 md:grid-cols-[9rem_1fr_auto] md:items-center">
-                  <span className="text-xs font-semibold text-[var(--ui-muted)]">{formatDateTime(item.matchDate)}</span>
+                  <span className="text-[13px] font-semibold text-[var(--ui-muted)]">{formatDateTime(item.matchDate)}</span>
                   <strong className="text-sm font-black text-[var(--ui-ink)]">
                     {teamLabel(teams, item.teamAId)}{" "}
                     <span className="tabular-nums">{item.teamAScore ?? "-"} : {item.teamBScore ?? "-"}</span>{" "}
                     {teamLabel(teams, item.teamBId)}
                   </strong>
-                  <span className="text-xs font-bold text-[var(--ui-muted)]">
+                  <span className="text-[13px] font-bold text-[var(--ui-muted)]">
                     {teamLabel(teams, item.winnerTeamId)} <span className="text-[var(--ui-ink)]">승</span>
                   </span>
                 </div>

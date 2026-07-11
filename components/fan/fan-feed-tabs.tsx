@@ -69,14 +69,14 @@ export function FanFeedTabs({
             }`}
           >
             {tab.label}
-            <span className={`ml-1.5 text-xs ${isActive ? "text-white/70" : "text-[#9b9b9b]"}`}>
+            <span className={`ml-1.5 text-[13px] ${isActive ? "text-white/70" : "text-[#9b9b9b]"}`}>
               {tab.count}
             </span>
           </button>
         );
       })}
       {isPending ? (
-        <span className="inline-flex shrink-0 items-center gap-2 px-2 text-xs font-bold text-[#606060]" role="status">
+        <span className="inline-flex shrink-0 items-center gap-2 px-2 text-[13px] font-bold text-[#606060]" role="status">
           <span className="h-4 w-4 animate-spin rounded-full border-2 border-[#d9d9d9] border-t-[#0f0f0f]" />
           전환 중
         </span>

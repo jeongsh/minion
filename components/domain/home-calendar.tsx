@@ -110,7 +110,7 @@ export function HomeCalendar({
   return (
     <section
       ref={containerRef}
-      className="relative flex h-[360px] flex-col overflow-visible rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-3 shadow-[0_14px_34px_rgb(24_25_28_/_0.06)]"
+      className="relative flex h-[360px] flex-col overflow-visible rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-3"
     >
       {/* globals.css의 커스텀 CSS는 빌드 시 var(--ui-ink) 같은 CSS 변수가 라이트 모드 값으로
           굳어버리는 문제가 있어(다크모드에서 안 먹음), 월/연도 캡션 색만은 빌드 파이프라인을
@@ -219,10 +219,10 @@ export function HomeCalendar({
               >
                 <span className="flex shrink-0 flex-col gap-0.5">
                   {match.league ? (
-                    <span className="text-[10px] font-black text-[var(--ui-muted)]">{match.league}</span>
+                    <span className="text-xs font-black text-[var(--ui-muted)]">{match.league}</span>
                   ) : null}
                   <span
-                    className="flex items-center gap-1 text-[11px] font-bold"
+                    className="flex items-center gap-1 text-xs font-bold"
                     style={{ color: DOT_META.match.color }}
                   >
                     <Clock3 className="size-3" strokeWidth={2.25} />
@@ -237,7 +237,7 @@ export function HomeCalendar({
                   <span className="truncate text-sm font-black leading-snug text-[var(--ui-ink)]">
                     {match.teamAName}
                   </span>
-                  <span className="shrink-0 text-[10px] font-bold text-[var(--ui-muted)]">vs</span>
+                  <span className="shrink-0 text-xs font-bold text-[var(--ui-muted)]">vs</span>
                   {match.teamBLogoUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={match.teamBLogoUrl} alt="" className="h-4 w-4 shrink-0 object-contain" />
@@ -263,10 +263,10 @@ export function HomeCalendar({
                       meta.emoji
                     )}
                   </span>
-                  <span className="min-w-0 flex-1 truncate text-xs font-black text-[var(--ui-ink)]">
+                  <span className="min-w-0 flex-1 truncate text-[13px] font-black text-[var(--ui-ink)]">
                     {event.title}
                   </span>
-                  <span className="shrink-0 text-[11px] font-black" style={{ color: meta.color }}>
+                  <span className="shrink-0 text-xs font-black" style={{ color: meta.color }}>
                     {ddayLabel(event.dday)}
                   </span>
                 </div>
@@ -283,7 +283,7 @@ export function HomeCalendar({
 
       <div className="mt-auto flex flex-shrink-0 flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-[var(--ui-border)] pt-2.5">
         {LEGEND.map((t) => (
-          <span key={t} className="flex items-center gap-1.5 text-[11px] font-bold text-[var(--ui-muted)]">
+          <span key={t} className="flex items-center gap-1.5 text-xs font-bold text-[var(--ui-muted)]">
             <span className="h-2 w-2 rounded-full" style={{ background: DOT_META[t].color }} />
             {DOT_META[t].label}
           </span>

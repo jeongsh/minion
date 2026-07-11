@@ -94,13 +94,13 @@ export default async function TournamentsPage({
                   className="absolute inset-0 bg-[linear-gradient(115deg,transparent_55%,rgba(255,255,255,0.08)_55%,rgba(255,255,255,0.08)_58%,transparent_58%)]"
                   aria-hidden="true"
                 />
-                <span className="text-xs font-bold uppercase tracking-widest text-white/60">
+                <span className="text-[13px] font-bold uppercase tracking-widest text-white/60">
                   {activeSeason} · {card.region}
                 </span>
-                <span className="mt-2 text-3xl font-black text-white">{card.name}</span>
+                <span className="mt-2 text-[28px] font-black text-white">{card.name}</span>
                 <span className="mt-1 text-sm font-medium text-white/70">{card.description}</span>
                 {dateRange ? (
-                  <span className="mt-4 inline-block w-fit rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-white">
+                  <span className="mt-4 inline-block w-fit rounded-full bg-white/10 px-3 py-1 text-[13px] font-bold text-white">
                     {dateRange}
                   </span>
                 ) : null}

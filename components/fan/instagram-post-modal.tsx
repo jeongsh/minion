@@ -114,17 +114,17 @@ export function InstagramPostModal({
           </div>
           <div className="min-w-0 sm:hidden">
             <p className="truncate text-sm font-black">@{item.ownerName}</p>
-            <p className="text-xs text-white/55" suppressHydrationWarning>{relativeTime(item.postedAt)}</p>
+            <p className="text-[13px] text-white/55" suppressHydrationWarning>{relativeTime(item.postedAt)}</p>
           </div>
           <p className="hidden text-sm font-black sm:block">Instagram</p>
-          <span className="ml-auto text-xs font-bold tabular-nums text-white/60">
+          <span className="ml-auto text-[13px] font-bold tabular-nums text-white/60">
             {index + 1} / {items.length}
           </span>
           <Link
             href={item.sourceUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="rounded-full bg-white/10 px-3 py-2 text-xs font-bold transition hover:bg-white/20 sm:hidden"
+            className="rounded-full bg-white/10 px-3 py-2 text-[13px] font-bold transition hover:bg-white/20 sm:hidden"
           >
             원문 ↗
           </Link>
@@ -188,12 +188,12 @@ export function InstagramPostModal({
                 </div>
                 <div className="min-w-0">
                   <p className="truncate text-sm font-black text-[#101828]">@{item.ownerName}</p>
-                  <p className="mt-0.5 text-xs text-[#98a2b3]" suppressHydrationWarning>{relativeTime(item.postedAt)}</p>
+                  <p className="mt-0.5 text-[13px] text-[#98a2b3]" suppressHydrationWarning>{relativeTime(item.postedAt)}</p>
                 </div>
               </div>
 
               <div className="min-h-0 flex-1 overflow-y-auto py-5 pr-1">
-                <p className="whitespace-pre-line text-sm leading-6 text-[#344054]">
+                <p className="whitespace-pre-line text-base leading-7 text-[#344054]">
                   {item.caption || "게시물 설명이 없습니다."}
                 </p>
                 {item.likesCount !== undefined && item.likesCount > 0 ? (
@@ -216,7 +216,7 @@ export function InstagramPostModal({
             type="button"
             onClick={() => moveTo(index - 1)}
             disabled={!hasPrevious}
-            className="absolute left-2 top-1/2 z-20 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-black/70 text-3xl text-white shadow-lg backdrop-blur transition hover:bg-black disabled:pointer-events-none disabled:opacity-20 sm:-left-16"
+            className="absolute left-2 top-1/2 z-20 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-black/70 text-[28px] text-white shadow-lg backdrop-blur transition hover:bg-black disabled:pointer-events-none disabled:opacity-20 sm:-left-16"
             aria-label="이전 Instagram 게시물"
           >
             ‹
@@ -225,7 +225,7 @@ export function InstagramPostModal({
             type="button"
             onClick={() => moveTo(index + 1)}
             disabled={!hasNext}
-            className="absolute right-2 top-1/2 z-20 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-black/70 text-3xl text-white shadow-lg backdrop-blur transition hover:bg-black disabled:pointer-events-none disabled:opacity-20 sm:-right-16"
+            className="absolute right-2 top-1/2 z-20 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-black/70 text-[28px] text-white shadow-lg backdrop-blur transition hover:bg-black disabled:pointer-events-none disabled:opacity-20 sm:-right-16"
             aria-label="다음 Instagram 게시물"
           >
             ›

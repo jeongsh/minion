@@ -52,7 +52,7 @@ function BannerCard({ item, isLoggedIn }: { item: CelebrationBannerItem; isLogge
           )}
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-black uppercase tracking-[0.18em]" style={{ color: accent }}>
+          <p className="text-xs font-black uppercase tracking-[0.18em]" style={{ color: accent }}>
             Today&apos;s Celebration
           </p>
           <p className="mt-0.5 truncate text-[15px] font-black text-[var(--ui-ink)] sm:text-base">{headline(event)}</p>
@@ -60,7 +60,7 @@ function BannerCard({ item, isLoggedIn }: { item: CelebrationBannerItem; isLogge
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          className="flex shrink-0 items-center gap-1 rounded-full px-3.5 py-2 text-xs font-black text-white transition hover:opacity-90"
+          className="flex shrink-0 items-center gap-1 rounded-full px-3.5 py-2 text-[13px] font-black text-white transition hover:opacity-90"
           style={{ background: accent }}
           aria-expanded={open}
         >

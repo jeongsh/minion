@@ -51,7 +51,7 @@ export default async function SchedulePage({
           eyebrow="MATCH SCHEDULE"
           title="경기 일정"
           action={
-            <p className="rounded-full bg-[var(--ui-surface-muted)] px-3 py-1.5 text-xs font-bold text-[var(--ui-muted)]">
+            <p className="rounded-full bg-[var(--ui-surface-muted)] px-3 py-1.5 text-[13px] font-bold text-[var(--ui-muted)]">
               {filtered.length} MATCHES
             </p>
           }
@@ -70,7 +70,7 @@ export default async function SchedulePage({
                 teams={teams}
               />
             </Suspense>
-            <Link href="/schedule" className="text-xs font-bold text-[var(--ui-muted)] transition-colors hover:text-[var(--ui-ink)]">필터 초기화</Link>
+            <Link href="/schedule" className="text-[13px] font-bold text-[var(--ui-muted)] transition-colors hover:text-[var(--ui-ink)]">필터 초기화</Link>
           </div>
         </div>
       </div>

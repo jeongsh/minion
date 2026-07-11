@@ -100,13 +100,13 @@ export function FanOnionBoard({
   }
 
   return (
-    <section className="fan-card flex h-[clamp(480px,calc(100dvh-19rem),1200px)] flex-col overflow-hidden md:h-[clamp(520px,calc(100dvh-20rem),1200px)]">
-      <header className="flex items-center justify-between gap-3 bg-[var(--ui-surface)] px-5 py-5">
+    <section className="flex max-h-[clamp(420px,calc(100dvh-19rem),720px)] min-h-[360px] flex-col overflow-hidden rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface-muted)] md:max-h-[clamp(460px,calc(100dvh-20rem),760px)]">
+      <header className="flex items-center justify-between gap-3 border-b border-[var(--ui-border)] bg-[var(--ui-surface)] px-5 py-5">
         <div className="min-w-0">
           <h2 className="truncate text-lg font-black text-[var(--ui-ink)]">지금 올라온 양파</h2>
-          <p className="mt-1 text-xs font-bold text-[var(--ui-muted)]">비속어는 자동으로 가려지고, 설정한 시간이 지나면 사라져요.</p>
+          <p className="mt-1 text-[13px] font-bold text-[var(--ui-muted)]">비속어는 자동으로 가려지고, 설정한 시간이 지나면 사라져요.</p>
         </div>
-        <div className="shrink-0 text-right text-xs font-bold text-[var(--ui-muted)]">
+        <div className="shrink-0 text-right text-[13px] font-bold text-[var(--ui-muted)]">
           <span className="block text-sm font-black" style={{ color: teamColor }}>
             팬 반응 {snapshot.score}/100
           </span>
@@ -126,15 +126,15 @@ export function FanOnionBoard({
 
       <form
         onSubmit={handleSubmit}
-        className="sticky bottom-0 bg-[var(--ui-surface)] p-3 shadow-[0_-10px_28px_color-mix(in_srgb,var(--ui-ink)_6%,transparent)] md:p-4"
+        className="sticky bottom-0 border-t border-[var(--ui-border)] bg-[var(--ui-surface)] p-3 md:p-4"
       >
         <div className="mb-2 flex items-center justify-between gap-3">
-          <label className="text-xs font-black text-[var(--ui-muted)]" htmlFor="fan-onion-retention">표시 시간</label>
+          <label className="text-[13px] font-black text-[var(--ui-muted)]" htmlFor="fan-onion-retention">표시 시간</label>
           <select
             id="fan-onion-retention"
             value={retentionMinutes}
             onChange={(event) => setRetentionMinutes(Number(event.target.value))}
-            className="h-9 rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 text-xs font-black text-[var(--ui-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--team-accent-text)]"
+            className="h-9 rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 text-[13px] font-black text-[var(--ui-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--team-accent-text)]"
           >
             {RETENTION_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
@@ -154,7 +154,7 @@ export function FanOnionBoard({
               placeholder={`${teamName}에 잠깐 남길 의견을 적어주세요`}
               className="max-h-16 min-h-5 flex-1 resize-none bg-transparent text-sm font-bold leading-5 text-[var(--ui-ink)] outline-none placeholder:text-[var(--ui-muted)]"
             />
-            <span className="ml-2 shrink-0 text-[11px] font-bold text-[var(--ui-muted)]">
+            <span className="ml-2 shrink-0 text-xs font-bold text-[var(--ui-muted)]">
               {content.length}/{MAX_LENGTH}
             </span>
           </div>
@@ -168,7 +168,7 @@ export function FanOnionBoard({
             <Send size={17} />
           </button>
         </div>
-        <div className="mt-2 flex items-center justify-between gap-3 px-1 text-xs text-[var(--ui-muted)]"><span>Enter 전송 · Shift+Enter 줄바꿈</span>{message ? <p aria-live="polite" className="font-bold">{message}</p> : null}</div>
+        <div className="mt-2 flex items-center justify-between gap-3 px-1 text-[13px] text-[var(--ui-muted)]"><span>Enter 전송 · Shift+Enter 줄바꿈</span>{message ? <p aria-live="polite" className="font-bold">{message}</p> : null}</div>
       </form>
     </section>
   );
@@ -181,11 +181,11 @@ function OnionBubble({ item, now }: { item: FanOnionItem; now: number }) {
 
   return (
     <article className="flex justify-start" data-onion-bubble="true">
-      <div className="inline-flex max-w-[88%] flex-wrap items-baseline gap-x-2 rounded-2xl rounded-bl-md bg-[var(--ui-surface)] px-3 py-2 shadow-sm">
-        <p className="min-w-0 whitespace-pre-wrap break-words text-sm font-bold leading-5 text-[var(--ui-ink)]">
+      <div className="inline-flex max-w-[88%] flex-wrap items-baseline gap-x-2 rounded-2xl rounded-bl-md border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 py-2">
+        <p className="min-w-0 whitespace-pre-wrap break-words text-[15px] font-bold leading-6 text-[var(--ui-ink)]">
           {item.content}
         </p>
-        <span className="inline-flex shrink-0 items-center gap-1 text-[11px] font-black leading-5 text-[var(--ui-muted)]">
+        <span className="inline-flex shrink-0 items-center gap-1 text-xs font-black leading-5 text-[var(--ui-muted)]">
           <Timer size={12} />
           {minute}:{second}
         </span>

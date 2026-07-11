@@ -63,7 +63,7 @@ function PlayerRow({
       </div>
       <div className="min-w-0">
         <p className="truncate text-sm font-semibold">{player?.name ?? "-"}</p>
-        <p className="truncate text-xs text-muted">{champion?.name ?? "-"}</p>
+        <p className="truncate text-[13px] text-muted">{champion?.name ?? "-"}</p>
       </div>
     </div>
   );
@@ -78,19 +78,19 @@ function PlayerRow({
             <p className="text-sm font-semibold tabular-nums">
               {line.kills}/<span className="text-red-400">{line.deaths}</span>/{line.assists}
             </p>
-            <p className="text-[11px] text-muted">{kdaRatio(line)} ({kp}%)</p>
+            <p className="text-xs text-muted">{kdaRatio(line)} ({kp}%)</p>
           </div>
           <div>
             <p className="text-sm tabular-nums font-semibold">{line.damageToChampions.toLocaleString("ko-KR")}</p>
-            <p className="text-[11px] text-muted">딜량</p>
+            <p className="text-xs text-muted">딜량</p>
           </div>
           <div>
             <p className="text-sm font-semibold tabular-nums">{line.visionScore}</p>
-            <p className="text-[11px] text-muted">시야</p>
+            <p className="text-xs text-muted">시야</p>
           </div>
           <div>
             <p className="text-sm font-semibold tabular-nums">{line.cs}</p>
-            <p className="text-[11px] text-muted">분 {csm}</p>
+            <p className="text-xs text-muted">분 {csm}</p>
           </div>
         </div>
         <PlayerItemSlots
@@ -113,7 +113,7 @@ function PlayerRow({
           <p className="text-sm font-semibold tabular-nums">
             {line.kills} / <span className="text-red-400">{line.deaths}</span> / {line.assists}
           </p>
-          <p className="text-xs text-muted">
+          <p className="text-[13px] text-muted">
             {kdaRatio(line)} &nbsp;
             <span className="font-semibold text-foreground/70">({kp}%)</span>
           </p>
@@ -130,13 +130,13 @@ function PlayerRow({
         {/* 시야 */}
         <div className="text-center">
           <p className="text-sm font-semibold tabular-nums">{line.visionScore}</p>
-          <p className="text-xs text-muted">시야</p>
+          <p className="text-[13px] text-muted">시야</p>
         </div>
 
         {/* CS */}
         <div className="text-center">
           <p className="text-sm font-semibold tabular-nums">{line.cs}</p>
-          <p className="text-xs text-muted">분 {csm}</p>
+          <p className="text-[13px] text-muted">분 {csm}</p>
         </div>
 
         {/* 아이템 */}
@@ -177,7 +177,7 @@ function ComparisonBar({
           <div className="ml-auto h-full rounded-l-full bg-blue-500" style={{ width: `${bluePct}%` }} />
         </div>
       </div>
-      <span className="shrink-0 px-3 text-xs font-semibold text-muted">{label}</span>
+      <span className="shrink-0 px-3 text-[13px] font-semibold text-muted">{label}</span>
       {/* 레드 영역: 막대 + 숫자가 왼쪽 정렬로 공간 채움 */}
       <div className="flex items-center gap-2 pl-2 pr-3">
         <div className="h-4 flex-1 overflow-hidden rounded-r-full bg-surface-muted">
@@ -224,11 +224,11 @@ function TeamSection({
       <div className={`flex items-center gap-3 px-3 py-2 ${headerBg}`}>
         <span className={`text-sm font-bold ${headerText}`}>{team?.shortName ?? (side === "blue" ? "블루" : "레드")}</span>
         {won && (
-          <span className="rounded bg-accent px-1.5 py-0.5 text-xs font-bold text-accent-foreground">승</span>
+          <span className="rounded bg-accent px-1.5 py-0.5 text-[13px] font-bold text-accent-foreground">승</span>
         )}
         <div className="ml-auto" />
         {/* 컬럼 레이블 */}
-        <div className="hidden grid-cols-[220px_1fr_140px_50px_70px_220px] gap-3 text-xs font-semibold uppercase text-muted lg:grid">
+        <div className="hidden grid-cols-[220px_1fr_140px_50px_70px_220px] gap-3 text-[13px] font-semibold uppercase text-muted lg:grid">
           <span />
           <span>KDA</span>
           <span>딜량</span>
@@ -289,17 +289,17 @@ function SetScoreboard({
       <summary className="flex cursor-pointer list-none items-center gap-3 px-3 py-2.5 hover:bg-surface-muted">
         <span className="text-sm font-semibold">{set.setNumber}세트</span>
         {set.durationSeconds ? (
-          <span className="text-xs text-muted">
+          <span className="text-[13px] text-muted">
             {Math.floor(set.durationSeconds / 60)}:{String(set.durationSeconds % 60).padStart(2, "0")}
           </span>
         ) : null}
-        <span className="text-xs font-semibold text-blue-500">{blueTeam?.shortName ?? "블루"}</span>
-        <span className="text-xs text-muted">
+        <span className="text-[13px] font-semibold text-blue-500">{blueTeam?.shortName ?? "블루"}</span>
+        <span className="text-[13px] text-muted">
           {set.blueKills ?? "-"} : {set.redKills ?? "-"}
         </span>
-        <span className="text-xs font-semibold text-red-500">{redTeam?.shortName ?? "레드"}</span>
-        {!hasData && <span className="text-xs text-muted">데이터 없음</span>}
-        <span className="ml-auto text-xs text-muted transition-transform group-open:rotate-180">▼</span>
+        <span className="text-[13px] font-semibold text-red-500">{redTeam?.shortName ?? "레드"}</span>
+        {!hasData && <span className="text-[13px] text-muted">데이터 없음</span>}
+        <span className="ml-auto text-[13px] text-muted transition-transform group-open:rotate-180">▼</span>
       </summary>
 
       {hasData ? (

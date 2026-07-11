@@ -182,7 +182,7 @@ export default function Toolbar({ editor, allowMedia = true }: Props) {
       {/* 폰트 크기 */}
       <select
         onChange={(e) => editor.chain().focus().setFontSize(e.target.value).run()}
-        className="h-7 rounded border border-border bg-surface text-xs text-foreground outline-none"
+        className="h-7 rounded border border-border bg-surface text-[13px] text-foreground outline-none"
         value={editor.getAttributes("textStyle").fontSize || "16px"}
       >
         <option value="12px">12</option>
@@ -232,7 +232,7 @@ export default function Toolbar({ editor, allowMedia = true }: Props) {
             <Video size={18} />
           </button>
 
-          <button type="button" onClick={insertSns} className="h-7 rounded px-2 text-[12px] font-semibold text-muted hover:bg-surface-muted" title="SNS 임베드">
+          <button type="button" onClick={insertSns} className="h-7 rounded px-2 text-[13px] font-semibold text-muted hover:bg-surface-muted" title="SNS 임베드">
             SNS
           </button>
         </>

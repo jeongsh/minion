@@ -15,7 +15,7 @@ export default async function LoginPage() {
 
   return (
     <main className="mx-auto w-full max-w-md px-4 py-12 sm:px-6">
-      <h1 className="mb-6 text-2xl font-black">로그인</h1>
+      <h1 className="home-section-title mb-6 text-2xl">로그인</h1>
       <LoginForm />
     </main>
   );

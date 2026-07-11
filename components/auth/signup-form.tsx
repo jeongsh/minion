@@ -44,7 +44,7 @@ export function SignupForm() {
           className="rounded-md border px-3 py-2 text-sm outline-none focus:border-[var(--accent)]"
           style={{ borderColor: "var(--border)" }}
         />
-        <p className="text-xs" style={{ color: "var(--muted)" }}>
+        <p className="text-[13px]" style={{ color: "var(--muted)" }}>
           6자 이상 입력해주세요.
         </p>
       </div>

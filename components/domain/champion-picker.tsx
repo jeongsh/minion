@@ -123,7 +123,7 @@ function ChampionPickerModal({
                         />
                       ) : null}
                     </div>
-                    <p className="line-clamp-2 px-1 py-1.5 text-center text-xs font-semibold leading-tight">
+                    <p className="line-clamp-2 px-1 py-1.5 text-center text-[13px] font-semibold leading-tight">
                       {championLabel(champion)}
                     </p>
                   </button>
@@ -191,7 +191,7 @@ export function ChampionPicker(props: ChampionPickerProps) {
               className={`object-cover ${muted ? "grayscale" : ""}`}
             />
           ) : (
-            <div className="absolute inset-0 grid place-items-center bg-surface-muted text-xs font-semibold text-muted">
+            <div className="absolute inset-0 grid place-items-center bg-surface-muted text-[13px] font-semibold text-muted">
               클릭하여 선택
             </div>
           )}
@@ -202,9 +202,9 @@ export function ChampionPicker(props: ChampionPickerProps) {
               align === "right" ? "items-end text-right" : ""
             }`}
           >
-            <p className="text-xs font-semibold text-white/75">{label ?? ""}</p>
+            <p className="text-[13px] font-semibold text-white/75">{label ?? ""}</p>
             <p className="line-clamp-1 text-sm font-semibold">{displayName}</p>
-            {subLabel ? <p className="line-clamp-1 text-xs text-white/75">{subLabel}</p> : null}
+            {subLabel ? <p className="line-clamp-1 text-[13px] text-white/75">{subLabel}</p> : null}
           </div>
         </button>
         {open ? (

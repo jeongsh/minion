@@ -21,10 +21,10 @@ export function ReportButton({ target, postId, commentId, scope, teamSlug }: { t
 
   return (
     <span className="inline-flex items-center gap-2">
-      <button type="button" onClick={onClick} disabled={pending || done} className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--ui-muted)] hover:text-[var(--ui-ink)] disabled:opacity-50">
+      <button type="button" onClick={onClick} disabled={pending || done} className="inline-flex items-center gap-1 text-[13px] font-semibold text-[var(--ui-muted)] hover:text-[var(--ui-ink)] disabled:opacity-50">
         <Flag size={13} strokeWidth={1.8} />리폿
       </button>
-      {message ? <span className="text-xs text-[var(--ui-muted)]">{message}</span> : null}
+      {message ? <span className="text-[13px] text-[var(--ui-muted)]">{message}</span> : null}
     </span>
   );
 }

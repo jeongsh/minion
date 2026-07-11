@@ -104,7 +104,7 @@ export function TeamSwitcher({ team, pathname }: { team?: Team; pathname: string
                     <img src={item.logoUrl} alt="" className="h-7 w-7 rounded-full bg-white object-contain p-0.5" />
                   ) : null}
                   <span className="text-sm font-bold text-[#111827]">{item.shortName}</span>
-                  <span className="min-w-0 flex-1 truncate text-xs text-[#98a2b3]">{item.name}</span>
+                  <span className="min-w-0 flex-1 truncate text-[13px] text-[#98a2b3]">{item.name}</span>
                   {isCurrent ? <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent" /> : null}
                 </Link>
               );

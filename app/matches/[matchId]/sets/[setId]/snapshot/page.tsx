@@ -45,7 +45,7 @@ function Avatar({ player, size = "md" }: { player?: Player; size?: "md" | "lg" }
 
   return (
     <span
-      className={`${sizeClass} grid shrink-0 place-items-center rounded-md border border-border bg-surface-muted text-xs font-semibold`}
+      className={`${sizeClass} grid shrink-0 place-items-center rounded-md border border-border bg-surface-muted text-[13px] font-semibold`}
       aria-hidden="true"
     >
       {player ? playerInitial(player.name) : "-"}
@@ -62,7 +62,7 @@ function TeamLogo({ team }: { team?: Team }) {
   }
 
   return (
-    <span className="grid h-8 w-8 place-items-center rounded bg-surface-muted text-xs font-bold text-muted">
+    <span className="grid h-8 w-8 place-items-center rounded bg-surface-muted text-[13px] font-bold text-muted">
       {team?.shortName.slice(0, 3) ?? "-"}
     </span>
   );
@@ -88,7 +88,7 @@ function RatingRow({
       <Avatar player={player} />
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-semibold">{player?.name ?? "-"}</p>
-        <p className="text-xs text-muted">{ratings.length}개 평점</p>
+        <p className="text-[13px] text-muted">{ratings.length}개 평점</p>
       </div>
       <p className="text-base font-semibold tabular-nums">
         {average == null ? "-" : average.toFixed(1)}
@@ -191,8 +191,8 @@ export default async function SetRatingSnapshotPage({
     <main className={shellClass}>
       <section className="overflow-hidden rounded-md border border-border bg-surface">
         <div className="border-b border-border px-5 py-3">
-          <p className="text-xs font-semibold text-accent">팬 평점 스냅샷</p>
-          <p className="mt-0.5 text-xs text-muted">
+          <p className="text-[13px] font-semibold text-accent">팬 평점 스냅샷</p>
+          <p className="mt-0.5 text-[13px] text-muted">
             {tournamentName ?? match.name} · {formatDateTime(match.matchDate)}
           </p>
         </div>
@@ -205,7 +205,7 @@ export default async function SetRatingSnapshotPage({
             <p className="text-2xl font-bold tabular-nums">
               {set.blueKills ?? "-"} : {set.redKills ?? "-"}
             </p>
-            <p className="mt-0.5 text-xs font-semibold text-muted">{set.setNumber}세트</p>
+            <p className="mt-0.5 text-[13px] font-semibold text-muted">{set.setNumber}세트</p>
           </div>
           <div className="flex flex-col items-center gap-2 text-center">
             <TeamLogo team={teamB} />
@@ -215,7 +215,7 @@ export default async function SetRatingSnapshotPage({
       </section>
 
       <section className="rounded-md border border-border bg-surface p-5">
-        <p className="text-xs font-semibold uppercase text-muted">SET POG</p>
+        <p className="text-[13px] font-semibold uppercase text-muted">SET POG</p>
         {leader ? (
           <div className="mt-3 flex items-center gap-4">
             <Avatar player={leaderPlayer} size="lg" />
@@ -225,7 +225,7 @@ export default async function SetRatingSnapshotPage({
                 {teamLabel(teams, leaderPlayer?.teamId)} · {leader.count}개 평점
               </p>
             </div>
-            <p className="ml-auto text-[32px] font-semibold tabular-nums">
+            <p className="ml-auto text-[28px] font-semibold tabular-nums">
               {leader.average.toFixed(1)}
               <span className="text-sm text-muted"> / 5</span>
             </p>
@@ -242,7 +242,7 @@ export default async function SetRatingSnapshotPage({
 
       {reviewRows.length > 0 ? (
         <section className="rounded-md border border-border bg-surface p-5">
-          <h2 className="text-sm font-semibold">한줄평</h2>
+          <h2 className="text-lg font-bold">한줄평</h2>
           <div className="mt-3 grid gap-2">
             {reviewRows.map((rating) => {
               const player = players.find((item) => item.id === rating.playerId);
@@ -263,7 +263,7 @@ export default async function SetRatingSnapshotPage({
         </section>
       ) : null}
 
-      <div className="flex items-center justify-between gap-3 text-xs text-muted">
+      <div className="flex items-center justify-between gap-3 text-[13px] text-muted">
         <span>LCKHUB 팬 평점</span>
         <Link href={matchHref(match)} className="font-semibold hover:text-foreground">
           매치 상세 보기 &gt;

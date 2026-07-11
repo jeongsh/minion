@@ -53,7 +53,7 @@ export function PostView({
             </span>
             <div className="min-w-0">
               <p className="truncate text-sm font-bold text-[var(--ui-ink)]">{post.authorName ?? "작성자"}</p>
-              <div className="mt-0.5 flex items-center gap-2 text-xs text-[var(--ui-muted)]">
+              <div className="mt-0.5 flex items-center gap-2 text-[13px] text-[var(--ui-muted)]">
                 <span>{formatRelativeOrDate(post.createdAt)}</span>
                 <span aria-hidden>·</span>
                 <span className="inline-flex items-center gap-1"><Eye size={13} strokeWidth={1.8} />{post.viewCount.toLocaleString("ko-KR")}</span>
@@ -84,7 +84,7 @@ export function PostView({
 
         <section aria-label="댓글">
           <div className="flex items-baseline gap-1 px-5 py-5 sm:px-8">
-            <h2 className="text-base font-bold text-[var(--ui-ink)]">댓글</h2>
+            <h2 className="text-lg font-bold text-[var(--ui-ink)]">댓글</h2>
             <span className="text-m font-semibold text-[var(--tp)]">{post.commentCount}</span>
           </div>
           <div className="px-5 pb-6 sm:px-8 sm:pb-8">

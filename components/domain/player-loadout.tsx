@@ -73,7 +73,7 @@ export function PlayerLoadout({
     <div className={`flex min-w-0 items-center gap-2 ${className}`}>
       <span className={`relative block shrink-0 overflow-hidden rounded-md border border-border bg-surface-muted ${championSize}`}>
         {image ? <Image src={image} alt={championLabel(champion)} fill sizes={size === "sm" ? "44px" : "48px"} className="object-cover" /> : null}
-        {badge ? <span className="absolute bottom-0 right-0 rounded-tl bg-background/90 px-1 text-xs font-semibold">{badge}</span> : null}
+        {badge ? <span className="absolute bottom-0 right-0 rounded-tl bg-background/90 px-1 text-[13px] font-semibold">{badge}</span> : null}
       </span>
 
       <span className="flex shrink-0 items-center gap-1">
@@ -87,7 +87,7 @@ export function PlayerLoadout({
       {primaryLabel != null || secondaryLabel != null ? (
         <span className="min-w-0">
           {primaryLabel != null ? <span className="block truncate text-sm font-semibold">{primaryLabel}</span> : null}
-          {secondaryLabel != null ? <span className="block truncate text-xs text-muted">{secondaryLabel}</span> : null}
+          {secondaryLabel != null ? <span className="block truncate text-[13px] text-muted">{secondaryLabel}</span> : null}
         </span>
       ) : null}
     </div>

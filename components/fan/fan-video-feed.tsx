@@ -20,7 +20,7 @@ function preloadVideoImages(videos: FanVideoItem[]) {
 
 function VideoOwnerAvatar({ video }: { video: FanVideoItem }) {
   return (
-    <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#e5e5e5] text-[10px] font-black text-[#606060]">
+    <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#e5e5e5] text-xs font-black text-[#606060]">
       {video.ownerImageUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={video.ownerImageUrl} alt="" className="h-full w-full object-contain" />
@@ -175,7 +175,7 @@ export function FanVideoFeed({
                 </span>
               </span>
               {video.isNew ? (
-                <span className="absolute left-2 top-2 rounded bg-red-600 px-2 py-1 text-[10px] font-bold text-white">NEW</span>
+                <span className="absolute left-2 top-2 rounded bg-red-600 px-2 py-1 text-xs font-bold text-white">NEW</span>
               ) : null}
             </div>
             <div className="mt-3 flex gap-3">
@@ -183,7 +183,7 @@ export function FanVideoFeed({
               <div className="min-w-0">
                 <h2 className="line-clamp-2 min-h-10 text-[15px] font-semibold leading-5 text-[#0f0f0f]">{video.title}</h2>
                 <p className="mt-1 truncate text-sm text-[#606060]">{video.ownerName}</p>
-                <p className="truncate text-xs text-[#606060]">{fanVideoMetaLabel(video)}</p>
+                <p className="truncate text-[13px] text-[#606060]">{fanVideoMetaLabel(video)}</p>
               </div>
             </div>
           </Link>
@@ -199,7 +199,7 @@ export function FanVideoFeed({
           )}
         </div>
       ) : filteredVideos.length > INITIAL_LIMIT ? (
-        <p className="py-10 text-center text-xs text-[#606060]">모든 영상을 확인했습니다.</p>
+        <p className="py-10 text-center text-[13px] text-[#606060]">모든 영상을 확인했습니다.</p>
       ) : null}
     </>
   );

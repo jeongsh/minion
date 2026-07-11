@@ -28,7 +28,7 @@ export function ObjectiveIconSlots({
   size?: number;
 }) {
   if (icons.length === 0) {
-    return <span className="text-xs font-semibold text-muted">{emptyText}</span>;
+    return <span className="text-[13px] font-semibold text-muted">{emptyText}</span>;
   }
 
   return (

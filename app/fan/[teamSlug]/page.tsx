@@ -89,12 +89,12 @@ function MatchRow({ match, team, teams }: { match: Match; team: Team; teams: Tea
   const result = teamResult(match, team);
   const scheduled = match.status !== "completed";
   const badgeText = scheduled ? "예정" : result ?? "-";
-  const score = scheduled ? "VS" : scoreLabel(match, team);
+  const score = scheduled ? null : scoreLabel(match, team);
 
   return (
     <div className="flex h-[72px] items-center gap-3 px-4 md:px-5">
       <span
-        className={`grid h-9 w-11 shrink-0 place-items-center rounded-lg text-xs font-black tabular-nums ${
+        className={`grid h-9 w-11 shrink-0 place-items-center rounded-lg text-[13px] font-black tabular-nums ${
           scheduled ? "bg-[var(--ui-surface-muted)] text-[var(--ui-ink)]" : "text-white"
         }`}
         style={scheduled ? undefined : { background: result === "W" ? "var(--tp)" : "var(--ui-muted)" }}
@@ -105,16 +105,16 @@ function MatchRow({ match, team, teams }: { match: Match; team: Team; teams: Tea
       <div className="flex min-w-0 flex-1 flex-col">
         <span className="flex items-baseline gap-2 text-[15px] font-black text-[var(--ui-ink)]">
           <span className="truncate">{opponent?.shortName ?? "TBD"}</span>
-          <span className="shrink-0 tabular-nums text-[var(--ui-text)]">{score}</span>
+          {score ? <span className="shrink-0 tabular-nums text-[var(--ui-text)]">{score}</span> : null}
         </span>
-        <span className="truncate text-[12px] font-semibold text-[var(--ui-muted)]">
+        <span className="truncate text-[13px] font-semibold text-[var(--ui-muted)]">
           {formatMatchDay(match.matchDate)}
           {match.name?.trim() ? ` · ${match.name.trim()}` : ""}
         </span>
       </div>
       <Link
         href={`/matches/${match.id}`}
-        className="flex shrink-0 items-center gap-0.5 text-xs font-extrabold"
+        className="flex shrink-0 items-center gap-0.5 text-[13px] font-extrabold"
         style={scheduled ? { color: "var(--tp)" } : undefined}
       >
         <span className={scheduled ? "" : "text-[var(--ui-muted)]"}>{scheduled ? "승부예측" : "매치 데이터"}</span>
@@ -146,14 +146,14 @@ function Roster({ players, teamSlug }: { players: Player[]; teamSlug: string }) 
                   className="h-full w-full object-cover object-top"
                 />
               ) : (
-                <span className="grid h-full place-items-center text-[10px] font-black text-[var(--ui-muted)]">
+                <span className="grid h-full place-items-center text-xs font-black text-[var(--ui-muted)]">
                   {player.name.slice(0, 2)}
                 </span>
               )}
             </span>
             <div className="flex min-w-0 flex-col gap-[1px]">
               <span className="truncate text-[15px] font-black text-[var(--ui-ink)]">{player.name}</span>
-              <span className="text-[12px] font-extrabold" style={{ color: "var(--tp)" }}>
+              <span className="text-[13px] font-extrabold" style={{ color: "var(--tp)" }}>
                 {player.position}{" "}
                 <span className="font-bold text-[var(--ui-muted)]">· KDA {mockKda(player.id)}</span>
               </span>
@@ -294,7 +294,7 @@ export default async function FanHomePage({
         <section className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
           <div>
             <SectionHeading href={`/fan/${team.fanSiteHost}/matches`}>경기 일정</SectionHeading>
-            <div className="h-[360px] divide-y divide-[var(--ui-surface-muted)] overflow-hidden">
+            <div className="h-[360px] divide-y divide-[var(--ui-border)] overflow-hidden rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)]">
               {matchRows.length ? (
                 matchRows.map((match) => <MatchRow key={match.id} match={match} team={team} teams={teams} />)
               ) : (

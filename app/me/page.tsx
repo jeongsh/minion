@@ -42,7 +42,7 @@ export default async function MePage() {
   if (!user) {
     return (
       <main className="mx-auto w-full max-w-md px-4 py-16 text-center sm:px-6">
-        <h1 className="mb-3 text-2xl font-black">내 랭크</h1>
+        <h1 className="home-section-title mb-3 text-2xl">내 랭크</h1>
         <p className="mb-6 text-sm" style={{ color: "var(--muted)" }}>
           랭크와 LP를 보려면 로그인이 필요해요.
         </p>
@@ -73,7 +73,7 @@ export default async function MePage() {
     <main className="mx-auto w-full max-w-2xl px-4 py-10 sm:px-6">
       <header className="mb-8 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-black">{user.nickname ?? "내 프로필"}</h1>
+          <h1 className="home-section-title text-2xl">{user.nickname ?? "내 프로필"}</h1>
           <RankBadge tier={summary.tier} size="md" />
         </div>
         <div className="flex items-center gap-3">

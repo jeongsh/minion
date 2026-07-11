@@ -113,9 +113,9 @@ export function CommentForm({
             ) : null}
           </div>
           {message ? (
-            <p className="text-xs text-[var(--ui-muted)]">{message}</p>
+            <p className="text-[13px] text-[var(--ui-muted)]">{message}</p>
           ) : null}
-          <span className="ml-auto text-xs tabular-nums text-[var(--ui-muted)]">
+          <span className="ml-auto text-[13px] tabular-nums text-[var(--ui-muted)]">
             {content.length.toLocaleString("ko-KR")}/5,000자
           </span>
           <Button

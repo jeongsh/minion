@@ -79,7 +79,7 @@ export function TeamMatchHistory({ teamId, matches, sets, teams, players, tourna
       <div className="flex flex-wrap gap-1.5">
         <button
           onClick={() => setSelectedYear(null)}
-          className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${
+          className={`rounded-full border px-3 py-1 text-[13px] font-semibold transition ${
             selectedYear === null
               ? "border-accent bg-accent text-accent-foreground"
               : "border-border bg-surface text-muted hover:bg-surface-muted"
@@ -91,7 +91,7 @@ export function TeamMatchHistory({ teamId, matches, sets, teams, players, tourna
           <button
             key={year}
             onClick={() => setSelectedYear(selectedYear === year ? null : year)}
-            className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${
+            className={`rounded-full border px-3 py-1 text-[13px] font-semibold transition ${
               selectedYear === year
                 ? "border-accent bg-accent text-accent-foreground"
                 : "border-border bg-surface text-muted hover:bg-surface-muted"
@@ -108,7 +108,7 @@ export function TeamMatchHistory({ teamId, matches, sets, teams, players, tourna
           <button
             key={league}
             onClick={() => setSelectedLeague(selectedLeague === league ? null : league)}
-            className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${
+            className={`rounded-full border px-3 py-1 text-[13px] font-semibold transition ${
               selectedLeague === league
                 ? "border-accent bg-accent text-accent-foreground"
                 : "border-border bg-surface text-muted hover:bg-surface-muted"
@@ -126,7 +126,7 @@ export function TeamMatchHistory({ teamId, matches, sets, teams, players, tourna
           value={opponentQuery}
           onChange={(e) => setOpponentQuery(e.target.value)}
           placeholder="상대팀 검색"
-          className="w-full rounded-full border border-border bg-surface px-3 py-1 text-xs text-foreground placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-accent"
+          className="w-full rounded-full border border-border bg-surface px-3 py-1 text-[13px] text-foreground placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-accent"
         />
         {opponentQuery && (
           <button

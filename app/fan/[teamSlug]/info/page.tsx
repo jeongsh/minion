@@ -1,5 +1,5 @@
 import { DataTable } from "@/components/ui/data-table";
-import { FanPageShell } from "@/components/fan/fan-page-shell";
+import { FanPageShell, FanSubpageHeader } from "@/components/fan/fan-page-shell";
 import { getTeamByRouteKey } from "@/lib/team-themes";
 
 export default async function FanInfoPage({
@@ -20,6 +20,10 @@ export default async function FanInfoPage({
 
   return (
     <FanPageShell>
+      <FanSubpageHeader
+        title="팀 정보"
+        breadcrumbs={[{ label: team?.shortName ?? teamSlug.toUpperCase(), href: `/fan/${teamSlug}` }, { label: "팀 정보" }]}
+      />
       <DataTable
         rows={rows}
         columns={[

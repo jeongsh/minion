@@ -54,9 +54,9 @@ export function ScheduleList({
 
         return (
         <section key={date} id={date === scrollTargetKey ? TODAY_SECTION_ID : undefined} className="scroll-mt-40">
-          <h2 className="home-section-title mb-3 flex items-center gap-2 text-[18px] text-[var(--ui-ink)]">
+          <h2 className="mb-3 flex items-center gap-2 text-lg font-black text-[var(--ui-ink)]">
             {date}
-            {isToday && <span className="rounded-full bg-[var(--accent)] px-2 py-0.5 text-[11px] font-bold text-[var(--accent-foreground)]">오늘</span>}
+            {isToday && <span className="rounded-full bg-[var(--accent)] px-2 py-0.5 text-xs font-bold text-[var(--accent-foreground)]">오늘</span>}
           </h2>
           <div className={`overflow-hidden rounded-2xl border bg-[var(--ui-surface)] ${isToday ? "border-2 border-[var(--accent)]" : "border-[var(--ui-border)]"}`}>
             {dayMatches.map((match) => {
@@ -90,12 +90,12 @@ export function ScheduleList({
                   <div className="flex items-center gap-2 md:flex-col md:items-start md:gap-1.5">
                     <time className="text-base font-black tabular-nums tracking-tight text-[var(--ui-ink)]">{formatTimeKST(match.matchDate)}</time>
                     {live ? (
-                      <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-red-500/15 px-2 py-1 text-[11px] font-bold text-red-500">
+                      <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-red-500/15 px-2 py-1 text-xs font-bold text-red-500">
                         <span className="h-1.5 w-1.5 rounded-full bg-red-500 motion-safe:animate-pulse" />
                         LIVE
                       </span>
                     ) : (
-                      <span className="w-fit rounded-full bg-[var(--ui-surface-muted)] px-2 py-1 text-[12px] font-bold text-[var(--ui-muted)]">
+                      <span className="w-fit rounded-full bg-[var(--ui-surface-muted)] px-2 py-1 text-[13px] font-bold text-[var(--ui-muted)]">
                         {matchStatusLabel(match.status)}
                       </span>
                     )}
@@ -105,7 +105,7 @@ export function ScheduleList({
                       <p className={`${teamNameClass(match.teamAId)} text-right`}>{teamA?.name ?? "TBD"}</p>
                       <TeamLogo team={teamA} size="h-11 w-11 shrink-0" plain />
                     </div>
-                    <p className="w-16 shrink-0 text-center text-[20px] font-black tabular-nums text-[var(--ui-ink)]">{score}</p>
+                    <p className="w-16 shrink-0 text-center text-xl font-black tabular-nums text-[var(--ui-ink)]">{score}</p>
                     <div className="flex min-w-0 flex-1 items-center gap-2.5">
                       <TeamLogo team={teamB} size="h-11 w-11 shrink-0" plain />
                       <p className={teamNameClass(match.teamBId)}>{teamB?.name ?? "TBD"}</p>
@@ -113,7 +113,7 @@ export function ScheduleList({
                   </div>
                   <div className="flex items-center justify-between gap-2 md:flex-col md:items-end md:justify-center md:gap-0.5">
                     <p className="truncate text-sm font-bold text-[var(--ui-text)]">{tournamentTypeLabel(tournament)}</p>
-                    <p className="truncate text-xs font-semibold text-[var(--ui-muted)]">{stageName(stages, match.stageId)}</p>
+                    <p className="truncate text-[13px] font-semibold text-[var(--ui-muted)]">{stageName(stages, match.stageId)}</p>
                   </div>
                 </Link>
               );

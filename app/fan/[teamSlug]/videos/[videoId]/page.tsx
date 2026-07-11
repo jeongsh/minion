@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { FanVideoActions } from "@/components/fan/fan-video-actions";
-import { Breadcrumb } from "@/components/layout/breadcrumb";
+import { PageHeader } from "@/components/ui/page-header";
 import {
   getFanVideoFeed,
   getPlayers,
@@ -34,9 +34,9 @@ function RelatedVideo({ teamSlug, video }: { teamSlug: string; video: FanVideoIt
         )}
       </div>
       <div className="min-w-0">
-        <h3 className="line-clamp-2 text-sm font-semibold leading-[1.25rem] text-[#0f0f0f] group-hover:text-accent">{video.title}</h3>
-        <p className="mt-1 truncate text-xs text-[#606060]">{video.ownerName}</p>
-        <p className="mt-0.5 line-clamp-1 text-xs text-[#606060]">{fanVideoMetaLabel(video)}</p>
+        <h3 className="line-clamp-2 text-[15px] font-semibold leading-5 text-[#0f0f0f] group-hover:text-accent">{video.title}</h3>
+        <p className="mt-1 truncate text-[13px] text-[#606060]">{video.ownerName}</p>
+        <p className="mt-0.5 line-clamp-1 text-[13px] text-[#606060]">{fanVideoMetaLabel(video)}</p>
       </div>
     </Link>
   );
@@ -70,8 +70,9 @@ export default async function FanVideoDetailPage({
 
   return (
     <main className="fan-page-container grid gap-7 py-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
-      <Breadcrumb
-        items={[
+      <PageHeader
+        title={video.title}
+        breadcrumbs={[
           { label: team.shortName, href: `/fan/${teamSlug}` },
           { label: "영상", href: `/fan/${teamSlug}/videos` },
           { label: video.title },
@@ -100,11 +101,9 @@ export default async function FanVideoDetailPage({
           )}
         </div>
 
-          <h1 className="mt-4 text-2xl font-bold leading-7 tracking-[-0.02em] text-[var(--ui-ink)]">{video.title}</h1>
-
         <div className="mt-4 flex flex-col gap-4 border-b border-[#e5e5e5] pb-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 items-center gap-3">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#f2f2f2] text-xs font-black text-[#606060]">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#f2f2f2] text-[13px] font-black text-[#606060]">
               {video.ownerImageUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={video.ownerImageUrl} alt="" className="h-full w-full object-contain" />
@@ -118,7 +117,7 @@ export default async function FanVideoDetailPage({
               ) : (
                 <p className="truncate text-base font-semibold text-[#0f0f0f]">{video.ownerName}</p>
               )}
-              <p className="text-xs text-[#606060]">{video.ownerType === "team" ? "공식 구단 채널" : "선수 채널"}</p>
+              <p className="text-[13px] text-[#606060]">{video.ownerType === "team" ? "공식 구단 채널" : "선수 채널"}</p>
             </div>
           </div>
           <FanVideoActions videoUrl={video.videoUrl} />
@@ -134,8 +133,8 @@ export default async function FanVideoDetailPage({
 
       <aside className="flex min-w-0 flex-col lg:sticky lg:top-32">
         <div className="mb-4 flex shrink-0 items-center justify-between">
-          <h2 className="text-base font-bold text-[#0f0f0f]">관련 영상</h2>
-          <Link href={`/fan/${team.fanSiteHost}/videos`} className="text-xs font-semibold text-[#606060] hover:text-accent">전체 보기</Link>
+          <h2 className="home-section-title text-lg text-[#0f0f0f]">관련 영상</h2>
+          <Link href={`/fan/${team.fanSiteHost}/videos`} className="text-[13px] font-semibold text-[#606060] hover:text-accent">전체 보기</Link>
         </div>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
           {related.map((item) => <RelatedVideo key={item.id} teamSlug={team.fanSiteHost} video={item} />)}

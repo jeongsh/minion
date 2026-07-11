@@ -84,7 +84,7 @@ function StoryViewer({
             )}
           </div>
           <span className="text-sm font-bold text-white">{story.ownerName}</span>
-          <span className="ml-auto text-xs text-white/60" suppressHydrationWarning>{relativeTime(story.takenAt)}</span>
+          <span className="ml-auto text-[13px] text-white/60" suppressHydrationWarning>{relativeTime(story.takenAt)}</span>
           <button type="button" onClick={onClose} className="ml-2 text-white/80 hover:text-white text-xl leading-none">✕</button>
         </div>
 
@@ -151,12 +151,12 @@ function StoryBubble({ story, onClick }: { story: StoryItem; onClick: () => void
           )}
         </div>
         {isVideo && (
-          <span className="absolute bottom-0 right-0 flex h-4 w-4 items-center justify-center rounded-full bg-accent text-[9px] text-white">
+          <span className="absolute bottom-0 right-0 flex h-4 w-4 items-center justify-center rounded-full bg-accent text-xs text-white">
             ▶
           </span>
         )}
       </div>
-      <span className="w-16 truncate text-center text-[10px] font-semibold">{story.ownerName}</span>
+      <span className="w-16 truncate text-center text-[13px] font-semibold">{story.ownerName}</span>
     </button>
   );
 }
@@ -228,13 +228,13 @@ function PostCard({
         )}
         {/* 임베드 힌트 오버레이 */}
         <div className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition group-hover:bg-black/30 group-hover:opacity-100">
-          <span className="rounded-full bg-white/90 px-3 py-1 text-[11px] font-bold text-black">
+          <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-black">
             게시물 보기
           </span>
         </div>
       </div>
       <div className={compact ? "p-3" : "flex h-[84px] flex-col p-3.5"}>
-        <div className="flex items-center justify-between gap-2 text-[10px] text-muted">
+        <div className="flex items-center justify-between gap-2 text-xs text-muted">
           <span className="truncate font-bold text-accent">@{item.ownerName}</span>
           <span className="shrink-0 whitespace-nowrap" suppressHydrationWarning>
             {!compact && item.likesCount ? `♥ ${item.likesCount.toLocaleString()} · ` : ""}
@@ -242,7 +242,7 @@ function PostCard({
           </span>
         </div>
         {!compact && (
-          <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-[#262626]">{item.caption}</p>
+          <p className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-[#262626]">{item.caption}</p>
         )}
       </div>
     </button>
@@ -417,7 +417,7 @@ export function FanInstagramFeed({
             <InstagramIcon className="h-5 w-5 text-accent" />
             <h2 className="text-xl font-bold tracking-[-0.01em]">인스타그램</h2>
             {hasStories && (
-              <span className="rounded-full bg-accent/10 px-2 py-0.5 text-xs font-bold text-accent">
+              <span className="rounded-full bg-accent/10 px-2 py-0.5 text-[13px] font-bold text-accent">
                 스토리 {storyItems.length}
               </span>
             )}
@@ -444,7 +444,7 @@ export function FanInstagramFeed({
       {/* 스토리 버블 */}
       {hasStories && (
         <div className={variant === "full" ? "mb-8" : "border-t border-[#eceef2] px-5 py-4 md:px-6"}>
-          <p className="mb-3 text-xs font-bold text-muted uppercase tracking-wide">스토리</p>
+          <p className="mb-3 text-[13px] font-bold text-muted uppercase tracking-wide">스토리</p>
           <div className="flex gap-4 overflow-x-auto pb-1 scrollbar-none">
             {filteredStories.map((story, i) => (
               <StoryBubble
@@ -465,7 +465,7 @@ export function FanInstagramFeed({
         {hasPosts ? (
           <>
             {variant === "preview" ? (
-              <p className="mb-3 text-xs font-bold text-muted uppercase tracking-wide">게시물</p>
+              <p className="mb-3 text-[13px] font-bold text-muted uppercase tracking-wide">게시물</p>
             ) : null}
             <div
               className={
@@ -496,7 +496,7 @@ export function FanInstagramFeed({
                 )}
               </div>
             ) : variant === "full" && filteredPosts.length > INITIAL_LIMIT ? (
-              <p className="py-8 text-center text-xs text-[#8e8e8e]">모든 게시물을 확인했습니다.</p>
+              <p className="py-8 text-center text-[13px] text-[#8e8e8e]">모든 게시물을 확인했습니다.</p>
             ) : null}
           </>
         ) : !hasStories ? (

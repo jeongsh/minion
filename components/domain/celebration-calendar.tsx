@@ -90,13 +90,13 @@ export function CelebrationCalendar({
                     <p className="truncate text-sm font-black text-[var(--ui-ink)]">
                       {meta.emoji} {event.title}
                     </p>
-                    <p className="mt-0.5 truncate text-xs font-semibold text-[var(--ui-muted)]">
+                    <p className="mt-0.5 truncate text-[13px] font-semibold text-[var(--ui-muted)]">
                       {event.nextDateKey.slice(5).replace("-", "월 ")}일
                       {event.teamShort ? ` · ${event.teamShort}` : ""}
                     </p>
                   </div>
                   <span
-                    className="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-black text-white"
+                    className="shrink-0 rounded-full px-2.5 py-1 text-xs font-black text-white"
                     style={{ background: meta.color }}
                   >
                     {ddayLabel(event.dday)}
@@ -186,10 +186,10 @@ export function CelebrationCalendar({
               return (
                 <div key={event.key} className="flex items-center gap-2.5 rounded-xl bg-[var(--ui-surface-muted)] px-3 py-2">
                   <EventAvatar event={event} size="h-8 w-8" />
-                  <span className="min-w-0 flex-1 truncate text-xs font-black text-[var(--ui-ink)]">
+                  <span className="min-w-0 flex-1 truncate text-[13px] font-black text-[var(--ui-ink)]">
                     {meta.emoji} {event.title}
                   </span>
-                  <span className="shrink-0 text-[11px] font-black" style={{ color: meta.color }}>
+                  <span className="shrink-0 text-xs font-black" style={{ color: meta.color }}>
                     {ddayLabel(event.dday)}
                   </span>
                 </div>
@@ -199,7 +199,7 @@ export function CelebrationCalendar({
         ) : (
           <div className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-[var(--ui-border)] pt-3">
             {(Object.keys(TYPE_META) as CalendarEventType[]).map((t) => (
-              <span key={t} className="flex items-center gap-1.5 text-[11px] font-bold text-[var(--ui-muted)]">
+              <span key={t} className="flex items-center gap-1.5 text-xs font-bold text-[var(--ui-muted)]">
                 <span className="h-2 w-2 rounded-full" style={{ background: TYPE_META[t].color }} />
                 {TYPE_META[t].label}
               </span>

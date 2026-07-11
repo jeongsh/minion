@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Fragment } from "react";
 
-import { Breadcrumb } from "@/components/layout/breadcrumb";
+import { PageHeader } from "@/components/ui/page-header";
 import { DataTable } from "@/components/ui/data-table";
 import { getAllTeams, getBracketStages, getMatches, getPlayers, getStages, getTournaments } from "@/lib/data/lck";
 import {
@@ -137,7 +137,7 @@ function GroupStandingsTable({
 }) {
   return (
     <div className="flex flex-col gap-2">
-      <span className="inline-block w-fit rounded-md bg-surface-muted px-3 py-1.5 text-xs font-bold text-muted">
+      <span className="inline-block w-fit rounded-md bg-surface-muted px-3 py-1.5 text-[13px] font-bold text-muted">
         {title}
       </span>
       <DataTable
@@ -287,7 +287,7 @@ function PomRankingTable({ rows }: { rows: PomRow[] }) {
                 ) : null}
                 <div className="min-w-0">
                   <p className="truncate font-semibold">{row.player.name}</p>
-                  <p className="truncate text-xs text-muted">{row.team?.shortName ?? "-"}</p>
+                  <p className="truncate text-[13px] text-muted">{row.team?.shortName ?? "-"}</p>
                 </div>
               </div>
             </div>
@@ -334,14 +334,14 @@ function TeamRow({
         <span className="h-5 w-5 shrink-0 rounded-full bg-surface-muted" aria-hidden="true" />
       )}
       <span
-        className={`min-w-0 flex-1 truncate text-xs ${
+        className={`min-w-0 flex-1 truncate text-[13px] ${
           isWinner ? "font-bold text-foreground" : "font-medium text-muted"
         }`}
       >
         {team?.name ?? placeholder ?? "TBD"}
       </span>
       <span
-        className={`shrink-0 text-xs tabular-nums ${
+        className={`shrink-0 text-[13px] tabular-nums ${
           isWinner ? "font-bold text-foreground" : "font-medium text-muted"
         }`}
       >
@@ -371,7 +371,7 @@ function MatchCard({
       data-match-id={match.id}
       className="block overflow-hidden rounded-md border border-border bg-surface transition-colors hover:border-accent"
     >
-      <div className="truncate px-2.5 pt-1.5 text-[10px] font-semibold text-muted">
+      <div className="truncate px-2.5 pt-1.5 text-xs font-semibold text-muted">
         {formatDateTime(match.matchDate)}
       </div>
       <TeamRow
@@ -414,7 +414,7 @@ function GrandFinalsCard({
       style={{ borderColor: accent }}
       className="block overflow-hidden rounded-md border-2 bg-surface transition-colors hover:bg-surface-muted"
     >
-      <div className="truncate px-2.5 pt-1.5 text-[10px] font-semibold text-muted">
+      <div className="truncate px-2.5 pt-1.5 text-xs font-semibold text-muted">
         {formatDateTime(match.matchDate)}
       </div>
       <TeamRow
@@ -560,7 +560,7 @@ const UPPER_ROW = 2;
 
 function ColumnHeader({ label }: { label: string }) {
   return (
-    <span className="inline-block w-fit rounded-md bg-surface-muted px-3 py-1.5 text-xs font-bold text-muted">
+    <span className="inline-block w-fit rounded-md bg-surface-muted px-3 py-1.5 text-[13px] font-bold text-muted">
       {label}
     </span>
   );
@@ -1110,8 +1110,9 @@ export default async function TournamentBracketPage({
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-[var(--page-inline)] py-10">
-      <Breadcrumb
-        items={[
+      <PageHeader
+        title={segmentTheme.name}
+        breadcrumbs={[
           { label: "홈", href: "/" },
           { label: "대회", href: "/tournaments" },
           { label: segmentTheme.name },
@@ -1128,17 +1129,16 @@ export default async function TournamentBracketPage({
         <div className="relative flex flex-wrap items-end justify-between gap-6">
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-bold uppercase tracking-widest text-white/60">
+              <span className="text-[13px] font-bold uppercase tracking-widest text-white/60">
                 {activeSeason} · {region}
               </span>
-              <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${statusMeta.className}`}>
+              <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${statusMeta.className}`}>
                 {statusMeta.label}
               </span>
             </div>
-            <h1 className="mt-2 text-3xl font-black text-white md:text-4xl">{segmentTheme.name}</h1>
             <p className="mt-1 text-sm font-medium text-white/70">{segmentTheme.description}</p>
             {dateRange ? (
-              <span className="mt-4 inline-block w-fit rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-white">
+              <span className="mt-4 inline-block w-fit rounded-full bg-white/10 px-3 py-1 text-[13px] font-bold text-white">
                 {dateRange}
               </span>
             ) : null}

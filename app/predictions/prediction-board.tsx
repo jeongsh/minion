@@ -150,9 +150,9 @@ export function PredictionBoard({ matches, teams, tournaments, bets, currentUser
       <div className="mt-9 flex flex-col gap-9">
         {Object.entries(grouped).map(([date, dayMatches]) => dayMatches ? (
           <section key={date}>
-            <h2 className="home-section-title mb-3 flex items-center gap-2 text-[18px] text-[var(--ui-ink)]">
+            <h2 className="mb-3 flex items-center gap-2 text-lg font-black text-[var(--ui-ink)]">
               {dateLabel(dayMatches[0].matchDate)}
-              {date === dateKeyKST(new Date().toISOString()) ? <span className="rounded-full bg-[var(--accent)] px-2 py-0.5 text-[11px] font-bold text-[var(--accent-foreground)]">오늘</span> : null}
+              {date === dateKeyKST(new Date().toISOString()) ? <span className="rounded-full bg-[var(--accent)] px-2 py-0.5 text-xs font-bold text-[var(--accent-foreground)]">오늘</span> : null}
             </h2>
             <div className="flex flex-col gap-3">
               {dayMatches.map((match) => {
@@ -172,7 +172,7 @@ export function PredictionBoard({ matches, teams, tournaments, bets, currentUser
                         <time className="shrink-0 text-[var(--ui-ink)]">{timeLabel(match.matchDate)}</time>
                         <span className="truncate text-[var(--ui-muted)]">{tournamentMap.get(match.tournamentId)?.name ?? "LEAGUE"}</span>
                       </div>
-                      <div className="flex shrink-0 items-center gap-3 text-[12px] text-[var(--ui-muted)]">
+                      <div className="flex shrink-0 items-center gap-3 text-[13px] text-[var(--ui-muted)]">
                         {myBet ? <span className="font-black text-[var(--ui-ink)]">내 예측 {myBet.stake.toLocaleString("ko-KR")} LP</span> : null}
                         <span className="flex items-center gap-1.5"><Clock3 size={13} />{deadlineLabel(match.matchDate, closed, now)}</span>
                       </div>
@@ -233,7 +233,7 @@ function TeamChoice({ team, percent, odds, selected, disabled, onClick, right = 
         <span className={`truncate text-m font-black text-[var(--ui-ink)] transition-colors sm:text-xl ${disabled ? "" : "group-hover:text-[var(--prediction-choice-color)]"}`}>{team?.shortName ?? "TBD"}</span>
         <span className="shrink-0 text-lg font-bold text-[var(--ui-muted)] flex items-center">{odds === null ? "1" : `${odds.toFixed(2)}`}<span className="text-sm">&nbsp;배</span></span>
       </span>
-      <span className={`shrink-0 text-[20px] font-black leading-none tabular-nums text-[var(--ui-ink)] transition-colors sm:text-[26px] ${disabled ? "" : "group-hover:text-[var(--prediction-choice-color)]"}`}>{percent}<span className="ml-0.5 text-xs text-[var(--ui-muted)] sm:text-sm">%</span></span>
+      <span className={`shrink-0 text-xl font-black leading-none tabular-nums text-[var(--ui-ink)] transition-colors sm:text-[26px] ${disabled ? "" : "group-hover:text-[var(--prediction-choice-color)]"}`}>{percent}<span className="ml-0.5 text-[13px] text-[var(--ui-muted)] sm:text-sm">%</span></span>
     </button>
   );
 }
@@ -243,10 +243,10 @@ function PredictionLeaderboard({ entries }: { entries: PredictionRanking[] }) {
     <aside className="rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-5 dark:bg-[var(--ui-surface-muted)] xl:sticky xl:top-24">
       <div className="flex items-end justify-between gap-3">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--ui-muted)]">USER RANKING</p>
+          <p className="text-[13px] font-bold uppercase tracking-[0.14em] text-[var(--ui-muted)]">USER RANKING</p>
           <h2 className="mt-1 text-lg font-black text-[var(--ui-ink)]">유저 랭킹</h2>
         </div>
-        <span className="text-xs font-bold text-[var(--ui-muted)]">예측 수익</span>
+        <span className="text-[13px] font-bold text-[var(--ui-muted)]">예측 수익</span>
       </div>
       <ol className="mt-4 divide-y divide-[var(--ui-border)]">
         {entries.map((entry) => (
@@ -258,7 +258,7 @@ function PredictionLeaderboard({ entries }: { entries: PredictionRanking[] }) {
         ))}
       </ol>
       {!entries.length ? <p className="py-8 text-center text-sm text-[var(--ui-muted)]">랭킹 데이터가 없습니다.</p> : null}
-      <p className="mt-3 text-xs leading-5 text-[var(--ui-muted)]">한 번 이상 LP 예측에 참여한 유저를 순수익 기준으로 표시합니다.</p>
+      <p className="mt-3 text-[13px] leading-5 text-[var(--ui-muted)]">한 번 이상 LP 예측에 참여한 유저를 순수익 기준으로 표시합니다.</p>
     </aside>
   );
 }
@@ -292,7 +292,7 @@ function BetAmountDialog({
       <section className="w-full max-w-md rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-5 shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="bet-dialog-title">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-bold text-[var(--ui-muted)]">LP PREDICTION</p>
+            <p className="text-[13px] font-bold text-[var(--ui-muted)]">LP PREDICTION</p>
             <h2 id="bet-dialog-title" className="mt-1 text-xl font-black text-[var(--ui-ink)]">{dialog.teamName} 승리 예측</h2>
           </div>
           <button type="button" onClick={onClose} className="grid h-9 w-9 place-items-center rounded-lg text-[var(--ui-muted)] hover:bg-[var(--ui-surface-muted)]" aria-label="닫기"><X size={18} /></button>
@@ -301,23 +301,23 @@ function BetAmountDialog({
         {dialog.existingBet ? (
           <div className="mt-6 rounded-xl bg-[var(--ui-surface-muted)] p-4">
             <p className="text-sm font-bold text-[var(--ui-ink)]">이미 이 경기에 {dialog.existingBet.stake.toLocaleString("ko-KR")} LP를 사용했습니다.</p>
-            <p className="mt-1 text-xs text-[var(--ui-muted)]">팀이나 금액을 바꾸려면 기존 예측을 취소한 뒤 다시 참여해 주세요.</p>
+            <p className="mt-1 text-[13px] text-[var(--ui-muted)]">팀이나 금액을 바꾸려면 기존 예측을 취소한 뒤 다시 참여해 주세요.</p>
             <button type="button" onClick={onCancelBet} disabled={pending} className="mt-4 h-10 w-full rounded-lg border border-red-500/30 text-sm font-bold text-red-500 transition hover:bg-red-500/10 disabled:opacity-50">예측 취소하고 LP 환불</button>
           </div>
         ) : (
           <>
             <div className="mt-6 flex items-end justify-between gap-3">
               <label htmlFor="prediction-stake" className="text-sm font-bold text-[var(--ui-ink)]">사용할 LP</label>
-              <span className="text-xs font-semibold text-[var(--ui-muted)]">1회 한도 {maxStake.toLocaleString("ko-KR")} LP</span>
+              <span className="text-[13px] font-semibold text-[var(--ui-muted)]">1회 한도 {maxStake.toLocaleString("ko-KR")} LP</span>
             </div>
             <div className="mt-2 flex h-14 items-center rounded-xl border border-[var(--ui-border)] px-4 focus-within:border-[var(--ui-ink)]">
               <input id="prediction-stake" type="number" min={100} max={maxStake} step={100} value={stake} onChange={(event) => onStakeChange(event.target.value)} className="min-w-0 flex-1 bg-transparent text-2xl font-black tabular-nums text-[var(--ui-ink)] outline-none" />
               <span className="text-sm font-black text-[var(--ui-muted)]">LP</span>
             </div>
             <div className="mt-3 grid grid-cols-4 gap-2">
-              {presets.map((ratio) => <button key={ratio} type="button" onClick={() => onStakeChange(String(Math.max(100, Math.floor((maxStake * ratio) / 100) * 100)))} className="h-9 rounded-lg bg-[var(--ui-surface-muted)] text-xs font-bold text-[var(--ui-text)] hover:opacity-80">{ratio === 1 ? "최대" : `${ratio * 100}%`}</button>)}
+              {presets.map((ratio) => <button key={ratio} type="button" onClick={() => onStakeChange(String(Math.max(100, Math.floor((maxStake * ratio) / 100) * 100)))} className="h-9 rounded-lg bg-[var(--ui-surface-muted)] text-[13px] font-bold text-[var(--ui-text)] hover:opacity-80">{ratio === 1 ? "최대" : `${ratio * 100}%`}</button>)}
             </div>
-            <p className={`mt-3 text-xs font-semibold ${valid ? "text-[var(--ui-muted)]" : "text-red-500"}`}>{valid ? `보유 ${balance.toLocaleString("ko-KR")} LP · 경기당 최대 20%, 상한 5,000 LP` : `100 LP 이상 ${maxStake.toLocaleString("ko-KR")} LP 이하로 입력해 주세요.`}</p>
+            <p className={`mt-3 text-[13px] font-semibold ${valid ? "text-[var(--ui-muted)]" : "text-red-500"}`}>{valid ? `보유 ${balance.toLocaleString("ko-KR")} LP · 경기당 최대 20%, 상한 5,000 LP` : `100 LP 이상 ${maxStake.toLocaleString("ko-KR")} LP 이하로 입력해 주세요.`}</p>
             <button type="button" onClick={onSubmit} disabled={!valid || pending} className="mt-5 h-12 w-full rounded-xl bg-[var(--ui-ink)] text-sm font-black text-[var(--ui-surface)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40">{pending ? "처리 중..." : `${amount.toLocaleString("ko-KR")} LP로 확정`}</button>
           </>
         )}

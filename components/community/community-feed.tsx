@@ -101,7 +101,7 @@ export function CommunityFeed({
 
         <Pagination page={currentPage} totalPages={totalPages} onChange={setPage} />
         {submittedQuery ? (
-          <button type="button" onClick={() => { setQuery(""); setSubmittedQuery(""); setPage(1); }} className="text-left text-xs font-semibold text-[var(--ui-muted)] hover:text-[var(--ui-ink)] lg:justify-self-end">
+          <button type="button" onClick={() => { setQuery(""); setSubmittedQuery(""); setPage(1); }} className="text-left text-[13px] font-semibold text-[var(--ui-muted)] hover:text-[var(--ui-ink)] lg:justify-self-end">
             검색 초기화
           </button>
         ) : <span />}
@@ -112,7 +112,7 @@ export function CommunityFeed({
 
 function CategoryButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
-    <button type="button" role="tab" aria-selected={active} onClick={onClick} className={`px-2 relative shrink-0 text-lg font-bold font-paperozi transition-colors ${active ? "text-[var(--ui-ink)] after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:bg-[var(--ui-ink)]" : "text-[var(--ui-muted)] hover:text-[var(--ui-text)]"}`}>
+    <button type="button" role="tab" aria-selected={active} onClick={onClick} className={`relative shrink-0 px-2 text-base font-bold transition-colors ${active ? "text-[var(--ui-ink)] after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:bg-[var(--ui-ink)]" : "text-[var(--ui-muted)] hover:text-[var(--ui-text)]"}`}>
       {children}
     </button>
   );

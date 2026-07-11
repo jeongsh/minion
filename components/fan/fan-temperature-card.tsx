@@ -44,8 +44,8 @@ export function FanTemperatureCard({
       <div className="relative flex flex-wrap items-center gap-x-5 gap-y-3 pb-5 text-sm">
         <div className="flex items-baseline gap-2">
           <h2 className="font-black">지금 {teamName} 팬 반응</h2>
-          <strong className="text-xl font-black tabular-nums">{snapshot.score}<span className="ml-1 text-xs font-bold opacity-65">/ 100</span></strong>
-          <span className="rounded-full bg-black/15 px-2.5 py-1 text-xs font-black">{snapshot.label}</span>
+          <strong className="text-xl font-black tabular-nums">{snapshot.score}<span className="ml-1 text-[13px] font-bold opacity-65">/ 100</span></strong>
+          <span className="rounded-full bg-black/15 px-2.5 py-1 text-[13px] font-black">{snapshot.label}</span>
         </div>
         <div className="flex flex-wrap gap-x-4 gap-y-2 opacity-80">
           <HeaderMetric icon={<Flame size={14} />} label="응원" value={snapshot.heatCount24h} />
@@ -56,11 +56,11 @@ export function FanTemperatureCard({
           type="button"
           onClick={handleHeat}
           disabled={isPending}
-          className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-[var(--team-on-primary)] px-3.5 py-2 text-xs font-black text-[var(--team-primary)] transition hover:opacity-90 active:scale-[0.98] disabled:opacity-60"
+          className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-[var(--team-on-primary)] px-3.5 py-2 text-[13px] font-black text-[var(--team-primary)] transition hover:opacity-90 active:scale-[0.98] disabled:opacity-60"
         >
           <Flame size={15} />온도 올리기
         </button>
-        {message ? <p aria-live="polite" className="w-full text-xs font-bold opacity-75">{message}</p> : null}
+        {message ? <p aria-live="polite" className="w-full text-[13px] font-bold opacity-75">{message}</p> : null}
       </div>
     );
   }
@@ -72,7 +72,7 @@ export function FanTemperatureCard({
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-black text-[var(--ui-ink)]">지금 {teamName} 팬 반응</h2>
-              <p className="mt-1 text-xs font-bold text-[var(--ui-muted)]">최근 24시간 응원·양파·출석을 합산한 분위기예요.</p>
+              <p className="mt-1 text-[13px] font-bold text-[var(--ui-muted)]">최근 24시간 응원·양파·출석을 합산한 분위기예요.</p>
             </div>
             <p className="text-2xl font-black tabular-nums text-[var(--ui-ink)]"><span style={{ color: "var(--team-accent-text)" }}>{snapshot.score}</span><span className="text-sm text-[var(--ui-muted)]"> / 100</span></p>
           </div>
@@ -93,7 +93,7 @@ export function FanTemperatureCard({
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-3 lg:justify-end">
-          <span className="rounded-full bg-[var(--team-accent-soft)] px-3 py-1.5 text-xs font-black text-[var(--team-accent-text)]">{snapshot.label}</span>
+          <span className="rounded-full bg-[var(--team-accent-soft)] px-3 py-1.5 text-[13px] font-black text-[var(--team-accent-text)]">{snapshot.label}</span>
           <button
             type="button"
             onClick={handleHeat}
@@ -103,7 +103,7 @@ export function FanTemperatureCard({
             <Flame size={17} />
             온도 올리기
           </button>
-          {message ? <p aria-live="polite" className="w-full text-xs font-bold text-[var(--ui-muted)] lg:text-right">{message}</p> : null}
+          {message ? <p aria-live="polite" className="w-full text-[13px] font-bold text-[var(--ui-muted)] lg:text-right">{message}</p> : null}
         </div>
       </div>
     </section>

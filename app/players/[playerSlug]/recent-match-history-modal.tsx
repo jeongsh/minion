@@ -91,7 +91,7 @@ export function RecentMatchSetRows({
       <div className="grid gap-3 border-b border-[var(--ui-border)] bg-[var(--ui-surface-muted)] px-4 py-3 text-sm text-[var(--ui-ink)] md:grid-cols-[1fr_auto_auto_auto] md:items-center">
         <div>
           <p className="font-semibold">{compactDate(match.matchDate)} · vs {opponent}</p>
-          <p className="mt-1 text-xs text-[var(--ui-muted)]">{match.name}</p>
+          <p className="mt-1 text-[13px] text-[var(--ui-muted)]">{match.name}</p>
         </div>
         <div><span className="text-[var(--ui-muted)]">매치 결과 </span><strong>{matchResultForPlayer(match, player.teamId)}</strong></div>
         <div><span className="text-[var(--ui-muted)]">팬 POG </span><strong>{fanPog ? "선정" : "-"}</strong></div>
@@ -132,12 +132,12 @@ export function RecentMatchSetRows({
                 </div>
                 <div className="text-center">
                   <p className="font-semibold tabular-nums">{line.kills} / {line.deaths} / {line.assists}</p>
-                  <p className="text-xs text-[var(--ui-muted)]">{line.stats.kda.toFixed(2)}</p>
+                  <p className="text-[13px] text-[var(--ui-muted)]">{line.stats.kda.toFixed(2)}</p>
                 </div>
                 <div>
                   <div className="flex items-center justify-between gap-3">
                     <span className="font-semibold tabular-nums">{line.damageToChampions.toLocaleString("ko-KR")}</span>
-                    <span className="text-xs text-[var(--ui-muted)] tabular-nums">DPM {line.stats.dpm}</span>
+                    <span className="text-[13px] text-[var(--ui-muted)] tabular-nums">DPM {line.stats.dpm}</span>
                   </div>
                   <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-surface-muted">
                     <div className="h-full rounded-full bg-blue-500" style={{ width: `${damageWidth}%` }} />
@@ -146,7 +146,7 @@ export function RecentMatchSetRows({
                 <div className="text-center font-semibold tabular-nums">{line.visionScore}</div>
                 <div className="text-center">
                   <p className="font-semibold tabular-nums">{line.cs}</p>
-                  <p className="text-xs text-[var(--ui-muted)]">{line.stats.csm}</p>
+                  <p className="text-[13px] text-[var(--ui-muted)]">{line.stats.csm}</p>
                 </div>
                 <div className="text-center font-semibold tabular-nums">
                   {line.gold.toLocaleString("ko-KR")}
@@ -159,7 +159,7 @@ export function RecentMatchSetRows({
                   separatorClassName="h-5 w-px"
                   imageSizes="32px"
                 />
-                <div className="text-right text-xs text-[var(--ui-muted)]">평점 {rating ? rating.rating.toFixed(1) : "-"}</div>
+                <div className="text-right text-[13px] text-[var(--ui-muted)]">평점 {rating ? rating.rating.toFixed(1) : "-"}</div>
               </div>
             );
           })

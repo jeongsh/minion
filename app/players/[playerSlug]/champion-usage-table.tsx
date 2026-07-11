@@ -79,7 +79,7 @@ export function ChampionUsageTable({ rows, initialRows = 5 }: { rows: ChampionUs
     <div className="overflow-x-auto">
       <table className="w-full min-w-[42rem] border-collapse text-left text-sm">
         <thead>
-          <tr className="border-b border-[var(--ui-border)] text-xs font-semibold text-[var(--ui-muted)]">
+          <tr className="border-b border-[var(--ui-border)] text-[13px] font-semibold text-[var(--ui-muted)]">
             <th scope="col" className="min-w-[9rem] px-3 py-2.5 font-semibold">챔피언</th>
             <th scope="col" className="whitespace-nowrap px-3 py-2.5 text-center font-semibold">사용 세트</th>
             <th scope="col" className="whitespace-nowrap px-3 py-2.5 text-center font-semibold">승률</th>
@@ -98,7 +98,7 @@ export function ChampionUsageTable({ rows, initialRows = 5 }: { rows: ChampionUs
               <td className="px-3 py-3 text-center tabular-nums text-[var(--ui-ink)]">{statValue(row.stats?.kda, 2)}</td>
               <td className="px-3 py-3 text-center tabular-nums text-[var(--ui-text)]">{row.avgRating}</td>
               <td className="px-3 py-3 text-center tabular-nums text-[var(--ui-text)]">{row.fanPogCount}</td>
-              <td className="px-3 py-3 text-center text-xs tabular-nums text-[var(--ui-muted)]">{compactDate(row.recentDate)}</td>
+              <td className="px-3 py-3 text-center text-[13px] tabular-nums text-[var(--ui-muted)]">{compactDate(row.recentDate)}</td>
             </tr>
           ))}
         </tbody>

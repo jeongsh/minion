@@ -515,12 +515,12 @@ export function GameTimeline({
   }, [events, frames, durationSeconds, blueTeamId, redTeamId]);
 
   if (!events.length) {
-    return <div className="flex items-center justify-center py-6 text-xs text-muted">타임라인 데이터 없음</div>;
+    return <div className="flex items-center justify-center py-6 text-[13px] text-muted">타임라인 데이터 없음</div>;
   }
 
   return (
     <div className="game-timeline-chart relative w-full select-none">
-      <div className="flex items-center justify-between border-b border-border px-5 py-4 text-xs font-semibold">
+      <div className="flex items-center justify-between border-b border-border px-5 py-4 text-[13px] font-semibold">
         <span className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400">
           {blueTeamName}
           <span className="rounded-full bg-blue-500/10 px-2 py-0.5 tabular-nums">{blueKills} K</span>
@@ -538,7 +538,7 @@ export function GameTimeline({
           <button
             type="button"
             onClick={() => setShowObjectives((v) => !v)}
-            className="rounded-full border border-border px-2 py-1 text-[11px] font-semibold text-muted hover:bg-surface-muted"
+            className="rounded-full border border-border px-2 py-1 text-xs font-semibold text-muted hover:bg-surface-muted"
           >
             {showObjectives ? "오브젝트 숨기기" : "오브젝트 보기"}
           </button>
@@ -627,7 +627,7 @@ export function GameTimeline({
 
         {showObjectives && tooltip && (
           <div
-            className="pointer-events-none absolute z-10 whitespace-nowrap rounded bg-background/95 px-2 py-1 text-xs shadow-md ring-1 ring-border"
+            className="pointer-events-none absolute z-10 whitespace-nowrap rounded bg-background/95 px-2 py-1 text-[13px] shadow-md ring-1 ring-border"
             style={{ left: `${Math.min(Math.max(tooltip.xPct, 5), 85)}%`, top: `calc(${tooltip.yPct}% + ${ITEM_SZ / 2 + 6}px)` }}
           >
             {tooltip.lines.map((line, i) => <div key={i}>{line}</div>)}
@@ -636,7 +636,7 @@ export function GameTimeline({
       </div>
 
       {showObjectives && (
-      <div className="flex flex-wrap gap-x-3 gap-y-1 px-5 pb-4 pt-2 text-xs text-muted">
+      <div className="flex flex-wrap gap-x-3 gap-y-1 px-5 pb-4 pt-2 text-[13px] text-muted">
         <span className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-blue-400/80" />블루 킬</span>
         <span className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-red-400/80" />레드 킬</span>
         {[

@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getTeamByRouteKey } from "@/lib/team-themes";
+import { getTeamByFanSiteHost, getTeamBySlug } from "@/lib/data/lck";
 
 type TeamStyle = React.CSSProperties & {
   "--team-primary": string;
@@ -16,14 +16,14 @@ function contrastText(hex: string) {
   return luminance > 0.58 ? "#111318" : "#ffffff";
 }
 
-export function FanSiteLayout({
+export async function FanSiteLayout({
   teamSlug,
   children,
 }: {
   teamSlug: string;
   children: React.ReactNode;
 }) {
-  const team = getTeamByRouteKey(teamSlug);
+  const team = (await getTeamByFanSiteHost(teamSlug)) ?? (await getTeamBySlug(teamSlug));
 
   if (!team) {
     notFound();

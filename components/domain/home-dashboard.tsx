@@ -77,7 +77,7 @@ function UpcomingCard({
 function PredictionScore({ match, teams, bets }: { match: Match; teams: Map<string, Team>; bets: PredictionBet[] }) {
   const a = teams.get(match.teamAId), b = teams.get(match.teamBId);
   const market = predictionMarketForMatch(bets, match.id, match.teamAId, match.teamBId);
-  return <div className="home-prediction-score mt-3"><div className="flex justify-between text-xs font-black"><span>{a?.shortName ?? "TBD"} {market.teamAPercent}%</span><span>{market.teamBPercent}% {b?.shortName ?? "TBD"}</span></div><div className="mt-1.5 flex h-2 overflow-hidden rounded-full bg-[#e4e2e8]"><span style={{width:`${market.teamAPercent}%`,background:a?.primaryColor||"#18191c"}}/><span className="flex-1" style={{background:b?.primaryColor||"#73767c"}}/></div></div>;
+  return <div className="home-prediction-score mt-3"><div className="flex justify-between text-[13px] font-black"><span>{a?.shortName ?? "TBD"} {market.teamAPercent}%</span><span>{market.teamBPercent}% {b?.shortName ?? "TBD"}</span></div><div className="mt-1.5 flex h-2 overflow-hidden rounded-full bg-[#e4e2e8]"><span style={{width:`${market.teamAPercent}%`,background:a?.primaryColor||"#18191c"}}/><span className="flex-1" style={{background:b?.primaryColor||"#73767c"}}/></div></div>;
 }
 
 function TodayMatchCard({
@@ -182,7 +182,7 @@ export function HomeDashboard({
           <div className="mb-3 flex items-center gap-2 text-[#18191c]">
             <CalendarDays size={20} />
             <h2 className="home-section-title text-xl">다가오는 경기</h2>
-            <span className="ml-auto rounded-full bg-[#eeeeef] px-2 py-1 text-[11px] font-black text-[#18191c] dark:bg-[#2a2f35]">
+            <span className="ml-auto rounded-full bg-[#eeeeef] px-2 py-1 text-xs font-black text-[#18191c] dark:bg-[#2a2f35]">
               PREDICTION
             </span>
           </div>
@@ -292,7 +292,7 @@ export function HomeDashboard({
                   {r.recent.map((v, i) => (
                     <span
                       key={i}
-                      className={`grid h-8 w-8 place-items-center rounded-full text-[11px] font-black text-white ${v === "W" ? "bg-[#00b979]" : "bg-[#b7bac0]"}`}
+                      className={`grid h-8 w-8 place-items-center rounded-full text-xs font-black text-white ${v === "W" ? "bg-[#00b979]" : "bg-[#b7bac0]"}`}
                       style={{lineHeight: `1`}}
                     >
                       {v}

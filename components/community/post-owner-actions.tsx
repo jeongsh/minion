@@ -26,9 +26,9 @@ export function PostOwnerActions({ postId, scope, teamSlug }: { postId: string; 
 
   return (
     <span className="inline-flex items-center gap-3">
-      <Link href={`${basePath}/post/${postId}/edit`} className="inline-flex h-9 items-center gap-1.5 rounded-[var(--ui-control-radius)] border border-[var(--ui-border)] px-3.5 text-[14px] font-semibold text-[var(--ui-text)] hover:bg-[var(--ui-surface-muted)]"><Pencil size={15} strokeWidth={1.8} />수정</Link>
-      <button type="button" onClick={remove} disabled={pending} className="inline-flex h-9 items-center gap-1.5 rounded-[var(--ui-control-radius)] border border-red-300 px-3.5 text-[14px] font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950/30"><Trash2 size={15} strokeWidth={1.8} />{pending ? "삭제 중" : "삭제"}</button>
-      {message ? <span className="text-[12px] text-[var(--ui-muted)]">{message}</span> : null}
+      <Link href={`${basePath}/post/${postId}/edit`} className="inline-flex h-9 items-center gap-1.5 rounded-[var(--ui-control-radius)] border border-[var(--ui-border)] px-3.5 text-sm font-semibold text-[var(--ui-text)] hover:bg-[var(--ui-surface-muted)]"><Pencil size={15} strokeWidth={1.8} />수정</Link>
+      <button type="button" onClick={remove} disabled={pending} className="inline-flex h-9 items-center gap-1.5 rounded-[var(--ui-control-radius)] border border-red-300 px-3.5 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950/30"><Trash2 size={15} strokeWidth={1.8} />{pending ? "삭제 중" : "삭제"}</button>
+      {message ? <span className="text-[13px] text-[var(--ui-muted)]">{message}</span> : null}
     </span>
   );
 }

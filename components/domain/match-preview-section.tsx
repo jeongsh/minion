@@ -40,11 +40,11 @@ function MatchCard({ match }: { match: MatchData }) {
       className="group flex flex-col overflow-hidden rounded-xl border border-[#e8eaf0] bg-surface-muted transition-all hover:border-[#c7cbda] hover:shadow-md"
     >
       <div className="flex items-center justify-between border-b border-[#f0f2f5] px-4 py-3">
-        <span className="text-xs font-semibold text-[#98a2b3]">
+        <span className="text-[13px] font-semibold text-[#98a2b3]">
           {formatDateTime(match.matchDate)}
         </span>
         <span
-          className={`rounded-full px-2.5 py-0.5 text-xs font-black ${
+          className={`rounded-full px-2.5 py-0.5 text-[13px] font-black ${
             isLive ? "bg-red-50 text-red-500" : "bg-[#f0f2f5] text-[#667085]"
           }`}
         >
@@ -72,7 +72,7 @@ function MatchCard({ match }: { match: MatchData }) {
               {match.teamA?.shortName ?? "-"}
             </p>
             {match.standingA && (
-              <p className="text-xs text-[#98a2b3]">
+              <p className="text-[13px] text-[#98a2b3]">
                 {match.standingA.rank}위 · {match.standingA.wins}승 {match.standingA.losses}패
               </p>
             )}
@@ -100,7 +100,7 @@ function MatchCard({ match }: { match: MatchData }) {
               {match.teamB?.shortName ?? "-"}
             </p>
             {match.standingB && (
-              <p className="text-xs text-[#98a2b3]">
+              <p className="text-[13px] text-[#98a2b3]">
                 {match.standingB.rank}위 · {match.standingB.wins}승 {match.standingB.losses}패
               </p>
             )}
@@ -111,8 +111,8 @@ function MatchCard({ match }: { match: MatchData }) {
       <div className="border-t border-[#f0f2f5] bg-[#f8f9fc] px-4 py-4">
         <div className="mb-3 flex items-center gap-1.5">
           <span className="text-sm">✨</span>
-          <span className="text-xs font-black text-[#667085]">AI 프리뷰</span>
-          <span className="ml-auto rounded-full bg-accent/10 px-2 py-0.5 text-xs font-black text-accent">
+          <span className="text-[13px] font-black text-[#667085]">AI 프리뷰</span>
+          <span className="ml-auto rounded-full bg-accent/10 px-2 py-0.5 text-[13px] font-black text-accent">
             {favorA ? match.teamA?.shortName : match.teamB?.shortName} 예상 승리
           </span>
         </div>
@@ -128,12 +128,12 @@ function MatchCard({ match }: { match: MatchData }) {
         </div>
         <div className="mt-1.5 flex justify-between">
           <span
-            className={`text-xs font-black ${favorA ? "text-accent" : "text-[#98a2b3]"}`}
+            className={`text-[13px] font-black ${favorA ? "text-accent" : "text-[#98a2b3]"}`}
           >
             {match.teamA?.shortName} {probA}%
           </span>
           <span
-            className={`text-xs font-black ${!favorA ? "text-accent" : "text-[#98a2b3]"}`}
+            className={`text-[13px] font-black ${!favorA ? "text-accent" : "text-[#98a2b3]"}`}
           >
             {probB}% {match.teamB?.shortName}
           </span>
@@ -193,10 +193,10 @@ export function MatchPreviewSection({
   return (
     <section className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-black text-[#111827]">예정 경기</h2>
+        <h2 className="home-section-title text-lg text-[#111827]">예정 경기</h2>
         <Link
           href="/schedule"
-          className="text-xs font-semibold text-[#98a2b3] hover:text-accent"
+          className="text-[13px] font-semibold text-[#98a2b3] hover:text-accent"
         >
           전체 일정 →
         </Link>
@@ -225,7 +225,7 @@ export function MatchPreviewSection({
             {selectedDay != null && (
               <button
                 onClick={() => setSelectedDay(null)}
-                className="text-xs font-semibold text-[#98a2b3] hover:text-accent"
+                className="text-[13px] font-semibold text-[#98a2b3] hover:text-accent"
               >
                 전체 보기
               </button>
@@ -234,7 +234,7 @@ export function MatchPreviewSection({
 
           <div className="grid grid-cols-7 text-center">
             {DOW.map((d) => (
-              <div key={d} className="pb-2 text-xs font-bold text-[#98a2b3]">
+              <div key={d} className="pb-2 text-[13px] font-bold text-[#98a2b3]">
                 {d}
               </div>
             ))}
@@ -266,7 +266,7 @@ export function MatchPreviewSection({
                     type="button"
                     disabled={!hasMatch}
                     onClick={() => day != null && hasMatch && toggleDay(day)}
-                    className={`flex h-8 w-8 items-center justify-center rounded-full text-xs transition-colors ${numCls} ${
+                    className={`flex h-8 w-8 items-center justify-center rounded-full text-[13px] transition-colors ${numCls} ${
                       hasMatch && !isSelected
                         ? "cursor-pointer hover:bg-[#f0f2f5]"
                         : "disabled:cursor-default"

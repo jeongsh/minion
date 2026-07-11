@@ -155,7 +155,7 @@ export const teams: Team[] = [
   {
     id: "team_bro",
     slug: "bro",
-    name: "OKSavingsBank BRION",
+    name: "Hanjin BRION",
     shortName: "BRO",
     logoUrl: teamLogoPath("bro"),
     logoWhiteUrl: teamWhiteLogoPath("bro"),

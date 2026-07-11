@@ -27,7 +27,7 @@ export function PostList({ posts, scope, teamSlug }: { posts: CommunityPostDetai
               <span className="shrink-0 text-sm text-[var(--tp)] font-bold">{boardLabel(scope, post.boardType)}</span>
               <div className="flex min-w-0 items-center gap-1.5">
                 {isHotPost(post) ? (
-                  <span className="shrink-0 rounded-full border border-[var(--tp)] px-1.5 py-0.5 text-xs font-semibold leading-none text-[var(--tp)]">인기</span>
+                  <span className="shrink-0 rounded-full border border-[var(--tp)] px-1.5 py-0.5 text-[13px] font-semibold leading-none text-[var(--tp)]">인기</span>
                 ) : null}
                 <h3 className="truncate text-base font-medium text-[var(--ui-ink)]">{post.title}</h3>
               </div>

@@ -28,7 +28,7 @@ export function ReactionButtons({ target, targetId, postId, scope, teamSlug, ini
 
   const compact = size === "sm";
   const buttonClass = compact
-    ? "inline-flex h-8 items-center gap-1.5 rounded-[var(--ui-control-radius)] px-2 text-xs font-semibold hover:bg-[var(--ui-surface-muted)] disabled:opacity-50"
+    ? "inline-flex h-8 items-center gap-1.5 rounded-[var(--ui-control-radius)] px-2 text-[13px] font-semibold hover:bg-[var(--ui-surface-muted)] disabled:opacity-50"
     : "inline-flex h-10 items-center gap-2 rounded-[var(--ui-control-radius)] border border-[var(--ui-border)] bg-[var(--ui-surface)] px-4 text-sm font-semibold hover:bg-[var(--ui-surface-muted)] disabled:opacity-50";
 
   return (
@@ -41,7 +41,7 @@ export function ReactionButtons({ target, targetId, postId, scope, teamSlug, ini
           <ThumbsDown size={compact ? 14 : 18} strokeWidth={1.8} /><span>비추천 {dislikeCount}</span>
         </button>
       </div>
-      {message ? <p className="text-xs text-[var(--ui-muted)]">{message}</p> : null}
+      {message ? <p className="text-[13px] text-[var(--ui-muted)]">{message}</p> : null}
     </div>
   );
 }

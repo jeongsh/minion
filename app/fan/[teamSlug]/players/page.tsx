@@ -19,7 +19,10 @@ export default async function FanPlayersPage({
 
   return (
     <FanPageShell>
-      <FanSubpageHeader title={`${team.shortName} 선수단`} description="현재 등록된 선수 프로필을 포지션 순서로 확인하세요." />
+      <FanSubpageHeader
+        title="선수단"
+        breadcrumbs={[{ label: team.shortName, href: `/fan/${teamSlug}` }, { label: "선수단" }]}
+      />
       <section className="fan-card grid grid-cols-2 gap-4 p-4 md:grid-cols-3 md:p-5 xl:grid-cols-5">
         {players.map((player) => (
           <PlayerCard key={player.id} player={player} />

@@ -49,7 +49,7 @@ export function AppShell({ children, currentUser = null }: { children: React.Rea
           <Moon size={20} className="dark:hidden" />
           <Sun size={20} className="hidden dark:block" />
         </button>
-        {currentUser ? <div className="flex items-center gap-2"><Link href="/me" className="flex items-center gap-2 text-sm font-bold"><span className="hidden items-center gap-1 text-xs font-black text-[var(--ui-muted)] sm:flex"><Coins size={14} />{currentUser.lp.toLocaleString("ko-KR")} LP</span>{currentUser.nickname ?? "프로필"}<RankBadge tier={currentUser.tier} /></Link><LogoutButton /></div> : <Link href="/login" className="rounded-lg bg-[#141517] px-4 py-2 text-sm font-bold text-white">로그인</Link>}
+        {currentUser ? <div className="flex items-center gap-2"><Link href="/me" className="flex items-center gap-2 text-sm font-bold"><span className="hidden items-center gap-1 text-[13px] font-black text-[var(--ui-muted)] sm:flex"><Coins size={14} />{currentUser.lp.toLocaleString("ko-KR")} LP</span>{currentUser.nickname ?? "프로필"}<RankBadge tier={currentUser.tier} /></Link><LogoutButton /></div> : <Link href="/login" className="rounded-lg bg-[#141517] px-4 py-2 text-sm font-bold text-white">로그인</Link>}
       </header>
 
       <aside className={`app-lnb fixed bottom-0 left-0 top-16 z-40 hidden border-r border-[#ececef] bg-background transition-[width] lg:block ${collapsed ? "w-[72px]" : "w-[216px]"}`}>
@@ -74,12 +74,12 @@ export function AppShell({ children, currentUser = null }: { children: React.Rea
               {!collapsed && <><span className="truncate">{team.shortName}</span>{active && <span className="ml-auto h-2 w-2 rounded-full bg-[#18191c]" />}</>}
             </Link>;
           })}</div>}
-          <button type="button" onClick={() => setCollapsed((v) => !v)} className="mt-auto flex h-10 items-center justify-center rounded-xl text-[#777b82] hover:bg-[#f4f4f5]">{collapsed ? <ChevronRight size={20} /> : <><ChevronLeft size={20} /><span className="ml-2 text-xs font-bold">사이드바 접기</span></>}</button>
+          <button type="button" onClick={() => setCollapsed((v) => !v)} className="mt-auto flex h-10 items-center justify-center rounded-xl text-[#777b82] hover:bg-[#f4f4f5]">{collapsed ? <ChevronRight size={20} /> : <><ChevronLeft size={20} /><span className="ml-2 text-[13px] font-bold">사이드바 접기</span></>}</button>
         </div>
       </aside>
 
       <div className={`flex min-h-screen flex-col pt-16 transition-[padding] ${collapsed ? "lg:pl-[72px]" : "lg:pl-[216px]"}`}><div className="flex-1 bg-[var(--ui-surface)]">{children}</div><SiteFooter /></div>
-      <nav className="fixed inset-x-0 bottom-0 z-50 flex h-16 items-center justify-around border-t border-[#e8e8eb] bg-background lg:hidden">{nav.slice(0,5).map(({href,label,icon:Icon}) => <Link key={href} href={href} className={`flex flex-col items-center gap-1 text-[11px] font-bold ${pathname.startsWith(href) ? "text-[#18191c]" : "text-[#6f737a]"}`}><Icon size={20}/>{label}</Link>)}</nav>
+      <nav className="fixed inset-x-0 bottom-0 z-50 flex h-16 items-center justify-around border-t border-[#e8e8eb] bg-background lg:hidden">{nav.slice(0,5).map(({href,label,icon:Icon}) => <Link key={href} href={href} className={`flex flex-col items-center gap-1 text-xs font-bold ${pathname.startsWith(href) ? "text-[#18191c]" : "text-[#6f737a]"}`}><Icon size={20}/>{label}</Link>)}</nav>
     </div>
   );
 }

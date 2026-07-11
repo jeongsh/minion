@@ -75,7 +75,7 @@ export function FilterDropdown({
         aria-label={ariaLabel}
         disabled={disabled}
         onClick={() => setOpen((value) => !value)}
-        className={`font-paperozi inline-flex items-center gap-1.5 text-xl font-black tracking-tight text-[var(--ui-ink)] disabled:cursor-wait disabled:opacity-60 ${triggerClassName}`}
+        className={`inline-flex items-center gap-1.5 text-base font-bold tracking-tight text-[var(--ui-ink)] disabled:cursor-wait disabled:opacity-60 ${triggerClassName}`}
       >
         {triggerLabel}
         <Chevron open={open} />

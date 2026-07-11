@@ -94,7 +94,7 @@ export function FanEngagementBar({
           <span className="text-base leading-none">{isFan ? "♥" : "♡"}</span>
           <span>{isFan ? "팬" : "팬 되기"}</span>
           {localFanCount > 0 && (
-            <span className={`rounded-full px-2 py-0.5 text-xs ${isFan ? "bg-white/20" : "bg-white/10"}`}>
+            <span className={`rounded-full px-2 py-0.5 text-[13px] ${isFan ? "bg-white/20" : "bg-white/10"}`}>
               {localFanCount.toLocaleString()}
             </span>
           )}

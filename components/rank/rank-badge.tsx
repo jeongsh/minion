@@ -31,7 +31,7 @@ export function RankBadge({ tier, lp, size = "sm", className }: RankBadgeProps) 
   const sizeClasses =
     size === "md"
       ? "px-3 py-1 text-sm gap-1.5"
-      : "px-2 py-0.5 text-xs gap-1";
+      : "px-2 py-0.5 text-[13px] gap-1";
 
   return (
     <span

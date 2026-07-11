@@ -29,7 +29,7 @@ export function ProfileForm({ initialNickname }: { initialNickname: string }) {
           className="rounded-md border px-3 py-2 text-sm outline-none focus:border-[var(--accent)]"
           style={{ borderColor: "var(--border)" }}
         />
-        <p className="text-xs" style={{ color: "var(--muted)" }}>
+        <p className="text-[13px]" style={{ color: "var(--muted)" }}>
           2~20자. 다른 사용자와 중복될 수 없어요.
         </p>
       </div>

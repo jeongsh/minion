@@ -12,7 +12,7 @@ export default async function TeamsPage() {
           eyebrow="LCK TEAMS"
           title="팀"
           action={
-            <span className="rounded-full bg-[var(--ui-surface-muted)] px-3 py-1.5 text-xs font-black text-[var(--ui-muted)]">
+            <span className="rounded-full bg-[var(--ui-surface-muted)] px-3 py-1.5 text-[13px] font-black text-[var(--ui-muted)]">
               {teams.length} TEAMS
             </span>
           }

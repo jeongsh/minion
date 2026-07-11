@@ -14,13 +14,13 @@ export function TeamCard({ team }: { team: Team }) {
         <TeamLogo team={team} size="h-20 w-20 sm:h-24 sm:w-24" plain />
 
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-black uppercase tracking-[0.1em] text-[var(--ui-muted)]">
+          <p className="text-[13px] font-black uppercase tracking-[0.1em] text-[var(--ui-muted)]">
             {team.shortName}
           </p>
-          <h2 className="mt-1 text-base font-black leading-6 text-[var(--ui-ink)] sm:text-lg">
+          <h2 className="mt-1 text-lg font-black leading-6 text-[var(--ui-ink)] sm:text-lg">
             {team.name}
           </h2>
-          <p className="mt-2 truncate text-xs font-semibold text-[var(--ui-muted)]">
+          <p className="mt-2 truncate text-[13px] font-semibold text-[var(--ui-muted)]">
             {team.headCoach ? `감독 ${team.headCoach}` : "LCK 공식 참가팀"}
           </p>
         </div>
@@ -34,7 +34,7 @@ export function TeamCard({ team }: { team: Team }) {
       <div className="border-t border-[var(--ui-border)] px-5 sm:px-6">
         <Link
           href={`/fan/${team.fanSiteHost || team.slug}`}
-          className="flex min-h-12 items-center justify-between text-xs font-black text-[var(--ui-text)] transition-colors hover:text-[var(--ui-ink)] active:bg-[var(--ui-surface-muted)]"
+          className="flex min-h-12 items-center justify-between text-[13px] font-black text-[var(--ui-text)] transition-colors hover:text-[var(--ui-ink)] active:bg-[var(--ui-surface-muted)]"
         >
           <span>팬 채널 바로가기</span>
           <ArrowUpRight aria-hidden="true" size={14} />

@@ -66,7 +66,7 @@ export function PlayerRosterCarousel({ players }: { players: Player[] }) {
                 className="h-full w-full object-cover object-top transition-transform duration-300 group-hover:scale-[1.03]"
               />
               <span
-                className="absolute left-2.5 top-2.5 rounded-lg px-2 py-0.5 text-[11px] font-black text-white"
+                className="absolute left-2.5 top-2.5 rounded-lg px-2 py-0.5 text-xs font-black text-white"
                 style={{ background: "var(--tp)" }}
               >
                 {POSITION_LABEL[player.position] ?? player.position}
@@ -77,7 +77,7 @@ export function PlayerRosterCarousel({ players }: { players: Player[] }) {
                 {player.name}
               </span>
               {player.realName && (
-                <span className="truncate text-xs font-semibold text-[var(--ui-muted)]">
+                <span className="truncate text-[13px] font-semibold text-[var(--ui-muted)]">
                   {player.realName}
                 </span>
               )}

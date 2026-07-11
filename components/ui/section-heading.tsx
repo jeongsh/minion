@@ -20,7 +20,7 @@ export function SectionHeading({
       <ChevronRight size={16} />
     </Link>
   ) : caption ? (
-    <span className="pb-0.5 text-xs font-semibold text-[var(--ui-muted)]">{caption}</span>
+    <span className="pb-0.5 text-[13px] font-semibold text-[var(--ui-muted)]">{caption}</span>
   ) : null);
 
   return (

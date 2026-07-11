@@ -81,7 +81,7 @@ function MiniCalendar({
           <span className="text-sm font-black text-[#111827]">캘린더</span>
         </div>
         <div className="flex items-center gap-3">
-          <Link href="/schedule" className="text-xs font-semibold text-[#98a2b3] hover:text-accent">
+          <Link href="/schedule" className="text-[13px] font-semibold text-[#98a2b3] hover:text-accent">
             전체 보기 →
           </Link>
         </div>
@@ -105,7 +105,7 @@ function MiniCalendar({
       {/* 요일 헤더 */}
       <div className="grid grid-cols-7 border-y border-[#f0f2f5] bg-[#f8f9fc]">
         {WEEKDAYS.map((d, i) => (
-          <div key={d} className={`py-2 text-center text-xs font-black ${
+          <div key={d} className={`py-2 text-center text-[13px] font-black ${
             i === 0 ? "text-red-400" : i === 6 ? "text-[#5c88da]" : "text-[#98a2b3]"
           }`}>
             {d}
@@ -138,7 +138,7 @@ function MiniCalendar({
               }`}
             >
               {/* 날짜 숫자 */}
-              <span className={`flex h-6 w-6 items-center justify-center self-start rounded-full text-xs font-black ${
+              <span className={`flex h-6 w-6 items-center justify-center self-start rounded-full text-[13px] font-black ${
                 isToday
                   ? "bg-accent text-white"
                   : isSelected
@@ -164,18 +164,18 @@ function MiniCalendar({
                     {m.teamALogo ? (
                       <img src={m.teamALogo} alt={m.teamAShort} className="h-4 w-4 object-contain" />
                     ) : (
-                      <span className="text-xs font-black text-[#667085]">{m.teamAShort.slice(0, 2)}</span>
+                      <span className="text-[13px] font-black text-[#667085]">{m.teamAShort.slice(0, 2)}</span>
                     )}
-                    <span className="text-xs font-black text-[#98a2b3]">vs</span>
+                    <span className="text-[13px] font-black text-[#98a2b3]">vs</span>
                     {m.teamBLogo ? (
                       <img src={m.teamBLogo} alt={m.teamBShort} className="h-4 w-4 object-contain" />
                     ) : (
-                      <span className="text-xs font-black text-[#667085]">{m.teamBShort.slice(0, 2)}</span>
+                      <span className="text-[13px] font-black text-[#667085]">{m.teamBShort.slice(0, 2)}</span>
                     )}
                   </div>
                 ))}
                 {dayMatches.length > 3 && (
-                  <span className="text-center text-xs font-semibold text-[#98a2b3]">
+                  <span className="text-center text-[13px] font-semibold text-[#98a2b3]">
                     +{dayMatches.length - 3}
                   </span>
                 )}
@@ -199,8 +199,8 @@ function MatchCard({ match }: { match: ScheduleMatch }) {
       className="group flex flex-col gap-3 rounded-xl border border-[#e8eaf0] bg-surface-muted p-4 transition-all hover:border-[#c7cbda] hover:shadow-sm"
     >
       <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold text-[#98a2b3]">{match.datetime}</span>
-        <span className={`rounded-full px-2 py-0.5 text-xs font-black ${
+        <span className="text-[13px] font-semibold text-[#98a2b3]">{match.datetime}</span>
+        <span className={`rounded-full px-2 py-0.5 text-[13px] font-black ${
           isLive ? "bg-red-50 text-red-500" : "bg-[#f0f2f5] text-[#667085]"
         }`}>
           {isLive ? "● LIVE" : match.bestOf ? `BO${match.bestOf}` : "예정"}
@@ -212,24 +212,24 @@ function MatchCard({ match }: { match: ScheduleMatch }) {
           {match.teamALogo ? (
             <img src={match.teamALogo} alt={match.teamAShort} className="h-10 w-10 object-contain transition-transform group-hover:scale-105" />
           ) : (
-            <span className="grid h-10 w-10 place-items-center rounded-full border border-[#e8eaf0] text-xs font-black text-[#667085]">
+            <span className="grid h-10 w-10 place-items-center rounded-full border border-[#e8eaf0] text-[13px] font-black text-[#667085]">
               {match.teamAShort.slice(0, 3)}
             </span>
           )}
-          <span className="text-xs font-black text-[#111827]">{match.teamAShort}</span>
+          <span className="text-[13px] font-black text-[#111827]">{match.teamAShort}</span>
         </div>
 
-        <span className="text-xs font-semibold text-[#d0d5dd]">vs</span>
+        <span className="text-[13px] font-semibold text-[#d0d5dd]">vs</span>
 
         <div className="flex flex-col items-center gap-1.5">
           {match.teamBLogo ? (
             <img src={match.teamBLogo} alt={match.teamBShort} className="h-10 w-10 object-contain transition-transform group-hover:scale-105" />
           ) : (
-            <span className="grid h-10 w-10 place-items-center rounded-full border border-[#e8eaf0] text-xs font-black text-[#667085]">
+            <span className="grid h-10 w-10 place-items-center rounded-full border border-[#e8eaf0] text-[13px] font-black text-[#667085]">
               {match.teamBShort.slice(0, 3)}
             </span>
           )}
-          <span className="text-xs font-black text-[#111827]">{match.teamBShort}</span>
+          <span className="text-[13px] font-black text-[#111827]">{match.teamBShort}</span>
         </div>
       </div>
     </Link>
@@ -264,12 +264,12 @@ export function ScheduleSection({ matches }: { matches: ScheduleMatch[] }) {
       {/* 경기 목록 (좁은 쪽, 세로 스택) */}
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-black text-[#111827]">{selectedLabel}</h2>
+          <h2 className="home-section-title text-lg text-[#111827]">{selectedLabel}</h2>
           {selectedDate && (
             <button
               type="button"
               onClick={() => setSelectedDate(null)}
-              className="text-xs font-semibold text-[#98a2b3] hover:text-accent"
+              className="text-[13px] font-semibold text-[#98a2b3] hover:text-accent"
             >
               전체 보기
             </button>

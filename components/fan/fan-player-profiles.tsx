@@ -51,13 +51,13 @@ function PlayerProfileCard({ player }: { player: Player }) {
             {player.name.slice(0, 2)}
           </div>
         )}
-        <span className="absolute left-2.5 top-2.5 rounded-full bg-surface-muted/90 px-2.5 py-1 text-[11px] font-black text-accent shadow-sm backdrop-blur">
+        <span className="absolute left-2.5 top-2.5 rounded-full bg-surface-muted/90 px-2.5 py-1 text-xs font-black text-accent shadow-sm backdrop-blur">
           {POSITION_LABEL[player.position]}
         </span>
       </div>
       <div className="px-3 py-3.5">
         <p className="truncate text-base font-black group-hover:text-accent">{player.name}</p>
-        <p className="mt-0.5 truncate text-xs text-muted">{player.realName || "프로필 준비 중"}</p>
+        <p className="mt-0.5 truncate text-[13px] text-muted">{player.realName || "프로필 준비 중"}</p>
       </div>
     </Link>
   );

@@ -99,7 +99,7 @@ export function MiniModalLink({
               onMouseLeave={hide}
             >
               <div className="rounded-md border border-border bg-surface p-4 text-left shadow-lg">
-                <p className="text-xs font-semibold text-muted">{eyebrow}</p>
+                <p className="text-[13px] font-semibold text-muted">{eyebrow}</p>
                 <p className="mt-1 text-base font-semibold text-foreground">{title}</p>
                 <div className="mt-3 grid gap-2">
                   {rows.map((row) => (
@@ -109,7 +109,7 @@ export function MiniModalLink({
                     </div>
                   ))}
                 </div>
-                <p className="mt-3 text-xs font-semibold text-accent">{cta}</p>
+                <p className="mt-3 text-[13px] font-semibold text-accent">{cta}</p>
               </div>
             </div>,
             document.body,

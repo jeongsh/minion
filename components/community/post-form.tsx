@@ -119,7 +119,7 @@ export function PostForm({
               </option>
             ))}
           </select>
-          <span className="pointer-events-none absolute right-[11px] text-[12px] text-[var(--ui-muted)]" aria-hidden>
+          <span className="pointer-events-none absolute right-[11px] text-[13px] text-[var(--ui-muted)]" aria-hidden>
             ▾
           </span>
         </div>
@@ -134,7 +134,7 @@ export function PostForm({
           onChange={(e) => setTitle(e.target.value)}
           required
           placeholder="제목을 입력하세요"
-          className="min-w-0 flex-1 bg-[var(--ui-surface)] px-[13px] py-[10px] text-[16px] font-semibold text-[var(--ui-ink)] outline-none placeholder:font-normal placeholder:text-[var(--ui-muted)]"
+          className="min-w-0 flex-1 bg-[var(--ui-surface)] px-[13px] py-[10px] text-base font-semibold text-[var(--ui-ink)] outline-none placeholder:font-normal placeholder:text-[var(--ui-muted)]"
         />
       </div>
 
@@ -144,9 +144,9 @@ export function PostForm({
       </div>
 
       <div className="flex items-center justify-between gap-3">
-        <p className="text-[12px] text-[var(--ui-muted)]">서로 존중하는 커뮤니티를 위해 비방·욕설은 삼가주세요.</p>
+        <p className="text-[13px] text-[var(--ui-muted)]">서로 존중하는 커뮤니티를 위해 비방·욕설은 삼가주세요.</p>
         <div className="flex items-center gap-2">
-          {message ? <p className="text-[12px] text-[var(--ui-muted)]">{message}</p> : null}
+          {message ? <p className="text-[13px] text-[var(--ui-muted)]">{message}</p> : null}
           <Button
             type="submit"
             variant="neutral"

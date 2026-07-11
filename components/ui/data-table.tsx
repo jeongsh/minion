@@ -38,7 +38,7 @@ export function DataTable<T>({
   return (
     <div className={`overflow-x-auto border ${hub ? "rounded-2xl border-[var(--ui-border)] bg-[var(--ui-surface)]" : "rounded-md border-border bg-surface"}`}>
       <table className={`w-full border-collapse text-left text-sm ${compact ? "" : "min-w-[42rem]"}`}>
-        <thead className={hub ? "bg-[var(--ui-surface-muted)] text-xs text-[var(--ui-muted)]" : "bg-surface-muted text-xs uppercase text-muted"}>
+        <thead className={hub ? "bg-[var(--ui-surface-muted)] text-[13px] text-[var(--ui-muted)]" : "bg-surface-muted text-[13px] uppercase text-muted"}>
           <tr>
             {columns.map((column) => (
               <th key={column.key} scope="col" className={`px-4 py-3 font-semibold ${column.headerClassName ?? ""}`}>

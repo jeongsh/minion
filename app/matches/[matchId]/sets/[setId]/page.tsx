@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import { Breadcrumb } from "@/components/layout/breadcrumb";
+import { PageHeader } from "@/components/ui/page-header";
 import { TeamLogo } from "@/components/ui/team-logo";
 import type { ReactNode } from "react";
 
@@ -81,7 +81,7 @@ function StatRow({
   return (
     <div className="grid grid-cols-[1fr_7.5rem_1fr] items-center border-b border-[var(--ui-border)] px-4 py-3 last:border-b-0">
       <div className="flex justify-end">{left}</div>
-      <span className="text-center text-xs font-bold text-[var(--ui-muted)]">
+      <span className="text-center text-[13px] font-bold text-[var(--ui-muted)]">
         {label}
       </span>
       <div className="flex justify-start">{right}</div>
@@ -118,7 +118,7 @@ function SetSummaryHeader({
   const teamAWon = decided && set.winnerTeamId === set.blueTeamId;
   const teamBWon = decided && set.winnerTeamId === set.redTeamId;
   const killClass = (won: boolean) =>
-    `text-[26px] font-black leading-none tabular-nums sm:text-[30px] ${
+    `text-[26px] font-black leading-none tabular-nums sm:text-[28px] ${
       !decided || won ? "text-[var(--ui-ink)]" : "text-[var(--ui-muted)]"
     }`;
 
@@ -139,7 +139,7 @@ function SetSummaryHeader({
           <span className="text-sm font-bold text-[var(--ui-muted)]">:</span>
           <span className={killClass(teamBWon)}>{teamBKills ?? "-"}</span>
         </div>
-        <span className="mt-1.5 rounded-full bg-[var(--ui-surface)] px-2.5 py-0.5 text-[11px] font-bold tabular-nums text-[var(--ui-muted)]">
+        <span className="mt-1.5 rounded-full bg-[var(--ui-surface)] px-2.5 py-0.5 text-xs font-bold tabular-nums text-[var(--ui-muted)]">
           {durationLabel(set.durationSeconds)}
         </span>
       </div>
@@ -153,7 +153,7 @@ function SetSummaryHeader({
       </div>
 
       {/* 우하단: 패치 버전 */}
-      <span className="absolute bottom-1.5 right-3 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--ui-muted)]">
+      <span className="absolute bottom-1.5 right-3 text-xs font-bold uppercase tracking-[0.08em] text-[var(--ui-muted)]">
         Patch {set.patch ?? "-"}
       </span>
     </div>
@@ -312,7 +312,7 @@ function PlayerStatBoard({
             <p className="font-semibold tabular-nums">
               {row.line.kills} / {row.line.deaths} / {row.line.assists}
             </p>
-            <p className="text-xs font-semibold text-muted tabular-nums">
+            <p className="text-[13px] font-semibold text-muted tabular-nums">
               {row.stats.kda.toFixed(2)}
             </p>
           </div>
@@ -322,7 +322,7 @@ function PlayerStatBoard({
               <span className="font-semibold tabular-nums">
                 {numberLabel(row.line.damageToChampions)}
               </span>
-              <span className="text-xs text-muted tabular-nums">
+              <span className="text-[13px] text-muted tabular-nums">
                 DPM {row.stats.dpm}
               </span>
             </div>
@@ -340,7 +340,7 @@ function PlayerStatBoard({
 
           <div className="text-center">
             <p className="font-semibold tabular-nums">{row.line.cs}</p>
-            <p className="text-xs text-muted tabular-nums">
+            <p className="text-[13px] text-muted tabular-nums">
               {row.stats.csm.toFixed(1)}
             </p>
           </div>
@@ -373,12 +373,12 @@ function PlayerStatBoard({
           <div className="flex items-center gap-2">
             <strong>{teamLabel(teams, teamId)}</strong>
             <span
-              className={`text-xs font-semibold ${won ? "text-accent" : "text-muted"}`}
+              className={`text-[13px] font-semibold ${won ? "text-accent" : "text-muted"}`}
             >
               {won ? "Victory" : "Defeat"}
             </span>
           </div>
-          <span className="text-xs font-semibold text-muted">
+          <span className="text-[13px] font-semibold text-muted">
             {side === "blue" ? "Blue Side" : "Red Side"}
           </span>
         </div>
@@ -399,7 +399,7 @@ function PlayerStatBoard({
       ) : (
         <div className="overflow-x-auto rounded-md border border-border bg-surface">
           <div className="min-w-[58rem]">
-            <div className="grid grid-cols-[14rem_7.25rem_minmax(5.5rem,0.7fr)_3.5rem_4rem_5rem_13rem] gap-3 px-3 py-3 text-xs font-semibold uppercase text-muted">
+            <div className="grid grid-cols-[14rem_7.25rem_minmax(5.5rem,0.7fr)_3.5rem_4rem_5rem_13rem] gap-3 px-3 py-3 text-[13px] font-semibold uppercase text-muted">
               <span>Champion / Player</span>
               <span className="text-center">KDA</span>
               <span>Damage</span>
@@ -560,8 +560,9 @@ export async function SetDetailContent({
     >
       {embedded ? null : (
         <section className="flex flex-col gap-6">
-          <Breadcrumb
-            items={[
+          <PageHeader
+            title={`${set.setNumber}세트`}
+            breadcrumbs={[
               { label: "홈", href: "/" },
               {
                 label: `${teamLabel(teams, match.teamAId)} vs ${teamLabel(teams, match.teamBId)}`,
@@ -582,7 +583,7 @@ export async function SetDetailContent({
 
         <div className="grid gap-6 p-4 lg:grid-cols-[0.9fr_1.1fr]">
           <div className="rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)]">
-            <div className="border-b border-[var(--ui-border)] px-4 py-3 text-center text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--ui-muted)]">
+            <div className="border-b border-[var(--ui-border)] px-4 py-3 text-center text-xs font-bold uppercase tracking-[0.16em] text-[var(--ui-muted)]">
               GAME STATS
             </div>
             <StatRow
@@ -638,7 +639,7 @@ export async function SetDetailContent({
 
           <div className="flex flex-col gap-6">
             <div className="rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-4">
-              <h2 id="set-summary" className="text-center text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--ui-muted)]">
+              <h2 id="set-summary" className="home-section-title text-center text-lg text-[var(--ui-ink)]">
                 챔피언 대상 피해량
               </h2>
               {playerRows.length === 0 ? (

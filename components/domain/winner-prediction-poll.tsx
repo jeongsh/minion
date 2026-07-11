@@ -64,7 +64,7 @@ export function WinnerPredictionPoll({
           <h2 id="winner-prediction" className="text-[15px] font-black text-[var(--ui-ink)]">
             승자예측
           </h2>
-          <p className="mt-1 text-xs font-semibold text-[var(--ui-muted)]">
+          <p className="mt-1 text-[13px] font-semibold text-[var(--ui-muted)]">
             {hasTbd
               ? "대진이 확정되면 예측이 열립니다."
               : closed
@@ -72,7 +72,7 @@ export function WinnerPredictionPoll({
                 : "경기가 종료되면 자동 마감됩니다."}
           </p>
         </div>
-        <span className="rounded-full bg-[var(--ui-surface-muted)] px-2.5 py-1 text-xs font-bold text-[var(--ui-muted)]">
+        <span className="rounded-full bg-[var(--ui-surface-muted)] px-2.5 py-1 text-[13px] font-bold text-[var(--ui-muted)]">
           {total.toLocaleString("ko-KR")}표
         </span>
       </div>

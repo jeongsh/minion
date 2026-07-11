@@ -25,7 +25,10 @@ export default async function FanOnionPage({
   return (
     <FanPageShell>
       <div style={{ "--team-primary": team.primaryColor } as CSSProperties}>
-        <FanSubpageHeader title={`${team.shortName} 비난양파`} description="경기 중 답답했던 순간을 짧게 털어놓는 임시 보드입니다. 작성한 내용은 선택한 시간이 지나면 자동으로 사라집니다." />
+        <FanSubpageHeader
+          title="비난양파"
+          breadcrumbs={[{ label: team.shortName, href: `/fan/${teamSlug}` }, { label: "비난양파" }]}
+        />
         <div className="mt-6">
         <FanOnionBoard
           teamId={team.id}

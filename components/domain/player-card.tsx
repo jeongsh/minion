@@ -47,12 +47,12 @@ export function PlayerCard({ player }: { player: Player }) {
           alt={player.name}
           className="h-full w-full object-cover object-top transition-transform duration-300 group-hover:scale-[1.03]"
         />
-        <span className="absolute left-2 top-2 rounded-md bg-background/80 px-2 py-0.5 text-xs font-semibold text-accent backdrop-blur-sm">
+        <span className="absolute left-2 top-2 rounded-md bg-background/80 px-2 py-0.5 text-[13px] font-semibold text-accent backdrop-blur-sm">
           {POSITION_LABEL[player.position] ?? player.position}
         </span>
       </div>
       <div className="flex flex-col gap-1 p-4">
-        <h2 className="truncate text-base font-bold leading-tight group-hover:text-accent">
+        <h2 className="truncate text-lg font-bold leading-tight group-hover:text-accent">
           {player.name}
         </h2>
         <p className="truncate text-sm text-muted">{player.realName}</p>
