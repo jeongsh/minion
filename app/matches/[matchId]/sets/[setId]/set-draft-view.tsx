@@ -34,7 +34,7 @@ function DraftTile({
 }) {
   const image = championImage(item?.champion);
   return (
-    <div className="relative h-16 overflow-hidden rounded-md border border-border bg-background">
+    <div className="relative h-12 overflow-hidden rounded-md border border-border bg-background">
       {image ? (
         <Image
           src={image}
@@ -64,12 +64,12 @@ function DraftGrid({
 
   if (mode === "order") {
     return (
-      <div className="grid gap-3">
+      <div className="grid gap-2.5">
         <div>
-          <div className="mb-2 flex items-center justify-between text-[15px] font-semibold">
+          <div className="mb-1.5 flex items-center justify-between text-sm font-semibold">
             <span>{side.teamName} 밴 순서</span>
           </div>
-          <div className="grid grid-cols-5 gap-2">
+          <div className="grid grid-cols-5 gap-1.5">
             {Array.from({ length: 5 }, (_, index) => {
               const item = displayOrderedBans[index] ?? null;
               return (
@@ -83,12 +83,12 @@ function DraftGrid({
   }
 
   return (
-    <div className="grid gap-3">
+    <div className="grid gap-2.5">
       <div>
-        <div className="mb-2 flex items-center justify-between text-[15px] font-semibold">
+        <div className="mb-1.5 flex items-center justify-between text-sm font-semibold">
           <span>{side.teamName} 밴</span>
         </div>
-        <div className="grid grid-cols-5 gap-2">
+        <div className="grid grid-cols-5 gap-1.5">
           {Array.from({ length: 5 }, (_, index) => {
             const item = displayOrderedBans[index] ?? null;
             return <DraftTile key={item?.id ?? `ban-${index}`} item={item} muted />;
@@ -111,8 +111,8 @@ export function SetDraftView({
   const [mode] = useState<"line" | "order">("line");
 
   return (
-    <div className="grid gap-4 rounded-md border border-border bg-surface p-4">
-      <div className="grid gap-4 lg:grid-cols-2">
+    <div className="grid gap-3 rounded-md border border-border bg-surface p-3">
+      <div className="grid gap-3 lg:grid-cols-2">
         <DraftGrid side={blue} champions={champions} mode={mode} />
         <DraftGrid side={red} champions={champions} mode={mode} />
       </div>

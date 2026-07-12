@@ -78,9 +78,9 @@ function StatRow({
   right: ReactNode;
 }) {
   return (
-    <div className="grid grid-cols-[1fr_7.5rem_1fr] items-center border-b border-[var(--ui-border)] px-4 py-3 last:border-b-0">
+    <div className="grid grid-cols-[1fr_6.5rem_1fr] items-center border-b border-[var(--ui-border)] px-3 py-2.5 last:border-b-0">
       <div className="flex justify-end">{left}</div>
-      <span className="text-center text-[15px] font-bold text-[var(--ui-muted)]">
+      <span className="text-center text-sm font-bold text-[var(--ui-muted)]">
         {label}
       </span>
       <div className="flex justify-start">{right}</div>
@@ -114,9 +114,9 @@ export default async function SetDetailPage({
 
 function ChampAvatar({ image }: { image?: string | null }) {
   return (
-    <span className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-lg bg-[var(--ui-surface-muted)]">
+    <span className="grid h-8 w-8 shrink-0 place-items-center overflow-hidden rounded-md bg-[var(--ui-surface-muted)]">
       {image ? (
-        <Image src={image} alt="" width={36} height={36} className="h-full w-full object-cover" />
+        <Image src={image} alt="" width={32} height={32} className="h-full w-full object-cover" />
       ) : null}
     </span>
   );
@@ -143,19 +143,19 @@ function DamageRows({
   const barClass = side === "blue" ? "bg-team-blue" : "bg-team-red";
 
   return (
-    <div className="grid gap-2.5">
+    <div className="grid gap-2">
       {rows.map((row) => {
         const champion = champions.find((item) => item.id === row.line.championId);
         const image = championImage(champion);
         const width = `${Math.max(4, (row.line.damageToChampions / maxDamage) * 100)}%`;
 
         const name = (
-          <span className={`min-w-0 flex-1 truncate text-[15px] font-semibold text-[var(--ui-ink)] ${side === "red" ? "text-right" : ""}`}>
+          <span className={`min-w-0 flex-1 truncate text-sm font-semibold text-[var(--ui-ink)] ${side === "red" ? "text-right" : ""}`}>
             {row.player?.name ?? "-"}
           </span>
         );
         const value = (
-          <span className="shrink-0 text-[15px] tabular-nums text-muted">
+          <span className="shrink-0 text-sm tabular-nums text-muted">
             {damageLabel(row.line.damageToChampions)}
           </span>
         );
@@ -233,7 +233,7 @@ function PlayerStatBoard({
       return (
         <div
           key={`${side}-${row.line.playerId}`}
-          className="grid grid-cols-[14rem_7.25rem_minmax(5.5rem,0.7fr)_3.5rem_4rem_5rem_13rem] items-center gap-3 border-t border-border px-3 py-2.5 text-[15px]"
+          className="grid grid-cols-[12.5rem_6.5rem_minmax(5rem,0.7fr)_3.25rem_3.5rem_4.5rem_11.5rem] items-center gap-2.5 border-t border-border px-2.5 py-2 text-sm"
         >
           <div>
             <PlayerLoadout
@@ -254,7 +254,7 @@ function PlayerStatBoard({
             <p className="font-semibold tabular-nums">
               {row.line.kills} / {row.line.deaths} / {row.line.assists}
             </p>
-            <p className="text-[15px] font-semibold text-muted tabular-nums">
+            <p className="text-xs font-semibold text-muted tabular-nums">
               {row.stats.kda.toFixed(2)}
             </p>
           </div>
@@ -264,7 +264,7 @@ function PlayerStatBoard({
               <span className="font-semibold tabular-nums">
                 {numberLabel(row.line.damageToChampions)}
               </span>
-              <span className="text-[15px] text-muted tabular-nums">
+              <span className="text-xs text-muted tabular-nums">
                 DPM {row.stats.dpm}
               </span>
             </div>
@@ -282,7 +282,7 @@ function PlayerStatBoard({
 
           <div className="text-center">
             <p className="font-semibold tabular-nums">{row.line.cs}</p>
-            <p className="text-[15px] text-muted tabular-nums">
+            <p className="text-xs text-muted tabular-nums">
               {row.stats.csm.toFixed(1)}
             </p>
           </div>
@@ -295,9 +295,9 @@ function PlayerStatBoard({
             itemIds={row.line.itemIds}
             roleBoundItem={row.line.roleBoundItem}
             version={itemVersion}
-            slotClassName="h-8 w-8"
-            separatorClassName="h-5 w-px"
-            imageSizes="32px"
+            slotClassName="h-7 w-7"
+            separatorClassName="h-4 w-px"
+            imageSizes="28px"
           />
         </div>
       );
@@ -311,16 +311,16 @@ function PlayerStatBoard({
     const won = winnerTeamId === teamId;
     return (
       <div>
-        <div className="flex items-center justify-between gap-3 bg-surface-muted px-4 py-3">
+        <div className="flex items-center justify-between gap-2.5 bg-surface-muted px-3 py-2.5">
           <div className="flex items-center gap-2">
             <strong>{teamLabel(teams, teamId)}</strong>
             <span
-              className={`text-[15px] font-semibold ${won ? "text-accent" : "text-muted"}`}
+              className={`text-xs font-semibold ${won ? "text-accent" : "text-muted"}`}
             >
               {won ? "Victory" : "Defeat"}
             </span>
           </div>
-          <span className="text-[15px] font-semibold text-muted">
+          <span className="text-xs font-semibold text-muted">
             {side === "blue" ? "Blue Side" : "Red Side"}
           </span>
         </div>
@@ -330,18 +330,18 @@ function PlayerStatBoard({
   };
 
   return (
-    <section className="flex flex-col gap-4" aria-labelledby="player-stats">
-      <h2 id="player-stats" className="home-section-title text-xl text-[var(--ui-ink)]">
+    <section className="flex flex-col gap-3" aria-labelledby="player-stats">
+      <h2 id="player-stats" className="home-section-title text-lg text-[var(--ui-ink)]">
         선수 스탯
       </h2>
       {blueRows.length + redRows.length === 0 ? (
-        <div className="rounded-md border border-border bg-surface p-6 text-[15px] text-muted">
+        <div className="rounded-md border border-border bg-surface p-4 text-sm text-muted">
           선수 스탯이 아직 연결되지 않았습니다.
         </div>
       ) : (
         <div className="overflow-x-auto rounded-md border border-border bg-surface">
           <div className="min-w-[58rem]">
-            <div className="grid grid-cols-[14rem_7.25rem_minmax(5.5rem,0.7fr)_3.5rem_4rem_5rem_13rem] gap-3 px-3 py-3 text-[15px] font-semibold uppercase text-muted">
+            <div className="grid grid-cols-[12.5rem_6.5rem_minmax(5rem,0.7fr)_3.25rem_3.5rem_4.5rem_11.5rem] gap-2.5 px-2.5 py-2.5 text-xs font-semibold uppercase text-muted">
               <span>Champion / Player</span>
               <span className="text-center">KDA</span>
               <span>Damage</span>
@@ -379,7 +379,7 @@ function SetNavigation({
             key={item.id}
             href={setHref(match, item)}
             aria-current={active ? "page" : undefined}
-            className={`rounded-md border px-3 py-2 text-[15px] font-semibold ${
+            className={`rounded-md border px-2.5 py-1.5 text-sm font-semibold ${
               active
                 ? "border-accent bg-accent text-accent-foreground"
                 : "border-border bg-surface hover:bg-surface-muted"
@@ -496,7 +496,7 @@ export async function SetDetailContent({
     <Shell
       className={
         embedded
-          ? "flex w-full flex-col gap-6"
+          ? "flex w-full flex-col gap-4"
           : "mx-auto flex w-full max-w-7xl flex-col gap-10 px-[var(--page-inline)] py-10"
       }
     >
@@ -518,18 +518,18 @@ export async function SetDetailContent({
       )}
 
       <section
-        className="overflow-hidden rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)]"
+        className="overflow-hidden rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)]"
         aria-labelledby="set-summary"
       >
-        <div className="flex items-center gap-2 border-b border-[var(--ui-border)] px-4 py-2.5 text-[15px] font-bold text-[var(--ui-muted)]">
+        <div className="flex items-center gap-2 border-b border-[var(--ui-border)] px-3 py-2 text-sm font-bold text-[var(--ui-muted)]">
           <span>경기 시간</span>
           <span className="tabular-nums text-[var(--ui-ink)]">{durationLabel(set.durationSeconds)}</span>
         </div>
 
-        <div className="grid gap-6 p-4 lg:grid-cols-[0.9fr_1.1fr]">
-          <div className="rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)]">
-            <div className="border-b border-[var(--ui-border)] px-4 py-3">
-              <h2 className="home-section-title text-center text-lg text-[var(--ui-ink)]">
+        <div className="grid gap-4 p-3 lg:grid-cols-[0.9fr_1.1fr]">
+          <div className="rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)]">
+            <div className="border-b border-[var(--ui-border)] px-3 py-2.5">
+              <h2 className="home-section-title text-center text-base text-[var(--ui-ink)]">
                 게임스탯
               </h2>
             </div>
@@ -584,17 +584,17 @@ export async function SetDetailContent({
             />
           </div>
 
-          <div className="flex flex-col gap-6">
-            <div className="rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-4">
-              <h2 id="set-summary" className="home-section-title text-center text-lg text-[var(--ui-ink)]">
+          <div className="flex flex-col gap-4">
+            <div className="rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] p-3">
+              <h2 id="set-summary" className="home-section-title text-center text-base text-[var(--ui-ink)]">
                 챔피언 대상 피해량
               </h2>
               {playerRows.length === 0 ? (
-                <div className="mt-4 grid min-h-40 place-items-center rounded-md border border-dashed border-border bg-surface p-4 text-center text-[15px] text-muted">
+                <div className="mt-3 grid min-h-32 place-items-center rounded-md border border-dashed border-border bg-surface p-3 text-center text-sm text-muted">
                   선수 스탯이 아직 연결되지 않았습니다.
                 </div>
               ) : (
-                <div className="mt-4 grid gap-5 xl:grid-cols-2">
+                <div className="mt-3 grid gap-4 xl:grid-cols-2">
                   <DamageRows
                     rows={blueRows}
                     champions={champions}
@@ -646,11 +646,11 @@ export async function SetDetailContent({
         runeCatalog={runeCatalog}
       />
 
-      <section className="flex flex-col gap-4" aria-labelledby="set-timeline">
-        <h2 id="set-timeline" className="home-section-title text-xl text-[var(--ui-ink)]">
+      <section className="flex flex-col gap-3" aria-labelledby="set-timeline">
+        <h2 id="set-timeline" className="home-section-title text-lg text-[var(--ui-ink)]">
           타임라인
         </h2>
-        <div className="overflow-hidden rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)]">
+        <div className="overflow-hidden rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)]">
           <GameTimeline
             events={timelineEvents}
             frames={timelineFrames}
@@ -671,7 +671,7 @@ export async function SetDetailContent({
         <section className="flex flex-wrap gap-2" aria-label="이동">
           <Link
             href={matchHref(match)}
-            className="rounded-md border border-border bg-surface px-3 py-2 text-[15px] font-semibold hover:bg-surface-muted"
+            className="rounded-md border border-border bg-surface px-2.5 py-1.5 text-sm font-semibold hover:bg-surface-muted"
           >
             매치 상세
           </Link>

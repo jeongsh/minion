@@ -16,7 +16,7 @@ function DraftIcon({
 
   return (
     <div
-      className="relative h-10 w-10 shrink-0 overflow-hidden rounded border border-border bg-background"
+      className="relative h-8 w-8 shrink-0 overflow-hidden rounded border border-border bg-background"
       title={championLabel(champion)}
     >
       {image ? (
@@ -24,11 +24,11 @@ function DraftIcon({
           src={image}
           alt={championLabel(champion)}
           fill
-          sizes="40px"
+          sizes="32px"
           className={`object-cover ${ban ? "grayscale opacity-65" : ""}`}
         />
       ) : (
-        <div className="absolute inset-0 grid place-items-center text-[15px] text-muted">-</div>
+        <div className="absolute inset-0 grid place-items-center text-xs text-muted">-</div>
       )}
       {ban ? <div className="absolute inset-x-1 top-1/2 h-px rotate-[-18deg] bg-white/75" /> : null}
     </div>
@@ -47,7 +47,7 @@ function DraftList({
   const sorted = [...items].sort((a, b) => a.orderIndex - b.orderIndex);
 
   return (
-    <div className="flex gap-1">
+    <div className="flex gap-0.5">
       {Array.from({ length: 5 }, (_, index) => {
         const item = sorted[index];
         return (
@@ -76,18 +76,18 @@ function TeamDraftSummary({
   align?: "left" | "right";
 }) {
   return (
-    <div className={`flex min-w-0 flex-col gap-2 ${align === "right" ? "items-end text-right" : ""}`}>
-      <p className="truncate text-[15px] font-semibold">{label}</p>
-      <div className={`flex flex-col gap-1.5 ${align === "right" ? "items-end" : ""}`}>
-        <div className="flex items-center gap-2">
-          {align === "left" ? <span className="w-8 text-[15px] font-semibold text-muted">BAN</span> : null}
+    <div className={`flex min-w-0 flex-col gap-1.5 ${align === "right" ? "items-end text-right" : ""}`}>
+      <p className="truncate text-sm font-semibold">{label}</p>
+      <div className={`flex flex-col gap-1 ${align === "right" ? "items-end" : ""}`}>
+        <div className="flex items-center gap-1.5">
+          {align === "left" ? <span className="w-7 text-xs font-semibold text-muted">BAN</span> : null}
           <DraftList items={bans} champions={champions} ban />
-          {align === "right" ? <span className="w-8 text-[15px] font-semibold text-muted">BAN</span> : null}
+          {align === "right" ? <span className="w-7 text-xs font-semibold text-muted">BAN</span> : null}
         </div>
-        <div className="flex items-center gap-2">
-          {align === "left" ? <span className="w-8 text-[15px] font-semibold text-muted">PICK</span> : null}
+        <div className="flex items-center gap-1.5">
+          {align === "left" ? <span className="w-7 text-xs font-semibold text-muted">PICK</span> : null}
           <DraftList items={picks} champions={champions} />
-          {align === "right" ? <span className="w-8 text-[15px] font-semibold text-muted">PICK</span> : null}
+          {align === "right" ? <span className="w-7 text-xs font-semibold text-muted">PICK</span> : null}
         </div>
       </div>
     </div>
@@ -109,14 +109,14 @@ export function MatchDraftSummary({
 }) {
   if (sets.length === 0) {
     return (
-      <div className="rounded-md border border-dashed border-border bg-surface p-4 text-[15px] text-muted">
+      <div className="rounded-md border border-dashed border-border bg-surface p-3 text-sm text-muted">
         밴픽 데이터가 아직 연결되지 않았습니다.
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-2.5">
       {sets.map((set) => {
         const setPicksBans = picksBans.filter((item) => item.setId === set.id);
         const blueBans = setPicksBans.filter((item) => item.side === "blue" && item.actionType === "ban");
@@ -129,12 +129,12 @@ export function MatchDraftSummary({
           <Link
             key={set.id}
             href={setHref(match, set)}
-            className="grid gap-4 rounded-md border border-border bg-surface p-4 hover:bg-surface-muted lg:grid-cols-[9rem_1fr_1fr_auto] lg:items-center"
+            className="grid gap-3 rounded-md border border-border bg-surface p-3 hover:bg-surface-muted lg:grid-cols-[7rem_1fr_1fr_auto] lg:items-center"
           >
             <div>
-              <p className="text-[15px] font-semibold">{set.setNumber}세트</p>
-              <p className="mt-1 text-[15px] text-muted">{durationLabel(set.durationSeconds)}</p>
-              {!hasPickBan ? <p className="mt-2 text-base text-muted">밴픽 데이터 없음</p> : null}
+              <p className="text-sm font-semibold">{set.setNumber}세트</p>
+              <p className="mt-0.5 text-xs text-muted">{durationLabel(set.durationSeconds)}</p>
+              {!hasPickBan ? <p className="mt-1.5 text-sm text-muted">밴픽 데이터 없음</p> : null}
             </div>
 
             <TeamDraftSummary
@@ -151,7 +151,7 @@ export function MatchDraftSummary({
               align="right"
             />
 
-            <span className="text-[15px] font-semibold text-accent lg:text-right">세트 상세</span>
+            <span className="text-sm font-semibold text-accent lg:text-right">세트 상세</span>
           </Link>
         );
       })}

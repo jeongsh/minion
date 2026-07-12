@@ -74,20 +74,20 @@ function CompactTeamBlock({
   const resultLabel = result === "WIN" ? "승리" : result === "LOSS" ? "패배" : null;
   const nameBlock = (
     <div className={`min-w-0 ${isRight ? "text-right" : "text-left"}`}>
-      <p className="truncate text-base font-black leading-tight text-[var(--ui-ink)] sm:text-xl">
+      <p className="truncate text-sm font-black leading-tight text-[var(--ui-ink)] sm:text-lg">
         {teamName}
       </p>
       {resultLabel ? (
-        <p className={`text-[15px] font-medium ${result === "WIN" ? "text-[var(--accent)]" : "text-[var(--ui-muted)]"}`}>
+        <p className={`text-xs font-medium ${result === "WIN" ? "text-[var(--accent)]" : "text-[var(--ui-muted)]"}`}>
           {resultLabel}
         </p>
       ) : null}
     </div>
   );
-  const logo = <TeamLogo team={team} size="h-11 w-11 sm:h-14 sm:w-14" plain />;
+  const logo = <TeamLogo team={team} size="h-9 w-9 sm:h-12 sm:w-12" plain />;
 
   return (
-    <div className={`flex min-w-0 flex-1 items-center gap-2.5 sm:gap-3 ${isRight ? "justify-start" : "justify-end"}`}>
+    <div className={`flex min-w-0 flex-1 items-center gap-2 sm:gap-2.5 ${isRight ? "justify-start" : "justify-end"}`}>
       {isRight ? (
         <>
           {logo}
@@ -111,17 +111,17 @@ function PlayerHighlight({
   player?: Player;
 }) {
   return (
-    <span className="flex min-w-0 items-center gap-2">
-      <span className="grid h-7 w-7 shrink-0 place-items-center overflow-hidden rounded-full bg-[var(--ui-surface-muted)]">
+    <span className="flex min-w-0 items-center gap-1.5">
+      <span className="grid h-6 w-6 shrink-0 place-items-center overflow-hidden rounded-full bg-[var(--ui-surface-muted)]">
         {player?.profileImageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={player.profileImageUrl} alt="" className="h-full w-full object-cover object-top" />
         ) : (
-          <span className="text-[15px] font-medium text-[var(--ui-muted)]">{player?.name?.slice(0, 2) ?? "-"}</span>
+          <span className="text-xs font-medium text-[var(--ui-muted)]">{player?.name?.slice(0, 2) ?? "-"}</span>
         )}
       </span>
-      <span className="text-[15px] font-medium text-[var(--ui-muted)]">{label}</span>
-      <span className="truncate text-[15px] font-black text-[var(--ui-ink)]">{player?.name ?? "집계 전"}</span>
+      <span className="text-xs font-medium text-[var(--ui-muted)]">{label}</span>
+      <span className="truncate text-xs font-black text-[var(--ui-ink)]">{player?.name ?? "집계 전"}</span>
     </span>
   );
 }
@@ -180,7 +180,7 @@ function TabNav({
 }) {
   const firstSetId = sets[0]?.id;
   const linkClass = (active: boolean) =>
-    `relative shrink-0 px-0 py-3 text-base font-bold transition-colors after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 ${
+    `relative shrink-0 px-0 py-2.5 text-sm font-bold transition-colors after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 ${
       active
         ? "text-[var(--ui-ink)] after:bg-[var(--accent)]"
         : "text-[var(--ui-muted)] after:bg-transparent hover:text-[var(--ui-ink)]"
@@ -190,7 +190,7 @@ function TabNav({
   );
 
   return (
-    <nav className="flex items-center gap-4 overflow-x-auto border-b border-[var(--ui-border)]" aria-label="매치 상세 탭">
+    <nav className="flex items-center gap-3 overflow-x-auto border-b border-[var(--ui-border)]" aria-label="매치 상세 탭">
       <Link href={tabHref("preview")} className={linkClass(activeTab === "preview")}>
         {TAB_LABELS.preview}
       </Link>
@@ -231,12 +231,12 @@ function SetSelector({
   if (sets.length === 0) return null;
 
   return (
-    <div className="sticky top-[var(--ui-header-height)] z-20 flex gap-1 overflow-x-auto border-b border-[var(--ui-border)] bg-[var(--ui-surface)] py-2">
+    <div className="sticky top-[var(--ui-header-height)] z-20 flex gap-1 overflow-x-auto border-b border-[var(--ui-border)] bg-[var(--ui-surface)] py-1.5">
       {sets.map((set) => (
         <Link
           key={set.id}
           href={tabHref(tab, set.id)}
-          className={`shrink-0 rounded-lg px-5 py-2.5 text-base font-bold transition-colors ${
+          className={`shrink-0 rounded-md px-3.5 py-2 text-sm font-bold transition-colors ${
             activeSet?.id === set.id
               ? "bg-[var(--ui-ink)] text-[var(--ui-surface)]"
               : "bg-[var(--ui-surface)] text-[var(--ui-muted)] hover:bg-[var(--ui-surface-muted)] hover:text-[var(--ui-ink)]"
@@ -268,7 +268,7 @@ function PlayerAvatar({
   player?: Player;
   size?: "md" | "lg";
 }) {
-  const sizeClass = size === "lg" ? "h-20 w-20" : "h-11 w-11";
+  const sizeClass = size === "lg" ? "h-16 w-16" : "h-9 w-9";
 
   if (player?.profileImageUrl) {
     return (
@@ -276,14 +276,14 @@ function PlayerAvatar({
       <img
         src={player.profileImageUrl}
         alt=""
-        className={`${sizeClass} shrink-0 rounded-xl object-cover object-top`}
+        className={`${sizeClass} shrink-0 rounded-lg object-cover object-top`}
       />
     );
   }
 
   return (
     <span
-      className={`${sizeClass} grid shrink-0 place-items-center rounded-xl bg-[var(--ui-surface-muted)] text-[15px] font-black text-[var(--ui-muted)]`}
+      className={`${sizeClass} grid shrink-0 place-items-center rounded-lg bg-[var(--ui-surface-muted)] text-xs font-black text-[var(--ui-muted)]`}
       aria-hidden="true"
     >
       {player ? playerInitial(player.name) : "-"}
@@ -308,17 +308,17 @@ function RatingPlayerRow({
   const average = averageRating(ratings);
 
   return (
-    <div className="grid grid-cols-[2.75rem_minmax(0,1fr)_auto] items-center gap-3 border-b border-[var(--ui-border)] px-4 py-3 last:border-b-0">
+    <div className="grid grid-cols-[2.25rem_minmax(0,1fr)_auto] items-center gap-2.5 border-b border-[var(--ui-border)] px-3 py-2.5 last:border-b-0">
       <PlayerAvatar player={player} />
       <div className="min-w-0">
-        <p className="truncate text-[15px] font-black text-[var(--ui-ink)]">{player?.name ?? "-"}</p>
-        <p className="text-[15px] font-bold text-[var(--ui-muted)]">{line.position}</p>
+        <p className="truncate text-sm font-black text-[var(--ui-ink)]">{player?.name ?? "-"}</p>
+        <p className="text-xs font-bold text-[var(--ui-muted)]">{line.position}</p>
       </div>
       <div className="text-right">
-        <p className="text-lg font-black tabular-nums text-[var(--ui-ink)]">
+        <p className="text-base font-black tabular-nums text-[var(--ui-ink)]">
           {average == null ? "-" : average.toFixed(1)}
         </p>
-        <p className="text-[15px] font-semibold text-[var(--ui-muted)]">{ratings.length}개</p>
+        <p className="text-xs font-semibold text-[var(--ui-muted)]">{ratings.length}개</p>
       </div>
     </div>
   );
@@ -346,12 +346,12 @@ function TeamRatingColumn({
     );
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)]">
-      <h3 className="border-b border-[var(--ui-border)] px-4 py-3 text-[15px] font-black text-[var(--ui-ink)]">
+    <section className="overflow-hidden rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)]">
+      <h3 className="border-b border-[var(--ui-border)] px-3 py-2.5 text-sm font-black text-[var(--ui-ink)]">
         {title}
       </h3>
       {teamRows.length === 0 ? (
-        <p className="p-4 text-base text-[var(--ui-muted)]">평점 대상 선수가 없습니다.</p>
+        <p className="p-3 text-sm text-[var(--ui-muted)]">평점 대상 선수가 없습니다.</p>
       ) : (
         teamRows.map((line) => (
           <RatingPlayerRow
@@ -423,34 +423,34 @@ function MatchRatingPanel({
   });
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-4">
       <SetSelector sets={sets} activeSet={set} tab="rating" />
 
-      <section className="grid gap-4 lg:grid-cols-[20rem_minmax(0,1fr)]">
-        <div className="rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-5">
+      <section className="grid gap-3 lg:grid-cols-[18rem_minmax(0,1fr)]">
+        <div className="rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] p-4">
           <p className="text-xs font-medium uppercase tracking-[0.16em] text-[var(--ui-muted)]">SET POG</p>
           {leader ? (
-            <div className="mt-4 flex items-center gap-4">
+            <div className="mt-3 flex items-center gap-3">
               <PlayerAvatar player={leaderPlayer} size="lg" />
               <div className="min-w-0">
-                <p className="truncate text-xl font-black text-[var(--ui-ink)]">
+                <p className="truncate text-lg font-black text-[var(--ui-ink)]">
                   {leaderPlayer?.name ?? "-"}
                 </p>
-                <p className="mt-1 text-[15px] font-semibold text-[var(--ui-muted)]">
+                <p className="mt-1 text-sm font-semibold text-[var(--ui-muted)]">
                   {teamLabel(teams, leaderPlayer?.teamId)} · {leader.count}개 평점
                 </p>
-                <p className="mt-3 text-[28px] font-black leading-none tabular-nums text-[var(--ui-ink)]">
+                <p className="mt-2 text-2xl font-black leading-none tabular-nums text-[var(--ui-ink)]">
                   {leader.average.toFixed(1)}
-                  <span className="text-base font-bold text-[var(--ui-muted)]"> / 5</span>
+                  <span className="text-sm font-bold text-[var(--ui-muted)]"> / 5</span>
                 </p>
               </div>
             </div>
           ) : (
-            <p className="mt-4 text-base text-[var(--ui-muted)]">아직 집계된 평점이 없습니다.</p>
+            <p className="mt-3 text-sm text-[var(--ui-muted)]">아직 집계된 평점이 없습니다.</p>
           )}
         </div>
 
-        <div className="rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-5">
+        <div className="rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] p-4">
           <SetRatingForm
             matchId={matchId}
             setId={set.id}
@@ -465,15 +465,15 @@ function MatchRatingPanel({
             ratingOptions={ratingOptions}
           />
           {ratingOpen && ratingDeadline ? (
-            <p className="mt-3 text-[15px] font-semibold text-[var(--ui-muted)]">
+            <p className="mt-2 text-sm font-semibold text-[var(--ui-muted)]">
               평점 입력 마감: {formatDateTime(ratingDeadline.toISOString())} (경기 종료 후 3시간)
             </p>
           ) : ratingClosed ? (
-            <p className="mt-3 text-[15px] font-semibold text-[var(--ui-muted)]">
+            <p className="mt-2 text-sm font-semibold text-[var(--ui-muted)]">
               평점 입력이 마감되었습니다. (경기 종료 후 3시간)
             </p>
           ) : (
-            <p className="mt-3 text-[15px] font-semibold text-[var(--ui-muted)]">
+            <p className="mt-2 text-sm font-semibold text-[var(--ui-muted)]">
               세트 상태가 경기종료 또는 상세데이터 동기화일 때 투표가 열립니다.
             </p>
           )}
@@ -483,14 +483,14 @@ function MatchRatingPanel({
       {snapshotReady ? (
         <Link
           href={snapshotHref}
-          className="flex items-center justify-between gap-3 rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] px-4 py-3 text-[15px] font-bold text-[var(--ui-ink)] transition-colors hover:bg-[var(--ui-surface-muted)]"
+          className="flex items-center justify-between gap-3 rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 py-2.5 text-sm font-bold text-[var(--ui-ink)] transition-colors hover:bg-[var(--ui-surface-muted)]"
         >
           <span>커뮤니티 공유용 스냅샷 보기</span>
           <span aria-hidden="true" className="text-[var(--ui-muted)]">&gt;</span>
         </Link>
       ) : null}
 
-      <section className="grid gap-4 lg:grid-cols-2">
+      <section className="grid gap-3 lg:grid-cols-2">
         <TeamRatingColumn
           title={teamLabel(teams, set.blueTeamId)}
           teamId={set.blueTeamId}
@@ -507,25 +507,25 @@ function MatchRatingPanel({
         />
       </section>
 
-      <section className="rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-5">
-        <h3 className="text-lg font-black text-[var(--ui-ink)]">한줄평</h3>
+      <section className="rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] p-4">
+        <h3 className="text-base font-black text-[var(--ui-ink)]">한줄평</h3>
         {reviewRows.length === 0 ? (
-          <p className="mt-3 text-base text-[var(--ui-muted)]">아직 작성된 한줄평이 없습니다.</p>
+          <p className="mt-2 text-sm text-[var(--ui-muted)]">아직 작성된 한줄평이 없습니다.</p>
         ) : (
-          <div className="mt-4 grid gap-3">
+          <div className="mt-3 grid gap-2">
             {reviewRows.map((rating) => {
               const player = players.find((item) => item.id === rating.playerId);
               return (
                 <article
                   key={rating.id}
-                  className="grid grid-cols-[2.75rem_minmax(0,1fr)_auto] items-center gap-3 rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface-muted)] p-3"
+                  className="grid grid-cols-[2.25rem_minmax(0,1fr)_auto] items-center gap-2.5 rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface-muted)] p-2.5"
                 >
                   <PlayerAvatar player={player} />
                   <div className="min-w-0">
-                    <p className="text-[15px] font-black text-[var(--ui-ink)]">{player?.name ?? "-"}</p>
-                    <p className="mt-1 text-[15px] leading-6 text-[var(--ui-text)]">{rating.review}</p>
+                    <p className="text-sm font-black text-[var(--ui-ink)]">{player?.name ?? "-"}</p>
+                    <p className="mt-1 text-sm leading-5 text-[var(--ui-text)]">{rating.review}</p>
                   </div>
-                  <p className="text-base font-black tabular-nums text-[var(--ui-ink)]">
+                  <p className="text-sm font-black tabular-nums text-[var(--ui-ink)]">
                     {rating.rating.toFixed(1)}
                   </p>
                 </article>
@@ -610,59 +610,60 @@ export default async function MatchDetailPage({
   const activeSetCard = activeSet ? (
     <SetDetailContent matchId={matchId} setId={activeSet.id} embedded />
   ) : (
-    <div className="rounded-xl border border-dashed border-[var(--ui-border)] p-5 text-[15px] text-[var(--ui-muted)]">
+    <div className="rounded-lg border border-dashed border-[var(--ui-border)] p-4 text-sm text-[var(--ui-muted)]">
       세트 데이터가 아직 연결되지 않았습니다.
     </div>
   );
 
   const poll = (
     <section>
-      <div className="mb-3 flex items-end justify-between gap-3"><h2 className="home-section-title text-xl text-[var(--ui-ink)]">LP 승부예측</h2><span className="text-[15px] font-semibold text-[var(--ui-muted)]">예상 배당은 마감 전까지 변동됩니다</span></div>
+      <div className="mb-2.5 flex items-end justify-between gap-3"><h2 className="home-section-title text-lg text-[var(--ui-ink)]">LP 승부예측</h2><span className="text-sm font-semibold text-[var(--ui-muted)]">예상 배당은 마감 전까지 변동됩니다</span></div>
       <HomeUpcomingPredictionCard match={match} teamA={teamA} teamB={teamB} tournament={tournament?.name} bets={predictionMarket.bets.filter((bet) => bet.matchId === match.id)} currentUserId={currentUser?.id} balance={predictionMarket.balance}/>
     </section>
   );
   const embedUrl = youtubeEmbedUrl(match.vodUrl);
   return (
-    <main className="match-detail-page mx-auto flex w-full max-w-[1500px] flex-col gap-7 bg-[var(--ui-surface)] px-5 pb-16 pt-8 text-[var(--ui-text)] xl:px-10">
+    <main className="match-detail-page mx-auto flex w-full max-w-[1320px] flex-col gap-5 bg-[var(--ui-surface)] px-4 pb-12 pt-5 text-[var(--ui-text)] xl:px-6">
       <PageHeader
         title={`${teamAName} vs ${teamBName}`}
         breadcrumbs={[{ label: "경기 일정", href: "/schedule" }, { label: `${teamAName} vs ${teamBName}` }]}
+        className="gap-2 [&_.home-section-title]:text-2xl"
         action={
           <div className="flex items-center gap-2">
-            <span className="rounded-full bg-[var(--ui-surface-muted)] px-3 py-1.5 text-[15px] font-bold text-[var(--ui-muted)]">BO{match.bestOf ?? "-"}</span>
-            <span className="rounded-full bg-[var(--ui-ink)] px-3 py-1.5 text-[15px] font-bold text-[var(--ui-surface)]">{MATCH_STATUS_LABEL[match.status]}</span>
+            <span className="rounded-full bg-[var(--ui-surface-muted)] px-2.5 py-1 text-xs font-bold text-[var(--ui-muted)]">BO{match.bestOf ?? "-"}</span>
+            <span className="rounded-full bg-[var(--ui-ink)] px-2.5 py-1 text-xs font-bold text-[var(--ui-surface)]">{MATCH_STATUS_LABEL[match.status]}</span>
           </div>
         }
       />
 
-      <section className="overflow-hidden rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)]" aria-label="매치 요약">
-        <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-0.5 px-4 pt-3 text-[15px] font-bold text-[var(--ui-muted)]">
+      <section className="overflow-hidden rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)]" aria-label="매치 요약">
+        <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-0.5 px-3 pt-2.5 text-xs font-bold text-[var(--ui-muted)]">
           <span className="text-[var(--ui-ink)]">{tournament?.name ?? "대회 미지정"}</span>
           {stage ? <><span aria-hidden>·</span><span>{stage.name}</span></> : null}
           <span aria-hidden>·</span>
           <span>{formatDateTime(match.matchDate)}</span>
         </div>
-        <div className="flex items-center gap-3 px-4 pb-4 pt-3 sm:gap-6 sm:px-6">
+        <div className="flex items-center gap-2.5 px-3 pb-3 pt-2.5 sm:gap-4 sm:px-4">
           <CompactTeamBlock team={teamA} teamName={teamAName} result={teamAResult} />
 
-          <div className="flex shrink-0 items-center gap-3 sm:gap-4">
+          <div className="flex shrink-0 items-center gap-2.5 sm:gap-3">
             {hasScore ? (
               <>
-                <span className={`text-3xl font-black tabular-nums sm:text-4xl ${teamAResult === "LOSS" ? "text-[var(--ui-muted)]" : "text-[var(--ui-ink)]"}`}>
+                <span className={`text-2xl font-black tabular-nums sm:text-3xl ${teamAResult === "LOSS" ? "text-[var(--ui-muted)]" : "text-[var(--ui-ink)]"}`}>
                   {scoreLabel(match.teamAScore)}
                 </span>
                 <div className="flex flex-col items-center gap-0.5">
-                  <span className="text-[15px] font-medium text-[var(--accent)]">{MATCH_STATUS_LABEL[match.status]}</span>
+                  <span className="text-xs font-medium text-[var(--accent)]">{MATCH_STATUS_LABEL[match.status]}</span>
                   <span className="text-xs font-medium text-[var(--ui-muted)]">BO{match.bestOf ?? "-"}</span>
                 </div>
-                <span className={`text-3xl font-black tabular-nums sm:text-4xl ${teamBResult === "LOSS" ? "text-[var(--ui-muted)]" : "text-[var(--ui-ink)]"}`}>
+                <span className={`text-2xl font-black tabular-nums sm:text-3xl ${teamBResult === "LOSS" ? "text-[var(--ui-muted)]" : "text-[var(--ui-ink)]"}`}>
                   {scoreLabel(match.teamBScore)}
                 </span>
               </>
             ) : (
               <div className="flex flex-col items-center gap-0.5">
-                <span className="text-2xl font-black text-[var(--ui-muted)] sm:text-3xl">VS</span>
-                <span className="text-[15px] font-medium text-[var(--ui-muted)]">{MATCH_STATUS_LABEL[match.status]} · BO{match.bestOf ?? "-"}</span>
+                <span className="text-xl font-black text-[var(--ui-muted)] sm:text-2xl">VS</span>
+                <span className="text-xs font-medium text-[var(--ui-muted)]">{MATCH_STATUS_LABEL[match.status]} · BO{match.bestOf ?? "-"}</span>
               </div>
             )}
           </div>
@@ -671,7 +672,7 @@ export default async function MatchDetailPage({
         </div>
 
         {(pomPlayer || topFanPlayer) ? (
-          <aside className="flex flex-wrap items-center justify-center gap-x-8 gap-y-2 border-t border-[var(--ui-border)] px-4 py-2.5">
+          <aside className="flex flex-wrap items-center justify-center gap-x-6 gap-y-1.5 border-t border-[var(--ui-border)] px-3 py-2">
             {pomPlayer ? <PlayerHighlight label="POM" player={pomPlayer} /> : null}
             {topFanPlayer ? <PlayerHighlight label="팬 평점 1위" player={topFanPlayer} /> : null}
           </aside>
@@ -691,13 +692,13 @@ export default async function MatchDetailPage({
       ) : null}
 
       {activeTab === "data" ? (
-        <section className="flex flex-col gap-4" aria-label="세트 데이터">
+        <section className="flex flex-col gap-3" aria-label="세트 데이터">
           {activeSetCard}
         </section>
       ) : null}
 
       {activeTab === "rating" ? (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-2.5">
           <MatchRatingPanel
             matchId={matchId}
             set={activeSet}
@@ -712,14 +713,14 @@ export default async function MatchDetailPage({
 
       {activeTab === "video" ? (
         <section
-          className="rounded-md border border-border bg-surface p-4"
+          className="rounded-md border border-border bg-surface p-3"
           aria-labelledby="match-video"
         >
-          <h2 id="match-video" className="home-section-title text-xl">
+          <h2 id="match-video" className="home-section-title text-lg">
             영상
           </h2>
           {match.vodUrl ? (
-            <div className="mt-4 flex flex-col gap-3">
+            <div className="mt-3 flex flex-col gap-2.5">
               {embedUrl ? (
                 <iframe
                   src={embedUrl}
@@ -738,7 +739,7 @@ export default async function MatchDetailPage({
               </Link>
             </div>
           ) : (
-            <p className="mt-4 rounded-md border border-dashed border-border p-4 text-base text-muted">
+            <p className="mt-3 rounded-md border border-dashed border-border p-3 text-sm text-muted">
               아직 연결된 영상 URL이 없습니다.
             </p>
           )}
