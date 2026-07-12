@@ -58,8 +58,10 @@ function compactStageName(stageName: string) {
 }
 
 function formatBracketColumnLabel(stageName: string, opts?: { prefix?: string; group?: string; lower?: boolean }) {
-  const tokens = [opts?.group, opts?.prefix, compactStageName(stageName), opts?.lower ? "LB" : null].filter(Boolean);
-  return tokens.join(" ? ");
+  const tokens = [opts?.group, opts?.prefix, compactStageName(stageName), opts?.lower ? "패자조" : null].filter(
+    Boolean,
+  );
+  return tokens.join(" ");
 }
 
 /**
@@ -608,10 +610,10 @@ type PositionedGroup = {
 };
 
 /**
- * ?? ??? ?? ?? ????? ???? ?? ??(?: ?? A/B, ?? ??
- * ???/???? ??)? ?? ? ??. match.groupIndex(?? 0)? ??? ???,
- * ? ??? ??? ?? ??? ?? ????? ???. ??? ?????(????
- * ??) ??? ???? ???.
+ * 같은 라운드 안에 서로 독립적으로 진행되는 여러 그룹(예: 그룹 A/B, 각자 자체
+ * 승자조/패자조를 가짐)이 있을 수 있다. match.groupIndex(기본 0)로 그룹을 나누고,
+ * 각 그룹을 세로로 쌓인 독립된 미니 브래킷으로 그린다. 그룹이 하나뿐이면(대부분의
+ * 경우) 기존과 동일하게 보인다.
  */
 function buildPositionedGroups(regularColumns: StageColumn[]) {
   const groupIndices = [
@@ -662,7 +664,7 @@ function buildPositionedGroups(regularColumns: StageColumn[]) {
 }
 
 function groupLetterLabel(groupIndex: number) {
-  return String.fromCharCode(65 + groupIndex);
+  return `${String.fromCharCode(65 + groupIndex)}조`;
 }
 
 function BracketGrid({
