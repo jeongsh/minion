@@ -62,6 +62,9 @@
   --timeline-chart-surface: #f4f6fb;
   --timeline-chart-grid: #e3e8f0;
   --timeline-chart-muted: #8a93a3;
+  /* 블루/레드 팀 색 — 라이트에선 흰 배경에서 잘 보이도록 진하고 채도를 살짝 낮춘 톤(형광 방지) */
+  --team-blue: #2262f8;
+  --team-red: #ff2f44;
 }
 
 @theme inline {
@@ -73,6 +76,8 @@
   --color-muted: var(--muted);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-team-blue: var(--team-blue);
+  --color-team-red: var(--team-red);
   --radius-md: var(--radius);
 }
 
@@ -186,6 +191,9 @@ html[class~="dark"] {
   --timeline-chart-surface: #1c1e22;
   --timeline-chart-grid: #2c313a;
   --timeline-chart-muted: #8f98a8;
+  /* 블루/레드 팀 색 — 다크에선 어두운 배경에서 보이도록 한 단계 밝게 */
+  --team-blue: #6ea2ff;
+  --team-red: #ff7986;
 }
 
 
@@ -730,3 +738,6 @@ html[class~="dark"] .match-detail-page .text-muted {
     radial-gradient(circle at right center, color-mix(in srgb, var(--prediction-team-color) 42%, transparent) 0%, transparent 58%),
     linear-gradient(270deg, #24272c 0%, #15161a 100%);
 }
+
+.bg-team-blue{ background-color: var(--team-blue); }
+.bg-team-red{ background-color: var(--team-red); }

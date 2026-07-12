@@ -28,7 +28,7 @@ function DraftIcon({
           className={`object-cover ${ban ? "grayscale opacity-65" : ""}`}
         />
       ) : (
-        <div className="absolute inset-0 grid place-items-center text-[13px] text-muted">-</div>
+        <div className="absolute inset-0 grid place-items-center text-[15px] text-muted">-</div>
       )}
       {ban ? <div className="absolute inset-x-1 top-1/2 h-px rotate-[-18deg] bg-white/75" /> : null}
     </div>
@@ -77,17 +77,17 @@ function TeamDraftSummary({
 }) {
   return (
     <div className={`flex min-w-0 flex-col gap-2 ${align === "right" ? "items-end text-right" : ""}`}>
-      <p className="truncate text-sm font-semibold">{label}</p>
+      <p className="truncate text-[15px] font-semibold">{label}</p>
       <div className={`flex flex-col gap-1.5 ${align === "right" ? "items-end" : ""}`}>
         <div className="flex items-center gap-2">
-          {align === "left" ? <span className="w-8 text-[13px] font-semibold text-muted">BAN</span> : null}
+          {align === "left" ? <span className="w-8 text-[15px] font-semibold text-muted">BAN</span> : null}
           <DraftList items={bans} champions={champions} ban />
-          {align === "right" ? <span className="w-8 text-[13px] font-semibold text-muted">BAN</span> : null}
+          {align === "right" ? <span className="w-8 text-[15px] font-semibold text-muted">BAN</span> : null}
         </div>
         <div className="flex items-center gap-2">
-          {align === "left" ? <span className="w-8 text-[13px] font-semibold text-muted">PICK</span> : null}
+          {align === "left" ? <span className="w-8 text-[15px] font-semibold text-muted">PICK</span> : null}
           <DraftList items={picks} champions={champions} />
-          {align === "right" ? <span className="w-8 text-[13px] font-semibold text-muted">PICK</span> : null}
+          {align === "right" ? <span className="w-8 text-[15px] font-semibold text-muted">PICK</span> : null}
         </div>
       </div>
     </div>
@@ -109,7 +109,7 @@ export function MatchDraftSummary({
 }) {
   if (sets.length === 0) {
     return (
-      <div className="rounded-md border border-dashed border-border bg-surface p-4 text-sm text-muted">
+      <div className="rounded-md border border-dashed border-border bg-surface p-4 text-[15px] text-muted">
         밴픽 데이터가 아직 연결되지 않았습니다.
       </div>
     );
@@ -132,9 +132,9 @@ export function MatchDraftSummary({
             className="grid gap-4 rounded-md border border-border bg-surface p-4 hover:bg-surface-muted lg:grid-cols-[9rem_1fr_1fr_auto] lg:items-center"
           >
             <div>
-              <p className="text-sm font-semibold">{set.setNumber}세트</p>
-              <p className="mt-1 text-[13px] text-muted">{durationLabel(set.durationSeconds)}</p>
-              {!hasPickBan ? <p className="mt-2 text-[13px] text-muted">밴픽 데이터 없음</p> : null}
+              <p className="text-[15px] font-semibold">{set.setNumber}세트</p>
+              <p className="mt-1 text-[15px] text-muted">{durationLabel(set.durationSeconds)}</p>
+              {!hasPickBan ? <p className="mt-2 text-base text-muted">밴픽 데이터 없음</p> : null}
             </div>
 
             <TeamDraftSummary
@@ -151,7 +151,7 @@ export function MatchDraftSummary({
               align="right"
             />
 
-            <span className="text-sm font-semibold text-accent lg:text-right">세트 상세</span>
+            <span className="text-[15px] font-semibold text-accent lg:text-right">세트 상세</span>
           </Link>
         );
       })}

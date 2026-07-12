@@ -66,7 +66,7 @@ function DraftGrid({
     return (
       <div className="grid gap-3">
         <div>
-          <div className="mb-2 flex items-center justify-between text-sm font-semibold">
+          <div className="mb-2 flex items-center justify-between text-[15px] font-semibold">
             <span>{side.teamName} 밴 순서</span>
           </div>
           <div className="grid grid-cols-5 gap-2">
@@ -85,7 +85,7 @@ function DraftGrid({
   return (
     <div className="grid gap-3">
       <div>
-        <div className="mb-2 flex items-center justify-between text-sm font-semibold">
+        <div className="mb-2 flex items-center justify-between text-[15px] font-semibold">
           <span>{side.teamName} 밴</span>
         </div>
         <div className="grid grid-cols-5 gap-2">

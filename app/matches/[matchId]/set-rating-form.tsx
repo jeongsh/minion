@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { submitSetPlayerRatingAction } from "./actions";
 
 const fieldClassName =
-  "min-w-0 rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface-muted)] px-3 py-2 text-sm font-bold text-[var(--ui-ink)] transition-colors placeholder:text-[var(--ui-muted)] hover:border-[var(--ui-ink)] focus:border-[var(--ui-ink)] focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-[var(--ui-border)]";
+  "min-w-0 rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface-muted)] px-3 py-2 text-[15px] font-bold text-[var(--ui-ink)] transition-colors placeholder:text-[var(--ui-muted)] hover:border-[var(--ui-ink)] focus:border-[var(--ui-ink)] focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-[var(--ui-border)]";
 
 export function SetRatingForm({
   matchId,
@@ -52,7 +52,7 @@ export function SetRatingForm({
       {toast ? (
         <div className="pointer-events-none absolute -top-3 left-0 right-0 z-10 flex -translate-y-full justify-center">
           <span
-            className={`rounded-full px-4 py-1.5 text-[13px] font-bold shadow-lg ${
+            className={`rounded-full px-4 py-1.5 text-[15px] font-bold shadow-lg ${
               toast.type === "success"
                 ? "bg-emerald-600 text-white"
                 : "bg-red-600 text-white"

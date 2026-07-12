@@ -2,7 +2,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/ui/page-header";
-import { TeamLogo } from "@/components/ui/team-logo";
 import type { ReactNode } from "react";
 
 import {
@@ -81,7 +80,7 @@ function StatRow({
   return (
     <div className="grid grid-cols-[1fr_7.5rem_1fr] items-center border-b border-[var(--ui-border)] px-4 py-3 last:border-b-0">
       <div className="flex justify-end">{left}</div>
-      <span className="text-center text-[13px] font-bold text-[var(--ui-muted)]">
+      <span className="text-center text-[15px] font-bold text-[var(--ui-muted)]">
         {label}
       </span>
       <div className="flex justify-start">{right}</div>
@@ -101,63 +100,6 @@ function kdaText(
     { kills: 0, deaths: 0, assists: 0 },
   );
   return `${totals.kills}/${totals.deaths}/${totals.assists}`;
-}
-
-function SetSummaryHeader({
-  set,
-  teams,
-}: {
-  set: SetResult;
-  teams: Team[];
-}) {
-  const teamA = teams.find((item) => item.id === set.blueTeamId);
-  const teamB = teams.find((item) => item.id === set.redTeamId);
-  const teamAKills = set.blueKills;
-  const teamBKills = set.redKills;
-  const decided = set.winnerTeamId != null;
-  const teamAWon = decided && set.winnerTeamId === set.blueTeamId;
-  const teamBWon = decided && set.winnerTeamId === set.redTeamId;
-  const killClass = (won: boolean) =>
-    `text-[26px] font-black leading-none tabular-nums sm:text-[28px] ${
-      !decided || won ? "text-[var(--ui-ink)]" : "text-[var(--ui-muted)]"
-    }`;
-
-  return (
-    <div className="relative flex items-center justify-center gap-4 border-b border-[var(--ui-border)] bg-[var(--ui-surface-muted)] px-4 py-4 sm:gap-6 sm:px-8">
-      {/* 블루팀 */}
-      <div className="flex flex-1 items-center justify-end gap-2.5 sm:gap-3">
-        <span className="hidden truncate text-[15px] font-black text-[var(--ui-ink)] sm:inline">
-          {teamA?.name ?? "블루"}
-        </span>
-        <TeamLogo team={teamA} size="h-9 w-9 sm:h-11 sm:w-11" plain />
-      </div>
-
-      {/* 중앙: 킬 스코어 + 게임 시간 */}
-      <div className="flex shrink-0 flex-col items-center">
-        <div className="flex items-center gap-2.5 sm:gap-3">
-          <span className={killClass(teamAWon)}>{teamAKills ?? "-"}</span>
-          <span className="text-sm font-bold text-[var(--ui-muted)]">:</span>
-          <span className={killClass(teamBWon)}>{teamBKills ?? "-"}</span>
-        </div>
-        <span className="mt-1.5 rounded-full bg-[var(--ui-surface)] px-2.5 py-0.5 text-xs font-bold tabular-nums text-[var(--ui-muted)]">
-          {durationLabel(set.durationSeconds)}
-        </span>
-      </div>
-
-      {/* 레드팀 */}
-      <div className="flex flex-1 items-center gap-2.5 sm:gap-3">
-        <TeamLogo team={teamB} size="h-9 w-9 sm:h-11 sm:w-11" plain />
-        <span className="hidden truncate text-[15px] font-black text-[var(--ui-ink)] sm:inline">
-          {teamB?.name ?? "레드"}
-        </span>
-      </div>
-
-      {/* 우하단: 패치 버전 */}
-      <span className="absolute bottom-1.5 right-3 text-xs font-bold uppercase tracking-[0.08em] text-[var(--ui-muted)]">
-        Patch {set.patch ?? "-"}
-      </span>
-    </div>
-  );
 }
 
 export default async function SetDetailPage({
@@ -197,8 +139,8 @@ function DamageRows({
   maxDamage: number;
   side: "blue" | "red";
 }) {
-  // 블루사이드/레드사이드는 LoL 관례상 색 자체가 정체성 → 타임라인 차트와 동일한 사이드 색 사용
-  const barColor = side === "blue" ? "#4c8dff" : "#ff5b6e";
+  // 블루사이드/레드사이드는 LoL 관례상 색 자체가 정체성 → 팀 색은 클래스(bg-team-*)로 통일
+  const barClass = side === "blue" ? "bg-team-blue" : "bg-team-red";
 
   return (
     <div className="grid gap-2.5">
@@ -208,12 +150,12 @@ function DamageRows({
         const width = `${Math.max(4, (row.line.damageToChampions / maxDamage) * 100)}%`;
 
         const name = (
-          <span className={`min-w-0 flex-1 truncate text-[13px] font-bold text-[var(--ui-ink)] ${side === "red" ? "text-right" : ""}`}>
+          <span className={`min-w-0 flex-1 truncate text-[15px] font-semibold text-[var(--ui-ink)] ${side === "red" ? "text-right" : ""}`}>
             {row.player?.name ?? "-"}
           </span>
         );
         const value = (
-          <span className="shrink-0 text-[13px] font-bold tabular-nums text-[var(--ui-muted)]">
+          <span className="shrink-0 text-[15px] tabular-nums text-muted">
             {damageLabel(row.line.damageToChampions)}
           </span>
         );
@@ -232,10 +174,10 @@ function DamageRows({
                   <>{value}{name}</>
                 )}
               </div>
-              <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-[var(--ui-surface-muted)]">
+              <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-[var(--ui-surface-muted)]">
                 <div
-                  className={`h-full rounded-full ${side === "red" ? "ml-auto" : ""}`}
-                  style={{ width, backgroundColor: barColor }}
+                  className={`h-full rounded-full ${barClass} ${side === "red" ? "ml-auto" : ""}`}
+                  style={{ width }}
                 />
               </div>
             </div>
@@ -287,11 +229,11 @@ function PlayerStatBoard({
         4,
         (row.line.damageToChampions / maxDamage) * 100,
       );
-      const accent = side === "blue" ? "bg-blue-500" : "bg-red-500";
+      const accent = side === "blue" ? "bg-team-blue" : "bg-team-red";
       return (
         <div
           key={`${side}-${row.line.playerId}`}
-          className="grid grid-cols-[14rem_7.25rem_minmax(5.5rem,0.7fr)_3.5rem_4rem_5rem_13rem] items-center gap-3 border-t border-border px-3 py-2.5 text-sm"
+          className="grid grid-cols-[14rem_7.25rem_minmax(5.5rem,0.7fr)_3.5rem_4rem_5rem_13rem] items-center gap-3 border-t border-border px-3 py-2.5 text-[15px]"
         >
           <div>
             <PlayerLoadout
@@ -312,7 +254,7 @@ function PlayerStatBoard({
             <p className="font-semibold tabular-nums">
               {row.line.kills} / {row.line.deaths} / {row.line.assists}
             </p>
-            <p className="text-[13px] font-semibold text-muted tabular-nums">
+            <p className="text-[15px] font-semibold text-muted tabular-nums">
               {row.stats.kda.toFixed(2)}
             </p>
           </div>
@@ -322,7 +264,7 @@ function PlayerStatBoard({
               <span className="font-semibold tabular-nums">
                 {numberLabel(row.line.damageToChampions)}
               </span>
-              <span className="text-[13px] text-muted tabular-nums">
+              <span className="text-[15px] text-muted tabular-nums">
                 DPM {row.stats.dpm}
               </span>
             </div>
@@ -340,7 +282,7 @@ function PlayerStatBoard({
 
           <div className="text-center">
             <p className="font-semibold tabular-nums">{row.line.cs}</p>
-            <p className="text-[13px] text-muted tabular-nums">
+            <p className="text-[15px] text-muted tabular-nums">
               {row.stats.csm.toFixed(1)}
             </p>
           </div>
@@ -373,12 +315,12 @@ function PlayerStatBoard({
           <div className="flex items-center gap-2">
             <strong>{teamLabel(teams, teamId)}</strong>
             <span
-              className={`text-[13px] font-semibold ${won ? "text-accent" : "text-muted"}`}
+              className={`text-[15px] font-semibold ${won ? "text-accent" : "text-muted"}`}
             >
               {won ? "Victory" : "Defeat"}
             </span>
           </div>
-          <span className="text-[13px] font-semibold text-muted">
+          <span className="text-[15px] font-semibold text-muted">
             {side === "blue" ? "Blue Side" : "Red Side"}
           </span>
         </div>
@@ -393,13 +335,13 @@ function PlayerStatBoard({
         선수 스탯
       </h2>
       {blueRows.length + redRows.length === 0 ? (
-        <div className="rounded-md border border-border bg-surface p-6 text-sm text-muted">
+        <div className="rounded-md border border-border bg-surface p-6 text-[15px] text-muted">
           선수 스탯이 아직 연결되지 않았습니다.
         </div>
       ) : (
         <div className="overflow-x-auto rounded-md border border-border bg-surface">
           <div className="min-w-[58rem]">
-            <div className="grid grid-cols-[14rem_7.25rem_minmax(5.5rem,0.7fr)_3.5rem_4rem_5rem_13rem] gap-3 px-3 py-3 text-[13px] font-semibold uppercase text-muted">
+            <div className="grid grid-cols-[14rem_7.25rem_minmax(5.5rem,0.7fr)_3.5rem_4rem_5rem_13rem] gap-3 px-3 py-3 text-[15px] font-semibold uppercase text-muted">
               <span>Champion / Player</span>
               <span className="text-center">KDA</span>
               <span>Damage</span>
@@ -437,7 +379,7 @@ function SetNavigation({
             key={item.id}
             href={setHref(match, item)}
             aria-current={active ? "page" : undefined}
-            className={`rounded-md border px-3 py-2 text-sm font-semibold ${
+            className={`rounded-md border px-3 py-2 text-[15px] font-semibold ${
               active
                 ? "border-accent bg-accent text-accent-foreground"
                 : "border-border bg-surface hover:bg-surface-muted"
@@ -579,12 +521,17 @@ export async function SetDetailContent({
         className="overflow-hidden rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)]"
         aria-labelledby="set-summary"
       >
-        <SetSummaryHeader set={set} teams={teams} />
+        <div className="flex items-center gap-2 border-b border-[var(--ui-border)] px-4 py-2.5 text-[15px] font-bold text-[var(--ui-muted)]">
+          <span>경기 시간</span>
+          <span className="tabular-nums text-[var(--ui-ink)]">{durationLabel(set.durationSeconds)}</span>
+        </div>
 
         <div className="grid gap-6 p-4 lg:grid-cols-[0.9fr_1.1fr]">
           <div className="rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)]">
-            <div className="border-b border-[var(--ui-border)] px-4 py-3 text-center text-xs font-bold uppercase tracking-[0.16em] text-[var(--ui-muted)]">
-              GAME STATS
+            <div className="border-b border-[var(--ui-border)] px-4 py-3">
+              <h2 className="home-section-title text-center text-lg text-[var(--ui-ink)]">
+                게임스탯
+              </h2>
             </div>
             <StatRow
               label="KDA"
@@ -643,7 +590,7 @@ export async function SetDetailContent({
                 챔피언 대상 피해량
               </h2>
               {playerRows.length === 0 ? (
-                <div className="mt-4 grid min-h-40 place-items-center rounded-md border border-dashed border-border bg-surface p-4 text-center text-sm text-muted">
+                <div className="mt-4 grid min-h-40 place-items-center rounded-md border border-dashed border-border bg-surface p-4 text-center text-[15px] text-muted">
                   선수 스탯이 아직 연결되지 않았습니다.
                 </div>
               ) : (
@@ -715,6 +662,7 @@ export async function SetDetailContent({
             players={players}
             blueGold={set.blueGold}
             redGold={set.redGold}
+            winnerTeamId={set.winnerTeamId}
           />
         </div>
       </section>
@@ -723,7 +671,7 @@ export async function SetDetailContent({
         <section className="flex flex-wrap gap-2" aria-label="이동">
           <Link
             href={matchHref(match)}
-            className="rounded-md border border-border bg-surface px-3 py-2 text-sm font-semibold hover:bg-surface-muted"
+            className="rounded-md border border-border bg-surface px-3 py-2 text-[15px] font-semibold hover:bg-surface-muted"
           >
             매치 상세
           </Link>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import {
   Chart,
   Interaction,
@@ -51,15 +51,15 @@ if (!(Interaction.modes as unknown as Record<string, unknown>)[FILL_AREA_MODE]) 
 }
 
 const SVG_W    = 800;
-const PAD_X    = 28;
-const ITEM_SZ  = 18;   // icon diameter
-const ITEM_SLT = 28;   // px per row
-const KILL_R   = 5;    // kill dot radius
-const TOP_MAR  = 18;
-const BOT_MAR  = 28;
+const PAD_X    = 42;
+const ITEM_SZ  = 10;   // icon diameter
+const ITEM_SLT = 18;   // px per row
+const KILL_R   = 3.5;  // kill dot radius
+const TOP_MAR  = 16;
+const BOT_MAR  = 36;
 const MIN_HALF = 110;
 const CTR_GAP  = 10;
-const BADGE_R  = 5;    // count badge radius
+const BADGE_R  = 4;    // count badge radius
 const CARD_RX  = 16;   // 카드 모서리 반경(라운드 코너 밖으로 축선이 튀어나오지 않게 인셋 계산에도 사용)
 
 function toX(ms: number, duration: number): number {
@@ -106,6 +106,24 @@ function getObjInfo(e: TimelineEvent): ObjInfo {
   return { label: "드래곤", color: "#facc15", iconUrl: OBJECTIVE_ICONS.dragon };
 }
 
+// 몬스터 종류별 정식 한글 명칭(LoL 한국 클라이언트 기준).
+const MONSTER_KR: Record<string, string> = {
+  baron:           "내셔 남작",
+  elder:           "장로 드래곤",
+  herald:          "협곡의 전령",
+  voidgrub:        "공허 유충",
+  dragon_fire:     "화염 드래곤",
+  dragon_ocean:    "바다 드래곤",
+  dragon_cloud:    "바람 드래곤",
+  dragon_mountain: "대지 드래곤",
+  dragon_hextech:  "마법공학 드래곤",
+  dragon_chemtech: "화학공학 드래곤",
+  dragon:          "드래곤",
+};
+
+// 포탑 위치(라인)의 한글 표기.
+const LANE_KR: Record<string, string> = { TOP: "탑", MID: "미드", MIDDLE: "미드", BOT: "봇", BOTTOM: "봇" };
+
 function makeTooltip(e: TimelineEvent, players: Player[]): string {
   const min = Math.floor(e.timestampMs / 60000);
   const sec = Math.floor((e.timestampMs % 60000) / 1000);
@@ -118,9 +136,11 @@ function makeTooltip(e: TimelineEvent, players: Player[]): string {
   }
   if (e.eventType === "ELITE_MONSTER_KILL") {
     const p = players.find((p) => p.id === e.killerPlayerId)?.name;
-    return `${t}  ${e.monsterType ?? "몬스터"}${p ? `  (${p})` : ""}`;
+    const name = MONSTER_KR[getEventKind(e)] ?? "몬스터";
+    return `${t}  ${name}${p ? `  (${p})` : ""}`;
   }
-  const lane = e.laneType?.replace("_LANE", "") ?? "";
+  const laneRaw = e.laneType?.replace("_LANE", "") ?? "";
+  const lane = LANE_KR[laneRaw.toUpperCase()] ?? laneRaw;
   return `${t}  ${lane} 포탑`;
 }
 
@@ -175,37 +195,42 @@ function clusterTeamEvents(
   return clusters.sort((a, b) => a.ms - b.ms);
 }
 
-// ── 행 배치 (클러스터 간 겹침 방지) ──────────────────────────────
+// ── 클러스터 배치 ────────────────────────────────────────────────
 
 type PlacedCluster = Cluster & { row: number };
-
-function assignRows(clusters: Cluster[], windowMs = 12_000): PlacedCluster[] {
-  const rowEnd: number[] = [];
-  return clusters.map((c) => {
-    let row = 0;
-    while (rowEnd[row] != null && c.ms - rowEnd[row] < windowMs) row++;
-    rowEnd[row] = c.ms;
-    return { ...c, row };
-  });
-}
 
 // ── 아이콘 렌더러 ─────────────────────────────────────────────────
 
 function ClusterIcon({
-  cx, cy, cluster, onHover, onLeave,
+  cx, cy, cluster, curveY, onHover, onLeave,
 }: {
-  cx: number; cy: number; cluster: PlacedCluster; onHover: () => void; onLeave: () => void;
+  cx: number; cy: number; cluster: PlacedCluster; curveY: number; onHover: () => void; onLeave: () => void;
 }) {
   const half = ITEM_SZ / 2;
   const { info, count } = cluster;
+  // 선/동그라미/글로우는 오브젝트 종류색이 아니라 팀색(부모 g의 currentColor)으로 통일한다.
+  const lineColor = "currentColor";
   // 전경 SVG 전체는 pointer-events:none이라 아이콘 위에서만 다시 auto로 켜서
   // 호버를 받고, 그 외 투명한 배경은 아래 chart.js 캔버스로 이벤트가 그대로 통과한다.
   const interactiveProps = { className: "cursor-pointer", style: { pointerEvents: "auto" as const }, onMouseEnter: onHover, onMouseLeave: onLeave };
 
+  // 아이콘에서 골드 곡선 위 지점까지 얇은 점선으로 연결한다(첨부 레퍼런스처럼). 아이콘이 곡선
+  // 위쪽(블루)이면 아래로, 아래쪽(레드)이면 위로 선을 긋고, 끝에 작은 점을 찍는다.
+  const below = curveY > cy;
+  const lineStart = below ? cy + half : cy - half;
+  const showConnector = Math.abs(curveY - lineStart) > 2;
+  const connector = showConnector ? (
+    <g style={{ pointerEvents: "none" }}>
+      <line x1={cx} y1={lineStart} x2={cx} y2={curveY}
+        stroke={lineColor} strokeOpacity={0.6} strokeWidth={0.9} strokeDasharray="1.5 2" />
+      <circle cx={cx} cy={curveY} r={1.8} fill={lineColor} />
+    </g>
+  ) : null;
+
   const badge = count > 1 ? (
     <g>
-      <circle cx={cx + half} cy={cy - half} r={BADGE_R} fill="#0f172a" stroke="#e5e7eb" strokeWidth={0.8} />
-      <text x={cx + half} y={cy - half + 3.5} textAnchor="middle" fontSize={6} fill="#f1f5f9" fontWeight="800">
+      <circle cx={cx + half} cy={cy - half} r={BADGE_R} fill="currentColor" stroke="var(--timeline-chart-surface)" strokeWidth={1} />
+      <text x={cx + half} y={cy - half + 2.6} textAnchor="middle" fontSize={5} fill="#fff" fontWeight="800">
         {count}
       </text>
     </g>
@@ -215,10 +240,11 @@ function ClusterIcon({
     // 킬 도트
     return (
       <g {...interactiveProps}>
-        <circle cx={cx} cy={cy} r={count > 1 ? KILL_R + 2 : KILL_R}
-          fill="currentColor" stroke="var(--timeline-chart-surface)" strokeWidth={1.5} />
+        {connector}
+        <circle cx={cx} cy={cy} r={count > 1 ? KILL_R + 1.5 : KILL_R}
+          fill="currentColor" stroke="var(--timeline-chart-surface)" strokeWidth={1.2} />
         {count > 1 && (
-          <text x={cx} y={cy + 3.5} textAnchor="middle" fontSize={7} fill="#0f172a" fontWeight="800">{count}</text>
+          <text x={cx} y={cy + 2.5} textAnchor="middle" fontSize={5.5} fill="#0f172a" fontWeight="800">{count}</text>
         )}
       </g>
     );
@@ -227,7 +253,9 @@ function ClusterIcon({
   if (info.iconUrl) {
     return (
       <g {...interactiveProps}>
-        <circle cx={cx} cy={cy} r={half + 1} fill={info.color} fillOpacity={0.3} />
+        {connector}
+        <circle cx={cx} cy={cy} r={half + 1.5} fill="currentColor" fillOpacity={0.18} />
+        <circle cx={cx} cy={cy} r={half + 1.5} fill="none" stroke="currentColor" strokeOpacity={0.7} strokeWidth={0.9} />
         <image href={info.iconUrl} x={cx - half} y={cy - half} width={ITEM_SZ} height={ITEM_SZ} />
         {badge}
       </g>
@@ -235,10 +263,44 @@ function ClusterIcon({
   }
   return (
     <g {...interactiveProps}>
+      {connector}
       <circle cx={cx} cy={cy} r={half} fill={info.color} />
-      <text x={cx} y={cy + 3} textAnchor="middle" fontSize={6} fill="#000" fontWeight="800">{info.label}</text>
+      <text x={cx} y={cy + 2.2} textAnchor="middle" fontSize={5} fill="#fff" fontWeight="800">{info.label}</text>
       {badge}
     </g>
+  );
+}
+
+// ── 헤더 요약 ────────────────────────────────────────────────────
+
+function fmtClock(totalSeconds: number): string {
+  const s = Math.max(0, Math.round(totalSeconds));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}
+
+type TeamStats = { kills: number; towers: number; dragons: number; heralds: number; barons: number };
+
+// 팀별 오브젝트 요약 스트립(킬 · 타워 · 용 · 전령 · 바론). 0 개여도 양쪽 정렬이 맞도록 항상 표시한다.
+function StatStrip({ stats, accent }: { stats: TeamStats; accent: "blue" | "red" }) {
+  const dot = accent === "blue" ? "bg-team-blue" : "bg-team-red";
+  const items: { node: ReactNode; count: number; key: string }[] = [
+    { node: <span className={`inline-block h-2 w-2 rounded-full ${dot}`} />, count: stats.kills, key: "k" },
+    /* eslint-disable @next/next/no-img-element */
+    { node: <img src={OBJECTIVE_ICONS.tower}  alt="타워" className="h-3.5 w-3.5 object-contain" />, count: stats.towers,  key: "t" },
+    { node: <img src={OBJECTIVE_ICONS.dragon} alt="용"   className="h-3.5 w-3.5 object-contain" />, count: stats.dragons, key: "d" },
+    { node: <img src={OBJECTIVE_ICONS.herald} alt="전령" className="h-3.5 w-3.5 object-contain" />, count: stats.heralds, key: "h" },
+    { node: <img src={OBJECTIVE_ICONS.baron}  alt="바론" className="h-3.5 w-3.5 object-contain" />, count: stats.barons,  key: "b" },
+    /* eslint-enable @next/next/no-img-element */
+  ];
+  return (
+    <span className="flex items-center gap-1.5 text-[13px] font-semibold tabular-nums text-muted sm:gap-2">
+      {items.map(({ node, count, key }) => (
+        <span key={key} className="flex items-center gap-0.5">
+          {node}
+          <span>{count}</span>
+        </span>
+      ))}
+    </span>
   );
 }
 
@@ -255,6 +317,7 @@ export function GameTimeline({
   players,
   blueGold,
   redGold,
+  winnerTeamId,
 }: {
   events: TimelineEvent[];
   frames?: MatchTimelineFrame[];
@@ -266,6 +329,7 @@ export function GameTimeline({
   players: Player[];
   blueGold?: number | null;
   redGold?: number | null;
+  winnerTeamId?: string | null;
 }) {
   const [tooltip, setTooltip] = useState<{ lines: string[]; xPct: number; yPct: number } | null>(null);
   const [showObjectives, setShowObjectives] = useState(true);
@@ -284,24 +348,36 @@ export function GameTimeline({
   const goldDiff  = blueGold != null && redGold != null ? blueGold - redGold : null;
   const goldFmt   = (g: number) => `${g >= 0 ? "+" : ""}${(g / 1000).toFixed(1)}K`;
 
-  // 1분 클러스터링 → 행 배치
-  const blueRaw = [...killEvents, ...objEvents].filter((e) => e.teamId === blueTeamId);
-  const redRaw  = [...killEvents, ...objEvents].filter((e) => e.teamId === redTeamId);
+  // 그래프 마커로 표시할 오브젝트: 용(장로 포함)·바론·공허유충·전령만. 킬과 타워는 마커에서 제외한다.
+  const markerEvents = objEvents.filter((e) => getEventKind(e) !== "tower");
 
-  // 같은 행에 놓아도 되는 최소 시간 간격을 "고정 초 단위"가 아니라 실제 화면 픽셀 간격
-  // 기준으로 계산한다. 게임이 길어질수록 초당 픽셀 폭이 좁아지므로, 고정된 밀리초 값만
-  // 쓰면 아이콘끼리 화면상 겹쳐 보인다.
-  const pxPerMs = (SVG_W - PAD_X * 2) / (duration * 1000 || 1);
-  const rowWindowMs = (ITEM_SZ * 1.4) / pxPerMs;
-  const blueClusters = assignRows(clusterTeamEvents(blueRaw, 60_000, players), rowWindowMs);
-  const redClusters  = assignRows(clusterTeamEvents(redRaw,  60_000, players), rowWindowMs);
+  // 헤더 요약용 팀별 오브젝트 집계(킬/타워 포함). 용은 장로 포함 모든 드래곤을 합산한다.
+  const countObjectives = (teamId: string) => {
+    const c = { kills: 0, towers: 0, dragons: 0, heralds: 0, barons: 0, grubs: 0 };
+    c.kills = teamId === blueTeamId ? blueKills : redKills;
+    for (const e of objEvents) {
+      if (e.teamId !== teamId) continue;
+      const k = getEventKind(e);
+      if (k === "tower") c.towers++;
+      else if (k === "baron") c.barons++;
+      else if (k === "herald") c.heralds++;
+      else if (k === "voidgrub") c.grubs++;
+      else if (k === "elder" || k.startsWith("dragon")) c.dragons++;
+    }
+    return c;
+  };
+  const blueStats = countObjectives(blueTeamId);
+  const redStats  = countObjectives(redTeamId);
 
-  const maxBlueRow = blueClusters.length > 0 ? Math.max(...blueClusters.map((c) => c.row)) : 0;
-  const maxRedRow  = redClusters.length  > 0 ? Math.max(...redClusters.map( (c) => c.row)) : 0;
+  // 1분 클러스터링. 행 배치 없이 블루는 전부 최상단 한 줄, 레드는 전부 최하단 한 줄에 고정한다.
+  const blueRaw = markerEvents.filter((e) => e.teamId === blueTeamId);
+  const redRaw  = markerEvents.filter((e) => e.teamId === redTeamId);
+  const blueClusters: PlacedCluster[] = clusterTeamEvents(blueRaw, 60_000, players).map((c) => ({ ...c, row: 0 }));
+  const redClusters:  PlacedCluster[] = clusterTeamEvents(redRaw,  60_000, players).map((c) => ({ ...c, row: 0 }));
 
-  // 아이콘(킬/오브젝트)이 실제로 필요로 하는 최소 높이(겹치면 안 되는 진짜 하한)
-  const blueIconMin = (maxBlueRow + 1) * ITEM_SLT;
-  const redIconMin  = (maxRedRow  + 1) * ITEM_SLT;
+  // 단일 행이므로 아이콘이 차지하는 최소 높이는 한 줄분이다.
+  const blueIconMin = ITEM_SLT;
+  const redIconMin  = ITEM_SLT;
 
   // 골드 프레임 동기화가 있으면 실제 분당 골드 차이를 쓰고, 없으면 킬 차이로 대체한다(이 경우 단위는 킬 개수).
   const goldPoints = frames
@@ -368,9 +444,12 @@ export function GameTimeline({
   // 블루/레드 각자의 최댓값에 맞춰 독립적으로 스케일링한다(이기고 있는 쪽 격차가 크면 그쪽에
   // 더 많은 세로 공간을 준다). 골드 단위일 땐 무조건 1000 골드 단위로 올림해서 딱 떨어지는
   // 눈금으로 만든다(예: 5.8K → 6K, 13.2K → 14K).
+  // 위/아래 눈금을 동일한 최댓값으로 맞춘다(상단이 9K면 하단도 9K). 양쪽 리드 중 큰 값을
+  // 기준으로 올림해서 대칭 스케일을 쓰면 격차가 더 극명하게 보이고 정돈된 느낌이 난다.
   const roundScale = (v: number) => (unit === "kills" ? Math.max(5, v) : Math.max(1000, Math.ceil(v / 1000) * 1000));
-  const blueScaleMax = roundScale(maxBlueLead);
-  const redScaleMax  = roundScale(maxRedLead);
+  const scaleMax = roundScale(Math.max(maxBlueLead, maxRedLead));
+  const blueScaleMax = scaleMax;
+  const redScaleMax  = scaleMax;
 
   // 전체 높이는 고정하고, 그 안에서 블루/레드 비중을 각자 최댓값 비율대로 나눈다. 아이콘이
   // 겹치면 안 되므로 각자의 진짜 최소 높이(blueIconMin/redIconMin) 밑으로는 줄이지 않는다.
@@ -387,8 +466,9 @@ export function GameTimeline({
   const axisY    = graphBot;
   const svgH     = axisY + BOT_MAR;
 
+  // 블루는 카드 최상단, 레드는 카드 최하단에 붙인다(row는 항상 0이라 한 줄).
   const blueCY = (row: number) => graphTop + ITEM_SZ / 2 + row * ITEM_SLT;
-  const redCY  = (row: number) => centerY  + CTR_GAP + ITEM_SZ / 2 + row * ITEM_SLT;
+  const redCY  = (row: number) => graphBot - ITEM_SZ / 2 - row * ITEM_SLT;
 
   const ampBlue = blueH * 0.92;
   const ampRed  = redH  * 0.92;
@@ -434,6 +514,17 @@ export function GameTimeline({
     const canvas = canvasRef.current;
     if (!canvas || chartPoints.length === 0) return;
 
+    // 라인/영역 색은 CSS 변수(--team-blue/--team-red)에서 읽어와 라이트·다크 테마에 맞춘다.
+    const styles = getComputedStyle(canvas);
+    const blueLine = styles.getPropertyValue("--team-blue").trim() || "#4c8dff";
+    const redLine  = styles.getPropertyValue("--team-red").trim()  || "#ff5b6e";
+    const rgba = (hex: string, a: number) => {
+      const h = hex.replace("#", "");
+      const n = h.length === 3 ? h.split("").map((c) => c + c).join("") : h;
+      const r = parseInt(n.slice(0, 2), 16), g = parseInt(n.slice(2, 4), 16), b = parseInt(n.slice(4, 6), 16);
+      return `rgba(${r},${g},${b},${a})`;
+    };
+
     // chartPoints는 dy()로 변환한 픽셀 좌표에서 centerY(중앙선)를 뺀 값이라 "0 = 중앙선"이다.
     // 그래서 chart.js 기본 fill:'origin'(값 0 기준 채우기)을 그대로 쓸 수 있고, 라인과 채우기가
     // 항상 완전히 같은 곡선을 기준으로 그려져 어긋나는 지점이 생기지 않는다. 색은 단색 대신
@@ -451,18 +542,18 @@ export function GameTimeline({
             tension: 0.28,
             clip: 0,
             segment: {
-              borderColor: (ctx) => ((ctx.p0.parsed.y ?? 0) + (ctx.p1.parsed.y ?? 0)) / 2 <= 0 ? "#4c8dff" : "#ff5b6e",
+              borderColor: (ctx) => ((ctx.p0.parsed.y ?? 0) + (ctx.p1.parsed.y ?? 0)) / 2 <= 0 ? blueLine : redLine,
             },
             backgroundColor: (ctx) => {
               const { chart } = ctx;
               const area = chart.chartArea;
-              if (!area) return "rgba(76,141,255,0.2)";
+              if (!area) return rgba(blueLine, 0.2);
               const centerFrac = (centerY - graphTop) / (graphBot - graphTop);
               const gradient = chart.ctx.createLinearGradient(0, area.top, 0, area.bottom);
-              gradient.addColorStop(0, "rgba(76,141,255,0.4)");
-              gradient.addColorStop(centerFrac, "rgba(76,141,255,0.05)");
-              gradient.addColorStop(centerFrac, "rgba(255,91,110,0.05)");
-              gradient.addColorStop(1, "rgba(255,91,110,0.4)");
+              gradient.addColorStop(0, rgba(blueLine, 0.32));
+              gradient.addColorStop(centerFrac, rgba(blueLine, 0.04));
+              gradient.addColorStop(centerFrac, rgba(redLine, 0.04));
+              gradient.addColorStop(1, rgba(redLine, 0.32));
               return gradient;
             },
           },
@@ -515,40 +606,15 @@ export function GameTimeline({
   }, [events, frames, durationSeconds, blueTeamId, redTeamId]);
 
   if (!events.length) {
-    return <div className="flex items-center justify-center py-6 text-[13px] text-muted">타임라인 데이터 없음</div>;
+    return <div className="flex items-center justify-center py-6 text-[15px] text-muted">타임라인 데이터 없음</div>;
   }
 
   return (
     <div className="game-timeline-chart relative w-full select-none">
-      <div className="flex items-center justify-between border-b border-border px-5 py-4 text-[13px] font-semibold">
-        <span className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400">
-          {blueTeamName}
-          <span className="rounded-full bg-blue-500/10 px-2 py-0.5 tabular-nums">{blueKills} K</span>
-        </span>
-        {goldDiff !== null && (
-          <span className={`rounded-full px-2.5 py-1 tabular-nums ${goldDiff > 0 ? "bg-blue-500/10 text-blue-600 dark:text-blue-300" : goldDiff < 0 ? "bg-red-500/10 text-red-600 dark:text-red-300" : "bg-surface-muted text-muted"}`}>
-            골드 {goldFmt(goldDiff)}
-          </span>
-        )}
-        <div className="flex items-center gap-2">
-          <span className="flex items-center gap-1.5 text-red-600 dark:text-red-400">
-            <span className="rounded-full bg-red-500/10 px-2 py-0.5 tabular-nums">{redKills} K</span>
-            {redTeamName}
-          </span>
-          <button
-            type="button"
-            onClick={() => setShowObjectives((v) => !v)}
-            className="rounded-full border border-border px-2 py-1 text-xs font-semibold text-muted hover:bg-surface-muted"
-          >
-            {showObjectives ? "오브젝트 숨기기" : "오브젝트 보기"}
-          </button>
-        </div>
-      </div>
-
       <div className="relative w-full">
         {/* 배경 레이어: 카드 배경, y축 그리드/라벨, 팀명, 시간 눈금 */}
         <svg viewBox={`0 0 ${SVG_W} ${svgH}`} className="block w-full">
-          <rect x={PAD_X} y={graphTop} width={SVG_W - PAD_X * 2} height={graphBot - graphTop} rx={CARD_RX} fill="var(--timeline-chart-surface)" />
+          <rect x={PAD_X} y={graphTop} width={SVG_W - PAD_X * 2} height={graphBot - graphTop} rx={CARD_RX} fill="transparent" />
 
           {gridValues.map((d) => {
             const y = dy(d);
@@ -556,21 +622,21 @@ export function GameTimeline({
               <g key={`gy${d}`}>
                 <line x1={PAD_X} y1={y} x2={SVG_W - PAD_X} y2={y}
                   stroke="var(--timeline-chart-grid)" strokeWidth={d === 0 ? 1.2 : 0.7} />
-                <text x={PAD_X - 4} y={y + 3} textAnchor="end" fontSize={7}
-                  fill={d > 0 ? "#4c8dff" : d < 0 ? "#ff5b6e" : "var(--timeline-chart-muted)"} fontWeight="600">
+                <text x={PAD_X - 4} y={y + 3} textAnchor="end" fontSize={9}
+                  fill={d > 0 ? "var(--team-blue)" : d < 0 ? "var(--team-red)" : "var(--timeline-chart-muted)"} fontWeight="600">
                   {formatDiffLabel(d)}
                 </text>
               </g>
             );
           })}
 
-          <text x={PAD_X + 6} y={graphTop + blueH / 2 + 3} textAnchor="start" fontSize={8} fontWeight="700" fill="#60a5fa" fillOpacity={0.7}>{blueTeamName}</text>
-          <text x={PAD_X + 6} y={centerY + CTR_GAP + redH / 2 + 3} textAnchor="start" fontSize={8} fontWeight="700" fill="#f87171" fillOpacity={0.7}>{redTeamName}</text>
+          <text x={PAD_X + 6} y={graphTop + blueH / 2 + 3} textAnchor="start" fontSize={8} fontWeight="700" fill="var(--team-blue)" fillOpacity={0.7}>{blueTeamName}</text>
+          <text x={PAD_X + 6} y={centerY + CTR_GAP + redH / 2 + 3} textAnchor="start" fontSize={8} fontWeight="700" fill="var(--team-red)" fillOpacity={0.7}>{redTeamName}</text>
 
           {mins.map((m) => {
             const x = tx(m * 60 * 1000);
             return (
-              <text key={m} x={x} y={axisY + 11} textAnchor="middle" fontSize={7} fill="var(--timeline-chart-muted)">{m}&apos;</text>
+              <text key={m} x={x} y={axisY + 20} textAnchor="middle" fontSize={9} fill="var(--timeline-chart-muted)">{m}&apos;</text>
             );
           })}
         </svg>
@@ -603,9 +669,10 @@ export function GameTimeline({
           {showObjectives && blueClusters.map((c) => {
             const x = tx(c.ms);
             const cy = blueCY(c.row);
+            const curveY = dy(displayDiffAt(c.ms / 1000));
             return (
-              <g key={`b-${c.id}`} style={{ color: "#93c5fd" }}>
-                <ClusterIcon cx={x} cy={cy} cluster={c}
+              <g key={`b-${c.id}`} className="text-team-blue">
+                <ClusterIcon cx={x} cy={cy} cluster={c} curveY={curveY}
                   onHover={() => setTooltip({ lines: c.tooltipLines, xPct: (x / SVG_W) * 100, yPct: (cy / svgH) * 100 })}
                   onLeave={() => setTooltip(null)} />
               </g>
@@ -615,9 +682,10 @@ export function GameTimeline({
           {showObjectives && redClusters.map((c) => {
             const x = tx(c.ms);
             const cy = redCY(c.row);
+            const curveY = dy(displayDiffAt(c.ms / 1000));
             return (
-              <g key={`r-${c.id}`} style={{ color: "#fca5a5" }}>
-                <ClusterIcon cx={x} cy={cy} cluster={c}
+              <g key={`r-${c.id}`} className="text-team-red">
+                <ClusterIcon cx={x} cy={cy} cluster={c} curveY={curveY}
                   onHover={() => setTooltip({ lines: c.tooltipLines, xPct: (x / SVG_W) * 100, yPct: (cy / svgH) * 100 })}
                   onLeave={() => setTooltip(null)} />
               </g>
@@ -627,7 +695,7 @@ export function GameTimeline({
 
         {showObjectives && tooltip && (
           <div
-            className="pointer-events-none absolute z-10 whitespace-nowrap rounded bg-background/95 px-2 py-1 text-[13px] shadow-md ring-1 ring-border"
+            className="pointer-events-none absolute z-10 whitespace-nowrap rounded bg-background/95 px-2 py-1 text-[15px] shadow-md ring-1 ring-border"
             style={{ left: `${Math.min(Math.max(tooltip.xPct, 5), 85)}%`, top: `calc(${tooltip.yPct}% + ${ITEM_SZ / 2 + 6}px)` }}
           >
             {tooltip.lines.map((line, i) => <div key={i}>{line}</div>)}
@@ -635,26 +703,30 @@ export function GameTimeline({
         )}
       </div>
 
-      {showObjectives && (
-      <div className="flex flex-wrap gap-x-3 gap-y-1 px-5 pb-4 pt-2 text-[13px] text-muted">
-        <span className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-blue-400/80" />블루 킬</span>
-        <span className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-red-400/80" />레드 킬</span>
-        {[
-          { src: OBJECTIVE_ICONS.dragon,   label: "드래곤" },
-          { src: OBJECTIVE_ICONS.baron,    label: "바론" },
-          { src: OBJECTIVE_ICONS.elder,    label: "장로" },
-          { src: OBJECTIVE_ICONS.herald,   label: "전령" },
-          { src: OBJECTIVE_ICONS.voidGrub, label: "공허충" },
-          { src: OBJECTIVE_ICONS.tower,    label: "포탑" },
-        ].map(({ src, label }) => (
-          <span key={label} className="flex items-center gap-1">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={src} alt="" className="h-3 w-3 object-contain" />
-            {label}
-          </span>
-        ))}
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-5 pb-4 pt-2 text-[15px] text-muted">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          {showObjectives && [
+            { src: OBJECTIVE_ICONS.dragon,   label: "드래곤" },
+            { src: OBJECTIVE_ICONS.elder,    label: "장로" },
+            { src: OBJECTIVE_ICONS.baron,    label: "바론" },
+            { src: OBJECTIVE_ICONS.herald,   label: "전령" },
+            { src: OBJECTIVE_ICONS.voidGrub, label: "공허 유충" },
+          ].map(({ src, label }) => (
+            <span key={label} className="flex items-center gap-1">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={src} alt="" className="h-3 w-3 object-contain" />
+              {label}
+            </span>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={() => setShowObjectives((v) => !v)}
+          className="shrink-0 rounded-full border border-border px-2.5 py-1 text-[13px] font-medium text-muted hover:bg-surface-muted"
+        >
+          {showObjectives ? "오브젝트 숨기기" : "오브젝트 보기"}
+        </button>
       </div>
-      )}
     </div>
   );
 }

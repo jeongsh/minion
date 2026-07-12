@@ -50,7 +50,7 @@ function PlayerRow({
   const kp = killParticipation(line, teamKills);
   const dmgPct = maxDamage > 0 ? (line.damageToChampions / maxDamage) * 100 : 0;
   const csm = line.gameMinutes > 0 ? (line.cs / line.gameMinutes).toFixed(1) : "-";
-  const barColor = side === "blue" ? "bg-blue-500" : "bg-red-500";
+  const barColor = side === "blue" ? "bg-team-blue" : "bg-team-red";
 
   const championBlock = (
     <div className="flex min-w-0 items-center gap-2">
@@ -62,8 +62,8 @@ function PlayerRow({
         <SpellSlot spellId={line.spellIds[1] ?? null} spells={spells} version={itemVersion} />
       </div>
       <div className="min-w-0">
-        <p className="truncate text-sm font-semibold">{player?.name ?? "-"}</p>
-        <p className="truncate text-[13px] text-muted">{champion?.name ?? "-"}</p>
+        <p className="truncate text-[15px] font-semibold">{player?.name ?? "-"}</p>
+        <p className="truncate text-[15px] text-muted">{champion?.name ?? "-"}</p>
       </div>
     </div>
   );
@@ -75,22 +75,22 @@ function PlayerRow({
         {championBlock}
         <div className="grid grid-cols-4 gap-2 text-center">
           <div>
-            <p className="text-sm font-semibold tabular-nums">
+            <p className="text-[15px] font-semibold tabular-nums">
               {line.kills}/<span className="text-red-400">{line.deaths}</span>/{line.assists}
             </p>
-            <p className="text-xs text-muted">{kdaRatio(line)} ({kp}%)</p>
+            <p className="text-[15px] text-muted">{kdaRatio(line)} ({kp}%)</p>
           </div>
           <div>
-            <p className="text-sm tabular-nums font-semibold">{line.damageToChampions.toLocaleString("ko-KR")}</p>
-            <p className="text-xs text-muted">딜량</p>
+            <p className="text-[15px] tabular-nums font-semibold">{line.damageToChampions.toLocaleString("ko-KR")}</p>
+            <p className="text-[15px] text-muted">딜량</p>
           </div>
           <div>
-            <p className="text-sm font-semibold tabular-nums">{line.visionScore}</p>
-            <p className="text-xs text-muted">시야</p>
+            <p className="text-[15px] font-semibold tabular-nums">{line.visionScore}</p>
+            <p className="text-[15px] text-muted">시야</p>
           </div>
           <div>
-            <p className="text-sm font-semibold tabular-nums">{line.cs}</p>
-            <p className="text-xs text-muted">분 {csm}</p>
+            <p className="text-[15px] font-semibold tabular-nums">{line.cs}</p>
+            <p className="text-[15px] text-muted">분 {csm}</p>
           </div>
         </div>
         <PlayerItemSlots
@@ -110,10 +110,10 @@ function PlayerRow({
 
         {/* KDA */}
         <div>
-          <p className="text-sm font-semibold tabular-nums">
+          <p className="text-[15px] font-semibold tabular-nums">
             {line.kills} / <span className="text-red-400">{line.deaths}</span> / {line.assists}
           </p>
-          <p className="text-[13px] text-muted">
+          <p className="text-[15px] text-muted">
             {kdaRatio(line)} &nbsp;
             <span className="font-semibold text-foreground/70">({kp}%)</span>
           </p>
@@ -121,7 +121,7 @@ function PlayerRow({
 
         {/* 딜량 + 바 */}
         <div>
-          <p className="text-sm tabular-nums font-semibold">{line.damageToChampions.toLocaleString("ko-KR")}</p>
+          <p className="text-[15px] tabular-nums font-semibold">{line.damageToChampions.toLocaleString("ko-KR")}</p>
           <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-surface-muted">
             <div className={`h-full rounded-full ${barColor}`} style={{ width: `${dmgPct}%` }} />
           </div>
@@ -129,14 +129,14 @@ function PlayerRow({
 
         {/* 시야 */}
         <div className="text-center">
-          <p className="text-sm font-semibold tabular-nums">{line.visionScore}</p>
-          <p className="text-[13px] text-muted">시야</p>
+          <p className="text-[15px] font-semibold tabular-nums">{line.visionScore}</p>
+          <p className="text-[15px] text-muted">시야</p>
         </div>
 
         {/* CS */}
         <div className="text-center">
-          <p className="text-sm font-semibold tabular-nums">{line.cs}</p>
-          <p className="text-[13px] text-muted">분 {csm}</p>
+          <p className="text-[15px] font-semibold tabular-nums">{line.cs}</p>
+          <p className="text-[15px] text-muted">분 {csm}</p>
         </div>
 
         {/* 아이템 */}
@@ -170,20 +170,20 @@ function ComparisonBar({
 
   return (
     <div className="grid grid-cols-[1fr_auto_1fr] items-center py-1.5">
-      {/* 블루 영역: 숫자 + 막대가 오른쪽 정렬로 공간 채움 */}
+      {/* 블루 영역: 숫자 + 막대가 오른쪽 정렬로 공간 채움 (선수스탯 딜량 바와 동일 디자인) */}
       <div className="flex items-center justify-end gap-2 pl-3 pr-2">
-        <span className="shrink-0 text-sm font-bold tabular-nums text-blue-500">{fmt(blueValue)}</span>
-        <div className="h-4 flex-1 overflow-hidden rounded-l-full bg-surface-muted">
-          <div className="ml-auto h-full rounded-l-full bg-blue-500" style={{ width: `${bluePct}%` }} />
+        <span className="shrink-0 text-[15px] font-semibold tabular-nums">{fmt(blueValue)}</span>
+        <div className="h-1.5 flex-1 overflow-hidden rounded-l-full bg-surface-muted">
+          <div className="ml-auto h-full rounded-l-full bg-team-blue" style={{ width: `${bluePct}%` }} />
         </div>
       </div>
-      <span className="shrink-0 px-3 text-[13px] font-semibold text-muted">{label}</span>
+      <span className="shrink-0 px-3 text-[15px] font-semibold text-muted">{label}</span>
       {/* 레드 영역: 막대 + 숫자가 왼쪽 정렬로 공간 채움 */}
       <div className="flex items-center gap-2 pl-2 pr-3">
-        <div className="h-4 flex-1 overflow-hidden rounded-r-full bg-surface-muted">
-          <div className="h-full rounded-r-full bg-red-500" style={{ width: `${100 - bluePct}%` }} />
+        <div className="h-1.5 flex-1 overflow-hidden rounded-r-full bg-surface-muted">
+          <div className="h-full rounded-r-full bg-team-red" style={{ width: `${100 - bluePct}%` }} />
         </div>
-        <span className="shrink-0 text-sm font-bold tabular-nums text-red-400">{fmt(redValue)}</span>
+        <span className="shrink-0 text-[15px] font-semibold tabular-nums">{fmt(redValue)}</span>
       </div>
     </div>
   );
@@ -216,19 +216,19 @@ function TeamSection({
   const won = set.winnerTeamId === teamId;
   const teamKills = teamLines.reduce((s, l) => s + l.kills, 0);
   const maxDamage = Math.max(...teamLines.map((l) => l.damageToChampions), 1);
-  const headerBg = side === "blue" ? "bg-blue-500/10" : "bg-red-500/10";
-  const headerText = side === "blue" ? "text-blue-600" : "text-red-500";
+  const headerBg = side === "blue" ? "bg-team-blue/10" : "bg-team-red/10";
+  const headerText = side === "blue" ? "text-team-blue" : "text-team-red";
   return (
     <div>
       {/* 팀 헤더 */}
       <div className={`flex items-center gap-3 px-3 py-2 ${headerBg}`}>
-        <span className={`text-sm font-bold ${headerText}`}>{team?.shortName ?? (side === "blue" ? "블루" : "레드")}</span>
+        <span className={`text-[15px] font-bold ${headerText}`}>{team?.shortName ?? (side === "blue" ? "블루" : "레드")}</span>
         {won && (
-          <span className="rounded bg-accent px-1.5 py-0.5 text-[13px] font-bold text-accent-foreground">승</span>
+          <span className="rounded bg-accent px-1.5 py-0.5 text-[15px] font-bold text-accent-foreground">승</span>
         )}
         <div className="ml-auto" />
         {/* 컬럼 레이블 */}
-        <div className="hidden grid-cols-[220px_1fr_140px_50px_70px_220px] gap-3 text-[13px] font-semibold uppercase text-muted lg:grid">
+        <div className="hidden grid-cols-[220px_1fr_140px_50px_70px_220px] gap-3 text-[15px] font-semibold uppercase text-muted lg:grid">
           <span />
           <span>KDA</span>
           <span>딜량</span>
@@ -287,19 +287,19 @@ function SetScoreboard({
   return (
     <details className="group overflow-hidden rounded-md border border-border bg-surface">
       <summary className="flex cursor-pointer list-none items-center gap-3 px-3 py-2.5 hover:bg-surface-muted">
-        <span className="text-sm font-semibold">{set.setNumber}세트</span>
+        <span className="text-[15px] font-semibold">{set.setNumber}세트</span>
         {set.durationSeconds ? (
-          <span className="text-[13px] text-muted">
+          <span className="text-[15px] text-muted">
             {Math.floor(set.durationSeconds / 60)}:{String(set.durationSeconds % 60).padStart(2, "0")}
           </span>
         ) : null}
-        <span className="text-[13px] font-semibold text-blue-500">{blueTeam?.shortName ?? "블루"}</span>
-        <span className="text-[13px] text-muted">
+        <span className="text-[15px] font-semibold text-team-blue">{blueTeam?.shortName ?? "블루"}</span>
+        <span className="text-[15px] text-muted">
           {set.blueKills ?? "-"} : {set.redKills ?? "-"}
         </span>
-        <span className="text-[13px] font-semibold text-red-500">{redTeam?.shortName ?? "레드"}</span>
-        {!hasData && <span className="text-[13px] text-muted">데이터 없음</span>}
-        <span className="ml-auto text-[13px] text-muted transition-transform group-open:rotate-180">▼</span>
+        <span className="text-[15px] font-semibold text-team-red">{redTeam?.shortName ?? "레드"}</span>
+        {!hasData && <span className="text-[15px] text-muted">데이터 없음</span>}
+        <span className="ml-auto text-[15px] text-muted transition-transform group-open:rotate-180">▼</span>
       </summary>
 
       {hasData ? (
@@ -320,7 +320,7 @@ function SetScoreboard({
           <TeamSection set={set} lines={lines} players={players} champions={champions} teams={teams} spells={spells} itemVersion={itemVersion} side="red" />
         </>
       ) : (
-        <div className="border-t border-border px-3 py-6 text-center text-sm text-muted">선수 스탯 데이터가 없습니다.</div>
+        <div className="border-t border-border px-3 py-6 text-center text-[15px] text-muted">선수 스탯 데이터가 없습니다.</div>
       )}
     </details>
   );
@@ -345,7 +345,7 @@ export function MatchSetStats({
 }) {
   if (sets.length === 0) {
     return (
-      <div className="rounded-md border border-dashed border-border bg-surface p-4 text-sm text-muted">
+      <div className="rounded-md border border-dashed border-border bg-surface p-4 text-[15px] text-muted">
         세트 데이터가 없습니다.
       </div>
     );

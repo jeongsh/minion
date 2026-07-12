@@ -45,7 +45,7 @@ function Avatar({ player, size = "md" }: { player?: Player; size?: "md" | "lg" }
 
   return (
     <span
-      className={`${sizeClass} grid shrink-0 place-items-center rounded-md border border-border bg-surface-muted text-[13px] font-semibold`}
+      className={`${sizeClass} grid shrink-0 place-items-center rounded-md border border-border bg-surface-muted text-[15px] font-semibold`}
       aria-hidden="true"
     >
       {player ? playerInitial(player.name) : "-"}
@@ -62,7 +62,7 @@ function TeamLogo({ team }: { team?: Team }) {
   }
 
   return (
-    <span className="grid h-8 w-8 place-items-center rounded bg-surface-muted text-[13px] font-bold text-muted">
+    <span className="grid h-8 w-8 place-items-center rounded bg-surface-muted text-[15px] font-bold text-muted">
       {team?.shortName.slice(0, 3) ?? "-"}
     </span>
   );
@@ -87,8 +87,8 @@ function RatingRow({
     >
       <Avatar player={player} />
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold">{player?.name ?? "-"}</p>
-        <p className="text-[13px] text-muted">{ratings.length}개 평점</p>
+        <p className="truncate text-[15px] font-semibold">{player?.name ?? "-"}</p>
+        <p className="text-[15px] text-muted">{ratings.length}개 평점</p>
       </div>
       <p className="text-base font-semibold tabular-nums">
         {average == null ? "-" : average.toFixed(1)}
@@ -128,13 +128,13 @@ export default async function SetRatingSnapshotPage({
     return (
       <main className={shellClass}>
         <section className="rounded-md border border-dashed border-border bg-surface p-8 text-center">
-          <p className="text-sm font-semibold">아직 스냅샷을 준비하고 있어요.</p>
-          <p className="mt-2 text-sm text-muted">
+          <p className="text-base font-semibold">아직 스냅샷을 준비하고 있어요.</p>
+          <p className="mt-2 text-base text-muted">
             커뮤니티 공유용 스냅샷은 경기 종료 20분 후부터 공개됩니다.
           </p>
           <Link
             href={setHref(match, set)}
-            className="mt-5 inline-flex rounded-md border border-border bg-background px-4 py-2 text-sm font-semibold hover:bg-surface-muted"
+            className="mt-5 inline-flex rounded-md border border-border bg-background px-4 py-2 text-[15px] font-semibold hover:bg-surface-muted"
           >
             세트 상세로 이동
           </Link>
@@ -170,10 +170,10 @@ export default async function SetRatingSnapshotPage({
         }`}
       >
         <TeamLogo team={team} />
-        <strong className="text-sm">{team?.shortName ?? "TBD"}</strong>
+        <strong className="text-[15px]">{team?.shortName ?? "TBD"}</strong>
       </div>
       {lines.length === 0 ? (
-        <p className="px-3 py-4 text-sm text-muted">평점 대상 선수가 없습니다.</p>
+        <p className="px-3 py-4 text-base text-muted">평점 대상 선수가 없습니다.</p>
       ) : (
         lines.map((line) => (
           <RatingRow
@@ -191,47 +191,47 @@ export default async function SetRatingSnapshotPage({
     <main className={shellClass}>
       <section className="overflow-hidden rounded-md border border-border bg-surface">
         <div className="border-b border-border px-5 py-3">
-          <p className="text-[13px] font-semibold text-accent">팬 평점 스냅샷</p>
-          <p className="mt-0.5 text-[13px] text-muted">
+          <p className="text-[15px] font-semibold text-accent">팬 평점 스냅샷</p>
+          <p className="mt-0.5 text-[15px] text-muted">
             {tournamentName ?? match.name} · {formatDateTime(match.matchDate)}
           </p>
         </div>
         <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 px-5 py-5">
           <div className="flex flex-col items-center gap-2 text-center">
             <TeamLogo team={teamA} />
-            <span className="text-sm font-semibold">{teamA?.shortName ?? "TBD"}</span>
+            <span className="text-[15px] font-semibold">{teamA?.shortName ?? "TBD"}</span>
           </div>
           <div className="text-center">
             <p className="text-2xl font-bold tabular-nums">
               {set.blueKills ?? "-"} : {set.redKills ?? "-"}
             </p>
-            <p className="mt-0.5 text-[13px] font-semibold text-muted">{set.setNumber}세트</p>
+            <p className="mt-0.5 text-[15px] font-semibold text-muted">{set.setNumber}세트</p>
           </div>
           <div className="flex flex-col items-center gap-2 text-center">
             <TeamLogo team={teamB} />
-            <span className="text-sm font-semibold">{teamB?.shortName ?? "TBD"}</span>
+            <span className="text-[15px] font-semibold">{teamB?.shortName ?? "TBD"}</span>
           </div>
         </div>
       </section>
 
       <section className="rounded-md border border-border bg-surface p-5">
-        <p className="text-[13px] font-semibold uppercase text-muted">SET POG</p>
+        <p className="text-[15px] font-semibold uppercase text-muted">SET POG</p>
         {leader ? (
           <div className="mt-3 flex items-center gap-4">
             <Avatar player={leaderPlayer} size="lg" />
             <div className="min-w-0">
               <p className="truncate text-2xl font-semibold">{leaderPlayer?.name ?? "-"}</p>
-              <p className="mt-0.5 text-sm text-muted">
+              <p className="mt-0.5 text-[15px] text-muted">
                 {teamLabel(teams, leaderPlayer?.teamId)} · {leader.count}개 평점
               </p>
             </div>
             <p className="ml-auto text-[28px] font-semibold tabular-nums">
               {leader.average.toFixed(1)}
-              <span className="text-sm text-muted"> / 5</span>
+              <span className="text-[15px] text-muted"> / 5</span>
             </p>
           </div>
         ) : (
-          <p className="mt-3 text-sm text-muted">아직 집계된 평점이 없습니다.</p>
+          <p className="mt-3 text-base text-muted">아직 집계된 평점이 없습니다.</p>
         )}
       </section>
 
@@ -249,7 +249,7 @@ export default async function SetRatingSnapshotPage({
               return (
                 <div
                   key={rating.id}
-                  className="flex items-start gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm"
+                  className="flex items-start gap-2 rounded-md border border-border bg-background px-3 py-2 text-[15px]"
                 >
                   <span className="font-semibold">{player?.name ?? "-"}</span>
                   <span className="font-semibold tabular-nums text-muted">
@@ -263,7 +263,7 @@ export default async function SetRatingSnapshotPage({
         </section>
       ) : null}
 
-      <div className="flex items-center justify-between gap-3 text-[13px] text-muted">
+      <div className="flex items-center justify-between gap-3 text-[15px] text-muted">
         <span>LCKHUB 팬 평점</span>
         <Link href={matchHref(match)} className="font-semibold hover:text-foreground">
           매치 상세 보기 &gt;
