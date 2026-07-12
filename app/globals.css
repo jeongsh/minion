@@ -191,9 +191,6 @@ html[class~="dark"] {
   --timeline-chart-surface: #1c1e22;
   --timeline-chart-grid: #2c313a;
   --timeline-chart-muted: #8f98a8;
-  /* 블루/레드 팀 색 — 다크에선 어두운 배경에서 보이도록 한 단계 밝게 */
-  --team-blue: #6ea2ff;
-  --team-red: #ff7986;
 }
 
 
