@@ -497,7 +497,7 @@ export async function SetDetailContent({
     <Shell
       className={
         embedded
-          ? "flex w-full flex-col gap-4"
+          ? "flex w-full flex-col gap-6"
           : "mx-auto flex w-full max-w-7xl flex-col gap-10 px-[var(--page-inline)] py-10"
       }
     >

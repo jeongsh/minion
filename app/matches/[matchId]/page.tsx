@@ -180,7 +180,7 @@ function TabNav({
 }) {
   const firstSetId = sets[0]?.id;
   const linkClass = (active: boolean) =>
-    `relative shrink-0 px-0 py-2.5 text-sm font-bold transition-colors after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 ${
+    `relative shrink-0 px-0 py-2.5 text-base font-bold transition-colors after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 ${
       active
         ? "text-[var(--ui-ink)] after:bg-[var(--accent)]"
         : "text-[var(--ui-muted)] after:bg-transparent hover:text-[var(--ui-ink)]"
