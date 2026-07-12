@@ -251,12 +251,27 @@ function ClusterIcon({
   }
 
   if (info.iconUrl) {
+    // 모든 오브젝트 아이콘(드래곤·바론·전령·공허충)은 타임라인에서 실루엣만 살리고 색은
+    // 팀색(currentColor)으로 통일한다. 아이콘의 알파 채널을 마스크로 써서 팀색 사각형을
+    // 아이콘 모양대로 오려낸다(블루=파랑, 레드=빨강).
+    const maskId = `obj-${cluster.id}-${Math.round(cx)}-${Math.round(cy)}`;
     return (
       <g {...interactiveProps}>
         {connector}
         <circle cx={cx} cy={cy} r={half + 1.5} fill="currentColor" fillOpacity={0.18} />
         <circle cx={cx} cy={cy} r={half + 1.5} fill="none" stroke="currentColor" strokeOpacity={0.7} strokeWidth={0.9} />
-        <image href={info.iconUrl} x={cx - half} y={cy - half} width={ITEM_SZ} height={ITEM_SZ} />
+        <mask
+          id={maskId}
+          maskUnits="userSpaceOnUse"
+          x={cx - half}
+          y={cy - half}
+          width={ITEM_SZ}
+          height={ITEM_SZ}
+          style={{ maskType: "alpha" }}
+        >
+          <image href={info.iconUrl} x={cx - half} y={cy - half} width={ITEM_SZ} height={ITEM_SZ} />
+        </mask>
+        <rect x={cx - half} y={cy - half} width={ITEM_SZ} height={ITEM_SZ} fill="currentColor" mask={`url(#${maskId})`} />
         {badge}
       </g>
     );
@@ -714,7 +729,7 @@ export function GameTimeline({
           ].map(({ src, label }) => (
             <span key={label} className="flex items-center gap-1">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={src} alt="" className="h-3 w-3 object-contain" />
+              <img src={src} alt="" className="h-6 w-6 object-contain" />
               {label}
             </span>
           ))}

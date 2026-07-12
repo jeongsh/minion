@@ -1,7 +1,6 @@
 import type { SetResult } from "@/lib/types";
 
-const MINIMAP_BASE =
-  "https://raw.communitydragon.org/latest/game/assets/ux/minimap/icons";
+const OBJECTIVE_BASE = "/objectives";
 
 export type DragonType =
   | "cloud"
@@ -22,20 +21,20 @@ export type ObjectiveIconOptions = {
   includeElder?: boolean;
 };
 
-/** Community Dragon 미니맵 오브젝트 아이콘 (종류별 색상 구분) */
+/** Local objective icons sourced from the RFT objective SVG set. */
 export const OBJECTIVE_ICONS = {
-  baron: `${MINIMAP_BASE}/baron.png`,
-  herald: `${MINIMAP_BASE}/riftherald.png`,
-  voidGrub: `${MINIMAP_BASE}/grub.png`,
-  dragon: `${MINIMAP_BASE}/dragon.png`,
-  cloud: `${MINIMAP_BASE}/dragon_cloud.png`,
-  infernal: `${MINIMAP_BASE}/dragon_infernal.png`,
-  mountain: `${MINIMAP_BASE}/dragon_mountain.png`,
-  ocean: `${MINIMAP_BASE}/dragon_ocean.png`,
-  hextech: `${MINIMAP_BASE}/dragon_hextech.png`,
-  chemtech: `${MINIMAP_BASE}/dragon_chemtech.png`,
-  elder: `${MINIMAP_BASE}/dragon_elder.png`,
-  tower: `${MINIMAP_BASE}/tower.png`,
+  baron: `${OBJECTIVE_BASE}/baron.svg`,
+  herald: `${OBJECTIVE_BASE}/herald.svg`,
+  voidGrub: `${OBJECTIVE_BASE}/void-grub.svg`,
+  dragon: `${OBJECTIVE_BASE}/dragon.svg`,
+  cloud: `${OBJECTIVE_BASE}/cloud-dragon.svg`,
+  infernal: `${OBJECTIVE_BASE}/infernal-dragon.svg`,
+  mountain: `${OBJECTIVE_BASE}/mountain-dragon.svg`,
+  ocean: `${OBJECTIVE_BASE}/ocean-dragon.svg`,
+  hextech: `${OBJECTIVE_BASE}/hextech-dragon.svg`,
+  chemtech: `${OBJECTIVE_BASE}/chemtech-dragon.svg`,
+  elder: `${OBJECTIVE_BASE}/elder-dragon.svg`,
+  tower: `${OBJECTIVE_BASE}/tower.svg`,
 } as const;
 
 type Side = "blue" | "red";

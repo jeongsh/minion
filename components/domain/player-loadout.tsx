@@ -4,35 +4,31 @@ import type { ReactNode } from "react";
 import { championImage, championLabel } from "@/lib/champions";
 import { spellImageUrlById, type GameSpell } from "@/lib/spells";
 import type { Champion } from "@/lib/types";
-import { RunePair } from "./rune-pair";
-import type { RuneCatalog } from "@/lib/runes";
+import { resolveRunePairUrls, type RuneCatalog } from "@/lib/runes";
 
 const EMPTY_RUNE_CATALOG: RuneCatalog = { keystones: [], trees: [] };
 
-function ResolvedRunePair({ urls, size }: { urls: [string, string]; size: "sm" | "md" }) {
-  const mainClass = size === "sm" ? "h-7 w-7" : "h-8 w-8";
-  const badgeClass = size === "sm" ? "h-3.5 w-3.5" : "h-4 w-4";
+function RuneIcon({ src, size, isTree = false }: { src: string; size: "sm" | "md"; isTree?: boolean }) {
+  const className = size === "sm" ? "h-5 w-5" : "h-6 w-6";
+  const imageSize = size === "sm" ? "20px" : "24px";
 
   return (
-    <span className={`relative block shrink-0 ${mainClass}`}>
-      {urls[0] ? (
-        <Image src={urls[0]} alt="" fill sizes={size === "sm" ? "28px" : "32px"} unoptimized className="rounded-full border border-white/10 bg-[#0d1117] object-contain" />
-      ) : (
-        <span className={`block rounded-full border border-dashed border-border bg-surface-muted ${mainClass}`} />
-      )}
-      {urls[1] ? (
-        <Image src={urls[1]} alt="" width={size === "sm" ? 14 : 16} height={size === "sm" ? 14 : 16} unoptimized className={`absolute -bottom-0.5 -right-0.5 rounded-full object-contain ring-1 ring-background ${badgeClass}`} />
-      ) : null}
+    <span
+      className={`relative block shrink-0 overflow-hidden rounded-full bg-[#0d1117] ${className} ${
+        isTree ? "" : "border border-white/10"
+      }`}
+    >
+      {src ? <Image src={src} alt="" fill sizes={imageSize} unoptimized className={`object-contain ${isTree ? "scale-[0.72]" : ""}`} /> : null}
     </span>
   );
 }
 
 function SpellIcon({ src, size }: { src: string; size: "sm" | "md" }) {
-  const className = size === "sm" ? "h-5 w-5" : "h-8 w-8";
+  const className = size === "sm" ? "h-5 w-5" : "h-6 w-6";
 
   return (
     <span className={`relative block shrink-0 overflow-hidden rounded-sm border border-border/60 bg-surface-muted ${className}`}>
-      {src ? <Image src={src} alt="" fill sizes={size === "sm" ? "20px" : "32px"} className="object-cover" /> : null}
+      {src ? <Image src={src} alt="" fill sizes={size === "sm" ? "20px" : "24px"} className="object-cover" /> : null}
     </span>
   );
 }
@@ -65,23 +61,31 @@ export function PlayerLoadout({
   className?: string;
 }) {
   const image = championImage(champion);
-  const championSize = size === "sm" ? "h-11 w-11" : "h-12 w-12";
+  const championSize = size === "sm" ? "h-10 w-10" : "h-12 w-12";
+  const championImageSize = size === "sm" ? "40px" : "48px";
   const spell0Url = spellImageUrlById(spells, spellIds[0], version);
   const spell1Url = spellImageUrlById(spells, spellIds[1], version);
+  const resolvedRunePair = resolveRunePairUrls(runeIds, runeCatalog);
+  const resolvedRuneUrls = runeImageUrls ?? [resolvedRunePair.keystoneUrl, resolvedRunePair.treeUrl];
 
   return (
     <div className={`flex min-w-0 items-center gap-2 ${className}`}>
-      <span className={`relative block shrink-0 overflow-hidden rounded-md border border-border bg-surface-muted ${championSize}`}>
-        {image ? <Image src={image} alt={championLabel(champion)} fill sizes={size === "sm" ? "44px" : "48px"} className="object-cover" /> : null}
-        {badge ? <span className="absolute bottom-0 right-0 rounded-tl bg-background/90 px-1 text-[13px] font-semibold">{badge}</span> : null}
-      </span>
-
-      <span className="flex shrink-0 items-center gap-1">
-        <span className="flex flex-col gap-1">
-          <SpellIcon src={spell0Url} size={size} />
-          <SpellIcon src={spell1Url} size={size} />
+      <span className="flex shrink-0 items-center gap-0">
+        <span className={`relative block shrink-0 overflow-hidden rounded-md border border-border bg-surface-muted ${championSize}`}>
+          {image ? <Image src={image} alt={championLabel(champion)} fill sizes={championImageSize} className="object-cover" /> : null}
+          {badge ? <span className="absolute bottom-0 right-0 rounded-tl bg-background/90 px-0.5 text-[9px] font-semibold leading-3">{badge}</span> : null}
         </span>
-        {runeImageUrls ? <ResolvedRunePair urls={runeImageUrls} size={size} /> : <RunePair runeIds={runeIds} catalog={runeCatalog} size={size} />}
+
+        <span className="flex shrink-0 items-center gap-0">
+          <span className="flex flex-col gap-0">
+            <SpellIcon src={spell0Url} size={size} />
+            <SpellIcon src={spell1Url} size={size} />
+          </span>
+          <span className="flex flex-col gap-0">
+            <RuneIcon src={resolvedRuneUrls[0]} size={size} />
+            <RuneIcon src={resolvedRuneUrls[1]} size={size} isTree />
+          </span>
+        </span>
       </span>
 
       {primaryLabel != null || secondaryLabel != null ? (
