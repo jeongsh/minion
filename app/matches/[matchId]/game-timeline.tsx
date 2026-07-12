@@ -721,7 +721,6 @@ export function GameTimeline({
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-5 pb-4 pt-2 text-[15px] text-muted">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
           {showObjectives && [
-            { src: OBJECTIVE_ICONS.dragon,   label: "드래곤" },
             { src: OBJECTIVE_ICONS.elder,    label: "장로" },
             { src: OBJECTIVE_ICONS.baron,    label: "바론" },
             { src: OBJECTIVE_ICONS.herald,   label: "전령" },
