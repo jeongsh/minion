@@ -17,7 +17,6 @@ import type { Match, Player, Team, Tournament } from "@/lib/types";
 import {
   buildTeamStandingRows,
   formatDateRange,
-  formatDateTime,
   matchHref,
   tournamentStatus,
   type TournamentStatus,
@@ -26,10 +25,41 @@ import {
 import { BracketConnectors, type BracketConnection } from "./bracket-connectors";
 import { BracketScroller } from "./bracket-scroller";
 
+const BRACKET_DATE_TIME_FORMATTER = new Intl.DateTimeFormat("ko-KR", {
+  timeZone: "Asia/Seoul",
+  month: "numeric",
+  day: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+});
+
 const FINALS_STAGE_NAMES = new Set(["finals", "grand finals", "grand final", "결승"]);
 
 function isFinalsStage(stageName: string) {
   return FINALS_STAGE_NAMES.has(stageName.trim().toLowerCase());
+}
+
+function formatBracketDateTime(value: string) {
+  const parts = BRACKET_DATE_TIME_FORMATTER.formatToParts(new Date(value));
+  const part = (type: Intl.DateTimeFormatPartTypes) => parts.find((item) => item.type === type)?.value ?? "";
+
+  return `${part("month")}.${part("day")} ${part("hour")}:${part("minute")}`;
+}
+
+function compactStageName(stageName: string) {
+  return stageName
+    .replace(/Bracket Round\s*(\d+)/i, "BR$1")
+    .replace(/Play-?In Day\s*(\d+)/i, "PI D$1")
+    .replace(/PLAY[\s-]?IN/i, "PI")
+    .replace(/Round\s*(\d+)/i, "R$1")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function formatBracketColumnLabel(stageName: string, opts?: { prefix?: string; group?: string; lower?: boolean }) {
+  const tokens = [opts?.group, opts?.prefix, compactStageName(stageName), opts?.lower ? "LB" : null].filter(Boolean);
+  return tokens.join(" ? ");
 }
 
 /**
@@ -366,30 +396,30 @@ function MatchCard({
   const winnerB = match.status === "completed" && match.winnerTeamId === teamB?.id;
 
   return (
-    <Link
-      href={matchHref(match)}
-      data-match-id={match.id}
-      className="block overflow-hidden rounded-md border border-border bg-surface transition-colors hover:border-accent"
-    >
-      <div className="truncate px-2.5 pt-1.5 text-xs font-semibold text-muted">
-        {formatDateTime(match.matchDate)}
-      </div>
-      <TeamRow
-        team={teamA}
-        score={match.teamAScore}
-        isWinner={winnerA}
-        accentColor={teamA?.primaryColor ?? accent}
-        rowIndex={0}
-      />
-      <div className="h-px bg-border" />
-      <TeamRow
-        team={teamB}
-        score={match.teamBScore}
-        isWinner={winnerB}
-        accentColor={teamB?.primaryColor ?? accent}
-        rowIndex={1}
-      />
-    </Link>
+    <div className="flex flex-col gap-1.5">
+      <div className="truncate px-0.5 text-[12px] font-medium text-muted">{formatBracketDateTime(match.matchDate)}</div>
+      <Link
+        href={matchHref(match)}
+        data-match-id={match.id}
+        className="block overflow-hidden rounded-md border border-border bg-surface transition-colors hover:border-accent"
+      >
+        <TeamRow
+          team={teamA}
+          score={match.teamAScore}
+          isWinner={winnerA}
+          accentColor={teamA?.primaryColor ?? accent}
+          rowIndex={0}
+        />
+        <div className="h-px bg-border" />
+        <TeamRow
+          team={teamB}
+          score={match.teamBScore}
+          isWinner={winnerB}
+          accentColor={teamB?.primaryColor ?? accent}
+          rowIndex={1}
+        />
+      </Link>
+    </div>
   );
 }
 
@@ -408,33 +438,33 @@ function GrandFinalsCard({
   const winnerB = match.status === "completed" && match.winnerTeamId === teamB?.id;
 
   return (
-    <Link
-      href={matchHref(match)}
-      data-match-id={match.id}
-      style={{ borderColor: accent }}
-      className="block overflow-hidden rounded-md border-2 bg-surface transition-colors hover:bg-surface-muted"
-    >
-      <div className="truncate px-2.5 pt-1.5 text-xs font-semibold text-muted">
-        {formatDateTime(match.matchDate)}
-      </div>
-      <TeamRow
-        team={teamA}
-        placeholder="승자조 승자"
-        score={match.teamAScore}
-        isWinner={winnerA}
-        accentColor={teamA?.primaryColor ?? accent}
-        rowIndex={0}
-      />
-      <div className="h-px bg-border" />
-      <TeamRow
-        team={teamB}
-        placeholder="패자조 승자"
-        score={match.teamBScore}
-        isWinner={winnerB}
-        accentColor={teamB?.primaryColor ?? accent}
-        rowIndex={1}
-      />
-    </Link>
+    <div className="flex flex-col gap-1.5">
+      <div className="truncate px-0.5 text-[12px] font-medium text-muted">{formatBracketDateTime(match.matchDate)}</div>
+      <Link
+        href={matchHref(match)}
+        data-match-id={match.id}
+        style={{ borderColor: accent }}
+        className="block overflow-hidden rounded-md border-2 bg-surface transition-colors hover:bg-surface-muted"
+      >
+        <TeamRow
+          team={teamA}
+          placeholder="Upper winner"
+          score={match.teamAScore}
+          isWinner={winnerA}
+          accentColor={teamA?.primaryColor ?? accent}
+          rowIndex={0}
+        />
+        <div className="h-px bg-border" />
+        <TeamRow
+          team={teamB}
+          placeholder="Lower winner"
+          score={match.teamBScore}
+          isWinner={winnerB}
+          accentColor={teamB?.primaryColor ?? accent}
+          rowIndex={1}
+        />
+      </Link>
+    </div>
   );
 }
 
@@ -560,7 +590,7 @@ const UPPER_ROW = 2;
 
 function ColumnHeader({ label }: { label: string }) {
   return (
-    <span className="inline-block w-fit rounded-md bg-surface-muted px-3 py-1.5 text-[13px] font-bold text-muted">
+    <span className="inline-block w-fit whitespace-nowrap rounded-md bg-surface-muted px-2.5 py-1 text-[12px] font-bold text-muted">
       {label}
     </span>
   );
@@ -578,10 +608,10 @@ type PositionedGroup = {
 };
 
 /**
- * 같은 라운드 안에 서로 독립적으로 진행되는 여러 그룹(예: 그룹 A/B, 각자 자체
- * 승자조/패자조를 가짐)이 있을 수 있다. match.groupIndex(기본 0)로 그룹을 나누고,
- * 각 그룹을 세로로 쌓인 독립된 미니 브래킷으로 그린다. 그룹이 하나뿐이면(대부분의
- * 경우) 기존과 동일하게 보인다.
+ * ?? ??? ?? ?? ????? ???? ?? ??(?: ?? A/B, ?? ??
+ * ???/???? ??)? ?? ? ??. match.groupIndex(?? 0)? ??? ???,
+ * ? ??? ??? ?? ??? ?? ????? ???. ??? ?????(????
+ * ??) ??? ???? ???.
  */
 function buildPositionedGroups(regularColumns: StageColumn[]) {
   const groupIndices = [
@@ -631,9 +661,8 @@ function buildPositionedGroups(regularColumns: StageColumn[]) {
   return { groups, gapRows, lastRow: rowCursor - 1 };
 }
 
-/** groupIndex 0/1/2/3... → "A조"/"B조"/"C조"/"D조"... (EWC 같은 4팀 조별 그룹 스테이지 표시용). */
 function groupLetterLabel(groupIndex: number) {
-  return `${String.fromCharCode(65 + groupIndex)}조`;
+  return String.fromCharCode(65 + groupIndex);
 }
 
 function BracketGrid({
@@ -683,9 +712,10 @@ function BracketGrid({
   return (
     <BracketConnectors connections={connections}>
       <div
-        className="grid gap-x-4 gap-y-2"
+        className="grid w-max min-w-full gap-x-4 gap-y-2"
         style={{
           gridTemplateColumns: `repeat(${trackColumnCount}, 12.5rem)${finalsColumn ? " 13.5rem" : ""}`,
+          justifyContent: "space-between",
         }}
       >
         {gapRows.map((row) => (
@@ -702,10 +732,14 @@ function BracketGrid({
                 <ColumnHeader
                   label={
                     useGroupLabels
-                      ? `${groupLetterLabel(group.groupIndex)} · ${regularColumns[columnIndex]?.stage.name ?? `${columnIndex + 1}라운드`}`
+                      ? formatBracketColumnLabel(regularColumns[columnIndex]?.stage.name ?? `${columnIndex + 1}R`, {
+                          group: groupLetterLabel(group.groupIndex),
+                        })
                       : group.hasLower
-                        ? `상위권 대진 - ${regularColumns[columnIndex]?.stage.name ?? `${columnIndex + 1}라운드`}`
-                        : (regularColumns[columnIndex]?.stage.name ?? `${columnIndex + 1}라운드`)
+                        ? formatBracketColumnLabel(regularColumns[columnIndex]?.stage.name ?? `${columnIndex + 1}R`, {
+                            prefix: "Upper",
+                          })
+                        : formatBracketColumnLabel(regularColumns[columnIndex]?.stage.name ?? `${columnIndex + 1}R`)
                   }
                 />
               </div>
@@ -732,8 +766,13 @@ function BracketGrid({
                     <ColumnHeader
                       label={
                         useGroupLabels
-                          ? `${groupLetterLabel(group.groupIndex)} · ${regularColumns[columnIndex]?.stage.name ?? `${columnIndex + 1}라운드`} · 패자조`
-                          : `하위권 대진 - ${regularColumns[columnIndex]?.stage.name ?? `${columnIndex + 1}라운드`}`
+                          ? formatBracketColumnLabel(regularColumns[columnIndex]?.stage.name ?? `${columnIndex + 1}R`, {
+                              group: groupLetterLabel(group.groupIndex),
+                              lower: true,
+                            })
+                          : formatBracketColumnLabel(regularColumns[columnIndex]?.stage.name ?? `${columnIndex + 1}R`, {
+                              prefix: "Lower",
+                            })
                       }
                     />
                   </div>
@@ -758,7 +797,7 @@ function BracketGrid({
 
         {finalsColumn && finalsMatch ? (
           <div style={{ gridColumn: trackColumnCount + 1, gridRow: 1 }} className="flex flex-col gap-2">
-            <ColumnHeader label="결승" />
+            <ColumnHeader label="Final" />
           </div>
         ) : null}
 
