@@ -148,7 +148,10 @@ export function BracketConnectors({
   }, [connections]);
 
   return (
-    <div ref={containerRef} className="relative">
+    // 스크롤 컨테이너(flex)의 자식이라 기본적으로 내용 폭으로 줄어든다. 대진표가 컨테이너보다
+    // 좁을 때 내부 그리드가 남는 폭을 채워(맨 오른쪽 노드를 우측 끝에 고정) "꽉 찬" 느낌을 주려면,
+    // 이 래퍼가 최소한 컨테이너 폭만큼은 늘어나야 한다(넘칠 땐 w-max로 내용만큼 커져 스크롤).
+    <div ref={containerRef} className="relative w-max min-w-full">
       <svg className="pointer-events-none absolute inset-0 h-full w-full overflow-visible" aria-hidden="true">
         {paths.map((path) => (
           <path

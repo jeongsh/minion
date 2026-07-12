@@ -676,7 +676,11 @@ function BracketGrid({
   teamMap: Map<string, Team>;
   accent: string;
 }) {
-  const finalsIndex = columns.findIndex((column) => isFinalsStage(column.stage.name));
+  // "결승"이라는 이름의 최종 진출전이 그랜드 파이널("Finals")과 별개 스테이지로 함께 있는
+  // 시즌이 있다(예: 2026 LCK컵 플레이오프). 열은 날짜순이므로 매칭되는 것 중 '마지막'이
+  // 진짜 그랜드 파이널이다 — 첫 매칭을 집으면 앞 단계 경기가 오른쪽 끝으로 빠지고 연결선이
+  // 거꾸로 그려진다.
+  const finalsIndex = columns.findLastIndex((column) => isFinalsStage(column.stage.name));
   const finalsColumn = finalsIndex >= 0 ? columns[finalsIndex] : null;
   const regularColumns = finalsIndex >= 0 ? columns.filter((_, index) => index !== finalsIndex) : columns;
   const finalsMatch = finalsColumn?.matches[0];
@@ -685,6 +689,8 @@ function BracketGrid({
   const { groups, gapRows, lastRow } = buildPositionedGroups(regularColumns);
   const useGroupLabels = groups.length > 1;
   const firstContentRow = groups[0]?.upperRow ?? UPPER_ROW;
+
+  const finalsGridColumn = trackColumnCount + 1;
 
   const matchById = new Map(columns.flatMap((column) => column.matches).map((match) => [match.id, match]));
 
@@ -716,7 +722,7 @@ function BracketGrid({
       <div
         className="grid w-max min-w-full gap-x-4 gap-y-2"
         style={{
-          gridTemplateColumns: `repeat(${trackColumnCount}, 12.5rem)${finalsColumn ? " 13.5rem" : ""}`,
+          gridTemplateColumns: `repeat(${trackColumnCount + (finalsMatch ? 1 : 0)}, 12.5rem)`,
           justifyContent: "space-between",
         }}
       >
@@ -797,23 +803,23 @@ function BracketGrid({
           </Fragment>
         ))}
 
-        {finalsColumn && finalsMatch ? (
-          <div style={{ gridColumn: trackColumnCount + 1, gridRow: 1 }} className="flex flex-col gap-2">
-            <ColumnHeader label="Final" />
-          </div>
-        ) : null}
-
-        {finalsColumn && finalsMatch ? (
-          <div
-            data-merge-slot="true"
-            style={{
-              gridColumn: trackColumnCount + 1,
-              gridRow: `${firstContentRow} / span ${lastRow - firstContentRow + 1}`,
-            }}
-            className="flex items-center"
-          >
-            <GrandFinalsCard match={finalsMatch} teamMap={teamMap} accent={accent} />
-          </div>
+        {/* 결승은 나머지 라운드 전체를 세로로 아우르는 마지막 열에 헤더 + 카드로 함께 놓는다. */}
+        {finalsMatch ? (
+          <Fragment>
+            <div style={{ gridColumn: finalsGridColumn, gridRow: 1 }} className="flex flex-col gap-2">
+              <ColumnHeader label="Final" />
+            </div>
+            <div
+              data-merge-slot="true"
+              style={{
+                gridColumn: finalsGridColumn,
+                gridRow: `${firstContentRow} / span ${lastRow - firstContentRow + 1}`,
+              }}
+              className="flex flex-col justify-center"
+            >
+              <GrandFinalsCard match={finalsMatch} teamMap={teamMap} accent={accent} />
+            </div>
+          </Fragment>
         ) : null}
       </div>
     </BracketConnectors>
