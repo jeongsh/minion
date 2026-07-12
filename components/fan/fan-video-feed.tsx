@@ -20,7 +20,7 @@ function preloadVideoImages(videos: FanVideoItem[]) {
 
 function VideoOwnerAvatar({ video }: { video: FanVideoItem }) {
   return (
-    <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#e5e5e5] text-xs font-black text-[#606060]">
+    <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#e5e5e5] text-[13px] font-medium text-[#606060]">
       {video.ownerImageUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={video.ownerImageUrl} alt="" className="h-full w-full object-contain" />
@@ -175,7 +175,7 @@ export function FanVideoFeed({
                 </span>
               </span>
               {video.isNew ? (
-                <span className="absolute left-2 top-2 rounded bg-red-600 px-2 py-1 text-xs font-bold text-white">NEW</span>
+                <span className="absolute left-2 top-2 rounded bg-red-600 px-2 py-1 text-[13px] font-medium text-white">NEW</span>
               ) : null}
             </div>
             <div className="mt-3 flex gap-3">

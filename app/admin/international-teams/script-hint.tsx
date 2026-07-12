@@ -128,7 +128,7 @@ export function InternationalRosterScriptHint() {
       </div>
 
       {logs.length > 0 && (
-        <div className="mt-2 max-h-64 overflow-y-auto rounded-md border border-border bg-background p-2 font-mono text-xs leading-relaxed">
+        <div className="mt-2 max-h-64 overflow-y-auto rounded-md border border-border bg-background p-2 font-mono text-[13px] leading-relaxed">
           <div ref={logContainerRef}>
             {logs.map((line, index) => (
               <div key={index} className="whitespace-pre-wrap text-foreground/80">

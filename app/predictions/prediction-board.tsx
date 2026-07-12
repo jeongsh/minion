@@ -147,14 +147,14 @@ export function PredictionBoard({ matches, teams, tournaments, bets, currentUser
 
       {error ? <div className="mt-4 flex items-center justify-between gap-3 rounded-xl bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-600"><span>{error}</span><button type="button" onClick={() => setError(null)} aria-label="오류 닫기"><RotateCcw size={16} /></button></div> : null}
 
-      <div className="mt-9 flex flex-col gap-9">
+      <div className="mt-9 flex flex-col gap-10">
         {Object.entries(grouped).map(([date, dayMatches]) => dayMatches ? (
           <section key={date}>
             <h2 className="mb-3 flex items-center gap-2 text-lg font-black text-[var(--ui-ink)]">
               {dateLabel(dayMatches[0].matchDate)}
-              {date === dateKeyKST(new Date().toISOString()) ? <span className="rounded-full bg-[var(--accent)] px-2 py-0.5 text-xs font-bold text-[var(--accent-foreground)]">오늘</span> : null}
+              {date === dateKeyKST(new Date().toISOString()) ? <span className="rounded-full bg-[var(--accent)] px-2 py-0.5 text-[13px] font-medium text-[var(--accent-foreground)]">오늘</span> : null}
             </h2>
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-5">
               {dayMatches.map((match) => {
                 const teamA = teamMap.get(match.teamAId);
                 const teamB = teamMap.get(match.teamBId);

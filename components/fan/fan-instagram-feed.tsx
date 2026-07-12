@@ -151,7 +151,7 @@ function StoryBubble({ story, onClick }: { story: StoryItem; onClick: () => void
           )}
         </div>
         {isVideo && (
-          <span className="absolute bottom-0 right-0 flex h-4 w-4 items-center justify-center rounded-full bg-accent text-xs text-white">
+          <span className="absolute bottom-0 right-0 flex h-4 w-4 items-center justify-center rounded-full bg-accent text-[13px] text-white">
             ▶
           </span>
         )}
@@ -228,13 +228,13 @@ function PostCard({
         )}
         {/* 임베드 힌트 오버레이 */}
         <div className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition group-hover:bg-black/30 group-hover:opacity-100">
-          <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-black">
+          <span className="rounded-full bg-white/90 px-3 py-1 text-[13px] font-medium text-black">
             게시물 보기
           </span>
         </div>
       </div>
       <div className={compact ? "p-3" : "flex h-[84px] flex-col p-3.5"}>
-        <div className="flex items-center justify-between gap-2 text-xs text-muted">
+        <div className="flex items-center justify-between gap-2 text-[13px] text-muted">
           <span className="truncate font-bold text-accent">@{item.ownerName}</span>
           <span className="shrink-0 whitespace-nowrap" suppressHydrationWarning>
             {!compact && item.likesCount ? `♥ ${item.likesCount.toLocaleString()} · ` : ""}

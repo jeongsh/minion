@@ -52,7 +52,7 @@ function ChampionFace({ champion, size = "h-10 w-10" }: { champion: ReportChampi
 function SectionHead({ eyebrow, title, icon: Icon }: { eyebrow: string; title: string; icon: React.ComponentType<{ size?: number | string; className?: string }> }) {
   return (
     <div className="mb-6">
-      <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[var(--ui-muted)]">{eyebrow}</p>
+      <p className="text-[13px] font-medium uppercase tracking-[0.16em] text-[var(--ui-muted)]">{eyebrow}</p>
       <div className="mt-1.5 flex items-center gap-2.5 border-b-2 border-[var(--ui-ink)] pb-3">
         <Icon size={22} className="text-[var(--ui-ink)]" />
         <h2 className="home-section-title text-[22px] text-[var(--ui-ink)]">{title}</h2>
@@ -65,12 +65,12 @@ function SectionHead({ eyebrow, title, icon: Icon }: { eyebrow: string; title: s
 // 구버전 리포트(score 없음)는 승률 표기로 대체한다.
 function ScoreBadge({ stat }: { stat: ReportChampionStat }) {
   if (stat.score == null) {
-    return <span className="rounded-md bg-[var(--ui-surface-muted)] px-1.5 py-0.5 text-xs font-extrabold tabular-nums text-[var(--ui-muted)]">{pct(stat.winRate)}%</span>;
+    return <span className="rounded-md bg-[var(--ui-surface-muted)] px-1.5 py-0.5 text-[13px] font-medium tabular-nums text-[var(--ui-muted)]">{pct(stat.winRate)}%</span>;
   }
   const breakdown = `밴픽률 ${pct(stat.presenceRate)}% · 승률 ${pct(stat.winRate)}% · 스탯 ${stat.statScore ?? "-"}점`;
   const strong = stat.score >= 75;
   return (
-    <span title={breakdown} className={`rounded-md px-1.5 py-0.5 text-xs font-extrabold ${strong ? "bg-[color-mix(in_srgb,var(--accent)_16%,transparent)] text-[var(--ui-ink)]" : "bg-[var(--ui-surface-muted)] text-[var(--ui-muted)]"}`}>
+    <span title={breakdown} className={`rounded-md px-1.5 py-0.5 text-[13px] font-medium ${strong ? "bg-[color-mix(in_srgb,var(--accent)_16%,transparent)] text-[var(--ui-ink)]" : "bg-[var(--ui-surface-muted)] text-[var(--ui-muted)]"}`}>
       종합 <span className="tabular-nums">{stat.score}</span>
     </span>
   );
@@ -115,8 +115,8 @@ export function WeeklyReportView({ report, index }: { report: WeeklyReportRow; i
         style={{ backgroundImage: "radial-gradient(820px 300px at 88% -10%, rgb(71 229 11 / 0.22), transparent 62%), radial-gradient(560px 260px at -6% 110%, rgb(71 229 11 / 0.1), transparent 60%)" }}
       >
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-          <span className="text-xs font-black uppercase tracking-[0.16em] text-[#47e50b]">Minion Weekly Report</span>
-          <span className="text-xs font-bold uppercase tracking-[0.12em] text-white/50">{report.week_key}</span>
+          <span className="text-[13px] font-medium uppercase tracking-[0.16em] text-[#47e50b]">Minion Weekly Report</span>
+          <span className="text-[13px] font-medium uppercase tracking-[0.12em] text-white/50">{report.week_key}</span>
         </div>
         <p className="mt-6 text-sm font-extrabold tracking-[-0.01em] text-white/60">
           {formatPeriod(report.period_start, report.period_end)} · LCK
@@ -131,7 +131,7 @@ export function WeeklyReportView({ report, index }: { report: WeeklyReportRow; i
             { label: "패치", value: stats.patches.join(", ") || "—" },
           ].map((chip) => (
             <div key={chip.label} className="rounded-xl border border-white/12 bg-white/[0.05] px-4 py-3">
-              <dt className="text-xs font-bold text-white/50">{chip.label}</dt>
+              <dt className="text-[13px] font-medium text-white/50">{chip.label}</dt>
               <dd className="mt-1 text-xl font-black tracking-tight tabular-nums">{chip.value}</dd>
             </div>
           ))}
@@ -185,7 +185,7 @@ export function WeeklyReportView({ report, index }: { report: WeeklyReportRow; i
             className="relative overflow-hidden rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-6 sm:p-8"
             style={{ backgroundImage: `radial-gradient(640px 220px at 100% 0%, color-mix(in srgb, ${review.teamOfWeek.team.color} 14%, transparent), transparent 65%)` }}
           >
-            <p className="text-xs font-black uppercase tracking-[0.16em]" style={{ color: review.teamOfWeek.team.color }}>Team of the Week</p>
+            <p className="text-[13px] font-medium uppercase tracking-[0.16em]" style={{ color: review.teamOfWeek.team.color }}>Team of the Week</p>
             <div className="mt-4 flex items-start gap-5">
               <TeamLogo team={review.teamOfWeek.team} size="h-16 w-16" />
               <div className="min-w-0">
@@ -255,7 +255,7 @@ export function WeeklyReportView({ report, index }: { report: WeeklyReportRow; i
                   </div>
                   <span className="w-12 shrink-0 text-right">
                     <span className="block text-[13px] font-black leading-tight tabular-nums text-[var(--ui-ink)]">{pct(champion.presenceRate)}%</span>
-                    <span className="block text-xs font-bold text-[var(--ui-muted)]">밴픽률</span>
+                    <span className="block text-[13px] font-medium text-[var(--ui-muted)]">밴픽률</span>
                   </span>
                 </li>
               ))}
@@ -292,7 +292,7 @@ export function WeeklyReportView({ report, index }: { report: WeeklyReportRow; i
                   <h3 className="text-lg font-black uppercase tracking-[0.04em] text-[var(--ui-ink)]">{position.position}</h3>
                   <span className="text-sm font-bold text-[var(--ui-muted)]">{POSITION_LABELS[position.position]}</span>
                   {risingChampion && (
-                    <span className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] px-3 py-1 text-xs font-black text-[var(--ui-ink)]">
+                    <span className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] px-3 py-1 text-[13px] font-medium text-[var(--ui-ink)]">
                       <TrendingUp size={13} />라이징 · {risingChampion.name}
                     </span>
                   )}
@@ -356,13 +356,13 @@ export function WeeklyReportView({ report, index }: { report: WeeklyReportRow; i
                 {leader.playerImageUrl ? (
                   <img src={leader.playerImageUrl} alt={leader.playerName} className="h-9 w-9 rounded-full bg-[var(--ui-surface-muted)] object-cover object-top" />
                 ) : (
-                  <span className="grid h-9 w-9 place-items-center rounded-full bg-[var(--ui-surface-muted)] text-xs font-black text-[var(--ui-muted)]">{leader.playerName.slice(0, 2)}</span>
+                  <span className="grid h-9 w-9 place-items-center rounded-full bg-[var(--ui-surface-muted)] text-[13px] font-medium text-[var(--ui-muted)]">{leader.playerName.slice(0, 2)}</span>
                 )}
                 <div className="min-w-0">
                   <p className="truncate text-sm font-black text-[var(--ui-ink)]">
                     {leader.playerSlug ? <Link href={`/players/${leader.playerSlug}`} className="hover:underline">{leader.playerName}</Link> : leader.playerName}
                   </p>
-                  <p className="truncate text-xs font-bold text-[var(--ui-muted)]">
+                  <p className="truncate text-[13px] font-medium text-[var(--ui-muted)]">
                     {leader.team?.shortName ?? ""} · {POSITION_LABELS[leader.position] ?? leader.position}
                     {leader.championNames.length > 0 ? ` · ${leader.championNames.slice(0, 2).join(", ")}` : ""}
                   </p>
@@ -401,7 +401,7 @@ export function WeeklyReportView({ report, index }: { report: WeeklyReportRow; i
                   {picked && (
                     <div className="mt-5 rounded-xl bg-[var(--ui-surface-muted)] p-4">
                       <div className="flex items-center justify-between gap-3">
-                        <span className="inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-[0.1em] text-[var(--ui-muted)]">
+                        <span className="inline-flex items-center gap-1.5 text-[13px] font-medium uppercase tracking-[0.1em] text-[var(--ui-muted)]">
                           <Sparkles size={13} />AI Pick
                         </span>
                         <span className="text-sm font-black text-[var(--ui-ink)]">{picked.shortName} 승리 <span className="tabular-nums">{match.confidence}%</span></span>

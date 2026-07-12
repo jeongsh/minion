@@ -51,7 +51,7 @@ function PlayerProfileCard({ player }: { player: Player }) {
             {player.name.slice(0, 2)}
           </div>
         )}
-        <span className="absolute left-2.5 top-2.5 rounded-full bg-surface-muted/90 px-2.5 py-1 text-xs font-black text-accent shadow-sm backdrop-blur">
+        <span className="absolute left-2.5 top-2.5 rounded-full bg-surface-muted/90 px-2.5 py-1 text-[13px] font-medium text-accent shadow-sm backdrop-blur">
           {POSITION_LABEL[player.position]}
         </span>
       </div>

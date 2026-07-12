@@ -350,7 +350,7 @@ export default async function TeamDetailPage({
               <div className="flex shrink-0 gap-1.5">
                 {team.officialHomepageUrl ? <a href={team.officialHomepageUrl} target="_blank" rel="noopener noreferrer" title="공식 홈페이지" className="grid h-8 w-8 place-items-center rounded-full bg-white/14 text-white backdrop-blur hover:bg-white/25"><Globe2 size={15} /></a> : null}
                 {team.officialYoutubeUrl ? <a href={team.officialYoutubeUrl} target="_blank" rel="noopener noreferrer" title="유튜브" className="grid h-8 w-8 place-items-center rounded-full bg-white/14 text-white backdrop-blur hover:bg-white/25"><Play size={14} /></a> : null}
-                {team.officialXUrl ? <a href={team.officialXUrl} target="_blank" rel="noopener noreferrer" title="X" className="grid h-8 w-8 place-items-center rounded-full bg-white/14 text-xs font-black text-white backdrop-blur hover:bg-white/25">X</a> : null}
+                {team.officialXUrl ? <a href={team.officialXUrl} target="_blank" rel="noopener noreferrer" title="X" className="grid h-8 w-8 place-items-center rounded-full bg-white/14 text-[13px] font-medium text-white backdrop-blur hover:bg-white/25">X</a> : null}
                 {team.officialInstagramUrl ? <a href={team.officialInstagramUrl} target="_blank" rel="noopener noreferrer" title="인스타그램" className="grid h-8 w-8 place-items-center rounded-full bg-white/14 text-white backdrop-blur hover:bg-white/25"><AtSign size={14} /></a> : null}
               </div>
             </div>

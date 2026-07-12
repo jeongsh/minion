@@ -56,7 +56,7 @@ export function ScheduleList({
         <section key={date} id={date === scrollTargetKey ? TODAY_SECTION_ID : undefined} className="scroll-mt-40">
           <h2 className="mb-3 flex items-center gap-2 text-lg font-black text-[var(--ui-ink)]">
             {date}
-            {isToday && <span className="rounded-full bg-[var(--accent)] px-2 py-0.5 text-xs font-bold text-[var(--accent-foreground)]">오늘</span>}
+            {isToday && <span className="rounded-full bg-[var(--accent)] px-2 py-0.5 text-[13px] font-medium text-[var(--accent-foreground)]">오늘</span>}
           </h2>
           <div className={`overflow-hidden rounded-2xl border bg-[var(--ui-surface)] ${isToday ? "border-2 border-[var(--accent)]" : "border-[var(--ui-border)]"}`}>
             {dayMatches.map((match) => {
@@ -90,7 +90,7 @@ export function ScheduleList({
                   <div className="flex items-center gap-2 md:flex-col md:items-start md:gap-1.5">
                     <time className="text-base font-black tabular-nums tracking-tight text-[var(--ui-ink)]">{formatTimeKST(match.matchDate)}</time>
                     {live ? (
-                      <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-red-500/15 px-2 py-1 text-xs font-bold text-red-500">
+                      <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-red-500/15 px-2 py-1 text-[13px] font-medium text-red-500">
                         <span className="h-1.5 w-1.5 rounded-full bg-red-500 motion-safe:animate-pulse" />
                         LIVE
                       </span>

@@ -154,7 +154,7 @@ export function FanOnionBoard({
               placeholder={`${teamName}에 잠깐 남길 의견을 적어주세요`}
               className="max-h-16 min-h-5 flex-1 resize-none bg-transparent text-sm font-bold leading-5 text-[var(--ui-ink)] outline-none placeholder:text-[var(--ui-muted)]"
             />
-            <span className="ml-2 shrink-0 text-xs font-bold text-[var(--ui-muted)]">
+            <span className="ml-2 shrink-0 text-[13px] font-medium text-[var(--ui-muted)]">
               {content.length}/{MAX_LENGTH}
             </span>
           </div>
@@ -185,7 +185,7 @@ function OnionBubble({ item, now }: { item: FanOnionItem; now: number }) {
         <p className="min-w-0 whitespace-pre-wrap break-words text-[15px] font-bold leading-6 text-[var(--ui-ink)]">
           {item.content}
         </p>
-        <span className="inline-flex shrink-0 items-center gap-1 text-xs font-black leading-5 text-[var(--ui-muted)]">
+        <span className="inline-flex shrink-0 items-center gap-1 text-[13px] font-medium leading-5 text-[var(--ui-muted)]">
           <Timer size={12} />
           {minute}:{second}
         </span>

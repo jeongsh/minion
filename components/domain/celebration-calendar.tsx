@@ -96,7 +96,7 @@ export function CelebrationCalendar({
                     </p>
                   </div>
                   <span
-                    className="shrink-0 rounded-full px-2.5 py-1 text-xs font-black text-white"
+                    className="shrink-0 rounded-full px-2.5 py-1 text-[13px] font-medium text-white"
                     style={{ background: meta.color }}
                   >
                     {ddayLabel(event.dday)}
@@ -189,7 +189,7 @@ export function CelebrationCalendar({
                   <span className="min-w-0 flex-1 truncate text-[13px] font-black text-[var(--ui-ink)]">
                     {meta.emoji} {event.title}
                   </span>
-                  <span className="shrink-0 text-xs font-black" style={{ color: meta.color }}>
+                  <span className="shrink-0 text-[13px] font-medium" style={{ color: meta.color }}>
                     {ddayLabel(event.dday)}
                   </span>
                 </div>
@@ -199,7 +199,7 @@ export function CelebrationCalendar({
         ) : (
           <div className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-[var(--ui-border)] pt-3">
             {(Object.keys(TYPE_META) as CalendarEventType[]).map((t) => (
-              <span key={t} className="flex items-center gap-1.5 text-xs font-bold text-[var(--ui-muted)]">
+              <span key={t} className="flex items-center gap-1.5 text-[13px] font-medium text-[var(--ui-muted)]">
                 <span className="h-2 w-2 rounded-full" style={{ background: TYPE_META[t].color }} />
                 {TYPE_META[t].label}
               </span>

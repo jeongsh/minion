@@ -79,7 +79,7 @@ export function AppShell({ children, currentUser = null }: { children: React.Rea
       </aside>
 
       <div className={`flex min-h-screen flex-col pt-16 transition-[padding] ${collapsed ? "lg:pl-[72px]" : "lg:pl-[216px]"}`}><div className="flex-1 bg-[var(--ui-surface)]">{children}</div><SiteFooter /></div>
-      <nav className="fixed inset-x-0 bottom-0 z-50 flex h-16 items-center justify-around border-t border-[#e8e8eb] bg-background lg:hidden">{nav.slice(0,5).map(({href,label,icon:Icon}) => <Link key={href} href={href} className={`flex flex-col items-center gap-1 text-xs font-bold ${pathname.startsWith(href) ? "text-[#18191c]" : "text-[#6f737a]"}`}><Icon size={20}/>{label}</Link>)}</nav>
+      <nav className="fixed inset-x-0 bottom-0 z-50 flex h-16 items-center justify-around border-t border-[#e8e8eb] bg-background lg:hidden">{nav.slice(0,5).map(({href,label,icon:Icon}) => <Link key={href} href={href} className={`flex flex-col items-center gap-1 text-[13px] font-medium ${pathname.startsWith(href) ? "text-[#18191c]" : "text-[#6f737a]"}`}><Icon size={20}/>{label}</Link>)}</nav>
     </div>
   );
 }

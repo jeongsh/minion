@@ -64,13 +64,13 @@ function VideoCell({ video, teamSlug, teamColor }: { video: FeedVideoItem; teamS
         style={{ background: "linear-gradient(transparent, rgba(20,18,24,0.82))" }}
       >
         <span
-          className="self-start rounded-[3px] px-[7px] py-[3px] text-xs font-black"
+          className="self-start rounded-[3px] px-[7px] py-[3px] text-[13px] font-medium"
           style={{ background: teamColor }}
         >
           영상
         </span>
         <span className="text-sm font-black leading-snug line-clamp-2">{video.title}</span>
-        <span className="text-xs font-semibold text-white/75">
+        <span className="text-[13px] font-medium text-white/75">
           {video.ownerName} · <span suppressHydrationWarning>{relativeTime(video.publishedAt)}</span>
         </span>
       </div>
@@ -92,7 +92,7 @@ function InstaCell({ item, onOpen }: { item: FeedInstaItem; onOpen: () => void }
         <span className="text-[13px] font-extrabold leading-snug line-clamp-2">
           {item.caption || "Instagram"}
         </span>
-        <span className="text-xs font-semibold text-white/75">
+        <span className="text-[13px] font-medium text-white/75">
           @{item.ownerName} · <span suppressHydrationWarning>{relativeTime(item.postedAt)}</span>
         </span>
       </div>

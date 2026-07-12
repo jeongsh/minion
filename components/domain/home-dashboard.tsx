@@ -182,7 +182,7 @@ export function HomeDashboard({
           <div className="mb-3 flex items-center gap-2 text-[#18191c]">
             <CalendarDays size={20} />
             <h2 className="home-section-title text-xl">다가오는 경기</h2>
-            <span className="ml-auto rounded-full bg-[#eeeeef] px-2 py-1 text-xs font-black text-[#18191c] dark:bg-[#2a2f35]">
+            <span className="ml-auto rounded-full bg-[#eeeeef] px-2 py-1 text-[13px] font-medium text-[#18191c] dark:bg-[#2a2f35]">
               PREDICTION
             </span>
           </div>
@@ -292,7 +292,7 @@ export function HomeDashboard({
                   {r.recent.map((v, i) => (
                     <span
                       key={i}
-                      className={`grid h-8 w-8 place-items-center rounded-full text-xs font-black text-white ${v === "W" ? "bg-[#00b979]" : "bg-[#b7bac0]"}`}
+                      className={`grid h-8 w-8 place-items-center rounded-full text-[13px] font-medium text-white ${v === "W" ? "bg-[#00b979]" : "bg-[#b7bac0]"}`}
                       style={{lineHeight: `1`}}
                     >
                       {v}

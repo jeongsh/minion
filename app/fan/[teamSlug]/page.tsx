@@ -146,7 +146,7 @@ function Roster({ players, teamSlug }: { players: Player[]; teamSlug: string }) 
                   className="h-full w-full object-cover object-top"
                 />
               ) : (
-                <span className="grid h-full place-items-center text-xs font-black text-[var(--ui-muted)]">
+                <span className="grid h-full place-items-center text-[13px] font-medium text-[var(--ui-muted)]">
                   {player.name.slice(0, 2)}
                 </span>
               )}

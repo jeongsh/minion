@@ -52,7 +52,7 @@ function BannerCard({ item, isLoggedIn }: { item: CelebrationBannerItem; isLogge
           )}
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-black uppercase tracking-[0.18em]" style={{ color: accent }}>
+          <p className="text-[13px] font-medium uppercase tracking-[0.18em]" style={{ color: accent }}>
             Today&apos;s Celebration
           </p>
           <p className="mt-0.5 truncate text-[15px] font-black text-[var(--ui-ink)] sm:text-base">{headline(event)}</p>
