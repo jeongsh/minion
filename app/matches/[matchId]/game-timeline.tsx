@@ -517,9 +517,9 @@ export function GameTimeline({
   const gridValues: number[] = [0, midOf(blueScaleMax), blueScaleMax, -midOf(redScaleMax), -redScaleMax];
   const formatDiffLabel = (d: number) => {
     if (d === 0) return "0";
-    if (unit === "kills") return `${d > 0 ? "+" : ""}${d}`;
-    const k = d / 1000;
-    return `${d > 0 ? "+" : ""}${Number.isInteger(k) ? k : k.toFixed(1)}K`;
+    if (unit === "kills") return `${Math.abs(d)}`;
+    const k = Math.abs(d) / 1000;
+    return `${Number.isInteger(k) ? k : k.toFixed(1)}K`;
   };
 
   // 라인/영역만 chart.js가 그리고, 축 라벨·그리드·킬/오브젝트 아이콘은 기존처럼 SVG로 그려서 위에 겹친다.
@@ -645,8 +645,8 @@ export function GameTimeline({
             );
           })}
 
-          <text x={PAD_X + 6} y={graphTop + blueH / 2 + 3} textAnchor="start" fontSize={8} fontWeight="700" fill="var(--team-blue)" fillOpacity={0.7}>{blueTeamName}</text>
-          <text x={PAD_X + 6} y={centerY + CTR_GAP + redH / 2 + 3} textAnchor="start" fontSize={8} fontWeight="700" fill="var(--team-red)" fillOpacity={0.7}>{redTeamName}</text>
+          <text x={PAD_X + 6} y={graphTop + 11} textAnchor="start" fontSize={9} fontWeight="800" fill="var(--team-blue)">{blueTeamName}</text>
+          <text x={PAD_X + 6} y={graphBot - 6} textAnchor="start" fontSize={9} fontWeight="800" fill="var(--team-red)">{redTeamName}</text>
 
           {mins.map((m) => {
             const x = tx(m * 60 * 1000);
@@ -727,9 +727,9 @@ export function GameTimeline({
             { src: OBJECTIVE_ICONS.herald,   label: "전령" },
             { src: OBJECTIVE_ICONS.voidGrub, label: "공허 유충" },
           ].map(({ src, label }) => (
-            <span key={label} className="flex items-center gap-1">
+            <span key={label} className="flex items-center">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={src} alt="" className="h-6 w-6 object-contain" />
+              <img src={src} alt="" className="h-6 w-6 object-contain leading-none" />
               {label}
             </span>
           ))}

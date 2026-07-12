@@ -3,10 +3,17 @@ import type { ReactNode } from "react";
 
 import { championImage, championLabel } from "@/lib/champions";
 import { spellImageUrlById, type GameSpell } from "@/lib/spells";
-import type { Champion } from "@/lib/types";
+import type { Champion, PlayerPosition } from "@/lib/types";
 import { resolveRunePairUrls, type RuneCatalog } from "@/lib/runes";
 
 const EMPTY_RUNE_CATALOG: RuneCatalog = { keystones: [], trees: [] };
+const POSITION_ICON_BY_POSITION: Record<PlayerPosition, string> = {
+  TOP: "/objectives/position-top.svg",
+  JGL: "/objectives/position-jungle.svg",
+  MID: "/objectives/position-middle.svg",
+  BOT: "/objectives/position-bottom.svg",
+  SUP: "/objectives/position-utility.svg",
+};
 
 function RuneIcon({ src, size, isTree = false }: { src: string; size: "sm" | "md"; isTree?: boolean }) {
   const className = size === "sm" ? "h-5 w-5" : "h-6 w-6";
@@ -46,6 +53,7 @@ export function PlayerLoadout({
   badge,
   size = "md",
   className = "",
+  position,
 }: {
   champion?: Champion;
   spellIds: Array<number | null | undefined>;
@@ -59,10 +67,14 @@ export function PlayerLoadout({
   badge?: ReactNode;
   size?: "sm" | "md";
   className?: string;
+  position?: PlayerPosition;
 }) {
   const image = championImage(champion);
   const championSize = size === "sm" ? "h-10 w-10" : "h-12 w-12";
   const championImageSize = size === "sm" ? "40px" : "48px";
+  const positionIconSize = size === "sm" ? "h-5 w-5" : "h-6 w-6";
+  const positionIconImageSize = size === "sm" ? "20px" : "24px";
+  const positionIcon = position ? POSITION_ICON_BY_POSITION[position] : null;
   const spell0Url = spellImageUrlById(spells, spellIds[0], version);
   const spell1Url = spellImageUrlById(spells, spellIds[1], version);
   const resolvedRunePair = resolveRunePairUrls(runeIds, runeCatalog);
@@ -70,7 +82,12 @@ export function PlayerLoadout({
 
   return (
     <div className={`flex min-w-0 items-center gap-2 ${className}`}>
-      <span className="flex shrink-0 items-center gap-0">
+      <span className="flex shrink-0 items-center gap-1">
+        {positionIcon ? (
+          <span className={`relative block shrink-0 ${positionIconSize}`}>
+            <Image src={positionIcon} alt="" fill sizes={positionIconImageSize} className="object-contain" />
+          </span>
+        ) : null}
         <span className={`relative block shrink-0 overflow-hidden rounded-md border border-border bg-surface-muted ${championSize}`}>
           {image ? <Image src={image} alt={championLabel(champion)} fill sizes={championImageSize} className="object-cover" /> : null}
           {badge ? <span className="absolute bottom-0 right-0 rounded-tl bg-background/90 px-0.5 text-[9px] font-semibold leading-3">{badge}</span> : null}

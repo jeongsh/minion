@@ -143,6 +143,7 @@ function PlayerRow({
         primaryLabel={player?.name ?? "-"}
         secondaryLabel={champion?.name ?? "-"}
         size="sm"
+        position={line.position}
       />
       <div>
         <p className="text-sm font-semibold tabular-nums">

@@ -247,6 +247,7 @@ function PlayerStatBoard({
               secondaryLabel={`${champion?.name ?? "-"} · ${row.line.position}`}
               badge={`LV ${row.line.championLevel ?? "-"}`}
               size="sm"
+              position={row.line.position}
             />
           </div>
 
