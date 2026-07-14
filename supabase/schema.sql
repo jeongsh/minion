@@ -16,6 +16,7 @@ create table public.teams (
   short_name text not null,
   logo_url text,
   logo_white_url text,
+  use_white_logo_on_dark boolean not null default false,
   profile_image_url text,
   primary_color text not null,
   secondary_color text not null,

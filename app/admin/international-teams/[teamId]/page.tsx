@@ -127,6 +127,14 @@ export default async function AdminInternationalTeamDetailPage({
                 <span className="text-[13px] text-muted">NO LOGO</span>
               )}
             </div>
+            <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-md border border-border bg-[#18191c]">
+              {team.logoWhiteUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={team.logoWhiteUrl} alt={`${team.name} white logo`} className="h-full w-full object-contain p-1" />
+              ) : (
+                <span className="text-[13px] text-white/70">NO WHITE</span>
+              )}
+            </div>
             <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-md border border-border bg-background">
               {team.profileImageUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -139,6 +147,19 @@ export default async function AdminInternationalTeamDetailPage({
           <label className="flex flex-col gap-1 text-sm font-semibold">
             로고 URL
             <input name="logoUrl" defaultValue={team.logoUrl ?? ""} placeholder="이미지 URL 입력" required className={inputClassName()} />
+          </label>
+          <label className="flex flex-col gap-1 text-sm font-semibold">
+            화이트 로고 URL
+            <input name="logoWhiteUrl" defaultValue={team.logoWhiteUrl ?? ""} placeholder="다크모드용 로고 URL" className={inputClassName()} />
+          </label>
+          <label className="flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm font-semibold">
+            <input
+              type="checkbox"
+              name="useWhiteLogoOnDark"
+              defaultChecked={team.useWhiteLogoOnDark ?? false}
+              className="h-4 w-4 accent-[var(--ui-ink)]"
+            />
+            다크모드에서 화이트 로고 사용
           </label>
           <label className="flex flex-col gap-1 text-sm font-semibold">
             프로필 이미지 URL

@@ -19,9 +19,15 @@ function requiredText(formData: FormData, key: string, label: string) {
   return value;
 }
 
+function checkboxValue(formData: FormData, key: string) {
+  return formData.get(key) === "on";
+}
+
 export async function updateInternationalTeamMediaAction(formData: FormData) {
   const teamId = requiredText(formData, "teamId", "팀 ID");
   const logoUrl = requiredText(formData, "logoUrl", "로고 URL");
+  const logoWhiteUrl = textOrNull(formData.get("logoWhiteUrl"));
+  const useWhiteLogoOnDark = checkboxValue(formData, "useWhiteLogoOnDark");
   const profileImageUrl = textOrNull(formData.get("profileImageUrl"));
 
   const client = createSupabaseAdminClient();
@@ -39,6 +45,8 @@ export async function updateInternationalTeamMediaAction(formData: FormData) {
     .from("teams")
     .update({
       logo_url: logoUrl,
+      logo_white_url: logoWhiteUrl,
+      use_white_logo_on_dark: useWhiteLogoOnDark,
       profile_image_url: profileImageUrl,
     })
     .eq("id", teamId);
@@ -47,8 +55,11 @@ export async function updateInternationalTeamMediaAction(formData: FormData) {
     throw new Error(error.message);
   }
 
+  await refreshWeeklyReportTeamColor(client, team.slug);
+
   revalidatePath("/admin/international-teams");
   revalidatePath(`/admin/international-teams/${teamId}`);
+  revalidatePath("/reports");
   revalidatePath("/admin/teams");
   revalidatePath("/teams");
   revalidatePath(`/teams/${team.slug}`);

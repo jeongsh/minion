@@ -5,6 +5,7 @@ export type Team = {
   shortName: string;
   logoUrl: string;
   logoWhiteUrl: string;
+  useWhiteLogoOnDark?: boolean;
   profileImageUrl?: string;
   backgroundUrl: string;
   primaryColor: string;
