@@ -38,7 +38,7 @@ export function FanSubpageHeader({ title, breadcrumbs }: { title: string; breadc
   return (
     <header className="flex flex-col gap-3">
       <Breadcrumb items={breadcrumbs} className="hidden md:flex" />
-      <h1 className="home-section-title text-[18px] leading-tight text-[var(--ui-ink)]">{displayTitle || title}</h1>
+      <h1 className="home-section-title font-paperozi text-[18px] leading-tight text-[var(--ui-ink)] md:text-[24px] lg:text-[28px]">{displayTitle || title}</h1>
     </header>
   );
 }

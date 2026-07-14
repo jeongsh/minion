@@ -210,40 +210,48 @@ function PostCard({
     <button
       type="button"
       onClick={onClick}
-      className="group block w-full overflow-hidden bg-surface-muted text-left transition duration-200 hover:-translate-y-1 hover:shadow-lg hover:shadow-black/5"
+      className="group flex w-full flex-col overflow-hidden rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] text-left transition duration-200 hover:-translate-y-0.5 hover:border-[var(--ui-muted)]/40 hover:shadow-lg hover:shadow-black/5"
     >
-      <div className="relative aspect-square overflow-hidden bg-surface-muted">
+      {/* 이미지 */}
+      <div className="relative aspect-square overflow-hidden bg-[var(--ui-surface-muted)]">
+        <InstagramIcon className="absolute right-2.5 top-2.5 z-10 h-4 w-4 text-white drop-shadow" />
         {item.imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={proxyUrl(item.imageUrl)}
             alt=""
             loading="lazy"
-            className="h-full w-full object-cover transition group-hover:scale-105"
+            className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
           />
         ) : (
           <div className="flex h-full items-center justify-center">
-            <InstagramIcon className="h-8 w-8 text-muted/40" />
+            <InstagramIcon className="h-8 w-8 text-[var(--ui-muted)]" />
           </div>
         )}
         {/* 임베드 힌트 오버레이 */}
-        <div className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition group-hover:bg-black/30 group-hover:opacity-100">
-          <span className="rounded-full bg-white/90 px-3 py-1 text-[13px] font-medium text-black">
+        <div className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition group-hover:bg-black/25 group-hover:opacity-100">
+          <span className="rounded-full bg-white/95 px-3.5 py-1.5 text-[12px] font-bold text-black">
             게시물 보기
           </span>
         </div>
       </div>
-      <div className={compact ? "p-3" : "flex h-[84px] flex-col p-3.5"}>
-        <div className="flex items-center justify-between gap-2 text-[13px] text-muted">
-          <span className="truncate font-bold text-accent">@{item.ownerName}</span>
-          <span className="shrink-0 whitespace-nowrap" suppressHydrationWarning>
-            {!compact && item.likesCount ? `♥ ${item.likesCount.toLocaleString()} · ` : ""}
+
+      {/* 하단: 좋아요·시간 + 캡션 */}
+      <div className="flex flex-col gap-1 px-3 py-2.5">
+        <div className="flex items-center gap-2 text-[12px] text-[var(--ui-muted)]">
+          {!compact && item.likesCount ? (
+            <span className="font-bold text-[var(--ui-ink)]">♥ {item.likesCount.toLocaleString()}</span>
+          ) : null}
+          <span className="ml-auto shrink-0 whitespace-nowrap" suppressHydrationWarning>
             {relativeTime(item.postedAt)}
           </span>
         </div>
-        {!compact && (
-          <p className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-[#262626]">{item.caption}</p>
-        )}
+        {!compact ? (
+          <p className="line-clamp-2 min-h-[3.25em] text-[13px] leading-relaxed text-[var(--ui-text)]">
+            <span className="mr-1.5 font-bold text-[var(--ui-ink)]">{item.ownerName}</span>
+            {item.caption}
+          </p>
+        ) : null}
       </div>
     </button>
   );
@@ -470,7 +478,7 @@ export function FanInstagramFeed({
             <div
               className={
                 variant === "full"
-                  ? "grid items-start sm:grid-cols-2 lg:grid-cols-3"
+                  ? "grid grid-cols-1 items-start gap-4 sm:grid-cols-2 lg:grid-cols-3"
                   : "grid grid-cols-2 gap-3 sm:grid-cols-4"
               }
             >

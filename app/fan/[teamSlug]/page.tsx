@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CalendarDays, ChevronRight } from "lucide-react";
+import { AtSign, CalendarDays, ChevronRight, Globe2, Play } from "lucide-react";
 
 import type { FeedInstaItem, FeedVideoItem } from "@/components/fan/fan-feed-mosaic";
 import { HomeBoardCarousel } from "@/components/domain/home-board-carousel";
@@ -76,6 +76,35 @@ function scoreLabel(match: Match, team: Team): string {
   return `${own} : ${opp}`;
 }
 
+function OfficialLinks({ team }: { team: Team }) {
+  const links = [
+    { label: "홈페이지", href: team.officialHomepageUrl, icon: <Globe2 size={16} aria-hidden="true" /> },
+    { label: "YouTube", href: team.officialYoutubeUrl, icon: <Play size={16} aria-hidden="true" /> },
+    { label: "X", href: team.officialXUrl, icon: <span className="text-[13px] font-black leading-none" aria-hidden="true">X</span> },
+    { label: "Instagram", href: team.officialInstagramUrl, icon: <AtSign size={16} aria-hidden="true" /> },
+  ].flatMap((item) => (item.href ? [{ ...item, href: item.href }] : []));
+
+  if (!links.length) return null;
+
+  return (
+    <section className="flex flex-wrap items-center justify-center gap-2 border-t border-[var(--ui-border)] pt-5">
+      {links.map((link) => (
+        <a
+          key={link.label}
+          href={link.href}
+          target="_blank"
+          rel="noreferrer"
+          aria-label={link.label}
+          title={link.label}
+          className="grid h-9 w-9 place-items-center rounded-full border border-[var(--ui-border)] bg-[var(--ui-surface)] text-[var(--ui-muted)] transition hover:bg-[var(--ui-surface-muted)] hover:text-[var(--ui-ink)]"
+        >
+          {link.icon}
+        </a>
+      ))}
+    </section>
+  );
+}
+
 // 실제 선수별 KDA 집계 소스가 이 화면엔 없어 id 기반으로 그럴듯한 목업 값을 만든다.
 function mockKda(id: string) {
   let hash = 0;
@@ -93,7 +122,7 @@ function MatchRow({ match, team, teams }: { match: Match; team: Team; teams: Tea
   const score = scheduled ? null : scoreLabel(match, team);
 
   return (
-    <div className="flex h-14 items-center gap-2.5 px-3 sm:h-[68px] sm:gap-3 sm:px-4 md:px-5">
+    <div className="flex h-14 items-center gap-2.5 px-3 sm:h-[68px] sm:gap-3 sm:px-4 md:px-5 lg:h-[72px]">
       <span
         className={`grid h-8 w-10 shrink-0 place-items-center rounded-md text-[12px] font-extrabold tabular-nums sm:h-9 sm:w-11 sm:text-[13px] ${
           scheduled ? "bg-[var(--ui-surface)] text-[var(--ui-ink)]" : "text-white"
@@ -135,7 +164,7 @@ function Roster({ players, teamSlug }: { players: Player[]; teamSlug: string }) 
         {players.slice(0, 5).map((player) => (
           <Link
             key={player.id}
-            href={`/players/${player.slug}`}
+            href={`/fan/${teamSlug}/players/${player.slug}`}
             className="fan-roster-chip group flex min-h-[96px] flex-col items-center justify-center gap-1.5 rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-2 text-center transition hover:bg-[var(--ui-surface-muted)] sm:min-h-[88px] sm:flex-row sm:justify-start sm:gap-3 sm:rounded-2xl sm:p-4 sm:text-left"
           >
             <span className="h-11 w-11 shrink-0 overflow-hidden rounded-full bg-[var(--ui-surface)] sm:h-14 sm:w-14">
@@ -305,7 +334,7 @@ export default async function FanHomePage({
         <section className="hidden gap-5 lg:grid lg:gap-8 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
           <div className="min-w-0">
             <SectionHeading href={`/fan/${team.fanSiteHost}/matches`}>경기 일정</SectionHeading>
-            <div className="h-[280px] divide-y divide-[var(--ui-border)] overflow-hidden rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] sm:h-[340px]">
+            <div className="h-[360px] divide-y divide-[var(--ui-border)] overflow-hidden rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)]">
               {matchRows.length ? (
                 matchRows.map((match) => <MatchRow key={match.id} match={match} team={team} teams={teams} />)
               ) : (
@@ -347,6 +376,8 @@ export default async function FanHomePage({
         </section>
 
         <AdSlot className="hidden h-24 md:block" />
+
+        <OfficialLinks team={team} />
       </div>
       </FanPageShell>
     </>

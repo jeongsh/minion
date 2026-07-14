@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { AppShell, type AppShellUser } from "@/components/layout/app-shell";
 import { NavigationTransitionProvider } from "@/components/navigation/navigation-transition-provider";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { getFollowedTeamIds } from "@/lib/fan/followed-teams";
 import { getRankSummary } from "@/lib/rank/queries";
 import "./globals.css";
 
@@ -22,6 +23,7 @@ export default async function RootLayout({
     const summary = await getRankSummary(user.id);
     shellUser = { nickname: user.nickname, tier: summary.tier, lp: summary.lp };
   }
+  const followedTeamIds = await getFollowedTeamIds();
 
   return (
     <html lang="ko" suppressHydrationWarning>
@@ -30,7 +32,7 @@ export default async function RootLayout({
       </head>
       <body>
         <NavigationTransitionProvider>
-          <AppShell currentUser={shellUser}>{children}</AppShell>
+          <AppShell currentUser={shellUser} followedTeamIds={followedTeamIds}>{children}</AppShell>
         </NavigationTransitionProvider>
       </body>
     </html>
