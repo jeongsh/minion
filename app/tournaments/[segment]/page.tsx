@@ -206,6 +206,7 @@ function GroupStandingsTable({
         </div>
       )}
       <DataTable
+        mobileSurface="flat"
         className="hidden md:block"
         rows={rows}
         compact
@@ -246,6 +247,7 @@ function GroupStandingsTable({
 function RegularStandingsTable({ rows }: { rows: ReturnType<typeof buildTeamStandingRows> }) {
   return (
     <DataTable
+      mobileSurface="flat"
       rows={rows}
       emptyText="아직 등록된 경기가 없습니다."
       columns={[
@@ -330,6 +332,7 @@ function buildPomRankingRows(segmentMatches: Match[], players: Player[], teamMap
 function PomRankingTable({ rows }: { rows: PomRow[] }) {
   return (
     <DataTable
+      mobileSurface="flat"
       rows={rows}
       emptyText="아직 선정된 POM이 없습니다."
       getRowHref={(row) => `/players/${row.player.slug}`}
@@ -1216,6 +1219,11 @@ export default async function TournamentBracketPage({
     <main className="layout-wide flex flex-col gap-6 py-6 sm:py-10">
       <PageHeader
         title={segmentTheme.name}
+        action={
+          <Link href="/tournaments" className="text-[13px] font-bold text-[var(--ui-muted)] transition-colors hover:text-[var(--ui-ink)]">
+            대회 목록
+          </Link>
+        }
         breadcrumbs={[
           { label: "홈", href: "/" },
           { label: "대회", href: "/tournaments" },

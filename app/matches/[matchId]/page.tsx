@@ -184,7 +184,7 @@ function TabNav({
         : "text-[var(--ui-muted)] after:bg-transparent hover:text-[var(--ui-ink)]"
     }`;
   return (
-    <nav className="grid border-b border-[var(--ui-border)] sm:flex sm:items-center sm:gap-6" style={{ gridTemplateColumns: `repeat(${sets.length > 0 ? 4 : 3}, minmax(0, 1fr))` }} aria-label="매치 상세 탭">
+    <nav className="mobile-full-bleed grid border-b border-[var(--ui-border)] sm:flex sm:items-center sm:gap-6 md:mx-0" style={{ gridTemplateColumns: `repeat(${sets.length > 0 ? 4 : 3}, minmax(0, 1fr))` }} aria-label="매치 상세 탭">
       <Link href={tabHref("preview")} className={linkClass(activeTab === "preview")}>
         {TAB_LABELS.preview}
       </Link>
@@ -213,7 +213,7 @@ function SetSelector({
   if (sets.length === 0) return null;
 
   return (
-    <div className="sticky top-[var(--ui-header-height)] z-20 flex gap-1 overflow-x-auto border-b border-[var(--ui-border)] bg-[var(--ui-surface)] py-1.5">
+    <div className="mobile-full-bleed sticky top-[var(--ui-header-height)] z-20 flex gap-1 overflow-x-auto border-b border-[var(--ui-border)] bg-[var(--ui-surface)] px-4 py-1.5 md:mx-0 md:px-0">
       {sets.map((set) => (
         <Link
           key={set.id}
@@ -328,7 +328,7 @@ function TeamRatingColumn({
     );
 
   return (
-    <section className="overflow-hidden rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)]">
+    <section className="mobile-list-shell overflow-hidden rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)]">
       <h3 className="border-b border-[var(--ui-border)] px-3 py-2.5 text-sm font-black text-[var(--ui-ink)]">
         {title}
       </h3>
@@ -489,7 +489,7 @@ function MatchRatingPanel({
         />
       </section>
 
-      <section className="rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] p-4">
+      <section className="mobile-list-shell rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] p-4">
         <h3 className="text-base font-black text-[var(--ui-ink)]">한줄평</h3>
         {reviewRows.length === 0 ? (
           <p className="mt-2 text-sm text-[var(--ui-muted)]">아직 작성된 한줄평이 없습니다.</p>
@@ -611,14 +611,13 @@ export default async function MatchDetailPage({
         breadcrumbs={[{ label: "경기 일정", href: "/schedule" }, { label: `${teamAName} vs ${teamBName}` }]}
         className="gap-2 md:[&_.home-section-title]:text-2xl"
         action={
-          <div className="flex items-center gap-2">
-            <span className="rounded-full bg-[var(--ui-surface-muted)] px-2.5 py-1 text-xs font-bold text-[var(--ui-muted)]">BO{match.bestOf ?? "-"}</span>
-            <span className="rounded-full bg-[var(--ui-ink)] px-2.5 py-1 text-xs font-bold text-[var(--ui-surface)]">{MATCH_STATUS_LABEL[match.status]}</span>
-          </div>
+          <Link href="/schedule" className="text-[13px] font-bold text-[var(--ui-muted)] transition-colors hover:text-[var(--ui-ink)]">
+            일정 목록
+          </Link>
         }
       />
 
-      <section className="overflow-hidden rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)]" aria-label="매치 요약">
+      <section className="mobile-full-bleed mobile-surface-section overflow-hidden rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] md:mx-0" aria-label="매치 요약">
         <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-0.5 px-3 pt-2.5 text-xs font-bold text-[var(--ui-muted)]">
           <span className="text-[var(--ui-ink)]">{tournament?.name ?? "대회 미지정"}</span>
           {stage ? <><span aria-hidden>·</span><span>{stage.name}</span></> : null}
@@ -696,7 +695,7 @@ export default async function MatchDetailPage({
 
       {activeTab === "video" ? (
         <section
-          className="rounded-md border border-border bg-surface p-3"
+          className="mobile-full-bleed mobile-surface-media rounded-md border border-border bg-surface p-3 md:mx-0"
           aria-labelledby="match-video"
         >
           <h2 id="match-video" className="home-section-title text-lg">

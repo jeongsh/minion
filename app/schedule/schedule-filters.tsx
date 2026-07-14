@@ -66,6 +66,7 @@ export function ScheduleFilters({
     ...(lockTeam ? [] : [{ value: "all", label: "전체 팀" }]),
     ...teams.filter((team) => team.isLckTeam !== false).map((team) => ({ value: team.id, label: team.shortName || team.name })),
   ];
+  const barTriggerClassName = "md:min-h-11 md:px-0 md:text-xl md:font-black";
 
   if (layout === "sheet") {
     return (
@@ -121,6 +122,7 @@ export function ScheduleFilters({
         options={years.map((year) => ({ value: String(year), label: `${year}` }))}
         onSelect={(value) => navigate({ year: Number(value) })}
         disabled={isNavigating}
+        triggerClassName={barTriggerClassName}
       />
 
       <Divider />
@@ -132,6 +134,7 @@ export function ScheduleFilters({
         options={months.map((month) => ({ value: String(month), label: `${month}월` }))}
         onSelect={(value) => navigate({ month: Number(value) })}
         disabled={isNavigating}
+        triggerClassName={barTriggerClassName}
       />
 
       <Divider />
@@ -142,6 +145,7 @@ export function ScheduleFilters({
         options={segmentOptions}
         onSelect={(value) => navigate({ segment: value })}
         disabled={isNavigating}
+        triggerClassName={barTriggerClassName}
       />
 
       <Divider />
@@ -152,6 +156,7 @@ export function ScheduleFilters({
         options={teamOptions}
         onSelect={(value) => navigate({ team: value })}
         disabled={isNavigating || lockTeam}
+        triggerClassName={barTriggerClassName}
       />
     </div>
   );

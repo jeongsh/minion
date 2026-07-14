@@ -78,7 +78,7 @@ export default async function SchedulePage({
       <div className="sticky top-[var(--ui-header-height)] z-30 border-b border-[var(--ui-border)] bg-[var(--ui-surface)]/95 shadow-[0_10px_20px_rgba(15,23,42,0.035)] backdrop-blur md:hidden">
         <div className="layout-wide py-2">
           <div className="mb-2 flex items-center justify-between gap-3">
-            <div className="min-w-0"><h1 className="text-[18px] font-black tracking-normal text-[var(--ui-ink)]">경기 일정</h1></div>
+            <div className="min-w-0"><h1 className="home-section-title font-paperozi text-[18px] leading-tight text-[var(--ui-ink)]">경기 일정</h1></div>
           <div className="flex items-center gap-1">
             <AdaptiveDialog title={`${activeYear}년 ${activeMonth}월 캘린더`} trigger={<><CalendarDays size={17} /><span className="sr-only">캘린더 열기</span></>} triggerClassName="grid h-9 w-9 place-items-center rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface-muted)] text-[var(--ui-ink)] transition-colors hover:bg-[var(--ui-surface)]"><HomeCalendar initialMonthKey={`${activeYear}-${String(activeMonth).padStart(2, "0")}`} matches={calendarMatches} events={[]} /></AdaptiveDialog>
             <AdaptiveDialog title="일정 필터" trigger={<><SlidersHorizontal size={17} /><span className="sr-only">필터 열기</span></>} triggerClassName="grid h-9 w-9 place-items-center rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface-muted)] text-[var(--ui-ink)] transition-colors hover:bg-[var(--ui-surface)]">{mobileFilters}<Link href="/schedule" className="mt-4 flex min-h-12 items-center justify-center rounded-xl bg-[var(--ui-ink)] px-4 text-sm font-black text-[var(--ui-surface)]">필터 초기화</Link></AdaptiveDialog>
@@ -90,13 +90,13 @@ export default async function SchedulePage({
 
       <div className="layout-wide pt-5 sm:pt-7">
         <div className="hidden items-end justify-between md:flex">
-          <div><h1 className="text-[24px] font-black tracking-normal text-[var(--ui-ink)] lg:text-[28px]">경기 일정</h1></div>
+          <div><h1 className="home-section-title font-paperozi text-[24px] leading-tight text-[var(--ui-ink)] lg:text-[28px]">경기 일정</h1></div>
           <p className="rounded-full bg-[var(--ui-surface-muted)] px-3 py-1.5 text-[13px] font-bold text-[var(--ui-muted)]">{filtered.length}경기</p>
         </div>
       </div>
 
-      <div className="sticky top-[var(--ui-header-height)] z-30 mt-6 hidden border-b border-[#e8e8eb] bg-[var(--ui-surface)]/95 backdrop-blur md:block dark:border-[#383c44]">
-        <div className="layout-wide flex items-center justify-between gap-3 py-4">{desktopFilters}<Link href="/schedule" className="shrink-0 text-[13px] font-bold text-[var(--ui-muted)] hover:text-[var(--ui-ink)]">필터 초기화</Link></div>
+      <div className="sticky top-[var(--ui-header-height)] z-30 mt-2 hidden border-b border-[#e8e8eb] bg-[var(--ui-surface)]/95 backdrop-blur md:block dark:border-[#383c44]">
+        <div className="layout-wide flex items-center justify-between gap-3 py-2.5">{desktopFilters}<Link href="/schedule" className="shrink-0 text-[13px] font-bold text-[var(--ui-muted)] hover:text-[var(--ui-ink)]">필터 초기화</Link></div>
       </div>
       <div className="layout-wide pb-16">
         <div className="mt-7 md:mt-10"><ScheduleList matches={filtered} teams={teams} tournaments={tournaments} stages={stages} emptyMessage={`${activeYear}년 ${activeMonth}월 · ${segmentLabel(activeSegment, activeYear)} 조건에 해당하는 경기가 없습니다.`} /></div>

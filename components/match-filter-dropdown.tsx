@@ -2,6 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
+import { createPortal } from "react-dom";
 
 export type FilterOption = { value: string; label: string };
 
@@ -33,6 +34,7 @@ export function FilterDropdown({
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const popupRef = useRef<HTMLDivElement>(null);
   const [popupStyle, setPopupStyle] = useState<CSSProperties>({});
 
   useEffect(() => {
@@ -41,7 +43,8 @@ export function FilterDropdown({
     }
 
     function onPointerDown(event: MouseEvent) {
-      if (ref.current && !ref.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      if (!ref.current?.contains(target) && !popupRef.current?.contains(target)) {
         setOpen(false);
       }
     }
@@ -65,15 +68,28 @@ export function FilterDropdown({
 
   useLayoutEffect(() => {
     if (!open || !triggerRef.current) return;
-    const rect = triggerRef.current.getBoundingClientRect();
-    const width = variant === "grid" ? 224 : Math.max(176, rect.width);
-    const left = Math.min(Math.max(12, rect.left), window.innerWidth - width - 12);
-    setPopupStyle({
-      position: "fixed",
-      left,
-      top: rect.bottom + 8,
-      width,
-    });
+
+    function updatePosition() {
+      if (!triggerRef.current) return;
+      const rect = triggerRef.current.getBoundingClientRect();
+      const width = variant === "grid" ? 224 : Math.max(176, rect.width);
+      const left = Math.min(Math.max(12, rect.left), window.innerWidth - width - 12);
+      setPopupStyle({
+        position: "fixed",
+        left,
+        top: rect.bottom + 8,
+        width,
+      });
+    }
+
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+    };
   }, [open, variant]);
 
   function choose(value: string) {
@@ -98,8 +114,9 @@ export function FilterDropdown({
         <Chevron open={open} />
       </button>
 
-      {open ? (
+      {open && typeof document !== "undefined" ? createPortal(
         <div
+          ref={popupRef}
           role="listbox"
           aria-label={ariaLabel}
           style={popupStyle}
@@ -153,7 +170,8 @@ export function FilterDropdown({
               );
             })
           )}
-        </div>
+        </div>,
+        document.body,
       ) : null}
     </div>
   );

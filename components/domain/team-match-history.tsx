@@ -141,6 +141,7 @@ export function TeamMatchHistory({ teamId, matches, sets, teams, players, tourna
 
       {/* 테이블 */}
       <DataTable
+        mobileSurface="flat"
         rows={filtered}
         emptyText="해당 조건의 경기가 없습니다."
         columns={[
