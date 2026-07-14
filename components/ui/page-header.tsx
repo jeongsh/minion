@@ -35,7 +35,7 @@ export function PageHeader({
     <header className={`flex min-w-0 flex-col gap-3 ${className}`}>
       <Breadcrumb items={resolvedBreadcrumbs} className="hidden md:flex" />
       <div className="flex min-w-0 items-center justify-between gap-3 md:items-end">
-        <h1 className="home-section-title min-w-0 truncate text-[18px] leading-tight text-[var(--ui-ink)] md:text-[24px] lg:text-[28px]">
+        <h1 className="home-section-title font-paperozi min-w-0 truncate text-[18px] leading-tight text-[var(--ui-ink)] md:text-[24px] lg:text-[28px]">
           {displayTitle || title}
         </h1>
         {action ? <div className="flex min-h-10 shrink-0 items-center justify-end">{action}</div> : null}

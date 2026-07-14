@@ -33,7 +33,7 @@
   --ui-ad-surface: #e7e8ea;
   --ui-card-radius: 16px;
   --ui-control-radius: 8px;
-  --ui-title-size: 18px;
+  --ui-title-size: 20px;
   --ui-header-height: 56px;
   --ui-sidebar-width: 216px;
   --shell-lnb-width: 216px;
@@ -171,10 +171,38 @@ html[class~="dark"] .navigation-progress-bar {
   );
 }
 
+.fan-ticker-track {
+  display: flex;
+  width: max-content;
+  animation: fan-ticker-scroll var(--fan-ticker-duration, 42s) linear infinite;
+  will-change: transform;
+}
+
+.fan-ticker-group {
+  display: flex;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+@keyframes fan-ticker-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fan-ticker-track {
+    animation: none;
+  }
+}
+
 .home-section-title {
-  font-family: "Pretendard", -apple-system, BlinkMacSystemFont, system-ui, "Segoe UI", sans-serif;
-  font-weight: 900;
-  line-height: 1.3;
+  font-family: "Paperozi", "Pretendard", sans-serif;
+  font-weight: normal;
+  line-height: 1.35;
 }
 .font-paperozi{
   font-family: "Paperozi", "Pretendard", sans-serif;
@@ -285,6 +313,7 @@ html[class~="dark"] .app-lnb a[data-active="true"] {
   --btn-border: #e2e3e7;
   --surface-1-hover: #e6e7ea;
   --row-soft-hover: #f8f9fa;
+  font-family: "Pretendard", -apple-system, BlinkMacSystemFont, system-ui, "Segoe UI", sans-serif;
 }
 
 /* Archive 900 대문자 + 하단 2px 잉크 라인 섹션 헤딩 */
@@ -408,8 +437,57 @@ html[class~="dark"] .app-lnb a[data-active="true"] {
   }
 }
 
-.fan-home-page {
-  --ui-title-size: 17px;
+@media (min-width: 370px) and (max-width: 767px) {
+  .mobile-bleed-shell {
+    max-width: none;
+    padding-inline: 0;
+  }
+
+  .mobile-gutter {
+    padding-inline: 16px;
+  }
+
+  .mobile-full-bleed {
+    width: calc(100% + (var(--layout-gutter) * 2));
+    max-width: none;
+    margin-inline: calc(var(--layout-gutter) * -1);
+  }
+
+  .mobile-surface-section,
+  .mobile-surface-list,
+  .mobile-surface-media,
+  .mobile-data-list {
+    border-left-width: 0;
+    border-right-width: 0;
+    border-radius: 0;
+  }
+
+  .mobile-surface-list,
+  .mobile-surface-media,
+  .mobile-data-list {
+    border-top-width: 0;
+    border-bottom-width: 0;
+  }
+
+  .mobile-surface-media {
+    background: transparent;
+  }
+
+  .mobile-list-shell {
+    border-left-width: 0;
+    border-right-width: 0;
+    border-radius: 0;
+  }
+
+  .mobile-list-shell > :is(ul, ol),
+  .mobile-list-shell .mobile-list-rows {
+    padding-inline: 0;
+  }
+
+  .mobile-list-row {
+    padding-inline: 16px;
+  }
+
 }
 
 @media (min-width: 640px) {
@@ -419,10 +497,6 @@ html[class~="dark"] .app-lnb a[data-active="true"] {
 
   .fan-nav-scroll {
     mask-image: linear-gradient(to right, transparent, black 1.25rem, black calc(100% - 1.25rem), transparent);
-  }
-
-  .fan-home-page {
-    --ui-title-size: 18px;
   }
 }
 
@@ -437,15 +511,6 @@ html[class~="dark"] .app-lnb a[data-active="true"] {
 /* Fan pages use a flat, content-first surface. Separation comes from spacing and rules. */
 .fan-page-shell {
   background: var(--ui-surface);
-}
-
-.team-surface .home-section-title {
-  letter-spacing: 0;
-}
-
-.team-surface .fan-home-page .home-section-title {
-  font-size: 17px;
-  font-weight: 800;
 }
 
 .fan-card {
@@ -720,12 +785,13 @@ html[class~="dark"] .match-detail-page .text-muted {
 }
 
 /* 버튼 중심이 카드 모서리 선에 오도록 폭(44px)의 절반만큼 바깥으로 */
-.swiper-nav-btn--prev { left: 0.25rem; }
-.swiper-nav-btn--next { right: 0.25rem; }
+.swiper-nav-btn--prev { left: -22px; }
+.swiper-nav-btn--next { right: -22px; }
 
-@media (max-width: 1279px) {
-  .hub-home .swiper-nav-btn--prev { left: 0.25rem; }
-  .hub-home .swiper-nav-btn--next { right: 0.25rem; }
+/* 모바일에서는 바깥으로 나가면 화면 밖으로 잘리므로 안쪽으로 넣는다 */
+@media (max-width: 639px) {
+  .swiper-nav-btn--prev { left: 0.25rem; }
+  .swiper-nav-btn--next { right: 0.25rem; }
 }
 
 .swiper-nav-btn.swiper-button-disabled {
@@ -736,6 +802,12 @@ html[class~="dark"] .match-detail-page .text-muted {
 .hub-home .bg-\[\#00b979\],
 .hub-home .bg-\[\#00e58e\] {
   background-color: #18191c !important;
+  color: #fff;
+}
+
+/* 다크모드에서는 W 배지 어두운 잉크가 배경에 묻히므로 초록으로 복원 */
+html[class~="dark"] .hub-home .bg-\[\#00b979\] {
+  background-color: #00b979 !important;
   color: #fff;
 }
 
@@ -841,6 +913,18 @@ html[class~="dark"] .match-detail-page .text-muted {
 .community-prose hr { border: 0; border-top: 1px solid var(--border); margin: 1rem 0; }
 .community-prose mark { color: inherit; }
 .community-prose iframe { max-width: 100%; }
+
+@media (max-width: 1199px) {
+  .community-prose {
+    font-size: 16px;
+    line-height: 1.75;
+  }
+
+  .community-prose :is(p, li) {
+    font-size: 1rem;
+    line-height: 1.75;
+  }
+}
 
 /* 에디터 placeholder */
 .community-editor .ProseMirror { outline: none !important; }

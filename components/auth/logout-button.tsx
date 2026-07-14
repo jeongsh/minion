@@ -7,8 +7,7 @@ export function LogoutButton({ className }: { className?: string }) {
     <form action={signOutAction}>
       <button
         type="submit"
-        className={className ?? "text-sm font-bold hover:underline"}
-        style={{ color: "var(--muted)" }}
+        className={className ?? "text-sm font-bold text-[var(--muted)] hover:underline"}
       >
         로그아웃
       </button>
