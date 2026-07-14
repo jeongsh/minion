@@ -5,7 +5,12 @@ import { SectionHeader } from "@/components/layout/section-header";
 import { getPlayersByTeamId, getTeamById } from "@/lib/data/lck";
 import type { Player } from "@/lib/types";
 
-import { updateInternationalPlayerImageAction, updateInternationalTeamColorsAction, updateInternationalTeamMediaAction } from "../actions";
+import {
+  updateInternationalPlayerImageAction,
+  updateInternationalTeamColorsAction,
+  updateInternationalTeamMediaAction,
+  updateInternationalTeamShortNameAction,
+} from "../actions";
 
 function inputClassName() {
   return "min-w-0 rounded-md border border-border bg-background px-3 py-2 font-normal";
@@ -84,6 +89,25 @@ export default async function AdminInternationalTeamDetailPage({
           {team.slug} · {team.leaguepediaPage || "Leaguepedia page 없음"}
         </p>
       </div>
+
+      <section className="flex flex-col gap-4" aria-labelledby="team-short-name">
+        <h2 id="team-short-name" className="text-2xl font-semibold">
+          팀 약칭
+        </h2>
+        <form
+          action={updateInternationalTeamShortNameAction}
+          className="flex flex-col gap-4 rounded-md border border-border bg-surface p-4 sm:flex-row sm:items-end"
+        >
+          <input type="hidden" name="teamId" value={team.id} />
+          <label className="flex min-w-0 flex-1 flex-col gap-1 text-sm font-semibold">
+            약칭
+            <input name="shortName" defaultValue={team.shortName} placeholder="BLG" required className={inputClassName()} />
+          </label>
+          <button type="submit" className="self-start rounded-md bg-accent px-3 py-2 text-sm font-semibold text-accent-foreground sm:self-end">
+            저장
+          </button>
+        </form>
+      </section>
 
       <section className="flex flex-col gap-4" aria-labelledby="team-media">
         <h2 id="team-media" className="text-2xl font-semibold">

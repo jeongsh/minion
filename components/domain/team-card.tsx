@@ -9,9 +9,9 @@ export function TeamCard({ team }: { team: Team }) {
     <article className="overflow-hidden rounded-[var(--ui-card-radius)] border border-[var(--ui-border)] bg-[var(--ui-surface)] transition-shadow hover:shadow-[0_12px_32px_color-mix(in_srgb,var(--ui-ink)_8%,transparent)]">
       <Link
         href={`/teams/${team.slug}`}
-        className="group flex min-h-36 items-center gap-5 px-5 py-6 transition-colors hover:bg-[var(--ui-surface-muted)] sm:px-6"
+        className="group flex min-h-[92px] items-center gap-3 px-4 py-4 transition-colors hover:bg-[var(--ui-surface-muted)] sm:min-h-36 sm:gap-5 sm:px-6 sm:py-6"
       >
-        <TeamLogo team={team} size="h-20 w-20 sm:h-24 sm:w-24" plain />
+        <TeamLogo team={team} size="h-14 w-14 sm:h-24 sm:w-24" plain />
 
         <div className="min-w-0 flex-1">
           <p className="text-[13px] font-black uppercase tracking-[0.1em] text-[var(--ui-muted)]">
@@ -20,7 +20,7 @@ export function TeamCard({ team }: { team: Team }) {
           <h2 className="mt-1 text-lg font-black leading-6 text-[var(--ui-ink)] sm:text-lg">
             {team.name}
           </h2>
-          <p className="mt-2 truncate text-[13px] font-semibold text-[var(--ui-muted)]">
+          <p className="mt-1 truncate text-[12px] font-semibold text-[var(--ui-muted)] sm:mt-2 sm:text-[13px]">
             {team.headCoach ? `감독 ${team.headCoach}` : "LCK 공식 참가팀"}
           </p>
         </div>
@@ -31,7 +31,7 @@ export function TeamCard({ team }: { team: Team }) {
         />
       </Link>
 
-      <div className="border-t border-[var(--ui-border)] px-5 sm:px-6">
+      <div className="border-t border-[var(--ui-border)] px-4 sm:px-6">
         <Link
           href={`/fan/${team.fanSiteHost || team.slug}`}
           className="flex min-h-12 items-center justify-between text-[13px] font-black text-[var(--ui-text)] transition-colors hover:text-[var(--ui-ink)] active:bg-[var(--ui-surface-muted)]"

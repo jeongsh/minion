@@ -221,7 +221,7 @@ export function MatchDataSyncPanel({
           <summary className="cursor-pointer list-none rounded-md border border-border px-3 py-2 text-sm font-semibold hover:bg-surface-muted">
             ···
           </summary>
-          <div className="absolute left-0 z-10 mt-2 flex w-64 flex-col gap-1 rounded-md border border-border bg-surface p-2 shadow-lg">
+          <div className="absolute right-0 z-10 mt-2 flex w-[min(16rem,calc(100vw-2rem))] flex-col gap-1 rounded-md border border-border bg-surface p-2 shadow-lg sm:left-0 sm:right-auto sm:w-64">
             <button
               type="button"
               disabled={isPending || !hasLeaguepediaMatchId}

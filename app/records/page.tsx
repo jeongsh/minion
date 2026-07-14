@@ -34,7 +34,7 @@ export default async function RecordsPage({ searchParams }: { searchParams: Prom
 
   return <main className="min-h-screen bg-[var(--ui-surface)] text-[var(--ui-text)]"><div className="mx-auto flex w-full max-w-[1500px] flex-col gap-10 px-5 pb-16 pt-8 xl:px-10">
     <div>
-      <PageHeader eyebrow="RECORDS" title="기록실" action={<p className="rounded-full bg-[var(--ui-surface-muted)] px-3 py-1.5 text-[13px] font-bold text-[var(--ui-muted)]">AUTO UPDATED</p>} />
+      <PageHeader eyebrow="RECORDS" title="기록실" action={<p className="rounded-full bg-[var(--ui-surface-muted)] px-3 py-1.5 text-[13px] font-bold text-[var(--ui-muted)]">자동 집계</p>} />
       <p className="mt-3 text-sm leading-6 text-[var(--ui-muted)]">경기 결과와 세트 데이터를 기준으로 선수와 팀의 기록을 자동 집계합니다.</p>
     </div>
     <RecordsView tab={tab} tournaments={tournaments} season={season} tournamentId={tournamentId} position={position ?? "all"} playerRecords={playerRecords} teamRecords={teamRecords} matchCount={filteredMatches.filter((match) => match.status === "completed").length} setCount={completedSets.length} averageDuration={averageDuration} />

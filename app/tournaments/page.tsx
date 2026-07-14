@@ -52,13 +52,13 @@ export default async function TournamentsPage({
   const cards = buildTournamentCards(seasonTournaments);
 
   return (
-    <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-[var(--page-inline)] py-10">
+    <main className="layout-wide flex flex-col gap-6 py-6 sm:gap-8 sm:py-10">
       <PageHeader
         eyebrow="TOURNAMENTS"
         title="대회"
         action={
           seasons.length > 1 ? (
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               {seasons.map((season) => (
                 <Link
                   key={season}
@@ -80,15 +80,15 @@ export default async function TournamentsPage({
       {cards.length === 0 ? (
         <p className="text-sm text-muted">{activeSeason} 시즌에 등록된 대회가 없습니다.</p>
       ) : (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {cards.map((card) => {
+        <div className="grid gap-4 sm:grid-cols-2 sm:gap-6 min-[1200px]:grid-cols-3">
+          {cards.map((card, index) => {
             const dateRange = formatDateRange(card.startDate, card.endDate);
 
             return (
               <Link
                 key={card.key}
                 href={`/tournaments/${card.key}?year=${activeSeason}`}
-                className={`group relative isolate flex min-h-[220px] flex-col justify-end overflow-hidden rounded-2xl bg-gradient-to-br p-6 shadow-lg transition-transform hover:-translate-y-1 ${card.gradient}`}
+                className={`group relative isolate flex flex-col justify-end overflow-hidden rounded-2xl bg-gradient-to-br p-5 shadow-md transition-transform hover:-translate-y-1 sm:min-h-[220px] sm:p-6 sm:shadow-lg ${index === 0 ? "min-h-[176px]" : "min-h-[132px]"} ${card.gradient}`}
               >
                 <span
                   className="absolute inset-0 bg-[linear-gradient(115deg,transparent_55%,rgba(255,255,255,0.08)_55%,rgba(255,255,255,0.08)_58%,transparent_58%)]"
@@ -97,10 +97,10 @@ export default async function TournamentsPage({
                 <span className="text-[13px] font-bold uppercase tracking-widest text-white/60">
                   {activeSeason} · {card.region}
                 </span>
-                <span className="mt-2 text-[28px] font-black text-white">{card.name}</span>
-                <span className="mt-1 text-sm font-medium text-white/70">{card.description}</span>
+                <span className="mt-1.5 text-[22px] font-black text-white sm:mt-2 sm:text-[28px]">{card.name}</span>
+                <span className="mt-1 line-clamp-1 text-[13px] font-medium text-white/70 sm:text-sm">{card.description}</span>
                 {dateRange ? (
-                  <span className="mt-4 inline-block w-fit rounded-full bg-white/10 px-3 py-1 text-[13px] font-bold text-white">
+                  <span className="mt-3 inline-block w-fit rounded-full bg-white/10 px-3 py-1 text-[12px] font-bold text-white sm:mt-4 sm:text-[13px]">
                     {dateRange}
                   </span>
                 ) : null}

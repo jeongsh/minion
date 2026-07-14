@@ -15,6 +15,7 @@ export function DataTable<T>({
   getRowHref,
   compact = false,
   variant = "default",
+  className = "",
 }: {
   columns: DataTableColumn<T>[];
   rows: T[];
@@ -25,18 +26,32 @@ export function DataTable<T>({
   compact?: boolean;
   /** Hub/fan surfaces use the shared 16px card radius and UI tokens. */
   variant?: "default" | "hub";
+  className?: string;
 }) {
   const hub = variant === "hub";
   if (rows.length === 0) {
     return (
-      <div className={`${hub ? "rounded-2xl border-[var(--ui-border)] bg-[var(--ui-surface)] text-[var(--ui-muted)]" : "rounded-md border-border bg-surface text-muted"} border p-6 text-sm`}>
+      <div className={`${className} ${hub ? "rounded-2xl border-[var(--ui-border)] bg-[var(--ui-surface)] text-[var(--ui-muted)]" : "rounded-md border-border bg-surface text-muted"} border p-6 text-sm`}>
         {emptyText}
       </div>
     );
   }
 
   return (
-    <div className={`overflow-x-auto border ${hub ? "rounded-2xl border-[var(--ui-border)] bg-[var(--ui-surface)]" : "rounded-md border-border bg-surface"}`}>
+    <div className={`${className} overflow-hidden border ${hub ? "rounded-2xl border-[var(--ui-border)] bg-[var(--ui-surface)]" : "rounded-xl border-border bg-surface md:rounded-md"}`}>
+      <div className={hub ? "divide-y divide-[var(--ui-border)] md:hidden" : "divide-y divide-border md:hidden"}>
+        {rows.map((row, index) => {
+          const href = getRowHref?.(row);
+          const content = (
+            <div className="grid min-h-16 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 px-3.5 py-3 text-sm">
+              <div className="min-w-0 font-bold text-[var(--ui-ink)]">{columns[0]?.render(row)}</div>
+              {columns.slice(1, 3).map((column) => <div key={column.key} className="flex items-center justify-end gap-1.5 text-right"><span className="text-[11px] font-semibold text-[var(--ui-muted)]">{column.label}</span><span className="font-bold text-[var(--ui-text)]">{column.render(row)}</span></div>)}
+            </div>
+          );
+          return href ? <Link key={index} href={href} className={`block ${hub ? "active:bg-[var(--ui-surface-muted)]" : "active:bg-surface-muted"}`}>{content}</Link> : <div key={index}>{content}</div>;
+        })}
+      </div>
+      <div className="hidden overflow-x-auto md:block">
       <table className={`w-full border-collapse text-left text-sm ${compact ? "" : "min-w-[42rem]"}`}>
         <thead className={hub ? "bg-[var(--ui-surface-muted)] text-[13px] text-[var(--ui-muted)]" : "bg-surface-muted text-[13px] uppercase text-muted"}>
           <tr>
@@ -67,6 +82,7 @@ export function DataTable<T>({
           })}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

@@ -167,12 +167,46 @@ function GroupStandingsTable({
   title: string;
   rows: ReturnType<typeof buildTeamStandingRows>;
 }) {
+  const recordLabel = (row: (typeof rows)[number]) => `${row.matchWins}승 · ${row.matchLosses}패`;
+
   return (
     <div className="flex flex-col gap-2">
       <span className="inline-block w-fit rounded-md bg-surface-muted px-3 py-1.5 text-[13px] font-bold text-muted">
         {title}
       </span>
+      {rows.length > 0 ? (
+        <div className="overflow-hidden rounded-xl border border-border bg-surface md:hidden">
+          <div className="divide-y divide-border">
+            {rows.map((row) => (
+              <div
+                key={row.team.id}
+                className="grid min-h-[58px] grid-cols-[2rem_minmax(0,1fr)_auto] items-center gap-2 px-3.5 py-3"
+              >
+                <span className="text-sm font-black italic tabular-nums text-foreground">{row.rank}</span>
+                <Link
+                  href={`/teams/${row.team.slug}`}
+                  className="flex min-w-0 items-center gap-2 font-semibold text-foreground hover:text-accent"
+                >
+                  {row.team.logoUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={row.team.logoUrl} alt="" className="h-6 w-8 shrink-0 object-contain" />
+                  ) : null}
+                  <span className="min-w-0 truncate text-sm">{row.team.name}</span>
+                </Link>
+                <span className="shrink-0 text-right text-[13px] font-black tabular-nums text-foreground">
+                  {recordLabel(row)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="rounded-xl border border-border bg-surface p-6 text-sm text-muted md:hidden">
+          아직 등록된 순위가 없습니다.
+        </div>
+      )}
       <DataTable
+        className="hidden md:block"
         rows={rows}
         compact
         columns={[
@@ -201,7 +235,7 @@ function GroupStandingsTable({
             label: "전적",
             headerClassName: "text-center",
             cellClassName: "text-center tabular-nums",
-            render: (row) => `${row.matchWins}승 · ${row.matchLosses}패`,
+            render: (row) => recordLabel(row),
           },
         ]}
       />
@@ -482,7 +516,7 @@ function SeasonTabs({
   if (seasons.length <= 1) return null;
 
   return (
-    <div className="flex gap-2">
+    <div className="inline-flex max-w-full overflow-x-auto rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] p-1">
       {seasons.map((season) => (
         <Link
           key={season}
@@ -551,6 +585,7 @@ function ViewTabs<T extends string>({
   activeSeason,
   paramName = "view",
   extraParams,
+  variant = "button",
 }: {
   labels: Record<T, string>;
   activeTab: T;
@@ -558,27 +593,46 @@ function ViewTabs<T extends string>({
   activeSeason: number;
   paramName?: string;
   extraParams?: Record<string, string>;
+  variant?: "button" | "segmented";
 }) {
+  const isSegmented = variant === "segmented";
+  const tabs = Object.keys(labels) as T[];
+
   return (
-    <div className="flex gap-2">
-      {(Object.keys(labels) as T[]).map((tab) => {
+    <nav
+      className={
+        isSegmented
+          ? "grid w-full grid-cols-3 rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface-muted)] p-1 sm:w-auto"
+          : "flex max-w-full items-center gap-5 overflow-x-auto border-b border-[var(--ui-border)] sm:gap-6"
+      }
+    >
+      {tabs.map((tab) => {
         const query = new URLSearchParams({ year: String(activeSeason), ...extraParams, [paramName]: tab });
+        const isActive = tab === activeTab;
 
         return (
           <Link
             key={tab}
             href={`/tournaments/${segmentKey}?${query.toString()}`}
-            className={`rounded-full px-4 py-1.5 text-sm font-bold transition-colors ${
-              tab === activeTab
-                ? "bg-accent text-accent-foreground"
-                : "bg-surface-muted text-muted hover:text-foreground"
-            }`}
+            className={
+              isSegmented
+                ? `min-h-9 rounded-lg px-3 py-1.5 text-center text-[13px] font-black transition-colors sm:min-w-20 sm:px-4 sm:text-sm ${
+                    isActive
+                      ? "bg-[var(--ui-ink)] text-[var(--ui-surface)] shadow-sm"
+                      : "text-[var(--ui-muted)] hover:bg-[var(--ui-surface)] hover:text-[var(--ui-ink)]"
+                  }`
+                : `relative flex min-h-11 shrink-0 items-center justify-center whitespace-nowrap px-1 text-[13px] font-bold transition-colors after:absolute after:inset-x-1 after:bottom-0 after:h-0.5 sm:min-h-12 sm:px-0 sm:text-base ${
+                    isActive
+                      ? "text-[var(--ui-ink)] after:bg-[var(--accent)]"
+                      : "text-[var(--ui-muted)] after:bg-transparent hover:text-[var(--ui-ink)]"
+                  }`
+            }
           >
             {labels[tab]}
           </Link>
         );
       })}
-    </div>
+    </nav>
   );
 }
 
@@ -1061,11 +1115,12 @@ export default async function TournamentBracketPage({
             activeSeason={activeSeason}
             paramName="split"
             extraParams={{ view: activeView }}
+            variant="segmented"
           />
         </div>
 
         {activeSplit === "1" || activeSplit === "3" ? (
-          <div className="flex flex-wrap gap-2">
+          <nav className="flex max-w-full items-center gap-5 overflow-x-auto border-b border-[var(--ui-border)] sm:gap-6" aria-label="대회 상세 탭">
             {(
               [
                 { key: "pom", label: "POM", query: { view: "pom" } },
@@ -1086,15 +1141,17 @@ export default async function TournamentBracketPage({
                 <Link
                   key={tab.key}
                   href={`/tournaments/${segmentTheme.key}?${query.toString()}`}
-                  className={`rounded-full px-4 py-1.5 text-sm font-bold transition-colors ${
-                    isActive ? "bg-accent text-accent-foreground" : "bg-surface-muted text-muted hover:text-foreground"
+                  className={`relative flex min-h-11 shrink-0 items-center justify-center whitespace-nowrap px-1 text-center text-[13px] font-bold transition-colors after:absolute after:inset-x-1 after:bottom-0 after:h-0.5 sm:min-h-12 sm:px-0 sm:text-base ${
+                    isActive
+                      ? "text-[var(--ui-ink)] after:bg-[var(--accent)]"
+                      : "text-[var(--ui-muted)] after:bg-transparent hover:text-[var(--ui-ink)]"
                   }`}
                 >
                   {tab.label}
                 </Link>
               );
             })}
-          </div>
+          </nav>
         ) : (
           <ViewTabs
             labels={{ pom: "순위", standings: viewLabels.standings, bracket: viewLabels.bracket }}
@@ -1156,7 +1213,7 @@ export default async function TournamentBracketPage({
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-[var(--page-inline)] py-10">
+    <main className="layout-wide flex flex-col gap-6 py-6 sm:py-10">
       <PageHeader
         title={segmentTheme.name}
         breadcrumbs={[

@@ -50,7 +50,7 @@ export function FanFeedTabs({
 
   return (
     <div
-      className="mb-6 flex min-h-10 items-center gap-2 overflow-x-auto pb-1 scrollbar-none"
+      className="fan-nav-scroll mb-5 flex min-h-10 max-w-full items-center gap-2 overflow-x-auto pb-1"
       aria-busy={isPending}
     >
       {tabs.map((tab) => {
@@ -62,22 +62,22 @@ export function FanFeedTabs({
             disabled={isPending || isActive}
             onClick={() => onChange(tab.key)}
             aria-pressed={isActive}
-            className={`shrink-0 rounded-full px-4 py-2 text-sm font-bold transition disabled:cursor-default ${
+            className={`shrink-0 rounded-full px-3 py-2 text-[13px] font-bold transition disabled:cursor-default sm:px-4 sm:text-sm ${
               isActive
-                ? "bg-[#0f0f0f] text-white"
-                : "border border-[#e5e5e5] bg-surface text-[#606060] hover:border-[#0f0f0f] hover:text-[#0f0f0f]"
+                ? "bg-[var(--ui-ink)] text-[var(--ui-surface)]"
+                : "border border-[var(--ui-border)] bg-[var(--ui-surface)] text-[var(--ui-text)] hover:border-[var(--ui-ink)] hover:text-[var(--ui-ink)]"
             }`}
           >
             {tab.label}
-            <span className={`ml-1.5 text-[13px] ${isActive ? "text-white/70" : "text-[#9b9b9b]"}`}>
+            <span className={`ml-1 text-[12px] sm:ml-1.5 sm:text-[13px] ${isActive ? "opacity-70" : "text-[var(--ui-muted)]"}`}>
               {tab.count}
             </span>
           </button>
         );
       })}
       {isPending ? (
-        <span className="inline-flex shrink-0 items-center gap-2 px-2 text-[13px] font-bold text-[#606060]" role="status">
-          <span className="h-4 w-4 animate-spin rounded-full border-2 border-[#d9d9d9] border-t-[#0f0f0f]" />
+        <span className="inline-flex shrink-0 items-center gap-2 px-2 text-[13px] font-bold text-[var(--ui-muted)]" role="status">
+          <span className="h-4 w-4 animate-spin rounded-full border-2 border-[var(--ui-border)] border-t-[var(--ui-ink)]" />
           전환 중
         </span>
       ) : null}

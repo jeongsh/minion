@@ -445,7 +445,7 @@ export function FanInstagramFeed({
       {hasStories && (
         <div className={variant === "full" ? "mb-8" : "border-t border-[#eceef2] px-5 py-4 md:px-6"}>
           <p className="mb-3 text-[13px] font-bold text-muted uppercase tracking-wide">스토리</p>
-          <div className="flex gap-4 overflow-x-auto pb-1 scrollbar-none">
+          <div className="flex flex-wrap gap-3 sm:gap-4">
             {filteredStories.map((story, i) => (
               <StoryBubble
                 key={story.id}

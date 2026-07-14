@@ -8,7 +8,7 @@ import { SlideFormModal } from "./slide-form-modal";
 
 function SlidePreview({ slide }: { slide: HomeHeroSlide }) {
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-surface-muted">
+    <div className="min-w-0 overflow-hidden rounded-xl border border-border bg-surface-muted">
       <img src={slide.imageUrl} alt={slide.title} className="aspect-[16/7] w-full object-cover" />
     </div>
   );
@@ -33,10 +33,10 @@ export default async function AdminHomeSliderPage() {
         </div>
       </div>
 
-      <section className="grid gap-4">
-        <div className="flex items-end justify-between gap-3">
-          <h2 className="text-lg font-black text-foreground">등록된 슬라이드</h2>
-          <p className="text-sm font-semibold text-muted">총 {slides.length}개</p>
+      <section className="grid min-w-0 gap-4">
+        <div className="flex min-w-0 flex-wrap items-end justify-between gap-3">
+          <h2 className="min-w-0 text-lg font-black text-foreground">등록된 슬라이드</h2>
+          <p className="shrink-0 text-sm font-semibold text-muted">총 {slides.length}개</p>
         </div>
 
         {slides.length === 0 ? (
@@ -44,13 +44,13 @@ export default async function AdminHomeSliderPage() {
             등록된 홈 슬라이드가 없습니다. 상단의 슬라이드 등록 버튼으로 추가하세요.
           </div>
         ) : (
-          <div className="grid gap-4">
+          <div className="grid min-w-0 gap-4">
             {slides.map((slide) => (
-              <article key={slide.id} className="grid gap-4 rounded-2xl border border-border bg-surface p-4 xl:grid-cols-[360px_1fr]">
+              <article key={slide.id} className="grid min-w-0 max-w-full gap-4 overflow-hidden rounded-2xl border border-border bg-surface p-4 xl:grid-cols-[360px_1fr]">
                 <SlidePreview slide={slide} />
-                <div className="flex flex-col gap-3">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="text-base font-black text-foreground">{slide.title}</h3>
+                <div className="flex min-w-0 flex-col gap-3">
+                  <div className="flex min-w-0 flex-wrap items-center gap-2">
+                    <h3 className="min-w-0 break-words text-base font-black text-foreground">{slide.title}</h3>
                     <span className="rounded-full bg-surface-muted px-3 py-1 text-[13px] font-black text-muted">
                       순서 {slide.orderIndex}
                     </span>
@@ -63,7 +63,7 @@ export default async function AdminHomeSliderPage() {
                     </span>
                   </div>
                   {slide.linkUrl ? (
-                    <p className="text-sm font-semibold text-muted">
+                    <p className="min-w-0 break-words text-sm font-semibold text-muted">
                       링크: <span className="text-foreground">{slide.linkUrl}</span>
                     </p>
                   ) : null}

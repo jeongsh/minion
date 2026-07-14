@@ -12,7 +12,7 @@ export default async function ProfilePage() {
 
   if (!user) {
     return (
-      <main className="mx-auto w-full max-w-md px-4 py-16 text-center sm:px-6">
+      <main className="layout-form py-16 text-center">
         <h1 className="home-section-title mb-3 text-2xl">프로필 관리</h1>
         <p className="mb-6 text-sm" style={{ color: "var(--muted)" }}>
           프로필을 관리하려면 로그인이 필요해요.
@@ -29,18 +29,7 @@ export default async function ProfilePage() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-2xl px-4 py-10 sm:px-6">
-      <header className="mb-8 flex items-center justify-between gap-4">
-        <h1 className="home-section-title text-2xl">프로필 관리</h1>
-        <Link
-          href="/me"
-          className="text-sm font-semibold underline"
-          style={{ color: "var(--muted)" }}
-        >
-          내 랭크로
-        </Link>
-      </header>
-
+    <main className="layout-form py-6 sm:py-10">
       <section
         className="mb-6 rounded-lg border p-5"
         style={{ borderColor: "var(--border)", backgroundColor: "var(--surface)" }}

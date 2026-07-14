@@ -122,7 +122,7 @@ export default async function SetRatingSnapshotPage({
   const teamB = teams.find((team) => team.id === set.redTeamId);
   const setRatings = fanRatings.filter((rating) => rating.setId === set.id);
 
-  const shellClass = "mx-auto flex w-full max-w-xl flex-col gap-4 px-4 py-10";
+  const shellClass = "layout-capture flex flex-col gap-4 py-10";
 
   if (!isSetRatingSnapshotReady(set)) {
     return (

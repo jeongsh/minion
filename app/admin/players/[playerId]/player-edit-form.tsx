@@ -14,7 +14,7 @@ const POS_LABEL: Record<string, string> = {
 };
 
 function inputClassName() {
-  return "rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent";
+  return "min-w-0 w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent";
 }
 
 export function PlayerEditForm({
@@ -29,7 +29,7 @@ export function PlayerEditForm({
   const [previewUrl, setPreviewUrl] = useState(player.profileImageUrl || "");
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex min-w-0 flex-col gap-8">
       {leaguepediaPage ? (
         <form action={syncPlayerSocialFromLeaguepediaAction} className="flex justify-end">
           <input type="hidden" name="id" value={player.id} />
@@ -41,8 +41,8 @@ export function PlayerEditForm({
         </form>
       ) : null}
 
-      <div className="grid gap-8 lg:grid-cols-[18rem_1fr]">
-      <section className="rounded-lg border border-border bg-surface p-5">
+      <div className="grid min-w-0 gap-5 lg:grid-cols-[18rem_1fr] lg:gap-8">
+      <section className="min-w-0 rounded-lg border border-border bg-surface p-4 sm:p-5">
         <h2 className="mb-4 text-lg font-semibold">프로필 사진</h2>
         <div className="overflow-hidden rounded-md border border-border bg-surface-muted">
           {previewUrl ? (
@@ -58,7 +58,7 @@ export function PlayerEditForm({
         action={async (formData) => {
           await updatePlayerDetailAction(formData);
         }}
-        className="flex flex-col gap-6 rounded-lg border border-border bg-surface p-6"
+        className="flex min-w-0 flex-col gap-5 rounded-lg border border-border bg-surface p-4 sm:gap-6 sm:p-6"
       >
         <input type="hidden" name="id" value={player.id} />
         <input type="hidden" name="slug" value={player.slug} />

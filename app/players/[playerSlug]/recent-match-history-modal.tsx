@@ -5,6 +5,10 @@ import { championLabel } from "@/lib/champions";
 import { DEFAULT_DDRAGON_VERSION, ddragonVersionFromPatch } from "@/lib/ddragon";
 import { PlayerLoadout } from "@/components/domain/player-loadout";
 import { PlayerItemSlots } from "@/app/matches/[matchId]/player-item-slots";
+import {
+  defaultPlayerStatTitle,
+  ResponsivePlayerStatRow,
+} from "@/components/domain/responsive-player-stat-row";
 import type { RuneCatalog } from "@/lib/runes";
 import type { GameSpell } from "@/lib/spells";
 import type { FanRating, Match, Player, PlayerStatLine, SetResult, Team } from "@/lib/types";
@@ -84,12 +88,14 @@ export function RecentMatchSetRows({
   runeCatalogByVersion: Record<string, RuneCatalog>;
 }) {
   const opponent = teamLabel(teams, opponentId(match, player.teamId));
+  const playerTeam = teamLabel(teams, lines[0]?.teamId ?? player.teamId);
   const maxDamage = Math.max(...lines.map((line) => line.damageToChampions), 1);
 
   return (
     <article className="overflow-hidden rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)]">
-      <div className="grid gap-3 border-b border-[var(--ui-border)] bg-[var(--ui-surface-muted)] px-4 py-3 text-sm text-[var(--ui-ink)] md:grid-cols-[1fr_auto_auto_auto] md:items-center">
-        <div>
+      <div className="grid gap-3 border-b border-[var(--ui-border)] bg-[var(--ui-surface-muted)] px-4 py-3 text-sm text-[var(--ui-ink)] [&>*:first-child]:block [&>*]:hidden min-[1024px]:grid-cols-[1fr_auto_auto_auto] min-[1024px]:items-center min-[1024px]:[&>*:first-child]:hidden min-[1024px]:[&>*]:block">
+        <div className="font-black min-[1024px]:hidden">{playerTeam} vs {opponent}</div>
+        <div className="hidden min-[1024px]:block">
           <p className="font-semibold">{compactDate(match.matchDate)} · vs {opponent}</p>
           <p className="mt-1 text-[13px] text-[var(--ui-muted)]">{match.name}</p>
         </div>
@@ -98,7 +104,7 @@ export function RecentMatchSetRows({
         <div><span className="text-[var(--ui-muted)]">공식 POM </span><strong>{officialPomName}</strong></div>
       </div>
 
-      <div className="divide-y divide-[var(--ui-border)] overflow-x-auto text-[var(--ui-ink)]">
+      <div className="divide-y divide-[var(--ui-border)] text-[var(--ui-ink)]">
         {lines.length === 0 ? (
           <div className="px-4 py-4 text-sm text-[var(--ui-muted)]">이 매치에 연결된 선수 세트 기록이 없습니다.</div>
         ) : (
@@ -113,11 +119,23 @@ export function RecentMatchSetRows({
             };
             const damageWidth = Math.max(4, (line.damageToChampions / maxDamage) * 100);
             return (
-              <div
-                key={line.setId}
-                className="grid min-w-[72rem] grid-cols-[14rem_7.25rem_minmax(5.5rem,0.7fr)_3.5rem_4rem_5rem_13rem_4rem] items-center gap-3 px-3 py-2.5 text-sm"
-              >
-                <div>
+              <div key={line.setId}>
+                <div className="min-[1024px]:hidden">
+                  <ResponsivePlayerStatRow
+                    champion={champion}
+                    line={line}
+                    stats={line.stats}
+                    spells={spells}
+                    version={itemVersion}
+                    runeCatalog={runeCatalog}
+                    title={defaultPlayerStatTitle({
+                      playerName: player.name,
+                      champion,
+                    })}
+                    subtitle={`${line.kills} / ${line.deaths} / ${line.assists} · ${line.stats.kda.toFixed(2)}`}
+                  />
+                </div>
+                <div className="hidden grid-cols-[minmax(0,1fr)_4.75rem_3.75rem] items-center gap-2 px-2.5 py-2 text-[13px]">
                   <PlayerLoadout
                     champion={champion}
                     spellIds={line.spellIds}
@@ -129,37 +147,64 @@ export function RecentMatchSetRows({
                     badge={`${line.set.setNumber}세트`}
                     size="sm"
                   />
-                </div>
-                <div className="text-center">
-                  <p className="font-semibold tabular-nums">{line.kills} / {line.deaths} / {line.assists}</p>
-                  <p className="text-[13px] text-[var(--ui-muted)]">{line.stats.kda.toFixed(2)}</p>
-                </div>
-                <div>
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="font-semibold tabular-nums">{line.damageToChampions.toLocaleString("ko-KR")}</span>
-                    <span className="text-[13px] text-[var(--ui-muted)] tabular-nums">DPM {line.stats.dpm}</span>
+                  <div className="text-right">
+                    <p className="font-bold leading-tight tabular-nums">{line.kills} / {line.deaths} / {line.assists}</p>
+                    <p className="text-[12px] leading-tight text-[var(--ui-muted)] tabular-nums">{line.stats.kda.toFixed(2)}</p>
                   </div>
-                  <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-surface-muted">
-                    <div className="h-full rounded-full bg-blue-500" style={{ width: `${damageWidth}%` }} />
+                  <div className="min-w-0">
+                    <p className="text-right text-[12px] font-bold tabular-nums">{line.damageToChampions >= 1000 ? `${(line.damageToChampions / 1000).toFixed(1)}k` : line.damageToChampions}</p>
+                    <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-surface-muted">
+                      <div className="h-full rounded-full bg-blue-500" style={{ width: `${damageWidth}%` }} />
+                    </div>
                   </div>
                 </div>
-                <div className="text-center font-semibold tabular-nums">{line.visionScore}</div>
-                <div className="text-center">
-                  <p className="font-semibold tabular-nums">{line.cs}</p>
-                  <p className="text-[13px] text-[var(--ui-muted)]">{line.stats.csm}</p>
+                <div className="hidden overflow-x-auto min-[1024px]:block">
+                  <div className="grid min-w-[56rem] grid-cols-[12.5rem_6.5rem_minmax(5rem,0.7fr)_3.25rem_3.5rem_4.5rem_11.5rem_3.75rem] items-center gap-2.5 px-2.5 py-2 text-sm">
+                    <div>
+                      <PlayerLoadout
+                        champion={champion}
+                        spellIds={line.spellIds}
+                        runeIds={line.runeIds}
+                        spells={spells}
+                        version={itemVersion}
+                        runeCatalog={runeCatalog}
+                        primaryLabel={champion ? championLabel(champion) : "-"}
+                        badge={`${line.set.setNumber}세트`}
+                        size="sm"
+                      />
+                    </div>
+                    <div className="text-center">
+                      <p className="font-semibold tabular-nums">{line.kills} / {line.deaths} / {line.assists}</p>
+                      <p className="text-[13px] text-[var(--ui-muted)]">{line.stats.kda.toFixed(2)}</p>
+                    </div>
+                    <div>
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="font-semibold tabular-nums">{line.damageToChampions.toLocaleString("ko-KR")}</span>
+                        <span className="text-[13px] text-[var(--ui-muted)] tabular-nums">DPM {line.stats.dpm}</span>
+                      </div>
+                      <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-surface-muted">
+                        <div className="h-full rounded-full bg-blue-500" style={{ width: `${damageWidth}%` }} />
+                      </div>
+                    </div>
+                    <div className="text-center font-semibold tabular-nums">{line.visionScore}</div>
+                    <div className="text-center">
+                      <p className="font-semibold tabular-nums">{line.cs}</p>
+                      <p className="text-[13px] text-[var(--ui-muted)]">{line.stats.csm}</p>
+                    </div>
+                    <div className="text-center font-semibold tabular-nums">
+                      {line.gold.toLocaleString("ko-KR")}
+                    </div>
+                    <PlayerItemSlots
+                      itemIds={line.itemIds}
+                      roleBoundItem={line.roleBoundItem}
+                      version={itemVersion}
+                      slotClassName="h-8 w-8"
+                      separatorClassName="h-5 w-px"
+                      imageSizes="32px"
+                    />
+                    <div className="text-right text-[13px] text-[var(--ui-muted)]">평점 {rating ? rating.rating.toFixed(1) : "-"}</div>
+                  </div>
                 </div>
-                <div className="text-center font-semibold tabular-nums">
-                  {line.gold.toLocaleString("ko-KR")}
-                </div>
-                <PlayerItemSlots
-                  itemIds={line.itemIds}
-                  roleBoundItem={line.roleBoundItem}
-                  version={itemVersion}
-                  slotClassName="h-8 w-8"
-                  separatorClassName="h-5 w-px"
-                  imageSizes="32px"
-                />
-                <div className="text-right text-[13px] text-[var(--ui-muted)]">평점 {rating ? rating.rating.toFixed(1) : "-"}</div>
               </div>
             );
           })

@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import type { CSSProperties } from "react";
 
 export type FilterOption = { value: string; label: string };
 
 export function Divider() {
   return (
-    <span aria-hidden="true" className="text-2xl text-[var(--ui-border)]">
+    <span aria-hidden="true" className="hidden text-2xl text-[var(--ui-border)] sm:inline">
       ·
     </span>
   );
@@ -31,6 +32,8 @@ export function FilterDropdown({
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const [popupStyle, setPopupStyle] = useState<CSSProperties>({});
 
   useEffect(() => {
     if (!open) {
@@ -60,6 +63,19 @@ export function FilterDropdown({
 
   const triggerLabel = options.find((option) => option.value === selected)?.label ?? "-";
 
+  useLayoutEffect(() => {
+    if (!open || !triggerRef.current) return;
+    const rect = triggerRef.current.getBoundingClientRect();
+    const width = variant === "grid" ? 224 : Math.max(176, rect.width);
+    const left = Math.min(Math.max(12, rect.left), window.innerWidth - width - 12);
+    setPopupStyle({
+      position: "fixed",
+      left,
+      top: rect.bottom + 8,
+      width,
+    });
+  }, [open, variant]);
+
   function choose(value: string) {
     setOpen(false);
     if (disabled) return;
@@ -67,15 +83,16 @@ export function FilterDropdown({
   }
 
   return (
-    <div className="relative" ref={ref}>
+    <div className="relative shrink-0" ref={ref}>
       <button
         type="button"
+        ref={triggerRef}
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-label={ariaLabel}
         disabled={disabled}
         onClick={() => setOpen((value) => !value)}
-        className={`inline-flex items-center gap-1.5 text-base font-bold tracking-tight text-[var(--ui-ink)] disabled:cursor-wait disabled:opacity-60 ${triggerClassName}`}
+        className={`inline-flex min-h-10 items-center gap-1.5 rounded-lg px-1.5 text-[15px] font-bold tracking-tight text-[var(--ui-ink)] disabled:cursor-wait disabled:opacity-60 sm:text-base ${triggerClassName}`}
       >
         {triggerLabel}
         <Chevron open={open} />
@@ -85,9 +102,8 @@ export function FilterDropdown({
         <div
           role="listbox"
           aria-label={ariaLabel}
-          className={`absolute left-0 top-full z-30 mt-2 rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-1.5 shadow-lg ${
-            variant === "grid" ? "w-56" : "min-w-[11rem]"
-          }`}
+          style={popupStyle}
+          className="z-[80] max-h-[min(70vh,28rem)] overflow-y-auto rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-1.5 shadow-lg"
         >
           {variant === "grid" ? (
             <div className="grid grid-cols-3 gap-1">

@@ -124,26 +124,29 @@ export function PredictionBoard({ matches, teams, tournaments, bets, currentUser
   }
 
   return (
-    <div className="mt-8 grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+    <div className="mt-6 xl:mt-8">
+      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
       <div className="min-w-0">
       <section className="rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] px-4 py-4 dark:bg-[var(--ui-surface-muted)] sm:px-5">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <div className="flex w-full items-center justify-center gap-1 sm:w-auto sm:justify-start">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center justify-start gap-1 sm:w-auto">
             <button type="button" onClick={() => moveWeek(-1)} disabled={weekIndex <= 0} className="grid h-9 w-9 place-items-center rounded-lg text-[var(--ui-muted)] transition hover:bg-[var(--ui-surface)] hover:text-[var(--ui-ink)] disabled:opacity-30" aria-label="이전 주"><ChevronLeft size={18} /></button>
             <p className="min-w-[118px] text-center text-[15px] font-black text-[var(--ui-ink)]">{selectedWeek.replaceAll("-", ".")}</p>
             <button type="button" onClick={() => moveWeek(1)} disabled={weekIndex >= weekKeys.length - 1} className="grid h-9 w-9 place-items-center rounded-lg text-[var(--ui-muted)] transition hover:bg-[var(--ui-surface)] hover:text-[var(--ui-ink)] disabled:opacity-30" aria-label="다음 주"><ChevronRight size={18} /></button>
           </div>
           <div className="hidden h-6 w-px bg-[var(--ui-border)] sm:block" />
-          <div className="flex w-full min-w-0 gap-2 overflow-x-auto sm:flex-1">
+          <div className="hidden w-full min-w-0 gap-2 overflow-x-auto sm:flex sm:flex-1">
             <FilterButton active={selectedTournament === "all"} onClick={() => setSelectedTournament("all")}>전체</FilterButton>
             {tournamentIds.map((id) => <FilterButton key={id} active={selectedTournament === id} onClick={() => setSelectedTournament(id)}>{tournamentMap.get(id)?.name ?? "대회"}</FilterButton>)}
           </div>
-          <div className="ml-auto flex shrink-0 items-center gap-1.5 text-sm font-black text-[var(--ui-ink)]">
+          <div className="ml-auto flex h-9 shrink-0 items-center gap-1.5 rounded-lg bg-[var(--ui-surface-muted)] px-2.5 text-[13px] font-black tabular-nums text-[var(--ui-ink)] sm:bg-transparent sm:px-0 sm:text-sm">
             <Coins size={16} />
             {balance === null ? "로그인" : `${balance.toLocaleString("ko-KR")} LP`}
           </div>
         </div>
       </section>
+
+      <PredictionAdSlot className="mt-4 xl:hidden" />
 
       {error ? <div className="mt-4 flex items-center justify-between gap-3 rounded-xl bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-600"><span>{error}</span><button type="button" onClick={() => setError(null)} aria-label="오류 닫기"><RotateCcw size={16} /></button></div> : null}
 
@@ -170,7 +173,7 @@ export function PredictionBoard({ matches, teams, tournaments, bets, currentUser
                     <div className="mb-2 flex items-center justify-between gap-3 px-1 text-sm font-bold">
                       <div className="flex min-w-0 items-center gap-2">
                         <time className="shrink-0 text-[var(--ui-ink)]">{timeLabel(match.matchDate)}</time>
-                        <span className="truncate text-[var(--ui-muted)]">{tournamentMap.get(match.tournamentId)?.name ?? "LEAGUE"}</span>
+                        <span className="hidden truncate text-[var(--ui-muted)] sm:inline">{tournamentMap.get(match.tournamentId)?.name ?? "LEAGUE"}</span>
                       </div>
                       <div className="flex shrink-0 items-center gap-3 text-[13px] text-[var(--ui-muted)]">
                         {myBet ? <span className="font-black text-[var(--ui-ink)]">내 예측 {myBet.stake.toLocaleString("ko-KR")} LP</span> : null}
@@ -178,11 +181,11 @@ export function PredictionBoard({ matches, teams, tournaments, bets, currentUser
                       </div>
                     </div>
                     <div
-                      className={`prediction-match-card grid h-[68px] grid-cols-[minmax(0,1fr)_32px_minmax(0,1fr)] overflow-hidden rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] dark:bg-[var(--ui-surface-muted)] sm:h-[76px] sm:grid-cols-[minmax(0,1fr)_48px_minmax(0,1fr)] ${myVote === match.teamAId ? "prediction-match-card--selected-left" : myVote === match.teamBId ? "prediction-match-card--selected-right" : ""}`}
+                      className={`prediction-match-card grid min-h-[76px] grid-cols-[minmax(0,1fr)_34px_minmax(0,1fr)] overflow-hidden rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] dark:bg-[var(--ui-surface-muted)] sm:grid-cols-[minmax(0,1fr)_48px_minmax(0,1fr)] ${myVote === match.teamAId ? "prediction-match-card--selected-left" : myVote === match.teamBId ? "prediction-match-card--selected-right" : ""}`}
                       style={myVote ? { "--prediction-team-color": teamColor(myVote === match.teamAId ? teamA : teamB) } as React.CSSProperties : undefined}
                     >
                       <TeamChoice team={teamA} percent={aPercent} odds={market.teamAOdds} selected={myVote === match.teamAId} disabled={closed || isPending} onClick={() => openBetDialog(match, teamA)} />
-                      <div className="grid place-items-center text-sm font-black text-[var(--ui-muted)]">VS</div>
+                      <div className="grid place-items-center text-[13px] font-black text-[var(--ui-muted)] sm:text-sm">VS</div>
                       <TeamChoice team={teamB} percent={market.teamBPercent} odds={market.teamBOdds} selected={myVote === match.teamBId} disabled={closed || isPending} onClick={() => openBetDialog(match, teamB)} right />
                     </div>
                   </article>
@@ -195,7 +198,10 @@ export function PredictionBoard({ matches, teams, tournaments, bets, currentUser
         {!filteredMatches.length ? <div className="rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] py-16 text-center dark:bg-[var(--ui-surface-muted)]"><Trophy className="mx-auto text-[var(--ui-muted)]" size={28} /><p className="mt-3 text-[15px] font-bold text-[var(--ui-ink)]">예측 가능한 경기가 없습니다</p><p className="mt-1 text-sm text-[var(--ui-muted)]">다른 주차나 대회를 선택해 주세요.</p></div> : null}
       </div>
       </div>
-      <PredictionLeaderboard entries={leaderboard} />
+      <div className="hidden xl:block">
+        <PredictionLeaderboard entries={leaderboard} />
+        <PredictionAdSlot className="mt-5" />
+      </div>
       {dialog ? (
         <BetAmountDialog
           dialog={dialog}
@@ -208,7 +214,21 @@ export function PredictionBoard({ matches, teams, tournaments, bets, currentUser
           onCancelBet={cancelBet}
         />
       ) : null}
+      </div>
     </div>
+  );
+}
+
+function PredictionAdSlot({ className = "" }: { className?: string }) {
+  return (
+    <aside className={`overflow-hidden rounded-2xl border border-dashed border-[var(--ui-border)] bg-[var(--ui-surface-muted)] px-4 py-4 ${className}`}>
+      <div className="flex min-h-[84px] items-center justify-center rounded-xl bg-[var(--ui-surface)] text-center dark:bg-[var(--ui-surface)]/70 sm:min-h-[96px] xl:min-h-[250px]">
+        <div>
+          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[var(--ui-muted)]">Advertisement</p>
+          <p className="mt-1 text-sm font-black text-[var(--ui-ink)]">MINION AD</p>
+        </div>
+      </div>
+    </aside>
   );
 }
 
@@ -218,26 +238,34 @@ function FilterButton({ active, onClick, children }: { active: boolean; onClick:
 
 function TeamChoice({ team, percent, odds, selected, disabled, onClick, right = false }: { team?: Team; percent: number; odds: number | null; selected: boolean; disabled: boolean; onClick: () => void; right?: boolean }) {
   const color = teamColor(team);
+  const percentNode = (
+    <span className={`shrink-0 text-[17px] font-black leading-none tabular-nums text-[var(--ui-ink)] transition-colors sm:text-[26px] ${disabled ? "" : "group-hover:text-[var(--prediction-choice-color)]"}`}>
+      {percent}<span className="ml-0.5 text-[12px] text-[var(--ui-muted)] sm:text-sm">%</span>
+    </span>
+  );
+
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled || !team}
-      className={`group relative flex min-w-0 items-center gap-1.5 px-2 text-left transition active:scale-[0.99] disabled:cursor-default disabled:active:scale-100 sm:gap-3 sm:px-5 ${right ? "flex-row-reverse text-right" : ""}`}
+      className={`group relative grid min-w-0 grid-rows-[1fr_auto] gap-0.5 px-3 py-2 text-left transition active:scale-[0.99] disabled:cursor-default disabled:active:scale-100 sm:px-5 ${right ? "text-right" : ""}`}
       style={{ "--prediction-choice-color": color } as React.CSSProperties}
       aria-pressed={selected}
       title={selected ? "다시 누르면 선택 취소" : undefined}
     >
-      <TeamLogo team={team} size="h-8 w-8 sm:h-10 sm:w-10" plain themeAware />
-      <span className={`flex min-w-0 flex-1 items-center gap-3 ${right ? "flex-row-reverse" : ""}`}>
-        <span className={`truncate text-m font-black text-[var(--ui-ink)] transition-colors sm:text-xl ${disabled ? "" : "group-hover:text-[var(--prediction-choice-color)]"}`}>{team?.shortName ?? "TBD"}</span>
-        <span className="shrink-0 text-lg font-bold text-[var(--ui-muted)] flex items-center">{odds === null ? "1" : `${odds.toFixed(2)}`}<span className="text-sm">&nbsp;배</span></span>
+      <span className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-1.5 sm:gap-3">
+        {right ? percentNode : null}
+        <span className={`flex min-w-0 items-center gap-1.5 ${right ? "justify-end" : ""}`}>
+          <TeamLogo team={team} size="h-7 w-7 sm:h-10 sm:w-10" plain themeAware />
+          <span className={`min-w-0 truncate text-[15px] font-black text-[var(--ui-ink)] transition-colors sm:text-xl ${disabled ? "" : "group-hover:text-[var(--prediction-choice-color)]"}`}>{team?.shortName ?? "TBD"}</span>
+        </span>
+        {right ? null : percentNode}
       </span>
-      <span className={`shrink-0 text-xl font-black leading-none tabular-nums text-[var(--ui-ink)] transition-colors sm:text-[26px] ${disabled ? "" : "group-hover:text-[var(--prediction-choice-color)]"}`}>{percent}<span className="ml-0.5 text-[13px] text-[var(--ui-muted)] sm:text-sm">%</span></span>
+      <span className={`text-[11px] font-bold leading-4 text-[var(--ui-muted)] sm:text-[13px] ${right ? "pr-[35px] sm:pr-[52px]" : "pl-[35px] sm:pl-[52px]"}`}>{odds === null ? "1.00" : odds.toFixed(2)}<span className="text-[10px] sm:text-[12px]">{"\u00a0\ubc30"}</span></span>
     </button>
   );
 }
-
 function PredictionLeaderboard({ entries }: { entries: PredictionRanking[] }) {
   return (
     <aside className="rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-5 dark:bg-[var(--ui-surface-muted)] xl:sticky xl:top-24">
@@ -288,8 +316,8 @@ function BetAmountDialog({
   const presets = [0.25, 0.5, 0.75, 1];
 
   return (
-    <div className="fixed inset-0 z-[80] grid place-items-center bg-black/55 px-4 backdrop-blur-sm" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
-      <section className="w-full max-w-md rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-5 shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="bet-dialog-title">
+    <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/55 backdrop-blur-sm sm:items-center sm:px-4" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+      <section className="w-full max-w-md rounded-t-[24px] border border-[var(--ui-border)] bg-[var(--ui-surface)] p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-2xl sm:rounded-2xl sm:pb-5" role="dialog" aria-modal="true" aria-labelledby="bet-dialog-title">
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-[13px] font-bold text-[var(--ui-muted)]">LP PREDICTION</p>

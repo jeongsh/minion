@@ -33,19 +33,19 @@ export function PostView({
   const initial = (post.authorName ?? "글").trim().charAt(0) || "글";
 
   return (
-    <article className={scope === "team" ? "w-full" : "mx-auto w-full max-w-[1120px]"}>
+    <article className={scope === "team" ? "w-full" : "content-reading"}>
       <SurfacePanel>
-        <header className="px-5 pb-5 pt-6 sm:px-8 sm:pb-6 sm:pt-8">
+        <header className="px-4 pb-4 pt-5 sm:px-8 sm:pb-6 sm:pt-8">
           <div className="flex items-center justify-between gap-4">
             <Link href={boardHref} className="inline-flex items-center text-sm font-normal text-[var(--tp)] hover:opacity-70 gap-1"><ArrowLeft size={16} strokeWidth={2} />목록으로</Link>
             {canManage ? <PostOwnerActions postId={post.id} scope={scope} teamSlug={teamSlug} /> : null}
           </div>
-          <h1 className="mt-1 text-2xl font-semibold leading-[1.4] tracking-[-0.02em] text-[var(--ui-ink)] sm:text-[26px]">
+          <h1 className="mt-2 text-[20px] font-semibold leading-[1.35] text-[var(--ui-ink)] sm:text-[24px]">
             {post.title}
           </h1>
 
           <div className="mt-2 flex items-center gap-3">
-            <span className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full bg-[var(--ui-surface-muted)] text-sm font-bold text-[var(--ui-muted)]">
+            <span className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full bg-[var(--ui-surface-muted)] text-sm font-bold text-[var(--ui-muted)] sm:h-10 sm:w-10">
               {post.authorImageUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={post.authorImageUrl} alt="" className="h-full w-full object-cover" />
@@ -62,13 +62,13 @@ export function PostView({
           </div>
         </header>
 
-        <div className="mx-5 border-t border-[var(--ui-border)] sm:mx-8" />
+        <div className="mx-4 border-t border-[var(--ui-border)] sm:mx-8" />
 
-        <div className="community-prose min-h-[200px] px-5 py-8 text-m leading-[1.8] text-[var(--ui-text)] sm:min-h-[240px] sm:px-8 sm:py-10">
+        <div className="community-prose min-h-[160px] px-4 py-6 text-[15px] leading-[1.65] text-[var(--ui-text)] sm:min-h-[220px] sm:px-8 sm:py-9 sm:text-base sm:leading-7">
           <PostContentViewer content={post.content} />
         </div>
 
-        <div className="flex items-center justify-between gap-4 px-5 py-6 sm:px-8">
+        <div className="flex items-center justify-between gap-4 px-4 py-5 sm:px-8 sm:py-6">
           <ReactionButtons
             target="post"
             targetId={post.id}
@@ -83,11 +83,11 @@ export function PostView({
         </div>
 
         <section aria-label="댓글">
-          <div className="flex items-baseline gap-1 px-5 py-5 sm:px-8">
+          <div className="flex items-baseline gap-1 px-4 py-4 sm:px-8 sm:py-5">
             <h2 className="text-lg font-bold text-[var(--ui-ink)]">댓글</h2>
-            <span className="text-m font-semibold text-[var(--tp)]">{post.commentCount}</span>
+            <span className="text-sm font-semibold text-[var(--tp)] sm:text-base">{post.commentCount}</span>
           </div>
-          <div className="px-5 pb-6 sm:px-8 sm:pb-8">
+          <div className="px-4 pb-5 sm:px-8 sm:pb-8">
             <CommentForm postId={post.id} scope={scope} teamSlug={teamSlug} />
           </div>
           <CommentList comments={comments} commentReactions={commentReactions} scope={scope} teamSlug={teamSlug} />

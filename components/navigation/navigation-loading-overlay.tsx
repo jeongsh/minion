@@ -5,7 +5,7 @@ export function NavigationLoadingOverlay({
 }) {
   return (
     <div
-      className="fixed inset-y-0 right-0 top-16 z-[39] grid cursor-progress place-items-center bg-[var(--ui-surface)]/96 px-4 lg:left-[var(--shell-lnb-width,240px)]"
+      className="fixed inset-x-0 bottom-0 top-14 z-[39] grid cursor-progress place-items-center bg-[var(--ui-surface)]/96 px-4 sm:top-16 min-[1200px]:left-[var(--shell-lnb-width,216px)]"
       data-testid="navigation-loading-overlay"
     >
       <span className="navigation-progress-track" aria-hidden="true">
@@ -14,13 +14,13 @@ export function NavigationLoadingOverlay({
       <div
         role="status"
         aria-live="polite"
-        className="flex items-center gap-3 rounded-full border border-[var(--ui-border)] bg-[var(--ui-surface)] px-5 py-3 text-sm font-bold text-[var(--ui-ink)] shadow-xl shadow-[#172554]/10 dark:shadow-black/40"
+        className="flex w-[min(100%,22rem)] items-center justify-center gap-2.5 rounded-full border border-[var(--ui-border)] bg-[var(--ui-surface)] px-4 py-2.5 text-[13px] font-bold text-[var(--ui-ink)] shadow-xl shadow-[#172554]/10 sm:w-auto sm:gap-3 sm:px-5 sm:py-3 sm:text-sm dark:shadow-black/40"
       >
         <span
           className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--ui-border)] border-t-[var(--accent)]"
           aria-hidden="true"
         />
-        <span>{label}</span>
+        <span className="min-w-0 truncate">{label}</span>
       </div>
     </div>
   );

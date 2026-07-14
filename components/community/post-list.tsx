@@ -24,8 +24,8 @@ export function PostList({ posts, scope, teamSlug }: { posts: CommunityPostDetai
             className="grid min-h-[72px] grid-cols-[minmax(0,1fr)_auto] items-center gap-4 py-3 transition-colors sm:px-2"
           >
             <div className="min-w-0">
-              <span className="shrink-0 text-sm text-[var(--tp)] font-bold">{boardLabel(scope, post.boardType)}</span>
               <div className="flex min-w-0 items-center gap-1.5">
+                <span className="shrink-0 text-[13px] font-bold text-[var(--tp)]">{boardLabel(scope, post.boardType)}</span>
                 {isHotPost(post) ? (
                   <span className="shrink-0 rounded-full border border-[var(--tp)] px-1.5 py-0.5 text-[13px] font-semibold leading-none text-[var(--tp)]">인기</span>
                 ) : null}
@@ -35,7 +35,7 @@ export function PostList({ posts, scope, teamSlug }: { posts: CommunityPostDetai
               <div className="mt-0.5 flex min-w-0 items-center gap-2.5 overflow-hidden whitespace-nowrap text-sm font-normal text-[var(--ui-muted)]">
                 <span className="max-w-28 truncate font-medium text-[var(--ui-text)]">{post.authorName ?? "알 수 없음"}</span>
                 <span className="shrink-0">{formatRelativeOrDate(post.createdAt)}</span>
-                <span className="inline-flex shrink-0 items-center gap-1"><Eye size={13} strokeWidth={1.8} />{post.viewCount}</span>
+                <span className="hidden shrink-0 items-center gap-1 sm:inline-flex"><Eye size={13} strokeWidth={1.8} />{post.viewCount}</span>
                 <span className="inline-flex shrink-0 items-center gap-1"><MessageCircle size={13} strokeWidth={1.8} />{post.commentCount}</span>
                 <span className="inline-flex shrink-0 items-center gap-1"><ThumbsUp size={13} strokeWidth={1.8} />{post.likeCount}</span>
               </div>

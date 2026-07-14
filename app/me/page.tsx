@@ -41,22 +41,22 @@ export default async function MePage() {
 
   if (!user) {
     return (
-      <main className="mx-auto w-full max-w-md px-4 py-16 text-center sm:px-6">
+      <main className="layout-form py-16 text-center">
         <h1 className="home-section-title mb-3 text-2xl">내 랭크</h1>
         <p className="mb-6 text-sm" style={{ color: "var(--muted)" }}>
           랭크와 LP를 보려면 로그인이 필요해요.
         </p>
-        <div className="flex justify-center gap-3">
+        <div className="flex flex-col justify-center gap-3 sm:flex-row">
           <Link
             href="/login"
-            className="rounded-md px-4 py-2 text-sm font-bold text-[var(--accent-foreground)]"
+            className="flex min-h-11 items-center justify-center rounded-md px-4 py-2 text-sm font-bold text-[var(--accent-foreground)]"
             style={{ backgroundColor: "var(--accent)" }}
           >
             로그인
           </Link>
           <Link
             href="/signup"
-            className="rounded-md border px-4 py-2 text-sm font-bold"
+            className="flex min-h-11 items-center justify-center rounded-md border px-4 py-2 text-sm font-bold"
             style={{ borderColor: "var(--border)" }}
           >
             회원가입
@@ -70,27 +70,27 @@ export default async function MePage() {
   const progress = tierProgress(summary.tier, summary.lp);
 
   return (
-    <main className="mx-auto w-full max-w-2xl px-4 py-10 sm:px-6">
-      <header className="mb-8 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
+    <main className="layout-form py-6 sm:py-10">
+      <header className="mb-6 flex items-center justify-between gap-3 sm:mb-8">
+        <div className="flex min-w-0 items-center gap-3">
           <h1 className="home-section-title text-2xl">{user.nickname ?? "내 프로필"}</h1>
           <RankBadge tier={summary.tier} size="md" />
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex shrink-0 items-center gap-2">
           <Link
             href="/me/profile"
-            className="rounded-md border px-3 py-1.5 text-sm font-semibold"
+            className="flex min-h-10 items-center rounded-xl border px-3 py-1.5 text-[13px] font-semibold"
             style={{ borderColor: "var(--border)" }}
           >
             프로필 관리
           </Link>
-          <LogoutButton />
+          <div className="hidden sm:block"><LogoutButton /></div>
         </div>
       </header>
 
       {/* 티어 / LP / 진행도 */}
       <section
-        className="mb-8 rounded-lg border p-5"
+        className="mb-5 rounded-2xl border p-5 sm:mb-8"
         style={{ borderColor: "var(--border)", backgroundColor: "var(--surface)" }}
       >
         <div className="mb-3 flex items-baseline justify-between">
@@ -125,16 +125,21 @@ export default async function MePage() {
 
       {/* 출석체크 */}
       <section
-        className="mb-8 rounded-lg border p-5"
+        className="mb-5 rounded-2xl border p-5 sm:mb-8"
         style={{ borderColor: "var(--border)", backgroundColor: "var(--surface)" }}
       >
         <h2 className="mb-3 text-base font-bold">출석체크</h2>
         <CheckInButton alreadyChecked={summary.checkedInToday} />
       </section>
 
+      <nav className="mb-5 grid grid-cols-2 gap-2 sm:mb-8" aria-label="마이페이지 바로가기">
+        <Link href="/predictions" className="flex min-h-12 items-center justify-center rounded-xl bg-[var(--ui-ink)] px-3 text-sm font-black text-[var(--ui-surface)]">내 승부예측</Link>
+        <Link href="/community" className="flex min-h-12 items-center justify-center rounded-xl border border-[var(--ui-border)] px-3 text-sm font-black">내 커뮤니티</Link>
+      </nav>
+
       {/* 최근 LP 변동 */}
       <section
-        className="rounded-lg border p-5"
+        className="rounded-2xl border p-4 sm:p-5"
         style={{ borderColor: "var(--border)", backgroundColor: "var(--surface)" }}
       >
         <h2 className="mb-3 text-base font-bold">최근 LP 변동</h2>

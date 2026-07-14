@@ -51,7 +51,7 @@ export function PlayerRosterCarousel({ players }: { players: Player[] }) {
       {...navigationProps}
       spaceBetween={12}
       slidesPerView={2.2}
-      breakpoints={{ 640: { slidesPerView: 3.2 }, 1024: { slidesPerView: 5 } }}
+      breakpoints={{ 640: { slidesPerView: 3.2 }, 900: { slidesPerView: 4.2 }, 1200: { slidesPerView: 5 } }}
     >
       {players.map((player) => (
         <SwiperSlide key={player.id} className="h-auto">

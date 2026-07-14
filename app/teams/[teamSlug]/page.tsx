@@ -308,7 +308,7 @@ export default async function TeamDetailPage({
       className="min-h-screen bg-[var(--ui-surface)] text-[var(--ui-text)]"
       style={{ "--tp": team.primaryColor } as React.CSSProperties}
     >
-      <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-12 px-5 pb-16 pt-8 xl:px-10">
+      <div className="layout-wide flex flex-col gap-7 pb-16 pt-6 sm:pt-8 md:gap-12">
         <PageHeader title={team.name} breadcrumbs={[{ label: "팀", href: "/teams" }, { label: team.name }]} />
 
         <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-[var(--ui-border)] px-5 py-3.5">
@@ -331,9 +331,9 @@ export default async function TeamDetailPage({
           </Link>
         </div>
 
-        <section className="grid gap-10 lg:grid-cols-[330px_1fr]">
+        <section className="grid gap-5 min-[1200px]:grid-cols-[330px_1fr] min-[1200px]:gap-10">
           <div
-            className="relative aspect-[4/5] w-full overflow-hidden rounded-2xl bg-[var(--ui-surface-muted)]"
+            className="relative h-40 w-full overflow-hidden rounded-2xl bg-[var(--ui-surface-muted)] sm:h-52 min-[1200px]:h-auto min-[1200px]:aspect-[4/5]"
             style={{
               backgroundColor: `color-mix(in oklab, var(--tp) 12%, var(--ui-surface-muted))`,
               backgroundImage: team.backgroundUrl ? `url("${team.backgroundUrl}")` : undefined,
@@ -342,7 +342,7 @@ export default async function TeamDetailPage({
             }}
           >
             <div className="absolute inset-0 bg-gradient-to-t from-[rgba(12,11,15,0.9)] via-[rgba(12,11,15,0.16)] to-transparent" />
-            {team.logoUrl ? <img src={team.logoUrl} alt={team.name} className="absolute left-1/2 top-[42%] h-36 w-36 -translate-x-1/2 -translate-y-1/2 object-contain drop-shadow-xl" /> : null}
+            {team.logoUrl ? <img src={team.logoUrl} alt={team.name} className="absolute left-6 top-1/2 h-24 w-24 -translate-y-1/2 object-contain drop-shadow-xl sm:h-28 sm:w-28 min-[1200px]:left-1/2 min-[1200px]:top-[42%] min-[1200px]:h-36 min-[1200px]:w-36 min-[1200px]:-translate-x-1/2" /> : null}
             <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 px-4 pb-4 pt-20">
               <div className="min-w-0">
                 <p className="text-[13px] font-black uppercase tracking-[0.1em] text-white/65">{team.shortName}</p>
@@ -356,7 +356,7 @@ export default async function TeamDetailPage({
             </div>
           </div>
 
-          <section aria-labelledby="team-stats-overview">
+          <section aria-labelledby="team-stats-overview" className="hidden md:block">
             <TeamSectionTitle
               title="팀 지표"
               aside={team.globalPowerRank != null ? <a href="https://lolesports.com/ko-KR/gpr/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 pb-0.5 text-[13px] font-bold text-[var(--ui-muted)] hover:text-[var(--ui-ink)]">글로벌 {team.globalPowerRank}위 <ExternalLink size={13} /></a> : undefined}
@@ -367,7 +367,7 @@ export default async function TeamDetailPage({
 
         <section>
           <TeamSectionTitle title="시즌 요약" caption={`${latestSeason} LCK`} />
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2 sm:gap-3 min-[1200px]:grid-cols-4">
             <TeamMetricCard label="시즌 전적" value={standing?.matchRecord ?? "-"} helper={`${standing?.matchWins ?? 0}W ${standing?.matchLosses ?? 0}L`} />
             <TeamMetricCard label="세트 전적" value={standing?.setRecord ?? "-"} helper={`세트 득실 ${standing && standing.setDiff > 0 ? "+" : ""}${standing?.setDiff ?? 0}`} />
             <TeamMetricCard label="승률" value={standing?.winRate ?? "-"} />
@@ -375,9 +375,9 @@ export default async function TeamDetailPage({
           </div>
         </section>
 
-        <section>
+        <section className="hidden md:block">
           <TeamSectionTitle title="팬 평가" />
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-3 sm:grid-cols-2 min-[1200px]:grid-cols-4">
             <div className="rounded-2xl border border-[var(--ui-border)] p-4" style={{ background: "color-mix(in oklab, var(--tp) 6%, var(--ui-surface))" }}>
               <p className="text-[13px] font-semibold text-[var(--ui-muted)]">팀 팬 평점</p>
               <p className="mt-2 text-[28px] font-black leading-none tabular-nums text-[var(--ui-ink)]">{avgFanRating}<span className="ml-1 text-sm font-semibold text-[var(--ui-muted)]">/ 5</span></p>
@@ -399,7 +399,7 @@ export default async function TeamDetailPage({
               <h2 id="team-roster" className="home-section-title text-[length:var(--ui-title-size)] text-[var(--ui-ink)]">주전 선수</h2>
               <span className="text-[13px] text-[var(--ui-muted)]">STARTING FIVE</span>
             </div>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
+            <div className="grid auto-cols-[132px] grid-flow-col gap-2.5 overflow-x-auto pb-1 [scrollbar-width:none] sm:grid-flow-row sm:auto-cols-auto sm:grid-cols-3 sm:gap-3 sm:overflow-visible md:grid-cols-5 [&::-webkit-scrollbar]:hidden">
             {starters.map((player) => (
               <Link
                 key={player.id}

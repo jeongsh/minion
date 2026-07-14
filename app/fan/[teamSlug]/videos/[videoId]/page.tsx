@@ -69,7 +69,7 @@ export default async function FanVideoDetailPage({
     .slice(0, 16);
 
   return (
-    <main className="fan-page-container grid gap-7 py-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
+    <main className="fan-page-container grid gap-7 py-6 min-[1200px]:grid-cols-[minmax(0,1fr)_360px] min-[1200px]:items-start">
       <PageHeader
         title={video.title}
         breadcrumbs={[
@@ -77,7 +77,7 @@ export default async function FanVideoDetailPage({
           { label: "영상", href: `/fan/${teamSlug}/videos` },
           { label: video.title },
         ]}
-        className="lg:col-span-2"
+        className="min-[1200px]:col-span-2"
       />
       <article className="min-w-0">
         <div className="aspect-video overflow-hidden rounded-xl bg-black shadow-sm">
@@ -131,12 +131,12 @@ export default async function FanVideoDetailPage({
         </section>
       </article>
 
-      <aside className="flex min-w-0 flex-col lg:sticky lg:top-32">
+      <aside className="flex min-w-0 flex-col min-[1200px]:sticky min-[1200px]:top-32">
         <div className="mb-4 flex shrink-0 items-center justify-between">
           <h2 className="home-section-title text-lg text-[#0f0f0f]">관련 영상</h2>
           <Link href={`/fan/${team.fanSiteHost}/videos`} className="text-[13px] font-semibold text-[#606060] hover:text-accent">전체 보기</Link>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+        <div className="grid gap-3 sm:grid-cols-2 min-[1200px]:grid-cols-1">
           {related.map((item) => <RelatedVideo key={item.id} teamSlug={team.fanSiteHost} video={item} />)}
         </div>
       </aside>

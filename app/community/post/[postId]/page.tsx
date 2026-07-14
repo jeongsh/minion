@@ -33,7 +33,7 @@ export default async function HubPostDetailPage({
 
   return (
     <main className="subpage min-h-screen !bg-[var(--ui-surface)]">
-      <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-5 px-10 py-8 max-md:px-5">
+      <div className="layout-wide flex flex-col gap-5 py-6 sm:py-8">
         <PageHeader
           title="게시글"
           breadcrumbs={[{ label: "커뮤니티", href: "/community" }, { label: "게시글" }]}

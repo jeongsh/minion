@@ -11,18 +11,34 @@ export function FanPageShell({
 }: FanPageShellProps) {
   return (
     <main className="fan-page-shell w-full text-[var(--ui-ink)]">
-      <div className="fan-page-container flex flex-col gap-6 py-7 md:py-9">
+      <div className="fan-page-container flex flex-col gap-5 py-5 md:gap-6 md:py-9">
         <div className={contentClassName}>{children}</div>
       </div>
     </main>
   );
 }
 
+function fanHeaderTitle(title: string) {
+  if (!/[\uAC00-\uD7A3]/.test(title) || !/[A-Za-z]/.test(title)) return title;
+
+  return title
+    .replace(/[A-Za-z][A-Za-z0-9&'._:+#/-]*/g, "")
+    .replace(/\(\s+/g, "(")
+    .replace(/\s+\)/g, ")")
+    .replace(/\(\s*\)/g, "")
+    .replace(/\s{2,}/g, " ")
+    .replace(/\s+([,.:;!?])/g, "$1")
+    .replace(/(?:[|/:,-]|\u00B7)\s*$/g, "")
+    .trim();
+}
+
 export function FanSubpageHeader({ title, breadcrumbs }: { title: string; breadcrumbs: Crumb[] }) {
+  const displayTitle = fanHeaderTitle(title);
+
   return (
     <header className="flex flex-col gap-3">
-      <Breadcrumb items={breadcrumbs} />
-      <h1 className="home-section-title text-[28px] leading-tight tracking-[-0.035em] text-[var(--ui-ink)]">{title}</h1>
+      <Breadcrumb items={breadcrumbs} className="hidden md:flex" />
+      <h1 className="home-section-title text-[18px] leading-tight text-[var(--ui-ink)]">{displayTitle || title}</h1>
     </header>
   );
 }

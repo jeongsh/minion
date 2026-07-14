@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { SlidersHorizontal } from "lucide-react";
 
 import { ScheduleList } from "@/components/domain/schedule-list";
 import { FanPageShell, FanSubpageHeader } from "@/components/fan/fan-page-shell";
@@ -9,6 +10,7 @@ import { filterMatchesBySegment, parseSeasonSegment, segmentLabel } from "@/lib/
 import { getMonthKST, getYearKST, KST_TIMEZONE } from "@/lib/view-data";
 
 import { ScheduleFilters } from "@/app/schedule/schedule-filters";
+import { AdaptiveDialog } from "@/components/responsive/adaptive-dialog";
 
 export const dynamic = "force-dynamic";
 
@@ -58,7 +60,13 @@ export default async function FanSchedulePage({
           title="경기 일정"
           breadcrumbs={[{ label: team.shortName, href: `/fan/${teamSlug}` }, { label: "경기 일정" }]}
         />
-        <div className="flex flex-wrap items-center justify-between gap-y-4">
+        <div className="flex items-center justify-end lg:hidden">
+          <AdaptiveDialog title={`${team.shortName} 일정 필터`} trigger={<span className="flex items-center gap-2"><SlidersHorizontal size={18} />필터</span>} triggerClassName="flex min-h-11 items-center rounded-xl border border-[var(--ui-border)] px-3 text-sm font-black">
+            <Suspense fallback={null}><ScheduleFilters activeYear={activeYear} activeMonth={activeMonth} activeSegment={activeSegment} activeTeam={team.id} years={years} teams={teams} pathname={pathname} lockTeam layout="sheet" /></Suspense>
+            <Link href={pathname} className="mt-4 flex min-h-12 items-center justify-center rounded-xl bg-[var(--ui-ink)] px-4 text-sm font-black text-[var(--ui-surface)]">기간 필터 초기화</Link>
+          </AdaptiveDialog>
+        </div>
+        <div className="hidden min-w-0 items-center justify-between gap-3 lg:flex">
           <Suspense fallback={null}>
             <ScheduleFilters
               activeYear={activeYear}
@@ -71,7 +79,7 @@ export default async function FanSchedulePage({
               lockTeam
             />
           </Suspense>
-          <Link href={pathname} className="text-sm text-[var(--ink-3)] transition-colors hover:text-[var(--ink)]">기간 필터 초기화</Link>
+          <Link href={pathname} className="flex min-h-10 shrink-0 items-center text-[13px] font-bold text-[var(--ink-3)] transition-colors hover:text-[var(--ink)]">기간 필터 초기화</Link>
         </div>
         <ScheduleList
           matches={filtered}

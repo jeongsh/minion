@@ -1,7 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 
 import { PostForm } from "@/components/community/post-form";
-import { PageHeader } from "@/components/ui/page-header";
 import { SurfacePanel } from "@/components/ui/surface-panel";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { categoriesForScope } from "@/lib/community/boards";
@@ -14,15 +13,7 @@ export default async function EditCommunityPostPage({ params }: { params: Promis
   if (!post || post.siteScope !== "hub" || post.authorId !== user.id) notFound();
 
   return (
-    <main className="subpage mx-auto flex min-h-screen w-full max-w-[1400px] flex-col gap-5 bg-[var(--ui-surface)] px-10 py-8 max-md:px-5">
-      <PageHeader
-        title="게시글 수정"
-        breadcrumbs={[
-          { label: "커뮤니티", href: "/community" },
-          { label: "게시글", href: `/community/post/${post.id}` },
-          { label: "수정" },
-        ]}
-      />
+    <main className="layout-wide subpage flex min-h-screen flex-col gap-5 bg-[var(--ui-surface)] py-6 sm:py-8">
       <SurfacePanel className="p-5 sm:p-8">
         <PostForm scope="hub" categories={categoriesForScope("hub")} defaultCategory={post.boardType} postId={post.id} initialTitle={post.title} initialContent={post.content} />
       </SurfacePanel>

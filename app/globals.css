@@ -33,20 +33,27 @@
   --ui-ad-surface: #e7e8ea;
   --ui-card-radius: 16px;
   --ui-control-radius: 8px;
-  --ui-title-size: 20px;
-  --ui-header-height: 64px;
+  --ui-title-size: 18px;
+  --ui-header-height: 56px;
   --ui-sidebar-width: 216px;
+  --shell-lnb-width: 216px;
+  --shell-bottom-nav-height: 64px;
+  --layout-wide: 1400px;
+  --layout-reading: 1080px;
+  --layout-form: 672px;
+  --layout-capture: 576px;
+  --layout-gutter: 16px;
   --ui-match-card-height: 260px;
   --ui-calendar-card-height: 330px;
   /* CHZZK-inspired type hierarchy: badge 12, meta 13, UI 14, card 15,
-     body 16, subheading 18, section 20, page 28. */
+     body 16, section 18, page 28. */
   --type-badge: 12px;
   --type-meta: 13px;
   --type-ui: 14px;
   --type-card: 15px;
   --type-body: 16px;
   --type-subheading: 18px;
-  --type-section: 20px;
+  --type-section: 18px;
   --type-page: 28px;
   --background: #fff;
   --foreground: #111827;
@@ -87,6 +94,10 @@
 
 html {
   background: var(--background);
+}
+
+html:has(.schedule-page) {
+  scroll-behavior: smooth;
 }
 
 body {
@@ -161,9 +172,9 @@ html[class~="dark"] .navigation-progress-bar {
 }
 
 .home-section-title {
-  font-family: "Paperozi", "Pretendard", sans-serif;
-  font-weight: normal;
-  line-height: 1.35;
+  font-family: "Pretendard", -apple-system, BlinkMacSystemFont, system-ui, "Segoe UI", sans-serif;
+  font-weight: 900;
+  line-height: 1.3;
 }
 .font-paperozi{
   font-family: "Paperozi", "Pretendard", sans-serif;
@@ -215,12 +226,12 @@ html[class~="dark"] .app-lnb a[data-active="true"] {
 }
 
 .home-today-match-grid > article {
-  height: 260px;
+  height: auto;
 }
 
 .home-today-match-grid > article > div:last-child a {
   display: grid;
-  min-height: 42px;
+  min-height: 44px;
   place-items: center;
   padding-block: 0.625rem;
 }
@@ -294,38 +305,6 @@ html[class~="dark"] .app-lnb a[data-active="true"] {
   border-color: var(--tp);
 }
 
-/* 팬 홈 히어로 티커 마퀴 (선택적 애니메이션) */
-.fan-ticker-track {
-  display: flex;
-  width: max-content;
-  white-space: nowrap;
-  animation: fan-ticker-scroll 26s linear infinite;
-}
-
-.fan-ticker-group {
-  display: flex;
-  min-width: 100vw;
-  width: max-content;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: space-around;
-}
-
-@keyframes fan-ticker-scroll {
-  0% {
-    transform: translateX(0);
-  }
-  100% {
-    transform: translateX(-50%);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .fan-ticker-track {
-    animation: none;
-  }
-}
-
 .brand-logo-text {
   font-family:
     "HancomMalrangmalrang",
@@ -368,19 +347,105 @@ html[class~="dark"] .app-lnb a[data-active="true"] {
 
 .fan-nav-scroll {
   scrollbar-width: none;
-  mask-image: linear-gradient(to right, transparent, black 1.25rem, black calc(100% - 1.25rem), transparent);
+  scroll-padding-inline: 1rem;
+  -webkit-overflow-scrolling: touch;
 }
 .fan-nav-scroll::-webkit-scrollbar { display: none; }
 
+.fan-nav-scroll {
+  mask-image: linear-gradient(to right, transparent, black 0.75rem, black calc(100% - 0.75rem), transparent);
+}
+
 .fan-page-container {
-  width: min(100%, 1400px);
+  width: 100%;
+  max-width: var(--layout-wide);
   margin-inline: auto;
-  padding-inline: 1.25rem;
+  padding-inline: var(--layout-gutter);
+}
+
+.layout-wide,
+.layout-reading,
+.layout-form,
+.layout-capture {
+  width: 100%;
+  margin-inline: auto;
+  padding-inline: var(--layout-gutter);
+}
+
+.layout-wide { max-width: var(--layout-wide); }
+.layout-reading { max-width: var(--layout-reading); }
+.layout-form { max-width: var(--layout-form); }
+.layout-capture { max-width: var(--layout-capture); }
+
+.compact-hub-content {
+  --compact-page-end-space: 1rem;
+}
+
+.content-reading {
+  width: 100%;
+  max-width: var(--layout-reading);
+  margin-inline: auto;
+}
+
+@media (max-width: 359px) {
+  :root { --layout-gutter: 12px; }
+}
+
+@media (max-width: 767px) {
+  .compact-hub-content > :is(main, div).min-h-screen {
+    min-height: calc(100svh - var(--ui-header-height));
+  }
+
+  .compact-hub-content > :is(main, div).layout-wide:is(.pb-12, .pb-16, .pb-20, .pb-24),
+  .compact-hub-content > :is(main, div).layout-reading:is(.pb-12, .pb-16, .pb-20, .pb-24),
+  .compact-hub-content > :is(main, div).layout-form:is(.pb-12, .pb-16, .pb-20, .pb-24),
+  .compact-hub-content > :is(main, div).layout-wide:is(.py-6, .py-10, .py-16, .py-24),
+  .compact-hub-content > :is(main, div).layout-reading:is(.py-6, .py-10, .py-16, .py-24),
+  .compact-hub-content > :is(main, div).layout-form:is(.py-6, .py-10, .py-16, .py-24),
+  .compact-hub-content > :is(main, div).min-h-screen > :is(.layout-wide, .layout-reading, .layout-form):is(.pb-12, .pb-16, .pb-20, .pb-24),
+  .compact-hub-content > :is(main, div).min-h-screen > :is(.layout-wide, .layout-reading, .layout-form):is(.py-6, .py-10, .py-16, .py-24) {
+    padding-bottom: var(--compact-page-end-space);
+  }
+}
+
+.fan-home-page {
+  --ui-title-size: 17px;
+}
+
+@media (min-width: 640px) {
+  :root {
+    --ui-header-height: 64px;
+  }
+
+  .fan-nav-scroll {
+    mask-image: linear-gradient(to right, transparent, black 1.25rem, black calc(100% - 1.25rem), transparent);
+  }
+
+  .fan-home-page {
+    --ui-title-size: 18px;
+  }
+}
+
+@media (min-width: 768px) {
+  :root { --layout-gutter: 24px; }
+}
+
+@media (min-width: 1200px) {
+  :root { --layout-gutter: 40px; }
 }
 
 /* Fan pages use a flat, content-first surface. Separation comes from spacing and rules. */
 .fan-page-shell {
   background: var(--ui-surface);
+}
+
+.team-surface .home-section-title {
+  letter-spacing: 0;
+}
+
+.team-surface .fan-home-page .home-section-title {
+  font-size: 17px;
+  font-weight: 800;
 }
 
 .fan-card {
@@ -450,13 +515,31 @@ html[class~="dark"] .match-detail-page .text-muted {
   background: #ffffff;
 }
 
+.home-upcoming-swiper .swiper-pagination {
+  bottom: 0 !important;
+}
+
+.home-upcoming-swiper .swiper-pagination-bullet {
+  width: 6px;
+  height: 6px;
+  background: #aeb2ba;
+  opacity: 0.55;
+}
+
+.home-upcoming-swiper .swiper-pagination-bullet-active {
+  width: 18px;
+  border-radius: 999px;
+  background: #18191c;
+  opacity: 1;
+}
+
 .home-match-calendar {
   --rdp-accent-color: var(--ui-ink);
   --rdp-accent-background-color: var(--ui-surface-muted);
-  --rdp-day-height: 38px;
-  --rdp-day-width: 38px;
-  --rdp-day_button-height: 32px;
-  --rdp-day_button-width: 32px;
+  --rdp-day-height: 32px;
+  --rdp-day-width: 32px;
+  --rdp-day_button-height: 28px;
+  --rdp-day_button-width: 28px;
   --rdp-day_button-border-radius: 10px;
   margin: 0;
   width: 100%;
@@ -480,7 +563,7 @@ html[class~="dark"] .match-detail-page .text-muted {
 .home-match-calendar .rdp-day_button {
   margin-inline: auto;
   border: 1px solid transparent;
-  font-size:13px;
+  font-size:12px;
   font-weight: 700;
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
 }
@@ -492,12 +575,12 @@ html[class~="dark"] .match-detail-page .text-muted {
 }
 
 .home-match-calendar .rdp-month_caption {
-  height: 1.875rem;
-  font-size: 17px;
+  height: 1.7rem;
+  font-size: 16px;
   font-weight: 900;
   letter-spacing: -0.025em;
   color: var(--ui-ink);
-  margin-bottom: 0.6rem;
+  margin-bottom: 0.35rem;
 }
 
 .home-match-calendar .rdp-nav {
@@ -506,8 +589,8 @@ html[class~="dark"] .match-detail-page .text-muted {
 
 .home-match-calendar .rdp-button_next,
 .home-match-calendar .rdp-button_previous {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   border: 1px solid var(--ui-border);
   border-radius: 999px;
   color: var(--ui-muted);
@@ -526,8 +609,8 @@ html[class~="dark"] .match-detail-page .text-muted {
 }
 
 .home-match-calendar .rdp-weekday {
-  padding: 0.15rem 0 0.3rem;
-  font-size:13px;
+  padding: 0.1rem 0 0.2rem;
+  font-size:12px;
   font-weight: 900;
   color: var(--ui-muted);
   opacity: 1;
@@ -637,8 +720,13 @@ html[class~="dark"] .match-detail-page .text-muted {
 }
 
 /* 버튼 중심이 카드 모서리 선에 오도록 폭(44px)의 절반만큼 바깥으로 */
-.swiper-nav-btn--prev { left: -22px; }
-.swiper-nav-btn--next { right: -22px; }
+.swiper-nav-btn--prev { left: 0.25rem; }
+.swiper-nav-btn--next { right: 0.25rem; }
+
+@media (max-width: 1279px) {
+  .hub-home .swiper-nav-btn--prev { left: 0.25rem; }
+  .hub-home .swiper-nav-btn--next { right: 0.25rem; }
+}
 
 .swiper-nav-btn.swiper-button-disabled {
   opacity: 0;
@@ -657,8 +745,60 @@ html[class~="dark"] .match-detail-page .text-muted {
 .hub-home .bg-\[\#ebe8f1\],
 .hub-home .bg-\[\#f7f6f9\] { background-color: #f1f2f3 !important; }
 .hub-home .border-\[\#e3e1e8\] { border-color: #dedfe2 !important; }
-.hub-home .h-\[330px\] { height: 330px !important; }
 .hub-home .h-\[66px\] { height: 66px !important; }
+
+@media (max-width: 420px) {
+  .home-match-calendar {
+    --rdp-day-height: 31px;
+    --rdp-day-width: 31px;
+    --rdp-day_button-height: 27px;
+    --rdp-day_button-width: 27px;
+  }
+
+  .home-match-calendar .rdp-month_caption {
+    font-size: 16px;
+  }
+
+  .home-match-calendar .rdp-weekday {
+    font-size: 12px;
+  }
+
+  .home-match-calendar .rdp-button_next,
+  .home-match-calendar .rdp-button_previous {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+@media (min-width: 640px) {
+  .home-match-calendar {
+    --rdp-day-height: 38px;
+    --rdp-day-width: 38px;
+    --rdp-day_button-height: 32px;
+    --rdp-day_button-width: 32px;
+  }
+
+  .home-match-calendar .rdp-day_button {
+    font-size: 13px;
+  }
+
+  .home-match-calendar .rdp-month_caption {
+    height: 1.875rem;
+    font-size: 17px;
+    margin-bottom: 0.6rem;
+  }
+
+  .home-match-calendar .rdp-button_next,
+  .home-match-calendar .rdp-button_previous {
+    width: 28px;
+    height: 28px;
+  }
+
+  .home-match-calendar .rdp-weekday {
+    padding: 0.15rem 0 0.3rem;
+    font-size: 13px;
+  }
+}
 
 
 /* 커뮤니티 에디터 / 본문 뷰어 공용 스타일 (typography 플러그인 미사용). */

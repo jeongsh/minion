@@ -25,7 +25,7 @@ export function SignupForm() {
           type="email"
           autoComplete="email"
           required
-          className="rounded-md border px-3 py-2 text-sm outline-none focus:border-[var(--accent)]"
+          className="min-h-12 rounded-xl border bg-[var(--ui-surface)] px-3.5 py-2 text-base outline-none focus:border-[var(--accent)] sm:text-sm"
           style={{ borderColor: "var(--border)" }}
         />
       </div>
@@ -41,7 +41,7 @@ export function SignupForm() {
           autoComplete="new-password"
           minLength={6}
           required
-          className="rounded-md border px-3 py-2 text-sm outline-none focus:border-[var(--accent)]"
+          className="min-h-12 rounded-xl border bg-[var(--ui-surface)] px-3.5 py-2 text-base outline-none focus:border-[var(--accent)] sm:text-sm"
           style={{ borderColor: "var(--border)" }}
         />
         <p className="text-[13px]" style={{ color: "var(--muted)" }}>

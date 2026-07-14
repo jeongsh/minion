@@ -16,7 +16,7 @@ export function StaticRoutePage({
   items?: NavItem[];
 }) {
   return (
-    <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-[var(--page-inline)] py-10">
+    <main className="layout-wide flex flex-col gap-8 py-6 sm:py-10">
       {eyebrow && eyebrowHref ? (
         <div className="flex flex-col gap-2">
           <Breadcrumb items={[{ label: eyebrow, href: eyebrowHref }, { label: title }]} />

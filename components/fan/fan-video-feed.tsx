@@ -148,7 +148,7 @@ export function FanVideoFeed({
 
       <section
         aria-busy={isTabPending || isBatchLoading}
-        className="grid items-start gap-x-4 gap-y-9 sm:grid-cols-2 lg:grid-cols-3"
+        className="grid grid-cols-2 items-start gap-x-3 gap-y-6 sm:gap-x-4 sm:gap-y-9 lg:grid-cols-3"
       >
         {filteredVideos.slice(0, visibleCount).map((video) => (
           <Link
@@ -157,7 +157,7 @@ export function FanVideoFeed({
             className="group block min-w-0"
             data-testid="fan-video-card"
           >
-            <div className="relative aspect-video overflow-hidden rounded-xl bg-black">
+            <div className="relative aspect-video overflow-hidden rounded-lg bg-black sm:rounded-xl">
               {video.thumbnailUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -175,15 +175,17 @@ export function FanVideoFeed({
                 </span>
               </span>
               {video.isNew ? (
-                <span className="absolute left-2 top-2 rounded bg-red-600 px-2 py-1 text-[13px] font-medium text-white">NEW</span>
+                <span className="absolute left-1.5 top-1.5 rounded bg-red-600 px-1.5 py-0.5 text-[10px] font-bold text-white sm:left-2 sm:top-2 sm:px-2 sm:py-1 sm:text-[13px]">NEW</span>
               ) : null}
             </div>
-            <div className="mt-3 flex gap-3">
-              <VideoOwnerAvatar video={video} />
+            <div className="mt-2 flex gap-2 sm:mt-3 sm:gap-3">
+              <div className="hidden sm:block">
+                <VideoOwnerAvatar video={video} />
+              </div>
               <div className="min-w-0">
-                <h2 className="line-clamp-2 min-h-10 text-[15px] font-semibold leading-5 text-[#0f0f0f]">{video.title}</h2>
-                <p className="mt-1 truncate text-sm text-[#606060]">{video.ownerName}</p>
-                <p className="truncate text-[13px] text-[#606060]">{fanVideoMetaLabel(video)}</p>
+                <h2 className="line-clamp-2 min-h-8 text-[12px] font-semibold leading-4 text-[#0f0f0f] sm:min-h-10 sm:text-[15px] sm:leading-5">{video.title}</h2>
+                <p className="mt-1 truncate text-[12px] text-[#606060] sm:text-sm">{video.ownerName}</p>
+                <p className="hidden truncate text-[13px] text-[#606060] sm:block">{fanVideoMetaLabel(video)}</p>
               </div>
             </div>
           </Link>

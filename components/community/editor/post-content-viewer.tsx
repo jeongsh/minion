@@ -24,7 +24,7 @@ export function PostContentViewer({ content }: { content: string }) {
     content: isJson ? (docContent as object) : content,
     editorProps: {
       attributes: {
-        class: "community-prose max-w-none text-base leading-7",
+        class: "community-prose max-w-none text-[15px] leading-[1.65] sm:text-base sm:leading-7",
       },
     },
   });
@@ -33,7 +33,7 @@ export function PostContentViewer({ content }: { content: string }) {
 
   if (!isJson) {
     // 레거시 평문 호환.
-    return <div className="whitespace-pre-wrap text-base leading-relaxed">{content}</div>;
+    return <div className="whitespace-pre-wrap text-[15px] leading-[1.65] sm:text-base sm:leading-relaxed">{content}</div>;
   }
 
   return <EditorContent editor={editor} />;

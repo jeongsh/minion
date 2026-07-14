@@ -5,12 +5,14 @@ export function SectionHeader({
   eyebrow?: string;
   title: string;
 }) {
+  const visibleEyebrow = eyebrow && !/[A-Za-z]/.test(eyebrow) ? eyebrow : null;
+
   return (
     <div className="max-w-3xl">
-      {eyebrow ? (
-        <p className="text-sm font-semibold text-accent">{eyebrow}</p>
+      {visibleEyebrow ? (
+        <p className="text-sm font-semibold text-accent">{visibleEyebrow}</p>
       ) : null}
-      <h1 className="home-section-title mt-2 text-[28px] tracking-normal">
+      <h1 className="home-section-title mt-2 text-[18px] tracking-normal md:text-[28px]">
         {title}
       </h1>
     </div>

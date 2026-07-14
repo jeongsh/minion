@@ -13,6 +13,7 @@ export function FanFollowButton({
   initialCount,
   initialFollowing,
   teamColor,
+  variant = "hero",
 }: {
   teamId: string;
   teamSlug: string;
@@ -20,6 +21,7 @@ export function FanFollowButton({
   initialCount: number;
   initialFollowing: boolean;
   teamColor: string;
+  variant?: "hero" | "channel";
 }) {
   const [count, setCount] = useState(initialCount);
   const [following, setFollowing] = useState(initialFollowing);
@@ -42,18 +44,39 @@ export function FanFollowButton({
     });
   }
 
+  const label = following ? `${teamName} 팬` : "팬 되기";
+
+  if (variant === "channel") {
+    return (
+      <button
+        type="button"
+        onClick={handleClick}
+        disabled={isPending}
+        aria-pressed={following}
+        className={`flex h-9 w-full min-w-0 items-center justify-center rounded-lg px-3 text-[14px] font-extrabold transition active:scale-[0.97] disabled:opacity-70 sm:h-10 sm:px-4 ${
+          following
+            ? "border border-[var(--ui-border)] bg-[var(--ui-surface)] text-[var(--ui-ink)] hover:bg-[var(--ui-surface-muted)]"
+            : "text-[var(--team-on-primary)] hover:brightness-95"
+        }`}
+        style={following ? undefined : { backgroundColor: teamColor }}
+      >
+        {label}
+      </button>
+    );
+  }
+
   return (
     <button
       type="button"
       onClick={handleClick}
       disabled={isPending}
       aria-pressed={following}
-      className={`rounded-full px-5 py-2.5 text-sm font-extrabold transition active:scale-[0.97] disabled:opacity-70 ${
-        following ? "border border-white/50 bg-transparent text-white hover:bg-white/10" : "bg-white hover:opacity-90"
+      className={`flex min-h-10 min-w-0 w-full items-center justify-center rounded-full border px-3 py-2 text-[13px] font-extrabold transition active:scale-[0.97] disabled:opacity-70 sm:min-h-11 sm:px-5 sm:py-2.5 sm:text-sm ${
+        following ? "border-white/55 bg-transparent text-white hover:bg-white/10" : "border-white bg-white hover:opacity-90"
       }`}
       style={following ? undefined : { color: teamColor }}
     >
-      {following ? `${teamName} 팬` : "팬 되기"}
+      {label}
       <span className="ml-1 opacity-60">{count.toLocaleString("ko-KR")}</span>
     </button>
   );

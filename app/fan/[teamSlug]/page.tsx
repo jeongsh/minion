@@ -1,16 +1,18 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronRight } from "lucide-react";
+import { CalendarDays, ChevronRight } from "lucide-react";
 
 import type { FeedInstaItem, FeedVideoItem } from "@/components/fan/fan-feed-mosaic";
 import { HomeBoardCarousel } from "@/components/domain/home-board-carousel";
 import { HomeCalendar, type HomeCalendarMatch } from "@/components/domain/home-calendar";
 import { FanChannelHeader } from "@/components/fan/fan-channel-header";
+import { FanHomeVideoSwiper } from "@/components/fan/fan-home-video-swiper";
 import { FanPageShell } from "@/components/fan/fan-page-shell";
 import { FanSocialPreview } from "@/components/fan/fan-social-preview";
 import { AdSlot } from "@/components/ui/ad-slot";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { TeamLogo } from "@/components/ui/team-logo";
+import { AdaptiveDialog } from "@/components/responsive/adaptive-dialog";
 import {
   getAllTeams,
   getFanVideoFeed,
@@ -21,7 +23,6 @@ import {
   getTeamInstagramFeed,
 } from "@/lib/data/lck";
 import { getBoardPosts } from "@/lib/data/community";
-import { getFanTemperatureSnapshot } from "@/lib/data/fan-pulse";
 import { buildFanVideoItems } from "@/lib/fan-video-items";
 import { getCalendarEvents, getCelebrationMessages, getTodayCelebrations } from "@/lib/calendar/events";
 import { getCurrentUser } from "@/lib/auth/current-user";
@@ -92,33 +93,33 @@ function MatchRow({ match, team, teams }: { match: Match; team: Team; teams: Tea
   const score = scheduled ? null : scoreLabel(match, team);
 
   return (
-    <div className="flex h-[72px] items-center gap-3 px-4 md:px-5">
+    <div className="flex h-14 items-center gap-2.5 px-3 sm:h-[68px] sm:gap-3 sm:px-4 md:px-5">
       <span
-        className={`grid h-9 w-11 shrink-0 place-items-center rounded-lg text-[13px] font-black tabular-nums ${
-          scheduled ? "bg-[var(--ui-surface-muted)] text-[var(--ui-ink)]" : "text-white"
+        className={`grid h-8 w-10 shrink-0 place-items-center rounded-md text-[12px] font-extrabold tabular-nums sm:h-9 sm:w-11 sm:text-[13px] ${
+          scheduled ? "bg-[var(--ui-surface)] text-[var(--ui-ink)]" : "text-white"
         }`}
         style={scheduled ? undefined : { background: result === "W" ? "var(--tp)" : "var(--ui-muted)" }}
       >
         {badgeText}
       </span>
-      <TeamLogo team={opponent} size="h-10 w-10" />
+      <TeamLogo team={opponent} size="h-8 w-8 sm:h-10 sm:w-10" />
       <div className="flex min-w-0 flex-1 flex-col">
-        <span className="flex items-baseline gap-2 text-[15px] font-black text-[var(--ui-ink)]">
+        <span className="flex items-baseline gap-1.5 text-[14px] font-extrabold text-[var(--ui-ink)] sm:gap-2 sm:text-[15px]">
           <span className="truncate">{opponent?.shortName ?? "TBD"}</span>
           {score ? <span className="shrink-0 tabular-nums text-[var(--ui-text)]">{score}</span> : null}
         </span>
-        <span className="truncate text-[13px] font-semibold text-[var(--ui-muted)]">
+        <span className="truncate text-[12px] font-medium text-[var(--ui-muted)] sm:text-[13px]">
           {formatMatchDay(match.matchDate)}
           {match.name?.trim() ? ` · ${match.name.trim()}` : ""}
         </span>
       </div>
       <Link
         href={`/matches/${match.id}`}
-        className="flex shrink-0 items-center gap-0.5 text-[13px] font-extrabold"
+        className="flex shrink-0 items-center gap-0.5 text-[12px] font-bold"
         style={scheduled ? { color: "var(--tp)" } : undefined}
       >
-        <span className={scheduled ? "" : "text-[var(--ui-muted)]"}>{scheduled ? "승부예측" : "매치 데이터"}</span>
-        <ChevronRight size={15} className={scheduled ? "" : "text-[var(--ui-muted)]"} />
+        <span className={`${scheduled ? "" : "text-[var(--ui-muted)]"} hidden sm:inline`}>{scheduled ? "승부예측" : "매치 데이터"}</span>
+        <ChevronRight size={14} className={scheduled ? "" : "text-[var(--ui-muted)]"} />
       </Link>
     </div>
   );
@@ -130,14 +131,14 @@ function Roster({ players, teamSlug }: { players: Player[]; teamSlug: string }) 
   return (
     <div>
       <SectionHeading href={`/fan/${teamSlug}/players`}>선수단</SectionHeading>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid auto-cols-[106px] grid-flow-col gap-2.5 overflow-x-auto pb-1 [scrollbar-width:none] sm:grid-flow-row sm:auto-cols-auto sm:grid-cols-2 sm:gap-4 sm:overflow-visible lg:grid-cols-5 [&::-webkit-scrollbar]:hidden">
         {players.slice(0, 5).map((player) => (
           <Link
             key={player.id}
             href={`/players/${player.slug}`}
-            className="fan-roster-chip group flex items-center gap-3 rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-4 transition"
+            className="fan-roster-chip group flex min-h-[96px] flex-col items-center justify-center gap-1.5 rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-2 text-center transition hover:bg-[var(--ui-surface-muted)] sm:min-h-[88px] sm:flex-row sm:justify-start sm:gap-3 sm:rounded-2xl sm:p-4 sm:text-left"
           >
-            <span className="h-14 w-14 shrink-0 overflow-hidden rounded-full bg-[var(--ui-surface-muted)]">
+            <span className="h-11 w-11 shrink-0 overflow-hidden rounded-full bg-[var(--ui-surface)] sm:h-14 sm:w-14">
               {player.profileImageUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -146,14 +147,14 @@ function Roster({ players, teamSlug }: { players: Player[]; teamSlug: string }) 
                   className="h-full w-full object-cover object-top"
                 />
               ) : (
-                <span className="grid h-full place-items-center text-[13px] font-medium text-[var(--ui-muted)]">
+                <span className="grid h-full place-items-center text-[12px] font-medium text-[var(--ui-muted)] sm:text-[13px]">
                   {player.name.slice(0, 2)}
                 </span>
               )}
             </span>
-            <div className="flex min-w-0 flex-col gap-[1px]">
-              <span className="truncate text-[15px] font-black text-[var(--ui-ink)]">{player.name}</span>
-              <span className="text-[13px] font-extrabold" style={{ color: "var(--tp)" }}>
+            <div className="flex min-w-0 max-w-full flex-col gap-[1px]">
+              <span className="truncate text-[13px] font-extrabold text-[var(--ui-ink)] sm:text-[15px]">{player.name}</span>
+              <span className="whitespace-nowrap text-[11px] font-bold sm:text-[13px]" style={{ color: "var(--tp)" }}>
                 {player.position}{" "}
                 <span className="font-bold text-[var(--ui-muted)]">· KDA {mockKda(player.id)}</span>
               </span>
@@ -179,14 +180,13 @@ export default async function FanHomePage({
     notFound();
   }
 
-  const [teams, players, matches, boardPosts, calendarEvents, user, fanTemperature] = await Promise.all([
+  const [teams, players, matches, boardPosts, calendarEvents, user] = await Promise.all([
     getAllTeams(),
     getPlayers(),
     getMatches(),
     getBoardPosts({ scope: "team", teamId: team.id }),
     getCalendarEvents({ teamId: team.id }),
     getCurrentUser(),
-    getFanTemperatureSnapshot(team.id),
   ]);
 
   const todayCelebrations = getTodayCelebrations(calendarEvents);
@@ -279,10 +279,10 @@ export default async function FanHomePage({
 
   return (
     <>
-      <FanChannelHeader teamSlug={teamSlug} fanTemperature={fanTemperature} />
+      <FanChannelHeader teamSlug={teamSlug} />
       <FanPageShell contentClassName="">
       <div
-        className="flex flex-col gap-8 text-[var(--ui-ink)] md:gap-10"
+        className="fan-home-page flex flex-col gap-5 text-[var(--ui-ink)] md:gap-8"
         style={{ "--tp": team.primaryColor } as React.CSSProperties}
       >
         {/* 오늘의 기념일 배너 */}
@@ -290,11 +290,22 @@ export default async function FanHomePage({
           <CelebrationBanner items={celebrationItems} isLoggedIn={Boolean(user)} />
         ) : null}
 
-        {/* 경기 일정 + 캘린더 */}
-        <section className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
-          <div>
+        {/* 모바일은 다음 경기 한 건만 노출하고 캘린더는 필요할 때 연다. */}
+        <section className="lg:hidden">
+          <div className="flex items-center justify-between">
+            <SectionHeading href={`/fan/${team.fanSiteHost}/matches`}>다음 경기</SectionHeading>
+            <AdaptiveDialog title={`${team.shortName} 캘린더`} trigger={<span className="flex items-center gap-1.5"><CalendarDays size={16} />캘린더</span>} triggerClassName="mb-2 flex min-h-9 items-center rounded-lg border border-[var(--ui-border)] px-3 text-[12px] font-bold text-[var(--ui-ink)]"><HomeCalendar initialMonthKey={calendarMonthKey} matches={calendarClientMatches} events={calendarEvents} /></AdaptiveDialog>
+          </div>
+          <div className="overflow-hidden rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)]">
+            {matchRows[0] ? <MatchRow match={matchRows[0]} team={team} teams={teams} /> : <p className="px-5 py-10 text-center text-sm text-[var(--ui-muted)]">등록된 경기가 없습니다.</p>}
+          </div>
+        </section>
+
+        {/* 태블릿·데스크톱은 일정과 캘린더를 병렬로 제공한다. */}
+        <section className="hidden gap-5 lg:grid lg:gap-8 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
+          <div className="min-w-0">
             <SectionHeading href={`/fan/${team.fanSiteHost}/matches`}>경기 일정</SectionHeading>
-            <div className="h-[360px] divide-y divide-[var(--ui-border)] overflow-hidden rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)]">
+            <div className="h-[280px] divide-y divide-[var(--ui-border)] overflow-hidden rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] sm:h-[340px]">
               {matchRows.length ? (
                 matchRows.map((match) => <MatchRow key={match.id} match={match} team={team} teams={teams} />)
               ) : (
@@ -302,7 +313,7 @@ export default async function FanHomePage({
               )}
             </div>
           </div>
-          <div>
+          <div className="min-w-0">
             <SectionHeading>캘린더</SectionHeading>
             <HomeCalendar
               initialMonthKey={calendarMonthKey}
@@ -332,33 +343,10 @@ export default async function FanHomePage({
         {/* 최신 영상 */}
         <section>
           <SectionHeading href={`/fan/${team.fanSiteHost}/videos`}>최신 영상</SectionHeading>
-          {feedVideos.length ? (
-            <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-              {feedVideos.slice(0, 8).map((video) => (
-                <Link key={video.id} href={`/fan/${team.fanSiteHost}/videos/${video.routeId}`} className="group">
-                  <div className="relative aspect-video overflow-hidden rounded-2xl bg-[#17181b]">
-                    {video.thumbnailUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={video.thumbnailUrl}
-                        alt=""
-                        className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-                      />
-                    ) : null}
-                    <span className="absolute inset-0 bg-gradient-to-t from-black/55 to-transparent" />
-                  </div>
-                  <b className="mt-3 line-clamp-2 block text-sm leading-5 text-[var(--ui-ink)]">{video.title}</b>
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <div className="grid min-h-48 place-items-center rounded-2xl bg-[var(--ui-surface-muted)] text-sm text-[var(--ui-muted)]">
-              등록된 영상이 없습니다.
-            </div>
-          )}
+          <FanHomeVideoSwiper teamSlug={team.fanSiteHost} videos={feedVideos} />
         </section>
 
-        <AdSlot className="h-24" />
+        <AdSlot className="hidden h-24 md:block" />
       </div>
       </FanPageShell>
     </>

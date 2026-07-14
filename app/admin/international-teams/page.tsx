@@ -16,7 +16,12 @@ function TeamCard({ team, players }: { team: Team; players: Player[] }) {
     >
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <h3 className="truncate text-base font-semibold">{team.name}</h3>
+          <div className="flex min-w-0 items-center gap-2">
+            <h3 className="truncate text-base font-semibold">{team.name}</h3>
+            <span className="shrink-0 rounded-full border border-border px-2 py-0.5 text-[12px] font-semibold text-muted">
+              {team.shortName}
+            </span>
+          </div>
           <p className="mt-1 text-sm text-muted">
             {team.slug} · {team.leaguepediaPage || "Leaguepedia page 없음"}
           </p>

@@ -156,10 +156,10 @@ function MetricCard({
   className?: string;
 }) {
   return (
-    <div className={`rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-4 ${className}`}>
-      <p className="text-sm font-semibold text-[var(--ui-muted)]">{label}</p>
-      <p className="mt-2 text-2xl font-bold leading-none tracking-tight text-[var(--ui-ink)]">{value}</p>
-      {helper ? <p className="mt-1.5 text-[13px] text-[var(--ui-muted)]">{helper}</p> : null}
+    <div className={`rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 py-3 sm:rounded-2xl sm:p-4 ${className}`}>
+      <p className="text-[13px] font-semibold text-[var(--ui-muted)] sm:text-sm">{label}</p>
+      <p className="mt-1 text-xl font-bold leading-none tracking-tight text-[var(--ui-ink)] sm:mt-2 sm:text-2xl">{value}</p>
+      {helper ? <p className="mt-1 text-[12px] text-[var(--ui-muted)] sm:mt-1.5 sm:text-[13px]">{helper}</p> : null}
     </div>
   );
 }
@@ -285,14 +285,16 @@ function PlayerSegmentChips({
   playerSlug,
   activeSegment,
   visibleSegments,
+  className = "",
 }: {
   playerSlug: string;
   activeSegment: SeasonSegmentKey | "all";
   visibleSegments: Array<SeasonSegmentKey | "all">;
+  className?: string;
 }) {
   const basePath = `/players/${playerSlug}`;
   return (
-    <div className="flex flex-wrap gap-1.5" aria-label="대회 구간">
+    <div className={`flex gap-1.5 ${className}`} aria-label="대회 구간">
       {visibleSegments.map((segment) => {
         const active = activeSegment === segment;
         return (
@@ -548,7 +550,7 @@ export default async function PlayerDetailPage({
         } as React.CSSProperties
       }
     >
-      <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-12 px-5 pb-16 pt-8 xl:px-10">
+      <div className="layout-wide flex flex-col gap-7 pb-16 pt-6 sm:pt-8 md:gap-12">
         {/* 1. 브레드크럼 + 대회 세그먼트 */}
         <PageHeader
           title={player.name}
@@ -558,9 +560,11 @@ export default async function PlayerDetailPage({
               playerSlug={player.slug}
               activeSegment={activeSegment}
               visibleSegments={visibleSegments}
+              className="hidden flex-wrap md:flex"
             />
           }
         />
+        <div className="-mt-3 flex overflow-x-auto pb-1 md:hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"><PlayerSegmentChips playerSlug={player.slug} activeSegment={activeSegment} visibleSegments={visibleSegments} className="shrink-0" /></div>
 
         {/* 2. 팀 메타 스트립 */}
         <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] px-5 py-3.5">
@@ -585,7 +589,7 @@ export default async function PlayerDetailPage({
             <span className="text-sm text-[var(--ui-muted)]">최근 5경기</span>
             <span className="text-base font-bold tracking-wide text-[var(--ui-ink)]">{teamRecent || "-"}</span>
           </div>
-          <div className="ml-auto flex flex-wrap gap-2">
+          <div className="ml-auto hidden flex-wrap gap-2 md:flex">
             {playerTeam ? (
               <Link
                 href={`/teams/${playerTeam.slug}`}
@@ -604,9 +608,9 @@ export default async function PlayerDetailPage({
         </div>
 
         {/* 3. 메인 그리드 — 포트레잇 + 선수 지표 */}
-        <div className="grid gap-10 lg:grid-cols-[330px_1fr]">
-          <div className="relative aspect-[4/5] w-full overflow-hidden rounded-2xl bg-[var(--ui-surface-muted)]">
-            <PlayerImage src={player.profileImageUrl} alt={player.name} className="h-full w-full object-cover object-top" />
+        <div className="grid gap-5 min-[1200px]:grid-cols-[330px_1fr] min-[1200px]:gap-10">
+          <div className="relative h-52 w-full overflow-hidden rounded-2xl bg-[var(--ui-surface-muted)] sm:h-64 min-[1200px]:!h-[323px]">
+            <PlayerImage src={player.profileImageUrl} alt={player.name} className="h-full w-full object-contain object-top min-[1200px]:object-cover" />
             <span className="absolute left-3 top-3 rounded-lg px-2 py-1 text-[13px] font-bold text-white" style={{ background: "var(--tp)" }}>
               {player.position}
             </span>
@@ -618,7 +622,7 @@ export default async function PlayerDetailPage({
             </div>
           </div>
 
-          <section aria-labelledby="stats-overview">
+          <section aria-labelledby="stats-overview" className="hidden md:block">
             <SectionHeading
               aside={
                 <div className="flex items-center gap-3 pb-0.5 text-[13px] text-[var(--ui-muted)]">
@@ -642,7 +646,7 @@ export default async function PlayerDetailPage({
         {/* 4. 시즌 요약 */}
         <section>
           <SectionHeading caption={playerSegmentLabel(activeSegment)}>시즌 요약</SectionHeading>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2 sm:gap-3 min-[1200px]:grid-cols-4">
             <MetricCard label="출전 세트 수" value={playerLines.length} />
             <MetricCard
               label="승률"
@@ -654,10 +658,10 @@ export default async function PlayerDetailPage({
           </div>
         </section>
 
-        {/* 5. 팬 평가 */}
-        <section>
+        {/* 5. 팬 평가는 좁은 화면에서 핵심 기록 뒤로 미룬다. */}
+        <section className="hidden md:block">
           <SectionHeading>팬 평가</SectionHeading>
-          <div className="grid gap-3 lg:grid-cols-[1.2fr_0.8fr_0.8fr_1.6fr]">
+          <div className="grid grid-cols-2 gap-2 sm:gap-3 min-[1200px]:grid-cols-[1.2fr_0.8fr_0.8fr_1.6fr]">
             <div
               className="rounded-2xl border border-[var(--ui-border)] p-4"
               style={{ background: "color-mix(in oklab, var(--tp) 6%, var(--ui-surface))" }}

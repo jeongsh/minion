@@ -27,13 +27,13 @@ export default async function PredictionsPage() {
 
   return (
     <main className="min-h-screen bg-[var(--ui-surface)] text-[var(--ui-text)]">
-      <div className="mx-auto w-full max-w-[1400px] px-5 pb-20 pt-8 xl:px-10">
+      <div className="layout-wide pb-20 pt-6 sm:pt-8">
         <PageHeader
           eyebrow="MATCH PREDICTION"
           title="승부예측"
           action={
             <span className="rounded-full bg-[var(--ui-surface-muted)] px-3 py-1.5 text-[13px] font-bold text-[var(--ui-muted)]">
-              {visibleMatches.filter((match) => new Date(match.matchDate).getTime() > now).length} OPEN
+              {visibleMatches.filter((match) => new Date(match.matchDate).getTime() > now).length}개 진행중
             </span>
           }
         />

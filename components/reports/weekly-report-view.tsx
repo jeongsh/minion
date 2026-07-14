@@ -85,7 +85,7 @@ export function WeeklyReportView({ report, index }: { report: WeeklyReportRow; i
   const generatedAt = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", dateStyle: "long", timeStyle: "short" }).format(new Date(report.generated_at));
 
   return (
-    <div className="mx-auto w-full max-w-[1080px] px-[var(--page-inline)] pb-24 pt-8">
+    <div className="layout-reading pb-24 pt-8">
       {/* 아카이브 */}
       {index.length > 1 && (
         <nav className="mb-5 flex flex-wrap items-center gap-2">

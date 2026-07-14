@@ -54,6 +54,36 @@ export async function updateInternationalTeamMediaAction(formData: FormData) {
   revalidatePath(`/teams/${team.slug}`);
 }
 
+export async function updateInternationalTeamShortNameAction(formData: FormData) {
+  const teamId = requiredText(formData, "teamId", "팀 ID");
+  const shortName = requiredText(formData, "shortName", "약칭");
+
+  const client = createSupabaseAdminClient();
+  const { data: team, error: lookupError } = await client.from("teams").select("slug").eq("id", teamId).maybeSingle();
+
+  if (lookupError) {
+    throw new Error(lookupError.message);
+  }
+
+  if (!team) {
+    throw new Error("???李얠쓣 ???놁뒿?덈떎.");
+  }
+
+  const { error } = await client.from("teams").update({ short_name: shortName }).eq("id", teamId);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  await refreshWeeklyReportTeamColor(client, team.slug);
+
+  revalidatePath("/admin/international-teams");
+  revalidatePath(`/admin/international-teams/${teamId}`);
+  revalidatePath("/reports");
+  revalidatePath("/teams");
+  revalidatePath(`/teams/${team.slug}`);
+}
+
 function requiredHexColor(formData: FormData, key: string, label: string) {
   const value = requiredText(formData, key, label);
   const normalized = value.startsWith("#") ? value : `#${value}`;

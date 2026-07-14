@@ -1,5 +1,18 @@
-// 사용자 페이지 공통 상단 헤더 — 선택적 브레드크럼 + 한글 타이틀.
 import { Breadcrumb, type Crumb } from "@/components/layout/breadcrumb";
+
+function pageHeaderTitle(title: string) {
+  if (!/[\uAC00-\uD7A3]/.test(title) || !/[A-Za-z]/.test(title)) return title;
+
+  return title
+    .replace(/[A-Za-z][A-Za-z0-9&'._:+#/-]*/g, "")
+    .replace(/\(\s+/g, "(")
+    .replace(/\s+\)/g, ")")
+    .replace(/\(\s*\)/g, "")
+    .replace(/\s{2,}/g, " ")
+    .replace(/\s+([,.:;!?])/g, "$1")
+    .replace(/(?:[|/:,-]|\u00B7)\s*$/g, "")
+    .trim();
+}
 
 export function PageHeader({
   title,
@@ -16,13 +29,16 @@ export function PageHeader({
   const resolvedBreadcrumbs = breadcrumbs?.length
     ? breadcrumbs
     : [{ label: "홈", href: "/" }, { label: title }];
+  const displayTitle = pageHeaderTitle(title);
 
   return (
-    <header className={`flex flex-col gap-3 ${className}`}>
-      <Breadcrumb items={resolvedBreadcrumbs} />
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <h1 className="home-section-title text-[28px] text-[var(--ui-ink)]">{title}</h1>
-        {action ? <div className="shrink-0">{action}</div> : null}
+    <header className={`flex min-w-0 flex-col gap-3 ${className}`}>
+      <Breadcrumb items={resolvedBreadcrumbs} className="hidden md:flex" />
+      <div className="flex min-w-0 items-center justify-between gap-3 md:items-end">
+        <h1 className="home-section-title min-w-0 truncate text-[18px] leading-tight text-[var(--ui-ink)] md:text-[24px] lg:text-[28px]">
+          {displayTitle || title}
+        </h1>
+        {action ? <div className="flex min-h-10 shrink-0 items-center justify-end">{action}</div> : null}
       </div>
     </header>
   );

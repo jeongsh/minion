@@ -3,6 +3,7 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/ui/page-header";
 import type { ReactNode } from "react";
+import { ResponsivePlayerStatRow } from "@/components/domain/responsive-player-stat-row";
 
 import {
   getAllPlayers,
@@ -28,12 +29,8 @@ import {
   voidGrubIconsForSide,
 } from "@/lib/objectives";
 import { ddragonVersionFromPatch } from "@/lib/ddragon";
-import { fetchRuneCatalog, resolveRunePairUrls, type RuneCatalog } from "@/lib/runes";
-import {
-  fetchSpellCatalog,
-  spellImageUrlById,
-  type GameSpell,
-} from "@/lib/spells";
+import { fetchRuneCatalog, type RuneCatalog } from "@/lib/runes";
+import { fetchSpellCatalog, type GameSpell } from "@/lib/spells";
 import type {
   Champion,
   DerivedPlayerStats,
@@ -196,68 +193,6 @@ type PlayerStatRow = {
   stats: DerivedPlayerStats;
 };
 
-function MobilePlayerLoadout({
-  champion,
-  line,
-  player,
-  spells,
-  itemVersion,
-  runeCatalog,
-}: {
-  champion?: Champion;
-  line: PlayerStatLine;
-  player?: Player;
-  spells: GameSpell[];
-  itemVersion: string;
-  runeCatalog: RuneCatalog;
-}) {
-  const image = championImage(champion);
-  const spell0Url = spellImageUrlById(spells, line.spellIds[0], itemVersion);
-  const spell1Url = spellImageUrlById(spells, line.spellIds[1], itemVersion);
-  const runeUrls = resolveRunePairUrls(line.runeIds, runeCatalog);
-
-  const smallIcon = (
-    src: string,
-    key: string,
-    rounded = "rounded-sm",
-    objectClassName = "object-cover",
-  ) => (
-    <span
-      key={key}
-      className={`relative block h-4 w-4 shrink-0 overflow-hidden ${rounded} border border-border/60 bg-surface-muted`}
-    >
-      {src ? <Image src={src} alt="" fill sizes="16px" className={objectClassName} unoptimized={key.startsWith("rune")} /> : null}
-    </span>
-  );
-
-  return (
-    <div className="flex min-w-0 items-center gap-1.5">
-      <span className="relative block h-9 w-9 shrink-0 overflow-hidden rounded-md border border-border bg-surface-muted">
-        {image ? <Image src={image} alt={championLabel(champion)} fill sizes="36px" className="object-cover" /> : null}
-        <span className="absolute bottom-0 right-0 rounded-tl bg-background/90 px-0.5 text-[8px] font-semibold leading-[10px]">
-          {line.championLevel ?? "-"}
-        </span>
-      </span>
-
-      <span className="grid shrink-0 grid-cols-2 gap-0">
-        {smallIcon(spell0Url, "spell-0")}
-        {smallIcon(runeUrls.keystoneUrl, "rune-0", "rounded-full", "object-contain")}
-        {smallIcon(spell1Url, "spell-1")}
-        {smallIcon(runeUrls.treeUrl, "rune-1", "rounded-full", "object-contain scale-[0.72]")}
-      </span>
-
-      <span className="min-w-0">
-        <span className="block truncate text-[13px] font-bold leading-4 text-[var(--ui-ink)]">
-          {player?.name ?? "-"}
-        </span>
-        <span className="block truncate text-xs font-semibold leading-4 text-muted tabular-nums">
-          {line.kills}/{line.deaths}/{line.assists} · {line.position}
-        </span>
-      </span>
-    </div>
-  );
-}
-
 function PlayerStatBoard({
   blueRows,
   redRows,
@@ -359,9 +294,9 @@ function PlayerStatBoard({
             itemIds={row.line.itemIds}
             roleBoundItem={row.line.roleBoundItem}
             version={itemVersion}
-            slotClassName="h-7 w-7"
-            separatorClassName="h-4 w-px"
-            imageSizes="28px"
+            slotClassName="h-5 w-5 min-[1200px]:h-7 min-[1200px]:w-7"
+            separatorClassName="h-3.5 w-px min-[1200px]:h-4"
+            imageSizes="(min-width: 1200px) 28px, 20px"
           />
         </div>
       );
@@ -399,8 +334,6 @@ function PlayerStatBoard({
     rows: PlayerStatRow[],
   ) => {
     const won = winnerTeamId === teamId;
-    const accent = side === "blue" ? "bg-team-blue" : "bg-team-red";
-
     return (
       <div className="overflow-hidden rounded-md border border-border bg-surface">
         <div className="flex items-center justify-between gap-2 bg-surface-muted px-2 py-1.5">
@@ -425,50 +358,18 @@ function PlayerStatBoard({
           const champion = champions.find(
             (item) => item.id === row.line.championId,
           );
-          const damageWidth = Math.max(
-            4,
-            (row.line.damageToChampions / maxDamage) * 100,
-          );
-
           return (
-            <article
+            <ResponsivePlayerStatRow
               key={`${side}-mobile-${row.line.playerId}`}
-              className="border-t border-border px-2 py-1"
-            >
-              <div className="grid grid-cols-[minmax(0,1fr)_8.75rem] items-center gap-1.5">
-                <MobilePlayerLoadout
-                  champion={champion}
-                  line={row.line}
-                  player={row.player}
-                  spells={spells}
-                  itemVersion={itemVersion}
-                  runeCatalog={runeCatalog}
-                />
-
-                <div className="min-w-0">
-                  <PlayerItemSlots
-                    itemIds={row.line.itemIds}
-                    roleBoundItem={row.line.roleBoundItem}
-                    version={itemVersion}
-                    className="justify-end"
-                    slotClassName="h-3.5 w-3.5 rounded-sm"
-                    separatorClassName="h-3 w-px"
-                    imageSizes="14px"
-                  />
-                  <div className="mt-0.5 grid grid-cols-[auto_1fr] items-center gap-1">
-                    <span className="text-right text-xs font-semibold tabular-nums text-muted">
-                      {row.stats.kda.toFixed(1)} · {damageLabel(row.line.damageToChampions)}
-                    </span>
-                    <span className="h-1.5 overflow-hidden rounded-full bg-surface-muted">
-                    <div
-                      className={`h-full rounded-full ${accent}`}
-                      style={{ width: `${damageWidth}%` }}
-                    />
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </article>
+              champion={champion}
+              line={row.line}
+              stats={row.stats}
+              spells={spells}
+              version={itemVersion}
+              runeCatalog={runeCatalog}
+              title={`${teamLabel(teams, row.line.teamId)} ${row.player?.name ?? championLabel(champion)}`}
+              subtitle={`${row.line.kills} / ${row.line.deaths} / ${row.line.assists} · ${row.stats.kda.toFixed(2)}`}
+            />
           );
         })}
       </div>
@@ -486,13 +387,13 @@ function PlayerStatBoard({
         </div>
       ) : (
         <>
-        <div className="grid gap-2 lg:hidden">
+        <div className="grid gap-2 min-[1024px]:hidden">
           {mobileTeamBlock(blueTeamId, "blue", blueRows)}
           {mobileTeamBlock(redTeamId, "red", redRows)}
         </div>
 
-        <div className="hidden overflow-x-auto rounded-md border border-border bg-surface lg:block">
-          <div className="min-w-[58rem]">
+        <div className="hidden overflow-x-auto rounded-md border border-border bg-surface min-[1024px]:block">
+          <div className="min-w-[56rem]">
             <div className="grid grid-cols-[12.5rem_6.5rem_minmax(5rem,0.7fr)_3.25rem_3.5rem_4.5rem_11.5rem] gap-2.5 px-2.5 py-2.5 text-xs font-semibold uppercase text-muted">
               <span>Champion / Player</span>
               <span className="text-center">KDA</span>
@@ -650,7 +551,7 @@ export async function SetDetailContent({
       className={
         embedded
           ? "flex w-full flex-col gap-5 lg:gap-6"
-          : "mx-auto flex w-full max-w-7xl flex-col gap-4 px-[var(--page-inline)] py-4 md:gap-6 md:py-6 lg:gap-10 lg:py-10"
+          : "layout-wide flex flex-col gap-4 py-4 md:gap-6 md:py-6 lg:gap-10 lg:py-10"
       }
     >
       {embedded ? null : (
@@ -679,7 +580,7 @@ export async function SetDetailContent({
           <span className="tabular-nums text-[var(--ui-ink)]">{durationLabel(set.durationSeconds)}</span>
         </div>
 
-        <div className="grid items-stretch gap-2 p-2 md:gap-3 md:p-3 lg:grid-cols-[0.9fr_1.1fr] lg:gap-4">
+        <div className="grid items-stretch gap-2 p-2 md:gap-3 md:p-3 min-[1200px]:grid-cols-[0.9fr_1.1fr] min-[1200px]:gap-4">
           <div className="h-full rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)]">
             <div className="border-b border-[var(--ui-border)] px-3 py-2 lg:py-2.5">
               <h2 className="home-section-title text-center text-base text-[var(--ui-ink)]">

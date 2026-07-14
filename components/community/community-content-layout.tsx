@@ -16,9 +16,12 @@ export function CommunityContentLayout({ children, posts, scope, teamSlug, curre
     : `/community/post/${postId}`;
 
   return (
-    <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_300px] xl:items-start">
-      <div className="min-w-0">{children}</div>
-      <aside className="mx-auto flex w-full max-w-[300px] flex-col gap-4 xl:sticky xl:top-[88px]" aria-label="커뮤니티 보조 정보">
+    <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_300px] xl:items-start xl:gap-6">
+      <div className="min-w-0">
+        <AdSlot className="mb-4 h-20 w-full xl:hidden" />
+        {children}
+      </div>
+      <aside className="hidden w-full max-w-[300px] flex-col gap-4 xl:sticky xl:top-[88px] xl:flex" aria-label="커뮤니티 보조 정보">
         <section className="overflow-hidden rounded-[var(--ui-card-radius)] border border-[var(--ui-border)] bg-[var(--ui-surface)]">
           <h2 className="home-section-title border-b border-[var(--ui-border)] px-4 py-3.5 text-lg text-[var(--ui-ink)]">인기글</h2>
           {popular.length > 0 ? (

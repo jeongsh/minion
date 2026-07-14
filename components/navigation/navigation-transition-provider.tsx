@@ -152,6 +152,10 @@ function isSameDocumentDestination(destination: string) {
   return next.pathname === current.pathname && next.search === current.search;
 }
 
+function currentDocumentRouteKey() {
+  return `${window.location.pathname}?${window.location.search}`;
+}
+
 function NavigationCompletion({ onRouteCommitted }: { onRouteCommitted: () => void }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -165,14 +169,16 @@ function NavigationCompletion({ onRouteCommitted }: { onRouteCommitted: () => vo
 }
 
 export function NavigationTransitionProvider({ children }: { children: React.ReactNode }) {
-  const [isNavigating, setIsNavigating] = useState(true);
-  const navigatingRef = useRef(true);
+  const [isNavigating, setIsNavigating] = useState(false);
+  const navigatingRef = useRef(false);
   const fallbackTimerRef = useRef<number | null>(null);
   const readinessRunRef = useRef(0);
+  const documentRouteKeyRef = useRef<string | null>(null);
 
   const completeNavigation = useCallback(() => {
     readinessRunRef.current += 1;
     navigatingRef.current = false;
+    documentRouteKeyRef.current = currentDocumentRouteKey();
     setIsNavigating(false);
     document.documentElement.removeAttribute("data-navigation-pending");
     document.documentElement.removeAttribute("aria-busy");
@@ -224,6 +230,8 @@ export function NavigationTransitionProvider({ children }: { children: React.Rea
   );
 
   useEffect(() => {
+    documentRouteKeyRef.current = currentDocumentRouteKey();
+
     if (navigatingRef.current) {
       document.documentElement.setAttribute("data-navigation-pending", "true");
       document.documentElement.setAttribute("aria-busy", "true");
@@ -268,6 +276,10 @@ export function NavigationTransitionProvider({ children }: { children: React.Rea
     }
 
     function handlePopState() {
+      const nextRouteKey = currentDocumentRouteKey();
+      if (documentRouteKeyRef.current === nextRouteKey) return;
+
+      documentRouteKeyRef.current = nextRouteKey;
       startNavigation();
     }
 

@@ -1,7 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 
 import { PostForm } from "@/components/community/post-form";
-import { PageHeader } from "@/components/ui/page-header";
 import { SurfacePanel } from "@/components/ui/surface-panel";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { categoriesForScope } from "@/lib/community/boards";
@@ -20,14 +19,6 @@ export default async function EditFanPostPage({ params }: { params: Promise<{ te
 
   return (
     <main className="community-neutral fan-page-container flex flex-col gap-5 py-7 md:py-9">
-      <PageHeader
-        title="게시글 수정"
-        breadcrumbs={[
-          { label: "커뮤니티", href: `/fan/${teamSlug}/community` },
-          { label: "게시글", href: `/fan/${teamSlug}/community/post/${post.id}` },
-          { label: "수정" },
-        ]}
-      />
       <SurfacePanel className="p-5 sm:p-8">
         <PostForm scope="team" categories={categoriesForScope("team")} defaultCategory={post.boardType} teamId={team.id} teamSlug={teamSlug} postId={post.id} initialTitle={post.title} initialContent={post.content} />
       </SurfacePanel>

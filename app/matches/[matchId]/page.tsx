@@ -45,9 +45,9 @@ const MATCH_STATUS_LABEL: Record<MatchStatus, string> = {
 };
 
 const TAB_LABELS: Record<MatchTab, string> = {
-  preview: "프리뷰",
-  data: "매치 데이터",
-  rating: "투표",
+  preview: "개요",
+  data: "세트",
+  rating: "평가",
   video: "영상",
 };
 
@@ -171,43 +171,25 @@ function youtubeEmbedUrl(value: string | null | undefined) {
 
 function TabNav({
   activeTab,
-  activeSetId,
   sets,
 }: {
   activeTab: MatchTab;
-  activeSetId?: string;
   sets: SetResult[];
 }) {
   const firstSetId = sets[0]?.id;
   const linkClass = (active: boolean) =>
-    `relative shrink-0 px-0 py-2.5 text-base font-bold transition-colors after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 ${
+    `relative flex min-h-11 items-center justify-center px-1 text-[13px] font-bold transition-colors after:absolute after:inset-x-1 after:bottom-0 after:h-0.5 sm:min-h-12 sm:px-0 sm:text-base ${
       active
         ? "text-[var(--ui-ink)] after:bg-[var(--accent)]"
         : "text-[var(--ui-muted)] after:bg-transparent hover:text-[var(--ui-ink)]"
     }`;
-  const divider = (
-    <span className="h-3.5 w-px shrink-0 self-center bg-[var(--ui-border)]" aria-hidden />
-  );
-
   return (
-    <nav className="flex items-center gap-3 overflow-x-auto border-b border-[var(--ui-border)]" aria-label="매치 상세 탭">
+    <nav className="grid border-b border-[var(--ui-border)] sm:flex sm:items-center sm:gap-6" style={{ gridTemplateColumns: `repeat(${sets.length > 0 ? 4 : 3}, minmax(0, 1fr))` }} aria-label="매치 상세 탭">
       <Link href={tabHref("preview")} className={linkClass(activeTab === "preview")}>
         {TAB_LABELS.preview}
       </Link>
       {sets.length > 0 ? (
-        <>
-          {divider}
-          {sets.map((set) => (
-            <Link
-              key={set.id}
-              href={tabHref("data", set.id)}
-              className={linkClass(activeTab === "data" && activeSetId === set.id)}
-            >
-              {setLabel(set)}
-            </Link>
-          ))}
-          {divider}
-        </>
+        <Link href={tabHref("data", firstSetId)} className={linkClass(activeTab === "data")}>{TAB_LABELS.data}</Link>
       ) : null}
       <Link href={tabHref("rating", firstSetId)} className={linkClass(activeTab === "rating")}>
         {TAB_LABELS.rating}
@@ -426,7 +408,7 @@ function MatchRatingPanel({
     <div className="flex flex-col gap-4">
       <SetSelector sets={sets} activeSet={set} tab="rating" />
 
-      <section className="grid gap-3 lg:grid-cols-[18rem_minmax(0,1fr)]">
+      <section className="grid gap-3 min-[1200px]:grid-cols-[18rem_minmax(0,1fr)]">
         <div className="rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] p-4">
           <p className="text-xs font-medium uppercase tracking-[0.16em] text-[var(--ui-muted)]">SET POG</p>
           {leader ? (
@@ -490,7 +472,7 @@ function MatchRatingPanel({
         </Link>
       ) : null}
 
-      <section className="grid gap-3 lg:grid-cols-2">
+      <section className="grid gap-3 min-[1200px]:grid-cols-2">
         <TeamRatingColumn
           title={teamLabel(teams, set.blueTeamId)}
           teamId={set.blueTeamId}
@@ -623,11 +605,11 @@ export default async function MatchDetailPage({
   );
   const embedUrl = youtubeEmbedUrl(match.vodUrl);
   return (
-    <main className="match-detail-page mx-auto flex w-full max-w-[1320px] flex-col gap-5 bg-[var(--ui-surface)] px-4 pb-12 pt-5 text-[var(--ui-text)] xl:px-6">
+    <main className="layout-wide match-detail-page flex flex-col gap-5 bg-[var(--ui-surface)] pb-12 pt-5 text-[var(--ui-text)]">
       <PageHeader
         title={`${teamAName} vs ${teamBName}`}
         breadcrumbs={[{ label: "경기 일정", href: "/schedule" }, { label: `${teamAName} vs ${teamBName}` }]}
-        className="gap-2 [&_.home-section-title]:text-2xl"
+        className="gap-2 md:[&_.home-section-title]:text-2xl"
         action={
           <div className="flex items-center gap-2">
             <span className="rounded-full bg-[var(--ui-surface-muted)] px-2.5 py-1 text-xs font-bold text-[var(--ui-muted)]">BO{match.bestOf ?? "-"}</span>
@@ -679,7 +661,7 @@ export default async function MatchDetailPage({
         ) : null}
       </section>
 
-      <TabNav activeTab={activeTab} activeSetId={activeSet?.id} sets={matchSets} />
+      <TabNav activeTab={activeTab} sets={matchSets} />
 
       {activeTab === "preview" ? (
         <MatchPreview
@@ -693,6 +675,7 @@ export default async function MatchDetailPage({
 
       {activeTab === "data" ? (
         <section className="flex flex-col gap-3" aria-label="세트 데이터">
+          <SetSelector sets={matchSets} activeSet={activeSet} />
           {activeSetCard}
         </section>
       ) : null}
