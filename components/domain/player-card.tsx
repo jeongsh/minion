@@ -35,11 +35,11 @@ function PlayerPhoto({
   );
 }
 
-export function PlayerCard({ player }: { player: Player }) {
+export function PlayerCard({ player, hrefBase = "/players" }: { player: Player; hrefBase?: string }) {
   return (
     <Link
-      href={`/players/${player.slug}`}
-      className="group flex flex-col overflow-hidden rounded-md border border-border bg-surface transition-colors hover:border-accent hover:bg-surface-muted"
+      href={`${hrefBase}/${player.slug}`}
+      className="group flex flex-col overflow-hidden rounded-md border border-border bg-surface transition-colors hover:border-accent"
     >
       <div className="relative aspect-[4/5] overflow-hidden bg-surface-muted">
         <PlayerPhoto

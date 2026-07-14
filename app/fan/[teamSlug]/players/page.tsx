@@ -23,9 +23,9 @@ export default async function FanPlayersPage({
         title="선수단"
         breadcrumbs={[{ label: team.shortName, href: `/fan/${teamSlug}` }, { label: "선수단" }]}
       />
-      <section className="fan-card grid grid-cols-2 gap-4 p-4 md:grid-cols-3 md:p-5 xl:grid-cols-5">
+      <section className="fan-card grid grid-cols-2 gap-4 py-4 md:grid-cols-3 md:py-5 xl:grid-cols-5">
         {players.map((player) => (
-          <PlayerCard key={player.id} player={player} />
+          <PlayerCard key={player.id} player={player} hrefBase={`/fan/${teamSlug}/players`} />
         ))}
         {!players.length ? <p className="col-span-full rounded-2xl bg-[var(--ui-surface-muted)] px-5 py-12 text-center text-sm text-[var(--ui-muted)]">등록된 선수가 없습니다.</p> : null}
       </section>
