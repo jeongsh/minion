@@ -11,7 +11,6 @@ export type NavItem = {
 export const hubNavItems: NavItem[] = [
   { href: "/schedule", label: "일정" },
   { href: "/tournaments", label: "대회" },
-  { href: "/records", label: "기록실" },
   { href: "/teams", label: "팀" },
   { href: "/players", label: "선수" },
   { href: "/community", label: "커뮤니티" },

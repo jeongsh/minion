@@ -29,15 +29,12 @@ function TeamLogo({ team, size = "h-9 w-9" }: { team: ReportTeamRef | null; size
   if (!team?.logoUrl) {
     return <span className={`grid ${size} shrink-0 place-items-center rounded-full bg-[var(--ui-surface-muted)] text-[13px] font-black text-[var(--ui-muted)]`}>{team?.shortName?.slice(0, 1) ?? "?"}</span>;
   }
-  if (team.logoWhiteUrl) {
-    return (
-      <span className={`relative ${size} shrink-0`}>
-        <img src={team.logoUrl} alt={team.name} className="h-full w-full object-contain dark:hidden" />
-        <img src={team.logoWhiteUrl} alt="" aria-hidden="true" className="hidden h-full w-full object-contain dark:block" />
-      </span>
-    );
-  }
-  return <img src={team.logoUrl} alt={team.name} className={`${size} shrink-0 object-contain`} />;
+  // 다크모드에서는 화이트 로고 스왑 대신 로고 뒤 밝은색 원으로 시인성을 확보한다. 라이트모드는 기존 그대로.
+  return (
+    <span className={`grid ${size} shrink-0 place-items-center overflow-hidden dark:rounded-full dark:bg-white dark:p-[12%]`}>
+      <img src={team.logoUrl} alt={team.name} className="h-full w-full object-contain" />
+    </span>
+  );
 }
 
 function ChampionFace({ champion, size = "h-10 w-10" }: { champion: ReportChampionStat | undefined; size?: string }) {

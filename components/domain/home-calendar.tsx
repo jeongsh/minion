@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clock3 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { DayPicker, type DayButtonProps } from "react-day-picker";
 import { ko } from "react-day-picker/locale";
 import "react-day-picker/style.css";
@@ -110,7 +110,7 @@ export function HomeCalendar({
   return (
     <section
       ref={containerRef}
-      className="relative flex min-h-[310px] min-w-0 flex-col overflow-visible rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-3 sm:min-h-[340px] md:min-h-[360px]"
+      className="relative flex h-[360px] min-w-0 flex-col overflow-visible rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-3"
     >
       {/* globals.css의 커스텀 CSS는 빌드 시 var(--ui-ink) 같은 CSS 변수가 라이트 모드 값으로
           굳어버리는 문제가 있어(다크모드에서 안 먹음), 월/연도 캡션 색만은 빌드 파이프라인을
@@ -149,6 +149,13 @@ export function HomeCalendar({
         locale={ko}
         showOutsideDays
         fixedWeeks
+        style={
+          {
+            "--rdp-day-height": "38px",
+            "--rdp-day_button-height": "32px",
+            "--rdp-day_button-width": "32px",
+          } as CSSProperties
+        }
         components={{
           Chevron: ({ orientation, className }) => {
             const Icon =
@@ -274,9 +281,9 @@ export function HomeCalendar({
         </div>
       ) : null}
 
-      <div className="mt-auto flex flex-shrink-0 flex-wrap items-center gap-x-3 gap-y-1 border-t border-[var(--ui-border)] pt-2 text-[12px] sm:gap-x-4 sm:gap-y-1.5 sm:pt-2.5">
+      <div className="mt-auto flex flex-shrink-0 flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-[var(--ui-border)] pt-2.5">
         {LEGEND.map((t) => (
-          <span key={t} className="flex items-center gap-1.5 text-[12px] font-medium text-[var(--ui-muted)] sm:text-[13px]">
+          <span key={t} className="flex items-center gap-1.5 text-[13px] font-medium text-[var(--ui-muted)]">
             <span className="h-2 w-2 rounded-full" style={{ background: DOT_META[t].color }} />
             {DOT_META[t].label}
           </span>

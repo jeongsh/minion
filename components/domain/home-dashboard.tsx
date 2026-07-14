@@ -169,8 +169,8 @@ export function HomeDashboard({
         <div className="min-w-0 rounded-2xl border border-[#e3e1e8] bg-white p-3 sm:p-4 xl:h-[390px] xl:overflow-y-auto dark:bg-[var(--ui-surface-muted)]">
           <div className="mb-3 flex min-w-0 items-center gap-2 text-[#18191c]">
             <CalendarDays size={17} className="shrink-0" />
-            <h2 className="home-section-title min-w-0 flex-1 text-[18px]">다가오는 매치</h2>
-            <AdaptiveDialog title="경기·기념일 캘린더" trigger={<span className="flex items-center gap-1.5"><CalendarDays size={16} />캘린더</span>} triggerClassName="flex min-h-10 shrink-0 items-center rounded-xl border border-[#e3e1e8] bg-white px-3 text-[12px] font-black text-[#18191c] dark:bg-[var(--ui-surface-muted)]"><HomeCalendar initialMonthKey={calendarMonthKey} matches={calendarMatches} events={calendarEvents} /></AdaptiveDialog>
+            <h2 className="home-section-title min-w-0 flex-1 text-xl">다가오는 매치</h2>
+            <AdaptiveDialog title="경기·기념일 캘린더" trigger={<span className="flex items-center gap-1.5"><CalendarDays size={16} />캘린더</span>} triggerClassName="flex min-h-10 shrink-0 items-center rounded-xl border border-[#e3e1e8] bg-white px-3 text-[12px] font-black text-[#18191c] md:hidden dark:bg-[var(--ui-surface-muted)]"><HomeCalendar initialMonthKey={calendarMonthKey} matches={calendarMatches} events={calendarEvents} /></AdaptiveDialog>
           </div>
           <HomeUpcomingMatchesSwiper
             items={upcomingItems}
@@ -242,7 +242,7 @@ export function HomeDashboard({
           <AdaptiveDialog title="경기·기념일 캘린더" trigger={<span className="flex items-center gap-1.5"><CalendarDays size={18} />캘린더</span>} triggerClassName="mb-3 flex min-h-10 items-center rounded-xl border border-[#e3e1e8] bg-white px-3 text-[12px] font-black dark:bg-[var(--ui-surface-muted)]"><HomeCalendar initialMonthKey={calendarMonthKey} matches={calendarMatches} events={calendarEvents} /></AdaptiveDialog>
         </div>
         <div className="overflow-hidden rounded-2xl border border-[#e6e7ea] bg-white dark:bg-[var(--ui-surface-muted)]">
-          {standingRows.slice(0, 4).map((row) => <Link href={`/teams/${row.team.slug}`} key={row.teamId} className="grid min-h-14 grid-cols-[24px_34px_minmax(0,1fr)_auto] items-center gap-2 border-b border-[#efeff1] px-3 last:border-0"><b className="text-center text-[13px]">{row.rank}</b><Logo team={row.team} size="h-8 w-8" /><b className="truncate text-[14px]">{row.team.shortName}</b><span className="text-[13px] font-bold text-[#686b72]">{row.wins}승 {row.losses}패</span></Link>)}
+          {standingRows.slice(0, 4).map((row) => <Link href={`/teams/${row.team.slug}`} key={row.teamId} className="grid min-h-14 grid-cols-[24px_34px_minmax(0,1fr)_auto] items-center gap-2 border-b border-[#efeff1] px-3 last:border-0"><b className="text-center text-[13px]">{row.rank}</b><Logo team={row.team} themeAware size="h-8 w-8" /><b className="truncate text-[14px]">{row.team.shortName}</b><span className="text-[13px] font-bold text-[#686b72]">{row.wins}승 {row.losses}패</span></Link>)}
         </div>
       </section>
 
@@ -257,7 +257,7 @@ export function HomeDashboard({
                 className="flex min-h-12 items-center gap-2.5 border-b border-[#efeff1] px-3 last:border-0 lg:min-h-14 sm:gap-3 sm:px-4 xl:min-h-0"
               >
                 <b className="w-5 text-center">{r.rank}</b>
-                <Logo team={r.team} size="h-7 w-7 lg:h-8 lg:w-8 xl:h-10 xl:w-10" />
+                <Logo team={r.team} themeAware size="h-7 w-7 lg:h-8 lg:w-8 xl:h-10 xl:w-10" />
                 <b className="min-w-0 flex-1 truncate text-[13px] sm:text-sm">{r.team.shortName}</b>
                 <span className="shrink-0 text-[13px] font-bold sm:text-sm">
                   {r.wins}승 {r.losses}패
@@ -274,13 +274,13 @@ export function HomeDashboard({
                 key={r.teamId}
                 className="flex min-h-12 items-center gap-2.5 border-b border-[#efeff1] px-3 last:border-0 lg:min-h-14 sm:gap-3 sm:px-4 xl:min-h-0"
               >
-                <Logo team={r.team} size="h-7 w-7 lg:h-8 lg:w-8 xl:h-10 xl:w-10" />
+                <Logo team={r.team} themeAware size="h-7 w-7 lg:h-8 lg:w-8 xl:h-10 xl:w-10" />
                 <b className="min-w-0 flex-1 truncate text-[13px] sm:text-sm">{r.team.shortName}</b>
                 <div className="flex shrink-0 gap-1">
                   {r.recent.map((v, i) => (
                     <span
                       key={i}
-                      className={`grid h-6 w-6 place-items-center rounded-full text-[11px] font-medium text-white xl:h-8 xl:w-8 xl:text-[13px] ${v === "W" ? "bg-[#00b979]" : "bg-[#b7bac0]"}`}
+                      className={`grid h-6 w-6 place-items-center rounded-full text-[11px] font-medium text-white xl:h-8 xl:w-8 xl:text-[13px] ${v === "W" ? "bg-[#00b979]" : "bg-[#b7bac0] dark:bg-[#565861]"}`}
                       style={{lineHeight: `1`}}
                     >
                       {v}

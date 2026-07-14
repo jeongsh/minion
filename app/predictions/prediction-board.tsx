@@ -181,7 +181,7 @@ export function PredictionBoard({ matches, teams, tournaments, bets, currentUser
                       </div>
                     </div>
                     <div
-                      className={`prediction-match-card grid min-h-[76px] grid-cols-[minmax(0,1fr)_34px_minmax(0,1fr)] overflow-hidden rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] dark:bg-[var(--ui-surface-muted)] sm:grid-cols-[minmax(0,1fr)_48px_minmax(0,1fr)] ${myVote === match.teamAId ? "prediction-match-card--selected-left" : myVote === match.teamBId ? "prediction-match-card--selected-right" : ""}`}
+                      className={`prediction-match-card grid min-h-[76px] grid-cols-[minmax(0,1fr)_34px_minmax(0,1fr)] overflow-hidden rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] dark:bg-[var(--ui-surface-muted)] sm:grid-cols-[minmax(0,1fr)_48px_minmax(0,1fr)] xl:h-[76px] ${myVote === match.teamAId ? "prediction-match-card--selected-left" : myVote === match.teamBId ? "prediction-match-card--selected-right" : ""}`}
                       style={myVote ? { "--prediction-team-color": teamColor(myVote === match.teamAId ? teamA : teamB) } as React.CSSProperties : undefined}
                     >
                       <TeamChoice team={teamA} percent={aPercent} odds={market.teamAOdds} selected={myVote === match.teamAId} disabled={closed || isPending} onClick={() => openBetDialog(match, teamA)} />
@@ -198,9 +198,9 @@ export function PredictionBoard({ matches, teams, tournaments, bets, currentUser
         {!filteredMatches.length ? <div className="rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] py-16 text-center dark:bg-[var(--ui-surface-muted)]"><Trophy className="mx-auto text-[var(--ui-muted)]" size={28} /><p className="mt-3 text-[15px] font-bold text-[var(--ui-ink)]">예측 가능한 경기가 없습니다</p><p className="mt-1 text-sm text-[var(--ui-muted)]">다른 주차나 대회를 선택해 주세요.</p></div> : null}
       </div>
       </div>
-      <div className="hidden xl:block">
+      <div className="hidden xl:sticky xl:top-24 xl:flex xl:flex-col xl:gap-5">
         <PredictionLeaderboard entries={leaderboard} />
-        <PredictionAdSlot className="mt-5" />
+        <PredictionAdSlot />
       </div>
       {dialog ? (
         <BetAmountDialog
@@ -238,37 +238,51 @@ function FilterButton({ active, onClick, children }: { active: boolean; onClick:
 
 function TeamChoice({ team, percent, odds, selected, disabled, onClick, right = false }: { team?: Team; percent: number; odds: number | null; selected: boolean; disabled: boolean; onClick: () => void; right?: boolean }) {
   const color = teamColor(team);
-  const percentNode = (
+  const mobilePercentNode = (
     <span className={`shrink-0 text-[17px] font-black leading-none tabular-nums text-[var(--ui-ink)] transition-colors sm:text-[26px] ${disabled ? "" : "group-hover:text-[var(--prediction-choice-color)]"}`}>
       {percent}<span className="ml-0.5 text-[12px] text-[var(--ui-muted)] sm:text-sm">%</span>
     </span>
   );
+  const desktopPercentNode = (
+    <span className={`hidden shrink-0 text-xl font-black leading-none tabular-nums text-[var(--ui-ink)] transition-colors xl:inline sm:text-[26px] ${disabled ? "" : "group-hover:text-[var(--prediction-choice-color)]"}`}>
+      {percent}<span className="ml-0.5 text-[13px] text-[var(--ui-muted)] sm:text-sm">%</span>
+    </span>
+  );
+  const oddsNode = <>{odds === null ? "1" : odds.toFixed(2)}<span className="text-sm">&nbsp;배</span></>;
 
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled || !team}
-      className={`group relative grid min-w-0 grid-rows-[1fr_auto] gap-0.5 px-3 py-2 text-left transition active:scale-[0.99] disabled:cursor-default disabled:active:scale-100 sm:px-5 ${right ? "text-right" : ""}`}
+      className={`group relative flex min-w-0 items-center gap-1.5 px-2 py-0 text-left transition active:scale-[0.99] disabled:cursor-default disabled:active:scale-100 sm:gap-3 sm:px-5 xl:gap-3 ${right ? "text-right xl:flex-row-reverse" : ""}`}
       style={{ "--prediction-choice-color": color } as React.CSSProperties}
       aria-pressed={selected}
       title={selected ? "다시 누르면 선택 취소" : undefined}
     >
-      <span className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-1.5 sm:gap-3">
-        {right ? percentNode : null}
-        <span className={`flex min-w-0 items-center gap-1.5 ${right ? "justify-end" : ""}`}>
+      <span className="flex min-w-0 flex-1 items-center gap-1.5 sm:gap-3 xl:hidden">
+        {right ? mobilePercentNode : null}
+        <span className={`flex min-w-0 flex-1 items-center gap-1.5 ${right ? "flex-row-reverse justify-start" : ""}`}>
           <TeamLogo team={team} size="h-7 w-7 sm:h-10 sm:w-10" plain themeAware />
-          <span className={`min-w-0 truncate text-[15px] font-black text-[var(--ui-ink)] transition-colors sm:text-xl ${disabled ? "" : "group-hover:text-[var(--prediction-choice-color)]"}`}>{team?.shortName ?? "TBD"}</span>
+          <span className={`flex min-w-0 items-baseline gap-1 ${right ? "flex-row-reverse" : ""}`}>
+            <span className={`min-w-0 truncate text-[15px] font-black text-[var(--ui-ink)] transition-colors sm:text-xl ${disabled ? "" : "group-hover:text-[var(--prediction-choice-color)]"}`}>{team?.shortName ?? "TBD"}</span>
+            <span className="shrink-0 text-[11px] font-bold text-[var(--ui-muted)] sm:text-[13px]">{odds === null ? "1.00" : odds.toFixed(2)}<span className="text-[10px] sm:text-[12px]">{"\u00a0\ubc30"}</span></span>
+          </span>
         </span>
-        {right ? null : percentNode}
+        {right ? null : mobilePercentNode}
       </span>
-      <span className={`text-[11px] font-bold leading-4 text-[var(--ui-muted)] sm:text-[13px] ${right ? "pr-[35px] sm:pr-[52px]" : "pl-[35px] sm:pl-[52px]"}`}>{odds === null ? "1.00" : odds.toFixed(2)}<span className="text-[10px] sm:text-[12px]">{"\u00a0\ubc30"}</span></span>
+      <span className={`hidden min-w-0 flex-1 items-center gap-3 xl:flex ${right ? "xl:flex-row-reverse" : ""}`}>
+        <TeamLogo team={team} size="h-10 w-10" plain themeAware />
+        <span className={`truncate text-xl font-black text-[var(--ui-ink)] transition-colors ${disabled ? "" : "group-hover:text-[var(--prediction-choice-color)]"}`}>{team?.shortName ?? "TBD"}</span>
+        <span className="flex shrink-0 items-center text-lg font-bold text-[var(--ui-muted)]">{oddsNode}</span>
+      </span>
+      {desktopPercentNode}
     </button>
   );
 }
 function PredictionLeaderboard({ entries }: { entries: PredictionRanking[] }) {
   return (
-    <aside className="rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-5 dark:bg-[var(--ui-surface-muted)] xl:sticky xl:top-24">
+    <aside className="rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-5 dark:bg-[var(--ui-surface-muted)]">
       <div className="flex items-end justify-between gap-3">
         <div>
           <p className="text-[13px] font-bold uppercase tracking-[0.14em] text-[var(--ui-muted)]">USER RANKING</p>
