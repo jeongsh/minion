@@ -22,31 +22,33 @@ export function CommentList({ comments, commentReactions, scope, teamSlug }: { c
   if (comments.length === 0) return null;
 
   const item = (comment: CommunityCommentItem, reply = false) => (
-    <div key={comment.id} className={reply ? "relative ml-10 border-t border-[var(--ui-border)] py-5 pl-5 before:absolute before:left-0 before:top-6 before:h-3 before:w-3 before:border-b before:border-l before:border-[var(--ui-border)] sm:ml-14" : "py-5"}>
-      <div className="flex gap-3">
-        <span className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full bg-[var(--ui-surface-muted)] text-[13px] font-bold text-[var(--ui-muted)]">
+    <div key={comment.id} className={`min-w-0 ${reply ? "relative ml-3 border-t border-[var(--ui-border)] py-3 pl-3 before:absolute before:left-0 before:top-4 before:h-2.5 before:w-2.5 before:border-b before:border-l before:border-[var(--ui-border)] sm:ml-8 sm:pl-4" : "py-3.5"}`}>
+      <div className="flex min-w-0 gap-2.5">
+        <span className="grid h-8 w-8 shrink-0 place-items-center overflow-hidden rounded-full bg-[var(--ui-surface-muted)] text-[13px] font-bold text-[var(--ui-muted)]">
           {comment.authorImageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={comment.authorImageUrl} alt="" className="h-full w-full object-cover" />
           ) : (comment.authorName ?? "글").charAt(0)}
         </span>
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm font-bold text-[var(--ui-ink)]">{comment.authorName ?? "작성자"}</span>
-            <span className="text-[13px] text-[var(--ui-muted)]">{formatRelativeOrDate(comment.createdAt)}</span>
-            <div className="ml-auto"><ReactionButtons target="comment" targetId={comment.id} postId={comment.postId} scope={scope} teamSlug={teamSlug} initialState={commentReactions[comment.id] ?? null} initialHonorCount={comment.likeCount} initialDislikeCount={comment.dislikeCount} size="sm" /></div>
+          <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-2">
+            <div className="flex min-w-0 items-center gap-1.5">
+              <span className="truncate text-sm font-semibold text-[var(--ui-ink)]">{comment.authorName ?? "작성자"}</span>
+              <span className="shrink-0 text-[13px] text-[var(--ui-muted)]">{formatRelativeOrDate(comment.createdAt)}</span>
+            </div>
+            <ReactionButtons target="comment" targetId={comment.id} postId={comment.postId} scope={scope} teamSlug={teamSlug} initialState={commentReactions[comment.id] ?? null} initialHonorCount={comment.likeCount} initialDislikeCount={comment.dislikeCount} size="sm" />
           </div>
-          <p className="mt-2 whitespace-pre-wrap text-[15px] leading-[1.7] text-[var(--ui-text)]">{comment.content}</p>
+          <p className="mt-1 whitespace-pre-wrap break-words text-base leading-[1.6] text-[var(--ui-text)] [overflow-wrap:anywhere]">{comment.content}</p>
           {!reply ? (
-            <div className="mt-3 flex items-center gap-3">
+            <div className="mt-1.5 flex items-center gap-3">
               <button type="button" onClick={() => setReplyTo((current) => current === comment.id ? null : comment.id)} className="text-[13px] font-semibold text-[var(--ui-muted)] hover:text-[var(--ui-ink)]">답글쓰기</button>
               <ReportButton target="comment" commentId={comment.id} postId={comment.postId} scope={scope} teamSlug={teamSlug} />
             </div>
-          ) : <div className="mt-3"><ReportButton target="comment" commentId={comment.id} postId={comment.postId} scope={scope} teamSlug={teamSlug} /></div>}
+          ) : <div className="mt-1.5"><ReportButton target="comment" commentId={comment.id} postId={comment.postId} scope={scope} teamSlug={teamSlug} /></div>}
         </div>
       </div>
       {replyTo === comment.id ? (
-        <div className="mt-5 ml-12">
+        <div className="mt-3 ml-0 sm:ml-10">
           <CommentForm postId={comment.postId} parentId={comment.id} scope={scope} teamSlug={teamSlug} onSubmitted={() => setReplyTo(null)} />
         </div>
       ) : null}
@@ -54,7 +56,7 @@ export function CommentList({ comments, commentReactions, scope, teamSlug }: { c
   );
 
   return (
-    <ul className="divide-y divide-[var(--ui-border)] px-5 sm:px-8">
+    <ul className="min-w-0 divide-y divide-[var(--ui-border)] px-4 sm:px-8">
       {roots.map((comment) => (
         <li key={comment.id}>
           {item(comment)}

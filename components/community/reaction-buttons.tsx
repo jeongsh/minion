@@ -28,12 +28,12 @@ export function ReactionButtons({ target, targetId, postId, scope, teamSlug, ini
 
   const compact = size === "sm";
   const buttonClass = compact
-    ? "inline-flex h-8 items-center gap-1.5 rounded-[var(--ui-control-radius)] px-2 text-[13px] font-semibold hover:bg-[var(--ui-surface-muted)] disabled:opacity-50"
+    ? "inline-flex h-7 items-center gap-1 rounded-[var(--ui-control-radius)] px-1.5 text-[13px] font-medium hover:bg-[var(--ui-surface-muted)] disabled:opacity-50"
     : "inline-flex h-10 items-center gap-2 rounded-[var(--ui-control-radius)] border border-[var(--ui-border)] bg-[var(--ui-surface)] px-4 text-sm font-semibold hover:bg-[var(--ui-surface-muted)] disabled:opacity-50";
 
   return (
-    <div className="flex flex-col items-center gap-2">
-      <div className="flex items-center gap-2">
+    <div className={compact ? "flex flex-col items-end gap-1" : "flex flex-col items-center gap-2"}>
+      <div className={compact ? "flex items-center gap-1" : "flex items-center gap-2"}>
         <button type="button" onClick={() => press("honor")} disabled={pending} aria-pressed={state === "honor"} className={`${buttonClass} ${state === "honor" ? "text-[var(--tp)]" : "text-[var(--ui-text)]"}`}>
           <ThumbsUp size={compact ? 14 : 18} strokeWidth={1.8} /><span>와드 {honorCount}</span>
         </button>

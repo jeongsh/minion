@@ -16,23 +16,23 @@ export function PostList({ posts, scope, teamSlug }: { posts: CommunityPostDetai
   }
 
   return (
-    <ul className="px-4">
+    <ul className="px-0 sm:px-4">
       {posts.map((post) => (
         <li key={post.id} className="border-b border-[var(--ui-border)] last:border-b-0">
           <Link
             href={detailHref(post.id)}
-            className="grid min-h-[72px] grid-cols-[minmax(0,1fr)_auto] items-center gap-4 py-3 transition-colors sm:px-2"
+            className="grid min-h-[72px] grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-4 py-3 transition-colors sm:px-2"
           >
             <div className="min-w-0">
               <div className="flex min-w-0 items-center gap-1.5">
-                <span className="shrink-0 text-[13px] font-bold text-[var(--tp)]">{boardLabel(scope, post.boardType)}</span>
+                <span className="shrink-0 text-[13px] font-semibold text-[var(--tp)]">{boardLabel(scope, post.boardType)}</span>
                 {isHotPost(post) ? (
-                  <span className="shrink-0 rounded-full border border-[var(--tp)] px-1.5 py-0.5 text-[13px] font-semibold leading-none text-[var(--tp)]">인기</span>
+                  <span className="shrink-0 rounded-full border border-[var(--tp)] px-1.5 py-0.5 text-[13px] font-medium leading-none text-[var(--tp)]">인기</span>
                 ) : null}
-                <h3 className="truncate text-base font-medium text-[var(--ui-ink)]">{post.title}</h3>
+                <h3 className="truncate text-base font-semibold text-[var(--ui-ink)]">{post.title}</h3>
               </div>
 
-              <div className="mt-0.5 flex min-w-0 items-center gap-2.5 overflow-hidden whitespace-nowrap text-sm font-normal text-[var(--ui-muted)]">
+              <div className="mt-0.5 flex min-w-0 items-center gap-2.5 overflow-hidden whitespace-nowrap text-[13px] font-normal text-[var(--ui-muted)]">
                 <span className="max-w-28 truncate font-medium text-[var(--ui-text)]">{post.authorName ?? "알 수 없음"}</span>
                 <span className="shrink-0">{formatRelativeOrDate(post.createdAt)}</span>
                 <span className="hidden shrink-0 items-center gap-1 sm:inline-flex"><Eye size={13} strokeWidth={1.8} />{post.viewCount}</span>

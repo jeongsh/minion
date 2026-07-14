@@ -33,14 +33,14 @@ export function PostView({
   const initial = (post.authorName ?? "글").trim().charAt(0) || "글";
 
   return (
-    <article className={scope === "team" ? "w-full" : "content-reading"}>
-      <SurfacePanel>
+    <article className={`${scope === "team" ? "w-full" : "content-reading"} mobile-full-bleed md:mx-auto`}>
+      <SurfacePanel variant="section">
         <header className="px-4 pb-4 pt-5 sm:px-8 sm:pb-6 sm:pt-8">
           <div className="flex items-center justify-between gap-4">
             <Link href={boardHref} className="inline-flex items-center text-sm font-normal text-[var(--tp)] hover:opacity-70 gap-1"><ArrowLeft size={16} strokeWidth={2} />목록으로</Link>
             {canManage ? <PostOwnerActions postId={post.id} scope={scope} teamSlug={teamSlug} /> : null}
           </div>
-          <h1 className="mt-2 text-[20px] font-semibold leading-[1.35] text-[var(--ui-ink)] sm:text-[24px]">
+          <h1 className="mt-2 text-[20px] font-bold leading-[1.35] text-[var(--ui-ink)] sm:text-[24px]">
             {post.title}
           </h1>
 
@@ -52,7 +52,7 @@ export function PostView({
               ) : initial}
             </span>
             <div className="min-w-0">
-              <p className="truncate text-sm font-bold text-[var(--ui-ink)]">{post.authorName ?? "작성자"}</p>
+              <p className="truncate text-sm font-semibold text-[var(--ui-ink)]">{post.authorName ?? "작성자"}</p>
               <div className="mt-0.5 flex items-center gap-2 text-[13px] text-[var(--ui-muted)]">
                 <span>{formatRelativeOrDate(post.createdAt)}</span>
                 <span aria-hidden>·</span>
@@ -64,11 +64,11 @@ export function PostView({
 
         <div className="mx-4 border-t border-[var(--ui-border)] sm:mx-8" />
 
-        <div className="community-prose min-h-[160px] px-4 py-6 text-[15px] leading-[1.65] text-[var(--ui-text)] sm:min-h-[220px] sm:px-8 sm:py-9 sm:text-base sm:leading-7">
+        <div className="community-prose min-h-[160px] px-4 py-6 text-base leading-7 text-[var(--ui-text)] sm:min-h-[220px] sm:px-8 sm:py-9">
           <PostContentViewer content={post.content} />
         </div>
 
-        <div className="flex items-center justify-between gap-4 px-4 py-5 sm:px-8 sm:py-6">
+        <div className="flex items-center justify-between gap-4 border-y border-[var(--ui-border)] px-4 py-5 sm:px-8 sm:py-6">
           <ReactionButtons
             target="post"
             targetId={post.id}

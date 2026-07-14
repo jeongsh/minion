@@ -107,7 +107,7 @@ export function PostForm({
             name="category"
             value={boardType}
             onChange={(e) => setBoardType(e.target.value)}
-            className="appearance-none bg-transparent py-[10px] pl-[13px] pr-8 text-m font-semibold text-[var(--ui-text)] outline-none"
+            className="appearance-none bg-transparent py-[10px] pl-[13px] pr-8 text-base font-medium text-[var(--ui-text)] outline-none"
           >
             {categories.map((cat) => (
               <option
@@ -143,8 +143,8 @@ export function PostForm({
         <CommunityEditor content={content} onChange={setContent} placeholder="내용을 입력하세요" />
       </div>
 
-      <div className="sticky bottom-0 z-10 -mx-5 flex flex-col gap-3 border-t border-[var(--ui-border)] bg-[var(--ui-surface)] px-5 py-3 sm:static sm:mx-0 sm:flex-row sm:items-center sm:justify-between sm:border-0 sm:p-0">
-        <p className="text-[12px] text-[var(--ui-muted)] sm:text-[13px]">서로 존중하는 커뮤니티를 위해 비방·욕설은 삼가주세요.</p>
+      <div className="sticky bottom-0 z-10 -mx-4 flex flex-col gap-3 border-t border-[var(--ui-border)] bg-[var(--ui-surface)] px-4 py-3 sm:static sm:mx-0 sm:flex-row sm:items-center sm:justify-between sm:border-0 sm:p-0">
+        <p className="text-[13px] text-[var(--ui-muted)]">서로 존중하는 커뮤니티를 위해 비방·욕설은 삼가주세요.</p>
         <div className="flex items-center justify-end gap-2">
           {message ? <p className="text-[13px] text-[var(--ui-muted)]">{message}</p> : null}
           <Button

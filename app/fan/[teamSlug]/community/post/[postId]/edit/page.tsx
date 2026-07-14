@@ -19,7 +19,7 @@ export default async function EditFanPostPage({ params }: { params: Promise<{ te
 
   return (
     <main className="community-neutral fan-page-container flex flex-col gap-5 py-7 md:py-9">
-      <SurfacePanel className="p-5 sm:p-8">
+      <SurfacePanel variant="section" className="mobile-full-bleed p-4 sm:mx-0 sm:p-8">
         <PostForm scope="team" categories={categoriesForScope("team")} defaultCategory={post.boardType} teamId={team.id} teamSlug={teamSlug} postId={post.id} initialTitle={post.title} initialContent={post.content} />
       </SurfacePanel>
     </main>

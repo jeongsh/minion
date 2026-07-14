@@ -83,7 +83,7 @@ export function CommentForm({
           maxLength={MAX_LENGTH}
           required
           placeholder="댓글을 입력해 주세요."
-          className="block w-full resize-none border-0 bg-transparent p-0 text-sm leading-relaxed text-[var(--ui-text)] outline-none placeholder:text-[var(--ui-muted)]"
+          className="block w-full resize-none border-0 bg-transparent p-0 text-base leading-7 text-[var(--ui-text)] outline-none placeholder:text-[var(--ui-muted)]"
         />
         <div className="mt-3 flex items-center gap-3">
           <div className="relative">

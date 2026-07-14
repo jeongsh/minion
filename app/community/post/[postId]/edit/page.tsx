@@ -14,7 +14,7 @@ export default async function EditCommunityPostPage({ params }: { params: Promis
 
   return (
     <main className="layout-wide subpage flex min-h-screen flex-col gap-5 bg-[var(--ui-surface)] py-6 sm:py-8">
-      <SurfacePanel className="p-5 sm:p-8">
+      <SurfacePanel variant="section" className="mobile-full-bleed p-4 sm:mx-0 sm:p-8">
         <PostForm scope="hub" categories={categoriesForScope("hub")} defaultCategory={post.boardType} postId={post.id} initialTitle={post.title} initialContent={post.content} />
       </SurfacePanel>
     </main>

@@ -53,18 +53,7 @@ export function CommunityFeed({
 
   return (
     <section className="flex flex-col gap-4 sm:gap-5" aria-label="커뮤니티 게시글">
-      <div className="flex justify-stretch sm:justify-end">
-        <Link
-          href={newPath}
-          className="inline-flex h-11 w-full shrink-0 items-center justify-center gap-2 rounded-[var(--ui-control-radius)] bg-[var(--ui-ink)] px-4 text-[var(--ui-surface)] transition-opacity hover:opacity-85 active:translate-y-px sm:w-auto"
-          aria-label="글쓰기"
-        >
-          <SquarePen size={16} strokeWidth={2} />
-          <span className="whitespace-nowrap text-sm font-bold">글쓰기</span>
-        </Link>
-      </div>
-
-      <div className="overflow-hidden rounded-[var(--ui-card-radius)] border border-[var(--ui-border)] bg-[var(--ui-surface)]">
+      <div className="mobile-full-bleed mobile-list-shell overflow-hidden rounded-[var(--ui-card-radius)] border border-[var(--ui-border)] bg-[var(--ui-surface)] sm:mx-0">
         <div className="flex min-h-12 items-center border-b border-[var(--ui-border)] px-3 py-2 sm:min-h-14 sm:px-4">
           <div
             className="-mx-1 flex min-w-0 flex-1 items-center gap-2 overflow-x-auto px-1 scrollbar-hide"
@@ -94,7 +83,7 @@ export function CommunityFeed({
 
       <div className="grid items-center gap-3 sm:gap-4 lg:grid-cols-[1fr_auto_1fr]">
         <form
-          className="flex h-10 w-full overflow-hidden rounded-[var(--ui-control-radius)] border border-[var(--ui-border)] bg-[var(--ui-surface)] focus-within:border-[var(--ui-ink)] sm:h-11 sm:max-w-[360px] lg:justify-self-start"
+          className="flex h-11 w-full overflow-hidden rounded-[var(--ui-control-radius)] border border-[var(--ui-border)] bg-[var(--ui-surface)] focus-within:border-[var(--ui-ink)] sm:max-w-[360px] lg:justify-self-start"
           onSubmit={(event) => {
             event.preventDefault();
             setSubmittedQuery(query);
@@ -107,7 +96,7 @@ export function CommunityFeed({
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="제목, 내용, 작성자 검색"
-            className="min-w-0 flex-1 bg-transparent px-3 text-[13px] text-[var(--ui-text)] outline-none placeholder:text-[var(--ui-muted)] sm:text-sm"
+            className="min-w-0 flex-1 bg-transparent px-3 text-base text-[var(--ui-text)] outline-none placeholder:text-[var(--ui-muted)]"
           />
           <button
             type="submit"
@@ -129,6 +118,17 @@ export function CommunityFeed({
           </button>
         ) : <span />}
       </div>
+
+      <div className="flex justify-stretch sm:justify-end">
+        <Link
+          href={newPath}
+          className="inline-flex h-11 w-full shrink-0 items-center justify-center gap-2 rounded-[var(--ui-control-radius)] bg-[var(--ui-ink)] px-4 text-[var(--ui-surface)] transition-opacity hover:opacity-85 active:translate-y-px sm:w-auto"
+          aria-label="글쓰기"
+        >
+          <SquarePen size={16} strokeWidth={2} />
+          <span className="whitespace-nowrap text-sm font-semibold">글쓰기</span>
+        </Link>
+      </div>
     </section>
   );
 }
@@ -140,7 +140,7 @@ function CategoryButton({ active, onClick, children }: { active: boolean; onClic
       role="tab"
       aria-selected={active}
       onClick={onClick}
-      className={`relative h-8 shrink-0 whitespace-nowrap px-1.5 text-[13px] font-bold transition-colors sm:h-10 sm:px-2 sm:text-[14px] ${
+      className={`relative h-10 shrink-0 whitespace-nowrap px-2 text-sm font-semibold transition-colors ${
         active
           ? "text-[var(--ui-ink)] after:absolute after:inset-x-1 after:bottom-0 after:h-0.5 after:bg-[var(--ui-ink)]"
           : "text-[var(--ui-muted)] hover:text-[var(--ui-text)]"
@@ -157,13 +157,13 @@ function Pagination({ page, totalPages, onChange }: { page: number; totalPages: 
 
   return (
     <nav className="flex items-center justify-center gap-1" aria-label="페이지 이동">
-      <button type="button" onClick={() => onChange(page - 1)} disabled={page === 1} className="min-h-9 px-2 text-[13px] font-semibold text-[var(--ui-muted)] disabled:opacity-30 sm:min-h-10 sm:text-sm">이전</button>
+      <button type="button" onClick={() => onChange(page - 1)} disabled={page === 1} className="min-h-10 px-2 text-sm font-medium text-[var(--ui-muted)] disabled:opacity-30">이전</button>
       {pages.map((number) => (
-        <button key={number} type="button" onClick={() => onChange(number)} aria-current={number === page ? "page" : undefined} className={`grid min-h-9 min-w-9 place-items-center rounded-[var(--ui-control-radius)] px-2 text-[13px] font-bold sm:min-h-10 sm:min-w-10 sm:text-sm ${number === page ? "bg-[var(--ui-ink)] text-[var(--ui-surface)]" : "text-[var(--ui-muted)] hover:bg-[var(--ui-surface-muted)] hover:text-[var(--ui-ink)]"}`}>
+        <button key={number} type="button" onClick={() => onChange(number)} aria-current={number === page ? "page" : undefined} className={`grid min-h-10 min-w-10 place-items-center rounded-[var(--ui-control-radius)] px-2 text-sm font-semibold ${number === page ? "bg-[var(--ui-ink)] text-[var(--ui-surface)]" : "text-[var(--ui-muted)] hover:bg-[var(--ui-surface-muted)] hover:text-[var(--ui-ink)]"}`}>
           {number}
         </button>
       ))}
-      <button type="button" onClick={() => onChange(page + 1)} disabled={page === totalPages} className="min-h-9 px-2 text-[13px] font-semibold text-[var(--ui-muted)] disabled:opacity-30 sm:min-h-10 sm:text-sm">다음</button>
+      <button type="button" onClick={() => onChange(page + 1)} disabled={page === totalPages} className="min-h-10 px-2 text-sm font-medium text-[var(--ui-muted)] disabled:opacity-30">다음</button>
     </nav>
   );
 }
