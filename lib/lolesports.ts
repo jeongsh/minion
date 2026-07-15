@@ -5,6 +5,7 @@ export const DEFAULT_TRACKED_LEAGUE_IDS = [
   "98767991325878492", // MSI
   "98767975604431411", // Worlds
   "113464388705111224", // First Stand
+  "116838530616006090", // EWC (Esports World Cup)
 ] as const;
 
 // Verified against the lolesports.com APQ manifest on 2026-07-01.
