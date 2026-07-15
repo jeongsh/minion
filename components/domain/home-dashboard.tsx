@@ -10,6 +10,7 @@ import {
   type HomeCalendarMatch,
 } from "@/components/domain/home-calendar";
 import { HomeBoardCarousel } from "@/components/domain/home-board-carousel";
+import { HomeTodayMatchesSwiper } from "@/components/domain/home-today-matches-swiper";
 import { CelebrationBanner, type CelebrationBannerItem } from "@/components/domain/celebration-banner";
 import type { CalendarEvent } from "@/lib/calendar/events";
 import { isMatchLive } from "@/lib/match-display";
@@ -215,16 +216,31 @@ export function HomeDashboard({
       <section className="mt-8 hidden items-start gap-4 md:grid sm:mt-10 xl:grid-cols-3">
         <div className="min-w-0 xl:col-span-2">
           <Heading href="/schedule">오늘의 매치</Heading>
-          <div className="home-today-match-grid grid gap-4 md:grid-cols-2">
-            {todayMatches.map((m) => (
-              <TodayMatchCard
-                key={m.id}
-                match={m}
-                teams={byId}
-                bets={predictionBetsByMatchId.get(m.id) ?? []}
-              />
-            ))}
-          </div>
+          {todayMatches.length > 2 ? (
+            <HomeTodayMatchesSwiper
+              slides={todayMatches.map((m) => ({
+                id: m.id,
+                node: (
+                  <TodayMatchCard
+                    match={m}
+                    teams={byId}
+                    bets={predictionBetsByMatchId.get(m.id) ?? []}
+                  />
+                ),
+              }))}
+            />
+          ) : (
+            <div className="home-today-match-grid grid gap-4 md:grid-cols-2">
+              {todayMatches.map((m) => (
+                <TodayMatchCard
+                  key={m.id}
+                  match={m}
+                  teams={byId}
+                  bets={predictionBetsByMatchId.get(m.id) ?? []}
+                />
+              ))}
+            </div>
+          )}
         </div>
         <div className="min-w-0 flex flex-col">
           <Ad className="h-14 md:h-16 lg:h-20 xl:h-[305px]" />

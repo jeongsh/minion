@@ -4,8 +4,14 @@ import type { WeeklyReportSummary } from "@/lib/reports/queries";
 import type { ReportChampionStat, ReportTeamRef, WeeklyReportRow } from "@/lib/reports/types";
 
 const POSITION_LABELS: Record<string, string> = { TOP: "탑", JGL: "정글", MID: "미드", BOT: "원딜", SUP: "서포터" };
-// 선수 카드 배경 고스트용 — 약어(MID/BOT) 대신 풀 포지션명으로 방송 그래픽 라벨처럼.
-const POSITION_GHOST: Record<string, string> = { TOP: "TOP", JGL: "JUNGLE", MID: "MIDDLE", BOT: "BOTTOM", SUP: "SUPPORT" };
+// 선수 카드 배경 워터마크용 포지션 아이콘(/public/objectives/).
+const POSITION_ICON: Record<string, string> = {
+  TOP: "position-top",
+  JGL: "position-jungle",
+  MID: "position-middle",
+  BOT: "position-bottom",
+  SUP: "position-utility",
+};
 
 // 방송 그래픽 시그니처: 평행사변형(기울어진) 태그. 안쪽 콘텐츠는 역기울여 수평 유지.
 const SKEW = "skewX(-14deg)";
@@ -85,7 +91,6 @@ export function WeeklyReportView({ report, index }: { report: WeeklyReportRow; i
   const content = report.content;
   const { stats, review, meta, preview } = content;
   const bySlug = new Map(stats.champions.map((c) => [c.slug, c]));
-  const weekShort = `W${report.week_key.split("-W")[1] ?? ""}`;
   const patchLabel = stats.patches.join(", ") || "—";
   const generatedAt = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", dateStyle: "long", timeStyle: "short" }).format(new Date(report.generated_at));
   const banChamp = meta.banSpotlight ? bySlug.get(meta.banSpotlight.championSlug) : undefined;
@@ -105,9 +110,6 @@ export function WeeklyReportView({ report, index }: { report: WeeklyReportRow; i
     <div className="layout-wide" style={{ paddingBottom: 120 }}>
       {/* 히어로 */}
       <header style={{ position: "relative", borderBottom: `1px solid ${LINE}`, paddingTop: 8 }}>
-        <span aria-hidden style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none" }}>
-          <span style={{ position: "absolute", top: -40, right: -30, fontFamily: DISPLAY, fontSize: 380, lineHeight: 1, letterSpacing: "-0.02em", color: "transparent", WebkitTextStroke: `2px ${GHOST_STROKE}`, whiteSpace: "nowrap" }}>{weekShort}</span>
-        </span>
         <div style={{ position: "relative", padding: "56px 0" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
             <span style={{ display: "inline-block", transform: SKEW, background: ACCENT, color: ON_ACCENT, padding: "5px 14px", fontSize: 13, fontWeight: 900, letterSpacing: "0.1em", fontVariantNumeric: "tabular-nums" }}>
@@ -178,14 +180,14 @@ export function WeeklyReportView({ report, index }: { report: WeeklyReportRow; i
               <article key={match.matchId} style={{ position: "relative", display: "grid", gridTemplateColumns: "5px 1fr auto 1fr 5px", alignItems: "stretch", background: SURFACE, border: `1px solid ${LINE}` }}>
                 <span style={{ background: aWin ? match.teamA?.color ?? FILL : FILL }} />
                 <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 14px", minWidth: 0, color: INK, opacity: decided && !aWin ? 0.42 : 1 }}>
-                  <TeamLogo team={match.teamA} size={28} />
+                  <TeamLogo team={match.teamA} size={34} />
                   <div style={{ minWidth: 0 }}>
                     <b style={{ display: "block", fontFamily: DISPLAY, fontSize: 16, letterSpacing: "0.02em", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{match.teamA?.shortName ?? "TBD"}</b>
                     {decided && <span style={aWin ? winTag : loseTag}>{aWin ? "WIN" : "LOSS"}</span>}
                   </div>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "9px 14px" }}>
-                  <b style={{ fontFamily: DISPLAY, fontSize: 25, lineHeight: 1, fontVariantNumeric: "tabular-nums", color: INK, whiteSpace: "nowrap" }}>{match.scoreA} : {match.scoreB}</b>
+                  <b style={{ fontFamily: DISPLAY, fontSize: 21, lineHeight: 1, fontVariantNumeric: "tabular-nums", color: INK, whiteSpace: "nowrap" }}>{match.scoreA} : {match.scoreB}</b>
                   <span style={{ marginTop: 3, fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", fontVariantNumeric: "tabular-nums", color: FAINT, whiteSpace: "nowrap" }}>{fmtDay(match.date)}</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 10, padding: "9px 14px", minWidth: 0, color: INK, opacity: decided && !bWin ? 0.42 : 1 }}>
@@ -193,7 +195,7 @@ export function WeeklyReportView({ report, index }: { report: WeeklyReportRow; i
                     <b style={{ display: "block", fontFamily: DISPLAY, fontSize: 16, letterSpacing: "0.02em", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{match.teamB?.shortName ?? "TBD"}</b>
                     {decided && <span style={bWin ? winTag : loseTag}>{bWin ? "WIN" : "LOSS"}</span>}
                   </div>
-                  <TeamLogo team={match.teamB} size={28} />
+                  <TeamLogo team={match.teamB} size={34} />
                 </div>
                 <span style={{ background: bWin ? match.teamB?.color ?? FILL : FILL }} />
               </article>
@@ -252,7 +254,9 @@ export function WeeklyReportView({ report, index }: { report: WeeklyReportRow; i
           <div className="grid grid-cols-1 sm:grid-cols-3" style={{ marginTop: 12, gap: 12 }}>
             {review.playersOfWeek.map((player) => (
               <article key={player.playerName} style={{ position: "relative", overflow: "hidden", background: SURFACE, border: `1px solid ${LINE}`, padding: "26px 28px" }}>
-                <p aria-hidden style={{ position: "absolute", top: -34, right: -14, margin: 0, fontFamily: DISPLAY, fontSize: 110, lineHeight: 1, color: "transparent", WebkitTextStroke: `1.5px ${GHOST_STROKE}`, userSelect: "none", pointerEvents: "none" }}>{player.position}</p>
+                {POSITION_ICON[player.position] && (
+                  <img aria-hidden alt="" src={`/objectives/${POSITION_ICON[player.position]}.svg`} style={{ position: "absolute", top: -14, right: -14, width: 116, height: 116, opacity: 0.1, userSelect: "none", pointerEvents: "none" }} />
+                )}
                 <div style={{ position: "relative" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
                     {player.playerImageUrl ? (
@@ -338,35 +342,44 @@ export function WeeklyReportView({ report, index }: { report: WeeklyReportRow; i
 
         {/* 티어 보드 */}
         <div style={{ marginTop: 48 }}>
-          <h3 style={{ margin: "0 0 20px", fontFamily: DISPLAY, fontSize: 19, letterSpacing: "0.04em", color: INK }}>포지션 티어 보드 <span style={{ marginLeft: 6, fontSize: 11, fontFamily: "'Pretendard', sans-serif", fontWeight: 700, letterSpacing: "0.14em", color: FAINT }}>TIER BOARD</span></h3>
+          <h3 style={{ margin: 0, fontFamily: DISPLAY, fontSize: 19, letterSpacing: "0.04em", color: INK }}>포지션 티어 보드 <span style={{ marginLeft: 6, fontSize: 11, fontFamily: "'Pretendard', sans-serif", fontWeight: 700, letterSpacing: "0.14em", color: FAINT }}>TIER BOARD</span></h3>
+          {/* 산식 범례 — 코멘트에 등장하는 스탯 점수의 정의를 보드 진입 전에 제시한다. */}
+          <p style={{ margin: "8px 0 20px", fontSize: 12.5, fontWeight: 600, lineHeight: 1.7, color: MUTED }}>
+            종합 점수(0–100) = 밴픽률 30% + 보정승률 40% + 스탯 점수 30% · <b style={{ fontWeight: 800, color: BODY }}>스탯 점수</b>는 KDA와 15분 골드 차이를 0–100으로 정규화한 경기 지표다. 챔피언에 마우스를 올리면 세부 수치가 보인다.
+          </p>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {meta.positions.map((pos) => {
               const rising = pos.rising ? bySlug.get(pos.rising) : undefined;
               const rows = TIER_ROWS.filter((t) => pos[t.key].length > 0);
               if (rows.length === 0 && !pos.comment) return null;
               return (
-                <article key={pos.position} className={pos.comment ? "grid grid-cols-1 md:grid-cols-[1.7fr_1fr]" : "grid grid-cols-1"} style={{ background: SURFACE, border: `1px solid ${LINE}`, alignItems: "stretch" }}>
-                  {/* 좌: 챔피언 티어 */}
-                  <div style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 14 }}>
+                <article key={pos.position} className={pos.comment ? "grid grid-cols-1 lg:grid-cols-[1.05fr_1fr]" : "grid grid-cols-1"} style={{ background: SURFACE, border: `1px solid ${LINE}`, alignItems: "stretch" }}>
+                  {/* 좌: 챔피언 티어 — 레퍼런스처럼 박스 없는 클린 리스트. 기울어진 배지가 유일한 도형 액센트. */}
+                  <div style={{ padding: "20px 24px 22px", display: "flex", flexDirection: "column", gap: 16 }}>
                     <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
                       <b style={{ fontFamily: DISPLAY, fontSize: 22, letterSpacing: "0.06em", color: INK }}>{pos.position}</b>
                       <span style={{ fontSize: 12, fontWeight: 700, color: FAINT }}>{POSITION_LABELS[pos.position]}</span>
                       {rising && <span style={{ marginLeft: "auto", fontSize: 12, fontWeight: 900, letterSpacing: "0.04em", color: ACCENT, whiteSpace: "nowrap" }}>▲ 라이징 {rising.name}</span>}
                     </div>
                     {rows.map((tier) => (
-                      <div key={tier.key} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-                        <span style={{ display: "inline-block", transform: SKEW, padding: "3px 12px", fontFamily: DISPLAY, fontSize: 13, lineHeight: 1.4, flexShrink: 0, ...tierBadgeTone[tier.label] }}>
+                      <div key={tier.key} style={{ display: "grid", gridTemplateColumns: "44px 1fr", gap: 12, alignItems: "start" }}>
+                        <span style={{ display: "inline-grid", placeItems: "center", transform: SKEW, width: 34, height: 27, fontFamily: DISPLAY, fontSize: 14, lineHeight: 1, marginTop: 2, ...tierBadgeTone[tier.label] }}>
                           <span style={UNSKEW}>{tier.label}</span>
                         </span>
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: "8px 10px", alignItems: "center" }}>
                           {pos[tier.key].map((slug) => {
                             const c = bySlug.get(slug);
                             if (!c) return null;
+                            const breakdown = `밴픽률 ${pct(c.presenceRate)}% (픽 ${c.picks}·밴 ${c.bans}) · 승률 ${pct(c.winRate)}%${c.statScore != null ? ` · 스탯 ${c.statScore}점` : ""}${c.score != null ? ` → 종합 ${c.score}점` : ""}`;
+                            const strong = c.score != null && c.score >= 75;
                             return (
-                              <span key={slug} style={{ display: "flex", alignItems: "center", gap: 8, border: `1px solid ${LINE}`, padding: "4px 10px 4px 4px" }}>
-                                <ChampImg champion={c} size={28} />
-                                <b style={{ fontSize: 12.5, fontWeight: 900, color: INK, whiteSpace: "nowrap" }}>{c.name}</b>
-                                <b style={{ fontFamily: DISPLAY, fontSize: 14, fontVariantNumeric: "tabular-nums", color: c.score != null && c.score >= 75 ? ACCENT : MUTED }}>{c.score != null ? c.score : `${pct(c.winRate)}%`}</b>
+                              // 배지와 같은 평행사변형 칩 — 기울어진 컨테이너 안에서 콘텐츠는 수평 유지.
+                              <span key={slug} title={breakdown} style={{ display: "inline-flex", transform: SKEW, border: `1px solid ${strong ? `color-mix(in srgb, ${ACCENT} 45%, ${LINE})` : LINE}`, background: strong ? `color-mix(in srgb, ${ACCENT} 8%, ${SURFACE})` : SURFACE, padding: "4px 14px", cursor: "default" }}>
+                                <span style={{ ...UNSKEW, display: "inline-flex", alignItems: "center", gap: 8 }}>
+                                  <ChampImg champion={c} size={26} />
+                                  <b style={{ fontSize: 12.5, fontWeight: 900, color: INK, whiteSpace: "nowrap" }}>{c.name}</b>
+                                  <b style={{ fontFamily: DISPLAY, fontSize: 14, fontVariantNumeric: "tabular-nums", color: strong ? ACCENT : MUTED }}>{c.score != null ? c.score : `${pct(c.winRate)}%`}</b>
+                                </span>
                               </span>
                             );
                           })}
@@ -374,22 +387,25 @@ export function WeeklyReportView({ report, index }: { report: WeeklyReportRow; i
                       </div>
                     ))}
                   </div>
-                  {/* 우: 코멘트 */}
+                  {/* 우: 애널리스트 노트 — 같은 카드의 주석 패널로 묶는다(라벨 + 은은한 배경). */}
                   {pos.comment && (
-                    <div className="border-t md:border-t-0 md:border-l" style={{ borderColor: LINE, padding: "20px 24px", display: "flex", alignItems: "center" }}>
-                      <p style={{ margin: 0, fontSize: 13.5, fontWeight: 500, lineHeight: 1.75, color: BODY }}>{pos.comment}</p>
+                    <div className="border-t lg:border-t-0 lg:border-l" style={{ borderColor: LINE, background: `color-mix(in srgb, ${FILL} 45%, ${SURFACE})`, padding: "18px 24px 22px" }}>
+                      <p style={{ margin: 0, display: "flex", alignItems: "center", gap: 8, fontSize: 11, fontWeight: 800, letterSpacing: "0.18em", textTransform: "uppercase", color: FAINT }}>
+                        <span aria-hidden style={{ display: "inline-block", width: 8, height: 8, transform: SKEW, background: ACCENT }} />
+                        {pos.position} · Analyst Note
+                      </p>
+                      <p style={{ margin: "10px 0 0", fontSize: 13.5, fontWeight: 500, lineHeight: 1.8, color: BODY }}>{pos.comment}</p>
                     </div>
                   )}
                 </article>
               );
             })}
           </div>
-          <p style={{ margin: "24px 0 0", fontSize: 12, fontWeight: 600, color: FAINT }}>
-            종합 점수 = 밴픽률 30% + 보정승률 40% + 스탯 30% (0–100)
-            {(meta.sources?.length ?? 0) > 0 && (
-              <> · 참고 {meta.sources!.map((s, i) => (<span key={s.url}>{i > 0 && ", "}<a href={s.url} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-[var(--ui-ink)]">{s.title}</a></span>))}</>
-            )}
-          </p>
+          {(meta.sources?.length ?? 0) > 0 && (
+            <p style={{ margin: "24px 0 0", fontSize: 12, fontWeight: 600, color: FAINT }}>
+              참고 {meta.sources!.map((s, i) => (<span key={s.url}>{i > 0 && ", "}<a href={s.url} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-[var(--ui-ink)]">{s.title}</a></span>))}
+            </p>
+          )}
         </div>
       </section>
 

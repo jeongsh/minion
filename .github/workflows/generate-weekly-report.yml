@@ -1,0 +1,54 @@
+name: Weekly Report Generation
+
+on:
+  schedule:
+    # 지난주(월~일, KST) 리포트를 월요일 07:00 KST(일요일 22:00 UTC)에 생성한다.
+    # 매일 05:30 KST 리그피디아 싱크로 일요일 경기까지 반영된 뒤 실행된다.
+    - cron: "0 22 * * 0"
+  workflow_dispatch:
+
+concurrency:
+  group: weekly-report-generation
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate required secrets
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          for name in NEXT_PUBLIC_SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY OPENAI_API_KEY; do
+            if [ -z "${!name}" ]; then
+              echo "Missing required GitHub Actions secret: ${name}"
+              exit 1
+            fi
+          done
+
+      - name: Generate weekly report
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_WEEKLY_REPORT_MODEL: ${{ secrets.OPENAI_WEEKLY_REPORT_MODEL }}
+        run: npm run report:weekly

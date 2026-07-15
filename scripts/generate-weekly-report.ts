@@ -280,8 +280,15 @@ const SYSTEM_PROMPT = `너는 LCK 팬 커뮤니티 'MINION'의 AI 분석실이�
 - 승부예측 근거도 "상대가 약해서"가 아니라 "이 팀의 이런 강점 때문에"로 쓴다.
 - 단, 챔피언(캐릭터)에 대해서는 데이터에 근거한 하락·부진 서술이 허용된다(예: "나르는 승률 38%에 그치며 힘이 빠졌다"). 챔피언 평가를 그 챔피언을 플레이한 선수 개인의 평가로 이어가지는 않는다.
 
+[위클리 스포트라이트 — 스탯이 아니라 '이번 주의 사건'으로 뽑는다]
+- teamOfWeek와 playersOfWeek(정확히 3명)는 KDA·지표 순위로 기계적으로 뽑지 않는다. 이번 주 실제 대회에서 가장 의미 있는 활약을 한 팀·선수를 고른다. 판단 기준의 1순위는 '경기의 무게와 서사'다 — 우승·결승 승리, 파이널/경기 MVP, 시리즈를 뒤집은 캐리, 중요한 승부처에서의 결정적 활약. 스탯은 그 서사를 뒷받침하는 근거로만 쓴다.
+- 그래서 KDA가 가장 높은 선수가 아니라, 큰 경기를 캐리한 선수가 스포트라이트의 주인공이 될 수 있다(예: 결승을 지배한 TOP 라이너). 제공된 players 목록에는 주간 승수·출전이 많은 결승 주역과 KDA 스탠드아웃이 함께 들어 있으니, 검색으로 파악한 서사와 대조해 고른다.
+- teamOfWeek.body와 각 playersOfWeek.body에는 그 선수·팀이 '이번 주에 무엇을 해냈는지'(예: MSI 우승, 파이널 MVP, 결승 5세트 캐리)를 반드시 한 문장 이상 담는다. 검색으로 확인된 사실만 쓰고 지어내지 않으며, 확인이 안 되면 스탯이 보여주는 사실만 쓴다. 수치는 제공 JSON만 사용한다.
+
 [외부 컨텍스트 — 웹 검색 필수]
-- web_search 도구로 이번 패치·대회의 메타에 대한 (1) 커뮤니티 여론(인벤, 레딧, 디시 등), (2) 전문가·방송 분석(해설진, 프로 관계자, 분석 유튜브), (3) 기사(네이버 e스포츠 등)를 반드시 조사한다.
+- 이번 주 리포트는 스탯 표만으로 쓰지 않는다. web_search 도구로 (A) 이번 주 대회 '서사'와 (B) 패치·메타 두 축을 모두 조사한 뒤에 글을 쓴다. 특히 스포트라이트(팀·선수)는 반드시 (A)를 근거로 뽑는다.
+- (A) 이번 주 서사 조사(스포트라이트·총평용, 최우선): 제공된 results의 대회명·스코어를 실마리로, 이번 주에 실제로 무슨 일이 있었는지를 뉴스·유튜브·커뮤니티에서 찾는다. 반드시 확인할 것 — 결승/플레이오프 결과와 우승팀, 파이널·경기 MVP 수상자, 시리즈를 가른 캐리 활약, 승격/강등·로스터·이적 등 화제. 예: "제우스가 압도적 폼으로 한화생명을 MSI 우승으로 이끌고 파이널 MVP를 수상했다"는 스탯 표에는 없지만 스포트라이트의 핵심이므로 검색으로 반드시 파악해 반영한다. 이런 사실(수상·우승·시리즈 활약)은 수치가 아니므로 검색으로 확인되면 본문에 적극 쓴다(수치는 여전히 제공 JSON만 사용).
+- (B) web_search 도구로 이번 패치·대회의 메타에 대한 (1) 커뮤니티 여론(인벤, 레딧, 디시 등), (2) 전문가·방송 분석(해설진, 프로 관계자, 분석 유튜브), (3) 기사(네이버 e스포츠 등)를 반드시 조사한다.
 - 최우선 참고 채널 두 곳을 반드시 먼저 검색한다: ① '프로관전러 PS'(youtube.com/@ProfessionalSpectator)의 이번 패치 티어리스트·메타 분석, ② '클라우드템플러'(youtube.com/@CloudTemplar_official)의 '찍어' 시리즈 주요 경기 분석. 영상 제목·설명·커뮤니티 요약·기사 인용을 통해 이들의 관점을 파악하고 메타 코멘트에 적극 반영한다. 인용할 때는 "클템은 찍어 시리즈에서 ~라고 짚었다", "PS 티어리스트에서는 ~로 평가됐다"처럼 출처를 드러낸다. 해당 패치 자료를 못 찾으면 억지로 지어내지 말고 생략한다.
 - 검색으로 얻은 맥락(패치 변경점, 아이템·룬 트렌드, 챔피언 재평가, 대회 이슈)을 메타 분석(summary, positions comment)과 프리뷰 근거에 녹인다.
 - 단, 티어 순위와 모든 수치는 제공된 경기 데이터가 우선이다. 외부 자료와 상충하면 경기 데이터를 따르고, 외부 여론은 "커뮤니티에서는 ~라는 평가다"처럼 출처의 성격을 드러내며 인용한다.
@@ -358,7 +365,7 @@ async function callOpenAi(model: string, payload: unknown): Promise<{ output: Ai
       { role: "system", content: SYSTEM_PROMPT },
       {
         role: "user",
-        content: `이번 주 LCK 데이터입니다. 이 데이터만 근거로 주간 리포트를 작성해 주세요.\n\n${JSON.stringify(payload)}`,
+        content: `이번 주 LCK 데이터입니다. 모든 수치·티어·순위는 이 데이터를 근거로 삼되, 스포트라이트와 총평의 '서사'(우승·MVP·시리즈 활약 등 대회 맥락)는 web_search로 조사해 반영해 주세요.\n\n${JSON.stringify(payload)}`,
       },
     ],
     text: {
@@ -753,19 +760,32 @@ async function main() {
       champions: leader.championNames,
       runnersUp: leader.runnersUp,
     })),
-    players: [...playerAgg.values()]
-      .sort((a, b) => kdaOf(b) - kdaOf(a))
-      .slice(0, 30)
-      .map((agg) => ({
-        slug: agg.player.slug,
-        name: agg.player.name,
-        teamSlug: agg.player.team_id ? teamById.get(agg.player.team_id)?.slug ?? null : null,
-        position: agg.player.position,
-        sets: agg.sets,
-        wins: agg.wins,
-        kda: Number(kdaOf(agg).toFixed(2)),
-        champions: [...agg.champions.keys()].slice(0, 4),
-      })),
+    // 스포트라이트 후보 풀: KDA 순위만으로 뽑으면 캐리형 TOP/정글이 빠지므로,
+    // (1) 주간 승수·출전이 많은 선수(결승·주요 시리즈 주역) 20명을 먼저 보장 포함하고
+    // (2) 나머지 자리는 KDA 스탠드아웃으로 채워 서사와 스탯을 함께 넘긴다.
+    players: (() => {
+      const all = [...playerAgg.values()];
+      const byImpact = [...all].sort((a, b) => b.wins - a.wins || b.sets - a.sets || kdaOf(b) - kdaOf(a));
+      const byKda = [...all].sort((a, b) => kdaOf(b) - kdaOf(a));
+      const chosen = new Map<string, PlayerAgg>();
+      for (const agg of byImpact.slice(0, 20)) chosen.set(agg.player.id, agg);
+      for (const agg of byKda) {
+        if (chosen.size >= 45) break;
+        chosen.set(agg.player.id, agg);
+      }
+      return [...chosen.values()]
+        .sort((a, b) => b.wins - a.wins || kdaOf(b) - kdaOf(a))
+        .map((agg) => ({
+          slug: agg.player.slug,
+          name: agg.player.name,
+          teamSlug: agg.player.team_id ? teamById.get(agg.player.team_id)?.slug ?? null : null,
+          position: agg.player.position,
+          sets: agg.sets,
+          wins: agg.wins,
+          kda: Number(kdaOf(agg).toFixed(2)),
+          champions: [...agg.champions.keys()].slice(0, 4),
+        }));
+    })(),
     upcoming: upcomingMatches.map((match) => ({
       matchId: match.id,
       dateKst: kstDateKey(match.match_date),

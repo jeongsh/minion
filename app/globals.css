@@ -253,11 +253,11 @@ html[class~="dark"] .app-lnb a[data-active="true"] {
   background-color: #31363d !important;
 }
 
-.home-today-match-grid > article {
+.home-today-match-grid article {
   height: auto;
 }
 
-.home-today-match-grid > article > div:last-child a {
+.home-today-match-grid article > div:last-child a {
   display: grid;
   min-height: 44px;
   place-items: center;
