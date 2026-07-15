@@ -122,12 +122,20 @@ function statusFromRow(row: CargoMatchRow) {
   const scoreA = parseInteger(row.Team1Score);
   const scoreB = parseInteger(row.Team2Score);
   const winner = parseInteger(row.Winner);
+  const bestOf = parseInteger(row.BestOf);
   const forfeited = row.FF === "1";
 
   if (forfeited || winner === 1 || winner === 2) {
     return "completed";
   }
   if (Number.isFinite(scoreA) && Number.isFinite(scoreB)) {
+    // BestOf3/5 시리즈는 각 게임이 끝날 때마다 스코어만 먼저 채워지고 Winner는
+    // 시리즈가 결판난 뒤에야 채워진다. 스코어 존재 여부만으로 completed 처리하면
+    // 1:1처럼 아직 진행 중인 시리즈도 종료로 표시되므로, BestOf를 알 때는
+    // 과반 스코어(승자 확정)에 도달했을 때만 completed로 판정한다.
+    if (bestOf) {
+      return Math.max(scoreA!, scoreB!) >= Math.floor(bestOf / 2) + 1 ? "completed" : "scheduled";
+    }
     return "completed";
   }
   return "scheduled";
@@ -145,6 +153,12 @@ function winnerTeamIdFromRow(row: CargoMatchRow, teamA: TeamRow, teamB: TeamRow)
   const scoreA = parseInteger(row.Team1Score);
   const scoreB = parseInteger(row.Team2Score);
   if (scoreA == null || scoreB == null) {
+    return null;
+  }
+  // statusFromRow와 마찬가지로, BestOf를 알 때는 과반 스코어에 도달하지 않은
+  // (=아직 시리즈가 끝나지 않은) 경우에는 스코어 우위만으로 승자를 단정하지 않는다.
+  const bestOf = parseInteger(row.BestOf);
+  if (bestOf && Math.max(scoreA, scoreB) < Math.floor(bestOf / 2) + 1) {
     return null;
   }
   if (scoreA > scoreB) {
