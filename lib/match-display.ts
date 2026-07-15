@@ -20,14 +20,14 @@ export function isMatchLive(
   return Number.isFinite(startedAt) && startedAt <= now;
 }
 
-/** 경기 상태 한글 라벨 (예정/진행/종료) */
+/** 경기 상태 한글 라벨 (예정/진행 중/종료) */
 export function matchStatusLabel(status: Match["status"]) {
   if (status === "completed") {
     return "종료";
   }
 
   if (status === "live") {
-    return "진행";
+    return "진행 중";
   }
 
   return "예정";
