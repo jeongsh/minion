@@ -17,7 +17,8 @@ import {
   getStages,
   getTournaments,
 } from "@/lib/data/lck";
-import type { FanRating, MatchStatus, Player, PlayerStatLine, SetResult, Team } from "@/lib/types";
+import type { FanRating, Player, PlayerStatLine, SetResult, Team } from "@/lib/types";
+import { isMatchLive, matchStatusLabel } from "@/lib/match-display";
 import {
   SET_RATING_OPEN_WINDOW_MS,
   getSetRatingStartedAt,
@@ -37,12 +38,6 @@ import { SetDetailContent } from "./sets/[setId]/page";
 import { SetRatingForm } from "./set-rating-form";
 
 type MatchTab = "preview" | "data" | "rating" | "video";
-
-const MATCH_STATUS_LABEL: Record<MatchStatus, string> = {
-  scheduled: "예정",
-  live: "진행 중",
-  completed: "종료",
-};
 
 const TAB_LABELS: Record<MatchTab, string> = {
   preview: "개요",
@@ -583,6 +578,7 @@ export default async function MatchDetailPage({
     ? match.winnerTeamId === match.teamBId ? "WIN" : "LOSS"
     : null;
   const hasScore = match.teamAScore !== null || match.teamBScore !== null;
+  const displayStatusLabel = matchStatusLabel(isMatchLive(match) ? "live" : match.status);
   const matchSetIds = new Set(matchSets.map((s) => s.id));
   const matchFanRatings = fanRatings.filter((r) => matchSetIds.has(r.setId));
   const topFanLeader = fanRatingLeader(matchFanRatings);
@@ -634,7 +630,7 @@ export default async function MatchDetailPage({
                   {scoreLabel(match.teamAScore)}
                 </span>
                 <div className="flex flex-col items-center gap-0.5">
-                  <span className="text-xs font-medium text-[var(--accent)]">{MATCH_STATUS_LABEL[match.status]}</span>
+                  <span className="text-xs font-medium text-[var(--accent)]">{displayStatusLabel}</span>
                   <span className="text-xs font-medium text-[var(--ui-muted)]">BO{match.bestOf ?? "-"}</span>
                 </div>
                 <span className={`text-2xl font-black tabular-nums sm:text-3xl ${teamBResult === "LOSS" ? "text-[var(--ui-muted)]" : "text-[var(--ui-ink)]"}`}>
@@ -644,7 +640,7 @@ export default async function MatchDetailPage({
             ) : (
               <div className="flex flex-col items-center gap-0.5">
                 <span className="text-xl font-black text-[var(--ui-muted)] sm:text-2xl">VS</span>
-                <span className="text-xs font-medium text-[var(--ui-muted)]">{MATCH_STATUS_LABEL[match.status]} · BO{match.bestOf ?? "-"}</span>
+                <span className="text-xs font-medium text-[var(--ui-muted)]">{displayStatusLabel} · BO{match.bestOf ?? "-"}</span>
               </div>
             )}
           </div>
