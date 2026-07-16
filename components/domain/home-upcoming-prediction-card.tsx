@@ -9,7 +9,11 @@ import { formatDateTime } from "@/lib/view-data";
 export function HomeUpcomingPredictionCard({ match, teamA, teamB, tournament, bets, currentUserId, balance }: { match: Match; teamA?: Team; teamB?: Team; tournament?: string; bets: PredictionBet[]; currentUserId?: string; balance: number | null }) {
   const { open, pending, modal } = usePredictionBetDialog({ currentUserId, balance, bets });
   const market = predictionMarketForMatch(bets, match.id, match.teamAId, match.teamBId);
-  const closed = match.status !== "scheduled";
+  // status만 보면, 경기 시작 시각이 지났는데도 status가 아직 completed/live로 갱신되기
+  // 전(동기화 지연 등)에는 예측이 계속 열려있는 것처럼 보인다. 승부예측 탭(prediction-board.tsx)과
+  // 동일하게 경기 시작 시각도 함께 확인해야 마감 상태가 일치한다.
+  // eslint-disable-next-line react-hooks/purity
+  const closed = match.status !== "scheduled" || new Date(match.matchDate).getTime() <= Date.now();
   return <>
     <article className="min-h-[144px] rounded-xl bg-[#fafafa] p-2.5 sm:min-h-[154px] sm:p-3 dark:border dark:border-[#e3e1e8]">
       <div className="flex min-w-0 justify-between gap-3 text-[13px] font-semibold text-[#777b82] sm:text-sm"><span className="min-w-0 truncate">{tournament ?? match.name}</span><span className="shrink-0">{formatDateTime(match.matchDate)}</span></div>

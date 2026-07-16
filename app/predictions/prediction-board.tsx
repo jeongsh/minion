@@ -5,10 +5,13 @@ import { useMemo, useState, useTransition } from "react";
 import { ChevronLeft, ChevronRight, Clock3, Coins, RotateCcw, Trophy, X } from "lucide-react";
 
 import { cancelPredictionBetAction, placePredictionBetAction } from "@/app/predictions/actions";
+import { ScheduleTodayScroll } from "@/components/domain/schedule-today-scroll";
 import { TeamLogo } from "@/components/ui/team-logo";
 import { predictionMarketForMatch, predictionMaxStake, type PredictionBet, type PredictionRanking } from "@/lib/predictions";
 import { dateKeyKST } from "@/lib/view-data";
 import type { Match, Team, Tournament } from "@/lib/types";
+
+const PREDICTION_DAY_SECTION_PREFIX = "prediction-day";
 
 type PredictionBoardProps = {
   matches: Match[];
@@ -70,6 +73,11 @@ export function PredictionBoard({ matches, teams, tournaments, bets, currentUser
     .filter((match) => selectedTournament === "all" || match.tournamentId === selectedTournament)
     .sort((a, b) => new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime());
   const grouped = Object.groupBy(filteredMatches, (match) => dateKeyKST(match.matchDate));
+  const groupedEntries = Object.entries(grouped);
+  const todayKey = dateKeyKST(new Date(now).toISOString());
+  // 오늘 → 없으면 오늘 이후 가장 가까운 날 → 그마저 없으면 마지막(가장 최근) 날로 스크롤한다.
+  const scrollTargetDateKey =
+    groupedEntries.find(([date]) => date >= todayKey)?.[0] ?? groupedEntries[groupedEntries.length - 1]?.[0];
 
   function moveWeek(direction: number) {
     const next = weekKeys[weekIndex + direction];
@@ -151,11 +159,14 @@ export function PredictionBoard({ matches, teams, tournaments, bets, currentUser
       {error ? <div className="mt-4 flex items-center justify-between gap-3 rounded-xl bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-600"><span>{error}</span><button type="button" onClick={() => setError(null)} aria-label="오류 닫기"><RotateCcw size={16} /></button></div> : null}
 
       <div className="mt-9 flex flex-col gap-10">
-        {Object.entries(grouped).map(([date, dayMatches]) => dayMatches ? (
-          <section key={date}>
+        {scrollTargetDateKey ? (
+          <ScheduleTodayScroll targetId={`${PREDICTION_DAY_SECTION_PREFIX}-${scrollTargetDateKey}`} />
+        ) : null}
+        {groupedEntries.map(([date, dayMatches]) => dayMatches ? (
+          <section key={date} id={`${PREDICTION_DAY_SECTION_PREFIX}-${date}`} className="scroll-mt-20">
             <h2 className="mb-3 flex items-center gap-2 text-lg font-black text-[var(--ui-ink)]">
               {dateLabel(dayMatches[0].matchDate)}
-              {date === dateKeyKST(new Date().toISOString()) ? <span className="rounded-full bg-[var(--accent)] px-2 py-0.5 text-[13px] font-medium text-[var(--accent-foreground)]">오늘</span> : null}
+              {date === todayKey ? <span className="rounded-full bg-[var(--accent)] px-2 py-0.5 text-[13px] font-medium text-[var(--accent-foreground)]">오늘</span> : null}
             </h2>
             <div className="flex flex-col gap-5">
               {dayMatches.map((match) => {
