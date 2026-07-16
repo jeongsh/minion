@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { createClient } from "@supabase/supabase-js";
 
-import { syncLeaguepediaMatchSets } from "../lib/sync/leaguepedia-match-sets.ts";
+import { countLeaguepediaScoreboardGames, syncLeaguepediaMatchSets } from "../lib/sync/leaguepedia-match-sets.ts";
 
 function loadEnvFile() {
   const envPath = resolve(process.cwd(), ".env.local");
@@ -120,12 +120,30 @@ async function main() {
   console.log(`처리할 경기: ${eligible.length}개 (force: ${force})`);
 
   let processed = 0;
+  let skipped = 0;
   let setsTotal = 0;
   let picksBansTotal = 0;
   let playerStatsTotal = 0;
 
-  for (const match of eligible) {
+  for (const [index, match] of eligible.entries()) {
     try {
+      // 진행 중인 시리즈는 다음 세트가 언제 올라올지 몰라 매번 다시 대상에 포함되는데,
+      // 그때마다 밴픽/선수 스탯/아이템·스펠·룬까지 통째로 다시 가져오는 건 낭비다.
+      // 게임 수만 가볍게 먼저 확인해서, 로컬 세트 수보다 늘지 않았으면 무거운 동기화를
+      // 건너뛴다. (완료된 경기는 위 eligible 필터에서 이미 스코어 기준으로 걸러진다.)
+      if (!force && match.status !== "completed") {
+        const knownGameCount = await countLeaguepediaScoreboardGames(match.leaguepedia_match_id!);
+        const localSetCount = match.sets?.length ?? 0;
+        if (knownGameCount <= localSetCount) {
+          skipped++;
+          console.log(
+            JSON.stringify({ matchId: match.id, leaguepediaMatchId: match.leaguepedia_match_id, skipped: "변경 없음" }),
+          );
+          if (index < eligible.length - 1) await sleep(5000);
+          continue;
+        }
+      }
+
       const summary = await syncLeaguepediaMatchSets(supabase, match.id);
       setsTotal += summary.upserted;
       picksBansTotal += summary.picksBansUpserted;
@@ -148,7 +166,7 @@ async function main() {
       console.error(JSON.stringify({ matchId: match.id, leaguepediaMatchId: match.leaguepedia_match_id, error: msg }));
     }
 
-    if (processed < eligible.length) {
+    if (index < eligible.length - 1) {
       await sleep(5000);
     }
   }
@@ -158,6 +176,7 @@ async function main() {
       {
         force,
         matchesProcessed: processed,
+        matchesSkippedNoChange: skipped,
         setsUpserted: setsTotal,
         picksBansUpserted: picksBansTotal,
         playerStatsUpserted: playerStatsTotal,

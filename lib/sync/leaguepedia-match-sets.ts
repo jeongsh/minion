@@ -1014,6 +1014,24 @@ async function fetchPlayerRows(leaguepediaMatchId: string, options?: Leaguepedia
   }, options) as Promise<CargoPlayerRow[]>;
 }
 
+/**
+ * 진행 중인 시리즈는 다음 세트가 언제 Leaguepedia에 올라올지 몰라 계속 확인해야 하는데,
+ * 매번 밴픽/선수 스탯/아이템·스펠·룬 카탈로그까지 통째로 다시 가져오는 건 낭비다.
+ * ScoreboardGames의 게임 수만 가볍게 세어, 이미 로컬에 있는 세트 수와 같으면(=새 게임이
+ * 아직 안 올라옴) 호출부에서 무거운 전체 동기화를 건너뛸 수 있게 한다.
+ */
+export async function countLeaguepediaScoreboardGames(
+  leaguepediaMatchId: string,
+  options?: LeaguepediaSyncOptions,
+): Promise<number> {
+  const rows = await cargoQuery({
+    tables: "ScoreboardGames=SG",
+    fields: "SG.GameId=GameId",
+    where: `SG.MatchId="${escapeCargoValue(leaguepediaMatchId)}"`,
+  }, options);
+  return rows.length;
+}
+
 async function fetchLeaguepediaSetRows(
   leaguepediaMatchId: string,
   options?: LeaguepediaSyncOptions,
