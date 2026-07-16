@@ -80,7 +80,7 @@ async function main() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let matchesQuery: any = supabase
     .from("matches")
-    .select("id, leaguepedia_match_id, team_a_score, team_b_score, sets(id)")
+    .select("id, leaguepedia_match_id, status, team_a_score, team_b_score, sets(id)")
     .not("leaguepedia_match_id", "is", null)
     .neq("leaguepedia_match_id", "")
     .order("match_date", { ascending: true });
@@ -92,15 +92,23 @@ async function main() {
   type MatchEntry = {
     id: string;
     leaguepedia_match_id: string | null;
+    status: string;
     team_a_score: number | null;
     team_b_score: number | null;
     sets: unknown[];
   };
   // 세트가 하나라도 있으면 끝난 걸로 치면, Leaguepedia에 일부 게임(예: 1세트)의
-  // 상세 박스스코어가 아직 안 올라온 경우 그 세트를 영영 못 가져온다. 스코어로
-  // 추정한 "완료된 게임 수"보다 세트 수가 적으면 --force 없이도 계속 재시도한다.
+  // 상세 박스스코어가 아직 안 올라온 경우 그 세트를 영영 못 가져온다. 그렇다고 스코어
+  // 기반으로 "완료된 게임 수"를 계산해서 비교하면 안 된다 — matches.team_a_score는
+  // syncLeaguepediaMatchSets 끝의 reconcileMatchFromSets가 "지금 있는 세트"로부터
+  // 역산하는 값이라, 세트가 0개면 스코어도 0:0으로 같이 역산되어 "세트 0 < 스코어 0"이
+  // 항상 거짓이 되는 자기모순(순환 의존)에 빠진다 — 세트가 하나도 없는 경기는 영원히
+  // 대상에서 빠져버렸다. status가 completed가 아닌 경기(아직 최종 스코어가 안 정해짐)는
+  // 스코어 비교 없이 항상 재시도하고, completed인 경기만 스코어 대비 세트 수로
+  // "이미 다 채워졌는지" 판단한다(이 경우엔 스코어가 이미 확정값이라 안전하다).
   const eligible = ((matches ?? []) as MatchEntry[]).filter((m) => {
     if (force) return true;
+    if (m.status !== "completed") return true;
     const completedGames = (m.team_a_score ?? 0) + (m.team_b_score ?? 0);
     return (m.sets?.length ?? 0) < completedGames;
   });
