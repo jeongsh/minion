@@ -13,6 +13,7 @@ import {
   type LeaguepediaSyncSummary,
 } from "@/lib/sync/leaguepedia-lck-2026";
 import {
+  needsLeaguepediaMatchSetsSync,
   syncLeaguepediaMatchSets,
   type LeaguepediaMatchSetsSyncSummary,
 } from "@/lib/sync/leaguepedia-match-sets";
@@ -60,11 +61,26 @@ export type SyncLeaguepediaSetsActionResult =
   | {
       ok: true;
       summary: LeaguepediaMatchSetsSyncSummary;
+      skipped?: boolean;
     }
   | {
       ok: false;
       error: string;
     };
+
+function emptySetsSyncSummary(matchId: string, leaguepediaMatchId: string): LeaguepediaMatchSetsSyncSummary {
+  return {
+    matchId,
+    leaguepediaMatchId,
+    fetched: 0,
+    upserted: 0,
+    picksBansUpserted: 0,
+    playerStatsUpserted: 0,
+    itemsResolved: 0,
+    spellsResolved: 0,
+    runesResolved: 0,
+  };
+}
 
 export async function syncLeaguepediaMatchesAction(
   mode: "incremental" | "full" = "incremental",
@@ -92,9 +108,23 @@ export async function getLeaguepediaSyncCursor() {
 
 export async function syncLeaguepediaMatchSetsAction(
   matchId: string,
+  force = false,
 ): Promise<SyncLeaguepediaSetsActionResult> {
   try {
     const supabase = createSupabaseAdminClient();
+
+    if (!force) {
+      const match = await getMatchById(matchId);
+      if (!match) throw new Error("경기를 찾을 수 없습니다.");
+      if (!(await needsLeaguepediaMatchSetsSync(supabase, matchId))) {
+        return {
+          ok: true,
+          summary: emptySetsSyncSummary(matchId, match.leaguepediaMatchId ?? ""),
+          skipped: true,
+        };
+      }
+    }
+
     const summary = await syncLeaguepediaMatchSets(supabase, matchId);
     await revalidateMatchPaths(supabase, matchId);
     return { ok: true, summary };
@@ -128,6 +158,7 @@ export type SyncMatchDataActionResult =
   | {
       ok: true;
       setsSummary: LeaguepediaMatchSetsSyncSummary;
+      setsSkipped?: boolean;
       timelineSummary: TimelineSyncSummary | null;
       timelineError: string | null;
       pomResult: SinglePomSyncResult | null;
@@ -146,8 +177,15 @@ export async function syncMatchDataAction(matchId: string): Promise<SyncMatchDat
   const supabase = createSupabaseAdminClient();
 
   let setsSummary: LeaguepediaMatchSetsSyncSummary;
+  let setsSkipped = false;
   try {
-    setsSummary = await syncLeaguepediaMatchSets(supabase, matchId);
+    if (await needsLeaguepediaMatchSetsSync(supabase, matchId)) {
+      setsSummary = await syncLeaguepediaMatchSets(supabase, matchId);
+    } else {
+      const match = await getMatchById(matchId);
+      setsSummary = emptySetsSyncSummary(matchId, match?.leaguepediaMatchId ?? "");
+      setsSkipped = true;
+    }
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Leaguepedia 세트 정보 불러오기에 실패했습니다.";
@@ -172,7 +210,7 @@ export async function syncMatchDataAction(matchId: string): Promise<SyncMatchDat
 
   await revalidateMatchPaths(supabase, matchId);
 
-  return { ok: true, setsSummary, timelineSummary, timelineError, pomResult, pomError };
+  return { ok: true, setsSummary, setsSkipped, timelineSummary, timelineError, pomResult, pomError };
 }
 
 export type CheckMatchConsistencyActionResult =

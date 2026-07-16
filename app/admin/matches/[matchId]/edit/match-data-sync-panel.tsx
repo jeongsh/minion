@@ -84,9 +84,11 @@ export function MatchDataSyncPanel({
         setError(result.error);
         return;
       }
-      const { setsSummary, timelineSummary, timelineError, pomResult, pomError } = result;
+      const { setsSummary, setsSkipped, timelineSummary, timelineError, pomResult, pomError } = result;
       const parts = [
-        `세트 ${setsSummary.upserted}개, 밴픽 ${setsSummary.picksBansUpserted}개, 선수 스탯 ${setsSummary.playerStatsUpserted}개 저장`,
+        setsSkipped
+          ? "세트: 이미 최신 상태(새 게임/누락 데이터 없음)"
+          : `세트 ${setsSummary.upserted}개, 밴픽 ${setsSummary.picksBansUpserted}개, 선수 스탯 ${setsSummary.playerStatsUpserted}개 저장`,
       ];
       if (timelineSummary) {
         parts.push(`타임라인 세트 ${timelineSummary.setsProcessed}개 처리, 이벤트 ${timelineSummary.eventsInserted}개 · 골드 프레임 ${timelineSummary.framesInserted}개 저장`);
@@ -115,9 +117,11 @@ export function MatchDataSyncPanel({
         setError(result.error);
         return;
       }
-      const { summary } = result;
+      const { summary, skipped } = result;
       setMessage(
-        `세트 ${summary.upserted}개, 밴픽 ${summary.picksBansUpserted}개, 선수 스탯 ${summary.playerStatsUpserted}개 저장 완료`,
+        skipped
+          ? "이미 최신 상태입니다(새 게임/누락 데이터 없음)"
+          : `세트 ${summary.upserted}개, 밴픽 ${summary.picksBansUpserted}개, 선수 스탯 ${summary.playerStatsUpserted}개 저장 완료`,
       );
     });
   }
@@ -140,7 +144,7 @@ export function MatchDataSyncPanel({
     setMessage(null);
     setError(null);
     startTransition(async () => {
-      const setsResult = await syncLeaguepediaMatchSetsAction(matchId);
+      const setsResult = await syncLeaguepediaMatchSetsAction(matchId, true);
       if (!setsResult.ok) {
         setError(setsResult.error);
         return;

@@ -1032,6 +1032,59 @@ export async function countLeaguepediaScoreboardGames(
   return rows.length;
 }
 
+/**
+ * 이미 로컬 세트가 전부(밴픽 20건, 선수 스탯 10명) 채워져 있고 Leaguepedia에도 새 게임이
+ * 없으면, syncLeaguepediaMatchSets 전체를 다시 돌 필요가 없다 — 관리자가 "경기 데이터
+ * 동기화"를 반복해서 눌러도 이미 완성된 세트를 매번 다시 긁어오지 않도록 호출 전에
+ * 먼저 이 함수로 확인한다.
+ */
+export async function needsLeaguepediaMatchSetsSync(
+  supabase: SupabaseClient,
+  matchId: string,
+): Promise<boolean> {
+  const { data: match, error: matchError } = await supabase
+    .from("matches")
+    .select("leaguepedia_match_id")
+    .eq("id", matchId)
+    .single();
+  if (matchError) throw matchError;
+  const leaguepediaMatchId = (match as { leaguepedia_match_id: string | null }).leaguepedia_match_id;
+  if (!leaguepediaMatchId) return true; // ID가 없으면 실제 동기화에서 그 에러가 그대로 드러나게 둔다.
+
+  const { data: sets, error: setsError } = await supabase
+    .from("sets")
+    .select("id")
+    .eq("match_id", matchId);
+  if (setsError) throw setsError;
+  const setIds = ((sets ?? []) as Array<{ id: string }>).map((row) => row.id);
+
+  const knownGameCount = await countLeaguepediaScoreboardGames(leaguepediaMatchId);
+  if (knownGameCount > setIds.length) return true; // Leaguepedia에 새 게임이 올라와 있음
+  if (setIds.length === 0) return knownGameCount > 0;
+
+  const [pickBanRes, statRes] = await Promise.all([
+    supabase.from("set_picks_bans").select("set_id").in("set_id", setIds),
+    supabase.from("set_player_stats").select("set_id").in("set_id", setIds),
+  ]);
+  if (pickBanRes.error) throw pickBanRes.error;
+  if (statRes.error) throw statRes.error;
+
+  const pickBanCountBySet = new Map<string, number>();
+  for (const row of (pickBanRes.data ?? []) as Array<{ set_id: string }>) {
+    pickBanCountBySet.set(row.set_id, (pickBanCountBySet.get(row.set_id) ?? 0) + 1);
+  }
+  const statCountBySet = new Map<string, number>();
+  for (const row of (statRes.data ?? []) as Array<{ set_id: string }>) {
+    statCountBySet.set(row.set_id, (statCountBySet.get(row.set_id) ?? 0) + 1);
+  }
+
+  // 세트당 밴 10 + 픽 10 = 20건, 선수 스탯 10명이 다 있어야 완성으로 본다(어드민 화면의
+  // "픽 X/10 · 밴 X/10 · 스탯 X/10" 완성도 기준과 동일).
+  return setIds.some(
+    (id) => (pickBanCountBySet.get(id) ?? 0) < 20 || (statCountBySet.get(id) ?? 0) < 10,
+  );
+}
+
 async function fetchLeaguepediaSetRows(
   leaguepediaMatchId: string,
   options?: LeaguepediaSyncOptions,
