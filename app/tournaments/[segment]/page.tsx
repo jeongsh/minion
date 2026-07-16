@@ -4,6 +4,7 @@ import { Fragment } from "react";
 
 import { PageHeader } from "@/components/ui/page-header";
 import { DataTable } from "@/components/ui/data-table";
+import { TeamLogo } from "@/components/ui/team-logo";
 import { getAllTeams, getBracketStages, getMatches, getPlayers, getStages, getTournaments } from "@/lib/data/lck";
 import {
   buildStageColumns,
@@ -16,6 +17,7 @@ import { matchesTournamentSegment } from "@/lib/tournaments/season-2026";
 import type { Match, Player, Team, Tournament } from "@/lib/types";
 import {
   buildTeamStandingRows,
+  dateKeyKST,
   formatDateRange,
   matchHref,
   tournamentStatus,
@@ -188,8 +190,7 @@ function GroupStandingsTable({
                   className="flex min-w-0 items-center gap-2 font-semibold text-foreground hover:text-accent"
                 >
                   {row.team.logoUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={row.team.logoUrl} alt="" className="h-6 w-8 shrink-0 object-contain" />
+                    <TeamLogo team={row.team} size="h-6 w-8" plain themeAware />
                   ) : null}
                   <span className="min-w-0 truncate text-sm">{row.team.name}</span>
                 </Link>
@@ -224,8 +225,7 @@ function GroupStandingsTable({
             render: (row) => (
               <Link href={`/teams/${row.team.slug}`} className="flex items-center gap-2 font-semibold hover:text-accent">
                 {row.team.logoUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={row.team.logoUrl} alt="" className="h-6 w-8 shrink-0 object-contain" />
+                  <TeamLogo team={row.team} size="h-6 w-8" plain themeAware />
                 ) : null}
                 <span className="truncate">{row.team.name}</span>
               </Link>
@@ -264,12 +264,7 @@ function RegularStandingsTable({ rows }: { rows: ReturnType<typeof buildTeamStan
                 className="flex min-w-0 items-center gap-3 font-semibold hover:text-accent"
               >
                 {row.team.logoUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={row.team.logoUrl}
-                    alt={`${row.team.name} 로고`}
-                    className="h-9 w-11 shrink-0 object-contain"
-                  />
+                  <TeamLogo team={row.team} size="h-9 w-11" plain themeAware />
                 ) : null}
                 <span className="truncate">{row.team.name}</span>
               </Link>
@@ -397,8 +392,7 @@ function TeamRow({
         aria-hidden="true"
       />
       {team?.logoUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={team.logoUrl} alt="" className="h-5 w-5 shrink-0 object-contain" />
+        <TeamLogo team={team} size="h-5 w-5" plain themeAware />
       ) : (
         <span className="h-5 w-5 shrink-0 rounded-full bg-surface-muted" aria-hidden="true" />
       )}
@@ -1171,8 +1165,31 @@ export default async function TournamentBracketPage({
     const segmentBracketStages = bracketStages
       .filter((bracketStage) => tournamentIds.has(bracketStage.tournamentId))
       .sort((a, b) => a.orderIndex - b.orderIndex);
+    // URL에 브래킷 스테이지 지정이 없으면, 오늘 날짜에 경기가 있는 스테이지를 기본으로
+    // 보여준다(예: 그룹 스테이지는 끝났고 오늘이 8강 날이면 8강을 바로 보여줌 — 그 8강
+    // 경기의 시작 시각이 아직 안 지났어도 오늘 날짜라면 우선한다). 오늘 경기가 있는
+    // 스테이지가 없으면 아직 다 안 끝난 첫 스테이지로 대체한다. 대회 전체가 이미
+    // 완료됐으면 "처음부터" 보여준다는 의도로 첫 스테이지로 되돌아간다.
+    const todayKey = dateKeyKST(new Date());
+    const bracketStageInfo = segmentBracketStages.map((bracketStage) => {
+      const stageIds = new Set(
+        segmentStages.filter((stage) => stage.bracketStageId === bracketStage.id).map((stage) => stage.id),
+      );
+      const stageMatches = segmentMatches.filter((match) => stageIds.has(match.stageId));
+      return {
+        bracketStage,
+        hasToday: stageMatches.some((match) => dateKeyKST(match.matchDate) === todayKey),
+        isDone: stageMatches.length > 0 && stageMatches.every((match) => match.status === "completed"),
+      };
+    });
+    const tournamentFullyCompleted = bracketStageInfo.length > 0 && bracketStageInfo.every((info) => info.isDone);
+    const currentBracketStage = tournamentFullyCompleted
+      ? null
+      : (bracketStageInfo.find((info) => info.hasToday) ?? bracketStageInfo.find((info) => !info.isDone))
+          ?.bracketStage;
     const activeBracketStage =
       segmentBracketStages.find((bracketStage) => bracketStage.id === search.bracketStage) ??
+      currentBracketStage ??
       segmentBracketStages[0] ??
       null;
     const activeStages = activeBracketStage
