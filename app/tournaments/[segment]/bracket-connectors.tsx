@@ -110,8 +110,12 @@ export function BracketConnectors({
         const matchEl = container.querySelector<HTMLElement>(`[data-match-id="${toMatchId}"]`);
         if (!matchEl) continue;
 
-        // 결승처럼 넓은 슬롯 안에서 가운데 정렬된 카드는 슬롯(wrapper) 자체를 옮겨야 한다.
-        const slotEl = matchEl.closest<HTMLElement>("[data-merge-slot]") ?? matchEl;
+        // 결승처럼 넓은 슬롯 안에서 가운데 정렬된 카드(data-merge-slot으로 감싸진 카드)만
+        // 두 소스 사이 위치로 옮긴다. data-merge-slot이 없는 일반 그리드 카드(예: 그룹
+        // 스테이지 "최종전"처럼 소스가 2개라도 자기 열의 정해진 행에 고정돼야 하는 카드)는
+        // 여기서 옮기면 라벨과 어긋나 보이므로 건드리지 않는다.
+        const slotEl = matchEl.closest<HTMLElement>("[data-merge-slot]");
+        if (!slotEl) continue;
         slotEl.style.transform = "";
 
         if (group.length !== 2) continue;
@@ -126,12 +130,20 @@ export function BracketConnectors({
           .filter((y): y is number => y !== null);
         if (sourceYs.length !== 2) continue;
 
+        // 이 칸 자체가 패자조(data-bracket-side="lower")로 분류돼 있으면, 두 소스 중
+        // 위쪽(승자조) 소스 쪽으로 붙일 게 아니라 아래쪽(패자조) 소스 쪽에 붙여야 라벨이
+        // 속한 패자조 구간 안에 자연스럽게 머문다.
+        const bias = slotEl.dataset.bracketSide === "lower" ? 1 - UPPER_BIAS : UPPER_BIAS;
         const upperY = Math.min(...sourceYs);
         const lowerY = Math.max(...sourceYs);
-        const targetY = upperY + (lowerY - upperY) * UPPER_BIAS;
-        const slotRect = slotEl.getBoundingClientRect();
-        const slotCenterY = slotRect.top + slotRect.height / 2;
-        const delta = targetY - slotCenterY;
+        const targetY = upperY + (lowerY - upperY) * bias;
+        // slotEl(래퍼) 기준으로 중심을 재면, 같은 grid 행을 공유하는 다른 열(예: 경기가
+        // 2개 쌓여 더 큰 "1라운드" 열) 때문에 이 열의 래퍼도 늘어나 있을 수 있다. 늘어난
+        // 래퍼 안에서 카드 자체는 위쪽에 붙어 있으므로, 래퍼가 아니라 카드의 실제 위치를
+        // 기준으로 옮길 거리를 계산해야 한다.
+        const cardRect = matchEl.getBoundingClientRect();
+        const cardCenterY = cardRect.top + cardRect.height / 2;
+        const delta = targetY - cardCenterY;
         slotEl.style.transform = `translateY(${delta}px)`;
       }
     }

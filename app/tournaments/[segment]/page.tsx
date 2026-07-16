@@ -789,10 +789,15 @@ function BracketGrid({
 
         {groups.map((group) => (
           <Fragment key={group.groupIndex}>
-            {[...group.upperByColumn.keys()].map((columnIndex) => (
+            {/* 헤더(라벨)와 카드를 한 덩어리로 묶어야, 연결선이 두 소스 사이로 카드를
+                띄울 때(BracketConnectors의 merge 로직) 라벨이 같이 따라가서 어긋나지
+                않는다. data-merge-slot이 있어야 그 로직이 이 칸을 옮길 수 있다. */}
+            {[...group.upperByColumn.entries()].map(([columnIndex, matches]) => (
               <div
-                key={`upper-head-${group.groupIndex}-${columnIndex}`}
-                style={{ gridColumn: columnIndex + 1, gridRow: group.upperLabelRow }}
+                key={`upper-${group.groupIndex}-${columnIndex}`}
+                data-merge-slot="true"
+                style={{ gridColumn: columnIndex + 1, gridRow: `${group.upperLabelRow} / span 2` }}
+                className="flex snap-start flex-col gap-2"
               >
                 <ColumnHeader
                   label={
@@ -807,26 +812,22 @@ function BracketGrid({
                         : formatBracketColumnLabel(regularColumns[columnIndex]?.stage.name ?? `${columnIndex + 1}R`)
                   }
                 />
-              </div>
-            ))}
-
-            {[...group.upperByColumn.entries()].map(([columnIndex, matches]) => (
-              <div
-                key={`upper-${group.groupIndex}-${columnIndex}`}
-                style={{ gridColumn: columnIndex + 1, gridRow: group.upperRow }}
-                className="flex snap-start flex-col gap-3"
-              >
-                {matches.map((match) => (
-                  <MatchCard key={match.id} match={match} teamMap={teamMap} accent={accent} />
-                ))}
+                <div className="flex flex-col gap-3">
+                  {matches.map((match) => (
+                    <MatchCard key={match.id} match={match} teamMap={teamMap} accent={accent} />
+                  ))}
+                </div>
               </div>
             ))}
 
             {group.hasLower
-              ? [...group.lowerByColumn.keys()].map((columnIndex) => (
+              ? [...group.lowerByColumn.entries()].map(([columnIndex, matches]) => (
                   <div
-                    key={`lower-head-${group.groupIndex}-${columnIndex}`}
-                    style={{ gridColumn: columnIndex + 1, gridRow: group.lowerLabelRow! }}
+                    key={`lower-${group.groupIndex}-${columnIndex}`}
+                    data-merge-slot="true"
+                    data-bracket-side="lower"
+                    style={{ gridColumn: columnIndex + 1, gridRow: `${group.lowerLabelRow} / span 2` }}
+                    className="flex flex-col gap-2"
                   >
                     <ColumnHeader
                       label={
@@ -840,20 +841,11 @@ function BracketGrid({
                             })
                       }
                     />
-                  </div>
-                ))
-              : null}
-
-            {group.hasLower
-              ? [...group.lowerByColumn.entries()].map(([columnIndex, matches]) => (
-                  <div
-                    key={`lower-${group.groupIndex}-${columnIndex}`}
-                    style={{ gridColumn: columnIndex + 1, gridRow: group.lowerRow! }}
-                    className="flex flex-col gap-3"
-                  >
-                    {matches.map((match) => (
-                      <MatchCard key={match.id} match={match} teamMap={teamMap} accent={accent} />
-                    ))}
+                    <div className="flex flex-col gap-3">
+                      {matches.map((match) => (
+                        <MatchCard key={match.id} match={match} teamMap={teamMap} accent={accent} />
+                      ))}
+                    </div>
                   </div>
                 ))
               : null}
