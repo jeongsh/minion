@@ -508,6 +508,7 @@ create table public.team_awards (
     'msi_champion', 'msi_runner_up',
     'first_stand_champion', 'first_stand_runner_up',
     'ewc_champion', 'ewc_runner_up',
+    'enc_champion', 'enc_runner_up',
     'lck_finals_mvp', 'worlds_mvp', 'msi_mvp',
     'all_lck_first', 'all_lck_second',
     'rookie_of_year'

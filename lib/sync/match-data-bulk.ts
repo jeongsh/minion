@@ -45,7 +45,7 @@ export async function syncMatchDataForRecentCompletedMatches(
 
   const { data: matches, error: matchesError } = await supabase
     .from("matches")
-    .select("id, official_pom_player_id")
+    .select("id, official_pom_player_id, team_a_score, team_b_score")
     .eq("status", "completed")
     .not("leaguepedia_match_id", "is", null)
     .gte("match_date", since);
@@ -71,7 +71,12 @@ export async function syncMatchDataForRecentCompletedMatches(
       timelineEventCount = count ?? 0;
     }
 
-    const needsWork = setIds.length === 0 || timelineEventCount === 0 || !match.official_pom_player_id;
+    // 세트가 "하나라도" 있으면 완료로 치면, Leaguepedia에 일부 게임의 박스스코어만
+    // 늦게 올라온 경우 그 세트를 영영 못 가져온다(backfill-leaguepedia-sets.ts와 동일한
+    // 문제). 스코어로 추정한 완료 게임 수보다 세트 수가 적으면 계속 재시도 대상에 둔다.
+    const expectedSets = (match.team_a_score ?? 0) + (match.team_b_score ?? 0);
+    const setsIncomplete = setIds.length < expectedSets;
+    const needsWork = setsIncomplete || timelineEventCount === 0 || !match.official_pom_player_id;
     if (!needsWork) {
       summary.matchesSkipped++;
       continue;

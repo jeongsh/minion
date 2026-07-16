@@ -13,6 +13,7 @@ import {
   getTeamBySlug,
   getTeamFanCount,
 } from "@/lib/data/lck";
+import { isMatchLive } from "@/lib/match-display";
 import { getPredictionMarketData } from "@/lib/predictions";
 import type { Match, Team } from "@/lib/types";
 
@@ -92,12 +93,16 @@ export async function FanChannelHeader({ teamSlug }: { teamSlug: string }) {
   // eslint-disable-next-line react-hooks/purity
   const now = Date.now();
   const ownMatches = matches.filter((match) => match.teamAId === team.id || match.teamBId === team.id);
-  const live = ownMatches.find((match) => match.status === "live");
+  // status만 보면, 경기가 이미 시작했는데 status 동기화가 아직 "scheduled"에 머물러
+  // 있는 경기가 live로도 안 잡히고 upcoming(시작시각 지남)에서도 빠져서 recentMatches의
+  // "matchDate < now" 폴백에 걸려 "경기 종료"로 잘못 표시됐다. isMatchLive로 통일해서
+  // 나머지 화면(schedule-list.tsx 등)과 같은 기준을 쓴다.
+  const live = ownMatches.find((match) => isMatchLive(match, now));
   const upcomingMatches = ownMatches
     .filter((match) => match.status === "scheduled" && new Date(match.matchDate).getTime() >= now)
     .sort((a, b) => new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime());
   const recentMatches = ownMatches
-    .filter((match) => match.status === "completed" || new Date(match.matchDate).getTime() < now)
+    .filter((match) => match.status === "completed")
     .sort((a, b) => new Date(b.matchDate).getTime() - new Date(a.matchDate).getTime());
 
   const upcoming = upcomingMatches[0];

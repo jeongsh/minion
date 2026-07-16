@@ -62,6 +62,10 @@ const LEAGUE_TO_AWARD: Record<string, { champion: string; runnerUp: string } | u
   "World Championship":        { champion: "worlds_champion",       runnerUp: "worlds_runner_up" },
   "Esports World Cup":         { champion: "ewc_champion",          runnerUp: "ewc_runner_up" },
   "LoL First Stand":           { champion: "first_stand_champion",  runnerUp: "first_stand_runner_up" },
+  // ENC 2026(11월) 대회 페이지가 Leaguepedia에 아직 생성되지 않아 실제 League 필드
+  // 값을 확인하지 못했다. lib/tournaments/season-2026.ts의 표기를 따라 우선 매핑해두고,
+  // 대회 페이지가 생기면(11월 즈음) 실제 값과 일치하는지 재확인해야 한다.
+  "Esports Nations Cup":       { champion: "enc_champion",          runnerUp: "enc_runner_up" },
 };
 
 // Leaguepedia 팀명 → our slug (역대 팀명 포함)
