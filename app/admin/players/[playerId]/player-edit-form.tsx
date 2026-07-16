@@ -108,6 +108,19 @@ export function PlayerEditForm({
                 리그피디아 API 조회용 식별자입니다. 화면에는 위 선수명만 표시됩니다.
               </span>
             </label>
+            <label className="flex flex-col gap-1.5 md:col-span-2">
+              <span className="text-sm font-medium">검색 별칭</span>
+              <textarea
+                name="search_aliases"
+                defaultValue={(player.searchAliases ?? []).join(", ")}
+                placeholder="페이커, 이상혁, 페커"
+                rows={2}
+                className={inputClassName()}
+              />
+              <span className="text-[13px] text-muted">
+                통합 검색에서 이 선수를 찾을 때 쓰이는 한글 별칭·본명입니다. 쉼표 또는 줄바꿈으로 구분하세요.
+              </span>
+            </label>
           </div>
 
           <label className="mt-4 flex cursor-pointer items-center gap-3">

@@ -56,6 +56,7 @@ type TeamRow = {
   coaches: string | null;
   global_power_rank: number | null;
   popularity: number | null;
+  search_aliases: string[] | null;
 };
 
 type TeamIdentityHistoryRow = {
@@ -94,6 +95,7 @@ type PlayerRow = {
   retired_at: string | null;
   leaguepedia_page: string | null;
   source_player_id: string | null;
+  search_aliases: string[] | null;
 };
 
 type ChampionRow = {
@@ -395,6 +397,7 @@ function mapTeam(row: TeamRow): Team {
     coaches: row.coaches ?? null,
     globalPowerRank: row.global_power_rank ?? null,
     popularity: row.popularity ?? 0,
+    searchAliases: row.search_aliases ?? [],
   };
 }
 
@@ -437,6 +440,7 @@ function mapPlayer(row: PlayerRow): Player {
     retiredAt: row.retired_at ?? null,
     leaguepediaPage: row.leaguepedia_page ?? undefined,
     sourcePlayerId: row.source_player_id ?? undefined,
+    searchAliases: row.search_aliases ?? [],
   };
 }
 

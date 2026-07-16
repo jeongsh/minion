@@ -144,6 +144,19 @@ export function TeamMetaFields({ team }: { team?: Team }) {
         <span className="text-sm font-medium">글로벌 파워랭킹</span>
         <input name="globalPowerRank" type="number" min="1" defaultValue={team?.globalPowerRank ?? ""} placeholder="예: 3" className={inputClassName()} />
       </label>
+      <label className="flex flex-col gap-1.5 md:col-span-2">
+        <span className="text-sm font-medium">검색 별칭</span>
+        <textarea
+          name="searchAliases"
+          defaultValue={(team?.searchAliases ?? []).join(", ")}
+          placeholder="티원, 에스케이티, skt"
+          rows={2}
+          className={inputClassName()}
+        />
+        <span className="text-[13px] text-muted">
+          통합 검색용 한글명·약칭·구명칭입니다. 쉼표 또는 줄바꿈으로 구분하세요.
+        </span>
+      </label>
     </>
   );
 }

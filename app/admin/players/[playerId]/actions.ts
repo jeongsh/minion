@@ -17,6 +17,19 @@ function textOrNull(value: FormDataEntryValue | null) {
   return text || null;
 }
 
+function parseAliases(value: FormDataEntryValue | null) {
+  const text = typeof value === "string" ? value : "";
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const raw of text.split(/[,\n]/)) {
+    const alias = raw.trim();
+    if (!alias || seen.has(alias)) continue;
+    seen.add(alias);
+    result.push(alias);
+  }
+  return result;
+}
+
 async function uploadProfileImage(playerId: string, file: File) {
   const supabase = createSupabaseAdminClient();
   const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
@@ -84,6 +97,7 @@ export async function updatePlayerDetailAction(formData: FormData) {
       position,
       is_starter: isStarter,
       profile_image_url: profileImageUrl,
+      search_aliases: parseAliases(formData.get("search_aliases")),
       stream_url: textOrNull(formData.get("stream_url")),
       twitter_url: textOrNull(formData.get("twitter_url")),
       instagram_url: textOrNull(formData.get("instagram_url")),

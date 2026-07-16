@@ -45,9 +45,13 @@ export async function GET(request: Request) {
 
   const teamResults: SearchResult[] = teams
     .filter((team) =>
-      [team.name, team.shortName, team.slug, team.fanSiteHost].some((field) =>
-        normalize(field ?? "").includes(query),
-      ),
+      [
+        team.name,
+        team.shortName,
+        team.slug,
+        team.fanSiteHost,
+        ...(team.searchAliases ?? []),
+      ].some((field) => normalize(field ?? "").includes(query)),
     )
     .map((team) => ({
       type: "team" as const,
@@ -60,9 +64,12 @@ export async function GET(request: Request) {
   const playerResults: SearchResult[] = players
     .filter((player) => player.teamId && teamById.has(player.teamId))
     .filter((player) =>
-      [player.name, player.realName, player.slug].some((field) =>
-        normalize(field ?? "").includes(query),
-      ),
+      [
+        player.name,
+        player.realName,
+        player.slug,
+        ...(player.searchAliases ?? []),
+      ].some((field) => normalize(field ?? "").includes(query)),
     )
     .map((player) => {
       const team = player.teamId ? teamById.get(player.teamId) : null;

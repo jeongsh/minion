@@ -66,7 +66,7 @@ export function FanChannelNavigation({ teamSlug }: { teamSlug: string }) {
               key={href}
               href={href}
               aria-current={active ? "page" : undefined}
-              className={`shrink-0 border-b-[3px] px-0 py-3 text-m font-bold transition-colors ${
+              className={`font-paperozi shrink-0 border-b-[3px] px-0 py-3 text-m font-bold transition-colors ${
                 active
                   ? "border-[var(--team-accent-text)] text-[var(--team-accent-text)]"
                   : "border-transparent text-[var(--ui-muted)] hover:text-[var(--ui-ink)]"

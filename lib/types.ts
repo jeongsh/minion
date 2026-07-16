@@ -24,6 +24,7 @@ export type Team = {
   coaches?: string | null;
   globalPowerRank?: number | null;
   popularity?: number;
+  searchAliases?: string[];
   identityHistory?: TeamIdentityHistory[];
 };
 
@@ -111,6 +112,7 @@ export type Player = {
   retiredAt?: string | null;
   leaguepediaPage?: string;
   sourcePlayerId?: string;
+  searchAliases?: string[];
 };
 
 export type PlayerCareerHistory = {

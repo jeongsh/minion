@@ -10,6 +10,19 @@ function textOrNull(value: FormDataEntryValue | null) {
   return text.length > 0 ? text : null;
 }
 
+function parseAliases(value: FormDataEntryValue | null) {
+  const text = typeof value === "string" ? value : "";
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const raw of text.split(/[,\n]/)) {
+    const alias = raw.trim();
+    if (!alias || seen.has(alias)) continue;
+    seen.add(alias);
+    result.push(alias);
+  }
+  return result;
+}
+
 function requiredText(formData: FormData, key: string, label: string) {
   const value = textOrNull(formData.get(key));
 
@@ -52,6 +65,7 @@ function teamPayload(formData: FormData) {
       const v = textOrNull(formData.get("globalPowerRank"));
       return v ? parseInt(v, 10) : null;
     })(),
+    search_aliases: parseAliases(formData.get("searchAliases")),
   };
 }
 
