@@ -80,7 +80,7 @@ async function main() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let matchesQuery: any = supabase
     .from("matches")
-    .select("id, leaguepedia_match_id, sets(id)")
+    .select("id, leaguepedia_match_id, team_a_score, team_b_score, sets(id)")
     .not("leaguepedia_match_id", "is", null)
     .neq("leaguepedia_match_id", "")
     .order("match_date", { ascending: true });
@@ -89,10 +89,21 @@ async function main() {
   const { data: matches, error } = await matchesQuery;
   if (error) throw error;
 
-  type MatchEntry = { id: string; leaguepedia_match_id: string | null; sets: unknown[] };
-  const eligible = ((matches ?? []) as MatchEntry[]).filter(
-    (m) => force || (m.sets?.length ?? 0) === 0,
-  );
+  type MatchEntry = {
+    id: string;
+    leaguepedia_match_id: string | null;
+    team_a_score: number | null;
+    team_b_score: number | null;
+    sets: unknown[];
+  };
+  // 세트가 하나라도 있으면 끝난 걸로 치면, Leaguepedia에 일부 게임(예: 1세트)의
+  // 상세 박스스코어가 아직 안 올라온 경우 그 세트를 영영 못 가져온다. 스코어로
+  // 추정한 "완료된 게임 수"보다 세트 수가 적으면 --force 없이도 계속 재시도한다.
+  const eligible = ((matches ?? []) as MatchEntry[]).filter((m) => {
+    if (force) return true;
+    const completedGames = (m.team_a_score ?? 0) + (m.team_b_score ?? 0);
+    return (m.sets?.length ?? 0) < completedGames;
+  });
 
   console.log(`처리할 경기: ${eligible.length}개 (force: ${force})`);
 
