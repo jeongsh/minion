@@ -15,7 +15,6 @@ import {
   MessageCircle,
   Moon,
   Newspaper,
-  Search,
   Shield,
   Sparkles,
   Sun,
@@ -25,6 +24,7 @@ import {
   X,
 } from "lucide-react";
 import { LogoutButton } from "@/components/auth/logout-button";
+import { HeaderSearch } from "@/components/layout/header-search";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { RankBadge } from "@/components/rank/rank-badge";
 import { TeamLogo } from "@/components/ui/team-logo";
@@ -134,10 +134,9 @@ export function AppShell({
         <Link href="/" className="ml-1.5 shrink-0 text-[22px] font-black tracking-[-0.06em] text-[#18191c] sm:ml-2 sm:text-[25px] dark:text-white">
           MINION<span className="text-[#8b8e94]">.</span>
         </Link>
-        <label className="mx-auto hidden h-10 w-[360px] items-center gap-2 rounded-xl bg-[#f2f3f5] px-4 text-[#777b82] min-[1200px]:flex dark:bg-[#282c31]">
-          <Search size={18} />
-          <input aria-label="팀, 선수, 대회 검색" className="min-w-0 flex-1 bg-transparent text-sm outline-none" placeholder="팀, 선수, 대회 검색" />
-        </label>
+        <div className="absolute left-1/2 hidden w-[360px] -translate-x-1/2 min-[1200px]:block">
+          <HeaderSearch className="w-full" />
+        </div>
         <button type="button" onClick={toggleDarkMode} className="ml-auto mr-1 grid h-11 w-11 shrink-0 place-items-center rounded-xl text-[#62666d] transition hover:bg-[#f4f4f5] sm:mr-2 dark:text-[#a7acb5] dark:hover:bg-[#282c31]" aria-label="색상 모드 전환" title="색상 모드 전환">
           <Moon size={20} className="dark:hidden" />
           <Sun size={20} className="hidden dark:block" />

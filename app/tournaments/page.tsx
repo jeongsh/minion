@@ -88,12 +88,9 @@ export default async function TournamentsPage({
               <Link
                 key={card.key}
                 href={`/tournaments/${card.key}?year=${activeSeason}`}
-                className={`group relative isolate flex flex-col justify-end overflow-hidden rounded-2xl bg-gradient-to-br p-5 shadow-md transition-transform hover:-translate-y-1 sm:min-h-[220px] sm:p-6 sm:shadow-lg ${index === 0 ? "min-h-[176px]" : "min-h-[132px]"} ${card.gradient}`}
+                className={`group relative isolate flex flex-col justify-end overflow-hidden rounded-2xl p-5 shadow-md transition-transform hover:-translate-y-1 sm:min-h-[220px] sm:p-6 sm:shadow-lg ${index === 0 ? "min-h-[176px]" : "min-h-[132px]"}`}
+                style={{ backgroundColor: `color-mix(in srgb, ${card.accent} 76%, #0a0a12)` }}
               >
-                <span
-                  className="absolute inset-0 bg-[linear-gradient(115deg,transparent_55%,rgba(255,255,255,0.08)_55%,rgba(255,255,255,0.08)_58%,transparent_58%)]"
-                  aria-hidden="true"
-                />
                 <span className="text-[13px] font-bold uppercase tracking-widest text-white/60">
                   {activeSeason} · {card.region}
                 </span>

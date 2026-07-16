@@ -362,8 +362,9 @@ export function WeeklyReportView({ report, index }: { report: WeeklyReportRow; i
                       {rising && <span style={{ marginLeft: "auto", fontSize: 12, fontWeight: 900, letterSpacing: "0.04em", color: ACCENT, whiteSpace: "nowrap" }}>▲ 라이징 {rising.name}</span>}
                     </div>
                     {rows.map((tier) => (
-                      <div key={tier.key} style={{ display: "grid", gridTemplateColumns: "44px 1fr", gap: 12, alignItems: "start" }}>
-                        <span style={{ display: "inline-grid", placeItems: "center", transform: SKEW, width: 34, height: 27, fontFamily: DISPLAY, fontSize: 14, lineHeight: 1, marginTop: 2, ...tierBadgeTone[tier.label] }}>
+                      // 배지 높이 36px = 칩 높이(이미지 26 + 패딩 8 + 보더 2)와 동일
+                      <div key={tier.key} style={{ display: "grid", gridTemplateColumns: "48px 1fr", gap: 10, alignItems: "start" }}>
+                        <span style={{ display: "inline-grid", placeItems: "center", transform: SKEW, width: 40, height: 36, fontFamily: DISPLAY, fontSize: 14, lineHeight: 1, ...tierBadgeTone[tier.label] }}>
                           <span style={UNSKEW}>{tier.label}</span>
                         </span>
                         <div style={{ display: "flex", flexWrap: "wrap", gap: "8px 10px", alignItems: "center" }}>

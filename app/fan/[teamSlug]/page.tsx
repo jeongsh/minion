@@ -105,13 +105,6 @@ function OfficialLinks({ team }: { team: Team }) {
   );
 }
 
-// 실제 선수별 KDA 집계 소스가 이 화면엔 없어 id 기반으로 그럴듯한 목업 값을 만든다.
-function mockKda(id: string) {
-  let hash = 0;
-  for (let i = 0; i < id.length; i += 1) hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
-  return (2.6 + (hash % 280) / 100).toFixed(1);
-}
-
 // ─── 섹션: 매치 행 (일정 페이지 매치 로우 언어를 팬 홈용으로 압축) ──
 
 function MatchRow({ match, team, teams }: { match: Match; team: Team; teams: Team[] }) {
@@ -184,8 +177,7 @@ function Roster({ players, teamSlug }: { players: Player[]; teamSlug: string }) 
             <div className="flex min-w-0 max-w-full flex-col gap-[1px]">
               <span className="truncate text-[13px] font-extrabold text-[var(--ui-ink)] sm:text-[15px]">{player.name}</span>
               <span className="whitespace-nowrap text-[11px] font-bold sm:text-[13px]" style={{ color: "var(--tp)" }}>
-                {player.position}{" "}
-                <span className="font-bold text-[var(--ui-muted)]">· KDA {mockKda(player.id)}</span>
+                {player.position}
               </span>
             </div>
           </Link>
@@ -208,6 +200,9 @@ export default async function FanHomePage({
   if (!team) {
     notFound();
   }
+
+  // fanSiteHost가 비어 있으면 진입에 사용한 slug로 폴백해 하위 링크가 /fan/undefined로 깨지지 않게 한다.
+  const fanSlug = team.fanSiteHost ?? teamSlug;
 
   const [teams, players, matches, boardPosts, calendarEvents, user] = await Promise.all([
     getAllTeams(),
@@ -322,7 +317,7 @@ export default async function FanHomePage({
         {/* 모바일은 다음 경기 한 건만 노출하고 캘린더는 필요할 때 연다. */}
         <section className="lg:hidden">
           <div className="flex items-center justify-between">
-            <SectionHeading href={`/fan/${team.fanSiteHost}/matches`}>다음 경기</SectionHeading>
+            <SectionHeading href={`/fan/${fanSlug}/matches`}>다음 경기</SectionHeading>
             <AdaptiveDialog title={`${team.shortName} 캘린더`} trigger={<span className="flex items-center gap-1.5"><CalendarDays size={16} />캘린더</span>} triggerClassName="mb-2 flex min-h-9 items-center rounded-lg border border-[var(--ui-border)] px-3 text-[12px] font-bold text-[var(--ui-ink)]"><HomeCalendar initialMonthKey={calendarMonthKey} matches={calendarClientMatches} events={calendarEvents} /></AdaptiveDialog>
           </div>
           <div className="overflow-hidden rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)]">
@@ -333,7 +328,7 @@ export default async function FanHomePage({
         {/* 태블릿·데스크톱은 일정과 캘린더를 병렬로 제공한다. */}
         <section className="hidden gap-5 lg:grid lg:gap-8 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
           <div className="min-w-0">
-            <SectionHeading href={`/fan/${team.fanSiteHost}/matches`}>경기 일정</SectionHeading>
+            <SectionHeading href={`/fan/${fanSlug}/matches`}>경기 일정</SectionHeading>
             <div className="h-[360px] divide-y divide-[var(--ui-border)] overflow-hidden rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)]">
               {matchRows.length ? (
                 matchRows.map((match) => <MatchRow key={match.id} match={match} team={team} teams={teams} />)
@@ -354,25 +349,25 @@ export default async function FanHomePage({
 
         {/* 선수단 */}
         <section>
-          <Roster players={teamPlayers} teamSlug={team.fanSiteHost} />
+          <Roster players={teamPlayers} teamSlug={fanSlug} />
         </section>
 
         {/* 소셜 피드 */}
         <section>
-          <SectionHeading href={`/fan/${team.fanSiteHost}/instagram`}>소셜 피드</SectionHeading>
+          <SectionHeading href={`/fan/${fanSlug}/instagram`}>소셜 피드</SectionHeading>
           <FanSocialPreview items={feedInsta} />
         </section>
 
         {/* 게시판 */}
         <section>
-          <SectionHeading href={`/fan/${team.fanSiteHost}/community`}>게시판</SectionHeading>
-          <HomeBoardCarousel posts={boardPosts.slice(0, 12)} scope="team" teamSlug={team.fanSiteHost} />
+          <SectionHeading href={`/fan/${fanSlug}/community`}>게시판</SectionHeading>
+          <HomeBoardCarousel posts={boardPosts.slice(0, 12)} scope="team" teamSlug={fanSlug} />
         </section>
 
         {/* 최신 영상 */}
         <section>
-          <SectionHeading href={`/fan/${team.fanSiteHost}/videos`}>최신 영상</SectionHeading>
-          <FanHomeVideoSwiper teamSlug={team.fanSiteHost} videos={feedVideos} />
+          <SectionHeading href={`/fan/${fanSlug}/videos`}>최신 영상</SectionHeading>
+          <FanHomeVideoSwiper teamSlug={fanSlug} videos={feedVideos} />
         </section>
 
         <AdSlot className="hidden h-24 md:block" />
