@@ -11,6 +11,7 @@ import { ReactionButtons } from "@/components/community/reaction-buttons";
 import { ReportButton } from "@/components/community/report-button";
 import { SurfacePanel } from "@/components/ui/surface-panel";
 import type { BoardScope } from "@/lib/community/boards";
+import { blindDescription, blindLabel } from "@/lib/community/moderation-labels";
 import type { CommunityCommentItem, CommunityPostDetail, ReactionState } from "@/lib/community/types";
 
 export function PostView({
@@ -43,7 +44,7 @@ export function PostView({
             {canManage ? <PostOwnerActions postId={post.id} scope={scope} teamSlug={teamSlug} /> : null}
           </div>
           <h1 className={`mt-2 text-[20px] leading-[1.35] sm:text-[24px] ${blinded ? "font-medium text-[var(--ui-muted)]" : "font-bold text-[var(--ui-ink)]"}`}>
-            {blinded ? "신고 누적으로 블라인드된 게시글입니다" : post.title}
+            {blinded ? blindLabel(post.blindedSource, "post") : post.title}
           </h1>
 
           <div className="mt-2 flex items-center gap-3">
@@ -68,7 +69,10 @@ export function PostView({
 
         <div className="community-prose min-h-[160px] px-4 py-6 text-base leading-7 text-[var(--ui-text)] sm:min-h-[220px] sm:px-8 sm:py-9">
           {blinded ? (
-            <BlindedContent>
+            <BlindedContent
+              label={blindLabel(post.blindedSource, "post")}
+              description={blindDescription(post.blindedSource)}
+            >
               <h2 className="mb-4 text-lg font-bold text-[var(--ui-ink)] sm:text-xl">{post.title}</h2>
               <PostContentViewer content={post.content} />
             </BlindedContent>

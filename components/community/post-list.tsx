@@ -4,6 +4,7 @@ import Link from "next/link";
 import { formatRelativeOrDate } from "@/components/community/format";
 import { boardLabel, type BoardScope } from "@/lib/community/boards";
 import { isHotPost } from "@/lib/community/hot";
+import { blindLabel } from "@/lib/community/moderation-labels";
 import type { CommunityPostDetail } from "@/lib/community/types";
 
 export function PostList({
@@ -50,7 +51,7 @@ export function PostList({
               {blinded ? (
                 <h3 className="inline-flex min-w-0 items-center gap-1.5 truncate text-base font-medium text-[var(--ui-muted)]">
                   <EyeOff size={14} strokeWidth={1.8} className="shrink-0" />
-                  신고 누적으로 블라인드된 게시글입니다
+                  {blindLabel(post.blindedSource, "post")}
                 </h3>
               ) : (
                 <h3 className="truncate text-base font-semibold text-[var(--ui-ink)]">{post.title}</h3>

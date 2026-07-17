@@ -8,6 +8,7 @@ import { formatRelativeOrDate } from "@/components/community/format";
 import { ReactionButtons } from "@/components/community/reaction-buttons";
 import { ReportButton } from "@/components/community/report-button";
 import type { BoardScope } from "@/lib/community/boards";
+import { blindLabel } from "@/lib/community/moderation-labels";
 import type { CommunityCommentItem, ReactionState } from "@/lib/community/types";
 
 export function CommentList({ comments, commentReactions, scope, teamSlug }: { comments: CommunityCommentItem[]; commentReactions: Record<string, ReactionState>; scope: BoardScope; teamSlug?: string }) {
@@ -47,7 +48,7 @@ export function CommentList({ comments, commentReactions, scope, teamSlug }: { c
             <ReactionButtons target="comment" targetId={comment.id} postId={comment.postId} scope={scope} teamSlug={teamSlug} initialState={commentReactions[comment.id] ?? null} initialHonorCount={comment.likeCount} initialDislikeCount={comment.dislikeCount} size="sm" />
           </div>
           {comment.blindedAt ? (
-            <BlindedContent compact>
+            <BlindedContent compact label={blindLabel(comment.blindedSource, "comment")}>
               <p className="mt-1 whitespace-pre-wrap break-words text-base leading-[1.6] text-[var(--ui-text)] [overflow-wrap:anywhere]">{comment.content}</p>
             </BlindedContent>
           ) : (
