@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AtSign, ExternalLink, Globe2, Play } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
+import { AdSlot } from "@/components/ui/ad-slot";
 import { TeamMatchHistory } from "@/components/domain/team-match-history";
 import {
   getCommunityPosts,
@@ -390,6 +391,8 @@ export default async function TeamDetailPage({
             </div>
           </div>
         </section>
+
+      <AdSlot placement="horizontal" className="hidden h-[60px] md:block xl:h-[90px]" />
 
       <section className="flex flex-col gap-8" aria-labelledby="team-roster">
         {/* 주전 선수 */}

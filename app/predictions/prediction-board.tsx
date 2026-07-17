@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, Clock3, Coins, RotateCcw, Trophy, X } from "
 
 import { cancelPredictionBetAction, placePredictionBetAction } from "@/app/predictions/actions";
 import { ScheduleTodayScroll } from "@/components/domain/schedule-today-scroll";
+import { AdSlot } from "@/components/ui/ad-slot";
 import { TeamLogo } from "@/components/ui/team-logo";
 import { predictionMarketForMatch, predictionMaxStake, type PredictionBet, type PredictionRanking } from "@/lib/predictions";
 import { dateKeyKST } from "@/lib/view-data";
@@ -231,15 +232,14 @@ export function PredictionBoard({ matches, teams, tournaments, bets, currentUser
 }
 
 function PredictionAdSlot({ className = "" }: { className?: string }) {
+  const enabled = process.env.NEXT_PUBLIC_ADSENSE_ENABLE_PREDICTIONS === "true";
   return (
-    <aside className={`overflow-hidden rounded-2xl border border-dashed border-[var(--ui-border)] bg-[var(--ui-surface-muted)] px-4 py-4 ${className}`}>
-      <div className="flex min-h-[84px] items-center justify-center rounded-xl bg-[var(--ui-surface)] text-center dark:bg-[var(--ui-surface)]/70 sm:min-h-[96px] xl:min-h-[250px]">
-        <div>
-          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[var(--ui-muted)]">Advertisement</p>
-          <p className="mt-1 text-sm font-black text-[var(--ui-ink)]">MINION AD</p>
-        </div>
-      </div>
-    </aside>
+    <AdSlot
+      enabled={enabled}
+      placement="prediction"
+      format="rectangle"
+      className={`h-[100px] xl:h-[250px] xl:max-w-[300px] ${className}`}
+    />
   );
 }
 

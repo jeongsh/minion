@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Star } from "lucide-react";
 import { PlayerSocialLinks } from "@/components/domain/player-social-links";
 import { PageHeader } from "@/components/ui/page-header";
+import { AdSlot } from "@/components/ui/ad-slot";
 import { SectionHeading } from "@/components/ui/section-heading";
 
 import { uniqueDdragonVersionsForPatches } from "@/lib/ddragon";
@@ -708,6 +709,8 @@ export async function PlayerDetailView({
             </div>
           </div>
         </section>
+
+        <AdSlot placement="horizontal" className="hidden h-[60px] md:block xl:h-[90px]" />
 
         {/* 6. 챔피언 */}
         <section>

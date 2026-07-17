@@ -187,7 +187,7 @@ export function HomeDashboard({
         </section>
       ) : null}
 
-      <Ad className="mt-4 hidden h-14 md:block lg:h-16 xl:mt-8 xl:h-24" />
+      <Ad placement="horizontal" className="mt-4 hidden h-[60px] md:block xl:mt-8 xl:h-[90px]" />
       <section className="mt-7 sm:mt-8">
         <Heading href="/teams">팀 채널</Heading>
         <div className="grid grid-cols-5 gap-2 sm:grid-cols-10 sm:gap-3 xl:gap-4">
@@ -243,7 +243,7 @@ export function HomeDashboard({
           )}
         </div>
         <div className="min-w-0 flex flex-col">
-          <Ad className="h-14 md:h-16 lg:h-20 xl:h-[305px]" />
+          <Ad placement="rectangle" className="h-[60px] md:h-[90px] xl:h-[250px]" />
         </div>
       </section>
 
@@ -347,7 +347,7 @@ export function HomeDashboard({
             </a>
           ))}
         </div>
-        <Ad className="mt-8 hidden h-24 md:block" />
+        <Ad placement="horizontal" className="mt-8 hidden h-[60px] md:block xl:h-[90px]" />
       </section>
     </main>
   );
