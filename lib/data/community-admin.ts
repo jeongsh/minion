@@ -245,10 +245,16 @@ export async function resolveReports(params: {
   const target = data as { author_id: string | null; blinded_at: string | null } | null;
 
   if (params.action === "confirm" && !target?.blinded_at) {
-    await supabase.from(table).update({ blinded_at: new Date().toISOString() }).eq("id", targetId);
+    await supabase
+      .from(table)
+      .update({ blinded_at: new Date().toISOString(), blinded_source: "admin" })
+      .eq("id", targetId);
   }
   if (params.action === "dismiss" && target?.blinded_at) {
-    await supabase.from(table).update({ blinded_at: null }).eq("id", targetId);
+    await supabase
+      .from(table)
+      .update({ blinded_at: null, blinded_source: null })
+      .eq("id", targetId);
   }
 
   return { authorId: target?.author_id ?? null };
@@ -259,7 +265,11 @@ export async function resolveReports(params: {
 export async function setPostBlinded(postId: string, blinded: boolean): Promise<void> {
   const { error } = await createSupabaseAdminClient()
     .from("community_posts")
-    .update({ blinded_at: blinded ? new Date().toISOString() : null })
+    .update(
+      blinded
+        ? { blinded_at: new Date().toISOString(), blinded_source: "admin" }
+        : { blinded_at: null, blinded_source: null },
+    )
     .eq("id", postId);
   if (error) throw error;
 }
@@ -267,7 +277,11 @@ export async function setPostBlinded(postId: string, blinded: boolean): Promise<
 export async function setCommentBlinded(commentId: string, blinded: boolean): Promise<void> {
   const { error } = await createSupabaseAdminClient()
     .from("community_comments")
-    .update({ blinded_at: blinded ? new Date().toISOString() : null })
+    .update(
+      blinded
+        ? { blinded_at: new Date().toISOString(), blinded_source: "admin" }
+        : { blinded_at: null, blinded_source: null },
+    )
     .eq("id", commentId);
   if (error) throw error;
 }
