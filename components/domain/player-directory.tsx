@@ -19,7 +19,20 @@ export function PlayerDirectory({ teams, players }: { teams: Team[]; players: Pl
   const filters = (
     <div className="space-y-5">
       <fieldset><legend className="mb-2 text-[12px] font-black uppercase tracking-[0.1em] text-[var(--ui-muted)]">포지션</legend><div className="grid grid-cols-3 gap-2 md:grid-cols-2">{["all", ...POSITIONS].map((item) => <button key={item} type="button" onClick={() => setPosition(item)} className={`min-h-10 rounded-xl px-2 text-[13px] font-black ${position === item ? "bg-[var(--ui-ink)] text-[var(--ui-surface)]" : "bg-[var(--ui-surface-muted)] text-[var(--ui-muted)]"}`}>{item === "all" ? "전체" : item}</button>)}</div></fieldset>
-      <fieldset><legend className="mb-2 text-[12px] font-black uppercase tracking-[0.1em] text-[var(--ui-muted)]">팀</legend><div className="grid gap-1.5"><button type="button" onClick={() => setTeamId("all")} className={`flex min-h-11 items-center rounded-xl px-3 text-sm font-black ${teamId === "all" ? "bg-[var(--ui-ink)] text-[var(--ui-surface)]" : "bg-[var(--ui-surface-muted)] text-[var(--ui-muted)]"}`}>전체 팀</button>{teams.map((team) => <button key={team.id} type="button" onClick={() => setTeamId(team.id)} className={`flex min-h-11 items-center gap-2 rounded-xl px-2.5 text-left text-sm font-bold ${teamId === team.id ? "bg-[var(--ui-ink)] text-[var(--ui-surface)]" : "hover:bg-[var(--ui-surface-muted)]"}`}><TeamLogo team={team} size="h-7 w-7" plain /><span className="truncate">{team.shortName}</span></button>)}</div></fieldset>
+      <fieldset>
+        <legend className="mb-2 text-[12px] font-black uppercase tracking-[0.1em] text-[var(--ui-muted)]">팀</legend>
+        <div className="grid gap-1.5">
+          <button type="button" onClick={() => setTeamId("all")} className={`flex min-h-11 items-center rounded-xl px-3 text-sm font-black ${teamId === "all" ? "bg-[var(--ui-ink)] text-[var(--ui-surface)]" : "bg-[var(--ui-surface-muted)] text-[var(--ui-muted)]"}`}>
+            전체 팀
+          </button>
+          {teams.map((team) => (
+            <button key={team.id} type="button" onClick={() => setTeamId(team.id)} className={`flex min-h-11 items-center gap-2 rounded-xl px-2.5 text-left text-sm font-bold ${teamId === team.id ? "bg-[var(--ui-ink)] text-[var(--ui-surface)]" : "hover:bg-[var(--ui-surface-muted)]"}`}>
+              <TeamLogo team={team} size="h-7 w-7" plain themeAware />
+              <span className="truncate">{team.shortName}</span>
+            </button>
+          ))}
+        </div>
+      </fieldset>
     </div>
   );
 

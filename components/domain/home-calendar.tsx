@@ -19,6 +19,8 @@ export type HomeCalendarMatch = {
   teamBName: string;
   teamALogoUrl: string | null;
   teamBLogoUrl: string | null;
+  teamALogoDarkUrl?: string | null;
+  teamBLogoDarkUrl?: string | null;
 };
 
 type DotType = "match" | CalendarEventType;
@@ -231,16 +233,24 @@ export function HomeCalendar({
                 </span>
                 <span className="flex min-w-0 flex-1 items-center justify-end gap-1.5">
                   {match.teamALogoUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={match.teamALogoUrl} alt="" className="h-4 w-4 shrink-0 object-contain" />
+                    <>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={match.teamALogoUrl} alt="" className={`h-4 w-4 shrink-0 object-contain ${match.teamALogoDarkUrl ? "dark:hidden" : ""}`} />
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      {match.teamALogoDarkUrl ? <img src={match.teamALogoDarkUrl} alt="" className="hidden h-4 w-4 shrink-0 object-contain dark:block" /> : null}
+                    </>
                   ) : null}
                   <span className="truncate text-sm font-black leading-snug text-[var(--ui-ink)]">
                     {match.teamAName}
                   </span>
                   <span className="shrink-0 text-[13px] font-medium text-[var(--ui-muted)]">vs</span>
                   {match.teamBLogoUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={match.teamBLogoUrl} alt="" className="h-4 w-4 shrink-0 object-contain" />
+                    <>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={match.teamBLogoUrl} alt="" className={`h-4 w-4 shrink-0 object-contain ${match.teamBLogoDarkUrl ? "dark:hidden" : ""}`} />
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      {match.teamBLogoDarkUrl ? <img src={match.teamBLogoDarkUrl} alt="" className="hidden h-4 w-4 shrink-0 object-contain dark:block" /> : null}
+                    </>
                   ) : null}
                   <span className="truncate text-sm font-black leading-snug text-[var(--ui-ink)]">
                     {match.teamBName}

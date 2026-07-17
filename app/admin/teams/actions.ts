@@ -33,6 +33,10 @@ function requiredText(formData: FormData, key: string, label: string) {
   return value;
 }
 
+function checkboxValue(formData: FormData, key: string) {
+  return formData.get(key) === "on";
+}
+
 function ensureFanSiteHost(value: string) {
   if (!fanSiteHosts.includes(value as (typeof fanSiteHosts)[number])) {
     throw new Error("팬사이트 호스트는 고정 10개 값 중 하나만 사용할 수 있습니다.");
@@ -49,6 +53,7 @@ function teamPayload(formData: FormData) {
     short_name: requiredText(formData, "shortName", "축약명"),
     logo_url: textOrNull(formData.get("logoUrl")),
     logo_white_url: textOrNull(formData.get("logoWhiteUrl")),
+    use_white_logo_on_dark: checkboxValue(formData, "useWhiteLogoOnDark"),
     background_url: textOrNull(formData.get("backgroundUrl")),
     primary_color: requiredText(formData, "primaryColor", "기본 색상"),
     secondary_color: requiredText(formData, "secondaryColor", "보조 색상"),

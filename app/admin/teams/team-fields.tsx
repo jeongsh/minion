@@ -78,6 +78,15 @@ export function TeamBrandingFields({ team }: { team?: Team }) {
           className={inputClassName()}
         />
       </label>
+      <label className="flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm font-medium md:col-span-2">
+        <input
+          type="checkbox"
+          name="useWhiteLogoOnDark"
+          defaultChecked={team?.useWhiteLogoOnDark ?? false}
+          className="h-4 w-4 accent-[var(--ui-ink)]"
+        />
+        다크모드에서 화이트 로고 사용
+      </label>
       <label className="flex flex-col gap-1.5 md:col-span-2">
         <span className="text-sm font-medium">배경 URL</span>
         <input name="backgroundUrl" defaultValue={team?.backgroundUrl ?? ""} className={inputClassName()} />

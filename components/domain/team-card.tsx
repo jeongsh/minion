@@ -11,7 +11,7 @@ export function TeamCard({ team }: { team: Team }) {
         href={`/teams/${team.slug}`}
         className="group flex min-h-[92px] items-center gap-3 px-4 py-4 transition-colors hover:bg-[var(--ui-surface-muted)] sm:min-h-36 sm:gap-5 sm:px-6 sm:py-6"
       >
-        <TeamLogo team={team} size="h-14 w-14 sm:h-24 sm:w-24" plain />
+        <TeamLogo team={team} size="h-14 w-14 sm:h-24 sm:w-24" plain themeAware />
 
         <div className="min-w-0 flex-1">
           <p className="text-[13px] font-black uppercase tracking-[0.1em] text-[var(--ui-muted)]">

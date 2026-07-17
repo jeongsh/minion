@@ -8,6 +8,7 @@ import { ScheduleWeekScroller } from "@/components/domain/schedule-week-scroller
 import { AdaptiveDialog } from "@/components/responsive/adaptive-dialog";
 import { getAllTeams, getMatches, getStages, getTournaments } from "@/lib/data/lck";
 import { tournamentTypeLabel } from "@/lib/match-display";
+import { shouldUseWhiteLogoOnDark } from "@/lib/team-logos";
 import { filterMatchesBySegment, parseSeasonSegment, segmentLabel } from "@/lib/tournament-filters";
 import { dateKeyKST, formatTimeKST, getMonthKST, getYearKST, KST_TIMEZONE, matchHref } from "@/lib/view-data";
 
@@ -68,6 +69,8 @@ export default async function SchedulePage({
       teamBName: teamB?.shortName || teamB?.name || "TBD",
       teamALogoUrl: teamA?.logoUrl ?? null,
       teamBLogoUrl: teamB?.logoUrl ?? null,
+      teamALogoDarkUrl: shouldUseWhiteLogoOnDark(teamA) ? teamA?.logoWhiteUrl : null,
+      teamBLogoDarkUrl: shouldUseWhiteLogoOnDark(teamB) ? teamB?.logoWhiteUrl : null,
     };
   });
   const mobileFilters = <Suspense fallback={null}><ScheduleFilters activeYear={activeYear} activeMonth={activeMonth} activeSegment={activeSegment} activeTeam={activeTeam} years={years} teams={teams} layout="sheet" /></Suspense>;

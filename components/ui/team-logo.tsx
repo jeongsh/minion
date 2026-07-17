@@ -1,4 +1,5 @@
 import type { Team } from "@/lib/types";
+import { shouldUseWhiteLogoOnDark } from "@/lib/team-logos";
 
 type TeamLogoProps = {
   team?: Team;
@@ -10,7 +11,7 @@ type TeamLogoProps = {
 
 export function TeamLogo({ team, size = "h-10 w-10", plain = false, themeAware = false, imageClassName }: TeamLogoProps) {
   const logoImageClassName = imageClassName ?? (plain ? "h-full w-full object-contain" : "h-[72%] w-[72%] object-contain");
-  const useWhiteLogoOnDark = themeAware && Boolean(team?.useWhiteLogoOnDark && team.logoWhiteUrl);
+  const useWhiteLogoOnDark = themeAware && shouldUseWhiteLogoOnDark(team);
 
   return (
     <span className={`grid ${size} shrink-0 place-items-center overflow-hidden ${plain ? "" : "rounded-full bg-[var(--ui-surface-muted)]"}`}>
