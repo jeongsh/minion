@@ -1097,11 +1097,33 @@ async function fetchLeaguepediaSetRows(
     scheduleRows.map((row) => [parseInteger(row.N_GameInMatch), row]),
   );
 
-  return scoreboardRows.map((row, index) => ({
-    ...row,
-    ...(scheduleBySetNumber.get(parseInteger(row.N_GameInMatch)) ??
-      scheduleBySetNumber.get(index + 1)),
-  }));
+  const coveredSetNumbers = new Set<number>();
+  const merged = scoreboardRows.map((row, index) => {
+    const setNumber = parseInteger(row.N_GameInMatch) ?? index + 1;
+    coveredSetNumbers.add(setNumber);
+    return {
+      ...row,
+      ...(scheduleBySetNumber.get(parseInteger(row.N_GameInMatch)) ??
+        scheduleBySetNumber.get(index + 1)),
+    };
+  });
+
+  // 상세 스코어보드가 아직 위키에 안 올라온 게임도, 대진표(MatchScheduleGame)에
+  // 승자가 이미 나와 있으면(SideWinner) 세트만이라도 먼저 만든다 — 편집 지연으로
+  // 세트가 통째로 누락되는 것보다 낫다. 아직 진영만 정해지고 결과가 없는(=진행
+  // 예정) 게임은 winner_team_id를 만들 수 없어 status='finished' 제약에 걸리므로
+  // 제외한다. 나머지 스탯 필드는 비어 있으므로 상세 스코어보드가 올라오면 다음
+  // 동기화에서 자연히 채워진다.
+  const scheduleOnlyRows = scheduleRows.filter((row) => {
+    const setNumber = parseInteger(row.N_GameInMatch);
+    if (setNumber == null || coveredSetNumbers.has(setNumber)) return false;
+    const sideWinner = parseInteger(row.SideWinner);
+    return sideWinner === 1 || sideWinner === 2;
+  });
+
+  return [...merged, ...scheduleOnlyRows].sort(
+    (a, b) => (parseInteger(a.N_GameInMatch) ?? 0) - (parseInteger(b.N_GameInMatch) ?? 0),
+  );
 }
 
 export async function syncLeaguepediaMatchSets(
@@ -1173,8 +1195,9 @@ export async function syncLeaguepediaMatchSets(
     return {
       match_id: typedMatch.id,
       set_number: setNumber,
-      // 스코어보드(경기 통계) 데이터가 있는 세트이므로 최소 '경기종료'.
-      // 선수 상세 스탯까지 동기화되면 아래 최종 패스에서 'data_synced'로 격상한다.
+      // 스코어보드(경기 통계) 또는 최소 대진표 승자 정보가 있는 세트이므로 최소
+      // '경기종료'. 선수 상세 스탯까지 동기화되면 아래 최종 패스에서
+      // 'data_synced'로 격상한다.
       status: "finished" as const,
       winner_team_id: winnerTeamId(row, typedMatch),
       blue_team_id: blueTeamId,
