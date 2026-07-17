@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { SectionHeader } from "@/components/layout/section-header";
 import { boardLabel } from "@/lib/community/boards";
+import { AI_MODERATOR_NAME } from "@/lib/community/moderation-labels";
 import {
   listCommunitySettings,
   listModeratedPosts,
@@ -219,7 +220,7 @@ function ReportGroupCard({ group }: { group: AdminReportGroup }) {
         </Badge>
         {post ? <Badge tone="muted">{SCOPE_LABELS[post.siteScope]} · {boardLabel(post.siteScope, post.boardType)}</Badge> : null}
         {blinded ? <Badge tone="warn">블라인드됨</Badge> : null}
-        {group.reports.some((report) => report.source === "ai") ? <Badge tone="warn">AI 검수</Badge> : null}
+        {group.reports.some((report) => report.source === "ai") ? <Badge tone="warn">{AI_MODERATOR_NAME}</Badge> : null}
         <Badge tone="danger">신고 {group.reports.length}건</Badge>
       </div>
 
@@ -240,7 +241,7 @@ function ReportGroupCard({ group }: { group: AdminReportGroup }) {
       <ul className="flex flex-col gap-1 rounded-lg bg-neutral-50 p-3 text-[13px] text-neutral-600 dark:bg-neutral-800/50 dark:text-neutral-300">
         {group.reports.map((report, index) => (
           <li key={index}>
-            <b>{report.source === "ai" ? "AI 검수" : report.reporterName ?? "익명"}</b> · {formatDate(report.createdAt)}
+            <b>{report.source === "ai" ? AI_MODERATOR_NAME : report.reporterName ?? "익명"}</b> · {formatDate(report.createdAt)}
             {report.reason ? ` — ${report.reason}` : " — (사유 없음)"}
           </li>
         ))}
