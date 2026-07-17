@@ -3,13 +3,14 @@ import type { ReactNode } from "react";
 
 import { AdSlot } from "@/components/ui/ad-slot";
 import type { BoardScope } from "@/lib/community/boards";
-import { hotScore } from "@/lib/community/hot";
+import { compareHotPostsByRecentHype, isHotPost } from "@/lib/community/hot";
 import type { CommunityPostDetail } from "@/lib/community/types";
 
 export function CommunityContentLayout({ children, posts, scope, teamSlug, currentPostId }: { children: ReactNode; posts: CommunityPostDetail[]; scope: BoardScope; teamSlug?: string; currentPostId?: string }) {
+  // Right rail mirrors the hot tab: only promoted posts, ranked by recent hype.
   const popular = [...posts]
-    .filter((post) => post.id !== currentPostId)
-    .sort((a, b) => hotScore(b) - hotScore(a) || b.viewCount - a.viewCount || b.commentCount - a.commentCount)
+    .filter((post) => post.id !== currentPostId && !post.blindedAt && !post.isNotice && isHotPost(post))
+    .sort(compareHotPostsByRecentHype)
     .slice(0, 5);
   const href = (postId: string) => scope === "team" && teamSlug
     ? `/fan/${teamSlug}/community/post/${postId}`
@@ -18,7 +19,7 @@ export function CommunityContentLayout({ children, posts, scope, teamSlug, curre
   return (
     <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_300px] xl:items-start xl:gap-6">
       <div className="min-w-0">
-        <AdSlot className="mb-4 h-20 w-full xl:hidden" />
+        <AdSlot placement="community" format="horizontal" className="mb-4 h-[60px] w-full xl:hidden" />
         {children}
       </div>
       <aside className="hidden w-full max-w-[300px] flex-col gap-4 xl:sticky xl:top-[88px] xl:flex" aria-label="커뮤니티 보조 정보">
@@ -38,7 +39,7 @@ export function CommunityContentLayout({ children, posts, scope, teamSlug, curre
             </ol>
           ) : <p className="px-4 py-8 text-center text-[13px] text-[var(--ui-muted)]">표시할 게시글이 없습니다.</p>}
         </section>
-        <AdSlot className="h-[250px] w-full" />
+        <AdSlot placement="community" format="rectangle" className="h-[250px] w-full max-w-[300px]" />
       </aside>
     </div>
   );

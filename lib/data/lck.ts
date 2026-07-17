@@ -1468,6 +1468,7 @@ async function getCommunityPostsBase() {
     const { data, error } = await createSupabaseServerClient()
       .from("community_posts")
       .select("*")
+      .is("deleted_at", null)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -1583,6 +1584,7 @@ async function getHubCommunityPostsBase(limit = 5) {
       .from("community_posts")
       .select("*")
       .eq("site_scope", "hub")
+      .is("deleted_at", null)
       .order("created_at", { ascending: false })
       .limit(limit);
 

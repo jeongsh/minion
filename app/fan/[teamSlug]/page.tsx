@@ -26,6 +26,7 @@ import { getBoardPosts } from "@/lib/data/community";
 import { buildFanVideoItems } from "@/lib/fan-video-items";
 import { getCalendarEvents, getCelebrationMessages, getTodayCelebrations } from "@/lib/calendar/events";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { shouldUseWhiteLogoOnDark } from "@/lib/team-logos";
 import { dateKeyKST, formatTimeKST, matchHref } from "@/lib/view-data";
 import { CelebrationBanner, type CelebrationBannerItem } from "@/components/domain/celebration-banner";
 import type { Match, Player, Team } from "@/lib/types";
@@ -124,7 +125,7 @@ function MatchRow({ match, team, teams }: { match: Match; team: Team; teams: Tea
       >
         {badgeText}
       </span>
-      <TeamLogo team={opponent} size="h-8 w-8 sm:h-10 sm:w-10" />
+      <TeamLogo team={opponent} size="h-8 w-8 sm:h-10 sm:w-10" themeAware />
       <div className="flex min-w-0 flex-1 flex-col">
         <span className="flex items-baseline gap-1.5 text-[14px] font-extrabold text-[var(--ui-ink)] sm:gap-2 sm:text-[15px]">
           <span className="truncate">{opponent?.shortName ?? "TBD"}</span>
@@ -259,6 +260,8 @@ export default async function FanHomePage({
       teamBName: teamB?.shortName ?? "TBD",
       teamALogoUrl: teamA?.logoUrl ?? null,
       teamBLogoUrl: teamB?.logoUrl ?? null,
+      teamALogoDarkUrl: shouldUseWhiteLogoOnDark(teamA) ? teamA?.logoWhiteUrl : null,
+      teamBLogoDarkUrl: shouldUseWhiteLogoOnDark(teamB) ? teamB?.logoWhiteUrl : null,
     };
   });
   // 이 페이지는 force-dynamic이라 요청 시각으로 지난 예정 경기를 걸러낸다.
@@ -361,7 +364,11 @@ export default async function FanHomePage({
         {/* 게시판 */}
         <section>
           <SectionHeading href={`/fan/${fanSlug}/community`}>게시판</SectionHeading>
-          <HomeBoardCarousel posts={boardPosts.slice(0, 12)} scope="team" teamSlug={fanSlug} />
+          <HomeBoardCarousel
+            posts={boardPosts.filter((post) => !post.blindedAt && !post.isNotice).slice(0, 12)}
+            scope="team"
+            teamSlug={fanSlug}
+          />
         </section>
 
         {/* 최신 영상 */}
@@ -370,7 +377,7 @@ export default async function FanHomePage({
           <FanHomeVideoSwiper teamSlug={fanSlug} videos={feedVideos} />
         </section>
 
-        <AdSlot className="hidden h-24 md:block" />
+        <AdSlot placement="horizontal" className="hidden h-[60px] md:block xl:h-[90px]" />
 
         <OfficialLinks team={team} />
       </div>

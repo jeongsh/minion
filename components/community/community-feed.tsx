@@ -6,7 +6,7 @@ import { useMemo, useState } from "react";
 
 import { PostList } from "@/components/community/post-list";
 import { categoriesForScope, type BoardScope } from "@/lib/community/boards";
-import { hotScore, isHotPost } from "@/lib/community/hot";
+import { hotSortValue, isHotPost } from "@/lib/community/hot";
 import type { CommunityPostDetail } from "@/lib/community/types";
 
 const PAGE_SIZE = 15;
@@ -29,12 +29,19 @@ export function CommunityFeed({
   const [submittedQuery, setSubmittedQuery] = useState("");
   const [page, setPage] = useState(1);
 
+  // 공지는 필터/검색/페이징과 무관하게 항상 목록 최상단에 고정한다(블라인드된 공지는 제외).
+  const notices = useMemo(
+    () => posts.filter((post) => post.isNotice && !post.blindedAt),
+    [posts],
+  );
+
   const filtered = useMemo(() => {
+    const withoutNotices = posts.filter((post) => !post.isNotice);
     const byCategory = activeCategory === HOT_FILTER
-      ? posts.filter(isHotPost)
+      ? withoutNotices.filter(isHotPost)
       : activeCategory
-        ? posts.filter((post) => post.boardType === activeCategory)
-        : posts;
+        ? withoutNotices.filter((post) => post.boardType === activeCategory)
+        : withoutNotices;
     const keyword = submittedQuery.trim().toLocaleLowerCase("ko-KR");
 
     const searched = !keyword ? byCategory : byCategory.filter((post) =>
@@ -43,7 +50,7 @@ export function CommunityFeed({
       ),
     );
     return [...searched].sort((a, b) => activeCategory === HOT_FILTER
-      ? hotScore(b) - hotScore(a) || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      ? hotSortValue(b) - hotSortValue(a) || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       : new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }, [activeCategory, posts, submittedQuery]);
 
@@ -78,7 +85,7 @@ export function CommunityFeed({
           </div>
         </div>
 
-        <PostList posts={paged} scope={scope} teamSlug={teamSlug} />
+        <PostList posts={paged} pinned={notices} scope={scope} teamSlug={teamSlug} />
       </div>
 
       <div className="grid items-center gap-3 sm:gap-4 lg:grid-cols-[1fr_auto_1fr]">
@@ -119,7 +126,13 @@ export function CommunityFeed({
         ) : <span />}
       </div>
 
-      <div className="flex justify-stretch sm:justify-end">
+      <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <Link
+          href={scope === "team" && teamSlug ? `/fan/${teamSlug}/community/rules` : "/community/rules"}
+          className="text-center text-[13px] font-medium text-[var(--ui-muted)] underline-offset-2 hover:text-[var(--ui-ink)] hover:underline sm:text-left"
+        >
+          커뮤니티 이용 규칙
+        </Link>
         <Link
           href={newPath}
           className="inline-flex h-11 w-full shrink-0 items-center justify-center gap-2 rounded-[var(--ui-control-radius)] bg-[var(--ui-ink)] px-4 text-[var(--ui-surface)] transition-opacity hover:opacity-85 active:translate-y-px sm:w-auto"

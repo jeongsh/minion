@@ -6,11 +6,15 @@
 // - 행동 발생 시 recordLpEvent 를 호출한다.
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { recordLpEvent } from "@/lib/rank/record-lp";
 import type { BoardScope } from "@/lib/community/boards";
 import { getBoard } from "@/lib/community/boards";
+import { screenCommunityText } from "@/lib/community/ai-moderation";
+import { findProfanity, maskProfanity } from "@/lib/community/content-filter";
+import { extractPlainText } from "@/lib/community/extract-thumbnail";
 import type {
   ActionResult,
   ReactionKind,
@@ -18,6 +22,8 @@ import type {
   ReactionTarget,
 } from "@/lib/community/types";
 import {
+  applyAiFlag,
+  blindTargetIfReported,
   createComment,
   createPost,
   deletePost,
@@ -26,6 +32,7 @@ import {
   getPostById,
   getUserReaction,
   getUserReactionsForComments,
+  promotePostIfHot,
   setReaction,
   updatePost,
 } from "@/lib/data/community";
@@ -52,6 +59,61 @@ function postPath(scope: BoardScope, teamSlug: string | undefined, postId: strin
     : `/community/post/${postId}`;
 }
 
+/**
+ * 금칙어(쌍욕) 동기 검사. 걸리면 에러 메시지를, 통과하면 null 을 반환한다.
+ * 글 본문은 에디터 JSON 이므로 평문을 뽑아 제목과 함께 검사한다.
+ */
+function profanityError(texts: { title?: string; editorContent?: string; plainText?: string }): string | null {
+  const combined = [
+    texts.title ?? "",
+    texts.editorContent ? extractPlainText(texts.editorContent, 1_000_000) : "",
+    texts.plainText ?? "",
+  ].join("\n");
+
+  const matched = findProfanity(combined);
+  if (!matched) return null;
+  return `금칙어(${maskProfanity(matched)})가 포함되어 등록할 수 없습니다. 표현을 수정해 주세요.`;
+}
+
+/**
+ * AI 검수 예약. after() 로 응답 전송 이후에 실행되므로 글쓰기 지연이 없다.
+ * 위반 판정이면 블라인드 + 신고함(AI) 등록 후 목록/상세를 갱신한다.
+ * 검수 실패는 조용히 무시(fail-open) — 최종 안전망은 신고 누적 블라인드.
+ */
+function scheduleAiModeration(params: {
+  postId?: string;
+  commentId?: string;
+  scope: BoardScope;
+  teamSlug?: string;
+  /** revalidate 대상 글 id(댓글이면 소속 글 id). */
+  pagePostId: string;
+  title?: string;
+  text: string;
+}): void {
+  after(async () => {
+    try {
+      const verdict = await screenCommunityText({ title: params.title, text: params.text });
+      if (!verdict.flagged) return;
+
+      await applyAiFlag({
+        postId: params.postId ?? null,
+        commentId: params.commentId ?? null,
+        category: verdict.category,
+        detail: verdict.detail,
+      });
+
+      try {
+        revalidatePath(communityIndexPath(params.scope, params.teamSlug));
+        revalidatePath(postPath(params.scope, params.teamSlug, params.pagePostId));
+      } catch {
+        // 응답 이후 문맥에서 revalidate 가 거부되더라도 블라인드는 이미 DB에 반영됐다.
+      }
+    } catch (error) {
+      console.warn("[ai-moderation] 백그라운드 검수 실패", error);
+    }
+  });
+}
+
 /** 글 작성. */
 export async function createPostAction(input: {
   scope: BoardScope;
@@ -72,6 +134,9 @@ export async function createPostAction(input: {
   if (!title) return { ok: false, error: "제목을 입력하세요." };
   if (!content) return { ok: false, error: "내용을 입력하세요." };
 
+  const profanity = profanityError({ title, editorContent: content });
+  if (profanity) return { ok: false, error: profanity };
+
   const { id } = await createPost({
     scope: input.scope,
     boardType: input.boardType,
@@ -82,6 +147,15 @@ export async function createPostAction(input: {
   });
 
   await recordLpEvent({ userId: user.id, reason: "post_created", postId: id });
+
+  scheduleAiModeration({
+    postId: id,
+    pagePostId: id,
+    scope: input.scope,
+    teamSlug: input.teamSlug,
+    title,
+    text: extractPlainText(content, 1_000_000),
+  });
 
   revalidatePath(communityIndexPath(input.scope, input.teamSlug));
   return { ok: true, message: "작성되었습니다." };
@@ -109,7 +183,21 @@ export async function updatePostAction(input: {
   if (!title) return { ok: false, error: "제목을 입력하세요." };
   if (!content) return { ok: false, error: "내용을 입력하세요." };
 
+  const profanity = profanityError({ title, editorContent: content });
+  if (profanity) return { ok: false, error: profanity };
+
   await updatePost({ postId: input.postId, boardType: input.boardType, title, content });
+
+  // 수정 시에도 재검수 — "정상 글로 등록 후 광고로 수정" 우회를 막는다.
+  scheduleAiModeration({
+    postId: input.postId,
+    pagePostId: input.postId,
+    scope: input.scope,
+    teamSlug: input.teamSlug,
+    title,
+    text: extractPlainText(content, 1_000_000),
+  });
+
   revalidatePath(postPath(input.scope, input.teamSlug, input.postId));
   revalidatePath(communityIndexPath(input.scope, input.teamSlug));
   return { ok: true, message: "수정되었습니다." };
@@ -148,6 +236,9 @@ export async function createCommentAction(input: {
   if (!content) return { ok: false, error: "댓글 내용을 입력하세요." };
   if (content.length > 5000) return { ok: false, error: "댓글은 5,000자까지 입력할 수 있습니다." };
 
+  const profanity = profanityError({ plainText: content });
+  if (profanity) return { ok: false, error: profanity };
+
   if (input.parentId) {
     const parent = await getCommentById(input.parentId);
     if (!parent || parent.postId !== input.postId) {
@@ -163,6 +254,14 @@ export async function createCommentAction(input: {
   });
 
   await recordLpEvent({ userId: user.id, reason: "comment_created", commentId: id });
+
+  scheduleAiModeration({
+    commentId: id,
+    pagePostId: input.postId,
+    scope: input.scope,
+    teamSlug: input.teamSlug,
+    text: content,
+  });
 
   revalidatePath(postPath(input.scope, input.teamSlug, input.postId));
   return { ok: true, message: "댓글이 등록되었습니다." };
@@ -210,6 +309,14 @@ export async function reactAction(input: {
     if (after === "dislike") await recordLpEvent({ userId: authorId, reason: "dishonor_received", ...ref });
   }
 
+  // 인기글 승격 판정: 명예 - 싫어요가 스코프 컷 이상이면 hot_at 스냅샷(등재 후 유지).
+  if (input.target === "post" && before !== after) {
+    const promoted = await promotePostIfHot(input.targetId);
+    if (promoted) {
+      revalidatePath(communityIndexPath(input.scope, input.teamSlug));
+    }
+  }
+
   revalidatePath(postPath(input.scope, input.teamSlug, input.postId));
   return { ok: true, state: after };
 }
@@ -243,12 +350,11 @@ export async function reportPostAction(input: {
     throw error;
   }
 
-  if (post.authorId) {
-    await recordLpEvent({
-      userId: post.authorId,
-      reason: "reported",
-      postId: input.postId,
-    });
+  // LP 차감은 접수 시점이 아니라 운영자가 제재를 확정한 시점에 반영한다(담합 신고 악용 방지).
+  // 다만 서로 다른 이용자의 미처리 신고가 임계값에 도달하면 1차 방어로 자동 블라인드한다.
+  const blinded = await blindTargetIfReported({ scope: input.scope, postId: input.postId });
+  if (blinded) {
+    revalidatePath(communityIndexPath(input.scope, input.teamSlug));
   }
 
   revalidatePath(postPath(input.scope, input.teamSlug, input.postId));
@@ -285,13 +391,8 @@ export async function reportCommentAction(input: {
     throw error;
   }
 
-  if (comment.authorId) {
-    await recordLpEvent({
-      userId: comment.authorId,
-      reason: "reported",
-      commentId: input.commentId,
-    });
-  }
+  // LP 차감은 운영자 제재 확정 시점에 반영. 신고 누적 시 자동 블라인드만 즉시 수행.
+  await blindTargetIfReported({ scope: input.scope, commentId: input.commentId });
 
   revalidatePath(postPath(input.scope, input.teamSlug, input.postId));
   return { ok: true, message: "리폿이 접수되었습니다." };

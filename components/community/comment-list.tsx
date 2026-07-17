@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { BlindedContent } from "@/components/community/blinded-content";
 import { CommentForm } from "@/components/community/comment-form";
 import { formatRelativeOrDate } from "@/components/community/format";
 import { ReactionButtons } from "@/components/community/reaction-buttons";
@@ -21,6 +22,13 @@ export function CommentList({ comments, commentReactions, scope, teamSlug }: { c
 
   if (comments.length === 0) return null;
 
+  // 삭제된 댓글: 답글 유지를 위한 자리표시만 남긴다(본문은 서버에서 이미 비워짐).
+  const deletedItem = (comment: CommunityCommentItem) => (
+    <div key={comment.id} className="py-3.5">
+      <p className="text-sm text-[var(--ui-muted)]">삭제된 댓글입니다.</p>
+    </div>
+  );
+
   const item = (comment: CommunityCommentItem, reply = false) => (
     <div key={comment.id} className={`min-w-0 ${reply ? "relative ml-3 border-t border-[var(--ui-border)] py-3 pl-3 before:absolute before:left-0 before:top-4 before:h-2.5 before:w-2.5 before:border-b before:border-l before:border-[var(--ui-border)] sm:ml-8 sm:pl-4" : "py-3.5"}`}>
       <div className="flex min-w-0 gap-2.5">
@@ -38,7 +46,13 @@ export function CommentList({ comments, commentReactions, scope, teamSlug }: { c
             </div>
             <ReactionButtons target="comment" targetId={comment.id} postId={comment.postId} scope={scope} teamSlug={teamSlug} initialState={commentReactions[comment.id] ?? null} initialHonorCount={comment.likeCount} initialDislikeCount={comment.dislikeCount} size="sm" />
           </div>
-          <p className="mt-1 whitespace-pre-wrap break-words text-base leading-[1.6] text-[var(--ui-text)] [overflow-wrap:anywhere]">{comment.content}</p>
+          {comment.blindedAt ? (
+            <BlindedContent compact>
+              <p className="mt-1 whitespace-pre-wrap break-words text-base leading-[1.6] text-[var(--ui-text)] [overflow-wrap:anywhere]">{comment.content}</p>
+            </BlindedContent>
+          ) : (
+            <p className="mt-1 whitespace-pre-wrap break-words text-base leading-[1.6] text-[var(--ui-text)] [overflow-wrap:anywhere]">{comment.content}</p>
+          )}
           {!reply ? (
             <div className="mt-1.5 flex items-center gap-3">
               <button type="button" onClick={() => setReplyTo((current) => current === comment.id ? null : comment.id)} className="text-[13px] font-semibold text-[var(--ui-muted)] hover:text-[var(--ui-ink)]">답글쓰기</button>
@@ -59,7 +73,7 @@ export function CommentList({ comments, commentReactions, scope, teamSlug }: { c
     <ul className="min-w-0 divide-y divide-[var(--ui-border)] px-4 sm:px-8">
       {roots.map((comment) => (
         <li key={comment.id}>
-          {item(comment)}
+          {comment.deletedAt ? deletedItem(comment) : item(comment)}
           {(repliesByParent.get(comment.id) ?? []).map((reply) => item(reply, true))}
         </li>
       ))}

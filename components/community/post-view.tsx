@@ -1,6 +1,7 @@
 import { Eye, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
+import { BlindedContent } from "@/components/community/blinded-content";
 import { CommentForm } from "@/components/community/comment-form";
 import { CommentList } from "@/components/community/comment-list";
 import { PostContentViewer } from "@/components/community/editor/post-content-viewer";
@@ -31,6 +32,7 @@ export function PostView({
 }) {
   const boardHref = scope === "team" && teamSlug ? `/fan/${teamSlug}/community` : "/community";
   const initial = (post.authorName ?? "글").trim().charAt(0) || "글";
+  const blinded = Boolean(post.blindedAt);
 
   return (
     <article className={`${scope === "team" ? "w-full" : "content-reading"} mobile-full-bleed md:mx-auto`}>
@@ -40,8 +42,8 @@ export function PostView({
             <Link href={boardHref} className="inline-flex items-center text-sm font-normal text-[var(--tp)] hover:opacity-70 gap-1"><ArrowLeft size={16} strokeWidth={2} />목록으로</Link>
             {canManage ? <PostOwnerActions postId={post.id} scope={scope} teamSlug={teamSlug} /> : null}
           </div>
-          <h1 className="mt-2 text-[20px] font-bold leading-[1.35] text-[var(--ui-ink)] sm:text-[24px]">
-            {post.title}
+          <h1 className={`mt-2 text-[20px] leading-[1.35] sm:text-[24px] ${blinded ? "font-medium text-[var(--ui-muted)]" : "font-bold text-[var(--ui-ink)]"}`}>
+            {blinded ? "신고 누적으로 블라인드된 게시글입니다" : post.title}
           </h1>
 
           <div className="mt-2 flex items-center gap-3">
@@ -65,7 +67,14 @@ export function PostView({
         <div className="mx-4 border-t border-[var(--ui-border)] sm:mx-8" />
 
         <div className="community-prose min-h-[160px] px-4 py-6 text-base leading-7 text-[var(--ui-text)] sm:min-h-[220px] sm:px-8 sm:py-9">
-          <PostContentViewer content={post.content} />
+          {blinded ? (
+            <BlindedContent>
+              <h2 className="mb-4 text-lg font-bold text-[var(--ui-ink)] sm:text-xl">{post.title}</h2>
+              <PostContentViewer content={post.content} />
+            </BlindedContent>
+          ) : (
+            <PostContentViewer content={post.content} />
+          )}
         </div>
 
         <div className="flex items-center justify-between gap-4 border-y border-[var(--ui-border)] px-4 py-5 sm:px-8 sm:py-6">

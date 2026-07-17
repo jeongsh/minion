@@ -6,8 +6,10 @@ import { cache } from "react";
 import { canQuerySupabase, createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { extractPlainText, extractThumbnail } from "@/lib/community/extract-thumbnail";
+import { AI_MODERATOR_NAME } from "@/lib/community/moderation-labels";
 import type { BoardScope } from "@/lib/community/boards";
 import type {
+  BlindSource,
   CommunityCommentItem,
   CommunityPostDetail,
   ReactionKind,
@@ -29,6 +31,11 @@ type PostRow = {
   view_count: number;
   report_count: number | null;
   created_at: string;
+  hot_at: string | null;
+  is_notice: boolean | null;
+  blinded_at: string | null;
+  blinded_source: BlindSource | null;
+  deleted_at: string | null;
 };
 
 type CommentRow = {
@@ -40,13 +47,19 @@ type CommentRow = {
   like_count: number;
   dislike_count: number | null;
   created_at: string;
+  blinded_at: string | null;
+  blinded_source: BlindSource | null;
+  deleted_at: string | null;
 };
 
 const POST_COLUMNS =
-  "id, board_type, site_scope, team_id, title, content, author_id, like_count, dislike_count, comment_count, view_count, report_count, created_at";
+  "id, board_type, site_scope, team_id, title, content, author_id, like_count, dislike_count, comment_count, view_count, report_count, created_at, hot_at, is_notice, blinded_at, blinded_source, deleted_at";
 
 const COMMENT_COLUMNS =
-  "id, post_id, parent_id, author_id, content, like_count, dislike_count, created_at";
+  "id, post_id, parent_id, author_id, content, like_count, dislike_count, created_at, blinded_at, blinded_source, deleted_at";
+
+/** 목록 조회 상한(전체 로드 방지 가드). 피드는 클라이언트에서 검색/페이징한다. */
+const POST_LIST_LIMIT = 500;
 
 function mapPost(row: PostRow, authorName: string | null = null, authorImageUrl: string | null = null): CommunityPostDetail {
   return {
@@ -65,6 +78,11 @@ function mapPost(row: PostRow, authorName: string | null = null, authorImageUrl:
     viewCount: row.view_count,
     reportCount: row.report_count ?? 0,
     createdAt: row.created_at,
+    hotAt: row.hot_at,
+    isNotice: row.is_notice ?? false,
+    blindedAt: row.blinded_at,
+    blindedSource: row.blinded_source,
+    deletedAt: row.deleted_at,
     thumbnailUrl: extractThumbnail(row.content),
     excerpt: extractPlainText(row.content),
   };
@@ -97,10 +115,14 @@ function mapComment(row: CommentRow, authorName: string | null = null, authorIma
     authorId: row.author_id,
     authorName,
     authorImageUrl,
-    content: row.content,
+    // 삭제된 댓글 본문은 클라이언트로 내려보내지 않는다(답글 유지를 위한 자리표시만 필요).
+    content: row.deleted_at ? "" : row.content,
     likeCount: row.like_count,
     dislikeCount: row.dislike_count ?? 0,
     createdAt: row.created_at,
+    blindedAt: row.blinded_at,
+    blindedSource: row.blinded_source,
+    deletedAt: row.deleted_at,
   };
 }
 
@@ -140,7 +162,9 @@ export const getBoardPosts = cache(async function getBoardPosts(params: {
     .from("community_posts")
     .select(POST_COLUMNS)
     .eq("site_scope", params.scope)
-    .order("created_at", { ascending: false });
+    .is("deleted_at", null)
+    .order("created_at", { ascending: false })
+    .limit(POST_LIST_LIMIT);
 
   if (params.boardType) {
     query = query.eq("board_type", params.boardType);
@@ -165,6 +189,7 @@ export const getPostById = cache(async function getPostById(
     .from("community_posts")
     .select(POST_COLUMNS)
     .eq("id", postId)
+    .is("deleted_at", null)
     .maybeSingle();
 
   if (error) throw error;
@@ -210,7 +235,16 @@ export const getPostComments = cache(async function getPostComments(
     .order("created_at", { ascending: true });
 
   if (error) throw error;
-  return mapCommentsWithAuthors(data as CommentRow[]);
+
+  // 삭제된 댓글은 답글이 남아 있는 경우에만 자리표시용으로 유지하고, 아니면 목록에서 제외한다.
+  const rows = data as CommentRow[];
+  const parentIdsWithReplies = new Set(
+    rows.flatMap((row) => (row.parent_id && !row.deleted_at ? [row.parent_id] : [])),
+  );
+  const visible = rows.filter(
+    (row) => !row.deleted_at || (!row.parent_id && parentIdsWithReplies.has(row.id)),
+  );
+  return mapCommentsWithAuthors(visible);
 });
 
 /** 글 생성. author_id 는 호출부(서버 액션)에서 getCurrentUser().id 로 전달. */
@@ -255,10 +289,14 @@ export async function updatePost(params: {
   if (error) throw error;
 }
 
+/**
+ * 글 삭제(소프트). 행을 지우지 않고 deleted_at 만 기록한다.
+ * 목록/상세에서는 제외되고, 분쟁 대응을 위해 어드민에서 원문 확인·복구가 가능하다.
+ */
 export async function deletePost(postId: string): Promise<void> {
   const { error } = await createSupabaseAdminClient()
     .from("community_posts")
-    .delete()
+    .update({ deleted_at: new Date().toISOString() })
     .eq("id", postId);
   if (error) throw error;
 }
@@ -471,6 +509,147 @@ export async function createReport(params: {
   }
 
   return { id: (data as { id: string }).id };
+}
+
+// ── 운영 설정 / 인기글 승격 / 자동 블라인드 ──────────────────────────────
+
+/** 스코프별 커뮤니티 운영 설정. DB 조회 실패 시 기본값으로 동작한다. */
+export type CommunitySettings = {
+  /** 인기글 등재 컷: 명예 - 싫어요 가 이 값 이상이면 hot_at 스냅샷. */
+  hotCut: number;
+  /** 자동 블라인드 임계값: 서로 다른 이용자의 미처리 신고가 이 수에 도달하면 블라인드. */
+  blindReportCount: number;
+};
+
+const DEFAULT_COMMUNITY_SETTINGS: CommunitySettings = { hotCut: 5, blindReportCount: 3 };
+
+export const getCommunitySettings = cache(async function getCommunitySettings(
+  scope: BoardScope,
+): Promise<CommunitySettings> {
+  if (!canQuerySupabase()) return DEFAULT_COMMUNITY_SETTINGS;
+
+  const { data, error } = await createSupabaseServerClient()
+    .from("community_settings")
+    .select("hot_cut, blind_report_count")
+    .eq("scope", scope)
+    .maybeSingle();
+
+  if (error || !data) return DEFAULT_COMMUNITY_SETTINGS;
+  const row = data as { hot_cut: number; blind_report_count: number };
+  return { hotCut: row.hot_cut, blindReportCount: row.blind_report_count };
+});
+
+/**
+ * 인기글 승격 판정(리액션 변경 후 호출).
+ * 명예 - 싫어요 가 스코프 컷 이상이면 hot_at 을 기록한다.
+ * 한 번 등재되면 이후 싫어요가 늘어도 유지된다(스냅샷 — 등락 방지).
+ * 블라인드/삭제 상태의 글은 승격하지 않는다.
+ */
+export async function promotePostIfHot(postId: string): Promise<boolean> {
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("community_posts")
+    .select("id, site_scope, like_count, dislike_count, hot_at, blinded_at, deleted_at")
+    .eq("id", postId)
+    .maybeSingle();
+  if (error || !data) return false;
+
+  const row = data as Pick<
+    PostRow,
+    "id" | "site_scope" | "like_count" | "dislike_count" | "hot_at" | "blinded_at" | "deleted_at"
+  >;
+  if (row.hot_at || row.blinded_at || row.deleted_at) return false;
+
+  const settings = await getCommunitySettings(row.site_scope);
+  const net = row.like_count - (row.dislike_count ?? 0);
+  if (net < settings.hotCut) return false;
+
+  await supabase
+    .from("community_posts")
+    .update({ hot_at: new Date().toISOString() })
+    .eq("id", postId);
+  return true;
+}
+
+/**
+ * 신고 누적 자동 블라인드 판정(신고 접수 후 호출).
+ * 대상의 미처리(pending) 신고 수가 임계값 이상이면 blinded_at 을 기록한다.
+ * 신고는 신고자별 유니크(중복 불가)라 행 수 = 서로 다른 신고자 수다.
+ */
+export async function blindTargetIfReported(params: {
+  scope: BoardScope;
+  postId?: string | null;
+  commentId?: string | null;
+}): Promise<boolean> {
+  const supabase = createSupabaseAdminClient();
+  const fk = params.postId ? "post_id" : "comment_id";
+  const targetId = params.postId ?? params.commentId;
+  if (!targetId) return false;
+
+  const { count, error } = await supabase
+    .from("post_reports")
+    .select("id", { count: "exact", head: true })
+    .eq(fk, targetId)
+    .eq("status", "pending");
+  if (error || count === null) return false;
+
+  const settings = await getCommunitySettings(params.scope);
+  if (count < settings.blindReportCount) return false;
+
+  const table = params.postId ? "community_posts" : "community_comments";
+  await supabase
+    .from(table)
+    .update({ blinded_at: new Date().toISOString(), blinded_source: "report" })
+    .eq("id", targetId)
+    .is("blinded_at", null);
+  return true;
+}
+
+/**
+ * AI 검수 위반 판정 적용: 대상 블라인드 + 신고함에 AI 신고 행 등록.
+ * 자동 조치는 블라인드까지만 — 삭제/LP 차감은 어드민 신고함에서 사람이 확정한다.
+ * 같은 대상에 미처리 AI 신고가 이미 있으면 중복 등록하지 않는다(수정 재검수 대비).
+ */
+export async function applyAiFlag(params: {
+  postId?: string | null;
+  commentId?: string | null;
+  category: string;
+  detail?: string;
+}): Promise<void> {
+  const targetId = params.postId ?? params.commentId;
+  if (!targetId) return;
+
+  const supabase = createSupabaseAdminClient();
+  const fk = params.postId ? "post_id" : "comment_id";
+  const table = params.postId ? "community_posts" : "community_comments";
+
+  await supabase
+    .from(table)
+    .update({ blinded_at: new Date().toISOString(), blinded_source: "ai" })
+    .eq("id", targetId)
+    .is("blinded_at", null);
+
+  const { data: existing } = await supabase
+    .from("post_reports")
+    .select("id")
+    .eq(fk, targetId)
+    .eq("source", "ai")
+    .eq("status", "pending")
+    .limit(1)
+    .maybeSingle();
+  if (existing) return;
+
+  const reason = params.detail
+    ? `[${AI_MODERATOR_NAME}] ${params.category} — ${params.detail}`
+    : `[${AI_MODERATOR_NAME}] ${params.category}`;
+  const { error } = await supabase.from("post_reports").insert({
+    post_id: params.postId ?? null,
+    comment_id: params.commentId ?? null,
+    reporter_id: null,
+    source: "ai",
+    reason,
+  });
+  if (error) console.warn("[ai-moderation] AI 신고 등록 실패", error.message);
 }
 
 /** 단건 댓글 조회(리폿 대상 작성자 확인용). */

@@ -8,6 +8,7 @@ import "swiper/css";
 import "swiper/css/navigation";
 import type { CommunityPostDetail } from "@/lib/community/types";
 import { boardLabel } from "@/lib/community/boards";
+import { isHotPost } from "@/lib/community/hot";
 import { SwiperNav, useSwiperNav } from "@/components/ui/swiper-nav";
 
 function timeLabel(value: string) {
@@ -41,6 +42,7 @@ export function HomeBoardCarousel({
               <b className="min-w-0 truncate text-[13px] text-[var(--ui-ink)] sm:text-sm">{post.authorName ?? "MINION"}</b>
             </div>
             <div className="mt-4 flex min-w-0 items-center gap-2 overflow-hidden sm:mt-5">
+              {isHotPost(post) ? <span className="shrink-0 rounded bg-[var(--ui-ink)] px-2 py-1 text-[12px] font-semibold text-[var(--ui-surface)] sm:text-[13px]">인기</span> : null}
               <span className="shrink-0 rounded bg-[var(--ui-surface)] px-2 py-1 text-[12px] font-medium text-[var(--ui-text)] sm:text-[13px]">{boardLabel(scope, post.boardType)}</span>
               <strong className="min-w-0 flex-1 truncate text-[13px] text-[var(--ui-ink)] sm:text-sm">{post.title}</strong>
             </div>
