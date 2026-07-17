@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { HomeUpcomingPredictionCard } from "@/components/domain/home-upcoming-prediction-card";
 import { PageHeader } from "@/components/ui/page-header";
+import { AdSlot } from "@/components/ui/ad-slot";
 import { TeamLogo } from "@/components/ui/team-logo";
 import {
   getAllPlayers,
@@ -32,6 +33,7 @@ import {
 } from "@/lib/view-data";
 import { getPredictionMarketData } from "@/lib/predictions";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { getMatchAiPreview } from "@/lib/match-preview-ai";
 
 import { MatchPreview } from "./match-preview";
 import { SetDetailContent } from "./sets/[setId]/page";
@@ -40,7 +42,7 @@ import { SetRatingForm } from "./set-rating-form";
 type MatchTab = "preview" | "data" | "rating" | "video";
 
 const TAB_LABELS: Record<MatchTab, string> = {
-  preview: "개요",
+  preview: "프리뷰",
   data: "세트",
   rating: "평가",
   video: "영상",
@@ -79,7 +81,7 @@ function CompactTeamBlock({
       ) : null}
     </div>
   );
-  const logo = <TeamLogo team={team} size="h-9 w-9 sm:h-12 sm:w-12" plain />;
+  const logo = <TeamLogo team={team} size="h-9 w-9 sm:h-12 sm:w-12" plain themeAware />;
 
   return (
     <div className={`flex min-w-0 flex-1 items-center gap-2 sm:gap-2.5 ${isRight ? "justify-start" : "justify-end"}`}>
@@ -599,6 +601,9 @@ export default async function MatchDetailPage({
       <HomeUpcomingPredictionCard match={match} teamA={teamA} teamB={teamB} tournament={tournament?.name} bets={predictionMarket.bets.filter((bet) => bet.matchId === match.id)} currentUserId={currentUser?.id} balance={predictionMarket.balance}/>
     </section>
   );
+  const aiPreview = activeTab === "preview"
+    ? await getMatchAiPreview({ match, teams, matches, sets: allSets })
+    : null;
   const embedUrl = youtubeEmbedUrl(match.vodUrl);
   return (
     <main className="layout-wide match-detail-page flex flex-col gap-5 bg-[var(--ui-surface)] pb-12 pt-5 text-[var(--ui-text)]">
@@ -665,6 +670,7 @@ export default async function MatchDetailPage({
           matches={matches}
           sets={allSets}
           poll={poll}
+          aiPreview={aiPreview!}
         />
       ) : null}
 
@@ -724,6 +730,7 @@ export default async function MatchDetailPage({
         </section>
       ) : null}
 
+      <AdSlot placement="horizontal" className="hidden h-[60px] md:block xl:h-[90px]" />
     </main>
   );
 }
