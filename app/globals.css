@@ -184,6 +184,11 @@ html[class~="dark"] .navigation-progress-bar {
   white-space: nowrap;
 }
 
+.fan-ticker-cycle {
+  display: flex;
+  flex: 0 0 auto;
+}
+
 @keyframes fan-ticker-scroll {
   from {
     transform: translateX(0);

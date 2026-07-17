@@ -363,7 +363,7 @@ export function WeeklyReportView({ report, index }: { report: WeeklyReportRow; i
                     </div>
                     {rows.map((tier) => (
                       // 배지 높이 36px = 칩 높이(이미지 26 + 패딩 8 + 보더 2)와 동일
-                      <div key={tier.key} style={{ display: "grid", gridTemplateColumns: "48px 1fr", gap: 10, alignItems: "start" }}>
+                      <div key={tier.key} style={{ display: "grid", gridTemplateColumns: "40px 1fr", gap: 8, alignItems: "start" }}>
                         <span style={{ display: "inline-grid", placeItems: "center", transform: SKEW, width: 40, height: 36, fontFamily: DISPLAY, fontSize: 14, lineHeight: 1, ...tierBadgeTone[tier.label] }}>
                           <span style={UNSKEW}>{tier.label}</span>
                         </span>
