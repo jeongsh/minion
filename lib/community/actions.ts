@@ -15,6 +15,8 @@ import { getBoard } from "@/lib/community/boards";
 import { screenCommunityText } from "@/lib/community/ai-moderation";
 import { findProfanity, maskProfanity } from "@/lib/community/content-filter";
 import { extractPlainText } from "@/lib/community/extract-thumbnail";
+import { AI_MODERATOR_NAME } from "@/lib/community/moderation-labels";
+import { sendDiscordCommunityModerationAlert } from "@/lib/notify/discord";
 import type {
   ActionResult,
   ReactionKind,
@@ -76,6 +78,44 @@ function profanityError(texts: { title?: string; editorContent?: string; plainTe
 }
 
 /**
+ * 디스코드 모더레이션 알림(웹훅 미설정 시 건너뜀). 실패해도 흐름을 막지 않는다.
+ * 두 명 운영 체제 전제: 어드민 페이지를 상시 확인하는 대신, 자동 블라인드가
+ * 발생한 순간에만 디스코드로 알리고 필요할 때 들어와 처리한다.
+ */
+async function notifyDiscordModeration(event: {
+  kind: "ai_blind" | "report_blind";
+  targetType: "post" | "comment";
+  summary: string;
+  reason?: string | null;
+  reportCount?: number | null;
+  scope: BoardScope;
+  teamSlug?: string;
+  /** 대상이 속한 글 id(링크용). */
+  pagePostId: string;
+}): Promise<void> {
+  const webhookUrl = process.env.DISCORD_COMMUNITY_WEBHOOK_URL;
+  if (!webhookUrl) return;
+
+  try {
+    await sendDiscordCommunityModerationAlert(
+      webhookUrl,
+      {
+        kind: event.kind,
+        targetType: event.targetType,
+        summary: event.summary,
+        reason: event.reason,
+        reportCount: event.reportCount,
+        postPath: postPath(event.scope, event.teamSlug, event.pagePostId),
+        botName: event.kind === "ai_blind" ? AI_MODERATOR_NAME : "신고 알림",
+      },
+      process.env.NEXT_PUBLIC_SITE_URL,
+    );
+  } catch (error) {
+    console.warn("[discord] 모더레이션 알림 실패", error);
+  }
+}
+
+/**
  * AI 검수 예약. after() 로 응답 전송 이후에 실행되므로 글쓰기 지연이 없다.
  * 위반 판정이면 블라인드 + 신고함(AI) 등록 후 목록/상세를 갱신한다.
  * 검수 실패는 조용히 무시(fail-open) — 최종 안전망은 신고 누적 블라인드.
@@ -95,12 +135,24 @@ function scheduleAiModeration(params: {
       const verdict = await screenCommunityText({ title: params.title, text: params.text });
       if (!verdict.flagged) return;
 
-      await applyAiFlag({
+      const newlyFlagged = await applyAiFlag({
         postId: params.postId ?? null,
         commentId: params.commentId ?? null,
         category: verdict.category,
         detail: verdict.detail,
       });
+
+      if (newlyFlagged) {
+        await notifyDiscordModeration({
+          kind: "ai_blind",
+          targetType: params.postId ? "post" : "comment",
+          summary: params.title ?? params.text.replace(/\s+/g, " ").slice(0, 80),
+          reason: verdict.detail ? `${verdict.category} — ${verdict.detail}` : verdict.category,
+          scope: params.scope,
+          teamSlug: params.teamSlug,
+          pagePostId: params.pagePostId,
+        });
+      }
 
       try {
         revalidatePath(communityIndexPath(params.scope, params.teamSlug));
@@ -352,9 +404,23 @@ export async function reportPostAction(input: {
 
   // LP 차감은 접수 시점이 아니라 운영자가 제재를 확정한 시점에 반영한다(담합 신고 악용 방지).
   // 다만 서로 다른 이용자의 미처리 신고가 임계값에 도달하면 1차 방어로 자동 블라인드한다.
-  const blinded = await blindTargetIfReported({ scope: input.scope, postId: input.postId });
-  if (blinded) {
+  const { newlyBlinded, reportCount } = await blindTargetIfReported({
+    scope: input.scope,
+    postId: input.postId,
+  });
+  if (newlyBlinded) {
     revalidatePath(communityIndexPath(input.scope, input.teamSlug));
+    after(() =>
+      notifyDiscordModeration({
+        kind: "report_blind",
+        targetType: "post",
+        summary: post.title,
+        reportCount,
+        scope: input.scope,
+        teamSlug: input.teamSlug,
+        pagePostId: input.postId,
+      }),
+    );
   }
 
   revalidatePath(postPath(input.scope, input.teamSlug, input.postId));
@@ -392,7 +458,23 @@ export async function reportCommentAction(input: {
   }
 
   // LP 차감은 운영자 제재 확정 시점에 반영. 신고 누적 시 자동 블라인드만 즉시 수행.
-  await blindTargetIfReported({ scope: input.scope, commentId: input.commentId });
+  const { newlyBlinded, reportCount } = await blindTargetIfReported({
+    scope: input.scope,
+    commentId: input.commentId,
+  });
+  if (newlyBlinded) {
+    after(() =>
+      notifyDiscordModeration({
+        kind: "report_blind",
+        targetType: "comment",
+        summary: comment.content.replace(/\s+/g, " ").slice(0, 80),
+        reportCount,
+        scope: input.scope,
+        teamSlug: input.teamSlug,
+        pagePostId: input.postId,
+      }),
+    );
+  }
 
   revalidatePath(postPath(input.scope, input.teamSlug, input.postId));
   return { ok: true, message: "리폿이 접수되었습니다." };

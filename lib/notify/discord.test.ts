@@ -1,7 +1,69 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { sendDiscordMatchAutomationAlert } from "./discord.ts";
+import {
+  sendDiscordCommunityModerationAlert,
+  sendDiscordMatchAutomationAlert,
+} from "./discord.ts";
+
+test("커뮤니티 모더레이션 알림: 정화봇 차단 이벤트를 렌더링한다", async () => {
+  const requestBodies: Record<string, unknown>[] = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (_input, init) => {
+    requestBodies.push(JSON.parse(String(init?.body)) as Record<string, unknown>);
+    return new Response("{}", { status: 200 });
+  };
+  try {
+    await sendDiscordCommunityModerationAlert(
+      "https://discord.example/webhook",
+      {
+        kind: "ai_blind",
+        targetType: "post",
+        summary: "광고 글 제목",
+        reason: "광고·홍보 — 외부 유입 유도",
+        postPath: "/community/post/abc",
+        botName: "정화봇",
+      },
+      "https://example.com/",
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+
+  const body = requestBodies[0]!;
+  assert.equal(body.username, "정화봇");
+  const embed = (body.embeds as Array<{ title: string; description: string; url: string }>)[0]!;
+  assert.equal(embed.title, "정화봇 차단: 게시글");
+  assert.equal(embed.url, "https://example.com/community/post/abc");
+  assert.match(embed.description, /광고 글 제목/);
+  assert.match(embed.description, /사유: 광고·홍보 — 외부 유입 유도/);
+  assert.match(embed.description, /admin\/community/);
+});
+
+test("커뮤니티 모더레이션 알림: 신고 누적 이벤트는 신고 수를 표기한다", async () => {
+  const requestBodies: Record<string, unknown>[] = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (_input, init) => {
+    requestBodies.push(JSON.parse(String(init?.body)) as Record<string, unknown>);
+    return new Response("{}", { status: 200 });
+  };
+  try {
+    await sendDiscordCommunityModerationAlert("https://discord.example/webhook", {
+      kind: "report_blind",
+      targetType: "comment",
+      summary: "문제의 댓글 내용",
+      reportCount: 3,
+      postPath: "/community/post/abc",
+      botName: "신고 알림",
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+
+  const embed = (requestBodies[0]!.embeds as Array<{ title: string; description: string }>)[0]!;
+  assert.equal(embed.title, "신고 누적 블라인드: 댓글");
+  assert.match(embed.description, /서로 다른 이용자 신고 3건 누적/);
+});
 
 test("renders set data sync success details", async () => {
   const requestBodies: Record<string, unknown>[] = [];

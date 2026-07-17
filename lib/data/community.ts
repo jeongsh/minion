@@ -575,49 +575,52 @@ export async function promotePostIfHot(postId: string): Promise<boolean> {
  * 신고 누적 자동 블라인드 판정(신고 접수 후 호출).
  * 대상의 미처리(pending) 신고 수가 임계값 이상이면 blinded_at 을 기록한다.
  * 신고는 신고자별 유니크(중복 불가)라 행 수 = 서로 다른 신고자 수다.
+ * 반환값: 이번 호출로 "새로" 블라인드됐는지(알림 중복 방지용). 누적 신고 수도 함께 돌려준다.
  */
 export async function blindTargetIfReported(params: {
   scope: BoardScope;
   postId?: string | null;
   commentId?: string | null;
-}): Promise<boolean> {
+}): Promise<{ newlyBlinded: boolean; reportCount: number }> {
   const supabase = createSupabaseAdminClient();
   const fk = params.postId ? "post_id" : "comment_id";
   const targetId = params.postId ?? params.commentId;
-  if (!targetId) return false;
+  if (!targetId) return { newlyBlinded: false, reportCount: 0 };
 
   const { count, error } = await supabase
     .from("post_reports")
     .select("id", { count: "exact", head: true })
     .eq(fk, targetId)
     .eq("status", "pending");
-  if (error || count === null) return false;
+  if (error || count === null) return { newlyBlinded: false, reportCount: 0 };
 
   const settings = await getCommunitySettings(params.scope);
-  if (count < settings.blindReportCount) return false;
+  if (count < settings.blindReportCount) return { newlyBlinded: false, reportCount: count };
 
   const table = params.postId ? "community_posts" : "community_comments";
-  await supabase
+  const { data: updated } = await supabase
     .from(table)
     .update({ blinded_at: new Date().toISOString(), blinded_source: "report" })
     .eq("id", targetId)
-    .is("blinded_at", null);
-  return true;
+    .is("blinded_at", null)
+    .select("id");
+  return { newlyBlinded: (updated ?? []).length > 0, reportCount: count };
 }
 
 /**
  * AI 검수 위반 판정 적용: 대상 블라인드 + 신고함에 AI 신고 행 등록.
  * 자동 조치는 블라인드까지만 — 삭제/LP 차감은 어드민 신고함에서 사람이 확정한다.
  * 같은 대상에 미처리 AI 신고가 이미 있으면 중복 등록하지 않는다(수정 재검수 대비).
+ * 반환값: 이번 호출로 "새로" 등록됐는지(알림 중복 방지용).
  */
 export async function applyAiFlag(params: {
   postId?: string | null;
   commentId?: string | null;
   category: string;
   detail?: string;
-}): Promise<void> {
+}): Promise<boolean> {
   const targetId = params.postId ?? params.commentId;
-  if (!targetId) return;
+  if (!targetId) return false;
 
   const supabase = createSupabaseAdminClient();
   const fk = params.postId ? "post_id" : "comment_id";
@@ -637,7 +640,7 @@ export async function applyAiFlag(params: {
     .eq("status", "pending")
     .limit(1)
     .maybeSingle();
-  if (existing) return;
+  if (existing) return false;
 
   const reason = params.detail
     ? `[${AI_MODERATOR_NAME}] ${params.category} — ${params.detail}`
@@ -649,7 +652,11 @@ export async function applyAiFlag(params: {
     source: "ai",
     reason,
   });
-  if (error) console.warn("[ai-moderation] AI 신고 등록 실패", error.message);
+  if (error) {
+    console.warn("[ai-moderation] AI 신고 등록 실패", error.message);
+    return false;
+  }
+  return true;
 }
 
 /** 단건 댓글 조회(리폿 대상 작성자 확인용). */

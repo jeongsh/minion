@@ -1,3 +1,66 @@
+// 커뮤니티 모더레이션 알림.
+// 경기 자동화 알림(DISCORD_MATCH_WEBHOOK_URL)과 별개의 웹훅(DISCORD_COMMUNITY_WEBHOOK_URL)을 쓴다 —
+// 웹훅을 다른 채널에 만들면 이름/아바타가 독립된 별도 봇이 된다.
+// username 필드로 메시지 단위 봇 이름도 덮어쓴다(같은 웹훅을 재사용해도 "정화봇"으로 표시).
+
+export type CommunityModerationDiscordEvent = {
+  /** ai_blind=정화봇 자동 차단, report_blind=신고 누적 자동 블라인드. */
+  kind: "ai_blind" | "report_blind";
+  targetType: "post" | "comment";
+  /** 글 제목 또는 댓글 요약(마스킹 전 원문 일부). */
+  summary: string;
+  /** 정화봇 차단 사유(카테고리·판정 이유) 또는 신고 정보. */
+  reason?: string | null;
+  /** 신고 누적 블라인드일 때 누적 신고 수. */
+  reportCount?: number | null;
+  /** 대상이 속한 글의 상세 경로(사이트 URL 뒤에 붙는 절대 경로). */
+  postPath: string;
+  /** 메시지에 표시할 봇 이름(예: "정화봇"). */
+  botName: string;
+};
+
+export async function sendDiscordCommunityModerationAlert(
+  webhookUrl: string,
+  event: CommunityModerationDiscordEvent,
+  siteUrl?: string,
+): Promise<void> {
+  const base = siteUrl?.replace(/\/$/, "");
+  const noun = event.targetType === "post" ? "게시글" : "댓글";
+  const title = event.kind === "ai_blind"
+    ? `${event.botName} 차단: ${noun}`
+    : `신고 누적 블라인드: ${noun}`;
+
+  const description = [
+    event.summary,
+    event.reason ? `사유: ${event.reason}` : null,
+    event.kind === "report_blind" && event.reportCount
+      ? `서로 다른 이용자 신고 ${event.reportCount}건 누적`
+      : null,
+    base ? `[어드민에서 처리](${base}/admin/community)` : null,
+  ].filter(Boolean).join("\n");
+
+  const response = await fetch(webhookUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      username: event.botName,
+      allowed_mentions: { parse: [] },
+      embeds: [{
+        title,
+        description,
+        url: base ? `${base}${event.postPath}` : undefined,
+        color: event.kind === "ai_blind" ? 0x8b5cf6 : 0xef4444,
+        timestamp: new Date().toISOString(),
+        footer: { text: "커뮤니티 자동 모더레이션 · Minion" },
+      }],
+    }),
+  });
+
+  if (!response.ok) {
+    console.warn(`[discord] community moderation webhook failed: ${response.status} ${(await response.text()).slice(0, 300)}`);
+  }
+}
+
 export interface StoryNotification {
   ownerName: string;
   ownerKind: "player" | "team";
