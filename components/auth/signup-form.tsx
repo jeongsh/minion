@@ -49,6 +49,22 @@ export function SignupForm() {
         </p>
       </div>
 
+      <fieldset className="flex flex-col gap-3 rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface-muted)] p-4">
+        <legend className="px-1 text-sm font-black text-[var(--ui-ink)]">가입 동의</legend>
+        <label className="flex items-start gap-2.5 text-sm leading-5">
+          <input name="ageConfirmed" type="checkbox" required className="mt-1 h-4 w-4 accent-[var(--ui-ink)]" />
+          <span>만 14세 이상입니다. <b className="text-red-500">(필수)</b></span>
+        </label>
+        <label className="flex items-start gap-2.5 text-sm leading-5">
+          <input name="termsAccepted" type="checkbox" required className="mt-1 h-4 w-4 accent-[var(--ui-ink)]" />
+          <span><Link href="/terms" target="_blank" rel="noreferrer" className="font-bold underline underline-offset-2">이용약관</Link>에 동의합니다. <b className="text-red-500">(필수)</b></span>
+        </label>
+        <label className="flex items-start gap-2.5 text-sm leading-5">
+          <input name="privacyAccepted" type="checkbox" required className="mt-1 h-4 w-4 accent-[var(--ui-ink)]" />
+          <span><Link href="/privacy" target="_blank" rel="noreferrer" className="font-bold underline underline-offset-2">개인정보 수집·이용 및 처리방침</Link>에 동의합니다. <b className="text-red-500">(필수)</b></span>
+        </label>
+      </fieldset>
+
       {state.error ? (
         <p role="alert" className="text-sm text-red-600">
           {state.error}

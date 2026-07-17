@@ -1,25 +1,24 @@
 import Link from "next/link";
 
-import { getCurrentUser } from "@/lib/auth/current-user";
-import { getRankSummary } from "@/lib/rank/queries";
-import { tierProgress } from "@/lib/rank/config";
-import { RankBadge } from "@/components/rank/rank-badge";
-import { CheckInButton } from "@/components/rank/check-in-button";
 import { LogoutButton } from "@/components/auth/logout-button";
+import { ProfileForm } from "@/components/auth/profile-form";
+import { CheckInButton } from "@/components/rank/check-in-button";
+import { getCurrentUser } from "@/lib/auth/current-user";
+import { tierProgress } from "@/lib/rank/config";
+import { getRankSummary } from "@/lib/rank/queries";
 
 export const metadata = {
-  title: "내 랭크 · MINION",
+  title: "마이랭크 · MINION",
 };
 
-// LP 변동 사유 한글 라벨.
 const REASON_LABELS: Record<string, string> = {
   attendance: "출석체크",
   post_created: "글 작성",
   comment_created: "댓글 작성",
-  honor_received: "명예 받음",
-  honor_removed: "명예 취소",
-  dishonor_received: "비추 받음",
-  dishonor_removed: "비추 취소",
+  honor_received: "추천 받음",
+  honor_removed: "추천 취소",
+  dishonor_received: "비추천 받음",
+  dishonor_removed: "비추천 취소",
   reported: "신고 제재",
   prediction_bet_placed: "승부예측 참가",
   prediction_bet_cancelled: "승부예측 취소",
@@ -42,9 +41,9 @@ export default async function MePage() {
   if (!user) {
     return (
       <main className="layout-form py-16 text-center">
-        <h1 className="home-section-title mb-3 text-2xl">내 랭크</h1>
+        <h1 className="home-section-title mb-3 text-2xl">마이랭크</h1>
         <p className="mb-6 text-sm" style={{ color: "var(--muted)" }}>
-          랭크와 LP를 보려면 로그인이 필요해요.
+          랭크와 LP를 보려면 로그인이 필요합니다.
         </p>
         <div className="flex flex-col justify-center gap-3 sm:flex-row">
           <Link
@@ -72,23 +71,28 @@ export default async function MePage() {
   return (
     <main className="layout-form py-6 sm:py-10">
       <header className="mb-6 flex items-center justify-between gap-3 sm:mb-8">
-        <div className="flex min-w-0 items-center gap-3">
-          <h1 className="home-section-title text-2xl">{user.nickname ?? "내 프로필"}</h1>
-          <RankBadge tier={summary.tier} size="md" />
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <Link
-            href="/me/profile"
-            className="flex min-h-10 items-center rounded-xl border px-3 py-1.5 text-[13px] font-semibold"
-            style={{ borderColor: "var(--border)" }}
-          >
-            프로필 관리
-          </Link>
-          <div className="hidden sm:block"><LogoutButton /></div>
+        <div className="hidden shrink-0 sm:block">
+          <LogoutButton />
         </div>
       </header>
 
-      {/* 티어 / LP / 진행도 */}
+      <section
+        className="mb-5 rounded-2xl border p-5 sm:mb-8"
+        style={{ borderColor: "var(--border)", backgroundColor: "var(--surface)" }}
+      >
+        <div className="mb-4">
+          <h2 className="text-base font-bold">프로필 관리</h2>
+          <p className="mt-1 text-sm" style={{ color: "var(--muted)" }}>
+            헤더와 커뮤니티에 표시되는 닉네임과 프로필 이미지를 변경합니다.
+          </p>
+        </div>
+        <ProfileForm
+          initialNickname={user.nickname ?? ""}
+          initialProfileImageUrl={user.profileImageUrl}
+          tier={summary.tier}
+        />
+      </section>
+
       <section
         className="mb-5 rounded-2xl border p-5 sm:mb-8"
         style={{ borderColor: "var(--border)", backgroundColor: "var(--surface)" }}
@@ -119,11 +123,10 @@ export default async function MePage() {
             ? `다음 티어(${progress.nextTierLabel})까지 ${
                 progress.nextThreshold - summary.lp
               } LP`
-            : "최고 티어에 도달했어요!"}
+            : "최고 티어에 도달했어요."}
         </p>
       </section>
 
-      {/* 출석체크 */}
       <section
         className="mb-5 rounded-2xl border p-5 sm:mb-8"
         style={{ borderColor: "var(--border)", backgroundColor: "var(--surface)" }}
@@ -133,11 +136,10 @@ export default async function MePage() {
       </section>
 
       <nav className="mb-5 grid grid-cols-2 gap-2 sm:mb-8" aria-label="마이페이지 바로가기">
-        <Link href="/predictions" className="flex min-h-12 items-center justify-center rounded-xl bg-[var(--ui-ink)] px-3 text-sm font-black text-[var(--ui-surface)]">내 승부예측</Link>
-        <Link href="/community" className="flex min-h-12 items-center justify-center rounded-xl border border-[var(--ui-border)] px-3 text-sm font-black">내 커뮤니티</Link>
+        <Link href="/predictions" className="flex min-h-12 items-center justify-center rounded-xl bg-[var(--ui-ink)] px-3 text-sm font-black text-[var(--ui-surface)]">승부예측</Link>
+        <Link href="/community" className="flex min-h-12 items-center justify-center rounded-xl border border-[var(--ui-border)] px-3 text-sm font-black">커뮤니티</Link>
       </nav>
 
-      {/* 최근 LP 변동 */}
       <section
         className="rounded-2xl border p-4 sm:p-5"
         style={{ borderColor: "var(--border)", backgroundColor: "var(--surface)" }}

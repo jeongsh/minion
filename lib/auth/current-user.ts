@@ -9,6 +9,7 @@ export type CurrentUser = {
   id: string;
   email: string | null;
   nickname: string | null;
+  profileImageUrl: string | null;
 };
 
 // layout과 각 페이지가 모두 호출하므로 요청 1회당 인증 조회를 1번으로 dedupe한다.
@@ -32,7 +33,7 @@ export const getCurrentUser = cache(async function getCurrentUser(): Promise<Cur
   // profiles에서 nickname을 가져온다(없을 수 있음).
   const { data: profile } = await supabase
     .from("profiles")
-    .select("nickname")
+    .select("nickname, profile_image_url")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -40,5 +41,6 @@ export const getCurrentUser = cache(async function getCurrentUser(): Promise<Cur
     id: user.id,
     email: user.email ?? null,
     nickname: profile?.nickname ?? null,
+    profileImageUrl: profile?.profile_image_url ?? null,
   };
 });

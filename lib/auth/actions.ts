@@ -1,20 +1,30 @@
 "use server";
 
-// 로그인/회원가입/로그아웃 + 출석체크 서버 액션.
-// 회원가입 시 nickname을 메타데이터로 넘기고, profiles 행은 DB 트리거(handle_new_user)가 생성한다.
-// 가입 시작 등급은 bronze(트리거 기본값).
-
-import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
-import { createSupabaseAuthClient } from "@/lib/supabase/auth-server";
-import { recordLpEvent } from "@/lib/rank/record-lp";
 import type {
   AttendanceState,
   AuthActionState,
   ProfileActionState,
 } from "@/lib/auth/action-state";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { recordLpEvent } from "@/lib/rank/record-lp";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { createSupabaseAuthClient } from "@/lib/supabase/auth-server";
+import { POLICY_VERSION } from "@/lib/site";
+
+const PROFILE_AVATAR_BUCKET = "profile-avatars";
+const MAX_PROFILE_IMAGE_BYTES = 5 * 1024 * 1024;
+const PROFILE_IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
+
+function profileImageExtension(type: string, name: string): string {
+  if (type === "image/png") return "png";
+  if (type === "image/webp") return "webp";
+  if (type === "image/jpeg") return "jpg";
+  const fromName = name.split(".").pop()?.toLowerCase();
+  return fromName && /^[a-z0-9]+$/.test(fromName) ? fromName : "jpg";
+}
 
 export async function signUpAction(
   _prev: AuthActionState,
@@ -22,6 +32,9 @@ export async function signUpAction(
 ): Promise<AuthActionState> {
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
+  const ageConfirmed = formData.get("ageConfirmed") === "on";
+  const termsAccepted = formData.get("termsAccepted") === "on";
+  const privacyAccepted = formData.get("privacyAccepted") === "on";
 
   if (!email || !password) {
     return { error: "이메일과 비밀번호를 입력해주세요." };
@@ -29,18 +42,28 @@ export async function signUpAction(
   if (password.length < 6) {
     return { error: "비밀번호는 6자 이상이어야 합니다." };
   }
+  if (!ageConfirmed || !termsAccepted || !privacyAccepted) {
+    return { error: "만 14세 이상 확인과 필수 약관에 모두 동의해주세요." };
+  }
 
   const supabase = await createSupabaseAuthClient();
-
-  // 닉네임 등 프로필 정보는 가입 후 프로필 관리에서 설정한다.
-  // 트리거(handle_new_user)가 이메일 local-part로 임시 닉네임을 만든다.
-  const { error } = await supabase.auth.signUp({ email, password });
+  const { error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: {
+        age_confirmed: true,
+        terms_accepted: true,
+        privacy_accepted: true,
+        policy_version: POLICY_VERSION,
+      },
+    },
+  });
 
   if (error) {
     return { error: error.message };
   }
 
-  // 이메일 확인이 꺼져 있으면 즉시 세션이 생성된다. 켜져 있으면 확인 후 로그인 필요.
   revalidatePath("/", "layout");
   redirect("/me");
 }
@@ -57,7 +80,6 @@ export async function signInAction(
   }
 
   const supabase = await createSupabaseAuthClient();
-
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
@@ -68,7 +90,6 @@ export async function signInAction(
   redirect("/me");
 }
 
-// 프로필 관리: 닉네임 설정/수정. RLS상 본인 프로필만 update(쿠키 세션 클라이언트).
 export async function updateNicknameAction(
   _prev: ProfileActionState,
   formData: FormData,
@@ -83,23 +104,65 @@ export async function updateNicknameAction(
     return { status: "error", message: "닉네임은 2~20자로 입력해주세요." };
   }
 
+  const image = formData.get("profileImage");
+  let profileImageUrl: string | null | undefined;
+
+  if (image instanceof File && image.size > 0) {
+    if (!PROFILE_IMAGE_TYPES.has(image.type)) {
+      return { status: "error", message: "프로필 이미지는 PNG, JPG, WEBP만 업로드할 수 있습니다." };
+    }
+    if (image.size > MAX_PROFILE_IMAGE_BYTES) {
+      return { status: "error", message: "프로필 이미지는 5MB 이하만 업로드할 수 있습니다." };
+    }
+
+    let admin;
+    try {
+      admin = createSupabaseAdminClient();
+    } catch {
+      return { status: "error", message: "프로필 이미지 업로드 설정이 필요합니다." };
+    }
+
+    const objectPath = `${user.id}/${crypto.randomUUID()}.${profileImageExtension(image.type, image.name)}`;
+    const arrayBuffer = await image.arrayBuffer();
+    const { error: uploadError } = await admin.storage
+      .from(PROFILE_AVATAR_BUCKET)
+      .upload(objectPath, Buffer.from(arrayBuffer), {
+        contentType: image.type,
+        upsert: false,
+      });
+
+    if (uploadError) {
+      return { status: "error", message: uploadError.message || "프로필 이미지 업로드에 실패했습니다." };
+    }
+
+    const {
+      data: { publicUrl },
+    } = admin.storage.from(PROFILE_AVATAR_BUCKET).getPublicUrl(objectPath);
+    profileImageUrl = publicUrl;
+  }
+
   const supabase = await createSupabaseAuthClient();
+  const updates: { nickname: string; profile_image_url?: string } = { nickname };
+  if (profileImageUrl) {
+    updates.profile_image_url = profileImageUrl;
+  }
+
   const { error } = await supabase
     .from("profiles")
-    .update({ nickname })
+    .update(updates)
     .eq("id", user.id);
 
   if (error) {
-    // 23505 = unique_violation → 이미 사용 중인 닉네임.
     if (error.code === "23505") {
       return { status: "error", message: "이미 사용 중인 닉네임입니다." };
     }
-    return { status: "error", message: "닉네임 변경에 실패했습니다." };
+    return { status: "error", message: "프로필 변경에 실패했습니다." };
   }
 
   revalidatePath("/me");
   revalidatePath("/me/profile");
-  return { status: "success", message: "닉네임이 변경되었습니다." };
+  revalidatePath("/", "layout");
+  return { status: "success", message: "프로필이 저장되었습니다." };
 }
 
 export async function signOutAction(): Promise<void> {
@@ -109,7 +172,6 @@ export async function signOutAction(): Promise<void> {
   redirect("/");
 }
 
-// 출석체크: 하루 1회. attendance_checks insert 성공 시 LP +10.
 export async function checkInAction(
   _prev: AttendanceState,
 ): Promise<AttendanceState> {
@@ -122,13 +184,11 @@ export async function checkInAction(
     return { status: "unauthenticated", message: "로그인이 필요합니다." };
   }
 
-  // (user_id, check_date) unique 제약으로 하루 1회만 성공.
   const { error } = await supabase
     .from("attendance_checks")
     .insert({ user_id: user.id });
 
   if (error) {
-    // 23505 = unique_violation → 이미 출첵함.
     if (error.code === "23505") {
       return { status: "already", message: "오늘은 이미 출석체크를 했어요." };
     }

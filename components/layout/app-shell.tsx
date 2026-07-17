@@ -26,12 +26,24 @@ import {
 import { LogoutButton } from "@/components/auth/logout-button";
 import { HeaderSearch } from "@/components/layout/header-search";
 import { SiteFooter } from "@/components/layout/site-footer";
-import { RankBadge } from "@/components/rank/rank-badge";
+import { RankAvatar } from "@/components/rank/rank-avatar";
 import { TeamLogo } from "@/components/ui/team-logo";
 import { teams } from "@/lib/team-themes";
 import type { Tier } from "@/lib/rank/config";
 
-export type AppShellUser = { nickname: string | null; tier: Tier; lp: number } | null;
+export type AppShellUser = {
+  nickname: string | null;
+  profileImageUrl: string | null;
+  tier: Tier;
+  lp: number;
+} | null;
+
+const THEME_STORAGE_KEY = "minion-theme";
+
+function applyTheme(theme: "dark" | "light") {
+  document.documentElement.classList.toggle("dark", theme === "dark");
+  document.documentElement.style.colorScheme = theme;
+}
 
 const desktopNav = [
   { href: "/", label: "홈", icon: Home },
@@ -39,7 +51,7 @@ const desktopNav = [
   { href: "/tournaments", label: "대회", icon: Swords },
   { href: "/predictions", label: "승부예측", icon: Sparkles },
   { href: "/players", label: "선수", icon: UserRound },
-  { href: "/reports", label: "데이터 리포트", icon: Newspaper },
+  { href: "/reports", label: "위클리 리포트", icon: Newspaper },
   { href: "/community", label: "커뮤니티", icon: Users },
 ];
 
@@ -102,6 +114,18 @@ export function AppShell({
     return () => desktopQuery.removeEventListener("change", closeMobileMenu);
   }, []);
 
+  useEffect(() => {
+    const colorSchemeQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const followBrowserTheme = (event: MediaQueryListEvent) => {
+      const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+      if (savedTheme === "dark" || savedTheme === "light") return;
+      applyTheme(event.matches ? "dark" : "light");
+    };
+
+    colorSchemeQuery.addEventListener("change", followBrowserTheme);
+    return () => colorSchemeQuery.removeEventListener("change", followBrowserTheme);
+  }, []);
+
   const toggleNavigation = () => {
     if (window.matchMedia("(min-width: 1200px)").matches) {
       setCollapsed((value) => !value);
@@ -111,9 +135,9 @@ export function AppShell({
   };
 
   const toggleDarkMode = () => {
-    const nextDarkMode = !document.documentElement.classList.contains("dark");
-    document.documentElement.classList.toggle("dark", nextDarkMode);
-    localStorage.setItem("minion-theme", nextDarkMode ? "dark" : "light");
+    const nextTheme = document.documentElement.classList.contains("dark") ? "light" : "dark";
+    applyTheme(nextTheme);
+    localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
   };
 
   if (pathname === "/lab/chzzk-concept") return <>{children}</>;
@@ -145,8 +169,12 @@ export function AppShell({
           <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
             <Link href="/me" className="flex min-h-11 min-w-0 max-w-[126px] items-center gap-1.5 text-[13px] font-bold sm:max-w-none sm:gap-2 sm:text-sm">
               <span className="hidden items-center gap-1 text-[13px] font-black text-[var(--ui-muted)] min-[1200px]:flex"><Coins size={14} />{currentUser.lp.toLocaleString("ko-KR")} LP</span>
+              <RankAvatar
+                tier={currentUser.tier}
+                src={currentUser.profileImageUrl}
+                fallback={currentUser.nickname ?? "MY"}
+              />
               <span className="hidden min-w-0 truncate sm:block">{currentUser.nickname ?? "프로필"}</span>
-              <RankBadge tier={currentUser.tier} />
             </Link>
             <div className="hidden min-[1200px]:block"><LogoutButton /></div>
           </div>
@@ -160,6 +188,12 @@ export function AppShell({
         <div className={`fixed inset-x-0 top-14 z-40 overflow-y-auto border-b border-[#e8e8eb] bg-background px-4 py-4 shadow-xl shadow-black/10 sm:top-16 min-[1200px]:hidden dark:border-[#343840] ${compactHubShell ? "bottom-16 md:bottom-0" : "bottom-0"}`}>
           {currentUser ? (
             <div className="mb-4 flex items-center justify-between gap-3 rounded-2xl bg-[#f4f4f5] px-4 py-3 dark:bg-[#282c31]">
+              <RankAvatar
+                tier={currentUser.tier}
+                src={currentUser.profileImageUrl}
+                fallback={currentUser.nickname ?? "MY"}
+                size="md"
+              />
               <Link href="/me" onClick={() => setMobileMenuOpen(false)} className="min-w-0 text-sm font-black"><span className="block truncate">{currentUser.nickname ?? "프로필"}</span><span className="mt-0.5 flex items-center gap-1 text-[12px] font-bold text-[var(--ui-muted)]"><Coins size={13} />{currentUser.lp.toLocaleString("ko-KR")} LP</span></Link>
               <LogoutButton className="shrink-0 rounded-xl border border-[#d9dce1] bg-white px-3 py-2 text-[13px] font-black text-[#18191c] shadow-sm dark:border-[#434854] dark:bg-[#30343b] dark:text-white" />
             </div>
