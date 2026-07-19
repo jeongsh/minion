@@ -26,14 +26,14 @@ export function HomeHeroSwiper({ slides }: { slides: HomeHeroSwiperSlide[] }) {
           pagination={{ clickable: true }}
           className="home-hero-swiper h-full"
         >
-          {safeSlides.map((slide) => (
+          {safeSlides.map((slide, index) => (
             <SwiperSlide key={slide.id}>
               {slide.href ? (
                 <Link href={slide.href} className="block h-full w-full">
-                  <img src={slide.imageUrl} alt={slide.alt} className="h-full w-full object-cover" />
+                  <img src={slide.imageUrl} alt={slide.alt} loading={index === 0 ? "eager" : "lazy"} fetchPriority={index === 0 ? "high" : "auto"} decoding="async" className="h-full w-full object-cover" />
                 </Link>
               ) : (
-                <img src={slide.imageUrl} alt={slide.alt} className="h-full w-full object-cover" />
+                <img src={slide.imageUrl} alt={slide.alt} loading={index === 0 ? "eager" : "lazy"} fetchPriority={index === 0 ? "high" : "auto"} decoding="async" className="h-full w-full object-cover" />
               )}
             </SwiperSlide>
           ))}

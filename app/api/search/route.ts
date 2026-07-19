@@ -8,6 +8,7 @@ import {
 import { matchesTournamentSegment } from "@/lib/tournaments/season-2026";
 
 const ALL_SEGMENTS = [...DOMESTIC_SEGMENTS, ...INTERNATIONAL_SEGMENTS];
+const MIN_SEARCH_LENGTH = 2;
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +30,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const raw = (searchParams.get("q") ?? "").trim();
 
-  if (raw.length === 0) {
+  if (raw.length < MIN_SEARCH_LENGTH) {
     return NextResponse.json({ results: [] as SearchResult[] });
   }
 

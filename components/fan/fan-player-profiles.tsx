@@ -45,7 +45,7 @@ function PlayerProfileCard({ player }: { player: Player }) {
       <div className="relative aspect-square bg-[#eef1f6]">
         {player.profileImageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={player.profileImageUrl} alt={player.name} className="h-full w-full object-cover object-top" />
+          <img src={player.profileImageUrl} alt={player.name} loading="lazy" decoding="async" className="h-full w-full object-cover object-top" />
         ) : (
           <div className="flex h-full items-center justify-center text-lg font-black text-muted">
             {player.name.slice(0, 2)}

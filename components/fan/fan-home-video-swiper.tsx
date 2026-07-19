@@ -61,6 +61,7 @@ export function FanHomeVideoSwiper({
                     src={video.thumbnailUrl}
                     alt=""
                     loading="lazy"
+                    decoding="async"
                     className="h-full w-full object-cover transition duration-200 group-hover:scale-[1.02]"
                   />
                 ) : (

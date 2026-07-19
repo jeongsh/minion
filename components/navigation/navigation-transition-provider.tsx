@@ -19,8 +19,8 @@ type NavigationTransitionContextValue = {
 };
 
 const NavigationTransitionContext = createContext<NavigationTransitionContextValue | null>(null);
-const PAGE_READY_TIMEOUT_MS = 15_000;
-const PAGE_READY_QUIET_MS = 120;
+const PAGE_READY_TIMEOUT_MS = 2_500;
+const PAGE_READY_QUIET_MS = 80;
 const PAGE_READY_POLL_MS = 50;
 
 function waitForDelay(milliseconds: number) {
@@ -50,7 +50,7 @@ function imageSource(image: HTMLImageElement) {
 }
 
 function shouldWaitForImage(image: HTMLImageElement) {
-  return image.loading !== "lazy" || image.complete;
+  return image.fetchPriority === "high" && !image.complete;
 }
 
 async function waitForImage(
@@ -114,10 +114,6 @@ async function waitForPageReady() {
     await waitForFrame();
     await waitForFrame();
 
-    if (document.fonts) {
-      await waitUntilDeadline(document.fonts.ready, deadline);
-    }
-
     while (Date.now() < deadline) {
       const images = Array.from(document.images).filter(shouldWaitForImage);
       await Promise.all(images.map((image) => waitForImage(image, settledSources, deadline)));
@@ -125,9 +121,7 @@ async function waitForPageReady() {
 
       const hasRouteFallback = Boolean(document.querySelector('[data-route-loading="true"]'));
       const hasPendingClientWidget = Boolean(
-        document.querySelector(
-          '[data-page-readiness="pending"], main .swiper:not(.swiper-initialized)',
-        ),
+        document.querySelector('[data-page-readiness="pending"]'),
       );
       const hasUnsettledImage = Array.from(document.images)
         .filter(shouldWaitForImage)

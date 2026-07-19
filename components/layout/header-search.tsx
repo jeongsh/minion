@@ -6,6 +6,8 @@ import { Loader2, Search, Swords, UserRound, X } from "lucide-react";
 
 import type { SearchResult } from "@/app/api/search/route";
 
+const MIN_SEARCH_LENGTH = 2;
+
 const TYPE_ICON = {
   team: null,
   player: UserRound,
@@ -25,7 +27,10 @@ export function HeaderSearch({ className = "" }: { className?: string }) {
 
   useEffect(() => {
     const term = query.trim();
-    if (term.length === 0) {
+    if (term.length < MIN_SEARCH_LENGTH) {
+      setResults([]);
+      setActiveIndex(-1);
+      setLoading(false);
       return;
     }
     const controller = new AbortController();
@@ -85,7 +90,7 @@ export function HeaderSearch({ className = "" }: { className?: string }) {
     }
   };
 
-  const showPanel = open && query.trim().length > 0;
+  const showPanel = open && query.trim().length >= MIN_SEARCH_LENGTH;
 
   return (
     <div ref={containerRef} className={`relative ${className}`}>
@@ -97,7 +102,7 @@ export function HeaderSearch({ className = "" }: { className?: string }) {
           onChange={(event) => {
             const nextQuery = event.target.value;
             setQuery(nextQuery);
-            if (nextQuery.trim().length === 0) {
+            if (nextQuery.trim().length < MIN_SEARCH_LENGTH) {
               setResults([]);
               setLoading(false);
               setActiveIndex(-1);
@@ -162,7 +167,7 @@ export function HeaderSearch({ className = "" }: { className?: string }) {
                       <span className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-lg bg-[#f2f3f5] dark:bg-[#30343b]">
                         {result.imageUrl ? (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img src={result.imageUrl} alt="" className="h-8 w-8 object-contain" />
+                          <img src={result.imageUrl} alt="" loading="lazy" decoding="async" className="h-8 w-8 object-contain" />
                         ) : Icon ? (
                           <Icon size={18} className="text-[var(--ui-muted)]" />
                         ) : (

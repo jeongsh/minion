@@ -10,22 +10,17 @@ import { uniqueDdragonVersionsForPatches } from "@/lib/ddragon";
 import { fetchRuneCatalog } from "@/lib/runes";
 import { fetchSpellCatalog } from "@/lib/spells";
 import {
-  getAllPlayers,
-  getAllTeams,
-  getChampions,
-  getFanRatings,
-  getMatches,
   getPlayerAwards,
   getPlayerBySlug,
   getPlayerCareerHistories,
   getPlayerPomCount,
   getPlayerStatLines,
-  getSetPicksBans,
-  getSets,
-  getTeamStandings,
-  getTournaments,
 } from "@/lib/data/lck";
-import { aggregatePlayerStatLine, calculatePlayerStats, createPlayerRadarBenchmark, type PlayerRadarBenchmark } from "@/lib/stats";
+import {
+  getPlayerPageSegmentData,
+  getPlayerPageSharedData,
+} from "@/lib/data/player-cache";
+import { aggregatePlayerStatLine, calculatePlayerStats, type PlayerRadarBenchmark } from "@/lib/stats";
 import type { FanRating, Match, Player, PlayerCareerHistory, PlayerStatLine, SetResult, Team, TeamAward, Tournament } from "@/lib/types";
 import {
   filterMatchesBySegment,
@@ -405,33 +400,20 @@ export async function PlayerDetailView({
   }
 
   const [
-    teams,
-    players,
-    matches,
-    sets,
+    sharedData,
     playerOwnLines,
-    fanRatings,
     awards,
     pomCount,
-    tournaments,
-    champions,
-    standings,
     careerHistories,
   ] = await Promise.all([
-    getAllTeams(),
-    getAllPlayers(),
-    getMatches(),
-    getSets(),
+    getPlayerPageSharedData(),
     // 이 선수 본인의 스탯라인만(리그 전체가 아님) — 구간 탭 표시 여부 판단용.
     getPlayerStatLines(undefined, player.id),
-    getFanRatings(),
     getPlayerAwards(player.name, player.id),
     getPlayerPomCount(player.id),
-    getTournaments(),
-    getChampions(),
-    getTeamStandings(),
     getPlayerCareerHistories([player.id]),
   ]);
+  const { teams, players, matches, sets, fanRatings, tournaments, champions, standings } = sharedData;
 
   const visibleSegments = PLAYER_PAGE_SEGMENTS.filter((segment) =>
     segmentHasPlayerData(segment, playerOwnLines, matches, tournaments, sets),
@@ -443,12 +425,14 @@ export async function PlayerDetailView({
   const segmentMatches = filterMatchesBySegment(matches, tournaments, activeSegment);
   const segmentSets = filterSetsByMatches(sets, segmentMatches);
   const segmentSetIds = segmentSets.map((set) => set.id);
-  // 포지션 벤치마크·챔피언 픽밴 집계는 리그 전체가 필요하지만, 활성 시즌 구간으로만 좁혀서 조회한다.
-  const [scopedLines, scopedPicksBans] = segmentSetIds.length
-    ? await Promise.all([getPlayerStatLines(segmentSetIds), getSetPicksBans(segmentSetIds)])
-    : [[], []];
-  const playerLines = enrichLines(scopedLines.filter((line) => line.playerId === player.id), segmentSets, segmentMatches, scopedLines);
-  const radarBenchmark = createPlayerRadarBenchmark(scopedLines.filter((line) => line.position === player.position));
+  const [playerSegmentLines, segmentData] = segmentSetIds.length
+    ? await Promise.all([
+      getPlayerStatLines(segmentSetIds, player.id),
+      getPlayerPageSegmentData(segmentSetIds),
+    ])
+    : [[], { radarBenchmarkByPosition: {}, pickBanByChampion: {}, mainUserIdsByChampion: {} }];
+  const playerLines = enrichLines(playerSegmentLines, segmentSets, segmentMatches);
+  const radarBenchmark = segmentData.radarBenchmarkByPosition[player.position];
   const aggregateStats = aggregateLines(playerLines, radarBenchmark);
   const playerTeam = teams.find((team) => team.id === player.teamId);
   const sameTeamPlayers = players
@@ -481,10 +465,11 @@ export async function PlayerDetailView({
       const wins = lines.filter((line) => line.set.winnerTeamId === player.teamId).length;
       const championRatings = fanRatings.filter((rating) => rating.playerId === player.id && lines.some((line) => line.setId === rating.setId));
       const championPogCount = lines.filter((line) => playerFanPogSetIds.has(line.setId)).length;
-      const pickCount = scopedPicksBans.filter((item) => item.championId === championId && item.actionType === "pick").length;
-      const banCount = scopedPicksBans.filter((item) => item.championId === championId && item.actionType === "ban").length;
+      const pickBan = segmentData.pickBanByChampion[championId] ?? { pickCount: 0, banCount: 0 };
+      const pickCount = pickBan.pickCount;
+      const banCount = pickBan.banCount;
       const mainUsers =
-        [...new Set(scopedLines.filter((line) => line.championId === championId).map((line) => line.playerId))]
+        (segmentData.mainUserIdsByChampion[championId] ?? [])
           .map((id) => players.find((item) => item.id === id)?.name)
           .filter(Boolean)
           .slice(0, 3)
@@ -633,7 +618,7 @@ export async function PlayerDetailView({
             </div>
           </div>
 
-          <section aria-labelledby="stats-overview" className="hidden md:block">
+          <section aria-labelledby="stats-overview">
             <SectionHeading
               aside={
                 <div className="flex items-center gap-3 pb-0.5 text-[13px] text-[var(--ui-muted)]">
