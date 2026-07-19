@@ -28,7 +28,8 @@ import { HeaderSearch } from "@/components/layout/header-search";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { RankAvatar } from "@/components/rank/rank-avatar";
 import { TeamLogo } from "@/components/ui/team-logo";
-import { teams } from "@/lib/team-themes";
+import { teams as fallbackTeams } from "@/lib/team-themes";
+import type { Team } from "@/lib/types";
 import type { Tier } from "@/lib/rank/config";
 
 export type AppShellUser = {
@@ -82,10 +83,12 @@ export function AppShell({
   children,
   currentUser = null,
   followedTeamIds = [],
+  shellTeams = fallbackTeams,
 }: {
   children: React.ReactNode;
   currentUser?: AppShellUser;
   followedTeamIds?: string[];
+  shellTeams?: Team[];
 }) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
@@ -97,8 +100,8 @@ export function AppShell({
   const focusRoute = Boolean(focus);
   const compactHubShell = !fanRoute && !focusRoute;
   const followedTeamIdSet = new Set(followedTeamIds);
-  const followedTeams = teams.filter((team) => followedTeamIdSet.has(team.id) || followedTeamIdSet.has(team.fanSiteHost));
-  const channelTeams = teams.filter((team) => !followedTeamIdSet.has(team.id) && !followedTeamIdSet.has(team.fanSiteHost));
+  const followedTeams = shellTeams.filter((team) => followedTeamIdSet.has(team.id) || followedTeamIdSet.has(team.fanSiteHost));
+  const channelTeams = shellTeams.filter((team) => !followedTeamIdSet.has(team.id) && !followedTeamIdSet.has(team.fanSiteHost));
 
   useEffect(() => {
     document.documentElement.style.setProperty("--shell-lnb-width", collapsed ? "72px" : "216px");

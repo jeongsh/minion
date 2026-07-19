@@ -27,3 +27,22 @@ export const INITIAL_PROFILE_STATE: ProfileActionState = {
   status: "idle",
   message: null,
 };
+
+// 비밀번호 변경 / 회원 탈퇴는 성공 시 각각 폼 리셋·리다이렉트만 하면 되므로
+// 프로필과 같은 status/message 형태를 재사용한다.
+export type PasswordActionState = ProfileActionState;
+
+export const INITIAL_PASSWORD_STATE: PasswordActionState = {
+  status: "idle",
+  message: null,
+};
+
+export type DeleteAccountState = ProfileActionState;
+
+export const INITIAL_DELETE_ACCOUNT_STATE: DeleteAccountState = {
+  status: "idle",
+  message: null,
+};
+
+// 탈퇴 확인 문구. 폼(클라이언트)과 액션(서버)이 같은 값을 봐야 하므로 여기서 단일 정의한다.
+export const DELETE_ACCOUNT_CONFIRM_TEXT = "탈퇴합니다";

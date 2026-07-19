@@ -1,10 +1,12 @@
 import Link from "next/link";
 
+import { DeleteAccountForm } from "@/components/auth/delete-account-form";
 import { LogoutButton } from "@/components/auth/logout-button";
+import { PasswordForm } from "@/components/auth/password-form";
 import { ProfileForm } from "@/components/auth/profile-form";
 import { CheckInButton } from "@/components/rank/check-in-button";
 import { getCurrentUser } from "@/lib/auth/current-user";
-import { tierProgress } from "@/lib/rank/config";
+import { tierProgress, type Tier } from "@/lib/rank/config";
 import { getRankSummary } from "@/lib/rank/queries";
 
 export const metadata = {
@@ -35,7 +37,15 @@ function formatDate(iso: string) {
   });
 }
 
-export default async function MePage() {
+type MeTab = "rank" | "account";
+
+export default async function MePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string }>;
+}) {
+  const params = await searchParams;
+  const tab: MeTab = params.tab === "account" ? "account" : "rank";
   const user = await getCurrentUser();
 
   if (!user) {
@@ -76,23 +86,123 @@ export default async function MePage() {
         </div>
       </header>
 
+      <nav
+        className="mb-5 flex items-center gap-2 border-b sm:mb-8"
+        style={{ borderColor: "var(--border)" }}
+        aria-label="마이페이지 탭"
+      >
+        <TabLink href="/me" label="마이랭크" active={tab === "rank"} />
+        <TabLink href="/me?tab=account" label="개인정보 수정" active={tab === "account"} />
+      </nav>
+
+      {tab === "account" ? (
+        <AccountPanel
+          email={user.email}
+          nickname={user.nickname ?? ""}
+          profileImageUrl={user.profileImageUrl}
+          tier={summary.tier}
+        />
+      ) : (
+        <RankPanel summary={summary} progress={progress} />
+      )}
+    </main>
+  );
+}
+
+function TabLink({ href, label, active }: { href: string; label: string; active: boolean }) {
+  return (
+    <Link
+      href={href}
+      aria-current={active ? "page" : undefined}
+      className={`relative flex min-h-11 items-center px-3 text-sm font-bold transition-colors ${
+        active
+          ? "text-[var(--ui-ink)] after:absolute after:inset-x-1 after:-bottom-px after:h-0.5 after:bg-[var(--ui-ink)]"
+          : "text-[var(--ui-muted)] hover:text-[var(--ui-text)]"
+      }`}
+    >
+      {label}
+    </Link>
+  );
+}
+
+function AccountPanel({
+  email,
+  nickname,
+  profileImageUrl,
+  tier,
+}: {
+  email: string | null;
+  nickname: string;
+  profileImageUrl: string | null;
+  tier: Tier;
+}) {
+  return (
+    <>
       <section
         className="mb-5 rounded-2xl border p-5 sm:mb-8"
         style={{ borderColor: "var(--border)", backgroundColor: "var(--surface)" }}
       >
         <div className="mb-4">
-          <h2 className="text-base font-bold">프로필 관리</h2>
+          <h2 className="text-base font-bold">프로필</h2>
           <p className="mt-1 text-sm" style={{ color: "var(--muted)" }}>
             헤더와 커뮤니티에 표시되는 닉네임과 프로필 이미지를 변경합니다.
           </p>
         </div>
         <ProfileForm
-          initialNickname={user.nickname ?? ""}
-          initialProfileImageUrl={user.profileImageUrl}
-          tier={summary.tier}
+          initialNickname={nickname}
+          initialProfileImageUrl={profileImageUrl}
+          tier={tier}
         />
       </section>
 
+      <section
+        className="mb-5 rounded-2xl border p-5 sm:mb-8"
+        style={{ borderColor: "var(--border)", backgroundColor: "var(--surface)" }}
+      >
+        <div className="mb-4">
+          <h2 className="text-base font-bold">계정</h2>
+          <p className="mt-1 text-sm" style={{ color: "var(--muted)" }}>
+            가입 이메일은 변경할 수 없습니다.
+          </p>
+        </div>
+        <p className="text-sm font-semibold">{email ?? "이메일 정보 없음"}</p>
+      </section>
+
+      <section
+        className="mb-5 rounded-2xl border p-5 sm:mb-8"
+        style={{ borderColor: "var(--border)", backgroundColor: "var(--surface)" }}
+      >
+        <div className="mb-4">
+          <h2 className="text-base font-bold">비밀번호 변경</h2>
+          <p className="mt-1 text-sm" style={{ color: "var(--muted)" }}>
+            보안을 위해 현재 비밀번호를 다시 확인합니다.
+          </p>
+        </div>
+        <PasswordForm />
+      </section>
+
+      <section
+        className="rounded-2xl border p-5"
+        style={{ borderColor: "var(--border)", backgroundColor: "var(--surface)" }}
+      >
+        <div className="mb-4">
+          <h2 className="text-base font-bold">회원 탈퇴</h2>
+        </div>
+        <DeleteAccountForm />
+      </section>
+    </>
+  );
+}
+
+function RankPanel({
+  summary,
+  progress,
+}: {
+  summary: Awaited<ReturnType<typeof getRankSummary>>;
+  progress: ReturnType<typeof tierProgress>;
+}) {
+  return (
+    <>
       <section
         className="mb-5 rounded-2xl border p-5 sm:mb-8"
         style={{ borderColor: "var(--border)", backgroundColor: "var(--surface)" }}
@@ -135,11 +245,6 @@ export default async function MePage() {
         <CheckInButton alreadyChecked={summary.checkedInToday} />
       </section>
 
-      <nav className="mb-5 grid grid-cols-2 gap-2 sm:mb-8" aria-label="마이페이지 바로가기">
-        <Link href="/predictions" className="flex min-h-12 items-center justify-center rounded-xl bg-[var(--ui-ink)] px-3 text-sm font-black text-[var(--ui-surface)]">승부예측</Link>
-        <Link href="/community" className="flex min-h-12 items-center justify-center rounded-xl border border-[var(--ui-border)] px-3 text-sm font-black">커뮤니티</Link>
-      </nav>
-
       <section
         className="rounded-2xl border p-4 sm:p-5"
         style={{ borderColor: "var(--border)", backgroundColor: "var(--surface)" }}
@@ -173,6 +278,6 @@ export default async function MePage() {
           </ul>
         )}
       </section>
-    </main>
+    </>
   );
 }

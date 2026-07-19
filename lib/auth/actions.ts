@@ -6,8 +6,11 @@ import { redirect } from "next/navigation";
 import type {
   AttendanceState,
   AuthActionState,
+  DeleteAccountState,
+  PasswordActionState,
   ProfileActionState,
 } from "@/lib/auth/action-state";
+import { DELETE_ACCOUNT_CONFIRM_TEXT } from "@/lib/auth/action-state";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { recordLpEvent } from "@/lib/rank/record-lp";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -163,6 +166,114 @@ export async function updateNicknameAction(
   revalidatePath("/me/profile");
   revalidatePath("/", "layout");
   return { status: "success", message: "프로필이 저장되었습니다." };
+}
+
+// 현재 비밀번호를 다시 검증한 뒤 새 비밀번호로 교체한다.
+// (세션만으로 변경을 허용하면 자리를 비운 사이 탈취된 브라우저로 계정을 뺏길 수 있다.)
+export async function changePasswordAction(
+  _prev: PasswordActionState,
+  formData: FormData,
+): Promise<PasswordActionState> {
+  const user = await getCurrentUser();
+  if (!user) {
+    return { status: "error", message: "로그인이 필요합니다." };
+  }
+  if (!user.email) {
+    return { status: "error", message: "이메일 정보가 없어 비밀번호를 변경할 수 없습니다." };
+  }
+
+  const currentPassword = String(formData.get("currentPassword") ?? "");
+  const newPassword = String(formData.get("newPassword") ?? "");
+  const confirmPassword = String(formData.get("confirmPassword") ?? "");
+
+  if (!currentPassword || !newPassword) {
+    return { status: "error", message: "현재 비밀번호와 새 비밀번호를 입력해주세요." };
+  }
+  if (newPassword.length < 6) {
+    return { status: "error", message: "새 비밀번호는 6자 이상이어야 합니다." };
+  }
+  if (newPassword !== confirmPassword) {
+    return { status: "error", message: "새 비밀번호가 서로 일치하지 않습니다." };
+  }
+  if (newPassword === currentPassword) {
+    return { status: "error", message: "현재 비밀번호와 다른 비밀번호를 입력해주세요." };
+  }
+
+  const supabase = await createSupabaseAuthClient();
+  const { error: verifyError } = await supabase.auth.signInWithPassword({
+    email: user.email,
+    password: currentPassword,
+  });
+
+  if (verifyError) {
+    return { status: "error", message: "현재 비밀번호가 올바르지 않습니다." };
+  }
+
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+
+  if (error) {
+    return { status: "error", message: error.message || "비밀번호 변경에 실패했습니다." };
+  }
+
+  return { status: "success", message: "비밀번호가 변경되었습니다." };
+}
+
+// 회원 탈퇴: 비밀번호 재확인 후 auth 계정을 삭제한다.
+// profiles 는 auth.users 에 on delete cascade 로 묶여 있어 랭크/출석/승부예측 기록이 함께 지워지고,
+// community_posts/comments 의 author_id 는 FK 가 없어 글은 남고 작성자만 익명으로 표시된다.
+export async function deleteAccountAction(
+  _prev: DeleteAccountState,
+  formData: FormData,
+): Promise<DeleteAccountState> {
+  const user = await getCurrentUser();
+  if (!user) {
+    return { status: "error", message: "로그인이 필요합니다." };
+  }
+  if (!user.email) {
+    return { status: "error", message: "이메일 정보가 없어 탈퇴를 진행할 수 없습니다." };
+  }
+
+  const password = String(formData.get("password") ?? "");
+  const confirmText = String(formData.get("confirmText") ?? "").trim();
+
+  if (!password) {
+    return { status: "error", message: "비밀번호를 입력해주세요." };
+  }
+  if (confirmText !== DELETE_ACCOUNT_CONFIRM_TEXT) {
+    return {
+      status: "error",
+      message: `확인 문구를 정확히 입력해주세요. ("${DELETE_ACCOUNT_CONFIRM_TEXT}")`,
+    };
+  }
+
+  const supabase = await createSupabaseAuthClient();
+  const { error: verifyError } = await supabase.auth.signInWithPassword({
+    email: user.email,
+    password,
+  });
+
+  if (verifyError) {
+    return { status: "error", message: "비밀번호가 올바르지 않습니다." };
+  }
+
+  let admin;
+  try {
+    admin = createSupabaseAdminClient();
+  } catch {
+    return { status: "error", message: "탈퇴 처리 설정이 필요합니다. 관리자에게 문의해주세요." };
+  }
+
+  const { error } = await admin.auth.admin.deleteUser(user.id);
+
+  if (error) {
+    return { status: "error", message: error.message || "회원 탈퇴에 실패했습니다." };
+  }
+
+  // 계정이 사라진 뒤에도 쿠키 세션은 남으므로 명시적으로 정리한다.
+  await supabase.auth.signOut().catch(() => undefined);
+
+  revalidatePath("/", "layout");
+  redirect("/");
 }
 
 export async function signOutAction(): Promise<void> {

@@ -3,6 +3,7 @@ import Script from "next/script";
 import { AppShell, type AppShellUser } from "@/components/layout/app-shell";
 import { NavigationTransitionProvider } from "@/components/navigation/navigation-transition-provider";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { getTeams } from "@/lib/data/lck";
 import { getFollowedTeamIds } from "@/lib/fan/followed-teams";
 import { getRankSummary } from "@/lib/rank/queries";
 import { siteBaseUrl } from "@/lib/site";
@@ -45,7 +46,7 @@ export default async function RootLayout({
       lp: summary.lp,
     };
   }
-  const followedTeamIds = await getFollowedTeamIds();
+  const [followedTeamIds, shellTeams] = await Promise.all([getFollowedTeamIds(), getTeams()]);
   const adsenseClient = process.env.NEXT_PUBLIC_GOOGLE_ADSENSE_CLIENT;
 
   return (
@@ -66,7 +67,7 @@ export default async function RootLayout({
           />
         ) : null}
         <NavigationTransitionProvider>
-          <AppShell currentUser={shellUser} followedTeamIds={followedTeamIds}>{children}</AppShell>
+          <AppShell currentUser={shellUser} followedTeamIds={followedTeamIds} shellTeams={shellTeams}>{children}</AppShell>
         </NavigationTransitionProvider>
       </body>
     </html>
