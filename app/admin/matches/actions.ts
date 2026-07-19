@@ -7,6 +7,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { getMatchById, getSetsByMatchId } from "@/lib/data/lck";
 import { HOME_PUBLIC_DATA_TAG } from "@/lib/data/home-cache";
 import { diagnoseMatches, type MatchDiagnosis } from "@/lib/match-diagnostics";
+import { refreshMatchAiPreviewCacheForMatchId } from "@/lib/match-preview-ai";
 import {
   getLastCompletedMatchCursor,
   syncLeaguepediaLck2026,
@@ -22,7 +23,7 @@ import {
   syncMatchTimeline,
   type TimelineSyncSummary,
 } from "@/lib/sync/timeline-events";
-import { createSupabaseAdminActionClient, createSupabaseAdminClient } from "@/lib/auth/admin";
+import { createSupabaseAdminActionClient } from "@/lib/auth/admin";
 import type { Match } from "@/lib/types";
 import { matchRouteId, parseDateTimeLocalKST } from "@/lib/view-data";
 
@@ -404,6 +405,27 @@ export async function overrideMatchResultAction(formData: FormData) {
     throw new Error(error.message);
   }
 
+  await revalidateMatchPaths(supabase, matchId);
+
+  if (redirectTo) {
+    redirect(redirectTo);
+  }
+}
+
+export async function refreshMatchPreviewAction(formData: FormData) {
+  const matchId = textOrNull(formData.get("matchId"));
+  const redirectTo = textOrNull(formData.get("redirectTo"));
+
+  if (!matchId) {
+    throw new Error("프리뷰를 생성할 경기 ID가 없습니다.");
+  }
+
+  const preview = await refreshMatchAiPreviewCacheForMatchId(matchId, { force: true });
+  if (!preview) {
+    throw new Error("참가팀이 확정된 시작 전 경기만 프리뷰를 생성할 수 있습니다.");
+  }
+
+  const supabase = await createSupabaseAdminActionClient();
   await revalidateMatchPaths(supabase, matchId);
 
   if (redirectTo) {

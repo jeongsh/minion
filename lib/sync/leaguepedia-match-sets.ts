@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { championCatalogEntryForValue } from "../champions.ts";
 import { ddragonVersionFromPatch, uniqueDdragonVersionsForPatches } from "../ddragon.ts";
 import { fetchItemCatalog } from "../items.ts";
+import { refreshMatchAiPreviewCacheForMatchId } from "../match-preview-ai.ts";
 import { reconcileMatchFromSets } from "../match-reconcile.ts";
 import { fetchRuneNameToIdMap } from "../runes.ts";
 import { deriveSetStatus, hasCompletePlayerStats } from "../set-status.ts";
@@ -210,7 +211,7 @@ export class LeaguepediaRateLimitError extends Error {
   }
 }
 
-type LeaguepediaSyncOptions = { maxRetries?: number };
+type LeaguepediaSyncOptions = { maxRetries?: number; refreshAiPreview?: boolean };
 
 function sleep(ms: number) {
   return new Promise((resolveSleep) => {
@@ -1785,6 +1786,9 @@ export async function syncLeaguepediaMatchSets(
 
   // 세트 상태가 모두 확정된 뒤, 확정된 세트 결과로부터 매치 스코어/상태/승자를 재조정한다.
   await reconcileMatchFromSets(supabase, typedMatch.id);
+  if (options.refreshAiPreview !== false) {
+    await refreshMatchAiPreviewCacheForMatchId(typedMatch.id);
+  }
 
   return {
     matchId: typedMatch.id,

@@ -17,9 +17,13 @@ import { matchStatusLabel } from "@/lib/match-display";
 import { setStatusLabel } from "@/lib/set-status";
 import { durationLabel, matchHref, matchRouteId, teamLabel } from "@/lib/view-data";
 
-import { overrideMatchResultAction, updateMatchAction } from "../../actions";
+import { overrideMatchResultAction, refreshMatchPreviewAction, updateMatchAction } from "../../actions";
 import { MatchFields } from "../../match-fields";
 import { MatchDataSyncPanel } from "./match-data-sync-panel";
+
+function isTbdTeamLabel(value: string) {
+  return value.trim().toLowerCase() === "tbd";
+}
 
 export default async function AdminMatchEditPage({
   params,
@@ -46,6 +50,12 @@ export default async function AdminMatchEditPage({
 
   const adminMatchPath = `/admin/matches/${matchRouteId(match)}/edit`;
   const hasLeaguepediaMatchId = Boolean(match.leaguepediaMatchId);
+  const teamAName = teamLabel(teams, match.teamAId);
+  const teamBName = teamLabel(teams, match.teamBId);
+  const canRefreshPreview =
+    match.status === "scheduled" &&
+    !isTbdTeamLabel(teamAName) &&
+    !isTbdTeamLabel(teamBName);
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-[var(--page-inline)] py-10">
@@ -80,6 +90,10 @@ export default async function AdminMatchEditPage({
           </span>
           <span className="ml-1 text-[13px]">(세트 결과로부터 자동 계산됩니다)</span>
         </p>
+        <form id="refresh-match-preview-form" action={refreshMatchPreviewAction}>
+          <input type="hidden" name="matchId" value={match.id} />
+          <input type="hidden" name="redirectTo" value={adminMatchPath} />
+        </form>
         <form action={updateMatchAction} className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           <input type="hidden" name="redirectTo" value={adminMatchPath} />
           <MatchFields
@@ -90,12 +104,23 @@ export default async function AdminMatchEditPage({
             players={players}
           />
           <div className="flex items-end">
-            <button
-              type="submit"
-              className="w-full rounded-md bg-foreground px-4 py-2 text-sm font-semibold text-background"
-            >
-              기본정보 저장
-            </button>
+            <div className="grid w-full grid-cols-2 gap-2">
+              <button
+                type="submit"
+                className="rounded-md bg-foreground px-4 py-2 text-sm font-semibold text-background"
+              >
+                기본정보 저장
+              </button>
+              <button
+                type="submit"
+                form="refresh-match-preview-form"
+                disabled={!canRefreshPreview}
+                className="rounded-md border border-border px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-45"
+                title={canRefreshPreview ? "AI 프리뷰를 다시 생성합니다" : "참가팀이 확정된 시작 전 경기만 생성할 수 있습니다"}
+              >
+                프리뷰 재생성
+              </button>
+            </div>
           </div>
         </form>
 

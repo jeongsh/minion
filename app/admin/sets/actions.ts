@@ -4,8 +4,9 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import { createSupabaseAdminActionClient, createSupabaseAdminClient } from "@/lib/auth/admin";
+import { createSupabaseAdminActionClient } from "@/lib/auth/admin";
 import { resolveChampionIds } from "@/lib/champions-admin";
+import { refreshMatchAiPreviewCacheForMatchId } from "@/lib/match-preview-ai";
 import { reconcileMatchFromSets } from "@/lib/match-reconcile";
 import { deriveSetStatus, hasCompletePlayerStats, normalizeSetStatus } from "@/lib/set-status";
 
@@ -374,6 +375,7 @@ async function saveSetAndReconcile(
   }
 
   await reconcileMatchFromSets(supabase, payload.match_id);
+  await refreshMatchAiPreviewCacheForMatchId(payload.match_id);
 }
 
 export async function createSetAction(formData: FormData) {
@@ -447,6 +449,7 @@ export async function overrideSetResultAction(formData: FormData) {
 
   const matchId = updated.match_id as string;
   await reconcileMatchFromSets(supabase, matchId);
+  await refreshMatchAiPreviewCacheForMatchId(matchId);
 
   revalidatePath("/admin/sets");
   revalidatePath(`/matches/${matchId}`);

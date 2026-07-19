@@ -144,7 +144,7 @@ async function main() {
         }
       }
 
-      const summary = await syncLeaguepediaMatchSets(supabase, match.id);
+      const summary = await syncLeaguepediaMatchSets(supabase, match.id, { refreshAiPreview: false });
       setsTotal += summary.upserted;
       picksBansTotal += summary.picksBansUpserted;
       playerStatsTotal += summary.playerStatsUpserted;
