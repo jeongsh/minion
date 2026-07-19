@@ -63,6 +63,10 @@ export function LoginForm() {
         <Link href="/signup" className="font-semibold underline">
           회원가입
         </Link>
+        {" · "}
+        <Link href="/forgot-password" className="font-semibold underline">
+          비밀번호 재설정
+        </Link>
       </p>
     </form>
   );

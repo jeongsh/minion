@@ -6,6 +6,7 @@ import { cookies } from "next/headers";
 
 import { getActiveFanOnions, getFanTemperatureSnapshot } from "@/lib/data/fan-pulse";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { createSupabaseAuthClient } from "@/lib/supabase/auth-server";
 
 const FAN_VOTER_COOKIE = "lckhub_fan_voter";
 const ONION_MAX_LENGTH = 100;
@@ -79,6 +80,86 @@ export async function toggleFanAction(
   if (error) return { ok: false, isFan: false, error: error.message };
   revalidatePath(`/fan/${teamSlug}`);
   return { ok: true, isFan: true };
+}
+
+function isMissingNotificationTable(error: unknown) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error.code === "PGRST205" || error.code === "42P01")
+  );
+}
+
+export async function getFanNotificationEnabled(teamId: string): Promise<boolean> {
+  const supabase = await createSupabaseAuthClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return false;
+
+  const { data, error } = await supabase
+    .from("fan_notification_subscriptions")
+    .select("id")
+    .eq("team_id", teamId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (error) {
+    if (isMissingNotificationTable(error)) return false;
+    throw new Error(error.message);
+  }
+
+  return Boolean(data);
+}
+
+export async function toggleFanNotificationAction(
+  teamId: string,
+  teamSlug: string,
+  nextEnabled: boolean,
+): Promise<{ ok: boolean; enabled: boolean; error?: string }> {
+  const supabase = await createSupabaseAuthClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { ok: false, enabled: false, error: "로그인이 필요합니다." };
+  }
+
+  if (!nextEnabled) {
+    const { error } = await supabase
+      .from("fan_notification_subscriptions")
+      .delete()
+      .eq("team_id", teamId)
+      .eq("user_id", user.id);
+
+    if (error) {
+      return { ok: false, enabled: true, error: isMissingNotificationTable(error) ? "알림 DB 마이그레이션이 필요합니다." : error.message };
+    }
+
+    revalidatePath(`/fan/${teamSlug}`);
+    return { ok: true, enabled: false };
+  }
+
+  const { error } = await supabase
+    .from("fan_notification_subscriptions")
+    .upsert(
+      {
+        team_id: teamId,
+        user_id: user.id,
+        match_alerts: true,
+        news_alerts: true,
+      },
+      { onConflict: "user_id,team_id" },
+    );
+
+  if (error) {
+    return { ok: false, enabled: false, error: isMissingNotificationTable(error) ? "알림 DB 마이그레이션이 필요합니다." : error.message };
+  }
+
+  revalidatePath(`/fan/${teamSlug}`);
+  return { ok: true, enabled: true };
 }
 
 export async function checkinAction(teamId: string, teamSlug: string): Promise<{ ok: boolean; error?: string }> {

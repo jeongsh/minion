@@ -15,7 +15,7 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 import { recordLpEvent } from "@/lib/rank/record-lp";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseAuthClient } from "@/lib/supabase/auth-server";
-import { POLICY_VERSION } from "@/lib/site";
+import { POLICY_VERSION, siteBaseUrl } from "@/lib/site";
 
 const PROFILE_AVATAR_BUCKET = "profile-avatars";
 const MAX_PROFILE_IMAGE_BYTES = 5 * 1024 * 1024;
@@ -87,6 +87,58 @@ export async function signInAction(
 
   if (error) {
     return { error: "이메일 또는 비밀번호가 올바르지 않습니다." };
+  }
+
+  revalidatePath("/", "layout");
+  redirect("/me");
+}
+
+export async function requestPasswordResetAction(
+  _prev: AuthActionState,
+  formData: FormData,
+): Promise<AuthActionState> {
+  const email = String(formData.get("email") ?? "").trim();
+
+  if (!email) {
+    return { error: "이메일을 입력해주세요." };
+  }
+
+  const supabase = await createSupabaseAuthClient();
+  const redirectTo = `${siteBaseUrl()}/auth/callback?next=/reset-password`;
+  const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  return {
+    error: null,
+    message: "계정이 존재하면 비밀번호 재설정 메일을 발송했습니다.",
+  };
+}
+
+export async function resetPasswordAction(
+  _prev: AuthActionState,
+  formData: FormData,
+): Promise<AuthActionState> {
+  const password = String(formData.get("password") ?? "");
+  const confirmPassword = String(formData.get("confirmPassword") ?? "");
+
+  if (!password || !confirmPassword) {
+    return { error: "새 비밀번호를 입력해주세요." };
+  }
+  if (password.length < 6) {
+    return { error: "비밀번호는 6자 이상이어야 합니다." };
+  }
+  if (password !== confirmPassword) {
+    return { error: "비밀번호가 서로 일치하지 않습니다." };
+  }
+
+  const supabase = await createSupabaseAuthClient();
+  const { error } = await supabase.auth.updateUser({ password });
+
+  if (error) {
+    return { error: error.message || "비밀번호 재설정에 실패했습니다." };
   }
 
   revalidatePath("/", "layout");

@@ -33,7 +33,8 @@
     "sync:youtube-videos": "node --experimental-strip-types scripts/sync-youtube-videos.ts",
     "subscribe:youtube-webhooks": "node --experimental-strip-types scripts/subscribe-youtube-webhooks.ts",
     "champions:cleanup": "node --experimental-strip-types scripts/cleanup-champions.ts",
-    "report:weekly": "node --experimental-strip-types scripts/generate-weekly-report.ts"
+    "report:weekly": "node --experimental-strip-types scripts/generate-weekly-report.ts",
+    "uploads:cleanup": "node --experimental-strip-types scripts/cleanup-community-uploads.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",
@@ -53,6 +54,7 @@
     "react": "19.2.7",
     "react-day-picker": "^10.0.1",
     "react-dom": "19.2.7",
+    "sharp": "0.35.3",
     "swiper": "^12.2.0",
     "tiptap-extension-resize-image": "^1.4.3"
   },

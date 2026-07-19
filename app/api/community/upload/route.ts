@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import sharp from "sharp";
 
 import {
   COMMUNITY_UPLOAD_BUCKET,
@@ -7,12 +8,48 @@ import {
   communityUploadPrefix,
   validateCommunityImage,
 } from "@/lib/community/upload-security";
+import { recordOperationalEvent } from "@/lib/observability/operational-events";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseAuthClient } from "@/lib/supabase/auth-server";
 
 export const runtime = "nodejs";
 
 const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
+const COMMUNITY_UPLOAD_TARGET_MAX_EDGE = 2560;
+const COMMUNITY_UPLOAD_WEBP_QUALITY = 84;
+
+async function prepareCommunityImage(bytes: Buffer, validation: ReturnType<typeof validateCommunityImage> & { ok: true }) {
+  if (validation.image.contentType === "image/gif") {
+    return {
+      bytes,
+      contentType: validation.image.contentType,
+      extension: validation.image.extension,
+      width: validation.image.width,
+      height: validation.image.height,
+      transformed: false,
+    };
+  }
+
+  const result = await sharp(bytes)
+    .rotate()
+    .resize({
+      width: COMMUNITY_UPLOAD_TARGET_MAX_EDGE,
+      height: COMMUNITY_UPLOAD_TARGET_MAX_EDGE,
+      fit: "inside",
+      withoutEnlargement: true,
+    })
+    .webp({ quality: COMMUNITY_UPLOAD_WEBP_QUALITY })
+    .toBuffer({ resolveWithObject: true });
+
+  return {
+    bytes: result.data,
+    contentType: "image/webp",
+    extension: "webp",
+    width: result.info.width,
+    height: result.info.height,
+    transformed: true,
+  };
+}
 
 export async function POST(request: Request) {
   let auth;
@@ -72,10 +109,11 @@ export async function POST(request: Request) {
     );
   }
 
-  const objectPath = `${prefix}/${crypto.randomUUID()}.${validation.image.extension}`;
+  const prepared = await prepareCommunityImage(bytes, validation);
+  const objectPath = `${prefix}/${crypto.randomUUID()}.${prepared.extension}`;
   const { error: uploadError } = await admin.storage
     .from(COMMUNITY_UPLOAD_BUCKET)
-    .upload(objectPath, bytes, { contentType: validation.image.contentType, upsert: false });
+    .upload(objectPath, prepared.bytes, { contentType: prepared.contentType, upsert: false });
 
   if (uploadError) {
     return NextResponse.json({ error: uploadError.message || "Image upload failed." }, { status: 500 });
@@ -84,6 +122,34 @@ export async function POST(request: Request) {
   const {
     data: { publicUrl },
   } = admin.storage.from(COMMUNITY_UPLOAD_BUCKET).getPublicUrl(objectPath);
+
+  await admin.from("community_uploads").insert({
+    user_id: user.id,
+    bucket_id: COMMUNITY_UPLOAD_BUCKET,
+    object_path: objectPath,
+    public_url: publicUrl,
+    original_content_type: validation.image.contentType,
+    stored_content_type: prepared.contentType,
+    original_bytes: bytes.byteLength,
+    stored_bytes: prepared.bytes.byteLength,
+    width: prepared.width,
+    height: prepared.height,
+    status: "uploaded",
+  });
+
+  await recordOperationalEvent(admin, {
+    eventType: "community_image_upload",
+    actorUserId: user.id,
+    targetType: "storage.object",
+    targetId: objectPath,
+    metadata: {
+      bucket: COMMUNITY_UPLOAD_BUCKET,
+      originalBytes: bytes.byteLength,
+      storedBytes: prepared.bytes.byteLength,
+      transformed: prepared.transformed,
+      contentType: prepared.contentType,
+    },
+  });
 
   return NextResponse.json({ url: publicUrl });
 }
