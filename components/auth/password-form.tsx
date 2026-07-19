@@ -56,7 +56,7 @@ export function PasswordForm() {
         </p>
       ) : null}
 
-      <Button type="submit" disabled={pending} className="self-start">
+      <Button type="submit" disabled={pending} className="h-11 self-start rounded-lg px-5 font-bold">
         {pending ? "변경 중..." : "비밀번호 변경"}
       </Button>
     </form>
@@ -90,7 +90,7 @@ function Field({
         autoComplete={autoComplete}
         required
         minLength={minLength}
-        className="rounded-md border px-3 py-2 text-sm outline-none focus:border-[var(--accent)]"
+        className="min-h-11 rounded-lg border bg-[var(--ui-surface)] px-3 text-sm outline-none transition focus:border-[var(--accent)] focus:ring-[3px] focus:ring-[color-mix(in_srgb,var(--accent)_18%,transparent)]"
         style={{ borderColor: "var(--border)" }}
       />
       {hint ? (

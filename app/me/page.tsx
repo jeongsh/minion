@@ -79,21 +79,27 @@ export default async function MePage({
   const progress = tierProgress(summary.tier, summary.lp);
 
   return (
-    <main className="layout-form py-6 sm:py-10">
-      <header className="mb-6 flex items-center justify-between gap-3 sm:mb-8">
-        <div className="hidden shrink-0 sm:block">
-          <LogoutButton />
+    <main className="layout-form me-page py-5 sm:py-8">
+      <header className="me-card mb-5 rounded-2xl border p-5 sm:mb-6 sm:p-6">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-[13px] font-bold text-[var(--ui-muted)]">MINION 계정</p>
+            <h1 className="mt-1 text-2xl font-black text-[var(--ui-ink)]">마이페이지</h1>
+            <p className="mt-1 text-sm text-[var(--ui-muted)]">
+              랭크, 프로필, 보안 설정을 한 곳에서 관리합니다.
+            </p>
+          </div>
+          <LogoutButton className="inline-flex min-h-10 shrink-0 items-center rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 text-sm font-bold text-[var(--ui-muted)] transition hover:bg-[var(--ui-surface-muted)] hover:text-[var(--ui-ink)]" />
         </div>
-      </header>
 
-      <nav
-        className="mb-5 flex items-center gap-2 border-b sm:mb-8"
-        style={{ borderColor: "var(--border)" }}
-        aria-label="마이페이지 탭"
-      >
-        <TabLink href="/me" label="마이랭크" active={tab === "rank"} />
-        <TabLink href="/me?tab=account" label="개인정보 수정" active={tab === "account"} />
-      </nav>
+        <nav
+          className="me-tabs mt-5 grid grid-cols-2 gap-1 rounded-xl bg-[var(--ui-surface-muted)] p-1"
+          aria-label="마이페이지 탭"
+        >
+          <TabLink href="/me" label="마이랭크" active={tab === "rank"} />
+          <TabLink href="/me?tab=account" label="개인정보 수정" active={tab === "account"} />
+        </nav>
+      </header>
 
       {tab === "account" ? (
         <AccountPanel
@@ -114,9 +120,9 @@ function TabLink({ href, label, active }: { href: string; label: string; active:
     <Link
       href={href}
       aria-current={active ? "page" : undefined}
-      className={`relative flex min-h-11 items-center px-3 text-sm font-bold transition-colors ${
+      className={`flex min-h-11 items-center justify-center rounded-lg px-3 text-sm font-bold transition ${
         active
-          ? "text-[var(--ui-ink)] after:absolute after:inset-x-1 after:-bottom-px after:h-0.5 after:bg-[var(--ui-ink)]"
+          ? "bg-[var(--ui-surface)] text-[var(--ui-ink)] shadow-[0_1px_0_rgb(24_25_28_/_0.05)]"
           : "text-[var(--ui-muted)] hover:text-[var(--ui-text)]"
       }`}
     >
@@ -139,7 +145,7 @@ function AccountPanel({
   return (
     <>
       <section
-        className="mb-5 rounded-2xl border p-5 sm:mb-8"
+        className="me-card mb-4 rounded-2xl border p-5 sm:mb-6 sm:p-6"
         style={{ borderColor: "var(--border)", backgroundColor: "var(--surface)" }}
       >
         <div className="mb-4">
@@ -156,7 +162,7 @@ function AccountPanel({
       </section>
 
       <section
-        className="mb-5 rounded-2xl border p-5 sm:mb-8"
+        className="me-card mb-4 rounded-2xl border p-5 sm:mb-6 sm:p-6"
         style={{ borderColor: "var(--border)", backgroundColor: "var(--surface)" }}
       >
         <div className="mb-4">
@@ -169,7 +175,7 @@ function AccountPanel({
       </section>
 
       <section
-        className="mb-5 rounded-2xl border p-5 sm:mb-8"
+        className="me-card mb-4 rounded-2xl border p-5 sm:mb-6 sm:p-6"
         style={{ borderColor: "var(--border)", backgroundColor: "var(--surface)" }}
       >
         <div className="mb-4">
@@ -182,7 +188,7 @@ function AccountPanel({
       </section>
 
       <section
-        className="rounded-2xl border p-5"
+        className="me-card rounded-2xl border p-5 sm:p-6"
         style={{ borderColor: "var(--border)", backgroundColor: "var(--surface)" }}
       >
         <div className="mb-4">
@@ -203,66 +209,64 @@ function RankPanel({
 }) {
   return (
     <>
-      <section
-        className="mb-5 rounded-2xl border p-5 sm:mb-8"
-        style={{ borderColor: "var(--border)", backgroundColor: "var(--surface)" }}
-      >
-        <div className="mb-3 flex items-baseline justify-between">
-          <span className="text-base font-bold">{progress.label}</span>
-          <span className="text-sm" style={{ color: "var(--muted)" }}>
-            {summary.lp.toLocaleString()} LP
-            {summary.overallRank ? ` · 전체 ${summary.overallRank}위` : ""}
-          </span>
-        </div>
+      <section className="me-card mb-4 rounded-2xl border p-0 sm:mb-6">
+        <div className="grid gap-0 sm:grid-cols-[minmax(0,1fr)_220px]">
+          <div className="p-5 sm:p-6">
+            <div className="mb-4 flex items-baseline justify-between gap-3">
+              <span className="text-base font-bold">{progress.label}</span>
+              <span className="text-sm" style={{ color: "var(--muted)" }}>
+                {summary.lp.toLocaleString()} LP
+                {summary.overallRank ? ` · 전체 ${summary.overallRank}위` : ""}
+              </span>
+            </div>
 
-        <div
-          className="h-2 w-full overflow-hidden rounded-full"
-          style={{ backgroundColor: "var(--surface-muted)" }}
-        >
-          <div
-            className="h-full rounded-full"
-            style={{
-              width: `${Math.round(progress.progressRatio * 100)}%`,
-              backgroundColor: "var(--accent)",
-            }}
-          />
-        </div>
+            <div
+              className="h-2.5 w-full overflow-hidden rounded-full"
+              style={{ backgroundColor: "var(--surface-muted)" }}
+            >
+              <div
+                className="h-full rounded-full"
+                style={{
+                  width: `${Math.round(progress.progressRatio * 100)}%`,
+                  backgroundColor: "var(--accent)",
+                }}
+              />
+            </div>
 
-        <p className="mt-2 text-sm" style={{ color: "var(--muted)" }}>
-          {progress.nextTier && progress.nextThreshold !== null
-            ? `다음 티어(${progress.nextTierLabel})까지 ${
-                progress.nextThreshold - summary.lp
-              } LP`
-            : "최고 티어에 도달했어요."}
-        </p>
+            <p className="mt-2 text-sm" style={{ color: "var(--muted)" }}>
+              {progress.nextTier && progress.nextThreshold !== null
+                ? `다음 티어(${progress.nextTierLabel})까지 ${
+                    progress.nextThreshold - summary.lp
+                  } LP`
+                : "최고 티어에 도달했어요."}
+            </p>
+          </div>
+
+          <div className="border-t border-[var(--ui-border)] p-5 sm:border-l sm:border-t-0 sm:p-6">
+            <h2 className="mb-3 text-base font-bold">출석체크</h2>
+            <CheckInButton alreadyChecked={summary.checkedInToday} />
+          </div>
+        </div>
       </section>
 
       <section
-        className="mb-5 rounded-2xl border p-5 sm:mb-8"
+        className="me-card rounded-2xl border p-0"
         style={{ borderColor: "var(--border)", backgroundColor: "var(--surface)" }}
       >
-        <h2 className="mb-3 text-base font-bold">출석체크</h2>
-        <CheckInButton alreadyChecked={summary.checkedInToday} />
-      </section>
-
-      <section
-        className="rounded-2xl border p-4 sm:p-5"
-        style={{ borderColor: "var(--border)", backgroundColor: "var(--surface)" }}
-      >
-        <h2 className="mb-3 text-base font-bold">최근 LP 변동</h2>
+        <h2 className="px-5 pb-1 pt-5 text-base font-bold sm:px-6 sm:pt-6">최근 LP 변동</h2>
         {summary.recentLedger.length === 0 ? (
           <p className="text-sm" style={{ color: "var(--muted)" }}>
             아직 LP 변동 내역이 없어요.
           </p>
         ) : (
-          <ul className="flex flex-col divide-y" style={{ borderColor: "var(--border)" }}>
+          <ul className="me-ledger-list flex flex-col px-5 pb-4 sm:px-6 sm:pb-5">
             {summary.recentLedger.map((entry) => (
               <li
                 key={entry.id}
-                className="flex items-center justify-between py-2.5 text-sm"
+                className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-3 text-sm"
               >
-                <span>{REASON_LABELS[entry.reason] ?? entry.reason}</span>
-                <span className="flex items-center gap-3">
+                <span className="min-w-0 truncate font-medium">{REASON_LABELS[entry.reason] ?? entry.reason}</span>
+                <span className="flex items-center gap-3 whitespace-nowrap">
                   <span
                     className="font-bold"
                     style={{ color: entry.delta >= 0 ? "#16a34a" : "#dc2626" }}

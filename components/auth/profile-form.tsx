@@ -42,7 +42,7 @@ export function ProfileForm({
         <div className="min-w-0 flex-1">
           <label
             htmlFor="profileImage"
-            className="inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-xl border border-[var(--ui-border)] px-3 text-sm font-black hover:bg-[var(--ui-surface-muted)]"
+            className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-4 text-sm font-bold transition hover:bg-[var(--ui-surface-muted)]"
           >
             <Camera size={16} />
             프로필 이미지 변경
@@ -77,7 +77,7 @@ export function ProfileForm({
           minLength={2}
           maxLength={20}
           required
-          className="rounded-md border px-3 py-2 text-sm outline-none focus:border-[var(--accent)]"
+          className="min-h-11 rounded-lg border bg-[var(--ui-surface)] px-3 text-sm outline-none transition focus:border-[var(--accent)] focus:ring-[3px] focus:ring-[color-mix(in_srgb,var(--accent)_18%,transparent)]"
           style={{ borderColor: "var(--border)" }}
         />
         <p className="text-[13px]" style={{ color: "var(--muted)" }}>
@@ -95,7 +95,7 @@ export function ProfileForm({
         </p>
       ) : null}
 
-      <Button type="submit" disabled={pending} className="self-start">
+      <Button type="submit" disabled={pending} className="h-11 self-start rounded-lg px-5 font-bold">
         {pending ? "저장 중..." : "프로필 저장"}
       </Button>
     </form>

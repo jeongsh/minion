@@ -386,12 +386,8 @@ html[class~="dark"] .app-lnb a[data-active="true"] {
 }
 .fan-nav-scroll::-webkit-scrollbar { display: none; }
 
-.fan-nav-scroll {
-  mask-image: linear-gradient(to right, transparent, black 0.75rem, black calc(100% - 0.75rem), transparent);
-}
-
-/* fan-nav-scroll과 달리 가장자리 페이드가 없다. 컨테이너 끝에서 바로 시작하는 탭 레일은
-   마스크를 쓰면 첫/마지막 탭 글자가 잘려 보여서 스크롤바만 숨긴다. */
+/* 가로 스크롤 레일은 스크롤바만 숨긴다. 가장자리 페이드 마스크는 첫/마지막 항목에
+   그림자처럼 보일 수 있어서 사용하지 않는다. */
 .tab-scroll {
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
@@ -511,9 +507,6 @@ html[class~="dark"] .app-lnb a[data-active="true"] {
     --ui-header-height: 64px;
   }
 
-  .fan-nav-scroll {
-    mask-image: linear-gradient(to right, transparent, black 1.25rem, black calc(100% - 1.25rem), transparent);
-  }
 }
 
 @media (min-width: 768px) {
@@ -978,3 +971,32 @@ html[class~="dark"] .hub-home .bg-\[\#00b979\] {
 
 .bg-team-blue{ background-color: var(--team-blue); }
 .bg-team-red{ background-color: var(--team-red); }
+
+.me-page {
+  --me-card-border: color-mix(in srgb, var(--ui-border) 86%, var(--ui-surface));
+  --me-card-shadow: 0 1px 0 rgb(24 25 28 / 0.03);
+}
+
+.me-page .me-tabs {
+  border-color: var(--ui-border);
+}
+
+.me-page .me-card {
+  border-color: var(--me-card-border) !important;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--ui-surface) 96%, var(--ui-surface-muted)), var(--ui-surface));
+  box-shadow: var(--me-card-shadow);
+}
+
+.me-page .me-ledger-list > li + li {
+  border-top: 1px solid color-mix(in srgb, var(--ui-border) 78%, transparent);
+}
+
+.me-page :is(input, button, label[for="profileImage"]) {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html[class~="dark"] .me-page {
+  --me-card-border: var(--ui-border);
+  --me-card-shadow: none;
+}

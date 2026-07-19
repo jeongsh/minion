@@ -270,7 +270,7 @@ export function AppShell({
         </aside>
       ) : null}
 
-      <div className={`flex min-h-screen flex-col pt-14 transition-[padding] sm:pt-16 ${compactHubShell ? "md:pl-16" : ""} ${focusRoute ? "" : collapsed ? "min-[1200px]:pl-[72px]" : "min-[1200px]:pl-[216px]"}`}>
+      <div className={`flex min-h-screen flex-col pt-14 transition-[padding] sm:pt-16 ${compactHubShell ? "md:max-[1199px]:pl-16" : ""} ${focusRoute ? "" : collapsed ? "min-[1200px]:pl-[72px]" : "min-[1200px]:pl-[216px]"}`}>
         <div className={`flex-1 bg-[var(--ui-surface)] ${compactHubShell ? "compact-hub-content pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0" : "pb-0"}`} data-shell-content={compactHubShell ? "compact-hub" : undefined}>{children}</div>
         {!focusRoute ? <SiteFooter /> : null}
       </div>

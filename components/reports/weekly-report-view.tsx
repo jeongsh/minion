@@ -93,6 +93,7 @@ export function WeeklyReportView({ report, index }: { report: WeeklyReportRow; i
   const bySlug = new Map(stats.champions.map((c) => [c.slug, c]));
   const patchLabel = stats.patches.join(", ") || "—";
   const generatedAt = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", dateStyle: "long", timeStyle: "short" }).format(new Date(report.generated_at));
+  const sourceLabel = meta.sources?.length ? meta.sources.map((source) => source.title).join(", ") : "MINION match/stat dataset";
   const banChamp = meta.banSpotlight ? bySlug.get(meta.banSpotlight.championSlug) : undefined;
   const presenceTop = [...stats.champions].sort((a, b) => b.presenceRate - a.presenceRate).slice(0, 5);
   const TIER_ROWS = [
@@ -135,6 +136,14 @@ export function WeeklyReportView({ report, index }: { report: WeeklyReportRow; i
           </div>
           <h1 style={{ margin: "26px 0 0", maxWidth: 900, fontFamily: DISPLAY, fontSize: "clamp(34px, 6.2vw, 64px)", lineHeight: 1.16, letterSpacing: "-0.01em", color: INK, textWrap: "balance", wordBreak: "keep-all" }}>{content.headline}</h1>
           <p style={{ margin: "22px 0 0", maxWidth: 720, fontSize: 17, fontWeight: 500, lineHeight: 1.7, color: BODY }}>{content.subtitle}</p>
+          <div style={{ marginTop: 22, maxWidth: 820, border: `1px solid ${LINE}`, background: `color-mix(in srgb, ${FILL} 55%, ${SURFACE})`, padding: "16px 18px" }}>
+            <p style={{ margin: 0, fontSize: 11, fontWeight: 900, letterSpacing: "0.16em", textTransform: "uppercase", color: FAINT }}>
+              Report trust note
+            </p>
+            <p style={{ margin: "8px 0 0", fontSize: 13, fontWeight: 700, lineHeight: 1.7, color: MUTED }}>
+              AI 생성 리포트 · 생성 {generatedAt}{report.model ? ` · 모델 ${report.model}` : ""} · 데이터 출처 {sourceLabel}. 예측과 해석은 참고용이며 실제 경기 결과와 다를 수 있습니다.
+            </p>
+          </div>
           <div style={{ marginTop: 44, display: "flex", gap: 10, flexWrap: "wrap" }}>
             {[
               { label: "Matches", value: String(stats.matchCount) },

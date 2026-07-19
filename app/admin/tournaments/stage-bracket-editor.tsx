@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 
 import {
   deleteMatchAction,
@@ -64,6 +64,17 @@ const EMPTY_STAGE_BOARD: StageBoard = { upper: [], lower: [] };
 
 function stageBoardOf(board: Board, stageId: string): StageBoard {
   return board[stageId] ?? EMPTY_STAGE_BOARD;
+}
+
+function withMissingStageBoards(board: Board, stages: EditorStage[]) {
+  const missing = stages.filter((stage) => !board[stage.id]);
+  if (missing.length === 0) return board;
+
+  const next = { ...board };
+  for (const stage of missing) {
+    next[stage.id] = EMPTY_STAGE_BOARD;
+  }
+  return next;
 }
 
 function formatMatchDate(value: string) {
@@ -222,28 +233,12 @@ export function TournamentBracketEditor({
   initialBoard: Board;
   matchOptions: MatchOptionGroup[];
 }) {
-  const [board, setBoard] = useState<Board>(initialBoard);
+  const [board, setBoard] = useState<Board>(() => withMissingStageBoards(initialBoard, stages));
   const [saving, setSaving] = useState(false);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const dragId = useRef<string | null>(null);
   const [renamingStageId, setRenamingStageId] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState("");
-
-  // 서버 재검증(revalidatePath) 이후 다시 렌더링될 때 stages 목록에 새로 등장한
-  // 스테이지(예: 방금 매치가 처음 옮겨진 라운드)가 있으면 로컬 board에 채워 넣는다.
-  // 이미 로컬에 갖고 있는 스테이지는 건드리지 않아 진행 중인 편집을 보존한다.
-  useEffect(() => {
-    setBoard((prev) => {
-      const missing = stages.filter((stage) => !prev[stage.id]);
-      if (missing.length === 0) return prev;
-
-      const next = { ...prev };
-      for (const stage of missing) {
-        next[stage.id] = initialBoard[stage.id] ?? EMPTY_STAGE_BOARD;
-      }
-      return next;
-    });
-  }, [stages, initialBoard]);
 
   async function persist(columns: BracketColumnUpdate[]) {
     setSaving(true);

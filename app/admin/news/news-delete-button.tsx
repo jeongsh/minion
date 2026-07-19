@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { deleteVideoAction, deletePostAction } from "./actions";
 
@@ -11,11 +11,8 @@ export function NewsDeleteButton({
   id: string;
   type: "video" | "post";
 }) {
-  const [confirm, setConfirm] = useState(false);
-
-  useEffect(() => {
-    setConfirm(false);
-  }, [id]);
+  const [confirmState, setConfirmState] = useState({ id: "", active: false });
+  const confirm = confirmState.id === id && confirmState.active;
 
   const action = type === "video" ? deleteVideoAction : deletePostAction;
 
@@ -30,7 +27,7 @@ export function NewsDeleteButton({
         </form>
         <Button
           type="button"
-          onClick={() => setConfirm(false)}
+          onClick={() => setConfirmState({ id, active: false })}
           variant="secondary"
           size="sm"
         >
@@ -43,7 +40,7 @@ export function NewsDeleteButton({
   return (
     <Button
       type="button"
-      onClick={() => setConfirm(true)}
+      onClick={() => setConfirmState({ id, active: true })}
       variant="danger"
       size="sm"
     >

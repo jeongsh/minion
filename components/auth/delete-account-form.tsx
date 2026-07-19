@@ -39,7 +39,7 @@ export function DeleteAccountForm() {
               type="password"
               autoComplete="current-password"
               required
-              className="rounded-md border px-3 py-2 text-sm outline-none focus:border-[var(--accent)]"
+              className="min-h-11 rounded-lg border bg-[var(--ui-surface)] px-3 text-sm outline-none transition focus:border-[var(--accent)] focus:ring-[3px] focus:ring-[color-mix(in_srgb,var(--accent)_18%,transparent)]"
               style={{ borderColor: "var(--border)" }}
             />
           </div>
@@ -57,7 +57,7 @@ export function DeleteAccountForm() {
               placeholder={DELETE_ACCOUNT_CONFIRM_TEXT}
               autoComplete="off"
               required
-              className="rounded-md border px-3 py-2 text-sm outline-none focus:border-[var(--accent)]"
+              className="min-h-11 rounded-lg border bg-[var(--ui-surface)] px-3 text-sm outline-none transition focus:border-[var(--accent)] focus:ring-[3px] focus:ring-[color-mix(in_srgb,var(--accent)_18%,transparent)]"
               style={{ borderColor: "var(--border)" }}
             />
             <p className="text-[13px]" style={{ color: "var(--muted)" }}>
@@ -76,6 +76,7 @@ export function DeleteAccountForm() {
               type="submit"
               variant="danger"
               disabled={pending || !confirmed}
+              className="h-11 rounded-lg px-5 font-bold"
             >
               {pending ? "탈퇴 처리 중..." : "회원 탈퇴"}
             </Button>
@@ -83,6 +84,7 @@ export function DeleteAccountForm() {
               type="button"
               variant="secondary"
               disabled={pending}
+              className="h-11 rounded-lg px-5 font-bold"
               onClick={() => {
                 setOpen(false);
                 setConfirmText("");
@@ -96,7 +98,7 @@ export function DeleteAccountForm() {
         <Button
           type="button"
           variant="danger"
-          className="self-start"
+          className="h-11 self-start rounded-lg px-5 font-bold"
           onClick={() => setOpen(true)}
         >
           회원 탈퇴

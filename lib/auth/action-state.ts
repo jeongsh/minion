@@ -4,6 +4,7 @@
 
 export type AuthActionState = {
   error: string | null;
+  message?: string | null;
 };
 
 export const INITIAL_AUTH_STATE: AuthActionState = { error: null };

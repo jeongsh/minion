@@ -26,11 +26,8 @@ export function HeaderSearch({ className = "" }: { className?: string }) {
   useEffect(() => {
     const term = query.trim();
     if (term.length === 0) {
-      setResults([]);
-      setLoading(false);
       return;
     }
-    setLoading(true);
     const controller = new AbortController();
     const timer = setTimeout(async () => {
       try {
@@ -98,7 +95,15 @@ export function HeaderSearch({ className = "" }: { className?: string }) {
           ref={inputRef}
           value={query}
           onChange={(event) => {
-            setQuery(event.target.value);
+            const nextQuery = event.target.value;
+            setQuery(nextQuery);
+            if (nextQuery.trim().length === 0) {
+              setResults([]);
+              setLoading(false);
+              setActiveIndex(-1);
+            } else {
+              setLoading(true);
+            }
             setOpen(true);
           }}
           onFocus={() => setOpen(true)}
@@ -118,6 +123,8 @@ export function HeaderSearch({ className = "" }: { className?: string }) {
             onClick={() => {
               setQuery("");
               setResults([]);
+              setLoading(false);
+              setActiveIndex(-1);
               inputRef.current?.focus();
             }}
             aria-label="검색어 지우기"

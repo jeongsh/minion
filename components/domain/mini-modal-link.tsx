@@ -28,10 +28,7 @@ export function MiniModalLink({
 }) {
   const anchorRef = useRef<HTMLAnchorElement>(null);
   const [visible, setVisible] = useState(false);
-  const [mounted, setMounted] = useState(false);
   const [style, setStyle] = useState<React.CSSProperties>({});
-
-  useEffect(() => setMounted(true), []);
 
   const updatePosition = useCallback(() => {
     const anchor = anchorRef.current;
@@ -90,7 +87,7 @@ export function MiniModalLink({
       >
         {label}
       </Link>
-      {mounted && visible
+      {typeof document !== "undefined" && visible
         ? createPortal(
             <div
               style={style}

@@ -1,6 +1,7 @@
-import { Bell, CheckCircle2 } from "lucide-react";
+﻿import { CheckCircle2 } from "lucide-react";
 
-import { getIsFan } from "@/app/fan/[teamSlug]/actions";
+import { getFanNotificationEnabled, getIsFan } from "@/app/fan/[teamSlug]/actions";
+import { FanAlarmButton } from "@/components/fan/fan-alarm-button";
 import { FanFollowButton } from "@/components/fan/fan-follow-button";
 import { FanPredictionCard } from "@/components/fan/fan-prediction-card";
 import { FanTicker } from "@/components/fan/fan-ticker";
@@ -67,19 +68,6 @@ function resultOf(match: Match, team: Team) {
   return `${ownScore > opponentScore ? "승" : "패"} ${ownScore}:${opponentScore}`;
 }
 
-function AlarmButton({ compact = false }: { compact?: boolean }) {
-  return (
-    <button
-      type="button"
-      className={`inline-flex min-w-0 items-center justify-center gap-2 rounded-full border border-[var(--ui-border)] bg-[var(--ui-surface)] font-extrabold text-[var(--ui-ink)] shadow-sm transition hover:bg-[var(--ui-surface-muted)] active:scale-[0.97] ${
-        compact ? "h-9 px-3 text-[14px] sm:h-10 sm:px-4" : "min-h-11 px-5 py-2.5 text-sm"
-      }`}
-    >
-      <Bell size={compact ? 15 : 16} aria-hidden="true" />
-      <span>알람</span>
-    </button>
-  );
-}
 
 export async function FanChannelHeader({ teamSlug }: { teamSlug: string }) {
   const [team, teams, matches] = await Promise.all([
@@ -93,10 +81,10 @@ export async function FanChannelHeader({ teamSlug }: { teamSlug: string }) {
   // eslint-disable-next-line react-hooks/purity
   const now = Date.now();
   const ownMatches = matches.filter((match) => match.teamAId === team.id || match.teamBId === team.id);
-  // status만 보면, 경기가 이미 시작했는데 status 동기화가 아직 "scheduled"에 머물러
-  // 있는 경기가 live로도 안 잡히고 upcoming(시작시각 지남)에서도 빠져서 recentMatches의
-  // "matchDate < now" 폴백에 걸려 "경기 종료"로 잘못 표시됐다. isMatchLive로 통일해서
-  // 나머지 화면(schedule-list.tsx 등)과 같은 기준을 쓴다.
+  // status留?蹂대㈃, 寃쎄린媛 ?대? ?쒖옉?덈뒗??status ?숆린?붽? ?꾩쭅 "scheduled"??癒몃Ъ??
+  // ?덈뒗 寃쎄린媛 live濡쒕룄 ???≫엳怨?upcoming(?쒖옉?쒓컖 吏???먯꽌??鍮좎졇??recentMatches??
+  // "matchDate < now" ?대갚??嫄몃젮 "寃쎄린 醫낅즺"濡??섎せ ?쒖떆?먮떎. isMatchLive濡??듭씪?댁꽌
+  // ?섎㉧吏 ?붾㈃(schedule-list.tsx ??怨?媛숈? 湲곗????대떎.
   const live = ownMatches.find((match) => isMatchLive(match, now));
   const upcomingMatches = ownMatches
     .filter((match) => match.status === "scheduled" && new Date(match.matchDate).getTime() >= now)
@@ -121,9 +109,10 @@ export async function FanChannelHeader({ teamSlug }: { teamSlug: string }) {
           : "일정 없음";
 
   const user = await getCurrentUser();
-  const [fanCount, isFan, predictionMarket] = await Promise.all([
+  const [fanCount, isFan, notificationEnabled, predictionMarket] = await Promise.all([
     getTeamFanCount(team.id),
     getIsFan(team.id),
+    user ? getFanNotificationEnabled(team.id) : Promise.resolve(false),
     getPredictionMarketData(user?.id),
   ]);
 
@@ -180,7 +169,7 @@ export async function FanChannelHeader({ teamSlug }: { teamSlug: string }) {
               teamColor={team.primaryColor}
               variant="channel"
             />
-            <AlarmButton compact />
+            <FanAlarmButton teamId={team.id} teamSlug={team.fanSiteHost} initialEnabled={notificationEnabled} compact />
           </div>
         </div>
       </header>
@@ -200,7 +189,7 @@ export async function FanChannelHeader({ teamSlug }: { teamSlug: string }) {
                   {badge}
                 </span>
                 <span className="text-[13px] font-extrabold tracking-[0.12em] text-[var(--ui-text)]">
-                  {match?.name?.trim() || "다가올 경기를 기다리는 중"}
+                  {match?.name?.trim() || "다음 경기를 기다리는 중"}
                 </span>
               </div>
               <div className="flex items-baseline gap-5">
@@ -224,7 +213,7 @@ export async function FanChannelHeader({ teamSlug }: { teamSlug: string }) {
                   initialFollowing={isFan}
                   teamColor={team.primaryColor}
                 />
-                <AlarmButton />
+                <FanAlarmButton teamId={team.id} teamSlug={team.fanSiteHost} initialEnabled={notificationEnabled} />
               </div>
             </div>
             <FanPredictionCard
