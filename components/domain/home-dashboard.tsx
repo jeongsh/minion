@@ -188,6 +188,26 @@ export function HomeDashboard({
       ) : null}
 
       <Ad placement="horizontal" className="mt-4 hidden h-[60px] md:block xl:mt-8 xl:h-[90px]" />
+      <section className="mt-7 md:hidden">
+        <Heading href="/schedule">오늘의 매치</Heading>
+        {todayMatches.length > 0 ? (
+          <div className="grid gap-3">
+            {todayMatches.slice(0, 2).map((m) => (
+              <TodayMatchCard
+                key={m.id}
+                match={m}
+                teams={byId}
+                bets={predictionBetsByMatchId.get(m.id) ?? []}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-[#e6e7ea] bg-white p-4 text-sm font-bold text-[#686b72] dark:bg-[var(--ui-surface-muted)]">
+            오늘 예정된 경기가 없습니다.
+          </div>
+        )}
+      </section>
+
       <section className="mt-7 sm:mt-8">
         <Heading href="/teams">팀 채널</Heading>
         <div className="grid grid-cols-5 gap-2 sm:grid-cols-10 sm:gap-3 xl:gap-4">
