@@ -8,6 +8,7 @@ import { ko } from "react-day-picker/locale";
 import "react-day-picker/style.css";
 
 import type { CalendarEvent, CalendarEventType } from "@/lib/calendar/events";
+import { CELEBRATION_COLOR } from "@/lib/calendar/theme";
 
 export type HomeCalendarMatch = {
   id: string;
@@ -28,7 +29,7 @@ type DotType = "match" | CalendarEventType;
 // 우승(championship)은 별도 색을 지정하지 않고 기념일과 같은 취급으로 묶는다.
 const DOT_META: Record<DotType, { color: string; label: string; emoji: string }> = {
   match: { color: "#00b979", label: "경기", emoji: "🎮" },
-  birthday: { color: "#ef4444", label: "생일", emoji: "🎂" },
+  birthday: { color: CELEBRATION_COLOR, label: "생일", emoji: "🎂" },
   debut: { color: "#7c5cff", label: "데뷔", emoji: "🎉" },
   championship: { color: "#f5c518", label: "기념일", emoji: "🏆" },
   custom: { color: "#f5c518", label: "기념일", emoji: "🎈" },

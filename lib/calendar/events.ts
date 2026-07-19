@@ -32,6 +32,8 @@ export type CalendarEvent = {
   teamShort: string | null;
   teamColor: string | null;
   teamLogoUrl: string | null;
+  /** 팬사이트 경로 슬러그. 축하 게시판 링크 생성용 */
+  teamFanSlug: string | null;
 };
 
 const TYPE_LABEL: Record<CalendarEventType, string> = {
@@ -162,6 +164,7 @@ export const getCalendarEvents = cache(async function getCalendarEvents(opts?: {
       teamShort: team?.shortName ?? null,
       teamColor: team?.primaryColor ?? null,
       teamLogoUrl: team?.logoUrl ?? null,
+      teamFanSlug: team?.fanSiteHost || team?.slug || null,
     });
   }
 
@@ -193,6 +196,7 @@ export const getCalendarEvents = cache(async function getCalendarEvents(opts?: {
       teamShort: team?.shortName ?? null,
       teamColor: team?.primaryColor ?? null,
       teamLogoUrl: team?.logoUrl ?? null,
+      teamFanSlug: team?.fanSiteHost || team?.slug || null,
     });
   }
 
@@ -205,36 +209,41 @@ export function getTodayCelebrations(events: CalendarEvent[]): CalendarEvent[] {
   return events.filter((e) => e.dday === 0);
 }
 
-export type CelebrationMessage = {
-  id: string;
-  eventKey: string;
-  authorName: string | null;
-  message: string;
-  createdAt: string;
-};
+/** 축하글이 모이는 게시판 경로. 팀이 없는 기념일은 허브 커뮤니티로 보낸다. */
+export function celebrationBoardHref(event: CalendarEvent): string {
+  return event.teamFanSlug ? `/fan/${event.teamFanSlug}/community` : "/community";
+}
 
-/** 특정 이벤트의 축하 메시지 목록(최신순). */
-export const getCelebrationMessages = cache(async function getCelebrationMessages(
+/** 축하글 작성 경로. 팀 게시판이면 '응원' 말머리를 미리 골라준다. */
+export function celebrationWriteHref(event: CalendarEvent): string {
+  const params = new URLSearchParams({ celebrate: event.key });
+  if (!event.teamFanSlug) return `/community/new?${params.toString()}`;
+  params.set("cat", "cheer");
+  return `/fan/${event.teamFanSlug}/community/new?${params.toString()}`;
+}
+
+/** 축하글 기본 제목(작성 폼 프리필용). */
+export function celebrationPostTitle(event: CalendarEvent): string {
+  if (event.type === "birthday") {
+    const nth = event.yearsCount ? ` ${event.yearsCount}번째` : "";
+    return `🎂 ${event.subjectName} 선수${nth} 생일 축하해요!`;
+  }
+  // 기념일 title에는 이미 "n주년"이 포함되어 있다.
+  return `🎉 ${event.title} 축하해요!`;
+}
+
+/**
+ * eventKey에 해당하는 '오늘의' 기념일을 찾는다.
+ * 클라이언트가 넘긴 키를 그대로 믿지 않기 위한 서버측 검증도 겸한다.
+ */
+export async function findTodayCelebration(
   eventKey: string,
-): Promise<CelebrationMessage[]> {
-  if (!canQuerySupabase()) return [];
-  const { data } = await createSupabaseServerClient()
-    .from("celebration_messages")
-    .select("id, event_key, author_name, message, created_at")
-    .eq("event_key", eventKey)
-    .order("created_at", { ascending: false })
-    .limit(200);
-
-  return ((data as { id: string; event_key: string; author_name: string | null; message: string; created_at: string }[] | null) ?? []).map(
-    (row) => ({
-      id: row.id,
-      eventKey: row.event_key,
-      authorName: row.author_name,
-      message: row.message,
-      createdAt: row.created_at,
-    }),
-  );
-});
+  opts?: { teamId?: string },
+): Promise<CalendarEvent | null> {
+  if (!eventKey) return null;
+  const events = await getCalendarEvents(opts);
+  return getTodayCelebrations(events).find((event) => event.key === eventKey) ?? null;
+}
 
 export type FanCalendarEventRow = {
   id: string;

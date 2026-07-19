@@ -7,8 +7,7 @@ import { hotSortValue, isHotPost } from "@/lib/community/hot";
 import { dateKeyKST, formatTimeKST, matchHref } from "@/lib/view-data";
 import { getPredictionMarketData } from "@/lib/predictions";
 import { getCurrentUser } from "@/lib/auth/current-user";
-import { getCelebrationMessages, getTodayCelebrations } from "@/lib/calendar/events";
-import type { CelebrationBannerItem } from "@/components/domain/celebration-banner";
+import { getTodayCelebrations } from "@/lib/calendar/events";
 
 export const dynamic = "force-dynamic";
 
@@ -33,14 +32,8 @@ export default async function HomePage() {
   ]);
   const { teams, matches, savedStandings, tournaments, latestVideos, homeHeroSlides, calendarEvents } = homeData;
 
-  // 오늘의 기념일 + 각 축하 보드 초기 메시지.
+  // 오늘의 기념일. 배너를 누르면 해당 팀 게시판으로 이동한다.
   const todayCelebrations = getTodayCelebrations(calendarEvents);
-  const celebrationItems: CelebrationBannerItem[] = await Promise.all(
-    todayCelebrations.map(async (event) => ({
-      event,
-      messages: await getCelebrationMessages(event.key),
-    })),
-  );
 
   const teamsById = new Map(teams.map((team) => [team.id, team]));
   const latestSeason = tournaments.length > 0 ? Math.max(...tournaments.map((tournament) => tournament.season)) : 2026;
@@ -159,8 +152,7 @@ export default async function HomePage() {
       calendarMonthKey={calendarMonthKey}
       calendarMatches={calendarClientMatches}
       calendarEvents={calendarEvents}
-      celebrationItems={celebrationItems}
-      isLoggedIn={Boolean(user)}
+      celebrationEvents={todayCelebrations}
       latestVideos={latestVideos}
       heroSlides={heroSlides}
       communityPosts={homeCommunityPosts}

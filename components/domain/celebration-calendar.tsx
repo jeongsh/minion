@@ -8,9 +8,10 @@ import { ko } from "react-day-picker/locale";
 import "react-day-picker/style.css";
 
 import type { CalendarEvent, CalendarEventType } from "@/lib/calendar/events";
+import { CELEBRATION_COLOR } from "@/lib/calendar/theme";
 
 const TYPE_META: Record<CalendarEventType, { emoji: string; color: string; label: string }> = {
-  birthday: { emoji: "🎂", color: "#ff3f7f", label: "생일" },
+  birthday: { emoji: "🎂", color: CELEBRATION_COLOR, label: "생일" },
   debut: { emoji: "🎉", color: "#7c5cff", label: "데뷔" },
   championship: { emoji: "🏆", color: "#f5a623", label: "우승" },
   custom: { emoji: "🎈", color: "#12b886", label: "기념일" },

@@ -11,7 +11,7 @@ import {
 } from "@/components/domain/home-calendar";
 import { HomeBoardCarousel } from "@/components/domain/home-board-carousel";
 import { HomeTodayMatchesSwiper } from "@/components/domain/home-today-matches-swiper";
-import { CelebrationBanner, type CelebrationBannerItem } from "@/components/domain/celebration-banner";
+import { CelebrationBanner } from "@/components/domain/celebration-banner";
 import type { CalendarEvent } from "@/lib/calendar/events";
 import { isMatchLive } from "@/lib/match-display";
 import { teams as themeTeams } from "@/lib/team-themes";
@@ -46,8 +46,7 @@ type Props = {
   calendarMonthKey: string;
   calendarMatches: HomeCalendarMatch[];
   calendarEvents: CalendarEvent[];
-  celebrationItems: CelebrationBannerItem[];
-  isLoggedIn: boolean;
+  celebrationEvents: CalendarEvent[];
   latestVideos: TeamVideo[];
   heroSlides: HomeHeroSwiperSlide[];
   communityPosts: CommunityPostDetail[];
@@ -135,8 +134,7 @@ export function HomeDashboard({
   calendarMonthKey,
   calendarMatches,
   calendarEvents,
-  celebrationItems,
-  isLoggedIn,
+  celebrationEvents,
   latestVideos,
   heroSlides,
   communityPosts,
@@ -181,9 +179,9 @@ export function HomeDashboard({
         </div>
       </section>
 
-      {celebrationItems.length > 0 ? (
+      {celebrationEvents.length > 0 ? (
         <section className="mt-6">
-          <CelebrationBanner items={celebrationItems} isLoggedIn={isLoggedIn} />
+          <CelebrationBanner events={celebrationEvents} />
         </section>
       ) : null}
 

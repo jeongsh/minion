@@ -24,11 +24,10 @@ import {
 } from "@/lib/data/lck";
 import { getBoardPosts } from "@/lib/data/community";
 import { buildFanVideoItems } from "@/lib/fan-video-items";
-import { getCalendarEvents, getCelebrationMessages, getTodayCelebrations } from "@/lib/calendar/events";
-import { getCurrentUser } from "@/lib/auth/current-user";
+import { getCalendarEvents, getTodayCelebrations } from "@/lib/calendar/events";
 import { shouldUseWhiteLogoOnDark } from "@/lib/team-logos";
 import { dateKeyKST, formatTimeKST, matchHref } from "@/lib/view-data";
-import { CelebrationBanner, type CelebrationBannerItem } from "@/components/domain/celebration-banner";
+import { CelebrationBanner } from "@/components/domain/celebration-banner";
 import type { Match, Player, Team } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -205,22 +204,15 @@ export default async function FanHomePage({
   // fanSiteHost가 비어 있으면 진입에 사용한 slug로 폴백해 하위 링크가 /fan/undefined로 깨지지 않게 한다.
   const fanSlug = team.fanSiteHost ?? teamSlug;
 
-  const [teams, players, matches, boardPosts, calendarEvents, user] = await Promise.all([
+  const [teams, players, matches, boardPosts, calendarEvents] = await Promise.all([
     getAllTeams(),
     getPlayers(),
     getMatches(),
     getBoardPosts({ scope: "team", teamId: team.id }),
     getCalendarEvents({ teamId: team.id }),
-    getCurrentUser(),
   ]);
 
   const todayCelebrations = getTodayCelebrations(calendarEvents);
-  const celebrationItems: CelebrationBannerItem[] = await Promise.all(
-    todayCelebrations.map(async (event) => ({
-      event,
-      messages: await getCelebrationMessages(event.key),
-    })),
-  );
   const calendarMonthKey = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Seoul",
     year: "numeric",
@@ -312,9 +304,9 @@ export default async function FanHomePage({
         className="fan-home-page flex flex-col gap-5 text-[var(--ui-ink)] md:gap-8"
         style={{ "--tp": team.primaryColor } as React.CSSProperties}
       >
-        {/* 오늘의 기념일 배너 */}
-        {celebrationItems.length > 0 ? (
-          <CelebrationBanner items={celebrationItems} isLoggedIn={Boolean(user)} />
+        {/* 오늘의 기념일 배너 → 팀 게시판으로 이동 */}
+        {todayCelebrations.length > 0 ? (
+          <CelebrationBanner events={todayCelebrations} />
         ) : null}
 
         {/* 모바일은 다음 경기 한 건만 노출하고 캘린더는 필요할 때 연다. */}

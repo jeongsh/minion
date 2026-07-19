@@ -1,10 +1,16 @@
-"use client";
+import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 
-import { useState } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
-
-import type { CalendarEvent, CelebrationMessage } from "@/lib/calendar/events";
-import { CelebrationBoard } from "@/components/domain/celebration-board";
+import {
+  celebrationBoardHref,
+  celebrationWriteHref,
+  type CalendarEvent,
+} from "@/lib/calendar/events";
+import {
+  CELEBRATION_ACCENT,
+  CELEBRATION_COLOR,
+  CELEBRATION_SURFACE_SOFT,
+} from "@/lib/calendar/theme";
 
 const TYPE_EMOJI: Record<CalendarEvent["type"], string> = {
   birthday: "🎂",
@@ -13,88 +19,86 @@ const TYPE_EMOJI: Record<CalendarEvent["type"], string> = {
   custom: "🎈",
 };
 
-export type CelebrationBannerItem = {
-  event: CalendarEvent;
-  messages: CelebrationMessage[];
-};
+/** 배너를 누르면 갈 곳. board=팀 게시판, write=축하글 작성 폼. */
+export type CelebrationAction = "board" | "write";
 
-function headline(event: CalendarEvent) {
-  const emoji = TYPE_EMOJI[event.type];
+/** 윗줄 — 무슨 날인지. */
+function eyebrow(event: CalendarEvent) {
   if (event.type === "birthday") {
-    const age = event.yearsCount ? ` (${event.yearsCount}번째 생일)` : "";
-    return `${emoji} 오늘은 ${event.subjectName} 선수의 생일이에요!${age}`;
+    const nth = event.yearsCount ? `${event.yearsCount}번째 ` : "";
+    return `오늘은 ${event.subjectName} 선수의 ${nth}생일!`;
   }
-  const years = event.yearsCount && event.yearsCount > 0 ? `${event.yearsCount}주년 ` : "";
-  return `${emoji} 오늘은 ${event.title} ${years}기념일이에요!`;
+  return `오늘은 ${event.title}!`;
 }
 
-function BannerCard({ item, isLoggedIn }: { item: CelebrationBannerItem; isLoggedIn: boolean }) {
-  const { event } = item;
-  const [open, setOpen] = useState(false);
-  const accent = event.teamColor || "#ff3f7f";
-  const avatar = event.type === "birthday" ? event.playerImageUrl : event.playerImageUrl ?? event.teamLogoUrl;
+/** 아랫줄 — 어디서 뭘 하면 되는지. */
+function headline(event: CalendarEvent, action: CelebrationAction) {
+  if (action === "write") return "‘응원’ 말머리로 축하 글을 남겨주세요";
+  const where = event.teamShort ?? event.teamName;
+  return where ? `${where} 게시판에서 함께 축하해요` : "커뮤니티에서 함께 축하해요";
+}
+
+function CelebrationCard({ event, action }: { event: CalendarEvent; action: CelebrationAction }) {
+  const href = action === "write" ? celebrationWriteHref(event) : celebrationBoardHref(event);
+  const ctaLabel = action === "write" ? "축하글 쓰기" : "축하하러 가기";
 
   return (
-    <div
-      className="overflow-hidden rounded-2xl border border-[var(--ui-border)]"
-      style={{ background: `linear-gradient(100deg, ${accent}1a, ${accent}05)` }}
+    <Link
+      href={href}
+      className="flex items-center gap-3 rounded-2xl px-4 py-3 transition sm:justify-center sm:gap-5 sm:px-6 sm:py-3.5"
+      style={{ background: CELEBRATION_COLOR }}
     >
-      <div className="flex items-center gap-4 px-5 py-4">
+      <span
+        className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full text-lg sm:h-10 sm:w-10"
+        style={{ background: CELEBRATION_SURFACE_SOFT }}
+      >
+        {event.playerImageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={event.playerImageUrl} alt="" className="h-full w-full object-cover object-top" />
+        ) : (
+          TYPE_EMOJI[event.type]
+        )}
+      </span>
+
+      <span className="min-w-0 flex-1 sm:flex-initial">
         <span
-          className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-full text-2xl"
-          style={{ background: `${accent}22` }}
+          className="block truncate text-[12px] font-bold sm:text-sm"
+          style={{ color: CELEBRATION_ACCENT }}
         >
-          {avatar ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={avatar} alt="" className="h-full w-full object-cover object-top" />
-          ) : (
-            TYPE_EMOJI[event.type]
-          )}
+          {eyebrow(event)}
         </span>
-        <div className="min-w-0 flex-1">
-          <p className="text-[13px] font-medium uppercase tracking-[0.18em]" style={{ color: accent }}>
-            Today&apos;s Celebration
-          </p>
-          <p className="mt-0.5 truncate text-[15px] font-black text-[var(--ui-ink)] sm:text-base">{headline(event)}</p>
-        </div>
-        <button
-          type="button"
-          onClick={() => setOpen((v) => !v)}
-          className="flex shrink-0 items-center gap-1 rounded-full px-3.5 py-2 text-[13px] font-black text-white transition hover:opacity-90"
-          style={{ background: accent }}
-          aria-expanded={open}
-        >
-          {open ? "닫기" : "축하하기"}
-          {open ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-        </button>
-      </div>
-      {open ? (
-        <div className="border-t border-[var(--ui-border)] bg-[var(--ui-surface)] px-5 py-4">
-          <CelebrationBoard
-            eventKey={event.key}
-            title={event.title}
-            isLoggedIn={isLoggedIn}
-            initialMessages={item.messages}
-            accentColor={accent}
-          />
-        </div>
-      ) : null}
-    </div>
+        <span className="block font-paperozi truncate text-sm text-white sm:text-base">
+          {headline(event, action)}
+        </span>
+      </span>
+
+      <span
+        className="flex shrink-0 items-center gap-0.5 rounded-lg bg-white px-2.5 py-2 text-[13px] font-bold sm:px-3.5"
+        style={{ color: CELEBRATION_COLOR }}
+      >
+        <span className="hidden sm:inline">{ctaLabel}</span>
+        <ChevronRight size={14} strokeWidth={2.5} />
+      </span>
+    </Link>
   );
 }
 
+/**
+ * 오늘의 기념일 배너.
+ * 홈/팬홈에서는 팀 게시판으로 보내고, 게시판 상단에서는 축하글 작성으로 보낸다.
+ */
 export function CelebrationBanner({
-  items,
-  isLoggedIn,
+  events,
+  action = "board",
 }: {
-  items: CelebrationBannerItem[];
-  isLoggedIn: boolean;
+  events: CalendarEvent[];
+  action?: CelebrationAction;
 }) {
-  if (items.length === 0) return null;
+  if (events.length === 0) return null;
   return (
-    <div className="flex flex-col gap-3">
-      {items.map((item) => (
-        <BannerCard key={item.event.key} item={item} isLoggedIn={isLoggedIn} />
+    <div className="flex flex-col gap-2.5">
+      {events.map((event) => (
+        <CelebrationCard key={event.key} event={event} action={action} />
       ))}
     </div>
   );
