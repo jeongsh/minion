@@ -1,0 +1,59 @@
+name: PR quality
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      NEXT_PUBLIC_SITE_URL: http://127.0.0.1:3000
+      NEXT_PUBLIC_CONTACT_EMAIL: contact@example.com
+      NEXT_PUBLIC_SUPABASE_URL: ""
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ""
+      NEXT_PUBLIC_GOOGLE_ADSENSE_CLIENT: ""
+      NEXT_PUBLIC_ADSENSE_SLOT_HORIZONTAL: ""
+      NEXT_PUBLIC_ADSENSE_SLOT_RECTANGLE: ""
+      NEXT_PUBLIC_ADSENSE_SLOT_COMMUNITY: ""
+      NEXT_PUBLIC_ADSENSE_SLOT_PREDICTION: ""
+      NEXT_PUBLIC_ADSENSE_ENABLE_PREDICTIONS: "false"
+      NEXT_PUBLIC_ADSENSE_SHOW_PLACEHOLDERS: "false"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+      - name: Install Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: E2E smoke
+        run: npm run e2e

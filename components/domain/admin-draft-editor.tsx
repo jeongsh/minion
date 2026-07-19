@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { ChampionPicker } from "@/components/domain/champion-picker";
 import {
@@ -239,14 +239,12 @@ export function AdminDraftEditor({
 }) {
   const [mode, setMode] = useState<"line" | "order">("line");
   const slots = useMemo(() => buildDraftSlots({ set, picksBans }), [set, picksBans]);
-  const [championIds, setChampionIds] = useState<string[]>([]);
-
-  useEffect(() => {
-    setChampionIds(slots.map((slot) => slot.championId));
-  }, [slots]);
+  const initialChampionIds = useMemo(() => slots.map((slot) => slot.championId), [slots]);
+  const [championOverrides, setChampionOverrides] = useState<Record<number, string>>({});
+  const championIds = initialChampionIds.map((championId, index) => championOverrides[index] ?? championId);
 
   function updateChampion(formIndex: number, championId: string) {
-    setChampionIds((previous) => previous.map((value, index) => (index === formIndex ? championId : value)));
+    setChampionOverrides((previous) => ({ ...previous, [formIndex]: championId }));
   }
 
   return (

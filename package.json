@@ -9,7 +9,9 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types --test lib/set-status.test.ts lib/match-reconcile.test.ts lib/match-preview-facts.test.ts lib/match-diagnostics.test.ts lib/lolesports-match-matcher.test.ts lib/lolesports-set-result-snapshot.test.ts lib/lolesports-game-data.test.ts lib/leaguepedia-identity.test.ts lib/sync/leaguepedia-pick-ban.test.ts lib/sync/leaguepedia-timeline.test.ts lib/sync/leaguepedia-retry-policy.test.ts lib/notify/discord.test.ts lib/community/content-filter.test.ts lib/community/ai-moderation.test.ts",
+    "e2e": "playwright test",
+    "e2e:install": "playwright install chromium",
+    "test": "node --experimental-strip-types --test lib/set-status.test.ts lib/match-reconcile.test.ts lib/match-preview-facts.test.ts lib/match-diagnostics.test.ts lib/lolesports-match-matcher.test.ts lib/lolesports-set-result-snapshot.test.ts lib/lolesports-game-data.test.ts lib/leaguepedia-identity.test.ts lib/sync/leaguepedia-pick-ban.test.ts lib/sync/leaguepedia-timeline.test.ts lib/sync/leaguepedia-retry-policy.test.ts lib/notify/discord.test.ts lib/community/content-filter.test.ts lib/community/ai-moderation.test.ts lib/community/upload-security.test.ts",
     "sync:leaguepedia:incremental": "node --experimental-strip-types scripts/sync-leaguepedia-lck.ts --year=2026",
     "diagnose:match-set-status": "node --experimental-strip-types scripts/reconcile-match-set-status.ts",
     "backup:match-set-tables": "node --experimental-strip-types scripts/backup-match-set-tables.ts",
@@ -58,6 +60,7 @@
     "postcss": "8.5.10"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@tailwindcss/postcss": "4.3.1",
     "@types/node": "25.9.3",
     "@types/react": "19.2.17",
