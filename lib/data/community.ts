@@ -208,10 +208,13 @@ export async function getPostByIdAndIncrementView(
     // 카운트 갱신은 작성자 외 사용자도 수행하므로 RLS 우회(service-role).
     // 조회수는 best-effort: 서비스 롤 키 미설정 등으로 실패해도 렌더는 막지 않는다.
     try {
-      await createSupabaseAdminClient()
-        .from("community_posts")
-        .update({ view_count: post.viewCount + 1 })
-        .eq("id", postId);
+      const { data } = await createSupabaseAdminClient().rpc(
+        "increment_community_post_view_count",
+        { p_post_id: postId },
+      );
+      if (typeof data === "number") {
+        return { ...post, viewCount: data };
+      }
     } catch {
       return post;
     }

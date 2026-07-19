@@ -93,23 +93,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Image upload is not configured." }, { status: 500 });
   }
 
-  const prefix = communityUploadPrefix(user.id);
-  const { data: dailyObjects, error: listError } = await admin.storage
-    .from(COMMUNITY_UPLOAD_BUCKET)
-    .list(prefix, { limit: COMMUNITY_UPLOAD_DAILY_LIMIT + 1 });
-
-  if (listError) {
-    return NextResponse.json({ error: listError.message || "Failed to verify image upload limits." }, { status: 500 });
-  }
-
-  if ((dailyObjects?.length ?? 0) >= COMMUNITY_UPLOAD_DAILY_LIMIT) {
-    return NextResponse.json(
-      { error: `You can upload up to ${COMMUNITY_UPLOAD_DAILY_LIMIT} images per day.` },
-      { status: 429 },
-    );
-  }
-
   const prepared = await prepareCommunityImage(bytes, validation);
+  const prefix = communityUploadPrefix(user.id);
   const objectPath = `${prefix}/${crypto.randomUUID()}.${prepared.extension}`;
   const { error: uploadError } = await admin.storage
     .from(COMMUNITY_UPLOAD_BUCKET)
@@ -123,19 +108,30 @@ export async function POST(request: Request) {
     data: { publicUrl },
   } = admin.storage.from(COMMUNITY_UPLOAD_BUCKET).getPublicUrl(objectPath);
 
-  await admin.from("community_uploads").insert({
-    user_id: user.id,
-    bucket_id: COMMUNITY_UPLOAD_BUCKET,
-    object_path: objectPath,
-    public_url: publicUrl,
-    original_content_type: validation.image.contentType,
-    stored_content_type: prepared.contentType,
-    original_bytes: bytes.byteLength,
-    stored_bytes: prepared.bytes.byteLength,
-    width: prepared.width,
-    height: prepared.height,
-    status: "uploaded",
+  const { data: uploadQuotaRows, error: quotaError } = await admin.rpc("record_community_upload", {
+    p_user_id: user.id,
+    p_bucket_id: COMMUNITY_UPLOAD_BUCKET,
+    p_object_path: objectPath,
+    p_public_url: publicUrl,
+    p_original_content_type: validation.image.contentType,
+    p_stored_content_type: prepared.contentType,
+    p_original_bytes: bytes.byteLength,
+    p_stored_bytes: prepared.bytes.byteLength,
+    p_width: prepared.width,
+    p_height: prepared.height,
+    p_daily_limit: COMMUNITY_UPLOAD_DAILY_LIMIT,
   });
+  const uploadQuota = uploadQuotaRows?.[0];
+  if (quotaError || !uploadQuota?.allowed) {
+    await admin.storage.from(COMMUNITY_UPLOAD_BUCKET).remove([objectPath]);
+    if (quotaError) {
+      return NextResponse.json({ error: quotaError.message || "Failed to record image upload." }, { status: 500 });
+    }
+    return NextResponse.json(
+      { error: `You can upload up to ${COMMUNITY_UPLOAD_DAILY_LIMIT} images per day.` },
+      { status: 429 },
+    );
+  }
 
   await recordOperationalEvent(admin, {
     eventType: "community_image_upload",
