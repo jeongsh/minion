@@ -13,17 +13,14 @@ import {
   type StageColumn,
 } from "@/lib/tournaments/bracket";
 import { segmentThemeByKey } from "@/lib/tournaments/international-segments";
+import { buildSegmentNav } from "@/lib/tournaments/segment-nav";
 import { matchesTournamentSegment } from "@/lib/tournaments/season-2026";
 import type { Match, Player, Team, Tournament } from "@/lib/types";
-import {
-  buildTeamStandingRows,
-  dateKeyKST,
-  formatDateRange,
-  matchHref,
-  tournamentStatus,
-  type TournamentStatus,
-} from "@/lib/view-data";
+import { buildTeamStandingRows, dateKeyKST, matchHref } from "@/lib/view-data";
 
+import { SegmentSwitcher } from "../segment-switcher";
+import { TournamentMark } from "../tournament-mark";
+import { SegmentedNav, UnderlineNav } from "../tournament-tabs";
 import { BracketConnectors, type BracketConnection } from "./bracket-connectors";
 import { BracketScroller } from "./bracket-scroller";
 
@@ -172,10 +169,11 @@ function GroupStandingsTable({
   const recordLabel = (row: (typeof rows)[number]) => `${row.matchWins}승 · ${row.matchLosses}패`;
 
   return (
-    <div className="flex flex-col gap-2">
-      <span className="inline-block w-fit rounded-md bg-surface-muted px-3 py-1.5 text-[13px] font-bold text-muted">
-        {title}
-      </span>
+    <div className="flex flex-col gap-2.5">
+      <div className="flex items-center gap-2">
+        <span aria-hidden="true" className="h-[16px] w-[3px] rounded-full bg-[var(--accent)]" />
+        <span className="font-paperozi text-[16px] leading-none text-[var(--ui-ink)]">{title}</span>
+      </div>
       {rows.length > 0 ? (
         <div className="overflow-hidden rounded-xl border border-border bg-surface md:hidden">
           <div className="divide-y divide-border">
@@ -513,22 +511,15 @@ function SeasonTabs({
   if (seasons.length <= 1) return null;
 
   return (
-    <div className="inline-flex max-w-full overflow-x-auto rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] p-1">
-      {seasons.map((season) => (
-        <Link
-          key={season}
-          href={`/tournaments/${segmentKey}?year=${season}`}
-          className={`rounded-full px-4 py-1.5 text-sm font-bold transition-colors ${
-            season === activeSeason
-              ? "bg-white"
-              : "bg-white/10 text-white/70 hover:bg-white/15 hover:text-white"
-          }`}
-          style={season === activeSeason ? { color: "#111827" } : undefined}
-        >
-          {season}
-        </Link>
-      ))}
-    </div>
+    <SegmentedNav
+      ariaLabel="시즌 선택"
+      activeKey={String(activeSeason)}
+      items={seasons.map((season) => ({
+        key: String(season),
+        label: String(season),
+        href: `/tournaments/${segmentKey}?year=${season}`,
+      }))}
+    />
   );
 }
 
@@ -543,24 +534,16 @@ function BracketStagePills({
   segmentKey: string;
   activeSeason: number;
 }) {
-  if (bracketStages.length <= 1) return null;
-
   return (
-    <div className="flex flex-wrap gap-2">
-      {bracketStages.map((bracketStage) => (
-        <Link
-          key={bracketStage.id}
-          href={`/tournaments/${segmentKey}?year=${activeSeason}&bracketStage=${bracketStage.id}`}
-          className={`rounded-full px-4 py-1.5 text-sm font-bold transition-colors ${
-            bracketStage.id === activeBracketStageId
-              ? "bg-accent text-accent-foreground"
-              : "bg-surface-muted text-muted hover:text-foreground"
-          }`}
-        >
-          {bracketStage.name}
-        </Link>
-      ))}
-    </div>
+    <SegmentedNav
+      ariaLabel="대진표 스테이지 선택"
+      activeKey={activeBracketStageId}
+      items={bracketStages.map((bracketStage) => ({
+        key: bracketStage.id,
+        label: bracketStage.name,
+        href: `/tournaments/${segmentKey}?year=${activeSeason}&bracketStage=${bracketStage.id}`,
+      }))}
+    />
   );
 }
 
@@ -583,6 +566,7 @@ function ViewTabs<T extends string>({
   paramName = "view",
   extraParams,
   variant = "button",
+  bordered = true,
 }: {
   labels: Record<T, string>;
   activeTab: T;
@@ -591,59 +575,28 @@ function ViewTabs<T extends string>({
   paramName?: string;
   extraParams?: Record<string, string>;
   variant?: "button" | "segmented";
+  bordered?: boolean;
 }) {
-  const isSegmented = variant === "segmented";
   const tabs = Object.keys(labels) as T[];
+  const items = tabs.map((tab) => {
+    const query = new URLSearchParams({ year: String(activeSeason), ...extraParams, [paramName]: tab });
+    return { key: tab, label: labels[tab], href: `/tournaments/${segmentKey}?${query.toString()}` };
+  });
 
-  return (
-    <nav
-      className={
-        isSegmented
-          ? "grid w-full grid-cols-3 rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface-muted)] p-1 sm:w-auto"
-          : "flex max-w-full items-center gap-5 overflow-x-auto border-b border-[var(--ui-border)] sm:gap-6"
-      }
-    >
-      {tabs.map((tab) => {
-        const query = new URLSearchParams({ year: String(activeSeason), ...extraParams, [paramName]: tab });
-        const isActive = tab === activeTab;
-
-        return (
-          <Link
-            key={tab}
-            href={`/tournaments/${segmentKey}?${query.toString()}`}
-            className={
-              isSegmented
-                ? `min-h-9 rounded-lg px-3 py-1.5 text-center text-[13px] font-black transition-colors sm:min-w-20 sm:px-4 sm:text-sm ${
-                    isActive
-                      ? "bg-[var(--ui-ink)] text-[var(--ui-surface)] shadow-sm"
-                      : "text-[var(--ui-muted)] hover:bg-[var(--ui-surface)] hover:text-[var(--ui-ink)]"
-                  }`
-                : `relative flex min-h-11 shrink-0 items-center justify-center whitespace-nowrap px-1 text-[13px] font-bold transition-colors after:absolute after:inset-x-1 after:bottom-0 after:h-0.5 sm:min-h-12 sm:px-0 sm:text-base ${
-                    isActive
-                      ? "text-[var(--ui-ink)] after:bg-[var(--accent)]"
-                      : "text-[var(--ui-muted)] after:bg-transparent hover:text-[var(--ui-ink)]"
-                  }`
-            }
-          >
-            {labels[tab]}
-          </Link>
-        );
-      })}
-    </nav>
+  return variant === "segmented" ? (
+    <SegmentedNav items={items} activeKey={activeTab} ariaLabel="스플릿 선택" />
+  ) : (
+    <UnderlineNav items={items} activeKey={activeTab} ariaLabel="대회 상세 탭" bordered={bordered} />
   );
 }
 
-const STATUS_META: Record<TournamentStatus, { label: string; className: string }> = {
-  upcoming: { label: "예정", className: "bg-white/15 text-white" },
-  ongoing: { label: "진행중", className: "bg-emerald-500 text-white" },
-  completed: { label: "종료", className: "bg-white/10 text-white/60" },
-};
-
 const UPPER_ROW = 2;
 
+// 롤 이스포츠 브래킷의 라운드 라벨처럼 박스 없이 대문자 텍스트로만 처리한다. 스테이지가
+// 많은 브래킷에서 회색 알약 박스가 반복되면 시각적 소음이 커진다.
 function ColumnHeader({ label }: { label: string }) {
   return (
-    <span className="inline-block w-fit whitespace-nowrap rounded-md bg-surface-muted px-2.5 py-1 text-[12px] font-bold text-muted">
+    <span className="inline-block w-fit whitespace-nowrap text-[12px] font-black uppercase tracking-[0.08em] text-muted">
       {label}
     </span>
   );
@@ -931,22 +884,13 @@ export default async function TournamentBracketPage({
   const segmentMatches = matches.filter((match) => tournamentIds.has(match.tournamentId));
   const teamMap = new Map(teams.map((team) => [team.id, team]));
 
-  const starts = activeTournaments
-    .map((tournament) => tournament.startDate)
-    .filter((value): value is string => Boolean(value))
-    .sort();
-  const ends = activeTournaments
-    .map((tournament) => tournament.endDate)
-    .filter((value): value is string => Boolean(value))
-    .sort();
-  const rangeStart = starts[0] ?? null;
-  const rangeEnd = ends[ends.length - 1] ?? null;
-  const dateRange = formatDateRange(rangeStart, rangeEnd);
-  const status = tournamentStatus(rangeStart, rangeEnd);
-  const statusMeta = STATUS_META[status];
-  const region = activeTournaments[0]?.region ?? "International";
-
   const isLck = segmentTheme.key === "lck";
+
+  // 대회 목록 페이지 대신 상단 스위처로 전환하므로, 같은 시즌의 모든 대회를 함께 계산한다.
+  const segmentNav = buildSegmentNav(
+    tournaments.filter((tournament) => tournament.season === activeSeason),
+    matches,
+  );
 
   let contentSection: React.ReactNode;
 
@@ -1094,53 +1038,38 @@ export default async function TournamentBracketPage({
     };
 
     contentSection = (
-      <section className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-lg font-black text-foreground">{LCK_SPLIT_LABELS[activeSplit]}</h2>
-          <ViewTabs
-            labels={LCK_SPLIT_LABELS}
-            activeTab={activeSplit}
-            segmentKey={segmentTheme.key}
-            activeSeason={activeSeason}
-            paramName="split"
-            extraParams={{ view: activeView }}
-            variant="segmented"
-          />
-        </div>
+      <section className="flex flex-col gap-4">
+        <ViewTabs
+          labels={LCK_SPLIT_LABELS}
+          activeTab={activeSplit}
+          segmentKey={segmentTheme.key}
+          activeSeason={activeSeason}
+          paramName="split"
+          extraParams={{ view: activeView }}
+          variant="segmented"
+        />
 
         {activeSplit === "1" || activeSplit === "3" ? (
-          <nav className="flex max-w-full items-center gap-5 overflow-x-auto border-b border-[var(--ui-border)] sm:gap-6" aria-label="대회 상세 탭">
-            {(
+          <UnderlineNav
+            ariaLabel="대회 상세 탭"
+            activeKey={activeView === "bracket" ? activePhase : activeView}
+            items={(
               [
                 { key: "pom", label: "POM", query: { view: "pom" } },
                 { key: "standings", label: viewLabels.standings, query: { view: "standings" } },
                 { key: "playin", label: "플레이-인", query: { view: "bracket", phase: "playin" } },
                 { key: "playoffs", label: "플레이오프", query: { view: "bracket", phase: "playoffs" } },
               ] as const
-            ).map((tab) => {
-              const isActive =
-                tab.key === "pom"
-                  ? activeView === "pom"
-                  : tab.key === "standings"
-                    ? activeView === "standings"
-                    : activeView === "bracket" && activePhase === tab.key;
-              const query = new URLSearchParams({ year: String(activeSeason), split: activeSplit, ...tab.query });
-
-              return (
-                <Link
-                  key={tab.key}
-                  href={`/tournaments/${segmentTheme.key}?${query.toString()}`}
-                  className={`relative flex min-h-11 shrink-0 items-center justify-center whitespace-nowrap px-1 text-center text-[13px] font-bold transition-colors after:absolute after:inset-x-1 after:bottom-0 after:h-0.5 sm:min-h-12 sm:px-0 sm:text-base ${
-                    isActive
-                      ? "text-[var(--ui-ink)] after:bg-[var(--accent)]"
-                      : "text-[var(--ui-muted)] after:bg-transparent hover:text-[var(--ui-ink)]"
-                  }`}
-                >
-                  {tab.label}
-                </Link>
-              );
-            })}
-          </nav>
+            ).map((tab) => ({
+              key: tab.key,
+              label: tab.label,
+              href: `/tournaments/${segmentTheme.key}?${new URLSearchParams({
+                year: String(activeSeason),
+                split: activeSplit,
+                ...tab.query,
+              }).toString()}`,
+            }))}
+          />
         ) : (
           <ViewTabs
             labels={{ pom: "순위", standings: viewLabels.standings, bracket: viewLabels.bracket }}
@@ -1198,9 +1127,9 @@ export default async function TournamentBracketPage({
     const columns = buildStageColumns(activeStages, segmentMatches);
 
     contentSection = (
-      <section className="flex flex-col gap-3">
+      <section className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-lg font-black text-foreground">대진표</h2>
+          <h2 className="home-section-title text-[20px] text-[var(--ui-ink)]">대진표</h2>
           <BracketStagePills
             bracketStages={segmentBracketStages}
             activeBracketStageId={activeBracketStage?.id ?? ""}
@@ -1228,11 +1157,15 @@ export default async function TournamentBracketPage({
     <main className="layout-wide flex flex-col gap-6 py-6 sm:py-10">
       <PageHeader
         title={segmentTheme.name}
-        action={
-          <Link href="/tournaments" className="text-[13px] font-bold text-[var(--ui-muted)] transition-colors hover:text-[var(--ui-ink)]">
-            대회 목록
-          </Link>
+        leading={
+          segmentTheme.logo ? (
+            <TournamentMark
+              logo={segmentTheme.logo}
+              className="h-7 w-10 text-[var(--ui-ink)] md:h-9 md:w-[52px]"
+            />
+          ) : undefined
         }
+        action={<SeasonTabs seasons={seasons} activeSeason={activeSeason} segmentKey={segmentTheme.key} />}
         breadcrumbs={[
           { label: "홈", href: "/" },
           { label: "대회", href: "/tournaments" },
@@ -1240,34 +1173,7 @@ export default async function TournamentBracketPage({
         ]}
       />
 
-      <section
-        className={`relative isolate overflow-hidden rounded-2xl bg-gradient-to-br p-6 shadow-lg md:p-10 ${segmentTheme.gradient}`}
-      >
-        <span
-          className="absolute inset-0 bg-[linear-gradient(115deg,transparent_55%,rgba(255,255,255,0.08)_55%,rgba(255,255,255,0.08)_58%,transparent_58%)]"
-          aria-hidden="true"
-        />
-        <div className="relative flex flex-wrap items-end justify-between gap-6">
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[13px] font-bold uppercase tracking-widest text-white/60">
-                {activeSeason} · {region}
-              </span>
-              <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${statusMeta.className}`}>
-                {statusMeta.label}
-              </span>
-            </div>
-            <p className="mt-1 text-sm font-medium text-white/70">{segmentTheme.description}</p>
-            {dateRange ? (
-              <span className="mt-4 inline-block w-fit rounded-full bg-white/10 px-3 py-1 text-[13px] font-bold text-white">
-                {dateRange}
-              </span>
-            ) : null}
-          </div>
-
-          <SeasonTabs seasons={seasons} activeSeason={activeSeason} segmentKey={segmentTheme.key} />
-        </div>
-      </section>
+      <SegmentSwitcher items={segmentNav} activeKey={segmentTheme.key} activeSeason={activeSeason} />
 
       {contentSection}
     </main>
