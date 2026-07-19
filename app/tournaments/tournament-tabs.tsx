@@ -7,10 +7,11 @@ export type TabItem = {
 };
 
 /**
- * 필터 칩 그룹. 일정 페이지 필터(FilterLink)와 같은 언어 — rounded-xl 사각 칩에 활성은
- * 잉크 채움. 같은 축의 값을 고르는 컨트롤(연도/스플릿/대진표 스테이지)에 쓴다.
+ * 세그먼티드 컨트롤. 회색 트랙 위에서 활성 항목만 흰 알약으로 떠오르는 iOS식 토글로,
+ * 언더라인 탭과 한 줄에 나란히 놓아도 1차 내비게이션(탭)과 시각적으로 구분된다.
+ * LCK 스플릿처럼 "탭 안에서 다시 범위를 좁히는" 컨트롤에 쓴다.
  */
-export function SegmentedNav({
+export function SegmentedControl({
   items,
   activeKey,
   ariaLabel,
@@ -26,7 +27,7 @@ export function SegmentedNav({
   return (
     <nav
       aria-label={ariaLabel}
-      className={`tab-scroll flex max-w-full items-center gap-2 overflow-x-auto ${className}`}
+      className={`inline-flex w-fit shrink-0 gap-0.5 rounded-[10px] bg-[var(--ui-surface-muted)] p-[3px] ${className}`}
     >
       {items.map((item) => {
         const isActive = item.key === activeKey;
@@ -36,10 +37,12 @@ export function SegmentedNav({
             key={item.key}
             href={item.href}
             aria-current={isActive ? "page" : undefined}
-            className={`flex min-h-11 min-w-16 shrink-0 items-center justify-center whitespace-nowrap rounded-xl border px-4 text-[14px] font-black transition-colors sm:min-h-12 sm:min-w-20 sm:px-5 ${
+            className={`flex h-8 shrink-0 items-center whitespace-nowrap rounded-lg px-3.5 text-[13px] transition-colors ${
+              // 다크모드에서는 surface가 트랙보다 어두워 "떠오른 알약"이 거꾸로 파인 것처럼
+              // 보인다. 트랙보다 밝은 border 톤으로 바꿔 위계를 유지한다.
               isActive
-                ? "border-[var(--ui-ink)] bg-[var(--ui-ink)] text-[var(--ui-surface)]"
-                : "border-[var(--ui-border)] bg-[var(--ui-surface-muted)] text-[var(--ui-ink)] hover:bg-[var(--ui-surface)]"
+                ? "bg-[var(--ui-surface)] font-extrabold text-[var(--ui-ink)] shadow-[0_1px_2px_rgba(24,25,28,0.14)] dark:bg-[var(--ui-border)] dark:shadow-none"
+                : "font-semibold text-[var(--ui-muted)] hover:text-[var(--ui-ink)]"
             }`}
           >
             {item.label}

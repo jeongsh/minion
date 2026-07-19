@@ -20,7 +20,8 @@ import { buildTeamStandingRows, dateKeyKST, matchHref } from "@/lib/view-data";
 
 import { SegmentSwitcher } from "../segment-switcher";
 import { TournamentMark } from "../tournament-mark";
-import { SegmentedNav, UnderlineNav } from "../tournament-tabs";
+import { SegmentedControl, UnderlineNav } from "../tournament-tabs";
+import { YearSelect } from "../year-select";
 import { BracketConnectors, type BracketConnection } from "./bracket-connectors";
 import { BracketScroller } from "./bracket-scroller";
 
@@ -499,30 +500,6 @@ function GrandFinalsCard({
   );
 }
 
-function SeasonTabs({
-  seasons,
-  activeSeason,
-  segmentKey,
-}: {
-  seasons: number[];
-  activeSeason: number;
-  segmentKey: string;
-}) {
-  if (seasons.length <= 1) return null;
-
-  return (
-    <SegmentedNav
-      ariaLabel="시즌 선택"
-      activeKey={String(activeSeason)}
-      items={seasons.map((season) => ({
-        key: String(season),
-        label: String(season),
-        href: `/tournaments/${segmentKey}?year=${season}`,
-      }))}
-    />
-  );
-}
-
 function BracketStagePills({
   bracketStages,
   activeBracketStageId,
@@ -535,7 +512,7 @@ function BracketStagePills({
   activeSeason: number;
 }) {
   return (
-    <SegmentedNav
+    <SegmentedControl
       ariaLabel="대진표 스테이지 선택"
       activeKey={activeBracketStageId}
       items={bracketStages.map((bracketStage) => ({
@@ -565,8 +542,7 @@ function ViewTabs<T extends string>({
   activeSeason,
   paramName = "view",
   extraParams,
-  variant = "button",
-  bordered = true,
+  className = "",
 }: {
   labels: Record<T, string>;
   activeTab: T;
@@ -574,8 +550,7 @@ function ViewTabs<T extends string>({
   activeSeason: number;
   paramName?: string;
   extraParams?: Record<string, string>;
-  variant?: "button" | "segmented";
-  bordered?: boolean;
+  className?: string;
 }) {
   const tabs = Object.keys(labels) as T[];
   const items = tabs.map((tab) => {
@@ -583,10 +558,8 @@ function ViewTabs<T extends string>({
     return { key: tab, label: labels[tab], href: `/tournaments/${segmentKey}?${query.toString()}` };
   });
 
-  return variant === "segmented" ? (
-    <SegmentedNav items={items} activeKey={activeTab} ariaLabel="스플릿 선택" />
-  ) : (
-    <UnderlineNav items={items} activeKey={activeTab} ariaLabel="대회 상세 탭" bordered={bordered} />
+  return (
+    <UnderlineNav items={items} activeKey={activeTab} ariaLabel="대회 상세 탭" bordered={false} className={className} />
   );
 }
 
@@ -1038,48 +1011,61 @@ export default async function TournamentBracketPage({
     };
 
     contentSection = (
-      <section className="flex flex-col gap-4">
-        <ViewTabs
-          labels={LCK_SPLIT_LABELS}
-          activeTab={activeSplit}
-          segmentKey={segmentTheme.key}
-          activeSeason={activeSeason}
-          paramName="split"
-          extraParams={{ view: activeView }}
-          variant="segmented"
-        />
+      <section className="flex flex-col gap-6">
+        {/* 상세 탭(1차)과 스플릿(2차)은 데스크탑에서 한 줄을 공유한다 — 탭은 왼쪽 언더라인,
+            스플릿은 오른쪽 세그먼티드 컨트롤로 위계를 나눈다. 모바일에서는 가로 폭이 부족해
+            스플릿을 위, 탭을 아래로 쌓고 탭이 트랙 보더를 직접 그린다. */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4 sm:border-b sm:border-[var(--ui-border)]">
+          {activeSplit === "1" || activeSplit === "3" ? (
+            <UnderlineNav
+              ariaLabel="대회 상세 탭"
+              bordered={false}
+              className="order-2 border-b border-[var(--ui-border)] sm:order-1 sm:-mb-px sm:border-b-0"
+              activeKey={activeView === "bracket" ? activePhase : activeView}
+              items={(
+                [
+                  { key: "pom", label: "POM", query: { view: "pom" } },
+                  { key: "standings", label: viewLabels.standings, query: { view: "standings" } },
+                  { key: "playin", label: "플레이-인", query: { view: "bracket", phase: "playin" } },
+                  { key: "playoffs", label: "플레이오프", query: { view: "bracket", phase: "playoffs" } },
+                ] as const
+              ).map((tab) => ({
+                key: tab.key,
+                label: tab.label,
+                href: `/tournaments/${segmentTheme.key}?${new URLSearchParams({
+                  year: String(activeSeason),
+                  split: activeSplit,
+                  ...tab.query,
+                }).toString()}`,
+              }))}
+            />
+          ) : (
+            <ViewTabs
+              labels={{ pom: "순위", standings: viewLabels.standings, bracket: viewLabels.bracket }}
+              activeTab={activeView}
+              segmentKey={segmentTheme.key}
+              activeSeason={activeSeason}
+              paramName="view"
+              extraParams={{ split: activeSplit }}
+              className="order-2 border-b border-[var(--ui-border)] sm:order-1 sm:-mb-px sm:border-b-0"
+            />
+          )}
 
-        {activeSplit === "1" || activeSplit === "3" ? (
-          <UnderlineNav
-            ariaLabel="대회 상세 탭"
-            activeKey={activeView === "bracket" ? activePhase : activeView}
-            items={(
-              [
-                { key: "pom", label: "POM", query: { view: "pom" } },
-                { key: "standings", label: viewLabels.standings, query: { view: "standings" } },
-                { key: "playin", label: "플레이-인", query: { view: "bracket", phase: "playin" } },
-                { key: "playoffs", label: "플레이오프", query: { view: "bracket", phase: "playoffs" } },
-              ] as const
-            ).map((tab) => ({
-              key: tab.key,
-              label: tab.label,
+          <SegmentedControl
+            ariaLabel="스플릿 선택"
+            activeKey={activeSplit}
+            className="order-1 sm:order-2 sm:mb-2"
+            items={(Object.keys(LCK_SPLIT_LABELS) as LckSplitKey[]).map((split) => ({
+              key: split,
+              label: LCK_SPLIT_LABELS[split],
               href: `/tournaments/${segmentTheme.key}?${new URLSearchParams({
                 year: String(activeSeason),
-                split: activeSplit,
-                ...tab.query,
+                split,
+                view: activeView,
               }).toString()}`,
             }))}
           />
-        ) : (
-          <ViewTabs
-            labels={{ pom: "순위", standings: viewLabels.standings, bracket: viewLabels.bracket }}
-            activeTab={activeView}
-            segmentKey={segmentTheme.key}
-            activeSeason={activeSeason}
-            paramName="view"
-            extraParams={{ split: activeSplit }}
-          />
-        )}
+        </div>
 
         {activeView === "pom" ? (
           <PomRankingTable rows={pomRows} />
@@ -1165,7 +1151,6 @@ export default async function TournamentBracketPage({
             />
           ) : undefined
         }
-        action={<SeasonTabs seasons={seasons} activeSeason={activeSeason} segmentKey={segmentTheme.key} />}
         breadcrumbs={[
           { label: "홈", href: "/" },
           { label: "대회", href: "/tournaments" },
@@ -1173,7 +1158,20 @@ export default async function TournamentBracketPage({
         ]}
       />
 
-      <SegmentSwitcher items={segmentNav} activeKey={segmentTheme.key} activeSeason={activeSeason} />
+      <div className="flex items-center gap-3">
+        <SegmentSwitcher
+          items={segmentNav}
+          activeKey={segmentTheme.key}
+          activeSeason={activeSeason}
+          className="min-w-0 flex-1"
+        />
+        <YearSelect
+          seasons={seasons}
+          activeSeason={activeSeason}
+          segmentKey={segmentTheme.key}
+          className="ml-auto"
+        />
+      </div>
 
       {contentSection}
     </main>

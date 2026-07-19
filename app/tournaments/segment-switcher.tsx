@@ -13,17 +13,19 @@ export function SegmentSwitcher({
   items,
   activeKey,
   activeSeason,
+  className = "",
 }: {
   items: SegmentNavItem[];
   activeKey: string;
   activeSeason: number;
+  className?: string;
 }) {
   if (items.length <= 1) return null;
 
   return (
     <nav
       aria-label="대회 선택"
-      className="tab-scroll -mx-4 flex items-center gap-2 overflow-x-auto px-4 sm:mx-0 sm:px-0"
+      className={`tab-scroll -ml-4 flex items-center gap-2 overflow-x-auto pl-4 sm:ml-0 sm:pl-0 ${className}`}
     >
       {items.map((item) => {
         const isActive = item.key === activeKey;
@@ -33,13 +35,13 @@ export function SegmentSwitcher({
             key={item.key}
             href={`/tournaments/${item.key}?year=${activeSeason}`}
             aria-current={isActive ? "page" : undefined}
-            className={`flex min-h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-xl border px-4 text-[14px] font-black transition-colors sm:min-h-12 sm:px-5 sm:text-[15px] ${
+            className={`flex h-10 shrink-0 items-center gap-2 whitespace-nowrap rounded-xl border px-4 text-[14px] transition-colors ${
               isActive
-                ? "border-[var(--ui-ink)] bg-[var(--ui-ink)] text-[var(--ui-surface)]"
-                : "border-[var(--ui-border)] bg-[var(--ui-surface-muted)] text-[var(--ui-muted)] hover:bg-[var(--ui-surface)] hover:text-[var(--ui-ink)]"
+                ? "border-[var(--ui-ink)] bg-[var(--ui-ink)] font-extrabold text-[var(--ui-surface)]"
+                : "border-[var(--ui-border)] bg-[var(--ui-surface)] font-bold text-[var(--ui-muted)] hover:border-[var(--ui-ink)] hover:text-[var(--ui-ink)]"
             }`}
           >
-            {item.logo ? <TournamentMark logo={item.logo} className="h-[18px] w-[26px]" /> : null}
+            {item.logo ? <TournamentMark logo={item.logo} className="h-[14px] w-[22px]" /> : null}
             <span>{item.name}</span>
             {item.isOngoing ? (
               <span

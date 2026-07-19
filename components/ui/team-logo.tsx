@@ -23,7 +23,7 @@ export function TeamLogo({ team, size = "h-10 w-10", plain = false, themeAware =
           ) : null}
         </>
       ) : (
-        <span className="text-[13px] font-black">{team?.shortName ?? "?"}</span>
+        <span className="text-[13px] font-black">{team?.shortName ?? "TBD"}</span>
       )}
     </span>
   );
