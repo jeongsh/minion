@@ -6,6 +6,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { requireAdmin } from "@/lib/auth/admin";
 import { recordLpEvent } from "@/lib/rank/record-lp";
 import type { BoardScope } from "@/lib/community/boards";
 import {
@@ -25,6 +26,7 @@ function revalidateCommunity() {
 
 /** 신고 제재 확정: 신고 confirmed + 블라인드 유지 + 작성자 LP 차감(1회). */
 export async function confirmReportsAction(formData: FormData) {
+  await requireAdmin();
   const postId = (formData.get("post_id") as string) || null;
   const commentId = (formData.get("comment_id") as string) || null;
   if (!postId && !commentId) return;
@@ -43,6 +45,7 @@ export async function confirmReportsAction(formData: FormData) {
 
 /** 신고 기각: 신고 dismissed + 블라인드 해제. */
 export async function dismissReportsAction(formData: FormData) {
+  await requireAdmin();
   const postId = (formData.get("post_id") as string) || null;
   const commentId = (formData.get("comment_id") as string) || null;
   if (!postId && !commentId) return;
@@ -52,6 +55,7 @@ export async function dismissReportsAction(formData: FormData) {
 }
 
 export async function setPostBlindedAction(formData: FormData) {
+  await requireAdmin();
   const postId = formData.get("post_id") as string;
   const blinded = formData.get("blinded") === "true";
   if (!postId) return;
@@ -60,6 +64,7 @@ export async function setPostBlindedAction(formData: FormData) {
 }
 
 export async function setCommentBlindedAction(formData: FormData) {
+  await requireAdmin();
   const commentId = formData.get("comment_id") as string;
   const blinded = formData.get("blinded") === "true";
   if (!commentId) return;
@@ -68,6 +73,7 @@ export async function setCommentBlindedAction(formData: FormData) {
 }
 
 export async function setPostNoticeAction(formData: FormData) {
+  await requireAdmin();
   const postId = formData.get("post_id") as string;
   const isNotice = formData.get("is_notice") === "true";
   if (!postId) return;
@@ -76,6 +82,7 @@ export async function setPostNoticeAction(formData: FormData) {
 }
 
 export async function setPostDeletedAction(formData: FormData) {
+  await requireAdmin();
   const postId = formData.get("post_id") as string;
   const deleted = formData.get("deleted") === "true";
   if (!postId) return;
@@ -84,6 +91,7 @@ export async function setPostDeletedAction(formData: FormData) {
 }
 
 export async function softDeleteCommentAction(formData: FormData) {
+  await requireAdmin();
   const commentId = formData.get("comment_id") as string;
   if (!commentId) return;
   await softDeleteComment(commentId);
@@ -91,6 +99,7 @@ export async function softDeleteCommentAction(formData: FormData) {
 }
 
 export async function updateCommunitySettingsAction(formData: FormData) {
+  await requireAdmin();
   const scope = formData.get("scope") as BoardScope;
   if (scope !== "hub" && scope !== "team") return;
 

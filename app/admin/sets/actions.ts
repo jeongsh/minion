@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { createSupabaseAdminActionClient, createSupabaseAdminClient } from "@/lib/auth/admin";
 import { resolveChampionIds } from "@/lib/champions-admin";
 import { reconcileMatchFromSets } from "@/lib/match-reconcile";
 import { deriveSetStatus, hasCompletePlayerStats, normalizeSetStatus } from "@/lib/set-status";
@@ -379,7 +379,7 @@ async function saveSetAndReconcile(
 export async function createSetAction(formData: FormData) {
   const payload = setPayload(formData);
   const redirectTo = textOrNull(formData.get("redirectTo"));
-  const supabase = createSupabaseAdminClient();
+  const supabase = await createSupabaseAdminActionClient();
   const { data: inserted, error } = await supabase.from("sets").insert(payload).select("id").single();
 
   if (error) {
@@ -406,7 +406,7 @@ export async function updateSetAction(formData: FormData) {
   }
 
   const payload = setPayload(formData);
-  const supabase = createSupabaseAdminClient();
+  const supabase = await createSupabaseAdminActionClient();
   const { error } = await supabase.from("sets").update(payload).eq("id", setId);
 
   if (error) {
@@ -433,7 +433,7 @@ export async function overrideSetResultAction(formData: FormData) {
   }
 
   const status = normalizeSetStatus(textOrNull(formData.get("status")));
-  const supabase = createSupabaseAdminClient();
+  const supabase = await createSupabaseAdminActionClient();
   const { data: updated, error } = await supabase
     .from("sets")
     .update({ status })

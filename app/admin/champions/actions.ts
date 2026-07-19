@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { createSupabaseAdminActionClient, createSupabaseAdminClient } from "@/lib/auth/admin";
 
 function textOrNull(value: FormDataEntryValue | null) {
   const text = typeof value === "string" ? value.trim() : "";
@@ -24,7 +24,7 @@ export async function updateChampionMappingAction(formData: FormData) {
   const name = requiredText(formData, "name", "챔피언명");
   const imageUrl = textOrNull(formData.get("imageUrl"));
 
-  const supabase = createSupabaseAdminClient();
+  const supabase = await createSupabaseAdminActionClient();
   const { error } = await supabase
     .from("champions")
     .update({

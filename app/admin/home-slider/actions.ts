@@ -2,7 +2,7 @@
 
 import { randomUUID } from "crypto";
 import { revalidatePath, updateTag } from "next/cache";
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { createSupabaseAdminActionClient, createSupabaseAdminClient } from "@/lib/auth/admin";
 import { HOME_PUBLIC_DATA_TAG } from "@/lib/data/home-cache";
 
 function revalidate() {
@@ -21,7 +21,7 @@ function numberValue(formData: FormData, key: string) {
 }
 
 async function uploadSlideImage(slideId: string, file: File) {
-  const supabase = createSupabaseAdminClient();
+  const supabase = await createSupabaseAdminActionClient();
   const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
   const path = `${slideId}/${Date.now()}.${extension}`;
   const buffer = Buffer.from(await file.arrayBuffer());
@@ -71,7 +71,7 @@ export async function createHomeHeroSlideAction(formData: FormData) {
   const payload = await slidePayload(formData, id, true);
   if (!payload) return;
 
-  const supabase = createSupabaseAdminClient();
+  const supabase = await createSupabaseAdminActionClient();
   const { error } = await supabase.from("home_hero_slides").insert({ id, ...payload });
   if (error) throw error;
 
@@ -83,7 +83,7 @@ export async function updateHomeHeroSlideAction(formData: FormData) {
   const payload = await slidePayload(formData, id, false);
   if (!id || !payload) return;
 
-  const supabase = createSupabaseAdminClient();
+  const supabase = await createSupabaseAdminActionClient();
   const { error } = await supabase.from("home_hero_slides").update(payload).eq("id", id);
   if (error) throw error;
 
@@ -94,7 +94,7 @@ export async function deleteHomeHeroSlideAction(formData: FormData) {
   const id = textValue(formData, "id");
   if (!id) return;
 
-  const supabase = createSupabaseAdminClient();
+  const supabase = await createSupabaseAdminActionClient();
   const { error } = await supabase.from("home_hero_slides").delete().eq("id", id);
   if (error) throw error;
 

@@ -22,7 +22,7 @@ import {
   syncMatchTimeline,
   type TimelineSyncSummary,
 } from "@/lib/sync/timeline-events";
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { createSupabaseAdminActionClient, createSupabaseAdminClient } from "@/lib/auth/admin";
 import type { Match } from "@/lib/types";
 import { matchRouteId, parseDateTimeLocalKST } from "@/lib/view-data";
 
@@ -86,7 +86,7 @@ export async function syncLeaguepediaMatchesAction(
   mode: "incremental" | "full" = "incremental",
 ): Promise<SyncLeaguepediaActionResult> {
   try {
-    const supabase = createSupabaseAdminClient();
+    const supabase = await createSupabaseAdminActionClient();
     const summary = await syncLeaguepediaLck2026(supabase, { mode });
 
     revalidatePath("/admin/matches");
@@ -102,7 +102,7 @@ export async function syncLeaguepediaMatchesAction(
 }
 
 export async function getLeaguepediaSyncCursor() {
-  const supabase = createSupabaseAdminClient();
+  const supabase = await createSupabaseAdminActionClient();
   return getLastCompletedMatchCursor(supabase);
 }
 
@@ -111,7 +111,7 @@ export async function syncLeaguepediaMatchSetsAction(
   force = false,
 ): Promise<SyncLeaguepediaSetsActionResult> {
   try {
-    const supabase = createSupabaseAdminClient();
+    const supabase = await createSupabaseAdminActionClient();
 
     if (!force) {
       const match = await getMatchById(matchId);
@@ -144,7 +144,7 @@ export async function syncTimelineAction(
   force = true,
 ): Promise<SyncTimelineActionResult> {
   try {
-    const supabase = createSupabaseAdminClient();
+    const supabase = await createSupabaseAdminActionClient();
     const summary = await syncMatchTimeline(supabase, matchId, force);
     revalidatePath(`/matches/${matchId}`);
     return { ok: true, summary };
@@ -174,7 +174,7 @@ export type SyncMatchDataActionResult =
  * 함께 반환한다. POM은 이미 수동으로 지정돼 있으면 덮어쓰지 않는다.
  */
 export async function syncMatchDataAction(matchId: string): Promise<SyncMatchDataActionResult> {
-  const supabase = createSupabaseAdminClient();
+  const supabase = await createSupabaseAdminActionClient();
 
   let setsSummary: LeaguepediaMatchSetsSyncSummary;
   let setsSkipped = false;
@@ -229,7 +229,7 @@ export async function checkMatchConsistencyAction(
     const sets = await getSetsByMatchId(match.id);
     const setIds = sets.map((set) => set.id);
 
-    const supabase = createSupabaseAdminClient();
+    const supabase = await createSupabaseAdminActionClient();
     const [pickBanRes, playerStatRes] =
       setIds.length > 0
         ? await Promise.all([
@@ -351,7 +351,7 @@ function resultOverridePayload(formData: FormData) {
 
 export async function createMatchAction(formData: FormData) {
   const payload = basicMatchPayload(formData);
-  const { error } = await createSupabaseAdminClient().from("matches").insert(payload);
+  const { error } = await (await createSupabaseAdminActionClient()).from("matches").insert(payload);
 
   if (error) {
     throw new Error(error.message);
@@ -370,7 +370,7 @@ export async function updateMatchAction(formData: FormData) {
   }
 
   const payload = basicMatchPayload(formData);
-  const { error } = await createSupabaseAdminClient()
+  const { error } = await (await createSupabaseAdminActionClient())
     .from("matches")
     .update(payload)
     .eq("id", matchId);
@@ -397,7 +397,7 @@ export async function overrideMatchResultAction(formData: FormData) {
   }
 
   const payload = resultOverridePayload(formData);
-  const supabase = createSupabaseAdminClient();
+  const supabase = await createSupabaseAdminActionClient();
   const { error } = await supabase.from("matches").update(payload).eq("id", matchId);
 
   if (error) {

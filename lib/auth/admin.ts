@@ -3,6 +3,9 @@ import "server-only";
 import { redirect } from "next/navigation";
 
 import { createSupabaseAuthClient } from "@/lib/supabase/auth-server";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+
+export { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 type AdminUser = {
   id: string;
@@ -48,4 +51,9 @@ export async function requireAdmin(): Promise<AdminUser> {
   }
 
   redirect("/");
+}
+
+export async function createSupabaseAdminActionClient() {
+  await requireAdmin();
+  return createSupabaseAdminClient();
 }

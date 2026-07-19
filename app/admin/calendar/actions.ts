@@ -2,7 +2,7 @@
 
 import { revalidatePath, updateTag } from "next/cache";
 
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { createSupabaseAdminActionClient, createSupabaseAdminClient } from "@/lib/auth/admin";
 import { HOME_PUBLIC_DATA_TAG } from "@/lib/data/home-cache";
 
 function revalidate() {
@@ -25,7 +25,7 @@ export async function createCalendarEventAction(formData: FormData) {
   const { eventType, title, eventDate, teamId, playerId, isRecurring } = parseFields(formData);
   if (!eventType || !title || !eventDate) return;
 
-  const supabase = createSupabaseAdminClient();
+  const supabase = await createSupabaseAdminActionClient();
   await supabase.from("fan_calendar_events").insert({
     event_type: eventType,
     title,
@@ -43,7 +43,7 @@ export async function updateCalendarEventAction(formData: FormData) {
   const { eventType, title, eventDate, teamId, playerId, isRecurring } = parseFields(formData);
   if (!id || !eventType || !title || !eventDate) return;
 
-  const supabase = createSupabaseAdminClient();
+  const supabase = await createSupabaseAdminActionClient();
   await supabase
     .from("fan_calendar_events")
     .update({
@@ -63,7 +63,7 @@ export async function deleteCalendarEventAction(formData: FormData) {
   const id = String(formData.get("id") ?? "").trim();
   if (!id) return;
 
-  const supabase = createSupabaseAdminClient();
+  const supabase = await createSupabaseAdminActionClient();
   await supabase.from("fan_calendar_events").delete().eq("id", id);
 
   revalidate();

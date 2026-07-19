@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { createSupabaseAdminActionClient, createSupabaseAdminClient } from "@/lib/auth/admin";
 
 export type SaveBracketLayoutResult = { ok: true } | { ok: false; error: string };
 
@@ -22,7 +22,7 @@ export async function saveBracketColumnsAction(
   columns: BracketColumnUpdate[],
 ): Promise<SaveBracketLayoutResult> {
   try {
-    const supabase = createSupabaseAdminClient();
+    const supabase = await createSupabaseAdminActionClient();
 
     const stageIds = [...new Set(columns.map((column) => column.stageId))];
     const { data: stageRows, error: stageError } = await supabase
@@ -82,7 +82,7 @@ export async function setMatchAdvancesToAction(
       throw new Error("같은 매치를 다음 매치로 지정할 수 없습니다.");
     }
 
-    const supabase = createSupabaseAdminClient();
+    const supabase = await createSupabaseAdminActionClient();
     const { error } = await supabase
       .from("matches")
       .update({ advances_to_match_id: advancesToMatchId })
@@ -117,7 +117,7 @@ export async function setMatchGroupIndexAction(
       throw new Error("그룹 번호는 0 이상의 정수여야 합니다.");
     }
 
-    const supabase = createSupabaseAdminClient();
+    const supabase = await createSupabaseAdminActionClient();
     const { error } = await supabase.from("matches").update({ group_index: groupIndex }).eq("id", matchId);
 
     if (error) {
@@ -150,7 +150,7 @@ export async function createStageAction(formData: FormData): Promise<void> {
     throw new Error("라운드 이름을 입력해주세요.");
   }
 
-  const supabase = createSupabaseAdminClient();
+  const supabase = await createSupabaseAdminActionClient();
   const { data: existingStages, error: fetchError } = await supabase
     .from("stages")
     .select("id, order_index")
@@ -197,7 +197,7 @@ export async function renameStageAction(
       throw new Error("라운드 이름을 입력해주세요.");
     }
 
-    const supabase = createSupabaseAdminClient();
+    const supabase = await createSupabaseAdminActionClient();
     const { error } = await supabase.from("stages").update({ name: trimmed }).eq("id", stageId);
 
     if (error) {
@@ -229,7 +229,7 @@ export async function createBracketStageAction(formData: FormData): Promise<void
     throw new Error("브래킷 스테이지 이름을 입력해주세요.");
   }
 
-  const supabase = createSupabaseAdminClient();
+  const supabase = await createSupabaseAdminActionClient();
   const { count, error: countError } = await supabase
     .from("bracket_stages")
     .select("id", { count: "exact", head: true })
@@ -267,7 +267,7 @@ export async function renameBracketStageAction(
       throw new Error("브래킷 스테이지 이름을 입력해주세요.");
     }
 
-    const supabase = createSupabaseAdminClient();
+    const supabase = await createSupabaseAdminActionClient();
     const { error } = await supabase
       .from("bracket_stages")
       .update({ name: trimmed })
@@ -298,7 +298,7 @@ export async function deleteBracketStageAction(
   bracketStageId: string,
 ): Promise<SaveBracketLayoutResult> {
   try {
-    const supabase = createSupabaseAdminClient();
+    const supabase = await createSupabaseAdminActionClient();
 
     const { count, error: countError } = await supabase
       .from("stages")
@@ -355,7 +355,7 @@ export async function moveStageAction(
   direction: "left" | "right",
 ): Promise<SaveBracketLayoutResult> {
   try {
-    const supabase = createSupabaseAdminClient();
+    const supabase = await createSupabaseAdminActionClient();
     const { data: existingStages, error: fetchError } = await supabase
       .from("stages")
       .select("id, order_index")
@@ -404,7 +404,7 @@ export async function moveStageToBracketStageAction(
   targetBracketStageId: string,
 ): Promise<SaveBracketLayoutResult> {
   try {
-    const supabase = createSupabaseAdminClient();
+    const supabase = await createSupabaseAdminActionClient();
 
     const { count, error: countError } = await supabase
       .from("stages")
@@ -441,7 +441,7 @@ export async function moveStageToBracketStageAction(
  */
 export async function deleteStageAction(segmentKey: string, stageId: string): Promise<SaveBracketLayoutResult> {
   try {
-    const supabase = createSupabaseAdminClient();
+    const supabase = await createSupabaseAdminActionClient();
 
     const { count, error: countError } = await supabase
       .from("matches")
@@ -478,7 +478,7 @@ export async function deleteStageAction(segmentKey: string, stageId: string): Pr
  */
 export async function deleteMatchAction(segmentKey: string, matchId: string): Promise<SaveBracketLayoutResult> {
   try {
-    const supabase = createSupabaseAdminClient();
+    const supabase = await createSupabaseAdminActionClient();
     const { error } = await supabase.from("matches").delete().eq("id", matchId);
 
     if (error) {

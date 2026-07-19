@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { fanSiteHosts } from "@/lib/team-themes";
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { createSupabaseAdminActionClient, createSupabaseAdminClient } from "@/lib/auth/admin";
 
 function textOrNull(value: FormDataEntryValue | null) {
   const text = typeof value === "string" ? value.trim() : "";
@@ -76,7 +76,7 @@ function teamPayload(formData: FormData) {
 
 export async function createTeamAction(formData: FormData) {
   const payload = teamPayload(formData);
-  const supabase = createSupabaseAdminClient();
+  const supabase = await createSupabaseAdminActionClient();
 
   const [slugCheck, hostCheck] = await Promise.all([
     supabase.from("teams").select("id").eq("slug", payload.slug).maybeSingle(),
@@ -96,7 +96,7 @@ export async function createTeamAction(formData: FormData) {
 export async function updateTeamAction(formData: FormData) {
   const teamId = requiredText(formData, "teamId", "팀 ID");
   const payload = teamPayload(formData);
-  const supabase = createSupabaseAdminClient();
+  const supabase = await createSupabaseAdminActionClient();
 
   const [slugCheck, hostCheck, existingTeam] = await Promise.all([
     supabase.from("teams").select("id").eq("slug", payload.slug).neq("id", teamId).maybeSingle(),
@@ -135,7 +135,7 @@ export async function createTeamIdentityHistoryAction(formData: FormData) {
   }
 
   // 기존 이력과 구간 충돌 검증
-  const supabase = createSupabaseAdminClient();
+  const supabase = await createSupabaseAdminActionClient();
   const { data: existingHistories } = await supabase
     .from("team_identity_histories")
     .select("effective_from, effective_to")

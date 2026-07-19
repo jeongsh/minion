@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { createSupabaseAdminActionClient, createSupabaseAdminClient } from "@/lib/auth/admin";
 
 function textOrNull(value: FormDataEntryValue | null) {
   const text = typeof value === "string" ? value.trim() : "";
@@ -30,7 +30,7 @@ export async function updateInternationalTeamMediaAction(formData: FormData) {
   const useWhiteLogoOnDark = checkboxValue(formData, "useWhiteLogoOnDark");
   const profileImageUrl = textOrNull(formData.get("profileImageUrl"));
 
-  const client = createSupabaseAdminClient();
+  const client = await createSupabaseAdminActionClient();
   const { data: team, error: lookupError } = await client.from("teams").select("slug").eq("id", teamId).maybeSingle();
 
   if (lookupError) {
@@ -69,7 +69,7 @@ export async function updateInternationalTeamShortNameAction(formData: FormData)
   const teamId = requiredText(formData, "teamId", "팀 ID");
   const shortName = requiredText(formData, "shortName", "약칭");
 
-  const client = createSupabaseAdminClient();
+  const client = await createSupabaseAdminActionClient();
   const { data: team, error: lookupError } = await client.from("teams").select("slug").eq("id", teamId).maybeSingle();
 
   if (lookupError) {
@@ -147,7 +147,7 @@ export async function updateInternationalTeamColorsAction(formData: FormData) {
   const primaryColor = requiredHexColor(formData, "primaryColor", "메인 컬러");
   const secondaryColor = requiredHexColor(formData, "secondaryColor", "보조 컬러");
 
-  const client = createSupabaseAdminClient();
+  const client = await createSupabaseAdminActionClient();
   const { data: team, error: lookupError } = await client.from("teams").select("slug").eq("id", teamId).maybeSingle();
 
   if (lookupError) {
@@ -179,7 +179,7 @@ export async function updateInternationalPlayerImageAction(formData: FormData) {
   const playerId = requiredText(formData, "playerId", "선수 ID");
   const profileImageUrl = textOrNull(formData.get("profileImageUrl"));
 
-  const client = createSupabaseAdminClient();
+  const client = await createSupabaseAdminActionClient();
   const { data: player, error: lookupError } = await client
     .from("players")
     .select("slug, team_id, teams(slug)")

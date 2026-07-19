@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { createSupabaseAdminActionClient, createSupabaseAdminClient } from "@/lib/auth/admin";
 
 function revalidate() {
   revalidatePath("/admin/players");
@@ -19,7 +19,7 @@ export async function createPlayerAction(formData: FormData) {
 
   const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 
-  const supabase = createSupabaseAdminClient();
+  const supabase = await createSupabaseAdminActionClient();
 
   // 주전 설정 시 같은 팀·포지션의 기존 주전을 서브로 내림
   if (isStarter && teamId && position) {
@@ -53,7 +53,7 @@ export async function updatePlayerAction(formData: FormData) {
 
   if (!id || !name) return;
 
-  const supabase = createSupabaseAdminClient();
+  const supabase = await createSupabaseAdminActionClient();
 
   // 주전 설정 시 같은 팀·포지션의 기존 주전을 서브로 내림
   if (isStarter && teamId && position) {
@@ -78,7 +78,7 @@ export async function deletePlayerAction(formData: FormData) {
   const id = formData.get("id") as string;
   if (!id) return;
 
-  const supabase = createSupabaseAdminClient();
+  const supabase = await createSupabaseAdminActionClient();
   await supabase.from("players").delete().eq("id", id);
 
   revalidate();
@@ -89,7 +89,7 @@ export async function retirePlayerAction(formData: FormData) {
   if (!id) return;
 
   const today = new Date().toISOString().slice(0, 10);
-  const supabase = createSupabaseAdminClient();
+  const supabase = await createSupabaseAdminActionClient();
 
   // 현재 팀 정보 조회 후 경력 기록에 자동 추가
   const { data: player } = await supabase
@@ -128,7 +128,7 @@ export async function reactivatePlayerAction(formData: FormData) {
   const id = formData.get("id") as string;
   if (!id) return;
 
-  const supabase = createSupabaseAdminClient();
+  const supabase = await createSupabaseAdminActionClient();
   await supabase
     .from("players")
     .update({ is_active: true, retired_at: null })
@@ -148,7 +148,7 @@ export async function addCareerHistoryAction(formData: FormData) {
 
   if (!playerId || !position || !startDate) return;
 
-  const supabase = createSupabaseAdminClient();
+  const supabase = await createSupabaseAdminActionClient();
   await supabase.from("player_career_history").insert({
     player_id: playerId,
     team_id: teamId,
@@ -166,7 +166,7 @@ export async function deleteCareerHistoryAction(formData: FormData) {
   const id = formData.get("id") as string;
   if (!id) return;
 
-  const supabase = createSupabaseAdminClient();
+  const supabase = await createSupabaseAdminActionClient();
   await supabase.from("player_career_history").delete().eq("id", id);
 
   revalidate();
@@ -223,7 +223,7 @@ async function fetchContractExpiries(pageNames: string[]): Promise<Map<string, s
 }
 
 export async function syncContractExpiryAction(): Promise<{ updated: number; skipped: number; error?: string }> {
-  const supabase = createSupabaseAdminClient();
+  const supabase = await createSupabaseAdminActionClient();
 
   const { data, error } = await supabase
     .from("players")

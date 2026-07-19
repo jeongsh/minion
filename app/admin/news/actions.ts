@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath, updateTag } from "next/cache";
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { createSupabaseAdminActionClient, createSupabaseAdminClient } from "@/lib/auth/admin";
 import { HOME_PUBLIC_DATA_TAG } from "@/lib/data/home-cache";
 
 function revalidate() {
@@ -37,7 +37,7 @@ export async function createVideoAction(formData: FormData) {
     (youtubeVideoId ? `https://img.youtube.com/vi/${youtubeVideoId}/maxresdefault.jpg` : null);
   const now = new Date().toISOString();
 
-  const supabase = createSupabaseAdminClient();
+  const supabase = await createSupabaseAdminActionClient();
   await supabase.from("team_videos").insert({
     team_id: teamId,
     platform,
@@ -74,7 +74,7 @@ export async function updateVideoAction(formData: FormData) {
     thumbnailUrl ||
     (youtubeVideoId ? `https://img.youtube.com/vi/${youtubeVideoId}/maxresdefault.jpg` : null);
 
-  const supabase = createSupabaseAdminClient();
+  const supabase = await createSupabaseAdminActionClient();
   await supabase
     .from("team_videos")
     .update({
@@ -96,7 +96,7 @@ export async function updateVideoAction(formData: FormData) {
 export async function deleteVideoAction(formData: FormData) {
   const id = formData.get("id") as string;
   if (!id) return;
-  const supabase = createSupabaseAdminClient();
+  const supabase = await createSupabaseAdminActionClient();
   await supabase.from("team_videos").delete().eq("id", id);
   revalidate();
 }
@@ -110,7 +110,7 @@ export async function createPostAction(formData: FormData) {
 
   if (!boardType || !siteScope || !title || !content) return;
 
-  const supabase = createSupabaseAdminClient();
+  const supabase = await createSupabaseAdminActionClient();
   await supabase.from("community_posts").insert({
     board_type: boardType,
     site_scope: siteScope,
@@ -135,7 +135,7 @@ export async function updatePostAction(formData: FormData) {
 
   if (!id || !boardType || !siteScope || !title) return;
 
-  const supabase = createSupabaseAdminClient();
+  const supabase = await createSupabaseAdminActionClient();
   await supabase
     .from("community_posts")
     .update({
@@ -153,7 +153,7 @@ export async function updatePostAction(formData: FormData) {
 export async function deletePostAction(formData: FormData) {
   const id = formData.get("id") as string;
   if (!id) return;
-  const supabase = createSupabaseAdminClient();
+  const supabase = await createSupabaseAdminActionClient();
   await supabase.from("community_posts").delete().eq("id", id);
   revalidate();
 }

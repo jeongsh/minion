@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { fetchPlayerSocialForPage } from "@/lib/sync/leaguepedia-player-social.ts";
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { createSupabaseAdminActionClient, createSupabaseAdminClient } from "@/lib/auth/admin";
 
 function revalidatePlayerPaths(playerId: string, slug?: string) {
   revalidatePath("/admin/players");
@@ -31,7 +31,7 @@ function parseAliases(value: FormDataEntryValue | null) {
 }
 
 async function uploadProfileImage(playerId: string, file: File) {
-  const supabase = createSupabaseAdminClient();
+  const supabase = await createSupabaseAdminActionClient();
   const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
   const path = `${playerId}/${Date.now()}.${extension}`;
   const buffer = Buffer.from(await file.arrayBuffer());
@@ -61,7 +61,7 @@ export async function updatePlayerDetailAction(formData: FormData) {
 
   if (!id || !name || !position) return;
 
-  const supabase = createSupabaseAdminClient();
+  const supabase = await createSupabaseAdminActionClient();
 
   // 이적 감지용: 기존 팀 조회 (팀이 바뀌면 과거 SNS 데이터의 team_id도 함께 이동)
   const { data: existingPlayer } = await supabase
@@ -134,7 +134,7 @@ export async function syncPlayerSocialFromLeaguepediaAction(formData: FormData) 
 
   const social = await fetchPlayerSocialForPage(leaguepediaPage);
   if (social) {
-    const supabase = createSupabaseAdminClient();
+    const supabase = await createSupabaseAdminActionClient();
     await supabase.from("players").update(social).eq("id", id);
   }
 
