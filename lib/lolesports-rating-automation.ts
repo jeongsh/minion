@@ -1,6 +1,10 @@
 import { revalidatePath } from "next/cache";
 
 import { fetchTrackedLolesportsEvents } from "@/lib/lolesports";
+import {
+  getLolesportsPollingStartsAt,
+  shouldPollLolesportsEvents,
+} from "@/lib/lolesports-polling-window";
 import { buildLolesportsSetResultSnapshot } from "@/lib/lolesports-set-result-snapshot";
 import { syncLolesportsSetGameData } from "@/lib/lolesports-game-sync";
 import {
@@ -481,6 +485,29 @@ export async function runLolesportsRatingAutomation(
       timelineSets: [],
       deliveredNotificationCount: beforeDelivery.delivered,
       warnings,
+    };
+  }
+
+  if (!shouldPollLolesportsEvents(matches, now)) {
+    const startsAt = getLolesportsPollingStartsAt(matches);
+    return {
+      polled: false,
+      candidateCount: 0,
+      externalEventCount: 0,
+      reconciledMatchIds: [],
+      openedSets: [],
+      completedMatchIds: [],
+      snapshottedSets: [],
+      detailedSets: [],
+      enrichedSets: [],
+      timelineSets: [],
+      deliveredNotificationCount: beforeDelivery.delivered,
+      warnings: [
+        ...warnings,
+        startsAt
+          ? `LoL Esports polling skipped until ${startsAt.toISOString()}`
+          : "LoL Esports polling skipped because today's match times are invalid",
+      ],
     };
   }
 
