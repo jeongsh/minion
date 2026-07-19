@@ -61,9 +61,9 @@ export function CommunityFeed({
   return (
     <section className="flex flex-col gap-4 sm:gap-5" aria-label="커뮤니티 게시글">
       <div className="mobile-full-bleed mobile-list-shell overflow-hidden rounded-[var(--ui-card-radius)] border border-[var(--ui-border)] bg-[var(--ui-surface)] sm:mx-0">
-        <div className="flex min-h-12 items-center border-b border-[var(--ui-border)] px-3 py-2 sm:min-h-14 sm:px-4">
+        <div className="flex min-h-12 items-stretch border-b border-[var(--ui-border)] px-3 sm:min-h-14 sm:px-4">
           <div
-            className="-mx-1 flex min-w-0 flex-1 items-center gap-2 overflow-x-auto px-1 scrollbar-hide"
+            className="-mx-1 flex min-w-0 flex-1 items-stretch gap-2 overflow-x-auto px-1 scrollbar-hide sm:gap-7"
             role="tablist"
             aria-label="게시판 말머리"
           >
@@ -153,10 +153,10 @@ function CategoryButton({ active, onClick, children }: { active: boolean; onClic
       role="tab"
       aria-selected={active}
       onClick={onClick}
-      className={`relative h-10 shrink-0 whitespace-nowrap px-2 text-sm font-semibold transition-colors ${
+      className={`flex shrink-0 items-center whitespace-nowrap border-b-[3px] px-2 text-sm font-paperozi transition-colors sm:px-0 sm:text-base sm:font-bold ${
         active
-          ? "text-[var(--ui-ink)] after:absolute after:inset-x-1 after:bottom-0 after:h-0.5 after:bg-[var(--ui-ink)]"
-          : "text-[var(--ui-muted)] hover:text-[var(--ui-text)]"
+          ? "border-[var(--ui-ink)] text-[var(--ui-ink)]"
+          : "border-transparent text-[var(--ui-muted)] hover:text-[var(--ui-text)]"
       }`}
     >
       {children}
