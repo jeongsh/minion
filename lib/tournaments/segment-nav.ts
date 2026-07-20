@@ -24,11 +24,18 @@ const ONGOING_WINDOW_MS = 3 * 24 * 60 * 60 * 1000;
 
 function isSegmentOngoing(matches: Match[], tournamentIds: Set<string>, now: Date) {
   const nowMs = now.getTime();
-  return matches.some((match) => {
-    if (!tournamentIds.has(match.tournamentId)) return false;
+  const segmentMatches = matches.filter((match) => tournamentIds.has(match.tournamentId));
+  // 아직 안 끝난(완료되지 않은) 경기가 하나도 없으면 그 세그먼트는 완전히 종료된 것이다.
+  // 이 경우 "최근 종료" 유예(ONGOING_WINDOW_MS)를 주지 않아야 EWC처럼 대회가 끝난 뒤에도
+  // 며칠간 진행중 표시가 남는 문제가 없다. 유예는 어디까지나 마지막 경기가 방금 끝났거나
+  // (아직 다음 경기가 남아있는) 스플릿 사이 휴식기간을 위한 것이다.
+  const hasUpcoming = segmentMatches.some((match) => match.status !== "completed");
+
+  return segmentMatches.some((match) => {
     if (match.status === "live") return true;
     const matchMs = new Date(match.matchDate).getTime();
-    return Number.isFinite(matchMs) && Math.abs(matchMs - nowMs) <= ONGOING_WINDOW_MS;
+    if (!Number.isFinite(matchMs) || Math.abs(matchMs - nowMs) > ONGOING_WINDOW_MS) return false;
+    return matchMs >= nowMs || hasUpcoming;
   });
 }
 
