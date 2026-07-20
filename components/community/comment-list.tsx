@@ -40,12 +40,14 @@ export function CommentList({ comments, commentReactions, scope, teamSlug }: { c
           ) : (comment.authorName ?? "글").charAt(0)}
         </span>
         <div className="min-w-0 flex-1">
-          <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-2">
+          <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
             <div className="flex min-w-0 items-center gap-1.5">
               <span className="truncate text-sm font-semibold text-[var(--ui-ink)]">{comment.authorName ?? "작성자"}</span>
               <span className="shrink-0 text-[13px] text-[var(--ui-muted)]">{formatRelativeOrDate(comment.createdAt)}</span>
             </div>
-            <ReactionButtons target="comment" targetId={comment.id} postId={comment.postId} scope={scope} teamSlug={teamSlug} initialState={commentReactions[comment.id] ?? null} initialHonorCount={comment.likeCount} initialDislikeCount={comment.dislikeCount} size="sm" />
+            <div className="-my-1">
+              <ReactionButtons target="comment" targetId={comment.id} postId={comment.postId} scope={scope} teamSlug={teamSlug} initialState={commentReactions[comment.id] ?? null} initialHonorCount={comment.likeCount} initialDislikeCount={comment.dislikeCount} size="sm" />
+            </div>
           </div>
           {comment.blindedAt ? (
             <BlindedContent compact label={blindLabel(comment.blindedSource, "comment")}>

@@ -136,7 +136,7 @@ export default async function FanVideoDetailPage({
           <h2 className="home-section-title text-lg text-[#0f0f0f]">관련 영상</h2>
           <Link href={`/fan/${team.fanSiteHost}/videos`} className="text-[13px] font-semibold text-[#606060] hover:text-accent">전체 보기</Link>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2 min-[1200px]:grid-cols-1">
+        <div className="grid gap-3 min-[1200px]:max-h-[calc(100vh-12rem)] min-[1200px]:overflow-y-auto min-[1200px]:pr-1">
           {related.map((item) => <RelatedVideo key={item.id} teamSlug={team.fanSiteHost} video={item} />)}
         </div>
       </aside>
