@@ -76,13 +76,24 @@ export function HomeCalendar({
     return groups;
   }, [matches]);
 
-  // 생일/데뷔/기념일은 MM-DD 기준 매년 반복이라 연도 무관하게 매칭한다.
-  const eventsByMonthDay = useMemo(() => {
+  const recurringEventsByMonthDay = useMemo(() => {
     const map = new Map<string, CalendarEvent[]>();
     for (const event of events) {
+      if (!event.isRecurring) continue;
       const list = map.get(event.monthDay) ?? [];
       list.push(event);
       map.set(event.monthDay, list);
+    }
+    return map;
+  }, [events]);
+
+  const oneTimeEventsByDate = useMemo(() => {
+    const map = new Map<string, CalendarEvent[]>();
+    for (const event of events) {
+      if (event.isRecurring) continue;
+      const list = map.get(event.nextDateKey) ?? [];
+      list.push(event);
+      map.set(event.nextDateKey, list);
     }
     return map;
   }, [events]);
@@ -94,7 +105,13 @@ export function HomeCalendar({
   const selectedKey = selected ? dateKeyFromLocalDate(selected) : "";
   const selectedMonthDay = selected ? monthDayFromLocalDate(selected) : "";
   const selectedMatches = selectedKey ? (matchesByDate.get(selectedKey) ?? []) : [];
-  const selectedEvents = selectedMonthDay ? (eventsByMonthDay.get(selectedMonthDay) ?? []) : [];
+  const selectedEvents =
+    selectedKey && selectedMonthDay
+      ? [
+          ...(recurringEventsByMonthDay.get(selectedMonthDay) ?? []),
+          ...(oneTimeEventsByDate.get(selectedKey) ?? []),
+        ]
+      : [];
 
   useEffect(() => {
     function handlePointerDown(event: PointerEvent) {
@@ -126,7 +143,9 @@ export function HomeCalendar({
           const key = dateKeyFromLocalDate(day);
           const monthDay = monthDayFromLocalDate(day);
           const hasAnything =
-            (matchesByDate.get(key)?.length ?? 0) > 0 || (eventsByMonthDay.get(monthDay)?.length ?? 0) > 0;
+            (matchesByDate.get(key)?.length ?? 0) > 0 ||
+            (recurringEventsByMonthDay.get(monthDay)?.length ?? 0) > 0 ||
+            (oneTimeEventsByDate.get(key)?.length ?? 0) > 0;
 
           if (!hasAnything || (selected && dateKeyFromLocalDate(selected) === key)) {
             setSelected(undefined);
@@ -177,7 +196,8 @@ export function HomeCalendar({
             const monthDay = monthDayFromLocalDate(day.date);
             const dayTypes = new Set<DotType>();
             if ((matchesByDate.get(key)?.length ?? 0) > 0) dayTypes.add("match");
-            for (const event of eventsByMonthDay.get(monthDay) ?? []) dayTypes.add(event.type);
+            for (const event of recurringEventsByMonthDay.get(monthDay) ?? []) dayTypes.add(event.type);
+            for (const event of oneTimeEventsByDate.get(key) ?? []) dayTypes.add(event.type);
             const types = Array.from(dayTypes);
             // 오늘 날짜는 --rdp-accent-color(라이트 모드 색으로 고정됨)에 기대지 않고
             // 테마에 반응하는 ui-ink를 직접 강제 지정해 다크모드에서도 숫자가 보이게 한다.

@@ -21,6 +21,10 @@ function monthDayOf(date: Date) {
   return `${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
+function dateKeyOf(date: Date) {
+  return `${date.getFullYear()}-${monthDayOf(date)}`;
+}
+
 function ddayLabel(dday: number) {
   return dday === 0 ? "D-DAY" : `D-${dday}`;
 }
@@ -51,20 +55,37 @@ export function CelebrationCalendar({
   /** "YYYY-MM" — 초기 표시 월 */
   initialMonthKey: string;
 }) {
-  // MM-DD -> 해당 날짜의 이벤트들(연도 무관, 매년 반복).
-  const eventsByMonthDay = useMemo(() => {
+  const recurringEventsByMonthDay = useMemo(() => {
     const map = new Map<string, CalendarEvent[]>();
-    for (const e of events) {
-      const list = map.get(e.monthDay) ?? [];
-      list.push(e);
-      map.set(e.monthDay, list);
+    for (const event of events) {
+      if (!event.isRecurring) continue;
+      const list = map.get(event.monthDay) ?? [];
+      list.push(event);
+      map.set(event.monthDay, list);
+    }
+    return map;
+  }, [events]);
+
+  const oneTimeEventsByDate = useMemo(() => {
+    const map = new Map<string, CalendarEvent[]>();
+    for (const event of events) {
+      if (event.isRecurring) continue;
+      const list = map.get(event.nextDateKey) ?? [];
+      list.push(event);
+      map.set(event.nextDateKey, list);
     }
     return map;
   }, [events]);
 
   const [initYear, initMonth] = initialMonthKey.split("-").map(Number);
-  const [selectedMonthDay, setSelectedMonthDay] = useState<string | null>(null);
-  const selectedEvents = selectedMonthDay ? eventsByMonthDay.get(selectedMonthDay) ?? [] : [];
+  const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null);
+  const selectedMonthDay = selectedDateKey?.slice(5) ?? null;
+  const selectedEvents = selectedDateKey && selectedMonthDay
+    ? [
+        ...(recurringEventsByMonthDay.get(selectedMonthDay) ?? []),
+        ...(oneTimeEventsByDate.get(selectedDateKey) ?? []),
+      ]
+    : [];
 
   const upcoming = events.slice(0, 8);
 
@@ -131,8 +152,11 @@ export function CelebrationCalendar({
           fixedWeeks
           onDayClick={(day) => {
             const md = monthDayOf(day);
-            const has = (eventsByMonthDay.get(md) ?? []).length > 0;
-            setSelectedMonthDay(has && selectedMonthDay !== md ? md : null);
+            const key = dateKeyOf(day);
+            const has =
+              (recurringEventsByMonthDay.get(md)?.length ?? 0) > 0 ||
+              (oneTimeEventsByDate.get(key)?.length ?? 0) > 0;
+            setSelectedDateKey(has && selectedDateKey !== key ? key : null);
           }}
           style={
             {
@@ -156,7 +180,11 @@ export function CelebrationCalendar({
             DayButton: (props: DayButtonProps) => {
               const { day, modifiers, className, ...buttonProps } = props;
               const md = monthDayOf(day.date);
-              const dayEvents = eventsByMonthDay.get(md) ?? [];
+              const key = dateKeyOf(day.date);
+              const dayEvents = [
+                ...(recurringEventsByMonthDay.get(md) ?? []),
+                ...(oneTimeEventsByDate.get(key) ?? []),
+              ];
               const types = Array.from(new Set(dayEvents.map((e) => e.type)));
               return (
                 <button

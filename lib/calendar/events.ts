@@ -20,6 +20,7 @@ export type CalendarEvent = {
   monthDay: string;
   /** 다가오는 실제 날짜 "YYYY-MM-DD" (KST) */
   nextDateKey: string;
+  isRecurring: boolean;
   /** 0 = 오늘, 양수 = D-n */
   dday: number;
   /** 생일=나이, 데뷔/우승=n주년. 계산 불가 시 null */
@@ -77,6 +78,15 @@ function nextOccurrence(month: number, day: number, today: { year: number; month
   }
   const dday = Math.round((occUTC - todayUTC) / 86_400_000);
   return { year, dday, nextDateKey: `${year}-${pad2(month)}-${pad2(resolveDay(year))}` };
+}
+
+function daysUntil(dateKey: string, today: { year: number; month: number; day: number }) {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  if (!year || !month || !day) return null;
+
+  const todayUTC = Date.UTC(today.year, today.month - 1, today.day);
+  const eventUTC = Date.UTC(year, month - 1, day);
+  return Math.round((eventUTC - todayUTC) / 86_400_000);
 }
 
 type PlayerBirthRow = {
@@ -154,6 +164,7 @@ export const getCalendarEvents = cache(async function getCalendarEvents(opts?: {
       subjectName: row.name,
       monthDay: `${pad2(bm)}-${pad2(bd)}`,
       nextDateKey: occ.nextDateKey,
+      isRecurring: true,
       dday: occ.dday,
       yearsCount: by ? occ.year - by : null,
       teamId: row.team_id,
@@ -172,7 +183,11 @@ export const getCalendarEvents = cache(async function getCalendarEvents(opts?: {
   for (const row of (eventRows as FanCalendarRow[] | null) ?? []) {
     const [ey, em, ed] = row.event_date.split("-").map(Number);
     if (!em || !ed) continue;
-    const occ = nextOccurrence(em, ed, today);
+    const oneTimeDday = row.is_recurring ? null : daysUntil(row.event_date, today);
+    if (!row.is_recurring && (oneTimeDday == null || oneTimeDday < 0)) continue;
+    const occ = row.is_recurring
+      ? nextOccurrence(em, ed, today)
+      : { year: ey, dday: oneTimeDday ?? 0, nextDateKey: row.event_date };
     const player = row.player_id ? playerById.get(row.player_id) : undefined;
     const resolvedTeamId = row.team_id ?? player?.team_id ?? null;
     const team = resolvedTeamId ? teamById.get(resolvedTeamId) : undefined;
@@ -186,6 +201,7 @@ export const getCalendarEvents = cache(async function getCalendarEvents(opts?: {
       subjectName,
       monthDay: `${pad2(em)}-${pad2(ed)}`,
       nextDateKey: occ.nextDateKey,
+      isRecurring: row.is_recurring,
       dday: occ.dday,
       yearsCount: years,
       teamId: resolvedTeamId,

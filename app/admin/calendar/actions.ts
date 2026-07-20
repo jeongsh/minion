@@ -17,7 +17,7 @@ function parseFields(formData: FormData) {
   const eventDate = String(formData.get("event_date") ?? "").trim();
   const teamId = (formData.get("team_id") as string | null)?.trim() || null;
   const playerId = (formData.get("player_id") as string | null)?.trim() || null;
-  const isRecurring = formData.get("is_recurring") !== "false";
+  const isRecurring = formData.has("is_recurring");
   return { eventType, title, eventDate, teamId, playerId, isRecurring };
 }
 
