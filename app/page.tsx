@@ -8,6 +8,7 @@ import { dateKeyKST, formatTimeKST, matchHref } from "@/lib/view-data";
 import { getPredictionMarketData } from "@/lib/predictions";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { getTodayCelebrations } from "@/lib/calendar/events";
+import { getLckChannelVideos, type HomeVideo } from "@/lib/data/lck-channel-videos";
 
 export const dynamic = "force-dynamic";
 
@@ -25,10 +26,11 @@ function buildRecentForm(teamId: string, matches: Match[]) {
 
 export default async function HomePage() {
   const user = await getCurrentUser();
-  const [homeData, communityPosts, predictionMarket] = await Promise.all([
+  const [homeData, communityPosts, predictionMarket, lckChannelVideos] = await Promise.all([
     getHomePagePublicData(),
     getBoardPosts({ scope: "hub" }),
     getPredictionMarketData(user?.id),
+    getLckChannelVideos(),
   ]);
   const { teams, matches, savedStandings, tournaments, latestVideos, homeHeroSlides, calendarEvents } = homeData;
 
@@ -112,6 +114,28 @@ export default async function HomePage() {
     href: slide.linkUrl,
   }));
 
+  // 최신 영상: 팀/선수 채널 영상과 LCK 공식 채널 영상을 최신순으로 섞어 12개만 노출한다.
+  const teamVideoItems: HomeVideo[] = latestVideos.map((video) => ({
+    id: video.id,
+    title: video.title,
+    videoUrl: video.videoUrl,
+    thumbnailUrl: video.thumbnailUrl,
+    publishedAt: video.publishedAt,
+    channelName: teamsById.get(video.teamId)?.shortName ?? "LCK",
+  }));
+  // 팀 영상이 LCK 공식 영상보다 자주 올라와 날짜순으로만 섞으면 공식 영상이 모두 밀려난다.
+  // 양쪽에 절반씩 자리를 보장한 뒤(한쪽이 모자라면 다른 쪽이 채운다) 그 안에서 최신순으로 정렬한다.
+  const byNewest = (a: HomeVideo, b: HomeVideo) =>
+    new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
+  const HOME_VIDEO_LIMIT = 12;
+  const sortedTeamVideos = [...teamVideoItems].sort(byNewest);
+  const sortedLckVideos = [...lckChannelVideos].sort(byNewest);
+  const lckQuota = Math.min(sortedLckVideos.length, Math.max(HOME_VIDEO_LIMIT / 2, HOME_VIDEO_LIMIT - sortedTeamVideos.length));
+  const homeVideos = [
+    ...sortedLckVideos.slice(0, lckQuota),
+    ...sortedTeamVideos.slice(0, HOME_VIDEO_LIMIT - lckQuota),
+  ].sort(byNewest);
+
   // 홈 게시판 캐러셀: 인기글(hot_at 최신순) 우선, 남는 자리는 최신 글로 채운다.
   // 블라인드/공지 글은 홈에 노출하지 않는다.
   const homeEligiblePosts = communityPosts.filter((post) => !post.blindedAt && !post.isNotice);
@@ -153,7 +177,7 @@ export default async function HomePage() {
       calendarMatches={calendarClientMatches}
       calendarEvents={calendarEvents}
       celebrationEvents={todayCelebrations}
-      latestVideos={latestVideos}
+      latestVideos={homeVideos}
       heroSlides={heroSlides}
       communityPosts={homeCommunityPosts}
       stripMatches={stripMatches}

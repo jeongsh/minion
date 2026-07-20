@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarDays, Play } from "lucide-react";
+import { CalendarDays } from "lucide-react";
 import { HomeUpcomingMatchesSwiper } from "@/components/domain/home-upcoming-matches-swiper";
 import {
   HomeHeroSwiper,
@@ -10,13 +10,15 @@ import {
   type HomeCalendarMatch,
 } from "@/components/domain/home-calendar";
 import { HomeBoardCarousel } from "@/components/domain/home-board-carousel";
+import { HomeVideoSwiper } from "@/components/domain/home-video-swiper";
 import { HomeTodayMatchesSwiper } from "@/components/domain/home-today-matches-swiper";
 import { CelebrationBanner } from "@/components/domain/celebration-banner";
 import type { CalendarEvent } from "@/lib/calendar/events";
 import { isMatchLive } from "@/lib/match-display";
 import { teams as themeTeams } from "@/lib/team-themes";
 import { predictionMarketForMatch, type PredictionBet } from "@/lib/predictions";
-import type { Match, Team, TeamVideo } from "@/lib/types";
+import type { Match, Team } from "@/lib/types";
+import type { HomeVideo } from "@/lib/data/lck-channel-videos";
 import { formatDateTime, matchHref } from "@/lib/view-data";
 import type { CommunityPostDetail } from "@/lib/community/types";
 import { SectionHeading as Heading } from "@/components/ui/section-heading";
@@ -47,7 +49,7 @@ type Props = {
   calendarMatches: HomeCalendarMatch[];
   calendarEvents: CalendarEvent[];
   celebrationEvents: CalendarEvent[];
-  latestVideos: TeamVideo[];
+  latestVideos: HomeVideo[];
   heroSlides: HomeHeroSwiperSlide[];
   communityPosts: CommunityPostDetail[];
   stripMatches: Match[];
@@ -336,37 +338,8 @@ export function HomeDashboard({
       </section>
 
       <section className="mt-8 sm:mt-10">
-        <Heading href="/videos">최신 영상</Heading>
-        <div className="grid auto-cols-[82%] grid-flow-col gap-3 overflow-x-auto pb-2 [scrollbar-width:none] sm:grid-flow-row sm:auto-cols-auto sm:grid-cols-2 sm:gap-4 sm:overflow-visible xl:grid-cols-4 [&::-webkit-scrollbar]:hidden">
-          {latestVideos.slice(0, 4).map((v) => (
-            <a
-              key={v.id}
-              href={v.videoUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="group"
-            >
-              <div className="relative aspect-video overflow-hidden rounded-2xl bg-[#202124]">
-                {v.thumbnailUrl && (
-                  <img
-                    src={v.thumbnailUrl}
-                    alt=""
-                    loading="lazy"
-                    decoding="async"
-                    className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-                  />
-                )}
-                <span className="absolute inset-0 bg-gradient-to-t from-black/45 to-transparent" />
-                <span className="absolute bottom-3 left-3 grid h-9 w-9 place-items-center rounded-full bg-[#00e58e]">
-                  <Play size={16} fill="currentColor" />
-                </span>
-              </div>
-              <b className="mt-3 line-clamp-2 block text-sm leading-5">
-                {v.title}
-              </b>
-            </a>
-          ))}
-        </div>
+        <Heading>최신 영상</Heading>
+        <HomeVideoSwiper videos={latestVideos} />
         <Ad placement="horizontal" className="mt-8 hidden h-[60px] md:block xl:h-[90px]" />
       </section>
     </main>

@@ -30,7 +30,7 @@ export const getHomePagePublicData = unstable_cache(
         getMatches(),
         getTeamStandings(),
         getTournaments(),
-        getLatestTeamVideos(4),
+        getLatestTeamVideos(12),
         getHomeHeroSlides({ limit: 8 }),
         getCalendarEvents(),
       ]);
