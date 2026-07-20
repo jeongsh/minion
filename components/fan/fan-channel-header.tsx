@@ -56,6 +56,11 @@ function tickerDateTime(value: string) {
   }).format(new Date(value));
 }
 
+// 팀별 헤더 배경 이미지. 파일이 있는 팀만 등록한다.
+const HEADER_BACKGROUNDS: Record<string, string> = {
+  hle: "/images/fan-headers/hle-header-bg-v1.jpg",
+};
+
 function opponentOf(match: Match, team: Team, teams: Team[]) {
   return teams.find((item) => item.id === (match.teamAId === team.id ? match.teamBId : match.teamAId));
 }
@@ -135,12 +140,28 @@ export async function FanChannelHeader({ teamSlug }: { teamSlug: string }) {
 
   if (!tickerItems.length) tickerItems.push(`${team.shortName} · 등록된 경기 일정이 없습니다`);
 
+  const headerBackground = HEADER_BACKGROUNDS[team.fanSiteHost];
+
   return (
     <>
-      <header className="border-b border-[var(--ui-border)] bg-[var(--ui-surface)] text-[var(--ui-ink)] lg:hidden">
-        <div className="layout-wide py-3.5 sm:py-5">
+      <header className="relative overflow-hidden border-b border-[var(--ui-border)] bg-[var(--ui-surface)] text-[var(--ui-ink)] lg:hidden">
+        {headerBackground ? (
+          <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+            <img src={headerBackground} alt="" className="h-full w-full object-cover object-[center_30%]" />
+            {/* 데스크탑과 동일하게 검정 스크림. --ui-surface로 덮으면 사진이 통째로 사라진다. */}
+            <div className="absolute inset-0 bg-black/40" />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-transparent to-70%" />
+          </div>
+        ) : null}
+        <div className="layout-wide relative py-3.5 sm:py-5">
           <div className="flex min-w-0 items-center gap-3.5 sm:gap-4">
-            <span className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-full border border-[var(--ui-border)] bg-[var(--ui-surface)] sm:h-20 sm:w-20">
+            <span
+              className={`grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-full border sm:h-20 sm:w-20 ${
+                headerBackground
+                  ? "border-white/25 bg-white/10 backdrop-blur-md"
+                  : "border-[var(--ui-border)] bg-[var(--ui-surface)]"
+              }`}
+            >
               <TeamLogo team={team} size="h-[72%] w-[72%]" plain themeAware />
             </span>
             <div className="min-w-0 flex-1">
@@ -150,10 +171,18 @@ export async function FanChannelHeader({ teamSlug }: { teamSlug: string }) {
                 </h1>
                 <CheckCircle2 size={16} className="shrink-0" style={{ color: team.primaryColor }} aria-hidden="true" />
               </div>
-              <p className="mt-1 text-[13px] font-semibold text-[var(--ui-text)] sm:text-sm">
+              <p
+                className={`mt-1 text-[13px] font-semibold sm:text-sm ${
+                  headerBackground ? "text-white" : "text-[var(--ui-text)]"
+                }`}
+              >
                 팔로워 {fanCount.toLocaleString("ko-KR")}명
               </p>
-              <p className="mt-0.5 line-clamp-2 text-[12px] font-medium leading-[1.45] text-[var(--ui-muted)] sm:text-sm">
+              <p
+                className={`mt-0.5 line-clamp-2 text-[12px] font-medium leading-[1.45] sm:text-sm ${
+                  headerBackground ? "text-white/75" : "text-[var(--ui-muted)]"
+                }`}
+              >
                 {team.name} 팬 채널입니다.
               </p>
             </div>
@@ -175,20 +204,41 @@ export async function FanChannelHeader({ teamSlug }: { teamSlug: string }) {
       </header>
 
       <header className="relative hidden overflow-hidden border-b border-[var(--ui-border)] bg-[var(--ui-surface)] text-[var(--ui-ink)] lg:block">
+        {headerBackground ? (
+          <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+            <img src={headerBackground} alt="" className="h-full w-full object-cover object-[center_35%]" />
+            {/* 사진 위에 흰 글씨를 얹는 히어로 방식. 테마 토큰이 아니라 검정 스크림이라
+                라이트/다크 모두 같은 대비를 유지한다. */}
+            <div className="absolute inset-0 bg-black/25" />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/75 from-10% to-transparent to-65%" />
+          </div>
+        ) : null}
         <div className="fan-page-container relative">
-          <span
-            aria-hidden="true"
-            className="pointer-events-none absolute -right-2 -top-16 text-[250px] font-black leading-none text-[var(--ui-surface-muted)]"
-          >
-            {team.shortName}
-          </span>
+          {headerBackground ? null : (
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute -right-2 -top-16 text-[250px] font-black leading-none text-[var(--ui-surface-muted)]"
+            >
+              {team.shortName}
+            </span>
+          )}
           <div className="relative grid items-center gap-11 pb-10 pt-11 lg:grid-cols-[1fr_380px]">
             <div className="flex flex-col gap-[18px]">
               <div className="flex items-center gap-3">
-                <span className="rounded border border-[var(--ui-border)] bg-[var(--ui-surface-muted)] px-[10px] py-1 text-[13px] font-black text-[var(--ui-ink)]">
+                <span
+                  className={`rounded px-[10px] py-1 text-[13px] font-black ${
+                    headerBackground
+                      ? "border border-white/30 bg-white/15 text-white backdrop-blur-sm"
+                      : "border border-[var(--ui-border)] bg-[var(--ui-surface-muted)] text-[var(--ui-ink)]"
+                  }`}
+                >
                   {badge}
                 </span>
-                <span className="text-[13px] font-extrabold tracking-[0.12em] text-[var(--ui-text)]">
+                <span
+                  className={`text-[13px] font-extrabold tracking-[0.12em] ${
+                    headerBackground ? "text-white/85" : "text-[var(--ui-text)]"
+                  }`}
+                >
                   {match?.name?.trim() || "다음 경기를 기다리는 중"}
                 </span>
               </div>
@@ -196,12 +246,22 @@ export async function FanChannelHeader({ teamSlug }: { teamSlug: string }) {
                 <span className="text-[clamp(58px,7vw,96px)] font-black leading-[0.92] tracking-[-0.04em] text-[var(--team-primary)]">
                   {team.shortName}
                 </span>
-                <span className="text-[28px] font-black text-[var(--ui-muted)]">VS</span>
-                <span className="text-[clamp(58px,7vw,96px)] font-black leading-[0.92] tracking-[-0.04em] text-transparent [-webkit-text-stroke:2px_var(--ui-muted)]">
+                <span
+                  className={`text-[28px] font-black ${headerBackground ? "text-white/70" : "text-[var(--ui-muted)]"}`}
+                >
+                  VS
+                </span>
+                <span
+                  className={`text-[clamp(58px,7vw,96px)] font-black leading-[0.92] tracking-[-0.04em] text-transparent ${
+                    headerBackground
+                      ? "[-webkit-text-stroke:2px_rgba(255,255,255,0.8)]"
+                      : "[-webkit-text-stroke:2px_var(--ui-muted)]"
+                  }`}
+                >
                   {opponentName}
                 </span>
               </div>
-              <p className="text-[15px] font-bold text-[var(--ui-text)]">
+              <p className={`text-[15px] font-bold ${headerBackground ? "text-white/85" : "text-[var(--ui-text)]"}`}>
                 {match ? `${dateTime(match.matchDate)} · ${match.venue?.trim() || "LoL PARK"}` : "예정된 경기가 없습니다"}
               </p>
               <div className="flex flex-wrap items-center gap-2.5">
@@ -217,6 +277,7 @@ export async function FanChannelHeader({ teamSlug }: { teamSlug: string }) {
               </div>
             </div>
             <FanPredictionCard
+              glass={Boolean(headerBackground)}
               showDetailsLink={false}
               matchId={match?.id}
               teamId={team.id}
