@@ -128,6 +128,16 @@ const TEAM_NAME_TO_SLUG: Record<string, string> = {
   "AF": "soop",
 };
 
+// 리그피디아 팀명 표기가 문서마다 대소문자가 미묘하게 다른 경우가 있다(예: 대회 결과
+// 테이블은 "Dplus Kia", 로스터 페이지는 "Dplus KIA"). 대소문자 무시하고 매칭한다.
+const TEAM_NAME_TO_SLUG_LOWER = new Map(
+  Object.entries(TEAM_NAME_TO_SLUG).map(([name, slug]) => [name.toLowerCase(), slug]),
+);
+
+function slugForTeamName(teamName: string) {
+  return TEAM_NAME_TO_SLUG_LOWER.get(teamName.toLowerCase());
+}
+
 export async function syncLckAwards(
   supabase: SupabaseClient,
   options: {
@@ -194,7 +204,7 @@ export async function syncLckAwards(
     if (!awardMap) continue;
 
     const awardType = place === "1" ? awardMap.champion : awardMap.runnerUp;
-    const slug = TEAM_NAME_TO_SLUG[teamName];
+    const slug = slugForTeamName(teamName);
 
     if (!slug) {
       summary.skipped.push({ tournament: tournamentName, team: teamName, place, reason: "team_not_mapped" });
