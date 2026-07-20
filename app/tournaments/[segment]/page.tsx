@@ -1112,10 +1112,22 @@ export default async function TournamentBracketPage({
       : segmentStages;
     const columns = buildStageColumns(activeStages, segmentMatches);
 
+    // 조별 라운드로빈(예: 케스파컵 그룹 스테이지)은 대진표 대신 LCK 정규시즌처럼
+    // 승-패 순위표로 보여준다. 이름 기반 매칭이라 같은 이름의 브래킷 스테이지를 만들면
+    // 다른 대회에도 그대로 적용된다.
+    const isGroupStageBracket = /그룹\s*스테이지|group\s*stage/i.test(activeBracketStage?.name ?? "");
+    const activeStageIds = new Set(activeStages.map((stage) => stage.id));
+    const groupStageMatches = segmentMatches.filter((match) => activeStageIds.has(match.stageId));
+    const groupStageTeams = teams.filter((team) =>
+      groupStageMatches.some((match) => match.teamAId === team.id || match.teamBId === team.id),
+    );
+
     contentSection = (
       <section className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="home-section-title text-[20px] text-[var(--ui-ink)]">대진표</h2>
+          <h2 className="home-section-title text-[20px] text-[var(--ui-ink)]">
+            {isGroupStageBracket ? "조 순위" : "대진표"}
+          </h2>
           <BracketStagePills
             bracketStages={segmentBracketStages}
             activeBracketStageId={activeBracketStage?.id ?? ""}
@@ -1124,7 +1136,9 @@ export default async function TournamentBracketPage({
           />
         </div>
 
-        {columns.length === 0 ? (
+        {isGroupStageBracket ? (
+          <RegularStandingsTable rows={buildTeamStandingRows(groupStageTeams, groupStageMatches, [])} />
+        ) : columns.length === 0 ? (
           <p className="rounded-lg border border-border bg-surface px-5 py-10 text-center text-sm text-muted">
             아직 공개된 대진표가 없습니다.
           </p>

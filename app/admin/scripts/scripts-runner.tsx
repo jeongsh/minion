@@ -13,6 +13,7 @@ const LEAGUE_OPTIONS = [
   { value: "ewc", label: "EWC" },
   { value: "worlds", label: "Worlds" },
   { value: "enc", label: "ENC" },
+  { value: "kespa-cup", label: "KeSPA Cup" },
   { value: "international", label: "국제대회 전체" },
 ];
 

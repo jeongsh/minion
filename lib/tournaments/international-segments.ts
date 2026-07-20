@@ -61,6 +61,12 @@ export const DOMESTIC_SEGMENTS: InternationalSegmentTheme[] = [
     accent: "#2f7dfa",
     logo: "/logos/tournaments/lck.svg",
   },
+  {
+    key: "kespa-cup",
+    name: "KeSPA Cup",
+    description: "한국e스포츠협회 주관 컵 대회",
+    accent: "#f97316",
+  },
 ];
 
 export function domesticSegmentByKey(key: string) {

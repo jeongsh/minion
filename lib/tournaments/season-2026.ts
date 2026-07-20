@@ -5,7 +5,8 @@ export type SeasonSegmentKey =
   | "msi"
   | "ewc"
   | "worlds"
-  | "enc";
+  | "enc"
+  | "kespa-cup";
 
 export const DEFAULT_SEASON_YEAR = 2026;
 
@@ -24,6 +25,7 @@ export const SEASON_2026_SEGMENTS: SeasonSegment[] = [
   { key: "ewc", label: "EWC", description: "Esports World Cup" },
   { key: "worlds", label: "Worlds", description: "World Championship" },
   { key: "enc", label: "ENC", description: "Esports Nations Cup" },
+  { key: "kespa-cup", label: "KeSPA Cup", description: "KeSPA 주관 컵 대회" },
 ];
 
 export type SeasonTournamentConfig = {
@@ -172,6 +174,18 @@ export const SEASON_2026_TOURNAMENTS: SeasonTournamentConfig[] = [
     startDate: "2026-11-21",
     endDate: "2026-11-29",
   },
+  {
+    segmentKey: "kespa-cup",
+    season: 2026,
+    name: "KeSPA Cup 2026",
+    overviewPage: "2026 LoL KeSPA Cup",
+    split: "KeSPA Cup",
+    category: "domestic",
+    region: "Korea",
+    league: "KeSPA Cup",
+    startDate: "2026-07-20",
+    endDate: "2026-08-18",
+  },
 ];
 
 const SEGMENT_BY_OVERVIEW_PAGE = new Map(
@@ -254,6 +268,10 @@ export function segmentForTournament(tournament: {
 
   if (tournament.league === "ENC" || tournament.split === "ENC") {
     return "enc";
+  }
+
+  if (tournament.league === "KeSPA Cup" || tournament.split === "KeSPA Cup") {
+    return "kespa-cup";
   }
 
   return null;

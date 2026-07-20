@@ -21,8 +21,9 @@ const LEAGUE_LABELS: Record<string, string> = {
   Worlds: "월즈",
   "First Stand": "퍼스트스탠드",
   EWC: "EWC",
+  "KeSPA Cup": "케스파컵",
 };
-const LEAGUE_ORDER = ["LCK", "MSI", "Worlds", "First Stand", "EWC"];
+const LEAGUE_ORDER = ["LCK", "MSI", "Worlds", "First Stand", "EWC", "KeSPA Cup"];
 
 export function TeamMatchHistory({ teamId, matches, sets, teams, players, tournaments }: Props) {
   const tournamentMap = new Map(tournaments.map((t) => [t.id, t]));

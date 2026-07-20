@@ -66,6 +66,7 @@ async function tournamentIdsForSegment(
     case "ewc":           q = q.eq("league", "EWC"); break;
     case "worlds":        q = q.eq("league", "Worlds"); break;
     case "enc":           q = q.eq("league", "ENC"); break;
+    case "kespa-cup":     q = q.eq("league", "KeSPA Cup"); break;
     case "international": q = q.eq("category", "international"); break;
     default:
       console.warn(`알 수 없는 세그먼트: ${segment}, 전체 처리`);

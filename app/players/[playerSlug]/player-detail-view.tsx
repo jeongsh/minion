@@ -53,6 +53,7 @@ const PLAYER_PAGE_SEGMENTS: Array<SeasonSegmentKey | "all"> = [
   "ewc",
   "worlds",
   "enc",
+  "kespa-cup",
 ];
 
 function playerSegmentLabel(segment: SeasonSegmentKey | "all") {
