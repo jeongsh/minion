@@ -85,7 +85,7 @@ export async function syncMatchDataForRecentCompletedMatches(
     onProgress?.(`매치 ${match.id} 데이터 동기화 중...`);
 
     try {
-      const setsSummary = await syncLeaguepediaMatchSets(supabase, match.id);
+      const setsSummary = await syncLeaguepediaMatchSets(supabase, match.id, { refreshAiPreview: false });
       summary.setsUpserted += setsSummary.upserted;
     } catch (error) {
       summary.errors.push({

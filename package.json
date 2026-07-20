@@ -56,6 +56,7 @@
     "react": "19.2.7",
     "react-day-picker": "^10.0.1",
     "react-dom": "19.2.7",
+    "server-only": "^0.0.1",
     "sharp": "0.35.3",
     "swiper": "^12.2.0",
     "tiptap-extension-resize-image": "^1.4.3"
