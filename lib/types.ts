@@ -157,6 +157,16 @@ export type Stage = {
 
 export type MatchStatus = "scheduled" | "live" | "completed";
 
+/** 세트 하나의 다시보기 링크. 롤이스포츠 동기화로 채워진다. */
+export type MatchVod = {
+  setNumber: number;
+  url: string;
+  provider: string | null;
+  thumbnailUrl: string | null;
+  /** iframe 으로 내부 재생이 가능한 경우에만 채워진다. */
+  embedUrl: string | null;
+};
+
 export type Match = {
   id: string;
   tournamentId: string;

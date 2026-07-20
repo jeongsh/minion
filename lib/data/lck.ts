@@ -1,5 +1,6 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { cache } from "react";
+import { vodEmbedUrlFor } from "@/lib/sync/lolesports-vods";
 import { canQuerySupabase, createSupabaseServerClient } from "@/lib/supabase/server";
 import type {
   BracketStage,
@@ -10,6 +11,7 @@ import type {
   InstagramStory,
   HomeHeroSlide,
   Match,
+  MatchVod,
   Player,
   PlayerCareerHistory,
   PlayerSocialPost,
@@ -1153,6 +1155,44 @@ async function getSetByIdBase(setId: string) {
   }, undefined);
 }
 
+/** 다시보기가 있는 세트를 경기별로 묶어서 돌려준다. */
+async function getMatchVodsBase() {
+  const empty = new Map<string, MatchVod[]>();
+
+  return fromSupabase(async () => {
+    const { data, error } = await createSupabaseServerClient()
+      .from("sets")
+      .select("match_id, set_number, vod_url, vod_provider, vod_thumbnail_url")
+      .not("vod_url", "is", null)
+      .order("set_number", { ascending: true });
+
+    if (error) {
+      throw error;
+    }
+
+    const rows = (data ?? []) as Array<{
+      match_id: string;
+      set_number: number;
+      vod_url: string;
+      vod_provider: string | null;
+      vod_thumbnail_url: string | null;
+    }>;
+
+    return rows.reduce((result, row) => {
+      const current = result.get(row.match_id) ?? [];
+      current.push({
+        setNumber: row.set_number,
+        url: row.vod_url,
+        provider: row.vod_provider,
+        thumbnailUrl: row.vod_thumbnail_url,
+        embedUrl: vodEmbedUrlFor(row.vod_provider ?? "", row.vod_url),
+      });
+      result.set(row.match_id, current);
+      return result;
+    }, new Map<string, MatchVod[]>());
+  }, empty);
+}
+
 async function getChampionsBase() {
   return fromSupabase(async () => {
     const { data, error } = await createSupabaseServerClient()
@@ -1933,6 +1973,7 @@ export const getMatchById = cache(getMatchByIdBase);
 export const getSetsByMatchId = cache(getSetsByMatchIdBase);
 export const getSetDataCompletionBySetId = cache(getSetDataCompletionBySetIdBase);
 export const getSets = cache(getSetsBase);
+export const getMatchVods = cache(getMatchVodsBase);
 export const getSetById = cache(getSetByIdBase);
 export const getChampions = cache(getChampionsBase);
 export const getSetPicksBans = cache(getSetPicksBansBase);

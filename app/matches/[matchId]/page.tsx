@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { HomeUpcomingPredictionCard } from "@/components/domain/home-upcoming-prediction-card";
+import { SetVodPlayer } from "@/components/domain/set-vod-player";
 import { PageHeader } from "@/components/ui/page-header";
 import { AdSlot } from "@/components/ui/ad-slot";
 import { TeamLogo } from "@/components/ui/team-logo";
@@ -14,6 +15,7 @@ import {
   getMatches,
   getPlayerStatLines,
   getSets,
+  getMatchVods,
   getSetsByMatchId,
   getStages,
   getTournaments,
@@ -543,6 +545,7 @@ export default async function MatchDetailPage({
     tournaments,
     stages,
     matches,
+    allMatchVods,
   ] = await Promise.all([
     getAllTeams(),
     getAllPlayers(),
@@ -553,7 +556,10 @@ export default async function MatchDetailPage({
     getTournaments(),
     getStages(),
     getMatches(),
+    getMatchVods(),
   ]);
+
+  const setVods = allMatchVods.get(match.id) ?? [];
 
   const requestedSet = matchSets.find((set) => set.id === query.set);
   const defaultSet =
@@ -703,7 +709,7 @@ export default async function MatchDetailPage({
           <h2 id="match-video" className="home-section-title text-lg">
             영상
           </h2>
-          {match.vodUrl ? (
+          {match.vodUrl || setVods.length > 0 ? (
             <div className="mt-3 flex flex-col gap-2.5">
               {embedUrl ? (
                 <iframe
@@ -714,13 +720,16 @@ export default async function MatchDetailPage({
                   allowFullScreen
                 />
               ) : null}
-              <Link
-                href={match.vodUrl}
-                className="text-[15px] font-semibold text-accent"
-                target="_blank"
-              >
-                원본 영상 열기
-              </Link>
+              {match.vodUrl ? (
+                <Link
+                  href={match.vodUrl}
+                  className="text-[15px] font-semibold text-accent"
+                  target="_blank"
+                >
+                  원본 영상 열기
+                </Link>
+              ) : null}
+              {setVods.length > 0 ? <SetVodPlayer vods={setVods} matchName={match.name} /> : null}
             </div>
           ) : (
             <p className="mt-3 rounded-md border border-dashed border-border p-3 text-sm text-muted">

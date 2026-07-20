@@ -31,6 +31,8 @@
     "sync:player-images:all": "node --experimental-strip-types scripts/sync-player-images.ts --all",
     "sync:player-social": "node --experimental-strip-types scripts/sync-player-social.ts",
     "sync:youtube-videos": "node --experimental-strip-types scripts/sync-youtube-videos.ts",
+    "sync:lolesports-vods": "node --experimental-strip-types scripts/sync-lolesports-vods.ts",
+    "sync:lolesports-vods:dry": "node --experimental-strip-types scripts/sync-lolesports-vods.ts --dry-run",
     "subscribe:youtube-webhooks": "node --experimental-strip-types scripts/subscribe-youtube-webhooks.ts",
     "champions:cleanup": "node --experimental-strip-types scripts/cleanup-champions.ts",
     "report:weekly": "node --experimental-strip-types scripts/generate-weekly-report.ts",
