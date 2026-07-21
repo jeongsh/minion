@@ -8,6 +8,7 @@ import { TeamLogo } from "@/components/ui/team-logo";
 import { getAllTeams, getBracketStages, getMatches, getPlayers, getStages, getTournaments } from "@/lib/data/lck";
 import {
   buildStageColumns,
+  isGroupBracketStage,
   isWeekStage,
   splitBracketSidesForDisplay,
   type StageColumn,
@@ -1100,9 +1101,14 @@ export default async function TournamentBracketPage({
       };
     });
     const tournamentFullyCompleted = bracketStageInfo.length > 0 && bracketStageInfo.every((info) => info.isDone);
+    // 아직 안 끝난 스테이지 중에선 실제 대진표(displayMode="bracket")를 순위표 전용
+    // 스테이지(예: 조별리그)보다 우선한다. 그렇지 않으면 조별리그 마지막 라운드가 몇 경기
+    // 안 끝났다는 이유만으로, 이미 편성된 토너먼트 스테이지가 있어도 순위표만 계속 보이게 된다.
     const currentBracketStage = tournamentFullyCompleted
       ? null
-      : (bracketStageInfo.find((info) => info.hasToday) ?? bracketStageInfo.find((info) => !info.isDone))
+      : (bracketStageInfo.find((info) => info.hasToday) ??
+          bracketStageInfo.find((info) => !info.isDone && info.bracketStage.displayMode !== "standings") ??
+          bracketStageInfo.find((info) => !info.isDone))
           ?.bracketStage;
     const activeBracketStage =
       segmentBracketStages.find((bracketStage) => bracketStage.id === search.bracketStage) ??
@@ -1114,10 +1120,14 @@ export default async function TournamentBracketPage({
       : segmentStages;
     const columns = buildStageColumns(activeStages, segmentMatches);
 
-    // 조별 라운드로빈(예: 케스파컵 그룹 스테이지)은 대진표 대신 LCK 정규시즌처럼
-    // 승-패 순위표로 보여줄 수 있다. 어드민의 "브래킷 스테이지" 탭에서 스테이지별로
-    // 직접 전환한다(기본값은 대진표).
-    const isGroupStageBracket = activeBracketStage?.displayMode === "standings";
+    // 조별 라운드로빈(예: 케스파컵/퍼스트 스탠드 그룹 스테이지)은 대진표 대신 LCK
+    // 정규시즌처럼 승-패 순위표로도 보여줄 수 있다. 이름에 "그룹"이 들어가거나 어드민이
+    // 순위표로 지정해둔 스테이지는 두 뷰를 모두 지원하며, 기본값은 순위표다.
+    const supportsGroupToggle = Boolean(
+      activeBracketStage && isGroupBracketStage(activeBracketStage.name, activeBracketStage.displayMode),
+    );
+    const requestedGroupView: "standings" | "bracket" = search.view === "bracket" ? "bracket" : "standings";
+    const isGroupStageBracket = supportsGroupToggle && requestedGroupView === "standings";
     const activeStageIds = new Set(activeStages.map((stage) => stage.id));
     const groupStageMatches = segmentMatches.filter((match) => activeStageIds.has(match.stageId));
     const groupStageTeams = teams.filter((team) =>
@@ -1127,9 +1137,21 @@ export default async function TournamentBracketPage({
     contentSection = (
       <section className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="home-section-title text-[20px] text-[var(--ui-ink)]">
-            {isGroupStageBracket ? "조 순위" : "대진표"}
-          </h2>
+          <div className="flex flex-wrap items-center gap-3">
+            <h2 className="home-section-title text-[20px] text-[var(--ui-ink)]">
+              {isGroupStageBracket ? "조 순위" : "대진표"}
+            </h2>
+            {supportsGroupToggle ? (
+              <ViewTabs
+                labels={{ standings: "순위표", bracket: "대진표" }}
+                activeTab={requestedGroupView}
+                segmentKey={segmentTheme.key}
+                activeSeason={activeSeason}
+                paramName="view"
+                extraParams={activeBracketStage ? { bracketStage: activeBracketStage.id } : undefined}
+              />
+            ) : null}
+          </div>
           <BracketStagePills
             bracketStages={segmentBracketStages}
             activeBracketStageId={activeBracketStage?.id ?? ""}

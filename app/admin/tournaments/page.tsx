@@ -415,6 +415,7 @@ export default async function AdminTournamentsPage({
             카드를 드래그해서 다른 라운드나 조로 자유롭게 옮기거나 순서를 바꿀 수 있습니다. 버튼으로도 조를 바꿀 수 있습니다.
           </p>
           <TournamentBracketEditor
+            key={`${segmentTheme.key}:${activeSeason}:${activeBracketStage.id}`}
             segmentKey={segmentTheme.key}
             bracketStageId={activeBracketStage.id}
             bracketStages={tournamentBracketStages.map((bracketStage) => ({

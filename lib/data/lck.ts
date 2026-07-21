@@ -854,6 +854,10 @@ async function getTeamIdentityHistoriesBase() {
 // 케스파컵은 2군도 함께 출전해서, 케스파컵 경기에만 출전 기록이 있는 선수는 선수 목록에서 제외한다.
 // roster_players 뷰가 실제 출전 기록으로 이를 걸러낸다(마이그레이션 20260721110000).
 const ROSTER_PLAYERS = "roster_players";
+// LCK CL(챌린저스) 2군 로스터는 실제 LCK 경기 출전 기록이 있어도(콜업 등) 어드민이 2군으로
+// 지정한 이상 공개 화면(선수 목록/팀 로스터)에는 노출하지 않는다 — roster_players 뷰의
+// 출전 기록 기반 판정보다 이 스코프 태그를 우선한다.
+const CHALLENGERS_SCOPE = "challengers";
 
 async function getPlayersBase() {
   return fromSupabase(async () => {
@@ -861,6 +865,7 @@ async function getPlayersBase() {
       .from(ROSTER_PLAYERS)
       .select("*")
       .eq("is_lck_player", true)
+      .neq("imported_scope", CHALLENGERS_SCOPE)
       .neq("is_active", false)
       .order("name", { ascending: true });
 
@@ -875,6 +880,7 @@ async function getRetiredPlayersBase() {
       .from(ROSTER_PLAYERS)
       .select("*")
       .eq("is_lck_player", true)
+      .neq("imported_scope", CHALLENGERS_SCOPE)
       .eq("is_active", false)
       .order("name", { ascending: true });
 
@@ -889,6 +895,22 @@ async function getPlayersByTeamIdBase(teamId: string) {
       .from(ROSTER_PLAYERS)
       .select("*")
       .eq("team_id", teamId)
+      .neq("imported_scope", CHALLENGERS_SCOPE)
+      .neq("is_active", false)
+      .order("name", { ascending: true });
+
+    if (error) throw error;
+    return (data as PlayerRow[]).map(mapPlayer);
+  }, []);
+}
+
+// 어드민 선수 관리 화면의 "2군" 토글 전용 — LCK CL(챌린저스) 로스터만 반환한다.
+async function getChallengersPlayersBase() {
+  return fromSupabase(async () => {
+    const { data, error } = await createSupabaseServerClient()
+      .from("players")
+      .select("*")
+      .eq("imported_scope", CHALLENGERS_SCOPE)
       .neq("is_active", false)
       .order("name", { ascending: true });
 
@@ -1974,6 +1996,7 @@ export const getTeamIdentityHistories = cache(getTeamIdentityHistoriesBase);
 export const getPlayers = cache(getPlayersBase);
 export const getRetiredPlayers = cache(getRetiredPlayersBase);
 export const getPlayersByTeamId = cache(getPlayersByTeamIdBase);
+export const getChallengersPlayers = cache(getChallengersPlayersBase);
 export const getPlayerCareerHistories = cache(getPlayerCareerHistoriesBase);
 export const getAllPlayers = cache(getAllPlayersBase);
 export const getTournaments = cache(getTournamentsBase);

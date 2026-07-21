@@ -107,7 +107,7 @@ export type Player = {
   contractExpiry?: string | null;
   isStarter?: boolean;
   isLckPlayer?: boolean;
-  importedScope?: "lck" | "international_event" | "manual";
+  importedScope?: "lck" | "international_event" | "manual" | "kespa_cup" | "challengers";
   isActive?: boolean;
   retiredAt?: string | null;
   leaguepediaPage?: string;

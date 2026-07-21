@@ -10,6 +10,14 @@ export function isWeekStage(stageName: string) {
   return /^week\s*\d+$/i.test(stageName.trim());
 }
 
+/**
+ * 조별리그(라운드로빈) 성격의 브래킷 스테이지는 대진표/순위표 두 가지로 다 보여줄 수 있다.
+ * 이름에 "그룹"/"group"이 들어가거나 어드민이 순위표로 지정해뒀으면 토글 대상으로 본다.
+ */
+export function isGroupBracketStage(name: string, displayMode: "bracket" | "standings") {
+  return displayMode === "standings" || /그룹|group/i.test(name);
+}
+
 function groupMatchesByStage(stages: Stage[], matches: Match[]): StageColumn[] {
   const matchesByStage = new Map<string, Match[]>();
 

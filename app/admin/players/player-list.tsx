@@ -6,6 +6,7 @@ import type { Player, PlayerCareerHistory, Team } from "@/lib/types";
 import { reactivatePlayerAction } from "./actions";
 import { CareerHistoryPanel } from "./career-history-panel";
 import { DeleteButton } from "./delete-button";
+import { DivisionToggleButton } from "./division-toggle-button";
 import { PlayerCreateModal } from "./player-create-modal";
 import { RetireButton } from "./retire-button";
 import { SyncContractButton } from "./sync-contract-button";
@@ -15,29 +16,38 @@ const POS_LABEL: Record<string, string> = {
   TOP: "탑", JGL: "정글", MID: "미드", BOT: "원딜", SUP: "서폿",
 };
 
+type Division = "first" | "challengers";
+
 export function PlayerList({
   players,
   retiredPlayers,
+  challengersPlayers,
   teams,
   careerHistories,
 }: {
   players: Player[];
   retiredPlayers: Player[];
+  challengersPlayers: Player[];
   teams: Team[];
   careerHistories: PlayerCareerHistory[];
 }) {
   const [query, setQuery] = useState("");
+  const [division, setDivision] = useState<Division>("first");
+
+  const activePlayers = division === "first" ? players : challengersPlayers;
 
   const q = query.trim().toLowerCase();
   const filtered = q
-    ? players.filter(
+    ? activePlayers.filter(
         (p) =>
           p.name.toLowerCase().includes(q) ||
           p.realName?.toLowerCase().includes(q),
       )
-    : players;
+    : activePlayers;
 
-  const filteredRetired = q
+  const filteredRetired = division !== "first"
+    ? []
+    : q
     ? retiredPlayers.filter(
         (p) =>
           p.name.toLowerCase().includes(q) ||
@@ -73,6 +83,30 @@ export function PlayerList({
           onChange={(e) => setQuery(e.target.value)}
           className="w-full max-w-sm rounded-md border border-border bg-background px-4 py-2 text-sm outline-none focus:border-accent"
         />
+        <div className="flex shrink-0 rounded-md border border-border p-0.5">
+          <button
+            type="button"
+            onClick={() => setDivision("first")}
+            className={`rounded px-3 py-1.5 text-sm font-semibold transition-colors ${
+              division === "first"
+                ? "bg-accent text-background"
+                : "text-muted hover:text-foreground"
+            }`}
+          >
+            1군
+          </button>
+          <button
+            type="button"
+            onClick={() => setDivision("challengers")}
+            className={`rounded px-3 py-1.5 text-sm font-semibold transition-colors ${
+              division === "challengers"
+                ? "bg-accent text-background"
+                : "text-muted hover:text-foreground"
+            }`}
+          >
+            2군
+          </button>
+        </div>
         <PlayerCreateModal teams={teams} />
         <SyncContractButton />
       </div>
@@ -111,12 +145,25 @@ export function PlayerList({
                       key={p.id}
                       className="border-b border-border/50 last:border-0 hover:bg-surface-muted"
                     >
-                      <td className="w-14 px-4 py-2.5 text-[13px] text-muted">
+                      <td className="w-14 shrink-0 px-4 py-2.5 text-[13px] text-muted">
                         {POS_LABEL[p.position]}
                       </td>
-                      <td className="px-2 py-2.5 font-medium">{p.name}</td>
-                      <td className="px-2 py-2.5 text-[13px] text-muted">{p.realName || "-"}</td>
-                      <td className="w-14 px-2 py-2.5">
+                      <td className="max-w-[100px] truncate px-2 py-2.5 font-medium">
+                        <Link
+                          href={`/admin/players/${p.id}`}
+                          className="hover:underline"
+                          title={p.name}
+                        >
+                          {p.name}
+                        </Link>
+                      </td>
+                      <td
+                        className="max-w-[110px] truncate px-2 py-2.5 text-[13px] text-muted"
+                        title={p.realName || undefined}
+                      >
+                        {p.realName || "-"}
+                      </td>
+                      <td className="w-14 shrink-0 px-2 py-2.5">
                         {p.isStarter ? (
                           <span className="rounded-full bg-accent/10 px-2 py-0.5 text-[13px] font-semibold text-accent">
                             주전
@@ -127,14 +174,12 @@ export function PlayerList({
                       </td>
                       <td className="px-4 py-2.5">
                         <div className="flex flex-row flex-wrap items-center gap-1.5">
-                          <Link
-                            href={`/admin/players/${p.id}`}
-                            className="rounded border border-border px-2 py-1 text-[13px] font-semibold hover:bg-surface-muted"
-                          >
-                            수정
-                          </Link>
                           <RetireButton id={p.id} />
                           <DeleteButton id={p.id} />
+                          <DivisionToggleButton
+                            id={p.id}
+                            target={division === "first" ? "challengers" : "first"}
+                          />
                           <CareerHistoryPanel
                             player={p}
                             histories={careerHistories}
@@ -151,8 +196,8 @@ export function PlayerList({
         })}
       </div>
 
-      {/* ── 은퇴 선수 ── */}
-      {(retiredPlayers.length > 0 || q) && (
+      {/* ── 은퇴 선수 (1군에서만 표시) ── */}
+      {division === "first" && (retiredPlayers.length > 0 || q) && (
         <section className="flex flex-col gap-4">
           <div className="flex items-center gap-3 border-t border-border pt-8">
             <h2 className="text-2xl font-bold">은퇴 선수</h2>

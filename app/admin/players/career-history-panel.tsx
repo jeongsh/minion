@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import type { CSSProperties } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { Player, PlayerCareerHistory, Team } from "@/lib/types";
 import { addCareerHistoryAction, deleteCareerHistoryAction } from "./actions";
 
@@ -110,25 +112,94 @@ export function CareerHistoryPanel({
 }) {
   const [open, setOpen] = useState(false);
   const [adding, setAdding] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const popupRef = useRef<HTMLDivElement>(null);
+  const [popupStyle, setPopupStyle] = useState<CSSProperties>({});
 
   const teamMap = new Map(teams.map((t) => [t.id, t]));
+  const isCurrentTeam = (h: PlayerCareerHistory) =>
+    !h.endDate || (!!player.teamId && h.teamId === player.teamId);
   const mine = histories
     .filter((h) => h.playerId === player.id)
-    .sort((a, b) => b.startDate.localeCompare(a.startDate));
+    .sort((a, b) => {
+      const aCurrent = isCurrentTeam(a);
+      const bCurrent = isCurrentTeam(b);
+      if (aCurrent !== bCurrent) return aCurrent ? -1 : 1;
+      return b.startDate.localeCompare(a.startDate);
+    });
+
+  useEffect(() => {
+    if (!open) return;
+
+    function onPointerDown(event: MouseEvent) {
+      const target = event.target as Node;
+      if (!triggerRef.current?.contains(target) && !popupRef.current?.contains(target)) {
+        setOpen(false);
+      }
+    }
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false);
+    }
+
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
+
+  useLayoutEffect(() => {
+    if (!open || !triggerRef.current) return;
+
+    function updatePosition() {
+      if (!triggerRef.current) return;
+      const rect = triggerRef.current.getBoundingClientRect();
+      const width = Math.min(420, window.innerWidth - 24);
+      const left = Math.min(Math.max(12, rect.right - width), window.innerWidth - width - 12);
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      const openUpward = spaceBelow < 200 && spaceAbove > spaceBelow;
+      const maxHeight = Math.max(160, (openUpward ? spaceAbove : spaceBelow) - 16);
+
+      setPopupStyle({
+        position: "fixed",
+        left,
+        width,
+        maxHeight,
+        ...(openUpward
+          ? { bottom: window.innerHeight - rect.top + 8 }
+          : { top: rect.bottom + 8 }),
+      });
+    }
+
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+    };
+  }, [open]);
 
   return (
-    <div>
+    <div className="shrink-0">
       <button
         type="button"
+        ref={triggerRef}
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-1 rounded border border-border px-2 py-1 text-[13px] font-semibold hover:bg-surface-muted"
+        className="flex shrink-0 items-center gap-1 whitespace-nowrap rounded border border-border px-2 py-1 text-[13px] font-semibold hover:bg-surface-muted"
       >
         경력 {mine.length > 0 && <span className="text-accent">({mine.length})</span>}
         <span className="text-muted">{open ? "▲" : "▼"}</span>
       </button>
 
-      {open && (
-        <div className="mt-2 rounded-md border border-border bg-surface p-3">
+      {open && typeof document !== "undefined" ? createPortal(
+        <div
+          ref={popupRef}
+          style={popupStyle}
+          className="z-50 overflow-y-auto rounded-md border border-border bg-surface p-3 shadow-lg"
+        >
           {mine.length === 0 ? (
             <p className="text-[13px] text-muted">기록된 경력이 없습니다.</p>
           ) : (
@@ -142,7 +213,7 @@ export function CareerHistoryPanel({
                     key={h.id}
                     className="flex items-center justify-between gap-2 rounded bg-surface-muted px-3 py-2 text-[13px]"
                   >
-                    <div className="flex items-center gap-2">
+                    <div className="flex min-w-0 flex-1 items-center gap-2 whitespace-nowrap">
                       <span
                         className="h-2 w-2 shrink-0 rounded-full"
                         style={{
@@ -151,16 +222,16 @@ export function CareerHistoryPanel({
                             : "#888",
                         }}
                       />
-                      <span className="font-semibold">{teamLabel}</span>
-                      <span className="text-muted">{POS_LABEL[h.position] ?? h.position}</span>
-                      <span className="text-muted">
+                      <span className="truncate font-semibold">{teamLabel}</span>
+                      <span className="shrink-0 text-muted">{POS_LABEL[h.position] ?? h.position}</span>
+                      <span className="shrink-0 text-muted">
                         {h.startDate.slice(0, 7)}
                         {" ~ "}
                         {h.endDate ? h.endDate.slice(0, 7) : "현재"}
                       </span>
-                      {h.notes && <span className="text-muted italic">{h.notes}</span>}
+                      {h.notes && <span className="truncate text-muted italic">{h.notes}</span>}
                     </div>
-                    <form action={deleteCareerHistoryAction}>
+                    <form action={deleteCareerHistoryAction} className="shrink-0">
                       <input type="hidden" name="id" value={h.id} />
                       <button
                         type="submit"
@@ -187,8 +258,9 @@ export function CareerHistoryPanel({
               + 경력 추가
             </button>
           )}
-        </div>
-      )}
+        </div>,
+        document.body,
+      ) : null}
     </div>
   );
 }

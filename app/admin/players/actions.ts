@@ -124,6 +124,20 @@ export async function retirePlayerAction(formData: FormData) {
   revalidate();
 }
 
+export async function setPlayerDivisionAction(formData: FormData) {
+  const id = formData.get("id") as string;
+  const division = formData.get("division") as string;
+  if (!id || (division !== "first" && division !== "challengers")) return;
+
+  const supabase = await createSupabaseAdminActionClient();
+  await supabase
+    .from("players")
+    .update({ imported_scope: division === "first" ? "lck" : "challengers" })
+    .eq("id", id);
+
+  revalidate();
+}
+
 export async function reactivatePlayerAction(formData: FormData) {
   const id = formData.get("id") as string;
   if (!id) return;

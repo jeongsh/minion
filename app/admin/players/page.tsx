@@ -1,18 +1,26 @@
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { SectionHeader } from "@/components/layout/section-header";
-import { getPlayerCareerHistories, getPlayers, getRetiredPlayers, getTeamsSortedByRank } from "@/lib/data/lck";
+import {
+  getChallengersPlayers,
+  getPlayerCareerHistories,
+  getPlayers,
+  getRetiredPlayers,
+  getTeamsSortedByRank,
+} from "@/lib/data/lck";
 import { PlayerList } from "./player-list";
 
 export default async function AdminPlayersPage() {
-  const [players, retiredPlayers, teams] = await Promise.all([
+  const [players, retiredPlayers, challengersPlayers, teams] = await Promise.all([
     getPlayers(),
     getRetiredPlayers(),
+    getChallengersPlayers(),
     getTeamsSortedByRank(),
   ]);
 
   const allPlayerIds = [
     ...players.map((p) => p.id),
     ...retiredPlayers.map((p) => p.id),
+    ...challengersPlayers.map((p) => p.id),
   ];
   const careerHistories = await getPlayerCareerHistories(allPlayerIds);
 
@@ -25,6 +33,7 @@ export default async function AdminPlayersPage() {
       <PlayerList
         players={players}
         retiredPlayers={retiredPlayers}
+        challengersPlayers={challengersPlayers}
         teams={teams}
         careerHistories={careerHistories}
       />
