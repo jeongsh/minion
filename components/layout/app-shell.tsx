@@ -164,22 +164,19 @@ export function AppShell({
         <div className="absolute left-1/2 hidden w-[360px] -translate-x-1/2 min-[1200px]:block">
           <HeaderSearch className="w-full" />
         </div>
-        <button type="button" onClick={toggleDarkMode} className="ml-auto mr-1 grid h-11 w-11 shrink-0 place-items-center rounded-xl text-[#62666d] transition hover:bg-[#f4f4f5] sm:mr-2 dark:text-[#a7acb5] dark:hover:bg-[#282c31]" aria-label="색상 모드 전환" title="색상 모드 전환">
+        <button type="button" onClick={toggleDarkMode} className="ml-auto mr-2 grid h-11 w-11 shrink-0 place-items-center rounded-xl text-[#62666d] transition hover:bg-[#f4f4f5] sm:mr-2 dark:bg-[rgba(0,0,0,0)] dark:text-[#a7acb5] dark:hover:bg-[#282c31]" aria-label="색상 모드 전환" title="색상 모드 전환">
           <Moon size={20} className="dark:hidden" />
           <Sun size={20} className="hidden dark:block" />
         </button>
         {currentUser ? (
           <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
             <Link href="/me" className="flex min-h-11 min-w-0 max-w-[126px] items-center gap-1.5 text-[13px] font-bold sm:max-w-none sm:gap-2 sm:text-sm">
-              <span className="hidden items-center gap-1 text-[13px] font-black text-[var(--ui-muted)] min-[1200px]:flex"><Coins size={14} />{currentUser.lp.toLocaleString("ko-KR")} LP</span>
               <RankAvatar
                 tier={currentUser.tier}
                 src={currentUser.profileImageUrl}
                 fallback={currentUser.nickname ?? "MY"}
               />
-              <span className="hidden min-w-0 truncate sm:block">{currentUser.nickname ?? "프로필"}</span>
             </Link>
-            <div className="hidden min-[1200px]:block"><LogoutButton /></div>
           </div>
         ) : (
           <Link href="/login" className="flex min-h-11 items-center rounded-xl bg-[#141517] px-3 py-2 text-[13px] font-bold text-white sm:px-4 sm:text-sm">로그인</Link>

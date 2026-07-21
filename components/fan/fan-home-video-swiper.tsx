@@ -28,7 +28,7 @@ export function FanHomeVideoSwiper({
 
   if (!videos.length) {
     return (
-      <div className="grid min-h-40 place-items-center rounded-2xl bg-[var(--ui-surface-muted)] text-sm text-[var(--ui-muted)]">
+      <div className="fan-empty-state">
         등록된 영상이 없습니다.
       </div>
     );
@@ -54,7 +54,7 @@ export function FanHomeVideoSwiper({
               href={`/fan/${teamSlug}/videos/${encodeURIComponent(video.routeId)}`}
               className="group block h-full min-w-0"
             >
-              <div className="relative aspect-video overflow-hidden rounded-lg bg-[#17181b] sm:rounded-xl">
+              <div className="fan-video-card relative aspect-video overflow-hidden rounded-lg bg-[#17181b] sm:rounded-xl">
                 {video.thumbnailUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img

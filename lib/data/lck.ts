@@ -851,12 +851,16 @@ async function getTeamIdentityHistoriesBase() {
   }, []);
 }
 
+// 케스파컵은 2군도 함께 출전해서, 케스파컵에서만 등장한 선수는 선수 목록에 노출하지 않는다.
+const KESPA_CUP_ONLY_SCOPE = "kespa_cup";
+
 async function getPlayersBase() {
   return fromSupabase(async () => {
     const { data, error } = await createSupabaseServerClient()
       .from("players")
       .select("*")
       .eq("is_lck_player", true)
+      .neq("imported_scope", KESPA_CUP_ONLY_SCOPE)
       .neq("is_active", false)
       .order("name", { ascending: true });
 
@@ -871,6 +875,7 @@ async function getRetiredPlayersBase() {
       .from("players")
       .select("*")
       .eq("is_lck_player", true)
+      .neq("imported_scope", KESPA_CUP_ONLY_SCOPE)
       .eq("is_active", false)
       .order("name", { ascending: true });
 
@@ -885,6 +890,7 @@ async function getPlayersByTeamIdBase(teamId: string) {
       .from("players")
       .select("*")
       .eq("team_id", teamId)
+      .neq("imported_scope", KESPA_CUP_ONLY_SCOPE)
       .neq("is_active", false)
       .order("name", { ascending: true });
 
