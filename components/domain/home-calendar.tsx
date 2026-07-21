@@ -59,10 +59,13 @@ export function HomeCalendar({
   initialMonthKey,
   matches,
   events,
+  heightClassName = "h-[360px]",
 }: {
   initialMonthKey: string;
   matches: HomeCalendarMatch[];
   events: CalendarEvent[];
+  /** 6주짜리 달 + 범례가 잘리지 않는 최소 높이는 340px다. 그 아래로는 범례가 테두리 밖으로 넘친다. */
+  heightClassName?: string;
 }) {
   const containerRef = useRef<HTMLElement>(null);
 
@@ -130,7 +133,7 @@ export function HomeCalendar({
   return (
     <section
       ref={containerRef}
-      className="relative flex h-[360px] min-w-0 flex-col overflow-visible rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-3"
+      className={`relative flex ${heightClassName} min-w-0 flex-col overflow-visible rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-3`}
     >
       {/* globals.css의 커스텀 CSS는 빌드 시 var(--ui-ink) 같은 CSS 변수가 라이트 모드 값으로
           굳어버리는 문제가 있어(다크모드에서 안 먹음), 월/연도 캡션 색만은 빌드 파이프라인을

@@ -298,7 +298,27 @@ export default async function FanHomePage({
 
   return (
     <>
-      <FanChannelHeader teamSlug={teamSlug} />
+      <FanChannelHeader
+        teamSlug={teamSlug}
+        calendarSlot={
+          <AdaptiveDialog
+            title={`${team.shortName} 캘린더`}
+            trigger={
+              <span className="flex items-center gap-1.5">
+                <CalendarDays size={16} aria-hidden="true" />
+                캘린더
+              </span>
+            }
+            triggerClassName="inline-flex h-9 items-center rounded-full border border-[var(--ui-border)] bg-[var(--ui-surface)] px-4 text-sm font-extrabold text-[var(--ui-ink)] shadow-sm transition hover:bg-[var(--ui-surface-muted)] active:scale-[0.97] sm:h-10 lg:min-h-11 lg:px-5"
+          >
+            <HomeCalendar
+              initialMonthKey={calendarMonthKey}
+              matches={calendarClientMatches}
+              events={calendarEvents}
+            />
+          </AdaptiveDialog>
+        }
+      />
       <FanPageShell contentClassName="">
       <div
         className="fan-home-page flex flex-col gap-5 text-[var(--ui-ink)] md:gap-8"
@@ -309,51 +329,17 @@ export default async function FanHomePage({
           <CelebrationBanner events={todayCelebrations} />
         ) : null}
 
-        {/* 모바일은 다음 경기 한 건만 노출하고 캘린더는 필요할 때 연다. */}
+        {/* 모바일은 헤더 히어로가 좁아 다음 경기 한 건을 따로 보여준다. (캘린더는 헤더 버튼) */}
         <section className="lg:hidden">
-          <div className="flex items-center justify-between">
-            <SectionHeading href={`/fan/${fanSlug}/matches`}>다음 경기</SectionHeading>
-            <AdaptiveDialog title={`${team.shortName} 캘린더`} trigger={<span className="flex items-center gap-1.5"><CalendarDays size={16} />캘린더</span>} triggerClassName="mb-2 flex min-h-9 items-center rounded-lg border border-[var(--ui-border)] px-3 text-[12px] font-bold text-[var(--ui-ink)]"><HomeCalendar initialMonthKey={calendarMonthKey} matches={calendarClientMatches} events={calendarEvents} /></AdaptiveDialog>
-          </div>
+          <SectionHeading href={`/fan/${fanSlug}/matches`}>다음 경기</SectionHeading>
           <div className="overflow-hidden rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)]">
             {matchRows[0] ? <MatchRow match={matchRows[0]} team={team} teams={teams} /> : <p className="px-5 py-10 text-center text-sm text-[var(--ui-muted)]">등록된 경기가 없습니다.</p>}
           </div>
         </section>
 
-        {/* 태블릿·데스크톱은 일정과 캘린더를 병렬로 제공한다. */}
-        <section className="hidden gap-5 lg:grid lg:gap-8 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
-          <div className="min-w-0">
-            <SectionHeading href={`/fan/${fanSlug}/matches`}>경기 일정</SectionHeading>
-            <div className="h-[360px] divide-y divide-[var(--ui-border)] overflow-hidden rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)]">
-              {matchRows.length ? (
-                matchRows.map((match) => <MatchRow key={match.id} match={match} team={team} teams={teams} />)
-              ) : (
-                <p className="px-5 py-12 text-center text-sm text-[var(--ui-muted)]">등록된 경기가 없습니다.</p>
-              )}
-            </div>
-          </div>
-          <div className="min-w-0">
-            <SectionHeading>캘린더</SectionHeading>
-            <HomeCalendar
-              initialMonthKey={calendarMonthKey}
-              matches={calendarClientMatches}
-              events={calendarEvents}
-            />
-          </div>
-        </section>
-
-        {/* 선수단 */}
-        <section>
-          <Roster players={teamPlayers} teamSlug={fanSlug} />
-        </section>
-
-        {/* 소셜 피드 */}
-        <section>
-          <SectionHeading href={`/fan/${fanSlug}/instagram`}>소셜 피드</SectionHeading>
-          <FanSocialPreview items={feedInsta} />
-        </section>
-
-        {/* 게시판 */}
+        {/* 게시판이 첫 줄을 전체폭으로 채운다.
+            경기 일정은 헤더 히어로(다음 경기)·티커(NEXT 1~4)·일정 탭이 이미 세 번 다루므로
+            여기서 네 번째로 반복하지 않는다. */}
         <section>
           <SectionHeading href={`/fan/${fanSlug}/community`}>게시판</SectionHeading>
           <HomeBoardCarousel
@@ -363,10 +349,21 @@ export default async function FanHomePage({
           />
         </section>
 
+        {/* 소셜 피드 */}
+        <section>
+          <SectionHeading href={`/fan/${fanSlug}/instagram`}>소셜 피드</SectionHeading>
+          <FanSocialPreview items={feedInsta} />
+        </section>
+
         {/* 최신 영상 */}
         <section>
           <SectionHeading href={`/fan/${fanSlug}/videos`}>최신 영상</SectionHeading>
           <FanHomeVideoSwiper teamSlug={fanSlug} videos={feedVideos} />
+        </section>
+
+        {/* 선수단 — 자주 바뀌지 않는 정보라 첫 화면 대신 아래쪽에 둔다. */}
+        <section>
+          <Roster players={teamPlayers} teamSlug={fanSlug} />
         </section>
 
         <AdSlot placement="horizontal" className="hidden h-[60px] md:block xl:h-[90px]" />
