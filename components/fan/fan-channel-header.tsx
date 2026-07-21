@@ -1,14 +1,14 @@
 ﻿import { CheckCircle2, ImagePlus } from "lucide-react";
-import Link from "next/link";
 
 import { getFanNotificationEnabled, getIsFan } from "@/app/fan/[teamSlug]/actions";
 import { FanAlarmButton } from "@/components/fan/fan-alarm-button";
+import { FanHeaderRequestDialog } from "@/components/fan/fan-header-request-dialog";
 import { FanFollowButton } from "@/components/fan/fan-follow-button";
 import { FanPredictionCard } from "@/components/fan/fan-prediction-card";
 import { FanTicker } from "@/components/fan/fan-ticker";
 import { TeamLogo } from "@/components/ui/team-logo";
 import { getCurrentUser } from "@/lib/auth/current-user";
-import { getActiveFanHeaderUrl } from "@/lib/fan/fan-header";
+import { checkFanHeaderUploadEligibility, getActiveFanHeaderUrl } from "@/lib/fan/fan-header";
 import {
   getAllTeams,
   getMatches,
@@ -58,22 +58,14 @@ function tickerDateTime(value: string) {
   }).format(new Date(value));
 }
 
-// 헤더 우상단에 얹는 "헤더 꾸미기" 진입 버튼. GNB 대신 헤더 안에 두어
-// 지금 보고 있는 헤더를 바꾸러 간다는 맥락이 드러나게 한다.
-function HeaderStudioLink({ teamSlug, onPhoto }: { teamSlug: string; onPhoto: boolean }) {
-  return (
-    <Link
-      href={`/fan/${teamSlug}/header`}
-      className={`absolute right-3 top-3 z-10 flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-[12px] font-bold backdrop-blur-md transition sm:right-4 sm:top-4 ${
-        onPhoto
-          ? "border-white/30 bg-black/35 text-white hover:bg-black/50"
-          : "border-[var(--ui-border)] bg-[var(--ui-surface)]/80 text-[var(--ui-text)] hover:text-[var(--ui-ink)]"
-      }`}
-    >
-      <ImagePlus size={13} aria-hidden="true" />
-      헤더 꾸미기
-    </Link>
-  );
+// "대문 변경 요청" 진입 버튼. GNB가 아니라 헤더 안, 캘린더 버튼 옆에 둔다.
+// 스타일은 캘린더 트리거(app/fan/[teamSlug]/page.tsx)와 맞춘다.
+function headerRequestButtonClass(onPhoto: boolean) {
+  return `inline-flex h-9 items-center gap-1.5 rounded-full border px-4 text-sm font-extrabold shadow-sm transition active:scale-[0.97] sm:h-10 lg:min-h-11 lg:px-5 ${
+    onPhoto
+      ? "border-white/30 bg-black/35 text-white backdrop-blur-md hover:bg-black/50"
+      : "border-[var(--ui-border)] bg-[var(--ui-surface)] text-[var(--ui-ink)] hover:bg-[var(--ui-surface-muted)]"
+  }`;
 }
 
 function opponentOf(match: Match, team: Team, teams: Team[]) {
@@ -164,6 +156,9 @@ export async function FanChannelHeader({
 
   // 이번 주 대표 헤더. 팬 투표로 매주 월요일(KST) 확정된다.
   const headerBackground = await getActiveFanHeaderUrl(team.id);
+  // 요청 자격은 서버에서 판정해 모달에 내려준다(클라이언트가 team_fans를 조회할 수 없다).
+  const requestEligibility = await checkFanHeaderUploadEligibility(team.id, user?.id);
+  const requestBlockedReason = requestEligibility.ok ? null : requestEligibility.reason;
 
   return (
     <>
@@ -176,7 +171,6 @@ export async function FanChannelHeader({
             <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-transparent to-70%" />
           </div>
         ) : null}
-        <HeaderStudioLink teamSlug={team.fanSiteHost} onPhoto={Boolean(headerBackground)} />
         <div className="layout-wide relative py-3.5 sm:py-5">
           <div className="flex min-w-0 items-center gap-3.5 sm:gap-4">
             <span
@@ -212,7 +206,7 @@ export async function FanChannelHeader({
             </div>
           </div>
 
-          <div className="mt-3 grid grid-cols-[1fr_auto_auto] gap-2 sm:mt-4 sm:max-w-[380px]">
+          <div className="mt-3 grid grid-cols-[1fr_auto_auto_auto] gap-2 sm:mt-4 sm:max-w-[440px]">
             <FanFollowButton
               teamId={team.id}
               teamSlug={team.fanSiteHost}
@@ -224,6 +218,20 @@ export async function FanChannelHeader({
             />
             <FanAlarmButton teamId={team.id} teamSlug={team.fanSiteHost} initialEnabled={notificationEnabled} compact />
             {calendarSlot}
+            <FanHeaderRequestDialog
+              teamId={team.id}
+              teamSlug={team.fanSiteHost}
+              teamName={team.shortName}
+              teamColor={team.primaryColor}
+              blockedReason={requestBlockedReason}
+              triggerClassName={headerRequestButtonClass(Boolean(headerBackground))}
+              trigger={
+                <span className="flex items-center gap-1.5">
+                  <ImagePlus size={16} aria-hidden="true" />
+                  대문
+                </span>
+              }
+            />
           </div>
         </div>
       </header>
@@ -238,7 +246,6 @@ export async function FanChannelHeader({
             <div className="absolute inset-0 bg-gradient-to-r from-black/75 from-10% to-transparent to-65%" />
           </div>
         ) : null}
-        <HeaderStudioLink teamSlug={team.fanSiteHost} onPhoto={Boolean(headerBackground)} />
         <div className="fan-page-container relative">
           {headerBackground ? null : (
             <span
@@ -301,6 +308,20 @@ export async function FanChannelHeader({
                 />
                 <FanAlarmButton teamId={team.id} teamSlug={team.fanSiteHost} initialEnabled={notificationEnabled} />
                 {calendarSlot}
+                <FanHeaderRequestDialog
+              teamId={team.id}
+              teamSlug={team.fanSiteHost}
+              teamName={team.shortName}
+              teamColor={team.primaryColor}
+              blockedReason={requestBlockedReason}
+              triggerClassName={headerRequestButtonClass(Boolean(headerBackground))}
+              trigger={
+                <span className="flex items-center gap-1.5">
+                  <ImagePlus size={16} aria-hidden="true" />
+                  대문
+                </span>
+              }
+            />
               </div>
             </div>
             <FanPredictionCard

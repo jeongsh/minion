@@ -2,14 +2,16 @@
 
 import { revalidatePath } from "next/cache";
 
+import { isCurrentUserAdmin } from "@/lib/auth/admin";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { COMMUNITY_UPLOAD_BUCKET } from "@/lib/community/upload-security";
 import {
-  FAN_HEADER_MIN_ASPECT,
-  FAN_HEADER_MIN_WIDTH,
   checkFanHeaderUploadEligibility,
+  fanHeaderImageUrl,
   fanHeaderUploadBlockedMessage,
+  kstWeekStart,
 } from "@/lib/fan/fan-header";
+import { sendDiscordFanHeaderRequestAlert } from "@/lib/notify/discord";
 import { recordOperationalEvent } from "@/lib/observability/operational-events";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -35,11 +37,10 @@ export async function submitFanHeaderCandidate(input: {
     return { ok: false, error: fanHeaderUploadBlockedMessage(eligibility.ok ? "anonymous" : eligibility.reason) };
   }
 
-  if (input.width < FAN_HEADER_MIN_WIDTH) {
-    return { ok: false, error: `헤더 이미지는 가로 ${FAN_HEADER_MIN_WIDTH}px 이상이어야 해요.` };
-  }
-  if (input.width / input.height < FAN_HEADER_MIN_ASPECT) {
-    return { ok: false, error: "헤더는 가로로 긴 이미지만 등록할 수 있어요. (가로:세로 16:10 이상)" };
+  // 규격은 막지 않는다. 요청자가 모달 프리뷰로 잘림을 직접 보고 판단하며,
+  // 최종 판단은 어차피 운영진 검토에서 한다. 여기서는 저장 자체가 불가능한 값만 거른다.
+  if (!Number.isFinite(input.width) || !Number.isFinite(input.height) || input.width < 1 || input.height < 1) {
+    return { ok: false, error: "이미지 정보를 읽지 못했어요." };
   }
 
   const supabase = createSupabaseAdminClient();
@@ -68,15 +69,68 @@ export async function submitFanHeaderCandidate(input: {
   if (error) return { ok: false, error: error.message };
 
   await recordOperationalEvent(supabase, {
-    eventType: "fan_header_candidate_created",
+    eventType: "fan_header_request_created",
     actorUserId: user.id,
     targetType: "fan_header_candidate",
     targetId: data.id,
     metadata: { teamId: input.teamId, imagePath: input.imagePath },
   });
 
-  revalidatePath(`/fan/${input.teamSlug}/header`);
+  await notifyFanHeaderRequest({
+    teamId: input.teamId,
+    teamSlug: input.teamSlug,
+    requesterName: user.nickname ?? "익명 팬",
+    imagePath: input.imagePath,
+    width: input.width,
+    height: input.height,
+    caption,
+  });
+
+  revalidatePath("/admin/fan-headers");
   return { ok: true };
+}
+
+/** 요청 접수 알림. 웹훅이 없거나 실패해도 요청 자체는 성공으로 둔다. */
+async function notifyFanHeaderRequest(input: {
+  teamId: string;
+  teamSlug: string;
+  requesterName: string;
+  imagePath: string;
+  width: number;
+  height: number;
+  caption: string | null;
+}) {
+  const webhookUrl = process.env.DISCORD_COMMUNITY_WEBHOOK_URL;
+  if (!webhookUrl) return;
+
+  try {
+    const supabase = createSupabaseAdminClient();
+    const [{ data: team }, { count }] = await Promise.all([
+      supabase.from("teams").select("short_name").eq("id", input.teamId).maybeSingle(),
+      supabase
+        .from("fan_header_candidates")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "pending")
+        .is("deleted_at", null),
+    ]);
+
+    await sendDiscordFanHeaderRequestAlert(
+      webhookUrl,
+      {
+        teamName: team?.short_name ?? input.teamSlug,
+        teamSlug: input.teamSlug,
+        requesterName: input.requesterName,
+        imageUrl: fanHeaderImageUrl(input.imagePath),
+        width: input.width,
+        height: input.height,
+        caption: input.caption,
+        pendingCount: count ?? null,
+      },
+      process.env.NEXT_PUBLIC_SITE_URL,
+    );
+  } catch (error) {
+    console.warn("[fan-header] discord alert failed", error);
+  }
 }
 
 export async function toggleFanHeaderVote(
@@ -97,6 +151,52 @@ export async function toggleFanHeaderVote(
   const row = data?.[0];
   revalidatePath(`/fan/${teamSlug}/header`);
   return { ok: true, voted: row?.voted, voteCount: row?.vote_count };
+}
+
+/**
+ * 어드민이 후보를 이번 주 대표 헤더로 즉시 적용한다.
+ * 주간 배치를 기다리지 않고 갈아끼우는 운영용 경로라, 같은 주에 여러 번 바꿔도 된다.
+ */
+export async function applyFanHeaderCandidate(candidateId: string, teamSlug: string): Promise<ActionResult> {
+  const user = await getCurrentUser();
+  if (!user || !(await isCurrentUserAdmin())) return { ok: false, error: "권한이 없어요." };
+
+  const supabase = createSupabaseAdminClient();
+  const { data: candidate } = await supabase
+    .from("fan_header_candidates")
+    .select("id, team_id, vote_count, deleted_at, blinded_at")
+    .eq("id", candidateId)
+    .maybeSingle();
+
+  if (!candidate || candidate.deleted_at || candidate.blinded_at) {
+    return { ok: false, error: "적용할 수 없는 후보예요." };
+  }
+
+  const { error } = await supabase.from("fan_header_selections").upsert(
+    {
+      team_id: candidate.team_id,
+      week_start: kstWeekStart(),
+      candidate_id: candidate.id,
+      vote_count: candidate.vote_count,
+      selected_at: new Date().toISOString(),
+    },
+    { onConflict: "team_id,week_start" },
+  );
+
+  if (error) return { ok: false, error: error.message };
+
+  await recordOperationalEvent(supabase, {
+    eventType: "fan_header_applied",
+    actorUserId: user.id,
+    targetType: "fan_header_candidate",
+    targetId: candidate.id,
+    metadata: { teamId: candidate.team_id, weekStart: kstWeekStart() },
+  });
+
+  // 헤더는 팬페이지 전 화면 상단에 걸리므로 팀 홈까지 함께 무효화한다.
+  revalidatePath(`/fan/${teamSlug}`);
+  revalidatePath(`/fan/${teamSlug}/header`);
+  return { ok: true };
 }
 
 /** 본인이 올린 후보만 내릴 수 있다. 소프트 삭제 후 스토리지 객체도 정리한다. */

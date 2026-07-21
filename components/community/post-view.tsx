@@ -1,4 +1,4 @@
-import { Eye, ArrowLeft } from "lucide-react";
+import { Eye, ArrowLeft, Megaphone } from "lucide-react";
 import Link from "next/link";
 
 import { BlindedContent } from "@/components/community/blinded-content";
@@ -10,6 +10,7 @@ import { PostOwnerActions } from "@/components/community/post-owner-actions";
 import { ReactionButtons } from "@/components/community/reaction-buttons";
 import { ReportButton } from "@/components/community/report-button";
 import { SurfacePanel } from "@/components/ui/surface-panel";
+import { setPostNoticeInlineAction } from "@/lib/community/admin-actions";
 import type { BoardScope } from "@/lib/community/boards";
 import { blindDescription, blindLabel } from "@/lib/community/moderation-labels";
 import type { CommunityCommentItem, CommunityPostDetail, ReactionState } from "@/lib/community/types";
@@ -22,6 +23,7 @@ export function PostView({
   scope,
   teamSlug,
   canManage = false,
+  canSetNotice = false,
 }: {
   post: CommunityPostDetail;
   comments: CommunityCommentItem[];
@@ -30,6 +32,7 @@ export function PostView({
   scope: BoardScope;
   teamSlug?: string;
   canManage?: boolean;
+  canSetNotice?: boolean;
 }) {
   const boardHref = scope === "team" && teamSlug ? `/fan/${teamSlug}/community` : "/community";
   const initial = (post.authorName ?? "글").trim().charAt(0) || "글";
@@ -41,7 +44,24 @@ export function PostView({
         <header className="px-4 pb-4 pt-5 sm:px-8 sm:pb-6 sm:pt-8">
           <div className="flex items-center justify-between gap-4">
             <Link href={boardHref} className="inline-flex items-center text-sm font-normal text-[var(--tp)] hover:opacity-70 gap-1"><ArrowLeft size={16} strokeWidth={2} />목록으로</Link>
-            {canManage ? <PostOwnerActions postId={post.id} scope={scope} teamSlug={teamSlug} /> : null}
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              {canSetNotice ? (
+                <form action={setPostNoticeInlineAction}>
+                  <input type="hidden" name="post_id" value={post.id} />
+                  <input type="hidden" name="scope" value={scope} />
+                  {teamSlug ? <input type="hidden" name="team_slug" value={teamSlug} /> : null}
+                  <input type="hidden" name="is_notice" value={post.isNotice ? "false" : "true"} />
+                  <button
+                    type="submit"
+                    className="inline-flex h-9 items-center gap-1.5 rounded-[var(--ui-control-radius)] border border-[var(--ui-border)] px-3.5 text-sm font-semibold text-[var(--ui-text)] hover:bg-[var(--ui-surface-muted)]"
+                  >
+                    <Megaphone size={15} strokeWidth={1.8} />
+                    {post.isNotice ? "공지 해제" : "공지 등록"}
+                  </button>
+                </form>
+              ) : null}
+              {canManage ? <PostOwnerActions postId={post.id} scope={scope} teamSlug={teamSlug} /> : null}
+            </div>
           </div>
           <h1 className={`mt-2 text-[20px] leading-[1.35] sm:text-[24px] ${blinded ? "font-medium text-[var(--ui-muted)]" : "font-bold text-[var(--ui-ink)]"}`}>
             {blinded ? blindLabel(post.blindedSource, "post") : post.title}

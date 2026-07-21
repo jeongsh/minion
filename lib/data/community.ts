@@ -258,6 +258,7 @@ export async function createPost(params: {
   title: string;
   content: string;
   authorId: string;
+  isNotice?: boolean;
 }): Promise<{ id: string }> {
   // 쓰기는 인증 컨텍스트(RLS)가 없는 anon 대신 service-role 로 수행한다.
   // 인가는 호출부(서버 액션)의 getCurrentUser + 본인확인으로 이미 보장된다.
@@ -271,6 +272,7 @@ export async function createPost(params: {
       title: params.title,
       content: params.content,
       author_id: params.authorId,
+      is_notice: params.isNotice ?? false,
     })
     .select("id")
     .single();

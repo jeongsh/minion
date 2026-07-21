@@ -13,6 +13,7 @@ import {
   Type,
   Highlighter,
   Video,
+  BarChart3,
   Undo,
   Redo,
 } from "lucide-react";
@@ -234,6 +235,15 @@ export default function Toolbar({ editor, allowMedia = true }: Props) {
 
           <button type="button" onClick={insertSns} className="h-7 rounded px-2 text-[13px] font-semibold text-muted hover:bg-surface-muted" title="SNS 임베드">
             SNS
+          </button>
+
+          <button
+            type="button"
+            onClick={() => editor.chain().focus().insertPoll().run()}
+            className="rounded p-1.5 text-muted hover:bg-surface-muted"
+            title="투표"
+          >
+            <BarChart3 size={18} />
           </button>
         </>
       )}

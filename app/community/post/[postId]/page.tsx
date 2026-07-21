@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { PostView } from "@/components/community/post-view";
 import { CommunityContentLayout } from "@/components/community/community-content-layout";
 import { PageHeader } from "@/components/ui/page-header";
+import { isCurrentUserAdmin } from "@/lib/auth/admin";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import {
   getCommentReactionStates,
@@ -24,11 +25,12 @@ export default async function HubPostDetailPage({
   if (!post || post.siteScope !== "hub") notFound();
 
   const comments = await getPostComments(postId);
-  const [reaction, commentReactions, user, posts] = await Promise.all([
+  const [reaction, commentReactions, user, posts, canSetNotice] = await Promise.all([
     getPostReactionState(postId),
     getCommentReactionStates(comments.map((c) => c.id)),
     getCurrentUser(),
     getBoardPosts({ scope: "hub" }),
+    isCurrentUserAdmin(),
   ]);
 
   return (
@@ -46,6 +48,7 @@ export default async function HubPostDetailPage({
             commentReactions={commentReactions}
             scope="hub"
             canManage={post.authorId === user?.id}
+            canSetNotice={canSetNotice}
           />
         </CommunityContentLayout>
       </div>

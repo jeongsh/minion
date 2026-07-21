@@ -9,6 +9,7 @@ import type { Extensions } from "@tiptap/react";
 
 import { FontSize } from "./extensions/FontSize";
 import { EmbedExtension } from "./extensions/EmbedExtension";
+import { PollExtension } from "./extensions/PollExtension";
 
 /**
  * multicolor 기본값이 mark 에 `color: inherit` 를 넣어 textStyle 색이 가려지는 경우가 있어
@@ -63,5 +64,6 @@ export function buildCommunityExtensions(): Extensions {
       },
     }),
     EmbedExtension,
+    PollExtension,
   ];
 }

@@ -3,7 +3,7 @@ import type { HomeCalendarMatch } from "@/components/domain/home-calendar";
 import { getHomePagePublicData } from "@/lib/data/home-cache";
 import type { Match } from "@/lib/types";
 import { getBoardPosts } from "@/lib/data/community";
-import { hotSortValue, isHotPost } from "@/lib/community/hot";
+import { compareHotPostsByRecentHype, isHotPost } from "@/lib/community/hot";
 import { dateKeyKST, formatTimeKST, matchHref } from "@/lib/view-data";
 import { getPredictionMarketData } from "@/lib/predictions";
 import { getCurrentUser } from "@/lib/auth/current-user";
@@ -136,13 +136,10 @@ export default async function HomePage() {
     ...sortedTeamVideos.slice(0, HOME_VIDEO_LIMIT - lckQuota),
   ].sort(byNewest);
 
-  // 홈 게시판 캐러셀: 인기글(hot_at 최신순) 우선, 남는 자리는 최신 글로 채운다.
+  // 홈 게시판 캐러셀: 인기글만 랭킹 순으로 노출한다.
   // 블라인드/공지 글은 홈에 노출하지 않는다.
   const homeEligiblePosts = communityPosts.filter((post) => !post.blindedAt && !post.isNotice);
-  const homeCommunityPosts = [
-    ...homeEligiblePosts.filter(isHotPost).sort((a, b) => hotSortValue(b) - hotSortValue(a)),
-    ...homeEligiblePosts.filter((post) => !isHotPost(post)),
-  ].slice(0, 12);
+  const homeCommunityPosts = homeEligiblePosts.filter(isHotPost).sort(compareHotPostsByRecentHype).slice(0, 12);
 
   // 상단 일정 스트립: 오늘부터 일주일 치 경기. 이번 주 경기가 없으면 가장 가까운 경기일로 대체한다.
   const byDateAsc = (a: Match, b: Match) => new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime();

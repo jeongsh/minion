@@ -8,6 +8,7 @@
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 
+import { isCurrentUserAdmin } from "@/lib/auth/admin";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { recordLpEvent } from "@/lib/rank/record-lp";
 import type { BoardScope } from "@/lib/community/boards";
@@ -174,6 +175,7 @@ export async function createPostAction(input: {
   teamSlug?: string;
   title: string;
   content: string;
+  isNotice?: boolean;
 }): Promise<ActionResult> {
   const user = await getCurrentUser();
   if (!user) return LOGIN_REQUIRED;
@@ -196,6 +198,7 @@ export async function createPostAction(input: {
     title,
     content,
     authorId: user.id,
+    isNotice: input.isNotice && (await isCurrentUserAdmin()),
   });
 
   await recordLpEvent({ userId: user.id, reason: "post_created", postId: id });

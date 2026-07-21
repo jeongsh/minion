@@ -1,55 +1,16 @@
+import { isCurrentUserAdmin } from "@/lib/auth/admin";
 import { COMMUNITY_UPLOAD_BUCKET } from "@/lib/community/upload-security";
+import {
+  FAN_HEADER_FOLLOW_DAYS,
+  FAN_HEADER_MAX_CANDIDATES_PER_USER,
+  type FanHeaderState,
+  type FanHeaderUploadBlockedReason,
+} from "@/lib/fan/fan-header-constants";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { kstWeekStart } from "@/lib/sync/fan-header-selection";
 
 export { kstWeekStart };
-
-// 헤더 업로드 자격: 해당 팀을 이 기간 이상 팔로우한 로그인 계정.
-export const FAN_HEADER_FOLLOW_DAYS = 7;
-// 한 유저가 한 팀에 동시에 올려둘 수 있는 후보 수.
-export const FAN_HEADER_MAX_CANDIDATES_PER_USER = 3;
-// 헤더는 와이드 배너라 지나치게 세로인 이미지는 받지 않는다.
-export const FAN_HEADER_MIN_ASPECT = 1.6;
-export const FAN_HEADER_MIN_WIDTH = 1200;
-
-export type FanHeaderUploadBlockedReason = "anonymous" | "not-following" | "too-new" | "quota";
-
-export function fanHeaderUploadBlockedMessage(reason: FanHeaderUploadBlockedReason): string {
-  switch (reason) {
-    case "anonymous":
-      return "로그인하면 헤더를 올릴 수 있어요.";
-    case "not-following":
-      return "이 팀을 팔로우하면 헤더를 올릴 수 있어요.";
-    case "too-new":
-      return `팔로우 ${FAN_HEADER_FOLLOW_DAYS}일이 지나면 헤더를 올릴 수 있어요.`;
-    case "quota":
-      return `동시에 등록할 수 있는 헤더는 ${FAN_HEADER_MAX_CANDIDATES_PER_USER}개까지예요.`;
-  }
-}
-
-export type FanHeaderCandidate = {
-  id: string;
-  teamId: string;
-  userId: string;
-  imageUrl: string;
-  width: number;
-  height: number;
-  caption: string | null;
-  voteCount: number;
-  createdAt: string;
-  authorNickname: string | null;
-  votedByMe: boolean;
-};
-
-export type FanHeaderState = {
-  /** 이번 주 대표 헤더. 선정 전이거나 후보가 없으면 null. */
-  activeImageUrl: string | null;
-  weekStart: string;
-  candidates: FanHeaderCandidate[];
-  canUpload: boolean;
-  /** canUpload가 false인 이유. UI에서 안내 문구로 쓴다. */
-  uploadBlockedReason: FanHeaderUploadBlockedReason | null;
-};
+export * from "@/lib/fan/fan-header-constants";
 
 export function fanHeaderImageUrl(imagePath: string): string {
   const {
@@ -61,12 +22,14 @@ export function fanHeaderImageUrl(imagePath: string): string {
 /**
  * 업로드 자격 판정. 로그인 + 해당 팀 FAN_HEADER_FOLLOW_DAYS일 이상 팔로우.
  * 팔로우가 계정에 귀속되기 전(레거시 쿠키 행)에는 기간을 알 수 없으므로 자격 없음으로 본다.
+ * 어드민은 팔로우 여부·기간·개수 제한을 모두 건너뛴다(운영상 시안을 바로 올려야 한다).
  */
 export async function checkFanHeaderUploadEligibility(
   teamId: string,
   userId: string | undefined,
 ): Promise<{ ok: true } | { ok: false; reason: FanHeaderUploadBlockedReason }> {
   if (!userId) return { ok: false, reason: "anonymous" };
+  if (await isCurrentUserAdmin()) return { ok: true };
 
   const supabase = createSupabaseAdminClient();
   const { data: follow } = await supabase
@@ -118,9 +81,16 @@ export async function getActiveFanHeaderUrl(teamId: string): Promise<string | nu
 export async function getFanHeaderState(teamId: string, userId: string | undefined): Promise<FanHeaderState> {
   const supabase = createSupabaseAdminClient();
 
-  const [activeImageUrl, eligibility, candidateRows] = await Promise.all([
+  const [activeImageUrl, eligibility, isAdmin, selection, candidateRows] = await Promise.all([
     getActiveFanHeaderUrl(teamId),
     checkFanHeaderUploadEligibility(teamId, userId),
+    isCurrentUserAdmin(),
+    supabase
+      .from("fan_header_selections")
+      .select("candidate_id")
+      .eq("team_id", teamId)
+      .eq("week_start", kstWeekStart())
+      .maybeSingle(),
     supabase
       .from("fan_header_candidates")
       .select("id, team_id, user_id, image_path, width, height, caption, vote_count, created_at")
@@ -159,9 +129,12 @@ export async function getFanHeaderState(teamId: string, userId: string | undefin
     myVotes = new Set((votes ?? []).map((vote) => vote.candidate_id));
   }
 
+  const activeCandidateId = selection.data?.candidate_id ?? null;
+
   return {
     activeImageUrl,
     weekStart: kstWeekStart(),
+    isAdmin,
     canUpload: eligibility.ok,
     uploadBlockedReason: eligibility.ok ? null : eligibility.reason,
     candidates: rows.map((row) => ({
@@ -176,6 +149,7 @@ export async function getFanHeaderState(teamId: string, userId: string | undefin
       createdAt: row.created_at,
       authorNickname: nicknames.get(row.user_id) ?? null,
       votedByMe: myVotes.has(row.id),
+      isActive: row.id === activeCandidateId,
     })),
   };
 }

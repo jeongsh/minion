@@ -1,9 +1,11 @@
 import { PostForm } from "@/components/community/post-form";
 import { SurfacePanel } from "@/components/ui/surface-panel";
+import { isCurrentUserAdmin } from "@/lib/auth/admin";
 import { categoriesForScope, defaultCategory, type BoardScope } from "@/lib/community/boards";
 
-export function NewPostPage({ scope, initialCategory, initialTitle, teamId, teamSlug }: { scope: BoardScope; initialCategory?: string; initialTitle?: string; teamId?: string | null; teamSlug?: string }) {
+export async function NewPostPage({ scope, initialCategory, initialTitle, teamId, teamSlug }: { scope: BoardScope; initialCategory?: string; initialTitle?: string; teamId?: string | null; teamSlug?: string }) {
   const categories = categoriesForScope(scope);
+  const canSetNotice = await isCurrentUserAdmin();
   const fallback = initialCategory && categories.some((category) => category.slug === initialCategory)
     ? initialCategory
     : defaultCategory(scope);
@@ -14,7 +16,7 @@ export function NewPostPage({ scope, initialCategory, initialTitle, teamId, team
       : "layout-wide flex flex-col gap-5 py-6 sm:py-8"
     }>
       <SurfacePanel variant="section" className="mobile-full-bleed p-4 sm:mx-0 sm:p-8">
-        <PostForm scope={scope} categories={categories} defaultCategory={fallback} initialTitle={initialTitle} teamId={teamId} teamSlug={teamSlug} />
+        <PostForm scope={scope} categories={categories} defaultCategory={fallback} initialTitle={initialTitle} teamId={teamId} teamSlug={teamSlug} canSetNotice={canSetNotice} />
       </SurfacePanel>
     </main>
   );

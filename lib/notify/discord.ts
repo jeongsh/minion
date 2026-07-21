@@ -173,3 +173,57 @@ export async function sendDiscordMatchAutomationAlert(
     );
   }
 }
+
+export type FanHeaderRequestDiscordEvent = {
+  teamName: string;
+  teamSlug: string;
+  requesterName: string;
+  imageUrl: string;
+  width: number;
+  height: number;
+  /** 요청자가 남긴 한 줄 설명. */
+  caption?: string | null;
+  /** 미처리 요청 누적 수(있으면 표시). */
+  pendingCount?: number | null;
+};
+
+/**
+ * 팬이 대문(헤더) 변경을 요청하면 운영진 채널로 알린다.
+ * 커뮤니티 모더레이션과 같은 웹훅을 쓰되 username으로 봇 이름을 분리한다.
+ */
+export async function sendDiscordFanHeaderRequestAlert(
+  webhookUrl: string,
+  event: FanHeaderRequestDiscordEvent,
+  siteUrl?: string,
+): Promise<void> {
+  const base = siteUrl?.replace(/\/$/, "");
+  const description = [
+    `${event.requesterName}님이 ${event.teamName} 대문 변경을 요청했어요.`,
+    event.caption ? `"${event.caption}"` : null,
+    `이미지 ${event.width}×${event.height}`,
+    event.pendingCount ? `미처리 요청 ${event.pendingCount}건` : null,
+    base ? `[요청 검토하기](${base}/admin/fan-headers)` : null,
+  ].filter(Boolean).join("\n");
+
+  const response = await fetch(webhookUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      username: "대문지기",
+      allowed_mentions: { parse: [] },
+      embeds: [{
+        title: `대문 변경 요청: ${event.teamName}`,
+        description,
+        url: base ? `${base}/admin/fan-headers` : undefined,
+        image: { url: event.imageUrl },
+        color: 0x0ea5e9,
+        timestamp: new Date().toISOString(),
+        footer: { text: "팬 대문 요청 · Minion" },
+      }],
+    }),
+  });
+
+  if (!response.ok) {
+    console.warn(`[discord] fan header request webhook failed: ${response.status} ${(await response.text()).slice(0, 300)}`);
+  }
+}

@@ -36,8 +36,6 @@
     "subscribe:youtube-webhooks": "node --experimental-strip-types scripts/subscribe-youtube-webhooks.ts",
     "champions:cleanup": "node --experimental-strip-types scripts/cleanup-champions.ts",
     "report:weekly": "node --experimental-strip-types scripts/generate-weekly-report.ts",
-    "select:fan-headers": "node --experimental-strip-types scripts/select-fan-headers.ts",
-    "select:fan-headers:dry": "node --experimental-strip-types scripts/select-fan-headers.ts --dry-run",
     "uploads:cleanup": "node --experimental-strip-types scripts/cleanup-community-uploads.ts"
   },
   "dependencies": {

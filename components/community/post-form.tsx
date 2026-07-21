@@ -43,6 +43,7 @@ export function PostForm({
   postId,
   initialTitle = "",
   initialContent = "",
+  canSetNotice = false,
 }: {
   scope: BoardScope;
   categories: BoardDef[];
@@ -52,12 +53,14 @@ export function PostForm({
   postId?: string;
   initialTitle?: string;
   initialContent?: string;
+  canSetNotice?: boolean;
 }) {
   const router = useRouter();
   const { startNavigation } = useNavigationTransition();
   const [boardType, setBoardType] = useState(defaultCategory);
   const [title, setTitle] = useState(initialTitle);
   const [content, setContent] = useState(initialContent);
+  const [isNotice, setIsNotice] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -78,7 +81,7 @@ export function PostForm({
     startTransition(async () => {
       const result = postId
         ? await updatePostAction({ postId, scope, boardType, teamSlug, title: title.trim(), content })
-        : await createPostAction({ scope, boardType, teamId, teamSlug, title: title.trim(), content });
+        : await createPostAction({ scope, boardType, teamId, teamSlug, title: title.trim(), content, isNotice });
       if (result.ok) {
         const destination = postId
           ? scope === "team" && teamSlug
@@ -142,6 +145,18 @@ export function PostForm({
         <label className="sr-only">내용</label>
         <CommunityEditor content={content} onChange={setContent} placeholder="내용을 입력하세요" />
       </div>
+
+      {!postId && canSetNotice ? (
+        <label className="flex items-center gap-2 rounded-[var(--ui-control-radius)] border border-[var(--ui-border)] bg-[var(--ui-surface-muted)] px-3 py-2 text-sm font-semibold text-[var(--ui-text)]">
+          <input
+            type="checkbox"
+            checked={isNotice}
+            onChange={(event) => setIsNotice(event.target.checked)}
+            className="h-4 w-4 accent-[var(--ui-ink)]"
+          />
+          공지글로 등록
+        </label>
+      ) : null}
 
       <div className="sticky bottom-0 z-10 -mx-4 flex flex-col gap-3 border-t border-[var(--ui-border)] bg-[var(--ui-surface)] px-4 py-3 sm:static sm:mx-0 sm:flex-row sm:items-center sm:justify-between sm:border-0 sm:p-0">
         <p className="text-[13px] text-[var(--ui-muted)]">서로 존중하는 커뮤니티를 위해 비방·욕설은 삼가주세요.</p>

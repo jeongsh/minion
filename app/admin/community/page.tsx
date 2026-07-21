@@ -8,7 +8,6 @@ import {
   listCommunitySettings,
   listModeratedPosts,
   listPendingReportGroups,
-  listRecentPostsForAdmin,
   type AdminPostSummary,
   type AdminReportGroup,
 } from "@/lib/data/community-admin";
@@ -18,7 +17,6 @@ import {
   setCommentBlindedAction,
   setPostBlindedAction,
   setPostDeletedAction,
-  setPostNoticeAction,
   softDeleteCommentAction,
   updateCommunitySettingsAction,
 } from "./actions";
@@ -44,10 +42,9 @@ function postHref(post: AdminPostSummary) {
 }
 
 export default async function AdminCommunityPage() {
-  const [reportGroups, moderatedPosts, recentPosts, settings] = await Promise.all([
+  const [reportGroups, moderatedPosts, settings] = await Promise.all([
     listPendingReportGroups(),
     listModeratedPosts(),
-    listRecentPostsForAdmin(),
     listCommunitySettings(),
   ]);
 
@@ -169,37 +166,6 @@ export default async function AdminCommunityPage() {
         )}
       </section>
 
-      {/* ── 최근 글(공지 고정/수동 조치) ─────────────────────────── */}
-      <section className="flex flex-col gap-3">
-        <h2 className="text-lg font-bold">최근 글 · 공지 고정</h2>
-        <p className="text-sm text-neutral-500">
-          공지로 고정한 글은 해당 커뮤니티 목록 최상단에 항상 노출됩니다.
-        </p>
-        <ul className="divide-y divide-neutral-200 rounded-xl border border-neutral-200 dark:divide-neutral-700 dark:border-neutral-700">
-          {recentPosts.map((post) => (
-            <li key={post.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
-              <PostMeta post={post} />
-              <div className="ml-auto flex shrink-0 items-center gap-2">
-                <form action={setPostNoticeAction}>
-                  <input type="hidden" name="post_id" value={post.id} />
-                  <input type="hidden" name="is_notice" value={post.isNotice ? "false" : "true"} />
-                  <SmallButton>{post.isNotice ? "공지 해제" : "공지 고정"}</SmallButton>
-                </form>
-                <form action={setPostBlindedAction}>
-                  <input type="hidden" name="post_id" value={post.id} />
-                  <input type="hidden" name="blinded" value={post.blindedAt ? "false" : "true"} />
-                  <SmallButton>{post.blindedAt ? "블라인드 해제" : "블라인드"}</SmallButton>
-                </form>
-                <form action={setPostDeletedAction}>
-                  <input type="hidden" name="post_id" value={post.id} />
-                  <input type="hidden" name="deleted" value="true" />
-                  <SmallButton tone="danger">삭제</SmallButton>
-                </form>
-              </div>
-            </li>
-          ))}
-        </ul>
-      </section>
     </main>
   );
 }

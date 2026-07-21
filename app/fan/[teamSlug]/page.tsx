@@ -23,6 +23,7 @@ import {
   getTeamInstagramFeed,
 } from "@/lib/data/lck";
 import { getBoardPosts } from "@/lib/data/community";
+import { compareHotPostsByRecentHype, isHotPost } from "@/lib/community/hot";
 import { buildFanVideoItems } from "@/lib/fan-video-items";
 import { getCalendarEvents, getTodayCelebrations } from "@/lib/calendar/events";
 import { shouldUseWhiteLogoOnDark } from "@/lib/team-logos";
@@ -295,6 +296,10 @@ export default async function FanHomePage({
       likesCount: p.likesCount,
     })),
   ].sort((a, b) => (b.postedAt ? new Date(b.postedAt).getTime() : 0) - (a.postedAt ? new Date(a.postedAt).getTime() : 0));
+  const rankedHotBoardPosts = boardPosts
+    .filter((post) => !post.blindedAt && !post.isNotice && isHotPost(post))
+    .sort(compareHotPostsByRecentHype)
+    .slice(0, 12);
 
   return (
     <>
@@ -343,7 +348,7 @@ export default async function FanHomePage({
         <section>
           <SectionHeading href={`/fan/${fanSlug}/community`}>게시판</SectionHeading>
           <HomeBoardCarousel
-            posts={boardPosts.filter((post) => !post.blindedAt && !post.isNotice).slice(0, 12)}
+            posts={rankedHotBoardPosts}
             scope="team"
             teamSlug={fanSlug}
           />
