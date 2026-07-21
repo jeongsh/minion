@@ -189,7 +189,7 @@ function GroupStandingsTable({
                   className="flex min-w-0 items-center gap-2 font-semibold text-foreground hover:text-accent"
                 >
                   {row.team.logoUrl ? (
-                    <TeamLogo team={row.team} size="h-6 w-8" plain themeAware />
+                    <TeamLogo team={row.team} size="h-7 w-7" plain themeAware />
                   ) : null}
                   <span className="min-w-0 truncate text-sm">{row.team.name}</span>
                 </Link>
@@ -224,7 +224,7 @@ function GroupStandingsTable({
             render: (row) => (
               <Link href={`/teams/${row.team.slug}`} className="flex items-center gap-2 font-semibold hover:text-accent">
                 {row.team.logoUrl ? (
-                  <TeamLogo team={row.team} size="h-6 w-8" plain themeAware />
+                  <TeamLogo team={row.team} size="h-7 w-7" plain themeAware />
                 ) : null}
                 <span className="truncate">{row.team.name}</span>
               </Link>
@@ -264,7 +264,7 @@ function RegularStandingsTable({ rows }: { rows: ReturnType<typeof buildTeamStan
                 className="flex min-w-0 items-center gap-2 font-semibold hover:text-accent"
               >
                 {row.team.logoUrl ? (
-                  <TeamLogo team={row.team} size="h-6 w-8" plain themeAware />
+                  <TeamLogo team={row.team} size="h-7 w-7" plain themeAware />
                 ) : null}
                 <span className="truncate">{row.team.name}</span>
               </Link>
