@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 
 import { HomeUpcomingPredictionCard } from "@/components/domain/home-upcoming-prediction-card";
 import { SetVodPlayer } from "@/components/domain/set-vod-player";
-import { PageHeader } from "@/components/ui/page-header";
+import { SegmentedControl, UnderlineNav, type TabItem } from "@/components/ui/tabs";
 import { AdSlot } from "@/components/ui/ad-slot";
 import { TeamLogo } from "@/components/ui/team-logo";
 import {
@@ -83,10 +83,10 @@ function CompactTeamBlock({
       ) : null}
     </div>
   );
-  const logo = <TeamLogo team={team} size="h-9 w-9 sm:h-12 sm:w-12" plain themeAware />;
+  const logo = <TeamLogo team={team} size="h-12 w-12 sm:h-16 sm:w-16" plain themeAware />;
 
   return (
-    <div className={`flex min-w-0 flex-1 items-center gap-2 sm:gap-2.5 ${isRight ? "justify-start" : "justify-end"}`}>
+    <div className={`flex min-w-0 flex-1 items-center gap-2.5 sm:gap-3 ${isRight ? "justify-start" : "justify-end"}`}>
       {isRight ? (
         <>
           {logo}
@@ -176,30 +176,22 @@ function TabNav({
   sets: SetResult[];
 }) {
   const firstSetId = sets[0]?.id;
-  const linkClass = (active: boolean) =>
-    `relative flex min-h-11 items-center justify-center px-1 text-[13px] font-bold transition-colors after:absolute after:inset-x-1 after:bottom-0 after:h-0.5 sm:min-h-12 sm:px-0 sm:text-base ${
-      active
-        ? "text-[var(--ui-ink)] after:bg-[var(--accent)]"
-        : "text-[var(--ui-muted)] after:bg-transparent hover:text-[var(--ui-ink)]"
-    }`;
-  return (
-    <nav className="mobile-full-bleed grid border-b border-[var(--ui-border)] sm:flex sm:items-center sm:gap-6 md:mx-0" style={{ gridTemplateColumns: `repeat(${sets.length > 0 ? 4 : 3}, minmax(0, 1fr))` }} aria-label="매치 상세 탭">
-      <Link href={tabHref("preview")} className={linkClass(activeTab === "preview")}>
-        {TAB_LABELS.preview}
-      </Link>
-      {sets.length > 0 ? (
-        <Link href={tabHref("data", firstSetId)} className={linkClass(activeTab === "data")}>{TAB_LABELS.data}</Link>
-      ) : null}
-      <Link href={tabHref("rating", firstSetId)} className={linkClass(activeTab === "rating")}>
-        {TAB_LABELS.rating}
-      </Link>
-      <Link href={tabHref("video")} className={linkClass(activeTab === "video")}>
-        {TAB_LABELS.video}
-      </Link>
-    </nav>
-  );
+  const items: TabItem[] = [
+    { key: "preview", label: TAB_LABELS.preview, href: tabHref("preview") },
+    ...(sets.length > 0
+      ? [{ key: "data", label: TAB_LABELS.data, href: tabHref("data", firstSetId) }]
+      : []),
+    { key: "rating", label: TAB_LABELS.rating, href: tabHref("rating", firstSetId) },
+    { key: "video", label: TAB_LABELS.video, href: tabHref("video") },
+  ];
+
+  return <UnderlineNav items={items} activeKey={activeTab} ariaLabel="매치 상세 탭" />;
 }
 
+/**
+ * 탭 안에서 세트를 좁히는 2차 컨트롤이라 세그먼티드 컨트롤 언어를 쓴다.
+ * 세트가 하나뿐이면 고를 것이 없으므로 그리지 않는다.
+ */
 function SetSelector({
   sets,
   activeSet,
@@ -209,23 +201,20 @@ function SetSelector({
   activeSet?: SetResult;
   tab?: Extract<MatchTab, "data" | "rating">;
 }) {
-  if (sets.length === 0) return null;
+  if (sets.length <= 1) return null;
 
   return (
-    <div className="mobile-full-bleed sticky top-[var(--ui-header-height)] z-20 flex gap-1 overflow-x-auto border-b border-[var(--ui-border)] bg-[var(--ui-surface)] px-4 py-1.5 md:mx-0 md:px-0">
-      {sets.map((set) => (
-        <Link
-          key={set.id}
-          href={tabHref(tab, set.id)}
-          className={`shrink-0 rounded-md px-3.5 py-2 text-sm font-bold transition-colors ${
-            activeSet?.id === set.id
-              ? "bg-[var(--ui-ink)] text-[var(--ui-surface)]"
-              : "bg-[var(--ui-surface)] text-[var(--ui-muted)] hover:bg-[var(--ui-surface-muted)] hover:text-[var(--ui-ink)]"
-          }`}
-        >
-          {setLabel(set)}
-        </Link>
-      ))}
+    <div className="sticky top-[var(--ui-header-height)] z-20 -mx-1 bg-[var(--ui-surface)] px-1 py-1.5">
+      <SegmentedControl
+        items={sets.map((set) => ({
+          key: set.id,
+          label: setLabel(set),
+          href: tabHref(tab, set.id),
+        }))}
+        activeKey={activeSet?.id ?? ""}
+        ariaLabel="세트 선택"
+        className="tab-scroll max-w-full overflow-x-auto"
+      />
     </div>
   );
 }
@@ -613,44 +602,46 @@ export default async function MatchDetailPage({
   const embedUrl = youtubeEmbedUrl(match.vodUrl);
   return (
     <main className="layout-wide match-detail-page flex flex-col gap-5 bg-[var(--ui-surface)] pb-12 pt-5 text-[var(--ui-text)]">
-      <PageHeader
-        title={`${teamAName} vs ${teamBName}`}
-        breadcrumbs={[{ label: "경기 일정", href: "/schedule" }, { label: `${teamAName} vs ${teamBName}` }]}
-        className="gap-2 md:[&_.home-section-title]:text-2xl"
-        action={
-          <Link href="/schedule" className="text-[13px] font-bold text-[var(--ui-muted)] transition-colors hover:text-[var(--ui-ink)]">
+      {/*
+        페이지 제목 역할까지 이 카드가 겸한다. 별도 PageHeader를 두면 팀명이 카드와 그대로
+        겹치고, 남는 건 400 weight 한 줄뿐이라 아래 스코어에 눌려 헤더가 없느니만 못했다.
+      */}
+      <section className="mobile-full-bleed mobile-surface-section overflow-hidden rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] md:mx-0" aria-label="매치 요약">
+        <h1 className="sr-only">{`${teamAName} vs ${teamBName}`}</h1>
+
+        <div className="flex items-center justify-between gap-3 border-b border-[var(--ui-border)] px-3 py-2 sm:px-4">
+          <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-xs font-bold text-[var(--ui-muted)]">
+            <span className="text-[var(--ui-ink)]">{tournament?.name ?? "대회 미지정"}</span>
+            {stage ? <><span aria-hidden>·</span><span>{stage.name}</span></> : null}
+            <span aria-hidden>·</span>
+            <span>{formatDateTime(match.matchDate)}</span>
+          </div>
+          <Link href="/schedule" className="shrink-0 text-xs font-bold text-[var(--ui-muted)] transition-colors hover:text-[var(--ui-ink)]">
             일정 목록
           </Link>
-        }
-      />
-
-      <section className="mobile-full-bleed mobile-surface-section overflow-hidden rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] md:mx-0" aria-label="매치 요약">
-        <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-0.5 px-3 pt-2.5 text-xs font-bold text-[var(--ui-muted)]">
-          <span className="text-[var(--ui-ink)]">{tournament?.name ?? "대회 미지정"}</span>
-          {stage ? <><span aria-hidden>·</span><span>{stage.name}</span></> : null}
-          <span aria-hidden>·</span>
-          <span>{formatDateTime(match.matchDate)}</span>
         </div>
-        <div className="flex items-center gap-2.5 px-3 pb-3 pt-2.5 sm:gap-4 sm:px-4">
+
+        {/* 넓은 화면에서 팀이 카드 한가운데 덩그러니 뜨지 않도록 대진 블록 폭을 묶는다. */}
+        <div className="mx-auto flex w-full max-w-3xl items-center gap-3 px-3 py-4 sm:gap-5 sm:px-4 sm:py-5">
           <CompactTeamBlock team={teamA} teamName={teamAName} result={teamAResult} />
 
           <div className="flex shrink-0 items-center gap-2.5 sm:gap-3">
             {hasScore ? (
               <>
-                <span className={`text-2xl font-black tabular-nums sm:text-3xl ${teamAResult === "LOSS" ? "text-[var(--ui-muted)]" : "text-[var(--ui-ink)]"}`}>
+                <span className={`text-3xl font-black tabular-nums sm:text-4xl ${teamAResult === "LOSS" ? "text-[var(--ui-muted)]" : "text-[var(--ui-ink)]"}`}>
                   {scoreLabel(match.teamAScore)}
                 </span>
                 <div className="flex flex-col items-center gap-0.5">
                   <span className="text-xs font-medium text-[var(--accent)]">{displayStatusLabel}</span>
                   <span className="text-xs font-medium text-[var(--ui-muted)]">BO{match.bestOf ?? "-"}</span>
                 </div>
-                <span className={`text-2xl font-black tabular-nums sm:text-3xl ${teamBResult === "LOSS" ? "text-[var(--ui-muted)]" : "text-[var(--ui-ink)]"}`}>
+                <span className={`text-3xl font-black tabular-nums sm:text-4xl ${teamBResult === "LOSS" ? "text-[var(--ui-muted)]" : "text-[var(--ui-ink)]"}`}>
                   {scoreLabel(match.teamBScore)}
                 </span>
               </>
             ) : (
               <div className="flex flex-col items-center gap-0.5">
-                <span className="text-xl font-black text-[var(--ui-muted)] sm:text-2xl">VS</span>
+                <span className="text-2xl font-black text-[var(--ui-muted)] sm:text-3xl">VS</span>
                 <span className="text-xs font-medium text-[var(--ui-muted)]">{displayStatusLabel} · BO{match.bestOf ?? "-"}</span>
               </div>
             )}
