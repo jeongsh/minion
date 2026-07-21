@@ -20,7 +20,7 @@ import { buildTeamStandingRows, dateKeyKST, matchHref } from "@/lib/view-data";
 
 import { SegmentSwitcher } from "../segment-switcher";
 import { TournamentMark } from "../tournament-mark";
-import { SegmentedControl, UnderlineNav } from "../tournament-tabs";
+import { SegmentedControl, UnderlineNav } from "@/components/ui/tabs";
 import { YearSelect } from "../year-select";
 import { BracketConnectors, type BracketConnection } from "./bracket-connectors";
 import { BracketScroller } from "./bracket-scroller";
