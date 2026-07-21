@@ -700,7 +700,7 @@ function BracketGrid({
         className="grid w-max min-w-full gap-x-4 gap-y-2"
         style={{
           gridTemplateColumns: `repeat(${trackColumnCount + (finalsMatch ? 1 : 0)}, 12.5rem)`,
-          justifyContent: "space-between",
+          justifyContent: "start",
         }}
       >
         {gapRows.map((row) => (
@@ -1113,9 +1113,9 @@ export default async function TournamentBracketPage({
     const columns = buildStageColumns(activeStages, segmentMatches);
 
     // 조별 라운드로빈(예: 케스파컵 그룹 스테이지)은 대진표 대신 LCK 정규시즌처럼
-    // 승-패 순위표로 보여준다. 이름 기반 매칭이라 같은 이름의 브래킷 스테이지를 만들면
-    // 다른 대회에도 그대로 적용된다.
-    const isGroupStageBracket = /그룹\s*스테이지|group\s*stage/i.test(activeBracketStage?.name ?? "");
+    // 승-패 순위표로 보여줄 수 있다. 어드민의 "브래킷 스테이지" 탭에서 스테이지별로
+    // 직접 전환한다(기본값은 대진표).
+    const isGroupStageBracket = activeBracketStage?.displayMode === "standings";
     const activeStageIds = new Set(activeStages.map((stage) => stage.id));
     const groupStageMatches = segmentMatches.filter((match) => activeStageIds.has(match.stageId));
     const groupStageTeams = teams.filter((team) =>

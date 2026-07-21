@@ -214,6 +214,7 @@ type BracketStageRow = {
   tournament_id: string;
   name: string;
   order_index: number;
+  display_mode: string;
 };
 
 type SetRow = {
@@ -516,6 +517,7 @@ function mapBracketStage(row: BracketStageRow): BracketStage {
     tournamentId: row.tournament_id,
     name: row.name,
     orderIndex: row.order_index,
+    displayMode: row.display_mode === "standings" ? "standings" : "bracket",
   };
 }
 
@@ -971,7 +973,7 @@ async function getBracketStagesBase() {
   return fromSupabase(async () => {
     const { data, error } = await createSupabaseServerClient()
       .from("bracket_stages")
-      .select("id, tournament_id, name, order_index")
+      .select("id, tournament_id, name, order_index, display_mode")
       .order("order_index", { ascending: true });
 
     if (error) {

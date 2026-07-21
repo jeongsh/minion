@@ -218,10 +218,16 @@ export default async function AdminTournamentsPage({
             const stage = bracketStages
               .filter((bracketStage) => bracketStage.tournamentId === option.tournamentId)
               .sort((a, b) => a.orderIndex - b.orderIndex)[0];
-            return stage ? { id: stage.id, name: stage.name, split: option.key } : null;
+            return stage
+              ? { id: stage.id, name: stage.name, split: option.key, displayMode: stage.displayMode }
+              : null;
           })
           .filter((tab): tab is BracketStageTab => tab != null)
-      : tournamentBracketStages.map((bracketStage) => ({ id: bracketStage.id, name: bracketStage.name }));
+      : tournamentBracketStages.map((bracketStage) => ({
+          id: bracketStage.id,
+          name: bracketStage.name,
+          displayMode: bracketStage.displayMode,
+        }));
 
   const columns = buildAllStageColumns(segmentStages, segmentMatches);
   const activeColumns = activeBracketStage

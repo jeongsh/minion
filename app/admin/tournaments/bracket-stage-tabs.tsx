@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { useState } from "react";
 
-import { renameBracketStageAction } from "./actions";
+import { renameBracketStageAction, setBracketStageDisplayModeAction } from "./actions";
 
 export type BracketStageTab = {
   id: string;
   name: string;
   split?: string;
+  displayMode?: "bracket" | "standings";
 };
 
 function CheckIcon() {
@@ -55,6 +56,7 @@ export function BracketStageTabs({
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const [saving, setSaving] = useState(false);
+  const [modeOverrides, setModeOverrides] = useState<Record<string, "bracket" | "standings">>({});
 
   function startRename(tab: BracketStageTab) {
     setRenamingId(tab.id);
@@ -73,6 +75,20 @@ export function BracketStageTabs({
     setSaving(false);
     setRenamingId(null);
     if (!result.ok) {
+      window.alert(result.error);
+    }
+  }
+
+  async function toggleDisplayMode(tab: BracketStageTab) {
+    const current = modeOverrides[tab.id] ?? tab.displayMode ?? "bracket";
+    const next = current === "bracket" ? "standings" : "bracket";
+    setModeOverrides((prev) => ({ ...prev, [tab.id]: next }));
+
+    setSaving(true);
+    const result = await setBracketStageDisplayModeAction(segmentKey, tab.id, next);
+    setSaving(false);
+    if (!result.ok) {
+      setModeOverrides((prev) => ({ ...prev, [tab.id]: current }));
       window.alert(result.error);
     }
   }
@@ -142,6 +158,17 @@ export function BracketStageTabs({
                 ) : null}
               </div>
             )}
+
+            {isActive ? (
+              <button
+                type="button"
+                onClick={() => void toggleDisplayMode(tab)}
+                disabled={saving}
+                className="mt-1 self-start rounded border border-background/30 px-1.5 py-0.5 text-[11px] font-semibold text-background/70 hover:border-background/60 hover:text-background disabled:opacity-40"
+              >
+                공개 화면: {(modeOverrides[tab.id] ?? tab.displayMode ?? "bracket") === "standings" ? "순위표" : "대진표"} · 전환
+              </button>
+            ) : null}
           </div>
         );
       })}

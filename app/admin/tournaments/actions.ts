@@ -290,6 +290,39 @@ export async function renameBracketStageAction(
 }
 
 /**
+ * 브래킷 스테이지의 공개 페이지 표시 방식을 바꾼다("bracket"=대진표, "standings"=
+ * LCK 정규시즌처럼 승-패 순위표). 조별 라운드로빈으로 진행되는 스테이지(예: 케스파컵
+ * 그룹 스테이지)를 순위표로 보여주고 싶을 때 어드민에서 직접 전환한다.
+ */
+export async function setBracketStageDisplayModeAction(
+  segmentKey: string,
+  bracketStageId: string,
+  displayMode: "bracket" | "standings",
+): Promise<SaveBracketLayoutResult> {
+  try {
+    const supabase = await createSupabaseAdminActionClient();
+    const { error } = await supabase
+      .from("bracket_stages")
+      .update({ display_mode: displayMode })
+      .eq("id", bracketStageId);
+
+    if (error) {
+      throw error;
+    }
+
+    revalidatePath("/admin/tournaments");
+    if (segmentKey) {
+      revalidatePath(`/tournaments/${segmentKey}`);
+    }
+
+    return { ok: true };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "표시 방식 변경에 실패했습니다.";
+    return { ok: false, error: message };
+  }
+}
+
+/**
  * 브래킷 스테이지를 삭제한다. 안에 라운드가 남아있으면 거부한다(라운드를 먼저 다른
  * 브래킷 스테이지로 옮기거나 삭제해야 함).
  */

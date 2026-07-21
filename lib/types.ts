@@ -145,6 +145,8 @@ export type BracketStage = {
   tournamentId: string;
   name: string;
   orderIndex: number;
+  /** "standings"면 대회 탭에서 대진표 대신 승-패 순위표로 보여준다(어드민에서 전환). */
+  displayMode: "bracket" | "standings";
 };
 
 export type Stage = {
