@@ -59,12 +59,17 @@ export function HomeCalendar({
   initialMonthKey,
   matches,
   events,
-  heightClassName = "h-[360px]",
+  heightClassName = "h-[300px]",
 }: {
   initialMonthKey: string;
   matches: HomeCalendarMatch[];
   events: CalendarEvent[];
-  /** 6주짜리 달 + 범례가 잘리지 않는 최소 높이는 340px다. 그 아래로는 범례가 테두리 밖으로 넘친다. */
+  /**
+   * 높이는 임의로 정하는 값이 아니라 내용물이 강제하는 최소치의 결과다.
+   * p-3 상하 24 + 캡션 33 + 요일줄 24 + (fixedWeeks 6줄 × --rdp-day-height 30) + 범례 31 = 292px.
+   * 즉 이 값만 줄이면 셀은 그대로인 채 그릇만 작아져서, overflow-visible 탓에
+   * mt-auto 범례가 테두리 밖으로 삐져나온다. 더 줄이려면 --rdp-day-height부터 낮출 것.
+   */
   heightClassName?: string;
 }) {
   const containerRef = useRef<HTMLElement>(null);
@@ -176,9 +181,9 @@ export function HomeCalendar({
         fixedWeeks
         style={
           {
-            "--rdp-day-height": "38px",
-            "--rdp-day_button-height": "32px",
-            "--rdp-day_button-width": "32px",
+            "--rdp-day-height": "30px",
+            "--rdp-day_button-height": "28px",
+            "--rdp-day_button-width": "28px",
           } as CSSProperties
         }
         components={{

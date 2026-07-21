@@ -1,30 +1,25 @@
 import Link from "next/link";
 import { CalendarDays } from "lucide-react";
-import { HomeUpcomingMatchesSwiper } from "@/components/domain/home-upcoming-matches-swiper";
-import {
-  HomeHeroSwiper,
-  type HomeHeroSwiperSlide,
-} from "@/components/domain/home-hero-swiper";
-import {
-  HomeCalendar,
-  type HomeCalendarMatch,
-} from "@/components/domain/home-calendar";
+import { AdaptiveDialog } from "@/components/responsive/adaptive-dialog";
+import { HomeHeroSwiper, type HomeHeroSwiperSlide } from "@/components/domain/home-hero-swiper";
+import { HomeCalendar, type HomeCalendarMatch } from "@/components/domain/home-calendar";
 import { HomeBoardCarousel } from "@/components/domain/home-board-carousel";
 import { HomeVideoSwiper } from "@/components/domain/home-video-swiper";
-import { HomeTodayMatchesSwiper } from "@/components/domain/home-today-matches-swiper";
+import { HomeMatchSwiper } from "@/components/domain/home-match-swiper";
+import type { HomeMatchItem } from "@/components/domain/home-match-card";
+import { HomePomSwiper } from "@/components/domain/home-pom-swiper";
+import { HomeWeeklyReportCard } from "@/components/domain/home-weekly-report-card";
 import { CelebrationBanner } from "@/components/domain/celebration-banner";
 import type { CalendarEvent } from "@/lib/calendar/events";
-import { isMatchLive } from "@/lib/match-display";
+import type { HomePomEntry } from "@/lib/data/home-pom";
+import type { WeeklyReportSummary } from "@/lib/reports/queries";
 import { teams as themeTeams } from "@/lib/team-themes";
-import { predictionMarketForMatch, type PredictionBet } from "@/lib/predictions";
-import type { Match, Team } from "@/lib/types";
+import type { Team } from "@/lib/types";
 import type { HomeVideo } from "@/lib/data/lck-channel-videos";
-import { formatDateTime, matchHref } from "@/lib/view-data";
 import type { CommunityPostDetail } from "@/lib/community/types";
 import { SectionHeading as Heading } from "@/components/ui/section-heading";
 import { AdSlot as Ad } from "@/components/ui/ad-slot";
 import { TeamLogo as Logo } from "@/components/ui/team-logo";
-import { AdaptiveDialog } from "@/components/responsive/adaptive-dialog";
 
 export type HomeStandingRow = {
   team: Team;
@@ -35,16 +30,13 @@ export type HomeStandingRow = {
   setDiff: number;
   recent: Array<"W" | "L">;
 };
+
 type Props = {
   teams: Team[];
   standingRows: HomeStandingRow[];
-  upcomingMatches: Match[];
-  recentMatches: Match[];
-  todayMatches: Match[];
-  predictionBetsByMatchId: Map<string, PredictionBet[]>;
+  matchItems: HomeMatchItem[];
   currentUserId?: string;
   predictionBalance: number | null;
-  tournamentNamesById: Map<string, string>;
   calendarMonthKey: string;
   calendarMatches: HomeCalendarMatch[];
   calendarEvents: CalendarEvent[];
@@ -52,87 +44,33 @@ type Props = {
   latestVideos: HomeVideo[];
   heroSlides: HomeHeroSwiperSlide[];
   communityPosts: CommunityPostDetail[];
-  stripMatches: Match[];
-  stripTodayKey: string;
+  pomEntries: HomePomEntry[];
+  latestReport: WeeklyReportSummary | null;
 };
 
-function PredictionScore({ match, teams, bets }: { match: Match; teams: Map<string, Team>; bets: PredictionBet[] }) {
-  const a = teams.get(match.teamAId), b = teams.get(match.teamBId);
-  const market = predictionMarketForMatch(bets, match.id, match.teamAId, match.teamBId);
-  return <div className="home-prediction-score mt-3"><div className="flex justify-between text-[13px] font-black"><span>{a?.shortName ?? "TBD"} {market.teamAPercent}%</span><span>{market.teamBPercent}% {b?.shortName ?? "TBD"}</span></div><div className="mt-1.5 flex h-2 overflow-hidden rounded-full bg-[#e4e2e8]"><span style={{width:`${market.teamAPercent}%`,background:a?.primaryColor||"#18191c"}}/><span className="flex-1" style={{background:b?.primaryColor||"#73767c"}}/></div></div>;
-}
+/** 순위표는 10팀을 5+5 두 칼럼으로 나눈다. 옆 광고 높이도 이 값에서 계산한다. */
+const STANDING_ROWS_PER_COLUMN = 5;
+const STANDING_ROW_HEIGHT = 52;
 
-function TodayMatchCard({
-  match,
-  teams,
-  bets,
-}: {
-  match: Match;
-  teams: Map<string, Team>;
-  bets: PredictionBet[];
-}) {
-  const a = teams.get(match.teamAId),
-    b = teams.get(match.teamBId),
-    live = isMatchLive(match),
-    scheduled = match.status === "scheduled" && !live;
+/**
+ * 옆 칼럼의 섹션 제목과 같은 높이를 차지해 두 칼럼의 카드 상단을 맞춘다.
+ * 예전엔 mt-[47px] 매직넘버였는데 제목 크기를 바꿀 때마다 어긋났다.
+ * 같은 Heading을 숨겨서 넣으면 --ui-title-size가 바뀌어도 자동으로 따라간다.
+ */
+function HeadingSpacer() {
   return (
-    <article className="rounded-2xl border border-[#e3e1e8] p-3 lg:p-4 xl:p-5">
-      <div className="flex items-center text-[13px] font-bold text-[#85828e] xl:text-sm">
-        {live ? (
-          <span className="rounded-full bg-[#ff3158] px-2 py-1 text-white">
-            LIVE
-          </span>
-        ) : (
-          <span>{scheduled ? "경기 전" : "경기 종료"}</span>
-        )}
-        <span className="ml-auto">{formatDateTime(match.matchDate)}</span>
-      </div>
-      <Link
-        href={matchHref(match)}
-        className="mt-3 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 xl:mt-5 xl:gap-5"
-      >
-        <div className="flex min-w-0 items-center justify-center gap-3">
-          <Logo team={a} size="h-9 w-9 lg:h-11 lg:w-11 xl:h-16 xl:w-16" plain />
-          <b className="min-w-0 truncate text-sm lg:text-base xl:text-lg">{a?.shortName}</b>
-        </div>
-        <strong className="shrink-0 text-lg xl:text-2xl">
-          {scheduled
-            ? "VS"
-            : `${match.teamAScore ?? 0} : ${match.teamBScore ?? 0}`}
-        </strong>
-        <div className="flex min-w-0 flex-row-reverse items-center justify-center gap-3">
-          <Logo team={b} size="h-9 w-9 lg:h-11 lg:w-11 xl:h-16 xl:w-16" plain />
-          <b className="min-w-0 truncate text-sm lg:text-base xl:text-lg">{b?.shortName}</b>
-        </div>
-      </Link>
-      <PredictionScore match={match} teams={teams} bets={bets} />
-      <div className="mt-3 grid grid-cols-2 gap-2 xl:mt-4">
-        <Link
-          href={matchHref(match)}
-          className="rounded-lg bg-[#f1f0f4] px-2 py-2 text-center text-[13px] font-black xl:py-2.5 xl:text-sm"
-        >
-          매치정보 보기
-        </Link>
-        <Link
-          href={`${matchHref(match)}?tab=rating`}
-          className="rounded-lg bg-[#1c192b] px-2 py-2 text-center text-[13px] font-black text-white xl:py-2.5 xl:text-sm"
-        >
-          평점 보기
-        </Link>
-      </div>
-    </article>
+    <div className="invisible" aria-hidden>
+      <Heading>&nbsp;</Heading>
+    </div>
   );
 }
 
 export function HomeDashboard({
   teams,
   standingRows,
-  upcomingMatches,
-  todayMatches,
-  predictionBetsByMatchId,
+  matchItems,
   currentUserId,
   predictionBalance,
-  tournamentNamesById,
   calendarMonthKey,
   calendarMatches,
   calendarEvents,
@@ -140,8 +78,9 @@ export function HomeDashboard({
   latestVideos,
   heroSlides,
   communityPosts,
+  pomEntries,
+  latestReport,
 }: Props) {
-  const byId = new Map(teams.map((t) => [t.id, t]));
   const activeTeams = themeTeams
     .map(
       (theme) =>
@@ -153,68 +92,73 @@ export function HomeDashboard({
         ) ?? theme,
     )
     .slice(0, 10);
-  const upcomingItems = upcomingMatches.map((m) => ({
-    match: m,
-    teamA: byId.get(m.teamAId),
-    teamB: byId.get(m.teamBId),
-    tournament: tournamentNamesById.get(m.tournamentId),
-    bets: predictionBetsByMatchId.get(m.id) ?? [],
-  }));
 
   return (
     <main className="layout-wide hub-home pb-16 pt-4 text-[#1c192b] sm:pt-7">
-      <section className="grid items-start gap-3 sm:gap-4 lg:grid-cols-[minmax(0,1.55fr)_360px] xl:grid-cols-[minmax(0,1.7fr)_420px]">
-        <div className="aspect-video min-w-0 sm:aspect-auto sm:h-[240px] md:h-[260px] lg:h-[280px] xl:h-[390px]">
+      {/* 상단 배너 + (lg 이상) 캘린더 / (그 아래) 매치 패널.
+          배너 비율을 폭에 고정하면 좁은 화면에서 옆 캘린더와 높이가 어긋난다.
+          캘린더는 292px(6주 고정 × 30px + 캡션/요일/범례) 아래로 못 줄어드는데,
+          뷰포트 1280에서 배너 폭은 676px뿐이라 3.37:1이면 200px밖에 안 나온다.
+          그래서 2열에서는 배너를 높이 기준(h-full)으로 두어 캘린더와 항상 맞추고,
+          1열로 떨어지는 구간에서만 비율(5/2)로 잡는다. 2열일 때 배너의 실제 비율은
+          폭에 따라 2.1~3.4:1 사이를 오가는데, 1열 비율 2.5:1이 그 범위 안이라
+          브레이크포인트를 넘을 때 모양이 튀지 않는다. */}
+      <section className="grid gap-3 sm:gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="aspect-[5/2] min-w-0 lg:aspect-auto lg:h-[300px]">
           <HomeHeroSwiper slides={heroSlides} />
         </div>
-        <div className="min-w-0 rounded-2xl border border-[#e3e1e8] bg-white p-3 sm:p-4 xl:h-[390px] xl:overflow-y-auto dark:bg-[var(--ui-surface-muted)]">
+
+        {/* lg 이상: 캘린더를 펼쳐 둔다. 높이 300px은 위 배너의 lg:h-[300px]와 같은 값이어야
+            한다(둘 중 하나만 바꾸면 어긋난다). min-h로 두면 배너 이미지의 원본 비율이
+            행 높이를 끌어올려(933px 폭에서 412px) 둘 다 늘어나므로 고정 높이여야 한다. */}
+        <div className="hidden min-w-0 lg:block">
+          <HomeCalendar
+            initialMonthKey={calendarMonthKey}
+            matches={calendarMatches}
+            events={calendarEvents}
+            heightClassName="h-[300px]"
+          />
+        </div>
+
+        {/* 모바일: 캘린더를 펼치면 300px를 먹어 콘텐츠가 밀리므로, 원래대로 매치 패널을
+            두고 캘린더는 버튼으로 모달을 띄운다. */}
+        <div className="min-w-0 rounded-2xl border border-[#e3e1e8] bg-white p-3 sm:p-4 lg:hidden dark:bg-[var(--ui-surface-muted)]">
           <div className="mb-3 flex min-w-0 items-center gap-2 text-[#18191c]">
             <CalendarDays size={17} className="shrink-0" />
-            <h2 className="home-section-title min-w-0 flex-1 text-xl">다가오는 매치</h2>
-            <AdaptiveDialog title="경기·기념일 캘린더" trigger={<span className="flex items-center gap-1.5"><CalendarDays size={16} />캘린더</span>} triggerClassName="flex min-h-10 shrink-0 items-center rounded-xl border border-[#e3e1e8] bg-white px-3 text-[12px] font-black text-[#18191c] md:hidden dark:bg-[var(--ui-surface-muted)]"><HomeCalendar initialMonthKey={calendarMonthKey} matches={calendarMatches} events={calendarEvents} /></AdaptiveDialog>
+            <h2 className="home-section-title min-w-0 flex-1 text-[length:var(--ui-title-size)]">매치</h2>
+            <AdaptiveDialog
+              title="경기·기념일 캘린더"
+              trigger={<span className="flex items-center gap-1.5"><CalendarDays size={16} />캘린더</span>}
+              triggerClassName="flex min-h-10 shrink-0 items-center rounded-xl border border-[#e3e1e8] bg-white px-3 text-[12px] font-black text-[#18191c] dark:bg-[var(--ui-surface-muted)]"
+            >
+              <HomeCalendar
+                initialMonthKey={calendarMonthKey}
+                matches={calendarMatches}
+                events={calendarEvents}
+              />
+            </AdaptiveDialog>
           </div>
-          <HomeUpcomingMatchesSwiper
-            items={upcomingItems}
+          <HomeMatchSwiper
+            items={matchItems}
             currentUserId={currentUserId}
             balance={predictionBalance}
+            variant="single"
           />
         </div>
       </section>
 
       {celebrationEvents.length > 0 ? (
-        <section className="mt-6">
+        <section className="mt-8">
           <CelebrationBanner events={celebrationEvents} />
         </section>
       ) : null}
 
-      <Ad placement="horizontal" className="mt-4 hidden h-[60px] md:block xl:mt-8 xl:h-[90px]" />
-      <section className="mt-7 md:hidden">
-        <Heading href="/schedule">오늘의 매치</Heading>
-        {todayMatches.length > 0 ? (
-          <div className="grid gap-3">
-            {todayMatches.slice(0, 2).map((m) => (
-              <TodayMatchCard
-                key={m.id}
-                match={m}
-                teams={byId}
-                bets={predictionBetsByMatchId.get(m.id) ?? []}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="rounded-2xl border border-[#e6e7ea] bg-white p-4 text-sm font-bold text-[#686b72] dark:bg-[var(--ui-surface-muted)]">
-            오늘 예정된 경기가 없습니다.
-          </div>
-        )}
-      </section>
-
-      <section className="mt-7 sm:mt-8">
+      <section className="mt-8">
         <Heading href="/teams">팀 채널</Heading>
         <div className="grid grid-cols-5 gap-2 sm:grid-cols-10 sm:gap-3 xl:gap-4">
           {activeTeams.map((team) => {
             const slug =
-              themeTeams.find((t) => t.id === team.id)?.fanSiteHost ??
-              team.slug;
+              themeTeams.find((t) => t.id === team.id)?.fanSiteHost ?? team.slug;
             return (
               <Link
                 key={team.id}
@@ -233,111 +177,94 @@ export function HomeDashboard({
         </div>
       </section>
 
-      <section className="mt-8 hidden items-start gap-4 md:grid sm:mt-10 xl:grid-cols-3">
+      <Ad placement="horizontal" className="mt-8 hidden h-[60px] md:block xl:h-[90px]" />
+
+      {/* 모바일에서는 위 상단 패널이 같은 matchItems를 보여주므로 중복을 피해 숨긴다. */}
+      <section className="mt-8 hidden lg:block">
+        <Heading href="/schedule">매치</Heading>
+        <HomeMatchSwiper
+          items={matchItems}
+          currentUserId={currentUserId}
+          balance={predictionBalance}
+        />
+      </section>
+
+      {pomEntries.length > 0 ? (
+        <section className="mt-8">
+          <Heading href="/players" caption="공식 MVP">최근 POM</Heading>
+          <HomePomSwiper entries={pomEntries} />
+        </section>
+      ) : null}
+
+      <section className="mt-8 grid gap-4 xl:grid-cols-3">
         <div className="min-w-0 xl:col-span-2">
-          <Heading href="/schedule">오늘의 매치</Heading>
-          {todayMatches.length > 2 ? (
-            <HomeTodayMatchesSwiper
-              slides={todayMatches.map((m) => ({
-                id: m.id,
-                node: (
-                  <TodayMatchCard
-                    match={m}
-                    teams={byId}
-                    bets={predictionBetsByMatchId.get(m.id) ?? []}
-                  />
-                ),
-              }))}
-            />
-          ) : (
-            <div className="home-today-match-grid grid gap-4 md:grid-cols-2">
-              {todayMatches.map((m) => (
-                <TodayMatchCard
-                  key={m.id}
-                  match={m}
-                  teams={byId}
-                  bets={predictionBetsByMatchId.get(m.id) ?? []}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-        <div className="min-w-0 flex flex-col mt-[47px]">
-          <Ad placement="rectangle" className="h-[60px] md:h-[90px] xl:h-[250px]" />
-        </div>
-      </section>
-
-      <section className="mt-8 sm:mt-10">
-        <Heading href="/community">게시판</Heading>
-        <HomeBoardCarousel posts={communityPosts} />
-      </section>
-
-      <section className="mt-8 md:hidden">
-        <div className="mb-3 flex items-center justify-between [&>button]:hidden">
           <Heading href="/tournaments">실시간 순위</Heading>
-          <AdaptiveDialog title="경기·기념일 캘린더" trigger={<span className="flex items-center gap-1.5"><CalendarDays size={18} />캘린더</span>} triggerClassName="mb-3 flex min-h-10 items-center rounded-xl border border-[#e3e1e8] bg-white px-3 text-[12px] font-black dark:bg-[var(--ui-surface-muted)]"><HomeCalendar initialMonthKey={calendarMonthKey} matches={calendarMatches} events={calendarEvents} /></AdaptiveDialog>
-        </div>
-        <div className="overflow-hidden rounded-2xl border border-[#e6e7ea] bg-white dark:bg-[var(--ui-surface-muted)]">
-          {standingRows.slice(0, 4).map((row) => <Link href={`/teams/${row.team.slug}`} key={row.teamId} className="grid min-h-14 grid-cols-[24px_34px_minmax(0,1fr)_auto] items-center gap-2 border-b border-[#efeff1] px-3 last:border-0"><b className="text-center text-[13px]">{row.rank}</b><Logo team={row.team} themeAware size="h-8 w-8" /><b className="truncate text-[14px]">{row.team.shortName}</b><span className="text-[13px] font-bold text-[#686b72]">{row.wins}승 {row.losses}패</span></Link>)}
-        </div>
-      </section>
-
-      <section className="mt-8 hidden items-stretch gap-4 sm:mt-10 md:grid md:grid-cols-2 xl:grid-cols-3">
-        <div className="flex min-w-0 flex-col">
-          <Heading>실시간 순위</Heading>
-          <div className="grid flex-1 grid-rows-5 overflow-hidden rounded-2xl border border-[#e6e7ea]">
-            {standingRows.slice(0, 5).map((r) => (
-              <Link
-                href={`/teams/${r.team.slug}`}
-                key={r.teamId}
-                className="flex min-h-12 items-center gap-2.5 border-b border-[#efeff1] px-3 last:border-0 lg:min-h-14 sm:gap-3 sm:px-4 xl:min-h-0"
-              >
-                <b className="w-5 text-center">{r.rank}</b>
-                <Logo team={r.team} themeAware size="h-7 w-7 lg:h-8 lg:w-8 xl:h-10 xl:w-10" />
-                <b className="min-w-0 flex-1 truncate text-[13px] sm:text-sm">{r.team.shortName}</b>
-                <span className="shrink-0 text-[13px] font-bold sm:text-sm">
-                  {r.wins}승 {r.losses}패
-                </span>
-              </Link>
-            ))}
-          </div>
-        </div>
-        <div className="flex min-w-0 flex-col">
-          <Heading>팀 최근 폼</Heading>
-          <div className="grid flex-1 grid-rows-5 overflow-hidden rounded-2xl border border-[#e6e7ea]">
-            {standingRows.slice(0, 5).map((r) => (
+          {/* 10팀을 5+5로 나눠 좌우에 둔다. 세로로 10줄을 쌓으면 520px라 옆 칼럼이
+              비는데, 5줄(STANDING_ROWS_PER_COLUMN × 52px = 260px)로 맞추면
+              옆 광고 영역과 높이가 떨어진다. */}
+          <div className="grid gap-4 sm:grid-cols-2">
+            {[0, 1].map((column) => (
               <div
-                key={r.teamId}
-                className="flex min-h-12 items-center gap-2.5 border-b border-[#efeff1] px-3 last:border-0 lg:min-h-14 sm:gap-3 sm:px-4 xl:min-h-0"
+                key={column}
+                className="overflow-hidden rounded-2xl border border-[#e6e7ea] bg-white dark:bg-[var(--ui-surface-muted)]"
               >
-                <Logo team={r.team} themeAware size="h-7 w-7 lg:h-8 lg:w-8 xl:h-10 xl:w-10" />
-                <b className="min-w-0 flex-1 truncate text-[13px] sm:text-sm">{r.team.shortName}</b>
-                <div className="flex shrink-0 gap-1">
-                  {r.recent.map((v, i) => (
-                    <span
-                      key={i}
-                      className={`grid h-6 w-6 place-items-center rounded-full text-[11px] font-medium text-white xl:h-8 xl:w-8 xl:text-[13px] ${v === "W" ? "bg-[#00b979]" : "bg-[#b7bac0] dark:bg-[#565861]"}`}
-                      style={{lineHeight: `1`}}
+                {standingRows
+                  .slice(column * STANDING_ROWS_PER_COLUMN, (column + 1) * STANDING_ROWS_PER_COLUMN)
+                  .map((row) => (
+                    <Link
+                      href={`/teams/${row.team.slug}`}
+                      key={row.teamId}
+                      className="flex items-center gap-3 border-b border-[#efeff1] px-3 last:border-0 sm:px-4 dark:border-[#343840]"
+                      style={{ minHeight: STANDING_ROW_HEIGHT }}
                     >
-                      {v}
-                    </span>
+                      <b className="w-5 shrink-0 text-center text-[13px]">{row.rank}</b>
+                      <Logo team={row.team} themeAware size="h-8 w-8 shrink-0" />
+                      <b className="min-w-0 flex-1 truncate text-sm">{row.team.shortName}</b>
+                      {/* 최근 폼은 예전에 별도 카드였는데, 같은 standingRows를 같은 순서로
+                          한 번 더 그리는 것이라 순위표의 한 컬럼으로 합쳤다. */}
+                      <div className="flex shrink-0 gap-1">
+                        {row.recent.map((result, index) => (
+                          <span
+                            key={index}
+                            className={`grid h-6 w-6 place-items-center rounded-full text-[11px] font-medium text-white ${result === "W" ? "bg-[#00b979]" : "bg-[#b7bac0] dark:bg-[#565861]"}`}
+                            style={{ lineHeight: 1 }}
+                          >
+                            {result}
+                          </span>
+                        ))}
+                      </div>
+                    </Link>
                   ))}
-                </div>
               </div>
             ))}
           </div>
         </div>
-        <div className="flex min-w-0 flex-col md:col-span-2 xl:col-span-1">
-          <Heading href="/schedule">캘린더</Heading>
-          <HomeCalendar
-            initialMonthKey={calendarMonthKey}
-            matches={calendarMatches}
-            events={calendarEvents}
-          />
+        <div className="flex min-w-0 flex-col">
+          <div className="hidden xl:block">
+            <HeadingSpacer />
+          </div>
+          {/* 순위 카드와 같은 높이를 잡는다. AdSlot은 style을 받지 않아 래퍼로 높이를 준다. */}
+          <div
+            className="hidden md:block"
+            style={{ height: STANDING_ROWS_PER_COLUMN * STANDING_ROW_HEIGHT }}
+          >
+            <Ad placement="rectangle" className="h-full" />
+          </div>
         </div>
       </section>
 
-      <section className="mt-8 sm:mt-10">
+      {latestReport ? (
+        <section className="mt-8">
+          <HomeWeeklyReportCard report={latestReport} />
+        </section>
+      ) : null}
+
+      <section className="mt-8">
+        <Heading href="/community">게시판</Heading>
+        <HomeBoardCarousel posts={communityPosts} />
+      </section>
+
+      <section className="mt-8">
         <Heading>최신 영상</Heading>
         <HomeVideoSwiper videos={latestVideos} />
         <Ad placement="horizontal" className="mt-8 hidden h-[60px] md:block xl:h-[90px]" />

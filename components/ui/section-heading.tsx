@@ -24,7 +24,7 @@ export function SectionHeading({
   ) : null);
 
   return (
-    <div className={`mb-5 flex items-end justify-between gap-4 ${className}`}>
+    <div className={`mb-3 flex items-end justify-between gap-4 ${className}`}>
       <h2 className="home-section-title text-[length:var(--ui-title-size)] text-[var(--ui-ink)]">{children}</h2>
       {trailing}
     </div>

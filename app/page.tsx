@@ -1,13 +1,17 @@
 import { HomeDashboard, type HomeStandingRow } from "@/components/domain/home-dashboard";
 import type { HomeCalendarMatch } from "@/components/domain/home-calendar";
+import type { HomeMatchItem } from "@/components/domain/home-match-card";
 import { getHomePagePublicData } from "@/lib/data/home-cache";
+import { getHomePomEntries } from "@/lib/data/home-pom";
 import type { Match } from "@/lib/types";
 import { getBoardPosts } from "@/lib/data/community";
 import { compareHotPostsByRecentHype, isHotPost } from "@/lib/community/hot";
 import { dateKeyKST, formatTimeKST, matchHref } from "@/lib/view-data";
+import { isMatchLive } from "@/lib/match-display";
 import { getPredictionMarketData } from "@/lib/predictions";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { getTodayCelebrations } from "@/lib/calendar/events";
+import { getWeeklyReportIndex } from "@/lib/reports/queries";
 import { getLckChannelVideos, type HomeVideo } from "@/lib/data/lck-channel-videos";
 
 export const dynamic = "force-dynamic";
@@ -26,11 +30,13 @@ function buildRecentForm(teamId: string, matches: Match[]) {
 
 export default async function HomePage() {
   const user = await getCurrentUser();
-  const [homeData, communityPosts, predictionMarket, lckChannelVideos] = await Promise.all([
+  const [homeData, communityPosts, predictionMarket, lckChannelVideos, pomEntries, reportIndex] = await Promise.all([
     getHomePagePublicData(),
     getBoardPosts({ scope: "hub" }),
     getPredictionMarketData(user?.id),
     getLckChannelVideos(),
+    getHomePomEntries(),
+    getWeeklyReportIndex(),
   ]);
   const { teams, matches, savedStandings, tournaments, latestVideos, homeHeroSlides, calendarEvents } = homeData;
 
@@ -61,36 +67,47 @@ export default async function HomePage() {
     .filter((row): row is HomeStandingRow => row !== null)
     .sort((a, b) => a.rank - b.rank);
 
-  const upcomingMatches = matches
-    .filter((match) => match.status !== "completed")
-    .sort((a, b) => new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime())
-    .slice(0, 8);
-  const recentMatches = matches
-    .filter((match) => match.status === "completed")
-    .sort((a, b) => new Date(b.matchDate).getTime() - new Date(a.matchDate).getTime())
-    .slice(0, 2);
   const todayKey = dateKeyKST(new Date());
-  const matchesByDate = new Map<string, Match[]>();
-  for (const match of matches) {
-    const key = dateKeyKST(match.matchDate);
-    matchesByDate.set(key, [...(matchesByDate.get(key) ?? []), match]);
+  const byDateAsc = (a: Match, b: Match) => new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime();
+  const byDateDesc = (a: Match, b: Match) => new Date(b.matchDate).getTime() - new Date(a.matchDate).getTime();
+
+  // 홈 매치 섹션. 예전에는 "오늘의 매치"와 "다가오는 매치"를 따로 뽑았는데, 오늘 예정
+  // 경기가 양쪽 조건에 모두 걸려 같은 경기가 한 화면에 두 번 나왔다. 하나로 합치고
+  // LIVE → 예정(시간순) → 오늘 끝난 경기(최신순) 순으로 늘어놓는다.
+  // 세 묶음은 서로 겹치지 않으므로 별도 중복 제거가 필요 없다.
+  const notCompleted = matches.filter((match) => match.status !== "completed").sort(byDateAsc);
+  const liveMatches = notCompleted.filter((match) => isMatchLive(match));
+  const scheduledMatches = notCompleted.filter((match) => !isMatchLive(match));
+  const todayFinished = matches
+    .filter((match) => match.status === "completed" && dateKeyKST(match.matchDate) === todayKey)
+    .sort(byDateDesc);
+
+  let sectionMatches = [...liveMatches, ...scheduledMatches, ...todayFinished].slice(0, 12);
+  // 시즌 사이처럼 예정 경기도 오늘 경기도 없는 기간에는 섹션이 통째로 비어버리므로,
+  // 가장 최근에 끝난 경기들로 대신 채운다.
+  if (sectionMatches.length === 0) {
+    sectionMatches = matches.filter((match) => match.status === "completed").sort(byDateDesc).slice(0, 6);
   }
-  const displayDateKey = matchesByDate.has(todayKey)
-    ? todayKey
-    : [...matchesByDate.keys()].filter((key) => key < todayKey).sort().at(-1) ?? todayKey;
-  const todayMatches = (matchesByDate.get(displayDateKey) ?? []).sort(
-    (a, b) => new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime(),
-  );
+
   const predictionBetsByMatchId = new Map<string, typeof predictionMarket.bets>();
   for (const bet of predictionMarket.bets) {
     predictionBetsByMatchId.set(bet.matchId, [...(predictionBetsByMatchId.get(bet.matchId) ?? []), bet]);
   }
   const tournamentNamesById = new Map(tournaments.map((tournament) => [tournament.id, tournament.name]));
   const tournamentLeagueById = new Map(tournaments.map((tournament) => [tournament.id, tournament.league ?? ""]));
+
+  const matchItems: HomeMatchItem[] = sectionMatches.map((match) => ({
+    match,
+    teamA: teamsById.get(match.teamAId),
+    teamB: teamsById.get(match.teamBId),
+    tournament: tournamentNamesById.get(match.tournamentId),
+    bets: predictionBetsByMatchId.get(match.id) ?? [],
+  }));
+
   const calendarMonthKey = todayKey.slice(0, 7);
   const calendarMatches = matches
     .filter((match) => yearMonthKeyKST(match.matchDate) === calendarMonthKey)
-    .sort((a, b) => new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime());
+    .sort(byDateAsc);
   const calendarClientMatches: HomeCalendarMatch[] = calendarMatches.map((match) => {
     const teamA = teamsById.get(match.teamAId);
     const teamB = teamsById.get(match.teamBId);
@@ -141,35 +158,13 @@ export default async function HomePage() {
   const homeEligiblePosts = communityPosts.filter((post) => !post.blindedAt && !post.isNotice);
   const homeCommunityPosts = homeEligiblePosts.filter(isHotPost).sort(compareHotPostsByRecentHype).slice(0, 12);
 
-  // 상단 일정 스트립: 오늘부터 일주일 치 경기. 이번 주 경기가 없으면 가장 가까운 경기일로 대체한다.
-  const byDateAsc = (a: Match, b: Match) => new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime();
-  const today = new Date();
-  const stripTodayKey = dateKeyKST(today);
-  const weekEndKey = dateKeyKST(new Date(today.getTime() + 6 * 86400000));
-  const hasKnownTeam = (match: Match) => teamsById.has(match.teamAId) || teamsById.has(match.teamBId);
-  let stripMatches = matches
-    .filter((match) => {
-      const key = dateKeyKST(match.matchDate);
-      return key >= stripTodayKey && key <= weekEndKey && hasKnownTeam(match);
-    })
-    .sort(byDateAsc)
-    .slice(0, 12);
-  if (stripMatches.length === 0 && upcomingMatches[0]) {
-    const nextKey = dateKeyKST(upcomingMatches[0].matchDate);
-    stripMatches = matches.filter((match) => dateKeyKST(match.matchDate) === nextKey).sort(byDateAsc);
-  }
-
   return (
     <HomeDashboard
       teams={teams}
       standingRows={standingRows}
-      upcomingMatches={upcomingMatches}
-      recentMatches={recentMatches}
-      todayMatches={todayMatches}
-      predictionBetsByMatchId={predictionBetsByMatchId}
+      matchItems={matchItems}
       currentUserId={user?.id}
       predictionBalance={predictionMarket.balance}
-      tournamentNamesById={tournamentNamesById}
       calendarMonthKey={calendarMonthKey}
       calendarMatches={calendarClientMatches}
       calendarEvents={calendarEvents}
@@ -177,8 +172,8 @@ export default async function HomePage() {
       latestVideos={homeVideos}
       heroSlides={heroSlides}
       communityPosts={homeCommunityPosts}
-      stripMatches={stripMatches}
-      stripTodayKey={stripTodayKey}
+      pomEntries={pomEntries}
+      latestReport={reportIndex[0] ?? null}
     />
   );
 }

@@ -30,8 +30,8 @@ export function HomeVideoSwiper({ videos }: { videos: HomeVideo[] }) {
         breakpoints={{
           520: { slidesPerView: 1.65, spaceBetween: 12 },
           768: { slidesPerView: 2.35, spaceBetween: 14 },
-          1024: { slidesPerView: 3.15, spaceBetween: 16 },
-          1280: { slidesPerView: 4, spaceBetween: 16 },
+          1024: { slidesPerView: 4.15, spaceBetween: 16 },
+          1280: { slidesPerView: 5, spaceBetween: 16 },
         }}
       >
         {videos.map((video) => (

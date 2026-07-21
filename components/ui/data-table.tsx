@@ -50,9 +50,13 @@ export function DataTable<T>({
         {rows.map((row, index) => {
           const href = getRowHref?.(row);
           const content = (
-            <div className="grid min-h-16 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 px-4 py-3 text-sm sm:px-3.5">
+            <div className="grid min-h-16 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 px-4 py-3 text-sm sm:px-3.5">
               <div className="min-w-0 font-bold text-[var(--ui-ink)]">{columns[0]?.render(row)}</div>
-              {columns.slice(1, 3).map((column) => <div key={column.key} className="flex items-center justify-end gap-1.5 text-right"><span className="text-[11px] font-semibold text-[var(--ui-muted)]">{column.label}</span><span className="font-bold text-[var(--ui-text)]">{column.render(row)}</span></div>)}
+              {/* 지표 칸은 그리드 트랙을 각자 차지하면 개수(1~2개)에 따라 트랙 수가 달라져
+                  줄바꿈이 나므로, 한 트랙 안에서 flex로 나란히 둔다. */}
+              <div className="flex shrink-0 items-center gap-3">
+                {columns.slice(1, 3).map((column) => <div key={column.key} className="flex items-center justify-end gap-1.5 text-right"><span className="text-[11px] font-semibold text-[var(--ui-muted)]">{column.label}</span><span className="font-bold text-[var(--ui-text)]">{column.render(row)}</span></div>)}
+              </div>
             </div>
           );
           return href ? <Link key={index} href={href} className={`block ${hub ? "active:bg-[var(--ui-surface-muted)]" : "active:bg-surface-muted"}`}>{content}</Link> : <div key={index}>{content}</div>;

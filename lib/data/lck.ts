@@ -851,16 +851,16 @@ async function getTeamIdentityHistoriesBase() {
   }, []);
 }
 
-// 케스파컵은 2군도 함께 출전해서, 케스파컵에서만 등장한 선수는 선수 목록에 노출하지 않는다.
-const KESPA_CUP_ONLY_SCOPE = "kespa_cup";
+// 케스파컵은 2군도 함께 출전해서, 케스파컵 경기에만 출전 기록이 있는 선수는 선수 목록에서 제외한다.
+// roster_players 뷰가 실제 출전 기록으로 이를 걸러낸다(마이그레이션 20260721110000).
+const ROSTER_PLAYERS = "roster_players";
 
 async function getPlayersBase() {
   return fromSupabase(async () => {
     const { data, error } = await createSupabaseServerClient()
-      .from("players")
+      .from(ROSTER_PLAYERS)
       .select("*")
       .eq("is_lck_player", true)
-      .neq("imported_scope", KESPA_CUP_ONLY_SCOPE)
       .neq("is_active", false)
       .order("name", { ascending: true });
 
@@ -872,10 +872,9 @@ async function getPlayersBase() {
 async function getRetiredPlayersBase() {
   return fromSupabase(async () => {
     const { data, error } = await createSupabaseServerClient()
-      .from("players")
+      .from(ROSTER_PLAYERS)
       .select("*")
       .eq("is_lck_player", true)
-      .neq("imported_scope", KESPA_CUP_ONLY_SCOPE)
       .eq("is_active", false)
       .order("name", { ascending: true });
 
@@ -887,10 +886,9 @@ async function getRetiredPlayersBase() {
 async function getPlayersByTeamIdBase(teamId: string) {
   return fromSupabase(async () => {
     const { data, error } = await createSupabaseServerClient()
-      .from("players")
+      .from(ROSTER_PLAYERS)
       .select("*")
       .eq("team_id", teamId)
-      .neq("imported_scope", KESPA_CUP_ONLY_SCOPE)
       .neq("is_active", false)
       .order("name", { ascending: true });
 

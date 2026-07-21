@@ -36,7 +36,6 @@ type MatchRow = {
   team_a: MatchTeamRow | null;
   team_b: MatchTeamRow | null;
   team_aliases?: LeaguepediaAlias[];
-  tournament: { league: string | null } | null;
 };
 
 type CargoSetRow = {
@@ -453,11 +452,6 @@ type ExistingPlayer = {
   leaguepedia_page?: string | null;
 };
 
-// 케스파컵은 2군 선수도 함께 출전하므로 여기서 처음 등장한 선수는 선수 목록에서 제외한다.
-function isKespaCupMatch(match: MatchRow) {
-  return match.tournament?.league === "KeSPA Cup";
-}
-
 function isLckTeamId(teamId: string | null, match: MatchRow) {
   if (!teamId) {
     return true;
@@ -671,7 +665,7 @@ async function ensurePlayersForStats({
     leaguepedia_page: string;
     source_player_id: string;
     is_lck_player: boolean;
-    imported_scope: "lck" | "international_event" | "kespa_cup";
+    imported_scope: "lck" | "international_event";
   }>();
 
   for (const row of playerRows) {
@@ -700,11 +694,7 @@ async function ensurePlayersForStats({
       leaguepedia_page: leaguepediaPage,
       source_player_id: leaguepediaSourcePlayerId(leaguepediaPage),
       is_lck_player: isLckTeamId(teamId, match),
-      imported_scope: !isLckTeamId(teamId, match)
-        ? "international_event"
-        : isKespaCupMatch(match)
-          ? "kespa_cup"
-          : "lck",
+      imported_scope: isLckTeamId(teamId, match) ? "lck" : "international_event",
     });
   }
 
@@ -1144,7 +1134,7 @@ export async function syncLeaguepediaMatchSets(
   const { data: match, error: matchError } = await supabase
     .from("matches")
     .select(
-      "id, leaguepedia_match_id, best_of, team_a_id, team_b_id, tournament:tournament_id(league), team_a:team_a_id(id, slug, name, short_name, leaguepedia_page, source_team_id, is_lck_team), team_b:team_b_id(id, slug, name, short_name, leaguepedia_page, source_team_id, is_lck_team)",
+      "id, leaguepedia_match_id, best_of, team_a_id, team_b_id, team_a:team_a_id(id, slug, name, short_name, leaguepedia_page, source_team_id, is_lck_team), team_b:team_b_id(id, slug, name, short_name, leaguepedia_page, source_team_id, is_lck_team)",
     )
     .eq("id", matchId)
     .single();

@@ -31,7 +31,7 @@ export function HomeBoardCarousel({
   const detailHref = (postId: string) =>
     scope === "team" && teamSlug ? `/fan/${teamSlug}/community/post/${postId}` : `/community/post/${postId}`;
   if (posts.length === 0) return <div className="rounded-2xl border border-dashed border-[#d8d5dd] py-14 text-center text-sm text-[#827e89] dark:border-transparent">등록된 {scope === "team" ? "팬" : "허브"} 커뮤니티 글이 없습니다.</div>;
-  return <div className="relative"><Swiper modules={[Navigation]} {...navigationProps} spaceBetween={12} slidesPerView={1.16} breakpoints={{ 640: { slidesPerView: 2, spaceBetween: 14 }, 1280: { slidesPerView: 3, spaceBetween: 16 } }}>
+  return <div className="relative"><Swiper modules={[Navigation]} {...navigationProps} spaceBetween={12} slidesPerView={1.16} breakpoints={{ 640: { slidesPerView: 2, spaceBetween: 14 }, 1024: { slidesPerView: 3, spaceBetween: 14 }, 1280: { slidesPerView: 4, spaceBetween: 16 } }}>
     {posts.slice(0,12).map((post) => (
       <SwiperSlide key={post.id} className="h-auto">
         <Link href={detailHref(post.id)} className={`relative grid h-full min-h-[156px] gap-2.5 rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface-muted)] p-3.5 transition hover:border-[var(--ui-muted)] sm:min-h-[196px] sm:gap-4 sm:rounded-2xl sm:p-5 ${post.thumbnailUrl ? "grid-cols-[minmax(0,1fr)_74px] sm:grid-cols-[minmax(0,1fr)_92px]" : "grid-cols-1"}`}>

@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 
+import { useDragScroll } from "@/components/ui/use-drag-scroll";
 import { type SegmentNavItem } from "@/lib/tournaments/segment-nav";
 
 import { TournamentMark } from "./tournament-mark";
@@ -20,12 +23,18 @@ export function SegmentSwitcher({
   activeSeason: number;
   className?: string;
 }) {
+  const { scrollRef, dragHandlers } = useDragScroll<HTMLElement>();
+
   if (items.length <= 1) return null;
 
   return (
+    // 스크롤바를 숨긴 레일이라 마우스 사용자에게는 스크롤 수단이 없다. 대진표와 같은
+    // 드래그 스크롤을 붙여준다(터치는 기본 스와이프가 그대로 동작).
     <nav
+      ref={scrollRef}
+      {...dragHandlers}
       aria-label="대회 선택"
-      className={`tab-scroll -ml-4 flex items-center gap-2 overflow-x-auto pl-4 sm:ml-0 sm:pl-0 ${className}`}
+      className={`tab-scroll -ml-4 flex cursor-grab items-center gap-2 overflow-x-auto pl-4 active:cursor-grabbing active:select-none sm:ml-0 sm:pl-0 ${className}`}
     >
       {items.map((item) => {
         const isActive = item.key === activeKey;
