@@ -95,11 +95,16 @@ export const getFanTemperatureSnapshot = cache(async function getFanTemperatureS
       .select("id", { count: "exact", head: true })
       .eq("team_id", teamId)
       .eq("checkin_date", todayKST()),
+    // 팔로워는 행이 아니라 신원(계정 우선, 없으면 쿠키) 단위로 센다. lck.ts getTeamFanCount와 동일 규칙.
     supabase
       .from("team_fans")
-      .select("id", { count: "exact", head: true })
+      .select("user_id, voter_key")
       .eq("team_id", teamId),
   ]);
+
+  const fanCountDistinct = new Set(
+    (fans.data ?? []).map((row) => (row.user_id ? `u:${row.user_id}` : `v:${row.voter_key}`)),
+  ).size;
 
   if (heat.error) {
     if (isMissingTableError(heat.error)) return emptySnapshot();
@@ -110,7 +115,7 @@ export const getFanTemperatureSnapshot = cache(async function getFanTemperatureS
       return {
         ...emptySnapshot(),
         checkinCountToday: checkins.count ?? 0,
-        fanCount: fans.count ?? 0,
+        fanCount: fanCountDistinct,
       };
     }
     throw onions.error;
@@ -123,7 +128,7 @@ export const getFanTemperatureSnapshot = cache(async function getFanTemperatureS
   const heatCount24h = heatRows.length;
   const onionCountActive = onions.count ?? 0;
   const checkinCountToday = checkins.count ?? 0;
-  const fanCount = fans.count ?? 0;
+  const fanCount = fanCountDistinct;
   const score = Math.min(
     100,
     Math.round(heatWeight * 5 + onionCountActive * 4 + checkinCountToday * 6 + Math.min(fanCount, 300) / 12),

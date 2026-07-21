@@ -43,25 +43,27 @@ async function getOrCreateVoterKey() {
 // 로그인 유저의 팔로우는 계정(user_id)에 귀속시킨다. 헤더 업로드 자격이 "팔로우 N일 이상"이라
 // 기기·쿠키가 바뀌어도 유지되는 기준이 필요하기 때문이다.
 // 비로그인 방문자는 기존 쿠키(voter_key) 경로를 그대로 쓴다.
-async function findFanRow(teamId: string, userId: string | undefined, voterKey: string | null) {
-  const supabase = createSupabaseAdminClient();
-  if (userId) {
-    const { data } = await supabase
-      .from("team_fans")
-      .select("id")
-      .eq("team_id", teamId)
-      .eq("user_id", userId)
-      .maybeSingle();
-    if (data) return data;
-  }
-  if (!voterKey) return null;
-  const { data } = await supabase
+// 같은 사람의 팔로우 행을 계정/쿠키 양쪽 기준으로 모두 찾는다.
+// 한쪽만 지우면 남은 행이 팔로워 수를 부풀리고, 재로그인 시 유령 팔로우로 남는다.
+async function findFanRows(teamId: string, userId: string | undefined, voterKey: string | null) {
+  const filters: string[] = [];
+  if (userId) filters.push(`user_id.eq.${userId}`);
+  if (voterKey) filters.push(`voter_key.eq.${voterKey}`);
+  if (filters.length === 0) return [];
+
+  const { data } = await createSupabaseAdminClient()
     .from("team_fans")
-    .select("id")
+    .select("id, user_id")
     .eq("team_id", teamId)
-    .eq("voter_key", voterKey)
-    .maybeSingle();
-  return data;
+    .or(filters.join(","));
+
+  return data ?? [];
+}
+
+// 팔로우 목록은 루트 레이아웃(LNB)에서도 읽으므로 팀 페이지만 무효화하면 사이드바가 낡은 채로 남는다.
+function revalidateFollow(teamSlug: string) {
+  revalidatePath(`/fan/${teamSlug}`);
+  revalidatePath("/", "layout");
 }
 
 export async function getIsFan(teamId: string): Promise<boolean> {
@@ -71,7 +73,7 @@ export async function getIsFan(teamId: string): Promise<boolean> {
   if (!user && !raw) return false;
 
   const voterKey = raw ? createHash("sha256").update(raw).digest("hex") : null;
-  return Boolean(await findFanRow(teamId, user?.id, voterKey));
+  return (await findFanRows(teamId, user?.id, voterKey)).length > 0;
 }
 
 export async function toggleFanAction(
@@ -82,12 +84,15 @@ export async function toggleFanAction(
   const voterKey = await getOrCreateVoterKey();
   const supabase = createSupabaseAdminClient();
 
-  const existing = await findFanRow(teamId, user?.id, voterKey);
+  const existing = await findFanRows(teamId, user?.id, voterKey);
 
-  if (existing) {
-    const { error } = await supabase.from("team_fans").delete().eq("id", existing.id);
+  if (existing.length > 0) {
+    const { error } = await supabase
+      .from("team_fans")
+      .delete()
+      .in("id", existing.map((row) => row.id));
     if (error) return { ok: false, isFan: true, error: error.message };
-    revalidatePath(`/fan/${teamSlug}`);
+    revalidateFollow(teamSlug);
     return { ok: true, isFan: false };
   }
 
@@ -95,7 +100,7 @@ export async function toggleFanAction(
     .from("team_fans")
     .insert({ team_id: teamId, voter_key: voterKey, user_id: user?.id ?? null });
   if (error) return { ok: false, isFan: false, error: error.message };
-  revalidatePath(`/fan/${teamSlug}`);
+  revalidateFollow(teamSlug);
   return { ok: true, isFan: true };
 }
 

@@ -1604,13 +1604,20 @@ async function getTeamEngagementStatusBase(teamId: string, hashedVoterKey: strin
 
 async function getTeamFanCountBase(teamId: string) {
   return fromSupabase(async () => {
-    // team_fans는 RLS로 anon 집계가 막혀 있어 admin 클라이언트로 카운트한다.
-    const { count, error } = await createSupabaseAdminClient()
+    // team_fans는 RLS로 anon 집계가 막혀 있어 admin 클라이언트로 읽는다.
+    // 행 수를 그대로 세면 같은 사람이 비로그인 쿠키로 한 번, 로그인 후 한 번 팔로우한 경우
+    // 2명으로 잡힌다. 계정이 있으면 계정, 없으면 쿠키를 신원으로 보고 중복을 제거한다.
+    const { data, error } = await createSupabaseAdminClient()
       .from("team_fans")
-      .select("id", { count: "exact", head: true })
+      .select("user_id, voter_key")
       .eq("team_id", teamId);
     if (error) throw error;
-    return count ?? 0;
+
+    const identities = new Set<string>();
+    for (const row of data ?? []) {
+      identities.add(row.user_id ? `u:${row.user_id}` : `v:${row.voter_key}`);
+    }
+    return identities.size;
   }, 0);
 }
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useTransition, useState } from "react";
 import { toggleFanAction, checkinAction } from "@/app/fan/[teamSlug]/actions";
 
@@ -17,10 +18,19 @@ export function FanEngagementBar({
   isCheckedInToday: boolean;
 }) {
   const [isPending, startTransition] = useTransition();
+  const router = useRouter();
   const [isFan, setIsFan] = useState(initialIsFan);
   const [isCheckedIn, setIsCheckedIn] = useState(initialCheckedIn);
   const [localFanCount, setLocalFanCount] = useState(fanCount);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+
+  // 서버가 새 값을 내려주면 낙관적 로컬 카운트를 버리고 DB 기준으로 되돌린다.
+  const [serverState, setServerState] = useState({ fanCount, initialIsFan });
+  if (serverState.fanCount !== fanCount || serverState.initialIsFan !== initialIsFan) {
+    setServerState({ fanCount, initialIsFan });
+    setLocalFanCount(fanCount);
+    setIsFan(initialIsFan);
+  }
 
   function showToast(message: string, type: "success" | "error") {
     setToast({ message, type });
@@ -40,6 +50,8 @@ export function FanEngagementBar({
           setLocalFanCount((c) => Math.max(0, c - 1));
           showToast("팬을 취소했어요.", "success");
         }
+        // LNB 팔로우 목록과 팔로워 수를 서버 기준으로 다시 받아온다.
+        router.refresh();
       } else {
         showToast(result.error ?? "오류가 발생했어요.", "error");
       }

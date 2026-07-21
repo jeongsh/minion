@@ -27,6 +27,15 @@ export function FanFollowButton({
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
+  // 낙관적 ±1은 어디까지나 임시값이다. router.refresh() 후 서버가 내려준 값이 바뀌면
+  // 그쪽을 정답으로 삼아야 화면 숫자가 DB와 어긋난 채로 굳지 않는다.
+  const [serverState, setServerState] = useState({ initialCount, initialFollowing });
+  if (serverState.initialCount !== initialCount || serverState.initialFollowing !== initialFollowing) {
+    setServerState({ initialCount, initialFollowing });
+    setCount(initialCount);
+    setFollowing(initialFollowing);
+  }
+
   function handleClick() {
     const nextFollowing = !following;
     setFollowing(nextFollowing);
