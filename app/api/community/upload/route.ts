@@ -147,5 +147,6 @@ export async function POST(request: Request) {
     },
   });
 
-  return NextResponse.json({ url: publicUrl });
+  // path는 팬 헤더 후보처럼 스토리지 객체를 나중에 지워야 하는 쪽에서 쓴다.
+  return NextResponse.json({ url: publicUrl, path: objectPath, width: prepared.width, height: prepared.height });
 }

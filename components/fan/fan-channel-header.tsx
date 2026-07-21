@@ -1,4 +1,5 @@
-﻿import { CheckCircle2 } from "lucide-react";
+﻿import { CheckCircle2, ImagePlus } from "lucide-react";
+import Link from "next/link";
 
 import { getFanNotificationEnabled, getIsFan } from "@/app/fan/[teamSlug]/actions";
 import { FanAlarmButton } from "@/components/fan/fan-alarm-button";
@@ -7,6 +8,7 @@ import { FanPredictionCard } from "@/components/fan/fan-prediction-card";
 import { FanTicker } from "@/components/fan/fan-ticker";
 import { TeamLogo } from "@/components/ui/team-logo";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { getActiveFanHeaderUrl } from "@/lib/fan/fan-header";
 import {
   getAllTeams,
   getMatches,
@@ -56,10 +58,23 @@ function tickerDateTime(value: string) {
   }).format(new Date(value));
 }
 
-// 팀별 헤더 배경 이미지. 파일이 있는 팀만 등록한다.
-const HEADER_BACKGROUNDS: Record<string, string> = {
-  hle: "/images/fan-headers/hle-header-bg-v1.jpg",
-};
+// 헤더 우상단에 얹는 "헤더 꾸미기" 진입 버튼. GNB 대신 헤더 안에 두어
+// 지금 보고 있는 헤더를 바꾸러 간다는 맥락이 드러나게 한다.
+function HeaderStudioLink({ teamSlug, onPhoto }: { teamSlug: string; onPhoto: boolean }) {
+  return (
+    <Link
+      href={`/fan/${teamSlug}/header`}
+      className={`absolute right-3 top-3 z-10 flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-[12px] font-bold backdrop-blur-md transition sm:right-4 sm:top-4 ${
+        onPhoto
+          ? "border-white/30 bg-black/35 text-white hover:bg-black/50"
+          : "border-[var(--ui-border)] bg-[var(--ui-surface)]/80 text-[var(--ui-text)] hover:text-[var(--ui-ink)]"
+      }`}
+    >
+      <ImagePlus size={13} aria-hidden="true" />
+      헤더 꾸미기
+    </Link>
+  );
+}
 
 function opponentOf(match: Match, team: Team, teams: Team[]) {
   return teams.find((item) => item.id === (match.teamAId === team.id ? match.teamBId : match.teamAId));
@@ -74,7 +89,14 @@ function resultOf(match: Match, team: Team) {
 }
 
 
-export async function FanChannelHeader({ teamSlug }: { teamSlug: string }) {
+export async function FanChannelHeader({
+  teamSlug,
+  calendarSlot,
+}: {
+  teamSlug: string;
+  /** 캘린더 모달 트리거. 데이터는 팬 홈이 이미 들고 있어 헤더에서 다시 조회하지 않고 슬롯으로 받는다. */
+  calendarSlot?: React.ReactNode;
+}) {
   const [team, teams, matches] = await Promise.all([
     getTeamByFanSiteHost(teamSlug).then((value) => value ?? getTeamBySlug(teamSlug)),
     getAllTeams(),
@@ -140,7 +162,8 @@ export async function FanChannelHeader({ teamSlug }: { teamSlug: string }) {
 
   if (!tickerItems.length) tickerItems.push(`${team.shortName} · 등록된 경기 일정이 없습니다`);
 
-  const headerBackground = HEADER_BACKGROUNDS[team.fanSiteHost];
+  // 이번 주 대표 헤더. 팬 투표로 매주 월요일(KST) 확정된다.
+  const headerBackground = await getActiveFanHeaderUrl(team.id);
 
   return (
     <>
@@ -153,6 +176,7 @@ export async function FanChannelHeader({ teamSlug }: { teamSlug: string }) {
             <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-transparent to-70%" />
           </div>
         ) : null}
+        <HeaderStudioLink teamSlug={team.fanSiteHost} onPhoto={Boolean(headerBackground)} />
         <div className="layout-wide relative py-3.5 sm:py-5">
           <div className="flex min-w-0 items-center gap-3.5 sm:gap-4">
             <span
@@ -188,7 +212,7 @@ export async function FanChannelHeader({ teamSlug }: { teamSlug: string }) {
             </div>
           </div>
 
-          <div className="mt-3 grid grid-cols-[1fr_auto] gap-2 sm:mt-4 sm:max-w-[340px]">
+          <div className="mt-3 grid grid-cols-[1fr_auto_auto] gap-2 sm:mt-4 sm:max-w-[380px]">
             <FanFollowButton
               teamId={team.id}
               teamSlug={team.fanSiteHost}
@@ -199,6 +223,7 @@ export async function FanChannelHeader({ teamSlug }: { teamSlug: string }) {
               variant="channel"
             />
             <FanAlarmButton teamId={team.id} teamSlug={team.fanSiteHost} initialEnabled={notificationEnabled} compact />
+            {calendarSlot}
           </div>
         </div>
       </header>
@@ -213,6 +238,7 @@ export async function FanChannelHeader({ teamSlug }: { teamSlug: string }) {
             <div className="absolute inset-0 bg-gradient-to-r from-black/75 from-10% to-transparent to-65%" />
           </div>
         ) : null}
+        <HeaderStudioLink teamSlug={team.fanSiteHost} onPhoto={Boolean(headerBackground)} />
         <div className="fan-page-container relative">
           {headerBackground ? null : (
             <span
@@ -222,8 +248,8 @@ export async function FanChannelHeader({ teamSlug }: { teamSlug: string }) {
               {team.shortName}
             </span>
           )}
-          <div className="relative grid items-center gap-11 pb-10 pt-11 lg:grid-cols-[1fr_380px]">
-            <div className="flex flex-col gap-[18px]">
+          <div className="relative grid items-center gap-10 pb-7 pt-8 lg:grid-cols-[1fr_380px]">
+            <div className="flex flex-col gap-3.5">
               <div className="flex items-center gap-3">
                 <span
                   className={`rounded px-[10px] py-1 text-[13px] font-black ${
@@ -243,16 +269,16 @@ export async function FanChannelHeader({ teamSlug }: { teamSlug: string }) {
                 </span>
               </div>
               <div className="flex items-baseline gap-5">
-                <span className="text-[clamp(58px,7vw,96px)] font-black leading-[0.92] tracking-[-0.04em] text-[var(--team-primary)]">
+                <span className="text-[clamp(44px,5vw,74px)] font-black leading-[0.92] tracking-[-0.04em] text-[var(--team-primary)]">
                   {team.shortName}
                 </span>
                 <span
-                  className={`text-[28px] font-black ${headerBackground ? "text-white/70" : "text-[var(--ui-muted)]"}`}
+                  className={`text-[24px] font-black ${headerBackground ? "text-white/70" : "text-[var(--ui-muted)]"}`}
                 >
                   VS
                 </span>
                 <span
-                  className={`text-[clamp(58px,7vw,96px)] font-black leading-[0.92] tracking-[-0.04em] text-transparent ${
+                  className={`text-[clamp(44px,5vw,74px)] font-black leading-[0.92] tracking-[-0.04em] text-transparent ${
                     headerBackground
                       ? "[-webkit-text-stroke:2px_rgba(255,255,255,0.8)]"
                       : "[-webkit-text-stroke:2px_var(--ui-muted)]"
@@ -274,6 +300,7 @@ export async function FanChannelHeader({ teamSlug }: { teamSlug: string }) {
                   teamColor={team.primaryColor}
                 />
                 <FanAlarmButton teamId={team.id} teamSlug={team.fanSiteHost} initialEnabled={notificationEnabled} />
+                {calendarSlot}
               </div>
             </div>
             <FanPredictionCard

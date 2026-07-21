@@ -4,6 +4,7 @@ import { createHash, randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 
+import { getCurrentUser } from "@/lib/auth/current-user";
 import { getActiveFanOnions, getFanTemperatureSnapshot } from "@/lib/data/fan-pulse";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseAuthClient } from "@/lib/supabase/auth-server";
@@ -39,35 +40,49 @@ async function getOrCreateVoterKey() {
   return createHash("sha256").update(raw).digest("hex");
 }
 
-export async function getIsFan(teamId: string): Promise<boolean> {
-  const cookieStore = await cookies();
-  const raw = cookieStore.get(FAN_VOTER_COOKIE)?.value;
-  if (!raw) return false;
-
-  const voterKey = createHash("sha256").update(raw).digest("hex");
-  const { data } = await createSupabaseAdminClient()
+// 로그인 유저의 팔로우는 계정(user_id)에 귀속시킨다. 헤더 업로드 자격이 "팔로우 N일 이상"이라
+// 기기·쿠키가 바뀌어도 유지되는 기준이 필요하기 때문이다.
+// 비로그인 방문자는 기존 쿠키(voter_key) 경로를 그대로 쓴다.
+async function findFanRow(teamId: string, userId: string | undefined, voterKey: string | null) {
+  const supabase = createSupabaseAdminClient();
+  if (userId) {
+    const { data } = await supabase
+      .from("team_fans")
+      .select("id")
+      .eq("team_id", teamId)
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (data) return data;
+  }
+  if (!voterKey) return null;
+  const { data } = await supabase
     .from("team_fans")
     .select("id")
     .eq("team_id", teamId)
     .eq("voter_key", voterKey)
     .maybeSingle();
+  return data;
+}
 
-  return Boolean(data);
+export async function getIsFan(teamId: string): Promise<boolean> {
+  const user = await getCurrentUser();
+  const cookieStore = await cookies();
+  const raw = cookieStore.get(FAN_VOTER_COOKIE)?.value;
+  if (!user && !raw) return false;
+
+  const voterKey = raw ? createHash("sha256").update(raw).digest("hex") : null;
+  return Boolean(await findFanRow(teamId, user?.id, voterKey));
 }
 
 export async function toggleFanAction(
   teamId: string,
   teamSlug: string,
 ): Promise<{ ok: boolean; isFan: boolean; error?: string }> {
+  const user = await getCurrentUser();
   const voterKey = await getOrCreateVoterKey();
   const supabase = createSupabaseAdminClient();
 
-  const { data: existing } = await supabase
-    .from("team_fans")
-    .select("id")
-    .eq("team_id", teamId)
-    .eq("voter_key", voterKey)
-    .maybeSingle();
+  const existing = await findFanRow(teamId, user?.id, voterKey);
 
   if (existing) {
     const { error } = await supabase.from("team_fans").delete().eq("id", existing.id);
@@ -76,7 +91,9 @@ export async function toggleFanAction(
     return { ok: true, isFan: false };
   }
 
-  const { error } = await supabase.from("team_fans").insert({ team_id: teamId, voter_key: voterKey });
+  const { error } = await supabase
+    .from("team_fans")
+    .insert({ team_id: teamId, voter_key: voterKey, user_id: user?.id ?? null });
   if (error) return { ok: false, isFan: false, error: error.message };
   revalidatePath(`/fan/${teamSlug}`);
   return { ok: true, isFan: true };
