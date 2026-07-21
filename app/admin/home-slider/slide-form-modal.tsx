@@ -43,6 +43,20 @@ function ActiveField({ defaultChecked = true }: { defaultChecked?: boolean }) {
   );
 }
 
+// Hero images bypass the Server Action (1MB body cap) and go straight to
+// storage, so the original full-quality file is kept.
+async function uploadSlideImage(file: File, slideId?: string) {
+  const body = new FormData();
+  body.set("file", file);
+  if (slideId) body.set("slide_id", slideId);
+
+  const response = await fetch("/api/admin/home-slider/upload", { method: "POST", body });
+  const result = await response.json().catch(() => null);
+  if (!response.ok) throw new Error(result?.error ?? "이미지 업로드에 실패했습니다.");
+
+  return result.url as string;
+}
+
 function preventEnterSubmit(event: React.KeyboardEvent<HTMLFormElement>) {
   if (event.key !== "Enter") return;
   const target = event.target;
@@ -53,6 +67,7 @@ function preventEnterSubmit(event: React.KeyboardEvent<HTMLFormElement>) {
 export function SlideFormModal({ mode, slide }: { mode: "create" | "edit"; slide?: HomeHeroSlide }) {
   const [open, setOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState(slide?.imageUrl ?? "");
+  const [error, setError] = useState("");
   const dialogRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
@@ -65,6 +80,7 @@ export function SlideFormModal({ mode, slide }: { mode: "create" | "edit"; slide
   function handleClose() {
     setOpen(false);
     setPreviewUrl(slide?.imageUrl ?? "");
+    setError("");
   }
 
   return (
@@ -101,14 +117,27 @@ export function SlideFormModal({ mode, slide }: { mode: "create" | "edit"; slide
           </div>
 
           <form
-            encType="multipart/form-data"
             onKeyDown={preventEnterSubmit}
             action={async (formData) => {
-              if (mode === "create") {
-                await createHomeHeroSlideAction(formData);
-              } else {
-                await updateHomeHeroSlideAction(formData);
+              setError("");
+              const imageFile = formData.get("image_file");
+
+              try {
+                if (imageFile instanceof File && imageFile.size > 0) {
+                  formData.set("image_url", await uploadSlideImage(imageFile, slide?.id));
+                }
+                formData.delete("image_file");
+
+                if (mode === "create") {
+                  await createHomeHeroSlideAction(formData);
+                } else {
+                  await updateHomeHeroSlideAction(formData);
+                }
+              } catch (cause) {
+                setError(cause instanceof Error ? cause.message : "저장에 실패했습니다.");
+                return;
               }
+
               handleClose();
             }}
             className="grid gap-3"
@@ -165,6 +194,10 @@ export function SlideFormModal({ mode, slide }: { mode: "create" | "edit"; slide
               <Field label="노출 순서" name="order_index" type="number" defaultValue={slide?.orderIndex ?? 0} />
               <ActiveField defaultChecked={slide?.isActive ?? true} />
             </div>
+
+            {error ? (
+              <p className="rounded-lg bg-primary/10 px-3 py-2 text-[13px] font-bold text-primary">{error}</p>
+            ) : null}
 
             <div className="flex justify-end gap-2 pt-2">
               <button

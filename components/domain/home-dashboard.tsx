@@ -164,7 +164,7 @@ export function HomeDashboard({
   return (
     <main className="layout-wide hub-home pb-16 pt-4 text-[#1c192b] sm:pt-7">
       <section className="grid items-start gap-3 sm:gap-4 lg:grid-cols-[minmax(0,1.55fr)_360px] xl:grid-cols-[minmax(0,1.7fr)_420px]">
-        <div className="aspect-video min-w-0 overflow-hidden rounded-xl bg-[#18191c] sm:aspect-auto sm:h-[240px] md:h-[260px] lg:h-[280px] sm:rounded-2xl xl:h-[390px]">
+        <div className="aspect-video min-w-0 sm:aspect-auto sm:h-[240px] md:h-[260px] lg:h-[280px] xl:h-[390px]">
           <HomeHeroSwiper slides={heroSlides} />
         </div>
         <div className="min-w-0 rounded-2xl border border-[#e3e1e8] bg-white p-3 sm:p-4 xl:h-[390px] xl:overflow-y-auto dark:bg-[var(--ui-surface-muted)]">
@@ -262,7 +262,7 @@ export function HomeDashboard({
             </div>
           )}
         </div>
-        <div className="min-w-0 flex flex-col">
+        <div className="min-w-0 flex flex-col mt-[47px]">
           <Ad placement="rectangle" className="h-[60px] md:h-[90px] xl:h-[250px]" />
         </div>
       </section>

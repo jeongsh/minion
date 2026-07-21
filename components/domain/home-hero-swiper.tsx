@@ -17,7 +17,7 @@ export function HomeHeroSwiper({ slides }: { slides: HomeHeroSwiperSlide[] }) {
   const safeSlides = slides.filter((slide) => slide.imageUrl);
 
   return (
-    <section className="relative h-full min-h-0 overflow-hidden rounded-2xl bg-[#071332] shadow-sm">
+    <section className="relative h-full min-h-0 overflow-hidden rounded-2xl bg-[#eeeeef] shadow-sm">
       {safeSlides.length > 0 ? (
         <Swiper
           modules={[Autoplay, Pagination]}
@@ -39,7 +39,7 @@ export function HomeHeroSwiper({ slides }: { slides: HomeHeroSwiperSlide[] }) {
           ))}
         </Swiper>
       ) : (
-        <div className="h-full bg-[#071332]" />
+        <div className="h-full bg-[#eeeeef]" />
       )}
     </section>
   );
