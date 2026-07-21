@@ -233,7 +233,7 @@ export function HomeCalendar({
 
       {popupPosition && (selectedMatches.length > 0 || selectedEvents.length > 0) ? (
         <div
-          className="absolute z-30 w-[260px] rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-2.5 text-left shadow-[0_20px_55px_rgba(0,0,0,0.18)]"
+          className="absolute z-30 w-[300px] rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-2.5 text-left shadow-[0_20px_55px_rgba(0,0,0,0.18)]"
           style={{ left: popupPosition.left, top: popupPosition.top }}
         >
           {selected ? (

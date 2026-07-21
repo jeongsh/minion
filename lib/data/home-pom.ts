@@ -1,5 +1,5 @@
 import { unstable_cache } from "next/cache";
-import { getAllPlayers, getAllTeams, getMatches } from "@/lib/data/lck";
+import { getAllPlayers, getAllTeams, getMatches, getTournaments } from "@/lib/data/lck";
 import { matchHref } from "@/lib/view-data";
 
 /**
@@ -20,6 +20,10 @@ export type HomePomEntry = {
   teamLogoUrl: string | null;
   teamPrimaryColor: string | null;
   opponentShortName: string;
+  /** "MSI 2026" 처럼 짧은 대회명. 어느 대회 경기였는지 카드에서 바로 보여준다. */
+  tournamentName: string;
+  /** POM 선수 팀 기준 세트 스코어("3:1"). 점수가 없으면 null. */
+  scoreLabel: string | null;
 };
 
 const HOME_POM_LIMIT = 10;
@@ -36,10 +40,16 @@ const HOME_POM_LIMIT = 10;
  */
 export const getHomePomEntries = unstable_cache(
   async (): Promise<HomePomEntry[]> => {
-    const [matches, players, teams] = await Promise.all([getMatches(), getAllPlayers(), getAllTeams()]);
+    const [matches, players, teams, tournaments] = await Promise.all([
+      getMatches(),
+      getAllPlayers(),
+      getAllTeams(),
+      getTournaments(),
+    ]);
 
     const playersById = new Map(players.map((player) => [player.id, player]));
     const teamsById = new Map(teams.map((team) => [team.id, team]));
+    const tournamentNamesById = new Map(tournaments.map((tournament) => [tournament.id, tournament.name]));
 
     const entries: HomePomEntry[] = [];
     const recentCompleted = matches
@@ -55,7 +65,14 @@ export const getHomePomEntries = unstable_cache(
       // 선수의 현재 소속팀이 아니라 그 경기에서 뛴 팀을 보여줘야 맞지만, 매치 단위
       // 로스터가 없어 현재 소속팀으로 대신한다. 이적 직후에는 어긋날 수 있다.
       const team = teamsById.get(player.teamId);
-      const opponentId = match.teamAId === player.teamId ? match.teamBId : match.teamAId;
+      const isTeamA = match.teamAId === player.teamId;
+      const opponentId = isTeamA ? match.teamBId : match.teamAId;
+
+      // 스코어는 POM 선수 팀을 앞에 둔다(카드에서 팀명 순서와 맞춘다).
+      const ownScore = isTeamA ? match.teamAScore : match.teamBScore;
+      const opponentScore = isTeamA ? match.teamBScore : match.teamAScore;
+      const scoreLabel =
+        ownScore != null && opponentScore != null ? `${ownScore}:${opponentScore}` : null;
 
       entries.push({
         matchId: match.id,
@@ -69,6 +86,8 @@ export const getHomePomEntries = unstable_cache(
         teamLogoUrl: team?.logoUrl ?? null,
         teamPrimaryColor: team?.primaryColor ?? null,
         opponentShortName: teamsById.get(opponentId)?.shortName ?? "",
+        tournamentName: tournamentNamesById.get(match.tournamentId) ?? "",
+        scoreLabel,
       });
     }
 
