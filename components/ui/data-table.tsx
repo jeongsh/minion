@@ -14,6 +14,7 @@ export function DataTable<T>({
   emptyText = "표시할 데이터가 없습니다.",
   getRowHref,
   compact = false,
+  dense = false,
   variant = "default",
   mobileSurface = "card",
   className = "",
@@ -25,6 +26,8 @@ export function DataTable<T>({
   getRowHref?: (row: T) => string | undefined;
   /** 컬럼이 적고 좁은 컨테이너(예: 2단 그리드)에 놓일 때 42rem 최소 너비를 강제하지 않는다. */
   compact?: boolean;
+  /** 행 높이를 조밀하게(세로 패딩 축소). 순위표처럼 행이 많은 표에 사용한다. */
+  dense?: boolean;
   /** Hub/fan surfaces use the shared 16px card radius and UI tokens. */
   variant?: "default" | "hub";
   /** Continuous mobile data lists can drop the outer shell while desktop tables keep their card. */
@@ -60,7 +63,7 @@ export function DataTable<T>({
         <thead className={hub ? "bg-[var(--ui-surface-muted)] text-[13px] text-[var(--ui-muted)]" : "bg-surface-muted text-[13px] uppercase text-muted"}>
           <tr>
             {columns.map((column) => (
-              <th key={column.key} scope="col" className={`px-4 py-3 font-semibold ${column.headerClassName ?? ""}`}>
+              <th key={column.key} scope="col" className={`px-4 ${dense ? "py-2" : "py-3"} font-semibold ${column.headerClassName ?? ""}`}>
                 {column.label}
               </th>
             ))}
@@ -72,7 +75,7 @@ export function DataTable<T>({
             return (
               <tr key={index} className={`align-middle ${href ? `relative ${hub ? "hover:bg-[var(--ui-surface-muted)]" : "hover:bg-surface-muted"}` : ""}`}>
                 {columns.map((column, columnIndex) => (
-                  <td key={column.key} className={`px-4 py-3 ${column.cellClassName ?? ""}`}>
+                  <td key={column.key} className={`px-4 ${dense ? "py-2" : "py-3"} ${column.cellClassName ?? ""}`}>
                     {href && columnIndex === 0 ? (
                       <Link href={href} className="absolute inset-0 z-10" aria-label="상세 보기">
                         <span className="sr-only">상세 보기</span>

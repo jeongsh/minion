@@ -248,6 +248,7 @@ function RegularStandingsTable({ rows }: { rows: ReturnType<typeof buildTeamStan
     <DataTable
       mobileSurface="flat"
       rows={rows}
+      dense
       emptyText="아직 등록된 경기가 없습니다."
       columns={[
         {
@@ -256,14 +257,14 @@ function RegularStandingsTable({ rows }: { rows: ReturnType<typeof buildTeamStan
           headerClassName: "min-w-[18rem]",
           cellClassName: "min-w-[18rem]",
           render: (row) => (
-            <div className="flex items-center gap-4">
-              <span className="w-9 shrink-0 text-center text-2xl font-black italic tabular-nums">{row.rank}</span>
+            <div className="flex items-center gap-3">
+              <span className="w-7 shrink-0 text-center text-base font-black italic tabular-nums">{row.rank}</span>
               <Link
                 href={`/teams/${row.team.slug}`}
-                className="flex min-w-0 items-center gap-3 font-semibold hover:text-accent"
+                className="flex min-w-0 items-center gap-2 font-semibold hover:text-accent"
               >
                 {row.team.logoUrl ? (
-                  <TeamLogo team={row.team} size="h-9 w-11" plain themeAware />
+                  <TeamLogo team={row.team} size="h-6 w-8" plain themeAware />
                 ) : null}
                 <span className="truncate">{row.team.name}</span>
               </Link>
@@ -328,6 +329,7 @@ function PomRankingTable({ rows }: { rows: PomRow[] }) {
     <DataTable
       mobileSurface="flat"
       rows={rows}
+      dense
       emptyText="아직 선정된 POM이 없습니다."
       getRowHref={(row) => `/players/${row.player.slug}`}
       columns={[
@@ -337,20 +339,20 @@ function PomRankingTable({ rows }: { rows: PomRow[] }) {
           headerClassName: "min-w-[18rem]",
           cellClassName: "min-w-[18rem]",
           render: (row) => (
-            <div className="flex items-center gap-4">
-              <span className="w-9 shrink-0 text-center text-2xl font-black italic tabular-nums">{row.rank}</span>
-              <div className="flex min-w-0 items-center gap-3">
+            <div className="flex items-center gap-3">
+              <span className="w-7 shrink-0 text-center text-base font-black italic tabular-nums">{row.rank}</span>
+              <div className="flex min-w-0 items-center gap-2">
                 {row.player.profileImageUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={row.player.profileImageUrl}
                     alt={row.player.name}
-                    className="h-9 w-9 shrink-0 rounded-full object-cover"
+                    className="h-7 w-7 shrink-0 rounded-full object-cover"
                   />
                 ) : null}
-                <div className="min-w-0">
+                <div className="flex min-w-0 items-baseline gap-1.5">
                   <p className="truncate font-semibold">{row.player.name}</p>
-                  <p className="truncate text-[13px] text-muted">{row.team?.shortName ?? "-"}</p>
+                  <p className="truncate text-[12px] text-muted">{row.team?.shortName ?? "-"}</p>
                 </div>
               </div>
             </div>
@@ -1161,7 +1163,8 @@ export default async function TournamentBracketPage({
           segmentTheme.logo ? (
             <TournamentMark
               logo={segmentTheme.logo}
-              className="h-7 w-10 text-[var(--ui-ink)] md:h-9 md:w-[52px]"
+              aspect={segmentTheme.logoAspect}
+              className="h-7 max-w-[62px] text-[var(--ui-ink)] md:h-9 md:max-w-[80px]"
             />
           ) : undefined
         }

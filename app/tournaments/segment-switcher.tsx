@@ -41,7 +41,9 @@ export function SegmentSwitcher({
                 : "border-[var(--ui-border)] bg-[var(--ui-surface)] font-bold text-[var(--ui-muted)] hover:border-[var(--ui-ink)] hover:text-[var(--ui-ink)]"
             }`}
           >
-            {item.logo ? <TournamentMark logo={item.logo} className="h-[14px] w-[22px]" /> : null}
+            {item.logo ? (
+              <TournamentMark logo={item.logo} aspect={item.logoAspect} className="h-4 max-w-[34px]" />
+            ) : null}
             <span>{item.name}</span>
             {item.isOngoing ? (
               <span
