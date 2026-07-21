@@ -8,6 +8,9 @@ export const LCK_OFFICIAL_CHANNEL_ID = "UCw1DsweY9b2AKGjV4kGJP1A";
 
 export const LCK_CHANNEL_VIDEOS_TAG = "lck-channel-videos";
 
+/** 홈은 팀 영상과 섞어 12개만 노출한다. 여유분까지 15개면 충분하다. */
+const LCK_CHANNEL_VIDEO_LIMIT = 15;
+
 export type HomeVideo = {
   id: string;
   title: string;
@@ -26,9 +29,11 @@ export const getLckChannelVideos = unstable_cache(
     try {
       // Data API 키가 있으면 그쪽을 쓰되, 할당량이 소진되면 인증 없이 열리는 RSS 피드로 떨어진다.
       // (홈 노출용이라 조회수 없이 최근 15개만 있으면 충분하다.)
-      const entries = await fetchYoutubeVideoEntries(LCK_OFFICIAL_CHANNEL_ID).catch(() =>
-        fetchYoutubeFeedEntries(LCK_OFFICIAL_CHANNEL_ID),
-      );
+      // limit 없이 부르면 Data API가 채널 전체 업로드(1만 개 이상)를 페이지로 끝까지 훑어
+      // 홈 렌더링이 수십 초 멈춘다. 홈에 쓰는 건 최신 몇 개뿐이라 첫 페이지에서 끊는다.
+      const entries = await fetchYoutubeVideoEntries(LCK_OFFICIAL_CHANNEL_ID, {
+        limit: LCK_CHANNEL_VIDEO_LIMIT,
+      }).catch(() => fetchYoutubeFeedEntries(LCK_OFFICIAL_CHANNEL_ID));
 
       return entries.map((entry) => ({
         id: `lck-${entry.videoId}`,

@@ -49,6 +49,9 @@ function uploadsPlaylistId(channelId: string) {
   return channelId;
 }
 
+/** 유튜브가 응답하지 않을 때 호출부(홈 렌더링 등)가 무한정 붙잡히지 않도록 하는 상한. */
+const YOUTUBE_API_TIMEOUT_MS = 5_000;
+
 async function youtubeApiGet<T>(path: string, params: Record<string, string>, apiKey: string) {
   const url = new URL(`https://www.googleapis.com/youtube/v3/${path}`);
   for (const [key, value] of Object.entries(params)) {
@@ -56,7 +59,7 @@ async function youtubeApiGet<T>(path: string, params: Record<string, string>, ap
   }
   url.searchParams.set("key", apiKey);
 
-  const response = await fetch(url);
+  const response = await fetch(url, { signal: AbortSignal.timeout(YOUTUBE_API_TIMEOUT_MS) });
   const body = (await response.json()) as T & YoutubeApiError;
   if (!response.ok) {
     throw new Error(body.error?.message ?? `YouTube API ${response.status}: ${path}`);
@@ -84,9 +87,15 @@ function mapSnippetToEntry(
   };
 }
 
+/**
+ * 업로드 재생목록을 최신순으로 훑는다.
+ * since/limit 중 하나는 반드시 줘야 한다. 둘 다 없으면 채널 전체 업로드를 페이지 단위로
+ * 끝까지 따라가는데, LCK 공식 채널처럼 영상이 1만 개가 넘으면 수백 번의 순차 요청이 되어
+ * 호출부가 수십 초 멈춘다.
+ */
 export async function fetchYoutubeApiVideoEntries(
   channelId: string,
-  options: { since?: Date; apiKey: string },
+  options: { since?: Date; limit?: number; apiKey: string },
 ): Promise<YoutubeFeedEntry[]> {
   const entries: YoutubeFeedEntry[] = [];
   let pageToken: string | undefined;
@@ -112,6 +121,8 @@ export async function fetchYoutubeApiVideoEntries(
 
       const entry = mapSnippetToEntry(videoId, channelId, snippet);
       if (entry) entries.push(entry);
+
+      if (options.limit && entries.length >= options.limit) return entries;
     }
 
     if (!data.nextPageToken) break;

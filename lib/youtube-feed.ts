@@ -87,8 +87,13 @@ export function parseYoutubeFeedEntries(xml: string): YoutubeFeedEntry[] {
     .filter((entry): entry is YoutubeFeedEntry => Boolean(entry));
 }
 
+/** 유튜브가 응답하지 않을 때 호출부(홈 렌더링 등)가 무한정 붙잡히지 않도록 하는 상한. */
+const YOUTUBE_FEED_TIMEOUT_MS = 5_000;
+
 export async function fetchYoutubeFeedEntries(channelId: string) {
-  const response = await fetch(youtubeFeedUrl(channelId));
+  const response = await fetch(youtubeFeedUrl(channelId), {
+    signal: AbortSignal.timeout(YOUTUBE_FEED_TIMEOUT_MS),
+  });
   if (!response.ok) {
     throw new Error(`YouTube feed ${response.status}: ${channelId}`);
   }
@@ -98,17 +103,23 @@ export async function fetchYoutubeFeedEntries(channelId: string) {
 
 export async function fetchYoutubeVideoEntries(
   channelId: string,
-  options: { since?: Date } = {},
+  options: { since?: Date; limit?: number } = {},
 ) {
   const apiKey = process.env.YOUTUBE_API_KEY;
   if (apiKey) {
-    return fetchYoutubeApiVideoEntries(channelId, { since: options.since, apiKey });
+    return fetchYoutubeApiVideoEntries(channelId, {
+      since: options.since,
+      limit: options.limit,
+      apiKey,
+    });
   }
 
   const entries = await fetchYoutubeFeedEntries(channelId);
-  if (!options.since) return entries;
+  const recent = options.since
+    ? entries.filter((entry) => new Date(entry.publishedAt) >= options.since!)
+    : entries;
 
-  return entries.filter((entry) => new Date(entry.publishedAt) >= options.since!);
+  return options.limit ? recent.slice(0, options.limit) : recent;
 }
 
 export async function fetchYoutubeVideoEntry(channelId: string, videoId: string) {
