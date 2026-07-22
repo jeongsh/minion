@@ -28,9 +28,6 @@ export function HeaderSearch({ className = "" }: { className?: string }) {
   useEffect(() => {
     const term = query.trim();
     if (term.length < MIN_SEARCH_LENGTH) {
-      setResults([]);
-      setActiveIndex(-1);
-      setLoading(false);
       return;
     }
     const controller = new AbortController();
