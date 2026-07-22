@@ -50,7 +50,7 @@ export function CommentList({ comments, commentReactions, scope, teamSlug }: { c
             </div>
           </div>
           {comment.blindedAt ? (
-            <BlindedContent compact label={blindLabel(comment.blindedSource, "comment")}>
+            <BlindedContent compact label={blindLabel(comment.blindedSource, "comment")} source={comment.blindedSource}>
               <p className="mt-1 whitespace-pre-wrap break-words text-base leading-[1.6] text-[var(--ui-text)] [overflow-wrap:anywhere]">{comment.content}</p>
             </BlindedContent>
           ) : (

@@ -4,6 +4,7 @@ import { SectionHeading } from "@/components/ui/section-heading";
 import { StatCard } from "@/components/ui/stat-card";
 import { SurfacePanel } from "@/components/ui/surface-panel";
 import { TeamLogo } from "@/components/ui/team-logo";
+import { KitschEmptyState } from "@/components/ui/kitsch-empty-state";
 import type { PlayerRecord, TeamRecord } from "@/lib/records";
 import type { PlayerPosition, Tournament } from "@/lib/types";
 
@@ -72,7 +73,7 @@ function PlayerRecordCards({
   emptyText: string;
 }) {
   if (rows.length === 0) {
-    return <div className="rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-5 text-sm text-[var(--ui-muted)] md:hidden">{emptyText}</div>;
+    return <KitschEmptyState character="marker" title="선수 기록 대기 중" body={emptyText} compact className="md:hidden" />;
   }
 
   return (
@@ -128,7 +129,7 @@ function TeamRecordCards({
   emptyText: string;
 }) {
   if (rows.length === 0) {
-    return <div className="rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-5 text-sm text-[var(--ui-muted)] md:hidden">{emptyText}</div>;
+    return <KitschEmptyState character="flag" title="팀 기록 대기 중" body={emptyText} compact className="md:hidden" />;
   }
 
   return (

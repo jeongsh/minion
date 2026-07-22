@@ -1,7 +1,7 @@
 "use client";
 
 import { X } from "lucide-react";
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 export function AdaptiveDialog({
@@ -9,32 +9,58 @@ export function AdaptiveDialog({
   trigger,
   children,
   triggerClassName = "",
+  panelClassName = "sm:max-w-[680px]",
 }: {
   title: string;
   trigger: React.ReactNode;
   children: React.ReactNode;
   triggerClassName?: string;
+  /** 데스크탑 패널 폭 등 패널 자체 스타일. 기본은 본문형 680px. */
+  panelClassName?: string;
 }) {
   const [open, setOpen] = useState(false);
   const titleId = useId();
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     if (!open) return;
     const previous = document.body.style.overflow;
+    const activeElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     document.body.style.overflow = "hidden";
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") setOpen(false);
+      if (event.key !== "Tab") return;
+      const dialog = dialogRef.current;
+      if (!dialog) return;
+      const focusables = Array.from(
+        dialog.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      );
+      if (!focusables.length) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
     };
     window.addEventListener("keydown", closeOnEscape);
+    window.setTimeout(() => dialogRef.current?.querySelector<HTMLElement>("button, a, input, select, textarea")?.focus(), 0);
     return () => {
       document.body.style.overflow = previous;
       window.removeEventListener("keydown", closeOnEscape);
+      (activeElement ?? triggerRef.current)?.focus();
     };
   }, [open]);
 
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} className={triggerClassName} aria-haspopup="dialog" aria-expanded={open}>
+      <button ref={triggerRef} type="button" onClick={() => setOpen(true)} className={triggerClassName} aria-haspopup="dialog" aria-expanded={open}>
         {trigger}
       </button>
       {open && typeof document !== "undefined"
@@ -47,10 +73,11 @@ export function AdaptiveDialog({
           }}
         >
           <section
+            ref={dialogRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby={titleId}
-            className="flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-[24px] bg-[var(--ui-surface)] shadow-2xl sm:max-w-[680px] sm:rounded-[24px]"
+            className={`adaptive-dialog-panel flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-[24px] bg-[var(--ui-surface)] shadow-2xl sm:rounded-[24px] ${panelClassName}`}
           >
             <header className="flex min-h-14 items-center justify-between border-b border-[var(--ui-border)] px-4 sm:min-h-16 sm:px-5">
               <h2 id={titleId} className="text-[17px] font-black tracking-[-0.02em] text-[var(--ui-ink)] sm:text-lg">{title}</h2>

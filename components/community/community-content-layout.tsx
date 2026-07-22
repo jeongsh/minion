@@ -5,6 +5,7 @@ import { AdSlot } from "@/components/ui/ad-slot";
 import type { BoardScope } from "@/lib/community/boards";
 import { compareHotPostsByRecentHype, isHotPost } from "@/lib/community/hot";
 import type { CommunityPostDetail } from "@/lib/community/types";
+import { KitschEmptyState } from "@/components/ui/kitsch-empty-state";
 
 export function CommunityContentLayout({ children, posts, scope, teamSlug, currentPostId }: { children: ReactNode; posts: CommunityPostDetail[]; scope: BoardScope; teamSlug?: string; currentPostId?: string }) {
   // Right rail mirrors the hot tab: only promoted posts, ranked by recent hype.
@@ -37,7 +38,11 @@ export function CommunityContentLayout({ children, posts, scope, teamSlug, curre
                 </li>
               ))}
             </ol>
-          ) : <p className="px-4 py-8 text-center text-[13px] text-[var(--ui-muted)]">표시할 게시글이 없습니다.</p>}
+          ) : (
+            <div className="px-3 py-4">
+              <KitschEmptyState character="megapon" title="인기글 충전 중" body="화력 좋은 글이 생기면 바로 꽂아둘게요." compact plain />
+            </div>
+          )}
         </section>
         <AdSlot placement="community" format="rectangle" className="h-[250px] w-full max-w-[300px]" />
       </aside>

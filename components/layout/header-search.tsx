@@ -5,6 +5,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { Loader2, Search, Swords, UserRound, X } from "lucide-react";
 
 import type { SearchResult } from "@/app/api/search/route";
+import { KitschEmptyState } from "@/components/ui/kitsch-empty-state";
 
 const MIN_SEARCH_LENGTH = 2;
 
@@ -28,9 +29,6 @@ export function HeaderSearch({ className = "" }: { className?: string }) {
   useEffect(() => {
     const term = query.trim();
     if (term.length < MIN_SEARCH_LENGTH) {
-      setResults([]);
-      setActiveIndex(-1);
-      setLoading(false);
       return;
     }
     const controller = new AbortController();
@@ -147,9 +145,18 @@ export function HeaderSearch({ className = "" }: { className?: string }) {
           className="absolute inset-x-0 top-[calc(100%+8px)] z-50 overflow-hidden rounded-2xl border border-[#e8e8eb] bg-background shadow-xl shadow-black/10 dark:border-[#343840]"
         >
           {results.length === 0 ? (
-            <p className="px-4 py-6 text-center text-sm font-semibold text-[var(--ui-muted)]">
-              {loading ? "검색 중…" : `'${query.trim()}' 검색 결과가 없어요`}
-            </p>
+            loading ? (
+              <p className="px-4 py-6 text-center text-sm font-semibold text-[var(--ui-muted)]">검색 중…</p>
+            ) : (
+              <div className="p-3">
+                <KitschEmptyState
+                  character="marker"
+                  title="앗, 이 조합은 못 찾았어요"
+                  body={`'${query.trim()}' 말고 다른 이름으로 다시 콕 찍어볼까요?`}
+                  compact
+                />
+              </div>
+            )
           ) : (
             <ul className="max-h-[70vh] overflow-y-auto py-1.5">
               {results.map((result, index) => {

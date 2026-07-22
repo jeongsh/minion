@@ -4,6 +4,7 @@ import { formatRelativeOrDate } from "@/components/community/format";
 import { boardLabel, type BoardScope } from "@/lib/community/boards";
 import { isHotPost } from "@/lib/community/hot";
 import type { CommunityPostDetail } from "@/lib/community/types";
+import { KitschEmptyState } from "@/components/ui/kitsch-empty-state";
 
 export function PostGallery({
   posts,
@@ -21,9 +22,12 @@ export function PostGallery({
 
   if (posts.length === 0) {
     return (
-      <p className="rounded-[14px] border border-[var(--ui-border)] bg-white p-8 text-center text-[13px] text-[var(--ui-muted)] dark:bg-[var(--ui-surface-muted)]">
-        아직 게시글이 없습니다. 첫 글을 작성해 보세요.
-      </p>
+      <KitschEmptyState
+        character="megapon"
+        title="첫 글 자리 비워뒀어요"
+        body="새 얘기 올라오면 바로 여기서 보여드릴게요."
+        compact
+      />
     );
   }
 

@@ -3,10 +3,12 @@
 import { Flag } from "lucide-react";
 import { useState, useTransition } from "react";
 
+import { useToast } from "@/components/ui/toast";
 import { reportCommentAction, reportPostAction } from "@/lib/community/actions";
 import type { BoardScope } from "@/lib/community/boards";
 
 export function ReportButton({ target, postId, commentId, scope, teamSlug }: { target: "post" | "comment"; postId: string; commentId?: string; scope: BoardScope; teamSlug?: string }) {
+  const { showToast } = useToast();
   const [message, setMessage] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -15,8 +17,17 @@ export function ReportButton({ target, postId, commentId, scope, teamSlug }: { t
     const result = target === "comment" && commentId
       ? await reportCommentAction({ commentId, postId, scope, teamSlug })
       : await reportPostAction({ postId, scope, teamSlug });
-    if (result.ok) { setDone(true); setMessage(result.message ?? "신고가 접수되었습니다."); }
-    else setMessage(result.error);
+
+    if (result.ok) {
+      const nextMessage = result.message ?? "신고가 접수됐습니다.";
+      setDone(true);
+      setMessage(nextMessage);
+      showToast({ title: "신고 접수 완료", description: nextMessage, tone: "success" });
+      return;
+    }
+
+    setMessage(result.error);
+    showToast({ title: "신고 실패", description: result.error, tone: "error" });
   });
 
   return (

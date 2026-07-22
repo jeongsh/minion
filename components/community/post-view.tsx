@@ -92,6 +92,7 @@ export function PostView({
             <BlindedContent
               label={blindLabel(post.blindedSource, "post")}
               description={blindDescription(post.blindedSource)}
+              source={post.blindedSource}
             >
               <h2 className="mb-4 text-lg font-bold text-[var(--ui-ink)] sm:text-xl">{post.title}</h2>
               <PostContentViewer content={post.content} />

@@ -1,11 +1,14 @@
 import { Eye, ThumbsUp, MessageCircle, Megaphone, EyeOff } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 
+import cleansingBotWarning from "@/assets/characters/pen-warning-blocked-red.png";
 import { formatRelativeOrDate } from "@/components/community/format";
 import { boardLabel, type BoardScope } from "@/lib/community/boards";
 import { isHotPost } from "@/lib/community/hot";
 import { blindLabel } from "@/lib/community/moderation-labels";
 import type { CommunityPostDetail } from "@/lib/community/types";
+import { KitschEmptyState } from "@/components/ui/kitsch-empty-state";
 
 export function PostList({
   posts,
@@ -24,11 +27,19 @@ export function PostList({
     : `/community/post/${postId}`;
 
   if (posts.length === 0 && pinned.length === 0) {
-    return <p className="py-20 text-center text-sm text-[var(--ui-muted)]">조건에 맞는 게시글이 없습니다.</p>;
+    return (
+      <KitschEmptyState
+        character="marker"
+        title="이 말머리엔 아직 조용해요"
+        body="필터를 바꾸거나 첫 글을 톡 올려보세요."
+        animated
+      />
+    );
   }
 
   const row = (post: CommunityPostDetail, isNoticeRow: boolean) => {
     const blinded = Boolean(post.blindedAt);
+    const cleansingBotBlinded = post.blindedSource === "ai";
 
     return (
       <li key={post.id} className={`border-b border-[var(--ui-border)] last:border-b-0 ${isNoticeRow ? "bg-[var(--ui-surface-muted)]" : ""}`}>
@@ -50,7 +61,18 @@ export function PostList({
               ) : null}
               {blinded ? (
                 <h3 className="inline-flex min-w-0 items-center gap-1.5 truncate text-base font-medium text-[var(--ui-muted)]">
-                  <EyeOff size={14} strokeWidth={1.8} className="shrink-0" />
+                  {cleansingBotBlinded ? (
+                    <Image
+                      src={cleansingBotWarning}
+                      alt=""
+                      width={24}
+                      height={24}
+                      className="-my-1 h-6 w-6 shrink-0 object-contain"
+                      aria-hidden
+                    />
+                  ) : (
+                    <EyeOff size={14} strokeWidth={1.8} className="shrink-0" />
+                  )}
                   {blindLabel(post.blindedSource, "post")}
                 </h3>
               ) : (

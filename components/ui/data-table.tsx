@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { KitschEmptyState } from "@/components/ui/kitsch-empty-state";
 
 export type DataTableColumn<T> = {
   key: string;
@@ -38,9 +39,13 @@ export function DataTable<T>({
   const mobileFlat = mobileSurface === "flat";
   if (rows.length === 0) {
     return (
-      <div className={`${className} ${mobileFlat ? "mobile-data-list" : ""} ${hub ? "rounded-2xl border-[var(--ui-border)] bg-[var(--ui-surface)] text-[var(--ui-muted)]" : "rounded-md border-border bg-surface text-muted"} border p-6 text-sm`}>
-        {emptyText}
-      </div>
+      <KitschEmptyState
+        character="marker"
+        title="아직 숫자가 안 잡혔어요"
+        body={emptyText}
+        compact
+        className={`${className} ${mobileFlat ? "mobile-data-list" : ""} ${hub ? "bg-[var(--ui-surface)]" : "bg-surface"}`}
+      />
     );
   }
 

@@ -4,6 +4,7 @@ import { Smile } from "lucide-react";
 import { useRef, useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/toast";
 import { createCommentAction } from "@/lib/community/actions";
 import type { BoardScope } from "@/lib/community/boards";
 
@@ -23,6 +24,7 @@ export function CommentForm({
   parentId?: string;
   onSubmitted?: () => void;
 }) {
+  const { showToast } = useToast();
   const [content, setContent] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [emojiOpen, setEmojiOpen] = useState(false);
@@ -59,8 +61,16 @@ export function CommentForm({
       if (result.ok) {
         setContent("");
         setMessage(null);
+        showToast({
+          title: parentId ? "답글 등록 완료" : "댓글 등록 완료",
+          description: "+20 LP가 적립됐어요.",
+          tone: "success",
+        });
         onSubmitted?.();
-      } else setMessage(result.error);
+      } else {
+        setMessage(result.error);
+        showToast({ title: "등록 실패", description: result.error, tone: "error" });
+      }
     });
   };
 

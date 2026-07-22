@@ -213,7 +213,7 @@ export async function createPostAction(input: {
   });
 
   revalidatePath(communityIndexPath(input.scope, input.teamSlug));
-  return { ok: true, message: "작성되었습니다." };
+  return { ok: true, message: "글 발사 완료. 게시판에 착지했어요." };
 }
 
 export async function updatePostAction(input: {
@@ -255,7 +255,7 @@ export async function updatePostAction(input: {
 
   revalidatePath(postPath(input.scope, input.teamSlug, input.postId));
   revalidatePath(communityIndexPath(input.scope, input.teamSlug));
-  return { ok: true, message: "수정되었습니다." };
+  return { ok: true, message: "수정 완료. 문장 결 살짝 정돈했어요." };
 }
 
 export async function deletePostAction(input: {
@@ -273,7 +273,7 @@ export async function deletePostAction(input: {
 
   await deletePost(input.postId);
   revalidatePath(communityIndexPath(input.scope, input.teamSlug));
-  return { ok: true, message: "삭제되었습니다." };
+  return { ok: true, message: "게시글을 조용히 치웠어요." };
 }
 
 /** 댓글 작성. */
@@ -319,7 +319,7 @@ export async function createCommentAction(input: {
   });
 
   revalidatePath(postPath(input.scope, input.teamSlug, input.postId));
-  return { ok: true, message: "댓글이 등록되었습니다." };
+  return { ok: true, message: "댓글 톡 붙여뒀어요." };
 }
 
 /**
