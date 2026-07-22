@@ -7,6 +7,7 @@ import { DayPicker, type DayButtonProps } from "react-day-picker";
 import { ko } from "react-day-picker/locale";
 import "react-day-picker/style.css";
 
+import { KitschEmptyState } from "@/components/ui/kitsch-empty-state";
 import type { CalendarEvent, CalendarEventType } from "@/lib/calendar/events";
 import { CELEBRATION_COLOR } from "@/lib/calendar/theme";
 
@@ -94,9 +95,13 @@ export function CelebrationCalendar({
       {/* D-day 레일 */}
       <div className="flex h-full flex-col rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-2">
         {upcoming.length === 0 ? (
-          <p className="grid min-h-[280px] place-items-center px-4 text-center text-sm text-[var(--ui-muted)]">
-            등록된 기념일이 없어요.
-          </p>
+          <KitschEmptyState
+            character="flag"
+            title="기념일 레일 비었어요"
+            body="생일, 데뷔, 우승일이 잡히면 여기서 D-DAY를 띄울게요."
+            animated
+            className="min-h-[280px] border-0 bg-transparent"
+          />
         ) : (
           <ul className="flex flex-col">
             {upcoming.map((event) => {

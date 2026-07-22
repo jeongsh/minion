@@ -35,26 +35,43 @@ function PlayerPhoto({
   );
 }
 
-export function PlayerCard({ player, hrefBase = "/players" }: { player: Player; hrefBase?: string }) {
+export function PlayerCard({
+  player,
+  hrefBase = "/players",
+  variant = "default",
+}: {
+  player: Player;
+  hrefBase?: string;
+  variant?: "default" | "fan";
+}) {
+  const fanCard = variant === "fan";
+
   return (
     <Link
       href={`${hrefBase}/${player.slug}`}
-      className="group flex flex-col overflow-hidden rounded-md border border-border bg-surface transition-colors hover:border-accent"
+      className={`group flex flex-col overflow-hidden border bg-surface transition ${
+        fanCard
+          ? "fan-player-card rounded-xl border-[var(--ui-border)]"
+          : "rounded-md border-border transition-colors hover:border-accent"
+      }`}
     >
-      <div className="relative aspect-[4/5] overflow-hidden bg-surface-muted">
+      <div className={`relative aspect-[4/5] overflow-hidden bg-surface-muted ${fanCard ? "fan-player-card__photo" : ""}`}>
         <PlayerPhoto
           src={player.profileImageUrl}
           alt={player.name}
           className="h-full w-full object-cover object-top transition-transform duration-300 group-hover:scale-[1.03]"
         />
-        <span className="absolute left-2 top-2 rounded-md bg-background/80 px-2 py-0.5 text-[13px] font-semibold text-accent backdrop-blur-sm">
+        <span className={`absolute left-2 top-2 px-2 py-1 text-[12px] font-black ${fanCard ? "fan-player-position bg-[var(--team-primary)] text-[var(--team-on-primary)]" : "rounded-md bg-background/80 font-semibold text-accent backdrop-blur-sm"}`}>
           {POSITION_LABEL[player.position] ?? player.position}
         </span>
       </div>
-      <div className="flex flex-col gap-1 p-4">
-        <h2 className="truncate text-lg font-bold leading-tight group-hover:text-accent">
-          {player.name}
-        </h2>
+      <div className={`flex flex-col gap-1 p-4 ${fanCard ? "fan-player-card__body" : ""}`}>
+        <div className="flex min-w-0 items-center justify-between gap-2">
+          <h2 className={`truncate text-lg font-bold leading-tight group-hover:text-accent ${fanCard ? "text-[var(--ui-ink)] group-hover:text-[var(--team-accent-text)]" : ""}`}>
+            {player.name}
+          </h2>
+          {fanCard && player.isStarter ? <span className="fan-player-stamp shrink-0 text-[10px] font-black text-[var(--team-accent-text)]">STARTER</span> : null}
+        </div>
         <p className="truncate text-sm text-muted">{player.realName}</p>
       </div>
     </Link>

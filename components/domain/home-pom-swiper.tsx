@@ -44,7 +44,7 @@ export function HomePomSwiper({ entries }: { entries: HomePomEntry[] }) {
           <SwiperSlide key={entry.matchId} className="h-auto">
             <Link href={entry.href} className="group block h-full min-w-0">
               <div
-                className="relative aspect-[3/4] overflow-hidden rounded-2xl bg-[var(--ui-surface-muted)]"
+                className="relative aspect-[3/4] overflow-hidden rounded-2xl bg-[var(--ui-surface-muted)] pt-4"
                 style={entry.teamPrimaryColor ? { background: `${entry.teamPrimaryColor}1f` } : undefined}
               >
                 {entry.tournamentName ? (

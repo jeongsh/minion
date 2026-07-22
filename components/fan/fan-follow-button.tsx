@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { toggleFanAction } from "@/app/fan/[teamSlug]/actions";
+import { useToast } from "@/components/ui/toast";
 
 export function FanFollowButton({
   teamId,
@@ -26,6 +27,7 @@ export function FanFollowButton({
   const [following, setFollowing] = useState(initialFollowing);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+  const { showToast } = useToast();
 
   // 낙관적 ±1은 어디까지나 임시값이다. router.refresh() 후 서버가 내려준 값이 바뀌면
   // 그쪽을 정답으로 삼아야 화면 숫자가 DB와 어긋난 채로 굳지 않는다.
@@ -46,8 +48,14 @@ export function FanFollowButton({
       if (!result.ok) {
         setFollowing(!nextFollowing);
         setCount((c) => Math.max(0, c + (nextFollowing ? -1 : 1)));
+        showToast({ title: "팔로우 실패", description: "잠시 뒤 다시 시도해 주세요.", tone: "error" });
       } else {
         setFollowing(result.isFan);
+        showToast({
+          title: result.isFan ? "팬 등록 완료" : "팬 등록 해제",
+          description: result.isFan ? "팀 소식을 더 빠르게 볼 수 있어요." : "언제든 다시 팔로우할 수 있어요.",
+          tone: "success",
+        });
         router.refresh();
       }
     });

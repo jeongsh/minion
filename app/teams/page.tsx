@@ -1,4 +1,5 @@
 import { TeamCard } from "@/components/domain/team-card";
+import { KitschEmptyState } from "@/components/ui/kitsch-empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { getTeamsSortedByRank } from "@/lib/data/lck";
 
@@ -26,9 +27,7 @@ export default async function TeamsPage() {
               ))}
             </div>
           ) : (
-            <div className="grid min-h-48 place-items-center rounded-[var(--ui-card-radius)] bg-[var(--ui-surface-muted)] px-6 text-center text-sm font-semibold text-[var(--ui-muted)]">
-              등록된 팀이 없습니다.
-            </div>
+            <KitschEmptyState character="flag" title="팀 입장 준비 중" body="등록된 팀이 생기면 여기서 바로 보여드릴게요." animated />
           )}
         </section>
       </div>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { ScheduleTodayScroll } from "@/components/domain/schedule-today-scroll";
+import { KitschEmptyState } from "@/components/ui/kitsch-empty-state";
 import { TeamLogo } from "@/components/ui/team-logo";
 import { isMatchLive, matchStatusLabel, stageName, tournamentTypeLabel } from "@/lib/match-display";
 import type { Match, Stage, Team, Tournament } from "@/lib/types";
@@ -36,7 +37,14 @@ export function ScheduleList({
   }, {});
 
   if (matches.length === 0) {
-    return <p className="rounded-2xl bg-[var(--ui-surface-muted)] py-16 text-center text-sm text-[var(--ui-muted)]">{emptyMessage}</p>;
+    return (
+      <KitschEmptyState
+        character="marker"
+        title="이 조건엔 경기가 없어요"
+        body={emptyMessage || "날짜나 대회를 살짝 바꿔볼까요?"}
+        animated
+      />
+    );
   }
 
   const todayKey = dateKeyKST(new Date());

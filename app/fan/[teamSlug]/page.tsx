@@ -315,6 +315,8 @@ export default async function FanHomePage({
               </span>
             }
             triggerClassName="inline-flex h-9 items-center rounded-full border border-[var(--ui-border)] bg-[var(--ui-surface)] px-4 text-sm font-extrabold text-[var(--ui-ink)] shadow-sm transition hover:bg-[var(--ui-surface-muted)] active:scale-[0.97] sm:h-10 lg:min-h-11 lg:px-5"
+            /* 메인(홈) 캘린더와 같은 340×300 비율로 보이도록: 340 + 좌우 p-5(20×2) = 380px */
+            panelClassName="sm:max-w-[380px]"
           >
             <HomeCalendar
               initialMonthKey={calendarMonthKey}
@@ -346,7 +348,7 @@ export default async function FanHomePage({
             경기 일정은 헤더 히어로(다음 경기)·티커(NEXT 1~4)·일정 탭이 이미 세 번 다루므로
             여기서 네 번째로 반복하지 않는다. */}
         <section>
-          <SectionHeading href={`/fan/${fanSlug}/community`}>게시판</SectionHeading>
+          <SectionHeading href={`/fan/${fanSlug}/community`}>인기글</SectionHeading>
           <HomeBoardCarousel
             posts={rankedHotBoardPosts}
             scope="team"

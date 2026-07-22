@@ -4,6 +4,7 @@ import { AtSign, ExternalLink, Globe2, Play } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { AdSlot } from "@/components/ui/ad-slot";
 import { TeamMatchHistory } from "@/components/domain/team-match-history";
+import { KitschEmptyState } from "@/components/ui/kitsch-empty-state";
 import {
   getCommunityPosts,
   getFanRatings,
@@ -362,7 +363,11 @@ export default async function TeamDetailPage({
               title="팀 지표"
               aside={team.globalPowerRank != null ? <a href="https://lolesports.com/ko-KR/gpr/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 pb-0.5 text-[13px] font-bold text-[var(--ui-muted)] hover:text-[var(--ui-ink)]">글로벌 {team.globalPowerRank}위 <ExternalLink size={13} /></a> : undefined}
             />
-            {stats.setCount > 0 ? <TeamRadarChart stats={stats} leagueAvg={leagueAvg} leagueAvgRaw={leagueAvgInput} /> : <p className="text-sm text-[var(--ui-muted)]">표시할 팀 지표가 없습니다.</p>}
+            {stats.setCount > 0 ? (
+              <TeamRadarChart stats={stats} leagueAvg={leagueAvg} leagueAvgRaw={leagueAvgInput} />
+            ) : (
+              <KitschEmptyState character="marker" title="팀 지표 집계 중" body="세트 데이터가 쌓이면 레이더가 켜져요." compact />
+            )}
           </section>
         </section>
 
@@ -456,7 +461,7 @@ export default async function TeamDetailPage({
         )}
 
         {starters.length === 0 && (
-          <p className="text-sm text-[var(--ui-muted)]">등록된 선수가 없습니다.</p>
+          <KitschEmptyState character="marker" title="로스터 대기 중" body="등록된 선수가 생기면 주전 라인업을 바로 보여드릴게요." animated />
         )}
 
         {/* 코칭 스태프 */}

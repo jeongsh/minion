@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { AdaptiveDialog } from "@/components/responsive/adaptive-dialog";
+import { KitschEmptyState } from "@/components/ui/kitsch-empty-state";
 import { TeamLogo } from "@/components/ui/team-logo";
 import type { Player, Team } from "@/lib/types";
 
@@ -126,7 +127,15 @@ export function PlayerDirectory({
         {sortedVisible.map((player) => (
           <PlayerCard key={player.id} player={player} team={player.teamId ? teamMap.get(player.teamId) : undefined} />
         ))}
-        {!visible.length ? <p className="col-span-full rounded-2xl bg-[var(--ui-surface-muted)] px-5 py-16 text-center text-sm text-[var(--ui-muted)]">조건에 맞는 선수가 없습니다.</p> : null}
+        {!visible.length ? (
+          <KitschEmptyState
+            character="marker"
+            title="이 조합엔 선수가 숨어있어요"
+            body="팀이나 포지션 필터를 살짝 바꿔보세요."
+            animated
+            className="col-span-full"
+          />
+        ) : null}
       </section>
       </div>
     </div>

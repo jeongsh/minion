@@ -80,7 +80,6 @@ function resultOf(match: Match, team: Team) {
   return `${ownScore > opponentScore ? "승" : "패"} ${ownScore}:${opponentScore}`;
 }
 
-
 export async function FanChannelHeader({
   teamSlug,
   calendarSlot,

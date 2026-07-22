@@ -7,6 +7,7 @@ import "swiper/css";
 import "swiper/css/navigation";
 
 import { SwiperNav, useSwiperNav } from "@/components/ui/swiper-nav";
+import { KitschEmptyState } from "@/components/ui/kitsch-empty-state";
 import type { HomeVideo } from "@/lib/data/lck-channel-videos";
 
 export function HomeVideoSwiper({ videos }: { videos: HomeVideo[] }) {
@@ -14,9 +15,12 @@ export function HomeVideoSwiper({ videos }: { videos: HomeVideo[] }) {
 
   if (!videos.length) {
     return (
-      <div className="grid min-h-40 place-items-center rounded-2xl bg-[var(--ui-surface-muted)] text-sm text-[var(--ui-muted)]">
-        등록된 영상이 없습니다.
-      </div>
+      <KitschEmptyState
+        character="megapon"
+        title="영상 큐가 잠깐 비었어요"
+        body="새 클립이 들어오면 바로 플레이 버튼을 올려둘게요."
+        animated
+      />
     );
   }
 

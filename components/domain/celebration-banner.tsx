@@ -35,7 +35,7 @@ function eyebrow(event: CalendarEvent) {
 function headline(event: CalendarEvent, action: CelebrationAction) {
   if (action === "write") return "‘응원’ 말머리로 축하 글을 남겨주세요";
   const where = event.teamShort ?? event.teamName;
-  return where ? `${where} 게시판에서 함께 축하해요` : "커뮤니티에서 함께 축하해요";
+  return where ? `${where} 커뮤니티에서 함께 축하해요` : "커뮤니티에서 함께 축하해요";
 }
 
 function CelebrationCard({ event, action }: { event: CalendarEvent; action: CelebrationAction }) {

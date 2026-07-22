@@ -9,6 +9,7 @@ import "swiper/css/navigation";
 import type { CommunityPostDetail } from "@/lib/community/types";
 import { boardLabel } from "@/lib/community/boards";
 import { isHotPost } from "@/lib/community/hot";
+import { KitschEmptyState } from "@/components/ui/kitsch-empty-state";
 import { SwiperNav, useSwiperNav } from "@/components/ui/swiper-nav";
 
 function timeLabel(value: string) {
@@ -30,7 +31,16 @@ export function HomeBoardCarousel({
   const { setPrevEl, setNextEl, navigationProps } = useSwiperNav();
   const detailHref = (postId: string) =>
     scope === "team" && teamSlug ? `/fan/${teamSlug}/community/post/${postId}` : `/community/post/${postId}`;
-  if (posts.length === 0) return <div className="rounded-2xl border border-dashed border-[#d8d5dd] py-14 text-center text-sm text-[#827e89] dark:border-transparent">등록된 {scope === "team" ? "팬" : "허브"} 커뮤니티 글이 없습니다.</div>;
+  if (posts.length === 0) {
+    return (
+      <KitschEmptyState
+        character="megapon"
+        title="아직 불붙은 글이 없어요"
+        body={scope === "team" ? "첫 떡밥, 팬 커뮤니티에 살짝 던져볼까요?" : "허브 인기글의 첫 화력을 기다리는 중이에요."}
+        animated
+      />
+    );
+  }
   return <div className="relative"><Swiper modules={[Navigation]} {...navigationProps} spaceBetween={12} slidesPerView={1.16} breakpoints={{ 640: { slidesPerView: 2, spaceBetween: 14 }, 1024: { slidesPerView: 3, spaceBetween: 14 }, 1280: { slidesPerView: 4, spaceBetween: 16 } }}>
     {posts.slice(0,12).map((post) => (
       <SwiperSlide key={post.id} className="h-auto">
