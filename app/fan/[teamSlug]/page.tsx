@@ -159,7 +159,7 @@ function Roster({ players, teamSlug }: { players: Player[]; teamSlug: string }) 
           <Link
             key={player.id}
             href={`/fan/${teamSlug}/players/${player.slug}`}
-            className="fan-roster-chip group flex min-h-[96px] flex-col items-center justify-center gap-1.5 rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-2 text-center transition hover:bg-[var(--ui-surface-muted)] sm:min-h-[88px] sm:flex-row sm:justify-start sm:gap-3 sm:rounded-2xl sm:p-4 sm:text-left"
+            className="fan-roster-chip group flex min-h-[96px] flex-col items-center justify-center gap-1.5 rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-2 text-center transition sm:min-h-[88px] sm:flex-row sm:justify-start sm:gap-3 sm:rounded-2xl sm:p-4 sm:text-left"
           >
             <span className="h-11 w-11 shrink-0 overflow-hidden rounded-full bg-[var(--ui-surface)] sm:h-14 sm:w-14">
               {player.profileImageUrl ? (
