@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { WeeklyReportView } from "@/components/reports/weekly-report-view";
+import { KitschEmptyState } from "@/components/ui/kitsch-empty-state";
 import { getLatestWeeklyReport, getWeeklyReportIndex } from "@/lib/reports/queries";
 
 export const dynamic = "force-dynamic";
@@ -14,10 +15,15 @@ export default async function ReportsPage() {
 
   if (!latest) {
     return (
-      <div className="layout-reading py-24 text-center">
+      <div className="layout-reading py-20">
         <p className="text-[13px] font-medium uppercase tracking-[0.16em] text-[var(--ui-muted)]">Minion Weekly Report</p>
-        <h1 className="home-section-title mt-3 text-2xl text-[var(--ui-ink)]">첫 리포트를 준비하고 있어요</h1>
-        <p className="mt-3 text-sm font-semibold text-[var(--ui-muted)]">매주 월요일, 한 주의 LCK를 정리한 AI 리포트가 이곳에 발행돼요.</p>
+        <KitschEmptyState
+          character="marker"
+          title="첫 리포트, 열심히 밑줄 긋는 중"
+          body="매주 월요일, 한 주의 LCK를 정리한 AI 리포트가 이곳에 발행돼요."
+          animated
+          className="mt-4"
+        />
       </div>
     );
   }

@@ -91,7 +91,7 @@ function defaultPeriod() {
 
 type TeamRow = {
   id: string; slug: string; name: string; short_name: string;
-  logo_url: string | null; logo_white_url: string | null; primary_color: string;
+  logo_url: string | null; logo_white_url: string | null; use_white_logo_on_dark: boolean | null; primary_color: string;
 };
 type PlayerRow = { id: string; slug: string; name: string; position: string; team_id: string | null; profile_image_url: string | null };
 type ChampionRow = { id: string; slug: string; name: string; image_url: string | null; ddragon_id: string | null };
@@ -157,6 +157,7 @@ function teamRef(team: TeamRow | undefined | null): ReportTeamRef | null {
     shortName: team.short_name,
     logoUrl: team.logo_url,
     logoWhiteUrl: team.logo_white_url,
+    useWhiteLogoOnDark: team.use_white_logo_on_dark ?? false,
     color: team.primary_color,
   };
 }
@@ -431,7 +432,7 @@ async function main() {
 
   // 1. 기준 데이터
   const [teams, champions, tournaments] = await Promise.all([
-    fetchAll<TeamRow>(supabase, "teams", "id,slug,name,short_name,logo_url,logo_white_url,primary_color"),
+    fetchAll<TeamRow>(supabase, "teams", "id,slug,name,short_name,logo_url,logo_white_url,use_white_logo_on_dark,primary_color"),
     fetchAll<ChampionRow>(supabase, "champions", "id,slug,name,image_url,ddragon_id"),
     fetchAll<{ id: string; name: string }>(supabase, "tournaments", "id,name"),
   ]);

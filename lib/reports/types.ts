@@ -9,6 +9,7 @@ export type ReportTeamRef = {
   shortName: string;
   logoUrl: string | null;
   logoWhiteUrl: string | null;
+  useWhiteLogoOnDark?: boolean;
   color: string;
 };
 
