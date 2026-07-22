@@ -47,6 +47,11 @@ export function HomePomSwiper({ entries }: { entries: HomePomEntry[] }) {
                 className="relative aspect-[3/4] overflow-hidden rounded-2xl bg-[var(--ui-surface-muted)]"
                 style={entry.teamPrimaryColor ? { background: `${entry.teamPrimaryColor}1f` } : undefined}
               >
+                {entry.tournamentName ? (
+                  <span className="absolute left-2 top-2 max-w-[calc(100%-1rem)] truncate rounded-md bg-black/55 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-white/90 backdrop-blur-sm">
+                    {entry.tournamentName}
+                  </span>
+                ) : null}
                 {entry.playerImageUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -54,15 +59,10 @@ export function HomePomSwiper({ entries }: { entries: HomePomEntry[] }) {
                     alt=""
                     loading="lazy"
                     decoding="async"
-                    className="relative z-1 h-full w-full object-cover object-top transition duration-300 group-hover:scale-105"
+                    className="h-full w-full object-cover object-top transition duration-300 group-hover:scale-105"
                   />
                 ) : null}
                 <span className="absolute z-2 inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-black/85 via-black/45 to-transparent" />
-                {entry.tournamentName ? (
-                  <span className="absolute left-2 top-2 max-w-[calc(100%-1rem)] truncate rounded-md bg-black/55 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-white/90 backdrop-blur-sm">
-                    {entry.tournamentName}
-                  </span>
-                ) : null}
                 <span className="absolute bottom-2 left-2 right-2 min-w-0 z-3">
                   <span className="flex min-w-0 items-baseline gap-1">
                     <b className="min-w-0 truncate text-sm leading-5 text-white">{entry.playerName}</b>

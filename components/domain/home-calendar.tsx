@@ -214,7 +214,7 @@ export function HomeCalendar({
                 {...buttonProps}
                 className={`${className ?? ""} flex! flex-col items-center justify-center gap-0.5 leading-none ${
                   modifiers.today && !modifiers.selected
-                    ? "text-[var(--ui-ink)]! ring-1! ring-inset! ring-[var(--ui-ink)]/35!"
+                    ? "text-[var(--ui-ink)]! bg-[var(--ui-ink)]/12! border-transparent!"
                     : ""
                 }`}
               >
