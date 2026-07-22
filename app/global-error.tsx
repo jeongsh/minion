@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import marker from "@/assets/characters/pen-4.png";
 
 export default function GlobalError({
   error,
@@ -20,7 +21,8 @@ export default function GlobalError({
           <p style={{ fontSize: 12, fontWeight: 900, letterSpacing: "0.16em", textTransform: "uppercase", color: "#6b7280" }}>
             Critical Error
           </p>
-          <h1 style={{ marginTop: 12, fontSize: 28, fontWeight: 900 }}>앱을 불러오지 못했습니다.</h1>
+          <img src={marker.src} alt="" style={{ display: "block", width: 88, height: 88, objectFit: "contain", margin: "20px auto 0" }} />
+          <h1 style={{ marginTop: 12, fontSize: 28, fontWeight: 900 }}>앱이 잠깐 삐끗했어요</h1>
           <p style={{ marginTop: 12, color: "#6b7280", lineHeight: 1.7 }}>페이지를 다시 시도해주세요.</p>
           {error.digest ? <p style={{ marginTop: 12, fontFamily: "monospace", fontSize: 12, color: "#6b7280" }}>digest: {error.digest}</p> : null}
           <button type="button" onClick={reset} style={{ marginTop: 24, borderRadius: 999, padding: "10px 18px", fontWeight: 900 }}>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { KitschEmptyState } from "@/components/ui/kitsch-empty-state";
 
 export default function AppError({
   error,
@@ -14,20 +15,25 @@ export default function AppError({
   }, [error]);
 
   return (
-    <main className="layout-reading py-24 text-center">
+    <main className="layout-reading py-24">
       <p className="text-xs font-black uppercase tracking-[0.16em] text-[var(--ui-muted)]">Unexpected Error</p>
-      <h1 className="mt-3 text-2xl font-black text-[var(--ui-ink)]">화면을 불러오지 못했습니다.</h1>
-      <p className="mt-3 text-sm font-semibold leading-6 text-[var(--ui-muted)]">
-        일시적인 오류일 수 있습니다. 다시 시도해도 반복되면 운영자가 digest 값을 기준으로 추적할 수 있습니다.
-      </p>
-      {error.digest ? <p className="mt-3 text-xs font-mono text-[var(--ui-muted)]">digest: {error.digest}</p> : null}
-      <button
-        type="button"
-        onClick={reset}
-        className="mt-6 rounded-full bg-[var(--ui-ink)] px-5 py-2.5 text-sm font-black text-[var(--ui-surface)]"
-      >
-        다시 시도
-      </button>
+      <KitschEmptyState
+        character="marker"
+        title="화면이 잠깐 삐끗했어요"
+        body="다시 시도해도 반복되면 digest 값으로 추적할 수 있습니다."
+        animated
+        action={
+          <button
+            type="button"
+            onClick={reset}
+            className="rounded-full bg-[var(--ui-ink)] px-5 py-2.5 text-sm font-black text-[var(--ui-surface)]"
+          >
+            다시 시도
+          </button>
+        }
+        className="mt-4"
+      />
+      {error.digest ? <p className="mt-3 text-center text-xs font-mono text-[var(--ui-muted)]">digest: {error.digest}</p> : null}
     </main>
   );
 }

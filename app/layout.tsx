@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Script from "next/script";
 import { AppShell, type AppShellUser } from "@/components/layout/app-shell";
 import { NavigationTransitionProvider } from "@/components/navigation/navigation-transition-provider";
+import { ToastProvider } from "@/components/ui/toast";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { getTeams } from "@/lib/data/lck";
 import { getFollowedTeamIds } from "@/lib/fan/followed-teams";
@@ -66,9 +67,11 @@ export default async function RootLayout({
             src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseClient}`}
           />
         ) : null}
-        <NavigationTransitionProvider>
-          <AppShell currentUser={shellUser} followedTeamIds={followedTeamIds} shellTeams={shellTeams}>{children}</AppShell>
-        </NavigationTransitionProvider>
+        <ToastProvider>
+          <NavigationTransitionProvider>
+            <AppShell currentUser={shellUser} followedTeamIds={followedTeamIds} shellTeams={shellTeams}>{children}</AppShell>
+          </NavigationTransitionProvider>
+        </ToastProvider>
       </body>
     </html>
   );
