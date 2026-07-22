@@ -42,8 +42,8 @@ export function HomeMatchCard({
 
   return (
     <>
-      <article className="flex h-full min-w-0 flex-col rounded-2xl border border-[#e3e1e8] p-3 lg:p-4 dark:bg-[var(--ui-surface-muted)]">
-        <div className="flex min-w-0 items-center gap-2 text-[13px] font-bold text-[#85828e]">
+      <article className="flex h-full min-w-0 flex-col rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-3 lg:p-4 dark:bg-[var(--ui-surface-muted)]">
+        <div className="flex min-w-0 items-center gap-2 text-[13px] font-bold text-[var(--ui-muted)]">
           {live ? (
             <span className="shrink-0 rounded-full bg-[#ff3158] px-2 py-1 text-white">LIVE</span>
           ) : (
@@ -74,9 +74,9 @@ export function HomeMatchCard({
             <span>{teamA?.shortName ?? "TBD"} {market.teamAPercent}%</span>
             <span>{market.teamBPercent}% {teamB?.shortName ?? "TBD"}</span>
           </div>
-          <div className="mt-1.5 flex h-2 overflow-hidden rounded-full bg-[#e4e2e8]">
-            <span style={{ width: `${market.teamAPercent}%`, background: teamA?.primaryColor || "#18191c" }} />
-            <span className="flex-1" style={{ background: teamB?.primaryColor || "#73767c" }} />
+          <div className="mt-1.5 flex h-2 overflow-hidden rounded-full bg-[var(--ui-surface-muted)]">
+            <span style={{ width: `${market.teamAPercent}%`, background: teamA?.primaryColor || "var(--ui-ink)" }} />
+            <span className="flex-1" style={{ background: teamB?.primaryColor || "var(--ui-muted)" }} />
           </div>
         </div>
 
@@ -85,13 +85,13 @@ export function HomeMatchCard({
             <>
               <Link
                 href={matchHref(match)}
-                className="min-h-10 rounded-lg bg-[#f1f0f4] px-2 py-2 text-center text-[13px] font-black leading-6 dark:bg-[#2a2d33]"
+                className="min-h-10 rounded-lg bg-[var(--ui-surface-muted)] px-2 py-2 text-center text-[13px] font-black leading-6 text-[var(--ui-ink)] transition hover:bg-[color-mix(in_srgb,var(--ui-surface-muted)_86%,var(--ui-ink))]"
               >
                 매치정보 보기
               </Link>
               <Link
                 href={`${matchHref(match)}?tab=rating`}
-                className="min-h-10 rounded-lg bg-[#1c192b] px-2 py-2 text-center text-[13px] font-black leading-6 text-white"
+                className="min-h-10 rounded-lg bg-[var(--ui-ink)] px-2 py-2 text-center text-[13px] font-black leading-6 text-[var(--ui-surface)] transition hover:opacity-90"
               >
                 평점 보기
               </Link>
@@ -102,7 +102,7 @@ export function HomeMatchCard({
                 type="button"
                 disabled={!teamA || pending}
                 onClick={() => teamA && open(match.id, teamA.id, teamA.shortName)}
-                className="min-h-10 min-w-0 rounded-lg border border-[#dcd9e2] px-2 py-2 text-[13px] font-bold hover:border-[#1c192b] hover:bg-[#f1eff5] disabled:opacity-50"
+                className="min-h-10 min-w-0 rounded-lg border border-[var(--ui-border)] px-2 py-2 text-[13px] font-bold text-[var(--ui-ink)] transition hover:border-[var(--ui-ink)] hover:bg-[var(--ui-surface-muted)] disabled:opacity-50"
               >
                 <span className="block truncate">{teamA?.shortName ?? "TBD"} 승리 예측</span>
               </button>
@@ -110,7 +110,7 @@ export function HomeMatchCard({
                 type="button"
                 disabled={!teamB || pending}
                 onClick={() => teamB && open(match.id, teamB.id, teamB.shortName)}
-                className="min-h-10 min-w-0 rounded-lg border border-[#dcd9e2] px-2 py-2 text-[13px] font-bold hover:border-[#1c192b] hover:bg-[#f1eff5] disabled:opacity-50"
+                className="min-h-10 min-w-0 rounded-lg border border-[var(--ui-border)] px-2 py-2 text-[13px] font-bold text-[var(--ui-ink)] transition hover:border-[var(--ui-ink)] hover:bg-[var(--ui-surface-muted)] disabled:opacity-50"
               >
                 <span className="block truncate">{teamB?.shortName ?? "TBD"} 승리 예측</span>
               </button>

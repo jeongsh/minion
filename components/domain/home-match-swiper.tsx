@@ -7,6 +7,7 @@ import "swiper/css/navigation";
 import "swiper/css/pagination";
 
 import { HomeMatchCard, type HomeMatchItem } from "@/components/domain/home-match-card";
+import { KitschEmptyState } from "@/components/ui/kitsch-empty-state";
 import { SwiperNav, useSwiperNav } from "@/components/ui/swiper-nav";
 import { useSwiperResize } from "@/components/ui/use-swiper-resize";
 
@@ -35,9 +36,13 @@ export function HomeMatchSwiper({
 
   if (!items.length) {
     return (
-      <div className="grid min-h-40 place-items-center rounded-2xl border border-[#e6e7ea] bg-white text-sm font-bold text-[#686b72] dark:bg-[var(--ui-surface-muted)]">
-        예정된 경기가 없습니다.
-      </div>
+      <KitschEmptyState
+        character="flag"
+        title="다음 매치 대기 중"
+        body="경기 일정이 잡히면 바로 응원판을 열어둘게요."
+        compact={variant === "single"}
+        animated
+      />
     );
   }
 

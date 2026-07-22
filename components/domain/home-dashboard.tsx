@@ -94,7 +94,7 @@ export function HomeDashboard({
     .slice(0, 10);
 
   return (
-    <main className="layout-wide hub-home pb-16 pt-4 text-[#1c192b] sm:pt-7">
+    <main className="layout-wide hub-home pb-16 pt-4 text-[var(--ui-ink)] sm:pt-7">
       {/* 상단 배너 + (lg 이상) 캘린더 / (그 아래) 매치 패널.
           배너 비율을 폭에 고정하면 좁은 화면에서 옆 캘린더와 높이가 어긋난다.
           캘린더는 292px(6주 고정 × 30px + 캡션/요일/범례) 아래로 못 줄어드는데,
@@ -122,14 +122,14 @@ export function HomeDashboard({
 
         {/* 모바일: 캘린더를 펼치면 300px를 먹어 콘텐츠가 밀리므로, 원래대로 매치 패널을
             두고 캘린더는 버튼으로 모달을 띄운다. */}
-        <div className="min-w-0 rounded-2xl border border-[#e3e1e8] bg-white p-3 sm:p-4 lg:hidden dark:bg-[var(--ui-surface-muted)]">
-          <div className="mb-3 flex min-w-0 items-center gap-2 text-[#18191c]">
+        <div className="min-w-0 rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-3 sm:p-4 lg:hidden dark:bg-[var(--ui-surface-muted)]">
+          <div className="mb-3 flex min-w-0 items-center gap-2 text-[var(--ui-ink)]">
             <CalendarDays size={17} className="shrink-0" />
             <h2 className="home-section-title min-w-0 flex-1 text-[length:var(--ui-title-size)]">매치</h2>
             <AdaptiveDialog
               title="경기·기념일 캘린더"
               trigger={<span className="flex items-center gap-1.5"><CalendarDays size={16} />캘린더</span>}
-              triggerClassName="flex min-h-10 shrink-0 items-center rounded-xl border border-[#e3e1e8] bg-white px-3 text-[12px] font-black text-[#18191c] dark:bg-[var(--ui-surface-muted)]"
+              triggerClassName="flex min-h-10 shrink-0 items-center rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 text-[13px] font-bold text-[var(--ui-ink)] dark:bg-[var(--ui-surface-muted)]"
             >
               <HomeCalendar
                 initialMonthKey={calendarMonthKey}
@@ -206,7 +206,7 @@ export function HomeDashboard({
             {[0, 1].map((column) => (
               <div
                 key={column}
-                className="overflow-hidden rounded-2xl border border-[#e6e7ea] bg-white dark:bg-[var(--ui-surface-muted)]"
+                className="overflow-hidden rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] dark:bg-[var(--ui-surface-muted)]"
               >
                 {standingRows
                   .slice(column * STANDING_ROWS_PER_COLUMN, (column + 1) * STANDING_ROWS_PER_COLUMN)
@@ -214,7 +214,7 @@ export function HomeDashboard({
                     <Link
                       href={`/teams/${row.team.slug}`}
                       key={row.teamId}
-                      className="flex items-center gap-3 border-b border-[#efeff1] px-3 last:border-0 sm:px-4 dark:border-[#343840]"
+                      className="flex items-center gap-3 border-b border-[var(--ui-border)] px-3 last:border-0 sm:px-4"
                       style={{ minHeight: STANDING_ROW_HEIGHT }}
                     >
                       <b className="w-5 shrink-0 text-center text-[13px]">{row.rank}</b>
@@ -226,7 +226,7 @@ export function HomeDashboard({
                         {row.recent.map((result, index) => (
                           <span
                             key={index}
-                            className={`grid h-6 w-6 place-items-center rounded-full text-[11px] font-medium text-white ${result === "W" ? "bg-[#00b979]" : "bg-[#b7bac0] dark:bg-[#565861]"}`}
+                            className={`grid h-6 w-6 place-items-center rounded-full text-[11px] font-medium ${result === "W" ? "bg-[var(--ui-ink)] text-[var(--ui-surface)]" : "bg-[var(--ui-surface-muted)] text-[var(--ui-muted)]"}`}
                             style={{ lineHeight: 1 }}
                           >
                             {result}
@@ -260,7 +260,7 @@ export function HomeDashboard({
       ) : null}
 
       <section className="mt-8">
-        <Heading href="/community">게시판</Heading>
+        <Heading href="/community">인기글</Heading>
         <HomeBoardCarousel posts={communityPosts} />
       </section>
 
