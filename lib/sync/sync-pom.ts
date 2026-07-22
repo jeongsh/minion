@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-const CARGO_API = "https://lol.fandom.com/api.php";
+import { fetchAuthenticatedLeaguepediaApi } from "./leaguepedia-api.ts";
+
 const RATE_LIMIT_BASE_MS = 20000;
 const MAX_RETRIES = 15;
 const PAGE_DELAY_MS = 15000;
@@ -36,9 +37,7 @@ async function cargoQuery(
   }
 
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-    const response = await fetch(`${CARGO_API}?${params.toString()}`, {
-      headers: { "user-agent": "LCKHubMinion/0.1 (POM sync; contact: local-dev)" },
-    });
+    const response = await fetchAuthenticatedLeaguepediaApi(params);
 
     if (!response.ok) throw new Error(`Leaguepedia fetch failed: ${response.status}`);
 
