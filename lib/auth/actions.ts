@@ -353,7 +353,7 @@ export async function checkInAction(
 
   if (error) {
     if (error.code === "23505") {
-      return { status: "already", message: "오늘은 이미 출석체크를 했어요." };
+      return { status: "already", message: "오늘 도장은 이미 콕 찍혀 있어요." };
     }
     return { status: "error", message: "출석체크에 실패했습니다." };
   }
@@ -361,5 +361,5 @@ export async function checkInAction(
   await recordLpEvent({ userId: user.id, reason: "attendance" });
 
   revalidatePath("/me");
-  return { status: "success", message: "출석체크 완료! +10 LP" };
+  return { status: "success", message: "출석 도장 쾅! +10 LP" };
 }

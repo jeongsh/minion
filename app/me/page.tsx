@@ -5,6 +5,7 @@ import { LogoutButton } from "@/components/auth/logout-button";
 import { PasswordForm } from "@/components/auth/password-form";
 import { ProfileForm } from "@/components/auth/profile-form";
 import { CheckInButton } from "@/components/rank/check-in-button";
+import { KitschEmptyState } from "@/components/ui/kitsch-empty-state";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { tierProgress, type Tier } from "@/lib/rank/config";
 import { getRankSummary } from "@/lib/rank/queries";
@@ -255,9 +256,9 @@ function RankPanel({
       >
         <h2 className="px-5 pb-1 pt-5 text-base font-bold sm:px-6 sm:pt-6">최근 LP 변동</h2>
         {summary.recentLedger.length === 0 ? (
-          <p className="text-sm" style={{ color: "var(--muted)" }}>
-            아직 LP 변동 내역이 없어요.
-          </p>
+          <div className="px-5 pb-5 pt-3 sm:px-6">
+            <KitschEmptyState character="flag" title="LP 로그가 아직 깨끗해요" body="출석체크나 예측에 참여하면 여기에 기록이 쌓여요." compact />
+          </div>
         ) : (
           <ul className="me-ledger-list flex flex-col px-5 pb-4 sm:px-6 sm:pb-5">
             {summary.recentLedger.map((entry) => (
