@@ -372,11 +372,6 @@ html[class~="dark"] .navigation-progress-bar {
   background: #5fd7ff;
 }
 
-.prediction-match-card--selected-left,
-.prediction-match-card--selected-right {
-  animation: prediction-card-confirm 0.5s cubic-bezier(.2, 1.35, .42, 1) both;
-}
-
 @keyframes kitsch-character-bob {
   0%, 100% {
     transform: translateY(0) rotate(-2deg);
@@ -452,27 +447,13 @@ html[class~="dark"] .navigation-progress-bar {
   }
 }
 
-@keyframes prediction-card-confirm {
-  0% {
-    transform: scale(.985);
-  }
-  55% {
-    transform: scale(1.012);
-  }
-  100% {
-    transform: scale(1);
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .kitsch-empty-state__character--animated,
   .kitsch-pop,
   .app-toast,
   .adaptive-dialog-panel,
   .check-in-toast,
-  .check-in-confetti span,
-  .prediction-match-card--selected-left,
-  .prediction-match-card--selected-right {
+  .check-in-confetti span {
     animation: none;
   }
 }
@@ -1340,21 +1321,27 @@ html[class~="dark"] .match-detail-page .text-muted {
 }
 
 .prediction-match-card--selected-left {
-  border-left: 5px solid var(--prediction-team-color);
-  background: color-mix(in srgb, var(--prediction-team-color) 11%, var(--ui-surface));
+  background:
+    radial-gradient(circle at left center, color-mix(in srgb, var(--prediction-team-color) 36%, transparent) 0%, transparent 58%),
+    linear-gradient(90deg, #eef0f2 0%, #ffffff 100%);
 }
 
 .prediction-match-card--selected-right {
-  border-right: 5px solid var(--prediction-team-color);
-  background: color-mix(in srgb, var(--prediction-team-color) 11%, var(--ui-surface));
+  background:
+    radial-gradient(circle at right center, color-mix(in srgb, var(--prediction-team-color) 36%, transparent) 0%, transparent 58%),
+    linear-gradient(270deg, #eef0f2 0%, #ffffff 100%);
 }
 
 .dark .prediction-match-card--selected-left {
-  background: color-mix(in srgb, var(--prediction-team-color) 18%, var(--ui-surface-muted));
+  background:
+    radial-gradient(circle at left center, color-mix(in srgb, var(--prediction-team-color) 42%, transparent) 0%, transparent 58%),
+    linear-gradient(90deg, #24272c 0%, #15161a 100%);
 }
 
 .dark .prediction-match-card--selected-right {
-  background: color-mix(in srgb, var(--prediction-team-color) 18%, var(--ui-surface-muted));
+  background:
+    radial-gradient(circle at right center, color-mix(in srgb, var(--prediction-team-color) 42%, transparent) 0%, transparent 58%),
+    linear-gradient(270deg, #24272c 0%, #15161a 100%);
 }
 
 .bg-team-blue{ background-color: var(--team-blue); }
