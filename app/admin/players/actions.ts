@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createSupabaseAdminActionClient, createSupabaseAdminClient } from "@/lib/auth/admin";
+import { fetchAuthenticatedLeaguepediaApi } from "@/lib/sync/leaguepedia-api";
 
 function revalidate() {
   revalidatePath("/admin/players");
@@ -186,8 +187,12 @@ export async function deleteCareerHistoryAction(formData: FormData) {
   revalidate();
 }
 
-const CARGO_API = "https://lol.fandom.com/api.php";
-const USER_AGENT = "LCKHubMinion/0.1 (contract sync; contact: local-dev)";
+const RATE_LIMIT_BASE_MS = 20000;
+const MAX_RETRIES = 5;
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 async function fetchContractExpiries(pageNames: string[]): Promise<Map<string, string | null>> {
   const result = new Map<string, string | null>();
@@ -200,36 +205,41 @@ async function fetchContractExpiries(pageNames: string[]): Promise<Map<string, s
       action: "cargoquery",
       format: "json",
       tables: "Players",
-      fields: "ID,ContractExpiry",
+      fields: "ID,Contract",
       where: `ID IN ('${escaped.join("','")}')`,
       limit: String(CHUNK + 10),
     });
 
-    const res = await fetch(`${CARGO_API}?${params}`, {
-      headers: { "user-agent": USER_AGENT },
-    });
-    if (!res.ok) throw new Error(`Leaguepedia fetch failed: ${res.status}`);
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      const res = await fetchAuthenticatedLeaguepediaApi(params);
+      if (!res.ok) throw new Error(`Leaguepedia fetch failed: ${res.status}`);
 
-    const body = await res.json() as {
-      cargoquery?: Array<{ title: { ID?: string; ContractExpiry?: string } }>;
-      error?: { code?: string; info?: string };
-    };
+      const body = await res.json() as {
+        cargoquery?: Array<{ title: { ID?: string; Contract?: string } }>;
+        error?: { code?: string; info?: string };
+      };
 
-    if (body.error?.code === "ratelimited") {
-      throw new Error("Leaguepedia rate limited. 잠시 후 다시 시도해주세요.");
-    }
-    if (body.error) {
-      throw new Error(`Leaguepedia 오류: ${body.error.info}`);
-    }
+      if (body.error?.code === "ratelimited") {
+        if (attempt === MAX_RETRIES - 1) {
+          throw new Error("Leaguepedia rate limited. 잠시 후 다시 시도해주세요.");
+        }
+        await sleep(RATE_LIMIT_BASE_MS * (attempt + 1));
+        continue;
+      }
+      if (body.error) {
+        throw new Error(`Leaguepedia 오류: ${body.error.info}`);
+      }
 
-    for (const entry of body.cargoquery ?? []) {
-      const id = entry.title.ID?.trim();
-      const expiry = entry.title.ContractExpiry?.trim() || null;
-      if (id) result.set(id, expiry);
+      for (const entry of body.cargoquery ?? []) {
+        const id = entry.title.ID?.trim();
+        const expiry = entry.title.Contract?.trim() || null;
+        if (id) result.set(id, expiry);
+      }
+      break;
     }
 
     if (i + CHUNK < pageNames.length) {
-      await new Promise((r) => setTimeout(r, 2000));
+      await sleep(2000);
     }
   }
 
