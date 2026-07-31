@@ -3,11 +3,20 @@ import "server-only";
 import { createHash } from "node:crypto";
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import type { Match, SetResult, Team, Tournament } from "@/lib/types";
+import type {
+  Match,
+  Player,
+  PlayerStatLine,
+  SetResult,
+  Team,
+  Tournament,
+} from "@/lib/types";
 import {
   getAllTeams,
   getMatchById,
   getMatches,
+  getPlayerStatLines,
+  getPlayers,
   getSets,
   getTournaments,
 } from "@/lib/data/lck";
@@ -32,14 +41,14 @@ const MATCH_PREVIEW_SCHEMA = {
     },
     sourceUrls: {
       type: "array",
-      minItems: 1,
+      minItems: 0,
       maxItems: 4,
       items: { type: "string" },
     },
   },
 } as const;
-const MATCH_PREVIEW_PROMPT_VERSION = 5;
-const DEFAULT_MATCH_PREVIEW_MODEL = "gpt-5.5";
+const MATCH_PREVIEW_PROMPT_VERSION = 8;
+const DEFAULT_MATCH_PREVIEW_MODEL = "gpt-5.6-sol";
 
 export type MatchAiPreviewSource = {
   title: string;
@@ -62,6 +71,9 @@ type MatchAiPreviewInputs = {
   teams: Team[];
   matches: Match[];
   sets: SetResult[];
+  tournaments?: Tournament[];
+  players?: Player[];
+  playerStats?: PlayerStatLine[];
 };
 
 type StoredEvidence = {
@@ -92,6 +104,19 @@ type MatchAiPreviewCacheRow = {
 
 type RefreshMatchAiPreviewOptions = {
   force?: boolean;
+};
+
+type RefreshMissingMatchAiPreviewsOptions = {
+  concurrency?: number;
+  limit?: number;
+};
+
+export type RefreshMissingMatchAiPreviewsSummary = {
+  eligible: number;
+  missing: number;
+  stale: number;
+  generated: number;
+  failed: Array<{ matchId: string; error: string }>;
 };
 
 function fallbackPreview(facts: MatchPreviewFacts): MatchAiPreview {
@@ -153,7 +178,7 @@ function normalizedPreview(value: unknown): GeneratedPreviewText {
   const evidence = Array.isArray(row.evidence)
     ? row.evidence.filter((item): item is string => typeof item === "string").slice(0, 3)
     : [];
-  return {
+  const preview = {
     summary: row.summary.trim().slice(0, 240),
     watchPoint: row.watchPoint.trim().slice(0, 120),
     winProbabilityA: normalizedWinProbability(row.winProbabilityA),
@@ -162,6 +187,27 @@ function normalizedPreview(value: unknown): GeneratedPreviewText {
       ? row.sourceUrls.filter((item): item is string => typeof item === "string").slice(0, 4)
       : [],
   };
+  const text = `${preview.summary} ${preview.watchPoint}`;
+  const forbiddenPhrases = [
+    "공개 프리뷰",
+    "공개 전망",
+    "전망이 부족",
+    "전망은 부족",
+    "전망이 많지",
+    "전망은 많지",
+    "우세론",
+    "여론",
+    "평판 우위",
+    "이름값",
+    "예측시장",
+    "예측 시장",
+    "배당",
+  ];
+  const forbidden = forbiddenPhrases.find((phrase) => text.includes(phrase));
+  if (forbidden) {
+    throw new Error(`AI 프리뷰에 금지된 메타 표현이 포함됐습니다: ${forbidden}`);
+  }
+  return preview;
 }
 
 function canonicalSourceUrl(value: string) {
@@ -279,28 +325,26 @@ async function callOpenAi({
       model,
       reasoning: { effort: "medium" },
       tools: [{ type: "web_search", search_context_size: "medium" }],
-      tool_choice: "required",
+      tool_choice: "auto",
       include: ["web_search_call.action.sources"],
       max_output_tokens: 3_000,
       input: [
         {
           role: "system",
           content: [
-            "역할: 리그 오브 레전드 e스포츠의 짧은 경기 프리뷰를 쓰는 한국어 에디터다.",
-            "목표: 내부 기록을 그대로 요약하지 말고, 공개된 프리뷰·뉴스·관계자 인터뷰·분석가 및 크리에이터 영상·커뮤니티 예상에서 형성된 주류 의견과 의미 있는 반론을 종합한다.",
-            "검색: 정확한 대진, 대회명, 경기 시작 시각을 사용해 한국어와 영어로 검색한다. 가능하면 성격이 다른 공개 출처 3개 이상을 비교한다.",
-            "시점: 경기 시작 전에 공개된 자료만 사용한다. 경기 결과, 진행 중 상황, 사후 분석이나 스포일러는 절대 반영하지 않는다. 게시 시각을 확인할 수 없으면 결과를 모르는 프리뷰성 자료만 제한적으로 사용한다.",
-            "출처 우선순위: 팀·선수·코치 등 관계자의 직접 발언, 신뢰할 수 있는 e스포츠 뉴스와 공식 방송, 분석가·크리에이터의 전망, 규모 있는 커뮤니티 토론 순이다. 한 게시물의 사견을 전체 여론처럼 쓰지 않는다.",
-            "출처 품질: 단순 일정·결과 모음, 배당 홍보, 근거 없는 자동 생성 예측은 주류 여론의 근거로 쓰지 않는다. 대진을 직접 다루며 작성 주체와 논거가 분명한 자료를 우선한다.",
-            "내부 데이터: recentRecord, 상대 난이도, 공통 상대, 세트 지표는 외부 전망을 검증하거나 보완하는 근거다. 숫자 나열이 프리뷰의 중심이 되어서는 안 된다.",
-            "작성: summary는 정확히 2문장, 110~200자다. 첫 문장은 어느 쪽 우세론이 주류인지와 그 이유를, 둘째 문장은 반대 의견 또는 접전론의 근거를 담는다.",
-            "watchPoint는 1문장, 40~90자로 주류 의견이 갈리는 핵심 변수 하나를 짚는다. 독자가 실제 커뮤니티의 전망을 훑어본 듯한 밀도를 주되 과장된 말투는 피한다.",
-            "표현: '대체로', '우세론', '일부에서는', '반면' 같은 귀속 표현으로 합의와 이견을 구분한다. 출처에 없는 선수 상태, 밴픽, 메타, 라인전, 운영 성향을 만들어내지 않는다.",
-            "근거 부족: 관련 공개 전망이 충분하지 않으면 여론을 꾸며내지 말고 그 사실을 짧게 밝힌 뒤 내부 기록에서 확인되는 대비만 쓴다.",
-            "예측: 승패를 확정하지 않는다. 내부 Elo 숫자는 노출하지 않고 '더 까다로운 상대를 거쳤다'처럼 해석한다.",
-            "winProbabilityA: internalFacts.teamA 팀이 이길 확률을 5~95 사이 정수 퍼센트로 적는다. 외부 전망의 우세론과 내부 기록을 함께 반영하되, 근거가 팽팽하면 50 근처로 둔다. 이 숫자는 summary·watchPoint 본문에 쓰지 않는다.",
-            "evidence: 최종 문장에 실제로 사용한 내부 수치 근거를 최대 3개만 짧게 적는다.",
-            "sourceUrls: summary와 watchPoint의 외부 전망을 실제로 뒷받침한 검색 결과 URL만 2~4개 적는다. 검색 과정에서 참고만 했거나 대진과 무관한 페이지는 제외한다.",
+            "역할: 최근 경기 데이터로 리그 오브 레전드 e스포츠 매치업을 분석하는 한국어 프리뷰 에디터다.",
+            "목표: 독자가 두 팀의 현재 강점, 약점, 승리 조건과 가장 중요한 포지션 맞대결을 경기 전에 빠르게 이해하게 한다.",
+            "성공 기준: internalFacts의 팀 지표와 roleMatchups를 먼저 비교한다. 최근 15분 골드·경험치 차이, DPM, KDA, 오브젝트, 평균 골드 차이처럼 실제 경기 양상을 설명하는 수치를 선택하고, 단순 승패 나열 대신 각 팀이 어떤 흐름에서 유리한지 해석한다.",
+            "summary: 정확히 2문장, 100~190자다. 첫 문장은 한 팀이 앞서는 구체적인 경기 지표와 승리 경로를 쓴다. 둘째 문장은 상대 팀의 반격 조건이나 상반된 강점, 또는 데이터가 선명한 포지션 맞대결을 쓴다.",
+            "watchPoint: 정확히 1문장, 35~90자다. 팀명이나 선수명을 넣고, 초반 15분 격차·라인전·오브젝트 전환·딜 생산·한타 진입처럼 실제 경기에서 확인할 수 있는 관전 조건 하나를 쓴다.",
+            "선수 데이터: roleMatchups에서 games가 1 이상인 선수만 수치 근거로 사용한다. 특히 MID를 무조건 고르지 말고, 포지션 간 차이가 가장 뚜렷한 매치업을 선택한다.",
+            "추론 제한: 라인전 강점은 goldDiffAt15·xpDiffAt15·csDiffAt15로, 화력은 dpm·damageShare로, 안정성은 kda로 뒷받침될 때만 쓴다. 데이터에 없는 밴픽 성향, 한타 집중력, 선수 컨디션을 만들어내지 않는다.",
+            "외부 검색: 확정된 로스터 변경, 부상, 역할 변경, 적용 패치처럼 내부 데이터에 없는 최신 사실이 필요할 때만 보조적으로 사용한다. 검색 결과가 없으면 내부 데이터만으로 완성하고, 자료가 부족하다는 말은 출력하지 않는다.",
+            "금지: 공개 전망, 공개 프리뷰, 여론, 우세론, 평판, 이름값, 시장, 배당, 홈스탠드 서사처럼 경기력과 무관한 메타 설명을 쓰지 않는다. '대체로', '일부에서는', '전망이 적다', '자료가 부족하다' 같은 작성 과정 설명도 쓰지 않는다.",
+            "예측: 승패를 확정하지 않는다. 내부 Elo 숫자는 본문에 직접 노출하지 않는다.",
+            "winProbabilityA: internalFacts.teamA 팀이 이길 확률을 5~95 사이 정수 퍼센트로 적는다. 최근 팀·선수 지표와 대진 난이도를 함께 반영하고, 근거가 팽팽하면 50 근처로 둔다. 이 숫자는 summary·watchPoint 본문에 쓰지 않는다.",
+            "evidence: 최종 문장에 실제로 사용한 내부 수치 근거를 2~3개만 짧게 적는다. 선수 수치를 썼다면 선수명과 포지션을 함께 적는다.",
+            "sourceUrls: 외부 최신 사실을 실제 문장에 사용했을 때만 해당 URL을 최대 4개 적고, 내부 데이터만 썼다면 빈 배열로 둔다.",
             "출력은 지정된 JSON 스키마만 따른다.",
           ].join("\n"),
         },
@@ -310,6 +354,7 @@ async function callOpenAi({
         },
       ],
       text: {
+        verbosity: "low",
         format: {
           type: "json_schema",
           name: "match_preview",
@@ -318,7 +363,7 @@ async function callOpenAi({
         },
       },
     }),
-    signal: AbortSignal.timeout(60_000),
+    signal: AbortSignal.timeout(120_000),
   });
 
   if (!response.ok) {
@@ -368,8 +413,19 @@ export async function getMatchAiPreview({
   teams,
   matches,
   sets,
+  tournaments,
+  players,
+  playerStats,
 }: MatchAiPreviewInputs): Promise<MatchAiPreview> {
-  const facts = buildMatchPreviewFacts({ match, teams, matches, sets });
+  const facts = buildMatchPreviewFacts({
+    match,
+    teams,
+    matches,
+    sets,
+    tournaments,
+    players,
+    playerStats,
+  });
   const fallback = fallbackPreview(facts);
   if (!isUpcomingMatch(match) || !hasResolvedParticipants(match, teams)) {
     return fallback;
@@ -393,20 +449,38 @@ export async function getMatchAiPreview({
   return fallback;
 }
 
-export async function refreshMatchAiPreviewCache({
+function previewGenerationPlan({
   match,
   tournament,
   teams,
   matches,
   sets,
-}: MatchAiPreviewInputs): Promise<MatchAiPreview> {
-  const facts = buildMatchPreviewFacts({ match, teams, matches, sets });
+  tournaments,
+  players,
+  playerStats,
+}: MatchAiPreviewInputs) {
+  const facts = buildMatchPreviewFacts({
+    match,
+    teams,
+    matches,
+    sets,
+    tournaments,
+    players,
+    playerStats,
+  });
   const model = process.env.OPENAI_MATCH_PREVIEW_MODEL ?? DEFAULT_MATCH_PREVIEW_MODEL;
   const context = previewContext(match, tournament);
   const inputHash = createHash("sha256")
     .update(JSON.stringify({ version: MATCH_PREVIEW_PROMPT_VERSION, model, context, facts }))
     .digest("hex");
+  return { context, facts, inputHash, model };
+}
 
+export async function refreshMatchAiPreviewCache(
+  inputs: MatchAiPreviewInputs,
+): Promise<MatchAiPreview> {
+  const { match } = inputs;
+  const { context, facts, inputHash, model } = previewGenerationPlan(inputs);
   const generated = await callOpenAi({ facts, context, model });
   const admin = createSupabaseAdminClient();
   const { error } = await admin.from("match_ai_previews").upsert({
@@ -431,12 +505,14 @@ export async function refreshMatchAiPreviewCacheForMatchId(
   matchId: string,
   options: RefreshMatchAiPreviewOptions = {},
 ) {
-  const [match, teams, matches, sets, tournaments] = await Promise.all([
+  const [match, teams, matches, sets, tournaments, players, playerStats] = await Promise.all([
     getMatchById(matchId),
     getAllTeams(),
     getMatches(),
     getSets(),
     getTournaments(),
+    getPlayers(),
+    getPlayerStatLines(),
   ]);
 
   if (!match) {
@@ -463,5 +539,114 @@ export async function refreshMatchAiPreviewCacheForMatchId(
   }
 
   const tournament = tournaments.find((item) => item.id === match.tournamentId);
-  return refreshMatchAiPreviewCache({ match, tournament, teams, matches, sets });
+  return refreshMatchAiPreviewCache({
+    match,
+    tournament,
+    teams,
+    matches,
+    sets,
+    tournaments,
+    players,
+    playerStats,
+  });
+}
+
+/**
+ * Generates previews for future matches whose participants are resolved when
+ * the cache is missing or its prompt/data hash is stale. Past matches are left
+ * untouched.
+ */
+export async function refreshMissingUpcomingMatchAiPreviews(
+  options: RefreshMissingMatchAiPreviewsOptions = {},
+): Promise<RefreshMissingMatchAiPreviewsSummary> {
+  const [teams, matches, sets, tournaments, players, playerStats] = await Promise.all([
+    getAllTeams(),
+    getMatches(),
+    getSets(),
+    getTournaments(),
+    getPlayers(),
+    getPlayerStatLines(),
+  ]);
+  const eligible = matches
+    .filter((match) => isUpcomingMatch(match) && hasResolvedParticipants(match, teams))
+    .sort(
+      (left, right) =>
+        new Date(left.matchDate).getTime() - new Date(right.matchDate).getTime(),
+    );
+
+  if (eligible.length === 0) {
+    return { eligible: 0, missing: 0, stale: 0, generated: 0, failed: [] };
+  }
+
+  const admin = createSupabaseAdminClient();
+  const { data: cachedRows, error: cacheError } = await admin
+    .from("match_ai_previews")
+    .select("match_id,input_hash")
+    .in("match_id", eligible.map((match) => match.id));
+  if (cacheError) throw new Error(cacheError.message);
+
+  const cachedHashes = new Map(
+    (cachedRows ?? []).map((row) => [row.match_id as string, row.input_hash as string]),
+  );
+  const allMissing = eligible.filter((match) => !cachedHashes.has(match.id));
+  const allStale = eligible.filter((match) => {
+    const cachedHash = cachedHashes.get(match.id);
+    if (!cachedHash) return false;
+    const tournament = tournaments.find((item) => item.id === match.tournamentId);
+    const expected = previewGenerationPlan({
+      match,
+      tournament,
+      teams,
+      matches,
+      sets,
+      tournaments,
+      players,
+      playerStats,
+    }).inputHash;
+    return cachedHash !== expected;
+  });
+  const allPending = [...allMissing, ...allStale].sort(
+    (left, right) =>
+      new Date(left.matchDate).getTime() - new Date(right.matchDate).getTime(),
+  );
+  const limit = Math.max(0, options.limit ?? allPending.length);
+  const pending = allPending.slice(0, limit);
+  const concurrency = Math.max(1, Math.min(options.concurrency ?? 3, pending.length || 1));
+  const failed: Array<{ matchId: string; error: string }> = [];
+  let generated = 0;
+  let cursor = 0;
+
+  async function worker() {
+    while (cursor < pending.length) {
+      const match = pending[cursor++];
+      try {
+        const tournament = tournaments.find((item) => item.id === match.tournamentId);
+        await refreshMatchAiPreviewCache({
+          match,
+          tournament,
+          teams,
+          matches,
+          sets,
+          tournaments,
+          players,
+          playerStats,
+        });
+        generated += 1;
+      } catch (error) {
+        failed.push({
+          matchId: match.id,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+  }
+
+  await Promise.all(Array.from({ length: concurrency }, () => worker()));
+  return {
+    eligible: eligible.length,
+    missing: allMissing.length,
+    stale: allStale.length,
+    generated,
+    failed,
+  };
 }

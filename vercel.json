@@ -7,5 +7,11 @@
         "action": "deny"
       }
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/match-previews",
+      "schedule": "15 21 * * *"
+    }
   ]
 }

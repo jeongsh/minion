@@ -11,7 +11,12 @@ import { fetchAuthenticatedLeaguepediaApi } from "./leaguepedia-api.ts";
 const REQUEST_DELAY_MS = 3000;
 const MAX_RETRIES = 5;
 
-export type LeaguepediaSyncMode = "incremental" | "full";
+export type LeaguepediaSyncMode = "incremental" | "full" | "range";
+
+export type LeaguepediaSyncDateRange = {
+  startIso: string;
+  endExclusiveIso: string;
+};
 
 export type LeaguepediaSyncSummary = {
   mode: LeaguepediaSyncMode;
@@ -210,10 +215,21 @@ function escapeCargoValue(value: string) {
   return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
 
-function buildWhereClause(overviewPages: string[], cursorIso: string | null, mode: LeaguepediaSyncMode) {
+function buildWhereClause(
+  overviewPages: string[],
+  cursorIso: string | null,
+  mode: LeaguepediaSyncMode,
+  dateRange?: LeaguepediaSyncDateRange,
+) {
   const base = `(${overviewPages
     .map((overviewPage) => `MS.OverviewPage="${escapeCargoValue(overviewPage)}"`)
     .join(" OR ")})`;
+  if (mode === "range") {
+    if (!dateRange) {
+      throw new Error("기간 동기화에 시작일과 종료일이 필요합니다.");
+    }
+    return `${base} AND MS.DateTime_UTC >= "${formatCargoDateTime(dateRange.startIso)}" AND MS.DateTime_UTC < "${formatCargoDateTime(dateRange.endExclusiveIso)}"`;
+  }
   if (mode !== "incremental" || !cursorIso) {
     return base;
   }
@@ -221,12 +237,32 @@ function buildWhereClause(overviewPages: string[], cursorIso: string | null, mod
   return `${base} AND MS.DateTime_UTC > "${formatCargoDateTime(cursorIso)}"`;
 }
 
-function isAfterCursor(matchDateIso: string, cursorIso: string | null, mode: LeaguepediaSyncMode) {
+function isInSyncWindow(
+  matchDateIso: string,
+  cursorIso: string | null,
+  mode: LeaguepediaSyncMode,
+  dateRange?: LeaguepediaSyncDateRange,
+) {
+  if (mode === "range") {
+    if (!dateRange) return false;
+    const matchTime = new Date(matchDateIso).getTime();
+    return (
+      matchTime >= new Date(dateRange.startIso).getTime() &&
+      matchTime < new Date(dateRange.endExclusiveIso).getTime()
+    );
+  }
   if (mode !== "incremental" || !cursorIso) {
     return true;
   }
 
   return new Date(matchDateIso).getTime() > new Date(cursorIso).getTime();
+}
+
+export function cursorWithLookback(cursorIso: string | null, lookbackDays: number) {
+  if (!cursorIso || lookbackDays <= 0) return cursorIso;
+  const cursorTime = new Date(cursorIso).getTime();
+  if (!Number.isFinite(cursorTime)) return cursorIso;
+  return new Date(cursorTime - lookbackDays * 24 * 60 * 60 * 1000).toISOString();
 }
 
 async function cargoQuery(
@@ -280,11 +316,12 @@ async function fetchTournamentMatches(
   overviewPages: string[],
   cursorIso: string | null,
   mode: LeaguepediaSyncMode,
+  dateRange?: LeaguepediaSyncDateRange,
   onRetry?: (waitMs: number) => void,
 ) {
   const rows: CargoMatchRow[] = [];
   let offset = 0;
-  const where = buildWhereClause(overviewPages, cursorIso, mode);
+  const where = buildWhereClause(overviewPages, cursorIso, mode, dateRange);
 
   while (true) {
     const batch = await cargoQuery(
@@ -733,6 +770,8 @@ export async function syncInternationalMatches2026(
   options: {
     mode?: LeaguepediaSyncMode;
     initialDelayMs?: number;
+    dateRange?: LeaguepediaSyncDateRange;
+    incrementalLookbackDays?: number;
     onRetry?: (waitMs: number) => void;
     tournaments?: SeasonTournamentConfig[];
   } = {},
@@ -750,6 +789,10 @@ export async function syncInternationalMatches2026(
   }
 
   const cursor = mode === "incremental" ? await getLastCompletedMatchCursor(supabase) : null;
+  const queryCursor =
+    mode === "incremental"
+      ? cursorWithLookback(cursor, options.incrementalLookbackDays ?? 3)
+      : null;
   const teams = await getTeamsForIntl(supabase);
 
   const summary: IntlSyncSummary = {
@@ -768,8 +811,9 @@ export async function syncInternationalMatches2026(
   try {
     fetchedRows = await fetchTournamentMatches(
       tournamentConfigs.map((tournament) => tournament.overviewPage),
-      cursor,
+      queryCursor,
       mode,
+      options.dateRange,
       onRetry,
     );
   } catch (err) {
@@ -837,7 +881,7 @@ export async function syncInternationalMatches2026(
         continue;
       }
 
-      if (!isAfterCursor(matchDate, cursor, mode)) {
+      if (!isInSyncWindow(matchDate, queryCursor, mode, options.dateRange)) {
         summary.skipped.push({
           matchId: row.MatchId,
           teamAName,
@@ -926,6 +970,8 @@ export async function syncLeaguepediaLck2026(
   options: {
     mode?: LeaguepediaSyncMode;
     initialDelayMs?: number;
+    dateRange?: LeaguepediaSyncDateRange;
+    incrementalLookbackDays?: number;
     onRetry?: (waitMs: number) => void;
     tournaments?: SeasonTournamentConfig[];
   } = {},
@@ -940,6 +986,10 @@ export async function syncLeaguepediaLck2026(
   }
 
   const cursor = mode === "incremental" ? await getLastCompletedMatchCursor(supabase) : null;
+  const queryCursor =
+    mode === "incremental"
+      ? cursorWithLookback(cursor, options.incrementalLookbackDays ?? 3)
+      : null;
 
   const teams = await getRequiredTeams(supabase);
   const summary: LeaguepediaSyncSummary = {
@@ -957,8 +1007,9 @@ export async function syncLeaguepediaLck2026(
   try {
     fetchedRows = await fetchTournamentMatches(
       tournamentConfigs.map((tournament) => tournament.overviewPage),
-      cursor,
+      queryCursor,
       mode,
+      options.dateRange,
       onRetry,
     );
   } catch (err) {
@@ -1011,7 +1062,7 @@ export async function syncLeaguepediaLck2026(
         continue;
       }
 
-      if (!isAfterCursor(matchDate, cursor, mode)) {
+      if (!isInSyncWindow(matchDate, queryCursor, mode, options.dateRange)) {
         summary.skipped.push({
           matchId: row.MatchId,
           teamAName,

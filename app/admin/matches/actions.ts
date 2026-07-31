@@ -2,17 +2,23 @@
 
 import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { getMatchById, getSetsByMatchId } from "@/lib/data/lck";
 import { HOME_PUBLIC_DATA_TAG } from "@/lib/data/home-cache";
 import { diagnoseMatches, type MatchDiagnosis } from "@/lib/match-diagnostics";
-import { refreshMatchAiPreviewCacheForMatchId } from "@/lib/match-preview-ai";
+import {
+  refreshMatchAiPreviewCacheForMatchId,
+  refreshMissingUpcomingMatchAiPreviews,
+} from "@/lib/match-preview-ai";
 import {
   getLastCompletedMatchCursor,
   syncLeaguepediaLck2026,
+  type LeaguepediaSyncMode,
   type LeaguepediaSyncSummary,
 } from "@/lib/sync/leaguepedia-lck-2026";
+import { leaguepediaKstDateRange } from "@/lib/sync/leaguepedia-date-range";
 import {
   needsLeaguepediaMatchSetsSync,
   syncLeaguepediaMatchSets,
@@ -52,6 +58,12 @@ export type SyncLeaguepediaActionResult =
   | {
       ok: true;
       summary: LeaguepediaSyncSummary;
+      detailSummary: {
+        matchesChecked: number;
+        matchesSynced: number;
+        setsUpserted: number;
+        errors: Array<{ matchId: string; error: string }>;
+      } | null;
     }
   | {
       ok: false;
@@ -84,18 +96,85 @@ function emptySetsSyncSummary(matchId: string, leaguepediaMatchId: string): Leag
 }
 
 export async function syncLeaguepediaMatchesAction(
-  mode: "incremental" | "full" = "incremental",
+  mode: LeaguepediaSyncMode = "incremental",
+  selectedRange?: { startDate: string; endDate: string },
 ): Promise<SyncLeaguepediaActionResult> {
   try {
     const supabase = await createSupabaseAdminActionClient();
-    const summary = await syncLeaguepediaLck2026(supabase, { mode });
+    const dateRange =
+      mode === "range"
+        ? leaguepediaKstDateRange(
+            selectedRange?.startDate ?? "",
+            selectedRange?.endDate ?? "",
+          )
+        : undefined;
+    const summary = await syncLeaguepediaLck2026(supabase, { mode, dateRange });
+    after(async () => {
+      try {
+        const previewSummary = await refreshMissingUpcomingMatchAiPreviews({
+          concurrency: 1,
+          limit: 1,
+        });
+        if (previewSummary.failed.length > 0) {
+          console.warn("[match-ai-preview] schedule sync backfill incomplete", previewSummary);
+        }
+      } catch (error) {
+        // A schedule sync must still succeed if the optional AI service is unavailable.
+        console.warn("[match-ai-preview] schedule sync backfill failed", error);
+      }
+    });
+    let detailSummary: {
+      matchesChecked: number;
+      matchesSynced: number;
+      setsUpserted: number;
+      errors: Array<{ matchId: string; error: string }>;
+    } | null = null;
+
+    if (dateRange) {
+      const { data: completedMatches, error: completedMatchesError } = await supabase
+        .from("matches")
+        .select("id")
+        .eq("status", "completed")
+        .not("leaguepedia_match_id", "is", null)
+        .gte("match_date", dateRange.startIso)
+        .lt("match_date", dateRange.endExclusiveIso)
+        .order("match_date", { ascending: true });
+      if (completedMatchesError) {
+        throw completedMatchesError;
+      }
+
+      detailSummary = {
+        matchesChecked: completedMatches.length,
+        matchesSynced: 0,
+        setsUpserted: 0,
+        errors: [],
+      };
+
+      for (const match of completedMatches) {
+        try {
+          if (!(await needsLeaguepediaMatchSetsSync(supabase, match.id))) {
+            continue;
+          }
+          const setsSummary = await syncLeaguepediaMatchSets(supabase, match.id, {
+            refreshAiPreview: false,
+          });
+          detailSummary.matchesSynced += 1;
+          detailSummary.setsUpserted += setsSummary.upserted;
+        } catch (error) {
+          detailSummary.errors.push({
+            matchId: match.id,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      }
+    }
 
     revalidatePath("/admin/matches");
     revalidatePath("/schedule");
     revalidatePath("/");
     updateTag(HOME_PUBLIC_DATA_TAG);
 
-    return { ok: true, summary };
+    return { ok: true, summary, detailSummary };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Leaguepedia 동기화에 실패했습니다.";
     return { ok: false, error: message };

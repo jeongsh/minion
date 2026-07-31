@@ -597,7 +597,14 @@ export default async function MatchDetailPage({
     </section>
   );
   const aiPreview = activeTab === "preview"
-    ? await getMatchAiPreview({ match, tournament, teams, matches, sets: allSets })
+    ? await getMatchAiPreview({
+        match,
+        tournament,
+        teams,
+        matches,
+        sets: allSets,
+        tournaments,
+      })
     : null;
   const embedUrl = youtubeEmbedUrl(match.vodUrl);
   return (

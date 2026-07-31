@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
-import { KitschEmptyState } from "@/components/ui/kitsch-empty-state";
+import Link from "next/link";
+import { ErrorState } from "@/components/ui/error-state";
 
 export default function AppError({
   error,
@@ -15,25 +16,30 @@ export default function AppError({
   }, [error]);
 
   return (
-    <main className="layout-reading py-24">
-      <p className="text-xs font-black uppercase tracking-[0.16em] text-[var(--ui-muted)]">Unexpected Error</p>
-      <KitschEmptyState
-        character="marker"
+    <main className="layout-reading flex min-h-[65vh] items-center py-12 sm:py-16">
+      <ErrorState
+        code="Unexpected Error"
         title="화면이 잠깐 삐끗했어요"
-        body="다시 시도해도 반복되면 digest 값으로 추적할 수 있습니다."
-        animated
+        body="잠시 후 다시 시도해주세요. 문제가 반복되면 오류 번호와 함께 알려주세요."
+        digest={error.digest}
         action={
-          <button
-            type="button"
-            onClick={reset}
-            className="rounded-full bg-[var(--ui-ink)] px-5 py-2.5 text-sm font-black text-[var(--ui-surface)]"
-          >
-            다시 시도
-          </button>
+          <>
+            <button
+              type="button"
+              onClick={reset}
+              className="inline-flex min-h-11 items-center justify-center rounded-xl bg-accent px-5 text-sm font-bold text-accent-foreground transition hover:brightness-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            >
+              다시 시도
+            </button>
+            <Link
+              href="/"
+              className="inline-flex min-h-11 items-center justify-center rounded-xl border border-[var(--ui-border)] px-5 text-sm font-bold text-[var(--ui-ink)] transition hover:border-accent/40 hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            >
+              홈으로 돌아가기
+            </Link>
+          </>
         }
-        className="mt-4"
       />
-      {error.digest ? <p className="mt-3 text-center text-xs font-mono text-[var(--ui-muted)]">digest: {error.digest}</p> : null}
     </main>
   );
 }

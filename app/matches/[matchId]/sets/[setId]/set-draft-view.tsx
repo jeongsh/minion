@@ -1,101 +1,58 @@
-"use client";
-
-import { useState } from "react";
 import Image from "next/image";
 
 import { championImage, championLabel } from "@/lib/champions";
-import type { Champion, Player, SetPickBan } from "@/lib/types";
+import type { Champion, SetPickBan } from "@/lib/types";
 
 type DraftSide = {
   teamName: string;
   bans: SetPickBan[];
-  picks: SetPickBan[];
-  linePicks: Array<SetPickBan | null>;
-  lineup: Array<{ position: Player["position"]; player?: Player }>;
 };
 
 type DraftItem = SetPickBan & {
   champion?: Champion;
 };
 
-function draftWithChampion(draft: SetPickBan[], champions: Champion[]) {
-  return draft.map((item) => ({
-    ...item,
-    champion: champions.find((champion) => champion.id === item.championId),
-  }));
+function orderedBans(draft: SetPickBan[], champions: Champion[]) {
+  return [...draft]
+    .sort((a, b) => a.orderIndex - b.orderIndex)
+    .map((item) => ({
+      ...item,
+      champion: champions.find((champion) => champion.id === item.championId),
+    }));
 }
 
-function DraftTile({
-  item,
-  muted = false,
-}: {
-  item: DraftItem | null;
-  muted?: boolean;
-}) {
+function BanTile({ item }: { item: DraftItem | null }) {
   const image = championImage(item?.champion);
+
   return (
-    <div className="relative h-9 overflow-hidden rounded-md border border-border bg-background sm:h-10 lg:h-12">
+    <span className="relative block h-7 w-12 shrink-0 overflow-hidden rounded-sm bg-surface-muted">
       {image ? (
         <Image
           src={image}
           alt={championLabel(item?.champion)}
           fill
-          className={`object-cover ${muted ? "grayscale" : ""}`}
+          sizes="48px"
+          className="object-cover grayscale"
         />
       ) : null}
-    </div>
+    </span>
   );
 }
 
-function DraftGrid({
-  side,
-  champions,
-  mode,
+function BanTiles({
+  items,
   reverse = false,
 }: {
-  side: DraftSide;
-  champions: Champion[];
-  mode: "line" | "order";
+  items: DraftItem[];
   reverse?: boolean;
 }) {
-  const bans = draftWithChampion(side.bans, champions);
-  const orderedBans = [...bans].sort((a, b) => a.orderIndex - b.orderIndex);
-  const displayOrderedBans = reverse ? [...orderedBans].reverse() : orderedBans;
-
-  if (mode === "order") {
-    return (
-      <div className="grid gap-2 lg:gap-2.5">
-        <div>
-          <div className="mb-1 flex items-center justify-between text-[13px] font-semibold sm:mb-1.5 sm:text-sm">
-            <span>{side.teamName} 밴 순서</span>
-          </div>
-          <div className="grid grid-cols-5 gap-1 lg:gap-1.5">
-            {Array.from({ length: 5 }, (_, index) => {
-              const item = displayOrderedBans[index] ?? null;
-              return (
-                <DraftTile key={item?.id ?? `ban-order-${index}`} item={item} muted />
-              );
-            })}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="grid gap-2 lg:gap-2.5">
-      <div>
-        <div className="mb-1 flex items-center justify-between text-[13px] font-semibold sm:mb-1.5 sm:text-sm">
-          <span>{side.teamName} 밴</span>
-        </div>
-        <div className="grid grid-cols-5 gap-1 lg:gap-1.5">
-          {Array.from({ length: 5 }, (_, index) => {
-            const item = displayOrderedBans[index] ?? null;
-            return <DraftTile key={item?.id ?? `ban-${index}`} item={item} muted />;
-          })}
-        </div>
-      </div>
-    </div>
+    <span className={`flex gap-0.5 min-[360px]:gap-1 ${reverse ? "flex-row-reverse" : ""}`}>
+      {Array.from({ length: 5 }, (_, index) => {
+        const item = items[index] ?? null;
+        return <BanTile key={item?.id ?? `empty-ban-${index}`} item={item} />;
+      })}
+    </span>
   );
 }
 
@@ -108,14 +65,40 @@ export function SetDraftView({
   red: DraftSide;
   champions: Champion[];
 }) {
-  const [mode] = useState<"line" | "order">("line");
+  const blueBans = orderedBans(blue.bans, champions);
+  const redBans = orderedBans(red.bans, champions);
 
   return (
-    <div className="grid gap-2 rounded-md border border-border bg-surface p-2 sm:p-3 lg:gap-3">
-      <div className="grid gap-2 md:grid-cols-2 lg:gap-3">
-        <DraftGrid side={blue} champions={champions} mode={mode} />
-        <DraftGrid side={red} champions={champions} mode={mode} />
+    <>
+      <div className="grid gap-2 sm:hidden">
+        <p className="text-center text-[13px] font-medium text-muted">밴</p>
+        <div className="grid min-w-0 gap-1 min-[360px]:flex min-[360px]:items-center min-[360px]:justify-between min-[360px]:gap-2">
+          <strong className="min-w-0 truncate text-sm font-semibold">{blue.teamName}</strong>
+          <BanTiles items={blueBans} />
+        </div>
+        <div className="grid min-w-0 gap-1 min-[360px]:flex min-[360px]:items-center min-[360px]:justify-between min-[360px]:gap-2">
+          <strong className="min-w-0 truncate text-sm font-semibold">{red.teamName}</strong>
+          <BanTiles items={redBans} reverse />
+        </div>
       </div>
-    </div>
+
+      <div className="hidden grid-cols-[minmax(0,1fr)_3rem_minmax(0,1fr)] items-center gap-3 sm:grid">
+        <div
+          className="flex min-w-0 items-center justify-end"
+          aria-label={`${blue.teamName} 밴`}
+        >
+          <BanTiles items={blueBans} />
+        </div>
+        <span className="text-center text-[13px] font-medium text-muted">
+          밴
+        </span>
+        <div
+          className="flex min-w-0 items-center"
+          aria-label={`${red.teamName} 밴`}
+        >
+          <BanTiles items={redBans} reverse />
+        </div>
+      </div>
+    </>
   );
 }

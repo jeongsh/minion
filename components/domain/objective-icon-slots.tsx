@@ -28,7 +28,12 @@ export function ObjectiveIconSlots({
   size?: number;
 }) {
   if (icons.length === 0) {
-    return <span className="text-[13px] font-semibold text-muted">{emptyText}</span>;
+    return (
+      <span className="text-[13px] font-semibold text-muted">
+        {emptyText}
+        {emptyText === "" ? <span className="sr-only">0개</span> : null}
+      </span>
+    );
   }
 
   return (

@@ -37,6 +37,8 @@ export function ResponsivePlayerStatRow({
   title,
   subtitle,
   trailing,
+  detail,
+  stackItemsOnSmall = false,
   itemSlotClassName = "h-[18px] w-[18px]",
   itemSeparatorClassName = "h-3.5 w-px",
   itemImageSizes = "18px",
@@ -50,12 +52,14 @@ export function ResponsivePlayerStatRow({
   title: ReactNode;
   subtitle?: ReactNode;
   trailing?: ReactNode;
+  detail?: ReactNode;
+  stackItemsOnSmall?: boolean;
   itemSlotClassName?: string;
   itemSeparatorClassName?: string;
   itemImageSizes?: string;
 }) {
   return (
-    <div data-player-stat-row="compact" className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-t border-border px-2 py-1.5 text-[13px] first:border-t-0 sm:gap-3 sm:px-2.5">
+    <div data-player-stat-row="compact" className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-2.5 py-2 text-[13px] even:bg-surface-muted/15 sm:gap-3 sm:px-3 min-[720px]:grid-cols-[17rem_auto] min-[720px]:justify-center min-[720px]:gap-6">
       <PlayerLoadout
         champion={champion}
         spellIds={line.spellIds}
@@ -69,26 +73,44 @@ export function ResponsivePlayerStatRow({
         }
         badge={line.championLevel != null ? `${line.championLevel}` : undefined}
         size="sm"
-        className="[&>span:first-child]:gap-0.5 [&>span:first-child>span:first-child]:h-9 [&>span:first-child>span:first-child]:w-9 [&>span:first-child>span:nth-child(2)_span]:h-[18px] [&>span:first-child>span:nth-child(2)_span]:w-[18px]"
+        className="gap-1.5 [&>span:first-child]:gap-0.5 [&>span:first-child>span:first-child]:h-10 [&>span:first-child>span:first-child]:w-10 [&>span:first-child>span:nth-child(2)_span]:h-5 [&>span:first-child>span:nth-child(2)_span]:w-5"
       />
 
-      <div className="grid min-w-0 justify-items-end gap-0.5">
-        <PlayerItemSlots
-          itemIds={line.itemIds}
-          roleBoundItem={line.roleBoundItem}
-          version={version}
-          className="justify-end"
-          slotClassName={itemSlotClassName}
-          separatorClassName={itemSeparatorClassName}
-          imageSizes={itemImageSizes}
-        />
-        <div className="flex max-w-full items-center justify-end gap-1.5 text-[11px] font-semibold text-muted sm:text-xs">
+      <div className="grid min-w-0 justify-items-end gap-0.5 min-[720px]:justify-items-start">
+        <div className={stackItemsOnSmall ? "hidden min-[480px]:block" : ""}>
+          <PlayerItemSlots
+            itemIds={line.itemIds}
+            roleBoundItem={line.roleBoundItem}
+            version={version}
+            className="justify-end"
+            slotClassName={itemSlotClassName}
+            separatorClassName={itemSeparatorClassName}
+            imageSizes={itemImageSizes}
+          />
+        </div>
+        <div className="flex max-w-full items-center justify-end gap-1.5 text-[13px] font-semibold text-muted">
           <span className="tabular-nums">{line.cs}</span>
           <span className="text-muted/60">CS</span>
           <span className="tabular-nums">{stats.csm.toFixed(1)}</span>
           {trailing ? <span className="min-w-0 truncate">{trailing}</span> : null}
         </div>
       </div>
+
+      {stackItemsOnSmall ? (
+        <div className="col-span-2 flex justify-end min-[480px]:hidden">
+          <PlayerItemSlots
+            itemIds={line.itemIds}
+            roleBoundItem={line.roleBoundItem}
+            version={version}
+            className="justify-end"
+            slotClassName={itemSlotClassName}
+            separatorClassName={itemSeparatorClassName}
+            imageSizes={itemImageSizes}
+          />
+        </div>
+      ) : null}
+
+      {detail ? <div className="col-span-2 min-w-0">{detail}</div> : null}
     </div>
   );
 }

@@ -46,7 +46,6 @@ export function PlayerLoadout({
   badge,
   size = "md",
   className = "",
-  position,
 }: {
   champion?: Champion;
   spellIds: Array<number | null | undefined>;
@@ -75,7 +74,7 @@ export function PlayerLoadout({
       <span className="flex shrink-0 items-center gap-1">
         <span className={`relative block shrink-0 overflow-hidden rounded-md border border-border bg-surface-muted ${championSize}`}>
           {image ? <Image src={image} alt={championLabel(champion)} fill sizes={championImageSize} className="object-cover" /> : null}
-          {badge ? <span className="absolute bottom-0 right-0 rounded-tl bg-background/90 px-0.5 text-[9px] font-semibold leading-3">{badge}</span> : null}
+          {badge ? <span className="absolute bottom-0 right-0 rounded-tl bg-background/90 px-0.5 text-xs font-semibold leading-4">{badge}</span> : null}
         </span>
 
         <span className="flex shrink-0 items-center gap-0">
