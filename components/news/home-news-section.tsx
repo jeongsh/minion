@@ -1,0 +1,58 @@
+"use client";
+
+import { useState } from "react";
+import { NewsCard } from "@/components/news/news-card";
+import { NewsThumbnail } from "@/components/news/news-thumbnail";
+import { SectionHeading } from "@/components/ui/section-heading";
+import { formatNewsDate, type NewsArticle } from "@/lib/data/news";
+
+function LeadNewsCard({ article }: { article: NewsArticle }) {
+  const [hasThumbnail, setHasThumbnail] = useState(Boolean(article.thumbnailUrl));
+
+  return (
+    <a
+      href={article.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="group block min-w-0 rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-3 dark:bg-[var(--ui-surface-muted)]"
+    >
+      {hasThumbnail ? <NewsThumbnail article={article} priority onError={() => setHasThumbnail(false)} className="aspect-[16/9] max-h-[300px] w-full rounded-xl" /> : null}
+      <div className={hasThumbnail ? "mt-3" : ""}>
+        <h3 className="font-paperozi line-clamp-2 text-[17px] font-black leading-[1.38] tracking-[-0.035em] text-[var(--ui-ink)] group-hover:underline sm:text-[19px]">
+          {article.title}
+        </h3>
+        <p className="mt-2 hidden line-clamp-2 text-[12px] leading-[1.65] text-[var(--ui-muted)] lg:block lg:text-[13px]">
+          {article.summary}
+        </p>
+        <div className="mt-2 flex items-center gap-1.5 text-[11px] font-semibold text-[var(--ui-muted)]">
+          <span className="text-[var(--ui-ink)]">{article.source}</span>
+          <span aria-hidden>·</span>
+          <time dateTime={article.publishedAt}>{formatNewsDate(article.publishedAt)}</time>
+        </div>
+      </div>
+    </a>
+  );
+}
+
+export function HomeNewsSection({ articles }: { articles: NewsArticle[] }) {
+  if (articles.length === 0) return null;
+  const [lead, ...secondary] = articles;
+
+  return (
+    <section aria-labelledby="home-news-heading">
+      <SectionHeading href="/news">
+        <span id="home-news-heading">LCK 뉴스</span>
+      </SectionHeading>
+      <div className="grid gap-3 lg:grid-cols-[minmax(0,1.5fr)_minmax(320px,1fr)] lg:gap-6">
+        <LeadNewsCard article={lead} />
+        <div className="grid content-start gap-3">
+          {secondary.map((article, index) => (
+            <div key={article.id} className={index >= 3 ? "hidden lg:contents" : "contents"}>
+              <NewsCard article={article} size="home" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}

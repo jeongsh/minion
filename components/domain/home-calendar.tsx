@@ -8,7 +8,7 @@ import { ko } from "react-day-picker/locale";
 import "react-day-picker/style.css";
 
 import type { CalendarEvent, CalendarEventType } from "@/lib/calendar/events";
-import { CELEBRATION_COLOR } from "@/lib/calendar/theme";
+import { CALENDAR_EVENT_COLORS } from "@/lib/calendar/theme";
 
 export type HomeCalendarMatch = {
   id: string;
@@ -29,10 +29,10 @@ type DotType = "match" | CalendarEventType;
 // 우승(championship)은 별도 색을 지정하지 않고 기념일과 같은 취급으로 묶는다.
 const DOT_META: Record<DotType, { color: string; label: string; emoji: string }> = {
   match: { color: "#00b979", label: "경기", emoji: "🎮" },
-  birthday: { color: CELEBRATION_COLOR, label: "생일", emoji: "🎂" },
-  debut: { color: "#7c5cff", label: "데뷔", emoji: "🎉" },
-  championship: { color: "#f5c518", label: "기념일", emoji: "🏆" },
-  custom: { color: "#f5c518", label: "기념일", emoji: "🎈" },
+  birthday: { color: CALENDAR_EVENT_COLORS.birthday, label: "생일", emoji: "🎂" },
+  debut: { color: CALENDAR_EVENT_COLORS.debut, label: "데뷔", emoji: "🎉" },
+  championship: { color: CALENDAR_EVENT_COLORS.championship, label: "기념일", emoji: "🏆" },
+  custom: { color: CALENDAR_EVENT_COLORS.custom, label: "기념일", emoji: "🎈" },
 };
 
 const LEGEND: DotType[] = ["match", "birthday", "debut", "custom"];
@@ -60,6 +60,8 @@ export function HomeCalendar({
   matches,
   events,
   heightClassName = "h-[300px]",
+  detailMode = "popover",
+  onSelectedDateKeyChange,
 }: {
   initialMonthKey: string;
   matches: HomeCalendarMatch[];
@@ -71,6 +73,9 @@ export function HomeCalendar({
    * mt-auto 범례가 테두리 밖으로 삐져나온다. 더 줄이려면 --rdp-day-height부터 낮출 것.
    */
   heightClassName?: string;
+  /** 메인에서는 날짜 상세를 별도 카드에 표시하고, 다른 사용처는 기존 팝업을 유지한다. */
+  detailMode?: "popover" | "external";
+  onSelectedDateKeyChange?: (dateKey: string | null) => void;
 }) {
   const containerRef = useRef<HTMLElement>(null);
 
@@ -122,6 +127,8 @@ export function HomeCalendar({
       : [];
 
   useEffect(() => {
+    if (detailMode === "external") return;
+
     function handlePointerDown(event: PointerEvent) {
       const target = event.target;
       if (target instanceof Node && containerRef.current?.contains(target)) {
@@ -133,7 +140,7 @@ export function HomeCalendar({
 
     document.addEventListener("pointerdown", handlePointerDown);
     return () => document.removeEventListener("pointerdown", handlePointerDown);
-  }, []);
+  }, [detailMode]);
 
   return (
     <section
@@ -155,9 +162,17 @@ export function HomeCalendar({
             (recurringEventsByMonthDay.get(monthDay)?.length ?? 0) > 0 ||
             (oneTimeEventsByDate.get(key)?.length ?? 0) > 0;
 
+          if (detailMode === "external") {
+            setSelected(day);
+            setPopupPosition(null);
+            onSelectedDateKeyChange?.(key);
+            return;
+          }
+
           if (!hasAnything || (selected && dateKeyFromLocalDate(selected) === key)) {
             setSelected(undefined);
             setPopupPosition(null);
+            onSelectedDateKeyChange?.(null);
             return;
           }
 
@@ -174,6 +189,7 @@ export function HomeCalendar({
           }
 
           setSelected(day);
+          onSelectedDateKeyChange?.(key);
         }}
         defaultMonth={initialMonth}
         locale={ko}
@@ -187,7 +203,7 @@ export function HomeCalendar({
           } as CSSProperties
         }
         components={{
-          Chevron: ({ orientation, className }) => {
+          Chevron: ({ orientation }) => {
             const Icon =
               orientation === "left"
                 ? ChevronLeft
@@ -196,7 +212,7 @@ export function HomeCalendar({
                   : orientation === "up"
                     ? ChevronUp
                     : ChevronDown;
-            return <Icon className={className} size={14} strokeWidth={2.25} />;
+            return <Icon size={14} strokeWidth={2.25} />;
           },
           DayButton: (props: DayButtonProps) => {
             const { day, modifiers, className, ...buttonProps } = props;
@@ -231,7 +247,7 @@ export function HomeCalendar({
         className="home-match-calendar"
       />
 
-      {popupPosition && (selectedMatches.length > 0 || selectedEvents.length > 0) ? (
+      {detailMode === "popover" && popupPosition && (selectedMatches.length > 0 || selectedEvents.length > 0) ? (
         <div
           className="absolute z-30 w-[300px] rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-2.5 text-left shadow-[0_20px_55px_rgba(0,0,0,0.18)]"
           style={{ left: popupPosition.left, top: popupPosition.top }}

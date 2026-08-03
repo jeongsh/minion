@@ -13,6 +13,7 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 import { getTodayCelebrations } from "@/lib/calendar/events";
 import { getWeeklyReportIndex } from "@/lib/reports/queries";
 import { getLckChannelVideos, type HomeVideo } from "@/lib/data/lck-channel-videos";
+import { getHomeNewsFeed } from "@/lib/data/naver-news";
 
 export const dynamic = "force-dynamic";
 
@@ -30,15 +31,16 @@ function buildRecentForm(teamId: string, matches: Match[]) {
 
 export default async function HomePage() {
   const user = await getCurrentUser();
-  const [homeData, communityPosts, predictionMarket, lckChannelVideos, pomEntries, reportIndex] = await Promise.all([
+  const [homeData, communityPosts, predictionMarket, lckChannelVideos, pomEntries, reportIndex, homeNewsFeed] = await Promise.all([
     getHomePagePublicData(),
     getBoardPosts({ scope: "hub" }),
     getPredictionMarketData(user?.id),
     getLckChannelVideos(),
     getHomePomEntries(),
     getWeeklyReportIndex(),
+    getHomeNewsFeed(6),
   ]);
-  const { teams, matches, savedStandings, tournaments, latestVideos, homeHeroSlides, calendarEvents } = homeData;
+  const { teams, matches, savedStandings, tournaments, latestVideos, calendarEvents } = homeData;
 
   // 오늘의 기념일. 배너를 누르면 해당 팀 게시판으로 이동한다.
   const todayCelebrations = getTodayCelebrations(calendarEvents);
@@ -124,13 +126,6 @@ export default async function HomePage() {
       teamBLogoUrl: teamB?.logoUrl ?? null,
     };
   });
-  const heroSlides = homeHeroSlides.map((slide) => ({
-    id: slide.id,
-    imageUrl: slide.imageUrl,
-    alt: slide.title,
-    href: slide.linkUrl,
-  }));
-
   // 최신 영상: 팀/선수 채널 영상과 LCK 공식 채널 영상을 최신순으로 섞어 12개만 노출한다.
   const teamVideoItems: HomeVideo[] = latestVideos.map((video) => ({
     id: video.id,
@@ -166,14 +161,15 @@ export default async function HomePage() {
       currentUserId={user?.id}
       predictionBalance={predictionMarket.balance}
       calendarMonthKey={calendarMonthKey}
+      calendarTodayKey={todayKey}
       calendarMatches={calendarClientMatches}
       calendarEvents={calendarEvents}
       celebrationEvents={todayCelebrations}
       latestVideos={homeVideos}
-      heroSlides={heroSlides}
       communityPosts={homeCommunityPosts}
       pomEntries={pomEntries}
       latestReport={reportIndex[0] ?? null}
+      newsItems={homeNewsFeed.articles}
     />
   );
 }

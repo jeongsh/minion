@@ -1,14 +1,13 @@
 import Link from "next/link";
-import { CalendarDays } from "lucide-react";
-import { AdaptiveDialog } from "@/components/responsive/adaptive-dialog";
-import { HomeHeroSwiper, type HomeHeroSwiperSlide } from "@/components/domain/home-hero-swiper";
-import { HomeCalendar, type HomeCalendarMatch } from "@/components/domain/home-calendar";
+import type { HomeCalendarMatch } from "@/components/domain/home-calendar";
+import { HomeCalendarWorkspace } from "@/components/domain/home-calendar-workspace";
 import { HomeBoardCarousel } from "@/components/domain/home-board-carousel";
 import { HomeVideoSwiper } from "@/components/domain/home-video-swiper";
 import { HomeMatchSwiper } from "@/components/domain/home-match-swiper";
 import type { HomeMatchItem } from "@/components/domain/home-match-card";
 import { HomePomSwiper } from "@/components/domain/home-pom-swiper";
 import { HomeWeeklyReportCard } from "@/components/domain/home-weekly-report-card";
+import { HomeNewsSection } from "@/components/news/home-news-section";
 import { CelebrationBanner } from "@/components/domain/celebration-banner";
 import type { CalendarEvent } from "@/lib/calendar/events";
 import type { HomePomEntry } from "@/lib/data/home-pom";
@@ -17,6 +16,9 @@ import { teams as themeTeams } from "@/lib/team-themes";
 import type { Team } from "@/lib/types";
 import type { HomeVideo } from "@/lib/data/lck-channel-videos";
 import type { CommunityPostDetail } from "@/lib/community/types";
+import type { NewsArticle } from "@/lib/data/news";
+import { isMatchLive } from "@/lib/match-display";
+import { matchHref } from "@/lib/view-data";
 import { SectionHeading as Heading } from "@/components/ui/section-heading";
 import { AdSlot as Ad } from "@/components/ui/ad-slot";
 import { TeamLogo as Logo } from "@/components/ui/team-logo";
@@ -38,14 +40,15 @@ type Props = {
   currentUserId?: string;
   predictionBalance: number | null;
   calendarMonthKey: string;
+  calendarTodayKey: string;
   calendarMatches: HomeCalendarMatch[];
   calendarEvents: CalendarEvent[];
   celebrationEvents: CalendarEvent[];
   latestVideos: HomeVideo[];
-  heroSlides: HomeHeroSwiperSlide[];
   communityPosts: CommunityPostDetail[];
   pomEntries: HomePomEntry[];
   latestReport: WeeklyReportSummary | null;
+  newsItems: NewsArticle[];
 };
 
 /** 순위표는 10팀을 5+5 두 칼럼으로 나눈다. 옆 광고 높이도 이 값에서 계산한다. */
@@ -72,14 +75,15 @@ export function HomeDashboard({
   currentUserId,
   predictionBalance,
   calendarMonthKey,
+  calendarTodayKey,
   calendarMatches,
   calendarEvents,
   celebrationEvents,
   latestVideos,
-  heroSlides,
   communityPosts,
   pomEntries,
   latestReport,
+  newsItems,
 }: Props) {
   const activeTeams = themeTeams
     .map(
@@ -92,64 +96,64 @@ export function HomeDashboard({
         ) ?? theme,
     )
     .slice(0, 10);
+  const liveMatchItem = matchItems.find((item) => isMatchLive(item.match));
 
   return (
     <main className="layout-wide hub-home pb-16 pt-4 text-[var(--ui-ink)] sm:pt-7">
-      {/* 상단 배너 + (lg 이상) 캘린더 / (그 아래) 매치 패널.
-          배너 비율을 폭에 고정하면 좁은 화면에서 옆 캘린더와 높이가 어긋난다.
-          캘린더는 292px(6주 고정 × 30px + 캡션/요일/범례) 아래로 못 줄어드는데,
-          뷰포트 1280에서 배너 폭은 676px뿐이라 3.37:1이면 200px밖에 안 나온다.
-          그래서 2열에서는 배너를 높이 기준(h-full)으로 두어 캘린더와 항상 맞추고,
-          1열로 떨어지는 구간에서만 비율(5/2)로 잡는다. 2열일 때 배너의 실제 비율은
-          폭에 따라 2.1~3.4:1 사이를 오가는데, 1열 비율 2.5:1이 그 범위 안이라
-          브레이크포인트를 넘을 때 모양이 튀지 않는다. */}
-      <section className="grid gap-3 sm:gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
-        <div className="aspect-[5/2] min-w-0 lg:aspect-auto lg:h-[300px]">
-          <HomeHeroSwiper slides={heroSlides} />
-        </div>
+      {liveMatchItem ? (
+        <Link
+          href={matchHref(liveMatchItem.match)}
+          className="mb-4 flex min-h-11 min-w-0 items-center gap-2 rounded-xl bg-[#ff3158] px-3 py-2 text-sm font-bold text-white transition hover:bg-[#e9274d] sm:px-4"
+        >
+          <span className="shrink-0 rounded-full bg-white px-2 py-0.5 text-[11px] font-black text-[#ff3158]">
+            LIVE
+          </span>
+          <span className="min-w-0 flex-1 truncate">
+            {liveMatchItem.teamA?.shortName ?? "TBD"} {liveMatchItem.match.teamAScore ?? 0}
+            <span className="px-1.5 opacity-70">:</span>
+            {liveMatchItem.match.teamBScore ?? 0} {liveMatchItem.teamB?.shortName ?? "TBD"}
+          </span>
+          <span className="shrink-0 text-xs sm:text-sm">경기 보기</span>
+        </Link>
+      ) : null}
 
-        {/* lg 이상: 캘린더를 펼쳐 둔다. 높이 300px은 위 배너의 lg:h-[300px]와 같은 값이어야
-            한다(둘 중 하나만 바꾸면 어긋난다). min-h로 두면 배너 이미지의 원본 비율이
-            행 높이를 끌어올려(933px 폭에서 412px) 둘 다 늘어나므로 고정 높이여야 한다. */}
-        <div className="hidden min-w-0 lg:block">
-          <HomeCalendar
+      <HomeNewsSection articles={newsItems} />
+
+      {celebrationEvents.length > 0 ? (
+        <section className="mt-6">
+          <CelebrationBanner events={celebrationEvents} />
+        </section>
+      ) : null}
+
+      <section className="mt-8">
+        <Heading href="/schedule">매치</Heading>
+        <HomeMatchSwiper
+          items={matchItems}
+          currentUserId={currentUserId}
+          balance={predictionBalance}
+        />
+      </section>
+
+      <section className="mt-8">
+        <Heading href="/schedule">LCK 일정</Heading>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <HomeCalendarWorkspace
             initialMonthKey={calendarMonthKey}
+            initialDateKey={calendarTodayKey}
             matches={calendarMatches}
             events={calendarEvents}
-            heightClassName="h-[300px]"
           />
-        </div>
 
-        {/* 모바일: 캘린더를 펼치면 300px를 먹어 콘텐츠가 밀리므로, 원래대로 매치 패널을
-            두고 캘린더는 버튼으로 모달을 띄운다. */}
-        <div className="min-w-0 rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-3 sm:p-4 lg:hidden dark:bg-[var(--ui-surface-muted)]">
-          <div className="mb-3 flex min-w-0 items-center gap-2 text-[var(--ui-ink)]">
-            <CalendarDays size={17} className="shrink-0" />
-            <h2 className="home-section-title min-w-0 flex-1 text-[length:var(--ui-title-size)]">매치</h2>
-            <AdaptiveDialog
-              title="경기·기념일 캘린더"
-              trigger={<span className="flex items-center gap-1.5"><CalendarDays size={16} />캘린더</span>}
-              triggerClassName="flex min-h-10 shrink-0 items-center rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 text-[13px] font-bold text-[var(--ui-ink)] dark:bg-[var(--ui-surface-muted)]"
-            >
-              <HomeCalendar
-                initialMonthKey={calendarMonthKey}
-                matches={calendarMatches}
-                events={calendarEvents}
-              />
-            </AdaptiveDialog>
+          <div className="hidden h-[300px] lg:block">
+            <Ad placement="rectangle" className="h-full" />
           </div>
-          <HomeMatchSwiper
-            items={matchItems}
-            currentUserId={currentUserId}
-            balance={predictionBalance}
-            variant="single"
-          />
         </div>
       </section>
 
-      {celebrationEvents.length > 0 ? (
+      {pomEntries.length > 0 ? (
         <section className="mt-8">
-          <CelebrationBanner events={celebrationEvents} />
+          <Heading href="/players" caption="공식 MVP">최근 POM</Heading>
+          <HomePomSwiper entries={pomEntries} />
         </section>
       ) : null}
 
@@ -176,25 +180,6 @@ export function HomeDashboard({
           })}
         </div>
       </section>
-
-      <Ad placement="horizontal" className="mt-8 hidden h-[60px] md:block xl:h-[90px]" />
-
-      {/* 모바일에서는 위 상단 패널이 같은 matchItems를 보여주므로 중복을 피해 숨긴다. */}
-      <section className="mt-8 hidden lg:block">
-        <Heading href="/schedule">매치</Heading>
-        <HomeMatchSwiper
-          items={matchItems}
-          currentUserId={currentUserId}
-          balance={predictionBalance}
-        />
-      </section>
-
-      {pomEntries.length > 0 ? (
-        <section className="mt-8">
-          <Heading href="/players" caption="공식 MVP">최근 POM</Heading>
-          <HomePomSwiper entries={pomEntries} />
-        </section>
-      ) : null}
 
       <section className="mt-8 grid gap-4 xl:grid-cols-3">
         <div className="min-w-0 xl:col-span-2">

@@ -171,7 +171,7 @@ export function CelebrationCalendar({
             } as CSSProperties
           }
           components={{
-            Chevron: ({ orientation, className }) => {
+            Chevron: ({ orientation }) => {
               const Icon =
                 orientation === "left"
                   ? ChevronLeft
@@ -180,7 +180,7 @@ export function CelebrationCalendar({
                     : orientation === "up"
                       ? ChevronUp
                       : ChevronDown;
-              return <Icon className={className} size={14} strokeWidth={2.25} />;
+              return <Icon size={14} strokeWidth={2.25} />;
             },
             DayButton: (props: DayButtonProps) => {
               const { day, modifiers, className, ...buttonProps } = props;

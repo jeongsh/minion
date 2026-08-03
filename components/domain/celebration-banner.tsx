@@ -6,11 +6,7 @@ import {
   celebrationWriteHref,
   type CalendarEvent,
 } from "@/lib/calendar/events";
-import {
-  CELEBRATION_ACCENT,
-  CELEBRATION_COLOR,
-  CELEBRATION_SURFACE_SOFT,
-} from "@/lib/calendar/theme";
+import { CALENDAR_EVENT_BANNER_THEME } from "@/lib/calendar/theme";
 
 const TYPE_EMOJI: Record<CalendarEvent["type"], string> = {
   birthday: "🎂",
@@ -41,16 +37,17 @@ function headline(event: CalendarEvent, action: CelebrationAction) {
 function CelebrationCard({ event, action }: { event: CalendarEvent; action: CelebrationAction }) {
   const href = action === "write" ? celebrationWriteHref(event) : celebrationBoardHref(event);
   const ctaLabel = action === "write" ? "축하글 쓰기" : "축하하러 가기";
+  const theme = CALENDAR_EVENT_BANNER_THEME[event.type];
 
   return (
     <Link
       href={href}
       className="flex items-center gap-3 rounded-2xl px-4 py-3 transition sm:justify-center sm:gap-5 sm:px-6 sm:py-3.5"
-      style={{ background: CELEBRATION_COLOR }}
+      style={{ background: theme.background }}
     >
       <span
         className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full text-lg sm:h-10 sm:w-10"
-        style={{ background: CELEBRATION_SURFACE_SOFT }}
+        style={{ background: theme.soft }}
       >
         {event.playerImageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -62,19 +59,19 @@ function CelebrationCard({ event, action }: { event: CalendarEvent; action: Cele
 
       <span className="min-w-0 flex-1 sm:flex-initial">
         <span
-          className="block truncate text-[12px] font-bold sm:text-sm"
-          style={{ color: CELEBRATION_ACCENT }}
+          className="block truncate text-[12px] sm:text-sm"
+          style={{ color: theme.accent }}
         >
           {eyebrow(event)}
         </span>
-        <span className="block font-paperozi truncate text-sm text-white sm:text-base">
+        <span className="block font-paperozi truncate text-sm sm:text-base" style={{ color: theme.foreground }}>
           {headline(event, action)}
         </span>
       </span>
 
       <span
         className="flex shrink-0 items-center gap-0.5 rounded-lg bg-white px-2.5 py-2 text-[13px] font-bold sm:px-3.5"
-        style={{ color: CELEBRATION_COLOR }}
+        style={{ color: theme.background }}
       >
         <span className="hidden sm:inline">{ctaLabel}</span>
         <ChevronRight size={14} strokeWidth={2.5} />
