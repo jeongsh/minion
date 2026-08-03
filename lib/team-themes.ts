@@ -187,8 +187,8 @@ export const teams: Team[] = [
   {
     id: "team_soop",
     slug: "soop",
-    name: "SOOP",
-    shortName: "SOOP",
+    name: "DN SOOPers",
+    shortName: "DNS",
     logoUrl: teamLogoPath("soop"),
     logoWhiteUrl: teamWhiteLogoPath("soop"),
     backgroundUrl: "/teams/soop/bg.jpg",

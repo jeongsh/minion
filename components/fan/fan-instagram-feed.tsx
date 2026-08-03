@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { FanFeedTabs, buildOwnerTabs } from "@/components/fan/fan-feed-tabs";
@@ -111,7 +112,7 @@ function StoryViewer({
               onClick={prev}
               className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-black/40 p-2 text-white hover:bg-black/60"
             >
-              ‹
+              <ChevronLeft className="size-5" strokeWidth={2.25} />
             </button>
           )}
           {index < stories.length - 1 && (
@@ -120,7 +121,7 @@ function StoryViewer({
               onClick={next}
               className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-black/40 p-2 text-white hover:bg-black/60"
             >
-              ›
+              <ChevronRight className="size-5" strokeWidth={2.25} />
             </button>
           )}
         </div>

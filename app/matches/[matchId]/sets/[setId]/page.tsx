@@ -80,7 +80,7 @@ function ObjectiveCountChip({
       aria-label={`${label} ${count}개`}
     >
       <span
-        className="grid h-5 w-5 shrink-0 place-items-center sm:h-6 sm:w-6 min-[1400px]:!h-7 min-[1400px]:!w-7"
+        className="grid h-5 w-5 shrink-0 place-items-center sm:h-6 sm:w-6 wide:!h-7 wide:!w-7"
         aria-hidden="true"
       >
         <Image
@@ -90,7 +90,7 @@ function ObjectiveCountChip({
           height={24}
           unoptimized
           title={label}
-          className={`h-5 w-5 object-contain sm:h-6 sm:w-6 min-[1400px]:!h-7 min-[1400px]:!w-7 ${iconTone}`}
+          className={`h-5 w-5 object-contain sm:h-6 sm:w-6 wide:!h-7 wide:!w-7 ${iconTone}`}
         />
       </span>
       <span
@@ -147,7 +147,7 @@ function DragonSlots({
 
   return (
     <span
-      className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-surface-muted/70 p-0.5 sm:gap-1 sm:p-1 min-[1400px]:!gap-1.5"
+      className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-surface-muted/70 p-0.5 sm:gap-1 sm:p-1 wide:!gap-1.5"
       aria-label={`${side === "blue" ? "블루" : "레드"} 드래곤 ${visibleIcons.length}개${visibleIconLabels ? `: ${visibleIconLabels}` : ""}`}
     >
       {Array.from({ length: 4 }, (_, index) => {
@@ -155,7 +155,7 @@ function DragonSlots({
         return (
           <span
             key={icon?.key ?? `${side}-empty-dragon-${index}`}
-            className={`grid h-[22px] w-[22px] shrink-0 place-items-center overflow-hidden rounded-full sm:h-7 sm:w-7 min-[1400px]:!h-8 min-[1400px]:!w-8 ${
+            className={`grid h-[22px] w-[22px] shrink-0 place-items-center overflow-hidden rounded-full sm:h-7 sm:w-7 wide:!h-8 wide:!w-8 ${
               icon ? "bg-surface/55" : "bg-surface text-muted"
             }`}
             title={icon?.label ?? "미획득"}
@@ -167,7 +167,7 @@ function DragonSlots({
                 width={24}
                 height={24}
                 unoptimized
-                className="h-5 w-5 object-contain sm:h-6 sm:w-6 min-[1400px]:!h-7 min-[1400px]:!w-7"
+                className="h-5 w-5 object-contain sm:h-6 sm:w-6 wide:!h-7 wide:!w-7"
               />
             ) : (
               <span className="text-[13px] font-semibold leading-none" aria-hidden="true">
@@ -193,7 +193,7 @@ function ObjectiveTeamRail({
   const orderedMetrics = side === "blue" ? metrics : [...metrics].reverse();
   const metricGroup = (
     <span
-      className="inline-flex shrink-0 items-center gap-1 sm:gap-2 min-[1400px]:!gap-2.5"
+      className="inline-flex shrink-0 items-center gap-1 sm:gap-2 wide:!gap-2.5"
       aria-label={`${side === "blue" ? "블루" : "레드"} 일반 목표물`}
     >
       {orderedMetrics.map((metric) => (
@@ -205,7 +205,7 @@ function ObjectiveTeamRail({
 
   return (
     <div
-      className={`flex w-fit max-w-full flex-wrap items-center gap-x-2 gap-y-2 min-[360px]:flex-nowrap sm:gap-x-3 min-[1400px]:!gap-x-4 ${
+      className={`flex w-fit max-w-full flex-wrap items-center gap-x-2 gap-y-2 min-[360px]:flex-nowrap sm:gap-x-3 wide:!gap-x-4 ${
         side === "blue"
           ? "justify-end min-[1024px]:justify-self-end"
           : "justify-start min-[1024px]:justify-self-start"
@@ -215,7 +215,7 @@ function ObjectiveTeamRail({
     >
       {side === "blue" ? metricGroup : dragonGroup}
       <span
-        className="hidden h-6 w-px shrink-0 bg-border/50 min-[360px]:block min-[1400px]:!h-7"
+        className="hidden h-6 w-px shrink-0 bg-border/50 min-[360px]:block wide:!h-7"
         aria-hidden="true"
       />
       {side === "blue" ? dragonGroup : metricGroup}
@@ -630,7 +630,7 @@ export async function SetDetailContent({
     <Shell
       className={
         embedded
-          ? "flex w-full flex-col gap-5 min-[1280px]:gap-6"
+          ? "flex w-full flex-col gap-5 wide:gap-6"
           : "layout-wide flex flex-col gap-5 py-5 md:gap-6 md:py-6 xl:gap-8 xl:py-8"
       }
     >
@@ -659,12 +659,12 @@ export async function SetDetailContent({
           >
             스코어보드
           </h2>
-          <span className="pb-0.5 text-[13px] font-medium text-muted">
+          <span className="shrink-0 pb-0.5 text-[13px] font-medium text-muted">
             {set.setNumber}세트 · {durationLabel(set.durationSeconds)}
           </span>
         </div>
 
-        <div className="overflow-hidden rounded-xl border border-border/60 bg-surface shadow-sm">
+        <div className="overflow-hidden rounded-xl border border-border/60 bg-surface">
           <div className="grid min-h-[80px] grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 px-3 py-3 sm:min-h-[92px] sm:gap-6 sm:px-5">
             <div className="flex min-w-0 items-center justify-end gap-2 text-right sm:gap-3">
               <div className="min-w-0">
@@ -685,7 +685,7 @@ export async function SetDetailContent({
               </div>
               <TeamLogo
                 team={blueTeam}
-                size="h-8 w-8 sm:h-10 sm:w-10"
+                size="h-11 w-11 sm:h-14 sm:w-14"
                 plain
                 themeAware
               />
@@ -702,7 +702,7 @@ export async function SetDetailContent({
             <div className="flex min-w-0 items-center gap-2 sm:gap-3">
               <TeamLogo
                 team={redTeam}
-                size="h-8 w-8 sm:h-10 sm:w-10"
+                size="h-11 w-11 sm:h-14 sm:w-14"
                 plain
                 themeAware
               />
@@ -740,7 +740,7 @@ export async function SetDetailContent({
           </div>
 
           <div className="bg-surface-muted/20 px-2 pb-2 sm:px-3 sm:pb-3">
-            <div className="hidden grid-cols-[minmax(0,1fr)_4rem_minmax(0,1fr)] items-center gap-2 rounded-lg bg-surface/75 px-3 py-3 min-[1024px]:grid sm:px-4 min-[1280px]:grid-cols-[minmax(0,1fr)_5rem_minmax(0,1fr)] min-[1280px]:gap-3 min-[1400px]:!gap-4 min-[1400px]:!px-5">
+            <div className="hidden grid-cols-[minmax(0,1fr)_4rem_minmax(0,1fr)] items-center gap-2 rounded-lg bg-surface/75 px-3 py-3 min-[1024px]:grid sm:px-4 wide:grid-cols-[minmax(0,1fr)_5rem_minmax(0,1fr)] wide:!gap-4 wide:!px-5">
               <ObjectiveTeamRail set={set} side="blue" />
               <span className="flex h-8 items-center justify-center rounded-full bg-surface-muted/60 px-3 text-[13px] font-medium text-muted">
                 목표물
@@ -817,7 +817,7 @@ export async function SetDetailContent({
         <h2 id="set-timeline" className="home-section-title text-lg text-[var(--ui-ink)]">
           타임라인
         </h2>
-        <div className="overflow-hidden rounded-lg border border-border/60 bg-[var(--ui-surface)] shadow-sm">
+        <div className="overflow-hidden rounded-lg border border-border/60 bg-[var(--ui-surface)]">
           <GameTimeline
             events={timelineEvents}
             frames={timelineFrames}

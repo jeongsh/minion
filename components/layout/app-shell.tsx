@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -48,7 +48,7 @@ function applyTheme(theme: "dark" | "light") {
 
 const desktopNav = [
   { href: "/", label: "홈", icon: Home },
-  { href: "/schedule", label: "일정", icon: CalendarDays },
+  { href: "/schedule", label: "일정 및 매치", icon: CalendarDays },
   { href: "/tournaments", label: "대회", icon: Swords },
   { href: "/predictions", label: "승부예측", icon: Sparkles },
   { href: "/players", label: "선수", icon: UserRound },
@@ -58,7 +58,7 @@ const desktopNav = [
 
 const compactNav = [
   { href: "/", label: "홈", icon: Home },
-  { href: "/schedule", label: "일정", icon: CalendarDays },
+  { href: "/schedule", label: "일정 및 매치", icon: CalendarDays },
   { href: "/predictions", label: "예측", icon: Sparkles },
   { href: "/community", label: "커뮤니티", icon: MessageCircle },
   { href: "/me", label: "MY", icon: UserRound },
@@ -82,11 +82,13 @@ function focusRouteMeta(pathname: string) {
 export function AppShell({
   children,
   currentUser = null,
+  isAdminUser = false,
   followedTeamIds = [],
   shellTeams = fallbackTeams,
 }: {
   children: React.ReactNode;
   currentUser?: AppShellUser;
+  isAdminUser?: boolean;
   followedTeamIds?: string[];
   shellTeams?: Team[];
 }) {
@@ -168,6 +170,11 @@ export function AppShell({
           <Moon size={20} className="dark:hidden" />
           <Sun size={20} className="hidden dark:block" />
         </button>
+        {isAdminUser ? (
+          <Link href="/admin" className="mr-2 hidden h-11 items-center rounded-xl border border-[#d9dce1] bg-white px-3 text-[13px] font-bold text-[#18191c] transition hover:bg-[#f4f4f5] sm:inline-flex dark:border-[#434854] dark:bg-[#30343b] dark:text-white dark:hover:bg-[#383d45]">
+            어드민
+          </Link>
+        ) : null}
         {currentUser ? (
           <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
             <Link href="/me" className="flex min-h-11 min-w-0 max-w-[126px] items-center gap-1.5 text-[13px] font-bold sm:max-w-none sm:gap-2 sm:text-sm">

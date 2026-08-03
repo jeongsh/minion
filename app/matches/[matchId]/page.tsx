@@ -72,21 +72,27 @@ function CompactTeamBlock({
   const isRight = align === "right";
   const resultLabel = result === "WIN" ? "승리" : result === "LOSS" ? "패배" : null;
   const nameBlock = (
-    <div className={`min-w-0 ${isRight ? "text-right" : "text-left"}`}>
-      <p className="truncate text-sm font-black leading-tight text-[var(--ui-ink)] sm:text-lg">
+    <div className={`min-w-0 ${isRight ? "text-left" : "text-right"}`}>
+      <p className="truncate text-[18px] font-black leading-none text-[var(--ui-ink)] sm:text-[22px]">
         {teamName}
       </p>
       {resultLabel ? (
-        <p className={`text-xs font-medium ${result === "WIN" ? "text-[var(--accent)]" : "text-[var(--ui-muted)]"}`}>
+        <p className={`mt-1 text-xs font-semibold ${result === "WIN" ? "text-[var(--accent)]" : "text-[var(--ui-muted)]"}`}>
           {resultLabel}
         </p>
       ) : null}
     </div>
   );
-  const logo = <TeamLogo team={team} size="h-12 w-12 sm:h-16 sm:w-16" plain themeAware />;
+  const logo = <TeamLogo team={team} size="h-10 w-10 sm:h-14 sm:w-14" plain themeAware />;
 
   return (
-    <div className={`flex min-w-0 flex-1 items-center gap-2.5 sm:gap-3 ${isRight ? "justify-start" : "justify-end"}`}>
+    <div
+      className={`grid min-w-0 items-center gap-2 px-1 py-1 sm:gap-3 sm:px-2 ${
+        isRight
+          ? "justify-self-stretch grid-cols-[auto_minmax(0,1fr)]"
+          : "justify-self-stretch grid-cols-[minmax(0,1fr)_auto]"
+      }`}
+    >
       {isRight ? (
         <>
           {logo}
@@ -185,7 +191,15 @@ function TabNav({
     { key: "video", label: TAB_LABELS.video, href: tabHref("video") },
   ];
 
-  return <UnderlineNav items={items} activeKey={activeTab} ariaLabel="매치 상세 탭" />;
+  return (
+    <UnderlineNav
+      items={items}
+      activeKey={activeTab}
+      ariaLabel="매치 상세 탭"
+      bordered={false}
+      className="border-t border-[var(--ui-border)] px-4 sm:px-6"
+    />
+  );
 }
 
 /**
@@ -616,56 +630,44 @@ export default async function MatchDetailPage({
       <section className="mobile-full-bleed mobile-surface-section overflow-hidden rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] md:mx-0" aria-label="매치 요약">
         <h1 className="sr-only">{`${teamAName} vs ${teamBName}`}</h1>
 
-        <div className="flex items-center justify-between gap-3 border-b border-[var(--ui-border)] px-3 py-2 sm:px-4">
-          <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-xs font-bold text-[var(--ui-muted)]">
-            <span className="text-[var(--ui-ink)]">{tournament?.name ?? "대회 미지정"}</span>
-            {stage ? <><span aria-hidden>·</span><span>{stage.name}</span></> : null}
-            <span aria-hidden>·</span>
-            <span>{formatDateTime(match.matchDate)}</span>
-          </div>
-          <Link href="/schedule" className="shrink-0 text-xs font-bold text-[var(--ui-muted)] transition-colors hover:text-[var(--ui-ink)]">
-            일정 목록
-          </Link>
+        <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 border-b border-[var(--ui-border)] px-4 py-2.5 text-[12px] font-semibold text-[var(--ui-muted)] sm:px-6">
+          <span className="min-w-0 truncate text-left">{tournament?.name ?? "대회 미지정"}</span>
+          {pomPlayer ? (
+            <PlayerHighlight label="POM" player={pomPlayer} />
+          ) : (
+            <span className="text-[11px] uppercase tracking-[0.08em]">{displayStatusLabel}</span>
+          )}
+          <span className="min-w-0 truncate text-right">
+            {stage?.name ?? "스테이지 미지정"} · BO{match.bestOf ?? "-"}
+          </span>
         </div>
 
-        {/* 넓은 화면에서 팀이 카드 한가운데 덩그러니 뜨지 않도록 대진 블록 폭을 묶는다. */}
-        <div className="mx-auto flex w-full max-w-3xl items-center gap-3 px-3 py-4 sm:gap-5 sm:px-4 sm:py-5">
+        <div className="mx-auto grid w-full max-w-[720px] min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 px-4 py-4 sm:gap-5 sm:px-6 sm:py-5">
           <CompactTeamBlock team={teamA} teamName={teamAName} result={teamAResult} />
 
-          <div className="flex shrink-0 items-center gap-2.5 sm:gap-3">
+          <div className="flex min-w-[5.75rem] shrink-0 flex-col items-center px-1 sm:min-w-[7.5rem]">
             {hasScore ? (
               <>
-                <span className={`text-3xl font-black tabular-nums sm:text-4xl ${teamAResult === "LOSS" ? "text-[var(--ui-muted)]" : "text-[var(--ui-ink)]"}`}>
-                  {scoreLabel(match.teamAScore)}
-                </span>
-                <div className="flex flex-col items-center gap-0.5">
-                  <span className="text-xs font-medium text-[var(--accent)]">{displayStatusLabel}</span>
-                  <span className="text-xs font-medium text-[var(--ui-muted)]">BO{match.bestOf ?? "-"}</span>
+                <div className="flex items-center gap-2 rounded-md bg-[var(--ui-surface-muted)] px-3 py-2 text-[26px] font-black leading-none tabular-nums sm:text-[32px]">
+                  <span className={teamAResult === "LOSS" ? "text-[var(--ui-muted)]" : "text-[var(--ui-ink)]"}>{scoreLabel(match.teamAScore)}</span>
+                  <span className="text-sm font-medium text-[var(--ui-muted)]">:</span>
+                  <span className={teamBResult === "LOSS" ? "text-[var(--ui-muted)]" : "text-[var(--ui-ink)]"}>{scoreLabel(match.teamBScore)}</span>
                 </div>
-                <span className={`text-3xl font-black tabular-nums sm:text-4xl ${teamBResult === "LOSS" ? "text-[var(--ui-muted)]" : "text-[var(--ui-ink)]"}`}>
-                  {scoreLabel(match.teamBScore)}
-                </span>
+                <span className="mt-1.5 text-[11px] font-semibold text-[var(--ui-muted)]">{formatDateTime(match.matchDate)}</span>
               </>
             ) : (
-              <div className="flex flex-col items-center gap-0.5">
-                <span className="text-2xl font-black text-[var(--ui-muted)] sm:text-3xl">VS</span>
-                <span className="text-xs font-medium text-[var(--ui-muted)]">{displayStatusLabel} · BO{match.bestOf ?? "-"}</span>
-              </div>
+              <>
+                <span className="text-2xl font-black leading-none text-[var(--ui-ink)] sm:text-[34px]">VS</span>
+                <span className="mt-1.5 text-[11px] font-semibold text-[var(--ui-muted)]">{formatDateTime(match.matchDate)}</span>
+              </>
             )}
           </div>
 
           <CompactTeamBlock align="right" team={teamB} teamName={teamBName} result={teamBResult} />
         </div>
 
-        {(pomPlayer || topFanPlayer) ? (
-          <aside className="flex flex-wrap items-center justify-center gap-x-6 gap-y-1.5 border-t border-[var(--ui-border)] px-3 py-2">
-            {pomPlayer ? <PlayerHighlight label="POM" player={pomPlayer} /> : null}
-            {topFanPlayer ? <PlayerHighlight label="팬 평점 1위" player={topFanPlayer} /> : null}
-          </aside>
-        ) : null}
+        <TabNav activeTab={activeTab} sets={matchSets} />
       </section>
-
-      <TabNav activeTab={activeTab} sets={matchSets} />
 
       {activeTab === "preview" ? (
         <MatchPreview

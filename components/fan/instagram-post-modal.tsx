@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
 
 // 인스타그램 게시물 임베드 모달. 팬 인스타 피드와 홈 FEED에서 공용으로 쓴다.
@@ -219,7 +220,7 @@ export function InstagramPostModal({
             className="absolute left-2 top-1/2 z-20 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-black/70 text-[28px] text-white shadow-lg backdrop-blur transition hover:bg-black disabled:pointer-events-none disabled:opacity-20 sm:-left-16"
             aria-label="이전 Instagram 게시물"
           >
-            ‹
+            <ChevronLeft className="size-7" strokeWidth={2.25} />
           </button>
           <button
             type="button"
@@ -228,7 +229,7 @@ export function InstagramPostModal({
             className="absolute right-2 top-1/2 z-20 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-black/70 text-[28px] text-white shadow-lg backdrop-blur transition hover:bg-black disabled:pointer-events-none disabled:opacity-20 sm:-right-16"
             aria-label="다음 Instagram 게시물"
           >
-            ›
+            <ChevronRight className="size-7" strokeWidth={2.25} />
           </button>
         </div>
       </div>

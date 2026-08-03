@@ -314,7 +314,7 @@ export default async function FanHomePage({
                 캘린더
               </span>
             }
-            triggerClassName="inline-flex h-9 items-center rounded-full border border-[var(--ui-border)] bg-[var(--ui-surface)] px-4 text-sm font-extrabold text-[var(--ui-ink)] shadow-sm transition hover:bg-[var(--ui-surface-muted)] active:scale-[0.97] sm:h-10 lg:min-h-11 lg:px-5"
+            triggerClassName="inline-flex h-10 items-center justify-center rounded-full border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 text-sm font-extrabold text-[var(--ui-ink)] shadow-sm transition duration-200 hover:bg-[var(--ui-surface-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ui-ink)] active:scale-[0.98] sm:px-4"
             /* 메인(홈) 캘린더와 같은 340×300 비율로 보이도록: 340 + 좌우 p-5(20×2) = 380px */
             panelClassName="sm:max-w-[380px]"
           >

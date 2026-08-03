@@ -4,6 +4,7 @@ import { AppShell, type AppShellUser } from "@/components/layout/app-shell";
 import { NavigationTransitionProvider } from "@/components/navigation/navigation-transition-provider";
 import { ToastProvider } from "@/components/ui/toast";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { isCurrentUserAdmin } from "@/lib/auth/admin";
 import { getTeams } from "@/lib/data/lck";
 import { getFollowedTeamIds } from "@/lib/fan/followed-teams";
 import { getRankSummary } from "@/lib/rank/queries";
@@ -36,6 +37,7 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const user = await getCurrentUser();
+  const isAdminUser = user ? await isCurrentUserAdmin() : false;
 
   let shellUser: AppShellUser = null;
   if (user) {
@@ -69,7 +71,14 @@ export default async function RootLayout({
         ) : null}
         <ToastProvider>
           <NavigationTransitionProvider>
-            <AppShell currentUser={shellUser} followedTeamIds={followedTeamIds} shellTeams={shellTeams}>{children}</AppShell>
+            <AppShell
+              currentUser={shellUser}
+              isAdminUser={isAdminUser}
+              followedTeamIds={followedTeamIds}
+              shellTeams={shellTeams}
+            >
+              {children}
+            </AppShell>
           </NavigationTransitionProvider>
         </ToastProvider>
       </body>

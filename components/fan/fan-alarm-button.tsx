@@ -11,11 +11,13 @@ export function FanAlarmButton({
   teamSlug,
   initialEnabled,
   compact = false,
+  inverted = false,
 }: {
   teamId: string;
   teamSlug: string;
   initialEnabled: boolean;
   compact?: boolean;
+  inverted?: boolean;
 }) {
   const [enabled, setEnabled] = useState(initialEnabled);
   const [error, setError] = useState<string | null>(null);
@@ -47,8 +49,12 @@ export function FanAlarmButton({
             showToast({ title: "알림 설정 실패", description: message, tone: "error" });
           });
         }}
-        className={`inline-flex min-w-0 items-center justify-center gap-2 rounded-full border border-[var(--ui-border)] bg-[var(--ui-surface)] font-extrabold text-[var(--ui-ink)] shadow-sm transition hover:bg-[var(--ui-surface-muted)] active:scale-[0.97] disabled:opacity-60 ${
-          compact ? "h-9 px-3 text-[14px] sm:h-10 sm:px-4" : "min-h-11 px-5 py-2.5 text-sm"
+        className={`inline-flex min-w-0 items-center justify-center gap-2 rounded-full border font-extrabold shadow-sm transition duration-200 focus-visible:outline-none focus-visible:ring-2 active:scale-[0.98] disabled:opacity-60 ${
+          inverted
+            ? "border-white/20 bg-white/10 text-white hover:bg-white/15 focus-visible:ring-white"
+            : "border-[var(--ui-border)] bg-[var(--ui-surface)] text-[var(--ui-ink)] hover:bg-[var(--ui-surface-muted)] focus-visible:ring-[var(--ui-ink)]"
+        } ${
+          compact ? "h-10 px-3 text-[14px] sm:px-4" : "min-h-11 px-5 py-2.5 text-sm"
         }`}
       >
         <Bell size={compact ? 15 : 16} fill={enabled ? "currentColor" : "none"} aria-hidden="true" />

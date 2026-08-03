@@ -21,7 +21,7 @@ export function FanFollowButton({
   initialCount: number;
   initialFollowing: boolean;
   teamColor: string;
-  variant?: "hero" | "channel";
+  variant?: "hero" | "channel" | "spotlight";
 }) {
   const [count, setCount] = useState(initialCount);
   const [following, setFollowing] = useState(initialFollowing);
@@ -70,6 +70,27 @@ export function FanFollowButton({
       aria-hidden="true"
     />
   );
+
+  if (variant === "spotlight") {
+    return (
+      <button
+        type="button"
+        onClick={handleClick}
+        disabled={isPending}
+        aria-pressed={following}
+        className={`inline-flex h-10 min-w-0 items-center justify-center gap-2 rounded-full px-4 text-sm font-extrabold transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ui-ink)] active:scale-[0.98] disabled:opacity-60 sm:min-w-[9rem] ${
+          following
+            ? "border border-[var(--ui-border)] bg-[var(--ui-surface)] hover:bg-[var(--ui-surface-muted)]"
+            : "bg-[var(--ui-ink)] text-[var(--ui-surface)] hover:opacity-90"
+        }`}
+        style={following ? { color: teamColor } : undefined}
+      >
+        {heart}
+        <span>{label}</span>
+        <span className="hidden opacity-55 md:inline">{count.toLocaleString("ko-KR")}</span>
+      </button>
+    );
+  }
 
   if (variant === "channel") {
     return (

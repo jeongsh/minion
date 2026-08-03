@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 export type ScheduleMatch = {
   id: string;
@@ -93,11 +94,11 @@ function MiniCalendar({
         <div className="flex gap-1">
           <button onClick={prevMonth} type="button" aria-label="이전 달"
             className="flex h-7 w-7 items-center justify-center rounded-md text-[#667085] hover:bg-[#f4f5f8] hover:text-[#111827]">
-            ‹
+            <ChevronLeft className="size-4" strokeWidth={2.25} />
           </button>
           <button onClick={nextMonth} type="button" aria-label="다음 달"
             className="flex h-7 w-7 items-center justify-center rounded-md text-[#667085] hover:bg-[#f4f5f8] hover:text-[#111827]">
-            ›
+            <ChevronRight className="size-4" strokeWidth={2.25} />
           </button>
         </div>
       </div>

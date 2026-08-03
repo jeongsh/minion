@@ -710,7 +710,7 @@ export function GameTimeline({
 
         {showObjectives && tooltip && (
           <div
-            className="pointer-events-none absolute z-10 whitespace-nowrap rounded bg-background/95 px-2 py-1 text-[15px] shadow-md ring-1 ring-border"
+            className="pointer-events-none absolute z-10 whitespace-nowrap rounded bg-background/95 px-2 py-1 text-[15px] ring-1 ring-border"
             style={{ left: `${Math.min(Math.max(tooltip.xPct, 5), 85)}%`, top: `calc(${tooltip.yPct}% + ${ITEM_SZ / 2 + 6}px)` }}
           >
             {tooltip.lines.map((line, i) => <div key={i}>{line}</div>)}

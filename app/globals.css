@@ -3,6 +3,12 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+@theme {
+  --breakpoint-wide: 80rem;
+  --breakpoint-ultrawide: 160rem;
+  --container-ultrawide: 87.5rem;
+}
+
 @font-face {
   font-family: "HancomMalrangmalrang";
   src: url("https://cdn.jsdelivr.net/gh/projectnoonnu/2406-1@1.0/HancomMalangMalang-Regular.woff2") format("woff2");
@@ -49,7 +55,6 @@
   --ui-sidebar-width: 216px;
   --shell-lnb-width: 216px;
   --shell-bottom-nav-height: 64px;
-  --layout-wide: 1400px;
   --layout-reading: 1080px;
   --layout-form: 672px;
   --layout-capture: 576px;
@@ -777,7 +782,7 @@ html[class~="dark"] .app-lnb a[data-active="true"] {
 
 .fan-page-container {
   width: 100%;
-  max-width: var(--layout-wide);
+  max-width: var(--breakpoint-wide);
   margin-inline: auto;
   padding-inline: var(--layout-gutter);
 }
@@ -791,10 +796,19 @@ html[class~="dark"] .app-lnb a[data-active="true"] {
   padding-inline: var(--layout-gutter);
 }
 
-.layout-wide { max-width: var(--layout-wide); }
+.layout-wide,
+.layout-wide-max { max-width: var(--breakpoint-wide); }
 .layout-reading { max-width: var(--layout-reading); }
 .layout-form { max-width: var(--layout-form); }
 .layout-capture { max-width: var(--layout-capture); }
+
+@media (width >= 160rem) {
+  .layout-wide,
+  .layout-wide-max,
+  .fan-page-container {
+    max-width: var(--container-ultrawide);
+  }
+}
 
 .compact-hub-content {
   --compact-page-end-space: 1rem;
@@ -1037,6 +1051,8 @@ html[class~="dark"] .match-detail-page .text-muted {
 }
 
 .home-match-calendar .rdp-month_caption {
+  display: flex;
+  align-items: center;
   height: 1.7rem;
   font-size: 16px;
   font-weight: 900;
@@ -1047,10 +1063,16 @@ html[class~="dark"] .match-detail-page .text-muted {
 
 .home-match-calendar .rdp-nav {
   top: 0;
+  display: flex;
+  align-items: center;
+  height: 1.7rem;
 }
 
 .home-match-calendar .rdp-button_next,
 .home-match-calendar .rdp-button_previous {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 26px;
   height: 26px;
   border: 1px solid var(--ui-border);
@@ -1242,6 +1264,10 @@ html[class~="dark"] .match-detail-page .text-muted {
     height: 1.875rem;
     font-size: 17px;
     margin-bottom: 0.6rem;
+  }
+
+  .home-match-calendar .rdp-nav {
+    height: 1.875rem;
   }
 
   .home-match-calendar .rdp-button_next,

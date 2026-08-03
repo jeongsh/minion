@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { PostList } from "@/components/community/post-list";
+import { Pagination } from "@/components/ui/pagination";
 import { categoriesForScope, type BoardScope } from "@/lib/community/boards";
 import { hotSortValue, isHotPost } from "@/lib/community/hot";
 import type { CommunityPostDetail } from "@/lib/community/types";
@@ -161,22 +162,5 @@ function CategoryButton({ active, onClick, children }: { active: boolean; onClic
     >
       {children}
     </button>
-  );
-}
-
-function Pagination({ page, totalPages, onChange }: { page: number; totalPages: number; onChange: (page: number) => void }) {
-  const start = Math.max(1, Math.min(page - 2, totalPages - 4));
-  const pages = Array.from({ length: Math.min(5, totalPages) }, (_, index) => start + index);
-
-  return (
-    <nav className="flex items-center justify-center gap-1" aria-label="페이지 이동">
-      <button type="button" onClick={() => onChange(page - 1)} disabled={page === 1} className="min-h-10 px-2 text-sm font-medium text-[var(--ui-muted)] disabled:opacity-30">이전</button>
-      {pages.map((number) => (
-        <button key={number} type="button" onClick={() => onChange(number)} aria-current={number === page ? "page" : undefined} className={`grid min-h-10 min-w-10 place-items-center rounded-[var(--ui-control-radius)] px-2 text-sm font-semibold ${number === page ? "bg-[var(--ui-ink)] text-[var(--ui-surface)]" : "text-[var(--ui-muted)] hover:bg-[var(--ui-surface-muted)] hover:text-[var(--ui-ink)]"}`}>
-          {number}
-        </button>
-      ))}
-      <button type="button" onClick={() => onChange(page + 1)} disabled={page === totalPages} className="min-h-10 px-2 text-sm font-medium text-[var(--ui-muted)] disabled:opacity-30">다음</button>
-    </nav>
   );
 }
