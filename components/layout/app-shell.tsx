@@ -15,6 +15,7 @@ import {
   MessageCircle,
   Moon,
   Newspaper,
+  Rss,
   Shield,
   Sparkles,
   Sun,
@@ -53,6 +54,7 @@ const desktopNav = [
   { href: "/predictions", label: "승부예측", icon: Sparkles },
   { href: "/players", label: "선수", icon: UserRound },
   { href: "/reports", label: "위클리 리포트", icon: Newspaper },
+  { href: "/news", label: "뉴스", icon: Rss },
   { href: "/community", label: "커뮤니티", icon: Users },
 ];
 
