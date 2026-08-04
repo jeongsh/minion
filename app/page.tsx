@@ -21,14 +21,6 @@ function yearMonthKeyKST(value: string) {
   return dateKeyKST(value).slice(0, 7);
 }
 
-function buildRecentForm(teamId: string, matches: Match[]) {
-  return matches
-    .filter((match) => match.status === "completed" && (match.teamAId === teamId || match.teamBId === teamId))
-    .sort((a, b) => new Date(b.matchDate).getTime() - new Date(a.matchDate).getTime())
-    .slice(0, 5)
-    .map((match) => (match.winnerTeamId === teamId ? "W" : "L") as "W" | "L");
-}
-
 export default async function HomePage() {
   const user = await getCurrentUser();
   const [homeData, communityPosts, predictionMarket, lckChannelVideos, pomEntries, reportIndex, homeNewsFeed] = await Promise.all([
@@ -63,7 +55,6 @@ export default async function HomePage() {
         wins: standing.wins,
         losses: standing.losses,
         setDiff: standing.setDiff,
-        recent: buildRecentForm(standing.teamId, matches),
       };
     })
     .filter((row): row is HomeStandingRow => row !== null)

@@ -30,7 +30,6 @@ export type HomeStandingRow = {
   wins: number;
   losses: number;
   setDiff: number;
-  recent: Array<"W" | "L">;
 };
 
 type Props = {
@@ -205,19 +204,9 @@ export function HomeDashboard({
                       <b className="w-5 shrink-0 text-center text-[13px]">{row.rank}</b>
                       <Logo team={row.team} themeAware size="h-8 w-8 shrink-0" />
                       <b className="min-w-0 flex-1 truncate text-sm">{row.team.shortName}</b>
-                      {/* 최근 폼은 예전에 별도 카드였는데, 같은 standingRows를 같은 순서로
-                          한 번 더 그리는 것이라 순위표의 한 컬럼으로 합쳤다. */}
-                      <div className="flex shrink-0 gap-1">
-                        {row.recent.map((result, index) => (
-                          <span
-                            key={index}
-                            className={`grid h-6 w-6 place-items-center rounded-full text-[11px] font-medium ${result === "W" ? "bg-[var(--ui-ink)] text-[var(--ui-surface)]" : "bg-[var(--ui-surface-muted)] text-[var(--ui-muted)]"}`}
-                            style={{ lineHeight: 1 }}
-                          >
-                            {result}
-                          </span>
-                        ))}
-                      </div>
+                      <span className="shrink-0 text-sm font-bold">
+                        {row.wins}승 {row.losses}패
+                      </span>
                     </Link>
                   ))}
               </div>
