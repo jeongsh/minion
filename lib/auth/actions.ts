@@ -71,6 +71,39 @@ export async function signUpAction(
   redirect("/me");
 }
 
+// 소셜 로그인: provider 콘솔로 리다이렉트한 뒤 app/auth/callback/route.ts 에서
+// exchangeCodeForSession 으로 세션을 완성한다(비밀번호 재설정과 동일한 콜백 재사용).
+// skipBrowserRedirect 로 여기서는 URL만 받아오고, 실제 이동은 서버 액션의 redirect()로 한다.
+// formData의 "next"는 로그인/가입 화면에서는 비어 있어 기본값(/me)을 쓰고,
+// 회원 탈퇴 재인증 흐름(delete-account-form.tsx)에서는 계정 탭으로 돌아오도록 덮어쓴다.
+async function startOAuthSignIn(provider: "google" | "kakao" | "custom:naver", formData?: FormData) {
+  const next = String(formData?.get("next") ?? "/me");
+  const supabase = await createSupabaseAuthClient();
+  const redirectTo = `${siteBaseUrl()}/auth/callback?next=${encodeURIComponent(next)}`;
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider,
+    options: { redirectTo, skipBrowserRedirect: true },
+  });
+
+  if (error || !data?.url) {
+    redirect(`/login?error=${encodeURIComponent(error?.message ?? "소셜 로그인을 시작할 수 없습니다.")}`);
+  }
+
+  redirect(data.url);
+}
+
+export async function signInWithGoogleAction(formData: FormData) {
+  await startOAuthSignIn("google", formData);
+}
+
+export async function signInWithKakaoAction(formData: FormData) {
+  await startOAuthSignIn("kakao", formData);
+}
+
+export async function signInWithNaverAction(formData: FormData) {
+  await startOAuthSignIn("custom:naver", formData);
+}
+
 export async function signInAction(
   _prev: AuthActionState,
   formData: FormData,
@@ -230,6 +263,9 @@ export async function changePasswordAction(
   if (!user) {
     return { status: "error", message: "로그인이 필요합니다." };
   }
+  if (!user.hasPassword) {
+    return { status: "error", message: "소셜 로그인 계정은 비밀번호 변경을 지원하지 않습니다." };
+  }
   if (!user.email) {
     return { status: "error", message: "이메일 정보가 없어 비밀번호를 변경할 수 없습니다." };
   }
@@ -270,9 +306,11 @@ export async function changePasswordAction(
   return { status: "success", message: "비밀번호가 변경되었습니다." };
 }
 
-// 회원 탈퇴: 비밀번호 재확인 후 auth 계정을 삭제한다.
+// 회원 탈퇴: 비밀번호(소셜 계정은 최근 재인증)로 본인 확인 후 auth 계정을 삭제한다.
 // profiles 는 auth.users 에 on delete cascade 로 묶여 있어 랭크/출석/승부예측 기록이 함께 지워지고,
 // community_posts/comments 의 author_id 는 FK 가 없어 글은 남고 작성자만 익명으로 표시된다.
+const DELETE_REAUTH_WINDOW_MS = 5 * 60 * 1000;
+
 export async function deleteAccountAction(
   _prev: DeleteAccountState,
   formData: FormData,
@@ -281,16 +319,8 @@ export async function deleteAccountAction(
   if (!user) {
     return { status: "error", message: "로그인이 필요합니다." };
   }
-  if (!user.email) {
-    return { status: "error", message: "이메일 정보가 없어 탈퇴를 진행할 수 없습니다." };
-  }
 
-  const password = String(formData.get("password") ?? "");
   const confirmText = String(formData.get("confirmText") ?? "").trim();
-
-  if (!password) {
-    return { status: "error", message: "비밀번호를 입력해주세요." };
-  }
   if (confirmText !== DELETE_ACCOUNT_CONFIRM_TEXT) {
     return {
       status: "error",
@@ -299,13 +329,35 @@ export async function deleteAccountAction(
   }
 
   const supabase = await createSupabaseAuthClient();
-  const { error: verifyError } = await supabase.auth.signInWithPassword({
-    email: user.email,
-    password,
-  });
 
-  if (verifyError) {
-    return { status: "error", message: "비밀번호가 올바르지 않습니다." };
+  if (user.hasPassword) {
+    if (!user.email) {
+      return { status: "error", message: "이메일 정보가 없어 탈퇴를 진행할 수 없습니다." };
+    }
+
+    const password = String(formData.get("password") ?? "");
+    if (!password) {
+      return { status: "error", message: "비밀번호를 입력해주세요." };
+    }
+
+    const { error: verifyError } = await supabase.auth.signInWithPassword({
+      email: user.email,
+      password,
+    });
+
+    if (verifyError) {
+      return { status: "error", message: "비밀번호가 올바르지 않습니다." };
+    }
+  } else {
+    // 비밀번호가 없는 소셜 전용 계정: 방금 그 소셜 계정으로 다시 로그인했는지
+    // (재인증 후 5분 이내인지)로 본인 확인을 대신한다.
+    const lastSignInAt = user.lastSignInAt ? new Date(user.lastSignInAt).getTime() : 0;
+    if (!lastSignInAt || Date.now() - lastSignInAt > DELETE_REAUTH_WINDOW_MS) {
+      return {
+        status: "error",
+        message: "본인 확인을 위해 소셜 계정으로 다시 로그인한 뒤 탈퇴를 진행해주세요.",
+      };
+    }
   }
 
   let admin;

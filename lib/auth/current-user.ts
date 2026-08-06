@@ -5,11 +5,17 @@
 import { cache } from "react";
 import { createSupabaseAuthClient } from "@/lib/supabase/auth-server";
 
+// 소셜 로그인(구글/카카오/네이버)은 비밀번호가 없다. app_metadata.providers 에
+// "email"이 있는지로 비밀번호 보유 여부를, provider(최초 가입 provider)로 어떤
+// 소셜 계정인지 판별해 비밀번호 변경/회원 탈퇴 화면 분기에 쓴다.
 export type CurrentUser = {
   id: string;
   email: string | null;
   nickname: string | null;
   profileImageUrl: string | null;
+  hasPassword: boolean;
+  authProvider: string | null;
+  lastSignInAt: string | null;
 };
 
 // layout과 각 페이지가 모두 호출하므로 요청 1회당 인증 조회를 1번으로 dedupe한다.
@@ -37,10 +43,17 @@ export const getCurrentUser = cache(async function getCurrentUser(): Promise<Cur
     .eq("id", user.id)
     .maybeSingle();
 
+  const providers = Array.isArray(user.app_metadata?.providers)
+    ? (user.app_metadata.providers as string[])
+    : [];
+
   return {
     id: user.id,
     email: user.email ?? null,
     nickname: profile?.nickname ?? null,
     profileImageUrl: profile?.profile_image_url ?? null,
+    hasPassword: providers.includes("email"),
+    authProvider: (user.app_metadata?.provider as string | undefined) ?? providers[0] ?? null,
+    lastSignInAt: user.last_sign_in_at ?? null,
   };
 });

@@ -6,9 +6,18 @@ import { PasswordForm } from "@/components/auth/password-form";
 import { ProfileForm } from "@/components/auth/profile-form";
 import { CheckInButton } from "@/components/rank/check-in-button";
 import { KitschEmptyState } from "@/components/ui/kitsch-empty-state";
-import { getCurrentUser } from "@/lib/auth/current-user";
+import { getCurrentUser, type CurrentUser } from "@/lib/auth/current-user";
 import { tierProgress, type Tier } from "@/lib/rank/config";
 import { getRankSummary } from "@/lib/rank/queries";
+
+// 회원 탈퇴 재인증(delete-account-form.tsx)에서 소셜 재로그인 후 이 시간 안에는
+// "방금 본인임을 증명했다"고 보고 비밀번호 없이 탈퇴를 진행할 수 있게 한다.
+const REAUTH_WINDOW_MS = 5 * 60 * 1000;
+
+function isRecentlyReauthenticated(user: CurrentUser) {
+  if (user.hasPassword || !user.lastSignInAt) return false;
+  return Date.now() - new Date(user.lastSignInAt).getTime() < REAUTH_WINDOW_MS;
+}
 
 export const metadata = {
   title: "마이랭크 · MINION",
@@ -108,6 +117,9 @@ export default async function MePage({
           nickname={user.nickname ?? ""}
           profileImageUrl={user.profileImageUrl}
           tier={summary.tier}
+          hasPassword={user.hasPassword}
+          authProvider={user.authProvider}
+          recentlyReauthenticated={isRecentlyReauthenticated(user)}
         />
       ) : (
         <RankPanel summary={summary} progress={progress} />
@@ -137,11 +149,17 @@ function AccountPanel({
   nickname,
   profileImageUrl,
   tier,
+  hasPassword,
+  authProvider,
+  recentlyReauthenticated,
 }: {
   email: string | null;
   nickname: string;
   profileImageUrl: string | null;
   tier: Tier;
+  hasPassword: boolean;
+  authProvider: string | null;
+  recentlyReauthenticated: boolean;
 }) {
   return (
     <>
@@ -175,18 +193,20 @@ function AccountPanel({
         <p className="text-sm font-semibold">{email ?? "이메일 정보 없음"}</p>
       </section>
 
-      <section
-        className="me-card mb-4 rounded-2xl border p-5 sm:mb-6 sm:p-6"
-        style={{ borderColor: "var(--border)", backgroundColor: "var(--surface)" }}
-      >
-        <div className="mb-4">
-          <h2 className="text-base font-bold">비밀번호 변경</h2>
-          <p className="mt-1 text-sm" style={{ color: "var(--muted)" }}>
-            보안을 위해 현재 비밀번호를 다시 확인합니다.
-          </p>
-        </div>
-        <PasswordForm />
-      </section>
+      {hasPassword ? (
+        <section
+          className="me-card mb-4 rounded-2xl border p-5 sm:mb-6 sm:p-6"
+          style={{ borderColor: "var(--border)", backgroundColor: "var(--surface)" }}
+        >
+          <div className="mb-4">
+            <h2 className="text-base font-bold">비밀번호 변경</h2>
+            <p className="mt-1 text-sm" style={{ color: "var(--muted)" }}>
+              보안을 위해 현재 비밀번호를 다시 확인합니다.
+            </p>
+          </div>
+          <PasswordForm />
+        </section>
+      ) : null}
 
       <section
         className="me-card rounded-2xl border p-5 sm:p-6"
@@ -195,7 +215,11 @@ function AccountPanel({
         <div className="mb-4">
           <h2 className="text-base font-bold">회원 탈퇴</h2>
         </div>
-        <DeleteAccountForm />
+        <DeleteAccountForm
+          hasPassword={hasPassword}
+          authProvider={authProvider}
+          recentlyReauthenticated={recentlyReauthenticated}
+        />
       </section>
     </>
   );
