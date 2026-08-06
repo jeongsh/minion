@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clock3 } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clock3, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { DayPicker, type DayButtonProps } from "react-day-picker";
 import { ko } from "react-day-picker/locale";
@@ -113,7 +113,6 @@ export function HomeCalendar({
 
   const initialMonth = localDateFromKey(`${initialMonthKey}-01`);
   const [selected, setSelected] = useState<Date | undefined>();
-  const [popupPosition, setPopupPosition] = useState<{ left: number; top: number } | null>(null);
 
   const selectedKey = selected ? dateKeyFromLocalDate(selected) : "";
   const selectedMonthDay = selected ? monthDayFromLocalDate(selected) : "";
@@ -126,6 +125,17 @@ export function HomeCalendar({
         ]
       : [];
 
+  function closeDetail() {
+    setSelected(undefined);
+    onSelectedDateKeyChange?.(null);
+  }
+
+  // 팝업으로 따로 띄우지 않고 달력과 같은 칸을 재사용해서 상세를 보여준다.
+  // 그래야 모달 밖으로 튀어나오거나 모달 자체가 늘어나 스크롤이 생기는 일 없이
+  // 항상 캘린더 영역 안에서만 움직인다.
+  const showDetail =
+    detailMode === "popover" && Boolean(selected) && (selectedMatches.length > 0 || selectedEvents.length > 0);
+
   useEffect(() => {
     if (detailMode === "external") return;
 
@@ -135,26 +145,29 @@ export function HomeCalendar({
         return;
       }
       setSelected(undefined);
-      setPopupPosition(null);
+      onSelectedDateKeyChange?.(null);
     }
 
     document.addEventListener("pointerdown", handlePointerDown);
     return () => document.removeEventListener("pointerdown", handlePointerDown);
-  }, [detailMode]);
+  }, [detailMode, onSelectedDateKeyChange]);
 
   return (
     <section
       ref={containerRef}
-      className={`relative flex ${heightClassName} min-w-0 flex-col overflow-visible rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-3`}
+      className={`relative flex ${heightClassName} min-w-0 flex-col ${showDetail ? "overflow-hidden" : "overflow-visible"} rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-3`}
     >
       {/* globals.css의 커스텀 CSS는 빌드 시 var(--ui-ink) 같은 CSS 변수가 라이트 모드 값으로
           굳어버리는 문제가 있어(다크모드에서 안 먹음), 월/연도 캡션 색만은 빌드 파이프라인을
           거치지 않는 인라인 style 태그로 직접 덮어써서 다크모드에서도 제대로 보이게 한다. */}
       <style>{`.home-match-calendar .rdp-month_caption { color: var(--ui-ink) !important; }`}</style>
-      <DayPicker
-        mode="single"
+      {/* 상세를 보여줄 때도 DayPicker를 unmount하지 않고 숨기기만 한다(display:none).
+          그래야 접었다 펼 때 이동해둔 월이 초기 월로 리셋되지 않는다. */}
+      <div className={showDetail ? "hidden" : "contents"}>
+        <DayPicker
+          mode="single"
         selected={selected}
-        onDayClick={(day, _modifiers, event) => {
+        onDayClick={(day) => {
           const key = dateKeyFromLocalDate(day);
           const monthDay = monthDayFromLocalDate(day);
           const hasAnything =
@@ -164,28 +177,13 @@ export function HomeCalendar({
 
           if (detailMode === "external") {
             setSelected(day);
-            setPopupPosition(null);
             onSelectedDateKeyChange?.(key);
             return;
           }
 
           if (!hasAnything || (selected && dateKeyFromLocalDate(selected) === key)) {
-            setSelected(undefined);
-            setPopupPosition(null);
-            onSelectedDateKeyChange?.(null);
+            closeDetail();
             return;
-          }
-
-          const containerRect = containerRef.current?.getBoundingClientRect();
-          const dayRect = (event.currentTarget as HTMLElement).getBoundingClientRect();
-          if (containerRect) {
-            const popupWidth = 260;
-            const left = Math.min(
-              Math.max(dayRect.left - containerRect.left - popupWidth / 2 + dayRect.width / 2, 8),
-              Math.max(containerRect.width - popupWidth - 8, 8),
-            );
-            const top = dayRect.bottom - containerRect.top + 10;
-            setPopupPosition({ left, top });
           }
 
           setSelected(day);
@@ -246,18 +244,29 @@ export function HomeCalendar({
         }}
         className="home-match-calendar"
       />
+      </div>
 
-      {detailMode === "popover" && popupPosition && (selectedMatches.length > 0 || selectedEvents.length > 0) ? (
-        <div
-          className="absolute z-30 w-[300px] rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-2.5 text-left shadow-[0_20px_55px_rgba(0,0,0,0.18)]"
-          style={{ left: popupPosition.left, top: popupPosition.top }}
-        >
-          {selected ? (
-            <p className="mb-2 px-1 py-0.5 text-sm font-black text-[var(--ui-ink)]">
+      {showDetail && selected ? (
+        <div className="flex min-h-0 flex-1 flex-col">
+          <div className="mb-2 flex shrink-0 items-center justify-between gap-2 px-1 py-0.5">
+            <button
+              type="button"
+              onClick={closeDetail}
+              className="flex items-center gap-1 text-sm font-black text-[var(--ui-ink)]"
+            >
+              <ChevronLeft size={16} strokeWidth={2.5} />
               {selected.getMonth() + 1}월 {selected.getDate()}일
-            </p>
-          ) : null}
-          <div className="flex max-h-[260px] flex-col gap-1.5 overflow-y-auto">
+            </button>
+            <button
+              type="button"
+              onClick={closeDetail}
+              aria-label="날짜 상세 닫기"
+              className="grid h-6 w-6 shrink-0 place-items-center rounded-full text-[var(--ui-muted)] hover:bg-[var(--ui-surface-muted)] hover:text-[var(--ui-ink)]"
+            >
+              <X size={14} strokeWidth={2.5} />
+            </button>
+          </div>
+          <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto">
             {selectedMatches.map((match) => (
               <Link
                 key={match.id}
