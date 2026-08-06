@@ -6,12 +6,12 @@ import { createSupabaseAuthClient } from "@/lib/supabase/auth-server";
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
-  const next = url.searchParams.get("next") || "/me";
+  const next = url.searchParams.get("next") || "/";
 
   if (code) {
     const supabase = await createSupabaseAuthClient();
     await supabase.auth.exchangeCodeForSession(code);
   }
 
-  return NextResponse.redirect(new URL(next.startsWith("/") ? next : "/me", siteBaseUrl()));
+  return NextResponse.redirect(new URL(next.startsWith("/") ? next : "/", siteBaseUrl()));
 }

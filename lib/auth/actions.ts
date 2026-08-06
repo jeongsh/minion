@@ -74,10 +74,10 @@ export async function signUpAction(
 // 소셜 로그인: provider 콘솔로 리다이렉트한 뒤 app/auth/callback/route.ts 에서
 // exchangeCodeForSession 으로 세션을 완성한다(비밀번호 재설정과 동일한 콜백 재사용).
 // skipBrowserRedirect 로 여기서는 URL만 받아오고, 실제 이동은 서버 액션의 redirect()로 한다.
-// formData의 "next"는 로그인/가입 화면에서는 비어 있어 기본값(/me)을 쓰고,
+// formData의 "next"는 로그인/가입 화면에서는 비어 있어 기본값(홈)을 쓰고,
 // 회원 탈퇴 재인증 흐름(delete-account-form.tsx)에서는 계정 탭으로 돌아오도록 덮어쓴다.
 async function startOAuthSignIn(provider: "google" | "kakao" | "custom:naver", formData?: FormData) {
-  const next = String(formData?.get("next") ?? "/me");
+  const next = String(formData?.get("next") ?? "/");
   const supabase = await createSupabaseAuthClient();
   const redirectTo = `${siteBaseUrl()}/auth/callback?next=${encodeURIComponent(next)}`;
   const { data, error } = await supabase.auth.signInWithOAuth({
