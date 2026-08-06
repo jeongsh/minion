@@ -413,5 +413,5 @@ export async function checkInAction(
   await recordLpEvent({ userId: user.id, reason: "attendance" });
 
   revalidatePath("/me");
-  return { status: "success", message: "출석 도장 쾅! +10 LP" };
+  return { status: "success", message: "출석 도장 쾅! +100 LP" };
 }

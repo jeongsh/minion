@@ -31,7 +31,7 @@ export function CheckInButton({ alreadyChecked }: { alreadyChecked: boolean }) {
     if (!justChecked) return;
     showToast({
       title: "출석 도장 쾅!",
-      description: "+10 LP 적립 완료",
+      description: "+100 LP 적립 완료",
       tone: "success",
       iconSrc: flag.src,
     });
@@ -64,7 +64,7 @@ export function CheckInButton({ alreadyChecked }: { alreadyChecked: boolean }) {
           }`}
           style={{ backgroundColor: "var(--accent)" }}
         >
-          {done ? "오늘 출석 완료" : pending ? "처리 중..." : "출석체크 (+10 LP)"}
+          {done ? "오늘 출석 완료" : pending ? "처리 중..." : "출석체크 (+100 LP)"}
         </button>
       </div>
       {state.message && state.status !== "success" ? (
