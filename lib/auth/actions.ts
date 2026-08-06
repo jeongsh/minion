@@ -12,6 +12,7 @@ import type {
 } from "@/lib/auth/action-state";
 import { DELETE_ACCOUNT_CONFIRM_TEXT } from "@/lib/auth/action-state";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { resizeImageForWeb } from "@/lib/images/resize-for-web";
 import { recordLpEvent } from "@/lib/rank/record-lp";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseAuthClient } from "@/lib/supabase/auth-server";
@@ -210,12 +211,14 @@ export async function updateNicknameAction(
       return { status: "error", message: "프로필 이미지 업로드 설정이 필요합니다." };
     }
 
-    const objectPath = `${user.id}/${crypto.randomUUID()}.${profileImageExtension(image.type, image.name)}`;
     const arrayBuffer = await image.arrayBuffer();
+    // 아바타는 화면에 작게(수십~백여 px) 표시되므로 원본을 그대로 저장하지 않고 줄인다.
+    const resized = await resizeImageForWeb(Buffer.from(arrayBuffer), image.type, { maxEdge: 512 });
+    const objectPath = `${user.id}/${crypto.randomUUID()}.${resized.transformed ? resized.extension : profileImageExtension(image.type, image.name)}`;
     const { error: uploadError } = await admin.storage
       .from(PROFILE_AVATAR_BUCKET)
-      .upload(objectPath, Buffer.from(arrayBuffer), {
-        contentType: image.type,
+      .upload(objectPath, resized.bytes, {
+        contentType: resized.contentType,
         upsert: false,
       });
 

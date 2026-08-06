@@ -2,15 +2,16 @@ import { randomUUID } from "crypto";
 import { NextResponse } from "next/server";
 
 import { isCurrentUserAdmin } from "@/lib/auth/admin";
+import { resizeImageForWeb } from "@/lib/images/resize-for-web";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
 
 const BUCKET = "home-hero-slides";
 
-// Hero banners are curated by us, so the original file is stored as-is. This
-// runs as a Route Handler rather than a Server Action because Server Action
-// bodies are capped at 1MB by default.
+// 히어로 배너는 홈 최상단에서 크게 노출되므로 화질은 넉넉히 유지하되(긴 변 1920px),
+// 관리자가 무압축 원본(수 MB짜리 카메라 사진 등)을 그대로 올려도 저장 전에 한 번 줄인다.
+// 이 라우트는 서버 액션 본문 기본 용량 제한(1MB)을 피하려고 Route Handler로 구현했다.
 export async function POST(request: Request) {
   if (!(await isCurrentUserAdmin())) {
     return NextResponse.json({ error: "Admins only." }, { status: 403 });
@@ -26,12 +27,14 @@ export async function POST(request: Request) {
   }
 
   const slideId = ((formData?.get("slide_id") as string | null) ?? "").trim() || randomUUID();
-  const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
+  const resized = await resizeImageForWeb(Buffer.from(await file.arrayBuffer()), file.type, { maxEdge: 1920 });
+  const fallbackExtension = file.name.split(".").pop()?.toLowerCase() || "jpg";
+  const extension = resized.transformed ? resized.extension : fallbackExtension;
   const path = `${slideId}/${Date.now()}.${extension}`;
 
   const supabase = createSupabaseAdminClient();
-  const { error } = await supabase.storage.from(BUCKET).upload(path, await file.arrayBuffer(), {
-    contentType: file.type || "image/jpeg",
+  const { error } = await supabase.storage.from(BUCKET).upload(path, resized.bytes, {
+    contentType: resized.contentType,
     upsert: true,
   });
 

@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { resizeImageForWeb } from "../images/resize-for-web.ts";
 import {
   scrapeInstagramPosts,
   scrapeInstagramStories,
@@ -75,16 +76,22 @@ export async function storeInstagramImage(
     const contentType = res.headers.get("content-type") ?? "image/jpeg";
     if (!contentType.startsWith("image/")) return null;
 
-    const ext = contentType.includes("png")
-      ? "png"
-      : contentType.includes("webp")
-        ? "webp"
-        : "jpg";
+    // 인스타 CDN 원본을 그대로 영구 저장하면 피드/모자이크에서 실제 표시 크기보다
+    // 훨씬 큰 파일이 계속 서빙된다. 인스타 피드 사진 자체가 1080px를 넘지 않아
+    // 화질 손실 없이 줄일 수 있다.
+    const resized = await resizeImageForWeb(Buffer.from(await res.arrayBuffer()), contentType, { maxEdge: 1080 });
+    const ext = resized.transformed
+      ? resized.extension
+      : contentType.includes("png")
+        ? "png"
+        : contentType.includes("webp")
+          ? "webp"
+          : "jpg";
     const path = `posts/${sanitizeStorageKey(key)}.${ext}`;
 
     const { error } = await supabase.storage
       .from(INSTAGRAM_MEDIA_BUCKET)
-      .upload(path, await res.arrayBuffer(), { contentType, upsert: true });
+      .upload(path, resized.bytes, { contentType: resized.contentType, upsert: true });
     if (error) return null;
 
     const { data } = supabase.storage.from(INSTAGRAM_MEDIA_BUCKET).getPublicUrl(path);

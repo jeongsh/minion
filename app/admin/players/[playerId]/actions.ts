@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { fetchPlayerSocialForPage } from "@/lib/sync/leaguepedia-player-social.ts";
 import { createSupabaseAdminActionClient, createSupabaseAdminClient } from "@/lib/auth/admin";
+import { resizeImageForWeb } from "@/lib/images/resize-for-web";
 
 function revalidatePlayerPaths(playerId: string, slug?: string) {
   revalidatePath("/admin/players");
@@ -32,12 +33,14 @@ function parseAliases(value: FormDataEntryValue | null) {
 
 async function uploadProfileImage(playerId: string, file: File) {
   const supabase = await createSupabaseAdminActionClient();
-  const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
-  const path = `${playerId}/${Date.now()}.${extension}`;
   const buffer = Buffer.from(await file.arrayBuffer());
+  const resized = await resizeImageForWeb(buffer, file.type || "image/jpeg", { maxEdge: 1024 });
+  const fallbackExtension = file.name.split(".").pop()?.toLowerCase() || "jpg";
+  const extension = resized.transformed ? resized.extension : fallbackExtension;
+  const path = `${playerId}/${Date.now()}.${extension}`;
 
-  const { error } = await supabase.storage.from("player-profiles").upload(path, buffer, {
-    contentType: file.type || "image/jpeg",
+  const { error } = await supabase.storage.from("player-profiles").upload(path, resized.bytes, {
+    contentType: resized.contentType,
     upsert: true,
   });
 
