@@ -4,7 +4,6 @@ import {
   getHomeHeroSlides,
   getLatestTeamVideos,
   getMatches,
-  getTeamStandings,
   getTournaments,
 } from "@/lib/data/lck";
 import { getCalendarEvents } from "@/lib/calendar/events";
@@ -24,18 +23,17 @@ export const HOME_PUBLIC_DATA_TAG = "home-public-data";
  */
 export const getHomePagePublicData = unstable_cache(
   async () => {
-    const [teams, matches, savedStandings, tournaments, latestVideos, homeHeroSlides, calendarEvents] =
+    const [teams, matches, tournaments, latestVideos, homeHeroSlides, calendarEvents] =
       await Promise.all([
         getAllTeams(),
         getMatches(),
-        getTeamStandings(),
         getTournaments(),
         getLatestTeamVideos(12),
         getHomeHeroSlides({ limit: 8 }),
         getCalendarEvents(),
       ]);
 
-    return { teams, matches, savedStandings, tournaments, latestVideos, homeHeroSlides, calendarEvents };
+    return { teams, matches, tournaments, latestVideos, homeHeroSlides, calendarEvents };
   },
   ["home-page-public-data"],
   { revalidate: 30, tags: [HOME_PUBLIC_DATA_TAG] },

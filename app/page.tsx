@@ -6,7 +6,7 @@ import { getHomePomEntries } from "@/lib/data/home-pom";
 import type { Match } from "@/lib/types";
 import { getBoardPosts } from "@/lib/data/community";
 import { compareHotPostsByRecentHype, isHotPost } from "@/lib/community/hot";
-import { dateKeyKST, formatTimeKST, matchHref } from "@/lib/view-data";
+import { buildTeamStandingRows, dateKeyKST, formatTimeKST, matchHref } from "@/lib/view-data";
 import { isMatchLive } from "@/lib/match-display";
 import { getPredictionMarketData } from "@/lib/predictions";
 import { getCurrentUser } from "@/lib/auth/current-user";
@@ -32,33 +32,32 @@ export default async function HomePage() {
     getWeeklyReportIndex(),
     getHomeNewsFeed(6),
   ]);
-  const { teams, matches, savedStandings, tournaments, latestVideos, calendarEvents } = homeData;
+  const { teams, matches, tournaments, latestVideos, calendarEvents } = homeData;
 
   // 오늘의 기념일. 배너를 누르면 해당 팀 게시판으로 이동한다.
   const todayCelebrations = getTodayCelebrations(calendarEvents);
 
   const teamsById = new Map(teams.map((team) => [team.id, team]));
   const latestSeason = tournaments.length > 0 ? Math.max(...tournaments.map((tournament) => tournament.season)) : 2026;
-  const latestTournamentIds = new Set(
-    tournaments.filter((tournament) => tournament.season === latestSeason).map((tournament) => tournament.id),
+  // "실시간 순위"는 DB 스냅샷 테이블이 아니라 /tournaments 페이지와 동일하게 정규시즌
+  // (Rounds 1-2 + Rounds 3-4/5) 경기 결과에서 매번 계산한다. 스냅샷은 수동 갱신이 필요해
+  // 시즌이 진행될수록 실제 순위와 어긋나기 때문이다.
+  const regularSeasonTournamentIds = new Set(
+    tournaments
+      .filter((tournament) => tournament.season === latestSeason
+        && (tournament.split === "Rounds 1-2" || /^Rounds 3-\d+$/.test(tournament.split ?? "")))
+      .map((tournament) => tournament.id),
   );
-  const standingRows = savedStandings
-    .filter((standing) => latestTournamentIds.has(standing.tournamentId))
-    .map((standing) => {
-      const team = teamsById.get(standing.teamId);
-      if (!team) return null;
-
-      return {
-        team,
-        teamId: standing.teamId,
-        rank: standing.rank,
-        wins: standing.wins,
-        losses: standing.losses,
-        setDiff: standing.setDiff,
-      };
-    })
-    .filter((row): row is HomeStandingRow => row !== null)
-    .sort((a, b) => a.rank - b.rank);
+  const regularSeasonMatches = matches.filter((match) => regularSeasonTournamentIds.has(match.tournamentId));
+  const lckTeams = teams.filter((team) => team.isLckTeam);
+  const standingRows: HomeStandingRow[] = buildTeamStandingRows(lckTeams, regularSeasonMatches, []).map((row) => ({
+    team: row.team,
+    teamId: row.team.id,
+    rank: row.rank,
+    wins: row.matchWins,
+    losses: row.matchLosses,
+    setDiff: row.setDiff,
+  }));
 
   const todayKey = dateKeyKST(new Date());
   const byDateAsc = (a: Match, b: Match) => new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime();
