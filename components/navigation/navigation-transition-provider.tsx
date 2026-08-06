@@ -19,8 +19,8 @@ type NavigationTransitionContextValue = {
 };
 
 const NavigationTransitionContext = createContext<NavigationTransitionContextValue | null>(null);
-const PAGE_READY_TIMEOUT_MS = 2_500;
-const PAGE_READY_QUIET_MS = 80;
+const PAGE_READY_TIMEOUT_MS = 15_000;
+const PAGE_READY_QUIET_MS = 120;
 const PAGE_READY_POLL_MS = 50;
 
 function waitForDelay(milliseconds: number) {
@@ -49,8 +49,12 @@ function imageSource(image: HTMLImageElement) {
   return `${image.currentSrc}|${image.src}|${image.srcset}`;
 }
 
+// lazy 이미지(대부분 스크롤 아래 콘텐츠)는 제외하고, 그 외 이미지는 로드가
+// 끝날 때까지 기다린다. fetchPriority="high"로 좁혀뒀던 것을 되돌린 것 —
+// 팀 로고 등 대부분의 이미지가 fetchPriority를 안 쓰다 보니 로딩 오버레이가
+// 이미지 로드를 기다리지 않고 내려가 "블랭크 후 뒤늦게 그려짐" 현상이 있었다.
 function shouldWaitForImage(image: HTMLImageElement) {
-  return image.fetchPriority === "high" && !image.complete;
+  return image.loading !== "lazy" && !image.complete;
 }
 
 async function waitForImage(

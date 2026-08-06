@@ -297,7 +297,12 @@ export async function changePasswordAction(
     return { status: "error", message: "현재 비밀번호가 올바르지 않습니다." };
   }
 
-  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  // Supabase 프로젝트에 "비밀번호 변경 시 현재 비밀번호 확인" 옵션이 켜져 있어
+  // updateUser에도 current_password를 같이 보내야 한다(안 보내면 영어 에러로 거부됨).
+  const { error } = await supabase.auth.updateUser({
+    password: newPassword,
+    current_password: currentPassword,
+  });
 
   if (error) {
     return { status: "error", message: error.message || "비밀번호 변경에 실패했습니다." };

@@ -50,7 +50,11 @@ function applyTheme(theme: "dark" | "light") {
 const desktopNav = [
   { href: "/", label: "홈", icon: Home },
   { href: "/schedule", label: "일정 및 매치", icon: CalendarDays },
-  { href: "/tournaments", label: "대회", icon: Swords },
+  // /tournaments는 매번 오늘 날짜 기준으로 목적지가 바뀌는 완전 동적 리다이렉트라
+  // 프리페치가 무의미하고, 프리페치 응답과 클릭 시 실제 응답이 같은 URL로 중복
+  // 도착하면서 라우터 완료 감지(usePathname 기반)가 첫 응답만 보고 로딩을 조기
+  // 종료시켜 "블랭크 후 뒤늦게 렌더링"으로 보이는 문제가 있었다.
+  { href: "/tournaments", label: "대회", icon: Swords, prefetch: false },
   { href: "/predictions", label: "승부예측", icon: Sparkles },
   { href: "/players", label: "선수", icon: UserRound },
   { href: "/reports", label: "위클리 리포트", icon: Newspaper },
@@ -208,9 +212,9 @@ export function AppShell({
             </div>
           ) : null}
           <nav className="grid grid-cols-2 gap-2" aria-label="전체 메뉴">
-            {desktopNav.map(({ href, label, icon: Icon }) => {
+            {desktopNav.map(({ href, label, icon: Icon, prefetch }) => {
               const active = isActiveRoute(pathname, href);
-              return <Link key={href} href={href} onClick={() => setMobileMenuOpen(false)} aria-current={active ? "page" : undefined} className={`flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm font-bold transition ${active ? "bg-[#eeeeef] text-[#18191c] dark:bg-[#30343b] dark:text-white" : "hover:bg-[#f4f4f5] dark:hover:bg-[#282c31]"}`}><Icon size={18} /><span className="min-w-0 truncate">{label}</span></Link>;
+              return <Link key={href} href={href} prefetch={prefetch} onClick={() => setMobileMenuOpen(false)} aria-current={active ? "page" : undefined} className={`flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm font-bold transition ${active ? "bg-[#eeeeef] text-[#18191c] dark:bg-[#30343b] dark:text-white" : "hover:bg-[#f4f4f5] dark:hover:bg-[#282c31]"}`}><Icon size={18} /><span className="min-w-0 truncate">{label}</span></Link>;
             })}
           </nav>
           {followedTeams.length > 0 ? (
@@ -239,9 +243,9 @@ export function AppShell({
       {!focusRoute ? <aside className={`app-lnb fixed bottom-0 left-0 top-16 z-40 hidden border-r border-[#ececef] bg-background transition-[width] min-[1200px]:block dark:border-[#343840] ${collapsed ? "w-[72px]" : "w-[216px]"}`}>
         <div className="flex h-full flex-col overflow-y-auto p-3">
           <nav className="space-y-1" aria-label="데스크톱 주요 메뉴">
-            {desktopNav.map(({ href, label, icon: Icon }) => {
+            {desktopNav.map(({ href, label, icon: Icon, prefetch }) => {
               const active = isActiveRoute(pathname, href);
-              return <Link key={href} href={href} aria-current={active ? "page" : undefined} className={`flex h-11 items-center gap-3 rounded-xl px-3 text-[15px] font-bold transition ${active ? "bg-[#eeeeef] dark:bg-[#30343b]" : "hover:bg-[#f4f4f5] dark:hover:bg-[#282c31]"}`}><Icon size={20} /><span className={collapsed ? "hidden" : ""}>{label}</span></Link>;
+              return <Link key={href} href={href} prefetch={prefetch} aria-current={active ? "page" : undefined} className={`flex h-11 items-center gap-3 rounded-xl px-3 text-[15px] font-bold transition ${active ? "bg-[#eeeeef] dark:bg-[#30343b]" : "hover:bg-[#f4f4f5] dark:hover:bg-[#282c31]"}`}><Icon size={20} /><span className={collapsed ? "hidden" : ""}>{label}</span></Link>;
             })}
           </nav>
           <div className="my-4 border-t border-[#ededf0] dark:border-[#343840]" />
