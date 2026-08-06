@@ -6,6 +6,7 @@ import { isSafePublicNewsUrl, newsThumbnailProxyUrl } from "@/lib/data/news-thum
 const NAVER_NEWS_ENDPOINT = "https://naverapihub.apigw.ntruss.com/search/v1/news";
 const DEFAULT_DISPLAY = 10;
 const MAX_NAVER_START = 1000;
+const MAX_PARALLEL_NAVER_PAGE_FETCHES = 4;
 const ARTICLE_METADATA_TTL_SECONDS = 60 * 60 * 6;
 
 type NewsFeedSource = "naver" | "sample";
@@ -290,11 +291,17 @@ function fallbackFeed({ teamSlug, query = "", display = DEFAULT_DISPLAY, start =
   return { articles, source: "sample", total: filtered.length, isFallback: true };
 }
 
-export async function getNewsFeed(options: NewsFeedOptions = {}): Promise<NewsFeed> {
+type NormalizedNewsBatch = {
+  normalizedItems: NormalizedNewsItem[];
+  rawTotal: number;
+  reachedRawEnd: boolean;
+};
+
+async function collectNormalizedItems(options: NewsFeedOptions): Promise<NormalizedNewsBatch | null> {
   const { teamSlug, query = "", display = DEFAULT_DISPLAY, start = 1, scanLimit = 0 } = options;
   const clientId = process.env.NAVER_API_HUB_CLIENT_ID?.trim();
   const clientSecret = process.env.NAVER_API_HUB_CLIENT_SECRET?.trim();
-  if (!clientId || !clientSecret) return fallbackFeed(options);
+  if (!clientId || !clientSecret) return null;
 
   const baseQuery = TEAM_NEWS_CONFIG[teamSlug ?? ""]?.query ?? "LCK";
   const searchQuery = [baseQuery, query.trim()].filter(Boolean).join(" ");
@@ -306,14 +313,23 @@ export async function getNewsFeed(options: NewsFeedOptions = {}): Promise<NewsFe
   );
   const apiDisplay = 100;
 
-  try {
-    const seenUrls = new Set<string>();
-    const normalizedItems: NormalizedNewsItem[] = [];
-    let apiStart = 1;
-    let rawTotal = 0;
-    let reachedRawEnd = false;
+  const seenUrls = new Set<string>();
+  const normalizedItems: NormalizedNewsItem[] = [];
+  let nextApiStart = 1;
+  let batchSize = 1;
+  let rawTotal = 0;
+  let lastPageItemCount = apiDisplay;
+  let reachedRawEnd = false;
 
-    while (apiStart <= MAX_NAVER_START && normalizedItems.length < requiredItemCount) {
+  // 관련 기사가 드문 검색어는 최대 MAX_NAVER_START/apiDisplay(10)번의 조회가 필요할 수 있는데,
+  // 순차 호출 대신 요청을 점점 늘려가며(1,2,4,4...) 병렬로 보내 왕복 지연을 줄인다.
+  while (nextApiStart <= MAX_NAVER_START && normalizedItems.length < requiredItemCount && !reachedRawEnd) {
+    const starts: number[] = [];
+    for (let index = 0; index < batchSize && nextApiStart + index * apiDisplay <= MAX_NAVER_START; index += 1) {
+      starts.push(nextApiStart + index * apiDisplay);
+    }
+
+    const pages = await Promise.all(starts.map(async (apiStart) => {
       const params = new URLSearchParams({
         query: searchQuery,
         display: String(apiDisplay),
@@ -328,11 +344,15 @@ export async function getNewsFeed(options: NewsFeedOptions = {}): Promise<NewsFe
         },
         next: { revalidate: 300 },
       });
-      if (!response.ok) return fallbackFeed(options);
+      if (!response.ok) return null;
+      return response.json() as Promise<NaverNewsResponse>;
+    }));
 
-      const payload = await response.json() as NaverNewsResponse;
+    for (const payload of pages) {
+      if (!payload) return null;
       const items = payload.items ?? [];
       rawTotal = Math.max(rawTotal, payload.total ?? 0);
+      lastPageItemCount = items.length;
       const batchItems = items
         .map((item) => normalizeArticle(item))
         .filter((item): item is NormalizedNewsItem => {
@@ -347,17 +367,41 @@ export async function getNewsFeed(options: NewsFeedOptions = {}): Promise<NewsFe
       });
       normalizedItems.push(...batchItems);
 
-      const rawResultLimit = Math.min(rawTotal || items.length, MAX_NAVER_START);
-      apiStart += apiDisplay;
-      reachedRawEnd = items.length < apiDisplay || apiStart > rawResultLimit;
-      if (reachedRawEnd) break;
+      if (items.length < apiDisplay) {
+        reachedRawEnd = true;
+        break;
+      }
     }
 
+    nextApiStart += starts.length * apiDisplay;
+    batchSize = Math.min(batchSize * 2, MAX_PARALLEL_NAVER_PAGE_FETCHES);
+
+    const rawResultLimit = Math.min(rawTotal || lastPageItemCount, MAX_NAVER_START);
+    if (nextApiStart > rawResultLimit) reachedRawEnd = true;
+  }
+
+  return { normalizedItems, rawTotal, reachedRawEnd };
+}
+
+async function attachThumbnails(items: NormalizedNewsItem[]): Promise<NewsArticle[]> {
+  return Promise.all(items.map(async ({ article, thumbnailCandidates }) => ({
+    ...article,
+    thumbnailUrl: newsThumbnailProxyUrl(await findArticleThumbnail(thumbnailCandidates) ?? ""),
+  })));
+}
+
+export async function getNewsFeed(options: NewsFeedOptions = {}): Promise<NewsFeed> {
+  const { display = DEFAULT_DISPLAY, start = 1 } = options;
+  const requestedDisplay = Math.min(Math.max(display, 1), 100);
+  const requestedOffset = Math.max(start, 1) - 1;
+
+  try {
+    const batch = await collectNormalizedItems(options);
+    if (!batch) return fallbackFeed(options);
+    const { normalizedItems, rawTotal, reachedRawEnd } = batch;
+
     const visibleItems = normalizedItems.slice(requestedOffset, requestedOffset + requestedDisplay);
-    const articles = await Promise.all(visibleItems.map(async ({ article, thumbnailCandidates }) => ({
-      ...article,
-      thumbnailUrl: newsThumbnailProxyUrl(await findArticleThumbnail(thumbnailCandidates) ?? ""),
-    })));
+    const articles = await attachThumbnails(visibleItems);
 
     return {
       articles,
@@ -370,30 +414,59 @@ export async function getNewsFeed(options: NewsFeedOptions = {}): Promise<NewsFe
   }
 }
 
-function pickHomeArticles(articles: NewsArticle[], limit: number) {
-  const sorted = [...articles].sort(
-    (a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime(),
+function selectDiverseArticles<T>(
+  items: T[],
+  limit: number,
+  getArticle: (item: T) => Pick<NewsArticle, "teamSlugs" | "publishedAt" | "id">,
+): T[] {
+  const sorted = [...items].sort(
+    (a, b) => new Date(getArticle(b).publishedAt).getTime() - new Date(getArticle(a).publishedAt).getTime(),
   );
-  const picked: NewsArticle[] = [];
+  const picked: T[] = [];
   const representedTeams = new Set<string>();
 
-  for (const article of sorted) {
-    const introducesTeam = article.teamSlugs.some((slug) => !representedTeams.has(slug));
-    if (picked.length > 0 && article.teamSlugs.length > 0 && !introducesTeam) continue;
-    picked.push(article);
-    article.teamSlugs.forEach((slug) => representedTeams.add(slug));
+  for (const item of sorted) {
+    const { teamSlugs } = getArticle(item);
+    const introducesTeam = teamSlugs.some((slug) => !representedTeams.has(slug));
+    if (picked.length > 0 && teamSlugs.length > 0 && !introducesTeam) continue;
+    picked.push(item);
+    teamSlugs.forEach((slug) => representedTeams.add(slug));
     if (picked.length === limit) return picked;
   }
 
-  for (const article of sorted) {
-    if (!picked.some((pickedArticle) => pickedArticle.id === article.id)) picked.push(article);
+  for (const item of sorted) {
+    if (!picked.some((pickedItem) => getArticle(pickedItem).id === getArticle(item).id)) picked.push(item);
     if (picked.length === limit) break;
   }
   return picked;
 }
 
+function pickHomeArticles(articles: NewsArticle[], limit: number) {
+  return selectDiverseArticles(articles, limit, (article) => article);
+}
+
 export async function getHomeNewsFeed(limit = 4): Promise<NewsFeed> {
-  const feed = await getNewsFeed({ display: Math.max(limit * 2, 8) });
-  const articles = pickHomeArticles(feed.articles, limit);
-  return { ...feed, articles };
+  const candidateDisplay = Math.max(limit * 2, 8);
+
+  try {
+    const batch = await collectNormalizedItems({ display: candidateDisplay });
+    if (!batch) {
+      const fallback = fallbackFeed({ display: candidateDisplay });
+      return { ...fallback, articles: pickHomeArticles(fallback.articles, limit) };
+    }
+
+    // 후보군 중 실제로 노출할 기사만 골라낸 뒤 썸네일을 가져와, 버려질 기사의 원문 페이지를 스크래핑하지 않는다.
+    const picked = selectDiverseArticles(batch.normalizedItems, limit, (item) => item.article);
+    const articles = await attachThumbnails(picked);
+
+    return {
+      articles,
+      source: "naver",
+      total: batch.reachedRawEnd ? batch.normalizedItems.length : Math.max(batch.rawTotal, batch.normalizedItems.length),
+      isFallback: false,
+    };
+  } catch {
+    const fallback = fallbackFeed({ display: candidateDisplay });
+    return { ...fallback, articles: pickHomeArticles(fallback.articles, limit) };
+  }
 }
