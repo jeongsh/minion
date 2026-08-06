@@ -94,7 +94,7 @@ export function SignupForm({ initialError }: { initialError?: string }) {
         <span className="h-px flex-1 bg-[var(--ui-border)]" />
       </div>
 
-      <SocialAuthButtons showConsentNotice />
+      <SocialAuthButtons mode="signup" showConsentNotice />
     </div>
   );
 }
