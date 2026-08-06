@@ -538,6 +538,45 @@ const LCK_SPLIT_VIEW_LABELS: Record<LckSplitKey, { standings: string; bracket: s
   "3": { standings: "정규리그", bracket: "토너먼트" },
 };
 
+// activeTournaments 안의 대회별 split 문자열(Cup/Rounds 1-2/Road to MSI/Rounds 3-4.../
+// Season Play-In/Season Playoffs)을 LCK_SPLIT_LABELS의 1/2/3으로 매핑한다.
+// 아래 스플릿별 렌더링 로직(898, 945, 951, 960, 991, 997행)과 동일한 분류 규칙을 따른다.
+function lckSplitKeyForSplit(split: string | null | undefined): LckSplitKey | null {
+  if (!split) return null;
+  if (split === "Cup") return "1";
+  if (split === "Rounds 1-2" || split === "Road to MSI") return "2";
+  if (/^Rounds 3-\d+$/.test(split) || split === "Season Play-In" || split === "Season Playoffs") return "3";
+  return null;
+}
+
+// URL에 split 쿼리가 없을 때(=/tournaments에서 리다이렉트로 들어왔을 때) 오늘 날짜가 속한
+// 스플릿을 기본으로 고른다. 스플릿 사이 공백 기간(예: MSI 직후~Rounds 3-4 시작 전)이면
+// 가장 최근에 끝난 스플릿을, 시즌 시작 전이면 첫 스플릿을 기본값으로 삼는다.
+function resolveCurrentLckSplit(activeTournaments: Tournament[]): LckSplitKey {
+  const todayKey = dateKeyKST(new Date());
+  const candidates = activeTournaments
+    .map((tournament) => ({
+      key: lckSplitKeyForSplit(tournament.split),
+      startKey: tournament.startDate ? dateKeyKST(tournament.startDate) : null,
+      endKey: tournament.endDate ? dateKeyKST(tournament.endDate) : null,
+    }))
+    .filter(
+      (candidate): candidate is { key: LckSplitKey; startKey: string; endKey: string } =>
+        candidate.key !== null && candidate.startKey !== null && candidate.endKey !== null,
+    );
+
+  const ongoing = candidates.find((candidate) => candidate.startKey <= todayKey && todayKey <= candidate.endKey);
+  if (ongoing) return ongoing.key;
+
+  const mostRecentlyEnded = [...candidates]
+    .filter((candidate) => candidate.endKey < todayKey)
+    .sort((a, b) => (a.endKey < b.endKey ? 1 : -1))[0];
+  if (mostRecentlyEnded) return mostRecentlyEnded.key;
+
+  const earliestUpcoming = [...candidates].sort((a, b) => (a.startKey < b.startKey ? -1 : 1))[0];
+  return earliestUpcoming?.key ?? "1";
+}
+
 function ViewTabs<T extends string>({
   labels,
   activeTab,
@@ -873,7 +912,7 @@ export default async function TournamentBracketPage({
   if (isLck) {
     const activeSplit: LckSplitKey = ["1", "2", "3"].includes(search.split ?? "")
       ? (search.split as LckSplitKey)
-      : "1";
+      : resolveCurrentLckSplit(activeTournaments);
     const activeView: "standings" | "bracket" | "pom" =
       search.view === "bracket" ? "bracket" : search.view === "pom" ? "pom" : "standings";
     const pomRows = buildPomRankingRows(segmentMatches, players, teamMap);
