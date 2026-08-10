@@ -18,10 +18,11 @@ test("숫자·기호 끼워넣기 우회를 잡는다", () => {
   assert.equal(findProfanity("개1새1끼"), "개새끼");
 });
 
-test("자모 축약 표기를 잡는다", () => {
-  assert.equal(findProfanity("ㅅㅂ 이게 맞냐"), "ㅅㅂ");
-  assert.equal(findProfanity("진짜 ㅄ이네"), "ㅄ");
-  assert.equal(findProfanity("ㅈㄹ하네"), "ㅈㄹ");
+test("자모로만 된 표현은 허용한다", () => {
+  assert.equal(findProfanity("ㅅㅂ 이게 맞냐"), null);
+  assert.equal(findProfanity("진짜 ㅄ이네"), null);
+  assert.equal(findProfanity("ㅈㄴ 못하네"), null);
+  assert.equal(findProfanity("ㅈㄹ하네"), null);
 });
 
 test("시발은 문두/단독에서만 잡는다(왼쪽 한글 경계)", () => {

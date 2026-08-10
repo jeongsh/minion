@@ -57,9 +57,6 @@ export const PROFANITY_WORDS: string[] = [
  */
 export const PROFANITY_WORDS_BOUNDED: string[] = ["시발"];
 
-/** 자모 축약 표기. */
-export const PROFANITY_JAMO: string[] = ["ㅅㅂ", "ㅆㅂ", "ㅄ", "ㅂㅅ", "ㅈㄹ"];
-
 function normalizeForFilter(text: string): string {
   // NFC 사용: NFKC 는 호환 자모(ㅅㅂ 등)를 조합형 자모로 바꿔 아래 필터 범위를 벗어나게 만든다.
   // 전각 숫자·기호 등 NFKC 가 접던 문자들은 어차피 아래 replace 에서 제거된다.
@@ -84,9 +81,6 @@ export function findProfanity(text: string): string | null {
   }
   for (const word of PROFANITY_WORDS_BOUNDED) {
     if (new RegExp(`(?<![가-힣])${word}`).test(normalized)) return word;
-  }
-  for (const jamo of PROFANITY_JAMO) {
-    if (normalized.includes(jamo)) return jamo;
   }
   return null;
 }
