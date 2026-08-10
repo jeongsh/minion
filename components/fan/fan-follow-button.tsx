@@ -5,11 +5,17 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { toggleFanAction } from "@/app/fan/[teamSlug]/actions";
+import {
+  FanHeaderTooltip,
+  fanHeaderCountButtonClass,
+  fanHeaderIconButtonClass,
+} from "@/components/fan/fan-header-control-styles";
 import { useToast } from "@/components/ui/toast";
 
 export function FanFollowButton({
   teamId,
   teamSlug,
+  teamName,
   initialCount,
   initialFollowing,
   teamColor,
@@ -21,7 +27,7 @@ export function FanFollowButton({
   initialCount: number;
   initialFollowing: boolean;
   teamColor: string;
-  variant?: "hero" | "channel" | "spotlight";
+  variant?: "hero" | "channel" | "spotlight" | "icon" | "header";
 }) {
   const [count, setCount] = useState(initialCount);
   const [following, setFollowing] = useState(initialFollowing);
@@ -62,6 +68,10 @@ export function FanFollowButton({
   }
 
   const label = following ? "팔로잉" : "팔로우";
+  const compactCount = new Intl.NumberFormat("ko-KR", {
+    maximumFractionDigits: 1,
+    notation: "compact",
+  }).format(count);
   const heart = (
     <Heart
       size={variant === "channel" ? 15 : 16}
@@ -70,6 +80,43 @@ export function FanFollowButton({
       aria-hidden="true"
     />
   );
+
+  if (variant === "header") {
+    return (
+      <button
+        type="button"
+        onClick={handleClick}
+        disabled={isPending}
+        aria-label={following ? `${teamName} 팔로우 취소, 팬 ${compactCount}` : `${teamName} 팔로우, 팬 ${compactCount}`}
+        title={following ? "팔로우 취소" : "팔로우"}
+        aria-pressed={following}
+        className={fanHeaderCountButtonClass}
+        style={following ? { color: teamColor } : undefined}
+      >
+        {heart}
+        <span>{compactCount}</span>
+        <FanHeaderTooltip>{following ? "팔로우 취소" : "팔로우"}</FanHeaderTooltip>
+      </button>
+    );
+  }
+
+  if (variant === "icon") {
+    return (
+      <button
+        type="button"
+        onClick={handleClick}
+        disabled={isPending}
+        aria-label={following ? `${teamName} 팔로우 취소` : `${teamName} 팔로우`}
+        title={following ? "팔로우 취소" : "팔로우"}
+        aria-pressed={following}
+        className={fanHeaderIconButtonClass}
+        style={following ? { color: teamColor } : undefined}
+      >
+        {heart}
+        <FanHeaderTooltip>{following ? "팔로우 취소" : "팔로우"}</FanHeaderTooltip>
+      </button>
+    );
+  }
 
   if (variant === "spotlight") {
     return (
@@ -99,7 +146,7 @@ export function FanFollowButton({
         onClick={handleClick}
         disabled={isPending}
         aria-pressed={following}
-        className={`flex h-9 w-full min-w-0 items-center justify-center gap-1.5 rounded-lg px-3 text-[14px] font-extrabold transition active:scale-[0.97] disabled:opacity-70 sm:h-10 sm:px-4 ${
+        className={`flex h-10 w-full min-w-0 items-center justify-center gap-1.5 rounded-lg px-3 text-[14px] font-extrabold transition active:scale-[0.97] disabled:opacity-70 sm:w-auto sm:min-w-[8rem] sm:px-4 ${
           following
             ? "border border-[var(--ui-border)] bg-[var(--ui-surface)] text-[var(--ui-ink)] hover:bg-[var(--ui-surface-muted)]"
             : "bg-[var(--ui-ink)] text-[var(--ui-surface)] hover:opacity-90"

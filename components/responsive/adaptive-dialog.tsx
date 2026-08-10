@@ -9,12 +9,14 @@ export function AdaptiveDialog({
   trigger,
   children,
   triggerClassName = "",
+  triggerAriaLabel,
   panelClassName = "sm:max-w-[680px]",
 }: {
   title: string;
   trigger: React.ReactNode;
   children: React.ReactNode;
   triggerClassName?: string;
+  triggerAriaLabel?: string;
   /** 데스크탑 패널 폭 등 패널 자체 스타일. 기본은 본문형 680px. */
   panelClassName?: string;
 }) {
@@ -60,7 +62,7 @@ export function AdaptiveDialog({
 
   return (
     <>
-      <button ref={triggerRef} type="button" onClick={() => setOpen(true)} className={triggerClassName} aria-haspopup="dialog" aria-expanded={open}>
+      <button ref={triggerRef} type="button" onClick={() => setOpen(true)} className={triggerClassName} aria-label={triggerAriaLabel} aria-haspopup="dialog" aria-expanded={open}>
         {trigger}
       </button>
       {open && typeof document !== "undefined"

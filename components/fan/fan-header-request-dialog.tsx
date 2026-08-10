@@ -50,6 +50,7 @@ export function FanHeaderRequestDialog({
   teamName,
   teamColor,
   triggerClassName,
+  triggerAriaLabel,
   trigger,
   blockedReason,
 }: {
@@ -58,6 +59,7 @@ export function FanHeaderRequestDialog({
   teamName: string;
   teamColor: string;
   triggerClassName: string;
+  triggerAriaLabel?: string;
   trigger: React.ReactNode;
   blockedReason: FanHeaderUploadBlockedReason | null;
 }) {
@@ -130,7 +132,7 @@ export function FanHeaderRequestDialog({
   }
 
   return (
-    <AdaptiveDialog title={`${teamName} 대문 변경 요청`} trigger={trigger} triggerClassName={triggerClassName}>
+    <AdaptiveDialog title={`${teamName} 대문 변경 요청`} trigger={trigger} triggerClassName={triggerClassName} triggerAriaLabel={triggerAriaLabel}>
       <div className="flex flex-col gap-4">
         {blockedMessage ? (
           <p className="rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface-muted)] px-3.5 py-3 text-[13px] font-semibold text-[var(--ui-text)]">
