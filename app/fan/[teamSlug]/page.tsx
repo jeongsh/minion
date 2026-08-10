@@ -1,10 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { AtSign, CalendarDays, ChevronRight, Globe2, Play } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 
 import type { FeedInstaItem, FeedVideoItem } from "@/components/fan/fan-feed-mosaic";
 import { HomeBoardCarousel } from "@/components/domain/home-board-carousel";
-import { HomeCalendar, type HomeCalendarMatch } from "@/components/domain/home-calendar";
 import { FanChannelHeader } from "@/components/fan/fan-channel-header";
 import { FanHomeVideoSwiper } from "@/components/fan/fan-home-video-swiper";
 import { FanPageShell } from "@/components/fan/fan-page-shell";
@@ -12,7 +11,6 @@ import { FanSocialPreview } from "@/components/fan/fan-social-preview";
 import { AdSlot } from "@/components/ui/ad-slot";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { TeamLogo } from "@/components/ui/team-logo";
-import { AdaptiveDialog } from "@/components/responsive/adaptive-dialog";
 import {
   getAllTeams,
   getFanVideoFeed,
@@ -26,8 +24,6 @@ import { getBoardPosts } from "@/lib/data/community";
 import { compareHotPostsByRecentHype, isHotPost } from "@/lib/community/hot";
 import { buildFanVideoItems } from "@/lib/fan-video-items";
 import { getCalendarEvents, getTodayCelebrations } from "@/lib/calendar/events";
-import { shouldUseWhiteLogoOnDark } from "@/lib/team-logos";
-import { dateKeyKST, formatTimeKST, matchHref } from "@/lib/view-data";
 import { CelebrationBanner } from "@/components/domain/celebration-banner";
 import type { Match, Player, Team } from "@/lib/types";
 
@@ -48,10 +44,6 @@ function formatMatchDay(value: string) {
 
 function byMatchDate(a: Match, b: Match) {
   return new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime();
-}
-
-function yearMonthKeyKST(value: string) {
-  return dateKeyKST(value).slice(0, 7);
 }
 
 function teamForMatch(match: Match, team: Team, teams: Team[]) {
@@ -75,35 +67,6 @@ function scoreLabel(match: Match, team: Team): string {
   const own = isA ? match.teamAScore : match.teamBScore;
   const opp = isA ? match.teamBScore : match.teamAScore;
   return `${own} : ${opp}`;
-}
-
-function OfficialLinks({ team }: { team: Team }) {
-  const links = [
-    { label: "홈페이지", href: team.officialHomepageUrl, icon: <Globe2 size={16} aria-hidden="true" /> },
-    { label: "YouTube", href: team.officialYoutubeUrl, icon: <Play size={16} aria-hidden="true" /> },
-    { label: "X", href: team.officialXUrl, icon: <span className="text-[13px] font-black leading-none" aria-hidden="true">X</span> },
-    { label: "Instagram", href: team.officialInstagramUrl, icon: <AtSign size={16} aria-hidden="true" /> },
-  ].flatMap((item) => (item.href ? [{ ...item, href: item.href }] : []));
-
-  if (!links.length) return null;
-
-  return (
-    <section className="flex flex-wrap items-center justify-center gap-2 border-t border-[var(--ui-border)] pt-5">
-      {links.map((link) => (
-        <a
-          key={link.label}
-          href={link.href}
-          target="_blank"
-          rel="noreferrer"
-          aria-label={link.label}
-          title={link.label}
-          className="grid h-9 w-9 place-items-center rounded-full border border-[var(--ui-border)] bg-[var(--ui-surface)] text-[var(--ui-muted)] transition hover:bg-[var(--ui-surface-muted)] hover:text-[var(--ui-ink)]"
-        >
-          {link.icon}
-        </a>
-      ))}
-    </section>
-  );
 }
 
 // ─── 섹션: 매치 행 (일정 페이지 매치 로우 언어를 팬 홈용으로 압축) ──
@@ -214,14 +177,6 @@ export default async function FanHomePage({
   ]);
 
   const todayCelebrations = getTodayCelebrations(calendarEvents);
-  const calendarMonthKey = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Seoul",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  })
-    .format(new Date())
-    .slice(0, 7);
 
   const teamPlayers = players
     .filter((player) => player.teamId === team.id)
@@ -237,26 +192,6 @@ export default async function FanHomePage({
     .filter((match) => match.teamAId === team.id || match.teamBId === team.id)
     .sort(byMatchDate);
 
-  const teamsById = new Map(teams.map((t) => [t.id, t]));
-  const calendarMatches = teamMatches.filter((match) => yearMonthKeyKST(match.matchDate) === calendarMonthKey);
-  const calendarClientMatches: HomeCalendarMatch[] = calendarMatches.map((match) => {
-    const teamA = teamsById.get(match.teamAId);
-    const teamB = teamsById.get(match.teamBId);
-
-    return {
-      id: match.id,
-      dateKey: dateKeyKST(match.matchDate),
-      href: matchHref(match),
-      time: formatTimeKST(match.matchDate),
-      league: "",
-      teamAName: teamA?.shortName ?? "TBD",
-      teamBName: teamB?.shortName ?? "TBD",
-      teamALogoUrl: teamA?.logoUrl ?? null,
-      teamBLogoUrl: teamB?.logoUrl ?? null,
-      teamALogoDarkUrl: shouldUseWhiteLogoOnDark(teamA) ? teamA?.logoWhiteUrl : null,
-      teamBLogoDarkUrl: shouldUseWhiteLogoOnDark(teamB) ? teamB?.logoWhiteUrl : null,
-    };
-  });
   // 이 페이지는 force-dynamic이라 요청 시각으로 지난 예정 경기를 걸러낸다.
   // eslint-disable-next-line react-hooks/purity
   const now = Date.now();
@@ -303,29 +238,7 @@ export default async function FanHomePage({
 
   return (
     <>
-      <FanChannelHeader
-        teamSlug={teamSlug}
-        calendarSlot={
-          <AdaptiveDialog
-            title={`${team.shortName} 캘린더`}
-            trigger={
-              <span className="flex items-center gap-1.5">
-                <CalendarDays size={16} aria-hidden="true" />
-                캘린더
-              </span>
-            }
-            triggerClassName="inline-flex h-10 items-center justify-center rounded-full border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 text-sm font-extrabold text-[var(--ui-ink)] shadow-sm transition duration-200 hover:bg-[var(--ui-surface-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ui-ink)] active:scale-[0.98] sm:px-4"
-            /* 메인(홈) 캘린더와 같은 340×300 비율로 보이도록: 340 + 좌우 p-5(20×2) = 380px */
-            panelClassName="sm:max-w-[380px]"
-          >
-            <HomeCalendar
-              initialMonthKey={calendarMonthKey}
-              matches={calendarClientMatches}
-              events={calendarEvents}
-            />
-          </AdaptiveDialog>
-        }
-      />
+      <FanChannelHeader teamSlug={teamSlug} />
       <FanPageShell contentClassName="">
       <div
         className="fan-home-page flex flex-col gap-5 text-[var(--ui-ink)] md:gap-8"
@@ -336,7 +249,7 @@ export default async function FanHomePage({
           <CelebrationBanner events={todayCelebrations} />
         ) : null}
 
-        {/* 모바일은 헤더 히어로가 좁아 다음 경기 한 건을 따로 보여준다. (캘린더는 헤더 버튼) */}
+        {/* 모바일에서는 다음 경기 한 건을 콘텐츠 문맥 안에서 바로 보여준다. */}
         <section className="lg:hidden">
           <SectionHeading href={`/fan/${fanSlug}/matches`}>다음 경기</SectionHeading>
           <div className="overflow-hidden rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)]">
@@ -375,7 +288,6 @@ export default async function FanHomePage({
 
         <AdSlot placement="horizontal" className="hidden h-[60px] md:block xl:h-[90px]" />
 
-        <OfficialLinks team={team} />
       </div>
       </FanPageShell>
     </>

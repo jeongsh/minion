@@ -1,102 +1,130 @@
+import { ImagePlus } from "lucide-react";
+
 import { getFanNotificationEnabled, getIsFan } from "@/app/fan/[teamSlug]/actions";
 import { FanAlarmButton } from "@/components/fan/fan-alarm-button";
 import { FanFollowButton } from "@/components/fan/fan-follow-button";
+import { FanHeaderTooltip, fanHeaderIconButtonClass } from "@/components/fan/fan-header-control-styles";
+import { FanHeaderRequestDialog } from "@/components/fan/fan-header-request-dialog";
+import { FanOfficialLinks } from "@/components/fan/fan-official-links";
 import { TeamLogo } from "@/components/ui/team-logo";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { getTeamByFanSiteHost, getTeamBySlug, getTeamFanCount } from "@/lib/data/lck";
-import { getActiveFanHeaderUrl } from "@/lib/fan/fan-header";
+import { checkFanHeaderUploadEligibility, getActiveFanHeaderUrl } from "@/lib/fan/fan-header";
 
-export async function FanChannelHeader({
-  teamSlug,
-  calendarSlot,
-}: {
-  teamSlug: string;
-  calendarSlot?: React.ReactNode;
-}) {
+export async function FanChannelHeader({ teamSlug }: { teamSlug: string }) {
   const team = await getTeamByFanSiteHost(teamSlug).then((value) => value ?? getTeamBySlug(teamSlug));
 
   if (!team) return null;
 
-  const showFullName = team.name.trim().toLocaleLowerCase() !== team.shortName.trim().toLocaleLowerCase();
-
   const user = await getCurrentUser();
-  const [fanCount, isFan, notificationEnabled, headerBackground] = await Promise.all([
+  const [fanCount, isFan, notificationEnabled, headerBackground, uploadEligibility] = await Promise.all([
     getTeamFanCount(team.id),
     getIsFan(team.id),
     user ? getFanNotificationEnabled(team.id) : Promise.resolve(false),
     getActiveFanHeaderUrl(team.id),
+    checkFanHeaderUploadEligibility(team.id, user?.id),
   ]);
+  const displayHeaderBackground =
+    headerBackground ?? (team.fanSiteHost === "hle" ? "/images/fan-headers/hle-header-bg-v1.jpg" : null);
+
+  const hasHeaderBackground = Boolean(displayHeaderBackground);
 
   return (
     <header
-      className="relative isolate overflow-hidden bg-[var(--ui-surface)] text-[var(--ui-ink)]"
-      style={{ "--fan-accent": team.primaryColor } as React.CSSProperties}
+      className={
+        hasHeaderBackground
+          ? "relative isolate overflow-hidden border-b border-[var(--ui-border)] bg-[var(--ui-surface-muted)] text-white"
+          : "border-b border-[var(--ui-border)] bg-[var(--ui-surface)] text-[var(--ui-ink)]"
+      }
     >
-      <div aria-hidden="true" className="absolute inset-0 -z-20 overflow-hidden">
-        {headerBackground ? (
-          <>
-            {/* 팬 대문은 외부 저장소 URL이라 Next Image 허용 호스트를 고정할 수 없다. */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={headerBackground}
-              alt=""
-              className="absolute inset-y-0 right-0 h-full w-full object-cover object-[center_32%] opacity-[0.16] sm:w-[72%] sm:opacity-25 lg:w-[58%] lg:opacity-40"
-            />
-            <div className="absolute inset-0 bg-[linear-gradient(90deg,var(--ui-surface)_0%,var(--ui-surface)_42%,transparent_78%)] max-sm:bg-[linear-gradient(90deg,var(--ui-surface)_0%,color-mix(in_srgb,var(--ui-surface)_84%,transparent)_100%)]" />
-          </>
-        ) : (
-          <>
-            <div className="absolute -right-20 -top-32 h-80 w-80 rounded-full bg-[var(--fan-accent)] opacity-[0.08] blur-3xl sm:right-8" />
-            <span className="absolute -right-2 top-1/2 -translate-y-1/2 select-none font-paperozi text-[clamp(5rem,14vw,10rem)] font-black tracking-[-0.08em] text-[var(--fan-accent)] opacity-[0.055]">
-              {team.shortName}
-            </span>
-          </>
-        )}
-      </div>
+      {displayHeaderBackground ? (
+        <>
+          {/* 팬 대문이 있으면 헤더 전체를 채우는 배경으로 사용한다. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={displayHeaderBackground}
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 -z-20 h-full w-full object-cover object-[center_34%] saturate-[0.9]"
+          />
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 -z-10 bg-[linear-gradient(180deg,rgba(0,0,0,0.18)_0%,rgba(0,0,0,0.34)_48%,rgba(0,0,0,0.68)_100%)]"
+          />
+        </>
+      ) : null}
 
-      <div className="fan-page-container relative py-5 sm:py-6">
-        <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-center lg:justify-between lg:gap-8">
-          <div className="flex min-w-0 items-center gap-4 sm:gap-5">
-            <span className="grid h-[72px] w-[72px] shrink-0 place-items-center rounded-[20px] border border-[var(--ui-border)] bg-[var(--ui-surface)] shadow-[0_8px_28px_color-mix(in_srgb,var(--ui-ink)_8%,transparent)] sm:h-20 sm:w-20">
-              <TeamLogo team={team} size="h-[66%] w-[66%]" plain themeAware />
+      <div
+        className={
+          hasHeaderBackground
+            ? "fan-page-container flex min-h-[220px] items-end py-5 sm:min-h-[260px] sm:py-6 lg:min-h-[300px] lg:py-7"
+            : "fan-page-container flex min-h-[132px] items-end py-5 sm:min-h-[148px] sm:py-6 lg:min-h-0 lg:py-7"
+        }
+      >
+        <div className="flex w-full min-w-0 items-end lg:justify-between lg:gap-8">
+          <div className="flex h-[68px] min-w-0 items-end gap-4 sm:h-[76px]">
+            <span
+              className={
+                hasHeaderBackground
+                  ? "grid h-[68px] w-[68px] shrink-0 place-items-center rounded-xl border border-white bg-white sm:h-[76px] sm:w-[76px]"
+                  : "grid h-[68px] w-[68px] shrink-0 place-items-center rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] sm:h-[76px] sm:w-[76px]"
+              }
+            >
+              <TeamLogo team={team} size="h-[70%] w-[70%]" plain themeAware />
             </span>
 
-            <div className="min-w-0">
-              <div className="flex min-w-0 items-center gap-2.5">
-                <h1 className="truncate font-paperozi text-[27px] font-black leading-none tracking-[-0.04em] sm:text-[34px]">
-                  {team.shortName}
-                </h1>
-                <span className="shrink-0 rounded-full bg-[var(--team-accent-soft)] px-2.5 py-1 text-[11px] font-extrabold text-[var(--team-accent-text)] sm:text-xs">
-                  팬 채널
-                </span>
+            <div className="flex h-[68px] min-w-0 flex-col justify-center sm:h-[76px]">
+              <h1
+                className={
+                  hasHeaderBackground
+                    ? "truncate font-paperozi text-[24px] font-black leading-none tracking-[-0.035em] text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.45)] sm:text-[30px]"
+                    : "truncate font-paperozi text-[24px] font-black leading-none tracking-[-0.035em] sm:text-[30px]"
+                }
+              >
+                {team.shortName} 팬 커뮤니티
+              </h1>
+              <div className="mt-1.5 flex items-center gap-2">
+                <FanFollowButton
+                  teamId={team.id}
+                  teamSlug={team.fanSiteHost}
+                  teamName={team.shortName}
+                  initialCount={fanCount}
+                  initialFollowing={isFan}
+                  teamColor={team.primaryColor}
+                  variant="header"
+                />
+                <FanAlarmButton
+                  teamId={team.id}
+                  teamSlug={team.fanSiteHost}
+                  initialEnabled={notificationEnabled}
+                  teamColor={team.primaryColor}
+                  compact
+                  iconOnly
+                />
               </div>
-              <p className="mt-2 flex min-w-0 items-center gap-2 text-[13px] font-semibold text-[var(--ui-muted)]">
-                {showFullName ? <span className="truncate">{team.name}</span> : null}
-                {showFullName ? <span aria-hidden="true" className="h-3 w-px shrink-0 bg-[var(--ui-border)]" /> : null}
-                <span className="shrink-0">
-                  팬 <strong className="font-extrabold tabular-nums text-[var(--ui-ink)]">{fanCount.toLocaleString("ko-KR")}</strong>명
-                </span>
-              </p>
             </div>
           </div>
 
-          <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] gap-2 sm:flex sm:flex-wrap sm:items-center lg:justify-end">
-            <FanFollowButton
+          <div className="hidden h-[76px] min-w-0 items-end gap-4 sm:gap-5 lg:flex lg:shrink-0 lg:justify-end">
+            <FanHeaderRequestDialog
               teamId={team.id}
               teamSlug={team.fanSiteHost}
               teamName={team.shortName}
-              initialCount={fanCount}
-              initialFollowing={isFan}
               teamColor={team.primaryColor}
-              variant="spotlight"
+              blockedReason={uploadEligibility.ok ? null : uploadEligibility.reason}
+              triggerClassName={fanHeaderIconButtonClass}
+              triggerAriaLabel="대문 신청"
+              trigger={
+                <>
+                  <ImagePlus size={16} aria-hidden="true" />
+                  <FanHeaderTooltip>대문 신청</FanHeaderTooltip>
+                </>
+              }
             />
-            <FanAlarmButton
-              teamId={team.id}
-              teamSlug={team.fanSiteHost}
-              initialEnabled={notificationEnabled}
-              compact
-            />
-            {calendarSlot}
+            <span aria-hidden="true" className="hidden h-10 items-center sm:flex">
+              <span className={hasHeaderBackground ? "h-6 w-px bg-white/45" : "h-6 w-px bg-[var(--ui-border)]"} />
+            </span>
+            <FanOfficialLinks team={team} />
           </div>
         </div>
       </div>
