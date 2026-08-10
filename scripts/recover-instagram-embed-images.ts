@@ -114,7 +114,6 @@ async function recoverTable(
     }
 
     const stored = await storeInstagramImage(
-      supabase,
       `${keyPrefix}_${shortcode}`,
       freshUrl,
     );

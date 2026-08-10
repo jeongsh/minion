@@ -21,6 +21,7 @@
     "backfill:csv-set-player-stats": "node --experimental-strip-types scripts/backfill-csv-set-player-stats.ts",
     "backfill:instagram-images": "node --experimental-strip-types scripts/backfill-instagram-images.ts",
     "recover:instagram-embed-images": "node --experimental-strip-types scripts/recover-instagram-embed-images.ts",
+    "migrate:instagram-media-to-r2": "node --experimental-strip-types scripts/migrate-instagram-media-to-r2.ts",
     "sync:international-rosters": "node --experimental-strip-types scripts/import-international-rosters.ts",
     "sync:pom": "node --experimental-strip-types scripts/sync-pom.ts",
     "sync:pom:full": "node --experimental-strip-types scripts/sync-pom.ts --full",
@@ -39,6 +40,7 @@
     "uploads:cleanup": "node --experimental-strip-types scripts/cleanup-community-uploads.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1106.0",
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "2.108.1",
     "@tiptap/extension-color": "^3.27.1",

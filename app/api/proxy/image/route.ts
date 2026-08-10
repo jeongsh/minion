@@ -6,8 +6,8 @@ const ALLOWED_HOSTS = [
   "instagram.com",
 ];
 
-// 동기화 후 영구 저장된 이미지는 Supabase Storage 공개 URL로 바뀐다.
-// 프런트는 동일하게 프록시를 거치므로, 우리 Storage 호스트도 허용한다.
+// 동기화 후 영구 저장된 이미지는 Supabase Storage 또는 R2 공개 URL로 바뀐다.
+// 프런트는 동일하게 프록시를 거치므로, 우리 스토리지 호스트도 허용한다.
 function supabaseHost(): string | null {
   try {
     return process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -18,10 +18,20 @@ function supabaseHost(): string | null {
   }
 }
 
+function r2Host(): string | null {
+  try {
+    return process.env.NEXT_PUBLIC_R2_PUBLIC_URL
+      ? new URL(process.env.NEXT_PUBLIC_R2_PUBLIC_URL).hostname
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 function isAllowedUrl(raw: string): boolean {
   try {
     const { hostname } = new URL(raw);
-    if (hostname === supabaseHost()) return true;
+    if (hostname === supabaseHost() || hostname === r2Host()) return true;
     return ALLOWED_HOSTS.some((h) => hostname === h || hostname.endsWith(`.${h}`));
   } catch {
     return false;

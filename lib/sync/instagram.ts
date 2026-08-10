@@ -5,6 +5,7 @@ import {
   scrapeInstagramPosts,
   scrapeInstagramStories,
 } from "../scraper/instagram-browser.ts";
+import { isR2Url, uploadToR2 } from "../storage/r2.ts";
 
 export type SyncEngine = "browser" | "auto";
 
@@ -49,7 +50,7 @@ const IMAGE_FETCH_HEADERS = {
 };
 
 export function isStoredImageUrl(url: string): boolean {
-  return url.includes(`/storage/v1/object/public/${INSTAGRAM_MEDIA_BUCKET}/`);
+  return url.includes(`/storage/v1/object/public/${INSTAGRAM_MEDIA_BUCKET}/`) || isR2Url(url);
 }
 
 function sanitizeStorageKey(key: string): string {
@@ -57,12 +58,11 @@ function sanitizeStorageKey(key: string): string {
 }
 
 /**
- * 인스타 CDN 이미지를 내려받아 Supabase Storage(instagram-media)에 올리고
+ * 인스타 CDN 이미지를 내려받아 R2(instagram-media)에 올리고
  * 만료되지 않는 공개 URL을 돌려준다. 실패하면 null.
  * 이미 우리 스토리지 URL이면 그대로 반환한다.
  */
 export async function storeInstagramImage(
-  supabase: SupabaseClient,
   key: string,
   sourceUrl: string | null | undefined,
 ): Promise<string | null> {
@@ -89,13 +89,7 @@ export async function storeInstagramImage(
           : "jpg";
     const path = `posts/${sanitizeStorageKey(key)}.${ext}`;
 
-    const { error } = await supabase.storage
-      .from(INSTAGRAM_MEDIA_BUCKET)
-      .upload(path, resized.bytes, { contentType: resized.contentType, upsert: true });
-    if (error) return null;
-
-    const { data } = supabase.storage.from(INSTAGRAM_MEDIA_BUCKET).getPublicUrl(path);
-    return data.publicUrl || null;
+    return await uploadToR2(path, resized.bytes, resized.contentType);
   } catch {
     return null;
   }
@@ -197,7 +191,6 @@ export async function syncOwnerPosts(
       if (data?.length) {
         inserted += data.length;
         const stored = await storeInstagramImage(
-          supabase,
           `player_${post.shortcode || post.postId}`,
           post.imageUrl,
         );
@@ -225,7 +218,6 @@ export async function syncOwnerPosts(
       if (data?.length) {
         inserted += data.length;
         const stored = await storeInstagramImage(
-          supabase,
           `team_${post.shortcode || post.postId}`,
           post.imageUrl,
         );
@@ -270,7 +262,6 @@ export async function restoreOwnerImages(
         continue;
       }
       const stored = await storeInstagramImage(
-        supabase,
         `player_${post.shortcode || post.postId}`,
         post.imageUrl,
       );
@@ -294,7 +285,6 @@ export async function restoreOwnerImages(
         continue;
       }
       const stored = await storeInstagramImage(
-        supabase,
         `team_${post.shortcode || post.postId}`,
         post.imageUrl,
       );

@@ -71,7 +71,7 @@ async function backfillTable(
   for (const row of rows) {
     if (dryRun) continue;
 
-    const stored = await storeInstagramImage(supabase, `${keyPrefix}_${row.id}`, row.url);
+    const stored = await storeInstagramImage(`${keyPrefix}_${row.id}`, row.url);
     if (!stored) {
       expired += 1;
       continue;
