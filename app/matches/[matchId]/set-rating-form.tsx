@@ -40,7 +40,7 @@ function PlayerChip({
       disabled={disabled}
       onClick={onSelect}
       aria-pressed={selected}
-      className={`flex w-full flex-col items-center gap-2 rounded-xl border p-2.5 text-center transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+      className={`flex w-full flex-col items-center gap-1 rounded-xl border p-1.5 text-center transition-colors disabled:cursor-not-allowed disabled:opacity-50 sm:gap-2 sm:p-2.5 ${
         selected
           ? teamSide === "blue"
             ? "border-team-blue bg-team-blue/10"
@@ -59,8 +59,10 @@ function PlayerChip({
         )}
       </div>
       <span className="min-w-0">
-        <span className="block truncate text-[15px] font-black text-[var(--ui-ink)]">{player.name}</span>
-        <span className="block text-xs font-bold text-[var(--ui-muted)]">{player.position}</span>
+        <span className="block truncate text-[11px] font-black text-[var(--ui-ink)] sm:text-[15px]">
+          {player.name}
+        </span>
+        <span className="block text-[10px] font-bold text-[var(--ui-muted)] sm:text-xs">{player.position}</span>
       </span>
     </button>
   );
@@ -224,58 +226,65 @@ export function SetRatingForm({
         </div>
       ) : null}
 
-      <div className="flex flex-col gap-2">
-        {[
-          playerOptions.filter((player) => player.teamId === blueTeamId),
-          playerOptions.filter((player) => player.teamId !== blueTeamId),
-        ].map((teamPlayers, teamIndex) =>
-          teamPlayers.length === 0 ? null : (
-            // sm:grid-cols-5처럼 뷰포트 기준 고정 열 수를 쓰면, 이 폼이 SET POG 카드와
-            // 나란히 놓여 실제 폭이 좁아지는 화면에서 칩 하나하나가 너무 좁아져 이름이
-            // 심하게 잘린다. auto-fit + minmax로 칩의 "실제 컨테이너 폭"에 맞춰 열 수가
-            // 스스로 줄어들게 한다.
-            <div key={teamIndex} className="grid grid-cols-[repeat(auto-fit,minmax(9.5rem,1fr))] gap-2.5">
-              {teamPlayers.map((player) => (
-                <PlayerChip
-                  key={player.value}
-                  player={player}
-                  selected={player.value === selectedPlayerId}
-                  teamSide={teamIndex === 0 ? "blue" : "red"}
-                  disabled={disabled}
-                  onSelect={() => setSelectedPlayerId(player.value)}
-                />
-              ))}
-            </div>
-          ),
-        )}
-      </div>
-
-      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-        <StarRatingPicker value={selectedRating} disabled={disabled} onChange={setSelectedRating} />
-        {ratingStatusNote ? (
-          <p className="text-sm font-semibold text-[var(--ui-muted)]">{ratingStatusNote}</p>
+      <div className="relative">
+        {!ratingOpen && ratingStatusNote ? (
+          <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center p-4">
+            <p className="rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-4 py-2 text-center text-sm font-bold text-[var(--ui-ink)] shadow-lg">
+              {ratingStatusNote}
+            </p>
+          </div>
         ) : null}
+
+        <div className={`flex flex-col gap-2 ${!ratingOpen ? "pointer-events-none blur-sm select-none" : ""}`}>
+          {[
+            playerOptions.filter((player) => player.teamId === blueTeamId),
+            playerOptions.filter((player) => player.teamId !== blueTeamId),
+          ].map((teamPlayers, teamIndex) =>
+            teamPlayers.length === 0 ? null : (
+              <div key={teamIndex} className="grid grid-cols-5 gap-1.5 sm:gap-2">
+                {teamPlayers.map((player) => (
+                  <PlayerChip
+                    key={player.value}
+                    player={player}
+                    selected={player.value === selectedPlayerId}
+                    teamSide={teamIndex === 0 ? "blue" : "red"}
+                    disabled={disabled}
+                    onSelect={() => setSelectedPlayerId(player.value)}
+                  />
+                ))}
+              </div>
+            ),
+          )}
+
+          <div className="flex items-center gap-3">
+            <StarRatingPicker value={selectedRating} disabled={disabled} onChange={setSelectedRating} />
+          </div>
+
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <input
+              name="review"
+              maxLength={240}
+              disabled={disabled}
+              placeholder="한줄평"
+              className={`${fieldClassName} flex-1`}
+            />
+            <Button type="submit" size="lg" disabled={!canSubmit}>
+              {isPending ? (
+                <span className="flex items-center gap-2">
+                  <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden="true" />
+                  제출 중
+                </span>
+              ) : (
+                "제출"
+              )}
+            </Button>
+          </div>
+        </div>
       </div>
 
-      <div className="flex flex-col gap-2 sm:flex-row">
-        <input
-          name="review"
-          maxLength={240}
-          disabled={disabled}
-          placeholder="한줄평"
-          className={`${fieldClassName} flex-1`}
-        />
-        <Button type="submit" size="lg" disabled={!canSubmit}>
-          {isPending ? (
-            <span className="flex items-center gap-2">
-              <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden="true" />
-              제출 중
-            </span>
-          ) : (
-            "제출"
-          )}
-        </Button>
-      </div>
+      {ratingOpen && ratingStatusNote ? (
+        <p className="text-sm font-semibold text-[var(--ui-muted)]">{ratingStatusNote}</p>
+      ) : null}
     </form>
   );
 }

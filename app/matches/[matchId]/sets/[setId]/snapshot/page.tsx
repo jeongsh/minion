@@ -4,14 +4,16 @@ import { notFound } from "next/navigation";
 import {
   getAllPlayers,
   getAllTeams,
+  getChampions,
   getFanRatingsByMatchId,
   getMatchById,
   getPlayerStatLines,
   getSetById,
   getTournaments,
 } from "@/lib/data/lck";
+import { championImage } from "@/lib/champions";
 import { isSetRatingSnapshotReady } from "@/lib/set-status";
-import type { FanRating, Player, Team } from "@/lib/types";
+import type { Champion, FanRating, Player, Team } from "@/lib/types";
 import { fanRatingLeader, formatDateTime, matchHref, setHref, teamLabel } from "@/lib/view-data";
 
 export const dynamic = "force-dynamic";
@@ -29,17 +31,22 @@ function playerInitial(name: string) {
   return name.slice(0, 2).toUpperCase();
 }
 
-function Avatar({ player, size = "md" }: { player?: Player; size?: "md" | "lg" }) {
+function Avatar({
+  player,
+  champion,
+  size = "md",
+}: {
+  player?: Player;
+  champion?: Champion;
+  size?: "md" | "lg";
+}) {
   const sizeClass = size === "lg" ? "h-16 w-16" : "h-10 w-10";
+  const img = championImage(champion);
 
-  if (player?.profileImageUrl) {
+  if (img) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={player.profileImageUrl}
-        alt=""
-        className={`${sizeClass} shrink-0 rounded-md object-cover object-top`}
-      />
+      <img src={img} alt="" className={`${sizeClass} shrink-0 rounded-md object-cover`} />
     );
   }
 
@@ -70,10 +77,12 @@ function TeamLogo({ team }: { team?: Team }) {
 
 function RatingRow({
   player,
+  champion,
   ratings,
   align = "left",
 }: {
   player?: Player;
+  champion?: Champion;
   ratings: FanRating[];
   align?: "left" | "right";
 }) {
@@ -85,7 +94,7 @@ function RatingRow({
         align === "right" ? "flex-row-reverse text-right" : ""
       }`}
     >
-      <Avatar player={player} />
+      <Avatar player={player} champion={champion} />
       <div className="min-w-0 flex-1">
         <p className="truncate text-[15px] font-semibold">{player?.name ?? "-"}</p>
         <p className="text-[15px] text-muted">{ratings.length}개 평점</p>
@@ -109,12 +118,13 @@ export default async function SetRatingSnapshotPage({
     notFound();
   }
 
-  const [teams, players, statLines, fanRatings, tournaments] = await Promise.all([
+  const [teams, players, statLines, fanRatings, tournaments, champions] = await Promise.all([
     getAllTeams(),
     getAllPlayers(),
     getPlayerStatLines(set.id),
     getFanRatingsByMatchId(match.id),
     getTournaments(),
+    getChampions(),
   ]);
 
   const tournamentName = tournaments.find((item) => item.id === match.tournamentId)?.name;
@@ -157,6 +167,8 @@ export default async function SetRatingSnapshotPage({
 
   const leader = fanRatingLeader(setRatings);
   const leaderPlayer = leader ? players.find((player) => player.id === leader.playerId) : undefined;
+  const leaderLine = leader ? statLines.find((line) => line.playerId === leader.playerId) : undefined;
+  const leaderChampion = champions.find((champion) => champion.id === leaderLine?.championId);
   const reviewRows = setRatings
     .filter((rating) => rating.review)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
@@ -179,6 +191,7 @@ export default async function SetRatingSnapshotPage({
           <RatingRow
             key={`${line.setId}-${line.playerId}`}
             player={players.find((player) => player.id === line.playerId)}
+            champion={champions.find((champion) => champion.id === line.championId)}
             ratings={ratingsForPlayer(line.playerId)}
             align={align}
           />
@@ -218,7 +231,7 @@ export default async function SetRatingSnapshotPage({
         <p className="text-[15px] font-semibold uppercase text-muted">SET POG</p>
         {leader ? (
           <div className="mt-3 flex items-center gap-4">
-            <Avatar player={leaderPlayer} size="lg" />
+            <Avatar player={leaderPlayer} champion={leaderChampion} size="lg" />
             <div className="min-w-0">
               <p className="truncate text-2xl font-semibold">{leaderPlayer?.name ?? "-"}</p>
               <p className="mt-0.5 text-[15px] text-muted">
@@ -235,7 +248,7 @@ export default async function SetRatingSnapshotPage({
         )}
       </section>
 
-      <section className="grid gap-3 sm:grid-cols-2">
+      <section className="grid grid-cols-2 gap-3">
         {teamColumn(teamA, blueLines, "left")}
         {teamColumn(teamB, redLines, "right")}
       </section>

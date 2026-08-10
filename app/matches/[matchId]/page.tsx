@@ -248,16 +248,16 @@ function playerInitial(name: string) {
 }
 
 /** 평균 평점(예: 4.3)을 별 5개로 시각화. 반쪽 단위가 아니라 실제 소수점 비율만큼 채운다. */
-function StarRatingDisplay({ value }: { value: number }) {
+function StarRatingDisplay({ value, size = "h-5 w-5" }: { value: number; size?: string }) {
   return (
     <div className="flex" aria-hidden="true">
       {[0, 1, 2, 3, 4].map((i) => {
         const fillPercent = Math.round(Math.max(0, Math.min(1, value - i)) * 100);
         return (
-          <span key={i} className="relative h-5 w-5">
-            <Star className="absolute inset-0 h-5 w-5 text-[var(--ui-border)]" />
+          <span key={i} className={`relative ${size}`}>
+            <Star className={`absolute inset-0 ${size} text-[var(--ui-border)]`} />
             <span className="absolute inset-0 overflow-hidden" style={{ width: `${fillPercent}%` }}>
-              <Star fill="currentColor" className="h-5 w-5 text-amber-400" />
+              <Star fill="currentColor" className={`${size} text-amber-400`} />
             </span>
           </span>
         );
@@ -288,7 +288,7 @@ function RatingPlayerCard({
   return (
     // 선수 선택 카드(set-rating-form.tsx의 PlayerChip)와 같은 세로형 카드 언어 —
     // 챔피언 아이콘 위, 이름/포지션 아래, 배지형 평점을 그 아래에 둔다.
-    <div className="flex flex-col items-center gap-1.5 rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-2.5 text-center">
+    <div className="flex flex-col items-center gap-1 rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-1.5 text-center sm:gap-1.5 sm:p-2.5">
       <div className="aspect-square w-full max-w-20 overflow-hidden rounded-lg bg-[var(--ui-surface-muted)]">
         {img ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -299,23 +299,25 @@ function RatingPlayerCard({
           </div>
         )}
       </div>
-      <p className="w-full truncate text-sm font-black text-[var(--ui-ink)]">{player?.name ?? "-"}</p>
-      <p className="text-xs font-bold text-[var(--ui-muted)]">{line.position}</p>
+      <p className="w-full truncate text-[11px] font-black text-[var(--ui-ink)] sm:text-sm">
+        {player?.name ?? "-"}
+      </p>
+      <p className="text-[10px] font-bold text-[var(--ui-muted)] sm:text-xs">{line.position}</p>
       <div
-        className={`flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 ${
+        className={`flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-0.5 sm:gap-1 sm:px-2 ${
           average == null ? "bg-[var(--ui-surface-muted)]" : "bg-amber-400/15"
         }`}
       >
         <Star
           aria-hidden="true"
-          className={`h-3 w-3 ${average == null ? "text-[var(--ui-border)]" : "fill-amber-400 text-amber-400"}`}
+          className={`h-2.5 w-2.5 sm:h-3 sm:w-3 ${average == null ? "text-[var(--ui-border)]" : "fill-amber-400 text-amber-400"}`}
         />
         <span
-          className={`text-xs font-black tabular-nums ${average == null ? "text-[var(--ui-muted)]" : "text-[var(--ui-ink)]"}`}
+          className={`text-[10px] font-black tabular-nums sm:text-xs ${average == null ? "text-[var(--ui-muted)]" : "text-[var(--ui-ink)]"}`}
         >
           {average == null ? "-" : average.toFixed(1)}
         </span>
-        <span className="text-[10px] font-semibold text-[var(--ui-muted)]">{ratings.length}개</span>
+        <span className="text-[9px] font-semibold text-[var(--ui-muted)] sm:text-[10px]">{ratings.length}개</span>
       </div>
     </div>
   );
@@ -350,7 +352,7 @@ function TeamRatingColumn({
       {teamRows.length === 0 ? (
         <p className="text-sm text-[var(--ui-muted)]">평점 대상 선수가 없습니다.</p>
       ) : (
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(6.5rem,1fr))] gap-2">
+        <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
           {teamRows.map((line) => (
             <RatingPlayerCard
               key={`${line.setId}-${line.playerId}`}
@@ -533,42 +535,45 @@ function MatchRatingPanel({
         {reviewRows.length === 0 ? (
           <p className="mt-2 text-sm text-[var(--ui-muted)]">아직 작성된 한줄평이 없습니다.</p>
         ) : (
-          <div className="mt-3 grid gap-2">
+          <div className="mt-3 grid gap-2.5">
             {reviewRows.map((rating) => {
               const player = players.find((item) => item.id === rating.playerId);
               const authorName = rating.authorNickname ?? "익명";
               return (
                 <article
                   key={rating.id}
-                  className="grid grid-cols-[2.25rem_minmax(0,1fr)_auto] items-center gap-2.5 rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface-muted)] p-2.5"
+                  className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface-muted)] p-3 sm:grid-cols-[2.5rem_minmax(0,1fr)_auto]"
                 >
                   {rating.authorProfileImageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={rating.authorProfileImageUrl}
                       alt=""
-                      className="h-9 w-9 shrink-0 rounded-lg object-cover object-top"
+                      className="hidden h-10 w-10 shrink-0 rounded-full object-cover object-top ring-2 ring-[var(--ui-surface)] sm:block"
                     />
                   ) : (
                     <span
-                      className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[var(--ui-surface)] text-xs font-black text-[var(--ui-muted)]"
+                      className="hidden h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--ui-surface)] text-xs font-black text-[var(--ui-muted)] ring-2 ring-[var(--ui-surface)] sm:grid"
                       aria-hidden="true"
                     >
                       {playerInitial(authorName)}
                     </span>
                   )}
-                  <div className="min-w-0">
-                    <p className="flex items-baseline gap-1 truncate text-sm font-black text-[var(--ui-ink)]">
-                      <span className="truncate">{authorName}</span>
-                      <span className="shrink-0 text-xs font-semibold text-[var(--ui-muted)]">
-                        · {player?.name ?? "-"} 평가
-                      </span>
+                  <div className="flex min-w-0 items-center gap-2">
+                    <div className="shrink-0">
+                      <p className="text-sm font-black leading-tight text-[var(--ui-ink)]">{player?.name ?? "-"}</p>
+                      <p className="mt-0.5 text-xs font-semibold leading-tight text-[var(--ui-muted)]">{authorName}</p>
+                    </div>
+                    <p className="min-w-0 flex-1 truncate text-sm italic text-[var(--ui-text)]">
+                      “{rating.review}”
                     </p>
-                    <p className="mt-1 text-sm leading-5 text-[var(--ui-text)]">{rating.review}</p>
                   </div>
-                  <p className="text-sm font-black tabular-nums text-[var(--ui-ink)]">
-                    {rating.rating.toFixed(1)}
-                  </p>
+                  <div className="flex shrink-0 flex-col items-end gap-1">
+                    <StarRatingDisplay value={rating.rating} size="h-3.5 w-3.5" />
+                    <p className="text-sm font-black tabular-nums text-[var(--ui-ink)]">
+                      {rating.rating.toFixed(1)}
+                    </p>
+                  </div>
                 </article>
               );
             })}

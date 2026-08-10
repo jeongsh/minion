@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   CalendarDays,
@@ -78,7 +78,16 @@ function focusRouteMeta(pathname: string) {
   if (pathname === "/login") return { title: "로그인", backHref: "/" };
   if (pathname === "/signup") return { title: "회원가입", backHref: "/login" };
   if (pathname === "/me/profile") return { title: "프로필 관리", backHref: "/me" };
-  if (pathname.endsWith("/snapshot")) return { title: "세트 스냅샷", backHref: pathname.replace(/\/snapshot$/, "") };
+  if (pathname.endsWith("/snapshot")) {
+    // 스냅샷은 매치 상세의 "평가" 탭(쿼리스트링 포함)처럼 URL만으로는 복원 못 하는
+    // 곳에서도 진입한다. backHref는 히스토리가 없을 때(직접 방문/새 탭)의 대비용
+    // 폴백이고, 있으면 실제 뒤로가기(브라우저 히스토리)로 원래 있던 화면 그대로 돌아간다.
+    return {
+      title: "세트 스냅샷",
+      backHref: pathname.replace(/\/snapshot$/, ""),
+      preferHistoryBack: true,
+    };
+  }
   if (/^\/community\/(new|[^/]+\/new|post\/[^/]+\/edit)$/.test(pathname)) return { title: pathname.endsWith("/edit") ? "글 수정" : "글쓰기", backHref: "/community" };
   const fanWrite = pathname.match(/^\/fan\/([^/]+)\/community\/(new|[^/]+\/new|post\/[^/]+\/edit)$/);
   if (fanWrite) return { title: pathname.endsWith("/edit") ? "글 수정" : "글쓰기", backHref: `/fan/${fanWrite[1]}/community` };
@@ -99,6 +108,7 @@ export function AppShell({
   shellTeams?: Team[];
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [teamsOpen, setTeamsOpen] = useState(false);
@@ -157,7 +167,23 @@ export function AppShell({
     <div className="min-h-screen text-[#141517]">
       {focus ? (
         <header className="fixed inset-x-0 top-0 z-50 grid h-14 grid-cols-[44px_minmax(0,1fr)_44px] items-center border-b border-[#e8e8eb] bg-background px-2 sm:h-16 dark:border-[#343840]">
-          <Link href={focus.backHref} className="grid h-11 w-11 place-items-center rounded-xl hover:bg-[#f4f4f5] dark:hover:bg-[#282c31]" aria-label="이전 화면"><ChevronLeft size={22} /></Link>
+          <Link
+            href={focus.backHref}
+            onClick={
+              focus.preferHistoryBack
+                ? (event) => {
+                    if (window.history.length > 1) {
+                      event.preventDefault();
+                      router.back();
+                    }
+                  }
+                : undefined
+            }
+            className="grid h-11 w-11 place-items-center rounded-xl hover:bg-[#f4f4f5] dark:hover:bg-[#282c31]"
+            aria-label="이전 화면"
+          >
+            <ChevronLeft size={22} />
+          </Link>
           <p className="truncate text-center text-[16px] font-black text-[var(--ui-ink)]">{focus.title}</p>
           <span aria-hidden="true" />
         </header>
