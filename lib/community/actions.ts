@@ -18,6 +18,7 @@ import { findProfanity, maskProfanity } from "@/lib/community/content-filter";
 import { extractPlainText } from "@/lib/community/extract-thumbnail";
 import { AI_MODERATOR_NAME } from "@/lib/community/moderation-labels";
 import { sendDiscordCommunityModerationAlert } from "@/lib/notify/discord";
+import { isCommunityUserSanctioned } from "@/lib/data/community-users";
 import type {
   ActionResult,
   ReactionKind,
@@ -45,6 +46,14 @@ const LOGIN_REQUIRED: ActionResult = {
   error: "로그인이 필요합니다.",
   requiresLogin: true,
 };
+
+async function communitySanctionError(
+  userId: string,
+): Promise<{ ok: false; error: string } | null> {
+  return (await isCommunityUserSanctioned(userId))
+    ? { ok: false, error: "커뮤니티 이용이 영구 제한된 계정입니다." }
+    : null;
+}
 
 /** 리액션 액션 결과. 성공 시 최종 stance(state)를 돌려줘 클라이언트 UI 동기화에 쓴다. */
 export type ReactionActionResult =
@@ -179,6 +188,8 @@ export async function createPostAction(input: {
 }): Promise<ActionResult> {
   const user = await getCurrentUser();
   if (!user) return LOGIN_REQUIRED;
+  const sanction = await communitySanctionError(user.id);
+  if (sanction) return sanction;
 
   const board = getBoard(input.scope, input.boardType);
   if (!board) return { ok: false, error: "존재하지 않는 게시판입니다." };
@@ -226,6 +237,8 @@ export async function updatePostAction(input: {
 }): Promise<ActionResult> {
   const user = await getCurrentUser();
   if (!user) return LOGIN_REQUIRED;
+  const sanction = await communitySanctionError(user.id);
+  if (sanction) return sanction;
 
   const post = await getPostById(input.postId);
   if (!post || post.authorId !== user.id || post.siteScope !== input.scope) {
@@ -286,6 +299,8 @@ export async function createCommentAction(input: {
 }): Promise<ActionResult> {
   const user = await getCurrentUser();
   if (!user) return LOGIN_REQUIRED;
+  const sanction = await communitySanctionError(user.id);
+  if (sanction) return sanction;
 
   const content = input.content.trim();
   if (!content) return { ok: false, error: "댓글 내용을 입력하세요." };
@@ -339,6 +354,8 @@ export async function reactAction(input: {
 }): Promise<ReactionActionResult> {
   const user = await getCurrentUser();
   if (!user) return { ok: false, error: "로그인이 필요합니다.", requiresLogin: true };
+  const sanction = await communitySanctionError(user.id);
+  if (sanction) return sanction;
 
   // 대상 작성자(LP 반영 대상) 확인.
   const authorId =
@@ -385,6 +402,8 @@ export async function reportPostAction(input: {
 }): Promise<ActionResult> {
   const user = await getCurrentUser();
   if (!user) return LOGIN_REQUIRED;
+  const sanction = await communitySanctionError(user.id);
+  if (sanction) return sanction;
 
   const post = await getPostById(input.postId);
   if (!post) return { ok: false, error: "글을 찾을 수 없습니다." };
@@ -440,6 +459,8 @@ export async function reportCommentAction(input: {
 }): Promise<ActionResult> {
   const user = await getCurrentUser();
   if (!user) return LOGIN_REQUIRED;
+  const sanction = await communitySanctionError(user.id);
+  if (sanction) return sanction;
 
   const comment = await getCommentById(input.commentId);
   if (!comment) return { ok: false, error: "댓글을 찾을 수 없습니다." };

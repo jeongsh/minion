@@ -2,6 +2,7 @@ import { Eye, ArrowLeft, Megaphone } from "lucide-react";
 import Link from "next/link";
 
 import { BlindedContent } from "@/components/community/blinded-content";
+import { AuthorMenu } from "@/components/community/author-menu";
 import { CommentForm } from "@/components/community/comment-form";
 import { CommentList } from "@/components/community/comment-list";
 import { PostContentViewer } from "@/components/community/editor/post-content-viewer";
@@ -10,7 +11,6 @@ import { PostOwnerActions } from "@/components/community/post-owner-actions";
 import { ReactionButtons } from "@/components/community/reaction-buttons";
 import { ReportButton } from "@/components/community/report-button";
 import { SurfacePanel } from "@/components/ui/surface-panel";
-import { RankAvatar } from "@/components/rank/rank-avatar";
 import { setPostNoticeInlineAction } from "@/lib/community/admin-actions";
 import type { BoardScope } from "@/lib/community/boards";
 import { blindDescription, blindLabel } from "@/lib/community/moderation-labels";
@@ -25,6 +25,7 @@ export function PostView({
   teamSlug,
   canManage = false,
   canSetNotice = false,
+  viewerId,
 }: {
   post: CommunityPostDetail;
   comments: CommunityCommentItem[];
@@ -34,9 +35,9 @@ export function PostView({
   teamSlug?: string;
   canManage?: boolean;
   canSetNotice?: boolean;
+  viewerId?: string | null;
 }) {
   const boardHref = scope === "team" && teamSlug ? `/fan/${teamSlug}/community` : "/community";
-  const initial = (post.authorName ?? "글").trim().charAt(0) || "글";
   const blinded = Boolean(post.blindedAt);
 
   return (
@@ -69,15 +70,16 @@ export function PostView({
           </h1>
 
           <div className="mt-2 flex items-center gap-3">
-            <RankAvatar
-              tier={post.authorTier}
-              src={post.authorImageUrl}
-              alt={post.authorName ?? "작성자"}
-              fallback={initial}
-              size="md"
+            <AuthorMenu
+              authorId={post.authorId}
+              authorName={post.authorName}
+              authorImageUrl={post.authorImageUrl}
+              authorTier={post.authorTier}
+              viewerId={viewerId}
+              variant="detail"
+              evidencePostId={post.id}
             />
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-[var(--ui-ink)]">{post.authorName ?? "작성자"}</p>
+            <div className="min-w-0 border-l border-[var(--ui-border)] pl-3">
               <div className="mt-0.5 flex items-center gap-2 text-[13px] text-[var(--ui-muted)]">
                 <span>{formatRelativeOrDate(post.createdAt)}</span>
                 <span aria-hidden>·</span>
@@ -126,7 +128,7 @@ export function PostView({
           <div className="px-4 pb-5 sm:px-8 sm:pb-8">
             <CommentForm postId={post.id} scope={scope} teamSlug={teamSlug} />
           </div>
-          <CommentList comments={comments} commentReactions={commentReactions} scope={scope} teamSlug={teamSlug} />
+          <CommentList comments={comments} commentReactions={commentReactions} scope={scope} teamSlug={teamSlug} viewerId={viewerId} />
         </section>
       </SurfacePanel>
     </article>

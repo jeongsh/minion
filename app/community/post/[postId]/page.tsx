@@ -51,6 +51,7 @@ export default async function HubPostDetailPage({
             scope="hub"
             canManage={post.authorId === user?.id}
             canSetNotice={canSetNotice}
+            viewerId={user?.id}
           />
         </CommunityContentLayout>
       </div>

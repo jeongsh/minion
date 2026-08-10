@@ -10,8 +10,11 @@ import { AI_MODERATOR_NAME } from "@/lib/community/moderation-labels";
 import type { BoardScope } from "@/lib/community/boards";
 import { DEFAULT_TIER, type Tier } from "@/lib/rank/config";
 import { getPublicRankProfiles } from "@/lib/rank/public-profile";
+import { getCurrentUser } from "@/lib/auth/current-user";
+import { getBlockedCommunityUserIds } from "@/lib/data/community-users";
 import type {
   BlindSource,
+  CommunityAuthorCommentItem,
   CommunityCommentItem,
   CommunityPostDetail,
   ReactionKind,
@@ -62,6 +65,11 @@ const COMMENT_COLUMNS =
 
 /** 목록 조회 상한(전체 로드 방지 가드). 피드는 클라이언트에서 검색/페이징한다. */
 const POST_LIST_LIMIT = 500;
+
+async function blockedAuthorIdsForCurrentUser(): Promise<Set<string>> {
+  const user = await getCurrentUser();
+  return user ? getBlockedCommunityUserIds(user.id) : new Set();
+}
 
 function mapPost(
   row: PostRow,
@@ -173,7 +181,9 @@ export const getBoardPosts = cache(async function getBoardPosts(params: {
 
   const { data, error } = await query;
   if (error) throw error;
-  return mapPostsWithAuthors(data as PostRow[]);
+  const blockedIds = await blockedAuthorIdsForCurrentUser();
+  const rows = (data as PostRow[]).filter((row) => !row.author_id || !blockedIds.has(row.author_id));
+  return mapPostsWithAuthors(rows);
 });
 
 /** 단건 조회(조회수 증가 X — 순수 조회). */
@@ -191,6 +201,8 @@ export const getPostById = cache(async function getPostById(
 
   if (error) throw error;
   if (!data) return null;
+  const blockedIds = await blockedAuthorIdsForCurrentUser();
+  if ((data as PostRow).author_id && blockedIds.has((data as PostRow).author_id!)) return null;
   return (await mapPostsWithAuthors([data as PostRow]))[0] ?? null;
 });
 
@@ -237,7 +249,10 @@ export const getPostComments = cache(async function getPostComments(
   if (error) throw error;
 
   // 삭제된 댓글은 답글이 남아 있는 경우에만 자리표시용으로 유지하고, 아니면 목록에서 제외한다.
-  const rows = data as CommentRow[];
+  const blockedIds = await blockedAuthorIdsForCurrentUser();
+  const rows = (data as CommentRow[]).filter(
+    (row) => !row.author_id || !blockedIds.has(row.author_id),
+  );
   const parentIdsWithReplies = new Set(
     rows.flatMap((row) => (row.parent_id && !row.deleted_at ? [row.parent_id] : [])),
   );
@@ -246,6 +261,71 @@ export const getPostComments = cache(async function getPostComments(
   );
   return mapCommentsWithAuthors(visible);
 });
+
+/** Public activity list for a community author. Deleted content is never exposed. */
+export async function getPostsByAuthor(authorId: string): Promise<CommunityPostDetail[]> {
+  if (!canQuerySupabase()) return [];
+  const blockedIds = await blockedAuthorIdsForCurrentUser();
+  if (blockedIds.has(authorId)) return [];
+
+  const { data, error } = await createSupabaseServerClient()
+    .from("community_posts")
+    .select(POST_COLUMNS)
+    .eq("author_id", authorId)
+    .is("deleted_at", null)
+    .order("created_at", { ascending: false })
+    .limit(100);
+  if (error) throw error;
+  return mapPostsWithAuthors((data ?? []) as PostRow[]);
+}
+
+/** Public comment activity with enough parent-post metadata to build links. */
+export async function getCommentsByAuthor(
+  authorId: string,
+): Promise<CommunityAuthorCommentItem[]> {
+  if (!canQuerySupabase()) return [];
+  const blockedIds = await blockedAuthorIdsForCurrentUser();
+  if (blockedIds.has(authorId)) return [];
+
+  const { data, error } = await createSupabaseServerClient()
+    .from("community_comments")
+    .select(COMMENT_COLUMNS)
+    .eq("author_id", authorId)
+    .is("deleted_at", null)
+    .order("created_at", { ascending: false })
+    .limit(100);
+  if (error) throw error;
+  const comments = (data ?? []) as CommentRow[];
+  if (comments.length === 0) return [];
+
+  const postIds = [...new Set(comments.map((comment) => comment.post_id))];
+  const { data: postData, error: postError } = await createSupabaseServerClient()
+    .from("community_posts")
+    .select("id, title, site_scope, team_id, deleted_at")
+    .in("id", postIds)
+    .is("deleted_at", null);
+  if (postError) throw postError;
+  const posts = new Map(
+    ((postData ?? []) as {
+      id: string;
+      title: string;
+      site_scope: BoardScope;
+      team_id: string | null;
+    }[]).map((post) => [post.id, post]),
+  );
+  const mapped = await mapCommentsWithAuthors(comments);
+  return mapped.flatMap((comment) => {
+    const post = posts.get(comment.postId);
+    return post
+      ? [{
+          ...comment,
+          postTitle: post.title,
+          postSiteScope: post.site_scope,
+          postTeamId: post.team_id,
+        }]
+      : [];
+  });
+}
 
 /** 글 생성. author_id 는 호출부(서버 액션)에서 getCurrentUser().id 로 전달. */
 export async function createPost(params: {

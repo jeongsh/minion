@@ -18,11 +18,13 @@ export function CommunityFeed({
   scope,
   teamSlug,
   newPath,
+  viewerId,
 }: {
   posts: CommunityPostDetail[];
   scope: BoardScope;
   teamSlug?: string;
   newPath: string;
+  viewerId?: string | null;
 }) {
   const categories = categoriesForScope(scope);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
@@ -61,7 +63,7 @@ export function CommunityFeed({
 
   return (
     <section className="flex flex-col gap-4 sm:gap-5" aria-label="커뮤니티 게시글">
-      <div className="mobile-full-bleed mobile-list-shell overflow-hidden rounded-[var(--ui-card-radius)] border border-[var(--ui-border)] bg-[var(--ui-surface)] sm:mx-0">
+      <div className="mobile-full-bleed mobile-list-shell overflow-visible rounded-[var(--ui-card-radius)] border border-[var(--ui-border)] bg-[var(--ui-surface)] sm:mx-0">
         <div className="flex min-h-12 items-stretch border-b border-[var(--ui-border)] px-3 sm:min-h-14 sm:px-4">
           <div
             className="-mx-1 flex min-w-0 flex-1 items-stretch gap-2 overflow-x-auto px-1 scrollbar-hide sm:gap-7"
@@ -86,7 +88,7 @@ export function CommunityFeed({
           </div>
         </div>
 
-        <PostList posts={paged} pinned={notices} scope={scope} teamSlug={teamSlug} />
+        <PostList posts={paged} pinned={notices} scope={scope} teamSlug={teamSlug} viewerId={viewerId} />
       </div>
 
       <div className="grid items-center gap-3 sm:gap-4 lg:grid-cols-[1fr_auto_1fr]">

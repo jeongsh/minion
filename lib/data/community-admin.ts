@@ -396,3 +396,126 @@ export async function updateCommunitySettings(
     });
   if (error) throw error;
 }
+
+export type AdminUserReport = {
+  id: string;
+  reporterId: string;
+  reporterName: string | null;
+  targetUserId: string;
+  targetUserName: string | null;
+  reason: string;
+  evidencePostId: string | null;
+  evidenceCommentId: string | null;
+  createdAt: string;
+};
+
+export type AdminCommunitySanction = {
+  id: string;
+  userId: string;
+  userName: string | null;
+  reason: string;
+  bannedAt: string;
+};
+
+export async function listPendingUserReports(): Promise<AdminUserReport[]> {
+  const { data, error } = await createSupabaseAdminClient()
+    .from("community_user_reports")
+    .select("id, reporter_id, target_user_id, reason, evidence_post_id, evidence_comment_id, created_at")
+    .eq("status", "pending")
+    .order("created_at", { ascending: true })
+    .limit(200);
+  if (error) throw error;
+
+  const rows = (data ?? []) as {
+    id: string;
+    reporter_id: string;
+    target_user_id: string;
+    reason: string;
+    evidence_post_id: string | null;
+    evidence_comment_id: string | null;
+    created_at: string;
+  }[];
+  const nicknames = await fetchNicknames(rows.flatMap((row) => [row.reporter_id, row.target_user_id]));
+  return rows.map((row) => ({
+    id: row.id,
+    reporterId: row.reporter_id,
+    reporterName: nicknames.get(row.reporter_id) ?? null,
+    targetUserId: row.target_user_id,
+    targetUserName: nicknames.get(row.target_user_id) ?? null,
+    reason: row.reason,
+    evidencePostId: row.evidence_post_id,
+    evidenceCommentId: row.evidence_comment_id,
+    createdAt: row.created_at,
+  }));
+}
+
+export async function listActiveCommunitySanctions(): Promise<AdminCommunitySanction[]> {
+  const { data, error } = await createSupabaseAdminClient()
+    .from("community_user_sanctions")
+    .select("id, user_id, reason, banned_at")
+    .is("lifted_at", null)
+    .order("banned_at", { ascending: false })
+    .limit(200);
+  if (error) throw error;
+  const rows = (data ?? []) as { id: string; user_id: string; reason: string; banned_at: string }[];
+  const nicknames = await fetchNicknames(rows.map((row) => row.user_id));
+  return rows.map((row) => ({
+    id: row.id,
+    userId: row.user_id,
+    userName: nicknames.get(row.user_id) ?? null,
+    reason: row.reason,
+    bannedAt: row.banned_at,
+  }));
+}
+
+export async function sanctionCommunityUser(params: {
+  userId: string;
+  reason: string;
+  adminId: string;
+  reportId?: string | null;
+}): Promise<void> {
+  const supabase = createSupabaseAdminClient();
+  const { error } = await supabase.from("community_user_sanctions").insert({
+    user_id: params.userId,
+    reason: params.reason,
+    banned_by: params.adminId,
+  });
+  if (error && error.code !== "23505") throw error;
+
+  const reportUpdate = {
+    status: "sanctioned",
+    resolved_at: new Date().toISOString(),
+    resolved_by: params.adminId,
+  };
+  if (params.reportId) {
+    await supabase.from("community_user_reports").update(reportUpdate).eq("id", params.reportId);
+  } else {
+    await supabase
+      .from("community_user_reports")
+      .update(reportUpdate)
+      .eq("target_user_id", params.userId)
+      .eq("status", "pending");
+  }
+}
+
+export async function dismissCommunityUserReport(reportId: string, adminId: string): Promise<void> {
+  const { error } = await createSupabaseAdminClient()
+    .from("community_user_reports")
+    .update({
+      status: "dismissed",
+      resolved_at: new Date().toISOString(),
+      resolved_by: adminId,
+    })
+    .eq("id", reportId)
+    .eq("status", "pending");
+  if (error) throw error;
+}
+
+export async function liftCommunityUserSanction(sanctionId: string, adminId: string): Promise<void> {
+  const { error } = await createSupabaseAdminClient()
+    .from("community_user_sanctions")
+    .update({ lifted_at: new Date().toISOString(), lifted_by: adminId })
+    .eq("id", sanctionId)
+    .is("lifted_at", null);
+  if (error) throw error;
+}

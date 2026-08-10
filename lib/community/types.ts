@@ -71,6 +71,12 @@ export type CommunityCommentItem = {
   deletedAt: string | null;
 };
 
+export type CommunityAuthorCommentItem = CommunityCommentItem & {
+  postTitle: string;
+  postSiteScope: BoardScope;
+  postTeamId: string | null;
+};
+
 // 서버 액션 결과(폼 상태). 비로그인/검증 실패 등을 UI에 전달.
 export type ActionResult =
   | { ok: true; message?: string }

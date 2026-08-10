@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import type { BoardScope } from "@/lib/community/boards";
 import { getCalendarEvents, getTodayCelebrations } from "@/lib/calendar/events";
 import { getBoardPosts } from "@/lib/data/community";
+import { getCurrentUser } from "@/lib/auth/current-user";
 
 // 커뮤니티 목록 — 핸드오프 2c. 말머리 필터 + 게시글 테이블.
 export async function CommunityFeedPage({
@@ -21,11 +22,12 @@ export async function CommunityFeedPage({
   teamSlug?: string;
 }) {
   // 팀 게시판에서만 오늘의 기념일을 띄운다(허브는 팀 특정이 안 됨).
-  const [posts, todayCelebrations] = await Promise.all([
+  const [posts, todayCelebrations, viewer] = await Promise.all([
     getBoardPosts({ scope, teamId }),
     scope === "team" && teamId
       ? getCalendarEvents({ teamId }).then(getTodayCelebrations)
       : Promise.resolve([]),
+    getCurrentUser(),
   ]);
 
   const newPath =
@@ -41,7 +43,7 @@ export async function CommunityFeedPage({
         />
         <CelebrationBanner events={todayCelebrations} action="write" />
         <CommunityContentLayout posts={posts} scope={scope} teamSlug={teamSlug}>
-          <CommunityFeed posts={posts} scope={scope} teamSlug={teamSlug} newPath={newPath} />
+          <CommunityFeed posts={posts} scope={scope} teamSlug={teamSlug} newPath={newPath} viewerId={viewer?.id} />
         </CommunityContentLayout>
       </main>
     );
@@ -52,7 +54,7 @@ export async function CommunityFeedPage({
       <div className="layout-wide flex flex-col gap-5 py-6 sm:py-8">
         <PageHeader eyebrow={eyebrow ?? "COMMUNITY"} title={title ?? "커뮤니티"} />
         <CommunityContentLayout posts={posts} scope={scope} teamSlug={teamSlug}>
-          <CommunityFeed posts={posts} scope={scope} teamSlug={teamSlug} newPath={newPath} />
+          <CommunityFeed posts={posts} scope={scope} teamSlug={teamSlug} newPath={newPath} viewerId={viewer?.id} />
         </CommunityContentLayout>
       </div>
     </main>

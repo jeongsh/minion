@@ -3,6 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 
 import cleansingBotWarning from "@/assets/characters/pen-warning-blocked-red.png";
+import { AuthorMenu } from "@/components/community/author-menu";
 import { formatRelativeOrDate } from "@/components/community/format";
 import { boardLabel, type BoardScope } from "@/lib/community/boards";
 import { isHotPost } from "@/lib/community/hot";
@@ -15,12 +16,14 @@ export function PostList({
   pinned = [],
   scope,
   teamSlug,
+  viewerId,
 }: {
   posts: CommunityPostDetail[];
   /** 공지 등 필터/페이징과 무관하게 최상단에 고정할 글. */
   pinned?: CommunityPostDetail[];
   scope: BoardScope;
   teamSlug?: string;
+  viewerId?: string | null;
 }) {
   const detailHref = (postId: string) => scope === "team" && teamSlug
     ? `/fan/${teamSlug}/community/post/${postId}`
@@ -44,8 +47,7 @@ export function PostList({
 
     return (
       <li key={post.id} className={`border-b border-[var(--ui-border)] last:border-b-0 ${isNoticeRow ? "bg-[var(--ui-surface-muted)]" : ""}`}>
-        <Link
-          href={detailHref(post.id)}
+        <div
           className="grid min-h-[72px] grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-4 py-3 transition-colors sm:px-2"
         >
           <div className="min-w-0">
@@ -61,7 +63,7 @@ export function PostList({
                 <span className="shrink-0 rounded-full border border-[var(--tp)] px-1.5 py-0.5 text-[13px] font-medium leading-none text-[var(--tp)]">인기</span>
               ) : null}
               {blinded ? (
-                <h3 className="inline-flex min-w-0 items-center gap-1.5 truncate text-base font-medium text-[var(--ui-muted)]">
+                <Link href={detailHref(post.id)} className="inline-flex min-w-0 items-center gap-1.5 truncate text-base font-medium text-[var(--ui-muted)]">
                   {cleansingBotBlinded ? (
                     <Image
                       src={cleansingBotWarning}
@@ -75,14 +77,14 @@ export function PostList({
                     <EyeOff size={14} strokeWidth={1.8} className="shrink-0" />
                   )}
                   {blindLabel(post.blindedSource, "post")}
-                </h3>
+                </Link>
               ) : (
-                <h3 className="truncate text-base font-semibold text-[var(--ui-ink)]">{post.title}</h3>
+                <Link href={detailHref(post.id)} className="truncate text-base font-semibold text-[var(--ui-ink)] hover:underline">{post.title}</Link>
               )}
             </div>
 
             <div className="mt-0.5 flex min-w-0 items-center gap-2.5 overflow-hidden whitespace-nowrap text-[13px] font-normal text-[var(--ui-muted)]">
-              <span className="max-w-28 truncate font-medium text-[var(--ui-text)]">{post.authorName ?? "알 수 없음"}</span>
+              <AuthorMenu authorId={post.authorId} authorName={post.authorName} authorImageUrl={post.authorImageUrl} authorTier={post.authorTier} viewerId={viewerId} variant="feed" evidencePostId={post.id} />
               <span className="shrink-0">{formatRelativeOrDate(post.createdAt)}</span>
               <span className="hidden shrink-0 items-center gap-1 sm:inline-flex"><Eye size={13} strokeWidth={1.8} />{post.viewCount}</span>
               <span className="inline-flex shrink-0 items-center gap-1"><MessageCircle size={13} strokeWidth={1.8} />{post.commentCount}</span>
@@ -91,12 +93,12 @@ export function PostList({
           </div>
 
           {!blinded && post.thumbnailUrl ? (
-            <span className="h-[48px] w-[72px] shrink-0 overflow-hidden rounded-[var(--ui-control-radius)] bg-[var(--ui-surface-muted)] sm:h-[70px] sm:w-[120px]">
+            <Link href={detailHref(post.id)} className="h-[48px] w-[72px] shrink-0 overflow-hidden rounded-[var(--ui-control-radius)] bg-[var(--ui-surface-muted)] sm:h-[70px] sm:w-[120px]">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={post.thumbnailUrl} alt="" loading="lazy" className="h-full w-full object-cover" />
-            </span>
+            </Link>
           ) : null}
-        </Link>
+        </div>
       </li>
     );
   };

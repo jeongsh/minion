@@ -58,6 +58,7 @@ export default async function FanPostDetailPage({
           teamSlug={teamSlug}
           canManage={post.authorId === user?.id}
           canSetNotice={canSetNotice}
+          viewerId={user?.id}
         />
       </CommunityContentLayout>
     </main>

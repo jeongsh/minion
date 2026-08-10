@@ -5,12 +5,15 @@ import { SectionHeader } from "@/components/layout/section-header";
 import { boardLabel } from "@/lib/community/boards";
 import { AI_MODERATOR_NAME } from "@/lib/community/moderation-labels";
 import {
+  listActiveCommunitySanctions,
   listCommunitySettings,
   listModeratedPosts,
   listPendingReportGroups,
+  listPendingUserReports,
   type AdminPostSummary,
   type AdminReportGroup,
 } from "@/lib/data/community-admin";
+import { UserModerationPanel } from "./user-moderation-panel";
 import {
   confirmReportsAction,
   dismissReportsAction,
@@ -42,8 +45,10 @@ function postHref(post: AdminPostSummary) {
 }
 
 export default async function AdminCommunityPage() {
-  const [reportGroups, moderatedPosts, settings] = await Promise.all([
+  const [reportGroups, userReports, sanctions, moderatedPosts, settings] = await Promise.all([
     listPendingReportGroups(),
+    listPendingUserReports(),
+    listActiveCommunitySanctions(),
     listModeratedPosts(),
     listCommunitySettings(),
   ]);
@@ -125,6 +130,8 @@ export default async function AdminCommunityPage() {
           </ul>
         )}
       </section>
+
+      <UserModerationPanel reports={userReports} sanctions={sanctions} />
 
       {/* ── 블라인드/삭제 글 ─────────────────────────────────────── */}
       <section className="flex flex-col gap-3">

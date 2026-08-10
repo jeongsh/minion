@@ -4,11 +4,13 @@ import { DeleteAccountForm } from "@/components/auth/delete-account-form";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { PasswordForm } from "@/components/auth/password-form";
 import { ProfileForm } from "@/components/auth/profile-form";
+import { BlockedUserList } from "@/components/community/blocked-user-list";
 import { CheckInButton } from "@/components/rank/check-in-button";
 import { KitschEmptyState } from "@/components/ui/kitsch-empty-state";
 import { getCurrentUser, type CurrentUser } from "@/lib/auth/current-user";
 import { tierProgress, type Tier } from "@/lib/rank/config";
 import { getRankSummary } from "@/lib/rank/queries";
+import { listBlockedCommunityUsers } from "@/lib/data/community-users";
 
 // 회원 탈퇴 재인증(delete-account-form.tsx)에서 소셜 재로그인 후 이 시간 안에는
 // "방금 본인임을 증명했다"고 보고 비밀번호 없이 탈퇴를 진행할 수 있게 한다.
@@ -55,7 +57,7 @@ function formatDate(iso: string) {
   });
 }
 
-type MeTab = "rank" | "account";
+type MeTab = "rank" | "account" | "blocks";
 
 export default async function MePage({
   searchParams,
@@ -63,7 +65,7 @@ export default async function MePage({
   searchParams: Promise<{ tab?: string }>;
 }) {
   const params = await searchParams;
-  const tab: MeTab = params.tab === "account" ? "account" : "rank";
+  const tab: MeTab = params.tab === "account" ? "account" : params.tab === "blocks" ? "blocks" : "rank";
   const user = await getCurrentUser();
 
   if (!user) {
@@ -94,6 +96,7 @@ export default async function MePage({
   }
 
   const summary = await getRankSummary(user.id);
+  const blockedUsers = tab === "blocks" ? await listBlockedCommunityUsers(user.id) : [];
   const progress = tierProgress(summary.tier, summary.lp);
 
   return (
@@ -111,11 +114,12 @@ export default async function MePage({
         </div>
 
         <nav
-          className="me-tabs mt-5 grid grid-cols-2 gap-1 rounded-xl bg-[var(--ui-surface-muted)] p-1"
+          className="me-tabs mt-5 grid grid-cols-3 gap-1 rounded-xl bg-[var(--ui-surface-muted)] p-1"
           aria-label="마이페이지 탭"
         >
           <TabLink href="/me" label="마이랭크" active={tab === "rank"} />
           <TabLink href="/me?tab=account" label="개인정보 수정" active={tab === "account"} />
+          <TabLink href="/me?tab=blocks" label="차단 관리" active={tab === "blocks"} />
         </nav>
       </header>
 
@@ -129,6 +133,12 @@ export default async function MePage({
           authProvider={user.authProvider}
           recentlyReauthenticated={isRecentlyReauthenticated(user)}
         />
+      ) : tab === "blocks" ? (
+        <section className="me-card rounded-2xl border p-5 sm:p-6">
+          <h2 className="text-base font-bold">차단한 사용자</h2>
+          <p className="mt-1 text-sm text-[var(--ui-muted)]">차단한 사용자의 글과 댓글은 내 화면에 표시되지 않습니다.</p>
+          <div className="mt-4"><BlockedUserList users={blockedUsers} /></div>
+        </section>
       ) : (
         <RankPanel summary={summary} progress={progress} />
       )}

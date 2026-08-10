@@ -10,7 +10,10 @@ import { requireAdmin } from "@/lib/auth/admin";
 import { recordLpEvent } from "@/lib/rank/record-lp";
 import type { BoardScope } from "@/lib/community/boards";
 import {
+  dismissCommunityUserReport,
+  liftCommunityUserSanction,
   resolveReports,
+  sanctionCommunityUser,
   setCommentBlinded,
   setPostBlinded,
   setPostDeleted,
@@ -109,5 +112,32 @@ export async function updateCommunitySettingsAction(formData: FormData) {
   if (!Number.isInteger(blindReportCount) || blindReportCount < 1 || blindReportCount > 100) return;
 
   await updateCommunitySettings(scope, { hotCut, blindReportCount });
+  revalidateCommunity();
+}
+
+export async function sanctionCommunityUserAction(formData: FormData) {
+  const admin = await requireAdmin();
+  const userId = String(formData.get("user_id") ?? "");
+  const reportId = String(formData.get("report_id") ?? "") || null;
+  const reason = String(formData.get("reason") ?? "").trim();
+  if (!userId || !reason || reason.length > 1000) return;
+
+  await sanctionCommunityUser({ userId, reason, adminId: admin.id, reportId });
+  revalidateCommunity();
+}
+
+export async function dismissCommunityUserReportAction(formData: FormData) {
+  const admin = await requireAdmin();
+  const reportId = String(formData.get("report_id") ?? "");
+  if (!reportId) return;
+  await dismissCommunityUserReport(reportId, admin.id);
+  revalidateCommunity();
+}
+
+export async function liftCommunityUserSanctionAction(formData: FormData) {
+  const admin = await requireAdmin();
+  const sanctionId = String(formData.get("sanction_id") ?? "");
+  if (!sanctionId) return;
+  await liftCommunityUserSanction(sanctionId, admin.id);
   revalidateCommunity();
 }
