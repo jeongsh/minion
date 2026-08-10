@@ -189,8 +189,8 @@ export async function updateNicknameAction(
   }
 
   const nickname = String(formData.get("nickname") ?? "").trim();
-  if (nickname.length < 2 || nickname.length > 20) {
-    return { status: "error", message: "닉네임은 2~20자로 입력해주세요." };
+  if (nickname.length < 2 || nickname.length > 10) {
+    return { status: "error", message: "닉네임은 2~10자로 입력해주세요." };
   }
 
   const image = formData.get("profileImage");
