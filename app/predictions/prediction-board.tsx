@@ -64,7 +64,7 @@ export function PredictionBoard({ matches, teams, tournaments, bets, currentUser
   const [selectedWeek, setSelectedWeek] = useState(() => weekStartKey(new Date().toISOString()));
   const [selectedTournament, setSelectedTournament] = useState("all");
   const [dialog, setDialog] = useState<BetDialog | null>(null);
-  const [stake, setStake] = useState("1000");
+  const [stake, setStake] = useState(() => String(Math.min(1000, predictionMaxStake(balance ?? 0))));
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -101,7 +101,7 @@ export function PredictionBoard({ matches, teams, tournaments, bets, currentUser
     }
     if (!team) return;
     const existingBet = bets.find((bet) => bet.userId === currentUserId && bet.matchId === match.id && bet.status === "open");
-    setStake("1000");
+    setStake(String(Math.min(1000, predictionMaxStake(balance ?? 0))));
     setError(null);
     setDialog({ matchId: match.id, teamId: team.id, teamName: team.shortName, existingBet });
   }

@@ -18,7 +18,7 @@ export function usePredictionBetDialog({ currentUserId, balance, bets }: { curre
   const pathname = usePathname();
   const { showToast } = useToast();
   const [dialog, setDialog] = useState<DialogState | null>(null);
-  const [stake, setStake] = useState("1000");
+  const [stake, setStake] = useState(() => String(Math.min(1000, predictionMaxStake(balance ?? 0))));
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -27,7 +27,7 @@ export function usePredictionBetDialog({ currentUserId, balance, bets }: { curre
       router.push(`/login?next=${encodeURIComponent(pathname)}`);
       return;
     }
-    setStake("1000");
+    setStake(String(Math.min(1000, predictionMaxStake(balance ?? 0))));
     setError(null);
     setDialog({ matchId, teamId, teamName, existingBet: bets.find((bet) => bet.userId === currentUserId && bet.matchId === matchId && bet.status === "open") });
   }
