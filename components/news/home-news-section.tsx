@@ -16,7 +16,7 @@ function LeadNewsCard({ article }: { article: NewsArticle }) {
       rel="noopener noreferrer"
       className="group block min-w-0"
     >
-      {hasThumbnail ? <NewsThumbnail article={article} priority onError={() => setHasThumbnail(false)} className="aspect-[16/9] max-h-[300px] w-full rounded-xl" /> : null}
+      {hasThumbnail ? <NewsThumbnail article={article} priority onError={() => setHasThumbnail(false)} className="aspect-[16/9] max-h-[300px] w-full rounded-xl md:max-h-[260px] lg:max-h-[250px] xl:max-h-[300px]" /> : null}
       <div className={hasThumbnail ? "mt-3.5" : ""}>
         <h3 className="font-paperozi line-clamp-2 text-[17px] font-black leading-[1.38] tracking-[-0.035em] text-[var(--ui-ink)] group-hover:underline sm:text-[19px]">
           {article.title}
@@ -49,7 +49,7 @@ export function HomeNewsSection({ articles }: { articles: NewsArticle[] }) {
           {secondary.map((article, index) => (
             <div
               key={article.id}
-              className={`${index >= 3 ? "hidden lg:block" : "block"} border-b border-[var(--home-card-divider)] py-3 first:pt-0 ${index === 2 ? "border-b-0 pb-0 lg:border-b lg:pb-3" : ""} ${index === secondary.length - 1 ? "lg:border-b-0 lg:pb-0" : ""}`}
+              className={`${index >= 3 ? "hidden lg:block" : "block"} ${index >= 4 ? "lg:hidden xl:block" : ""} border-b border-[var(--home-card-divider)] py-3 first:pt-0 ${index === 2 ? "border-b-0 pb-0 lg:border-b lg:pb-3" : ""} ${index === secondary.length - 1 ? "xl:border-b-0 xl:pb-0" : ""}`}
             >
               <NewsCard article={article} size="home" />
             </div>
