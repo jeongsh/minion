@@ -9,6 +9,7 @@ import {
 } from "@/lib/auth/action-state";
 import {
   deleteAccountAction,
+  signInWithAppleAction,
   signInWithGoogleAction,
   signInWithKakaoAction,
   signInWithNaverAction,
@@ -20,6 +21,7 @@ const PROVIDER_INFO: Record<string, { label: string; action: (formData: FormData
   google: { label: "구글", action: signInWithGoogleAction },
   kakao: { label: "카카오", action: signInWithKakaoAction },
   "custom:naver": { label: "네이버", action: signInWithNaverAction },
+  apple: { label: "Apple", action: signInWithAppleAction },
 };
 
 export function DeleteAccountForm({

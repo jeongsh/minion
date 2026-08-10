@@ -28,6 +28,7 @@ const SOCIAL_PROVIDER_LABELS: Record<string, string> = {
   google: "구글",
   kakao: "카카오",
   "custom:naver": "네이버",
+  apple: "Apple",
 };
 
 const REASON_LABELS: Record<string, string> = {
@@ -192,7 +193,17 @@ function AccountPanel({
         style={{ borderColor: "var(--border)", backgroundColor: "var(--surface)" }}
       >
         <div className="mb-4">
-          <h2 className="text-base font-bold">계정</h2>
+          <h2 className="text-base font-bold">
+            계정
+            {hasPassword ? null : (
+              <>
+                {" "}
+                ·{" "}
+                {(authProvider ? SOCIAL_PROVIDER_LABELS[authProvider] : undefined) ?? "소셜"}{" "}
+                로그인
+              </>
+            )}
+          </h2>
           <p className="mt-1 text-sm" style={{ color: "var(--muted)" }}>
             {hasPassword
               ? "가입 이메일은 변경할 수 없습니다."
@@ -201,11 +212,7 @@ function AccountPanel({
         </div>
         {hasPassword ? (
           <p className="text-sm font-semibold">{email ?? "이메일 정보 없음"}</p>
-        ) : (
-          <p className="text-sm font-semibold">
-            {(authProvider ? SOCIAL_PROVIDER_LABELS[authProvider] : undefined) ?? "소셜"} 로그인
-          </p>
-        )}
+        ) : null}
       </section>
 
       {hasPassword ? (
