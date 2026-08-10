@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Star } from "lucide-react";
 
 import { notFound } from "next/navigation";
 
@@ -10,6 +11,7 @@ import { TeamLogo } from "@/components/ui/team-logo";
 import {
   getAllPlayers,
   getAllTeams,
+  getChampions,
   getFanRatingsByMatchId,
   getMatchById,
   getMatches,
@@ -20,7 +22,8 @@ import {
   getStages,
   getTournaments,
 } from "@/lib/data/lck";
-import type { FanRating, Match, Player, PlayerStatLine, SetResult, Team } from "@/lib/types";
+import { championImage, championLabel } from "@/lib/champions";
+import type { Champion, FanRating, Match, Player, PlayerStatLine, SetResult, Team } from "@/lib/types";
 import { isMatchLive, matchStatusLabel } from "@/lib/match-display";
 import {
   SET_RATING_OPEN_WINDOW_MS,
@@ -233,7 +236,6 @@ function SetSelector({
   );
 }
 
-const ratingOptions = [5, 4.5, 4, 3.5, 3, 2.5, 2, 1.5, 1];
 const positionOrder = new Map<Player["position"], number>(
   ["TOP", "JGL", "MID", "BOT", "SUP"].map((position, index) => [
     position as Player["position"],
@@ -275,34 +277,75 @@ function PlayerAvatar({
   );
 }
 
+/** 평균 평점(예: 4.3)을 별 5개로 시각화. 반쪽 단위가 아니라 실제 소수점 비율만큼 채운다. */
+function StarRatingDisplay({ value }: { value: number }) {
+  return (
+    <div className="flex" aria-hidden="true">
+      {[0, 1, 2, 3, 4].map((i) => {
+        const fillPercent = Math.round(Math.max(0, Math.min(1, value - i)) * 100);
+        return (
+          <span key={i} className="relative h-5 w-5">
+            <Star className="absolute inset-0 h-5 w-5 text-[var(--ui-border)]" />
+            <span className="absolute inset-0 overflow-hidden" style={{ width: `${fillPercent}%` }}>
+              <Star fill="currentColor" className="h-5 w-5 text-amber-400" />
+            </span>
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
 function averageRating(ratings: FanRating[]) {
   if (ratings.length === 0) return null;
   return ratings.reduce((sum, rating) => sum + rating.rating, 0) / ratings.length;
 }
 
-function RatingPlayerRow({
+function RatingPlayerCard({
   line,
   player,
+  champion,
   ratings,
 }: {
   line: PlayerStatLine;
   player?: Player;
+  champion?: Champion;
   ratings: FanRating[];
 }) {
   const average = averageRating(ratings);
+  const img = championImage(champion);
 
   return (
-    <div className="grid grid-cols-[2.25rem_minmax(0,1fr)_auto] items-center gap-2.5 border-b border-[var(--ui-border)] px-3 py-2.5 last:border-b-0">
-      <PlayerAvatar player={player} />
-      <div className="min-w-0">
-        <p className="truncate text-sm font-black text-[var(--ui-ink)]">{player?.name ?? "-"}</p>
-        <p className="text-xs font-bold text-[var(--ui-muted)]">{line.position}</p>
+    // 선수 선택 카드(set-rating-form.tsx의 PlayerChip)와 같은 세로형 카드 언어 —
+    // 챔피언 아이콘 위, 이름/포지션 아래, 배지형 평점을 그 아래에 둔다.
+    <div className="flex flex-col items-center gap-1.5 rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-2.5 text-center">
+      <div className="aspect-square w-full max-w-20 overflow-hidden rounded-lg bg-[var(--ui-surface-muted)]">
+        {img ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={img} alt={championLabel(champion)} className="h-full w-full object-cover" />
+        ) : (
+          <div className="grid h-full place-items-center text-lg font-black text-[var(--ui-muted)]">
+            {player ? playerInitial(player.name) : "-"}
+          </div>
+        )}
       </div>
-      <div className="text-right">
-        <p className="text-base font-black tabular-nums text-[var(--ui-ink)]">
+      <p className="w-full truncate text-sm font-black text-[var(--ui-ink)]">{player?.name ?? "-"}</p>
+      <p className="text-xs font-bold text-[var(--ui-muted)]">{line.position}</p>
+      <div
+        className={`flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 ${
+          average == null ? "bg-[var(--ui-surface-muted)]" : "bg-amber-400/15"
+        }`}
+      >
+        <Star
+          aria-hidden="true"
+          className={`h-3 w-3 ${average == null ? "text-[var(--ui-border)]" : "fill-amber-400 text-amber-400"}`}
+        />
+        <span
+          className={`text-xs font-black tabular-nums ${average == null ? "text-[var(--ui-muted)]" : "text-[var(--ui-ink)]"}`}
+        >
           {average == null ? "-" : average.toFixed(1)}
-        </p>
-        <p className="text-xs font-semibold text-[var(--ui-muted)]">{ratings.length}개</p>
+        </span>
+        <span className="text-[10px] font-semibold text-[var(--ui-muted)]">{ratings.length}개</span>
       </div>
     </div>
   );
@@ -313,12 +356,14 @@ function TeamRatingColumn({
   teamId,
   rows,
   players,
+  champions,
   ratings,
 }: {
   title: string;
   teamId: string;
   rows: PlayerStatLine[];
   players: Player[];
+  champions: Champion[];
   ratings: FanRating[];
 }) {
   const teamRows = rows
@@ -330,21 +375,22 @@ function TeamRatingColumn({
     );
 
   return (
-    <section className="mobile-list-shell overflow-hidden rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)]">
-      <h3 className="border-b border-[var(--ui-border)] px-3 py-2.5 text-sm font-black text-[var(--ui-ink)]">
-        {title}
-      </h3>
+    <section className="mobile-list-shell rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] p-3">
+      <h3 className="mb-3 text-sm font-black text-[var(--ui-ink)]">{title}</h3>
       {teamRows.length === 0 ? (
-        <p className="p-3 text-sm text-[var(--ui-muted)]">평점 대상 선수가 없습니다.</p>
+        <p className="text-sm text-[var(--ui-muted)]">평점 대상 선수가 없습니다.</p>
       ) : (
-        teamRows.map((line) => (
-          <RatingPlayerRow
-            key={`${line.setId}-${line.playerId}`}
-            line={line}
-            player={players.find((player) => player.id === line.playerId)}
-            ratings={ratings.filter((rating) => rating.playerId === line.playerId)}
-          />
-        ))
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(6.5rem,1fr))] gap-2">
+          {teamRows.map((line) => (
+            <RatingPlayerCard
+              key={`${line.setId}-${line.playerId}`}
+              line={line}
+              player={players.find((player) => player.id === line.playerId)}
+              champion={champions.find((champion) => champion.id === line.championId)}
+              ratings={ratings.filter((rating) => rating.playerId === line.playerId)}
+            />
+          ))}
+        </div>
       )}
     </section>
   );
@@ -358,6 +404,7 @@ function MatchRatingPanel({
   players,
   playerStatLines,
   fanRatings,
+  champions,
 }: {
   matchId: string;
   set?: SetResult;
@@ -366,6 +413,7 @@ function MatchRatingPanel({
   players: Player[];
   playerStatLines: PlayerStatLine[];
   fanRatings: FanRating[];
+  champions: Champion[];
 }) {
   if (!set) {
     return (
@@ -411,26 +459,40 @@ function MatchRatingPanel({
       <SetSelector sets={sets} activeSet={set} tab="rating" />
 
       <section className="grid gap-3 min-[1200px]:grid-cols-[18rem_minmax(0,1fr)]">
-        <div className="rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] p-4">
-          <p className="text-xs font-medium uppercase tracking-[0.16em] text-[var(--ui-muted)]">SET POG</p>
+        <div className="flex flex-col overflow-hidden rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)]">
+          <p className="px-4 pt-4 text-xs font-medium uppercase tracking-[0.16em] text-[var(--ui-muted)]">SET POG</p>
           {leader ? (
-            <div className="mt-3 flex items-center gap-3">
-              <PlayerAvatar player={leaderPlayer} size="lg" />
-              <div className="min-w-0">
-                <p className="truncate text-lg font-black text-[var(--ui-ink)]">
-                  {leaderPlayer?.name ?? "-"}
-                </p>
-                <p className="mt-1 text-sm font-semibold text-[var(--ui-muted)]">
-                  {teamLabel(teams, leaderPlayer?.teamId)} · {leader.count}개 평점
-                </p>
-                <p className="mt-2 text-2xl font-black leading-none tabular-nums text-[var(--ui-ink)]">
+            // 오른쪽 선수 카드 그리드와 같은 그리드 행에 있어 높이가 stretch로 맞춰지는데,
+            // 사진을 고정 크기(aspect-square)로 두면 늘어난 높이만큼 아래에 빈 공간만 남는다.
+            // flex-1로 사진이 남는 세로 공간을 그대로 채우게 한다.
+            <div className="mt-3 flex flex-1 min-h-0 flex-col items-center gap-2 px-4 pb-4 text-center">
+              <div className="w-full min-h-0 flex-1 overflow-hidden rounded-2xl bg-[var(--ui-surface-muted)]">
+                {leaderPlayer?.profileImageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={leaderPlayer.profileImageUrl}
+                    alt=""
+                    className="h-full w-full object-cover object-top"
+                  />
+                ) : (
+                  <div className="grid h-full place-items-center text-5xl font-black text-[var(--ui-muted)]">
+                    {leaderPlayer ? playerInitial(leaderPlayer.name) : "-"}
+                  </div>
+                )}
+              </div>
+              <p className="truncate text-lg font-black text-[var(--ui-ink)]">{leaderPlayer?.name ?? "-"}</p>
+              <p className="truncate text-xs font-semibold text-[var(--ui-muted)]">
+                {teamLabel(teams, leaderPlayer?.teamId)} · {leader.count}개 평점
+              </p>
+              <div className="flex items-center gap-1.5">
+                <StarRatingDisplay value={leader.average} />
+                <span className="text-sm font-black tabular-nums text-[var(--ui-ink)]">
                   {leader.average.toFixed(1)}
-                  <span className="text-sm font-bold text-[var(--ui-muted)]"> / 5</span>
-                </p>
+                </span>
               </div>
             </div>
           ) : (
-            <p className="mt-3 text-sm text-[var(--ui-muted)]">아직 집계된 평점이 없습니다.</p>
+            <p className="p-4 pt-3 text-sm text-[var(--ui-muted)]">아직 집계된 평점이 없습니다.</p>
           )}
         </div>
 
@@ -438,29 +500,28 @@ function MatchRatingPanel({
           <SetRatingForm
             matchId={matchId}
             setId={set.id}
+            blueTeamId={set.blueTeamId}
             ratingOpen={ratingOpen}
+            ratingStatusNote={
+              ratingOpen && ratingDeadline
+                ? `평점 입력 마감: ${formatDateTime(ratingDeadline.toISOString())} (경기 종료 후 3시간)`
+                : ratingClosed
+                  ? "평점 입력이 마감되었습니다. (경기 종료 후 3시간)"
+                  : "세트 상태가 경기종료 또는 상세데이터 동기화일 때 투표가 열립니다."
+            }
             playerOptions={selectableLines.map((line) => {
               const player = players.find((item) => item.id === line.playerId);
+              const champion = champions.find((item) => item.id === line.championId);
               return {
                 value: line.playerId,
-                label: `${teamLabel(teams, line.teamId)} · ${line.position} · ${player?.name ?? "-"}`,
+                name: player?.name ?? "-",
+                position: line.position,
+                teamId: line.teamId,
+                championImageUrl: championImage(champion) || undefined,
+                championName: champion?.name,
               };
             })}
-            ratingOptions={ratingOptions}
           />
-          {ratingOpen && ratingDeadline ? (
-            <p className="mt-2 text-sm font-semibold text-[var(--ui-muted)]">
-              평점 입력 마감: {formatDateTime(ratingDeadline.toISOString())} (경기 종료 후 3시간)
-            </p>
-          ) : ratingClosed ? (
-            <p className="mt-2 text-sm font-semibold text-[var(--ui-muted)]">
-              평점 입력이 마감되었습니다. (경기 종료 후 3시간)
-            </p>
-          ) : (
-            <p className="mt-2 text-sm font-semibold text-[var(--ui-muted)]">
-              세트 상태가 경기종료 또는 상세데이터 동기화일 때 투표가 열립니다.
-            </p>
-          )}
         </div>
       </section>
 
@@ -480,6 +541,7 @@ function MatchRatingPanel({
           teamId={set.blueTeamId}
           rows={setLines}
           players={players}
+          champions={champions}
           ratings={setRatings}
         />
         <TeamRatingColumn
@@ -487,6 +549,7 @@ function MatchRatingPanel({
           teamId={set.redTeamId}
           rows={setLines}
           players={players}
+          champions={champions}
           ratings={setRatings}
         />
       </section>
@@ -609,6 +672,8 @@ export default async function MatchDetailPage({
   if (activeTab === "preview") {
     [previewMatches, previewSets] = await Promise.all([getMatches(), getSets()]);
   }
+  // "rating" 탭 선수 카드에 세트에서 픽한 챔피언 아이콘을 보여주기 위함 — 다른 탭은 필요 없다.
+  const ratingChampions: Champion[] = activeTab === "rating" ? await getChampions() : [];
   const aiPreview = activeTab === "preview"
     ? await getMatchAiPreview({
         match,
@@ -696,6 +761,7 @@ export default async function MatchDetailPage({
             players={players}
             playerStatLines={matchPlayerStatLines}
             fanRatings={fanRatings}
+            champions={ratingChampions}
           />
         </div>
       ) : null}
