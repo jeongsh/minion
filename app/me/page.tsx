@@ -23,6 +23,13 @@ export const metadata = {
   title: "마이랭크 · MINION",
 };
 
+// delete-account-form.tsx의 PROVIDER_INFO와 같은 provider 키를 쓴다(app_metadata.provider 원본 값).
+const SOCIAL_PROVIDER_LABELS: Record<string, string> = {
+  google: "구글",
+  kakao: "카카오",
+  "custom:naver": "네이버",
+};
+
 const REASON_LABELS: Record<string, string> = {
   attendance: "출석체크",
   post_created: "글 작성",
@@ -187,10 +194,18 @@ function AccountPanel({
         <div className="mb-4">
           <h2 className="text-base font-bold">계정</h2>
           <p className="mt-1 text-sm" style={{ color: "var(--muted)" }}>
-            가입 이메일은 변경할 수 없습니다.
+            {hasPassword
+              ? "가입 이메일은 변경할 수 없습니다."
+              : "소셜 로그인 계정은 로그인 수단을 변경할 수 없습니다."}
           </p>
         </div>
-        <p className="text-sm font-semibold">{email ?? "이메일 정보 없음"}</p>
+        {hasPassword ? (
+          <p className="text-sm font-semibold">{email ?? "이메일 정보 없음"}</p>
+        ) : (
+          <p className="text-sm font-semibold">
+            {(authProvider ? SOCIAL_PROVIDER_LABELS[authProvider] : undefined) ?? "소셜"} 로그인
+          </p>
+        )}
       </section>
 
       {hasPassword ? (
