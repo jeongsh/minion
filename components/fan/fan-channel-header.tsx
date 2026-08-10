@@ -1,4 +1,5 @@
 import { ImagePlus } from "lucide-react";
+import type { ReactNode } from "react";
 
 import { getFanNotificationEnabled, getIsFan } from "@/app/fan/[teamSlug]/actions";
 import { FanAlarmButton } from "@/components/fan/fan-alarm-button";
@@ -11,7 +12,7 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 import { getTeamByFanSiteHost, getTeamBySlug, getTeamFanCount } from "@/lib/data/lck";
 import { checkFanHeaderUploadEligibility, getActiveFanHeaderUrl } from "@/lib/fan/fan-header";
 
-export async function FanChannelHeader({ teamSlug }: { teamSlug: string }) {
+export async function FanChannelHeader({ teamSlug, calendarSlot }: { teamSlug: string; calendarSlot?: ReactNode }) {
   const team = await getTeamByFanSiteHost(teamSlug).then((value) => value ?? getTeamBySlug(teamSlug));
 
   if (!team) return null;
@@ -34,7 +35,7 @@ export async function FanChannelHeader({ teamSlug }: { teamSlug: string }) {
       className={
         hasHeaderBackground
           ? "relative isolate overflow-hidden border-b border-[var(--ui-border)] bg-[var(--ui-surface-muted)] text-white"
-          : "border-b border-[var(--ui-border)] bg-[var(--ui-surface)] text-[var(--ui-ink)]"
+          : "border-b border-[var(--ui-border)] bg-[var(--page-background)] text-[var(--ui-ink)]"
       }
     >
       {displayHeaderBackground ? (
@@ -101,6 +102,7 @@ export async function FanChannelHeader({ teamSlug }: { teamSlug: string }) {
                   compact
                   iconOnly
                 />
+                {calendarSlot}
               </div>
             </div>
           </div>

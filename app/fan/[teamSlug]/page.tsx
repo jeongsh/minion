@@ -1,13 +1,16 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronRight } from "lucide-react";
+import { CalendarDays, ChevronRight } from "lucide-react";
 
 import type { FeedInstaItem, FeedVideoItem } from "@/components/fan/fan-feed-mosaic";
 import { HomeBoardCarousel } from "@/components/domain/home-board-carousel";
+import { HomeCalendar, type HomeCalendarMatch } from "@/components/domain/home-calendar";
 import { FanChannelHeader } from "@/components/fan/fan-channel-header";
+import { FanHeaderTooltip, fanHeaderIconButtonClass } from "@/components/fan/fan-header-control-styles";
 import { FanHomeVideoSwiper } from "@/components/fan/fan-home-video-swiper";
 import { FanPageShell } from "@/components/fan/fan-page-shell";
 import { FanSocialPreview } from "@/components/fan/fan-social-preview";
+import { AdaptiveDialog } from "@/components/responsive/adaptive-dialog";
 import { AdSlot } from "@/components/ui/ad-slot";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { TeamLogo } from "@/components/ui/team-logo";
@@ -24,6 +27,8 @@ import { getBoardPosts } from "@/lib/data/community";
 import { compareHotPostsByRecentHype, isHotPost } from "@/lib/community/hot";
 import { buildFanVideoItems } from "@/lib/fan-video-items";
 import { getCalendarEvents, getTodayCelebrations } from "@/lib/calendar/events";
+import { shouldUseWhiteLogoOnDark } from "@/lib/team-logos";
+import { dateKeyKST, formatTimeKST, matchHref } from "@/lib/view-data";
 import { CelebrationBanner } from "@/components/domain/celebration-banner";
 import type { Match, Player, Team } from "@/lib/types";
 
@@ -44,6 +49,10 @@ function formatMatchDay(value: string) {
 
 function byMatchDate(a: Match, b: Match) {
   return new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime();
+}
+
+function yearMonthKeyKST(value: string) {
+  return dateKeyKST(value).slice(0, 7);
 }
 
 function teamForMatch(match: Match, team: Team, teams: Team[]) {
@@ -177,6 +186,7 @@ export default async function FanHomePage({
   ]);
 
   const todayCelebrations = getTodayCelebrations(calendarEvents);
+  const calendarMonthKey = dateKeyKST(new Date()).slice(0, 7);
 
   const teamPlayers = players
     .filter((player) => player.teamId === team.id)
@@ -191,6 +201,26 @@ export default async function FanHomePage({
   const teamMatches = matches
     .filter((match) => match.teamAId === team.id || match.teamBId === team.id)
     .sort(byMatchDate);
+  const teamsById = new Map(teams.map((item) => [item.id, item]));
+  const calendarMatches = teamMatches.filter((match) => yearMonthKeyKST(match.matchDate) === calendarMonthKey);
+  const calendarClientMatches: HomeCalendarMatch[] = calendarMatches.map((match) => {
+    const teamA = teamsById.get(match.teamAId);
+    const teamB = teamsById.get(match.teamBId);
+
+    return {
+      id: match.id,
+      dateKey: dateKeyKST(match.matchDate),
+      href: matchHref(match),
+      time: formatTimeKST(match.matchDate),
+      league: "",
+      teamAName: teamA?.shortName ?? "TBD",
+      teamBName: teamB?.shortName ?? "TBD",
+      teamALogoUrl: teamA?.logoUrl ?? null,
+      teamBLogoUrl: teamB?.logoUrl ?? null,
+      teamALogoDarkUrl: shouldUseWhiteLogoOnDark(teamA) ? teamA?.logoWhiteUrl : null,
+      teamBLogoDarkUrl: shouldUseWhiteLogoOnDark(teamB) ? teamB?.logoWhiteUrl : null,
+    };
+  });
 
   // 이 페이지는 force-dynamic이라 요청 시각으로 지난 예정 경기를 걸러낸다.
   // eslint-disable-next-line react-hooks/purity
@@ -238,7 +268,25 @@ export default async function FanHomePage({
 
   return (
     <>
-      <FanChannelHeader teamSlug={teamSlug} />
+      <FanChannelHeader
+        teamSlug={teamSlug}
+        calendarSlot={
+          <AdaptiveDialog
+            title={`${team.shortName} 캘린더`}
+            trigger={
+              <>
+                <CalendarDays size={16} aria-hidden="true" />
+                <FanHeaderTooltip>캘린더</FanHeaderTooltip>
+              </>
+            }
+            triggerClassName={fanHeaderIconButtonClass}
+            triggerAriaLabel="캘린더"
+            panelClassName="sm:max-w-[380px]"
+          >
+            <HomeCalendar initialMonthKey={calendarMonthKey} matches={calendarClientMatches} events={calendarEvents} />
+          </AdaptiveDialog>
+        }
+      />
       <FanPageShell contentClassName="">
       <div
         className="fan-home-page flex flex-col gap-5 text-[var(--ui-ink)] md:gap-8"
