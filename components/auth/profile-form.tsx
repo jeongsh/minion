@@ -75,13 +75,13 @@ export function ProfileForm({
           type="text"
           defaultValue={initialNickname}
           minLength={2}
-          maxLength={10}
+          maxLength={16}
           required
           className="min-h-11 rounded-lg border bg-[var(--ui-surface)] px-3 text-sm outline-none transition focus:border-[var(--accent)] focus:ring-[3px] focus:ring-[color-mix(in_srgb,var(--accent)_18%,transparent)]"
           style={{ borderColor: "var(--border)" }}
         />
         <p className="text-[13px]" style={{ color: "var(--muted)" }}>
-          2~10자, 다른 사용자와 중복될 수 없습니다.
+          2~16자, 다른 사용자와 중복될 수 없습니다.
         </p>
       </div>
 
