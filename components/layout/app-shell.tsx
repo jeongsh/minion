@@ -166,7 +166,7 @@ export function AppShell({
   return (
     <div className="min-h-screen text-[#141517]">
       {focus ? (
-        <header className="fixed inset-x-0 top-0 z-50 grid h-14 grid-cols-[44px_minmax(0,1fr)_44px] items-center border-b border-[#e8e8eb] bg-background px-2 sm:h-16 dark:border-[#343840]">
+        <header className="fixed inset-x-0 top-0 z-50 grid h-14 grid-cols-[44px_minmax(0,1fr)_44px] items-center border-b border-[#e8e8eb] bg-[var(--page-background)] px-2 sm:h-16 dark:border-[#343840]">
           <Link
             href={focus.backHref}
             onClick={
@@ -188,7 +188,7 @@ export function AppShell({
           <span aria-hidden="true" />
         </header>
       ) : (
-      <header className="fixed inset-x-0 top-0 z-50 flex h-14 items-center border-b border-[#e8e8eb] bg-background px-3 sm:h-16 sm:px-4 dark:border-[#343840]">
+      <header className="fixed inset-x-0 top-0 z-50 flex h-14 items-center border-b border-[#e8e8eb] bg-[var(--page-background)] px-3 sm:h-16 sm:px-4 dark:border-[#343840]">
         <button type="button" onClick={toggleNavigation} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl hover:bg-[#f4f4f5] dark:hover:bg-[#282c31]" aria-label={mobileMenuOpen ? "내비게이션 닫기" : "내비게이션 열기"} aria-expanded={mobileMenuOpen}>
           {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
         </button>
@@ -224,7 +224,7 @@ export function AppShell({
       )}
 
       {mobileMenuOpen ? (
-        <div className={`fixed inset-x-0 top-14 z-40 overflow-y-auto border-b border-[#e8e8eb] bg-background px-4 py-4 shadow-xl shadow-black/10 sm:top-16 min-[1200px]:hidden dark:border-[#343840] ${compactHubShell ? "bottom-16 md:bottom-0" : "bottom-0"}`}>
+        <div className={`fixed inset-x-0 top-14 z-40 overflow-y-auto border-b border-[#e8e8eb] bg-[var(--page-background)] px-4 py-4 shadow-xl shadow-black/10 sm:top-16 min-[1200px]:hidden dark:border-[#343840] ${compactHubShell ? "bottom-16 md:bottom-0" : "bottom-0"}`}>
           {currentUser ? (
             <div className="mb-4 flex items-center justify-between gap-3 rounded-2xl bg-[#f4f4f5] px-4 py-3 dark:bg-[#282c31]">
               <RankAvatar
@@ -266,7 +266,7 @@ export function AppShell({
         </div>
       ) : null}
 
-      {!focusRoute ? <aside className={`app-lnb fixed bottom-0 left-0 top-16 z-40 hidden border-r border-[#ececef] bg-background transition-[width] min-[1200px]:block dark:border-[#343840] ${collapsed ? "w-[72px]" : "w-[216px]"}`}>
+      {!focusRoute ? <aside className={`app-lnb fixed bottom-0 left-0 top-16 z-40 hidden border-r border-[#ececef] bg-[var(--page-background)] transition-[width] min-[1200px]:block dark:border-[#343840] ${collapsed ? "w-[72px]" : "w-[216px]"}`}>
         <div className="flex h-full flex-col overflow-y-auto p-3">
           <nav className="space-y-1" aria-label="데스크톱 주요 메뉴">
             {desktopNav.map(({ href, label, icon: Icon, prefetch }) => {
@@ -298,7 +298,7 @@ export function AppShell({
       </aside> : null}
 
       {compactHubShell ? (
-        <aside className={`fixed bottom-0 left-0 top-16 z-40 hidden w-16 flex-col items-center border-r border-[#ececef] bg-background py-3 dark:border-[#343840] ${mobileMenuOpen ? "" : "md:max-[1199px]:flex"}`} aria-label="태블릿 주요 메뉴">
+        <aside className={`fixed bottom-0 left-0 top-16 z-40 hidden w-16 flex-col items-center border-r border-[#ececef] bg-[var(--page-background)] py-3 dark:border-[#343840] ${mobileMenuOpen ? "" : "md:max-[1199px]:flex"}`} aria-label="태블릿 주요 메뉴">
           {compactNav.map(({ href, label, icon: Icon }) => {
             const active = isActiveRoute(pathname, href);
             return <Link key={href} href={href} aria-current={active ? "page" : undefined} title={label} className={`mb-1 grid h-12 w-12 place-items-center rounded-xl transition ${active ? "bg-[#eeeeef] text-[#18191c] dark:bg-[#30343b] dark:text-white" : "text-[#777b82] hover:bg-[#f4f4f5] dark:hover:bg-[#282c31]"}`}><Icon size={21} /><span className="sr-only">{label}</span></Link>;
@@ -307,12 +307,12 @@ export function AppShell({
       ) : null}
 
       <div className={`flex min-h-screen flex-col pt-14 transition-[padding] sm:pt-16 ${compactHubShell ? "md:max-[1199px]:pl-16" : ""} ${focusRoute ? "" : collapsed ? "min-[1200px]:pl-[72px]" : "min-[1200px]:pl-[216px]"}`}>
-        <div className={`flex-1 bg-[var(--ui-surface)] ${compactHubShell ? "compact-hub-content pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0" : "pb-0"}`} data-shell-content={compactHubShell ? "compact-hub" : undefined}>{children}</div>
+        <div className={`flex-1 ${compactHubShell ? "compact-hub-content pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0" : "pb-0"}`} data-shell-content={compactHubShell ? "compact-hub" : undefined}>{children}</div>
         {!focusRoute ? <SiteFooter /> : null}
       </div>
 
       {compactHubShell ? (
-        <nav className="fixed inset-x-0 bottom-0 z-50 flex h-[calc(4rem+env(safe-area-inset-bottom))] items-start border-t border-[#e8e8eb] bg-background/95 pt-1 backdrop-blur md:hidden dark:border-[#343840]" aria-label="모바일 주요 메뉴">
+        <nav className="fixed inset-x-0 bottom-0 z-50 flex h-[calc(4rem+env(safe-area-inset-bottom))] items-start border-t border-[#e8e8eb] bg-[var(--page-background)] pt-1 backdrop-blur md:hidden dark:border-[#343840]" aria-label="모바일 주요 메뉴">
           {compactNav.map(({ href, label, icon: Icon }) => {
             const active = isActiveRoute(pathname, href);
             return <Link key={href} href={href} aria-current={active ? "page" : undefined} className={`flex min-w-0 flex-1 flex-col items-center gap-0.5 px-1 py-1.5 text-[11px] font-bold ${active ? "text-[#18191c] dark:text-white" : "text-[#777b82]"}`}><Icon size={20} strokeWidth={active ? 2.5 : 2} /><span className="max-w-full truncate">{label}</span></Link>;

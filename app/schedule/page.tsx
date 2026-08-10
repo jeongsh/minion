@@ -77,8 +77,8 @@ export default async function SchedulePage({
   const desktopFilters = <Suspense fallback={null}><ScheduleFilters activeYear={activeYear} activeMonth={activeMonth} activeSegment={activeSegment} activeTeam={activeTeam} years={years} teams={teams} /></Suspense>;
 
   return (
-    <main className="schedule-page min-h-screen bg-[var(--ui-surface)] text-[var(--ui-text)]">
-      <div className="sticky top-[var(--ui-header-height)] z-30 border-b border-[var(--ui-border)] bg-[var(--ui-surface)]/95 shadow-[0_10px_20px_rgba(15,23,42,0.035)] backdrop-blur md:hidden">
+    <main className="schedule-page min-h-screen text-[var(--ui-text)]">
+      <div className="sticky top-[var(--ui-header-height)] z-30 border-b border-[var(--ui-border)] bg-[var(--page-background)] shadow-[0_10px_20px_rgba(15,23,42,0.035)] md:hidden">
         <div className="layout-wide py-2">
           <div className="mb-2 flex items-center justify-between gap-3">
             <div className="min-w-0"><h1 className="home-section-title font-paperozi text-[18px] leading-tight text-[var(--ui-ink)]">경기 일정</h1></div>
@@ -98,7 +98,7 @@ export default async function SchedulePage({
         </div>
       </div>
 
-      <div className="sticky top-[var(--ui-header-height)] z-30 mt-2 hidden border-b border-[#e8e8eb] bg-[var(--ui-surface)]/95 backdrop-blur md:block dark:border-[#383c44]">
+      <div className="sticky top-[var(--ui-header-height)] z-30 mt-2 hidden border-b border-[#e8e8eb] bg-[var(--page-background)] md:block dark:border-[#383c44]">
         <div className="layout-wide flex items-center justify-between gap-3 py-2.5">{desktopFilters}<Link href="/schedule" className="shrink-0 text-[13px] font-bold text-[var(--ui-muted)] hover:text-[var(--ui-ink)]">필터 초기화</Link></div>
       </div>
       <div className="layout-wide pb-16">

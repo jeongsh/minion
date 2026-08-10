@@ -48,7 +48,7 @@ export async function CommunityFeedPage({
   }
 
   return (
-    <main className="subpage community-neutral min-h-screen !bg-[var(--ui-surface)]">
+    <main className="subpage community-neutral min-h-screen">
       <div className="layout-wide flex flex-col gap-5 py-6 sm:py-8">
         <PageHeader eyebrow={eyebrow ?? "COMMUNITY"} title={title ?? "커뮤니티"} />
         <CommunityContentLayout posts={posts} scope={scope} teamSlug={teamSlug}>

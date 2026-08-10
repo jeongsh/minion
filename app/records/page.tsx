@@ -28,7 +28,7 @@ export default async function RecordsPage({ searchParams }: { searchParams: Prom
   const completedSets = filteredSets.filter((set) => set.status === "finished" || set.status === "data_synced" || Boolean(set.winnerTeamId));
   const averageDuration = completedSets.reduce((sum, set) => sum + (set.durationSeconds ?? 0) / 60, 0) / Math.max(completedSets.length, 1);
 
-  return <main className="min-h-screen bg-[var(--ui-surface)] text-[var(--ui-text)]"><div className="layout-wide-max mx-auto flex w-full flex-col gap-10 px-5 pb-16 pt-8 xl:px-10">
+  return <main className="min-h-screen text-[var(--ui-text)]"><div className="layout-wide-max mx-auto flex w-full flex-col gap-10 px-5 pb-16 pt-8 xl:px-10">
     <div>
       <PageHeader eyebrow="RECORDS" title="기록실" action={<p className="rounded-full bg-[var(--ui-surface-muted)] px-3 py-1.5 text-[13px] font-bold text-[var(--ui-muted)]">자동 집계</p>} />
       <p className="mt-3 text-sm leading-6 text-[var(--ui-muted)]">경기 결과와 세트 데이터를 기준으로 선수와 팀의 기록을 자동 집계합니다.</p>

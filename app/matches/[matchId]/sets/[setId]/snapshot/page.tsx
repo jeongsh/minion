@@ -69,9 +69,11 @@ function TeamLogo({ team }: { team?: Team }) {
   }
 
   return (
-    <span className="grid h-8 w-8 place-items-center rounded bg-surface-muted text-[15px] font-bold text-muted">
-      {team?.shortName.slice(0, 3) ?? "-"}
-    </span>
+    <span
+      className="grid h-8 w-8 place-items-center rounded-md border border-dashed border-muted opacity-60"
+      role="img"
+      aria-label={team?.name ?? "미정 팀"}
+    />
   );
 }
 

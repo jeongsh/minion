@@ -26,7 +26,7 @@ export default async function PredictionsPage() {
   });
 
   return (
-    <main className="min-h-screen bg-[var(--ui-surface)] text-[var(--ui-text)]">
+    <main className="min-h-screen text-[var(--ui-text)]">
       <div className="layout-wide pb-20 pt-6 sm:pt-8 xl:px-10">
         <PageHeader
           eyebrow="MATCH PREDICTION"

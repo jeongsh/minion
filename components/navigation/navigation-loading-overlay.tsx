@@ -5,7 +5,7 @@ export function NavigationLoadingOverlay({
 }) {
   return (
     <div
-      className="fixed inset-x-0 bottom-0 top-14 z-[39] grid cursor-progress place-items-center bg-[var(--ui-surface)]/96 px-4 sm:top-16 min-[1200px]:left-[var(--shell-lnb-width,216px)]"
+      className="fixed inset-x-0 bottom-0 top-14 z-[39] grid cursor-progress place-items-center bg-[var(--page-background)] px-4 sm:top-16 min-[1200px]:left-[var(--shell-lnb-width,216px)]"
       data-testid="navigation-loading-overlay"
     >
       <span className="navigation-progress-track" aria-hidden="true">

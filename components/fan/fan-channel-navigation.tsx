@@ -35,7 +35,7 @@ export function FanChannelNavigation({ teamSlug }: { teamSlug: string }) {
   if (focusMode) return null;
 
   return (
-    <nav aria-label="팬페이지 메뉴" className="sticky top-14 z-30 border-b border-[var(--ui-border)] bg-[var(--ui-surface)] sm:top-16">
+    <nav aria-label="팬페이지 메뉴" className="sticky top-14 z-30 border-b border-[var(--ui-border)] bg-[var(--page-background)] sm:top-16">
       <div className="layout-wide flex h-12 items-stretch overflow-x-auto [scrollbar-width:none] lg:hidden [&::-webkit-scrollbar]:hidden">
         {mobileCoreTabs.map((tab) => {
           const href = hrefFor(tab.segment);

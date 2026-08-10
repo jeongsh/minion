@@ -36,7 +36,7 @@ export default async function HubPostDetailPage({
   ]);
 
   return (
-    <main className="subpage min-h-screen !bg-[var(--ui-surface)]">
+    <main className="subpage min-h-screen">
       <div className="layout-wide flex flex-col gap-5 py-6 sm:py-8">
         <PageHeader
           title="게시글"

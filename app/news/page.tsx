@@ -60,7 +60,7 @@ export default async function NewsPage({ searchParams }: { searchParams: SearchP
           <h1 className="home-section-title font-paperozi text-[24px] leading-tight text-[var(--ui-ink)] lg:text-[28px]">LCK 뉴스</h1>
           <p className="mt-1 text-[13px] text-[var(--ui-muted)] sm:text-sm">리그와 팀별 기사를 모아보고 원문 매체에서 이어서 읽어요.</p>
         </div>
-        <div className="text-[11px] font-semibold text-[var(--ui-muted)] sm:text-[12px]">
+          <div className="text-[12px] font-semibold text-[var(--ui-muted)]">
           {pageArticles[0]
             ? `최근 업데이트 ${formatNewsDate(pageArticles[0].publishedAt, true)}`
             : "새 뉴스 확인 중"}
@@ -147,7 +147,7 @@ export default async function NewsPage({ searchParams }: { searchParams: SearchP
         />
       ) : null}
 
-      <p className="mt-6 text-[11px] leading-relaxed text-[var(--ui-muted)]">
+        <p className="mt-6 text-[12px] leading-relaxed text-[var(--ui-muted)]">
         {newsFeed.isFallback
           ? "뉴스를 불러오지 못해 임시 데이터를 표시하고 있습니다."
           : "기사 제목을 선택하면 해당 언론사의 원문으로 이동합니다."}

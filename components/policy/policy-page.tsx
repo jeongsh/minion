@@ -15,7 +15,7 @@ export function PolicyPage({
   children: ReactNode;
 }) {
   return (
-    <main className="min-h-screen bg-[var(--ui-surface)] text-[var(--ui-text)]">
+    <main className="min-h-screen text-[var(--ui-text)]">
       <div className="layout-wide max-w-4xl pb-20 pt-6 sm:pt-10">
         <PageHeader title={title} breadcrumbs={[{ label: "정책", href: "/policies" }, { label: title }]} />
         <div className="mt-6 rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface-muted)] p-5 sm:p-6">

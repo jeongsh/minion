@@ -396,11 +396,7 @@ function TeamRow({
         style={{ backgroundColor: accentColor }}
         aria-hidden="true"
       />
-      {team?.logoUrl ? (
-        <TeamLogo team={team} size="h-5 w-5" plain themeAware />
-      ) : (
-        <span className="h-5 w-5 shrink-0 rounded-full bg-surface-muted" aria-hidden="true" />
-      )}
+      <TeamLogo team={team} size="h-5 w-5" plain themeAware />
       <span
         className={`min-w-0 flex-1 truncate text-[13px] ${
           isWinner ? "font-bold text-foreground" : "font-medium text-muted"

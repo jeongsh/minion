@@ -33,6 +33,7 @@ export function PostList({
         title="이 말머리엔 아직 조용해요"
         body="필터를 바꾸거나 첫 글을 톡 올려보세요."
         animated
+        plain
       />
     );
   }

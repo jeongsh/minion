@@ -13,7 +13,7 @@ export default async function EditCommunityPostPage({ params }: { params: Promis
   if (!post || post.siteScope !== "hub" || post.authorId !== user.id) notFound();
 
   return (
-    <main className="layout-wide subpage flex min-h-screen flex-col gap-5 bg-[var(--ui-surface)] py-6 sm:py-8">
+    <main className="layout-wide subpage flex min-h-screen flex-col gap-5 py-6 sm:py-8">
       <SurfacePanel variant="section" className="mobile-full-bleed p-4 sm:mx-0 sm:p-8">
         <PostForm scope="hub" categories={categoriesForScope("hub")} defaultCategory={post.boardType} postId={post.id} initialTitle={post.title} initialContent={post.content} />
       </SurfacePanel>

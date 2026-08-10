@@ -69,6 +69,7 @@
   --type-subheading: 18px;
   --type-section: 18px;
   --type-page: 28px;
+  --page-background: #fff;
   --background: #fff;
   --foreground: #111827;
   --surface: #ffffff;
@@ -106,10 +107,6 @@
   box-sizing: border-box;
 }
 
-html {
-  background: var(--background);
-}
-
 html:has(.schedule-page) {
   scroll-behavior: smooth;
 }
@@ -118,7 +115,7 @@ body {
   min-height: 100vh;
   margin: 0;
   color: var(--foreground);
-  background: var(--background);
+  background: var(--page-background);
   font-family:
     "Pretendard",
     -apple-system,
@@ -258,8 +255,7 @@ html[class~="dark"] .navigation-progress-bar {
 }
 
 .prediction-ticket {
-  --prediction-ticket-head-height: 114px;
-  --prediction-ticket-notch-size: 28px;
+  --prediction-ticket-head-height: 96px;
   position: relative;
   isolation: isolate;
   overflow-x: hidden;
@@ -271,31 +267,6 @@ html[class~="dark"] .navigation-progress-bar {
     inset 0 1px 0 rgb(255 255 255 / .68);
 }
 
-.prediction-ticket::before,
-.prediction-ticket::after {
-  content: "";
-  position: absolute;
-  top: var(--prediction-ticket-head-height);
-  z-index: 3;
-  width: var(--prediction-ticket-notch-size);
-  height: var(--prediction-ticket-notch-size);
-  border-radius: 999px;
-  border: 0;
-  background: rgb(0 0 0 / .55);
-  pointer-events: none;
-  margin-top: calc(var(--prediction-ticket-notch-size) / -2);
-}
-
-.prediction-ticket::before {
-  left: 0;
-  transform: translateX(-50%);
-}
-
-.prediction-ticket::after {
-  right: 0;
-  transform: translateX(50%);
-}
-
 .prediction-ticket__perforation {
   position: relative;
 }
@@ -303,7 +274,7 @@ html[class~="dark"] .navigation-progress-bar {
 .prediction-ticket__head {
   position: relative;
   min-height: var(--prediction-ticket-head-height);
-  padding: 24px 20px 22px;
+  padding: 18px 20px 16px;
 }
 
 .prediction-ticket__head::after {
@@ -316,7 +287,7 @@ html[class~="dark"] .navigation-progress-bar {
 }
 
 .prediction-ticket__body {
-  padding: 20px;
+  padding: 16px 20px 20px;
 }
 
 .prediction-ticket__stub {
@@ -472,6 +443,7 @@ html[class~="dark"] {
   --ui-surface-muted: #1c1e22;
   --ui-border: #383c44;
   --ui-ad-surface: #1c1e22;
+  --page-background: #141517;
   --background: #141517;
   --foreground: #f8f8f8;
   --surface: #141517;
@@ -530,7 +502,6 @@ html[class~="dark"] .app-lnb a[data-active="true"] {
   /* 통합 서브페이지는 전역 accent를 사용한다. */
   --tp: var(--accent);
   color: var(--ink);
-  background: var(--ui-surface);
 }
 
 /* Fan subpages keep their team-specific accent. */
@@ -909,11 +880,6 @@ html[class~="dark"] .app-lnb a[data-active="true"] {
   :root { --layout-gutter: 40px; }
 }
 
-/* Fan pages use a flat, content-first surface. Separation comes from spacing and rules. */
-.fan-page-shell {
-  background: var(--ui-surface);
-}
-
 .fan-card {
   border: 0;
   border-radius: 0;
@@ -1000,12 +966,13 @@ html[class~="dark"] .match-detail-page .text-muted {
 }
 
 .home-match-calendar {
+  --calendar-nav-size: 28px;
   --rdp-accent-color: var(--ui-ink);
   --rdp-accent-background-color: var(--ui-surface-muted);
-  --rdp-day-height: 30px;
-  --rdp-day-width: 30px;
-  --rdp-day_button-height: 28px;
-  --rdp-day_button-width: 28px;
+  --rdp-day-height: 36px;
+  --rdp-day-width: 36px;
+  --rdp-day_button-height: 32px;
+  --rdp-day_button-width: 32px;
   --rdp-day_button-border-radius: 10px;
   margin: 0;
   width: 100%;
@@ -1036,18 +1003,16 @@ html[class~="dark"] .match-detail-page .text-muted {
 
 .home-match-calendar .rdp-day_button {
   margin-inline: auto;
-  border: 1px solid transparent;
+  border: 0;
   font-size:12px;
   font-weight: 700;
-  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
-  border-radius: 8px;
+  transition: background 0.15s ease, color 0.15s ease;
+  border-radius: 10px;
   line-height: 1;
 }
 
 .home-match-calendar .rdp-day_button:hover {
-  border-color: var(--ui-border);
   background: var(--ui-surface-muted);
-  transform: translateY(-1px);
 }
 
 .home-match-calendar .rdp-month_caption {
@@ -1058,14 +1023,21 @@ html[class~="dark"] .match-detail-page .text-muted {
   font-weight: 900;
   letter-spacing: -0.025em;
   color: var(--ui-ink);
-  margin-bottom: 0.35rem;
+  justify-content: center;
+  margin-bottom: 0.6rem;
 }
 
 .home-match-calendar .rdp-nav {
-  top: 0;
+  inset-block-start: 0;
+  inset-inline-start: 50%;
+  inset-inline-end: auto;
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  width: 220px;
   height: 1.7rem;
+  transform: translateX(-50%);
+  pointer-events: none;
 }
 
 .home-match-calendar .rdp-button_next,
@@ -1073,23 +1045,32 @@ html[class~="dark"] .match-detail-page .text-muted {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
-  border: 1px solid var(--ui-border);
-  border-radius: 999px;
+  width: var(--calendar-nav-size) !important;
+  height: var(--calendar-nav-size) !important;
+  top: 1px !important;
+  border: 0;
+  border-radius: 9px;
   color: var(--ui-muted);
-  background: color-mix(in srgb, var(--ui-surface) 85%, transparent);
-  transition: border-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+  background: var(--ui-surface-muted);
+  transition: background 0.15s ease, color 0.15s ease;
+  pointer-events: auto;
+}
+
+.home-match-calendar .rdp-button_previous {
+  inset-inline-start: calc(50% - 84px) !important;
+}
+
+.home-match-calendar .rdp-button_next {
+  inset-inline-end: calc(50% - 84px) !important;
 }
 .home-match-calendar .rdp-button_next{
-  margin-left: 0.35rem;
+  margin-left: 0;
 }
 
 .home-match-calendar .rdp-button_next:hover,
 .home-match-calendar .rdp-button_previous:hover {
-  border-color: var(--ui-ink);
   color: var(--ui-ink);
-  transform: scale(1.04);
+  background: color-mix(in srgb, var(--ui-surface-muted) 78%, var(--ui-ink));
 }
 
 .home-match-calendar .rdp-weekday {
@@ -1106,10 +1087,8 @@ html[class~="dark"] .match-detail-page .text-muted {
 
 .home-match-calendar .home-calendar-has-match .rdp-day_button {
   background: color-mix(in srgb, var(--accent) 10%, var(--ui-surface));
-  border-color: color-mix(in srgb, var(--accent) 28%, var(--ui-border));
   color: var(--ui-ink);
   font-weight: 900;
-  box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--accent) 75%, transparent);
 }
 
 .home-match-calendar .home-calendar-has-match::after {
@@ -1122,9 +1101,7 @@ html[class~="dark"] .match-detail-page .text-muted {
 
 .home-match-calendar .rdp-selected .rdp-day_button {
   background: var(--ui-ink);
-  border-color: var(--ui-ink);
   color: var(--ui-surface);
-  box-shadow: 0 7px 16px rgb(24 25 28 / 0.18);
 }
 
 /* 덕질 달력: 날짜 버튼에 타입별 색 점(dot)을 표시. */
@@ -1162,8 +1139,19 @@ html[class~="dark"] .match-detail-page .text-muted {
 }
 
 .hub-home {
-  --accent: var(--palette-green-butter-main);
-  --accent-foreground: #fff;
+  --home-card-bg: #f5f5f7;
+  --home-card-bg-alt: #f5f5f7;
+  --home-card-bg-strong: #f0f3f7;
+  --home-card-bg-hover: #e5e7ea;
+  --home-card-divider: #e0e2e6;
+}
+
+html[class~="dark"] .hub-home {
+  --home-card-bg: #1c1e22;
+  --home-card-bg-alt: #202226;
+  --home-card-bg-strong: #1c1e22;
+  --home-card-bg-hover: #24272c;
+  --home-card-divider: #343d4c;
 }
 
 .hub-home .home-match-calendar {
@@ -1172,17 +1160,41 @@ html[class~="dark"] .match-detail-page .text-muted {
 }
 
 .hub-home .home-match-calendar .home-calendar-has-match .rdp-day_button {
-  border-color: color-mix(in srgb, var(--accent) 28%, var(--ui-border));
-  background: color-mix(in srgb, var(--accent) 10%, var(--ui-surface));
+  background: color-mix(in srgb, var(--accent) 9%, var(--home-card-bg));
   color: var(--ui-ink);
-  box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--accent) 75%, transparent);
 }
 
 .hub-home .home-match-calendar .rdp-selected .rdp-day_button {
-  border-color: var(--ui-ink);
   background: var(--ui-ink);
   color: var(--ui-surface) !important;
-  box-shadow: 0 7px 16px rgb(24 25 28 / 0.18);
+}
+
+.hub-home .home-calendar-shell {
+  border: 1px solid var(--ui-border);
+  background: #fff;
+  padding: 16px;
+}
+
+html[class~="dark"] .hub-home .home-calendar-shell {
+  background: #1c1e22;
+}
+
+.hub-home .home-calendar-shell .rdp-button_next,
+.hub-home .home-calendar-shell .rdp-button_previous {
+  background: var(--home-card-bg-strong);
+}
+
+.hub-home .home-calendar-shell .rdp-day_button:hover {
+  background: var(--home-card-bg-hover);
+}
+
+.hub-home .home-calendar-shell .rdp-selected .rdp-day_button:hover {
+  background: var(--ui-ink);
+  color: var(--ui-surface) !important;
+}
+
+.hub-home .home-calendar-legend {
+  color: var(--ui-muted);
 }
 
 /* Lucide 아이콘 기반 공용 캐러셀 네비게이션 버튼 */
@@ -1227,33 +1239,34 @@ html[class~="dark"] .match-detail-page .text-muted {
 
 @media (max-width: 420px) {
   .home-match-calendar {
-    --rdp-day-height: 31px;
-    --rdp-day-width: 31px;
-    --rdp-day_button-height: 27px;
-    --rdp-day_button-width: 27px;
+    --calendar-nav-size: 27px;
+    --rdp-day-height: 35px;
+    --rdp-day-width: 35px;
+    --rdp-day_button-height: 31px;
+    --rdp-day_button-width: 31px;
   }
 
   .home-match-calendar .rdp-month_caption {
     font-size: 16px;
   }
 
+  .home-match-calendar .rdp-nav {
+    width: 200px;
+  }
+
   .home-match-calendar .rdp-weekday {
     font-size: 12px;
   }
 
-  .home-match-calendar .rdp-button_next,
-  .home-match-calendar .rdp-button_previous {
-    width: 24px;
-    height: 24px;
-  }
 }
 
 @media (min-width: 640px) {
   .home-match-calendar {
-    --rdp-day-height: 38px;
-    --rdp-day-width: 38px;
-    --rdp-day_button-height: 32px;
-    --rdp-day_button-width: 32px;
+    --calendar-nav-size: 28px;
+    --rdp-day-height: 40px;
+    --rdp-day-width: 40px;
+    --rdp-day_button-height: 36px;
+    --rdp-day_button-width: 36px;
   }
 
   .home-match-calendar .rdp-day_button {
@@ -1270,15 +1283,57 @@ html[class~="dark"] .match-detail-page .text-muted {
     height: 1.875rem;
   }
 
-  .home-match-calendar .rdp-button_next,
-  .home-match-calendar .rdp-button_previous {
-    width: 28px;
-    height: 28px;
-  }
 
   .home-match-calendar .rdp-weekday {
     padding: 0.15rem 0 0.3rem;
     font-size: 13px;
+  }
+}
+
+/* 메인 시즌 현황에서만 쓰는 데스크톱 축약형. 팬페이지·모바일 달력은 기존 크기를 유지한다. */
+@media (min-width: 1280px) {
+  .hub-home .home-calendar-compact .home-calendar-shell {
+    padding: 10px;
+  }
+
+  .home-calendar-compact .home-match-calendar {
+    --calendar-nav-size: 24px;
+    --rdp-day-height: 34px;
+    --rdp-day-width: 34px;
+    --rdp-day_button-height: 29px;
+    --rdp-day_button-width: 29px;
+  }
+
+  .home-calendar-compact .home-match-calendar .rdp-day_button {
+    font-size: 13px;
+  }
+
+  .home-calendar-compact .home-match-calendar .rdp-month_caption {
+    height: 24px;
+    margin-bottom: 10px;
+    font-size: 15px;
+  }
+
+  .home-calendar-compact .home-match-calendar .rdp-nav {
+    width: 196px;
+    height: 24px;
+  }
+
+  .home-calendar-compact .home-match-calendar .rdp-button_previous {
+    inset-inline-start: calc(50% - 76px) !important;
+  }
+
+  .home-calendar-compact .home-match-calendar .rdp-button_next {
+    inset-inline-end: calc(50% - 76px) !important;
+  }
+
+  .home-calendar-compact .home-match-calendar .rdp-weekday {
+    padding: 0 0 2px;
+    font-size: 10px;
+  }
+
+  .home-calendar-compact .home-calendar-legend {
+    display: none;
   }
 }
 

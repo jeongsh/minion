@@ -17,7 +17,7 @@ const POLICIES = [
 
 export default function PoliciesPage() {
   return (
-    <main className="min-h-screen bg-[var(--ui-surface)] text-[var(--ui-text)]">
+    <main className="min-h-screen text-[var(--ui-text)]">
       <div className="layout-wide pb-20 pt-6 sm:pt-10">
         <PageHeader title="정책 안내" />
         <p className="mt-4 max-w-2xl text-sm leading-6 text-[var(--ui-muted)]">MINION이 어떤 기준으로 서비스를 운영하고 정보를 처리하는지 확인할 수 있습니다.</p>

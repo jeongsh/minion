@@ -108,8 +108,7 @@ function PredictionBetDialog({ dialog, balance, stake, pending, error, onStakeCh
               <div className="flex min-w-0 items-center gap-3 pl-3">
                 <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[var(--palette-green-butter-point)] text-[var(--palette-green-butter-main)]"><TicketCheck size={24} strokeWidth={2.4} /></span>
                 <div className="min-w-0">
-                  <p className="text-[13px] font-bold text-[var(--ui-muted)]">LP PREDICTION</p>
-                  <h2 id="quick-bet-title" className="mt-1 truncate text-xl font-black text-[var(--ui-ink)]">{dialog.teamName} 승리 예측</h2>
+                  <h2 id="quick-bet-title" className="truncate text-xl font-black text-[var(--ui-ink)]">paperozi</h2>
                 </div>
               </div>
               <button type="button" onClick={onClose} className="grid h-9 w-9 place-items-center rounded-lg text-[var(--ui-muted)] hover:bg-[var(--ui-surface-muted)]" aria-label="닫기"><X size={18} /></button>

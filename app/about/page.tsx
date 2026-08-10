@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 export default function AboutPage() {
   const email = siteContactEmail();
   return (
-    <main className="min-h-screen bg-[var(--ui-surface)] text-[var(--ui-text)]">
+    <main className="min-h-screen text-[var(--ui-text)]">
       <div className="layout-wide max-w-4xl pb-20 pt-6 sm:pt-10">
         <PageHeader title="서비스 소개" />
         <div className="mt-8 flex flex-col gap-8 text-[15px] leading-7">
