@@ -14,17 +14,17 @@ function LeadNewsCard({ article }: { article: NewsArticle }) {
       href={article.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="group block min-w-0 rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-3 dark:bg-[var(--ui-surface-muted)]"
+      className="group block min-w-0"
     >
       {hasThumbnail ? <NewsThumbnail article={article} priority onError={() => setHasThumbnail(false)} className="aspect-[16/9] max-h-[300px] w-full rounded-xl" /> : null}
-      <div className={hasThumbnail ? "mt-3" : ""}>
+      <div className={hasThumbnail ? "mt-3.5" : ""}>
         <h3 className="font-paperozi line-clamp-2 text-[17px] font-black leading-[1.38] tracking-[-0.035em] text-[var(--ui-ink)] group-hover:underline sm:text-[19px]">
           {article.title}
         </h3>
         <p className="mt-2 hidden line-clamp-2 text-[12px] leading-[1.65] text-[var(--ui-muted)] lg:block lg:text-[13px]">
           {article.summary}
         </p>
-        <div className="mt-2 flex items-center gap-1.5 text-[11px] font-semibold text-[var(--ui-muted)]">
+        <div className="mt-2 flex items-center gap-1.5 text-[12px] font-semibold text-[var(--ui-muted)]">
           <span className="text-[var(--ui-ink)]">{article.source}</span>
           <span aria-hidden>·</span>
           <time dateTime={article.publishedAt}>{formatNewsDate(article.publishedAt)}</time>
@@ -43,11 +43,14 @@ export function HomeNewsSection({ articles }: { articles: NewsArticle[] }) {
       <SectionHeading href="/news">
         <span id="home-news-heading">LCK 뉴스</span>
       </SectionHeading>
-      <div className="grid gap-3 lg:grid-cols-[minmax(0,1.5fr)_minmax(320px,1fr)] lg:gap-6">
+      <div className="grid gap-5 rounded-2xl border border-[var(--home-card-divider)] p-3 sm:p-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(320px,1fr)] lg:gap-8">
         <LeadNewsCard article={lead} />
-        <div className="grid content-start gap-3">
+        <div className="grid content-start lg:py-1">
           {secondary.map((article, index) => (
-            <div key={article.id} className={index >= 3 ? "hidden lg:contents" : "contents"}>
+            <div
+              key={article.id}
+              className={`${index >= 3 ? "hidden lg:block" : "block"} border-b border-[var(--home-card-divider)] py-3 first:pt-0 ${index === 2 ? "border-b-0 pb-0 lg:border-b lg:pb-3" : ""} ${index === secondary.length - 1 ? "lg:border-b-0 lg:pb-0" : ""}`}
+            >
               <NewsCard article={article} size="home" />
             </div>
           ))}

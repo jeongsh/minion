@@ -5,7 +5,6 @@ import { getHomePagePublicData } from "@/lib/data/home-cache";
 import { getHomePomEntries } from "@/lib/data/home-pom";
 import type { Match } from "@/lib/types";
 import { getBoardPosts } from "@/lib/data/community";
-import { compareHotPostsByRecentHype, isHotPost } from "@/lib/community/hot";
 import { buildTeamStandingRows, dateKeyKST, formatTimeKST, matchHref } from "@/lib/view-data";
 import { isMatchLive } from "@/lib/match-display";
 import { getPredictionMarketData } from "@/lib/predictions";
@@ -138,10 +137,10 @@ export default async function HomePage() {
     ...sortedTeamVideos.slice(0, HOME_VIDEO_LIMIT - lckQuota),
   ].sort(byNewest);
 
-  // 홈 게시판 캐러셀: 인기글만 랭킹 순으로 노출한다.
-  // 블라인드/공지 글은 홈에 노출하지 않는다.
+  // 홈 게시판 캐러셀: 디자인 확인을 위해 최신글을 임시로 노출한다.
+  // getBoardPosts가 최신순으로 반환하며, 블라인드/공지 글은 홈에서 제외한다.
   const homeEligiblePosts = communityPosts.filter((post) => !post.blindedAt && !post.isNotice);
-  const homeCommunityPosts = homeEligiblePosts.filter(isHotPost).sort(compareHotPostsByRecentHype).slice(0, 12);
+  const homeCommunityPosts = homeEligiblePosts.slice(0, 12);
 
   return (
     <HomeDashboard

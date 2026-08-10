@@ -1,5 +1,6 @@
 import Link from "next/link";
-import type { HomeCalendarMatch } from "@/components/domain/home-calendar";
+import { CalendarDays } from "lucide-react";
+import { HomeCalendar, type HomeCalendarMatch } from "@/components/domain/home-calendar";
 import { HomeCalendarWorkspace } from "@/components/domain/home-calendar-workspace";
 import { HomeBoardCarousel } from "@/components/domain/home-board-carousel";
 import { HomeVideoSwiper } from "@/components/domain/home-video-swiper";
@@ -17,11 +18,10 @@ import type { Team } from "@/lib/types";
 import type { HomeVideo } from "@/lib/data/lck-channel-videos";
 import type { CommunityPostDetail } from "@/lib/community/types";
 import type { NewsArticle } from "@/lib/data/news";
-import { isMatchLive } from "@/lib/match-display";
-import { matchHref } from "@/lib/view-data";
 import { SectionHeading as Heading } from "@/components/ui/section-heading";
 import { AdSlot as Ad } from "@/components/ui/ad-slot";
 import { TeamLogo as Logo } from "@/components/ui/team-logo";
+import { AdaptiveDialog } from "@/components/responsive/adaptive-dialog";
 
 export type HomeStandingRow = {
   team: Team;
@@ -52,13 +52,9 @@ type Props = {
 
 /** 순위표는 10팀을 5+5 두 칼럼으로 나눈다. 옆 광고 높이도 이 값에서 계산한다. */
 const STANDING_ROWS_PER_COLUMN = 5;
-const STANDING_ROW_HEIGHT = 52;
+const STANDING_ROW_HEIGHT = 56;
+const HOME_SECTION_SPACING = "mt-10";
 
-/**
- * 옆 칼럼의 섹션 제목과 같은 높이를 차지해 두 칼럼의 카드 상단을 맞춘다.
- * 예전엔 mt-[47px] 매직넘버였는데 제목 크기를 바꿀 때마다 어긋났다.
- * 같은 Heading을 숨겨서 넣으면 --ui-title-size가 바뀌어도 자동으로 따라간다.
- */
 function HeadingSpacer() {
   return (
     <div className="invisible" aria-hidden>
@@ -74,7 +70,6 @@ export function HomeDashboard({
   currentUserId,
   predictionBalance,
   calendarMonthKey,
-  calendarTodayKey,
   calendarMatches,
   calendarEvents,
   celebrationEvents,
@@ -95,68 +90,58 @@ export function HomeDashboard({
         ) ?? theme,
     )
     .slice(0, 10);
-  const liveMatchItem = matchItems.find((item) => isMatchLive(item.match));
-
   return (
     <main className="layout-wide hub-home pb-16 pt-4 text-[var(--ui-ink)] sm:pt-7">
-      {liveMatchItem ? (
-        <Link
-          href={matchHref(liveMatchItem.match)}
-          className="mb-4 flex min-h-11 min-w-0 items-center gap-2 rounded-xl bg-[#ff3158] px-3 py-2 text-sm font-bold text-white transition hover:bg-[#e9274d] sm:px-4"
-        >
-          <span className="shrink-0 rounded-full bg-white px-2 py-0.5 text-[11px] font-black text-[#ff3158]">
-            LIVE
-          </span>
-          <span className="min-w-0 flex-1 truncate">
-            {liveMatchItem.teamA?.shortName ?? "TBD"} {liveMatchItem.match.teamAScore ?? 0}
-            <span className="px-1.5 opacity-70">:</span>
-            {liveMatchItem.match.teamBScore ?? 0} {liveMatchItem.teamB?.shortName ?? "TBD"}
-          </span>
-          <span className="shrink-0 text-xs sm:text-sm">경기 보기</span>
-        </Link>
-      ) : null}
-
-      <HomeNewsSection articles={newsItems} />
-
-      {celebrationEvents.length > 0 ? (
-        <section className="mt-6">
-          <CelebrationBanner events={celebrationEvents} />
-        </section>
-      ) : null}
-
-      <section className="mt-8">
-        <Heading href="/schedule">매치</Heading>
+      <section aria-label="매치" className="mb-8">
         <HomeMatchSwiper
           items={matchItems}
           currentUserId={currentUserId}
           balance={predictionBalance}
         />
-      </section>
-
-      <section className="mt-8">
-        <Heading href="/schedule">LCK 일정</Heading>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <HomeCalendarWorkspace
-            initialMonthKey={calendarMonthKey}
-            initialDateKey={calendarTodayKey}
-            matches={calendarMatches}
-            events={calendarEvents}
-          />
-
-          <div className="hidden h-[300px] lg:block">
-            <Ad placement="rectangle" className="h-full" />
-          </div>
+        <div className="mt-3 xl:hidden">
+          <AdaptiveDialog
+            title="LCK 캘린더"
+            trigger={
+              <>
+                <CalendarDays className="size-4" strokeWidth={2} />
+                월간 캘린더 보기
+              </>
+            }
+            triggerClassName="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[var(--home-card-bg-strong)] px-4 text-sm font-bold text-[var(--ui-ink)] transition-colors hover:bg-[var(--home-card-bg-hover)]"
+            triggerAriaLabel="LCK 캘린더 열기"
+            panelClassName="sm:max-w-[400px]"
+          >
+            <HomeCalendar
+              initialMonthKey={calendarMonthKey}
+              matches={calendarMatches}
+              events={calendarEvents}
+            />
+          </AdaptiveDialog>
         </div>
       </section>
 
+      {celebrationEvents.length > 0 ? (
+        <section className="mt-10">
+          <CelebrationBanner events={celebrationEvents} />
+        </section>
+      ) : null}
+      <HomeNewsSection articles={newsItems} />
+
+      <Ad placement="horizontal" className="mt-10 hidden h-[60px] md:block xl:h-[90px]" />
+
+      <section className="mt-10">
+        <Heading href="/community">최신글</Heading>
+        <HomeBoardCarousel posts={communityPosts} />
+      </section>
+
       {pomEntries.length > 0 ? (
-        <section className="mt-8">
+        <section className={HOME_SECTION_SPACING}>
           <Heading href="/players" caption="공식 MVP">최근 POM</Heading>
           <HomePomSwiper entries={pomEntries} />
         </section>
       ) : null}
 
-      <section className="mt-8">
+      <section className={HOME_SECTION_SPACING}>
         <Heading href="/teams">팀 채널</Heading>
         <div className="grid grid-cols-5 gap-2 sm:grid-cols-10 sm:gap-3 xl:gap-4">
           {activeTeams.map((team) => {
@@ -180,12 +165,9 @@ export function HomeDashboard({
         </div>
       </section>
 
-      <section className="mt-8 grid gap-4 xl:grid-cols-3">
+      <section className={`${HOME_SECTION_SPACING} hidden gap-4 xl:grid xl:grid-cols-3`}>
         <div className="min-w-0 xl:col-span-2">
-          <Heading href="/tournaments">실시간 순위</Heading>
-          {/* 10팀을 5+5로 나눠 좌우에 둔다. 세로로 10줄을 쌓으면 520px라 옆 칼럼이
-              비는데, 5줄(STANDING_ROWS_PER_COLUMN × 52px = 260px)로 맞추면
-              옆 광고 영역과 높이가 떨어진다. */}
+          <Heading>LCK 현황</Heading>
           <div className="grid gap-4 sm:grid-cols-2">
             {[0, 1].map((column) => (
               <div
@@ -217,31 +199,25 @@ export function HomeDashboard({
           <div className="hidden xl:block">
             <HeadingSpacer />
           </div>
-          {/* 순위 카드와 같은 높이를 잡는다. AdSlot은 style을 받지 않아 래퍼로 높이를 준다. */}
-          <div
-            className="hidden md:block"
-            style={{ height: STANDING_ROWS_PER_COLUMN * STANDING_ROW_HEIGHT }}
-          >
-            <Ad placement="rectangle" className="h-full" />
-          </div>
+          <HomeCalendarWorkspace
+            initialMonthKey={calendarMonthKey}
+            matches={calendarMatches}
+            events={calendarEvents}
+            compactOnDesktop
+          />
         </div>
       </section>
 
       {latestReport ? (
-        <section className="mt-8">
+        <section className={HOME_SECTION_SPACING}>
           <HomeWeeklyReportCard report={latestReport} />
         </section>
       ) : null}
 
-      <section className="mt-8">
-        <Heading href="/community">인기글</Heading>
-        <HomeBoardCarousel posts={communityPosts} />
-      </section>
-
-      <section className="mt-8">
+      <section className={HOME_SECTION_SPACING}>
         <Heading>최신 영상</Heading>
         <HomeVideoSwiper videos={latestVideos} />
-        <Ad placement="horizontal" className="mt-8 hidden h-[60px] md:block xl:h-[90px]" />
+        <Ad placement="horizontal" className="mt-10 hidden h-[60px] md:block xl:h-[90px]" />
       </section>
     </main>
   );

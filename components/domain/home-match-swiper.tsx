@@ -1,6 +1,6 @@
 "use client";
 
-import { Navigation, Pagination } from "swiper/modules";
+import { Pagination } from "swiper/modules";
 import { Swiper, SwiperSlide } from "swiper/react";
 import "swiper/css";
 import "swiper/css/navigation";
@@ -8,7 +8,6 @@ import "swiper/css/pagination";
 
 import { HomeMatchCard, type HomeMatchItem } from "@/components/domain/home-match-card";
 import { KitschEmptyState } from "@/components/ui/kitsch-empty-state";
-import { SwiperNav, useSwiperNav } from "@/components/ui/swiper-nav";
 import { useSwiperResize } from "@/components/ui/use-swiper-resize";
 
 /**
@@ -31,7 +30,6 @@ export function HomeMatchSwiper({
    */
   variant?: "carousel" | "single";
 }) {
-  const { setPrevEl, setNextEl, navigationProps } = useSwiperNav();
   const setSwiper = useSwiperResize();
 
   if (!items.length) {
@@ -66,17 +64,16 @@ export function HomeMatchSwiper({
   }
 
   return (
-    <div className="relative">
+    <div>
       <Swiper
-        modules={[Navigation]}
-        {...navigationProps}
         onSwiper={setSwiper}
         spaceBetween={12}
         slidesPerView={1.1}
+        className="cursor-grab active:cursor-grabbing"
         breakpoints={{
-          640: { slidesPerView: 2.05, spaceBetween: 14 },
-          1024: { slidesPerView: 2.6, spaceBetween: 16 },
-          1280: { slidesPerView: 3.15, spaceBetween: 16 },
+          640: { slidesPerView: 2, spaceBetween: 12 },
+          1024: { slidesPerView: 3, spaceBetween: 12 },
+          1280: { slidesPerView: 4, spaceBetween: 12 },
         }}
       >
         {items.map((item) => (
@@ -85,9 +82,6 @@ export function HomeMatchSwiper({
           </SwiperSlide>
         ))}
       </Swiper>
-      <div className="hidden sm:block">
-        <SwiperNav setPrevEl={setPrevEl} setNextEl={setNextEl} />
-      </div>
     </div>
   );
 }
