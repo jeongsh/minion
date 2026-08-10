@@ -14,9 +14,35 @@ export function SignupForm({ initialError }: { initialError?: string }) {
     initialError ? { error: initialError } : INITIAL_AUTH_STATE,
   );
   const [showEmailForm, setShowEmailForm] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [ageConfirmed, setAgeConfirmed] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
+  const allAgreed = ageConfirmed && termsAccepted && privacyAccepted;
+
+  function toggleAllAgreements(checked: boolean) {
+    setAgeConfirmed(checked);
+    setTermsAccepted(checked);
+    setPrivacyAccepted(checked);
+  }
+
+  if (state.message) {
+    return (
+      <div className="flex flex-col items-center gap-3 rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-6 text-center">
+        <p className="text-base font-bold">메일함을 확인해주세요</p>
+        <p className="text-sm" style={{ color: "var(--muted)" }}>
+          {state.message}
+        </p>
+        <Link href="/login" className="mt-2 text-sm font-semibold underline">
+          로그인 화면으로
+        </Link>
+      </div>
+    );
+  }
 
   const emailForm = (
-    <form action={formAction} className="flex flex-col gap-4">
+    <form action={formAction} onReset={(event) => event.preventDefault()} className="flex flex-col gap-4">
       <div className="flex flex-col gap-1.5">
         <label htmlFor="email" className="text-sm font-semibold">
           이메일
@@ -27,6 +53,8 @@ export function SignupForm({ initialError }: { initialError?: string }) {
           type="email"
           autoComplete="email"
           required
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
           className="min-h-12 rounded-xl border bg-[var(--ui-surface)] px-3.5 py-2 text-base outline-none focus:border-[var(--accent)] sm:text-sm"
           style={{ borderColor: "var(--border)" }}
         />
@@ -43,6 +71,8 @@ export function SignupForm({ initialError }: { initialError?: string }) {
           autoComplete="new-password"
           minLength={6}
           required
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
           className="min-h-12 rounded-xl border bg-[var(--ui-surface)] px-3.5 py-2 text-base outline-none focus:border-[var(--accent)] sm:text-sm"
           style={{ borderColor: "var(--border)" }}
         />
@@ -53,16 +83,47 @@ export function SignupForm({ initialError }: { initialError?: string }) {
 
       <fieldset className="flex flex-col gap-3 rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface-muted)] p-4">
         <legend className="px-1 text-sm font-black text-[var(--ui-ink)]">가입 동의</legend>
+        <label className="flex items-start gap-2.5 text-sm font-bold leading-5">
+          <input
+            type="checkbox"
+            checked={allAgreed}
+            onChange={(event) => toggleAllAgreements(event.target.checked)}
+            className="mt-1 h-4 w-4 accent-[var(--ui-ink)]"
+          />
+          <span>전체 동의</span>
+        </label>
+        <div className="h-px bg-[var(--ui-border)]" />
         <label className="flex items-start gap-2.5 text-sm leading-5">
-          <input name="ageConfirmed" type="checkbox" required className="mt-1 h-4 w-4 accent-[var(--ui-ink)]" />
+          <input
+            name="ageConfirmed"
+            type="checkbox"
+            checked={ageConfirmed}
+            onChange={(event) => setAgeConfirmed(event.target.checked)}
+            required
+            className="mt-1 h-4 w-4 accent-[var(--ui-ink)]"
+          />
           <span>만 14세 이상입니다. <b className="text-red-500">(필수)</b></span>
         </label>
         <label className="flex items-start gap-2.5 text-sm leading-5">
-          <input name="termsAccepted" type="checkbox" required className="mt-1 h-4 w-4 accent-[var(--ui-ink)]" />
+          <input
+            name="termsAccepted"
+            type="checkbox"
+            checked={termsAccepted}
+            onChange={(event) => setTermsAccepted(event.target.checked)}
+            required
+            className="mt-1 h-4 w-4 accent-[var(--ui-ink)]"
+          />
           <span><Link href="/terms" target="_blank" rel="noreferrer" className="font-bold underline underline-offset-2">이용약관</Link>에 동의합니다. <b className="text-red-500">(필수)</b></span>
         </label>
         <label className="flex items-start gap-2.5 text-sm leading-5">
-          <input name="privacyAccepted" type="checkbox" required className="mt-1 h-4 w-4 accent-[var(--ui-ink)]" />
+          <input
+            name="privacyAccepted"
+            type="checkbox"
+            checked={privacyAccepted}
+            onChange={(event) => setPrivacyAccepted(event.target.checked)}
+            required
+            className="mt-1 h-4 w-4 accent-[var(--ui-ink)]"
+          />
           <span><Link href="/privacy" target="_blank" rel="noreferrer" className="font-bold underline underline-offset-2">개인정보 수집·이용 및 처리방침</Link>에 동의합니다. <b className="text-red-500">(필수)</b></span>
         </label>
       </fieldset>
@@ -91,46 +152,35 @@ export function SignupForm({ initialError }: { initialError?: string }) {
 
   return (
     <div className="flex flex-col gap-5">
-      <div className={`${showEmailForm ? "flex" : "hidden"} order-2 flex-col gap-4 sm:order-1 sm:flex`}>
-        {showEmailForm ? (
+      {showEmailForm ? (
+        <div className="flex flex-col gap-4">
           <button
             type="button"
             onClick={() => setShowEmailForm(false)}
-            className="self-start text-sm font-semibold underline sm:hidden"
+            className="self-start text-sm font-semibold underline"
           >
             ← 소셜 로그인으로 돌아가기
           </button>
-        ) : null}
-        {emailForm}
-      </div>
-
-      <div className="hidden items-center gap-3 text-[12px] font-semibold text-[var(--ui-muted)] sm:order-2 sm:flex">
-        <span className="h-px flex-1 bg-[var(--ui-border)]" />
-        또는
-        <span className="h-px flex-1 bg-[var(--ui-border)]" />
-      </div>
-
-      <div className={`${showEmailForm ? "hidden" : "block"} order-1 sm:order-3 sm:block`}>
-        <SocialAuthButtons mode="signup" showConsentNotice />
-      </div>
-
-      {!showEmailForm ? (
-        <>
+          {emailForm}
+        </div>
+      ) : (
+        <div className="flex flex-col gap-4">
+          <SocialAuthButtons mode="signup" showConsentNotice />
           <button
             type="button"
             onClick={() => setShowEmailForm(true)}
-            className="order-2 text-center text-sm font-semibold underline sm:hidden"
+            className="text-center text-sm font-semibold underline"
           >
             이메일로 회원가입하기
           </button>
-          <p className="order-3 text-center text-sm sm:hidden" style={{ color: "var(--muted)" }}>
+          <p className="text-center text-sm" style={{ color: "var(--muted)" }}>
             이미 계정이 있으신가요?{" "}
             <Link href="/login" className="font-semibold underline">
               로그인
             </Link>
           </p>
-        </>
-      ) : null}
+        </div>
+      )}
     </div>
   );
 }

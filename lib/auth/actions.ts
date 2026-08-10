@@ -22,6 +22,21 @@ const PROFILE_AVATAR_BUCKET = "profile-avatars";
 const MAX_PROFILE_IMAGE_BYTES = 5 * 1024 * 1024;
 const PROFILE_IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
 
+// Supabase Auth가 영어로 내려주는 에러 메시지를 사용자에게 보여줄 한국어로 옮긴다.
+// 매칭되는 게 없으면 원문을 그대로 보여준다.
+function translateAuthError(message: string): string {
+  if (message.startsWith("Password should contain at least one character of each") || (/password/i.test(message) && /at least/i.test(message))) {
+    return "영문 대/소문자, 숫자, 특수문자를 섞어서 입력해주세요.";
+  }
+  if (/already registered/i.test(message)) {
+    return "이미 가입된 이메일입니다.";
+  }
+  if (/email address .* is invalid/i.test(message)) {
+    return "유효하지 않은 이메일 주소입니다.";
+  }
+  return message;
+}
+
 function profileImageExtension(type: string, name: string): string {
   if (type === "image/png") return "png";
   if (type === "image/webp") return "webp";
@@ -51,10 +66,11 @@ export async function signUpAction(
   }
 
   const supabase = await createSupabaseAuthClient();
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
+      emailRedirectTo: `${siteBaseUrl()}/auth/callback?next=/me`,
       data: {
         age_confirmed: true,
         terms_accepted: true,
@@ -65,7 +81,18 @@ export async function signUpAction(
   });
 
   if (error) {
-    return { error: error.message };
+    return { error: translateAuthError(error.message) };
+  }
+
+  // Supabase Auth의 "Confirm email"이 켜져 있으면 signUp 직후에는 세션이 없고,
+  // 메일의 인증 링크를 눌러 app/auth/callback/route.ts를 거쳐야 세션이 생긴다.
+  // 이 경우 로그인 상태로 만들지 않고 안내만 하고, 꺼져 있으면(세션이 바로 온 경우)
+  // 기존처럼 즉시 로그인 처리한다.
+  if (!data.session) {
+    return {
+      error: null,
+      message: "가입 확인 메일을 보냈습니다. 메일함에서 링크를 눌러 인증을 완료해주세요.",
+    };
   }
 
   revalidatePath("/", "layout");
@@ -146,7 +173,7 @@ export async function requestPasswordResetAction(
   const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
 
   if (error) {
-    return { error: error.message };
+    return { error: translateAuthError(error.message) };
   }
 
   return {
@@ -176,7 +203,7 @@ export async function resetPasswordAction(
   const { error } = await supabase.auth.updateUser({ password });
 
   if (error) {
-    return { error: error.message || "비밀번호 재설정에 실패했습니다." };
+    return { error: error.message ? translateAuthError(error.message) : "비밀번호 재설정에 실패했습니다." };
   }
 
   revalidatePath("/", "layout");
@@ -312,7 +339,7 @@ export async function changePasswordAction(
   });
 
   if (error) {
-    return { status: "error", message: error.message || "비밀번호 변경에 실패했습니다." };
+    return { status: "error", message: error.message ? translateAuthError(error.message) : "비밀번호 변경에 실패했습니다." };
   }
 
   return { status: "success", message: "비밀번호가 변경되었습니다." };

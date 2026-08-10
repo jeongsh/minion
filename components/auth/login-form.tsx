@@ -14,9 +14,11 @@ export function LoginForm({ initialError }: { initialError?: string }) {
     initialError ? { error: initialError } : INITIAL_AUTH_STATE,
   );
   const [showEmailForm, setShowEmailForm] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   const emailForm = (
-    <form action={formAction} className="flex flex-col gap-4">
+    <form action={formAction} onReset={(event) => event.preventDefault()} className="flex flex-col gap-4">
       <div className="flex flex-col gap-1.5">
         <label htmlFor="email" className="text-sm font-semibold">
           이메일
@@ -27,6 +29,8 @@ export function LoginForm({ initialError }: { initialError?: string }) {
           type="email"
           autoComplete="email"
           required
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
           className="min-h-12 rounded-xl border bg-[var(--ui-surface)] px-3.5 py-2 text-base outline-none focus:border-[var(--accent)] sm:text-sm"
           style={{ borderColor: "var(--border)" }}
         />
@@ -42,6 +46,8 @@ export function LoginForm({ initialError }: { initialError?: string }) {
           type="password"
           autoComplete="current-password"
           required
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
           className="min-h-12 rounded-xl border bg-[var(--ui-surface)] px-3.5 py-2 text-base outline-none focus:border-[var(--accent)] sm:text-sm"
           style={{ borderColor: "var(--border)" }}
         />
@@ -75,46 +81,35 @@ export function LoginForm({ initialError }: { initialError?: string }) {
 
   return (
     <div className="flex flex-col gap-5">
-      <div className={`${showEmailForm ? "flex" : "hidden"} order-2 flex-col gap-4 sm:order-1 sm:flex`}>
-        {showEmailForm ? (
+      {showEmailForm ? (
+        <div className="flex flex-col gap-4">
           <button
             type="button"
             onClick={() => setShowEmailForm(false)}
-            className="self-start text-sm font-semibold underline sm:hidden"
+            className="self-start text-sm font-semibold underline"
           >
             ← 소셜 로그인으로 돌아가기
           </button>
-        ) : null}
-        {emailForm}
-      </div>
-
-      <div className="hidden items-center gap-3 text-[12px] font-semibold text-[var(--ui-muted)] sm:order-2 sm:flex">
-        <span className="h-px flex-1 bg-[var(--ui-border)]" />
-        또는
-        <span className="h-px flex-1 bg-[var(--ui-border)]" />
-      </div>
-
-      <div className={`${showEmailForm ? "hidden" : "block"} order-1 sm:order-3 sm:block`}>
-        <SocialAuthButtons />
-      </div>
-
-      {!showEmailForm ? (
-        <>
+          {emailForm}
+        </div>
+      ) : (
+        <div className="flex flex-col gap-4">
+          <SocialAuthButtons />
           <button
             type="button"
             onClick={() => setShowEmailForm(true)}
-            className="order-2 text-center text-sm font-semibold underline sm:hidden"
+            className="text-center text-sm font-semibold underline"
           >
             이메일로 로그인하기
           </button>
-          <p className="order-3 text-center text-sm sm:hidden" style={{ color: "var(--muted)" }}>
+          <p className="text-center text-sm" style={{ color: "var(--muted)" }}>
             계정이 없으신가요?{" "}
             <Link href="/signup" className="font-semibold underline">
               회원가입
             </Link>
           </p>
-        </>
-      ) : null}
+        </div>
+      )}
     </div>
   );
 }
