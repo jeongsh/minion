@@ -6,10 +6,8 @@ import { AdSlot } from "@/components/ui/ad-slot";
 import { TeamMatchHistory } from "@/components/domain/team-match-history";
 import { KitschEmptyState } from "@/components/ui/kitsch-empty-state";
 import {
-  getCommunityPosts,
-  getFanRatings,
+  getFanRatingsByTeamId,
   getAllTeams,
-  getLeagueAverageStats,
   getMatches,
   getPlayerStatLinesByTeam,
   getPlayers,
@@ -19,6 +17,8 @@ import {
   getTeams,
   getTournaments,
 } from "@/lib/data/lck";
+import { getLeagueAverageStats } from "@/lib/data/player-cache";
+import { getBoardPosts } from "@/lib/data/community";
 import type { TeamAward } from "@/lib/types";
 import {
   buildLeagueRadarStats,
@@ -256,14 +256,14 @@ export default async function TeamDetailPage({
     notFound();
   }
 
-  const [teams, allTeams, players, matches, sets, fanRatings, communityPosts, awards, tournaments, playerStats, leagueAvgInput] = await Promise.all([
+  const [teams, allTeams, players, matches, sets, fanRatings, teamPosts, awards, tournaments, playerStats, leagueAvgInput] = await Promise.all([
     getTeams(),
     getAllTeams(),
     getPlayers(),
     getMatches(),
     getSets(),
-    getFanRatings(),
-    getCommunityPosts(),
+    getFanRatingsByTeamId(team.id),
+    getBoardPosts({ scope: "team", teamId: team.id }),
     getTeamAwards(team.id),
     getTournaments(),
     getPlayerStatLinesByTeam(team.id),
@@ -292,17 +292,13 @@ export default async function TeamDetailPage({
     (match) => match.teamAId === team.id || match.teamBId === team.id,
   );
 
-  const relatedRatings = fanRatings.filter((rating) => rating.teamId === team.id);
   const avgFanRating =
-    relatedRatings.length === 0
+    fanRatings.length === 0
       ? "-"
       : (
-          relatedRatings.reduce((sum, rating) => sum + rating.rating, 0) /
-          relatedRatings.length
+          fanRatings.reduce((sum, rating) => sum + rating.rating, 0) /
+          fanRatings.length
         ).toFixed(1);
-  const recentReviews = communityPosts.filter(
-    (post) => post.siteScope === "team" && post.teamId === team.id,
-  );
   const nextMatch = standing?.nextMatch;
 
   return (
@@ -388,8 +384,8 @@ export default async function TeamDetailPage({
               <p className="text-[13px] font-semibold text-[var(--ui-muted)]">팀 팬 평점</p>
               <p className="mt-2 text-[28px] font-black leading-none tabular-nums text-[var(--ui-ink)]">{avgFanRating}<span className="ml-1 text-sm font-semibold text-[var(--ui-muted)]">/ 5</span></p>
             </div>
-            <TeamMetricCard label="평가 수" value={relatedRatings.length} />
-            <TeamMetricCard label="팀 게시글" value={recentReviews.length} />
+            <TeamMetricCard label="평가 수" value={fanRatings.length} />
+            <TeamMetricCard label="팀 게시글" value={teamPosts.length} />
             <div className="flex flex-col justify-between rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-4">
               <div><p className="text-[13px] font-semibold text-[var(--ui-muted)]">팬 채널</p><p className="mt-2 text-[15px] leading-6 text-[var(--ui-text)]">경기와 선수 소식을 팀 팬들과 함께 확인하세요.</p></div>
               <Link href={`/fan/${team.fanSiteHost || team.slug}`} className="mt-3 text-right text-[13px] font-bold" style={{ color: "var(--tp)" }}>팬 채널 보기 →</Link>

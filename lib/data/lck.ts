@@ -1183,14 +1183,13 @@ async function getSetByIdBase(setId: string) {
   }, undefined);
 }
 
-/** 다시보기가 있는 세트를 경기별로 묶어서 돌려준다. */
-async function getMatchVodsBase() {
-  const empty = new Map<string, MatchVod[]>();
-
+/** 특정 경기의 다시보기가 있는 세트만 조회한다. */
+async function getMatchVodsByMatchIdBase(matchId: string) {
   return fromSupabase(async () => {
     const { data, error } = await createSupabaseServerClient()
       .from("sets")
-      .select("match_id, set_number, vod_url, vod_provider, vod_thumbnail_url")
+      .select("set_number, vod_url, vod_provider, vod_thumbnail_url")
+      .eq("match_id", matchId)
       .not("vod_url", "is", null)
       .order("set_number", { ascending: true });
 
@@ -1199,26 +1198,20 @@ async function getMatchVodsBase() {
     }
 
     const rows = (data ?? []) as Array<{
-      match_id: string;
       set_number: number;
       vod_url: string;
       vod_provider: string | null;
       vod_thumbnail_url: string | null;
     }>;
 
-    return rows.reduce((result, row) => {
-      const current = result.get(row.match_id) ?? [];
-      current.push({
-        setNumber: row.set_number,
-        url: row.vod_url,
-        provider: row.vod_provider,
-        thumbnailUrl: row.vod_thumbnail_url,
-        embedUrl: vodEmbedUrlFor(row.vod_provider ?? "", row.vod_url),
-      });
-      result.set(row.match_id, current);
-      return result;
-    }, new Map<string, MatchVod[]>());
-  }, empty);
+    return rows.map((row) => ({
+      setNumber: row.set_number,
+      url: row.vod_url,
+      provider: row.vod_provider,
+      thumbnailUrl: row.vod_thumbnail_url,
+      embedUrl: vodEmbedUrlFor(row.vod_provider ?? "", row.vod_url),
+    }));
+  }, [] as MatchVod[]);
 }
 
 async function getChampionsBase() {
@@ -1391,7 +1384,7 @@ async function getPlayerStatLinesBase(setId?: string | string[], playerId?: stri
   }, []);
 }
 
-async function getLeagueAverageStatsBase() {
+export async function getLeagueAverageStatsBase() {
   return fromSupabase(async () => {
     const supabase = createSupabaseServerClient();
     const [{ data: pRows }, { data: sRows }] = await Promise.all([
@@ -1673,6 +1666,38 @@ async function getFanRatingsBase() {
     const { data, error } = await createSupabaseServerClient()
       .from("fan_ratings")
       .select("id, set_id, match_id, player_id, team_id, rating, review, created_at")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      throw error;
+    }
+
+    return (data as FanRatingRow[]).map(mapFanRating);
+  }, []);
+}
+
+async function getFanRatingsByMatchIdBase(matchId: string) {
+  return fromSupabase(async () => {
+    const { data, error } = await createSupabaseServerClient()
+      .from("fan_ratings")
+      .select("id, set_id, match_id, player_id, team_id, rating, review, created_at")
+      .eq("match_id", matchId)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      throw error;
+    }
+
+    return (data as FanRatingRow[]).map(mapFanRating);
+  }, []);
+}
+
+async function getFanRatingsByTeamIdBase(teamId: string) {
+  return fromSupabase(async () => {
+    const { data, error } = await createSupabaseServerClient()
+      .from("fan_ratings")
+      .select("id, set_id, match_id, player_id, team_id, rating, review, created_at")
+      .eq("team_id", teamId)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -2009,12 +2034,11 @@ export const getMatchById = cache(getMatchByIdBase);
 export const getSetsByMatchId = cache(getSetsByMatchIdBase);
 export const getSetDataCompletionBySetId = cache(getSetDataCompletionBySetIdBase);
 export const getSets = cache(getSetsBase);
-export const getMatchVods = cache(getMatchVodsBase);
+export const getMatchVodsByMatchId = cache(getMatchVodsByMatchIdBase);
 export const getSetById = cache(getSetByIdBase);
 export const getChampions = cache(getChampionsBase);
 export const getSetPicksBans = cache(getSetPicksBansBase);
 export const getPlayerStatLines = cache(getPlayerStatLinesBase);
-export const getLeagueAverageStats = cache(getLeagueAverageStatsBase);
 export const getPlayerStatLinesByTeam = cache(getPlayerStatLinesByTeamBase);
 export const getTeamNews = cache(getTeamNewsBase);
 export const getFanVideoFeed = cache(getFanVideoFeedBase);
@@ -2026,6 +2050,8 @@ export const getTeamFanCount = cache(getTeamFanCountBase);
 export const getAllTeamVideos = cache(getAllTeamVideosBase);
 export const getHubCommunityPosts = cache(getHubCommunityPostsBase);
 export const getFanRatings = cache(getFanRatingsBase);
+export const getFanRatingsByMatchId = cache(getFanRatingsByMatchIdBase);
+export const getFanRatingsByTeamId = cache(getFanRatingsByTeamIdBase);
 export const getPlayerPomCount = cache(getPlayerPomCountBase);
 export const getTimelineEvents = cache(getTimelineEventsBase);
 export const getTimelineFrames = cache(getTimelineFramesBase);

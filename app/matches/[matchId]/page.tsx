@@ -10,17 +10,17 @@ import { TeamLogo } from "@/components/ui/team-logo";
 import {
   getAllPlayers,
   getAllTeams,
-  getFanRatings,
+  getFanRatingsByMatchId,
   getMatchById,
   getMatches,
   getPlayerStatLines,
   getSets,
-  getMatchVods,
+  getMatchVodsByMatchId,
   getSetsByMatchId,
   getStages,
   getTournaments,
 } from "@/lib/data/lck";
-import type { FanRating, Player, PlayerStatLine, SetResult, Team } from "@/lib/types";
+import type { FanRating, Match, Player, PlayerStatLine, SetResult, Team } from "@/lib/types";
 import { isMatchLive, matchStatusLabel } from "@/lib/match-display";
 import {
   SET_RATING_OPEN_WINDOW_MS,
@@ -542,27 +542,21 @@ export default async function MatchDetailPage({
     teams,
     players,
     matchSets,
-    allSets,
     fanRatings,
     predictionMarket,
     tournaments,
     stages,
-    matches,
-    allMatchVods,
+    setVods,
   ] = await Promise.all([
     getAllTeams(),
     getAllPlayers(),
     getSetsByMatchId(match.id),
-    getSets(),
-    getFanRatings(),
+    getFanRatingsByMatchId(match.id),
     getPredictionMarketData(currentUser?.id),
     getTournaments(),
     getStages(),
-    getMatches(),
-    getMatchVods(),
+    getMatchVodsByMatchId(match.id),
   ]);
-
-  const setVods = allMatchVods.get(match.id) ?? [];
 
   const requestedSet = matchSets.find((set) => set.id === query.set);
   const defaultSet =
@@ -590,9 +584,7 @@ export default async function MatchDetailPage({
     : null;
   const hasScore = match.teamAScore !== null || match.teamBScore !== null;
   const displayStatusLabel = matchStatusLabel(isMatchLive(match) ? "live" : match.status);
-  const matchSetIds = new Set(matchSets.map((s) => s.id));
-  const matchFanRatings = fanRatings.filter((r) => matchSetIds.has(r.setId));
-  const topFanLeader = fanRatingLeader(matchFanRatings);
+  const topFanLeader = fanRatingLeader(fanRatings);
   const pomPlayer = players.find((p) => p.id === match.officialPomPlayerId);
   const topFanPlayer = topFanLeader ? players.find((p) => p.id === topFanLeader.playerId) : undefined;
 
@@ -610,13 +602,20 @@ export default async function MatchDetailPage({
       <HomeUpcomingPredictionCard match={match} teamA={teamA} teamB={teamB} tournament={tournament?.name} bets={predictionMarket.bets.filter((bet) => bet.matchId === match.id)} currentUserId={currentUser?.id} balance={predictionMarket.balance}/>
     </section>
   );
+  // "preview" 탭에서만 필요한 전체 매치/세트 히스토리는 그 탭일 때만 조회한다.
+  // "data" 탭이 기본인 완료된 경기가 대다수라 이 전체 스캔을 매 요청 무조건 돌리면 낭비다.
+  let previewMatches: Match[] = [];
+  let previewSets: SetResult[] = [];
+  if (activeTab === "preview") {
+    [previewMatches, previewSets] = await Promise.all([getMatches(), getSets()]);
+  }
   const aiPreview = activeTab === "preview"
     ? await getMatchAiPreview({
         match,
         tournament,
         teams,
-        matches,
-        sets: allSets,
+        matches: previewMatches,
+        sets: previewSets,
         tournaments,
       })
     : null;
@@ -673,8 +672,8 @@ export default async function MatchDetailPage({
         <MatchPreview
           match={match}
           teams={teams}
-          matches={matches}
-          sets={allSets}
+          matches={previewMatches}
+          sets={previewSets}
           poll={poll}
           aiPreview={aiPreview!}
         />

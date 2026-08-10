@@ -25,10 +25,12 @@ export default async function FanPostDetailPage({
   const team = (await getTeamByFanSiteHost(teamSlug)) ?? (await getTeamBySlug(teamSlug));
   if (!team) notFound();
 
-  const post = await getPostByIdAndIncrementView(postId);
+  const [post, comments] = await Promise.all([
+    getPostByIdAndIncrementView(postId),
+    getPostComments(postId),
+  ]);
   if (!post || post.siteScope !== "team" || post.teamId !== team.id) notFound();
 
-  const comments = await getPostComments(postId);
   const [reaction, commentReactions, user, posts, canSetNotice] = await Promise.all([
     getPostReactionState(postId),
     getCommentReactionStates(comments.map((c) => c.id)),

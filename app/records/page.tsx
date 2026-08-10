@@ -1,6 +1,6 @@
 import { RecordsView } from "@/components/records/records-view";
 import { PageHeader } from "@/components/ui/page-header";
-import { getAllTeams, getMatches, getPlayers, getPlayerStatLines, getSets, getTournaments } from "@/lib/data/lck";
+import { getRecordsBaseData, getRecordsStatLines } from "@/lib/data/records-cache";
 import { buildPlayerRecords, buildTeamRecords } from "@/lib/records";
 import type { PlayerPosition } from "@/lib/types";
 
@@ -10,7 +10,7 @@ const positions = new Set<PlayerPosition>(["TOP", "JGL", "MID", "BOT", "SUP"]);
 
 export default async function RecordsPage({ searchParams }: { searchParams: Promise<{ tab?: string; season?: string; tournament?: string; position?: string }> }) {
   const params = await searchParams;
-  const [tournaments, teams, players, matches, sets] = await Promise.all([getTournaments(), getAllTeams(), getPlayers(), getMatches(), getSets()]);
+  const { tournaments, teams, players, matches, sets } = await getRecordsBaseData();
   const seasons = [...new Set(tournaments.map((item) => item.season))].sort((a, b) => b - a);
   const requestedSeason = Number(params.season);
   const season = seasons.includes(requestedSeason) ? requestedSeason : (seasons[0] ?? new Date().getFullYear());
@@ -20,11 +20,7 @@ export default async function RecordsPage({ searchParams }: { searchParams: Prom
   const filteredMatches = matches.filter((match) => tournamentIds.has(match.tournamentId));
   const matchIds = new Set(filteredMatches.map((match) => match.id));
   const filteredSets = sets.filter((set) => matchIds.has(set.matchId));
-  const setIdChunks: string[][] = [];
-  for (let index = 0; index < filteredSets.length; index += 90) {
-    setIdChunks.push(filteredSets.slice(index, index + 90).map((set) => set.id));
-  }
-  const statLines = (await Promise.all(setIdChunks.map((setIds) => getPlayerStatLines(setIds)))).flat();
+  const statLines = await getRecordsStatLines(filteredSets.map((set) => set.id));
   const position = positions.has(params.position as PlayerPosition) ? params.position as PlayerPosition : undefined;
   const tab: RecordsTab = params.tab === "players" || params.tab === "teams" ? params.tab : "overview";
   const playerRecords = buildPlayerRecords({ players, teams, sets: filteredSets, statLines, position });

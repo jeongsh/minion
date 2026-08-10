@@ -4,6 +4,7 @@ import {
   getAllTeams,
   getChampions,
   getFanRatings,
+  getLeagueAverageStatsBase,
   getMatches,
   getPlayerStatLines,
   getSetPicksBans,
@@ -44,6 +45,16 @@ export const getPlayerPageSharedData = unstable_cache(
     return { teams, players, matches, sets, fanRatings, tournaments, champions, standings };
   },
   ["player-page-shared-data"],
+  { revalidate: 300, tags: [PLAYER_PUBLIC_DATA_TAG] },
+);
+
+/**
+ * 리그 전체 평균 지표(팀 레이더 차트 비교용). set_player_stats/sets 풀스캔이라
+ * 팀 페이지마다 매번 다시 돌리면 비싸다 — 선수 페이지와 같은 태그로 5분 캐시한다.
+ */
+export const getLeagueAverageStats = unstable_cache(
+  getLeagueAverageStatsBase,
+  ["league-average-stats"],
   { revalidate: 300, tags: [PLAYER_PUBLIC_DATA_TAG] },
 );
 

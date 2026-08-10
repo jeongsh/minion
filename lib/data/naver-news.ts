@@ -1,5 +1,6 @@
 import "server-only";
 
+import { unstable_cache } from "next/cache";
 import { newsArticles as sampleNewsArticles, type NewsArticle, type NewsTone } from "@/lib/data/news";
 import { isSafePublicNewsUrl, newsThumbnailProxyUrl } from "@/lib/data/news-thumbnail";
 
@@ -445,7 +446,7 @@ function pickHomeArticles(articles: NewsArticle[], limit: number) {
   return selectDiverseArticles(articles, limit, (article) => article);
 }
 
-export async function getHomeNewsFeed(limit = 4): Promise<NewsFeed> {
+async function getHomeNewsFeedUncached(limit = 4): Promise<NewsFeed> {
   const candidateDisplay = Math.max(limit * 2, 8);
 
   try {
@@ -470,3 +471,14 @@ export async function getHomeNewsFeed(limit = 4): Promise<NewsFeed> {
     return { ...fallback, articles: pickHomeArticles(fallback.articles, limit) };
   }
 }
+
+/**
+ * 홈 화면 뉴스 피드. Naver 검색 API 호출에 더해 노출될 기사마다 원문 og:image를
+ * 스크래핑하므로(attachThumbnails) 홈 페이지 요청 경로에 실시간 외부 네트워크 지연이
+ * 그대로 얹힌다. LCK 채널 영상(getLckChannelVideos)과 같은 이유로 짧게 캐시한다.
+ */
+export const getHomeNewsFeed = unstable_cache(
+  getHomeNewsFeedUncached,
+  ["home-news-feed"],
+  { revalidate: 180 },
+);

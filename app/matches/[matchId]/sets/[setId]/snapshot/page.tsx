@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import {
   getAllPlayers,
   getAllTeams,
-  getFanRatings,
+  getFanRatingsByMatchId,
   getMatchById,
   getPlayerStatLines,
   getSetById,
@@ -113,7 +113,7 @@ export default async function SetRatingSnapshotPage({
     getAllTeams(),
     getAllPlayers(),
     getPlayerStatLines(set.id),
-    getFanRatings(),
+    getFanRatingsByMatchId(match.id),
     getTournaments(),
   ]);
 

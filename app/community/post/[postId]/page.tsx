@@ -21,10 +21,12 @@ export default async function HubPostDetailPage({
   params: Promise<{ postId: string }>;
 }) {
   const { postId } = await params;
-  const post = await getPostByIdAndIncrementView(postId);
+  const [post, comments] = await Promise.all([
+    getPostByIdAndIncrementView(postId),
+    getPostComments(postId),
+  ]);
   if (!post || post.siteScope !== "hub") notFound();
 
-  const comments = await getPostComments(postId);
   const [reaction, commentReactions, user, posts, canSetNotice] = await Promise.all([
     getPostReactionState(postId),
     getCommentReactionStates(comments.map((c) => c.id)),
