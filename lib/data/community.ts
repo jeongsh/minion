@@ -8,6 +8,8 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { extractPlainText, extractThumbnail } from "@/lib/community/extract-thumbnail";
 import { AI_MODERATOR_NAME } from "@/lib/community/moderation-labels";
 import type { BoardScope } from "@/lib/community/boards";
+import { DEFAULT_TIER, type Tier } from "@/lib/rank/config";
+import { getPublicRankProfiles } from "@/lib/rank/public-profile";
 import type {
   BlindSource,
   CommunityCommentItem,
@@ -61,7 +63,12 @@ const COMMENT_COLUMNS =
 /** 목록 조회 상한(전체 로드 방지 가드). 피드는 클라이언트에서 검색/페이징한다. */
 const POST_LIST_LIMIT = 500;
 
-function mapPost(row: PostRow, authorName: string | null = null, authorImageUrl: string | null = null): CommunityPostDetail {
+function mapPost(
+  row: PostRow,
+  authorName: string | null = null,
+  authorImageUrl: string | null = null,
+  authorTier: Tier = DEFAULT_TIER,
+): CommunityPostDetail {
   return {
     id: row.id,
     boardType: row.board_type,
@@ -72,6 +79,7 @@ function mapPost(row: PostRow, authorName: string | null = null, authorImageUrl:
     authorId: row.author_id,
     authorName,
     authorImageUrl,
+    authorTier,
     likeCount: row.like_count,
     dislikeCount: row.dislike_count ?? 0,
     commentCount: row.comment_count,
@@ -92,22 +100,19 @@ async function mapPostsWithAuthors(rows: PostRow[]): Promise<CommunityPostDetail
   const authorIds = [...new Set(rows.flatMap((row) => (row.author_id ? [row.author_id] : [])))];
   if (authorIds.length === 0) return rows.map((row) => mapPost(row));
 
-  const { data, error } = await createSupabaseServerClient()
-    .from("profiles")
-    .select("id, nickname, profile_image_url")
-    .in("id", authorIds);
-  if (error) throw error;
-
-  const profiles = new Map(
-    ((data ?? []) as { id: string; nickname: string; profile_image_url: string | null }[]).map((profile) => [profile.id, profile]),
-  );
+  const profiles = await getPublicRankProfiles(authorIds);
   return rows.map((row) => {
     const profile = row.author_id ? profiles.get(row.author_id) : undefined;
-    return mapPost(row, profile?.nickname ?? null, profile?.profile_image_url ?? null);
+    return mapPost(row, profile?.nickname ?? null, profile?.profileImageUrl ?? null, profile?.tier);
   });
 }
 
-function mapComment(row: CommentRow, authorName: string | null = null, authorImageUrl: string | null = null): CommunityCommentItem {
+function mapComment(
+  row: CommentRow,
+  authorName: string | null = null,
+  authorImageUrl: string | null = null,
+  authorTier: Tier = DEFAULT_TIER,
+): CommunityCommentItem {
   return {
     id: row.id,
     postId: row.post_id,
@@ -115,6 +120,7 @@ function mapComment(row: CommentRow, authorName: string | null = null, authorIma
     authorId: row.author_id,
     authorName,
     authorImageUrl,
+    authorTier,
     // 삭제된 댓글 본문은 클라이언트로 내려보내지 않는다(답글 유지를 위한 자리표시만 필요).
     content: row.deleted_at ? "" : row.content,
     likeCount: row.like_count,
@@ -130,19 +136,10 @@ async function mapCommentsWithAuthors(rows: CommentRow[]): Promise<CommunityComm
   const authorIds = [...new Set(rows.flatMap((row) => (row.author_id ? [row.author_id] : [])))];
   if (authorIds.length === 0) return rows.map((row) => mapComment(row));
 
-  const { data, error } = await createSupabaseServerClient()
-    .from("profiles")
-    .select("id, nickname, profile_image_url")
-    .in("id", authorIds);
-  if (error) throw error;
-
-  const profiles = new Map(
-    ((data ?? []) as { id: string; nickname: string; profile_image_url: string | null }[])
-      .map((profile) => [profile.id, profile]),
-  );
+  const profiles = await getPublicRankProfiles(authorIds);
   return rows.map((row) => {
     const profile = row.author_id ? profiles.get(row.author_id) : undefined;
-    return mapComment(row, profile?.nickname ?? null, profile?.profile_image_url ?? null);
+    return mapComment(row, profile?.nickname ?? null, profile?.profileImageUrl ?? null, profile?.tier);
   });
 }
 

@@ -8,6 +8,7 @@ import { SetVodPlayer } from "@/components/domain/set-vod-player";
 import { SegmentedControl, UnderlineNav, type TabItem } from "@/components/ui/tabs";
 import { AdSlot } from "@/components/ui/ad-slot";
 import { TeamLogo } from "@/components/ui/team-logo";
+import { RankAvatar } from "@/components/rank/rank-avatar";
 import {
   getAllPlayers,
   getAllTeams,
@@ -544,21 +545,14 @@ function MatchRatingPanel({
                   key={rating.id}
                   className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface-muted)] p-3 sm:grid-cols-[2.5rem_minmax(0,1fr)_auto]"
                 >
-                  {rating.authorProfileImageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={rating.authorProfileImageUrl}
-                      alt=""
-                      className="hidden h-10 w-10 shrink-0 rounded-full object-cover object-top ring-2 ring-[var(--ui-surface)] sm:block"
-                    />
-                  ) : (
-                    <span
-                      className="hidden h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--ui-surface)] text-xs font-black text-[var(--ui-muted)] ring-2 ring-[var(--ui-surface)] sm:grid"
-                      aria-hidden="true"
-                    >
-                      {playerInitial(authorName)}
-                    </span>
-                  )}
+                  <RankAvatar
+                    tier={rating.authorTier}
+                    src={rating.authorProfileImageUrl}
+                    alt={authorName}
+                    fallback={playerInitial(authorName)}
+                    size="md"
+                    className="hidden sm:inline-grid"
+                  />
                   <div className="flex min-w-0 items-center gap-2">
                     <div className="shrink-0">
                       <p className="text-sm font-black leading-tight text-[var(--ui-ink)]">{player?.name ?? "-"}</p>
@@ -685,7 +679,7 @@ export default async function MatchDetailPage({
     : null;
   const embedUrl = youtubeEmbedUrl(match.vodUrl);
   return (
-    <main className="layout-wide match-detail-page flex flex-col gap-5 bg-[var(--ui-surface)] pb-12 pt-5 text-[var(--ui-text)]">
+    <main className="layout-wide match-detail-page flex flex-col gap-5 pb-12 pt-5 text-[var(--ui-text)]">
       {/*
         페이지 제목 역할까지 이 카드가 겸한다. 별도 PageHeader를 두면 팀명이 카드와 그대로
         겹치고, 남는 건 400 weight 한 줄뿐이라 아래 스코어에 눌려 헤더가 없느니만 못했다.

@@ -10,6 +10,7 @@ import { PostOwnerActions } from "@/components/community/post-owner-actions";
 import { ReactionButtons } from "@/components/community/reaction-buttons";
 import { ReportButton } from "@/components/community/report-button";
 import { SurfacePanel } from "@/components/ui/surface-panel";
+import { RankAvatar } from "@/components/rank/rank-avatar";
 import { setPostNoticeInlineAction } from "@/lib/community/admin-actions";
 import type { BoardScope } from "@/lib/community/boards";
 import { blindDescription, blindLabel } from "@/lib/community/moderation-labels";
@@ -68,12 +69,13 @@ export function PostView({
           </h1>
 
           <div className="mt-2 flex items-center gap-3">
-            <span className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full bg-[var(--ui-surface-muted)] text-sm font-bold text-[var(--ui-muted)] sm:h-10 sm:w-10">
-              {post.authorImageUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={post.authorImageUrl} alt="" className="h-full w-full object-cover" />
-              ) : initial}
-            </span>
+            <RankAvatar
+              tier={post.authorTier}
+              src={post.authorImageUrl}
+              alt={post.authorName ?? "작성자"}
+              fallback={initial}
+              size="md"
+            />
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-[var(--ui-ink)]">{post.authorName ?? "작성자"}</p>
               <div className="mt-0.5 flex items-center gap-2 text-[13px] text-[var(--ui-muted)]">

@@ -7,6 +7,7 @@ import { CommentForm } from "@/components/community/comment-form";
 import { formatRelativeOrDate } from "@/components/community/format";
 import { ReactionButtons } from "@/components/community/reaction-buttons";
 import { ReportButton } from "@/components/community/report-button";
+import { RankAvatar } from "@/components/rank/rank-avatar";
 import type { BoardScope } from "@/lib/community/boards";
 import { blindLabel } from "@/lib/community/moderation-labels";
 import type { CommunityCommentItem, ReactionState } from "@/lib/community/types";
@@ -33,12 +34,13 @@ export function CommentList({ comments, commentReactions, scope, teamSlug }: { c
   const item = (comment: CommunityCommentItem, reply = false) => (
     <div key={comment.id} className={`min-w-0 ${reply ? "relative ml-3 border-t border-[var(--ui-border)] py-3 pl-3 before:absolute before:left-0 before:top-4 before:h-2.5 before:w-2.5 before:border-b before:border-l before:border-[var(--ui-border)] sm:ml-8 sm:pl-4" : "py-3.5"}`}>
       <div className="flex min-w-0 gap-2.5">
-        <span className="grid h-8 w-8 shrink-0 place-items-center overflow-hidden rounded-full bg-[var(--ui-surface-muted)] text-[13px] font-bold text-[var(--ui-muted)]">
-          {comment.authorImageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={comment.authorImageUrl} alt="" className="h-full w-full object-cover" />
-          ) : (comment.authorName ?? "글").charAt(0)}
-        </span>
+        <RankAvatar
+          tier={comment.authorTier}
+          src={comment.authorImageUrl}
+          alt={comment.authorName ?? "댓글 작성자"}
+          fallback={(comment.authorName ?? "글").charAt(0)}
+          size="sm"
+        />
         <div className="min-w-0 flex-1">
           <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
             <div className="flex min-w-0 items-center gap-1.5">

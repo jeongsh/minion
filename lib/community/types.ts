@@ -3,6 +3,7 @@
 // 작성자/명예/리폿/댓글 등 쓰기·상세 흐름에 필요한 필드를 포함한다.
 
 import type { BoardScope } from "@/lib/community/boards";
+import type { Tier } from "@/lib/rank/config";
 
 /** 리액션 종류. honor=명예(좋아요), dislike=싫어요(디스). */
 export type ReactionKind = "honor" | "dislike";
@@ -25,6 +26,8 @@ export type CommunityPostDetail = {
   authorName: string | null;
   /** 공개 프로필 이미지. 없으면 UI에서 서비스 기본 아바타를 사용한다. */
   authorImageUrl: string | null;
+  /** 작성자의 현재 유효 티어. */
+  authorTier: Tier;
   likeCount: number;
   dislikeCount: number;
   commentCount: number;
@@ -54,6 +57,8 @@ export type CommunityCommentItem = {
   authorId: string | null;
   authorName: string | null;
   authorImageUrl: string | null;
+  /** 작성자의 현재 유효 티어. */
+  authorTier: Tier;
   content: string;
   likeCount: number;
   dislikeCount: number;

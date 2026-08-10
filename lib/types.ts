@@ -1,3 +1,5 @@
+import type { Tier } from "@/lib/rank/config";
+
 export type Team = {
   id: string;
   slug: string;
@@ -336,6 +338,7 @@ export type FanRating = {
   authorId: string | null;
   authorNickname: string | null;
   authorProfileImageUrl: string | null;
+  authorTier: Tier;
 };
 
 export type FanMatchPrediction = {

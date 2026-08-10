@@ -30,6 +30,8 @@ import type {
   Tournament,
 } from "@/lib/types";
 import { normalizeSetStatus } from "@/lib/set-status";
+import { DEFAULT_TIER, type Tier } from "@/lib/rank/config";
+import { getPublicRankProfiles } from "@/lib/rank/public-profile";
 import { normalizeYoutubeVideo } from "@/lib/youtube";
 
 type TeamRow = {
@@ -650,6 +652,7 @@ function mapFanRating(
   row: FanRatingRow,
   authorNickname: string | null = null,
   authorProfileImageUrl: string | null = null,
+  authorTier: Tier = DEFAULT_TIER,
 ): FanRating {
   return {
     id: row.id,
@@ -663,6 +666,7 @@ function mapFanRating(
     authorId: row.author_id,
     authorNickname,
     authorProfileImageUrl,
+    authorTier,
   };
 }
 
@@ -670,21 +674,10 @@ async function mapFanRatingsWithAuthors(rows: FanRatingRow[]): Promise<FanRating
   const authorIds = [...new Set(rows.flatMap((row) => (row.author_id ? [row.author_id] : [])))];
   if (authorIds.length === 0) return rows.map((row) => mapFanRating(row));
 
-  const { data, error } = await createSupabaseServerClient()
-    .from("profiles")
-    .select("id, nickname, profile_image_url")
-    .in("id", authorIds);
-  if (error) throw error;
-
-  const profiles = new Map(
-    ((data ?? []) as { id: string; nickname: string; profile_image_url: string | null }[]).map((profile) => [
-      profile.id,
-      profile,
-    ]),
-  );
+  const profiles = await getPublicRankProfiles(authorIds);
   return rows.map((row) => {
     const profile = row.author_id ? profiles.get(row.author_id) : undefined;
-    return mapFanRating(row, profile?.nickname ?? null, profile?.profile_image_url ?? null);
+    return mapFanRating(row, profile?.nickname ?? null, profile?.profileImageUrl ?? null, profile?.tier);
   });
 }
 
