@@ -84,7 +84,7 @@ export function PostList({
             </div>
 
             <div className="mt-0.5 flex min-w-0 items-center gap-2.5 overflow-hidden whitespace-nowrap text-[13px] font-normal text-[var(--ui-muted)]">
-              <AuthorMenu authorId={post.authorId} authorName={post.authorName} authorImageUrl={post.authorImageUrl} authorTier={post.authorTier} viewerId={viewerId} variant="feed" evidencePostId={post.id} />
+              <AuthorMenu authorId={post.authorId} authorName={post.authorName} authorImageUrl={post.authorImageUrl} authorTier={post.authorTier} guestKey={post.guestKey} viewerId={viewerId} variant="feed" evidencePostId={post.id} scope={scope} teamSlug={teamSlug} />
               <span className="shrink-0">{formatRelativeOrDate(post.createdAt)}</span>
               <span className="hidden shrink-0 items-center gap-1 sm:inline-flex"><Eye size={13} strokeWidth={1.8} />{post.viewCount}</span>
               <span className="inline-flex shrink-0 items-center gap-1"><MessageCircle size={13} strokeWidth={1.8} />{post.commentCount}</span>

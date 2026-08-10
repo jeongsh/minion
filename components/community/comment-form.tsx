@@ -5,6 +5,7 @@ import { useRef, useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
+import { GuestIdentityFields } from "@/components/community/guest-identity-fields";
 import { createCommentAction } from "@/lib/community/actions";
 import type { BoardScope } from "@/lib/community/boards";
 
@@ -17,12 +18,14 @@ export function CommentForm({
   teamSlug,
   parentId,
   onSubmitted,
+  isGuest = false,
 }: {
   postId: string;
   scope: BoardScope;
   teamSlug?: string;
   parentId?: string;
   onSubmitted?: () => void;
+  isGuest?: boolean;
 }) {
   const { showToast } = useToast();
   const [content, setContent] = useState("");
@@ -63,7 +66,7 @@ export function CommentForm({
         setMessage(null);
         showToast({
           title: parentId ? "답글 등록 완료" : "댓글 등록 완료",
-          description: "+20 LP가 적립됐어요.",
+          description: isGuest ? "비회원 댓글이 등록됐어요." : "+20 LP가 적립됐어요.",
           tone: "success",
         });
         onSubmitted?.();
@@ -82,7 +85,12 @@ export function CommentForm({
       >
         {parentId ? "답글 작성" : "댓글 작성"}
       </label>
-      <div className="rounded-[var(--ui-card-radius)] border border-[var(--ui-border)] bg-[var(--ui-surface)] p-4 focus-within:border-[var(--ui-muted)]">
+      <div className="rounded-[var(--ui-card-radius)] border border-[var(--ui-border)] bg-[var(--ui-surface)] p-4">
+        {isGuest ? (
+          <div className="mb-4">
+            <GuestIdentityFields compact />
+          </div>
+        ) : null}
         <textarea
           ref={textareaRef}
           id={`comment-content-${parentId ?? "root"}`}

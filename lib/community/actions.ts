@@ -1,9 +1,9 @@
 "use server";
 
 // 게시판 서버 액션.
-// - 모든 쓰기는 비로그인 시 차단(로그인 유도).
-// - author_id/user_id 는 항상 getCurrentUser().id 로 채운다.
-// - 행동 발생 시 recordLpEvent 를 호출한다.
+// - 글/댓글은 비회원도 닉네임·비밀번호·서버 검증 IP로 작성할 수 있다.
+// - 리액션/신고 등 계정 귀속 행동은 로그인을 유지한다.
+// - LP는 로그인 작성자에게만 반영한다.
 
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
@@ -19,6 +19,11 @@ import { extractPlainText } from "@/lib/community/extract-thumbnail";
 import { AI_MODERATOR_NAME } from "@/lib/community/moderation-labels";
 import { sendDiscordCommunityModerationAlert } from "@/lib/notify/discord";
 import { isCommunityUserSanctioned } from "@/lib/data/community-users";
+import { guestRateLimitError, isCommunityGuestSanctioned } from "@/lib/data/community-guests";
+import {
+  getExistingGuestKey,
+  getGuestIdentity,
+} from "@/lib/community/guest-identity";
 import type {
   ActionResult,
   ReactionKind,
@@ -30,6 +35,7 @@ import {
   blindTargetIfReported,
   createComment,
   createPost,
+  deleteGuestComment,
   deletePost,
   createReport,
   getCommentById,
@@ -39,6 +45,7 @@ import {
   promotePostIfHot,
   setReaction,
   updatePost,
+  updateGuestComment,
 } from "@/lib/data/community";
 
 const LOGIN_REQUIRED: ActionResult = {
@@ -46,6 +53,20 @@ const LOGIN_REQUIRED: ActionResult = {
   error: "로그인이 필요합니다.",
   requiresLogin: true,
 };
+
+export async function getGuestNicknameAction(): Promise<
+  { ok: true; nickname: string } | { ok: false; error: string }
+> {
+  try {
+    const identity = await getGuestIdentity();
+    return { ok: true, nickname: identity.nickname };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "비회원 닉네임을 발급하지 못했습니다.",
+    };
+  }
+}
 
 async function communitySanctionError(
   userId: string,
@@ -187,9 +208,10 @@ export async function createPostAction(input: {
   isNotice?: boolean;
 }): Promise<ActionResult> {
   const user = await getCurrentUser();
-  if (!user) return LOGIN_REQUIRED;
-  const sanction = await communitySanctionError(user.id);
-  if (sanction) return sanction;
+  if (user) {
+    const sanction = await communitySanctionError(user.id);
+    if (sanction) return sanction;
+  }
 
   const board = getBoard(input.scope, input.boardType);
   if (!board) return { ok: false, error: "존재하지 않는 게시판입니다." };
@@ -202,17 +224,33 @@ export async function createPostAction(input: {
   const profanity = profanityError({ title, editorContent: content });
   if (profanity) return { ok: false, error: profanity };
 
+  let guest: { nickname: string; key: string; ipKey: string; ipLabel: string } | undefined;
+  if (!user) {
+    try {
+      const identity = await getGuestIdentity();
+      if (await isCommunityGuestSanctioned(identity.key, identity.ipKey)) {
+        return { ok: false, error: "이 비회원 ID 또는 접속 환경은 커뮤니티 이용이 제한되었습니다." };
+      }
+      const rateError = await guestRateLimitError(identity.ipKey, "post");
+      if (rateError) return { ok: false, error: rateError };
+      guest = identity;
+    } catch (error) {
+      return { ok: false, error: error instanceof Error ? error.message : "비회원 정보를 확인하지 못했습니다." };
+    }
+  }
+
   const { id } = await createPost({
     scope: input.scope,
     boardType: input.boardType,
     teamId: input.teamId,
     title,
     content,
-    authorId: user.id,
-    isNotice: input.isNotice && (await isCurrentUserAdmin()),
+    authorId: user?.id ?? null,
+    guest,
+    isNotice: Boolean(user && input.isNotice && (await isCurrentUserAdmin())),
   });
 
-  await recordLpEvent({ userId: user.id, reason: "post_created", postId: id });
+  if (user) await recordLpEvent({ userId: user.id, reason: "post_created", postId: id });
 
   scheduleAiModeration({
     postId: id,
@@ -236,13 +274,25 @@ export async function updatePostAction(input: {
   content: string;
 }): Promise<ActionResult> {
   const user = await getCurrentUser();
-  if (!user) return LOGIN_REQUIRED;
-  const sanction = await communitySanctionError(user.id);
-  if (sanction) return sanction;
-
   const post = await getPostById(input.postId);
-  if (!post || post.authorId !== user.id || post.siteScope !== input.scope) {
+  const isRegisteredOwner = Boolean(user && post?.authorId === user.id);
+  const isGuestOwner = Boolean(
+    post?.guestKey
+    && !post.authorId
+    && post.guestKey === await getExistingGuestKey(),
+  );
+  if (!post || (!isRegisteredOwner && !isGuestOwner) || post.siteScope !== input.scope) {
     return { ok: false, error: "게시글을 수정할 권한이 없습니다." };
+  }
+  if (user && isRegisteredOwner) {
+    const sanction = await communitySanctionError(user.id);
+    if (sanction) return sanction;
+  }
+  if (isGuestOwner) {
+    const identity = await getGuestIdentity();
+    if (await isCommunityGuestSanctioned(identity.key, identity.ipKey)) {
+      return { ok: false, error: "이 비회원 ID 또는 접속 환경은 커뮤니티 이용이 제한되었습니다." };
+    }
   }
   if (!getBoard(input.scope, input.boardType)) return { ok: false, error: "존재하지 않는 게시판입니다." };
 
@@ -298,9 +348,10 @@ export async function createCommentAction(input: {
   teamSlug?: string;
 }): Promise<ActionResult> {
   const user = await getCurrentUser();
-  if (!user) return LOGIN_REQUIRED;
-  const sanction = await communitySanctionError(user.id);
-  if (sanction) return sanction;
+  if (user) {
+    const sanction = await communitySanctionError(user.id);
+    if (sanction) return sanction;
+  }
 
   const content = input.content.trim();
   if (!content) return { ok: false, error: "댓글 내용을 입력하세요." };
@@ -316,14 +367,30 @@ export async function createCommentAction(input: {
     }
   }
 
+  let guest: { nickname: string; key: string; ipKey: string; ipLabel: string } | undefined;
+  if (!user) {
+    try {
+      const identity = await getGuestIdentity();
+      if (await isCommunityGuestSanctioned(identity.key, identity.ipKey)) {
+        return { ok: false, error: "이 비회원 ID 또는 접속 환경은 커뮤니티 이용이 제한되었습니다." };
+      }
+      const rateError = await guestRateLimitError(identity.ipKey, "comment");
+      if (rateError) return { ok: false, error: rateError };
+      guest = identity;
+    } catch (error) {
+      return { ok: false, error: error instanceof Error ? error.message : "비회원 정보를 확인하지 못했습니다." };
+    }
+  }
+
   const { id } = await createComment({
     postId: input.postId,
     content,
-    authorId: user.id,
+    authorId: user?.id ?? null,
+    guest,
     parentId: input.parentId ?? null,
   });
 
-  await recordLpEvent({ userId: user.id, reason: "comment_created", commentId: id });
+  if (user) await recordLpEvent({ userId: user.id, reason: "comment_created", commentId: id });
 
   scheduleAiModeration({
     commentId: id,
@@ -335,6 +402,85 @@ export async function createCommentAction(input: {
 
   revalidatePath(postPath(input.scope, input.teamSlug, input.postId));
   return { ok: true, message: "댓글 톡 붙여뒀어요." };
+}
+
+export async function deleteGuestPostAction(input: {
+  postId: string;
+  scope: BoardScope;
+  teamSlug?: string;
+}): Promise<ActionResult> {
+  const post = await getPostById(input.postId);
+  if (!post?.guestKey || post.siteScope !== input.scope) {
+    return { ok: false, error: "비회원 게시글을 찾을 수 없습니다." };
+  }
+  try {
+    if ((await getGuestIdentity()).key !== post.guestKey) {
+      return { ok: false, error: "이 글을 작성한 브라우저에서만 삭제할 수 있습니다." };
+    }
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "비회원 ID를 확인하지 못했습니다." };
+  }
+  await deletePost(input.postId);
+  revalidatePath(communityIndexPath(input.scope, input.teamSlug));
+  return { ok: true, message: "게시글을 삭제했습니다." };
+}
+
+export async function deleteGuestCommentAction(input: {
+  commentId: string;
+  postId: string;
+  scope: BoardScope;
+  teamSlug?: string;
+}): Promise<ActionResult> {
+  const comment = await getCommentById(input.commentId);
+  if (!comment?.guestKey || comment.postId !== input.postId) {
+    return { ok: false, error: "비회원 댓글을 찾을 수 없습니다." };
+  }
+  try {
+    if ((await getGuestIdentity()).key !== comment.guestKey) {
+      return { ok: false, error: "이 댓글을 작성한 브라우저에서만 삭제할 수 있습니다." };
+    }
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "비회원 ID를 확인하지 못했습니다." };
+  }
+  await deleteGuestComment(input.commentId);
+  revalidatePath(postPath(input.scope, input.teamSlug, input.postId));
+  return { ok: true, message: "댓글을 삭제했습니다." };
+}
+
+export async function updateGuestCommentAction(input: {
+  commentId: string;
+  postId: string;
+  content: string;
+  scope: BoardScope;
+  teamSlug?: string;
+}): Promise<ActionResult> {
+  const content = input.content.trim();
+  if (!content) return { ok: false, error: "댓글 내용을 입력해주세요." };
+  if (content.length > 5000) return { ok: false, error: "댓글은 5,000자까지 입력할 수 있습니다." };
+  const profanity = profanityError({ plainText: content });
+  if (profanity) return { ok: false, error: profanity };
+
+  const comment = await getCommentById(input.commentId);
+  const guestKey = await getExistingGuestKey();
+  if (!comment?.guestKey || comment.postId !== input.postId || comment.guestKey !== guestKey) {
+    return { ok: false, error: "이 댓글을 수정할 권한이 없습니다." };
+  }
+
+  const identity = await getGuestIdentity();
+  if (await isCommunityGuestSanctioned(identity.key, identity.ipKey)) {
+    return { ok: false, error: "이 비회원 ID 또는 접속 환경은 커뮤니티 이용이 제한되었습니다." };
+  }
+
+  await updateGuestComment(input.commentId, content);
+  scheduleAiModeration({
+    commentId: input.commentId,
+    pagePostId: input.postId,
+    scope: input.scope,
+    teamSlug: input.teamSlug,
+    text: content,
+  });
+  revalidatePath(postPath(input.scope, input.teamSlug, input.postId));
+  return { ok: true, message: "댓글을 수정했습니다." };
 }
 
 /**

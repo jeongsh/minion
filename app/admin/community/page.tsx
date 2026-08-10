@@ -6,6 +6,7 @@ import { boardLabel } from "@/lib/community/boards";
 import { AI_MODERATOR_NAME } from "@/lib/community/moderation-labels";
 import {
   listActiveCommunitySanctions,
+  listActiveCommunityGuestSanctions,
   listCommunitySettings,
   listModeratedPosts,
   listPendingReportGroups,
@@ -22,6 +23,7 @@ import {
   setPostDeletedAction,
   softDeleteCommentAction,
   updateCommunitySettingsAction,
+  sanctionCommunityGuestAction,
 } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -45,10 +47,11 @@ function postHref(post: AdminPostSummary) {
 }
 
 export default async function AdminCommunityPage() {
-  const [reportGroups, userReports, sanctions, moderatedPosts, settings] = await Promise.all([
+  const [reportGroups, userReports, sanctions, guestSanctions, moderatedPosts, settings] = await Promise.all([
     listPendingReportGroups(),
     listPendingUserReports(),
     listActiveCommunitySanctions(),
+    listActiveCommunityGuestSanctions(),
     listModeratedPosts(),
     listCommunitySettings(),
   ]);
@@ -131,7 +134,7 @@ export default async function AdminCommunityPage() {
         )}
       </section>
 
-      <UserModerationPanel reports={userReports} sanctions={sanctions} />
+      <UserModerationPanel reports={userReports} sanctions={sanctions} guestSanctions={guestSanctions} />
 
       {/* ── 블라인드/삭제 글 ─────────────────────────────────────── */}
       <section className="flex flex-col gap-3">
@@ -183,6 +186,8 @@ function ReportGroupCard({ group }: { group: AdminReportGroup }) {
   const href = post ? postHref(post) : null;
   const title = post ? post.title : comment?.excerpt || "(내용 없음)";
   const author = post?.authorName ?? comment?.authorName ?? "알 수 없음";
+  const guestKey = post?.guestKey ?? comment?.guestKey ?? null;
+  const guestIpLabel = post?.guestIpLabel ?? comment?.guestIpLabel ?? null;
   const blinded = Boolean(post?.blindedAt ?? comment?.blindedAt);
 
   return (
@@ -207,7 +212,7 @@ function ReportGroupCard({ group }: { group: AdminReportGroup }) {
         )}
         {post?.excerpt ? <p className="mt-1 line-clamp-2 text-sm text-neutral-500">{post.excerpt}</p> : null}
         <p className="mt-1 text-[13px] text-neutral-500">
-          작성자 {author} · {formatDate((post ?? comment!).createdAt)}
+          작성자 {author}{guestIpLabel ? ` (${guestIpLabel})` : ""} · {formatDate((post ?? comment!).createdAt)}
         </p>
       </div>
 
@@ -224,13 +229,21 @@ function ReportGroupCard({ group }: { group: AdminReportGroup }) {
         <form action={confirmReportsAction}>
           {post ? <input type="hidden" name="post_id" value={post.id} /> : null}
           {comment ? <input type="hidden" name="comment_id" value={comment.id} /> : null}
-          <SmallButton tone="danger">제재 확정 (블라인드 + LP 차감)</SmallButton>
+          <SmallButton tone="danger">{guestKey ? "제재 확정 (블라인드)" : "제재 확정 (블라인드 + LP 차감)"}</SmallButton>
         </form>
         <form action={dismissReportsAction}>
           {post ? <input type="hidden" name="post_id" value={post.id} /> : null}
           {comment ? <input type="hidden" name="comment_id" value={comment.id} /> : null}
           <SmallButton>기각 (블라인드 해제)</SmallButton>
         </form>
+        {guestKey ? (
+          <form action={sanctionCommunityGuestAction}>
+            {post ? <input type="hidden" name="post_id" value={post.id} /> : null}
+            {comment ? <input type="hidden" name="comment_id" value={comment.id} /> : null}
+            <input type="hidden" name="reason" value={group.reports[0]?.reason ?? "관리자 비회원 영구 제재"} />
+            <SmallButton tone="danger">비회원·IP 영구 제한</SmallButton>
+          </form>
+        ) : null}
         {comment ? (
           <>
             <form action={setCommentBlindedAction}>

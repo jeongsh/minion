@@ -17,6 +17,8 @@ export type AdminPostSummary = {
   excerpt: string;
   authorId: string | null;
   authorName: string | null;
+  guestKey: string | null;
+  guestIpLabel: string | null;
   likeCount: number;
   dislikeCount: number;
   commentCount: number;
@@ -34,6 +36,8 @@ export type AdminCommentSummary = {
   excerpt: string;
   authorId: string | null;
   authorName: string | null;
+  guestKey: string | null;
+  guestIpLabel: string | null;
   createdAt: string;
   blindedAt: string | null;
   deletedAt: string | null;
@@ -62,6 +66,9 @@ type PostRow = {
   title: string;
   content: string;
   author_id: string | null;
+  guest_nickname: string | null;
+  guest_key: string | null;
+  guest_ip_label: string | null;
   like_count: number;
   dislike_count: number | null;
   comment_count: number;
@@ -78,17 +85,20 @@ type CommentRow = {
   post_id: string;
   content: string;
   author_id: string | null;
+  guest_nickname: string | null;
+  guest_key: string | null;
+  guest_ip_label: string | null;
   created_at: string;
   blinded_at: string | null;
   deleted_at: string | null;
 };
 
 const POST_COLUMNS =
-  "id, site_scope, board_type, title, content, author_id, like_count, dislike_count, comment_count, report_count, created_at, hot_at, is_notice, blinded_at, deleted_at";
+  "id, site_scope, board_type, title, content, author_id, guest_nickname, guest_key, guest_ip_label, like_count, dislike_count, comment_count, report_count, created_at, hot_at, is_notice, blinded_at, deleted_at";
 
-const COMMENT_COLUMNS = "id, post_id, content, author_id, created_at, blinded_at, deleted_at";
+const COMMENT_COLUMNS = "id, post_id, content, author_id, guest_nickname, guest_key, guest_ip_label, created_at, blinded_at, deleted_at";
 
-function mapPost(row: PostRow, nicknames: Map<string, string>): AdminPostSummary {
+function mapPost(row: PostRow, nicknames: Map<string, string>, privateIpLabel: string | null = null): AdminPostSummary {
   return {
     id: row.id,
     siteScope: row.site_scope,
@@ -96,7 +106,9 @@ function mapPost(row: PostRow, nicknames: Map<string, string>): AdminPostSummary
     title: row.title,
     excerpt: extractPlainText(row.content),
     authorId: row.author_id,
-    authorName: row.author_id ? nicknames.get(row.author_id) ?? null : null,
+    authorName: row.author_id ? nicknames.get(row.author_id) ?? null : row.guest_nickname,
+    guestKey: row.guest_key,
+    guestIpLabel: privateIpLabel ?? row.guest_ip_label,
     likeCount: row.like_count,
     dislikeCount: row.dislike_count ?? 0,
     commentCount: row.comment_count,
@@ -109,14 +121,16 @@ function mapPost(row: PostRow, nicknames: Map<string, string>): AdminPostSummary
   };
 }
 
-function mapComment(row: CommentRow, nicknames: Map<string, string>): AdminCommentSummary {
+function mapComment(row: CommentRow, nicknames: Map<string, string>, privateIpLabel: string | null = null): AdminCommentSummary {
   return {
     id: row.id,
     postId: row.post_id,
     // 댓글은 에디터 JSON 이 아닌 평문으로 저장되므로 그대로 잘라 쓴다.
     excerpt: row.content.replace(/\s+/g, " ").trim().slice(0, 80),
     authorId: row.author_id,
-    authorName: row.author_id ? nicknames.get(row.author_id) ?? null : null,
+    authorName: row.author_id ? nicknames.get(row.author_id) ?? null : row.guest_nickname,
+    guestKey: row.guest_key,
+    guestIpLabel: privateIpLabel ?? row.guest_ip_label,
     createdAt: row.created_at,
     blindedAt: row.blinded_at,
     deletedAt: row.deleted_at,
@@ -179,14 +193,26 @@ export async function listPendingReportGroups(): Promise<AdminReportGroup[]> {
   const postRows = (postsRes.data ?? []) as PostRow[];
   const commentRows = (commentsRes.data ?? []) as CommentRow[];
 
-  const nicknames = await fetchNicknames([
+  const [nicknames, postCredentialsRes, commentCredentialsRes] = await Promise.all([
+    fetchNicknames([
     ...reports.flatMap((r) => (r.reporter_id ? [r.reporter_id] : [])),
     ...postRows.flatMap((p) => (p.author_id ? [p.author_id] : [])),
     ...commentRows.flatMap((c) => (c.author_id ? [c.author_id] : [])),
+    ]),
+    postIds.length > 0
+      ? supabase.from("community_guest_post_credentials").select("post_id, ip_label").in("post_id", postIds)
+      : Promise.resolve({ data: [], error: null }),
+    commentIds.length > 0
+      ? supabase.from("community_guest_comment_credentials").select("comment_id, ip_label").in("comment_id", commentIds)
+      : Promise.resolve({ data: [], error: null }),
   ]);
+  if (postCredentialsRes.error) throw postCredentialsRes.error;
+  if (commentCredentialsRes.error) throw commentCredentialsRes.error;
+  const postIpLabels = new Map(((postCredentialsRes.data ?? []) as { post_id: string; ip_label: string | null }[]).map((row) => [row.post_id, row.ip_label]));
+  const commentIpLabels = new Map(((commentCredentialsRes.data ?? []) as { comment_id: string; ip_label: string | null }[]).map((row) => [row.comment_id, row.ip_label]));
 
-  const postsById = new Map(postRows.map((row) => [row.id, mapPost(row, nicknames)]));
-  const commentsById = new Map(commentRows.map((row) => [row.id, mapComment(row, nicknames)]));
+  const postsById = new Map(postRows.map((row) => [row.id, mapPost(row, nicknames, postIpLabels.get(row.id) ?? null)]));
+  const commentsById = new Map(commentRows.map((row) => [row.id, mapComment(row, nicknames, commentIpLabels.get(row.id) ?? null)]));
 
   const groups = new Map<string, AdminReportGroup>();
   for (const report of reports) {
@@ -417,6 +443,15 @@ export type AdminCommunitySanction = {
   bannedAt: string;
 };
 
+export type AdminCommunityGuestSanction = {
+  id: string;
+  guestKey: string | null;
+  nickname: string | null;
+  ipLabel: string | null;
+  reason: string;
+  bannedAt: string;
+};
+
 export async function listPendingUserReports(): Promise<AdminUserReport[]> {
   const { data, error } = await createSupabaseAdminClient()
     .from("community_user_reports")
@@ -514,6 +549,78 @@ export async function dismissCommunityUserReport(reportId: string, adminId: stri
 export async function liftCommunityUserSanction(sanctionId: string, adminId: string): Promise<void> {
   const { error } = await createSupabaseAdminClient()
     .from("community_user_sanctions")
+    .update({ lifted_at: new Date().toISOString(), lifted_by: adminId })
+    .eq("id", sanctionId)
+    .is("lifted_at", null);
+  if (error) throw error;
+}
+
+export async function listActiveCommunityGuestSanctions(): Promise<AdminCommunityGuestSanction[]> {
+  const { data, error } = await createSupabaseAdminClient()
+    .from("community_guest_sanctions")
+    .select("id, guest_key, guest_nickname, guest_ip_label, reason, banned_at")
+    .is("lifted_at", null)
+    .order("banned_at", { ascending: false })
+    .limit(200);
+  if (error) throw error;
+  return ((data ?? []) as {
+    id: string;
+    guest_key: string | null;
+    guest_nickname: string | null;
+    guest_ip_label: string | null;
+    reason: string;
+    banned_at: string;
+  }[]).map((row) => ({
+    id: row.id,
+    guestKey: row.guest_key,
+    nickname: row.guest_nickname,
+    ipLabel: row.guest_ip_label,
+    reason: row.reason,
+    bannedAt: row.banned_at,
+  }));
+}
+
+export async function sanctionCommunityGuest(params: {
+  postId?: string;
+  commentId?: string;
+  reason: string;
+  adminId: string;
+}): Promise<void> {
+  const targetId = params.postId ?? params.commentId;
+  if (!targetId) throw new Error("제재할 비회원 작성 내역이 필요합니다.");
+  const supabase = createSupabaseAdminClient();
+  const isPost = Boolean(params.postId);
+  const credentialTable = isPost ? "community_guest_post_credentials" : "community_guest_comment_credentials";
+  const credentialColumn = isPost ? "post_id" : "comment_id";
+  const contentTable = isPost ? "community_posts" : "community_comments";
+  const [credentialResult, contentResult] = await Promise.all([
+    supabase.from(credentialTable).select("guest_key, ip_key, ip_label").eq(credentialColumn, targetId).maybeSingle(),
+    supabase.from(contentTable).select("guest_nickname").eq("id", targetId).maybeSingle(),
+  ]);
+  if (credentialResult.error) throw credentialResult.error;
+  if (contentResult.error) throw contentResult.error;
+  const credential = credentialResult.data as { guest_key: string; ip_key: string | null; ip_label: string | null } | null;
+  const content = contentResult.data as { guest_nickname: string | null } | null;
+  if (!credential) throw new Error("비회원 운영 식별 정보를 찾을 수 없습니다.");
+  const { error } = await createSupabaseAdminClient()
+    .from("community_guest_sanctions")
+    .insert({
+      guest_key: credential.guest_key,
+      ip_key: credential.ip_key,
+      guest_nickname: content?.guest_nickname ?? null,
+      guest_ip_label: credential.ip_label,
+      reason: params.reason,
+      banned_by: params.adminId,
+    });
+  if (error && error.code !== "23505") throw error;
+}
+
+export async function liftCommunityGuestSanction(
+  sanctionId: string,
+  adminId: string,
+): Promise<void> {
+  const { error } = await createSupabaseAdminClient()
+    .from("community_guest_sanctions")
     .update({ lifted_at: new Date().toISOString(), lifted_by: adminId })
     .eq("id", sanctionId)
     .is("lifted_at", null);

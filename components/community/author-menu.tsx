@@ -9,9 +9,12 @@ import { RankAvatar } from "@/components/rank/rank-avatar";
 import { useToast } from "@/components/ui/toast";
 import {
   reportCommunityUserAction,
+  setCommunityGuestBlockedAction,
   setCommunityUserBlockedAction,
 } from "@/lib/community/user-actions";
+import { reportCommentAction, reportPostAction } from "@/lib/community/actions";
 import type { Tier } from "@/lib/rank/config";
+import type { BoardScope } from "@/lib/community/boards";
 
 type AuthorMenuProps = {
   authorId: string | null;
@@ -22,6 +25,9 @@ type AuthorMenuProps = {
   variant?: "detail" | "comment" | "feed" | "profile";
   evidencePostId?: string;
   evidenceCommentId?: string;
+  guestKey?: string | null;
+  scope?: BoardScope;
+  teamSlug?: string;
 };
 
 export function AuthorMenu({
@@ -33,6 +39,9 @@ export function AuthorMenu({
   variant = "comment",
   evidencePostId,
   evidenceCommentId,
+  guestKey,
+  scope = "hub",
+  teamSlug,
 }: AuthorMenuProps) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -41,6 +50,7 @@ export function AuthorMenu({
   const { showToast } = useToast();
   const name = authorName ?? "알 수 없음";
   const isSelf = Boolean(authorId && authorId === viewerId);
+  const isGuest = Boolean(!authorId && guestKey);
 
   useEffect(() => {
     if (!open) return;
@@ -56,11 +66,18 @@ export function AuthorMenu({
   }, [open]);
 
   const blockUser = () => {
-    if (!authorId) return;
-    if (!window.confirm(`${name} 사용자의 글과 댓글을 내 화면에서 숨길까요?`)) return;
+    if (!authorId && !guestKey) return;
+    const targetLabel = name;
+    if (!window.confirm(`${targetLabel} 작성자의 글과 댓글을 내 화면에서 숨길까요?`)) return;
     setOpen(false);
     startTransition(async () => {
-      const result = await setCommunityUserBlockedAction({ targetUserId: authorId, blocked: true });
+      const result = isGuest
+        ? await setCommunityGuestBlockedAction({
+            blocked: true,
+            evidencePostId,
+            evidenceCommentId,
+          })
+        : await setCommunityUserBlockedAction({ targetUserId: authorId!, blocked: true });
       showToast({
         title: result.ok ? "사용자 차단 완료" : "차단 실패",
         description: result.ok ? result.message : result.error,
@@ -73,7 +90,7 @@ export function AuthorMenu({
   };
 
   const reportUser = () => {
-    if (!authorId) return;
+    if (!authorId && !guestKey) return;
     const reason = window.prompt("신고 사유를 입력해주세요. 운영자가 관련 활동과 함께 확인합니다.");
     if (reason === null) return;
     if (!reason.trim()) {
@@ -82,12 +99,18 @@ export function AuthorMenu({
     }
     setOpen(false);
     startTransition(async () => {
-      const result = await reportCommunityUserAction({
-        targetUserId: authorId,
-        reason,
-        evidencePostId,
-        evidenceCommentId,
-      });
+      const result = isGuest
+        ? evidenceCommentId && evidencePostId
+          ? await reportCommentAction({ commentId: evidenceCommentId, postId: evidencePostId, reason, scope, teamSlug })
+          : evidencePostId
+            ? await reportPostAction({ postId: evidencePostId, reason, scope, teamSlug })
+            : { ok: false as const, error: "신고할 작성 내역을 찾을 수 없습니다." }
+        : await reportCommunityUserAction({
+            targetUserId: authorId!,
+            reason,
+            evidencePostId,
+            evidenceCommentId,
+          });
       showToast({
         title: result.ok ? "사용자 신고 접수" : "신고 실패",
         description: result.ok ? result.message : result.error,
@@ -96,13 +119,17 @@ export function AuthorMenu({
     });
   };
 
-  if (!authorId) {
+  if (!authorId && !guestKey) {
     return <span className="text-sm font-semibold text-[var(--ui-muted)]">{name}</span>;
   }
 
   const trigger = variant === "feed" ? (
-    <span className="inline-flex max-w-28 items-center truncate font-medium text-[var(--ui-text)]">
+      <span className="inline-flex max-w-44 items-center gap-1 truncate font-medium text-[var(--ui-text)]">
       <span className="truncate">{name}</span>
+    </span>
+  ) : isGuest ? (
+    <span className="inline-flex min-w-0 items-center gap-1 text-left">
+      <span className="truncate text-sm font-semibold text-[var(--ui-ink)]">{name}</span>
     </span>
   ) : (
     <span className="inline-flex min-w-0 items-center gap-2.5 text-left">
@@ -137,13 +164,13 @@ export function AuthorMenu({
           role="menu"
           className="absolute left-0 top-[calc(100%+8px)] z-50 w-52 overflow-hidden rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-1.5 shadow-xl shadow-black/10"
         >
-          {variant !== "profile" ? <MenuLink href={`/community/user/${authorId}`} icon={<UserRound size={16} />} label="프로필 보기" onSelect={() => setOpen(false)} /> : null}
-          <MenuLink href={`/community/user/${authorId}?tab=posts`} icon={<FileText size={16} />} label="작성글 보기" onSelect={() => setOpen(false)} />
-          <MenuLink href={`/community/user/${authorId}?tab=comments`} icon={<MessageSquareText size={16} />} label="작성 댓글 보기" onSelect={() => setOpen(false)} />
+          {authorId && variant !== "profile" ? <MenuLink href={`/community/user/${authorId}`} icon={<UserRound size={16} />} label="프로필 보기" onSelect={() => setOpen(false)} /> : null}
+          {authorId ? <MenuLink href={`/community/user/${authorId}?tab=posts`} icon={<FileText size={16} />} label="작성글 보기" onSelect={() => setOpen(false)} /> : null}
+          {authorId ? <MenuLink href={`/community/user/${authorId}?tab=comments`} icon={<MessageSquareText size={16} />} label="작성 댓글 보기" onSelect={() => setOpen(false)} /> : null}
           {!isSelf ? (
             <>
-              <div className="my-1 border-t border-[var(--ui-border)]" />
-              <MenuButton icon={<Ban size={16} />} label="이 사용자 차단" onClick={blockUser} disabled={pending} />
+              {authorId ? <div className="my-1 border-t border-[var(--ui-border)]" /> : null}
+              <MenuButton icon={<Ban size={16} />} label={isGuest ? "이 비회원 차단" : "이 사용자 차단"} onClick={blockUser} disabled={pending} />
               <MenuButton icon={<Flag size={16} />} label="신고하기" onClick={reportUser} disabled={pending} danger />
             </>
           ) : null}

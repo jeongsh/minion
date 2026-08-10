@@ -1,18 +1,21 @@
 import Link from "next/link";
 
-import type { AdminCommunitySanction, AdminUserReport } from "@/lib/data/community-admin";
+import type { AdminCommunityGuestSanction, AdminCommunitySanction, AdminUserReport } from "@/lib/data/community-admin";
 import {
   dismissCommunityUserReportAction,
   liftCommunityUserSanctionAction,
+  liftCommunityGuestSanctionAction,
   sanctionCommunityUserAction,
 } from "./actions";
 
 export function UserModerationPanel({
   reports,
   sanctions,
+  guestSanctions,
 }: {
   reports: AdminUserReport[];
   sanctions: AdminCommunitySanction[];
+  guestSanctions: AdminCommunityGuestSanction[];
 }) {
   return (
     <>
@@ -46,6 +49,29 @@ export function UserModerationPanel({
                     <button type="submit" className="rounded-lg border border-neutral-300 px-3 py-1.5 text-[13px] font-semibold hover:bg-neutral-100 dark:border-neutral-600 dark:hover:bg-neutral-800">기각</button>
                   </form>
                 </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <h2 className="text-lg font-bold">영구 제한 비회원 IP</h2>
+        <p className="text-sm text-neutral-500">통신사·공용 IP 오차를 고려해 자동 차단하지 않고 관리자가 신고 근거를 확인한 경우에만 등록합니다.</p>
+        {guestSanctions.length === 0 ? (
+          <p className="rounded-xl border border-dashed border-neutral-300 py-8 text-center text-sm text-neutral-500 dark:border-neutral-700">현재 영구 제한된 비회원 IP가 없습니다.</p>
+        ) : (
+          <ul className="divide-y divide-neutral-200 rounded-xl border border-neutral-200 dark:divide-neutral-700 dark:border-neutral-700">
+            {guestSanctions.map((sanction) => (
+              <li key={sanction.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold">{sanction.nickname ?? "비회원"}{sanction.ipLabel ? ` (${sanction.ipLabel})` : ""}</p>
+                  <p className="mt-0.5 truncate text-[13px] text-neutral-500">{sanction.reason} · {formatDate(sanction.bannedAt)}</p>
+                </div>
+                <form action={liftCommunityGuestSanctionAction}>
+                  <input type="hidden" name="sanction_id" value={sanction.id} />
+                  <button type="submit" className="rounded-lg border border-neutral-300 px-3 py-1.5 text-[13px] font-semibold hover:bg-neutral-100 dark:border-neutral-600 dark:hover:bg-neutral-800">제한 해제</button>
+                </form>
               </li>
             ))}
           </ul>

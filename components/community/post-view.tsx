@@ -26,6 +26,7 @@ export function PostView({
   canManage = false,
   canSetNotice = false,
   viewerId,
+  currentGuestKey,
 }: {
   post: CommunityPostDetail;
   comments: CommunityCommentItem[];
@@ -36,6 +37,7 @@ export function PostView({
   canManage?: boolean;
   canSetNotice?: boolean;
   viewerId?: string | null;
+  currentGuestKey?: string | null;
 }) {
   const boardHref = scope === "team" && teamSlug ? `/fan/${teamSlug}/community` : "/community";
   const blinded = Boolean(post.blindedAt);
@@ -62,7 +64,7 @@ export function PostView({
                   </button>
                 </form>
               ) : null}
-              {canManage ? <PostOwnerActions postId={post.id} scope={scope} teamSlug={teamSlug} /> : null}
+              {canManage ? <PostOwnerActions postId={post.id} scope={scope} teamSlug={teamSlug} /> : post.guestKey && post.guestKey === currentGuestKey ? <PostOwnerActions postId={post.id} scope={scope} teamSlug={teamSlug} guest /> : null}
             </div>
           </div>
           <h1 className={`mt-2 text-[20px] leading-[1.35] sm:text-[24px] ${blinded ? "font-medium text-[var(--ui-muted)]" : "font-bold text-[var(--ui-ink)]"}`}>
@@ -75,9 +77,12 @@ export function PostView({
               authorName={post.authorName}
               authorImageUrl={post.authorImageUrl}
               authorTier={post.authorTier}
+              guestKey={post.guestKey}
               viewerId={viewerId}
               variant="detail"
               evidencePostId={post.id}
+              scope={scope}
+              teamSlug={teamSlug}
             />
             <div className="min-w-0 border-l border-[var(--ui-border)] pl-3">
               <div className="mt-0.5 flex items-center gap-2 text-[13px] text-[var(--ui-muted)]">
@@ -126,9 +131,9 @@ export function PostView({
             <span className="text-sm font-semibold text-[var(--tp)] sm:text-base">{post.commentCount}</span>
           </div>
           <div className="px-4 pb-5 sm:px-8 sm:pb-8">
-            <CommentForm postId={post.id} scope={scope} teamSlug={teamSlug} />
+            <CommentForm postId={post.id} scope={scope} teamSlug={teamSlug} isGuest={!viewerId} />
           </div>
-          <CommentList comments={comments} commentReactions={commentReactions} scope={scope} teamSlug={teamSlug} viewerId={viewerId} />
+        <CommentList comments={comments} commentReactions={commentReactions} scope={scope} teamSlug={teamSlug} viewerId={viewerId} currentGuestKey={currentGuestKey} />
         </section>
       </SurfacePanel>
     </article>

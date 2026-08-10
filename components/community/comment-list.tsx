@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 
 import { BlindedContent } from "@/components/community/blinded-content";
 import { AuthorMenu } from "@/components/community/author-menu";
@@ -8,12 +9,19 @@ import { CommentForm } from "@/components/community/comment-form";
 import { formatRelativeOrDate } from "@/components/community/format";
 import { ReactionButtons } from "@/components/community/reaction-buttons";
 import { ReportButton } from "@/components/community/report-button";
+import { useToast } from "@/components/ui/toast";
+import { deleteGuestCommentAction, updateGuestCommentAction } from "@/lib/community/actions";
 import type { BoardScope } from "@/lib/community/boards";
 import { blindLabel } from "@/lib/community/moderation-labels";
 import type { CommunityCommentItem, ReactionState } from "@/lib/community/types";
 
-export function CommentList({ comments, commentReactions, scope, teamSlug, viewerId }: { comments: CommunityCommentItem[]; commentReactions: Record<string, ReactionState>; scope: BoardScope; teamSlug?: string; viewerId?: string | null }) {
+export function CommentList({ comments, commentReactions, scope, teamSlug, viewerId, currentGuestKey }: { comments: CommunityCommentItem[]; commentReactions: Record<string, ReactionState>; scope: BoardScope; teamSlug?: string; viewerId?: string | null; currentGuestKey?: string | null }) {
   const [replyTo, setReplyTo] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingContent, setEditingContent] = useState("");
+  const [pending, startTransition] = useTransition();
+  const router = useRouter();
+  const { showToast } = useToast();
   const roots = comments.filter((comment) => !comment.parentId);
   const repliesByParent = new Map<string, CommunityCommentItem[]>();
   comments.filter((comment) => comment.parentId).forEach((comment) => {
@@ -21,6 +29,60 @@ export function CommentList({ comments, commentReactions, scope, teamSlug, viewe
     replies.push(comment);
     repliesByParent.set(comment.parentId!, replies);
   });
+
+  const removeGuestComment = (comment: CommunityCommentItem) => {
+    if (!window.confirm("이 댓글을 삭제할까요?")) return;
+    startTransition(async () => {
+      const result = await deleteGuestCommentAction({
+        commentId: comment.id,
+        postId: comment.postId,
+        scope,
+        teamSlug,
+      });
+      showToast({
+        title: result.ok ? "댓글 삭제 완료" : "삭제 실패",
+        description: result.ok ? result.message : result.error,
+        tone: result.ok ? "success" : "error",
+      });
+      if (result.ok) router.refresh();
+    });
+  };
+
+  const guestDeleteButton = (comment: CommunityCommentItem) => comment.guestKey && comment.guestKey === currentGuestKey ? (
+    <button type="button" disabled={pending} onClick={() => removeGuestComment(comment)} className="text-[13px] font-semibold text-[var(--ui-muted)] hover:text-red-500 disabled:opacity-50">삭제</button>
+  ) : null;
+
+  const beginGuestEdit = (comment: CommunityCommentItem) => {
+    setEditingId(comment.id);
+    setEditingContent(comment.content);
+    setReplyTo(null);
+  };
+
+  const saveGuestEdit = (comment: CommunityCommentItem) => {
+    startTransition(async () => {
+      const result = await updateGuestCommentAction({
+        commentId: comment.id,
+        postId: comment.postId,
+        content: editingContent,
+        scope,
+        teamSlug,
+      });
+      showToast({
+        title: result.ok ? "댓글 수정 완료" : "수정 실패",
+        description: result.ok ? result.message : result.error,
+        tone: result.ok ? "success" : "error",
+      });
+      if (result.ok) {
+        setEditingId(null);
+        setEditingContent("");
+        router.refresh();
+      }
+    });
+  };
+
+  const guestEditButton = (comment: CommunityCommentItem) => comment.guestKey && comment.guestKey === currentGuestKey ? (
+    <button type="button" disabled={pending} onClick={() => beginGuestEdit(comment)} className="text-[13px] font-semibold text-[var(--ui-muted)] hover:text-[var(--ui-ink)] disabled:opacity-50">수정</button>
+  ) : null;
 
   if (comments.length === 0) return null;
 
@@ -42,10 +104,13 @@ export function CommentList({ comments, commentReactions, scope, teamSlug, viewe
                 authorName={comment.authorName}
                 authorImageUrl={comment.authorImageUrl}
                 authorTier={comment.authorTier}
+                guestKey={comment.guestKey}
                 viewerId={viewerId}
                 variant="comment"
                 evidencePostId={comment.postId}
                 evidenceCommentId={comment.id}
+                scope={scope}
+                teamSlug={teamSlug}
               />
               <span className="shrink-0 text-[13px] text-[var(--ui-muted)]">{formatRelativeOrDate(comment.createdAt)}</span>
             </div>
@@ -53,7 +118,22 @@ export function CommentList({ comments, commentReactions, scope, teamSlug, viewe
               <ReactionButtons target="comment" targetId={comment.id} postId={comment.postId} scope={scope} teamSlug={teamSlug} initialState={commentReactions[comment.id] ?? null} initialHonorCount={comment.likeCount} initialDislikeCount={comment.dislikeCount} size="sm" />
             </div>
           </div>
-          {comment.blindedAt ? (
+          {editingId === comment.id ? (
+            <div className="mt-2 rounded-[var(--ui-control-radius)] border border-[var(--ui-border)] bg-[var(--ui-surface)] p-3">
+              <textarea
+                value={editingContent}
+                onChange={(event) => setEditingContent(event.target.value)}
+                rows={4}
+                maxLength={5000}
+                className="block w-full resize-none bg-transparent text-base leading-7 text-[var(--ui-text)] outline-none"
+                aria-label="댓글 수정"
+              />
+              <div className="mt-2 flex justify-end gap-2">
+                <button type="button" disabled={pending} onClick={() => setEditingId(null)} className="h-8 rounded-[var(--ui-control-radius)] px-3 text-[13px] font-semibold text-[var(--ui-muted)] hover:bg-[var(--ui-surface-muted)]">취소</button>
+                <button type="button" disabled={pending || !editingContent.trim()} onClick={() => saveGuestEdit(comment)} className="h-8 rounded-[var(--ui-control-radius)] bg-[var(--ui-ink)] px-3 text-[13px] font-semibold text-[var(--ui-surface)] disabled:opacity-50">{pending ? "저장 중" : "저장"}</button>
+              </div>
+            </div>
+          ) : comment.blindedAt ? (
             <BlindedContent compact label={blindLabel(comment.blindedSource, "comment")} source={comment.blindedSource}>
               <p className="mt-1 whitespace-pre-wrap break-words text-base leading-[1.6] text-[var(--ui-text)] [overflow-wrap:anywhere]">{comment.content}</p>
             </BlindedContent>
@@ -64,13 +144,15 @@ export function CommentList({ comments, commentReactions, scope, teamSlug, viewe
             <div className="mt-1.5 flex items-center gap-3">
               <button type="button" onClick={() => setReplyTo((current) => current === comment.id ? null : comment.id)} className="text-[13px] font-semibold text-[var(--ui-muted)] hover:text-[var(--ui-ink)]">답글쓰기</button>
               <ReportButton target="comment" commentId={comment.id} postId={comment.postId} scope={scope} teamSlug={teamSlug} />
+              {guestEditButton(comment)}
+              {guestDeleteButton(comment)}
             </div>
-          ) : <div className="mt-1.5"><ReportButton target="comment" commentId={comment.id} postId={comment.postId} scope={scope} teamSlug={teamSlug} /></div>}
+          ) : <div className="mt-1.5 flex items-center gap-3"><ReportButton target="comment" commentId={comment.id} postId={comment.postId} scope={scope} teamSlug={teamSlug} />{guestEditButton(comment)}{guestDeleteButton(comment)}</div>}
         </div>
       </div>
       {replyTo === comment.id ? (
         <div className="mt-3 ml-0 sm:ml-10">
-          <CommentForm postId={comment.postId} parentId={comment.id} scope={scope} teamSlug={teamSlug} onSubmitted={() => setReplyTo(null)} />
+          <CommentForm postId={comment.postId} parentId={comment.id} scope={scope} teamSlug={teamSlug} isGuest={!viewerId} onSubmitted={() => setReplyTo(null)} />
         </div>
       ) : null}
     </div>

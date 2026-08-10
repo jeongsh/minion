@@ -5,6 +5,7 @@ import { CommunityContentLayout } from "@/components/community/community-content
 import { PageHeader } from "@/components/ui/page-header";
 import { isCurrentUserAdmin } from "@/lib/auth/admin";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { getExistingGuestKey } from "@/lib/community/guest-identity";
 import {
   getCommentReactionStates,
   getPostReactionState,
@@ -31,12 +32,13 @@ export default async function FanPostDetailPage({
   ]);
   if (!post || post.siteScope !== "team" || post.teamId !== team.id) notFound();
 
-  const [reaction, commentReactions, user, posts, canSetNotice] = await Promise.all([
+  const [reaction, commentReactions, user, posts, canSetNotice, currentGuestKey] = await Promise.all([
     getPostReactionState(postId),
     getCommentReactionStates(comments.map((c) => c.id)),
     getCurrentUser(),
     getBoardPosts({ scope: "team", teamId: team.id }),
     isCurrentUserAdmin(),
+    getExistingGuestKey(),
   ]);
 
   return (
@@ -59,6 +61,7 @@ export default async function FanPostDetailPage({
           canManage={post.authorId === user?.id}
           canSetNotice={canSetNotice}
           viewerId={user?.id}
+          currentGuestKey={currentGuestKey}
         />
       </CommunityContentLayout>
     </main>

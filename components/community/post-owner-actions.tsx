@@ -7,10 +7,10 @@ import { useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 
 import { useToast } from "@/components/ui/toast";
-import { deletePostAction } from "@/lib/community/actions";
+import { deleteGuestPostAction, deletePostAction } from "@/lib/community/actions";
 import type { BoardScope } from "@/lib/community/boards";
 
-export function PostOwnerActions({ postId, scope, teamSlug }: { postId: string; scope: BoardScope; teamSlug?: string }) {
+export function PostOwnerActions({ postId, scope, teamSlug, guest = false }: { postId: string; scope: BoardScope; teamSlug?: string; guest?: boolean }) {
   const router = useRouter();
   const { showToast } = useToast();
   const [message, setMessage] = useState<string | null>(null);
@@ -20,7 +20,9 @@ export function PostOwnerActions({ postId, scope, teamSlug }: { postId: string; 
 
   const remove = () => {
     startTransition(async () => {
-      const result = await deletePostAction({ postId, scope, teamSlug });
+      const result = guest
+        ? await deleteGuestPostAction({ postId, scope, teamSlug })
+        : await deletePostAction({ postId, scope, teamSlug });
       if (!result.ok) {
         setMessage(result.error);
         showToast({ title: "삭제 실패", description: result.error, tone: "error" });

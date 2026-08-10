@@ -12,8 +12,10 @@ import type { BoardScope } from "@/lib/community/boards";
 import {
   dismissCommunityUserReport,
   liftCommunityUserSanction,
+  liftCommunityGuestSanction,
   resolveReports,
   sanctionCommunityUser,
+  sanctionCommunityGuest,
   setCommentBlinded,
   setPostBlinded,
   setPostDeleted,
@@ -139,5 +141,23 @@ export async function liftCommunityUserSanctionAction(formData: FormData) {
   const sanctionId = String(formData.get("sanction_id") ?? "");
   if (!sanctionId) return;
   await liftCommunityUserSanction(sanctionId, admin.id);
+  revalidateCommunity();
+}
+
+export async function sanctionCommunityGuestAction(formData: FormData) {
+  const admin = await requireAdmin();
+  const postId = String(formData.get("post_id") ?? "") || undefined;
+  const commentId = String(formData.get("comment_id") ?? "") || undefined;
+  const reason = String(formData.get("reason") ?? "").trim();
+  if ((!postId && !commentId) || !reason || reason.length > 1000) return;
+  await sanctionCommunityGuest({ postId, commentId, reason, adminId: admin.id });
+  revalidateCommunity();
+}
+
+export async function liftCommunityGuestSanctionAction(formData: FormData) {
+  const admin = await requireAdmin();
+  const sanctionId = String(formData.get("sanction_id") ?? "");
+  if (!sanctionId) return;
+  await liftCommunityGuestSanction(sanctionId, admin.id);
   revalidateCommunity();
 }

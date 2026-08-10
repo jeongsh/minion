@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import CommunityEditor from "@/components/community/editor/community-editor";
+import { GuestIdentityFields } from "@/components/community/guest-identity-fields";
 import { useNavigationTransition } from "@/components/navigation/navigation-transition-provider";
 import { Button } from "@/components/ui/button";
 import { createPostAction, updatePostAction } from "@/lib/community/actions";
@@ -44,6 +45,7 @@ export function PostForm({
   initialTitle = "",
   initialContent = "",
   canSetNotice = false,
+  isGuest = false,
 }: {
   scope: BoardScope;
   categories: BoardDef[];
@@ -54,6 +56,7 @@ export function PostForm({
   initialTitle?: string;
   initialContent?: string;
   canSetNotice?: boolean;
+  isGuest?: boolean;
 }) {
   const router = useRouter();
   const { startNavigation } = useNavigationTransition();
@@ -99,6 +102,9 @@ export function PostForm({
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-4">
+      {!postId && isGuest ? (
+        <GuestIdentityFields />
+      ) : null}
       {/* 말머리(좌) + 제목(우) 인라인 한 줄 */}
       <div className="flex items-stretch overflow-hidden rounded-[var(--ui-control-radius)] border border-[var(--ui-border)] focus-within:border-[var(--ui-ink)]">
         <div className="relative flex items-center border-r border-[var(--ui-border)] bg-[var(--ui-surface-muted)]">
@@ -143,7 +149,7 @@ export function PostForm({
 
       <div className="flex flex-col gap-1">
         <label className="sr-only">내용</label>
-        <CommunityEditor content={content} onChange={setContent} placeholder="내용을 입력하세요" />
+        <CommunityEditor content={content} onChange={setContent} allowMedia={!isGuest} placeholder="내용을 입력하세요" />
       </div>
 
       {!postId && canSetNotice ? (

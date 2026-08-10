@@ -11,6 +11,7 @@ import {
   isCommunityUserSanctioned,
   setCommunityUserBlocked,
 } from "@/lib/data/community-users";
+import { setCommunityGuestBlocked } from "@/lib/data/community-guests";
 
 const LOGIN_REQUIRED: ActionResult = {
   ok: false,
@@ -96,6 +97,45 @@ export async function reportCommunityUserAction(input: {
   }
 
   return { ok: true, message: "사용자 신고가 접수됐습니다." };
+}
+
+export async function setCommunityGuestBlockedAction(input: {
+  blocked: boolean;
+  evidencePostId?: string;
+  evidenceCommentId?: string;
+  guestKey?: string;
+  guestNickname?: string;
+}): Promise<ActionResult> {
+  const user = await getCurrentUser();
+  if (!user) return LOGIN_REQUIRED;
+
+  let guestKey = input.guestKey ?? null;
+  let guestNickname = input.guestNickname ?? null;
+  if (input.blocked) {
+    const target = input.evidenceCommentId
+      ? await getCommentById(input.evidenceCommentId)
+      : input.evidencePostId
+        ? await getPostById(input.evidencePostId)
+        : null;
+    guestKey = target?.guestKey ?? null;
+    guestNickname = target?.authorName ?? null;
+  }
+  if (!guestKey || !guestNickname) {
+    return { ok: false, error: "비회원 작성자를 찾을 수 없습니다." };
+  }
+
+  await setCommunityGuestBlocked({
+    blockerId: user.id,
+    guestKey,
+    nickname: guestNickname,
+    blocked: input.blocked,
+  });
+  revalidatePath("/community", "layout");
+  revalidatePath("/me", "layout");
+  return {
+    ok: true,
+    message: input.blocked ? "이 비회원의 글과 댓글을 내 화면에서 숨겼습니다." : "비회원 차단을 해제했습니다.",
+  };
 }
 
 function isUniqueViolation(error: unknown): boolean {

@@ -28,6 +28,10 @@ export type CommunityPostDetail = {
   authorImageUrl: string | null;
   /** 작성자의 현재 유효 티어. */
   authorTier: Tier;
+  /** 비회원 IP에서 파생한 공개 식별자. 로그인 작성자는 null. */
+  guestKey: string | null;
+  /** 공개 화면에 표시하는 축약 IP(예: 123.45.*.*). */
+  guestIpLabel: string | null;
   likeCount: number;
   dislikeCount: number;
   commentCount: number;
@@ -59,6 +63,8 @@ export type CommunityCommentItem = {
   authorImageUrl: string | null;
   /** 작성자의 현재 유효 티어. */
   authorTier: Tier;
+  guestKey: string | null;
+  guestIpLabel: string | null;
   content: string;
   likeCount: number;
   dislikeCount: number;

@@ -11,6 +11,7 @@ import { getCurrentUser, type CurrentUser } from "@/lib/auth/current-user";
 import { tierProgress, type Tier } from "@/lib/rank/config";
 import { getRankSummary } from "@/lib/rank/queries";
 import { listBlockedCommunityUsers } from "@/lib/data/community-users";
+import { listBlockedCommunityGuests } from "@/lib/data/community-guests";
 
 // 회원 탈퇴 재인증(delete-account-form.tsx)에서 소셜 재로그인 후 이 시간 안에는
 // "방금 본인임을 증명했다"고 보고 비밀번호 없이 탈퇴를 진행할 수 있게 한다.
@@ -96,7 +97,9 @@ export default async function MePage({
   }
 
   const summary = await getRankSummary(user.id);
-  const blockedUsers = tab === "blocks" ? await listBlockedCommunityUsers(user.id) : [];
+  const [blockedUsers, blockedGuests] = tab === "blocks"
+    ? await Promise.all([listBlockedCommunityUsers(user.id), listBlockedCommunityGuests(user.id)])
+    : [[], []];
   const progress = tierProgress(summary.tier, summary.lp);
 
   return (
@@ -137,7 +140,7 @@ export default async function MePage({
         <section className="me-card rounded-2xl border p-5 sm:p-6">
           <h2 className="text-base font-bold">차단한 사용자</h2>
           <p className="mt-1 text-sm text-[var(--ui-muted)]">차단한 사용자의 글과 댓글은 내 화면에 표시되지 않습니다.</p>
-          <div className="mt-4"><BlockedUserList users={blockedUsers} /></div>
+          <div className="mt-4"><BlockedUserList users={blockedUsers} guests={blockedGuests} /></div>
         </section>
       ) : (
         <RankPanel summary={summary} progress={progress} />

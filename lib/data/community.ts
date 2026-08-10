@@ -12,6 +12,7 @@ import { DEFAULT_TIER, type Tier } from "@/lib/rank/config";
 import { getPublicRankProfiles } from "@/lib/rank/public-profile";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { getBlockedCommunityUserIds } from "@/lib/data/community-users";
+import { getBlockedCommunityGuestKeys } from "@/lib/data/community-guests";
 import type {
   BlindSource,
   CommunityAuthorCommentItem,
@@ -30,6 +31,9 @@ type PostRow = {
   title: string;
   content: string;
   author_id: string | null;
+  guest_nickname: string | null;
+  guest_ip_label: string | null;
+  guest_key: string | null;
   like_count: number;
   dislike_count: number | null;
   comment_count: number;
@@ -48,6 +52,9 @@ type CommentRow = {
   post_id: string;
   parent_id: string | null;
   author_id: string | null;
+  guest_nickname: string | null;
+  guest_ip_label: string | null;
+  guest_key: string | null;
   content: string;
   like_count: number;
   dislike_count: number | null;
@@ -58,17 +65,32 @@ type CommentRow = {
 };
 
 const POST_COLUMNS =
-  "id, board_type, site_scope, team_id, title, content, author_id, like_count, dislike_count, comment_count, view_count, report_count, created_at, hot_at, is_notice, blinded_at, blinded_source, deleted_at";
+  "id, board_type, site_scope, team_id, title, content, author_id, guest_nickname, guest_ip_label, guest_key, like_count, dislike_count, comment_count, view_count, report_count, created_at, hot_at, is_notice, blinded_at, blinded_source, deleted_at";
 
 const COMMENT_COLUMNS =
-  "id, post_id, parent_id, author_id, content, like_count, dislike_count, created_at, blinded_at, blinded_source, deleted_at";
+  "id, post_id, parent_id, author_id, guest_nickname, guest_ip_label, guest_key, content, like_count, dislike_count, created_at, blinded_at, blinded_source, deleted_at";
 
 /** 목록 조회 상한(전체 로드 방지 가드). 피드는 클라이언트에서 검색/페이징한다. */
 const POST_LIST_LIMIT = 500;
 
-async function blockedAuthorIdsForCurrentUser(): Promise<Set<string>> {
+async function blockedAuthorsForCurrentUser(): Promise<{ users: Set<string>; guests: Set<string> }> {
   const user = await getCurrentUser();
-  return user ? getBlockedCommunityUserIds(user.id) : new Set();
+  if (!user) return { users: new Set(), guests: new Set() };
+  const [users, guests] = await Promise.all([
+    getBlockedCommunityUserIds(user.id),
+    getBlockedCommunityGuestKeys(user.id),
+  ]);
+  return { users, guests };
+}
+
+function isBlockedAuthor(
+  row: { author_id: string | null; guest_key: string | null },
+  blocked: { users: Set<string>; guests: Set<string> },
+): boolean {
+  return Boolean(
+    (row.author_id && blocked.users.has(row.author_id))
+    || (row.guest_key && blocked.guests.has(row.guest_key)),
+  );
 }
 
 function mapPost(
@@ -85,9 +107,11 @@ function mapPost(
     title: row.title,
     content: row.content,
     authorId: row.author_id,
-    authorName,
+    authorName: row.author_id ? authorName : row.guest_nickname,
     authorImageUrl,
     authorTier,
+    guestKey: row.guest_key,
+    guestIpLabel: row.guest_ip_label,
     likeCount: row.like_count,
     dislikeCount: row.dislike_count ?? 0,
     commentCount: row.comment_count,
@@ -126,9 +150,11 @@ function mapComment(
     postId: row.post_id,
     parentId: row.parent_id,
     authorId: row.author_id,
-    authorName,
+    authorName: row.author_id ? authorName : row.guest_nickname,
     authorImageUrl,
     authorTier,
+    guestKey: row.guest_key,
+    guestIpLabel: row.guest_ip_label,
     // 삭제된 댓글 본문은 클라이언트로 내려보내지 않는다(답글 유지를 위한 자리표시만 필요).
     content: row.deleted_at ? "" : row.content,
     likeCount: row.like_count,
@@ -181,8 +207,8 @@ export const getBoardPosts = cache(async function getBoardPosts(params: {
 
   const { data, error } = await query;
   if (error) throw error;
-  const blockedIds = await blockedAuthorIdsForCurrentUser();
-  const rows = (data as PostRow[]).filter((row) => !row.author_id || !blockedIds.has(row.author_id));
+  const blocked = await blockedAuthorsForCurrentUser();
+  const rows = (data as PostRow[]).filter((row) => !isBlockedAuthor(row, blocked));
   return mapPostsWithAuthors(rows);
 });
 
@@ -201,8 +227,8 @@ export const getPostById = cache(async function getPostById(
 
   if (error) throw error;
   if (!data) return null;
-  const blockedIds = await blockedAuthorIdsForCurrentUser();
-  if ((data as PostRow).author_id && blockedIds.has((data as PostRow).author_id!)) return null;
+  const blocked = await blockedAuthorsForCurrentUser();
+  if (isBlockedAuthor(data as PostRow, blocked)) return null;
   return (await mapPostsWithAuthors([data as PostRow]))[0] ?? null;
 });
 
@@ -249,9 +275,9 @@ export const getPostComments = cache(async function getPostComments(
   if (error) throw error;
 
   // 삭제된 댓글은 답글이 남아 있는 경우에만 자리표시용으로 유지하고, 아니면 목록에서 제외한다.
-  const blockedIds = await blockedAuthorIdsForCurrentUser();
+  const blocked = await blockedAuthorsForCurrentUser();
   const rows = (data as CommentRow[]).filter(
-    (row) => !row.author_id || !blockedIds.has(row.author_id),
+    (row) => !isBlockedAuthor(row, blocked),
   );
   const parentIdsWithReplies = new Set(
     rows.flatMap((row) => (row.parent_id && !row.deleted_at ? [row.parent_id] : [])),
@@ -265,8 +291,8 @@ export const getPostComments = cache(async function getPostComments(
 /** Public activity list for a community author. Deleted content is never exposed. */
 export async function getPostsByAuthor(authorId: string): Promise<CommunityPostDetail[]> {
   if (!canQuerySupabase()) return [];
-  const blockedIds = await blockedAuthorIdsForCurrentUser();
-  if (blockedIds.has(authorId)) return [];
+  const blocked = await blockedAuthorsForCurrentUser();
+  if (blocked.users.has(authorId)) return [];
 
   const { data, error } = await createSupabaseServerClient()
     .from("community_posts")
@@ -284,8 +310,8 @@ export async function getCommentsByAuthor(
   authorId: string,
 ): Promise<CommunityAuthorCommentItem[]> {
   if (!canQuerySupabase()) return [];
-  const blockedIds = await blockedAuthorIdsForCurrentUser();
-  if (blockedIds.has(authorId)) return [];
+  const blocked = await blockedAuthorsForCurrentUser();
+  if (blocked.users.has(authorId)) return [];
 
   const { data, error } = await createSupabaseServerClient()
     .from("community_comments")
@@ -327,14 +353,15 @@ export async function getCommentsByAuthor(
   });
 }
 
-/** 글 생성. author_id 는 호출부(서버 액션)에서 getCurrentUser().id 로 전달. */
+/** 글 생성. 로그인 작성자 또는 서버에서 검증한 비회원 신원만 받는다. */
 export async function createPost(params: {
   scope: BoardScope;
   boardType: string;
   teamId?: string | null;
   title: string;
   content: string;
-  authorId: string;
+  authorId: string | null;
+  guest?: { nickname: string; key: string; ipKey: string; ipLabel: string };
   isNotice?: boolean;
 }): Promise<{ id: string }> {
   // 쓰기는 인증 컨텍스트(RLS)가 없는 anon 대신 service-role 로 수행한다.
@@ -349,13 +376,31 @@ export async function createPost(params: {
       title: params.title,
       content: params.content,
       author_id: params.authorId,
+      guest_nickname: params.guest?.nickname ?? null,
+      guest_ip_label: null,
+      guest_key: params.guest?.key ?? null,
       is_notice: params.isNotice ?? false,
     })
     .select("id")
     .single();
 
   if (error) throw error;
-  return { id: (data as { id: string }).id };
+  const id = (data as { id: string }).id;
+  if (params.guest) {
+    const { error: credentialError } = await supabase
+      .from("community_guest_post_credentials")
+      .insert({
+        post_id: id,
+        guest_key: params.guest.key,
+        ip_key: params.guest.ipKey,
+        ip_label: params.guest.ipLabel,
+      });
+    if (credentialError) {
+      await supabase.from("community_posts").delete().eq("id", id);
+      throw credentialError;
+    }
+  }
+  return { id };
 }
 
 export async function updatePost(params: {
@@ -387,7 +432,8 @@ export async function deletePost(postId: string): Promise<void> {
 export async function createComment(params: {
   postId: string;
   content: string;
-  authorId: string;
+  authorId: string | null;
+  guest?: { nickname: string; key: string; ipKey: string; ipLabel: string };
   parentId?: string | null;
 }): Promise<{ id: string }> {
   const supabase = createSupabaseAdminClient();
@@ -398,11 +444,29 @@ export async function createComment(params: {
       parent_id: params.parentId ?? null,
       content: params.content,
       author_id: params.authorId,
+      guest_nickname: params.guest?.nickname ?? null,
+      guest_ip_label: null,
+      guest_key: params.guest?.key ?? null,
     })
     .select("id")
     .single();
 
   if (error) throw error;
+  const id = (data as { id: string }).id;
+  if (params.guest) {
+    const { error: credentialError } = await supabase
+      .from("community_guest_comment_credentials")
+      .insert({
+        comment_id: id,
+        guest_key: params.guest.key,
+        ip_key: params.guest.ipKey,
+        ip_label: params.guest.ipLabel,
+      });
+    if (credentialError) {
+      await supabase.from("community_comments").delete().eq("id", id);
+      throw credentialError;
+    }
+  }
 
   const post = await getPostById(params.postId);
   if (post) {
@@ -412,7 +476,62 @@ export async function createComment(params: {
       .eq("id", params.postId);
   }
 
-  return { id: (data as { id: string }).id };
+  return { id };
+}
+
+export async function getGuestContentPasswordHash(params: {
+  postId?: string;
+  commentId?: string;
+}): Promise<string | null> {
+  const targetId = params.postId ?? params.commentId;
+  if (!targetId) return null;
+  const table = params.postId
+    ? "community_guest_post_credentials"
+    : "community_guest_comment_credentials";
+  const column = params.postId ? "post_id" : "comment_id";
+  const { data, error } = await createSupabaseAdminClient()
+    .from(table)
+    .select("password_hash")
+    .eq(column, targetId)
+    .maybeSingle();
+  if (error) throw error;
+  return (data as { password_hash: string } | null)?.password_hash ?? null;
+}
+
+export async function deleteGuestComment(commentId: string): Promise<void> {
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("community_comments")
+    .select("post_id, deleted_at")
+    .eq("id", commentId)
+    .maybeSingle();
+  if (error) throw error;
+  const comment = data as { post_id: string; deleted_at: string | null } | null;
+  if (!comment || comment.deleted_at) return;
+  const { error: deleteError } = await supabase
+    .from("community_comments")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", commentId);
+  if (deleteError) throw deleteError;
+  const { data: post } = await supabase
+    .from("community_posts")
+    .select("comment_count")
+    .eq("id", comment.post_id)
+    .maybeSingle();
+  const count = (post as { comment_count: number } | null)?.comment_count ?? 0;
+  await supabase
+    .from("community_posts")
+    .update({ comment_count: Math.max(0, count - 1) })
+    .eq("id", comment.post_id);
+}
+
+export async function updateGuestComment(commentId: string, content: string): Promise<void> {
+  const { error } = await createSupabaseAdminClient()
+    .from("community_comments")
+    .update({ content })
+    .eq("id", commentId)
+    .is("deleted_at", null);
+  if (error) throw error;
 }
 
 // 리액션(명예/싫어요) 저장소 메타.
