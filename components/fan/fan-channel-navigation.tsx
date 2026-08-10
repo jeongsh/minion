@@ -20,7 +20,7 @@ const desktopTabs = [
   { label: "일정", segment: "matches" },
   { label: "선수", segment: "players" },
   { label: "커뮤니티", segment: "community" },
-  { label: "비난양파", segment: "onion" },
+  // { label: "비난양파", segment: "onion" },
   { label: "소셜", segment: "instagram" },
   { label: "영상", segment: "videos" },
 ];

@@ -97,6 +97,18 @@ export function CommentForm({
           name="content"
           value={content}
           onChange={(event) => setContent(event.target.value)}
+          onKeyDown={(event) => {
+            if (
+              event.key === "Enter" &&
+              event.ctrlKey &&
+              !event.nativeEvent.isComposing &&
+              !pending &&
+              content.trim().length > 0
+            ) {
+              event.preventDefault();
+              event.currentTarget.form?.requestSubmit();
+            }
+          }}
           rows={parentId ? 3 : 4}
           maxLength={MAX_LENGTH}
           required
