@@ -305,7 +305,10 @@ function RegularStandingsTable({ rows }: { rows: ReturnType<typeof buildTeamStan
   );
 }
 
-type PomRow = { rank: number; player: Player; team?: Team; count: number };
+type PomRow = { rank: number; player: Player; team?: Team; count: number; points: number };
+
+// POM 1회당 100점(네이버 e스포츠 LCK 선수 기록 페이지와 동일한 산정 방식).
+const POM_POINTS_PER_AWARD = 100;
 
 function buildPomRankingRows(segmentMatches: Match[], players: Player[], teamMap: Map<string, Team>): PomRow[] {
   const counts = new Map<string, number>();
@@ -314,10 +317,10 @@ function buildPomRankingRows(segmentMatches: Match[], players: Player[], teamMap
     counts.set(match.officialPomPlayerId, (counts.get(match.officialPomPlayerId) ?? 0) + 1);
   }
 
-  const unranked: Array<{ player: Player; team?: Team; count: number }> = [];
+  const unranked: Array<{ player: Player; team?: Team; count: number; points: number }> = [];
   for (const [playerId, count] of counts) {
     const player = players.find((item) => item.id === playerId);
-    if (player) unranked.push({ player, team: teamMap.get(player.teamId), count });
+    if (player) unranked.push({ player, team: teamMap.get(player.teamId), count, points: count * POM_POINTS_PER_AWARD });
   }
 
   return unranked
@@ -360,11 +363,11 @@ function PomRankingTable({ rows }: { rows: PomRow[] }) {
           ),
         },
         {
-          key: "count",
-          label: "POM",
+          key: "points",
+          label: "포인트",
           headerClassName: "text-center",
           cellClassName: "text-center font-bold tabular-nums",
-          render: (row) => row.count,
+          render: (row) => row.points,
         },
       ]}
     />
@@ -803,7 +806,13 @@ export default async function TournamentBracketPage({
   searchParams,
 }: {
   params: Promise<{ segment: string }>;
-  searchParams: Promise<{ year?: string; bracketStage?: string; view?: string; split?: string; phase?: string }>;
+  searchParams: Promise<{
+    year?: string;
+    bracketStage?: string;
+    view?: string;
+    split?: string;
+    phase?: string;
+  }>;
 }) {
   const { segment: segmentKey } = await params;
   const segmentTheme = segmentThemeByKey(segmentKey);
@@ -876,7 +885,6 @@ export default async function TournamentBracketPage({
       : "1";
     const activeView: "standings" | "bracket" | "pom" =
       search.view === "bracket" ? "bracket" : search.view === "pom" ? "pom" : "standings";
-    const pomRows = buildPomRankingRows(segmentMatches, players, teamMap);
     const viewLabels = LCK_SPLIT_VIEW_LABELS[activeSplit];
     const activePhase: "playin" | "playoffs" = search.phase === "playoffs" ? "playoffs" : "playin";
 
@@ -1013,6 +1021,10 @@ export default async function TournamentBracketPage({
       "3": split3Bracket,
     };
 
+    // POM 순위는 LCK컵/Road to MSI/시즌 플레이인·플레이오프 같은 별도 이벤트는 빼고,
+    // 정규리그(Rounds 1-2 + Rounds 3-4/5)만 스플릿 구분 없이 통합해서 보여준다.
+    const pomRows = buildPomRankingRows(regularSeasonMatches, players, teamMap);
+
     contentSection = (
       <section className="flex flex-col gap-6">
         {/* 상세 탭(1차)과 스플릿(2차)은 데스크탑에서 한 줄을 공유한다 — 탭은 왼쪽 언더라인,
@@ -1054,20 +1066,24 @@ export default async function TournamentBracketPage({
             />
           )}
 
-          <SegmentedControl
-            ariaLabel="스플릿 선택"
-            activeKey={activeSplit}
-            className="order-1 sm:order-2 sm:mb-2"
-            items={(Object.keys(LCK_SPLIT_LABELS) as LckSplitKey[]).map((split) => ({
-              key: split,
-              label: LCK_SPLIT_LABELS[split],
-              href: `/tournaments/${segmentTheme.key}?${new URLSearchParams({
-                year: String(activeSeason),
-                split,
-                view: activeView,
-              }).toString()}`,
-            }))}
-          />
+          {/* POM 랭킹은 스플릿 구분 없이 정규리그 전체로 통합해서 보여주므로, 스플릿
+              선택은 순위표/브래킷 볼 때만 의미가 있다. */}
+          {activeView === "pom" ? null : (
+            <SegmentedControl
+              ariaLabel="스플릿 선택"
+              activeKey={activeSplit}
+              className="order-1 sm:order-2 sm:mb-2"
+              items={(Object.keys(LCK_SPLIT_LABELS) as LckSplitKey[]).map((split) => ({
+                key: split,
+                label: LCK_SPLIT_LABELS[split],
+                href: `/tournaments/${segmentTheme.key}?${new URLSearchParams({
+                  year: String(activeSeason),
+                  split,
+                  view: activeView,
+                }).toString()}`,
+              }))}
+            />
+          )}
         </div>
 
         {activeView === "pom" ? (
