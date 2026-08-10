@@ -14,20 +14,23 @@ export type BoardDef = {
 
 // 허브 커뮤니티 (app/community)
 export const hubBoards: BoardDef[] = [
-  { slug: "free", label: "자유", scope: "hub" },
-  { slug: "humor", label: "유머", scope: "hub" },
   { slug: "live", label: "실시간", scope: "hub" },
-  { slug: "reviews", label: "경기 후기", scope: "hub" },
-  { slug: "onsite", label: "직관 후기", scope: "hub" },
+  { slug: "analysis", label: "분석", scope: "hub" },
+  { slug: "discussion", label: "토론", scope: "hub" },
+  { slug: "news", label: "소식", scope: "hub" },
+  { slug: "strategy", label: "전략", scope: "hub" },
+  { slug: "question", label: "질문", scope: "hub" },
+  { slug: "free", label: "자유", scope: "hub" },
 ];
 
 // 팀 팬사이트 커뮤니티 (app/fan/[teamSlug]/community)
 export const teamBoards: BoardDef[] = [
+  { slug: "live", label: "실시간", scope: "team" },
+  { slug: "discussion", label: "토론", scope: "team" },
+  { slug: "news", label: "소식", scope: "team" },
+  { slug: "fanart", label: "팬아트", scope: "team" },
+  { slug: "onsite", label: "직관", scope: "team" },
   { slug: "free", label: "자유", scope: "team" },
-  { slug: "cheer", label: "응원", scope: "team" },
-  { slug: "reviews", label: "경기 후기", scope: "team" },
-  { slug: "onsite", label: "직관 후기", scope: "team" },
-  { slug: "fanart", label: "팬아트·굿즈", scope: "team" },
 ];
 
 /** scope 별 말머리(카테고리) 목록. 단일 피드의 필터 칩/글쓰기 드롭다운에 사용. */
@@ -35,9 +38,12 @@ export function categoriesForScope(scope: BoardScope): BoardDef[] {
   return scope === "hub" ? hubBoards : teamBoards;
 }
 
-/** 글쓰기 기본 말머리(첫 번째 = 자유). */
+/** 글쓰기 기본 말머리. 탭 노출 순서와 무관하게 자유를 우선한다. */
 export function defaultCategory(scope: BoardScope): string {
-  return categoriesForScope(scope)[0]?.slug ?? "free";
+  const categories = categoriesForScope(scope);
+  return categories.find((category) => category.slug === "free")?.slug
+    ?? categories[0]?.slug
+    ?? "free";
 }
 
 export function getHubBoard(slug: string): BoardDef | undefined {

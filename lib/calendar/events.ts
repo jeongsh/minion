@@ -230,11 +230,11 @@ export function celebrationBoardHref(event: CalendarEvent): string {
   return event.teamFanSlug ? `/fan/${event.teamFanSlug}/community` : "/community";
 }
 
-/** 축하글 작성 경로. 팀 게시판이면 '응원' 말머리를 미리 골라준다. */
+/** 축하글 작성 경로. 팀 게시판이면 '자유' 말머리를 미리 골라준다. */
 export function celebrationWriteHref(event: CalendarEvent): string {
   const params = new URLSearchParams({ celebrate: event.key });
   if (!event.teamFanSlug) return `/community/new?${params.toString()}`;
-  params.set("cat", "cheer");
+  params.set("cat", "free");
   return `/fan/${event.teamFanSlug}/community/new?${params.toString()}`;
 }
 
