@@ -48,14 +48,17 @@ async function backfillTable(
   table: "player_social_posts" | "team_social_posts",
   column: "image_url" | "thumbnail_url",
   keyPrefix: string,
+  orderColumn: "posted_at" | "published_at",
 ) {
+  const r2PublicUrl = process.env.NEXT_PUBLIC_R2_PUBLIC_URL;
   const { data, error } = await supabase
     .from(table)
     .select(`id, ${column}`)
     .eq("platform", "instagram")
     .not(column, "is", null)
     .not(column, "ilike", `%${INSTAGRAM_MEDIA_BUCKET}%`)
-    .order("posted_at", { ascending: false, nullsFirst: false });
+    .not(column, "ilike", r2PublicUrl ? `%${new URL(r2PublicUrl).hostname}%` : "%media.minion.fan%")
+    .order(orderColumn, { ascending: false, nullsFirst: false });
   if (error) throw error;
 
   const records = (data ?? []) as Array<Record<string, unknown>>;
@@ -95,10 +98,10 @@ async function main() {
   console.log(`[mode] dryRun=${dryRun}${onlyArg ? ` only=${onlyArg}` : ""}${limitArg ? ` limit=${limitArg}` : ""}`);
 
   if (!onlyArg || onlyArg === "players") {
-    await backfillTable(supabase, "player_social_posts", "image_url", "player");
+    await backfillTable(supabase, "player_social_posts", "image_url", "player", "posted_at");
   }
   if (!onlyArg || onlyArg === "teams") {
-    await backfillTable(supabase, "team_social_posts", "thumbnail_url", "team");
+    await backfillTable(supabase, "team_social_posts", "thumbnail_url", "team", "published_at");
   }
 
   console.log("Done.");
