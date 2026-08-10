@@ -333,6 +333,9 @@ export type FanRating = {
   rating: number;
   review: string;
   createdAt: string;
+  authorId: string | null;
+  authorNickname: string | null;
+  authorProfileImageUrl: string | null;
 };
 
 export type FanMatchPrediction = {

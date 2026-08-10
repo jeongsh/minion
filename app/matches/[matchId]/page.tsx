@@ -247,36 +247,6 @@ function playerInitial(name: string) {
   return name.slice(0, 2).toUpperCase();
 }
 
-function PlayerAvatar({
-  player,
-  size = "md",
-}: {
-  player?: Player;
-  size?: "md" | "lg";
-}) {
-  const sizeClass = size === "lg" ? "h-16 w-16" : "h-9 w-9";
-
-  if (player?.profileImageUrl) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={player.profileImageUrl}
-        alt=""
-        className={`${sizeClass} shrink-0 rounded-lg object-cover object-top`}
-      />
-    );
-  }
-
-  return (
-    <span
-      className={`${sizeClass} grid shrink-0 place-items-center rounded-lg bg-[var(--ui-surface-muted)] text-xs font-black text-[var(--ui-muted)]`}
-      aria-hidden="true"
-    >
-      {player ? playerInitial(player.name) : "-"}
-    </span>
-  );
-}
-
 /** 평균 평점(예: 4.3)을 별 5개로 시각화. 반쪽 단위가 아니라 실제 소수점 비율만큼 채운다. */
 function StarRatingDisplay({ value }: { value: number }) {
   return (
@@ -405,6 +375,7 @@ function MatchRatingPanel({
   playerStatLines,
   fanRatings,
   champions,
+  isLoggedIn,
 }: {
   matchId: string;
   set?: SetResult;
@@ -414,6 +385,7 @@ function MatchRatingPanel({
   playerStatLines: PlayerStatLine[];
   fanRatings: FanRating[];
   champions: Champion[];
+  isLoggedIn: boolean;
 }) {
   if (!set) {
     return (
@@ -502,6 +474,8 @@ function MatchRatingPanel({
             setId={set.id}
             blueTeamId={set.blueTeamId}
             ratingOpen={ratingOpen}
+            isLoggedIn={isLoggedIn}
+            loginHref={`/login?next=${encodeURIComponent(`/matches/${matchId}?tab=rating&set=${set.id}`)}`}
             ratingStatusNote={
               ratingOpen && ratingDeadline
                 ? `평점 입력 마감: ${formatDateTime(ratingDeadline.toISOString())} (경기 종료 후 3시간)`
@@ -562,14 +536,34 @@ function MatchRatingPanel({
           <div className="mt-3 grid gap-2">
             {reviewRows.map((rating) => {
               const player = players.find((item) => item.id === rating.playerId);
+              const authorName = rating.authorNickname ?? "익명";
               return (
                 <article
                   key={rating.id}
                   className="grid grid-cols-[2.25rem_minmax(0,1fr)_auto] items-center gap-2.5 rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface-muted)] p-2.5"
                 >
-                  <PlayerAvatar player={player} />
+                  {rating.authorProfileImageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={rating.authorProfileImageUrl}
+                      alt=""
+                      className="h-9 w-9 shrink-0 rounded-lg object-cover object-top"
+                    />
+                  ) : (
+                    <span
+                      className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[var(--ui-surface)] text-xs font-black text-[var(--ui-muted)]"
+                      aria-hidden="true"
+                    >
+                      {playerInitial(authorName)}
+                    </span>
+                  )}
                   <div className="min-w-0">
-                    <p className="text-sm font-black text-[var(--ui-ink)]">{player?.name ?? "-"}</p>
+                    <p className="flex items-baseline gap-1 truncate text-sm font-black text-[var(--ui-ink)]">
+                      <span className="truncate">{authorName}</span>
+                      <span className="shrink-0 text-xs font-semibold text-[var(--ui-muted)]">
+                        · {player?.name ?? "-"} 평가
+                      </span>
+                    </p>
                     <p className="mt-1 text-sm leading-5 text-[var(--ui-text)]">{rating.review}</p>
                   </div>
                   <p className="text-sm font-black tabular-nums text-[var(--ui-ink)]">
@@ -762,6 +756,7 @@ export default async function MatchDetailPage({
             playerStatLines={matchPlayerStatLines}
             fanRatings={fanRatings}
             champions={ratingChampions}
+            isLoggedIn={Boolean(currentUser)}
           />
         </div>
       ) : null}

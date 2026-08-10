@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { isSetRatingOpen, normalizeSetStatus } from "@/lib/set-status";
+import { getCurrentUser } from "@/lib/auth/current-user";
 
 const VOTER_COOKIE = "lckhub_match_prediction_voter";
 const RATING_VOTER_COOKIE = "lckhub_fan_rating_voter";
@@ -183,6 +184,11 @@ export async function submitSetPlayerRatingAction(
       throw new Error(`리뷰는 ${MAX_REVIEW_LENGTH}자 이내로 입력해주세요.`);
     }
 
+    const currentUser = await getCurrentUser();
+    if (!currentUser) {
+      throw new Error("평점을 남기려면 로그인이 필요합니다.");
+    }
+
     const supabase = createSupabaseAdminClient();
     const { data: set, error: setError } = await supabase
       .from("sets")
@@ -230,10 +236,11 @@ export async function submitSetPlayerRatingAction(
         player_id: line.player_id,
         team_id: line.team_id,
         voter_key: voterKey,
+        author_id: currentUser.id,
         rating,
         review,
       },
-      { onConflict: "set_id,player_id,voter_key" },
+      { onConflict: "set_id,player_id,author_id" },
     );
 
     if (error) {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useTransition, type FormEvent } from "react";
+import Link from "next/link";
 import { Star } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -146,6 +147,8 @@ export function SetRatingForm({
   setId,
   blueTeamId,
   ratingOpen,
+  isLoggedIn,
+  loginHref,
   ratingStatusNote,
   playerOptions,
 }: {
@@ -153,6 +156,8 @@ export function SetRatingForm({
   setId: string;
   blueTeamId: string;
   ratingOpen: boolean;
+  isLoggedIn: boolean;
+  loginHref: string;
   ratingStatusNote?: string;
   playerOptions: RatingPlayerOption[];
 }) {
@@ -161,7 +166,7 @@ export function SetRatingForm({
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const [selectedPlayerId, setSelectedPlayerId] = useState("");
   const [selectedRating, setSelectedRating] = useState<number | null>(null);
-  const disabled = !ratingOpen || playerOptions.length === 0 || isPending;
+  const disabled = !ratingOpen || !isLoggedIn || playerOptions.length === 0 || isPending;
   const canSubmit = !disabled && selectedPlayerId !== "" && selectedRating != null;
 
   function showToast(message: string, type: "success" | "error") {
@@ -206,6 +211,18 @@ export function SetRatingForm({
       <input type="hidden" name="setId" value={setId} />
       <input type="hidden" name="playerId" value={selectedPlayerId} />
       <input type="hidden" name="rating" value={selectedRating ?? ""} />
+
+      {!isLoggedIn ? (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface-muted)] px-3 py-2.5">
+          <p className="text-sm font-semibold text-[var(--ui-muted)]">평점을 남기려면 로그인이 필요합니다.</p>
+          <Link
+            href={loginHref}
+            className="shrink-0 rounded-lg bg-[var(--ui-ink)] px-3 py-1.5 text-sm font-bold text-[var(--ui-surface)] transition-opacity hover:opacity-85"
+          >
+            로그인
+          </Link>
+        </div>
+      ) : null}
 
       <div className="flex flex-col gap-2">
         {[

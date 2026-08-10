@@ -337,6 +337,7 @@ type FanRatingRow = {
   rating: number;
   review: string | null;
   created_at: string;
+  author_id: string | null;
 };
 
 export type FanPogVote = {
@@ -645,7 +646,11 @@ function mapPlayerVideo(row: PlayerVideoRow): PlayerVideo {
   };
 }
 
-function mapFanRating(row: FanRatingRow): FanRating {
+function mapFanRating(
+  row: FanRatingRow,
+  authorNickname: string | null = null,
+  authorProfileImageUrl: string | null = null,
+): FanRating {
   return {
     id: row.id,
     setId: row.set_id,
@@ -655,7 +660,32 @@ function mapFanRating(row: FanRatingRow): FanRating {
     rating: Number(row.rating),
     review: row.review ?? "",
     createdAt: row.created_at,
+    authorId: row.author_id,
+    authorNickname,
+    authorProfileImageUrl,
   };
+}
+
+async function mapFanRatingsWithAuthors(rows: FanRatingRow[]): Promise<FanRating[]> {
+  const authorIds = [...new Set(rows.flatMap((row) => (row.author_id ? [row.author_id] : [])))];
+  if (authorIds.length === 0) return rows.map((row) => mapFanRating(row));
+
+  const { data, error } = await createSupabaseServerClient()
+    .from("profiles")
+    .select("id, nickname, profile_image_url")
+    .in("id", authorIds);
+  if (error) throw error;
+
+  const profiles = new Map(
+    ((data ?? []) as { id: string; nickname: string; profile_image_url: string | null }[]).map((profile) => [
+      profile.id,
+      profile,
+    ]),
+  );
+  return rows.map((row) => {
+    const profile = row.author_id ? profiles.get(row.author_id) : undefined;
+    return mapFanRating(row, profile?.nickname ?? null, profile?.profile_image_url ?? null);
+  });
 }
 
 async function getTeamStandingsBase(tournamentId?: string): Promise<TeamStanding[]> {
@@ -1665,14 +1695,14 @@ async function getFanRatingsBase() {
   return fromSupabase(async () => {
     const { data, error } = await createSupabaseServerClient()
       .from("fan_ratings")
-      .select("id, set_id, match_id, player_id, team_id, rating, review, created_at")
+      .select("id, set_id, match_id, player_id, team_id, rating, review, created_at, author_id")
       .order("created_at", { ascending: false });
 
     if (error) {
       throw error;
     }
 
-    return (data as FanRatingRow[]).map(mapFanRating);
+    return mapFanRatingsWithAuthors(data as FanRatingRow[]);
   }, []);
 }
 
@@ -1680,7 +1710,7 @@ async function getFanRatingsByMatchIdBase(matchId: string) {
   return fromSupabase(async () => {
     const { data, error } = await createSupabaseServerClient()
       .from("fan_ratings")
-      .select("id, set_id, match_id, player_id, team_id, rating, review, created_at")
+      .select("id, set_id, match_id, player_id, team_id, rating, review, created_at, author_id")
       .eq("match_id", matchId)
       .order("created_at", { ascending: false });
 
@@ -1688,7 +1718,7 @@ async function getFanRatingsByMatchIdBase(matchId: string) {
       throw error;
     }
 
-    return (data as FanRatingRow[]).map(mapFanRating);
+    return mapFanRatingsWithAuthors(data as FanRatingRow[]);
   }, []);
 }
 
@@ -1696,7 +1726,7 @@ async function getFanRatingsByTeamIdBase(teamId: string) {
   return fromSupabase(async () => {
     const { data, error } = await createSupabaseServerClient()
       .from("fan_ratings")
-      .select("id, set_id, match_id, player_id, team_id, rating, review, created_at")
+      .select("id, set_id, match_id, player_id, team_id, rating, review, created_at, author_id")
       .eq("team_id", teamId)
       .order("created_at", { ascending: false });
 
@@ -1704,7 +1734,7 @@ async function getFanRatingsByTeamIdBase(teamId: string) {
       throw error;
     }
 
-    return (data as FanRatingRow[]).map(mapFanRating);
+    return mapFanRatingsWithAuthors(data as FanRatingRow[]);
   }, []);
 }
 
