@@ -6,6 +6,7 @@
 // - LP는 로그인 작성자에게만 반영한다.
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { after } from "next/server";
 
 import { isCurrentUserAdmin } from "@/lib/auth/admin";
@@ -16,6 +17,13 @@ import { getBoard } from "@/lib/community/boards";
 import { screenCommunityText } from "@/lib/community/ai-moderation";
 import { findProfanity, maskProfanity } from "@/lib/community/content-filter";
 import { extractPlainText } from "@/lib/community/extract-thumbnail";
+import {
+  getCommentMaxLengthForRequest,
+  getCommunityPostTextLength,
+  POST_SERIALIZED_MAX_LENGTH,
+  POST_TEXT_MAX_LENGTH,
+  POST_TITLE_MAX_LENGTH,
+} from "@/lib/community/limits";
 import { AI_MODERATOR_NAME } from "@/lib/community/moderation-labels";
 import { sendDiscordCommunityModerationAlert } from "@/lib/notify/discord";
 import { isCommunityUserSanctioned } from "@/lib/data/community-users";
@@ -90,6 +98,27 @@ function postPath(scope: BoardScope, teamSlug: string | undefined, postId: strin
   return scope === "team" && teamSlug
     ? `/fan/${teamSlug}/community/post/${postId}`
     : `/community/post/${postId}`;
+}
+
+async function requestCommentMaxLength(): Promise<number> {
+  const requestHeaders = await headers();
+  return getCommentMaxLengthForRequest(
+    requestHeaders.get("user-agent"),
+    requestHeaders.get("sec-ch-ua-mobile"),
+  );
+}
+
+function postLengthError(title: string, content: string): ActionResult | null {
+  if (title.length > POST_TITLE_MAX_LENGTH) {
+    return { ok: false, error: `제목은 ${POST_TITLE_MAX_LENGTH}자까지 입력할 수 있습니다.` };
+  }
+  if (content.length > POST_SERIALIZED_MAX_LENGTH) {
+    return { ok: false, error: "본문의 서식 또는 첨부 정보가 너무 큽니다." };
+  }
+  if (getCommunityPostTextLength(content) > POST_TEXT_MAX_LENGTH) {
+    return { ok: false, error: `본문은 ${POST_TEXT_MAX_LENGTH.toLocaleString("ko-KR")}자까지 입력할 수 있습니다.` };
+  }
+  return null;
 }
 
 /**
@@ -220,6 +249,8 @@ export async function createPostAction(input: {
   const content = input.content.trim();
   if (!title) return { ok: false, error: "제목을 입력하세요." };
   if (!content) return { ok: false, error: "내용을 입력하세요." };
+  const lengthError = postLengthError(title, content);
+  if (lengthError) return lengthError;
 
   const profanity = profanityError({ title, editorContent: content });
   if (profanity) return { ok: false, error: profanity };
@@ -300,6 +331,8 @@ export async function updatePostAction(input: {
   const content = input.content.trim();
   if (!title) return { ok: false, error: "제목을 입력하세요." };
   if (!content) return { ok: false, error: "내용을 입력하세요." };
+  const lengthError = postLengthError(title, content);
+  if (lengthError) return lengthError;
 
   const profanity = profanityError({ title, editorContent: content });
   if (profanity) return { ok: false, error: profanity };
@@ -355,7 +388,10 @@ export async function createCommentAction(input: {
 
   const content = input.content.trim();
   if (!content) return { ok: false, error: "댓글 내용을 입력하세요." };
-  if (content.length > 5000) return { ok: false, error: "댓글은 5,000자까지 입력할 수 있습니다." };
+  const maxLength = await requestCommentMaxLength();
+  if (content.length > maxLength) {
+    return { ok: false, error: `댓글은 ${maxLength}자까지 입력할 수 있습니다.` };
+  }
 
   const profanity = profanityError({ plainText: content });
   if (profanity) return { ok: false, error: profanity };
@@ -456,7 +492,10 @@ export async function updateGuestCommentAction(input: {
 }): Promise<ActionResult> {
   const content = input.content.trim();
   if (!content) return { ok: false, error: "댓글 내용을 입력해주세요." };
-  if (content.length > 5000) return { ok: false, error: "댓글은 5,000자까지 입력할 수 있습니다." };
+  const maxLength = await requestCommentMaxLength();
+  if (content.length > maxLength) {
+    return { ok: false, error: `댓글은 ${maxLength}자까지 입력할 수 있습니다.` };
+  }
   const profanity = profanityError({ plainText: content });
   if (profanity) return { ok: false, error: profanity };
 

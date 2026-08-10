@@ -8,8 +8,8 @@ import { useToast } from "@/components/ui/toast";
 import { GuestIdentityFields } from "@/components/community/guest-identity-fields";
 import { createCommentAction } from "@/lib/community/actions";
 import type { BoardScope } from "@/lib/community/boards";
+import { useCommentMaxLength } from "@/components/community/use-comment-max-length";
 
-const MAX_LENGTH = 5000;
 const EMOJIS = ["😀", "😂", "😍", "😮", "😢", "😡", "👍", "👏", "🔥", "🎉"];
 
 export function CommentForm({
@@ -33,6 +33,7 @@ export function CommentForm({
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const maxLength = useCommentMaxLength();
 
   const appendEmoji = (emoji: string) => {
     const textarea = textareaRef.current;
@@ -41,7 +42,7 @@ export function CommentForm({
     const next =
       `${content.slice(0, start)}${emoji}${content.slice(end)}`.slice(
         0,
-        MAX_LENGTH,
+        maxLength,
       );
     setContent(next);
     setEmojiOpen(false);
@@ -110,7 +111,7 @@ export function CommentForm({
             }
           }}
           rows={parentId ? 3 : 4}
-          maxLength={MAX_LENGTH}
+          maxLength={maxLength}
           required
           placeholder="댓글을 입력해 주세요."
           className="block w-full resize-none border-0 bg-transparent p-0 text-base leading-7 text-[var(--ui-text)] outline-none placeholder:text-[var(--ui-muted)]"
@@ -146,11 +147,11 @@ export function CommentForm({
             <p className="text-[13px] text-[var(--ui-muted)]">{message}</p>
           ) : null}
           <span className="ml-auto text-[13px] tabular-nums text-[var(--ui-muted)]">
-            {content.length.toLocaleString("ko-KR")}/5,000자
+            {content.length.toLocaleString("ko-KR")}/{maxLength.toLocaleString("ko-KR")}자
           </span>
           <Button
             type="submit"
-            disabled={pending || content.trim().length === 0}
+            disabled={pending || content.trim().length === 0 || content.length > maxLength}
             variant="secondary"
           >
             {pending ? "등록 중" : "등록"}

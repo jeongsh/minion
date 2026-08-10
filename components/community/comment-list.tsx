@@ -14,6 +14,7 @@ import { deleteGuestCommentAction, updateGuestCommentAction } from "@/lib/commun
 import type { BoardScope } from "@/lib/community/boards";
 import { blindLabel } from "@/lib/community/moderation-labels";
 import type { CommunityCommentItem, ReactionState } from "@/lib/community/types";
+import { useCommentMaxLength } from "@/components/community/use-comment-max-length";
 
 export function CommentList({ comments, commentReactions, scope, teamSlug, viewerId, currentGuestKey }: { comments: CommunityCommentItem[]; commentReactions: Record<string, ReactionState>; scope: BoardScope; teamSlug?: string; viewerId?: string | null; currentGuestKey?: string | null }) {
   const [replyTo, setReplyTo] = useState<string | null>(null);
@@ -22,6 +23,7 @@ export function CommentList({ comments, commentReactions, scope, teamSlug, viewe
   const [pending, startTransition] = useTransition();
   const router = useRouter();
   const { showToast } = useToast();
+  const maxLength = useCommentMaxLength();
   const roots = comments.filter((comment) => !comment.parentId);
   const repliesByParent = new Map<string, CommunityCommentItem[]>();
   comments.filter((comment) => comment.parentId).forEach((comment) => {
@@ -54,7 +56,7 @@ export function CommentList({ comments, commentReactions, scope, teamSlug, viewe
 
   const beginGuestEdit = (comment: CommunityCommentItem) => {
     setEditingId(comment.id);
-    setEditingContent(comment.content);
+    setEditingContent(comment.content.slice(0, maxLength));
     setReplyTo(null);
   };
 
@@ -124,13 +126,14 @@ export function CommentList({ comments, commentReactions, scope, teamSlug, viewe
                 value={editingContent}
                 onChange={(event) => setEditingContent(event.target.value)}
                 rows={4}
-                maxLength={5000}
+                maxLength={maxLength}
                 className="block w-full resize-none bg-transparent text-base leading-7 text-[var(--ui-text)] outline-none"
                 aria-label="댓글 수정"
               />
-              <div className="mt-2 flex justify-end gap-2">
+              <div className="mt-2 flex items-center justify-end gap-2">
+                <span className="mr-auto text-[13px] tabular-nums text-[var(--ui-muted)]">{editingContent.length.toLocaleString("ko-KR")}/{maxLength.toLocaleString("ko-KR")}자</span>
                 <button type="button" disabled={pending} onClick={() => setEditingId(null)} className="h-8 rounded-[var(--ui-control-radius)] px-3 text-[13px] font-semibold text-[var(--ui-muted)] hover:bg-[var(--ui-surface-muted)]">취소</button>
-                <button type="button" disabled={pending || !editingContent.trim()} onClick={() => saveGuestEdit(comment)} className="h-8 rounded-[var(--ui-control-radius)] bg-[var(--ui-ink)] px-3 text-[13px] font-semibold text-[var(--ui-surface)] disabled:opacity-50">{pending ? "저장 중" : "저장"}</button>
+                <button type="button" disabled={pending || !editingContent.trim() || editingContent.length > maxLength} onClick={() => saveGuestEdit(comment)} className="h-8 rounded-[var(--ui-control-radius)] bg-[var(--ui-ink)] px-3 text-[13px] font-semibold text-[var(--ui-surface)] disabled:opacity-50">{pending ? "저장 중" : "저장"}</button>
               </div>
             </div>
           ) : comment.blindedAt ? (

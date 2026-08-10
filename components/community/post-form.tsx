@@ -9,6 +9,11 @@ import { useNavigationTransition } from "@/components/navigation/navigation-tran
 import { Button } from "@/components/ui/button";
 import { createPostAction, updatePostAction } from "@/lib/community/actions";
 import type { BoardDef, BoardScope } from "@/lib/community/boards";
+import {
+  getCommunityPostTextLength,
+  POST_TEXT_MAX_LENGTH,
+  POST_TITLE_MAX_LENGTH,
+} from "@/lib/community/limits";
 
 function isEmptyDoc(json: string): boolean {
   try {
@@ -63,6 +68,7 @@ export function PostForm({
   const [boardType, setBoardType] = useState(defaultCategory);
   const [title, setTitle] = useState(initialTitle);
   const [content, setContent] = useState(initialContent);
+  const [contentTextLength, setContentTextLength] = useState(() => getCommunityPostTextLength(initialContent));
   const [isNotice, setIsNotice] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -78,6 +84,10 @@ export function PostForm({
     }
     if (isEmptyDoc(content)) {
       setMessage("내용을 입력하세요.");
+      return;
+    }
+    if (contentTextLength > POST_TEXT_MAX_LENGTH) {
+      setMessage(`본문은 ${POST_TEXT_MAX_LENGTH.toLocaleString("ko-KR")}자까지 입력할 수 있습니다.`);
       return;
     }
 
@@ -141,6 +151,7 @@ export function PostForm({
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
+          maxLength={POST_TITLE_MAX_LENGTH}
           required
           placeholder="제목을 입력하세요"
           className="min-w-0 flex-1 bg-[var(--ui-surface)] px-[13px] py-[10px] text-base font-semibold text-[var(--ui-ink)] outline-none placeholder:font-normal placeholder:text-[var(--ui-muted)]"
@@ -149,7 +160,18 @@ export function PostForm({
 
       <div className="flex flex-col gap-1">
         <label className="sr-only">내용</label>
-        <CommunityEditor content={content} onChange={setContent} allowMedia={!isGuest} placeholder="내용을 입력하세요" />
+        <CommunityEditor
+          content={content}
+          onChange={(nextContent) => {
+            setContent(nextContent);
+            setContentTextLength(getCommunityPostTextLength(nextContent));
+          }}
+          allowMedia={!isGuest}
+          placeholder="내용을 입력하세요"
+        />
+        <p className={`text-right text-[13px] tabular-nums ${contentTextLength > POST_TEXT_MAX_LENGTH ? "text-red-500" : "text-[var(--ui-muted)]"}`}>
+          {contentTextLength.toLocaleString("ko-KR")}/{POST_TEXT_MAX_LENGTH.toLocaleString("ko-KR")}자
+        </p>
       </div>
 
       {!postId && canSetNotice ? (
@@ -171,7 +193,7 @@ export function PostForm({
           <Button
             type="submit"
             variant="neutral"
-            disabled={pending}
+            disabled={pending || contentTextLength > POST_TEXT_MAX_LENGTH}
             className="min-w-24"
           >
             {postId ? "수정" : "등록"}
