@@ -38,6 +38,13 @@ function numberValue(value: number | null | undefined) {
   return value == null || Number.isNaN(value) ? "-" : Math.round(value).toLocaleString("ko-KR");
 }
 
+function compactNumberValue(value: number | null | undefined) {
+  if (value == null || Number.isNaN(value)) return "-";
+  if (Math.abs(value) >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
+  if (Math.abs(value) >= 1_000) return `${(value / 1_000).toFixed(1)}K`;
+  return Math.round(value).toLocaleString("ko-KR");
+}
+
 function championImageUrl(champion: ChampionLike | undefined) {
   if (!champion) return "";
   if (champion.imageUrl) return champion.imageUrl;
@@ -49,10 +56,10 @@ function ChampionCell({ row }: { row: ChampionUsageRow }) {
   if (!row.champion) return <span className="text-[var(--ui-muted)]">-</span>;
 
   return (
-    <span className="inline-flex min-w-0 items-center gap-2">
+    <span className="flex min-w-0 items-center justify-center gap-2 sm:justify-start">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={championImageUrl(row.champion)} alt="" className="h-7 w-7 shrink-0 rounded-md object-cover sm:h-8 sm:w-8 lg:h-9 lg:w-9" />
-      <span className="truncate font-semibold text-[var(--ui-ink)]">{championLabel(row.champion)}</span>
+      <span className="hidden truncate font-semibold text-[var(--ui-ink)] sm:inline">{championLabel(row.champion)}</span>
     </span>
   );
 }
@@ -76,15 +83,15 @@ export function ChampionUsageTable({ rows, initialRows = 5 }: { rows: ChampionUs
         <div className="overflow-hidden rounded-md bg-[var(--ui-surface)]">
           <table className="w-full table-fixed border-collapse text-left text-xs lg:text-sm">
             <colgroup>
-              <col className="w-[18%]" />
-              <col className="w-[9%]" />
-              <col className="w-[9%]" />
-              <col className="w-[9%]" />
-              <col className="w-[12%]" />
-              <col className="w-[11%]" />
-              <col className="w-[10%]" />
+              <col className="w-[16%] sm:w-[18%]" />
+              <col className="w-[10%] sm:w-[9%]" />
+              <col className="w-[11%] sm:w-[9%]" />
+              <col className="w-[11%] sm:w-[9%]" />
+              <col className="w-[16%] sm:w-[12%]" />
+              <col className="w-[12%] sm:w-[11%]" />
+              <col className="w-[12%] sm:w-[10%]" />
               <col className="hidden w-[11%] sm:table-column" />
-              <col className="w-[11%]" />
+              <col className="w-[12%] sm:w-[11%]" />
             </colgroup>
             <thead>
               <tr className="h-10 bg-[color-mix(in_srgb,var(--ui-ink)_14%,var(--ui-surface))] text-xs font-semibold leading-tight text-[var(--ui-muted)]">
@@ -105,11 +112,14 @@ export function ChampionUsageTable({ rows, initialRows = 5 }: { rows: ChampionUs
             <tbody className="divide-y divide-[var(--ui-border)] bg-[var(--ui-surface)]">
               {visibleRows.map((row, index) => (
                 <tr key={row.champion?.id ?? index} className="align-middle transition-colors hover:bg-[var(--ui-surface-muted)]">
-                  <td className="px-1.5 py-2 sm:px-2 lg:px-3"><ChampionCell row={row} /></td>
+                  <td className="px-1 py-2 sm:px-2 lg:px-3"><ChampionCell row={row} /></td>
                   <td className="px-1 py-2 text-center tabular-nums text-[var(--ui-ink)] sm:px-2 lg:px-3">{row.lines.length}</td>
                   <td className="px-1 py-2 text-center font-semibold tabular-nums text-[var(--tp)] sm:px-2 lg:px-3">{percentValue(row.winRate)}</td>
                   <td className="px-1 py-2 text-center tabular-nums text-[var(--ui-ink)] sm:px-2 lg:px-3">{statValue(row.stats?.kda, 2)}</td>
-                  <td className="px-1 py-2 text-center tabular-nums text-[var(--ui-text)] sm:px-2 lg:px-3">{numberValue(row.avgDamage)}</td>
+                  <td className="px-1 py-2 text-center tabular-nums text-[var(--ui-text)] sm:px-2 lg:px-3">
+                    <span className="sm:hidden">{compactNumberValue(row.avgDamage)}</span>
+                    <span className="hidden sm:inline">{numberValue(row.avgDamage)}</span>
+                  </td>
                   <td className="px-1 py-2 text-center tabular-nums text-[var(--ui-text)] sm:px-2 lg:px-3">{statValue(row.stats?.dpm, 1)}</td>
                   <td className="px-1 py-2 text-center tabular-nums text-[var(--ui-text)] sm:px-2 lg:px-3">{statValue(row.stats?.csm, 1)}</td>
                   <td className="hidden px-1 py-2 text-center tabular-nums text-[var(--ui-text)] sm:table-cell sm:px-2 lg:px-3">{row.avgRating}</td>
