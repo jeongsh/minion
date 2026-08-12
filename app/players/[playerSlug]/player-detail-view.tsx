@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Star } from "lucide-react";
 import { PlayerSocialLinks } from "@/components/domain/player-social-links";
 import { PageHeader } from "@/components/ui/page-header";
 import { AdSlot } from "@/components/ui/ad-slot";
@@ -10,9 +9,7 @@ import { uniqueDdragonVersionsForPatches } from "@/lib/ddragon";
 import { fetchRuneCatalog } from "@/lib/runes";
 import { fetchSpellCatalog } from "@/lib/spells";
 import {
-  getPlayerAwards,
   getPlayerBySlug,
-  getPlayerCareerHistories,
   getPlayerPomCount,
   getPlayerStatLines,
 } from "@/lib/data/lck";
@@ -21,7 +18,7 @@ import {
   getPlayerPageSharedData,
 } from "@/lib/data/player-cache";
 import { aggregatePlayerStatLine, calculatePlayerStats, type PlayerRadarBenchmark } from "@/lib/stats";
-import type { FanRating, Match, Player, PlayerCareerHistory, PlayerStatLine, SetResult, Team, TeamAward, Tournament } from "@/lib/types";
+import type { FanRating, Match, PlayerStatLine, SetResult, Tournament } from "@/lib/types";
 import {
   filterMatchesBySegment,
   filterSetsByMatches,
@@ -31,19 +28,10 @@ import {
 } from "@/lib/tournament-filters";
 import { fanPogPlayerIdForSet } from "@/lib/view-data";
 import { ChampionUsageTable } from "./champion-usage-table";
+import { FanReviewList, type FanReviewItem } from "./fan-review-list";
 import { RecentMatchHistoryModal, RecentMatchSetRows } from "./recent-match-history-modal";
 import type { Crumb } from "@/components/layout/breadcrumb";
 
-const PLAYER_AWARD_META: Record<string, { label: string }> = {
-  lck_finals_mvp: { label: "LCK Finals MVP" },
-  worlds_mvp: { label: "Worlds MVP" },
-  msi_mvp: { label: "MSI MVP" },
-  all_lck_first: { label: "All-LCK 1팀" },
-  all_lck_second: { label: "All-LCK 2팀" },
-  rookie_of_year: { label: "신인상" },
-};
-
-const POSITIONS: Player["position"][] = ["TOP", "JGL", "MID", "BOT", "SUP"];
 const PLAYER_PAGE_SEGMENTS: Array<SeasonSegmentKey | "all"> = [
   "all",
   "lck-cup",
@@ -123,6 +111,18 @@ function averageRating(ratings: FanRating[]) {
   return (ratings.reduce((sum, rating) => sum + rating.rating, 0) / ratings.length).toFixed(1);
 }
 
+function formatReviewDate(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  return new Intl.DateTimeFormat("ko-KR", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
 function PlayerImage({
   src,
   alt,
@@ -142,22 +142,22 @@ function PlayerImage({
   );
 }
 
-function MetricCard({
+function SummaryMetric({
   label,
   value,
   helper,
-  className = "",
 }: {
   label: string;
   value: React.ReactNode;
   helper?: React.ReactNode;
-  className?: string;
 }) {
   return (
-    <div className={`rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 py-3 sm:rounded-2xl sm:p-4 ${className}`}>
-      <p className="text-[13px] font-semibold text-[var(--ui-muted)] sm:text-sm">{label}</p>
-      <p className="mt-1 text-xl font-bold leading-none tracking-tight text-[var(--ui-ink)] sm:mt-2 sm:text-2xl">{value}</p>
-      {helper ? <p className="mt-1 text-[12px] text-[var(--ui-muted)] sm:mt-1.5 sm:text-[13px]">{helper}</p> : null}
+    <div className="min-w-0 px-2 py-2.5 sm:px-4">
+      <div className="min-w-0 sm:flex sm:items-baseline sm:gap-2">
+        <span className="block truncate text-[11px] font-semibold text-[var(--ui-muted)] sm:text-[13px]">{label}</span>
+        <span className="mt-1 block min-w-0 truncate text-base font-bold leading-none tabular-nums text-[var(--ui-ink)] sm:mt-0 sm:text-xl">{value}</span>
+      </div>
+      {helper ? <p className="mt-1 hidden truncate text-[12px] text-[var(--ui-muted)] sm:block">{helper}</p> : null}
     </div>
   );
 }
@@ -315,71 +315,6 @@ function PlayerSegmentChips({
   );
 }
 
-function PlayerAwardHistory({ awards }: { awards: TeamAward[] }) {
-  if (awards.length === 0) return null;
-
-  return (
-    <ul className="flex flex-col">
-      {awards.map((award, i) => {
-        const meta = PLAYER_AWARD_META[award.awardType];
-        return (
-          <li key={award.id} className={`flex items-center gap-3 py-2.5 ${i !== 0 ? "border-t border-[var(--ui-border)]" : ""}`}>
-            <span className="w-9 shrink-0 text-sm font-bold tabular-nums text-[var(--ui-ink)]">{award.year}</span>
-            <span className="text-sm font-semibold text-[var(--ui-ink)]">{meta?.label ?? award.awardType}</span>
-            <span className="ml-auto truncate text-[13px] text-[var(--ui-muted)]">{award.tournamentName}</span>
-          </li>
-        );
-      })}
-    </ul>
-  );
-}
-
-function CareerTimeline({
-  histories,
-  teams,
-  currentTeamId,
-}: {
-  histories: PlayerCareerHistory[];
-  teams: Team[];
-  currentTeamId?: string | null;
-}) {
-  if (histories.length === 0) {
-    return <p className="text-[13px] text-[var(--ui-muted)]">경력 데이터가 없습니다.</p>;
-  }
-
-  function dateLabel(date: string | null) {
-    if (!date) return "현재";
-    return `${new Date(date).getFullYear()}`;
-  }
-
-  return (
-    <div className="relative pl-4">
-      <div className="absolute left-[3px] top-1.5 h-[calc(100%-0.75rem)] w-px bg-[var(--ui-border)]" />
-      <ul className="flex flex-col gap-3">
-        {histories.map((entry) => {
-          const team = entry.teamId ? teams.find((t) => t.id === entry.teamId) : null;
-          const teamName = team?.shortName ?? entry.teamName ?? "알 수 없음";
-          const isCurrent = !entry.endDate || (entry.teamId ? entry.teamId === currentTeamId : false);
-          return (
-            <li key={entry.id} className="relative">
-              <span
-                className={`absolute -left-4 top-1 h-[7px] w-[7px] rounded-full ${isCurrent ? "bg-[var(--tp)]" : "bg-[var(--ui-muted)]"}`}
-              />
-              <div className="flex items-baseline justify-between gap-2">
-                <span className="text-sm font-semibold text-[var(--ui-ink)]">{teamName}</span>
-                <span className="text-[13px] text-[var(--ui-muted)]">
-                  {dateLabel(entry.startDate)}–{dateLabel(entry.endDate)}
-                </span>
-              </div>
-              <p className="mt-0.5 text-[13px] text-[var(--ui-muted)]">{entry.position}</p>
-            </li>
-          );
-        })}
-      </ul>
-    </div>
-  );
-}
-
 export async function PlayerDetailView({
   playerSlug,
   segment,
@@ -400,21 +335,15 @@ export async function PlayerDetailView({
     notFound();
   }
 
-  const [
-    sharedData,
-    playerOwnLines,
-    awards,
-    pomCount,
-    careerHistories,
-  ] = await Promise.all([
+  const [sharedData, playerOwnLines, pomCount] = await Promise.all([
     getPlayerPageSharedData(),
     // 이 선수 본인의 스탯라인만(리그 전체가 아님) — 구간 탭 표시 여부 판단용.
     getPlayerStatLines(undefined, player.id),
-    getPlayerAwards(player.name, player.id),
     getPlayerPomCount(player.id),
-    getPlayerCareerHistories([player.id]),
   ]);
   const { teams, players, matches, sets, fanRatings, tournaments, champions, standings } = sharedData;
+  const matchById = new Map(matches.map((match) => [match.id, match]));
+  const setById = new Map(sets.map((set) => [set.id, set]));
 
   const visibleSegments = PLAYER_PAGE_SEGMENTS.filter((segment) =>
     segmentHasPlayerData(segment, playerOwnLines, matches, tournaments, sets),
@@ -436,9 +365,6 @@ export async function PlayerDetailView({
   const radarBenchmark = segmentData.radarBenchmarkByPosition[player.position];
   const aggregateStats = aggregateLines(playerLines, radarBenchmark);
   const playerTeam = teams.find((team) => team.id === player.teamId);
-  const sameTeamPlayers = players
-    .filter((item) => item.teamId === player.teamId && item.id !== player.id)
-    .sort((a, b) => POSITIONS.indexOf(a.position) - POSITIONS.indexOf(b.position));
   const teamStanding = standings.find((standing) => standing.teamId === player.teamId);
   const teamRecent = segmentMatches
     .filter((match) => match.teamAId === player.teamId || match.teamBId === player.teamId)
@@ -482,9 +408,9 @@ export async function PlayerDetailView({
         stats,
         wins,
         winRate: lines.length === 0 ? null : (wins / lines.length) * 100,
+        avgDamage: lines.length === 0 ? null : lines.reduce((sum, line) => sum + line.damageToChampions, 0) / lines.length,
         avgRating: averageRating(championRatings),
         fanPogCount: championPogCount,
-        recentDate: lines.sort((a, b) => new Date(b.match.matchDate).getTime() - new Date(a.match.matchDate).getTime())[0]?.match.matchDate,
         pickCount,
         banCount,
         pickBanRate: segmentSets.length === 0 ? null : ((pickCount + banCount) / segmentSets.length) * 100,
@@ -516,8 +442,6 @@ export async function PlayerDetailView({
     playerLines.length === 0
       ? "-"
       : `${playerLines.reduce((sum, line) => sum + line.kills, 0)} / ${playerLines.reduce((sum, line) => sum + line.deaths, 0)} / ${playerLines.reduce((sum, line) => sum + line.assists, 0)}`;
-  // 팀원 칩(포지션 약자 + 닉네임)만 노출한다.
-  const teammates = sameTeamPlayers.map((teammate) => ({ teammate }));
   const itemVersions = uniqueDdragonVersionsForPatches(playerLines.map((line) => line.set.patch));
   const versionedAssets = await Promise.all(
     itemVersions.map(async (version) => {
@@ -529,9 +453,22 @@ export async function PlayerDetailView({
   const runeCatalogByVersion = Object.fromEntries(versionedAssets.map(([version, assets]) => [version, assets.runeCatalog]));
 
   const fanRatingValue = averageRating(playerRatings);
-  const filledStars = fanRatingValue === "-" ? 0 : Math.round(Number(fanRatingValue));
-  const reviewQuote = playerRatings.find((rating) => rating.review)?.review;
-  const reviewCount = playerRatings.filter((rating) => rating.review).length;
+  const playerReviews = playerRatings
+    .filter((rating) => rating.review.trim())
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const fanReviewItems: FanReviewItem[] = playerReviews.map((rating) => {
+    const match = matchById.get(rating.matchId);
+    const set = setById.get(rating.setId);
+
+    return {
+      rating,
+      meta: [
+        formatReviewDate(rating.createdAt),
+        match?.name,
+        set ? `${set.setNumber}세트` : null,
+      ].filter(Boolean).join(" · "),
+    };
+  });
 
   return (
     <main
@@ -595,12 +532,6 @@ export async function PlayerDetailView({
                 팀 상세 보기
               </Link>
             ) : null}
-            <Link
-              href="#teammates"
-              className="rounded-full border border-[var(--ui-border)] px-4 py-2 text-sm font-semibold text-[var(--ui-text)] transition-colors hover:bg-[var(--ui-card-hover)]"
-            >
-              팀원 보기
-            </Link>
           </div>
         </div>
 
@@ -643,68 +574,28 @@ export async function PlayerDetailView({
         {/* 4. 시즌 요약 */}
         <section>
           <SectionHeading caption={playerSegmentLabel(activeSegment)}>시즌 요약</SectionHeading>
-          <div className="grid grid-cols-2 gap-2 sm:gap-3 min-[1200px]:grid-cols-4">
-            <MetricCard label="출전 세트 수" value={playerLines.length} />
-            <MetricCard
+          <div className="grid grid-cols-5 divide-x divide-[var(--ui-border)] overflow-hidden rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)]">
+            <SummaryMetric label="출전 세트" value={playerLines.length} />
+            <SummaryMetric
               label="승률"
               value={percentValue(playerLines.length ? (wins / playerLines.length) * 100 : null)}
               helper={`${wins}W ${losses}L`}
             />
-            <MetricCard label="KDA" value={statValue(aggregateStats?.kda, 2)} helper={playerKdaLine} />
-            <MetricCard label="최근 폼" value={statValue(recentStats?.formScore)} />
-          </div>
-        </section>
-
-        {/* 5. 팬 평가는 좁은 화면에서 핵심 기록 뒤로 미룬다. */}
-        <section className="hidden md:block">
-          <SectionHeading>팬 평가</SectionHeading>
-          <div className="grid grid-cols-2 gap-2 sm:gap-3 min-[1200px]:grid-cols-[1.2fr_0.8fr_0.8fr_1.6fr]">
-            <div
-              className="rounded-2xl border border-[var(--ui-border)] p-4"
-              style={{ background: "color-mix(in oklab, var(--tp) 6%, var(--ui-surface))" }}
-            >
-              <p className="text-sm font-semibold text-[var(--ui-muted)]">세트 팬 평점</p>
-              <p className="mt-2 text-2xl font-bold leading-none text-[var(--ui-ink)]">
-                {fanRatingValue}
-                <span className="ml-1 text-sm font-semibold text-[var(--ui-muted)]">/ 5</span>
-              </p>
-              <div className="mt-2 flex items-center gap-1" aria-label={`별점 ${filledStars}점 / 5점`}>
-                {Array.from({ length: 5 }, (_, index) => {
-                  const filled = index < filledStars;
-                  return (
-                    <Star
-                      key={index}
-                      aria-hidden="true"
-                      className={filled ? "text-[var(--tp)]" : "text-[var(--ui-border)]"}
-                      fill={filled ? "currentColor" : "none"}
-                      size={16}
-                      strokeWidth={2}
-                    />
-                  );
-                })}
-              </div>
-            </div>
-            <MetricCard label="팬 POG" value={playerFanPogSetIds.size} />
-            <MetricCard label="공식 POM" value={pomCount} />
-            <div className="flex flex-col rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-4">
-              <p className="text-sm font-semibold text-[var(--ui-muted)]">선수 리뷰</p>
-              <p className="mt-2 line-clamp-3 flex-1 text-[15px] leading-6 text-[var(--ui-text)]">
-                {reviewQuote ? `“${reviewQuote}”` : "팬 평점 리뷰가 아직 충분하지 않습니다."}
-              </p>
-              <p className="mt-3 text-right text-[13px] text-[var(--ui-muted)]">리뷰 {reviewCount}개 · 전체 보기 →</p>
-            </div>
+            <SummaryMetric label="KDA" value={statValue(aggregateStats?.kda, 2)} helper={playerKdaLine} />
+            <SummaryMetric label="최근 폼" value={statValue(recentStats?.formScore)} />
+            <SummaryMetric label="공식 POM" value={pomCount} />
           </div>
         </section>
 
         <AdSlot placement="horizontal" className="hidden h-[60px] md:block xl:h-[90px]" />
 
-        {/* 6. 챔피언 */}
+        {/* 5. 챔피언 */}
         <section>
-          <SectionHeading caption="사용 챔피언">챔피언</SectionHeading>
+          <SectionHeading caption={`전체 ${championRows.length}개`}>챔피언</SectionHeading>
           <ChampionUsageTable rows={championRows} />
         </section>
 
-        {/* 7. 최근 경기 */}
+        {/* 6. 최근 경기 */}
         <section>
           <SectionHeading
             aside={
@@ -736,53 +627,32 @@ export async function PlayerDetailView({
                 officialPomName={row.officialPomName}
                 spellsByVersion={spellsByVersion}
                 runeCatalogByVersion={runeCatalogByVersion}
+                variant="embedded"
               />
             ))
           )}
         </section>
 
-        {/* 8. 커리어 / 수상 / 팀원 */}
-        <div id="teammates" className="grid gap-8 scroll-mt-24 md:grid-cols-3">
-          <section>
-            <h3 className="border-b border-[var(--ui-border)] pb-2 text-base font-bold text-[var(--ui-ink)]">커리어</h3>
-            <div className="mt-4">
-              <CareerTimeline histories={careerHistories} teams={teams} currentTeamId={player.teamId} />
-            </div>
-          </section>
+        {/* 7. 팬 평가 */}
+        <section id="fan-reviews" className="scroll-mt-24">
+          <div className="mb-3 flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
+            <h2 className="home-section-title text-[length:var(--ui-title-size)] text-[var(--ui-ink)]">팬 평가</h2>
+            <span className="text-sm font-semibold text-[var(--ui-muted)]">
+              팬 평점 <span className="font-bold tabular-nums text-[var(--ui-ink)]">{fanRatingValue}</span>
+            </span>
+            <span className="text-sm font-semibold text-[var(--ui-muted)]">
+              팬 POG <span className="font-bold tabular-nums text-[var(--ui-ink)]">{playerFanPogSetIds.size}</span>
+            </span>
+          </div>
 
-          <section>
-            <h3 className="border-b border-[var(--ui-border)] pb-2 text-base font-bold text-[var(--ui-ink)]">수상</h3>
-            <div className="mt-4">
-              {awards.length > 0 ? (
-                <PlayerAwardHistory awards={awards} />
-              ) : (
-                <p className="text-[13px] text-[var(--ui-muted)]">수상 내역이 없습니다.</p>
-              )}
+          {playerReviews.length > 0 ? (
+            <FanReviewList items={fanReviewItems} />
+          ) : (
+            <div className="rounded-xl bg-[var(--ui-card-bg)] p-4 text-base leading-7 text-[var(--ui-muted)]">
+              작성된 선수 리뷰가 아직 없습니다.
             </div>
-          </section>
-
-          <section>
-            <h3 className="border-b border-[var(--ui-border)] pb-2 text-base font-bold text-[var(--ui-ink)]">팀원</h3>
-            <div className="mt-4 flex flex-wrap gap-2">
-              {teammates.length === 0 ? (
-                <p className="text-[13px] text-[var(--ui-muted)]">등록된 팀원이 없습니다.</p>
-              ) : (
-                teammates.map(({ teammate }) => (
-                  <Link
-                    key={teammate.id}
-                    href={`${linkBase}/${teammate.slug}`}
-                    className="fan-roster-chip inline-flex items-center gap-1.5 rounded-full border border-[var(--ui-border)] px-3.5 py-2 transition-colors hover:bg-[var(--ui-card-hover)]"
-                  >
-                    <span className="text-[13px] font-bold" style={{ color: "var(--tp)" }}>
-                      {teammate.position}
-                    </span>
-                    <span className="text-sm font-bold text-[var(--ui-ink)]">{teammate.name}</span>
-                  </Link>
-                ))
-              )}
-            </div>
-          </section>
-        </div>
+          )}
+        </section>
       </div>
     </main>
   );

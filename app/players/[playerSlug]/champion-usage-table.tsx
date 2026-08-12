@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ChevronDown } from "lucide-react";
 import { championLabel } from "@/lib/champions";
 
 type ChampionLike = {
@@ -14,11 +15,11 @@ type ChampionLike = {
 export type ChampionUsageRow = {
   champion: ChampionLike | undefined;
   lines: unknown[];
-  stats: { kda: number } | null;
+  stats: { kda: number; dpm: number; csm: number } | null;
   winRate: number | null;
+  avgDamage: number | null;
   avgRating: string;
   fanPogCount: number;
-  recentDate: string | undefined;
   pickCount: number;
   banCount: number;
   pickBanRate: number | null;
@@ -33,14 +34,8 @@ function statValue(value: number | null | undefined, decimals = 1) {
   return value == null || Number.isNaN(value) ? "-" : value.toFixed(decimals);
 }
 
-function compactDate(value: string | null | undefined) {
-  if (!value) return "-";
-  return new Intl.DateTimeFormat("ko-KR", {
-    timeZone: "Asia/Seoul",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date(value));
+function numberValue(value: number | null | undefined) {
+  return value == null || Number.isNaN(value) ? "-" : Math.round(value).toLocaleString("ko-KR");
 }
 
 function championImageUrl(champion: ChampionLike | undefined) {
@@ -56,7 +51,7 @@ function ChampionCell({ row }: { row: ChampionUsageRow }) {
   return (
     <span className="inline-flex min-w-0 items-center gap-2">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={championImageUrl(row.champion)} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover sm:h-[30px] sm:w-[30px]" />
+      <img src={championImageUrl(row.champion)} alt="" className="h-7 w-7 shrink-0 rounded-md object-cover sm:h-8 sm:w-8 lg:h-9 lg:w-9" />
       <span className="truncate font-semibold text-[var(--ui-ink)]">{championLabel(row.champion)}</span>
     </span>
   );
@@ -76,40 +71,63 @@ export function ChampionUsageTable({ rows, initialRows = 5 }: { rows: ChampionUs
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-0 border-collapse text-left text-[13px] sm:min-w-[42rem] sm:text-sm">
-        <thead>
-          <tr className="border-b border-[var(--ui-border)] text-[12px] font-semibold text-[var(--ui-muted)] sm:text-[13px]">
-            <th scope="col" className="min-w-[7rem] px-2 py-2 font-semibold sm:min-w-[9rem] sm:px-3 sm:py-2.5">챔피언</th>
-            <th scope="col" className="whitespace-nowrap px-2 py-2 text-center font-semibold sm:px-3 sm:py-2.5">사용 세트</th>
-            <th scope="col" className="whitespace-nowrap px-2 py-2 text-center font-semibold sm:px-3 sm:py-2.5">승률</th>
-            <th scope="col" className="whitespace-nowrap px-2 py-2 text-center font-semibold sm:px-3 sm:py-2.5">KDA</th>
-            <th scope="col" className="hidden whitespace-nowrap px-3 py-2.5 text-center font-semibold sm:table-cell">팬평점</th>
-            <th scope="col" className="hidden whitespace-nowrap px-3 py-2.5 text-center font-semibold sm:table-cell">팬 POG</th>
-            <th scope="col" className="hidden whitespace-nowrap px-3 py-2.5 text-center font-semibold sm:table-cell">최근 사용</th>
-          </tr>
-        </thead>
-        <tbody>
-          {visibleRows.map((row, index) => (
-            <tr key={row.champion?.id ?? index} className="border-b border-[var(--ui-border)] align-middle">
-              <td className="min-w-[7rem] px-2 py-2 sm:min-w-[9rem] sm:px-3 sm:py-3"><ChampionCell row={row} /></td>
-              <td className="px-2 py-2 text-center tabular-nums text-[var(--ui-ink)] sm:px-3 sm:py-3">{row.lines.length}</td>
-              <td className="px-2 py-2 text-center font-semibold tabular-nums text-[var(--tp)] sm:px-3 sm:py-3">{percentValue(row.winRate)}</td>
-              <td className="px-2 py-2 text-center tabular-nums text-[var(--ui-ink)] sm:px-3 sm:py-3">{statValue(row.stats?.kda, 2)}</td>
-              <td className="hidden px-3 py-3 text-center tabular-nums text-[var(--ui-text)] sm:table-cell">{row.avgRating}</td>
-              <td className="hidden px-3 py-3 text-center tabular-nums text-[var(--ui-text)] sm:table-cell">{row.fanPogCount}</td>
-              <td className="hidden px-3 py-3 text-center text-[13px] tabular-nums text-[var(--ui-muted)] sm:table-cell">{compactDate(row.recentDate)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div>
+      <div className="rounded-lg bg-[var(--ui-card-bg)] p-2">
+        <div className="overflow-hidden rounded-md bg-[var(--ui-surface)]">
+          <table className="w-full table-fixed border-collapse text-left text-xs lg:text-sm">
+            <colgroup>
+              <col className="w-[18%]" />
+              <col className="w-[9%]" />
+              <col className="w-[9%]" />
+              <col className="w-[9%]" />
+              <col className="w-[12%]" />
+              <col className="w-[11%]" />
+              <col className="w-[10%]" />
+              <col className="hidden w-[11%] sm:table-column" />
+              <col className="w-[11%]" />
+            </colgroup>
+            <thead>
+              <tr className="h-10 bg-[color-mix(in_srgb,var(--ui-ink)_14%,var(--ui-surface))] text-xs font-semibold leading-tight text-[var(--ui-muted)]">
+                <th scope="col" className="px-1.5 font-semibold sm:px-2 lg:px-3">챔피언</th>
+                <th scope="col" className="px-1 text-center font-semibold sm:px-2 lg:px-3">세트</th>
+                <th scope="col" className="px-1 text-center font-semibold sm:px-2 lg:px-3">승률</th>
+                <th scope="col" className="px-1 text-center font-semibold sm:px-2 lg:px-3">KDA</th>
+                <th scope="col" className="px-1 text-center font-semibold sm:px-2 lg:px-3">대미지</th>
+                <th scope="col" className="px-1 text-center font-semibold sm:px-2 lg:px-3">DPM</th>
+                <th scope="col" className="px-1 text-center font-semibold sm:px-2 lg:px-3">CSM</th>
+                <th scope="col" className="hidden px-1 text-center font-semibold sm:table-cell sm:px-2 lg:px-3">팬평점</th>
+                <th scope="col" className="px-1 text-center font-semibold sm:px-2 lg:px-3">
+                  <span className="sm:hidden">POG</span>
+                  <span className="hidden sm:inline">팬 POG</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[var(--ui-border)] bg-[var(--ui-surface)]">
+              {visibleRows.map((row, index) => (
+                <tr key={row.champion?.id ?? index} className="align-middle transition-colors hover:bg-[var(--ui-surface-muted)]">
+                  <td className="px-1.5 py-2 sm:px-2 lg:px-3"><ChampionCell row={row} /></td>
+                  <td className="px-1 py-2 text-center tabular-nums text-[var(--ui-ink)] sm:px-2 lg:px-3">{row.lines.length}</td>
+                  <td className="px-1 py-2 text-center font-semibold tabular-nums text-[var(--tp)] sm:px-2 lg:px-3">{percentValue(row.winRate)}</td>
+                  <td className="px-1 py-2 text-center tabular-nums text-[var(--ui-ink)] sm:px-2 lg:px-3">{statValue(row.stats?.kda, 2)}</td>
+                  <td className="px-1 py-2 text-center tabular-nums text-[var(--ui-text)] sm:px-2 lg:px-3">{numberValue(row.avgDamage)}</td>
+                  <td className="px-1 py-2 text-center tabular-nums text-[var(--ui-text)] sm:px-2 lg:px-3">{statValue(row.stats?.dpm, 1)}</td>
+                  <td className="px-1 py-2 text-center tabular-nums text-[var(--ui-text)] sm:px-2 lg:px-3">{statValue(row.stats?.csm, 1)}</td>
+                  <td className="hidden px-1 py-2 text-center tabular-nums text-[var(--ui-text)] sm:table-cell sm:px-2 lg:px-3">{row.avgRating}</td>
+                  <td className="px-1 py-2 text-center tabular-nums text-[var(--ui-text)] sm:px-2 lg:px-3">{row.fanPogCount}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
       {remainingCount > 0 ? (
         <button
           type="button"
           onClick={() => setVisibleCount(rows.length)}
-          className="mt-2 min-h-9 text-sm font-semibold text-[var(--ui-text)] transition-colors hover:text-[var(--ui-ink)]"
+          className="mt-3 flex h-10 w-full items-center justify-center gap-1.5 rounded-xl bg-[var(--ui-card-bg)] text-sm font-bold text-[var(--ui-ink)] transition-colors hover:bg-[var(--ui-card-hover)]"
         >
-          보기 ({remainingCount}개) →
+          전체보기
+          <ChevronDown aria-hidden="true" className="h-4 w-4" />
         </button>
       ) : null}
     </div>

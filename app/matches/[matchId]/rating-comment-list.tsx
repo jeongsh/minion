@@ -158,7 +158,7 @@ export function RatingCommentList({
                   {item.rating.toFixed(1)}
                 </span>
               </div>
-              <p className="mt-1.5 whitespace-pre-wrap break-words text-[15px] leading-6 text-[var(--ui-text)] [overflow-wrap:anywhere]">{item.review}</p>
+              <p className="mt-1.5 whitespace-pre-wrap break-words text-sm leading-6 text-[var(--ui-text)] [overflow-wrap:anywhere] sm:text-[15px]">{item.review}</p>
               <CommentActions item={item} />
             </div>
           </article>
