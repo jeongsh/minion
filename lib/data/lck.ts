@@ -30,6 +30,7 @@ import type {
   Tournament,
 } from "@/lib/types";
 import { normalizeSetStatus } from "@/lib/set-status";
+import { findProfanity } from "@/lib/community/content-filter";
 import { DEFAULT_TIER, type Tier } from "@/lib/rank/config";
 import { getPublicRankProfiles } from "@/lib/rank/public-profile";
 import { normalizeYoutubeVideo } from "@/lib/youtube";
@@ -340,6 +341,7 @@ type FanRatingRow = {
   review: string | null;
   created_at: string;
   author_id: string | null;
+  blinded_at: string | null;
 };
 
 export type FanPogVote = {
@@ -661,23 +663,63 @@ function mapFanRating(
     playerId: row.player_id,
     teamId: row.team_id,
     rating: Number(row.rating),
-    review: row.review ?? "",
+    review: row.blinded_at || findProfanity(row.review ?? "") ? "" : row.review ?? "",
     createdAt: row.created_at,
     authorId: row.author_id,
     authorNickname,
     authorProfileImageUrl,
     authorTier,
+    honorCount: 0,
+    dislikeCount: 0,
   };
+}
+
+export async function getFanRatingReactionStates(
+  ratingIds: string[],
+  userId: string,
+): Promise<Record<string, "honor" | "dislike">> {
+  if (ratingIds.length === 0) return {};
+
+  const { data, error } = await createSupabaseAdminClient()
+    .from("fan_rating_reactions")
+    .select("rating_id, kind")
+    .in("rating_id", ratingIds)
+    .eq("user_id", userId);
+  if (error) throw error;
+
+  return Object.fromEntries(
+    ((data ?? []) as { rating_id: string; kind: "honor" | "dislike" }[]).map((row) => [
+      row.rating_id,
+      row.kind,
+    ]),
+  );
 }
 
 async function mapFanRatingsWithAuthors(rows: FanRatingRow[]): Promise<FanRating[]> {
   const authorIds = [...new Set(rows.flatMap((row) => (row.author_id ? [row.author_id] : [])))];
-  if (authorIds.length === 0) return rows.map((row) => mapFanRating(row));
+  const ratingIds = rows.map((row) => row.id);
+  const [profiles, reactionResult] = await Promise.all([
+    authorIds.length > 0 ? getPublicRankProfiles(authorIds) : Promise.resolve(new Map()),
+    ratingIds.length > 0
+      ? createSupabaseAdminClient()
+          .from("fan_rating_reactions")
+          .select("rating_id, kind")
+          .in("rating_id", ratingIds)
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+  if (reactionResult.error) throw reactionResult.error;
 
-  const profiles = await getPublicRankProfiles(authorIds);
+  const counts = new Map<string, { honor: number; dislike: number }>();
+  for (const reaction of (reactionResult.data ?? []) as { rating_id: string; kind: "honor" | "dislike" }[]) {
+    const count = counts.get(reaction.rating_id) ?? { honor: 0, dislike: 0 };
+    count[reaction.kind] += 1;
+    counts.set(reaction.rating_id, count);
+  }
   return rows.map((row) => {
     const profile = row.author_id ? profiles.get(row.author_id) : undefined;
-    return mapFanRating(row, profile?.nickname ?? null, profile?.profileImageUrl ?? null, profile?.tier);
+    const rating = mapFanRating(row, profile?.nickname ?? null, profile?.profileImageUrl ?? null, profile?.tier);
+    const count = counts.get(row.id) ?? { honor: 0, dislike: 0 };
+    return { ...rating, honorCount: count.honor, dislikeCount: count.dislike };
   });
 }
 
@@ -1688,7 +1730,7 @@ async function getFanRatingsBase() {
   return fromSupabase(async () => {
     const { data, error } = await createSupabaseServerClient()
       .from("fan_ratings")
-      .select("id, set_id, match_id, player_id, team_id, rating, review, created_at, author_id")
+      .select("id, set_id, match_id, player_id, team_id, rating, review, created_at, author_id, blinded_at")
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -1703,7 +1745,7 @@ async function getFanRatingsByMatchIdBase(matchId: string) {
   return fromSupabase(async () => {
     const { data, error } = await createSupabaseServerClient()
       .from("fan_ratings")
-      .select("id, set_id, match_id, player_id, team_id, rating, review, created_at, author_id")
+      .select("id, set_id, match_id, player_id, team_id, rating, review, created_at, author_id, blinded_at")
       .eq("match_id", matchId)
       .order("created_at", { ascending: false });
 
@@ -1719,7 +1761,7 @@ async function getFanRatingsByTeamIdBase(teamId: string) {
   return fromSupabase(async () => {
     const { data, error } = await createSupabaseServerClient()
       .from("fan_ratings")
-      .select("id, set_id, match_id, player_id, team_id, rating, review, created_at, author_id")
+      .select("id, set_id, match_id, player_id, team_id, rating, review, created_at, author_id, blinded_at")
       .eq("team_id", teamId)
       .order("created_at", { ascending: false });
 

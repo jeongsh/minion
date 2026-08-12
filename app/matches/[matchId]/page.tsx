@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Star } from "lucide-react";
+import { ImageIcon } from "lucide-react";
 
 import { notFound } from "next/navigation";
 
@@ -8,12 +8,12 @@ import { SetVodPlayer } from "@/components/domain/set-vod-player";
 import { SegmentedControl, UnderlineNav, type TabItem } from "@/components/ui/tabs";
 import { AdSlot } from "@/components/ui/ad-slot";
 import { TeamLogo } from "@/components/ui/team-logo";
-import { RankAvatar } from "@/components/rank/rank-avatar";
 import {
   getAllPlayers,
   getAllTeams,
   getChampions,
   getFanRatingsByMatchId,
+  getFanRatingReactionStates,
   getMatchById,
   getMatches,
   getPlayerStatLines,
@@ -23,7 +23,7 @@ import {
   getStages,
   getTournaments,
 } from "@/lib/data/lck";
-import { championImage, championLabel } from "@/lib/champions";
+import { championImage } from "@/lib/champions";
 import type { Champion, FanRating, Match, Player, PlayerStatLine, SetResult, Team } from "@/lib/types";
 import { isMatchLive, matchStatusLabel } from "@/lib/match-display";
 import {
@@ -44,6 +44,7 @@ import { getMatchAiPreview } from "@/lib/match-preview-ai";
 import { MatchPreview } from "./match-preview";
 import { SetDetailContent } from "./sets/[setId]/page";
 import { SetRatingForm } from "./set-rating-form";
+import { RatingCommentList } from "./rating-comment-list";
 
 type MatchTab = "preview" | "data" | "rating" | "video";
 
@@ -214,25 +215,40 @@ function SetSelector({
   sets,
   activeSet,
   tab = "data",
+  snapshotHref,
 }: {
   sets: SetResult[];
   activeSet?: SetResult;
   tab?: Extract<MatchTab, "data" | "rating">;
+  snapshotHref?: string;
 }) {
-  if (sets.length <= 1) return null;
+  if (sets.length <= 1 && !snapshotHref) return null;
 
   return (
-    <div className="sticky top-[var(--ui-header-height)] z-20 -mx-1 bg-[var(--ui-surface)] px-1 py-1.5">
-      <SegmentedControl
-        items={sets.map((set) => ({
-          key: set.id,
-          label: setLabel(set),
-          href: tabHref(tab, set.id),
-        }))}
-        activeKey={activeSet?.id ?? ""}
-        ariaLabel="세트 선택"
-        className="tab-scroll max-w-full overflow-x-auto"
-      />
+    <div className="sticky top-[var(--ui-header-height)] z-30 -mx-1 flex items-center justify-between gap-2 bg-[var(--ui-surface)] px-1 py-1.5">
+      {sets.length > 1 ? (
+        <SegmentedControl
+          items={sets.map((set) => ({
+            key: set.id,
+            label: setLabel(set),
+            href: tabHref(tab, set.id),
+          }))}
+          activeKey={activeSet?.id ?? ""}
+          ariaLabel="세트 선택"
+          className="tab-scroll min-w-0 max-w-full overflow-x-auto"
+        />
+      ) : <span />}
+      {snapshotHref ? (
+        <Link
+          href={snapshotHref}
+          title="공유 스냅샷 보기"
+          aria-label="공유 스냅샷 보기"
+          className="inline-flex h-8 shrink-0 items-center justify-center gap-1 rounded-lg bg-[var(--ui-ink)] px-2 text-[13px] font-normal text-[var(--ui-surface)] shadow-sm transition-opacity hover:opacity-85 sm:px-2.5"
+        >
+          <ImageIcon aria-hidden="true" className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">공유 스냅샷</span>
+        </Link>
+      ) : null}
     </div>
   );
 }
@@ -244,131 +260,6 @@ const positionOrder = new Map<Player["position"], number>(
   ]),
 );
 
-function playerInitial(name: string) {
-  return name.slice(0, 2).toUpperCase();
-}
-
-/** 평균 평점(예: 4.3)을 별 5개로 시각화. 반쪽 단위가 아니라 실제 소수점 비율만큼 채운다. */
-function StarRatingDisplay({ value, size = "h-5 w-5" }: { value: number; size?: string }) {
-  return (
-    <div className="flex" aria-hidden="true">
-      {[0, 1, 2, 3, 4].map((i) => {
-        const fillPercent = Math.round(Math.max(0, Math.min(1, value - i)) * 100);
-        return (
-          <span key={i} className={`relative ${size}`}>
-            <Star className={`absolute inset-0 ${size} text-[var(--ui-border)]`} />
-            <span className="absolute inset-0 overflow-hidden" style={{ width: `${fillPercent}%` }}>
-              <Star fill="currentColor" className={`${size} text-amber-400`} />
-            </span>
-          </span>
-        );
-      })}
-    </div>
-  );
-}
-
-function averageRating(ratings: FanRating[]) {
-  if (ratings.length === 0) return null;
-  return ratings.reduce((sum, rating) => sum + rating.rating, 0) / ratings.length;
-}
-
-function RatingPlayerCard({
-  line,
-  player,
-  champion,
-  ratings,
-}: {
-  line: PlayerStatLine;
-  player?: Player;
-  champion?: Champion;
-  ratings: FanRating[];
-}) {
-  const average = averageRating(ratings);
-  const img = championImage(champion);
-
-  return (
-    // 선수 선택 카드(set-rating-form.tsx의 PlayerChip)와 같은 세로형 카드 언어 —
-    // 챔피언 아이콘 위, 이름/포지션 아래, 배지형 평점을 그 아래에 둔다.
-    <div className="flex flex-col items-center gap-1 rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-1.5 text-center sm:gap-1.5 sm:p-2.5">
-      <div className="aspect-square w-full max-w-20 overflow-hidden rounded-lg bg-[var(--ui-surface-muted)]">
-        {img ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={img} alt={championLabel(champion)} className="h-full w-full object-cover" />
-        ) : (
-          <div className="grid h-full place-items-center text-lg font-black text-[var(--ui-muted)]">
-            {player ? playerInitial(player.name) : "-"}
-          </div>
-        )}
-      </div>
-      <p className="w-full truncate text-[11px] font-black text-[var(--ui-ink)] sm:text-sm">
-        {player?.name ?? "-"}
-      </p>
-      <p className="text-[10px] font-bold text-[var(--ui-muted)] sm:text-xs">{line.position}</p>
-      <div
-        className={`flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-0.5 sm:gap-1 sm:px-2 ${
-          average == null ? "bg-[var(--ui-surface-muted)]" : "bg-amber-400/15"
-        }`}
-      >
-        <Star
-          aria-hidden="true"
-          className={`h-2.5 w-2.5 sm:h-3 sm:w-3 ${average == null ? "text-[var(--ui-border)]" : "fill-amber-400 text-amber-400"}`}
-        />
-        <span
-          className={`text-[10px] font-black tabular-nums sm:text-xs ${average == null ? "text-[var(--ui-muted)]" : "text-[var(--ui-ink)]"}`}
-        >
-          {average == null ? "-" : average.toFixed(1)}
-        </span>
-        <span className="text-[9px] font-semibold text-[var(--ui-muted)] sm:text-[10px]">{ratings.length}개</span>
-      </div>
-    </div>
-  );
-}
-
-function TeamRatingColumn({
-  title,
-  teamId,
-  rows,
-  players,
-  champions,
-  ratings,
-}: {
-  title: string;
-  teamId: string;
-  rows: PlayerStatLine[];
-  players: Player[];
-  champions: Champion[];
-  ratings: FanRating[];
-}) {
-  const teamRows = rows
-    .filter((line) => line.teamId === teamId)
-    .sort(
-      (a, b) =>
-        (positionOrder.get(a.position) ?? 99) -
-        (positionOrder.get(b.position) ?? 99),
-    );
-
-  return (
-    <section className="mobile-list-shell rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] p-3">
-      <h3 className="mb-3 text-sm font-black text-[var(--ui-ink)]">{title}</h3>
-      {teamRows.length === 0 ? (
-        <p className="text-sm text-[var(--ui-muted)]">평점 대상 선수가 없습니다.</p>
-      ) : (
-        <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
-          {teamRows.map((line) => (
-            <RatingPlayerCard
-              key={`${line.setId}-${line.playerId}`}
-              line={line}
-              player={players.find((player) => player.id === line.playerId)}
-              champion={champions.find((champion) => champion.id === line.championId)}
-              ratings={ratings.filter((rating) => rating.playerId === line.playerId)}
-            />
-          ))}
-        </div>
-      )}
-    </section>
-  );
-}
-
 function MatchRatingPanel({
   matchId,
   set,
@@ -379,6 +270,8 @@ function MatchRatingPanel({
   fanRatings,
   champions,
   isLoggedIn,
+  currentUserId,
+  reactionStates,
 }: {
   matchId: string;
   set?: SetResult;
@@ -389,6 +282,8 @@ function MatchRatingPanel({
   fanRatings: FanRating[];
   champions: Champion[];
   isLoggedIn: boolean;
+  currentUserId?: string;
+  reactionStates: Record<string, "honor" | "dislike">;
 }) {
   if (!set) {
     return (
@@ -411,16 +306,13 @@ function MatchRatingPanel({
       : null;
   const snapshotHref = `/matches/${matchId}/sets/${set.id}/snapshot`;
   const leader = fanRatingLeader(setRatings);
-  const leaderPlayer = leader
-    ? players.find((player) => player.id === leader.playerId)
-    : undefined;
   const reviewRows = setRatings
     .filter((rating) => rating.review)
     .sort(
       (a, b) =>
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     )
-    .slice(0, 20);
+    .slice(0, 100);
   const selectableLines = [...setLines].sort((a, b) => {
     if (a.teamId !== b.teamId) return a.teamId === set.blueTeamId ? -1 : 1;
     return (
@@ -431,47 +323,15 @@ function MatchRatingPanel({
 
   return (
     <div className="flex flex-col gap-4">
-      <SetSelector sets={sets} activeSet={set} tab="rating" />
+      <SetSelector
+        sets={sets}
+        activeSet={set}
+        tab="rating"
+        snapshotHref={snapshotReady ? snapshotHref : undefined}
+      />
 
-      <section className="grid gap-3 min-[1200px]:grid-cols-[18rem_minmax(0,1fr)]">
-        <div className="flex flex-col overflow-hidden rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)]">
-          <p className="px-4 pt-4 text-xs font-medium uppercase tracking-[0.16em] text-[var(--ui-muted)]">SET POG</p>
-          {leader ? (
-            // 오른쪽 선수 카드 그리드와 같은 그리드 행에 있어 높이가 stretch로 맞춰지는데,
-            // 사진을 고정 크기(aspect-square)로 두면 늘어난 높이만큼 아래에 빈 공간만 남는다.
-            // flex-1로 사진이 남는 세로 공간을 그대로 채우게 한다.
-            <div className="mt-3 flex flex-1 min-h-0 flex-col items-center gap-2 px-4 pb-4 text-center">
-              <div className="w-full min-h-0 flex-1 overflow-hidden rounded-2xl bg-[var(--ui-surface-muted)]">
-                {leaderPlayer?.profileImageUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={leaderPlayer.profileImageUrl}
-                    alt=""
-                    className="h-full w-full object-cover object-top"
-                  />
-                ) : (
-                  <div className="grid h-full place-items-center text-5xl font-black text-[var(--ui-muted)]">
-                    {leaderPlayer ? playerInitial(leaderPlayer.name) : "-"}
-                  </div>
-                )}
-              </div>
-              <p className="truncate text-lg font-black text-[var(--ui-ink)]">{leaderPlayer?.name ?? "-"}</p>
-              <p className="truncate text-xs font-semibold text-[var(--ui-muted)]">
-                {teamLabel(teams, leaderPlayer?.teamId)} · {leader.count}개 평점
-              </p>
-              <div className="flex items-center gap-1.5">
-                <StarRatingDisplay value={leader.average} />
-                <span className="text-sm font-black tabular-nums text-[var(--ui-ink)]">
-                  {leader.average.toFixed(1)}
-                </span>
-              </div>
-            </div>
-          ) : (
-            <p className="p-4 pt-3 text-sm text-[var(--ui-muted)]">아직 집계된 평점이 없습니다.</p>
-          )}
-        </div>
-
-        <div className="rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] p-4">
+      <section>
+        <div>
           <SetRatingForm
             matchId={matchId}
             setId={set.id}
@@ -489,90 +349,56 @@ function MatchRatingPanel({
             playerOptions={selectableLines.map((line) => {
               const player = players.find((item) => item.id === line.playerId);
               const champion = champions.find((item) => item.id === line.championId);
+              const team = teams.find((item) => item.id === line.teamId);
+              const playerRatings = setRatings.filter((rating) => rating.playerId === line.playerId);
+              const ratingTotal = playerRatings.reduce((sum, rating) => sum + rating.rating, 0);
+              const myRating = currentUserId
+                ? playerRatings.find((rating) => rating.authorId === currentUserId)?.rating
+                : undefined;
               return {
                 value: line.playerId,
                 name: player?.name ?? "-",
                 position: line.position,
                 teamId: line.teamId,
+                teamName: team?.shortName ?? team?.name ?? "-",
+                teamLogoUrl: team?.logoUrl || undefined,
+                teamPrimaryColor: team?.primaryColor,
+                profileImageUrl: player?.profileImageUrl || undefined,
                 championImageUrl: championImage(champion) || undefined,
                 championName: champion?.name,
+                averageRating: playerRatings.length > 0 ? ratingTotal / playerRatings.length : undefined,
+                ratingCount: playerRatings.length,
+                myRating,
+                isPog: leader?.playerId === line.playerId,
               };
             })}
           />
         </div>
       </section>
 
-      {snapshotReady ? (
-        <Link
-          href={snapshotHref}
-          className="flex items-center justify-between gap-3 rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 py-2.5 text-sm font-bold text-[var(--ui-ink)] transition-colors hover:bg-[var(--ui-surface-muted)]"
-        >
-          <span>커뮤니티 공유용 스냅샷 보기</span>
-          <span aria-hidden="true" className="text-[var(--ui-muted)]">&gt;</span>
-        </Link>
-      ) : null}
-
-      <section className="grid gap-3 min-[1200px]:grid-cols-2">
-        <TeamRatingColumn
-          title={teamLabel(teams, set.blueTeamId)}
-          teamId={set.blueTeamId}
-          rows={setLines}
-          players={players}
-          champions={champions}
-          ratings={setRatings}
+      <section className="mt-3 sm:mt-5">
+        <RatingCommentList
+          viewerId={currentUserId}
+          items={reviewRows.map((rating) => {
+            const player = players.find((item) => item.id === rating.playerId);
+            return {
+              id: rating.id,
+              matchId: rating.matchId,
+              playerId: rating.playerId,
+              playerName: player?.name ?? "-",
+              playerImageUrl: player?.profileImageUrl ?? null,
+              rating: rating.rating,
+              review: rating.review,
+              authorId: rating.authorId,
+              authorName: rating.authorNickname ?? "익명",
+              authorImageUrl: rating.authorProfileImageUrl,
+              authorTier: rating.authorTier,
+              honorCount: rating.honorCount,
+              dislikeCount: rating.dislikeCount,
+              initialReaction: reactionStates[rating.id] ?? null,
+            };
+          })}
         />
-        <TeamRatingColumn
-          title={teamLabel(teams, set.redTeamId)}
-          teamId={set.redTeamId}
-          rows={setLines}
-          players={players}
-          champions={champions}
-          ratings={setRatings}
-        />
-      </section>
-
-      <section className="mobile-list-shell rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] p-4">
-        <h3 className="text-base font-black text-[var(--ui-ink)]">한줄평</h3>
-        {reviewRows.length === 0 ? (
-          <p className="mt-2 text-sm text-[var(--ui-muted)]">아직 작성된 한줄평이 없습니다.</p>
-        ) : (
-          <div className="mt-3 grid gap-2.5">
-            {reviewRows.map((rating) => {
-              const player = players.find((item) => item.id === rating.playerId);
-              const authorName = rating.authorNickname ?? "익명";
-              return (
-                <article
-                  key={rating.id}
-                  className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface-muted)] p-3 sm:grid-cols-[2.5rem_minmax(0,1fr)_auto]"
-                >
-                  <RankAvatar
-                    tier={rating.authorTier}
-                    src={rating.authorProfileImageUrl}
-                    alt={authorName}
-                    fallback={playerInitial(authorName)}
-                    size="md"
-                    className="hidden sm:inline-grid"
-                  />
-                  <div className="flex min-w-0 items-center gap-2">
-                    <div className="shrink-0">
-                      <p className="text-sm font-black leading-tight text-[var(--ui-ink)]">{player?.name ?? "-"}</p>
-                      <p className="mt-0.5 text-xs font-semibold leading-tight text-[var(--ui-muted)]">{authorName}</p>
-                    </div>
-                    <p className="min-w-0 flex-1 truncate text-sm italic text-[var(--ui-text)]">
-                      “{rating.review}”
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 flex-col items-end gap-1">
-                    <StarRatingDisplay value={rating.rating} size="h-3.5 w-3.5" />
-                    <p className="text-sm font-black tabular-nums text-[var(--ui-ink)]">
-                      {rating.rating.toFixed(1)}
-                    </p>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        )}
       </section>
     </div>
   );
@@ -626,6 +452,9 @@ export default async function MatchDetailPage({
   const defaultTab: MatchTab = defaultSet ? "data" : "preview";
   const activeTab = normalizeTab(query.tab, defaultTab);
   const activeSet = requestedSet ?? defaultSet;
+  const fanRatingReactionStates = currentUser
+    ? await getFanRatingReactionStates(fanRatings.map((rating) => rating.id), currentUser.id)
+    : {};
   const tournament = tournaments.find((item) => item.id === match.tournamentId);
   const stage = stages.find((item) => item.id === match.stageId);
   const teamA = teams.find((team) => team.id === match.teamAId);
@@ -756,6 +585,8 @@ export default async function MatchDetailPage({
             fanRatings={fanRatings}
             champions={ratingChampions}
             isLoggedIn={Boolean(currentUser)}
+            currentUserId={currentUser?.id}
+            reactionStates={fanRatingReactionStates}
           />
         </div>
       ) : null}

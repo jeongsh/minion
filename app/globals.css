@@ -46,6 +46,9 @@
   --ui-muted: #73767c;
   --ui-surface: #ffffff;
   --ui-surface-muted: #eeeeef;
+  --ui-card-bg: #f5f5f7;
+  --ui-card-hover: #ececf0;
+  --ui-card-divider: #e8e8ed;
   --ui-border: #dedfe2;
   --ui-ad-surface: #e7e8ea;
   --ui-card-radius: 16px;
@@ -441,6 +444,9 @@ html[class~="dark"] {
   --ui-muted: #8f98a8;
   --ui-surface: #141517;
   --ui-surface-muted: #1c1e22;
+  --ui-card-bg: #1c1e22;
+  --ui-card-hover: #24272c;
+  --ui-card-divider: #343d4c;
   --ui-border: #383c44;
   --ui-ad-surface: #1c1e22;
   --page-background: #141517;
@@ -1138,29 +1144,13 @@ html[class~="dark"] .match-detail-page .text-muted {
   color: var(--ui-surface);
 }
 
-.hub-home {
-  --home-card-bg: #f5f5f7;
-  --home-card-bg-alt: #f5f5f7;
-  --home-card-bg-strong: #f0f3f7;
-  --home-card-bg-hover: #e5e7ea;
-  --home-card-divider: #e0e2e6;
-}
-
-html[class~="dark"] .hub-home {
-  --home-card-bg: #1c1e22;
-  --home-card-bg-alt: #202226;
-  --home-card-bg-strong: #1c1e22;
-  --home-card-bg-hover: #24272c;
-  --home-card-divider: #343d4c;
-}
-
 .hub-home .home-match-calendar {
   --rdp-accent-color: #18191c;
   --rdp-accent-background-color: #eeeeef;
 }
 
 .hub-home .home-match-calendar .home-calendar-has-match .rdp-day_button {
-  background: color-mix(in srgb, var(--accent) 9%, var(--home-card-bg));
+  background: color-mix(in srgb, var(--accent) 9%, var(--ui-card-bg));
   color: var(--ui-ink);
 }
 
@@ -1181,11 +1171,11 @@ html[class~="dark"] .hub-home .home-calendar-shell {
 
 .hub-home .home-calendar-shell .rdp-button_next,
 .hub-home .home-calendar-shell .rdp-button_previous {
-  background: var(--home-card-bg-strong);
+  background: var(--ui-card-bg);
 }
 
 .hub-home .home-calendar-shell .rdp-day_button:hover {
-  background: var(--home-card-bg-hover);
+  background: var(--ui-card-hover);
 }
 
 .hub-home .home-calendar-shell .rdp-selected .rdp-day_button:hover {
@@ -1416,6 +1406,7 @@ html[class~="dark"] .hub-home .home-calendar-shell {
     radial-gradient(circle at right center, color-mix(in srgb, var(--prediction-team-right-color) 36%, transparent) 0%, transparent 58%),
     linear-gradient(270deg, #eef0f2 0%, #ffffff 100%);
 }
+
 .prediction-match-card--selected-left {
   background:
     radial-gradient(circle at left center, color-mix(in srgb, var(--prediction-team-color) 36%, transparent) 0%, transparent 58%),
@@ -1441,6 +1432,7 @@ html[class~="dark"] .hub-home .home-calendar-shell {
     radial-gradient(circle at left center, color-mix(in srgb, var(--prediction-team-left-color) 36%, transparent) 0%, transparent 58%),
     linear-gradient(270deg, #eef0f2 0%, #ffffff 100%);
 }
+
 .dark .prediction-match-card--selected-left {
   background:
     radial-gradient(circle at left center, color-mix(in srgb, var(--prediction-team-color) 42%, transparent) 0%, transparent 58%),
@@ -1452,6 +1444,7 @@ html[class~="dark"] .hub-home .home-calendar-shell {
     radial-gradient(circle at left center, color-mix(in srgb, var(--prediction-team-left-color) 42%, transparent) 0%, transparent 58%),
     linear-gradient(90deg, #24272c 0%, #15161a 100%);
 }
+
 .dark .prediction-match-card--selected-right {
   background:
     radial-gradient(circle at right center, color-mix(in srgb, var(--prediction-team-color) 42%, transparent) 0%, transparent 58%),
@@ -1477,6 +1470,7 @@ html[class~="dark"] .hub-home .home-calendar-shell {
     radial-gradient(circle at left center, color-mix(in srgb, var(--prediction-team-left-color) 42%, transparent) 0%, transparent 58%),
     linear-gradient(270deg, #24272c 0%, #15161a 100%);
 }
+
 .bg-team-blue{ background-color: var(--team-blue); }
 .bg-team-red{ background-color: var(--team-red); }
 

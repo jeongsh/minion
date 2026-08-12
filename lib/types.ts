@@ -339,6 +339,8 @@ export type FanRating = {
   authorNickname: string | null;
   authorProfileImageUrl: string | null;
   authorTier: Tier;
+  honorCount: number;
+  dislikeCount: number;
 };
 
 export type FanMatchPrediction = {

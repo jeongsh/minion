@@ -3,14 +3,21 @@
 import { createHash, randomUUID } from "crypto";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { isSetRatingOpen, normalizeSetStatus } from "@/lib/set-status";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { screenCommunityText } from "@/lib/community/ai-moderation";
+import { findProfanity, maskProfanity } from "@/lib/community/content-filter";
+import { isCommunityUserSanctioned } from "@/lib/data/community-users";
 
 const VOTER_COOKIE = "lckhub_match_prediction_voter";
 const RATING_VOTER_COOKIE = "lckhub_fan_rating_voter";
 const MAX_REVIEW_LENGTH = 240;
+const FAN_RATING_BLIND_REPORT_COUNT = 3;
+
+type RatingReaction = "honor" | "dislike";
 
 function textOrNull(value: FormDataEntryValue | null) {
   const text = typeof value === "string" ? value.trim() : "";
@@ -184,9 +191,19 @@ export async function submitSetPlayerRatingAction(
       throw new Error(`리뷰는 ${MAX_REVIEW_LENGTH}자 이내로 입력해주세요.`);
     }
 
+    if (review) {
+      const profanity = findProfanity(review);
+      if (profanity) {
+        throw new Error(`금칙어(${maskProfanity(profanity)})가 포함되어 등록할 수 없습니다. 표현을 수정해 주세요.`);
+      }
+    }
+
     const currentUser = await getCurrentUser();
     if (!currentUser) {
       throw new Error("평점을 남기려면 로그인이 필요합니다.");
+    }
+    if (await isCommunityUserSanctioned(currentUser.id)) {
+      throw new Error("커뮤니티 이용이 영구 제한된 계정입니다.");
     }
 
     const supabase = createSupabaseAdminClient();
@@ -229,7 +246,7 @@ export async function submitSetPlayerRatingAction(
     }
 
     const voterKey = hashVoterKey(await getOrCreateCookie(RATING_VOTER_COOKIE));
-    const { error } = await supabase.from("fan_ratings").upsert(
+    const { data: savedRating, error } = await supabase.from("fan_ratings").upsert(
       {
         set_id: set.id,
         match_id: set.match_id,
@@ -241,7 +258,7 @@ export async function submitSetPlayerRatingAction(
         review,
       },
       { onConflict: "set_id,player_id,author_id" },
-    );
+    ).select("id").single();
 
     if (error) {
       throw new Error(error.message);
@@ -252,8 +269,157 @@ export async function submitSetPlayerRatingAction(
     revalidatePath(`/matches/${routeMatchId}`);
     revalidatePath(`/matches/${routeMatchId}/sets/${set.id}`);
 
+    if (review && savedRating) {
+      after(async () => {
+        try {
+          const verdict = await screenCommunityText({ text: review });
+          if (!verdict.flagged) return;
+
+          await supabase
+            .from("fan_ratings")
+            .update({ blinded_at: new Date().toISOString(), blinded_source: "ai" })
+            .eq("id", savedRating.id)
+            .is("blinded_at", null);
+          const { error: aiReportError } = await supabase.from("fan_rating_reports").insert({
+            rating_id: savedRating.id,
+            reporter_id: null,
+            source: "ai",
+            reason: verdict.detail ? `${verdict.category} - ${verdict.detail}` : verdict.category,
+          });
+          if (aiReportError && aiReportError.code !== "23505") throw aiReportError;
+
+          revalidatePath(`/matches/${routeMatchId}`);
+        } catch (moderationError) {
+          console.warn("[fan-rating-moderation] AI 검수 실패", moderationError);
+        }
+      });
+    }
+
     return { ok: true };
   } catch (error) {
     return { ok: false, error: error instanceof Error ? error.message : "평점 제출에 실패했습니다." };
+  }
+}
+
+export async function reactFanRatingAction(input: {
+  ratingId: string;
+  matchId: string;
+  kind: RatingReaction;
+}): Promise<
+  | { ok: true; state: RatingReaction | null; honorCount: number; dislikeCount: number }
+  | { ok: false; error: string }
+> {
+  try {
+    const currentUser = await getCurrentUser();
+    if (!currentUser) return { ok: false, error: "로그인이 필요합니다." };
+    if (await isCommunityUserSanctioned(currentUser.id)) {
+      return { ok: false, error: "커뮤니티 이용이 영구 제한된 계정입니다." };
+    }
+
+    const supabase = createSupabaseAdminClient();
+    const { data: rating, error: ratingError } = await supabase
+      .from("fan_ratings")
+      .select("id")
+      .eq("id", input.ratingId)
+      .is("blinded_at", null)
+      .maybeSingle();
+    if (ratingError) throw ratingError;
+    if (!rating) return { ok: false, error: "평가 코멘트를 찾을 수 없습니다." };
+
+    const { data: existing, error: existingError } = await supabase
+      .from("fan_rating_reactions")
+      .select("id, kind")
+      .eq("rating_id", input.ratingId)
+      .eq("user_id", currentUser.id)
+      .maybeSingle();
+    if (existingError) throw existingError;
+
+    let state: RatingReaction | null = input.kind;
+    if (existing?.kind === input.kind) {
+      const { error: deleteError } = await supabase
+        .from("fan_rating_reactions")
+        .delete()
+        .eq("id", existing.id);
+      if (deleteError) throw deleteError;
+      state = null;
+    } else {
+      const { error: upsertError } = await supabase.from("fan_rating_reactions").upsert(
+        { rating_id: input.ratingId, user_id: currentUser.id, kind: input.kind },
+        { onConflict: "rating_id,user_id" },
+      );
+      if (upsertError) throw upsertError;
+    }
+
+    const { data: reactions, error: countError } = await supabase
+      .from("fan_rating_reactions")
+      .select("kind")
+      .eq("rating_id", input.ratingId);
+    if (countError) throw countError;
+
+    revalidatePath(`/matches/${input.matchId}`);
+    return {
+      ok: true,
+      state,
+      honorCount: reactions.filter((row) => row.kind === "honor").length,
+      dislikeCount: reactions.filter((row) => row.kind === "dislike").length,
+    };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "반응을 저장하지 못했습니다." };
+  }
+}
+
+export async function reportFanRatingAction(input: {
+  ratingId: string;
+  matchId: string;
+}): Promise<{ ok: boolean; error?: string; message?: string }> {
+  try {
+    const currentUser = await getCurrentUser();
+    if (!currentUser) return { ok: false, error: "로그인이 필요합니다." };
+    if (await isCommunityUserSanctioned(currentUser.id)) {
+      return { ok: false, error: "커뮤니티 이용이 영구 제한된 계정입니다." };
+    }
+
+    const supabase = createSupabaseAdminClient();
+    const { data: rating, error: ratingError } = await supabase
+      .from("fan_ratings")
+      .select("id, author_id, review")
+      .eq("id", input.ratingId)
+      .is("blinded_at", null)
+      .maybeSingle();
+    if (ratingError) throw ratingError;
+    if (!rating?.review) return { ok: false, error: "신고할 평가 코멘트를 찾을 수 없습니다." };
+    if (rating.author_id === currentUser.id) {
+      return { ok: false, error: "자기 코멘트는 신고할 수 없습니다." };
+    }
+
+    const { error: reportError } = await supabase.from("fan_rating_reports").insert({
+      rating_id: input.ratingId,
+      reporter_id: currentUser.id,
+      source: "user",
+      reason: "선수 비방 또는 부적절한 평가 코멘트",
+    });
+    if (reportError?.code === "23505") return { ok: false, error: "이미 신고한 코멘트입니다." };
+    if (reportError) throw reportError;
+
+    const { count, error: countError } = await supabase
+      .from("fan_rating_reports")
+      .select("id", { count: "exact", head: true })
+      .eq("rating_id", input.ratingId)
+      .eq("source", "user")
+      .eq("status", "pending");
+    if (countError) throw countError;
+
+    if ((count ?? 0) >= FAN_RATING_BLIND_REPORT_COUNT) {
+      await supabase
+        .from("fan_ratings")
+        .update({ blinded_at: new Date().toISOString(), blinded_source: "report" })
+        .eq("id", input.ratingId)
+        .is("blinded_at", null);
+    }
+
+    revalidatePath(`/matches/${input.matchId}`);
+    return { ok: true, message: "신고가 접수되었습니다." };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "신고를 접수하지 못했습니다." };
   }
 }

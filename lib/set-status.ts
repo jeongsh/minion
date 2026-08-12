@@ -26,6 +26,9 @@ export function setStatusLabel(status: SetStatus | null | undefined) {
 
 /** 평점 입력은 결과 기록(경기 종료) 시점부터 3시간 동안 열려 있다. */
 export const SET_RATING_OPEN_WINDOW_MS = 3 * 60 * 60 * 1000;
+// 디자인/데이터 확인을 위해 임시로 모든 세트의 평점 입력을 허용한다.
+// 작업이 끝나면 false로 되돌린다.
+const TEMPORARY_RATING_OPEN_OVERRIDE = true;
 /** 커뮤니티 공유용 스냅샷은 결과 기록 20분 후부터 제공한다. */
 export const SET_RATING_SNAPSHOT_DELAY_MS = 20 * 60 * 1000;
 
@@ -51,6 +54,10 @@ export function getSetRatingStartedAt(set: SetRatingTiming): number | null {
 
 /** 지금 평점 입력이 가능한지 (경기 종료 후 3시간 이내). */
 export function isSetRatingOpen(set: SetRatingTiming, now: number = Date.now()) {
+  if (TEMPORARY_RATING_OPEN_OVERRIDE) {
+    return true;
+  }
+
   const startedAt = getSetRatingStartedAt(set);
   if (startedAt === null) {
     return false;

@@ -153,7 +153,7 @@ export function AuthorMenu({
       <button
         type="button"
         onClick={() => setOpen((current) => !current)}
-        className="min-w-0 rounded-lg text-left outline-none hover:opacity-75 focus-visible:ring-2 focus-visible:ring-[var(--tp)]"
+        className="min-w-0 inline-flex items-center rounded-lg text-left outline-none hover:opacity-75 focus-visible:ring-2 focus-visible:ring-[var(--tp)]"
         aria-haspopup="menu"
         aria-expanded={open}
       >
