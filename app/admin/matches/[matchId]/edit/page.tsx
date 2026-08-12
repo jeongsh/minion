@@ -211,6 +211,7 @@ export default async function AdminMatchEditPage({
 
         <MatchDataSyncPanel
           matchId={match.id}
+          matchStatus={match.status}
           hasLeaguepediaMatchId={hasLeaguepediaMatchId}
           bestOf={match.bestOf ?? null}
           sets={sets.map((set) => ({

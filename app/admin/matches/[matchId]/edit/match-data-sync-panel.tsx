@@ -9,6 +9,7 @@ import {
   checkMatchConsistencyAction,
   syncLeaguepediaMatchSetsAction,
   syncMatchDataAction,
+  syncMatchVodsAction,
   syncTimelineAction,
 } from "../../actions";
 
@@ -42,14 +43,33 @@ function fractionTone(done: number, total: number): ChipTone {
   return done > 0 ? "partial" : "empty";
 }
 
+function vodReasonLabel(reason: string) {
+  switch (reason) {
+    case "match_not_found":
+      return "경기를 찾을 수 없음";
+    case "not_completed":
+      return "아직 완료되지 않은 경기";
+    case "lolesports_match_not_found":
+      return "LoL Esports 경기 연결을 찾지 못함";
+    case "no_sets":
+      return "등록된 세트가 없음";
+    case "no_vods":
+      return "아직 공개된 영상이 없음";
+    default:
+      return reason;
+  }
+}
+
 export function MatchDataSyncPanel({
   matchId,
+  matchStatus,
   hasLeaguepediaMatchId,
   bestOf,
   sets,
   completionBySetId,
 }: {
   matchId: string;
+  matchStatus: string;
   hasLeaguepediaMatchId: boolean;
   bestOf: number | null;
   sets: PanelSet[];
@@ -84,7 +104,16 @@ export function MatchDataSyncPanel({
         setError(result.error);
         return;
       }
-      const { setsSummary, setsSkipped, timelineSummary, timelineError, pomResult, pomError } = result;
+      const {
+        setsSummary,
+        setsSkipped,
+        timelineSummary,
+        timelineError,
+        pomResult,
+        pomError,
+        vodSummary,
+        vodError,
+      } = result;
       const parts = [
         setsSkipped
           ? "세트: 이미 최신 상태(새 게임/누락 데이터 없음)"
@@ -104,7 +133,36 @@ export function MatchDataSyncPanel({
       } else if (pomError) {
         parts.push(`공식 POM 동기화 실패: ${pomError}`);
       }
+      if (vodSummary?.reason === "synced") {
+        parts.push(`영상 ${vodSummary.vodsFound}세트 확인·${vodSummary.vodsUpdated}세트 갱신`);
+      } else if (vodSummary?.reason === "no_vods") {
+        parts.push("영상: 아직 LoL Esports에 공개되지 않음");
+      } else if (vodSummary) {
+        parts.push(`영상: ${vodReasonLabel(vodSummary.reason)}`);
+      } else if (vodError) {
+        parts.push(`영상 동기화 실패: ${vodError}`);
+      }
       setMessage(parts.join(" · "));
+    });
+  }
+
+  function runVodsOnly() {
+    setMessage(null);
+    setError(null);
+    startTransition(async () => {
+      const result = await syncMatchVodsAction(matchId);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      const { summary } = result;
+      if (summary.reason === "synced") {
+        setMessage(
+          `영상 ${summary.vodsFound}세트를 확인해 ${summary.vodsUpdated}세트와 썸네일 ${summary.thumbnailsUpdated}개를 갱신했습니다.`,
+        );
+      } else {
+        setMessage(`영상 동기화 결과: ${vodReasonLabel(summary.reason)}`);
+      }
     });
   }
 
@@ -150,6 +208,7 @@ export function MatchDataSyncPanel({
         return;
       }
       const timelineResult = await syncTimelineAction(matchId, true);
+      const vodResult = await syncMatchVodsAction(matchId);
       const parts = [
         `세트 ${setsResult.summary.upserted}개, 밴픽 ${setsResult.summary.picksBansUpserted}개, 선수 스탯 ${setsResult.summary.playerStatsUpserted}개 저장`,
       ];
@@ -157,6 +216,15 @@ export function MatchDataSyncPanel({
         parts.push(`타임라인 세트 ${timelineResult.summary.setsProcessed}개 처리, 이벤트 ${timelineResult.summary.eventsInserted}개 · 골드 프레임 ${timelineResult.summary.framesInserted}개 저장`);
       } else {
         parts.push(`타임라인 동기화 실패: ${timelineResult.error}`);
+      }
+      if (vodResult.ok) {
+        parts.push(
+          vodResult.summary.reason === "synced"
+            ? `영상 ${vodResult.summary.vodsFound}세트 확인·${vodResult.summary.vodsUpdated}세트 갱신`
+            : `영상: ${vodReasonLabel(vodResult.summary.reason)}`,
+        );
+      } else {
+        parts.push(`영상 동기화 실패: ${vodResult.error}`);
       }
       setMessage(parts.join(" · "));
     });
@@ -219,6 +287,16 @@ export function MatchDataSyncPanel({
           className="rounded-md bg-foreground px-4 py-2 text-sm font-semibold text-background disabled:opacity-50"
         >
           {isPending ? "동기화 중..." : "경기 데이터 동기화"}
+        </button>
+
+        <button
+          type="button"
+          disabled={isPending || matchStatus !== "completed"}
+          onClick={runVodsOnly}
+          title={matchStatus === "completed" ? undefined : "완료된 경기에서만 영상을 찾을 수 있습니다."}
+          className="rounded-md border border-border px-4 py-2 text-sm font-semibold text-foreground hover:bg-surface-muted disabled:opacity-50"
+        >
+          {isPending ? "동기화 중..." : "영상 동기화"}
         </button>
 
         <details className="relative" open={menuOpen} onToggle={(event) => setMenuOpen(event.currentTarget.open)}>

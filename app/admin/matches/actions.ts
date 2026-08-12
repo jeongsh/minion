@@ -20,6 +20,11 @@ import {
 } from "@/lib/sync/leaguepedia-lck-2026";
 import { leaguepediaKstDateRange } from "@/lib/sync/leaguepedia-date-range";
 import {
+  runMatchVodAutomation,
+  syncMatchVods,
+  type MatchVodSyncSummary,
+} from "@/lib/sync/match-vods";
+import {
   needsLeaguepediaMatchSetsSync,
   syncLeaguepediaMatchSets,
   type LeaguepediaMatchSetsSyncSummary,
@@ -121,6 +126,21 @@ export async function syncLeaguepediaMatchesAction(
       } catch (error) {
         // A schedule sync must still succeed if the optional AI service is unavailable.
         console.warn("[match-ai-preview] schedule sync backfill failed", error);
+      }
+
+      try {
+        const vodSummary = await runMatchVodAutomation(supabase, {
+          lookbackHours: 48,
+          // An explicit admin sync should check immediately; only Cron observes the editing grace period.
+          minAgeHours: 0,
+          limit: 8,
+        });
+        if (vodSummary.errors.length > 0) {
+          console.warn("[match-vods] schedule sync backfill incomplete", vodSummary);
+        }
+      } catch (error) {
+        // Schedule data must still be saved when the external VOD API is unavailable.
+        console.warn("[match-vods] schedule sync backfill failed", error);
       }
     });
     let detailSummary: {
@@ -243,6 +263,8 @@ export type SyncMatchDataActionResult =
       timelineError: string | null;
       pomResult: SinglePomSyncResult | null;
       pomError: string | null;
+      vodSummary: MatchVodSyncSummary | null;
+      vodError: string | null;
     }
   | { ok: false; error: string };
 
@@ -288,9 +310,43 @@ export async function syncMatchDataAction(matchId: string): Promise<SyncMatchDat
     pomError = error instanceof Error ? error.message : "POM 동기화에 실패했습니다.";
   }
 
+  let vodSummary: MatchVodSyncSummary | null = null;
+  let vodError: string | null = null;
+  try {
+    vodSummary = await syncMatchVods(supabase, matchId);
+  } catch (error) {
+    vodError = error instanceof Error ? error.message : "영상 동기화에 실패했습니다.";
+  }
+
   await revalidateMatchPaths(supabase, matchId);
 
-  return { ok: true, setsSummary, setsSkipped, timelineSummary, timelineError, pomResult, pomError };
+  return {
+    ok: true,
+    setsSummary,
+    setsSkipped,
+    timelineSummary,
+    timelineError,
+    pomResult,
+    pomError,
+    vodSummary,
+    vodError,
+  };
+}
+
+export type SyncMatchVodsActionResult =
+  | { ok: true; summary: MatchVodSyncSummary }
+  | { ok: false; error: string };
+
+export async function syncMatchVodsAction(matchId: string): Promise<SyncMatchVodsActionResult> {
+  try {
+    const supabase = await createSupabaseAdminActionClient();
+    const summary = await syncMatchVods(supabase, matchId);
+    await revalidateMatchPaths(supabase, matchId);
+    return { ok: true, summary };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "영상 동기화에 실패했습니다.";
+    return { ok: false, error: message };
+  }
 }
 
 export type CheckMatchConsistencyActionResult =

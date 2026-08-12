@@ -67,7 +67,10 @@ async function lolesportsApi<T>(path: string, params: Record<string, string>): P
   const url = new URL(`${LOLESPORTS_API}/${path}`);
   url.search = new URLSearchParams({ hl: "ko-KR", ...params }).toString();
 
-  const response = await fetch(url, { headers: { "x-api-key": LOLESPORTS_KEY } });
+  const response = await fetch(url, {
+    headers: { "x-api-key": LOLESPORTS_KEY },
+    signal: AbortSignal.timeout(10_000),
+  });
   if (!response.ok) {
     throw new Error(`lolesports ${path} ${response.status}`);
   }
@@ -87,6 +90,7 @@ export async function fetchVodThumbnail(url: string) {
     const response = await fetch(url, {
       headers: { "user-agent": "Mozilla/5.0 (compatible; LCKHubMinion/1.0)" },
       redirect: "follow",
+      signal: AbortSignal.timeout(10_000),
     });
     if (!response.ok) return null;
 
@@ -128,7 +132,12 @@ export function matchKey(dateKey: string, codes: string[]) {
 }
 
 /** 리그 하나의 완료된 경기를 과거 방향으로 페이지를 넘기며 수집한다. */
-export async function collectLeagueEvents(league: string, leagueId: string, maxPages = 30) {
+export async function collectLeagueEvents(
+  league: string,
+  leagueId: string,
+  maxPages = 30,
+  notBefore?: Date,
+) {
   const events: LolesportsEvent[] = [];
   const seen = new Set<string>();
   let token: string | undefined;
@@ -153,6 +162,12 @@ export async function collectLeagueEvents(league: string, leagueId: string, maxP
         league,
       });
     }
+
+    const completedTimes = (schedule?.events ?? [])
+      .filter((event) => event.state === "completed")
+      .map((event) => new Date(event.startTime).getTime())
+      .filter(Number.isFinite);
+    if (notBefore && completedTimes.length > 0 && Math.max(...completedTimes) < notBefore.getTime()) break;
 
     const older = schedule?.pages?.older;
     if (!older || (fresh === 0 && page > 0)) break;
