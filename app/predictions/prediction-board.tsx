@@ -200,6 +200,11 @@ export function PredictionBoard({ matches, teams, tournaments, bets, currentUser
                     const myVote = myBet?.teamId;
                     const market = predictionMarketForMatch(matchBets, match.id, match.teamAId, match.teamBId);
                     const closed = new Date(match.matchDate).getTime() <= now || match.status !== "scheduled";
+                    const cardStyle = {
+                      "--prediction-team-left-color": teamColor(teamA),
+                      "--prediction-team-right-color": teamColor(teamB),
+                      ...(myVote ? { "--prediction-team-color": teamColor(myVote === match.teamAId ? teamA : teamB) } : {}),
+                    } as React.CSSProperties;
 
                     return (
                       <article key={match.id}>
@@ -215,7 +220,7 @@ export function PredictionBoard({ matches, teams, tournaments, bets, currentUser
                         </div>
                         <div
                           className={`prediction-match-card grid min-h-[76px] grid-cols-[minmax(0,1fr)_34px_minmax(0,1fr)] overflow-hidden rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] dark:bg-[var(--ui-surface-muted)] sm:grid-cols-[minmax(0,1fr)_48px_minmax(0,1fr)] xl:h-[76px] ${myVote === match.teamAId ? "prediction-match-card--selected-left" : myVote === match.teamBId ? "prediction-match-card--selected-right" : ""}`}
-                          style={myVote ? { "--prediction-team-color": teamColor(myVote === match.teamAId ? teamA : teamB) } as React.CSSProperties : undefined}
+                          style={cardStyle}
                         >
                           <TeamChoice team={teamA} percent={market.teamAPercent} odds={market.teamAOdds} selected={myVote === match.teamAId} disabled={closed || isPending} onClick={() => openBetDialog(match, teamA)} />
                           <div className="grid place-items-center text-[13px] font-black text-[var(--ui-muted)] sm:text-sm">VS</div>
@@ -271,7 +276,7 @@ function TeamChoice({ team, percent, odds, selected, disabled, onClick, right = 
       type="button"
       onClick={onClick}
       disabled={disabled || !team}
-      className={`group relative flex min-w-0 items-center gap-1.5 px-2 py-0 text-left transition active:scale-[0.99] disabled:cursor-default disabled:active:scale-100 sm:gap-3 sm:px-5 xl:gap-3 ${right ? "text-right xl:flex-row-reverse" : ""}`}
+      className={`prediction-match-choice ${right ? "prediction-match-choice--right" : "prediction-match-choice--left"} relative flex min-w-0 items-center gap-1.5 px-2 py-0 text-left transition active:scale-[0.99] disabled:cursor-default disabled:active:scale-100 sm:gap-3 sm:px-5 xl:gap-3 ${right ? "text-right xl:flex-row-reverse" : ""}`}
       style={{ "--prediction-choice-color": color } as React.CSSProperties}
       aria-pressed={selected}
       title={selected ? "다시 누르면 선택을 바꿀 수 있어요" : undefined}
@@ -279,11 +284,11 @@ function TeamChoice({ team, percent, odds, selected, disabled, onClick, right = 
       <span className={`flex min-w-0 flex-1 items-center gap-1.5 sm:gap-3 ${right ? "flex-row-reverse" : ""}`}>
         <TeamLogo team={team} size="h-7 w-7 sm:h-10 sm:w-10" plain themeAware />
         <span className={`flex min-w-0 items-baseline gap-1 ${right ? "flex-row-reverse" : ""}`}>
-          <span className={`min-w-0 truncate text-[15px] font-black text-[var(--ui-ink)] transition-colors sm:text-xl ${disabled ? "" : "group-hover:text-[var(--prediction-choice-color)]"}`}>{team?.shortName ?? "TBD"}</span>
+          <span className="min-w-0 truncate text-[15px] font-black text-[var(--ui-ink)] sm:text-xl">{team?.shortName ?? "TBD"}</span>
           <span className="shrink-0 text-[11px] font-bold text-[var(--ui-muted)] sm:text-[13px]">{odds === null ? "1.00" : odds.toFixed(2)}<span className="text-[10px] sm:text-[12px]">{"\u00a0배"}</span></span>
         </span>
       </span>
-      <span className={`shrink-0 text-[17px] font-black leading-none tabular-nums text-[var(--ui-ink)] transition-colors sm:text-[26px] ${disabled ? "" : "group-hover:text-[var(--prediction-choice-color)]"}`}>
+      <span className="shrink-0 text-[17px] font-black leading-none tabular-nums text-[var(--ui-ink)] sm:text-[26px]">
         {percent}<span className="ml-0.5 text-[12px] text-[var(--ui-muted)] sm:text-sm">%</span>
       </span>
     </button>

@@ -1401,6 +1401,21 @@ html[class~="dark"] .hub-home .home-calendar-shell {
   height: 0;
 }
 
+.prediction-match-card {
+  transition: background 150ms ease;
+}
+
+.prediction-match-card:not(.prediction-match-card--selected-left):not(.prediction-match-card--selected-right):has(.prediction-match-choice--left:not(:disabled):hover) {
+  background:
+    radial-gradient(circle at left center, color-mix(in srgb, var(--prediction-team-left-color) 36%, transparent) 0%, transparent 58%),
+    linear-gradient(90deg, #eef0f2 0%, #ffffff 100%);
+}
+
+.prediction-match-card:not(.prediction-match-card--selected-left):not(.prediction-match-card--selected-right):has(.prediction-match-choice--right:not(:disabled):hover) {
+  background:
+    radial-gradient(circle at right center, color-mix(in srgb, var(--prediction-team-right-color) 36%, transparent) 0%, transparent 58%),
+    linear-gradient(270deg, #eef0f2 0%, #ffffff 100%);
+}
 .prediction-match-card--selected-left {
   background:
     radial-gradient(circle at left center, color-mix(in srgb, var(--prediction-team-color) 36%, transparent) 0%, transparent 58%),
@@ -1413,18 +1428,55 @@ html[class~="dark"] .hub-home .home-calendar-shell {
     linear-gradient(270deg, #eef0f2 0%, #ffffff 100%);
 }
 
+.prediction-match-card--selected-left:has(.prediction-match-choice--right:not(:disabled):hover) {
+  background:
+    radial-gradient(circle at left center, color-mix(in srgb, var(--prediction-team-left-color) 36%, transparent) 0%, transparent 58%),
+    radial-gradient(circle at right center, color-mix(in srgb, var(--prediction-team-right-color) 36%, transparent) 0%, transparent 58%),
+    linear-gradient(90deg, #eef0f2 0%, #ffffff 100%);
+}
+
+.prediction-match-card--selected-right:has(.prediction-match-choice--left:not(:disabled):hover) {
+  background:
+    radial-gradient(circle at right center, color-mix(in srgb, var(--prediction-team-right-color) 36%, transparent) 0%, transparent 58%),
+    radial-gradient(circle at left center, color-mix(in srgb, var(--prediction-team-left-color) 36%, transparent) 0%, transparent 58%),
+    linear-gradient(270deg, #eef0f2 0%, #ffffff 100%);
+}
 .dark .prediction-match-card--selected-left {
   background:
     radial-gradient(circle at left center, color-mix(in srgb, var(--prediction-team-color) 42%, transparent) 0%, transparent 58%),
     linear-gradient(90deg, #24272c 0%, #15161a 100%);
 }
 
+.dark .prediction-match-card:not(.prediction-match-card--selected-left):not(.prediction-match-card--selected-right):has(.prediction-match-choice--left:not(:disabled):hover) {
+  background:
+    radial-gradient(circle at left center, color-mix(in srgb, var(--prediction-team-left-color) 42%, transparent) 0%, transparent 58%),
+    linear-gradient(90deg, #24272c 0%, #15161a 100%);
+}
 .dark .prediction-match-card--selected-right {
   background:
     radial-gradient(circle at right center, color-mix(in srgb, var(--prediction-team-color) 42%, transparent) 0%, transparent 58%),
     linear-gradient(270deg, #24272c 0%, #15161a 100%);
 }
 
+.dark .prediction-match-card:not(.prediction-match-card--selected-left):not(.prediction-match-card--selected-right):has(.prediction-match-choice--right:not(:disabled):hover) {
+  background:
+    radial-gradient(circle at right center, color-mix(in srgb, var(--prediction-team-right-color) 42%, transparent) 0%, transparent 58%),
+    linear-gradient(270deg, #24272c 0%, #15161a 100%);
+}
+
+.dark .prediction-match-card--selected-left:has(.prediction-match-choice--right:not(:disabled):hover) {
+  background:
+    radial-gradient(circle at left center, color-mix(in srgb, var(--prediction-team-left-color) 42%, transparent) 0%, transparent 58%),
+    radial-gradient(circle at right center, color-mix(in srgb, var(--prediction-team-right-color) 42%, transparent) 0%, transparent 58%),
+    linear-gradient(90deg, #24272c 0%, #15161a 100%);
+}
+
+.dark .prediction-match-card--selected-right:has(.prediction-match-choice--left:not(:disabled):hover) {
+  background:
+    radial-gradient(circle at right center, color-mix(in srgb, var(--prediction-team-right-color) 42%, transparent) 0%, transparent 58%),
+    radial-gradient(circle at left center, color-mix(in srgb, var(--prediction-team-left-color) 42%, transparent) 0%, transparent 58%),
+    linear-gradient(270deg, #24272c 0%, #15161a 100%);
+}
 .bg-team-blue{ background-color: var(--team-blue); }
 .bg-team-red{ background-color: var(--team-red); }
 
