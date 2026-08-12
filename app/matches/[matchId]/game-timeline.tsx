@@ -50,7 +50,9 @@ if (!(Interaction.modes as unknown as Record<string, unknown>)[FILL_AREA_MODE]) 
   };
 }
 
-const SVG_W    = 800;
+const DESKTOP_SVG_W = 800;
+const TABLET_SVG_W = 680;
+const MOBILE_SVG_W = 520;
 const PAD_X    = 42;
 const ITEM_SZ  = 10;   // icon diameter
 const ITEM_SLT = 18;   // px per row
@@ -62,8 +64,30 @@ const CTR_GAP  = 10;
 const BADGE_R  = 4;    // count badge radius
 const CARD_RX  = 16;   // 카드 모서리 반경(라운드 코너 밖으로 축선이 튀어나오지 않게 인셋 계산에도 사용)
 
-function toX(ms: number, duration: number): number {
-  return PAD_X + (ms / 1000 / duration) * (SVG_W - PAD_X * 2);
+function toX(ms: number, duration: number, svgW: number): number {
+  return PAD_X + (ms / 1000 / duration) * (svgW - PAD_X * 2);
+}
+
+function useTimelineSvgWidth() {
+  const [svgW, setSvgW] = useState(DESKTOP_SVG_W);
+
+  useEffect(() => {
+    const update = () => {
+      if (window.matchMedia("(max-width: 639px)").matches) {
+        setSvgW(MOBILE_SVG_W);
+      } else if (window.matchMedia("(max-width: 1023px)").matches) {
+        setSvgW(TABLET_SVG_W);
+      } else {
+        setSvgW(DESKTOP_SVG_W);
+      }
+    };
+
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+
+  return svgW;
 }
 
 type ChartPoint = { x: number; y: number };
@@ -351,8 +375,9 @@ export function GameTimeline({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const chartRef = useRef<Chart | null>(null);
 
+  const svgW = useTimelineSvgWidth();
   const duration = durationSeconds ?? Math.ceil((events.at(-1)?.timestampMs ?? 0) / 1000);
-  const tx = (ms: number) => toX(ms, duration);
+  const tx = (ms: number) => toX(ms, duration, svgW);
 
   const uniqueEvents = Array.from(new Map(events.map((e) => [e.id, e])).values());
   const killEvents = uniqueEvents.filter((e) => e.eventType === "CHAMPION_KILL").sort((a, b) => a.timestampMs - b.timestampMs);
@@ -498,14 +523,14 @@ export function GameTimeline({
   // 채우기)을 그대로 쓸 수 있어 라인과 채우기가 항상 완전히 일치한다(직접 그리던 방식은
   // 베지어 곡선을 손으로 재현하다 보니 미세하게 어긋나는 지점이 생겼었음).
   const chartPoints: ChartPoint[] = hasGoldFrames
-    ? goldPoints.map((p) => ({ x: toX(p.seconds * 1000, duration), y: dy(p.diff) - centerY }))
+    ? goldPoints.map((p) => ({ x: toX(p.seconds * 1000, duration, svgW), y: dy(p.diff) - centerY }))
     : (() => {
         const sampleStep = Math.max(5, duration / 140);
         const points: ChartPoint[] = [];
         for (let seconds = 0; seconds < duration; seconds += sampleStep) {
-          points.push({ x: toX(seconds * 1000, duration), y: dy(displayDiffAt(seconds)) - centerY });
+          points.push({ x: toX(seconds * 1000, duration, svgW), y: dy(displayDiffAt(seconds)) - centerY });
         }
-        points.push({ x: SVG_W - PAD_X, y: dy(displayDiffAt(duration)) - centerY });
+        points.push({ x: svgW - PAD_X, y: dy(displayDiffAt(duration)) - centerY });
         return points;
       })();
 
@@ -589,14 +614,14 @@ export function GameTimeline({
             callbacks: {
               title: (items) => {
                 const xPx = items[0]?.parsed.x ?? PAD_X;
-                const seconds = ((xPx - PAD_X) / (SVG_W - PAD_X * 2)) * duration;
+                const seconds = ((xPx - PAD_X) / (svgW - PAD_X * 2)) * duration;
                 const m = Math.floor(seconds / 60);
                 const s = Math.floor(seconds % 60);
                 return `${m}:${String(s).padStart(2, "0")}`;
               },
               label: (items) => {
                 const xPx = items.parsed.x ?? PAD_X;
-                const seconds = ((xPx - PAD_X) / (SVG_W - PAD_X * 2)) * duration;
+                const seconds = ((xPx - PAD_X) / (svgW - PAD_X * 2)) * duration;
                 const v = displayDiffAt(seconds);
                 const leader = v > 0 ? blueTeamName : v < 0 ? redTeamName : "동점";
                 const abs = Math.abs(v);
@@ -607,7 +632,7 @@ export function GameTimeline({
           },
         },
         scales: {
-          x: { type: "linear", min: PAD_X, max: SVG_W - PAD_X, display: false },
+          x: { type: "linear", min: PAD_X, max: svgW - PAD_X, display: false },
           y: { type: "linear", min: graphTop - centerY, max: graphBot - centerY, reverse: true, display: false },
         },
       },
@@ -618,7 +643,7 @@ export function GameTimeline({
       chartRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- chartPoints/centerY/graphTop/graphBot는 아래 props에서 결정론적으로 파생됨
-  }, [events, frames, durationSeconds, blueTeamId, redTeamId]);
+  }, [events, frames, durationSeconds, blueTeamId, redTeamId, svgW]);
 
   if (!events.length) {
     return <div className="flex items-center justify-center py-6 text-[15px] text-muted">타임라인 데이터 없음</div>;
@@ -628,14 +653,14 @@ export function GameTimeline({
     <div className="game-timeline-chart relative w-full select-none">
       <div className="relative w-full">
         {/* 배경 레이어: 카드 배경, y축 그리드/라벨, 팀명, 시간 눈금 */}
-        <svg viewBox={`0 0 ${SVG_W} ${svgH}`} className="block w-full">
-          <rect x={PAD_X} y={graphTop} width={SVG_W - PAD_X * 2} height={graphBot - graphTop} rx={CARD_RX} fill="transparent" />
+        <svg viewBox={`0 0 ${svgW} ${svgH}`} className="block w-full">
+          <rect x={PAD_X} y={graphTop} width={svgW - PAD_X * 2} height={graphBot - graphTop} rx={CARD_RX} fill="transparent" />
 
           {gridValues.map((d) => {
             const y = dy(d);
             return (
               <g key={`gy${d}`}>
-                <line x1={PAD_X} y1={y} x2={SVG_W - PAD_X} y2={y}
+                <line x1={PAD_X} y1={y} x2={svgW - PAD_X} y2={y}
                   stroke="var(--timeline-chart-grid)" strokeWidth={d === 0 ? 1.2 : 0.7} />
                 <text x={PAD_X - 4} y={y + 3} textAnchor="end" fontSize={9}
                   fill={d > 0 ? "var(--team-blue)" : d < 0 ? "var(--team-red)" : "var(--timeline-chart-muted)"} fontWeight="600">
@@ -663,11 +688,11 @@ export function GameTimeline({
         <div
           className="absolute overflow-hidden"
           style={{
-            left: `${(PAD_X / SVG_W) * 100}%`,
+            left: `${(PAD_X / svgW) * 100}%`,
             top: `${(graphTop / svgH) * 100}%`,
-            width: `${((SVG_W - PAD_X * 2) / SVG_W) * 100}%`,
+            width: `${((svgW - PAD_X * 2) / svgW) * 100}%`,
             height: `${((graphBot - graphTop) / svgH) * 100}%`,
-            borderRadius: `${(CARD_RX / SVG_W) * 100}%`,
+            borderRadius: `${(CARD_RX / svgW) * 100}%`,
           }}
         >
           <canvas ref={canvasRef} className="block h-full w-full" />
@@ -677,7 +702,7 @@ export function GameTimeline({
             svg 전체를 pointer-events:none으로 비워서, 아이콘이 없는 투명한 부분은 마우스 이벤트가
             아래 chart.js 캔버스로 그대로 통과해 그래프 자체 호버 툴팁도 같이 동작하게 한다. */}
         <svg
-          viewBox={`0 0 ${SVG_W} ${svgH}`}
+          viewBox={`0 0 ${svgW} ${svgH}`}
           className="absolute inset-0 block h-full w-full"
           style={{ pointerEvents: "none" }}
         >
@@ -688,7 +713,7 @@ export function GameTimeline({
             return (
               <g key={`b-${c.id}`} className="text-team-blue">
                 <ClusterIcon cx={x} cy={cy} cluster={c} curveY={curveY}
-                  onHover={() => setTooltip({ lines: c.tooltipLines, xPct: (x / SVG_W) * 100, yPct: (cy / svgH) * 100 })}
+                  onHover={() => setTooltip({ lines: c.tooltipLines, xPct: (x / svgW) * 100, yPct: (cy / svgH) * 100 })}
                   onLeave={() => setTooltip(null)} />
               </g>
             );
@@ -701,7 +726,7 @@ export function GameTimeline({
             return (
               <g key={`r-${c.id}`} className="text-team-red">
                 <ClusterIcon cx={x} cy={cy} cluster={c} curveY={curveY}
-                  onHover={() => setTooltip({ lines: c.tooltipLines, xPct: (x / SVG_W) * 100, yPct: (cy / svgH) * 100 })}
+                  onHover={() => setTooltip({ lines: c.tooltipLines, xPct: (x / svgW) * 100, yPct: (cy / svgH) * 100 })}
                   onLeave={() => setTooltip(null)} />
               </g>
             );
