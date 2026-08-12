@@ -90,6 +90,33 @@ test("renders set data sync success details", async () => {
   assert.match(embed.description, /선수 데이터 10\/10명 저장/);
 });
 
+test("normalizes bare site URLs in match automation links", async () => {
+  const requestBodies: Record<string, unknown>[] = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (_input, init) => {
+    requestBodies.push(JSON.parse(String(init?.body)) as Record<string, unknown>);
+    return new Response("{}", { status: 200 });
+  };
+  try {
+    await sendDiscordMatchAutomationAlert(
+      "https://discord.example/webhook",
+      {
+        eventType: "set_rating_opened",
+        matchId: "match-1",
+        matchName: "MSI 2026",
+        setNumber: 2,
+        teamAScore: 1,
+        teamBScore: 0,
+      },
+      "lckhub.example/",
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+  const embed = (requestBodies[0]!.embeds as Array<{ url: string }>)[0];
+  assert.equal(embed.url, "https://lckhub.example/matches/match-1?tab=rating&set=2");
+});
+
 test("renders Leaguepedia rate limit and retry notice", async () => {
   const requestBodies: Record<string, unknown>[] = [];
   const originalFetch = globalThis.fetch;

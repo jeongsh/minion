@@ -19,12 +19,23 @@ export type CommunityModerationDiscordEvent = {
   botName: string;
 };
 
+function normalizedSiteUrl(siteUrl?: string) {
+  const trimmed = siteUrl?.trim();
+  if (!trimmed) return undefined;
+  const withProtocol = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  try {
+    return new URL(withProtocol).toString().replace(/\/$/, "");
+  } catch {
+    return undefined;
+  }
+}
+
 export async function sendDiscordCommunityModerationAlert(
   webhookUrl: string,
   event: CommunityModerationDiscordEvent,
   siteUrl?: string,
 ): Promise<void> {
-  const base = siteUrl?.replace(/\/$/, "");
+  const base = normalizedSiteUrl(siteUrl);
   const noun = event.targetType === "post" ? "게시글" : "댓글";
   const title = event.kind === "ai_blind"
     ? `${event.botName} 차단: ${noun}`
@@ -126,8 +137,9 @@ export async function sendDiscordMatchAutomationAlert(
   const isSyncFailure = event.eventType === "set_data_sync_failed";
   const isRateLimited = event.eventType === "set_data_sync_rate_limited";
   const isSet = event.eventType !== "match_completed";
-  const matchUrl = siteUrl
-    ? `${siteUrl.replace(/\/$/, "")}/matches/${encodeURIComponent(event.matchId)}${
+  const base = normalizedSiteUrl(siteUrl);
+  const matchUrl = base
+    ? `${base}/matches/${encodeURIComponent(event.matchId)}${
         isSet && event.setNumber ? `?tab=rating&set=${event.setNumber}` : ""
       }`
     : undefined;
@@ -196,7 +208,7 @@ export async function sendDiscordFanHeaderRequestAlert(
   event: FanHeaderRequestDiscordEvent,
   siteUrl?: string,
 ): Promise<void> {
-  const base = siteUrl?.replace(/\/$/, "");
+  const base = normalizedSiteUrl(siteUrl);
   const description = [
     `${event.requesterName}님이 ${event.teamName} 대문 변경을 요청했어요.`,
     event.caption ? `"${event.caption}"` : null,

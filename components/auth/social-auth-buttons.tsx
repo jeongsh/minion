@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 
 import {
   signInWithAppleAction,
@@ -11,13 +11,11 @@ import {
 } from "@/lib/auth/actions";
 
 function useIsIPhone() {
-  const [isIPhone, setIsIPhone] = useState(false);
-
-  useEffect(() => {
-    setIsIPhone(/iPhone/.test(navigator.userAgent));
-  }, []);
-
-  return isIPhone;
+  return useSyncExternalStore(
+    () => () => {},
+    () => /iPhone/.test(navigator.userAgent),
+    () => false,
+  );
 }
 
 function AppleIcon() {
