@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/ui/page-header";
 import { TeamLogo } from "@/components/ui/team-logo";
-import { ResponsivePlayerStatRow } from "@/components/domain/responsive-player-stat-row";
+import { PlayerStatTable } from "@/components/domain/player-stat-table";
 
 import {
   getAllPlayers,
@@ -18,8 +18,6 @@ import {
   getTimelineFrames,
 } from "@/lib/data/lck";
 import { calculatePlayerStats } from "@/lib/stats";
-import { championLabel } from "@/lib/champions";
-import { PlayerLoadout } from "@/components/domain/player-loadout";
 import {
   OBJECTIVE_ICONS,
   baronIconsForSide,
@@ -37,6 +35,7 @@ import type {
   DerivedPlayerStats,
   Player,
   PlayerStatLine,
+  SetPickBan,
   SetResult,
   Team,
 } from "@/lib/types";
@@ -47,9 +46,8 @@ import {
   teamLabel,
 } from "@/lib/view-data";
 
-import { PlayerItemSlots } from "../../player-item-slots";
 import { GameTimeline } from "../../game-timeline";
-import { SetDraftView } from "./set-draft-view";
+import { CompactSetDraftView, SetDraftView } from "./set-draft-view";
 
 function numberLabel(value: number | null | undefined) {
   return value == null ? "-" : value.toLocaleString("ko-KR");
@@ -223,29 +221,169 @@ function ObjectiveTeamRail({
   );
 }
 
-function MobileObjectiveTeamRow({
-  teamName,
+function CompactObjectiveGrid({
   set,
   side,
 }: {
-  teamName: string;
   set: SetResult;
   side: "blue" | "red";
 }) {
+  const metrics = [
+    {
+      label: "공허 유충",
+      src: OBJECTIVE_ICONS.voidGrub,
+      count: voidGrubIconsForSide(set, side).length,
+    },
+    {
+      label: "드래곤",
+      src: OBJECTIVE_ICONS.dragon,
+      count: dragonIconsForSide(set, side, { includeElder: false }).length,
+    },
+    {
+      label: "전령",
+      src: OBJECTIVE_ICONS.herald,
+      count: heraldIconsForSide(set, side).length,
+    },
+    {
+      label: "바론",
+      src: OBJECTIVE_ICONS.baron,
+      count: baronIconsForSide(set, side).length,
+    },
+    {
+      label: "포탑",
+      src: OBJECTIVE_ICONS.tower,
+      count: Math.max(0, side === "blue" ? (set.blueTowers ?? 0) : (set.redTowers ?? 0)),
+    },
+    {
+      label: "장로",
+      src: OBJECTIVE_ICONS.elder,
+      count: elderIconsForSide(set, side).length,
+    },
+  ];
+
   return (
-    <div
-      className="relative rounded-lg bg-surface/70 px-2 py-2.5"
-      aria-label={`${teamName} 목표물`}
-    >
-      <span
-        className={`absolute inset-y-2 left-0 w-0.5 rounded-full ${
-          side === "blue" ? "bg-team-blue" : "bg-team-red"
-        }`}
-        aria-hidden="true"
-      />
-      <div className="flex min-w-0 justify-center">
-        <ObjectiveTeamRail set={set} side={side} />
+    <div className="grid grid-cols-3 gap-x-1 gap-y-2 sm:grid-cols-6 sm:gap-x-2" role="list">
+      {metrics.map((metric) => {
+        const hasObjective = metric.count > 0;
+        return (
+          <span
+            key={metric.label}
+            className="flex min-w-0 items-center justify-center gap-1"
+            aria-label={`${metric.label} ${metric.count}개`}
+            role="listitem"
+          >
+            <Image
+              src={metric.src}
+              alt=""
+              width={20}
+              height={20}
+              unoptimized
+              className={`h-5 w-5 shrink-0 object-contain ${hasObjective ? "" : "grayscale opacity-35"}`}
+            />
+            <span className={`text-xs font-bold tabular-nums ${hasObjective ? "text-[var(--ui-ink)]" : "text-muted"}`}>
+              {metric.count}
+            </span>
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+function CompactScoreboard({
+  set,
+  champions,
+  blueTeam,
+  redTeam,
+  blueTeamName,
+  redTeamName,
+  blueBans,
+  redBans,
+  blueKills,
+  redKills,
+  blueOutcome,
+  redOutcome,
+}: {
+  set: SetResult;
+  champions: Champion[];
+  blueTeam?: Team;
+  redTeam?: Team;
+  blueTeamName: string;
+  redTeamName: string;
+  blueBans: SetPickBan[];
+  redBans: SetPickBan[];
+  blueKills: number | null;
+  redKills: number | null;
+  blueOutcome: ReturnType<typeof teamOutcome>;
+  redOutcome: ReturnType<typeof teamOutcome>;
+}) {
+  const teamCell = (
+    team: Team | undefined,
+    name: string,
+    kills: number | null,
+    outcome: ReturnType<typeof teamOutcome>,
+  ) => (
+    <div className="flex min-w-0 items-center gap-2 rounded-md bg-[var(--ui-card-bg)] px-2.5 py-2.5 sm:gap-3 sm:px-3">
+      <TeamLogo team={team} size="h-8 w-8 sm:h-10 sm:w-10" plain themeAware />
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-xs font-bold text-[var(--ui-ink)] sm:text-sm">{name}</p>
+        <p className={`mt-0.5 text-xs font-semibold ${outcome.won ? "text-accent" : "text-muted"}`}>{outcome.short}</p>
       </div>
+      <strong className="text-xl font-bold tabular-nums text-[var(--ui-ink)] sm:text-2xl">{kills ?? "-"}</strong>
+    </div>
+  );
+  const maxGold = Math.max(set.blueGold ?? 0, set.redGold ?? 0, 1);
+
+  return (
+    <div className="min-[1024px]:hidden">
+      <div className="grid grid-cols-2 gap-2 p-2 sm:gap-3 sm:p-3">
+        {teamCell(blueTeam, blueTeamName, blueKills, blueOutcome)}
+        {teamCell(redTeam, redTeamName, redKills, redOutcome)}
+      </div>
+
+      <div className="bg-surface-muted/20 px-2 py-3 sm:px-3">
+        <CompactSetDraftView
+          champions={champions}
+          blue={{ teamName: blueTeamName, bans: blueBans }}
+          red={{ teamName: redTeamName, bans: redBans }}
+        />
+      </div>
+
+      <section className="px-2 py-3 sm:px-3" aria-label="목표물">
+        <div className="grid grid-cols-[minmax(0,1fr)_3.5rem_minmax(0,1fr)] items-center sm:grid-cols-[minmax(0,1fr)_4rem_minmax(0,1fr)]">
+          <CompactObjectiveGrid set={set} side="blue" />
+          <span className="text-center text-xs font-semibold text-muted">목표물</span>
+          <CompactObjectiveGrid set={set} side="red" />
+        </div>
+      </section>
+
+      <section className="border-t border-border/50 px-2 py-3 sm:px-3" aria-label="골드">
+        <div className="grid grid-cols-[minmax(0,1fr)_2.5rem_minmax(0,1fr)] items-center sm:grid-cols-[minmax(0,1fr)_3rem_minmax(0,1fr)]">
+          <div className="flex min-w-0 items-center gap-2">
+            <strong className="whitespace-nowrap text-xs font-bold tabular-nums text-[var(--ui-ink)] sm:text-sm">
+              {numberLabel(set.blueGold)}
+            </strong>
+            <div className="h-1 min-w-0 flex-1 overflow-hidden rounded-full bg-surface-muted">
+              <div
+                className="ml-auto h-full rounded-full bg-team-blue"
+                style={{ width: `${((set.blueGold ?? 0) / maxGold) * 100}%` }}
+              />
+            </div>
+          </div>
+          <span className="text-center text-xs font-semibold text-muted">골드</span>
+          <div className="flex min-w-0 items-center gap-2">
+            <div className="h-1 min-w-0 flex-1 overflow-hidden rounded-full bg-surface-muted">
+              <div
+                className="h-full rounded-full bg-team-red"
+                style={{ width: `${((set.redGold ?? 0) / maxGold) * 100}%` }}
+              />
+            </div>
+            <strong className="whitespace-nowrap text-xs font-bold tabular-nums text-[var(--ui-ink)] sm:text-sm">
+              {numberLabel(set.redGold)}
+            </strong>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
@@ -304,168 +442,53 @@ function PlayerStatBoard({
   spells: GameSpell[];
   runeCatalog: RuneCatalog;
 }) {
-  const renderTeamRows = (rows: PlayerStatRow[], side: "blue" | "red") =>
+  const toTableRows = (rows: PlayerStatRow[]) =>
     rows.map((row) => {
-      const champion = champions.find(
-        (item) => item.id === row.line.championId,
-      );
-      const damageWidth = Math.max(
-        4,
-        (row.line.damageToChampions / maxDamage) * 100,
-      );
-      const accent = side === "blue" ? "bg-team-blue" : "bg-team-red";
-      return (
-        <div
-          key={`${side}-${row.line.playerId}`}
-          className="grid grid-cols-[12rem_5rem_minmax(6.5rem,1fr)_3rem_3.25rem_4.5rem_17rem] items-center gap-1.5 px-2 py-2.5 text-sm odd:bg-surface-muted/15 hover:bg-surface-muted/30"
-        >
-          <div>
-            <PlayerLoadout
-              champion={champion}
-              spellIds={row.line.spellIds}
-              runeIds={row.line.runeIds}
-              spells={spells}
-              version={itemVersion}
-              runeCatalog={runeCatalog}
-              primaryLabel={row.player?.name ?? "-"}
-              secondaryLabel={`${champion?.name ?? "-"} · ${row.line.position}`}
-              badge={`LV ${row.line.championLevel ?? "-"}`}
-              size="sm"
-              position={row.line.position}
-            />
-          </div>
-
-          <div className="text-center">
-            <p className="font-semibold tabular-nums">
-              {row.line.kills} / {row.line.deaths} / {row.line.assists}
-            </p>
-            <p className="text-[13px] font-semibold text-muted tabular-nums">
-              {row.stats.kda.toFixed(2)}
-            </p>
-          </div>
-
-          <div>
-            <div className="flex items-center justify-between gap-3">
-              <span className="font-semibold tabular-nums">
-                {numberLabel(row.line.damageToChampions)}
-              </span>
-              <span className="text-[13px] text-muted tabular-nums">
-                DPM {row.stats.dpm}
-              </span>
-            </div>
-            <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-surface-muted">
-              <div
-                className={`h-full rounded-full ${accent}`}
-                style={{ width: `${damageWidth}%` }}
-              />
-            </div>
-          </div>
-
-          <div className="text-center font-semibold tabular-nums">
-            {row.line.visionScore}
-          </div>
-
-          <div className="text-center">
-            <p className="font-semibold tabular-nums">{row.line.cs}</p>
-            <p className="text-[13px] text-muted tabular-nums">
-              {row.stats.csm.toFixed(1)}
-            </p>
-          </div>
-
-          <div className="text-center font-semibold tabular-nums">
-            {numberLabel(row.line.gold)}
-          </div>
-
-          <PlayerItemSlots
-            itemIds={row.line.itemIds}
-            roleBoundItem={row.line.roleBoundItem}
-            version={itemVersion}
-            className="!gap-0"
-            slotClassName="h-8 w-8"
-            separatorClassName="h-5 w-px"
-            imageSizes="32px"
-          />
-        </div>
-      );
+      const champion = champions.find((item) => item.id === row.line.championId);
+      return {
+        id: row.line.playerId,
+        champion,
+        primaryLabel: row.player?.name ?? "-",
+        secondaryLabel: champion?.name ?? "-",
+        championLevel: row.line.championLevel,
+        spellIds: row.line.spellIds,
+        runeIds: row.line.runeIds,
+        itemIds: row.line.itemIds,
+        roleBoundItem: row.line.roleBoundItem,
+        kills: row.line.kills,
+        deaths: row.line.deaths,
+        assists: row.line.assists,
+        damage: row.line.damageToChampions,
+        visionScore: row.line.visionScore,
+        cs: row.line.cs,
+        gold: row.line.gold,
+        kda: row.stats.kda,
+        dpm: row.stats.dpm,
+        csm: row.stats.csm,
+        version: itemVersion,
+        spells,
+        runeCatalog,
+      };
     });
 
-  const teamBlock = (
-    teamId: string,
-    side: "blue" | "red",
-    rows: PlayerStatRow[],
-  ) => {
-    const won = winnerTeamId === teamId;
-    return (
-      <div>
-        <div className="flex items-center justify-between gap-2.5 bg-surface-muted/70 px-3 py-2.5">
-          <div className="flex items-center gap-2">
-            <strong>{teamLabel(teams, teamId)}</strong>
-            <span
-              className={`text-[13px] font-semibold ${won ? "text-accent" : "text-muted"}`}
-            >
-              {won ? "Victory" : "Defeat"}
-            </span>
-          </div>
-          <span className="text-[13px] font-semibold text-muted">
-            {side === "blue" ? "Blue Side" : "Red Side"}
-          </span>
-        </div>
-        {renderTeamRows(rows, side)}
-      </div>
-    );
-  };
-
-  const mobileTeamBlock = (
-    teamId: string,
-    side: "blue" | "red",
-    rows: PlayerStatRow[],
-  ) => {
-    const won = winnerTeamId === teamId;
-    return (
-      <div className="overflow-hidden rounded-lg bg-surface shadow-sm ring-1 ring-border/60">
-        <div className="flex items-center justify-between gap-2 bg-surface-muted/70 px-3 py-2">
-          <div className="flex min-w-0 items-center gap-2">
-            <strong className="truncate text-sm text-[var(--ui-ink)]">
-              {teamLabel(teams, teamId)}
-            </strong>
-            <span
-              className={`text-[13px] font-semibold ${
-                won ? "text-accent" : "text-muted"
-              }`}
-            >
-              {won ? "Victory" : "Defeat"}
-            </span>
-          </div>
-          <span className="shrink-0 text-[13px] font-semibold text-muted">
-            {side === "blue" ? "Blue Side" : "Red Side"}
-          </span>
-        </div>
-
-        {rows.map((row) => {
-          const champion = champions.find(
-            (item) => item.id === row.line.championId,
-          );
-          return (
-            <ResponsivePlayerStatRow
-              key={`${side}-mobile-${row.line.playerId}`}
-              champion={champion}
-              line={row.line}
-              stats={row.stats}
-              spells={spells}
-              version={itemVersion}
-              runeCatalog={runeCatalog}
-              title={row.player?.name ?? championLabel(champion)}
-              subtitle={`${row.line.kills} / ${row.line.deaths} / ${row.line.assists} · ${row.stats.kda.toFixed(2)}`}
-              stackItemsOnSmall
-              itemSlotClassName="h-6 w-6 min-[640px]:h-7 min-[640px]:w-7"
-              itemSeparatorClassName="h-4 w-px min-[640px]:h-5"
-              itemImageSizes="(min-width: 640px) 28px, 24px"
-            />
-          );
-        })}
-      </div>
-    );
-  };
+  const groups = [
+    {
+      id: blueTeamId,
+      label: teamLabel(teams, blueTeamId),
+      team: teams.find((team) => team.id === blueTeamId),
+      won: winnerTeamId === blueTeamId,
+      accent: "blue" as const,
+      rows: toTableRows(blueRows),
+    },
+    {
+      id: redTeamId,
+      label: teamLabel(teams, redTeamId),
+      team: teams.find((team) => team.id === redTeamId),
+      won: winnerTeamId === redTeamId,
+      accent: "red" as const,
+      rows: toTableRows(redRows),
+    },
+  ];
 
   return (
     <section className="flex flex-col gap-4" aria-labelledby="player-stats">
@@ -477,33 +500,11 @@ function PlayerStatBoard({
           선수 스탯이 아직 연결되지 않았습니다.
         </div>
       ) : (
-        <>
-          <div className="grid gap-3 min-[1024px]:hidden">
-            {mobileTeamBlock(blueTeamId, "blue", blueRows)}
-            {mobileTeamBlock(redTeamId, "red", redRows)}
-          </div>
-
-          <div className="hidden overflow-x-auto rounded-lg bg-surface shadow-sm ring-1 ring-border/60 min-[1024px]:block">
-            <div className="min-w-[55rem]">
-              <div className="grid grid-cols-[12rem_5rem_minmax(6.5rem,1fr)_3rem_3.25rem_4.5rem_17rem] gap-1.5 px-2 py-3 text-[13px] font-semibold uppercase text-muted">
-                <span>Champion / Player</span>
-                <span className="text-center">KDA</span>
-                <span>Damage</span>
-                <span className="text-center">Sight</span>
-                <span className="text-center">CS</span>
-                <span className="text-center">Gold</span>
-                <span>Items</span>
-              </div>
-              {teamBlock(blueTeamId, "blue", blueRows)}
-              {teamBlock(redTeamId, "red", redRows)}
-            </div>
-          </div>
-        </>
+        <PlayerStatTable groups={groups} maxDamage={maxDamage} />
       )}
     </section>
   );
 }
-
 function SetNavigation({
   match,
   sets,
@@ -665,22 +666,34 @@ export async function SetDetailContent({
         </div>
 
         <div className="overflow-hidden rounded-xl border border-border/60 bg-surface">
+          <CompactScoreboard
+            set={set}
+            champions={champions}
+            blueTeam={blueTeam}
+            redTeam={redTeam}
+            blueTeamName={teamLabel(teams, set.blueTeamId)}
+            redTeamName={teamLabel(teams, set.redTeamId)}
+            blueBans={sideDraftItems("blue")}
+            redBans={sideDraftItems("red")}
+            blueKills={blueKills}
+            redKills={redKills}
+            blueOutcome={blueOutcome}
+            redOutcome={redOutcome}
+          />
+
+          <div className="hidden min-[1024px]:block">
           <div className="grid min-h-[80px] grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 px-3 py-3 sm:min-h-[92px] sm:gap-6 sm:px-5">
             <div className="flex min-w-0 items-center justify-end gap-2 text-right sm:gap-3">
               <div className="min-w-0">
                 <p className="truncate text-base font-bold text-[var(--ui-ink)] sm:text-lg">
                   {teamLabel(teams, set.blueTeamId)}
                 </p>
-                <p className="mt-1 flex items-center justify-end gap-1 whitespace-nowrap text-[13px] font-medium text-muted">
+                <p className="mt-1 text-[13px] font-medium text-muted">
                   <span
                     className={blueOutcome.won ? "font-semibold text-accent" : "font-semibold"}
                   >
                     {blueOutcome.short}
                   </span>
-                  <span className="hidden text-muted/60 min-[480px]:inline" aria-hidden="true">
-                    ·
-                  </span>
-                  <span className="hidden min-[480px]:inline">블루 사이드</span>
                 </p>
               </div>
               <TeamLogo
@@ -710,22 +723,18 @@ export async function SetDetailContent({
                 <p className="truncate text-base font-bold text-[var(--ui-ink)] sm:text-lg">
                   {teamLabel(teams, set.redTeamId)}
                 </p>
-                <p className="mt-1 flex items-center gap-1 whitespace-nowrap text-[13px] font-medium text-muted">
+                <p className="mt-1 text-[13px] font-medium text-muted">
                   <span
                     className={redOutcome.won ? "font-semibold text-accent" : "font-semibold"}
                   >
                     {redOutcome.short}
                   </span>
-                  <span className="hidden text-muted/60 min-[480px]:inline" aria-hidden="true">
-                    ·
-                  </span>
-                  <span className="hidden min-[480px]:inline">레드 사이드</span>
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="bg-surface-muted/20 px-3 py-3 sm:px-5">
+          <div className="bg-surface px-3 py-3 sm:px-5">
             <SetDraftView
               champions={champions}
               blue={{
@@ -739,8 +748,8 @@ export async function SetDetailContent({
             />
           </div>
 
-          <div className="bg-surface-muted/20 px-2 pb-2 sm:px-3 sm:pb-3">
-            <div className="hidden grid-cols-[minmax(0,1fr)_4rem_minmax(0,1fr)] items-center gap-2 rounded-lg bg-surface/75 px-3 py-3 min-[1024px]:grid sm:px-4 wide:grid-cols-[minmax(0,1fr)_5rem_minmax(0,1fr)] wide:!gap-4 wide:!px-5">
+          <div className="bg-surface px-2 pb-2 sm:px-3 sm:pb-3">
+            <div className="hidden grid-cols-[minmax(0,1fr)_4rem_minmax(0,1fr)] items-center gap-2 rounded-lg bg-surface px-3 py-3 min-[1024px]:grid sm:px-4 wide:grid-cols-[minmax(0,1fr)_5rem_minmax(0,1fr)] wide:!gap-4 wide:!px-5">
               <ObjectiveTeamRail set={set} side="blue" />
               <span className="flex h-8 items-center justify-center rounded-full bg-surface-muted/60 px-3 text-[13px] font-medium text-muted">
                 목표물
@@ -748,25 +757,13 @@ export async function SetDetailContent({
               <ObjectiveTeamRail set={set} side="red" />
             </div>
 
-            <div className="grid gap-2 min-[1024px]:hidden">
-              <p className="pb-0.5 text-center text-[13px] font-medium text-muted">
-                목표물
-              </p>
-              <MobileObjectiveTeamRow
-                teamName={teamLabel(teams, set.blueTeamId)}
-                set={set}
-                side="blue"
-              />
-              <MobileObjectiveTeamRow
-                teamName={teamLabel(teams, set.redTeamId)}
-                set={set}
-                side="red"
-              />
-            </div>
           </div>
 
           <div className="grid grid-cols-[minmax(0,1fr)_3.75rem_minmax(0,1fr)] items-center gap-3 border-t border-border/50 px-3 py-3.5 sm:grid-cols-[minmax(0,1fr)_4.5rem_minmax(0,1fr)] sm:gap-4 sm:px-5">
-            <div className="grid w-full max-w-64 grid-cols-[minmax(2rem,1fr)_auto] items-center gap-3 justify-self-end">
+            <div className="grid w-full max-w-64 grid-cols-[auto_minmax(2rem,1fr)] items-center gap-3 justify-self-end">
+              <span className="whitespace-nowrap text-sm font-bold tabular-nums text-[var(--ui-ink)]">
+                {numberLabel(set.blueGold)}
+              </span>
               <div className="flex h-1 justify-end overflow-hidden rounded-full bg-surface-muted">
                 <div
                   className="h-full rounded-full bg-team-blue"
@@ -775,17 +772,11 @@ export async function SetDetailContent({
                   }}
                 />
               </div>
-              <span className="whitespace-nowrap text-sm font-bold tabular-nums text-[var(--ui-ink)]">
-                {numberLabel(set.blueGold)}
-              </span>
             </div>
             <p className="text-center text-[13px] font-medium text-muted">
               골드
             </p>
-            <div className="grid w-full max-w-64 grid-cols-[auto_minmax(2rem,1fr)] items-center gap-3 justify-self-start">
-              <span className="whitespace-nowrap text-sm font-bold tabular-nums text-[var(--ui-ink)]">
-                {numberLabel(set.redGold)}
-              </span>
+            <div className="grid w-full max-w-64 grid-cols-[minmax(2rem,1fr)_auto] items-center gap-3 justify-self-start">
               <div className="h-1 overflow-hidden rounded-full bg-surface-muted">
                 <div
                   className="h-full rounded-full bg-team-red"
@@ -794,7 +785,11 @@ export async function SetDetailContent({
                   }}
                 />
               </div>
+              <span className="whitespace-nowrap text-sm font-bold tabular-nums text-[var(--ui-ink)]">
+                {numberLabel(set.redGold)}
+              </span>
             </div>
+          </div>
           </div>
         </div>
       </section>

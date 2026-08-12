@@ -92,7 +92,7 @@ export function PlayerLoadout({
       {primaryLabel != null || secondaryLabel != null ? (
         <span className="min-w-0">
           {primaryLabel != null ? <span className="block truncate text-sm font-semibold">{primaryLabel}</span> : null}
-          {secondaryLabel != null ? <span className="block truncate text-[13px] text-muted">{secondaryLabel}</span> : null}
+          {secondaryLabel != null ? <span className="block truncate text-xs text-muted">{secondaryLabel}</span> : null}
         </span>
       ) : null}
     </div>

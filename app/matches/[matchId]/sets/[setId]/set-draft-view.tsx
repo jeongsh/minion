@@ -39,6 +39,24 @@ function BanTile({ item }: { item: DraftItem | null }) {
   );
 }
 
+function CompactBanTile({ item }: { item: DraftItem | null }) {
+  const image = championImage(item?.champion);
+
+  return (
+    <span className="relative block aspect-square min-w-0 overflow-hidden rounded-sm bg-surface-muted sm:aspect-[1.45/1]">
+      {image ? (
+        <Image
+          src={image}
+          alt={championLabel(item?.champion)}
+          fill
+          sizes="(max-width: 480px) 28px, 44px"
+          className="object-cover grayscale"
+        />
+      ) : null}
+    </span>
+  );
+}
+
 function BanTiles({
   items,
   reverse = false,
@@ -100,5 +118,37 @@ export function SetDraftView({
         </div>
       </div>
     </>
+  );
+}
+
+export function CompactSetDraftView({
+  blue,
+  red,
+  champions,
+}: {
+  blue: DraftSide;
+  red: DraftSide;
+  champions: Champion[];
+}) {
+  const blueBans = orderedBans(blue.bans, champions);
+  const redBans = orderedBans(red.bans, champions);
+
+  const tiles = (items: DraftItem[]) => (
+    <div className="grid min-w-0 grid-cols-5 gap-0.5 sm:gap-1">
+      {Array.from({ length: 5 }, (_, index) => {
+        const item = items[index] ?? null;
+        return <CompactBanTile key={item?.id ?? `compact-empty-ban-${index}`} item={item} />;
+      })}
+    </div>
+  );
+
+  return (
+    <section aria-label="밴">
+      <div className="grid grid-cols-[minmax(0,1fr)_2.5rem_minmax(0,1fr)] items-center sm:grid-cols-[minmax(0,1fr)_3rem_minmax(0,1fr)]">
+        <div aria-label={`${blue.teamName} 밴`}>{tiles(blueBans)}</div>
+        <span className="text-center text-xs font-semibold text-muted">밴</span>
+        <div aria-label={`${red.teamName} 밴`}>{tiles(redBans)}</div>
+      </div>
+    </section>
   );
 }

@@ -75,6 +75,7 @@ export function PlayerItemSlots({
   slotClassName = "h-7 w-7",
   separatorClassName = "h-4 w-px",
   imageSizes = "28px",
+  compactGrid = false,
 }: {
   itemIds: Array<number | null | undefined>;
   roleBoundItem: number | null | undefined;
@@ -83,9 +84,37 @@ export function PlayerItemSlots({
   slotClassName?: string;
   separatorClassName?: string;
   imageSizes?: string;
+  compactGrid?: boolean;
 }) {
   const items = compactItemSlots(itemIds);
   const trinket = itemIds[6] ?? null;
+
+  if (compactGrid) {
+    return (
+      <div className={`grid grid-cols-4 gap-0.5 ${className}`}>
+        {items.map((itemId, index) => (
+          <ItemSlot
+            key={`item-${index}`}
+            itemId={itemId}
+            version={version}
+            slotClassName={slotClassName}
+            imageSizes={imageSizes}
+          />
+        ))}
+        <ItemSlot itemId={trinket} version={version} slotClassName={slotClassName} imageSizes={imageSizes} />
+        {hasItem(roleBoundItem) ? (
+          <RoleBoundItemSlot
+            roleBoundItem={roleBoundItem}
+            version={version}
+            slotClassName={slotClassName}
+            imageSizes={imageSizes}
+          />
+        ) : (
+          <ItemSlot itemId={null} version={version} slotClassName={slotClassName} imageSizes={imageSizes} />
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className={`flex items-center gap-0.5 ${className}`}>
