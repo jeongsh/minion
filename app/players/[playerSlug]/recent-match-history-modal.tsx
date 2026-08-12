@@ -1,12 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { ChevronDown, LoaderCircle, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { PlayerStatTable } from "@/components/domain/player-stat-table";
 import { DEFAULT_DDRAGON_VERSION, ddragonVersionFromPatch } from "@/lib/ddragon";
 import type { RuneCatalog } from "@/lib/runes";
 import type { GameSpell } from "@/lib/spells";
 import type { FanRating, Match, Player, PlayerStatLine, SetResult, Team } from "@/lib/types";
-import { dateKeyKST, teamLabel } from "@/lib/view-data";
+import { teamLabel } from "@/lib/view-data";
 
 type ChampionLike = {
   id: string;
@@ -184,96 +186,106 @@ export function RecentMatchHistoryModal({
   runeCatalogByVersion: Record<string, RuneCatalog>;
 }) {
   const [open, setOpen] = useState(false);
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [page, setPage] = useState(0);
-  const filteredRows = useMemo(
-    () =>
-      rows.filter((row) => {
-        const key = dateKeyKST(row.match.matchDate);
-        return (!startDate || key >= startDate) && (!endDate || key <= endDate);
-      }),
-    [endDate, rows, startDate],
-  );
-  const pageCount = Math.max(1, Math.ceil(filteredRows.length / 3));
-  const currentPage = Math.min(page, pageCount - 1);
-  const visibleRows = filteredRows.slice(currentPage * 3, currentPage * 3 + 3);
+  const [visibleCount, setVisibleCount] = useState(3);
+  const [loading, setLoading] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const visibleRows = rows.slice(0, visibleCount);
+  const hasMore = visibleCount < rows.length;
 
-  function updateRange(nextStart: string, nextEnd: string) {
-    setStartDate(nextStart);
-    setEndDate(nextEnd);
-    setPage(0);
-  }
+  useEffect(() => {
+    if (!open) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open || !hasMore || loading) return;
+    const root = scrollRef.current;
+    const sentinel = sentinelRef.current;
+    if (!root || !sentinel) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          observer.disconnect();
+          setLoading(true);
+          timerRef.current = setTimeout(() => {
+            setVisibleCount((count) => Math.min(count + 3, rows.length));
+            setLoading(false);
+          }, 450);
+        }
+      },
+      { root, rootMargin: "120px 0px" },
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore, loading, open, rows.length, visibleCount]);
 
   return (
     <>
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          if (timerRef.current) clearTimeout(timerRef.current);
+          setLoading(false);
+          setVisibleCount(3);
+          setOpen(true);
+        }}
         className="rounded-full bg-[var(--ui-ink)] px-4 py-2 text-sm font-semibold text-[var(--ui-surface)] transition-opacity hover:opacity-90"
       >
         전체 기록 보기
       </button>
 
-      {open ? (
-        <div className="fixed inset-0 z-50 bg-black/60 p-4" role="presentation">
+      {open && typeof document !== "undefined" ? createPortal(
+        <div
+          className="fixed inset-0 z-[1000] flex items-end justify-center bg-black/45 sm:items-center sm:p-6"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.currentTarget === event.target) setOpen(false);
+          }}
+        >
           <div
             role="dialog"
             aria-modal="true"
             aria-label="최근 경기 기록"
-            className="mx-auto flex max-h-[92vh] w-full max-w-7xl flex-col overflow-hidden rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] text-[var(--ui-ink)] shadow-2xl"
+            className="flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-[24px] bg-[var(--ui-surface)] text-[var(--ui-ink)] shadow-2xl sm:max-w-7xl sm:rounded-[24px]"
           >
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--ui-border)] px-5 py-4">
-              <div>
-                <h2 className="home-section-title text-2xl text-[var(--ui-ink)]">최근 경기 기록</h2>
-                <p className="mt-1 text-sm text-[var(--ui-muted)]">3매치씩 확인하고 기간으로 좁혀볼 수 있습니다.</p>
-              </div>
+            <div className="flex min-h-14 items-center justify-between border-b border-[var(--ui-border)] px-4 sm:min-h-16 sm:px-5">
+              <h2 className="home-section-title text-[17px] text-[var(--ui-ink)] sm:text-lg">최근 경기 기록</h2>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 py-2 text-sm font-semibold hover:bg-[var(--ui-card-hover)]"
+                className="grid h-11 w-11 place-items-center rounded-xl text-[var(--ui-muted)] hover:bg-[var(--ui-surface-muted)]"
+                aria-label="닫기"
               >
-                닫기
+                <X size={21} />
               </button>
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--ui-border)] px-5 py-3">
-              <div className="flex flex-wrap items-center gap-3 text-sm">
-                <label className="flex items-center gap-2">
-                  <span className="font-semibold">시작</span>
-                  <input
-                    type="date"
-                    value={startDate}
-                    onChange={(event) => updateRange(event.target.value, endDate)}
-                    className="rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 py-2 text-sm"
-                  />
-                </label>
-                <label className="flex items-center gap-2">
-                  <span className="font-semibold">종료</span>
-                  <input
-                    type="date"
-                    value={endDate}
-                    onChange={(event) => updateRange(startDate, event.target.value)}
-                    className="rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 py-2 text-sm"
-                  />
-                </label>
-              </div>
-              <button
-                type="button"
-                onClick={() => updateRange("", "")}
-                className="rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 py-2 text-sm font-semibold hover:bg-[var(--ui-card-hover)]"
-              >
-                전체 기간
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto px-5 py-4">
+            <div
+              ref={scrollRef}
+              className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 sm:p-5"
+            >
               {visibleRows.length === 0 ? (
-                <div className="rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-6 text-sm text-[var(--ui-muted)]">
-                  선택한 기간의 경기 기록이 없습니다.
+                <div className="rounded-xl bg-[var(--ui-card-bg)] p-5 text-sm text-[var(--ui-muted)]">
+                  경기 기록이 없습니다.
                 </div>
               ) : (
-                <div className="grid gap-4">
+                <div className="grid gap-3 sm:gap-4">
                   {visibleRows.map((row) => (
                     <div key={row.match.id}>
                       <RecentMatchSetRows
@@ -291,33 +303,21 @@ export function RecentMatchHistoryModal({
                       />
                     </div>
                   ))}
+                  {hasMore ? (
+                    <div ref={sentinelRef} className="flex min-h-11 items-center justify-center gap-1.5 text-xs font-semibold text-[var(--ui-muted)]" aria-live="polite">
+                      {loading ? (
+                        <><LoaderCircle aria-hidden="true" className="h-4 w-4 animate-spin" />불러오는 중</>
+                      ) : (
+                        <><ChevronDown aria-hidden="true" className="h-4 w-4" />아래로 스크롤해 더 보기</>
+                      )}
+                    </div>
+                  ) : null}
                 </div>
               )}
             </div>
-
-            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--ui-border)] px-5 py-4 text-sm">
-              <span className="text-[var(--ui-muted)]">{filteredRows.length}매치 · {currentPage + 1} / {pageCount}</span>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  disabled={currentPage === 0}
-                  onClick={() => setPage((value) => Math.max(value - 1, 0))}
-                  className="rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 py-2 font-semibold hover:bg-[var(--ui-card-hover)] disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  이전
-                </button>
-                <button
-                  type="button"
-                  disabled={currentPage >= pageCount - 1}
-                  onClick={() => setPage((value) => Math.min(value + 1, pageCount - 1))}
-                  className="rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 py-2 font-semibold hover:bg-[var(--ui-card-hover)] disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  다음
-                </button>
-              </div>
-            </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       ) : null}
     </>
   );

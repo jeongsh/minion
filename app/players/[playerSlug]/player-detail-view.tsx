@@ -142,26 +142,6 @@ function PlayerImage({
   );
 }
 
-function SummaryMetric({
-  label,
-  value,
-  helper,
-}: {
-  label: string;
-  value: React.ReactNode;
-  helper?: React.ReactNode;
-}) {
-  return (
-    <div className="min-w-0 px-2 py-2.5 sm:px-4">
-      <div className="min-w-0 sm:flex sm:items-baseline sm:gap-2">
-        <span className="block truncate text-[11px] font-semibold text-[var(--ui-muted)] sm:text-[13px]">{label}</span>
-        <span className="mt-1 block min-w-0 truncate text-base font-bold leading-none tabular-nums text-[var(--ui-ink)] sm:mt-0 sm:text-xl">{value}</span>
-      </div>
-      {helper ? <p className="mt-1 hidden truncate text-[12px] text-[var(--ui-muted)] sm:block">{helper}</p> : null}
-    </div>
-  );
-}
-
 // 8축 레이더 + 지표 바 리스트 (선수 지표 내부)
 function StatsOverview({
   stats,
@@ -419,7 +399,7 @@ export async function PlayerDetailView({
     })
     .sort((a, b) => b.lines.length - a.lines.length);
 
-  const recentMatchRows = completedPlayerMatches.slice(0, 10).map((match) => {
+  const recentMatchRows = completedPlayerMatches.map((match) => {
     const lines = playerLines
       .filter((line) => line.match.id === match.id)
       .sort((a, b) => a.set.setNumber - b.set.setNumber);
@@ -574,16 +554,29 @@ export async function PlayerDetailView({
         {/* 4. 시즌 요약 */}
         <section>
           <SectionHeading caption={playerSegmentLabel(activeSegment)}>시즌 요약</SectionHeading>
-          <div className="grid grid-cols-5 divide-x divide-[var(--ui-border)] overflow-hidden rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)]">
-            <SummaryMetric label="출전 세트" value={playerLines.length} />
-            <SummaryMetric
-              label="승률"
-              value={percentValue(playerLines.length ? (wins / playerLines.length) * 100 : null)}
-              helper={`${wins}W ${losses}L`}
-            />
-            <SummaryMetric label="KDA" value={statValue(aggregateStats?.kda, 2)} helper={playerKdaLine} />
-            <SummaryMetric label="최근 폼" value={statValue(recentStats?.formScore)} />
-            <SummaryMetric label="공식 POM" value={pomCount} />
+          <div className="rounded-lg bg-[var(--ui-card-bg)] p-2">
+            <div className="overflow-hidden rounded-md bg-[var(--ui-surface)]">
+              <div className="grid h-9 grid-cols-5 items-center bg-[color-mix(in_srgb,var(--ui-ink)_14%,var(--ui-surface))] text-center text-xs font-semibold text-[var(--ui-muted)]">
+                <span>출전 세트</span>
+                <span>승률</span>
+                <span>KDA</span>
+                <span>최근 폼</span>
+                <span>공식 POM</span>
+              </div>
+              <div className="grid min-h-12 grid-cols-5 items-center divide-x divide-[var(--ui-border)] text-center">
+                <strong className="px-1 text-base tabular-nums text-[var(--ui-ink)] sm:text-lg">{playerLines.length}</strong>
+                <div className="min-w-0 px-1">
+                  <strong className="text-base tabular-nums text-[var(--ui-ink)] sm:text-lg">{percentValue(playerLines.length ? (wins / playerLines.length) * 100 : null)}</strong>
+                  <span className="ml-1.5 hidden whitespace-nowrap text-xs text-[var(--ui-muted)] lg:inline">{wins}W {losses}L</span>
+                </div>
+                <div className="min-w-0 px-1">
+                  <strong className="text-base tabular-nums text-[var(--ui-ink)] sm:text-lg">{statValue(aggregateStats?.kda, 2)}</strong>
+                  <span className="ml-1.5 hidden whitespace-nowrap text-xs text-[var(--ui-muted)] xl:inline">{playerKdaLine}</span>
+                </div>
+                <strong className="px-1 text-base tabular-nums text-[var(--ui-ink)] sm:text-lg">{statValue(recentStats?.formScore)}</strong>
+                <strong className="px-1 text-base tabular-nums text-[var(--ui-ink)] sm:text-lg">{pomCount}</strong>
+              </div>
+            </div>
           </div>
         </section>
 

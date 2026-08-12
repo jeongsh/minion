@@ -1,7 +1,7 @@
 "use client";
 
-import { ChevronDown, Flag, Star, ThumbsDown, ThumbsUp } from "lucide-react";
-import { useMemo, useState, useTransition } from "react";
+import { ChevronDown, Flag, LoaderCircle, Star, ThumbsDown, ThumbsUp } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 
 import { AuthorMenu } from "@/components/community/author-menu";
 import { useToast } from "@/components/ui/toast";
@@ -10,6 +10,7 @@ import type { Tier } from "@/lib/rank/config";
 import { reactFanRatingAction, reportFanRatingAction } from "./actions";
 
 type ReactionState = "honor" | "dislike" | null;
+const PAGE_SIZE = 5;
 
 export type RatingCommentItem = {
   id: string;
@@ -87,6 +88,10 @@ export function RatingCommentList({
   viewerId?: string;
 }) {
   const [playerId, setPlayerId] = useState<string | null>(null);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [loading, setLoading] = useState(false);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const players = useMemo(() => {
     const unique = new Map<string, { id: string; name: string; imageUrl: string | null; count: number }>();
     for (const item of items) {
@@ -100,7 +105,35 @@ export function RatingCommentList({
     }
     return [...unique.values()];
   }, [items]);
-  const visibleItems = playerId ? items.filter((item) => item.playerId === playerId) : items;
+  const filteredItems = playerId ? items.filter((item) => item.playerId === playerId) : items;
+  const visibleItems = filteredItems.slice(0, visibleCount);
+  const hasMore = visibleCount < filteredItems.length;
+
+  useEffect(() => () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+  }, []);
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel || !hasMore || loading) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          observer.disconnect();
+          setLoading(true);
+          timerRef.current = setTimeout(() => {
+            setVisibleCount((count) => Math.min(count + PAGE_SIZE, filteredItems.length));
+            setLoading(false);
+          }, 450);
+        }
+      },
+      { rootMargin: "120px 0px" },
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [filteredItems.length, hasMore, loading, visibleCount]);
 
   if (items.length === 0) {
     return (
@@ -119,7 +152,12 @@ export function RatingCommentList({
           <span className="sr-only">선수별 코멘트 필터</span>
           <select
             value={playerId ?? "all"}
-            onChange={(event) => setPlayerId(event.target.value === "all" ? null : event.target.value)}
+            onChange={(event) => {
+              if (timerRef.current) clearTimeout(timerRef.current);
+              setLoading(false);
+              setVisibleCount(PAGE_SIZE);
+              setPlayerId(event.target.value === "all" ? null : event.target.value);
+            }}
             className="h-9 w-auto min-w-40 max-w-[55vw] appearance-none truncate rounded-lg bg-[var(--ui-card-bg)] py-0 pl-3 pr-9 text-sm font-normal text-[var(--ui-ink)] outline-none transition-colors hover:bg-[var(--ui-card-hover)] focus-visible:ring-2 focus-visible:ring-[var(--tp)]"
           >
             <option value="all">전체 선수 ({items.length})</option>
@@ -164,6 +202,15 @@ export function RatingCommentList({
           </article>
         ))}
       </div>
+      {hasMore ? (
+        <div ref={sentinelRef} className="flex min-h-11 items-center justify-center gap-1.5 text-xs font-semibold text-[var(--ui-muted)]" aria-live="polite">
+          {loading ? (
+            <><LoaderCircle aria-hidden="true" className="h-4 w-4 animate-spin" />불러오는 중</>
+          ) : (
+            <><ChevronDown aria-hidden="true" className="h-4 w-4" />아래로 스크롤해 더 보기</>
+          )}
+        </div>
+      ) : null}
     </>
   );
 }

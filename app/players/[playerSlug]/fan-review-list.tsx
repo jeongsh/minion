@@ -1,6 +1,6 @@
 "use client";
 
-import { Star } from "lucide-react";
+import { ChevronDown, LoaderCircle, Star } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { AuthorMenu } from "@/components/community/author-menu";
@@ -40,25 +40,36 @@ function FanReviewComment({ rating, meta }: FanReviewItem) {
 
 export function FanReviewList({ items }: { items: FanReviewItem[] }) {
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [loading, setLoading] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasMore = visibleCount < items.length;
+
+  useEffect(() => () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+  }, []);
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
-    if (!sentinel || !hasMore) return;
+    if (!sentinel || !hasMore || loading) return;
 
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          setVisibleCount((count) => Math.min(count + PAGE_SIZE, items.length));
+          observer.disconnect();
+          setLoading(true);
+          timerRef.current = setTimeout(() => {
+            setVisibleCount((count) => Math.min(count + PAGE_SIZE, items.length));
+            setLoading(false);
+          }, 450);
         }
       },
-      { rootMargin: "240px 0px" },
+      { rootMargin: "120px 0px" },
     );
 
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [hasMore, items.length, visibleCount]);
+  }, [hasMore, items.length, loading, visibleCount]);
 
   return (
     <>
@@ -67,7 +78,15 @@ export function FanReviewList({ items }: { items: FanReviewItem[] }) {
           <FanReviewComment key={item.rating.id} {...item} />
         ))}
       </div>
-      {hasMore ? <div ref={sentinelRef} aria-hidden="true" className="h-px" /> : null}
+      {hasMore ? (
+        <div ref={sentinelRef} className="flex min-h-11 items-center justify-center gap-1.5 text-xs font-semibold text-[var(--ui-muted)]" aria-live="polite">
+          {loading ? (
+            <><LoaderCircle aria-hidden="true" className="h-4 w-4 animate-spin" />불러오는 중</>
+          ) : (
+            <><ChevronDown aria-hidden="true" className="h-4 w-4" />아래로 스크롤해 더 보기</>
+          )}
+        </div>
+      ) : null}
       <span className="sr-only" aria-live="polite">
         팬 리뷰 {Math.min(visibleCount, items.length)}개 표시 중
       </span>
