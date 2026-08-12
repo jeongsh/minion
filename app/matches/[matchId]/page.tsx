@@ -3,7 +3,7 @@ import { ImageIcon } from "lucide-react";
 
 import { notFound } from "next/navigation";
 
-import { HomeUpcomingPredictionCard } from "@/components/domain/home-upcoming-prediction-card";
+import { PredictionMatchBar } from "@/components/domain/prediction-match-bar";
 import { SetVodPlayer } from "@/components/domain/set-vod-player";
 import { SegmentedControl, UnderlineNav, type TabItem } from "@/components/ui/tabs";
 import { AdSlot } from "@/components/ui/ad-slot";
@@ -472,6 +472,9 @@ export default async function MatchDetailPage({
   const topFanLeader = fanRatingLeader(fanRatings);
   const pomPlayer = players.find((p) => p.id === match.officialPomPlayerId);
   const topFanPlayer = topFanLeader ? players.find((p) => p.id === topFanLeader.playerId) : undefined;
+  // Snapshot once per dynamic request; the client receives the same cutoff as the predictions page.
+  // eslint-disable-next-line react-hooks/purity
+  const now = Date.now();
 
   const activeSetCard = activeSet ? (
     <SetDetailContent matchId={matchId} setId={activeSet.id} embedded />
@@ -482,9 +485,8 @@ export default async function MatchDetailPage({
   );
 
   const poll = (
-    <section>
-      <div className="mb-2.5 flex items-end justify-between gap-3"><h2 className="home-section-title text-lg text-[var(--ui-ink)]">LP 승부예측</h2><span className="text-sm font-semibold text-[var(--ui-muted)]">예상 배당은 마감 전까지 변동됩니다</span></div>
-      <HomeUpcomingPredictionCard match={match} teamA={teamA} teamB={teamB} tournament={tournament?.name} bets={predictionMarket.bets.filter((bet) => bet.matchId === match.id)} currentUserId={currentUser?.id} balance={predictionMarket.balance}/>
+    <section aria-label="LP 승부예측">
+      <PredictionMatchBar match={match} teamA={teamA} teamB={teamB} bets={predictionMarket.bets.filter((bet) => bet.matchId === match.id)} currentUserId={currentUser?.id} balance={predictionMarket.balance} now={now} />
     </section>
   );
   // "preview" 탭에서만 필요한 전체 매치/세트 히스토리는 그 탭일 때만 조회한다.

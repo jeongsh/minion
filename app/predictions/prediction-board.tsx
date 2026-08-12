@@ -354,9 +354,9 @@ function BetAmountDialog({
           <div className="prediction-ticket__head">
             <div className="flex items-start justify-between gap-4">
               <div className="flex min-w-0 items-center gap-3 pl-3">
-                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[var(--palette-green-butter-point)] text-[var(--palette-green-butter-main)]"><TicketCheck size={24} strokeWidth={2.4} /></span>
+                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-600 ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-700"><TicketCheck size={24} strokeWidth={2.4} /></span>
                 <div className="min-w-0">
-                  <h2 id="bet-dialog-title" className="truncate text-xl font-black text-[var(--ui-ink)]">paperozi</h2>
+                  <h2 id="bet-dialog-title" className="truncate text-xl font-black text-[var(--ui-ink)]">승부예측</h2>
                 </div>
               </div>
               <button type="button" onClick={onClose} className="grid h-9 w-9 place-items-center rounded-lg text-[var(--ui-muted)] hover:bg-[var(--ui-surface-muted)]" aria-label="닫기"><X size={18} /></button>

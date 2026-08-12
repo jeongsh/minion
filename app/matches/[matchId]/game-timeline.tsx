@@ -56,8 +56,8 @@ const ITEM_SZ  = 10;   // icon diameter
 const ITEM_SLT = 18;   // px per row
 const KILL_R   = 3.5;  // kill dot radius
 const TOP_MAR  = 16;
-const BOT_MAR  = 36;
-const MIN_HALF = 110;
+const BOT_MAR  = 26;
+const MIN_HALF = 82;
 const CTR_GAP  = 10;
 const BADGE_R  = 4;    // count badge radius
 const CARD_RX  = 16;   // 카드 모서리 반경(라운드 코너 밖으로 축선이 튀어나오지 않게 인셋 계산에도 사용)
@@ -718,7 +718,7 @@ export function GameTimeline({
         )}
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-5 pb-4 pt-2 text-[15px] text-muted">
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-4 pb-3 pt-1 text-sm text-muted">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
           {showObjectives && [
             { src: OBJECTIVE_ICONS.elder,    label: "장로" },
@@ -728,7 +728,7 @@ export function GameTimeline({
           ].map(({ src, label }) => (
             <span key={label} className="flex items-center">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={src} alt="" className="h-6 w-6 object-contain leading-none" />
+              <img src={src} alt="" className="h-5 w-5 object-contain leading-none" />
               {label}
             </span>
           ))}

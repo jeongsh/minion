@@ -101,7 +101,7 @@ function BriefingRow({
 }) {
   return (
     <div
-      className={`grid gap-2 border-b border-[var(--ui-border)] px-4 py-3.5 last:border-b-0 sm:grid-cols-[8.75rem_minmax(0,1fr)] sm:gap-4 sm:px-5 sm:py-4 ${
+      className={`mb-2.5 grid gap-2 rounded-lg bg-[var(--ui-card-bg)] px-4 py-3.5 last:mb-3 sm:grid-cols-[8.75rem_minmax(0,1fr)] sm:gap-4 sm:px-5 sm:py-4 ${
         align === "center" ? "sm:items-center" : "sm:items-start"
       }`}
     >
@@ -125,7 +125,7 @@ function MetricCard({
   colorB: string;
 }) {
   return (
-    <div className="rounded-lg border border-[var(--ui-border)] px-2.5 py-2 sm:px-3">
+    <div className="rounded-lg bg-[var(--ui-surface)] px-2.5 py-2 sm:px-3">
       <div className="text-sm font-bold text-[var(--ui-muted)]">{label}</div>
       <div className="mt-1 text-base font-black tabular-nums">
         <span style={{ color: colorA }}>{valueA}</span>
@@ -188,7 +188,7 @@ function MeetingRow({
   const teamB = teams.find((team) => team.id === meeting.teamBId);
 
   return (
-    <div className="flex items-center gap-3 rounded-lg bg-[var(--ui-card-bg)] px-3 py-2">
+    <div className="flex items-center gap-3 rounded-lg bg-[var(--ui-surface)] px-3 py-2">
       <span className="shrink-0 whitespace-nowrap text-xs font-bold tabular-nums text-[var(--ui-muted)]">
         {formatMeetingDay(meeting.matchDate)}
       </span>
@@ -215,37 +215,6 @@ function MeetingRow({
         {teamLabel(teams, meeting.winnerTeamId)} 승
       </span>
     </div>
-  );
-}
-
-function FormRow({
-  label,
-  form,
-  color,
-}: {
-  label: string;
-  form: ("W" | "L")[];
-  color: string;
-}) {
-  return (
-    <span className="flex items-center gap-1.5">
-      <span className="text-sm font-bold text-[var(--ui-muted)]">{label}</span>
-      {form.length === 0 ? (
-        <span className="text-sm font-bold text-[var(--ui-muted)]">-</span>
-      ) : (
-        form.map((result, index) => (
-          <span
-            key={index}
-            className={`grid h-6 w-6 place-items-center rounded-full text-xs font-medium leading-none ${
-              result === "W" ? "text-white" : "bg-[var(--ui-surface-muted)] text-[var(--ui-muted)]"
-            }`}
-            style={result === "W" ? { background: color } : undefined}
-          >
-            {result}
-          </span>
-        ))
-      )}
-    </span>
   );
 }
 
@@ -285,12 +254,13 @@ export function MatchPreview({
     item.games > 0 ? `${item.wins}-${item.losses}` : "-";
 
   return (
-    <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
+    <div className="flex flex-col gap-5">
+      {poll}
       <section
-        className="mobile-full-bleed overflow-hidden rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] md:mx-0"
+        className="mobile-full-bleed md:mx-0"
         aria-labelledby="ai-match-preview"
       >
-        <div className="flex items-center justify-between gap-3 border-b border-[var(--ui-border)] px-4 py-3 sm:px-5">
+        <div className="mb-3 flex items-center justify-between gap-3">
           <h2 id="ai-match-preview" className="home-section-title text-lg text-[var(--ui-ink)]">
             AI 브리핑
           </h2>
@@ -363,13 +333,6 @@ export function MatchPreview({
           </div>
         </BriefingRow>
 
-        <BriefingRow label="최근 폼" align="center">
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-            <FormRow label={teamAName} form={teamARecent.form} color={colorA} />
-            <FormRow label={teamBName} form={teamBRecent.form} color={colorB} />
-          </div>
-        </BriefingRow>
-
         <BriefingRow label="최근 맞대결">
           {h2h.length === 0 ? (
             <p className="text-sm text-[var(--ui-muted)]">
@@ -409,8 +372,6 @@ export function MatchPreview({
           </BriefingRow>
         ) : null}
       </section>
-
-      <div className="lg:sticky lg:top-20 lg:self-start">{poll}</div>
     </div>
   );
 }
