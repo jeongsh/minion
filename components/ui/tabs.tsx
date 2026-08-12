@@ -27,7 +27,7 @@ export function SegmentedControl({
   return (
     <nav
       aria-label={ariaLabel}
-      className={`inline-flex w-fit shrink-0 gap-0.5 rounded-[10px] bg-[var(--ui-surface-muted)] p-[3px] ${className}`}
+      className={`inline-flex w-fit shrink-0 gap-0.5 rounded-[10px] bg-[var(--ui-card-bg)] p-[3px] ${className}`}
     >
       {items.map((item) => {
         const isActive = item.key === activeKey;

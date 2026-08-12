@@ -107,7 +107,7 @@ export function HomeDashboard({
                 월간 캘린더 보기
               </>
             }
-            triggerClassName="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[var(--home-card-bg-strong)] px-4 text-sm font-bold text-[var(--ui-ink)] transition-colors hover:bg-[var(--home-card-bg-hover)]"
+            triggerClassName="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[var(--ui-card-bg)] px-4 text-sm font-bold text-[var(--ui-ink)] transition-colors hover:bg-[var(--ui-card-hover)]"
             triggerAriaLabel="LCK 캘린더 열기"
             panelClassName="sm:max-w-[400px]"
           >

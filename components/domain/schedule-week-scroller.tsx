@@ -49,7 +49,7 @@ export function ScheduleWeekScroller({
   availableDateKeys: string[];
 }) {
   return (
-    <div className="grid grid-cols-7 gap-1 rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface-muted)] p-1">
+    <div className="grid grid-cols-7 gap-1 rounded-xl border border-[var(--ui-border)] bg-[var(--ui-card-bg)] p-1">
       {dates.map((date) => {
         const isToday = date.key === todayKey;
         const targetKey = targetForDate(date.key, availableDateKeys);
@@ -63,7 +63,7 @@ export function ScheduleWeekScroller({
             className={`flex min-h-11 flex-col items-center justify-center rounded-lg text-[11px] font-bold transition-colors ${
               isToday
                 ? "bg-[var(--ui-ink)] text-[var(--ui-surface)] shadow-sm"
-                : "text-[var(--ui-muted)] hover:bg-[var(--ui-surface)] hover:text-[var(--ui-ink)]"
+                : "text-[var(--ui-muted)] hover:bg-[var(--ui-card-hover)] hover:text-[var(--ui-ink)]"
             }`}
             onClick={(event) => {
               if (!targetKey) return;

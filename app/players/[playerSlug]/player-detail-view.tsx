@@ -133,7 +133,7 @@ function PlayerImage({
   className: string;
 }) {
   if (!src) {
-    return <div className={`${className} bg-[var(--ui-surface-muted)]`} aria-label={alt} />;
+    return <div className={`${className} bg-[var(--ui-card-bg)]`} aria-label={alt} />;
   }
 
   return (
@@ -304,7 +304,7 @@ function PlayerSegmentChips({
             className={`rounded-full px-3 py-1.5 text-sm font-semibold transition-colors ${
               active
                 ? "bg-[var(--tp)] text-white"
-                : "border border-[var(--ui-border)] bg-[var(--ui-surface)] text-[var(--ui-text)] hover:bg-[var(--ui-surface-muted)]"
+                : "border border-[var(--ui-border)] bg-[var(--ui-surface)] text-[var(--ui-text)] hover:bg-[var(--ui-card-hover)]"
             }`}
           >
             {playerSegmentLabel(segment)}
@@ -597,7 +597,7 @@ export async function PlayerDetailView({
             ) : null}
             <Link
               href="#teammates"
-              className="rounded-full border border-[var(--ui-border)] px-4 py-2 text-sm font-semibold text-[var(--ui-text)] transition-colors hover:bg-[var(--ui-surface-muted)]"
+              className="rounded-full border border-[var(--ui-border)] px-4 py-2 text-sm font-semibold text-[var(--ui-text)] transition-colors hover:bg-[var(--ui-card-hover)]"
             >
               팀원 보기
             </Link>
@@ -606,7 +606,7 @@ export async function PlayerDetailView({
 
         {/* 3. 메인 그리드 — 포트레잇 + 선수 지표 */}
         <div className="grid gap-5 min-[1200px]:grid-cols-[330px_1fr] min-[1200px]:gap-10">
-          <div className="relative h-52 w-full overflow-hidden rounded-2xl bg-[var(--ui-surface-muted)] sm:h-64 min-[1200px]:!h-[323px]">
+          <div className="relative h-52 w-full overflow-hidden rounded-2xl bg-[var(--ui-card-bg)] sm:h-64 min-[1200px]:!h-[323px]">
             <PlayerImage src={player.profileImageUrl} alt={player.name} className="h-full w-full object-contain object-top min-[1200px]:object-cover" />
             <span className="absolute left-3 top-3 rounded-lg px-2 py-1 text-[13px] font-bold text-white" style={{ background: "var(--tp)" }}>
               {player.position}
@@ -771,7 +771,7 @@ export async function PlayerDetailView({
                   <Link
                     key={teammate.id}
                     href={`${linkBase}/${teammate.slug}`}
-                    className="fan-roster-chip inline-flex items-center gap-1.5 rounded-full border border-[var(--ui-border)] px-3.5 py-2 transition-colors hover:bg-[var(--ui-surface-muted)]"
+                    className="fan-roster-chip inline-flex items-center gap-1.5 rounded-full border border-[var(--ui-border)] px-3.5 py-2 transition-colors hover:bg-[var(--ui-card-hover)]"
                   >
                     <span className="text-[13px] font-bold" style={{ color: "var(--tp)" }}>
                       {teammate.position}

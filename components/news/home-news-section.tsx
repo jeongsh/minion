@@ -43,13 +43,13 @@ export function HomeNewsSection({ articles }: { articles: NewsArticle[] }) {
       <SectionHeading href="/news">
         <span id="home-news-heading">LCK 뉴스</span>
       </SectionHeading>
-      <div className="grid gap-5 rounded-2xl border border-[var(--home-card-divider)] p-3 sm:p-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(320px,1fr)] lg:gap-8">
+      <div className="grid gap-5 rounded-2xl border border-[var(--ui-card-divider)] p-3 sm:p-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(320px,1fr)] lg:gap-8">
         <LeadNewsCard article={lead} />
         <div className="grid content-start lg:py-1">
           {secondary.map((article, index) => (
             <div
               key={article.id}
-              className={`${index >= 3 ? "hidden lg:block" : "block"} ${index >= 4 ? "lg:hidden xl:block" : ""} border-b border-[var(--home-card-divider)] py-3 first:pt-0 ${index === 2 ? "border-b-0 pb-0 lg:border-b lg:pb-3" : ""} ${index === secondary.length - 1 ? "xl:border-b-0 xl:pb-0" : ""}`}
+              className={`${index >= 3 ? "hidden lg:block" : "block"} ${index >= 4 ? "lg:hidden xl:block" : ""} border-b border-[var(--ui-card-divider)] py-3 first:pt-0 ${index === 2 ? "border-b-0 pb-0 lg:border-b lg:pb-3" : ""} ${index === secondary.length - 1 ? "xl:border-b-0 xl:pb-0" : ""}`}
             >
               <NewsCard article={article} size="home" />
             </div>

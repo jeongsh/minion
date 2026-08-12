@@ -188,7 +188,7 @@ function MeetingRow({
   const teamB = teams.find((team) => team.id === meeting.teamBId);
 
   return (
-    <div className="flex items-center gap-3 rounded-lg bg-[var(--ui-surface-muted)] px-3 py-2">
+    <div className="flex items-center gap-3 rounded-lg bg-[var(--ui-card-bg)] px-3 py-2">
       <span className="shrink-0 whitespace-nowrap text-xs font-bold tabular-nums text-[var(--ui-muted)]">
         {formatMeetingDay(meeting.matchDate)}
       </span>

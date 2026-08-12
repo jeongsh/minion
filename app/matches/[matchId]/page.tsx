@@ -534,7 +534,7 @@ export default async function MatchDetailPage({
           <div className="flex min-w-[5.75rem] shrink-0 flex-col items-center px-1 sm:min-w-[7.5rem]">
             {hasScore ? (
               <>
-                <div className="flex items-center gap-2 rounded-md bg-[var(--ui-surface-muted)] px-3 py-2 text-[26px] font-black leading-none tabular-nums sm:text-[32px]">
+                <div className="flex items-center gap-2 rounded-md bg-[var(--ui-card-bg)] px-3 py-2 text-[26px] font-black leading-none tabular-nums sm:text-[32px]">
                   <span className={teamAResult === "LOSS" ? "text-[var(--ui-muted)]" : "text-[var(--ui-ink)]"}>{scoreLabel(match.teamAScore)}</span>
                   <span className="text-sm font-medium text-[var(--ui-muted)]">:</span>
                   <span className={teamBResult === "LOSS" ? "text-[var(--ui-muted)]" : "text-[var(--ui-ink)]"}>{scoreLabel(match.teamBScore)}</span>

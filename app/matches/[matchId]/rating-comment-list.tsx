@@ -120,7 +120,7 @@ export function RatingCommentList({
           <select
             value={playerId ?? "all"}
             onChange={(event) => setPlayerId(event.target.value === "all" ? null : event.target.value)}
-            className="h-9 w-auto min-w-40 max-w-[55vw] appearance-none truncate rounded-lg bg-[var(--ui-surface-muted)] py-0 pl-3 pr-9 text-sm font-normal text-[var(--ui-ink)] outline-none transition-colors hover:bg-[var(--ui-card-hover)] focus-visible:ring-2 focus-visible:ring-[var(--tp)]"
+            className="h-9 w-auto min-w-40 max-w-[55vw] appearance-none truncate rounded-lg bg-[var(--ui-card-bg)] py-0 pl-3 pr-9 text-sm font-normal text-[var(--ui-ink)] outline-none transition-colors hover:bg-[var(--ui-card-hover)] focus-visible:ring-2 focus-visible:ring-[var(--tp)]"
           >
             <option value="all">전체 선수 ({items.length})</option>
             {players.map((player) => (
@@ -135,7 +135,7 @@ export function RatingCommentList({
 
       <div className="mt-2 grid gap-3">
         {visibleItems.map((item) => (
-          <article key={item.id} className="flex min-w-0 gap-3 rounded-xl bg-[var(--ui-surface-muted)] p-3.5 sm:p-4">
+          <article key={item.id} className="flex min-w-0 gap-3 rounded-xl bg-[var(--ui-card-bg)] p-3.5 sm:p-4">
             <div className="min-w-0 flex-1">
               <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
                 <AuthorMenu

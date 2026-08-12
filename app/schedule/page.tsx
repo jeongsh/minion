@@ -83,8 +83,8 @@ export default async function SchedulePage({
           <div className="mb-2 flex items-center justify-between gap-3">
             <div className="min-w-0"><h1 className="home-section-title font-paperozi text-[18px] leading-tight text-[var(--ui-ink)]">경기 일정</h1></div>
           <div className="flex items-center gap-1">
-            <AdaptiveDialog title={`${activeYear}년 ${activeMonth}월 캘린더`} trigger={<><CalendarDays size={17} /><span className="sr-only">캘린더 열기</span></>} triggerClassName="grid h-9 w-9 place-items-center rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface-muted)] text-[var(--ui-ink)] transition-colors hover:bg-[var(--ui-surface)]"><HomeCalendar initialMonthKey={`${activeYear}-${String(activeMonth).padStart(2, "0")}`} matches={calendarMatches} events={[]} /></AdaptiveDialog>
-            <AdaptiveDialog title="일정 필터" trigger={<><SlidersHorizontal size={17} /><span className="sr-only">필터 열기</span></>} triggerClassName="grid h-9 w-9 place-items-center rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface-muted)] text-[var(--ui-ink)] transition-colors hover:bg-[var(--ui-surface)]">{mobileFilters}<Link href="/schedule" className="mt-4 flex min-h-12 items-center justify-center rounded-xl bg-[var(--ui-ink)] px-4 text-sm font-black text-[var(--ui-surface)]">필터 초기화</Link></AdaptiveDialog>
+            <AdaptiveDialog title={`${activeYear}년 ${activeMonth}월 캘린더`} trigger={<><CalendarDays size={17} /><span className="sr-only">캘린더 열기</span></>} triggerClassName="grid h-9 w-9 place-items-center rounded-xl border border-[var(--ui-border)] bg-[var(--ui-card-bg)] text-[var(--ui-ink)] transition-colors hover:bg-[var(--ui-card-hover)]"><HomeCalendar initialMonthKey={`${activeYear}-${String(activeMonth).padStart(2, "0")}`} matches={calendarMatches} events={[]} /></AdaptiveDialog>
+            <AdaptiveDialog title="일정 필터" trigger={<><SlidersHorizontal size={17} /><span className="sr-only">필터 열기</span></>} triggerClassName="grid h-9 w-9 place-items-center rounded-xl border border-[var(--ui-border)] bg-[var(--ui-card-bg)] text-[var(--ui-ink)] transition-colors hover:bg-[var(--ui-card-hover)]">{mobileFilters}<Link href="/schedule" className="mt-4 flex min-h-12 items-center justify-center rounded-xl bg-[var(--ui-ink)] px-4 text-sm font-black text-[var(--ui-surface)]">필터 초기화</Link></AdaptiveDialog>
           </div>
           </div>
           <ScheduleWeekScroller dates={currentWeek} todayKey={todayKey} availableDateKeys={availableDateKeys} />
@@ -94,7 +94,7 @@ export default async function SchedulePage({
       <div className="layout-wide pt-5 sm:pt-7">
         <div className="hidden items-end justify-between md:flex">
           <div><h1 className="home-section-title font-paperozi text-[24px] leading-tight text-[var(--ui-ink)] lg:text-[28px]">경기 일정</h1></div>
-          <p className="rounded-full bg-[var(--ui-surface-muted)] px-3 py-1.5 text-[13px] font-bold text-[var(--ui-muted)]">{filtered.length}경기</p>
+          <p className="rounded-full bg-[var(--ui-card-bg)] px-3 py-1.5 text-[13px] font-bold text-[var(--ui-muted)]">{filtered.length}경기</p>
         </div>
       </div>
 

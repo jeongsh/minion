@@ -93,7 +93,7 @@ export function RecentMatchSetRows({
 
   return (
     <article className="overflow-hidden rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)]">
-      <div className="grid gap-3 border-b border-[var(--ui-border)] bg-[var(--ui-surface-muted)] px-4 py-3 text-sm text-[var(--ui-ink)] [&>*:first-child]:block [&>*]:hidden min-[1024px]:grid-cols-[1fr_auto_auto_auto] min-[1024px]:items-center min-[1024px]:[&>*:first-child]:hidden min-[1024px]:[&>*]:block">
+      <div className="grid gap-3 border-b border-[var(--ui-border)] bg-[var(--ui-card-bg)] px-4 py-3 text-sm text-[var(--ui-ink)] [&>*:first-child]:block [&>*]:hidden min-[1024px]:grid-cols-[1fr_auto_auto_auto] min-[1024px]:items-center min-[1024px]:[&>*:first-child]:hidden min-[1024px]:[&>*]:block">
         <div className="font-black min-[1024px]:hidden">{playerTeam} vs {opponent}</div>
         <div className="hidden min-[1024px]:block">
           <p className="font-semibold">{compactDate(match.matchDate)} · vs {opponent}</p>
@@ -277,7 +277,7 @@ export function RecentMatchHistoryModal({
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 py-2 text-sm font-semibold hover:bg-[var(--ui-surface-muted)]"
+                className="rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 py-2 text-sm font-semibold hover:bg-[var(--ui-card-hover)]"
               >
                 닫기
               </button>
@@ -307,7 +307,7 @@ export function RecentMatchHistoryModal({
               <button
                 type="button"
                 onClick={() => updateRange("", "")}
-                className="rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 py-2 text-sm font-semibold hover:bg-[var(--ui-surface-muted)]"
+                className="rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 py-2 text-sm font-semibold hover:bg-[var(--ui-card-hover)]"
               >
                 전체 기간
               </button>
@@ -346,7 +346,7 @@ export function RecentMatchHistoryModal({
                   type="button"
                   disabled={currentPage === 0}
                   onClick={() => setPage((value) => Math.max(value - 1, 0))}
-                  className="rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 py-2 font-semibold hover:bg-[var(--ui-surface-muted)] disabled:cursor-not-allowed disabled:opacity-40"
+                  className="rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 py-2 font-semibold hover:bg-[var(--ui-card-hover)] disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   이전
                 </button>
@@ -354,7 +354,7 @@ export function RecentMatchHistoryModal({
                   type="button"
                   disabled={currentPage >= pageCount - 1}
                   onClick={() => setPage((value) => Math.min(value + 1, pageCount - 1))}
-                  className="rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 py-2 font-semibold hover:bg-[var(--ui-surface-muted)] disabled:cursor-not-allowed disabled:opacity-40"
+                  className="rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 py-2 font-semibold hover:bg-[var(--ui-card-hover)] disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   다음
                 </button>

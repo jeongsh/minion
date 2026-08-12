@@ -179,7 +179,7 @@ export function AppShell({
                   }
                 : undefined
             }
-            className="grid h-11 w-11 place-items-center rounded-xl hover:bg-[#f4f4f5] dark:hover:bg-[#282c31]"
+            className="grid h-11 w-11 place-items-center rounded-xl hover:bg-[var(--ui-card-hover)]"
             aria-label="이전 화면"
           >
             <ChevronLeft size={22} />
@@ -189,7 +189,7 @@ export function AppShell({
         </header>
       ) : (
       <header className="fixed inset-x-0 top-0 z-50 flex h-14 items-center border-b border-[#e8e8eb] bg-[var(--page-background)] px-3 sm:h-16 sm:px-4 dark:border-[#343840]">
-        <button type="button" onClick={toggleNavigation} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl hover:bg-[#f4f4f5] dark:hover:bg-[#282c31]" aria-label={mobileMenuOpen ? "내비게이션 닫기" : "내비게이션 열기"} aria-expanded={mobileMenuOpen}>
+        <button type="button" onClick={toggleNavigation} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl hover:bg-[var(--ui-card-hover)]" aria-label={mobileMenuOpen ? "내비게이션 닫기" : "내비게이션 열기"} aria-expanded={mobileMenuOpen}>
           {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
         </button>
         <Link href="/" className="ml-1.5 shrink-0 text-[22px] font-black tracking-[-0.06em] text-[#18191c] sm:ml-2 sm:text-[25px] dark:text-white">
@@ -198,12 +198,12 @@ export function AppShell({
         <div className="absolute left-1/2 hidden w-[360px] -translate-x-1/2 min-[1200px]:block">
           <HeaderSearch className="w-full" />
         </div>
-        <button type="button" onClick={toggleDarkMode} className="ml-auto mr-2 grid h-11 w-11 shrink-0 place-items-center rounded-xl text-[#62666d] transition hover:bg-[#f4f4f5] sm:mr-2 dark:bg-[rgba(0,0,0,0)] dark:text-[#a7acb5] dark:hover:bg-[#282c31]" aria-label="색상 모드 전환" title="색상 모드 전환">
+        <button type="button" onClick={toggleDarkMode} className="ml-auto mr-2 grid h-11 w-11 shrink-0 place-items-center rounded-xl text-[#62666d] transition hover:bg-[var(--ui-card-hover)] sm:mr-2 dark:bg-[rgba(0,0,0,0)] dark:text-[#a7acb5]" aria-label="색상 모드 전환" title="색상 모드 전환">
           <Moon size={20} className="dark:hidden" />
           <Sun size={20} className="hidden dark:block" />
         </button>
         {isAdminUser ? (
-          <Link href="/admin" className="mr-2 hidden h-11 items-center rounded-xl border border-[#d9dce1] bg-white px-3 text-[13px] font-bold text-[#18191c] transition hover:bg-[#f4f4f5] sm:inline-flex dark:border-[#434854] dark:bg-[#30343b] dark:text-white dark:hover:bg-[#383d45]">
+          <Link href="/admin" className="mr-2 hidden h-11 items-center rounded-xl border border-[#d9dce1] bg-white px-3 text-[13px] font-bold text-[#18191c] transition hover:bg-[var(--ui-card-hover)] sm:inline-flex dark:border-[#434854] dark:bg-[#30343b] dark:text-white">
             어드민
           </Link>
         ) : null}
@@ -226,7 +226,7 @@ export function AppShell({
       {mobileMenuOpen ? (
         <div className={`fixed inset-x-0 top-14 z-40 overflow-y-auto border-b border-[#e8e8eb] bg-[var(--page-background)] px-4 py-4 shadow-xl shadow-black/10 sm:top-16 min-[1200px]:hidden dark:border-[#343840] ${compactHubShell ? "bottom-16 md:bottom-0" : "bottom-0"}`}>
           {currentUser ? (
-            <div className="mb-4 flex items-center justify-between gap-3 rounded-2xl bg-[#f4f4f5] px-4 py-3 dark:bg-[#282c31]">
+            <div className="mb-4 flex items-center justify-between gap-3 rounded-2xl bg-[var(--ui-card-bg)] px-4 py-3">
               <RankAvatar
                 tier={currentUser.tier}
                 src={currentUser.profileImageUrl}
@@ -240,7 +240,7 @@ export function AppShell({
           <nav className="grid grid-cols-2 gap-2" aria-label="전체 메뉴">
             {desktopNav.map(({ href, label, icon: Icon, prefetch }) => {
               const active = isActiveRoute(pathname, href);
-              return <Link key={href} href={href} prefetch={prefetch} onClick={() => setMobileMenuOpen(false)} aria-current={active ? "page" : undefined} className={`flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm font-bold transition ${active ? "bg-[#eeeeef] text-[#18191c] dark:bg-[#30343b] dark:text-white" : "hover:bg-[#f4f4f5] dark:hover:bg-[#282c31]"}`}><Icon size={18} /><span className="min-w-0 truncate">{label}</span></Link>;
+              return <Link key={href} href={href} prefetch={prefetch} onClick={() => setMobileMenuOpen(false)} aria-current={active ? "page" : undefined} className={`flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm font-bold transition ${active ? "bg-[var(--ui-card-bg)] text-[#18191c] dark:text-white" : "hover:bg-[var(--ui-card-hover)]"}`}><Icon size={18} /><span className="min-w-0 truncate">{label}</span></Link>;
             })}
           </nav>
           {followedTeams.length > 0 ? (
@@ -249,7 +249,7 @@ export function AppShell({
               <div className="grid grid-cols-2 gap-2">
                 {followedTeams.map((team) => {
                   const active = fanKey === team.fanSiteHost;
-                  return <Link key={team.id} href={`/fan/${team.fanSiteHost}`} onClick={() => setMobileMenuOpen(false)} title={team.name} aria-current={active ? "page" : undefined} className={`flex min-h-12 min-w-0 items-center gap-3 rounded-xl px-3 text-sm font-semibold ${active ? "bg-[#f0f1f2] dark:bg-[#30343b]" : "hover:bg-[#f6f6f7] dark:hover:bg-[#282c31]"}`}><TeamLogo team={team} size="h-8 w-8" themeAware imageClassName="h-7 w-7 object-contain" /><span className="min-w-0 truncate">{team.shortName}</span></Link>;
+                  return <Link key={team.id} href={`/fan/${team.fanSiteHost}`} onClick={() => setMobileMenuOpen(false)} title={team.name} aria-current={active ? "page" : undefined} className={`flex min-h-12 min-w-0 items-center gap-3 rounded-xl px-3 text-sm font-semibold ${active ? "bg-[var(--ui-card-bg)]" : "hover:bg-[var(--ui-card-hover)]"}`}><TeamLogo team={team} size="h-8 w-8" themeAware imageClassName="h-7 w-7 object-contain" /><span className="min-w-0 truncate">{team.shortName}</span></Link>;
                 })}
               </div>
             </section>
@@ -259,7 +259,7 @@ export function AppShell({
             <div className="grid grid-cols-2 gap-2">
               {channelTeams.map((team) => {
                 const active = fanKey === team.fanSiteHost;
-                return <Link key={team.id} href={`/fan/${team.fanSiteHost}`} onClick={() => setMobileMenuOpen(false)} title={team.name} aria-current={active ? "page" : undefined} className={`flex min-h-12 min-w-0 items-center gap-3 rounded-xl px-3 text-sm font-semibold ${active ? "bg-[#f0f1f2] dark:bg-[#30343b]" : "hover:bg-[#f6f6f7] dark:hover:bg-[#282c31]"}`}><TeamLogo team={team} size="h-8 w-8" themeAware imageClassName="h-7 w-7 object-contain" /><span className="min-w-0 truncate">{team.shortName}</span></Link>;
+                return <Link key={team.id} href={`/fan/${team.fanSiteHost}`} onClick={() => setMobileMenuOpen(false)} title={team.name} aria-current={active ? "page" : undefined} className={`flex min-h-12 min-w-0 items-center gap-3 rounded-xl px-3 text-sm font-semibold ${active ? "bg-[var(--ui-card-bg)]" : "hover:bg-[var(--ui-card-hover)]"}`}><TeamLogo team={team} size="h-8 w-8" themeAware imageClassName="h-7 w-7 object-contain" /><span className="min-w-0 truncate">{team.shortName}</span></Link>;
               })}
             </div>
           </section>
@@ -271,7 +271,7 @@ export function AppShell({
           <nav className="space-y-1" aria-label="데스크톱 주요 메뉴">
             {desktopNav.map(({ href, label, icon: Icon, prefetch }) => {
               const active = isActiveRoute(pathname, href);
-              return <Link key={href} href={href} prefetch={prefetch} aria-current={active ? "page" : undefined} className={`flex h-11 items-center gap-3 rounded-xl px-3 text-[15px] font-bold transition ${active ? "bg-[#eeeeef] dark:bg-[#30343b]" : "hover:bg-[#f4f4f5] dark:hover:bg-[#282c31]"}`}><Icon size={20} /><span className={collapsed ? "hidden" : ""}>{label}</span></Link>;
+              return <Link key={href} href={href} prefetch={prefetch} aria-current={active ? "page" : undefined} className={`flex h-11 items-center gap-3 rounded-xl px-3 text-[15px] font-bold transition ${active ? "bg-[var(--ui-card-bg)]" : "hover:bg-[var(--ui-card-hover)]"}`}><Icon size={20} /><span className={collapsed ? "hidden" : ""}>{label}</span></Link>;
             })}
           </nav>
           <div className="my-4 border-t border-[#ededf0] dark:border-[#343840]" />
@@ -283,7 +283,7 @@ export function AppShell({
               </div>
               {followedTeams.map((team) => {
                 const active = fanKey === team.fanSiteHost;
-                return <Link key={team.id} href={`/fan/${team.fanSiteHost}`} title={team.name} aria-current={active ? "page" : undefined} className={`flex h-10 items-center gap-3 rounded-xl px-3 text-sm font-semibold ${active ? "bg-[#f0f1f2] dark:bg-[#30343b]" : "hover:bg-[#f6f6f7] dark:hover:bg-[#282c31]"}`}><TeamLogo team={team} size="h-7 w-7" themeAware imageClassName="h-6 w-6 object-contain" />{!collapsed && <><span className="truncate">{team.shortName}</span>{active && <span className="ml-auto h-2 w-2 rounded-full bg-[#18191c] dark:bg-white" />}</>}</Link>;
+                return <Link key={team.id} href={`/fan/${team.fanSiteHost}`} title={team.name} aria-current={active ? "page" : undefined} className={`flex h-10 items-center gap-3 rounded-xl px-3 text-sm font-semibold ${active ? "bg-[var(--ui-card-bg)]" : "hover:bg-[var(--ui-card-hover)]"}`}><TeamLogo team={team} size="h-7 w-7" themeAware imageClassName="h-6 w-6 object-contain" />{!collapsed && <><span className="truncate">{team.shortName}</span>{active && <span className="ml-auto h-2 w-2 rounded-full bg-[#18191c] dark:bg-white" />}</>}</Link>;
               })}
               <div className="my-3 border-t border-[#ededf0] dark:border-[#343840]" />
             </div>
@@ -291,9 +291,9 @@ export function AppShell({
           <button type="button" onClick={() => setTeamsOpen((value) => !value)} className={`flex min-h-11 items-center gap-3 rounded-xl px-3 py-2 text-sm font-extrabold ${collapsed ? "justify-center" : ""}`}><Shield size={20} />{!collapsed && <><span>팀 채널</span><ChevronDown size={16} className={`ml-auto transition ${teamsOpen ? "rotate-180" : ""}`} /></>}</button>
           {teamsOpen ? <div className="mt-1 space-y-1">{channelTeams.map((team) => {
             const active = fanKey === team.fanSiteHost;
-            return <Link key={team.id} href={`/fan/${team.fanSiteHost}`} title={team.name} aria-current={active ? "page" : undefined} className={`flex h-10 items-center gap-3 rounded-xl px-3 text-sm font-semibold ${active ? "bg-[#f0f1f2] dark:bg-[#30343b]" : "hover:bg-[#f6f6f7] dark:hover:bg-[#282c31]"}`}><TeamLogo team={team} size="h-7 w-7" themeAware imageClassName="h-6 w-6 object-contain" />{!collapsed && <><span className="truncate">{team.shortName}</span>{active && <span className="ml-auto h-2 w-2 rounded-full bg-[#18191c] dark:bg-white" />}</>}</Link>;
+            return <Link key={team.id} href={`/fan/${team.fanSiteHost}`} title={team.name} aria-current={active ? "page" : undefined} className={`flex h-10 items-center gap-3 rounded-xl px-3 text-sm font-semibold ${active ? "bg-[var(--ui-card-bg)]" : "hover:bg-[var(--ui-card-hover)]"}`}><TeamLogo team={team} size="h-7 w-7" themeAware imageClassName="h-6 w-6 object-contain" />{!collapsed && <><span className="truncate">{team.shortName}</span>{active && <span className="ml-auto h-2 w-2 rounded-full bg-[#18191c] dark:bg-white" />}</>}</Link>;
           })}</div> : null}
-          <button type="button" onClick={() => setCollapsed((value) => !value)} className="mt-auto flex h-11 items-center justify-center rounded-xl text-[#777b82] hover:bg-[#f4f4f5] dark:hover:bg-[#282c31]">{collapsed ? <ChevronRight size={20} /> : <><ChevronLeft size={20} /><span className="ml-2 text-[13px] font-bold">사이드바 접기</span></>}</button>
+          <button type="button" onClick={() => setCollapsed((value) => !value)} className="mt-auto flex h-11 items-center justify-center rounded-xl text-[#777b82] hover:bg-[var(--ui-card-hover)]">{collapsed ? <ChevronRight size={20} /> : <><ChevronLeft size={20} /><span className="ml-2 text-[13px] font-bold">사이드바 접기</span></>}</button>
         </div>
       </aside> : null}
 
@@ -301,7 +301,7 @@ export function AppShell({
         <aside className={`fixed bottom-0 left-0 top-16 z-40 hidden w-16 flex-col items-center border-r border-[#ececef] bg-[var(--page-background)] py-3 dark:border-[#343840] ${mobileMenuOpen ? "" : "md:max-[1199px]:flex"}`} aria-label="태블릿 주요 메뉴">
           {compactNav.map(({ href, label, icon: Icon }) => {
             const active = isActiveRoute(pathname, href);
-            return <Link key={href} href={href} aria-current={active ? "page" : undefined} title={label} className={`mb-1 grid h-12 w-12 place-items-center rounded-xl transition ${active ? "bg-[#eeeeef] text-[#18191c] dark:bg-[#30343b] dark:text-white" : "text-[#777b82] hover:bg-[#f4f4f5] dark:hover:bg-[#282c31]"}`}><Icon size={21} /><span className="sr-only">{label}</span></Link>;
+            return <Link key={href} href={href} aria-current={active ? "page" : undefined} title={label} className={`mb-1 grid h-12 w-12 place-items-center rounded-xl transition ${active ? "bg-[var(--ui-card-bg)] text-[#18191c] dark:text-white" : "text-[#777b82] hover:bg-[var(--ui-card-hover)]"}`}><Icon size={21} /><span className="sr-only">{label}</span></Link>;
           })}
         </aside>
       ) : null}

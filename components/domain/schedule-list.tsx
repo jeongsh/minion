@@ -96,7 +96,7 @@ export function ScheduleList({
                 <Link
                   href={matchHref(match)}
                   key={match.id}
-                  className="grid grid-cols-[48px_minmax(0,1fr)] items-center gap-2.5 border-b border-[var(--ui-border)] px-3 py-3 transition-colors last:border-b-0 hover:bg-[var(--ui-surface-muted)] md:grid-cols-[140px_minmax(0,1fr)_160px] md:gap-4 md:px-5 md:py-4"
+                  className="grid grid-cols-[48px_minmax(0,1fr)] items-center gap-2.5 border-b border-[var(--ui-border)] px-3 py-3 transition-colors last:border-b-0 hover:bg-[var(--ui-card-hover)] md:grid-cols-[140px_minmax(0,1fr)_160px] md:gap-4 md:px-5 md:py-4"
                 >
                   <div className="flex flex-col items-start gap-1">
                     <time className="text-[14px] font-black tabular-nums tracking-tight text-[var(--ui-ink)] md:text-base">{formatTimeKST(match.matchDate)}</time>
@@ -106,7 +106,7 @@ export function ScheduleList({
                         LIVE
                       </span>
                     ) : (
-                      <span className="w-fit rounded-full bg-[var(--ui-surface-muted)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--ui-muted)] md:px-2 md:py-1 md:text-[13px]">
+                      <span className="w-fit rounded-full bg-[var(--ui-card-hover)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--ui-muted)] md:px-2 md:py-1 md:text-[13px]">
                         {matchStatusLabel(match.status)}
                       </span>
                     )}

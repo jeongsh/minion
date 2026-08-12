@@ -87,7 +87,7 @@ export function HomeMatchCard({
 
   return (
     <>
-      <article className="flex h-full min-h-[100px] min-w-0 flex-col rounded-xl bg-[var(--home-card-bg-strong)] p-3 transition-colors hover:bg-[var(--home-card-bg-hover)]">
+      <article className="flex h-full min-h-[100px] min-w-0 flex-col rounded-xl bg-[var(--ui-card-bg)] p-3 transition-colors hover:bg-[var(--ui-card-hover)]">
         <div className="flex min-w-0 items-center gap-2 text-[11px] font-bold text-[var(--ui-muted)]">
           <Link href={matchHref(match)} className="flex min-w-0 items-center gap-1.5">
             <Image

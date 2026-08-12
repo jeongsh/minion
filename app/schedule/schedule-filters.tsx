@@ -179,7 +179,7 @@ function FilterLink({ href, active, children }: { href: string; active: boolean;
       className={`flex min-h-11 items-center justify-center rounded-xl border px-3 text-center text-[14px] font-black transition-colors ${
         active
           ? "border-[var(--ui-ink)] bg-[var(--ui-ink)] text-[var(--ui-surface)]"
-          : "border-[var(--ui-border)] bg-[var(--ui-surface-muted)] text-[var(--ui-ink)] hover:bg-[var(--ui-surface)]"
+          : "border-[var(--ui-border)] bg-[var(--ui-card-bg)] text-[var(--ui-ink)] hover:bg-[var(--ui-card-hover)]"
       }`}
     >
       {children}

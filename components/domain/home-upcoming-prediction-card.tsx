@@ -27,8 +27,8 @@ export function HomeUpcomingPredictionCard({ match, teamA, teamB, tournament, be
         <span className="flex-1" style={{background:teamB?.primaryColor||"var(--ui-muted)"}}/>
       </div>
       <div className="mt-3 grid grid-cols-2 gap-2">
-        <button type="button" disabled={!teamA || pending || closed} onClick={() => teamA && open(match.id, teamA.id, teamA.shortName)} className="min-h-10 min-w-0 rounded-lg border border-[var(--ui-border)] px-2 py-2 text-[13px] font-bold text-[var(--ui-ink)] transition hover:border-[var(--ui-ink)] hover:bg-[var(--ui-surface-muted)] disabled:opacity-50"><span className="block truncate">{teamA?.shortName ?? "TBD"} 승리 예측</span></button>
-        <button type="button" disabled={!teamB || pending || closed} onClick={() => teamB && open(match.id, teamB.id, teamB.shortName)} className="min-h-10 min-w-0 rounded-lg border border-[var(--ui-border)] px-2 py-2 text-[13px] font-bold text-[var(--ui-ink)] transition hover:border-[var(--ui-ink)] hover:bg-[var(--ui-surface-muted)] disabled:opacity-50"><span className="block truncate">{teamB?.shortName ?? "TBD"} 승리 예측</span></button>
+        <button type="button" disabled={!teamA || pending || closed} onClick={() => teamA && open(match.id, teamA.id, teamA.shortName)} className="min-h-10 min-w-0 rounded-lg border border-[var(--ui-border)] px-2 py-2 text-[13px] font-bold text-[var(--ui-ink)] transition hover:border-[var(--ui-ink)] hover:bg-[var(--ui-card-hover)] disabled:opacity-50"><span className="block truncate">{teamA?.shortName ?? "TBD"} 승리 예측</span></button>
+        <button type="button" disabled={!teamB || pending || closed} onClick={() => teamB && open(match.id, teamB.id, teamB.shortName)} className="min-h-10 min-w-0 rounded-lg border border-[var(--ui-border)] px-2 py-2 text-[13px] font-bold text-[var(--ui-ink)] transition hover:border-[var(--ui-ink)] hover:bg-[var(--ui-card-hover)] disabled:opacity-50"><span className="block truncate">{teamB?.shortName ?? "TBD"} 승리 예측</span></button>
       </div>
     </article>
     {modal}

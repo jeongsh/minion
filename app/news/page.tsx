@@ -67,12 +67,12 @@ export default async function NewsPage({ searchParams }: { searchParams: SearchP
         </div>
       </header>
 
-      <section aria-label="뉴스 필터" className="mb-7 rounded-xl bg-[var(--ui-surface-muted)] p-2.5">
+      <section aria-label="뉴스 필터" className="mb-7 rounded-xl bg-[var(--ui-card-bg)] p-2.5">
         <nav aria-label="팀별 뉴스" className="flex gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <Link
             href={newsHref("", query)}
             aria-current={!selectedTeam ? "page" : undefined}
-            className={`font-paperozi flex min-h-12 shrink-0 items-center rounded-lg px-3 text-[13px] font-bold transition-colors ${!selectedTeam ? "bg-[var(--ui-ink)] text-[var(--ui-surface)]" : "text-[var(--ui-muted)] hover:bg-[var(--ui-surface)] hover:text-[var(--ui-ink)]"}`}
+            className={`font-paperozi flex min-h-12 shrink-0 items-center rounded-lg px-3 text-[13px] font-bold transition-colors ${!selectedTeam ? "bg-[var(--ui-ink)] text-[var(--ui-surface)]" : "text-[var(--ui-muted)] hover:bg-[var(--ui-card-hover)] hover:text-[var(--ui-ink)]"}`}
           >
             전체
           </Link>
@@ -83,7 +83,7 @@ export default async function NewsPage({ searchParams }: { searchParams: SearchP
                 key={team.id}
                 href={newsHref(team.slug, query)}
                 aria-current={active ? "page" : undefined}
-                className={`font-paperozi flex min-h-12 shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-[12px] font-bold transition-colors ${active ? "bg-[var(--ui-ink)] text-[var(--ui-surface)]" : "text-[var(--ui-muted)] hover:bg-[var(--ui-surface)] hover:text-[var(--ui-ink)]"}`}
+                className={`font-paperozi flex min-h-12 shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-[12px] font-bold transition-colors ${active ? "bg-[var(--ui-ink)] text-[var(--ui-surface)]" : "text-[var(--ui-muted)] hover:bg-[var(--ui-card-hover)] hover:text-[var(--ui-ink)]"}`}
               >
                 <TeamLogo team={team} themeAware size="h-8 w-8" imageClassName="h-6 w-6 object-contain" />
                 {team.shortName}
@@ -107,7 +107,7 @@ export default async function NewsPage({ searchParams }: { searchParams: SearchP
           </label>
           <button type="submit" className="min-h-10 shrink-0 rounded-md bg-[var(--ui-ink)] px-4 text-[13px] font-black text-[var(--ui-surface)] transition active:scale-[0.97]">검색</button>
           {query ? (
-            <Link href={newsHref(selectedTeam, "")} aria-label="검색어 지우기" className="grid h-10 w-10 shrink-0 place-items-center rounded-md border border-[var(--ui-border)] text-[var(--ui-muted)] hover:text-[var(--ui-ink)]">
+            <Link href={newsHref(selectedTeam, "")} aria-label="검색어 지우기" className="grid h-10 w-10 shrink-0 place-items-center rounded-md border border-[var(--ui-border)] text-[var(--ui-muted)] hover:bg-[var(--ui-card-hover)] hover:text-[var(--ui-ink)]">
               <X size={17} />
             </Link>
           ) : null}
@@ -130,7 +130,7 @@ export default async function NewsPage({ searchParams }: { searchParams: SearchP
             {pageArticles.map((article) => <NewsCard key={article.id} article={article} />)}
           </div>
         ) : (
-          <div className="rounded-xl bg-[var(--ui-surface-muted)] px-5 py-12 text-center">
+          <div className="rounded-xl bg-[var(--ui-card-bg)] px-5 py-12 text-center">
             <Search className="mx-auto text-[var(--ui-muted)]" size={28} />
             <p className="mt-3 font-black">조건에 맞는 뉴스가 없어요.</p>
             <p className="mt-1 text-sm text-[var(--ui-muted)]">다른 팀이나 검색어로 다시 찾아보세요.</p>

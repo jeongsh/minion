@@ -69,7 +69,7 @@ function CalendarDetailList({
         <Link
           key={match.id}
           href={match.href}
-          className="group flex items-center gap-3 rounded-xl bg-[var(--ui-surface-muted)] px-3 py-2.5 transition-colors hover:bg-[var(--ui-surface)]"
+          className="group flex items-center gap-3 rounded-xl bg-[var(--ui-card-bg)] px-3 py-2.5 transition-colors hover:bg-[var(--ui-card-hover)]"
         >
           <span className="flex shrink-0 flex-col gap-0.5">
             {match.league ? (
@@ -113,7 +113,7 @@ function CalendarDetailList({
       {events.map((event) => {
         const meta = DOT_META[event.type];
         const content = (
-          <div className="flex items-center gap-2.5 rounded-xl bg-[var(--ui-surface-muted)] px-3 py-2">
+          <div className="flex items-center gap-2.5 rounded-xl bg-[var(--ui-card-bg)] px-3 py-2">
             <span
               className="grid h-8 w-8 shrink-0 place-items-center overflow-hidden rounded-full text-sm"
               style={{ background: `${meta.color}1f` }}
@@ -405,7 +405,7 @@ export function HomeCalendar({
               type="button"
               onClick={closeDetail}
               aria-label="날짜 상세 닫기"
-              className="grid h-6 w-6 shrink-0 place-items-center rounded-full text-[var(--ui-muted)] hover:bg-[var(--ui-surface-muted)] hover:text-[var(--ui-ink)]"
+              className="grid h-6 w-6 shrink-0 place-items-center rounded-full text-[var(--ui-muted)] hover:bg-[var(--ui-card-hover)] hover:text-[var(--ui-ink)]"
             >
               <X size={14} strokeWidth={2.5} />
             </button>
@@ -429,7 +429,7 @@ export function HomeCalendar({
               type="button"
               onClick={closeDetail}
               aria-label="날짜 상세 닫기"
-              className="grid h-6 w-6 shrink-0 place-items-center rounded-full text-[var(--ui-muted)] hover:bg-[var(--ui-surface-muted)] hover:text-[var(--ui-ink)]"
+              className="grid h-6 w-6 shrink-0 place-items-center rounded-full text-[var(--ui-muted)] hover:bg-[var(--ui-card-hover)] hover:text-[var(--ui-ink)]"
             >
               <X size={14} strokeWidth={2.5} />
             </button>

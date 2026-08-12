@@ -52,7 +52,7 @@ function PlayerChip({
       disabled={disabled}
       onClick={onSelect}
       aria-pressed={selected}
-      className={`group relative h-[76px] w-full overflow-hidden rounded-xl bg-[var(--ui-surface-muted)] text-left transition focus:outline-none disabled:cursor-not-allowed disabled:opacity-90 sm:aspect-[3/4] sm:h-auto sm:rounded-[clamp(0.5rem,8%,1rem)] ${
+      className={`group relative h-[76px] w-full overflow-hidden rounded-xl bg-[var(--ui-card-bg)] text-left transition focus:outline-none disabled:cursor-not-allowed disabled:opacity-90 sm:aspect-[3/4] sm:h-auto sm:rounded-[clamp(0.5rem,8%,1rem)] ${
         selected ? "shadow-md" : "shadow-sm"
       }`}
       style={
@@ -282,7 +282,7 @@ export function SetRatingForm({
       <input type="hidden" name="review" value={review} />
 
       {!isLoggedIn ? (
-        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-[var(--ui-surface-muted)] px-3 py-2.5">
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-[var(--ui-card-bg)] px-3 py-2.5">
           <p className="text-sm font-normal text-[var(--ui-muted)]">평점을 남기려면 로그인이 필요합니다.</p>
           <Link
             href={loginHref}
@@ -324,7 +324,7 @@ export function SetRatingForm({
                   ))}
                 </div>
                 {selectedPlayer && teamPlayers.some((player) => player.value === selectedPlayer.value) ? (
-                  <div className="hidden rounded-lg bg-[var(--ui-surface-muted)] px-3 py-2.5 sm:block">
+                  <div className="hidden rounded-lg bg-[var(--ui-card-bg)] px-3 py-2.5 sm:block">
                     <div className="flex items-center justify-between gap-4">
                       <p className="truncate text-[15px] font-bold text-[var(--ui-ink)]">
                         {selectedPlayer.name} 평가
@@ -384,7 +384,7 @@ export function SetRatingForm({
                 type="button"
                 aria-label="닫기"
                 onClick={() => setMobileComposerOpen(false)}
-                className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-[var(--ui-muted)] hover:bg-[var(--ui-surface-muted)] hover:text-[var(--ui-ink)]"
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-[var(--ui-muted)] hover:bg-[var(--ui-card-hover)] hover:text-[var(--ui-ink)]"
               >
                 <X aria-hidden="true" className="h-5 w-5" />
               </button>

@@ -37,7 +37,7 @@ export function HomeBoardCarousel({
     <ul
       className={
         isHomeLatest
-          ? "grid gap-3 rounded-2xl bg-[var(--home-card-bg-alt)] p-3 sm:p-4 md:grid-cols-2"
+          ? "grid gap-3 rounded-2xl bg-[var(--ui-card-bg)] p-3 sm:p-4 md:grid-cols-2"
           : "grid overflow-hidden rounded-[var(--ui-card-radius)] border border-[var(--ui-border)] bg-[var(--ui-surface)] md:grid-cols-2 md:[&>li:nth-child(odd)]:border-r md:[&>li:nth-last-child(-n+2)]:border-b-0 [&>li:last-child]:border-b-0"
       }
     >
@@ -54,7 +54,7 @@ export function HomeBoardCarousel({
             href={detailHref(post.id)}
             className={`group grid min-h-[82px] grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 transition-colors sm:px-5 ${
               isHomeLatest
-                ? "hover:bg-[var(--home-card-bg-hover)]"
+                ? "hover:bg-[var(--ui-card-hover)]"
                 : "hover:bg-[var(--ui-surface-muted)]"
             }`}
           >

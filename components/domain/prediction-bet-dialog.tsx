@@ -106,18 +106,18 @@ function PredictionBetDialog({ dialog, balance, stake, pending, error, onStakeCh
           <div className="prediction-ticket__head">
             <div className="flex items-start justify-between gap-4">
               <div className="flex min-w-0 items-center gap-3 pl-3">
-                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[var(--palette-green-butter-point)] text-[var(--palette-green-butter-main)]"><TicketCheck size={24} strokeWidth={2.4} /></span>
+                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-600 ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-700"><TicketCheck size={24} strokeWidth={2.4} /></span>
                 <div className="min-w-0">
-                  <h2 id="quick-bet-title" className="truncate text-xl font-black text-[var(--ui-ink)]">paperozi</h2>
+                  <h2 id="quick-bet-title" className="truncate text-xl font-black text-[var(--ui-ink)]">승부예측</h2>
                 </div>
               </div>
-              <button type="button" onClick={onClose} className="grid h-9 w-9 place-items-center rounded-lg text-[var(--ui-muted)] hover:bg-[var(--ui-surface-muted)]" aria-label="닫기"><X size={18} /></button>
+              <button type="button" onClick={onClose} className="grid h-9 w-9 place-items-center rounded-lg text-[var(--ui-muted)] hover:bg-[var(--ui-card-hover)]" aria-label="닫기"><X size={18} /></button>
             </div>
           </div>
 
           <div className="prediction-ticket__body">
             {dialog.existingBet ? (
-              <div className="rounded-xl bg-[var(--ui-surface-muted)] p-4">
+              <div className="rounded-xl bg-[var(--ui-card-bg)] p-4">
                 <p className="text-sm font-bold text-[var(--ui-ink)]">이미 이 경기에 {dialog.existingBet.stake.toLocaleString("ko-KR")} LP를 사용했습니다.</p>
                 <p className="mt-1 text-[13px] text-[var(--ui-muted)]">팀이나 금액을 바꾸려면 기존 예측을 취소한 뒤 다시 참여해 주세요.</p>
                 <button type="button" onClick={onCancel} disabled={pending} className="mt-4 h-10 w-full rounded-lg bg-[var(--palette-tomato-butter-main)] text-sm font-black text-white transition hover:bg-[var(--palette-tomato-butter-hover)] disabled:opacity-50">예측 취소하고 LP 환불</button>
@@ -134,7 +134,7 @@ function PredictionBetDialog({ dialog, balance, stake, pending, error, onStakeCh
                 </div>
                 <div className="mt-3 grid grid-cols-4 gap-2">
                   {[0.25, 0.5, 0.75, 1].map((ratio) => (
-                    <button key={ratio} type="button" onClick={() => onStakeChange(String(Math.max(100, Math.floor((maxStake * ratio) / 100) * 100)))} className="h-9 rounded-lg bg-[var(--ui-surface-muted)] text-[13px] font-bold text-[var(--ui-text)] hover:opacity-80">{ratio === 1 ? "최대" : `${ratio * 100}%`}</button>
+                    <button key={ratio} type="button" onClick={() => onStakeChange(String(Math.max(100, Math.floor((maxStake * ratio) / 100) * 100)))} className="h-9 rounded-lg bg-[var(--ui-card-bg)] text-[13px] font-bold text-[var(--ui-text)] hover:opacity-80">{ratio === 1 ? "최대" : `${ratio * 100}%`}</button>
                   ))}
                 </div>
                 <p className={`mt-3 text-[13px] font-semibold ${valid ? "text-[var(--ui-muted)]" : "text-red-500"}`}>{valid ? `보유 ${balance.toLocaleString("ko-KR")} LP · 경기당 최대 20%, 상한 5,000 LP` : `100 LP 이상 ${maxStake.toLocaleString("ko-KR")} LP 이하로 입력해 주세요.`}</p>

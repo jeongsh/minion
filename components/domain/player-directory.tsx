@@ -18,7 +18,7 @@ function PlayerCard({ player, team }: { player: Player; team: Team | undefined }
       href={`/players/${player.slug}`}
       className="group min-w-0 overflow-hidden rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)]"
     >
-      <div className="relative aspect-[4/5] overflow-hidden bg-[var(--ui-surface-muted)]">
+      <div className="relative aspect-[4/5] overflow-hidden bg-[var(--ui-card-bg)]">
         {player.profileImageUrl ? (
           <img
             src={player.profileImageUrl}
@@ -77,15 +77,15 @@ export function PlayerDirectory({
 
   const filters = (
     <div className="space-y-5">
-      <fieldset><legend className="mb-2 text-[12px] font-black uppercase tracking-[0.1em] text-[var(--ui-muted)]">포지션</legend><div className="grid grid-cols-3 gap-2 md:grid-cols-2">{["all", ...POSITIONS].map((item) => <button key={item} type="button" onClick={() => setPosition(item)} className={`min-h-10 rounded-xl px-2 text-[13px] font-black ${position === item ? "bg-[var(--ui-ink)] text-[var(--ui-surface)]" : "bg-[var(--ui-surface-muted)] text-[var(--ui-muted)]"}`}>{item === "all" ? "전체" : item}</button>)}</div></fieldset>
+      <fieldset><legend className="mb-2 text-[12px] font-black uppercase tracking-[0.1em] text-[var(--ui-muted)]">포지션</legend><div className="grid grid-cols-3 gap-2 md:grid-cols-2">{["all", ...POSITIONS].map((item) => <button key={item} type="button" onClick={() => setPosition(item)} className={`min-h-10 rounded-xl px-2 text-[13px] font-black ${position === item ? "bg-[var(--ui-ink)] text-[var(--ui-surface)]" : "bg-[var(--ui-card-bg)] text-[var(--ui-muted)]"}`}>{item === "all" ? "전체" : item}</button>)}</div></fieldset>
       <fieldset>
         <legend className="mb-2 text-[12px] font-black uppercase tracking-[0.1em] text-[var(--ui-muted)]">팀</legend>
         <div className="grid gap-1.5">
-          <button type="button" onClick={() => setTeamId("all")} className={`flex min-h-11 items-center rounded-xl px-3 text-sm font-black ${teamId === "all" ? "bg-[var(--ui-ink)] text-[var(--ui-surface)]" : "bg-[var(--ui-surface-muted)] text-[var(--ui-muted)]"}`}>
+          <button type="button" onClick={() => setTeamId("all")} className={`flex min-h-11 items-center rounded-xl px-3 text-sm font-black ${teamId === "all" ? "bg-[var(--ui-ink)] text-[var(--ui-surface)]" : "bg-[var(--ui-card-bg)] text-[var(--ui-muted)]"}`}>
             전체 팀
           </button>
           {teams.map((team) => (
-            <button key={team.id} type="button" onClick={() => setTeamId(team.id)} className={`flex min-h-11 items-center gap-2 rounded-xl px-2.5 text-left text-sm font-bold ${teamId === team.id ? "bg-[var(--ui-ink)] text-[var(--ui-surface)]" : "hover:bg-[var(--ui-surface-muted)]"}`}>
+            <button key={team.id} type="button" onClick={() => setTeamId(team.id)} className={`flex min-h-11 items-center gap-2 rounded-xl px-2.5 text-left text-sm font-bold ${teamId === team.id ? "bg-[var(--ui-ink)] text-[var(--ui-surface)]" : "hover:bg-[var(--ui-card-hover)]"}`}>
               <TeamLogo team={team} size="h-7 w-7" plain themeAware />
               <span className="truncate">{team.shortName}</span>
             </button>
@@ -98,7 +98,7 @@ export function PlayerDirectory({
   return (
     <div className="mt-6">
       <div className="mb-4 flex items-center justify-between gap-3">
-        <div className="flex shrink-0 rounded-xl bg-[var(--ui-surface-muted)] p-1">
+        <div className="flex shrink-0 rounded-xl bg-[var(--ui-card-bg)] p-1">
           <button
             type="button"
             onClick={() => setDivision("first")}

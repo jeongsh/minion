@@ -110,7 +110,7 @@ export function WinnerPredictionPoll({
                   className={`w-full rounded-lg border px-3 py-2.5 text-sm font-bold transition-colors ${
                     myVote === row.teamId
                       ? "text-white"
-                      : "border-[var(--ui-border)] text-[var(--ui-ink)] hover:bg-[var(--ui-surface-muted)]"
+                      : "border-[var(--ui-border)] text-[var(--ui-ink)] hover:bg-[var(--ui-card-hover)]"
                   }`}
                   style={myVote === row.teamId ? { borderColor: row.color, backgroundColor: row.color } : { borderColor: `color-mix(in srgb, ${row.color} 50%, var(--ui-border))` }}
                 >
