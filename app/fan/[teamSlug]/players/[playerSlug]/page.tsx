@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 
-import { getTeamByFanSiteHost, getTeamBySlug } from "@/lib/data/lck";
 import { PlayerDetailView } from "@/app/players/[playerSlug]/player-detail-view";
+import { getTeamByFanSiteHost, getTeamBySlug } from "@/lib/data/lck";
 
 export default async function FanPlayerDetailPage({
   params,
@@ -26,7 +26,7 @@ export default async function FanPlayerDetailPage({
       linkBase={playersBase}
       breadcrumbLead={[
         { label: team.shortName, href: `/fan/${teamSlug}` },
-        { label: "선수단", href: playersBase },
+        { label: "선수", href: playersBase },
       ]}
     />
   );

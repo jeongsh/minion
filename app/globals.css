@@ -678,64 +678,9 @@ html[class~="dark"] .app-lnb a[data-active="true"] {
   min-height: 37px;
 }
 
-.fan-player-card {
-  position: relative;
-  isolation: isolate;
-  box-shadow: 3px 3px 0 color-mix(in srgb, var(--team-primary) 74%, var(--ui-border));
-  transform-origin: center bottom;
-}
-
-.fan-player-card::after {
-  content: "";
-  position: absolute;
-  inset-block: 0;
-  left: 0;
-  z-index: 3;
-  width: 5px;
-  background: var(--team-primary);
-  pointer-events: none;
-}
-
-.fan-player-card:hover {
-  border-color: var(--team-primary);
-  box-shadow: 5px 6px 0 color-mix(in srgb, var(--team-primary) 76%, var(--ui-border));
-  transform: translateY(-4px);
-}
-
-.fan-player-card__photo {
-  border-bottom: 1px solid color-mix(in srgb, var(--team-primary) 40%, var(--ui-border));
-}
-
-.fan-player-position {
-  border-radius: 2px;
-  box-shadow: 2px 2px 0 var(--team-secondary);
-}
-
-.fan-player-card__body {
-  position: relative;
-  background: var(--ui-surface);
-}
-
-.fan-player-stamp {
-  border: 1px solid currentColor;
-  padding: 0.18rem 0.3rem;
-  line-height: 1;
-  letter-spacing: 0.04em;
-}
-
 @media (min-width: 640px) {
   .fan-prediction-ticket {
     --fan-ticket-notch-y: 60px;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .fan-player-card {
-    transition: none;
-  }
-
-  .fan-player-card:hover {
-    transform: none;
   }
 }
 

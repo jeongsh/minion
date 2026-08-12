@@ -6,7 +6,7 @@ const POSITION_LABEL: Record<string, string> = {
   JGL: "정글",
   MID: "미드",
   BOT: "원딜",
-  SUP: "서폿",
+  SUP: "서포터",
 };
 
 function PlayerPhoto({
@@ -38,41 +38,43 @@ function PlayerPhoto({
 export function PlayerCard({
   player,
   hrefBase = "/players",
+  teamLabel,
   variant = "default",
 }: {
   player: Player;
   hrefBase?: string;
+  teamLabel?: string;
   variant?: "default" | "fan";
 }) {
   const fanCard = variant === "fan";
+  const meta = fanCard
+    ? `${teamLabel ?? "FA"}${player.realName ? ` · ${player.realName}` : ""}`
+    : player.realName || "프로필 준비 중";
 
   return (
     <Link
       href={`${hrefBase}/${player.slug}`}
-      className={`group flex flex-col overflow-hidden border bg-surface transition ${
+      className={`group min-w-0 overflow-hidden border bg-surface ${
         fanCard
-          ? "fan-player-card rounded-xl border-[var(--ui-border)]"
+          ? "rounded-2xl border-[var(--ui-border)] bg-[var(--ui-surface)]"
           : "rounded-md border-border transition-colors hover:border-accent"
       }`}
     >
-      <div className={`relative aspect-[4/5] overflow-hidden bg-surface-muted ${fanCard ? "fan-player-card__photo" : ""}`}>
+      <div className={`relative aspect-[4/5] overflow-hidden ${fanCard ? "bg-[var(--ui-card-bg)]" : "bg-surface-muted"}`}>
         <PlayerPhoto
           src={player.profileImageUrl}
           alt={player.name}
-          className="h-full w-full object-cover object-top transition-transform duration-300 group-hover:scale-[1.03]"
+          className={`h-full w-full object-cover object-top transition-transform group-hover:scale-[1.03] ${fanCard ? "" : "duration-300"}`}
         />
-        <span className={`absolute left-2 top-2 px-2 py-1 text-[12px] font-black ${fanCard ? "fan-player-position bg-[var(--team-primary)] text-[var(--team-on-primary)]" : "rounded-md bg-background/80 font-semibold text-accent backdrop-blur-sm"}`}>
-          {POSITION_LABEL[player.position] ?? player.position}
+        <span className={fanCard ? "absolute left-2 top-2 rounded-lg bg-black/65 px-2 py-1 text-[11px] font-black text-white" : "absolute left-2.5 top-2.5 rounded-md bg-background/80 px-2.5 py-1 text-[12px] font-semibold text-accent backdrop-blur-sm"}>
+          {fanCard ? player.position : (POSITION_LABEL[player.position] ?? player.position)}
         </span>
       </div>
-      <div className={`flex flex-col gap-1 p-4 ${fanCard ? "fan-player-card__body" : ""}`}>
-        <div className="flex min-w-0 items-center justify-between gap-2">
-          <h2 className={`truncate text-lg font-bold leading-tight group-hover:text-accent ${fanCard ? "text-[var(--ui-ink)] group-hover:text-[var(--team-accent-text)]" : ""}`}>
-            {player.name}
-          </h2>
-          {fanCard && player.isStarter ? <span className="fan-player-stamp shrink-0 text-[10px] font-black text-[var(--team-accent-text)]">STARTER</span> : null}
-        </div>
-        <p className="truncate text-sm text-muted">{player.realName}</p>
+      <div className={fanCard ? "p-3" : "flex flex-col gap-1 p-4"}>
+        <h2 className={fanCard ? "truncate text-[16px] font-black text-[var(--ui-ink)]" : "truncate text-lg font-bold leading-tight group-hover:text-accent"}>
+          {player.name}
+        </h2>
+        <p className={fanCard ? "mt-0.5 truncate text-[13px] font-semibold text-[var(--ui-muted)]" : "truncate text-sm text-muted"}>{meta}</p>
       </div>
     </Link>
   );

@@ -36,28 +36,28 @@ function byRosterPriority(a: Player, b: Player) {
   return a.name.localeCompare(b.name);
 }
 
-function PlayerProfileCard({ player }: { player: Player }) {
+function PlayerProfileCard({ player, teamSlug }: { player: Player; teamSlug: string }) {
   return (
     <Link
-      href={`/players/${player.slug}`}
-      className="group block h-full overflow-hidden rounded-2xl bg-[var(--ui-surface-muted)] transition duration-200 hover:-translate-y-1 hover:shadow-lg hover:shadow-black/5"
+      href={`/fan/${teamSlug}/players/${player.slug}`}
+      className="group block h-full overflow-hidden rounded-[var(--ui-card-radius)] border border-[var(--ui-border)] bg-[var(--ui-surface)] transition duration-200 hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--team-primary)_42%,var(--ui-border))] hover:shadow-lg hover:shadow-black/5"
     >
-      <div className="relative aspect-square bg-[#eef1f6]">
+      <div className="relative aspect-[4/5] overflow-hidden border-b border-[var(--ui-border)] bg-[var(--ui-card-bg)]">
         {player.profileImageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={player.profileImageUrl} alt={player.name} loading="lazy" decoding="async" className="h-full w-full object-cover object-top" />
+          <img src={player.profileImageUrl} alt={player.name} loading="lazy" decoding="async" className="h-full w-full object-cover object-top transition-transform duration-300 group-hover:scale-[1.03]" />
         ) : (
-          <div className="flex h-full items-center justify-center text-lg font-black text-muted">
+          <div className="flex h-full items-center justify-center text-lg font-black text-[var(--ui-muted)]">
             {player.name.slice(0, 2)}
           </div>
         )}
-        <span className="absolute left-2.5 top-2.5 rounded-full bg-surface-muted/90 px-2.5 py-1 text-[13px] font-medium text-accent shadow-sm backdrop-blur">
+        <span className="absolute left-2.5 top-2.5 rounded-full border border-[color-mix(in_srgb,var(--ui-border)_78%,transparent)] bg-[var(--ui-surface)] px-2.5 py-1 text-[12px] font-black text-[var(--ui-ink)] shadow-sm backdrop-blur">
           {POSITION_LABEL[player.position]}
         </span>
       </div>
-      <div className="px-3 py-3.5">
-        <p className="truncate text-base font-black group-hover:text-accent">{player.name}</p>
-        <p className="mt-0.5 truncate text-[13px] text-muted">{player.realName || "프로필 준비 중"}</p>
+      <div className="px-3.5 py-3.5">
+        <p className="truncate text-base font-black text-[var(--ui-ink)]">{player.name}</p>
+        <p className="mt-0.5 truncate text-[13px] text-[var(--ui-muted)]">{player.realName || "프로필 준비 중"}</p>
       </div>
     </Link>
   );
@@ -97,9 +97,9 @@ export function FanPlayerProfiles({ players, teamSlug }: { players: Player[]; te
         <h2 className="text-xl font-bold tracking-[-0.01em]">선수</h2>
         <Link
           href={`/fan/${teamSlug}/players`}
-          className="rounded-full border border-[#dfe3ea] px-4 py-2 text-sm font-bold text-[#475467] transition hover:border-accent hover:text-accent"
+          className="rounded-full border border-[var(--ui-border)] px-4 py-2 text-sm font-bold text-[var(--ui-muted)] transition hover:border-[var(--team-primary)] hover:text-[var(--ui-ink)]"
         >
-          전체 보기 →
+          전체 보기
         </Link>
       </div>
 
@@ -108,7 +108,7 @@ export function FanPlayerProfiles({ players, teamSlug }: { players: Player[]; te
           {hasMultiplePlayers ? (
             <div className="flex gap-2">
               <button
-                className="fan-player-swiper-prev grid h-10 w-10 place-items-center rounded-full border border-border transition hover:border-accent hover:text-accent disabled:cursor-wait disabled:opacity-50"
+                className="fan-player-swiper-prev grid h-10 w-10 place-items-center rounded-full border border-[var(--ui-border)] text-[var(--ui-muted)] transition hover:border-[var(--team-primary)] hover:text-[var(--ui-ink)] disabled:cursor-wait disabled:opacity-50"
                 type="button"
                 aria-label="이전 선수"
                 disabled={!isSwiperReady}
@@ -116,7 +116,7 @@ export function FanPlayerProfiles({ players, teamSlug }: { players: Player[]; te
                 <ChevronLeft size={18} strokeWidth={2.75} />
               </button>
               <button
-                className="fan-player-swiper-next grid h-10 w-10 place-items-center rounded-full border border-border transition hover:border-accent hover:text-accent disabled:cursor-wait disabled:opacity-50"
+                className="fan-player-swiper-next grid h-10 w-10 place-items-center rounded-full border border-[var(--ui-border)] text-[var(--ui-muted)] transition hover:border-[var(--team-primary)] hover:text-[var(--ui-ink)] disabled:cursor-wait disabled:opacity-50"
                 type="button"
                 aria-label="다음 선수"
                 disabled={!isSwiperReady}
@@ -138,7 +138,7 @@ export function FanPlayerProfiles({ players, teamSlug }: { players: Player[]; te
             aria-hidden={isSwiperReady}
           >
             {orderedPlayers.slice(0, 5).map((player) => (
-              <PlayerProfileCard key={player.id} player={player} />
+              <PlayerProfileCard key={player.id} player={player} teamSlug={teamSlug} />
             ))}
           </div>
 
@@ -167,7 +167,7 @@ export function FanPlayerProfiles({ players, teamSlug }: { players: Player[]; te
             >
               {orderedPlayers.map((player) => (
                 <SwiperSlide key={player.id} className="h-auto">
-                  <PlayerProfileCard player={player} />
+                  <PlayerProfileCard player={player} teamSlug={teamSlug} />
                 </SwiperSlide>
               ))}
             </Swiper>
