@@ -101,6 +101,7 @@ type NewEventInsert = {
   victim_champion_id: string | null;
   dragon_type: string | null;
   game_clock_seconds: number;
+  dedupe_key: string;
 };
 
 // feed.lolesports.com은 비공식 API라 가끔 정상적인 요청에도 일시적으로 400/네트워크
@@ -169,19 +170,36 @@ function buildNewEvents(
   time: number,
 ): NewEventInsert[] {
   const events: NewEventInsert[] = [];
-  const base = (overrides: Partial<NewEventInsert>): NewEventInsert => ({
-    match_id: matchId,
-    event_type: "tower",
-    side: null,
-    team_id: null,
-    killer_summoner_name: null,
-    killer_champion_id: null,
-    victim_summoner_name: null,
-    victim_champion_id: null,
-    dragon_type: null,
-    game_clock_seconds: time,
-    ...overrides,
-  });
+  // 같은 diff(같은 cursor → 같은 snapshot)를 두 요청이 동시에 계산해도 항상 같은
+  // dedupe_key가 나오게 한다 — cursor가 갖고 있던 "직전" duration을 기준점으로 쓰고,
+  // 한 배치 안에서 내용이 같은 이벤트가 여러 개면(예: 타워 2개) 순번을 더한다.
+  let sequence = 0;
+  const base = (overrides: Partial<Omit<NewEventInsert, "dedupe_key">>): NewEventInsert => {
+    const draft = {
+      match_id: matchId,
+      event_type: "tower" as const,
+      side: null,
+      team_id: null,
+      killer_summoner_name: null,
+      killer_champion_id: null,
+      victim_summoner_name: null,
+      victim_champion_id: null,
+      dragon_type: null,
+      game_clock_seconds: time,
+      ...overrides,
+    };
+    const key = [
+      matchId,
+      cursor.duration_seconds ?? "x",
+      draft.event_type,
+      draft.side ?? "",
+      draft.killer_summoner_name ?? "",
+      draft.victim_summoner_name ?? "",
+      draft.dragon_type ?? "",
+      sequence++,
+    ].join(":");
+    return { ...draft, dedupe_key: key };
+  };
 
   (["blue", "red"] as const).forEach((s) => {
     const before = s === "blue"
@@ -313,19 +331,15 @@ export async function GET(
       // 마커를 한 번 남긴다. 커서는 지우지 않고 그대로 둬서, 다음 세트가 시작될 때
       // "게임 ID가 바뀌었다"는 걸 감지해 그때 비로소 정리할 수 있게 한다.
       if (cursorRow) {
-        const { data: existingEnd } = await supabase
-          .from("live_match_events")
-          .select("id")
-          .eq("match_id", match.id)
-          .eq("event_type", "end")
-          .maybeSingle();
-        if (!existingEnd) {
-          await supabase.from("live_match_events").insert({
+        await supabase.from("live_match_events").upsert(
+          {
             match_id: match.id,
             event_type: "end",
             game_clock_seconds: cursorRow.duration_seconds ?? 0,
-          });
-        }
+            dedupe_key: `${match.id}:end:${cursorRow.lolesports_game_id}`,
+          },
+          { onConflict: "dedupe_key", ignoreDuplicates: true },
+        );
       }
       const events = await loadEvents(supabase, match.id);
       return NextResponse.json({ status: aligned.state === "completed" ? "ended" : "not_started", events });
@@ -333,9 +347,21 @@ export async function GET(
 
     const gameData = await withRetry(() => fetchLolesportsGameData(liveGameId));
 
-    const blueIsTeamA = gameData.blueTeamMetadata?.esportsTeamId
-      ? gameData.blueTeamMetadata.esportsTeamId === aligned.externalTeamAId
-      : true; // 매핑 정보가 없으면 관례대로 teamA=블루로 가정한다.
+    // blueTeamMetadata.esportsTeamId와 aligned.externalTeamAId는 서로 다른 API(라이브
+    // 스탯 feed vs 스케줄 GraphQL)가 각자 매기는 팀 ID라 네임스페이스가 항상 같다는
+    // 보장이 없다 — 실제로 세트 도중 이 비교가 틀려서 블루/레드가 뒤바뀐 채 저장된 적이
+    // 있었다(참가자 side는 맞는데 팀 배지만 반대로 나옴 → 다음 폴링에서 참가자 키가
+    // 바뀌어 diff가 끊기고 이벤트가 누락됨). 대신 소환사명 접두어("GEN Kiin"처럼 팀
+    // 코드로 시작)로 우리 teamA/teamB 중 어느 쪽이 블루인지 직접 확인한다 — 이게 훨씬
+    // 신뢰할 수 있는 신호다.
+    const blueSampleName = gameData.blueTeamMetadata?.participantMetadata?.[0]?.summonerName;
+    const startsWithShortName = (name: string | null | undefined, shortName: string) =>
+      Boolean(name && shortName && name.trim().toUpperCase().startsWith(shortName.trim().toUpperCase()));
+    const blueIsTeamA = blueSampleName
+      ? startsWithShortName(blueSampleName, teamA.shortName)
+      : gameData.blueTeamMetadata?.esportsTeamId
+        ? gameData.blueTeamMetadata.esportsTeamId === aligned.externalTeamAId
+        : true; // 아무 단서도 없으면 관례대로 teamA=블루로 가정한다.
     const blueTeamId = blueIsTeamA ? teamA.id : teamB.id;
     const redTeamId = blueIsTeamA ? teamB.id : teamA.id;
 
@@ -365,7 +391,7 @@ export async function GET(
     if (cursorRow) {
       const newEvents = buildNewEvents(match.id, cursorRow, { blue, red, participants }, gameData.durationSeconds ?? 0);
       if (newEvents.length > 0) {
-        await supabase.from("live_match_events").insert(newEvents);
+        await supabase.from("live_match_events").upsert(newEvents, { onConflict: "dedupe_key", ignoreDuplicates: true });
       }
     }
 
