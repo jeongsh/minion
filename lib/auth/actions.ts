@@ -104,7 +104,7 @@ export async function signUpAction(
 // skipBrowserRedirect 로 여기서는 URL만 받아오고, 실제 이동은 서버 액션의 redirect()로 한다.
 // formData의 "next"는 로그인/가입 화면에서는 비어 있어 기본값(홈)을 쓰고,
 // 회원 탈퇴 재인증 흐름(delete-account-form.tsx)에서는 계정 탭으로 돌아오도록 덮어쓴다.
-async function startOAuthSignIn(provider: "google" | "kakao" | "custom:naver" | "apple", formData?: FormData) {
+async function startOAuthSignIn(provider: "google" | "kakao" | "apple", formData?: FormData) {
   const next = String(formData?.get("next") ?? "/");
   const supabase = await createSupabaseAuthClient();
   const redirectTo = `${siteBaseUrl()}/auth/callback?next=${encodeURIComponent(next)}`;
@@ -128,8 +128,12 @@ export async function signInWithKakaoAction(formData: FormData) {
   await startOAuthSignIn("kakao", formData);
 }
 
+// 네이버는 Supabase의 커스텀 OIDC 연동이 아니라 이 앱이 직접 처리한다
+// (app/auth/naver, app/auth/naver/callback) — 네이버 userinfo 응답이
+// {response:{email,...}} 형태로 중첩돼 있어 Supabase가 이메일을 못 읽는 문제 때문.
 export async function signInWithNaverAction(formData: FormData) {
-  await startOAuthSignIn("custom:naver", formData);
+  const next = String(formData.get("next") ?? "/");
+  redirect(`/auth/naver?next=${encodeURIComponent(next)}`);
 }
 
 export async function signInWithAppleAction(formData: FormData) {
