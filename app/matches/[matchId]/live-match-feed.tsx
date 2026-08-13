@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Sword } from "lucide-react";
+import { RefreshCw, Sword } from "lucide-react";
 
 import type { LiveMatchEvent, LiveMatchResponse } from "@/app/api/matches/[matchId]/live/route";
 import { TeamLogo } from "@/components/ui/team-logo";
@@ -176,6 +176,10 @@ export function LiveMatchFeed({ matchId, teamA, teamB }: { matchId: string; team
   const [status, setStatus] = useState<LiveMatchResponse["status"] | "loading">("loading");
   const [events, setEvents] = useState<LiveMatchEvent[]>([]);
   const [clock, setClock] = useState<number | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  // 새로고침 버튼을 누르면 이 값을 올려서 아래 effect를 다시 실행시킨다 — 기존
+  // 인터벌은 정리되고 즉시 한 번 다시 불러온 뒤 새 인터벌이 그 시점부터 다시 잰다.
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -195,6 +199,8 @@ export function LiveMatchFeed({ matchId, teamA, teamB }: { matchId: string; team
         if ("events" in data) setEvents(data.events);
       } catch {
         if (!cancelled) setStatus("unavailable");
+      } finally {
+        if (!cancelled) setIsRefreshing(false);
       }
     }
 
@@ -204,7 +210,15 @@ export function LiveMatchFeed({ matchId, teamA, teamB }: { matchId: string; team
       cancelled = true;
       window.clearInterval(timer);
     };
-  }, [matchId]);
+  }, [matchId, refreshKey]);
+
+  // 라우트 캐싱을 꺼놨기 때문에 누르면 진짜로 즉시 최신 데이터를 가져온다. 다음
+  // 자동 폴링까지 기다리지 않도록 인터벌도 이 시점부터 다시 잰다.
+  const handleManualRefresh = () => {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+    setRefreshKey((key) => key + 1);
+  };
 
   const teamOf = (teamId: string | null) => {
     if (!teamId) return undefined;
@@ -229,9 +243,21 @@ export function LiveMatchFeed({ matchId, teamA, teamB }: { matchId: string; team
               "실시간 데이터를 가져올 수 없습니다"}
           </span>
         )}
-        {status === "live" ? (
-          <span className="text-[13px] font-semibold tabular-nums text-[var(--ui-muted)]">{fmtClock(clock)}</span>
-        ) : null}
+        <div className="flex items-center gap-2">
+          {status === "live" ? (
+            <span className="text-[13px] font-semibold tabular-nums text-[var(--ui-muted)]">{fmtClock(clock)}</span>
+          ) : null}
+          <button
+            type="button"
+            onClick={handleManualRefresh}
+            disabled={isRefreshing}
+            aria-label="새로고침"
+            title="새로고침"
+            className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-[var(--ui-muted)] transition-colors hover:bg-[var(--ui-card-hover)] hover:text-[var(--ui-ink)] disabled:opacity-50"
+          >
+            <RefreshCw aria-hidden="true" className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} strokeWidth={2} />
+          </button>
+        </div>
       </div>
 
       {events.length === 0 ? (

@@ -7,10 +7,13 @@ import { findLolesportsMatch } from "@/lib/lolesports-match-matcher";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
-// 여러 명이 동시에 폴링해도 이 창 안에서는 캐시된 응답 하나만 재사용해서, 우리 서버가
-// feed.lolesports.com/esports-api와 DB를 매 요청마다 다시 두드리지 않게 한다. diff/저장도
-// 이 창 안에서 딱 한 번만 실행된다(캐시 미스일 때만 아래 GET 본문이 돈다).
-export const revalidate = 8;
+// revalidate 기반 캐싱은 dev 서버에서 코드를 수정한 뒤에도 예전 실행 결과를 계속
+// 서빙하는 것처럼 보이는 경우가 있었다(블루/레드 팀 배정을 고쳤는데도 실제 저장은
+// 계속 예전 값으로 되는 문제로 발견됨). 이 라우트는 DB 쓰기라는 부작용이 있어서
+// 캐시가 코드 변경을 못 따라가면 디버깅이 사실상 불가능해지므로, 매번 확실하게
+// 새로 실행되도록 캐싱을 끈다. 동시 요청으로 인한 중복 저장은 dedupe_key
+// 유니크 인덱스가 막아준다.
+export const dynamic = "force-dynamic";
 
 type Side = "blue" | "red";
 
@@ -272,10 +275,34 @@ export async function GET(
 
   const supabase = createSupabaseAdminClient();
 
-  // 우리 DB에서 이미 완료로 확정된 매치는 외부 API를 칠 필요 없이 라이브 잔여 데이터만
-  // 정리하고 끝낸다 — 이 시점부턴 "타임라인" 탭의 공식 데이터가 이 자리를 대신한다.
+  // 우리 DB에서 이미 완료로 확정된 매치는 외부 API를 칠 필요가 없다 — 이 시점부턴
+  // "타임라인" 탭의 공식 데이터가 이 자리를 대신한다. 다만 커서가 아직 남아있다면
+  // (=완료 확정 직후 첫 요청) 곧바로 다 지우지 않고 종료 마커를 한 번 남긴 뒤 커서만
+  // 지운다 — 그래야 마지막 순간이 화면에 뜰 새도 없이 사라지지 않는다. 이벤트 자체는
+  // 그다음 요청(커서가 이미 없는 상태)에서 정리한다.
   if (match.status === "completed") {
-    await supabase.from("live_match_cursors").delete().eq("match_id", match.id);
+    const { data: cursorRow } = await supabase
+      .from("live_match_cursors")
+      .select("duration_seconds, lolesports_game_id")
+      .eq("match_id", match.id)
+      .maybeSingle();
+
+    if (cursorRow) {
+      const { error: endInsertError } = await supabase.from("live_match_events").upsert(
+        {
+          match_id: match.id,
+          event_type: "end",
+          game_clock_seconds: cursorRow.duration_seconds ?? 0,
+          dedupe_key: `${match.id}:end:${cursorRow.lolesports_game_id}`,
+        },
+        { onConflict: "dedupe_key", ignoreDuplicates: true },
+      );
+      if (endInsertError) console.error("live match end-event upsert failed", endInsertError);
+      await supabase.from("live_match_cursors").delete().eq("match_id", match.id);
+      const events = await loadEvents(supabase, match.id);
+      return NextResponse.json({ status: "ended", events });
+    }
+
     await supabase.from("live_match_events").delete().eq("match_id", match.id);
     return NextResponse.json({ status: "ended", events: [] });
   }
@@ -331,7 +358,7 @@ export async function GET(
       // 마커를 한 번 남긴다. 커서는 지우지 않고 그대로 둬서, 다음 세트가 시작될 때
       // "게임 ID가 바뀌었다"는 걸 감지해 그때 비로소 정리할 수 있게 한다.
       if (cursorRow) {
-        await supabase.from("live_match_events").upsert(
+        const { error: endInsertError } = await supabase.from("live_match_events").upsert(
           {
             match_id: match.id,
             event_type: "end",
@@ -340,6 +367,7 @@ export async function GET(
           },
           { onConflict: "dedupe_key", ignoreDuplicates: true },
         );
+        if (endInsertError) console.error("live match end-event upsert failed", endInsertError);
       }
       const events = await loadEvents(supabase, match.id);
       return NextResponse.json({ status: aligned.state === "completed" ? "ended" : "not_started", events });
@@ -394,7 +422,10 @@ export async function GET(
     if (cursorRow) {
       const newEvents = buildNewEvents(match.id, cursorRow, { blue, red, participants }, gameData.durationSeconds ?? 0);
       if (newEvents.length > 0) {
-        await supabase.from("live_match_events").upsert(newEvents, { onConflict: "dedupe_key", ignoreDuplicates: true });
+        const { error: eventsInsertError } = await supabase
+          .from("live_match_events")
+          .upsert(newEvents, { onConflict: "dedupe_key", ignoreDuplicates: true });
+        if (eventsInsertError) console.error("live match events upsert failed", eventsInsertError);
       }
     }
 
