@@ -2,7 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { syncLeaguepediaMatchSets } from "./leaguepedia-match-sets.ts";
 import { syncPomForMatch } from "./sync-pom.ts";
-import { syncMatchTimeline } from "./timeline-events.ts";
+import { syncLeaguepediaTimelineForMatch as syncMatchTimeline } from "./leaguepedia-timeline.ts";
 
 export type MatchDataBulkSyncSummary = {
   matchesChecked: number;

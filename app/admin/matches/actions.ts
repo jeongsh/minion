@@ -31,9 +31,9 @@ import {
 } from "@/lib/sync/leaguepedia-match-sets";
 import { syncPomForMatch, type SinglePomSyncResult } from "@/lib/sync/sync-pom";
 import {
-  syncMatchTimeline,
+  syncLeaguepediaTimelineForMatch as syncMatchTimeline,
   type TimelineSyncSummary,
-} from "@/lib/sync/timeline-events";
+} from "@/lib/sync/leaguepedia-timeline";
 import { createSupabaseAdminActionClient } from "@/lib/auth/admin";
 import type { Match } from "@/lib/types";
 import { matchRouteId, parseDateTimeLocalKST } from "@/lib/view-data";
