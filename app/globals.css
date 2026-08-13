@@ -1005,6 +1005,11 @@ html[class~="dark"] .match-detail-page .text-muted {
   background: var(--ui-surface-muted);
   transition: background 0.15s ease, color 0.15s ease;
   pointer-events: auto;
+  /* navLayout="around"에서는 .rdp-month_caption도 position:relative가 되면서 DOM
+     순서(이전 버튼 → 캡션 → 다음 버튼)대로 쌓인다. z-index가 없으면 캡션이 이전
+     버튼 위를 덮어 클릭을 가로채(다음 버튼은 캡션보다 뒤라 안 덮임) "다음은 되는데
+     이전은 안 되는" 현상이 생긴다. */
+  z-index: 2;
 }
 
 .home-match-calendar .rdp-button_previous {
