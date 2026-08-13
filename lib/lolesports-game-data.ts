@@ -184,12 +184,35 @@ export function parseLolesportsGameData(
   };
 }
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// feed.lolesports.com은 비공식 API라 정상적인 요청에도 이따금 네트워크 오류나 5xx를
+// 준다(같은 요청을 잠시 후 다시 보내면 대부분 성공한다). 하나의 라이브 조회는 walk
+// 하나당 요청을 여러 번 보내므로, 각 요청 단위로 재시도하지 않으면 그중 한 번만
+// 흔들려도 전체 조회가 실패한다. 400(더 볼 데이터 없음)은 재시도 대상이 아니다.
+async function fetchLiveStats(url: string, fetchImpl: typeof fetch): Promise<Response> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      const response = await fetchImpl(url, {
+        cache: "no-store",
+        headers: { "User-Agent": "LCKHub-Minion/0.1 (+https://lolesports.com)" },
+        signal: AbortSignal.timeout(10_000),
+      });
+      if (response.status === 400 || response.ok) return response;
+      lastError = new Error(`LoL Esports live stats failed (${response.status})`);
+    } catch (error) {
+      lastError = error;
+    }
+    if (attempt < 2) await sleep(400 * (attempt + 1));
+  }
+  throw lastError;
+}
+
 async function fetchJson<T>(url: string, fetchImpl: typeof fetch): Promise<T> {
-  const response = await fetchImpl(url, {
-    cache: "no-store",
-    headers: { "User-Agent": "LCKHub-Minion/0.1 (+https://lolesports.com)" },
-    signal: AbortSignal.timeout(10_000),
-  });
+  const response = await fetchLiveStats(url, fetchImpl);
   if (!response.ok) throw new Error(`LoL Esports live stats failed (${response.status})`);
   return (await response.json()) as T;
 }
@@ -202,11 +225,7 @@ async function fetchWindowPage(
   url: string,
   fetchImpl: typeof fetch,
 ): Promise<LiveWindowPayload | null> {
-  const response = await fetchImpl(url, {
-    cache: "no-store",
-    headers: { "User-Agent": "LCKHub-Minion/0.1 (+https://lolesports.com)" },
-    signal: AbortSignal.timeout(10_000),
-  });
+  const response = await fetchLiveStats(url, fetchImpl);
   if (response.status === 400) return null;
   if (!response.ok) throw new Error(`LoL Esports live stats failed (${response.status})`);
   return (await response.json()) as LiveWindowPayload;
@@ -254,6 +273,34 @@ async function findFinalWindow(
   return best;
 }
 
+// details는 window보다 발행이 늦다 — window가 이미 "지금"이라고 본 시점을 그대로
+// details에 요청하면, details는 아직 그 시점 데이터를 안 올린 상태라 400을 준다.
+// window 워크와 같은 원리로, 커서를 조금씩 과거로 물러나며 details가 실제로 받아줄
+// 때까지 재시도한다.
+const DETAILS_BACKOFF_MS = [0, 10_000, 30_000, 60_000, 120_000];
+
+async function fetchLatestDetails(
+  gameId: string,
+  finalTimestamp: number | null,
+  fetchImpl: typeof fetch,
+): Promise<LiveDetailsPayload> {
+  if (finalTimestamp === null) {
+    return fetchJson<LiveDetailsPayload>(`${LIVE_STATS_BASE}/details/${gameId}`, fetchImpl);
+  }
+  for (const backoff of DETAILS_BACKOFF_MS) {
+    const cursor = liveStatsCursor(finalTimestamp - backoff);
+    const response = await fetchLiveStats(
+      `${LIVE_STATS_BASE}/details/${gameId}?startingTime=${encodeURIComponent(cursor)}`,
+      fetchImpl,
+    );
+    if (response.status === 400) continue; // 이 시점 데이터가 아직 없음 — 더 과거로 물러나 재시도
+    if (!response.ok) throw new Error(`LoL Esports live stats failed (${response.status})`);
+    return (await response.json()) as LiveDetailsPayload;
+  }
+  // 그래도 안 되면 커서 없이(가장 이른 페이지) 마지막으로 시도한다.
+  return fetchJson<LiveDetailsPayload>(`${LIVE_STATS_BASE}/details/${gameId}`, fetchImpl);
+}
+
 export async function fetchLolesportsGameData(
   gameId: string,
   _observedAt = new Date(),
@@ -267,10 +314,7 @@ export async function fetchLolesportsGameData(
   );
   const finalWindow = await findFinalWindow(encodedId, initialWindow, fetchImpl);
   const finalTimestamp = timestamp(latestFrame(finalWindow.frames)?.rfc460Timestamp);
-  const detailsUrl = finalTimestamp !== null
-    ? `${LIVE_STATS_BASE}/details/${encodedId}?startingTime=${encodeURIComponent(liveStatsCursor(finalTimestamp))}`
-    : `${LIVE_STATS_BASE}/details/${encodedId}`;
-  const details = await fetchJson<LiveDetailsPayload>(detailsUrl, fetchImpl);
+  const details = await fetchLatestDetails(encodedId, finalTimestamp, fetchImpl);
   return parseLolesportsGameData(initialWindow, finalWindow, details);
 }
 

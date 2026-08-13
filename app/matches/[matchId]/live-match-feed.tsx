@@ -1,24 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Sword } from "lucide-react";
 
-import type { LiveMatchParticipant, LiveMatchResponse } from "@/app/api/matches/[matchId]/live/route";
+import type { LiveMatchEvent, LiveMatchResponse } from "@/app/api/matches/[matchId]/live/route";
 import { TeamLogo } from "@/components/ui/team-logo";
 import { championCatalogEntries, normalizeChampionKey } from "@/lib/champions";
 import { OBJECTIVE_ICONS } from "@/lib/objectives";
 import type { Team } from "@/lib/types";
 
 const POLL_INTERVAL_MS = 10_000;
-
-type Side = "blue" | "red";
-type LiveSnapshot = Extract<LiveMatchResponse, { status: "live" }>;
-
-type FeedEvent =
-  | { id: string; time: number; type: "kill"; killer: LiveMatchParticipant | null; victim: LiveMatchParticipant | null }
-  | { id: string; time: number; type: "tower" | "baron" | "inhibitor"; side: Side }
-  | { id: string; time: number; type: "dragon"; side: Side; dragonType: string }
-  | { id: string; time: number; type: "end" };
 
 const CHAMPION_IMAGE_BY_KEY = new Map(
   championCatalogEntries().map((champion) => [
@@ -53,54 +44,16 @@ function fmtClock(seconds: number | null) {
   return `${Math.floor(rounded / 60)}:${String(rounded % 60).padStart(2, "0")}`;
 }
 
-function participantKey(participant: LiveMatchParticipant, index: number) {
-  return `${participant.side}-${participant.summonerName ?? index}`;
-}
-
-function diffEvents(prev: LiveSnapshot, curr: LiveSnapshot): FeedEvent[] {
-  const time = curr.durationSeconds ?? 0;
-  const events: FeedEvent[] = [];
-  const stamp = Date.now();
-
-  (["blue", "red"] as const).forEach((side) => {
-    const before = prev[side];
-    const after = curr[side];
-
-    for (let i = 0; i < after.towers - before.towers; i += 1) {
-      events.push({ id: `${stamp}-tower-${side}-${i}`, time, type: "tower", side });
-    }
-    for (let i = 0; i < after.barons - before.barons; i += 1) {
-      events.push({ id: `${stamp}-baron-${side}-${i}`, time, type: "baron", side });
-    }
-    for (let i = 0; i < after.inhibitors - before.inhibitors; i += 1) {
-      events.push({ id: `${stamp}-inhib-${side}-${i}`, time, type: "inhibitor", side });
-    }
-    for (const dragonType of after.dragonTypes.slice(before.dragonTypes.length)) {
-      events.push({ id: `${stamp}-dragon-${side}-${dragonType}`, time, type: "dragon", side, dragonType });
-    }
-  });
-
-  const prevByKey = new Map(prev.participants.map((participant, index) => [participantKey(participant, index), participant]));
-  const killers: LiveMatchParticipant[] = [];
-  const victims: LiveMatchParticipant[] = [];
-  curr.participants.forEach((participant, index) => {
-    const before = prevByKey.get(participantKey(participant, index));
-    if (!before) return;
-    for (let i = 0; i < participant.kills - before.kills; i += 1) killers.push(participant);
-    for (let i = 0; i < participant.deaths - before.deaths; i += 1) victims.push(participant);
-  });
-  const killCount = Math.max(killers.length, victims.length);
-  for (let i = 0; i < killCount; i += 1) {
-    events.push({ id: `${stamp}-kill-${i}`, time, type: "kill", killer: killers[i] ?? null, victim: victims[i] ?? null });
-  }
-
-  return events;
-}
-
-function ChampionAvatar({ participant, defeated = false }: { participant: LiveMatchParticipant | null; defeated?: boolean }) {
-  const image = participant?.championId
-    ? CHAMPION_IMAGE_BY_KEY.get(normalizeChampionKey(participant.championId))
-    : null;
+function ChampionAvatar({
+  summonerName,
+  championId,
+  defeated = false,
+}: {
+  summonerName: string | null;
+  championId: string | null;
+  defeated?: boolean;
+}) {
+  const image = championId ? CHAMPION_IMAGE_BY_KEY.get(normalizeChampionKey(championId)) : null;
 
   return (
     <span className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-md bg-[var(--ui-card-hover)] text-xs font-black text-[var(--ui-muted)] sm:h-11 sm:w-11">
@@ -108,27 +61,27 @@ function ChampionAvatar({ participant, defeated = false }: { participant: LiveMa
         // eslint-disable-next-line @next/next/no-img-element
         <img src={image} alt="" className={`h-full w-full object-cover ${defeated ? "grayscale" : ""}`} />
       ) : (
-        participant?.summonerName?.slice(0, 1) ?? "?"
+        summonerName?.slice(0, 1) ?? "?"
       )}
     </span>
   );
 }
 
 function Participant({
-  participant,
+  summonerName,
+  championId,
   reverse = false,
   defeated = false,
 }: {
-  participant: LiveMatchParticipant | null;
+  summonerName: string | null;
+  championId: string | null;
   reverse?: boolean;
   defeated?: boolean;
 }) {
   return (
     <span className={`flex min-w-0 items-center gap-2 ${reverse ? "flex-row-reverse text-right" : ""}`}>
-      <ChampionAvatar participant={participant} defeated={defeated} />
-      <span className="min-w-0 truncate text-[13px] font-bold sm:text-sm">
-        {participant?.summonerName ?? "?"}
-      </span>
+      <ChampionAvatar summonerName={summonerName} championId={championId} defeated={defeated} />
+      <span className="min-w-0 truncate text-[13px] font-bold sm:text-sm">{summonerName ?? "?"}</span>
     </span>
   );
 }
@@ -167,13 +120,13 @@ function ObjectiveIcon({ src, filled }: { src: string; filled?: boolean }) {
   );
 }
 
-function ObjectiveRow({ event, teamOf }: { event: FeedEvent; teamOf: (side: Side) => Team | undefined }) {
+function ObjectiveRow({ event, teamOf }: { event: LiveMatchEvent; teamOf: (teamId: string | null) => Team | undefined }) {
   if (event.type === "kill") {
     return (
       <div className="mx-auto grid w-full max-w-[22rem] min-w-0 grid-cols-[minmax(0,1fr)_1.75rem_minmax(0,1fr)] items-center gap-2 sm:grid-cols-[minmax(0,1fr)_2rem_minmax(0,1fr)] sm:gap-3">
-        <Participant participant={event.killer} reverse />
+        <Participant summonerName={event.killerSummonerName} championId={event.killerChampionId} reverse />
         <Sword aria-hidden="true" className="mx-auto h-5 w-5 text-[var(--ui-muted)]" strokeWidth={2} />
-        <Participant participant={event.victim} defeated />
+        <Participant summonerName={event.victimSummonerName} championId={event.victimChampionId} defeated />
       </div>
     );
   }
@@ -182,7 +135,7 @@ function ObjectiveRow({ event, teamOf }: { event: FeedEvent; teamOf: (side: Side
     return <span className="min-w-0 truncate text-sm font-bold">경기 종료</span>;
   }
 
-  const team = teamOf(event.side);
+  const team = teamOf(event.teamId);
   let icon: string = OBJECTIVE_ICONS.dragon;
   let label = "드래곤";
   switch (event.type) {
@@ -199,8 +152,8 @@ function ObjectiveRow({ event, teamOf }: { event: FeedEvent; teamOf: (side: Side
       label = "억제기";
       break;
     case "dragon":
-      icon = DRAGON_ICON[event.dragonType] ?? OBJECTIVE_ICONS.dragon;
-      label = DRAGON_LABEL[event.dragonType] ?? "드래곤";
+      icon = event.dragonType ? (DRAGON_ICON[event.dragonType] ?? OBJECTIVE_ICONS.dragon) : OBJECTIVE_ICONS.dragon;
+      label = event.dragonType ? (DRAGON_LABEL[event.dragonType] ?? "드래곤") : "드래곤";
       break;
   }
 
@@ -221,9 +174,8 @@ function ObjectiveRow({ event, teamOf }: { event: FeedEvent; teamOf: (side: Side
 
 export function LiveMatchFeed({ matchId, teamA, teamB }: { matchId: string; teamA?: Team; teamB?: Team }) {
   const [status, setStatus] = useState<LiveMatchResponse["status"] | "loading">("loading");
-  const [events, setEvents] = useState<FeedEvent[]>([]);
+  const [events, setEvents] = useState<LiveMatchEvent[]>([]);
   const [clock, setClock] = useState<number | null>(null);
-  const prevRef = useRef<LiveSnapshot | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -234,19 +186,13 @@ export function LiveMatchFeed({ matchId, teamA, teamB }: { matchId: string; team
         const data = (await res.json()) as LiveMatchResponse;
         if (cancelled) return;
 
-        if (data.status === "live") {
-          setClock(data.durationSeconds);
-          if (prevRef.current) {
-            const next = diffEvents(prevRef.current, data);
-            if (next.length > 0) setEvents((prev) => [...next.reverse(), ...prev].slice(0, 100));
-          }
-          prevRef.current = data;
-        } else if (prevRef.current) {
-          const endedAt = prevRef.current.durationSeconds ?? 0;
-          setEvents((prev) => [{ id: `${Date.now()}-end`, time: endedAt, type: "end" }, ...prev]);
-          prevRef.current = null;
-        }
         setStatus(data.status);
+        // 이벤트 목록은 서버(DB)가 게임 시작부터 쌓아온 걸 그대로 내려주므로, 클라이언트는
+        // diff 계산 없이 받은 그대로 반영하면 된다 — 늦게 들어온 시청자도 처음부터 보인다.
+        if (data.status === "live") setClock(data.durationSeconds);
+        // 세트가 끝나면 서버가 그 세트의 이벤트를 지우므로, "not_started"/"ended"로
+        // 돌아왔을 때도 서버가 내려준(비어 있을 수 있는) 목록으로 그대로 갱신한다.
+        if ("events" in data) setEvents(data.events);
       } catch {
         if (!cancelled) setStatus("unavailable");
       }
@@ -260,10 +206,11 @@ export function LiveMatchFeed({ matchId, teamA, teamB }: { matchId: string; team
     };
   }, [matchId]);
 
-  const teamOf = (side: Side) => {
-    const blueIsA = prevRef.current?.blue.teamId === teamA?.id;
-    if (side === "blue") return blueIsA ? teamA : teamB;
-    return blueIsA ? teamB : teamA;
+  const teamOf = (teamId: string | null) => {
+    if (!teamId) return undefined;
+    if (teamA?.id === teamId) return teamA;
+    if (teamB?.id === teamId) return teamB;
+    return undefined;
   };
 
   return (
