@@ -265,9 +265,7 @@ export async function submitSetPlayerRatingAction(
     }
 
     revalidatePath(`/matches/${set.match_id}`);
-    revalidatePath(`/matches/${set.match_id}/sets/${set.id}`);
     revalidatePath(`/matches/${routeMatchId}`);
-    revalidatePath(`/matches/${routeMatchId}/sets/${set.id}`);
 
     if (review && savedRating) {
       after(async () => {

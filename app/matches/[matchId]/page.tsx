@@ -43,7 +43,7 @@ import { getMatchAiPreview } from "@/lib/match-preview-ai";
 
 import { LiveMatchFeed } from "./live-match-feed";
 import { MatchPreview } from "./match-preview";
-import { SetDetailContent } from "./sets/[setId]/page";
+import { SetDetailContent } from "./set-detail-content";
 import { SetRatingForm } from "./set-rating-form";
 import { RatingCommentList } from "./rating-comment-list";
 

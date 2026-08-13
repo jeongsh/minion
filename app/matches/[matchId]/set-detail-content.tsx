@@ -46,8 +46,8 @@ import {
   teamLabel,
 } from "@/lib/view-data";
 
-import { GameTimeline } from "../../game-timeline";
-import { CompactSetDraftView, SetDraftView } from "./set-draft-view";
+import { GameTimeline } from "./game-timeline";
+import { CompactSetDraftView, SetDraftView } from "./sets/[setId]/set-draft-view";
 
 function numberLabel(value: number | null | undefined) {
   return value == null ? "-" : value.toLocaleString("ko-KR");
@@ -399,16 +399,6 @@ function teamOutcome(winnerTeamId: string | null, teamId: string) {
     short: won ? "승리" : "패배",
     ko: won ? "승리" : "패배",
   };
-}
-
-export default async function SetDetailPage({
-  params,
-}: {
-  params: Promise<{ matchId: string; setId: string }>;
-}) {
-  const { matchId, setId } = await params;
-
-  return <SetDetailContent matchId={matchId} setId={setId} />;
 }
 
 type PlayerStatRow = {

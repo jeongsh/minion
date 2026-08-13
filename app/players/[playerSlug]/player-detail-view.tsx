@@ -26,7 +26,7 @@ import {
   segmentLabel,
   type SeasonSegmentKey,
 } from "@/lib/tournament-filters";
-import { fanPogPlayerIdForSet } from "@/lib/view-data";
+import { fanPogPlayerIdForSet, setRatingHref } from "@/lib/view-data";
 import { ChampionUsageTable } from "./champion-usage-table";
 import { FanReviewList, type FanReviewItem } from "./fan-review-list";
 import { RecentMatchHistoryModal, RecentMatchSetRows } from "./recent-match-history-modal";
@@ -442,6 +442,7 @@ export async function PlayerDetailView({
 
     return {
       rating,
+      href: match && set ? setRatingHref(match, set) : null,
       meta: [
         formatReviewDate(rating.createdAt),
         match?.name,
@@ -554,9 +555,9 @@ export async function PlayerDetailView({
         {/* 4. 시즌 요약 */}
         <section>
           <SectionHeading caption={playerSegmentLabel(activeSegment)}>시즌 요약</SectionHeading>
-          <div className="rounded-lg bg-[var(--ui-card-bg)] p-2">
-            <div className="overflow-hidden rounded-md bg-[var(--ui-surface)]">
-              <div className="grid h-9 grid-cols-5 items-center bg-[color-mix(in_srgb,var(--ui-ink)_14%,var(--ui-surface))] text-center text-xs font-semibold text-[var(--ui-muted)]">
+          <div className="overflow-hidden rounded-lg border border-[var(--ui-border)]">
+            <div className="overflow-hidden bg-[var(--ui-surface)]">
+              <div className="grid h-9 grid-cols-5 items-center bg-[var(--ui-card-bg)] text-center text-xs font-semibold leading-tight text-[var(--ui-muted)] lg:text-sm">
                 <span>출전 세트</span>
                 <span>승률</span>
                 <span>KDA</span>

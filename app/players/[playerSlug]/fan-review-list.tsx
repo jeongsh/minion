@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { ChevronDown, LoaderCircle, Star } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
@@ -11,9 +12,10 @@ const PAGE_SIZE = 5;
 export type FanReviewItem = {
   rating: FanRating;
   meta: string;
+  href: string | null;
 };
 
-function FanReviewComment({ rating, meta }: FanReviewItem) {
+function FanReviewComment({ rating, meta, href }: FanReviewItem) {
   return (
     <article className="flex min-w-0 gap-3 rounded-xl bg-[var(--ui-card-bg)] p-3.5 sm:p-4">
       <div className="min-w-0 flex-1">
@@ -25,14 +27,19 @@ function FanReviewComment({ rating, meta }: FanReviewItem) {
             authorTier={rating.authorTier}
             variant="comment"
           />
-          <span className="hidden text-xs text-[var(--ui-muted)] sm:inline">{meta}</span>
           <span className="ml-auto flex shrink-0 items-center gap-1 text-base font-bold tabular-nums text-[var(--ui-ink)]">
             <Star aria-hidden="true" className="h-4 w-4 fill-amber-400 text-amber-400" />
             {rating.rating.toFixed(1)}
           </span>
         </div>
         <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-[var(--ui-text)] [overflow-wrap:anywhere] sm:mt-1.5 sm:text-base sm:leading-7">{rating.review}</p>
-        <p className="mt-2 text-xs text-[var(--ui-muted)] sm:hidden">{meta}</p>
+        {href ? (
+          <Link href={href} className="mt-2 block w-fit text-xs font-semibold text-[var(--ui-muted)] transition-colors hover:text-[var(--ui-ink)]">
+            {meta}
+          </Link>
+        ) : (
+          <p className="mt-2 text-xs font-semibold text-[var(--ui-muted)]">{meta}</p>
+        )}
       </div>
     </article>
   );

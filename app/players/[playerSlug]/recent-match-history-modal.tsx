@@ -146,7 +146,7 @@ export function RecentMatchSetRows({
   );
 
   return (
-    <article className={variant === "embedded" ? "min-w-0 rounded-lg bg-[var(--ui-card-bg)] p-2" : "overflow-hidden rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)]"}>
+    <article className={variant === "embedded" ? "min-w-0 overflow-hidden rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)]" : "overflow-hidden rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)]"}>
       {matchHeader}
 
       {tableRows.length === 0 ? (

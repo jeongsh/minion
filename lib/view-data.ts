@@ -153,7 +153,11 @@ export function matchHref(match: Match) {
 }
 
 export function setHref(match: Match, set: SetResult) {
-  return `${matchHref(match)}/sets/${set.id}`;
+  return `${matchHref(match)}?tab=data&set=${encodeURIComponent(set.id)}`;
+}
+
+export function setRatingHref(match: Match, set: SetResult) {
+  return `${matchHref(match)}?tab=rating&set=${encodeURIComponent(set.id)}`;
 }
 
 export function durationLabel(seconds: number | null | undefined) {
