@@ -350,18 +350,21 @@ export async function GET(
     // blueTeamMetadata.esportsTeamId와 aligned.externalTeamAId는 서로 다른 API(라이브
     // 스탯 feed vs 스케줄 GraphQL)가 각자 매기는 팀 ID라 네임스페이스가 항상 같다는
     // 보장이 없다 — 실제로 세트 도중 이 비교가 틀려서 블루/레드가 뒤바뀐 채 저장된 적이
-    // 있었다(참가자 side는 맞는데 팀 배지만 반대로 나옴 → 다음 폴링에서 참가자 키가
-    // 바뀌어 diff가 끊기고 이벤트가 누락됨). 대신 소환사명 접두어("GEN Kiin"처럼 팀
-    // 코드로 시작)로 우리 teamA/teamB 중 어느 쪽이 블루인지 직접 확인한다 — 이게 훨씬
-    // 신뢰할 수 있는 신호다.
-    const blueSampleName = gameData.blueTeamMetadata?.participantMetadata?.[0]?.summonerName;
+    // 있었다. 소환사명 접두어("GEN Kiin"처럼 팀 코드로 시작)로 판별하는 게 훨씬 믿을만한
+    // 신호인데, 선수 1명만 보면 그 한 명의 이름 표기가 흔들릴 때 여전히 틀릴 수 있어서
+    // 블루 쪽 5명 전체를 보고 다수결로 판단한다.
     const startsWithShortName = (name: string | null | undefined, shortName: string) =>
       Boolean(name && shortName && name.trim().toUpperCase().startsWith(shortName.trim().toUpperCase()));
-    const blueIsTeamA = blueSampleName
-      ? startsWithShortName(blueSampleName, teamA.shortName)
+    const blueNames = (gameData.blueTeamMetadata?.participantMetadata ?? [])
+      .map((participant) => participant?.summonerName)
+      .filter((name): name is string => Boolean(name));
+    const blueMatchesTeamA = blueNames.filter((name) => startsWithShortName(name, teamA.shortName)).length;
+    const blueMatchesTeamB = blueNames.filter((name) => startsWithShortName(name, teamB.shortName)).length;
+    const blueIsTeamA = blueMatchesTeamA !== blueMatchesTeamB
+      ? blueMatchesTeamA > blueMatchesTeamB
       : gameData.blueTeamMetadata?.esportsTeamId
         ? gameData.blueTeamMetadata.esportsTeamId === aligned.externalTeamAId
-        : true; // 아무 단서도 없으면 관례대로 teamA=블루로 가정한다.
+        : true; // 이름으로도 못 가르면 관례대로 teamA=블루로 가정한다.
     const blueTeamId = blueIsTeamA ? teamA.id : teamB.id;
     const redTeamId = blueIsTeamA ? teamB.id : teamA.id;
 
