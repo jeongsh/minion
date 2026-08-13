@@ -41,18 +41,20 @@ import { getPredictionMarketData } from "@/lib/predictions";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { getMatchAiPreview } from "@/lib/match-preview-ai";
 
+import { LiveMatchFeed } from "./live-match-feed";
 import { MatchPreview } from "./match-preview";
 import { SetDetailContent } from "./sets/[setId]/page";
 import { SetRatingForm } from "./set-rating-form";
 import { RatingCommentList } from "./rating-comment-list";
 
-type MatchTab = "preview" | "data" | "rating" | "video";
+type MatchTab = "preview" | "data" | "rating" | "video" | "live";
 
 const TAB_LABELS: Record<MatchTab, string> = {
   preview: "프리뷰",
   data: "세트",
   rating: "평가",
   video: "영상",
+  live: "실시간",
 };
 
 function setLabel(set: SetResult) {
@@ -150,7 +152,8 @@ function normalizeTab(value: string | undefined, fallback: MatchTab): MatchTab {
   return value === "preview" ||
     value === "data" ||
     value === "rating" ||
-    value === "video"
+    value === "video" ||
+    value === "live"
     ? value
     : fallback;
 }
@@ -182,13 +185,16 @@ function youtubeEmbedUrl(value: string | null | undefined) {
 function TabNav({
   activeTab,
   sets,
+  showLive,
 }: {
   activeTab: MatchTab;
   sets: SetResult[];
+  showLive: boolean;
 }) {
   const firstSetId = sets[0]?.id;
   const items: TabItem[] = [
     { key: "preview", label: TAB_LABELS.preview, href: tabHref("preview") },
+    ...(showLive ? [{ key: "live", label: TAB_LABELS.live, href: tabHref("live") }] : []),
     ...(sets.length > 0
       ? [{ key: "data", label: TAB_LABELS.data, href: tabHref("data", firstSetId) }]
       : []),
@@ -554,7 +560,7 @@ export default async function MatchDetailPage({
           <CompactTeamBlock align="right" team={teamB} teamName={teamBName} result={teamBResult} />
         </div>
 
-        <TabNav activeTab={activeTab} sets={matchSets} />
+        <TabNav activeTab={activeTab} sets={matchSets} showLive={match.status !== "completed"} />
       </section>
 
       {activeTab === "preview" ? (
@@ -566,6 +572,10 @@ export default async function MatchDetailPage({
           poll={poll}
           aiPreview={aiPreview!}
         />
+      ) : null}
+
+      {activeTab === "live" ? (
+        <LiveMatchFeed matchId={match.id} teamA={teamA} teamB={teamB} />
       ) : null}
 
       {activeTab === "data" ? (
