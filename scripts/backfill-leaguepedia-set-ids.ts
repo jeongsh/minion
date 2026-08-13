@@ -253,11 +253,28 @@ async function main() {
   const rows = (matches ?? []) as MatchRow[];
   let matchesProcessed = 0;
   let setsUpdated = 0;
+  let setsSkipped = 0;
   const chunkSize = 50;
 
   const matchGroups = rows.filter(
     (match) => match.leaguepedia_match_id && (!matchIdsNeedingUpdate || matchIdsNeedingUpdate.has(match.id)),
   );
+
+  // --force가 아니면 이미 leaguepedia_game_id가 채워진 세트는 매치 단위로 걸러진 뒤에도
+  // 개별적으로 건드리지 않는다(예: 3세트 중 2세트만 비어 있으면 2세트만 채우고 1·3세트는
+  // 그대로 둔다).
+  let filledSetKeys: Set<string> | null = null;
+  if (!force && matchGroups.length > 0) {
+    const { data: filledSets, error: filledErr } = await supabase
+      .from("sets")
+      .select("match_id, set_number")
+      .in("match_id", matchGroups.map((match) => match.id))
+      .not("leaguepedia_game_id", "is", null);
+    if (filledErr) throw filledErr;
+    filledSetKeys = new Set(
+      (filledSets ?? []).map((s: { match_id: string; set_number: number }) => `${s.match_id}:${s.set_number}`),
+    );
+  }
 
   for (let index = 0; index < matchGroups.length; index += chunkSize) {
     const batch = matchGroups.slice(index, index + chunkSize);
@@ -282,8 +299,15 @@ async function main() {
         continue;
       }
 
+      let updatedForMatch = 0;
       for (const [rowIndex, row] of rowsForMatch.entries()) {
         const setNumber = parseInteger(row.N_GameInMatch) ?? rowIndex + 1;
+
+        if (filledSetKeys?.has(`${match.id}:${setNumber}`)) {
+          setsSkipped += 1;
+          continue;
+        }
+
         const { data, error: updateError } = await supabase
           .from("sets")
           .update({
@@ -299,6 +323,7 @@ async function main() {
         }
 
         setsUpdated += data?.length ?? 0;
+        updatedForMatch += 1;
       }
 
       matchesProcessed += 1;
@@ -306,11 +331,12 @@ async function main() {
         matchId: match.id,
         leaguepediaMatchId,
         sets: rowsForMatch.length,
+        setsUpdated: updatedForMatch,
       }));
     }
   }
 
-  console.log(JSON.stringify({ matchesProcessed, setsUpdated }, null, 2));
+  console.log(JSON.stringify({ matchesProcessed, setsUpdated, setsSkipped }, null, 2));
 }
 
 main().catch((error) => {
