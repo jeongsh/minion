@@ -81,7 +81,10 @@ function sleep(ms: number) {
 // Supabase의 .in()은 URL 쿼리스트링에 id를 그대로 나열하는데, 수백~천 개를 한 번에
 // 넣으면 URL 길이 제한에 걸려 조용히 실패하거나 빈 결과가 온다(에러를 안 챙기면
 // "아무것도 없음"처럼 보여서 필터가 있으나 마나 해진다) — 그래서 청크로 나눠 호출하고
-// 매 청크마다 에러를 확인한다.
+// 매 청크마다 에러를 확인한다. match_timeline_frames/set_player_stats는 세트 1개당
+// 행이 여러 개(프레임 수십 개, 선수 10명)라서, 청크 하나(id 200개)만으로도 결과 행이
+// PostgREST 기본 최대 1000행을 넘어 잘릴 수 있다 — 그래서 청크 안에서도 페이지네이션한다
+// (실제로 이미 채워진 세트가 "여전히 없다"고 잘못 판정되던 원인이었다).
 async function fetchSetIdsChunked(
   supabase: SupabaseClient,
   table: string,
@@ -90,12 +93,21 @@ async function fetchSetIdsChunked(
   chunkSize = 200,
 ): Promise<string[]> {
   const result: string[] = [];
+  const PAGE_SIZE = 1000;
   for (let i = 0; i < setIds.length; i += chunkSize) {
     const chunk = setIds.slice(i, i + chunkSize);
-    const { data, error } = await supabase.from(table).select(column).in(column, chunk);
-    if (error) throw new Error(`${table} 조회 실패: ${error.message}`);
-    for (const row of (data ?? []) as unknown as Array<Record<string, string>>) {
-      result.push(row[column]);
+    for (let offset = 0; ; offset += PAGE_SIZE) {
+      const { data, error } = await supabase
+        .from(table)
+        .select(column)
+        .in(column, chunk)
+        .range(offset, offset + PAGE_SIZE - 1);
+      if (error) throw new Error(`${table} 조회 실패: ${error.message}`);
+      const rows = (data ?? []) as unknown as Array<Record<string, string>>;
+      for (const row of rows) {
+        result.push(row[column]);
+      }
+      if (rows.length < PAGE_SIZE) break;
     }
   }
   return result;
