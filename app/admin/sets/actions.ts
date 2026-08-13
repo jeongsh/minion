@@ -419,7 +419,7 @@ export async function updateSetAction(formData: FormData) {
 
   revalidatePath("/admin/sets");
   revalidatePath(`/matches/${payload.match_id}`);
-  revalidatePath(`/matches/${payload.match_id}/sets/${setId}`);
+  revalidatePath(`/matches/${payload.match_id}`);
 
   if (redirectTo) {
     redirect(redirectTo);
@@ -453,7 +453,7 @@ export async function overrideSetResultAction(formData: FormData) {
 
   revalidatePath("/admin/sets");
   revalidatePath(`/matches/${matchId}`);
-  revalidatePath(`/matches/${matchId}/sets/${setId}`);
+  revalidatePath(`/matches/${matchId}`);
 
   if (redirectTo) {
     redirect(redirectTo);

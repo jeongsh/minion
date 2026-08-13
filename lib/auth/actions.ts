@@ -155,7 +155,7 @@ export async function signInAction(
   }
 
   revalidatePath("/", "layout");
-  redirect("/me");
+  redirect("/");
 }
 
 export async function requestPasswordResetAction(

@@ -78,6 +78,41 @@ function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
+// Supabase의 .in()은 URL 쿼리스트링에 id를 그대로 나열하는데, 수백~천 개를 한 번에
+// 넣으면 URL 길이 제한에 걸려 조용히 실패하거나 빈 결과가 온다(에러를 안 챙기면
+// "아무것도 없음"처럼 보여서 필터가 있으나 마나 해진다) — 그래서 청크로 나눠 호출하고
+// 매 청크마다 에러를 확인한다. match_timeline_frames/set_player_stats는 세트 1개당
+// 행이 여러 개(프레임 수십 개, 선수 10명)라서, 청크 하나(id 200개)만으로도 결과 행이
+// PostgREST 기본 최대 1000행을 넘어 잘릴 수 있다 — 그래서 청크 안에서도 페이지네이션한다
+// (실제로 이미 채워진 세트가 "여전히 없다"고 잘못 판정되던 원인이었다).
+async function fetchSetIdsChunked(
+  supabase: SupabaseClient,
+  table: string,
+  column: string,
+  setIds: string[],
+  chunkSize = 200,
+): Promise<string[]> {
+  const result: string[] = [];
+  const PAGE_SIZE = 1000;
+  for (let i = 0; i < setIds.length; i += chunkSize) {
+    const chunk = setIds.slice(i, i + chunkSize);
+    for (let offset = 0; ; offset += PAGE_SIZE) {
+      const { data, error } = await supabase
+        .from(table)
+        .select(column)
+        .in(column, chunk)
+        .range(offset, offset + PAGE_SIZE - 1);
+      if (error) throw new Error(`${table} 조회 실패: ${error.message}`);
+      const rows = (data ?? []) as unknown as Array<Record<string, string>>;
+      for (const row of rows) {
+        result.push(row[column]);
+      }
+      if (rows.length < PAGE_SIZE) break;
+    }
+  }
+  return result;
+}
+
 // ─── 메인 ──────────────────────────────────────────────────────
 
 async function main() {
@@ -104,29 +139,55 @@ async function main() {
     console.log(`리그 필터: ${segment} (매치 ${segMatchIds.length}개)`);
   }
 
-  // 1. 처리할 세트 목록 조회
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let setsQuery: any = supabase
-    .from("sets")
-    .select("id")
-    .not("leaguepedia_game_id", "is", null);
+  // 1. 처리할 세트 목록 조회 (PostgREST 기본 최대 1000행 제한을 넘길 수 있어 페이지네이션한다).
+  // 세그먼트 필터는 쿼리의 .in("match_id", ...)으로 걸지 않는다 — 매치가 수백 개면
+  // URL에 id가 그대로 다 나열되면서 길이 제한에 걸려 "fetch failed"로 죽는다
+  // (--segment=lck에서 실제로 겪은 문제). 대신 전체를 받아온 뒤 메모리에서 걸러낸다.
+  const rawSets: Array<{ id: string; match_id: string }> = [];
+  const PAGE_SIZE = 1000;
+  for (let offset = 0; ; offset += PAGE_SIZE) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let setsQuery: any = supabase
+      .from("sets")
+      .select("id, match_id")
+      .not("leaguepedia_game_id", "is", null)
+      .range(offset, offset + PAGE_SIZE - 1);
 
-  if (matchId) setsQuery = setsQuery.eq("match_id", matchId);
-  if (setId) setsQuery = setsQuery.eq("id", setId);
-  if (segMatchIds) setsQuery = setsQuery.in("match_id", segMatchIds);
+    if (matchId) setsQuery = setsQuery.eq("match_id", matchId);
+    if (setId) setsQuery = setsQuery.eq("id", setId);
 
-  const { data: sets, error: setsError } = await setsQuery;
-  if (setsError || !sets) throw new Error(`세트 조회 실패: ${setsError?.message}`);
+    const { data: page, error: setsError } = await setsQuery;
+    if (setsError) throw new Error(`세트 조회 실패: ${setsError.message}`);
+    rawSets.push(...((page ?? []) as Array<{ id: string; match_id: string }>));
+    if (!page || page.length < PAGE_SIZE) break;
+  }
+
+  const segMatchIdSet = segMatchIds ? new Set(segMatchIds) : null;
+  const sets: SetRow[] = (
+    segMatchIdSet ? rawSets.filter((s) => segMatchIdSet.has(s.match_id)) : rawSets
+  ).map((s) => ({ id: s.id }));
 
   // 골드 프레임까지 이미 채워진 세트는 제외 (--force 아닐 경우)
   let targetSets: SetRow[] = sets as SetRow[];
   if (!force) {
-    const { data: existingFrameSetIds } = await supabase
-      .from("match_timeline_frames")
-      .select("set_id")
-      .in("set_id", (sets as SetRow[]).map((s) => s.id));
-    const done = new Set((existingFrameSetIds ?? []).map((r: { set_id: string }) => r.set_id));
+    const existingFrameSetIds = await fetchSetIdsChunked(supabase, "match_timeline_frames", "set_id", targetSets.map((s) => s.id));
+    const done = new Set(existingFrameSetIds);
     targetSets = targetSets.filter((s) => !done.has(s.id));
+
+    // 선수 스탯 10명이 다 안 채워진 세트는 syncLeaguepediaTimelineForSet이 항상
+    // "Player mapping is incomplete"로 스킵한다 — 선수 스탯이 나중에 채워지기 전까지는
+    // 재시도해봐야 매번 똑같이 실패하므로, 매 실행마다 로그만 낭비하지 않게 미리 뺀다
+    // (--force일 땐 원래도 강제로 다 돌리니 그대로 둔다).
+    const statSetIds = await fetchSetIdsChunked(supabase, "set_player_stats", "set_id", targetSets.map((s) => s.id));
+    const statCountBySet = new Map<string, number>();
+    for (const sid of statSetIds) {
+      statCountBySet.set(sid, (statCountBySet.get(sid) ?? 0) + 1);
+    }
+    const notReady = targetSets.filter((s) => (statCountBySet.get(s.id) ?? 0) < 10).length;
+    targetSets = targetSets.filter((s) => (statCountBySet.get(s.id) ?? 0) >= 10);
+    if (notReady > 0) {
+      console.log(`선수 스탯이 아직 안 채워져 스킵: ${notReady}개 (세트/세트 ID 동기화가 먼저 끝나야 함)`);
+    }
   }
 
   console.log(`처리할 세트: ${targetSets.length}개 (전체 ${sets.length}개)`);

@@ -60,7 +60,7 @@ function GroupIdentity({ group }: { group: PlayerStatTableGroup }) {
 
 function CompactHeader({ group }: { group: PlayerStatTableGroup }) {
   return (
-    <div className="grid h-10 grid-cols-[minmax(0,1fr)_3.5rem_5.25rem] items-center gap-2 bg-[color-mix(in_srgb,var(--ui-ink)_14%,var(--ui-surface))] px-2.5 text-xs font-semibold text-muted min-[480px]:grid-cols-[minmax(0,1fr)_3.5rem_6.5rem_5.25rem] min-[560px]:grid-cols-[12rem_3.5rem_minmax(6.5rem,1fr)_5.25rem] min-[720px]:grid-cols-[12rem_3.25rem_minmax(6.5rem,1fr)_auto] min-[720px]:px-3">
+    <div className="grid h-10 grid-cols-[minmax(0,1fr)_3.5rem_5.25rem] items-center gap-2 bg-[var(--ui-card-bg)] px-2.5 text-xs font-semibold text-[var(--ui-muted)] min-[480px]:grid-cols-[minmax(0,1fr)_3.5rem_6.5rem_5.25rem] min-[560px]:grid-cols-[12rem_3.5rem_minmax(6.5rem,1fr)_5.25rem] min-[720px]:grid-cols-[12rem_3.25rem_minmax(6.5rem,1fr)_auto] min-[720px]:px-3 min-[1024px]:text-sm">
       <GroupIdentity group={group} />
       <span className="text-center">KDA</span>
       <span className="hidden min-[480px]:block">데미지</span>
@@ -137,7 +137,7 @@ function CompactRow({ row, maxDamage, accent }: { row: PlayerStatTableRow; maxDa
 
 function DesktopHeader({ group }: { group: PlayerStatTableGroup }) {
   return (
-    <div className="grid h-10 grid-cols-[13rem_5rem_minmax(8rem,1fr)_3rem_3.25rem_4.5rem_19rem] items-center gap-2 bg-[color-mix(in_srgb,var(--ui-ink)_14%,var(--ui-surface))] px-2.5 text-xs font-semibold text-muted">
+    <div className="grid h-10 grid-cols-[13rem_5rem_minmax(8rem,1fr)_3rem_3.25rem_4.5rem_19rem] items-center gap-2 bg-[var(--ui-card-bg)] px-2.5 text-sm font-semibold text-[var(--ui-muted)]">
       <GroupIdentity group={group} />
       <span className="text-center">KDA</span>
       <span>데미지</span>
@@ -214,7 +214,7 @@ export function PlayerStatTable({
 
   return (
     <div className={className}>
-      <div className={`grid gap-3 min-[1280px]:hidden ${framed ? "rounded-lg bg-[var(--ui-card-bg)] p-2" : ""}`}>
+      <div className={`grid gap-3 min-[1280px]:hidden ${framed ? "overflow-hidden rounded-lg border border-[var(--ui-border)]" : ""}`}>
         {groups.map((group) => {
           const accent = group.accent ?? "blue";
           return (
@@ -227,7 +227,7 @@ export function PlayerStatTable({
       </div>
 
       <div className="hidden overflow-x-auto min-[1280px]:block">
-        <div className={`flex min-w-[60rem] flex-col gap-3 ${framed ? "rounded-lg bg-[var(--ui-card-bg)] p-2" : ""}`}>
+        <div className={`flex min-w-[60rem] flex-col gap-3 ${framed ? "overflow-hidden rounded-lg border border-[var(--ui-border)]" : ""}`}>
           {groups.map((group) => {
             const accent = group.accent ?? "blue";
             return (

@@ -79,8 +79,8 @@ export function ChampionUsageTable({ rows, initialRows = 5 }: { rows: ChampionUs
 
   return (
     <div>
-      <div className="rounded-lg bg-[var(--ui-card-bg)] p-2">
-        <div className="overflow-hidden rounded-md bg-[var(--ui-surface)]">
+      <div className="overflow-hidden rounded-lg border border-[var(--ui-border)]">
+        <div className="overflow-hidden bg-[var(--ui-surface)]">
           <table className="w-full table-fixed border-collapse text-left text-xs lg:text-sm">
             <colgroup>
               <col className="w-[16%] sm:w-[18%]" />
@@ -94,7 +94,7 @@ export function ChampionUsageTable({ rows, initialRows = 5 }: { rows: ChampionUs
               <col className="w-[12%] sm:w-[11%]" />
             </colgroup>
             <thead>
-              <tr className="h-10 bg-[color-mix(in_srgb,var(--ui-ink)_14%,var(--ui-surface))] text-xs font-semibold leading-tight text-[var(--ui-muted)]">
+              <tr className="h-10 bg-[var(--ui-card-bg)] text-xs font-semibold leading-tight text-[var(--ui-muted)] lg:text-sm">
                 <th scope="col" className="px-1.5 font-semibold sm:px-2 lg:px-3">챔피언</th>
                 <th scope="col" className="px-1 text-center font-semibold sm:px-2 lg:px-3">세트</th>
                 <th scope="col" className="px-1 text-center font-semibold sm:px-2 lg:px-3">승률</th>
@@ -113,17 +113,17 @@ export function ChampionUsageTable({ rows, initialRows = 5 }: { rows: ChampionUs
               {visibleRows.map((row, index) => (
                 <tr key={row.champion?.id ?? index} className="align-middle transition-colors hover:bg-[var(--ui-surface-muted)]">
                   <td className="px-1 py-2 sm:px-2 lg:px-3"><ChampionCell row={row} /></td>
-                  <td className="px-1 py-2 text-center tabular-nums text-[var(--ui-ink)] sm:px-2 lg:px-3">{row.lines.length}</td>
+                  <td className="px-1 py-2 text-center font-semibold tabular-nums text-[var(--ui-ink)] sm:px-2 lg:px-3">{row.lines.length}</td>
                   <td className="px-1 py-2 text-center font-semibold tabular-nums text-[var(--tp)] sm:px-2 lg:px-3">{percentValue(row.winRate)}</td>
-                  <td className="px-1 py-2 text-center tabular-nums text-[var(--ui-ink)] sm:px-2 lg:px-3">{statValue(row.stats?.kda, 2)}</td>
-                  <td className="px-1 py-2 text-center tabular-nums text-[var(--ui-text)] sm:px-2 lg:px-3">
+                  <td className="px-1 py-2 text-center font-semibold tabular-nums text-[var(--ui-ink)] sm:px-2 lg:px-3">{statValue(row.stats?.kda, 2)}</td>
+                  <td className="px-1 py-2 text-center font-semibold tabular-nums text-[var(--ui-text)] sm:px-2 lg:px-3">
                     <span className="sm:hidden">{compactNumberValue(row.avgDamage)}</span>
                     <span className="hidden sm:inline">{numberValue(row.avgDamage)}</span>
                   </td>
-                  <td className="px-1 py-2 text-center tabular-nums text-[var(--ui-text)] sm:px-2 lg:px-3">{statValue(row.stats?.dpm, 1)}</td>
-                  <td className="px-1 py-2 text-center tabular-nums text-[var(--ui-text)] sm:px-2 lg:px-3">{statValue(row.stats?.csm, 1)}</td>
-                  <td className="hidden px-1 py-2 text-center tabular-nums text-[var(--ui-text)] sm:table-cell sm:px-2 lg:px-3">{row.avgRating}</td>
-                  <td className="px-1 py-2 text-center tabular-nums text-[var(--ui-text)] sm:px-2 lg:px-3">{row.fanPogCount}</td>
+                  <td className="px-1 py-2 text-center font-semibold tabular-nums text-[var(--ui-text)] sm:px-2 lg:px-3">{statValue(row.stats?.dpm, 1)}</td>
+                  <td className="px-1 py-2 text-center font-semibold tabular-nums text-[var(--ui-text)] sm:px-2 lg:px-3">{statValue(row.stats?.csm, 1)}</td>
+                  <td className="hidden px-1 py-2 text-center font-semibold tabular-nums text-[var(--ui-text)] sm:table-cell sm:px-2 lg:px-3">{row.avgRating}</td>
+                  <td className="px-1 py-2 text-center font-semibold tabular-nums text-[var(--ui-text)] sm:px-2 lg:px-3">{row.fanPogCount}</td>
                 </tr>
               ))}
             </tbody>

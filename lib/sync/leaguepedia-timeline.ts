@@ -396,3 +396,66 @@ export async function syncLeaguepediaTimelineForSet(
 
   return { status: "succeeded", eventCount: events.length, inserted, skipped, framesInserted, reason: null };
 }
+
+export type TimelineSyncSummary = {
+  matchId: string;
+  setsProcessed: number;
+  setsFailed: number;
+  eventsInserted: number;
+  framesInserted: number;
+};
+
+/**
+ * 매치의 모든 세트 타임라인을 인증된 Leaguepedia 세션으로 동기화한다(관리자 UI 전용
+ * 진입점). syncLeaguepediaTimelineForSet을 세트별로 순회 호출하며, 익명 호출보다
+ * 레이트리밋에 훨씬 덜 걸린다.
+ */
+export async function syncLeaguepediaTimelineForMatch(
+  supabase: SupabaseClient,
+  matchId: string,
+  force = false,
+): Promise<TimelineSyncSummary> {
+  const { data: sets, error } = await supabase
+    .from("sets")
+    .select("id")
+    .eq("match_id", matchId)
+    .not("leaguepedia_game_id", "is", null);
+  if (error) throw error;
+  if (!sets?.length) throw new Error("해당 경기에 세트가 없거나 Leaguepedia Game ID가 없습니다.");
+
+  let targetSetIds = (sets as Array<{ id: string }>).map((set) => set.id);
+  if (!force) {
+    const { data: existingSetIds } = await supabase
+      .from("timeline_events")
+      .select("set_id")
+      .in("set_id", targetSetIds);
+    const done = new Set((existingSetIds ?? []).map((row: { set_id: string }) => row.set_id));
+    targetSetIds = targetSetIds.filter((id) => !done.has(id));
+  }
+
+  let setsProcessed = 0;
+  let setsFailed = 0;
+  let eventsInserted = 0;
+  let framesInserted = 0;
+
+  for (const setId of targetSetIds) {
+    if (force) {
+      await supabase.from("timeline_events").delete().eq("set_id", setId);
+      await supabase.from("match_timeline_frames").delete().eq("set_id", setId);
+    }
+    try {
+      const result = await syncLeaguepediaTimelineForSet(supabase, setId);
+      if (result.status === "succeeded") {
+        eventsInserted += result.inserted;
+        framesInserted += result.framesInserted;
+        setsProcessed += 1;
+      }
+      // waiting_for_source/rate_limited: 소스가 아직 없거나 잠시 막힌 것이라 실패로 세지
+      // 않고 건너뛴다 — 크론 자동화가 이어서 재시도한다.
+    } catch {
+      setsFailed += 1;
+    }
+  }
+
+  return { matchId, setsProcessed, setsFailed, eventsInserted, framesInserted };
+}
