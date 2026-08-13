@@ -212,6 +212,18 @@ async function fetchWindowPage(
   return (await response.json()) as LiveWindowPayload;
 }
 
+// Live Stats only returns a short page of frames per request (starting from the
+// requested cursor, or from the very beginning of the game when no cursor is given),
+// and rejects a cursor that lands past the data it has published so far with HTTP 400.
+// For a game still in progress, a single fixed-size hop (e.g. always +10 minutes) can
+// overshoot what's published and get rejected on the very first try, which looks
+// identical to "we've reached the true end" — leaving the walk stuck on the initial
+// page forever. Back off to smaller hops instead of giving up on the first 400, so the
+// walk still converges to the latest available frame for a live game, not just a
+// finished one.
+const WALK_STEP_MS = [10 * 60_000, 5 * 60_000, 2 * 60_000, 60_000, 30_000, 10_000];
+const MAX_WALK_HOPS = 40;
+
 async function findFinalWindow(
   gameId: string,
   initialWindow: LiveWindowPayload,
@@ -221,19 +233,23 @@ async function findFinalWindow(
   let bestTimestamp = timestamp(latestFrame(initialWindow.frames)?.rfc460Timestamp);
   if (bestTimestamp === null) return initialWindow;
 
-  // Live Stats rejects a cursor that is too far beyond the game with HTTP 400.
-  // Walk from the API's own first frame instead of using the application server clock.
-  for (let page = 0; page < 36; page += 1) {
-    const cursor = liveStatsCursor(bestTimestamp + 10 * 60 * 1000);
-    const next = await fetchWindowPage(
-      `${LIVE_STATS_BASE}/window/${gameId}?startingTime=${encodeURIComponent(cursor)}`,
-      fetchImpl,
-    );
-    if (!next) break;
-    const nextTimestamp = timestamp(latestFrame(next.frames)?.rfc460Timestamp);
-    if (nextTimestamp === null || nextTimestamp <= bestTimestamp) break;
-    best = next;
-    bestTimestamp = nextTimestamp;
+  for (let hop = 0; hop < MAX_WALK_HOPS; hop += 1) {
+    let advanced = false;
+    for (const step of WALK_STEP_MS) {
+      const cursor = liveStatsCursor(bestTimestamp + step);
+      const next = await fetchWindowPage(
+        `${LIVE_STATS_BASE}/window/${gameId}?startingTime=${encodeURIComponent(cursor)}`,
+        fetchImpl,
+      );
+      if (!next) continue; // this hop size overshot the published data — try a smaller one
+      const nextTimestamp = timestamp(latestFrame(next.frames)?.rfc460Timestamp);
+      if (nextTimestamp === null || nextTimestamp <= bestTimestamp) continue;
+      best = next;
+      bestTimestamp = nextTimestamp;
+      advanced = true;
+      break;
+    }
+    if (!advanced) break; // even the smallest hop didn't move forward — truly caught up
   }
   return best;
 }
