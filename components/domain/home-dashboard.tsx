@@ -186,6 +186,7 @@ export function HomeDashboard({
                       <b className="w-5 shrink-0 text-center text-[13px]">{row.rank}</b>
                       <Logo team={row.team} themeAware size="h-8 w-8 shrink-0" />
                       <b className="min-w-0 flex-1 truncate text-sm">{row.team.shortName}</b>
+                      <span className="shrink-0 text-[13px] text-[var(--ui-muted)]">{row.setDiff >= 0 ? `+${row.setDiff}` : row.setDiff}</span>
                       <span className="shrink-0 text-sm font-bold">
                         {row.wins}승 {row.losses}패
                       </span>

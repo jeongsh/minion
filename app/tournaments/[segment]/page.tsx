@@ -169,6 +169,7 @@ function GroupStandingsTable({
   rows: ReturnType<typeof buildTeamStandingRows>;
 }) {
   const recordLabel = (row: (typeof rows)[number]) => `${row.matchWins}승 · ${row.matchLosses}패`;
+  const setDiffLabel = (row: (typeof rows)[number]) => (row.setDiff >= 0 ? `+${row.setDiff}` : `${row.setDiff}`);
 
   return (
     <div className="flex flex-col gap-2.5">
@@ -182,7 +183,7 @@ function GroupStandingsTable({
             {rows.map((row) => (
               <div
                 key={row.team.id}
-                className="grid min-h-[58px] grid-cols-[2rem_minmax(0,1fr)_auto] items-center gap-2 px-3.5 py-3"
+                className="grid min-h-[58px] grid-cols-[2rem_minmax(0,1fr)_auto_auto] items-center gap-2 px-3.5 py-3"
               >
                 <span className="text-sm font-black italic tabular-nums text-foreground">{row.rank}</span>
                 <Link
@@ -194,6 +195,9 @@ function GroupStandingsTable({
                   ) : null}
                   <span className="min-w-0 truncate text-sm">{row.team.name}</span>
                 </Link>
+                <span className="shrink-0 text-right text-[13px] font-medium tabular-nums text-muted">
+                  {setDiffLabel(row)}
+                </span>
                 <span className="shrink-0 text-right text-[13px] font-black tabular-nums text-foreground">
                   {recordLabel(row)}
                 </span>
@@ -230,6 +234,13 @@ function GroupStandingsTable({
                 <span className="truncate">{row.team.name}</span>
               </Link>
             ),
+          },
+          {
+            key: "setDiff",
+            label: "득실차",
+            headerClassName: "text-center",
+            cellClassName: "text-center tabular-nums",
+            render: (row) => setDiffLabel(row),
           },
           {
             key: "record",
