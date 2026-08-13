@@ -37,7 +37,7 @@ export function HomeBoardCarousel({
     <ul
       className={
         isHomeLatest
-          ? "grid gap-3 rounded-2xl bg-[var(--ui-card-bg)] p-3 sm:p-4 md:grid-cols-2"
+          ? "grid gap-3 rounded-2xl bg-[var(--ui-card-bg)] p-2 sm:p-3 md:grid-cols-2"
           : "grid overflow-hidden rounded-[var(--ui-card-radius)] border border-[var(--ui-border)] bg-[var(--ui-surface)] md:grid-cols-2 md:[&>li:nth-child(odd)]:border-r md:[&>li:nth-last-child(-n+2)]:border-b-0 [&>li:last-child]:border-b-0"
       }
     >

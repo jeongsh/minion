@@ -193,7 +193,7 @@ export function AppShell({
           {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
         </button>
         <Link href="/" className="ml-1.5 shrink-0 text-[22px] font-black tracking-[-0.06em] text-[#18191c] sm:ml-2 sm:text-[25px] dark:text-white">
-          MINION<span className="text-[#8b8e94]">.</span>
+          <img src="/logo.svg" alt="MINION" className="w-24" />
         </Link>
         <div className="absolute left-1/2 hidden w-[360px] -translate-x-1/2 min-[1200px]:block">
           <HeaderSearch className="w-full" />
