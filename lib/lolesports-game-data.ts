@@ -211,10 +211,29 @@ async function fetchLiveStats(url: string, fetchImpl: typeof fetch): Promise<Res
   throw lastError;
 }
 
-async function fetchJson<T>(url: string, fetchImpl: typeof fetch): Promise<T> {
+// 세트가 실제로 끝나면 스케줄 API가 그 사실을 반영하기 전에도 라이브 스탯 쪽은
+// 곧바로 해당 게임ID에 대해 빈 본문(204)을 주기 시작한다 — "이 게임엔 더 이상
+// 데이터가 없다"는 뜻이지, 일시적인 오류가 아니다. 재시도로 해결되는 문제가
+// 아니므로 별도 타입으로 구분해, 호출부(라이브 API 라우트)가 이 경우를
+// "라이브 세트가 없다"로 처리하고 종료 마커를 남길 수 있게 한다.
+export class LiveGameUnavailableError extends Error {
+  constructor(gameId: string) {
+    super(`LoL Esports live stats has no data for game ${gameId}`);
+    this.name = "LiveGameUnavailableError";
+  }
+}
+
+async function readJsonBody<T>(response: Response): Promise<T | null> {
+  const text = await response.text();
+  return text ? (JSON.parse(text) as T) : null;
+}
+
+async function fetchJson<T>(url: string, fetchImpl: typeof fetch, gameId: string): Promise<T> {
   const response = await fetchLiveStats(url, fetchImpl);
   if (!response.ok) throw new Error(`LoL Esports live stats failed (${response.status})`);
-  return (await response.json()) as T;
+  const body = await readJsonBody<T>(response);
+  if (body === null) throw new LiveGameUnavailableError(gameId);
+  return body;
 }
 
 function liveStatsCursor(value: number) {
@@ -228,7 +247,7 @@ async function fetchWindowPage(
   const response = await fetchLiveStats(url, fetchImpl);
   if (response.status === 400) return null;
   if (!response.ok) throw new Error(`LoL Esports live stats failed (${response.status})`);
-  return (await response.json()) as LiveWindowPayload;
+  return readJsonBody<LiveWindowPayload>(response);
 }
 
 // Live Stats only returns a short page of frames per request (starting from the
@@ -285,7 +304,7 @@ async function fetchLatestDetails(
   fetchImpl: typeof fetch,
 ): Promise<LiveDetailsPayload> {
   if (finalTimestamp === null) {
-    return fetchJson<LiveDetailsPayload>(`${LIVE_STATS_BASE}/details/${gameId}`, fetchImpl);
+    return fetchJson<LiveDetailsPayload>(`${LIVE_STATS_BASE}/details/${gameId}`, fetchImpl, gameId);
   }
   for (const backoff of DETAILS_BACKOFF_MS) {
     const cursor = liveStatsCursor(finalTimestamp - backoff);
@@ -295,10 +314,12 @@ async function fetchLatestDetails(
     );
     if (response.status === 400) continue; // 이 시점 데이터가 아직 없음 — 더 과거로 물러나 재시도
     if (!response.ok) throw new Error(`LoL Esports live stats failed (${response.status})`);
-    return (await response.json()) as LiveDetailsPayload;
+    const body = await readJsonBody<LiveDetailsPayload>(response);
+    if (body === null) continue; // window는 있는데 이 시점 details가 아직 없음 — 더 과거로 물러나 재시도
+    return body;
   }
   // 그래도 안 되면 커서 없이(가장 이른 페이지) 마지막으로 시도한다.
-  return fetchJson<LiveDetailsPayload>(`${LIVE_STATS_BASE}/details/${gameId}`, fetchImpl);
+  return fetchJson<LiveDetailsPayload>(`${LIVE_STATS_BASE}/details/${gameId}`, fetchImpl, gameId);
 }
 
 export async function fetchLolesportsGameData(
@@ -311,6 +332,7 @@ export async function fetchLolesportsGameData(
   const initialWindow = await fetchJson<LiveWindowPayload>(
     `${LIVE_STATS_BASE}/window/${encodedId}`,
     fetchImpl,
+    gameId,
   );
   const finalWindow = await findFinalWindow(encodedId, initialWindow, fetchImpl);
   const finalTimestamp = timestamp(latestFrame(finalWindow.frames)?.rfc460Timestamp);

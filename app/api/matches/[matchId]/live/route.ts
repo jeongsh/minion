@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getAllTeams, getMatchById } from "@/lib/data/lck";
-import { fetchLolesportsGameData } from "@/lib/lolesports-game-data";
+import { fetchLolesportsGameData, LiveGameUnavailableError } from "@/lib/lolesports-game-data";
 import { fetchTrackedLolesportsEvents } from "@/lib/lolesports";
 import { findLolesportsMatch } from "@/lib/lolesports-match-matcher";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -154,6 +154,26 @@ function mapEventRow(row: EventRow): LiveMatchEvent {
   };
 }
 
+// 세트가 끝난 시점(라이브 데이터가 더 이상 없음)을 발견한 곳마다 한 번씩 종료
+// 마커를 남긴다 — dedupe_key가 게임ID에 묶여 있어 여러 지점에서 중복 호출해도 안전하다.
+async function insertEndMarker(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  matchId: string,
+  cursor: Pick<CursorRow, "duration_seconds" | "lolesports_game_id">,
+) {
+  const { error } = await supabase.from("live_match_events").upsert(
+    {
+      match_id: matchId,
+      event_type: "end",
+      game_clock_seconds: cursor.duration_seconds ?? 0,
+      dedupe_key: `${matchId}:end:${cursor.lolesports_game_id}`,
+    },
+    { onConflict: "dedupe_key", ignoreDuplicates: true },
+  );
+  if (error) console.error("live match end-event upsert failed", error);
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function loadEvents(supabase: any, matchId: string): Promise<LiveMatchEvent[]> {
   const { data } = await supabase
@@ -288,16 +308,7 @@ export async function GET(
       .maybeSingle();
 
     if (cursorRow) {
-      const { error: endInsertError } = await supabase.from("live_match_events").upsert(
-        {
-          match_id: match.id,
-          event_type: "end",
-          game_clock_seconds: cursorRow.duration_seconds ?? 0,
-          dedupe_key: `${match.id}:end:${cursorRow.lolesports_game_id}`,
-        },
-        { onConflict: "dedupe_key", ignoreDuplicates: true },
-      );
-      if (endInsertError) console.error("live match end-event upsert failed", endInsertError);
+      await insertEndMarker(supabase, match.id, cursorRow);
       await supabase.from("live_match_cursors").delete().eq("match_id", match.id);
       const events = await loadEvents(supabase, match.id);
       return NextResponse.json({ status: "ended", events });
@@ -347,23 +358,26 @@ export async function GET(
       // 라이브인 세트가 없다 — 이 세트가 방금 끝났다면(커서가 아직 남아있다면) 종료
       // 마커를 한 번 남긴다. 커서는 지우지 않고 그대로 둬서, 다음 세트가 시작될 때
       // "게임 ID가 바뀌었다"는 걸 감지해 그때 비로소 정리할 수 있게 한다.
-      if (cursorRow) {
-        const { error: endInsertError } = await supabase.from("live_match_events").upsert(
-          {
-            match_id: match.id,
-            event_type: "end",
-            game_clock_seconds: cursorRow.duration_seconds ?? 0,
-            dedupe_key: `${match.id}:end:${cursorRow.lolesports_game_id}`,
-          },
-          { onConflict: "dedupe_key", ignoreDuplicates: true },
-        );
-        if (endInsertError) console.error("live match end-event upsert failed", endInsertError);
-      }
+      if (cursorRow) await insertEndMarker(supabase, match.id, cursorRow);
       const events = await loadEvents(supabase, match.id);
       return NextResponse.json({ status: aligned.state === "completed" ? "ended" : "not_started", events });
     }
 
-    const gameData = await withRetry(() => fetchLolesportsGameData(liveGameId));
+    let gameData;
+    try {
+      gameData = await withRetry(() => fetchLolesportsGameData(liveGameId));
+    } catch (error) {
+      // 스케줄 API는 아직 이 세트를 inProgress로 보고 있지만, 라이브 스탯 쪽은 이미
+      // 이 게임ID에 대한 데이터를 완전히 내렸다 — 세트가 실제로는 끝났다는 뜻이다.
+      // liveGameId가 아예 사라졌을 때와 동일하게 취급해 "unavailable"로 떨어뜨리는
+      // 대신 종료 마커를 남긴다.
+      if (error instanceof LiveGameUnavailableError) {
+        if (cursorRow) await insertEndMarker(supabase, match.id, cursorRow);
+        const events = await loadEvents(supabase, match.id);
+        return NextResponse.json({ status: aligned.state === "completed" ? "ended" : "not_started", events });
+      }
+      throw error;
+    }
 
     // 다음 세트가 실제로 시작된(=새 게임 ID의 라이브 데이터를 성공적으로 받아온) 경우에만
     // 이전 세트의 라이브 데이터를 지운다. fetch 성공 "전에" 지우면, 막 시작한 세트는
@@ -372,16 +386,7 @@ export async function GET(
     // 실제로 이 경합 때문에 넥서스가 부서지는 마지막 순간이 통째로 유실된 적이 있었다.
     if (cursorRow && cursorRow.lolesports_game_id !== liveGameId) {
       await supabase.from("live_match_events").delete().eq("match_id", match.id);
-      const { error: endInsertError } = await supabase.from("live_match_events").upsert(
-        {
-          match_id: match.id,
-          event_type: "end",
-          game_clock_seconds: cursorRow.duration_seconds ?? 0,
-          dedupe_key: `${match.id}:end:${cursorRow.lolesports_game_id}`,
-        },
-        { onConflict: "dedupe_key", ignoreDuplicates: true },
-      );
-      if (endInsertError) console.error("live match end-event upsert failed", endInsertError);
+      await insertEndMarker(supabase, match.id, cursorRow);
       cursorRow = null;
     }
 
