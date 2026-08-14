@@ -343,16 +343,6 @@ export async function GET(
       .maybeSingle();
     let cursorRow = existingCursor as CursorRow | null;
 
-    // 다음 세트가 실제로 시작된(=새 게임 ID가 라이브로 잡힌) 경우에만 이전 세트의
-    // 라이브 데이터를 지운다. liveGameId가 없어진 것만으로는(방금 세트가 끝났거나
-    // 세트 사이 휴식) 아직 안 지운다 — 그러면 "넥서스 부서짐" 순간을 보여줄 새도 없이
-    // 곧바로 화면이 텅 비어버린다.
-    if (cursorRow && liveGameId && cursorRow.lolesports_game_id !== liveGameId) {
-      await supabase.from("live_match_events").delete().eq("match_id", match.id);
-      await supabase.from("live_match_cursors").delete().eq("match_id", match.id);
-      cursorRow = null;
-    }
-
     if (!liveGameId) {
       // 라이브인 세트가 없다 — 이 세트가 방금 끝났다면(커서가 아직 남아있다면) 종료
       // 마커를 한 번 남긴다. 커서는 지우지 않고 그대로 둬서, 다음 세트가 시작될 때
@@ -374,6 +364,26 @@ export async function GET(
     }
 
     const gameData = await withRetry(() => fetchLolesportsGameData(liveGameId));
+
+    // 다음 세트가 실제로 시작된(=새 게임 ID의 라이브 데이터를 성공적으로 받아온) 경우에만
+    // 이전 세트의 라이브 데이터를 지운다. fetch 성공 "전에" 지우면, 막 시작한 세트는
+    // 라이엇 라이브 스탯이 몇 초간 아직 안 올라와 요청이 실패하는 일이 흔한데 그때
+    // catch로 빠지면서 이전 세트 기록만 날리고 아무것도 새로 못 채우는 사고가 난다 —
+    // 실제로 이 경합 때문에 넥서스가 부서지는 마지막 순간이 통째로 유실된 적이 있었다.
+    if (cursorRow && cursorRow.lolesports_game_id !== liveGameId) {
+      await supabase.from("live_match_events").delete().eq("match_id", match.id);
+      const { error: endInsertError } = await supabase.from("live_match_events").upsert(
+        {
+          match_id: match.id,
+          event_type: "end",
+          game_clock_seconds: cursorRow.duration_seconds ?? 0,
+          dedupe_key: `${match.id}:end:${cursorRow.lolesports_game_id}`,
+        },
+        { onConflict: "dedupe_key", ignoreDuplicates: true },
+      );
+      if (endInsertError) console.error("live match end-event upsert failed", endInsertError);
+      cursorRow = null;
+    }
 
     // blueTeamMetadata.esportsTeamId와 aligned.externalTeamAId는 서로 다른 API(라이브
     // 스탯 feed vs 스케줄 GraphQL)가 각자 매기는 팀 ID라 네임스페이스가 항상 같다는
