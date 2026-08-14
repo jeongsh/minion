@@ -75,6 +75,7 @@ export const CHAMPION_KO: Record<string, string> = {
   Leona: "레오나",
   Lillia: "릴리아",
   Lissandra: "리산드라",
+  Locke: "로크",
   Lucian: "루시안",
   Lulu: "룰루",
   Lux: "럭스",
