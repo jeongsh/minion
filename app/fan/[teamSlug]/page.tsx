@@ -88,7 +88,10 @@ function MatchRow({ match, team, teams }: { match: Match; team: Team; teams: Tea
   const score = scheduled ? null : scoreLabel(match, team);
 
   return (
-    <div className="flex h-14 items-center gap-2.5 px-3 sm:h-[68px] sm:gap-3 sm:px-4 md:px-5 lg:h-[72px]">
+    <Link
+      href={`/matches/${match.id}`}
+      className="flex h-14 items-center gap-2.5 px-3 transition-colors hover:bg-[var(--ui-card-hover)] sm:h-[68px] sm:gap-3 sm:px-4 md:px-5 lg:h-[72px]"
+    >
       <span
         className={`grid h-8 w-10 shrink-0 place-items-center rounded-md text-[12px] font-medium tabular-nums sm:h-9 sm:w-11 sm:text-[13px] ${
           scheduled ? "bg-[var(--ui-surface)] text-[var(--ui-ink)]" : "text-white"
@@ -108,15 +111,14 @@ function MatchRow({ match, team, teams }: { match: Match; team: Team; teams: Tea
           {match.name?.trim() ? ` · ${match.name.trim()}` : ""}
         </span>
       </div>
-      <Link
-        href={`/matches/${match.id}`}
+      <span
         className="flex shrink-0 items-center gap-0.5 text-[12px] font-medium"
         style={scheduled ? { color: "var(--tp)" } : undefined}
       >
         <span className={`${scheduled ? "" : "text-[var(--ui-muted)]"} hidden sm:inline`}>{scheduled ? "승부예측" : "매치 데이터"}</span>
         <ChevronRight size={14} className={scheduled ? "" : "text-[var(--ui-muted)]"} />
-      </Link>
-    </div>
+      </span>
+    </Link>
   );
 }
 

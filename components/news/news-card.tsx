@@ -24,7 +24,7 @@ export function NewsCard({
       >
         {hasThumbnail ? <NewsThumbnail article={article} onError={() => setHasThumbnail(false)} className="aspect-[4/3] w-full rounded-md min-[390px]:rounded-lg" /> : null}
         <div className="flex min-w-0 flex-col">
-          <h3 className="line-clamp-2 text-[12px] font-medium leading-[1.45] tracking-[-0.02em] text-[var(--ui-ink)] group-hover:underline sm:text-[14px] sm:leading-[1.5]">
+          <h3 className="line-clamp-2 text-[14px] font-medium leading-[1.45] tracking-[-0.02em] text-[var(--ui-ink)] group-hover:underline sm:leading-[1.5]">
             <span className="sm:font-paperozi sm:font-bold">{article.title}</span>
           </h3>
           <div className="mt-auto flex min-w-0 items-center gap-1 pt-0.5 text-[10.5px] font-medium text-[var(--ui-muted)] min-[390px]:gap-1.5 min-[390px]:pt-1 min-[390px]:text-[12px]">

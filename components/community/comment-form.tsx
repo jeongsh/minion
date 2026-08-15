@@ -84,7 +84,7 @@ export function CommentForm({
     return (
       <form
         onSubmit={onSubmit}
-        className="border-t border-[var(--ui-border)] bg-[var(--page-background)] px-2.5 pb-[calc(.25rem+env(safe-area-inset-bottom))] pt-1 shadow-[0_-8px_24px_rgba(0,0,0,.08)]"
+        className="border-t border-[var(--ui-border)] bg-[var(--page-background)] px-2.5 pb-[calc(.5rem+env(safe-area-inset-bottom))] pt-2 shadow-[0_-8px_24px_rgba(0,0,0,.08)]"
       >
         <label htmlFor={`comment-content-${parentId ?? "root"}-dock`} className="sr-only">
           {parentId ? "답글 작성" : "댓글 작성"}
