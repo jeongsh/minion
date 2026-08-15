@@ -1213,6 +1213,13 @@ export default async function TournamentBracketPage({
             />
           ) : undefined
         }
+        action={
+          <YearSelect
+            seasons={seasons}
+            activeSeason={activeSeason}
+            segmentKey={segmentTheme.key}
+          />
+        }
         breadcrumbs={[
           { label: "홈", href: "/" },
           { label: "대회", href: "/tournaments" },
@@ -1220,18 +1227,12 @@ export default async function TournamentBracketPage({
         ]}
       />
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center">
         <SegmentSwitcher
           items={segmentNav}
           activeKey={segmentTheme.key}
           activeSeason={activeSeason}
           className="min-w-0 flex-1"
-        />
-        <YearSelect
-          seasons={seasons}
-          activeSeason={activeSeason}
-          segmentKey={segmentTheme.key}
-          className="ml-auto"
         />
       </div>
 
