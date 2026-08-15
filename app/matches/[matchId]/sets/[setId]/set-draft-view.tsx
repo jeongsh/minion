@@ -146,7 +146,7 @@ export function CompactSetDraftView({
     <section aria-label="밴">
       <div className="grid grid-cols-[minmax(0,1fr)_2.5rem_minmax(0,1fr)] items-center sm:grid-cols-[minmax(0,1fr)_3rem_minmax(0,1fr)]">
         <div aria-label={`${blue.teamName} 밴`}>{tiles(blueBans)}</div>
-        <span className="text-center text-xs font-semibold text-muted">밴</span>
+        <span className="text-center text-xs font-medium text-muted">밴</span>
         <div aria-label={`${red.teamName} 밴`}>{tiles(redBans)}</div>
       </div>
     </section>

@@ -582,7 +582,7 @@ const UPPER_ROW = 2;
 // 많은 브래킷에서 회색 알약 박스가 반복되면 시각적 소음이 커진다.
 function ColumnHeader({ label }: { label: string }) {
   return (
-    <span className="inline-block w-fit whitespace-nowrap text-[12px] font-black uppercase tracking-[0.08em] text-muted">
+    <span className="inline-block w-fit whitespace-nowrap text-[12px] font-medium uppercase tracking-[0.08em] text-muted">
       {label}
     </span>
   );

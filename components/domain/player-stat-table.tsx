@@ -53,14 +53,14 @@ function GroupIdentity({ group }: { group: PlayerStatTableGroup }) {
     <div className="flex min-w-0 items-center gap-2">
       {group.team ? <TeamLogo team={group.team} size="h-5 w-5" plain themeAware /> : null}
       <strong className="min-w-0 truncate text-sm text-[var(--ui-ink)]">{group.label}</strong>
-      {group.won ? <span className="text-xs font-bold text-accent">WIN</span> : null}
+      {group.won ? <span className="text-xs font-medium text-accent">WIN</span> : null}
     </div>
   );
 }
 
 function CompactHeader({ group }: { group: PlayerStatTableGroup }) {
   return (
-    <div className="grid h-10 grid-cols-[minmax(0,1fr)_3.5rem_5.25rem] items-center gap-2 bg-[var(--ui-card-bg)] px-2.5 text-xs font-semibold text-[var(--ui-muted)] min-[480px]:grid-cols-[minmax(0,1fr)_3.5rem_6.5rem_5.25rem] min-[560px]:grid-cols-[12rem_3.5rem_minmax(6.5rem,1fr)_5.25rem] min-[720px]:grid-cols-[12rem_3.25rem_minmax(6.5rem,1fr)_auto] min-[720px]:px-3 min-[1024px]:text-sm">
+    <div className="grid h-10 grid-cols-[minmax(0,1fr)_3.5rem_5.25rem] items-center gap-2 bg-[var(--ui-card-bg)] px-2.5 text-xs font-medium text-[var(--ui-muted)] min-[480px]:grid-cols-[minmax(0,1fr)_3.5rem_6.5rem_5.25rem] min-[560px]:grid-cols-[12rem_3.5rem_minmax(6.5rem,1fr)_5.25rem] min-[720px]:grid-cols-[12rem_3.25rem_minmax(6.5rem,1fr)_auto] min-[720px]:px-3 min-[1024px]:text-sm">
       <GroupIdentity group={group} />
       <span className="text-center">KDA</span>
       <span className="hidden min-[480px]:block">데미지</span>
@@ -169,7 +169,7 @@ function DesktopRow({ row, maxDamage, accent }: { row: PlayerStatTableRow; maxDa
       />
       <div className="text-center">
         <p className="font-semibold tabular-nums">{row.kills} / {row.deaths} / {row.assists}</p>
-        <p className="text-xs font-semibold text-muted tabular-nums">{row.kda.toFixed(2)}</p>
+        <p className="text-xs font-medium text-muted tabular-nums">{row.kda.toFixed(2)}</p>
       </div>
       <div>
         <div className="flex items-center justify-between gap-3">

@@ -80,14 +80,14 @@ function TeamDraftSummary({
       <p className="truncate text-sm font-semibold">{label}</p>
       <div className={`flex flex-col gap-1 ${align === "right" ? "items-end" : ""}`}>
         <div className="flex items-center gap-1.5">
-          {align === "left" ? <span className="w-7 text-xs font-semibold text-muted">BAN</span> : null}
+          {align === "left" ? <span className="w-7 text-xs font-medium text-muted">BAN</span> : null}
           <DraftList items={bans} champions={champions} ban />
-          {align === "right" ? <span className="w-7 text-xs font-semibold text-muted">BAN</span> : null}
+          {align === "right" ? <span className="w-7 text-xs font-medium text-muted">BAN</span> : null}
         </div>
         <div className="flex items-center gap-1.5">
-          {align === "left" ? <span className="w-7 text-xs font-semibold text-muted">PICK</span> : null}
+          {align === "left" ? <span className="w-7 text-xs font-medium text-muted">PICK</span> : null}
           <DraftList items={picks} champions={champions} />
-          {align === "right" ? <span className="w-7 text-xs font-semibold text-muted">PICK</span> : null}
+          {align === "right" ? <span className="w-7 text-xs font-medium text-muted">PICK</span> : null}
         </div>
       </div>
     </div>

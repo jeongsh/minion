@@ -84,7 +84,7 @@ function CompactTeamBlock({
         {teamName}
       </p>
       {resultLabel ? (
-        <p className={`mt-1 text-xs font-semibold ${result === "WIN" ? "text-[var(--accent)]" : "text-[var(--ui-muted)]"}`}>
+        <p className={`mt-1 text-xs font-medium ${result === "WIN" ? "text-[var(--accent)]" : "text-[var(--ui-muted)]"}`}>
           {resultLabel}
         </p>
       ) : null}
@@ -133,7 +133,7 @@ function PlayerHighlight({
         )}
       </span>
       <span className="text-xs font-medium text-[var(--ui-muted)]">{label}</span>
-      <span className="truncate text-xs font-black text-[var(--ui-ink)]">{player?.name ?? "집계 전"}</span>
+      <span className="truncate text-xs font-medium text-[var(--ui-ink)]">{player?.name ?? "집계 전"}</span>
     </span>
   );
 }
@@ -524,7 +524,7 @@ export default async function MatchDetailPage({
       <section className="mobile-full-bleed mobile-surface-section overflow-hidden rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] md:mx-0" aria-label="매치 요약">
         <h1 className="sr-only">{`${teamAName} vs ${teamBName}`}</h1>
 
-        <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 border-b border-[var(--ui-border)] px-4 py-2.5 text-[12px] font-semibold text-[var(--ui-muted)] sm:px-6">
+        <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 border-b border-[var(--ui-border)] px-4 py-2.5 text-[12px] font-medium text-[var(--ui-muted)] sm:px-6">
           <span className="min-w-0 truncate text-left">{tournament?.name ?? "대회 미지정"}</span>
           {pomPlayer ? (
             <PlayerHighlight label="POM" player={pomPlayer} />
@@ -547,12 +547,12 @@ export default async function MatchDetailPage({
                   <span className="text-sm font-medium text-[var(--ui-muted)]">:</span>
                   <span className={teamBResult === "LOSS" ? "text-[var(--ui-muted)]" : "text-[var(--ui-ink)]"}>{scoreLabel(match.teamBScore)}</span>
                 </div>
-                <span className="mt-1.5 text-[11px] font-semibold text-[var(--ui-muted)]">{formatDateTime(match.matchDate)}</span>
+                <span className="mt-1.5 text-[11px] font-medium text-[var(--ui-muted)]">{formatDateTime(match.matchDate)}</span>
               </>
             ) : (
               <>
                 <span className="text-2xl font-black leading-none text-[var(--ui-ink)] sm:text-[34px]">VS</span>
-                <span className="mt-1.5 text-[11px] font-semibold text-[var(--ui-muted)]">{formatDateTime(match.matchDate)}</span>
+                <span className="mt-1.5 text-[11px] font-medium text-[var(--ui-muted)]">{formatDateTime(match.matchDate)}</span>
               </>
             )}
           </div>

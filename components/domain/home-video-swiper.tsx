@@ -65,7 +65,7 @@ export function HomeVideoSwiper({ videos }: { videos: HomeVideo[] }) {
               <b className="mt-3 line-clamp-2 block text-sm leading-5 text-[var(--ui-ink)]">
                 {video.title}
               </b>
-              <span className="mt-2 inline-flex max-w-full items-center truncate rounded-full border border-[var(--ui-muted)] px-2 py-0.5 text-[12px] font-semibold leading-4 text-[var(--ui-muted)] sm:text-[13px]">
+              <span className="mt-2 inline-flex max-w-full items-center truncate rounded-full border border-[var(--ui-muted)] px-2 py-0.5 text-[12px] font-medium leading-4 text-[var(--ui-muted)] sm:text-[13px]">
                 {video.channelName}
               </span>
             </a>

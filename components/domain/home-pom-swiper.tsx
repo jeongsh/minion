@@ -48,7 +48,7 @@ export function HomePomSwiper({ entries }: { entries: HomePomEntry[] }) {
                 style={entry.teamPrimaryColor ? { background: `${entry.teamPrimaryColor}1f` } : undefined}
               >
                 {entry.tournamentName ? (
-                  <span className="absolute left-2 top-2 max-w-[calc(100%-1rem)] truncate rounded-md bg-black/55 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-white/90 backdrop-blur-sm">
+                  <span className="absolute left-2 top-2 max-w-[calc(100%-1rem)] truncate rounded-md bg-black/55 px-1.5 py-0.5 text-[10px] font-medium leading-4 text-white/90 backdrop-blur-sm">
                     {entry.tournamentName}
                   </span>
                 ) : null}
@@ -66,12 +66,12 @@ export function HomePomSwiper({ entries }: { entries: HomePomEntry[] }) {
                 <span className="absolute bottom-2 left-2 right-2 min-w-0 z-3">
                   <span className="flex min-w-0 items-baseline gap-1">
                     <b className="min-w-0 truncate text-sm leading-5 text-white">{entry.playerName}</b>
-                    <span className="shrink-0 text-[10px] font-semibold leading-4 text-white/60">
+                    <span className="shrink-0 text-[10px] font-medium leading-4 text-white/60">
                       {entry.position}
                     </span>
                   </span>
                   {/* 소속팀 로고 + "우리팀 스코어 상대팀" 순서로 둬야 어느 쪽이 팀이고 상대인지 헷갈리지 않는다. */}
-                  <span className="mt-0.5 flex min-w-0 items-center gap-1 text-[11px] font-semibold leading-4">
+                  <span className="mt-0.5 flex min-w-0 items-center gap-1 text-[11px] font-medium leading-4">
                     {entry.teamLogoUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img

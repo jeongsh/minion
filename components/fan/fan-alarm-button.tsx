@@ -66,7 +66,7 @@ export function FanAlarmButton({
         <span className={iconOnly ? "sr-only" : undefined}>{pending ? "저장 중..." : enabled ? "알림 켬" : "알림"}</span>
         {iconOnly ? <FanHeaderTooltip>{enabled ? "알림 끄기" : "알림 켜기"}</FanHeaderTooltip> : null}
       </button>
-      {error ? <span className="mt-1 max-w-40 text-xs font-semibold text-red-600">{error}</span> : null}
+      {error ? <span className="mt-1 max-w-40 text-xs font-medium text-red-600">{error}</span> : null}
     </div>
   );
 }

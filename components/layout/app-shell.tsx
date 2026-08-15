@@ -83,7 +83,7 @@ function focusRouteMeta(pathname: string) {
     // 곳에서도 진입한다. backHref는 히스토리가 없을 때(직접 방문/새 탭)의 대비용
     // 폴백이고, 있으면 실제 뒤로가기(브라우저 히스토리)로 원래 있던 화면 그대로 돌아간다.
     return {
-      title: "세트 스냅샷",
+      title: "평점 공유 이미지",
       backHref: pathname.replace(/\/snapshot$/, ""),
       preferHistoryBack: true,
     };
@@ -233,7 +233,7 @@ export function AppShell({
                 fallback={currentUser.nickname ?? "MY"}
                 size="md"
               />
-              <Link href="/me" onClick={() => setMobileMenuOpen(false)} className="min-w-0 text-sm font-black"><span className="block truncate">{currentUser.nickname ?? "프로필"}</span><span className="mt-0.5 flex items-center gap-1 text-[12px] font-bold text-[var(--ui-muted)]"><Coins size={13} />{currentUser.lp.toLocaleString("ko-KR")} LP</span></Link>
+              <Link href="/me" onClick={() => setMobileMenuOpen(false)} className="min-w-0 text-sm font-black"><span className="block truncate">{currentUser.nickname ?? "프로필"}</span><span className="mt-0.5 flex items-center gap-1 text-[12px] font-medium text-[var(--ui-muted)]"><Coins size={13} />{currentUser.lp.toLocaleString("ko-KR")} LP</span></Link>
               <LogoutButton className="shrink-0 rounded-xl border border-[#d9dce1] bg-white px-3 py-2 text-[13px] font-black text-[#18191c] shadow-sm dark:border-[#434854] dark:bg-[#30343b] dark:text-white" />
             </div>
           ) : null}
@@ -315,7 +315,7 @@ export function AppShell({
         <nav className="fixed inset-x-0 bottom-0 z-50 flex h-[calc(4rem+env(safe-area-inset-bottom))] items-start border-t border-[#e8e8eb] bg-[var(--page-background)] pt-1 backdrop-blur md:hidden dark:border-[#343840]" aria-label="모바일 주요 메뉴">
           {compactNav.map(({ href, label, icon: Icon }) => {
             const active = isActiveRoute(pathname, href);
-            return <Link key={href} href={href} aria-current={active ? "page" : undefined} className={`flex min-w-0 flex-1 flex-col items-center gap-0.5 px-1 py-1.5 text-[11px] font-bold ${active ? "text-[#18191c] dark:text-white" : "text-[#777b82]"}`}><Icon size={20} strokeWidth={active ? 2.5 : 2} /><span className="max-w-full truncate">{label}</span></Link>;
+            return <Link key={href} href={href} aria-current={active ? "page" : undefined} className={`flex min-w-0 flex-1 flex-col items-center gap-0.5 px-1 py-1.5 text-[11px] font-medium ${active ? "text-[#18191c] dark:text-white" : "text-[#777b82]"}`}><Icon size={20} strokeWidth={active ? 2.5 : 2} /><span className="max-w-full truncate">{label}</span></Link>;
           })}
         </nav>
       ) : null}

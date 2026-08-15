@@ -66,7 +66,7 @@ export function PlayerCard({
           alt={player.name}
           className={`h-full w-full object-cover object-top transition-transform group-hover:scale-[1.03] ${fanCard ? "" : "duration-300"}`}
         />
-        <span className={fanCard ? "absolute left-2 top-2 rounded-lg bg-black/65 px-2 py-1 text-[11px] font-black text-white" : "absolute left-2.5 top-2.5 rounded-md bg-background/80 px-2.5 py-1 text-[12px] font-semibold text-accent backdrop-blur-sm"}>
+        <span className={fanCard ? "absolute left-2 top-2 rounded-lg bg-black/65 px-2 py-1 text-[11px] font-medium text-white" : "absolute left-2.5 top-2.5 rounded-md bg-background/80 px-2.5 py-1 text-[12px] font-medium text-accent backdrop-blur-sm"}>
           {fanCard ? player.position : (POSITION_LABEL[player.position] ?? player.position)}
         </span>
       </div>

@@ -1,10 +1,8 @@
 "use client";
 
-import type { CSSProperties } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { TeamLogo } from "@/components/ui/team-logo";
-import { usePredictionBetDialog } from "@/components/domain/prediction-bet-dialog";
 import { isMatchLive } from "@/lib/match-display";
 import { predictionMarketForMatch, type PredictionBet } from "@/lib/predictions";
 import type { Match, Team } from "@/lib/types";
@@ -58,16 +56,9 @@ export function HomeMatchCard({
   teamB,
   tournament,
   bets,
-  currentUserId,
-  balance,
-}: HomeMatchItem & { currentUserId?: string; balance: number | null }) {
-  const { open, pending, modal } = usePredictionBetDialog({ currentUserId, balance, bets });
+}: HomeMatchItem) {
   const market = predictionMarketForMatch(bets, match.id, match.teamAId, match.teamBId);
   const live = isMatchLive(match);
-  // status만 보면 경기 시작 시각이 지났는데도 동기화 지연으로 scheduled가 남아있는 동안
-  // 예측이 열려있는 것처럼 보인다. 승부예측 탭과 동일하게 시작 시각도 함께 본다.
-  // eslint-disable-next-line react-hooks/purity
-  const bettingClosed = match.status !== "scheduled" || new Date(match.matchDate).getTime() <= Date.now();
   const matchDateValue = new Date(match.matchDate);
   const monthDay = new Intl.DateTimeFormat("ko-KR", {
     timeZone: "Asia/Seoul",
@@ -84,12 +75,21 @@ export function HomeMatchCard({
   const centerLabel = match.status === "completed"
     ? `${match.teamAScore ?? 0} : ${match.teamBScore ?? 0}`
     : formatTimeKST(match.matchDate);
+  const href = matchHref(match);
+  const matchLabel = `${teamA?.shortName ?? "TBD"} vs ${teamB?.shortName ?? "TBD"} 경기 상세`;
 
   return (
-    <>
-      <article className="flex h-full min-h-[100px] min-w-0 flex-col rounded-xl bg-[var(--ui-card-bg)] p-3 transition-colors hover:bg-[var(--ui-card-hover)]">
-        <div className="flex min-w-0 items-center gap-2 text-[11px] font-bold text-[var(--ui-muted)]">
-          <Link href={matchHref(match)} className="flex min-w-0 items-center gap-1.5">
+    <article className="group relative flex h-full min-h-[100px] min-w-0 flex-col rounded-xl bg-[var(--ui-card-bg)] p-3 transition-colors hover:bg-[var(--ui-card-hover)]">
+      <Link
+        href={href}
+        aria-label={matchLabel}
+        draggable={false}
+        className="absolute inset-0 z-10 rounded-xl"
+      />
+
+      <div className="pointer-events-none relative z-20 flex h-full min-w-0 flex-col">
+        <div className="flex min-w-0 items-center gap-2 text-[11px] font-medium text-[var(--ui-muted)]">
+          <span className="flex min-w-0 items-center gap-1.5">
             <Image
               src={tournamentLogoAsset.src}
               alt=""
@@ -98,69 +98,32 @@ export function HomeMatchCard({
               className={tournamentLogoAsset.className}
             />
             <span className="min-w-0 truncate">{tournamentName}</span>
-          </Link>
+          </span>
           <span className="ml-auto shrink-0 font-medium opacity-75">{matchDate}</span>
         </div>
 
         <div className="mt-2.5 grid min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3">
-          {bettingClosed ? (
-            <Link
-              href={matchHref(match)}
-              className="flex min-w-0 items-center justify-end gap-2 transition-colors hover:text-[var(--match-team-color)]"
-              style={{ "--match-team-color": teamA?.primaryColor || "var(--ui-ink)" } as CSSProperties}
-            >
-              <b className="min-w-0 truncate text-right text-[15px] font-black">{teamA?.shortName ?? "TBD"}</b>
-              <MatchTeamLogo team={teamA} />
-            </Link>
-          ) : (
-            <button
-              type="button"
-              disabled={!teamA || pending}
-              onClick={() => teamA && open(match.id, teamA.id, teamA.shortName)}
-              className="flex min-w-0 items-center justify-end gap-2 transition-colors hover:text-[var(--match-team-color)] disabled:opacity-50"
-              style={{ "--match-team-color": teamA?.primaryColor || "var(--ui-ink)" } as CSSProperties}
-              aria-label={`${teamA?.shortName ?? "TBD"} 승리 예측`}
-            >
-              <b className="min-w-0 truncate text-right text-[15px] font-black">{teamA?.shortName ?? "TBD"}</b>
-              <MatchTeamLogo team={teamA} />
-            </button>
-          )}
-          <Link
-            href={matchHref(match)}
-            className="flex shrink-0 items-center gap-1.5 rounded-md bg-[var(--ui-ink)] px-2.5 py-1.5 text-[12px] font-black tabular-nums text-[var(--ui-surface)] transition-opacity hover:opacity-80"
+          <span className="flex min-w-0 items-center justify-end gap-2">
+            <b className="min-w-0 truncate text-right text-[15px] font-black">{teamA?.shortName ?? "TBD"}</b>
+            <MatchTeamLogo team={teamA} />
+          </span>
+          <span
+            className="flex shrink-0 items-center gap-1.5 rounded-md bg-[var(--ui-ink)] px-2.5 py-1.5 text-[12px] font-medium tabular-nums text-[var(--ui-surface)] transition-opacity group-hover:opacity-80"
           >
             {live ? (
               <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-[#ff3158]" aria-hidden />
             ) : null}
             {live ? <span className="sr-only">실시간 경기, </span> : null}
             {centerLabel}
-          </Link>
-          {bettingClosed ? (
-            <Link
-              href={matchHref(match)}
-              className="flex min-w-0 items-center gap-2 transition-colors hover:text-[var(--match-team-color)]"
-              style={{ "--match-team-color": teamB?.primaryColor || "var(--ui-ink)" } as CSSProperties}
-            >
-              <MatchTeamLogo team={teamB} />
-              <b className="min-w-0 truncate text-[15px] font-black">{teamB?.shortName ?? "TBD"}</b>
-            </Link>
-          ) : (
-            <button
-              type="button"
-              disabled={!teamB || pending}
-              onClick={() => teamB && open(match.id, teamB.id, teamB.shortName)}
-              className="flex min-w-0 items-center gap-2 transition-colors hover:text-[var(--match-team-color)] disabled:opacity-50"
-              style={{ "--match-team-color": teamB?.primaryColor || "var(--ui-ink)" } as CSSProperties}
-              aria-label={`${teamB?.shortName ?? "TBD"} 승리 예측`}
-            >
-              <MatchTeamLogo team={teamB} />
-              <b className="min-w-0 truncate text-[15px] font-black">{teamB?.shortName ?? "TBD"}</b>
-            </button>
-          )}
+          </span>
+          <span className="flex min-w-0 items-center gap-2">
+            <MatchTeamLogo team={teamB} />
+            <b className="min-w-0 truncate text-[15px] font-black">{teamB?.shortName ?? "TBD"}</b>
+          </span>
         </div>
 
         <div className="mt-auto pt-2">
-          <div className="mb-1 flex items-center justify-between text-[10px] font-bold tabular-nums text-[var(--ui-muted)]">
+          <div className="mb-1 flex items-center justify-between text-[10px] font-medium tabular-nums text-[var(--ui-muted)]">
             <span>{market.teamAPercent}%</span>
             <span>{market.teamBPercent}%</span>
           </div>
@@ -181,8 +144,7 @@ export function HomeMatchCard({
             />
           </div>
         </div>
-      </article>
-      {modal}
-    </>
+      </div>
+    </article>
   );
 }

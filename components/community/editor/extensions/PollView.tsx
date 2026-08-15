@@ -28,7 +28,7 @@ function PollEditor({ node, updateAttributes, deleteNode }: NodeViewProps) {
   return (
     <div className="my-4 flex flex-col gap-2.5 rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface-muted)] p-3.5">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-[11px] font-black uppercase tracking-[0.12em] text-[var(--ui-muted)]">투표</span>
+        <span className="text-[11px] font-medium uppercase tracking-[0.12em] text-[var(--ui-muted)]">투표</span>
         <button
           type="button"
           onClick={deleteNode}
@@ -77,7 +77,7 @@ function PollEditor({ node, updateAttributes, deleteNode }: NodeViewProps) {
         <button
           type="button"
           onClick={() => setOptions([...options, { id: newOptionId(), label: "" }])}
-          className="flex items-center justify-center gap-1 rounded-lg border border-dashed border-[var(--ui-border)] py-2 text-[12px] font-black text-[var(--ui-muted)] transition hover:text-[var(--ui-ink)]"
+          className="flex items-center justify-center gap-1 rounded-lg border border-dashed border-[var(--ui-border)] py-2 text-[12px] font-medium text-[var(--ui-muted)] transition hover:text-[var(--ui-ink)]"
         >
           <Plus size={13} /> 선택지 추가
         </button>
@@ -172,7 +172,7 @@ function PollVoter({ node }: NodeViewProps) {
                 {option.label || "(빈 선택지)"}
               </span>
               {voted ? (
-                <span className="relative shrink-0 text-[12px] font-black text-[var(--ui-text)]">
+                <span className="relative shrink-0 text-[12px] font-medium text-[var(--ui-text)]">
                   {percent}% · {count}표
                 </span>
               ) : null}
@@ -195,7 +195,7 @@ function PollVoter({ node }: NodeViewProps) {
         )}
       </p>
 
-      {error ? <p className="text-[12px] font-bold text-red-500">{error}</p> : null}
+      {error ? <p className="text-[12px] font-medium text-red-500">{error}</p> : null}
     </div>
   );
 }

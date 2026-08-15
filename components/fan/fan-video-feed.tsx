@@ -175,7 +175,7 @@ export function FanVideoFeed({
                 </span>
               </span>
               {video.isNew ? (
-                <span className="absolute left-1.5 top-1.5 rounded bg-red-600 px-1.5 py-0.5 text-[10px] font-bold text-white sm:left-2 sm:top-2 sm:px-2 sm:py-1 sm:text-[13px]">NEW</span>
+                <span className="absolute left-1.5 top-1.5 rounded bg-red-600 px-1.5 py-0.5 text-[10px] font-medium text-white sm:left-2 sm:top-2 sm:px-2 sm:py-1 sm:text-[13px]">NEW</span>
               ) : null}
             </div>
             <div className="mt-2 flex gap-2 sm:mt-3 sm:gap-3">
@@ -183,7 +183,7 @@ export function FanVideoFeed({
                 <VideoOwnerAvatar video={video} />
               </div>
               <div className="min-w-0">
-                <h2 className="line-clamp-2 text-[12px] font-semibold leading-4 text-[#0f0f0f] sm:text-[15px] sm:leading-5">{video.title}</h2>
+                <h2 className="line-clamp-2 text-[12px] font-medium leading-4 text-[#0f0f0f] sm:text-[15px] sm:leading-5">{video.title}</h2>
                 <p className="mt-1 truncate text-[12px] text-[#606060] sm:text-sm">{video.ownerName}</p>
                 <p className="hidden truncate text-[13px] text-[#606060] sm:block">{fanVideoMetaLabel(video)}</p>
               </div>

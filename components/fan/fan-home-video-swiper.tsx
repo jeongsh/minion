@@ -68,7 +68,7 @@ export function FanHomeVideoSwiper({
                   <div className="grid h-full place-items-center text-sm font-semibold text-white/70">YouTube</div>
                 )}
                 {video.isNew ? (
-                  <span className="absolute left-1.5 top-1.5 rounded bg-red-600 px-1.5 py-0.5 text-[10px] font-bold text-white sm:left-2 sm:top-2 sm:px-2 sm:py-1 sm:text-[12px]">
+                  <span className="absolute left-1.5 top-1.5 rounded bg-red-600 px-1.5 py-0.5 text-[10px] font-medium text-white sm:left-2 sm:top-2 sm:px-2 sm:py-1 sm:text-[12px]">
                     NEW
                   </span>
                 ) : null}
@@ -76,7 +76,7 @@ export function FanHomeVideoSwiper({
               <b className="mt-2 line-clamp-2 block text-[13px] font-semibold leading-4 text-[var(--ui-ink)] sm:text-sm sm:leading-5">
                 {video.title}
               </b>
-              <span className="mt-2 inline-flex max-w-full items-center truncate rounded-full border border-[var(--ui-muted)] px-2 py-0.5 text-[12px] font-semibold leading-4 text-[var(--ui-muted)] sm:text-[13px]">
+              <span className="mt-2 inline-flex max-w-full items-center truncate rounded-full border border-[var(--ui-muted)] px-2 py-0.5 text-[12px] font-medium leading-4 text-[var(--ui-muted)] sm:text-[13px]">
                 {video.ownerName}
               </span>
             </Link>

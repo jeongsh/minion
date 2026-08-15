@@ -56,7 +56,7 @@ function ChampionAvatar({
   const image = championId ? CHAMPION_IMAGE_BY_KEY.get(normalizeChampionKey(championId)) : null;
 
   return (
-    <span className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-md bg-[var(--ui-card-hover)] text-xs font-black text-[var(--ui-muted)] sm:h-11 sm:w-11">
+    <span className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-md bg-[var(--ui-card-hover)] text-xs font-medium text-[var(--ui-muted)] sm:h-11 sm:w-11">
       {image ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={image} alt="" className={`h-full w-full object-cover ${defeated ? "grayscale" : ""}`} />

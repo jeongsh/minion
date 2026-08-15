@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef, type MouseEvent, type PointerEvent, type ReactNode } from "react";
 import { Pagination } from "swiper/modules";
 import { Swiper, SwiperSlide } from "swiper/react";
 import "swiper/css";
@@ -10,6 +11,46 @@ import { HomeMatchCard, type HomeMatchItem } from "@/components/domain/home-matc
 import { KitschEmptyState } from "@/components/ui/kitsch-empty-state";
 import { useSwiperResize } from "@/components/ui/use-swiper-resize";
 
+function SwipeNavigationGuard({ children }: { children: ReactNode }) {
+  const pointerStartRef = useRef<{ x: number; y: number } | null>(null);
+  const suppressClickRef = useRef(false);
+
+  const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType !== "mouse" || event.button !== 0) return;
+
+    pointerStartRef.current = { x: event.clientX, y: event.clientY };
+    suppressClickRef.current = false;
+  };
+
+  const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {
+    const start = pointerStartRef.current;
+    if (!start || event.pointerType !== "mouse") return;
+
+    if (Math.hypot(event.clientX - start.x, event.clientY - start.y) > 8) {
+      suppressClickRef.current = true;
+    }
+  };
+
+  const handleClick = (event: MouseEvent<HTMLDivElement>) => {
+    pointerStartRef.current = null;
+    if (!suppressClickRef.current) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    suppressClickRef.current = false;
+  };
+
+  return (
+    <div
+      onPointerDownCapture={handlePointerDown}
+      onPointerMoveCapture={handlePointerMove}
+      onClickCapture={handleClick}
+    >
+      {children}
+    </div>
+  );
+}
+
 /**
  * 홈 매치 섹션. 예전에는 "오늘의 매치"(가로 2열 그리드)와 "다가오는 매치"(세로 스크롤
  * 목록)로 나뉘어 있었는데, 오늘 예정 경기가 양쪽에 중복 노출되고 세로 스크롤이
@@ -17,13 +58,9 @@ import { useSwiperResize } from "@/components/ui/use-swiper-resize";
  */
 export function HomeMatchSwiper({
   items,
-  currentUserId,
-  balance,
   variant = "carousel",
 }: {
   items: HomeMatchItem[];
-  currentUserId?: string;
-  balance: number | null;
   /**
    * carousel — 섹션용 가로 캐러셀(데스크탑).
    * single — 상단 "매치" 패널용. 한 장씩 넘기고 아래에 페이지 점을 둔다(모바일).
@@ -46,29 +83,35 @@ export function HomeMatchSwiper({
 
   if (variant === "single") {
     return (
-      <Swiper
-        modules={[Pagination]}
-        onSwiper={setSwiper}
-        slidesPerView={1}
-        spaceBetween={10}
-        pagination={{ clickable: true }}
-        className="home-upcoming-swiper !pb-7"
-      >
-        {items.map((item) => (
-          <SwiperSlide key={item.match.id} className="h-auto">
-            <HomeMatchCard {...item} currentUserId={currentUserId} balance={balance} />
-          </SwiperSlide>
-        ))}
-      </Swiper>
+      <SwipeNavigationGuard>
+        <Swiper
+          modules={[Pagination]}
+          onSwiper={setSwiper}
+          slidesPerView={1}
+          spaceBetween={10}
+          pagination={{ clickable: true }}
+          preventClicks
+          preventClicksPropagation
+          className="home-upcoming-swiper !pb-7"
+        >
+          {items.map((item) => (
+            <SwiperSlide key={item.match.id} className="h-auto">
+              <HomeMatchCard {...item} />
+            </SwiperSlide>
+          ))}
+        </Swiper>
+      </SwipeNavigationGuard>
     );
   }
 
   return (
-    <div>
+    <SwipeNavigationGuard>
       <Swiper
         onSwiper={setSwiper}
         spaceBetween={12}
         slidesPerView={1.1}
+        preventClicks
+        preventClicksPropagation
         className="cursor-grab active:cursor-grabbing"
         breakpoints={{
           640: { slidesPerView: 2, spaceBetween: 12 },
@@ -78,10 +121,10 @@ export function HomeMatchSwiper({
       >
         {items.map((item) => (
           <SwiperSlide key={item.match.id} className="h-auto">
-            <HomeMatchCard {...item} currentUserId={currentUserId} balance={balance} />
+            <HomeMatchCard {...item} />
           </SwiperSlide>
         ))}
       </Swiper>
-    </div>
+    </SwipeNavigationGuard>
   );
 }

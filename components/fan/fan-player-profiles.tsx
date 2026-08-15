@@ -51,7 +51,7 @@ function PlayerProfileCard({ player, teamSlug }: { player: Player; teamSlug: str
             {player.name.slice(0, 2)}
           </div>
         )}
-        <span className="absolute left-2.5 top-2.5 rounded-full border border-[color-mix(in_srgb,var(--ui-border)_78%,transparent)] bg-[var(--ui-surface)] px-2.5 py-1 text-[12px] font-black text-[var(--ui-ink)] shadow-sm backdrop-blur">
+        <span className="absolute left-2.5 top-2.5 rounded-full border border-[color-mix(in_srgb,var(--ui-border)_78%,transparent)] bg-[var(--ui-surface)] px-2.5 py-1 text-[12px] font-medium text-[var(--ui-ink)] shadow-sm backdrop-blur">
           {POSITION_LABEL[player.position]}
         </span>
       </div>

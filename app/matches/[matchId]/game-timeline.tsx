@@ -254,7 +254,7 @@ function ClusterIcon({
   const badge = count > 1 ? (
     <g>
       <circle cx={cx + half} cy={cy - half} r={BADGE_R} fill="currentColor" stroke="var(--timeline-chart-surface)" strokeWidth={1} />
-      <text x={cx + half} y={cy - half + 2.6} textAnchor="middle" fontSize={5} fill="#fff" fontWeight="800">
+      <text x={cx + half} y={cy - half + 2.6} textAnchor="middle" fontSize={5} fill="#fff" fontWeight="500">
         {count}
       </text>
     </g>
@@ -268,7 +268,7 @@ function ClusterIcon({
         <circle cx={cx} cy={cy} r={count > 1 ? KILL_R + 1.5 : KILL_R}
           fill="currentColor" stroke="var(--timeline-chart-surface)" strokeWidth={1.2} />
         {count > 1 && (
-          <text x={cx} y={cy + 2.5} textAnchor="middle" fontSize={5.5} fill="#0f172a" fontWeight="800">{count}</text>
+          <text x={cx} y={cy + 2.5} textAnchor="middle" fontSize={5.5} fill="#0f172a" fontWeight="500">{count}</text>
         )}
       </g>
     );
@@ -304,7 +304,7 @@ function ClusterIcon({
     <g {...interactiveProps}>
       {connector}
       <circle cx={cx} cy={cy} r={half} fill={info.color} />
-      <text x={cx} y={cy + 2.2} textAnchor="middle" fontSize={5} fill="#fff" fontWeight="800">{info.label}</text>
+      <text x={cx} y={cy + 2.2} textAnchor="middle" fontSize={5} fill="#fff" fontWeight="500">{info.label}</text>
       {badge}
     </g>
   );
@@ -670,8 +670,8 @@ export function GameTimeline({
             );
           })}
 
-          <text x={PAD_X + 6} y={graphTop + 11} textAnchor="start" fontSize={9} fontWeight="800" fill="var(--team-blue)">{blueTeamName}</text>
-          <text x={PAD_X + 6} y={graphBot - 6} textAnchor="start" fontSize={9} fontWeight="800" fill="var(--team-red)">{redTeamName}</text>
+          <text x={PAD_X + 6} y={graphTop + 11} textAnchor="start" fontSize={9} fontWeight="500" fill="var(--team-blue)">{blueTeamName}</text>
+          <text x={PAD_X + 6} y={graphBot - 6} textAnchor="start" fontSize={9} fontWeight="500" fill="var(--team-red)">{redTeamName}</text>
 
           {mins.map((m) => {
             const x = tx(m * 60 * 1000);

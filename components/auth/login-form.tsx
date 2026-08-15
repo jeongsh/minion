@@ -69,7 +69,7 @@ export function LoginForm({ initialError }: { initialError?: string }) {
         </p>
       </form>
 
-      <div className="flex items-center gap-3 text-[12px] font-semibold text-[var(--ui-muted)]">
+      <div className="flex items-center gap-3 text-[12px] font-medium text-[var(--ui-muted)]">
         <span className="h-px flex-1 bg-[var(--ui-border)]" />
         또는
         <span className="h-px flex-1 bg-[var(--ui-border)]" />

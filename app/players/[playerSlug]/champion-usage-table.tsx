@@ -94,7 +94,7 @@ export function ChampionUsageTable({ rows, initialRows = 5 }: { rows: ChampionUs
               <col className="w-[12%] sm:w-[11%]" />
             </colgroup>
             <thead>
-              <tr className="h-10 bg-[var(--ui-card-bg)] text-xs font-semibold leading-tight text-[var(--ui-muted)] lg:text-sm">
+              <tr className="h-10 bg-[var(--ui-card-bg)] text-xs font-medium leading-tight text-[var(--ui-muted)] lg:text-sm">
                 <th scope="col" className="px-1.5 font-semibold sm:px-2 lg:px-3">챔피언</th>
                 <th scope="col" className="px-1 text-center font-semibold sm:px-2 lg:px-3">세트</th>
                 <th scope="col" className="px-1 text-center font-semibold sm:px-2 lg:px-3">승률</th>

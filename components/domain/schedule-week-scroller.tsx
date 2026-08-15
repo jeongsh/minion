@@ -60,7 +60,7 @@ export function ScheduleWeekScroller({
             href={targetKey ? `#${DAY_SECTION_PREFIX}-${targetKey}` : undefined}
             data-navigation-ignore
             aria-current={isToday ? "date" : undefined}
-            className={`flex min-h-11 flex-col items-center justify-center rounded-lg text-[11px] font-bold transition-colors ${
+            className={`flex min-h-11 flex-col items-center justify-center rounded-lg text-[11px] font-medium transition-colors ${
               isToday
                 ? "bg-[var(--ui-ink)] text-[var(--ui-surface)] shadow-sm"
                 : "text-[var(--ui-muted)] hover:bg-[var(--ui-card-hover)] hover:text-[var(--ui-ink)]"

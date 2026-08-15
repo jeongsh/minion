@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { championImage } from "@/lib/champions";
 import {
   getAllPlayers,
   getAllTeams,
@@ -11,10 +12,11 @@ import {
   getSetById,
   getTournaments,
 } from "@/lib/data/lck";
-import { championImage } from "@/lib/champions";
 import { isSetRatingSnapshotReady } from "@/lib/set-status";
 import type { Champion, FanRating, Player, Team } from "@/lib/types";
-import { fanRatingLeader, formatDateTime, matchHref, setHref, teamLabel } from "@/lib/view-data";
+import { formatDateTime, setHref } from "@/lib/view-data";
+
+import { SnapshotActions } from "./snapshot-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -27,98 +29,94 @@ function averageRating(ratings: FanRating[]) {
   return ratings.reduce((sum, rating) => sum + rating.rating, 0) / ratings.length;
 }
 
-function playerInitial(name: string) {
-  return name.slice(0, 2).toUpperCase();
-}
+function TeamLogo({ team, large = false }: { team?: Team; large?: boolean }) {
+  const size = large ? "h-16 w-16" : "h-9 w-9";
+  const logo = team?.logoWhiteUrl || team?.logoUrl;
 
-function Avatar({
-  player,
-  champion,
-  size = "md",
-}: {
-  player?: Player;
-  champion?: Champion;
-  size?: "md" | "lg";
-}) {
-  const sizeClass = size === "lg" ? "h-16 w-16" : "h-10 w-10";
-  const img = championImage(champion);
-
-  if (img) {
+  if (logo) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
-      <img src={img} alt="" className={`${sizeClass} shrink-0 rounded-md object-cover`} />
+      <img src={logo} alt={team?.name ?? "팀 로고"} className={`${size} object-contain drop-shadow-[0_4px_12px_rgba(0,0,0,0.45)]`} />
+    );
+  }
+
+  return <span className={`${size} grid place-items-center rounded-full border border-white/25 text-xs font-medium text-white/60`}>팀</span>;
+}
+
+function PlayerMark({ player, champion }: { player?: Player; champion?: Champion }) {
+  const image = championImage(champion);
+  if (image) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img src={image} alt="" className="h-9 w-9 shrink-0 rounded-full border border-white/20 object-cover" />
     );
   }
 
   return (
-    <span
-      className={`${sizeClass} grid shrink-0 place-items-center rounded-md border border-border bg-surface-muted text-[15px] font-semibold`}
-      aria-hidden="true"
-    >
-      {player ? playerInitial(player.name) : "-"}
+    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/20 bg-white/10 text-[10px] font-medium text-white/80">
+      {player?.name.slice(0, 2).toUpperCase() ?? "-"}
     </span>
   );
 }
 
-function TeamLogo({ team }: { team?: Team }) {
-  if (team?.logoUrl) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img src={team.logoUrl} alt={team.name} className="h-8 w-8 object-contain" />
-    );
-  }
+function RatingPill({ value, opponentValue, isWinner }: { value: number | null; opponentValue: number | null; isWinner: boolean }) {
+  const hasComparableRatings = value != null && opponentValue != null && value !== opponentValue;
+  const isHigher = hasComparableRatings ? value > opponentValue : isWinner;
+  const tone = isHigher ? "bg-[#ed3150]" : "bg-[#2968e8]";
 
   return (
-    <span
-      className="grid h-8 w-8 place-items-center rounded-md border border-dashed border-muted opacity-60"
-      role="img"
-      aria-label={team?.name ?? "미정 팀"}
-    />
+    <strong className={`min-w-[52px] rounded-lg px-2.5 py-1.5 text-center text-lg font-black tabular-nums text-white shadow-lg ${tone}`}>
+      {value == null ? "-" : value.toFixed(1)}
+    </strong>
   );
 }
 
-function RatingRow({
-  player,
-  champion,
-  ratings,
-  align = "left",
+function PlayerRatingRow({
+  left,
+  right,
+  players,
+  champions,
+  ratingsForPlayer,
+  leftIsWinner,
+  rightIsWinner,
 }: {
-  player?: Player;
-  champion?: Champion;
-  ratings: FanRating[];
-  align?: "left" | "right";
+  left?: { playerId: string; championId?: string | null };
+  right?: { playerId: string; championId?: string | null };
+  players: Player[];
+  champions: Champion[];
+  ratingsForPlayer: (playerId: string) => FanRating[];
+  leftIsWinner: boolean;
+  rightIsWinner: boolean;
 }) {
-  const average = averageRating(ratings);
+  const leftPlayer = players.find((player) => player.id === left?.playerId);
+  const rightPlayer = players.find((player) => player.id === right?.playerId);
+  const leftChampion = champions.find((champion) => champion.id === left?.championId);
+  const rightChampion = champions.find((champion) => champion.id === right?.championId);
+  const leftAverage = left ? averageRating(ratingsForPlayer(left.playerId)) : null;
+  const rightAverage = right ? averageRating(ratingsForPlayer(right.playerId)) : null;
 
   return (
-    <div
-      className={`flex items-center gap-3 border-b border-border px-3 py-2.5 last:border-b-0 ${
-        align === "right" ? "flex-row-reverse text-right" : ""
-      }`}
-    >
-      <Avatar player={player} champion={champion} />
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-[15px] font-semibold">{player?.name ?? "-"}</p>
-        <p className="text-[15px] text-muted">{ratings.length}개 평점</p>
+    <div className="grid h-[64px] grid-cols-[1fr_auto_30px_auto_1fr] items-center gap-2 px-5">
+      <div className="flex min-w-0 items-center gap-2">
+        <PlayerMark player={leftPlayer} champion={leftChampion} />
+        <span className="whitespace-nowrap text-sm font-bold tracking-tight text-white">{leftPlayer?.name ?? "-"}</span>
       </div>
-      <p className="text-base font-semibold tabular-nums">
-        {average == null ? "-" : average.toFixed(1)}
-      </p>
+      <RatingPill value={leftAverage} opponentValue={rightAverage} isWinner={leftIsWinner} />
+      <span className="text-center text-[11px] font-medium tracking-[0.08em] text-white/35">대</span>
+      <RatingPill value={rightAverage} opponentValue={leftAverage} isWinner={rightIsWinner} />
+      <div className="flex min-w-0 flex-row-reverse items-center gap-2 text-right">
+        <PlayerMark player={rightPlayer} champion={rightChampion} />
+        <span className="whitespace-nowrap text-sm font-bold tracking-tight text-white">{rightPlayer?.name ?? "-"}</span>
+      </div>
     </div>
   );
 }
 
-export default async function SetRatingSnapshotPage({
-  params,
-}: {
-  params: Promise<{ matchId: string; setId: string }>;
-}) {
+export default async function SetRatingSnapshotPage({ params }: { params: Promise<{ matchId: string; setId: string }> }) {
   const { matchId, setId } = await params;
   const [match, set] = await Promise.all([getMatchById(matchId), getSetById(setId)]);
 
-  if (!match || !set || set.matchId !== match.id) {
-    notFound();
-  }
+  if (!match || !set || set.matchId !== match.id) notFound();
 
   const [teams, players, statLines, fanRatings, tournaments, champions] = await Promise.all([
     getAllTeams(),
@@ -129,161 +127,92 @@ export default async function SetRatingSnapshotPage({
     getChampions(),
   ]);
 
-  const tournamentName = tournaments.find((item) => item.id === match.tournamentId)?.name;
   const teamA = teams.find((team) => team.id === set.blueTeamId);
   const teamB = teams.find((team) => team.id === set.redTeamId);
-  const setRatings = fanRatings.filter((rating) => rating.setId === set.id);
-
-  const shellClass = "layout-capture flex flex-col gap-4 py-10";
+  const tournamentName = tournaments.find((item) => item.id === match.tournamentId)?.name;
+  const shellClass = "layout-capture flex flex-col gap-4 py-8";
 
   if (!isSetRatingSnapshotReady(set)) {
     return (
       <main className={shellClass}>
-        <section className="rounded-md border border-dashed border-border bg-surface p-8 text-center">
-          <p className="text-base font-semibold">아직 스냅샷을 준비하고 있어요.</p>
-          <p className="mt-2 text-base text-muted">
-            커뮤니티 공유용 스냅샷은 경기 종료 20분 후부터 공개됩니다.
-          </p>
-          <Link
-            href={setHref(match, set)}
-            className="mt-5 inline-flex rounded-md border border-border bg-background px-4 py-2 text-[15px] font-semibold hover:bg-surface-muted"
-          >
-            세트 상세로 이동
-          </Link>
+        <section className="rounded-2xl border border-dashed border-[var(--ui-border)] bg-[var(--ui-surface)] p-8 text-center">
+          <p className="text-base font-bold">아직 공유 이미지를 준비하고 있어요.</p>
+          <p className="mt-2 text-sm text-[var(--ui-muted)]">경기 종료 20분 후부터 팬 평점 이미지를 만들 수 있습니다.</p>
+          <Link href={setHref(match, set)} className="mt-5 inline-flex rounded-lg bg-[var(--ui-ink)] px-4 py-2.5 text-sm font-bold text-[var(--ui-surface)]">세트 상세로 돌아가기</Link>
         </section>
       </main>
     );
   }
 
-  const orderLines = (teamId: string) =>
-    statLines
-      .filter((line) => line.teamId === teamId)
-      .sort(
-        (a, b) =>
-          (POSITION_ORDER.get(a.position) ?? 99) - (POSITION_ORDER.get(b.position) ?? 99),
-      );
+  const orderLines = (teamId: string) => statLines
+    .filter((line) => line.teamId === teamId)
+    .sort((a, b) => (POSITION_ORDER.get(a.position) ?? 99) - (POSITION_ORDER.get(b.position) ?? 99));
   const blueLines = orderLines(set.blueTeamId);
   const redLines = orderLines(set.redTeamId);
-  const ratingsForPlayer = (playerId: string) =>
-    setRatings.filter((rating) => rating.playerId === playerId);
-
-  const leader = fanRatingLeader(setRatings);
-  const leaderPlayer = leader ? players.find((player) => player.id === leader.playerId) : undefined;
-  const leaderLine = leader ? statLines.find((line) => line.playerId === leader.playerId) : undefined;
-  const leaderChampion = champions.find((champion) => champion.id === leaderLine?.championId);
-  const reviewRows = setRatings
-    .filter((rating) => rating.review)
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    .slice(0, 6);
-
-  const teamColumn = (team: Team | undefined, lines: typeof blueLines, align: "left" | "right") => (
-    <section className="overflow-hidden rounded-md border border-border bg-surface">
-      <div
-        className={`flex items-center gap-2 border-b border-border px-3 py-2.5 ${
-          align === "right" ? "flex-row-reverse" : ""
-        }`}
-      >
-        <TeamLogo team={team} />
-        <strong className="text-[15px]">{team?.shortName ?? "TBD"}</strong>
-      </div>
-      {lines.length === 0 ? (
-        <p className="px-3 py-4 text-base text-muted">평점 대상 선수가 없습니다.</p>
-      ) : (
-        lines.map((line) => (
-          <RatingRow
-            key={`${line.setId}-${line.playerId}`}
-            player={players.find((player) => player.id === line.playerId)}
-            champion={champions.find((champion) => champion.id === line.championId)}
-            ratings={ratingsForPlayer(line.playerId)}
-            align={align}
-          />
-        ))
-      )}
-    </section>
-  );
+  const setRatings = fanRatings.filter((rating) => rating.setId === set.id);
+  const ratingsForPlayer = (playerId: string) => setRatings.filter((rating) => rating.playerId === playerId);
+  const blueIsWinner = set.winnerTeamId === set.blueTeamId
+    || (set.winnerTeamId == null && (set.blueKills ?? 0) > (set.redKills ?? 0));
+  const redIsWinner = !blueIsWinner;
+  const backgroundImage = "/images/fan-headers/hle-header-bg-v1.jpg";
+  const filename = `${teamA?.shortName ?? "팀A"}-${teamB?.shortName ?? "팀B"}-${set.setNumber}세트-팬평점.png`;
 
   return (
     <main className={shellClass}>
-      <section className="overflow-hidden rounded-md border border-border bg-surface">
-        <div className="border-b border-border px-5 py-3">
-          <p className="text-[15px] font-semibold text-accent">팬 평점 스냅샷</p>
-          <p className="mt-0.5 text-[15px] text-muted">
-            {tournamentName ?? match.name} · {formatDateTime(match.matchDate)}
-          </p>
-        </div>
-        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 px-5 py-5">
-          <div className="flex flex-col items-center gap-2 text-center">
-            <TeamLogo team={teamA} />
-            <span className="text-[15px] font-semibold">{teamA?.shortName ?? "TBD"}</span>
-          </div>
-          <div className="text-center">
-            <p className="text-2xl font-bold tabular-nums">
-              {set.blueKills ?? "-"} : {set.redKills ?? "-"}
-            </p>
-            <p className="mt-0.5 text-[15px] font-semibold text-muted">{set.setNumber}세트</p>
-          </div>
-          <div className="flex flex-col items-center gap-2 text-center">
-            <TeamLogo team={teamB} />
-            <span className="text-[15px] font-semibold">{teamB?.shortName ?? "TBD"}</span>
-          </div>
-        </div>
-      </section>
+      <div id="rating-share-card" className="relative isolate aspect-[4/5] w-full overflow-hidden rounded-[28px] bg-[#07111f] text-white shadow-[0_24px_70px_rgba(0,0,0,0.32)]">
+        {/* 임시 배경: 추후 전용 경기 이미지로 이 한 줄만 교체할 수 있다. */}
+        <div className="absolute inset-0 -z-30 bg-cover bg-center" style={{ backgroundImage: `url(${backgroundImage})` }} />
+        <div className="absolute inset-0 -z-20 bg-[linear-gradient(180deg,rgba(4,11,23,0.44)_0%,rgba(4,10,20,0.7)_42%,rgba(5,11,20,0.88)_100%)]" />
+        <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_50%_25%,rgba(65,135,255,0.2),transparent_38%)]" />
 
-      <section className="rounded-md border border-border bg-surface p-5">
-        <p className="text-[15px] font-semibold uppercase text-muted">SET POG</p>
-        {leader ? (
-          <div className="mt-3 flex items-center gap-4">
-            <Avatar player={leaderPlayer} champion={leaderChampion} size="lg" />
-            <div className="min-w-0">
-              <p className="truncate text-2xl font-semibold">{leaderPlayer?.name ?? "-"}</p>
-              <p className="mt-0.5 text-[15px] text-muted">
-                {teamLabel(teams, leaderPlayer?.teamId)} · {leader.count}개 평점
-              </p>
+        <div className="flex h-full flex-col px-8 pb-5 pt-5">
+          <header className="flex items-start justify-between gap-4">
+            <p className="text-[12px] font-medium text-white/55">{formatDateTime(match.matchDate)}</p>
+            <p className="max-w-[220px] text-right text-[12px] font-medium leading-5 text-white/60">{tournamentName ?? match.name}</p>
+          </header>
+
+          <section className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-5 text-center">
+            <div className="flex flex-col items-center gap-2">
+              <TeamLogo team={teamA} large />
+              <strong className="text-lg font-black">{teamA?.shortName ?? "미정"}</strong>
             </div>
-            <p className="ml-auto text-[28px] font-semibold tabular-nums">
-              {leader.average.toFixed(1)}
-              <span className="text-[15px] text-muted"> / 5</span>
-            </p>
-          </div>
-        ) : (
-          <p className="mt-3 text-base text-muted">아직 집계된 평점이 없습니다.</p>
-        )}
-      </section>
+            <div>
+              <p className="text-[11px] font-medium tracking-[0.18em] text-white/45">{set.setNumber}세트 · 킬 스코어</p>
+              <p className="mt-0.5 text-[32px] font-black tracking-tight tabular-nums">{set.blueKills ?? "-"}<span className="mx-2 text-white/35">:</span>{set.redKills ?? "-"}</p>
+            </div>
+            <div className="flex flex-col items-center gap-2">
+              <TeamLogo team={teamB} large />
+              <strong className="text-lg font-black">{teamB?.shortName ?? "미정"}</strong>
+            </div>
+          </section>
 
-      <section className="grid grid-cols-2 gap-3">
-        {teamColumn(teamA, blueLines, "left")}
-        {teamColumn(teamB, redLines, "right")}
-      </section>
+          <section className="mt-4 shrink-0 overflow-hidden rounded-2xl bg-black/35 shadow-[0_18px_50px_rgba(0,0,0,0.18)] backdrop-blur-md">
+            <div className="grid grid-cols-[1fr_auto_1fr] items-center px-5 py-3 text-[11px] font-medium text-white/45">
+              <span>{teamA?.name ?? "블루 팀"}</span>
+              <span className="tracking-[0.12em]">선수별 평균</span>
+              <span className="text-right">{teamB?.name ?? "레드 팀"}</span>
+            </div>
+            {Array.from({ length: Math.max(blueLines.length, redLines.length, 5) }, (_, index) => (
+              <PlayerRatingRow
+                key={index}
+                left={blueLines[index]}
+                right={redLines[index]}
+                players={players}
+                champions={champions}
+                ratingsForPlayer={ratingsForPlayer}
+                leftIsWinner={blueIsWinner}
+                rightIsWinner={redIsWinner}
+              />
+            ))}
+          </section>
 
-      {reviewRows.length > 0 ? (
-        <section className="rounded-md border border-border bg-surface p-5">
-          <h2 className="text-lg font-bold">한줄평</h2>
-          <div className="mt-3 grid gap-2">
-            {reviewRows.map((rating) => {
-              const player = players.find((item) => item.id === rating.playerId);
-              return (
-                <div
-                  key={rating.id}
-                  className="flex items-start gap-2 rounded-md border border-border bg-background px-3 py-2 text-[15px]"
-                >
-                  <span className="font-semibold">{player?.name ?? "-"}</span>
-                  <span className="font-semibold tabular-nums text-muted">
-                    {rating.rating.toFixed(1)}
-                  </span>
-                  <span className="min-w-0 flex-1 text-muted">{rating.review}</span>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      ) : null}
-
-      <div className="flex items-center justify-between gap-3 text-[15px] text-muted">
-        <span>LCKHUB 팬 평점</span>
-        <Link href={matchHref(match)} className="font-semibold hover:text-foreground">
-          매치 상세 보기 &gt;
-        </Link>
+          <footer className="mt-auto flex justify-end pt-4">
+            <p className="text-base font-black tracking-tight text-white">minion.fan</p>
+          </footer>
+        </div>
       </div>
+
+      <SnapshotActions filename={filename} />
     </main>
   );
 }

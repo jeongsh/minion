@@ -20,7 +20,7 @@ export function TeamCard({ team }: { team: Team }) {
           <h2 className="mt-1 text-lg font-black leading-6 text-[var(--ui-ink)] sm:text-lg">
             {team.name}
           </h2>
-          <p className="mt-1 truncate text-[12px] font-semibold text-[var(--ui-muted)] sm:mt-2 sm:text-[13px]">
+          <p className="mt-1 truncate text-[12px] font-medium text-[var(--ui-muted)] sm:mt-2 sm:text-[13px]">
             {team.headCoach ? `감독 ${team.headCoach}` : "LCK 공식 참가팀"}
           </p>
         </div>

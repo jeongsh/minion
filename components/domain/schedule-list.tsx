@@ -101,12 +101,12 @@ export function ScheduleList({
                   <div className="flex flex-col items-start gap-1">
                     <time className="text-[14px] font-black tabular-nums tracking-tight text-[var(--ui-ink)] md:text-base">{formatTimeKST(match.matchDate)}</time>
                     {live ? (
-                      <span className="inline-flex w-fit items-center gap-1 rounded-full bg-red-500/15 px-1.5 py-0.5 text-[10px] font-bold text-red-500 md:px-2 md:py-1 md:text-[13px]">
+                      <span className="inline-flex w-fit items-center gap-1 rounded-full bg-red-500/15 px-1.5 py-0.5 text-[10px] font-medium text-red-500 md:px-2 md:py-1 md:text-[13px]">
                         <span className="h-1.5 w-1.5 rounded-full bg-red-500 motion-safe:animate-pulse" />
                         LIVE
                       </span>
                     ) : (
-                      <span className="w-fit rounded-full bg-[var(--ui-card-hover)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--ui-muted)] md:px-2 md:py-1 md:text-[13px]">
+                      <span className="w-fit rounded-full bg-[var(--ui-card-hover)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--ui-muted)] md:px-2 md:py-1 md:text-[13px]">
                         {matchStatusLabel(match.status)}
                       </span>
                     )}

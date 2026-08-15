@@ -35,7 +35,7 @@ function LeadNewsCard({ article }: { article: NewsArticle }) {
         <p className="mt-2 hidden line-clamp-2 text-[12px] leading-[1.65] text-[var(--ui-muted)] lg:block lg:text-[13px]">
           {article.summary}
         </p>
-        <div className="mt-2 flex items-center gap-1.5 text-[12px] font-semibold text-[var(--ui-muted)]">
+        <div className="mt-2 flex items-center gap-1.5 text-[12px] font-medium text-[var(--ui-muted)]">
           <span className="text-[var(--ui-ink)]">{article.source}</span>
           <span aria-hidden>·</span>
           <time dateTime={article.publishedAt}>{formatNewsDate(article.publishedAt)}</time>

@@ -34,11 +34,11 @@ function FanReviewComment({ rating, meta, href }: FanReviewItem) {
         </div>
         <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-[var(--ui-text)] [overflow-wrap:anywhere] sm:mt-1.5 sm:text-base sm:leading-7">{rating.review}</p>
         {href ? (
-          <Link href={href} className="mt-2 block w-fit text-xs font-semibold text-[var(--ui-muted)] transition-colors hover:text-[var(--ui-ink)]">
+          <Link href={href} className="mt-2 block w-fit text-xs font-medium text-[var(--ui-muted)] transition-colors hover:text-[var(--ui-ink)]">
             {meta}
           </Link>
         ) : (
-          <p className="mt-2 text-xs font-semibold text-[var(--ui-muted)]">{meta}</p>
+          <p className="mt-2 text-xs font-medium text-[var(--ui-muted)]">{meta}</p>
         )}
       </div>
     </article>
@@ -86,7 +86,7 @@ export function FanReviewList({ items }: { items: FanReviewItem[] }) {
         ))}
       </div>
       {hasMore ? (
-        <div ref={sentinelRef} className="flex min-h-11 items-center justify-center gap-1.5 text-xs font-semibold text-[var(--ui-muted)]" aria-live="polite">
+        <div ref={sentinelRef} className="flex min-h-11 items-center justify-center gap-1.5 text-xs font-medium text-[var(--ui-muted)]" aria-live="polite">
           {loading ? (
             <><LoaderCircle aria-hidden="true" className="h-4 w-4 animate-spin" />불러오는 중</>
           ) : (

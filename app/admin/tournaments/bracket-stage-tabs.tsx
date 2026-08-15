@@ -164,7 +164,7 @@ export function BracketStageTabs({
                 type="button"
                 onClick={() => void toggleDisplayMode(tab)}
                 disabled={saving}
-                className="mt-1 self-start rounded border border-background/30 px-1.5 py-0.5 text-[11px] font-semibold text-background/70 hover:border-background/60 hover:text-background disabled:opacity-40"
+                className="mt-1 self-start rounded border border-background/30 px-1.5 py-0.5 text-[11px] font-medium text-background/70 hover:border-background/60 hover:text-background disabled:opacity-40"
               >
                 공개 화면: {(modeOverrides[tab.id] ?? tab.displayMode ?? "bracket") === "standings" ? "순위표" : "대진표"} · 전환
               </button>

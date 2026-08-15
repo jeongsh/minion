@@ -140,7 +140,7 @@ export function WeeklyReportView({ report, index }: { report: WeeklyReportRow; i
                     <Link
                       key={item.week_key}
                       href={`/reports/${item.week_key}`}
-                      style={{ display: "inline-block", transform: SKEW, borderRadius: 999, padding: "4px 11px", fontSize: 12, fontWeight: 900, fontVariantNumeric: "tabular-nums", background: active ? ACCENT : FILL, color: active ? ON_ACCENT : MUTED }}
+                      style={{ display: "inline-block", transform: SKEW, borderRadius: 999, padding: "4px 11px", fontSize: 12, fontWeight: 500, fontVariantNumeric: "tabular-nums", background: active ? ACCENT : FILL, color: active ? ON_ACCENT : MUTED }}
                     >
                       <span style={UNSKEW}>W{item.week_key.split("-W")[1] ?? item.week_key}</span>
                     </Link>
@@ -152,7 +152,7 @@ export function WeeklyReportView({ report, index }: { report: WeeklyReportRow; i
           <h1 className={styles.heroTitle}>{content.headline}</h1>
           <p className={styles.heroSubtitle}>{content.subtitle}</p>
           <div className={styles.trustNote}>
-            <p style={{ margin: 0, fontSize: 11, fontWeight: 900, letterSpacing: "0.16em", textTransform: "uppercase", color: FAINT }}>
+            <p style={{ margin: 0, fontSize: 11, fontWeight: 500, letterSpacing: "0.16em", textTransform: "uppercase", color: FAINT }}>
               리포트 안내
             </p>
             <p style={{ margin: "8px 0 0", fontSize: 13, fontWeight: 700, lineHeight: 1.7, color: MUTED }}>
@@ -171,7 +171,7 @@ export function WeeklyReportView({ report, index }: { report: WeeklyReportRow; i
             ].map((s, i) => (
               <div key={s.label} className={styles.statTicket} style={{ transform: SKEW, minWidth: 128, padding: "14px 22px", background: "transparent" }}>
                 <div style={UNSKEW}>
-                  <p style={{ margin: 0, fontSize: 11, fontWeight: 800, letterSpacing: "0.14em", textTransform: "uppercase", color: FAINT }}>{s.label}</p>
+                  <p style={{ margin: 0, fontSize: 11, fontWeight: 500, letterSpacing: "0.14em", textTransform: "uppercase", color: FAINT }}>{s.label}</p>
                   <p style={{ margin: "6px 0 0", fontFamily: DISPLAY, fontSize: 29, lineHeight: 1, fontVariantNumeric: "tabular-nums", color: i === 0 ? ACCENT : INK }}>{s.value}</p>
                 </div>
               </div>
@@ -311,7 +311,7 @@ export function WeeklyReportView({ report, index }: { report: WeeklyReportRow; i
                   {player.championNames.length > 0 && (
                     <div style={{ margin: "16px 0 0", display: "flex", gap: 6, flexWrap: "wrap" }}>
                       {player.championNames.map((ch) => (
-                        <span key={ch} style={{ fontSize: 11.5, fontWeight: 800, letterSpacing: "0.04em", color: MUTED, background: FILL, padding: "3px 9px" }}>{ch}</span>
+                        <span key={ch} style={{ fontSize: 11.5, fontWeight: 500, letterSpacing: "0.04em", color: MUTED, background: FILL, padding: "3px 9px" }}>{ch}</span>
                       ))}
                     </div>
                   )}
@@ -343,7 +343,7 @@ export function WeeklyReportView({ report, index }: { report: WeeklyReportRow; i
                   <div style={{ minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10 }}>
                       <b style={{ fontSize: 15, fontWeight: 900, color: INK, whiteSpace: "nowrap" }}>{champ.name}</b>
-                      <span style={{ fontSize: 12, fontWeight: 700, fontVariantNumeric: "tabular-nums", color: MUTED, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>픽 {champ.picks} · 밴 {champ.bans} · 승률 {pct(champ.winRate)}%</span>
+                      <span style={{ fontSize: 12, fontWeight: 500, fontVariantNumeric: "tabular-nums", color: MUTED, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>픽 {champ.picks} · 밴 {champ.bans} · 승률 {pct(champ.winRate)}%</span>
                     </div>
                     <div style={{ marginTop: 8, height: 12, background: FILL, transform: SKEW }}>
                       <span style={{ display: "block", height: "100%", background: i === 0 ? ACCENT : DIM, width: `${Math.min(100, pct(champ.presenceRate))}%` }} />
@@ -395,8 +395,8 @@ export function WeeklyReportView({ report, index }: { report: WeeklyReportRow; i
                   <div style={{ padding: "20px 24px 22px", display: "flex", flexDirection: "column", gap: 16 }}>
                     <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
                       <b style={{ fontFamily: DISPLAY, fontSize: 22, letterSpacing: "0.06em", color: INK }}>{pos.position}</b>
-                      <span style={{ fontSize: 12, fontWeight: 700, color: FAINT }}>{POSITION_LABELS[pos.position]}</span>
-                      {rising && <span style={{ marginLeft: "auto", fontSize: 12, fontWeight: 900, letterSpacing: "0.04em", color: ACCENT, whiteSpace: "nowrap" }}>▲ 라이징 {rising.name}</span>}
+                      <span style={{ fontSize: 12, fontWeight: 500, color: FAINT }}>{POSITION_LABELS[pos.position]}</span>
+                      {rising && <span style={{ marginLeft: "auto", fontSize: 12, fontWeight: 500, letterSpacing: "0.04em", color: ACCENT, whiteSpace: "nowrap" }}>▲ 라이징 {rising.name}</span>}
                     </div>
                     {rows.map((tier) => (
                       // 배지 높이 36px = 칩 높이(이미지 26 + 패딩 8 + 보더 2)와 동일
@@ -428,7 +428,7 @@ export function WeeklyReportView({ report, index }: { report: WeeklyReportRow; i
                   {/* 우: 애널리스트 노트 — 같은 카드의 주석 패널로 묶는다(라벨 + 은은한 배경). */}
                   {pos.comment && (
                     <div className="border-t lg:border-t-0 lg:border-l" style={{ borderColor: LINE, background: `color-mix(in srgb, ${FILL} 45%, ${SURFACE})`, padding: "18px 24px 22px" }}>
-                      <p style={{ margin: 0, display: "flex", alignItems: "center", gap: 8, fontSize: 11, fontWeight: 800, letterSpacing: "0.18em", textTransform: "uppercase", color: FAINT }}>
+                      <p style={{ margin: 0, display: "flex", alignItems: "center", gap: 8, fontSize: 11, fontWeight: 500, letterSpacing: "0.18em", textTransform: "uppercase", color: FAINT }}>
                         <span aria-hidden style={{ display: "inline-block", width: 8, height: 8, transform: SKEW, background: ACCENT }} />
                         {pos.position} · 분석 노트
                       </p>
@@ -440,7 +440,7 @@ export function WeeklyReportView({ report, index }: { report: WeeklyReportRow; i
             })}
           </div>
           {(meta.sources?.length ?? 0) > 0 && (
-            <p style={{ margin: "24px 0 0", fontSize: 12, fontWeight: 600, color: FAINT }}>
+            <p style={{ margin: "24px 0 0", fontSize: 12, fontWeight: 500, color: FAINT }}>
               참고 {meta.sources!.map((s, i) => (<span key={s.url}>{i > 0 && ", "}<a href={s.url} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-[var(--ui-ink)]">{s.title}</a></span>))}
             </p>
           )}
@@ -534,8 +534,8 @@ export function WeeklyReportView({ report, index }: { report: WeeklyReportRow; i
         )}
 
         <div className={styles.reportFooter} style={{ marginTop: 56, borderTop: `1px solid ${LINE}`, paddingTop: 18, display: "flex", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
-          <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: FAINT }}>* AI 분석실의 예측은 경기 데이터 기반의 참고용 콘텐츠다. 결과는 무대 위 선수들이 만든다.</p>
-          <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: FAINT }}>MINION AI 분석실 · {generatedAt} 발행{report.model ? ` · ${report.model}` : ""} · 모든 통계는 LCK 경기 기록 집계 기준</p>
+          <p style={{ margin: 0, fontSize: 12, fontWeight: 500, color: FAINT }}>* AI 분석실의 예측은 경기 데이터 기반의 참고용 콘텐츠다. 결과는 무대 위 선수들이 만든다.</p>
+          <p style={{ margin: 0, fontSize: 12, fontWeight: 500, color: FAINT }}>MINION AI 분석실 · {generatedAt} 발행{report.model ? ` · ${report.model}` : ""} · 모든 통계는 LCK 경기 기록 집계 기준</p>
         </div>
       </section>
     </div>

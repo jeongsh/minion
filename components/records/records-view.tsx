@@ -55,7 +55,7 @@ function FilterBar({ tournaments, season, tournamentId, position, tab }: { tourn
 function MobileMetric({ label, value, emphasis = false }: { label: string; value: React.ReactNode; emphasis?: boolean }) {
   return (
     <span className="rounded-lg bg-[var(--ui-surface-muted)] px-2.5 py-2">
-      <span className="block text-[12px] font-bold text-[var(--ui-muted)]">{label}</span>
+      <span className="block text-[12px] font-medium text-[var(--ui-muted)]">{label}</span>
       <span className={`mt-0.5 block text-[13px] tabular-nums ${emphasis ? "font-black text-[var(--ui-ink)]" : "font-bold text-[var(--ui-text)]"}`}>
         {value}
       </span>
@@ -89,7 +89,7 @@ function PlayerRecordCards({
               <TeamLogo team={row.team} size="h-9 w-9" themeAware />
               <div className="min-w-0">
                 <p className="truncate text-[15px] font-black text-[var(--ui-ink)]">{row.player.name}</p>
-                <p className="truncate text-[12px] font-semibold text-[var(--ui-muted)]">
+                <p className="truncate text-[12px] font-medium text-[var(--ui-muted)]">
                   {row.team?.shortName ?? "-"} · {row.player.position}
                 </p>
               </div>
@@ -145,7 +145,7 @@ function TeamRecordCards({
               <TeamLogo team={row.team} size="h-10 w-10" themeAware />
               <div className="min-w-0">
                 <p className="truncate text-[15px] font-black text-[var(--ui-ink)]">{row.team.name}</p>
-                <p className="truncate text-[12px] font-semibold text-[var(--ui-muted)]">{row.team.shortName}</p>
+                <p className="truncate text-[12px] font-medium text-[var(--ui-muted)]">{row.team.shortName}</p>
               </div>
             </div>
             <div className="mt-3 grid grid-cols-3 gap-2">

@@ -280,7 +280,7 @@ function CompactObjectiveGrid({
               unoptimized
               className={`h-5 w-5 shrink-0 object-contain ${hasObjective ? "" : "grayscale opacity-35"}`}
             />
-            <span className={`text-xs font-bold tabular-nums ${hasObjective ? "text-[var(--ui-ink)]" : "text-muted"}`}>
+            <span className={`text-xs font-medium tabular-nums ${hasObjective ? "text-[var(--ui-ink)]" : "text-muted"}`}>
               {metric.count}
             </span>
           </span>
@@ -326,8 +326,8 @@ function CompactScoreboard({
     <div className="flex min-w-0 items-center gap-2 rounded-md bg-[var(--ui-card-bg)] px-2.5 py-2.5 sm:gap-3 sm:px-3">
       <TeamLogo team={team} size="h-8 w-8 sm:h-10 sm:w-10" plain themeAware />
       <div className="min-w-0 flex-1">
-        <p className="truncate text-xs font-bold text-[var(--ui-ink)] sm:text-sm">{name}</p>
-        <p className={`mt-0.5 text-xs font-semibold ${outcome.won ? "text-accent" : "text-muted"}`}>{outcome.short}</p>
+        <p className="truncate text-xs font-medium text-[var(--ui-ink)] sm:text-sm">{name}</p>
+        <p className={`mt-0.5 text-xs font-medium ${outcome.won ? "text-accent" : "text-muted"}`}>{outcome.short}</p>
       </div>
       <strong className="text-xl font-bold tabular-nums text-[var(--ui-ink)] sm:text-2xl">{kills ?? "-"}</strong>
     </div>
@@ -352,7 +352,7 @@ function CompactScoreboard({
       <section className="px-2 py-3 sm:px-3" aria-label="목표물">
         <div className="grid grid-cols-[minmax(0,1fr)_3.5rem_minmax(0,1fr)] items-center sm:grid-cols-[minmax(0,1fr)_4rem_minmax(0,1fr)]">
           <CompactObjectiveGrid set={set} side="blue" />
-          <span className="text-center text-xs font-semibold text-muted">목표물</span>
+          <span className="text-center text-xs font-medium text-muted">목표물</span>
           <CompactObjectiveGrid set={set} side="red" />
         </div>
       </section>
@@ -360,7 +360,7 @@ function CompactScoreboard({
       <section className="border-t border-border/50 px-2 py-3 sm:px-3" aria-label="골드">
         <div className="grid grid-cols-[minmax(0,1fr)_2.5rem_minmax(0,1fr)] items-center sm:grid-cols-[minmax(0,1fr)_3rem_minmax(0,1fr)]">
           <div className="flex min-w-0 items-center gap-2">
-            <strong className="whitespace-nowrap text-xs font-bold tabular-nums text-[var(--ui-ink)] sm:text-sm">
+            <strong className="whitespace-nowrap text-xs font-medium tabular-nums text-[var(--ui-ink)] sm:text-sm">
               {numberLabel(set.blueGold)}
             </strong>
             <div className="h-1 min-w-0 flex-1 overflow-hidden rounded-full bg-surface-muted">
@@ -370,7 +370,7 @@ function CompactScoreboard({
               />
             </div>
           </div>
-          <span className="text-center text-xs font-semibold text-muted">골드</span>
+          <span className="text-center text-xs font-medium text-muted">골드</span>
           <div className="flex min-w-0 items-center gap-2">
             <div className="h-1 min-w-0 flex-1 overflow-hidden rounded-full bg-surface-muted">
               <div
@@ -378,7 +378,7 @@ function CompactScoreboard({
                 style={{ width: `${((set.redGold ?? 0) / maxGold) * 100}%` }}
               />
             </div>
-            <strong className="whitespace-nowrap text-xs font-bold tabular-nums text-[var(--ui-ink)] sm:text-sm">
+            <strong className="whitespace-nowrap text-xs font-medium tabular-nums text-[var(--ui-ink)] sm:text-sm">
               {numberLabel(set.redGold)}
             </strong>
           </div>

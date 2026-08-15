@@ -60,7 +60,7 @@ export default async function NewsPage({ searchParams }: { searchParams: SearchP
           <h1 className="home-section-title font-paperozi text-[24px] leading-tight text-[var(--ui-ink)] lg:text-[28px]">LCK 뉴스</h1>
           <p className="mt-1 text-[13px] text-[var(--ui-muted)] sm:text-sm">리그와 팀별 기사를 모아보고 원문 매체에서 이어서 읽어요.</p>
         </div>
-          <div className="text-[12px] font-semibold text-[var(--ui-muted)]">
+          <div className="text-[12px] font-medium text-[var(--ui-muted)]">
           {pageArticles[0]
             ? `최근 업데이트 ${formatNewsDate(pageArticles[0].publishedAt, true)}`
             : "새 뉴스 확인 중"}
@@ -83,7 +83,7 @@ export default async function NewsPage({ searchParams }: { searchParams: SearchP
                 key={team.id}
                 href={newsHref(team.slug, query)}
                 aria-current={active ? "page" : undefined}
-                className={`font-paperozi flex min-h-12 shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-[12px] font-bold transition-colors ${active ? "bg-[var(--ui-ink)] text-[var(--ui-surface)]" : "text-[var(--ui-muted)] hover:bg-[var(--ui-card-hover)] hover:text-[var(--ui-ink)]"}`}
+                className={`font-paperozi flex min-h-12 shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-[12px] font-medium transition-colors ${active ? "bg-[var(--ui-ink)] text-[var(--ui-surface)]" : "text-[var(--ui-muted)] hover:bg-[var(--ui-card-hover)] hover:text-[var(--ui-ink)]"}`}
               >
                 <TeamLogo team={team} themeAware size="h-8 w-8" imageClassName="h-6 w-6 object-contain" />
                 {team.shortName}
@@ -120,9 +120,9 @@ export default async function NewsPage({ searchParams }: { searchParams: SearchP
             <h2 id="latest-news" className="home-section-title text-[length:var(--ui-title-size)] text-[var(--ui-ink)]">
               {query ? "검색 결과" : selectedTeamData ? `${selectedTeamData.shortName} 뉴스` : "최신 뉴스"}
             </h2>
-            <span className="text-[12px] font-semibold text-[var(--ui-muted)]">현재 {pageArticles.length}건</span>
+            <span className="text-[12px] font-medium text-[var(--ui-muted)]">현재 {pageArticles.length}건</span>
           </div>
-          {(selectedTeam || query) ? <Link href="/news" className="flex min-h-10 items-center text-[12px] font-extrabold text-[var(--ui-muted)] hover:text-[var(--ui-ink)]">필터 초기화</Link> : null}
+          {(selectedTeam || query) ? <Link href="/news" className="flex min-h-10 items-center text-[12px] font-medium text-[var(--ui-muted)] hover:text-[var(--ui-ink)]">필터 초기화</Link> : null}
         </div>
 
         {pageArticles.length > 0 ? (

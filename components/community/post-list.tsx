@@ -53,7 +53,7 @@ export function PostList({
           <div className="min-w-0">
             <div className="flex min-w-0 items-center gap-1.5">
               {isNoticeRow ? (
-                <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--ui-ink)] px-2 py-0.5 text-[12px] font-semibold leading-none text-[var(--ui-surface)]">
+                <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--ui-ink)] px-2 py-0.5 text-[12px] font-medium leading-none text-[var(--ui-surface)]">
                   <Megaphone size={11} strokeWidth={2} />공지
                 </span>
               ) : (

@@ -76,7 +76,7 @@
 
 ```powershell
 npm.cmd run typecheck
+npm.cmd run lint:typography
 npm.cmd exec eslint -- <변경한 파일>
 git diff --check
-rg -n 'text-(?:xs|\[(?:8|9|10|11|12)(?:\.\d+)?px\]).*font-(?:semibold|bold|extrabold|black)' app components
 ```

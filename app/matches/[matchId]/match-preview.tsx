@@ -71,11 +71,10 @@ function teamSetSummary(sets: SetResult[], matches: Match[], teamId: string) {
   };
 }
 
-/** 맞대결 목록용 한 줄 날짜. 지난 시즌 기록까지 섞이므로 연도를 함께 보여준다. */
+/** 맞대결 목록용 한 줄 날짜. */
 function formatMeetingDay(value: string) {
   return new Intl.DateTimeFormat("ko-KR", {
     timeZone: KST_TIMEZONE,
-    year: "2-digit",
     month: "2-digit",
     day: "2-digit",
   })
@@ -125,11 +124,11 @@ function MetricCard({
   colorB: string;
 }) {
   return (
-    <div className="rounded-lg bg-[var(--ui-surface)] px-2.5 py-2 sm:px-3">
+    <div className="rounded-lg bg-[var(--ui-surface)] px-2 py-2 sm:px-3">
       <div className="text-sm font-bold text-[var(--ui-muted)]">{label}</div>
-      <div className="mt-1 text-base font-black tabular-nums">
+      <div className="mt-1 whitespace-nowrap text-[15px] font-black tabular-nums sm:text-base">
         <span style={{ color: colorA }}>{valueA}</span>
-        <span className="px-1 font-bold text-[var(--ui-muted)]">vs</span>
+        <span className="px-0.5 font-bold text-[var(--ui-muted)] sm:px-1">vs</span>
         <span style={{ color: colorB }}>{valueB}</span>
       </div>
     </div>
@@ -189,7 +188,7 @@ function MeetingRow({
 
   return (
     <div className="flex items-center gap-3 rounded-lg bg-[var(--ui-surface)] px-3 py-2">
-      <span className="shrink-0 whitespace-nowrap text-xs font-bold tabular-nums text-[var(--ui-muted)]">
+      <span className="shrink-0 whitespace-nowrap text-xs font-medium tabular-nums text-[var(--ui-muted)]">
         {formatMeetingDay(meeting.matchDate)}
       </span>
       <div className="flex min-w-0 flex-1 items-center justify-center gap-2 sm:gap-3">
@@ -200,7 +199,7 @@ function MeetingRow({
           won={meeting.winnerTeamId === meeting.teamAId}
           align="right"
         />
-        <span className="shrink-0 text-xs font-bold text-[var(--ui-muted)]">:</span>
+        <span className="shrink-0 text-xs font-medium text-[var(--ui-muted)]">:</span>
         <MeetingSide
           team={teamB}
           name={teamLabel(teams, meeting.teamBId)}
@@ -209,7 +208,7 @@ function MeetingRow({
         />
       </div>
       <span
-        className="shrink-0 whitespace-nowrap rounded-md px-2 py-1 text-xs font-bold text-white"
+        className="shrink-0 whitespace-nowrap rounded-md px-2 py-1 text-xs font-medium text-white"
         style={{ background: winnerColor }}
       >
         {teamLabel(teams, meeting.winnerTeamId)} 승
@@ -257,7 +256,7 @@ export function MatchPreview({
     <div className="flex flex-col gap-5">
       {poll}
       <section
-        className="mobile-full-bleed md:mx-0"
+        className="mobile-full-bleed mobile-gutter md:mx-0"
         aria-labelledby="ai-match-preview"
       >
         <div className="mb-3 flex items-center justify-between gap-3">
@@ -308,7 +307,7 @@ export function MatchPreview({
         ) : null}
 
         <BriefingRow label="전력 지표" align="center">
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
             <MetricCard
               label="최근 5전"
               valueA={record(teamARecent)}

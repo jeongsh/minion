@@ -132,7 +132,7 @@ export function RankAvatar({
         ) : (
           <span
             aria-hidden="true"
-            className="grid h-full w-full place-items-center font-black text-[var(--ui-muted)]"
+            className="grid h-full w-full place-items-center font-medium text-[var(--ui-muted)]"
             style={{ fontSize: Math.max(10, Math.round(dimensions.avatar * 0.28)) }}
           >
             {fallback.slice(0, 2).toUpperCase()}

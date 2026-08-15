@@ -33,8 +33,8 @@ export function HomeWeeklyReportCard({ report }: { report: WeeklyReportSummary }
       </span>
 
       <span className="min-w-0 flex-1 sm:flex-initial">
-        <span className="flex min-w-0 items-center gap-2 text-[12px] font-bold sm:text-sm" style={{ color: REPORT_POINT }}>
-          <span className="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-black" style={{ backgroundColor: REPORT_POINT, color: REPORT_MAIN }}>
+        <span className="flex min-w-0 items-center gap-2 text-[12px] font-medium sm:text-sm" style={{ color: REPORT_POINT }}>
+          <span className="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium" style={{ backgroundColor: REPORT_POINT, color: REPORT_MAIN }}>
             NEW NOTES
           </span>
           <span className="truncate">주간 리포트 · {periodLabel(report.period_start, report.period_end)}</span>

@@ -40,7 +40,7 @@ export function BlockedUserList({ users, guests = [] }: { users: CommunityUserSu
       ))}
       {guests.map((guest) => (
         <li key={guest.guestKey} className="flex items-center gap-3 py-3">
-          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[var(--ui-surface-muted)] text-[12px] font-black text-[var(--ui-muted)]">G</span>
+          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[var(--ui-surface-muted)] text-[12px] font-medium text-[var(--ui-muted)]">G</span>
           <span className="min-w-0 flex-1 truncate text-sm font-semibold text-[var(--ui-ink)]">{guest.nickname}</span>
           <button
             type="button"

@@ -8,7 +8,6 @@ import { getBoardPosts } from "@/lib/data/community";
 import { buildTeamStandingRows, dateKeyKST, formatTimeKST, matchHref } from "@/lib/view-data";
 import { isMatchLive } from "@/lib/match-display";
 import { getPredictionMarketData } from "@/lib/predictions";
-import { getCurrentUser } from "@/lib/auth/current-user";
 import { getTodayCelebrations } from "@/lib/calendar/events";
 import { getWeeklyReportIndex } from "@/lib/reports/queries";
 import { getLckChannelVideos, type HomeVideo } from "@/lib/data/lck-channel-videos";
@@ -21,11 +20,10 @@ function yearMonthKeyKST(value: string) {
 }
 
 export default async function HomePage() {
-  const user = await getCurrentUser();
   const [homeData, communityPosts, predictionMarket, lckChannelVideos, pomEntries, reportIndex, homeNewsFeed] = await Promise.all([
     getHomePagePublicData(),
     getBoardPosts({ scope: "hub" }),
-    getPredictionMarketData(user?.id),
+    getPredictionMarketData(),
     getLckChannelVideos(),
     getHomePomEntries(),
     getWeeklyReportIndex(),
@@ -147,8 +145,6 @@ export default async function HomePage() {
       teams={teams}
       standingRows={standingRows}
       matchItems={matchItems}
-      currentUserId={user?.id}
-      predictionBalance={predictionMarket.balance}
       calendarMonthKey={calendarMonthKey}
       calendarTodayKey={todayKey}
       calendarMatches={calendarClientMatches}

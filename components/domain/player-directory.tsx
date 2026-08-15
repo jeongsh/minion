@@ -32,7 +32,7 @@ function PlayerCard({ player, team }: { player: Player; team: Team | undefined }
             {player.name.slice(0, 2)}
           </span>
         )}
-        <span className="absolute left-2 top-2 rounded-lg bg-black/65 px-2 py-1 text-[11px] font-black text-white">
+        <span className="absolute left-2 top-2 rounded-lg bg-black/65 px-2 py-1 text-[11px] font-medium text-white">
           {player.position}
         </span>
       </div>
@@ -77,9 +77,9 @@ export function PlayerDirectory({
 
   const filters = (
     <div className="space-y-5">
-      <fieldset><legend className="mb-2 text-[12px] font-black uppercase tracking-[0.1em] text-[var(--ui-muted)]">포지션</legend><div className="grid grid-cols-3 gap-2 md:grid-cols-2">{["all", ...POSITIONS].map((item) => <button key={item} type="button" onClick={() => setPosition(item)} className={`min-h-10 rounded-xl px-2 text-[13px] font-black ${position === item ? "bg-[var(--ui-ink)] text-[var(--ui-surface)]" : "bg-[var(--ui-card-bg)] text-[var(--ui-muted)]"}`}>{item === "all" ? "전체" : item}</button>)}</div></fieldset>
+      <fieldset><legend className="mb-2 text-[12px] font-medium uppercase tracking-[0.1em] text-[var(--ui-muted)]">포지션</legend><div className="grid grid-cols-3 gap-2 md:grid-cols-2">{["all", ...POSITIONS].map((item) => <button key={item} type="button" onClick={() => setPosition(item)} className={`min-h-10 rounded-xl px-2 text-[13px] font-black ${position === item ? "bg-[var(--ui-ink)] text-[var(--ui-surface)]" : "bg-[var(--ui-card-bg)] text-[var(--ui-muted)]"}`}>{item === "all" ? "전체" : item}</button>)}</div></fieldset>
       <fieldset>
-        <legend className="mb-2 text-[12px] font-black uppercase tracking-[0.1em] text-[var(--ui-muted)]">팀</legend>
+        <legend className="mb-2 text-[12px] font-medium uppercase tracking-[0.1em] text-[var(--ui-muted)]">팀</legend>
         <div className="grid gap-1.5">
           <button type="button" onClick={() => setTeamId("all")} className={`flex min-h-11 items-center rounded-xl px-3 text-sm font-black ${teamId === "all" ? "bg-[var(--ui-ink)] text-[var(--ui-surface)]" : "bg-[var(--ui-card-bg)] text-[var(--ui-muted)]"}`}>
             전체 팀

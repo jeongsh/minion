@@ -36,8 +36,6 @@ type Props = {
   teams: Team[];
   standingRows: HomeStandingRow[];
   matchItems: HomeMatchItem[];
-  currentUserId?: string;
-  predictionBalance: number | null;
   calendarMonthKey: string;
   calendarTodayKey: string;
   calendarMatches: HomeCalendarMatch[];
@@ -67,8 +65,6 @@ export function HomeDashboard({
   teams,
   standingRows,
   matchItems,
-  currentUserId,
-  predictionBalance,
   calendarMonthKey,
   calendarMatches,
   calendarEvents,
@@ -93,11 +89,7 @@ export function HomeDashboard({
   return (
     <main className="layout-wide hub-home pb-16 pt-4 text-[var(--ui-ink)] sm:pt-7">
       <section aria-label="매치" className="mb-8">
-        <HomeMatchSwiper
-          items={matchItems}
-          currentUserId={currentUserId}
-          balance={predictionBalance}
-        />
+        <HomeMatchSwiper items={matchItems} />
         <div className="mt-3 xl:hidden">
           <AdaptiveDialog
             title="LCK 캘린더"

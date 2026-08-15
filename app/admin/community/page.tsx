@@ -297,7 +297,7 @@ function Badge({ children, tone = "default" }: { children: React.ReactNode; tone
     danger: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
   } as const;
   return (
-    <span className={`shrink-0 rounded-full px-2 py-0.5 text-[12px] font-semibold ${tones[tone]}`}>
+    <span className={`shrink-0 rounded-full px-2 py-0.5 text-[12px] font-medium ${tones[tone]}`}>
       {children}
     </span>
   );

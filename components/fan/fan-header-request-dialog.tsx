@@ -33,7 +33,7 @@ function PreviewFrame({
 }) {
   return (
     <div className="flex min-w-0 flex-col gap-1.5">
-      <span className="text-[11px] font-black uppercase tracking-[0.1em] text-[var(--ui-muted)]">{label}</span>
+      <span className="text-[11px] font-medium uppercase tracking-[0.1em] text-[var(--ui-muted)]">{label}</span>
       <div className={`relative w-full overflow-hidden rounded-xl border border-[var(--ui-border)] ${aspect}`}>
         <img src={src} alt="" className="h-full w-full object-cover" style={{ objectPosition }} />
         <div className="absolute inset-0 bg-black/25" />
@@ -162,20 +162,20 @@ export function FanHeaderRequestDialog({
                     <span className="text-[18px] font-black leading-none" style={{ color: teamColor }}>
                       {teamName}
                     </span>
-                    <span className="text-[10px] font-bold text-white/85">팬 채널 대문 미리보기</span>
+                    <span className="text-[10px] font-medium text-white/85">팬 채널 대문 미리보기</span>
                   </PreviewFrame>
                   <PreviewFrame label="mobile" src={picked.url} aspect="aspect-[9/4]" objectPosition="center 30%">
                     <span className="text-[15px] font-black leading-none" style={{ color: teamColor }}>
                       {teamName}
                     </span>
-                    <span className="text-[10px] font-bold text-white">모바일 헤더 미리보기</span>
+                    <span className="text-[10px] font-medium text-white">모바일 헤더 미리보기</span>
                   </PreviewFrame>
                 </div>
 
                 {warnings.length ? (
                   <ul className="flex flex-col gap-1 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3.5 py-2.5">
                     {warnings.map((warning) => (
-                      <li key={warning} className="text-[12px] font-semibold text-amber-600 dark:text-amber-400">
+                      <li key={warning} className="text-[12px] font-medium text-amber-600 dark:text-amber-400">
                         {warning}
                       </li>
                     ))}
@@ -183,7 +183,7 @@ export function FanHeaderRequestDialog({
                 ) : null}
 
                 <label className="flex flex-col gap-1.5">
-                  <span className="text-[12px] font-bold text-[var(--ui-text)]">한 줄 설명 (선택)</span>
+                  <span className="text-[12px] font-medium text-[var(--ui-text)]">한 줄 설명 (선택)</span>
                   <input
                     value={caption}
                     onChange={(event) => setCaption(event.target.value.slice(0, CAPTION_MAX_LENGTH))}

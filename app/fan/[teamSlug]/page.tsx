@@ -90,7 +90,7 @@ function MatchRow({ match, team, teams }: { match: Match; team: Team; teams: Tea
   return (
     <div className="flex h-14 items-center gap-2.5 px-3 sm:h-[68px] sm:gap-3 sm:px-4 md:px-5 lg:h-[72px]">
       <span
-        className={`grid h-8 w-10 shrink-0 place-items-center rounded-md text-[12px] font-extrabold tabular-nums sm:h-9 sm:w-11 sm:text-[13px] ${
+        className={`grid h-8 w-10 shrink-0 place-items-center rounded-md text-[12px] font-medium tabular-nums sm:h-9 sm:w-11 sm:text-[13px] ${
           scheduled ? "bg-[var(--ui-surface)] text-[var(--ui-ink)]" : "text-white"
         }`}
         style={scheduled ? undefined : { background: result === "W" ? "var(--tp)" : "var(--ui-muted)" }}
@@ -110,7 +110,7 @@ function MatchRow({ match, team, teams }: { match: Match; team: Team; teams: Tea
       </div>
       <Link
         href={`/matches/${match.id}`}
-        className="flex shrink-0 items-center gap-0.5 text-[12px] font-bold"
+        className="flex shrink-0 items-center gap-0.5 text-[12px] font-medium"
         style={scheduled ? { color: "var(--tp)" } : undefined}
       >
         <span className={`${scheduled ? "" : "text-[var(--ui-muted)]"} hidden sm:inline`}>{scheduled ? "승부예측" : "매치 데이터"}</span>
@@ -149,7 +149,7 @@ function Roster({ players, teamSlug }: { players: Player[]; teamSlug: string }) 
             </span>
             <div className="flex min-w-0 max-w-full flex-col gap-[1px]">
               <span className="truncate text-[13px] font-extrabold text-[var(--ui-ink)] sm:text-[15px]">{player.name}</span>
-              <span className="whitespace-nowrap text-[11px] font-bold sm:text-[13px]" style={{ color: "var(--tp)" }}>
+              <span className="whitespace-nowrap text-[11px] font-medium sm:text-[13px]" style={{ color: "var(--tp)" }}>
                 {player.position}
               </span>
             </div>

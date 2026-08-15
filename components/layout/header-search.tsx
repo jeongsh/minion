@@ -183,7 +183,7 @@ export function HeaderSearch({ className = "" }: { className?: string }) {
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-[14px] font-black text-[var(--ui-ink)]">{result.title}</span>
-                        <span className="block truncate text-[12px] font-semibold text-[var(--ui-muted)]">{result.subtitle}</span>
+                        <span className="block truncate text-[12px] font-medium text-[var(--ui-muted)]">{result.subtitle}</span>
                       </span>
                     </button>
                   </li>

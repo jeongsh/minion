@@ -57,7 +57,7 @@ function SideDraft({
     <div className={`flex flex-col gap-1.5 ${flip ? "items-end" : ""}`}>
       <p className={`flex items-center gap-1.5 text-sm font-semibold ${flip ? "flex-row-reverse text-red-500" : "text-blue-500"}`}>
         <span>{teamName}</span>
-        {won && <span className="rounded bg-accent px-1.5 py-0.5 text-xs font-bold text-accent-foreground">승</span>}
+        {won && <span className="rounded bg-accent px-1.5 py-0.5 text-xs font-medium text-accent-foreground">승</span>}
       </p>
       <div className={`flex gap-1 ${flip ? "flex-row-reverse" : ""}`}>
         {Array.from({ length: 5 }, (_, i) => <CompactTile key={i} champion={banChampions[i]} ban />)}
@@ -225,14 +225,14 @@ function TeamStats({
       <div className={`${ROW_GRID} items-center gap-2 px-2.5 py-1.5 ${headerBg}`}>
         <span className={`text-sm font-bold ${headerText}`}>
           {team?.shortName ?? (side === "blue" ? "블루" : "레드")}
-          {won && <span className="ml-1.5 rounded bg-accent px-1.5 py-0.5 text-xs font-bold text-accent-foreground">승</span>}
+          {won && <span className="ml-1.5 rounded bg-accent px-1.5 py-0.5 text-xs font-medium text-accent-foreground">승</span>}
         </span>
-        <span className="text-xs font-semibold uppercase text-muted">KDA</span>
-        <span className="text-xs font-semibold uppercase text-muted">딜량</span>
-        <span className="text-xs font-semibold uppercase text-muted">골드</span>
-        <span className="text-center text-xs font-semibold uppercase text-muted">시야</span>
-        <span className="text-center text-xs font-semibold uppercase text-muted">CS</span>
-        <span className="text-xs font-semibold uppercase text-muted">아이템</span>
+        <span className="text-xs font-medium uppercase text-muted">KDA</span>
+        <span className="text-xs font-medium uppercase text-muted">딜량</span>
+        <span className="text-xs font-medium uppercase text-muted">골드</span>
+        <span className="text-center text-xs font-medium uppercase text-muted">시야</span>
+        <span className="text-center text-xs font-medium uppercase text-muted">CS</span>
+        <span className="text-xs font-medium uppercase text-muted">아이템</span>
       </div>
       {teamLines.map((line) => (
         <PlayerRow
@@ -289,21 +289,21 @@ function DualPlayerChart({
 
   return (
     <div className="border-b border-border">
-      <p className="pb-1 text-center text-xs font-bold uppercase tracking-widest text-muted">
+      <p className="pb-1 text-center text-xs font-medium uppercase tracking-widest text-muted">
         딜량 (DAMAGE)
       </p>
 
       {/* 컬럼 헤더 */}
       <div className={`${GRID} items-center gap-x-1 border-t border-border/40 px-3 py-1`}>
         <span /><span />
-        <span className="text-right text-xs font-semibold uppercase text-muted">선수</span>
-        <span className="text-right text-xs font-semibold uppercase text-muted">CS · 골드</span>
-        <span className="text-right text-xs font-semibold uppercase text-muted">아이템</span>
+        <span className="text-right text-xs font-medium uppercase text-muted">선수</span>
+        <span className="text-right text-xs font-medium uppercase text-muted">CS · 골드</span>
+        <span className="text-right text-xs font-medium uppercase text-muted">아이템</span>
         <span />
         <span />
-        <span className="text-left text-xs font-semibold uppercase text-muted">아이템</span>
-        <span className="text-left text-xs font-semibold uppercase text-muted">골드 · CS</span>
-        <span className="text-left text-xs font-semibold uppercase text-muted">선수</span>
+        <span className="text-left text-xs font-medium uppercase text-muted">아이템</span>
+        <span className="text-left text-xs font-medium uppercase text-muted">골드 · CS</span>
+        <span className="text-left text-xs font-medium uppercase text-muted">선수</span>
         <span /><span />
       </div>
 
@@ -516,21 +516,21 @@ export function SetCard({
           <div className="flex flex-col gap-2.5">
             <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1">
               <span className="text-right text-xl font-bold tabular-nums text-blue-500">{set.blueKills ?? "-"}</span>
-              <span className="px-2 text-center text-xs font-semibold text-muted">KILLS</span>
+              <span className="px-2 text-center text-xs font-medium text-muted">KILLS</span>
               <span className="text-left text-xl font-bold tabular-nums text-red-500">{set.redKills ?? "-"}</span>
             </div>
             {(blueDamage > 0 || redDamage > 0) && (
               <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1">
-                <span className="text-right text-xs font-semibold tabular-nums text-blue-400">{blueDamage >= 1000 ? `${(blueDamage / 1000).toFixed(1)}K` : blueDamage}</span>
-                <span className="px-2 text-center text-xs font-semibold text-muted">딜량</span>
-                <span className="text-left text-xs font-semibold tabular-nums text-red-400">{redDamage >= 1000 ? `${(redDamage / 1000).toFixed(1)}K` : redDamage}</span>
+                <span className="text-right text-xs font-medium tabular-nums text-blue-400">{blueDamage >= 1000 ? `${(blueDamage / 1000).toFixed(1)}K` : blueDamage}</span>
+                <span className="px-2 text-center text-xs font-medium text-muted">딜량</span>
+                <span className="text-left text-xs font-medium tabular-nums text-red-400">{redDamage >= 1000 ? `${(redDamage / 1000).toFixed(1)}K` : redDamage}</span>
               </div>
             )}
             {(blueGold > 0 || redGold > 0) && (
               <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1">
-                <span className="text-right text-xs font-semibold tabular-nums text-blue-400">{blueGold >= 1000 ? `${(blueGold / 1000).toFixed(1)}K` : blueGold}</span>
-                <span className="px-2 text-center text-xs font-semibold text-muted">골드</span>
-                <span className="text-left text-xs font-semibold tabular-nums text-red-400">{redGold >= 1000 ? `${(redGold / 1000).toFixed(1)}K` : redGold}</span>
+                <span className="text-right text-xs font-medium tabular-nums text-blue-400">{blueGold >= 1000 ? `${(blueGold / 1000).toFixed(1)}K` : blueGold}</span>
+                <span className="px-2 text-center text-xs font-medium text-muted">골드</span>
+                <span className="text-left text-xs font-medium tabular-nums text-red-400">{redGold >= 1000 ? `${(redGold / 1000).toFixed(1)}K` : redGold}</span>
               </div>
             )}
             <div className="grid grid-cols-2 gap-x-2 gap-y-0.5">
@@ -552,8 +552,8 @@ export function SetCard({
                 },
                 {
                   label: "포탑",
-                  blue: <span className="text-xs font-bold tabular-nums text-blue-400">{set.blueTowers ?? "-"}</span>,
-                  red: <span className="text-xs font-bold tabular-nums text-red-400">{set.redTowers ?? "-"}</span>,
+                  blue: <span className="text-xs font-medium tabular-nums text-blue-400">{set.blueTowers ?? "-"}</span>,
+                  red: <span className="text-xs font-medium tabular-nums text-red-400">{set.redTowers ?? "-"}</span>,
                 },
                 {
                   label: "공허충",
@@ -563,7 +563,7 @@ export function SetCard({
               ].map(({ label, blue, red }) => (
                 <div key={label} className="grid grid-cols-[auto_1fr_auto] items-center gap-1">
                   <span className="text-right">{blue}</span>
-                  <span className="text-center text-xs font-semibold text-muted">{label}</span>
+                  <span className="text-center text-xs font-medium text-muted">{label}</span>
                   <span className="text-left">{red}</span>
                 </div>
               ))}
@@ -598,7 +598,7 @@ export function SetCard({
           </div>
           {timelineEvents && timelineEvents.length > 0 && (
             <div className="border-y border-border bg-surface-muted px-3 py-2.5">
-              <p className="mb-2 text-xs font-semibold uppercase text-muted">타임라인</p>
+              <p className="mb-2 text-xs font-medium uppercase text-muted">타임라인</p>
               <GameTimeline
                 events={timelineEvents}
                 durationSeconds={set.durationSeconds}

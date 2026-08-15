@@ -557,7 +557,7 @@ export async function PlayerDetailView({
           <SectionHeading caption={playerSegmentLabel(activeSegment)}>시즌 요약</SectionHeading>
           <div className="overflow-hidden rounded-lg border border-[var(--ui-border)]">
             <div className="overflow-hidden bg-[var(--ui-surface)]">
-              <div className="grid h-9 grid-cols-5 items-center bg-[var(--ui-card-bg)] text-center text-xs font-semibold leading-tight text-[var(--ui-muted)] lg:text-sm">
+              <div className="grid h-9 grid-cols-5 items-center bg-[var(--ui-card-bg)] text-center text-xs font-medium leading-tight text-[var(--ui-muted)] lg:text-sm">
                 <span>출전 세트</span>
                 <span>승률</span>
                 <span>KDA</span>

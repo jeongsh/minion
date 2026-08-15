@@ -218,7 +218,7 @@ function PostCard({
         <InstagramIcon className="absolute right-2.5 top-2.5 z-20 h-4 w-4 text-white drop-shadow" />
         {item.postedAt ? (
           <span
-            className="absolute left-2 top-2 z-20 bg-black/70 px-2 py-1 text-[11px] font-bold leading-none text-white shadow-sm backdrop-blur"
+            className="absolute left-2 top-2 z-20 bg-black/70 px-2 py-1 text-[11px] font-medium leading-none text-white shadow-sm backdrop-blur"
             suppressHydrationWarning
           >
             {relativeTime(item.postedAt)}
@@ -239,7 +239,7 @@ function PostCard({
         )}
         {/* 임베드 힌트 오버레이 */}
         <div className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition group-hover:bg-black/25 group-hover:opacity-100">
-          <span className="bg-white/95 px-3.5 py-1.5 text-[12px] font-bold text-black">
+          <span className="bg-white/95 px-3.5 py-1.5 text-[12px] font-medium text-black">
             게시물 보기
           </span>
         </div>

@@ -304,7 +304,7 @@ export function RecentMatchHistoryModal({
                     </div>
                   ))}
                   {hasMore ? (
-                    <div ref={sentinelRef} className="flex min-h-11 items-center justify-center gap-1.5 text-xs font-semibold text-[var(--ui-muted)]" aria-live="polite">
+                    <div ref={sentinelRef} className="flex min-h-11 items-center justify-center gap-1.5 text-xs font-medium text-[var(--ui-muted)]" aria-live="polite">
                       {loading ? (
                         <><LoaderCircle aria-hidden="true" className="h-4 w-4 animate-spin" />불러오는 중</>
                       ) : (

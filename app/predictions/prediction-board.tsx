@@ -285,7 +285,7 @@ function TeamChoice({ team, percent, odds, selected, disabled, onClick, right = 
         <TeamLogo team={team} size="h-7 w-7 sm:h-10 sm:w-10" plain themeAware />
         <span className={`flex min-w-0 items-baseline gap-1 ${right ? "flex-row-reverse" : ""}`}>
           <span className="min-w-0 truncate text-[15px] font-black text-[var(--ui-ink)] sm:text-xl">{team?.shortName ?? "TBD"}</span>
-          <span className="shrink-0 text-[11px] font-bold text-[var(--ui-muted)] sm:text-[13px]">{odds === null ? "1.00" : odds.toFixed(2)}<span className="text-[10px] sm:text-[12px]">{"\u00a0배"}</span></span>
+          <span className="shrink-0 text-[11px] font-medium text-[var(--ui-muted)] sm:text-[13px]">{odds === null ? "1.00" : odds.toFixed(2)}<span className="text-[10px] sm:text-[12px]">{"\u00a0배"}</span></span>
         </span>
       </span>
       <span className="shrink-0 text-[17px] font-black leading-none tabular-nums text-[var(--ui-ink)] sm:text-[26px]">

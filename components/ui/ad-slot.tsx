@@ -72,7 +72,7 @@ export function AdSlot({
     <aside
       ref={containerRef}
       aria-label="광고"
-      className={`min-w-0 ${configured ? "" : "grid place-items-center rounded-[var(--ui-card-radius)] bg-[var(--ui-ad-surface)] text-[11px] font-bold tracking-[.18em] text-[#96999f]"} ${className}`}
+      className={`min-w-0 ${configured ? "" : "grid place-items-center rounded-[var(--ui-card-radius)] bg-[var(--ui-ad-surface)] text-[11px] font-medium tracking-[.18em] text-[#96999f]"} ${className}`}
     >
       {configured ? (
         <ins

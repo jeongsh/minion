@@ -65,7 +65,7 @@ export default async function CommunityUserPage({
           />
 
           <section className="mobile-full-bleed relative rounded-[var(--ui-card-radius)] border border-[var(--ui-border)] bg-[var(--ui-surface)] px-4 py-5 sm:px-6 sm:py-6">
-            <p className="mb-3 text-[12px] font-black uppercase tracking-[0.16em] text-[var(--ui-muted)]">Community profile</p>
+            <p className="mb-3 text-[12px] font-medium uppercase tracking-[0.16em] text-[var(--ui-muted)]">Community profile</p>
             <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
               <AuthorMenu
                 authorId={profile.id}
@@ -105,7 +105,7 @@ export default async function CommunityUserPage({
                     <li key={post.id}>
                       <Link href={postHref(post.id, post.siteScope, post.teamId)} className="block px-4 py-4 transition-colors hover:bg-[var(--ui-surface-muted)] sm:px-5">
                         <div className="flex min-w-0 items-center gap-2">
-                          <span className="shrink-0 text-[12px] font-bold text-[var(--tp)]">{boardLabel(post.siteScope, post.boardType)}</span>
+                          <span className="shrink-0 text-[12px] font-medium text-[var(--tp)]">{boardLabel(post.siteScope, post.boardType)}</span>
                           <h3 className={`truncate text-[15px] font-bold ${post.blindedAt ? "text-[var(--ui-muted)]" : "text-[var(--ui-ink)]"}`}>
                             {post.blindedAt ? blindLabel(post.blindedSource, "post") : post.title}
                           </h3>
@@ -126,7 +126,7 @@ export default async function CommunityUserPage({
                 {comments.map((comment) => (
                   <li key={comment.id}>
                     <Link href={postHref(comment.postId, comment.postSiteScope, comment.postTeamId)} className="block px-4 py-4 transition-colors hover:bg-[var(--ui-surface-muted)] sm:px-5">
-                      <p className="truncate text-[12px] font-bold text-[var(--tp)]">{comment.postTitle}</p>
+                      <p className="truncate text-[12px] font-medium text-[var(--tp)]">{comment.postTitle}</p>
                       <p className={`mt-1.5 line-clamp-2 whitespace-pre-wrap text-[15px] leading-6 ${comment.blindedAt ? "text-[var(--ui-muted)]" : "text-[var(--ui-text)]"}`}>
                         {comment.blindedAt ? blindLabel(comment.blindedSource, "comment") : comment.content}
                       </p>
@@ -146,7 +146,7 @@ export default async function CommunityUserPage({
 function ProfileStat({ label, value, bordered = false }: { label: string; value: number; bordered?: boolean }) {
   return (
     <div className={`px-4 py-3.5 text-center ${bordered ? "border-l border-[var(--ui-border)]" : ""}`}>
-      <dt className="text-[12px] font-semibold text-[var(--ui-muted)]">{label}</dt>
+      <dt className="text-[12px] font-medium text-[var(--ui-muted)]">{label}</dt>
       <dd className="mt-0.5 text-xl font-black tabular-nums text-[var(--ui-ink)]">{value}</dd>
     </div>
   );
