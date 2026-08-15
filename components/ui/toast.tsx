@@ -62,6 +62,25 @@ function MatchEventIcon({ kind }: { kind: MatchEventPresentation["kind"] }) {
 
 function MatchEventToast({ item, onClose }: { item: ToastItem; onClose: () => void }) {
   const event = item.matchEvent!;
+  const eventImage = (src: string) => event.kind === "tower" || event.kind === "inhibitor" ? (
+    <span
+      aria-hidden="true"
+      className="h-7 w-7 shrink-0 bg-[var(--ui-muted)]"
+      style={{
+        WebkitMaskImage: `url(${src})`,
+        WebkitMaskPosition: "center",
+        WebkitMaskRepeat: "no-repeat",
+        WebkitMaskSize: "contain",
+        maskImage: `url(${src})`,
+        maskPosition: "center",
+        maskRepeat: "no-repeat",
+        maskSize: "contain",
+      }}
+    />
+  ) : (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={src} alt="" className={event.kind === "kill" ? "h-7 w-7 shrink-0 rounded-md object-cover" : "h-7 w-7 shrink-0 object-contain"} />
+  );
   const content = (
     <>
       <span className="flex min-w-0 items-center gap-1.5 text-[12px] font-medium">
@@ -69,10 +88,16 @@ function MatchEventToast({ item, onClose }: { item: ToastItem; onClose: () => vo
         <span className={event.badge === "LIVE" ? "text-[#e51643]" : "text-[var(--accent)]"}>{event.badge}</span>
         <span className="truncate text-[var(--ui-muted)]">{event.matchup}</span>
       </span>
-      <span className="mt-1 grid min-w-0 grid-cols-[minmax(0,1fr)_1.75rem_minmax(0,1fr)] items-center gap-1 text-[13px] font-bold text-[var(--ui-ink)]">
-        <span className="truncate text-right">{event.leftLabel ?? ""}</span>
+      <span className="mt-1 grid min-w-0 grid-cols-[minmax(0,1fr)_1.75rem_minmax(0,1fr)] items-center gap-1.5 text-[13px] font-bold text-[var(--ui-ink)]">
+        <span className="flex min-w-0 items-center justify-end gap-1.5">
+          <span className="truncate text-right">{event.leftLabel ?? ""}</span>
+          {event.leftImageSrc ? eventImage(event.leftImageSrc) : null}
+        </span>
         <span className="mx-auto grid h-6 w-6 place-items-center rounded-md bg-[var(--ui-card-bg)] text-[var(--ui-muted)]"><MatchEventIcon kind={event.kind} /></span>
-        <span className="truncate">{event.rightLabel}</span>
+        <span className="flex min-w-0 items-center gap-1.5">
+          {event.rightImageSrc ? eventImage(event.rightImageSrc) : null}
+          <span className="truncate">{event.rightLabel}</span>
+        </span>
       </span>
     </>
   );
@@ -107,14 +132,18 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       {children}
       {mounted
         ? createPortal(
-            <div className="pointer-events-none fixed inset-x-4 top-20 z-[1200] flex flex-col items-center gap-2 sm:top-24" aria-live="polite" aria-atomic="true">
+            <div className="pointer-events-none fixed bottom-auto left-[calc(1rem+var(--shell-toast-lnb-offset,0px))] right-4 top-20 z-[1200] flex flex-col items-center gap-2 transition-[left] duration-200 sm:top-24" aria-live="polite" aria-atomic="true">
               {items.map((item) => {
                 if (item.matchEvent) {
-                  return <MatchEventToast key={item.id} item={item} onClose={() => removeToast(item.id)} />;
+                  return (
+                    <div key={item.id} className="contents" style={{ "--app-toast-duration": `${item.duration ?? 2400}ms` } as React.CSSProperties}>
+                      <MatchEventToast item={item} onClose={() => removeToast(item.id)} />
+                    </div>
+                  );
                 }
                 const Icon = toneIcon[item.tone];
                 return (
-                  <div key={item.id} className={`app-toast app-toast--${item.tone} pointer-events-auto flex w-full max-w-sm items-center gap-3 rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] px-4 py-3 shadow-xl shadow-black/10 dark:bg-[var(--ui-surface-muted)]`} role={item.tone === "error" ? "alert" : "status"}>
+                  <div key={item.id} style={{ "--app-toast-duration": `${item.duration ?? 2400}ms` } as React.CSSProperties} className={`app-toast app-toast--${item.tone} pointer-events-auto flex w-full max-w-sm items-center gap-3 rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] px-4 py-3 shadow-xl shadow-black/10 dark:bg-[var(--ui-surface-muted)]`} role={item.tone === "error" ? "alert" : "status"}>
                     {item.iconSrc ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={item.iconSrc} alt="" className="h-10 w-10 shrink-0 object-contain" />

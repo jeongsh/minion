@@ -57,6 +57,9 @@
   --ui-header-height: 56px;
   --ui-sidebar-width: 216px;
   --shell-lnb-width: 216px;
+  --shell-toast-lnb-offset: 0px;
+  --shell-toast-tablet-lnb-width: 0px;
+  --shell-toast-desktop-lnb-width: 216px;
   --shell-bottom-nav-height: 52px;
   --layout-reading: 1080px;
   --layout-form: 672px;
@@ -114,6 +117,24 @@
 
 * {
   box-sizing: border-box;
+}
+
+/*
+ * Keep the page behind blocking UI stationary. Modal implementations vary
+ * between portal backdrops, aria dialogs, and native <dialog> elements, so the
+ * lock belongs at the document level instead of being repeated per component.
+ */
+html[aria-busy="true"],
+html:has(.modal-backdrop),
+html:has([aria-modal="true"]),
+html:has(dialog[open]),
+html:has([data-scroll-lock="true"]),
+body:has(.modal-backdrop),
+body:has([aria-modal="true"]),
+body:has(dialog[open]),
+body:has([data-scroll-lock="true"]) {
+  overflow: hidden;
+  overscroll-behavior: none;
 }
 
 html:has(.schedule-page) {
@@ -283,7 +304,19 @@ html[class~="dark"] .navigation-progress-bar {
 
 .app-toast {
   --app-toast-accent: var(--ui-ink);
-  animation: app-toast-lifecycle 2.55s cubic-bezier(.18, .92, .2, 1) both;
+  animation: app-toast-lifecycle var(--app-toast-duration, 2.4s) cubic-bezier(.18, .92, .2, 1) both;
+}
+
+@media (min-width: 768px) and (max-width: 1199px) {
+  :root {
+    --shell-toast-lnb-offset: var(--shell-toast-tablet-lnb-width);
+  }
+}
+
+@media (min-width: 1200px) {
+  :root {
+    --shell-toast-lnb-offset: var(--shell-toast-desktop-lnb-width);
+  }
 }
 
 .adaptive-dialog-panel {

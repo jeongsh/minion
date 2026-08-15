@@ -4,30 +4,39 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 
 import type { LiveMatchEvent, LiveMatchResponse } from "@/app/api/matches/[matchId]/live/route";
 import { useToast } from "@/components/ui/toast";
+import { championCatalogEntries, normalizeChampionKey } from "@/lib/champions";
 import type { LiveMatchActivity, MatchActivityResponse } from "@/lib/match-activity";
-import type { AppNotification } from "@/lib/notifications";
+import { DEFAULT_NOTIFICATION_PREFERENCES, type AppNotification, type NotificationPreferences } from "@/lib/notifications";
+import { OBJECTIVE_ICONS } from "@/lib/objectives";
 
 const ACTIVITY_POLL_MS = 30_000;
 const LIVE_EVENT_POLL_MS = 10_000;
-const ALERT_STORAGE_KEY = "minion-match-activity-alerts";
-const ALERT_CHANGE_EVENT = "minion-match-activity-alert-change";
+const LIVE_NOTIFICATION_DURATION_MS = 10_000;
 const NOTIFICATION_STORAGE_KEY = "minion-notifications-v1";
 const NOTIFICATION_CHANGE_EVENT = "minion-notifications-change";
 const EMPTY_NOTIFICATIONS_JSON = "[]";
 
 const EMPTY_ACTIVITY: MatchActivityResponse = { liveMatches: [], ratings: [] };
 
-function subscribeToAlertSetting(onStoreChange: () => void) {
-  window.addEventListener("storage", onStoreChange);
-  window.addEventListener(ALERT_CHANGE_EVENT, onStoreChange);
-  return () => {
-    window.removeEventListener("storage", onStoreChange);
-    window.removeEventListener(ALERT_CHANGE_EVENT, onStoreChange);
-  };
-}
+const CHAMPION_IMAGE_BY_KEY = new Map(
+  championCatalogEntries().map((champion) => [
+    normalizeChampionKey(champion.ddragon_id),
+    `https://ddragon.leagueoflegends.com/cdn/img/champion/tiles/${champion.ddragon_id}_0.jpg`,
+  ]),
+);
 
-function getAlertSetting() {
-  return window.localStorage.getItem(ALERT_STORAGE_KEY) === "on";
+const DRAGON_PRESENTATION: Record<string, { label: string; icon: string }> = {
+  cloud: { label: "바람 드래곤", icon: OBJECTIVE_ICONS.cloud },
+  infernal: { label: "화염 드래곤", icon: OBJECTIVE_ICONS.infernal },
+  mountain: { label: "대지 드래곤", icon: OBJECTIVE_ICONS.mountain },
+  ocean: { label: "바다 드래곤", icon: OBJECTIVE_ICONS.ocean },
+  hextech: { label: "마법공학 드래곤", icon: OBJECTIVE_ICONS.hextech },
+  chemtech: { label: "화학공학 드래곤", icon: OBJECTIVE_ICONS.chemtech },
+  elder: { label: "장로 드래곤", icon: OBJECTIVE_ICONS.elder },
+};
+
+function championImage(championId: string | null) {
+  return championId ? CHAMPION_IMAGE_BY_KEY.get(normalizeChampionKey(championId)) : undefined;
 }
 
 function subscribeToNotifications(onStoreChange: () => void) {
@@ -67,7 +76,9 @@ function liveEventPresentation(event: LiveMatchEvent, match: LiveMatchActivity) 
       kind: event.type,
       matchup,
       leftLabel: event.killerSummonerName ?? "선수",
+      leftImageSrc: championImage(event.killerChampionId),
       rightLabel: event.victimSummonerName ?? "상대 선수",
+      rightImageSrc: championImage(event.victimChampionId),
     };
   }
 
@@ -76,15 +87,23 @@ function liveEventPresentation(event: LiveMatchEvent, match: LiveMatchActivity) 
     : event.teamId === match.teamB.id
       ? match.teamB.shortName
       : "경기";
+  const dragon = event.dragonType ? DRAGON_PRESENTATION[event.dragonType.toLowerCase()] : undefined;
   const objectiveLabel = event.type === "baron"
     ? "바론"
     : event.type === "dragon"
-      ? "드래곤"
+      ? dragon?.label ?? "드래곤"
       : event.type === "tower"
         ? "포탑"
         : event.type === "inhibitor"
           ? "억제기"
           : "종료";
+  const objectiveImage = event.type === "baron"
+    ? OBJECTIVE_ICONS.baron
+    : event.type === "dragon"
+      ? dragon?.icon ?? OBJECTIVE_ICONS.dragon
+      : event.type === "tower" || event.type === "inhibitor"
+        ? OBJECTIVE_ICONS.tower
+        : undefined;
 
   return {
     badge: "LIVE" as const,
@@ -92,13 +111,13 @@ function liveEventPresentation(event: LiveMatchEvent, match: LiveMatchActivity) 
     matchup,
     leftLabel: event.type === "end" ? "세트" : teamLabel,
     rightLabel: objectiveLabel,
+    rightImageSrc: objectiveImage,
   };
 }
 
-export function useMatchActivity(enabled: boolean, followedTeamIds: string[] = []) {
+export function useMatchActivity(enabled: boolean, followedTeamIds: string[] = [], preferences: NotificationPreferences = DEFAULT_NOTIFICATION_PREFERENCES) {
   const { showToast } = useToast();
   const [activity, setActivity] = useState<MatchActivityResponse>(EMPTY_ACTIVITY);
-  const alertsEnabled = useSyncExternalStore(subscribeToAlertSetting, getAlertSetting, () => false);
   const notificationsJson = useSyncExternalStore(subscribeToNotifications, getNotificationsSnapshot, () => EMPTY_NOTIFICATIONS_JSON);
   const notifications = useMemo(() => parseNotifications(notificationsJson), [notificationsJson]);
   const initialized = useRef(false);
@@ -154,11 +173,11 @@ export function useMatchActivity(enabled: boolean, followedTeamIds: string[] = [
       if (!response.ok) return;
       const next = await response.json() as MatchActivityResponse;
 
-      if (initialized.current && alertsEnabled) {
+      if (initialized.current && preferences.inAppEnabled) {
         const followedLiveMatches = next.liveMatches.filter(
           (match) => followedTeamIdSet.has(match.teamA.id) || followedTeamIdSet.has(match.teamB.id),
         );
-        for (const match of followedLiveMatches) {
+        for (const match of preferences.matchStartEnabled ? followedLiveMatches : []) {
           if (!previousLiveIds.current.has(match.id)) {
             publishNotification({
               id: `match-live:${match.id}`,
@@ -175,10 +194,10 @@ export function useMatchActivity(enabled: boolean, followedTeamIds: string[] = [
                 leftLabel: "경기",
                 rightLabel: "시작",
               },
-            }, 6000);
+            }, LIVE_NOTIFICATION_DURATION_MS);
           }
         }
-        for (const rating of next.ratings) {
+        for (const rating of preferences.ratingOpenEnabled ? next.ratings : []) {
           if (!previousRatingIds.current.has(rating.id)) {
             publishNotification({
               id: `rating-open:${rating.id}`,
@@ -211,7 +230,7 @@ export function useMatchActivity(enabled: boolean, followedTeamIds: string[] = [
     } catch {
       // 전역 보조 UI이므로 네트워크 오류가 페이지 탐색을 막지 않게 조용히 유지한다.
     }
-  }, [alertsEnabled, enabled, followedTeamIdSet, publishNotification]);
+  }, [enabled, followedTeamIdSet, preferences.inAppEnabled, preferences.matchStartEnabled, preferences.ratingOpenEnabled, publishNotification]);
 
   useEffect(() => {
     const initialLoad = window.setTimeout(() => void loadActivity(), 0);
@@ -228,7 +247,7 @@ export function useMatchActivity(enabled: boolean, followedTeamIds: string[] = [
   }, [loadActivity]);
 
   useEffect(() => {
-    if (!enabled || !alertsEnabled || alertLiveMatches.length === 0) return;
+    if (!enabled || !preferences.inAppEnabled || !preferences.matchEventsEnabled || alertLiveMatches.length === 0) return;
 
     const pollEvents = async () => {
       await Promise.all(alertLiveMatches.map(async (match) => {
@@ -256,7 +275,7 @@ export function useMatchActivity(enabled: boolean, followedTeamIds: string[] = [
               createdAt: new Date().toISOString(),
               readAt: null,
               matchEvent: liveEventPresentation(event, match),
-            }, 6000);
+            }, LIVE_NOTIFICATION_DURATION_MS);
           }
         } catch {
           // 라이브 피드가 잠시 끊겨도 다음 폴링에서 이어 받는다.
@@ -267,7 +286,7 @@ export function useMatchActivity(enabled: boolean, followedTeamIds: string[] = [
     void pollEvents();
     const interval = window.setInterval(() => void pollEvents(), LIVE_EVENT_POLL_MS);
     return () => window.clearInterval(interval);
-  }, [alertLiveMatches, alertsEnabled, enabled, publishNotification]);
+  }, [alertLiveMatches, enabled, preferences.inAppEnabled, preferences.matchEventsEnabled, publishNotification]);
 
   const unreadNotificationCount = notifications.filter((notification) => !notification.readAt).length;
 

@@ -34,6 +34,7 @@ import { teams as fallbackTeams } from "@/lib/team-themes";
 import type { LiveMatchActivity } from "@/lib/match-activity";
 import type { Team } from "@/lib/types";
 import type { Tier } from "@/lib/rank/config";
+import type { NotificationPreferences } from "@/lib/notifications";
 
 export type AppShellUser = {
   nickname: string | null;
@@ -128,6 +129,7 @@ function focusRouteMeta(pathname: string) {
   if (pathname === "/login") return { title: "로그인", backHref: "/" };
   if (pathname === "/signup") return { title: "회원가입", backHref: "/login" };
   if (pathname === "/me/profile") return { title: "프로필 관리", backHref: "/me" };
+  if (pathname === "/me/settings") return { title: "설정", backHref: "/me" };
   if (pathname.endsWith("/snapshot")) {
     // 스냅샷은 매치 상세의 "평가" 탭(쿼리스트링 포함)처럼 URL만으로는 복원 못 하는
     // 곳에서도 진입한다. backHref는 히스토리가 없을 때(직접 방문/새 탭)의 대비용
@@ -151,6 +153,7 @@ export function AppShell({
   followedTeamIds = [],
   favoriteTeamId = null,
   shellTeams = fallbackTeams,
+  notificationPreferences,
 }: {
   children: React.ReactNode;
   currentUser?: AppShellUser;
@@ -158,6 +161,7 @@ export function AppShell({
   followedTeamIds?: string[];
   favoriteTeamId?: string | null;
   shellTeams?: Team[];
+  notificationPreferences: NotificationPreferences;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -198,11 +202,23 @@ export function AppShell({
     markAllNotificationsRead,
     removeNotification,
     clearNotifications,
-  } = useMatchActivity(true, followedActivityTeamIds);
+  } = useMatchActivity(true, followedActivityTeamIds, notificationPreferences);
 
   useEffect(() => {
     document.documentElement.style.setProperty("--shell-lnb-width", collapsed ? "72px" : "216px");
   }, [collapsed]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    root.style.setProperty(
+      "--shell-toast-tablet-lnb-width",
+      compactHubShell && !mobileMenuOpen ? "64px" : "0px",
+    );
+    root.style.setProperty(
+      "--shell-toast-desktop-lnb-width",
+      focusRoute ? "0px" : collapsed ? "72px" : "216px",
+    );
+  }, [collapsed, compactHubShell, focusRoute, mobileMenuOpen]);
 
   useEffect(() => {
     const desktopQuery = window.matchMedia("(min-width: 1200px)");

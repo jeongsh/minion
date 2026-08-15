@@ -35,12 +35,33 @@ function NotificationRow({
   onRemove: (id: string) => void;
   onClose: () => void;
 }) {
+  const eventImage = notification.matchEvent?.rightImageSrc ?? notification.matchEvent?.leftImageSrc;
+  const imageUrl = notification.imageUrl ?? eventImage;
+  const useObjectiveMask = Boolean(
+    eventImage
+    && (notification.matchEvent?.kind === "tower" || notification.matchEvent?.kind === "inhibitor"),
+  );
   const content = (
     <>
       <span className="relative grid h-7 w-7 shrink-0 place-items-center overflow-hidden rounded-md bg-[var(--ui-card-bg)] text-[var(--ui-muted)]">
-        {notification.imageUrl ? (
+        {imageUrl && useObjectiveMask ? (
+          <span
+            aria-hidden="true"
+            className="h-5 w-5 bg-[var(--ui-muted)]"
+            style={{
+              WebkitMaskImage: `url(${imageUrl})`,
+              WebkitMaskPosition: "center",
+              WebkitMaskRepeat: "no-repeat",
+              WebkitMaskSize: "contain",
+              maskImage: `url(${imageUrl})`,
+              maskPosition: "center",
+              maskRepeat: "no-repeat",
+              maskSize: "contain",
+            }}
+          />
+        ) : imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={notification.imageUrl} alt="" className="h-full w-full object-cover" />
+          <img src={imageUrl} alt="" className={notification.matchEvent?.kind === "kill" ? "h-full w-full object-cover" : "h-5 w-5 object-contain"} />
         ) : <NotificationTypeIcon kind={notification.kind} />}
         {!notification.readAt ? <span className="absolute right-0.5 top-0.5 h-1.5 w-1.5 rounded-full bg-[var(--accent)]" aria-hidden /> : null}
       </span>

@@ -7,12 +7,28 @@ export type NotificationKind =
   | "player_live"
   | "post_activity";
 
+export type NotificationPreferences = {
+  inAppEnabled: boolean;
+  matchStartEnabled: boolean;
+  matchEventsEnabled: boolean;
+  ratingOpenEnabled: boolean;
+};
+
+export const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
+  inAppEnabled: true,
+  matchStartEnabled: true,
+  matchEventsEnabled: false,
+  ratingOpenEnabled: true,
+};
+
 export type MatchEventPresentation = {
   badge: "LIVE" | "평가";
   kind: "kill" | "tower" | "baron" | "inhibitor" | "dragon" | "end" | "start" | "rating";
   matchup: string;
   leftLabel?: string;
+  leftImageSrc?: string;
   rightLabel: string;
+  rightImageSrc?: string;
 };
 
 /**
