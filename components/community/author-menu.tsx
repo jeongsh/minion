@@ -28,6 +28,7 @@ type AuthorMenuProps = {
   guestKey?: string | null;
   scope?: BoardScope;
   teamSlug?: string;
+  detailMeta?: React.ReactNode;
 };
 
 export function AuthorMenu({
@@ -42,6 +43,7 @@ export function AuthorMenu({
   guestKey,
   scope = "hub",
   teamSlug,
+  detailMeta,
 }: AuthorMenuProps) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -123,12 +125,32 @@ export function AuthorMenu({
     return <span className="text-sm font-semibold text-[var(--ui-muted)]">{name}</span>;
   }
 
-  const trigger = variant === "feed" ? (
+  const guestAvatar = (size: "detail" | "comment") => (
+    <span className={`grid shrink-0 place-items-center rounded-full bg-[var(--ui-surface-muted)] text-[var(--ui-muted)] ${size === "detail" ? "h-9 w-9 md:h-10 md:w-10" : "h-8 w-8"}`} aria-hidden="true">
+      <UserRound size={size === "detail" ? 21 : 18} strokeWidth={1.7} />
+    </span>
+  );
+
+  const trigger = variant === "detail" ? (
+    <span className="inline-flex min-w-0 items-center gap-3 text-left">
+      {isGuest ? guestAvatar("detail") : (
+        <>
+          <span className="md:hidden"><RankAvatar tier={authorTier} src={authorImageUrl} alt={name} fallback={name.charAt(0)} size="detail" /></span>
+          <span className="hidden md:inline-grid"><RankAvatar tier={authorTier} src={authorImageUrl} alt={name} fallback={name.charAt(0)} size="md" /></span>
+        </>
+      )}
+      <span className="min-w-0">
+        <span className="block truncate text-[13px] font-semibold leading-[18px] text-[var(--ui-ink)] md:text-[15px] md:leading-5">{name}</span>
+        {detailMeta ? <span className="block text-[12px] font-normal leading-[18px] text-[var(--ui-muted)] md:mt-0.5 md:text-[13px] md:leading-5">{detailMeta}</span> : null}
+      </span>
+    </span>
+  ) : variant === "feed" ? (
       <span className="inline-flex max-w-44 items-center gap-1 truncate font-medium text-[var(--ui-text)]">
       <span className="truncate">{name}</span>
     </span>
   ) : isGuest ? (
-    <span className="inline-flex min-w-0 items-center gap-1 text-left">
+    <span className="inline-flex min-w-0 items-center gap-2.5 text-left">
+      {guestAvatar("comment")}
       <span className="truncate text-sm font-semibold text-[var(--ui-ink)]">{name}</span>
     </span>
   ) : (
@@ -138,7 +160,7 @@ export function AuthorMenu({
         src={authorImageUrl}
         alt={name}
         fallback={name.charAt(0)}
-        size={variant === "profile" ? "lg" : variant === "detail" ? "md" : "sm"}
+        size={variant === "profile" ? "lg" : "sm"}
       />
       <span className="min-w-0">
         <span className="flex items-center gap-1">

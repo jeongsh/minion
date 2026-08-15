@@ -20,7 +20,7 @@ export function CommunityContentLayout({ children, posts, scope, teamSlug, curre
   return (
     <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_300px] xl:items-start xl:gap-6">
       <div className="min-w-0">
-        <AdSlot placement="community" format="horizontal" className="mb-4 h-[60px] w-full xl:hidden" />
+        <AdSlot placement="community" format="horizontal" className="community-mobile-ad h-[60px] w-full !rounded-none md:mb-4 xl:hidden" />
         {children}
       </div>
       <aside className="hidden w-full max-w-[300px] flex-col gap-4 xl:sticky xl:top-[88px] xl:flex" aria-label="커뮤니티 보조 정보">

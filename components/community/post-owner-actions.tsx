@@ -10,13 +10,14 @@ import { useToast } from "@/components/ui/toast";
 import { deleteGuestPostAction, deletePostAction } from "@/lib/community/actions";
 import type { BoardScope } from "@/lib/community/boards";
 
-export function PostOwnerActions({ postId, scope, teamSlug, guest = false }: { postId: string; scope: BoardScope; teamSlug?: string; guest?: boolean }) {
+export function PostOwnerActions({ postId, scope, teamSlug, guest = false, variant = "buttons" }: { postId: string; scope: BoardScope; teamSlug?: string; guest?: boolean; variant?: "buttons" | "menu" }) {
   const router = useRouter();
   const { showToast } = useToast();
   const [message, setMessage] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const basePath = scope === "team" && teamSlug ? `/fan/${teamSlug}/community` : "/community";
+  const menu = variant === "menu";
 
   const remove = () => {
     startTransition(async () => {
@@ -36,9 +37,9 @@ export function PostOwnerActions({ postId, scope, teamSlug, guest = false }: { p
 
   return (
     <>
-      <span className="inline-flex items-center gap-3">
-        <Link href={`${basePath}/post/${postId}/edit`} className="inline-flex h-9 items-center gap-1.5 rounded-[var(--ui-control-radius)] border border-[var(--ui-border)] px-3.5 text-sm font-semibold text-[var(--ui-text)] hover:bg-[var(--ui-surface-muted)]"><Pencil size={15} strokeWidth={1.8} />수정</Link>
-        <button type="button" onClick={() => setConfirmOpen(true)} disabled={pending} className="inline-flex h-9 items-center gap-1.5 rounded-[var(--ui-control-radius)] border border-red-300 px-3.5 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950/30"><Trash2 size={15} strokeWidth={1.8} />{pending ? "삭제 중" : "삭제"}</button>
+      <span className={menu ? "flex flex-col items-stretch gap-1" : "inline-flex items-center gap-2 md:gap-3"}>
+        <Link href={`${basePath}/post/${postId}/edit`} className={menu ? "flex h-10 w-full items-center gap-2.5 rounded-lg px-3 text-sm font-semibold text-[var(--ui-text)] hover:bg-[var(--ui-surface-muted)]" : "inline-flex h-9 w-9 items-center justify-center rounded-[var(--ui-control-radius)] border border-[var(--ui-border)] text-sm font-semibold text-[var(--ui-text)] hover:bg-[var(--ui-surface-muted)] md:w-auto md:gap-1.5 md:px-3.5"} aria-label="게시글 수정"><Pencil size={15} strokeWidth={1.8} /><span className={menu ? "inline" : "hidden md:inline"}>수정</span></Link>
+        <button type="button" onClick={() => setConfirmOpen(true)} disabled={pending} className={menu ? "flex h-10 w-full items-center gap-2.5 rounded-lg px-3 text-sm font-semibold text-red-500 hover:bg-[var(--ui-surface-muted)] disabled:opacity-50" : "inline-flex h-9 w-9 items-center justify-center rounded-[var(--ui-control-radius)] border border-red-300 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50 md:w-auto md:gap-1.5 md:px-3.5 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950/30"} aria-label={pending ? "게시글 삭제 중" : "게시글 삭제"}><Trash2 size={15} strokeWidth={1.8} /><span className={menu ? "inline" : "hidden md:inline"}>{pending ? "삭제 중" : "삭제"}</span></button>
         {message ? <span className="text-[13px] text-[var(--ui-muted)]">{message}</span> : null}
       </span>
       {confirmOpen && typeof document !== "undefined"

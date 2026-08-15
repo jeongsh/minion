@@ -1,6 +1,6 @@
 "use client";
 
-import { Smile } from "lucide-react";
+import { SendHorizontal, Smile } from "lucide-react";
 import { useRef, useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ export function CommentForm({
   parentId,
   onSubmitted,
   isGuest = false,
+  variant = "default",
 }: {
   postId: string;
   scope: BoardScope;
@@ -26,6 +27,7 @@ export function CommentForm({
   parentId?: string;
   onSubmitted?: () => void;
   isGuest?: boolean;
+  variant?: "default" | "mobileDock";
 }) {
   const { showToast } = useToast();
   const [content, setContent] = useState("");
@@ -77,6 +79,49 @@ export function CommentForm({
       }
     });
   };
+
+  if (variant === "mobileDock") {
+    return (
+      <form
+        onSubmit={onSubmit}
+        className="border-t border-[var(--ui-border)] bg-[var(--page-background)] px-2.5 pb-[calc(.25rem+env(safe-area-inset-bottom))] pt-1 shadow-[0_-8px_24px_rgba(0,0,0,.08)]"
+      >
+        <label htmlFor={`comment-content-${parentId ?? "root"}-dock`} className="sr-only">
+          {parentId ? "답글 작성" : "댓글 작성"}
+        </label>
+        {message ? <p className="mb-1 px-2 text-[12px] text-red-500">{message}</p> : null}
+        <div className="flex items-center gap-1.5">
+          <div className="flex min-h-10 min-w-0 flex-1 items-center rounded-[20px] bg-[var(--ui-surface-muted)] px-3.5 py-1.5">
+            <textarea
+              ref={textareaRef}
+              id={`comment-content-${parentId ?? "root"}-dock`}
+              name="content"
+              value={content}
+              onChange={(event) => setContent(event.target.value)}
+              rows={1}
+              maxLength={maxLength}
+              required
+              placeholder="댓글을 입력해 주세요."
+              className="max-h-20 min-h-6 min-w-0 flex-1 resize-none border-0 bg-transparent py-0 text-[14px] leading-6 text-[var(--ui-text)] outline-none placeholder:text-[var(--ui-muted)]"
+            />
+            <div className="relative shrink-0">
+              <button type="button" onClick={() => setEmojiOpen((open) => !open)} className="grid h-7 w-7 place-items-center rounded-full text-[var(--ui-muted)]" aria-label="이모지 선택" aria-expanded={emojiOpen}>
+                <Smile size={19} strokeWidth={1.7} />
+              </button>
+              {emojiOpen ? (
+                <div className="absolute bottom-11 right-0 z-10 grid w-[184px] grid-cols-5 gap-1 rounded-[var(--ui-control-radius)] border border-[var(--ui-border)] bg-[var(--ui-surface)] p-2 shadow-lg">
+                  {EMOJIS.map((emoji) => <button key={emoji} type="button" onClick={() => appendEmoji(emoji)} className="grid h-8 w-8 place-items-center rounded hover:bg-[var(--ui-surface-muted)]" aria-label={`${emoji} 입력`}>{emoji}</button>)}
+                </div>
+              ) : null}
+            </div>
+          </div>
+          <button type="submit" disabled={pending || content.trim().length === 0 || content.length > maxLength} className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-[var(--tp)] disabled:text-[var(--ui-muted)]" aria-label={pending ? "댓글 등록 중" : "댓글 등록"}>
+            <SendHorizontal size={22} strokeWidth={2} />
+          </button>
+        </div>
+      </form>
+    );
+  }
 
   return (
     <form onSubmit={onSubmit}>

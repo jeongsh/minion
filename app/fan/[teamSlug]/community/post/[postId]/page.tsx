@@ -2,7 +2,6 @@ import { notFound } from "next/navigation";
 
 import { PostView } from "@/components/community/post-view";
 import { CommunityContentLayout } from "@/components/community/community-content-layout";
-import { PageHeader } from "@/components/ui/page-header";
 import { isCurrentUserAdmin } from "@/lib/auth/admin";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { getExistingGuestKey } from "@/lib/community/guest-identity";
@@ -42,14 +41,8 @@ export default async function FanPostDetailPage({
   ]);
 
   return (
-    <main className="community-neutral fan-page-container flex flex-col gap-5 py-7 md:py-9">
-      <PageHeader
-        title="게시글"
-        breadcrumbs={[
-          { label: "커뮤니티", href: `/fan/${teamSlug}/community` },
-          { label: "게시글" },
-        ]}
-      />
+    <main className="community-neutral fan-page-container flex flex-col gap-0 py-0 md:gap-5 md:py-9">
+      <h1 className="sr-only">게시글</h1>
       <CommunityContentLayout posts={posts} scope="team" teamSlug={teamSlug} currentPostId={post.id}>
         <PostView
           post={post}

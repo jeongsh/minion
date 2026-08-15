@@ -46,9 +46,14 @@ export function PostList({
     const cleansingBotBlinded = post.blindedSource === "ai";
 
     return (
-      <li key={post.id} className={`border-b border-[var(--ui-border)] last:border-b-0 ${isNoticeRow ? "bg-[var(--ui-surface-muted)]" : ""}`}>
+      <li key={post.id} className={`relative border-b border-[var(--ui-border)] last:border-b-0 ${isNoticeRow ? "bg-[var(--ui-surface-muted)]" : ""}`}>
+        <Link
+          href={detailHref(post.id)}
+          className="absolute inset-0 z-0 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--tp)]"
+          aria-label={`${blinded ? blindLabel(post.blindedSource, "post") : post.title} 게시글 보기`}
+        />
         <div
-          className="grid min-h-[72px] grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-4 py-3 transition-colors sm:px-2"
+          className="pointer-events-none relative z-[1] grid min-h-[72px] grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-4 py-3 sm:px-2"
         >
           <div className="min-w-0">
             <div className="flex min-w-0 items-center gap-1.5">
@@ -63,7 +68,7 @@ export function PostList({
                 <span className="shrink-0 rounded-full border border-[var(--tp)] px-1.5 py-0.5 text-[13px] font-medium leading-none text-[var(--tp)]">인기</span>
               ) : null}
               {blinded ? (
-                <Link href={detailHref(post.id)} className="inline-flex min-w-0 items-center gap-1.5 truncate text-base font-medium text-[var(--ui-muted)]">
+                <span className="inline-flex min-w-0 items-center gap-1.5 truncate text-base font-medium text-[var(--ui-muted)]">
                   {cleansingBotBlinded ? (
                     <Image
                       src={cleansingBotWarning}
@@ -77,14 +82,16 @@ export function PostList({
                     <EyeOff size={14} strokeWidth={1.8} className="shrink-0" />
                   )}
                   {blindLabel(post.blindedSource, "post")}
-                </Link>
+                </span>
               ) : (
-                <Link href={detailHref(post.id)} className="truncate text-base font-semibold text-[var(--ui-ink)] hover:underline">{post.title}</Link>
+                <span className="truncate text-base font-semibold text-[var(--ui-ink)]">{post.title}</span>
               )}
             </div>
 
             <div className="mt-0.5 flex min-w-0 items-center gap-2.5 overflow-hidden whitespace-nowrap text-[13px] font-normal text-[var(--ui-muted)]">
-              <AuthorMenu authorId={post.authorId} authorName={post.authorName} authorImageUrl={post.authorImageUrl} authorTier={post.authorTier} guestKey={post.guestKey} viewerId={viewerId} variant="feed" evidencePostId={post.id} scope={scope} teamSlug={teamSlug} />
+              <span className="pointer-events-auto relative z-10 inline-flex min-w-0">
+                <AuthorMenu authorId={post.authorId} authorName={post.authorName} authorImageUrl={post.authorImageUrl} authorTier={post.authorTier} guestKey={post.guestKey} viewerId={viewerId} variant="feed" evidencePostId={post.id} scope={scope} teamSlug={teamSlug} />
+              </span>
               <span className="shrink-0">{formatRelativeOrDate(post.createdAt)}</span>
               <span className="hidden shrink-0 items-center gap-1 sm:inline-flex"><Eye size={13} strokeWidth={1.8} />{post.viewCount}</span>
               <span className="inline-flex shrink-0 items-center gap-1"><MessageCircle size={13} strokeWidth={1.8} />{post.commentCount}</span>
@@ -93,10 +100,10 @@ export function PostList({
           </div>
 
           {!blinded && post.thumbnailUrl ? (
-            <Link href={detailHref(post.id)} className="h-[48px] w-[72px] shrink-0 overflow-hidden rounded-[var(--ui-control-radius)] bg-[var(--ui-surface-muted)] sm:h-[70px] sm:w-[120px]">
+            <div className="h-[48px] w-[72px] shrink-0 overflow-hidden rounded-[var(--ui-control-radius)] bg-[var(--ui-surface-muted)] sm:h-[70px] sm:w-[120px]">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={post.thumbnailUrl} alt="" loading="lazy" className="h-full w-full object-cover" />
-            </Link>
+            </div>
           ) : null}
         </div>
       </li>

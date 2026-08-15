@@ -138,10 +138,10 @@ export function CommentList({ comments, commentReactions, scope, teamSlug, viewe
             </div>
           ) : comment.blindedAt ? (
             <BlindedContent compact label={blindLabel(comment.blindedSource, "comment")} source={comment.blindedSource}>
-              <p className="mt-1 whitespace-pre-wrap break-words text-base leading-[1.6] text-[var(--ui-text)] [overflow-wrap:anywhere]">{comment.content}</p>
+              <p className="mt-1 whitespace-pre-wrap break-words text-[15px] leading-[1.65] text-[var(--ui-text)] [overflow-wrap:anywhere] md:text-base md:leading-[1.6]">{comment.content}</p>
             </BlindedContent>
           ) : (
-            <p className="mt-1 whitespace-pre-wrap break-words text-base leading-[1.6] text-[var(--ui-text)] [overflow-wrap:anywhere]">{comment.content}</p>
+            <p className="mt-1 whitespace-pre-wrap break-words text-[15px] leading-[1.65] text-[var(--ui-text)] [overflow-wrap:anywhere] md:text-base md:leading-[1.6]">{comment.content}</p>
           )}
           {!reply ? (
             <div className="mt-1.5 flex items-center gap-3">
@@ -162,7 +162,7 @@ export function CommentList({ comments, commentReactions, scope, teamSlug, viewe
   );
 
   return (
-    <ul className="min-w-0 divide-y divide-[var(--ui-border)] px-4 sm:px-8">
+    <ul className="min-w-0 divide-y divide-[var(--ui-border)] px-[14px] md:px-8">
       {roots.map((comment) => (
         <li key={comment.id}>
           {comment.deletedAt ? deletedItem(comment) : item(comment)}

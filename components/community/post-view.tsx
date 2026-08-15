@@ -8,6 +8,7 @@ import { CommentList } from "@/components/community/comment-list";
 import { PostContentViewer } from "@/components/community/editor/post-content-viewer";
 import { formatRelativeOrDate } from "@/components/community/format";
 import { PostOwnerActions } from "@/components/community/post-owner-actions";
+import { PostMobileActions } from "@/components/community/post-mobile-actions";
 import { ReactionButtons } from "@/components/community/reaction-buttons";
 import { ReportButton } from "@/components/community/report-button";
 import { SurfacePanel } from "@/components/ui/surface-panel";
@@ -41,13 +42,23 @@ export function PostView({
 }) {
   const boardHref = scope === "team" && teamSlug ? `/fan/${teamSlug}/community` : "/community";
   const blinded = Boolean(post.blindedAt);
+  const isGuestOwner = Boolean(post.guestKey && post.guestKey === currentGuestKey);
 
   return (
-    <article className={`${scope === "team" ? "w-full" : "content-reading"} mobile-full-bleed md:mx-auto`}>
+    <article className={`${scope === "team" ? "w-full" : "content-reading"} community-post-modal mobile-full-bleed pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:mx-auto md:pb-0`}>
+      <PostMobileActions
+        postId={post.id}
+        scope={scope}
+        teamSlug={teamSlug}
+        isNotice={post.isNotice}
+        canSetNotice={canSetNotice}
+        canManage={canManage || isGuestOwner}
+        guest={isGuestOwner && !canManage}
+      />
       <SurfacePanel variant="section">
-        <header className="px-4 pb-4 pt-5 sm:px-8 sm:pb-6 sm:pt-8">
-          <div className="flex items-center justify-between gap-4">
-            <Link href={boardHref} className="inline-flex items-center text-sm font-normal text-[var(--tp)] hover:opacity-70 gap-1"><ArrowLeft size={16} strokeWidth={2} />목록으로</Link>
+        <header className="px-[14px] pb-5 pt-4 md:px-8 md:pb-6 md:pt-8">
+          <div className="hidden items-center justify-between gap-4 md:flex">
+            <Link href={boardHref} className="hidden items-center gap-1 text-sm font-normal text-[var(--tp)] hover:opacity-70 md:inline-flex"><ArrowLeft size={16} strokeWidth={2} />목록으로</Link>
             <div className="flex flex-wrap items-center justify-end gap-2">
               {canSetNotice ? (
                 <form action={setPostNoticeInlineAction}>
@@ -57,21 +68,22 @@ export function PostView({
                   <input type="hidden" name="is_notice" value={post.isNotice ? "false" : "true"} />
                   <button
                     type="submit"
-                    className="inline-flex h-9 items-center gap-1.5 rounded-[var(--ui-control-radius)] border border-[var(--ui-border)] px-3.5 text-sm font-semibold text-[var(--ui-text)] hover:bg-[var(--ui-surface-muted)]"
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-[var(--ui-control-radius)] border border-[var(--ui-border)] text-sm font-semibold text-[var(--ui-text)] hover:bg-[var(--ui-surface-muted)] md:w-auto md:gap-1.5 md:px-3.5"
+                    aria-label={post.isNotice ? "공지 해제" : "공지 등록"}
                   >
                     <Megaphone size={15} strokeWidth={1.8} />
-                    {post.isNotice ? "공지 해제" : "공지 등록"}
+                    <span className="hidden md:inline">{post.isNotice ? "공지 해제" : "공지 등록"}</span>
                   </button>
                 </form>
               ) : null}
-              {canManage ? <PostOwnerActions postId={post.id} scope={scope} teamSlug={teamSlug} /> : post.guestKey && post.guestKey === currentGuestKey ? <PostOwnerActions postId={post.id} scope={scope} teamSlug={teamSlug} guest /> : null}
+              {canManage ? <PostOwnerActions postId={post.id} scope={scope} teamSlug={teamSlug} /> : isGuestOwner ? <PostOwnerActions postId={post.id} scope={scope} teamSlug={teamSlug} guest /> : null}
             </div>
           </div>
-          <h1 className={`mt-2 text-[20px] leading-[1.35] sm:text-[24px] ${blinded ? "font-medium text-[var(--ui-muted)]" : "font-bold text-[var(--ui-ink)]"}`}>
+          <h1 className={`text-[16px] leading-[1.45] md:mt-2 md:text-[24px] md:leading-[1.35] ${blinded ? "font-medium text-[var(--ui-muted)]" : "font-bold text-[var(--ui-ink)]"}`}>
             {blinded ? blindLabel(post.blindedSource, "post") : post.title}
           </h1>
 
-          <div className="mt-2 flex items-center gap-3">
+          <div className="mt-3 flex items-center">
             <AuthorMenu
               authorId={post.authorId}
               authorName={post.authorName}
@@ -83,27 +95,27 @@ export function PostView({
               evidencePostId={post.id}
               scope={scope}
               teamSlug={teamSlug}
+              detailMeta={(
+                <span className="inline-flex items-center gap-1.5">
+                  <span>{formatRelativeOrDate(post.createdAt)}</span>
+                  <span aria-hidden>·</span>
+                  <span className="inline-flex items-center gap-1"><Eye size={13} strokeWidth={1.8} />{post.viewCount.toLocaleString("ko-KR")}</span>
+                </span>
+              )}
             />
-            <div className="min-w-0 border-l border-[var(--ui-border)] pl-3">
-              <div className="mt-0.5 flex items-center gap-2 text-[13px] text-[var(--ui-muted)]">
-                <span>{formatRelativeOrDate(post.createdAt)}</span>
-                <span aria-hidden>·</span>
-                <span className="inline-flex items-center gap-1"><Eye size={13} strokeWidth={1.8} />{post.viewCount.toLocaleString("ko-KR")}</span>
-              </div>
-            </div>
           </div>
         </header>
 
-        <div className="mx-4 border-t border-[var(--ui-border)] sm:mx-8" />
+        <div className="mx-[14px] border-t border-[var(--ui-border)] md:mx-8" />
 
-        <div className="community-prose min-h-[160px] px-4 py-6 text-base leading-7 text-[var(--ui-text)] sm:min-h-[220px] sm:px-8 sm:py-9">
+        <div className="community-prose community-post-body min-h-[180px] px-[14px] py-6 text-[14px] leading-[1.75] text-[var(--ui-text)] md:min-h-[220px] md:px-8 md:py-9 md:text-base md:leading-7">
           {blinded ? (
             <BlindedContent
               label={blindLabel(post.blindedSource, "post")}
               description={blindDescription(post.blindedSource)}
               source={post.blindedSource}
             >
-              <h2 className="mb-4 text-lg font-bold text-[var(--ui-ink)] sm:text-xl">{post.title}</h2>
+              <h2 className="mb-4 text-lg font-bold text-[var(--ui-ink)] md:text-xl">{post.title}</h2>
               <PostContentViewer content={post.content} />
             </BlindedContent>
           ) : (
@@ -111,7 +123,7 @@ export function PostView({
           )}
         </div>
 
-        <div className="flex items-center justify-between gap-4 border-y border-[var(--ui-border)] px-4 py-5 sm:px-8 sm:py-6">
+        <div className="flex items-center justify-between gap-3 border-y border-[var(--ui-border)] px-[14px] py-4 md:gap-4 md:px-8 md:py-6">
           <ReactionButtons
             target="post"
             targetId={post.id}
@@ -126,16 +138,19 @@ export function PostView({
         </div>
 
         <section aria-label="댓글">
-          <div className="flex items-baseline gap-1 px-4 py-4 sm:px-8 sm:py-5">
-            <h2 className="text-lg font-bold text-[var(--ui-ink)]">댓글</h2>
-            <span className="text-sm font-semibold text-[var(--tp)] sm:text-base">{post.commentCount}</span>
+          <div className="flex items-baseline gap-1 px-[14px] py-4 md:px-8 md:py-5">
+            <h2 className="text-[17px] font-bold text-[var(--ui-ink)] md:text-lg">댓글</h2>
+            <span className="text-sm font-semibold text-[var(--tp)] md:text-base">{post.commentCount}</span>
           </div>
-          <div className="px-4 pb-5 sm:px-8 sm:pb-8">
+          <div className="hidden px-4 pb-5 md:block md:px-8 md:pb-8">
             <CommentForm postId={post.id} scope={scope} teamSlug={teamSlug} isGuest={!viewerId} />
           </div>
         <CommentList comments={comments} commentReactions={commentReactions} scope={scope} teamSlug={teamSlug} viewerId={viewerId} currentGuestKey={currentGuestKey} />
         </section>
       </SurfacePanel>
+      <div className="fixed inset-x-0 bottom-0 z-50 md:hidden">
+        <CommentForm postId={post.id} scope={scope} teamSlug={teamSlug} isGuest={!viewerId} variant="mobileDock" />
+      </div>
     </article>
   );
 }

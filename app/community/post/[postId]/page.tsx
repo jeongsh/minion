@@ -2,7 +2,6 @@ import { notFound } from "next/navigation";
 
 import { PostView } from "@/components/community/post-view";
 import { CommunityContentLayout } from "@/components/community/community-content-layout";
-import { PageHeader } from "@/components/ui/page-header";
 import { isCurrentUserAdmin } from "@/lib/auth/admin";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { getExistingGuestKey } from "@/lib/community/guest-identity";
@@ -39,11 +38,8 @@ export default async function HubPostDetailPage({
 
   return (
     <main className="subpage min-h-screen">
-      <div className="layout-wide flex flex-col gap-5 py-6 sm:py-8">
-        <PageHeader
-          title="게시글"
-          breadcrumbs={[{ label: "커뮤니티", href: "/community" }, { label: "게시글" }]}
-        />
+      <div className="layout-wide flex flex-col gap-0 py-0 sm:gap-5 sm:py-8">
+        <h1 className="sr-only">게시글</h1>
         <CommunityContentLayout posts={posts} scope="hub" currentPostId={post.id}>
           <PostView
             post={post}
