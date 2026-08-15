@@ -10,6 +10,7 @@ import { getAllTeams, getMatches, getStages, getTournaments } from "@/lib/data/l
 import { tournamentTypeLabel } from "@/lib/match-display";
 import { shouldUseWhiteLogoOnDark } from "@/lib/team-logos";
 import { filterMatchesBySegment, parseSeasonSegment, segmentLabel } from "@/lib/tournament-filters";
+import { isSupportedSeasonYear } from "@/lib/tournaments/season-2026";
 import { dateKeyKST, formatTimeKST, getMonthKST, getYearKST, KST_TIMEZONE, matchHref } from "@/lib/view-data";
 
 import { ScheduleFilters } from "./schedule-filters";
@@ -40,13 +41,16 @@ export default async function SchedulePage({
 }) {
   const params = await searchParams;
   const defaults = currentKSTMonthYear();
-  const activeYear = params.year ? Number(params.year) : defaults.year;
   const activeMonth = params.month ? Number(params.month) : defaults.month;
   const activeSegment = parseSeasonSegment(params.segment);
   const activeTeam = params.team ?? "all";
 
   const [matches, teams, tournaments, stages] = await Promise.all([getMatches(), getAllTeams(), getTournaments(), getStages()]);
-  const years = Array.from(new Set([...tournaments.map((item) => item.season).filter((year): year is number => Boolean(year)), activeYear])).sort((a, b) => b - a);
+  const requestedYear = params.year ? Number(params.year) : Number.NaN;
+  const tournamentYears = tournaments.map((item) => item.season).filter(isSupportedSeasonYear);
+  const yearCandidates = isSupportedSeasonYear(defaults.year) ? [...tournamentYears, defaults.year] : tournamentYears;
+  const years = Array.from(new Set(yearCandidates)).sort((a, b) => b - a);
+  const activeYear = years.includes(requestedYear) ? requestedYear : (years.includes(defaults.year) ? defaults.year : (years[0] ?? defaults.year));
   const selectedTeam = teams.find((team) => team.id === activeTeam);
   const filtered = filterMatchesBySegment(matches, tournaments, activeSegment, activeYear)
     .filter((match) => getYearKST(match.matchDate) === activeYear && getMonthKST(match.matchDate) === activeMonth && (!selectedTeam || match.teamAId === selectedTeam.id || match.teamBId === selectedTeam.id))

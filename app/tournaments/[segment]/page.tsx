@@ -15,7 +15,7 @@ import {
 } from "@/lib/tournaments/bracket";
 import { segmentThemeByKey } from "@/lib/tournaments/international-segments";
 import { buildSegmentNav } from "@/lib/tournaments/segment-nav";
-import { matchesTournamentSegment } from "@/lib/tournaments/season-2026";
+import { isSupportedSeasonYear, matchesTournamentSegment } from "@/lib/tournaments/season-2026";
 import type { Match, Player, Team, Tournament } from "@/lib/types";
 import { buildTeamStandingRows, dateKeyKST, matchHref } from "@/lib/view-data";
 
@@ -846,7 +846,7 @@ export default async function TournamentBracketPage({
     notFound();
   }
 
-  const seasons = [...new Set(segmentTournaments.map((tournament) => tournament.season))].sort(
+  const seasons = [...new Set(segmentTournaments.map((tournament) => tournament.season).filter(isSupportedSeasonYear))].sort(
     (a, b) => b - a,
   );
   const requestedSeason = search.year ? Number(search.year) : Number.NaN;

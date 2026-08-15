@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { DataTable } from "@/components/ui/data-table";
+import { isSupportedSeasonYear } from "@/lib/tournaments/season-2026";
 import { durationLabel, formatDateTime, matchHref, playerLabel } from "@/lib/view-data";
 import type { Match, Player, SetResult, Team, Tournament } from "@/lib/types";
 
@@ -31,7 +32,7 @@ export function TeamMatchHistory({ teamId, matches, sets, teams, players, tourna
   const years = [...new Set(
     matches
       .map((m) => tournamentMap.get(m.tournamentId)?.season)
-      .filter((y): y is number => y != null),
+      .filter(isSupportedSeasonYear),
   )].sort((a, b) => b - a);
 
   const leaguesInData = new Set(

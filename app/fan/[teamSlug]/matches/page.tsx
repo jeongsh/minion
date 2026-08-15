@@ -7,6 +7,7 @@ import { ScheduleList } from "@/components/domain/schedule-list";
 import { FanPageShell, FanSubpageHeader } from "@/components/fan/fan-page-shell";
 import { getAllTeams, getMatches, getStages, getTeamByFanSiteHost, getTeamBySlug, getTournaments } from "@/lib/data/lck";
 import { filterMatchesBySegment, parseSeasonSegment, segmentLabel } from "@/lib/tournament-filters";
+import { isSupportedSeasonYear } from "@/lib/tournaments/season-2026";
 import { getMonthKST, getYearKST, KST_TIMEZONE } from "@/lib/view-data";
 
 import { ScheduleFilters } from "@/app/schedule/schedule-filters";
@@ -35,16 +36,16 @@ export default async function FanSchedulePage({
   if (!team) notFound();
 
   const defaults = currentKSTMonthYear();
-  const activeYear = query.year ? Number(query.year) : defaults.year;
   const activeMonth = query.month ? Number(query.month) : defaults.month;
   const activeSegment = parseSeasonSegment(query.segment);
   const [teams, matches, tournaments, stages] = await Promise.all([
     getAllTeams(), getMatches(), getTournaments(), getStages(),
   ]);
-  const years = Array.from(new Set([
-    ...tournaments.map((item) => item.season).filter((year): year is number => Boolean(year)),
-    activeYear,
-  ])).sort((a, b) => b - a);
+  const requestedYear = query.year ? Number(query.year) : Number.NaN;
+  const tournamentYears = tournaments.map((item) => item.season).filter(isSupportedSeasonYear);
+  const yearCandidates = isSupportedSeasonYear(defaults.year) ? [...tournamentYears, defaults.year] : tournamentYears;
+  const years = Array.from(new Set(yearCandidates)).sort((a, b) => b - a);
+  const activeYear = years.includes(requestedYear) ? requestedYear : (years.includes(defaults.year) ? defaults.year : (years[0] ?? defaults.year));
   const filtered = filterMatchesBySegment(matches, tournaments, activeSegment, activeYear)
     .filter((match) =>
       (match.teamAId === team.id || match.teamBId === team.id) &&

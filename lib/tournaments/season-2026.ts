@@ -9,6 +9,11 @@ export type SeasonSegmentKey =
   | "kespa-cup";
 
 export const DEFAULT_SEASON_YEAR = 2026;
+export const MIN_SUPPORTED_SEASON_YEAR = 2026;
+
+export function isSupportedSeasonYear(year: number | null | undefined): year is number {
+  return typeof year === "number" && Number.isInteger(year) && year >= MIN_SUPPORTED_SEASON_YEAR;
+}
 
 export type SeasonSegment = {
   key: SeasonSegmentKey | "all";
