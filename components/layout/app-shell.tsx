@@ -3,8 +3,9 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  Bell,
   CalendarDays,
   ChevronDown,
   ChevronLeft,
@@ -24,11 +25,13 @@ import {
   X,
 } from "lucide-react";
 import { LogoutButton } from "@/components/auth/logout-button";
-import { HeaderSearch } from "@/components/layout/header-search";
 import { SiteFooter } from "@/components/layout/site-footer";
+import { useMatchActivity } from "@/components/match-activity/use-match-activity";
+import { NotificationPanel } from "@/components/notifications/notification-panel";
 import { RankAvatar } from "@/components/rank/rank-avatar";
 import { TeamLogo } from "@/components/ui/team-logo";
 import { teams as fallbackTeams } from "@/lib/team-themes";
+import type { LiveMatchActivity } from "@/lib/match-activity";
 import type { Team } from "@/lib/types";
 import type { Tier } from "@/lib/rank/config";
 
@@ -90,6 +93,37 @@ function isActiveRoute(pathname: string, href: string) {
   return href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
 }
 
+function HeaderLiveCard({ matches }: { matches: LiveMatchActivity[] }) {
+  if (matches.length === 0) return null;
+
+  const match = matches[0];
+
+  return (
+    <Link href={match.href} className="group grid h-11 grid-cols-[1fr_auto_1fr] items-center gap-2 overflow-hidden rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 shadow-sm transition hover:bg-[var(--ui-card-hover)] dark:bg-[var(--ui-surface-muted)]" aria-label={`${match.teamA.shortName} 대 ${match.teamB.shortName} 실시간 경기 바로 보기`}>
+      <span className="flex items-center gap-1.5 justify-self-start">
+        <span className="h-2 w-2 shrink-0 animate-pulse rounded-full !bg-[#ff3158]" aria-hidden />
+        <span className="shrink-0 text-[12px] font-medium text-[#e51643]">LIVE</span>
+      </span>
+      <span className="flex items-center gap-2">
+        {match.teamA.logoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={match.teamA.logoUrl} alt="" className="h-5 w-5 shrink-0 object-contain" />
+        ) : null}
+        <span className="truncate text-[13px] font-bold">{match.teamA.shortName}</span>
+        <span className="shrink-0 text-[14px] font-black tabular-nums text-[var(--ui-ink)]">{match.teamAScore ?? 0} : {match.teamBScore ?? 0}</span>
+        <span className="truncate text-[13px] font-bold">{match.teamB.shortName}</span>
+        {match.teamB.logoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={match.teamB.logoUrl} alt="" className="h-5 w-5 shrink-0 object-contain" />
+        ) : null}
+      </span>
+      <span className="flex justify-self-end text-[var(--ui-muted)] transition-transform group-hover:translate-x-0.5 group-hover:text-[var(--ui-ink)]">
+        <ChevronRight size={17} />
+      </span>
+    </Link>
+  );
+}
+
 function focusRouteMeta(pathname: string) {
   if (pathname === "/login") return { title: "로그인", backHref: "/" };
   if (pathname === "/signup") return { title: "회원가입", backHref: "/login" };
@@ -133,6 +167,7 @@ export function AppShell({
   const [primaryHeaderVisible, setPrimaryHeaderVisible] = useState(true);
   const lastScrollY = useRef(0);
   const [teamsOpen, setTeamsOpen] = useState(false);
+  const [notificationPanelOpen, setNotificationPanelOpen] = useState(false);
   const fanKey = pathname.startsWith("/fan/") ? pathname.split("/")[2] : null;
   const fanRoute = pathname.startsWith("/fan/");
   const hubPostDetail = /^\/community\/post\/[^/]+$/.test(pathname);
@@ -144,11 +179,26 @@ export function AppShell({
   const showHubLocalNavigation = compactHubShell && !communityPostDetail && pathname !== "/fan" && !pathname.startsWith("/admin");
   const followedTeamIdSet = new Set(followedTeamIds);
   const followedTeams = shellTeams.filter((team) => followedTeamIdSet.has(team.id) || followedTeamIdSet.has(team.fanSiteHost));
+  const followedActivityTeamIds = useMemo(() => {
+    const followedIds = new Set(followedTeamIds);
+    return shellTeams
+      .filter((team) => followedIds.has(team.id) || followedIds.has(team.fanSiteHost))
+      .map((team) => team.id);
+  }, [followedTeamIds, shellTeams]);
   const channelTeams = shellTeams.filter((team) => !followedTeamIdSet.has(team.id) && !followedTeamIdSet.has(team.fanSiteHost));
   const currentFanTeam = fanKey ? shellTeams.find((team) => team.fanSiteHost === fanKey || team.slug === fanKey) : null;
   const favoriteTeam = favoriteTeamId ? shellTeams.find((team) => team.id === favoriteTeamId) : null;
   const communityPostTitle = fanPostDetail ? (currentFanTeam?.shortName ?? fanPostDetail[1].toUpperCase()) : "LCK";
   const communityPostBackHref = fanPostDetail ? `/fan/${fanPostDetail[1]}/community` : "/community";
+  const {
+    activity: matchActivity,
+    notifications,
+    unreadNotificationCount,
+    markNotificationRead,
+    markAllNotificationsRead,
+    removeNotification,
+    clearNotifications,
+  } = useMatchActivity(true, followedActivityTeamIds);
 
   useEffect(() => {
     document.documentElement.style.setProperty("--shell-lnb-width", collapsed ? "72px" : "216px");
@@ -290,10 +340,17 @@ export function AppShell({
         <Link href="/" className={`ml-1.5 shrink-0 text-[22px] font-black tracking-[-0.06em] text-[#18191c] sm:ml-2 sm:text-[25px] dark:text-white ${fanRoute ? "hidden md:block" : "block"}`}>
           <Image src="/logo.svg" alt="MINION" width={171} height={39} className="h-auto w-16 sm:w-24" priority />
         </Link>
-        <div className="absolute left-1/2 hidden w-[360px] -translate-x-1/2 min-[1200px]:block">
-          <HeaderSearch className="w-full" />
+        <div
+          className="absolute hidden -translate-x-1/2 transition-[left] duration-200 min-[1200px]:block"
+          style={{ left: `calc(50% + ${collapsed ? 36 : 108}px)` }}
+        >
+          <HeaderLiveCard matches={matchActivity.liveMatches} />
         </div>
-        <button type="button" onClick={toggleDarkMode} className="ml-auto mr-2 grid h-11 w-11 shrink-0 place-items-center rounded-xl text-[#62666d] transition hover:bg-[var(--ui-card-hover)] sm:mr-2 dark:bg-[rgba(0,0,0,0)] dark:text-[#a7acb5]" aria-label="색상 모드 전환" title="색상 모드 전환">
+        <button type="button" onClick={() => setNotificationPanelOpen(true)} className="relative ml-auto grid h-11 w-11 shrink-0 place-items-center rounded-xl text-[#62666d] transition hover:bg-[var(--ui-card-hover)] dark:text-[#a7acb5]" aria-label={`알림${unreadNotificationCount > 0 ? `, 읽지 않은 알림 ${unreadNotificationCount}개` : ""}`} aria-haspopup="dialog">
+          <Bell size={20} />
+          {unreadNotificationCount > 0 ? <span className="absolute right-0.5 top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-[var(--accent)] px-0.5 text-[12px] font-medium leading-none text-white" aria-hidden>{unreadNotificationCount > 9 ? "9+" : unreadNotificationCount}</span> : null}
+        </button>
+        <button type="button" onClick={toggleDarkMode} className="mr-2 grid h-11 w-11 shrink-0 place-items-center rounded-xl text-[#62666d] transition hover:bg-[var(--ui-card-hover)] sm:mr-2 dark:bg-[rgba(0,0,0,0)] dark:text-[#a7acb5]" aria-label="색상 모드 전환" title="색상 모드 전환">
           <Moon size={20} className="dark:hidden" />
           <Sun size={20} className="hidden dark:block" />
         </button>
@@ -399,7 +456,7 @@ export function AppShell({
           {compactNav.map(({ href, label, icon: Icon }) => {
             const active = isGlobalNavActive(pathname, href);
             const destination = href === "/fan" ? (favoriteTeam ? `/fan/${favoriteTeam.fanSiteHost}` : "/teams") : href;
-            return <Link key={href} href={destination} aria-current={active ? "page" : undefined} title={label} className={`mb-1 grid h-12 w-12 place-items-center rounded-xl transition ${active ? "bg-[var(--ui-card-bg)] text-[#18191c] dark:text-white" : "text-[#777b82] hover:bg-[var(--ui-card-hover)]"}`}>{href === "/fan" && favoriteTeam ? <TeamLogo team={favoriteTeam} size="h-7 w-7" themeAware /> : <Icon size={21} />}<span className="sr-only">{label}</span></Link>;
+            return <Link key={href} href={destination} aria-current={active ? "page" : undefined} title={label} className={`relative mb-1 grid h-12 w-12 place-items-center rounded-xl transition ${active ? "bg-[var(--ui-card-bg)] text-[#18191c] dark:text-white" : "text-[#777b82] hover:bg-[var(--ui-card-hover)]"}`}><span className="relative">{href === "/fan" && favoriteTeam ? <TeamLogo team={favoriteTeam} size="h-7 w-7" themeAware /> : <Icon size={21} />}</span><span className="sr-only">{label}</span></Link>;
           })}
         </aside>
       ) : null}
@@ -427,10 +484,21 @@ export function AppShell({
             const active = isGlobalNavActive(pathname, href);
             const fanItem = href === "/fan";
             const destination = fanItem ? (favoriteTeam ? `/fan/${favoriteTeam.fanSiteHost}` : "/teams") : href;
-            return <Link key={href} href={destination} aria-current={active ? "page" : undefined} className={`font-paperozi relative flex min-w-0 flex-1 flex-col items-center gap-0.5 px-1 py-1 text-[11px] font-medium ${active ? "text-[var(--ui-ink)]" : "text-[#777b82]"}`}><span className={`grid place-items-center ${fanItem && favoriteTeam ? "-mt-5 h-10 w-10 overflow-hidden rounded-full border-[3px] border-[var(--page-background)] bg-[var(--ui-surface-muted)]" : "h-5 w-5"}`}>{fanItem && favoriteTeam ? <TeamLogo team={favoriteTeam} size="h-7 w-7" plain themeAware /> : <Icon size={20} strokeWidth={active ? 2.5 : 2} />}</span><span className="max-w-full truncate">{label}</span></Link>;
+            return <Link key={href} href={destination} aria-current={active ? "page" : undefined} className={`font-paperozi relative flex min-w-0 flex-1 flex-col items-center gap-0.5 px-1 py-1 text-[11px] font-medium ${active ? "text-[var(--ui-ink)]" : "text-[#777b82]"}`}><span className={`relative grid place-items-center ${fanItem && favoriteTeam ? "-mt-5 h-10 w-10 overflow-hidden rounded-full border-[3px] border-[var(--page-background)] bg-[var(--ui-surface-muted)]" : "h-5 w-5"}`}>{fanItem && favoriteTeam ? <TeamLogo team={favoriteTeam} size="h-7 w-7" plain themeAware /> : <Icon size={20} strokeWidth={active ? 2.5 : 2} />}</span><span className="max-w-full truncate">{label}</span></Link>;
           })}
         </nav>
       ) : null}
+
+      <NotificationPanel
+        open={notificationPanelOpen}
+        onClose={() => setNotificationPanelOpen(false)}
+        notifications={notifications}
+        unreadCount={unreadNotificationCount}
+        onRead={markNotificationRead}
+        onReadAll={markAllNotificationsRead}
+        onRemove={removeNotification}
+        onClear={clearNotifications}
+      />
     </div>
   );
 }
