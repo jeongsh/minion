@@ -19,7 +19,7 @@ export function SectionHeading({
 }) {
   return (
     <div className={`section-rule flex items-end justify-between gap-4 pb-2 ${className}`}>
-      <h2 className="home-section-title text-xl leading-tight tracking-[-0.02em] text-[var(--ink)]">
+      <h2 className="home-section-title text-[length:var(--ui-title-size)] leading-tight tracking-[-0.02em] text-[var(--ink)]">
         {title}
       </h2>
       {aside ?? (caption ? <span className="pb-[2px] text-[13px] text-[var(--ink-3)]">{caption}</span> : null)}

@@ -482,7 +482,7 @@ function PlayerStatBoard({
 
   return (
     <section className="flex flex-col gap-4" aria-labelledby="player-stats">
-      <h2 id="player-stats" className="home-section-title text-lg text-[var(--ui-ink)]">
+      <h2 id="player-stats" className="home-section-title text-[length:var(--ui-title-size)] text-[var(--ui-ink)]">
         선수 스탯
       </h2>
       {blueRows.length + redRows.length === 0 ? (
@@ -646,7 +646,7 @@ export async function SetDetailContent({
         <div className="mb-3 flex items-end justify-between gap-3 px-0.5">
           <h2
             id="postgame-breakdown"
-            className="home-section-title text-lg text-[var(--ui-ink)]"
+            className="home-section-title text-[length:var(--ui-title-size)] text-[var(--ui-ink)]"
           >
             스코어보드
           </h2>
@@ -799,7 +799,7 @@ export async function SetDetailContent({
       />
 
       <section className="flex flex-col gap-3" aria-labelledby="set-timeline">
-        <h2 id="set-timeline" className="home-section-title text-lg text-[var(--ui-ink)]">
+        <h2 id="set-timeline" className="home-section-title text-[length:var(--ui-title-size)] text-[var(--ui-ink)]">
           타임라인
         </h2>
         <div className="overflow-hidden rounded-lg border border-border/60 bg-[var(--ui-surface)]">

@@ -608,7 +608,7 @@ export default async function MatchDetailPage({
           className="mobile-full-bleed mobile-surface-media rounded-md border border-border bg-surface p-3 md:mx-0"
           aria-labelledby="match-video"
         >
-          <h2 id="match-video" className="home-section-title text-lg">
+          <h2 id="match-video" className="home-section-title text-[length:var(--ui-title-size)]">
             영상
           </h2>
           {match.vodUrl || setVods.length > 0 ? (

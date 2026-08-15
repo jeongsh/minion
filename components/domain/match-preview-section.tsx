@@ -193,7 +193,7 @@ export function MatchPreviewSection({
   return (
     <section className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h2 className="home-section-title text-lg text-[#111827]">예정 경기</h2>
+        <h2 className="home-section-title text-[length:var(--ui-title-size)] text-[#111827]">예정 경기</h2>
         <Link
           href="/schedule"
           className="text-[13px] font-semibold text-[#98a2b3] hover:text-accent"

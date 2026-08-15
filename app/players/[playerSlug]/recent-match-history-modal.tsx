@@ -265,7 +265,7 @@ export function RecentMatchHistoryModal({
             className="flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-[24px] bg-[var(--ui-surface)] text-[var(--ui-ink)] shadow-2xl sm:max-w-7xl sm:rounded-[24px]"
           >
             <div className="flex min-h-14 items-center justify-between border-b border-[var(--ui-border)] px-4 sm:min-h-16 sm:px-5">
-              <h2 className="home-section-title text-[17px] text-[var(--ui-ink)] sm:text-lg">최근 경기 기록</h2>
+              <h2 className="home-section-title text-[length:var(--ui-title-size)] text-[var(--ui-ink)]">최근 경기 기록</h2>
               <button
                 type="button"
                 onClick={() => setOpen(false)}

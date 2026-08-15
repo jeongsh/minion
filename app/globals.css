@@ -53,7 +53,7 @@
   --ui-ad-surface: #e7e8ea;
   --ui-card-radius: 16px;
   --ui-control-radius: 8px;
-  --ui-title-size: 18px;
+  --ui-title-size: 16px;
   --ui-header-height: 56px;
   --ui-sidebar-width: 216px;
   --shell-lnb-width: 216px;
@@ -90,6 +90,12 @@
   /* 블루/레드 팀 색 — 라이트에선 흰 배경에서 잘 보이도록 진하고 채도를 살짝 낮춘 톤(형광 방지) */
   --team-blue: #2262f8;
   --team-red: #ff2f44;
+}
+
+@media (min-width: 640px) {
+  :root {
+    --ui-title-size: 18px;
+  }
 }
 
 @theme inline {

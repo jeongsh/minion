@@ -265,7 +265,7 @@ export function ScheduleSection({ matches }: { matches: ScheduleMatch[] }) {
       {/* 경기 목록 (좁은 쪽, 세로 스택) */}
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <h2 className="home-section-title text-lg text-[#111827]">{selectedLabel}</h2>
+          <h2 className="home-section-title text-[length:var(--ui-title-size)] text-[#111827]">{selectedLabel}</h2>
           {selectedDate && (
             <button
               type="button"

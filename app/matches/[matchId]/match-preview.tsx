@@ -104,7 +104,7 @@ function BriefingRow({
         align === "center" ? "sm:items-center" : "sm:items-start"
       }`}
     >
-      <span className="text-sm font-bold text-[var(--ui-muted)]">{label}</span>
+      <span className="text-[13px] font-bold text-[var(--ui-muted)] sm:text-sm">{label}</span>
       <div className="min-w-0">{children}</div>
     </div>
   );
@@ -125,8 +125,8 @@ function MetricCard({
 }) {
   return (
     <div className="rounded-lg bg-[var(--ui-surface)] px-2 py-2 sm:px-3">
-      <div className="text-sm font-bold text-[var(--ui-muted)]">{label}</div>
-      <div className="mt-1 whitespace-nowrap text-[15px] font-black tabular-nums sm:text-base">
+      <div className="text-[13px] font-bold text-[var(--ui-muted)] sm:text-sm">{label}</div>
+      <div className="mt-1 whitespace-nowrap text-sm font-black tabular-nums sm:text-base">
         <span style={{ color: colorA }}>{valueA}</span>
         <span className="px-0.5 font-bold text-[var(--ui-muted)] sm:px-1">vs</span>
         <span style={{ color: colorB }}>{valueB}</span>
@@ -260,17 +260,19 @@ export function MatchPreview({
         aria-labelledby="ai-match-preview"
       >
         <div className="mb-3 flex items-center justify-between gap-3">
-          <h2 id="ai-match-preview" className="home-section-title text-lg text-[var(--ui-ink)]">
+          <h2 id="ai-match-preview" className="home-section-title text-[length:var(--ui-title-size)] text-[var(--ui-ink)]">
             AI 브리핑
           </h2>
         </div>
 
         <BriefingRow label="판세 요약">
-          <p className="text-base leading-7 text-[var(--ui-text)]">{aiPreview.summary}</p>
+          <p className="text-sm leading-6 text-[var(--ui-text)] sm:text-base sm:leading-7">
+            {aiPreview.summary}
+          </p>
         </BriefingRow>
 
         <BriefingRow label="눈여겨볼 곳">
-          <p className="text-base font-bold leading-7 text-[var(--ui-ink)]">
+          <p className="text-sm font-bold leading-6 text-[var(--ui-ink)] sm:text-base sm:leading-7">
             <span
               style={{
                 background:
@@ -288,10 +290,14 @@ export function MatchPreview({
             <div className="flex items-center justify-between gap-3">
               <span className="flex min-w-0 items-center gap-2">
                 <TeamLogo team={teamA} size="h-5 w-5" plain themeAware />
-                <b className="text-base font-black tabular-nums text-[var(--ui-ink)]">{winA}%</b>
+                <b className="text-sm font-black tabular-nums text-[var(--ui-ink)] sm:text-base">
+                  {winA}%
+                </b>
               </span>
               <span className="flex min-w-0 items-center gap-2">
-                <b className="text-base font-black tabular-nums text-[var(--ui-ink)]">{100 - winA}%</b>
+                <b className="text-sm font-black tabular-nums text-[var(--ui-ink)] sm:text-base">
+                  {100 - winA}%
+                </b>
                 <TeamLogo team={teamB} size="h-5 w-5" plain themeAware />
               </span>
             </div>

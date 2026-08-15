@@ -25,7 +25,7 @@ export function CommunityContentLayout({ children, posts, scope, teamSlug, curre
       </div>
       <aside className="hidden w-full max-w-[300px] flex-col gap-4 xl:sticky xl:top-[88px] xl:flex" aria-label="커뮤니티 보조 정보">
         <section className="overflow-hidden rounded-[var(--ui-card-radius)] border border-[var(--ui-border)] bg-[var(--ui-surface)]">
-          <h2 className="home-section-title border-b border-[var(--ui-border)] px-4 py-3.5 text-lg text-[var(--ui-ink)]">인기글</h2>
+          <h2 className="home-section-title border-b border-[var(--ui-border)] px-4 py-3.5 text-[length:var(--ui-title-size)] text-[var(--ui-ink)]">인기글</h2>
           {popular.length > 0 ? (
             <ol className="divide-y divide-[var(--ui-border)] px-4">
               {popular.map((post, index) => (

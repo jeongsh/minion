@@ -133,7 +133,7 @@ export default async function FanVideoDetailPage({
 
       <aside className="flex min-w-0 flex-col min-[1200px]:sticky min-[1200px]:top-32">
         <div className="mb-4 flex shrink-0 items-center justify-between">
-          <h2 className="home-section-title text-lg text-[#0f0f0f]">관련 영상</h2>
+          <h2 className="home-section-title text-[length:var(--ui-title-size)] text-[#0f0f0f]">관련 영상</h2>
           <Link href={`/fan/${team.fanSiteHost}/videos`} className="text-[13px] font-semibold text-[#606060] hover:text-accent">전체 보기</Link>
         </div>
         <div className="grid gap-3 min-[1200px]:max-h-[calc(100vh-12rem)] min-[1200px]:overflow-y-auto min-[1200px]:pr-1">

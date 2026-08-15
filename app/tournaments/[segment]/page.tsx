@@ -1161,7 +1161,7 @@ export default async function TournamentBracketPage({
       <section className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-3">
-            <h2 className="home-section-title text-[20px] text-[var(--ui-ink)]">
+            <h2 className="home-section-title text-[length:var(--ui-title-size)] text-[var(--ui-ink)]">
               {isGroupStageBracket ? "조 순위" : "대진표"}
             </h2>
             {supportsGroupToggle ? (
