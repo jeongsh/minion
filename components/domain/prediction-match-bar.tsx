@@ -39,7 +39,7 @@ function TeamChoice({
       className={`prediction-match-choice ${
         right ? "prediction-match-choice--right" : "prediction-match-choice--left"
       } relative flex min-w-0 items-center gap-1.5 px-2 py-0 text-left transition active:scale-[0.99] disabled:cursor-default disabled:active:scale-100 sm:gap-3 sm:px-5 xl:gap-3 ${
-        right ? "text-right xl:flex-row-reverse" : ""
+        right ? "flex-row-reverse text-right" : ""
       }`}
       style={{ "--prediction-choice-color": color } as CSSProperties}
       aria-pressed={selected}
