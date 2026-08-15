@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 
 import { PredictionMatchBar } from "@/components/domain/prediction-match-bar";
 import { SetVodPlayer } from "@/components/domain/set-vod-player";
-import { SegmentedControl, UnderlineNav, type TabItem } from "@/components/ui/tabs";
+import { SegmentedControl, type TabItem } from "@/components/ui/tabs";
 import { AdSlot } from "@/components/ui/ad-slot";
 import { TeamLogo } from "@/components/ui/team-logo";
 import {
@@ -80,21 +80,21 @@ function CompactTeamBlock({
   const resultLabel = result === "WIN" ? "승리" : result === "LOSS" ? "패배" : null;
   const nameBlock = (
     <div className={`min-w-0 ${isRight ? "text-left" : "text-right"}`}>
-      <p className="truncate text-[18px] font-black leading-none text-[var(--ui-ink)] sm:text-[22px]">
+      <p className="truncate text-[16px] font-black leading-tight text-[var(--ui-ink)] sm:text-[20px]">
         {teamName}
       </p>
       {resultLabel ? (
-        <p className={`mt-1 text-xs font-medium ${result === "WIN" ? "text-[var(--accent)]" : "text-[var(--ui-muted)]"}`}>
+        <p className={`mt-0.5 text-[10px] font-bold tracking-[0.08em] ${result === "WIN" ? "text-[var(--accent)]" : "text-[var(--ui-muted)]"}`}>
           {resultLabel}
         </p>
       ) : null}
     </div>
   );
-  const logo = <TeamLogo team={team} size="h-10 w-10 sm:h-14 sm:w-14" plain themeAware />;
+  const logo = <TeamLogo team={team} size="h-9 w-9 sm:h-12 sm:w-12" plain themeAware />;
 
   return (
     <div
-      className={`grid min-w-0 items-center gap-2 px-1 py-1 sm:gap-3 sm:px-2 ${
+      className={`grid min-w-0 items-center gap-2 px-0.5 sm:gap-3 sm:px-1 ${
         isRight
           ? "justify-self-stretch grid-cols-[auto_minmax(0,1fr)]"
           : "justify-self-stretch grid-cols-[minmax(0,1fr)_auto]"
@@ -123,8 +123,8 @@ function PlayerHighlight({
   player?: Player;
 }) {
   return (
-    <span className="flex min-w-0 items-center gap-1.5">
-      <span className="grid h-6 w-6 shrink-0 place-items-center overflow-hidden rounded-full bg-[var(--ui-surface-muted)]">
+    <span className="flex min-w-0 items-center gap-1.5 rounded-full bg-[var(--ui-surface)] py-1 pl-1 pr-2 shadow-sm">
+      <span className="grid h-5 w-5 shrink-0 place-items-center overflow-hidden rounded-full bg-[var(--ui-surface-muted)]">
         {player?.profileImageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={player.profileImageUrl} alt="" className="h-full w-full object-cover object-top" />
@@ -132,8 +132,8 @@ function PlayerHighlight({
           <span className="text-xs font-medium text-[var(--ui-muted)]">{player?.name?.slice(0, 2) ?? "-"}</span>
         )}
       </span>
-      <span className="text-xs font-medium text-[var(--ui-muted)]">{label}</span>
-      <span className="truncate text-xs font-medium text-[var(--ui-ink)]">{player?.name ?? "집계 전"}</span>
+      <span className="text-[10px] font-bold tracking-[0.08em] text-[var(--ui-muted)]">{label}</span>
+      <span className="truncate text-[11px] font-bold text-[var(--ui-ink)]">{player?.name ?? "집계 전"}</span>
     </span>
   );
 }
@@ -203,13 +203,29 @@ function TabNav({
   ];
 
   return (
-    <UnderlineNav
-      items={items}
-      activeKey={activeTab}
-      ariaLabel="매치 상세 탭"
-      bordered={false}
-      className="border-t border-[var(--ui-border)] px-4 sm:px-6"
-    />
+    <nav
+      aria-label="매치 상세 탭"
+      className="tab-scroll grid max-w-full grid-flow-col auto-cols-fr gap-0.5 overflow-x-auto rounded-[10px] bg-[var(--ui-card-bg)] p-[3px]"
+    >
+      {items.map((item) => {
+        const isActive = item.key === activeTab;
+
+        return (
+          <Link
+            key={item.key}
+            href={item.href}
+            aria-current={isActive ? "page" : undefined}
+            className={`flex h-8 min-w-[4.25rem] shrink-0 items-center justify-center whitespace-nowrap rounded-lg px-2 text-[14px] transition-colors ${
+              isActive
+                ? "border border-[var(--ui-border)] bg-[var(--ui-surface)] font-extrabold text-[var(--ui-ink)] dark:bg-[var(--ui-border)]"
+                : "font-semibold text-[var(--ui-muted)] hover:text-[var(--ui-ink)]"
+            }`}
+          >
+            {item.label}
+          </Link>
+        );
+      })}
+    </nav>
   );
 }
 
@@ -231,7 +247,7 @@ function SetSelector({
   if (sets.length === 0 && !snapshotHref) return null;
 
   return (
-    <div className="sticky top-[var(--ui-header-height)] z-30 -mx-1 flex items-center justify-between gap-2 bg-[var(--ui-surface)] px-1 py-1.5">
+    <div className="schedule-mobile-sticky sticky z-20 -mx-[var(--layout-gutter)] flex items-center justify-between gap-2 border-b border-[var(--ui-border)] bg-[var(--page-background)] px-[var(--layout-gutter)] py-1 md:mx-0 md:border-b-0 md:px-0 md:py-1.5">
       {sets.length > 0 ? (
         <SegmentedControl
           items={sets.map((set) => ({
@@ -521,47 +537,51 @@ export default async function MatchDetailPage({
         페이지 제목 역할까지 이 카드가 겸한다. 별도 PageHeader를 두면 팀명이 카드와 그대로
         겹치고, 남는 건 400 weight 한 줄뿐이라 아래 스코어에 눌려 헤더가 없느니만 못했다.
       */}
-      <section className="mobile-full-bleed mobile-surface-section overflow-hidden rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] md:mx-0" aria-label="매치 요약">
-        <h1 className="sr-only">{`${teamAName} vs ${teamBName}`}</h1>
+      <div className="flex flex-col gap-2">
+        <section className="mobile-full-bleed overflow-hidden rounded-md border border-[var(--ui-border)] md:mx-0" aria-label="매치 요약">
+          <h1 className="sr-only">{`${teamAName} vs ${teamBName}`}</h1>
 
-        <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 border-b border-[var(--ui-border)] px-4 py-2.5 text-[12px] font-medium text-[var(--ui-muted)] sm:px-6">
-          <span className="min-w-0 truncate text-left">{tournament?.name ?? "대회 미지정"}</span>
-          {pomPlayer ? (
-            <PlayerHighlight label="POM" player={pomPlayer} />
-          ) : (
-            <span className="text-[11px] uppercase tracking-[0.08em]">{displayStatusLabel}</span>
-          )}
-          <span className="min-w-0 truncate text-right">
-            {stage?.name ?? "스테이지 미지정"} · BO{match.bestOf ?? "-"}
-          </span>
-        </div>
-
-        <div className="mx-auto grid w-full max-w-[720px] min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 px-4 py-4 sm:gap-5 sm:px-6 sm:py-5">
-          <CompactTeamBlock team={teamA} teamName={teamAName} result={teamAResult} />
-
-          <div className="flex min-w-[5.75rem] shrink-0 flex-col items-center px-1 sm:min-w-[7.5rem]">
-            {hasScore ? (
-              <>
-                <div className="flex items-center gap-2 rounded-md bg-[var(--ui-card-bg)] px-3 py-2 text-[26px] font-black leading-none tabular-nums sm:text-[32px]">
-                  <span className={teamAResult === "LOSS" ? "text-[var(--ui-muted)]" : "text-[var(--ui-ink)]"}>{scoreLabel(match.teamAScore)}</span>
-                  <span className="text-sm font-medium text-[var(--ui-muted)]">:</span>
-                  <span className={teamBResult === "LOSS" ? "text-[var(--ui-muted)]" : "text-[var(--ui-ink)]"}>{scoreLabel(match.teamBScore)}</span>
-                </div>
-                <span className="mt-1.5 text-[11px] font-medium text-[var(--ui-muted)]">{formatDateTime(match.matchDate)}</span>
-              </>
+          <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 px-4 py-2 text-[11px] font-medium text-[var(--ui-muted)] sm:px-6">
+            <span className="min-w-0 truncate text-left font-bold text-[var(--ui-ink)]">{tournament?.name ?? "대회 미지정"}</span>
+            {pomPlayer ? (
+              <PlayerHighlight label="POM" player={pomPlayer} />
             ) : (
-              <>
-                <span className="text-2xl font-black leading-none text-[var(--ui-ink)] sm:text-[34px]">VS</span>
-                <span className="mt-1.5 text-[11px] font-medium text-[var(--ui-muted)]">{formatDateTime(match.matchDate)}</span>
-              </>
+              <span className="rounded-full bg-[var(--ui-ink)] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--ui-surface)]">
+                {displayStatusLabel}
+              </span>
             )}
+            <span className="min-w-0 truncate text-right">
+              {stage?.name ?? "스테이지 미지정"} · BO{match.bestOf ?? "-"}
+            </span>
           </div>
 
-          <CompactTeamBlock align="right" team={teamB} teamName={teamBName} result={teamBResult} />
-        </div>
+          <div className="mx-auto grid w-full max-w-[720px] min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 px-4 py-3 sm:gap-5 sm:px-6 sm:py-4">
+            <CompactTeamBlock team={teamA} teamName={teamAName} result={teamAResult} />
+
+            <div className="flex min-w-[5.5rem] shrink-0 flex-col items-center px-1 sm:min-w-[7rem]">
+              {hasScore ? (
+                <>
+                  <div className="flex items-center gap-2 rounded-xl bg-[var(--ui-ink)] px-3.5 py-2 text-[25px] font-black leading-none text-[var(--ui-surface)] shadow-sm tabular-nums sm:text-[30px]">
+                    <span className={teamAResult === "LOSS" ? "opacity-45" : ""}>{scoreLabel(match.teamAScore)}</span>
+                    <span className="text-xs font-medium opacity-40">:</span>
+                    <span className={teamBResult === "LOSS" ? "opacity-45" : ""}>{scoreLabel(match.teamBScore)}</span>
+                  </div>
+                  <span className="mt-1 text-[10px] font-medium text-[var(--ui-muted)] sm:text-[11px]">{formatDateTime(match.matchDate)}</span>
+                </>
+              ) : (
+                <>
+                  <span className="rounded-xl bg-[var(--ui-ink)] px-4 py-2 text-xl font-black leading-none text-[var(--ui-surface)] shadow-sm sm:text-[28px]">VS</span>
+                  <span className="mt-1 text-[10px] font-medium text-[var(--ui-muted)] sm:text-[11px]">{formatDateTime(match.matchDate)}</span>
+                </>
+              )}
+            </div>
+
+            <CompactTeamBlock align="right" team={teamB} teamName={teamBName} result={teamBResult} />
+          </div>
+        </section>
 
         <TabNav activeTab={activeTab} sets={matchSets} showLive={match.status !== "completed"} />
-      </section>
+      </div>
 
       {activeTab === "preview" ? (
         <MatchPreview
