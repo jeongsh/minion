@@ -6,6 +6,17 @@ import { NewsThumbnail } from "@/components/news/news-thumbnail";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { formatNewsDate, type NewsArticle } from "@/lib/data/news";
 
+function isOsenArticle(article: NewsArticle) {
+  if (article.source.trim().toLocaleLowerCase("ko-KR") === "osen") return true;
+
+  try {
+    const hostname = new URL(article.url).hostname.toLowerCase().replace(/^www\./, "");
+    return hostname === "osen.co.kr" || hostname.endsWith(".osen.co.kr");
+  } catch {
+    return false;
+  }
+}
+
 function LeadNewsCard({ article }: { article: NewsArticle }) {
   const [hasThumbnail, setHasThumbnail] = useState(Boolean(article.thumbnailUrl));
 
@@ -36,15 +47,18 @@ function LeadNewsCard({ article }: { article: NewsArticle }) {
 
 export function HomeNewsSection({ articles }: { articles: NewsArticle[] }) {
   if (articles.length === 0) return null;
-  const [lead, ...secondary] = articles;
+  const lead = articles.find((article) => !isOsenArticle(article));
+  const secondary = lead
+    ? articles.filter((article) => article.id !== lead.id)
+    : articles;
 
   return (
     <section aria-labelledby="home-news-heading">
       <SectionHeading href="/news">
         <span id="home-news-heading">LCK 뉴스</span>
       </SectionHeading>
-      <div className="grid gap-5 rounded-2xl border border-[var(--ui-card-divider)] p-3 sm:p-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(320px,1fr)] lg:gap-8">
-        <LeadNewsCard article={lead} />
+      <div className={`grid gap-5 rounded-2xl border border-[var(--ui-card-divider)] p-3 sm:p-4 ${lead ? "lg:grid-cols-[minmax(0,1.5fr)_minmax(320px,1fr)] lg:gap-8" : ""}`}>
+        {lead ? <LeadNewsCard article={lead} /> : null}
         <div className="grid content-start lg:py-1">
           {secondary.map((article, index) => (
             <div
