@@ -10,6 +10,7 @@ export function AdaptiveDialog({
   children,
   triggerClassName = "",
   triggerAriaLabel,
+  triggerAriaCurrent,
   panelClassName = "sm:max-w-[680px]",
 }: {
   title: string;
@@ -17,6 +18,7 @@ export function AdaptiveDialog({
   children: React.ReactNode;
   triggerClassName?: string;
   triggerAriaLabel?: string;
+  triggerAriaCurrent?: "page";
   /** 데스크탑 패널 폭 등 패널 자체 스타일. 기본은 본문형 680px. */
   panelClassName?: string;
 }) {
@@ -29,6 +31,7 @@ export function AdaptiveDialog({
     if (!open) return;
     const previous = document.body.style.overflow;
     const activeElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const triggerElement = triggerRef.current;
     document.body.style.overflow = "hidden";
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") setOpen(false);
@@ -56,13 +59,13 @@ export function AdaptiveDialog({
     return () => {
       document.body.style.overflow = previous;
       window.removeEventListener("keydown", closeOnEscape);
-      (activeElement ?? triggerRef.current)?.focus();
+      (activeElement ?? triggerElement)?.focus();
     };
   }, [open]);
 
   return (
     <>
-      <button ref={triggerRef} type="button" onClick={() => setOpen(true)} className={triggerClassName} aria-label={triggerAriaLabel} aria-haspopup="dialog" aria-expanded={open}>
+      <button ref={triggerRef} type="button" onClick={() => setOpen(true)} className={triggerClassName} aria-label={triggerAriaLabel} aria-current={triggerAriaCurrent} aria-haspopup="dialog" aria-expanded={open}>
         {trigger}
       </button>
       {open && typeof document !== "undefined"

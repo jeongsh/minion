@@ -22,22 +22,34 @@ test("mobile fan pages keep global and local navigation distinct", async ({ page
 
   const globalNav = page.getByRole("navigation", { name: "모바일 주요 메뉴" });
   await expect(globalNav).toBeVisible();
-  await expect(globalNav.getByRole("link", { name: "팬", exact: true })).toHaveAttribute("aria-current", "page");
+  await expect(globalNav.getByRole("button", { name: "팬페이지 팀 선택" })).toHaveAttribute("aria-current", "page");
   await expect(globalNav.getByRole("link", { name: "매치", exact: true })).not.toHaveAttribute("aria-current", "page");
 
   const localNav = page.getByRole("navigation", { name: "팬페이지 로컬 메뉴" });
   await expect(localNav).toBeVisible();
   await expect(page.locator("header.fixed").first().getByRole("link", { name: "MINION 메인으로 이동" })).toBeVisible();
   await expect(page.locator("header.fixed").first().getByRole("button", { name: /최애팀/ })).toHaveCount(0);
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.locator("header.fixed").first().getByRole("button", { name: /T1/ }).click();
+  await expect(page.getByRole("menu").locator('a[role="menuitem"][href^="/fan/"]')).toHaveCount(10);
   await expect(localNav.getByRole("link", { name: "일정", exact: true })).toHaveAttribute("aria-current", "page");
   await expect(localNav.getByRole("link", { name: "커뮤니티", exact: true })).toBeVisible();
   await expect(localNav.getByRole("link", { name: "기록", exact: true })).toHaveCount(0);
-  await expect(globalNav.getByRole("link")).toHaveCount(5);
+  await expect(globalNav.getByRole("link")).toHaveCount(4);
+  await expect(globalNav.getByRole("button", { name: "팬페이지 팀 선택" })).toBeVisible();
   await expect(globalNav.getByRole("link", { name: "뉴스", exact: true })).toBeVisible();
   await expect(globalNav.getByRole("link", { name: "피드", exact: true })).toHaveCount(0);
 
+  await globalNav.getByRole("button", { name: "팬페이지 팀 선택" }).click();
+  const teamPicker = page.getByRole("dialog", { name: "팬페이지 바로가기" });
+  await expect(teamPicker).toBeVisible();
+  await expect(teamPicker.getByText("전체 팀")).toHaveCount(0);
+  await expect(teamPicker.getByText("보고 싶은 팀을 선택하면 바로 팬페이지로 이동해요.")).toHaveCount(0);
+  await expect(teamPicker.locator('a[href^="/fan/"]')).toHaveCount(10);
+  await page.keyboard.press("Escape");
+
   await page.goto("/");
-  await expect(page.locator("main")).toBeVisible();
+  await expect(page.locator("main:not([aria-hidden])")).toBeVisible();
   const mainHubNav = page.getByRole("navigation", { name: "허브 로컬 메뉴" });
   await expect(mainHubNav.getByRole("link", { name: "메인", exact: true })).toHaveAttribute("aria-current", "page");
   await expect(mainHubNav.getByRole("link", { name: "메인", exact: true })).toHaveCSS("color", "rgb(3, 222, 138)");

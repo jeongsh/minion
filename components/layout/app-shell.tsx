@@ -25,6 +25,7 @@ import {
   X,
 } from "lucide-react";
 import { LogoutButton } from "@/components/auth/logout-button";
+import { FanTeamPicker } from "@/components/layout/fan-team-picker";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { useMatchActivity } from "@/components/match-activity/use-match-activity";
 import { NotificationPanel } from "@/components/notifications/notification-panel";
@@ -339,12 +340,12 @@ export function AppShell({
             <Link href="/" className="flex h-11 shrink-0 items-center" aria-label="MINION 메인으로 이동">
               <Image src="/logo.svg" alt="MINION" width={171} height={39} className="h-auto w-16" priority />
             </Link>
-            <button type="button" onClick={() => setTeamSwitcherOpen((value) => !value)} className="flex min-w-0 items-center gap-1 rounded-xl px-2 py-2 text-[17px] font-black" aria-expanded={teamSwitcherOpen} aria-haspopup="menu">
+            <button type="button" onClick={() => setTeamSwitcherOpen((value) => !value)} className="flex min-w-0 items-center gap-1 rounded-xl px-2 py-2 text-[14px] font-black" aria-expanded={teamSwitcherOpen} aria-haspopup="menu">
               <span className="truncate">{currentFanTeam?.shortName ?? fanKey?.toUpperCase()}</span><ChevronDown size={16} className={`shrink-0 transition ${teamSwitcherOpen ? "rotate-180" : ""}`} />
             </button>
             {teamSwitcherOpen ? (
               <div role="menu" className="absolute left-0 top-[48px] z-50 w-56 overflow-hidden rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-2 shadow-xl">
-                {(followedTeams.length ? followedTeams : shellTeams.slice(0, 5)).map((team) => <Link key={team.id} role="menuitem" href={`/fan/${team.fanSiteHost}`} onClick={() => setTeamSwitcherOpen(false)} className="flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-bold hover:bg-[var(--ui-card-hover)]"><TeamLogo team={team} size="h-7 w-7" themeAware /><span className="truncate">{team.shortName}</span></Link>)}
+                {shellTeams.map((team) => <Link key={team.id} role="menuitem" href={`/fan/${team.fanSiteHost}`} onClick={() => setTeamSwitcherOpen(false)} className="flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-bold hover:bg-[var(--ui-card-hover)]"><TeamLogo team={team} size="h-7 w-7" themeAware /><span className="truncate">{team.shortName}</span></Link>)}
                 <Link role="menuitem" href="/teams" onClick={() => setTeamSwitcherOpen(false)} className="mt-1 flex min-h-10 items-center border-t border-[var(--ui-border)] px-3 pt-1 text-[13px] font-bold text-[var(--ui-muted)]">전체 팀 보기</Link>
               </div>
             ) : null}
@@ -500,7 +501,11 @@ export function AppShell({
             const active = isGlobalNavActive(pathname, href);
             const fanItem = href === "/fan";
             const destination = fanItem ? (favoriteTeam ? `/fan/${favoriteTeam.fanSiteHost}` : "/teams") : href;
-            return <Link key={href} href={destination} aria-current={active ? "page" : undefined} className={`font-paperozi relative flex min-w-0 flex-1 flex-col items-center gap-0.5 px-1 py-1 text-[11px] font-medium ${active ? "text-[var(--ui-ink)]" : "text-[#777b82]"}`}><span className={`relative grid place-items-center ${fanItem && favoriteTeam ? "-mt-5 h-10 w-10 overflow-hidden rounded-full border-[3px] border-[var(--page-background)] bg-[var(--ui-surface-muted)]" : "h-5 w-5"}`}>{fanItem && favoriteTeam ? <TeamLogo team={favoriteTeam} size="h-7 w-7" plain themeAware /> : <Icon size={20} strokeWidth={active ? 2.5 : 2} />}</span><span className="max-w-full truncate">{label}</span></Link>;
+            const itemClassName = `font-paperozi relative flex min-w-0 flex-1 flex-col items-center gap-0.5 px-1 py-1 text-[11px] font-medium ${active ? "text-[var(--ui-ink)]" : "text-[#777b82]"}`;
+            if (fanItem && !favoriteTeam) {
+              return <FanTeamPicker key={href} teams={shellTeams} followedTeams={followedTeams} currentTeam={currentFanTeam} active={active} className={itemClassName} />;
+            }
+            return <Link key={href} href={destination} aria-current={active ? "page" : undefined} className={itemClassName}><span className={`relative grid place-items-center ${fanItem && favoriteTeam ? "-mt-5 h-10 w-10 overflow-hidden rounded-full border-[3px] border-[var(--page-background)] bg-[var(--ui-surface-muted)]" : "h-5 w-5"}`}>{fanItem && favoriteTeam ? <TeamLogo team={favoriteTeam} size="h-7 w-7" plain themeAware /> : <Icon size={20} strokeWidth={active ? 2.5 : 2} />}</span><span className="max-w-full truncate">{label}</span></Link>;
           })}
         </nav>
       ) : null}
