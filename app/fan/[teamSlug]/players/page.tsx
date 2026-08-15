@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { PlayerCard } from "@/components/domain/player-card";
-import { FanPageShell, FanSubpageHeader } from "@/components/fan/fan-page-shell";
+import { FanPageShell } from "@/components/fan/fan-page-shell";
 import { getPlayers, getTeamByFanSiteHost, getTeamBySlug } from "@/lib/data/lck";
 import type { Player } from "@/lib/types";
 
@@ -38,10 +38,7 @@ export default async function FanPlayersPage({
 
   return (
     <FanPageShell>
-      <FanSubpageHeader
-        title="선수"
-        breadcrumbs={[{ label: team.shortName, href: `/fan/${teamSlug}` }, { label: "선수" }]}
-      />
+      <h1 className="sr-only">선수</h1>
       <section className="fan-card grid grid-cols-2 gap-2.5 py-2 sm:grid-cols-3 md:py-4 lg:grid-cols-4 xl:grid-cols-5">
         {players.map((player) => (
           <PlayerCard key={player.id} player={player} hrefBase={`/fan/${teamSlug}/players`} teamLabel={team.shortName} variant="fan" />

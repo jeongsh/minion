@@ -7,6 +7,7 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 import { isCurrentUserAdmin } from "@/lib/auth/admin";
 import { getTeams } from "@/lib/data/lck";
 import { getFollowedTeamIds } from "@/lib/fan/followed-teams";
+import { getFavoriteTeamId } from "@/lib/fan/favorite-team";
 import { getRankSummary } from "@/lib/rank/queries";
 import { siteBaseUrl } from "@/lib/site";
 import "./globals.css";
@@ -49,7 +50,7 @@ export default async function RootLayout({
       lp: summary.lp,
     };
   }
-  const [followedTeamIds, shellTeams] = await Promise.all([getFollowedTeamIds(), getTeams()]);
+  const [followedTeamIds, favoriteTeamId, shellTeams] = await Promise.all([getFollowedTeamIds(), getFavoriteTeamId(), getTeams()]);
   const adsenseClient = process.env.NEXT_PUBLIC_GOOGLE_ADSENSE_CLIENT;
 
   return (
@@ -75,6 +76,7 @@ export default async function RootLayout({
               currentUser={shellUser}
               isAdminUser={isAdminUser}
               followedTeamIds={followedTeamIds}
+              favoriteTeamId={favoriteTeamId}
               shellTeams={shellTeams}
             >
               {children}

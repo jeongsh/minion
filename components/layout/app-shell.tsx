@@ -1,8 +1,9 @@
 ﻿"use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   CalendarDays,
   ChevronDown,
@@ -12,9 +13,7 @@ import {
   Heart,
   Home,
   Menu,
-  MessageCircle,
   Moon,
-  Newspaper,
   Rss,
   Shield,
   Sparkles,
@@ -57,18 +56,35 @@ const desktopNav = [
   { href: "/tournaments", label: "대회", icon: Swords, prefetch: false },
   { href: "/predictions", label: "승부예측", icon: Sparkles },
   { href: "/players", label: "선수", icon: UserRound },
-  { href: "/reports", label: "위클리 리포트", icon: Newspaper },
   { href: "/news", label: "뉴스", icon: Rss },
   { href: "/community", label: "커뮤니티", icon: Users },
 ];
 
 const compactNav = [
   { href: "/", label: "홈", icon: Home },
-  { href: "/schedule", label: "일정 및 매치", icon: CalendarDays },
-  { href: "/predictions", label: "예측", icon: Sparkles },
-  { href: "/community", label: "커뮤니티", icon: MessageCircle },
-  { href: "/me", label: "MY", icon: UserRound },
+  { href: "/schedule", label: "매치", icon: CalendarDays },
+  { href: "/fan", label: "팬", icon: Heart },
+  { href: "/teams", label: "팀", icon: Shield },
+  { href: "/news", label: "뉴스", icon: Rss },
 ];
+
+const hubLocalNav = [
+  { href: "/", label: "메인" },
+  { href: "/tournaments", label: "대회", prefetch: false },
+  { href: "/predictions", label: "승부예측" },
+  { href: "/players", label: "선수" },
+  { href: "/community", label: "커뮤니티" },
+];
+
+function isGlobalNavActive(pathname: string, href: string) {
+  if (href === "/") return pathname === "/";
+  if (href === "/fan") return pathname === "/fan" || pathname.startsWith("/fan/");
+  if (href === "/schedule") {
+    return pathname.startsWith("/schedule") || pathname.startsWith("/matches/") || pathname.startsWith("/tournaments") || pathname.startsWith("/predictions");
+  }
+  if (href === "/teams") return pathname === "/teams" || pathname.startsWith("/teams/");
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
 
 function isActiveRoute(pathname: string, href: string) {
   return href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
@@ -99,27 +115,40 @@ export function AppShell({
   currentUser = null,
   isAdminUser = false,
   followedTeamIds = [],
+  favoriteTeamId = null,
   shellTeams = fallbackTeams,
 }: {
   children: React.ReactNode;
   currentUser?: AppShellUser;
   isAdminUser?: boolean;
   followedTeamIds?: string[];
+  favoriteTeamId?: string | null;
   shellTeams?: Team[];
 }) {
   const pathname = usePathname();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [teamSwitcherOpen, setTeamSwitcherOpen] = useState(false);
+  const [primaryHeaderVisible, setPrimaryHeaderVisible] = useState(true);
+  const lastScrollY = useRef(0);
   const [teamsOpen, setTeamsOpen] = useState(false);
   const fanKey = pathname.startsWith("/fan/") ? pathname.split("/")[2] : null;
   const fanRoute = pathname.startsWith("/fan/");
+  const hubPostDetail = /^\/community\/post\/[^/]+$/.test(pathname);
+  const fanPostDetail = pathname.match(/^\/fan\/([^/]+)\/community\/post\/[^/]+$/);
+  const communityPostDetail = hubPostDetail || Boolean(fanPostDetail);
   const focus = focusRouteMeta(pathname);
   const focusRoute = Boolean(focus);
   const compactHubShell = !fanRoute && !focusRoute;
+  const showHubLocalNavigation = compactHubShell && !communityPostDetail && pathname !== "/fan" && !pathname.startsWith("/admin");
   const followedTeamIdSet = new Set(followedTeamIds);
   const followedTeams = shellTeams.filter((team) => followedTeamIdSet.has(team.id) || followedTeamIdSet.has(team.fanSiteHost));
   const channelTeams = shellTeams.filter((team) => !followedTeamIdSet.has(team.id) && !followedTeamIdSet.has(team.fanSiteHost));
+  const currentFanTeam = fanKey ? shellTeams.find((team) => team.fanSiteHost === fanKey || team.slug === fanKey) : null;
+  const favoriteTeam = favoriteTeamId ? shellTeams.find((team) => team.id === favoriteTeamId) : null;
+  const communityPostTitle = fanPostDetail ? (currentFanTeam?.shortName ?? fanPostDetail[1].toUpperCase()) : "LCK";
+  const communityPostBackHref = fanPostDetail ? `/fan/${fanPostDetail[1]}/community` : "/community";
 
   useEffect(() => {
     document.documentElement.style.setProperty("--shell-lnb-width", collapsed ? "72px" : "216px");
@@ -134,6 +163,33 @@ export function AppShell({
     desktopQuery.addEventListener("change", closeMobileMenu);
     return () => desktopQuery.removeEventListener("change", closeMobileMenu);
   }, []);
+
+  useEffect(() => {
+    lastScrollY.current = window.scrollY;
+    const resetFrame = window.requestAnimationFrame(() => {
+      setPrimaryHeaderVisible(window.scrollY < 16);
+      setTeamSwitcherOpen(false);
+    });
+
+    const updateHeader = () => {
+      const currentY = Math.max(0, window.scrollY);
+      const delta = currentY - lastScrollY.current;
+
+      if (currentY < 16) setPrimaryHeaderVisible(true);
+      else if (delta > 4) setPrimaryHeaderVisible(false);
+      else if (delta < -4) setPrimaryHeaderVisible(true);
+
+      lastScrollY.current = currentY;
+    };
+
+    document.addEventListener("scroll", updateHeader, { passive: true });
+    window.addEventListener("scroll", updateHeader, { passive: true });
+    return () => {
+      window.cancelAnimationFrame(resetFrame);
+      document.removeEventListener("scroll", updateHeader);
+      window.removeEventListener("scroll", updateHeader);
+    };
+  }, [pathname]);
 
   useEffect(() => {
     const colorSchemeQuery = window.matchMedia("(prefers-color-scheme: dark)");
@@ -164,7 +220,11 @@ export function AppShell({
   if (pathname === "/lab/chzzk-concept") return <>{children}</>;
 
   return (
-    <div className="min-h-screen text-[#141517]">
+    <div
+      className="min-h-screen text-[#141517]"
+      data-app-shell
+      style={{ "--shell-mobile-header-offset": primaryHeaderVisible ? "56px" : "0px" } as React.CSSProperties}
+    >
       {focus ? (
         <header className="fixed inset-x-0 top-0 z-50 grid h-14 grid-cols-[44px_minmax(0,1fr)_44px] items-center border-b border-[#e8e8eb] bg-[var(--page-background)] px-2 sm:h-16 dark:border-[#343840]">
           <Link
@@ -188,12 +248,47 @@ export function AppShell({
           <span aria-hidden="true" />
         </header>
       ) : (
-      <header className="fixed inset-x-0 top-0 z-50 flex h-14 items-center border-b border-[#e8e8eb] bg-[var(--page-background)] px-3 sm:h-16 sm:px-4 dark:border-[#343840]">
-        <button type="button" onClick={toggleNavigation} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl hover:bg-[var(--ui-card-hover)]" aria-label={mobileMenuOpen ? "내비게이션 닫기" : "내비게이션 열기"} aria-expanded={mobileMenuOpen}>
+      <header className={`fixed inset-x-0 top-0 z-50 flex items-center border-b border-[#e8e8eb] bg-[var(--page-background)] px-3 transition-transform duration-200 sm:px-4 md:h-16 md:translate-y-0 dark:border-[#343840] ${communityPostDetail ? "h-12" : "h-14 sm:h-16"} ${communityPostDetail || primaryHeaderVisible ? "translate-y-0" : "-translate-y-full"}`}>
+        {communityPostDetail ? (
+          <div className="relative flex w-full items-center justify-center md:hidden">
+            <Link
+              href={communityPostBackHref}
+              onClick={(event) => {
+                if (window.history.length > 1) {
+                  event.preventDefault();
+                  router.back();
+                }
+              }}
+              className="absolute left-0 grid h-11 w-11 place-items-center rounded-xl hover:bg-[var(--ui-card-hover)]"
+              aria-label="게시글 닫기"
+            >
+              <X size={22} strokeWidth={1.8} />
+            </Link>
+            <p className="font-paperozi max-w-[70vw] truncate text-center text-[16px] font-bold text-[var(--ui-ink)]">{communityPostTitle}</p>
+          </div>
+        ) : null}
+        <div className={communityPostDetail ? "hidden md:contents" : "contents"}>
+        {fanRoute ? (
+          <div className="relative flex min-w-0 flex-1 items-center md:hidden">
+            <Link href="/" className="flex h-11 shrink-0 items-center" aria-label="MINION 메인으로 이동">
+              <Image src="/logo.svg" alt="MINION" width={171} height={39} className="h-auto w-16" priority />
+            </Link>
+            <button type="button" onClick={() => setTeamSwitcherOpen((value) => !value)} className="flex min-w-0 items-center gap-1 rounded-xl px-2 py-2 text-[17px] font-black" aria-expanded={teamSwitcherOpen} aria-haspopup="menu">
+              <span className="truncate">{currentFanTeam?.shortName ?? fanKey?.toUpperCase()}</span><ChevronDown size={16} className={`shrink-0 transition ${teamSwitcherOpen ? "rotate-180" : ""}`} />
+            </button>
+            {teamSwitcherOpen ? (
+              <div role="menu" className="absolute left-0 top-[48px] z-50 w-56 overflow-hidden rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-2 shadow-xl">
+                {(followedTeams.length ? followedTeams : shellTeams.slice(0, 5)).map((team) => <Link key={team.id} role="menuitem" href={`/fan/${team.fanSiteHost}`} onClick={() => setTeamSwitcherOpen(false)} className="flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-bold hover:bg-[var(--ui-card-hover)]"><TeamLogo team={team} size="h-7 w-7" themeAware /><span className="truncate">{team.shortName}</span></Link>)}
+                <Link role="menuitem" href="/teams" onClick={() => setTeamSwitcherOpen(false)} className="mt-1 flex min-h-10 items-center border-t border-[var(--ui-border)] px-3 pt-1 text-[13px] font-bold text-[var(--ui-muted)]">전체 팀 보기</Link>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+        <button type="button" onClick={toggleNavigation} className="hidden h-11 w-11 shrink-0 place-items-center rounded-xl hover:bg-[var(--ui-card-hover)] md:grid" aria-label={mobileMenuOpen ? "내비게이션 닫기" : "내비게이션 열기"} aria-expanded={mobileMenuOpen}>
           {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
         </button>
-        <Link href="/" className="ml-1.5 shrink-0 text-[22px] font-black tracking-[-0.06em] text-[#18191c] sm:ml-2 sm:text-[25px] dark:text-white">
-          <img src="/logo.svg" alt="MINION" className="w-24" />
+        <Link href="/" className={`ml-1.5 shrink-0 text-[22px] font-black tracking-[-0.06em] text-[#18191c] sm:ml-2 sm:text-[25px] dark:text-white ${fanRoute ? "hidden md:block" : "block"}`}>
+          <Image src="/logo.svg" alt="MINION" width={171} height={39} className="h-auto w-16 sm:w-24" priority />
         </Link>
         <div className="absolute left-1/2 hidden w-[360px] -translate-x-1/2 min-[1200px]:block">
           <HeaderSearch className="w-full" />
@@ -214,17 +309,19 @@ export function AppShell({
                 tier={currentUser.tier}
                 src={currentUser.profileImageUrl}
                 fallback={currentUser.nickname ?? "MY"}
+                className="scale-[0.875] sm:scale-100"
               />
             </Link>
           </div>
         ) : (
           <Link href="/login" className="flex min-h-11 items-center rounded-xl bg-[#141517] px-3 py-2 text-[13px] font-bold text-white sm:px-4 sm:text-sm">로그인</Link>
         )}
+        </div>
       </header>
       )}
 
       {mobileMenuOpen ? (
-        <div className={`fixed inset-x-0 top-14 z-40 overflow-y-auto border-b border-[#e8e8eb] bg-[var(--page-background)] px-4 py-4 shadow-xl shadow-black/10 sm:top-16 min-[1200px]:hidden dark:border-[#343840] ${compactHubShell ? "bottom-16 md:bottom-0" : "bottom-0"}`}>
+        <div className={`fixed inset-x-0 top-14 z-40 overflow-y-auto border-b border-[#e8e8eb] bg-[var(--page-background)] px-4 py-4 shadow-xl shadow-black/10 sm:top-16 min-[1200px]:hidden dark:border-[#343840] ${compactHubShell ? "bottom-[52px] md:bottom-0" : "bottom-0"}`}>
           {currentUser ? (
             <div className="mb-4 flex items-center justify-between gap-3 rounded-2xl bg-[var(--ui-card-bg)] px-4 py-3">
               <RankAvatar
@@ -300,22 +397,37 @@ export function AppShell({
       {compactHubShell ? (
         <aside className={`fixed bottom-0 left-0 top-16 z-40 hidden w-16 flex-col items-center border-r border-[#ececef] bg-[var(--page-background)] py-3 dark:border-[#343840] ${mobileMenuOpen ? "" : "md:max-[1199px]:flex"}`} aria-label="태블릿 주요 메뉴">
           {compactNav.map(({ href, label, icon: Icon }) => {
-            const active = isActiveRoute(pathname, href);
-            return <Link key={href} href={href} aria-current={active ? "page" : undefined} title={label} className={`mb-1 grid h-12 w-12 place-items-center rounded-xl transition ${active ? "bg-[var(--ui-card-bg)] text-[#18191c] dark:text-white" : "text-[#777b82] hover:bg-[var(--ui-card-hover)]"}`}><Icon size={21} /><span className="sr-only">{label}</span></Link>;
+            const active = isGlobalNavActive(pathname, href);
+            const destination = href === "/fan" ? (favoriteTeam ? `/fan/${favoriteTeam.fanSiteHost}` : "/teams") : href;
+            return <Link key={href} href={destination} aria-current={active ? "page" : undefined} title={label} className={`mb-1 grid h-12 w-12 place-items-center rounded-xl transition ${active ? "bg-[var(--ui-card-bg)] text-[#18191c] dark:text-white" : "text-[#777b82] hover:bg-[var(--ui-card-hover)]"}`}>{href === "/fan" && favoriteTeam ? <TeamLogo team={favoriteTeam} size="h-7 w-7" themeAware /> : <Icon size={21} />}<span className="sr-only">{label}</span></Link>;
           })}
         </aside>
       ) : null}
 
-      <div className={`flex min-h-screen flex-col pt-14 transition-[padding] sm:pt-16 ${compactHubShell ? "md:max-[1199px]:pl-16" : ""} ${focusRoute ? "" : collapsed ? "min-[1200px]:pl-[72px]" : "min-[1200px]:pl-[216px]"}`}>
-        <div className={`flex-1 ${compactHubShell ? "compact-hub-content pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0" : "pb-0"}`} data-shell-content={compactHubShell ? "compact-hub" : undefined}>{children}</div>
-        {!focusRoute ? <SiteFooter /> : null}
+      <div className={`flex min-h-screen flex-col transition-[padding] md:pt-16 ${communityPostDetail ? "pt-12" : "pt-14 sm:pt-16"} ${compactHubShell ? "md:max-[1199px]:pl-16" : ""} ${focusRoute ? "" : collapsed ? "min-[1200px]:pl-[72px]" : "min-[1200px]:pl-[216px]"}`}>
+        <div className={`flex-1 ${!focusRoute && !communityPostDetail ? "compact-hub-content pb-0" : "pb-0"}`} data-shell-content={!focusRoute && !communityPostDetail ? "compact-hub" : undefined}>
+          {showHubLocalNavigation ? (
+            <nav aria-label="허브 로컬 메뉴" className="hub-local-navigation sticky z-30 border-b border-[var(--ui-border)] bg-[var(--page-background)] transition-[top] duration-200 md:hidden">
+              <div className="flex h-12 w-full items-stretch overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {hubLocalNav.map((item) => {
+                  const active = isActiveRoute(pathname, item.href);
+                  return <Link key={item.href} href={item.href} prefetch={item.prefetch} aria-current={active ? "page" : undefined} className={`font-paperozi flex min-w-[64px] flex-1 items-center justify-center whitespace-nowrap border-b-[3px] pt-0.5 text-[14px] font-bold transition-colors ${active ? "border-[var(--accent)] text-[var(--accent)]" : "border-transparent text-[var(--ui-muted)] hover:text-[var(--ui-ink)]"}`}>{item.label}</Link>;
+                })}
+              </div>
+            </nav>
+          ) : null}
+          {children}
+        </div>
+        {!focusRoute ? <div className={communityPostDetail ? "hidden md:block" : "contents"}><SiteFooter /></div> : null}
       </div>
 
-      {compactHubShell ? (
-        <nav className="fixed inset-x-0 bottom-0 z-50 flex h-[calc(4rem+env(safe-area-inset-bottom))] items-start border-t border-[#e8e8eb] bg-[var(--page-background)] pt-1 backdrop-blur md:hidden dark:border-[#343840]" aria-label="모바일 주요 메뉴">
+      {!focusRoute && !communityPostDetail ? (
+        <nav className="fixed inset-x-0 bottom-0 z-50 flex h-[calc(3.25rem+env(safe-area-inset-bottom))] items-start border-t border-[#e8e8eb] bg-[var(--page-background)] pt-1 backdrop-blur md:hidden dark:border-[#343840]" aria-label="모바일 주요 메뉴">
           {compactNav.map(({ href, label, icon: Icon }) => {
-            const active = isActiveRoute(pathname, href);
-            return <Link key={href} href={href} aria-current={active ? "page" : undefined} className={`flex min-w-0 flex-1 flex-col items-center gap-0.5 px-1 py-1.5 text-[11px] font-medium ${active ? "text-[#18191c] dark:text-white" : "text-[#777b82]"}`}><Icon size={20} strokeWidth={active ? 2.5 : 2} /><span className="max-w-full truncate">{label}</span></Link>;
+            const active = isGlobalNavActive(pathname, href);
+            const fanItem = href === "/fan";
+            const destination = fanItem ? (favoriteTeam ? `/fan/${favoriteTeam.fanSiteHost}` : "/teams") : href;
+            return <Link key={href} href={destination} aria-current={active ? "page" : undefined} className={`font-paperozi relative flex min-w-0 flex-1 flex-col items-center gap-0.5 px-1 py-1 text-[11px] font-medium ${active ? "text-[var(--ui-ink)]" : "text-[#777b82]"}`}><span className={`grid place-items-center ${fanItem && favoriteTeam ? "-mt-5 h-10 w-10 overflow-hidden rounded-full border-[3px] border-[var(--page-background)] bg-[var(--ui-surface-muted)]" : "h-5 w-5"}`}>{fanItem && favoriteTeam ? <TeamLogo team={favoriteTeam} size="h-7 w-7" plain themeAware /> : <Icon size={20} strokeWidth={active ? 2.5 : 2} />}</span><span className="max-w-full truncate">{label}</span></Link>;
           })}
         </nav>
       ) : null}

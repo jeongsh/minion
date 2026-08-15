@@ -7,10 +7,12 @@ import { FanFollowButton } from "@/components/fan/fan-follow-button";
 import { FanHeaderTooltip, fanHeaderIconButtonClass } from "@/components/fan/fan-header-control-styles";
 import { FanHeaderRequestDialog } from "@/components/fan/fan-header-request-dialog";
 import { FanOfficialLinks } from "@/components/fan/fan-official-links";
+import { FavoriteTeamButton } from "@/components/fan/favorite-team-button";
 import { TeamLogo } from "@/components/ui/team-logo";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { getTeamByFanSiteHost, getTeamBySlug, getTeamFanCount } from "@/lib/data/lck";
 import { checkFanHeaderUploadEligibility, getActiveFanHeaderUrl } from "@/lib/fan/fan-header";
+import { getFavoriteTeamId } from "@/lib/fan/favorite-team";
 
 export async function FanChannelHeader({ teamSlug, calendarSlot }: { teamSlug: string; calendarSlot?: ReactNode }) {
   const team = await getTeamByFanSiteHost(teamSlug).then((value) => value ?? getTeamBySlug(teamSlug));
@@ -18,12 +20,13 @@ export async function FanChannelHeader({ teamSlug, calendarSlot }: { teamSlug: s
   if (!team) return null;
 
   const user = await getCurrentUser();
-  const [fanCount, isFan, notificationEnabled, headerBackground, uploadEligibility] = await Promise.all([
+  const [fanCount, isFan, notificationEnabled, headerBackground, uploadEligibility, favoriteTeamId] = await Promise.all([
     getTeamFanCount(team.id),
     getIsFan(team.id),
     user ? getFanNotificationEnabled(team.id) : Promise.resolve(false),
     getActiveFanHeaderUrl(team.id),
     checkFanHeaderUploadEligibility(team.id, user?.id),
+    getFavoriteTeamId(),
   ]);
   const displayHeaderBackground =
     headerBackground ?? (team.fanSiteHost === "hle" ? "/images/fan-headers/hle-header-bg-v1.jpg" : null);
@@ -93,6 +96,12 @@ export async function FanChannelHeader({ teamSlug, calendarSlot }: { teamSlug: s
                   initialFollowing={isFan}
                   teamColor={team.primaryColor}
                   variant="header"
+                />
+                <FavoriteTeamButton
+                  teamId={team.id}
+                  teamSlug={team.fanSiteHost}
+                  teamName={team.shortName}
+                  initialFavorite={favoriteTeamId === team.id}
                 />
                 <FanAlarmButton
                   teamId={team.id}

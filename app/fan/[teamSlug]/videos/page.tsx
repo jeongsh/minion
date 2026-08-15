@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { FanVideoFeed } from "@/components/fan/fan-video-feed";
-import { FanPageShell, FanSubpageHeader } from "@/components/fan/fan-page-shell";
+import { FanPageShell } from "@/components/fan/fan-page-shell";
 import {
   getFanVideoFeed,
   getPlayers,
@@ -35,10 +35,7 @@ export default async function FanVideosPage({
 
   return (
     <FanPageShell>
-      <FanSubpageHeader
-        title="영상"
-        breadcrumbs={[{ label: team.shortName, href: `/fan/${teamSlug}` }, { label: "영상" }]}
-      />
+      <h1 className="sr-only">영상</h1>
       <FanVideoFeed teamSlug={team.fanSiteHost} teamName={team.shortName} videos={videos} />
     </FanPageShell>
   );

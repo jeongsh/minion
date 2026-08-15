@@ -57,7 +57,7 @@
   --ui-header-height: 56px;
   --ui-sidebar-width: 216px;
   --shell-lnb-width: 216px;
-  --shell-bottom-nav-height: 64px;
+  --shell-bottom-nav-height: 52px;
   --layout-reading: 1080px;
   --layout-form: 672px;
   --layout-capture: 576px;
@@ -136,6 +136,33 @@ body {
 
 html[data-navigation-pending="true"] body {
   cursor: progress;
+}
+
+.fan-local-navigation {
+  top: var(--shell-mobile-header-offset, 56px);
+}
+
+.hub-local-navigation {
+  top: var(--shell-mobile-header-offset, 56px);
+}
+
+.schedule-mobile-sticky {
+  top: calc(var(--shell-mobile-header-offset, 56px) + 48px);
+  transition: top 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (min-width: 768px) {
+  .fan-local-navigation {
+    top: 64px;
+  }
+
+  .hub-local-navigation {
+    top: 64px;
+  }
+
+  .schedule-mobile-sticky {
+    top: 64px;
+  }
 }
 
 html[data-navigation-pending="true"] :is(a, button, input, select, textarea, [role="button"], [role="tab"]) {
@@ -763,6 +790,28 @@ html[class~="dark"] .app-lnb a[data-active="true"] {
 }
 
 @media (max-width: 767px) {
+  .compact-hub-content {
+    --compact-page-end-space: 0;
+  }
+
+  .community-mobile-ad {
+    width: calc(100% + (var(--layout-gutter) * 2));
+    max-width: none;
+    margin-inline: calc(var(--layout-gutter) * -1);
+  }
+
+  .community-post-modal {
+    width: calc(100% + (var(--layout-gutter) * 2));
+    max-width: none;
+    margin-inline: calc(var(--layout-gutter) * -1);
+  }
+
+  .community-post-modal > .mobile-surface-section {
+    border-right-width: 0;
+    border-left-width: 0;
+    border-radius: 0;
+  }
+
   .compact-hub-content > :is(main, div).min-h-screen {
     min-height: calc(100svh - var(--ui-header-height));
   }
@@ -1344,6 +1393,18 @@ html[class~="dark"] .hub-home .home-calendar-shell {
   .community-prose :is(p, li) {
     font-size: 1rem;
     line-height: 1.75;
+  }
+}
+
+@media (max-width: 767px) {
+  .community-post-body,
+  .community-post-body :is(p, li) {
+    font-size: 14px;
+    line-height: 1.75;
+  }
+
+  .community-post-body p {
+    margin-block: 0.45rem;
   }
 }
 

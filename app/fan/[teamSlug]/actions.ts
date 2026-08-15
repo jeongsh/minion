@@ -8,6 +8,7 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 import { getActiveFanOnions, getFanTemperatureSnapshot } from "@/lib/data/fan-pulse";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseAuthClient } from "@/lib/supabase/auth-server";
+import { FAVORITE_TEAM_COOKIE } from "@/lib/fan/favorite-team";
 
 const FAN_VOTER_COOKIE = "lckhub_fan_voter";
 const ONION_MAX_LENGTH = 100;
@@ -63,7 +64,61 @@ async function findFanRows(teamId: string, userId: string | undefined, voterKey:
 // 팔로우 목록은 루트 레이아웃(LNB)에서도 읽으므로 팀 페이지만 무효화하면 사이드바가 낡은 채로 남는다.
 function revalidateFollow(teamSlug: string) {
   revalidatePath(`/fan/${teamSlug}`);
+  revalidatePath("/fan");
+  revalidatePath("/teams");
   revalidatePath("/", "layout");
+}
+
+export async function setFavoriteTeamAction(
+  teamId: string,
+  teamSlug: string,
+  nextFavorite: boolean,
+): Promise<{ ok: boolean; favorite: boolean; error?: string }> {
+  const user = await getCurrentUser();
+  const cookieStore = await cookies();
+  const supabase = createSupabaseAdminClient();
+
+  const { data: team, error: teamError } = await supabase
+    .from("teams")
+    .select("id")
+    .eq("id", teamId)
+    .maybeSingle();
+  if (teamError || !team) return { ok: false, favorite: false, error: "팀 정보를 찾을 수 없습니다." };
+
+  if (nextFavorite) {
+    // 최애팀은 팬 경험의 기본 컨텍스트이므로 설정과 동시에 팔로우도 보장한다.
+    const voterKey = await getOrCreateVoterKey();
+    const existing = await findFanRows(teamId, user?.id, voterKey);
+    if (existing.length === 0) {
+      const { error } = await supabase
+        .from("team_fans")
+        .insert({ team_id: teamId, voter_key: voterKey, user_id: user?.id ?? null });
+      if (error) return { ok: false, favorite: false, error: error.message };
+    }
+  }
+
+  if (user) {
+    const { error } = await supabase
+      .from("profiles")
+      .update({ favorite_team_id: nextFavorite ? teamId : null })
+      .eq("id", user.id);
+    if (error) return { ok: false, favorite: !nextFavorite, error: error.message };
+  }
+
+  if (nextFavorite) {
+    cookieStore.set(FAVORITE_TEAM_COOKIE, teamId, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 60 * 60 * 24 * 365 * 10,
+      path: "/",
+    });
+  } else if (cookieStore.get(FAVORITE_TEAM_COOKIE)?.value === teamId) {
+    cookieStore.delete(FAVORITE_TEAM_COOKIE);
+  }
+
+  revalidateFollow(teamSlug);
+  return { ok: true, favorite: nextFavorite };
 }
 
 export async function getIsFan(teamId: string): Promise<boolean> {
@@ -92,6 +147,12 @@ export async function toggleFanAction(
       .delete()
       .in("id", existing.map((row) => row.id));
     if (error) return { ok: false, isFan: true, error: error.message };
+    // 최애팀 팔로우를 직접 해제하면 최애 컨텍스트도 함께 정리해 상태가 어긋나지 않게 한다.
+    if (user) {
+      await supabase.from("profiles").update({ favorite_team_id: null }).eq("id", user.id).eq("favorite_team_id", teamId);
+    }
+    const cookieStore = await cookies();
+    if (cookieStore.get(FAVORITE_TEAM_COOKIE)?.value === teamId) cookieStore.delete(FAVORITE_TEAM_COOKIE);
     revalidateFollow(teamSlug);
     return { ok: true, isFan: false };
   }

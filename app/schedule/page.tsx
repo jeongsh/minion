@@ -82,23 +82,18 @@ export default async function SchedulePage({
 
   return (
     <main className="schedule-page min-h-screen text-[var(--ui-text)]">
-      <div className="sticky top-[var(--ui-header-height)] z-30 border-b border-[var(--ui-border)] bg-[var(--page-background)] shadow-[0_10px_20px_rgba(15,23,42,0.035)] lg:hidden">
+      <div className="schedule-mobile-sticky sticky z-30 border-b border-[var(--ui-border)] bg-[var(--page-background)] shadow-[0_10px_20px_rgba(15,23,42,0.035)] lg:hidden">
         <div className="layout-wide py-2">
           <ScheduleWeekScroller dates={currentWeek} todayKey={todayKey} availableDateKeys={availableDateKeys} />
         </div>
       </div>
 
-      <div className="layout-wide pt-5 sm:pt-7">
-        <div className="hidden items-end justify-between lg:flex">
-          <div><h1 className="home-section-title font-paperozi text-[24px] leading-tight text-[var(--ui-ink)] lg:text-[28px]">경기 일정</h1></div>
-          <p className="rounded-full bg-[var(--ui-card-bg)] px-3 py-1.5 text-[13px] font-bold text-[var(--ui-muted)]">{filtered.length}경기</p>
-        </div>
-      </div>
+      <h1 className="sr-only">경기 일정</h1>
 
       <div className="sticky top-[var(--ui-header-height)] z-30 mt-2 hidden border-b border-[#e8e8eb] bg-[var(--page-background)] lg:block dark:border-[#383c44]">
         <div className="layout-wide flex items-center justify-between gap-3 py-2.5">{desktopFilters}<Link href="/schedule" className="shrink-0 text-[13px] font-bold text-[var(--ui-muted)] hover:text-[var(--ui-ink)]">필터 초기화</Link></div>
       </div>
-      <div className="fixed bottom-[calc(4rem+env(safe-area-inset-bottom)+18px)] right-4 z-40 flex flex-row gap-2 md:bottom-6 lg:hidden">
+      <div className="fixed bottom-[calc(3.25rem+env(safe-area-inset-bottom)+18px)] right-4 z-40 flex flex-row gap-2 md:bottom-6 lg:hidden">
         <AdaptiveDialog
           title={`${activeYear}년 ${activeMonth}월 캘린더`}
           trigger={<><CalendarDays size={20} /><span className="sr-only">캘린더 열기</span></>}
