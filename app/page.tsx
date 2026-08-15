@@ -9,7 +9,6 @@ import { buildTeamStandingRows, dateKeyKST, formatTimeKST, matchHref } from "@/l
 import { isMatchLive } from "@/lib/match-display";
 import { getPredictionMarketData } from "@/lib/predictions";
 import { getTodayCelebrations } from "@/lib/calendar/events";
-import { getWeeklyReportIndex } from "@/lib/reports/queries";
 import { getLckChannelVideos, type HomeVideo } from "@/lib/data/lck-channel-videos";
 import { getHomeNewsFeed } from "@/lib/data/naver-news";
 
@@ -20,13 +19,12 @@ function yearMonthKeyKST(value: string) {
 }
 
 export default async function HomePage() {
-  const [homeData, communityPosts, predictionMarket, lckChannelVideos, pomEntries, reportIndex, homeNewsFeed] = await Promise.all([
+  const [homeData, communityPosts, predictionMarket, lckChannelVideos, pomEntries, homeNewsFeed] = await Promise.all([
     getHomePagePublicData(),
     getBoardPosts({ scope: "hub" }),
     getPredictionMarketData(),
     getLckChannelVideos(),
     getHomePomEntries(),
-    getWeeklyReportIndex(),
     getHomeNewsFeed(6),
   ]);
   const { teams, matches, tournaments, latestVideos, calendarEvents } = homeData;
@@ -153,7 +151,6 @@ export default async function HomePage() {
       latestVideos={homeVideos}
       communityPosts={homeCommunityPosts}
       pomEntries={pomEntries}
-      latestReport={reportIndex[0] ?? null}
       newsItems={homeNewsFeed.articles}
     />
   );

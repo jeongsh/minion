@@ -37,7 +37,7 @@ export function HomeBoardCarousel({
     <ul
       className={
         isHomeLatest
-          ? "grid gap-3 rounded-2xl bg-[var(--ui-card-bg)] p-2 sm:p-3 md:grid-cols-2"
+          ? "grid gap-0 bg-transparent p-0 sm:gap-3 sm:rounded-2xl sm:bg-[var(--ui-card-bg)] sm:p-3 md:grid-cols-2"
           : "grid overflow-hidden rounded-[var(--ui-card-radius)] border border-[var(--ui-border)] bg-[var(--ui-surface)] md:grid-cols-2 md:[&>li:nth-child(odd)]:border-r md:[&>li:nth-last-child(-n+2)]:border-b-0 [&>li:last-child]:border-b-0"
       }
     >
@@ -46,13 +46,13 @@ export function HomeBoardCarousel({
           key={post.id}
           className={
             isHomeLatest
-              ? "overflow-hidden rounded-xl bg-[var(--ui-surface)]"
+              ? "overflow-hidden border-b border-[var(--ui-card-divider)] bg-transparent last:border-b-0 sm:rounded-xl sm:border-b-0 sm:bg-[var(--ui-surface)]"
               : "border-b border-[var(--ui-border)]"
           }
         >
           <Link
             href={detailHref(post.id)}
-            className={`group grid min-h-[82px] grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 transition-colors sm:px-5 ${
+            className={`group grid min-h-[58px] grid-cols-[minmax(0,1fr)_auto] items-center gap-2.5 px-0 py-2 transition-colors min-[390px]:min-h-[65px] min-[390px]:gap-3 sm:min-h-[82px] sm:px-5 sm:py-3 ${
               isHomeLatest
                 ? "hover:bg-[var(--ui-card-hover)]"
                 : "hover:bg-[var(--ui-surface-muted)]"
@@ -60,12 +60,12 @@ export function HomeBoardCarousel({
           >
             <div className="min-w-0">
               <div className="flex min-w-0 items-center gap-1.5">
-                <span className="shrink-0 text-[13px] font-semibold text-[var(--tp,var(--accent))]">
+                <span className="shrink-0 text-[10.5px] font-medium text-[var(--tp,var(--accent))] min-[390px]:text-[12px] sm:text-[13px]">
                   {boardLabel(scope, post.boardType)}
                 </span>
                 {isHotPost(post) ? (
                   <span
-                    className={`shrink-0 rounded-full px-1.5 py-0.5 text-[12px] font-medium leading-none text-[var(--tp,var(--accent))] ${
+                    className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10.5px] font-medium leading-none text-[var(--tp,var(--accent))] min-[390px]:text-[12px] ${
                       isHomeLatest
                         ? "bg-[color-mix(in_srgb,var(--tp,var(--accent))_12%,transparent)]"
                         : "border border-[var(--tp,var(--accent))]"
@@ -74,12 +74,12 @@ export function HomeBoardCarousel({
                     인기
                   </span>
                 ) : null}
-                <h3 className="min-w-0 truncate text-[15px] font-semibold text-[var(--ui-ink)] sm:text-base">
+                <h3 className="min-w-0 truncate text-[14px] font-medium text-[var(--ui-ink)] sm:text-base">
                   {post.title}
                 </h3>
               </div>
 
-              <div className="mt-1 flex min-w-0 items-center gap-2.5 overflow-hidden whitespace-nowrap text-[13px] font-normal text-[var(--ui-muted)]">
+              <div className="mt-0.5 flex min-w-0 items-center gap-1.5 overflow-hidden whitespace-nowrap text-[10.5px] font-normal text-[var(--ui-muted)] min-[390px]:gap-2 min-[390px]:text-[12px] sm:mt-1 sm:gap-2.5 sm:text-[13px]">
                 <span className="max-w-28 truncate font-medium text-[var(--ui-text)]">
                   {post.authorName ?? "작성자 없음"}
                 </span>
@@ -89,18 +89,18 @@ export function HomeBoardCarousel({
                   {post.viewCount.toLocaleString("ko-KR")}
                 </span>
                 <span className="inline-flex shrink-0 items-center gap-1">
-                  <MessageCircle size={13} strokeWidth={1.8} aria-hidden />
+                  <MessageCircle size={11} strokeWidth={1.8} className="sm:h-[13px] sm:w-[13px]" aria-hidden />
                   {post.commentCount.toLocaleString("ko-KR")}
                 </span>
                 <span className="inline-flex shrink-0 items-center gap-1">
-                  <ThumbsUp size={13} strokeWidth={1.8} aria-hidden />
+                  <ThumbsUp size={11} strokeWidth={1.8} className="sm:h-[13px] sm:w-[13px]" aria-hidden />
                   {post.likeCount.toLocaleString("ko-KR")}
                 </span>
               </div>
             </div>
 
             {post.thumbnailUrl ? (
-              <span className="h-12 w-[72px] shrink-0 overflow-hidden rounded-[var(--ui-control-radius)] bg-[var(--ui-surface-muted)] sm:h-[58px] sm:w-24">
+              <span className="h-[51px] w-[68px] shrink-0 overflow-hidden rounded-md bg-[var(--ui-surface-muted)] min-[390px]:h-[57px] min-[390px]:w-[76px] min-[390px]:rounded-lg sm:h-[58px] sm:w-24">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={post.thumbnailUrl}

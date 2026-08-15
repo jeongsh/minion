@@ -7,12 +7,10 @@ import { HomeVideoSwiper } from "@/components/domain/home-video-swiper";
 import { HomeMatchSwiper } from "@/components/domain/home-match-swiper";
 import type { HomeMatchItem } from "@/components/domain/home-match-card";
 import { HomePomSwiper } from "@/components/domain/home-pom-swiper";
-import { HomeWeeklyReportCard } from "@/components/domain/home-weekly-report-card";
 import { HomeNewsSection } from "@/components/news/home-news-section";
 import { CelebrationBanner } from "@/components/domain/celebration-banner";
 import type { CalendarEvent } from "@/lib/calendar/events";
 import type { HomePomEntry } from "@/lib/data/home-pom";
-import type { WeeklyReportSummary } from "@/lib/reports/queries";
 import { teams as themeTeams } from "@/lib/team-themes";
 import type { Team } from "@/lib/types";
 import type { HomeVideo } from "@/lib/data/lck-channel-videos";
@@ -44,7 +42,6 @@ type Props = {
   latestVideos: HomeVideo[];
   communityPosts: CommunityPostDetail[];
   pomEntries: HomePomEntry[];
-  latestReport: WeeklyReportSummary | null;
   newsItems: NewsArticle[];
 };
 
@@ -72,7 +69,6 @@ export function HomeDashboard({
   latestVideos,
   communityPosts,
   pomEntries,
-  latestReport,
   newsItems,
 }: Props) {
   const activeTeams = themeTeams
@@ -119,7 +115,11 @@ export function HomeDashboard({
       ) : null}
       <HomeNewsSection articles={newsItems} />
 
-      <Ad placement="horizontal" className="mt-10 hidden h-[60px] md:block xl:h-[90px]" />
+      <Ad
+        placement="horizontal"
+        format="auto"
+        className="mt-8 h-[100px] sm:mt-10 md:h-[60px] xl:h-[90px]"
+      />
 
       <section className="mt-10">
         <Heading href="/community">최신글</Heading>
@@ -201,16 +201,14 @@ export function HomeDashboard({
         </div>
       </section>
 
-      {latestReport ? (
-        <section className={HOME_SECTION_SPACING}>
-          <HomeWeeklyReportCard report={latestReport} />
-        </section>
-      ) : null}
-
       <section className={HOME_SECTION_SPACING}>
         <Heading>최신 영상</Heading>
         <HomeVideoSwiper videos={latestVideos} />
-        <Ad placement="horizontal" className="mt-10 hidden h-[60px] md:block xl:h-[90px]" />
+        <Ad
+          placement="horizontal"
+          format="auto"
+          className="mt-10 h-[100px] md:h-[60px] xl:h-[90px]"
+        />
       </section>
     </main>
   );

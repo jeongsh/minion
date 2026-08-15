@@ -80,7 +80,7 @@ export function AdSlot({
           data-ad-client={AD_CLIENT}
           data-ad-slot={slot}
           data-ad-format={resolvedFormat}
-          data-full-width-responsive="false"
+          data-full-width-responsive={resolvedFormat === "auto" ? "true" : "false"}
         />
       ) : (
         "ADVERTISEMENT"

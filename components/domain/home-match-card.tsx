@@ -123,10 +123,10 @@ export function HomeMatchCard({
             <MatchTeamLogo team={teamA} />
           </span>
           <span
-            className="flex shrink-0 items-center gap-1.5 rounded-md bg-[var(--ui-ink)] px-2.5 py-1.5 text-[12px] font-medium tabular-nums text-[var(--ui-surface)] transition-opacity group-hover:opacity-80"
+            className="flex shrink-0 items-center gap-1.5 rounded-md bg-[#18191c] px-2.5 py-1.5 text-[12px] font-medium tabular-nums text-white transition-opacity group-hover:opacity-80 dark:bg-[#0f1012]"
           >
             {live ? (
-              <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-[#ff3158]" aria-hidden />
+              <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full !bg-[#ff3158]" aria-hidden />
             ) : null}
             {live ? <span className="sr-only">실시간 경기, </span> : null}
             {centerLabel}
