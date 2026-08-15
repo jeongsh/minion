@@ -159,7 +159,7 @@ export default async function SetRatingSnapshotPage({ params }: { params: Promis
 
   return (
     <main className={shellClass}>
-      <div id="rating-share-card" className="relative isolate aspect-[4/5] w-full overflow-hidden rounded-[28px] bg-[#07111f] text-white shadow-[0_24px_70px_rgba(0,0,0,0.32)]">
+      <div id="rating-share-card" className="relative isolate aspect-[4/5] w-full overflow-hidden bg-[#07111f] text-white shadow-[0_24px_70px_rgba(0,0,0,0.32)]">
         {/* 임시 배경: 추후 전용 경기 이미지로 이 한 줄만 교체할 수 있다. */}
         <div className="absolute inset-0 -z-30 bg-cover bg-center" style={{ backgroundImage: `url(${backgroundImage})` }} />
         <div className="absolute inset-0 -z-20 bg-[linear-gradient(180deg,rgba(4,11,23,0.44)_0%,rgba(4,10,20,0.7)_42%,rgba(5,11,20,0.88)_100%)]" />
@@ -186,7 +186,7 @@ export default async function SetRatingSnapshotPage({ params }: { params: Promis
             </div>
           </section>
 
-          <section className="mt-4 shrink-0 overflow-hidden rounded-2xl bg-black/35 shadow-[0_18px_50px_rgba(0,0,0,0.18)] backdrop-blur-md">
+          <section className="mt-4 shrink-0 overflow-hidden rounded-2xl bg-[#080d16]/90 shadow-[0_18px_50px_rgba(0,0,0,0.18)]">
             <div className="grid grid-cols-[1fr_auto_1fr] items-center px-5 py-3 text-[11px] font-medium text-white/45">
               <span>{teamA?.name ?? "블루 팀"}</span>
               <span className="tracking-[0.12em]">선수별 평균</span>

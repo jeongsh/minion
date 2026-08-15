@@ -10,17 +10,22 @@ const SHARE_IMAGE_HEIGHT = 1350;
 async function makeSnapshot(filename: string) {
   const node = document.getElementById(SNAPSHOT_ID);
   if (!node) throw new Error("공유 이미지를 찾을 수 없습니다.");
+  const pixelRatio = SHARE_IMAGE_WIDTH / node.clientWidth;
 
   const { toBlob } = await import("html-to-image");
   const blob = await toBlob(node, {
     backgroundColor: "#07111f",
     cacheBust: true,
-    canvasWidth: SHARE_IMAGE_WIDTH,
-    canvasHeight: SHARE_IMAGE_HEIGHT,
-    pixelRatio: 1,
+    pixelRatio,
   });
 
   if (!blob) throw new Error("이미지를 만들지 못했습니다.");
+  if ("createImageBitmap" in window) {
+    const bitmap = await createImageBitmap(blob);
+    const hasExpectedSize = bitmap.width === SHARE_IMAGE_WIDTH && bitmap.height === SHARE_IMAGE_HEIGHT;
+    bitmap.close();
+    if (!hasExpectedSize) throw new Error("공유 이미지 크기가 올바르게 생성되지 않았습니다.");
+  }
   return new File([blob], filename, { type: "image/png" });
 }
 
@@ -88,7 +93,7 @@ export function SnapshotActions({ filename }: { filename: string }) {
         </button>
       </div>
       {error ? <p className="text-center text-[13px] font-semibold text-red-500">{error}</p> : null}
-      <p className="text-center text-[13px] text-[var(--ui-muted)]">SNS 피드에 최적화된 1080 × 1350px PNG로 저장됩니다.</p>
+      <p className="text-center text-[13px] text-[var(--ui-muted)]">SNS 피드에 최적화된 {SHARE_IMAGE_WIDTH} × {SHARE_IMAGE_HEIGHT}px PNG로 저장됩니다.</p>
     </div>
   );
 }
