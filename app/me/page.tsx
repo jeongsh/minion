@@ -1,347 +1,202 @@
+import { Bell, ChevronRight, Coins, FileText, MessageSquareText, Settings, ShieldBan, TrendingUp, UserRound } from "lucide-react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
-import { DeleteAccountForm } from "@/components/auth/delete-account-form";
-import { LogoutButton } from "@/components/auth/logout-button";
-import { PasswordForm } from "@/components/auth/password-form";
-import { ProfileForm } from "@/components/auth/profile-form";
-import { BlockedUserList } from "@/components/community/blocked-user-list";
 import { CheckInButton } from "@/components/rank/check-in-button";
+import { RankAvatar } from "@/components/rank/rank-avatar";
 import { KitschEmptyState } from "@/components/ui/kitsch-empty-state";
-import { getCurrentUser, type CurrentUser } from "@/lib/auth/current-user";
-import { tierProgress, type Tier } from "@/lib/rank/config";
+import { TeamLogo } from "@/components/ui/team-logo";
+import { formatRelativeOrDate } from "@/components/community/format";
+import { getCurrentUser } from "@/lib/auth/current-user";
+import { boardLabel } from "@/lib/community/boards";
+import { blindLabel } from "@/lib/community/moderation-labels";
+import { getCommentsByAuthor, getPostsByAuthor } from "@/lib/data/community";
+import { getTeams } from "@/lib/data/lck";
+import { getFavoriteTeamId } from "@/lib/fan/favorite-team";
+import { tierProgress } from "@/lib/rank/config";
 import { getRankSummary } from "@/lib/rank/queries";
-import { listBlockedCommunityUsers } from "@/lib/data/community-users";
-import { listBlockedCommunityGuests } from "@/lib/data/community-guests";
 
-// 회원 탈퇴 재인증(delete-account-form.tsx)에서 소셜 재로그인 후 이 시간 안에는
-// "방금 본인임을 증명했다"고 보고 비밀번호 없이 탈퇴를 진행할 수 있게 한다.
-const REAUTH_WINDOW_MS = 5 * 60 * 1000;
-
-function isRecentlyReauthenticated(user: CurrentUser) {
-  if (user.hasPassword || !user.lastSignInAt) return false;
-  return Date.now() - new Date(user.lastSignInAt).getTime() < REAUTH_WINDOW_MS;
-}
-
-export const metadata = {
-  title: "마이랭크 · MINION",
-};
-
-// delete-account-form.tsx의 PROVIDER_INFO와 같은 provider 키를 쓴다(app_metadata.provider 원본 값).
-const SOCIAL_PROVIDER_LABELS: Record<string, string> = {
-  google: "구글",
-  kakao: "카카오",
-  "custom:naver": "네이버",
-  apple: "Apple",
-};
+export const metadata = { title: "마이 홈 · MINION" };
 
 const REASON_LABELS: Record<string, string> = {
-  attendance: "출석체크",
-  post_created: "글 작성",
-  comment_created: "댓글 작성",
-  honor_received: "추천 받음",
-  honor_removed: "추천 취소",
-  dishonor_received: "비추천 받음",
-  dishonor_removed: "비추천 취소",
-  reported: "신고 제재",
-  prediction_bet_placed: "승부예측 참가",
-  prediction_bet_cancelled: "승부예측 취소",
-  prediction_bet_won: "승부예측 적중",
-  prediction_bet_refunded: "승부예측 환불",
+  attendance: "출석체크", post_created: "글 작성", comment_created: "댓글 작성",
+  honor_received: "추천 받음", honor_removed: "추천 취소", dishonor_received: "비추천 받음",
+  dishonor_removed: "비추천 취소", reported: "신고 제재", prediction_bet_placed: "승부예측 참가",
+  prediction_bet_cancelled: "승부예측 취소", prediction_bet_won: "승부예측 적중", prediction_bet_refunded: "승부예측 환불",
 };
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("ko-KR", {
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return new Date(iso).toLocaleDateString("ko-KR", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
 }
 
-type MeTab = "rank" | "account" | "blocks";
+export default async function MePage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
+  const { tab } = await searchParams;
+  if (tab === "account") redirect("/me/settings#profile");
+  if (tab === "blocks") redirect("/me/settings#blocks");
 
-export default async function MePage({
-  searchParams,
-}: {
-  searchParams: Promise<{ tab?: string }>;
-}) {
-  const params = await searchParams;
-  const tab: MeTab = params.tab === "account" ? "account" : params.tab === "blocks" ? "blocks" : "rank";
   const user = await getCurrentUser();
-
   if (!user) {
     return (
       <main className="layout-form py-16 text-center">
-        <h1 className="home-section-title mb-3 text-2xl">마이랭크</h1>
-        <p className="mb-6 text-sm" style={{ color: "var(--muted)" }}>
-          랭크와 LP를 보려면 로그인이 필요합니다.
-        </p>
+        <h1 className="home-section-title mb-3 text-2xl">마이 홈</h1>
+        <p className="mb-6 text-sm text-[var(--ui-muted)]">내 랭크와 활동을 보려면 로그인이 필요합니다.</p>
         <div className="flex flex-col justify-center gap-3 sm:flex-row">
-          <Link
-            href="/login"
-            className="flex min-h-11 items-center justify-center rounded-md px-4 py-2 text-sm font-bold text-[var(--accent-foreground)]"
-            style={{ backgroundColor: "var(--accent)" }}
-          >
-            로그인
-          </Link>
-          <Link
-            href="/signup"
-            className="flex min-h-11 items-center justify-center rounded-md border px-4 py-2 text-sm font-bold"
-            style={{ borderColor: "var(--border)" }}
-          >
-            회원가입
-          </Link>
+          <Link href="/login?next=/me" className="flex min-h-11 items-center justify-center rounded-lg bg-[var(--accent)] px-5 text-sm font-bold text-[var(--accent-foreground)]">로그인</Link>
+          <Link href="/signup" className="flex min-h-11 items-center justify-center rounded-lg border border-[var(--ui-border)] px-5 text-sm font-bold">회원가입</Link>
         </div>
       </main>
     );
   }
 
-  const summary = await getRankSummary(user.id);
-  const [blockedUsers, blockedGuests] = tab === "blocks"
-    ? await Promise.all([listBlockedCommunityUsers(user.id), listBlockedCommunityGuests(user.id)])
-    : [[], []];
+  const [summary, favoriteTeamId, teams, posts, comments] = await Promise.all([
+    getRankSummary(user.id),
+    getFavoriteTeamId(),
+    getTeams(),
+    getPostsByAuthor(user.id),
+    getCommentsByAuthor(user.id),
+  ]);
   const progress = tierProgress(summary.tier, summary.lp);
+  const favoriteTeam = teams.find((team) => team.id === favoriteTeamId) ?? null;
+  const teamsById = new Map(teams.map((team) => [team.id, team]));
+  const activityHref = (postId: string, scope: "hub" | "team", teamId: string | null) => {
+    const team = teamId ? teamsById.get(teamId) : null;
+    return scope === "team" && team
+      ? `/fan/${team.fanSiteHost || team.slug}/community/post/${postId}`
+      : `/community/post/${postId}`;
+  };
+  const recentCommunityActivity = [
+    ...posts.map((post) => ({
+      id: `post:${post.id}`,
+      kind: "post" as const,
+      title: post.blindedAt ? blindLabel(post.blindedSource, "post") : post.title,
+      context: boardLabel(post.siteScope, post.boardType),
+      createdAt: post.createdAt,
+      href: activityHref(post.id, post.siteScope, post.teamId),
+    })),
+    ...comments.map((comment) => ({
+      id: `comment:${comment.id}`,
+      kind: "comment" as const,
+      title: comment.blindedAt ? blindLabel(comment.blindedSource, "comment") : comment.content,
+      context: comment.postTitle,
+      createdAt: comment.createdAt,
+      href: activityHref(comment.postId, comment.postSiteScope, comment.postTeamId),
+    })),
+  ].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)).slice(0, 5);
+  const initials = (user.nickname ?? "MY").slice(0, 2).toUpperCase();
 
   return (
-    <main className="layout-form me-page py-5 sm:py-8">
-      <header className="me-card mb-5 rounded-2xl border p-5 sm:mb-6 sm:p-6">
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <p className="text-[13px] font-bold text-[var(--ui-muted)]">MINION 계정</p>
-            <h1 className="mt-1 text-2xl font-black text-[var(--ui-ink)]">마이페이지</h1>
-            <p className="mt-1 text-sm text-[var(--ui-muted)]">
-              랭크, 프로필, 보안 설정을 한 곳에서 관리합니다.
-            </p>
+    <main className="layout-wide me-page max-w-5xl py-5 sm:py-8">
+      <section className="me-card relative overflow-hidden rounded-3xl border p-5 sm:p-7">
+        <div className="absolute inset-x-0 top-0 h-1 bg-[var(--accent)]" aria-hidden />
+        <div className="flex items-start gap-4 sm:items-center sm:gap-5">
+          <RankAvatar tier={summary.tier} src={user.profileImageUrl} alt="" fallback={initials} size="lg" />
+          <div className="min-w-0 flex-1 pt-1 sm:pt-0">
+            <p className="text-[13px] font-bold text-[var(--ui-muted)]">마이 홈</p>
+            <h1 className="mt-0.5 truncate text-2xl font-black tracking-[-0.03em] text-[var(--ui-ink)] sm:text-3xl">{user.nickname ?? "MINION 팬"}</h1>
+            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-[var(--ui-muted)]">
+              <span className="font-bold text-[var(--ui-ink)]">{progress.label}</span>
+              <span className="flex items-center gap-1"><Coins size={15} />{summary.lp.toLocaleString("ko-KR")} LP</span>
+              {summary.overallRank ? <span>전체 {summary.overallRank.toLocaleString("ko-KR")}위</span> : null}
+            </div>
           </div>
-          <LogoutButton className="inline-flex min-h-10 shrink-0 items-center rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 text-sm font-bold text-[var(--ui-muted)] transition hover:bg-[var(--ui-surface-muted)] hover:text-[var(--ui-ink)]" />
+          <Link href="/me/settings" aria-label="설정" className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] text-[var(--ui-muted)] transition hover:bg-[var(--ui-surface-muted)] hover:text-[var(--ui-ink)]"><Settings size={19} /></Link>
+        </div>
+        {favoriteTeam ? (
+          <div className="mt-5 flex items-center gap-2 border-t border-[var(--ui-border)] pt-4 text-[13px] text-[var(--ui-muted)]">
+            <TeamLogo team={favoriteTeam} size="h-6 w-6" /><span>내 최애팀</span><span className="font-bold text-[var(--ui-ink)]">{favoriteTeam.name}</span>
+          </div>
+        ) : null}
+      </section>
+
+      <div className="mt-4 grid gap-4 sm:mt-6 lg:grid-cols-[minmax(0,1.55fr)_minmax(280px,0.8fr)] lg:gap-6">
+        <div className="min-w-0 space-y-4 sm:space-y-6">
+          <section className="me-card rounded-2xl border p-5 sm:p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div><p className="text-[13px] font-bold text-[var(--ui-muted)]">티어 진행도</p><h2 className="mt-1 text-lg font-black text-[var(--ui-ink)]">{progress.label}</h2></div>
+              <span className="rounded-lg bg-[var(--ui-surface-muted)] px-2.5 py-1 text-[13px] font-bold text-[var(--ui-muted)]">{Math.round(progress.progressRatio * 100)}%</span>
+            </div>
+            <div className="mt-4 h-2.5 w-full overflow-hidden rounded-full bg-[var(--ui-surface-muted)]"><div className="h-full rounded-full bg-[var(--accent)]" style={{ width: `${Math.round(progress.progressRatio * 100)}%` }} /></div>
+            <p className="mt-2 text-[13px] text-[var(--ui-muted)]">
+              {progress.nextTier && progress.nextThreshold !== null ? `다음 티어(${progress.nextTierLabel})까지 ${(progress.nextThreshold - summary.lp).toLocaleString("ko-KR")} LP` : "최고 티어에 도달했어요."}
+            </p>
+          </section>
+
+          <section className="me-card rounded-2xl border p-0">
+            <div className="flex items-center justify-between gap-4 px-5 pb-4 pt-5 sm:px-6 sm:pt-6">
+              <div><p className="text-[13px] font-bold text-[var(--ui-muted)]">커뮤니티</p><h2 className="mt-0.5 text-lg font-black text-[var(--ui-ink)]">내 활동</h2></div>
+              <Link href={`/community/user/${user.id}`} className="flex min-h-9 items-center gap-1 rounded-lg px-2 text-[13px] font-bold text-[var(--ui-muted)] transition hover:bg-[var(--ui-surface-muted)] hover:text-[var(--ui-ink)]">전체보기<ChevronRight size={15} /></Link>
+            </div>
+            <div className="mx-5 grid grid-cols-2 overflow-hidden rounded-xl bg-[var(--ui-surface-muted)] sm:mx-6">
+              <Link href={`/community/user/${user.id}?tab=posts`} className="flex items-center gap-3 px-4 py-3.5 transition hover:bg-[var(--ui-card-hover)]">
+                <span className="grid h-9 w-9 place-items-center rounded-lg bg-[var(--ui-surface)] text-[var(--ui-muted)]"><FileText size={17} /></span>
+                <span><span className="block text-[12px] font-medium text-[var(--ui-muted)]">내가 쓴 글</span><span className="block text-lg font-black tabular-nums text-[var(--ui-ink)]">{posts.length}</span></span>
+              </Link>
+              <Link href={`/community/user/${user.id}?tab=comments`} className="flex items-center gap-3 border-l border-[var(--ui-border)] px-4 py-3.5 transition hover:bg-[var(--ui-card-hover)]">
+                <span className="grid h-9 w-9 place-items-center rounded-lg bg-[var(--ui-surface)] text-[var(--ui-muted)]"><MessageSquareText size={17} /></span>
+                <span><span className="block text-[12px] font-medium text-[var(--ui-muted)]">내가 쓴 댓글</span><span className="block text-lg font-black tabular-nums text-[var(--ui-ink)]">{comments.length}</span></span>
+              </Link>
+            </div>
+            {recentCommunityActivity.length > 0 ? (
+              <ul className="mt-4 divide-y divide-[var(--ui-border)] border-t border-[var(--ui-border)] px-5 sm:px-6">
+                {recentCommunityActivity.map((item) => (
+                  <li key={item.id}>
+                    <Link href={item.href} className="flex min-h-[62px] items-center gap-3 py-3 transition hover:opacity-75">
+                      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[var(--ui-surface-muted)] text-[var(--ui-muted)]">{item.kind === "post" ? <FileText size={15} /> : <MessageSquareText size={15} />}</span>
+                      <span className="min-w-0 flex-1"><span className="block truncate text-[12px] font-medium text-[var(--tp)]">{item.context}</span><span className="mt-0.5 block truncate text-sm font-semibold text-[var(--ui-ink)]">{item.title || "내용 없음"}</span></span>
+                      <time dateTime={item.createdAt} className="shrink-0 text-[12px] font-medium text-[var(--ui-muted)]">{formatRelativeOrDate(item.createdAt)}</time>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="px-5 pb-5 pt-4 sm:px-6"><KitschEmptyState character="marker" title="아직 작성한 글이나 댓글이 없어요" body="커뮤니티에서 첫 이야기를 시작해 보세요." compact plain /></div>
+            )}
+          </section>
+
+          <section className="me-card rounded-2xl border p-0">
+            <div className="flex items-center justify-between px-5 pb-2 pt-5 sm:px-6 sm:pt-6"><div><p className="text-[13px] font-bold text-[var(--ui-muted)]">최근 기록</p><h2 className="mt-0.5 text-lg font-black text-[var(--ui-ink)]">LP 변동</h2></div><TrendingUp size={20} className="text-[var(--ui-muted)]" /></div>
+            {summary.recentLedger.length === 0 ? (
+              <div className="px-5 pb-5 pt-3 sm:px-6"><KitschEmptyState character="flag" title="LP 로그가 아직 깨끗해요" body="출석체크나 예측에 참여하면 여기에 기록이 쌓여요." compact /></div>
+            ) : (
+              <ul className="me-ledger-list flex flex-col px-5 pb-4 sm:px-6 sm:pb-5">
+                {summary.recentLedger.slice(0, 6).map((entry) => (
+                  <li key={entry.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-3 text-sm">
+                    <span className="min-w-0 truncate font-medium">{REASON_LABELS[entry.reason] ?? entry.reason}</span>
+                    <span className="flex items-center gap-3 whitespace-nowrap"><span className={`font-bold ${entry.delta >= 0 ? "text-[#16a34a]" : "text-[#dc2626]"}`}>{entry.delta >= 0 ? `+${entry.delta}` : entry.delta}</span><span className="text-[12px] text-[var(--ui-muted)]">{formatDate(entry.created_at)}</span></span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
         </div>
 
-        <nav
-          className="me-tabs mt-5 grid grid-cols-3 gap-1 rounded-xl bg-[var(--ui-surface-muted)] p-1"
-          aria-label="마이페이지 탭"
-        >
-          <TabLink href="/me" label="마이랭크" active={tab === "rank"} />
-          <TabLink href="/me?tab=account" label="개인정보 수정" active={tab === "account"} />
-          <TabLink href="/me?tab=blocks" label="차단 관리" active={tab === "blocks"} />
-        </nav>
-      </header>
+        <aside className="space-y-4 sm:space-y-6">
+          <section className="me-card rounded-2xl border p-5 sm:p-6">
+            <p className="text-[13px] font-bold text-[var(--ui-muted)]">오늘도 MINION</p>
+            <h2 className="mt-1 text-lg font-black text-[var(--ui-ink)]">출석체크</h2>
+            <p className="mb-4 mt-1 text-[13px] leading-5 text-[var(--ui-muted)]">매일 방문하고 LP를 차곡차곡 모아보세요.</p>
+            <CheckInButton alreadyChecked={summary.checkedInToday} />
+          </section>
 
-      {tab === "account" ? (
-        <AccountPanel
-          email={user.email}
-          nickname={user.nickname ?? ""}
-          profileImageUrl={user.profileImageUrl}
-          tier={summary.tier}
-          hasPassword={user.hasPassword}
-          authProvider={user.authProvider}
-          recentlyReauthenticated={isRecentlyReauthenticated(user)}
-        />
-      ) : tab === "blocks" ? (
-        <section className="me-card rounded-2xl border p-5 sm:p-6">
-          <h2 className="text-base font-bold">차단한 사용자</h2>
-          <p className="mt-1 text-sm text-[var(--ui-muted)]">차단한 사용자의 글과 댓글은 내 화면에 표시되지 않습니다.</p>
-          <div className="mt-4"><BlockedUserList users={blockedUsers} guests={blockedGuests} /></div>
-        </section>
-      ) : (
-        <RankPanel summary={summary} progress={progress} />
-      )}
+          <section className="me-card rounded-2xl border p-3">
+            <h2 className="px-2 pb-2 pt-1 text-[13px] font-bold text-[var(--ui-muted)]">내 설정 바로가기</h2>
+            <QuickLink href={`/community/user/${user.id}`} icon={FileText} title="내 커뮤니티 활동" description="작성한 글과 댓글" />
+            <QuickLink href="/me/settings#profile" icon={UserRound} title="프로필" description="닉네임과 프로필 이미지" />
+            <QuickLink href="/me/settings#notifications" icon={Bell} title="알림" description="경기와 평가 알림" />
+            <QuickLink href="/me/settings#blocks" icon={ShieldBan} title="차단 관리" description="차단한 사용자 관리" />
+          </section>
+        </aside>
+      </div>
     </main>
   );
 }
 
-function TabLink({ href, label, active }: { href: string; label: string; active: boolean }) {
+function QuickLink({ href, icon: Icon, title, description }: { href: string; icon: typeof Bell; title: string; description: string }) {
   return (
-    <Link
-      href={href}
-      aria-current={active ? "page" : undefined}
-      className={`flex min-h-11 items-center justify-center rounded-lg px-3 text-sm font-bold transition ${
-        active
-          ? "bg-[var(--ui-surface)] text-[var(--ui-ink)] shadow-[0_1px_0_rgb(24_25_28_/_0.05)]"
-          : "text-[var(--ui-muted)] hover:text-[var(--ui-text)]"
-      }`}
-    >
-      {label}
+    <Link href={href} className="group flex min-h-[64px] items-center gap-3 rounded-xl px-2 transition hover:bg-[var(--ui-surface-muted)]">
+      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[var(--ui-surface-muted)] text-[var(--ui-muted)] group-hover:text-[var(--ui-ink)]"><Icon size={17} /></span>
+      <span className="min-w-0 flex-1"><span className="block text-sm font-bold text-[var(--ui-ink)]">{title}</span><span className="block truncate text-[12px] text-[var(--ui-muted)]">{description}</span></span>
+      <ChevronRight size={17} className="text-[var(--ui-muted)]" />
     </Link>
-  );
-}
-
-function AccountPanel({
-  email,
-  nickname,
-  profileImageUrl,
-  tier,
-  hasPassword,
-  authProvider,
-  recentlyReauthenticated,
-}: {
-  email: string | null;
-  nickname: string;
-  profileImageUrl: string | null;
-  tier: Tier;
-  hasPassword: boolean;
-  authProvider: string | null;
-  recentlyReauthenticated: boolean;
-}) {
-  return (
-    <>
-      <section
-        className="me-card mb-4 rounded-2xl border p-5 sm:mb-6 sm:p-6"
-        style={{ borderColor: "var(--border)", backgroundColor: "var(--surface)" }}
-      >
-        <div className="mb-4">
-          <h2 className="text-base font-bold">프로필</h2>
-          <p className="mt-1 text-sm" style={{ color: "var(--muted)" }}>
-            헤더와 커뮤니티에 표시되는 닉네임과 프로필 이미지를 변경합니다.
-          </p>
-        </div>
-        <ProfileForm
-          initialNickname={nickname}
-          initialProfileImageUrl={profileImageUrl}
-          tier={tier}
-        />
-      </section>
-
-      <section
-        className="me-card mb-4 rounded-2xl border p-5 sm:mb-6 sm:p-6"
-        style={{ borderColor: "var(--border)", backgroundColor: "var(--surface)" }}
-      >
-        <div className="mb-4">
-          <h2 className="text-base font-bold">
-            계정
-            {hasPassword ? null : (
-              <>
-                {" "}
-                ·{" "}
-                {(authProvider ? SOCIAL_PROVIDER_LABELS[authProvider] : undefined) ?? "소셜"}{" "}
-                로그인
-              </>
-            )}
-          </h2>
-          <p className="mt-1 text-sm" style={{ color: "var(--muted)" }}>
-            {hasPassword
-              ? "가입 이메일은 변경할 수 없습니다."
-              : "소셜 로그인 계정은 로그인 수단을 변경할 수 없습니다."}
-          </p>
-        </div>
-        {hasPassword ? (
-          <p className="text-sm font-semibold">{email ?? "이메일 정보 없음"}</p>
-        ) : null}
-      </section>
-
-      {hasPassword ? (
-        <section
-          className="me-card mb-4 rounded-2xl border p-5 sm:mb-6 sm:p-6"
-          style={{ borderColor: "var(--border)", backgroundColor: "var(--surface)" }}
-        >
-          <div className="mb-4">
-            <h2 className="text-base font-bold">비밀번호 변경</h2>
-            <p className="mt-1 text-sm" style={{ color: "var(--muted)" }}>
-              보안을 위해 현재 비밀번호를 다시 확인합니다.
-            </p>
-          </div>
-          <PasswordForm />
-        </section>
-      ) : null}
-
-      <section
-        className="me-card rounded-2xl border p-5 sm:p-6"
-        style={{ borderColor: "var(--border)", backgroundColor: "var(--surface)" }}
-      >
-        <div className="mb-4">
-          <h2 className="text-base font-bold">회원 탈퇴</h2>
-        </div>
-        <DeleteAccountForm
-          hasPassword={hasPassword}
-          authProvider={authProvider}
-          recentlyReauthenticated={recentlyReauthenticated}
-        />
-      </section>
-    </>
-  );
-}
-
-function RankPanel({
-  summary,
-  progress,
-}: {
-  summary: Awaited<ReturnType<typeof getRankSummary>>;
-  progress: ReturnType<typeof tierProgress>;
-}) {
-  return (
-    <>
-      <section className="me-card mb-4 rounded-2xl border p-0 sm:mb-6">
-        <div className="grid gap-0 sm:grid-cols-[minmax(0,1fr)_220px]">
-          <div className="p-5 sm:p-6">
-            <div className="mb-4 flex items-baseline justify-between gap-3">
-              <span className="text-base font-bold">{progress.label}</span>
-              <span className="text-sm" style={{ color: "var(--muted)" }}>
-                {summary.lp.toLocaleString()} LP
-                {summary.overallRank ? ` · 전체 ${summary.overallRank}위` : ""}
-              </span>
-            </div>
-
-            <div
-              className="h-2.5 w-full overflow-hidden rounded-full"
-              style={{ backgroundColor: "var(--surface-muted)" }}
-            >
-              <div
-                className="h-full rounded-full"
-                style={{
-                  width: `${Math.round(progress.progressRatio * 100)}%`,
-                  backgroundColor: "var(--accent)",
-                }}
-              />
-            </div>
-
-            <p className="mt-2 text-sm" style={{ color: "var(--muted)" }}>
-              {progress.nextTier && progress.nextThreshold !== null
-                ? `다음 티어(${progress.nextTierLabel})까지 ${
-                    progress.nextThreshold - summary.lp
-                  } LP`
-                : "최고 티어에 도달했어요."}
-            </p>
-          </div>
-
-          <div className="border-t border-[var(--ui-border)] p-5 sm:border-l sm:border-t-0 sm:p-6">
-            <h2 className="mb-3 text-base font-bold">출석체크</h2>
-            <CheckInButton alreadyChecked={summary.checkedInToday} />
-          </div>
-        </div>
-      </section>
-
-      <section
-        className="me-card rounded-2xl border p-0"
-        style={{ borderColor: "var(--border)", backgroundColor: "var(--surface)" }}
-      >
-        <h2 className="px-5 pb-1 pt-5 text-base font-bold sm:px-6 sm:pt-6">최근 LP 변동</h2>
-        {summary.recentLedger.length === 0 ? (
-          <div className="px-5 pb-5 pt-3 sm:px-6">
-            <KitschEmptyState character="flag" title="LP 로그가 아직 깨끗해요" body="출석체크나 예측에 참여하면 여기에 기록이 쌓여요." compact />
-          </div>
-        ) : (
-          <ul className="me-ledger-list flex flex-col px-5 pb-4 sm:px-6 sm:pb-5">
-            {summary.recentLedger.map((entry) => (
-              <li
-                key={entry.id}
-                className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-3 text-sm"
-              >
-                <span className="min-w-0 truncate font-medium">{REASON_LABELS[entry.reason] ?? entry.reason}</span>
-                <span className="flex items-center gap-3 whitespace-nowrap">
-                  <span
-                    className="font-bold"
-                    style={{ color: entry.delta >= 0 ? "#16a34a" : "#dc2626" }}
-                  >
-                    {entry.delta >= 0 ? `+${entry.delta}` : entry.delta}
-                  </span>
-                  <span style={{ color: "var(--muted)" }}>
-                    {formatDate(entry.created_at)}
-                  </span>
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-    </>
   );
 }

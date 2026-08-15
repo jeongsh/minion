@@ -5,5 +5,5 @@ export const metadata = {
 };
 
 export default function ProfilePage() {
-  redirect("/me");
+  redirect("/me/settings#profile");
 }
