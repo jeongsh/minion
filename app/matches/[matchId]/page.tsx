@@ -215,7 +215,7 @@ function TabNav({
 
 /**
  * 탭 안에서 세트를 좁히는 2차 컨트롤이라 세그먼티드 컨트롤 언어를 쓴다.
- * 세트가 하나뿐이면 고를 것이 없으므로 그리지 않는다.
+ * 세트가 하나뿐이어도 현재 세트를 명확히 보여주기 위해 그린다.
  */
 function SetSelector({
   sets,
@@ -228,11 +228,11 @@ function SetSelector({
   tab?: Extract<MatchTab, "data" | "rating">;
   snapshotHref?: string;
 }) {
-  if (sets.length <= 1 && !snapshotHref) return null;
+  if (sets.length === 0 && !snapshotHref) return null;
 
   return (
     <div className="sticky top-[var(--ui-header-height)] z-30 -mx-1 flex items-center justify-between gap-2 bg-[var(--ui-surface)] px-1 py-1.5">
-      {sets.length > 1 ? (
+      {sets.length > 0 ? (
         <SegmentedControl
           items={sets.map((set) => ({
             key: set.id,
