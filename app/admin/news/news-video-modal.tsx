@@ -64,7 +64,7 @@ export function VideoFormModal({
 
       <dialog
         ref={dialogRef}
-        className="fixed inset-0 m-auto w-[min(100%,34rem)] rounded-xl border border-border bg-surface p-0 shadow-xl backdrop:bg-black/50"
+        className="modal-native fixed inset-0 m-auto w-[min(100%,34rem)] rounded-xl border border-border bg-surface p-0 shadow-xl backdrop:bg-black/50"
         onClose={handleClose}
       >
         <div className="p-6">

@@ -68,7 +68,7 @@ export function AdaptiveDialog({
       {open && typeof document !== "undefined"
         ? createPortal(
         <div
-          className="fixed inset-0 z-[1000] flex items-end justify-center bg-black/45 sm:items-center sm:p-6"
+          className="modal-backdrop fixed inset-0 z-[1000] flex items-end justify-center bg-black/45 [--modal-backdrop-dark-mobile:0.65] sm:items-center sm:p-6"
           role="presentation"
           onMouseDown={(event) => {
             if (event.currentTarget === event.target) setOpen(false);

@@ -99,7 +99,7 @@ function PredictionBetDialog({ dialog, balance, stake, pending, error, onStakeCh
   const valid = Number.isSafeInteger(amount) && amount >= 100 && amount <= maxStake;
 
   return (
-    <div className="fixed inset-0 z-[80] grid place-items-center bg-black/55 px-4 py-4 backdrop-blur-sm" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+    <div className="modal-backdrop fixed inset-0 z-[80] grid place-items-center bg-black/55 [--modal-backdrop-dark-mobile:0.7] px-4 py-4 backdrop-blur-sm" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
       <section className="prediction-ticket adaptive-dialog-panel max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-md overflow-y-auto overflow-x-hidden dark:bg-[var(--ui-surface-muted)] sm:w-full" role="dialog" aria-modal="true" aria-labelledby="quick-bet-title">
         <span className="prediction-ticket__stub" aria-hidden />
         <div className="prediction-ticket__content">

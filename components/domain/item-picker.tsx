@@ -78,7 +78,7 @@ export function ItemPicker({
             <button
               type="button"
               aria-label="닫기"
-              className="absolute inset-0 bg-black/60"
+              className="modal-backdrop absolute inset-0 bg-black/60 [--modal-backdrop-dark-mobile:0.75]"
               onClick={() => {
                 setOpen(false);
                 setQuery("");

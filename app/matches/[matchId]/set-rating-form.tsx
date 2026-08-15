@@ -360,7 +360,7 @@ export function SetRatingForm({
           <button
             type="button"
             aria-label="평가 입력 닫기"
-            className="absolute inset-0 bg-black/35"
+            className="modal-backdrop absolute inset-0 bg-black/35 [--modal-backdrop-dark-mobile:0.55]"
             onClick={() => setMobileComposerOpen(false)}
           />
           <div className="relative z-10 w-full rounded-t-2xl bg-[var(--ui-surface)] px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-3 shadow-2xl">

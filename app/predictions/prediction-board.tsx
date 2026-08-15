@@ -347,7 +347,7 @@ function BetAmountDialog({
   const presets = [0.25, 0.5, 0.75, 1];
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/55 backdrop-blur-sm sm:items-center sm:px-4" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+    <div className="modal-backdrop fixed inset-0 z-[80] flex items-end justify-center bg-black/55 [--modal-backdrop-dark-mobile:0.7] backdrop-blur-sm sm:items-center sm:px-4" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
       <section className="prediction-ticket adaptive-dialog-panel w-[calc(100vw-2rem)] max-w-md dark:bg-[var(--ui-surface-muted)] sm:w-full" role="dialog" aria-modal="true" aria-labelledby="bet-dialog-title">
         <span className="prediction-ticket__stub" aria-hidden />
         <div className="prediction-ticket__content">

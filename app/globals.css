@@ -290,6 +290,16 @@ html[class~="dark"] .navigation-progress-bar {
   animation: adaptive-dialog-enter 0.2s cubic-bezier(.2, .9, .25, 1) both;
 }
 
+@media (max-width: 639px) {
+  html[class~="dark"] .modal-backdrop {
+    background-color: rgb(0 0 0 / var(--modal-backdrop-dark-mobile, 0.7));
+  }
+
+  html[class~="dark"] dialog.modal-native::backdrop {
+    background-color: rgb(0 0 0 / 0.7);
+  }
+}
+
 .prediction-ticket {
   --prediction-ticket-head-height: 96px;
   position: relative;

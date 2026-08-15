@@ -44,7 +44,7 @@ export function PostOwnerActions({ postId, scope, teamSlug, guest = false, varia
       </span>
       {confirmOpen && typeof document !== "undefined"
         ? createPortal(
-            <div className="fixed inset-0 z-[1000] grid place-items-center bg-black/55 px-4" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setConfirmOpen(false)}>
+            <div className="modal-backdrop fixed inset-0 z-[1000] grid place-items-center bg-black/55 [--modal-backdrop-dark-mobile:0.7] px-4" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setConfirmOpen(false)}>
               <section className="adaptive-dialog-panel w-full max-w-sm rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-5 shadow-2xl dark:bg-[var(--ui-surface-muted)]" role="dialog" aria-modal="true" aria-labelledby="delete-post-title">
                 <div className="flex items-start justify-between gap-4">
                   <div>

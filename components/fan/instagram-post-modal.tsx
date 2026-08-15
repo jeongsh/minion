@@ -99,7 +99,7 @@ export function InstagramPostModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-0 backdrop-blur-sm sm:p-6"
+      className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/85 [--modal-backdrop-dark-mobile:0.92] p-0 backdrop-blur-sm sm:p-6"
       onClick={onClose}
       role="dialog"
       aria-modal="true"

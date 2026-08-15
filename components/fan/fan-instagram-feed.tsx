@@ -59,7 +59,7 @@ function StoryViewer({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/90"
+      className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/90 [--modal-backdrop-dark-mobile:0.95]"
       onClick={onClose}
     >
       <div
