@@ -48,7 +48,7 @@ export function TeamEditForm({
         <ExternalLink href={team.officialXUrl} label="X" />
         <ExternalLink href={team.officialInstagramUrl} label="Instagram" />
         <Link
-          href={`/teams/${team.slug}`}
+          href={`/teams?team=${encodeURIComponent(team.fanSiteHost || team.slug)}`}
           className="rounded-md border border-border px-3 py-1.5 text-[13px] font-semibold hover:bg-surface-muted"
         >
           팀 상세 보기

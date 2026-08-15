@@ -8,7 +8,7 @@ export function TeamCard({ team }: { team: Team }) {
   return (
     <article className="overflow-hidden rounded-[var(--ui-card-radius)] border border-[var(--ui-border)] bg-[var(--ui-surface)] transition-shadow hover:shadow-[0_12px_32px_color-mix(in_srgb,var(--ui-ink)_8%,transparent)]">
       <Link
-        href={`/teams/${team.slug}`}
+        href={`/teams?team=${encodeURIComponent(team.fanSiteHost || team.slug)}`}
         className="group flex min-h-[92px] items-center gap-3 px-4 py-4 transition-colors hover:bg-[var(--ui-surface-muted)] sm:min-h-36 sm:gap-5 sm:px-6 sm:py-6"
       >
         <TeamLogo team={team} size="h-14 w-14 sm:h-24 sm:w-24" plain themeAware />

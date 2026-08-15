@@ -62,7 +62,7 @@ export async function updateInternationalTeamMediaAction(formData: FormData) {
   revalidatePath("/reports");
   revalidatePath("/admin/teams");
   revalidatePath("/teams");
-  revalidatePath(`/teams/${team.slug}`);
+  revalidatePath("/teams");
 }
 
 export async function updateInternationalTeamShortNameAction(formData: FormData) {
@@ -92,7 +92,7 @@ export async function updateInternationalTeamShortNameAction(formData: FormData)
   revalidatePath(`/admin/international-teams/${teamId}`);
   revalidatePath("/reports");
   revalidatePath("/teams");
-  revalidatePath(`/teams/${team.slug}`);
+  revalidatePath("/teams");
 }
 
 function requiredHexColor(formData: FormData, key: string, label: string) {
@@ -172,7 +172,7 @@ export async function updateInternationalTeamColorsAction(formData: FormData) {
   revalidatePath("/admin/international-teams");
   revalidatePath(`/admin/international-teams/${teamId}`);
   revalidatePath("/reports");
-  revalidatePath(`/teams/${team.slug}`);
+  revalidatePath("/teams");
 }
 
 export async function updateInternationalPlayerImageAction(formData: FormData) {
@@ -209,6 +209,6 @@ export async function updateInternationalPlayerImageAction(formData: FormData) {
   }
   revalidatePath(`/players/${player.slug}`);
   if (player.teams?.slug) {
-    revalidatePath(`/teams/${player.teams.slug}`);
+    revalidatePath("/teams");
   }
 }

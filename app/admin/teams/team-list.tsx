@@ -90,7 +90,7 @@ export function TeamList({ teams }: { teams: Team[] }) {
                     관리
                   </Link>
                   <Link
-                    href={`/teams/${team.slug}`}
+                    href={`/teams?team=${encodeURIComponent(team.fanSiteHost || team.slug)}`}
                     className="rounded-md border border-border px-3 py-1.5 text-[13px] font-semibold hover:bg-surface-muted"
                   >
                     팀 상세

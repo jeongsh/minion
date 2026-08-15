@@ -44,20 +44,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       getWeeklyReportIndex(),
     ]);
 
-    const teamRoutes = teams.flatMap((team) => [
-      {
-        url: `${baseUrl}/teams/${team.slug}`,
-        lastModified: now,
-        changeFrequency: "weekly" as const,
-        priority: 0.75,
-      },
-      {
+    const teamRoutes = teams.map((team) => ({
         url: `${baseUrl}/fan/${team.fanSiteHost}`,
         lastModified: now,
         changeFrequency: "daily" as const,
         priority: 0.8,
-      },
-    ]);
+      }));
 
     const playerRoutes = players.map((player) => ({
       url: `${baseUrl}/players/${player.slug}`,

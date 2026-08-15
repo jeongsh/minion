@@ -122,7 +122,7 @@ export async function updateTeamAction(formData: FormData) {
   revalidatePath("/admin/teams");
   revalidatePath(`/admin/teams/${teamId}`);
   revalidatePath("/teams");
-  revalidatePath(`/teams/${payload.slug}`);
+  revalidatePath("/teams");
 }
 
 export async function createTeamIdentityHistoryAction(formData: FormData) {
