@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Play } from "lucide-react";
+import { ArrowRight, Heart, Play } from "lucide-react";
 
 import type { FeedInstaItem } from "@/components/fan/fan-feed-mosaic";
 import { FanHomeVideoSwiper } from "@/components/fan/fan-home-video-swiper";
@@ -8,6 +8,7 @@ import { InstagramIcon } from "@/components/fan/instagram-post-modal";
 import { TeamLogo } from "@/components/ui/team-logo";
 import { getFanVideoFeed, getPlayers, getTeamInstagramFeed, getTeamsSortedByRank } from "@/lib/data/lck";
 import { buildFanVideoItems } from "@/lib/fan-video-items";
+import { getFollowedTeamIds } from "@/lib/fan/followed-teams";
 
 export const dynamic = "force-dynamic";
 
@@ -16,8 +17,20 @@ export default async function TeamsPage({
 }: {
   searchParams: Promise<{ team?: string }>;
 }) {
-  const [{ team: selectedKey }, teams, players] = await Promise.all([searchParams, getTeamsSortedByRank(), getPlayers()]);
+  const [{ team: selectedKey }, teams, players, followedTeamIds] = await Promise.all([
+    searchParams,
+    getTeamsSortedByRank(),
+    getPlayers(),
+    getFollowedTeamIds(),
+  ]);
   const selectedTeam = teams.find((team) => team.fanSiteHost === selectedKey || team.slug === selectedKey) ?? teams[0];
+  const followedTeamIdSet = new Set(followedTeamIds);
+  const isFollowing = (team: (typeof teams)[number]) =>
+    followedTeamIdSet.has(team.id) || followedTeamIdSet.has(team.fanSiteHost);
+  const orderedTeams = teams
+    .map((team, index) => ({ team, index }))
+    .sort((a, b) => Number(isFollowing(b.team)) - Number(isFollowing(a.team)) || a.index - b.index)
+    .map(({ team }) => team);
 
   if (!selectedTeam) {
     return <main className="layout-wide py-10"><p className="text-sm text-[var(--ui-muted)]">둘러볼 팀을 준비하고 있습니다.</p></main>;
@@ -60,13 +73,15 @@ export default async function TeamsPage({
     <main className="min-h-screen text-[var(--ui-text)]">
       <section className="border-b border-[var(--ui-border)] bg-[var(--page-background)]" aria-labelledby="team-explorer-title">
         <div className="layout-wide py-6 sm:py-8">
-          <h1 id="team-explorer-title" className="home-section-title text-[20px] tracking-[-0.02em] text-[var(--ui-ink)] sm:text-[22px]">팀 둘러보기</h1>
+          <h1 id="team-explorer-title" className="home-section-title text-[17px] tracking-[-0.02em] text-[var(--ui-ink)] sm:text-[22px]">팀 둘러보기</h1>
           <div className="mt-4 flex gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {teams.map((team) => {
+            {orderedTeams.map((team) => {
               const active = team.id === selectedTeam.id;
+              const following = isFollowing(team);
               return (
-                <Link key={team.id} href={`/teams?team=${encodeURIComponent(team.fanSiteHost || team.slug)}`} scroll={false} aria-current={active ? "true" : undefined} className={`flex w-[76px] shrink-0 flex-col items-center gap-2 rounded-2xl px-2 py-3 text-center transition ${active ? "bg-[var(--ui-ink)] text-[var(--ui-surface)]" : "bg-[var(--ui-surface-muted)] hover:-translate-y-0.5"}`}>
-                  <span className={`grid h-12 w-12 place-items-center rounded-full ${active ? "bg-white" : "bg-[var(--ui-surface)]"}`}><TeamLogo team={team} size="h-9 w-9" plain themeAware /></span>
+                <Link key={team.id} href={`/teams?team=${encodeURIComponent(team.fanSiteHost || team.slug)}`} scroll={false} aria-current={active ? "true" : undefined} data-following={following ? "true" : undefined} className={`relative flex w-[76px] shrink-0 flex-col items-center gap-2 rounded-2xl px-2 py-3 text-center transition ${active ? "bg-[var(--ui-ink)] text-[var(--ui-surface)]" : "bg-[var(--ui-surface-muted)] hover:-translate-y-0.5"}`}>
+                  {following ? <span className="absolute right-1.5 top-1.5 grid h-5 w-5 place-items-center rounded-full bg-[var(--accent)] text-[var(--accent-foreground)]" title="팔로잉"><Heart size={11} fill="currentColor" aria-hidden="true" /><span className="sr-only">팔로잉</span></span> : null}
+                  <span className={`grid h-12 w-12 place-items-center rounded-full ${active ? "bg-white" : "bg-[var(--ui-surface)]"}`}><TeamLogo team={team} size="h-9 w-9" plain themeAware={!active} /></span>
                   <span className="w-full truncate text-[13px] font-black">{team.shortName}</span>
                 </Link>
               );
@@ -82,12 +97,12 @@ export default async function TeamsPage({
         </div>
 
         <section className="mt-9" aria-labelledby="team-social-title">
-          <div className="mb-4 flex items-center gap-2"><InstagramIcon className="h-[18px] w-[18px]" /><h2 id="team-social-title" className="home-section-title text-[length:var(--ui-title-size)] text-[var(--ui-ink)]">최신 소셜 피드</h2></div>
+          <div className="mb-4 flex items-center gap-2"><InstagramIcon className="h-[18px] w-[18px]" /><h2 id="team-social-title" className="home-section-title text-[15px] text-[var(--ui-ink)] sm:text-[length:var(--ui-title-size)]">최신 소셜 피드</h2></div>
           <FanSocialPreview items={socialItems} />
         </section>
 
         <section className="mt-10" aria-labelledby="team-video-title">
-          <div className="mb-4 flex items-center gap-2"><Play size={18} /><h2 id="team-video-title" className="home-section-title text-[length:var(--ui-title-size)] text-[var(--ui-ink)]">최신 영상</h2></div>
+          <div className="mb-4 flex items-center gap-2"><Play size={18} /><h2 id="team-video-title" className="home-section-title text-[15px] text-[var(--ui-ink)] sm:text-[length:var(--ui-title-size)]">최신 영상</h2></div>
           <FanHomeVideoSwiper teamSlug={selectedTeam.fanSiteHost} videos={videos} />
         </section>
       </div>

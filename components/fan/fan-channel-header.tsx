@@ -74,7 +74,7 @@ export async function FanChannelHeader({ teamSlug, calendarSlot }: { teamSlug: s
                   : "grid h-[68px] w-[68px] shrink-0 place-items-center rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] sm:h-[76px] sm:w-[76px]"
               }
             >
-              <TeamLogo team={team} size="h-[70%] w-[70%]" plain themeAware />
+              <TeamLogo team={team} size="h-[70%] w-[70%]" plain themeAware={!hasHeaderBackground} />
             </span>
 
             <div className="flex h-[68px] min-w-0 flex-col justify-center sm:h-[76px]">
