@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  allowedDevOrigins: ["127.0.0.1"],
   images: {
     // Game assets are already small, CDN-hosted icons. Sending them through
     // Vercel's optimizer creates a large number of low-value transformations
