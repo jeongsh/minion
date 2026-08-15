@@ -2,6 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useSwiper } from "swiper/react";
+import { useNavigationTransition } from "@/components/navigation/navigation-transition-provider";
 import { TeamLogo } from "@/components/ui/team-logo";
 import { isMatchLive } from "@/lib/match-display";
 import { predictionMarketForMatch, type PredictionBet } from "@/lib/predictions";
@@ -57,6 +59,9 @@ export function HomeMatchCard({
   tournament,
   bets,
 }: HomeMatchItem) {
+  const swiper = useSwiper();
+  const swiperClickState = swiper as typeof swiper & { allowClick?: boolean };
+  const { startNavigation } = useNavigationTransition();
   const market = predictionMarketForMatch(bets, match.id, match.teamAId, match.teamBId);
   const live = isMatchLive(match);
   const matchDateValue = new Date(match.matchDate);
@@ -84,6 +89,16 @@ export function HomeMatchCard({
         href={href}
         aria-label={matchLabel}
         draggable={false}
+        data-navigation-ignore
+        onClick={(event) => {
+          if (swiperClickState.allowClick !== false) {
+            startNavigation(href);
+            return;
+          }
+
+          event.preventDefault();
+          event.stopPropagation();
+        }}
         className="absolute inset-0 z-10 rounded-xl"
       />
 

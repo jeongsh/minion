@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, type MouseEvent, type PointerEvent, type ReactNode } from "react";
+import { useRef, type MouseEvent, type PointerEvent, type ReactNode, type RefObject } from "react";
 import { Pagination } from "swiper/modules";
 import { Swiper, SwiperSlide } from "swiper/react";
 import "swiper/css";
@@ -11,9 +11,14 @@ import { HomeMatchCard, type HomeMatchItem } from "@/components/domain/home-matc
 import { KitschEmptyState } from "@/components/ui/kitsch-empty-state";
 import { useSwiperResize } from "@/components/ui/use-swiper-resize";
 
-function SwipeNavigationGuard({ children }: { children: ReactNode }) {
+function SwipeNavigationGuard({
+  children,
+  suppressClickRef,
+}: {
+  children: ReactNode;
+  suppressClickRef: RefObject<boolean>;
+}) {
   const pointerStartRef = useRef<{ x: number; y: number } | null>(null);
-  const suppressClickRef = useRef(false);
 
   const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
     if (event.pointerType !== "mouse" || event.button !== 0) return;
@@ -68,6 +73,7 @@ export function HomeMatchSwiper({
   variant?: "carousel" | "single";
 }) {
   const setSwiper = useSwiperResize();
+  const suppressClickRef = useRef(false);
 
   if (!items.length) {
     return (
@@ -83,10 +89,13 @@ export function HomeMatchSwiper({
 
   if (variant === "single") {
     return (
-      <SwipeNavigationGuard>
+      <SwipeNavigationGuard suppressClickRef={suppressClickRef}>
         <Swiper
           modules={[Pagination]}
           onSwiper={setSwiper}
+          onSliderMove={() => {
+            suppressClickRef.current = true;
+          }}
           slidesPerView={1}
           spaceBetween={10}
           pagination={{ clickable: true }}
@@ -105,9 +114,12 @@ export function HomeMatchSwiper({
   }
 
   return (
-    <SwipeNavigationGuard>
+    <SwipeNavigationGuard suppressClickRef={suppressClickRef}>
       <Swiper
         onSwiper={setSwiper}
+        onSliderMove={() => {
+          suppressClickRef.current = true;
+        }}
         spaceBetween={12}
         slidesPerView={1.1}
         preventClicks
