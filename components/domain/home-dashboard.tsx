@@ -170,7 +170,7 @@ export function HomeDashboard({
                   .slice(column * STANDING_ROWS_PER_COLUMN, (column + 1) * STANDING_ROWS_PER_COLUMN)
                   .map((row) => (
                     <Link
-                      href={`/teams/${row.team.slug}`}
+                      href={`/teams?team=${encodeURIComponent(row.team.fanSiteHost || row.team.slug)}`}
                       key={row.teamId}
                       className="flex items-center gap-3 border-b border-[var(--ui-border)] px-3 last:border-0 sm:px-4"
                       style={{ minHeight: STANDING_ROW_HEIGHT }}

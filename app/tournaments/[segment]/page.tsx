@@ -187,7 +187,7 @@ function GroupStandingsTable({
               >
                 <span className="text-sm font-black italic tabular-nums text-foreground">{row.rank}</span>
                 <Link
-                  href={`/teams/${row.team.slug}`}
+                  href={`/teams?team=${encodeURIComponent(row.team.fanSiteHost || row.team.slug)}`}
                   className="flex min-w-0 items-center gap-2 font-semibold text-foreground hover:text-accent"
                 >
                   {row.team.logoUrl ? (
@@ -227,7 +227,7 @@ function GroupStandingsTable({
             key: "team",
             label: "팀",
             render: (row) => (
-              <Link href={`/teams/${row.team.slug}`} className="flex items-center gap-2 font-semibold hover:text-accent">
+              <Link href={`/teams?team=${encodeURIComponent(row.team.fanSiteHost || row.team.slug)}`} className="flex items-center gap-2 font-semibold hover:text-accent">
                 {row.team.logoUrl ? (
                   <TeamLogo team={row.team} size="h-7 w-7" plain themeAware />
                 ) : null}
@@ -272,7 +272,7 @@ function RegularStandingsTable({ rows }: { rows: ReturnType<typeof buildTeamStan
             <div className="flex items-center gap-3">
               <span className="w-7 shrink-0 text-center text-base font-black italic tabular-nums">{row.rank}</span>
               <Link
-                href={`/teams/${row.team.slug}`}
+                href={`/teams?team=${encodeURIComponent(row.team.fanSiteHost || row.team.slug)}`}
                 className="flex min-w-0 items-center gap-2 font-semibold hover:text-accent"
               >
                 {row.team.logoUrl ? (

@@ -507,7 +507,7 @@ export async function PlayerDetailView({
           <div className="ml-auto hidden flex-wrap gap-2 md:flex">
             {playerTeam ? (
               <Link
-                href={`/teams/${playerTeam.slug}`}
+                href={`/teams?team=${encodeURIComponent(playerTeam.fanSiteHost || playerTeam.slug)}`}
                 className="rounded-full bg-[var(--ui-ink)] px-4 py-2 text-sm font-semibold text-[var(--ui-surface)] transition-opacity hover:opacity-90"
               >
                 팀 상세 보기

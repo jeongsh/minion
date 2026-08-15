@@ -52,7 +52,7 @@ if (!(Interaction.modes as unknown as Record<string, unknown>)[FILL_AREA_MODE]) 
 
 const DESKTOP_SVG_W = 800;
 const TABLET_SVG_W = 680;
-const MOBILE_SVG_W = 520;
+const MOBILE_SVG_W = 440;
 const PAD_X    = 42;
 const ITEM_SZ  = 10;   // icon diameter
 const ITEM_SLT = 18;   // px per row
@@ -743,8 +743,8 @@ export function GameTimeline({
         )}
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-4 pb-3 pt-1 text-sm text-muted">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 px-4 pb-3 pt-1 text-[11px] text-muted sm:gap-x-3 sm:text-sm">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 sm:gap-x-3">
           {showObjectives && [
             { src: OBJECTIVE_ICONS.elder,    label: "장로" },
             { src: OBJECTIVE_ICONS.baron,    label: "바론" },
@@ -753,7 +753,7 @@ export function GameTimeline({
           ].map(({ src, label }) => (
             <span key={label} className="flex items-center">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={src} alt="" className="h-5 w-5 object-contain leading-none" />
+              <img src={src} alt="" className="h-4 w-4 object-contain leading-none sm:h-5 sm:w-5" />
               {label}
             </span>
           ))}
@@ -761,7 +761,7 @@ export function GameTimeline({
         <button
           type="button"
           onClick={() => setShowObjectives((v) => !v)}
-          className="shrink-0 rounded-full border border-border px-2.5 py-1 text-[13px] font-medium text-muted hover:bg-surface-muted"
+          className="shrink-0 rounded-full border border-border px-2.5 py-1 text-[11px] font-medium text-muted hover:bg-surface-muted sm:text-[13px]"
         >
           {showObjectives ? "오브젝트 숨기기" : "오브젝트 보기"}
         </button>

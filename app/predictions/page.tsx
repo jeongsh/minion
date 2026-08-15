@@ -1,4 +1,3 @@
-import { PageHeader } from "@/components/ui/page-header";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { getAllTeams, getMatches, getTournaments } from "@/lib/data/lck";
 import { getPredictionMarketData } from "@/lib/predictions";
@@ -28,15 +27,7 @@ export default async function PredictionsPage() {
   return (
     <main className="min-h-screen text-[var(--ui-text)]">
       <div className="layout-wide pb-20 pt-6 sm:pt-8 xl:px-10">
-        <PageHeader
-          eyebrow="MATCH PREDICTION"
-          title="승부예측"
-          action={
-            <span className="rounded-full bg-[var(--ui-surface-muted)] px-3 py-1.5 text-[13px] font-bold text-[var(--ui-muted)]">
-              {visibleMatches.filter((match) => new Date(match.matchDate).getTime() > now).length}개 진행중
-            </span>
-          }
-        />
+        <h1 className="sr-only">승부예측</h1>
         <PredictionBoard
           matches={visibleMatches}
           teams={teams}

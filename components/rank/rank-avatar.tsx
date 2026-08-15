@@ -73,6 +73,7 @@ const TIER_FINISHES: Record<
 
 const SIZES = {
   sm: { avatar: 32, ring: 2.5, medal: 10 },
+  detail: { avatar: 36, ring: 2.75, medal: 11 },
   md: { avatar: 40, ring: 3, medal: 12 },
   lg: { avatar: 96, ring: 4, medal: 22 },
 } as const;

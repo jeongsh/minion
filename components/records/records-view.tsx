@@ -179,7 +179,7 @@ export function RecordsView({ tab, tournaments, season, tournamentId, position, 
   const query = `season=${season}&tournament=${tournamentId}&position=${position}`;
   const tabs: { key: RecordsTab; label: string }[] = [{ key: "overview", label: "종합" }, { key: "players", label: "선수" }, { key: "teams", label: "팀" }];
   const playerHref = (row: RankedPlayer) => `/players/${row.player.slug}`;
-  const teamHref = (row: RankedTeam) => `/teams/${row.team.slug}`;
+  const teamHref = (row: RankedTeam) => `/teams?team=${encodeURIComponent(row.team.fanSiteHost || row.team.slug)}`;
   return <>
     <nav className="flex flex-wrap gap-x-6 gap-y-1 border-b border-[var(--ui-border)] px-2" aria-label="기록실 분류">{tabs.map((item) => <Link key={item.key} href={`/records?tab=${item.key}&${query}`} className={`border-b-[3px] px-2 py-3 text-[15px] font-bold transition-colors sm:text-base ${tab === item.key ? "border-[var(--ui-ink)] text-[var(--ui-ink)]" : "border-transparent text-[var(--ui-muted)] hover:text-[var(--ui-ink)]"}`}>{item.label}</Link>)}</nav>
     <SurfacePanel className="p-4 sm:p-5"><FilterBar tournaments={tournaments} season={season} tournamentId={tournamentId} position={position} tab={tab} /></SurfacePanel>

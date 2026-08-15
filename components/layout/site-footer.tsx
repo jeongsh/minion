@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 export function SiteFooter() {
-  return <footer className="border-t border-[#dfe0e2] bg-[var(--page-background)] text-[#18191c] dark:border-[#383c44] dark:text-[#f8f8f8]">
+  return <footer className="bg-[var(--page-background)] text-[#18191c] dark:text-[#f8f8f8]">
     <div className="layout-wide py-5 text-left">
       <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
         <p className="text-lg font-black tracking-[-.04em]">MINION<span className="text-[#8b8e94]">.</span></p>

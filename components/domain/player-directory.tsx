@@ -96,7 +96,7 @@ export function PlayerDirectory({
   );
 
   return (
-    <div className="mt-6">
+    <div>
       <div className="mb-4 flex items-center justify-between gap-3">
         <div className="flex shrink-0 rounded-xl bg-[var(--ui-card-bg)] p-1">
           <button
