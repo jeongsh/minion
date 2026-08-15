@@ -41,7 +41,7 @@ export async function GET() {
 
   const now = Date.now();
   const liveMatches = matches
-    .filter((match) => isMatchLive(match, now))
+    .filter((match) => isMatchLive(match))
     .sort((a, b) => new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime())
     .map((match) => {
       const matchSets = (setsByMatch.get(match.id) ?? []).sort((a, b) => a.setNumber - b.setNumber);

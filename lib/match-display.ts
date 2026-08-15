@@ -2,22 +2,14 @@ import type { Match, Stage, Tournament } from "@/lib/types";
 
 /**
  * 매치가 '경기중'인지 판단한다.
- * - 명시적으로 live 상태이거나
- * - 시작 시각이 지났지만 아직 종료(completed)되지 않은 경우
- * (sync는 보통 scheduled/completed만 세팅하므로 시간 기준으로도 도출한다.)
+ * LoL Esports 동기화가 실제 경기 상태(inProgress)를 확인한 뒤 저장한
+ * 명시적인 live 상태만 사용한다. 예정 시각만으로 live를 추론하면 앞 경기가
+ * 길어졌을 때 아직 시작하지 않은 다음 경기가 LIVE로 표시될 수 있다.
  */
 export function isMatchLive(
-  match: Pick<Match, "status" | "matchDate">,
-  now: number = Date.now(),
+  match: Pick<Match, "status">,
 ) {
-  if (match.status === "completed") {
-    return false;
-  }
-  if (match.status === "live") {
-    return true;
-  }
-  const startedAt = new Date(match.matchDate).getTime();
-  return Number.isFinite(startedAt) && startedAt <= now;
+  return match.status === "live";
 }
 
 /** 경기 상태 한글 라벨 (예정/진행 중/종료) */
