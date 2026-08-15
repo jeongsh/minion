@@ -634,7 +634,7 @@ html[class~="dark"] .app-lnb a[data-active="true"] {
   color: var(--auth-primary);
 }
 
-@media (max-width: 767px) {
+@media (max-width: 1023px) {
   .auth-page__shell {
     max-width: 32rem;
   }
@@ -643,8 +643,8 @@ html[class~="dark"] .app-lnb a[data-active="true"] {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 112px;
     grid-template-rows: auto auto 1fr;
-    column-gap: 12px;
-    min-height: 190px;
+    column-gap: 10px;
+    min-height: 140px;
   }
 
   .auth-page__intro > p:first-child,
@@ -657,7 +657,17 @@ html[class~="dark"] .app-lnb a[data-active="true"] {
     grid-column: 2;
     grid-row: 1 / 4;
     align-self: end;
-    height: 132px;
+    height: 92px;
+  }
+}
+
+@media (min-width: 640px) and (max-width: 1023px) {
+  .auth-page__intro {
+    min-height: 154px;
+  }
+
+  .auth-page__intro > img {
+    height: 104px;
   }
 }
 
