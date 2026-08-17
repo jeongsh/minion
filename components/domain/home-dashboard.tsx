@@ -109,7 +109,7 @@ export function HomeDashboard({
       </section>
 
       {celebrationEvents.length > 0 ? (
-        <section className="mt-10">
+        <section className="my-8">
           <CelebrationBanner events={celebrationEvents} />
         </section>
       ) : null}

@@ -2,10 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Search, X } from "lucide-react";
-import { NewsCard } from "@/components/news/news-card";
+import { NewsFeedLayout } from "@/components/news/home-news-section";
 import { Pagination } from "@/components/ui/pagination";
 import { TeamLogo } from "@/components/ui/team-logo";
-import { formatNewsDate } from "@/lib/data/news";
 import { getNewsFeed } from "@/lib/data/naver-news";
 import { teams } from "@/lib/team-themes";
 
@@ -126,9 +125,7 @@ export default async function NewsPage({ searchParams }: { searchParams: SearchP
         </div>
 
         {pageArticles.length > 0 ? (
-          <div className="grid gap-1.5 min-[390px]:gap-2">
-            {pageArticles.map((article) => <NewsCard key={article.id} article={article} />)}
-          </div>
+          <NewsFeedLayout articles={pageArticles} featured={false} />
         ) : (
           <div className="rounded-xl bg-[var(--ui-card-bg)] px-5 py-12 text-center">
             <Search className="mx-auto text-[var(--ui-muted)]" size={28} />

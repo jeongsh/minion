@@ -29,7 +29,7 @@ function LeadNewsCard({ article }: { article: NewsArticle }) {
     >
       {hasThumbnail ? <NewsThumbnail article={article} priority onError={() => setHasThumbnail(false)} className="aspect-[16/9] max-h-[300px] w-full rounded-lg sm:rounded-xl md:max-h-[260px] lg:max-h-[250px] xl:max-h-[300px]" /> : null}
       <div className={hasThumbnail ? "mt-2.5 sm:mt-3.5" : ""}>
-        <h3 className="font-paperozi line-clamp-2 text-[14px] font-black leading-[1.4] tracking-[-0.035em] text-[var(--ui-ink)] group-hover:underline sm:text-[19px]">
+        <h3 className="font-paperozi line-clamp-2 text-[14px] !font-bold leading-[1.4] tracking-[-0.035em] text-[var(--ui-ink)] group-hover:underline sm:text-[19px]">
           {article.title}
         </h3>
         <p className="mt-2 hidden line-clamp-2 text-[12px] leading-[1.65] text-[var(--ui-muted)] lg:block lg:text-[13px]">
@@ -45,31 +45,50 @@ function LeadNewsCard({ article }: { article: NewsArticle }) {
   );
 }
 
-export function HomeNewsSection({ articles }: { articles: NewsArticle[] }) {
+export function NewsFeedLayout({
+  articles,
+  compact = false,
+  featured = true,
+}: {
+  articles: NewsArticle[];
+  compact?: boolean;
+  featured?: boolean;
+}) {
   if (articles.length === 0) return null;
-  const lead = articles.find((article) => !isOsenArticle(article));
+
+  const lead = featured
+    ? articles.find((article) => !isOsenArticle(article))
+    : undefined;
   const secondary = lead
     ? articles.filter((article) => article.id !== lead.id)
     : articles;
+
+  return (
+    <div className={`grid gap-4 min-[390px]:gap-5 ${lead ? "lg:grid-cols-[minmax(0,1.35fr)_minmax(340px,1fr)] lg:gap-8" : ""}`}>
+      {lead ? <LeadNewsCard article={lead} /> : null}
+      <div className="grid content-start lg:py-1">
+        {secondary.map((article, index) => (
+          <div
+            key={article.id}
+            className={`${compact && index >= 3 ? "hidden lg:block" : "block"} ${compact && index >= 4 ? "lg:hidden xl:block" : ""} border-b border-[var(--ui-card-divider)] py-2.5 first:pt-0 min-[390px]:py-3 ${compact && index === 2 ? "border-b-0 pb-0 lg:border-b lg:pb-3" : ""} ${index === secondary.length - 1 ? "border-b-0 pb-0" : ""}`}
+          >
+            <NewsCard article={article} size="home" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function HomeNewsSection({ articles }: { articles: NewsArticle[] }) {
+  if (articles.length === 0) return null;
 
   return (
     <section aria-labelledby="home-news-heading">
       <SectionHeading href="/news">
         <span id="home-news-heading">LCK 뉴스</span>
       </SectionHeading>
-      <div className={`grid gap-4 min-[390px]:gap-5 ${lead ? "lg:grid-cols-[minmax(0,1.5fr)_minmax(320px,1fr)] lg:gap-8" : ""}`}>
-        {lead ? <LeadNewsCard article={lead} /> : null}
-        <div className="grid content-start lg:py-1">
-          {secondary.map((article, index) => (
-            <div
-              key={article.id}
-              className={`${index >= 3 ? "hidden lg:block" : "block"} ${index >= 4 ? "lg:hidden xl:block" : ""} border-b border-[var(--ui-card-divider)] py-2.5 first:pt-0 min-[390px]:py-3 ${index === 2 ? "border-b-0 pb-0 lg:border-b lg:pb-3" : ""} ${index === secondary.length - 1 ? "xl:border-b-0 xl:pb-0" : ""}`}
-            >
-              <NewsCard article={article} size="home" />
-            </div>
-          ))}
-        </div>
-      </div>
+      <NewsFeedLayout articles={articles} compact />
     </section>
   );
 }
