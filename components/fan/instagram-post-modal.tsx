@@ -37,7 +37,7 @@ function instagramEmbedUrl(sourceUrl: string) {
     const match = url.pathname.match(/^\/(p|reel|tv)\/([A-Za-z0-9_-]+)/);
     if (!match) return null;
 
-    return `https://www.instagram.com/${match[1]}/${match[2]}/embed/`;
+    return `https://www.instagram.com/${match[1]}/${match[2]}/embed/captioned/`;
   } catch {
     return null;
   }
@@ -99,33 +99,33 @@ export function InstagramPostModal({
 
   return (
     <div
-      className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/85 [--modal-backdrop-dark-mobile:0.92] p-0 backdrop-blur-sm sm:p-6"
+      className="modal-backdrop fixed inset-0 z-[70] flex items-center justify-center bg-black/60 [--modal-backdrop-dark-mobile:0.72] p-0 sm:p-6"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
       aria-label={`${item.ownerName} Instagram 게시물`}
     >
       <div
-        className="relative flex h-full w-full max-w-[1040px] flex-col sm:h-auto"
+        className="relative flex h-full w-full max-w-[620px] flex-col sm:h-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex h-16 shrink-0 items-center gap-3 px-4 text-white sm:px-0">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/10">
+        <div className="flex h-16 shrink-0 items-center gap-3 border-b border-[var(--ui-border)] bg-[var(--ui-surface)] px-4 text-[var(--ui-ink)] sm:rounded-t-2xl">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--ui-surface-muted)]">
             <InstagramIcon className="h-4 w-4" />
           </div>
           <div className="min-w-0 sm:hidden">
             <p className="truncate text-sm font-black">@{item.ownerName}</p>
-            <p className="text-[13px] text-white/55" suppressHydrationWarning>{relativeTime(item.postedAt)}</p>
+            <p className="text-[13px] text-[var(--ui-muted)]" suppressHydrationWarning>{relativeTime(item.postedAt)}</p>
           </div>
           <p className="hidden text-sm font-black sm:block">Instagram</p>
-          <span className="ml-auto text-[13px] font-bold tabular-nums text-white/60">
+          <span className="ml-auto hidden text-[13px] font-bold tabular-nums text-[var(--ui-muted)] sm:block">
             {index + 1} / {items.length}
           </span>
           <Link
             href={item.sourceUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="rounded-full bg-white/10 px-3 py-2 text-[13px] font-bold transition hover:bg-white/20 sm:hidden"
+            className="ml-auto rounded-full bg-[var(--ui-surface-muted)] px-3 py-2 text-[13px] font-bold transition hover:bg-[var(--ui-card-hover)] sm:hidden"
           >
             원문 ↗
           </Link>
@@ -133,7 +133,7 @@ export function InstagramPostModal({
             type="button"
             onClick={onClose}
             autoFocus
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10 text-lg font-bold transition hover:bg-white/20"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--ui-surface-muted)] text-lg font-bold transition hover:bg-[var(--ui-card-hover)]"
             aria-label="게시물 닫기"
           >
             ✕
@@ -141,83 +141,51 @@ export function InstagramPostModal({
         </div>
 
         <div className="relative min-h-0 flex-1 overflow-visible sm:h-[min(720px,calc(100dvh-112px))] sm:flex-none">
-          <div className="grid h-full min-h-0 overflow-hidden bg-surface sm:grid-cols-[minmax(0,560px)_minmax(300px,1fr)] sm:rounded-2xl">
-            <div className="relative min-h-0 bg-surface">
-              {isLoading && embedUrl ? (
-                <div className="absolute inset-0 z-0 grid place-items-center bg-surface">
-                  <div className="flex flex-col items-center gap-3 text-sm font-bold text-[#667085]">
-                    <span className="h-8 w-8 animate-spin rounded-full border-2 border-[#e4e7ec] border-t-accent" />
-                    Instagram 게시물을 불러오는 중
-                  </div>
-                </div>
-              ) : null}
-
-              {embedUrl ? (
-                <iframe
-                  key={item.id}
-                  src={embedUrl}
-                  width="100%"
-                  height="720"
-                  className="relative z-10 h-[calc(100dvh-64px)] w-full border-0 bg-surface sm:h-[min(720px,calc(100dvh-112px))]"
-                  scrolling="yes"
-                  allow="encrypted-media; picture-in-picture; web-share"
-                  allowFullScreen
-                  onLoad={() => setIsLoading(false)}
-                  title={`Instagram post by ${item.ownerName}`}
-                />
-              ) : (
-                <div className="grid h-[calc(100dvh-64px)] place-items-center bg-surface p-8 text-center sm:h-96">
-                  <div>
-                    <p className="text-sm font-bold text-[#344054]">이 게시물은 임베드로 표시할 수 없습니다.</p>
-                    <Link
-                      href={item.sourceUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-4 inline-flex rounded-full bg-[#111827] px-4 py-2.5 text-sm font-bold text-white"
-                    >
-                      Instagram에서 보기 ↗
-                    </Link>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <aside className="hidden min-h-0 flex-col border-l border-[#eceef2] bg-surface p-6 sm:flex">
-              <div className="flex items-center gap-3 border-b border-[#eceef2] pb-5">
-                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-accent/10 text-accent">
-                  <InstagramIcon className="h-5 w-5" />
-                </div>
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-black text-[#101828]">@{item.ownerName}</p>
-                  <p className="mt-0.5 text-[13px] text-[#98a2b3]" suppressHydrationWarning>{relativeTime(item.postedAt)}</p>
+          <div className="relative h-full min-h-0 overflow-hidden bg-surface sm:rounded-b-2xl">
+            {isLoading && embedUrl ? (
+              <div className="absolute inset-0 z-0 grid place-items-center bg-surface">
+                <div className="flex flex-col items-center gap-3 text-sm font-bold text-[#667085]">
+                  <span className="h-8 w-8 animate-spin rounded-full border-2 border-[#e4e7ec] border-t-accent" />
+                  Instagram 게시물을 불러오는 중
                 </div>
               </div>
+            ) : null}
 
-              <div className="min-h-0 flex-1 overflow-y-auto py-5 pr-1">
-                <p className="whitespace-pre-line text-base leading-7 text-[#344054]">
-                  {item.caption || "게시물 설명이 없습니다."}
-                </p>
-                {item.likesCount !== undefined && item.likesCount > 0 ? (
-                  <p className="mt-5 text-sm font-bold text-[#667085]">♥ {item.likesCount.toLocaleString()}</p>
-                ) : null}
+            {embedUrl ? (
+              <iframe
+                key={item.id}
+                src={embedUrl}
+                width="100%"
+                height="720"
+                className="relative z-10 h-[calc(100dvh-108px)] w-full border-0 bg-surface sm:h-[min(720px,calc(100dvh-112px))]"
+                scrolling="yes"
+                allow="encrypted-media; picture-in-picture; web-share"
+                allowFullScreen
+                onLoad={() => setIsLoading(false)}
+                title={`Instagram post by ${item.ownerName}`}
+              />
+            ) : (
+              <div className="grid h-[calc(100dvh-108px)] place-items-center bg-surface p-8 text-center sm:h-96">
+                <div>
+                  <p className="text-sm font-bold text-[#344054]">이 게시물은 임베드로 표시할 수 없습니다.</p>
+                  <Link
+                    href={item.sourceUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-4 inline-flex rounded-full bg-[#111827] px-4 py-2.5 text-sm font-bold text-white"
+                  >
+                    Instagram에서 보기 ↗
+                  </Link>
+                </div>
               </div>
-
-              <Link
-                href={item.sourceUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-4 rounded-full bg-[#111827] px-4 py-3 text-center text-sm font-black text-white transition hover:bg-accent"
-              >
-                Instagram 원문 보기 ↗
-              </Link>
-            </aside>
+            )}
           </div>
 
           <button
             type="button"
             onClick={() => moveTo(index - 1)}
             disabled={!hasPrevious}
-            className="absolute left-2 top-1/2 z-20 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-black/70 text-[28px] text-white shadow-lg backdrop-blur transition hover:bg-black disabled:pointer-events-none disabled:opacity-20 sm:-left-16"
+            className="absolute left-2 top-1/2 z-20 hidden h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-[var(--ui-border)] bg-[var(--ui-card-bg)] text-[28px] text-[var(--ui-ink)] shadow-lg transition hover:bg-[var(--ui-card-hover)] disabled:pointer-events-none disabled:opacity-20 sm:-left-16 sm:flex"
             aria-label="이전 Instagram 게시물"
           >
             <ChevronLeft className="size-7" strokeWidth={2.25} />
@@ -226,10 +194,36 @@ export function InstagramPostModal({
             type="button"
             onClick={() => moveTo(index + 1)}
             disabled={!hasNext}
-            className="absolute right-2 top-1/2 z-20 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-black/70 text-[28px] text-white shadow-lg backdrop-blur transition hover:bg-black disabled:pointer-events-none disabled:opacity-20 sm:-right-16"
+            className="absolute right-2 top-1/2 z-20 hidden h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-[var(--ui-border)] bg-[var(--ui-card-bg)] text-[28px] text-[var(--ui-ink)] shadow-lg transition hover:bg-[var(--ui-card-hover)] disabled:pointer-events-none disabled:opacity-20 sm:-right-16 sm:flex"
             aria-label="다음 Instagram 게시물"
           >
             <ChevronRight className="size-7" strokeWidth={2.25} />
+          </button>
+        </div>
+
+        <div className="flex h-11 shrink-0 items-center border-t border-[var(--ui-border)] bg-[var(--ui-surface)] px-2 text-[var(--ui-ink)] sm:hidden">
+          <button
+            type="button"
+            onClick={() => moveTo(index - 1)}
+            disabled={!hasPrevious}
+            className="flex h-full flex-1 items-center justify-start gap-1 text-[13px] font-bold disabled:opacity-25"
+            aria-label="이전 Instagram 게시물"
+          >
+            <ChevronLeft className="size-4" strokeWidth={2.5} />
+            이전 게시물
+          </button>
+          <span className="shrink-0 px-3 text-[13px] font-black tabular-nums text-[var(--ui-muted)]">
+            {index + 1} / {items.length}
+          </span>
+          <button
+            type="button"
+            onClick={() => moveTo(index + 1)}
+            disabled={!hasNext}
+            className="flex h-full flex-1 items-center justify-end gap-1 text-[13px] font-bold disabled:opacity-25"
+            aria-label="다음 Instagram 게시물"
+          >
+            다음 게시물
+            <ChevronRight className="size-4" strokeWidth={2.5} />
           </button>
         </div>
       </div>

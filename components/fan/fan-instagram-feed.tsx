@@ -167,12 +167,10 @@ function StoryBubble({ story, onClick }: { story: StoryItem; onClick: () => void
 function PostCard({
   item,
   onClick,
-  compact = false,
   profileGrid = false,
 }: {
   item: PostItem;
   onClick: () => void;
-  compact?: boolean;
   profileGrid?: boolean;
 }) {
   if (profileGrid) {
@@ -180,7 +178,7 @@ function PostCard({
       <button
         type="button"
         onClick={onClick}
-        className="group relative aspect-square overflow-hidden bg-[#efefef]"
+        className="group relative aspect-[3/4] overflow-hidden bg-[#efefef]"
         aria-label={`${item.ownerName} Instagram 게시물 열기`}
       >
         {item.imageUrl ? (
@@ -196,7 +194,7 @@ function PostCard({
             <InstagramIcon className="h-8 w-8 text-[#a8a8a8]" />
           </span>
         )}
-        <span className="absolute inset-0 hidden items-center justify-center bg-black/45 text-white group-hover:flex">
+        <span className="absolute inset-0 hidden items-center justify-center bg-black/55 text-white group-hover:flex group-focus-visible:flex">
           {item.likesCount ? (
             <span className="text-sm font-black">♥ {item.likesCount.toLocaleString()}</span>
           ) : (
@@ -211,19 +209,12 @@ function PostCard({
     <button
       type="button"
       onClick={onClick}
-      className="group relative block aspect-square w-full overflow-hidden bg-[var(--ui-surface-muted)] text-left"
+      className="group relative block aspect-[3/4] w-full overflow-hidden bg-[var(--ui-surface-muted)] text-left"
+      aria-label={`${item.ownerName} Instagram 게시물 열기`}
     >
       {/* 이미지 */}
       <div className="absolute inset-0 overflow-hidden bg-[var(--ui-surface-muted)]">
         <InstagramIcon className="absolute right-2.5 top-2.5 z-20 h-4 w-4 text-white drop-shadow" />
-        {item.postedAt ? (
-          <span
-            className="absolute left-2 top-2 z-20 bg-black/70 px-2 py-1 text-[11px] font-medium leading-none text-white shadow-sm backdrop-blur"
-            suppressHydrationWarning
-          >
-            {relativeTime(item.postedAt)}
-          </span>
-        ) : null}
         {item.imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -237,30 +228,14 @@ function PostCard({
             <InstagramIcon className="h-8 w-8 text-[var(--ui-muted)]" />
           </div>
         )}
-        {/* 임베드 힌트 오버레이 */}
-        <div className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition group-hover:bg-black/25 group-hover:opacity-100">
-          <span className="bg-white/95 px-3.5 py-1.5 text-[12px] font-medium text-black">
-            게시물 보기
-          </span>
-        </div>
       </div>
 
-      {/* 하단: 좋아요·시간 + 캡션 */}
-      <div className={compact ? "hidden" : "absolute inset-x-0 bottom-0 z-20 flex flex-col gap-1 bg-black/72 px-3 py-2.5 text-white"}>
-        <div className="hidden items-center gap-2 text-[12px] text-white/85">
-          {!compact && item.likesCount ? (
-            <span className="font-bold text-[var(--ui-ink)]">♥ {item.likesCount.toLocaleString()}</span>
-          ) : null}
-          <span className="ml-auto shrink-0 whitespace-nowrap" suppressHydrationWarning>
-            {relativeTime(item.postedAt)}
-          </span>
-        </div>
-        {!compact ? (
-          <p className="line-clamp-2 text-[13px] leading-relaxed text-white">
-            <span className="mr-1.5 font-bold text-white">{item.ownerName}</span>
-            {item.caption}
-          </p>
-        ) : null}
+      {/* 캡션은 이미지 위에 상시 노출하지 않고 호버·키보드 포커스 때만 보여준다. */}
+      <div className="absolute inset-0 z-10 flex items-end bg-black/60 p-3 text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-visible:opacity-100 sm:p-4">
+        <p className="line-clamp-3 text-[12px] leading-relaxed sm:text-[13px]">
+          <span className="mr-1.5 font-bold">{item.ownerName}</span>
+          {item.caption}
+        </p>
       </div>
     </button>
   );
@@ -487,7 +462,7 @@ export function FanInstagramFeed({
             <div
               className={
                 variant === "full"
-                  ? "grid grid-cols-3 gap-px bg-white sm:grid-cols-3 lg:grid-cols-3"
+                  ? "grid grid-cols-3 gap-px bg-black lg:grid-cols-5"
                   : "grid grid-cols-2 gap-3 sm:grid-cols-4"
               }
             >
@@ -495,7 +470,6 @@ export function FanInstagramFeed({
                 <PostCard
                   key={item.id}
                   item={item}
-                  compact={variant === "preview"}
                   onClick={() => setEmbedPostIndex(index)}
                 />
               ))}
