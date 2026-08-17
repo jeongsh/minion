@@ -364,7 +364,6 @@ export function AppShell({
             {teamSwitcherOpen ? (
               <div role="menu" className="absolute left-0 top-[48px] z-50 w-56 overflow-hidden rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-2 shadow-xl">
                 {shellTeams.map((team) => <Link key={team.id} role="menuitem" href={`/fan/${team.fanSiteHost}`} onClick={() => setTeamSwitcherOpen(false)} className="flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-bold hover:bg-[var(--ui-card-hover)]"><TeamLogo team={team} size="h-7 w-7" themeAware /><span className="truncate">{team.shortName}</span></Link>)}
-                <Link role="menuitem" href="/teams" onClick={() => setTeamSwitcherOpen(false)} className="mt-1 flex min-h-10 items-center border-t border-[var(--ui-border)] px-3 pt-1 text-[13px] font-bold text-[var(--ui-muted)]">전체 팀 보기</Link>
               </div>
             ) : null}
           </div>
