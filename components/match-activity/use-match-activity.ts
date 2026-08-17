@@ -22,7 +22,7 @@ const EMPTY_ACTIVITY: MatchActivityResponse = { liveMatches: [], ratings: [] };
 
 // TODO: 평가 알림 카드 UI 확인 후 제거한다.
 const TEMPORARY_RATING_CARD: RatingMatchActivity | null = {
-  id: "temporary-rating-card-preview-20260817-v4",
+  id: "temporary-rating-card-preview-20260817-v5",
   matchId: "temporary-rating-card-preview",
   href: "/schedule",
   competitionLabel: "LCK 2026 Rounds 3-4 · Week 13",
