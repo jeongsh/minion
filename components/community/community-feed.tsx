@@ -79,7 +79,7 @@ export function CommunityFeed({
     <section aria-label="커뮤니티 게시글">
       <div className="mobile-full-bleed mobile-list-shell overflow-visible rounded-[var(--ui-card-radius)] border border-[var(--ui-border)] bg-[var(--ui-surface)] sm:mx-0">
         <div className="border-b border-[var(--ui-border)] px-3 py-2.5 sm:px-4 sm:py-3">
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-start gap-2">
             <div className="inline-flex h-9 shrink-0 items-center rounded-[var(--ui-control-radius)] bg-[var(--ui-surface-muted)] p-1" role="tablist" aria-label="게시글 보기">
               <ViewButton active={activeCategory === null} onClick={() => { setActiveCategory(null); setPage(1); }}>전체</ViewButton>
               <ViewButton active={activeCategory === HOT_FILTER} onClick={() => { setActiveCategory(HOT_FILTER); setPage(1); }}>인기글</ViewButton>
@@ -91,19 +91,20 @@ export function CommunityFeed({
               {mobileSearchOpen ? <X size={17} /> : <Search size={17} />}
             </button>
 
-            <SearchForm query={query} setQuery={setQuery} onSubmit={submitSearch} className="ml-auto hidden w-[240px] md:flex xl:w-[280px]" />
+            <div className="ml-auto hidden w-[240px] md:block xl:w-[280px]">
+              <SearchForm query={query} setQuery={setQuery} onSubmit={submitSearch} className="flex w-full" />
+              {submittedQuery ? <SearchStatus query={submittedQuery} count={filtered.length} onClear={clearSearch} /> : null}
+            </div>
 
             <Link href={newPath} className="hidden h-9 shrink-0 items-center gap-1.5 rounded-[var(--ui-control-radius)] bg-[var(--ui-ink)] px-3.5 text-[13px] font-semibold text-[var(--ui-surface)] transition-opacity hover:opacity-85 lg:inline-flex" aria-label="글쓰기">
               <SquarePen size={15} strokeWidth={2} />글쓰기
             </Link>
           </div>
 
-          {mobileSearchOpen ? <SearchForm query={query} setQuery={setQuery} onSubmit={submitSearch} className="mt-2 flex w-full md:hidden" /> : null}
-
-          {submittedQuery ? (
-            <div className="mt-2 flex items-center gap-2 text-[12px] text-[var(--ui-muted)]">
-              <span className="min-w-0 truncate">‘{submittedQuery}’ 검색 결과 {filtered.length.toLocaleString("ko-KR")}개</span>
-              <button type="button" onClick={clearSearch} className="shrink-0 font-semibold text-[var(--ui-text)] underline underline-offset-2">초기화</button>
+          {mobileSearchOpen ? (
+            <div className="md:hidden">
+              <SearchForm query={query} setQuery={setQuery} onSubmit={submitSearch} className="mt-2 flex w-full" />
+              {submittedQuery ? <SearchStatus query={submittedQuery} count={filtered.length} onClear={clearSearch} /> : null}
             </div>
           ) : null}
         </div>
@@ -181,11 +182,22 @@ function CategorySelect({ categories, value, onChange }: { categories: BoardDef[
 }
 
 function SearchForm({ query, setQuery, onSubmit, className }: { query: string; setQuery: (value: string) => void; onSubmit: (event: React.FormEvent<HTMLFormElement>) => void; className: string }) {
+  const inputId = `community-search-${className.includes("mt-2") ? "mobile" : "desktop"}`;
+
   return (
     <form className={`h-9 overflow-hidden rounded-[var(--ui-control-radius)] border border-[var(--ui-border)] bg-[var(--ui-surface)] focus-within:border-[var(--ui-ink)] ${className}`} onSubmit={onSubmit}>
-      <label htmlFor={`community-search-${className.includes("md:hidden") ? "mobile" : "desktop"}`} className="sr-only">게시글 검색</label>
-      <input id={`community-search-${className.includes("md:hidden") ? "mobile" : "desktop"}`} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="제목, 내용, 작성자 검색" className="min-w-0 flex-1 bg-transparent px-3 text-[13px] text-[var(--ui-text)] outline-none placeholder:text-[var(--ui-muted)]" />
+      <label htmlFor={inputId} className="sr-only">게시글 검색</label>
+      <input id={inputId} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="제목, 내용, 작성자 검색" className="min-w-0 flex-1 bg-transparent px-3 text-[14px] text-[var(--ui-text)] outline-none placeholder:text-[var(--ui-muted)]" />
       <button type="submit" className="grid w-9 shrink-0 place-items-center text-[var(--ui-muted)] hover:text-[var(--ui-ink)]" aria-label="검색"><Search size={16} strokeWidth={2} /></button>
     </form>
+  );
+}
+
+function SearchStatus({ query, count, onClear }: { query: string; count: number; onClear: () => void }) {
+  return (
+    <div className="mt-2 flex items-center gap-2 text-[12px] text-[var(--ui-muted)]">
+      <span className="min-w-0 truncate">‘{query}’ 검색 결과 {count.toLocaleString("ko-KR")}개</span>
+      <button type="button" onClick={onClear} className="shrink-0 font-semibold text-[var(--ui-text)] underline underline-offset-2">초기화</button>
+    </div>
   );
 }
