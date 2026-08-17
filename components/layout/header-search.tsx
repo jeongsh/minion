@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
-import { Loader2, Search, Swords, UserRound, X } from "lucide-react";
+import { CalendarDays, Loader2, Search, Swords, UserRound, X } from "lucide-react";
 
 import type { SearchResult } from "@/app/api/search/route";
 import { KitschEmptyState } from "@/components/ui/kitsch-empty-state";
@@ -12,6 +12,7 @@ const MIN_SEARCH_LENGTH = 2;
 const TYPE_ICON = {
   team: null,
   player: UserRound,
+  match: CalendarDays,
   tournament: Swords,
 } as const;
 
@@ -158,7 +159,7 @@ export function HeaderSearch({ className = "" }: { className?: string }) {
               </div>
             )
           ) : (
-            <ul className="max-h-[70vh] overflow-y-auto py-1.5">
+            <ul className="max-h-[70vh] overflow-y-auto">
               {results.map((result, index) => {
                 const Icon = TYPE_ICON[result.type];
                 const active = index === activeIndex;
@@ -174,7 +175,13 @@ export function HeaderSearch({ className = "" }: { className?: string }) {
                       <span className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-lg bg-[#f2f3f5] dark:bg-[#30343b]">
                         {result.imageUrl ? (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img src={result.imageUrl} alt="" loading="lazy" decoding="async" className="h-8 w-8 object-contain" />
+                          <img
+                            src={result.imageUrl}
+                            alt=""
+                            loading="lazy"
+                            decoding="async"
+                            className={`h-8 w-8 object-contain ${result.type === "tournament" ? "dark:invert" : ""}`}
+                          />
                         ) : Icon ? (
                           <Icon size={18} className="text-[var(--ui-muted)]" />
                         ) : (

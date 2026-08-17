@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import type { LiveMatchEvent, LiveMatchResponse } from "@/app/api/matches/[matchId]/live/route";
 import { useToast } from "@/components/ui/toast";
 import { championCatalogEntries, normalizeChampionKey } from "@/lib/champions";
-import type { LiveMatchActivity, MatchActivityResponse } from "@/lib/match-activity";
+import type { LiveMatchActivity, MatchActivityResponse, RatingMatchActivity } from "@/lib/match-activity";
 import { DEFAULT_NOTIFICATION_PREFERENCES, type AppNotification, type NotificationPreferences } from "@/lib/notifications";
 import { OBJECTIVE_ICONS } from "@/lib/objectives";
 
@@ -14,9 +14,35 @@ const LIVE_EVENT_POLL_MS = 10_000;
 const LIVE_NOTIFICATION_DURATION_MS = 10_000;
 const NOTIFICATION_STORAGE_KEY = "minion-notifications-v1";
 const NOTIFICATION_CHANGE_EVENT = "minion-notifications-change";
+const DISMISSED_RATING_CARD_STORAGE_KEY = "minion-dismissed-rating-cards-v1";
+const DISMISSED_LIVE_CARD_STORAGE_KEY = "minion-dismissed-live-cards-v1";
 const EMPTY_NOTIFICATIONS_JSON = "[]";
 
 const EMPTY_ACTIVITY: MatchActivityResponse = { liveMatches: [], ratings: [] };
+
+// TODO: 평가 알림 카드 UI 확인 후 제거한다.
+const TEMPORARY_RATING_CARD: RatingMatchActivity | null = {
+  id: "temporary-rating-card-preview-20260817-v4",
+  matchId: "temporary-rating-card-preview",
+  href: "/schedule",
+  competitionLabel: "LCK 2026 Rounds 3-4 · Week 13",
+  setNumber: 3,
+  closesAt: "2026-08-17T13:30:00+09:00",
+  teamA: { id: "preview-t1", name: "T1", shortName: "T1", logoUrl: "/logos/t1.svg" },
+  teamB: { id: "preview-gen", name: "Gen.G", shortName: "GEN", logoUrl: "/logos/geng.svg" },
+};
+
+// TODO: 라이브 카드 UI 확인 후 제거한다.
+const TEMPORARY_LIVE_MATCH: LiveMatchActivity | null = {
+  id: "temporary-live-match-preview-20260817",
+  href: "/schedule",
+  competitionLabel: "LCK 2026 Rounds 3-4 · Week 13",
+  teamA: { id: "preview-t1", name: "T1", shortName: "T1", logoUrl: "/logos/t1.svg" },
+  teamB: { id: "preview-gen", name: "Gen.G", shortName: "GEN", logoUrl: "/logos/geng.svg" },
+  teamAScore: 1,
+  teamBScore: 1,
+  currentSetNumber: 3,
+};
 
 const CHAMPION_IMAGE_BY_KEY = new Map(
   championCatalogEntries().map((champion) => [
@@ -66,6 +92,31 @@ function updateStoredNotifications(update: (current: AppNotification[]) => AppNo
   const next = update(current).slice(0, 100);
   window.localStorage.setItem(NOTIFICATION_STORAGE_KEY, JSON.stringify(next));
   window.dispatchEvent(new Event(NOTIFICATION_CHANGE_EVENT));
+}
+
+function dismissedRatingCardIds() {
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(DISMISSED_RATING_CARD_STORAGE_KEY) ?? "[]") as unknown;
+    return new Set(Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === "string") : []);
+  } catch {
+    return new Set<string>();
+  }
+}
+
+function dismissedLiveCardIds() {
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(DISMISSED_LIVE_CARD_STORAGE_KEY) ?? "[]") as unknown;
+    return new Set(Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === "string") : []);
+  } catch {
+    return new Set<string>();
+  }
+}
+
+function latestRating(ratings: RatingMatchActivity[]) {
+  return ratings.reduce<RatingMatchActivity | null>((latest, rating) => {
+    if (!latest) return rating;
+    return new Date(rating.closesAt).getTime() >= new Date(latest.closesAt).getTime() ? rating : latest;
+  }, null);
 }
 
 function liveEventPresentation(event: LiveMatchEvent, match: LiveMatchActivity) {
@@ -118,6 +169,8 @@ function liveEventPresentation(event: LiveMatchEvent, match: LiveMatchActivity) 
 export function useMatchActivity(enabled: boolean, followedTeamIds: string[] = [], preferences: NotificationPreferences = DEFAULT_NOTIFICATION_PREFERENCES) {
   const { showToast } = useToast();
   const [activity, setActivity] = useState<MatchActivityResponse>(EMPTY_ACTIVITY);
+  const [ratingCard, setRatingCard] = useState<RatingMatchActivity | null>(null);
+  const [liveCard, setLiveCard] = useState<LiveMatchActivity | null>(null);
   const notificationsJson = useSyncExternalStore(subscribeToNotifications, getNotificationsSnapshot, () => EMPTY_NOTIFICATIONS_JSON);
   const notifications = useMemo(() => parseNotifications(notificationsJson), [notificationsJson]);
   const initialized = useRef(false);
@@ -143,6 +196,32 @@ export function useMatchActivity(enabled: boolean, followedTeamIds: string[] = [
       matchEvent: notification.matchEvent,
     });
   }, [showToast]);
+
+  const storeNotification = useCallback((notification: AppNotification) => {
+    updateStoredNotifications((current) => current.some((item) => item.id === notification.id)
+      ? current
+      : [notification, ...current]);
+  }, []);
+
+  const dismissRatingCard = useCallback(() => {
+    setRatingCard((current) => {
+      if (!current) return null;
+      const dismissed = dismissedRatingCardIds();
+      dismissed.add(current.id);
+      window.localStorage.setItem(DISMISSED_RATING_CARD_STORAGE_KEY, JSON.stringify([...dismissed].slice(-100)));
+      return null;
+    });
+  }, []);
+
+  const dismissLiveCard = useCallback(() => {
+    setLiveCard((current) => {
+      if (!current) return null;
+      const dismissed = dismissedLiveCardIds();
+      dismissed.add(current.id);
+      window.localStorage.setItem(DISMISSED_LIVE_CARD_STORAGE_KEY, JSON.stringify([...dismissed].slice(-100)));
+      return null;
+    });
+  }, []);
 
   const markNotificationRead = useCallback((id: string) => {
     const readAt = new Date().toISOString();
@@ -172,6 +251,34 @@ export function useMatchActivity(enabled: boolean, followedTeamIds: string[] = [
       const response = await fetch("/api/me/match-activity", { cache: "no-store" });
       if (!response.ok) return;
       const next = await response.json() as MatchActivityResponse;
+      const newestRating = preferences.inAppEnabled && preferences.ratingOpenEnabled
+        ? TEMPORARY_RATING_CARD ?? latestRating(next.ratings)
+        : null;
+
+      setRatingCard(
+        newestRating && !dismissedRatingCardIds().has(newestRating.id)
+          ? newestRating
+          : null,
+      );
+
+      if (TEMPORARY_RATING_CARD && preferences.inAppEnabled && preferences.ratingOpenEnabled) {
+        storeNotification({
+          id: `rating-open:${TEMPORARY_RATING_CARD.id}`,
+          kind: "rating_open",
+          title: `${TEMPORARY_RATING_CARD.setNumber}세트 평가가 열렸어요`,
+          description: `${TEMPORARY_RATING_CARD.teamA.shortName} vs ${TEMPORARY_RATING_CARD.teamB.shortName}`,
+          href: TEMPORARY_RATING_CARD.href,
+          createdAt: new Date().toISOString(),
+          readAt: null,
+          matchEvent: {
+            badge: "평가",
+            kind: "rating",
+            matchup: `${TEMPORARY_RATING_CARD.teamA.shortName} vs ${TEMPORARY_RATING_CARD.teamB.shortName}`,
+            leftLabel: `${TEMPORARY_RATING_CARD.setNumber}세트`,
+            rightLabel: "평가하기",
+          },
+        });
+      }
 
       if (initialized.current && preferences.inAppEnabled) {
         const followedLiveMatches = next.liveMatches.filter(
@@ -199,7 +306,7 @@ export function useMatchActivity(enabled: boolean, followedTeamIds: string[] = [
         }
         for (const rating of preferences.ratingOpenEnabled ? next.ratings : []) {
           if (!previousRatingIds.current.has(rating.id)) {
-            publishNotification({
+            storeNotification({
               id: `rating-open:${rating.id}`,
               kind: "rating_open",
               title: `${rating.setNumber}세트 평가가 열렸어요`,
@@ -214,7 +321,7 @@ export function useMatchActivity(enabled: boolean, followedTeamIds: string[] = [
                 leftLabel: `${rating.setNumber}세트`,
                 rightLabel: "평가하기",
               },
-            }, 7000);
+            });
           }
         }
       }
@@ -226,11 +333,19 @@ export function useMatchActivity(enabled: boolean, followedTeamIds: string[] = [
       );
       previousRatingIds.current = new Set(next.ratings.map((rating) => rating.id));
       initialized.current = true;
-      setActivity(next);
+      const visibleLiveMatches = next.liveMatches.length > 0
+        ? next.liveMatches
+        : TEMPORARY_LIVE_MATCH ? [TEMPORARY_LIVE_MATCH] : [];
+      const newestLiveMatch = visibleLiveMatches[0] ?? null;
+      setLiveCard(newestLiveMatch && !dismissedLiveCardIds().has(newestLiveMatch.id) ? newestLiveMatch : null);
+      setActivity({
+        ...next,
+        liveMatches: visibleLiveMatches,
+      });
     } catch {
       // 전역 보조 UI이므로 네트워크 오류가 페이지 탐색을 막지 않게 조용히 유지한다.
     }
-  }, [enabled, followedTeamIdSet, preferences.inAppEnabled, preferences.matchStartEnabled, preferences.ratingOpenEnabled, publishNotification]);
+  }, [enabled, followedTeamIdSet, preferences.inAppEnabled, preferences.matchStartEnabled, preferences.ratingOpenEnabled, publishNotification, storeNotification]);
 
   useEffect(() => {
     const initialLoad = window.setTimeout(() => void loadActivity(), 0);
@@ -292,6 +407,10 @@ export function useMatchActivity(enabled: boolean, followedTeamIds: string[] = [
 
   return {
     activity,
+    liveCard,
+    dismissLiveCard,
+    ratingCard,
+    dismissRatingCard,
     notifications,
     unreadNotificationCount,
     markNotificationRead,

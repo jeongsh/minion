@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { getAllTeams, getMatches, getSets } from "@/lib/data/lck";
+import { getAllTeams, getMatches, getSets, getTournaments } from "@/lib/data/lck";
 import { getFollowedTeamIds } from "@/lib/fan/followed-teams";
 import { isMatchLive } from "@/lib/match-display";
 import type { MatchActivityResponse, MatchActivityTeam } from "@/lib/match-activity";
@@ -21,7 +21,7 @@ function activityTeam(team: Team | undefined, fallbackId: string): MatchActivity
 
 export async function GET() {
   const followedKeys = await getFollowedTeamIds();
-  const [teams, matches, sets] = await Promise.all([getAllTeams(), getMatches(), getSets()]);
+  const [teams, matches, sets, tournaments] = await Promise.all([getAllTeams(), getMatches(), getSets(), getTournaments()]);
   const followedKeySet = new Set(followedKeys);
   const followedTeamIds = new Set(
     teams
@@ -29,6 +29,11 @@ export async function GET() {
       .map((team) => team.id),
   );
   const teamById = new Map(teams.map((team) => [team.id, team]));
+  const tournamentById = new Map(tournaments.map((tournament) => [tournament.id, tournament]));
+  const competitionLabel = (match: (typeof matches)[number]) => {
+    const tournamentName = tournamentById.get(match.tournamentId)?.name;
+    return [tournamentName, match.name].filter((value, index, values) => value && values.indexOf(value) === index).join(" · ");
+  };
   const followedMatches = matches.filter(
     (match) => followedTeamIds.has(match.teamAId) || followedTeamIds.has(match.teamBId),
   );
@@ -54,6 +59,7 @@ export async function GET() {
       return {
         id: match.id,
         href: `${matchHref(match)}?tab=live`,
+        competitionLabel: competitionLabel(match),
         teamA: activityTeam(teamById.get(match.teamAId), match.teamAId),
         teamB: activityTeam(teamById.get(match.teamBId), match.teamBId),
         teamAScore: match.teamAScore,
@@ -77,6 +83,7 @@ export async function GET() {
         id: set.id,
         matchId: match.id,
         href: setRatingHref(match, set),
+        competitionLabel: competitionLabel(match),
         setNumber: set.setNumber,
         closesAt: new Date(closesAt).toISOString(),
         teamA: activityTeam(teamById.get(match.teamAId), match.teamAId),

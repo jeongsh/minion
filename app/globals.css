@@ -125,16 +125,26 @@
  * lock belongs at the document level instead of being repeated per component.
  */
 html[aria-busy="true"],
-html:has(.modal-backdrop),
-html:has([aria-modal="true"]),
+html:has(.modal-backdrop:not(.notification-panel-backdrop)),
+html:has([aria-modal="true"]:not(.notification-panel-dialog)),
 html:has(dialog[open]),
 html:has([data-scroll-lock="true"]),
-body:has(.modal-backdrop),
-body:has([aria-modal="true"]),
+body:has(.modal-backdrop:not(.notification-panel-backdrop)),
+body:has([aria-modal="true"]:not(.notification-panel-dialog)),
 body:has(dialog[open]),
 body:has([data-scroll-lock="true"]) {
   overflow: hidden;
   overscroll-behavior: none;
+}
+
+/* The notification sheet blocks the page on mobile, but is a scroll-through
+ * popover on desktop. Other blocking dialogs still take precedence above. */
+@media (max-width: 1199px) {
+  html:has(.notification-panel-root),
+  body:has(.notification-panel-root) {
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
 }
 
 html:has(.schedule-page) {
@@ -305,6 +315,51 @@ html[class~="dark"] .navigation-progress-bar {
 .app-toast {
   --app-toast-accent: var(--ui-ink);
   animation: app-toast-lifecycle var(--app-toast-duration, 2.4s) cubic-bezier(.18, .92, .2, 1) both;
+}
+
+.match-activity-card {
+  animation: rating-card-enter-mobile 0.28s cubic-bezier(.2, .85, .25, 1) both;
+}
+
+.rating-open-card:hover {
+  background-color: var(--ui-card-hover);
+}
+
+.dismissible-activity-card:has(.activity-card-close:hover) {
+  background-color: var(--ui-surface);
+}
+
+.dark .dismissible-activity-card:has(.activity-card-close:hover) {
+  background-color: var(--ui-surface-muted);
+}
+
+
+@keyframes rating-card-enter-mobile {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes rating-card-enter-desktop {
+  from {
+    opacity: 0;
+    transform: translateX(calc(100% + 24px));
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@media (min-width: 768px) {
+  .match-activity-card {
+    animation-name: rating-card-enter-desktop;
+  }
 }
 
 @media (min-width: 768px) and (max-width: 1199px) {
@@ -506,6 +561,7 @@ html[class~="dark"] .navigation-progress-bar {
   .kitsch-empty-state__character--animated,
   .kitsch-pop,
   .app-toast,
+  .match-activity-card,
   .adaptive-dialog-panel,
   .check-in-toast,
   .check-in-confetti span {

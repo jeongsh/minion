@@ -8,6 +8,7 @@ export type MatchActivityTeam = {
 export type LiveMatchActivity = {
   id: string;
   href: string;
+  competitionLabel: string;
   teamA: MatchActivityTeam;
   teamB: MatchActivityTeam;
   teamAScore: number | null;
@@ -19,6 +20,7 @@ export type RatingMatchActivity = {
   id: string;
   href: string;
   matchId: string;
+  competitionLabel: string;
   setNumber: number;
   closesAt: string;
   teamA: MatchActivityTeam;

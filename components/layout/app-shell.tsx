@@ -26,8 +26,10 @@ import {
 } from "lucide-react";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { FanTeamPicker } from "@/components/layout/fan-team-picker";
+import { HeaderSearch } from "@/components/layout/header-search";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { useMatchActivity } from "@/components/match-activity/use-match-activity";
+import { RatingOpenCard } from "@/components/match-activity/rating-open-card";
 import { NotificationPanel } from "@/components/notifications/notification-panel";
 import { RankAvatar } from "@/components/rank/rank-avatar";
 import { TeamLogo } from "@/components/ui/team-logo";
@@ -95,34 +97,54 @@ function isActiveRoute(pathname: string, href: string) {
   return href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
 }
 
-function HeaderLiveCard({ matches }: { matches: LiveMatchActivity[] }) {
-  if (matches.length === 0) return null;
-
-  const match = matches[0];
-
+function HeaderLiveMatchLink({ match }: { match: LiveMatchActivity }) {
   return (
-    <Link href={match.href} className="group grid h-11 grid-cols-[1fr_auto_1fr] items-center gap-2 overflow-hidden rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 shadow-sm transition hover:bg-[var(--ui-card-hover)] dark:bg-[var(--ui-surface-muted)]" aria-label={`${match.teamA.shortName} 대 ${match.teamB.shortName} 실시간 경기 바로 보기`}>
-      <span className="flex items-center gap-1.5 justify-self-start">
-        <span className="h-2 w-2 shrink-0 animate-pulse rounded-full !bg-[#ff3158]" aria-hidden />
-        <span className="shrink-0 text-[12px] font-medium text-[#e51643]">LIVE</span>
+    <Link
+      href={match.href}
+      className="ml-auto hidden h-10 max-w-[190px] shrink-0 items-center gap-2 rounded-xl border border-[#ff3158]/25 bg-[#ff3158]/[0.06] px-3 transition-colors hover:bg-[#ff3158]/10 min-[1200px]:flex"
+      aria-label={`${match.teamA.shortName} 대 ${match.teamB.shortName} 실시간 경기 바로 보기`}
+    >
+      <span className="flex shrink-0 items-center gap-1 text-[12px] font-medium text-[#e51643]">
+        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#ff3158]" />
+        LIVE
       </span>
-      <span className="flex items-center gap-2">
-        {match.teamA.logoUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={match.teamA.logoUrl} alt="" className="h-5 w-5 shrink-0 object-contain" />
-        ) : null}
-        <span className="truncate text-[13px] font-bold">{match.teamA.shortName}</span>
-        <span className="shrink-0 text-[14px] font-black tabular-nums text-[var(--ui-ink)]">{match.teamAScore ?? 0} : {match.teamBScore ?? 0}</span>
-        <span className="truncate text-[13px] font-bold">{match.teamB.shortName}</span>
-        {match.teamB.logoUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={match.teamB.logoUrl} alt="" className="h-5 w-5 shrink-0 object-contain" />
-        ) : null}
+      <span className="h-4 w-px shrink-0 bg-[#ff3158]/20" />
+      <span className="min-w-0 truncate text-[13px] font-bold text-[var(--ui-ink)]">
+        {match.teamA.shortName} <b className="mx-0.5 tabular-nums">{match.teamAScore ?? 0}:{match.teamBScore ?? 0}</b> {match.teamB.shortName}
       </span>
-      <span className="flex justify-self-end text-[var(--ui-muted)] transition-transform group-hover:translate-x-0.5 group-hover:text-[var(--ui-ink)]">
-        <ChevronRight size={17} />
-      </span>
+      <ChevronRight size={15} className="shrink-0 text-[var(--ui-muted)]" />
     </Link>
+  );
+}
+
+function MobileLiveMatchBar({ match, hasBottomNavigation }: { match: LiveMatchActivity; hasBottomNavigation: boolean }) {
+  return (
+    <div className={`fixed left-2.5 right-2.5 z-[45] md:left-[76px] md:right-3 min-[1200px]:hidden ${hasBottomNavigation ? "bottom-[calc(3.25rem+env(safe-area-inset-bottom)+0.5rem)]" : "bottom-3"}`}>
+      <Link
+        href={match.href}
+        className="flex h-12 min-w-0 items-center gap-2 rounded-xl border border-[#ff3158]/25 bg-[var(--ui-surface)] px-3 shadow-[0_8px_24px_rgba(15,23,42,0.16)] dark:bg-[var(--ui-surface-muted)]"
+        aria-label={`${match.teamA.shortName} 대 ${match.teamB.shortName} 실시간 경기 바로 보기`}
+      >
+        <span className="flex shrink-0 items-center gap-1 rounded-full bg-[#ff3158]/10 px-2 py-1 text-[12px] font-medium leading-none text-[#e51643]">
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#ff3158]" />
+          LIVE
+        </span>
+        <span className="flex min-w-0 flex-1 items-center justify-center gap-1.5">
+          <b className="truncate text-right text-[14px] font-black">{match.teamA.shortName}</b>
+          {match.teamA.logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={match.teamA.logoUrl} alt="" className="h-6 w-6 shrink-0 object-contain" />
+          ) : null}
+          <span className="rounded-md bg-[var(--ui-ink)] px-2 py-1 text-[13px] font-black tabular-nums leading-none text-[var(--ui-surface)]">{match.teamAScore ?? 0}:{match.teamBScore ?? 0}</span>
+          {match.teamB.logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={match.teamB.logoUrl} alt="" className="h-6 w-6 shrink-0 object-contain" />
+          ) : null}
+          <b className="truncate text-[14px] font-black">{match.teamB.shortName}</b>
+        </span>
+        <ChevronRight size={18} className="shrink-0 text-[var(--ui-muted)]" />
+      </Link>
+    </div>
   );
 }
 
@@ -196,7 +218,9 @@ export function AppShell({
   const communityPostTitle = fanPostDetail ? (currentFanTeam?.shortName ?? fanPostDetail[1].toUpperCase()) : "LCK";
   const communityPostBackHref = fanPostDetail ? `/fan/${fanPostDetail[1]}/community` : "/community";
   const {
-    activity: matchActivity,
+    liveCard,
+    ratingCard,
+    dismissRatingCard,
     notifications,
     unreadNotificationCount,
     markNotificationRead,
@@ -204,6 +228,12 @@ export function AppShell({
     removeNotification,
     clearNotifications,
   } = useMatchActivity(true, followedActivityTeamIds, notificationPreferences);
+
+  useEffect(() => {
+    if (!ratingCard) return;
+    const timeout = window.setTimeout(dismissRatingCard, 10_000);
+    return () => window.clearTimeout(timeout);
+  }, [dismissRatingCard, ratingCard]);
 
   useEffect(() => {
     document.documentElement.style.setProperty("--shell-lnb-width", collapsed ? "72px" : "216px");
@@ -358,12 +388,13 @@ export function AppShell({
           <Image src="/logo.svg" alt="MINION" width={171} height={39} className="h-auto w-16 sm:w-24" priority />
         </Link>
         <div
-          className="absolute hidden -translate-x-1/2 transition-[left] duration-200 min-[1200px]:block"
-          style={{ left: `calc(50% + ${collapsed ? 36 : 108}px)` }}
+          className="pointer-events-none absolute inset-y-0 right-0 hidden items-center justify-center transition-[left] duration-200 min-[1200px]:flex"
+          style={{ left: focusRoute ? 0 : collapsed ? 72 : 216 }}
         >
-          <HeaderLiveCard matches={matchActivity.liveMatches} />
+          <HeaderSearch className={`pointer-events-auto ${liveCard ? "w-[224px] min-[1280px]:w-[288px] min-[1440px]:w-[400px]" : "w-[480px]"}`} />
         </div>
-        <button type="button" onClick={() => setNotificationPanelOpen(true)} className="relative ml-auto grid h-11 w-11 shrink-0 place-items-center rounded-xl text-[#62666d] transition hover:bg-[var(--ui-card-hover)] dark:text-[#a7acb5]" aria-label={`알림${unreadNotificationCount > 0 ? `, 읽지 않은 알림 ${unreadNotificationCount}개` : ""}`} aria-haspopup="dialog">
+        {liveCard ? <HeaderLiveMatchLink match={liveCard} /> : null}
+        <button type="button" onClick={() => setNotificationPanelOpen(true)} className="relative ml-auto grid h-11 w-11 shrink-0 place-items-center rounded-xl text-[#62666d] transition hover:bg-[var(--ui-card-hover)] min-[1200px]:ml-1 dark:text-[#a7acb5]" aria-label={`알림${unreadNotificationCount > 0 ? `, 읽지 않은 알림 ${unreadNotificationCount}개` : ""}`} aria-haspopup="dialog">
           <Bell size={20} />
           {unreadNotificationCount > 0 ? <span className="absolute right-0.5 top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-[var(--accent)] px-0.5 text-[12px] font-medium leading-none text-white" aria-hidden>{unreadNotificationCount > 9 ? "9+" : unreadNotificationCount}</span> : null}
         </button>
@@ -510,6 +541,8 @@ export function AppShell({
         </nav>
       ) : null}
 
+      {liveCard ? <MobileLiveMatchBar match={liveCard} hasBottomNavigation={!focusRoute && !communityPostDetail} /> : null}
+
       <NotificationPanel
         open={notificationPanelOpen}
         onClose={() => setNotificationPanelOpen(false)}
@@ -520,6 +553,11 @@ export function AppShell({
         onRemove={removeNotification}
         onClear={clearNotifications}
       />
+      {ratingCard ? (
+        <div className="fixed bottom-5 right-5 z-[60] hidden w-[390px] min-[1200px]:block">
+          <RatingOpenCard rating={ratingCard} onClose={dismissRatingCard} />
+        </div>
+      ) : null}
     </div>
   );
 }

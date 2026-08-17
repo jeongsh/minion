@@ -65,16 +65,18 @@ function NotificationRow({
         ) : <NotificationTypeIcon kind={notification.kind} />}
         {!notification.readAt ? <span className="absolute right-0.5 top-0.5 h-1.5 w-1.5 rounded-full bg-[var(--accent)]" aria-hidden /> : null}
       </span>
-      <span className="flex min-w-0 flex-1 items-center gap-1.5">
-        <span className={`max-w-[36%] shrink truncate text-[12px] ${notification.readAt ? "font-semibold text-[var(--ui-muted)]" : "font-black text-[var(--ui-ink)]"}`}>{notification.title}</span>
-        {notification.description ? <span className="min-w-0 flex-1 truncate text-[12px] text-[var(--ui-muted)]">{notification.description}</span> : null}
-        <time dateTime={notification.createdAt} className="shrink-0 text-[11px] font-medium text-[var(--ui-muted)]">{relativeTime(notification.createdAt)}</time>
+      <span className="flex min-w-0 flex-1 flex-col items-start py-1">
+        <span className={`text-[12px] leading-4 ${notification.readAt ? "font-semibold text-[var(--ui-muted)]" : "font-black text-[var(--ui-ink)]"}`}>{notification.title}</span>
+        <span className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-1.5 text-[11px] leading-4 text-[var(--ui-muted)]">
+          {notification.description ? <span>{notification.description}</span> : null}
+          <time dateTime={notification.createdAt} className="shrink-0 font-medium">{relativeTime(notification.createdAt)}</time>
+        </span>
       </span>
     </>
   );
 
   return (
-    <div className={`flex min-h-11 items-center gap-1 rounded-lg border px-2 py-1 transition ${notification.readAt ? "border-transparent bg-transparent" : "border-[var(--ui-border)] bg-[var(--ui-surface)]"}`}>
+    <div className={`flex min-h-12 items-center gap-1 rounded-lg border px-2 py-1 transition ${notification.readAt ? "border-transparent bg-transparent" : "border-[var(--ui-border)] bg-[var(--ui-surface)]"}`}>
       {notification.href ? (
         <Link href={notification.href} onClick={() => { onRead(notification.id); onClose(); }} className="flex min-w-0 flex-1 items-center gap-2 rounded-md">{content}</Link>
       ) : (
@@ -107,9 +109,9 @@ export function NotificationPanel({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[1000]" role="presentation">
-      <button type="button" className="modal-backdrop absolute inset-0 bg-black/35 [--modal-backdrop-dark-mobile:0.55]" onClick={onClose} aria-label="알림 닫기" />
-      <section role="dialog" aria-modal="true" aria-labelledby="notification-panel-title" className="absolute inset-x-0 bottom-0 flex max-h-[82dvh] flex-col overflow-hidden rounded-t-[24px] border border-[var(--ui-border)] bg-[var(--page-background)] shadow-2xl min-[1200px]:left-auto min-[1200px]:right-4 min-[1200px]:top-20 min-[1200px]:bottom-auto min-[1200px]:w-[390px] min-[1200px]:max-h-[calc(100vh-6rem)] min-[1200px]:rounded-2xl">
+    <div className="notification-panel-root fixed inset-0 z-[1000] min-[1200px]:pointer-events-none" role="presentation">
+      <button type="button" className="notification-panel-backdrop modal-backdrop absolute inset-0 bg-black/35 [--modal-backdrop-dark-mobile:0.55] min-[1200px]:hidden" onClick={onClose} aria-label="알림 닫기" />
+      <section role="dialog" aria-modal="true" aria-labelledby="notification-panel-title" className="notification-panel-dialog absolute inset-x-0 bottom-0 flex max-h-[82dvh] flex-col overflow-hidden rounded-t-[24px] border border-[var(--ui-border)] bg-[var(--page-background)] shadow-2xl min-[1200px]:pointer-events-auto min-[1200px]:left-auto min-[1200px]:right-4 min-[1200px]:top-20 min-[1200px]:bottom-auto min-[1200px]:w-[390px] min-[1200px]:max-h-[calc(100vh-6rem)] min-[1200px]:rounded-2xl">
         <header className="flex min-h-14 items-center gap-1 border-b border-[var(--ui-border)] px-3 min-[1200px]:px-4">
           <h2 id="notification-panel-title" className="font-paperozi mr-auto text-[15px] tracking-[-0.02em]">알림</h2>
           {unreadCount > 0 ? <button type="button" onClick={onReadAll} className="flex min-h-9 items-center gap-1 rounded-lg px-2 text-[13px] font-bold text-[var(--ui-muted)] hover:bg-[var(--ui-card-hover)] hover:text-[var(--ui-ink)]"><CheckCheck size={15} />모두 읽음</button> : null}
