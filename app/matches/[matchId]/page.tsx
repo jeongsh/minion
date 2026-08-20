@@ -320,7 +320,11 @@ function MatchRatingPanel({
   const ratingOpen = isSetRatingOpen(set);
   const snapshotReady = isSetRatingSnapshotReady(set);
   const snapshotHref = `/matches/${matchId}/sets/${set.id}/snapshot`;
-  const leader = fanRatingLeader(setRatings);
+  const leader = set.winnerTeamId
+    ? fanRatingLeader(
+        setRatings.filter((rating) => rating.teamId === set.winnerTeamId),
+      )
+    : null;
   const reviewRows = setRatings
     .filter((rating) => rating.review)
     .sort(

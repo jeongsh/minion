@@ -1,4 +1,5 @@
 import { calculatePlayerStats } from "@/lib/stats";
+import { fanRatingLeader } from "@/lib/fan-rating";
 import type {
   CommunityPost,
   FanRating,
@@ -10,6 +11,7 @@ import type {
 } from "@/lib/types";
 
 export const KST_TIMEZONE = "Asia/Seoul";
+export { fanPogPlayerIdForSet, fanRatingLeader } from "@/lib/fan-rating";
 
 export function formatDateTime(value: string) {
   return new Intl.DateTimeFormat("ko-KR", {
@@ -196,53 +198,6 @@ export function topFanRatingForMatch(
   return `${playerLabel(players, leader.playerId)} ${leader.average.toFixed(1)} (${leader.count})`;
 }
 
-export function fanRatingLeader(fanRatings: FanRating[]) {
-  const byPlayer = new Map<
-    string,
-    { playerId: string; total: number; count: number; latestAt: string }
-  >();
-
-  for (const rating of fanRatings) {
-    const current = byPlayer.get(rating.playerId);
-
-    if (!current) {
-      byPlayer.set(rating.playerId, {
-        playerId: rating.playerId,
-        total: rating.rating,
-        count: 1,
-        latestAt: rating.createdAt,
-      });
-      continue;
-    }
-
-    current.total += rating.rating;
-    current.count += 1;
-    if (new Date(rating.createdAt).getTime() > new Date(current.latestAt).getTime()) {
-      current.latestAt = rating.createdAt;
-    }
-  }
-
-  return (
-    [...byPlayer.values()]
-      .map((item) => ({
-        ...item,
-        average: item.total / item.count,
-      }))
-      .sort((a, b) => {
-        if (b.average !== a.average) return b.average - a.average;
-        if (b.count !== a.count) return b.count - a.count;
-        return new Date(b.latestAt).getTime() - new Date(a.latestAt).getTime();
-      })[0] ?? null
-  );
-}
-
-export function fanPogPlayerIdForSet(setId: string, fanRatings: FanRating[]) {
-  return (
-    fanRatingLeader(fanRatings.filter((rating) => rating.setId === setId))
-      ?.playerId ?? null
-  );
-}
-
 export function fanPogSummaryForMatch(
   matchId: string,
   sets: SetResult[],
@@ -258,9 +213,14 @@ export function fanPogSummaryForMatch(
   return relatedSets
     .sort((a, b) => a.setNumber - b.setNumber)
     .map((set) => {
-      const leader = fanRatingLeader(
-        fanRatings.filter((rating) => rating.setId === set.id),
-      );
+      const leader = set.winnerTeamId
+        ? fanRatingLeader(
+            fanRatings.filter(
+              (rating) =>
+                rating.setId === set.id && rating.teamId === set.winnerTeamId,
+            ),
+          )
+        : null;
 
       if (!leader) {
         return `${set.setNumber}세트 -`;

@@ -356,7 +356,11 @@ export async function PlayerDetailView({
   const playerRatings = fanRatings.filter((rating) => playerLines.some((line) => line.setId === rating.setId) && rating.playerId === player.id);
   const playerFanPogSetIds = new Set(
     playerLines
-      .filter((line) => fanPogPlayerIdForSet(line.setId, fanRatings) === player.id)
+      .filter(
+        (line) =>
+          fanPogPlayerIdForSet(line.setId, line.set.winnerTeamId, fanRatings) ===
+          player.id,
+      )
       .map((line) => line.setId),
   );
   const completedPlayerMatches = [...new Map(playerLines.map((line) => [line.match.id, line.match])).values()]
