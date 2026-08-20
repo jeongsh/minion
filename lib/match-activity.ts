@@ -22,6 +22,7 @@ export type RatingMatchActivity = {
   matchId: string;
   competitionLabel: string;
   setNumber: number;
+  /** 평가 마감이 아니라 알림 카드 표시 종료 시각이다. */
   closesAt: string;
   teamA: MatchActivityTeam;
   teamB: MatchActivityTeam;

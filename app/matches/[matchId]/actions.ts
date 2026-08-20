@@ -227,7 +227,7 @@ export async function submitSetPlayerRatingAction(
         resultRecordedAt: set.result_recorded_at,
       })
     ) {
-      throw new Error("평점 입력 시간이 아니거나 마감되었습니다. (경기 종료 후 3시간)");
+      throw new Error("세트 결과가 기록된 뒤부터 평점을 입력할 수 있습니다.");
     }
 
     const { data: line, error: lineError } = await supabase

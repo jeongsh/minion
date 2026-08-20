@@ -11,3 +11,12 @@ test("only an explicitly live match is displayed as live", () => {
   assert.equal(isMatchLive({ status: "live" }), true);
   assert.equal(isMatchLive({ status: "completed" }), false);
 });
+
+test("a decided series is no longer live even before status synchronization", () => {
+  assert.equal(isMatchLive({
+    status: "live",
+    bestOf: 3,
+    teamAScore: 2,
+    teamBScore: 0,
+  }), false);
+});

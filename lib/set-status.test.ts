@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { deriveSetStatus, hasCompletePlayerStats } from "./set-status.ts";
+import {
+  deriveSetStatus,
+  hasCompletePlayerStats,
+  isSetRatingCardVisible,
+  isSetRatingOpen,
+} from "./set-status.ts";
 
 const BLUE = "blue-team";
 const RED = "red-team";
@@ -68,4 +73,20 @@ test("hasCompletePlayerStats: 팀 쏠림(블루 6명, 레드 4명) -> false", ()
 
 test("hasCompletePlayerStats: 팀 정보 없으면 -> false", () => {
   assert.equal(hasCompletePlayerStats(completeStats(), null, RED), false);
+});
+
+test("isSetRatingOpen: 결과 기록 후에는 시간이 지나도 계속 열린다", () => {
+  const resultRecordedAt = "2026-08-20T00:00:00.000Z";
+  assert.equal(isSetRatingOpen({ status: "finished", resultRecordedAt }, Date.parse("2026-08-21T00:00:00.000Z")), true);
+});
+
+test("isSetRatingOpen: 종료 전 세트에는 열리지 않는다", () => {
+  const resultRecordedAt = "2026-08-20T00:00:00.000Z";
+  assert.equal(isSetRatingOpen({ status: "scheduled", resultRecordedAt }, Date.parse("2026-08-20T00:30:00.000Z")), false);
+});
+
+test("isSetRatingCardVisible: 결과 기록 후 1시간까지만 보인다", () => {
+  const set = { status: "data_synced" as const, resultRecordedAt: "2026-08-20T00:00:00.000Z" };
+  assert.equal(isSetRatingCardVisible(set, Date.parse("2026-08-20T00:59:59.999Z")), true);
+  assert.equal(isSetRatingCardVisible(set, Date.parse("2026-08-20T01:00:00.000Z")), false);
 });

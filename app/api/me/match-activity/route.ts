@@ -4,7 +4,11 @@ import { getAllTeams, getMatches, getSets, getTournaments } from "@/lib/data/lck
 import { getFollowedTeamIds } from "@/lib/fan/followed-teams";
 import { isMatchLive } from "@/lib/match-display";
 import type { MatchActivityResponse, MatchActivityTeam } from "@/lib/match-activity";
-import { getSetRatingStartedAt, SET_RATING_OPEN_WINDOW_MS } from "@/lib/set-status";
+import {
+  getSetRatingStartedAt,
+  isSetRatingCardVisible,
+  SET_RATING_CARD_DISPLAY_WINDOW_MS,
+} from "@/lib/set-status";
 import type { Team } from "@/lib/types";
 import { matchHref, setRatingHref } from "@/lib/view-data";
 
@@ -74,10 +78,9 @@ export async function GET() {
     .flatMap((set) => {
       const startedAt = getSetRatingStartedAt(set);
       const match = matchById.get(set.matchId);
-      if (startedAt === null || !match) return [];
+      if (startedAt === null || !match || !isSetRatingCardVisible(set, now)) return [];
 
-      const closesAt = startedAt + SET_RATING_OPEN_WINDOW_MS;
-      if (now < startedAt || now > closesAt) return [];
+      const expiresAt = startedAt + SET_RATING_CARD_DISPLAY_WINDOW_MS;
 
       return [{
         id: set.id,
@@ -85,7 +88,7 @@ export async function GET() {
         href: setRatingHref(match, set),
         competitionLabel: competitionLabel(match),
         setNumber: set.setNumber,
-        closesAt: new Date(closesAt).toISOString(),
+        closesAt: new Date(expiresAt).toISOString(),
         teamA: activityTeam(teamById.get(match.teamAId), match.teamAId),
         teamB: activityTeam(teamById.get(match.teamBId), match.teamBId),
       }];

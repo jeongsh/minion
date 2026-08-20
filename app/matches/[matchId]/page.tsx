@@ -27,7 +27,6 @@ import { championImage } from "@/lib/champions";
 import type { Champion, FanRating, Match, Player, PlayerStatLine, SetResult, Team } from "@/lib/types";
 import { isMatchLive, matchStatusLabel } from "@/lib/match-display";
 import {
-  SET_RATING_OPEN_WINDOW_MS,
   getSetRatingStartedAt,
   isSetRatingOpen,
   isSetRatingSnapshotReady,
@@ -320,12 +319,6 @@ function MatchRatingPanel({
   const ratingStartedAt = getSetRatingStartedAt(set);
   const ratingOpen = isSetRatingOpen(set);
   const snapshotReady = isSetRatingSnapshotReady(set);
-  // 입력이 시작됐지만(경기 종료) 3시간이 지나 마감된 상태
-  const ratingClosed = ratingStartedAt !== null && !ratingOpen;
-  const ratingDeadline =
-    ratingStartedAt !== null
-      ? new Date(ratingStartedAt + SET_RATING_OPEN_WINDOW_MS)
-      : null;
   const snapshotHref = `/matches/${matchId}/sets/${set.id}/snapshot`;
   const leader = fanRatingLeader(setRatings);
   const reviewRows = setRatings
@@ -362,11 +355,9 @@ function MatchRatingPanel({
             isLoggedIn={isLoggedIn}
             loginHref={`/login?next=${encodeURIComponent(`/matches/${matchId}?tab=rating&set=${set.id}`)}`}
             ratingStatusNote={
-              ratingOpen && ratingDeadline
-                ? `평점 입력 마감: ${formatDateTime(ratingDeadline.toISOString())} (경기 종료 후 3시간)`
-                : ratingClosed
-                  ? "평점 입력이 마감되었습니다. (경기 종료 후 3시간)"
-                  : "세트 상태가 경기종료 또는 상세데이터 동기화일 때 투표가 열립니다."
+              ratingOpen && ratingStartedAt !== null
+                ? "평점 입력이 열렸습니다. 종료 기한은 없습니다."
+                : "세트 상태가 경기종료 또는 상세데이터 동기화일 때 투표가 열립니다."
             }
             playerOptions={selectableLines.map((line) => {
               const player = players.find((item) => item.id === line.playerId);

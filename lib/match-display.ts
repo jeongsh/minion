@@ -6,10 +6,25 @@ import type { Match, Stage, Tournament } from "@/lib/types";
  * 명시적인 live 상태만 사용한다. 예정 시각만으로 live를 추론하면 앞 경기가
  * 길어졌을 때 아직 시작하지 않은 다음 경기가 LIVE로 표시될 수 있다.
  */
-export function isMatchLive(
-  match: Pick<Match, "status">,
-) {
-  return match.status === "live";
+type MatchDisplayState = Pick<Match, "status"> &
+  Partial<Pick<Match, "bestOf" | "teamAScore" | "teamBScore" | "winnerTeamId">>;
+
+/** 동기화가 잠시 늦어 status가 live여도 승부가 결정됐으면 종료로 본다. */
+export function isMatchFinished(match: MatchDisplayState) {
+  if (match.status === "completed" || match.winnerTeamId) {
+    return true;
+  }
+
+  if (!match.bestOf || match.teamAScore == null || match.teamBScore == null) {
+    return false;
+  }
+
+  const winsNeeded = Math.floor(match.bestOf / 2) + 1;
+  return Math.max(match.teamAScore, match.teamBScore) >= winsNeeded;
+}
+
+export function isMatchLive(match: MatchDisplayState) {
+  return match.status === "live" && !isMatchFinished(match);
 }
 
 /** 경기 상태 한글 라벨 (예정/진행 중/종료) */

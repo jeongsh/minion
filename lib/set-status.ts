@@ -24,11 +24,10 @@ export function setStatusLabel(status: SetStatus | null | undefined) {
   );
 }
 
-/** 평점 입력은 결과 기록(경기 종료) 시점부터 3시간 동안 열려 있다. */
-export const SET_RATING_OPEN_WINDOW_MS = 3 * 60 * 60 * 1000;
-// 디자인/데이터 확인을 위해 임시로 모든 세트의 평점 입력을 허용한다.
-// 작업이 끝나면 false로 되돌린다.
-const TEMPORARY_RATING_OPEN_OVERRIDE = true;
+/** 홈의 평가 알림 카드는 결과 기록 후 1시간 동안만 보여준다. */
+export const SET_RATING_CARD_DISPLAY_WINDOW_MS = 60 * 60 * 1000;
+/** @deprecated 평가 입력 기한이 아니라 알림 카드 표시 기한이다. */
+export const SET_RATING_OPEN_WINDOW_MS = SET_RATING_CARD_DISPLAY_WINDOW_MS;
 /** 커뮤니티 공유용 스냅샷은 결과 기록 20분 후부터 제공한다. */
 export const SET_RATING_SNAPSHOT_DELAY_MS = 20 * 60 * 1000;
 
@@ -52,18 +51,26 @@ export function getSetRatingStartedAt(set: SetRatingTiming): number | null {
   return Number.isFinite(startedAt) ? startedAt : null;
 }
 
-/** 지금 평점 입력이 가능한지 (경기 종료 후 3시간 이내). */
+/** 지금 평점 입력이 가능한지. 결과가 기록된 뒤에는 종료 기한이 없다. */
 export function isSetRatingOpen(set: SetRatingTiming, now: number = Date.now()) {
-  if (TEMPORARY_RATING_OPEN_OVERRIDE) {
-    return true;
+  const startedAt = getSetRatingStartedAt(set);
+  if (startedAt === null) {
+    return false;
   }
+  return now >= startedAt;
+}
 
+/** 홈의 평가 알림 카드를 보여줄 수 있는지 (경기 종료 후 1시간 이내). */
+export function isSetRatingCardVisible(
+  set: SetRatingTiming,
+  now: number = Date.now(),
+) {
   const startedAt = getSetRatingStartedAt(set);
   if (startedAt === null) {
     return false;
   }
   const elapsed = now - startedAt;
-  return elapsed >= 0 && elapsed <= SET_RATING_OPEN_WINDOW_MS;
+  return elapsed >= 0 && elapsed < SET_RATING_CARD_DISPLAY_WINDOW_MS;
 }
 
 /** 커뮤니티 공유용 스냅샷을 제공할 수 있는지 (경기 종료 후 20분 경과). */
