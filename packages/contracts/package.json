@@ -1,0 +1,11 @@
+{
+  "name": "@minion/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./mobile-v1": "./src/mobile-v1.ts"
+  },
+  "types": "./src/index.ts"
+}
