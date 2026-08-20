@@ -19,7 +19,10 @@ import { createMatchAction, getLeaguepediaSyncCursor } from "./actions";
 import { MatchFields } from "./match-fields";
 import { SyncLeaguepediaButton } from "./sync-leaguepedia-button";
 
-export const maxDuration = 120;
+// 이 페이지의 Server Action(일정/기간/전체 동기화)은 운영 Vercel Function에서
+// 실행된다. Leaguepedia 재시도와 선택 기간의 세트 보완까지 끝낼 수 있도록 Hobby
+// 플랜에서도 허용되는 최대 실행 시간인 5분을 명시한다.
+export const maxDuration = 300;
 
 function teamName(teams: Team[], teamId: string) {
   return teams.find((team) => team.id === teamId)?.shortName ?? "-";

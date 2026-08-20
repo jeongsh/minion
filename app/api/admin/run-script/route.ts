@@ -1,5 +1,4 @@
 import { spawn } from "node:child_process";
-import { resolve } from "node:path";
 import { NextResponse } from "next/server";
 
 import { isCurrentUserAdmin } from "@/lib/auth/admin";
@@ -57,7 +56,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "허용되지 않은 인자" }, { status: 400 });
   }
 
-  const cwd = resolve(process.cwd());
+  // resolve(process.cwd())를 사용하면 Turbopack의 파일 추적기가 cwd를 동적 파일
+  // 경로로 간주해 저장소 전체를 이 Function 번들에 포함한다. 실행 디렉터리는
+  // 문자열 그대로 넘겨도 동일하므로 불필요한 전체 프로젝트 추적을 피한다.
+  const cwd = process.cwd();
   const scriptPath = `scripts/${script}.ts`;
 
   const encoder = new TextEncoder();

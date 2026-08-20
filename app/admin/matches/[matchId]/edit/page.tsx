@@ -21,6 +21,11 @@ import { overrideMatchResultAction, refreshMatchPreviewAction, updateMatchAction
 import { MatchFields } from "../../match-fields";
 import { MatchDataSyncPanel } from "./match-data-sync-panel";
 
+// 이 페이지에서 호출하는 경기 데이터 Server Action은 세트 결과, 밴픽, 선수 스탯,
+// 타임라인, POM, VOD를 순서대로 보완한다. 운영 배포에서도 요청이 중간에 끊기지
+// 않도록 페이지에 연결된 모든 Server Action의 실행 시간을 5분으로 확장한다.
+export const maxDuration = 300;
+
 function isTbdTeamLabel(value: string) {
   return value.trim().toLowerCase() === "tbd";
 }
