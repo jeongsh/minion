@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import { FanFeedTabs, buildOwnerTabs } from "@/components/fan/fan-feed-tabs";
 import {
@@ -28,6 +28,31 @@ type PostItem = {
 };
 
 type StoryItem = InstagramStory & { ownerName: string; ownerImageUrl?: string };
+
+const PREVIEW_LIMIT = 4;
+const MOBILE_GRID_COLUMNS = 3;
+const DESKTOP_GRID_COLUMNS = 5;
+const DESKTOP_GRID_QUERY = "(min-width: 1024px)";
+
+function subscribeToGridColumns(onStoreChange: () => void) {
+  const mediaQuery = window.matchMedia(DESKTOP_GRID_QUERY);
+  mediaQuery.addEventListener("change", onStoreChange);
+  return () => mediaQuery.removeEventListener("change", onStoreChange);
+}
+
+function getGridColumns() {
+  return window.matchMedia(DESKTOP_GRID_QUERY).matches
+    ? DESKTOP_GRID_COLUMNS
+    : MOBILE_GRID_COLUMNS;
+}
+
+function useGridColumns() {
+  return useSyncExternalStore(
+    subscribeToGridColumns,
+    getGridColumns,
+    () => MOBILE_GRID_COLUMNS,
+  );
+}
 
 // ─── 유틸 ──────────────────────────────────────────────────────
 
@@ -265,8 +290,11 @@ export function FanInstagramFeed({
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const [embedPostIndex, setEmbedPostIndex] = useState<number | null>(null);
   const [activeKey, setActiveKey] = useState("all");
-  const INITIAL_LIMIT = variant === "preview" ? 4 : 12;
-  const [visibleCount, setVisibleCount] = useState(INITIAL_LIMIT);
+  const gridColumns = useGridColumns();
+  const pageSize = variant === "preview" ? PREVIEW_LIMIT : gridColumns;
+  const [visibleCount, setVisibleCount] = useState(
+    variant === "preview" ? PREVIEW_LIMIT : MOBILE_GRID_COLUMNS,
+  );
   const [isTabPending, setIsTabPending] = useState(false);
   const [isBatchLoading, setIsBatchLoading] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -332,7 +360,11 @@ export function FanInstagramFeed({
 
   const hasStories = filteredStories.length > 0;
   const hasPosts = filteredPosts.length > 0;
-  const visiblePosts = filteredPosts.slice(0, visibleCount);
+  const alignedVisibleCount =
+    variant === "full"
+      ? Math.ceil(visibleCount / pageSize) * pageSize
+      : visibleCount;
+  const visiblePosts = filteredPosts.slice(0, alignedVisibleCount);
 
   // 다음 탭의 첫 화면 이미지를 먼저 받은 뒤 완성된 화면으로 교체한다.
   const handleTabChange = async (key: string) => {
@@ -341,9 +373,9 @@ export function FanInstagramFeed({
     tabLockRef.current = true;
     setIsTabPending(true);
     const nextPosts = key === "all" ? posts : posts.filter((post) => post.ownerName === key);
-    await preloadPostImages(nextPosts.slice(0, INITIAL_LIMIT));
+    await preloadPostImages(nextPosts.slice(0, pageSize));
     setActiveKey(key);
-    setVisibleCount(INITIAL_LIMIT);
+    setVisibleCount(pageSize);
 
     tabUnlockTimerRef.current = window.setTimeout(() => {
       tabLockRef.current = false;
@@ -361,7 +393,7 @@ export function FanInstagramFeed({
   }, []);
 
   useEffect(() => {
-    if (variant !== "full" || visibleCount >= filteredPosts.length) return;
+    if (variant !== "full" || alignedVisibleCount >= filteredPosts.length) return;
 
     const target = sentinelRef.current;
     if (!target) return;
@@ -376,8 +408,8 @@ export function FanInstagramFeed({
       loading = true;
       setIsBatchLoading(true);
 
-      const nextCount = Math.min(filteredPosts.length, visibleCount + 12);
-      await preloadPostImages(filteredPosts.slice(visibleCount, nextCount));
+      const nextCount = Math.min(filteredPosts.length, alignedVisibleCount + pageSize);
+      await preloadPostImages(filteredPosts.slice(alignedVisibleCount, nextCount));
       if (cancelled) return;
 
       setIsBatchLoading(false);
@@ -398,7 +430,7 @@ export function FanInstagramFeed({
       observer.disconnect();
       setIsBatchLoading(false);
     };
-  }, [filteredPosts, variant, visibleCount]);
+  }, [alignedVisibleCount, filteredPosts, pageSize, variant]);
 
   return (
     <section className={variant === "full" ? "" : "fan-card rounded-3xl"}>
@@ -474,7 +506,7 @@ export function FanInstagramFeed({
                 />
               ))}
             </div>
-            {variant === "full" && filteredPosts.length > visibleCount ? (
+            {variant === "full" && filteredPosts.length > alignedVisibleCount ? (
               <div
                 ref={sentinelRef}
                 data-testid="instagram-infinite-sentinel"
@@ -486,7 +518,7 @@ export function FanInstagramFeed({
                   <span className="sr-only">다음 게시물 준비</span>
                 )}
               </div>
-            ) : variant === "full" && filteredPosts.length > INITIAL_LIMIT ? (
+            ) : variant === "full" && filteredPosts.length > pageSize ? (
               <p className="py-8 text-center text-[13px] text-[#8e8e8e]">모든 게시물을 확인했습니다.</p>
             ) : null}
           </>
