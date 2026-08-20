@@ -14,3 +14,6 @@ pnpm-debug.log*
 .agents/
 artifacts/
 backups/
+
+# Mobile build and font-conversion artifacts
+.tmp-font-parity/
