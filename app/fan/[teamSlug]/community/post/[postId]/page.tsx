@@ -35,7 +35,7 @@ export default async function FanPostDetailPage({
     getPostReactionState(postId),
     getCommentReactionStates(comments.map((c) => c.id)),
     getCurrentUser(),
-    getBoardPosts({ scope: "team", teamId: team.id }),
+    getBoardPosts({ scope: "team", teamId: team.id, hotOnly: true, limit: 30 }),
     isCurrentUserAdmin(),
     getExistingGuestKey(),
   ]);

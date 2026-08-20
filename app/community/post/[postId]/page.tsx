@@ -31,7 +31,7 @@ export default async function HubPostDetailPage({
     getPostReactionState(postId),
     getCommentReactionStates(comments.map((c) => c.id)),
     getCurrentUser(),
-    getBoardPosts({ scope: "hub" }),
+    getBoardPosts({ scope: "hub", hotOnly: true, limit: 30 }),
     isCurrentUserAdmin(),
     getExistingGuestKey(),
   ]);

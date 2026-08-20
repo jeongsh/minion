@@ -70,8 +70,19 @@ const POST_COLUMNS =
 const COMMENT_COLUMNS =
   "id, post_id, parent_id, author_id, guest_nickname, guest_ip_label, guest_key, content, like_count, dislike_count, created_at, blinded_at, blinded_source, deleted_at";
 
-/** 목록 조회 상한(전체 로드 방지 가드). 피드는 클라이언트에서 검색/페이징한다. */
-const POST_LIST_LIMIT = 500;
+export const COMMUNITY_PAGE_SIZE = 15;
+const RECENT_POST_LIMIT = 30;
+const NOTICE_LIMIT = 10;
+const POPULAR_CANDIDATE_LIMIT = 15;
+
+export type BoardPostPage = {
+  posts: CommunityPostDetail[];
+  notices: CommunityPostDetail[];
+  popularPosts: CommunityPostDetail[];
+  page: number;
+  totalPages: number;
+  totalCount: number;
+};
 
 async function blockedAuthorsForCurrentUser(): Promise<{ users: Set<string>; guests: Set<string> }> {
   const user = await getCurrentUser();
@@ -177,25 +188,26 @@ async function mapCommentsWithAuthors(rows: CommentRow[]): Promise<CommunityComm
   });
 }
 
-/**
- * 커뮤니티 글 목록 조회(단일 피드).
- * boardType 미지정 시 전체 말머리 글을 한 번에 조회(전체 탭).
- * teamId 는 team scope 에서만 사용.
- */
+/** 홈/상세 보조 영역용 최근 글. 전체 피드는 getBoardPostPage를 사용한다. */
 export const getBoardPosts = cache(async function getBoardPosts(params: {
   scope: BoardScope;
   boardType?: string | null;
   teamId?: string | null;
+  limit?: number;
+  hotOnly?: boolean;
 }): Promise<CommunityPostDetail[]> {
   if (!canQuerySupabase()) return [];
+
+  const limit = Math.min(Math.max(1, params.limit ?? RECENT_POST_LIMIT), 50);
 
   let query = createSupabaseServerClient()
     .from("community_posts")
     .select(POST_COLUMNS)
     .eq("site_scope", params.scope)
     .is("deleted_at", null)
-    .order("created_at", { ascending: false })
-    .limit(POST_LIST_LIMIT);
+    .or("is_notice.is.null,is_notice.eq.false")
+    .order(params.hotOnly ? "hot_at" : "created_at", { ascending: false, nullsFirst: false })
+    .limit(limit);
 
   if (params.boardType) {
     query = query.eq("board_type", params.boardType);
@@ -205,11 +217,130 @@ export const getBoardPosts = cache(async function getBoardPosts(params: {
     query = query.eq("team_id", params.teamId);
   }
 
+  if (params.hotOnly) {
+    query = query.not("hot_at", "is", null);
+  }
+
   const { data, error } = await query;
   if (error) throw error;
   const blocked = await blockedAuthorsForCurrentUser();
   const rows = (data as PostRow[]).filter((row) => !isBlockedAuthor(row, blocked));
   return mapPostsWithAuthors(rows);
+});
+
+/**
+ * 커뮤니티 피드용 서버 페이지 조회. 예전에는 본문을 포함한 최대 500행을 매 요청마다
+ * 내려받아 브라우저에서 검색/필터/페이징했다. 이제 현재 15행과 소수의 공지·인기글
+ * 후보만 전송한다.
+ */
+export const getBoardPostPage = cache(async function getBoardPostPage(params: {
+  scope: BoardScope;
+  teamId?: string | null;
+  boardType?: string | null;
+  hotOnly?: boolean;
+  search?: string | null;
+  page?: number;
+}): Promise<BoardPostPage> {
+  const requestedPage = Number.isFinite(params.page)
+    ? Math.min(10_000, Math.max(1, Math.floor(params.page ?? 1)))
+    : 1;
+  if (!canQuerySupabase()) {
+    return { posts: [], notices: [], popularPosts: [], page: 1, totalPages: 1, totalCount: 0 };
+  }
+
+  const client = createSupabaseServerClient();
+  const from = (requestedPage - 1) * COMMUNITY_PAGE_SIZE;
+  const to = from + COMMUNITY_PAGE_SIZE - 1;
+
+  let postsQuery = client
+    .from("community_posts")
+    .select(POST_COLUMNS, { count: "exact" })
+    .eq("site_scope", params.scope)
+    .is("deleted_at", null)
+    .or("is_notice.is.null,is_notice.eq.false")
+    .order(params.hotOnly ? "hot_at" : "created_at", { ascending: false, nullsFirst: false })
+    .range(from, to);
+
+  let noticesQuery = client
+    .from("community_posts")
+    .select(POST_COLUMNS)
+    .eq("site_scope", params.scope)
+    .is("deleted_at", null)
+    .eq("is_notice", true)
+    .order("created_at", { ascending: false })
+    .limit(NOTICE_LIMIT);
+
+  let popularQuery = client
+    .from("community_posts")
+    .select(POST_COLUMNS)
+    .eq("site_scope", params.scope)
+    .is("deleted_at", null)
+    .or("is_notice.is.null,is_notice.eq.false")
+    .not("hot_at", "is", null)
+    .order("hot_at", { ascending: false })
+    .limit(POPULAR_CANDIDATE_LIMIT);
+
+  if (params.scope === "team" && params.teamId) {
+    postsQuery = postsQuery.eq("team_id", params.teamId);
+    noticesQuery = noticesQuery.eq("team_id", params.teamId);
+    popularQuery = popularQuery.eq("team_id", params.teamId);
+  }
+  if (params.boardType) {
+    postsQuery = postsQuery.eq("board_type", params.boardType);
+  }
+  if (params.hotOnly) {
+    postsQuery = postsQuery.not("hot_at", "is", null);
+  }
+
+  // .or() accepts PostgREST filter syntax, so strip its structural characters
+  // from user input before embedding the ilike alternatives.
+  const search = params.search
+    ?.trim()
+    .replace(/[^\p{L}\p{N}\s_-]/gu, " ")
+    .replace(/\s+/g, " ")
+    .slice(0, 80);
+  if (search) {
+    postsQuery = postsQuery.or(`title.ilike.%${search}%,content.ilike.%${search}%`);
+  }
+
+  const [postsResult, noticesResult, popularResult, blocked] = await Promise.all([
+    postsQuery,
+    noticesQuery,
+    popularQuery,
+    blockedAuthorsForCurrentUser(),
+  ]);
+  if (postsResult.error) throw postsResult.error;
+  if (noticesResult.error) throw noticesResult.error;
+  if (popularResult.error) throw popularResult.error;
+
+  const visible = (rows: PostRow[]) => rows.filter((row) => !isBlockedAuthor(row, blocked));
+  const postRows = visible((postsResult.data ?? []) as PostRow[]);
+  const noticeRows = visible((noticesResult.data ?? []) as PostRow[]);
+  const popularRows = visible((popularResult.data ?? []) as PostRow[]);
+
+  // Resolve author profiles once even when a row appears in more than one group.
+  const uniqueRows = [...new Map(
+    [...postRows, ...noticeRows, ...popularRows].map((row) => [row.id, row]),
+  ).values()];
+  const mappedById = new Map((await mapPostsWithAuthors(uniqueRows)).map((post) => [post.id, post]));
+  const mapped = (rows: PostRow[]) => rows.flatMap((row) => {
+    const post = mappedById.get(row.id);
+    return post ? [post] : [];
+  });
+
+  const totalCount = postsResult.count ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalCount / COMMUNITY_PAGE_SIZE));
+  if (totalCount > 0 && requestedPage > totalPages) {
+    return getBoardPostPage({ ...params, page: totalPages });
+  }
+  return {
+    posts: mapped(postRows),
+    notices: mapped(noticeRows),
+    popularPosts: mapped(popularRows),
+    page: Math.min(requestedPage, totalPages),
+    totalPages,
+    totalCount,
+  };
 });
 
 /** 단건 조회(조회수 증가 X — 순수 조회). */

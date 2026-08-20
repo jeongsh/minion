@@ -21,7 +21,7 @@ function yearMonthKeyKST(value: string) {
 export default async function HomePage() {
   const [homeData, communityPosts, predictionMarket, lckChannelVideos, pomEntries, homeNewsFeed] = await Promise.all([
     getHomePagePublicData(),
-    getBoardPosts({ scope: "hub" }),
+    getBoardPosts({ scope: "hub", limit: 12 }),
     getPredictionMarketData(),
     getLckChannelVideos(),
     getHomePomEntries(),
@@ -134,7 +134,7 @@ export default async function HomePage() {
   ].sort(byNewest);
 
   // 홈 게시판 캐러셀: 디자인 확인을 위해 최신글을 임시로 노출한다.
-  // getBoardPosts가 최신순으로 반환하며, 블라인드/공지 글은 홈에서 제외한다.
+  // 홈에 필요한 최신 12건만 조회하며, 블라인드/공지 글은 홈에서 제외한다.
   const homeEligiblePosts = communityPosts.filter((post) => !post.blindedAt && !post.isNotice);
   const homeCommunityPosts = homeEligiblePosts.slice(0, 12);
 

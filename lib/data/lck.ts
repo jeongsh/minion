@@ -1,5 +1,6 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { cache } from "react";
+import { unstable_cache } from "next/cache";
 import { vodEmbedUrlFor } from "@/lib/sync/lolesports-vods";
 import { canQuerySupabase, createSupabaseServerClient } from "@/lib/supabase/server";
 import type {
@@ -102,6 +103,18 @@ type PlayerRow = {
   source_player_id: string | null;
   search_aliases: string[] | null;
 };
+
+// Public list queries are among the most frequently requested endpoints. Keep the
+// projection explicit so newly added/internal columns do not silently increase
+// every response and Supabase Database Egress.
+const TEAM_COLUMNS =
+  "id, slug, name, short_name, logo_url, logo_white_url, use_white_logo_on_dark, profile_image_url, background_url, primary_color, secondary_color, fan_site_host, official_homepage_url, official_youtube_url, official_x_url, official_instagram_url, leaguepedia_page, source_team_id, is_lck_team, imported_scope, is_active, head_coach, coaches, global_power_rank, popularity, search_aliases";
+const PLAYER_COLUMNS =
+  "id, slug, name, real_name, team_id, position, profile_image_url, stream_url, twitter_url, instagram_url, youtube_url, facebook_url, discord_url, solo_queue_account, contract_expiry, is_starter, is_lck_player, imported_scope, is_active, retired_at, leaguepedia_page, source_player_id, search_aliases";
+const TEAM_STANDING_COLUMNS =
+  "id, tournament_id, team_id, rank, wins, losses, set_diff, win_rate, kda, kills, deaths, assists";
+const PLAYER_CAREER_HISTORY_COLUMNS =
+  "id, player_id, team_id, team_name, position, start_date, end_date, notes";
 
 type ChampionRow = {
   id: string;
@@ -727,7 +740,7 @@ async function getTeamStandingsBase(tournamentId?: string): Promise<TeamStanding
   return fromSupabase(async () => {
     let query = createSupabaseServerClient()
       .from("team_standings")
-      .select("*")
+      .select(TEAM_STANDING_COLUMNS)
       .order("rank", { ascending: true });
 
     if (tournamentId) {
@@ -771,7 +784,7 @@ async function getTeamsBase() {
   return fromSupabase(async () => {
     const { data, error } = await createSupabaseServerClient()
       .from("teams")
-      .select("*")
+      .select(TEAM_COLUMNS)
       .eq("is_lck_team", true)
       .order("name", { ascending: true });
 
@@ -787,7 +800,7 @@ async function getAllTeamsBase() {
   return fromSupabase(async () => {
     const { data, error } = await createSupabaseServerClient()
       .from("teams")
-      .select("*")
+      .select(TEAM_COLUMNS)
       .order("name", { ascending: true });
 
     if (error) {
@@ -879,7 +892,7 @@ async function getTeamByIdBase(id: string) {
   return fromSupabase(async () => {
     const { data, error } = await createSupabaseServerClient()
       .from("teams")
-      .select("*")
+      .select(TEAM_COLUMNS)
       .eq("id", id)
       .maybeSingle();
 
@@ -928,7 +941,7 @@ async function getPlayersBase() {
   return fromSupabase(async () => {
     const { data, error } = await createSupabaseServerClient()
       .from(ROSTER_PLAYERS)
-      .select("*")
+      .select(PLAYER_COLUMNS)
       .eq("is_lck_player", true)
       .neq("imported_scope", CHALLENGERS_SCOPE)
       .neq("is_active", false)
@@ -943,7 +956,7 @@ async function getRetiredPlayersBase() {
   return fromSupabase(async () => {
     const { data, error } = await createSupabaseServerClient()
       .from(ROSTER_PLAYERS)
-      .select("*")
+      .select(PLAYER_COLUMNS)
       .eq("is_lck_player", true)
       .neq("imported_scope", CHALLENGERS_SCOPE)
       .eq("is_active", false)
@@ -958,7 +971,7 @@ async function getPlayersByTeamIdBase(teamId: string) {
   return fromSupabase(async () => {
     const { data, error } = await createSupabaseServerClient()
       .from(ROSTER_PLAYERS)
-      .select("*")
+      .select(PLAYER_COLUMNS)
       .eq("team_id", teamId)
       .neq("imported_scope", CHALLENGERS_SCOPE)
       .neq("is_active", false)
@@ -974,7 +987,7 @@ async function getChallengersPlayersBase() {
   return fromSupabase(async () => {
     const { data, error } = await createSupabaseServerClient()
       .from("players")
-      .select("*")
+      .select(PLAYER_COLUMNS)
       .eq("imported_scope", CHALLENGERS_SCOPE)
       .neq("is_active", false)
       .order("name", { ascending: true });
@@ -989,7 +1002,7 @@ async function getPlayerCareerHistoriesBase(playerIds: string[]): Promise<Player
   return fromSupabase(async () => {
     const { data, error } = await createSupabaseServerClient()
       .from("player_career_history")
-      .select("*")
+      .select(PLAYER_CAREER_HISTORY_COLUMNS)
       .in("player_id", playerIds)
       .order("start_date", { ascending: false })
       .order("end_date", { ascending: false })
@@ -1017,7 +1030,7 @@ async function getAllPlayersBase() {
   return fromSupabase(async () => {
     const { data, error } = await createSupabaseServerClient()
       .from("players")
-      .select("*")
+      .select(PLAYER_COLUMNS)
       .order("name", { ascending: true });
 
     if (error) {
@@ -2072,10 +2085,19 @@ async function getInstagramStoriesBase(
   }, []);
 }
 
-// 요청(render) 내 동일 인자 재호출을 dedupe하기 위한 캐시 래핑.
-export const getTeamStandings = cache(getTeamStandingsBase);
-export const getTeams = cache(getTeamsBase);
-export const getAllTeams = cache(getAllTeamsBase);
+// React cache only deduplicates within one render. These public reference lists
+// are shared across routes/users, so also reuse them across requests for a short
+// window. The short TTL bounds staleness for admin edits and scheduled syncs.
+const getTeamStandingsShared = unstable_cache(getTeamStandingsBase, ["lck-team-standings"], { revalidate: 30 });
+const getTeamsShared = unstable_cache(getTeamsBase, ["lck-teams"], { revalidate: 30 });
+const getAllTeamsShared = unstable_cache(getAllTeamsBase, ["lck-all-teams"], { revalidate: 30 });
+const getPlayersShared = unstable_cache(getPlayersBase, ["lck-roster-players"], { revalidate: 30 });
+const getAllPlayersShared = unstable_cache(getAllPlayersBase, ["lck-all-players"], { revalidate: 30 });
+
+// 요청(render) 내 동일 인자 재호출도 dedupe한다.
+export const getTeamStandings = cache(getTeamStandingsShared);
+export const getTeams = cache(getTeamsShared);
+export const getAllTeams = cache(getAllTeamsShared);
 export const getPlayerAwards = cache(getPlayerAwardsBase);
 export const getTeamAwards = cache(getTeamAwardsBase);
 export const getTeamsSortedByRank = cache(getTeamsSortedByRankBase);
@@ -2083,12 +2105,12 @@ export const getTeamById = cache(getTeamByIdBase);
 export const getTeamBySlug = cache(getTeamBySlugBase);
 export const getTeamByFanSiteHost = cache(getTeamByFanSiteHostBase);
 export const getTeamIdentityHistories = cache(getTeamIdentityHistoriesBase);
-export const getPlayers = cache(getPlayersBase);
+export const getPlayers = cache(getPlayersShared);
 export const getRetiredPlayers = cache(getRetiredPlayersBase);
 export const getPlayersByTeamId = cache(getPlayersByTeamIdBase);
 export const getChallengersPlayers = cache(getChallengersPlayersBase);
 export const getPlayerCareerHistories = cache(getPlayerCareerHistoriesBase);
-export const getAllPlayers = cache(getAllPlayersBase);
+export const getAllPlayers = cache(getAllPlayersShared);
 export const getTournaments = cache(getTournamentsBase);
 export const getStages = cache(getStagesBase);
 export const getBracketStages = cache(getBracketStagesBase);

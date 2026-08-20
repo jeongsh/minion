@@ -183,7 +183,7 @@ export default async function FanHomePage({
     getAllTeams(),
     getPlayers(),
     getMatches(),
-    getBoardPosts({ scope: "team", teamId: team.id }),
+    getBoardPosts({ scope: "team", teamId: team.id, hotOnly: true, limit: 30 }),
     getCalendarEvents({ teamId: team.id }),
   ]);
 

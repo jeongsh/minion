@@ -2,77 +2,67 @@
 
 import { ChevronDown, Search, SquarePen, X } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 
 import { PostList } from "@/components/community/post-list";
 import { Pagination } from "@/components/ui/pagination";
 import { categoriesForScope, type BoardDef, type BoardScope } from "@/lib/community/boards";
-import { hotSortValue, isHotPost } from "@/lib/community/hot";
-import type { CommunityPostDetail } from "@/lib/community/types";
+import type { BoardPostPage } from "@/lib/data/community";
 
-const PAGE_SIZE = 15;
 const HOT_FILTER = "__hot__";
 
 export function CommunityFeed({
-  posts,
+  postPage,
   scope,
   teamSlug,
   newPath,
   viewerId,
+  activeCategory,
+  searchQuery,
+  hotOnly,
 }: {
-  posts: CommunityPostDetail[];
+  postPage: BoardPostPage;
   scope: BoardScope;
   teamSlug?: string;
   newPath: string;
   viewerId?: string | null;
+  activeCategory?: string | null;
+  searchQuery?: string | null;
+  hotOnly: boolean;
 }) {
   const categories = categoriesForScope(scope);
-  const [activeCategory, setActiveCategory] = useState<string | null>(null);
-  const [query, setQuery] = useState("");
-  const [submittedQuery, setSubmittedQuery] = useState("");
-  const [page, setPage] = useState(1);
+  const pathname = usePathname();
+  const router = useRouter();
+  const currentParams = useSearchParams();
+  const [query, setQuery] = useState(searchQuery ?? "");
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
 
-  // 공지는 필터/검색/페이징과 무관하게 항상 목록 최상단에 고정한다(블라인드된 공지는 제외).
-  const notices = useMemo(
-    () => posts.filter((post) => post.isNotice && !post.blindedAt),
-    [posts],
-  );
+  const hrefWith = (changes: Record<string, string | null>) => {
+    const params = new URLSearchParams(currentParams.toString());
+    for (const [key, value] of Object.entries(changes)) {
+      if (value) params.set(key, value);
+      else params.delete(key);
+    }
+    const suffix = params.toString();
+    return suffix ? `${pathname}?${suffix}` : pathname;
+  };
 
-  const filtered = useMemo(() => {
-    const withoutNotices = posts.filter((post) => !post.isNotice);
-    const byCategory = activeCategory === HOT_FILTER
-      ? withoutNotices.filter(isHotPost)
-      : activeCategory
-        ? withoutNotices.filter((post) => post.boardType === activeCategory)
-        : withoutNotices;
-    const keyword = submittedQuery.trim().toLocaleLowerCase("ko-KR");
+  const navigateWith = (changes: Record<string, string | null>) => {
+    router.push(hrefWith({ ...changes, page: null }));
+  };
 
-    const searched = !keyword ? byCategory : byCategory.filter((post) =>
-      [post.title, post.excerpt, post.authorName ?? ""].some((value) =>
-        value.toLocaleLowerCase("ko-KR").includes(keyword),
-      ),
-    );
-    return [...searched].sort((a, b) => activeCategory === HOT_FILTER
-      ? hotSortValue(b) - hotSortValue(a) || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      : new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }, [activeCategory, posts, submittedQuery]);
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const currentPage = Math.min(page, totalPages);
-  const paged = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
-  const categoryValue = activeCategory && activeCategory !== HOT_FILTER ? activeCategory : "";
+  const selectedView = hotOnly ? HOT_FILTER : activeCategory ?? null;
+  const categoryValue = activeCategory ?? "";
 
   const submitSearch = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setSubmittedQuery(query);
-    setPage(1);
+    navigateWith({ q: query.trim() || null });
   };
 
   const clearSearch = () => {
     setQuery("");
-    setSubmittedQuery("");
-    setPage(1);
+    navigateWith({ q: null });
   };
 
   return (
@@ -81,11 +71,11 @@ export function CommunityFeed({
         <div className="border-b border-[var(--ui-border)] px-3 py-2.5 sm:px-4 sm:py-3">
           <div className="flex flex-wrap items-start gap-2">
             <div className="inline-flex h-9 shrink-0 items-center rounded-[var(--ui-control-radius)] bg-[var(--ui-surface-muted)] p-1" role="tablist" aria-label="게시글 보기">
-              <ViewButton active={activeCategory === null} onClick={() => { setActiveCategory(null); setPage(1); }}>전체</ViewButton>
-              <ViewButton active={activeCategory === HOT_FILTER} onClick={() => { setActiveCategory(HOT_FILTER); setPage(1); }}>인기글</ViewButton>
+              <ViewButton active={selectedView === null} onClick={() => navigateWith({ view: null, cat: null })}>전체</ViewButton>
+              <ViewButton active={selectedView === HOT_FILTER} onClick={() => navigateWith({ view: "hot", cat: null })}>인기글</ViewButton>
             </div>
 
-            <CategorySelect categories={categories} value={categoryValue} onChange={(value) => { setActiveCategory(value); setPage(1); }} />
+            <CategorySelect categories={categories} value={categoryValue} onChange={(value) => navigateWith({ cat: value, view: null })} />
 
             <button type="button" onClick={() => setMobileSearchOpen((open) => !open)} className="ml-auto grid h-9 w-9 place-items-center rounded-[var(--ui-control-radius)] border border-[var(--ui-border)] text-[var(--ui-muted)] md:hidden" aria-label={mobileSearchOpen ? "검색 닫기" : "게시글 검색"} aria-expanded={mobileSearchOpen}>
               {mobileSearchOpen ? <X size={17} /> : <Search size={17} />}
@@ -93,7 +83,7 @@ export function CommunityFeed({
 
             <div className="ml-auto hidden w-[240px] md:block xl:w-[280px]">
               <SearchForm query={query} setQuery={setQuery} onSubmit={submitSearch} className="flex w-full" />
-              {submittedQuery ? <SearchStatus query={submittedQuery} count={filtered.length} onClear={clearSearch} /> : null}
+              {searchQuery ? <SearchStatus query={searchQuery} count={postPage.totalCount} onClear={clearSearch} /> : null}
             </div>
 
             <Link href={newPath} className="hidden h-9 shrink-0 items-center gap-1.5 rounded-[var(--ui-control-radius)] bg-[var(--ui-ink)] px-3.5 text-[13px] font-semibold text-[var(--ui-surface)] transition-opacity hover:opacity-85 lg:inline-flex" aria-label="글쓰기">
@@ -104,15 +94,15 @@ export function CommunityFeed({
           {mobileSearchOpen ? (
             <div className="md:hidden">
               <SearchForm query={query} setQuery={setQuery} onSubmit={submitSearch} className="mt-2 flex w-full" />
-              {submittedQuery ? <SearchStatus query={submittedQuery} count={filtered.length} onClear={clearSearch} /> : null}
+              {searchQuery ? <SearchStatus query={searchQuery} count={postPage.totalCount} onClear={clearSearch} /> : null}
             </div>
           ) : null}
         </div>
 
-        <PostList posts={paged} pinned={notices} scope={scope} teamSlug={teamSlug} viewerId={viewerId} />
+        <PostList posts={postPage.posts} pinned={postPage.notices} scope={scope} teamSlug={teamSlug} viewerId={viewerId} />
 
         <div className="border-t border-[var(--ui-border)] px-3 py-2 sm:px-4">
-          <Pagination page={currentPage} totalPages={totalPages} onChange={setPage} />
+          <Pagination page={postPage.page} totalPages={postPage.totalPages} getHref={(page) => hrefWith({ page: page > 1 ? String(page) : null })} />
         </div>
       </div>
 
@@ -187,7 +177,7 @@ function SearchForm({ query, setQuery, onSubmit, className }: { query: string; s
   return (
     <form className={`h-9 overflow-hidden rounded-[var(--ui-control-radius)] border border-[var(--ui-border)] bg-[var(--ui-surface)] focus-within:border-[var(--ui-ink)] ${className}`} onSubmit={onSubmit}>
       <label htmlFor={inputId} className="sr-only">게시글 검색</label>
-      <input id={inputId} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="제목, 내용, 작성자 검색" className="min-w-0 flex-1 bg-transparent px-3 text-[14px] text-[var(--ui-text)] outline-none placeholder:text-[var(--ui-muted)]" />
+      <input id={inputId} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="제목, 내용 검색" className="min-w-0 flex-1 bg-transparent px-3 text-[14px] text-[var(--ui-text)] outline-none placeholder:text-[var(--ui-muted)]" />
       <button type="submit" className="grid w-9 shrink-0 place-items-center text-[var(--ui-muted)] hover:text-[var(--ui-ink)]" aria-label="검색"><Search size={16} strokeWidth={2} /></button>
     </form>
   );
