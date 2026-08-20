@@ -1,0 +1,286 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-20T13:30:35.233Z",
+  "source": {
+    "baseUrl": "http://127.0.0.1:3000"
+  },
+  "environment": {
+    "kind": "Chromium Android emulation",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "samples": 3,
+    "note": "Physical Android measurements must be appended before release targets are frozen."
+  },
+  "dynamicPaths": {
+    "match": "/matches/LCK%2F2026%20Season%2FRounds%203-4_Week%2013_1",
+    "post": "/community/post/66463796-c0e1-49c8-9c6d-4cffd9b65cf2"
+  },
+  "routes": [
+    {
+      "key": "home",
+      "path": "/",
+      "runs": [
+        {
+          "status": 200,
+          "wallMs": 843,
+          "ttfbMs": 67,
+          "responseDownloadMs": 485,
+          "serverWaitMs": 67,
+          "browserReadyAfterFirstByteMs": 490,
+          "domContentLoadedMs": 558,
+          "loadMs": 804,
+          "fcpMs": 136,
+          "lcpMs": 772,
+          "cls": 0.001,
+          "resourceCount": 68,
+          "transferBytes": 2248397,
+          "serverTiming": null
+        },
+        {
+          "status": 200,
+          "wallMs": 420,
+          "ttfbMs": 62,
+          "responseDownloadMs": 289,
+          "serverWaitMs": 62,
+          "browserReadyAfterFirstByteMs": 298,
+          "domContentLoadedMs": 361,
+          "loadMs": 363,
+          "fcpMs": 112,
+          "lcpMs": 112,
+          "cls": 0,
+          "resourceCount": 63,
+          "transferBytes": 81802,
+          "serverTiming": null
+        },
+        {
+          "status": 200,
+          "wallMs": 554,
+          "ttfbMs": 58,
+          "responseDownloadMs": 364,
+          "serverWaitMs": 58,
+          "browserReadyAfterFirstByteMs": 373,
+          "domContentLoadedMs": 432,
+          "loadMs": 439,
+          "fcpMs": 100,
+          "lcpMs": 476,
+          "cls": 0,
+          "resourceCount": 64,
+          "transferBytes": 82134,
+          "serverTiming": null
+        }
+      ],
+      "median": {
+        "wallMs": 554,
+        "serverWaitMs": 62,
+        "browserReadyAfterFirstByteMs": 373,
+        "ttfbMs": 62,
+        "responseDownloadMs": 364,
+        "domContentLoadedMs": 432,
+        "loadMs": 439,
+        "fcpMs": 112,
+        "lcpMs": 476,
+        "transferBytes": 82134
+      }
+    },
+    {
+      "key": "schedule",
+      "path": "/schedule",
+      "runs": [
+        {
+          "status": 200,
+          "wallMs": 512,
+          "ttfbMs": 58,
+          "responseDownloadMs": 371,
+          "serverWaitMs": 58,
+          "browserReadyAfterFirstByteMs": 376,
+          "domContentLoadedMs": 435,
+          "loadMs": 441,
+          "fcpMs": 108,
+          "lcpMs": 108,
+          "cls": 0,
+          "resourceCount": 38,
+          "transferBytes": 184733,
+          "serverTiming": null
+        },
+        {
+          "status": 200,
+          "wallMs": 547,
+          "ttfbMs": 62,
+          "responseDownloadMs": 390,
+          "serverWaitMs": 62,
+          "browserReadyAfterFirstByteMs": 395,
+          "domContentLoadedMs": 457,
+          "loadMs": 459,
+          "fcpMs": 108,
+          "lcpMs": 108,
+          "cls": 0,
+          "resourceCount": 38,
+          "transferBytes": 107267,
+          "serverTiming": null
+        },
+        {
+          "status": 200,
+          "wallMs": 553,
+          "ttfbMs": 66,
+          "responseDownloadMs": 393,
+          "serverWaitMs": 66,
+          "browserReadyAfterFirstByteMs": 398,
+          "domContentLoadedMs": 465,
+          "loadMs": 466,
+          "fcpMs": 116,
+          "lcpMs": 116,
+          "cls": 0,
+          "resourceCount": 38,
+          "transferBytes": 107267,
+          "serverTiming": null
+        }
+      ],
+      "median": {
+        "wallMs": 547,
+        "serverWaitMs": 62,
+        "browserReadyAfterFirstByteMs": 395,
+        "ttfbMs": 62,
+        "responseDownloadMs": 390,
+        "domContentLoadedMs": 457,
+        "loadMs": 459,
+        "fcpMs": 108,
+        "lcpMs": 108,
+        "transferBytes": 107267
+      }
+    },
+    {
+      "key": "match",
+      "path": "/matches/LCK%2F2026%20Season%2FRounds%203-4_Week%2013_1",
+      "runs": [
+        {
+          "status": 200,
+          "wallMs": 642,
+          "ttfbMs": 65,
+          "responseDownloadMs": 481,
+          "serverWaitMs": 65,
+          "browserReadyAfterFirstByteMs": 488,
+          "domContentLoadedMs": 554,
+          "loadMs": 555,
+          "fcpMs": 108,
+          "lcpMs": 600,
+          "cls": 0,
+          "resourceCount": 33,
+          "transferBytes": 288037,
+          "serverTiming": null
+        },
+        {
+          "status": 200,
+          "wallMs": 623,
+          "ttfbMs": 68,
+          "responseDownloadMs": 471,
+          "serverWaitMs": 68,
+          "browserReadyAfterFirstByteMs": 475,
+          "domContentLoadedMs": 544,
+          "loadMs": 545,
+          "fcpMs": 116,
+          "lcpMs": 600,
+          "cls": 0,
+          "resourceCount": 33,
+          "transferBytes": 35341,
+          "serverTiming": null
+        },
+        {
+          "status": 200,
+          "wallMs": 728,
+          "ttfbMs": 67,
+          "responseDownloadMs": 563,
+          "serverWaitMs": 67,
+          "browserReadyAfterFirstByteMs": 567,
+          "domContentLoadedMs": 635,
+          "loadMs": 636,
+          "fcpMs": 112,
+          "lcpMs": 688,
+          "cls": 0,
+          "resourceCount": 33,
+          "transferBytes": 35343,
+          "serverTiming": null
+        }
+      ],
+      "median": {
+        "wallMs": 642,
+        "serverWaitMs": 67,
+        "browserReadyAfterFirstByteMs": 488,
+        "ttfbMs": 67,
+        "responseDownloadMs": 481,
+        "domContentLoadedMs": 554,
+        "loadMs": 555,
+        "fcpMs": 112,
+        "lcpMs": 600,
+        "transferBytes": 35343
+      }
+    },
+    {
+      "key": "community",
+      "path": "/community",
+      "runs": [
+        {
+          "status": 200,
+          "wallMs": 260,
+          "ttfbMs": 65,
+          "responseDownloadMs": 141,
+          "serverWaitMs": 65,
+          "browserReadyAfterFirstByteMs": 154,
+          "domContentLoadedMs": 219,
+          "loadMs": 220,
+          "fcpMs": 108,
+          "lcpMs": 108,
+          "cls": 0,
+          "resourceCount": 27,
+          "transferBytes": 49583,
+          "serverTiming": null
+        },
+        {
+          "status": 200,
+          "wallMs": 259,
+          "ttfbMs": 65,
+          "responseDownloadMs": 131,
+          "serverWaitMs": 65,
+          "browserReadyAfterFirstByteMs": 149,
+          "domContentLoadedMs": 214,
+          "loadMs": 215,
+          "fcpMs": 108,
+          "lcpMs": 108,
+          "cls": 0,
+          "resourceCount": 27,
+          "transferBytes": 30872,
+          "serverTiming": null
+        },
+        {
+          "status": 200,
+          "wallMs": 259,
+          "ttfbMs": 56,
+          "responseDownloadMs": 149,
+          "serverWaitMs": 56,
+          "browserReadyAfterFirstByteMs": 164,
+          "domContentLoadedMs": 220,
+          "loadMs": 221,
+          "fcpMs": 108,
+          "lcpMs": 108,
+          "cls": 0,
+          "resourceCount": 27,
+          "transferBytes": 30872,
+          "serverTiming": null
+        }
+      ],
+      "median": {
+        "wallMs": 259,
+        "serverWaitMs": 65,
+        "browserReadyAfterFirstByteMs": 154,
+        "ttfbMs": 65,
+        "responseDownloadMs": 141,
+        "domContentLoadedMs": 219,
+        "loadMs": 220,
+        "fcpMs": 108,
+        "lcpMs": 108,
+        "transferBytes": 30872
+      }
+    }
+  ]
+}
