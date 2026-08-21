@@ -114,7 +114,7 @@ export function MinionScreen({ children, contentStyle }: PropsWithChildren<{ con
         ]}>
         <View style={[styles.brandArea, fanTeam ? styles.fanBrandArea : null]}>
           <Pressable accessibilityLabel="MINION 메인으로 이동" onPress={() => router.navigate('/')} style={[styles.brandButton, fanTeam ? null : styles.brandButtonDefault]}>
-            <Image contentFit="contain" source={logo} style={styles.logo} />
+            <Image accessibilityLabel="MINION" alt="MINION" contentFit="contain" source={logo} style={[styles.logo, fanTeam ? { tintColor: accent } : null]} />
           </Pressable>
           {fanTeam ? (
             <Pressable accessibilityLabel="팬페이지 팀 변경" onPress={openTeamPicker} style={styles.teamSwitch}>

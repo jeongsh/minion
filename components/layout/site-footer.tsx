@@ -1,11 +1,11 @@
-import Image from "next/image";
 import Link from "next/link";
+import { BrandLogo } from "@/components/layout/brand-logo";
 
-export function SiteFooter() {
+export function SiteFooter({ accentColor }: { accentColor?: string }) {
   return <footer className="bg-[var(--page-background)] text-[#18191c] dark:text-[#f8f8f8]">
     <div className="layout-wide py-5 text-left">
       <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-        <Image src="/logo.svg" alt="MINION" width={171} height={39} className="h-auto w-16 shrink-0" />
+        <BrandLogo accentColor={accentColor} className="w-16 shrink-0" />
         <nav className="flex flex-wrap gap-x-4 gap-y-2 text-[13px] font-bold text-[#666a71] dark:text-[#a0a7b2]" aria-label="서비스 정책">
           <Link href="/about" className="hover:text-[#18191c] dark:hover:text-white">서비스 소개</Link>
           <Link href="/terms" className="hover:text-[#18191c] dark:hover:text-white">이용약관</Link>

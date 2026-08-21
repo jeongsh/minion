@@ -1,7 +1,6 @@
 ﻿"use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -25,6 +24,7 @@ import {
   X,
 } from "lucide-react";
 import { LogoutButton } from "@/components/auth/logout-button";
+import { BrandLogo } from "@/components/layout/brand-logo";
 import { FanTeamPicker } from "@/components/layout/fan-team-picker";
 import { HeaderSearch } from "@/components/layout/header-search";
 import { SiteFooter } from "@/components/layout/site-footer";
@@ -356,7 +356,7 @@ export function AppShell({
         {fanRoute ? (
           <div className="relative flex min-w-0 flex-1 items-center md:hidden">
             <Link href="/" className="flex h-11 shrink-0 items-center" aria-label="MINION 메인으로 이동">
-              <Image src="/logo.svg" alt="MINION" width={171} height={39} className="h-auto w-16" priority />
+              <BrandLogo accentColor={currentFanTeam?.primaryColor} className="w-16" priority />
             </Link>
             <button type="button" onClick={() => setTeamSwitcherOpen((value) => !value)} className="flex min-w-0 items-center gap-1 rounded-xl px-2 py-2 text-[14px] font-black" aria-expanded={teamSwitcherOpen} aria-haspopup="menu">
               <span className="truncate">{currentFanTeam?.shortName ?? fanKey?.toUpperCase()}</span><ChevronDown size={16} className={`shrink-0 transition ${teamSwitcherOpen ? "rotate-180" : ""}`} />
@@ -372,7 +372,7 @@ export function AppShell({
           {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
         </button>
         <Link href="/" className={`ml-1.5 shrink-0 text-[22px] font-black tracking-[-0.06em] text-[#18191c] sm:ml-2 sm:text-[25px] dark:text-white ${fanRoute ? "hidden md:block" : "block"}`}>
-          <Image src="/logo.svg" alt="MINION" width={171} height={39} className="h-auto w-16 sm:w-24" priority />
+          <BrandLogo accentColor={currentFanTeam?.primaryColor} className="w-16 sm:w-24" priority />
         </Link>
         <div
           className="pointer-events-none absolute inset-y-0 right-0 hidden items-center justify-center transition-[left] duration-200 min-[1200px]:flex"
@@ -509,7 +509,7 @@ export function AppShell({
           ) : null}
           {children}
         </div>
-        {!focusRoute ? <div className={communityPostDetail ? "hidden md:block" : "contents"}><SiteFooter /></div> : null}
+        {!focusRoute ? <div className={communityPostDetail ? "hidden md:block" : "contents"}><SiteFooter accentColor={currentFanTeam?.primaryColor} /></div> : null}
       </div>
 
       {!focusRoute && !communityPostDetail ? (
