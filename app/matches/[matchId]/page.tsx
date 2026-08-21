@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ImageIcon } from "lucide-react";
+import { Suspense } from "react";
 
 import { notFound } from "next/navigation";
 
@@ -7,6 +8,7 @@ import { PredictionMatchBar } from "@/components/domain/prediction-match-bar";
 import { SetVodPlayer } from "@/components/domain/set-vod-player";
 import { SegmentedControl, type TabItem } from "@/components/ui/tabs";
 import { AdSlot } from "@/components/ui/ad-slot";
+import { MatchSetSkeleton } from "@/components/navigation/route-loading-skeleton";
 import { TeamLogo } from "@/components/ui/team-logo";
 import {
   getAllPlayers,
@@ -494,7 +496,9 @@ export default async function MatchDetailPage({
   const now = Date.now();
 
   const activeSetCard = activeSet ? (
-    <SetDetailContent matchId={matchId} setId={activeSet.id} embedded />
+    <Suspense fallback={<MatchSetSkeleton />}>
+      <SetDetailContent matchId={matchId} setId={activeSet.id} embedded />
+    </Suspense>
   ) : (
     <div className="rounded-lg border border-dashed border-[var(--ui-border)] p-4 text-sm text-[var(--ui-muted)]">
       세트 데이터가 아직 연결되지 않았습니다.

@@ -31,76 +31,8 @@ function waitForFrame() {
   return new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
 }
 
-function waitUntilDeadline(promise: Promise<unknown>, deadline: number) {
-  return new Promise<void>((resolve) => {
-    const timer = window.setTimeout(resolve, Math.max(0, deadline - Date.now()));
-
-    promise
-      .catch(() => undefined)
-      .then(() => {
-        window.clearTimeout(timer);
-        resolve();
-      });
-  });
-}
-
-function imageSource(image: HTMLImageElement) {
-  if (!image.currentSrc && !image.src && !image.srcset) return "";
-  return `${image.currentSrc}|${image.src}|${image.srcset}`;
-}
-
-// lazy 이미지(대부분 스크롤 아래 콘텐츠)는 제외하고, 그 외 이미지는 로드가
-// 끝날 때까지 기다린다. fetchPriority="high"로 좁혀뒀던 것을 되돌린 것 —
-// 팀 로고 등 대부분의 이미지가 fetchPriority를 안 쓰다 보니 로딩 오버레이가
-// 이미지 로드를 기다리지 않고 내려가 "블랭크 후 뒤늦게 그려짐" 현상이 있었다.
-function shouldWaitForImage(image: HTMLImageElement) {
-  return image.loading !== "lazy" && !image.complete;
-}
-
-async function waitForImage(
-  image: HTMLImageElement,
-  settledSources: WeakMap<HTMLImageElement, string>,
-  deadline: number,
-) {
-  const source = imageSource(image);
-  if (!source || settledSources.get(image) === source) return;
-
-  if (!image.complete) {
-    await new Promise<void>((resolve) => {
-      const remaining = Math.max(0, deadline - Date.now());
-      let timer = 0;
-
-      const cleanup = () => {
-        image.removeEventListener("load", settle);
-        image.removeEventListener("error", settle);
-        window.clearTimeout(timer);
-      };
-      const settle = () => {
-        cleanup();
-        resolve();
-      };
-
-      image.addEventListener("load", settle, { once: true });
-      image.addEventListener("error", settle, { once: true });
-      timer = window.setTimeout(settle, remaining);
-
-      if (image.complete) {
-        settle();
-      }
-    });
-  }
-
-  const remaining = Math.max(0, deadline - Date.now());
-  if (image.complete && image.naturalWidth > 0 && typeof image.decode === "function" && remaining > 0) {
-    await waitUntilDeadline(image.decode(), deadline);
-  }
-
-  settledSources.set(image, imageSource(image));
-}
-
 async function waitForPageReady() {
   const deadline = Date.now() + PAGE_READY_TIMEOUT_MS;
-  const settledSources = new WeakMap<HTMLImageElement, string>();
   let lastMutationAt = performance.now();
 
   const observer = new MutationObserver(() => {
@@ -111,7 +43,7 @@ async function waitForPageReady() {
     childList: true,
     subtree: true,
     attributes: true,
-    attributeFilter: ["src", "srcset", "class", "data-page-readiness"],
+    attributeFilter: ["class", "data-page-readiness"],
   });
 
   try {
@@ -119,20 +51,17 @@ async function waitForPageReady() {
     await waitForFrame();
 
     while (Date.now() < deadline) {
-      const images = Array.from(document.images).filter(shouldWaitForImage);
-      await Promise.all(images.map((image) => waitForImage(image, settledSources, deadline)));
       await waitForFrame();
 
       const hasRouteFallback = Boolean(document.querySelector('[data-route-loading="true"]'));
       const hasPendingClientWidget = Boolean(
         document.querySelector('[data-page-readiness="pending"]'),
       );
-      const hasUnsettledImage = Array.from(document.images)
-        .filter(shouldWaitForImage)
-        .some((image) => settledSources.get(image) !== imageSource(image));
       const isDomQuiet = performance.now() - lastMutationAt >= PAGE_READY_QUIET_MS;
 
-      if (!hasRouteFallback && !hasPendingClientWidget && !hasUnsettledImage && isDomQuiet) {
+      // 이미지와 영상은 각자의 자리에서 점진적으로 표시한다. 페이지 전환은
+      // 라우트 데이터와 명시적인 클라이언트 위젯만 준비되면 끝낸다.
+      if (!hasRouteFallback && !hasPendingClientWidget && isDomQuiet) {
         return;
       }
 

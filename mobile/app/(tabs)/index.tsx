@@ -9,8 +9,9 @@ import { Linking, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, 
 
 import { RemoteImage } from '@/components/data/remote-image';
 import { TeamLogo } from '@/components/data/team-logo';
-import { ErrorState, LoadingSkeleton } from '@/components/feedback-states';
+import { ErrorState } from '@/components/feedback-states';
 import { HomeCalendarDialog } from '@/components/home/home-calendar-dialog';
+import { HomeLoadingSkeleton } from '@/components/home/home-loading-skeleton';
 import { MinionScreen } from '@/components/minion-screen';
 import { useCachedQuery } from '@/hooks/use-cached-query';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
@@ -48,7 +49,7 @@ function relativeDate(value: string) {
 export default function HomeScreen() {
   const { width } = useWindowDimensions();
   const { data, error, loading, refresh } = useCachedQuery<MobileHomeDto>('/api/mobile/v1/home');
-  if (loading && !data) return <MinionScreen><LoadingSkeleton /></MinionScreen>;
+  if (loading && !data) return <MinionScreen contentStyle={styles.homeContent}><HomeLoadingSkeleton /></MinionScreen>;
   if (error && !data) return <MinionScreen><ErrorState onRetry={refresh} /></MinionScreen>;
   if (!data) return null;
 
