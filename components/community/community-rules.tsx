@@ -55,15 +55,15 @@ export function CommunityRules() {
     <div className="flex flex-col gap-6">
       {SECTIONS.map((section) => (
         <section key={section.title} className="rounded-[var(--ui-card-radius)] border border-[var(--ui-border)] bg-[var(--ui-surface)] p-5 sm:p-6">
-          <h2 className="text-base font-bold text-[var(--ui-ink)] sm:text-lg">{section.title}</h2>
-          <ul className="mt-3 flex list-disc flex-col gap-2 pl-5 text-sm leading-relaxed text-[var(--ui-text)] sm:text-[15px]">
+          <h2 className="text-base font-bold text-[var(--ui-ink)] md:text-[17px] lg:text-lg">{section.title}</h2>
+          <ul className="mt-3 flex list-disc flex-col gap-2 pl-5 text-[13px] leading-[1.65] text-[var(--ui-text)] md:text-sm md:leading-[1.7] lg:text-[15px] lg:leading-relaxed">
             {section.items.map((item) => (
               <li key={item}>{item}</li>
             ))}
           </ul>
         </section>
       ))}
-      <p className="text-[13px] text-[var(--ui-muted)]">
+      <p className="text-[11px] text-[var(--ui-muted)] md:text-xs lg:text-[13px]">
         규칙은 커뮤니티 상황에 따라 업데이트될 수 있습니다. 문의는 프로필의 문의 채널을 이용해 주세요.
       </p>
     </div>
