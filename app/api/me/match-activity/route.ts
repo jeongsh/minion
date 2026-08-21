@@ -49,7 +49,7 @@ export async function GET() {
   }
 
   const now = Date.now();
-  const liveMatches = matches
+  const liveMatches = followedMatches
     .filter((match) => isMatchLive(match))
     .sort((a, b) => new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime())
     .map((match) => {
