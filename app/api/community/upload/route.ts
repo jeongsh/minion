@@ -98,7 +98,11 @@ export async function POST(request: Request) {
   const objectPath = `${prefix}/${crypto.randomUUID()}.${prepared.extension}`;
   const { error: uploadError } = await admin.storage
     .from(COMMUNITY_UPLOAD_BUCKET)
-    .upload(objectPath, prepared.bytes, { contentType: prepared.contentType, upsert: false });
+    .upload(objectPath, prepared.bytes, {
+      contentType: prepared.contentType,
+      cacheControl: "31536000",
+      upsert: false,
+    });
 
   if (uploadError) {
     return NextResponse.json({ error: uploadError.message || "Image upload failed." }, { status: 500 });

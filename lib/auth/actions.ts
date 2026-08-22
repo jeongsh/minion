@@ -254,6 +254,7 @@ export async function updateNicknameAction(
       .from(PROFILE_AVATAR_BUCKET)
       .upload(objectPath, resized.bytes, {
         contentType: resized.contentType,
+        cacheControl: "31536000",
         upsert: false,
       });
 

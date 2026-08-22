@@ -41,6 +41,7 @@ async function uploadProfileImage(playerId: string, file: File) {
 
   const { error } = await supabase.storage.from("player-profiles").upload(path, resized.bytes, {
     contentType: resized.contentType,
+    cacheControl: "31536000",
     upsert: true,
   });
 

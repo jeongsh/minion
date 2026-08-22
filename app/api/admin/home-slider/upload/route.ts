@@ -35,6 +35,7 @@ export async function POST(request: Request) {
   const supabase = createSupabaseAdminClient();
   const { error } = await supabase.storage.from(BUCKET).upload(path, resized.bytes, {
     contentType: resized.contentType,
+    cacheControl: "31536000",
     upsert: true,
   });
 
