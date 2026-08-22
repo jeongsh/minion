@@ -71,6 +71,7 @@ export function SocialAuthButtons({
 
   return (
     <div className="flex flex-col gap-2">
+      {/* Apple Developer Program 미가입으로 임시 비활성화
       {isIPhone ? (
         <form action={signInWithAppleAction}>
           <button
@@ -82,6 +83,7 @@ export function SocialAuthButtons({
           </button>
         </form>
       ) : null}
+      */}
       <form action={signInWithGoogleAction}>
         <button
           type="submit"
