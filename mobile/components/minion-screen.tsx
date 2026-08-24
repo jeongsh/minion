@@ -73,6 +73,8 @@ export function MinionScreen({ children, contentStyle, scrollRequest, stickyHead
   const accent = fanTeam?.primaryColor ?? theme.accent;
   const localItems = fanTeam ? getFanItems(fanTeam.slug) : pathname === '/fan' ? [] : hubItems;
   const localNavHeight = localItems.length > 0 ? LOCAL_NAV_HEIGHT : 0;
+  const contentChromeOffset = insets.top + HEADER_HEIGHT + localNavHeight;
+  const contentFlowOffset = stickyHeader ? stickyHeaderHeight : 16;
   const headerIconColor = colorScheme === 'dark' ? '#a7acb5' : '#62666d';
   const headerBorder = colorScheme === 'dark' ? '#212224' : '#e8e8eb';
 
@@ -196,13 +198,13 @@ export function MinionScreen({ children, contentStyle, scrollRequest, stickyHead
       ) : null}
 
       <ScrollView
-        contentContainerStyle={{ paddingTop: insets.top + HEADER_HEIGHT + localNavHeight + (stickyHeader ? stickyHeaderHeight : 16) }}
         keyboardShouldPersistTaps="handled"
         onScroll={handleScroll}
         ref={scrollViewRef}
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}>
-        <View style={[styles.content, contentStyle]}>{children}</View>
+        <View aria-hidden style={{ height: contentChromeOffset }} />
+        <View style={[styles.content, { marginTop: contentFlowOffset }, contentStyle]}>{children}</View>
         <View style={styles.footer}><MinionFooter /></View>
       </ScrollView>
 

@@ -3,7 +3,6 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { ErrorState } from '@/components/feedback-states';
 import { MinionScreen } from '@/components/minion-screen';
-import { PredictionAdSlot } from '@/components/predictions/prediction-ad-slot';
 import { PredictionEmptyState } from '@/components/predictions/prediction-empty-state';
 import { PredictionLoadingSkeleton } from '@/components/predictions/prediction-loading-skeleton';
 import { PredictionMatchCard } from '@/components/predictions/prediction-match-card';
@@ -76,9 +75,6 @@ export default function PredictionsScreen() {
         onPrev={() => moveWeek(-1)}
         weekKey={selectedWeek}
       />
-      <View style={styles.ad}>
-        <PredictionAdSlot />
-      </View>
 
       {groupedEntries.length > 0 ? (
         <View style={styles.sections}>
@@ -110,8 +106,7 @@ export default function PredictionsScreen() {
 }
 
 const styles = StyleSheet.create({
-  ad: { marginTop: 16 },
-  content: { gap: 24, paddingBottom: 0 },
+  content: { gap: 0, marginTop: 48, paddingBottom: 0 },
   empty: { marginTop: 36 },
   heading: { fontSize: 18, lineHeight: 28 },
   headingRow: { alignItems: 'center', flexDirection: 'row', gap: 8, marginBottom: 12 },
