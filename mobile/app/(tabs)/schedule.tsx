@@ -1,7 +1,7 @@
 import CalendarDays from 'lucide-react-native/icons/calendar-days';
 import SlidersHorizontal from 'lucide-react-native/icons/sliders-horizontal';
-import { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { useCallback, useMemo, useRef, useState } from 'react';
+import { type LayoutChangeEvent, Pressable, StyleSheet, View } from 'react-native';
 
 import { ErrorState } from '@/components/feedback-states';
 import { MinionScreen } from '@/components/minion-screen';
@@ -9,7 +9,7 @@ import { ScheduleCalendarDialog } from '@/components/schedule/schedule-calendar-
 import { ScheduleFilterSheet, type ScheduleFilterState } from '@/components/schedule/schedule-filter-sheet';
 import { ScheduleLoadingSkeleton } from '@/components/schedule/schedule-loading-skeleton';
 import { ScheduleMatchList } from '@/components/schedule/schedule-match-list';
-import { ScheduleWeekScroller } from '@/components/schedule/schedule-week-scroller';
+import { SCHEDULE_WEEK_SCROLLER_HEIGHT, scheduleTargetForDate, ScheduleWeekScroller } from '@/components/schedule/schedule-week-scroller';
 import { SCHEDULE_SEGMENTS } from '@/constants/schedule-segments';
 import { useCachedQuery } from '@/hooks/use-cached-query';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
@@ -36,6 +36,10 @@ export default function ScheduleScreen() {
   const [filter, setFilter] = useState<ScheduleFilterState>({ month: defaults.month, segment: 'all', teamId: 'all', year: defaults.year });
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
+  const listOffsetRef = useRef<{ layoutKey: string; y: number } | null>(null);
+  const sectionOffsetsRef = useRef(new Map<string, { layoutKey: string; y: number }>());
+  const autoScrolledRef = useRef<string | null>(null);
+  const [scrollRequest, setScrollRequest] = useState<{ animated: boolean; y: number } | null>(null);
 
   const query = buildQuery(filter);
   const { data, error, loading, refresh } = useCachedQuery<MobileScheduleDto>(`/api/mobile/v1/schedule?${query}`);
@@ -43,6 +47,64 @@ export default function ScheduleScreen() {
 
   const currentWeek = useMemo(() => weekDatesKST(), []);
   const todayKey = dateKeyKST(new Date());
+  const availableDateKeys = useMemo(
+    () => Array.from(new Set((data?.matches ?? []).map((match) => dateKeyKST(match.startsAt)))),
+    [data?.matches],
+  );
+  const scheduleLayoutKey = useMemo(
+    () => `${query}:${(data?.matches ?? []).map((match) => `${match.id}@${match.startsAt}`).join('|')}`,
+    [data?.matches, query],
+  );
+  const autoScrollTarget = scheduleTargetForDate(todayKey, availableDateKeys);
+
+  const scrollToDate = useCallback(
+    (dateKey: string, animated: boolean) => {
+      const listOffset = listOffsetRef.current;
+      const sectionOffset = sectionOffsetsRef.current.get(dateKey);
+      if (
+        !listOffset ||
+        listOffset.layoutKey !== scheduleLayoutKey ||
+        !sectionOffset ||
+        sectionOffset.layoutKey !== scheduleLayoutKey
+      ) return false;
+
+      const y = listOffset.y + sectionOffset.y;
+      setScrollRequest({ animated, y });
+      return true;
+    },
+    [scheduleLayoutKey],
+  );
+
+  const tryInitialScroll = useCallback(() => {
+    if (!autoScrollTarget) return;
+    const scrollId = `${scheduleLayoutKey}:${autoScrollTarget}`;
+    if (autoScrolledRef.current === scrollId) return;
+    if (scrollToDate(autoScrollTarget, false)) autoScrolledRef.current = scrollId;
+  }, [autoScrollTarget, scheduleLayoutKey, scrollToDate]);
+
+  const handleListLayout = useCallback(
+    (event: LayoutChangeEvent) => {
+      listOffsetRef.current = { layoutKey: scheduleLayoutKey, y: event.nativeEvent.layout.y };
+      tryInitialScroll();
+    },
+    [scheduleLayoutKey, tryInitialScroll],
+  );
+
+  const handleSectionLayout = useCallback(
+    (dateKey: string, y: number) => {
+      sectionOffsetsRef.current.set(dateKey, { layoutKey: scheduleLayoutKey, y });
+      tryInitialScroll();
+    },
+    [scheduleLayoutKey, tryInitialScroll],
+  );
+
+  const handleSelectDate = useCallback(
+    (dateKey: string) => {
+      const targetKey = scheduleTargetForDate(dateKey, availableDateKeys);
+      if (targetKey) scrollToDate(targetKey, true);
+    },
+    [availableDateKeys, scrollToDate],
+  );
 
   if (loading && !data) {
     return (
@@ -66,10 +128,20 @@ export default function ScheduleScreen() {
 
   return (
     <>
-      <MinionScreen contentStyle={styles.content}>
-        <ScheduleWeekScroller dates={currentWeek} todayKey={todayKey} />
-        <View style={styles.list}>
-          <ScheduleMatchList emptyMessage={emptyMessage} matches={data.matches} />
+      <MinionScreen
+        contentStyle={styles.content}
+        scrollRequest={scrollRequest}
+        stickyHeader={
+          <ScheduleWeekScroller
+            availableDateKeys={availableDateKeys}
+            dates={currentWeek}
+            onSelectDate={handleSelectDate}
+            todayKey={todayKey}
+          />
+        }
+        stickyHeaderHeight={SCHEDULE_WEEK_SCROLLER_HEIGHT}>
+        <View onLayout={handleListLayout} style={styles.list}>
+          <ScheduleMatchList emptyMessage={emptyMessage} matches={data.matches} onSectionLayout={handleSectionLayout} />
         </View>
       </MinionScreen>
 

@@ -4,7 +4,7 @@ import Bell from 'lucide-react-native/icons/bell';
 import ChevronDown from 'lucide-react-native/icons/chevron-down';
 import Moon from 'lucide-react-native/icons/moon';
 import Sun from 'lucide-react-native/icons/sun';
-import { type PropsWithChildren, type ReactNode, type Ref, useEffect, useRef, useState } from 'react';
+import { type PropsWithChildren, type ReactNode, useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Easing,
@@ -53,12 +53,12 @@ function getFanItems(team: string): LocalItem[] {
 
 type MinionScreenProps = PropsWithChildren<{
   contentStyle?: StyleProp<ViewStyle>;
-  scrollViewRef?: Ref<ScrollView>;
+  scrollRequest?: { animated: boolean; y: number } | null;
   stickyHeader?: ReactNode;
   stickyHeaderHeight?: number;
 }>;
 
-export function MinionScreen({ children, contentStyle, scrollViewRef, stickyHeader, stickyHeaderHeight = 0 }: MinionScreenProps) {
+export function MinionScreen({ children, contentStyle, scrollRequest, stickyHeader, stickyHeaderHeight = 0 }: MinionScreenProps) {
   const pathname = usePathname();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -67,6 +67,7 @@ export function MinionScreen({ children, contentStyle, scrollViewRef, stickyHead
   const headerOffset = useRef(new Animated.Value(0)).current;
   const headerVisible = useRef(true);
   const lastScrollY = useRef(0);
+  const scrollViewRef = useRef<ScrollView>(null);
   const fanMatch = pathname.match(/^\/fan\/([^/]+)/);
   const fanTeam = getMinionTeam(fanMatch?.[1]);
   const accent = fanTeam?.primaryColor ?? theme.accent;
@@ -97,6 +98,13 @@ export function MinionScreen({ children, contentStyle, scrollViewRef, stickyHead
     headerOffset.setValue(0);
   }, [headerOffset, pathname]);
 
+  useEffect(() => {
+    if (!scrollRequest) return;
+    const frame = requestAnimationFrame(() => {
+      scrollViewRef.current?.scrollTo({ animated: scrollRequest.animated, x: 0, y: scrollRequest.y });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [scrollRequest]);
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const currentY = Math.max(0, event.nativeEvent.contentOffset.y);
     const delta = currentY - lastScrollY.current;

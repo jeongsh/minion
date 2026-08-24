@@ -1,7 +1,7 @@
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef } from 'react';
-import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, type LayoutChangeEvent, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { TeamLogo } from '@/components/data/team-logo';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
@@ -11,7 +11,15 @@ import { dateHeadingKST, dateKeyKST, formatTimeKST, isMatchLive, matchStatusLabe
 const EMPTY_BORDER = { dark: '#26735c', light: '#94dfc4' } as const;
 const CHARACTER_IMAGE = require('@/assets/characters/pen-4.png');
 
-export function ScheduleMatchList({ emptyMessage, matches }: { emptyMessage: string; matches: MobileMatchSummary[] }) {
+export function ScheduleMatchList({
+  emptyMessage,
+  matches,
+  onSectionLayout,
+}: {
+  emptyMessage: string;
+  matches: MobileMatchSummary[];
+  onSectionLayout?: (dateKey: string, y: number) => void;
+}) {
   const { fonts, theme } = useMinionTheme();
 
   if (matches.length === 0) {
@@ -30,9 +38,10 @@ export function ScheduleMatchList({ emptyMessage, matches }: { emptyMessage: str
   return (
     <View style={styles.list}>
       {Array.from(groups.entries()).map(([heading, dayMatches]) => {
-        const isToday = dateKeyKST(dayMatches[0].startsAt) === todayKey;
+        const dateKey = dateKeyKST(dayMatches[0].startsAt);
+        const isToday = dateKey === todayKey;
         return (
-          <View key={heading}>
+          <View key={heading} onLayout={(event: LayoutChangeEvent) => onSectionLayout?.(dateKey, event.nativeEvent.layout.y)}>
             <View style={styles.headingRow}>
               <Text style={[styles.heading, { color: theme.ink, fontFamily: fonts.black }]}>{heading}</Text>
               {isToday ? (

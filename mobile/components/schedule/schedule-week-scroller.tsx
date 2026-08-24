@@ -1,14 +1,26 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import type { WeekDate } from '@/lib/schedule-dates';
 
-/**
- * 웹은 헤더 밑에 position:sticky로 붙지만, MinionScreen이 스크롤 ref/offset을 노출하지 않아
- * 이 화면에서는 붙잡을 수 없다. 정적 배치로 구현하고(정지 상태 좌표는 1px로 일치),
- * "고정 유지"·"오늘 탭→스크롤" 두 동작은 별도 통합 변경(ref 노출)이 합의될 때까지 보류한다.
- */
-export function ScheduleWeekScroller({ dates, todayKey }: { dates: WeekDate[]; todayKey: string }) {
+export const SCHEDULE_WEEK_SCROLLER_HEIGHT = 71;
+
+export function scheduleTargetForDate(dateKey: string, availableDateKeys: string[]) {
+  if (availableDateKeys.includes(dateKey)) return dateKey;
+  return availableDateKeys.find((key) => key >= dateKey) ?? availableDateKeys.at(-1);
+}
+
+export function ScheduleWeekScroller({
+  availableDateKeys,
+  dates,
+  onSelectDate,
+  todayKey,
+}: {
+  availableDateKeys: string[];
+  dates: WeekDate[];
+  onSelectDate: (dateKey: string) => void;
+  todayKey: string;
+}) {
   const { fonts, theme } = useMinionTheme();
 
   return (
@@ -16,11 +28,18 @@ export function ScheduleWeekScroller({ dates, todayKey }: { dates: WeekDate[]; t
       <View style={[styles.grid, { backgroundColor: theme.card, borderColor: theme.border }]}>
         {dates.map((date) => {
           const isToday = date.key === todayKey;
+          const targetKey = scheduleTargetForDate(date.key, availableDateKeys);
           return (
-            <View accessibilityState={isToday ? { selected: true } : undefined} key={date.key} style={[styles.cell, isToday && { backgroundColor: theme.ink }]}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={isToday ? { selected: true } : undefined}
+              disabled={!targetKey}
+              key={date.key}
+              onPress={() => targetKey && onSelectDate(targetKey)}
+              style={[styles.cell, isToday && { backgroundColor: theme.ink }]}>
               <Text style={[styles.weekday, { color: isToday ? theme.surface : theme.muted, fontFamily: fonts.medium }]}>{date.weekday}</Text>
               <Text style={[styles.day, { color: isToday ? theme.surface : theme.muted, fontFamily: fonts.black }]}>{date.day}</Text>
-            </View>
+            </Pressable>
           );
         })}
       </View>
