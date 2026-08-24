@@ -111,7 +111,7 @@ export default function PredictionsScreen() {
 
 const styles = StyleSheet.create({
   ad: { marginTop: 16 },
-  content: { gap: 24, paddingBottom: 80 },
+  content: { gap: 24, paddingBottom: 0 },
   empty: { marginTop: 36 },
   heading: { fontSize: 18, lineHeight: 28 },
   headingRow: { alignItems: 'center', flexDirection: 'row', gap: 8, marginBottom: 12 },

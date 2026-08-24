@@ -183,7 +183,7 @@ export default function TournamentsScreen() {
 
 const styles = StyleSheet.create({
   body: { marginTop: 4 },
-  content: { gap: 20, paddingBottom: 48 },
+  content: { gap: 20, paddingBottom: 0 },
   lckTabs: { gap: 16 },
   nonLckTabs: { gap: 12 },
 });

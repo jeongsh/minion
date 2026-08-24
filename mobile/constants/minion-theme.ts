@@ -36,7 +36,7 @@ export const minionThemes = {
 } as const;
 
 export const minionRadius = { card: 16, control: 8 } as const;
-export const minionSize = { header: 56, dock: 52 } as const;
+export const minionSize = { header: 56, dock: 52, footerDockClearance: 74 } as const;
 
 export type MinionTheme = (typeof minionThemes)[keyof typeof minionThemes] & {
   radius: typeof minionRadius;

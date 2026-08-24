@@ -1056,7 +1056,7 @@ export default async function TournamentBracketPage({
   }
 
   return (
-    <main className="layout-wide flex flex-col gap-6 py-6 sm:py-10">
+    <main className="layout-wide flex flex-col gap-6 pt-6 sm:pt-10">
       <PageHeader
         title={segmentTheme.name}
         leading={

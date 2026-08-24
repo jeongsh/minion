@@ -8,6 +8,7 @@ export default function TabLayout() {
       tabBar={() => <MinionDock />}
       screenOptions={{
         headerShown: false,
+        tabBarStyle: { position: 'absolute' },
       }}>
       <Tabs.Screen name="index" />
       <Tabs.Screen name="schedule" />

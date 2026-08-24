@@ -18,7 +18,6 @@ import { useMinionTheme } from '@/hooks/use-minion-theme';
 import { resolveApiAssetUrl, type MobileHomeDto, type MobileMatchSummary, type MobileNewsItem, type MobileVideoItem } from '@/lib/api-client';
 
 const CARD_GAP = 12;
-const MINION_LOGO = require('@/assets/images/logo.svg');
 const LCK_LOGO = require('@/assets/images/lck.svg');
 const LCK_LOGO_DARK = require('@/assets/images/lck-dark.svg');
 const BOARD_LABELS: Record<string, string> = { free: '자유', live: '실시간', humor: '유머', information: '정보', question: '질문' };
@@ -73,7 +72,6 @@ export default function HomeScreen() {
       {(data.pom ?? []).length > 0 ? <View style={styles.section40}><PomSection cardWidth={pomWidth} items={data.pom ?? []} /></View> : null}
       <View style={styles.section40}><TeamChannels teams={data.teams} /></View>
       <View style={styles.section40}><VideoSection cardWidth={videoWidth} items={data.videos} /><View style={styles.videoAd}><AdPlaceholder /></View></View>
-      <Footer />
     </MinionScreen>
   );
 }
@@ -178,19 +176,6 @@ function VideoSection({ cardWidth, items }: { cardWidth: number; items: MobileVi
   return <View><SectionHeader title="최신 영상" /><ScrollView contentContainerStyle={styles.horizontalContent} decelerationRate="fast" horizontal showsHorizontalScrollIndicator={false} snapToInterval={cardWidth + CARD_GAP}>{items.map((video) => <Pressable key={video.id} onPress={() => void Linking.openURL(video.url)} style={{ width: cardWidth }}><View><MediaImage height={cardWidth * 9 / 16} radius={16} url={video.thumbnail?.url} width={cardWidth} /><LinearGradient colors={['transparent', 'rgba(0,0,0,0.45)']} pointerEvents="none" style={styles.videoGradient} /><View style={[styles.playButton, { backgroundColor: theme.accent }]}><Play color="#061018" fill="#061018" size={16} /></View></View><Text numberOfLines={2} style={[styles.videoTitle, { color: theme.ink, fontFamily: fonts.bold }]}>{video.title}</Text><View style={[styles.channelPill, { borderColor: theme.muted }]}><Text style={[styles.channelText, { color: theme.muted, fontFamily: fonts.medium }]}>{video.channelName ?? 'LCK'}</Text></View></Pressable>)}</ScrollView></View>;
 }
 
-function Footer() {
-  const { fonts, theme } = useMinionTheme();
-  const links = [
-    { label: '서비스 소개', path: '/about' },
-    { label: '이용약관', path: '/terms' },
-    { label: '개인정보처리방침', path: '/privacy' },
-    { label: '커뮤니티 운영원칙', path: '/community/rules' },
-    { label: '광고·제휴 문의', path: '/advertising' },
-  ];
-  const openWebPage = (path: string) => void Linking.openURL(resolveApiAssetUrl(path) ?? path);
-  return <View style={styles.footer}><View style={styles.footerTop}><Image accessibilityLabel="MINION" contentFit="contain" source={MINION_LOGO} style={styles.footerLogo} /><View style={styles.footerNav}>{links.map((link) => <Pressable key={link.path} onPress={() => openWebPage(link.path)}><Text style={[styles.footerLink, { color: theme.footerNav, fontFamily: fonts.bold }]}>{link.label}</Text></Pressable>)}</View></View><Text style={[styles.footerDisclaimer, { color: theme.footerText, fontFamily: fonts.regular }]}>{"MINION isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games or anyone officially involved in producing or managing League of Legends. League of Legends and Riot Games are trademarks or registered trademarks of Riot Games, Inc. League of Legends © Riot Games, Inc."}</Text><Text style={[styles.footerCredit, { color: theme.footerText, fontFamily: fonts.regular }]}>Some content is provided courtesy of <Text onPress={() => void Linking.openURL('https://lol.fandom.com/wiki/League_of_Legends_Esports_Wiki')} style={styles.footerInlineLink}>Leaguepedia</Text>, under a <Text onPress={() => void Linking.openURL('https://creativecommons.org/licenses/by-sa/3.0/')} style={styles.footerInlineLink}>CC-BY-SA 3.0 license</Text>.</Text><Text style={[styles.footerCopyright, { color: theme.footerText, fontFamily: fonts.regular }]}>© 2026 MINION. All rights reserved.</Text></View>;
-}
-
 function MediaImage({ height, radius, url, width = '100%' }: { height: number; radius: number; url?: string | null; width?: number | '100%' }) {
   const { theme } = useMinionTheme();
   const uri = resolveApiAssetUrl(url);
@@ -210,15 +195,6 @@ const styles = StyleSheet.create({
   channelPill: { alignSelf: 'flex-start', borderRadius: 999, borderWidth: 1, marginTop: 8, paddingHorizontal: 8, paddingVertical: 2 },
   channelText: { fontSize: 12, lineHeight: 16 },
   flex: { flex: 1, minWidth: 0 },
-  footer: { paddingVertical: 20 },
-  footerCopyright: { fontSize: 12, lineHeight: 18, marginTop: 12 },
-  footerCredit: { fontSize: 10, lineHeight: 20, marginTop: 4 },
-  footerDisclaimer: { fontSize: 10, lineHeight: 20, marginTop: 8 },
-  footerInlineLink: { textDecorationLine: 'underline' },
-  footerLink: { fontSize: 13, lineHeight: 19.5 },
-  footerLogo: { aspectRatio: 171 / 39, width: 64 },
-  footerNav: { columnGap: 16, flexDirection: 'row', flexWrap: 'wrap', rowGap: 8, width: '100%' },
-  footerTop: { alignItems: 'flex-start', rowGap: 8 },
   homeContent: { gap: 0, paddingBottom: 0 },
   horizontalContent: { gap: CARD_GAP, paddingRight: 22 },
   hotLabel: { borderRadius: 999, overflow: 'hidden', paddingHorizontal: 6, paddingVertical: 2 },

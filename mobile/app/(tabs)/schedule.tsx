@@ -110,7 +110,7 @@ export default function ScheduleScreen() {
 }
 
 const styles = StyleSheet.create({
-  content: { gap: 0, paddingBottom: 96 },
+  content: { gap: 0, paddingBottom: 0 },
   fab: { alignItems: 'center', borderRadius: 24, borderWidth: 1, height: 48, justifyContent: 'center', width: 48 },
   fabRow: { bottom: 18, flexDirection: 'row', gap: 8, position: 'absolute', right: 16 },
   list: { marginTop: 28 },

@@ -3,7 +3,7 @@ import { BrandLogo } from "@/components/layout/brand-logo";
 
 export function SiteFooter({ accentColor }: { accentColor?: string }) {
   return <footer className="bg-[var(--page-background)] text-[#18191c] dark:text-[#f8f8f8]">
-    <div className="layout-wide py-5 text-left">
+    <div className="layout-wide pb-[calc(74px+env(safe-area-inset-bottom))] pt-10 text-left md:pb-0">
       <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
         <BrandLogo accentColor={accentColor} className="w-16 shrink-0" />
         <nav className="flex flex-wrap gap-x-4 gap-y-2 text-[13px] font-bold text-[#666a71] dark:text-[#a0a7b2]" aria-label="서비스 정책">
@@ -20,7 +20,7 @@ export function SiteFooter({ accentColor }: { accentColor?: string }) {
       <p className="mt-1 text-[10px] leading-5 text-[#777b82] md:text-[12px] dark:text-[#8f98a8]">
         Some content is provided courtesy of <a href="https://lol.fandom.com/wiki/League_of_Legends_Esports_Wiki" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-[#18191c] dark:hover:text-white">Leaguepedia</a>, under a <a href="https://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-[#18191c] dark:hover:text-white">CC-BY-SA 3.0 license</a>.
       </p>
-      <p className="mt-3 text-[12px] text-[#8b8e94]">© {new Date().getFullYear()} MINION. All rights reserved.</p>
+      <p className="mt-3 text-[10px] text-[#8b8e94]">© {new Date().getFullYear()} MINION. All rights reserved.</p>
     </div>
   </footer>;
 }

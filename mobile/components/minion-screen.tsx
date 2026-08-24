@@ -4,7 +4,7 @@ import Bell from 'lucide-react-native/icons/bell';
 import ChevronDown from 'lucide-react-native/icons/chevron-down';
 import Moon from 'lucide-react-native/icons/moon';
 import Sun from 'lucide-react-native/icons/sun';
-import { type PropsWithChildren, useEffect, useRef, useState } from 'react';
+import { type PropsWithChildren, type ReactNode, type Ref, useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Easing,
@@ -22,6 +22,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BottomSheet } from '@/components/bottom-sheet';
 import { EmptyState } from '@/components/feedback-states';
+import { MinionFooter } from '@/components/minion-footer';
 import { getMinionTeam } from '@/constants/teams';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 
@@ -50,7 +51,14 @@ function getFanItems(team: string): LocalItem[] {
   ];
 }
 
-export function MinionScreen({ children, contentStyle }: PropsWithChildren<{ contentStyle?: StyleProp<ViewStyle> }>) {
+type MinionScreenProps = PropsWithChildren<{
+  contentStyle?: StyleProp<ViewStyle>;
+  scrollViewRef?: Ref<ScrollView>;
+  stickyHeader?: ReactNode;
+  stickyHeaderHeight?: number;
+}>;
+
+export function MinionScreen({ children, contentStyle, scrollViewRef, stickyHeader, stickyHeaderHeight = 0 }: MinionScreenProps) {
   const pathname = usePathname();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -143,6 +151,7 @@ export function MinionScreen({ children, contentStyle }: PropsWithChildren<{ con
             {
               backgroundColor: theme.pageBackground,
               borderBottomColor: theme.border,
+              borderBottomWidth: pathname === '/schedule' ? 0 : 1,
               top: Animated.add(headerOffset, insets.top + HEADER_HEIGHT),
             },
           ]}>
@@ -166,13 +175,27 @@ export function MinionScreen({ children, contentStyle }: PropsWithChildren<{ con
         </Animated.View>
       ) : null}
 
+      {stickyHeader ? (
+        <Animated.View
+          style={[
+            styles.stickyHeader,
+            {
+              top: Animated.add(headerOffset, insets.top + HEADER_HEIGHT + localNavHeight),
+            },
+          ]}>
+          {stickyHeader}
+        </Animated.View>
+      ) : null}
+
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingTop: insets.top + HEADER_HEIGHT + localNavHeight + 16 }, contentStyle]}
+        contentContainerStyle={{ paddingTop: insets.top + HEADER_HEIGHT + localNavHeight + (stickyHeader ? stickyHeaderHeight : 16) }}
         keyboardShouldPersistTaps="handled"
         onScroll={handleScroll}
+        ref={scrollViewRef}
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}>
-        {children}
+        <View style={[styles.content, contentStyle]}>{children}</View>
+        <View style={styles.footer}><MinionFooter /></View>
       </ScrollView>
 
       <BottomSheet onClose={() => setNotificationOpen(false)} open={notificationOpen} title="알림">
@@ -197,9 +220,11 @@ const styles = StyleSheet.create({
   themeButton: { marginRight: 8 },
   loginButton: { alignItems: 'center', backgroundColor: '#141517', borderRadius: 12, justifyContent: 'center', minHeight: 44, paddingHorizontal: 12, paddingVertical: 8 },
   loginText: { color: '#ffffff', fontSize: 13, lineHeight: 19.5 },
-  localBar: { borderBottomWidth: 1, height: 49, left: 0, position: 'absolute', right: 0, zIndex: 40 },
+  localBar: { height: 49, left: 0, position: 'absolute', right: 0, zIndex: 40 },
   localContent: { minWidth: '100%' },
   localItem: { alignItems: 'center', flexBasis: 0, flexGrow: 1, height: 48, justifyContent: 'center', paddingBottom: 3, paddingTop: 2, position: 'relative' },
   activeLine: { bottom: 0, height: 3, left: 0, position: 'absolute', right: 0 },
-  content: { gap: 16, paddingBottom: 32, paddingHorizontal: 16 },
+  footer: { paddingHorizontal: 16 },
+  stickyHeader: { left: 0, paddingHorizontal: 16, position: 'absolute', right: 0, zIndex: 30 },
+  content: { gap: 16, paddingBottom: 0, paddingHorizontal: 16 },
 });

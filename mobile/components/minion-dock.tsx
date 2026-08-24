@@ -75,7 +75,7 @@ export function MinionDock() {
 }
 
 const styles = StyleSheet.create({
-  dock: { alignItems: 'flex-start', borderTopWidth: 1, flexDirection: 'row', paddingTop: 4 },
+  dock: { alignItems: 'flex-start', borderTopWidth: 1, bottom: 0, flexDirection: 'row', left: 0, paddingTop: 4, position: 'absolute', right: 0, zIndex: 50 },
   item: { alignItems: 'center', flex: 1, gap: 2, minWidth: 0, paddingHorizontal: 4, paddingVertical: 4 },
   iconBox: { alignItems: 'center', height: 20, justifyContent: 'center', width: 20 },
   label: { fontSize: 11, lineHeight: 16.5 },

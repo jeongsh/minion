@@ -306,7 +306,7 @@ export function AppShell({
 
   return (
     <div
-      className="min-h-screen text-[#141517]"
+      className="text-[#141517]"
       data-app-shell
       style={{ "--shell-mobile-header-offset": primaryHeaderVisible ? "56px" : "0px" } as React.CSSProperties}
     >
@@ -495,8 +495,8 @@ export function AppShell({
         </aside>
       ) : null}
 
-      <div className={`flex min-h-screen flex-col transition-[padding] md:pt-16 ${communityPostDetail ? "pt-12" : "pt-14 sm:pt-16"} ${compactHubShell ? "md:max-[1199px]:pl-16" : ""} ${focusRoute ? "" : collapsed ? "min-[1200px]:pl-[72px]" : "min-[1200px]:pl-[216px]"}`}>
-        <div className={`flex-1 ${!focusRoute && !communityPostDetail ? "compact-hub-content pb-0" : "pb-0"}`} data-shell-content={!focusRoute && !communityPostDetail ? "compact-hub" : undefined}>
+      <div className={`flex flex-col transition-[padding] md:pt-16 ${communityPostDetail ? "pt-12" : "pt-14 sm:pt-16"} ${compactHubShell ? "md:max-[1199px]:pl-16" : ""} ${focusRoute ? "" : collapsed ? "min-[1200px]:pl-[72px]" : "min-[1200px]:pl-[216px]"}`}>
+        <div className={`${!focusRoute && !communityPostDetail ? "compact-hub-content pb-0" : "pb-0"}`} data-shell-content={!focusRoute && !communityPostDetail ? "compact-hub" : undefined}>
           {showHubLocalNavigation ? (
             <nav aria-label="허브 로컬 메뉴" className="hub-local-navigation sticky z-30 border-b border-[var(--ui-border)] bg-[var(--page-background)] transition-[top] duration-200 md:hidden">
               <div className="flex h-12 w-full items-stretch overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -509,11 +509,11 @@ export function AppShell({
           ) : null}
           {children}
         </div>
-        {!focusRoute ? <div className={communityPostDetail ? "hidden md:block" : "contents"}><SiteFooter accentColor={currentFanTeam?.primaryColor} /></div> : null}
+        <SiteFooter accentColor={currentFanTeam?.primaryColor} />
       </div>
 
       {!focusRoute && !communityPostDetail ? (
-        <nav className="fixed inset-x-0 bottom-0 z-50 flex h-[calc(3.25rem+env(safe-area-inset-bottom))] items-start border-t border-[#e8e8eb] bg-[var(--page-background)] pt-1 backdrop-blur md:hidden dark:border-[#343840]" aria-label="모바일 주요 메뉴">
+        <nav className="fixed inset-x-0 bottom-0 z-50 flex h-[calc(52px+env(safe-area-inset-bottom))] items-start border-t border-[#e8e8eb] bg-[var(--page-background)] pt-1 backdrop-blur md:hidden dark:border-[#343840]" aria-label="모바일 주요 메뉴">
           {compactNav.map(({ href, label, icon: Icon }) => {
             const active = isGlobalNavActive(pathname, href);
             const fanItem = href === "/fan";

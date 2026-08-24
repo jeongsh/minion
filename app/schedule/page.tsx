@@ -81,7 +81,7 @@ export default async function SchedulePage({
   const desktopFilters = <Suspense fallback={null}><ScheduleFilters activeYear={activeYear} activeMonth={activeMonth} activeSegment={activeSegment} activeTeam={activeTeam} years={years} teams={teams} /></Suspense>;
 
   return (
-    <main className="schedule-page min-h-screen text-[var(--ui-text)]">
+    <main className="schedule-page text-[var(--ui-text)]">
       <div className="schedule-mobile-sticky sticky z-30 border-b border-[var(--ui-border)] bg-[var(--page-background)] shadow-[0_10px_20px_rgba(15,23,42,0.035)] lg:hidden">
         <div className="layout-wide py-2">
           <ScheduleWeekScroller dates={currentWeek} todayKey={todayKey} availableDateKeys={availableDateKeys} />
@@ -110,7 +110,7 @@ export default async function SchedulePage({
           <Link href="/schedule" className="mt-4 flex min-h-10 items-center justify-center rounded-lg bg-[var(--ui-ink)] px-3 text-[12px] font-medium text-[var(--ui-surface)]">필터 초기화</Link>
         </AdaptiveDialog>
       </div>
-      <div className="layout-wide pb-32 lg:pb-16">
+      <div className="layout-wide">
         <div className="mt-7 lg:mt-10"><ScheduleList matches={filtered} teams={teams} tournaments={tournaments} stages={stages} emptyMessage={`${activeYear}년 ${activeMonth}월 · ${segmentLabel(activeSegment, activeYear)} 조건에 해당하는 경기가 없습니다.`} /></div>
       </div>
     </main>

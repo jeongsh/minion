@@ -25,8 +25,8 @@ export default async function PredictionsPage() {
   });
 
   return (
-    <main className="min-h-screen text-[var(--ui-text)]">
-      <div className="layout-wide pb-20 pt-6 sm:pt-8 xl:px-10">
+    <main className="text-[var(--ui-text)]">
+      <div className="layout-wide pt-6 sm:pt-8 xl:px-10">
         <h1 className="sr-only">승부예측</h1>
         <PredictionBoard
           matches={visibleMatches}
