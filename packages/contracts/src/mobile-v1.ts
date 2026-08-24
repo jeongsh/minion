@@ -75,6 +75,7 @@ export type MobileTournamentSummary = {
   season: number;
   split: string | null;
   league: string | null;
+  category: string;
 };
 
 export type MobileMatchSummary = {
@@ -211,6 +212,101 @@ export type MobileScheduleDto = {
     activeTeamId: EntityId | null;
   };
   matches: MobileMatchSummary[];
+};
+
+export type MobileStandingRow = {
+  rank: number;
+  team: MobileTeamSummary;
+  matchWins: number;
+  matchLosses: number;
+  setDiff: number;
+  winRate: string;
+};
+
+export type MobileStandingsGroup = {
+  /** 조가 없는 통합 순위표면 빈 문자열("알파조" 등 조 이름이 없을 때). */
+  title: string;
+  rows: MobileStandingRow[];
+};
+
+export type MobilePomRow = {
+  rank: number;
+  player: MobilePlayerSummary;
+  team: MobileTeamSummary | null;
+  count: number;
+  points: number;
+};
+
+export type MobileTournamentSegmentNavItem = {
+  key: string;
+  name: string;
+  logo: string | null;
+  logoAspect: number;
+  isOngoing: boolean;
+};
+
+export type MobileBracketStagePill = { id: EntityId; name: string };
+
+export type MobileBracketMatch = {
+  id: EntityId;
+  matchDate: IsoDateTime;
+  teamA: MobileTeamSummary | null;
+  teamB: MobileTeamSummary | null;
+  teamAScore: number | null;
+  teamBScore: number | null;
+  winnerTeamId: EntityId | null;
+  status: string;
+};
+
+export type MobileBracketColumn = {
+  label: string;
+  lowerLabel: string | null;
+  matches: MobileBracketMatch[];
+  lowerMatches: MobileBracketMatch[];
+};
+
+export type MobileBracketGroup = {
+  columns: MobileBracketColumn[];
+};
+
+export type MobileBracketConnection = {
+  fromMatchId: EntityId;
+  toMatchId: EntityId;
+  fromRow: 0 | 1 | null;
+  toRow: 0 | 1 | null;
+};
+
+export type MobileBracketData = {
+  groups: MobileBracketGroup[];
+  finals: { label: string; match: MobileBracketMatch } | null;
+  connections: MobileBracketConnection[];
+};
+
+export type MobileTournamentDetailDto = {
+  segment: { key: string; name: string; logo: string | null; logoAspect: number; accent: string };
+  seasons: number[];
+  activeSeason: number;
+  segmentNav: MobileTournamentSegmentNavItem[];
+  isLck: boolean;
+  /** LCK만: 스플릿 선택. */
+  activeSplit: "1" | "2" | "3" | null;
+  splitLabels: Record<"1" | "2" | "3", string> | null;
+  viewLabels: { standings: string; bracket: string } | null;
+  /** LCK: "pom"|"standings"|"bracket". 그 외: "standings"|"bracket". */
+  activeView: "pom" | "standings" | "bracket";
+  activePhase: "playin" | "playoffs" | null;
+  /** 그 외 대회만: 대진표 스테이지 선택 필. */
+  bracketStages: MobileBracketStagePill[];
+  activeBracketStageId: EntityId | null;
+  supportsGroupToggle: boolean;
+  /** activeView==="standings"일 때만 채워짐. */
+  standingsGroups: MobileStandingsGroup[] | null;
+  /** activeView==="pom"일 때만(LCK만 지원) 채워짐. */
+  pomRows: MobilePomRow[] | null;
+  /** activeView==="bracket"일 때, 실제로 보여줄 대진표 데이터가 있는지. */
+  bracketAvailable: boolean;
+  /** activeView==="bracket" && bracketAvailable일 때만 채워짐. */
+  bracket: MobileBracketData | null;
 };
 
 export type MobileMatchDetailDto = {

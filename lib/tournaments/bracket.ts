@@ -100,3 +100,28 @@ export function splitBracketSidesForDisplay(matches: Match[]): { upper: Match[];
 
   return { upper: bySideStrict(matches, "upper"), lower: bySideStrict(matches, "lower") };
 }
+
+const FINALS_STAGE_NAMES = new Set(["finals", "grand finals", "grand final", "결승"]);
+
+export function isFinalsStage(stageName: string) {
+  return FINALS_STAGE_NAMES.has(stageName.trim().toLowerCase());
+}
+
+function compactStageName(stageName: string) {
+  return stageName
+    .replace(/Bracket Round\s*(\d+)/i, "BR$1")
+    .replace(/Play-?In Day\s*(\d+)/i, "PI D$1")
+    .replace(/PLAY[\s-]?IN/i, "PI")
+    .replace(/Round\s*(\d+)/i, "R$1")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+export function formatBracketColumnLabel(stageName: string, opts?: { prefix?: string; group?: string; lower?: boolean }) {
+  const tokens = [opts?.group, opts?.prefix, compactStageName(stageName), opts?.lower ? "패자조" : null].filter(Boolean);
+  return tokens.join(" ");
+}
+
+export function groupLetterLabel(groupIndex: number) {
+  return `${String.fromCharCode(65 + groupIndex)}조`;
+}

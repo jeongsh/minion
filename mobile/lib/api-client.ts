@@ -40,6 +40,9 @@ export async function writeApiCache<T>(key: string, data: T) {
 }
 
 export type {
+  MobileBracketData,
+  MobileBracketMatch,
+  MobileBracketStagePill,
   MobileHomeDto,
   MobileMatchDetailDto,
   MobileMatchSummary,
@@ -48,12 +51,17 @@ export type {
   MobilePlayersDto,
   MobilePlayerDetailDto,
   MobilePlayerSummary,
+  MobilePomRow,
   MobileScheduleDto,
   MobileSearchDto,
   MobileSearchResult,
+  MobileStandingRow,
+  MobileStandingsGroup,
   MobileTeamDetailDto,
   MobileTeamSummary,
   MobileTeamsDto,
+  MobileTournamentDetailDto,
+  MobileTournamentSegmentNavItem,
   MobileTournamentsDto,
   MobileTournamentSummary,
   MobileVideoItem,

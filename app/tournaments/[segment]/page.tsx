@@ -8,6 +8,9 @@ import { TeamLogo } from "@/components/ui/team-logo";
 import { getAllTeams, getBracketStages, getMatches, getPlayers, getStages, getTournaments } from "@/lib/data/lck";
 import {
   buildStageColumns,
+  formatBracketColumnLabel,
+  groupLetterLabel,
+  isFinalsStage,
   isGroupBracketStage,
   isWeekStage,
   splitBracketSidesForDisplay,
@@ -16,7 +19,16 @@ import {
 import { segmentThemeByKey } from "@/lib/tournaments/international-segments";
 import { buildSegmentNav } from "@/lib/tournaments/segment-nav";
 import { isSupportedSeasonYear, matchesTournamentSegment } from "@/lib/tournaments/season-2026";
-import type { Match, Player, Team, Tournament } from "@/lib/types";
+import {
+  buildPomRankingRows,
+  deriveCrossGroups,
+  deriveMatchGroups,
+  LCK_SPLIT_LABELS,
+  LCK_SPLIT_VIEW_LABELS,
+  type LckSplitKey,
+  type PomRow,
+} from "@/lib/tournaments/standings";
+import type { Match, Team, Tournament } from "@/lib/types";
 import { buildTeamStandingRows, dateKeyKST, matchHref } from "@/lib/view-data";
 
 import { SegmentSwitcher } from "../segment-switcher";
@@ -35,130 +47,11 @@ const BRACKET_DATE_TIME_FORMATTER = new Intl.DateTimeFormat("ko-KR", {
   hour12: false,
 });
 
-const FINALS_STAGE_NAMES = new Set(["finals", "grand finals", "grand final", "결승"]);
-
-function isFinalsStage(stageName: string) {
-  return FINALS_STAGE_NAMES.has(stageName.trim().toLowerCase());
-}
-
 function formatBracketDateTime(value: string) {
   const parts = BRACKET_DATE_TIME_FORMATTER.formatToParts(new Date(value));
   const part = (type: Intl.DateTimeFormatPartTypes) => parts.find((item) => item.type === type)?.value ?? "";
 
   return `${part("month")}.${part("day")} ${part("hour")}:${part("minute")}`;
-}
-
-function compactStageName(stageName: string) {
-  return stageName
-    .replace(/Bracket Round\s*(\d+)/i, "BR$1")
-    .replace(/Play-?In Day\s*(\d+)/i, "PI D$1")
-    .replace(/PLAY[\s-]?IN/i, "PI")
-    .replace(/Round\s*(\d+)/i, "R$1")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function formatBracketColumnLabel(stageName: string, opts?: { prefix?: string; group?: string; lower?: boolean }) {
-  const tokens = [opts?.group, opts?.prefix, compactStageName(stageName), opts?.lower ? "패자조" : null].filter(
-    Boolean,
-  );
-  return tokens.join(" ");
-}
-
-/**
- * LCK컵의 "Week" 스테이지는 개별 브래킷이 아니라 10팀을 두 조로 나눠 서로 다른 조끼리만
- * 붙는 크로스 그룹 스테이지다. 명시적인 조 데이터가 없어서, 매치 상대 관계로부터 이분
- * 그래프 2색칠을 통해 조를 복원한다(깔끔히 두 그룹으로 안 나뉘면 null을 반환해 표시를
- * 건너뛴다).
- */
-function deriveCrossGroups(matches: Match[]): Map<string, 0 | 1> | null {
-  const opponents = new Map<string, Set<string>>();
-  const teamIds = new Set<string>();
-
-  for (const match of matches) {
-    teamIds.add(match.teamAId);
-    teamIds.add(match.teamBId);
-    if (!opponents.has(match.teamAId)) opponents.set(match.teamAId, new Set());
-    if (!opponents.has(match.teamBId)) opponents.set(match.teamBId, new Set());
-    opponents.get(match.teamAId)!.add(match.teamBId);
-    opponents.get(match.teamBId)!.add(match.teamAId);
-  }
-
-  const color = new Map<string, 0 | 1>();
-
-  for (const teamId of teamIds) {
-    if (color.has(teamId)) continue;
-
-    color.set(teamId, 0);
-    const queue = [teamId];
-
-    while (queue.length > 0) {
-      const current = queue.shift()!;
-      const currentColor = color.get(current)!;
-      const nextColor: 0 | 1 = currentColor === 0 ? 1 : 0;
-
-      for (const opponent of opponents.get(current) ?? []) {
-        if (!color.has(opponent)) {
-          color.set(opponent, nextColor);
-          queue.push(opponent);
-        } else if (color.get(opponent) !== nextColor) {
-          return null;
-        }
-      }
-    }
-  }
-
-  return color;
-}
-
-/**
- * 일부 시즌의 정규시즌 후반(예: 2025 Rounds 3-5)은 크로스 그룹이 아니라 같은 조끼리만
- * 맞붙는 방식으로 진행된다. 이 경우 매치 상대 관계 그래프는 조별로 서로 연결되지 않은
- * 컴포넌트 2개로 쪼개진다. 정확히 2개로 나뉘지 않으면(조 구분이 없거나 다른 형식이면)
- * null을 반환해 표시를 건너뛴다.
- */
-function deriveMatchGroups(matches: Match[]): Map<string, 0 | 1> | null {
-  const adjacency = new Map<string, Set<string>>();
-  const teamIds = new Set<string>();
-
-  for (const match of matches) {
-    teamIds.add(match.teamAId);
-    teamIds.add(match.teamBId);
-    if (!adjacency.has(match.teamAId)) adjacency.set(match.teamAId, new Set());
-    if (!adjacency.has(match.teamBId)) adjacency.set(match.teamBId, new Set());
-    adjacency.get(match.teamAId)!.add(match.teamBId);
-    adjacency.get(match.teamBId)!.add(match.teamAId);
-  }
-
-  const componentOf = new Map<string, number>();
-  let componentCount = 0;
-
-  for (const teamId of teamIds) {
-    if (componentOf.has(teamId)) continue;
-
-    componentOf.set(teamId, componentCount);
-    const queue = [teamId];
-
-    while (queue.length > 0) {
-      const current = queue.shift()!;
-      for (const neighbor of adjacency.get(current) ?? []) {
-        if (!componentOf.has(neighbor)) {
-          componentOf.set(neighbor, componentCount);
-          queue.push(neighbor);
-        }
-      }
-    }
-
-    componentCount += 1;
-  }
-
-  if (componentCount !== 2) return null;
-
-  const color = new Map<string, 0 | 1>();
-  for (const [teamId, component] of componentOf) {
-    color.set(teamId, component === 0 ? 0 : 1);
-  }
-  return color;
 }
 
 function GroupStandingsTable({
@@ -314,29 +207,6 @@ function RegularStandingsTable({ rows }: { rows: ReturnType<typeof buildTeamStan
       ]}
     />
   );
-}
-
-type PomRow = { rank: number; player: Player; team?: Team; count: number; points: number };
-
-// POM 1회당 100점(네이버 e스포츠 LCK 선수 기록 페이지와 동일한 산정 방식).
-const POM_POINTS_PER_AWARD = 100;
-
-function buildPomRankingRows(segmentMatches: Match[], players: Player[], teamMap: Map<string, Team>): PomRow[] {
-  const counts = new Map<string, number>();
-  for (const match of segmentMatches) {
-    if (!match.officialPomPlayerId) continue;
-    counts.set(match.officialPomPlayerId, (counts.get(match.officialPomPlayerId) ?? 0) + 1);
-  }
-
-  const unranked: Array<{ player: Player; team?: Team; count: number; points: number }> = [];
-  for (const [playerId, count] of counts) {
-    const player = players.find((item) => item.id === playerId);
-    if (player) unranked.push({ player, team: teamMap.get(player.teamId), count, points: count * POM_POINTS_PER_AWARD });
-  }
-
-  return unranked
-    .sort((a, b) => b.count - a.count)
-    .map((row, index) => ({ ...row, rank: index + 1 }));
 }
 
 function PomRankingTable({ rows }: { rows: PomRow[] }) {
@@ -537,17 +407,6 @@ function BracketStagePills({
   );
 }
 
-// LCK는 스플릿 1(LCK컵) / 스플릿 2(MSI로 가는 길) / 스플릿 3(롤드컵으로 가는 길)로 구성된다.
-// 각 스플릿은 그 스플릿만의 정규시즌 순위 + 게이트키핑 토너먼트를 함께 보여준다.
-const LCK_SPLIT_LABELS = { "1": "스플릿 1", "2": "스플릿 2", "3": "스플릿 3" } as const;
-type LckSplitKey = keyof typeof LCK_SPLIT_LABELS;
-
-const LCK_SPLIT_VIEW_LABELS: Record<LckSplitKey, { standings: string; bracket: string }> = {
-  "1": { standings: "크로스 그룹 스테이지", bracket: "토너먼트" },
-  "2": { standings: "정규리그", bracket: "MSI로 가는 길" },
-  "3": { standings: "정규리그", bracket: "토너먼트" },
-};
-
 function ViewTabs<T extends string>({
   labels,
   activeTab,
@@ -651,10 +510,6 @@ function buildPositionedGroups(regularColumns: StageColumn[]) {
   }
 
   return { groups, gapRows, lastRow: rowCursor - 1 };
-}
-
-function groupLetterLabel(groupIndex: number) {
-  return `${String.fromCharCode(65 + groupIndex)}조`;
 }
 
 function BracketGrid({

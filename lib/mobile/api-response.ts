@@ -3,11 +3,15 @@ import { NextResponse } from "next/server";
 import type {
   MobileApiError,
   MobileApiSuccess,
+  MobileBracketMatch,
   MobileMatchSummary,
+  MobilePlayerSummary,
+  MobileStandingRow,
   MobileTeamSummary,
   MobileTournamentSummary,
 } from "@/packages/contracts/src/mobile-v1";
-import type { Match, Team, Tournament } from "@/lib/types";
+import type { buildTeamStandingRows } from "@/lib/view-data";
+import type { Match, Player, Team, Tournament } from "@/lib/types";
 
 export function mobileSuccess<T>(data: T, init?: ResponseInit) {
   const body: MobileApiSuccess<T> = {
@@ -44,7 +48,42 @@ export function toMobileTeam(team: Team): MobileTeamSummary {
 }
 
 export function toMobileTournament(tournament: Tournament): MobileTournamentSummary {
-  return { id: tournament.id, league: tournament.league ?? null, name: tournament.name, season: tournament.season, split: tournament.split ?? null };
+  return { category: tournament.category, id: tournament.id, league: tournament.league ?? null, name: tournament.name, season: tournament.season, split: tournament.split ?? null };
+}
+
+export function toMobilePlayer(player: Player): MobilePlayerSummary {
+  return {
+    id: player.id,
+    name: player.name,
+    position: player.position,
+    profileImage: player.profileImageUrl ? { url: player.profileImageUrl } : null,
+    slug: player.slug,
+    teamId: player.teamId,
+  };
+}
+
+export function toMobileStandingRow(row: ReturnType<typeof buildTeamStandingRows>[number]): MobileStandingRow {
+  return {
+    matchLosses: row.matchLosses,
+    matchWins: row.matchWins,
+    rank: row.rank,
+    setDiff: row.setDiff,
+    team: toMobileTeam(row.team),
+    winRate: row.winRate,
+  };
+}
+
+export function toMobileBracketMatch(match: Match, teams: Map<string, Team>): MobileBracketMatch {
+  return {
+    id: match.id,
+    matchDate: match.matchDate,
+    status: match.status,
+    teamA: teams.get(match.teamAId) ? toMobileTeam(teams.get(match.teamAId)!) : null,
+    teamAScore: match.teamAScore,
+    teamB: teams.get(match.teamBId) ? toMobileTeam(teams.get(match.teamBId)!) : null,
+    teamBScore: match.teamBScore,
+    winnerTeamId: match.winnerTeamId ?? null,
+  };
 }
 
 export function toMobileMatch(
