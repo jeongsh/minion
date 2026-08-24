@@ -636,9 +636,9 @@ export async function SetDetailContent({
   ]);
   const abilityIconsByDdragonId = new Map(abilityIconEntries);
   const playerBuildEntries: PlayerBuildPanelEntry[] = [
-    ...blueRows.map((row) => ({ row, side: "blue" as const, won: blueOutcome.won })),
-    ...redRows.map((row) => ({ row, side: "red" as const, won: redOutcome.won })),
-  ].map(({ row, side, won }) => {
+    ...blueRows.map((row) => ({ row, side: "blue" as const })),
+    ...redRows.map((row) => ({ row, side: "red" as const })),
+  ].map(({ row, side }) => {
     const champion = champions.find((item) => item.id === row.line.championId);
     const { keystoneUrl, treeUrl } = resolveRunePairUrls(row.line.runeIds, runeCatalog);
     const fullRuneNames = row.line.fullRuneNames;
@@ -650,7 +650,6 @@ export async function SetDetailContent({
       championImageUrl: championImage(champion),
       abilityIcons: abilityIconsByDdragonId.get(normalizedDdragonId(champion)) ?? null,
       side,
-      won,
       version: itemVersion,
       keystoneUrl,
       treeUrl,

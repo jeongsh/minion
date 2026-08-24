@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Check, ChevronRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { useState } from "react";
 
 import type { ChampionAbilityIcons } from "@/lib/champions";
@@ -15,7 +15,6 @@ export type PlayerBuildPanelEntry = {
   championImageUrl: string;
   abilityIcons: ChampionAbilityIcons | null;
   side: "blue" | "red";
-  won: boolean;
   version: string;
   keystoneUrl: string;
   treeUrl: string;
@@ -264,11 +263,6 @@ function PlayerTab({
       <span className="relative h-12 w-12 overflow-hidden rounded-md border border-[var(--ui-border)] bg-[var(--ui-card-bg)]">
         {entry.championImageUrl ? (
           <Image src={entry.championImageUrl} alt="" fill sizes="48px" className="object-cover" />
-        ) : null}
-        {entry.won ? (
-          <span className="absolute -right-1 -top-1 grid h-4 w-4 place-items-center rounded-full bg-accent text-accent-foreground">
-            <Check aria-hidden="true" className="h-3 w-3" strokeWidth={3} />
-          </span>
         ) : null}
       </span>
       <span className="max-w-20 truncate text-[13px] font-medium text-[var(--ui-ink)]">{entry.playerName}</span>
