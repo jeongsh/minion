@@ -71,8 +71,14 @@ export function PredictionBoard({ matches, teams, tournaments, bets, currentUser
   const teamMap = useMemo(() => new Map(teams.map((team) => [team.id, team])), [teams]);
   const tournamentMap = useMemo(() => new Map(tournaments.map((item) => [item.id, item])), [tournaments]);
   const weekKeys = useMemo(() => Array.from(new Set(matches.map((match) => weekStartKey(match.matchDate)))).sort(), [matches]);
-  const weekIndex = Math.max(0, weekKeys.indexOf(selectedWeek));
-  const weekMatches = matches.filter((match) => weekStartKey(match.matchDate) === selectedWeek);
+
+  // 오늘이 속한 주에 경기가 없으면 selectedWeek가 weekKeys에 없는 채로 index가 0에 고정돼
+  // 이전/다음 버튼이 둘 다 막힐 수 있다(갈 수 있는 주가 있어도 도달 불가). 렌더링에 쓰는
+  // 값은 selectedWeek를 그대로 노출하는 대신, weekKeys에 없으면 가장 가까운 주로 대체한
+  // effectiveWeek를 파생시켜 막다른 골목을 피한다(state 동기화용 effect 없이 렌더 중 계산).
+  const effectiveWeek = weekKeys.includes(selectedWeek) ? selectedWeek : (weekKeys.find((key) => key >= selectedWeek) ?? weekKeys[weekKeys.length - 1] ?? selectedWeek);
+  const weekIndex = Math.max(0, weekKeys.indexOf(effectiveWeek));
+  const weekMatches = matches.filter((match) => weekStartKey(match.matchDate) === effectiveWeek);
   const tournamentIds = Array.from(new Set(weekMatches.map((match) => match.tournamentId)));
   const filteredMatches = weekMatches
     .filter((match) => selectedTournament === "all" || match.tournamentId === selectedTournament)
@@ -165,7 +171,7 @@ export function PredictionBoard({ matches, teams, tournaments, bets, currentUser
             <div className="flex items-center justify-between gap-3">
               <div className="flex min-w-0 items-center justify-start gap-1 sm:w-auto">
                 <button type="button" onClick={() => moveWeek(-1)} disabled={weekIndex <= 0} className="grid h-9 w-9 place-items-center rounded-lg text-[var(--ui-muted)] transition hover:bg-[var(--ui-surface)] hover:text-[var(--ui-ink)] disabled:opacity-30" aria-label="이전 주"><ChevronLeft size={18} /></button>
-                <p className="min-w-[118px] text-center text-[15px] font-black text-[var(--ui-ink)]">{selectedWeek.replaceAll("-", ".")}</p>
+                <p className="min-w-[118px] text-center text-[15px] font-black text-[var(--ui-ink)]">{effectiveWeek.replaceAll("-", ".")}</p>
                 <button type="button" onClick={() => moveWeek(1)} disabled={weekIndex >= weekKeys.length - 1} className="grid h-9 w-9 place-items-center rounded-lg text-[var(--ui-muted)] transition hover:bg-[var(--ui-surface)] hover:text-[var(--ui-ink)] disabled:opacity-30" aria-label="다음 주"><ChevronRight size={18} /></button>
               </div>
               <div className="hidden h-6 w-px bg-[var(--ui-border)] sm:block" />
