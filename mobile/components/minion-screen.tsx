@@ -160,7 +160,7 @@ export function MinionScreen({ children, contentStyle, scrollRequest, stickyHead
             styles.localBar,
             {
               backgroundColor: theme.pageBackground,
-              borderBottomColor: headerBorder,
+              borderBottomColor: theme.border,
               borderBottomWidth: pathname === '/schedule' ? 0 : 1,
               top: Animated.add(headerOffset, insets.top + HEADER_HEIGHT),
             },
