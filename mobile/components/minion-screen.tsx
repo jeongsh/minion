@@ -25,6 +25,7 @@ import { EmptyState } from '@/components/feedback-states';
 import { MinionFooter } from '@/components/minion-footer';
 import { getMinionTeam } from '@/constants/teams';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
+import { useAuth } from '@/providers/auth-provider';
 
 const HEADER_HEIGHT = 56;
 const LOCAL_NAV_HEIGHT = 49;
@@ -62,7 +63,8 @@ export function MinionScreen({ children, contentStyle, scrollRequest, stickyHead
   const pathname = usePathname();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { colorScheme, fonts, openTeamPicker, showToast, theme, toggleTheme } = useMinionTheme();
+  const { colorScheme, fonts, openTeamPicker, theme, toggleTheme } = useMinionTheme();
+  const { loading: authLoading, session } = useAuth();
   const [notificationOpen, setNotificationOpen] = useState(false);
   const headerOffset = useRef(new Animated.Value(0)).current;
   const headerVisible = useRef(true);
@@ -148,8 +150,8 @@ export function MinionScreen({ children, contentStyle, scrollRequest, stickyHead
           <Pressable accessibilityLabel={colorScheme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'} onPress={toggleTheme} style={[styles.iconButton, styles.themeButton]}>
             {colorScheme === 'dark' ? <Sun color={headerIconColor} size={20} /> : <Moon color={headerIconColor} size={20} />}
           </Pressable>
-          <Pressable onPress={() => showToast('로그인은 인증 화면 구현 단계에서 연결합니다.')} style={styles.loginButton}>
-            <Text style={[styles.loginText, { fontFamily: fonts.bold }]}>로그인</Text>
+          <Pressable disabled={authLoading} onPress={() => session ? router.navigate('/me') : router.navigate(`/login?next=${encodeURIComponent(pathname)}` as never)} style={styles.loginButton}>
+            <Text style={[styles.loginText, { fontFamily: fonts.bold }]}>{session ? 'MY' : '로그인'}</Text>
           </Pressable>
         </View>
       </Animated.View>

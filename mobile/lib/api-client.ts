@@ -2,6 +2,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 
 import type { MobileApiError, MobileApiSuccess } from '../../packages/contracts/src/mobile-v1';
+import { getInstallationId } from '@/lib/secure-storage';
+import { supabase } from '@/lib/supabase';
 
 const CACHE_PREFIX = 'minion-api-v1:';
 
@@ -19,7 +21,32 @@ export function resolveApiAssetUrl(url?: string | null) {
 }
 
 export async function fetchMobileApi<T>(path: string, signal?: AbortSignal): Promise<T> {
-  const response = await fetch(`${mobileApiOrigin}${path}`, { headers: { Accept: 'application/json' }, signal });
+  const [{ data: { session } }, installationId] = await Promise.all([supabase.auth.getSession(), getInstallationId()]);
+  const response = await fetch(`${mobileApiOrigin}${path}`, {
+    headers: {
+      Accept: 'application/json',
+      'X-Minion-Installation-Id': installationId,
+      ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+    },
+    signal,
+  });
+  const body = await response.json() as MobileApiSuccess<T> | MobileApiError;
+  if (!response.ok || 'error' in body) throw new Error('error' in body ? body.error.message : `HTTP ${response.status}`);
+  return body.data;
+}
+
+export async function mutateMobileApi<T>(path: string, method: 'POST' | 'PATCH' | 'DELETE', payload?: unknown): Promise<T> {
+  const [{ data: { session } }, installationId] = await Promise.all([supabase.auth.getSession(), getInstallationId()]);
+  const response = await fetch(`${mobileApiOrigin}${path}`, {
+    method,
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      'X-Minion-Installation-Id': installationId,
+      ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+    },
+    body: payload === undefined ? undefined : JSON.stringify(payload),
+  });
   const body = await response.json() as MobileApiSuccess<T> | MobileApiError;
   if (!response.ok || 'error' in body) throw new Error('error' in body ? body.error.message : `HTTP ${response.status}`);
   return body.data;
@@ -48,6 +75,9 @@ export type {
   MobileFanRatingPanel,
   MobileFanRatingPlayer,
   MobileHomeDto,
+  MobileBootstrapDto,
+  MobileMeDto,
+  MobileNotificationPreferences,
   MobileMatchDetailDto,
   MobileMatchHeader,
   MobileMatchPreview,

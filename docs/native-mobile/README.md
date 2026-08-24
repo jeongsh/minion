@@ -2,6 +2,8 @@
 
 이 디렉터리가 모바일 앱 개발의 **현재 기준**이다. 과거 `native-mobile-phase-*` 문서는 짧은 이력만 남기며 실행 지시로 사용하지 않는다.
 
+전체 0~6단계 로드맵과 인증·푸시·배포 순서는 [`native-mobile-app-strategy.md`](../native-mobile-app-strategy.md#단계별-실행-계획)에 있다.
+
 ## 담당 문서
 
 | 담당 | 범위 | 읽고 작업할 문서 |

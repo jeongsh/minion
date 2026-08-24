@@ -154,10 +154,41 @@ export type MobileBootstrapDto = {
     nickname: string | null;
     lp: number;
     favoriteTeamId: EntityId | null;
+    favoriteTeamSlug: string | null;
     followedTeamIds: EntityId[];
   } | null;
   teams: MobileTeamSummary[];
   featureFlags: Record<string, boolean>;
+};
+
+export type MobileNotificationPreferences = {
+  inAppEnabled: boolean;
+  matchStartEnabled: boolean;
+  matchEventsEnabled: boolean;
+  ratingOpenEnabled: boolean;
+};
+
+export type MobileMeDto = {
+  profile: {
+    id: EntityId;
+    email: string | null;
+    nickname: string | null;
+    profileImage: MobileImage | null;
+    tier: string;
+    lp: number;
+    favoriteTeamId: EntityId | null;
+    followedTeamIds: EntityId[];
+    authProvider: string | null;
+    status: "active" | "deleted";
+  };
+  notificationPreferences: MobileNotificationPreferences;
+  activity: {
+    postCount: number;
+    commentCount: number;
+    recentPosts: Array<{ id: EntityId; title: string; createdAt: IsoDateTime }>;
+    recentComments: Array<{ id: EntityId; postId: EntityId; content: string; createdAt: IsoDateTime }>;
+  };
+  blockedUsers: Array<{ id: EntityId; nickname: string; profileImage: MobileImage | null; tier: string }>;
 };
 
 export type MobileHomeDto = {
@@ -604,7 +635,11 @@ export const mobileApiRoutes = {
   communityReactions: { method: "POST", path: `${MOBILE_API_PREFIX}/community/reactions`, owner: "community service", auth: "required", cache: "no-store" },
   communityReports: { method: "POST", path: `${MOBILE_API_PREFIX}/community/reports`, owner: "community service", auth: "required", cache: "no-store" },
   communityUpload: { method: "POST", path: `${MOBILE_API_PREFIX}/community/upload`, owner: "community upload service", auth: "required", cache: "no-store" },
+  authNaverStart: { method: "GET", path: `${MOBILE_API_PREFIX}/auth/naver/start`, owner: "native auth broker", auth: "public", cache: "no-store" },
+  authNaverCallback: { method: "GET", path: `${MOBILE_API_PREFIX}/auth/naver/callback`, owner: "native auth broker", auth: "public", cache: "no-store" },
+  authNaverExchange: { method: "POST", path: `${MOBILE_API_PREFIX}/auth/naver/exchange`, owner: "native auth broker", auth: "public", cache: "no-store" },
   me: { method: "GET", path: `${MOBILE_API_PREFIX}/me`, owner: "account service", auth: "required", cache: "no-store" },
+  meUpdate: { method: "PATCH", path: `${MOBILE_API_PREFIX}/me`, owner: "account service", auth: "required", cache: "no-store" },
   devices: { method: "POST", path: `${MOBILE_API_PREFIX}/devices`, owner: "push device service", auth: "required", cache: "no-store" },
 } as const satisfies Record<string, MobileApiRouteDefinition>;
 
