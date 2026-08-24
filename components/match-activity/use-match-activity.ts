@@ -254,7 +254,7 @@ export function useMatchActivity(enabled: boolean, followedTeamIds: string[] = [
         );
         for (const match of preferences.matchStartEnabled ? followedLiveMatches : []) {
           if (!previousLiveIds.current.has(match.id)) {
-            publishNotification({
+            storeNotification({
               id: `match-live:${match.id}`,
               kind: "match_live",
               title: `${match.teamA.shortName} vs ${match.teamB.shortName}`,
@@ -269,7 +269,7 @@ export function useMatchActivity(enabled: boolean, followedTeamIds: string[] = [
                 leftLabel: "경기",
                 rightLabel: "시작",
               },
-            }, LIVE_NOTIFICATION_DURATION_MS);
+            });
           }
         }
         for (const rating of preferences.ratingOpenEnabled ? next.ratings : []) {
@@ -307,7 +307,7 @@ export function useMatchActivity(enabled: boolean, followedTeamIds: string[] = [
     } catch {
       // 전역 보조 UI이므로 네트워크 오류가 페이지 탐색을 막지 않게 조용히 유지한다.
     }
-  }, [enabled, followedTeamIdSet, preferences.inAppEnabled, preferences.matchStartEnabled, preferences.ratingOpenEnabled, publishNotification, storeNotification]);
+  }, [enabled, followedTeamIdSet, preferences.inAppEnabled, preferences.matchStartEnabled, preferences.ratingOpenEnabled, storeNotification]);
 
   useEffect(() => {
     const initialLoad = window.setTimeout(() => void loadActivity(), 0);
