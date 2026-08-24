@@ -74,7 +74,7 @@ export function MinionScreen({ children, contentStyle, scrollRequest, stickyHead
   const localItems = fanTeam ? getFanItems(fanTeam.slug) : pathname === '/fan' ? [] : hubItems;
   const localNavHeight = localItems.length > 0 ? LOCAL_NAV_HEIGHT : 0;
   const headerIconColor = colorScheme === 'dark' ? '#a7acb5' : '#62666d';
-  const headerBorder = colorScheme === 'dark' ? '#343840' : '#e8e8eb';
+  const headerBorder = colorScheme === 'dark' ? '#212224' : '#e8e8eb';
 
   const setHeaderVisible = (visible: boolean, animated = true) => {
     if (headerVisible.current === visible && animated) return;
@@ -158,7 +158,7 @@ export function MinionScreen({ children, contentStyle, scrollRequest, stickyHead
             styles.localBar,
             {
               backgroundColor: theme.pageBackground,
-              borderBottomColor: theme.border,
+              borderBottomColor: headerBorder,
               borderBottomWidth: pathname === '/schedule' ? 0 : 1,
               top: Animated.add(headerOffset, insets.top + HEADER_HEIGHT),
             },
