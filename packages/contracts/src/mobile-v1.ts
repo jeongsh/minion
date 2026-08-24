@@ -333,20 +333,130 @@ export type MobilePredictionsDto = {
   matches: MobilePredictionMatch[];
 };
 
+export type MobileMatchSetSummary = {
+  id: EntityId;
+  setNumber: number;
+  status: string;
+  winnerTeamId: EntityId | null;
+  durationSeconds: number | null;
+};
+
+export type MobileChampionRef = {
+  id: EntityId | null;
+  name: string;
+  image: MobileImage | null;
+};
+
+export type MobileSetDraftSide = {
+  teamId: EntityId;
+  teamName: string;
+  /** 항상 5칸, 밴이 없으면 null로 채움. */
+  bans: Array<MobileChampionRef | null>;
+};
+
+export type MobileObjectiveCounts = {
+  voidGrubs: number;
+  dragons: number;
+  heralds: number;
+  barons: number;
+  towers: number;
+  elders: number;
+};
+
+export type MobilePlayerLoadout = {
+  champion: MobileChampionRef;
+  /** 항상 2칸. */
+  spellImages: Array<MobileImage | null>;
+  /** [키스톤, 보조 계열] 항상 2칸. */
+  runeImages: Array<MobileImage | null>;
+  /** 일반 아이템 6칸. */
+  itemImages: Array<MobileImage | null>;
+  trinketImage: MobileImage | null;
+  roleBoundItemImage: MobileImage | null;
+};
+
+export type MobileSetPlayerStat = {
+  playerId: EntityId;
+  playerName: string;
+  teamId: EntityId;
+  position: "TOP" | "JGL" | "MID" | "BOT" | "SUP";
+  loadout: MobilePlayerLoadout;
+  championLevel: number | null;
+  kills: number;
+  deaths: number;
+  assists: number;
+  kda: number;
+  killParticipation: number;
+  damage: number;
+  dpm: number;
+  visionScore: number;
+  cs: number;
+  csm: number;
+  gold: number;
+};
+
+export type MobileTimelineEvent = {
+  id: EntityId;
+  timestampMs: number;
+  eventType: "CHAMPION_KILL" | "ELITE_MONSTER_KILL" | "BUILDING_KILL";
+  teamId: EntityId | null;
+  killerPlayerId: EntityId | null;
+  victimPlayerId: EntityId | null;
+  assistPlayerIds: EntityId[];
+  monsterType: string | null;
+  buildingType: string | null;
+  laneType: string | null;
+};
+
+export type MobileTimelineFrame = {
+  timestampMs: number;
+  goldDiff: number | null;
+  blueTotalGold: number | null;
+  redTotalGold: number | null;
+};
+
+export type MobileSetDetail = {
+  id: EntityId;
+  setNumber: number;
+  durationSeconds: number | null;
+  winnerTeamId: EntityId | null;
+  blueTeamId: EntityId;
+  redTeamId: EntityId;
+  blueTeam: MobileTeamSummary | null;
+  redTeam: MobileTeamSummary | null;
+  blueKills: number | null;
+  redKills: number | null;
+  blueGold: number | null;
+  redGold: number | null;
+  blueObjectives: MobileObjectiveCounts;
+  redObjectives: MobileObjectiveCounts;
+  hasPickBan: boolean;
+  draft: { blue: MobileSetDraftSide; red: MobileSetDraftSide } | null;
+  playerStats: MobileSetPlayerStat[];
+  timelineEvents: MobileTimelineEvent[];
+  timelineFrames: MobileTimelineFrame[];
+};
+
+export type MobileMatchHeader = {
+  tournamentName: string;
+  stageName: string;
+  bestOf: number | null;
+  pomPlayer: MobilePlayerSummary | null;
+  statusLabel: string;
+};
+
 export type MobileMatchDetailDto = {
   match: MobileMatchSummary;
-  sets: Array<{
-    id: EntityId;
-    setNumber: number;
-    status: string;
-    winnerTeamId: EntityId | null;
-    durationSeconds: number | null;
-  }>;
+  header: MobileMatchHeader;
+  sets: MobileMatchSetSummary[];
+  activeSetId: EntityId | null;
+  activeSet: MobileSetDetail | null;
   players: MobilePlayerSummary[];
   initialStats: Record<string, unknown> | null;
   prediction: Record<string, unknown> | null;
   fanRating: Record<string, unknown> | null;
   vods: MobileVideoItem[];
+  matchVodUrl: string | null;
   live: { pollingIntervalMs: number; available: boolean };
 };
 
