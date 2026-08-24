@@ -309,6 +309,30 @@ export type MobileTournamentDetailDto = {
   bracket: MobileBracketData | null;
 };
 
+export type MobilePredictionMarket = {
+  teamAPercent: number;
+  teamBPercent: number;
+  teamAOdds: number | null;
+  teamBOdds: number | null;
+};
+
+export type MobilePredictionMatch = {
+  id: EntityId;
+  startsAt: IsoDateTime;
+  status: string;
+  tournamentId: EntityId | null;
+  teamA: MobileTeamSummary | null;
+  teamB: MobileTeamSummary | null;
+  market: MobilePredictionMarket;
+  closed: boolean;
+};
+
+export type MobilePredictionsDto = {
+  /** 서버가 응답을 만든 시각(epoch ms). 마감까지 남은 시간 표시는 이 값 기준으로 고정 계산한다(웹도 요청당 한 번만 스냅샷). */
+  now: number;
+  matches: MobilePredictionMatch[];
+};
+
 export type MobileMatchDetailDto = {
   match: MobileMatchSummary;
   sets: Array<{

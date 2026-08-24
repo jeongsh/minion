@@ -52,6 +52,8 @@ export type {
   MobilePlayerDetailDto,
   MobilePlayerSummary,
   MobilePomRow,
+  MobilePredictionMatch,
+  MobilePredictionsDto,
   MobileScheduleDto,
   MobileSearchDto,
   MobileSearchResult,
