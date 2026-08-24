@@ -213,6 +213,7 @@ function PomRankingTable({ rows }: { rows: PomRow[] }) {
   return (
     <DataTable
       mobileSurface="flat"
+      mobileDense
       rows={rows}
       dense
       emptyText="아직 선정된 POM이 없습니다."
@@ -224,20 +225,20 @@ function PomRankingTable({ rows }: { rows: PomRow[] }) {
           headerClassName: "min-w-[18rem]",
           cellClassName: "min-w-[18rem]",
           render: (row) => (
-            <div className="flex items-center gap-3">
-              <span className="w-7 shrink-0 text-center text-base font-black italic tabular-nums">{row.rank}</span>
+            <div className="flex items-center gap-2 md:gap-3">
+              <span className="w-6 shrink-0 text-center text-sm font-black italic tabular-nums md:w-7 md:text-base">{row.rank}</span>
               <div className="flex min-w-0 items-center gap-2">
                 {row.player.profileImageUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={row.player.profileImageUrl}
                     alt={row.player.name}
-                    className="h-7 w-7 shrink-0 rounded-full object-cover"
+                    className="h-6 w-6 shrink-0 rounded-full object-cover md:h-7 md:w-7"
                   />
                 ) : null}
-                <div className="flex min-w-0 items-baseline gap-1.5">
-                  <p className="truncate font-semibold">{row.player.name}</p>
-                  <p className="truncate text-[12px] text-muted">{row.team?.shortName ?? "-"}</p>
+                <div className="flex min-w-0 items-baseline gap-1 md:gap-1.5">
+                  <p className="truncate text-[13px] font-semibold md:text-sm">{row.player.name}</p>
+                  <p className="truncate text-[11px] text-muted md:text-[12px]">{row.team?.shortName ?? "-"}</p>
                 </div>
               </div>
             </div>
@@ -398,6 +399,7 @@ function BracketStagePills({
     <SegmentedControl
       ariaLabel="대진표 스테이지 선택"
       activeKey={activeBracketStageId}
+      compact
       items={bracketStages.map((bracketStage) => ({
         key: bracketStage.id,
         label: bracketStage.name,
@@ -431,7 +433,7 @@ function ViewTabs<T extends string>({
   });
 
   return (
-    <UnderlineNav items={items} activeKey={activeTab} ariaLabel="대회 상세 탭" bordered={false} className={className} />
+    <UnderlineNav items={items} activeKey={activeTab} ariaLabel="대회 상세 탭" bordered={false} className={className} compact />
   );
 }
 
@@ -897,6 +899,7 @@ export default async function TournamentBracketPage({
             <UnderlineNav
               ariaLabel="대회 상세 탭"
               bordered={false}
+              compact
               className="order-2 border-b border-[var(--ui-border)] sm:order-1 sm:-mb-px sm:border-b-0"
               activeKey={activeView === "bracket" ? activePhase : activeView}
               items={(
@@ -934,6 +937,7 @@ export default async function TournamentBracketPage({
             <SegmentedControl
               ariaLabel="스플릿 선택"
               activeKey={activeSplit}
+              compact
               className="order-1 sm:order-2 sm:mb-2"
               items={(Object.keys(LCK_SPLIT_LABELS) as LckSplitKey[]).map((split) => ({
                 key: split,

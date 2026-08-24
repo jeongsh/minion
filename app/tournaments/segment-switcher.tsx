@@ -34,7 +34,7 @@ export function SegmentSwitcher({
       ref={scrollRef}
       {...dragHandlers}
       aria-label="대회 선택"
-      className={`tab-scroll -ml-4 flex cursor-grab items-center gap-2 overflow-x-auto pl-4 active:cursor-grabbing active:select-none sm:ml-0 sm:pl-0 ${className}`}
+      className={`tab-scroll -ml-4 flex cursor-grab items-center gap-1.5 overflow-x-auto pl-4 active:cursor-grabbing active:select-none sm:ml-0 sm:gap-2 sm:pl-0 ${className}`}
     >
       {items.map((item) => {
         const isActive = item.key === activeKey;
@@ -44,14 +44,14 @@ export function SegmentSwitcher({
             key={item.key}
             href={`/tournaments/${item.key}?year=${activeSeason}`}
             aria-current={isActive ? "page" : undefined}
-            className={`flex h-10 shrink-0 items-center gap-2 whitespace-nowrap rounded-xl border px-4 text-[14px] transition-colors ${
+            className={`flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border px-3 text-[13px] transition-colors sm:h-10 sm:gap-2 sm:rounded-xl sm:px-4 sm:text-[14px] ${
               isActive
                 ? "border-[var(--ui-ink)] bg-[var(--ui-ink)] font-extrabold text-[var(--ui-surface)]"
                 : "border-[var(--ui-border)] bg-[var(--ui-surface)] font-bold text-[var(--ui-muted)] hover:border-[var(--ui-ink)] hover:text-[var(--ui-ink)]"
             }`}
           >
             {item.logo ? (
-              <TournamentMark logo={item.logo} aspect={item.logoAspect} className="h-4 max-w-[34px]" />
+              <TournamentMark logo={item.logo} aspect={item.logoAspect} className="h-3.5 max-w-[30px] sm:h-4 sm:max-w-[34px]" />
             ) : null}
             <span>{item.name}</span>
             {item.isOngoing ? (

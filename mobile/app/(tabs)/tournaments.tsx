@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { ErrorState } from '@/components/feedback-states';
 import { MinionScreen } from '@/components/minion-screen';
@@ -10,6 +10,7 @@ import { TournamentSegmentSwitcher } from '@/components/tournaments/tournament-s
 import { TournamentEmptyNotice, TournamentPomList, TournamentStandingsGroups } from '@/components/tournaments/tournament-standings';
 import { TournamentSegmentedControl, TournamentUnderlineNav, type TournamentTabItem } from '@/components/tournaments/tournament-tabs';
 import { useCachedQuery } from '@/hooks/use-cached-query';
+import { useMinionTheme } from '@/hooks/use-minion-theme';
 import type { MobileTournamentDetailDto } from '@/lib/api-client';
 
 type ViewKey = 'pom' | 'standings' | 'bracket';
@@ -43,6 +44,7 @@ function buildQuery({
 }
 
 export default function TournamentsScreen() {
+  const { fonts, theme } = useMinionTheme();
   const [segmentKey, setSegmentKey] = useState('lck');
   const [year, setYear] = useState<number | null>(null);
   const [split, setSplit] = useState<'1' | '2' | '3'>('1');
@@ -76,16 +78,20 @@ export default function TournamentsScreen() {
 
   if (loading && !data) {
     return (
-      <MinionScreen contentStyle={styles.content}>
-        <TournamentLoadingSkeleton />
+      <MinionScreen contentStyle={styles.screenContent}>
+        <View style={styles.page}>
+          <TournamentLoadingSkeleton />
+        </View>
       </MinionScreen>
     );
   }
 
   if (error && !data) {
     return (
-      <MinionScreen contentStyle={styles.content}>
-        <ErrorState onRetry={refresh} />
+      <MinionScreen contentStyle={styles.screenContent}>
+        <View style={styles.page}>
+          <ErrorState onRetry={refresh} />
+        </View>
       </MinionScreen>
     );
   }
@@ -134,56 +140,79 @@ export default function TournamentsScreen() {
   }
 
   return (
-    <MinionScreen contentStyle={styles.content}>
-      <TournamentHeader segment={data.segment} />
-      <TournamentSegmentSwitcher activeKey={segmentKey} items={data.segmentNav} onSelect={selectSegment} />
-
-      {data.isLck ? (
-        <View style={styles.lckTabs}>
-          <TournamentSegmentedControl
-            activeKey={split}
-            items={(['1', '2', '3'] as const).map((key) => ({ key, label: data.splitLabels?.[key] ?? key }))}
-            onSelect={(key) => {
-              setSplit(key as '1' | '2' | '3');
-              setView('standings');
-            }}
-          />
-          <TournamentUnderlineNav activeKey={activeViewKey} bordered={false} items={viewItems} onSelect={selectView} />
+    <MinionScreen contentStyle={styles.screenContent}>
+      <View style={styles.page}>
+        <TournamentHeader segment={data.segment} />
+        <View style={styles.segmentRow}>
+          <TournamentSegmentSwitcher activeKey={segmentKey} items={data.segmentNav} onSelect={selectSegment} />
         </View>
-      ) : (
-        <View style={styles.nonLckTabs}>
-          {viewItems.length > 0 ? <TournamentUnderlineNav activeKey={activeViewKey} bordered={false} items={viewItems} onSelect={selectView} /> : null}
-          {data.bracketStages.length > 1 ? (
-            <TournamentSegmentedControl
-              activeKey={data.activeBracketStageId ?? ''}
-              items={data.bracketStages.map((stage) => ({ key: stage.id, label: stage.name }))}
-              onSelect={(key) => {
-                setActiveBracketStageId(key);
-                setView('standings');
-              }}
-            />
-          ) : null}
-        </View>
-      )}
 
-      <View style={styles.body}>
-        {data.activeView === 'pom' ? (
-          <TournamentPomList rows={data.pomRows ?? []} />
-        ) : data.activeView === 'standings' ? (
-          data.standingsGroups ? <TournamentStandingsGroups groups={data.standingsGroups} /> : <TournamentEmptyNotice message="아직 등록된 순위가 없습니다." />
-        ) : data.bracketAvailable && data.bracket ? (
-          <TournamentBracket accent={data.segment.accent} bracket={data.bracket} />
+        {data.isLck ? (
+          <View style={styles.lckSection}>
+            <View style={styles.lckTabs}>
+              {data.activeView === 'pom' ? null : (
+                <TournamentSegmentedControl
+                  activeKey={split}
+                  items={(['1', '2', '3'] as const).map((key) => ({ key, label: data.splitLabels?.[key] ?? key }))}
+                  onSelect={(key) => {
+                    setSplit(key as '1' | '2' | '3');
+                    if (view === 'bracket') setPhase('playin');
+                  }}
+                />
+              )}
+              <TournamentUnderlineNav activeKey={activeViewKey} bordered={false} items={viewItems} onSelect={selectView} />
+            </View>
+            <TournamentBody data={data} />
+          </View>
         ) : (
-          <TournamentEmptyNotice message="아직 공개된 대진표가 없습니다." />
+          <View style={styles.nonLckSection}>
+            <View style={styles.nonLckHeader}>
+              <View style={styles.nonLckTitleGroup}>
+                <Text style={[styles.nonLckTitle, { color: theme.ink, fontFamily: fonts.display }]}>
+                  {data.activeView === 'standings' ? '조 순위' : '대진표'}
+                </Text>
+                {viewItems.length > 0 ? <TournamentUnderlineNav activeKey={activeViewKey} bordered={false} items={viewItems} onSelect={selectView} /> : null}
+              </View>
+              {data.bracketStages.length > 1 ? (
+                <TournamentSegmentedControl
+                  activeKey={data.activeBracketStageId ?? ''}
+                  items={data.bracketStages.map((stage) => ({ key: stage.id, label: stage.name }))}
+                  onSelect={(key) => {
+                    setActiveBracketStageId(key);
+                    setView('standings');
+                  }}
+                />
+              ) : null}
+            </View>
+            <TournamentBody data={data} />
+          </View>
         )}
       </View>
     </MinionScreen>
   );
 }
 
+function TournamentBody({ data }: { data: MobileTournamentDetailDto }) {
+  if (data.activeView === 'pom') return <TournamentPomList rows={data.pomRows ?? []} />;
+  if (data.activeView === 'standings') {
+    return data.standingsGroups
+      ? <TournamentStandingsGroups groups={data.standingsGroups} />
+      : <TournamentEmptyNotice message="아직 등록된 순위가 없습니다." />;
+  }
+  if (data.bracketAvailable && data.bracket) {
+    return <TournamentBracket accent={data.segment.accent} bracket={data.bracket} />;
+  }
+  return <TournamentEmptyNotice message="아직 공개된 대진표가 없습니다." />;
+}
+
 const styles = StyleSheet.create({
-  body: { marginTop: 4 },
-  content: { gap: 20, paddingBottom: 0 },
-  lckTabs: { gap: 16 },
-  nonLckTabs: { gap: 12 },
+  lckSection: { gap: 24 },
+  lckTabs: { gap: 12 },
+  nonLckHeader: { alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: 12, justifyContent: 'space-between' },
+  nonLckSection: { gap: 16 },
+  nonLckTitle: { fontSize: 20, lineHeight: 26 },
+  nonLckTitleGroup: { alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  page: { gap: 24, marginTop: 8 },
+  screenContent: { gap: 0, paddingBottom: 0 },
+  segmentRow: { alignItems: 'center', flexDirection: 'row' },
 });

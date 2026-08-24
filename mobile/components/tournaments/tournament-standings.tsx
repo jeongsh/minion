@@ -83,7 +83,7 @@ function RegularStandingsList({ rows }: { rows: MobileStandingRow[] }) {
   if (rows.length === 0) return <DataListEmptyState message="아직 등록된 경기가 없습니다." />;
 
   return (
-    <View style={[styles.dataCard, { backgroundColor: tokens.surface, borderColor: tokens.border }]}>
+    <View style={[styles.dataList, { backgroundColor: tokens.surface }]}>
       {rows.map((row, index) => (
         <RegularRow isLast={index === rows.length - 1} key={row.team.id} row={row} tokens={tokens} />
       ))}
@@ -114,12 +114,12 @@ function RegularRow({ isLast, row, tokens }: { isLast: boolean; row: MobileStand
   );
 }
 
-function Metric({ label, theme, value }: { label: string; theme: ReturnType<typeof useMinionTheme>['theme']; value: string }) {
+function Metric({ compact = false, label, theme, value }: { compact?: boolean; label: string; theme: ReturnType<typeof useMinionTheme>['theme']; value: string }) {
   const { fonts } = useMinionTheme();
   return (
-    <View style={styles.metric}>
-      <Text style={[styles.metricLabel, { color: theme.muted, fontFamily: fonts.medium }]}>{label}</Text>
-      <Text style={[styles.metricValue, { color: theme.text, fontFamily: fonts.bold }]}>{value}</Text>
+    <View style={[styles.metric, compact && styles.metricCompact]}>
+      <Text style={[compact ? styles.metricLabelCompact : styles.metricLabel, { color: theme.muted, fontFamily: fonts.medium }]}>{label}</Text>
+      <Text style={[compact ? styles.metricValueCompact : styles.metricValue, { color: theme.text, fontFamily: fonts.bold }]}>{value}</Text>
     </View>
   );
 }
@@ -129,7 +129,7 @@ export function TournamentPomList({ rows }: { rows: MobilePomRow[] }) {
   if (rows.length === 0) return <DataListEmptyState message="아직 선정된 POM이 없습니다." />;
 
   return (
-    <View style={[styles.dataCard, { backgroundColor: tokens.surface, borderColor: tokens.border }]}>
+    <View style={[styles.dataList, { backgroundColor: tokens.surface }]}>
       {rows.map((row, index) => (
         <PomRow isLast={index === rows.length - 1} key={row.player.id} row={row} tokens={tokens} />
       ))}
@@ -145,17 +145,17 @@ function PomRow({ isLast, row, tokens }: { isLast: boolean; row: MobilePomRow; t
   return (
     <Pressable
       onPress={() => router.navigate(`/players/${encodeURIComponent(row.player.slug)}` as never)}
-      style={[styles.dataRow, !isLast && { borderBottomColor: tokens.border, borderBottomWidth: 1 }]}>
-      <View style={styles.dataMain}>
-        <Text style={[styles.dataRank, { color: theme.ink, fontFamily: fonts.black }]}>{row.rank}</Text>
+      style={[styles.pomRow, !isLast && { borderBottomColor: tokens.border, borderBottomWidth: 1 }]}>
+      <View style={styles.pomMain}>
+        <Text style={[styles.pomRank, { color: theme.ink, fontFamily: fonts.black }]}>{row.rank}</Text>
         <View style={styles.pomPlayer}>
           {imageUri ? <Image contentFit="cover" source={{ uri: imageUri }} style={styles.pomAvatar} /> : null}
-          <Text numberOfLines={1} style={[styles.dataTeamName, { color: theme.ink, fontFamily: fonts.bold }]}>{row.player.name}</Text>
+          <Text numberOfLines={1} style={[styles.pomName, { color: theme.ink, fontFamily: fonts.bold }]}>{row.player.name}</Text>
           <Text numberOfLines={1} style={[styles.pomTeam, { color: theme.muted, fontFamily: fonts.regular }]}>{row.team?.shortName ?? '-'}</Text>
         </View>
       </View>
       <View style={styles.dataMetrics}>
-        <Metric label="포인트" theme={theme} value={String(row.points)} />
+        <Metric compact label="포인트" theme={theme} value={String(row.points)} />
       </View>
     </Pressable>
   );
@@ -201,7 +201,7 @@ export function TournamentEmptyNotice({ message }: { message: string }) {
 }
 
 const styles = StyleSheet.create({
-  dataCard: { borderRadius: 12, borderWidth: 1, overflow: 'hidden' },
+  dataList: { overflow: 'hidden' },
   dataEmpty: { alignItems: 'center', borderRadius: 16, borderStyle: 'dashed', borderWidth: 2, minHeight: 112, paddingHorizontal: 20, paddingVertical: 20 },
   dataEmptyBody: { fontSize: 14, lineHeight: 24, marginTop: 6, textAlign: 'center' },
   dataEmptyCharacter: { height: 56, width: 56 },
@@ -226,10 +226,17 @@ const styles = StyleSheet.create({
   groupTitleRow: { alignItems: 'center', flexDirection: 'row', gap: 8 },
   groupTitleText: { fontSize: 16, lineHeight: 16 },
   metric: { alignItems: 'center', flexDirection: 'row', gap: 6, justifyContent: 'flex-end' },
+  metricCompact: { gap: 4 },
   metricLabel: { fontSize: 11, lineHeight: 16.5 },
+  metricLabelCompact: { fontSize: 10, lineHeight: 15 },
   metricValue: { fontSize: 14, lineHeight: 21 },
+  metricValueCompact: { fontSize: 13, lineHeight: 19.5 },
   notice: { borderRadius: 8, borderWidth: 1, paddingHorizontal: 20, paddingVertical: 40 },
-  pomAvatar: { borderRadius: 14, height: 28, width: 28 },
-  pomPlayer: { alignItems: 'baseline', flex: 1, flexDirection: 'row', gap: 6, minWidth: 0 },
-  pomTeam: { flexShrink: 1, fontSize: 12, lineHeight: 18 },
+  pomAvatar: { borderRadius: 12, height: 24, width: 24 },
+  pomMain: { alignItems: 'center', flex: 1, flexDirection: 'row', gap: 8, minWidth: 0 },
+  pomName: { flexShrink: 1, fontSize: 13, lineHeight: 19.5 },
+  pomPlayer: { alignItems: 'baseline', flex: 1, flexDirection: 'row', gap: 4, minWidth: 0 },
+  pomRank: { fontSize: 14, fontStyle: 'italic', lineHeight: 21, textAlign: 'center', width: 24 },
+  pomRow: { alignItems: 'center', flexDirection: 'row', gap: 12, minHeight: 52, paddingHorizontal: 12, paddingVertical: 8 },
+  pomTeam: { flexShrink: 1, fontSize: 11, lineHeight: 16.5 },
 });

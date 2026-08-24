@@ -12,18 +12,21 @@ export function TournamentHeader({ segment, action }: { segment: MobileTournamen
   const logoWidth = Math.min(62, 28 * segment.logoAspect);
 
   return (
-    <View style={styles.row}>
-      <View style={styles.titleGroup}>
-        {logo ? <Image contentFit="contain" source={logo} style={{ height: 28, tintColor: theme.ink, width: logoWidth }} /> : null}
-        <Text numberOfLines={1} style={[styles.title, { color: theme.ink, fontFamily: fonts.display }]}>{segment.name}</Text>
+    <View style={styles.header}>
+      <View style={styles.row}>
+        <View style={styles.titleGroup}>
+          {logo ? <Image contentFit="contain" source={logo} style={{ height: 28, width: logoWidth }} tintColor={theme.ink} /> : null}
+          <Text numberOfLines={1} style={[styles.title, { color: theme.ink, fontFamily: fonts.display }]}>{segment.name}</Text>
+        </View>
+        {action ? <View style={styles.action}>{action}</View> : null}
       </View>
-      {action ? <View style={styles.action}>{action}</View> : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   action: { alignItems: 'center', justifyContent: 'center', minHeight: 40 },
+  header: { gap: 12 },
   row: { alignItems: 'center', flexDirection: 'row', gap: 12, justifyContent: 'space-between' },
   title: { flexShrink: 1, fontSize: 20, lineHeight: 27 },
   titleGroup: { alignItems: 'center', flex: 1, flexDirection: 'row', gap: 10, minWidth: 0 },

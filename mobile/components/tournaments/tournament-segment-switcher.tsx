@@ -22,13 +22,13 @@ function SegmentChip({ active, item, onPress }: { active: boolean; item: MobileT
   const { fonts, theme } = useMinionTheme();
   const logo = item.logo ? TOURNAMENT_LOGO_ASSETS[item.logo] : undefined;
   const iconColor = active ? theme.surface : theme.muted;
-  const width = Math.min(34, 16 * item.logoAspect);
+  const width = Math.min(30, 14 * item.logoAspect);
 
   return (
     <Pressable
       onPress={onPress}
       style={[styles.chip, active ? { backgroundColor: theme.ink, borderColor: theme.ink } : { backgroundColor: theme.surface, borderColor: theme.border }]}>
-      {logo ? <Image contentFit="contain" source={logo} style={{ height: 16, width }} tintColor={iconColor} /> : null}
+      {logo ? <Image contentFit="contain" source={logo} style={{ height: 14, width }} tintColor={iconColor} /> : null}
       <Text style={[styles.chipText, { color: active ? theme.surface : theme.muted, fontFamily: fonts.black }]}>{item.name}</Text>
       {item.isOngoing ? <OngoingDot /> : null}
     </Pressable>
@@ -53,9 +53,9 @@ function OngoingDot() {
 }
 
 const styles = StyleSheet.create({
-  chip: { alignItems: 'center', borderRadius: 12, borderWidth: 1, flexDirection: 'row', gap: 8, height: 40, paddingHorizontal: 16 },
-  chipText: { fontSize: 14, lineHeight: 21 },
-  content: { gap: 8, paddingLeft: 16, paddingRight: 16 },
+  chip: { alignItems: 'center', borderRadius: 8, borderWidth: 1, flexDirection: 'row', gap: 6, height: 32, paddingHorizontal: 12 },
+  chipText: { fontSize: 13, lineHeight: 19.5 },
+  content: { gap: 6, paddingLeft: 16, paddingRight: 16 },
   dot: { backgroundColor: '#10b981', borderRadius: 3, height: 6, width: 6 },
   scroll: { marginHorizontal: -16 },
 });

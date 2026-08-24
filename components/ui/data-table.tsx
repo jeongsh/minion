@@ -18,6 +18,7 @@ export function DataTable<T>({
   dense = false,
   variant = "default",
   mobileSurface = "card",
+  mobileDense = false,
   className = "",
 }: {
   columns: DataTableColumn<T>[];
@@ -33,6 +34,8 @@ export function DataTable<T>({
   variant?: "default" | "hub";
   /** Continuous mobile data lists can drop the outer shell while desktop tables keep their card. */
   mobileSurface?: "card" | "flat";
+  /** 모바일 행만 52px 중심의 조밀한 랭킹 리스트로 표시한다. */
+  mobileDense?: boolean;
   className?: string;
 }) {
   const hub = variant === "hub";
@@ -55,12 +58,12 @@ export function DataTable<T>({
         {rows.map((row, index) => {
           const href = getRowHref?.(row);
           const content = (
-            <div className="grid min-h-16 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 px-4 py-3 text-sm sm:px-3.5">
+            <div className={`grid grid-cols-[minmax(0,1fr)_auto] items-center ${mobileDense ? "min-h-[52px] gap-x-3 px-3 py-2 text-[13px]" : "min-h-16 gap-x-4 px-4 py-3 text-sm sm:px-3.5"}`}>
               <div className="min-w-0 font-bold text-[var(--ui-ink)]">{columns[0]?.render(row)}</div>
               {/* 지표 칸은 그리드 트랙을 각자 차지하면 개수(1~2개)에 따라 트랙 수가 달라져
                   줄바꿈이 나므로, 한 트랙 안에서 flex로 나란히 둔다. */}
-              <div className="flex shrink-0 items-center gap-3">
-                {columns.slice(1, 3).map((column) => <div key={column.key} className="flex items-center justify-end gap-1.5 text-right"><span className="text-[11px] font-medium text-[var(--ui-muted)]">{column.label}</span><span className="font-bold text-[var(--ui-text)]">{column.render(row)}</span></div>)}
+              <div className={`flex shrink-0 items-center ${mobileDense ? "gap-2.5" : "gap-3"}`}>
+                {columns.slice(1, 3).map((column) => <div key={column.key} className={`flex items-center justify-end text-right ${mobileDense ? "gap-1" : "gap-1.5"}`}><span className={`${mobileDense ? "text-[10px]" : "text-[11px]"} font-medium text-[var(--ui-muted)]`}>{column.label}</span><span className="font-bold text-[var(--ui-text)]">{column.render(row)}</span></div>)}
               </div>
             </div>
           );

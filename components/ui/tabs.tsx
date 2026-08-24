@@ -16,18 +16,20 @@ export function SegmentedControl({
   activeKey,
   ariaLabel,
   className = "",
+  compact = false,
 }: {
   items: TabItem[];
   activeKey: string;
   ariaLabel: string;
   className?: string;
+  compact?: boolean;
 }) {
   if (items.length <= 1) return null;
 
   return (
     <nav
       aria-label={ariaLabel}
-      className={`inline-flex w-fit shrink-0 gap-0.5 rounded-[10px] bg-[var(--ui-card-bg)] p-[3px] ${className}`}
+      className={`inline-flex w-fit shrink-0 gap-0.5 bg-[var(--ui-card-bg)] ${compact ? "rounded-lg p-0.5" : "rounded-[10px] p-[3px]"} ${className}`}
     >
       {items.map((item) => {
         const isActive = item.key === activeKey;
@@ -37,7 +39,7 @@ export function SegmentedControl({
             key={item.key}
             href={item.href}
             aria-current={isActive ? "page" : undefined}
-            className={`flex h-8 shrink-0 items-center whitespace-nowrap rounded-lg px-3.5 text-[13px] transition-colors ${
+            className={`flex shrink-0 items-center whitespace-nowrap transition-colors ${compact ? "h-7 rounded-md px-2.5 text-[12px]" : "h-8 rounded-lg px-3.5 text-[13px]"} ${
               // 다크모드에서는 surface가 트랙보다 어두워 "떠오른 알약"이 거꾸로 파인 것처럼
               // 보인다. 트랙보다 밝은 border 톤으로 바꿔 위계를 유지한다.
               isActive
@@ -64,6 +66,7 @@ export function UnderlineNav({
   className = "",
   bordered = true,
   activeTone = "accent",
+  compact = false,
 }: {
   items: TabItem[];
   activeKey: string;
@@ -73,13 +76,14 @@ export function UnderlineNav({
   bordered?: boolean;
   /** 승패 상태색과 내비게이션 활성색을 분리해야 하는 화면에서는 ink를 쓴다. */
   activeTone?: "accent" | "ink";
+  compact?: boolean;
 }) {
   if (items.length === 0) return null;
 
   return (
     <nav
       aria-label={ariaLabel}
-      className={`tab-scroll flex max-w-full items-center gap-5 overflow-x-auto sm:gap-7 ${
+      className={`tab-scroll flex max-w-full items-center overflow-x-auto ${compact ? "gap-4 sm:gap-5" : "gap-5 sm:gap-7"} ${
         bordered ? "border-b border-[var(--ui-border)]" : ""
       } ${className}`}
     >
@@ -91,7 +95,7 @@ export function UnderlineNav({
             key={item.key}
             href={item.href}
             aria-current={isActive ? "page" : undefined}
-            className={`font-paperozi flex shrink-0 items-center justify-center whitespace-nowrap border-b-[3px] py-2.5 text-[15px] font-bold transition-colors sm:py-3 sm:text-[16px] ${
+            className={`font-paperozi flex shrink-0 items-center justify-center whitespace-nowrap font-bold transition-colors ${compact ? "border-b-2 py-1.5 text-[14px] sm:py-2 sm:text-[15px]" : "border-b-[3px] py-2.5 text-[15px] sm:py-3 sm:text-[16px]"} ${
               isActive
                 ? activeTone === "ink"
                   ? "border-[var(--ui-ink)] text-[var(--ui-ink)]"
