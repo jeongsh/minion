@@ -206,7 +206,7 @@ function TabNav({
   return (
     <nav
       aria-label="매치 상세 탭"
-      className="tab-scroll grid max-w-full grid-flow-col auto-cols-fr gap-0.5 overflow-x-auto rounded-[10px] bg-[var(--ui-card-bg)] p-[3px]"
+      className="tab-scroll -mx-[var(--layout-gutter)] grid max-w-none grid-flow-col auto-cols-fr overflow-x-auto border-b border-[var(--ui-border)] bg-[var(--page-background)] md:mx-0 md:max-w-full md:gap-0.5 md:rounded-[10px] md:border-b-0 md:bg-[var(--ui-card-bg)] md:p-[3px]"
     >
       {items.map((item) => {
         const isActive = item.key === activeTab;
@@ -216,10 +216,10 @@ function TabNav({
             key={item.key}
             href={item.href}
             aria-current={isActive ? "page" : undefined}
-            className={`flex h-8 min-w-[4.25rem] shrink-0 items-center justify-center whitespace-nowrap rounded-lg px-2 text-[14px] transition-colors ${
+            className={`flex h-9 min-w-[4.25rem] shrink-0 items-center justify-center whitespace-nowrap border-b-2 px-2 text-[14px] transition-colors md:h-8 md:rounded-lg ${
               isActive
-                ? "border border-[var(--ui-border)] bg-[var(--ui-surface)] font-extrabold text-[var(--ui-ink)] dark:bg-[var(--ui-border)]"
-                : "font-semibold text-[var(--ui-muted)] hover:text-[var(--ui-ink)]"
+                ? "border-[var(--accent)] font-extrabold text-[var(--ui-ink)] md:border md:border-[var(--ui-border)] md:bg-[var(--ui-surface)] md:dark:bg-[var(--ui-border)]"
+                : "border-transparent font-semibold text-[var(--ui-muted)] hover:text-[var(--ui-ink)]"
             }`}
           >
             {item.label}
@@ -537,7 +537,7 @@ export default async function MatchDetailPage({
         겹치고, 남는 건 400 weight 한 줄뿐이라 아래 스코어에 눌려 헤더가 없느니만 못했다.
       */}
       <div className="flex flex-col gap-2">
-        <section className="mobile-full-bleed overflow-hidden rounded-md border border-[var(--ui-border)] md:mx-0" aria-label="매치 요약">
+        <section className="mobile-full-bleed overflow-hidden rounded-md border-0 md:mx-0 md:border md:border-[var(--ui-border)]" aria-label="매치 요약">
           <h1 className="sr-only">{`${teamAName} vs ${teamBName}`}</h1>
 
           <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 px-4 py-2 text-[11px] font-medium text-[var(--ui-muted)] sm:px-6">

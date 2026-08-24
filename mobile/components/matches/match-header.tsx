@@ -66,7 +66,7 @@ export function MatchHeader({ header, match }: { header: MobileMatchHeader; matc
   const dateLabel = formatDateTime(match.startsAt);
 
   return (
-    <View style={[styles.root, { borderColor: theme.border }]}>
+    <View style={styles.root}>
       <View style={styles.metaRow}>
         <Text numberOfLines={1} style={[styles.tournamentName, { color: theme.ink, fontFamily: fonts.bold }]}>{header.tournamentName}</Text>
         {header.pomPlayer ? (
@@ -112,7 +112,7 @@ export function MatchHeader({ header, match }: { header: MobileMatchHeader; matc
 
 function formatDateTime(iso: string) {
   const date = new Date(iso);
-  const formatter = new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false });
+  const formatter = new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
   return formatter.format(date).replace(/\.$/, '');
 }
 
@@ -127,7 +127,7 @@ const styles = StyleSheet.create({
   pomLabel: { fontSize: 10, letterSpacing: 0.8, lineHeight: 15 },
   pomName: { flexShrink: 1, fontSize: 11, lineHeight: 16.5 },
   resultLabel: { fontSize: 10, letterSpacing: 0.8, marginTop: 2 },
-  root: { borderRadius: 8, borderWidth: 1, marginHorizontal: -16, overflow: 'hidden' },
+  root: { marginHorizontal: -16 },
   scoreBox: { alignItems: 'center', borderRadius: 12, flexDirection: 'row', gap: 8, paddingHorizontal: 14, paddingVertical: 8 },
   scoreCenter: { alignItems: 'center', flexShrink: 0, minWidth: 88, paddingHorizontal: 4 },
   scoreColon: { fontSize: 12, opacity: 0.4 },

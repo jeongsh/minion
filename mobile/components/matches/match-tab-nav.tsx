@@ -17,14 +17,14 @@ export function MatchTabNav({ activeTab, availableTabs, onSelect }: { activeTab:
   const { fonts, theme } = useMinionTheme();
 
   return (
-    <View style={[styles.track, { backgroundColor: theme.card }]}>
+    <View style={[styles.track, { backgroundColor: theme.pageBackground, borderBottomColor: theme.border }]}>
       {availableTabs.map((tab) => {
         const active = tab === activeTab;
         return (
           <Pressable
             key={tab}
             onPress={() => onSelect(tab)}
-            style={[styles.pill, active && { backgroundColor: theme.surface, borderColor: theme.border, borderWidth: 1 }]}
+            style={[styles.pill, { borderBottomColor: active ? theme.accent : 'transparent' }]}
           >
             <Text style={[styles.pillText, { color: active ? theme.ink : theme.muted, fontFamily: active ? fonts.black : fonts.bold }]}>{TAB_LABELS[tab]}</Text>
           </Pressable>
@@ -35,7 +35,7 @@ export function MatchTabNav({ activeTab, availableTabs, onSelect }: { activeTab:
 }
 
 const styles = StyleSheet.create({
-  pill: { alignItems: 'center', borderRadius: 8, flex: 1, height: 32, justifyContent: 'center', paddingHorizontal: 14 },
+  pill: { alignItems: 'center', borderBottomWidth: 2, flex: 1, height: 36, justifyContent: 'center', outlineColor: 'transparent', outlineStyle: 'solid', outlineWidth: 0, paddingHorizontal: 8 },
   pillText: { fontSize: 14, lineHeight: 21 },
-  track: { borderRadius: 10, flexDirection: 'row', gap: 2, padding: 3 },
+  track: { borderBottomWidth: StyleSheet.hairlineWidth, flexDirection: 'row', marginHorizontal: -16 },
 });

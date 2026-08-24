@@ -7,6 +7,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { tournamentTokens } from '@/constants/tournament-theme';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import type { MobileVideoItem } from '@/lib/api-client';
+import { InlineVideoPlayer } from './inline-video-player';
 
 function providerLabel(provider: string | null) {
   if (provider === 'afreecatv') return 'SOOP';
@@ -14,24 +15,43 @@ function providerLabel(provider: string | null) {
   return '다시보기';
 }
 
-/**
- * 웹은 YouTube만 iframe으로 내부 재생하고, 그 외(SOOP 등)는 썸네일 탭 → 새 창으로 보낸다.
- * 앱엔 webview가 없어 재생 가능 여부와 무관하게 항상 외부 브라우저로 연다(웹의 폴백 경로와 동일한 UX).
- */
+function youtubeEmbedUrl(value: string | null | undefined) {
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    if (url.hostname.includes('youtu.be')) {
+      const id = url.pathname.split('/').filter(Boolean)[0];
+      return id ? `https://www.youtube.com/embed/${id}` : null;
+    }
+    if (url.hostname.includes('youtube.com')) {
+      const id = url.searchParams.get('v') ?? url.pathname.split('/').filter(Boolean).pop();
+      return id ? `https://www.youtube.com/embed/${id}` : null;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
 function SetVodPlayer({ matchName, vods }: { matchName: string; vods: MobileVideoItem[] }) {
   const { colorScheme, fonts, theme } = useMinionTheme();
   const [activeIndex, setActiveIndex] = useState(0);
   const active = vods[activeIndex] ?? vods[0];
   if (!active) return null;
+  const embedUrl = active.embedUrl ?? youtubeEmbedUrl(active.url);
 
   return (
     <View style={styles.vodPlayerRoot}>
-      <Pressable onPress={() => WebBrowser.openBrowserAsync(active.url)} style={[styles.previewBox, { backgroundColor: '#000000' }]}>
-        {active.thumbnail?.url ? <Image contentFit="cover" source={{ uri: active.thumbnail.url }} style={styles.previewImage} /> : null}
-        <View style={styles.previewPlayOverlay}>
-          <Play color="#ffffff" fill="#ffffff" size={56} />
-        </View>
-      </Pressable>
+      {embedUrl ? (
+        <InlineVideoPlayer title={`${matchName} ${active.title}`} url={embedUrl} />
+      ) : (
+        <Pressable onPress={() => WebBrowser.openBrowserAsync(active.url)} style={[styles.previewBox, { backgroundColor: '#000000' }]}>
+          {active.thumbnail?.url ? <Image contentFit="cover" source={{ uri: active.thumbnail.url }} style={styles.previewImage} /> : null}
+          <View style={styles.previewPlayOverlay}>
+            <Play color="#ffffff" fill="#ffffff" size={56} />
+          </View>
+        </Pressable>
+      )}
       <Text style={[styles.previewCaption, { color: theme.text, fontFamily: fonts.bold }]}>{active.title.replace('다시보기', '').trim()}</Text>
 
       <Text style={[styles.asideHeading, { color: theme.text, fontFamily: fonts.bold }]}>세트별 다시보기</Text>
@@ -68,12 +88,14 @@ function SetVodPlayer({ matchName, vods }: { matchName: string; vods: MobileVide
 export function MatchVideoTab({ matchName, matchVodUrl, vods }: { matchName: string; matchVodUrl: string | null; vods: MobileVideoItem[] }) {
   const { fonts, theme } = useMinionTheme();
   const hasContent = Boolean(matchVodUrl) || vods.length > 0;
+  const matchEmbedUrl = youtubeEmbedUrl(matchVodUrl);
 
   return (
     <View style={styles.section}>
       <Text style={[styles.heading, { color: theme.ink, fontFamily: fonts.display }]}>영상</Text>
       {hasContent ? (
         <View style={styles.contentWrap}>
+          {matchEmbedUrl ? <InlineVideoPlayer title={`${matchName} VOD`} url={matchEmbedUrl} /> : null}
           {matchVodUrl ? (
             <Pressable onPress={() => WebBrowser.openBrowserAsync(matchVodUrl)}>
               <Text style={[styles.originalLink, { color: theme.accent, fontFamily: fonts.bold }]}>원본 영상 열기</Text>

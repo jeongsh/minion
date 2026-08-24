@@ -1,12 +1,12 @@
 import { useMemo, useState } from 'react';
 import { LayoutChangeEvent, Pressable, StyleSheet, Text, View } from 'react-native';
-import { Circle, Defs, G, Line, LinearGradient, Path, Stop, Svg, Text as SvgText } from 'react-native-svg';
+import { Circle, Defs, G, Image as SvgImage, Line, LinearGradient, Mask, Path, Rect, Stop, Svg, Text as SvgText } from 'react-native-svg';
 
 import { tournamentTokens } from '@/constants/tournament-theme';
 import { OBJECTIVE_ICON_PATHS } from '@/constants/objective-icons';
 import { TEAM_BLUE, TEAM_RED } from '@/constants/team-colors';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
-import type { MobilePlayerSummary, MobileTimelineEvent, MobileTimelineFrame } from '@/lib/api-client';
+import { resolveApiAssetUrl, type MobilePlayerSummary, type MobileTimelineEvent, type MobileTimelineFrame } from '@/lib/api-client';
 import { ObjectiveIcon } from './objective-icon';
 
 const SVG_W = 440;
@@ -50,12 +50,12 @@ function getObjInfo(event: MobileTimelineEvent): ObjInfo {
   if (mt.includes('ELDER')) return { color: '#f97316', iconPath: OBJECTIVE_ICON_PATHS.elder, label: '장로' };
   if (mt.includes('RIFTHERALD') || mt === 'RIFTHERALD') return { color: '#22d3ee', iconPath: OBJECTIVE_ICON_PATHS.herald, label: '전령' };
   if (mt.includes('HORDE')) return { color: '#86efac', iconPath: OBJECTIVE_ICON_PATHS.voidGrub, label: '공허충' };
-  if (mt.includes('INFERNAL') || mt.includes('FIRE')) return { color: '#ef4444', label: '화염' };
-  if (mt.includes('OCEAN') || mt.includes('WATER')) return { color: '#60a5fa', label: '바다' };
-  if (mt.includes('CLOUD') || mt.includes('AIR')) return { color: '#a3e635', label: '바람' };
-  if (mt.includes('MOUNTAIN') || mt.includes('EARTH')) return { color: '#d97706', label: '대지' };
-  if (mt.includes('HEXTECH')) return { color: '#818cf8', label: '마공' };
-  if (mt.includes('CHEMTECH')) return { color: '#84cc16', label: '화공' };
+  if (mt.includes('INFERNAL') || mt.includes('FIRE')) return { color: '#ef4444', iconPath: OBJECTIVE_ICON_PATHS.infernalDragon, label: '화염' };
+  if (mt.includes('OCEAN') || mt.includes('WATER')) return { color: '#60a5fa', iconPath: OBJECTIVE_ICON_PATHS.oceanDragon, label: '바다' };
+  if (mt.includes('CLOUD') || mt.includes('AIR')) return { color: '#a3e635', iconPath: OBJECTIVE_ICON_PATHS.cloudDragon, label: '바람' };
+  if (mt.includes('MOUNTAIN') || mt.includes('EARTH')) return { color: '#d97706', iconPath: OBJECTIVE_ICON_PATHS.mountainDragon, label: '대지' };
+  if (mt.includes('HEXTECH')) return { color: '#818cf8', iconPath: OBJECTIVE_ICON_PATHS.hextechDragon, label: '마공' };
+  if (mt.includes('CHEMTECH')) return { color: '#84cc16', iconPath: OBJECTIVE_ICON_PATHS.chemtechDragon, label: '화공' };
   return { color: '#facc15', iconPath: OBJECTIVE_ICON_PATHS.dragon, label: '드래곤' };
 }
 
@@ -329,13 +329,28 @@ export function GameTimelineChart({
       return `${Number.isInteger(k) ? k : k.toFixed(1)}K`;
     };
 
+    // chartPoints는 중앙선 기준 상대 좌표(y=0)다. 이 상태에서 먼저 교차점을 나눠야
+    // 블루 우세와 레드 우세 구간이 서로 다른 선/채움 색을 가질 수 있다.
+    const coloredRuns = splitAtZeroCrossing(chartPoints).map((relativePoints) => {
+      const averageY = relativePoints.reduce((sum, point) => sum + point.y, 0) / relativePoints.length;
+      const isBlue = averageY <= 0;
+      const points = relativePoints.map((point) => ({ x: point.x, y: point.y + centerY }));
+      const first = points[0];
+      const last = points[points.length - 1];
+      return {
+        areaPathD: `${splinePath(points, 0.28)} L ${last.x} ${centerY} L ${first.x} ${centerY} Z`,
+        color: isBlue ? TEAM_BLUE : TEAM_RED,
+        fillId: isBlue ? 'timelineBlueFill' : 'timelineRedFill',
+        points,
+      };
+    });
+
     return {
-      areaPathD: `${splinePath(chartPoints.map((p) => ({ x: p.x, y: p.y + centerY })), 0.28)} L ${SVG_W - PAD_X} ${centerY} L ${PAD_X} ${centerY} Z`,
       axisY,
       blueCY: graphTop + ITEM_SZ / 2,
       blueClusters,
-      centerFrac: (centerY - graphTop) / (graphBot - graphTop),
       centerY,
+      coloredRuns,
       dy,
       displayDiffAt,
       duration,
@@ -346,7 +361,6 @@ export function GameTimelineChart({
       mins,
       redCY: graphBot - ITEM_SZ / 2,
       redClusters,
-      strokeRuns: splitAtZeroCrossing(chartPoints.map((p) => ({ x: p.x, y: p.y + centerY }))),
       svgH,
     };
   }, [blueTeamId, durationSeconds, events, frames, players, redTeamId]);
@@ -372,10 +386,12 @@ export function GameTimelineChart({
       <View style={{ height: renderedHeight, width: '100%' }}>
         <Svg height={renderedHeight} viewBox={`0 0 ${SVG_W} ${layout.svgH}`} width="100%">
           <Defs>
-            <LinearGradient id="timelineFill" x1="0" x2="0" y1="0" y2="1">
+            <LinearGradient gradientUnits="userSpaceOnUse" id="timelineBlueFill" x1="0" x2="0" y1={layout.graphTop} y2={layout.centerY}>
               <Stop offset={0} stopColor={TEAM_BLUE} stopOpacity={0.32} />
-              <Stop offset={Math.max(0, Math.min(1, layout.centerFrac))} stopColor={TEAM_BLUE} stopOpacity={0.04} />
-              <Stop offset={Math.max(0, Math.min(1, layout.centerFrac))} stopColor={TEAM_RED} stopOpacity={0.04} />
+              <Stop offset={1} stopColor={TEAM_BLUE} stopOpacity={0.04} />
+            </LinearGradient>
+            <LinearGradient gradientUnits="userSpaceOnUse" id="timelineRedFill" x1="0" x2="0" y1={layout.centerY} y2={layout.graphBot}>
+              <Stop offset={0} stopColor={TEAM_RED} stopOpacity={0.04} />
               <Stop offset={1} stopColor={TEAM_RED} stopOpacity={0.32} />
             </LinearGradient>
           </Defs>
@@ -401,9 +417,17 @@ export function GameTimelineChart({
             </SvgText>
           ))}
 
-          <Path d={layout.areaPathD} fill="url(#timelineFill)" />
-          {layout.strokeRuns.map((run, index) => (
-            <Path d={splinePath(run, 0.28)} fill="none" key={index} stroke={run[0].y <= 0 ? TEAM_BLUE : TEAM_RED} strokeWidth={1.8} />
+          {layout.coloredRuns.map((run, index) => (
+            <Path d={run.areaPathD} fill={`url(#${run.fillId})`} key={`fill-${index}`} />
+          ))}
+          {layout.coloredRuns.map((run, index) => (
+            <Path
+              d={splinePath(run.points, 0.28)}
+              fill="none"
+              key={`stroke-${index}`}
+              stroke={run.color}
+              strokeWidth={1.8}
+            />
           ))}
 
           {showObjectives ? (
@@ -475,6 +499,8 @@ function ClusterIcon({ cluster, color, cx, cy, curveY, onPress, surfaceColor }: 
   const below = curveY > cy;
   const lineStart = below ? cy + half : cy - half;
   const showConnector = Math.abs(curveY - lineStart) > 2;
+  const iconUri = info?.iconPath ? resolveApiAssetUrl(info.iconPath) : null;
+  const maskId = `obj-${cluster.id.replace(/[^a-zA-Z0-9_-]/g, '')}-${Math.round(cx)}-${Math.round(cy)}`;
 
   return (
     <G onPress={onPress}>
@@ -489,16 +515,25 @@ function ClusterIcon({ cluster, color, cx, cy, curveY, onPress, surfaceColor }: 
           <Circle cx={cx} cy={cy} fill={color} r={count > 1 ? KILL_R + 1.5 : KILL_R} stroke={surfaceColor} strokeWidth={1.2} />
           {count > 1 ? <SvgText fill="#0f172a" fontSize={5.5} fontWeight="500" textAnchor="middle" x={cx} y={cy + 2.5}>{count}</SvgText> : null}
         </>
-      ) : (
+      ) : iconUri ? (
         <>
-          <Circle cx={cx} cy={cy} fill={info.color} r={half} />
-          <SvgText fill="#fff" fontSize={5} fontWeight="500" textAnchor="middle" x={cx} y={cy + 2.2}>{info.label}</SvgText>
+          <Circle cx={cx} cy={cy} fill={color} fillOpacity={0.18} r={half + 1.5} />
+          <Circle cx={cx} cy={cy} fill="none" r={half + 1.5} stroke={color} strokeOpacity={0.7} strokeWidth={0.9} />
+          <Mask height={ITEM_SZ} id={maskId} maskUnits="userSpaceOnUse" width={ITEM_SZ} x={cx - half} y={cy - half}>
+            <SvgImage height={ITEM_SZ} href={{ uri: iconUri }} width={ITEM_SZ} x={cx - half} y={cy - half} />
+          </Mask>
+          <Rect fill={color} height={ITEM_SZ} mask={`url(#${maskId})`} width={ITEM_SZ} x={cx - half} y={cy - half} />
           {count > 1 ? (
             <>
               <Circle cx={cx + half} cy={cy - half} fill={color} r={BADGE_R} stroke={surfaceColor} strokeWidth={1} />
               <SvgText fill="#fff" fontSize={5} fontWeight="500" textAnchor="middle" x={cx + half} y={cy - half + 2.6}>{count}</SvgText>
             </>
           ) : null}
+        </>
+      ) : (
+        <>
+          <Circle cx={cx} cy={cy} fill={info.color} r={half} />
+          <SvgText fill="#fff" fontSize={5} fontWeight="500" textAnchor="middle" x={cx} y={cy + 2.2}>{info.label}</SvgText>
         </>
       )}
     </G>

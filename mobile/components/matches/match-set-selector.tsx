@@ -1,4 +1,6 @@
+import ImageIcon from 'lucide-react-native/icons/image';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
 
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import type { MobileMatchSetSummary } from '@/lib/api-client';
@@ -9,8 +11,8 @@ import type { MobileMatchSetSummary } from '@/lib/api-client';
  * 세트가 1개(BO1)여도 웹처럼 알약을 그대로 보여준다(TournamentSegmentedControl은 1개일 때
  * 숨기므로 재사용하지 않음).
  */
-export function MatchSetSelector({ activeSetId, onSelect, sets }: { activeSetId: string; onSelect: (setId: string) => void; sets: MobileMatchSetSummary[] }) {
-  const { fonts, theme } = useMinionTheme();
+export function MatchSetSelector({ activeSetId, onSelect, sets, snapshotUrl }: { activeSetId: string; onSelect: (setId: string) => void; sets: MobileMatchSetSummary[]; snapshotUrl?: string }) {
+  const { colorScheme, fonts, theme } = useMinionTheme();
   if (sets.length === 0) return null;
 
   return (
@@ -22,13 +24,14 @@ export function MatchSetSelector({ activeSetId, onSelect, sets }: { activeSetId:
             <Pressable
               key={set.id}
               onPress={() => onSelect(set.id)}
-              style={[styles.pill, active && { backgroundColor: theme.surface, borderColor: theme.border, borderWidth: 1 }]}
+              style={[styles.pill, active && { backgroundColor: colorScheme === 'dark' ? theme.border : theme.surface, borderColor: theme.border, borderWidth: 1 }]}
             >
               <Text style={[styles.pillText, { color: active ? theme.ink : theme.muted, fontFamily: active ? fonts.black : fonts.bold }]}>{set.setNumber}세트</Text>
             </Pressable>
           );
         })}
       </View>
+      {snapshotUrl ? <Pressable accessibilityLabel="공유 스냅샷 보기" onPress={() => WebBrowser.openBrowserAsync(snapshotUrl)} style={[styles.snapshot, { backgroundColor: theme.ink }]}><ImageIcon color={theme.surface} size={14} /></Pressable> : null}
     </View>
   );
 }
@@ -36,6 +39,7 @@ export function MatchSetSelector({ activeSetId, onSelect, sets }: { activeSetId:
 const styles = StyleSheet.create({
   pill: { alignItems: 'center', borderRadius: 8, height: 32, justifyContent: 'center', paddingHorizontal: 14 },
   pillText: { fontSize: 13, lineHeight: 19.5 },
+  snapshot: { alignItems: 'center', borderRadius: 8, height: 32, justifyContent: 'center', width: 32 },
   track: { alignItems: 'center', alignSelf: 'flex-start', borderRadius: 10, flexDirection: 'row', gap: 2, padding: 3 },
-  wrap: { borderBottomWidth: 1, marginHorizontal: -16, paddingHorizontal: 16, paddingVertical: 4 },
+  wrap: { alignItems: 'center', borderBottomWidth: 1, flexDirection: 'row', justifyContent: 'space-between', marginHorizontal: -16, paddingHorizontal: 16, paddingVertical: 4 },
 });

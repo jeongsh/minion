@@ -1,4 +1,3 @@
-import { Image } from 'expo-image';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { TeamLogo } from '@/components/data/team-logo';
@@ -7,6 +6,7 @@ import { OBJECTIVE_ICON_PATHS } from '@/constants/objective-icons';
 import { TEAM_BLUE, TEAM_RED } from '@/constants/team-colors';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import type { MobileChampionRef, MobileObjectiveCounts, MobileSetDetail, MobileSetDraftSide, MobileTeamSummary } from '@/lib/api-client';
+import { BanChampionImage } from './ban-champion-image';
 import { ObjectiveIcon } from './objective-icon';
 
 function hexToRgba(hex: string, alpha: number) {
@@ -36,7 +36,7 @@ function BanTile({ champion }: { champion: MobileChampionRef | null }) {
   const uri = champion?.image?.url;
   return (
     <View style={[styles.banTile, { backgroundColor: tournamentTokens[colorScheme].surfaceMuted }]}>
-      {uri ? <Image contentFit="cover" source={{ uri }} style={styles.banTileImage} /> : null}
+      {uri ? <BanChampionImage url={uri} /> : null}
     </View>
   );
 }
@@ -75,24 +75,28 @@ function ObjectiveGrid({ counts }: { counts: MobileObjectiveCounts }) {
   const { colorScheme, fonts } = useMinionTheme();
   return (
     <View style={styles.objGrid}>
-      {OBJECTIVE_METRICS.map((metric) => {
-        const count = counts[metric.key];
-        const has = count > 0;
-        return (
-          <View key={metric.key} style={styles.objItem}>
-            <ObjectiveIcon opacity={has ? 1 : 0.35} path={metric.icon} size={20} />
-            <Text style={[styles.objCount, { color: has ? tournamentTokens[colorScheme].foreground : tournamentTokens[colorScheme].muted, fontFamily: fonts.medium }]}>{count}</Text>
-          </View>
-        );
-      })}
+      {[OBJECTIVE_METRICS.slice(0, 3), OBJECTIVE_METRICS.slice(3, 6)].map((row, rowIndex) => (
+        <View key={rowIndex} style={styles.objRow}>
+          {row.map((metric) => {
+            const count = counts[metric.key];
+            const has = count > 0;
+            return (
+              <View key={metric.key} style={styles.objItem}>
+                <ObjectiveIcon opacity={has ? 1 : 0.35} path={metric.icon} size={20} />
+                <Text style={[styles.objCount, { color: has ? tournamentTokens[colorScheme].foreground : tournamentTokens[colorScheme].muted, fontFamily: fonts.medium }]}>{count}</Text>
+              </View>
+            );
+          })}
+        </View>
+      ))}
     </View>
   );
 }
 
-function GoldBar({ value, max, align }: { value: number; max: number; align: 'blue' | 'red' }) {
+function GoldBar({ value, max, align }: { value: number | null; max: number; align: 'blue' | 'red' }) {
   const { colorScheme, fonts, theme } = useMinionTheme();
-  const pct = max > 0 ? (value / max) * 100 : 0;
-  const numberNode = <Text style={[styles.goldNumber, { color: theme.ink, fontFamily: fonts.bold }]}>{value.toLocaleString('ko-KR')}</Text>;
+  const pct = max > 0 ? ((value ?? 0) / max) * 100 : 0;
+  const numberNode = <Text style={[styles.goldNumber, { color: theme.ink, fontFamily: fonts.bold }]}>{value === null ? '-' : value.toLocaleString('ko-KR')}</Text>;
   const barNode = (
     <View style={[styles.goldBarTrack, { backgroundColor: tournamentTokens[colorScheme].surfaceMuted }]}>
       <View style={[styles.goldBarFill, { backgroundColor: align === 'blue' ? TEAM_BLUE : TEAM_RED, width: `${pct}%`, alignSelf: align === 'blue' ? 'flex-end' : 'flex-start' }]} />
@@ -147,16 +151,16 @@ export function CompactScoreboard({ set }: { set: MobileSetDetail }) {
 
         <View style={styles.objSection}>
           <ObjectiveGrid counts={set.blueObjectives} />
-          <View style={[styles.objCenterPill, { backgroundColor: hexToRgba(tournamentTokens[colorScheme].surfaceMuted, 0.6) }]}>
+          <View style={styles.objCenterLabelWrap}>
             <Text style={[styles.objCenterLabel, { color: tournamentTokens[colorScheme].muted, fontFamily: fonts.medium }]}>목표물</Text>
           </View>
           <ObjectiveGrid counts={set.redObjectives} />
         </View>
 
         <View style={[styles.goldSection, { borderTopColor: hexToRgba(tournamentTokens[colorScheme].border, 0.5) }]}>
-          <GoldBar align="blue" max={maxGold} value={set.blueGold ?? 0} />
+          <GoldBar align="blue" max={maxGold} value={set.blueGold} />
           <Text style={[styles.goldCenterLabel, { color: tournamentTokens[colorScheme].muted, fontFamily: fonts.medium }]}>골드</Text>
-          <GoldBar align="red" max={maxGold} value={set.redGold ?? 0} />
+          <GoldBar align="red" max={maxGold} value={set.redGold} />
         </View>
       </View>
     </View>
@@ -165,7 +169,6 @@ export function CompactScoreboard({ set }: { set: MobileSetDetail }) {
 
 const styles = StyleSheet.create({
   banTile: { aspectRatio: 1, borderRadius: 4, flex: 1, overflow: 'hidden' },
-  banTileImage: { height: '100%', width: '100%' },
   card: { borderRadius: 12, borderWidth: 1, overflow: 'hidden' },
   section: { gap: 12 },
   sectionHeadRow: { alignItems: 'flex-end', flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
@@ -183,11 +186,12 @@ const styles = StyleSheet.create({
   goldSide: { alignItems: 'center', flex: 1, flexDirection: 'row', gap: 8 },
   noDraft: { alignItems: 'center', paddingVertical: 12 },
   objCenterLabel: { fontSize: 12, lineHeight: 16 },
-  objCenterPill: { alignItems: 'center', borderRadius: 999, height: 32, justifyContent: 'center', width: 56 },
+  objCenterLabelWrap: { alignItems: 'center', justifyContent: 'center', width: 56 },
   objCount: { fontSize: 12, lineHeight: 16 },
-  objGrid: { columnGap: 4, flex: 1, flexDirection: 'row', flexWrap: 'wrap', rowGap: 8 },
-  objItem: { alignItems: 'center', flexDirection: 'row', gap: 4, width: '33.33%' },
-  objSection: { alignItems: 'center', flexDirection: 'row', gap: 8, paddingHorizontal: 8, paddingVertical: 12 },
+  objGrid: { flex: 1, gap: 8 },
+  objItem: { alignItems: 'center', flex: 1, flexDirection: 'row', gap: 4, justifyContent: 'center', minWidth: 0 },
+  objRow: { flexDirection: 'row', gap: 4 },
+  objSection: { alignItems: 'center', flexDirection: 'row', paddingHorizontal: 8, paddingVertical: 12 },
   teamCell: { alignItems: 'center', borderRadius: 8, flex: 1, flexDirection: 'row', gap: 8, padding: 10 },
   teamCellInfo: { flex: 1, minWidth: 0 },
   teamCellKills: { fontSize: 20, lineHeight: 28 },

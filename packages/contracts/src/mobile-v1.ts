@@ -445,6 +445,59 @@ export type MobileMatchHeader = {
   statusLabel: string;
 };
 
+export type MobileMatchPreview = {
+  prediction: MobilePredictionMarket & { closed: boolean };
+  ai: {
+    summary: string;
+    watchPoint: string;
+    winProbabilityA: number | null;
+    sources: Array<{ title: string; url: string }>;
+  };
+  metrics: {
+    recentRecordA: string;
+    recentRecordB: string;
+    setDiffA: number;
+    setDiffB: number;
+    averageKillsA: number | null;
+    averageKillsB: number | null;
+  };
+  meetings: MobileMatchSummary[];
+};
+
+export type MobileFanRatingPlayer = {
+  id: EntityId;
+  name: string;
+  position: MobilePlayerSummary["position"];
+  team: MobileTeamSummary | null;
+  profileImage: MobileImage | null;
+  champion: MobileChampionRef | null;
+  averageRating: number | null;
+  ratingCount: number;
+  isPog: boolean;
+};
+
+export type MobileFanRatingComment = {
+  id: EntityId;
+  playerId: EntityId;
+  playerName: string;
+  playerImage: MobileImage | null;
+  rating: number;
+  review: string;
+  authorName: string;
+  authorImage: MobileImage | null;
+  authorTier: string;
+  honorCount: number;
+  dislikeCount: number;
+};
+
+export type MobileFanRatingPanel = {
+  ratingOpen: boolean;
+  snapshotAvailable: boolean;
+  statusNote: string;
+  players: MobileFanRatingPlayer[];
+  comments: MobileFanRatingComment[];
+};
+
 export type MobileMatchDetailDto = {
   match: MobileMatchSummary;
   header: MobileMatchHeader;
@@ -452,9 +505,8 @@ export type MobileMatchDetailDto = {
   activeSetId: EntityId | null;
   activeSet: MobileSetDetail | null;
   players: MobilePlayerSummary[];
-  initialStats: Record<string, unknown> | null;
-  prediction: Record<string, unknown> | null;
-  fanRating: Record<string, unknown> | null;
+  preview: MobileMatchPreview;
+  fanRating: MobileFanRatingPanel | null;
   vods: MobileVideoItem[];
   matchVodUrl: string | null;
   live: { pollingIntervalMs: number; available: boolean };
@@ -485,6 +537,7 @@ export type MobileVideoItem = {
   id: EntityId;
   title: string;
   url: string;
+  embedUrl?: string | null;
   thumbnail: MobileImage | null;
   publishedAt: IsoDateTime | null;
   channelName: string | null;
