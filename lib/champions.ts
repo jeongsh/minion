@@ -319,3 +319,37 @@ export function pickerChampions(dbChampions: Champion[]) {
 
   return merged.sort((a, b) => championLabel(a).localeCompare(championLabel(b), "ko"));
 }
+
+/** 스킬 슬롯(1=Q, 2=W, 3=E, 4=R) → 실제 챔피언 스킬 아이콘 URL. */
+export type ChampionAbilityIcons = Record<1 | 2 | 3 | 4, string>;
+
+type DdragonChampionDetail = {
+  data: Record<string, { spells: Array<{ image: { full: string } }> }>;
+};
+
+/** Data Dragon 챔피언 상세 JSON에서 Q/W/E/R 스킬 아이콘 URL 4개를 가져온다. */
+export async function fetchChampionAbilityIcons(
+  ddragonId: string,
+  version = "16.12.1",
+): Promise<ChampionAbilityIcons | null> {
+  if (!ddragonId) return null;
+  try {
+    const response = await fetch(
+      `https://ddragon.leagueoflegends.com/cdn/${version}/data/en_US/champion/${ddragonId}.json`,
+      { next: { revalidate: 60 * 60 * 24 } },
+    );
+    if (!response.ok) return null;
+    const json = (await response.json()) as DdragonChampionDetail;
+    const spells = json.data[ddragonId]?.spells;
+    if (!spells || spells.length < 4) return null;
+    const iconUrl = (full: string) => `https://ddragon.leagueoflegends.com/cdn/${version}/img/spell/${full}`;
+    return {
+      1: iconUrl(spells[0].image.full),
+      2: iconUrl(spells[1].image.full),
+      3: iconUrl(spells[2].image.full),
+      4: iconUrl(spells[3].image.full),
+    };
+  } catch {
+    return null;
+  }
+}

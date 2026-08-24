@@ -17,10 +17,9 @@ import {
   getSetsByMatchId,
   getTimelineEvents,
   getTimelineFrames,
-  type PlayerBuildEvent,
 } from "@/lib/data/lck";
 import { calculatePlayerStats } from "@/lib/stats";
-import { championImage } from "@/lib/champions";
+import { championImage, fetchChampionAbilityIcons, normalizedDdragonId } from "@/lib/champions";
 import { buildPlayerLoadoutTimeline } from "@/lib/player-build";
 import {
   OBJECTIVE_ICONS,
@@ -32,7 +31,7 @@ import {
   voidGrubIconsForSide,
 } from "@/lib/objectives";
 import { ddragonVersionFromPatch } from "@/lib/ddragon";
-import { buildRuneBuildGrid, fetchFullRuneTrees, fetchRuneCatalog, resolveRunePairUrls, type DdragonRuneTree, type RuneCatalog } from "@/lib/runes";
+import { buildRuneBuildGrid, fetchFullRuneTrees, fetchRuneCatalog, resolveRunePairUrls, type RuneCatalog } from "@/lib/runes";
 import { fetchSpellCatalog, type GameSpell } from "@/lib/spells";
 import type {
   Champion,
@@ -51,6 +50,7 @@ import {
 } from "@/lib/view-data";
 
 import { GameTimeline } from "./game-timeline";
+import { PlayerBuildPanel, type PlayerBuildPanelEntry } from "./player-build-panel";
 import { CompactSetDraftView, SetDraftView } from "./sets/[setId]/set-draft-view";
 
 function numberLabel(value: number | null | undefined) {
@@ -423,8 +423,6 @@ function PlayerStatBoard({
   itemVersion,
   spells,
   runeCatalog,
-  fullRuneTrees,
-  buildEvents,
 }: {
   blueRows: PlayerStatRow[];
   redRows: PlayerStatRow[];
@@ -437,16 +435,10 @@ function PlayerStatBoard({
   itemVersion: string;
   spells: GameSpell[];
   runeCatalog: RuneCatalog;
-  fullRuneTrees: DdragonRuneTree[];
-  buildEvents: PlayerBuildEvent[];
 }) {
   const toTableRows = (rows: PlayerStatRow[]) =>
     rows.map((row) => {
       const champion = champions.find((item) => item.id === row.line.championId);
-      const { keystoneUrl, treeUrl } = resolveRunePairUrls(row.line.runeIds, runeCatalog);
-      const fullRuneNames = row.line.fullRuneNames;
-      const runeGrid = fullRuneNames ? buildRuneBuildGrid(fullRuneNames, fullRuneTrees) : null;
-      const { skillOrder, itemPurchaseGroups } = buildPlayerLoadoutTimeline(buildEvents, row.line.playerId);
       return {
         id: row.line.playerId,
         champion,
@@ -470,17 +462,6 @@ function PlayerStatBoard({
         version: itemVersion,
         spells,
         runeCatalog,
-        buildDetail: {
-          playerName: row.player?.name ?? "-",
-          championImageUrl: championImage(champion),
-          championName: champion?.name ?? "-",
-          version: itemVersion,
-          keystoneUrl,
-          treeUrl,
-          runeGrid,
-          skillOrder,
-          itemPurchaseGroups,
-        },
       };
     });
 
@@ -636,11 +617,48 @@ export async function SetDetailContent({
     1,
   );
   const itemVersion = ddragonVersionFromPatch(set.patch);
-  const [spells, runeCatalog, fullRuneTrees] = await Promise.all([
+  const uniqueDdragonIds = [
+    ...new Set(
+      playerRows
+        .map((row) => normalizedDdragonId(champions.find((item) => item.id === row.line.championId)))
+        .filter((ddragonId) => ddragonId.length > 0),
+    ),
+  ];
+  const [spells, runeCatalog, fullRuneTrees, abilityIconEntries] = await Promise.all([
     fetchSpellCatalog(itemVersion),
     fetchRuneCatalog(itemVersion),
     fetchFullRuneTrees(itemVersion),
+    Promise.all(
+      uniqueDdragonIds.map(
+        async (ddragonId) => [ddragonId, await fetchChampionAbilityIcons(ddragonId, itemVersion)] as const,
+      ),
+    ),
   ]);
+  const abilityIconsByDdragonId = new Map(abilityIconEntries);
+  const playerBuildEntries: PlayerBuildPanelEntry[] = [
+    ...blueRows.map((row) => ({ row, side: "blue" as const, won: blueOutcome.won })),
+    ...redRows.map((row) => ({ row, side: "red" as const, won: redOutcome.won })),
+  ].map(({ row, side, won }) => {
+    const champion = champions.find((item) => item.id === row.line.championId);
+    const { keystoneUrl, treeUrl } = resolveRunePairUrls(row.line.runeIds, runeCatalog);
+    const fullRuneNames = row.line.fullRuneNames;
+    const runeGrid = fullRuneNames ? buildRuneBuildGrid(fullRuneNames, fullRuneTrees) : null;
+    const { skillOrder, itemPurchaseGroups } = buildPlayerLoadoutTimeline(playerBuildEvents, row.line.playerId);
+    return {
+      playerId: row.line.playerId,
+      playerName: row.player?.name ?? "-",
+      championImageUrl: championImage(champion),
+      abilityIcons: abilityIconsByDdragonId.get(normalizedDdragonId(champion)) ?? null,
+      side,
+      won,
+      version: itemVersion,
+      keystoneUrl,
+      treeUrl,
+      runeGrid,
+      skillOrder,
+      itemPurchaseGroups,
+    };
+  });
   const Shell = embedded ? "div" : "main";
 
   return (
@@ -822,9 +840,9 @@ export async function SetDetailContent({
         itemVersion={itemVersion}
         spells={spells}
         runeCatalog={runeCatalog}
-        fullRuneTrees={fullRuneTrees}
-        buildEvents={playerBuildEvents}
       />
+
+      <PlayerBuildPanel entries={playerBuildEntries} />
 
       <section className="flex flex-col gap-3" aria-labelledby="set-timeline">
         <h2 id="set-timeline" className="home-section-title text-[length:var(--ui-title-size)] text-[var(--ui-ink)]">

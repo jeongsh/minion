@@ -1,11 +1,9 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useState } from "react";
 
 import { PlayerItemSlots } from "@/app/matches/[matchId]/player-item-slots";
 import { PlayerLoadout } from "@/components/domain/player-loadout";
-import { PlayerBuildModal, type PlayerBuildDetail } from "@/components/domain/player-build-modal";
 import { TeamLogo } from "@/components/ui/team-logo";
 import type { RuneCatalog } from "@/lib/runes";
 import type { GameSpell } from "@/lib/spells";
@@ -35,7 +33,6 @@ export type PlayerStatTableRow = {
   spells: GameSpell[];
   runeCatalog: RuneCatalog;
   accent?: "blue" | "red";
-  buildDetail?: PlayerBuildDetail;
 };
 
 export type PlayerStatTableGroup = {
@@ -72,40 +69,14 @@ function CompactHeader({ group }: { group: PlayerStatTableGroup }) {
   );
 }
 
-function CompactRow({
-  row,
-  maxDamage,
-  accent,
-  onSelect,
-}: {
-  row: PlayerStatTableRow;
-  maxDamage: number;
-  accent: "blue" | "red";
-  onSelect?: (id: string) => void;
-}) {
+function CompactRow({ row, maxDamage, accent }: { row: PlayerStatTableRow; maxDamage: number; accent: "blue" | "red" }) {
   const damageWidth = Math.max(4, (row.damage / maxDamage) * 100);
   const accentClass = accent === "blue" ? "bg-team-blue" : "bg-team-red";
-  const clickable = row.buildDetail != null;
 
   return (
     <div
       data-player-stat-row="compact"
-      role={clickable ? "button" : undefined}
-      tabIndex={clickable ? 0 : undefined}
-      onClick={clickable ? () => onSelect?.(row.id) : undefined}
-      onKeyDown={
-        clickable
-          ? (event) => {
-              if (event.key === "Enter" || event.key === " ") {
-                event.preventDefault();
-                onSelect?.(row.id);
-              }
-            }
-          : undefined
-      }
-      className={`grid min-w-0 grid-cols-[minmax(0,1fr)_3.5rem_5.25rem] items-center gap-2 bg-[var(--ui-surface)] px-2.5 py-2 min-[480px]:grid-cols-[minmax(0,1fr)_3.5rem_6.5rem_5.25rem] min-[560px]:grid-cols-[12rem_3.5rem_minmax(6.5rem,1fr)_5.25rem] min-[720px]:grid-cols-[12rem_3.25rem_minmax(6.5rem,1fr)_auto] min-[720px]:px-3 ${
-        clickable ? "cursor-pointer transition-colors hover:bg-[var(--ui-surface-muted)]" : ""
-      }`}
+      className="grid min-w-0 grid-cols-[minmax(0,1fr)_3.5rem_5.25rem] items-center gap-2 bg-[var(--ui-surface)] px-2.5 py-2 min-[480px]:grid-cols-[minmax(0,1fr)_3.5rem_6.5rem_5.25rem] min-[560px]:grid-cols-[12rem_3.5rem_minmax(6.5rem,1fr)_5.25rem] min-[720px]:grid-cols-[12rem_3.25rem_minmax(6.5rem,1fr)_auto] min-[720px]:px-3"
     >
       <PlayerLoadout
         champion={row.champion}
@@ -178,40 +149,12 @@ function DesktopHeader({ group }: { group: PlayerStatTableGroup }) {
   );
 }
 
-function DesktopRow({
-  row,
-  maxDamage,
-  accent,
-  onSelect,
-}: {
-  row: PlayerStatTableRow;
-  maxDamage: number;
-  accent: "blue" | "red";
-  onSelect?: (id: string) => void;
-}) {
+function DesktopRow({ row, maxDamage, accent }: { row: PlayerStatTableRow; maxDamage: number; accent: "blue" | "red" }) {
   const damageWidth = Math.max(4, (row.damage / maxDamage) * 100);
   const accentClass = accent === "blue" ? "bg-team-blue" : "bg-team-red";
-  const clickable = row.buildDetail != null;
 
   return (
-    <div
-      role={clickable ? "button" : undefined}
-      tabIndex={clickable ? 0 : undefined}
-      onClick={clickable ? () => onSelect?.(row.id) : undefined}
-      onKeyDown={
-        clickable
-          ? (event) => {
-              if (event.key === "Enter" || event.key === " ") {
-                event.preventDefault();
-                onSelect?.(row.id);
-              }
-            }
-          : undefined
-      }
-      className={`grid grid-cols-[13rem_5rem_minmax(8rem,1fr)_3rem_3.25rem_4.5rem_19rem] items-center gap-2 bg-[var(--ui-surface)] px-2.5 py-2 text-sm transition-colors hover:bg-[var(--ui-surface-muted)] ${
-        clickable ? "cursor-pointer" : ""
-      }`}
-    >
+    <div className="grid grid-cols-[13rem_5rem_minmax(8rem,1fr)_3rem_3.25rem_4.5rem_19rem] items-center gap-2 bg-[var(--ui-surface)] px-2.5 py-2 text-sm transition-colors hover:bg-[var(--ui-surface-muted)]">
       <PlayerLoadout
         champion={row.champion}
         spellIds={row.spellIds}
@@ -268,10 +211,6 @@ export function PlayerStatTable({
   framed?: boolean;
 }) {
   const maxDamage = suppliedMaxDamage ?? Math.max(...groups.flatMap((group) => group.rows.map((row) => row.damage)), 1);
-  const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
-  const selectedRow = selectedRowId
-    ? groups.flatMap((group) => group.rows).find((row) => row.id === selectedRowId)
-    : undefined;
 
   return (
     <div className={className}>
@@ -281,9 +220,7 @@ export function PlayerStatTable({
           return (
             <div key={group.id} className="overflow-hidden rounded-lg bg-[var(--ui-surface)] [&_[data-player-stat-row]+[data-player-stat-row]]:border-t [&_[data-player-stat-row]+[data-player-stat-row]]:border-border/35">
               <CompactHeader group={group} />
-              {group.rows.map((row) => (
-                <CompactRow key={row.id} row={row} maxDamage={maxDamage} accent={row.accent ?? accent} onSelect={setSelectedRowId} />
-              ))}
+              {group.rows.map((row) => <CompactRow key={row.id} row={row} maxDamage={maxDamage} accent={row.accent ?? accent} />)}
             </div>
           );
         })}
@@ -297,17 +234,13 @@ export function PlayerStatTable({
               <div key={group.id} className="overflow-hidden rounded-md bg-[var(--ui-surface)]">
                 <DesktopHeader group={group} />
                 <div className="divide-y divide-border/35">
-                  {group.rows.map((row) => (
-                    <DesktopRow key={row.id} row={row} maxDamage={maxDamage} accent={row.accent ?? accent} onSelect={setSelectedRowId} />
-                  ))}
+                  {group.rows.map((row) => <DesktopRow key={row.id} row={row} maxDamage={maxDamage} accent={row.accent ?? accent} />)}
                 </div>
               </div>
             );
           })}
         </div>
       </div>
-
-      <PlayerBuildModal detail={selectedRow?.buildDetail ?? null} onClose={() => setSelectedRowId(null)} />
     </div>
   );
 }
