@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import type { WeekDate } from '@/lib/schedule-dates';
 
-export const SCHEDULE_WEEK_SCROLLER_HEIGHT = 71;
+export const SCHEDULE_WEEK_SCROLLER_HEIGHT = 70;
 
 export function scheduleTargetForDate(dateKey: string, availableDateKeys: string[]) {
   if (availableDateKeys.includes(dateKey)) return dateKey;
@@ -48,7 +48,7 @@ export function ScheduleWeekScroller({
 }
 
 const styles = StyleSheet.create({
-  bar: { borderBottomWidth: 1, marginHorizontal: -16, paddingHorizontal: 16, paddingVertical: 8 },
+  bar: { borderBottomWidth: 1, marginHorizontal: -16, paddingBottom: 7, paddingHorizontal: 16, paddingTop: 8 },
   cell: { alignItems: 'center', borderRadius: 8, flex: 1, justifyContent: 'center', minHeight: 44 },
   day: { fontSize: 14, lineHeight: 21 },
   grid: { borderRadius: 12, borderWidth: 1, flexDirection: 'row', gap: 4, padding: 4 },
