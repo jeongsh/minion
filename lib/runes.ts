@@ -18,7 +18,7 @@ type DdragonRuneSlot = {
   }>;
 };
 
-type DdragonRuneTree = {
+export type DdragonRuneTree = {
   id: number;
   name: string;
   icon: string;
@@ -139,6 +139,130 @@ export async function fetchRuneNameToIdMap(version = "16.12.1"): Promise<Map<str
   } catch {
     return new Map();
   }
+}
+
+/**
+ * Data Dragon는 스탯 파편(글자 그대로 "Adaptive Force" 등)을 runesReforged.json에 담지
+ * 않는다. 대신 고정된 정적 CDN 경로로 서빙되는데, 이 경로들은 시즌이 바뀌어도 안정적으로
+ * 유지된다. Leaguepedia SP.Runes 필드에서 실제로 관측된 7개 파편 이름을 기준으로 매핑했다.
+ */
+const STAT_SHARD_ICON_BY_NAME: Record<string, string> = {
+  "adaptive force": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/StatMods/StatModsAdaptiveForceIcon.png",
+  "attack speed": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/StatMods/StatModsAttackSpeedIcon.png",
+  "ability haste": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/StatMods/StatModsCDRScalingIcon.png",
+  "move speed": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/StatMods/StatModsMovementSpeedIcon.png",
+  "health scaling": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/StatMods/StatModsHealthScalingIcon.png",
+  "health": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/StatMods/StatModsHealthPlusIcon.png",
+  "tenacity and slow resist": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/StatMods/StatModsTenacityIcon.png",
+};
+
+/** 룬 트리 전체 구조(키스톤 포함 각 슬롯의 모든 선택지)를 그대로 반환한다 — 이름은 Leaguepedia 값과
+ * 맞춰 매칭할 수 있도록 영문(en_US) 그대로 둔다. */
+export async function fetchFullRuneTrees(version = "16.12.1"): Promise<DdragonRuneTree[]> {
+  try {
+    const response = await fetch(
+      `https://ddragon.leagueoflegends.com/cdn/${version}/data/en_US/runesReforged.json`,
+      { next: { revalidate: 60 * 60 * 24 } },
+    );
+    if (!response.ok) return [];
+    return (await response.json()) as DdragonRuneTree[];
+  } catch {
+    return [];
+  }
+}
+
+const TREE_NAME_KO: Record<string, string> = {
+  Precision: "정밀",
+  Domination: "지배",
+  Sorcery: "마법",
+  Resolve: "결의",
+  Inspiration: "영감",
+};
+
+/**
+ * 스탯 파편 3행의 선택지 이름. Data Dragon에는 없어서 실제 Leaguepedia SP.Runes 데이터
+ * (인덱스 6/7/8 위치)를 분석해 확인한 값이다.
+ */
+const SHARD_ROWS: string[][] = [
+  ["Adaptive Force", "Attack Speed", "Ability Haste"],
+  ["Adaptive Force", "Move Speed", "Health Scaling"],
+  ["Health", "Tenacity and Slow Resist", "Health Scaling"],
+];
+
+export type RuneGridOption = { name: string; url: string; selected: boolean };
+export type RuneGridRow = RuneGridOption[];
+
+export type RuneBuildGrid = {
+  primaryTreeName: string;
+  primaryTreeIcon: string;
+  /** [키스톤 행, 주계열 나머지 3행] */
+  primaryRows: RuneGridRow[];
+  secondaryTreeName: string;
+  secondaryTreeIcon: string;
+  /** 키스톤 행 제외 3행 */
+  secondaryRows: RuneGridRow[];
+  /** 3행(공격/유연/방어) */
+  shardRows: RuneGridRow[];
+};
+
+/**
+ * SP.Runes 순서([키스톤, 주계열3, 보조계열2, 파편3])의 선택된 룬 이름 9개와 전체 룬 트리
+ * 카탈로그로부터, 실제 클라이언트 룬 페이지처럼 선택되지 않은 옵션까지 포함한 전체 그리드를
+ * 만든다. 주계열은 키스톤이 속한 트리, 보조계열은 보조 룬 2개 중 하나라도 포함하는(키스톤
+ * 트리가 아닌) 트리로 역추적한다.
+ */
+export function buildRuneBuildGrid(
+  fullRuneNames: string[],
+  trees: DdragonRuneTree[],
+): RuneBuildGrid | null {
+  if (fullRuneNames.length !== 9 || trees.length === 0) return null;
+  const [keystoneName, p1, p2, p3, s1, s2, sh1, sh2, sh3] = fullRuneNames;
+  const keystoneKey = keystoneName.toLowerCase();
+  const primaryMinors = new Set([p1, p2, p3].map((n) => n.toLowerCase()));
+  const secondaryMinors = new Set([s1, s2].map((n) => n.toLowerCase()));
+
+  const primaryTree = trees.find((tree) =>
+    tree.slots[0]?.runes.some((rune) => rune.name.toLowerCase() === keystoneKey),
+  );
+  if (!primaryTree) return null;
+
+  const secondaryTree = trees.find(
+    (tree) =>
+      tree.id !== primaryTree.id &&
+      tree.slots.slice(1).some((slot) => slot.runes.some((rune) => secondaryMinors.has(rune.name.toLowerCase()))),
+  );
+  if (!secondaryTree) return null;
+
+  const toRow = (runes: DdragonRuneSlot["runes"], selected: Set<string>): RuneGridRow =>
+    runes.map((rune) => ({
+      name: rune.name,
+      url: runeImageUrl(rune),
+      selected: selected.has(rune.name.toLowerCase()),
+    }));
+
+  const treeIconUrl = (tree: DdragonRuneTree) => `https://ddragon.leagueoflegends.com/cdn/img/${tree.icon}`;
+
+  const shardNames = [sh1, sh2, sh3];
+  const shardRows: RuneGridRow[] = SHARD_ROWS.map((options, rowIndex) => {
+    const selectedKey = shardNames[rowIndex]?.toLowerCase();
+    return options.map((name) => ({
+      name,
+      url: STAT_SHARD_ICON_BY_NAME[name.toLowerCase()] ?? "",
+      selected: name.toLowerCase() === selectedKey,
+    }));
+  });
+
+  return {
+    primaryTreeName: TREE_NAME_KO[primaryTree.name] ?? primaryTree.name,
+    primaryTreeIcon: treeIconUrl(primaryTree),
+    primaryRows: primaryTree.slots.map((slot, index) =>
+      toRow(slot.runes, index === 0 ? new Set([keystoneKey]) : primaryMinors),
+    ),
+    secondaryTreeName: TREE_NAME_KO[secondaryTree.name] ?? secondaryTree.name,
+    secondaryTreeIcon: treeIconUrl(secondaryTree),
+    secondaryRows: secondaryTree.slots.slice(1).map((slot) => toRow(slot.runes, secondaryMinors)),
+    shardRows,
+  };
 }
 
 export async function fetchRuneImages(version = "16.12.1"): Promise<Record<string, string>> {

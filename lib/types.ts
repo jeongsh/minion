@@ -300,6 +300,8 @@ export type PlayerStatLine = {
   spellIds: Array<number | null>;
   runeIds: Array<number | null>;
   roleBoundItem: number | null;
+  /** 키스톤+주계열3+보조계열2+파편3, 총 9개(순서 고정). Leaguepedia 원본이 불완전하면 없음. */
+  fullRuneNames?: string[] | null;
   patch: string | null;
 };
 

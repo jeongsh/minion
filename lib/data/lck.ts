@@ -173,6 +173,7 @@ type SetPlayerStatsRow = {
   rune0?: number | null;
   rune1?: number | null;
   role_bound_item?: number | null;
+  full_rune_names?: string[] | null;
   sets?:
     | { duration_seconds: number | null; patch: string | null }
     | Array<{ duration_seconds: number | null; patch: string | null }>
@@ -1382,7 +1383,7 @@ async function getPlayerStatLinesBase(setId?: string | string[], playerId?: stri
         let query = supabase
           .from("set_player_stats")
           .select(
-            "set_id, player_id, team_id, position, champion_id, champion_level, kills, deaths, assists, cs, gold, damage_to_champions, vision_score, dpm, damage_share, vision_score_per_minute, cs_per_minute, gold_diff_at_10, xp_diff_at_10, cs_diff_at_10, gold_diff_at_15, xp_diff_at_15, cs_diff_at_15, item0, item1, item2, item3, item4, item5, item6, spell0, spell1, rune0, rune1, role_bound_item, sets(duration_seconds, patch)",
+            "set_id, player_id, team_id, position, champion_id, champion_level, kills, deaths, assists, cs, gold, damage_to_champions, vision_score, dpm, damage_share, vision_score_per_minute, cs_per_minute, gold_diff_at_10, xp_diff_at_10, cs_diff_at_10, gold_diff_at_15, xp_diff_at_15, cs_diff_at_15, item0, item1, item2, item3, item4, item5, item6, spell0, spell1, rune0, rune1, role_bound_item, full_rune_names, sets(duration_seconds, patch)",
           )
           .order("position", { ascending: true })
           .order("set_id", { ascending: true })
@@ -1457,6 +1458,7 @@ async function getPlayerStatLinesBase(setId?: string | string[], playerId?: stri
       spellIds: [row.spell0, row.spell1].map((spellId) => spellId ?? null),
       runeIds: [row.rune0, row.rune1].map((runeId) => runeId ?? null),
       roleBoundItem: row.role_bound_item ?? null,
+      fullRuneNames: row.full_rune_names ?? null,
       patch: Array.isArray(row.sets) ? (row.sets[0]?.patch ?? null) : (row.sets?.patch ?? null),
     }));
   }, []);
@@ -1843,6 +1845,44 @@ async function getTimelineEventsBase(setId: string): Promise<TimelineEvent[]> {
   }, []);
 }
 
+export type PlayerBuildEvent = {
+  playerId: string;
+  timestampMs: number;
+  minute: number;
+  eventType: "ITEM_PURCHASED" | "ITEM_SOLD" | "ITEM_UNDO" | "SKILL_LEVEL_UP";
+  itemId: number | null;
+  skillSlot: number | null;
+  levelUpType: string | null;
+};
+
+/** 세트의 아이템 구매/판매/스킬 레벨업 이벤트를 시간순으로 반환한다(라이엇 타임라인 원본 미러링). */
+async function getPlayerBuildEventsBase(setId: string): Promise<PlayerBuildEvent[]> {
+  return fromSupabase(async () => {
+    const { data, error } = await createSupabaseServerClient()
+      .from("timeline_events")
+      .select("player_id, timestamp_ms, minute, event_type, raw_event_json")
+      .eq("set_id", setId)
+      .in("event_type", ["ITEM_PURCHASED", "ITEM_SOLD", "ITEM_UNDO", "SKILL_LEVEL_UP"])
+      .not("player_id", "is", null)
+      .order("timestamp_ms", { ascending: true });
+
+    if (error) throw error;
+
+    return (data ?? []).map((row) => {
+      const raw = (row.raw_event_json ?? {}) as { itemId?: number; skillSlot?: number; levelUpType?: string };
+      return {
+        playerId: row.player_id as string,
+        timestampMs: row.timestamp_ms as number,
+        minute: row.minute as number,
+        eventType: row.event_type as PlayerBuildEvent["eventType"],
+        itemId: typeof raw.itemId === "number" ? raw.itemId : null,
+        skillSlot: typeof raw.skillSlot === "number" ? raw.skillSlot : null,
+        levelUpType: raw.levelUpType ?? null,
+      };
+    });
+  }, []);
+}
+
 /** 세트의 분당(프레임) 골드/경험치/CS 스냅샷. 라이엇 타임라인 프레임 동기화가 없으면 빈 배열. */
 export type MatchTimelineFrame = {
   id: string;
@@ -2144,6 +2184,7 @@ export const getFanRatingsByMatchId = cache(getFanRatingsByMatchIdBase);
 export const getFanRatingsByTeamId = cache(getFanRatingsByTeamIdBase);
 export const getPlayerPomCount = cache(getPlayerPomCountBase);
 export const getTimelineEvents = cache(getTimelineEventsBase);
+export const getPlayerBuildEvents = cache(getPlayerBuildEventsBase);
 export const getTimelineFrames = cache(getTimelineFramesBase);
 export const getFanPogVotes = cache(getFanPogVotesBase);
 export const getFanMatchPredictions = cache(getFanMatchPredictionsBase);

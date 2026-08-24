@@ -28,6 +28,10 @@ type RiotEvent = {
   monsterSubType?: string;
   buildingType?: string;
   laneType?: string;
+  participantId?: number;
+  itemId?: number;
+  skillSlot?: number;
+  levelUpType?: string;
 };
 
 type RiotParticipantFrame = {
@@ -174,6 +178,24 @@ export function parseLeaguepediaTimelineEvents(
           monster_type: null,
           building_type: event.buildingType ?? null,
           lane_type: event.laneType ?? null,
+        });
+      } else if (
+        event.type === "ITEM_PURCHASED" ||
+        event.type === "ITEM_SOLD" ||
+        event.type === "ITEM_UNDO" ||
+        event.type === "SKILL_LEVEL_UP"
+      ) {
+        const participant = event.participantId ? participantMap.get(event.participantId) : null;
+        rows.push({
+          ...base,
+          event_type: event.type,
+          team_id: participant?.teamId ?? null,
+          player_id: participant?.playerId ?? null,
+          killer_player_id: null,
+          victim_player_id: null,
+          monster_type: null,
+          building_type: null,
+          lane_type: null,
         });
       }
     }

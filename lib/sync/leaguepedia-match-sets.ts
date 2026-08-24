@@ -132,6 +132,7 @@ type CargoPlayerRow = {
   RoleBoundItem?: string;
   KeystoneRune?: string;
   SecondaryTree?: string;
+  Runes?: string;
 };
 
 type PreservedPlayerBuild = {
@@ -147,6 +148,7 @@ type PreservedPlayerBuild = {
   rune0: number | null;
   rune1: number | null;
   role_bound_item: number | null;
+  full_rune_names: string[] | null;
 };
 
 type CargoScheduleGameRow = {
@@ -274,6 +276,16 @@ function parseLeaguepediaSpells(
     if (!name) return null;
     return nameToId.get(name.toLowerCase()) ?? nameToId.get(name.replace(/^Summoner/i, "").toLowerCase()) ?? null;
   });
+}
+
+/**
+ * Leaguepedia SP.Runes는 [키스톤, 주계열 룬 3개, 보조계열 룬 2개, 스탯 파편 3개] 순서로
+ * 콤마 구분된 룬 이름 9개를 담고 있다. 길이가 안 맞으면(옛 데이터 등) 신뢰할 수 없어 버린다.
+ */
+function parseFullRuneNames(runesStr: string | null | undefined): string[] | null {
+  if (!runesStr?.trim()) return null;
+  const parts = runesStr.split(",").map((s) => s.trim()).filter(Boolean);
+  return parts.length === 9 ? parts : null;
 }
 
 function parseInteger(value: string | null | undefined) {
@@ -1008,6 +1020,7 @@ async function fetchPlayerRows(leaguepediaMatchId: string, options?: Leaguepedia
       "SP.RoleBoundItem=RoleBoundItem",
       "SP.KeystoneRune=KeystoneRune",
       "SP.SecondaryTree=SecondaryTree",
+      "SP.Runes=Runes",
     ].join(","),
     where: `SP.MatchId="${escapeCargoValue(leaguepediaMatchId)}"`,
     order_by: "SP.GameId ASC, SP.Side ASC, SP.Role_Number ASC",
@@ -1523,7 +1536,7 @@ export async function syncLeaguepediaMatchSets(
 
     const { data: existingStats, error: existingStatsError } = await supabase
       .from("set_player_stats")
-      .select("set_id, player_id, item0, item1, item2, item3, item4, item5, item6, spell0, spell1, rune0, rune1, role_bound_item")
+      .select("set_id, player_id, item0, item1, item2, item3, item4, item5, item6, spell0, spell1, rune0, rune1, role_bound_item, full_rune_names")
       .in("set_id", setIds);
     if (existingStatsError) {
       throw existingStatsError;
@@ -1547,6 +1560,7 @@ export async function syncLeaguepediaMatchSets(
           rune0: stat.rune0,
           rune1: stat.rune1,
           role_bound_item: stat.role_bound_item,
+          full_rune_names: stat.full_rune_names,
         },
       ]),
     );
@@ -1644,6 +1658,7 @@ export async function syncLeaguepediaMatchSets(
       const secondaryName = String(row.SecondaryTree ?? "").trim().toLowerCase();
       const parsedRune0 = keystoneName ? (runeNameToId.get(keystoneName) ?? null) : null;
       const parsedRune1 = secondaryName ? (runeNameToId.get(secondaryName) ?? null) : null;
+      const parsedFullRuneNames = parseFullRuneNames(row.Runes);
 
       const hasItems = parsedItems.some((id) => id !== null);
       const hasSpells = parsedSpells.some((id) => id !== null);
@@ -1679,6 +1694,7 @@ export async function syncLeaguepediaMatchSets(
           rune0: parsedRune0 ?? (preservedBuild?.rune0 ?? null),
           rune1: parsedRune1 ?? (preservedBuild?.rune1 ?? null),
           role_bound_item: parsedRoleBoundItem ?? (preservedBuild?.role_bound_item ?? null),
+          full_rune_names: parsedFullRuneNames ?? (preservedBuild?.full_rune_names ?? null),
         },
       ];
     });
