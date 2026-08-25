@@ -1,6 +1,6 @@
 import CalendarDays from 'lucide-react-native/icons/calendar-days';
 import SlidersHorizontal from 'lucide-react-native/icons/sliders-horizontal';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { type LayoutChangeEvent, Pressable, StyleSheet, View } from 'react-native';
 
 import { ErrorState } from '@/components/feedback-states';
@@ -36,8 +36,8 @@ export default function ScheduleScreen() {
   const [filter, setFilter] = useState<ScheduleFilterState>({ month: defaults.month, segment: 'all', teamId: 'all', year: defaults.year });
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
-  const listOffsetRef = useRef<{ layoutKey: string; y: number } | null>(null);
-  const sectionOffsetsRef = useRef(new Map<string, { layoutKey: string; y: number }>());
+  const listOffsetRef = useRef<number | null>(null);
+  const sectionOffsetsRef = useRef(new Map<string, number>());
   const autoScrolledRef = useRef<string | null>(null);
   const [scrollRequest, setScrollRequest] = useState<{ animated: boolean; y: number } | null>(null);
 
@@ -57,23 +57,18 @@ export default function ScheduleScreen() {
   );
   const autoScrollTarget = scheduleTargetForDate(todayKey, availableDateKeys);
 
-  const scrollToDate = useCallback(
-    (dateKey: string, animated: boolean) => {
-      const listOffset = listOffsetRef.current;
-      const sectionOffset = sectionOffsetsRef.current.get(dateKey);
-      if (
-        !listOffset ||
-        listOffset.layoutKey !== scheduleLayoutKey ||
-        !sectionOffset ||
-        sectionOffset.layoutKey !== scheduleLayoutKey
-      ) return false;
+  // 섹션 y좌표는 onLayout이 실제로 갱신할 때만 값이 바뀌므로 항상 최신값으로 신뢰한다.
+  // 캐시 데이터 → 실제 데이터로 교체될 때 오늘 섹션의 위치가 우연히 동일하면
+  // React Native가 onLayout을 다시 쏘지 않는데, 이전에는 그 값을 데이터셋 키로
+  // 걸러내다 보니 이 경우 자동 스크롤이 영영 실행되지 않는 문제가 있었다.
+  const scrollToDate = useCallback((dateKey: string, animated: boolean) => {
+    const listOffset = listOffsetRef.current;
+    const sectionOffset = sectionOffsetsRef.current.get(dateKey);
+    if (listOffset == null || sectionOffset == null) return false;
 
-      const y = listOffset.y + sectionOffset.y;
-      setScrollRequest({ animated, y });
-      return true;
-    },
-    [scheduleLayoutKey],
-  );
+    setScrollRequest({ animated, y: listOffset + sectionOffset });
+    return true;
+  }, []);
 
   const tryInitialScroll = useCallback(() => {
     if (!autoScrollTarget) return;
@@ -82,20 +77,26 @@ export default function ScheduleScreen() {
     if (scrollToDate(autoScrollTarget, false)) autoScrolledRef.current = scrollId;
   }, [autoScrollTarget, scheduleLayoutKey, scrollToDate]);
 
+  // onLayout이 재발화하지 않는 경우(위와 동일한 이유)에도 데이터셋이 바뀌면
+  // 이미 저장된 좌표로 다시 한 번 스크롤을 시도한다.
+  useEffect(() => {
+    tryInitialScroll();
+  }, [tryInitialScroll]);
+
   const handleListLayout = useCallback(
     (event: LayoutChangeEvent) => {
-      listOffsetRef.current = { layoutKey: scheduleLayoutKey, y: event.nativeEvent.layout.y };
+      listOffsetRef.current = event.nativeEvent.layout.y;
       tryInitialScroll();
     },
-    [scheduleLayoutKey, tryInitialScroll],
+    [tryInitialScroll],
   );
 
   const handleSectionLayout = useCallback(
     (dateKey: string, y: number) => {
-      sectionOffsetsRef.current.set(dateKey, { layoutKey: scheduleLayoutKey, y });
+      sectionOffsetsRef.current.set(dateKey, y);
       tryInitialScroll();
     },
-    [scheduleLayoutKey, tryInitialScroll],
+    [tryInitialScroll],
   );
 
   const handleSelectDate = useCallback(
