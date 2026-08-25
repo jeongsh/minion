@@ -2,7 +2,7 @@ import type { Team } from "@/lib/types";
 import { shouldUseWhiteLogoOnDark } from "@/lib/team-logos";
 
 type TeamLogoProps = {
-  team?: Team;
+  team?: Pick<Team, "name" | "slug" | "logoUrl" | "logoWhiteUrl" | "useWhiteLogoOnDark">;
   size?: string;
   plain?: boolean;
   themeAware?: boolean;

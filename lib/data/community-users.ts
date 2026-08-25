@@ -13,6 +13,7 @@ export type CommunityUserSummary = {
   nickname: string;
   profileImageUrl: string | null;
   tier: Tier;
+  favoriteTeamId: string | null;
   createdAt: string;
 };
 
@@ -45,6 +46,7 @@ export const getCommunityUserSummary = cache(async function getCommunityUserSumm
     nickname: ranked?.nickname ?? row.nickname,
     profileImageUrl: ranked?.profileImageUrl ?? row.profile_image_url,
     tier: ranked?.tier ?? row.tier ?? DEFAULT_TIER,
+    favoriteTeamId: ranked?.favoriteTeamId ?? null,
     createdAt: row.created_at,
   };
 });

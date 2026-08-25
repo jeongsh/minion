@@ -13,15 +13,36 @@ import { getPublicRankProfiles } from "@/lib/rank/public-profile";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { getBlockedCommunityUserIds } from "@/lib/data/community-users";
 import { getBlockedCommunityGuestKeys } from "@/lib/data/community-guests";
+import { getTeams } from "@/lib/data/lck";
 import type {
   BlindSource,
   CommunityAuthorCommentItem,
+  CommunityAuthorTeam,
   CommunityCommentItem,
   CommunityPostDetail,
   ReactionKind,
   ReactionState,
   ReactionTarget,
 } from "@/lib/community/types";
+
+async function authorTeamsByFavoriteId(): Promise<Map<string, CommunityAuthorTeam>> {
+  const teams = await getTeams();
+  return new Map(
+    teams.map((team) => [
+      team.id,
+      {
+        id: team.id,
+        slug: team.slug,
+        name: team.name,
+        shortName: team.shortName,
+        logoUrl: team.logoUrl,
+        logoWhiteUrl: team.logoWhiteUrl,
+        useWhiteLogoOnDark: team.useWhiteLogoOnDark,
+        primaryColor: team.primaryColor,
+      },
+    ]),
+  );
+}
 
 type PostRow = {
   id: string;
@@ -110,6 +131,7 @@ function mapPost(
   authorName: string | null = null,
   authorImageUrl: string | null = null,
   authorTier: Tier = DEFAULT_TIER,
+  authorTeam: CommunityAuthorTeam | null = null,
 ): CommunityPostDetail {
   return {
     id: row.id,
@@ -122,6 +144,7 @@ function mapPost(
     authorName: row.author_id ? authorName : row.guest_nickname,
     authorImageUrl,
     authorTier,
+    authorTeam: row.author_id ? authorTeam : null,
     guestKey: row.guest_key,
     guestIpLabel: row.guest_ip_label,
     likeCount: row.like_count,
@@ -144,10 +167,11 @@ async function mapPostsWithAuthors(rows: PostRow[]): Promise<CommunityPostDetail
   const authorIds = [...new Set(rows.flatMap((row) => (row.author_id ? [row.author_id] : [])))];
   if (authorIds.length === 0) return rows.map((row) => mapPost(row));
 
-  const profiles = await getPublicRankProfiles(authorIds);
+  const [profiles, teamsById] = await Promise.all([getPublicRankProfiles(authorIds), authorTeamsByFavoriteId()]);
   return rows.map((row) => {
     const profile = row.author_id ? profiles.get(row.author_id) : undefined;
-    return mapPost(row, profile?.nickname ?? null, profile?.profileImageUrl ?? null, profile?.tier);
+    const authorTeam = profile?.favoriteTeamId ? teamsById.get(profile.favoriteTeamId) ?? null : null;
+    return mapPost(row, profile?.nickname ?? null, profile?.profileImageUrl ?? null, profile?.tier, authorTeam);
   });
 }
 
@@ -156,6 +180,7 @@ function mapComment(
   authorName: string | null = null,
   authorImageUrl: string | null = null,
   authorTier: Tier = DEFAULT_TIER,
+  authorTeam: CommunityAuthorTeam | null = null,
 ): CommunityCommentItem {
   return {
     id: row.id,
@@ -165,6 +190,7 @@ function mapComment(
     authorName: row.author_id ? authorName : row.guest_nickname,
     authorImageUrl,
     authorTier,
+    authorTeam: row.author_id ? authorTeam : null,
     guestKey: row.guest_key,
     guestIpLabel: row.guest_ip_label,
     // 삭제된 댓글 본문은 클라이언트로 내려보내지 않는다(답글 유지를 위한 자리표시만 필요).
@@ -182,10 +208,11 @@ async function mapCommentsWithAuthors(rows: CommentRow[]): Promise<CommunityComm
   const authorIds = [...new Set(rows.flatMap((row) => (row.author_id ? [row.author_id] : [])))];
   if (authorIds.length === 0) return rows.map((row) => mapComment(row));
 
-  const profiles = await getPublicRankProfiles(authorIds);
+  const [profiles, teamsById] = await Promise.all([getPublicRankProfiles(authorIds), authorTeamsByFavoriteId()]);
   return rows.map((row) => {
     const profile = row.author_id ? profiles.get(row.author_id) : undefined;
-    return mapComment(row, profile?.nickname ?? null, profile?.profileImageUrl ?? null, profile?.tier);
+    const authorTeam = profile?.favoriteTeamId ? teamsById.get(profile.favoriteTeamId) ?? null : null;
+    return mapComment(row, profile?.nickname ?? null, profile?.profileImageUrl ?? null, profile?.tier, authorTeam);
   });
 }
 

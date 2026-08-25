@@ -89,6 +89,7 @@ export function PostView({
               authorName={post.authorName}
               authorImageUrl={post.authorImageUrl}
               authorTier={post.authorTier}
+              authorTeam={post.authorTeam}
               guestKey={post.guestKey}
               viewerId={viewerId}
               variant="detail"

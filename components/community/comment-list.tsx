@@ -106,6 +106,7 @@ export function CommentList({ comments, commentReactions, scope, teamSlug, viewe
                 authorName={comment.authorName}
                 authorImageUrl={comment.authorImageUrl}
                 authorTier={comment.authorTier}
+                authorTeam={comment.authorTeam}
                 guestKey={comment.guestKey}
                 viewerId={viewerId}
                 variant="comment"

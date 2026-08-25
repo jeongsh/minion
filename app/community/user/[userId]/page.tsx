@@ -58,12 +58,14 @@ export default async function CommunityUserPage({
   const teamIds = [...new Set([
     ...posts.flatMap((post) => post.teamId ? [post.teamId] : []),
     ...comments.flatMap((comment) => comment.postTeamId ? [comment.postTeamId] : []),
+    ...(profile.favoriteTeamId ? [profile.favoriteTeamId] : []),
   ])];
   const teams = new Map(
     (await Promise.all(teamIds.map((id) => getTeamById(id))))
       .filter((team) => Boolean(team))
       .map((team) => [team!.id, team!]),
   );
+  const favoriteTeam = profile.favoriteTeamId ? teams.get(profile.favoriteTeamId) ?? null : null;
   const postHref = (postId: string, scope: "hub" | "team", teamId: string | null) => {
     if (scope === "team" && teamId) {
       const team = teams.get(teamId);
@@ -89,6 +91,7 @@ export default async function CommunityUserPage({
                 authorName={profile.nickname}
                 authorImageUrl={profile.profileImageUrl}
                 authorTier={profile.tier}
+                authorTeam={favoriteTeam}
                 viewerId={viewer?.id}
                 variant="profile"
               />

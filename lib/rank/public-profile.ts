@@ -7,6 +7,7 @@ export type PublicRankProfile = {
   nickname: string;
   profileImageUrl: string | null;
   tier: Tier;
+  favoriteTeamId: string | null;
 };
 
 const VALID_TIERS = new Set<Tier>([
@@ -34,7 +35,7 @@ export async function getPublicRankProfiles(userIds: string[]): Promise<Map<stri
   const [profilesResult, ranksResult] = await Promise.all([
     supabase
       .from("profiles")
-      .select("id, nickname, profile_image_url, tier")
+      .select("id, nickname, profile_image_url, tier, favorite_team_id")
       .in("id", uniqueIds),
     supabase
       .from("ranked_profiles")
@@ -55,12 +56,14 @@ export async function getPublicRankProfiles(userIds: string[]): Promise<Map<stri
       nickname: string;
       profile_image_url: string | null;
       tier: string | null;
+      favorite_team_id: string | null;
     }[]).map((profile) => [
       profile.id,
       {
         nickname: profile.nickname,
         profileImageUrl: profile.profile_image_url,
         tier: effectiveTiers.get(profile.id) ?? toTier(profile.tier),
+        favoriteTeamId: profile.favorite_team_id,
       },
     ]),
   );

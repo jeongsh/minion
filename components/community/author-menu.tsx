@@ -15,12 +15,15 @@ import {
 import { reportCommentAction, reportPostAction } from "@/lib/community/actions";
 import type { Tier } from "@/lib/rank/config";
 import type { BoardScope } from "@/lib/community/boards";
+import type { CommunityAuthorTeam } from "@/lib/community/types";
 
 type AuthorMenuProps = {
   authorId: string | null;
   authorName: string | null;
   authorImageUrl?: string | null;
   authorTier: Tier;
+  /** 작성자의 최애팀. 설정한 경우 닉네임 옆에 작은 팀 마크를 표시한다. */
+  authorTeam?: CommunityAuthorTeam | null;
   viewerId?: string | null;
   variant?: "detail" | "comment" | "feed" | "profile";
   evidencePostId?: string;
@@ -31,11 +34,38 @@ type AuthorMenuProps = {
   detailMeta?: React.ReactNode;
 };
 
+function TeamBadge({ team, size }: { team: CommunityAuthorTeam; size: "detail" | "profile" | "comment" }) {
+  const textClass = size === "profile" ? "text-[13px] px-2 py-0.5" : "text-[11px] px-1.5 py-0.5";
+  // 배경을 테마색과 섞지 않고 팀색 그대로 칠해서, 라이트/다크 어느 배경 위에서도
+  // 항상 같은 대비를 유지한다. 글씨색은 배경 밝기에 맞춰 검정/흰색으로 고정.
+  const style: React.CSSProperties = {
+    background: team.primaryColor,
+    color: contrastAnchor(team.primaryColor),
+  };
+  return (
+    <span
+      title={`${team.name} 팬`}
+      style={style}
+      className={`inline-flex shrink-0 items-center rounded-full font-bold leading-none ${textClass}`}
+    >
+      {team.shortName}
+    </span>
+  );
+}
+
+function contrastAnchor(hex: string) {
+  const value = hex.replace("#", "");
+  const [r, g, b] = [0, 2, 4].map((index) => Number.parseInt(value.slice(index, index + 2), 16));
+  const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+  return luminance > 0.58 ? "#111318" : "#ffffff";
+}
+
 export function AuthorMenu({
   authorId,
   authorName,
   authorImageUrl,
   authorTier,
+  authorTeam = null,
   viewerId,
   variant = "comment",
   evidencePostId,
@@ -140,11 +170,15 @@ export function AuthorMenu({
         </>
       )}
       <span className="min-w-0">
-        <span className="block truncate text-[13px] font-semibold leading-[18px] text-[var(--ui-ink)] md:text-[15px] md:leading-5">{name}</span>
+        <span className="flex min-w-0 items-center gap-1">
+          {authorTeam ? <TeamBadge team={authorTeam} size="detail" /> : null}
+          <span className="truncate text-[13px] font-semibold leading-[18px] text-[var(--ui-ink)] md:text-[15px] md:leading-5">{name}</span>
+        </span>
         {detailMeta ? <span className="block text-[12px] font-normal leading-[18px] text-[var(--ui-muted)] md:mt-0.5 md:text-[13px] md:leading-5">{detailMeta}</span> : null}
       </span>
     </span>
   ) : variant === "feed" ? (
+      // 피드 목록 행에는 프로필 이미지가 없으므로 팀 마크도 붙이지 않는다.
       <span className="inline-flex max-w-44 items-center gap-1 truncate font-medium text-[var(--ui-text)]">
       <span className="truncate">{name}</span>
     </span>
@@ -163,7 +197,8 @@ export function AuthorMenu({
         size={variant === "profile" ? "lg" : "sm"}
       />
       <span className="min-w-0">
-        <span className="flex items-center gap-1">
+        <span className="flex items-center gap-1.5">
+          {authorTeam ? <TeamBadge team={authorTeam} size={variant === "profile" ? "profile" : "comment"} /> : null}
           <span className={`truncate font-semibold text-[var(--ui-ink)] ${variant === "profile" ? "font-paperozi text-[22px] sm:text-[26px]" : "text-sm"}`}>{name}</span>
         </span>
       </span>

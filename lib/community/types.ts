@@ -14,6 +14,18 @@ export type ReactionTarget = "post" | "comment";
 /** 현재 사용자의 대상에 대한 stance. 상호 배타(둘 중 하나 또는 없음). */
 export type ReactionState = ReactionKind | null;
 
+/** 프로필 옆 응원팀 마크에 필요한 최소 팀 정보(최애팀 기준, 1개만). */
+export type CommunityAuthorTeam = {
+  id: string;
+  slug: string;
+  name: string;
+  shortName: string;
+  logoUrl: string;
+  logoWhiteUrl: string;
+  useWhiteLogoOnDark?: boolean;
+  primaryColor: string;
+};
+
 export type CommunityPostDetail = {
   id: string;
   boardType: string;
@@ -28,6 +40,8 @@ export type CommunityPostDetail = {
   authorImageUrl: string | null;
   /** 작성자의 현재 유효 티어. */
   authorTier: Tier;
+  /** 작성자의 최애팀(설정한 경우만). 프로필 옆 응원팀 마크에 사용. */
+  authorTeam: CommunityAuthorTeam | null;
   /** 비회원 IP에서 파생한 공개 식별자. 로그인 작성자는 null. */
   guestKey: string | null;
   /** 공개 화면에 표시하는 축약 IP(예: 123.45.*.*). */
@@ -63,6 +77,8 @@ export type CommunityCommentItem = {
   authorImageUrl: string | null;
   /** 작성자의 현재 유효 티어. */
   authorTier: Tier;
+  /** 작성자의 최애팀(설정한 경우만). 프로필 옆 응원팀 마크에 사용. */
+  authorTeam: CommunityAuthorTeam | null;
   guestKey: string | null;
   guestIpLabel: string | null;
   content: string;
