@@ -1,12 +1,30 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { matchMobileRoute, mobileApiRoutes, toMobileDeepLink } from "./src/mobile-v1.ts";
+import { matchMobileRoute, mobileApiAuthForRequest, mobileApiRoutes, toMobileDeepLink } from "./src/mobile-v1.ts";
 
 test("mobile API route allow-list is versioned and excludes web-only surfaces", () => {
   const paths = Object.values(mobileApiRoutes).map(route => route.path);
   assert.ok(paths.every(path => path.startsWith("/api/mobile/v1/")));
   assert.ok(paths.every(path => !path.startsWith("/api/mobile/v1/admin") && !path.startsWith("/api/mobile/v1/reports")));
+});
+
+test("mobile API authentication follows the shared web access boundaries", () => {
+  for (const route of Object.values(mobileApiRoutes)) {
+    const samplePath = route.path.replace(/\{[^/]+\}/g, "sample-id");
+    assert.equal(mobileApiAuthForRequest(route.method, samplePath), route.auth, `${route.method} ${route.path}`);
+  }
+  assert.equal(mobileApiAuthForRequest("GET", "/api/mobile/v1/home"), "public");
+  assert.equal(mobileApiAuthForRequest("GET", "/api/mobile/v1/tournaments/lck?year=2026"), "public");
+  assert.equal(mobileApiAuthForRequest("GET", "/api/mobile/v1/matches/match-1"), "public");
+  assert.equal(mobileApiAuthForRequest("GET", "/api/mobile/v1/matches/match-1/live"), "public");
+  assert.equal(mobileApiAuthForRequest("GET", "/api/mobile/v1/bootstrap"), "optional");
+  assert.equal(mobileApiAuthForRequest("GET", "/api/mobile/v1/predictions"), "optional");
+  assert.equal(mobileApiAuthForRequest("POST", "/api/mobile/v1/predictions"), "required");
+  assert.equal(mobileApiAuthForRequest("GET", "/api/mobile/v1/me"), "required");
+  assert.equal(mobileApiAuthForRequest("POST", "/api/mobile/v1/me"), "required");
+  assert.equal(mobileApiAuthForRequest("DELETE", "/api/mobile/v1/me"), "required");
+  assert.equal(mobileApiAuthForRequest("GET", "/api/mobile/v1/unknown"), null);
 });
 
 test("dock activation follows the current compact navigation policy", () => {

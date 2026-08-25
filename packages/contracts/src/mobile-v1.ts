@@ -69,6 +69,11 @@ export type MobilePlayerSummary = {
   profileImage: MobileImage | null;
 };
 
+export type MobilePlayerDirectoryItem = MobilePlayerSummary & {
+  realName: string;
+  isStarter?: boolean;
+};
+
 export type MobileTournamentSummary = {
   id: EntityId;
   name: string;
@@ -117,6 +122,7 @@ export type MobileCommunityPostSummary = {
   isNotice: boolean;
   isHot: boolean;
   isBlinded: boolean;
+  blindedSource?: "ai" | "report" | "admin" | null;
 };
 
 export type TiptapDocument = {
@@ -144,6 +150,8 @@ export type MobileCommunityComment = {
   createdAt: IsoDateTime;
   isBlinded: boolean;
   isDeleted: boolean;
+  blindedSource?: "ai" | "report" | "admin" | null;
+  permissions: { canEdit: boolean; canDelete: boolean; canReport: boolean };
 };
 
 export type MobileBootstrapDto = {
@@ -152,6 +160,8 @@ export type MobileBootstrapDto = {
   viewer: {
     id: EntityId;
     nickname: string | null;
+    profileImage: MobileImage | null;
+    tier: string;
     lp: number;
     favoriteTeamId: EntityId | null;
     favoriteTeamSlug: string | null;
@@ -182,6 +192,16 @@ export type MobileMeDto = {
     status: "active" | "deleted";
   };
   notificationPreferences: MobileNotificationPreferences;
+  rank: {
+    checkedInToday: boolean;
+    overallRank: number | null;
+    progressLabel: string;
+    progressRatio: number;
+  };
+  account: {
+    hasPassword: boolean;
+    recentlyReauthenticated: boolean;
+  };
   activity: {
     postCount: number;
     commentCount: number;
@@ -189,6 +209,7 @@ export type MobileMeDto = {
     recentComments: Array<{ id: EntityId; postId: EntityId; content: string; createdAt: IsoDateTime }>;
   };
   blockedUsers: Array<{ id: EntityId; nickname: string; profileImage: MobileImage | null; tier: string }>;
+  blockedGuests: Array<{ guestKey: string; nickname: string; createdAt: IsoDateTime }>;
 };
 
 export type MobileHomeDto = {
@@ -255,7 +276,7 @@ export type MobileStandingRow = {
 };
 
 export type MobileStandingsGroup = {
-  /** 조가 없는 통합 순위표면 빈 문자열("알파조" 등 조 이름이 없을 때). */
+  /** 조가 없는 통합 순위표면 빈 문자열("바론 그룹" 등 그룹 이름이 없을 때). */
   title: string;
   rows: MobileStandingRow[];
 };
@@ -290,6 +311,8 @@ export type MobileBracketMatch = {
 };
 
 export type MobileBracketColumn = {
+  /** 웹 브래킷 grid에서의 원래 열 위치. 비어 있는 앞 열을 앱에서도 보존한다. */
+  columnIndex: number;
   label: string;
   lowerLabel: string | null;
   matches: MobileBracketMatch[];
@@ -308,6 +331,8 @@ export type MobileBracketConnection = {
 };
 
 export type MobileBracketData = {
+  /** 결승 열을 제외한 웹 브래킷의 전체 열 수. */
+  columnCount: number;
   groups: MobileBracketGroup[];
   finals: { label: string; match: MobileBracketMatch } | null;
   connections: MobileBracketConnection[];
@@ -347,6 +372,13 @@ export type MobilePredictionMarket = {
   teamBOdds: number | null;
 };
 
+export type MobilePredictionBet = {
+  id: EntityId;
+  matchId: EntityId;
+  teamId: EntityId;
+  stake: number;
+};
+
 export type MobilePredictionMatch = {
   id: EntityId;
   startsAt: IsoDateTime;
@@ -356,12 +388,18 @@ export type MobilePredictionMatch = {
   teamB: MobileTeamSummary | null;
   market: MobilePredictionMarket;
   closed: boolean;
+  myBet: MobilePredictionBet | null;
 };
 
 export type MobilePredictionsDto = {
   /** 서버가 응답을 만든 시각(epoch ms). 마감까지 남은 시간 표시는 이 값 기준으로 고정 계산한다(웹도 요청당 한 번만 스냅샷). */
   now: number;
+  balance: number | null;
   matches: MobilePredictionMatch[];
+};
+
+export type MobilePredictionMutationDto = {
+  balance: number;
 };
 
 export type MobileMatchSetSummary = {
@@ -550,9 +588,63 @@ export type MobileCommunityPostDetailDto = MobileCommunityPostSummary & {
   permissions: { canEdit: boolean; canDelete: boolean; canReact: boolean; canReport: boolean; canBlock: boolean };
 };
 
-export type MobileCommunityPostsDto = CursorPage<MobileCommunityPostSummary> & {
+export type MobileCommunityPostsDto = {
+  items: MobileCommunityPostSummary[];
   notices: MobileCommunityPostSummary[];
   popular: MobileCommunityPostSummary[];
+  page: number;
+  totalPages: number;
+  totalCount: number;
+  categories: Array<{ slug: string; label: string }>;
+};
+
+export type MobileCommunityPostMutationDto = { id: EntityId; message: string };
+export type MobileCommunityCommentMutationDto = { id: EntityId; message: string };
+export type MobileCommunityActionDto = { message: string };
+export type MobileCommunityReactionDto = {
+  state: "honor" | "dislike" | null;
+  honorCount: number;
+  dislikeCount: number;
+};
+export type MobileCommunityPollDto = {
+  counts: Record<string, number>;
+  total: number;
+  myOptionId: string | null;
+  signedIn: boolean;
+};
+export type MobileCommunityUploadDto = {
+  url: string;
+  path: string;
+  width: number;
+  height: number;
+};
+
+export type MobileCommunityUserActivityPost = MobileCommunityPostSummary & {
+  teamSlug: string | null;
+};
+
+export type MobileCommunityUserActivityComment = {
+  id: EntityId;
+  postId: EntityId;
+  postTitle: string;
+  postScope: "hub" | "team";
+  postTeamSlug: string | null;
+  content: string;
+  createdAt: IsoDateTime;
+  isBlinded: boolean;
+  blindedSource: "ai" | "report" | "admin" | null;
+};
+
+export type MobileCommunityUserDto = {
+  profile: MobileCommunityAuthor & { createdAt: IsoDateTime };
+  tab: "posts" | "comments";
+  posts: MobileCommunityUserActivityPost[];
+  comments: MobileCommunityUserActivityComment[];
+  postCount: number;
+  commentCount: number;
+  page: number;
+  totalPages: number;
+  permissions: { isSelf: boolean; canBlock: boolean; canReport: boolean };
 };
 
 export type MobileNewsItem = {
@@ -575,16 +667,31 @@ export type MobileVideoItem = {
 };
 
 export type MobileTeamDetailDto = {
+  calendarEvents: MobileHomeDto["calendarEvents"];
   team: MobileTeamSummary;
-  players: MobilePlayerSummary[];
+  headerImage: MobileImage | null;
+  matches: MobileMatchSummary[];
+  players: MobilePlayerDirectoryItem[];
   social: Array<{ id: EntityId; title: string; image: MobileImage | null; url: string; publishedAt: IsoDateTime | null; ownerName: string }>;
   videos: MobileVideoItem[];
 };
 
+export type MobileTeamFanDto = {
+  fanCount: number;
+  following: boolean;
+};
+
+export type MobileTeamNotificationDto = { enabled: boolean };
+export type MobileTeamFavoriteDto = { favorite: boolean };
+
 export type MobileTeamsDto = { items: MobileTeamSummary[] };
-export type MobilePlayersDto = { items: MobilePlayerSummary[]; teams: MobileTeamSummary[] };
+export type MobilePlayersDto = {
+  items: MobilePlayerDirectoryItem[];
+  challengersItems: MobilePlayerDirectoryItem[];
+  teams: MobileTeamSummary[];
+};
 export type MobilePlayerDetailDto = {
-  player: MobilePlayerSummary;
+  player: MobilePlayerSummary & { realName: string };
   team: MobileTeamSummary | null;
   career: { id: EntityId; teamId: EntityId | null; teamName: string | null; position: string; startDate: string; endDate: string | null }[];
 };
@@ -617,31 +724,69 @@ export type MobileApiRouteDefinition = {
 /** The v1 surface is an allow-list. Admin and report routes never belong here. */
 export const mobileApiRoutes = {
   bootstrap: { method: "GET", path: `${MOBILE_API_PREFIX}/bootstrap`, owner: "shell/auth + lib/data/lck", auth: "optional", cache: "30s" },
-  home: { method: "GET", path: `${MOBILE_API_PREFIX}/home`, owner: "home aggregation service", auth: "optional", cache: "30s" },
+  home: { method: "GET", path: `${MOBILE_API_PREFIX}/home`, owner: "home aggregation service", auth: "public", cache: "30s" },
   schedule: { method: "GET", path: `${MOBILE_API_PREFIX}/schedule`, owner: "lib/data/lck + tournament filters", auth: "public", cache: "60s" },
   tournaments: { method: "GET", path: `${MOBILE_API_PREFIX}/tournaments`, owner: "lib/data/lck + tournaments", auth: "public", cache: "300s" },
+  tournament: { method: "GET", path: `${MOBILE_API_PREFIX}/tournaments/{segment}`, owner: "tournament aggregation service", auth: "public", cache: "300s" },
   predictions: { method: "GET", path: `${MOBILE_API_PREFIX}/predictions`, owner: "lib/predictions", auth: "optional", cache: "30s" },
-  match: { method: "GET", path: `${MOBILE_API_PREFIX}/matches/{matchId}`, owner: "match aggregation service", auth: "optional", cache: "30s" },
+  predictionPlace: { method: "POST", path: `${MOBILE_API_PREFIX}/predictions`, owner: "lib/predictions", auth: "required", cache: "no-store" },
+  predictionCancel: { method: "DELETE", path: `${MOBILE_API_PREFIX}/predictions`, owner: "lib/predictions", auth: "required", cache: "no-store" },
+  match: { method: "GET", path: `${MOBILE_API_PREFIX}/matches/{matchId}`, owner: "match aggregation service", auth: "public", cache: "30s" },
   matchLive: { method: "GET", path: `${MOBILE_API_PREFIX}/matches/{matchId}/live`, owner: "lib/lolesports-game-data", auth: "public", cache: "no-store" },
   teams: { method: "GET", path: `${MOBILE_API_PREFIX}/teams`, owner: "lib/data/lck", auth: "public", cache: "21600s" },
-  team: { method: "GET", path: `${MOBILE_API_PREFIX}/teams/{teamSlug}`, owner: "team aggregation service", auth: "optional", cache: "300s" },
+  team: { method: "GET", path: `${MOBILE_API_PREFIX}/teams/{teamSlug}`, owner: "team aggregation service", auth: "public", cache: "60s" },
+  teamFan: { method: "GET", path: `${MOBILE_API_PREFIX}/teams/{teamSlug}/fan`, owner: "fan service", auth: "optional", cache: "no-store" },
+  teamFanToggle: { method: "POST", path: `${MOBILE_API_PREFIX}/teams/{teamSlug}/fan`, owner: "fan service", auth: "optional", cache: "no-store" },
+  teamFavorite: { method: "POST", path: `${MOBILE_API_PREFIX}/teams/{teamSlug}/favorite`, owner: "favorite team service", auth: "optional", cache: "no-store" },
+  teamNotification: { method: "POST", path: `${MOBILE_API_PREFIX}/teams/{teamSlug}/notifications`, owner: "fan notification service", auth: "required", cache: "no-store" },
   players: { method: "GET", path: `${MOBILE_API_PREFIX}/players`, owner: "lib/data/lck", auth: "public", cache: "21600s" },
   player: { method: "GET", path: `${MOBILE_API_PREFIX}/players/{playerSlug}`, owner: "player aggregation service", auth: "public", cache: "300s" },
   news: { method: "GET", path: `${MOBILE_API_PREFIX}/news`, owner: "lib/data/news + lib/data/naver-news", auth: "public", cache: "60s" },
   search: { method: "GET", path: `${MOBILE_API_PREFIX}/search`, owner: "search service", auth: "public", cache: "30s" },
   communityPosts: { method: "GET", path: `${MOBILE_API_PREFIX}/community/posts`, owner: "lib/data/community", auth: "optional", cache: "10s" },
+  communityPostCreate: { method: "POST", path: `${MOBILE_API_PREFIX}/community/posts`, owner: "community service", auth: "optional", cache: "no-store" },
   communityPost: { method: "GET", path: `${MOBILE_API_PREFIX}/community/posts/{postId}`, owner: "lib/data/community", auth: "optional", cache: "10s" },
-  communityComments: { method: "POST", path: `${MOBILE_API_PREFIX}/community/comments`, owner: "community service", auth: "required", cache: "no-store" },
+  communityPostUpdate: { method: "PATCH", path: `${MOBILE_API_PREFIX}/community/posts/{postId}`, owner: "community service", auth: "optional", cache: "no-store" },
+  communityPostDelete: { method: "DELETE", path: `${MOBILE_API_PREFIX}/community/posts/{postId}`, owner: "community service", auth: "optional", cache: "no-store" },
+  communityComments: { method: "POST", path: `${MOBILE_API_PREFIX}/community/comments`, owner: "community service", auth: "optional", cache: "no-store" },
+  communityCommentUpdate: { method: "PATCH", path: `${MOBILE_API_PREFIX}/community/comments/{commentId}`, owner: "community service", auth: "optional", cache: "no-store" },
+  communityCommentDelete: { method: "DELETE", path: `${MOBILE_API_PREFIX}/community/comments/{commentId}`, owner: "community service", auth: "optional", cache: "no-store" },
   communityReactions: { method: "POST", path: `${MOBILE_API_PREFIX}/community/reactions`, owner: "community service", auth: "required", cache: "no-store" },
   communityReports: { method: "POST", path: `${MOBILE_API_PREFIX}/community/reports`, owner: "community service", auth: "required", cache: "no-store" },
+  communityPoll: { method: "GET", path: `${MOBILE_API_PREFIX}/community/polls/{pollId}`, owner: "community poll service", auth: "optional", cache: "no-store" },
+  communityPollVote: { method: "POST", path: `${MOBILE_API_PREFIX}/community/polls/{pollId}`, owner: "community poll service", auth: "required", cache: "no-store" },
   communityUpload: { method: "POST", path: `${MOBILE_API_PREFIX}/community/upload`, owner: "community upload service", auth: "required", cache: "no-store" },
+  communityUser: { method: "GET", path: `${MOBILE_API_PREFIX}/community/users/{userId}`, owner: "community user activity service", auth: "optional", cache: "no-store" },
+  communityAuthorAction: { method: "POST", path: `${MOBILE_API_PREFIX}/community/authors/actions`, owner: "community user actions service", auth: "required", cache: "no-store" },
   authNaverStart: { method: "GET", path: `${MOBILE_API_PREFIX}/auth/naver/start`, owner: "native auth broker", auth: "public", cache: "no-store" },
   authNaverCallback: { method: "GET", path: `${MOBILE_API_PREFIX}/auth/naver/callback`, owner: "native auth broker", auth: "public", cache: "no-store" },
   authNaverExchange: { method: "POST", path: `${MOBILE_API_PREFIX}/auth/naver/exchange`, owner: "native auth broker", auth: "public", cache: "no-store" },
   me: { method: "GET", path: `${MOBILE_API_PREFIX}/me`, owner: "account service", auth: "required", cache: "no-store" },
+  meProfileUpdate: { method: "POST", path: `${MOBILE_API_PREFIX}/me`, owner: "account profile service", auth: "required", cache: "no-store" },
   meUpdate: { method: "PATCH", path: `${MOBILE_API_PREFIX}/me`, owner: "account service", auth: "required", cache: "no-store" },
+  meDelete: { method: "DELETE", path: `${MOBILE_API_PREFIX}/me`, owner: "account security service", auth: "required", cache: "no-store" },
   devices: { method: "POST", path: `${MOBILE_API_PREFIX}/devices`, owner: "push device service", auth: "required", cache: "no-store" },
 } as const satisfies Record<string, MobileApiRouteDefinition>;
+
+export type MobileApiAuthMode = MobileApiRouteDefinition["auth"];
+
+const mobileApiRouteMatchers = Object.values(mobileApiRoutes).map((route) => ({
+  ...route,
+  pattern: new RegExp(`^${route.path
+    .split("/")
+    .map((segment) => /^\{[^/]+\}$/.test(segment) ? "[^/]+" : segment.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+    .join("/")}/?$`),
+}));
+
+/** Returns the shared web/app authentication policy for a versioned mobile API request. */
+export function mobileApiAuthForRequest(method: MobileApiRouteDefinition["method"], input: string): MobileApiAuthMode | null {
+  try {
+    const pathname = new URL(input, "https://minion.invalid").pathname;
+    return mobileApiRouteMatchers.find((route) => route.method === method && route.pattern.test(pathname))?.auth ?? null;
+  } catch {
+    return null;
+  }
+}
 
 export type MobileDockTab = "home" | "matches" | "fan" | "teams" | "news";
 
@@ -686,6 +831,7 @@ const routeRules: RouteRule[] = [
   { pattern: /^\/community\/post\/([^/]+)\/?$/, screen: "community-post", dockTab: null, hideGlobalDock: true, keys: ["postId"] },
   { pattern: /^\/community\/(?:new|[^/]+\/new)\/?$/, screen: "community-compose", dockTab: null, hideGlobalDock: true, focus: true, fallback: () => "/community" },
   { pattern: /^\/community\/post\/([^/]+)\/edit\/?$/, screen: "community-edit", dockTab: null, hideGlobalDock: true, focus: true, keys: ["postId"], fallback: p => `/community/post/${p.postId}` },
+  { pattern: /^\/community\/user\/([^/]+)\/?$/, screen: "community-user", dockTab: null, keys: ["userId"] },
   { pattern: /^\/community\/([^/]+)\/?$/, screen: "community-board", dockTab: null, keys: ["board"] },
   { pattern: /^\/news(?:\/.*)?$/, screen: "news", dockTab: "news" },
   { pattern: /^\/me\/?$/, screen: "me", dockTab: null },
