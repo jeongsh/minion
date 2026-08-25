@@ -27,10 +27,28 @@ const themeInitScript = `
 })();
 `;
 
+const defaultTitle = "MINION | LCK 팬 허브";
+const defaultDescription = "LCK 경기 일정, 팀과 선수 기록, 주간 리포트, 팬 평가와 커뮤니티를 한곳에서 확인하는 팬 허브입니다.";
+
 export const metadata: Metadata = {
-  title: "MINION | LCK 팬 허브",
-  description: "LCK 경기 일정, 팀과 선수 기록, 주간 리포트, 팬 평가와 커뮤니티를 한곳에서 확인하는 팬 허브입니다.",
+  title: defaultTitle,
+  description: defaultDescription,
   metadataBase: new URL(siteBaseUrl()),
+  openGraph: {
+    title: defaultTitle,
+    description: defaultDescription,
+    siteName: "MINION",
+    images: [{ url: "/images/minion.png", width: 1408, height: 768 }],
+  },
+  verification: {
+    other: { "naver-site-verification": "e5b9086e86ccaedc10305bf4dc5325f6051a1a05" },
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: defaultTitle,
+    description: defaultDescription,
+    images: ["/images/minion.png"],
+  },
 };
 
 export default async function RootLayout({

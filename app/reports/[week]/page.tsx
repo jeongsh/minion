@@ -24,6 +24,7 @@ export async function generateMetadata({ params }: { params: Promise<{ week: str
       description,
       url: `${siteBaseUrl()}/reports/${week}`,
       type: "article",
+      images: ["/images/minion.png"],
     },
   };
 }

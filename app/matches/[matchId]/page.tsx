@@ -443,7 +443,7 @@ export async function generateMetadata({ params }: { params: Promise<{ matchId: 
     title,
     description,
     alternates: { canonical: `/matches/${matchId}` },
-    openGraph: { title, description, url: `${siteBaseUrl()}/matches/${matchId}`, type: "article" },
+    openGraph: { title, description, url: `${siteBaseUrl()}/matches/${matchId}`, type: "article", images: ["/images/minion.png"] },
   };
 }
 

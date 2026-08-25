@@ -49,7 +49,7 @@ export async function generateMetadata({ params }: { params: Promise<{ teamSlug:
     title,
     description,
     alternates: { canonical: `/fan/${fanSlug}` },
-    openGraph: { title, description, url: `${siteBaseUrl()}/fan/${fanSlug}`, type: "website" },
+    openGraph: { title, description, url: `${siteBaseUrl()}/fan/${fanSlug}`, type: "website", images: ["/images/minion.png"] },
   };
 }
 

@@ -692,7 +692,7 @@ export async function generateMetadata({
     title,
     description,
     alternates: { canonical: `/tournaments/${segmentKey}` },
-    openGraph: { title, description, url: `${siteBaseUrl()}/tournaments/${segmentKey}`, type: "website" },
+    openGraph: { title, description, url: `${siteBaseUrl()}/tournaments/${segmentKey}`, type: "website", images: ["/images/minion.png"] },
   };
 }
 
