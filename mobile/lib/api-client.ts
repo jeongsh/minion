@@ -1,11 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 
-import type { MobileApiError, MobileApiSuccess } from '../../packages/contracts/src/mobile-v1';
+import { mobileApiAuthForRequest, type MobileApiAuthMode, type MobileApiError, type MobileApiRouteDefinition, type MobileApiSuccess } from '../../packages/contracts/src/mobile-v1';
 import { getInstallationId } from '@/lib/secure-storage';
 import { supabase } from '@/lib/supabase';
 
 const CACHE_PREFIX = 'minion-api-v1:';
+const LOGIN_REQUIRED_MESSAGE = '로그인이 필요합니다.';
 
 function defaultApiOrigin() {
   const hostUri = Constants.expoConfig?.hostUri;
@@ -20,36 +21,74 @@ export function resolveApiAssetUrl(url?: string | null) {
   return url.startsWith('/') ? `${mobileApiOrigin}${url}` : url;
 }
 
-export async function fetchMobileApi<T>(path: string, signal?: AbortSignal): Promise<T> {
-  const [{ data: { session } }, installationId] = await Promise.all([supabase.auth.getSession(), getInstallationId()]);
-  const response = await fetch(`${mobileApiOrigin}${path}`, {
-    headers: {
-      Accept: 'application/json',
-      'X-Minion-Installation-Id': installationId,
-      ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
-    },
-    signal,
-  });
-  const body = await response.json() as MobileApiSuccess<T> | MobileApiError;
+async function accessTokenFor(auth: MobileApiAuthMode) {
+  if (auth === 'public') return null;
+
+  try {
+    const { data, error } = await supabase.auth.getSession();
+    if (error) throw error;
+    const accessToken = data.session?.access_token ?? null;
+    if (auth === 'required' && !accessToken) throw new Error(LOGIN_REQUIRED_MESSAGE);
+    return accessToken;
+  } catch (error) {
+    if (auth === 'optional') return null;
+    if (error instanceof Error && error.message === LOGIN_REQUIRED_MESSAGE) throw error;
+    throw new Error('로그인 상태를 확인하지 못했습니다. 잠시 후 다시 시도해주세요.');
+  }
+}
+
+function authForRequest(method: MobileApiRouteDefinition['method'], path: string) {
+  const auth = mobileApiAuthForRequest(method, path);
+  if (!auth) throw new Error(`등록되지 않은 모바일 API 요청입니다: ${method} ${path}`);
+  return auth;
+}
+
+async function readMobileResponse<T>(response: Response): Promise<T> {
+  const raw = await response.text();
+  let body: MobileApiSuccess<T> | MobileApiError;
+  try {
+    body = JSON.parse(raw) as MobileApiSuccess<T> | MobileApiError;
+  } catch {
+    throw new Error(`서버 응답을 처리하지 못했습니다. (HTTP ${response.status})`);
+  }
   if (!response.ok || 'error' in body) throw new Error('error' in body ? body.error.message : `HTTP ${response.status}`);
   return body.data;
 }
 
+async function requestHeaders(auth: MobileApiAuthMode, json = false) {
+  const [accessToken, installationId] = await Promise.all([accessTokenFor(auth), getInstallationId()]);
+  return {
+    Accept: 'application/json',
+    'X-Minion-Installation-Id': installationId,
+    ...(json ? { 'Content-Type': 'application/json' } : {}),
+    ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+  };
+}
+
+export async function fetchMobileApi<T>(path: string, signal?: AbortSignal): Promise<T> {
+  const response = await fetch(`${mobileApiOrigin}${path}`, {
+    headers: await requestHeaders(authForRequest('GET', path)),
+    signal,
+  });
+  return readMobileResponse<T>(response);
+}
+
 export async function mutateMobileApi<T>(path: string, method: 'POST' | 'PATCH' | 'DELETE', payload?: unknown): Promise<T> {
-  const [{ data: { session } }, installationId] = await Promise.all([supabase.auth.getSession(), getInstallationId()]);
   const response = await fetch(`${mobileApiOrigin}${path}`, {
     method,
-    headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-      'X-Minion-Installation-Id': installationId,
-      ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
-    },
+    headers: await requestHeaders(authForRequest(method, path), true),
     body: payload === undefined ? undefined : JSON.stringify(payload),
   });
-  const body = await response.json() as MobileApiSuccess<T> | MobileApiError;
-  if (!response.ok || 'error' in body) throw new Error('error' in body ? body.error.message : `HTTP ${response.status}`);
-  return body.data;
+  return readMobileResponse<T>(response);
+}
+
+export async function uploadMobileApi<T>(path: string, formData: FormData): Promise<T> {
+  const response = await fetch(`${mobileApiOrigin}${path}`, {
+    method: 'POST',
+    headers: await requestHeaders(authForRequest('POST', path)),
+    body: formData,
+  });
+  return readMobileResponse<T>(response);
 }
 
 export async function readApiCache<T>(key: string) {
@@ -71,6 +110,20 @@ export type {
   MobileBracketMatch,
   MobileBracketStagePill,
   MobileChampionRef,
+  MobileCommunityActionDto,
+  MobileCommunityAuthor,
+  MobileCommunityComment,
+  MobileCommunityCommentMutationDto,
+  MobileCommunityPollDto,
+  MobileCommunityPostDetailDto,
+  MobileCommunityPostMutationDto,
+  MobileCommunityPostSummary,
+  MobileCommunityPostsDto,
+  MobileCommunityReactionDto,
+  MobileCommunityUploadDto,
+  MobileCommunityUserActivityComment,
+  MobileCommunityUserActivityPost,
+  MobileCommunityUserDto,
   MobileFanRatingComment,
   MobileFanRatingPanel,
   MobileFanRatingPlayer,
@@ -87,11 +140,13 @@ export type {
   MobileNewsItem,
   MobileObjectiveCounts,
   MobilePlayerLoadout,
+  MobilePlayerDirectoryItem,
   MobilePlayersDto,
   MobilePlayerDetailDto,
   MobilePlayerSummary,
   MobilePomRow,
   MobilePredictionMatch,
+  MobilePredictionMutationDto,
   MobilePredictionsDto,
   MobileScheduleDto,
   MobileSearchDto,
@@ -102,6 +157,9 @@ export type {
   MobileStandingRow,
   MobileStandingsGroup,
   MobileTeamDetailDto,
+  MobileTeamFavoriteDto,
+  MobileTeamFanDto,
+  MobileTeamNotificationDto,
   MobileTeamSummary,
   MobileTeamsDto,
   MobileTimelineEvent,
@@ -111,4 +169,6 @@ export type {
   MobileTournamentsDto,
   MobileTournamentSummary,
   MobileVideoItem,
+  TiptapDocument,
+  TiptapNode,
 } from '../../packages/contracts/src/mobile-v1';

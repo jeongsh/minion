@@ -1,11 +1,13 @@
-import { Tabs } from 'expo-router';
+import { Tabs, usePathname } from 'expo-router';
 
 import { MinionDock } from '@/components/minion-dock';
 
 export default function TabLayout() {
+  const pathname = usePathname();
+  const hideDock = /^\/community\/(?:new|post\/[^/]+(?:\/edit)?)\/?$/.test(pathname);
   return (
     <Tabs
-      tabBar={() => <MinionDock />}
+      tabBar={() => hideDock ? null : <MinionDock />}
       screenOptions={{
         headerShown: false,
         tabBarStyle: { position: 'absolute' },
