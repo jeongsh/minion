@@ -1,5 +1,5 @@
-import { RouteCanvas } from '@/components/route-canvas';
+import { FanPage } from '@/components/fan/fan-page';
 
 export default function FanVideosScreen() {
-  return <RouteCanvas />;
+  return <FanPage section="videos" />;
 }

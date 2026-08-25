@@ -1,11 +1,9 @@
-import { Image } from 'expo-image';
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import { resolveApiAssetUrl } from '@/lib/api-client';
-
-const MINION_LOGO = require('@/assets/images/logo.svg');
+import { MinionBrandLogo } from '@/components/minion-brand-logo';
 
 const FOOTER_LINKS = [
   { label: '서비스 소개', path: '/about' },
@@ -15,7 +13,7 @@ const FOOTER_LINKS = [
   { label: '광고·제휴 문의', path: '/advertising' },
 ];
 
-export function MinionFooter() {
+export function MinionFooter({ accentColor }: { accentColor?: string }) {
   const insets = useSafeAreaInsets();
   const { fonts, theme } = useMinionTheme();
   const openWebPage = (path: string) => void Linking.openURL(resolveApiAssetUrl(path) ?? path);
@@ -23,7 +21,7 @@ export function MinionFooter() {
   return (
     <View style={[styles.footer, { paddingBottom: theme.size.footerDockClearance + insets.bottom }]}>
       <View style={styles.footerTop}>
-        <Image accessibilityLabel="MINION" contentFit="contain" source={MINION_LOGO} style={styles.footerLogo} />
+        <MinionBrandLogo color={accentColor} />
         <View style={styles.footerNav}>
           {FOOTER_LINKS.map((link) => (
             <Pressable key={link.path} onPress={() => openWebPage(link.path)}>
@@ -58,7 +56,6 @@ const styles = StyleSheet.create({
   footerDisclaimer: { fontSize: 10, lineHeight: 20, marginTop: 8 },
   footerInlineLink: { textDecorationLine: 'underline' },
   footerLink: { fontSize: 13, lineHeight: 19.5 },
-  footerLogo: { aspectRatio: 171 / 39, width: 64 },
   footerNav: { columnGap: 16, flexDirection: 'row', flexWrap: 'wrap', rowGap: 8, width: '100%' },
   footerTop: { alignItems: 'flex-start', rowGap: 8 },
 });
