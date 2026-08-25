@@ -70,7 +70,8 @@ export default async function RootLayout({
     };
   }
   const [followedTeamIds, favoriteTeamId, shellTeams, notificationPreferences] = await Promise.all([
-    getFollowedTeamIds(),
+    // 로그인한 유저에게만 "내 팀"을 보여준다 — 비로그인 상태의 쿠키 기반 팔로우는 사이드바에 노출하지 않는다.
+    user ? getFollowedTeamIds() : Promise.resolve([]),
     getFavoriteTeamId(),
     getTeams(),
     getNotificationPreferences(),
