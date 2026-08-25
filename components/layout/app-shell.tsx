@@ -311,7 +311,7 @@ export function AppShell({
       style={{ "--shell-mobile-header-offset": primaryHeaderVisible ? "56px" : "0px" } as React.CSSProperties}
     >
       {focus ? (
-        <header className="fixed inset-x-0 top-0 z-50 grid h-14 grid-cols-[44px_minmax(0,1fr)_44px] items-center border-b border-[#e8e8eb] bg-[var(--page-background)] px-2 sm:h-16 dark:border-[#343840]">
+        <header className="fixed inset-x-0 top-0 z-50 grid h-12 grid-cols-[44px_minmax(0,1fr)_44px] items-center border-b border-[#e8e8eb] bg-[var(--page-background)] px-3 md:h-16 dark:border-[#343840]">
           <Link
             href={focus.backHref}
             onClick={
@@ -329,7 +329,7 @@ export function AppShell({
           >
             <ChevronLeft size={22} />
           </Link>
-          <p className="truncate text-center text-[16px] font-black text-[var(--ui-ink)]">{focus.title}</p>
+          <p className="font-paperozi truncate text-center text-[16px] font-bold leading-tight text-[var(--ui-ink)] md:text-[24px] md:font-normal lg:text-[28px]">{focus.title}</p>
           <span aria-hidden="true" />
         </header>
       ) : (
@@ -495,7 +495,7 @@ export function AppShell({
         </aside>
       ) : null}
 
-      <div className={`flex flex-col transition-[padding] md:pt-16 ${communityPostDetail ? "pt-12" : "pt-14 sm:pt-16"} ${compactHubShell ? "md:max-[1199px]:pl-16" : ""} ${focusRoute ? "" : collapsed ? "min-[1200px]:pl-[72px]" : "min-[1200px]:pl-[216px]"}`}>
+      <div className={`flex flex-col transition-[padding] md:pt-16 ${focusRoute || communityPostDetail ? "pt-12" : "pt-14 sm:pt-16"} ${compactHubShell ? "md:max-[1199px]:pl-16" : ""} ${focusRoute ? "" : collapsed ? "min-[1200px]:pl-[72px]" : "min-[1200px]:pl-[216px]"}`}>
         <div className={`${!focusRoute && !communityPostDetail ? "compact-hub-content pb-0" : "pb-0"}`} data-shell-content={!focusRoute && !communityPostDetail ? "compact-hub" : undefined}>
           {showHubLocalNavigation ? (
             <nav aria-label="허브 로컬 메뉴" className="hub-local-navigation sticky z-30 border-b border-[var(--ui-border)] bg-[var(--page-background)] transition-[top] duration-200 md:hidden">
@@ -509,7 +509,11 @@ export function AppShell({
           ) : null}
           {children}
         </div>
-        <SiteFooter accentColor={currentFanTeam?.primaryColor} />
+        {focusRoute ? (
+          <div className="hidden md:block"><SiteFooter accentColor={currentFanTeam?.primaryColor} /></div>
+        ) : (
+          <SiteFooter accentColor={currentFanTeam?.primaryColor} />
+        )}
       </div>
 
       {!focusRoute && !communityPostDetail ? (

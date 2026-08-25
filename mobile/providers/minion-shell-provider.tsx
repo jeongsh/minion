@@ -53,6 +53,7 @@ export function MinionShellProvider({ children }: PropsWithChildren) {
   const [teamPickerOpen, setTeamPickerOpen] = useState(false);
   const [toast, setToast] = useState<ToastState>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const favoriteTeamOverridden = useRef(false);
   const [fontsLoaded, fontError] = useFonts({
     'Pretendard-Regular': require('@/assets/fonts/Pretendard-Regular.ttf'),
     'Pretendard-Medium': require('@/assets/fonts/Pretendard-Medium.ttf'),
@@ -72,7 +73,7 @@ export function MinionShellProvider({ children }: PropsWithChildren) {
     void Promise.all([AsyncStorage.getItem(THEME_KEY), AsyncStorage.getItem(FAVORITE_TEAM_KEY)])
       .then(([storedTheme, storedTeam]) => {
         if (storedTheme === 'light' || storedTheme === 'dark') setSavedScheme(storedTheme);
-        setFavoriteSlug(storedTeam);
+        if (!favoriteTeamOverridden.current) setFavoriteSlug(storedTeam);
       })
       .finally(() => setHydrated(true));
   }, []);
@@ -99,6 +100,7 @@ export function MinionShellProvider({ children }: PropsWithChildren) {
   }, [systemScheme]);
 
   const setFavoriteTeam = useCallback((team: MinionTeam | null) => {
+    favoriteTeamOverridden.current = true;
     setFavoriteSlug(team?.slug ?? null);
     if (team) void AsyncStorage.setItem(FAVORITE_TEAM_KEY, team.slug);
     else void AsyncStorage.removeItem(FAVORITE_TEAM_KEY);

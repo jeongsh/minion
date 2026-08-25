@@ -10,12 +10,14 @@ export async function GET(request: Request) {
   let viewer: MobileBootstrapDto["viewer"] = null;
   if (auth) {
     const [{ data: profile }, { data: subscriptions }] = await Promise.all([
-      auth.supabase.from("profiles").select("nickname, lp, favorite_team_id").eq("id", auth.user.id).maybeSingle(),
+      auth.supabase.from("profiles").select("nickname, profile_image_url, tier, lp, favorite_team_id").eq("id", auth.user.id).maybeSingle(),
       auth.supabase.from("fan_notification_subscriptions").select("team_id").eq("user_id", auth.user.id),
     ]);
     viewer = {
       id: auth.user.id,
       nickname: profile?.nickname ?? null,
+      profileImage: profile?.profile_image_url ? { url: profile.profile_image_url } : null,
+      tier: profile?.tier ?? "bronze",
       lp: profile?.lp ?? 0,
       favoriteTeamId: profile?.favorite_team_id ?? null,
       favoriteTeamSlug: teams.find((team) => team.id === profile?.favorite_team_id)?.slug ?? null,

@@ -47,6 +47,7 @@ function RootNavigator() {
         <Stack.Screen name="signup" />
         <Stack.Screen name="auth/callback" />
         <Stack.Screen name="me" />
+        <Stack.Screen name="me/profile" />
         <Stack.Screen name="me/settings" />
       </Stack>
       <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
@@ -61,13 +62,15 @@ function AccountShellSync() {
   const { setFavoriteTeam } = useMinionTheme();
   const hadSession = useRef(false);
   useEffect(() => {
-    if (session) {
+    if (session && viewer) {
       hadSession.current = true;
-      setFavoriteTeam(minionTeams.find((team) => team.slug === viewer?.favoriteTeamSlug) ?? null);
+      setFavoriteTeam(minionTeams.find((team) => team.slug === viewer.favoriteTeamSlug) ?? null);
     } else if (hadSession.current) {
-      hadSession.current = false;
-      setFavoriteTeam(null);
+      if (!session) {
+        hadSession.current = false;
+        setFavoriteTeam(null);
+      }
     }
-  }, [session, setFavoriteTeam, viewer?.favoriteTeamSlug]);
+  }, [session, setFavoriteTeam, viewer]);
   return null;
 }

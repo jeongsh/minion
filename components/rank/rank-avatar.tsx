@@ -75,6 +75,8 @@ const SIZES = {
   sm: { avatar: 32, ring: 2.5, medal: 10 },
   detail: { avatar: 36, ring: 2.75, medal: 11 },
   md: { avatar: 40, ring: 3, medal: 12 },
+  mobile: { avatar: 56, ring: 3, medal: 14 },
+  profile: { avatar: 72, ring: 3.5, medal: 18 },
   lg: { avatar: 96, ring: 4, medal: 22 },
 } as const;
 

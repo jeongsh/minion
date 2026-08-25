@@ -38,6 +38,49 @@ function messageForAuthError(message: string) {
   return message;
 }
 
+async function readViewerFromSupabase(): Promise<Viewer | null> {
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  if (userError) throw userError;
+  if (!user) return null;
+
+  const [profileResult, subscriptionsResult] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('nickname, profile_image_url, tier, lp, favorite_team_id')
+      .eq('id', user.id)
+      .maybeSingle(),
+    supabase
+      .from('fan_notification_subscriptions')
+      .select('team_id')
+      .eq('user_id', user.id),
+  ]);
+  if (profileResult.error) throw profileResult.error;
+  if (subscriptionsResult.error) throw subscriptionsResult.error;
+
+  const favoriteTeamId = profileResult.data?.favorite_team_id ?? null;
+  let favoriteTeamSlug: string | null = null;
+  if (favoriteTeamId) {
+    const { data: team, error: teamError } = await supabase
+      .from('teams')
+      .select('slug')
+      .eq('id', favoriteTeamId)
+      .maybeSingle();
+    if (teamError) throw teamError;
+    favoriteTeamSlug = team?.slug ?? null;
+  }
+
+  return {
+    id: user.id,
+    nickname: profileResult.data?.nickname ?? null,
+    profileImage: profileResult.data?.profile_image_url ? { url: profileResult.data.profile_image_url } : null,
+    tier: profileResult.data?.tier ?? 'bronze',
+    lp: profileResult.data?.lp ?? 0,
+    favoriteTeamId,
+    favoriteTeamSlug,
+    followedTeamIds: (subscriptionsResult.data ?? []).map(({ team_id: teamId }) => teamId),
+  };
+}
+
 export function AuthProvider({ children }: PropsWithChildren) {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -48,14 +91,20 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const refreshViewer = useCallback(async () => {
     try {
       const bootstrap = await fetchMobileApi<MobileBootstrapDto>('/api/mobile/v1/bootstrap');
-      setViewer(bootstrap.viewer);
-      const { data: { session: currentSession } } = await supabase.auth.getSession();
-      if (currentSession && !bootstrap.viewer) {
-        await supabase.auth.signOut({ scope: 'local' });
-        setSession(null);
+      if (bootstrap.viewer) {
+        setViewer(bootstrap.viewer);
+        return;
       }
     } catch {
-      setViewer(null);
+      // Fall through to Supabase so the account shell is not coupled to the
+      // local Next.js API being reachable from the device.
+    }
+
+    try {
+      const directViewer = await readViewerFromSupabase();
+      if (directViewer) setViewer(directViewer);
+    } catch {
+      // Keep the last known profile during a transient network failure.
     }
   }, []);
 
@@ -95,8 +144,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     const appState = AppState.addEventListener('change', (state) => {
-      if (state === 'active') supabase.auth.startAutoRefresh();
-      else supabase.auth.stopAutoRefresh();
+      if (state === 'active') {
+        supabase.auth.startAutoRefresh();
+        void refreshViewer();
+      } else supabase.auth.stopAutoRefresh();
     });
     const auth = supabase.auth.onAuthStateChange((_event, nextSession) => {
       setSession(nextSession);

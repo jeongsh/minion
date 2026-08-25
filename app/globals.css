@@ -182,6 +182,11 @@ html[data-navigation-pending="true"] body {
   transition: top 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+.me-mobile-sticky-nav {
+  top: calc(var(--shell-mobile-header-offset, 56px) + 48px);
+  transition: top 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 @media (min-width: 768px) {
   .fan-local-navigation {
     top: 64px;
@@ -192,6 +197,10 @@ html[data-navigation-pending="true"] body {
   }
 
   .schedule-mobile-sticky {
+    top: 64px;
+  }
+
+  .me-mobile-sticky-nav {
     top: 64px;
   }
 }

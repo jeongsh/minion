@@ -30,19 +30,14 @@ export function ProfileForm({
   }, [initialNickname]);
 
   return (
-    <form action={formAction} className="flex flex-col gap-5">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-        <RankAvatar
-          tier={tier}
-          src={previewUrl}
-          alt="프로필 이미지 미리보기"
-          fallback={initials || "MY"}
-          size="lg"
-        />
+    <form action={formAction} className="flex flex-col gap-4 sm:gap-5">
+      <div className="flex items-center gap-3 sm:gap-4">
+        <span className="sm:hidden"><RankAvatar tier={tier} src={previewUrl} alt="프로필 이미지 미리보기" fallback={initials || "MY"} size="profile" /></span>
+        <span className="hidden sm:inline"><RankAvatar tier={tier} src={previewUrl} alt="프로필 이미지 미리보기" fallback={initials || "MY"} size="lg" /></span>
         <div className="min-w-0 flex-1">
           <label
             htmlFor="profileImage"
-            className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-4 text-sm font-bold transition hover:bg-[var(--ui-surface-muted)]"
+            className="inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 text-[13px] font-semibold transition hover:bg-[var(--ui-surface-muted)] sm:gap-2 sm:px-4 sm:text-sm sm:font-bold"
           >
             <Camera size={16} />
             프로필 이미지 변경
@@ -59,8 +54,8 @@ export function ProfileForm({
               setPreviewUrl(URL.createObjectURL(file));
             }}
           />
-          <p className="mt-2 text-[13px] text-[var(--ui-muted)]">
-            PNG, JPG, WEBP 이미지를 5MB 이하로 업로드할 수 있습니다.
+          <p className="mt-1.5 text-[12px] font-medium leading-[18px] text-[var(--ui-muted)] sm:mt-2 sm:text-[13px] sm:font-normal">
+            PNG, JPG, WEBP · 최대 5MB
           </p>
         </div>
       </div>
@@ -95,7 +90,7 @@ export function ProfileForm({
         </p>
       ) : null}
 
-      <Button type="submit" disabled={pending} className="h-11 self-start rounded-lg px-5 font-bold">
+      <Button type="submit" disabled={pending} className="h-11 w-full rounded-lg px-5 font-bold sm:w-auto sm:self-start">
         {pending ? "저장 중..." : "프로필 저장"}
       </Button>
     </form>

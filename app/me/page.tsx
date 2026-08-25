@@ -1,45 +1,61 @@
-import { Bell, ChevronRight, Coins, FileText, MessageSquareText, Settings, ShieldBan, TrendingUp, UserRound } from "lucide-react";
+import { Bell, ChevronRight, FileText, LockKeyhole, LogOut, ShieldBan, UserRound } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { DeleteAccountForm } from "@/components/auth/delete-account-form";
+import { LogoutButton } from "@/components/auth/logout-button";
+import { PasswordForm } from "@/components/auth/password-form";
+import { ProfileForm } from "@/components/auth/profile-form";
+import { BlockedUserList } from "@/components/community/blocked-user-list";
+import { NotificationSettingsForm } from "@/components/notifications/notification-settings-form";
 import { CheckInButton } from "@/components/rank/check-in-button";
 import { RankAvatar } from "@/components/rank/rank-avatar";
-import { KitschEmptyState } from "@/components/ui/kitsch-empty-state";
-import { TeamLogo } from "@/components/ui/team-logo";
-import { formatRelativeOrDate } from "@/components/community/format";
-import { getCurrentUser } from "@/lib/auth/current-user";
-import { boardLabel } from "@/lib/community/boards";
-import { blindLabel } from "@/lib/community/moderation-labels";
-import { getCommentsByAuthor, getPostsByAuthor } from "@/lib/data/community";
-import { getTeams } from "@/lib/data/lck";
-import { getFavoriteTeamId } from "@/lib/fan/favorite-team";
+import { getCurrentUser, type CurrentUser } from "@/lib/auth/current-user";
+import { listBlockedCommunityGuests } from "@/lib/data/community-guests";
+import { listBlockedCommunityUsers } from "@/lib/data/community-users";
+import { getNotificationPreferences } from "@/lib/notifications/preferences";
 import { tierProgress } from "@/lib/rank/config";
 import { getRankSummary } from "@/lib/rank/queries";
 
-export const metadata = { title: "마이 홈 · MINION" };
+export const metadata = { title: "내 계정 · MINION" };
 
-const REASON_LABELS: Record<string, string> = {
-  attendance: "출석체크", post_created: "글 작성", comment_created: "댓글 작성",
-  honor_received: "추천 받음", honor_removed: "추천 취소", dishonor_received: "비추천 받음",
-  dishonor_removed: "비추천 취소", reported: "신고 제재", prediction_bet_placed: "승부예측 참가",
-  prediction_bet_cancelled: "승부예측 취소", prediction_bet_won: "승부예측 적중", prediction_bet_refunded: "승부예측 환불",
+const REAUTH_WINDOW_MS = 5 * 60 * 1000;
+
+const SOCIAL_PROVIDER_LABELS: Record<string, string> = {
+  google: "구글",
+  kakao: "카카오",
+  "custom:naver": "네이버",
+  apple: "Apple",
 };
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("ko-KR", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+const MANAGE_LINKS = [
+  { href: "#profile", label: "프로필", mobileLabel: "프로필", icon: UserRound },
+  { href: "#notifications", label: "알림", mobileLabel: "알림", icon: Bell },
+  { href: "#blocks", label: "차단 관리", mobileLabel: "차단 관리", icon: ShieldBan },
+  { href: "#account", label: "계정 및 보안", mobileLabel: "계정·보안", icon: LockKeyhole },
+];
+
+function isRecentlyReauthenticated(user: CurrentUser) {
+  if (user.hasPassword || !user.lastSignInAt) return false;
+  return Date.now() - new Date(user.lastSignInAt).getTime() < REAUTH_WINDOW_MS;
+}
+
+function accountLabel(user: CurrentUser) {
+  if (user.hasPassword) return user.email ?? "이메일 정보 없음";
+  return `${(user.authProvider ? SOCIAL_PROVIDER_LABELS[user.authProvider] : undefined) ?? "소셜"} 로그인`;
 }
 
 export default async function MePage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const { tab } = await searchParams;
-  if (tab === "account") redirect("/me/settings#profile");
-  if (tab === "blocks") redirect("/me/settings#blocks");
+  if (tab === "account") redirect("/me#account");
+  if (tab === "blocks") redirect("/me#blocks");
 
   const user = await getCurrentUser();
   if (!user) {
     return (
       <main className="layout-form py-16 text-center">
-        <h1 className="home-section-title mb-3 text-2xl">마이 홈</h1>
-        <p className="mb-6 text-sm text-[var(--ui-muted)]">내 랭크와 활동을 보려면 로그인이 필요합니다.</p>
+        <h1 className="home-section-title mb-3 text-2xl">내 계정</h1>
+        <p className="mb-6 text-sm text-[var(--ui-muted)]">내 정보와 설정을 관리하려면 로그인이 필요합니다.</p>
         <div className="flex flex-col justify-center gap-3 sm:flex-row">
           <Link href="/login?next=/me" className="flex min-h-11 items-center justify-center rounded-lg bg-[var(--accent)] px-5 text-sm font-bold text-[var(--accent-foreground)]">로그인</Link>
           <Link href="/signup" className="flex min-h-11 items-center justify-center rounded-lg border border-[var(--ui-border)] px-5 text-sm font-bold">회원가입</Link>
@@ -48,155 +64,178 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
     );
   }
 
-  const [summary, favoriteTeamId, teams, posts, comments] = await Promise.all([
+  const [summary, preferences, blockedUsers, blockedGuests] = await Promise.all([
     getRankSummary(user.id),
-    getFavoriteTeamId(),
-    getTeams(),
-    getPostsByAuthor(user.id),
-    getCommentsByAuthor(user.id),
+    getNotificationPreferences(),
+    listBlockedCommunityUsers(user.id),
+    listBlockedCommunityGuests(user.id),
   ]);
   const progress = tierProgress(summary.tier, summary.lp);
-  const favoriteTeam = teams.find((team) => team.id === favoriteTeamId) ?? null;
-  const teamsById = new Map(teams.map((team) => [team.id, team]));
-  const activityHref = (postId: string, scope: "hub" | "team", teamId: string | null) => {
-    const team = teamId ? teamsById.get(teamId) : null;
-    return scope === "team" && team
-      ? `/fan/${team.fanSiteHost || team.slug}/community/post/${postId}`
-      : `/community/post/${postId}`;
-  };
-  const recentCommunityActivity = [
-    ...posts.map((post) => ({
-      id: `post:${post.id}`,
-      kind: "post" as const,
-      title: post.blindedAt ? blindLabel(post.blindedSource, "post") : post.title,
-      context: boardLabel(post.siteScope, post.boardType),
-      createdAt: post.createdAt,
-      href: activityHref(post.id, post.siteScope, post.teamId),
-    })),
-    ...comments.map((comment) => ({
-      id: `comment:${comment.id}`,
-      kind: "comment" as const,
-      title: comment.blindedAt ? blindLabel(comment.blindedSource, "comment") : comment.content,
-      context: comment.postTitle,
-      createdAt: comment.createdAt,
-      href: activityHref(comment.postId, comment.postSiteScope, comment.postTeamId),
-    })),
-  ].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)).slice(0, 5);
   const initials = (user.nickname ?? "MY").slice(0, 2).toUpperCase();
 
   return (
-    <main className="layout-wide me-page max-w-5xl py-5 sm:py-8">
-      <section className="me-card relative overflow-hidden rounded-3xl border p-5 sm:p-7">
-        <div className="absolute inset-x-0 top-0 h-1 bg-[var(--accent)]" aria-hidden />
-        <div className="flex items-start gap-4 sm:items-center sm:gap-5">
-          <RankAvatar tier={summary.tier} src={user.profileImageUrl} alt="" fallback={initials} size="lg" />
-          <div className="min-w-0 flex-1 pt-1 sm:pt-0">
-            <p className="text-[13px] font-bold text-[var(--ui-muted)]">마이 홈</p>
-            <h1 className="mt-0.5 truncate text-2xl font-black tracking-[-0.03em] text-[var(--ui-ink)] sm:text-3xl">{user.nickname ?? "MINION 팬"}</h1>
-            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-[var(--ui-muted)]">
-              <span className="font-bold text-[var(--ui-ink)]">{progress.label}</span>
-              <span className="flex items-center gap-1"><Coins size={15} />{summary.lp.toLocaleString("ko-KR")} LP</span>
-              {summary.overallRank ? <span>전체 {summary.overallRank.toLocaleString("ko-KR")}위</span> : null}
-            </div>
-          </div>
-          <Link href="/me/settings" aria-label="설정" className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] text-[var(--ui-muted)] transition hover:bg-[var(--ui-surface-muted)] hover:text-[var(--ui-ink)]"><Settings size={19} /></Link>
+    <main className="layout-wide me-page max-w-6xl pb-6 pt-3 sm:py-8">
+      <MobileAccountSummary user={user} summary={summary} progress={progress} initials={initials} />
+
+      <nav className="me-mobile-sticky-nav sticky z-20 -mx-[var(--layout-gutter)] mt-3 border-y border-[var(--ui-border)] bg-[var(--ui-surface)] px-[var(--layout-gutter)] py-2 lg:hidden" aria-label="내 계정 메뉴">
+        <div className="grid grid-cols-4 gap-1.5">
+          {MANAGE_LINKS.map(({ href, mobileLabel, icon: Icon }) => (
+            <a key={href} href={href} className="flex min-h-10 min-w-0 items-center justify-center gap-1 rounded-lg bg-[var(--ui-surface-muted)] px-1 text-[12px] font-medium text-[var(--ui-text)]">
+              <Icon size={14} className="shrink-0" /><span className="truncate">{mobileLabel}</span>
+            </a>
+          ))}
         </div>
-        {favoriteTeam ? (
-          <div className="mt-5 flex items-center gap-2 border-t border-[var(--ui-border)] pt-4 text-[13px] text-[var(--ui-muted)]">
-            <TeamLogo team={favoriteTeam} size="h-6 w-6" /><span>내 최애팀</span><span className="font-bold text-[var(--ui-ink)]">{favoriteTeam.name}</span>
-          </div>
-        ) : null}
-      </section>
+      </nav>
 
-      <div className="mt-4 grid gap-4 sm:mt-6 lg:grid-cols-[minmax(0,1.55fr)_minmax(280px,0.8fr)] lg:gap-6">
-        <div className="min-w-0 space-y-4 sm:space-y-6">
-          <section className="me-card rounded-2xl border p-5 sm:p-6">
-            <div className="flex items-start justify-between gap-4">
-              <div><p className="text-[13px] font-bold text-[var(--ui-muted)]">티어 진행도</p><h2 className="mt-1 text-lg font-black text-[var(--ui-ink)]">{progress.label}</h2></div>
-              <span className="rounded-lg bg-[var(--ui-surface-muted)] px-2.5 py-1 text-[13px] font-bold text-[var(--ui-muted)]">{Math.round(progress.progressRatio * 100)}%</span>
+      <div className="mt-3 grid items-start gap-5 sm:mt-5 lg:mt-0 lg:grid-cols-[280px_minmax(0,1fr)] lg:gap-8">
+        <aside className="hidden space-y-4 lg:sticky lg:top-20 lg:block">
+          <section className="me-card overflow-hidden rounded-2xl border">
+            <div className="p-5 sm:p-6">
+              <div className="flex items-center gap-4 lg:flex-col lg:text-center">
+                <RankAvatar tier={summary.tier} src={user.profileImageUrl} alt="" fallback={initials} size="lg" />
+                <div className="min-w-0 flex-1 lg:w-full">
+                  <h1 className="truncate text-xl font-black tracking-[-0.03em] text-[var(--ui-ink)]">{user.nickname ?? "MINION 팬"}</h1>
+                  <p className="mt-1 truncate text-[13px] text-[var(--ui-muted)]">{accountLabel(user)}</p>
+                </div>
+              </div>
+
+              <div className="mt-5 rounded-2xl bg-[var(--ui-surface-muted)] p-4">
+                <div className="flex items-center justify-between gap-3 text-sm">
+                  <span className="font-bold text-[var(--ui-ink)]">{progress.label}</span>
+                  <span className="font-black tabular-nums text-[var(--ui-ink)]">{summary.lp.toLocaleString("ko-KR")} LP</span>
+                </div>
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-[var(--ui-border)]">
+                  <div className="h-full rounded-full bg-[var(--accent)]" style={{ width: `${Math.round(progress.progressRatio * 100)}%` }} />
+                </div>
+                <p className="mt-2 text-[12px] font-medium text-[var(--ui-muted)]">
+                  {summary.overallRank ? `전체 ${summary.overallRank.toLocaleString("ko-KR")}위` : "활동하며 LP를 모아보세요"}
+                </p>
+              </div>
+
+              <div className="mt-4"><CheckInButton alreadyChecked={summary.checkedInToday} /></div>
             </div>
-            <div className="mt-4 h-2.5 w-full overflow-hidden rounded-full bg-[var(--ui-surface-muted)]"><div className="h-full rounded-full bg-[var(--accent)]" style={{ width: `${Math.round(progress.progressRatio * 100)}%` }} /></div>
-            <p className="mt-2 text-[13px] text-[var(--ui-muted)]">
-              {progress.nextTier && progress.nextThreshold !== null ? `다음 티어(${progress.nextTierLabel})까지 ${(progress.nextThreshold - summary.lp).toLocaleString("ko-KR")} LP` : "최고 티어에 도달했어요."}
-            </p>
           </section>
 
-          <section className="me-card rounded-2xl border p-0">
-            <div className="flex items-center justify-between gap-4 px-5 pb-4 pt-5 sm:px-6 sm:pt-6">
-              <div><p className="text-[13px] font-bold text-[var(--ui-muted)]">커뮤니티</p><h2 className="mt-0.5 text-lg font-black text-[var(--ui-ink)]">내 활동</h2></div>
-              <Link href={`/community/user/${user.id}`} className="flex min-h-9 items-center gap-1 rounded-lg px-2 text-[13px] font-bold text-[var(--ui-muted)] transition hover:bg-[var(--ui-surface-muted)] hover:text-[var(--ui-ink)]">전체보기<ChevronRight size={15} /></Link>
+          <nav className="me-card rounded-2xl border p-2" aria-label="내 계정 메뉴">
+            <div className="grid grid-cols-2 lg:block">
+              {MANAGE_LINKS.map(({ href, label, icon: Icon }) => (
+                <a key={href} href={href} className="group flex min-h-12 items-center gap-2.5 rounded-xl px-3 text-sm font-bold text-[var(--ui-muted)] transition hover:bg-[var(--ui-surface-muted)] hover:text-[var(--ui-ink)]">
+                  <Icon size={17} className="shrink-0" />
+                  <span className="min-w-0 flex-1 truncate">{label}</span>
+                  <ChevronRight size={15} className="hidden shrink-0 opacity-45 lg:block" />
+                </a>
+              ))}
             </div>
-            <div className="mx-5 grid grid-cols-2 overflow-hidden rounded-xl bg-[var(--ui-surface-muted)] sm:mx-6">
-              <Link href={`/community/user/${user.id}?tab=posts`} className="flex items-center gap-3 px-4 py-3.5 transition hover:bg-[var(--ui-card-hover)]">
-                <span className="grid h-9 w-9 place-items-center rounded-lg bg-[var(--ui-surface)] text-[var(--ui-muted)]"><FileText size={17} /></span>
-                <span><span className="block text-[12px] font-medium text-[var(--ui-muted)]">내가 쓴 글</span><span className="block text-lg font-black tabular-nums text-[var(--ui-ink)]">{posts.length}</span></span>
-              </Link>
-              <Link href={`/community/user/${user.id}?tab=comments`} className="flex items-center gap-3 border-l border-[var(--ui-border)] px-4 py-3.5 transition hover:bg-[var(--ui-card-hover)]">
-                <span className="grid h-9 w-9 place-items-center rounded-lg bg-[var(--ui-surface)] text-[var(--ui-muted)]"><MessageSquareText size={17} /></span>
-                <span><span className="block text-[12px] font-medium text-[var(--ui-muted)]">내가 쓴 댓글</span><span className="block text-lg font-black tabular-nums text-[var(--ui-ink)]">{comments.length}</span></span>
-              </Link>
+            <div className="mx-2 my-2 border-t border-[var(--ui-border)]" />
+            <Link href={`/community/user/${user.id}`} className="flex min-h-12 items-center gap-2.5 rounded-xl px-3 text-sm font-bold text-[var(--ui-muted)] transition hover:bg-[var(--ui-surface-muted)] hover:text-[var(--ui-ink)]">
+              <FileText size={17} /><span className="min-w-0 flex-1">내 커뮤니티 활동</span><ChevronRight size={15} className="opacity-45" />
+            </Link>
+            <div className="mx-2 my-2 border-t border-[var(--ui-border)]" />
+            <div className="flex min-h-12 items-center gap-2.5 rounded-xl px-3 text-sm font-bold text-[#dc2626] transition hover:bg-[color-mix(in_srgb,#dc2626_8%,transparent)]">
+              <LogOut size={17} />
+              <LogoutButton className="flex-1 text-left" />
             </div>
-            {recentCommunityActivity.length > 0 ? (
-              <ul className="mt-4 divide-y divide-[var(--ui-border)] border-t border-[var(--ui-border)] px-5 sm:px-6">
-                {recentCommunityActivity.map((item) => (
-                  <li key={item.id}>
-                    <Link href={item.href} className="flex min-h-[62px] items-center gap-3 py-3 transition hover:opacity-75">
-                      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[var(--ui-surface-muted)] text-[var(--ui-muted)]">{item.kind === "post" ? <FileText size={15} /> : <MessageSquareText size={15} />}</span>
-                      <span className="min-w-0 flex-1"><span className="block truncate text-[12px] font-medium text-[var(--tp)]">{item.context}</span><span className="mt-0.5 block truncate text-sm font-semibold text-[var(--ui-ink)]">{item.title || "내용 없음"}</span></span>
-                      <time dateTime={item.createdAt} className="shrink-0 text-[12px] font-medium text-[var(--ui-muted)]">{formatRelativeOrDate(item.createdAt)}</time>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <div className="px-5 pb-5 pt-4 sm:px-6"><KitschEmptyState character="marker" title="아직 작성한 글이나 댓글이 없어요" body="커뮤니티에서 첫 이야기를 시작해 보세요." compact plain /></div>
-            )}
-          </section>
-
-          <section className="me-card rounded-2xl border p-0">
-            <div className="flex items-center justify-between px-5 pb-2 pt-5 sm:px-6 sm:pt-6"><div><p className="text-[13px] font-bold text-[var(--ui-muted)]">최근 기록</p><h2 className="mt-0.5 text-lg font-black text-[var(--ui-ink)]">LP 변동</h2></div><TrendingUp size={20} className="text-[var(--ui-muted)]" /></div>
-            {summary.recentLedger.length === 0 ? (
-              <div className="px-5 pb-5 pt-3 sm:px-6"><KitschEmptyState character="flag" title="LP 로그가 아직 깨끗해요" body="출석체크나 예측에 참여하면 여기에 기록이 쌓여요." compact /></div>
-            ) : (
-              <ul className="me-ledger-list flex flex-col px-5 pb-4 sm:px-6 sm:pb-5">
-                {summary.recentLedger.slice(0, 6).map((entry) => (
-                  <li key={entry.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-3 text-sm">
-                    <span className="min-w-0 truncate font-medium">{REASON_LABELS[entry.reason] ?? entry.reason}</span>
-                    <span className="flex items-center gap-3 whitespace-nowrap"><span className={`font-bold ${entry.delta >= 0 ? "text-[#16a34a]" : "text-[#dc2626]"}`}>{entry.delta >= 0 ? `+${entry.delta}` : entry.delta}</span><span className="text-[12px] text-[var(--ui-muted)]">{formatDate(entry.created_at)}</span></span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-        </div>
-
-        <aside className="space-y-4 sm:space-y-6">
-          <section className="me-card rounded-2xl border p-5 sm:p-6">
-            <p className="text-[13px] font-bold text-[var(--ui-muted)]">오늘도 MINION</p>
-            <h2 className="mt-1 text-lg font-black text-[var(--ui-ink)]">출석체크</h2>
-            <p className="mb-4 mt-1 text-[13px] leading-5 text-[var(--ui-muted)]">매일 방문하고 LP를 차곡차곡 모아보세요.</p>
-            <CheckInButton alreadyChecked={summary.checkedInToday} />
-          </section>
-
-          <section className="me-card rounded-2xl border p-3">
-            <h2 className="px-2 pb-2 pt-1 text-[13px] font-bold text-[var(--ui-muted)]">내 설정 바로가기</h2>
-            <QuickLink href={`/community/user/${user.id}`} icon={FileText} title="내 커뮤니티 활동" description="작성한 글과 댓글" />
-            <QuickLink href="/me/settings#profile" icon={UserRound} title="프로필" description="닉네임과 프로필 이미지" />
-            <QuickLink href="/me/settings#notifications" icon={Bell} title="알림" description="경기와 평가 알림" />
-            <QuickLink href="/me/settings#blocks" icon={ShieldBan} title="차단 관리" description="차단한 사용자 관리" />
-          </section>
+          </nav>
         </aside>
+
+        <div className="min-w-0">
+          <div className="space-y-3 sm:space-y-5">
+            <AccountSection id="profile" icon={UserRound} title="프로필" description="다른 사용자에게 보이는 닉네임과 이미지를 변경합니다.">
+              <ProfileForm initialNickname={user.nickname ?? ""} initialProfileImageUrl={user.profileImageUrl} tier={summary.tier} />
+            </AccountSection>
+
+            <AccountSection id="notifications" icon={Bell} title="알림" description="필요한 경기 소식만 골라서 받아보세요.">
+              <NotificationSettingsForm initialPreferences={preferences} />
+            </AccountSection>
+
+            <AccountSection id="blocks" icon={ShieldBan} title="차단 관리" description="차단한 사용자와 해제할 사용자를 관리합니다.">
+              <BlockedUserList users={blockedUsers} guests={blockedGuests} />
+            </AccountSection>
+
+            <AccountSection id="account" icon={LockKeyhole} title="계정 및 보안" description="로그인 정보와 보안 설정을 확인합니다.">
+              <div className="rounded-xl bg-[var(--ui-surface-muted)] p-4">
+                <p className="text-[13px] font-bold text-[var(--ui-muted)]">로그인 계정</p>
+                <p className="mt-1 break-all text-sm font-semibold text-[var(--ui-ink)]">{accountLabel(user)}</p>
+              </div>
+
+              {user.hasPassword ? (
+                <details className="group mt-4 rounded-xl border border-[var(--ui-border)]">
+                  <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 px-4 text-sm font-bold text-[var(--ui-ink)] [&::-webkit-details-marker]:hidden">
+                    비밀번호 변경 <ChevronRight size={17} className="text-[var(--ui-muted)] transition-transform group-open:rotate-90" />
+                  </summary>
+                  <div className="border-t border-[var(--ui-border)] p-4"><PasswordForm /></div>
+                </details>
+              ) : null}
+
+              <details className="group mt-3 rounded-xl border border-[color-mix(in_srgb,#dc2626_28%,var(--ui-border))]">
+                <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 px-4 text-sm font-bold text-[#dc2626] [&::-webkit-details-marker]:hidden">
+                  회원 탈퇴 <ChevronRight size={17} className="transition-transform group-open:rotate-90" />
+                </summary>
+                <div className="border-t border-[color-mix(in_srgb,#dc2626_20%,var(--ui-border))] p-4">
+                  <DeleteAccountForm hasPassword={user.hasPassword} authProvider={user.authProvider} recentlyReauthenticated={isRecentlyReauthenticated(user)} />
+                </div>
+              </details>
+            </AccountSection>
+          </div>
+        </div>
       </div>
     </main>
   );
 }
 
-function QuickLink({ href, icon: Icon, title, description }: { href: string; icon: typeof Bell; title: string; description: string }) {
+function AccountSection({ id, icon: Icon, title, description, children }: {
+  id: string;
+  icon: typeof UserRound;
+  title: string;
+  description: string;
+  children: React.ReactNode;
+}) {
   return (
-    <Link href={href} className="group flex min-h-[64px] items-center gap-3 rounded-xl px-2 transition hover:bg-[var(--ui-surface-muted)]">
-      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[var(--ui-surface-muted)] text-[var(--ui-muted)] group-hover:text-[var(--ui-ink)]"><Icon size={17} /></span>
-      <span className="min-w-0 flex-1"><span className="block text-sm font-bold text-[var(--ui-ink)]">{title}</span><span className="block truncate text-[12px] text-[var(--ui-muted)]">{description}</span></span>
-      <ChevronRight size={17} className="text-[var(--ui-muted)]" />
-    </Link>
+    <section id={id} className="me-card scroll-mt-28 rounded-xl border p-4 sm:scroll-mt-24 sm:rounded-2xl sm:p-6">
+      <div className="mb-4 flex items-start gap-2.5 sm:mb-5 sm:gap-3">
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[var(--ui-surface-muted)] text-[var(--ui-muted)] sm:h-10 sm:w-10 sm:rounded-xl"><Icon size={18} /></span>
+        <div className="min-w-0">
+          <h3 className="text-base font-black tracking-[-0.02em] text-[var(--ui-ink)] sm:text-lg">{title}</h3>
+          <p className="mt-0.5 text-[12px] font-medium leading-[18px] text-[var(--ui-muted)] sm:text-sm sm:font-normal sm:leading-5">{description}</p>
+        </div>
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function MobileAccountSummary({ user, summary, progress, initials }: {
+  user: CurrentUser;
+  summary: Awaited<ReturnType<typeof getRankSummary>>;
+  progress: ReturnType<typeof tierProgress>;
+  initials: string;
+}) {
+  return (
+    <section className="me-card rounded-xl border p-4 lg:hidden">
+      <div className="flex items-center gap-3">
+        <RankAvatar tier={summary.tier} src={user.profileImageUrl} alt="" fallback={initials} size="mobile" />
+        <div className="min-w-0 flex-1">
+          <h1 className="truncate text-[18px] font-black tracking-[-0.025em] text-[var(--ui-ink)]">{user.nickname ?? "MINION 팬"}</h1>
+          <p className="mt-0.5 truncate text-[12px] font-medium text-[var(--ui-muted)]">{accountLabel(user)}</p>
+          <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[12px] font-medium">
+            <span className="text-[var(--ui-ink)]">{progress.label}</span>
+            <span className="text-[var(--ui-muted)]">{summary.lp.toLocaleString("ko-KR")} LP</span>
+            {summary.overallRank ? <span className="text-[var(--ui-muted)]">전체 {summary.overallRank.toLocaleString("ko-KR")}위</span> : null}
+          </div>
+        </div>
+      </div>
+      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[var(--ui-surface-muted)]">
+        <div className="h-full rounded-full bg-[var(--accent)]" style={{ width: `${Math.round(progress.progressRatio * 100)}%` }} />
+      </div>
+      <div className="mt-3"><CheckInButton alreadyChecked={summary.checkedInToday} /></div>
+      <div className="mt-2 grid grid-cols-2 gap-2">
+        <Link href={`/community/user/${user.id}`} className="flex min-h-10 items-center justify-center gap-1.5 rounded-lg bg-[var(--ui-surface-muted)] px-2 text-[13px] font-semibold text-[var(--ui-text)]">
+          <FileText size={15} />내 활동
+        </Link>
+        <div className="flex min-h-10 items-center justify-center gap-1.5 rounded-lg bg-[var(--ui-surface-muted)] px-2 text-[13px] font-semibold text-[#dc2626]">
+          <LogOut size={15} /><LogoutButton className="text-[13px] font-semibold text-[#dc2626]" />
+        </div>
+      </div>
+    </section>
   );
 }

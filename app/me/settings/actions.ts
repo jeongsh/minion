@@ -24,6 +24,7 @@ export async function updateNotificationPreferencesAction(input: NotificationPre
     if (error) return { ok: false as const, error: "알림 설정을 저장하지 못했습니다." };
     revalidatePath("/", "layout");
     revalidatePath("/me/settings");
+    revalidatePath("/me");
     return { ok: true as const };
   } catch {
     return { ok: false as const, error: "알림 설정을 저장하지 못했습니다." };

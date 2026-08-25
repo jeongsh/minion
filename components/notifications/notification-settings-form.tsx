@@ -51,8 +51,8 @@ export function NotificationSettingsForm({ initialPreferences }: { initialPrefer
           />
         ))}
       </div>
-      <div className="mt-5 flex items-center justify-between gap-4 border-t border-[var(--ui-border)] pt-5">
-        <p className="text-[13px] text-[var(--ui-muted)]">설정은 로그인한 모든 기기에 적용됩니다.</p>
+      <div className="mt-4 flex flex-col gap-3 border-t border-[var(--ui-border)] pt-4 sm:mt-5 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:pt-5">
+        <p className="text-[12px] font-medium text-[var(--ui-muted)] sm:text-[13px] sm:font-normal">설정은 로그인한 모든 기기에 적용됩니다.</p>
         <button
           type="button"
           disabled={pending}
@@ -64,7 +64,7 @@ export function NotificationSettingsForm({ initialPreferences }: { initialPrefer
               tone: result.ok ? "success" : "error",
             });
           })}
-          className="min-h-11 shrink-0 rounded-lg bg-[var(--accent)] px-5 text-sm font-bold text-[var(--accent-foreground)] disabled:opacity-50"
+          className="min-h-11 w-full shrink-0 rounded-lg bg-[var(--accent)] px-5 text-sm font-bold text-[var(--accent-foreground)] disabled:opacity-50 sm:w-auto"
         >
           {pending ? "저장 중..." : "변경사항 저장"}
         </button>
@@ -82,11 +82,11 @@ function SettingRow({ icon: Icon, title, description, checked, onChange, emphasi
   emphasized?: boolean;
 }) {
   return (
-    <label className={`flex min-h-[72px] cursor-pointer items-center gap-3 rounded-xl px-3 py-3 ${emphasized ? "bg-[var(--ui-surface-muted)]" : ""}`}>
-      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[var(--ui-surface)] text-[var(--ui-muted)]"><Icon size={18} /></span>
+    <label className={`flex min-h-16 cursor-pointer items-center gap-2.5 rounded-xl px-2 py-2.5 sm:min-h-[72px] sm:gap-3 sm:px-3 sm:py-3 ${emphasized ? "bg-[var(--ui-surface-muted)]" : ""}`}>
+      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[var(--ui-surface)] text-[var(--ui-muted)] sm:h-9 sm:w-9"><Icon size={17} /></span>
       <span className="min-w-0 flex-1">
-        <span className="block text-sm font-bold text-[var(--ui-ink)]">{title}</span>
-        <span className="mt-0.5 block text-[13px] leading-5 text-[var(--ui-muted)]">{description}</span>
+        <span className="block text-[13px] font-semibold text-[var(--ui-ink)] sm:text-sm sm:font-bold">{title}</span>
+        <span className="mt-0.5 block text-[12px] font-medium leading-[18px] text-[var(--ui-muted)] sm:text-[13px] sm:font-normal sm:leading-5">{description}</span>
       </span>
       <input type="checkbox" className="peer sr-only" checked={checked} onChange={(event) => onChange(event.target.checked)} />
       <span aria-hidden="true" className="relative h-6 w-11 shrink-0 rounded-full bg-[var(--ui-border)] transition peer-checked:bg-[var(--accent)] peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--accent)] peer-focus-visible:ring-offset-2 after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow-sm after:transition-transform peer-checked:after:translate-x-5" />
