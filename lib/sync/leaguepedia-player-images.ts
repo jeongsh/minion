@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { fetchAuthenticatedLeaguepediaApi } from "./leaguepedia-api.ts";
 import { leaguepediaImageFilename, resolveLeaguepediaImageUrls } from "./leaguepedia-images.ts";
 import {
   isValidPlayerImageFilename,
@@ -7,8 +8,6 @@ import {
   type PlayerImageCandidate,
 } from "./leaguepedia-player-image-source.ts";
 
-const CARGO_API = "https://lol.fandom.com/api.php";
-const USER_AGENT = "LCKHubMinion/0.1 (player image sync; contact: local-dev)";
 const REQUEST_DELAY_MS = 3000;
 const MAX_RETRIES = 10;
 const CARGO_CHUNK_SIZE = 40;
@@ -44,9 +43,7 @@ async function cargoQuery<T extends Record<string, string | undefined>>(params: 
   });
 
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-    const response = await fetch(`${CARGO_API}?${searchParams}`, {
-      headers: { "user-agent": USER_AGENT },
-    });
+    const response = await fetchAuthenticatedLeaguepediaApi(searchParams);
 
     if (!response.ok) {
       throw new Error(`Leaguepedia fetch failed: ${response.status}`);
