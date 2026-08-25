@@ -4,6 +4,8 @@ Read the exact versioned docs at https://docs.expo.dev/versions/v54.0.0/ before 
 
 # MINION mobile work split
 
+Before investigating or changing any mobile app code, read `../docs/native-mobile/README.md` completely and follow all of its rules throughout the task. This is mandatory for every mobile implementation and web-to-app replication task, including delegated work.
+
 Before changing mobile UI, read the assigned execution document:
 
 - Owner A (match/discovery): `../docs/native-mobile/OWNER-A.md`
