@@ -5,11 +5,17 @@ import { notFound } from "next/navigation";
 import { AuthorMenu } from "@/components/community/author-menu";
 import { formatRelativeOrDate } from "@/components/community/format";
 import { KitschEmptyState } from "@/components/ui/kitsch-empty-state";
+import { Pagination } from "@/components/ui/pagination";
 import { PageHeader } from "@/components/ui/page-header";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { boardLabel } from "@/lib/community/boards";
 import { blindLabel } from "@/lib/community/moderation-labels";
-import { getCommentsByAuthor, getPostsByAuthor } from "@/lib/data/community";
+import {
+  getCommentsByAuthorCount,
+  getCommentsByAuthorPage,
+  getPostsByAuthorCount,
+  getPostsByAuthorPage,
+} from "@/lib/data/community";
 import {
   getBlockedCommunityUserIds,
   getCommunityUserSummary,
@@ -24,19 +30,30 @@ export default async function CommunityUserPage({
   searchParams,
 }: {
   params: Promise<{ userId: string }>;
-  searchParams: Promise<{ tab?: string }>;
+  searchParams: Promise<{ tab?: string; page?: string }>;
 }) {
   const [{ userId }, query, viewer] = await Promise.all([params, searchParams, getCurrentUser()]);
   const tab: ActivityTab = query.tab === "comments" ? "comments" : "posts";
+  const requestedPage = Math.min(10_000, Math.max(1, Number.parseInt(query.page ?? "1", 10) || 1));
   const blockedIds = viewer ? await getBlockedCommunityUserIds(viewer.id) : new Set<string>();
   if (blockedIds.has(userId)) notFound();
 
-  const [profile, posts, comments] = await Promise.all([
-    getCommunityUserSummary(userId),
-    getPostsByAuthor(userId),
-    getCommentsByAuthor(userId),
-  ]);
+  const profilePromise = getCommunityUserSummary(userId);
+  const [profile, postsPage, commentsPage] = tab === "posts"
+    ? await Promise.all([
+      profilePromise,
+      getPostsByAuthorPage(userId, requestedPage),
+      getCommentsByAuthorCount(userId).then((totalCount) => ({ items: [], page: 1, totalPages: 1, totalCount })),
+    ])
+    : await Promise.all([
+      profilePromise,
+      getPostsByAuthorCount(userId).then((totalCount) => ({ items: [], page: 1, totalPages: 1, totalCount })),
+      getCommentsByAuthorPage(userId, requestedPage),
+    ]);
   if (!profile) notFound();
+  const posts = postsPage.items;
+  const comments = commentsPage.items;
+  const activePage = tab === "posts" ? postsPage : commentsPage;
 
   const teamIds = [...new Set([
     ...posts.flatMap((post) => post.teamId ? [post.teamId] : []),
@@ -82,15 +99,15 @@ export default async function CommunityUserPage({
             </div>
 
             <dl className="mt-5 grid grid-cols-2 overflow-hidden rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface-muted)]">
-              <ProfileStat label="작성글" value={posts.length} />
-              <ProfileStat label="작성 댓글" value={comments.length} bordered />
+              <ProfileStat label="작성글" value={postsPage.totalCount} />
+              <ProfileStat label="작성 댓글" value={commentsPage.totalCount} bordered />
             </dl>
           </section>
 
           <section className="mobile-full-bleed overflow-hidden rounded-[var(--ui-card-radius)] border border-[var(--ui-border)] bg-[var(--ui-surface)]">
             <nav className="grid grid-cols-2 gap-1 bg-[var(--ui-surface-muted)] p-1.5" aria-label="사용자 활동">
-              <TabLink href={`/community/user/${userId}?tab=posts`} active={tab === "posts"} icon={<FileText size={16} />} label="작성글" count={posts.length} />
-              <TabLink href={`/community/user/${userId}?tab=comments`} active={tab === "comments"} icon={<MessageSquareText size={16} />} label="작성 댓글" count={comments.length} />
+              <TabLink href={`/community/user/${userId}?tab=posts`} active={tab === "posts"} icon={<FileText size={16} />} label="작성글" count={postsPage.totalCount} />
+              <TabLink href={`/community/user/${userId}?tab=comments`} active={tab === "comments"} icon={<MessageSquareText size={16} />} label="작성 댓글" count={commentsPage.totalCount} />
             </nav>
 
             <div className="flex items-center justify-between border-b border-[var(--ui-border)] px-4 py-3.5 sm:px-5">
@@ -136,6 +153,15 @@ export default async function CommunityUserPage({
                 ))}
               </ul>
             ) : <EmptyActivity title="공개된 작성 댓글이 없습니다" />}
+
+            {activePage.totalPages > 1 ? (
+              <Pagination
+                page={activePage.page}
+                totalPages={activePage.totalPages}
+                getHref={(page) => `/community/user/${userId}?tab=${tab}&page=${page}`}
+                className="border-t border-[var(--ui-border)] px-4 py-4"
+              />
+            ) : null}
           </section>
         </div>
       </div>

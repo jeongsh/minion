@@ -8,6 +8,7 @@ import { cookies, headers } from "next/headers";
 const GUEST_COOKIE_NAME = "community_guest_id";
 const GUEST_COOKIE_MAX_AGE = 60 * 60 * 24 * 90;
 const GUEST_TOKEN_PATTERN = /^[A-Za-z0-9_-]{32}$/;
+const INSTALLATION_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const MINION_PREFIXES = [
   "꾸벅조는", "총총걷는", "뒤뚱대는", "간식찾는", "몰래쉬는", "딴짓하는", "눈치보는", "춤추는",
@@ -66,8 +67,7 @@ function nicknameFromKey(key: string): string {
   return `${prefix}미니언${suffix}`;
 }
 
-async function currentIp(): Promise<string> {
-  const requestHeaders = await headers();
+function ipFromHeaders(requestHeaders: Headers): string {
   const raw =
     requestHeaders.get("x-vercel-forwarded-for")?.split(",")[0]
     ?? requestHeaders.get("cf-connecting-ip")
@@ -77,6 +77,10 @@ async function currentIp(): Promise<string> {
   const ip = normalizeIp(raw) ?? (process.env.NODE_ENV === "development" ? "127.0.0.1" : null);
   if (!ip) throw new Error("접속 IP를 확인할 수 없어 비회원으로 작성할 수 없습니다.");
   return ip;
+}
+
+async function currentIp(): Promise<string> {
+  return ipFromHeaders(await headers());
 }
 
 export async function getExistingGuestKey(): Promise<string | null> {
@@ -100,6 +104,22 @@ export async function getGuestIdentity(): Promise<GuestIdentity> {
 
   const ip = await currentIp();
   const key = digest("guest", token);
+  return {
+    key,
+    nickname: nicknameFromKey(key),
+    ipKey: digest("ip", ip),
+    ipLabel: adminIpLabel(ip),
+  };
+}
+
+/** 네이티브 앱의 보안 저장소 설치 ID를 웹의 익명 쿠키와 같은 책임으로 사용한다. */
+export function getMobileGuestIdentity(request: Request): GuestIdentity {
+  const installationId = request.headers.get("x-minion-installation-id")?.trim() ?? "";
+  if (!INSTALLATION_ID_PATTERN.test(installationId)) {
+    throw new Error("비회원 ID를 확인하지 못했습니다. 앱을 다시 실행해주세요.");
+  }
+  const ip = ipFromHeaders(request.headers);
+  const key = digest("guest", installationId);
   return {
     key,
     nickname: nicknameFromKey(key),

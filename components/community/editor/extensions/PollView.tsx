@@ -1,7 +1,7 @@
 "use client";
 
 import { NodeViewWrapper, type NodeViewProps } from "@tiptap/react";
-import { Loader2, Plus, X } from "lucide-react";
+import { BarChart3, Loader2, Plus, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 export type PollOption = { id: string; label: string };
@@ -26,29 +26,42 @@ function PollEditor({ node, updateAttributes, deleteNode }: NodeViewProps) {
   }
 
   return (
-    <div className="my-4 flex flex-col gap-2.5 rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface-muted)] p-3.5">
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-[11px] font-medium uppercase tracking-[0.12em] text-[var(--ui-muted)]">투표</span>
+    <div className="my-4 flex flex-col gap-4 rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-3 md:p-4">
+      <div className="flex items-center gap-3">
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[color-mix(in_srgb,var(--accent)_12%,var(--ui-surface))] text-[var(--accent)]">
+          <BarChart3 size={18} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-[15px] font-bold leading-tight text-[var(--ui-ink)]">투표 만들기</p>
+          <p className="mt-0.5 text-[13px] font-medium text-[var(--ui-muted)]">하나의 선택지만 고를 수 있어요.</p>
+        </div>
         <button
           type="button"
           onClick={deleteNode}
-          className="grid h-6 w-6 place-items-center rounded-full text-[var(--ui-muted)] transition hover:text-[var(--ui-ink)]"
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-[var(--ui-muted)] transition hover:bg-red-500/10 hover:text-red-500"
           aria-label="투표 삭제"
         >
-          <X size={14} />
+          <X size={18} />
         </button>
       </div>
 
-      <input
-        value={question}
-        onChange={(event) => updateAttributes({ question: event.target.value })}
-        placeholder="무엇을 물어볼까요? (예: 짜장 vs 짬뽕)"
-        className="rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 py-2 text-[14px] font-bold text-[var(--ui-ink)] outline-none focus:border-[var(--ui-muted)]"
-      />
+      <label className="flex flex-col gap-1.5">
+        <span className="text-[13px] font-medium text-[var(--ui-text)]">질문</span>
+        <input
+          value={question}
+          onChange={(event) => updateAttributes({ question: event.target.value })}
+          placeholder="무엇을 물어볼까요?"
+          className="min-h-11 rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3.5 text-[14px] font-medium text-[var(--ui-ink)] outline-none transition placeholder:text-[var(--ui-muted)] focus:border-[var(--accent)] focus:ring-[3px] focus:ring-[color-mix(in_srgb,var(--accent)_12%,transparent)]"
+        />
+      </label>
 
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-2">
+        <span className="text-[13px] font-medium text-[var(--ui-text)]">선택지</span>
         {options.map((option, index) => (
-          <div key={option.id} className="flex items-center gap-1.5">
+          <div key={option.id} className="flex items-center gap-2">
+            <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[var(--ui-surface-muted)] text-[13px] font-medium tabular-nums text-[var(--ui-muted)]">
+              {index + 1}
+            </span>
             <input
               value={option.label}
               onChange={(event) => {
@@ -57,16 +70,16 @@ function PollEditor({ node, updateAttributes, deleteNode }: NodeViewProps) {
                 setOptions(next);
               }}
               placeholder={`선택지 ${index + 1}`}
-              className="min-w-0 flex-1 rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 py-2 text-[13px] font-medium text-[var(--ui-ink)] outline-none focus:border-[var(--ui-muted)]"
+              className="min-h-11 min-w-0 flex-1 rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3.5 text-[14px] font-medium text-[var(--ui-ink)] outline-none transition placeholder:text-[var(--ui-muted)] focus:border-[var(--accent)] focus:ring-[3px] focus:ring-[color-mix(in_srgb,var(--accent)_12%,transparent)]"
             />
             {options.length > MIN_OPTIONS ? (
               <button
                 type="button"
                 onClick={() => setOptions(options.filter((item) => item.id !== option.id))}
-                className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-[var(--ui-muted)] transition hover:text-[var(--ui-ink)]"
+                className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-[var(--ui-muted)] transition hover:bg-[var(--ui-surface-muted)] hover:text-[var(--ui-ink)]"
                 aria-label={`선택지 ${index + 1} 삭제`}
               >
-                <X size={14} />
+                <X size={17} />
               </button>
             ) : null}
           </div>
@@ -77,14 +90,14 @@ function PollEditor({ node, updateAttributes, deleteNode }: NodeViewProps) {
         <button
           type="button"
           onClick={() => setOptions([...options, { id: newOptionId(), label: "" }])}
-          className="flex items-center justify-center gap-1 rounded-lg border border-dashed border-[var(--ui-border)] py-2 text-[12px] font-medium text-[var(--ui-muted)] transition hover:text-[var(--ui-ink)]"
+          className="flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface-muted)] px-3 text-[14px] font-medium text-[var(--ui-text)] transition hover:border-[var(--ui-muted)] hover:text-[var(--ui-ink)]"
         >
-          <Plus size={13} /> 선택지 추가
+          <Plus size={17} /> 선택지 추가
         </button>
       ) : null}
 
-      <p className="text-[11px] font-medium text-[var(--ui-muted)]">
-        올린 뒤에는 선택지 문구만 고칠 수 있어요. 선택지를 지우면 그 표도 사라집니다.
+      <p className="border-t border-[var(--ui-border)] pt-3 text-[13px] font-medium text-[var(--ui-muted)]">
+        선택지는 최대 {MAX_OPTIONS}개까지 추가할 수 있어요.
       </p>
     </div>
   );
@@ -140,11 +153,19 @@ function PollVoter({ node }: NodeViewProps) {
   const total = tally?.total ?? 0;
 
   return (
-    <div className="my-4 flex flex-col gap-2.5 rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface-muted)] p-3.5">
-      {question ? <p className="text-[15px] font-black text-[var(--ui-ink)]">{question}</p> : null}
+    <div className="my-4 flex flex-col gap-4 rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-3 md:p-4">
+      <div className="flex items-center gap-3">
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[color-mix(in_srgb,var(--accent)_12%,var(--ui-surface))] text-[var(--accent)]">
+          <BarChart3 size={18} />
+        </span>
+        <div className="min-w-0">
+          <p className="text-[13px] font-medium text-[var(--ui-muted)]">투표</p>
+          {question ? <p className="mt-0.5 text-[16px] font-bold leading-snug text-[var(--ui-ink)]">{question}</p> : null}
+        </div>
+      </div>
 
-      <div className="flex flex-col gap-1.5">
-        {options.map((option) => {
+      <div className="flex flex-col gap-2">
+        {options.map((option, index) => {
           const count = tally?.counts[option.id] ?? 0;
           const percent = voted && total > 0 ? Math.round((count / total) * 100) : 0;
           const mine = tally?.myOptionId === option.id;
@@ -155,24 +176,25 @@ function PollVoter({ node }: NodeViewProps) {
               type="button"
               onClick={() => vote(option.id)}
               disabled={busy}
-              className={`relative flex min-h-11 items-center justify-between gap-3 overflow-hidden rounded-xl border px-3.5 text-left transition disabled:opacity-60 ${
+              className={`relative flex min-h-12 items-center justify-between gap-3 overflow-hidden rounded-xl border px-3.5 text-left transition disabled:opacity-60 ${
                 mine
-                  ? "border-[var(--team-primary,var(--ui-ink))] bg-[var(--ui-surface)]"
-                  : "border-[var(--ui-border)] bg-[var(--ui-surface)] hover:border-[var(--ui-muted)]"
+                  ? "border-[var(--accent)] bg-[color-mix(in_srgb,var(--accent)_5%,var(--ui-surface))]"
+                  : "border-[var(--ui-border)] bg-[var(--ui-surface)] hover:border-[var(--ui-muted)] hover:bg-[var(--ui-surface-muted)]"
               }`}
             >
               {voted ? (
                 <span
                   aria-hidden="true"
-                  className="absolute inset-y-0 left-0 bg-[var(--team-primary,var(--ui-ink))] opacity-[0.14] transition-[width]"
+                  className="absolute inset-y-0 left-0 bg-[var(--accent)] opacity-[0.12] transition-[width]"
                   style={{ width: `${percent}%` }}
                 />
               ) : null}
-              <span className="relative min-w-0 truncate text-[13px] font-bold text-[var(--ui-ink)]">
-                {option.label || "(빈 선택지)"}
+              <span className="relative flex min-w-0 items-center gap-2.5 text-[14px] font-medium text-[var(--ui-ink)]">
+                <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-[var(--ui-surface-muted)] text-[13px] font-medium tabular-nums text-[var(--ui-muted)]">{index + 1}</span>
+                <span className="truncate">{option.label || "(빈 선택지)"}</span>
               </span>
               {voted ? (
-                <span className="relative shrink-0 text-[12px] font-medium text-[var(--ui-text)]">
+                <span className="relative shrink-0 text-[13px] font-medium text-[var(--ui-text)]">
                   {percent}% · {count}표
                 </span>
               ) : null}
@@ -181,10 +203,10 @@ function PollVoter({ node }: NodeViewProps) {
         })}
       </div>
 
-      <p className="text-[11px] font-medium text-[var(--ui-muted)]">
+      <p className="border-t border-[var(--ui-border)] pt-3 text-[13px] font-medium text-[var(--ui-muted)]">
         {busy ? (
           <span className="inline-flex items-center gap-1">
-            <Loader2 size={11} className="animate-spin" /> 처리 중…
+            <Loader2 size={14} className="animate-spin" /> 처리 중…
           </span>
         ) : voted ? (
           `${total}명 참여 · 다시 누르면 취소돼요`
@@ -195,7 +217,7 @@ function PollVoter({ node }: NodeViewProps) {
         )}
       </p>
 
-      {error ? <p className="text-[12px] font-medium text-red-500">{error}</p> : null}
+      {error ? <p className="text-[13px] font-medium text-red-500">{error}</p> : null}
     </div>
   );
 }

@@ -21,15 +21,14 @@ export default function CommunityEditor({ content, onChange, allowMedia = true, 
 
   const editor = useEditor({
     immediatelyRender: false,
-    extensions: buildCommunityExtensions(),
+    extensions: buildCommunityExtensions({ placeholder: placeholder ?? "내용을 입력하세요" }),
     content: content,
     onUpdate: ({ editor }) => {
       onChange(JSON.stringify(editor.getJSON()));
     },
     editorProps: {
       attributes: {
-        "data-placeholder": placeholder ?? "내용을 입력하세요",
-        class: "community-prose max-w-none focus:outline-none min-h-[300px] p-4 text-base leading-7",
+        class: "community-prose max-w-none min-h-[calc(100svh-250px)] px-0 py-4 text-base leading-7 focus:outline-none md:min-h-[520px] md:py-3",
       },
       handlePaste: (_view, event) => {
         if (!allowMedia || !editor) return false;
@@ -86,12 +85,12 @@ export default function CommunityEditor({ content, onChange, allowMedia = true, 
   }, [content, editor]);
 
   return (
-    <div ref={containerRef} className="community-editor relative flex flex-col overflow-hidden rounded-[var(--ui-control-radius)] border border-[var(--ui-border)] bg-[var(--ui-surface)] focus-within:border-[var(--ui-ink)]">
-      {allowMedia ? <Toolbar editor={editor} allowMedia={allowMedia} /> : <Toolbar editor={editor} allowMedia={false} />}
+    <div ref={containerRef} className="community-editor relative flex flex-col bg-transparent md:bg-[var(--ui-surface)]">
       {uploadingDropImage ? (
         <div className="border-b border-border bg-surface-muted px-4 py-2 text-[13px] text-muted">이미지 업로드 중...</div>
       ) : null}
       <EditorContent editor={editor} />
+      <Toolbar editor={editor} allowMedia={allowMedia} />
     </div>
   );
 }

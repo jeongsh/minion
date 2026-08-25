@@ -4,6 +4,7 @@ import { TextStyle } from "@tiptap/extension-text-style";
 import Highlight from "@tiptap/extension-highlight";
 import Underline from "@tiptap/extension-underline";
 import { Youtube } from "@tiptap/extension-youtube";
+import { Placeholder } from "@tiptap/extensions";
 import ResizeImage from "tiptap-extension-resize-image";
 import type { Extensions } from "@tiptap/react";
 
@@ -39,7 +40,7 @@ const HighlightNoTextInherit = Highlight.extend({
 });
 
 // 작성 에디터와 본문 뷰어가 동일한 노드/마크 스키마를 공유하도록 단일 소스로 둔다.
-export function buildCommunityExtensions(): Extensions {
+export function buildCommunityExtensions(options?: { placeholder?: string }): Extensions {
   return [
     StarterKit,
     TextStyle,
@@ -47,6 +48,7 @@ export function buildCommunityExtensions(): Extensions {
     Underline,
     HighlightNoTextInherit.configure({ multicolor: true }),
     FontSize,
+    ...(options?.placeholder ? [Placeholder.configure({ placeholder: options.placeholder })] : []),
     ResizeImage.configure({
       inline: false,
       minWidth: 80,

@@ -71,6 +71,7 @@ const COMMENT_COLUMNS =
   "id, post_id, parent_id, author_id, guest_nickname, guest_ip_label, guest_key, content, like_count, dislike_count, created_at, blinded_at, blinded_source, deleted_at";
 
 export const COMMUNITY_PAGE_SIZE = 15;
+export const COMMUNITY_AUTHOR_PAGE_SIZE = 10;
 const RECENT_POST_LIMIT = 30;
 const NOTICE_LIMIT = 10;
 const POPULAR_CANDIDATE_LIMIT = 15;
@@ -419,69 +420,115 @@ export const getPostComments = cache(async function getPostComments(
   return mapCommentsWithAuthors(visible);
 });
 
-/** Public activity list for a community author. Deleted content is never exposed. */
-export async function getPostsByAuthor(authorId: string): Promise<CommunityPostDetail[]> {
-  if (!canQuerySupabase()) return [];
-  const blocked = await blockedAuthorsForCurrentUser();
-  if (blocked.users.has(authorId)) return [];
+export type CommunityAuthorPage<T> = {
+  items: T[];
+  page: number;
+  totalPages: number;
+  totalCount: number;
+};
 
-  const { data, error } = await createSupabaseServerClient()
-    .from("community_posts")
-    .select(POST_COLUMNS)
-    .eq("author_id", authorId)
-    .is("deleted_at", null)
-    .order("created_at", { ascending: false })
-    .limit(100);
-  if (error) throw error;
-  return mapPostsWithAuthors((data ?? []) as PostRow[]);
+function authorPageNumber(page: number) {
+  return Number.isFinite(page) ? Math.min(10_000, Math.max(1, Math.floor(page))) : 1;
 }
 
-/** Public comment activity with enough parent-post metadata to build links. */
-export async function getCommentsByAuthor(
+/** 사용자 프로필의 작성글을 DB에서 현재 페이지 범위만 조회한다. */
+export async function getPostsByAuthorPage(
   authorId: string,
-): Promise<CommunityAuthorCommentItem[]> {
-  if (!canQuerySupabase()) return [];
+  page = 1,
+): Promise<CommunityAuthorPage<CommunityPostDetail>> {
+  const requestedPage = authorPageNumber(page);
+  if (!canQuerySupabase()) return { items: [], page: 1, totalPages: 1, totalCount: 0 };
   const blocked = await blockedAuthorsForCurrentUser();
-  if (blocked.users.has(authorId)) return [];
+  if (blocked.users.has(authorId)) return { items: [], page: 1, totalPages: 1, totalCount: 0 };
 
-  const { data, error } = await createSupabaseServerClient()
-    .from("community_comments")
-    .select(COMMENT_COLUMNS)
+  const from = (requestedPage - 1) * COMMUNITY_AUTHOR_PAGE_SIZE;
+  const { data, error, count } = await createSupabaseServerClient()
+    .from("community_posts")
+    .select(POST_COLUMNS, { count: "exact" })
     .eq("author_id", authorId)
     .is("deleted_at", null)
     .order("created_at", { ascending: false })
-    .limit(100);
+    .range(from, from + COMMUNITY_AUTHOR_PAGE_SIZE - 1);
   if (error) throw error;
-  const comments = (data ?? []) as CommentRow[];
-  if (comments.length === 0) return [];
 
-  const postIds = [...new Set(comments.map((comment) => comment.post_id))];
-  const { data: postData, error: postError } = await createSupabaseServerClient()
-    .from("community_posts")
-    .select("id, title, site_scope, team_id, deleted_at")
-    .in("id", postIds)
-    .is("deleted_at", null);
-  if (postError) throw postError;
-  const posts = new Map(
-    ((postData ?? []) as {
-      id: string;
-      title: string;
-      site_scope: BoardScope;
-      team_id: string | null;
-    }[]).map((post) => [post.id, post]),
-  );
-  const mapped = await mapCommentsWithAuthors(comments);
-  return mapped.flatMap((comment) => {
-    const post = posts.get(comment.postId);
-    return post
-      ? [{
-          ...comment,
-          postTitle: post.title,
-          postSiteScope: post.site_scope,
-          postTeamId: post.team_id,
-        }]
-      : [];
+  const totalCount = count ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalCount / COMMUNITY_AUTHOR_PAGE_SIZE));
+  if (totalCount > 0 && requestedPage > totalPages) return getPostsByAuthorPage(authorId, totalPages);
+  return {
+    items: await mapPostsWithAuthors((data ?? []) as PostRow[]),
+    page: Math.min(requestedPage, totalPages),
+    totalPages,
+    totalCount,
+  };
+}
+
+/** 사용자 프로필의 작성 댓글을 공개된 원글과 조인해 현재 페이지 범위만 조회한다. */
+export async function getCommentsByAuthorPage(
+  authorId: string,
+  page = 1,
+): Promise<CommunityAuthorPage<CommunityAuthorCommentItem>> {
+  const requestedPage = authorPageNumber(page);
+  if (!canQuerySupabase()) return { items: [], page: 1, totalPages: 1, totalCount: 0 };
+  const blocked = await blockedAuthorsForCurrentUser();
+  if (blocked.users.has(authorId)) return { items: [], page: 1, totalPages: 1, totalCount: 0 };
+
+  const from = (requestedPage - 1) * COMMUNITY_AUTHOR_PAGE_SIZE;
+  const { data, error, count } = await createSupabaseServerClient()
+    .from("community_comments")
+    .select(`${COMMENT_COLUMNS}, post:community_posts!inner(id, title, site_scope, team_id)`, { count: "exact" })
+    .eq("author_id", authorId)
+    .is("deleted_at", null)
+    .is("post.deleted_at", null)
+    .order("created_at", { ascending: false })
+    .range(from, from + COMMUNITY_AUTHOR_PAGE_SIZE - 1);
+  if (error) throw error;
+
+  type CommentWithPost = CommentRow & {
+    post: { id: string; title: string; site_scope: BoardScope; team_id: string | null };
+  };
+  const rows = (data ?? []) as unknown as CommentWithPost[];
+  const mappedById = new Map((await mapCommentsWithAuthors(rows)).map((comment) => [comment.id, comment]));
+  const items = rows.flatMap((row) => {
+    const comment = mappedById.get(row.id);
+    return comment ? [{
+      ...comment,
+      postTitle: row.post.title,
+      postSiteScope: row.post.site_scope,
+      postTeamId: row.post.team_id,
+    }] : [];
   });
+  const totalCount = count ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalCount / COMMUNITY_AUTHOR_PAGE_SIZE));
+  if (totalCount > 0 && requestedPage > totalPages) return getCommentsByAuthorPage(authorId, totalPages);
+  return { items, page: Math.min(requestedPage, totalPages), totalPages, totalCount };
+}
+
+/** 탭 배지용 개수만 조회하며 게시글/댓글 본문은 전송하지 않는다. */
+export async function getPostsByAuthorCount(authorId: string): Promise<number> {
+  if (!canQuerySupabase()) return 0;
+  const blocked = await blockedAuthorsForCurrentUser();
+  if (blocked.users.has(authorId)) return 0;
+  const { error, count } = await createSupabaseServerClient()
+    .from("community_posts")
+    .select("id", { count: "exact", head: true })
+    .eq("author_id", authorId)
+    .is("deleted_at", null);
+  if (error) throw error;
+  return count ?? 0;
+}
+
+export async function getCommentsByAuthorCount(authorId: string): Promise<number> {
+  if (!canQuerySupabase()) return 0;
+  const blocked = await blockedAuthorsForCurrentUser();
+  if (blocked.users.has(authorId)) return 0;
+  const { error, count } = await createSupabaseServerClient()
+    .from("community_comments")
+    .select("id, post:community_posts!inner(id)", { count: "exact", head: true })
+    .eq("author_id", authorId)
+    .is("deleted_at", null)
+    .is("post.deleted_at", null);
+  if (error) throw error;
+  return count ?? 0;
 }
 
 /** 글 생성. 로그인 작성자 또는 서버에서 검증한 비회원 신원만 받는다. */

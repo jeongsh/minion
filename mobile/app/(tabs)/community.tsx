@@ -1,5 +1,5 @@
-import { RouteCanvas } from '@/components/route-canvas';
+import { CommunityFeedScreen } from '@/components/community/community-feed-screen';
 
 export default function CommunityScreen() {
-  return <RouteCanvas />;
+  return <CommunityFeedScreen />;
 }

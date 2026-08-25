@@ -15,7 +15,7 @@ export function BlockedUserList({ users, guests = [] }: { users: CommunityUserSu
   const { showToast } = useToast();
 
   if (users.length === 0 && guests.length === 0) {
-    return <p className="py-8 text-center text-sm text-[var(--ui-muted)]">차단한 사용자가 없습니다.</p>;
+    return <p className="py-5 text-center text-[13px] text-[var(--ui-muted)] sm:py-8 sm:text-sm">차단한 사용자가 없습니다.</p>;
   }
 
   return (

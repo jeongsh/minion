@@ -1,24 +1,28 @@
 "use client";
 
-import { Editor } from "@tiptap/react";
+import { type Editor } from "@tiptap/react";
 import {
+  BarChart3,
   Bold,
+  Highlighter,
+  Image as ImageIcon,
   Italic,
-  AlignCenter,
   List,
   ListOrdered,
-  Image as ImageIcon,
-  Strikethrough,
-  Underline as UnderlineIcon,
-  Type,
-  Highlighter,
-  Video,
-  BarChart3,
-  Undo,
   Redo,
+  Share2,
+  Strikethrough,
+  Type,
+  Underline as UnderlineIcon,
+  Undo,
+  Video,
+  X,
 } from "lucide-react";
-import { ColorPicker } from "./ColorPicker";
 import { useRef, useState } from "react";
+
+import { FilterDropdown } from "@/components/match-filter-dropdown";
+
+import { ColorPicker } from "./ColorPicker";
 import { getImageUploadErrorMessage, uploadAndInsertEditorImage } from "./editor-image-upload";
 
 interface Props {
@@ -26,70 +30,45 @@ interface Props {
   allowMedia?: boolean;
 }
 
+type OpenPanel = "format" | "youtube" | "sns" | null;
+type SavedSelection = { from: number; to: number } | null;
+
 export default function Toolbar({ editor, allowMedia = true }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const savedColorSelection = useRef<SavedSelection>(null);
+  const savedHighlightSelection = useRef<SavedSelection>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
-  const savedColorSel = useRef<{ from: number; to: number } | null>(null);
-  const savedHighlightSel = useRef<{ from: number; to: number } | null>(null);
+  const [openPanel, setOpenPanel] = useState<OpenPanel>(null);
+  const [embedUrl, setEmbedUrl] = useState("");
 
-  const saveSelection = (ref: React.MutableRefObject<{ from: number; to: number } | null>) => {
-    if (!editor) return;
+  if (!editor) return null;
+
+  const saveSelection = (ref: React.MutableRefObject<SavedSelection>) => {
     const { from, to } = editor.state.selection;
     ref.current = { from, to };
   };
 
   const applyWithSelection = (
-    ref: React.MutableRefObject<{ from: number; to: number } | null>,
+    ref: React.MutableRefObject<SavedSelection>,
     command: (chain: ReturnType<Editor["chain"]>) => boolean,
   ) => {
-    if (!editor) return;
     const saved = ref.current;
     const chain = editor.chain().focus();
-    if (saved && saved.from !== saved.to) {
-      chain.setTextSelection(saved);
-    }
+    if (saved && saved.from !== saved.to) chain.setTextSelection(saved);
     command(chain);
   };
 
-  if (!editor) return null;
-
-  // useEditor 가 트랜잭션마다 리렌더하므로 선택 상태를 렌더 중 파생한다.
-  const selectedImageType: "imageResize" | "image" | null = editor.isActive("imageResize")
-    ? "imageResize"
-    : editor.isActive("image")
-      ? "image"
-      : null;
-
-  const centerSelectedImage = () => {
-    const imageType = selectedImageType;
-    if (!imageType) return;
-
-    const attrs = editor.getAttributes(imageType);
-    const width = attrs.width ? `${attrs.width}`.replace("px", "") : null;
-    const widthStyle = width ? `width: ${width}px;` : "width: 100%;";
-
-    editor
-      .chain()
-      .focus()
-      .updateAttributes(imageType, {
-        containerStyle: `${widthStyle} height: auto; cursor: pointer; margin: 0.5rem auto;`,
-        wrapperStyle: "display: flex; margin: 0;",
-      })
-      .run();
+  const togglePanel = (panel: Exclude<OpenPanel, null>) => {
+    setEmbedUrl("");
+    setOpenPanel((current) => current === panel ? null : panel);
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!file.type.startsWith("image/")) {
-      alert("이미지 파일만 업로드할 수 있습니다.");
-      return;
-    }
-
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files ?? []);
+    if (files.length === 0) return;
     setUploadingImage(true);
     try {
-      await uploadAndInsertEditorImage({ editor, file });
+      for (const file of files) await uploadAndInsertEditorImage({ editor, file });
     } catch (error) {
       alert("이미지 업로드 실패: " + getImageUploadErrorMessage(error, "알 수 없는 오류"));
     } finally {
@@ -99,172 +78,122 @@ export default function Toolbar({ editor, allowMedia = true }: Props) {
   };
 
   const insertYoutube = () => {
-    const url = window.prompt("유튜브 URL을 입력해 주세요.");
-    if (url) {
-      let videoId = "";
-      const regex = /(?:youtube\.com\/(?:[^/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?/\s]{11})/i;
-      const match = url.match(regex);
-
-      if (match && match[1]) {
-        videoId = match[1];
-      } else if (url.length === 11 && !url.includes("/")) {
-        videoId = url;
-      }
-
-      if (videoId) {
-        editor.chain().focus().setYoutubeVideo({ src: `https://www.youtube.com/embed/${videoId}` }).run();
-      } else {
-        alert("유효한 유튜브 URL을 입력해 주세요.");
-      }
-    }
+    const value = embedUrl.trim();
+    const match = value.match(/(?:youtube\.com\/(?:[^/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?/\s]{11})/i);
+    const videoId = match?.[1] ?? (value.length === 11 && !value.includes("/") ? value : "");
+    if (!videoId) return;
+    editor.chain().focus().setYoutubeVideo({ src: `https://www.youtube.com/embed/${videoId}` }).run();
+    setEmbedUrl("");
+    setOpenPanel(null);
   };
 
   const insertSns = () => {
-    const url = window.prompt("인스타그램 또는 트위터(X) 게시글 URL을 입력해 주세요.");
-    if (url) {
-      let type = "generic";
-      if (url.includes("twitter.com") || url.includes("x.com")) type = "twitter";
-      if (url.includes("instagram.com")) type = "instagram";
-
-      editor.chain().focus().insertContent({
-        type: "embed",
-        attrs: { url, type },
-      }).run();
-    }
+    const url = embedUrl.trim();
+    if (!url) return;
+    let type = "generic";
+    if (url.includes("twitter.com") || url.includes("x.com")) type = "twitter";
+    if (url.includes("instagram.com")) type = "instagram";
+    editor.chain().focus().insertContent({ type: "embed", attrs: { url, type } }).run();
+    setEmbedUrl("");
+    setOpenPanel(null);
   };
 
-  const buttonClass = (active: boolean) =>
-    `rounded p-1.5 hover:bg-surface-muted ${active ? "bg-surface-muted text-foreground" : "text-muted"}`;
+  const formatButtonClass = (active = false) =>
+    `grid h-10 w-10 shrink-0 place-items-center rounded-lg transition ${active
+      ? "bg-[var(--ui-ink)] text-[var(--ui-surface)]"
+      : "text-[var(--ui-text)] hover:bg-[var(--ui-surface-muted)]"}`;
+
+  const primaryButtonClass = (active = false) =>
+    `inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl p-0 text-[13px] font-medium transition ${active
+      ? "bg-[color-mix(in_srgb,var(--accent)_14%,var(--ui-surface))] text-[var(--accent)]"
+      : "text-[var(--ui-text)] hover:bg-[var(--ui-surface-muted)]"}`;
+
+  const fontSize = editor.getAttributes("textStyle").fontSize || "16px";
+  const fontSizeOptions = ["13px", "14px", "16px", "18px", "20px", "24px", "32px"].map((value) => ({
+    value,
+    label: value.replace("px", ""),
+  }));
+
+  const closePanel = () => {
+    setOpenPanel(null);
+    setEmbedUrl("");
+  };
 
   return (
-    <div className="flex flex-wrap items-center gap-1 border-b border-border bg-surface-muted/40 p-2">
-      <button type="button" onClick={() => editor.chain().focus().toggleBold().run()} className={buttonClass(editor.isActive("bold"))}>
-        <Bold size={18} />
-      </button>
-      <button type="button" onClick={() => editor.chain().focus().toggleItalic().run()} className={buttonClass(editor.isActive("italic"))}>
-        <Italic size={18} />
-      </button>
-      <button type="button" onClick={() => editor.chain().focus().toggleStrike().run()} className={buttonClass(editor.isActive("strike"))}>
-        <Strikethrough size={18} />
-      </button>
+    <div className="fixed inset-x-0 bottom-0 z-40 border-y border-[var(--ui-border)] bg-[var(--ui-surface)] pb-[env(safe-area-inset-bottom)] md:static md:order-first md:mb-2 md:rounded-lg md:border md:border-[var(--ui-border)] md:pb-0">
+      {openPanel === "format" ? (
+        <div className="absolute inset-x-2 bottom-[calc(100%+10px)] flex flex-wrap items-center gap-1 rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-2 shadow-xl sm:left-auto sm:right-2 sm:w-auto">
+          <button type="button" onClick={() => editor.chain().focus().toggleBold().run()} className={formatButtonClass(editor.isActive("bold"))} aria-label="굵게"><Bold size={18} /></button>
+          <button type="button" onClick={() => editor.chain().focus().toggleItalic().run()} className={formatButtonClass(editor.isActive("italic"))} aria-label="기울임"><Italic size={18} /></button>
+          <button type="button" onClick={() => editor.chain().focus().toggleUnderline().run()} className={formatButtonClass(editor.isActive("underline"))} aria-label="밑줄"><UnderlineIcon size={18} /></button>
+          <button type="button" onClick={() => editor.chain().focus().toggleStrike().run()} className={formatButtonClass(editor.isActive("strike"))} aria-label="취소선"><Strikethrough size={18} /></button>
+          <span className="mx-1 h-6 w-px bg-[var(--ui-border)]" aria-hidden="true" />
+          <button type="button" onClick={() => editor.chain().focus().toggleBulletList().run()} className={formatButtonClass(editor.isActive("bulletList"))} aria-label="글머리 목록"><List size={18} /></button>
+          <button type="button" onClick={() => editor.chain().focus().toggleOrderedList().run()} className={formatButtonClass(editor.isActive("orderedList"))} aria-label="번호 목록"><ListOrdered size={18} /></button>
+          <ColorPicker value={editor.getAttributes("textStyle").color || "#000000"} onChange={(color) => applyWithSelection(savedColorSelection, (chain) => chain.setColor(color).run())} onBeforeCustomPick={() => saveSelection(savedColorSelection)} icon={<Type size={16} />} quickSetLabel="기본 글자색" quickSetValue="#000000" />
+          <ColorPicker value={editor.getAttributes("highlight").color || "transparent"} onChange={(color) => color === "transparent" ? applyWithSelection(savedHighlightSelection, (chain) => chain.unsetHighlight().run()) : applyWithSelection(savedHighlightSelection, (chain) => chain.setHighlight({ color }).run())} onBeforeCustomPick={() => saveSelection(savedHighlightSelection)} icon={<Highlighter size={16} />} quickSetLabel="배경색 제거" quickSetValue="transparent" />
+          <button type="button" onClick={closePanel} className={`${formatButtonClass()} ml-auto`} aria-label="서식 도구 닫기"><X size={18} /></button>
+        </div>
+      ) : null}
 
-      <div className="mx-1 h-6 w-px bg-border" />
+      {openPanel === "youtube" || openPanel === "sns" ? (
+        <div className="absolute inset-x-2 bottom-[calc(100%+10px)] rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-3 shadow-xl sm:left-auto sm:right-2 sm:w-[420px]">
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <p className="text-[14px] font-medium text-[var(--ui-ink)]">{openPanel === "youtube" ? "YouTube 영상 넣기" : "SNS 게시물 넣기"}</p>
+            <button type="button" onClick={closePanel} className="grid h-8 w-8 place-items-center rounded-lg text-[var(--ui-muted)] hover:bg-[var(--ui-surface-muted)]" aria-label="닫기"><X size={17} /></button>
+          </div>
+          <div className="flex gap-2">
+            <input autoFocus value={embedUrl} onChange={(event) => setEmbedUrl(event.target.value)} onKeyDown={(event) => { if (event.key !== "Enter") return; event.preventDefault(); if (openPanel === "youtube") insertYoutube(); else insertSns(); }} placeholder={openPanel === "youtube" ? "YouTube URL을 붙여넣으세요" : "Instagram 또는 X URL을 붙여넣으세요"} className="min-w-0 flex-1 rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 text-[14px] text-[var(--ui-ink)] outline-none focus:border-[var(--ui-muted)]" />
+            <button type="button" onClick={openPanel === "youtube" ? insertYoutube : insertSns} disabled={!embedUrl.trim()} className="h-10 rounded-xl bg-[var(--ui-ink)] px-4 text-[14px] font-medium text-[var(--ui-surface)] disabled:opacity-40">넣기</button>
+          </div>
+        </div>
+      ) : null}
 
-      <button type="button" onClick={() => editor.chain().focus().toggleUnderline().run()} className={buttonClass(editor.isActive("underline"))}>
-        <UnderlineIcon size={18} />
-      </button>
+      <div className="flex min-h-12 items-center justify-center overflow-x-auto px-1.5 py-1 [scrollbar-width:none] md:hidden [&::-webkit-scrollbar]:hidden">
+        {allowMedia ? (
+          <>
+            <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploadingImage} className={primaryButtonClass()} aria-label={uploadingImage ? "이미지 업로드 중" : "이미지 첨부"}><ImageIcon size={18} /></button>
+            <input type="file" ref={fileInputRef} onChange={handleImageUpload} className="hidden" accept="image/png,image/jpeg,image/webp,image/gif" multiple />
+            <button type="button" onClick={() => togglePanel("youtube")} className={primaryButtonClass(openPanel === "youtube")} aria-label="YouTube 영상 첨부"><Video size={18} /></button>
+            <button type="button" onClick={() => togglePanel("sns")} className={primaryButtonClass(openPanel === "sns")} aria-label="SNS 게시물 첨부"><Share2 size={18} /></button>
+            <button type="button" onClick={() => editor.chain().focus().insertPoll().run()} className={primaryButtonClass()} aria-label="투표 추가"><BarChart3 size={18} /></button>
+          </>
+        ) : null}
+        <button type="button" onClick={() => togglePanel("format")} className={primaryButtonClass(openPanel === "format")} aria-label="텍스트 서식"><span className="text-[16px] font-medium leading-none">Aa</span></button>
+        <span className="mx-1 h-6 w-px shrink-0 bg-[var(--ui-border)]" aria-hidden="true" />
+        <button type="button" onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()} className={`${primaryButtonClass()} disabled:opacity-30`} aria-label="실행 취소"><Undo size={18} /></button>
+        <button type="button" onClick={() => editor.chain().focus().redo().run()} disabled={!editor.can().redo()} className={`${primaryButtonClass()} disabled:opacity-30`} aria-label="다시 실행"><Redo size={18} /></button>
+      </div>
 
-      <div className="mx-1 h-6 w-px bg-border" />
+      <div className="hidden min-h-12 items-center gap-0.5 overflow-x-auto px-2 py-1 md:flex [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <button type="button" onClick={() => editor.chain().focus().toggleBold().run()} className={formatButtonClass(editor.isActive("bold"))} aria-label="굵게"><Bold size={18} /></button>
+        <button type="button" onClick={() => editor.chain().focus().toggleItalic().run()} className={formatButtonClass(editor.isActive("italic"))} aria-label="기울임"><Italic size={18} /></button>
+        <button type="button" onClick={() => editor.chain().focus().toggleUnderline().run()} className={formatButtonClass(editor.isActive("underline"))} aria-label="밑줄"><UnderlineIcon size={18} /></button>
+        <button type="button" onClick={() => editor.chain().focus().toggleStrike().run()} className={formatButtonClass(editor.isActive("strike"))} aria-label="취소선"><Strikethrough size={18} /></button>
+        <span className="mx-1 h-6 w-px shrink-0 bg-[var(--ui-border)]" aria-hidden="true" />
+        <ColorPicker value={editor.getAttributes("textStyle").color || "#000000"} onChange={(color) => applyWithSelection(savedColorSelection, (chain) => chain.setColor(color).run())} onBeforeCustomPick={() => saveSelection(savedColorSelection)} icon={<Type size={16} />} quickSetLabel="기본 글자색" quickSetValue="#000000" />
+        <ColorPicker value={editor.getAttributes("highlight").color || "transparent"} onChange={(color) => color === "transparent" ? applyWithSelection(savedHighlightSelection, (chain) => chain.unsetHighlight().run()) : applyWithSelection(savedHighlightSelection, (chain) => chain.setHighlight({ color }).run())} onBeforeCustomPick={() => saveSelection(savedHighlightSelection)} icon={<Highlighter size={16} />} quickSetLabel="배경색 제거" quickSetValue="transparent" />
+        <div className="rounded-lg px-0.5">
+          <FilterDropdown ariaLabel="글자 크기" options={fontSizeOptions} selected={fontSize} onSelect={(value) => editor.chain().focus().setFontSize(value).run()} triggerClassName="min-h-9 px-1.5 text-[13px] font-medium sm:text-[13px]" />
+        </div>
+        <span className="mx-1 h-6 w-px shrink-0 bg-[var(--ui-border)]" aria-hidden="true" />
+        <button type="button" onClick={() => editor.chain().focus().toggleBulletList().run()} className={formatButtonClass(editor.isActive("bulletList"))} aria-label="글머리 목록"><List size={18} /></button>
+        <button type="button" onClick={() => editor.chain().focus().toggleOrderedList().run()} className={formatButtonClass(editor.isActive("orderedList"))} aria-label="번호 목록"><ListOrdered size={18} /></button>
 
-      {/* 글자색 */}
-      <ColorPicker
-        value={editor.getAttributes("textStyle").color || "#000000"}
-        onChange={(color) => applyWithSelection(savedColorSel, (c) => c.setColor(color).run())}
-        onBeforeCustomPick={() => saveSelection(savedColorSel)}
-        icon={<Type size={14} />}
-        quickSetLabel="검은색으로 설정"
-        quickSetValue="#000000"
-      />
+        {allowMedia ? (
+          <>
+            <span className="mx-1 h-6 w-px shrink-0 bg-[var(--ui-border)]" aria-hidden="true" />
+            <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploadingImage} className={formatButtonClass()} aria-label="이미지 첨부"><ImageIcon size={18} /></button>
+            <button type="button" onClick={() => togglePanel("youtube")} className={formatButtonClass(openPanel === "youtube")} aria-label="YouTube 영상 첨부"><Video size={18} /></button>
+            <button type="button" onClick={() => togglePanel("sns")} className={formatButtonClass(openPanel === "sns")} aria-label="SNS 게시물 첨부"><Share2 size={18} /></button>
+            <button type="button" onClick={() => editor.chain().focus().insertPoll().run()} className={formatButtonClass()} aria-label="투표 추가"><BarChart3 size={18} /></button>
+          </>
+        ) : null}
 
-      {/* 배경색(형광펜) */}
-      <ColorPicker
-        value={editor.getAttributes("highlight").color || "transparent"}
-        onChange={(color) =>
-          color === "transparent"
-            ? applyWithSelection(savedHighlightSel, (c) => c.unsetHighlight().run())
-            : applyWithSelection(savedHighlightSel, (c) => c.setHighlight({ color }).run())
-        }
-        onBeforeCustomPick={() => saveSelection(savedHighlightSel)}
-        icon={<Highlighter size={14} />}
-        quickSetLabel="투명으로 설정"
-        quickSetValue="transparent"
-      />
-
-      {/* 폰트 크기 */}
-      <select
-        onChange={(e) => editor.chain().focus().setFontSize(e.target.value).run()}
-        className="h-7 rounded border border-border bg-surface text-[13px] text-foreground outline-none"
-        value={editor.getAttributes("textStyle").fontSize || "16px"}
-      >
-        <option value="12px">12</option>
-        <option value="14px">14</option>
-        <option value="16px">16</option>
-        <option value="18px">18</option>
-        <option value="20px">20</option>
-        <option value="24px">24</option>
-        <option value="32px">32</option>
-      </select>
-
-      <div className="mx-1 h-6 w-px bg-border" />
-
-      <button type="button" onClick={() => editor.chain().focus().toggleBulletList().run()} className={buttonClass(editor.isActive("bulletList"))}>
-        <List size={18} />
-      </button>
-      <button type="button" onClick={() => editor.chain().focus().toggleOrderedList().run()} className={buttonClass(editor.isActive("orderedList"))}>
-        <ListOrdered size={18} />
-      </button>
-
-      {allowMedia && (
-        <>
-          <div className="mx-1 h-6 w-px bg-border" />
-
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploadingImage}
-            className="rounded p-1.5 text-muted hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-40"
-            title="이미지 업로드"
-          >
-            <ImageIcon size={18} />
-          </button>
-          <input type="file" ref={fileInputRef} onChange={handleImageUpload} className="hidden" accept="image/*" />
-
-          <button
-            type="button"
-            onClick={centerSelectedImage}
-            disabled={!selectedImageType}
-            className="rounded p-1.5 text-muted hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-30"
-            title="선택한 이미지 가운데 정렬"
-          >
-            <AlignCenter size={18} />
-          </button>
-
-          <button type="button" onClick={insertYoutube} className="rounded p-1.5 text-muted hover:bg-surface-muted" title="유튜브 영상">
-            <Video size={18} />
-          </button>
-
-          <button type="button" onClick={insertSns} className="h-7 rounded px-2 text-[13px] font-semibold text-muted hover:bg-surface-muted" title="SNS 임베드">
-            SNS
-          </button>
-
-          <button
-            type="button"
-            onClick={() => editor.chain().focus().insertPoll().run()}
-            className="rounded p-1.5 text-muted hover:bg-surface-muted"
-            title="투표"
-          >
-            <BarChart3 size={18} />
-          </button>
-        </>
-      )}
-
-      <div className="ml-auto flex items-center gap-1">
-        <button
-          type="button"
-          onClick={() => editor.chain().focus().undo().run()}
-          disabled={!editor.can().undo()}
-          className="rounded p-1.5 text-muted hover:bg-surface-muted disabled:opacity-30"
-        >
-          <Undo size={18} />
-        </button>
-        <button
-          type="button"
-          onClick={() => editor.chain().focus().redo().run()}
-          disabled={!editor.can().redo()}
-          className="rounded p-1.5 text-muted hover:bg-surface-muted disabled:opacity-30"
-        >
-          <Redo size={18} />
-        </button>
+        <div className="ml-auto flex shrink-0 items-center gap-1 pl-2">
+          <button type="button" onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()} className={`${formatButtonClass()} disabled:opacity-30`} aria-label="실행 취소"><Undo size={18} /></button>
+          <button type="button" onClick={() => editor.chain().focus().redo().run()} disabled={!editor.can().redo()} className={`${formatButtonClass()} disabled:opacity-30`} aria-label="다시 실행"><Redo size={18} /></button>
+        </div>
       </div>
     </div>
   );

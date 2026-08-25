@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import CommunityEditor from "@/components/community/editor/community-editor";
-import { GuestIdentityFields } from "@/components/community/guest-identity-fields";
+import { FilterDropdown } from "@/components/match-filter-dropdown";
 import { useNavigationTransition } from "@/components/navigation/navigation-transition-provider";
 import { Button } from "@/components/ui/button";
 import { createPostAction, updatePostAction } from "@/lib/community/actions";
@@ -110,37 +110,39 @@ export function PostForm({
     });
   };
 
+  const categoryOptions = categories.map((category) => ({ value: category.slug, label: category.label }));
+
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-4">
-      {!postId && isGuest ? (
-        <GuestIdentityFields />
+    <form onSubmit={onSubmit} className="flex flex-col gap-3 md:gap-3">
+      <Button
+        type="submit"
+        variant="primary"
+        disabled={pending || contentTextLength > POST_TEXT_MAX_LENGTH}
+        className="fixed right-3 top-1.5 z-[60] h-9 min-w-[58px] rounded-xl px-3 text-[14px] font-medium md:hidden"
+      >
+        {pending ? "등록 중" : postId ? "수정" : "등록"}
+      </Button>
+      {!postId && canSetNotice ? (
+        <label className="flex items-center gap-2 rounded-[var(--ui-control-radius)] border border-[var(--ui-border)] bg-[var(--ui-surface-muted)] px-3 py-2 text-[14px] font-medium text-[var(--ui-text)]">
+          <input
+            type="checkbox"
+            checked={isNotice}
+            onChange={(event) => setIsNotice(event.target.checked)}
+            className="h-4 w-4 accent-[var(--ui-ink)]"
+          />
+          공지글로 등록
+        </label>
       ) : null}
-      {/* 말머리(좌) + 제목(우) 인라인 한 줄 */}
-      <div className="flex items-stretch overflow-hidden rounded-[var(--ui-control-radius)] border border-[var(--ui-border)] focus-within:border-[var(--ui-ink)]">
-        <div className="relative flex items-center border-r border-[var(--ui-border)] bg-[var(--ui-surface-muted)]">
-          <label htmlFor="post-category" className="sr-only">
-            말머리
-          </label>
-          <select
-            id="post-category"
-            name="category"
-            value={boardType}
-            onChange={(e) => setBoardType(e.target.value)}
-            className="appearance-none bg-transparent py-[10px] pl-[13px] pr-8 text-base font-medium text-[var(--ui-text)] outline-none"
-          >
-            {categories.map((cat) => (
-              <option
-                key={cat.slug}
-                value={cat.slug}
-                className="bg-[var(--ui-surface)] text-[var(--ui-text)]"
-              >
-                {cat.label}
-              </option>
-            ))}
-          </select>
-          <span className="pointer-events-none absolute right-[11px] text-[13px] text-[var(--ui-muted)]" aria-hidden>
-            ▾
-          </span>
+      <div className="flex flex-col gap-2 border-b border-[var(--ui-border)] pb-3">
+        <div className="w-fit rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] px-1.5">
+          <FilterDropdown
+            ariaLabel="말머리 선택"
+            options={categoryOptions}
+            selected={boardType}
+            onSelect={setBoardType}
+            triggerClassName="min-h-9 px-2 text-[14px] font-medium sm:text-[14px]"
+          />
+          <input type="hidden" name="category" value={boardType} />
         </div>
         <label htmlFor="post-title" className="sr-only">
           제목
@@ -154,7 +156,7 @@ export function PostForm({
           maxLength={POST_TITLE_MAX_LENGTH}
           required
           placeholder="제목을 입력하세요"
-          className="min-w-0 flex-1 bg-[var(--ui-surface)] px-[13px] py-[10px] text-base font-semibold text-[var(--ui-ink)] outline-none placeholder:font-normal placeholder:text-[var(--ui-muted)]"
+          className="min-w-0 bg-transparent px-0 py-1 text-[16px] font-bold leading-[1.45] tracking-[-0.025em] text-[var(--ui-ink)] outline-none placeholder:font-medium placeholder:text-[#b8bcc4] md:text-[28px] md:leading-tight dark:placeholder:text-[#666b73]"
         />
       </div>
 
@@ -174,31 +176,16 @@ export function PostForm({
         </p>
       </div>
 
-      {!postId && canSetNotice ? (
-        <label className="flex items-center gap-2 rounded-[var(--ui-control-radius)] border border-[var(--ui-border)] bg-[var(--ui-surface-muted)] px-3 py-2 text-sm font-semibold text-[var(--ui-text)]">
-          <input
-            type="checkbox"
-            checked={isNotice}
-            onChange={(event) => setIsNotice(event.target.checked)}
-            className="h-4 w-4 accent-[var(--ui-ink)]"
-          />
-          공지글로 등록
-        </label>
-      ) : null}
-
-      <div className="sticky bottom-0 z-10 -mx-4 flex flex-col gap-3 border-t border-[var(--ui-border)] bg-[var(--ui-surface)] px-4 py-3 sm:static sm:mx-0 sm:flex-row sm:items-center sm:justify-between sm:border-0 sm:p-0">
-        <p className="text-[13px] text-[var(--ui-muted)]">서로 존중하는 커뮤니티를 위해 비방·욕설은 삼가주세요.</p>
-        <div className="flex items-center justify-end gap-2">
-          {message ? <p className="text-[13px] text-[var(--ui-muted)]">{message}</p> : null}
-          <Button
-            type="submit"
-            variant="neutral"
-            disabled={pending || contentTextLength > POST_TEXT_MAX_LENGTH}
-            className="min-w-24"
-          >
-            {postId ? "수정" : "등록"}
-          </Button>
-        </div>
+      <div className="flex items-center justify-end gap-3">
+        {message ? <p className="text-[13px] text-red-500">{message}</p> : null}
+        <Button
+          type="submit"
+          variant="neutral"
+          disabled={pending || contentTextLength > POST_TEXT_MAX_LENGTH}
+          className="min-w-24 max-md:!hidden md:inline-flex"
+        >
+          {pending ? "등록 중" : postId ? "수정" : "등록"}
+        </Button>
       </div>
     </form>
   );
