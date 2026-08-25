@@ -1,8 +1,10 @@
 import type { MetadataRoute } from "next";
-import { getMatches, getPlayers, getTeams } from "@/lib/data/lck";
+import { getMatches, getPlayers, getTeams, getTournaments } from "@/lib/data/lck";
 import { getWeeklyReportIndex } from "@/lib/reports/queries";
 import { siteBaseUrl } from "@/lib/site";
 import { canQuerySupabase } from "@/lib/supabase/server";
+import { DOMESTIC_SEGMENTS, INTERNATIONAL_SEGMENTS } from "@/lib/tournaments/international-segments";
+import { matchesTournamentSegment } from "@/lib/tournaments/season-2026";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = siteBaseUrl();
@@ -37,11 +39,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   if (!canQuerySupabase()) return staticRoutes;
 
   try {
-    const [teams, players, matches, reports] = await Promise.all([
+    const [teams, players, matches, reports, tournaments] = await Promise.all([
       getTeams(),
       getPlayers(),
       getMatches(),
       getWeeklyReportIndex(),
+      getTournaments(),
     ]);
 
     const teamRoutes = teams.map((team) => ({
@@ -72,7 +75,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.65,
     }));
 
-    return [...staticRoutes, ...teamRoutes, ...playerRoutes, ...matchRoutes, ...reportRoutes];
+    const tournamentRoutes = [...DOMESTIC_SEGMENTS, ...INTERNATIONAL_SEGMENTS]
+      .filter((segment) => tournaments.some((tournament) => matchesTournamentSegment(tournament, segment.key)))
+      .map((segment) => ({
+        url: `${baseUrl}/tournaments/${segment.key}`,
+        lastModified: now,
+        changeFrequency: "daily" as const,
+        priority: 0.75,
+      }));
+
+    return [...staticRoutes, ...teamRoutes, ...playerRoutes, ...matchRoutes, ...reportRoutes, ...tournamentRoutes];
   } catch {
     return staticRoutes;
   }

@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 import { RecordsView } from "@/components/records/records-view";
 import { PageHeader } from "@/components/ui/page-header";
 import { getRecordsBaseData, getRecordsStatLines } from "@/lib/data/records-cache";
@@ -5,6 +7,11 @@ import { buildPlayerRecords, buildTeamRecords } from "@/lib/records";
 import type { PlayerPosition } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "기록실 | MINION",
+  description: "LCK 선수와 팀의 역대 기록과 통계를 확인하세요.",
+};
 type RecordsTab = "overview" | "players" | "teams";
 const positions = new Set<PlayerPosition>(["TOP", "JGL", "MID", "BOT", "SUP"]);
 

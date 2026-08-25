@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { getAllTeams, getMatches, getTournaments } from "@/lib/data/lck";
 import { getPredictionMarketData } from "@/lib/predictions";
@@ -5,6 +7,11 @@ import { getPredictionMarketData } from "@/lib/predictions";
 import { PredictionBoard } from "./prediction-board";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "승부예측 | MINION",
+  description: "LCK 경기 승부를 예측하고 LP를 획득하세요.",
+};
 
 export default async function PredictionsPage() {
   const user = await getCurrentUser();

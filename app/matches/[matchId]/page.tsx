@@ -1,8 +1,10 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { ImageIcon } from "lucide-react";
 import { Suspense } from "react";
 
 import { notFound } from "next/navigation";
+import { siteBaseUrl } from "@/lib/site";
 
 import { PredictionMatchBar } from "@/components/domain/prediction-match-bar";
 import { SetVodPlayer } from "@/components/domain/set-vod-player";
@@ -421,6 +423,28 @@ function MatchRatingPanel({
       </section>
     </div>
   );
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ matchId: string }> }): Promise<Metadata> {
+  const { matchId } = await params;
+  const match = await getMatchById(matchId);
+  if (!match) return { title: "경기를 찾을 수 없습니다 | MINION" };
+
+  const [teams, tournaments] = await Promise.all([getAllTeams(), getTournaments()]);
+  const teamAName = teamLabel(teams, match.teamAId);
+  const teamBName = teamLabel(teams, match.teamBId);
+  const tournament = tournaments.find((item) => item.id === match.tournamentId);
+  const hasScore = match.teamAScore !== null || match.teamBScore !== null;
+  const scoreLabel = hasScore ? ` ${match.teamAScore ?? 0}:${match.teamBScore ?? 0} ` : " vs ";
+  const title = `${teamAName}${scoreLabel}${teamBName} - ${tournament?.name ?? "LCK"} | MINION`;
+  const description = `${tournament?.name ?? "LCK"} ${teamAName} vs ${teamBName} 경기 결과, 세트별 스코어, 선수 스탯, 밴픽을 확인하세요.`;
+
+  return {
+    title,
+    description,
+    alternates: { canonical: `/matches/${matchId}` },
+    openGraph: { title, description, url: `${siteBaseUrl()}/matches/${matchId}`, type: "article" },
+  };
 }
 
 export default async function MatchDetailPage({

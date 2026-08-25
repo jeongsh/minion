@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { CalendarDays, ChevronRight } from "lucide-react";
 
@@ -30,9 +31,27 @@ import { getCalendarEvents, getTodayCelebrations } from "@/lib/calendar/events";
 import { shouldUseWhiteLogoOnDark } from "@/lib/team-logos";
 import { dateKeyKST, formatTimeKST, matchHref } from "@/lib/view-data";
 import { CelebrationBanner } from "@/components/domain/celebration-banner";
+import { siteBaseUrl } from "@/lib/site";
 import type { Match, Player, Team } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({ params }: { params: Promise<{ teamSlug: string }> }): Promise<Metadata> {
+  const { teamSlug } = await params;
+  const team = (await getTeamByFanSiteHost(teamSlug)) ?? (await getTeamBySlug(teamSlug));
+  if (!team) return { title: "팀을 찾을 수 없습니다 | MINION" };
+
+  const fanSlug = team.fanSiteHost ?? teamSlug;
+  const title = `${team.name} 팬 허브 | MINION`;
+  const description = `${team.name} 팀 소식, 경기 일정, 선수단, 팬 커뮤니티를 한곳에서 확인하세요.`;
+
+  return {
+    title,
+    description,
+    alternates: { canonical: `/fan/${fanSlug}` },
+    openGraph: { title, description, url: `${siteBaseUrl()}/fan/${fanSlug}`, type: "website" },
+  };
+}
 
 const POSITION_ORDER: Player["position"][] = ["TOP", "JGL", "MID", "BOT", "SUP"];
 

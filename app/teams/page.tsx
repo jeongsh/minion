@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, Heart, Play } from "lucide-react";
 
@@ -11,6 +12,11 @@ import { buildFanVideoItems } from "@/lib/fan-video-items";
 import { getFollowedTeamIds } from "@/lib/fan/followed-teams";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "팀 | MINION",
+  description: "LCK 참가팀 정보와 순위, 최근 경기 결과를 확인하세요.",
+};
 
 export default async function TeamsPage({
   searchParams,

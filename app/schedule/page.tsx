@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { CalendarDays, SlidersHorizontal } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -14,6 +15,11 @@ import { isSupportedSeasonYear } from "@/lib/tournaments/season-2026";
 import { dateKeyKST, formatTimeKST, getMonthKST, getYearKST, KST_TIMEZONE, matchHref } from "@/lib/view-data";
 
 import { ScheduleFilters } from "./schedule-filters";
+
+export const metadata: Metadata = {
+  title: "경기 일정 | MINION",
+  description: "LCK 경기 일정과 결과를 한눈에 확인하세요.",
+};
 
 function currentKSTMonthYear() {
   const now = new Date();

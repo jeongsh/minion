@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Fragment } from "react";
 
@@ -28,6 +29,7 @@ import {
   type LckSplitKey,
   type PomRow,
 } from "@/lib/tournaments/standings";
+import { siteBaseUrl } from "@/lib/site";
 import type { Match, Team, Tournament } from "@/lib/types";
 import { buildTeamStandingRows, dateKeyKST, matchHref } from "@/lib/view-data";
 
@@ -663,6 +665,35 @@ function BracketGrid({
       </div>
     </BracketConnectors>
   );
+}
+
+export async function generateMetadata({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ segment: string }>;
+  searchParams: Promise<{ year?: string }>;
+}): Promise<Metadata> {
+  const { segment: segmentKey } = await params;
+  const segmentTheme = segmentThemeByKey(segmentKey);
+  if (!segmentTheme) return { title: "대회를 찾을 수 없습니다 | MINION" };
+
+  const search = await searchParams;
+  const tournaments = await getTournaments();
+  const segmentTournaments = tournaments.filter((tournament) => matchesTournamentSegment(tournament, segmentTheme.key));
+  const seasons = [...new Set(segmentTournaments.map((tournament) => tournament.season).filter(isSupportedSeasonYear))].sort((a, b) => b - a);
+  const requestedSeason = search.year ? Number(search.year) : Number.NaN;
+  const activeSeason = seasons.includes(requestedSeason) ? requestedSeason : seasons[0];
+
+  const title = `${segmentTheme.name}${activeSeason ? ` ${activeSeason}` : ""} 대진표·순위 | MINION`;
+  const description = `${segmentTheme.name}${activeSeason ? ` ${activeSeason} 시즌` : ""} 대진표, 순위표, 경기 결과를 확인하세요.`;
+
+  return {
+    title,
+    description,
+    alternates: { canonical: `/tournaments/${segmentKey}` },
+    openGraph: { title, description, url: `${siteBaseUrl()}/tournaments/${segmentKey}`, type: "website" },
+  };
 }
 
 export default async function TournamentBracketPage({

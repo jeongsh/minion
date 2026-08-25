@@ -1,5 +1,12 @@
+import type { Metadata } from "next";
+
 import { PlayerDirectory } from "@/components/domain/player-directory";
 import { getChallengersPlayers, getPlayers, getTeamsSortedByRank } from "@/lib/data/lck";
+
+export const metadata: Metadata = {
+  title: "선수단 | MINION",
+  description: "LCK 선수단 명단과 포지션별 정보를 확인하세요.",
+};
 
 export default async function PlayersPage() {
   const [teams, players, challengersPlayers] = await Promise.all([
