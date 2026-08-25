@@ -240,6 +240,102 @@ export function FanCommunityLoadingSkeleton() {
   );
 }
 
+function CommunityPostArticleSkeleton({ fullWidth = false }: { fullWidth?: boolean }) {
+  return (
+    <article className={`${fullWidth ? "w-full" : "content-reading"} community-post-modal mobile-full-bleed pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:mx-auto md:pb-0`}>
+      <section className="mobile-surface-section overflow-hidden rounded-[var(--ui-card-radius)] border border-[var(--ui-border)] bg-[var(--ui-surface)]">
+        <header className="px-[14px] pb-5 pt-4 md:px-8 md:pb-6 md:pt-8">
+          <div className="hidden items-center justify-between gap-4 md:flex">
+            <Skeleton className="h-5 w-20" />
+            <div className="flex gap-2"><Skeleton className="h-9 w-9 rounded-[var(--ui-control-radius)]" /><Skeleton className="h-9 w-20 rounded-[var(--ui-control-radius)]" /></div>
+          </div>
+          <Skeleton className="h-[23px] w-3/4 md:mt-2 md:h-8 md:w-2/3" />
+          <div className="mt-3 flex items-center gap-2.5">
+            <Skeleton className="h-9 w-9 shrink-0 rounded-full" />
+            <div className="min-w-0 flex-1">
+              <Skeleton className="h-[13px] w-28" />
+              <div className="mt-1.5 flex items-center gap-1.5"><Skeleton className="h-[13px] w-20" /><Skeleton className="h-[13px] w-12" /></div>
+            </div>
+          </div>
+        </header>
+
+        <div className="mx-[14px] border-t border-[var(--ui-border)] md:mx-8" />
+
+        <div className="min-h-[180px] space-y-2.5 px-[14px] py-6 md:min-h-[220px] md:px-8 md:py-9">
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-11/12" />
+          <Skeleton className="h-4 w-4/5" />
+          <Skeleton className="h-4 w-2/3" />
+        </div>
+
+        <div className="flex min-h-[68px] items-center justify-between gap-3 border-y border-[var(--ui-border)] px-[14px] py-4 md:gap-4 md:px-8 md:py-6">
+          <div className="flex gap-2"><Skeleton className="h-9 w-[82px] rounded-[var(--ui-control-radius)]" /><Skeleton className="h-9 w-[88px] rounded-[var(--ui-control-radius)]" /></div>
+          <Skeleton className="h-5 w-11" />
+        </div>
+
+        <section aria-label="댓글 불러오는 중">
+          <div className="flex items-baseline gap-1 px-[14px] py-4 md:px-8 md:py-5"><Skeleton className="h-[25px] w-9" /><Skeleton className="h-5 w-4" /></div>
+          <div className="hidden px-4 pb-5 md:block md:px-8 md:pb-8"><Skeleton className="h-36 w-full rounded-[var(--ui-card-radius)]" /></div>
+          <div className="divide-y divide-[var(--ui-border)] px-[14px] md:px-8">
+            {Array.from({ length: 4 }, (_, index) => (
+              <div key={index} className="py-3.5">
+                <div className="flex items-center gap-2">
+                  <Skeleton className="h-8 w-8 shrink-0 rounded-full" />
+                  <Skeleton className="h-[14px] w-24" />
+                  <Skeleton className="h-[13px] w-14" />
+                  <div className="ml-auto flex gap-3"><Skeleton className="h-[14px] w-12" /><Skeleton className="h-[14px] w-14" /></div>
+                </div>
+                <Skeleton className={`mt-2 h-[15px] ${index % 2 === 0 ? "w-4/5" : "w-3/5"}`} />
+                <div className="mt-2 flex gap-3"><Skeleton className="h-[13px] w-12" /><Skeleton className="h-[13px] w-8" /></div>
+              </div>
+            ))}
+          </div>
+        </section>
+      </section>
+      <div className="fixed inset-x-0 bottom-0 z-50 border-t border-[var(--ui-border)] bg-[var(--page-background)] px-2.5 pb-[calc(.5rem+env(safe-area-inset-bottom))] pt-2 md:hidden">
+        <div className="flex items-center gap-1.5"><Skeleton className="h-10 min-w-0 flex-1 rounded-[20px]" /><Skeleton className="h-9 w-9 shrink-0 rounded-full" /></div>
+      </div>
+    </article>
+  );
+}
+
+function CommunityPostSidebarSkeleton() {
+  return (
+    <aside className="hidden w-full max-w-[300px] flex-col gap-4 xl:flex">
+      <section className="overflow-hidden rounded-[var(--ui-card-radius)] border border-[var(--ui-border)] bg-[var(--ui-surface)]">
+        <div className="border-b border-[var(--ui-border)] px-4 py-3.5"><SectionTitle width="w-16" /></div>
+        <div className="divide-y divide-[var(--ui-border)] px-4">
+          {Array.from({ length: 5 }, (_, index) => <div key={index} className="grid grid-cols-[20px_minmax(0,1fr)_auto] items-center gap-2 py-3"><Skeleton className="h-4 w-3" /><Skeleton className="h-4 w-full" /><Skeleton className="h-[13px] w-4" /></div>)}
+        </div>
+      </section>
+      <Skeleton className="h-[250px] w-full rounded-[var(--ui-card-radius)]" />
+    </aside>
+  );
+}
+
+export function CommunityPostLoadingSkeleton({ scope = "hub" }: { scope?: "hub" | "team" }) {
+  const team = scope === "team";
+  const content = (
+    <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_300px] xl:items-start xl:gap-6">
+      <div className="min-w-0">
+        <Skeleton className="community-mobile-ad h-[60px] w-full !rounded-none md:mb-4 xl:hidden" />
+        <CommunityPostArticleSkeleton fullWidth={team} />
+      </div>
+      <CommunityPostSidebarSkeleton />
+    </div>
+  );
+
+  if (team) {
+    return <LoadingMain className="community-neutral fan-page-container flex flex-col gap-0 py-0 md:gap-5 md:py-9">{content}</LoadingMain>;
+  }
+
+  return (
+    <LoadingMain className="subpage min-h-screen">
+      <div className="layout-wide flex flex-col gap-0 py-0 sm:gap-5 sm:py-8">{content}</div>
+    </LoadingMain>
+  );
+}
+
 export function FanSocialLoadingSkeleton() {
   return (
     <LoadingMain className="fan-page-container flex flex-col py-5 md:py-9">
@@ -280,6 +376,34 @@ export function DetailLoadingSkeleton() {
       <div className="flex items-center gap-4"><Skeleton className="h-20 w-20 rounded-2xl" /><div className="flex-1 space-y-3"><Skeleton className="h-3 w-24" /><Skeleton className="h-8 w-52 max-w-full" /><Skeleton className="h-4 w-36" /></div></div>
       <div className="flex gap-2 border-b border-[var(--ui-border)] pb-2">{Array.from({ length: 4 }, (_, index) => <Skeleton key={index} className="h-9 w-20 rounded-lg" />)}</div>
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]"><section className="space-y-4"><Skeleton className="h-56 w-full rounded-2xl" /><div className="overflow-hidden rounded-xl border border-[var(--ui-border)]"><TableRows count={6} /></div></section><aside className="space-y-4"><Skeleton className="h-40 w-full rounded-2xl" /><Skeleton className="h-64 w-full rounded-2xl" /></aside></div>
+    </LoadingMain>
+  );
+}
+
+export function PlayerDetailLoadingSkeleton() {
+  return (
+    <LoadingMain className="layout-wide flex flex-col gap-7 pb-16 pt-6 sm:pt-8 md:gap-12">
+      <div className="flex items-start gap-4 md:hidden">
+        <Skeleton className="h-20 w-20 shrink-0 rounded-2xl" />
+        <div className="min-w-0 flex-1 space-y-2">
+          <Skeleton className="h-6 w-28" />
+          <Skeleton className="h-4 w-36 max-w-full" />
+          <div className="flex items-center justify-between gap-3 pt-0.5"><Skeleton className="h-6 w-20" /><Skeleton className="h-8 w-20 rounded-full" /></div>
+        </div>
+      </div>
+      <div className="hidden md:block"><Skeleton className="h-8 w-52 max-w-full" /></div>
+      <Skeleton className="h-11 w-full rounded-xl md:hidden" />
+      <div className="flex min-h-[76px] flex-wrap items-center gap-4 rounded-2xl border border-[var(--ui-border)] px-5 py-3.5">
+        <Skeleton className="h-[30px] w-20" /><Skeleton className="h-5 w-14" /><Skeleton className="h-5 w-32" />
+      </div>
+      <div className="grid gap-5 min-[1200px]:grid-cols-[330px_1fr] min-[1200px]:gap-10">
+        <Skeleton className="hidden h-64 w-full rounded-2xl md:block min-[1200px]:!h-[323px]" />
+        <section>
+          <div className="mb-3 flex items-end justify-between gap-3"><SectionTitle width="w-20" /><Skeleton className="h-3 w-36" /></div>
+          <Skeleton className="mx-auto h-[280px] w-[280px] rounded-full" />
+        </section>
+      </div>
+      <section><SectionTitle width="w-20" /><Skeleton className="mt-3 h-[86px] w-full rounded-lg" /></section>
     </LoadingMain>
   );
 }
