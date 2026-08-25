@@ -505,15 +505,9 @@ export async function refreshMatchAiPreviewCacheForMatchId(
   matchId: string,
   options: RefreshMatchAiPreviewOptions = {},
 ) {
-  const [match, teams, matches, sets, tournaments, players, playerStats] = await Promise.all([
-    getMatchById(matchId),
-    getAllTeams(),
-    getMatches(),
-    getSets(),
-    getTournaments(),
-    getPlayers(),
-    getPlayerStatLines(),
-  ]);
+  // match/teams는 가벼운 조회라 먼저 확인하고, 캐시가 이미 유효하면
+  // matches/sets/players/playerStats 풀스캔은 아예 돌리지 않는다.
+  const [match, teams] = await Promise.all([getMatchById(matchId), getAllTeams()]);
 
   if (!match) {
     throw new Error(`Match not found for AI preview refresh: ${matchId}`);
@@ -537,6 +531,14 @@ export async function refreshMatchAiPreviewCacheForMatchId(
     const cached = data ? previewFromCacheRow(data) : null;
     if (cached && cached.winProbabilityA !== null) return cached;
   }
+
+  const [matches, sets, tournaments, players, playerStats] = await Promise.all([
+    getMatches(),
+    getSets(),
+    getTournaments(),
+    getPlayers(),
+    getPlayerStatLines(),
+  ]);
 
   const tournament = tournaments.find((item) => item.id === match.tournamentId);
   return refreshMatchAiPreviewCache({
