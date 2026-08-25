@@ -69,8 +69,8 @@ function GroupStandingsTable({
   return (
     <div className="flex flex-col gap-2.5">
       <div className="flex items-center gap-2">
-        <span aria-hidden="true" className="h-[16px] w-[3px] rounded-full bg-[var(--accent)]" />
-        <span className="font-paperozi text-[16px] leading-none text-[var(--ui-ink)]">{title}</span>
+        <span aria-hidden="true" className="h-[14px] w-[3px] rounded-full bg-[var(--accent)]" />
+        <span className="font-paperozi text-[15px] leading-none text-[var(--ui-ink)]">{title}</span>
       </div>
       {rows.length > 0 ? (
         <div className="overflow-hidden rounded-xl border border-border bg-surface md:hidden">
@@ -78,22 +78,22 @@ function GroupStandingsTable({
             {rows.map((row) => (
               <div
                 key={row.team.id}
-                className="grid min-h-[58px] grid-cols-[2rem_minmax(0,1fr)_auto_auto] items-center gap-2 px-3.5 py-3"
+                className="grid min-h-[52px] grid-cols-[1.5rem_minmax(0,1fr)_auto_auto] items-center gap-2 px-3 py-2"
               >
-                <span className="text-sm font-black italic tabular-nums text-foreground">{row.rank}</span>
+                <span className="text-[13px] font-black italic tabular-nums text-foreground">{row.rank}</span>
                 <Link
                   href={`/teams?team=${encodeURIComponent(row.team.fanSiteHost || row.team.slug)}`}
                   className="flex min-w-0 items-center gap-2 font-semibold text-foreground hover:text-accent"
                 >
                   {row.team.logoUrl ? (
-                    <TeamLogo team={row.team} size="h-7 w-7" plain themeAware />
+                    <TeamLogo team={row.team} size="h-6 w-6" plain themeAware />
                   ) : null}
-                  <span className="min-w-0 truncate text-sm">{row.team.name}</span>
+                  <span className="min-w-0 truncate text-[13px]">{row.team.name}</span>
                 </Link>
-                <span className="shrink-0 text-right text-[13px] font-medium tabular-nums text-muted">
+                <span className="shrink-0 text-right text-[12px] font-medium tabular-nums text-muted">
                   {setDiffLabel(row)}
                 </span>
-                <span className="shrink-0 text-right text-[13px] font-black tabular-nums text-foreground">
+                <span className="shrink-0 text-right text-[12px] font-black tabular-nums text-foreground">
                   {recordLabel(row)}
                 </span>
               </div>
@@ -154,6 +154,7 @@ function RegularStandingsTable({ rows }: { rows: ReturnType<typeof buildTeamStan
   return (
     <DataTable
       mobileSurface="flat"
+      mobileDense
       rows={rows}
       dense
       emptyText="아직 등록된 경기가 없습니다."
@@ -164,14 +165,14 @@ function RegularStandingsTable({ rows }: { rows: ReturnType<typeof buildTeamStan
           headerClassName: "min-w-[18rem]",
           cellClassName: "min-w-[18rem]",
           render: (row) => (
-            <div className="flex items-center gap-3">
-              <span className="w-7 shrink-0 text-center text-base font-black italic tabular-nums">{row.rank}</span>
+            <div className="flex items-center gap-2.5 md:gap-3">
+              <span className="w-6 shrink-0 text-center text-sm font-black italic tabular-nums md:w-7 md:text-base">{row.rank}</span>
               <Link
                 href={`/teams?team=${encodeURIComponent(row.team.fanSiteHost || row.team.slug)}`}
                 className="flex min-w-0 items-center gap-2 font-semibold hover:text-accent"
               >
                 {row.team.logoUrl ? (
-                  <TeamLogo team={row.team} size="h-7 w-7" plain themeAware />
+                  <TeamLogo team={row.team} size="h-6 w-6 md:h-7 md:w-7" plain themeAware />
                 ) : null}
                 <span className="truncate">{row.team.name}</span>
               </Link>
@@ -801,6 +802,7 @@ export default async function TournamentBracketPage({
     const cupTournamentIds = new Set(
       activeTournaments.filter((tournament) => tournament.split === "Cup").map((tournament) => tournament.id),
     );
+    const cupMatches = segmentMatches.filter((match) => cupTournamentIds.has(match.tournamentId));
     const cupStages = segmentStages.filter((stage) => cupTournamentIds.has(stage.tournamentId));
     const cupWeekStages = cupStages.filter((stage) => isWeekStage(stage.name));
     const cupOtherStages = cupStages.filter((stage) => !isWeekStage(stage.name));
@@ -826,18 +828,18 @@ export default async function TournamentBracketPage({
     if (cupWeekStages.length > 0) {
       const groupColors = deriveCrossGroups(cupWeekMatches);
       if (groupColors) {
-        // 색칠 결과의 0/1은 임의 순서라 실제 "알파/오메가" 지정과 무관하다. Gen.G가 속한
-        // 쪽을 알파조로 고정해 lolesports 표기와 맞춘다(참고 화면 기준).
+        // 색칠 결과의 0/1은 임의 순서다. 2026 LCK 컵 공식 편성에서 Gen.G가 속한 쪽이
+        // 바론 그룹이므로 이를 기준으로 바론/장로 그룹을 고정한다.
         const genG = teams.find((team) => team.shortName === "GEN" || /gen\.?g/i.test(team.name));
-        const alphaColor: 0 | 1 = (genG ? groupColors.get(genG.id) : undefined) ?? 0;
-        const omegaColor: 0 | 1 = alphaColor === 0 ? 1 : 0;
-        const groupATeams = teams.filter((team) => groupColors.get(team.id) === alphaColor);
-        const groupBTeams = teams.filter((team) => groupColors.get(team.id) === omegaColor);
+        const baronColor: 0 | 1 = (genG ? groupColors.get(genG.id) : undefined) ?? 0;
+        const elderColor: 0 | 1 = baronColor === 0 ? 1 : 0;
+        const groupATeams = teams.filter((team) => groupColors.get(team.id) === baronColor);
+        const groupBTeams = teams.filter((team) => groupColors.get(team.id) === elderColor);
 
         split1Standings = (
           <div className="grid gap-4 sm:grid-cols-2">
-            <GroupStandingsTable title="알파조" rows={buildTeamStandingRows(groupATeams, cupWeekMatches, [])} />
-            <GroupStandingsTable title="오메가조" rows={buildTeamStandingRows(groupBTeams, cupWeekMatches, [])} />
+            <GroupStandingsTable title="바론 그룹" rows={buildTeamStandingRows(groupATeams, cupWeekMatches, [])} />
+            <GroupStandingsTable title="장로 그룹" rows={buildTeamStandingRows(groupBTeams, cupWeekMatches, [])} />
           </div>
         );
       }
@@ -848,7 +850,9 @@ export default async function TournamentBracketPage({
       activeTournaments.some((tournament) => tournament.id === match.tournamentId && tournament.split === "Rounds 1-2"),
     );
     const lckTeams = teams.filter((team) => team.isLckTeam);
-    const split2Standings = <RegularStandingsTable rows={buildTeamStandingRows(lckTeams, rounds12Matches, [])} />;
+    const split2Standings = (
+      <GroupStandingsTable title="정규 시즌" rows={buildTeamStandingRows(lckTeams, rounds12Matches, [])} />
+    );
 
     const roadToMsiTournamentIds = new Set(
       activeTournaments.filter((tournament) => tournament.split === "Road to MSI").map((tournament) => tournament.id),
@@ -884,8 +888,8 @@ export default async function TournamentBracketPage({
 
       split3Standings = (
         <div className="grid gap-4 sm:grid-cols-2">
-          <GroupStandingsTable title="레전드조" rows={buildTeamStandingRows(legendTeams, regularSeasonMatches, [])} />
-          <GroupStandingsTable title="라이즈조" rows={buildTeamStandingRows(riseTeams, regularSeasonMatches, [])} />
+          <GroupStandingsTable title="레전드 그룹" rows={buildTeamStandingRows(legendTeams, regularSeasonMatches, [])} />
+          <GroupStandingsTable title="라이즈 그룹" rows={buildTeamStandingRows(riseTeams, regularSeasonMatches, [])} />
         </div>
       );
     }
@@ -916,9 +920,13 @@ export default async function TournamentBracketPage({
       "3": split3Bracket,
     };
 
-    // POM 순위는 LCK컵/Road to MSI/시즌 플레이인·플레이오프 같은 별도 이벤트는 빼고,
-    // 정규리그(Rounds 1-2 + Rounds 3-4/5)만 스플릿 구분 없이 통합해서 보여준다.
-    const pomRows = buildPomRankingRows(regularSeasonMatches, players, teamMap);
+    // LCK 컵과 LCK 정규 시즌은 별도 대회다. 컵에서는 컵 전체 POM을, 정규 시즌에서는
+    // 공식 Most POM 집계 범위인 정규 라운드(R1-2 + R3-4/5)만 누적한다.
+    const pomRowsBySplit: Record<LckSplitKey, PomRow[]> = {
+      "1": buildPomRankingRows(cupMatches, players, teamMap),
+      "2": buildPomRankingRows(regularSeasonMatches, players, teamMap),
+      "3": buildPomRankingRows(regularSeasonMatches, players, teamMap),
+    };
 
     contentSection = (
       <section className="flex flex-col gap-6">
@@ -952,7 +960,7 @@ export default async function TournamentBracketPage({
             />
           ) : (
             <ViewTabs
-              labels={{ pom: "순위", standings: viewLabels.standings, bracket: viewLabels.bracket }}
+              labels={{ pom: "POM", standings: viewLabels.standings, bracket: viewLabels.bracket }}
               activeTab={activeView}
               segmentKey={segmentTheme.key}
               activeSeason={activeSeason}
@@ -962,29 +970,25 @@ export default async function TournamentBracketPage({
             />
           )}
 
-          {/* POM 랭킹은 스플릿 구분 없이 정규리그 전체로 통합해서 보여주므로, 스플릿
-              선택은 순위표/브래킷 볼 때만 의미가 있다. */}
-          {activeView === "pom" ? null : (
-            <SegmentedControl
-              ariaLabel="스플릿 선택"
-              activeKey={activeSplit}
-              compact
-              className="order-1 sm:order-2 sm:mb-2"
-              items={(Object.keys(LCK_SPLIT_LABELS) as LckSplitKey[]).map((split) => ({
-                key: split,
-                label: LCK_SPLIT_LABELS[split],
-                href: `/tournaments/${segmentTheme.key}?${new URLSearchParams({
-                  year: String(activeSeason),
-                  split,
-                  view: activeView,
-                }).toString()}`,
-              }))}
-            />
-          )}
+          <SegmentedControl
+            ariaLabel="대회 단계 선택"
+            activeKey={activeSplit}
+            compact
+            className="order-1 sm:order-2 sm:mb-2"
+            items={(Object.keys(LCK_SPLIT_LABELS) as LckSplitKey[]).map((split) => ({
+              key: split,
+              label: LCK_SPLIT_LABELS[split],
+              href: `/tournaments/${segmentTheme.key}?${new URLSearchParams({
+                year: String(activeSeason),
+                split,
+                view: activeView,
+              }).toString()}`,
+            }))}
+          />
         </div>
 
         {activeView === "pom" ? (
-          <PomRankingTable rows={pomRows} />
+          <PomRankingTable rows={pomRowsBySplit[activeSplit]} />
         ) : activeView === "standings" ? (
           splitStandingsContent[activeSplit]
         ) : (

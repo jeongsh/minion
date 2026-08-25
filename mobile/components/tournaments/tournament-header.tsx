@@ -27,7 +27,8 @@ export function TournamentHeader({ segment, action }: { segment: MobileTournamen
 const styles = StyleSheet.create({
   action: { alignItems: 'center', justifyContent: 'center', minHeight: 40 },
   header: { gap: 12 },
-  row: { alignItems: 'center', flexDirection: 'row', gap: 12, justifyContent: 'space-between' },
+  // 웹 PageHeader는 YearSelect가 실제로 비어 있어도 action 슬롯의 min-h-10을 유지한다.
+  row: { alignItems: 'center', flexDirection: 'row', gap: 12, justifyContent: 'space-between', minHeight: 40 },
   title: { flexShrink: 1, fontSize: 20, lineHeight: 27 },
   titleGroup: { alignItems: 'center', flex: 1, flexDirection: 'row', gap: 10, minWidth: 0 },
 });

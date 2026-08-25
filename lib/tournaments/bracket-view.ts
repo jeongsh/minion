@@ -16,8 +16,12 @@ export function buildBracketData(columns: StageColumn[], teamMap: Map<string, Te
   const groups: MobileBracketGroup[] = [];
   for (const groupIndex of groupIndices) {
     const columnsForGroup: MobileBracketGroup["columns"] = [];
+    const matchesForGroup = regularColumns.flatMap((column) =>
+      column.matches.filter((match) => (match.groupIndex ?? 0) === groupIndex),
+    );
+    const groupHasLower = splitBracketSidesForDisplay(matchesForGroup).lower.length > 0;
 
-    for (const column of regularColumns) {
+    for (const [columnIndex, column] of regularColumns.entries()) {
       const groupMatches = column.matches.filter((match) => (match.groupIndex ?? 0) === groupIndex);
       if (groupMatches.length === 0) continue;
 
@@ -27,7 +31,7 @@ export function buildBracketData(columns: StageColumn[], teamMap: Map<string, Te
       const hasLower = split.lower.length > 0;
       const label = useGroupLabels
         ? formatBracketColumnLabel(column.stage.name, { group: groupLetterLabel(groupIndex) })
-        : hasLower
+        : groupHasLower
           ? formatBracketColumnLabel(column.stage.name, { prefix: "Upper" })
           : formatBracketColumnLabel(column.stage.name);
       const lowerLabel = hasLower
@@ -37,6 +41,7 @@ export function buildBracketData(columns: StageColumn[], teamMap: Map<string, Te
         : null;
 
       columnsForGroup.push({
+        columnIndex,
         label,
         lowerLabel,
         lowerMatches: split.lower.map((match) => toMobileBracketMatch(match, teamMap)),
@@ -62,5 +67,5 @@ export function buildBracketData(columns: StageColumn[], teamMap: Map<string, Te
     }
   }
 
-  return { connections, finals, groups };
+  return { columnCount: regularColumns.length, connections, finals, groups };
 }

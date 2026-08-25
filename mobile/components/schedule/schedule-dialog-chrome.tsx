@@ -5,7 +5,7 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 
 /** 웹 components/responsive/adaptive-dialog.tsx의 모바일 시트(rounded-t-24, 56px 헤더, 44px 닫기)를 그대로 옮긴 공용 껍데기. */
-export function ScheduleDialogChrome({ children, onClose, open, title }: PropsWithChildren<{ onClose: () => void; open: boolean; title: string }>) {
+export function ScheduleDialogChrome({ children, compactTitle = false, onClose, open, title }: PropsWithChildren<{ compactTitle?: boolean; onClose: () => void; open: boolean; title: string }>) {
   const { colorScheme, fonts, theme } = useMinionTheme();
 
   return (
@@ -14,7 +14,7 @@ export function ScheduleDialogChrome({ children, onClose, open, title }: PropsWi
         <Pressable accessibilityLabel="닫기" onPress={onClose} style={[styles.backdrop, { backgroundColor: colorScheme === 'dark' ? 'rgba(0,0,0,0.65)' : 'rgba(0,0,0,0.45)' }]} />
         <View style={[styles.panel, { backgroundColor: theme.surface }]}>
           <View style={[styles.header, { borderBottomColor: theme.border }]}>
-            <Text numberOfLines={1} style={[styles.title, { color: theme.ink, fontFamily: fonts.black }]}>{title}</Text>
+            <Text numberOfLines={1} style={[styles.title, compactTitle && styles.compactTitle, { color: theme.ink, fontFamily: fonts.black }]}>{title}</Text>
             <Pressable accessibilityLabel="닫기" hitSlop={8} onPress={onClose} style={styles.closeButton}>
               <X color={theme.muted} size={21} />
             </Pressable>
@@ -30,6 +30,7 @@ const styles = StyleSheet.create({
   backdrop: { ...StyleSheet.absoluteFillObject },
   body: { padding: 16 },
   closeButton: { alignItems: 'center', borderRadius: 12, height: 44, justifyContent: 'center', width: 44 },
+  compactTitle: { fontSize: 16, lineHeight: 24 },
   header: { alignItems: 'center', borderBottomWidth: 1, flexDirection: 'row', minHeight: 56, paddingHorizontal: 16 },
   panel: { borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '92%', overflow: 'hidden', width: '100%' },
   root: { flex: 1, justifyContent: 'flex-end' },

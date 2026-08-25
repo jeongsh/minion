@@ -88,6 +88,7 @@ export async function GET(request: Request, context: { params: Promise<{ segment
     const viewLabels = LCK_SPLIT_VIEW_LABELS[activeSplit];
 
     const cupTournamentIds = new Set(activeTournaments.filter((tournament) => tournament.split === "Cup").map((tournament) => tournament.id));
+    const cupMatches = segmentMatches.filter((match) => cupTournamentIds.has(match.tournamentId));
     const cupStages = segmentStages.filter((stage) => cupTournamentIds.has(stage.tournamentId));
     const cupWeekStages = cupStages.filter((stage) => isWeekStage(stage.name));
     const cupOtherStages = cupStages.filter((stage) => !isWeekStage(stage.name));
@@ -103,20 +104,20 @@ export async function GET(request: Request, context: { params: Promise<{ segment
       const groupColors = deriveCrossGroups(cupWeekMatches);
       if (groupColors) {
         const genG = findGenG(teams);
-        const alphaColor: 0 | 1 = (genG ? groupColors.get(genG.id) : undefined) ?? 0;
-        const omegaColor: 0 | 1 = alphaColor === 0 ? 1 : 0;
-        const groupATeams = teams.filter((team) => groupColors.get(team.id) === alphaColor);
-        const groupBTeams = teams.filter((team) => groupColors.get(team.id) === omegaColor);
+        const baronColor: 0 | 1 = (genG ? groupColors.get(genG.id) : undefined) ?? 0;
+        const elderColor: 0 | 1 = baronColor === 0 ? 1 : 0;
+        const groupATeams = teams.filter((team) => groupColors.get(team.id) === baronColor);
+        const groupBTeams = teams.filter((team) => groupColors.get(team.id) === elderColor);
         split1Groups = [
-          { rows: buildTeamStandingRows(groupATeams, cupWeekMatches, []).map(toMobileStandingRow), title: "알파조" },
-          { rows: buildTeamStandingRows(groupBTeams, cupWeekMatches, []).map(toMobileStandingRow), title: "오메가조" },
+          { rows: buildTeamStandingRows(groupATeams, cupWeekMatches, []).map(toMobileStandingRow), title: "바론 그룹" },
+          { rows: buildTeamStandingRows(groupBTeams, cupWeekMatches, []).map(toMobileStandingRow), title: "장로 그룹" },
         ];
       }
     }
 
     const rounds12Matches = segmentMatches.filter((match) => activeTournaments.some((tournament) => tournament.id === match.tournamentId && tournament.split === "Rounds 1-2"));
     const lckTeams = teams.filter((team) => team.isLckTeam);
-    const split2Groups: MobileStandingsGroup[] = [{ rows: buildTeamStandingRows(lckTeams, rounds12Matches, []).map(toMobileStandingRow), title: "" }];
+    const split2Groups: MobileStandingsGroup[] = [{ rows: buildTeamStandingRows(lckTeams, rounds12Matches, []).map(toMobileStandingRow), title: "정규 시즌" }];
 
     const roadToMsiTournamentIds = new Set(activeTournaments.filter((tournament) => tournament.split === "Road to MSI").map((tournament) => tournament.id));
     const roadToMsiStages = segmentStages.filter((stage) => roadToMsiTournamentIds.has(stage.tournamentId));
@@ -134,8 +135,8 @@ export async function GET(request: Request, context: { params: Promise<{ segment
       const legendTeams = teams.filter((team) => rounds34GroupColors.get(team.id) === legendColor);
       const riseTeams = teams.filter((team) => rounds34GroupColors.get(team.id) === riseColor);
       split3Groups = [
-        { rows: buildTeamStandingRows(legendTeams, regularSeasonMatches, []).map(toMobileStandingRow), title: "레전드조" },
-        { rows: buildTeamStandingRows(riseTeams, regularSeasonMatches, []).map(toMobileStandingRow), title: "라이즈조" },
+        { rows: buildTeamStandingRows(legendTeams, regularSeasonMatches, []).map(toMobileStandingRow), title: "레전드 그룹" },
+        { rows: buildTeamStandingRows(riseTeams, regularSeasonMatches, []).map(toMobileStandingRow), title: "라이즈 그룹" },
       ];
     }
 
@@ -154,7 +155,8 @@ export async function GET(request: Request, context: { params: Promise<{ segment
       "3": (activePhase === "playoffs" ? playoffsColumns : playInColumns).length > 0,
     };
 
-    const pomRows = buildPomRankingRows(regularSeasonMatches, players, teamMap).map((row) => ({
+    const pomMatches = activeSplit === "1" ? cupMatches : regularSeasonMatches;
+    const pomRows = buildPomRankingRows(pomMatches, players, teamMap).map((row) => ({
       count: row.count,
       player: toMobilePlayer(row.player),
       points: row.points,

@@ -108,7 +108,7 @@ export default function TournamentsScreen() {
           { key: 'playoffs', label: '플레이오프' },
         ]
       : [
-          { key: 'pom', label: '순위' },
+          { key: 'pom', label: 'POM' },
           { key: 'standings', label: data.viewLabels?.standings ?? '순위표' },
           { key: 'bracket', label: data.viewLabels?.bracket ?? '대진표' },
         ]
@@ -150,16 +150,14 @@ export default function TournamentsScreen() {
         {data.isLck ? (
           <View style={styles.lckSection}>
             <View style={styles.lckTabs}>
-              {data.activeView === 'pom' ? null : (
-                <TournamentSegmentedControl
-                  activeKey={split}
-                  items={(['1', '2', '3'] as const).map((key) => ({ key, label: data.splitLabels?.[key] ?? key }))}
-                  onSelect={(key) => {
-                    setSplit(key as '1' | '2' | '3');
-                    if (view === 'bracket') setPhase('playin');
-                  }}
-                />
-              )}
+              <TournamentSegmentedControl
+                activeKey={split}
+                items={(['1', '2', '3'] as const).map((key) => ({ key, label: data.splitLabels?.[key] ?? key }))}
+                onSelect={(key) => {
+                  setSplit(key as '1' | '2' | '3');
+                  if (view === 'bracket') setPhase('playin');
+                }}
+              />
               <TournamentUnderlineNav activeKey={activeViewKey} bordered={false} items={viewItems} onSelect={selectView} />
             </View>
             <TournamentBody data={data} />
@@ -202,7 +200,7 @@ function TournamentBody({ data }: { data: MobileTournamentDetailDto }) {
   if (data.bracketAvailable && data.bracket) {
     return <TournamentBracket accent={data.segment.accent} bracket={data.bracket} />;
   }
-  return <TournamentEmptyNotice message="아직 공개된 대진표가 없습니다." />;
+  return <TournamentEmptyNotice message={data.isLck ? '아직 공개된 일정이 없습니다.' : '아직 공개된 대진표가 없습니다.'} />;
 }
 
 const styles = StyleSheet.create({

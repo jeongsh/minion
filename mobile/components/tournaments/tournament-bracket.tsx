@@ -10,7 +10,8 @@ import type { MobileBracketData, MobileBracketMatch } from '@/lib/api-client';
 
 const COLUMN_WIDTH = 200;
 const COLUMN_GAP = 16;
-const GROUP_GAP = 16;
+// 웹 grid의 그룹 사이 빈 행(h-4) 양쪽에 gap-y-2가 붙어 총 32px을 차지한다.
+const GROUP_GAP = 32;
 const CARD_ROW_HEIGHT = 32;
 const CARD_HEIGHT = CARD_ROW_HEIGHT * 2 + 1 + 2; // 두 팀 줄 + 구분선 1px + 위아래 테두리 1px씩
 const DATE_HEIGHT = 18;
@@ -137,6 +138,10 @@ function useBracketConnectors(connections: MobileBracketData['connections']) {
 export function TournamentBracket({ accent, bracket }: { accent: string; bracket: MobileBracketData }) {
   const tokens = useTournamentTokens();
   const { containerRef, onContainerLayout, paths, registerMatch } = useBracketConnectors(bracket.connections);
+  // 앱 업데이트 전에 저장된 API 캐시에도 안전하게 대응한다. 새 응답은 원래 웹 열 번호를
+  // 명시하고, 구 응답은 배열 순서를 열 번호로 사용한다.
+  const columnCount = bracket.columnCount ?? Math.max(1, ...bracket.groups.map((group) => group.columns.length));
+  const displayGroups = bracket.groups.length > 0 ? bracket.groups : [{ columns: [] }];
 
   return (
     <View style={[styles.outerBox, { backgroundColor: tokens.surface, borderColor: tokens.border }]}>
@@ -147,13 +152,19 @@ export function TournamentBracket({ accent, bracket }: { accent: string; bracket
               <Path d={path.d} fill="none" key={path.id} stroke={tokens.border} strokeWidth={2} />
             ))}
           </Svg>
-          {bracket.groups.map((group, groupIndex) => {
+          {displayGroups.map((group, groupIndex) => {
             const maxUpperHeight = Math.max(0, ...group.columns.map((column) => upperSectionHeight(column.matches.length)));
+            const columnsByIndex = new Map(group.columns.map((column, index) => [column.columnIndex ?? index, column]));
             return (
               <View key={groupIndex} style={[styles.groupRow, groupIndex > 0 && { marginTop: GROUP_GAP }]}>
-                {group.columns.map((column, columnIndex) => (
-                  <BracketColumnView column={column} key={columnIndex} maxUpperHeight={maxUpperHeight} registerMatch={registerMatch} />
-                ))}
+                {Array.from({ length: columnCount }, (_, columnIndex) => {
+                  const column = columnsByIndex.get(columnIndex);
+                  return column ? (
+                    <BracketColumnView column={column} key={columnIndex} maxUpperHeight={maxUpperHeight} registerMatch={registerMatch} />
+                  ) : (
+                    <View key={columnIndex} style={styles.column} />
+                  );
+                })}
                 {groupIndex === 0 && bracket.finals ? <BracketFinalsColumn accent={accent} finals={bracket.finals} registerMatch={registerMatch} /> : null}
               </View>
             );
@@ -299,7 +310,7 @@ function BracketTeamRow({
 
 const styles = StyleSheet.create({
   accentBar: { alignSelf: 'stretch', borderRadius: 999, width: 4 },
-  card: { borderRadius: 8, overflow: 'hidden', width: COLUMN_WIDTH },
+  card: { borderRadius: 6, overflow: 'hidden', width: COLUMN_WIDTH },
   column: { width: COLUMN_WIDTH },
   columnHeader: { fontSize: 12, letterSpacing: 0.96, lineHeight: 18, textTransform: 'uppercase' },
   columnSection: { gap: 8 },

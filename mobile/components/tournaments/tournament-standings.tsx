@@ -69,7 +69,7 @@ function GroupRow({ isLast, row, tokens }: { isLast: boolean; row: MobileStandin
       style={[styles.groupRow, !isLast && { borderBottomColor: tokens.border, borderBottomWidth: 1 }]}>
       <Text style={[styles.groupRank, { color: tokens.foreground, fontFamily: fonts.black }]}>{row.rank}</Text>
       <View style={styles.groupTeam}>
-        <TeamLogo plain size={28} team={row.team} themeAware />
+        <TeamLogo plain size={24} team={row.team} themeAware />
         <Text numberOfLines={1} style={[styles.groupTeamName, { color: tokens.foreground, fontFamily: fonts.bold }]}>{row.team.name}</Text>
       </View>
       <Text style={[styles.groupDiff, { color: tokens.muted, fontFamily: fonts.medium }]}>{diff}</Text>
@@ -102,13 +102,13 @@ function RegularRow({ isLast, row, tokens }: { isLast: boolean; row: MobileStand
       <View style={styles.dataMain}>
         <Text style={[styles.dataRank, { color: theme.ink, fontFamily: fonts.black }]}>{row.rank}</Text>
         <View style={styles.dataTeam}>
-          <TeamLogo plain size={28} team={row.team} themeAware />
+          <TeamLogo plain size={24} team={row.team} themeAware />
           <Text numberOfLines={1} style={[styles.dataTeamName, { color: theme.ink, fontFamily: fonts.bold }]}>{row.team.name}</Text>
         </View>
       </View>
       <View style={styles.dataMetrics}>
-        <Metric label="승" theme={theme} value={String(row.matchWins)} />
-        <Metric label="패" theme={theme} value={String(row.matchLosses)} />
+        <Metric compact label="승" theme={theme} value={String(row.matchWins)} />
+        <Metric compact label="패" theme={theme} value={String(row.matchLosses)} />
       </View>
     </Pressable>
   );
@@ -150,8 +150,10 @@ function PomRow({ isLast, row, tokens }: { isLast: boolean; row: MobilePomRow; t
         <Text style={[styles.pomRank, { color: theme.ink, fontFamily: fonts.black }]}>{row.rank}</Text>
         <View style={styles.pomPlayer}>
           {imageUri ? <Image contentFit="cover" source={{ uri: imageUri }} style={styles.pomAvatar} /> : null}
-          <Text numberOfLines={1} style={[styles.pomName, { color: theme.ink, fontFamily: fonts.bold }]}>{row.player.name}</Text>
-          <Text numberOfLines={1} style={[styles.pomTeam, { color: theme.muted, fontFamily: fonts.regular }]}>{row.team?.shortName ?? '-'}</Text>
+          <View style={styles.pomIdentity}>
+            <Text numberOfLines={1} style={[styles.pomName, { color: theme.ink, fontFamily: fonts.bold }]}>{row.player.name}</Text>
+            <Text numberOfLines={1} style={[styles.pomTeam, { color: theme.muted, fontFamily: fonts.regular }]}>{row.team?.shortName ?? '-'}</Text>
+          </View>
         </View>
       </View>
       <View style={styles.dataMetrics}>
@@ -206,25 +208,25 @@ const styles = StyleSheet.create({
   dataEmptyBody: { fontSize: 14, lineHeight: 24, marginTop: 6, textAlign: 'center' },
   dataEmptyCharacter: { height: 56, width: 56 },
   dataEmptyTitle: { fontSize: 15, lineHeight: 22.5, marginTop: 8, textAlign: 'center' },
-  dataMain: { alignItems: 'center', flex: 1, flexDirection: 'row', gap: 12, minWidth: 0 },
-  dataMetrics: { alignItems: 'center', flexDirection: 'row', flexShrink: 0, gap: 12 },
-  dataRank: { fontSize: 16, fontStyle: 'italic', lineHeight: 24, textAlign: 'center', width: 28 },
-  dataRow: { alignItems: 'center', flexDirection: 'row', gap: 16, minHeight: 64, paddingHorizontal: 16, paddingVertical: 12 },
+  dataMain: { alignItems: 'center', flex: 1, flexDirection: 'row', gap: 10, minWidth: 0 },
+  dataMetrics: { alignItems: 'center', flexDirection: 'row', flexShrink: 0, gap: 10 },
+  dataRank: { fontSize: 14, fontStyle: 'italic', lineHeight: 21, textAlign: 'center', width: 24 },
+  dataRow: { alignItems: 'center', flexDirection: 'row', gap: 12, minHeight: 52, paddingHorizontal: 12, paddingVertical: 8 },
   dataTeam: { alignItems: 'center', flex: 1, flexDirection: 'row', gap: 8, minWidth: 0 },
-  dataTeamName: { flexShrink: 1, fontSize: 14, lineHeight: 21 },
+  dataTeamName: { flexShrink: 1, fontSize: 13, lineHeight: 19.5 },
   groupBlock: { gap: 10 },
   groupCard: { borderRadius: 12, borderWidth: 1, overflow: 'hidden' },
-  groupDiff: { flexShrink: 0, fontSize: 13, lineHeight: 19.5, textAlign: 'right' },
+  groupDiff: { flexShrink: 0, fontSize: 12, lineHeight: 18, textAlign: 'right' },
   groupEmpty: { alignItems: 'center', borderRadius: 12, borderWidth: 1, justifyContent: 'center', paddingVertical: 32 },
   groupGrid: { gap: 16 },
-  groupRank: { fontSize: 14, fontStyle: 'italic', lineHeight: 20, width: 32 },
-  groupRecord: { flexShrink: 0, fontSize: 13, lineHeight: 19.5, textAlign: 'right' },
-  groupRow: { alignItems: 'center', flexDirection: 'row', gap: 8, minHeight: 58, paddingHorizontal: 14, paddingVertical: 12 },
+  groupRank: { fontSize: 13, fontStyle: 'italic', lineHeight: 19.5, width: 24 },
+  groupRecord: { flexShrink: 0, fontSize: 12, lineHeight: 18, textAlign: 'right' },
+  groupRow: { alignItems: 'center', flexDirection: 'row', gap: 8, minHeight: 52, paddingHorizontal: 12, paddingVertical: 8 },
   groupTeam: { alignItems: 'center', flex: 1, flexDirection: 'row', gap: 8, minWidth: 0 },
-  groupTeamName: { flexShrink: 1, fontSize: 14 },
-  groupTitleBar: { borderRadius: 999, height: 16, width: 3 },
+  groupTeamName: { flexShrink: 1, fontSize: 13 },
+  groupTitleBar: { borderRadius: 999, height: 14, width: 3 },
   groupTitleRow: { alignItems: 'center', flexDirection: 'row', gap: 8 },
-  groupTitleText: { fontSize: 16, lineHeight: 16 },
+  groupTitleText: { fontSize: 15, lineHeight: 15 },
   metric: { alignItems: 'center', flexDirection: 'row', gap: 6, justifyContent: 'flex-end' },
   metricCompact: { gap: 4 },
   metricLabel: { fontSize: 11, lineHeight: 16.5 },
@@ -233,9 +235,10 @@ const styles = StyleSheet.create({
   metricValueCompact: { fontSize: 13, lineHeight: 19.5 },
   notice: { borderRadius: 8, borderWidth: 1, paddingHorizontal: 20, paddingVertical: 40 },
   pomAvatar: { borderRadius: 12, height: 24, width: 24 },
+  pomIdentity: { alignItems: 'baseline', flex: 1, flexDirection: 'row', gap: 4, minWidth: 0 },
   pomMain: { alignItems: 'center', flex: 1, flexDirection: 'row', gap: 8, minWidth: 0 },
   pomName: { flexShrink: 1, fontSize: 13, lineHeight: 19.5 },
-  pomPlayer: { alignItems: 'baseline', flex: 1, flexDirection: 'row', gap: 4, minWidth: 0 },
+  pomPlayer: { alignItems: 'center', flex: 1, flexDirection: 'row', gap: 8, minWidth: 0 },
   pomRank: { fontSize: 14, fontStyle: 'italic', lineHeight: 21, textAlign: 'center', width: 24 },
   pomRow: { alignItems: 'center', flexDirection: 'row', gap: 12, minHeight: 52, paddingHorizontal: 12, paddingVertical: 8 },
   pomTeam: { flexShrink: 1, fontSize: 11, lineHeight: 16.5 },

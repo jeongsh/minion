@@ -119,12 +119,12 @@ export function buildPomRankingRows(segmentMatches: Match[], players: Player[], 
     .map((row, index) => ({ ...row, rank: index + 1 }));
 }
 
-// LCK는 스플릿 1(LCK컵) / 스플릿 2(MSI로 가는 길) / 스플릿 3(롤드컵으로 가는 길)로 구성된다.
-export const LCK_SPLIT_LABELS = { "1": "스플릿 1", "2": "스플릿 2", "3": "스플릿 3" } as const;
+// 숫자만으로는 실제 대회 단계를 알기 어려우므로 LCK 공식 포맷의 라운드명을 바로 노출한다.
+export const LCK_SPLIT_LABELS = { "1": "LCK 컵", "2": "1-2라운드", "3": "3-4라운드" } as const;
 export type LckSplitKey = keyof typeof LCK_SPLIT_LABELS;
 
 export const LCK_SPLIT_VIEW_LABELS: Record<LckSplitKey, { standings: string; bracket: string }> = {
-  "1": { standings: "크로스 그룹 스테이지", bracket: "토너먼트" },
-  "2": { standings: "정규리그", bracket: "MSI로 가는 길" },
-  "3": { standings: "정규리그", bracket: "토너먼트" },
+  "1": { standings: "그룹 배틀", bracket: "토너먼트" },
+  "2": { standings: "정규 시즌", bracket: "로드 투 MSI" },
+  "3": { standings: "그룹 순위", bracket: "포스트시즌" },
 };
