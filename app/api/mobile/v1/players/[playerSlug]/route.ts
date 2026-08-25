@@ -11,7 +11,7 @@ export async function GET(_: Request, context: { params: Promise<{ playerSlug: s
   const [team, career] = await Promise.all([getTeamById(player.teamId), getPlayerCareerHistories([player.id])]);
   const data: MobilePlayerDetailDto = {
     career: career.map((item) => ({ endDate: item.endDate, id: item.id, position: item.position, startDate: item.startDate, teamId: item.teamId, teamName: item.teamName })),
-    player: { id: player.id, name: player.name, position: player.position, profileImage: player.profileImageUrl ? { url: player.profileImageUrl } : null, slug: player.slug, teamId: player.teamId },
+    player: { id: player.id, name: player.name, position: player.position, profileImage: player.profileImageUrl ? { url: player.profileImageUrl } : null, realName: player.realName, slug: player.slug, teamId: player.teamId },
     team: team ? toMobileTeam(team) : null,
   };
   return mobileSuccess(data, { headers: { "Cache-Control": "public, max-age=0, s-maxage=300, stale-while-revalidate=900" } });

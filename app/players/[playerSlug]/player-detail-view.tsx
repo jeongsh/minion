@@ -30,6 +30,7 @@ import { fanPogPlayerIdForSet, setRatingHref } from "@/lib/view-data";
 import { ChampionUsageTable } from "./champion-usage-table";
 import { FanReviewList, type FanReviewItem } from "./fan-review-list";
 import { RecentMatchHistoryModal, RecentMatchSetRows } from "./recent-match-history-modal";
+import { PlayerSegmentSelect } from "./player-segment-select";
 import type { Crumb } from "@/components/layout/breadcrumb";
 
 const PLAYER_PAGE_SEGMENTS: Array<SeasonSegmentKey | "all"> = [
@@ -454,6 +455,11 @@ export async function PlayerDetailView({
       ].filter(Boolean).join(" · "),
     };
   });
+  const segmentOptions = visibleSegments.map((segment) => ({
+    href: segment === "all" ? `${linkBase}/${player.slug}?segment=all` : `${linkBase}/${player.slug}?segment=${segment}`,
+    label: playerSegmentLabel(segment),
+    value: segment,
+  }));
 
   return (
     <main
@@ -469,8 +475,33 @@ export async function PlayerDetailView({
       }
     >
       <div className="layout-wide flex flex-col gap-7 pb-16 pt-6 sm:pt-8 md:gap-12">
-        {/* 1. 브레드크럼 + 대회 세그먼트 */}
+        {/* 1. 모바일 프로필 — 로딩 스켈레톤과 같은 80px 포트레이트를 가장 먼저 표시 */}
+        <section className="flex min-w-0 items-start gap-4 md:hidden" aria-label={`${player.name} 프로필`}>
+          <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl bg-[var(--ui-card-bg)]">
+            <PlayerImage src={player.profileImageUrl} alt={player.name} className="h-full w-full object-cover object-top" />
+            <span className="absolute bottom-1.5 left-1.5 rounded-md px-1.5 py-0.5 text-[10px] font-bold leading-4 text-white" style={{ background: "var(--tp)" }}>
+              {player.position}
+            </span>
+          </div>
+          <div className="min-w-0 flex-1">
+            <h1 className="home-section-title font-paperozi truncate text-[20px] leading-tight text-[var(--ui-ink)]">{player.name}</h1>
+            {player.realName ? <p className="mt-1 truncate text-sm text-[var(--ui-muted)]">{player.realName}</p> : null}
+            <div className="mt-2 flex min-w-0 items-center justify-between gap-2">
+              <div className="flex min-w-0 items-center gap-2">
+                {playerTeam?.logoUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={playerTeam.logoUrl} alt={playerTeam.name} className="h-6 w-6 shrink-0 object-contain" />
+                ) : null}
+                <span className="truncate text-[13px] font-bold text-[var(--ui-ink)]">{playerTeam?.shortName ?? "FA"}</span>
+              </div>
+              <PlayerSocialLinks player={player} className="shrink-0 [&_a]:h-8 [&_a]:w-8" />
+            </div>
+          </div>
+        </section>
+
+        {/* 2. 데스크톱 제목·세그먼트 / 모바일 단일 선택 컨트롤 */}
         <PageHeader
+          className="hidden md:flex"
           title={player.name}
           breadcrumbs={[{ label: "선수단", href: "/players" }, { label: player.position }, { label: player.name }]}
           action={
@@ -483,9 +514,9 @@ export async function PlayerDetailView({
             />
           }
         />
-        <div className="-mt-3 flex overflow-x-auto pb-1 md:hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"><PlayerSegmentChips playerSlug={player.slug} activeSegment={activeSegment} visibleSegments={visibleSegments} linkBase={linkBase} className="shrink-0" /></div>
+        <PlayerSegmentSelect activeSegment={activeSegment} options={segmentOptions} />
 
-        {/* 2. 팀 메타 스트립 */}
+        {/* 3. 팀 메타 스트립 */}
         <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] px-5 py-3.5">
           <div className="flex items-center gap-2.5">
             <span className="text-[13px] text-[var(--ui-muted)]">팀</span>
@@ -520,9 +551,9 @@ export async function PlayerDetailView({
           </div>
         </div>
 
-        {/* 3. 메인 그리드 — 포트레잇 + 선수 지표 */}
+        {/* 4. 메인 그리드 — 태블릿 이상 포트레잇 + 선수 지표 */}
         <div className="grid gap-5 min-[1200px]:grid-cols-[330px_1fr] min-[1200px]:gap-10">
-          <div className="relative h-52 w-full overflow-hidden rounded-2xl bg-[var(--ui-card-bg)] sm:h-64 min-[1200px]:!h-[323px]">
+          <div className="relative hidden h-64 w-full overflow-hidden rounded-2xl bg-[var(--ui-card-bg)] md:block min-[1200px]:!h-[323px]">
             <PlayerImage src={player.profileImageUrl} alt={player.name} className="h-full w-full object-contain object-top min-[1200px]:object-cover" />
             <span className="absolute left-3 top-3 rounded-lg px-2 py-1 text-[13px] font-bold text-white" style={{ background: "var(--tp)" }}>
               {player.position}
@@ -556,7 +587,7 @@ export async function PlayerDetailView({
           </section>
         </div>
 
-        {/* 4. 시즌 요약 */}
+        {/* 5. 시즌 요약 */}
         <section>
           <SectionHeading caption={playerSegmentLabel(activeSegment)}>시즌 요약</SectionHeading>
           <div className="overflow-hidden rounded-lg border border-[var(--ui-border)]">

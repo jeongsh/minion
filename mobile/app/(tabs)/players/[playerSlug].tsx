@@ -1,5 +1,5 @@
-import { RouteCanvas } from '@/components/route-canvas';
+import { PlayerDetail } from '@/components/players/player-detail';
 
 export default function PlayerDetailScreen() {
-  return <RouteCanvas />;
+  return <PlayerDetail />;
 }
