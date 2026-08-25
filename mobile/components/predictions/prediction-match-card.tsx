@@ -18,12 +18,12 @@ export function PredictionMatchCard({ match, now, onChooseTeam }: { match: Mobil
           <Text style={[styles.metaDeadline, { color: theme.muted, fontFamily: fonts.bold }]}>{deadlineLabel(match.startsAt, match.closed, now)}</Text>
         </View>
       </View>
-      <View style={[styles.card, { backgroundColor: colorScheme === 'dark' ? theme.surfaceMuted : theme.surface, borderColor: theme.border }]}>
-        <TeamChoice disabled={match.closed} onPress={() => match.teamA && onChooseTeam(match.teamA.id)} percent={match.market.teamAPercent} team={match.teamA} odds={match.market.teamAOdds} />
+      <View style={[styles.card, { backgroundColor: colorScheme === 'dark' ? theme.surfaceMuted : theme.surface, borderColor: match.myBet ? theme.accent : theme.border }]}>
+        <TeamChoice disabled={match.closed} onPress={() => match.teamA && onChooseTeam(match.teamA.id)} percent={match.market.teamAPercent} selected={match.myBet?.teamId === match.teamA?.id} team={match.teamA} odds={match.market.teamAOdds} />
         <View style={styles.vsColumn}>
           <Text style={[styles.vsText, { color: theme.muted, fontFamily: fonts.black }]}>VS</Text>
         </View>
-        <TeamChoice disabled={match.closed} onPress={() => match.teamB && onChooseTeam(match.teamB.id)} percent={match.market.teamBPercent} team={match.teamB} odds={match.market.teamBOdds} right />
+        <TeamChoice disabled={match.closed} onPress={() => match.teamB && onChooseTeam(match.teamB.id)} percent={match.market.teamBPercent} selected={match.myBet?.teamId === match.teamB?.id} team={match.teamB} odds={match.market.teamBOdds} right />
       </View>
     </View>
   );
@@ -35,6 +35,7 @@ function TeamChoice({
   onPress,
   percent,
   right = false,
+  selected,
   team,
 }: {
   disabled: boolean;
@@ -42,12 +43,13 @@ function TeamChoice({
   onPress: () => void;
   percent: number;
   right?: boolean;
+  selected: boolean;
   team: MobilePredictionMatch['teamA'];
 }) {
   const { fonts, theme } = useMinionTheme();
 
   return (
-    <Pressable disabled={disabled || !team} onPress={onPress} style={[styles.choice, right && styles.choiceRight]}>
+    <Pressable disabled={disabled || !team} onPress={onPress} style={[styles.choice, right && styles.choiceRight, selected && { backgroundColor: `${theme.accent}18` }]}>
       <View style={[styles.choiceInfo, right && styles.choiceInfoRight]}>
         <TeamLogo plain size={28} team={team} themeAware />
         <View style={[styles.choiceNameRow, right && styles.choiceNameRowRight]}>

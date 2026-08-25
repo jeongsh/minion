@@ -6,8 +6,15 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 
 /** 웹 대회 필터 칩 레일은 sm(640px) 미만에서 숨겨지므로 모바일엔 주간 이동 + 보유 LP만 보여준다. */
-export function PredictionWeekBar({ balance, canGoNext, canGoPrev, onNext, onPrev, weekKey }: { balance: number | null; canGoNext: boolean; canGoPrev: boolean; onNext: () => void; onPrev: () => void; weekKey: string }) {
+export function PredictionWeekBar({ authenticated, authLoading, balance, canGoNext, canGoPrev, onNext, onPrev, weekKey }: { authenticated: boolean; authLoading: boolean; balance: number | null; canGoNext: boolean; canGoPrev: boolean; onNext: () => void; onPrev: () => void; weekKey: string }) {
   const { colorScheme, fonts, theme } = useMinionTheme();
+  const balanceLabel = authLoading
+    ? '확인 중'
+    : !authenticated
+      ? '로그인'
+      : balance === null
+        ? 'LP 불러오는 중'
+        : `${balance.toLocaleString('ko-KR')} LP`;
 
   return (
     <View style={[styles.bar, { backgroundColor: colorScheme === 'dark' ? theme.surfaceMuted : theme.surface, borderColor: theme.border }]}>
@@ -22,7 +29,7 @@ export function PredictionWeekBar({ balance, canGoNext, canGoPrev, onNext, onPre
       </View>
       <View style={[styles.balance, { backgroundColor: theme.surfaceMuted }]}>
         <Coins color={theme.ink} size={16} />
-        <Text style={[styles.balanceText, { color: theme.ink, fontFamily: fonts.black }]}>{balance === null ? '로그인' : `${balance.toLocaleString('ko-KR')} LP`}</Text>
+        <Text style={[styles.balanceText, { color: theme.ink, fontFamily: fonts.black }]}>{balanceLabel}</Text>
       </View>
     </View>
   );

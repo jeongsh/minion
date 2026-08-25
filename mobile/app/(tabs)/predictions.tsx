@@ -1,22 +1,34 @@
 import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
 
 import { ErrorState } from '@/components/feedback-states';
 import { MinionScreen } from '@/components/minion-screen';
 import { PredictionEmptyState } from '@/components/predictions/prediction-empty-state';
+import { PredictionBetSheet, type PredictionBetDialogState } from '@/components/predictions/prediction-bet-sheet';
 import { PredictionLoadingSkeleton } from '@/components/predictions/prediction-loading-skeleton';
 import { PredictionMatchCard } from '@/components/predictions/prediction-match-card';
 import { PredictionWeekBar } from '@/components/predictions/prediction-week-bar';
 import { useCachedQuery } from '@/hooks/use-cached-query';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
-import type { MobilePredictionsDto } from '@/lib/api-client';
+import { mutateMobileApi, type MobilePredictionMutationDto, type MobilePredictionsDto } from '@/lib/api-client';
 import { predictionDateLabel, weekStartKey } from '@/lib/prediction-dates';
+import { predictionMaxStake } from '@/lib/predictions';
 import { dateKeyKST } from '@/lib/schedule-dates';
+import { useAuth } from '@/providers/auth-provider';
 
 export default function PredictionsScreen() {
+  const router = useRouter();
+  const { loading: authLoading, refreshViewer, session, viewer } = useAuth();
   const { fonts, showToast, theme } = useMinionTheme();
-  const { data, error, loading, refresh } = useCachedQuery<MobilePredictionsDto>('/api/mobile/v1/predictions');
+  const { data, error, loading, refresh } = useCachedQuery<MobilePredictionsDto>('/api/mobile/v1/predictions', { cache: false, enabled: !authLoading });
   const [selectedWeek, setSelectedWeek] = useState(() => weekStartKey(new Date().toISOString()));
+  const [dialog, setDialog] = useState<PredictionBetDialogState | null>(null);
+  const [stake, setStake] = useState('100');
+  const [mutationError, setMutationError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+  const [balanceOverride, setBalanceOverride] = useState<number | null>(null);
+  const balance = balanceOverride ?? data?.balance ?? viewer?.lp ?? null;
 
   const weekKeys = useMemo(() => Array.from(new Set((data?.matches ?? []).map((match) => weekStartKey(match.startsAt)))).sort(), [data]);
 
@@ -43,11 +55,70 @@ export default function PredictionsScreen() {
     if (next) setSelectedWeek(next);
   }
 
-  function onChooseTeam() {
-    showToast('로그인은 인증 화면 구현 단계에서 연결합니다.');
+  function onChooseTeam(matchId: string, teamId: string) {
+    if (authLoading) {
+      showToast('로그인 상태를 확인하고 있습니다.');
+      return;
+    }
+    if (!session) {
+      router.push('/login?next=/predictions' as never);
+      return;
+    }
+    const match = data?.matches.find((item) => item.id === matchId);
+    const team = match?.teamA?.id === teamId ? match.teamA : match?.teamB?.id === teamId ? match.teamB : null;
+    if (!match || !team || match.closed) return;
+    const existingTeam = match.myBet?.teamId === match.teamA?.id ? match.teamA : match.myBet?.teamId === match.teamB?.id ? match.teamB : null;
+    setStake(String(Math.min(1000, predictionMaxStake(balance ?? 0))));
+    setMutationError(null);
+    setDialog({ existingBet: match.myBet, matchId, teamId, teamName: existingTeam?.shortName ?? team.shortName });
   }
 
-  if (loading && !data) {
+  async function submitBet() {
+    if (!dialog || pending) return;
+    setPending(true);
+    setMutationError(null);
+    try {
+      const result = await mutateMobileApi<MobilePredictionMutationDto>('/api/mobile/v1/predictions', 'POST', {
+        matchId: dialog.matchId,
+        stake: Number(stake),
+        teamId: dialog.teamId,
+      });
+      setBalanceOverride(result.balance);
+      setDialog(null);
+      showToast(`${dialog.teamName} 승리 예측이 확정됐습니다.`, 'success');
+      refresh();
+      await refreshViewer();
+    } catch (caught) {
+      const message = caught instanceof Error ? caught.message : '예측을 등록하지 못했습니다.';
+      setMutationError(message);
+      showToast(message, 'error');
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function cancelBet() {
+    if (!dialog?.existingBet || pending) return;
+    const refundedStake = dialog.existingBet.stake;
+    setPending(true);
+    setMutationError(null);
+    try {
+      const result = await mutateMobileApi<MobilePredictionMutationDto>('/api/mobile/v1/predictions', 'DELETE', { matchId: dialog.matchId });
+      setBalanceOverride(result.balance);
+      setDialog(null);
+      showToast(`${refundedStake.toLocaleString('ko-KR')} LP가 반환됐습니다.`, 'success');
+      refresh();
+      await refreshViewer();
+    } catch (caught) {
+      const message = caught instanceof Error ? caught.message : '예측을 취소하지 못했습니다.';
+      setMutationError(message);
+      showToast(message, 'error');
+    } finally {
+      setPending(false);
+    }
+  }
+
+  if ((authLoading || loading) && !data) {
     return (
       <MinionScreen contentStyle={styles.content}>
         <PredictionLoadingSkeleton />
@@ -58,7 +129,7 @@ export default function PredictionsScreen() {
   if (error && !data) {
     return (
       <MinionScreen contentStyle={styles.content}>
-        <ErrorState onRetry={refresh} />
+        <ErrorState onRetry={refresh} title={error} />
       </MinionScreen>
     );
   }
@@ -68,7 +139,9 @@ export default function PredictionsScreen() {
   return (
     <MinionScreen contentStyle={styles.content}>
       <PredictionWeekBar
-        balance={null}
+        authenticated={Boolean(session)}
+        authLoading={authLoading}
+        balance={balance}
         canGoNext={weekIndex < weekKeys.length - 1}
         canGoPrev={weekIndex > 0}
         onNext={() => moveWeek(1)}
@@ -90,7 +163,7 @@ export default function PredictionsScreen() {
               </View>
               <View style={styles.matchList}>
                 {dayMatches.map((match) => (
-                  <PredictionMatchCard key={match.id} match={match} now={data.now} onChooseTeam={onChooseTeam} />
+                  <PredictionMatchCard key={match.id} match={match} now={data.now} onChooseTeam={(teamId) => onChooseTeam(match.id, teamId)} />
                 ))}
               </View>
             </View>
@@ -101,12 +174,23 @@ export default function PredictionsScreen() {
           <PredictionEmptyState />
         </View>
       )}
+      <PredictionBetSheet
+        balance={balance ?? 0}
+        dialog={dialog}
+        error={mutationError}
+        onCancelBet={cancelBet}
+        onClose={() => setDialog(null)}
+        onStakeChange={setStake}
+        onSubmit={submitBet}
+        pending={pending}
+        stake={stake}
+      />
     </MinionScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  content: { gap: 0, marginTop: 48, paddingBottom: 0 },
+  content: { gap: 0, paddingBottom: 0 },
   empty: { marginTop: 36 },
   heading: { fontSize: 18, lineHeight: 28 },
   headingRow: { alignItems: 'center', flexDirection: 'row', gap: 8, marginBottom: 12 },
