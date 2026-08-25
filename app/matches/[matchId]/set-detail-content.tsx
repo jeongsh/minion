@@ -647,8 +647,11 @@ export async function SetDetailContent({
     return {
       playerId: row.line.playerId,
       playerName: row.player?.name ?? "-",
+      championName: champion?.name ?? "-",
       championImageUrl: championImage(champion),
       abilityIcons: abilityIconsByDdragonId.get(normalizedDdragonId(champion)) ?? null,
+      position: row.line.position,
+      teamName: teamLabel(teams, row.line.teamId),
       side,
       version: itemVersion,
       keystoneUrl,
