@@ -30,7 +30,7 @@ export const adminNavItems: NavItem[] = [
   { href: "/admin/international-teams", label: "해외팀 관리" },
   { href: "/admin/teams", label: "팀 관리" },
   { href: "/admin/players", label: "선수 관리" },
-  { href: "/admin/calendar", label: "기념일 관리" },
+  { href: "/admin/calendar", label: "일정·기념일 관리" },
   { href: "/admin/ratings", label: "팬 평점 관리" },
   { href: "/admin/community", label: "커뮤니티 관리" },
   { href: "/admin/fan-sites", label: "팬사이트 관리" },
@@ -42,7 +42,7 @@ export const adminNavItems: NavItem[] = [
 export function fanNavItems(teamSlug: string): NavItem[] {
   return [
     { href: `/fan/${teamSlug}`, label: "홈" },
-    { href: `/fan/${teamSlug}/matches`, label: "일정" },
+    { href: `/fan/${teamSlug}/matches`, label: "캘린더" },
     { href: `/fan/${teamSlug}/players`, label: "선수" },
     { href: `/fan/${teamSlug}/community`, label: "커뮤니티" },
     { href: `/fan/${teamSlug}/instagram`, label: "인스타그램" },

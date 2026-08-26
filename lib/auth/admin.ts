@@ -35,6 +35,13 @@ function hasAdminClaim(appMetadata: Record<string, unknown>) {
   return false;
 }
 
+export function isAdminUser(user: { email?: string | null; app_metadata?: Record<string, unknown> }) {
+  const email = user.email?.toLowerCase() ?? null;
+  return allowAllAuthenticatedAdmins()
+    || hasAdminClaim(user.app_metadata ?? {})
+    || Boolean(email && adminEmails().has(email));
+}
+
 /** 리다이렉트 없이 현재 사용자가 어드민인지만 본다. 화면에서 어드민 전용 UI를 분기할 때 쓴다. */
 export async function isCurrentUserAdmin(): Promise<boolean> {
   let supabase: Awaited<ReturnType<typeof createSupabaseAuthClient>>;
@@ -49,8 +56,7 @@ export async function isCurrentUserAdmin(): Promise<boolean> {
   } = await supabase.auth.getUser();
   if (!user) return false;
 
-  const email = user.email?.toLowerCase() ?? null;
-  return allowAllAuthenticatedAdmins() || hasAdminClaim(user.app_metadata) || Boolean(email && adminEmails().has(email));
+  return isAdminUser(user);
 }
 
 export async function requireAdmin(): Promise<AdminUser> {
@@ -64,7 +70,7 @@ export async function requireAdmin(): Promise<AdminUser> {
   }
 
   const email = user.email?.toLowerCase() ?? null;
-  if (allowAllAuthenticatedAdmins() || hasAdminClaim(user.app_metadata) || (email && adminEmails().has(email))) {
+  if (isAdminUser(user)) {
     return { id: user.id, email };
   }
 

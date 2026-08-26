@@ -1,10 +1,9 @@
 import { Image } from 'expo-image';
-import Check from 'lucide-react-native/icons/check';
-import ChevronDown from 'lucide-react-native/icons/chevron-down';
-import { useState, type ReactNode } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { type ReactNode } from 'react';
+import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
 import { TeamLogo } from '@/components/data/team-logo';
+import { FilterSelect } from '@/components/filter-select';
 import { ScheduleDialogChrome } from '@/components/schedule/schedule-dialog-chrome';
 import { SCHEDULE_SEGMENTS, type ScheduleSegmentKey } from '@/constants/schedule-segments';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
@@ -103,7 +102,7 @@ export function ScheduleFilterSheet({
           onClose();
         }}
         style={[styles.resetButton, { backgroundColor: theme.ink }]}>
-        <Text style={[styles.resetButtonText, { color: theme.surface, fontFamily: fonts.medium }]}>필터 초기화</Text>
+        <Text style={[styles.resetButtonText, { color: theme.surface, ...fonts.medium }]}>필터 초기화</Text>
       </Pressable>
     </ScheduleDialogChrome>
   );
@@ -113,7 +112,7 @@ function FilterGroup({ children, title }: { children: ReactNode; title: string }
   const { fonts, theme } = useMinionTheme();
   return (
     <View style={styles.filterGroup}>
-      <Text style={[styles.filterGroupTitle, { color: theme.muted, fontFamily: fonts.bold }]}>{title}</Text>
+      <Text style={[styles.filterGroupTitle, { color: theme.muted, ...fonts.bold }]}>{title}</Text>
       {children}
     </View>
   );
@@ -129,7 +128,7 @@ function PlainFilterChip({ active, label, onPress, width }: { active: boolean; l
         { width },
         active ? { backgroundColor: theme.ink, borderColor: theme.ink } : { backgroundColor: theme.card, borderColor: theme.border },
       ]}>
-      <Text style={[styles.plainChipText, { color: active ? theme.surface : theme.ink, fontFamily: fonts.medium }]}>{label}</Text>
+      <Text style={[styles.plainChipText, { color: active ? theme.surface : theme.ink, ...fonts.medium }]}>{label}</Text>
     </Pressable>
   );
 }
@@ -163,59 +162,6 @@ function TeamFilterChip({ active, onPress, team, width }: { active: boolean; onP
   );
 }
 
-function FilterSelect({
-  disabled,
-  label,
-  onChange,
-  options,
-  value,
-}: {
-  disabled?: boolean;
-  label: string;
-  onChange: (value: string) => void;
-  options: { label: string; value: string }[];
-  value: string;
-}) {
-  const { fonts, theme } = useMinionTheme();
-  const [open, setOpen] = useState(false);
-  const selectedLabel = options.find((option) => option.value === value)?.label ?? '-';
-
-  return (
-    <View style={styles.select}>
-      <Text style={[styles.selectLabel, { color: theme.muted, fontFamily: fonts.bold }]}>{label}</Text>
-      <Pressable
-        disabled={disabled}
-        onPress={() => setOpen((current) => !current)}
-        style={[styles.selectTrigger, { backgroundColor: theme.card, borderColor: theme.border }]}>
-        <Text style={[styles.selectValue, { color: theme.ink, fontFamily: fonts.bold }]}>{selectedLabel}</Text>
-        <ChevronDown color={theme.muted} size={16} />
-      </Pressable>
-      {open ? (
-        <ScrollView
-          contentContainerStyle={styles.selectListContent}
-          nestedScrollEnabled
-          style={[styles.selectList, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          {options.map((option) => {
-            const selected = option.value === value;
-            return (
-              <Pressable
-                key={option.value}
-                onPress={() => {
-                  setOpen(false);
-                  if (option.value !== value) onChange(option.value);
-                }}
-                style={[styles.selectOption, selected && { backgroundColor: theme.ink }]}>
-                <Text style={[styles.selectOptionText, { color: selected ? theme.surface : theme.ink, fontFamily: selected ? fonts.bold : fonts.medium }]}>{option.label}</Text>
-                {selected ? <Check color={theme.surface} size={15} /> : null}
-              </Pressable>
-            );
-          })}
-        </ScrollView>
-      ) : null}
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   filterGroup: { marginTop: 16 },
   filterGroupTitle: { fontSize: 13, lineHeight: 19.5, marginBottom: 8 },
@@ -225,28 +171,6 @@ const styles = StyleSheet.create({
   plainChipText: { fontSize: 12, lineHeight: 15, textAlign: 'center' },
   resetButton: { alignItems: 'center', borderRadius: 8, justifyContent: 'center', marginTop: 16, minHeight: 40, paddingHorizontal: 12 },
   resetButtonText: { fontSize: 12, lineHeight: 18 },
-  select: { flex: 1, gap: 6 },
-  selectLabel: { fontSize: 13, lineHeight: 19.5 },
-  selectList: {
-    borderRadius: 12,
-    borderWidth: 1,
-    boxShadow: '0 18px 45px rgba(15,23,42,0.16)',
-    elevation: 20,
-    left: 0,
-    marginTop: 6,
-    maxHeight: 224,
-    position: 'absolute',
-    right: 0,
-    top: '100%',
-    zIndex: 20,
-  },
-  selectListContent: {
-    padding: 6,
-  },
-  selectOption: { alignItems: 'center', borderRadius: 8, flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 12, paddingVertical: 8 },
-  selectOptionText: { fontSize: 13, lineHeight: 19.5 },
-  selectTrigger: { alignItems: 'center', borderRadius: 12, borderWidth: 1, flexDirection: 'row', height: 40, justifyContent: 'space-between', paddingHorizontal: 12 },
-  selectValue: { fontSize: 14, lineHeight: 21 },
   teamChipLogo: { height: 28, width: 28 },
   yearMonthRow: { flexDirection: 'row', gap: 8 },
 });

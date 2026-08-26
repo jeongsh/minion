@@ -3,10 +3,12 @@
 // 하나의 CalendarEvent로 정규화하고, KST 기준 D-day / n주년을 계산한다.
 
 import { cache } from "react";
+import { normalizeFanCalendarSourceUrl } from "@/lib/calendar/submissions";
 import { canQuerySupabase, createSupabaseServerClient } from "@/lib/supabase/server";
 import { getAllTeams } from "@/lib/data/lck";
 
 export type CalendarEventType = "birthday" | "debut" | "championship" | "custom";
+export type CalendarEventSourceKind = "birthday" | "admin" | "submission";
 
 export type CalendarEvent = {
   /** 축하 보드 연결용 키. 'birthday:{playerId}:{year}' | 'event:{eventId}:{year}' */
@@ -18,10 +20,10 @@ export type CalendarEvent = {
   subjectName: string;
   /** "MM-DD" (KST) */
   monthDay: string;
-  /** 다가오는 실제 날짜 "YYYY-MM-DD" (KST) */
+  /** 표시할 실제 날짜 "YYYY-MM-DD" (KST). 반복 일정은 다음 발생일. */
   nextDateKey: string;
   isRecurring: boolean;
-  /** 0 = 오늘, 양수 = D-n */
+  /** 0 = 오늘, 양수 = D-n, 과거 일회성 일정을 포함하면 음수 */
   dday: number;
   /** 생일=나이, 데뷔/우승=n주년. 계산 불가 시 null */
   yearsCount: number | null;
@@ -35,6 +37,12 @@ export type CalendarEvent = {
   teamLogoUrl: string | null;
   /** 팬사이트 경로 슬러그. 축하 게시판 링크 생성용 */
   teamFanSlug: string | null;
+  /** "HH:MM" (KST). null이면 종일 일정. */
+  eventTime: string | null;
+  description: string | null;
+  /** 검증된 http(s) 출처 URL. */
+  sourceUrl: string | null;
+  sourceKind: CalendarEventSourceKind;
 };
 
 const TYPE_LABEL: Record<CalendarEventType, string> = {
@@ -105,19 +113,50 @@ type FanCalendarRow = {
   player_id: string | null;
   title: string;
   event_date: string;
+  event_time?: string | null;
   is_recurring: boolean;
+  description?: string | null;
+  source_url?: string | null;
+  source_kind?: string;
+};
+
+function normalizeEventTime(value?: string | null): string | null {
+  if (!value) return null;
+  const match = /^(\d{2}):(\d{2})(?::\d{2}(?:\.\d+)?)?$/.exec(value.trim());
+  if (!match) return null;
+  const hour = Number(match[1]);
+  const minute = Number(match[2]);
+  if (hour > 23 || minute > 59) return null;
+  return `${match[1]}:${match[2]}`;
+}
+
+function safeSourceUrl(value?: string | null): string | null {
+  const trimmed = value?.trim();
+  if (!trimmed) return null;
+  return normalizeFanCalendarSourceUrl(trimmed);
+}
+
+function calendarSourceKind(value?: string): Exclude<CalendarEventSourceKind, "birthday"> {
+  return value === "submission" ? "submission" : "admin";
+}
+
+export type CalendarEventQueryOptions = {
+  teamId?: string;
+  /** 기본값 false. true면 이미 지난 일회성 일정도 실제 날짜와 음수 dday로 반환한다. */
+  includePastOneTime?: boolean;
 };
 
 /**
  * 덕질 달력 이벤트 목록. dday 오름차순 정렬.
  * @param opts.teamId 지정 시 해당 팀 선수 생일 + 해당 팀 기념일만 반환(팬페이지용).
  */
-export const getCalendarEvents = cache(async function getCalendarEvents(opts?: {
-  teamId?: string;
-}): Promise<CalendarEvent[]> {
+export const getCalendarEvents = cache(async function getCalendarEvents(
+  opts?: CalendarEventQueryOptions,
+): Promise<CalendarEvent[]> {
   if (!canQuerySupabase()) return [];
 
   const teamId = opts?.teamId;
+  const includePastOneTime = opts?.includePastOneTime ?? false;
   const today = todayPartsKST();
   const teams = await getAllTeams();
   const teamById = new Map(teams.map((t) => [t.id, t]));
@@ -134,17 +173,29 @@ export const getCalendarEvents = cache(async function getCalendarEvents(opts?: {
   if (teamId) playerQuery = playerQuery.eq("team_id", teamId);
 
   // 관리자 입력 기념일.
-  let eventQuery = supabase
+  const eventQuery = supabase
     .from("fan_calendar_events")
-    .select("id, event_type, team_id, player_id, title, event_date, is_recurring");
-  if (teamId) eventQuery = eventQuery.eq("team_id", teamId);
+    .select(
+      "id, event_type, team_id, player_id, title, event_date, event_time, is_recurring, description, source_url, source_kind",
+    );
 
-  const [{ data: playerRows }, { data: eventRows }, { data: allPlayerRows }] = await Promise.all([
+  const [{ data: playerRows }, eventResult, { data: allPlayerRows }] = await Promise.all([
     playerQuery,
     eventQuery,
     // 기념일이 player_id를 참조할 때 이름/이미지를 붙이기 위한 조회.
     supabase.from("players").select("id, slug, name, team_id, birth_date, profile_image_url"),
   ]);
+
+  // 새 제보 워크플로 마이그레이션이 아직 적용되지 않은 환경에서도 기존
+  // 생일·데뷔·우승 일정을 계속 보여 준다. 확장 컬럼 조회가 실패하면 기존
+  // 스키마 컬럼만으로 한 번 더 조회하고 신규 메타데이터는 null로 처리한다.
+  let eventRows = eventResult.data as FanCalendarRow[] | null;
+  if (eventResult.error) {
+    const legacyResult = await supabase
+      .from("fan_calendar_events")
+      .select("id, event_type, team_id, player_id, title, event_date, is_recurring");
+    eventRows = legacyResult.data as FanCalendarRow[] | null;
+  }
 
   const playerById = new Map((allPlayerRows as PlayerBirthRow[] | null ?? []).map((p) => [p.id, p]));
 
@@ -176,6 +227,10 @@ export const getCalendarEvents = cache(async function getCalendarEvents(opts?: {
       teamColor: team?.primaryColor ?? null,
       teamLogoUrl: team?.logoUrl ?? null,
       teamFanSlug: team?.fanSiteHost || team?.slug || null,
+      eventTime: null,
+      description: null,
+      sourceUrl: null,
+      sourceKind: "birthday",
     });
   }
 
@@ -184,12 +239,14 @@ export const getCalendarEvents = cache(async function getCalendarEvents(opts?: {
     const [ey, em, ed] = row.event_date.split("-").map(Number);
     if (!em || !ed) continue;
     const oneTimeDday = row.is_recurring ? null : daysUntil(row.event_date, today);
-    if (!row.is_recurring && (oneTimeDday == null || oneTimeDday < 0)) continue;
+    if (!row.is_recurring && (oneTimeDday == null || (!includePastOneTime && oneTimeDday < 0))) continue;
     const occ = row.is_recurring
       ? nextOccurrence(em, ed, today)
       : { year: ey, dday: oneTimeDday ?? 0, nextDateKey: row.event_date };
     const player = row.player_id ? playerById.get(row.player_id) : undefined;
     const resolvedTeamId = row.team_id ?? player?.team_id ?? null;
+    // player_id만 지정된 기존 기념일도 선수의 현재 팀 팬 캘린더에 포함한다.
+    if (teamId && resolvedTeamId !== teamId) continue;
     const team = resolvedTeamId ? teamById.get(resolvedTeamId) : undefined;
     const years = ey ? occ.year - ey : null;
     const subjectName = player?.name ?? team?.shortName ?? team?.name ?? row.title;
@@ -213,6 +270,10 @@ export const getCalendarEvents = cache(async function getCalendarEvents(opts?: {
       teamColor: team?.primaryColor ?? null,
       teamLogoUrl: team?.logoUrl ?? null,
       teamFanSlug: team?.fanSiteHost || team?.slug || null,
+      eventTime: normalizeEventTime(row.event_time),
+      description: row.description?.trim() || null,
+      sourceUrl: safeSourceUrl(row.source_url),
+      sourceKind: calendarSourceKind(row.source_kind),
     });
   }
 
@@ -268,7 +329,11 @@ export type FanCalendarEventRow = {
   playerId: string | null;
   title: string;
   eventDate: string;
+  eventTime: string | null;
   isRecurring: boolean;
+  description: string | null;
+  sourceUrl: string | null;
+  sourceKind: Exclude<CalendarEventSourceKind, "birthday">;
 };
 
 /** 관리자 화면용 원본 기념일 목록(생일 제외, event_date 최신순). */
@@ -276,19 +341,35 @@ export const getFanCalendarEvents = cache(async function getFanCalendarEvents():
   FanCalendarEventRow[]
 > {
   if (!canQuerySupabase()) return [];
-  const { data } = await createSupabaseServerClient()
+  const supabase = createSupabaseServerClient();
+  const result = await supabase
     .from("fan_calendar_events")
-    .select("id, event_type, team_id, player_id, title, event_date, is_recurring")
+    .select(
+      "id, event_type, team_id, player_id, title, event_date, event_time, is_recurring, description, source_url, source_kind",
+    )
     .order("event_date", { ascending: false });
 
-  return ((data as FanCalendarRow[] | null) ?? []).map((row) => ({
+  let data = result.data as FanCalendarRow[] | null;
+  if (result.error) {
+    const legacyResult = await supabase
+      .from("fan_calendar_events")
+      .select("id, event_type, team_id, player_id, title, event_date, is_recurring")
+      .order("event_date", { ascending: false });
+    data = legacyResult.data as FanCalendarRow[] | null;
+  }
+
+  return (data ?? []).map((row) => ({
     id: row.id,
     eventType: row.event_type,
     teamId: row.team_id,
     playerId: row.player_id,
     title: row.title,
     eventDate: row.event_date,
+    eventTime: normalizeEventTime(row.event_time),
     isRecurring: row.is_recurring,
+    description: row.description?.trim() || null,
+    sourceUrl: safeSourceUrl(row.source_url),
+    sourceKind: calendarSourceKind(row.source_kind),
   }));
 });
 

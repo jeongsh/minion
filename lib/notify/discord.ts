@@ -239,3 +239,114 @@ export async function sendDiscordFanHeaderRequestAlert(
     console.warn(`[discord] fan header request webhook failed: ${response.status} ${(await response.text()).slice(0, 300)}`);
   }
 }
+
+export type FanCalendarSubmissionDiscordEvent = {
+  submissionId: string;
+  teamName: string;
+  teamSlug: string;
+  requesterName: string;
+  eventTypeLabel: string;
+  title: string;
+  eventDate: string;
+  eventTime: string | null;
+  isRecurring: boolean;
+  description: string | null;
+  sourceUrl: string;
+  pendingCount: number | null;
+};
+
+export type FanCalendarDiscordDeliveryErrorCode =
+  | "client_error"
+  | "network"
+  | "rate_limited"
+  | "server_error"
+  | "timeout";
+
+export type FanCalendarDiscordDeliveryResult =
+  | { ok: true }
+  | {
+      ok: false;
+      errorCode: FanCalendarDiscordDeliveryErrorCode;
+      retryable: boolean;
+      retryAfterSeconds: number | null;
+    };
+
+function discordPlainText(value: string, maxLength: number) {
+  return value.replace(/[\r\n]+/g, " ").replace(/\s+/g, " ").trim().slice(0, maxLength);
+}
+
+function retryAfterSeconds(value: string | null, nowMs = Date.now()): number | null {
+  if (!value) return null;
+
+  const numericSeconds = Number(value);
+  if (Number.isFinite(numericSeconds) && numericSeconds >= 0) {
+    return Math.max(1, Math.ceil(numericSeconds));
+  }
+
+  const retryAt = Date.parse(value);
+  if (!Number.isFinite(retryAt) || retryAt <= nowMs) return null;
+  return Math.max(1, Math.ceil((retryAt - nowMs) / 1_000));
+}
+
+/** 팬 일정 제보를 운영 채널에 즉시 알린다. 웹훅 URL은 서버 환경변수로만 전달한다. */
+export async function sendDiscordFanCalendarSubmissionAlert(
+  webhookUrl: string,
+  event: FanCalendarSubmissionDiscordEvent,
+  siteUrl?: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<FanCalendarDiscordDeliveryResult> {
+  const base = normalizedSiteUrl(siteUrl);
+  const adminUrl = base ? `${base}/admin/calendar#calendar-submissions` : undefined;
+  const description = [
+    `${discordPlainText(event.requesterName, 60)}님이 ${discordPlainText(event.teamName, 40)} 일정을 제보했어요.`,
+    `종류: ${discordPlainText(event.eventTypeLabel, 30)}`,
+    `일시: ${event.eventDate}${event.eventTime ? ` ${event.eventTime}` : " · 종일"}${event.isRecurring ? " · 매년 반복" : ""}`,
+    event.description ? `설명: ${discordPlainText(event.description, 500)}` : null,
+    `출처: <${event.sourceUrl}>`,
+    typeof event.pendingCount === "number" ? `미처리 제보 ${event.pendingCount}건` : null,
+    adminUrl ? `[제보 검토하기](${adminUrl})` : null,
+  ].filter(Boolean).join("\n");
+
+  let response: Response;
+  try {
+    response = await fetchImpl(webhookUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      signal: AbortSignal.timeout(5_000),
+      body: JSON.stringify({
+        username: "일정 제보 알림",
+        allowed_mentions: { parse: [] },
+        embeds: [{
+          title: `일정 제보: ${discordPlainText(event.title, 80)}`,
+          description,
+          url: adminUrl,
+          color: 0xf59e0b,
+          timestamp: new Date().toISOString(),
+          footer: { text: `팬 캘린더 제보 · ${event.submissionId.slice(0, 8)} · Minion` },
+        }],
+      }),
+    });
+  } catch (error) {
+    const errorName = error instanceof Error ? error.name : "";
+    return {
+      ok: false,
+      errorCode: errorName === "AbortError" || errorName === "TimeoutError" ? "timeout" : "network",
+      retryable: true,
+      retryAfterSeconds: null,
+    };
+  }
+
+  if (response.ok) return { ok: true };
+
+  const parsedRetryAfter = retryAfterSeconds(response.headers.get("retry-after"));
+  if (response.status === 429) {
+    return { ok: false, errorCode: "rate_limited", retryable: true, retryAfterSeconds: parsedRetryAfter };
+  }
+  if (response.status === 408) {
+    return { ok: false, errorCode: "timeout", retryable: true, retryAfterSeconds: parsedRetryAfter };
+  }
+  if (response.status >= 500) {
+    return { ok: false, errorCode: "server_error", retryable: true, retryAfterSeconds: parsedRetryAfter };
+  }
+  return { ok: false, errorCode: "client_error", retryable: false, retryAfterSeconds: null };
+}

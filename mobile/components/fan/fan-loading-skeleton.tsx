@@ -36,6 +36,7 @@ export function FanLoadingSkeleton({ section = 'home' }: { section?: 'home' | 'p
     <Animated.View accessibilityLabel="팬페이지를 불러오는 중입니다" style={[styles.home, { opacity }]}>
       <View style={[styles.hero, { backgroundColor: theme.surfaceMuted }]}><View style={[styles.logo, { backgroundColor: theme.surface }]} /><View style={styles.heroText}><Bone height={24} width="68%" /><Bone height={38} width={172} /></View></View>
       <HomeSection themeColor={theme.surfaceMuted} kind="match" />
+      <HomeSection themeColor={theme.surfaceMuted} kind="community" />
       <HomeSection themeColor={theme.surfaceMuted} kind="social" />
       <HomeSection themeColor={theme.surfaceMuted} kind="video" />
       <HomeSection themeColor={theme.surfaceMuted} kind="roster" />
@@ -48,14 +49,15 @@ function Bone({ height, width }: { height: number; width: number | `${number}%` 
   return <View style={{ backgroundColor: theme.surfaceMuted, borderRadius: 6, height, width }} />;
 }
 
-function HomeSection({ kind, themeColor }: { kind: 'match' | 'roster' | 'social' | 'video'; themeColor: string }) {
-  const count = kind === 'match' ? 1 : 3;
-  const height = kind === 'match' ? 56 : kind === 'social' ? 152 : kind === 'video' ? 170 : 96;
-  return <View style={styles.homeSection}><Bone height={16} width="24%" /><View style={styles.homeRail}>{Array.from({ length: count }, (_, index) => <View key={index} style={{ backgroundColor: themeColor, borderRadius: kind === 'social' ? 12 : 8, height, width: kind === 'match' ? '100%' : kind === 'video' ? 302 : kind === 'roster' ? 106 : 114 }} />)}</View></View>;
+function HomeSection({ kind, themeColor }: { kind: 'community' | 'match' | 'roster' | 'social' | 'video'; themeColor: string }) {
+  const count = kind === 'match' ? 1 : kind === 'community' ? 3 : 3;
+  const height = kind === 'match' ? 56 : kind === 'community' ? 65 : kind === 'social' ? 152 : kind === 'video' ? 170 : 96;
+  return <View style={styles.homeSection}><Bone height={16} width="24%" /><View style={[styles.homeRail, kind === 'community' ? styles.communitySkeleton : null]}>{Array.from({ length: count }, (_, index) => <View key={index} style={{ backgroundColor: themeColor, borderRadius: kind === 'social' ? 12 : kind === 'community' ? 0 : 8, height, width: kind === 'match' || kind === 'community' ? '100%' : kind === 'video' ? 302 : kind === 'roster' ? 106 : 114 }} />)}</View></View>;
 }
 
 const styles = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingHorizontal: 16, paddingVertical: 20 },
+  communitySkeleton: { borderRadius: 12, flexDirection: 'column', gap: 1, overflow: 'hidden' },
   hero: { alignItems: 'flex-end', flexDirection: 'row', gap: 16, height: 132, paddingBottom: 20, paddingHorizontal: 16 },
   heroText: { gap: 8 },
   home: { gap: 20 },

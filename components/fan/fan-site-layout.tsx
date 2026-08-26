@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { FanSiteSurface } from "@/components/fan/fan-site-surface";
 import { getTeamByFanSiteHost, getTeamBySlug } from "@/lib/data/lck";
 
 type TeamStyle = React.CSSProperties & {
@@ -37,9 +38,5 @@ export async function FanSiteLayout({
     "--team-accent-soft": `color-mix(in srgb, ${team.primaryColor} 12%, var(--ui-surface))`,
   };
 
-  return (
-    <div className="team-surface min-h-[calc(100vh-73px)]" style={style}>
-      {children}
-    </div>
-  );
+  return <FanSiteSurface teamSlug={teamSlug} style={style}>{children}</FanSiteSurface>;
 }

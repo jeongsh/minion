@@ -1,95 +1,67 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
-import { SlidersHorizontal } from "lucide-react";
 
-import { ScheduleList } from "@/components/domain/schedule-list";
-import { FanPageShell, FanSubpageHeader } from "@/components/fan/fan-page-shell";
-import { getAllTeams, getMatches, getStages, getTeamByFanSiteHost, getTeamBySlug, getTournaments } from "@/lib/data/lck";
-import { filterMatchesBySegment, parseSeasonSegment, segmentLabel } from "@/lib/tournament-filters";
-import { isSupportedSeasonYear } from "@/lib/tournaments/season-2026";
-import { getMonthKST, getYearKST, KST_TIMEZONE } from "@/lib/view-data";
-
-import { ScheduleFilters } from "@/app/schedule/schedule-filters";
-import { AdaptiveDialog } from "@/components/responsive/adaptive-dialog";
+import { FanCalendarSubmissionForm } from "@/components/fan/fan-calendar-submission-form";
+import { FanScheduleCalendar, type FanScheduleMatch } from "@/components/fan/fan-schedule-calendar";
+import { getCurrentUser } from "@/lib/auth/current-user";
+import { getCalendarEvents } from "@/lib/calendar/events";
+import { getAllTeams, getMatches, getTeamByFanSiteHost, getTeamBySlug } from "@/lib/data/lck";
+import { shouldUseWhiteLogoOnDark } from "@/lib/team-logos";
+import { dateKeyKST, formatTimeKST, matchHref } from "@/lib/view-data";
 
 export const dynamic = "force-dynamic";
 
-function currentKSTMonthYear() {
-  const now = new Date();
-  return {
-    month: Number(new Intl.DateTimeFormat("en-US", { timeZone: KST_TIMEZONE, month: "numeric" }).format(now)),
-    year: Number(new Intl.DateTimeFormat("en-US", { timeZone: KST_TIMEZONE, year: "numeric" }).format(now)),
-  };
-}
-
 export default async function FanSchedulePage({
   params,
-  searchParams,
 }: {
   params: Promise<{ teamSlug: string }>;
-  searchParams: Promise<{ year?: string; month?: string; segment?: string }>;
 }) {
   const { teamSlug } = await params;
-  const query = await searchParams;
   const team = (await getTeamByFanSiteHost(teamSlug)) ?? (await getTeamBySlug(teamSlug));
   if (!team) notFound();
 
-  const defaults = currentKSTMonthYear();
-  const activeMonth = query.month ? Number(query.month) : defaults.month;
-  const activeSegment = parseSeasonSegment(query.segment);
-  const [teams, matches, tournaments, stages] = await Promise.all([
-    getAllTeams(), getMatches(), getTournaments(), getStages(),
+  const [teams, matches, calendarEvents, currentUser] = await Promise.all([
+    getAllTeams(),
+    getMatches(),
+    getCalendarEvents({ teamId: team.id, includePastOneTime: true }),
+    getCurrentUser(),
   ]);
-  const requestedYear = query.year ? Number(query.year) : Number.NaN;
-  const tournamentYears = tournaments.map((item) => item.season).filter(isSupportedSeasonYear);
-  const yearCandidates = isSupportedSeasonYear(defaults.year) ? [...tournamentYears, defaults.year] : tournamentYears;
-  const years = Array.from(new Set(yearCandidates)).sort((a, b) => b - a);
-  const activeYear = years.includes(requestedYear) ? requestedYear : (years.includes(defaults.year) ? defaults.year : (years[0] ?? defaults.year));
-  const filtered = filterMatchesBySegment(matches, tournaments, activeSegment, activeYear)
-    .filter((match) =>
-      (match.teamAId === team.id || match.teamBId === team.id) &&
-      getYearKST(match.matchDate) === activeYear &&
-      getMonthKST(match.matchDate) === activeMonth)
-    .sort((a, b) => new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime());
-  const pathname = `/fan/${teamSlug}/matches`;
+  const teamById = new Map(teams.map((item) => [item.id, item]));
+  const calendarMatches: FanScheduleMatch[] = matches
+    .filter((match) => match.teamAId === team.id || match.teamBId === team.id)
+    .sort((a, b) => new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime())
+    .map((match) => {
+      const opponent = teamById.get(match.teamAId === team.id ? match.teamBId : match.teamAId);
+
+      return {
+        id: match.id,
+        dateKey: dateKeyKST(match.matchDate),
+        href: matchHref(match),
+        time: formatTimeKST(match.matchDate),
+        opponentName: opponent?.shortName || opponent?.name || "TBD",
+        opponentLogoUrl: opponent?.logoUrl ?? null,
+        opponentLogoDarkUrl: shouldUseWhiteLogoOnDark(opponent) ? opponent?.logoWhiteUrl : null,
+      };
+    });
+  const initialMonthKey = dateKeyKST(new Date()).slice(0, 7);
 
   return (
-    <FanPageShell>
-    <div className="subpage flex flex-col gap-6">
-        <FanSubpageHeader
-          title="경기 일정"
-          breadcrumbs={[{ label: team.shortName, href: `/fan/${teamSlug}` }, { label: "경기 일정" }]}
-        />
-        <div className="flex items-center justify-end lg:hidden">
-          <AdaptiveDialog title={`${team.shortName} 일정 필터`} trigger={<span className="flex items-center gap-2"><SlidersHorizontal size={18} />필터</span>} triggerClassName="flex min-h-11 items-center rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface-muted)] px-3 text-sm font-black text-[var(--ui-ink)] transition-colors hover:bg-[var(--ui-surface)]">
-            <Suspense fallback={null}><ScheduleFilters activeYear={activeYear} activeMonth={activeMonth} activeSegment={activeSegment} activeTeam={team.id} years={years} teams={teams} pathname={pathname} lockTeam layout="sheet" /></Suspense>
-            <Link href={pathname} className="mt-4 flex min-h-12 items-center justify-center rounded-xl bg-[var(--ui-ink)] px-4 text-sm font-black text-[var(--ui-surface)]">기간 필터 초기화</Link>
-          </AdaptiveDialog>
-        </div>
-        <div className="hidden min-w-0 items-center justify-between gap-3 lg:flex">
-          <Suspense fallback={null}>
-            <ScheduleFilters
-              activeYear={activeYear}
-              activeMonth={activeMonth}
-              activeSegment={activeSegment}
-              activeTeam={team.id}
-              years={years}
-              teams={teams}
-              pathname={pathname}
-              lockTeam
+    <main className="fan-calendar-page fan-page-shell w-full text-[var(--ui-ink)]">
+      <div className="fan-page-container py-2 md:py-3">
+        <FanScheduleCalendar
+          initialMonthKey={initialMonthKey}
+          matches={calendarMatches}
+          events={calendarEvents}
+          action={(
+            <FanCalendarSubmissionForm
+              key="fan-calendar-submission"
+              teamId={team.id}
+              teamSlug={teamSlug}
+              teamName={team.shortName}
+              isAuthenticated={Boolean(currentUser)}
             />
-          </Suspense>
-          <Link href={pathname} className="flex min-h-10 shrink-0 items-center text-[13px] font-bold text-[var(--ui-muted)] transition-colors hover:text-[var(--ui-ink)]">기간 필터 초기화</Link>
-        </div>
-        <ScheduleList
-          matches={filtered}
-          teams={teams}
-          tournaments={tournaments}
-          stages={stages}
-          emptyMessage={`${activeYear}년 ${activeMonth}월 · ${segmentLabel(activeSegment, activeYear)}에 ${team.shortName} 경기가 없습니다.`}
+          )}
         />
       </div>
-    </FanPageShell>
+    </main>
   );
 }

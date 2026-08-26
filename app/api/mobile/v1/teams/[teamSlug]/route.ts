@@ -1,8 +1,11 @@
 import type { MobileTeamDetailDto } from "@/packages/contracts/src/mobile-v1";
 import { getAllTeams, getFanVideoFeed, getMatches, getPlayersByTeamId, getTeamByFanSiteHost, getTeamBySlug, getTeamInstagramFeed, getTournaments } from "@/lib/data/lck";
+import { getBoardPosts } from "@/lib/data/community";
+import { compareHotPostsByRecentHype, isHotPost } from "@/lib/community/hot";
 import { getActiveFanHeaderUrl } from "@/lib/fan/fan-header";
 import { getCalendarEvents } from "@/lib/calendar/events";
 import { mobileError, mobileSuccess, toMobileMatch, toMobileTeam } from "@/lib/mobile/api-response";
+import { toMobileCommunityPost } from "@/lib/mobile/community";
 
 export const revalidate = 60;
 
@@ -13,14 +16,19 @@ export async function GET(request: Request, context: { params: Promise<{ teamSlu
   if (!team) return mobileError("NOT_FOUND", "팀을 찾을 수 없습니다.", 404);
   const players = await getPlayersByTeamId(team.id);
   const playerIds = players.map((player) => player.id);
-  const [socialFeed, videoFeed, activeHeaderImage, matches, teams, tournaments, calendarEvents] = await Promise.all([
+  const [socialFeed, videoFeed, activeHeaderImage, matches, teams, tournaments, calendarEvents, boardPosts] = await Promise.all([
     getTeamInstagramFeed(team.id, playerIds),
     getFanVideoFeed(team.id, playerIds),
     getActiveFanHeaderUrl(team.id),
     getMatches(),
     getAllTeams(),
     getTournaments(),
-    section === "home" ? getCalendarEvents({ teamId: team.id }) : Promise.resolve([]),
+    section === "home" || section === "schedule"
+      ? getCalendarEvents({ teamId: team.id, includePastOneTime: section === "schedule" })
+      : Promise.resolve([]),
+    section === "home"
+      ? getBoardPosts({ scope: "team", teamId: team.id, hotOnly: true, limit: 30 })
+      : Promise.resolve([]),
   ]);
   const playerMap = new Map(players.map((player) => [player.id, player]));
   const teamMap = new Map(teams.map((item) => [item.id, item]));
@@ -35,12 +43,19 @@ export async function GET(request: Request, context: { params: Promise<{ teamSlu
       monthDay: event.monthDay,
       title: event.title,
       type: event.type,
+      eventTime: event.eventTime,
+      sourceUrl: event.sourceUrl,
     })),
     headerImage: activeHeaderImage
       ? { url: activeHeaderImage }
       : team.fanSiteHost === "hle"
         ? { url: "/images/fan-headers/hle-header-bg-v1.jpg" }
         : null,
+    community: boardPosts
+      .filter((post) => !post.blindedAt && !post.isNotice && isHotPost(post))
+      .sort(compareHotPostsByRecentHype)
+      .slice(0, 12)
+      .map(toMobileCommunityPost),
     matches: matches
       .filter((match) => match.teamAId === team.id || match.teamBId === team.id)
       .sort((a, b) => new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime())

@@ -4,11 +4,14 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import Bell from 'lucide-react-native/icons/bell';
 import ChevronRight from 'lucide-react-native/icons/chevron-right';
 import Heart from 'lucide-react-native/icons/heart';
+import MessageCircle from 'lucide-react-native/icons/message-circle';
 import Star from 'lucide-react-native/icons/star';
+import ThumbsUp from 'lucide-react-native/icons/thumbs-up';
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
 import { TeamLogo } from '@/components/data/team-logo';
+import { boardLabel, displayAuthor, formatCommunityDate } from '@/components/community/community-utils';
 import { ErrorState } from '@/components/feedback-states';
 import { FanCalendarDialog } from '@/components/fan/fan-calendar-dialog';
 import { FanLoadingSkeleton } from '@/components/fan/fan-loading-skeleton';
@@ -18,11 +21,12 @@ import { FanSchedule } from '@/components/fan/fan-schedule';
 import { FAN_POSITION_ORDER, FanEmpty, FanSectionHeading, FanVideoThumbnail, InstagramGlyph } from '@/components/fan/fan-shared';
 import { FanSocial } from '@/components/fan/fan-social';
 import { FanVideos } from '@/components/fan/fan-videos';
+import { KitschEmptyState } from '@/components/kitsch-empty-state';
 import { MinionScreen } from '@/components/minion-screen';
 import { getMinionTeam } from '@/constants/teams';
 import { useCachedQuery } from '@/hooks/use-cached-query';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
-import { mutateMobileApi, resolveApiAssetUrl, type MobileMatchSummary, type MobileTeamDetailDto, type MobileTeamFanDto, type MobileTeamFavoriteDto, type MobileTeamNotificationDto } from '@/lib/api-client';
+import { mutateMobileApi, resolveApiAssetUrl, type MobileCommunityPostSummary, type MobileMatchSummary, type MobileTeamDetailDto, type MobileTeamFanDto, type MobileTeamFavoriteDto, type MobileTeamNotificationDto } from '@/lib/api-client';
 import { fanAccentText, fanHeaderControlColor } from '@/lib/fan-colors';
 import { formatTimeKST } from '@/lib/schedule-dates';
 import { useAuth } from '@/providers/auth-provider';
@@ -42,7 +46,7 @@ export function FanPage({ section }: { section: FanPageSection }) {
   return (
     <MinionScreen contentStyle={styles.screenContent}>
       {section === 'home' ? <FanHome data={data} /> : null}
-      {section === 'schedule' ? <FanSchedule team={data.team} /> : null}
+      {section === 'schedule' ? <FanSchedule data={data} /> : null}
       {section === 'players' ? <FanPlayers players={data.players} team={data.team} /> : null}
       {section === 'social' ? <FanSocial items={data.social} teamName={data.team.shortName} /> : null}
       {section === 'videos' ? <FanVideos items={data.videos} teamName={data.team.shortName} /> : null}
@@ -65,11 +69,71 @@ function FanHome({ data }: { data: MobileTeamDetailDto }) {
           <FanSectionHeading href={`/fan/${data.team.fanSiteHost}/schedule`}>다음 경기</FanSectionHeading>
           {nextMatch ? <FanMatchRow match={nextMatch} teamId={data.team.id} /> : <FanEmpty>등록된 경기가 없습니다.</FanEmpty>}
         </View>
+        <HomeCommunityPreview items={data.community ?? []} teamColor={data.team.primaryColor} teamSlug={data.team.fanSiteHost} />
         <HomeSocialPreview items={data.social} teamSlug={data.team.fanSiteHost} />
         <HomeVideoPreview items={data.videos} teamSlug={data.team.fanSiteHost} />
         <HomeRoster players={sortedPlayers.slice(0, 5)} teamColor={data.team.primaryColor} teamSlug={data.team.fanSiteHost} />
       </View>
     </View>
+  );
+}
+
+function HomeCommunityPreview({ items, teamColor, teamSlug }: { items: MobileTeamDetailDto['community']; teamColor: string; teamSlug: string }) {
+  const router = useRouter();
+  const { theme } = useMinionTheme();
+  return (
+    <View>
+      <FanSectionHeading href={`/fan/${teamSlug}/community`}>인기글</FanSectionHeading>
+      {items.length ? (
+        <View style={[styles.communityList, { backgroundColor: theme.surface, borderColor: teamColor }]}>
+          {items.slice(0, 6).map((post, index) => (
+            <HomeCommunityRow
+              key={post.id}
+              last={index === Math.min(items.length, 6) - 1}
+              onPress={() => router.push(`/fan/${teamSlug}/community/post/${post.id}` as never)}
+              post={post}
+              teamColor={teamColor}
+            />
+          ))}
+        </View>
+      ) : (
+        <KitschEmptyState body="화력 좋은 글이 생기면 바로 모아둘게요." character="megapon" compact title="인기글 충전 중" />
+      )}
+    </View>
+  );
+}
+
+function HomeCommunityRow({ last, onPress, post, teamColor }: { last: boolean; onPress: () => void; post: MobileCommunityPostSummary; teamColor: string }) {
+  const { width } = useWindowDimensions();
+  const { fonts, theme } = useMinionTheme();
+  const wideMobile = width >= 390;
+  const thumbnailUrl = resolveApiAssetUrl(post.thumbnail?.url);
+  return (
+    <Pressable
+      accessibilityLabel={`${post.title} 게시글 보기`}
+      accessibilityRole="link"
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.communityRow,
+        { backgroundColor: pressed ? theme.surfaceMuted : theme.surface, borderBottomColor: theme.border, minHeight: wideMobile ? 65 : 58 },
+        last ? styles.communityRowLast : null,
+      ]}
+    >
+      <View style={styles.communityMain}>
+        <View style={styles.communityTitleRow}>
+          <Text style={{ color: teamColor, ...fonts.medium, fontSize: 13, lineHeight: 19.5 }}>{boardLabel(post.boardType, 'team')}</Text>
+          <View style={[styles.communityHot, { borderColor: teamColor }]}><Text style={{ color: teamColor, ...fonts.medium, fontSize: 13, lineHeight: 19.5 }}>인기</Text></View>
+          <Text numberOfLines={1} style={[styles.communityTitle, { color: theme.ink, ...fonts.medium }]}>{post.title}</Text>
+        </View>
+        <View style={styles.communityMetaRow}>
+          <Text numberOfLines={1} style={[styles.communityAuthor, { color: theme.text, ...fonts.medium }]}>{displayAuthor(post.author)}</Text>
+          <Text style={[styles.communityMeta, { color: theme.muted, ...fonts.regular }]}>{formatCommunityDate(post.createdAt)}</Text>
+          <View style={styles.communityStat}><MessageCircle color={theme.muted} size={12} strokeWidth={1.8} /><Text style={[styles.communityMeta, { color: theme.muted, ...fonts.regular }]}>{post.commentCount.toLocaleString('ko-KR')}</Text></View>
+          <View style={styles.communityStat}><ThumbsUp color={theme.muted} size={12} strokeWidth={1.8} /><Text style={[styles.communityMeta, { color: theme.muted, ...fonts.regular }]}>{post.likeCount.toLocaleString('ko-KR')}</Text></View>
+        </View>
+      </View>
+      {thumbnailUrl ? <Image contentFit="cover" source={{ uri: thumbnailUrl }} style={[styles.communityThumbnail, { backgroundColor: theme.surfaceMuted }, wideMobile ? styles.communityThumbnailWide : null]} transition={150} /> : null}
+    </Pressable>
   );
 }
 
@@ -167,11 +231,11 @@ function FanChannelHeader({ data }: { data: MobileTeamDetailDto }) {
       <View style={styles.channelContent}>
         <View style={[styles.channelLogo, { backgroundColor: headerUrl ? '#ffffff' : theme.surface, borderColor: headerUrl ? '#ffffff' : theme.border }]}><TeamLogo plain size={48} team={data.team} themeAware={!headerUrl} /></View>
         <View style={styles.channelInfo}>
-          <Text numberOfLines={1} style={[styles.channelTitle, { color: foreground, fontFamily: fonts.display }]}>{data.team.shortName} 팬 커뮤니티</Text>
+          <Text numberOfLines={1} style={[styles.channelTitle, { color: foreground, ...fonts.display }]}>{data.team.shortName} 팬 커뮤니티</Text>
           <View style={styles.headerActions}>
             <HeaderControl accessibilityLabel={following ? `${data.team.shortName} 팔로우 취소` : `${data.team.shortName} 팔로우`} background={controlBackground} border={controlBorder} disabled={Boolean(pending)} onPress={() => void toggleFollow()} wide>
               <Heart color={following ? data.team.primaryColor : controlForeground} fill={following ? data.team.primaryColor : 'none'} size={16} strokeWidth={2.4} />
-              <Text style={{ color: following ? data.team.primaryColor : controlForeground, fontFamily: fonts.medium, fontSize: 12 }}>{new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 1, notation: 'compact' }).format(fanCount)}</Text>
+              <Text style={{ color: following ? data.team.primaryColor : controlForeground, ...fonts.medium, fontSize: 12 }}>{new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 1, notation: 'compact' }).format(fanCount)}</Text>
             </HeaderControl>
             <HeaderControl accessibilityLabel={favorite ? `${data.team.shortName} 최애팀 해제` : `${data.team.shortName} 최애팀 설정`} background={controlBackground} border={controlBorder} disabled={!staticTeam || Boolean(pending)} onPress={() => void toggleFavorite()}><Star color={favorite ? teamAccent : controlForeground} fill={favorite ? teamAccent : 'none'} size={17} strokeWidth={2.3} /></HeaderControl>
             <HeaderControl accessibilityLabel={notificationEnabled ? '팬 채널 알림 끄기' : '팬 채널 알림 켜기'} background={controlBackground} border={controlBorder} disabled={Boolean(pending)} onPress={() => void toggleNotification()}><Bell color={notificationEnabled ? data.team.primaryColor : controlForeground} fill={notificationEnabled ? data.team.primaryColor : 'none'} size={16} /></HeaderControl>
@@ -200,11 +264,11 @@ function FanMatchRow({ match, teamId }: { match: MobileMatchSummary; teamId: str
   const date = new Intl.DateTimeFormat('ko-KR', { day: 'numeric', month: 'long', timeZone: 'Asia/Seoul', weekday: 'short' }).format(new Date(match.startsAt));
   return (
     <Pressable onPress={() => router.navigate(`/matches/${encodeURIComponent(match.id)}` as never)} style={({ pressed }) => [styles.matchRow, { backgroundColor: pressed ? theme.cardHover : theme.surface, borderColor: theme.border }]}>
-      <View style={[styles.matchBadge, { backgroundColor: scheduled ? theme.surfaceMuted : won ? dataColor(match, teamId) : theme.muted }]}><Text style={{ color: scheduled ? theme.ink : '#ffffff', fontFamily: fonts.medium, fontSize: 12 }}>{badge}</Text></View>
+      <View style={[styles.matchBadge, { backgroundColor: scheduled ? theme.surfaceMuted : won ? dataColor(match, teamId) : theme.muted }]}><Text style={{ color: scheduled ? theme.ink : '#ffffff', ...fonts.medium, fontSize: 12 }}>{badge}</Text></View>
       <TeamLogo size={32} team={opponent} themeAware />
       <View style={styles.matchInfo}>
-        <View style={styles.matchTitleRow}><Text numberOfLines={1} style={{ color: theme.ink, flexShrink: 1, fontFamily: fonts.black, fontSize: 14 }}>{opponent?.shortName ?? 'TBD'}</Text>{!scheduled && ownScore !== null && opponentScore !== null ? <Text style={{ color: theme.text, fontFamily: fonts.black, fontSize: 14 }}>{ownScore} : {opponentScore}</Text> : null}</View>
-        <Text numberOfLines={1} style={{ color: theme.muted, fontFamily: fonts.medium, fontSize: 12, lineHeight: 18 }}>{date}{match.name?.trim() ? ` · ${match.name.trim()}` : ''}{scheduled ? ` · ${formatTimeKST(match.startsAt)}` : ''}</Text>
+        <View style={styles.matchTitleRow}><Text numberOfLines={1} style={{ color: theme.ink, flexShrink: 1, ...fonts.black, fontSize: 14 }}>{opponent?.shortName ?? 'TBD'}</Text>{!scheduled && ownScore !== null && opponentScore !== null ? <Text style={{ color: theme.text, ...fonts.black, fontSize: 14 }}>{ownScore} : {opponentScore}</Text> : null}</View>
+        <Text numberOfLines={1} style={{ color: theme.muted, ...fonts.medium, fontSize: 12, lineHeight: 18 }}>{date}{match.name?.trim() ? ` · ${match.name.trim()}` : ''}{scheduled ? ` · ${formatTimeKST(match.startsAt)}` : ''}</Text>
       </View>
       <ChevronRight color={scheduled ? dataColor(match, teamId) : theme.muted} size={14} />
     </Pressable>
@@ -249,7 +313,7 @@ function HomeRoster({ players, teamColor, teamSlug }: { players: MobileTeamDetai
   return (
     <View>
       <FanSectionHeading href={`/fan/${teamSlug}/players`}>선수단</FanSectionHeading>
-      {players.length ? <ScrollView contentContainerStyle={styles.rosterRail} horizontal showsHorizontalScrollIndicator={false}>{players.map((player) => { const imageUrl = resolveApiAssetUrl(player.profileImage?.url); return <Pressable key={player.id} onPress={() => router.navigate(`/players/${player.slug}` as never)} style={[styles.rosterChip, { backgroundColor: theme.surface, borderColor: theme.border }]}><View style={[styles.rosterPhoto, { backgroundColor: theme.surfaceMuted }]}>{imageUrl ? <Image contentFit="cover" contentPosition="top" source={{ uri: imageUrl }} style={StyleSheet.absoluteFill} transition={120} /> : <Text style={{ color: theme.muted, fontFamily: fonts.medium, fontSize: 12 }}>{player.name.slice(0, 2)}</Text>}</View><Text numberOfLines={1} style={{ color: theme.ink, fontFamily: fonts.black, fontSize: 13, maxWidth: '100%' }}>{player.name}</Text><Text style={{ color: teamColor, fontFamily: fonts.medium, fontSize: 11 }}>{player.position}</Text></Pressable>; })}</ScrollView> : <FanEmpty>등록된 선수가 없습니다.</FanEmpty>}
+      {players.length ? <ScrollView contentContainerStyle={styles.rosterRail} horizontal showsHorizontalScrollIndicator={false}>{players.map((player) => { const imageUrl = resolveApiAssetUrl(player.profileImage?.url); return <Pressable key={player.id} onPress={() => router.navigate(`/players/${player.slug}` as never)} style={[styles.rosterChip, { backgroundColor: theme.surface, borderColor: theme.border }]}><View style={[styles.rosterPhoto, { backgroundColor: theme.surfaceMuted }]}>{imageUrl ? <Image contentFit="cover" contentPosition="top" source={{ uri: imageUrl }} style={StyleSheet.absoluteFill} transition={120} /> : <Text style={{ color: theme.muted, ...fonts.medium, fontSize: 12 }}>{player.name.slice(0, 2)}</Text>}</View><Text numberOfLines={1} style={{ color: theme.ink, ...fonts.black, fontSize: 13, maxWidth: '100%' }}>{player.name}</Text><Text style={{ color: teamColor, ...fonts.medium, fontSize: 11 }}>{player.position}</Text></Pressable>; })}</ScrollView> : <FanEmpty>등록된 선수가 없습니다.</FanEmpty>}
     </View>
   );
 }
@@ -260,6 +324,19 @@ const styles = StyleSheet.create({
   channelInfo: { flex: 1, height: 68, justifyContent: 'center', minWidth: 0 },
   channelLogo: { alignItems: 'center', borderRadius: 12, borderWidth: 1, height: 68, justifyContent: 'center', width: 68 },
   channelTitle: { fontSize: 24, letterSpacing: -0.84, lineHeight: 26 },
+  communityAuthor: { flexShrink: 1, fontSize: 13, lineHeight: 19.5, maxWidth: 112 },
+  communityHot: { borderRadius: 999, borderWidth: 1, paddingHorizontal: 6, paddingVertical: 1 },
+  communityList: { borderRadius: 12, borderWidth: 1, overflow: 'hidden' },
+  communityMain: { flex: 1, minWidth: 0 },
+  communityMeta: { fontSize: 13, lineHeight: 19.5 },
+  communityMetaRow: { alignItems: 'center', flexDirection: 'row', gap: 8, marginTop: 1, overflow: 'hidden' },
+  communityRow: { alignItems: 'center', borderBottomWidth: 1, flexDirection: 'row', gap: 12, paddingHorizontal: 12, paddingVertical: 4 },
+  communityRowLast: { borderBottomWidth: 0 },
+  communityStat: { alignItems: 'center', flexDirection: 'row', gap: 4 },
+  communityThumbnail: { borderRadius: 6, height: 51, width: 68 },
+  communityThumbnailWide: { borderRadius: 8, height: 57, width: 76 },
+  communityTitle: { flex: 1, fontSize: 14, lineHeight: 21 },
+  communityTitleRow: { alignItems: 'center', flexDirection: 'row', gap: 6, minWidth: 0 },
   error: { paddingHorizontal: 16, paddingVertical: 20 },
   headerActions: { alignItems: 'center', flexDirection: 'row', gap: 8, marginTop: 6 },
   headerControl: { alignItems: 'center', borderRadius: 18, borderWidth: 1, flexDirection: 'row', height: 36, justifyContent: 'center', width: 36 },
