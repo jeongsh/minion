@@ -45,7 +45,7 @@ export function SectionCard({
     <section className={className}>
       <div className="mb-3 flex items-end justify-between gap-4">
         <div className="min-w-0">
-          <h2 className="font-paperozi text-[20px] leading-tight text-[var(--ui-ink)]">{title}</h2>
+          <h2 className="font-paperozi text-[16px] text-[var(--ui-ink)] sm:text-[20px]" style={{ lineHeight: "22px" }}>{title}</h2>
           {caption ? <div className="mt-1 text-[13px] font-normal leading-5 text-[var(--ui-muted)]">{caption}</div> : null}
         </div>
         {action}

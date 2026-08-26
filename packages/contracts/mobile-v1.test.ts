@@ -23,6 +23,7 @@ test("mobile API authentication follows the shared web access boundaries", () =>
   assert.equal(mobileApiAuthForRequest("POST", "/api/mobile/v1/community/upload"), "optional");
   assert.equal(mobileApiAuthForRequest("GET", "/api/mobile/v1/predictions"), "optional");
   assert.equal(mobileApiAuthForRequest("POST", "/api/mobile/v1/predictions"), "required");
+  assert.equal(mobileApiAuthForRequest("POST", "/api/mobile/v1/teams/hle/calendar-submissions"), "required");
   assert.equal(mobileApiAuthForRequest("GET", "/api/mobile/v1/me"), "required");
   assert.equal(mobileApiAuthForRequest("POST", "/api/mobile/v1/me"), "required");
   assert.equal(mobileApiAuthForRequest("DELETE", "/api/mobile/v1/me"), "required");
@@ -38,6 +39,8 @@ test("dock activation follows the current compact navigation policy", () => {
   assert.equal(matchMobileRoute("/fan/t1/schedule")?.params.section, "schedule");
   assert.equal(matchMobileRoute("/fan/t1/social")?.params.section, "social");
   assert.equal(matchMobileRoute("/search")?.screen, "search");
+  assert.equal(matchMobileRoute("/champions")?.screen, "champions");
+  assert.equal(matchMobileRoute("/champions/orianna")?.params.championSlug, "orianna");
   assert.equal(matchMobileRoute("/teams/t1")?.dockTab, "teams");
   assert.equal(matchMobileRoute("/news/article")?.dockTab, "news");
 });

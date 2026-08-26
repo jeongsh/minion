@@ -13,6 +13,7 @@
 | 5 | `mobile/app/(tabs)/news.tsx` | `app/news/page.tsx`, `components/news/**` | `/api/mobile/v1/news` |
 | 6 | `mobile/app/(tabs)/search.tsx` | `components/layout/header-search.tsx`, `app/api/search/route.ts` | `/api/mobile/v1/search` |
 | 7 | `mobile/app/(tabs)/community.tsx` | `app/community/page.tsx`, `components/community/community-feed*`, `post-list.tsx` | 커뮤니티 모바일 API는 계약 후 연결 |
+| 8 | `mobile/app/(tabs)/champions.tsx`, `mobile/app/(tabs)/champions/[championSlug].tsx` | `app/champions/**`, `components/champions/**` | `/api/mobile/v1/champions`, `/api/mobile/v1/champions/{slug}` |
 
 경기 상세의 하위 세트·라이브·평점 화면이 필요하면 A 범위에서 만든다. 관리 화면은 앱 범위가 아니다.
 

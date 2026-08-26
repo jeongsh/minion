@@ -21,6 +21,7 @@ export default function TabLayout() {
       <Tabs.Screen name="tournaments" options={{ href: null }} />
       <Tabs.Screen name="predictions" options={{ href: null }} />
       <Tabs.Screen name="players" options={{ href: null }} />
+      <Tabs.Screen name="champions" options={{ href: null }} />
       <Tabs.Screen name="community" options={{ href: null }} />
       <Tabs.Screen name="search" options={{ href: null }} />
       <Tabs.Screen name="matches/[matchId]" options={{ href: null }} />

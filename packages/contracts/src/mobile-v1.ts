@@ -226,6 +226,8 @@ export type MobileHomeDto = {
     isRecurring: boolean;
     dday: number;
     image: MobileImage | null;
+    eventTime?: string | null;
+    sourceUrl?: string | null;
   }>;
   celebrations: Array<{
     id: EntityId;
@@ -673,6 +675,7 @@ export type MobileTeamDetailDto = {
   team: MobileTeamSummary;
   headerImage: MobileImage | null;
   matches: MobileMatchSummary[];
+  community: MobileCommunityPostSummary[];
   players: MobilePlayerDirectoryItem[];
   social: Array<{ id: EntityId; title: string; image: MobileImage | null; url: string; publishedAt: IsoDateTime | null; ownerName: string }>;
   videos: MobileVideoItem[];
@@ -691,12 +694,166 @@ export type MobileTeamFanDto = {
 
 export type MobileTeamNotificationDto = { enabled: boolean };
 export type MobileTeamFavoriteDto = { favorite: boolean };
+export type MobileFanCalendarSubmissionDto = { message: string };
 
 export type MobileTeamsDto = { items: MobileTeamSummary[] };
 export type MobilePlayersDto = {
   items: MobilePlayerDirectoryItem[];
   challengersItems: MobilePlayerDirectoryItem[];
   teams: MobileTeamSummary[];
+};
+
+export type MobileChampionPosition = "TOP" | "JGL" | "MID" | "BOT" | "SUP";
+
+export type MobileChampionScope = {
+  season: number;
+  tournament: string | "all";
+  patch: string | "all";
+  seasons: number[];
+  tournaments: Array<{ value: string; label: string }>;
+  patches: string[];
+};
+
+export type MobileChampionSummary = {
+  id: EntityId;
+  slug: string;
+  name: string;
+  image: MobileImage | null;
+};
+
+export type MobileChampionDirectoryItem = MobileChampionSummary & {
+  picks: number;
+  bans: number;
+  presenceRate: number | null;
+  winRate: number | null;
+  positions: MobileChampionPosition[];
+};
+
+export type MobileChampionsDto = {
+  schemaVersion: 1;
+  items: MobileChampionDirectoryItem[];
+  scope: MobileChampionScope;
+  selected: {
+    position: MobileChampionPosition | "all";
+    query: string;
+    sort: "presence" | "picks" | "bans" | "winRate" | "name";
+  };
+};
+
+export type MobileChampionPreferenceStat = {
+  games: number;
+  winRate: number;
+  selectionRate: number;
+};
+
+export type MobileChampionItem = MobileChampionPreferenceStat & {
+  id: number;
+  name: string;
+  image: MobileImage | null;
+};
+
+export type MobileChampionItemSequence = MobileChampionPreferenceStat & {
+  items: Array<{ id: number; name: string; image: MobileImage | null; minute: number | null }>;
+};
+
+export type MobileChampionRuneOption = {
+  name: string;
+  image: MobileImage | null;
+  selected: boolean;
+};
+
+export type MobileChampionRuneColumn = {
+  name: string;
+  image: MobileImage | null;
+  rows: MobileChampionRuneOption[][];
+};
+
+export type MobileChampionBuild = {
+  runes: {
+    primary: MobileChampionRuneColumn | null;
+    secondary: MobileChampionRuneColumn | null;
+    shards: MobileChampionRuneOption[][];
+  };
+  spells: Array<MobileChampionPreferenceStat & { items: Array<{ id: number; name: string; image: MobileImage | null }> }>;
+  skill: (MobileChampionPreferenceStat & { order: number[]; icons: Record<string, MobileImage | null> }) | null;
+  startingItems: MobileChampionItemSequence[];
+  boots: MobileChampionItem[];
+  trinkets: MobileChampionItem[];
+  core3: MobileChampionItemSequence[];
+  core4: MobileChampionItem[];
+  core5: MobileChampionItem[];
+  core6: MobileChampionItem[];
+};
+
+export type MobileChampionMatchup = {
+  champion: MobileChampionSummary | null;
+  games: number;
+  wins: number;
+  losses: number;
+  winRate: number;
+  goldDiffAt15: number | null;
+};
+
+export type MobileChampionDuo = {
+  champion: MobileChampionSummary | null;
+  games: number;
+  wins: number;
+  losses: number;
+  winRate: number;
+  goldDiffAt15: number | null;
+};
+
+export type MobileChampionPro = {
+  player: MobilePlayerSummary | null;
+  team: MobileTeamSummary | null;
+  games: number;
+  winRate: number;
+  kda: number;
+  dpm: number | null;
+  goldDiffAt15: number | null;
+};
+
+export type MobileChampionGame = {
+  setId: EntityId;
+  matchId: EntityId;
+  href: string | null;
+  result: "W" | "L";
+  tournament: string;
+  player: MobilePlayerSummary | null;
+  opponentChampion: MobileChampionSummary | null;
+  kills: number;
+  deaths: number;
+  assists: number;
+  kda: number | null;
+  items: Array<{ id: number; image: MobileImage | null }>;
+};
+
+export type MobileChampionDetailDto = {
+  schemaVersion: 1;
+  champion: MobileChampionSummary;
+  champions: MobileChampionSummary[];
+  scope: MobileChampionScope;
+  selectedPosition: MobileChampionPosition;
+  positions: Array<{ value: MobileChampionPosition; label: string; picks: number }>;
+  summary: {
+    picks: number;
+    bans: number;
+    presenceRate: number | null;
+    winRate: number | null;
+    wins: number;
+    losses: number;
+  };
+  build: MobileChampionBuild;
+  matchups: MobileChampionMatchup[];
+  duos: MobileChampionDuo[];
+  pros: MobileChampionPro[];
+  games: MobileChampionGame[];
+  stats: {
+    patches: Array<{ patch: string; games: number; wins: number; losses: number; winRate: number | null }>;
+    sides: Array<{ side: "blue" | "red"; games: number; wins: number; losses: number; winRate: number | null }>;
+    pickPhases: Array<{ key: string; count: number; rate: number }>;
+    banPhases: Array<{ key: string; count: number; rate: number }>;
+  };
 };
 
 export type MobilePlayerDetailAxis = {
@@ -842,12 +999,15 @@ export const mobileApiRoutes = {
   matchLive: { method: "GET", path: `${MOBILE_API_PREFIX}/matches/{matchId}/live`, owner: "lib/lolesports-game-data", auth: "public", cache: "no-store" },
   teams: { method: "GET", path: `${MOBILE_API_PREFIX}/teams`, owner: "lib/data/lck + fan service", auth: "optional", cache: "no-store" },
   team: { method: "GET", path: `${MOBILE_API_PREFIX}/teams/{teamSlug}`, owner: "team aggregation service", auth: "public", cache: "60s" },
+  teamCalendarSubmission: { method: "POST", path: `${MOBILE_API_PREFIX}/teams/{teamSlug}/calendar-submissions`, owner: "fan calendar submission service", auth: "required", cache: "no-store" },
   teamFan: { method: "GET", path: `${MOBILE_API_PREFIX}/teams/{teamSlug}/fan`, owner: "fan service", auth: "optional", cache: "no-store" },
   teamFanToggle: { method: "POST", path: `${MOBILE_API_PREFIX}/teams/{teamSlug}/fan`, owner: "fan service", auth: "optional", cache: "no-store" },
   teamFavorite: { method: "POST", path: `${MOBILE_API_PREFIX}/teams/{teamSlug}/favorite`, owner: "favorite team service", auth: "optional", cache: "no-store" },
   teamNotification: { method: "POST", path: `${MOBILE_API_PREFIX}/teams/{teamSlug}/notifications`, owner: "fan notification service", auth: "required", cache: "no-store" },
   players: { method: "GET", path: `${MOBILE_API_PREFIX}/players`, owner: "lib/data/lck", auth: "public", cache: "21600s" },
   player: { method: "GET", path: `${MOBILE_API_PREFIX}/players/{playerSlug}`, owner: "player aggregation service", auth: "public", cache: "300s" },
+  champions: { method: "GET", path: `${MOBILE_API_PREFIX}/champions`, owner: "champion aggregation service", auth: "public", cache: "300s" },
+  champion: { method: "GET", path: `${MOBILE_API_PREFIX}/champions/{championSlug}`, owner: "champion aggregation service", auth: "public", cache: "300s" },
   news: { method: "GET", path: `${MOBILE_API_PREFIX}/news`, owner: "lib/data/news + lib/data/naver-news", auth: "public", cache: "60s" },
   search: { method: "GET", path: `${MOBILE_API_PREFIX}/search`, owner: "search service", auth: "public", cache: "30s" },
   communityPosts: { method: "GET", path: `${MOBILE_API_PREFIX}/community/posts`, owner: "lib/data/community", auth: "optional", cache: "10s" },
@@ -927,6 +1087,8 @@ const routeRules: RouteRule[] = [
   { pattern: /^\/teams\/([^/]+)\/?$/, screen: "team", dockTab: "teams", keys: ["teamSlug"] },
   { pattern: /^\/players\/?$/, screen: "players", dockTab: null },
   { pattern: /^\/players\/([^/]+)\/?$/, screen: "player", dockTab: null, keys: ["playerSlug"] },
+  { pattern: /^\/champions\/?$/, screen: "champions", dockTab: null },
+  { pattern: /^\/champions\/([^/]+)\/?$/, screen: "champion", dockTab: null, keys: ["championSlug"] },
   { pattern: /^\/search\/?$/, screen: "search", dockTab: null },
   { pattern: /^\/fan\/([^/]+)\/?$/, screen: "fan-home", dockTab: "fan", keys: ["teamSlug"] },
   { pattern: /^\/fan\/([^/]+)\/(schedule|players|social|videos)\/?$/, screen: "fan-section", dockTab: "fan", keys: ["teamSlug", "section"] },

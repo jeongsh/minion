@@ -119,7 +119,7 @@ function CoverageText({ recorded, total }: { recorded: number; total: number }) 
 }
 
 function PlayerAvatar({ player, size = "md" }: { player: Player | null; size?: "xs" | "sm" | "md" }) {
-  const dimension = size === "xs" ? "h-8 w-8" : size === "sm" ? "h-9 w-9" : "h-12 w-12";
+  const dimension = size === "xs" ? "h-7 w-7" : size === "sm" ? "h-8 w-8" : "h-10 w-10";
   if (player?.profileImageUrl) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
@@ -134,7 +134,7 @@ function PlayerAvatar({ player, size = "md" }: { player: Player | null; size?: "
 }
 
 function ChampionFace({ champion, size = "md" }: { champion: Champion | null | undefined; size?: "xs" | "sm" | "md" }) {
-  const dimension = size === "xs" ? "h-8 w-8" : size === "sm" ? "h-9 w-9" : "h-11 w-11";
+  const dimension = size === "xs" ? "h-7 w-7" : size === "sm" ? "h-8 w-8" : "h-10 w-10";
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img src={championImage(champion ?? undefined)} alt="" className={`${dimension} shrink-0 rounded-lg object-cover`} loading="lazy" />
@@ -222,9 +222,9 @@ function BuildStats({ games, winRate }: { games: number; winRate: number }) {
   return (
     <span
       aria-label={`승률 ${formatPercent(winRate, 1)}, ${games}세트`}
-      className="flex w-[7.5rem] shrink-0 items-baseline justify-end gap-2 whitespace-nowrap text-right tabular-nums"
+      className="flex w-[6.25rem] shrink-0 items-baseline justify-end gap-1.5 whitespace-nowrap text-right tabular-nums"
     >
-      <strong className="text-[15px] font-bold text-[var(--ui-ink)]">{formatPercent(winRate, 1)}</strong>
+      <strong className="text-[12px] font-medium text-[var(--ui-ink)]">{formatPercent(winRate, 1)}</strong>
       <span className="text-[13px] font-normal text-[var(--ui-muted)]">{games}세트</span>
     </span>
   );
@@ -233,13 +233,13 @@ function BuildStats({ games, winRate }: { games: number; winRate: number }) {
 function BuildPanelTitle({ children }: { children: ReactNode }) {
   return (
     <div className="mb-2 flex items-center justify-between gap-3">
-      <h4 className="text-[15px] font-bold leading-5 text-[var(--ui-ink)]">{children}</h4>
+      <h4 className="text-[13px] font-medium leading-5 text-[var(--ui-ink)]">{children}</h4>
     </div>
   );
 }
 
 function RuneIcon({ rune, keystone = false, shard = false }: { rune: RuneGridOption; keystone?: boolean; shard?: boolean }) {
-  const size = keystone ? "h-9 w-9 sm:h-10 sm:w-10" : shard ? "h-5 w-5 sm:h-6 sm:w-6" : "h-7 w-7 sm:h-8 sm:w-8";
+  const size = keystone ? "h-8 w-8 sm:h-9 sm:w-9" : shard ? "h-[18px] w-[18px] sm:h-5 sm:w-5" : "h-6 w-6 sm:h-7 sm:w-7";
   const padding = keystone || shard ? "p-1" : "p-0.5";
   const background = shard ? "bg-[#cdd0d6] dark:bg-[#24272d]" : "bg-[#d9dce2] dark:bg-[#24272d]";
   return (
@@ -254,7 +254,7 @@ function RuneIcon({ rune, keystone = false, shard = false }: { rune: RuneGridOpt
 
 function RuneRow({ row, keystone = false, shard = false }: { row: RuneGridOption[]; keystone?: boolean; shard?: boolean }) {
   return (
-    <div className={`flex items-center justify-center gap-1.5 sm:gap-2 ${keystone ? "min-h-[42px] sm:min-h-[48px]" : shard ? "min-h-[28px] sm:min-h-[32px]" : "min-h-[38px] sm:min-h-[43px]"}`}>
+    <div className={`flex items-center justify-center gap-1.5 sm:gap-2 ${keystone ? "min-h-[38px] sm:min-h-[42px]" : shard ? "min-h-6 sm:min-h-7" : "min-h-8 sm:min-h-[38px]"}`}>
       {row.map((rune) => <RuneIcon key={rune.name} rune={rune} keystone={keystone} shard={shard} />)}
     </div>
   );
@@ -265,8 +265,8 @@ function RuneColumn({ icon, name, rows, primary = false }: { icon?: string; name
     <div className="min-w-0">
       <div className="flex h-8 items-center justify-center gap-1.5">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        {icon ? <img src={icon} alt="" className="h-5 w-5 shrink-0 object-contain" /> : null}
-        <span className="text-[14px] font-medium text-[var(--ui-text)]">{name}</span>
+        {icon ? <img src={icon} alt="" className="h-[18px] w-[18px] shrink-0 object-contain" /> : null}
+        <span className="text-[13px] font-medium text-[var(--ui-text)]">{name}</span>
       </div>
       <div className="mt-1">
         {rows.map((row, index) => <RuneRow key={`${name}-${index}`} row={row} keystone={primary && index === 0} />)}
@@ -291,7 +291,7 @@ function RuneGridView({ grid }: { grid: RuneBuildGrid }) {
 
 function ItemIcon({ id, catalogs, size = "md" }: { id: number; catalogs: ChampionCatalogs; size?: "sm" | "md" | "lg" }) {
   const version = catalogs.itemImageVersionById[String(id)] ?? catalogs.version;
-  const dimension = size === "sm" ? "h-7 w-7" : size === "lg" ? "h-9 w-9" : "h-8 w-8";
+  const dimension = size === "sm" ? "h-5 w-5" : "h-6 w-6";
   const label = itemLabel(catalogs.items, id);
   return (
     // eslint-disable-next-line @next/next/no-img-element
@@ -310,17 +310,17 @@ function PopularItemGroup({
 }) {
   return (
     <div className="min-w-0">
-      <h4 className="mb-2 text-[15px] font-bold leading-5 text-[var(--ui-ink)]">{title}</h4>
+      <h4 className="mb-2 text-[13px] font-medium leading-5 text-[var(--ui-ink)]">{title}</h4>
       {items.length ? (
         <div className="flex flex-wrap gap-2">
           {items.map((item) => (
             <span
               key={item.id}
               aria-label={`${itemLabel(catalogs.items, item.id)} 선택률 ${formatPercent(item.selectionRate, 1)}, 승률 ${formatPercent(item.winRate, 1)}`}
-              className="w-10 shrink-0 text-center"
+              className="w-9 shrink-0 text-center"
             >
               <ItemIcon id={item.id} catalogs={catalogs} size="lg" />
-              <span className="mt-1 block text-[13px] font-medium tabular-nums text-[var(--ui-ink)]">{formatPercent(item.selectionRate, 0)}</span>
+              <span className="mt-1 block text-[12px] font-medium tabular-nums text-[var(--ui-ink)]">{formatPercent(item.selectionRate, 0)}</span>
             </span>
           ))}
         </div>
@@ -340,7 +340,7 @@ function BuildSequenceRow({ sequence, catalogs }: { sequence: CompletedItemSeque
         {sequence.ids.map((id, index) => (
           <span key={`${id}:${index}`} className="flex shrink-0 items-start gap-1">
             {index > 0 ? (
-              <span aria-hidden="true" className="grid h-9 w-2 shrink-0 place-items-center text-[var(--ui-muted)]">
+              <span aria-hidden="true" className="grid h-7 w-2 shrink-0 place-items-center text-[var(--ui-muted)]">
                 <ChevronRight className="h-3 w-3 opacity-60" />
               </span>
             ) : null}
@@ -392,7 +392,7 @@ function DepthItemList({ items, catalogs }: { items: DepthItemSummary[]; catalog
   return (
     <div className="grid gap-1">
       {items.map((item) => (
-        <div key={item.id} className="flex min-h-10 items-center gap-2 rounded-md bg-[var(--ui-surface)] px-2 py-1">
+          <div key={item.id} className="flex min-h-9 items-center gap-2 rounded-md bg-[var(--ui-surface)] px-2 py-1">
           <ItemIcon id={item.id} catalogs={catalogs} size="lg" />
           <span className="min-w-0 flex-1" />
           <BuildStats games={item.games} winRate={item.winRate} />
@@ -486,14 +486,14 @@ function SkillOrderCard({ order, catalogs }: { order: NumericTuplePreference | u
     <section className="min-w-0 rounded-lg bg-[var(--ui-card-bg)] p-3 sm:p-4">
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
-          <h3 className="text-[16px] font-bold leading-6 text-[var(--ui-ink)] sm:text-[18px]">스킬 빌드</h3>
+          <h3 className="text-[15px] font-bold text-[var(--ui-ink)] sm:text-[18px]" style={{ lineHeight: "22px" }}>스킬 빌드</h3>
           {order ? (
             <div className="mt-1 flex items-center">
               <span className="flex items-center gap-1">
                 {skillPrioritySlots(order.ids).map((slot, index) => (
                   <span key={slot} className="flex items-center gap-1">
                     {index > 0 ? <ChevronRight aria-hidden="true" className="h-3 w-3 text-[var(--ui-muted)]" /> : null}
-                    <span className="relative grid h-7 w-7 place-items-center overflow-hidden rounded-md bg-[var(--ui-surface)] text-[12px] font-medium text-[var(--ui-ink)]">
+                    <span className="relative grid h-6 w-6 place-items-center overflow-hidden rounded-md bg-[var(--ui-surface)] text-[12px] font-medium text-[var(--ui-ink)]">
                       {catalogs.abilityIcons?.[slot] ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={catalogs.abilityIcons[slot]} alt={SKILL_KEY[slot]} className="h-full w-full object-cover" />
@@ -529,11 +529,11 @@ function SpellList({ analysis, catalogs }: { analysis: ChampionAnalysis; catalog
               const url = spellImageUrlById(catalogs.spells, id, catalogs.version);
               return url ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img key={id} src={url} alt={spellLabel(catalogs.spells, id)} title={spellLabel(catalogs.spells, id)} className="h-8 w-8 rounded-md" loading="lazy" />
+                <img key={id} src={url} alt={spellLabel(catalogs.spells, id)} title={spellLabel(catalogs.spells, id)} className="h-6 w-6 rounded-md" loading="lazy" />
               ) : null;
             })}
           </span>
-          <span className="min-w-0 flex-1 truncate text-[14px] font-medium text-[var(--ui-ink)]">{combo.ids.map((id) => spellLabel(catalogs.spells, id)).join(" + ")}</span>
+          <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-[var(--ui-ink)]">{combo.ids.map((id) => spellLabel(catalogs.spells, id)).join(" + ")}</span>
           <BuildStats games={combo.games} winRate={combo.winRate} />
         </div>
       ))}
@@ -597,31 +597,31 @@ function BuildTab({ analysis, catalogs }: { analysis: ChampionAnalysis; catalogs
   return (
     <section aria-labelledby="champion-build-title">
       <div className="mb-3 px-0.5">
-        <h2 id="champion-build-title" className="font-paperozi text-[20px] leading-tight text-[var(--ui-ink)]">프로 빌드</h2>
+        <h2 id="champion-build-title" className="font-paperozi text-[16px] text-[var(--ui-ink)] sm:text-[20px]" style={{ lineHeight: "22px" }}>프로 빌드</h2>
       </div>
 
       <div className="grid items-stretch gap-3 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
         <section className="flex min-w-0 flex-col rounded-lg bg-[var(--ui-card-bg)] p-3 sm:p-4">
           <div className="mb-1 flex items-start justify-between gap-4">
-            <h3 className="text-[16px] font-bold leading-6 text-[var(--ui-ink)] sm:text-[18px]">선호 룬</h3>
+            <h3 className="text-[15px] font-bold text-[var(--ui-ink)] sm:text-[18px]" style={{ lineHeight: "22px" }}>선호 룬</h3>
           </div>
           {catalogs.catalogFailures.runes ? <CatalogNotice>룬 이미지를 불러오지 못했습니다.</CatalogNotice> : null}
           {runeGrid ? <RuneGridView grid={runeGrid} /> : fallbackRune && fallbackUrls ? (
             <div className="flex items-center gap-4 py-5">
               <span className="flex items-center">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                {fallbackUrls.keystoneUrl ? <img src={fallbackUrls.keystoneUrl} alt="" className="h-12 w-12 rounded-full bg-black/70" /> : null}
+                {fallbackUrls.keystoneUrl ? <img src={fallbackUrls.keystoneUrl} alt="" className="h-9 w-9 rounded-full bg-black/70" /> : null}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                {fallbackUrls.treeUrl ? <img src={fallbackUrls.treeUrl} alt="" className="-ml-2 h-7 w-7 rounded-full bg-black/70" /> : null}
+                {fallbackUrls.treeUrl ? <img src={fallbackUrls.treeUrl} alt="" className="-ml-1.5 h-5 w-5 rounded-full bg-black/70" /> : null}
               </span>
-              <strong className="text-[15px] font-bold text-[var(--ui-ink)]">{fallbackRune.ids.map((id) => runeLabel(runeOptions, id)).join(" + ")}</strong>
+              <strong className="text-[13px] font-medium text-[var(--ui-ink)]">{fallbackRune.ids.map((id) => runeLabel(runeOptions, id)).join(" + ")}</strong>
             </div>
           ) : <EmptyPanel title="룬 기록이 없습니다." body="선택한 범위에 룬 정보가 없습니다." />}
         </section>
 
         <div className="grid min-w-0 grid-rows-[auto_1fr] gap-2">
           <section className="rounded-lg bg-[var(--ui-card-bg)] px-3 py-2.5">
-            <h3 className="text-[16px] font-bold leading-6 text-[var(--ui-ink)] sm:text-[18px]">소환사 주문</h3>
+            <h3 className="text-[15px] font-bold text-[var(--ui-ink)] sm:text-[18px]" style={{ lineHeight: "22px" }}>소환사 주문</h3>
             {catalogs.catalogFailures.spells ? <p className="mt-2 text-[13px] font-normal text-amber-700 dark:text-amber-300">주문 이미지를 불러오지 못했습니다.</p> : <SpellList analysis={analysis} catalogs={catalogs} />}
           </section>
           <SkillOrderCard order={loadouts.skillOrders[0]} catalogs={catalogs} />
@@ -629,7 +629,7 @@ function BuildTab({ analysis, catalogs }: { analysis: ChampionAnalysis; catalogs
       </div>
 
       <section className="mt-3 rounded-lg bg-[var(--ui-card-bg)] p-3 sm:p-4">
-        <h3 className="mb-3 text-[16px] font-bold leading-6 text-[var(--ui-ink)] sm:text-[18px]">아이템 빌드</h3>
+        <h3 className="mb-3 text-[15px] font-bold text-[var(--ui-ink)] sm:text-[18px]" style={{ lineHeight: "22px" }}>아이템 빌드</h3>
 
         {itemCatalogUnavailable ? <CatalogNotice>일부 패치의 아이템 정보가 제외되었습니다.</CatalogNotice> : null}
         <div className="grid items-stretch gap-2 lg:grid-cols-2">
@@ -672,7 +672,7 @@ function BuildTab({ analysis, catalogs }: { analysis: ChampionAnalysis; catalogs
 function StatCell({ label, value, helper, className = "" }: { label: string; value: string; helper?: string; className?: string }) {
   return (
     <span aria-label={`${label} ${value}${helper ? `, ${helper}` : ""}`} className={`min-w-0 whitespace-nowrap text-right md:text-left ${className}`}>
-      <strong className="text-[15px] font-bold tabular-nums text-[var(--ui-ink)]">{value}</strong>
+      <strong className="text-[14px] font-medium tabular-nums text-[var(--ui-ink)]">{value}</strong>
       {helper ? <span className="ml-1 hidden text-[13px] font-normal text-[var(--ui-muted)] xl:inline">· {helper}</span> : null}
     </span>
   );
@@ -691,7 +691,7 @@ function MatchupsTab({ rows }: { rows: ChampionMatchup[] }) {
               <div key={row.opponentChampionId} className="grid min-h-14 grid-cols-[minmax(0,1fr)_4.75rem] items-center gap-3 py-2.5 md:grid-cols-[minmax(11rem,1.4fr)_4.5rem_5.5rem_7rem_7rem] md:gap-3">
                 <div className="flex min-w-0 items-center gap-2.5">
                   <ChampionFace champion={row.opponentChampion} size="sm" />
-                  <strong className="truncate text-[15px] font-bold text-[var(--ui-ink)]">{row.opponentChampion?.name ?? "알 수 없음"}</strong>
+                  <strong className="truncate text-[14px] font-medium text-[var(--ui-ink)]">{row.opponentChampion?.name ?? "알 수 없음"}</strong>
                   <span className="hidden lg:inline"><SampleBadge games={row.games} /></span>
                 </div>
                 <StatCell label="승률" value={formatPercent(row.winRate, 1)} className="md:hidden" />
@@ -714,7 +714,7 @@ function DuoRow({ duo }: { duo: ChampionDuo }) {
       <summary className="grid min-h-14 cursor-pointer list-none grid-cols-[minmax(0,1fr)_4.75rem] items-center gap-3 py-2.5 [&::-webkit-details-marker]:hidden md:grid-cols-[minmax(11rem,1.4fr)_4.5rem_5.5rem_8rem_2rem] md:gap-3">
         <div className="flex min-w-0 items-center gap-2.5">
           <ChampionFace champion={duo.partnerChampion} size="sm" />
-          <strong className="truncate text-[15px] font-bold text-[var(--ui-ink)]">{duo.partnerChampion?.name ?? "알 수 없음"}</strong>
+          <strong className="truncate text-[14px] font-medium text-[var(--ui-ink)]">{duo.partnerChampion?.name ?? "알 수 없음"}</strong>
           <span className="hidden lg:inline"><SampleBadge games={duo.games} /></span>
         </div>
         <StatCell label="승률" value={formatPercent(duo.winRate, 1)} className="md:hidden" />
@@ -725,19 +725,19 @@ function DuoRow({ duo }: { duo: ChampionDuo }) {
       </summary>
       <div className="mb-4 grid gap-5 rounded-xl bg-[var(--ui-card-bg)] p-4 lg:grid-cols-2">
         <div>
-          <h3 className="text-[18px] font-bold text-[var(--ui-ink)]">선수 조합</h3>
+          <h3 className="text-[15px] font-bold text-[var(--ui-ink)] sm:text-[18px]" style={{ lineHeight: "22px" }}>선수 조합</h3>
           <div className="mt-2 divide-y divide-[var(--ui-border)]">
             {duo.playerPairs.slice(0, 5).map((pair) => (
               <div key={`${pair.botPlayerId}:${pair.supPlayerId}`} className="flex items-center gap-3 py-2.5">
                 <PlayerAvatar player={pair.botPlayer} size="sm" />
-                <strong className="min-w-0 flex-1 truncate text-[15px] font-bold text-[var(--ui-ink)]">{pair.botPlayer?.name ?? "-"} + {pair.supPlayer?.name ?? "-"}</strong>
-                <span className="shrink-0 whitespace-nowrap text-right text-[13px] font-normal text-[var(--ui-muted)]"><strong className="text-[15px] font-bold text-[var(--ui-ink)]">{formatPercent(pair.winRate, 1)}</strong> · {pair.games}경기</span>
+                <strong className="min-w-0 flex-1 truncate text-[14px] font-medium text-[var(--ui-ink)]">{pair.botPlayer?.name ?? "-"} + {pair.supPlayer?.name ?? "-"}</strong>
+                <span className="shrink-0 whitespace-nowrap text-right text-[13px] font-normal text-[var(--ui-muted)]"><strong className="text-[13px] font-medium text-[var(--ui-ink)]">{formatPercent(pair.winRate, 1)}</strong> · {pair.games}경기</span>
               </div>
             ))}
           </div>
         </div>
         <div>
-          <h3 className="text-[18px] font-bold text-[var(--ui-ink)]">상대 조합</h3>
+          <h3 className="text-[15px] font-bold text-[var(--ui-ink)] sm:text-[18px]" style={{ lineHeight: "22px" }}>상대 조합</h3>
           <div className="mt-2 divide-y divide-[var(--ui-border)]">
             {duo.opponentDuos.slice(0, 5).map((opponent) => (
               <div key={`${opponent.botChampionId}:${opponent.supChampionId}`} className="flex items-center gap-3 py-2.5">
@@ -745,8 +745,8 @@ function DuoRow({ duo }: { duo: ChampionDuo }) {
                   <ChampionFace champion={opponent.botChampion} size="sm" />
                   <span className="-ml-2"><ChampionFace champion={opponent.supChampion} size="sm" /></span>
                 </span>
-                <strong className="min-w-0 flex-1 truncate text-[15px] font-bold text-[var(--ui-ink)]">{opponent.botChampion?.name ?? "-"} + {opponent.supChampion?.name ?? "-"}</strong>
-                <span className="shrink-0 whitespace-nowrap text-right text-[13px] font-normal text-[var(--ui-muted)]"><strong className="text-[15px] font-bold text-[var(--ui-ink)]">{formatPercent(opponent.winRate, 1)}</strong> · {opponent.games}경기</span>
+                <strong className="min-w-0 flex-1 truncate text-[14px] font-medium text-[var(--ui-ink)]">{opponent.botChampion?.name ?? "-"} + {opponent.supChampion?.name ?? "-"}</strong>
+                <span className="shrink-0 whitespace-nowrap text-right text-[13px] font-normal text-[var(--ui-muted)]"><strong className="text-[13px] font-medium text-[var(--ui-ink)]">{formatPercent(opponent.winRate, 1)}</strong> · {opponent.games}경기</span>
               </div>
             ))}
           </div>
@@ -787,7 +787,7 @@ function PlayersTab({ players }: { players: ChampionPlayerPreference[] }) {
                 <div key={row.playerId} className="grid min-h-14 grid-cols-[minmax(0,1fr)_4.75rem] items-center gap-3 py-2.5 md:grid-cols-[minmax(11rem,1.5fr)_4.5rem_5.5rem_4.5rem_7rem_7rem] md:gap-3">
                   <div className="flex min-w-0 items-center gap-2.5">
                     <PlayerAvatar player={row.player} size="sm" />
-                    {row.player ? <Link href={`/players/${row.player.slug}`} className="truncate text-[15px] font-bold text-[var(--ui-ink)] hover:text-[var(--accent)]">{row.player.name}</Link> : <strong className="truncate text-[15px] font-bold">알 수 없음</strong>}
+                    {row.player ? <Link href={`/players/${row.player.slug}`} className="truncate text-[14px] font-medium text-[var(--ui-ink)] hover:text-[var(--accent)]">{row.player.name}</Link> : <strong className="truncate text-[14px] font-medium">알 수 없음</strong>}
                     {team ? <span className="hidden shrink-0 items-center gap-1 text-[13px] font-normal text-[var(--ui-muted)] lg:flex"><TeamLogo team={team} size="h-4 w-4" plain themeAware />{team.shortName}</span> : null}
                     <span className="hidden xl:inline"><SampleBadge games={row.games} /></span>
                   </div>
@@ -907,11 +907,11 @@ function DraftDistribution({ title, rows }: { title: string; rows: Array<{ key: 
   const labels: Record<string, string> = { blue: "블루", red: "레드", pick1: "1차 픽", pick2: "2차 픽", ban1: "1차 밴", ban2: "2차 밴" };
   return (
     <section className="rounded-lg bg-[var(--ui-card-bg)] p-4">
-      <h3 className="text-[18px] font-bold text-[var(--ui-ink)]">{title}</h3>
+      <h3 className="text-[15px] font-bold text-[var(--ui-ink)] sm:text-[18px]" style={{ lineHeight: "22px" }}>{title}</h3>
       <div className="mt-2 divide-y divide-[var(--ui-border)]">
         {rows.slice(0, 4).map((row) => (
           <div key={row.key} className="grid min-h-11 grid-cols-[4.5rem_minmax(3rem,1fr)_7.5rem] items-center gap-3 py-2">
-            <span className="text-[14px] font-medium text-[var(--ui-ink)]">{labels[row.key] ?? row.key}</span>
+            <span className="text-[13px] font-medium text-[var(--ui-ink)]">{labels[row.key] ?? row.key}</span>
             <PercentageBar value={row.rate} />
             <span className="whitespace-nowrap text-right text-[13px] font-normal tabular-nums text-[var(--ui-muted)]">{row.count}회 · {formatPercent(row.rate)}</span>
           </div>
@@ -935,10 +935,10 @@ function StatsTab({ analysis }: { analysis: ChampionAnalysis }) {
           <div className="divide-y divide-[var(--ui-border)] px-4 sm:px-5">
             {overview.patches.slice(-10).reverse().map((patch) => (
               <div key={patch.patch} className="grid min-h-12 grid-cols-[4rem_minmax(0,1fr)_4.75rem] items-center gap-3 py-2.5 sm:grid-cols-[4.5rem_minmax(0,1fr)_8.5rem_4.75rem]">
-                <strong className="text-[14px] font-medium text-[var(--ui-ink)]">{patch.patch}</strong>
+                <strong className="text-[13px] font-medium text-[var(--ui-ink)]">{patch.patch}</strong>
                 <PercentageBar value={patch.games} max={maxPatchGames} />
                 <span className="hidden whitespace-nowrap text-[13px] font-normal text-[var(--ui-muted)] sm:block">{patch.wins}승 · {patch.losses}패 · {patch.games}경기</span>
-                <strong className="text-right text-[15px] font-bold tabular-nums text-[var(--ui-ink)]">{formatPercent(patch.winRate, 1)}</strong>
+                <strong className="text-right text-[13px] font-medium tabular-nums text-[var(--ui-ink)]">{formatPercent(patch.winRate, 1)}</strong>
               </div>
             ))}
           </div>
@@ -946,18 +946,18 @@ function StatsTab({ analysis }: { analysis: ChampionAnalysis }) {
       </SectionCard>
 
       <section>
-        <h2 className="mb-3 font-paperozi text-[20px] leading-tight text-[var(--ui-ink)]">진영 · 드래프트</h2>
+        <h2 className="mb-3 font-paperozi text-[16px] text-[var(--ui-ink)] sm:text-[20px]" style={{ lineHeight: "22px" }}>진영 · 드래프트</h2>
         <div className="grid gap-3 xl:grid-cols-[minmax(18rem,.8fr)_minmax(0,1.2fr)]">
           <section className="rounded-lg bg-[var(--ui-card-bg)] p-4">
-            <h3 className="text-[18px] font-bold text-[var(--ui-ink)]">진영 승률</h3>
+            <h3 className="text-[15px] font-bold text-[var(--ui-ink)] sm:text-[18px]" style={{ lineHeight: "22px" }}>진영 승률</h3>
             <div className="mt-4 grid grid-cols-2 gap-5">
               {[blueSide, redSide].map((side) => (
                 <div key={side?.side ?? "unknown"} className="min-w-0">
-                  <div className="flex items-center gap-2 text-[14px] font-medium text-[var(--ui-muted)]">
+                  <div className="flex items-center gap-2 text-[13px] font-medium text-[var(--ui-muted)]">
                     <span className={`h-2 w-2 rounded-full ${side?.side === "blue" ? "bg-blue-500" : "bg-rose-500"}`} aria-hidden="true" />
                     {side?.side === "blue" ? "블루" : "레드"}
                   </div>
-                  <strong className="mt-2 block text-[24px] font-bold tabular-nums text-[var(--ui-ink)]">{formatPercent(side?.winRate, 1)}</strong>
+                  <strong className="mt-2 block text-[18px] font-bold tabular-nums text-[var(--ui-ink)]">{formatPercent(side?.winRate, 1)}</strong>
                   <p className="mt-1 whitespace-nowrap text-[13px] font-normal tabular-nums text-[var(--ui-muted)]">{side?.wins ?? 0}승 · {side?.losses ?? 0}패 · {side?.games ?? 0}경기</p>
                 </div>
               ))}

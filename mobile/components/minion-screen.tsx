@@ -44,6 +44,7 @@ const hubItems: LocalItem[] = [
   { label: '대회', href: '/tournaments' },
   { label: '승부예측', href: '/predictions' },
   { label: '선수', href: '/players' },
+  { label: '챔피언', href: '/champions' },
   { label: '커뮤니티', href: '/community' },
 ];
 
@@ -119,6 +120,7 @@ export function MinionScreen({
     lastScrollY.current = 0;
     headerVisible.current = true;
     headerOffset.setValue(0);
+    scrollViewRef.current?.scrollTo({ animated: false, x: 0, y: 0 });
     setTeamSwitcherOpen(false);
   }, [headerOffset, pathname]);
 
@@ -161,7 +163,7 @@ export function MinionScreen({
           {fanTeam ? (
             <>
               <Pressable accessibilityLabel={`현재 ${fanTeam.name} 팬페이지, 팀 전환`} accessibilityRole="button" accessibilityState={{ expanded: teamSwitcherOpen }} onPress={() => setTeamSwitcherOpen((open) => !open)} style={styles.teamSwitch}>
-                <Text numberOfLines={1} style={{ color: theme.ink, fontFamily: fonts.black, fontSize: 14, lineHeight: 21 }}>{fanTeam.shortName}</Text>
+                <Text numberOfLines={1} style={{ color: theme.ink, ...fonts.black, fontSize: 14, lineHeight: 21 }}>{fanTeam.shortName}</Text>
                 <ChevronDown color={theme.ink} size={16} style={teamSwitcherOpen ? styles.teamSwitchChevronOpen : null} />
               </Pressable>
               {teamSwitcherOpen ? (
@@ -172,7 +174,7 @@ export function MinionScreen({
                     return (
                       <Pressable accessibilityLabel={`${team.name} 팬페이지로 이동`} accessibilityRole="menuitem" key={team.id} onPress={() => { setTeamSwitcherOpen(false); router.navigate(`/fan/${team.slug}` as never); }} style={({ pressed }) => [styles.teamMenuItem, pressed && { backgroundColor: theme.cardHover }]}>
                         <View style={[styles.teamMenuLogo, { backgroundColor: theme.surfaceMuted }]}><Image contentFit="contain" source={logoUri ? { uri: logoUri } : team.logo} style={styles.teamMenuLogoImage} /></View>
-                        <Text numberOfLines={1} style={{ color: theme.ink, fontFamily: fonts.bold, fontSize: 14, lineHeight: 21 }}>{team.shortName}</Text>
+                        <Text numberOfLines={1} style={{ color: theme.ink, ...fonts.bold, fontSize: 14, lineHeight: 21 }}>{team.shortName}</Text>
                       </Pressable>
                     );
                   })}
@@ -189,7 +191,7 @@ export function MinionScreen({
             {colorScheme === 'dark' ? <Sun color={headerIconColor} size={20} /> : <Moon color={headerIconColor} size={20} />}
           </Pressable>
           <Pressable disabled={authLoading} onPress={() => session ? router.navigate('/me') : router.navigate(`/login?next=${encodeURIComponent(pathname)}` as never)} style={session ? styles.profileButton : styles.loginButton}>
-            {session ? <RankAvatar fallback={viewer?.nickname ?? 'MY'} profileImageUrl={viewer?.profileImage?.url} tier={viewer?.tier} /> : <Text style={[styles.loginText, { fontFamily: fonts.bold }]}>로그인</Text>}
+            {session ? <RankAvatar fallback={viewer?.nickname ?? 'MY'} profileImageUrl={viewer?.profileImage?.url} tier={viewer?.tier} /> : <Text style={[styles.loginText, { ...fonts.bold }]}>로그인</Text>}
           </Pressable>
         </View>
       </Animated.View>
@@ -208,7 +210,12 @@ export function MinionScreen({
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.localContent}>
             {localItems.map((item) => {
               const href = String(item.href);
-              const active = pathname === href || (href === '/' && pathname === '/index');
+              const fanHomeHref = fanTeam ? `/fan/${fanTeam.slug}` : null;
+              const active = href === '/'
+                ? pathname === '/' || pathname === '/index'
+                : href === fanHomeHref
+                  ? pathname === href
+                  : pathname === href || pathname.startsWith(`${href}/`);
               return (
                 <Pressable
                   accessibilityRole="tab"
@@ -216,7 +223,7 @@ export function MinionScreen({
                   key={href}
                   onPress={() => router.navigate(item.href)}
                   style={[styles.localItem, { minWidth: fanTeam ? 56 : 64 }]}>
-                  <Text style={{ color: active ? accent : theme.muted, fontFamily: fonts.display, fontSize: 14, lineHeight: 21 }}>{item.label}</Text>
+                  <Text style={{ color: active ? accent : theme.muted, ...fonts.display, fontSize: 14, lineHeight: 21 }}>{item.label}</Text>
                   {active ? <View style={[styles.activeLine, { backgroundColor: accent }]} /> : null}
                 </Pressable>
               );

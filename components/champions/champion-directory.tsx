@@ -119,7 +119,7 @@ export function ChampionDirectoryToolbar({
             className="min-w-0 flex-1 bg-transparent text-[14px] font-normal text-[var(--ui-ink)] outline-none placeholder:text-[var(--ui-muted)]"
           />
         </label>
-        <div className="flex h-10 min-w-0 items-center">
+        <div className="flex h-10 min-w-0 items-center [&>div]:w-full">
           <ChampionUrlDropdown
             ariaLabel="정렬 선택"
             options={[
@@ -163,7 +163,11 @@ export function ChampionDirectoryTable({
   }
 
   return (
-    <section className="grid grid-cols-[repeat(auto-fill,3.5rem)] content-start gap-x-2 gap-y-3 sm:grid-cols-[repeat(auto-fill,4rem)]" aria-label="챔피언 목록">
+    <section
+      className="grid content-start justify-items-center gap-x-2 gap-y-2 sm:gap-y-3"
+      style={{ gridTemplateColumns: "repeat(auto-fill, minmax(clamp(3.5rem, 15vw, 4rem), 1fr))" }}
+      aria-label="챔피언 목록"
+    >
       {rows.map((row) => {
         const href = `/champions/${row.champion.slug}${detailQuery ? `?${detailQuery}` : ""}`;
         return (
@@ -171,7 +175,7 @@ export function ChampionDirectoryTable({
             key={row.champion.id}
             href={href}
             aria-label={`${row.champion.name} 상세 보기`}
-            className="group flex w-14 min-w-0 flex-col items-center gap-1.5 rounded-xl py-2 text-center transition-colors hover:bg-[var(--ui-card-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] sm:w-16"
+            className="group flex w-14 min-w-0 flex-col items-center gap-1 rounded-xl py-1 text-center transition-colors hover:bg-[var(--ui-card-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] sm:w-16 sm:gap-1.5 sm:py-2"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={championImage(row.champion)} alt="" className="h-12 w-12 rounded-lg object-cover sm:h-14 sm:w-14" loading="lazy" />

@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 
 import { ChampionDirectoryFilters, ChampionDirectoryTable, ChampionDirectoryToolbar } from "@/components/champions/champion-directory";
 import { ChampionScopeFilter } from "@/components/champions/champion-scope-filter";
-import { PageHeader } from "@/components/ui/page-header";
 import { buildChampionDirectory } from "@/lib/champion-analysis";
 import { championSearchText } from "@/lib/champions";
 import { getChampionDirectoryData, getChampionPageReferenceData, resolveChampionScope } from "@/lib/data/champion-page";
@@ -61,9 +60,7 @@ export default async function ChampionsPage({ searchParams }: { searchParams: Pr
 
   return (
     <main className="layout-wide min-h-screen pb-16 pt-6 text-[var(--ui-text)] sm:pt-8">
-      <PageHeader title="챔피언" />
-
-      <section className="mt-7 md:grid md:grid-cols-[180px_minmax(0,1fr)] md:items-start md:gap-6 lg:grid-cols-[200px_minmax(0,1fr)]" aria-label="챔피언 탐색">
+      <section className="md:grid md:grid-cols-[180px_minmax(0,1fr)] md:items-start md:gap-6 lg:grid-cols-[200px_minmax(0,1fr)]" aria-label="챔피언 탐색">
         <ChampionDirectoryFilters
           params={baseParams}
           position={position}
@@ -90,7 +87,7 @@ export default async function ChampionsPage({ searchParams }: { searchParams: Pr
             query={search}
             sort={sort}
           />
-          <div className="mt-4">
+          <div className="mt-3 sm:mt-4">
             <ChampionDirectoryTable rows={rows} detailQuery={detailParams.toString()} />
           </div>
         </div>
