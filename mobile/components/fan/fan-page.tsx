@@ -97,7 +97,9 @@ function HomeCommunityPreview({ items, teamColor, teamSlug }: { items: MobileTea
           ))}
         </View>
       ) : (
-        <KitschEmptyState body="화력 좋은 글이 생기면 바로 모아둘게요." character="megapon" compact title="인기글 충전 중" />
+        <View style={[styles.communityEmpty, { borderColor: teamColor }]}>
+          <KitschEmptyState body="화력 좋은 글이 생기면 바로 모아둘게요." character="megapon" compact plain title="인기글 충전 중" />
+        </View>
       )}
     </View>
   );
@@ -325,6 +327,7 @@ const styles = StyleSheet.create({
   channelLogo: { alignItems: 'center', borderRadius: 12, borderWidth: 1, height: 68, justifyContent: 'center', width: 68 },
   channelTitle: { fontSize: 24, letterSpacing: -0.84, lineHeight: 26 },
   communityAuthor: { flexShrink: 1, fontSize: 13, lineHeight: 19.5, maxWidth: 112 },
+  communityEmpty: { borderRadius: 16, borderStyle: 'dashed', borderWidth: 2 },
   communityHot: { borderRadius: 999, borderWidth: 1, paddingHorizontal: 6, paddingVertical: 1 },
   communityList: { borderRadius: 12, borderWidth: 1, overflow: 'hidden' },
   communityMain: { flex: 1, minWidth: 0 },
