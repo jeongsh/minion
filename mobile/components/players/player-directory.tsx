@@ -1,11 +1,10 @@
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import SlidersHorizontal from 'lucide-react-native/icons/sliders-horizontal';
-import X from 'lucide-react-native/icons/x';
 import { useMemo, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { BottomSheet } from '@/components/bottom-sheet';
 import { ErrorState } from '@/components/feedback-states';
 import { MinionScreen } from '@/components/minion-screen';
 import { useCachedQuery } from '@/hooks/use-cached-query';
@@ -116,22 +115,7 @@ function PlayerFilters({ position, setPosition, setTeamId, teamId, teams }: {
 }
 
 function FilterSheet({ children, onClose, open }: { children: React.ReactNode; onClose: () => void; open: boolean }) {
-  const insets = useSafeAreaInsets();
-  const { colorScheme, fonts, theme } = useMinionTheme();
-  return (
-    <Modal animationType="slide" onRequestClose={onClose} transparent visible={open}>
-      <View style={styles.modalRoot}>
-        <Pressable accessibilityLabel="닫기" onPress={onClose} style={[styles.modalBackdrop, { backgroundColor: colorScheme === 'dark' ? 'rgba(0,0,0,0.65)' : 'rgba(0,0,0,0.45)' }]} />
-        <View accessibilityViewIsModal style={[styles.modalPanel, { backgroundColor: theme.surface, paddingBottom: insets.bottom }]}>
-          <View style={[styles.modalHeader, { borderBottomColor: theme.border }]}>
-            <Text style={{ color: theme.ink, fontFamily: fonts.black, fontSize: 17, letterSpacing: -0.34 }}>선수 필터</Text>
-            <Pressable accessibilityLabel="닫기" hitSlop={8} onPress={onClose} style={styles.modalClose}><X color={theme.muted} size={21} /></Pressable>
-          </View>
-          <ScrollView contentContainerStyle={styles.modalBody} showsVerticalScrollIndicator={false}>{children}</ScrollView>
-        </View>
-      </View>
-    </Modal>
-  );
+  return <BottomSheet contentStyle={styles.modalBody} maxHeight="92%" onClose={onClose} open={open} scrollable title="선수 필터">{children}</BottomSheet>;
 }
 
 export function PlayerDirectory() {
@@ -212,11 +196,6 @@ const styles = StyleSheet.create({
   teamGrid: { gap: 6 },
   teamFilter: { alignItems: 'center', borderRadius: 12, flexDirection: 'row', gap: 8, minHeight: 44, paddingHorizontal: 12 },
   teamLogo: { height: 28, width: 28 },
-  modalRoot: { flex: 1, justifyContent: 'flex-end' },
-  modalBackdrop: { ...StyleSheet.absoluteFillObject },
-  modalPanel: { borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '92%', overflow: 'hidden' },
-  modalHeader: { alignItems: 'center', borderBottomWidth: 1, flexDirection: 'row', minHeight: 56, paddingLeft: 16, paddingRight: 6 },
-  modalClose: { alignItems: 'center', height: 44, justifyContent: 'center', marginLeft: 'auto', width: 44 },
   modalBody: { padding: 16 },
   skeletonDivision: { borderRadius: 8, height: 36, width: 58 },
   skeletonCount: { borderRadius: 4, height: 14, width: 40 },

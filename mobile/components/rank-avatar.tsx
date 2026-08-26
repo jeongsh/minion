@@ -37,7 +37,7 @@ function normalizeTier(value: string | null | undefined): Tier {
   return TIERS.includes(value as Tier) ? value as Tier : 'bronze';
 }
 
-export function RankAvatar({ fallback = 'MY', profileImageUrl, size = 'compact', tier }: { fallback?: string; profileImageUrl?: string | null; size?: 'compact' | 'comment' | 'detail' | 'mobile' | 'profile' | 'large'; tier?: string | null }) {
+export function RankAvatar({ fallback = 'MY', profileImageUrl, size = 'compact', tier }: { fallback?: string; profileImageUrl?: string | null; size?: 'reply' | 'compact' | 'comment' | 'detail' | 'mobile' | 'profile' | 'large'; tier?: string | null }) {
   const { fonts, theme } = useMinionTheme();
   const normalizedTier = normalizeTier(tier);
   const finish = TIER_FINISHES[normalizedTier];
@@ -52,6 +52,8 @@ export function RankAvatar({ fallback = 'MY', profileImageUrl, size = 'compact',
       ? { avatar: 56, frameInset: 3, frameRadius: 25, medal: 14, medalBottom: -3, medalLeft: 21, ringRadius: 28 }
       : size === 'detail'
         ? { avatar: 36, frameInset: 2.75, frameRadius: 15.25, medal: 11, medalBottom: -2, medalLeft: 12.5, ringRadius: 18 }
+        : size === 'reply'
+          ? { avatar: 24, frameInset: 2, frameRadius: 10, medal: 8, medalBottom: -1, medalLeft: 8, ringRadius: 12 }
         : { avatar: 32, frameInset: 2.5, frameRadius: 13.5, medal: 10, medalBottom: -2, medalLeft: 11, ringRadius: 16 };
   return (
     <View accessibilityLabel={`${TIER_LABELS[normalizedTier]} 티어 프로필`} accessibilityRole="image" style={{ alignItems: 'center', height: dimensions.avatar, justifyContent: 'center', width: dimensions.avatar }}>
@@ -63,7 +65,7 @@ export function RankAvatar({ fallback = 'MY', profileImageUrl, size = 'compact',
           {uri ? (
             <Image contentFit="cover" source={{ uri }} style={[StyleSheet.absoluteFill, { borderRadius: dimensions.frameRadius }]} />
           ) : (
-            <Text style={{ color: theme.muted, fontFamily: fonts.medium, fontSize: size === 'large' ? 27 : size === 'profile' ? 20 : size === 'mobile' ? 16 : size === 'detail' ? 11 : 10, lineHeight: size === 'large' ? 32 : size === 'profile' ? 24 : size === 'mobile' ? 20 : size === 'detail' ? 14 : 12 }}>{fallback.slice(0, 2).toUpperCase()}</Text>
+            <Text style={{ color: theme.muted, fontFamily: fonts.medium, fontSize: size === 'large' ? 27 : size === 'profile' ? 20 : size === 'mobile' ? 16 : size === 'detail' || size === 'reply' ? 11 : 10, lineHeight: size === 'large' ? 32 : size === 'profile' ? 24 : size === 'mobile' ? 20 : size === 'detail' ? 14 : size === 'reply' ? 12 : 12 }}>{fallback.slice(0, 2).toUpperCase()}</Text>
           )}
         </View>
         <Svg height={dimensions.medal * 1.08} style={[styles.medal, { bottom: dimensions.medalBottom, left: dimensions.medalLeft, shadowColor: finish.shadow }]} viewBox="0 0 10 10.8" width={dimensions.medal}>

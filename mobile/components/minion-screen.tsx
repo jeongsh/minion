@@ -60,12 +60,24 @@ function getFanItems(team: string): LocalItem[] {
 
 type MinionScreenProps = PropsWithChildren<{
   contentStyle?: StyleProp<ViewStyle>;
+  onScrollYChange?: (y: number, headerVisible: boolean) => void;
   scrollRequest?: { animated: boolean; y: number } | null;
   stickyHeader?: ReactNode;
   stickyHeaderHeight?: number;
+  stickyHeaderReserveSpace?: boolean;
+  stickyHeaderVisible?: boolean;
 }>;
 
-export function MinionScreen({ children, contentStyle, scrollRequest, stickyHeader, stickyHeaderHeight = 0 }: MinionScreenProps) {
+export function MinionScreen({
+  children,
+  contentStyle,
+  onScrollYChange,
+  scrollRequest,
+  stickyHeader,
+  stickyHeaderHeight = 0,
+  stickyHeaderReserveSpace = true,
+  stickyHeaderVisible = true,
+}: MinionScreenProps) {
   const pathname = usePathname();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -83,7 +95,7 @@ export function MinionScreen({ children, contentStyle, scrollRequest, stickyHead
   const localItems = fanTeam ? getFanItems(fanTeam.slug) : pathname === '/fan' ? [] : hubItems;
   const localNavHeight = localItems.length > 0 ? LOCAL_NAV_HEIGHT : 0;
   const contentChromeOffset = insets.top + HEADER_HEIGHT + localNavHeight;
-  const contentFlowOffset = stickyHeader ? stickyHeaderHeight : 16;
+  const contentFlowOffset = stickyHeader && stickyHeaderReserveSpace ? stickyHeaderHeight : 16;
   const headerIconColor = colorScheme === 'dark' ? '#a7acb5' : '#62666d';
   const headerBorder = colorScheme === 'dark' ? '#212224' : '#e8e8eb';
 
@@ -124,6 +136,7 @@ export function MinionScreen({ children, contentStyle, scrollRequest, stickyHead
     else if (delta > 4) setHeaderVisible(false);
     else if (delta < -4) setHeaderVisible(true);
     lastScrollY.current = currentY;
+    onScrollYChange?.(currentY, headerVisible.current);
   };
 
   return (
@@ -214,9 +227,13 @@ export function MinionScreen({ children, contentStyle, scrollRequest, stickyHead
 
       {stickyHeader ? (
         <Animated.View
+          accessibilityElementsHidden={!stickyHeaderVisible}
+          importantForAccessibility={stickyHeaderVisible ? 'auto' : 'no-hide-descendants'}
+          pointerEvents={stickyHeaderVisible ? 'auto' : 'none'}
           style={[
             styles.stickyHeader,
             {
+              opacity: stickyHeaderVisible ? 1 : 0,
               top: Animated.add(headerOffset, insets.top + HEADER_HEIGHT + localNavHeight),
             },
           ]}>
