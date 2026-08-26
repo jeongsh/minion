@@ -70,7 +70,7 @@ export async function signUpAction(
     email,
     password,
     options: {
-      emailRedirectTo: `${siteBaseUrl()}/auth/callback?next=/me`,
+      emailRedirectTo: `${siteBaseUrl()}/auth/callback?next=${encodeURIComponent("/onboarding/favorite-team")}`,
       data: {
         age_confirmed: true,
         terms_accepted: true,
@@ -96,7 +96,7 @@ export async function signUpAction(
   }
 
   revalidatePath("/", "layout");
-  redirect("/me");
+  redirect("/onboarding/favorite-team");
 }
 
 // 소셜 로그인: provider 콘솔로 리다이렉트한 뒤 app/auth/callback/route.ts 에서

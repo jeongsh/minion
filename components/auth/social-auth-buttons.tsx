@@ -67,6 +67,7 @@ export function SocialAuthButtons({
   mode?: "login" | "signup";
 }) {
   const actionLabel = mode === "signup" ? "회원가입" : "계속하기";
+  const next = mode === "signup" ? "/onboarding/favorite-team" : undefined;
   const isIPhone = useIsIPhone();
 
   return (
@@ -85,6 +86,7 @@ export function SocialAuthButtons({
       ) : null}
       */}
       <form action={signInWithGoogleAction}>
+        {next ? <input type="hidden" name="next" value={next} /> : null}
         <button
           type="submit"
           className="flex min-h-10 w-full items-center justify-center gap-2 rounded-lg border border-[#747775] bg-white text-[13px] font-semibold text-[#1f1f1f] transition hover:bg-[#f7f7f7] active:scale-[0.99] dark:border-[#8e918f] dark:bg-[#131314] dark:text-[#e3e3e3] dark:hover:bg-[#1b1b1b]"
@@ -94,6 +96,7 @@ export function SocialAuthButtons({
         </button>
       </form>
       <form action={signInWithKakaoAction}>
+        {next ? <input type="hidden" name="next" value={next} /> : null}
         <button
           type="submit"
           className="flex min-h-10 w-full items-center justify-center gap-2 rounded-lg bg-[#FEE500] text-[13px] font-semibold text-[#191600] transition hover:brightness-95 active:scale-[0.99]"
@@ -103,6 +106,7 @@ export function SocialAuthButtons({
         </button>
       </form>
       <form action={signInWithNaverAction}>
+        {next ? <input type="hidden" name="next" value={next} /> : null}
         <button
           type="submit"
           className="flex min-h-10 w-full items-center justify-center gap-2 rounded-lg bg-[#03C75A] text-[13px] font-semibold text-white transition hover:brightness-95 active:scale-[0.99]"

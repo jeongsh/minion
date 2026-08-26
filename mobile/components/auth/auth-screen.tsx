@@ -26,6 +26,7 @@ export function AuthScreen({ mode }: { mode: Mode }) {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(typeof params.error === 'string' ? params.error : null);
   const returnTo = typeof params.next === 'string' && params.next.startsWith('/') ? params.next : mode === 'signup' ? '/me' : '/';
+  const favoriteTeamReturnTo = `/favorite-team?next=${encodeURIComponent(returnTo)}`;
   const title = mode === 'login' ? '다시 만나 반가워요' : 'MINION 팬이 되어보세요';
   const description = mode === 'login' ? '승부예측, 커뮤니티와 내 LP 기록을 이어서 확인하세요.' : '하나의 계정으로 웹과 앱의 최애팀, LP와 활동을 함께 관리해요.';
   const formMuted = colorScheme === 'dark' ? '#8f98a8' : '#667085';
@@ -46,7 +47,7 @@ export function AuthScreen({ mode }: { mode: Mode }) {
     if (!configured) return setError('앱의 Supabase 공개 설정이 필요합니다.');
     if (!email.trim() || password.length < 6) return setError('이메일과 6자 이상의 비밀번호를 입력해주세요.');
     if (mode === 'signup' && !consented) return setError('만 14세 이상 확인과 필수 약관에 동의해주세요.');
-    void run('email', () => mode === 'login' ? signInWithEmail(email, password, returnTo) : signUpWithEmail(email, password, returnTo));
+    void run('email', () => mode === 'login' ? signInWithEmail(email, password, returnTo) : signUpWithEmail(email, password, favoriteTeamReturnTo));
   };
 
   if (mode === 'login') {
@@ -141,10 +142,10 @@ export function AuthScreen({ mode }: { mode: Mode }) {
             <Pressable disabled={Boolean(pending)} onPress={submit} style={[styles.primary, { backgroundColor: theme.accent, opacity: pending ? 0.65 : 1 }]}>{pending === 'email' ? <ActivityIndicator color="#061018" /> : <Text style={[styles.primaryText, { fontFamily: fonts.bold }]}>회원가입</Text>}</Pressable>
             <Pressable onPress={() => router.replace(`/login?next=${encodeURIComponent(returnTo)}` as never)}><Text style={[styles.switchMode, { color: theme.muted, fontFamily: fonts.medium }]}>이미 계정이 있으신가요?  로그인</Text></Pressable>
             <View style={styles.or}><View style={[styles.rule, { backgroundColor: theme.border }]} /><Text style={{ color: theme.muted, fontFamily: fonts.medium, fontSize: 12 }}>또는</Text><View style={[styles.rule, { backgroundColor: theme.border }]} /></View>
-            <SocialButton disabled={Boolean(pending)} label="Google로 계속" onPress={() => void run('google', () => signInWithOAuth('google', returnTo))} pending={pending === 'google'} tone="#ffffff" text="#202124" border="#dadce0" />
-            <SocialButton disabled={Boolean(pending)} label="Kakao로 계속" onPress={() => void run('kakao', () => signInWithOAuth('kakao', returnTo))} pending={pending === 'kakao'} tone="#fee500" text="#191919" />
-            {Platform.OS === 'ios' ? <SocialButton disabled={Boolean(pending)} label="Apple로 계속" onPress={() => void run('apple', () => signInWithOAuth('apple', returnTo))} pending={pending === 'apple'} tone={colorScheme === 'dark' ? '#ffffff' : '#000000'} text={colorScheme === 'dark' ? '#000000' : '#ffffff'} /> : null}
-            <SocialButton disabled={Boolean(pending)} label="Naver로 계속" onPress={() => void run('naver', () => signInWithOAuth('naver', returnTo))} pending={pending === 'naver'} tone="#03c75a" text="#ffffff" />
+            <SocialButton disabled={Boolean(pending)} label="Google로 계속" onPress={() => void run('google', () => signInWithOAuth('google', favoriteTeamReturnTo))} pending={pending === 'google'} tone="#ffffff" text="#202124" border="#dadce0" />
+            <SocialButton disabled={Boolean(pending)} label="Kakao로 계속" onPress={() => void run('kakao', () => signInWithOAuth('kakao', favoriteTeamReturnTo))} pending={pending === 'kakao'} tone="#fee500" text="#191919" />
+            {Platform.OS === 'ios' ? <SocialButton disabled={Boolean(pending)} label="Apple로 계속" onPress={() => void run('apple', () => signInWithOAuth('apple', favoriteTeamReturnTo))} pending={pending === 'apple'} tone={colorScheme === 'dark' ? '#ffffff' : '#000000'} text={colorScheme === 'dark' ? '#000000' : '#ffffff'} /> : null}
+            <SocialButton disabled={Boolean(pending)} label="Naver로 계속" onPress={() => void run('naver', () => signInWithOAuth('naver', favoriteTeamReturnTo))} pending={pending === 'naver'} tone="#03c75a" text="#ffffff" />
           </View>
         </View>
       </ScrollView>
