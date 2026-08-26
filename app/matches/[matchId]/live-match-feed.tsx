@@ -56,7 +56,7 @@ function ChampionAvatar({
   const image = championId ? CHAMPION_IMAGE_BY_KEY.get(normalizeChampionKey(championId)) : null;
 
   return (
-    <span className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-md bg-[var(--ui-card-hover)] text-xs font-medium text-[var(--ui-muted)] sm:h-11 sm:w-11">
+    <span className="grid h-8 w-8 shrink-0 place-items-center overflow-hidden rounded-md bg-[var(--ui-card-hover)] text-xs font-medium text-[var(--ui-muted)] sm:h-10 sm:w-10">
       {image ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={image} alt="" className={`h-full w-full object-cover ${defeated ? "grayscale" : ""}`} />
@@ -79,28 +79,28 @@ function Participant({
   defeated?: boolean;
 }) {
   return (
-    <span className={`flex min-w-0 items-center gap-2 ${reverse ? "flex-row-reverse text-right" : ""}`}>
+    <span className={`flex min-w-0 items-center gap-1 ${reverse ? "flex-row-reverse text-right" : ""}`}>
       <ChampionAvatar summonerName={summonerName} championId={championId} defeated={defeated} />
-      <span className="min-w-0 truncate text-[13px] font-bold sm:text-sm">{summonerName ?? "?"}</span>
+      <span className="min-w-0 truncate text-[13px] font-medium">{summonerName ?? "?"}</span>
     </span>
   );
 }
 
 function TeamAvatar({ team }: { team: Team | undefined }) {
   return (
-    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-white dark:bg-[var(--ui-card-hover)] sm:h-11 sm:w-11">
-      <TeamLogo team={team} size="h-7 w-7 sm:h-9 sm:w-9" plain />
+    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-white dark:bg-[var(--ui-card-hover)] sm:h-10 sm:w-10">
+      <TeamLogo team={team} size="h-6 w-6 sm:h-8 sm:w-8" plain />
     </span>
   );
 }
 
 function ObjectiveIcon({ src, filled }: { src: string; filled?: boolean }) {
   return (
-    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-white dark:bg-[var(--ui-card-hover)] sm:h-11 sm:w-11">
+    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-white dark:bg-[var(--ui-card-hover)] sm:h-10 sm:w-10">
       {filled ? (
       <span
         aria-hidden="true"
-          className="h-7 w-7 bg-[var(--ui-muted)] sm:h-9 sm:w-9"
+          className="h-6 w-6 bg-[var(--ui-muted)] sm:h-8 sm:w-8"
         style={{
           WebkitMaskImage: `url(${src})`,
           WebkitMaskPosition: "center",
@@ -114,7 +114,7 @@ function ObjectiveIcon({ src, filled }: { src: string; filled?: boolean }) {
       />
       ) : (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={src} alt="" className="h-7 w-7 object-contain sm:h-9 sm:w-9" />
+        <img src={src} alt="" className="h-6 w-6 object-contain sm:h-8 sm:w-8" />
       )}
     </span>
   );
@@ -123,16 +123,19 @@ function ObjectiveIcon({ src, filled }: { src: string; filled?: boolean }) {
 function ObjectiveRow({ event, teamOf }: { event: LiveMatchEvent; teamOf: (teamId: string | null) => Team | undefined }) {
   if (event.type === "kill") {
     return (
-      <div className="mx-auto grid w-full max-w-[22rem] min-w-0 grid-cols-[minmax(0,1fr)_1.75rem_minmax(0,1fr)] items-center gap-2 sm:grid-cols-[minmax(0,1fr)_2rem_minmax(0,1fr)] sm:gap-3">
+      <div
+        className="mx-auto grid w-full max-w-[22rem] min-w-0 items-center gap-1 sm:gap-2"
+        style={{ gridTemplateColumns: "minmax(0, 1fr) 20px minmax(0, 1fr)" }}
+      >
         <Participant summonerName={event.killerSummonerName} championId={event.killerChampionId} reverse />
-        <Sword aria-hidden="true" className="mx-auto h-5 w-5 text-[var(--ui-muted)]" strokeWidth={2} />
+        <Sword aria-hidden="true" className="mx-auto h-[18px] w-[18px] text-[var(--ui-muted)]" strokeWidth={2} />
         <Participant summonerName={event.victimSummonerName} championId={event.victimChampionId} defeated />
       </div>
     );
   }
 
   if (event.type === "end") {
-    return <span className="min-w-0 truncate text-sm font-bold">경기 종료</span>;
+    return <span className="min-w-0 truncate text-[13px] font-medium">경기 종료</span>;
   }
 
   const team = teamOf(event.teamId);
@@ -158,15 +161,18 @@ function ObjectiveRow({ event, teamOf }: { event: LiveMatchEvent; teamOf: (teamI
   }
 
   return (
-    <div className="mx-auto grid w-full max-w-[22rem] min-w-0 grid-cols-[minmax(0,1fr)_1.75rem_minmax(0,1fr)] items-center gap-2 sm:grid-cols-[minmax(0,1fr)_2rem_minmax(0,1fr)] sm:gap-3">
-      <span className="flex min-w-0 flex-row-reverse items-center gap-2 text-right">
+    <div
+      className="mx-auto grid w-full max-w-[22rem] min-w-0 items-center gap-1 sm:gap-2"
+      style={{ gridTemplateColumns: "minmax(0, 1fr) 20px minmax(0, 1fr)" }}
+    >
+      <span className="flex min-w-0 flex-row-reverse items-center gap-1 text-right">
         <TeamAvatar team={team} />
-        <span className="min-w-0 truncate text-[13px] font-bold sm:text-sm">{team?.shortName ?? "?"}</span>
+        <span className="min-w-0 truncate text-[13px] font-medium">{team?.shortName ?? "?"}</span>
       </span>
-      <Sword aria-hidden="true" className="mx-auto h-5 w-5 text-[var(--ui-muted)]" strokeWidth={2} />
-      <span className="flex min-w-0 items-center gap-2">
+      <Sword aria-hidden="true" className="mx-auto h-[18px] w-[18px] text-[var(--ui-muted)]" strokeWidth={2} />
+      <span className="flex min-w-0 items-center gap-1">
         <ObjectiveIcon src={icon} filled={event.type === "tower" || event.type === "inhibitor"} />
-        <span className="min-w-0 truncate text-[13px] font-bold sm:text-sm">{label}</span>
+        <span className="min-w-0 truncate text-[13px] font-medium">{label}</span>
       </span>
     </div>
   );
@@ -231,12 +237,12 @@ export function LiveMatchFeed({ matchId, teamA, teamB }: { matchId: string; team
     <section aria-label="실시간 경기 피드">
       <div className="mb-3 flex min-h-8 items-center justify-between px-1">
         {status === "live" ? (
-          <span className="flex items-center gap-2 text-[13px] font-bold text-[var(--ui-ink)]">
+          <span className="flex items-center gap-2 text-xs font-medium text-[var(--ui-ink)]">
             <span className="h-2 w-2 animate-pulse rounded-full bg-[var(--accent)]" />
             LIVE
           </span>
         ) : (
-          <span className="text-[13px] font-semibold text-[var(--ui-muted)]">
+          <span className="text-[13px] font-medium text-[var(--ui-muted)]">
             {status === "loading" ? "불러오는 중..." :
               status === "not_started" ? "경기 시작 전입니다" :
               status === "ended" ? "게임이 진행 중이지 않습니다" :
@@ -245,7 +251,7 @@ export function LiveMatchFeed({ matchId, teamA, teamB }: { matchId: string; team
         )}
         <div className="flex items-center gap-2">
           {status === "live" ? (
-            <span className="text-[13px] font-semibold tabular-nums text-[var(--ui-muted)]">{fmtClock(clock)}</span>
+            <span className="text-xs font-medium tabular-nums text-[var(--ui-muted)]">{fmtClock(clock)}</span>
           ) : null}
           <button
             type="button"
@@ -269,13 +275,14 @@ export function LiveMatchFeed({ matchId, teamA, teamB }: { matchId: string; team
           {events.map((event, index) => (
             <li
               key={event.id}
-              className="relative grid min-h-[60px] grid-cols-[3.25rem_minmax(0,1fr)] items-center gap-2 rounded-md bg-[var(--ui-card-bg)] px-3 py-2 sm:min-h-[66px] sm:grid-cols-[4rem_minmax(0,1fr)] sm:gap-4 sm:px-4"
+              className="relative grid min-h-14 items-center gap-1 rounded-md bg-[var(--ui-card-bg)] px-2 py-2 sm:min-h-[60px] sm:gap-2.5 sm:px-3"
+              style={{ gridTemplateColumns: "40px minmax(0, 1fr)" }}
             >
               <span
                 aria-hidden="true"
                 className={`absolute -left-5 top-1/2 z-10 h-2.5 w-2.5 -translate-y-1/2 rounded-full bg-[var(--accent)] ${index === 0 ? "ring-2 ring-[var(--accent)] ring-offset-2 ring-offset-[var(--ui-surface)]" : ""}`}
               />
-              <span className="text-[13px] font-bold tabular-nums text-[var(--ui-muted)] sm:text-sm">
+              <span className="text-xs font-medium tabular-nums text-[var(--ui-muted)] sm:text-[13px]">
                 {fmtClock(event.time)}
               </span>
               <ObjectiveRow event={event} teamOf={teamOf} />

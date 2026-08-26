@@ -6,7 +6,6 @@ import Link from "next/link";
 import { AlertCircle, CheckCircle2, Info, Radio, Star, Sword, X } from "lucide-react";
 
 import type { MatchEventPresentation } from "@/lib/notifications";
-import { OBJECTIVE_ICONS } from "@/lib/objectives";
 
 type ToastTone = "success" | "error" | "info";
 
@@ -43,21 +42,14 @@ const getClientSnapshot = () => true;
 const getServerSnapshot = () => false;
 
 function MatchEventIcon({ kind }: { kind: MatchEventPresentation["kind"] }) {
-  if (kind === "kill") return <Sword size={15} strokeWidth={2} />;
+  if (kind === "kill" || kind === "tower" || kind === "baron" || kind === "inhibitor" || kind === "dragon") {
+    return <Sword size={16} strokeWidth={2} />;
+  }
   if (kind === "start") return <Radio size={15} strokeWidth={2} />;
   if (kind === "rating") return <Star size={15} strokeWidth={2} />;
   if (kind === "end") return <span className="text-[12px] font-medium">END</span>;
 
-  const src = kind === "baron"
-    ? OBJECTIVE_ICONS.baron
-    : kind === "dragon"
-      ? OBJECTIVE_ICONS.dragon
-      : OBJECTIVE_ICONS.tower;
-
-  return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img src={src} alt="" className="h-4 w-4 object-contain dark:invert" />
-  );
+  return null;
 }
 
 function MatchEventToast({ item, onClose }: { item: ToastItem; onClose: () => void }) {
@@ -65,7 +57,7 @@ function MatchEventToast({ item, onClose }: { item: ToastItem; onClose: () => vo
   const eventImage = (src: string) => event.kind === "tower" || event.kind === "inhibitor" ? (
     <span
       aria-hidden="true"
-      className="h-7 w-7 shrink-0 bg-[var(--ui-muted)]"
+      className="h-6 w-6 shrink-0 bg-[var(--ui-muted)]"
       style={{
         WebkitMaskImage: `url(${src})`,
         WebkitMaskPosition: "center",
@@ -79,7 +71,7 @@ function MatchEventToast({ item, onClose }: { item: ToastItem; onClose: () => vo
     />
   ) : (
     // eslint-disable-next-line @next/next/no-img-element
-    <img src={src} alt="" className={event.kind === "kill" ? "h-7 w-7 shrink-0 rounded-md object-cover" : "h-7 w-7 shrink-0 object-contain"} />
+    <img src={src} alt="" className={event.kind === "kill" ? "h-6 w-6 shrink-0 rounded-md object-cover" : "h-6 w-6 shrink-0 object-contain"} />
   );
   const content = (
     <>
@@ -88,13 +80,13 @@ function MatchEventToast({ item, onClose }: { item: ToastItem; onClose: () => vo
         <span className={event.badge === "LIVE" ? "text-[#e51643]" : "text-[var(--accent)]"}>{event.badge}</span>
         <span className="truncate text-[var(--ui-muted)]">{event.matchup}</span>
       </span>
-      <span className="mt-1 grid min-w-0 grid-cols-[minmax(0,1fr)_1.75rem_minmax(0,1fr)] items-center gap-1.5 text-[13px] font-bold text-[var(--ui-ink)]">
-        <span className="flex min-w-0 items-center justify-end gap-1.5">
+      <span className="mt-1 flex min-w-0 items-center gap-1 text-[13px] font-medium text-[var(--ui-ink)]">
+        <span className="flex min-w-0 flex-1 items-center justify-end gap-1">
           <span className="truncate text-right">{event.leftLabel ?? ""}</span>
           {event.leftImageSrc ? eventImage(event.leftImageSrc) : null}
         </span>
-        <span className="mx-auto grid h-6 w-6 place-items-center rounded-md bg-[var(--ui-card-bg)] text-[var(--ui-muted)]"><MatchEventIcon kind={event.kind} /></span>
-        <span className="flex min-w-0 items-center gap-1.5">
+        <span className="mx-auto grid h-5 w-5 place-items-center text-[var(--ui-muted)]"><MatchEventIcon kind={event.kind} /></span>
+        <span className="flex min-w-0 flex-1 items-center gap-1">
           {event.rightImageSrc ? eventImage(event.rightImageSrc) : null}
           <span className="truncate">{event.rightLabel}</span>
         </span>
