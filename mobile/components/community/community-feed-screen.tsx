@@ -210,7 +210,7 @@ const styles = StyleSheet.create({
   notice: { alignItems: 'center', borderRadius: 999, flexDirection: 'row', gap: 4, paddingHorizontal: 7, paddingVertical: 3 },
   hot: { borderRadius: 999, borderWidth: 1, paddingHorizontal: 6, paddingVertical: 2 },
   metaRow: { alignItems: 'center', flexDirection: 'row', gap: 4, marginTop: 2, overflow: 'hidden' },
-  author: { flexShrink: 1, fontSize: 12, lineHeight: 18, maxWidth: 118 },
+  author: { flexShrink: 1, fontSize: 12, lineHeight: 18, maxWidth: 124 },
   meta: { fontSize: 12, lineHeight: 18 },
   thumbnail: { borderRadius: 8, height: 57, width: 76 },
   pagination: { alignItems: 'center', borderTopWidth: 1, flexDirection: 'row', gap: 6, height: 58, justifyContent: 'center' },
