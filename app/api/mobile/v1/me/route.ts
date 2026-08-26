@@ -182,6 +182,8 @@ export async function PATCH(request: Request) {
     unblockGuestKey?: string;
     checkIn?: boolean;
     passwordChange?: { currentPassword?: string; newPassword?: string; confirmPassword?: string };
+    pushToken?: { token: string; platform: "ios" | "android" };
+    removePushToken?: string;
   } | null;
   if (!input) return mobileError("BAD_REQUEST", "요청 본문이 올바르지 않습니다.", 400);
   const { supabase, user } = auth;
@@ -254,6 +256,29 @@ export async function PATCH(request: Request) {
       const { error } = await supabase.from("fan_notification_subscriptions").upsert(teamIds.map((teamId) => ({ user_id: user.id, team_id: teamId })), { onConflict: "user_id,team_id" });
       if (error) return mobileError("INTERNAL", "팔로우 팀을 저장하지 못했습니다.", 500);
     }
+  }
+  if (input.pushToken) {
+    const { token, platform } = input.pushToken;
+    if (!token.trim() || (platform !== "ios" && platform !== "android")) {
+      return mobileError("BAD_REQUEST", "푸시 토큰 정보가 올바르지 않습니다.", 400);
+    }
+    // 같은 토큰이 다른 계정에 남아있을 수 있다(기기 재로그인 등) — 새로 등록하는
+    // 계정 소유로 갱신되도록 토큰 기준으로 upsert한다.
+    const { error } = await supabase
+      .from("push_tokens")
+      .upsert(
+        { user_id: user.id, expo_push_token: token, platform, updated_at: new Date().toISOString() },
+        { onConflict: "expo_push_token" },
+      );
+    if (error) return mobileError("INTERNAL", "푸시 토큰을 등록하지 못했습니다.", 500);
+  }
+  if (input.removePushToken) {
+    const { error } = await supabase
+      .from("push_tokens")
+      .delete()
+      .eq("user_id", user.id)
+      .eq("expo_push_token", input.removePushToken);
+    if (error) return mobileError("INTERNAL", "푸시 토큰을 해제하지 못했습니다.", 500);
   }
   if (input.unblockUserId) {
     const { error } = await supabase.from("community_user_blocks").delete().eq("blocker_id", user.id).eq("blocked_id", input.unblockUserId);

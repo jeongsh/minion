@@ -33,7 +33,12 @@ yarn-error.*
 *.pem
 
 # local env files
+.env
 .env*.local
+
+# Firebase (기기별/개발자별로 다시 받는 로컬 설정, 커밋 안 함)
+google-services.json
+GoogleService-Info.plist
 
 # typescript
 *.tsbuildinfo

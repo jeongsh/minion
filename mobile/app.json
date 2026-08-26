@@ -17,6 +17,7 @@
     },
     "android": {
       "package": "com.minion.app",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#18191c",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -58,11 +59,19 @@
           "cameraPermission": false,
           "microphonePermission": false
         }
-      ]
+      ],
+      "expo-notifications"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "2f1510a6-2d51-4f21-86df-9e5ce080689d"
+      }
+    },
+    "owner": "lckminions-team"
   }
 }

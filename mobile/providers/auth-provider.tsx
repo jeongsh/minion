@@ -7,6 +7,7 @@ import { AppState, Platform } from 'react-native';
 
 import type { MobileBootstrapDto } from '../../packages/contracts/src/mobile-v1';
 import { fetchMobileApi, mobileApiOrigin } from '@/lib/api-client';
+import { registerPushToken, unregisterPushToken } from '@/lib/push-notifications';
 import { getInstallationId, setAuthReturnTo, takeAuthReturnTo } from '@/lib/secure-storage';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 
@@ -110,6 +111,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   const finishLogin = useCallback(async () => {
     await refreshViewer();
+    void registerPushToken();
     const returnTo = await takeAuthReturnTo();
     router.replace(returnTo as never);
   }, [refreshViewer, router]);
@@ -157,7 +159,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
     const links = Linking.addEventListener('url', ({ url }) => { void handleCallback(url).catch(reportCallbackError); });
     void supabase.auth.getSession().then(async ({ data }) => {
       setSession(data.session);
-      if (data.session) await refreshViewer();
+      if (data.session) {
+        await refreshViewer();
+        void registerPushToken();
+      }
       setLoading(false);
     });
     void Linking.getInitialURL().then((url) => { if (url?.includes('/auth/callback')) void handleCallback(url).catch(reportCallbackError); });
@@ -210,6 +215,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }, [handleCallback]);
 
   const signOut = useCallback(async () => {
+    await unregisterPushToken();
     const { error } = await supabase.auth.signOut();
     if (error) return { error: messageForAuthError(error.message) };
     setViewer(null);
