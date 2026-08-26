@@ -2,10 +2,9 @@ import * as Linking from 'expo-linking';
 import ChevronLeft from 'lucide-react-native/icons/chevron-left';
 import ChevronRight from 'lucide-react-native/icons/chevron-right';
 import X from 'lucide-react-native/icons/x';
-import { useEffect, useState } from 'react';
+import { createElement, useEffect, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { WebView } from 'react-native-webview';
 
 import { BottomSheetHandle } from '@/components/bottom-sheet';
 import { InstagramGlyph } from '@/components/fan/fan-shared';
@@ -78,22 +77,16 @@ export function FanInstagramModal({ items, onClose, startIndex }: { items: Socia
             <Pressable accessibilityLabel="게시물 닫기" onPress={onClose} style={[styles.close, { backgroundColor: theme.surfaceMuted }]}><X color={theme.ink} size={18} strokeWidth={2.5} /></Pressable>
           </View>
           <View style={styles.content}>
-            {embedUrl ? (
-              <WebView
-                allowsFullscreenVideo
-                allowsInlineMediaPlayback
-                key={`${item.id}-${reloadAttempt}`}
-                onContentProcessDidTerminate={() => setEmbedStatus('error')}
-                onError={() => setEmbedStatus('error')}
-                onLoad={() => setEmbedStatus('ready')}
-                onLoadProgress={({ nativeEvent }) => { if (nativeEvent.progress >= 1) setEmbedStatus('ready'); }}
-                onRenderProcessGone={() => setEmbedStatus('error')}
-                originWhitelist={['https://*']}
-                source={{ uri: embedUrl }}
-                style={[styles.webview, { backgroundColor: theme.surface }]}
-                thirdPartyCookiesEnabled
-              />
-            ) : (
+            {embedUrl ? createElement('iframe', {
+              allow: 'encrypted-media; picture-in-picture; web-share',
+              allowFullScreen: true,
+              key: `${item.id}-${reloadAttempt}`,
+              onError: () => setEmbedStatus('error'),
+              onLoad: () => setEmbedStatus('ready'),
+              src: embedUrl,
+              style: { backgroundColor: theme.surface, border: 0, height: '100%', width: '100%' },
+              title: `Instagram post by ${item.ownerName}`,
+            }) : (
               <View style={styles.unavailable}><Text style={{ color: theme.text, fontFamily: fonts.medium, fontSize: 16, textAlign: 'center' }}>이 게시물은 앱 안에서 표시할 수 없습니다.</Text><Pressable onPress={() => void openOriginal()} style={styles.external}><Text style={{ color: '#ffffff', fontFamily: fonts.medium, fontSize: 14 }}>Instagram에서 보기 ↗</Text></Pressable></View>
             )}
             {embedStatus === 'loading' && embedUrl ? <View pointerEvents="none" style={[styles.loader, { backgroundColor: theme.surface }]}><ActivityIndicator color={theme.accent} size="large" /><Text style={{ color: theme.muted, fontFamily: fonts.medium, fontSize: 13 }}>Instagram 게시물을 불러오는 중</Text></View> : null}
@@ -129,5 +122,4 @@ const styles = StyleSheet.create({
   panel: { borderTopLeftRadius: 24, borderTopRightRadius: 24, flex: 1, overflow: 'hidden', paddingTop: 8 },
   retry: { borderRadius: 999, marginTop: 16, paddingHorizontal: 16, paddingVertical: 11 },
   unavailable: { alignItems: 'center', flex: 1, justifyContent: 'center', padding: 32 },
-  webview: { flex: 1 },
 });

@@ -4,6 +4,8 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import { DialogSheetHandle } from "@/components/responsive/adaptive-dialog";
+
 // 인스타그램 게시물 임베드 모달. 팬 인스타 피드와 홈 FEED에서 공용으로 쓴다.
 
 export type InstagramPostItem = {
@@ -99,17 +101,18 @@ export function InstagramPostModal({
 
   return (
     <div
-      className="modal-backdrop fixed inset-0 z-[70] flex items-center justify-center bg-black/60 [--modal-backdrop-dark-mobile:0.72] p-0 sm:p-6"
+      className="modal-backdrop fixed inset-0 z-[70] flex items-end justify-center bg-black/60 [--modal-backdrop-dark-mobile:0.72] p-0 sm:items-center sm:p-6"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
       aria-label={`${item.ownerName} Instagram 게시물`}
     >
       <div
-        className="relative flex h-full w-full max-w-[620px] flex-col sm:h-auto"
+        className="relative flex h-[calc(100dvh-env(safe-area-inset-top))] w-full max-w-[620px] flex-col overflow-hidden rounded-t-[24px] bg-[var(--ui-surface)] sm:h-auto sm:rounded-[24px]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex h-16 shrink-0 items-center gap-3 border-b border-[var(--ui-border)] bg-[var(--ui-surface)] px-4 text-[var(--ui-ink)] sm:rounded-t-2xl">
+        <DialogSheetHandle />
+        <div className="flex h-12 shrink-0 items-center gap-3 bg-[var(--ui-surface)] px-4 text-[var(--ui-ink)]">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--ui-surface-muted)]">
             <InstagramIcon className="h-4 w-4" />
           </div>
