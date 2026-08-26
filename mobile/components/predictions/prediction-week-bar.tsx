@@ -22,14 +22,14 @@ export function PredictionWeekBar({ authenticated, authLoading, balance, canGoNe
         <Pressable accessibilityLabel="이전 주" disabled={!canGoPrev} onPress={onPrev} style={[styles.navButton, !canGoPrev && styles.navButtonDisabled]}>
           <ChevronLeft color={theme.muted} size={18} />
         </Pressable>
-        <Text style={[styles.weekLabel, { color: theme.ink, fontFamily: fonts.black }]}>{weekKey.replaceAll('-', '.')}</Text>
+        <Text style={[styles.weekLabel, { color: theme.ink, ...fonts.black }]}>{weekKey.replaceAll('-', '.')}</Text>
         <Pressable accessibilityLabel="다음 주" disabled={!canGoNext} onPress={onNext} style={[styles.navButton, !canGoNext && styles.navButtonDisabled]}>
           <ChevronRight color={theme.muted} size={18} />
         </Pressable>
       </View>
       <View style={[styles.balance, { backgroundColor: theme.surfaceMuted }]}>
         <Coins color={theme.ink} size={16} />
-        <Text style={[styles.balanceText, { color: theme.ink, fontFamily: fonts.black }]}>{balanceLabel}</Text>
+        <Text style={[styles.balanceText, { color: theme.ink, ...fonts.black }]}>{balanceLabel}</Text>
       </View>
     </View>
   );

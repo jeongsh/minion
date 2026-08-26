@@ -67,17 +67,17 @@ export const PlayerFanReviews = forwardRef<PlayerFanReviewsHandle, {
   return (
     <View onLayout={checkViewport}>
       <View style={styles.headingRow}>
-        <Text style={{ color: theme.ink, fontFamily: fonts.display, fontSize: 16, lineHeight: 22 }}>팬 평가</Text>
-        <Text style={[styles.headingMeta, { color: theme.muted, fontFamily: fonts.medium }]}>
-          팬 평점 <Text style={{ color: theme.ink, fontFamily: fonts.medium }}>{averageRating == null ? '-' : averageRating.toFixed(1)}</Text>
+        <Text style={{ color: theme.ink, ...fonts.display, fontSize: 16, lineHeight: 22 }}>팬 평가</Text>
+        <Text style={[styles.headingMeta, { color: theme.muted, ...fonts.medium }]}>
+          팬 평점 <Text style={{ color: theme.ink, ...fonts.medium }}>{averageRating == null ? '-' : averageRating.toFixed(1)}</Text>
         </Text>
-        <Text style={[styles.headingMeta, { color: theme.muted, fontFamily: fonts.medium }]}>
-          팬 POG <Text style={{ color: theme.ink, fontFamily: fonts.medium }}>{pogCount}</Text>
+        <Text style={[styles.headingMeta, { color: theme.muted, ...fonts.medium }]}>
+          팬 POG <Text style={{ color: theme.ink, ...fonts.medium }}>{pogCount}</Text>
         </Text>
       </View>
       {reviews.length === 0 ? (
         <View style={[styles.empty, { backgroundColor: theme.card }]}>
-          <Text style={{ color: theme.muted, fontFamily: fonts.regular, fontSize: 16, lineHeight: 28 }}>작성된 선수 리뷰가 아직 없습니다.</Text>
+          <Text style={{ color: theme.muted, ...fonts.regular, fontSize: 16, lineHeight: 28 }}>작성된 선수 리뷰가 아직 없습니다.</Text>
         </View>
       ) : (
         <View style={styles.list}>
@@ -86,23 +86,23 @@ export const PlayerFanReviews = forwardRef<PlayerFanReviewsHandle, {
               <View style={styles.reviewHeader}>
                 <View style={styles.author}>
                   <RankAvatar fallback={review.authorName} profileImageUrl={review.authorImage?.url} size="comment" tier={review.authorTier as never} />
-                  <Text numberOfLines={1} style={{ color: theme.ink, fontFamily: fonts.medium, fontSize: 13, lineHeight: 19.5 }}>{review.authorName}</Text>
+                  <Text numberOfLines={1} style={{ color: theme.ink, ...fonts.medium, fontSize: 13, lineHeight: 19.5 }}>{review.authorName}</Text>
                 </View>
                 <View style={styles.rating}>
                   <Star color="#fbbf24" fill="#fbbf24" size={16} />
-                  <Text style={{ color: theme.ink, fontFamily: fonts.medium, fontSize: 16, lineHeight: 24 }}>{review.rating.toFixed(1)}</Text>
+                  <Text style={{ color: theme.ink, ...fonts.medium, fontSize: 16, lineHeight: 24 }}>{review.rating.toFixed(1)}</Text>
                 </View>
               </View>
-              <Text style={{ color: theme.text, fontFamily: fonts.regular, fontSize: 16, lineHeight: 24, marginTop: 8 }}>{review.review}</Text>
+              <Text style={{ color: theme.text, ...fonts.regular, fontSize: 16, lineHeight: 24, marginTop: 8 }}>{review.review}</Text>
               <Pressable disabled={!review.href} onPress={() => review.href ? router.push(review.href as never) : undefined}>
-                <Text style={{ color: theme.muted, fontFamily: fonts.medium, fontSize: 13, lineHeight: 19.5, marginTop: 8 }}>{review.meta}</Text>
+                <Text style={{ color: theme.muted, ...fonts.medium, fontSize: 13, lineHeight: 19.5, marginTop: 8 }}>{review.meta}</Text>
               </Pressable>
             </View>
           ))}
           {hasMore ? (
             <View accessibilityLiveRegion="polite" collapsable={false} ref={sentinelRef} style={styles.more}>
               {loading ? <ActivityIndicator color={theme.muted} size="small" /> : <ChevronDown color={theme.muted} size={16} />}
-              <Text style={{ color: theme.muted, fontFamily: fonts.medium, fontSize: 13 }}>{loading ? '불러오는 중' : '아래로 스크롤해 더 보기'}</Text>
+              <Text style={{ color: theme.muted, ...fonts.medium, fontSize: 13 }}>{loading ? '불러오는 중' : '아래로 스크롤해 더 보기'}</Text>
             </View>
           ) : null}
         </View>

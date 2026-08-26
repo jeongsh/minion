@@ -42,8 +42,8 @@ function SectionHeading({ caption, children }: { caption?: string; children: str
   const { fonts, theme } = useMinionTheme();
   return (
     <View style={styles.sectionHeading}>
-      <Text style={{ color: theme.ink, fontFamily: fonts.display, fontSize: 16, lineHeight: 22 }}>{children}</Text>
-      {caption ? <Text style={{ color: theme.muted, fontFamily: fonts.medium, fontSize: 14, lineHeight: 20 }}>{caption}</Text> : null}
+      <Text style={{ color: theme.ink, ...fonts.display, fontSize: 16, lineHeight: 22 }}>{children}</Text>
+      {caption ? <Text style={{ color: theme.muted, ...fonts.medium, fontSize: 14, lineHeight: 20 }}>{caption}</Text> : null}
     </View>
   );
 }
@@ -57,16 +57,16 @@ function Profile({ accent, data }: { accent: string; data: MobilePlayerDetailDto
       <View style={[styles.profileImage, { backgroundColor: theme.card }]}>
         {imageUrl ? <Image accessibilityLabel={data.player.name} contentFit="cover" contentPosition="top" source={{ uri: imageUrl }} style={StyleSheet.absoluteFill} transition={120} /> : null}
         <View style={[styles.positionBadge, { backgroundColor: accent }]}>
-          <Text style={{ color: '#ffffff', fontFamily: fonts.medium, fontSize: 12, lineHeight: 16 }}>{data.player.position}</Text>
+          <Text style={{ color: '#ffffff', ...fonts.medium, fontSize: 12, lineHeight: 16 }}>{data.player.position}</Text>
         </View>
       </View>
       <View style={styles.profileCopy}>
-        <Text numberOfLines={1} style={{ color: theme.ink, fontFamily: fonts.display, fontSize: 20, lineHeight: 27 }}>{data.player.name}</Text>
-        {data.player.realName ? <Text numberOfLines={1} style={{ color: theme.muted, fontFamily: fonts.regular, fontSize: 14, lineHeight: 20, marginTop: 4 }}>{data.player.realName}</Text> : null}
+        <Text numberOfLines={1} style={{ color: theme.ink, ...fonts.display, fontSize: 20, lineHeight: 27 }}>{data.player.name}</Text>
+        {data.player.realName ? <Text numberOfLines={1} style={{ color: theme.muted, ...fonts.regular, fontSize: 14, lineHeight: 20, marginTop: 4 }}>{data.player.realName}</Text> : null}
         <View style={styles.profileBottom}>
           <View style={styles.profileTeam}>
             {teamLogoUrl ? <Image accessibilityLabel={data.team?.name} contentFit="contain" source={{ uri: teamLogoUrl }} style={styles.profileTeamLogo} /> : null}
-            <Text numberOfLines={1} style={{ color: theme.ink, fontFamily: fonts.medium, fontSize: 13, lineHeight: 20 }}>{data.team?.shortName ?? 'FA'}</Text>
+            <Text numberOfLines={1} style={{ color: theme.ink, ...fonts.medium, fontSize: 13, lineHeight: 20 }}>{data.team?.shortName ?? 'FA'}</Text>
           </View>
           <View style={styles.socials}>
             {data.player.socialLinks.map((link) => (
@@ -88,17 +88,17 @@ function TeamMeta({ accent, data }: { accent: string; data: MobilePlayerDetailDt
     <View style={[styles.teamStrip, { backgroundColor: theme.surface, borderColor: theme.border }]}>
       <View style={styles.teamStripTop}>
         <View style={styles.metaGroup}>
-          <Text style={{ color: theme.muted, fontFamily: fonts.regular, fontSize: 13, lineHeight: 20 }}>팀</Text>
-          {teamLogoUrl ? <Image accessibilityLabel={data.team?.name} contentFit="contain" source={{ uri: teamLogoUrl }} style={styles.teamLogo} /> : <Text style={{ color: theme.ink, fontFamily: fonts.medium, fontSize: 14 }}>{data.team?.shortName ?? '-'}</Text>}
+          <Text style={{ color: theme.muted, ...fonts.regular, fontSize: 13, lineHeight: 20 }}>팀</Text>
+          {teamLogoUrl ? <Image accessibilityLabel={data.team?.name} contentFit="contain" source={{ uri: teamLogoUrl }} style={styles.teamLogo} /> : <Text style={{ color: theme.ink, ...fonts.medium, fontSize: 14 }}>{data.team?.shortName ?? '-'}</Text>}
         </View>
         <View style={styles.metaGroup}>
-          <Text style={{ color: theme.muted, fontFamily: fonts.regular, fontSize: 14, lineHeight: 20 }}>순위</Text>
-          <Text style={{ color: accent, fontFamily: fonts.medium, fontSize: 16, lineHeight: 24 }}>{data.teamMeta.rank == null ? '-' : `${data.teamMeta.rank}위`}</Text>
+          <Text style={{ color: theme.muted, ...fonts.regular, fontSize: 14, lineHeight: 20 }}>순위</Text>
+          <Text style={{ color: accent, ...fonts.medium, fontSize: 16, lineHeight: 24 }}>{data.teamMeta.rank == null ? '-' : `${data.teamMeta.rank}위`}</Text>
         </View>
       </View>
       <View style={styles.metaGroup}>
-        <Text style={{ color: theme.muted, fontFamily: fonts.regular, fontSize: 14, lineHeight: 20 }}>최근 5경기</Text>
-        <Text style={{ color: theme.ink, fontFamily: fonts.medium, fontSize: 16, letterSpacing: 0.4, lineHeight: 24 }}>{data.teamMeta.recent || '-'}</Text>
+        <Text style={{ color: theme.muted, ...fonts.regular, fontSize: 14, lineHeight: 20 }}>최근 5경기</Text>
+        <Text style={{ color: theme.ink, ...fonts.medium, fontSize: 16, letterSpacing: 0.4, lineHeight: 24 }}>{data.teamMeta.recent || '-'}</Text>
       </View>
     </View>
   );
@@ -109,13 +109,13 @@ function StatsSection({ accent, data }: { accent: string; data: MobilePlayerDeta
   return (
     <View accessibilityLabel="선수 지표">
       <View style={styles.statsHeading}>
-        <Text style={{ color: theme.ink, fontFamily: fonts.display, fontSize: 16, lineHeight: 22 }}>선수 지표</Text>
+        <Text style={{ color: theme.ink, ...fonts.display, fontSize: 16, lineHeight: 22 }}>선수 지표</Text>
         <View style={styles.legend}>
-          <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: accent }]} /><Text style={{ color: theme.muted, fontFamily: fonts.regular, fontSize: 13 }}>선수</Text></View>
-          <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: theme.muted }]} /><Text style={{ color: theme.muted, fontFamily: fonts.regular, fontSize: 13 }}>동 포지션 평균</Text></View>
+          <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: accent }]} /><Text style={{ color: theme.muted, ...fonts.regular, fontSize: 13 }}>선수</Text></View>
+          <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: theme.muted }]} /><Text style={{ color: theme.muted, ...fonts.regular, fontSize: 13 }}>동 포지션 평균</Text></View>
         </View>
       </View>
-      {data.axes.length ? <PlayerDetailRadar accent={accent} axes={data.axes} /> : <Text style={{ color: theme.muted, fontFamily: fonts.medium, fontSize: 14 }}>표시할 경기 지표가 없습니다.</Text>}
+      {data.axes.length ? <PlayerDetailRadar accent={accent} axes={data.axes} /> : <Text style={{ color: theme.muted, ...fonts.medium, fontSize: 14 }}>표시할 경기 지표가 없습니다.</Text>}
     </View>
   );
 }
@@ -129,12 +129,12 @@ function SeasonSummary({ data }: { data: MobilePlayerDetailDto }) {
       <SectionHeading caption={data.season.label}>시즌 요약</SectionHeading>
       <View style={[styles.summaryFrame, { borderColor: theme.border }]}>
         <View style={[styles.summaryHeader, { backgroundColor: theme.card }]}>
-          {headers.map((label) => <Text key={label} style={[styles.summaryCell, { color: theme.muted, fontFamily: fonts.medium }]}>{label}</Text>)}
+          {headers.map((label) => <Text key={label} style={[styles.summaryCell, { color: theme.muted, ...fonts.medium }]}>{label}</Text>)}
         </View>
         <View style={styles.summaryValues}>
           {values.map((value, index) => (
             <View key={headers[index]} style={[styles.summaryValueWrap, index > 0 && { borderLeftColor: theme.border, borderLeftWidth: StyleSheet.hairlineWidth }]}>
-              <Text numberOfLines={1} style={{ color: theme.ink, fontFamily: fonts.medium, fontSize: 16, lineHeight: 24 }}>{value}</Text>
+              <Text numberOfLines={1} style={{ color: theme.ink, ...fonts.medium, fontSize: 16, lineHeight: 24 }}>{value}</Text>
             </View>
           ))}
         </View>

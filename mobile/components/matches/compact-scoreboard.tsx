@@ -23,10 +23,10 @@ function TeamCell({ team, name, kills, outcome }: { team: MobileTeamSummary | nu
     <View style={[styles.teamCell, { backgroundColor: theme.card }]}>
       <TeamLogo plain size={32} team={team} themeAware />
       <View style={styles.teamCellInfo}>
-        <Text numberOfLines={1} style={[styles.teamCellName, { color: theme.ink, fontFamily: fonts.medium }]}>{name}</Text>
-        <Text style={[styles.teamCellOutcome, { color: outcome.won ? theme.accent : tournamentTokens[colorScheme].muted, fontFamily: fonts.medium }]}>{outcome.short}</Text>
+        <Text numberOfLines={1} style={[styles.teamCellName, { color: theme.ink, ...fonts.medium }]}>{name}</Text>
+        <Text style={[styles.teamCellOutcome, { color: outcome.won ? theme.accent : tournamentTokens[colorScheme].muted, ...fonts.medium }]}>{outcome.short}</Text>
       </View>
-      <Text style={[styles.teamCellKills, { color: theme.ink, fontFamily: fonts.bold }]}>{kills ?? '-'}</Text>
+      <Text style={[styles.teamCellKills, { color: theme.ink, ...fonts.bold }]}>{kills ?? '-'}</Text>
     </View>
   );
 }
@@ -51,7 +51,7 @@ function DraftBans({ blue, red }: { blue: MobileSetDraftSide; red: MobileSetDraf
             <BanTile key={item?.id ?? `blue-${index}`} champion={item} />
           ))}
         </View>
-        <Text style={[styles.draftLabel, { color: tournamentTokens[colorScheme].muted, fontFamily: fonts.medium }]}>밴</Text>
+        <Text style={[styles.draftLabel, { color: tournamentTokens[colorScheme].muted, ...fonts.medium }]}>밴</Text>
         <View style={styles.draftTiles}>
           {red.bans.map((item, index) => (
             <BanTile key={item?.id ?? `red-${index}`} champion={item} />
@@ -83,7 +83,7 @@ function ObjectiveGrid({ counts }: { counts: MobileObjectiveCounts }) {
             return (
               <View key={metric.key} style={styles.objItem}>
                 <ObjectiveIcon opacity={has ? 1 : 0.35} path={metric.icon} size={20} />
-                <Text style={[styles.objCount, { color: has ? tournamentTokens[colorScheme].foreground : tournamentTokens[colorScheme].muted, fontFamily: fonts.medium }]}>{count}</Text>
+                <Text style={[styles.objCount, { color: has ? tournamentTokens[colorScheme].foreground : tournamentTokens[colorScheme].muted, ...fonts.medium }]}>{count}</Text>
               </View>
             );
           })}
@@ -96,7 +96,7 @@ function ObjectiveGrid({ counts }: { counts: MobileObjectiveCounts }) {
 function GoldBar({ value, max, align }: { value: number | null; max: number; align: 'blue' | 'red' }) {
   const { colorScheme, fonts, theme } = useMinionTheme();
   const pct = max > 0 ? ((value ?? 0) / max) * 100 : 0;
-  const numberNode = <Text style={[styles.goldNumber, { color: theme.ink, fontFamily: fonts.bold }]}>{value === null ? '-' : value.toLocaleString('ko-KR')}</Text>;
+  const numberNode = <Text style={[styles.goldNumber, { color: theme.ink, ...fonts.bold }]}>{value === null ? '-' : value.toLocaleString('ko-KR')}</Text>;
   const barNode = (
     <View style={[styles.goldBarTrack, { backgroundColor: tournamentTokens[colorScheme].surfaceMuted }]}>
       <View style={[styles.goldBarFill, { backgroundColor: align === 'blue' ? TEAM_BLUE : TEAM_RED, width: `${pct}%`, alignSelf: align === 'blue' ? 'flex-end' : 'flex-start' }]} />
@@ -133,8 +133,8 @@ export function CompactScoreboard({ set }: { set: MobileSetDetail }) {
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeadRow}>
-        <Text style={[styles.sectionHeading, { color: theme.ink, fontFamily: fonts.display }]}>스코어보드</Text>
-        <Text style={[styles.sectionMeta, { color: theme.muted, fontFamily: fonts.medium }]}>{set.setNumber}세트 · {durationLabel(set.durationSeconds)}</Text>
+        <Text style={[styles.sectionHeading, { color: theme.ink, ...fonts.display }]}>스코어보드</Text>
+        <Text style={[styles.sectionMeta, { color: theme.muted, ...fonts.medium }]}>{set.setNumber}세트 · {durationLabel(set.durationSeconds)}</Text>
       </View>
 
       <View style={[styles.card, { backgroundColor: tournamentTokens[colorScheme].surface, borderColor: hexToRgba(tournamentTokens[colorScheme].border, 0.6) }]}>
@@ -145,21 +145,21 @@ export function CompactScoreboard({ set }: { set: MobileSetDetail }) {
 
         {set.draft ? <DraftBans blue={set.draft.blue} red={set.draft.red} /> : (
           <View style={styles.noDraft}>
-            <Text style={{ color: tournamentTokens[colorScheme].muted, fontFamily: fonts.medium, fontSize: 13 }}>밴픽 데이터 없음</Text>
+            <Text style={{ color: tournamentTokens[colorScheme].muted, ...fonts.medium, fontSize: 13 }}>밴픽 데이터 없음</Text>
           </View>
         )}
 
         <View style={styles.objSection}>
           <ObjectiveGrid counts={set.blueObjectives} />
           <View style={styles.objCenterLabelWrap}>
-            <Text style={[styles.objCenterLabel, { color: tournamentTokens[colorScheme].muted, fontFamily: fonts.medium }]}>목표물</Text>
+            <Text style={[styles.objCenterLabel, { color: tournamentTokens[colorScheme].muted, ...fonts.medium }]}>목표물</Text>
           </View>
           <ObjectiveGrid counts={set.redObjectives} />
         </View>
 
         <View style={[styles.goldSection, { borderTopColor: hexToRgba(tournamentTokens[colorScheme].border, 0.5) }]}>
           <GoldBar align="blue" max={maxGold} value={set.blueGold} />
-          <Text style={[styles.goldCenterLabel, { color: tournamentTokens[colorScheme].muted, fontFamily: fonts.medium }]}>골드</Text>
+          <Text style={[styles.goldCenterLabel, { color: tournamentTokens[colorScheme].muted, ...fonts.medium }]}>골드</Text>
           <GoldBar align="red" max={maxGold} value={set.redGold} />
         </View>
       </View>

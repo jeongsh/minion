@@ -41,7 +41,7 @@ function TeamsContent({ data }: { data: MobileTeamsPageDto }) {
   return (
     <View>
       <View accessibilityLabel="팀 둘러보기" style={[styles.explorer, { borderBottomColor: theme.border }]}>
-        <Text accessibilityRole="header" style={[styles.explorerTitle, { color: theme.ink, fontFamily: fonts.display }]}>팀 둘러보기</Text>
+        <Text accessibilityRole="header" style={[styles.explorerTitle, { color: theme.ink, ...fonts.display }]}>팀 둘러보기</Text>
         <ScrollView contentContainerStyle={styles.teamRail} horizontal showsHorizontalScrollIndicator={false}>
           {orderedTeams.map((team) => {
             const active = team.id === selected.team.id;
@@ -58,7 +58,7 @@ function TeamsContent({ data }: { data: MobileTeamsPageDto }) {
               >
                 {following ? <View accessibilityLabel="팔로잉" style={[styles.following, { backgroundColor: theme.accent }]}><Heart color={theme.accentForeground} fill={theme.accentForeground} size={11} /></View> : null}
                 <View style={[styles.teamLogoCircle, { backgroundColor: active ? '#ffffff' : theme.surface }]}><TeamLogo plain size={36} team={team} themeAware={!active} /></View>
-                <Text numberOfLines={1} style={[styles.teamShort, { color: active ? theme.surface : theme.text, fontFamily: fonts.medium }]}>{team.shortName}</Text>
+                <Text numberOfLines={1} style={[styles.teamShort, { color: active ? theme.surface : theme.text, ...fonts.medium }]}>{team.shortName}</Text>
               </Pressable>
             );
           })}
@@ -69,10 +69,10 @@ function TeamsContent({ data }: { data: MobileTeamsPageDto }) {
         <View style={[styles.selectedCard, { backgroundColor: theme.surfaceMuted }]}>
           <View style={styles.selectedIdentity}>
             <TeamLogo plain size={44} team={selected.team} themeAware />
-            <Text numberOfLines={1} style={[styles.selectedName, { color: theme.ink, fontFamily: fonts.black }]}>{selected.team.shortName}</Text>
+            <Text numberOfLines={1} style={[styles.selectedName, { color: theme.ink, ...fonts.black }]}>{selected.team.shortName}</Text>
           </View>
           <Pressable accessibilityRole="link" onPress={() => router.navigate(`/fan/${selected.team.fanSiteHost}` as never)} style={({ pressed }) => [styles.fanLink, { backgroundColor: theme.ink, opacity: pressed ? 0.82 : 1 }]}>
-            <Text style={[styles.fanLinkText, { color: theme.surface, fontFamily: fonts.medium }]}>팬페이지</Text><ArrowRight color={theme.surface} size={15} />
+            <Text style={[styles.fanLinkText, { color: theme.surface, ...fonts.medium }]}>팬페이지</Text><ArrowRight color={theme.surface} size={15} />
           </Pressable>
         </View>
         <TeamSocial items={selected.social} />
@@ -90,7 +90,7 @@ function TeamSocial({ items }: { items: NonNullable<MobileTeamsPageDto['selected
   const cardWidth = (width - 48) / 3;
   return (
     <View accessibilityLabel="최신 소셜 피드" style={styles.socialSection}>
-      <View style={styles.sectionHeading}><InstagramGlyph color={theme.ink} size={18} /><Text accessibilityRole="header" aria-level={2} style={[styles.sectionTitle, { color: theme.ink, fontFamily: fonts.display }]}>최신 소셜 피드</Text></View>
+      <View style={styles.sectionHeading}><InstagramGlyph color={theme.ink} size={18} /><Text accessibilityRole="header" aria-level={2} style={[styles.sectionTitle, { color: theme.ink, ...fonts.display }]}>최신 소셜 피드</Text></View>
       {slides.length ? (
         <ScrollView contentContainerStyle={styles.socialRail} horizontal showsHorizontalScrollIndicator={false}>
           {slides.map((item, index) => {
@@ -111,7 +111,7 @@ function TeamVideos({ teamSlug, videos }: { teamSlug: string; videos: NonNullabl
   const cardWidth = (width - 32) / 1.18;
   return (
     <View accessibilityLabel="최신 영상" style={styles.videoSection}>
-      <View style={styles.sectionHeading}><Play color={theme.ink} size={18} /><Text accessibilityRole="header" aria-level={2} style={[styles.sectionTitle, { color: theme.ink, fontFamily: fonts.display }]}>최신 영상</Text></View>
+      <View style={styles.sectionHeading}><Play color={theme.ink} size={18} /><Text accessibilityRole="header" aria-level={2} style={[styles.sectionTitle, { color: theme.ink, ...fonts.display }]}>최신 영상</Text></View>
       {videos.length ? (
         <ScrollView contentContainerStyle={styles.videoRail} horizontal showsHorizontalScrollIndicator={false}>
           {videos.slice(0, 12).map((video) => <Pressable accessibilityLabel={`${video.title} ${video.channelName ?? ''}`} accessibilityRole="link" key={video.id} onPress={() => router.navigate(`/fan/${teamSlug}/videos` as never)} style={{ width: cardWidth }}><FanVideoThumbnail compact item={video} /></Pressable>)}
@@ -123,7 +123,7 @@ function TeamVideos({ teamSlug, videos }: { teamSlug: string; videos: NonNullabl
 
 function TeamEmpty({ detail, title }: { detail?: string; title: string }) {
   const { fonts, theme } = useMinionTheme();
-  return <View style={[styles.empty, { borderColor: theme.border }]}><Text style={{ color: theme.ink, fontFamily: fonts.medium, fontSize: 16, lineHeight: 24, textAlign: 'center' }}>{title}</Text>{detail ? <Text style={{ color: theme.muted, fontFamily: fonts.regular, fontSize: 16, lineHeight: 24, textAlign: 'center' }}>{detail}</Text> : null}</View>;
+  return <View style={[styles.empty, { borderColor: theme.border }]}><Text style={{ color: theme.ink, ...fonts.medium, fontSize: 16, lineHeight: 24, textAlign: 'center' }}>{title}</Text>{detail ? <Text style={{ color: theme.muted, ...fonts.regular, fontSize: 16, lineHeight: 24, textAlign: 'center' }}>{detail}</Text> : null}</View>;
 }
 
 function TeamsLoadingSkeleton() {

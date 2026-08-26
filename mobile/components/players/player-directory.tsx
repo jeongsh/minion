@@ -59,15 +59,15 @@ function PlayerCard({ player, team }: { player: MobilePlayerDirectoryItem; team?
         {imageUrl ? (
           <Image accessibilityLabel={player.name} contentFit="cover" contentPosition="top" source={imageUrl} style={StyleSheet.absoluteFill} transition={120} />
         ) : (
-          <View style={styles.fallback}><Text style={{ color: theme.muted, fontFamily: fonts.black, fontSize: 18 }}>{player.name.slice(0, 2)}</Text></View>
+          <View style={styles.fallback}><Text style={{ color: theme.muted, ...fonts.black, fontSize: 18 }}>{player.name.slice(0, 2)}</Text></View>
         )}
         <View style={styles.positionBadge}>
-          <Text style={{ color: '#ffffff', fontFamily: fonts.medium, fontSize: 11, lineHeight: 16.5 }}>{player.position}</Text>
+          <Text style={{ color: '#ffffff', ...fonts.medium, fontSize: 11, lineHeight: 16.5 }}>{player.position}</Text>
         </View>
       </View>
       <View style={styles.cardBody}>
-        <Text numberOfLines={1} style={{ color: theme.ink, fontFamily: fonts.black, fontSize: 16, lineHeight: 24 }}>{player.name}</Text>
-        <Text numberOfLines={1} style={{ color: theme.muted, fontFamily: fonts.bold, fontSize: 13, lineHeight: 19.5, marginTop: 2 }}>{meta}</Text>
+        <Text numberOfLines={1} style={{ color: theme.ink, ...fonts.black, fontSize: 16, lineHeight: 24 }}>{player.name}</Text>
+        <Text numberOfLines={1} style={{ color: theme.muted, ...fonts.bold, fontSize: 13, lineHeight: 19.5, marginTop: 2 }}>{meta}</Text>
       </View>
     </Pressable>
   );
@@ -77,7 +77,7 @@ function FilterButton({ active, children, onPress, team = false }: { active: boo
   const { fonts, theme } = useMinionTheme();
   return (
     <Pressable onPress={onPress} style={[team ? styles.teamFilter : styles.positionFilter, { backgroundColor: active ? theme.ink : team ? 'transparent' : theme.card }]}>
-      <Text numberOfLines={1} style={{ color: active ? theme.surface : theme.muted, fontFamily: fonts.black, fontSize: team ? 14 : 13 }}>{children}</Text>
+      <Text numberOfLines={1} style={{ color: active ? theme.surface : theme.muted, ...fonts.black, fontSize: team ? 14 : 13 }}>{children}</Text>
     </Pressable>
   );
 }
@@ -93,19 +93,19 @@ function PlayerFilters({ position, setPosition, setTeamId, teamId, teams }: {
   return (
     <View style={styles.filters}>
       <View>
-        <Text style={{ color: theme.muted, fontFamily: fonts.medium, fontSize: 12, letterSpacing: 1.2, lineHeight: 18, marginBottom: 8 }}>포지션</Text>
+        <Text style={{ color: theme.muted, ...fonts.medium, fontSize: 12, letterSpacing: 1.2, lineHeight: 18, marginBottom: 8 }}>포지션</Text>
         <View style={styles.positionGrid}>
           {['all', ...POSITIONS].map((item) => <FilterButton active={position === item} key={item} onPress={() => setPosition(item)}>{item === 'all' ? '전체' : item}</FilterButton>)}
         </View>
       </View>
       <View>
-        <Text style={{ color: theme.muted, fontFamily: fonts.medium, fontSize: 12, letterSpacing: 1.2, lineHeight: 18, marginBottom: 8 }}>팀</Text>
+        <Text style={{ color: theme.muted, ...fonts.medium, fontSize: 12, letterSpacing: 1.2, lineHeight: 18, marginBottom: 8 }}>팀</Text>
         <View style={styles.teamGrid}>
           <FilterButton active={teamId === 'all'} onPress={() => setTeamId('all')} team>전체 팀</FilterButton>
           {teams.map((team) => (
             <Pressable key={team.id} onPress={() => setTeamId(team.id)} style={[styles.teamFilter, { backgroundColor: teamId === team.id ? theme.ink : 'transparent' }]}>
               {team.logo?.url ? <Image accessibilityLabel={team.name} contentFit="contain" source={resolveApiAssetUrl(team.logo.url)} style={styles.teamLogo} /> : null}
-              <Text numberOfLines={1} style={{ color: teamId === team.id ? theme.surface : theme.ink, flex: 1, fontFamily: fonts.bold, fontSize: 14 }}>{team.shortName}</Text>
+              <Text numberOfLines={1} style={{ color: teamId === team.id ? theme.surface : theme.ink, flex: 1, ...fonts.bold, fontSize: 14 }}>{team.shortName}</Text>
             </Pressable>
           ))}
         </View>
@@ -151,14 +151,14 @@ export function PlayerDirectory() {
         <View style={[styles.divisionShell, { backgroundColor: theme.card }]}>
           {([['first', '1군'], ['challengers', '2군']] as const).map(([value, label]) => {
             const active = division === value;
-            return <Pressable key={value} onPress={() => setDivision(value)} style={[styles.divisionButton, { backgroundColor: active ? theme.ink : 'transparent' }]}><Text style={{ color: active ? theme.surface : theme.muted, fontFamily: fonts.black, fontSize: 14, lineHeight: 20 }}>{label}</Text></Pressable>;
+            return <Pressable key={value} onPress={() => setDivision(value)} style={[styles.divisionButton, { backgroundColor: active ? theme.ink : 'transparent' }]}><Text style={{ color: active ? theme.surface : theme.muted, ...fonts.black, fontSize: 14, lineHeight: 20 }}>{label}</Text></Pressable>;
           })}
         </View>
         <View style={styles.mobileFilterRow}>
-          <Text style={{ color: theme.muted, fontFamily: fonts.bold, fontSize: 14, lineHeight: 20 }}>{visible.length}명</Text>
+          <Text style={{ color: theme.muted, ...fonts.bold, fontSize: 14, lineHeight: 20 }}>{visible.length}명</Text>
           <Pressable onPress={() => setFilterOpen(true)} style={[styles.filterTrigger, { borderColor: theme.border }]}>
             <SlidersHorizontal color={theme.ink} size={18} />
-            <Text style={{ color: theme.ink, fontFamily: fonts.black, fontSize: 14, lineHeight: 20 }}>필터</Text>
+            <Text style={{ color: theme.ink, ...fonts.black, fontSize: 14, lineHeight: 20 }}>필터</Text>
           </Pressable>
         </View>
         {sortedVisible.length ? (
@@ -166,8 +166,8 @@ export function PlayerDirectory() {
         ) : (
           <View style={[styles.empty, { borderColor: theme.border }]}>
             <Image contentFit="contain" source={require('@/assets/characters/pen-4.png')} style={styles.emptyImage} />
-            <Text style={{ color: theme.ink, fontFamily: fonts.display, fontSize: 17 }}>이 조합엔 선수가 숨어있어요</Text>
-            <Text style={{ color: theme.muted, fontFamily: fonts.regular, fontSize: 14, lineHeight: 24, marginTop: 6 }}>팀이나 포지션 필터를 살짝 바꿔보세요.</Text>
+            <Text style={{ color: theme.ink, ...fonts.display, fontSize: 17 }}>이 조합엔 선수가 숨어있어요</Text>
+            <Text style={{ color: theme.muted, ...fonts.regular, fontSize: 14, lineHeight: 24, marginTop: 6 }}>팀이나 포지션 필터를 살짝 바꿔보세요.</Text>
           </View>
         )}
       </View>

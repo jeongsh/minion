@@ -18,7 +18,7 @@ export function TournamentSegmentedControl({ activeKey, items, onSelect }: { act
             key={item.key}
             onPress={() => onSelect(item.key)}
             style={[styles.pill, active && { backgroundColor: colorScheme === 'dark' ? theme.border : theme.surface, borderColor: theme.border, borderWidth: 1 }]}>
-            <Text style={[styles.pillText, { color: active ? theme.ink : theme.muted, fontFamily: active ? fonts.black : fonts.bold }]}>{item.label}</Text>
+            <Text style={[styles.pillText, { color: active ? theme.ink : theme.muted, ...(active ? fonts.black : fonts.bold) }]}>{item.label}</Text>
           </Pressable>
         );
       })}
@@ -37,7 +37,7 @@ export function TournamentUnderlineNav({ activeKey, bordered = true, items, onSe
         const active = item.key === activeKey;
         return (
           <Pressable key={item.key} onPress={() => onSelect(item.key)} style={[styles.underlineItem, { borderBottomColor: active ? theme.accent : 'transparent' }]}>
-            <Text style={[styles.underlineText, { color: active ? theme.ink : theme.muted, fontFamily: fonts.display }]}>{item.label}</Text>
+            <Text style={[styles.underlineText, { color: active ? theme.ink : theme.muted, ...fonts.display }]}>{item.label}</Text>
           </Pressable>
         );
       })}

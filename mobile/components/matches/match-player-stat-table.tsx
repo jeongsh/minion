@@ -22,11 +22,11 @@ function GroupHeader({ team, label, won }: { team: MobileTeamSummary | null; lab
     <View style={[styles.headerRow, { backgroundColor: theme.card }]}>
       <View style={styles.headerIdentity}>
         {team ? <TeamLogo plain size={20} team={team} themeAware /> : null}
-        <Text numberOfLines={1} style={[styles.headerIdentityLabel, { color: theme.ink, fontFamily: fonts.bold }]}>{label}</Text>
-        {won ? <Text style={[styles.headerWin, { color: theme.accent, fontFamily: fonts.medium }]}>WIN</Text> : null}
+        <Text numberOfLines={1} style={[styles.headerIdentityLabel, { color: theme.ink, ...fonts.bold }]}>{label}</Text>
+        {won ? <Text style={[styles.headerWin, { color: theme.accent, ...fonts.medium }]}>WIN</Text> : null}
       </View>
-      <Text style={[styles.headerCell, { color: tournamentTokens[colorScheme].muted, fontFamily: fonts.medium, width: 56 }]}>KDA</Text>
-      <Text style={[styles.headerCell, { color: tournamentTokens[colorScheme].muted, fontFamily: fonts.medium, width: 84 }]}>아이템</Text>
+      <Text style={[styles.headerCell, { color: tournamentTokens[colorScheme].muted, ...fonts.medium, width: 56 }]}>KDA</Text>
+      <Text style={[styles.headerCell, { color: tournamentTokens[colorScheme].muted, ...fonts.medium, width: 84 }]}>아이템</Text>
     </View>
   );
 }
@@ -56,7 +56,7 @@ function PlayerRow({ line, isLast }: { line: MobileSetPlayerStat; isLast: boolea
             {loadout.champion.image?.url ? <Image contentFit="cover" source={{ uri: loadout.champion.image.url }} style={styles.championImage} /> : null}
             {line.championLevel ? (
               <View style={[styles.levelBadge, { backgroundColor: hexToRgba(theme.surface, 0.9) }]}>
-                <Text style={[styles.levelBadgeText, { color: theme.ink, fontFamily: fonts.medium }]}>{line.championLevel}</Text>
+                <Text style={[styles.levelBadgeText, { color: theme.ink, ...fonts.medium }]}>{line.championLevel}</Text>
               </View>
             ) : null}
           </View>
@@ -78,14 +78,14 @@ function PlayerRow({ line, isLast }: { line: MobileSetPlayerStat; isLast: boolea
           </View>
         </View>
         <View style={styles.nameBlock}>
-          <Text numberOfLines={1} style={[styles.playerName, { color: theme.text, fontFamily: fonts.bold }]}>{line.playerName}</Text>
-          <Text numberOfLines={1} style={[styles.championName, { color: tournamentTokens[colorScheme].muted, fontFamily: fonts.medium }]}>{loadout.champion.name}</Text>
+          <Text numberOfLines={1} style={[styles.playerName, { color: theme.text, ...fonts.bold }]}>{line.playerName}</Text>
+          <Text numberOfLines={1} style={[styles.championName, { color: tournamentTokens[colorScheme].muted, ...fonts.medium }]}>{loadout.champion.name}</Text>
         </View>
       </View>
 
       <View style={styles.kdaBlock}>
-        <Text style={[styles.kdaMain, { color: theme.ink, fontFamily: fonts.bold }]}>{line.kills} / {line.deaths} / {line.assists}</Text>
-        <Text style={[styles.kdaSub, { color: tournamentTokens[colorScheme].muted, fontFamily: fonts.medium }]}>{line.kda.toFixed(2)}</Text>
+        <Text style={[styles.kdaMain, { color: theme.ink, ...fonts.bold }]}>{line.kills} / {line.deaths} / {line.assists}</Text>
+        <Text style={[styles.kdaSub, { color: tournamentTokens[colorScheme].muted, ...fonts.medium }]}>{line.kda.toFixed(2)}</Text>
       </View>
 
       <View style={styles.itemGrid}>
@@ -125,14 +125,14 @@ export function MatchPlayerStatTable({ set }: { set: MobileSetDetail }) {
   if (set.playerStats.length === 0) {
     return (
       <View style={[styles.emptyBox, { backgroundColor: theme.surface }]}>
-        <Text style={{ color: theme.muted, fontFamily: fonts.medium, fontSize: 14 }}>선수 스탯이 아직 연결되지 않았습니다.</Text>
+        <Text style={{ color: theme.muted, ...fonts.medium, fontSize: 14 }}>선수 스탯이 아직 연결되지 않았습니다.</Text>
       </View>
     );
   }
 
   return (
     <View style={styles.sectionGap}>
-      <Text style={[styles.sectionHeading, { color: theme.ink, fontFamily: fonts.display }]}>선수 스탯</Text>
+      <Text style={[styles.sectionHeading, { color: theme.ink, ...fonts.display }]}>선수 스탯</Text>
       <View style={[styles.frame, { borderColor: theme.border }]}>
         <TeamGroup players={set.playerStats} set={set} side="blue" />
         <TeamGroup players={set.playerStats} set={set} side="red" />

@@ -92,7 +92,7 @@ export function ScheduleCalendarDialog({
             <View style={styles.detailHeader}>
               <Pressable onPress={() => setSelectedKey(null)} style={styles.detailBack}>
                 <ChevronLeft color={theme.ink} size={16} strokeWidth={2.5} />
-                <Text style={{ color: theme.ink, fontFamily: fonts.black, fontSize: 14, lineHeight: 17.5 }}>
+                <Text style={{ color: theme.ink, ...fonts.black, fontSize: 14, lineHeight: 17.5 }}>
                   {Number(selectedKey.split('-')[1])}월 {Number(selectedKey.split('-')[2])}일
                 </Text>
               </Pressable>
@@ -104,18 +104,18 @@ export function ScheduleCalendarDialog({
               {selectedMatches.map((match) => (
                 <Pressable key={match.id} onPress={() => goToMatch(match.id)} style={[styles.matchDetail, { backgroundColor: theme.card }]}>
                   <View style={styles.matchMeta}>
-                    <Text style={{ color: theme.muted, fontFamily: fonts.medium, fontSize: 13, lineHeight: 19.5 }}>{tournamentTypeLabel(match.tournament)}</Text>
+                    <Text style={{ color: theme.muted, ...fonts.medium, fontSize: 13, lineHeight: 19.5 }}>{tournamentTypeLabel(match.tournament)}</Text>
                     <View style={styles.matchTime}>
                       <Clock3 color="#00b979" size={12} strokeWidth={2.25} />
-                      <Text style={{ color: '#00b979', fontFamily: fonts.medium, fontSize: 13, lineHeight: 19.5 }}>{formatTimeKST(match.startsAt)}</Text>
+                      <Text style={{ color: '#00b979', ...fonts.medium, fontSize: 13, lineHeight: 19.5 }}>{formatTimeKST(match.startsAt)}</Text>
                     </View>
                   </View>
                   <View style={styles.detailTeams}>
                     <CalendarTeamLogo team={match.teamA} />
-                    <Text style={{ color: theme.ink, fontFamily: fonts.black, fontSize: 14, lineHeight: 17.5 }}>{match.teamA?.shortName ?? 'TBD'}</Text>
-                    <Text style={{ color: theme.muted, fontFamily: fonts.medium, fontSize: 13, lineHeight: 19.5 }}>vs</Text>
+                    <Text style={{ color: theme.ink, ...fonts.black, fontSize: 14, lineHeight: 17.5 }}>{match.teamA?.shortName ?? 'TBD'}</Text>
+                    <Text style={{ color: theme.muted, ...fonts.medium, fontSize: 13, lineHeight: 19.5 }}>vs</Text>
                     <CalendarTeamLogo team={match.teamB} />
-                    <Text style={{ color: theme.ink, fontFamily: fonts.black, fontSize: 14, lineHeight: 17.5 }}>{match.teamB?.shortName ?? 'TBD'}</Text>
+                    <Text style={{ color: theme.ink, ...fonts.black, fontSize: 14, lineHeight: 17.5 }}>{match.teamB?.shortName ?? 'TBD'}</Text>
                   </View>
                 </Pressable>
               ))}
@@ -132,11 +132,11 @@ export function ScheduleCalendarDialog({
                   <ChevronRight color={theme.muted} size={14} strokeWidth={2.25} />
                 </Pressable>
               </View>
-              <Text style={[styles.caption, { color: theme.ink, fontFamily: fonts.black }]}>{year}년 {month + 1}월</Text>
+              <Text style={[styles.caption, { color: theme.ink, ...fonts.black }]}>{year}년 {month + 1}월</Text>
             </View>
             <View style={styles.weekRow}>
               {WEEKDAYS.map((weekday) => (
-                <Text key={weekday} style={[styles.weekday, { color: theme.muted, fontFamily: fonts.medium }]}>{weekday}</Text>
+                <Text key={weekday} style={[styles.weekday, { color: theme.muted, ...fonts.medium }]}>{weekday}</Text>
               ))}
             </View>
             <View>
@@ -153,7 +153,7 @@ export function ScheduleCalendarDialog({
                           disabled={dayMatches.length === 0}
                           onPress={() => setSelectedKey(key)}
                           style={[styles.dayButton, isToday && { backgroundColor: `${theme.ink}1f` }]}>
-                          <Text style={[styles.dayText, { color: outside ? '#b0b3b8' : theme.text, fontFamily: fonts.medium }]}>{day.getDate()}</Text>
+                          <Text style={[styles.dayText, { color: outside ? '#b0b3b8' : theme.text, ...fonts.medium }]}>{day.getDate()}</Text>
                           <View style={styles.dots}>{dayMatches.length ? <View style={[styles.dot, { backgroundColor: '#00b979' }]} /> : null}</View>
                         </Pressable>
                       </View>
@@ -168,7 +168,7 @@ export function ScheduleCalendarDialog({
           {LEGEND.map((item) => (
             <View key={item.label} style={styles.legendItem}>
               <View style={[styles.legendDot, { backgroundColor: item.color }]} />
-              <Text style={{ color: theme.muted, fontFamily: fonts.medium, fontSize: 13, lineHeight: 19.5 }}>{item.label}</Text>
+              <Text style={{ color: theme.muted, ...fonts.medium, fontSize: 13, lineHeight: 19.5 }}>{item.label}</Text>
             </View>
           ))}
         </View>

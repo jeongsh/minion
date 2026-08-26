@@ -74,21 +74,21 @@ export function CommunityComposeScreen({ edit = false, scope = 'hub' }: { edit?:
       <View style={[styles.safeTop, { backgroundColor: theme.pageBackground, height: insets.top }]} />
       <View style={[styles.header, { borderBottomColor: theme.divider, marginTop: insets.top }]}>
         <Pressable accessibilityLabel="이전 화면" onPress={close} style={styles.headerButton}><ChevronLeft color={theme.text} size={22} /></Pressable>
-        <Text numberOfLines={1} style={[styles.headerTitle, { color: theme.ink, fontFamily: fonts.display }]}>{edit ? '글 수정' : '글쓰기'}</Text>
+        <Text numberOfLines={1} style={[styles.headerTitle, { color: theme.ink, ...fonts.display }]}>{edit ? '글 수정' : '글쓰기'}</Text>
         <Pressable accessibilityLabel={submitting ? '등록 중' : edit ? '수정' : '등록'} disabled={submitting || length > POST_TEXT_MAX_LENGTH} onPress={() => void submit()} style={({ pressed }) => [styles.headerSubmit, { backgroundColor: accent, opacity: submitting || length > POST_TEXT_MAX_LENGTH ? 0.4 : pressed ? 0.78 : 1 }]}>
-          {submitting ? <ActivityIndicator color="#ffffff" size="small" /> : <Text style={{ color: '#ffffff', fontFamily: fonts.medium, fontSize: 14 }}>{edit ? '수정' : '등록'}</Text>}
+          {submitting ? <ActivityIndicator color="#ffffff" size="small" /> : <Text style={{ color: '#ffffff', ...fonts.medium, fontSize: 14 }}>{edit ? '수정' : '등록'}</Text>}
         </Pressable>
       </View>
       <View style={styles.content}>
         <View style={[styles.heading, { borderBottomColor: theme.border }]}>
           <View style={styles.categoryWrap}>
             <Pressable accessibilityLabel="말머리 선택" accessibilityState={{ expanded: categoryOpen }} onPress={() => setCategoryOpen((open) => !open)} style={[styles.category, { backgroundColor: theme.surface, borderColor: categoryOpen ? theme.ink : theme.border }]}>
-              <Text style={{ color: theme.text, fontFamily: fonts.medium, fontSize: 14 }}>{boardLabel(category, scope)}</Text>
+              <Text style={{ color: theme.text, ...fonts.medium, fontSize: 14 }}>{boardLabel(category, scope)}</Text>
               <ChevronDown color={theme.muted} size={16} strokeWidth={1.8} style={{ transform: [{ rotate: categoryOpen ? '180deg' : '0deg' }] }} />
             </Pressable>
-            {categoryOpen ? <View accessibilityLabel="말머리 선택 목록" style={[styles.categoryMenu, { backgroundColor: theme.surface, borderColor: theme.border }]}>{boards.map((board) => <Pressable accessibilityRole="menuitem" key={board.slug} onPress={() => { setCategory(board.slug); setCategoryOpen(false); }} style={({ pressed }) => [styles.categoryOption, category === board.slug || pressed ? { backgroundColor: theme.surfaceMuted } : null]}><Text style={{ color: category === board.slug ? theme.ink : theme.text, flex: 1, fontFamily: fonts.medium, fontSize: 14 }}>{board.label}</Text>{category === board.slug ? <Check color={theme.ink} size={17} /> : null}</Pressable>)}</View> : null}
+            {categoryOpen ? <View accessibilityLabel="말머리 선택 목록" style={[styles.categoryMenu, { backgroundColor: theme.surface, borderColor: theme.border }]}>{boards.map((board) => <Pressable accessibilityRole="menuitem" key={board.slug} onPress={() => { setCategory(board.slug); setCategoryOpen(false); }} style={({ pressed }) => [styles.categoryOption, category === board.slug || pressed ? { backgroundColor: theme.surfaceMuted } : null]}><Text style={{ color: category === board.slug ? theme.ink : theme.text, flex: 1, ...fonts.medium, fontSize: 14 }}>{board.label}</Text>{category === board.slug ? <Check color={theme.ink} size={17} /> : null}</Pressable>)}</View> : null}
           </View>
-          <TextInput accessibilityLabel="제목" maxLength={POST_TITLE_MAX_LENGTH} onChangeText={setTitle} placeholder="제목을 입력하세요" placeholderTextColor={colorWithAlpha(theme.muted, 0.55)} style={[styles.titleInput, { color: theme.ink, fontFamily: title ? fonts.bold : fonts.medium }]} value={title} />
+          <TextInput accessibilityLabel="제목" maxLength={POST_TITLE_MAX_LENGTH} onChangeText={setTitle} placeholder="제목을 입력하세요" placeholderTextColor={colorWithAlpha(theme.muted, 0.55)} style={[styles.titleInput, { color: theme.ink, ...(title ? fonts.bold : fonts.medium) }]} value={title} />
         </View>
         <View style={styles.editor}><CommunityRichEditor allowEmbeds={Boolean(session)} allowMedia characterCount={length} characterLimit={POST_TEXT_MAX_LENGTH} maxImages={session ? 10 : 1} onChange={setDocument} value={document} /></View>
       </View>

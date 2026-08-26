@@ -19,10 +19,10 @@ export function FanSectionHeading({ children, href }: { children: ReactNode; hre
   const { fonts, theme } = useMinionTheme();
   return (
     <View style={styles.headingRow}>
-      <Text style={[styles.heading, { color: theme.ink, fontFamily: fonts.display }]}>{children}</Text>
+      <Text style={[styles.heading, { color: theme.ink, ...fonts.display }]}>{children}</Text>
       {href ? (
         <Pressable accessibilityRole="link" onPress={() => router.navigate(href as never)} style={styles.headingLink}>
-          <Text style={[styles.headingLinkText, { color: theme.muted, fontFamily: fonts.bold }]}>전체보기</Text>
+          <Text style={[styles.headingLinkText, { color: theme.muted, ...fonts.bold }]}>전체보기</Text>
           <ChevronRight color={theme.muted} size={16} />
         </Pressable>
       ) : null}
@@ -46,15 +46,15 @@ export function FanPlayerCard({ href, player, teamName }: { href: string; player
         {imageUrl ? (
           <Image accessibilityLabel={player.name} contentFit="cover" contentPosition="top" source={{ uri: imageUrl }} style={StyleSheet.absoluteFill} transition={120} />
         ) : (
-          <View style={styles.playerFallback}><Text style={{ color: theme.muted, fontFamily: fonts.black, fontSize: 18 }}>{player.name.slice(0, 2).toUpperCase()}</Text></View>
+          <View style={styles.playerFallback}><Text style={{ color: theme.muted, ...fonts.black, fontSize: 18 }}>{player.name.slice(0, 2).toUpperCase()}</Text></View>
         )}
         <View style={styles.positionBadge}>
-          <Text style={{ color: '#ffffff', fontFamily: fonts.medium, fontSize: 11, lineHeight: 16.5 }}>{player.position}</Text>
+          <Text style={{ color: '#ffffff', ...fonts.medium, fontSize: 11, lineHeight: 16.5 }}>{player.position}</Text>
         </View>
       </View>
       <View style={styles.playerBody}>
-        <Text numberOfLines={1} style={{ color: theme.ink, fontFamily: fonts.black, fontSize: 16, lineHeight: 24 }}>{player.name}</Text>
-        <Text numberOfLines={1} style={{ color: theme.muted, fontFamily: fonts.bold, fontSize: 13, lineHeight: 19.5, marginTop: 2 }}>{meta}</Text>
+        <Text numberOfLines={1} style={{ color: theme.ink, ...fonts.black, fontSize: 16, lineHeight: 24 }}>{player.name}</Text>
+        <Text numberOfLines={1} style={{ color: theme.muted, ...fonts.bold, fontSize: 13, lineHeight: 19.5, marginTop: 2 }}>{meta}</Text>
       </View>
     </Pressable>
   );
@@ -89,8 +89,8 @@ export function FanOwnerTabs({ activeKey, onChange, tabs }: { activeKey: string;
             onPress={() => onChange(tab.key)}
             style={[styles.tab, active ? { backgroundColor: theme.ink, borderColor: theme.ink } : { backgroundColor: theme.surface, borderColor: theme.border }]}
           >
-            <Text style={{ color: active ? theme.surface : theme.text, fontFamily: fonts.bold, fontSize: 13, lineHeight: 19.5 }}>{tab.label}</Text>
-            <Text style={{ color: active ? theme.surface : theme.muted, fontFamily: fonts.bold, fontSize: 12, lineHeight: 18, opacity: active ? 0.7 : 1 }}>{tab.count}</Text>
+            <Text style={{ color: active ? theme.surface : theme.text, ...fonts.bold, fontSize: 13, lineHeight: 19.5 }}>{tab.label}</Text>
+            <Text style={{ color: active ? theme.surface : theme.muted, ...fonts.bold, fontSize: 12, lineHeight: 18, opacity: active ? 0.7 : 1 }}>{tab.count}</Text>
           </Pressable>
         );
       })}
@@ -105,18 +105,18 @@ export function FanVideoThumbnail({ compact = false, item }: { compact?: boolean
   return (
     <>
       <View style={[styles.videoImage, { backgroundColor: '#17181b' }]}> 
-        {imageUrl ? <Image contentFit="cover" source={{ uri: imageUrl }} style={StyleSheet.absoluteFill} transition={120} /> : <Text style={[styles.youtubeFallback, { fontFamily: fonts.bold }]}>YouTube</Text>}
-        {isNew ? <View style={styles.newBadge}><Text style={{ color: '#ffffff', fontFamily: fonts.medium, fontSize: 12, lineHeight: 18 }}>NEW</Text></View> : null}
+        {imageUrl ? <Image contentFit="cover" source={{ uri: imageUrl }} style={StyleSheet.absoluteFill} transition={120} /> : <Text style={[styles.youtubeFallback, { ...fonts.bold }]}>YouTube</Text>}
+        {isNew ? <View style={styles.newBadge}><Text style={{ color: '#ffffff', ...fonts.medium, fontSize: 12, lineHeight: 18 }}>NEW</Text></View> : null}
       </View>
-      <Text numberOfLines={2} style={[compact ? styles.videoCompactTitle : styles.videoTitle, { color: theme.ink, fontFamily: fonts.medium }]}>{item.title}</Text>
-      <Text numberOfLines={1} style={[compact ? styles.videoOwnerPill : styles.videoOwner, { borderColor: theme.muted, color: theme.muted, fontFamily: fonts.medium }]}>{item.channelName ?? ''}</Text>
+      <Text numberOfLines={2} style={[compact ? styles.videoCompactTitle : styles.videoTitle, { color: theme.ink, ...fonts.medium }]}>{item.title}</Text>
+      <Text numberOfLines={1} style={[compact ? styles.videoOwnerPill : styles.videoOwner, { borderColor: theme.muted, color: theme.muted, ...fonts.medium }]}>{item.channelName ?? ''}</Text>
     </>
   );
 }
 
 export function FanEmpty({ children }: { children: ReactNode }) {
   const { fonts, theme } = useMinionTheme();
-  return <View style={[styles.empty, { borderColor: theme.border }]}><Text style={{ color: theme.muted, fontFamily: fonts.regular, fontSize: 14, lineHeight: 21, textAlign: 'center' }}>{children}</Text></View>;
+  return <View style={[styles.empty, { borderColor: theme.border }]}><Text style={{ color: theme.muted, ...fonts.regular, fontSize: 14, lineHeight: 21, textAlign: 'center' }}>{children}</Text></View>;
 }
 
 const styles = StyleSheet.create({

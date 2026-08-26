@@ -197,7 +197,7 @@ function BracketColumnView({
     <View style={styles.column}>
       {column.matches.length > 0 ? (
         <View style={styles.columnSection}>
-          <Text style={[styles.columnHeader, { color: tokens.muted, fontFamily: fonts.medium }]}>{column.label.toUpperCase()}</Text>
+          <Text style={[styles.columnHeader, { color: tokens.muted, ...fonts.medium }]}>{column.label.toUpperCase()}</Text>
           <View style={styles.matchStack}>
             {column.matches.map((match) => (
               <BracketMatchCard key={match.id} match={match} registerMatch={registerMatch} />
@@ -209,7 +209,7 @@ function BracketColumnView({
         <>
           <View style={{ height: maxUpperHeight - ownUpperHeight + ROW_GAP }} />
           <View style={styles.columnSection}>
-            <Text style={[styles.columnHeader, { color: tokens.muted, fontFamily: fonts.medium }]}>{(column.lowerLabel ?? '').toUpperCase()}</Text>
+            <Text style={[styles.columnHeader, { color: tokens.muted, ...fonts.medium }]}>{(column.lowerLabel ?? '').toUpperCase()}</Text>
             <View style={styles.matchStack}>
               {column.lowerMatches.map((match) => (
                 <BracketMatchCard key={match.id} match={match} registerMatch={registerMatch} />
@@ -228,7 +228,7 @@ function BracketFinalsColumn({ accent, finals, registerMatch }: { accent: string
 
   return (
     <View style={styles.finalsColumn}>
-      <Text style={[styles.columnHeader, { color: tokens.muted, fontFamily: fonts.medium }]}>{finals.label.toUpperCase()}</Text>
+      <Text style={[styles.columnHeader, { color: tokens.muted, ...fonts.medium }]}>{finals.label.toUpperCase()}</Text>
       <View style={styles.finalsCenter}>
         <BracketMatchCard accent={accent} final match={finals.match} registerMatch={registerMatch} teamAPlaceholder="Upper winner" teamBPlaceholder="Lower winner" />
       </View>
@@ -260,7 +260,7 @@ function BracketMatchCard({
 
   return (
     <View style={styles.matchUnit}>
-      <Text numberOfLines={1} style={[styles.dateLabel, { color: tokens.muted, fontFamily: fonts.medium }]}>{formatBracketDateTime(match.matchDate)}</Text>
+      <Text numberOfLines={1} style={[styles.dateLabel, { color: tokens.muted, ...fonts.medium }]}>{formatBracketDateTime(match.matchDate)}</Text>
       <Pressable
         onLayout={() => registerMatch(match.id, nodeRef.current)}
         onPress={() => router.navigate(`/matches/${encodeURIComponent(match.id)}` as never)}
@@ -300,10 +300,10 @@ function BracketTeamRow({
     <View style={styles.teamRow}>
       <View style={[styles.accentBar, { backgroundColor: team?.primaryColor ?? accent ?? tokens.muted }]} />
       <TeamLogo plain size={20} team={team} themeAware />
-      <Text numberOfLines={1} style={[styles.teamName, { color: textColor, fontFamily: isWinner ? fonts.bold : fonts.medium }]}>
+      <Text numberOfLines={1} style={[styles.teamName, { color: textColor, ...(isWinner ? fonts.bold : fonts.medium) }]}>
         {team?.name ?? placeholder ?? 'TBD'}
       </Text>
-      <Text style={[styles.score, { color: textColor, fontFamily: isWinner ? fonts.bold : fonts.medium }]}>{score ?? '-'}</Text>
+      <Text style={[styles.score, { color: textColor, ...(isWinner ? fonts.bold : fonts.medium) }]}>{score ?? '-'}</Text>
     </View>
   );
 }

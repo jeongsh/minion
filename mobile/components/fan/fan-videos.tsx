@@ -27,7 +27,7 @@ export function FanVideos({ items, teamName }: { items: MobileVideoItem[]; teamN
         <View accessibilityLabel="영상 목록" style={styles.grid}>
           {visible.map((item) => <Pressable accessibilityLabel={`${item.title} 영상 열기`} accessibilityRole="link" key={item.id} onPress={() => void openVideo(item)} style={styles.card}><FanVideoThumbnail item={item} /></Pressable>)}
         </View>
-        {visibleCount < filtered.length ? <Pressable onPress={() => setVisibleCount((count) => Math.min(filtered.length, count + 12))} style={[styles.moreButton, { borderColor: theme.border }]}><Text style={{ color: theme.text, fontFamily: fonts.bold, fontSize: 13 }}>영상 더 보기</Text></Pressable> : filtered.length > 12 ? <Text style={[styles.complete, { color: theme.muted, fontFamily: fonts.medium }]}>모든 영상을 확인했습니다.</Text> : null}
+        {visibleCount < filtered.length ? <Pressable onPress={() => setVisibleCount((count) => Math.min(filtered.length, count + 12))} style={[styles.moreButton, { borderColor: theme.border }]}><Text style={{ color: theme.text, ...fonts.bold, fontSize: 13 }}>영상 더 보기</Text></Pressable> : filtered.length > 12 ? <Text style={[styles.complete, { color: theme.muted, ...fonts.medium }]}>모든 영상을 확인했습니다.</Text> : null}
         </>
       ) : <FanEmpty>아직 동기화된 YouTube 영상이 없습니다.</FanEmpty>}
     </View>

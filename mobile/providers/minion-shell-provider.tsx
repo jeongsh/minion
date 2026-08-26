@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFonts } from 'expo-font';
+import { Image } from 'expo-image';
 import * as SplashScreen from 'expo-splash-screen';
 import * as SystemUI from 'expo-system-ui';
 import CheckCircle2 from 'lucide-react-native/icons/circle-check-big';
@@ -15,7 +16,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { Platform, StyleSheet, Text, useColorScheme, View } from 'react-native';
+import { Platform, StyleSheet, Text, type TextStyle, useColorScheme, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { minionRadius, minionSize, minionThemes, type MinionTheme } from '@/constants/minion-theme';
@@ -23,19 +24,22 @@ import { getMinionTeam, type MinionTeam } from '@/constants/teams';
 
 const THEME_KEY = 'minion-theme';
 const FAVORITE_TEAM_KEY = 'minion-favorite-team';
+const PRETENDARD_WEB_STACK = 'Pretendard, -apple-system, BlinkMacSystemFont, system-ui, "Segoe UI", sans-serif';
+const PAPEROZI_WEB_STACK = 'Paperozi, Pretendard, sans-serif';
 
 type ColorScheme = 'light' | 'dark';
+type ToastCharacter = 'attendance' | 'prediction';
 type ToastTone = 'success' | 'info' | 'error';
-type ToastState = { id: number; message: string; tone: ToastTone } | null;
+type ToastState = { character?: ToastCharacter; id: number; message: string; tone: ToastTone } | null;
 
 type ShellContextValue = {
   colorScheme: ColorScheme;
   favoriteTeam: MinionTeam | null;
-  fonts: { regular?: string; medium?: string; bold?: string; black?: string; display?: string };
+  fonts: { regular: TextStyle; medium: TextStyle; bold: TextStyle; black: TextStyle; display: TextStyle };
   openTeamPicker: () => void;
   setFavoriteTeam: (team: MinionTeam | null) => void;
   setTeamPickerOpen: (open: boolean) => void;
-  showToast: (message: string, tone?: ToastTone) => void;
+  showToast: (message: string, tone?: ToastTone, character?: ToastCharacter) => void;
   teamPickerOpen: boolean;
   theme: MinionTheme;
   toggleTheme: () => void;
@@ -108,9 +112,9 @@ export function MinionShellProvider({ children }: PropsWithChildren) {
 
   const openTeamPicker = useCallback(() => setTeamPickerOpen(true), []);
 
-  const showToast = useCallback((message: string, tone: ToastTone = 'info') => {
+  const showToast = useCallback((message: string, tone: ToastTone = 'info', character?: ToastCharacter) => {
     if (toastTimer.current) clearTimeout(toastTimer.current);
-    setToast({ id: Date.now(), message, tone });
+    setToast({ character, id: Date.now(), message, tone });
     toastTimer.current = setTimeout(() => setToast(null), 2600);
   }, []);
 
@@ -118,11 +122,11 @@ export function MinionShellProvider({ children }: PropsWithChildren) {
     colorScheme,
     favoriteTeam,
     fonts: {
-      regular: fontsLoaded ? 'Pretendard-Regular' : undefined,
-      medium: fontsLoaded ? 'Pretendard-Medium' : undefined,
-      bold: fontsLoaded ? 'Pretendard-Bold' : undefined,
-      black: fontsLoaded ? 'Pretendard-Black' : undefined,
-      display: fontsLoaded ? 'Paperlogy-Bold' : undefined,
+      regular: fontsLoaded ? Platform.select({ web: { fontFamily: PRETENDARD_WEB_STACK, fontWeight: '400' }, default: { fontFamily: 'Pretendard-Regular', fontWeight: '400' } }) : {},
+      medium: fontsLoaded ? Platform.select({ web: { fontFamily: PRETENDARD_WEB_STACK, fontWeight: '500' }, default: { fontFamily: 'Pretendard-Medium', fontWeight: '500' } }) : {},
+      bold: fontsLoaded ? Platform.select({ web: { fontFamily: PRETENDARD_WEB_STACK, fontWeight: '700' }, default: { fontFamily: 'Pretendard-Bold', fontWeight: '700' } }) : {},
+      black: fontsLoaded ? Platform.select({ web: { fontFamily: PRETENDARD_WEB_STACK, fontWeight: '900' }, default: { fontFamily: 'Pretendard-Black', fontWeight: '900' } }) : {},
+      display: fontsLoaded ? Platform.select({ web: { fontFamily: PAPEROZI_WEB_STACK, fontWeight: '400' }, default: { fontFamily: 'Paperlogy-Bold', fontWeight: '400' } }) : {},
     },
     openTeamPicker,
     setFavoriteTeam,
@@ -156,8 +160,14 @@ function ToastViewport({ toast }: { toast: ToastState }) {
   return (
     <View style={[styles.toastWrap, { top: insets.top + 62 }]}>
       <View accessibilityLiveRegion="polite" style={[styles.toast, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-        <Icon color={color} size={19} strokeWidth={2.2} />
-        <Text style={{ color: theme.text, flex: 1, fontFamily: fonts.medium, fontSize: 14 }}>{toast.message}</Text>
+        {toast.character ? (
+          <Image
+            contentFit="contain"
+            source={toast.character === 'attendance' ? require('@/assets/characters/flag-3.png') : require('@/assets/characters/flag-2.png')}
+            style={styles.toastCharacter}
+          />
+        ) : <Icon color={color} size={19} strokeWidth={2.2} />}
+        <Text style={{ color: theme.text, flex: 1, ...fonts.medium, fontSize: 14 }}>{toast.message}</Text>
       </View>
     </View>
   );
@@ -166,4 +176,5 @@ function ToastViewport({ toast }: { toast: ToastState }) {
 const styles = StyleSheet.create({
   toastWrap: { alignItems: 'center', left: 16, pointerEvents: 'none', position: 'absolute', right: 16, zIndex: 1000 },
   toast: { alignItems: 'center', borderRadius: 14, borderWidth: 1, boxShadow: '0 5px 12px rgba(0,0,0,0.18)', elevation: 8, flexDirection: 'row', gap: 10, maxWidth: 420, paddingHorizontal: 16, paddingVertical: 13, width: '100%' },
+  toastCharacter: { height: 36, width: 36 },
 });

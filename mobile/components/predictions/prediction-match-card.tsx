@@ -12,16 +12,16 @@ export function PredictionMatchCard({ match, now, onChooseTeam }: { match: Mobil
   return (
     <View>
       <View style={styles.metaRow}>
-        <Text style={[styles.metaTime, { color: theme.ink, fontFamily: fonts.bold }]}>{predictionTimeLabel(match.startsAt)}</Text>
+        <Text style={[styles.metaTime, { color: theme.ink, ...fonts.bold }]}>{predictionTimeLabel(match.startsAt)}</Text>
         <View style={styles.metaRight}>
           <Clock3 color={theme.muted} size={13} />
-          <Text style={[styles.metaDeadline, { color: theme.muted, fontFamily: fonts.bold }]}>{deadlineLabel(match.startsAt, match.closed, now)}</Text>
+          <Text style={[styles.metaDeadline, { color: theme.muted, ...fonts.bold }]}>{deadlineLabel(match.startsAt, match.closed, now)}</Text>
         </View>
       </View>
       <View style={[styles.card, { backgroundColor: colorScheme === 'dark' ? theme.surfaceMuted : theme.surface, borderColor: match.myBet ? theme.accent : theme.border }]}>
         <TeamChoice disabled={match.closed} onPress={() => match.teamA && onChooseTeam(match.teamA.id)} percent={match.market.teamAPercent} selected={match.myBet?.teamId === match.teamA?.id} team={match.teamA} odds={match.market.teamAOdds} />
         <View style={styles.vsColumn}>
-          <Text style={[styles.vsText, { color: theme.muted, fontFamily: fonts.black }]}>VS</Text>
+          <Text style={[styles.vsText, { color: theme.muted, ...fonts.black }]}>VS</Text>
         </View>
         <TeamChoice disabled={match.closed} onPress={() => match.teamB && onChooseTeam(match.teamB.id)} percent={match.market.teamBPercent} selected={match.myBet?.teamId === match.teamB?.id} team={match.teamB} odds={match.market.teamBOdds} right />
       </View>
@@ -53,14 +53,14 @@ function TeamChoice({
       <View style={[styles.choiceInfo, right && styles.choiceInfoRight]}>
         <TeamLogo plain size={28} team={team} themeAware />
         <View style={[styles.choiceNameRow, right && styles.choiceNameRowRight]}>
-          <Text numberOfLines={1} style={[styles.choiceName, { color: theme.ink, fontFamily: fonts.black }]}>{team?.shortName ?? 'TBD'}</Text>
-          <Text style={[styles.choiceOdds, { color: theme.muted, fontFamily: fonts.medium }]}>
+          <Text numberOfLines={1} style={[styles.choiceName, { color: theme.ink, ...fonts.black }]}>{team?.shortName ?? 'TBD'}</Text>
+          <Text style={[styles.choiceOdds, { color: theme.muted, ...fonts.medium }]}>
             {odds === null ? '1.00' : odds.toFixed(2)}
             <Text style={styles.choiceOddsUnit}> 배</Text>
           </Text>
         </View>
       </View>
-      <Text style={[styles.choicePercent, { color: theme.ink, fontFamily: fonts.black }]}>
+      <Text style={[styles.choicePercent, { color: theme.ink, ...fonts.black }]}>
         {percent}
         <Text style={[styles.choicePercentSign, { color: theme.muted }]}>%</Text>
       </Text>

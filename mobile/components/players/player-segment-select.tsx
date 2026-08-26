@@ -24,7 +24,7 @@ export function PlayerSegmentSelect({ accent, activeSegment, onClose, onOpen, on
         accessibilityState={{ expanded: open }}
         onPress={onOpen}
         style={[styles.control, { backgroundColor: theme.card, borderColor: theme.border }]}>
-        <Text numberOfLines={1} style={{ color: theme.ink, flex: 1, fontFamily: fonts.medium, fontSize: 14, lineHeight: 20 }}>{selected?.label ?? '-'}</Text>
+        <Text numberOfLines={1} style={{ color: theme.ink, flex: 1, ...fonts.medium, fontSize: 14, lineHeight: 20 }}>{selected?.label ?? '-'}</Text>
         <ChevronDown color={theme.muted} size={16} />
       </Pressable>
       <BottomSheet contentStyle={styles.options} onClose={onClose} open={open} title="대회 구간">
@@ -37,7 +37,7 @@ export function PlayerSegmentSelect({ accent, activeSegment, onClose, onOpen, on
               key={option.value}
               onPress={() => onSelect(option.value)}
               style={({ pressed }) => [styles.option, pressed && { backgroundColor: theme.cardHover }]}>
-              <Text style={{ color: active ? accent : theme.text, flex: 1, fontFamily: fonts.medium, fontSize: 16, lineHeight: 24 }}>{option.label}</Text>
+              <Text style={{ color: active ? accent : theme.text, flex: 1, ...fonts.medium, fontSize: 16, lineHeight: 24 }}>{option.label}</Text>
               {active ? <Check color={accent} size={19} strokeWidth={2.4} /> : null}
             </Pressable>
           );

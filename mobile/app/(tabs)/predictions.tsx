@@ -85,7 +85,7 @@ export default function PredictionsScreen() {
       });
       setBalanceOverride(result.balance);
       setDialog(null);
-      showToast(`${dialog.teamName} 승리 예측이 확정됐습니다.`, 'success');
+      showToast(`${dialog.teamName} 승리 예측이 확정됐습니다.`, 'success', 'prediction');
       refresh();
       await refreshViewer();
     } catch (caught) {
@@ -106,7 +106,7 @@ export default function PredictionsScreen() {
       const result = await mutateMobileApi<MobilePredictionMutationDto>('/api/mobile/v1/predictions', 'DELETE', { matchId: dialog.matchId });
       setBalanceOverride(result.balance);
       setDialog(null);
-      showToast(`${refundedStake.toLocaleString('ko-KR')} LP가 반환됐습니다.`, 'success');
+      showToast(`${refundedStake.toLocaleString('ko-KR')} LP가 반환됐습니다.`, 'success', 'prediction');
       refresh();
       await refreshViewer();
     } catch (caught) {
@@ -154,10 +154,10 @@ export default function PredictionsScreen() {
           {groupedEntries.map(([date, dayMatches]) => (
             <View key={date}>
               <View style={styles.headingRow}>
-                <Text style={[styles.heading, { color: theme.ink, fontFamily: fonts.black }]}>{predictionDateLabel(dayMatches[0].startsAt)}</Text>
+                <Text style={[styles.heading, { color: theme.ink, ...fonts.black }]}>{predictionDateLabel(dayMatches[0].startsAt)}</Text>
                 {date === todayKey ? (
                   <View style={[styles.todayBadge, { backgroundColor: theme.accent }]}>
-                    <Text style={[styles.todayBadgeText, { color: theme.accentForeground, fontFamily: fonts.medium }]}>오늘</Text>
+                    <Text style={[styles.todayBadgeText, { color: theme.accentForeground, ...fonts.medium }]}>오늘</Text>
                   </View>
                 ) : null}
               </View>

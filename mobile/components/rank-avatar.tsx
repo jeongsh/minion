@@ -1,6 +1,7 @@
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Defs, LinearGradient as SvgLinearGradient, Path, Stop } from 'react-native-svg';
+import { useId } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { useMinionTheme } from '@/hooks/use-minion-theme';
@@ -37,8 +38,9 @@ function normalizeTier(value: string | null | undefined): Tier {
   return TIERS.includes(value as Tier) ? value as Tier : 'bronze';
 }
 
-export function RankAvatar({ fallback = 'MY', profileImageUrl, size = 'compact', tier }: { fallback?: string; profileImageUrl?: string | null; size?: 'reply' | 'compact' | 'comment' | 'detail' | 'mobile' | 'profile' | 'large'; tier?: string | null }) {
+export function RankAvatar({ fallback = 'MY', profileImageUrl, reserveMedalSpace = false, size = 'compact', tier }: { fallback?: string; profileImageUrl?: string | null; reserveMedalSpace?: boolean; size?: 'reply' | 'compact' | 'comment' | 'detail' | 'mobile' | 'profile' | 'large'; tier?: string | null }) {
   const { fonts, theme } = useMinionTheme();
+  const gradientId = useId().replace(/:/g, '');
   const normalizedTier = normalizeTier(tier);
   const finish = TIER_FINISHES[normalizedTier];
   const uri = resolveApiAssetUrl(profileImageUrl);
@@ -55,8 +57,9 @@ export function RankAvatar({ fallback = 'MY', profileImageUrl, size = 'compact',
         : size === 'reply'
           ? { avatar: 24, frameInset: 2, frameRadius: 10, medal: 8, medalBottom: -1, medalLeft: 8, ringRadius: 12 }
         : { avatar: 32, frameInset: 2.5, frameRadius: 13.5, medal: 10, medalBottom: -2, medalLeft: 11, ringRadius: 16 };
+  const medalOverlap = Math.max(2, Math.round(dimensions.medal * 0.18));
   return (
-    <View accessibilityLabel={`${TIER_LABELS[normalizedTier]} 티어 프로필`} accessibilityRole="image" style={{ alignItems: 'center', height: dimensions.avatar, justifyContent: 'center', width: dimensions.avatar }}>
+    <View accessibilityLabel={`${TIER_LABELS[normalizedTier]} 티어 프로필`} accessibilityRole="image" style={{ alignItems: 'center', height: dimensions.avatar + (reserveMedalSpace ? medalOverlap : 0), justifyContent: reserveMedalSpace ? 'flex-start' : 'center', overflow: 'visible', width: dimensions.avatar }}>
       <View style={[styles.avatar, { borderRadius: dimensions.ringRadius, height: dimensions.avatar, shadowColor: finish.shadow, transform: scaled ? [{ scale: 0.875 }] : undefined, width: dimensions.avatar }]}> 
         <LinearGradient colors={finish.ring} end={{ x: 1, y: 1 }} locations={[0, 0.42, 0.72, 1]} start={{ x: 0, y: 0 }} style={[StyleSheet.absoluteFill, { borderRadius: dimensions.ringRadius }]} />
         <View pointerEvents="none" style={[styles.outerStroke, { borderRadius: dimensions.ringRadius + 1 }]} />
@@ -65,16 +68,16 @@ export function RankAvatar({ fallback = 'MY', profileImageUrl, size = 'compact',
           {uri ? (
             <Image contentFit="cover" source={{ uri }} style={[StyleSheet.absoluteFill, { borderRadius: dimensions.frameRadius }]} />
           ) : (
-            <Text style={{ color: theme.muted, fontFamily: fonts.medium, fontSize: size === 'large' ? 27 : size === 'profile' ? 20 : size === 'mobile' ? 16 : size === 'detail' || size === 'reply' ? 11 : 10, lineHeight: size === 'large' ? 32 : size === 'profile' ? 24 : size === 'mobile' ? 20 : size === 'detail' ? 14 : size === 'reply' ? 12 : 12 }}>{fallback.slice(0, 2).toUpperCase()}</Text>
+            <Text style={{ color: theme.muted, ...fonts.medium, fontSize: size === 'large' ? 27 : size === 'profile' ? 20 : size === 'mobile' ? 16 : size === 'detail' || size === 'reply' ? 11 : 10, lineHeight: size === 'large' ? 32 : size === 'profile' ? 24 : size === 'mobile' ? 20 : size === 'detail' ? 14 : size === 'reply' ? 12 : 12 }}>{fallback.slice(0, 2).toUpperCase()}</Text>
           )}
         </View>
         <Svg height={dimensions.medal * 1.08} style={[styles.medal, { bottom: dimensions.medalBottom, left: dimensions.medalLeft, shadowColor: finish.shadow }]} viewBox="0 0 10 10.8" width={dimensions.medal}>
           <Defs>
-            <SvgLinearGradient id="medal" x1="0" x2="1" y1="0" y2="1"><Stop offset="0" stopColor={finish.medal[0]} /><Stop offset="0.58" stopColor={finish.medal[1]} /><Stop offset="1" stopColor={finish.medal[2]} /></SvgLinearGradient>
-            <SvgLinearGradient id="gem" x1="0" x2="1" y1="0" y2="1"><Stop offset="0" stopColor={finish.gem[0]} /><Stop offset="0.48" stopColor={finish.gem[1]} /><Stop offset="1" stopColor={finish.gem[2]} /></SvgLinearGradient>
+            <SvgLinearGradient id={`${gradientId}-medal`} x1="0" x2="1" y1="0" y2="1"><Stop offset="0" stopColor={finish.medal[0]} /><Stop offset="0.58" stopColor={finish.medal[1]} /><Stop offset="1" stopColor={finish.medal[2]} /></SvgLinearGradient>
+            <SvgLinearGradient id={`${gradientId}-gem`} x1="0" x2="1" y1="0" y2="1"><Stop offset="0" stopColor={finish.gem[0]} /><Stop offset="0.48" stopColor={finish.gem[1]} /><Stop offset="1" stopColor={finish.gem[2]} /></SvgLinearGradient>
           </Defs>
-          <Path d="M5 0 9.2 3.024 8.8 8.1 5 10.8 1.2 8.1.8 3.024Z" fill="url(#medal)" />
-          <Path d="M5 2.16 7.352 4.164 6.568 7.297 5 8.424 3.432 7.297 2.648 4.164Z" fill="url(#gem)" />
+          <Path d="M5 0 9.2 3.024 8.8 8.1 5 10.8 1.2 8.1.8 3.024Z" fill={`url(#${gradientId}-medal)`} />
+          <Path d="M5 2.16 7.352 4.164 6.568 7.297 5 8.424 3.432 7.297 2.648 4.164Z" fill={`url(#${gradientId}-gem)`} />
         </Svg>
       </View>
     </View>
@@ -82,9 +85,9 @@ export function RankAvatar({ fallback = 'MY', profileImageUrl, size = 'compact',
 }
 
 const styles = StyleSheet.create({
-  avatar: { elevation: 3, position: 'relative', shadowOffset: { height: 2, width: 0 }, shadowOpacity: 0.5, shadowRadius: 5 },
+  avatar: { elevation: 3, overflow: 'visible', position: 'relative', shadowOffset: { height: 2, width: 0 }, shadowOpacity: 0.5, shadowRadius: 5 },
   outerStroke: { borderColor: 'rgba(11,17,27,0.72)', borderRadius: 17, borderWidth: 1, bottom: -1, left: -1, position: 'absolute', right: -1, top: -1 },
   topHighlight: { ...StyleSheet.absoluteFillObject, borderColor: 'transparent', borderTopColor: 'rgba(255,255,255,0.72)', borderWidth: 1 },
   imageFrame: { alignItems: 'center', borderColor: 'rgba(0,0,0,0.45)', borderWidth: 1, justifyContent: 'center', overflow: 'hidden', position: 'absolute' },
-  medal: { position: 'absolute', shadowOffset: { height: 1, width: 0 }, shadowOpacity: 0.5, shadowRadius: 1 },
+  medal: { elevation: 4, overflow: 'visible', position: 'absolute', shadowOffset: { height: 1, width: 0 }, shadowOpacity: 0.5, shadowRadius: 1, zIndex: 4 },
 });

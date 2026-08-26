@@ -121,7 +121,7 @@ export function CommunityAuthor({ author, detailMeta, evidence, hideAvatar = fal
       >
         {hideAvatar ? null : guest ? <GuestAvatar size={variant === 'detail' ? 'detail' : 'comment'} /> : <RankAvatar fallback={name} profileImageUrl={author.profileImage?.url} size={variant === 'profile' ? 'large' : variant === 'detail' ? 'detail' : 'comment'} tier={author.tier} />}
         <View style={styles.nameBlock}>
-          <Text numberOfLines={1} style={{ color: theme.ink, fontFamily: variant === 'profile' ? fonts.bold : fonts.medium, fontSize: variant === 'profile' ? 16 : variant === 'detail' ? 13 : 12, lineHeight: variant === 'profile' ? 20 : 18 }}>{name}</Text>
+          <Text numberOfLines={1} style={{ color: theme.ink, ...(variant === 'profile' ? fonts.bold : fonts.medium), fontSize: variant === 'profile' ? 16 : variant === 'detail' ? 13 : 12, lineHeight: variant === 'profile' ? 20 : 18 }}>{name}</Text>
           {detailMeta ? <View style={styles.detailMeta}>{detailMeta}</View> : null}
         </View>
       </Pressable>
@@ -139,9 +139,9 @@ export function CommunityAuthor({ author, detailMeta, evidence, hideAvatar = fal
       </Modal>
 
       <BottomSheet onClose={() => setReportOpen(false)} open={reportOpen} title="사용자 신고">
-        <Text style={{ color: theme.text, fontFamily: fonts.regular, fontSize: 16, lineHeight: 24 }}>신고 사유를 입력해주세요. 운영자가 관련 활동과 함께 확인합니다.</Text>
-        <TextInput maxLength={1000} multiline onChangeText={setReason} placeholder="신고 사유" placeholderTextColor={theme.muted} style={[styles.reasonInput, { borderColor: theme.border, color: theme.text, fontFamily: fonts.regular }]} textAlignVertical="top" value={reason} />
-        <Pressable disabled={!reason.trim() || pending} onPress={() => void submitReport()} style={[styles.reportSubmit, { backgroundColor: reason.trim() && !pending ? '#dc2626' : theme.border }]}><Text style={{ color: '#fff', fontFamily: fonts.medium, fontSize: 14 }}>{pending ? '접수 중' : '신고하기'}</Text></Pressable>
+        <Text style={{ color: theme.text, ...fonts.regular, fontSize: 16, lineHeight: 24 }}>신고 사유를 입력해주세요. 운영자가 관련 활동과 함께 확인합니다.</Text>
+        <TextInput maxLength={1000} multiline onChangeText={setReason} placeholder="신고 사유" placeholderTextColor={theme.muted} style={[styles.reasonInput, { borderColor: theme.border, color: theme.text, ...fonts.regular }]} textAlignVertical="top" value={reason} />
+        <Pressable disabled={!reason.trim() || pending} onPress={() => void submitReport()} style={[styles.reportSubmit, { backgroundColor: reason.trim() && !pending ? '#dc2626' : theme.border }]}><Text style={{ color: '#fff', ...fonts.medium, fontSize: 14 }}>{pending ? '접수 중' : '신고하기'}</Text></Pressable>
       </BottomSheet>
     </View>
   );
@@ -155,7 +155,7 @@ export function GuestAvatar({ size }: { size: 'reply' | 'detail' | 'comment' }) 
 
 function MenuItem({ danger = false, icon, label, onPress }: { danger?: boolean; icon: React.ReactNode; label: string; onPress: () => void }) {
   const { fonts, theme } = useMinionTheme();
-  return <Pressable accessibilityRole="menuitem" onPress={onPress} style={styles.menuItem}>{icon}<Text style={{ color: danger ? '#dc2626' : theme.text, fontFamily: fonts.medium, fontSize: 14, lineHeight: 20 }}>{label}</Text></Pressable>;
+  return <Pressable accessibilityRole="menuitem" onPress={onPress} style={styles.menuItem}>{icon}<Text style={{ color: danger ? '#dc2626' : theme.text, ...fonts.medium, fontSize: 14, lineHeight: 20 }}>{label}</Text></Pressable>;
 }
 
 const styles = StyleSheet.create({

@@ -66,7 +66,7 @@ export function MinionDock() {
                 <Icon color={active ? theme.ink : inactiveColor} size={20} strokeWidth={active ? 2.5 : 2} />
               </View>
             )}
-            <Text numberOfLines={1} style={[styles.label, { color: active ? theme.ink : inactiveColor, fontFamily: fonts.display }]}>{label}</Text>
+            <Text numberOfLines={1} style={[styles.label, { color: active ? theme.ink : inactiveColor, ...fonts.display }]}>{label}</Text>
           </Pressable>
         );
       })}

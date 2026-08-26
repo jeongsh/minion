@@ -15,9 +15,9 @@ function CompactTeamBlock({ align, team, teamName, result }: { align: 'left' | '
   const resultLabel = result === 'WIN' ? '승리' : result === 'LOSS' ? '패배' : null;
   const nameBlock = (
     <View style={[styles.nameBlock, { alignItems: isRight ? 'flex-start' : 'flex-end' }]}>
-      <Text numberOfLines={1} style={[styles.teamName, { color: theme.ink, fontFamily: fonts.black, textAlign: isRight ? 'left' : 'right' }]}>{teamName}</Text>
+      <Text numberOfLines={1} style={[styles.teamName, { color: theme.ink, ...fonts.black, textAlign: isRight ? 'left' : 'right' }]}>{teamName}</Text>
       {resultLabel ? (
-        <Text style={[styles.resultLabel, { color: result === 'WIN' ? theme.accent : theme.muted, fontFamily: fonts.medium }]}>{resultLabel}</Text>
+        <Text style={[styles.resultLabel, { color: result === 'WIN' ? theme.accent : theme.muted, ...fonts.medium }]}>{resultLabel}</Text>
       ) : null}
     </View>
   );
@@ -49,11 +49,11 @@ function PlayerHighlight({ label, player }: { label: string; player: MobileMatch
         {uri ? (
           <Image contentFit="cover" source={{ uri }} style={styles.pomAvatarImage} />
         ) : (
-          <Text style={[styles.pomAvatarFallback, { color: theme.muted, fontFamily: fonts.medium }]}>{player?.name?.slice(0, 2) ?? '-'}</Text>
+          <Text style={[styles.pomAvatarFallback, { color: theme.muted, ...fonts.medium }]}>{player?.name?.slice(0, 2) ?? '-'}</Text>
         )}
       </View>
-      <Text style={[styles.pomLabel, { color: theme.muted, fontFamily: fonts.medium }]}>{label}</Text>
-      <Text numberOfLines={1} style={[styles.pomName, { color: theme.ink, fontFamily: fonts.medium }]}>{player?.name ?? '집계 전'}</Text>
+      <Text style={[styles.pomLabel, { color: theme.muted, ...fonts.medium }]}>{label}</Text>
+      <Text numberOfLines={1} style={[styles.pomName, { color: theme.ink, ...fonts.medium }]}>{player?.name ?? '집계 전'}</Text>
     </View>
   );
 }
@@ -68,15 +68,15 @@ export function MatchHeader({ header, match }: { header: MobileMatchHeader; matc
   return (
     <View style={styles.root}>
       <View style={styles.metaRow}>
-        <Text numberOfLines={1} style={[styles.tournamentName, { color: theme.ink, fontFamily: fonts.medium }]}>{header.tournamentName}</Text>
+        <Text numberOfLines={1} style={[styles.tournamentName, { color: theme.ink, ...fonts.medium }]}>{header.tournamentName}</Text>
         {header.pomPlayer ? (
           <PlayerHighlight label="POM" player={header.pomPlayer} />
         ) : (
           <View style={[styles.statusBadge, { backgroundColor: theme.ink }]}>
-            <Text style={[styles.statusBadgeText, { color: theme.surface, fontFamily: fonts.medium }]}>{header.statusLabel}</Text>
+            <Text style={[styles.statusBadgeText, { color: theme.surface, ...fonts.medium }]}>{header.statusLabel}</Text>
           </View>
         )}
-        <Text numberOfLines={1} style={[styles.stageLabel, { color: theme.muted, fontFamily: fonts.medium }]}>
+        <Text numberOfLines={1} style={[styles.stageLabel, { color: theme.muted, ...fonts.medium }]}>
           {header.stageName} · BO{header.bestOf ?? '-'}
         </Text>
       </View>
@@ -88,18 +88,18 @@ export function MatchHeader({ header, match }: { header: MobileMatchHeader; matc
           {hasScore ? (
             <>
               <View style={[styles.scoreBox, { backgroundColor: theme.ink }]}>
-                <Text style={[styles.scoreNumber, { color: theme.surface, fontFamily: fonts.black, opacity: teamAResult === 'LOSS' ? 0.45 : 1 }]}>{scoreLabel(match.teamAScore)}</Text>
+                <Text style={[styles.scoreNumber, { color: theme.surface, ...fonts.black, opacity: teamAResult === 'LOSS' ? 0.45 : 1 }]}>{scoreLabel(match.teamAScore)}</Text>
                 <Text style={[styles.scoreColon, { color: theme.surface }]}>:</Text>
-                <Text style={[styles.scoreNumber, { color: theme.surface, fontFamily: fonts.black, opacity: teamBResult === 'LOSS' ? 0.45 : 1 }]}>{scoreLabel(match.teamBScore)}</Text>
+                <Text style={[styles.scoreNumber, { color: theme.surface, ...fonts.black, opacity: teamBResult === 'LOSS' ? 0.45 : 1 }]}>{scoreLabel(match.teamBScore)}</Text>
               </View>
-              <Text style={[styles.dateLabel, { color: theme.muted, fontFamily: fonts.medium }]}>{dateLabel}</Text>
+              <Text style={[styles.dateLabel, { color: theme.muted, ...fonts.medium }]}>{dateLabel}</Text>
             </>
           ) : (
             <>
               <View style={[styles.vsBox, { backgroundColor: theme.ink }]}>
-                <Text style={[styles.vsText, { color: theme.surface, fontFamily: fonts.black }]}>VS</Text>
+                <Text style={[styles.vsText, { color: theme.surface, ...fonts.black }]}>VS</Text>
               </View>
-              <Text style={[styles.dateLabel, { color: theme.muted, fontFamily: fonts.medium }]}>{dateLabel}</Text>
+              <Text style={[styles.dateLabel, { color: theme.muted, ...fonts.medium }]}>{dateLabel}</Text>
             </>
           )}
         </View>

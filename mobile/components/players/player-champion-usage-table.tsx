@@ -1,11 +1,11 @@
 import ChevronDown from 'lucide-react-native/icons/chevron-down';
 import { Image } from 'expo-image';
-import * as Linking from 'expo-linking';
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useMinionTheme } from '@/hooks/use-minion-theme';
-import { mobileApiOrigin, resolveApiAssetUrl, type MobilePlayerChampionRow } from '@/lib/api-client';
+import { resolveApiAssetUrl, type MobilePlayerChampionRow } from '@/lib/api-client';
 
 const INITIAL_ROWS = 5;
 
@@ -36,6 +36,7 @@ const COLUMNS = [
 ] as const;
 
 export function PlayerChampionUsageTable({ accent, rows }: { accent: string; rows: MobilePlayerChampionRow[] }) {
+  const router = useRouter();
   const { fonts, theme } = useMinionTheme();
   const [visibleCount, setVisibleCount] = useState(INITIAL_ROWS);
   const visibleRows = rows.slice(0, visibleCount);
@@ -44,7 +45,7 @@ export function PlayerChampionUsageTable({ accent, rows }: { accent: string; row
   if (rows.length === 0) {
     return (
       <View style={[styles.empty, { borderColor: theme.border }]}>
-        <Text style={{ color: theme.muted, fontFamily: fonts.medium, fontSize: 14 }}>표시할 데이터가 없습니다.</Text>
+        <Text style={{ color: theme.muted, ...fonts.medium, fontSize: 14 }}>표시할 데이터가 없습니다.</Text>
       </View>
     );
   }
@@ -57,7 +58,7 @@ export function PlayerChampionUsageTable({ accent, rows }: { accent: string; row
             <Text
               key={column.key}
               numberOfLines={1}
-              style={[styles.headerText, { color: theme.muted, fontFamily: fonts.medium, width: column.width }]}>
+              style={[styles.headerText, { color: theme.muted, ...fonts.medium, width: column.width }]}>
               {column.label}
             </Text>
           ))}
@@ -72,19 +73,19 @@ export function PlayerChampionUsageTable({ accent, rows }: { accent: string; row
                 accessibilityLabel={`${row.name} 챔피언 통계`}
                 accessibilityRole="link"
                 disabled={!row.slug}
-                onPress={() => row.slug ? void Linking.openURL(`${mobileApiOrigin}/champions/${encodeURIComponent(row.slug)}`) : undefined}
+                onPress={() => row.slug ? router.push(`/champions/${encodeURIComponent(row.slug)}` as never) : undefined}
                 style={[styles.cell, { width: '16%' }]}>
                 <View style={[styles.championImage, { backgroundColor: theme.surfaceMuted }]}>
                   {imageUrl ? <Image contentFit="cover" source={{ uri: imageUrl }} style={StyleSheet.absoluteFill} /> : null}
                 </View>
               </Pressable>
-              <Text style={[styles.valueCell, { color: theme.ink, fontFamily: fonts.medium, width: '10%' }]}>{row.setCount}</Text>
-              <Text style={[styles.valueCell, { color: accent, fontFamily: fonts.medium, width: '11%' }]}>{percentValue(row.winRate)}</Text>
-              <Text style={[styles.valueCell, { color: theme.ink, fontFamily: fonts.medium, width: '11%' }]}>{statValue(row.kda, 2)}</Text>
-              <Text style={[styles.valueCell, { color: theme.text, fontFamily: fonts.medium, width: '16%' }]}>{compactNumberValue(row.averageDamage)}</Text>
-              <Text style={[styles.valueCell, { color: theme.text, fontFamily: fonts.medium, width: '12%' }]}>{statValue(row.dpm)}</Text>
-              <Text style={[styles.valueCell, { color: theme.text, fontFamily: fonts.medium, width: '12%' }]}>{statValue(row.csm)}</Text>
-              <Text style={[styles.valueCell, { color: theme.text, fontFamily: fonts.medium, width: '12%' }]}>{row.fanPogCount}</Text>
+              <Text style={[styles.valueCell, { color: theme.ink, ...fonts.medium, width: '10%' }]}>{row.setCount}</Text>
+              <Text style={[styles.valueCell, { color: accent, ...fonts.medium, width: '11%' }]}>{percentValue(row.winRate)}</Text>
+              <Text style={[styles.valueCell, { color: theme.ink, ...fonts.medium, width: '11%' }]}>{statValue(row.kda, 2)}</Text>
+              <Text style={[styles.valueCell, { color: theme.text, ...fonts.medium, width: '16%' }]}>{compactNumberValue(row.averageDamage)}</Text>
+              <Text style={[styles.valueCell, { color: theme.text, ...fonts.medium, width: '12%' }]}>{statValue(row.dpm)}</Text>
+              <Text style={[styles.valueCell, { color: theme.text, ...fonts.medium, width: '12%' }]}>{statValue(row.csm)}</Text>
+              <Text style={[styles.valueCell, { color: theme.text, ...fonts.medium, width: '12%' }]}>{row.fanPogCount}</Text>
             </View>
           );
         })}
@@ -94,7 +95,7 @@ export function PlayerChampionUsageTable({ accent, rows }: { accent: string; row
           accessibilityRole="button"
           onPress={() => setVisibleCount(rows.length)}
           style={({ pressed }) => [styles.moreButton, { backgroundColor: pressed ? theme.cardHover : theme.card }]}>
-          <Text style={{ color: theme.ink, fontFamily: fonts.medium, fontSize: 14, lineHeight: 20 }}>전체보기</Text>
+          <Text style={{ color: theme.ink, ...fonts.medium, fontSize: 14, lineHeight: 20 }}>전체보기</Text>
           <ChevronDown color={theme.ink} size={16} />
         </Pressable>
       ) : null}

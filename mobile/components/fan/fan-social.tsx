@@ -36,7 +36,7 @@ export function FanSocial({ items, teamName }: { items: SocialItem[]; teamName: 
             );
           })}
         </View>
-        {visibleCount < filtered.length ? <Pressable onPress={() => setVisibleCount((count) => Math.min(filtered.length, count + 15))} style={[styles.moreButton, { borderColor: theme.border }]}><Text style={{ color: theme.text, fontFamily: fonts.bold, fontSize: 13 }}>게시물 더 보기</Text></Pressable> : filtered.length > 15 ? <Text style={[styles.complete, { color: theme.muted, fontFamily: fonts.medium }]}>모든 게시물을 확인했습니다.</Text> : null}
+        {visibleCount < filtered.length ? <Pressable onPress={() => setVisibleCount((count) => Math.min(filtered.length, count + 15))} style={[styles.moreButton, { borderColor: theme.border }]}><Text style={{ color: theme.text, ...fonts.bold, fontSize: 13 }}>게시물 더 보기</Text></Pressable> : filtered.length > 15 ? <Text style={[styles.complete, { color: theme.muted, ...fonts.medium }]}>모든 게시물을 확인했습니다.</Text> : null}
         </>
       ) : <FanEmpty>아직 새 게시물이 없습니다.</FanEmpty>}
       {openIndex !== null ? <FanInstagramModal items={filtered} onClose={() => setOpenIndex(null)} startIndex={openIndex} /> : null}

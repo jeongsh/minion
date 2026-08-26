@@ -49,9 +49,9 @@ export default function FavoriteTeamScreen() {
     <View style={[styles.screen, { backgroundColor: theme.pageBackground, paddingTop: insets.top }]}>
       <ScrollView contentContainerStyle={[styles.page, { paddingBottom: insets.bottom + 24 }]}>
         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          <Text style={[styles.eyebrow, { color: theme.accent, fontFamily: fonts.medium }]}>마지막 한 단계</Text>
-          <Text style={[styles.title, { color: theme.ink, fontFamily: fonts.display }]}>어느 팀을 응원하세요?</Text>
-          <Text style={[styles.description, { color: theme.muted, fontFamily: fonts.regular }]}>최애팀 소식과 팬페이지를 더 빠르게 만날 수 있어요. 아직 없다면 건너뛰어도 괜찮아요.</Text>
+          <Text style={[styles.eyebrow, { color: theme.accent, ...fonts.medium }]}>마지막 한 단계</Text>
+          <Text style={[styles.title, { color: theme.ink, ...fonts.display }]}>어느 팀을 응원하세요?</Text>
+          <Text style={[styles.description, { color: theme.muted, ...fonts.regular }]}>최애팀 소식과 팬페이지를 더 빠르게 만날 수 있어요. 아직 없다면 건너뛰어도 괜찮아요.</Text>
 
           <View accessibilityLabel="최애팀 선택" style={styles.grid}>
             {minionTeams.map((team) => {
@@ -65,7 +65,7 @@ export default function FavoriteTeamScreen() {
                   style={({ pressed }) => [styles.team, { backgroundColor: pressed ? theme.cardHover : theme.surface, borderColor: pressed ? theme.accent : theme.border, opacity: pendingTeamId && !pending ? 0.55 : 1 }]}
                 >
                   <View style={styles.logoCircle}><Image contentFit="contain" source={team.logo} style={styles.logo} /></View>
-                  <Text numberOfLines={1} style={[styles.teamName, { color: theme.ink, fontFamily: fonts.medium }]}>{team.shortName}</Text>
+                  <Text numberOfLines={1} style={[styles.teamName, { color: theme.ink, ...fonts.medium }]}>{team.shortName}</Text>
                   <View style={[styles.check, { borderColor: pending ? theme.accent : theme.border, backgroundColor: pending ? theme.accent : theme.surface }]}>
                     {pending ? <ActivityIndicator color={theme.accentForeground} size="small" /> : <Check color="transparent" size={13} />}
                   </View>
@@ -76,7 +76,7 @@ export default function FavoriteTeamScreen() {
 
           {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
           <Pressable disabled={Boolean(pendingTeamId)} onPress={() => router.replace(next as never)} style={({ pressed }) => [styles.skip, { backgroundColor: pressed ? theme.cardHover : 'transparent', opacity: pendingTeamId ? 0.5 : 1 }]}>
-            <Text style={[styles.skipText, { color: theme.muted, fontFamily: fonts.medium }]}>아직 최애팀이 없어요 · 건너뛰기</Text>
+            <Text style={[styles.skipText, { color: theme.muted, ...fonts.medium }]}>아직 최애팀이 없어요 · 건너뛰기</Text>
           </Pressable>
         </View>
       </ScrollView>

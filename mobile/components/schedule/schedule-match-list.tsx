@@ -43,10 +43,10 @@ export function ScheduleMatchList({
         return (
           <View key={heading} onLayout={(event: LayoutChangeEvent) => onSectionLayout?.(dateKey, event.nativeEvent.layout.y)}>
             <View style={styles.headingRow}>
-              <Text style={[styles.heading, { color: theme.ink, fontFamily: fonts.black }]}>{heading}</Text>
+              <Text style={[styles.heading, { color: theme.ink, ...fonts.black }]}>{heading}</Text>
               {isToday ? (
                 <View style={[styles.todayBadge, { backgroundColor: theme.accent }]}>
-                  <Text style={[styles.todayBadgeText, { color: theme.accentForeground, fontFamily: fonts.medium }]}>오늘</Text>
+                  <Text style={[styles.todayBadgeText, { color: theme.accentForeground, ...fonts.medium }]}>오늘</Text>
                 </View>
               ) : null}
             </View>
@@ -84,29 +84,29 @@ function MatchRow({ isLast, match }: { isLast: boolean; match: MobileMatchSummar
       onPress={() => router.navigate(`/matches/${encodeURIComponent(match.id)}` as never)}
       style={[styles.rowTouchable, !isLast && { borderBottomColor: theme.border, borderBottomWidth: 1 }]}>
         <View style={styles.timeColumn}>
-          <Text style={[styles.time, { color: theme.ink, fontFamily: fonts.black }]}>{formatTimeKST(match.startsAt)}</Text>
+          <Text style={[styles.time, { color: theme.ink, ...fonts.black }]}>{formatTimeKST(match.startsAt)}</Text>
           {live ? (
             <View style={styles.liveBadge}>
               <View style={styles.liveDot} />
-              <Text style={[styles.liveText, { fontFamily: fonts.medium }]}>LIVE</Text>
+              <Text style={[styles.liveText, { ...fonts.medium }]}>LIVE</Text>
             </View>
           ) : (
             <View style={[styles.statusBadge, { backgroundColor: theme.cardHover }]}>
-              <Text style={[styles.statusText, { color: theme.muted, fontFamily: fonts.medium }]}>{matchStatusLabel(match.status)}</Text>
+              <Text style={[styles.statusText, { color: theme.muted, ...fonts.medium }]}>{matchStatusLabel(match.status)}</Text>
             </View>
           )}
         </View>
         <View style={styles.teamsColumn}>
           <View style={styles.teamSideLeft}>
-            <Text numberOfLines={1} style={[styles.teamName, { color: teamColor(match.teamA?.id), fontFamily: fonts.black, textAlign: 'right' }]}>
+            <Text numberOfLines={1} style={[styles.teamName, { color: teamColor(match.teamA?.id), ...fonts.black, textAlign: 'right' }]}>
               {match.teamA?.shortName || match.teamA?.name || 'TBD'}
             </Text>
             <TeamLogo plain size={32} team={match.teamA} themeAware />
           </View>
-          <Text style={[styles.score, { color: theme.ink, fontFamily: fonts.black }]}>{score}</Text>
+          <Text style={[styles.score, { color: theme.ink, ...fonts.black }]}>{score}</Text>
           <View style={styles.teamSideRight}>
             <TeamLogo plain size={32} team={match.teamB} themeAware />
-            <Text numberOfLines={1} style={[styles.teamName, { color: teamColor(match.teamB?.id), fontFamily: fonts.black }]}>
+            <Text numberOfLines={1} style={[styles.teamName, { color: teamColor(match.teamB?.id), ...fonts.black }]}>
               {match.teamB?.shortName || match.teamB?.name || 'TBD'}
             </Text>
           </View>
@@ -138,8 +138,8 @@ function ScheduleEmptyState({ body }: { body: string }) {
       <Animated.View style={{ transform: [{ translateY }, { rotate }] }}>
         <Image contentFit="contain" source={CHARACTER_IMAGE} style={styles.emptyCharacter} />
       </Animated.View>
-      <Text style={[styles.emptyTitle, { color: theme.ink, fontFamily: fonts.display }]}>이 조건엔 경기가 없어요</Text>
-      <Text style={[styles.emptyBody, { color: theme.muted, fontFamily: fonts.regular }]}>{body}</Text>
+      <Text style={[styles.emptyTitle, { color: theme.ink, ...fonts.display }]}>이 조건엔 경기가 없어요</Text>
+      <Text style={[styles.emptyBody, { color: theme.muted, ...fonts.regular }]}>{body}</Text>
     </View>
   );
 }

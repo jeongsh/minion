@@ -17,7 +17,7 @@ export function SetTimelineSection({ players, set }: { players: MobilePlayerSumm
 
   return (
     <View style={styles.section}>
-      <Text style={[styles.heading, { color: theme.ink, fontFamily: fonts.display }]}>타임라인</Text>
+      <Text style={[styles.heading, { color: theme.ink, ...fonts.display }]}>타임라인</Text>
       <View style={[styles.card, { backgroundColor: theme.surface, borderColor: hexToRgba(theme.border, 0.6) }]}>
         <GameTimelineChart
           blueTeamId={set.blueTeamId}

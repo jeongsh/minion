@@ -30,8 +30,8 @@ export function PredictionEmptyState() {
       <Animated.View style={{ transform: [{ translateY }, { rotate }] }}>
         <Image contentFit="contain" source={CHARACTER_IMAGE} style={styles.character} />
       </Animated.View>
-      <Text style={[styles.title, { color: theme.ink, fontFamily: fonts.display }]}>찍을 경기가 아직 없어요</Text>
-      <Text style={[styles.body, { color: theme.muted, fontFamily: fonts.regular }]}>다른 주차나 대회를 선택하면 예측판이 다시 열려요.</Text>
+      <Text style={[styles.title, { color: theme.ink, ...fonts.display }]}>찍을 경기가 아직 없어요</Text>
+      <Text style={[styles.body, { color: theme.muted, ...fonts.regular }]}>다른 주차나 대회를 선택하면 예측판이 다시 열려요.</Text>
     </View>
   );
 }

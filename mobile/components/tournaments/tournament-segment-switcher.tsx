@@ -29,7 +29,7 @@ function SegmentChip({ active, item, onPress }: { active: boolean; item: MobileT
       onPress={onPress}
       style={[styles.chip, active ? { backgroundColor: theme.ink, borderColor: theme.ink } : { backgroundColor: theme.surface, borderColor: theme.border }]}>
       {logo ? <Image contentFit="contain" source={logo} style={{ height: 14, width }} tintColor={iconColor} /> : null}
-      <Text style={[styles.chipText, { color: active ? theme.surface : theme.muted, fontFamily: fonts.black }]}>{item.name}</Text>
+      <Text style={[styles.chipText, { color: active ? theme.surface : theme.muted, ...fonts.black }]}>{item.name}</Text>
       {item.isOngoing ? <OngoingDot /> : null}
     </Pressable>
   );

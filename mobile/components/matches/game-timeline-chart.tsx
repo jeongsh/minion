@@ -373,7 +373,7 @@ export function GameTimelineChart({
   if (!events.length || !layout) {
     return (
       <View style={styles.emptyBox}>
-        <Text style={{ color: theme.muted, fontFamily: fonts.medium, fontSize: 14 }}>타임라인 데이터 없음</Text>
+        <Text style={{ color: theme.muted, ...fonts.medium, fontSize: 14 }}>타임라인 데이터 없음</Text>
       </View>
     );
   }
@@ -463,7 +463,7 @@ export function GameTimelineChart({
         {showObjectives && tooltip ? (
           <View pointerEvents="none" style={[styles.tooltip, { backgroundColor: theme.surface, borderColor: theme.border, left: `${Math.min(Math.max(tooltip.xPct, 5), 85)}%`, top: `${tooltip.yPct}%` }]}>
             {tooltip.lines.map((line, i) => (
-              <Text key={i} style={{ color: theme.text, fontFamily: fonts.medium, fontSize: 12 }}>{line}</Text>
+              <Text key={i} style={{ color: theme.text, ...fonts.medium, fontSize: 12 }}>{line}</Text>
             ))}
           </View>
         ) : null}
@@ -480,13 +480,13 @@ export function GameTimelineChart({
               ].map((item) => (
                 <View key={item.label} style={styles.legendItem}>
                   <ObjectiveIcon path={item.path} size={16} />
-                  <Text style={{ color: tournamentTokens[colorScheme].muted, fontFamily: fonts.medium, fontSize: 11 }}>{item.label}</Text>
+                  <Text style={{ color: tournamentTokens[colorScheme].muted, ...fonts.medium, fontSize: 11 }}>{item.label}</Text>
                 </View>
               ))
             : null}
         </View>
         <Pressable onPress={() => setShowObjectives((v) => !v)} style={[styles.toggleButton, { borderColor: theme.border }]}>
-          <Text style={{ color: tournamentTokens[colorScheme].muted, fontFamily: fonts.medium, fontSize: 11 }}>{showObjectives ? '오브젝트 숨기기' : '오브젝트 보기'}</Text>
+          <Text style={{ color: tournamentTokens[colorScheme].muted, ...fonts.medium, fontSize: 11 }}>{showObjectives ? '오브젝트 숨기기' : '오브젝트 보기'}</Text>
         </Pressable>
       </View>
     </View>

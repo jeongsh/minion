@@ -15,14 +15,14 @@ export function CommunityPostContent({ document }: { document: TiptapDocument })
 function BlockNode({ node, depth = 0 }: { node: TiptapNode; depth?: number }) {
   const { colorScheme, fonts, theme } = useMinionTheme();
   const foreground = colorScheme === 'dark' ? '#f8f8f8' : '#111827';
-  if (node.type === 'paragraph') return <Text style={[styles.paragraph, { color: foreground, fontFamily: fonts.regular }]}>{inlineContent(node)}</Text>;
+  if (node.type === 'paragraph') return <Text style={[styles.paragraph, { color: foreground, ...fonts.regular }]}>{inlineContent(node)}</Text>;
   if (node.type === 'heading') {
     const level = Number(node.attrs?.level ?? 2);
-    return <Text style={[styles.heading, level === 1 ? styles.headingOne : level === 2 ? styles.headingTwo : styles.headingThree, { color: foreground, fontFamily: fonts.bold }]}>{inlineContent(node)}</Text>;
+    return <Text style={[styles.heading, level === 1 ? styles.headingOne : level === 2 ? styles.headingTwo : styles.headingThree, { color: foreground, ...fonts.bold }]}>{inlineContent(node)}</Text>;
   }
   if (node.type === 'blockquote') return <View style={[styles.blockquote, { borderLeftColor: theme.border }]}>{node.content?.map((child, index) => <BlockNode depth={depth + 1} key={index} node={child} />)}</View>;
   if (node.type === 'bulletList' || node.type === 'orderedList') {
-    return <View style={styles.list}>{node.content?.map((child, index) => <View key={index} style={styles.listRow}><Text style={[styles.bullet, { color: foreground, fontFamily: fonts.regular }]}>{node.type === 'orderedList' ? `${index + 1}.` : '•'}</Text><View style={styles.listContent}><BlockNode depth={depth + 1} node={child} /></View></View>)}</View>;
+    return <View style={styles.list}>{node.content?.map((child, index) => <View key={index} style={styles.listRow}><Text style={[styles.bullet, { color: foreground, ...fonts.regular }]}>{node.type === 'orderedList' ? `${index + 1}.` : '•'}</Text><View style={styles.listContent}><BlockNode depth={depth + 1} node={child} /></View></View>)}</View>;
   }
   if (node.type === 'listItem') return <View>{node.content?.map((child, index) => <BlockNode depth={depth + 1} key={index} node={child} />)}</View>;
   if (node.type === 'codeBlock') return <View style={[styles.codeBlock, { backgroundColor: theme.surfaceMuted }]}><Text selectable style={{ color: foreground, fontFamily: 'monospace', fontSize: 13, lineHeight: 20 }}>{plainText(node)}</Text></View>;
@@ -38,7 +38,7 @@ function BlockNode({ node, depth = 0 }: { node: TiptapNode; depth?: number }) {
     const href = String(node.attrs?.src ?? node.attrs?.url ?? '');
     if (!href) return null;
     const youtubeId = href.match(/(?:v=|youtu\.be\/|embed\/)([\w-]{11})/)?.[1];
-    return <Pressable accessibilityRole="link" onPress={() => void Linking.openURL(href)} style={[styles.embed, { backgroundColor: theme.surfaceMuted }]}>{youtubeId ? <Image contentFit="cover" source={{ uri: `https://i.ytimg.com/vi/${youtubeId}/hqdefault.jpg` }} style={StyleSheet.absoluteFill} /> : null}<View style={styles.embedShade} /><ExternalLink color="#fff" size={24} /><Text numberOfLines={2} style={{ color: '#fff', fontFamily: fonts.medium, fontSize: 14 }}>{String(node.attrs?.title ?? '외부 콘텐츠 열기')}</Text></Pressable>;
+    return <Pressable accessibilityRole="link" onPress={() => void Linking.openURL(href)} style={[styles.embed, { backgroundColor: theme.surfaceMuted }]}>{youtubeId ? <Image contentFit="cover" source={{ uri: `https://i.ytimg.com/vi/${youtubeId}/hqdefault.jpg` }} style={StyleSheet.absoluteFill} /> : null}<View style={styles.embedShade} /><ExternalLink color="#fff" size={24} /><Text numberOfLines={2} style={{ color: '#fff', ...fonts.medium, fontSize: 14 }}>{String(node.attrs?.title ?? '외부 콘텐츠 열기')}</Text></Pressable>;
   }
   if (node.type === 'poll') return <PollNode node={node} />;
   return node.content?.length ? <View>{node.content.map((child, index) => <BlockNode depth={depth + 1} key={index} node={child} />)}</View> : null;
@@ -121,15 +121,15 @@ function PollNode({ node }: { node: TiptapNode }) {
   const voted = Boolean(tally?.myOptionId);
   return (
     <View style={[styles.poll, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-      {question ? <Text style={[styles.pollQuestion, { color: theme.ink, fontFamily: fonts.bold }]}>{question}</Text> : null}
+      {question ? <Text style={[styles.pollQuestion, { color: theme.ink, ...fonts.bold }]}>{question}</Text> : null}
       {options.map((option) => {
         const storageOptionId = pollStorageId(option.id, 'option');
         const count = tally?.counts[storageOptionId] ?? 0;
         const percent = voted && tally?.total ? Math.round(count / tally.total * 100) : 0;
         const mine = tally?.myOptionId === storageOptionId;
-        return <Pressable disabled={loading} key={option.id} onPress={() => void vote(option.id)} style={[styles.pollOption, { backgroundColor: mine ? `${theme.accent}0d` : theme.surface, borderColor: mine ? theme.accent : theme.border }]}><View style={[styles.pollFill, { backgroundColor: `${theme.accent}1f`, width: `${percent}%` }]} /><Text numberOfLines={1} style={[styles.pollLabel, { color: theme.ink, fontFamily: fonts.medium }]}>{option.label || '(빈 선택지)'}</Text>{voted ? <View style={styles.pollResult}>{mine ? <Check color={theme.accent} size={15} strokeWidth={2.5} /> : null}<Text style={{ color: theme.text, fontFamily: fonts.medium, fontSize: 13 }}>{percent}%</Text><Text style={{ color: theme.muted, fontFamily: fonts.medium, fontSize: 13 }}>{count}표</Text></View> : null}</Pressable>;
+        return <Pressable disabled={loading} key={option.id} onPress={() => void vote(option.id)} style={[styles.pollOption, { backgroundColor: mine ? `${theme.accent}0d` : theme.surface, borderColor: mine ? theme.accent : theme.border }]}><View style={[styles.pollFill, { backgroundColor: `${theme.accent}1f`, width: `${percent}%` }]} /><Text numberOfLines={1} style={[styles.pollLabel, { color: theme.ink, ...fonts.medium }]}>{option.label || '(빈 선택지)'}</Text>{voted ? <View style={styles.pollResult}>{mine ? <Check color={theme.accent} size={15} strokeWidth={2.5} /> : null}<Text style={{ color: theme.text, ...fonts.medium, fontSize: 13 }}>{percent}%</Text><Text style={{ color: theme.muted, ...fonts.medium, fontSize: 13 }}>{count}표</Text></View> : null}</Pressable>;
       })}
-      <View style={styles.pollStatus}>{loading ? <ActivityIndicator color={theme.accent} size="small" /> : error ? <Text style={{ color: '#ef4444', fontFamily: fonts.medium, fontSize: 13, lineHeight: 19.5 }}>{error}</Text> : <><Text style={{ color: theme.muted, fontFamily: fonts.medium, fontSize: 13, lineHeight: 19.5 }}>총 {tally?.total ?? 0}명 참여</Text><Text style={[styles.pollHint, { color: theme.muted, fontFamily: fonts.medium }]}>{voted ? '선택을 다시 누르면 취소할 수 있어요.' : '선택하면 결과를 확인할 수 있어요.'}</Text></>}</View>
+      <View style={styles.pollStatus}>{loading ? <ActivityIndicator color={theme.accent} size="small" /> : error ? <Text style={{ color: '#ef4444', ...fonts.medium, fontSize: 13, lineHeight: 19.5 }}>{error}</Text> : <><Text style={{ color: theme.muted, ...fonts.medium, fontSize: 13, lineHeight: 19.5 }}>총 {tally?.total ?? 0}명 참여</Text><Text style={[styles.pollHint, { color: theme.muted, ...fonts.medium }]}>{voted ? '선택을 다시 누르면 취소할 수 있어요.' : '선택하면 결과를 확인할 수 있어요.'}</Text></>}</View>
     </View>
   );
 }

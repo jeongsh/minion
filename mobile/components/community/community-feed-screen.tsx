@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BottomSheet } from '@/components/bottom-sheet';
 import { getMinionTeam } from '@/constants/teams';
 import { ErrorState } from '@/components/feedback-states';
+import { KitschEmptyState } from '@/components/kitsch-empty-state';
 import { MinionScreen } from '@/components/minion-screen';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import type { MobileCommunityPostSummary, MobileCommunityPostsDto } from '@/lib/api-client';
@@ -71,7 +72,7 @@ export function CommunityFeedScreen({ scope = 'hub' }: { scope?: CommunityScope 
     <View style={[styles.root, { backgroundColor: theme.pageBackground }]}>
       <MinionScreen contentStyle={styles.fullBleed}>
         <View style={[styles.ad, { backgroundColor: theme.adSurface }]}>
-          <Text style={[styles.adText, { color: theme.muted, fontFamily: fonts.medium }]}>ADVERTISEMENT</Text>
+          <Text style={[styles.adText, { color: theme.muted, ...fonts.medium }]}>ADVERTISEMENT</Text>
         </View>
         <View style={[styles.feed, { backgroundColor: theme.surface, borderBottomColor: theme.border, borderTopColor: theme.border }]}>
           <View style={[styles.toolbar, { borderBottomColor: theme.divider }]}>
@@ -81,13 +82,13 @@ export function CommunityFeedScreen({ scope = 'hub' }: { scope?: CommunityScope 
                   const active = view === item;
                   return (
                     <Pressable accessibilityRole="tab" accessibilityState={{ selected: active }} key={item} onPress={() => updateView(item)} style={[styles.segmentButton, active ? { backgroundColor: theme.surface } : null]}>
-                      <Text style={{ color: active ? theme.ink : theme.muted, fontFamily: fonts.bold, fontSize: 13 }}>{item === 'all' ? '전체' : '인기글'}</Text>
+                      <Text style={{ color: active ? theme.ink : theme.muted, ...fonts.bold, fontSize: 13 }}>{item === 'all' ? '전체' : '인기글'}</Text>
                     </Pressable>
                   );
                 })}
               </View>
               <Pressable accessibilityLabel="말머리 선택" onPress={() => setCategoryOpen(true)} style={[styles.categoryButton, { borderColor: theme.border }]}>
-                <Text style={{ color: theme.text, fontFamily: fonts.medium, fontSize: 13 }}>{category ? boardLabel(category) : '말머리'}</Text>
+                <Text style={{ color: theme.text, ...fonts.medium, fontSize: 13 }}>{category ? boardLabel(category) : '말머리'}</Text>
                 <ChevronDown color={theme.muted} size={14} />
               </Pressable>
               <Pressable accessibilityLabel={searchOpen ? '검색 닫기' : '게시글 검색'} onPress={() => setSearchOpen((open) => !open)} style={[styles.searchToggle, { borderColor: theme.border }]}>
@@ -105,15 +106,15 @@ export function CommunityFeedScreen({ scope = 'hub' }: { scope?: CommunityScope 
                     placeholder="제목, 내용 검색"
                     placeholderTextColor={theme.muted}
                     returnKeyType="search"
-                    style={[styles.searchInput, { color: theme.text, fontFamily: fonts.regular }]}
+                    style={[styles.searchInput, { color: theme.text, ...fonts.regular }]}
                     value={query}
                   />
                   <Pressable accessibilityLabel="검색" onPress={submitSearch} style={styles.searchSubmit}><Search color={theme.muted} size={16} /></Pressable>
                 </View>
                 {committedQuery ? (
                   <View style={styles.searchStatus}>
-                    <Text numberOfLines={1} style={[styles.searchStatusText, { color: theme.muted, fontFamily: fonts.regular }]}>‘{committedQuery}’ 검색 결과 {(data?.totalCount ?? 0).toLocaleString('ko-KR')}개</Text>
-                    <Pressable onPress={() => { setQuery(''); setCommittedQuery(''); setPage(1); }}><Text style={{ color: theme.text, fontFamily: fonts.bold, fontSize: 12, textDecorationLine: 'underline' }}>초기화</Text></Pressable>
+                    <Text numberOfLines={1} style={[styles.searchStatusText, { color: theme.muted, ...fonts.regular }]}>‘{committedQuery}’ 검색 결과 {(data?.totalCount ?? 0).toLocaleString('ko-KR')}개</Text>
+                    <Pressable onPress={() => { setQuery(''); setCommittedQuery(''); setPage(1); }}><Text style={{ color: theme.text, ...fonts.bold, fontSize: 12, textDecorationLine: 'underline' }}>초기화</Text></Pressable>
                   </View>
                 ) : null}
               </View>
@@ -126,16 +127,18 @@ export function CommunityFeedScreen({ scope = 'hub' }: { scope?: CommunityScope 
               <View accessibilityRole="list">
                 {[...(data?.notices ?? []), ...(data?.items ?? [])].map((post, index, posts) => <PostRow accent={accent} key={`${post.isNotice ? 'notice' : 'post'}:${post.id}`} last={index === posts.length - 1} onPress={() => router.push(`${basePath}/post/${post.id}` as never)} post={post} scope={scope} />)}
                 {(data?.items.length ?? 0) === 0 && (data?.notices.length ?? 0) === 0 ? (
-                  <View style={styles.empty}>
-                    <Text style={[styles.emptyTitle, { color: theme.ink, fontFamily: fonts.bold }]}>이 말머리엔 아직 조용해요</Text>
-                    <Text style={[styles.emptyBody, { color: theme.muted, fontFamily: fonts.regular }]}>필터를 바꾸거나 첫 글을 톡 올려보세요.</Text>
-                  </View>
+                  <KitschEmptyState
+                    animated
+                    body="필터를 바꾸거나 첫 글을 톡 올려보세요."
+                    plain
+                    title="이 말머리엔 아직 조용해요"
+                  />
                 ) : null}
               </View>
               <View style={[styles.pagination, { borderTopColor: theme.divider }]}>
                 <Pressable accessibilityLabel="이전 페이지" disabled={!data || data.page <= 1} onPress={() => setPage((value) => Math.max(1, value - 1))} style={styles.pageButton}><ChevronLeft color={!data || data.page <= 1 ? theme.border : theme.text} size={18} /></Pressable>
-                <Text style={{ color: theme.text, fontFamily: fonts.bold, fontSize: 13 }}>{data?.page ?? 1}</Text>
-                <Text style={{ color: theme.muted, fontFamily: fonts.regular, fontSize: 13 }}>/ {data?.totalPages ?? 1}</Text>
+                <Text style={{ color: theme.text, ...fonts.bold, fontSize: 13 }}>{data?.page ?? 1}</Text>
+                <Text style={{ color: theme.muted, ...fonts.regular, fontSize: 13 }}>/ {data?.totalPages ?? 1}</Text>
                 <Pressable accessibilityLabel="다음 페이지" disabled={!data || data.page >= data.totalPages} onPress={() => setPage((value) => value + 1)} style={styles.pageButton}><ChevronRight color={!data || data.page >= data.totalPages ? theme.border : theme.text} size={18} /></Pressable>
               </View>
             </>
@@ -158,7 +161,7 @@ export function CommunityFeedScreen({ scope = 'hub' }: { scope?: CommunityScope 
 
 function CategoryOption({ active, label, onPress }: { active: boolean; label: string; onPress: () => void }) {
   const { fonts, theme } = useMinionTheme();
-  return <Pressable accessibilityRole="menuitem" onPress={onPress} style={[styles.categoryOption, active ? { backgroundColor: theme.surfaceMuted } : null]}><Text style={{ color: active ? theme.ink : theme.text, fontFamily: active ? fonts.bold : fonts.medium, fontSize: 15 }}>{label}</Text></Pressable>;
+  return <Pressable accessibilityRole="menuitem" onPress={onPress} style={[styles.categoryOption, active ? { backgroundColor: theme.surfaceMuted } : null]}><Text style={{ color: active ? theme.ink : theme.text, ...(active ? fonts.bold : fonts.medium), fontSize: 15 }}>{label}</Text></Pressable>;
 }
 
 function PostRow({ accent, last, post, onPress, scope }: { accent: string; last: boolean; post: MobileCommunityPostSummary; onPress: () => void; scope: CommunityScope }) {
@@ -168,16 +171,16 @@ function PostRow({ accent, last, post, onPress, scope }: { accent: string; last:
     <Pressable accessibilityLabel={`${title} 게시글 보기`} accessibilityRole="link" onPress={onPress} style={[styles.postRow, last ? styles.postRowLast : null, post.isNotice ? { backgroundColor: theme.surfaceMuted } : null, { borderBottomColor: theme.divider }]}>
       <View style={styles.postMain}>
         <View style={styles.titleRow}>
-          {post.isNotice ? <View style={[styles.notice, { backgroundColor: theme.ink }]}><Megaphone color={theme.surface} size={10} /><Text style={{ color: theme.surface, fontFamily: fonts.medium, fontSize: 12, fontWeight: '500' }}>공지</Text></View> : <Text style={{ color: accent, fontFamily: fonts.medium, fontSize: 12, fontWeight: '500', lineHeight: 18 }}>{boardLabel(post.boardType, scope)}</Text>}
-          {!post.isBlinded && post.isHot ? <View style={[styles.hot, { borderColor: accent }]}><Text style={{ color: accent, fontFamily: fonts.medium, fontSize: 12, fontWeight: '500' }}>인기</Text></View> : null}
-          {post.isBlinded ? <EyeOff color={theme.muted} size={13} /> : null}
-          <Text numberOfLines={1} style={[styles.postTitle, { color: post.isBlinded ? theme.muted : theme.ink, fontFamily: fonts.medium }]}>{title}</Text>
+          {post.isNotice ? <View style={[styles.notice, { backgroundColor: theme.ink }]}><Megaphone color={theme.surface} size={10} /><Text style={{ color: theme.surface, ...fonts.medium, fontSize: 12, fontWeight: '500' }}>공지</Text></View> : <Text style={{ color: accent, ...fonts.medium, fontSize: 12, fontWeight: '500', lineHeight: 18 }}>{boardLabel(post.boardType, scope)}</Text>}
+          {!post.isBlinded && post.isHot ? <View style={[styles.hot, { borderColor: accent }]}><Text style={{ color: accent, ...fonts.medium, fontSize: 12, fontWeight: '500' }}>인기</Text></View> : null}
+          {post.isBlinded ? post.blindedSource === 'ai' ? <Image contentFit="contain" source={require('@/assets/characters/pen-warning-blocked-red.png')} style={styles.blindedCharacter} /> : <EyeOff color={theme.muted} size={13} /> : null}
+          <Text numberOfLines={1} style={[styles.postTitle, { color: post.isBlinded ? theme.muted : theme.ink, ...fonts.medium }]}>{title}</Text>
         </View>
         <View style={styles.metaRow}>
-          <Text numberOfLines={1} style={[styles.author, { color: theme.text, fontFamily: fonts.medium }]}>{displayAuthor(post.author)}</Text>
-          <Text style={[styles.meta, { color: theme.muted, fontFamily: fonts.regular }]}>{formatCommunityDate(post.createdAt)}</Text>
-          <View style={styles.metaStat}><MessageCircle color={theme.muted} size={11} strokeWidth={1.8} /><Text style={[styles.meta, { color: theme.muted, fontFamily: fonts.regular }]}>{post.commentCount}</Text></View>
-          <View style={styles.metaStat}><ThumbsUp color={theme.muted} size={11} strokeWidth={1.8} /><Text style={[styles.meta, { color: theme.muted, fontFamily: fonts.regular }]}>{post.likeCount}</Text></View>
+          <Text numberOfLines={1} style={[styles.author, { color: theme.text, ...fonts.medium }]}>{displayAuthor(post.author)}</Text>
+          <Text style={[styles.meta, { color: theme.muted, ...fonts.regular }]}>{formatCommunityDate(post.createdAt)}</Text>
+          <View style={styles.metaStat}><MessageCircle color={theme.muted} size={11} strokeWidth={1.8} /><Text style={[styles.meta, { color: theme.muted, ...fonts.regular }]}>{post.commentCount}</Text></View>
+          <View style={styles.metaStat}><ThumbsUp color={theme.muted} size={11} strokeWidth={1.8} /><Text style={[styles.meta, { color: theme.muted, ...fonts.regular }]}>{post.likeCount}</Text></View>
         </View>
       </View>
       {!post.isBlinded && post.thumbnail?.url ? <Image contentFit="cover" source={{ uri: resolveApiAssetUrl(post.thumbnail.url) ?? post.thumbnail.url }} style={[styles.thumbnail, { backgroundColor: theme.surfaceMuted }]} transition={150} /> : null}
@@ -195,6 +198,7 @@ const styles = StyleSheet.create({
   fullBleed: { gap: 0, marginHorizontal: -16, marginTop: 0 },
   ad: { alignItems: 'center', height: 60, justifyContent: 'center' },
   adText: { fontSize: 11, letterSpacing: 2.2, lineHeight: 16.5 },
+  blindedCharacter: { height: 18, width: 18 },
   feed: { borderBottomWidth: 1, borderTopWidth: 1, width: '100%' },
   toolbar: { borderBottomWidth: 1, paddingHorizontal: 12, paddingVertical: 10 },
   toolbarRow: { alignItems: 'center', flexDirection: 'row', gap: 8 },
@@ -226,9 +230,6 @@ const styles = StyleSheet.create({
   compose: { alignItems: 'center', borderRadius: 24, height: 48, justifyContent: 'center', position: 'absolute', right: 16, width: 48, zIndex: 80 },
   categoryList: { gap: 2, paddingBottom: 8 },
   categoryOption: { borderRadius: 10, justifyContent: 'center', minHeight: 44, paddingHorizontal: 14 },
-  empty: { alignItems: 'center', justifyContent: 'center', minHeight: 220, paddingHorizontal: 24 },
-  emptyTitle: { fontSize: 16 },
-  emptyBody: { fontSize: 14, marginTop: 7, textAlign: 'center' },
   skeletonRow: { alignItems: 'center', borderBottomWidth: 1, flexDirection: 'row', gap: 12, height: 65, paddingHorizontal: 12 },
   skeletonText: { flex: 1, gap: 8 },
   skeletonLine: { borderRadius: 4, height: 14 },

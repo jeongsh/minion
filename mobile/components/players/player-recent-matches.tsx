@@ -44,7 +44,7 @@ function Loadout({ line }: { line: MobilePlayerRecentSet }) {
           {championUrl ? <Image contentFit="cover" source={{ uri: resolveApiAssetUrl(championUrl) ?? championUrl }} style={StyleSheet.absoluteFill} /> : null}
           {line.championLevel ? (
             <View style={[styles.levelBadge, { backgroundColor: theme.surface }]}>
-              <Text style={{ color: theme.ink, fontFamily: fonts.medium, fontSize: 12, lineHeight: 16 }}>{line.championLevel}</Text>
+              <Text style={{ color: theme.ink, ...fonts.medium, fontSize: 12, lineHeight: 16 }}>{line.championLevel}</Text>
             </View>
           ) : null}
         </View>
@@ -62,8 +62,8 @@ function Loadout({ line }: { line: MobilePlayerRecentSet }) {
         </View>
       </View>
       <View style={styles.loadoutCopy}>
-        <Text numberOfLines={1} style={{ color: theme.text, fontFamily: fonts.medium, fontSize: 14, lineHeight: 20 }}>{line.setNumber}세트</Text>
-        <Text numberOfLines={1} style={{ color: theme.muted, fontFamily: fonts.regular, fontSize: 13, lineHeight: 19.5 }}>{line.loadout.champion.name}</Text>
+        <Text numberOfLines={1} style={{ color: theme.text, ...fonts.medium, fontSize: 14, lineHeight: 20 }}>{line.setNumber}세트</Text>
+        <Text numberOfLines={1} style={{ color: theme.muted, ...fonts.regular, fontSize: 13, lineHeight: 19.5 }}>{line.loadout.champion.name}</Text>
       </View>
     </View>
   );
@@ -87,20 +87,20 @@ function MatchSetTable({ match }: { match: MobilePlayerRecentMatch }) {
   return (
     <View style={[styles.table, { borderColor: theme.border, backgroundColor: theme.surface }]}>
       <View style={[styles.tableHeader, { backgroundColor: theme.card }]}>
-        <Text numberOfLines={1} style={[styles.date, { color: theme.ink, fontFamily: fonts.medium }]}>{compactDate(match.startsAt)}</Text>
-        <Text style={[styles.headerCell, { color: theme.muted, fontFamily: fonts.medium }]}>KDA</Text>
-        <Text style={[styles.headerItems, { color: theme.muted, fontFamily: fonts.medium }]}>아이템</Text>
+        <Text numberOfLines={1} style={[styles.date, { color: theme.ink, ...fonts.medium }]}>{compactDate(match.startsAt)}</Text>
+        <Text style={[styles.headerCell, { color: theme.muted, ...fonts.medium }]}>KDA</Text>
+        <Text style={[styles.headerItems, { color: theme.muted, ...fonts.medium }]}>아이템</Text>
       </View>
       {match.sets.length === 0 ? (
         <View style={styles.emptyRows}>
-          <Text style={{ color: theme.muted, fontFamily: fonts.medium, fontSize: 14 }}>이 매치에 연결된 선수 세트 기록이 없습니다.</Text>
+          <Text style={{ color: theme.muted, ...fonts.medium, fontSize: 14 }}>이 매치에 연결된 선수 세트 기록이 없습니다.</Text>
         </View>
       ) : match.sets.map((line, index) => (
         <View key={line.id} style={[styles.tableRow, index > 0 && { borderTopColor: theme.border, borderTopWidth: StyleSheet.hairlineWidth }]}>
           <Loadout line={line} />
           <View style={styles.kda}>
-            <Text numberOfLines={1} style={{ color: theme.ink, fontFamily: fonts.medium, fontSize: 12, lineHeight: 16 }}>{line.kills} / {line.deaths} / {line.assists}</Text>
-            <Text style={{ color: theme.muted, fontFamily: fonts.medium, fontSize: 12, lineHeight: 16, marginTop: 2 }}>{line.kda.toFixed(2)}</Text>
+            <Text numberOfLines={1} style={{ color: theme.ink, ...fonts.medium, fontSize: 12, lineHeight: 16 }}>{line.kills} / {line.deaths} / {line.assists}</Text>
+            <Text style={{ color: theme.muted, ...fonts.medium, fontSize: 12, lineHeight: 16, marginTop: 2 }}>{line.kda.toFixed(2)}</Text>
           </View>
           <ItemGrid line={line} />
         </View>
@@ -169,12 +169,12 @@ function MatchHistoryModal({ matches, onClose, open }: { matches: MobilePlayerRe
       title="최근 경기 기록">
       {matches.length === 0 ? (
         <View style={[styles.modalEmpty, { backgroundColor: theme.card }]}>
-          <Text style={{ color: theme.muted, fontFamily: fonts.medium, fontSize: 14 }}>경기 기록이 없습니다.</Text>
+          <Text style={{ color: theme.muted, ...fonts.medium, fontSize: 14 }}>경기 기록이 없습니다.</Text>
         </View>
       ) : matches.slice(0, visibleCount).map((match) => <MatchSetTable key={match.id} match={match} />)}
       {visibleCount < matches.length ? (
         <View style={styles.loadMore}>
-          <Text style={{ color: theme.muted, fontFamily: fonts.medium, fontSize: 13 }}>{loading ? '불러오는 중' : '아래로 스크롤해 더 보기'}</Text>
+          <Text style={{ color: theme.muted, ...fonts.medium, fontSize: 13 }}>{loading ? '불러오는 중' : '아래로 스크롤해 더 보기'}</Text>
         </View>
       ) : null}
     </BottomSheet>
@@ -187,14 +187,14 @@ export function PlayerRecentMatches({ matches }: { matches: MobilePlayerRecentMa
   return (
     <View>
       <View style={styles.sectionHeader}>
-        <Text style={{ color: theme.ink, fontFamily: fonts.display, fontSize: 16, lineHeight: 22 }}>최근 경기</Text>
+        <Text style={{ color: theme.ink, ...fonts.display, fontSize: 16, lineHeight: 22 }}>최근 경기</Text>
         <Pressable accessibilityRole="button" onPress={() => setOpen(true)} style={[styles.recordsButton, { backgroundColor: theme.ink }]}>
-          <Text style={{ color: theme.surface, fontFamily: fonts.medium, fontSize: 14, lineHeight: 20 }}>전체 기록 보기</Text>
+          <Text style={{ color: theme.surface, ...fonts.medium, fontSize: 14, lineHeight: 20 }}>전체 기록 보기</Text>
         </Pressable>
       </View>
       {matches.length === 0 ? (
         <View style={[styles.noRecent, { borderColor: theme.border }]}>
-          <Text style={{ color: theme.muted, fontFamily: fonts.medium, fontSize: 14 }}>최근 경기 데이터가 없습니다.</Text>
+          <Text style={{ color: theme.muted, ...fonts.medium, fontSize: 14 }}>최근 경기 데이터가 없습니다.</Text>
         </View>
       ) : <MatchSetTable match={matches[0]} />}
       <MatchHistoryModal matches={matches} onClose={() => setOpen(false)} open={open} />

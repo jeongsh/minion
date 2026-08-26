@@ -85,7 +85,8 @@ export function PlayerDetailRadar({ accent, axes }: { accent: string; axes: Mobi
             return (
               <SvgText
                 fill={theme.ink}
-                fontFamily={fonts.medium}
+                fontFamily={fonts.medium.fontFamily}
+                fontWeight={fonts.medium.fontWeight}
                 fontSize={13}
                 key={axis.label}
                 textAnchor="middle"
@@ -102,14 +103,14 @@ export function PlayerDetailRadar({ accent, axes }: { accent: string; axes: Mobi
       <View style={styles.axisList}>
         {axes.map((axis) => (
           <View key={axis.label} style={styles.axisRow}>
-            <Text style={[styles.axisLabel, { color: theme.ink, fontFamily: fonts.medium }]}>{axis.label}</Text>
+            <Text style={[styles.axisLabel, { color: theme.ink, ...fonts.medium }]}>{axis.label}</Text>
             <View style={[styles.barTrack, { backgroundColor: theme.surfaceMuted }]}>
               <View style={[styles.barFill, { backgroundColor: accent, width: `${Math.max(0, Math.min(100, axis.score))}%` }]} />
             </View>
-            <Text numberOfLines={1} style={[styles.axisValue, { color: theme.ink, fontFamily: fonts.medium }]}>
-              {Math.round(axis.score)} <Text style={{ color: theme.muted, fontFamily: fonts.regular }}>({statValue(axis.raw, axis.decimals)})</Text>
+            <Text numberOfLines={1} style={[styles.axisValue, { color: theme.ink, ...fonts.medium }]}>
+              {Math.round(axis.score)} <Text style={{ color: theme.muted, ...fonts.regular }}>({statValue(axis.raw, axis.decimals)})</Text>
             </Text>
-            <Text numberOfLines={1} style={[styles.axisAverage, { color: theme.muted, fontFamily: fonts.regular }]}>
+            <Text numberOfLines={1} style={[styles.axisAverage, { color: theme.muted, ...fonts.regular }]}>
               {axis.averageScore == null
                 ? '-'
                 : `${Math.round(axis.averageScore)} (${statValue(axis.averageRaw, axis.decimals)})`}

@@ -11,7 +11,8 @@ import { mobileApiOrigin } from '@/lib/api-client';
 import { useAuth } from '@/providers/auth-provider';
 
 type Mode = 'login' | 'signup';
-const character = require('@/assets/characters/pen-4.png');
+const loginCharacter = require('@/assets/characters/pen-4.png');
+const signupCharacter = require('@/assets/characters/flag-3.png');
 
 export function AuthScreen({ mode }: { mode: Mode }) {
   const router = useRouter();
@@ -57,7 +58,7 @@ export function AuthScreen({ mode }: { mode: Mode }) {
           <Pressable accessibilityLabel="이전 화면" onPress={() => router.replace('/')} style={styles.headerBack}>
             <ChevronLeft color={theme.ink} size={22} />
           </Pressable>
-          <Text numberOfLines={1} style={[styles.headerTitle, { color: theme.ink, fontFamily: fonts.black }]}>로그인</Text>
+          <Text numberOfLines={1} style={[styles.headerTitle, { color: theme.ink, ...fonts.black }]}>로그인</Text>
           <View style={styles.headerSide} />
         </View>
         <ScrollView
@@ -67,11 +68,11 @@ export function AuthScreen({ mode }: { mode: Mode }) {
           <View style={[styles.loginShell, { backgroundColor: theme.surface, borderColor: theme.border }]}>
             <View style={styles.loginIntro}>
               <View style={styles.loginIntroCopy}>
-                <Text style={[styles.loginBrand, { fontFamily: fonts.black }]}>MINION.</Text>
-                <Text style={[styles.loginTitle, { fontFamily: fonts.display }]}>{title}</Text>
-                <Text style={[styles.loginDescription, { fontFamily: fonts.bold }]}>{description}</Text>
+                <Text style={[styles.loginBrand, { ...fonts.black }]}>MINION.</Text>
+                <Text style={[styles.loginTitle, { ...fonts.display }]}>{title}</Text>
+                <Text style={[styles.loginDescription, { ...fonts.bold }]}>{description}</Text>
               </View>
-              <Image contentFit="contain" contentPosition="bottom" source={character} style={styles.loginCharacter} />
+              <Image contentFit="contain" contentPosition="bottom" source={loginCharacter} style={styles.loginCharacter} />
             </View>
             <View style={styles.loginFormWrap}>
               <View style={styles.emailForm}>
@@ -81,7 +82,7 @@ export function AuthScreen({ mode }: { mode: Mode }) {
                     autoComplete="email"
                     keyboardType="email-address"
                     onChangeText={setEmail}
-                    style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.ink, fontFamily: fonts.regular }]}
+                    style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.ink, ...fonts.regular }]}
                     value={email}
                   />
                 </Field>
@@ -91,25 +92,25 @@ export function AuthScreen({ mode }: { mode: Mode }) {
                     autoComplete="current-password"
                     onChangeText={setPassword}
                     secureTextEntry
-                    style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.ink, fontFamily: fonts.regular }]}
+                    style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.ink, ...fonts.regular }]}
                     value={password}
                   />
                 </Field>
                 {error ? <Text accessibilityRole="alert" style={styles.loginError}>{error}</Text> : null}
-                {message ? <Text style={[styles.loginMessage, { color: theme.text, fontFamily: fonts.regular }]}>{message}</Text> : null}
+                {message ? <Text style={[styles.loginMessage, { color: theme.text, ...fonts.regular }]}>{message}</Text> : null}
                 <Pressable disabled={Boolean(pending)} onPress={submit} style={[styles.loginPrimary, { opacity: pending ? 0.5 : 1 }]}>
-                  {pending === 'email' ? <ActivityIndicator color="#ffffff" /> : <Text style={[styles.loginPrimaryText, { fontFamily: fonts.black }]}>로그인</Text>}
+                  {pending === 'email' ? <ActivityIndicator color="#ffffff" /> : <Text style={[styles.loginPrimaryText, { ...fonts.black }]}>로그인</Text>}
                 </Pressable>
-                <Text style={[styles.accountLinks, { color: formMuted, fontFamily: fonts.regular }]}>
+                <Text style={[styles.accountLinks, { color: formMuted, ...fonts.regular }]}>
                   계정이 없으신가요?{' '}
-                  <Text onPress={() => router.replace(`/signup?next=${encodeURIComponent(returnTo)}` as never)} style={[styles.inlineLink, { color: theme.ink, fontFamily: fonts.bold }]}>회원가입</Text>
+                  <Text onPress={() => router.replace(`/signup?next=${encodeURIComponent(returnTo)}` as never)} style={[styles.inlineLink, { color: theme.ink, ...fonts.bold }]}>회원가입</Text>
                   {' · '}
-                  <Text onPress={() => void Linking.openURL(`${mobileApiOrigin}/forgot-password`)} style={[styles.inlineLink, { color: theme.ink, fontFamily: fonts.bold }]}>비밀번호 재설정</Text>
+                  <Text onPress={() => void Linking.openURL(`${mobileApiOrigin}/forgot-password`)} style={[styles.inlineLink, { color: theme.ink, ...fonts.bold }]}>비밀번호 재설정</Text>
                 </Text>
               </View>
               <View style={styles.loginDivider}>
                 <View style={[styles.rule, { backgroundColor: theme.border }]} />
-                <Text style={[styles.dividerText, { color: theme.muted, fontFamily: fonts.medium }]}>또는</Text>
+                <Text style={[styles.dividerText, { color: theme.muted, ...fonts.medium }]}>또는</Text>
                 <View style={[styles.rule, { backgroundColor: theme.border }]} />
               </View>
               <View style={styles.socialList}>
@@ -130,18 +131,18 @@ export function AuthScreen({ mode }: { mode: Mode }) {
         <Pressable accessibilityLabel="뒤로" onPress={() => router.back()} style={styles.back}><ChevronLeft color={theme.ink} size={22} /></Pressable>
         <View style={[styles.shell, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <View style={styles.intro}>
-            <View style={styles.introCopy}><Text style={[styles.brand, { fontFamily: fonts.black }]}>MINION.</Text><Text style={[styles.title, { fontFamily: fonts.display }]}>{title}</Text><Text style={[styles.description, { fontFamily: fonts.bold }]}>{description}</Text></View>
-            <Image contentFit="contain" contentPosition="bottom" source={character} style={styles.character} />
+            <View style={styles.introCopy}><Text style={[styles.brand, { ...fonts.black }]}>MINION.</Text><Text style={[styles.title, { ...fonts.display }]}>{title}</Text><Text style={[styles.description, { ...fonts.bold }]}>{description}</Text></View>
+            <Image contentFit="contain" contentPosition="bottom" source={signupCharacter} style={styles.character} />
           </View>
           <View style={styles.form}>
-            <Field label="이메일"><TextInput autoCapitalize="none" autoComplete="email" keyboardType="email-address" onChangeText={setEmail} placeholder="fan@minion.gg" placeholderTextColor={theme.muted} style={[styles.input, { borderColor: theme.border, color: theme.ink, fontFamily: fonts.regular }]} value={email} /></Field>
-            <Field label="비밀번호"><TextInput autoCapitalize="none" autoComplete="new-password" onChangeText={setPassword} placeholder="6자 이상" placeholderTextColor={theme.muted} secureTextEntry style={[styles.input, { borderColor: theme.border, color: theme.ink, fontFamily: fonts.regular }]} value={password} /></Field>
-            <Pressable onPress={() => setConsented((value) => !value)} style={[styles.consent, { backgroundColor: theme.surfaceMuted }]}><Switch onValueChange={setConsented} trackColor={{ false: theme.border, true: theme.accent }} value={consented} /><Text style={[styles.consentText, { color: theme.text, fontFamily: fonts.medium }]}>만 14세 이상이며 이용약관과 개인정보 처리방침에 동의합니다.</Text></Pressable>
+            <Field label="이메일"><TextInput autoCapitalize="none" autoComplete="email" keyboardType="email-address" onChangeText={setEmail} placeholder="fan@minion.gg" placeholderTextColor={theme.muted} style={[styles.input, { borderColor: theme.border, color: theme.ink, ...fonts.regular }]} value={email} /></Field>
+            <Field label="비밀번호"><TextInput autoCapitalize="none" autoComplete="new-password" onChangeText={setPassword} placeholder="6자 이상" placeholderTextColor={theme.muted} secureTextEntry style={[styles.input, { borderColor: theme.border, color: theme.ink, ...fonts.regular }]} value={password} /></Field>
+            <Pressable onPress={() => setConsented((value) => !value)} style={[styles.consent, { backgroundColor: theme.surfaceMuted }]}><Switch onValueChange={setConsented} trackColor={{ false: theme.border, true: theme.accent }} value={consented} /><Text style={[styles.consentText, { color: theme.text, ...fonts.medium }]}>만 14세 이상이며 이용약관과 개인정보 처리방침에 동의합니다.</Text></Pressable>
             {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
             {message ? <Text style={[styles.message, { color: theme.text }]}>{message}</Text> : null}
-            <Pressable disabled={Boolean(pending)} onPress={submit} style={[styles.primary, { backgroundColor: theme.accent, opacity: pending ? 0.65 : 1 }]}>{pending === 'email' ? <ActivityIndicator color="#061018" /> : <Text style={[styles.primaryText, { fontFamily: fonts.bold }]}>회원가입</Text>}</Pressable>
-            <Pressable onPress={() => router.replace(`/login?next=${encodeURIComponent(returnTo)}` as never)}><Text style={[styles.switchMode, { color: theme.muted, fontFamily: fonts.medium }]}>이미 계정이 있으신가요?  로그인</Text></Pressable>
-            <View style={styles.or}><View style={[styles.rule, { backgroundColor: theme.border }]} /><Text style={{ color: theme.muted, fontFamily: fonts.medium, fontSize: 12 }}>또는</Text><View style={[styles.rule, { backgroundColor: theme.border }]} /></View>
+            <Pressable disabled={Boolean(pending)} onPress={submit} style={[styles.primary, { backgroundColor: theme.accent, opacity: pending ? 0.65 : 1 }]}>{pending === 'email' ? <ActivityIndicator color="#061018" /> : <Text style={[styles.primaryText, { ...fonts.bold }]}>회원가입</Text>}</Pressable>
+            <Pressable onPress={() => router.replace(`/login?next=${encodeURIComponent(returnTo)}` as never)}><Text style={[styles.switchMode, { color: theme.muted, ...fonts.medium }]}>이미 계정이 있으신가요?  로그인</Text></Pressable>
+            <View style={styles.or}><View style={[styles.rule, { backgroundColor: theme.border }]} /><Text style={{ color: theme.muted, ...fonts.medium, fontSize: 12 }}>또는</Text><View style={[styles.rule, { backgroundColor: theme.border }]} /></View>
             <SocialButton disabled={Boolean(pending)} label="Google로 계속" onPress={() => void run('google', () => signInWithOAuth('google', favoriteTeamReturnTo))} pending={pending === 'google'} tone="#ffffff" text="#202124" border="#dadce0" />
             <SocialButton disabled={Boolean(pending)} label="Kakao로 계속" onPress={() => void run('kakao', () => signInWithOAuth('kakao', favoriteTeamReturnTo))} pending={pending === 'kakao'} tone="#fee500" text="#191919" />
             {Platform.OS === 'ios' ? <SocialButton disabled={Boolean(pending)} label="Apple로 계속" onPress={() => void run('apple', () => signInWithOAuth('apple', favoriteTeamReturnTo))} pending={pending === 'apple'} tone={colorScheme === 'dark' ? '#ffffff' : '#000000'} text={colorScheme === 'dark' ? '#000000' : '#ffffff'} /> : null}
@@ -153,8 +154,8 @@ export function AuthScreen({ mode }: { mode: Mode }) {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) { const { fonts, theme } = useMinionTheme(); return <View style={styles.field}><Text style={{ color: theme.ink, fontFamily: fonts.bold, fontSize: 14, lineHeight: 20 }}>{label}</Text>{children}</View>; }
-function SocialButton({ border, compact = false, disabled, icon, label, onPress, pending, text, tone }: { border?: string; compact?: boolean; disabled: boolean; icon?: React.ReactNode; label: string; onPress: () => void; pending: boolean; text: string; tone: string }) { const { fonts } = useMinionTheme(); return <Pressable disabled={disabled} onPress={onPress} style={[styles.social, compact && styles.socialCompact, { backgroundColor: tone, borderColor: border ?? tone, opacity: disabled && !pending ? 0.5 : 1 }]}>{pending ? <ActivityIndicator color={text} /> : <View style={styles.socialContent}>{icon}<Text style={{ color: text, fontFamily: fonts.bold, fontSize: compact ? 13 : 14 }}>{label}</Text></View>}</Pressable>; }
+function Field({ label, children }: { label: string; children: React.ReactNode }) { const { fonts, theme } = useMinionTheme(); return <View style={styles.field}><Text style={{ color: theme.ink, ...fonts.bold, fontSize: 14, lineHeight: 20 }}>{label}</Text>{children}</View>; }
+function SocialButton({ border, compact = false, disabled, icon, label, onPress, pending, text, tone }: { border?: string; compact?: boolean; disabled: boolean; icon?: React.ReactNode; label: string; onPress: () => void; pending: boolean; text: string; tone: string }) { const { fonts } = useMinionTheme(); return <Pressable disabled={disabled} onPress={onPress} style={[styles.social, compact && styles.socialCompact, { backgroundColor: tone, borderColor: border ?? tone, opacity: disabled && !pending ? 0.5 : 1 }]}>{pending ? <ActivityIndicator color={text} /> : <View style={styles.socialContent}>{icon}<Text style={{ color: text, ...fonts.bold, fontSize: compact ? 13 : 14 }}>{label}</Text></View>}</Pressable>; }
 
 function GoogleIcon() { return <Svg height={16} viewBox="0 0 18 18" width={16}><Path d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.57 2.68-3.87 2.68-6.62Z" fill="#4285F4" /><Path d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.83.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.95v2.33A9 9 0 0 0 9 18Z" fill="#34A853" /><Path d="M3.95 10.7A5.4 5.4 0 0 1 3.66 9c0-.59.1-1.17.29-1.7V4.97H.95A9 9 0 0 0 0 9c0 1.45.35 2.83.95 4.03l3-2.33Z" fill="#FBBC05" /><Path d="M9 3.58c1.32 0 2.51.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .95 4.97l3 2.33C4.66 5.17 6.65 3.58 9 3.58Z" fill="#EA4335" /></Svg>; }
 function KakaoIcon() { return <Svg height={16} viewBox="0 0 18 18" width={16}><Path d="M9 2C4.58 2 1 4.77 1 8.2c0 2.19 1.47 4.11 3.68 5.22-.16.58-.6 2.16-.69 2.5-.11.42.15.42.32.3.13-.09 2.1-1.42 2.95-2 .89.13 1.8.2 2.74.2 4.42 0 8-2.77 8-6.22C18 4.77 14.42 2 9 2Z" fill="#191600" /></Svg>; }

@@ -166,7 +166,7 @@ export default function TournamentsScreen() {
           <View style={styles.nonLckSection}>
             <View style={styles.nonLckHeader}>
               <View style={styles.nonLckTitleGroup}>
-                <Text style={[styles.nonLckTitle, { color: theme.ink, fontFamily: fonts.display }]}>
+                <Text style={[styles.nonLckTitle, { color: theme.ink, ...fonts.display }]}>
                   {data.activeView === 'standings' ? '조 순위' : '대진표'}
                 </Text>
                 {viewItems.length > 0 ? <TournamentUnderlineNav activeKey={activeViewKey} bordered={false} items={viewItems} onSelect={selectView} /> : null}

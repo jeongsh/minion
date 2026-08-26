@@ -121,7 +121,7 @@ export default function MatchDetailScreen() {
             </View>
           ) : (
             <View style={[styles.emptyBox, { borderColor: theme.border }]}>
-              <Text style={{ color: theme.muted, fontFamily: fonts.medium, fontSize: 14 }}>세트 데이터가 아직 연결되지 않았습니다.</Text>
+              <Text style={{ color: theme.muted, ...fonts.medium, fontSize: 14 }}>세트 데이터가 아직 연결되지 않았습니다.</Text>
             </View>
           )}
         </View>
@@ -142,7 +142,7 @@ export default function MatchDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  content: { gap: 20, paddingBottom: 0 },
+  content: { gap: 20, paddingBottom: 0, paddingTop: 4 },
   dataTab: { gap: 16, marginTop: -20 },
   emptyBox: { borderRadius: 8, borderStyle: 'dashed', borderWidth: 1, padding: 16 },
   ratingTab: { gap: 16, marginTop: -20 },

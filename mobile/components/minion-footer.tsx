@@ -25,15 +25,15 @@ export function MinionFooter({ accentColor }: { accentColor?: string }) {
         <View style={styles.footerNav}>
           {FOOTER_LINKS.map((link) => (
             <Pressable key={link.path} onPress={() => openWebPage(link.path)}>
-              <Text style={[styles.footerLink, { color: theme.footerNav, fontFamily: fonts.bold }]}>{link.label}</Text>
+              <Text style={[styles.footerLink, { color: theme.footerNav, ...fonts.bold }]}>{link.label}</Text>
             </Pressable>
           ))}
         </View>
       </View>
-      <Text style={[styles.footerDisclaimer, { color: theme.footerText, fontFamily: fonts.regular }]}>
+      <Text style={[styles.footerDisclaimer, { color: theme.footerText, ...fonts.regular }]}>
         {"MINION isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games or anyone officially involved in producing or managing League of Legends. League of Legends and Riot Games are trademarks or registered trademarks of Riot Games, Inc. League of Legends © Riot Games, Inc."}
       </Text>
-      <Text style={[styles.footerCredit, { color: theme.footerText, fontFamily: fonts.regular }]}>
+      <Text style={[styles.footerCredit, { color: theme.footerText, ...fonts.regular }]}>
         Some content is provided courtesy of{' '}
         <Text onPress={() => void Linking.openURL('https://lol.fandom.com/wiki/League_of_Legends_Esports_Wiki')} style={styles.footerInlineLink}>
           Leaguepedia
@@ -44,7 +44,7 @@ export function MinionFooter({ accentColor }: { accentColor?: string }) {
         </Text>
         .
       </Text>
-      <Text style={[styles.footerCopyright, { color: theme.footerText, fontFamily: fonts.regular }]}>© 2026 MINION. All rights reserved.</Text>
+      <Text style={[styles.footerCopyright, { color: theme.footerText, ...fonts.regular }]}>© 2026 MINION. All rights reserved.</Text>
     </View>
   );
 }

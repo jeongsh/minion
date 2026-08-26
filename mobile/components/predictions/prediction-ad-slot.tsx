@@ -7,7 +7,7 @@ export function PredictionAdSlot() {
   const { fonts, theme } = useMinionTheme();
   return (
     <View style={[styles.ad, { backgroundColor: theme.adSurface }]}>
-      <Text style={[styles.text, { fontFamily: fonts.medium }]}>ADVERTISEMENT</Text>
+      <Text style={[styles.text, { ...fonts.medium }]}>ADVERTISEMENT</Text>
     </View>
   );
 }

@@ -37,8 +37,8 @@ export function ScheduleWeekScroller({
               key={date.key}
               onPress={() => targetKey && onSelectDate(targetKey)}
               style={[styles.cell, isToday && { backgroundColor: theme.ink }]}>
-              <Text style={[styles.weekday, { color: isToday ? theme.surface : theme.muted, fontFamily: fonts.medium }]}>{date.weekday}</Text>
-              <Text style={[styles.day, { color: isToday ? theme.surface : theme.muted, fontFamily: fonts.black }]}>{date.day}</Text>
+              <Text style={[styles.weekday, { color: isToday ? theme.surface : theme.muted, ...fonts.medium }]}>{date.weekday}</Text>
+              <Text style={[styles.day, { color: isToday ? theme.surface : theme.muted, ...fonts.black }]}>{date.day}</Text>
             </Pressable>
           );
         })}

@@ -52,9 +52,9 @@ function SetVodPlayer({ matchName, vods }: { matchName: string; vods: MobileVide
           </View>
         </Pressable>
       )}
-      <Text style={[styles.previewCaption, { color: theme.text, fontFamily: fonts.bold }]}>{active.title.replace('다시보기', '').trim()}</Text>
+      <Text style={[styles.previewCaption, { color: theme.text, ...fonts.bold }]}>{active.title.replace('다시보기', '').trim()}</Text>
 
-      <Text style={[styles.asideHeading, { color: theme.text, fontFamily: fonts.bold }]}>세트별 다시보기</Text>
+      <Text style={[styles.asideHeading, { color: theme.text, ...fonts.bold }]}>세트별 다시보기</Text>
       <View style={styles.vodList}>
         {vods.map((vod, index) => {
           const selected = index === activeIndex;
@@ -74,8 +74,8 @@ function SetVodPlayer({ matchName, vods }: { matchName: string; vods: MobileVide
                 )}
               </View>
               <View style={styles.vodRowText}>
-                <Text numberOfLines={1} style={[styles.vodRowTitle, { color: selected ? theme.accent : theme.text, fontFamily: fonts.bold }]}>{vod.title.replace('다시보기', '').trim()}</Text>
-                <Text style={[styles.vodRowProvider, { color: tournamentTokens[colorScheme].muted, fontFamily: fonts.medium }]}>{providerLabel(vod.channelName)}</Text>
+                <Text numberOfLines={1} style={[styles.vodRowTitle, { color: selected ? theme.accent : theme.text, ...fonts.bold }]}>{vod.title.replace('다시보기', '').trim()}</Text>
+                <Text style={[styles.vodRowProvider, { color: tournamentTokens[colorScheme].muted, ...fonts.medium }]}>{providerLabel(vod.channelName)}</Text>
               </View>
             </Pressable>
           );
@@ -92,20 +92,20 @@ export function MatchVideoTab({ matchName, matchVodUrl, vods }: { matchName: str
 
   return (
     <View style={styles.section}>
-      <Text style={[styles.heading, { color: theme.ink, fontFamily: fonts.display }]}>영상</Text>
+      <Text style={[styles.heading, { color: theme.ink, ...fonts.display }]}>영상</Text>
       {hasContent ? (
         <View style={styles.contentWrap}>
           {matchEmbedUrl ? <InlineVideoPlayer title={`${matchName} VOD`} url={matchEmbedUrl} /> : null}
           {matchVodUrl ? (
             <Pressable onPress={() => WebBrowser.openBrowserAsync(matchVodUrl)}>
-              <Text style={[styles.originalLink, { color: theme.accent, fontFamily: fonts.bold }]}>원본 영상 열기</Text>
+              <Text style={[styles.originalLink, { color: theme.accent, ...fonts.bold }]}>원본 영상 열기</Text>
             </Pressable>
           ) : null}
           {vods.length > 0 ? <SetVodPlayer matchName={matchName} vods={vods} /> : null}
         </View>
       ) : (
         <View style={[styles.emptyBox, { borderColor: theme.border }]}>
-          <Text style={{ color: theme.muted, fontFamily: fonts.medium, fontSize: 14 }}>아직 연결된 영상 URL이 없습니다.</Text>
+          <Text style={{ color: theme.muted, ...fonts.medium, fontSize: 14 }}>아직 연결된 영상 URL이 없습니다.</Text>
         </View>
       )}
     </View>

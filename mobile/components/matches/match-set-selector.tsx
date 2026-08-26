@@ -23,7 +23,7 @@ export function MatchSetSelector({ activeSetId, onSelect, sets, snapshotUrl }: {
               onPress={() => onSelect(set.id)}
               style={[styles.pill, active && { backgroundColor: colorScheme === 'dark' ? theme.border : theme.surface, borderColor: theme.border, borderWidth: 1 }]}
             >
-              <Text style={[styles.pillText, { color: active ? theme.ink : theme.muted, fontFamily: fonts.medium }]}>{set.setNumber}세트</Text>
+              <Text style={[styles.pillText, { color: active ? theme.ink : theme.muted, ...fonts.medium }]}>{set.setNumber}세트</Text>
             </Pressable>
           );
         })}

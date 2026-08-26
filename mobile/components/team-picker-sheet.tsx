@@ -26,12 +26,12 @@ export function TeamPickerSheet() {
             <View style={[styles.logoCircle, { backgroundColor: '#ffffff', borderColor: theme.border }]}>
               <Image contentFit="contain" source={team.logo} style={styles.logo} />
             </View>
-            <Text numberOfLines={1} style={[styles.teamName, { color: theme.ink, fontFamily: fonts.medium }]}>{team.shortName}</Text>
+            <Text numberOfLines={1} style={[styles.teamName, { color: theme.ink, ...fonts.medium }]}>{team.shortName}</Text>
           </Pressable>
         ))}
       </ScrollView>
       <Pressable onPress={() => { setTeamPickerOpen(false); router.navigate('/teams'); }} style={[styles.allTeams, { borderTopColor: theme.divider }]}>
-        <Text style={{ color: theme.muted, fontFamily: fonts.bold, fontSize: 14 }}>소셜과 영상까지 둘러보기</Text>
+        <Text style={{ color: theme.muted, ...fonts.bold, fontSize: 14 }}>소셜과 영상까지 둘러보기</Text>
         <ChevronRight color={theme.muted} size={17} />
       </Pressable>
     </BottomSheet>

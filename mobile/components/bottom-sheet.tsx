@@ -53,7 +53,7 @@ export function BottomSheet({
         <View accessibilityViewIsModal style={[styles.panel, { backgroundColor: theme.surface, maxHeight, paddingBottom: Math.max(insets.bottom, 18) }, panelStyle]}>
           <BottomSheetHandle />
           <View style={styles.heading}>
-            <Text style={[styles.title, { color: theme.ink, fontFamily: fonts.display }]}>{title}</Text>
+            <Text style={[styles.title, { color: theme.ink, ...fonts.display }]}>{title}</Text>
             <Pressable accessibilityLabel={`${title} 닫기`} hitSlop={8} onPress={onClose} style={styles.close}>
               <X color={theme.muted} size={22} />
             </Pressable>

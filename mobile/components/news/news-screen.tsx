@@ -73,7 +73,7 @@ function NewsContent({ data }: { data: MobileNewsDto }) {
           <Pressable accessibilityLabel="뉴스 팀 선택" accessibilityRole="button" accessibilityState={{ expanded: filterOpen }} onPress={() => setFilterOpen(true)} style={[styles.filterTrigger, { backgroundColor: theme.surface, borderColor: filterOpen ? theme.ink : theme.border }]}>
             <View style={styles.filterTriggerIdentity}>
               {selectedTeamData ? <TeamLogo plain size={20} team={selectedTeamData} themeAware /> : <ListFilter color={theme.muted} size={17} />}
-              <Text numberOfLines={1} style={{ color: theme.text, flexShrink: 1, fontFamily: fonts.medium, fontSize: 13, lineHeight: 19.5 }}>{selectedTeamData?.shortName ?? '전체 팀'}</Text>
+              <Text numberOfLines={1} style={{ color: theme.text, flexShrink: 1, ...fonts.medium, fontSize: 13, lineHeight: 19.5 }}>{selectedTeamData?.shortName ?? '전체 팀'}</Text>
             </View>
             <ChevronDown color={theme.muted} size={15} />
           </Pressable>
@@ -87,11 +87,11 @@ function NewsContent({ data }: { data: MobileNewsDto }) {
               placeholder="팀, 선수, 기사 제목 검색"
               placeholderTextColor={theme.muted}
               returnKeyType="search"
-              style={[styles.searchInput, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.ink, fontFamily: fonts.medium }]}
+              style={[styles.searchInput, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.ink, ...fonts.medium }]}
               value={draft}
             />
           </View>
-          <Pressable accessibilityRole="button" onPress={submitSearch} style={({ pressed }) => [styles.searchButton, { backgroundColor: theme.ink, opacity: pressed ? 0.82 : 1 }]}><Text style={{ color: theme.surface, fontFamily: fonts.medium, fontSize: 13, lineHeight: 19.5 }}>검색</Text></Pressable>
+          <Pressable accessibilityRole="button" onPress={submitSearch} style={({ pressed }) => [styles.searchButton, { backgroundColor: theme.ink, opacity: pressed ? 0.82 : 1 }]}><Text style={{ color: theme.surface, ...fonts.medium, fontSize: 13, lineHeight: 19.5 }}>검색</Text></Pressable>
           {data.query ? <Pressable accessibilityLabel="검색어 지우기" accessibilityRole="link" onPress={() => navigate(data.teamSlug ?? '', '')} style={[styles.clearButton, { borderColor: theme.border }]}><X color={theme.muted} size={17} /></Pressable> : null}
           </View>
         </View>
@@ -99,15 +99,15 @@ function NewsContent({ data }: { data: MobileNewsDto }) {
 
       <View accessibilityLabel={title}>
         <View style={styles.latestRow}>
-          <View style={styles.latestIdentity}><Text accessibilityRole="header" aria-level={2} style={[styles.latestTitle, { color: theme.ink, fontFamily: fonts.display }]}>{title}</Text><Text style={{ color: theme.muted, fontFamily: fonts.medium, fontSize: 13, lineHeight: 19.5 }}>현재 {data.items.length}건</Text></View>
-          {data.teamSlug || data.query ? <Pressable onPress={() => navigate('', '')} style={styles.reset}><Text style={{ color: theme.muted, fontFamily: fonts.medium, fontSize: 13 }}>필터 초기화</Text></Pressable> : null}
+          <View style={styles.latestIdentity}><Text accessibilityRole="header" aria-level={2} style={[styles.latestTitle, { color: theme.ink, ...fonts.display }]}>{title}</Text><Text style={{ color: theme.muted, ...fonts.medium, fontSize: 13, lineHeight: 19.5 }}>현재 {data.items.length}건</Text></View>
+          {data.teamSlug || data.query ? <Pressable onPress={() => navigate('', '')} style={styles.reset}><Text style={{ color: theme.muted, ...fonts.medium, fontSize: 13 }}>필터 초기화</Text></Pressable> : null}
         </View>
 
         {data.items.length ? <View>{data.items.map((article, index) => <View key={article.id} style={[styles.newsItem, index < data.items.length - 1 ? { borderBottomColor: theme.divider, borderBottomWidth: 1 } : null, index === 0 && styles.firstNewsItem, index === data.items.length - 1 && styles.lastNewsItem]}><NewsRow article={article} onOpenError={() => showToast('기사 원문을 열지 못했습니다.', 'error')} /></View>)}</View> : <NewsEmpty />}
       </View>
 
       {data.totalPages > 1 ? <Pagination onChange={(nextPage) => navigate(data.teamSlug ?? '', data.query, nextPage, true)} page={data.page} totalPages={data.totalPages} /> : null}
-      <Text style={[styles.footnote, { color: theme.muted, fontFamily: fonts.regular }]}>{data.isFallback ? '뉴스를 불러오지 못해 임시 데이터를 표시하고 있습니다.' : '기사 제목을 선택하면 해당 언론사의 원문으로 이동합니다.'}</Text>
+      <Text style={[styles.footnote, { color: theme.muted, ...fonts.regular }]}>{data.isFallback ? '뉴스를 불러오지 못해 임시 데이터를 표시하고 있습니다.' : '기사 제목을 선택하면 해당 언론사의 원문으로 이동합니다.'}</Text>
     </MinionScreen>
     <BottomSheet onClose={() => setFilterOpen(false)} open={filterOpen} title="팀 필터">
       <ScrollView accessibilityLabel="뉴스 팀" contentContainerStyle={styles.filterOptions} showsVerticalScrollIndicator={false}>
@@ -121,7 +121,7 @@ function NewsContent({ data }: { data: MobileNewsDto }) {
 
 function FilterOption({ active, detail, label, onPress, team }: { active: boolean; detail: string; label: string; onPress: () => void; team?: MobileNewsDto['teams'][number] }) {
   const { fonts, theme } = useMinionTheme();
-  return <Pressable accessibilityRole="menuitem" accessibilityState={{ selected: active }} onPress={onPress} style={({ pressed }) => [styles.filterOption, active || pressed ? { backgroundColor: theme.surfaceMuted } : null]}>{team ? <TeamLogo plain size={28} team={team} themeAware /> : <View style={[styles.allTeamsIcon, { backgroundColor: theme.surfaceMuted }]}><ListFilter color={theme.muted} size={17} /></View>}<View style={styles.filterOptionCopy}><Text numberOfLines={1} style={{ color: theme.ink, fontFamily: fonts.medium, fontSize: 14, lineHeight: 21 }}>{label}</Text><Text numberOfLines={1} style={{ color: theme.muted, fontFamily: fonts.regular, fontSize: 13, lineHeight: 19.5 }}>{detail}</Text></View>{active ? <Check color={theme.ink} size={17} /> : null}</Pressable>;
+  return <Pressable accessibilityRole="menuitem" accessibilityState={{ selected: active }} onPress={onPress} style={({ pressed }) => [styles.filterOption, active || pressed ? { backgroundColor: theme.surfaceMuted } : null]}>{team ? <TeamLogo plain size={28} team={team} themeAware /> : <View style={[styles.allTeamsIcon, { backgroundColor: theme.surfaceMuted }]}><ListFilter color={theme.muted} size={17} /></View>}<View style={styles.filterOptionCopy}><Text numberOfLines={1} style={{ color: theme.ink, ...fonts.medium, fontSize: 14, lineHeight: 21 }}>{label}</Text><Text numberOfLines={1} style={{ color: theme.muted, ...fonts.regular, fontSize: 13, lineHeight: 19.5 }}>{detail}</Text></View>{active ? <Check color={theme.ink} size={17} /> : null}</Pressable>;
 }
 
 function NewsRow({ article, onOpenError }: { article: MobileNewsItem; onOpenError: () => void }) {
@@ -135,8 +135,8 @@ function NewsRow({ article, onOpenError }: { article: MobileNewsItem; onOpenErro
     <Pressable accessibilityLabel={`${article.title} ${article.source} ${formatNewsDate(article.publishedAt)}`} accessibilityRole="link" onPress={() => void open()} style={styles.newsRow}>
       {hasThumbnail && thumbnail ? <View style={[styles.thumbnail, { backgroundColor: theme.card }]}><Image contentFit="cover" onError={() => setHasThumbnail(false)} source={{ uri: thumbnail }} style={StyleSheet.absoluteFill} transition={120} /></View> : null}
       <View style={styles.newsCopy}>
-        <Text accessibilityRole="header" aria-level={3} numberOfLines={2} style={[styles.newsTitle, { color: theme.ink, fontFamily: fonts.display }]}>{article.title}</Text>
-        <View style={styles.newsMeta}><Text numberOfLines={1} style={[styles.newsSource, { color: theme.muted, fontFamily: fonts.medium }]}>{article.source}</Text><Text style={{ color: theme.muted, fontFamily: fonts.medium, fontSize: 13 }}>·</Text><Text style={{ color: theme.muted, fontFamily: fonts.medium, fontSize: 13, lineHeight: 19.5 }}>{formatNewsDate(article.publishedAt)}</Text></View>
+        <Text accessibilityRole="header" aria-level={3} numberOfLines={2} style={[styles.newsTitle, { color: theme.ink, ...fonts.display }]}>{article.title}</Text>
+        <View style={styles.newsMeta}><Text numberOfLines={1} style={[styles.newsSource, { color: theme.muted, ...fonts.medium }]}>{article.source}</Text><Text style={{ color: theme.muted, ...fonts.medium, fontSize: 13 }}>·</Text><Text style={{ color: theme.muted, ...fonts.medium, fontSize: 13, lineHeight: 19.5 }}>{formatNewsDate(article.publishedAt)}</Text></View>
       </View>
     </Pressable>
   );
@@ -146,12 +146,12 @@ function Pagination({ onChange, page, totalPages }: { onChange: (page: number) =
   const { fonts, theme } = useMinionTheme();
   const start = Math.max(1, Math.min(page - 2, totalPages - 4));
   const pages = useMemo(() => Array.from({ length: Math.min(5, totalPages) }, (_, index) => start + index), [start, totalPages]);
-  return <View accessibilityLabel="페이지 이동" style={styles.pagination}><Pressable accessibilityRole="link" accessibilityState={{ disabled: page === 1 }} disabled={page === 1} onPress={() => onChange(page - 1)} style={[styles.sidePage, page === 1 && styles.disabled]}><Text style={{ color: theme.muted, fontFamily: fonts.medium, fontSize: 14 }}>이전</Text></Pressable>{pages.map((number) => { const active = number === page; return <Pressable accessibilityRole="link" accessibilityState={{ selected: active }} aria-current={active ? 'page' : undefined} key={number} onPress={() => onChange(number)} style={[styles.pageButton, active && { backgroundColor: theme.ink }]}><Text style={{ color: active ? theme.surface : theme.muted, fontFamily: fonts.medium, fontSize: 14 }}>{number}</Text></Pressable>; })}<Pressable accessibilityRole="link" accessibilityState={{ disabled: page === totalPages }} disabled={page === totalPages} onPress={() => onChange(page + 1)} style={[styles.sidePage, page === totalPages && styles.disabled]}><Text style={{ color: theme.muted, fontFamily: fonts.medium, fontSize: 14 }}>다음</Text></Pressable></View>;
+  return <View accessibilityLabel="페이지 이동" style={styles.pagination}><Pressable accessibilityRole="link" accessibilityState={{ disabled: page === 1 }} disabled={page === 1} onPress={() => onChange(page - 1)} style={[styles.sidePage, page === 1 && styles.disabled]}><Text style={{ color: theme.muted, ...fonts.medium, fontSize: 14 }}>이전</Text></Pressable>{pages.map((number) => { const active = number === page; return <Pressable accessibilityRole="link" accessibilityState={{ selected: active }} aria-current={active ? 'page' : undefined} key={number} onPress={() => onChange(number)} style={[styles.pageButton, active && { backgroundColor: theme.ink }]}><Text style={{ color: active ? theme.surface : theme.muted, ...fonts.medium, fontSize: 14 }}>{number}</Text></Pressable>; })}<Pressable accessibilityRole="link" accessibilityState={{ disabled: page === totalPages }} disabled={page === totalPages} onPress={() => onChange(page + 1)} style={[styles.sidePage, page === totalPages && styles.disabled]}><Text style={{ color: theme.muted, ...fonts.medium, fontSize: 14 }}>다음</Text></Pressable></View>;
 }
 
 function NewsEmpty() {
   const { fonts, theme } = useMinionTheme();
-  return <View style={[styles.empty, { backgroundColor: theme.card }]}><Search color={theme.muted} size={28} /><Text style={{ color: theme.ink, fontFamily: fonts.medium, fontSize: 16, lineHeight: 24, marginTop: 12 }}>조건에 맞는 뉴스가 없어요.</Text><Text style={{ color: theme.muted, fontFamily: fonts.regular, fontSize: 16, lineHeight: 24, marginTop: 4 }}>다른 팀이나 검색어로 다시 찾아보세요.</Text></View>;
+  return <View style={[styles.empty, { backgroundColor: theme.card }]}><Search color={theme.muted} size={28} /><Text style={{ color: theme.ink, ...fonts.medium, fontSize: 16, lineHeight: 24, marginTop: 12 }}>조건에 맞는 뉴스가 없어요.</Text><Text style={{ color: theme.muted, ...fonts.regular, fontSize: 16, lineHeight: 24, marginTop: 4 }}>다른 팀이나 검색어로 다시 찾아보세요.</Text></View>;
 }
 
 function NewsLoadingSkeleton() {

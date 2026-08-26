@@ -40,11 +40,11 @@ function GroupStandingsCard({ group }: { group: MobileStandingsGroup }) {
     <View style={styles.groupBlock}>
       <View style={styles.groupTitleRow}>
         <View style={[styles.groupTitleBar, { backgroundColor: theme.accent }]} />
-        <Text style={[styles.groupTitleText, { color: theme.ink, fontFamily: fonts.display }]}>{group.title}</Text>
+        <Text style={[styles.groupTitleText, { color: theme.ink, ...fonts.display }]}>{group.title}</Text>
       </View>
       {group.rows.length === 0 ? (
         <View style={[styles.groupEmpty, { backgroundColor: tokens.surface, borderColor: tokens.border }]}>
-          <Text style={{ color: tokens.muted, fontFamily: fonts.regular, fontSize: 14, lineHeight: 21 }}>아직 등록된 순위가 없습니다.</Text>
+          <Text style={{ color: tokens.muted, ...fonts.regular, fontSize: 14, lineHeight: 21 }}>아직 등록된 순위가 없습니다.</Text>
         </View>
       ) : (
         <View style={[styles.groupCard, { backgroundColor: tokens.surface, borderColor: tokens.border }]}>
@@ -67,13 +67,13 @@ function GroupRow({ isLast, row, tokens }: { isLast: boolean; row: MobileStandin
     <Pressable
       onPress={() => router.navigate(`/teams/${encodeURIComponent(row.team.slug)}` as never)}
       style={[styles.groupRow, !isLast && { borderBottomColor: tokens.border, borderBottomWidth: 1 }]}>
-      <Text style={[styles.groupRank, { color: tokens.foreground, fontFamily: fonts.black }]}>{row.rank}</Text>
+      <Text style={[styles.groupRank, { color: tokens.foreground, ...fonts.black }]}>{row.rank}</Text>
       <View style={styles.groupTeam}>
         <TeamLogo plain size={24} team={row.team} themeAware />
-        <Text numberOfLines={1} style={[styles.groupTeamName, { color: tokens.foreground, fontFamily: fonts.bold }]}>{row.team.name}</Text>
+        <Text numberOfLines={1} style={[styles.groupTeamName, { color: tokens.foreground, ...fonts.bold }]}>{row.team.name}</Text>
       </View>
-      <Text style={[styles.groupDiff, { color: tokens.muted, fontFamily: fonts.medium }]}>{diff}</Text>
-      <Text style={[styles.groupRecord, { color: tokens.foreground, fontFamily: fonts.black }]}>{record}</Text>
+      <Text style={[styles.groupDiff, { color: tokens.muted, ...fonts.medium }]}>{diff}</Text>
+      <Text style={[styles.groupRecord, { color: tokens.foreground, ...fonts.black }]}>{record}</Text>
     </Pressable>
   );
 }
@@ -100,10 +100,10 @@ function RegularRow({ isLast, row, tokens }: { isLast: boolean; row: MobileStand
       onPress={() => router.navigate(`/teams/${encodeURIComponent(row.team.slug)}` as never)}
       style={[styles.dataRow, !isLast && { borderBottomColor: tokens.border, borderBottomWidth: 1 }]}>
       <View style={styles.dataMain}>
-        <Text style={[styles.dataRank, { color: theme.ink, fontFamily: fonts.black }]}>{row.rank}</Text>
+        <Text style={[styles.dataRank, { color: theme.ink, ...fonts.black }]}>{row.rank}</Text>
         <View style={styles.dataTeam}>
           <TeamLogo plain size={24} team={row.team} themeAware />
-          <Text numberOfLines={1} style={[styles.dataTeamName, { color: theme.ink, fontFamily: fonts.bold }]}>{row.team.name}</Text>
+          <Text numberOfLines={1} style={[styles.dataTeamName, { color: theme.ink, ...fonts.bold }]}>{row.team.name}</Text>
         </View>
       </View>
       <View style={styles.dataMetrics}>
@@ -118,8 +118,8 @@ function Metric({ compact = false, label, theme, value }: { compact?: boolean; l
   const { fonts } = useMinionTheme();
   return (
     <View style={[styles.metric, compact && styles.metricCompact]}>
-      <Text style={[compact ? styles.metricLabelCompact : styles.metricLabel, { color: theme.muted, fontFamily: fonts.medium }]}>{label}</Text>
-      <Text style={[compact ? styles.metricValueCompact : styles.metricValue, { color: theme.text, fontFamily: fonts.bold }]}>{value}</Text>
+      <Text style={[compact ? styles.metricLabelCompact : styles.metricLabel, { color: theme.muted, ...fonts.medium }]}>{label}</Text>
+      <Text style={[compact ? styles.metricValueCompact : styles.metricValue, { color: theme.text, ...fonts.bold }]}>{value}</Text>
     </View>
   );
 }
@@ -147,12 +147,12 @@ function PomRow({ isLast, row, tokens }: { isLast: boolean; row: MobilePomRow; t
       onPress={() => router.navigate(`/players/${encodeURIComponent(row.player.slug)}` as never)}
       style={[styles.pomRow, !isLast && { borderBottomColor: tokens.border, borderBottomWidth: 1 }]}>
       <View style={styles.pomMain}>
-        <Text style={[styles.pomRank, { color: theme.ink, fontFamily: fonts.black }]}>{row.rank}</Text>
+        <Text style={[styles.pomRank, { color: theme.ink, ...fonts.black }]}>{row.rank}</Text>
         <View style={styles.pomPlayer}>
           {imageUri ? <Image contentFit="cover" source={{ uri: imageUri }} style={styles.pomAvatar} /> : null}
           <View style={styles.pomIdentity}>
-            <Text numberOfLines={1} style={[styles.pomName, { color: theme.ink, fontFamily: fonts.bold }]}>{row.player.name}</Text>
-            <Text numberOfLines={1} style={[styles.pomTeam, { color: theme.muted, fontFamily: fonts.regular }]}>{row.team?.shortName ?? '-'}</Text>
+            <Text numberOfLines={1} style={[styles.pomName, { color: theme.ink, ...fonts.bold }]}>{row.player.name}</Text>
+            <Text numberOfLines={1} style={[styles.pomTeam, { color: theme.muted, ...fonts.regular }]}>{row.team?.shortName ?? '-'}</Text>
           </View>
         </View>
       </View>
@@ -186,8 +186,8 @@ function DataListEmptyState({ message }: { message: string }) {
       <Animated.View style={{ transform: [{ translateY }, { rotate }] }}>
         <Image contentFit="contain" source={CHARACTER_IMAGE} style={styles.dataEmptyCharacter} />
       </Animated.View>
-      <Text style={[styles.dataEmptyTitle, { color: theme.ink, fontFamily: fonts.display }]}>아직 숫자가 안 잡혔어요</Text>
-      <Text style={[styles.dataEmptyBody, { color: theme.muted, fontFamily: fonts.regular }]}>{message}</Text>
+      <Text style={[styles.dataEmptyTitle, { color: theme.ink, ...fonts.display }]}>아직 숫자가 안 잡혔어요</Text>
+      <Text style={[styles.dataEmptyBody, { color: theme.muted, ...fonts.regular }]}>{message}</Text>
     </View>
   );
 }
@@ -197,7 +197,7 @@ export function TournamentEmptyNotice({ message }: { message: string }) {
   const { fonts } = useMinionTheme();
   return (
     <View style={[styles.notice, { backgroundColor: tokens.surface, borderColor: tokens.border }]}>
-      <Text style={{ color: tokens.muted, fontFamily: fonts.regular, fontSize: 14, lineHeight: 21, textAlign: 'center' }}>{message}</Text>
+      <Text style={{ color: tokens.muted, ...fonts.regular, fontSize: 14, lineHeight: 21, textAlign: 'center' }}>{message}</Text>
     </View>
   );
 }

@@ -16,7 +16,7 @@ export function TournamentHeader({ segment, action }: { segment: MobileTournamen
       <View style={styles.row}>
         <View style={styles.titleGroup}>
           {logo ? <Image contentFit="contain" source={logo} style={{ height: 28, width: logoWidth }} tintColor={theme.ink} /> : null}
-          <Text numberOfLines={1} style={[styles.title, { color: theme.ink, fontFamily: fonts.display }]}>{segment.name}</Text>
+          <Text numberOfLines={1} style={[styles.title, { color: theme.ink, ...fonts.display }]}>{segment.name}</Text>
         </View>
         {action ? <View style={styles.action}>{action}</View> : null}
       </View>

@@ -26,7 +26,7 @@ export function MatchTabNav({ activeTab, availableTabs, onSelect }: { activeTab:
             onPress={() => onSelect(tab)}
             style={[styles.pill, { borderBottomColor: active ? theme.accent : 'transparent' }]}
           >
-            <Text style={[styles.pillText, { color: active ? theme.ink : theme.muted, fontFamily: fonts.medium }]}>{TAB_LABELS[tab]}</Text>
+            <Text style={[styles.pillText, { color: active ? theme.ink : theme.muted, ...fonts.medium }]}>{TAB_LABELS[tab]}</Text>
           </Pressable>
         );
       })}
