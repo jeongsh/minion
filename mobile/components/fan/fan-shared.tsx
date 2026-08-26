@@ -106,7 +106,7 @@ export function FanVideoThumbnail({ compact = false, item }: { compact?: boolean
     <>
       <View style={[styles.videoImage, { backgroundColor: '#17181b' }]}> 
         {imageUrl ? <Image contentFit="cover" source={{ uri: imageUrl }} style={StyleSheet.absoluteFill} transition={120} /> : <Text style={[styles.youtubeFallback, { fontFamily: fonts.bold }]}>YouTube</Text>}
-        {isNew ? <View style={styles.newBadge}><Text style={{ color: '#ffffff', fontFamily: fonts.medium, fontSize: 10, lineHeight: 15 }}>NEW</Text></View> : null}
+        {isNew ? <View style={styles.newBadge}><Text style={{ color: '#ffffff', fontFamily: fonts.medium, fontSize: 12, lineHeight: 18 }}>NEW</Text></View> : null}
       </View>
       <Text numberOfLines={2} style={[compact ? styles.videoCompactTitle : styles.videoTitle, { color: theme.ink, fontFamily: fonts.medium }]}>{item.title}</Text>
       <Text numberOfLines={1} style={[compact ? styles.videoOwnerPill : styles.videoOwner, { borderColor: theme.muted, color: theme.muted, fontFamily: fonts.medium }]}>{item.channelName ?? ''}</Text>

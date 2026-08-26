@@ -88,7 +88,7 @@ export default async function TeamsPage({
                 <Link key={team.id} href={`/teams?team=${encodeURIComponent(team.fanSiteHost || team.slug)}`} scroll={false} aria-current={active ? "true" : undefined} data-following={following ? "true" : undefined} className={`relative flex w-[76px] shrink-0 flex-col items-center gap-2 rounded-2xl px-2 py-3 text-center transition ${active ? "bg-[var(--ui-ink)] text-[var(--ui-surface)]" : "bg-[var(--ui-surface-muted)] hover:-translate-y-0.5"}`}>
                   {following ? <span className="absolute right-1.5 top-1.5 grid h-5 w-5 place-items-center rounded-full bg-[var(--accent)] text-[var(--accent-foreground)]" title="팔로잉"><Heart size={11} fill="currentColor" aria-hidden="true" /><span className="sr-only">팔로잉</span></span> : null}
                   <span className={`grid h-12 w-12 place-items-center rounded-full ${active ? "bg-white" : "bg-[var(--ui-surface)]"}`}><TeamLogo team={team} size="h-9 w-9" plain themeAware={!active} /></span>
-                  <span className="w-full truncate text-[13px] font-black">{team.shortName}</span>
+                  <span className="w-full truncate text-[13px] font-medium">{team.shortName}</span>
                 </Link>
               );
             })}
@@ -99,7 +99,7 @@ export default async function TeamsPage({
       <div className="layout-wide pb-24 pt-7 sm:pt-10">
         <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-2xl bg-[var(--ui-surface-muted)] px-4 py-4 sm:px-5">
           <div className="flex min-w-0 items-center gap-3"><TeamLogo team={selectedTeam} size="h-11 w-11" plain themeAware /><span className="min-w-0"><strong className="block truncate text-[16px] font-black">{selectedTeam.shortName}</strong><span className="hidden truncate text-[13px] text-[var(--ui-muted)] sm:block">소셜과 최신 영상을 미리 보고 팬페이지로 이동하세요.</span></span></div>
-          <Link href={`/fan/${selectedTeam.fanSiteHost}`} className="flex min-h-10 shrink-0 items-center gap-1 rounded-xl bg-[var(--ui-ink)] px-3 text-[13px] font-black text-[var(--ui-surface)] sm:min-h-11 sm:px-4">팬페이지 <ArrowRight size={15} /></Link>
+          <Link href={`/fan/${selectedTeam.fanSiteHost}`} className="flex min-h-10 shrink-0 items-center gap-1 rounded-xl bg-[var(--ui-ink)] px-3 text-[13px] font-medium text-[var(--ui-surface)] sm:min-h-11 sm:px-4">팬페이지 <ArrowRight size={15} /></Link>
         </div>
 
         <section className="mt-9" aria-labelledby="team-social-title">

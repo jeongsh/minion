@@ -111,15 +111,15 @@ export function ScheduleList({
                       </span>
                     )}
                   </div>
-                  <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_30px_minmax(0,1fr)] items-center gap-1 sm:grid-cols-[minmax(0,1fr)_48px_minmax(0,1fr)] sm:gap-2 md:grid-cols-[minmax(0,1fr)_64px_minmax(0,1fr)] md:gap-3.5">
+                  <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_32px_minmax(0,1fr)] items-center gap-1 sm:grid-cols-[minmax(0,1fr)_48px_minmax(0,1fr)] sm:gap-2 md:grid-cols-[minmax(0,1fr)_64px_minmax(0,1fr)] md:gap-3.5">
                     <div className="flex min-w-0 flex-1 items-center justify-end gap-1.5 md:gap-2.5">
-                      <p className={`${teamNameClass(match.teamAId)} text-right text-[13px] md:text-[15px]`} title={teamA?.name ?? "TBD"}>{teamALabel}</p>
-                      <TeamLogo team={teamA} size="h-7 w-7 shrink-0 sm:h-9 sm:w-9 md:h-11 md:w-11" plain themeAware />
+                      <p className={`${teamNameClass(match.teamAId)} text-right text-[15px]`} title={teamA?.name ?? "TBD"}>{teamALabel}</p>
+                      <TeamLogo team={teamA} size="h-8 w-8 shrink-0 sm:h-9 sm:w-9 md:h-11 md:w-11" plain themeAware />
                     </div>
-                    <p className="shrink-0 text-center text-[13px] font-black tabular-nums text-[var(--ui-ink)] sm:text-base md:text-xl">{score}</p>
+                    <p className="shrink-0 text-center text-[15px] font-black tabular-nums text-[var(--ui-ink)] sm:text-base md:text-xl">{score}</p>
                     <div className="flex min-w-0 flex-1 items-center gap-1.5 md:gap-2.5">
-                      <TeamLogo team={teamB} size="h-7 w-7 shrink-0 sm:h-9 sm:w-9 md:h-11 md:w-11" plain themeAware />
-                      <p className={`${teamNameClass(match.teamBId)} text-[13px] md:text-[15px]`} title={teamB?.name ?? "TBD"}>{teamBLabel}</p>
+                      <TeamLogo team={teamB} size="h-8 w-8 shrink-0 sm:h-9 sm:w-9 md:h-11 md:w-11" plain themeAware />
+                      <p className={`${teamNameClass(match.teamBId)} text-[15px]`} title={teamB?.name ?? "TBD"}>{teamBLabel}</p>
                     </div>
                   </div>
                   <div className="hidden items-center justify-between gap-2 md:flex md:flex-col md:items-end md:justify-center md:gap-0.5">

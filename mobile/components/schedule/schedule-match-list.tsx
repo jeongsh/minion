@@ -101,11 +101,11 @@ function MatchRow({ isLast, match }: { isLast: boolean; match: MobileMatchSummar
             <Text numberOfLines={1} style={[styles.teamName, { color: teamColor(match.teamA?.id), fontFamily: fonts.black, textAlign: 'right' }]}>
               {match.teamA?.shortName || match.teamA?.name || 'TBD'}
             </Text>
-            <TeamLogo plain size={28} team={match.teamA} themeAware />
+            <TeamLogo plain size={32} team={match.teamA} themeAware />
           </View>
           <Text style={[styles.score, { color: theme.ink, fontFamily: fonts.black }]}>{score}</Text>
           <View style={styles.teamSideRight}>
-            <TeamLogo plain size={28} team={match.teamB} themeAware />
+            <TeamLogo plain size={32} team={match.teamB} themeAware />
             <Text numberOfLines={1} style={[styles.teamName, { color: teamColor(match.teamB?.id), fontFamily: fonts.black }]}>
               {match.teamB?.shortName || match.teamB?.name || 'TBD'}
             </Text>
@@ -157,10 +157,10 @@ const styles = StyleSheet.create({
   liveDot: { backgroundColor: '#ef4444', borderRadius: 3, height: 6, width: 6 },
   liveText: { color: '#ef4444', fontSize: 10, lineHeight: 15 },
   rowTouchable: { alignItems: 'center', columnGap: 10, flexDirection: 'row', paddingHorizontal: 12, paddingVertical: 12 },
-  score: { fontSize: 13, lineHeight: 19.5, textAlign: 'center', width: 30 },
+  score: { fontSize: 15, lineHeight: 22.5, textAlign: 'center', width: 32 },
   statusBadge: { borderRadius: 999, paddingHorizontal: 6, paddingVertical: 2 },
   statusText: { fontSize: 10, lineHeight: 15 },
-  teamName: { flexShrink: 1, fontSize: 13, lineHeight: 19.5 },
+  teamName: { flexShrink: 1, fontSize: 15, lineHeight: 22.5 },
   teamSideLeft: { alignItems: 'center', flex: 1, flexDirection: 'row', gap: 6, justifyContent: 'flex-end' },
   teamSideRight: { alignItems: 'center', flex: 1, flexDirection: 'row', gap: 6 },
   teamsColumn: { alignItems: 'center', flex: 1, flexDirection: 'row', gap: 4, minWidth: 0 },
