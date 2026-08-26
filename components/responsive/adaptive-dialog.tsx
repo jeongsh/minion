@@ -33,7 +33,7 @@ export function DialogSheetHeader({
       <header className={`flex min-h-12 shrink-0 items-center gap-1 px-4 sm:px-5 ${headerClassName}`}>
         <h2 id={titleId} className={`font-paperozi min-w-0 flex-1 truncate text-[16px] tracking-[-0.02em] text-[var(--ui-ink)] ${titleClassName}`}>{title}</h2>
         {actions}
-        <button type="button" onClick={onClose} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl text-[var(--ui-muted)] hover:bg-[var(--ui-surface-muted)]" aria-label={closeLabel}><X size={21} /></button>
+        <button type="button" onClick={onClose} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl text-[var(--ui-muted)] outline-none hover:bg-[var(--ui-surface-muted)] focus-visible:text-[var(--ui-ink)] sm:h-8 sm:w-8 sm:rounded-lg sm:hover:bg-transparent sm:hover:text-[var(--ui-ink)]" aria-label={closeLabel}><X size={18} className="sm:size-4" /></button>
       </header>
     </>
   );

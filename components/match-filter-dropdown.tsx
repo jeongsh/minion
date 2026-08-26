@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { createPortal } from "react-dom";
 
 export type FilterOption = { value: string; label: string };
@@ -16,20 +16,28 @@ export function Divider() {
 
 export function FilterDropdown({
   ariaLabel,
+  controlSize = "default",
   options,
   selected,
   onSelect,
   variant = "list",
   disabled = false,
+  rootClassName = "",
+  triggerIcon,
   triggerClassName = "",
+  triggerTypography = "default",
 }: {
   ariaLabel: string;
+  controlSize?: "default" | "compact";
   options: FilterOption[];
   selected: string;
   onSelect: (value: string) => void;
   variant?: "list" | "grid";
   disabled?: boolean;
+  rootClassName?: string;
+  triggerIcon?: ReactNode;
   triggerClassName?: string;
+  triggerTypography?: "default" | "ui";
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -99,7 +107,7 @@ export function FilterDropdown({
   }
 
   return (
-    <div className="relative shrink-0" ref={ref}>
+    <div className={`relative shrink-0 ${rootClassName}`} ref={ref}>
       <button
         type="button"
         ref={triggerRef}
@@ -108,8 +116,9 @@ export function FilterDropdown({
         aria-label={ariaLabel}
         disabled={disabled}
         onClick={() => setOpen((value) => !value)}
-        className={`inline-flex min-h-10 items-center gap-1.5 rounded-lg px-1.5 text-[15px] font-bold tracking-tight text-[var(--ui-ink)] disabled:cursor-wait disabled:opacity-60 sm:text-base ${triggerClassName}`}
+        className={`inline-flex items-center gap-1.5 rounded-lg px-1.5 text-[var(--ui-ink)] disabled:cursor-wait disabled:opacity-60 ${controlSize === "compact" ? "min-h-8" : "min-h-10"} ${triggerTypography === "ui" ? "text-[13px] font-medium leading-[19.5px] tracking-normal" : "text-[15px] font-bold tracking-tight sm:text-base"} ${triggerClassName}`}
       >
+        {triggerIcon ? <span className="shrink-0">{triggerIcon}</span> : null}
         {triggerLabel}
         <Chevron open={open} />
       </button>
@@ -135,7 +144,7 @@ export function FilterDropdown({
                     role="option"
                     aria-selected={isSelected}
                     onClick={() => choose(option.value)}
-                    className={`rounded-lg px-2 py-2.5 text-sm font-bold transition ${
+                    className={`rounded-lg px-2 py-2.5 text-sm font-medium transition ${
                       isSelected
                         ? "bg-[var(--ui-surface-muted)] text-[var(--ui-ink)]"
                         : "text-[var(--ui-muted)] hover:bg-[var(--ui-surface-muted)] hover:text-[var(--ui-ink)]"
@@ -158,7 +167,7 @@ export function FilterDropdown({
                   role="option"
                   aria-selected={isSelected}
                   onClick={() => choose(option.value)}
-                  className={`flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-bold transition ${
+                  className={`flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition ${
                     isSelected
                       ? "bg-[var(--ui-surface-muted)] text-[var(--ui-ink)]"
                       : "text-[var(--ui-muted)] hover:bg-[var(--ui-surface-muted)] hover:text-[var(--ui-ink)]"
