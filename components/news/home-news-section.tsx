@@ -47,10 +47,12 @@ function LeadNewsCard({ article }: { article: NewsArticle }) {
 
 export function NewsFeedLayout({
   articles,
+  cardSize = "home",
   compact = false,
   featured = true,
 }: {
   articles: NewsArticle[];
+  cardSize?: "home" | "news";
   compact?: boolean;
   featured?: boolean;
 }) {
@@ -72,7 +74,7 @@ export function NewsFeedLayout({
             key={article.id}
             className={`${compact && index >= 3 ? "hidden lg:block" : "block"} ${compact && index >= 4 ? "lg:hidden xl:block" : ""} border-b border-[var(--ui-card-divider)] py-2.5 first:pt-0 min-[390px]:py-3 ${compact && index === 2 ? "border-b-0 pb-0 lg:border-b lg:pb-3" : ""} ${index === secondary.length - 1 ? "border-b-0 pb-0" : ""}`}
           >
-            <NewsCard article={article} size="home" />
+            <NewsCard article={article} size={cardSize} />
           </div>
         ))}
       </div>

@@ -1,5 +1,5 @@
-import { RouteCanvas } from '@/components/route-canvas';
+import { NewsScreen as NewsPage } from '@/components/news/news-screen';
 
 export default function NewsScreen() {
-  return <RouteCanvas />;
+  return <NewsPage />;
 }

@@ -167,7 +167,7 @@ export function PlayersLoadingSkeleton() {
 export function NewsLoadingSkeleton() {
   return (
     <LoadingMain className="layout-wide flex flex-col pb-16 pt-4 min-[390px]:pt-5 sm:pt-7">
-      <section className="mb-4 rounded-lg bg-[var(--ui-card-bg)] p-1.5 sm:mb-7 sm:rounded-xl sm:p-2.5"><div className="flex gap-0.5 overflow-hidden sm:gap-1">{Array.from({ length: 9 }, (_, index) => <Skeleton key={index} className="h-8 w-[66px] shrink-0 rounded-md sm:h-9 sm:w-20" />)}</div><div className="mt-1 flex gap-1.5 sm:mt-2 sm:gap-2"><Skeleton className="h-8 flex-1 rounded-md sm:h-10" /><Skeleton className="h-8 w-[54px] rounded-md sm:h-10 sm:w-16" /></div></section>
+      <section className="mb-4 rounded-lg bg-[var(--ui-card-bg)] p-1.5 sm:mb-7 sm:rounded-xl sm:p-2.5"><div className="flex gap-1.5 sm:gap-2"><Skeleton className="h-8 w-[104px] shrink-0 rounded-md sm:w-[124px]" /><Skeleton className="h-8 flex-1 rounded-md" /><Skeleton className="h-8 w-[54px] rounded-md sm:w-16" /></div></section>
       <div className="mb-1 flex items-end gap-2"><SectionTitle width="w-20 min-[390px]:w-24" /><Skeleton className="h-3 w-14" /></div>
       <NewsPageRows />
     </LoadingMain>

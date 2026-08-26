@@ -9,9 +9,10 @@ export function NewsCard({
   size = "page",
 }: {
   article: NewsArticle;
-  size?: "page" | "home";
+  size?: "page" | "home" | "news";
 }) {
-  const home = size === "home";
+  const home = size === "home" || size === "news";
+  const news = size === "news";
   const [hasThumbnail, setHasThumbnail] = useState(Boolean(article.thumbnailUrl));
 
   if (home) {
@@ -20,14 +21,14 @@ export function NewsCard({
         href={article.url}
         target="_blank"
         rel="noopener noreferrer"
-        className={`group grid min-w-0 items-center gap-2.5 min-[390px]:gap-3 ${hasThumbnail ? "grid-cols-[88px_minmax(0,1fr)] min-[390px]:grid-cols-[104px_minmax(0,1fr)]" : "grid-cols-1"}`}
+        className={`group grid min-w-0 items-center ${news ? "gap-3" : "gap-2.5 min-[390px]:gap-3"} ${hasThumbnail ? news ? "grid-cols-[104px_minmax(0,1fr)]" : "grid-cols-[88px_minmax(0,1fr)] min-[390px]:grid-cols-[104px_minmax(0,1fr)]" : "grid-cols-1"}`}
       >
         {hasThumbnail ? <NewsThumbnail article={article} onError={() => setHasThumbnail(false)} className="aspect-video w-full rounded-md min-[390px]:rounded-lg" /> : null}
         <div className="flex min-w-0 flex-col">
-          <h3 className="font-paperozi line-clamp-2 text-[14px] !font-bold leading-[1.45] tracking-[-0.02em] text-[var(--ui-ink)] group-hover:underline sm:leading-[1.5]">
+          <h3 className={`${news ? "font-paperozi text-[14px] !font-bold leading-[1.45]" : "font-paperozi text-[14px] !font-bold leading-[1.45] sm:leading-[1.5]"} line-clamp-2 tracking-[-0.02em] text-[var(--ui-ink)] group-hover:underline`}>
             {article.title}
           </h3>
-          <div className="mt-auto flex min-w-0 items-center gap-1 pt-0.5 text-[10.5px] font-medium text-[var(--ui-muted)] min-[390px]:gap-1.5 min-[390px]:pt-1 min-[390px]:text-[12px]">
+          <div className={`${news ? "gap-1.5 pt-1 text-[13px]" : "gap-1 pt-0.5 text-[10.5px] min-[390px]:gap-1.5 min-[390px]:pt-1 min-[390px]:text-[12px]"} mt-auto flex min-w-0 items-center font-medium text-[var(--ui-muted)]`}>
             <span className="truncate">{article.source}</span>
             <span aria-hidden>·</span>
             <time className="shrink-0" dateTime={article.publishedAt}>{formatNewsDate(article.publishedAt)}</time>
