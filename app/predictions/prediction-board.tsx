@@ -2,11 +2,12 @@
 
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
-import { ChevronLeft, ChevronRight, Clock3, Coins, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock3, Coins } from "lucide-react";
 
 import { cancelPredictionBetAction, placePredictionBetAction } from "@/app/predictions/actions";
 import flag from "@/assets/characters/flag-2.png";
 import { ScheduleTodayScroll } from "@/components/domain/schedule-today-scroll";
+import { DialogSheetHeader } from "@/components/responsive/adaptive-dialog";
 import { AdSlot } from "@/components/ui/ad-slot";
 import { KitschEmptyState } from "@/components/ui/kitsch-empty-state";
 import { TeamLogo } from "@/components/ui/team-logo";
@@ -355,10 +356,7 @@ function BetAmountDialog({
   return (
     <div className="modal-backdrop fixed inset-0 z-[80] flex items-end justify-center bg-black/45 [--modal-backdrop-dark-mobile:0.65] sm:items-center sm:p-6" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
       <section className="adaptive-dialog-panel flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-[24px] bg-[var(--ui-surface)] shadow-2xl sm:max-w-md sm:rounded-[24px] dark:bg-[var(--ui-surface-muted)]" role="dialog" aria-modal="true" aria-labelledby="bet-dialog-title">
-        <header className="flex min-h-14 items-center justify-between border-b border-[var(--ui-border)] px-4 sm:min-h-16 sm:px-5">
-          <h2 id="bet-dialog-title" className="truncate text-base font-black tracking-[-0.02em] text-[var(--ui-ink)]">승부예측</h2>
-          <button type="button" onClick={onClose} className="grid h-11 w-11 place-items-center rounded-xl text-[var(--ui-muted)] hover:bg-[var(--ui-surface-muted)]" aria-label="닫기"><X size={21} /></button>
-        </header>
+        <DialogSheetHeader onClose={onClose} title="승부예측" titleId="bet-dialog-title" />
 
         <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
             {dialog.existingBet ? (

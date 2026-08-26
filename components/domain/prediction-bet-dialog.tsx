@@ -3,10 +3,10 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { createPortal } from "react-dom";
-import { X } from "lucide-react";
 
 import { cancelPredictionBetAction, placePredictionBetAction } from "@/app/predictions/actions";
 import flag from "@/assets/characters/flag-2.png";
+import { DialogSheetHeader } from "@/components/responsive/adaptive-dialog";
 import { useToast } from "@/components/ui/toast";
 import type { PredictionBet } from "@/lib/predictions";
 import { predictionMaxStake } from "@/lib/predictions";
@@ -101,10 +101,7 @@ function PredictionBetDialog({ dialog, balance, stake, pending, error, onStakeCh
   return (
     <div className="modal-backdrop fixed inset-0 z-[80] flex items-end justify-center bg-black/45 [--modal-backdrop-dark-mobile:0.65] sm:items-center sm:p-6" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
       <section className="adaptive-dialog-panel flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-[24px] bg-[var(--ui-surface)] shadow-2xl sm:max-w-md sm:rounded-[24px] dark:bg-[var(--ui-surface-muted)]" role="dialog" aria-modal="true" aria-labelledby="quick-bet-title">
-        <header className="flex min-h-14 items-center justify-between border-b border-[var(--ui-border)] px-4 sm:min-h-16 sm:px-5">
-          <h2 id="quick-bet-title" className="truncate text-base font-black tracking-[-0.02em] text-[var(--ui-ink)]">승부예측</h2>
-          <button type="button" onClick={onClose} className="grid h-11 w-11 place-items-center rounded-xl text-[var(--ui-muted)] hover:bg-[var(--ui-card-hover)]" aria-label="닫기"><X size={21} /></button>
-        </header>
+        <DialogSheetHeader onClose={onClose} title="승부예측" titleId="quick-bet-title" />
 
         <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
             {dialog.existingBet ? (

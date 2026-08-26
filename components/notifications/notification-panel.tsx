@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Bell, CheckCheck, MessageCircle, Radio, Star, Trash2, UserRound, Video, X } from "lucide-react";
 
+import { DialogSheetHeader } from "@/components/responsive/adaptive-dialog";
 import type { AppNotification, NotificationKind } from "@/lib/notifications";
 
 function NotificationTypeIcon({ kind }: { kind: NotificationKind }) {
@@ -110,14 +111,19 @@ export function NotificationPanel({
 
   return (
     <div className="notification-panel-root fixed inset-0 z-[1000] min-[1200px]:pointer-events-none" role="presentation">
-      <button type="button" className="notification-panel-backdrop modal-backdrop absolute inset-0 bg-black/35 [--modal-backdrop-dark-mobile:0.55] min-[1200px]:hidden" onClick={onClose} aria-label="알림 닫기" />
-      <section role="dialog" aria-modal="true" aria-labelledby="notification-panel-title" className="notification-panel-dialog absolute inset-x-0 bottom-0 flex max-h-[82dvh] flex-col overflow-hidden rounded-t-[24px] border border-[var(--ui-border)] bg-[var(--page-background)] shadow-2xl min-[1200px]:pointer-events-auto min-[1200px]:left-auto min-[1200px]:right-4 min-[1200px]:top-20 min-[1200px]:bottom-auto min-[1200px]:w-[390px] min-[1200px]:max-h-[calc(100vh-6rem)] min-[1200px]:rounded-2xl">
-        <header className="flex min-h-14 items-center gap-1 border-b border-[var(--ui-border)] px-3 min-[1200px]:px-4">
-          <h2 id="notification-panel-title" className="font-paperozi mr-auto text-[15px] tracking-[-0.02em]">알림</h2>
-          {unreadCount > 0 ? <button type="button" onClick={onReadAll} className="flex min-h-9 items-center gap-1 rounded-lg px-2 text-[13px] font-bold text-[var(--ui-muted)] hover:bg-[var(--ui-card-hover)] hover:text-[var(--ui-ink)]"><CheckCheck size={15} />모두 읽음</button> : null}
-          {notifications.length > 0 ? <button type="button" onClick={onClear} className="flex min-h-9 items-center gap-1 rounded-lg px-2 text-[13px] font-bold text-[var(--ui-muted)] hover:bg-[var(--ui-card-hover)] hover:text-[var(--ui-ink)]"><Trash2 size={15} />비우기</button> : null}
-          <button type="button" onClick={onClose} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl text-[var(--ui-muted)] hover:bg-[var(--ui-card-hover)]" aria-label="닫기"><X size={20} /></button>
-        </header>
+      <button type="button" className="notification-panel-backdrop modal-backdrop absolute inset-0 bg-black/45 [--modal-backdrop-dark-mobile:0.65] min-[1200px]:hidden" onClick={onClose} aria-label="알림 닫기" />
+      <section role="dialog" aria-modal="true" aria-labelledby="notification-panel-title" className="notification-panel-dialog absolute inset-x-0 bottom-0 flex max-h-[82dvh] flex-col overflow-hidden rounded-t-[24px] bg-[var(--page-background)] shadow-2xl min-[1200px]:pointer-events-auto min-[1200px]:left-auto min-[1200px]:right-4 min-[1200px]:top-20 min-[1200px]:bottom-auto min-[1200px]:w-[390px] min-[1200px]:max-h-[calc(100vh-6rem)] min-[1200px]:rounded-2xl min-[1200px]:border min-[1200px]:border-[var(--ui-border)]">
+        <DialogSheetHeader
+          actions={<>
+            {unreadCount > 0 ? <button type="button" onClick={onReadAll} className="flex min-h-9 items-center gap-1 rounded-lg px-2 text-[13px] font-medium text-[var(--ui-muted)] hover:bg-[var(--ui-card-hover)] hover:text-[var(--ui-ink)]"><CheckCheck size={15} />모두 읽음</button> : null}
+            {notifications.length > 0 ? <button type="button" onClick={onClear} className="flex min-h-9 items-center gap-1 rounded-lg px-2 text-[13px] font-medium text-[var(--ui-muted)] hover:bg-[var(--ui-card-hover)] hover:text-[var(--ui-ink)]"><Trash2 size={15} />비우기</button> : null}
+          </>}
+          handleClassName="min-[1200px]:hidden"
+          headerClassName="px-3 min-[1200px]:px-4"
+          onClose={onClose}
+          title="알림"
+          titleId="notification-panel-title"
+        />
 
         <div className="min-h-0 flex-1 overflow-y-auto p-2.5 md:p-3 min-[1200px]:p-4">
           {notifications.length > 0 ? (

@@ -4,6 +4,41 @@ import { X } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
+export function DialogSheetHandle({ className = "sm:hidden" }: { className?: string }) {
+  return <div aria-hidden="true" className={`mx-auto mb-2 mt-2 h-1 w-10 shrink-0 rounded-full bg-[var(--ui-border)] ${className}`} />;
+}
+
+export function DialogSheetHeader({
+  actions,
+  closeLabel = "닫기",
+  handleClassName,
+  headerClassName = "",
+  onClose,
+  title,
+  titleClassName = "",
+  titleId,
+}: {
+  actions?: React.ReactNode;
+  closeLabel?: string;
+  handleClassName?: string;
+  headerClassName?: string;
+  onClose: () => void;
+  title: React.ReactNode;
+  titleClassName?: string;
+  titleId?: string;
+}) {
+  return (
+    <>
+      <DialogSheetHandle className={handleClassName} />
+      <header className={`flex min-h-12 shrink-0 items-center gap-1 px-4 sm:px-5 ${headerClassName}`}>
+        <h2 id={titleId} className={`font-paperozi min-w-0 flex-1 truncate text-[16px] tracking-[-0.02em] text-[var(--ui-ink)] ${titleClassName}`}>{title}</h2>
+        {actions}
+        <button type="button" onClick={onClose} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl text-[var(--ui-muted)] hover:bg-[var(--ui-surface-muted)]" aria-label={closeLabel}><X size={21} /></button>
+      </header>
+    </>
+  );
+}
+
 export function AdaptiveDialog({
   title,
   trigger,
@@ -84,10 +119,7 @@ export function AdaptiveDialog({
             aria-labelledby={titleId}
             className={`adaptive-dialog-panel flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-[24px] bg-[var(--ui-surface)] shadow-2xl sm:rounded-[24px] ${panelClassName}`}
           >
-            <header className="flex min-h-14 items-center justify-between border-b border-[var(--ui-border)] px-4 sm:min-h-16 sm:px-5">
-              <h2 id={titleId} className="text-[17px] font-black tracking-[-0.02em] text-[var(--ui-ink)] sm:text-lg">{title}</h2>
-              <button type="button" onClick={() => setOpen(false)} className="grid h-11 w-11 place-items-center rounded-xl text-[var(--ui-muted)] hover:bg-[var(--ui-surface-muted)]" aria-label="닫기"><X size={21} /></button>
-            </header>
+            <DialogSheetHeader onClose={() => setOpen(false)} title={title} titleId={titleId} />
             <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5" onClick={(event) => { if ((event.target as HTMLElement).closest("a")) setOpen(false); }}>{children}</div>
           </section>
         </div>,

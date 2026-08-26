@@ -35,7 +35,7 @@ export function PredictionBetSheet({ balance, dialog, error, onCancelBet, onClos
   }
 
   return (
-    <ScheduleDialogChrome compactTitle onClose={pending ? () => undefined : onClose} open={Boolean(dialog)} title="승부예측">
+    <ScheduleDialogChrome onClose={pending ? () => undefined : onClose} open={Boolean(dialog)} title="승부예측">
       {dialog ? (
         <View style={styles.content}>
           {dialog.existingBet ? (
