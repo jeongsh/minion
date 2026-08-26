@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
-import { getAllTeams, getMatches, getPlayers, getTeamsSortedByRank, getTournaments } from "@/lib/data/lck";
+import { championImage } from "@/lib/champions";
+import { getAllTeams, getChampions, getMatches, getPlayers, getTeamsSortedByRank, getTournaments } from "@/lib/data/lck";
 import {
   DOMESTIC_SEGMENTS,
   INTERNATIONAL_SEGMENTS,
@@ -13,7 +14,7 @@ const MIN_SEARCH_LENGTH = 2;
 
 export const dynamic = "force-dynamic";
 
-export type SearchResultType = "team" | "player" | "match" | "tournament";
+export type SearchResultType = "team" | "player" | "champion" | "match" | "tournament";
 
 export type SearchResult = {
   type: SearchResultType;
@@ -38,6 +39,10 @@ function matchesFields(fields: Array<string | null | undefined>, rawQuery: strin
   );
 }
 
+function normalizeChampionSearch(value: string) {
+  return normalize(value).replace(/[.'’_-]/g, "");
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const raw = (searchParams.get("q") ?? "").trim();
@@ -48,10 +53,11 @@ export async function GET(request: Request) {
 
   const query = normalize(raw);
 
-  const [teams, allTeams, players, tournaments, matches] = await Promise.all([
+  const [teams, allTeams, players, champions, tournaments, matches] = await Promise.all([
     getTeamsSortedByRank(),
     getAllTeams(),
     getPlayers(),
+    getChampions(),
     getTournaments(),
     getMatches(),
   ]);
@@ -98,6 +104,21 @@ export async function GET(request: Request) {
         imageUrl: player.profileImageUrl || null,
       };
     });
+
+  const championQuery = normalizeChampionSearch(raw);
+  const championResults: SearchResult[] = champions
+    .filter((champion) =>
+      [champion.name, champion.slug, champion.ddragonId].some((field) =>
+        normalizeChampionSearch(field ?? "").includes(championQuery),
+      ),
+    )
+    .map((champion) => ({
+      type: "champion" as const,
+      title: champion.name,
+      subtitle: `챔피언 · ${champion.ddragonId ?? champion.slug}`,
+      href: `/champions/${champion.slug}`,
+      imageUrl: championImage(champion),
+    }));
 
   const seenSegments = new Set<string>();
   const tournamentResults: SearchResult[] = [];
@@ -167,6 +188,7 @@ export async function GET(request: Request) {
   const results = [
     ...teamResults.slice(0, 4),
     ...playerResults.slice(0, 6),
+    ...championResults.slice(0, 6),
     ...matchResults,
     ...tournamentResults.slice(0, 4),
   ];

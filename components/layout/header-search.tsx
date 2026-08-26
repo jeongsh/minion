@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
-import { CalendarDays, Loader2, Search, Swords, UserRound, X } from "lucide-react";
+import { CalendarDays, Crown, Loader2, Search, Swords, UserRound, X } from "lucide-react";
 
 import type { SearchResult } from "@/app/api/search/route";
 import { KitschEmptyState } from "@/components/ui/kitsch-empty-state";
@@ -12,6 +12,7 @@ const MIN_SEARCH_LENGTH = 2;
 const TYPE_ICON = {
   team: null,
   player: UserRound,
+  champion: Crown,
   match: CalendarDays,
   tournament: Swords,
 } as const;
@@ -118,7 +119,7 @@ export function HeaderSearch({ className = "" }: { className?: string }) {
           aria-autocomplete="list"
           aria-activedescendant={activeIndex >= 0 ? `${listboxId}-${activeIndex}` : undefined}
           className="min-w-0 flex-1 bg-transparent text-sm text-[var(--ui-ink)] outline-none placeholder:text-[#777b82]"
-          placeholder="팀, 선수, 대회 검색"
+          placeholder="팀, 선수, 챔피언, 대회 검색"
         />
         {query.length > 0 ? (
           <button
@@ -143,7 +144,7 @@ export function HeaderSearch({ className = "" }: { className?: string }) {
         <div
           id={listboxId}
           role="listbox"
-          className="absolute inset-x-0 top-[calc(100%+8px)] z-50 overflow-hidden rounded-2xl border border-[#e8e8eb] bg-background shadow-xl shadow-black/10 dark:border-[#343840]"
+          className="absolute inset-x-0 top-[calc(100%+8px)] z-50 overflow-hidden rounded-2xl border border-[#e8e8eb] bg-background shadow-xl shadow-black/10 dark:border-[var(--ui-border)]"
         >
           {results.length === 0 ? (
             loading ? (
