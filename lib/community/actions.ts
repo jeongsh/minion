@@ -18,6 +18,7 @@ import { screenCommunityText } from "@/lib/community/ai-moderation";
 import { findProfanity, maskProfanity } from "@/lib/community/content-filter";
 import { extractPlainText } from "@/lib/community/extract-thumbnail";
 import {
+  getGuestPostAttachmentError,
   getCommentMaxLengthForRequest,
   getCommunityPostTextLength,
   POST_SERIALIZED_MAX_LENGTH,
@@ -254,6 +255,10 @@ export async function createPostAction(input: {
 
   const profanity = profanityError({ title, editorContent: content });
   if (profanity) return { ok: false, error: profanity };
+  if (!user) {
+    const attachmentError = getGuestPostAttachmentError(content);
+    if (attachmentError) return { ok: false, error: attachmentError };
+  }
 
   let guest: { nickname: string; key: string; ipKey: string; ipLabel: string } | undefined;
   if (!user) {
@@ -336,6 +341,10 @@ export async function updatePostAction(input: {
 
   const profanity = profanityError({ title, editorContent: content });
   if (profanity) return { ok: false, error: profanity };
+  if (isGuestOwner) {
+    const attachmentError = getGuestPostAttachmentError(content);
+    if (attachmentError) return { ok: false, error: attachmentError };
+  }
 
   await updatePost({ postId: input.postId, boardType: input.boardType, title, content });
 

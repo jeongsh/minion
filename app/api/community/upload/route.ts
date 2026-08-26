@@ -8,6 +8,7 @@ import {
   communityUploadPrefix,
   validateCommunityImage,
 } from "@/lib/community/upload-security";
+import { getGuestIdentity } from "@/lib/community/guest-identity";
 import { recordOperationalEvent } from "@/lib/observability/operational-events";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseAuthClient } from "@/lib/supabase/auth-server";
@@ -62,11 +63,11 @@ export async function POST(request: Request) {
   const {
     data: { user },
   } = await auth.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Sign in to upload images." }, { status: 401 });
-  }
+  const guest = user ? null : await getGuestIdentity().catch(() => null);
+  if (!user && !guest) return NextResponse.json({ error: "비회원 정보를 확인하지 못했습니다." }, { status: 400 });
+  const ownerKey = user?.id ?? guest!.key;
 
-  const rateLimit = checkUploadRateLimit(user.id, rateLimitStore);
+  const rateLimit = checkUploadRateLimit(ownerKey, rateLimitStore);
   if (!rateLimit.ok) {
     return NextResponse.json(
       { error: "Image upload rate limit exceeded. Try again shortly." },
@@ -94,7 +95,7 @@ export async function POST(request: Request) {
   }
 
   const prepared = await prepareCommunityImage(bytes, validation);
-  const prefix = communityUploadPrefix(user.id);
+  const prefix = communityUploadPrefix(user?.id ?? `guest-${guest!.key.slice(0, 32)}`);
   const objectPath = `${prefix}/${crypto.randomUUID()}.${prepared.extension}`;
   const { error: uploadError } = await admin.storage
     .from(COMMUNITY_UPLOAD_BUCKET)
@@ -113,7 +114,8 @@ export async function POST(request: Request) {
   } = admin.storage.from(COMMUNITY_UPLOAD_BUCKET).getPublicUrl(objectPath);
 
   const { data: uploadQuotaRows, error: quotaError } = await admin.rpc("record_community_upload", {
-    p_user_id: user.id,
+    p_user_id: user?.id ?? null,
+    p_guest_key: guest?.key ?? null,
     p_bucket_id: COMMUNITY_UPLOAD_BUCKET,
     p_object_path: objectPath,
     p_public_url: publicUrl,
@@ -139,7 +141,7 @@ export async function POST(request: Request) {
 
   await recordOperationalEvent(admin, {
     eventType: "community_image_upload",
-    actorUserId: user.id,
+    actorUserId: user?.id ?? null,
     targetType: "storage.object",
     targetId: objectPath,
     metadata: {
@@ -148,6 +150,7 @@ export async function POST(request: Request) {
       storedBytes: prepared.bytes.byteLength,
       transformed: prepared.transformed,
       contentType: prepared.contentType,
+      guest: Boolean(guest),
     },
   });
 

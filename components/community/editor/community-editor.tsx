@@ -12,10 +12,12 @@ interface Props {
   content: string;
   onChange: (content: string) => void;
   allowMedia?: boolean;
+  allowEmbeds?: boolean;
+  maxImages?: number;
   placeholder?: string;
 }
 
-export default function CommunityEditor({ content, onChange, allowMedia = true, placeholder }: Props) {
+export default function CommunityEditor({ content, onChange, allowMedia = true, allowEmbeds = allowMedia, maxImages = 10, placeholder }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [uploadingDropImage, setUploadingDropImage] = useState(false);
 
@@ -53,9 +55,18 @@ export default function CommunityEditor({ content, onChange, allowMedia = true, 
 
   const uploadEditorImages = async (files: File[]) => {
     if (!editor || files.length === 0) return;
+    let imageCount = 0;
+    editor.state.doc.descendants((node) => {
+      if (node.type.name === "image" || node.type.name === "imageResize") imageCount += 1;
+    });
+    const remaining = Math.max(0, maxImages - imageCount);
+    if (remaining === 0) {
+      alert(`이미지는 ${maxImages}장까지 첨부할 수 있습니다.`);
+      return;
+    }
     setUploadingDropImage(true);
     try {
-      for (const file of files) {
+      for (const file of files.slice(0, remaining)) {
         await uploadAndInsertEditorImage({ editor, file });
       }
     } catch (error) {
@@ -90,7 +101,7 @@ export default function CommunityEditor({ content, onChange, allowMedia = true, 
         <div className="border-b border-border bg-surface-muted px-4 py-2 text-[13px] text-muted">이미지 업로드 중...</div>
       ) : null}
       <EditorContent editor={editor} />
-      <Toolbar editor={editor} allowMedia={allowMedia} />
+      <Toolbar editor={editor} allowEmbeds={allowEmbeds} allowMedia={allowMedia} maxImages={maxImages} />
     </div>
   );
 }

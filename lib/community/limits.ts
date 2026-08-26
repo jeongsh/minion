@@ -42,3 +42,24 @@ export function getCommunityPostTextLength(content: string): number {
   walk(doc);
   return length;
 }
+
+export function getGuestPostAttachmentError(content: string): string | null {
+  try {
+    const doc = JSON.parse(content) as unknown;
+    let imageCount = 0;
+    let embedCount = 0;
+    const walk = (node: unknown) => {
+      if (!node || typeof node !== "object") return;
+      const record = node as Record<string, unknown>;
+      if (record.type === "image" || record.type === "imageResize") imageCount += 1;
+      if (record.type === "youtube" || record.type === "embed") embedCount += 1;
+      if (Array.isArray(record.content)) record.content.forEach(walk);
+    };
+    walk(doc);
+    if (imageCount > 1) return "비회원은 게시글에 이미지를 1장까지 첨부할 수 있습니다.";
+    if (embedCount > 0) return "YouTube와 SNS 첨부는 로그인 후 사용할 수 있습니다.";
+    return null;
+  } catch {
+    return null;
+  }
+}

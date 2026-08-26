@@ -76,7 +76,7 @@ export function ColorPicker({ value, onChange, onBeforeCustomPick, icon, quickSe
       {open && (
         <div
           ref={panelRef}
-          className="fixed left-1/2 top-1/2 z-[70] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-border bg-surface p-2 shadow-xl md:absolute md:left-0 md:top-full md:z-50 md:translate-x-0 md:translate-y-0 md:rounded-md md:shadow-lg"
+          className="fixed left-1/2 top-1/2 z-[70] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-border bg-surface p-2 md:absolute md:left-0 md:top-full md:z-50 md:translate-x-0 md:translate-y-0 md:rounded-md"
           style={{ width: 172, maxWidth: "calc(100vw - 24px)" }}
         >
           {/* 빠른 초기화 */}

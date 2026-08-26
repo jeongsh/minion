@@ -22,7 +22,10 @@ function isEmptyDoc(json: string): boolean {
     const walk = (node: unknown) => {
       if (hasContent || !node || typeof node !== "object") return;
       const record = node as Record<string, unknown>;
-      if (typeof record.type === "string" && ["image", "imageResize", "youtube", "embed"].includes(record.type)) {
+      if (
+        typeof record.type === "string"
+        && ["image", "imageResize", "youtube", "embed", "poll"].includes(record.type)
+      ) {
         hasContent = true;
         return;
       }
@@ -168,7 +171,9 @@ export function PostForm({
             setContent(nextContent);
             setContentTextLength(getCommunityPostTextLength(nextContent));
           }}
-          allowMedia={!isGuest}
+          allowEmbeds={!isGuest}
+          allowMedia
+          maxImages={isGuest ? 1 : 10}
           placeholder="내용을 입력하세요"
         />
         <p className={`text-right text-[13px] tabular-nums ${contentTextLength > POST_TEXT_MAX_LENGTH ? "text-red-500" : "text-[var(--ui-muted)]"}`}>
