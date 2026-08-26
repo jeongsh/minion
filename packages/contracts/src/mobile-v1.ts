@@ -658,12 +658,14 @@ export type MobileNewsItem = {
 
 export type MobileVideoItem = {
   id: EntityId;
+  routeId?: string;
   title: string;
   url: string;
   embedUrl?: string | null;
   thumbnail: MobileImage | null;
   publishedAt: IsoDateTime | null;
   channelName: string | null;
+  isNew?: boolean;
 };
 
 export type MobileTeamDetailDto = {
@@ -674,6 +676,12 @@ export type MobileTeamDetailDto = {
   players: MobilePlayerDirectoryItem[];
   social: Array<{ id: EntityId; title: string; image: MobileImage | null; url: string; publishedAt: IsoDateTime | null; ownerName: string }>;
   videos: MobileVideoItem[];
+};
+
+export type MobileTeamsPageDto = {
+  items: MobileTeamSummary[];
+  followedTeamIds: EntityId[];
+  selected: Pick<MobileTeamDetailDto, "team" | "social" | "videos"> | null;
 };
 
 export type MobileTeamFanDto = {
@@ -690,17 +698,116 @@ export type MobilePlayersDto = {
   challengersItems: MobilePlayerDirectoryItem[];
   teams: MobileTeamSummary[];
 };
+
+export type MobilePlayerDetailAxis = {
+  label: "KDA" | "DPM" | "VS" | "CSM" | "GD10" | "XPD10" | "GD15" | "XPD15";
+  score: number;
+  raw: number;
+  averageScore: number | null;
+  averageRaw: number | null;
+  decimals: number;
+};
+
+export type MobilePlayerChampionRow = {
+  id: EntityId | null;
+  slug: string | null;
+  name: string;
+  image: MobileImage | null;
+  setCount: number;
+  winRate: number | null;
+  kda: number | null;
+  averageDamage: number | null;
+  dpm: number | null;
+  csm: number | null;
+  averageRating: number | null;
+  fanPogCount: number;
+};
+
+export type MobilePlayerRecentSet = {
+  id: EntityId;
+  setNumber: number;
+  rating: number | null;
+  championLevel: number | null;
+  kills: number;
+  deaths: number;
+  assists: number;
+  kda: number;
+  damage: number;
+  dpm: number;
+  visionScore: number;
+  cs: number;
+  csm: number;
+  gold: number;
+  loadout: MobilePlayerLoadout;
+};
+
+export type MobilePlayerRecentMatch = {
+  id: EntityId;
+  name: string;
+  startsAt: IsoDateTime;
+  playerTeamId: EntityId;
+  opponent: MobileTeamSummary | null;
+  winnerTeamId: EntityId | null;
+  teamAScore: number | null;
+  teamBScore: number | null;
+  teamAId: EntityId;
+  teamBId: EntityId;
+  fanPog: boolean;
+  officialPomName: string;
+  sets: MobilePlayerRecentSet[];
+};
+
+export type MobilePlayerReview = {
+  id: EntityId;
+  rating: number;
+  review: string;
+  authorId: EntityId | null;
+  authorName: string;
+  authorImage: MobileImage | null;
+  authorTier: string;
+  meta: string;
+  href: string | null;
+};
+
 export type MobilePlayerDetailDto = {
-  player: MobilePlayerSummary & { realName: string };
+  schemaVersion: 2;
+  player: MobilePlayerSummary & {
+    realName: string;
+    socialLinks: Array<{ id: string; label: string; url: string }>;
+  };
   team: MobileTeamSummary | null;
-  career: { id: EntityId; teamId: EntityId | null; teamName: string | null; position: string; startDate: string; endDate: string | null }[];
+  segments: Array<{ value: string; label: string }>;
+  activeSegment: string;
+  teamMeta: { rank: number | null; recent: string };
+  axes: MobilePlayerDetailAxis[];
+  season: {
+    label: string;
+    setCount: number;
+    wins: number;
+    losses: number;
+    winRate: number | null;
+    kda: number | null;
+    kdaLine: string;
+    formScore: number | null;
+    pomCount: number;
+  };
+  champions: MobilePlayerChampionRow[];
+  recentMatches: MobilePlayerRecentMatch[];
+  fan: {
+    averageRating: number | null;
+    pogCount: number;
+    reviews: MobilePlayerReview[];
+  };
 };
 export type MobileTournamentsDto = { items: MobileTournamentSummary[]; matches: MobileMatchSummary[] };
 export type MobileNewsDto = CursorPage<MobileNewsItem> & {
   total: number;
+  page: number;
+  totalPages: number;
   query: string;
   teamSlug: string | null;
   isFallback: boolean;
+  teams: MobileTeamSummary[];
 };
 
 export type MobileSearchResult = {
@@ -733,7 +840,7 @@ export const mobileApiRoutes = {
   predictionCancel: { method: "DELETE", path: `${MOBILE_API_PREFIX}/predictions`, owner: "lib/predictions", auth: "required", cache: "no-store" },
   match: { method: "GET", path: `${MOBILE_API_PREFIX}/matches/{matchId}`, owner: "match aggregation service", auth: "public", cache: "30s" },
   matchLive: { method: "GET", path: `${MOBILE_API_PREFIX}/matches/{matchId}/live`, owner: "lib/lolesports-game-data", auth: "public", cache: "no-store" },
-  teams: { method: "GET", path: `${MOBILE_API_PREFIX}/teams`, owner: "lib/data/lck", auth: "public", cache: "21600s" },
+  teams: { method: "GET", path: `${MOBILE_API_PREFIX}/teams`, owner: "lib/data/lck + fan service", auth: "optional", cache: "no-store" },
   team: { method: "GET", path: `${MOBILE_API_PREFIX}/teams/{teamSlug}`, owner: "team aggregation service", auth: "public", cache: "60s" },
   teamFan: { method: "GET", path: `${MOBILE_API_PREFIX}/teams/{teamSlug}/fan`, owner: "fan service", auth: "optional", cache: "no-store" },
   teamFanToggle: { method: "POST", path: `${MOBILE_API_PREFIX}/teams/{teamSlug}/fan`, owner: "fan service", auth: "optional", cache: "no-store" },
@@ -754,8 +861,8 @@ export const mobileApiRoutes = {
   communityReactions: { method: "POST", path: `${MOBILE_API_PREFIX}/community/reactions`, owner: "community service", auth: "required", cache: "no-store" },
   communityReports: { method: "POST", path: `${MOBILE_API_PREFIX}/community/reports`, owner: "community service", auth: "required", cache: "no-store" },
   communityPoll: { method: "GET", path: `${MOBILE_API_PREFIX}/community/polls/{pollId}`, owner: "community poll service", auth: "optional", cache: "no-store" },
-  communityPollVote: { method: "POST", path: `${MOBILE_API_PREFIX}/community/polls/{pollId}`, owner: "community poll service", auth: "required", cache: "no-store" },
-  communityUpload: { method: "POST", path: `${MOBILE_API_PREFIX}/community/upload`, owner: "community upload service", auth: "required", cache: "no-store" },
+  communityPollVote: { method: "POST", path: `${MOBILE_API_PREFIX}/community/polls/{pollId}`, owner: "community poll service", auth: "optional", cache: "no-store" },
+  communityUpload: { method: "POST", path: `${MOBILE_API_PREFIX}/community/upload`, owner: "community upload service", auth: "optional", cache: "no-store" },
   communityUser: { method: "GET", path: `${MOBILE_API_PREFIX}/community/users/{userId}`, owner: "community user activity service", auth: "optional", cache: "no-store" },
   communityAuthorAction: { method: "POST", path: `${MOBILE_API_PREFIX}/community/authors/actions`, owner: "community user actions service", auth: "required", cache: "no-store" },
   authNaverStart: { method: "GET", path: `${MOBILE_API_PREFIX}/auth/naver/start`, owner: "native auth broker", auth: "public", cache: "no-store" },
