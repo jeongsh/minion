@@ -45,44 +45,49 @@ export async function runMatchStartNotificationAutomation(): Promise<MatchStartN
   const invalidTokens = new Set<string>();
 
   for (const match of matches) {
-    const teamIds = [match.team_a_id, match.team_b_id].filter((id): id is string => Boolean(id));
+    // 이 매치는 위 UPDATE에서 이미 발송 완료로 마킹됐다 — 다시 조회되지 않으니,
+    // 발송 중 에러가 나도 여기서 잡아 로그만 남기고 다음 매치로 넘어가야 한다.
+    // 안 그러면 이 매치 하나 때문에 루프가 멈춰서, 이미 마킹된(=재시도 안 되는)
+    // 나머지 매치들이 발송 시도조차 못 해보고 유실된다.
+    try {
+      const teamIds = [match.team_a_id, match.team_b_id].filter((id): id is string => Boolean(id));
+      if (teamIds.length === 0) continue;
 
-    if (teamIds.length > 0) {
       const [{ data: teams }, { data: fans }] = await Promise.all([
         admin.from("teams").select("id, short_name, name").in("id", teamIds),
         admin.from("team_fans").select("user_id").in("team_id", teamIds).not("user_id", "is", null),
       ]);
 
       const userIds = [...new Set((fans ?? []).map((fan) => fan.user_id as string))];
+      if (userIds.length === 0) continue;
 
-      if (userIds.length > 0) {
-        const [{ data: preferences }, { data: tokens }] = await Promise.all([
-          admin.from("user_notification_preferences").select("user_id, match_start_enabled").in("user_id", userIds),
-          admin.from("push_tokens").select("user_id, expo_push_token").in("user_id", userIds),
-        ]);
+      const [{ data: preferences }, { data: tokens }] = await Promise.all([
+        admin.from("user_notification_preferences").select("user_id, match_start_enabled").in("user_id", userIds),
+        admin.from("push_tokens").select("user_id, expo_push_token").in("user_id", userIds),
+      ]);
 
-        const optedOutUserIds = new Set(
-          (preferences ?? []).filter((pref) => pref.match_start_enabled === false).map((pref) => pref.user_id),
-        );
-        const eligibleTokens = (tokens ?? []).filter((token) => !optedOutUserIds.has(token.user_id));
+      const optedOutUserIds = new Set(
+        (preferences ?? []).filter((pref) => pref.match_start_enabled === false).map((pref) => pref.user_id),
+      );
+      const eligibleTokens = (tokens ?? []).filter((token) => !optedOutUserIds.has(token.user_id));
+      if (eligibleTokens.length === 0) continue;
 
-        if (eligibleTokens.length > 0) {
-          const teamA = teams?.find((team) => team.id === match.team_a_id);
-          const teamB = teams?.find((team) => team.id === match.team_b_id);
-          const matchup = `${teamA?.short_name ?? teamA?.name ?? "TBD"} vs ${teamB?.short_name ?? teamB?.name ?? "TBD"}`;
+      const teamA = teams?.find((team) => team.id === match.team_a_id);
+      const teamB = teams?.find((team) => team.id === match.team_b_id);
+      const matchup = `${teamA?.short_name ?? teamA?.name ?? "TBD"} vs ${teamB?.short_name ?? teamB?.name ?? "TBD"}`;
 
-          const result = await sendExpoPushNotifications(
-            eligibleTokens.map((token) => ({
-              to: token.expo_push_token,
-              title: "경기가 시작했어요",
-              body: `${matchup} 지금 시작합니다.`,
-              data: { matchId: match.id, type: "match_start", url: `/matches/${match.id}` },
-            })),
-          );
-          notificationsSent += result.sent;
-          result.invalidTokens.forEach((token) => invalidTokens.add(token));
-        }
-      }
+      const result = await sendExpoPushNotifications(
+        eligibleTokens.map((token) => ({
+          to: token.expo_push_token,
+          title: "경기가 시작했어요",
+          body: `${matchup} 지금 시작합니다.`,
+          data: { matchId: match.id, type: "match_start", url: `/matches/${match.id}` },
+        })),
+      );
+      notificationsSent += result.sent;
+      result.invalidTokens.forEach((token) => invalidTokens.add(token));
+    } catch (error) {
+      console.error(`[match-start-notifications] match ${match.id} failed`, error);
     }
   }
 

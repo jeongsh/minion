@@ -87,15 +87,22 @@ export async function sendMatchEventPushNotifications(
 
   const invalidTokens = new Set<string>();
   for (const message of messages) {
-    const result = await sendExpoPushNotifications(
-      eligibleTokens.map((token) => ({
-        to: token.expo_push_token,
-        title: "경기 주요 이벤트",
-        body: message,
-        data: { matchId, type: "match_event", url: `/matches/${matchId}` },
-      })),
-    );
-    result.invalidTokens.forEach((token) => invalidTokens.add(token));
+    // 이 배치의 이벤트들은 호출부(live route)에서 이미 dedupe_key upsert로 확정
+    // 저장된 뒤라 재시도 대상이 아니다 — 메시지 하나의 발송이 실패해도 여기서 잡아
+    // 로그만 남기고 나머지 메시지는 계속 보낸다.
+    try {
+      const result = await sendExpoPushNotifications(
+        eligibleTokens.map((token) => ({
+          to: token.expo_push_token,
+          title: "경기 주요 이벤트",
+          body: message,
+          data: { matchId, type: "match_event", url: `/matches/${matchId}` },
+        })),
+      );
+      result.invalidTokens.forEach((token) => invalidTokens.add(token));
+    } catch (error) {
+      console.error(`[match-event-push] match ${matchId} message send failed`, error);
+    }
   }
 
   if (invalidTokens.size > 0) {

@@ -184,12 +184,6 @@ export function useMatchActivity(enabled: boolean, followedTeamIds: string[] = [
     });
   }, [showToast]);
 
-  const storeNotification = useCallback((notification: AppNotification) => {
-    updateStoredNotifications((current) => current.some((item) => item.id === notification.id)
-      ? current
-      : [notification, ...current]);
-  }, []);
-
   const dismissRatingCard = useCallback(() => {
     setRatingCard((current) => {
       if (!current) return null;
@@ -254,7 +248,7 @@ export function useMatchActivity(enabled: boolean, followedTeamIds: string[] = [
         );
         for (const match of preferences.matchStartEnabled ? followedLiveMatches : []) {
           if (!previousLiveIds.current.has(match.id)) {
-            storeNotification({
+            publishNotification({
               id: `match-live:${match.id}`,
               kind: "match_live",
               title: `${match.teamA.shortName} vs ${match.teamB.shortName}`,
@@ -269,12 +263,12 @@ export function useMatchActivity(enabled: boolean, followedTeamIds: string[] = [
                 leftLabel: "경기",
                 rightLabel: "시작",
               },
-            });
+            }, LIVE_NOTIFICATION_DURATION_MS);
           }
         }
         for (const rating of preferences.ratingOpenEnabled ? next.ratings : []) {
           if (!previousRatingIds.current.has(rating.id)) {
-            storeNotification({
+            publishNotification({
               id: `rating-open:${rating.id}`,
               kind: "rating_open",
               title: `${rating.setNumber}세트 평가가 열렸어요`,
@@ -289,7 +283,7 @@ export function useMatchActivity(enabled: boolean, followedTeamIds: string[] = [
                 leftLabel: `${rating.setNumber}세트`,
                 rightLabel: "평가하기",
               },
-            });
+            }, LIVE_NOTIFICATION_DURATION_MS);
           }
         }
       }
@@ -307,7 +301,7 @@ export function useMatchActivity(enabled: boolean, followedTeamIds: string[] = [
     } catch {
       // 전역 보조 UI이므로 네트워크 오류가 페이지 탐색을 막지 않게 조용히 유지한다.
     }
-  }, [enabled, followedTeamIdSet, preferences.inAppEnabled, preferences.matchStartEnabled, preferences.ratingOpenEnabled, storeNotification]);
+  }, [enabled, followedTeamIdSet, preferences.inAppEnabled, preferences.matchStartEnabled, preferences.ratingOpenEnabled, publishNotification]);
 
   useEffect(() => {
     const initialLoad = window.setTimeout(() => void loadActivity(), 0);
