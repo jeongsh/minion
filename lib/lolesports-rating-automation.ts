@@ -15,6 +15,7 @@ import {
   type LocalTeamIdentity,
 } from "@/lib/lolesports-match-matcher";
 import { sendDiscordMatchAutomationAlert } from "@/lib/notify/discord";
+import { sendPendingSetRatingOpenPushNotifications } from "@/lib/notify/set-rating-open-push";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
   LeaguepediaRateLimitError,
@@ -599,6 +600,7 @@ export async function runLolesportsRatingAutomation(
   now: Date = new Date(),
 ): Promise<LolesportsAutomationSummary> {
   const beforeDelivery = await deliverPendingDiscordEvents();
+  await sendPendingSetRatingOpenPushNotifications();
   const warnings = beforeDelivery.warning ? [beforeDelivery.warning] : [];
   const detailedSets: Array<{ matchId: string; setNumbers: number[] }> = [];
   const enrichedSets: Array<{ matchId: string; setNumbers: number[] }> = [];
@@ -611,6 +613,7 @@ export async function runLolesportsRatingAutomation(
     warnings.push(...drained.warnings);
 
     const afterDelivery = await deliverPendingDiscordEvents();
+    await sendPendingSetRatingOpenPushNotifications();
     if (afterDelivery.warning && !warnings.includes(afterDelivery.warning)) {
       warnings.push(afterDelivery.warning);
     }

@@ -3,8 +3,10 @@ import "server-only";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { sendExpoPushNotifications } from "@/lib/notify/push";
 
-const LEAD_WINDOW_START_MS = 5 * 60_000;
-const LEAD_WINDOW_END_MS = 10 * 60_000;
+// 크론이 1분마다 도는데, 실행이 밀리거나 한 번 건너뛰어도 그 경기를 놓치지 않도록
+// 여유를 좀 더 둔다(현재는 "지나간 예정 시각" 매치를 찾는 거라 창을 넓혀도 더 이른
+// 시점의 발송으로 이어지진 않는다 — 그냥 놓치는 걸 방지하는 목적).
+const LOOKBACK_MS = 3 * 60_000;
 
 export type MatchStartNotificationSummary = {
   matchesChecked: number;
@@ -12,24 +14,27 @@ export type MatchStartNotificationSummary = {
 };
 
 /**
- * 5~10분 뒤 시작하는 경기를 찾아, 두 팀 중 하나라도 팔로우한(team_fans) 로그인 유저에게
- * "곧 시작" 푸시를 보낸다. user_notification_preferences.match_start_enabled=false면 제외한다.
- * 매 분 도는 크론이라 이미 이 창을 지나쳐도 다음 실행에서 다시 안 걸리도록
- * matches.start_notification_sent_at 로 중복 발송을 막는다.
+ * 예정 시각이 막 지난(최근 3분 이내) 경기를 찾아, 두 팀 중 하나라도 팔로우한(team_fans)
+ * 로그인 유저에게 "경기 시작" 푸시를 보낸다. user_notification_preferences.match_start_enabled
+ * =false면 제외한다. matches.start_notification_sent_at 로 중복 발송을 막는다.
  */
 export async function runMatchStartNotificationAutomation(): Promise<MatchStartNotificationSummary> {
   const admin = createSupabaseAdminClient();
   const now = Date.now();
-  const windowStart = new Date(now + LEAD_WINDOW_START_MS).toISOString();
-  const windowEnd = new Date(now + LEAD_WINDOW_END_MS).toISOString();
+  const windowStart = new Date(now - LOOKBACK_MS).toISOString();
+  const windowEnd = new Date(now).toISOString();
 
+  // 조회와 완료 마킹을 하나의 UPDATE로 묶어 원자적으로 처리한다 — 크론 실행이 겹쳐도
+  // (한 번의 실행이 1분을 넘기는 경우) Postgres가 이 UPDATE 중 대상 행에 락을 걸기 때문에
+  // 두 실행이 같은 매치를 동시에 가져가 중복 발송하는 일이 생기지 않는다.
   const { data: matches, error } = await admin
     .from("matches")
-    .select("id, team_a_id, team_b_id")
+    .update({ start_notification_sent_at: new Date().toISOString() })
     .is("start_notification_sent_at", null)
     .eq("status", "scheduled")
     .gte("match_date", windowStart)
-    .lt("match_date", windowEnd);
+    .lte("match_date", windowEnd)
+    .select("id, team_a_id, team_b_id");
 
   if (error) throw error;
   if (!matches || matches.length === 0) {
@@ -69,8 +74,8 @@ export async function runMatchStartNotificationAutomation(): Promise<MatchStartN
           const result = await sendExpoPushNotifications(
             eligibleTokens.map((token) => ({
               to: token.expo_push_token,
-              title: "곧 경기가 시작해요",
-              body: `${matchup} 잠시 후 시작합니다.`,
+              title: "경기가 시작했어요",
+              body: `${matchup} 지금 시작합니다.`,
               data: { matchId: match.id, type: "match_start", url: `/matches/${match.id}` },
             })),
           );
@@ -79,12 +84,6 @@ export async function runMatchStartNotificationAutomation(): Promise<MatchStartN
         }
       }
     }
-
-    const { error: markError } = await admin
-      .from("matches")
-      .update({ start_notification_sent_at: new Date().toISOString() })
-      .eq("id", match.id);
-    if (markError) throw markError;
   }
 
   if (invalidTokens.size > 0) {

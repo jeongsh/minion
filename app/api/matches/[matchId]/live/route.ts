@@ -4,6 +4,7 @@ import { getAllTeams, getMatchById } from "@/lib/data/lck";
 import { fetchLolesportsGameData, LiveGameUnavailableError } from "@/lib/lolesports-game-data";
 import { fetchTrackedLolesportsEvents } from "@/lib/lolesports";
 import { findLolesportsMatch } from "@/lib/lolesports-match-matcher";
+import { sendMatchEventPushNotifications } from "@/lib/notify/match-event-push";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
@@ -437,10 +438,19 @@ export async function GET(
     if (cursorRow) {
       const newEvents = buildNewEvents(match.id, cursorRow, { blue, red, participants }, gameData.durationSeconds ?? 0);
       if (newEvents.length > 0) {
-        const { error: eventsInsertError } = await supabase
+        // ignoreDuplicates 이면서 select()를 붙이면, RETURNING 절에 실제로 새로
+        // insert된 행만 담긴다 — 동시 요청이 같은 diff를 계산해도 그중 실제로 처음
+        // 저장에 성공한 요청만 이 행들을 받아서, 푸시가 중복 발송되지 않는다.
+        const { data: insertedEvents, error: eventsInsertError } = await supabase
           .from("live_match_events")
-          .upsert(newEvents, { onConflict: "dedupe_key", ignoreDuplicates: true });
+          .upsert(newEvents, { onConflict: "dedupe_key", ignoreDuplicates: true })
+          .select("event_type, side, team_id, killer_summoner_name, victim_summoner_name, dragon_type");
         if (eventsInsertError) console.error("live match events upsert failed", eventsInsertError);
+        else if (insertedEvents && insertedEvents.length > 0) {
+          void sendMatchEventPushNotifications(match.id, blueTeamId, redTeamId, insertedEvents).catch((error) =>
+            console.error("match event push failed", error),
+          );
+        }
       }
     }
 
