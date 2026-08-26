@@ -16,8 +16,9 @@ import Underline from 'lucide-react-native/icons/underline';
 import Undo from 'lucide-react-native/icons/undo';
 import Video from 'lucide-react-native/icons/video';
 import X from 'lucide-react-native/icons/x';
-import { useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Image as NativeImage, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, Image as NativeImage, Keyboard, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 
 import { BottomSheet } from '@/components/bottom-sheet';
@@ -150,7 +151,9 @@ function imageCount(document: TiptapDocument) {
 export function CommunityRichEditor({ allowEmbeds, allowMedia, characterCount, characterLimit, maxImages, onChange, value }: Props) {
   const webView = useRef<WebView>(null);
   const initial = useRef(value).current;
+  const insets = useSafeAreaInsets();
   const { fonts, theme } = useMinionTheme();
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [formatOpen, setFormatOpen] = useState(false);
   const [palette, setPalette] = useState<PaletteMode>(null);
@@ -159,8 +162,20 @@ export function CommunityRichEditor({ allowEmbeds, allowMedia, characterCount, c
   const [linkUrl, setLinkUrl] = useState('');
   const [pollOpen, setPollOpen] = useState(false);
   const [poll, setPoll] = useState<PollDraft>(emptyPoll);
+  const bottomInset = keyboardVisible ? 0 : insets.bottom;
   const html = useMemo(() => editorHtml(initialHtml(initial), { accent: theme.accent, background: theme.surface, border: theme.border, color: theme.text, ink: theme.ink, muted: theme.muted, mutedSurface: theme.surfaceMuted }), [initial, theme.accent, theme.border, theme.ink, theme.muted, theme.surface, theme.surfaceMuted, theme.text]);
   const command = (name: string, arg: unknown = '') => webView.current?.injectJavaScript(`window.minionCommand(${JSON.stringify(name)},${JSON.stringify(arg)});true;`);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const showSubscription = Keyboard.addListener(showEvent, () => setKeyboardVisible(true));
+    const hideSubscription = Keyboard.addListener(hideEvent, () => setKeyboardVisible(false));
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, []);
 
   const pickImage = async () => {
     const remaining = Math.max(0, maxImages - imageCount(value));
@@ -229,12 +244,12 @@ export function CommunityRichEditor({ allowEmbeds, allowMedia, characterCount, c
     <View style={[styles.root, { backgroundColor: theme.surface }]}>
       <WebView accessibilityLabel="내용" automaticallyAdjustContentInsets={false} javaScriptEnabled keyboardDisplayRequiresUserAction={false} onMessage={onMessage} originWhitelist={['*']} ref={webView} scrollEnabled source={{ html }} style={[styles.webView, { backgroundColor: theme.surface }]} />
 
-      {formatOpen ? <View style={[styles.formatPanel, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+      {formatOpen ? <View style={[styles.formatPanel, { backgroundColor: theme.surface, borderColor: theme.border, bottom: 64 + bottomInset }]}>
         <Tool compact label="굵게" onPress={() => command('bold')}><Bold color={theme.text} size={18} /></Tool><Tool compact label="기울임" onPress={() => command('italic')}><Italic color={theme.text} size={18} /></Tool><Tool compact label="밑줄" onPress={() => command('underline')}><Underline color={theme.text} size={18} /></Tool><Tool compact label="취소선" onPress={() => command('strikeThrough')}><Strikethrough color={theme.text} size={18} /></Tool><View style={[styles.formatDivider, { backgroundColor: theme.border }]} /><Tool compact label="글머리 목록" onPress={() => command('insertUnorderedList')}><List color={theme.text} size={18} /></Tool><Tool compact label="번호 목록" onPress={() => command('insertOrderedList')}><ListOrdered color={theme.text} size={18} /></Tool><FormatColorTool color="#000000" label="글자색" onPress={() => setPalette('text')}><Type color={theme.text} size={16} /></FormatColorTool><FormatColorTool color="transparent" label="배경색" onPress={() => setPalette('highlight')}><Highlighter color={theme.text} size={16} /></FormatColorTool>
       </View> : null}
 
       <Text style={[styles.count, { color: characterCount > characterLimit ? '#ef4444' : theme.muted, ...fonts.regular }]}>{characterCount.toLocaleString('ko-KR')}/{characterLimit.toLocaleString('ko-KR')}자</Text>
-      <View style={[styles.toolbar, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+      <View style={[styles.toolbar, { backgroundColor: theme.surface, borderColor: theme.border, height: 54 + bottomInset, paddingBottom: bottomInset }]}>
         {allowMedia ? <><Tool disabled={uploading} label={uploading ? '이미지 업로드 중' : '이미지 첨부'} onPress={() => void pickImage()}>{uploading ? <ActivityIndicator color={theme.accent} size="small" /> : <ImageIcon color={theme.text} size={18} />}</Tool>{allowEmbeds ? <><Tool label="YouTube 영상 첨부" onPress={() => openLink('youtube')}><Video color={theme.text} size={18} /></Tool><Tool label="SNS 게시물 첨부" onPress={() => openLink('sns')}><Share2 color={theme.text} size={18} /></Tool></> : null}<Tool label="투표 추가" onPress={openNewPoll}><BarChart3 color={theme.text} size={18} /></Tool></> : null}
         <Tool active={formatOpen} label="텍스트 서식" onPress={() => setFormatOpen((open) => !open)}><Text style={{ color: toolColor(formatOpen), ...fonts.medium, fontSize: 16, lineHeight: 18 }}>Aa</Text></Tool><View style={[styles.toolDivider, { backgroundColor: theme.border }]} /><Tool label="실행 취소" onPress={() => command('undo')}><Undo color={theme.text} size={18} /></Tool><Tool label="다시 실행" onPress={() => command('redo')}><Redo color={theme.text} size={18} /></Tool>
       </View>
@@ -286,5 +301,5 @@ let timer;editor.addEventListener('input',()=>{clearTimeout(timer);timer=setTime
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, marginHorizontal: -16, minHeight: 0, paddingHorizontal: 16, position: 'relative' }, webView: { flex: 1 }, count: { fontSize: 13, lineHeight: 19.5, paddingBottom: 4, paddingHorizontal: 2, textAlign: 'right' }, toolbar: { alignItems: 'center', borderBottomWidth: 1, borderTopWidth: 1, flexDirection: 'row', height: 54, justifyContent: 'center', marginHorizontal: -16, paddingHorizontal: 7 }, tool: { alignItems: 'center', borderRadius: 10, height: 44, justifyContent: 'center', width: 44 }, disabled: { opacity: 0.4 }, toolDivider: { height: 24, marginHorizontal: 3, width: 1 }, formatPanel: { bottom: 64, borderRadius: 16, borderWidth: 1, flexDirection: 'row', flexWrap: 'wrap', gap: 4, left: 8, padding: 8, position: 'absolute', right: 8, zIndex: 10 }, formatTool: { alignItems: 'center', borderRadius: 8, height: 40, justifyContent: 'center', width: 40 }, formatDivider: { height: 24, marginHorizontal: 4, marginVertical: 8, width: 1 }, formatColorTool: { alignItems: 'center', borderRadius: 4, height: 40, justifyContent: 'center', width: 32 }, formatColorBar: { borderWidth: 1, height: 3, marginTop: 2, width: 14 }, palette: { flexDirection: 'row', gap: 12, paddingBottom: 8 }, swatch: { alignItems: 'center', borderRadius: 999, borderWidth: 1, height: 44, justifyContent: 'center', width: 44 }, linkInput: { borderRadius: 8, borderWidth: 1, fontSize: 14, height: 44, paddingHorizontal: 13 }, sheetPrimary: { alignItems: 'center', borderRadius: 8, height: 44, justifyContent: 'center', marginTop: 10 }, fieldLabel: { fontSize: 13, lineHeight: 19.5, marginBottom: 6 }, pollInput: { borderRadius: 8, borderWidth: 1, fontSize: 14, height: 44, paddingHorizontal: 13 }, pollOptions: { gap: 8 }, pollOptionRow: { alignItems: 'center', flexDirection: 'row', gap: 10 }, pollOptionInput: { flex: 1 }, removeOption: { alignItems: 'center', height: 40, justifyContent: 'center', width: 40 }, addOption: { alignItems: 'center', borderRadius: 8, borderWidth: 1, flexDirection: 'row', gap: 7, height: 44, justifyContent: 'center', marginTop: 10 }, pollActions: { alignItems: 'center', borderTopWidth: 1, flexDirection: 'row', justifyContent: 'space-between', marginTop: 14, paddingTop: 12 }, deletePoll: { justifyContent: 'center', minHeight: 44, minWidth: 80 }, savePoll: { alignItems: 'center', borderRadius: 8, height: 44, justifyContent: 'center', minWidth: 80, paddingHorizontal: 18 },
+  root: { flex: 1, marginHorizontal: -16, minHeight: 0, paddingHorizontal: 16, position: 'relative' }, webView: { flex: 1 }, count: { fontSize: 13, lineHeight: 19.5, paddingBottom: 4, paddingHorizontal: 2, textAlign: 'right' }, toolbar: { alignItems: 'center', borderBottomWidth: 1, borderTopWidth: 1, flexDirection: 'row', justifyContent: 'center', marginHorizontal: -16, paddingHorizontal: 7 }, tool: { alignItems: 'center', borderRadius: 10, height: 44, justifyContent: 'center', width: 44 }, disabled: { opacity: 0.4 }, toolDivider: { height: 24, marginHorizontal: 3, width: 1 }, formatPanel: { borderRadius: 16, borderWidth: 1, flexDirection: 'row', flexWrap: 'wrap', gap: 4, left: 8, padding: 8, position: 'absolute', right: 8, zIndex: 10 }, formatTool: { alignItems: 'center', borderRadius: 8, height: 40, justifyContent: 'center', width: 40 }, formatDivider: { height: 24, marginHorizontal: 4, marginVertical: 8, width: 1 }, formatColorTool: { alignItems: 'center', borderRadius: 4, height: 40, justifyContent: 'center', width: 32 }, formatColorBar: { borderWidth: 1, height: 3, marginTop: 2, width: 14 }, palette: { flexDirection: 'row', gap: 12, paddingBottom: 8 }, swatch: { alignItems: 'center', borderRadius: 999, borderWidth: 1, height: 44, justifyContent: 'center', width: 44 }, linkInput: { borderRadius: 8, borderWidth: 1, fontSize: 14, height: 44, paddingHorizontal: 13 }, sheetPrimary: { alignItems: 'center', borderRadius: 8, height: 44, justifyContent: 'center', marginTop: 10 }, fieldLabel: { fontSize: 13, lineHeight: 19.5, marginBottom: 6 }, pollInput: { borderRadius: 8, borderWidth: 1, fontSize: 14, height: 44, paddingHorizontal: 13 }, pollOptions: { gap: 8 }, pollOptionRow: { alignItems: 'center', flexDirection: 'row', gap: 10 }, pollOptionInput: { flex: 1 }, removeOption: { alignItems: 'center', height: 40, justifyContent: 'center', width: 40 }, addOption: { alignItems: 'center', borderRadius: 8, borderWidth: 1, flexDirection: 'row', gap: 7, height: 44, justifyContent: 'center', marginTop: 10 }, pollActions: { alignItems: 'center', borderTopWidth: 1, flexDirection: 'row', justifyContent: 'space-between', marginTop: 14, paddingTop: 12 }, deletePoll: { justifyContent: 'center', minHeight: 44, minWidth: 80 }, savePoll: { alignItems: 'center', borderRadius: 8, height: 44, justifyContent: 'center', minWidth: 80, paddingHorizontal: 18 },
 });

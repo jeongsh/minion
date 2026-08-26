@@ -70,7 +70,7 @@ export function CommunityComposeScreen({ edit = false, scope = 'hub' }: { edit?:
   if (!initialized) return <ComposeState><ActivityIndicator color={theme.accent} /></ComposeState>;
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={[styles.root, { backgroundColor: theme.pageBackground }]}>
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={[styles.root, { backgroundColor: theme.pageBackground }]}>
       <View style={[styles.safeTop, { backgroundColor: theme.pageBackground, height: insets.top }]} />
       <View style={[styles.header, { borderBottomColor: theme.divider, marginTop: insets.top }]}>
         <Pressable accessibilityLabel="이전 화면" onPress={close} style={styles.headerButton}><ChevronLeft color={theme.text} size={22} /></Pressable>
