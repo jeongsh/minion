@@ -32,6 +32,7 @@ type AuthorMenuProps = {
   scope?: BoardScope;
   teamSlug?: string;
   detailMeta?: React.ReactNode;
+  hideAvatar?: boolean;
 };
 
 function TeamBadge({ team, size }: { team: CommunityAuthorTeam; size: "detail" | "profile" | "comment" }) {
@@ -74,6 +75,7 @@ export function AuthorMenu({
   scope = "hub",
   teamSlug,
   detailMeta,
+  hideAvatar = false,
 }: AuthorMenuProps) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -152,7 +154,7 @@ export function AuthorMenu({
   };
 
   if (!authorId && !guestKey) {
-    return <span className="text-sm font-semibold text-[var(--ui-muted)]">{name}</span>;
+    return <span className="text-xs font-medium leading-[18px] text-[var(--ui-muted)]">{name}</span>;
   }
 
   const guestAvatar = (size: "detail" | "comment") => (
@@ -184,22 +186,24 @@ export function AuthorMenu({
     </span>
   ) : isGuest ? (
     <span className="inline-flex min-w-0 items-center gap-2.5 text-left">
-      {guestAvatar("comment")}
-      <span className="truncate text-sm font-semibold text-[var(--ui-ink)]">{name}</span>
+      {hideAvatar ? null : guestAvatar("comment")}
+      <span className="truncate text-xs font-medium leading-[18px] text-[var(--ui-ink)]">{name}</span>
     </span>
   ) : (
     <span className="inline-flex min-w-0 items-center gap-2.5 text-left">
-      <RankAvatar
-        tier={authorTier}
-        src={authorImageUrl}
-        alt={name}
-        fallback={name.charAt(0)}
-        size={variant === "profile" ? "lg" : "sm"}
-      />
+      {hideAvatar ? null : (
+        <RankAvatar
+          tier={authorTier}
+          src={authorImageUrl}
+          alt={name}
+          fallback={name.charAt(0)}
+          size={variant === "profile" ? "lg" : "sm"}
+        />
+      )}
       <span className="min-w-0">
         <span className="flex items-center gap-1.5">
           {authorTeam ? <TeamBadge team={authorTeam} size={variant === "profile" ? "profile" : "comment"} /> : null}
-          <span className={`truncate font-semibold text-[var(--ui-ink)] ${variant === "profile" ? "font-paperozi text-[22px] sm:text-[26px]" : "text-sm"}`}>{name}</span>
+          <span className={`truncate text-[var(--ui-ink)] ${variant === "profile" ? "font-paperozi text-[22px] font-semibold sm:text-[26px]" : "text-xs font-medium leading-[18px]"}`}>{name}</span>
         </span>
       </span>
     </span>

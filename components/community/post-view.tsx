@@ -140,8 +140,8 @@ export function PostView({
 
         <section aria-label="댓글">
           <div className="flex items-baseline gap-1 px-[14px] py-4 md:px-8 md:py-5">
-            <h2 className="text-[17px] font-bold text-[var(--ui-ink)] md:text-lg">댓글</h2>
-            <span className="text-sm font-semibold text-[var(--tp)] md:text-base">{post.commentCount}</span>
+            <h2 className="text-[15px] font-bold leading-[1.5] text-[var(--ui-ink)] md:text-lg">댓글</h2>
+            <span className="text-[13px] font-medium leading-[1.5] text-[var(--tp)] md:text-base">{post.commentCount}</span>
           </div>
           <div className="hidden px-4 pb-5 md:block md:px-8 md:pb-8">
             <CommentForm postId={post.id} scope={scope} teamSlug={teamSlug} isGuest={!viewerId} />

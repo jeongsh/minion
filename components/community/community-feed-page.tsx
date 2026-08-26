@@ -41,7 +41,7 @@ export async function CommunityFeedPage({
 
   if (scope === "team") {
     return (
-      <main className="community-neutral fan-page-container flex flex-col gap-5 py-7 md:py-9" style={{ ["--tp" as string]: "var(--team-primary, #6158ff)" }}>
+      <main className="community-neutral fan-page-container flex flex-col gap-5 pb-7 pt-0 md:py-9" style={{ ["--tp" as string]: "var(--team-primary, #6158ff)" }}>
         <h1 className="sr-only">{title ?? "커뮤니티"}</h1>
         <CelebrationBanner events={todayCelebrations} action="write" />
         <CommunityContentLayout posts={postPage.popularPosts} scope={scope} teamSlug={teamSlug}>

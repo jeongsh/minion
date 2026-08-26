@@ -1,11 +1,12 @@
 "use client";
 
-import { Pencil, Trash2, X } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 
+import { DialogSheetHeader } from "@/components/responsive/adaptive-dialog";
 import { useToast } from "@/components/ui/toast";
 import { deleteGuestPostAction, deletePostAction } from "@/lib/community/actions";
 import type { BoardScope } from "@/lib/community/boards";
@@ -44,19 +45,17 @@ export function PostOwnerActions({ postId, scope, teamSlug, guest = false, varia
       </span>
       {confirmOpen && typeof document !== "undefined"
         ? createPortal(
-            <div className="modal-backdrop fixed inset-0 z-[1000] grid place-items-center bg-black/55 [--modal-backdrop-dark-mobile:0.7] px-4" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setConfirmOpen(false)}>
-              <section className="adaptive-dialog-panel w-full max-w-sm rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-5 shadow-2xl dark:bg-[var(--ui-surface-muted)]" role="dialog" aria-modal="true" aria-labelledby="delete-post-title">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-[13px] font-black text-red-500">DELETE POST</p>
-                    <h2 id="delete-post-title" className="mt-1 text-lg font-black text-[var(--ui-ink)]">게시글을 삭제할까요?</h2>
+            <div className="modal-backdrop fixed inset-0 z-[1000] flex items-end justify-center bg-black/45 [--modal-backdrop-dark-mobile:0.65] sm:items-center sm:p-6" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setConfirmOpen(false)}>
+              <section className="adaptive-dialog-panel flex w-full max-w-sm flex-col overflow-hidden rounded-t-[24px] bg-[var(--ui-surface)] shadow-2xl sm:rounded-[24px] sm:border sm:border-[var(--ui-border)] dark:bg-[var(--ui-surface-muted)]" role="dialog" aria-modal="true" aria-labelledby="delete-post-title">
+                <DialogSheetHeader onClose={() => setConfirmOpen(false)} title="게시글 삭제" titleId="delete-post-title" />
+                <div className="px-5 pb-5 pt-2">
+                  <p className="text-[13px] font-medium text-red-500">DELETE POST</p>
+                  <h3 className="mt-1 text-lg font-black text-[var(--ui-ink)]">게시글을 삭제할까요?</h3>
+                  <p className="mt-3 text-sm font-medium leading-6 text-[var(--ui-muted)]">삭제한 게시글은 복구할 수 없습니다.</p>
+                  <div className="mt-5 grid grid-cols-2 gap-2">
+                    <button type="button" onClick={() => setConfirmOpen(false)} className="h-10 rounded-lg bg-[var(--ui-surface-muted)] text-sm font-medium text-[var(--ui-ink)]">취소</button>
+                    <button type="button" onClick={remove} disabled={pending} className="h-10 rounded-lg bg-[var(--palette-tomato-butter-main)] text-sm font-medium text-white transition hover:bg-[var(--palette-tomato-butter-hover)] disabled:opacity-50">삭제</button>
                   </div>
-                  <button type="button" onClick={() => setConfirmOpen(false)} className="grid h-9 w-9 place-items-center rounded-lg text-[var(--ui-muted)] hover:bg-[var(--ui-surface-muted)]" aria-label="닫기"><X size={18} /></button>
-                </div>
-                <p className="mt-3 text-sm font-semibold leading-6 text-[var(--ui-muted)]">삭제한 게시글은 복구할 수 없습니다.</p>
-                <div className="mt-5 grid grid-cols-2 gap-2">
-                  <button type="button" onClick={() => setConfirmOpen(false)} className="h-10 rounded-lg bg-[var(--ui-surface-muted)] text-sm font-black text-[var(--ui-ink)]">취소</button>
-                  <button type="button" onClick={remove} disabled={pending} className="h-10 rounded-lg bg-[var(--palette-tomato-butter-main)] text-sm font-black text-white transition hover:bg-[var(--palette-tomato-butter-hover)] disabled:opacity-50">삭제</button>
                 </div>
               </section>
             </div>,
