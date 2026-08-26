@@ -59,7 +59,7 @@ function CelebrationCard({ event, action }: { event: CalendarEvent; action: Cele
 
       <span className="min-w-0 flex-1 sm:flex-initial">
         <span
-          className="block truncate text-[12px] sm:text-sm"
+          className="block truncate text-[13px] leading-4 sm:text-sm sm:leading-5"
           style={{ color: theme.accent }}
         >
           {eyebrow(event)}

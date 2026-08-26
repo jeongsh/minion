@@ -22,6 +22,16 @@ const LCK_LOGO = require('@/assets/images/lck.svg');
 const LCK_LOGO_DARK = require('@/assets/images/lck-dark.svg');
 const BOARD_LABELS: Record<string, string> = { free: '자유', live: '실시간', humor: '유머', information: '정보', question: '질문' };
 const HOME_TEAM_ORDER = ['t1', 'geng', 'hle', 'dk', 'kt', 'drx', 'ns', 'bro', 'fox', 'soop'];
+type CelebrationEvent = MobileHomeDto['celebrations'][number];
+type CelebrationType = CelebrationEvent['type'];
+
+const CELEBRATION_EMOJI: Record<CelebrationType, string> = { birthday: '🎂', championship: '🏆', custom: '🎈', debut: '🎉' };
+const CELEBRATION_THEME: Record<CelebrationType, { accent: string; background: string; foreground: string; soft: string }> = {
+  birthday: { accent: '#d4ff3d', background: '#304ffe', foreground: '#ffffff', soft: '#556ffe' },
+  debut: { accent: '#e4ddff', background: '#7c5cff', foreground: '#ffffff', soft: '#927dff' },
+  championship: { accent: '#5a4600', background: '#f5c518', foreground: '#211a00', soft: '#ffe46b' },
+  custom: { accent: '#5a4600', background: '#f5c518', foreground: '#211a00', soft: '#ffe46b' },
+};
 
 function newsDate(value: string) {
   return new Intl.DateTimeFormat('ko-KR', { day: 'numeric', hour: '2-digit', hour12: false, minute: '2-digit', month: 'long', timeZone: 'Asia/Seoul' }).format(new Date(value));
@@ -107,15 +117,17 @@ function HomeMatchCard({ cardWidth, match }: { cardWidth: number; match: MobileM
   );
 }
 
-function CelebrationBanner({ event }: { event: MobileHomeDto['celebrations'][number] }) {
+function CelebrationBanner({ event }: { event: CelebrationEvent }) {
   const router = useRouter();
   const { fonts } = useMinionTheme();
   const nth = event.yearsCount ? `${event.yearsCount}번째 ` : '';
+  const palette = CELEBRATION_THEME[event.type];
+  const imageUrl = resolveApiAssetUrl(event.image?.url);
   return (
-    <Pressable onPress={() => event.teamSlug ? router.navigate(`/fan/${event.teamSlug}/community` as never) : router.navigate('/community')} style={styles.celebration}>
-      <RemoteImage radius={18} size={36} url={event.image?.url} />
-      <View style={styles.flex}><Text numberOfLines={1} style={[styles.celebrationTop, { fontFamily: fonts.medium }]}>{event.type === 'birthday' ? `오늘은 ${event.subjectName} 선수의 ${nth}생일!` : `오늘은 ${event.title}!`}</Text><Text numberOfLines={1} style={[styles.celebrationTitle, { fontFamily: fonts.display }]}>{event.teamShort ? `${event.teamShort} 커뮤니티에서 함께 축하해요` : '커뮤니티에서 함께 축하해요'}</Text></View>
-      <View style={styles.celebrationCta}><ChevronRight color="#3155ff" size={17} strokeWidth={2.5} /></View>
+    <Pressable onPress={() => event.teamSlug ? router.navigate(`/fan/${event.teamSlug}/community` as never) : router.navigate('/community')} style={[styles.celebration, { backgroundColor: palette.background }]}>
+      <View style={[styles.celebrationAvatar, { backgroundColor: palette.soft }]}>{imageUrl ? <Image contentFit="cover" contentPosition="top" source={{ uri: imageUrl }} style={styles.celebrationImage} /> : <Text style={styles.celebrationEmoji}>{CELEBRATION_EMOJI[event.type]}</Text>}</View>
+      <View style={styles.flex}><Text numberOfLines={1} style={[styles.celebrationTop, { color: palette.accent, fontFamily: fonts.regular }]}>{event.type === 'birthday' ? `오늘은 ${event.subjectName} 선수의 ${nth}생일!` : `오늘은 ${event.title}!`}</Text><Text numberOfLines={1} style={[styles.celebrationTitle, { color: palette.foreground, fontFamily: fonts.display }]}>{event.teamShort ? `${event.teamShort} 커뮤니티에서 함께 축하해요` : '커뮤니티에서 함께 축하해요'}</Text></View>
+      <View style={styles.celebrationCta}><ChevronRight color={palette.background} size={14} strokeWidth={2.5} /></View>
     </Pressable>
   );
 }
@@ -187,11 +199,14 @@ const styles = StyleSheet.create({
   adAfterNews: { marginTop: 32 },
   adText: { color: '#96999f', fontSize: 11, letterSpacing: 1.98 },
   calendarTrigger: { marginTop: 12 },
-  celebration: { alignItems: 'center', backgroundColor: '#3155ff', borderRadius: 16, flexDirection: 'row', gap: 12, minHeight: 60, paddingHorizontal: 12, paddingVertical: 10 },
-  celebrations: { gap: 10, marginVertical: 32 },
-  celebrationCta: { alignItems: 'center', backgroundColor: '#fff', borderRadius: 8, height: 34, justifyContent: 'center', width: 34 },
+  celebration: { alignItems: 'center', borderRadius: 16, flexDirection: 'row', gap: 12, minHeight: 60, paddingHorizontal: 16, paddingVertical: 12 },
+  celebrationAvatar: { alignItems: 'center', borderRadius: 18, height: 36, justifyContent: 'center', overflow: 'hidden', width: 36 },
+  celebrations: { gap: 10, marginBottom: 32 },
+  celebrationCta: { alignItems: 'center', backgroundColor: '#fff', borderRadius: 8, height: 30, justifyContent: 'center', width: 34 },
+  celebrationEmoji: { fontSize: 18, lineHeight: 24 },
+  celebrationImage: { height: 36, width: 36 },
   celebrationTitle: { color: '#fff', fontSize: 14, lineHeight: 20 },
-  celebrationTop: { color: '#00ffd1', fontSize: 11, lineHeight: 16 },
+  celebrationTop: { fontSize: 13, lineHeight: 16 },
   channelPill: { alignSelf: 'flex-start', borderRadius: 999, borderWidth: 1, marginTop: 8, paddingHorizontal: 8, paddingVertical: 2 },
   channelText: { fontSize: 12, lineHeight: 16 },
   flex: { flex: 1, minWidth: 0 },
