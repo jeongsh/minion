@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase';
 
 const CACHE_PREFIX = 'minion-api-v1:';
 const LOGIN_REQUIRED_MESSAGE = '로그인이 필요합니다.';
+const cacheInvalidationListeners = new Set<(pathPrefix: string) => void>();
 
 function defaultApiOrigin() {
   const hostUri = Constants.expoConfig?.hostUri;
@@ -105,6 +106,26 @@ export async function writeApiCache<T>(key: string, data: T) {
   await AsyncStorage.setItem(`${CACHE_PREFIX}${key}`, JSON.stringify({ data, savedAt: Date.now() }));
 }
 
+export async function invalidateApiCache(pathPrefix: string) {
+  try {
+    const cacheKeyPrefix = `${CACHE_PREFIX}${pathPrefix}`;
+    const keys = await AsyncStorage.getAllKeys();
+    const targets = keys.filter((key) => key.startsWith(cacheKeyPrefix));
+    if (targets.length > 0) await AsyncStorage.multiRemove(targets);
+  } catch {
+    // 캐시 정리 실패가 이미 완료된 게시글 등록을 실패로 바꾸면 안 된다.
+  } finally {
+    cacheInvalidationListeners.forEach((listener) => listener(pathPrefix));
+  }
+}
+
+export function subscribeApiCacheInvalidation(listener: (pathPrefix: string) => void) {
+  cacheInvalidationListeners.add(listener);
+  return () => {
+    cacheInvalidationListeners.delete(listener);
+  };
+}
+
 export type {
   MobileBracketData,
   MobileBracketMatch,
@@ -140,9 +161,14 @@ export type {
   MobileNewsItem,
   MobileObjectiveCounts,
   MobilePlayerLoadout,
+  MobilePlayerChampionRow,
+  MobilePlayerDetailAxis,
   MobilePlayerDirectoryItem,
   MobilePlayersDto,
   MobilePlayerDetailDto,
+  MobilePlayerRecentMatch,
+  MobilePlayerRecentSet,
+  MobilePlayerReview,
   MobilePlayerSummary,
   MobilePomRow,
   MobilePredictionMatch,
@@ -161,6 +187,7 @@ export type {
   MobileTeamFanDto,
   MobileTeamNotificationDto,
   MobileTeamSummary,
+  MobileTeamsPageDto,
   MobileTeamsDto,
   MobileTimelineEvent,
   MobileTimelineFrame,
