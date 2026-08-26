@@ -55,11 +55,11 @@
   --ui-control-radius: 8px;
   --ui-title-size: 16px;
   --ui-header-height: 56px;
-  --ui-sidebar-width: 216px;
-  --shell-lnb-width: 216px;
+  --ui-sidebar-width: 56px;
+  --shell-lnb-width: 56px;
   --shell-toast-lnb-offset: 0px;
   --shell-toast-tablet-lnb-width: 0px;
-  --shell-toast-desktop-lnb-width: 216px;
+  --shell-toast-desktop-lnb-width: 56px;
   --shell-bottom-nav-height: 52px;
   --layout-reading: 1080px;
   --layout-form: 672px;
@@ -187,6 +187,11 @@ html[data-navigation-pending="true"] body {
   transition: top 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+.champion-mobile-sticky-tabs {
+  top: calc(var(--shell-mobile-header-offset, 56px) + 48px);
+  transition: top 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 @media (min-width: 768px) {
   .fan-local-navigation {
     top: 64px;
@@ -201,6 +206,10 @@ html[data-navigation-pending="true"] body {
   }
 
   .me-mobile-sticky-nav {
+    top: 64px;
+  }
+
+  .champion-mobile-sticky-tabs {
     top: 64px;
   }
 }
@@ -609,7 +618,7 @@ html[class~="dark"] {
 html[class~="dark"] [class*="bg-[#f"] { background-color: #1c1e22 !important; }
 html[class~="dark"] :is(.text-\[\#0f0f0f\], .text-\[\#111827\], .text-\[\#141517\], .text-\[\#16151b\], .text-\[\#18191c\], .text-\[\#1c192b\], .text-\[\#28324a\], .text-\[\#344054\]) { color: #f8f8f8 !important; }
 html[class~="dark"] :is(.text-\[\#4a4954\], .text-\[\#606060\], .text-\[\#667085\], .text-\[\#6f737a\], .text-\[\#777b82\]) { color: #a7acb5 !important; }
-html[class~="dark"] [class*="border-[#e"] { border-color: #212224 !important; }
+html[class~="dark"] [class*="border-[#e"] { border-color: var(--ui-border) !important; }
 
 /* ── 좌측 내비(LNB) 다크모드 ──────────────────────────────
    [class*="bg-[#f"] 스윕이 LNB의 hover 전용
@@ -624,6 +633,37 @@ html[class~="dark"] .app-lnb :is(a, button):hover {
 }
 html[class~="dark"] .app-lnb a[data-active="true"] {
   background-color: #31363d !important;
+}
+
+.app-lnb-scrollbar {
+  scrollbar-color: transparent transparent;
+  scrollbar-width: thin;
+}
+
+.app-lnb-scrollbar:hover {
+  scrollbar-color: #c4c7cc transparent;
+}
+
+.app-lnb-scrollbar::-webkit-scrollbar {
+  width: 3px;
+}
+
+.app-lnb-scrollbar::-webkit-scrollbar-track,
+.app-lnb-scrollbar::-webkit-scrollbar-thumb {
+  background: transparent;
+}
+
+.app-lnb-scrollbar:hover::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #c4c7cc;
+}
+
+html[class~="dark"] .app-lnb-scrollbar:hover {
+  scrollbar-color: #555b65 transparent;
+}
+
+html[class~="dark"] .app-lnb-scrollbar:hover::-webkit-scrollbar-thumb {
+  background: #555b65;
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -1016,6 +1056,7 @@ html[class~="dark"] .app-lnb a[data-active="true"] {
 }
 
 html[class~="dark"] .community-neutral {
+  --ui-border: #212224;
   --ink: var(--ui-ink);
   --ink-2: var(--ui-text);
   --ink-3: var(--ui-muted);
