@@ -4,6 +4,7 @@ import type {
   MobileCommunityPostMutationDto,
 } from "@/packages/contracts/src/mobile-v1";
 import { extractPlainText } from "@/lib/community/extract-thumbnail";
+import { getGuestPostAttachmentError } from "@/lib/community/limits";
 import {
   deletePost,
   getPostById,
@@ -15,6 +16,7 @@ import {
 } from "@/lib/data/community";
 import { isCommunityGuestSanctioned } from "@/lib/data/community-guests";
 import { isCommunityUserSanctioned } from "@/lib/data/community-users";
+import { getTeamByFanSiteHost, getTeamBySlug } from "@/lib/data/lck";
 import { mobileError, mobileSuccess } from "@/lib/mobile/api-response";
 import {
   getMobileCommunityActor,
@@ -40,6 +42,13 @@ export async function GET(request: Request, context: Context) {
     getPostComments(postId),
   ]);
   if (!post) return mobileError("NOT_FOUND", "게시글을 찾을 수 없습니다.", 404);
+  const teamSlug = new URL(request.url).searchParams.get("team")?.trim();
+  if (teamSlug) {
+    const team = await getTeamByFanSiteHost(teamSlug).then((value) => value ?? getTeamBySlug(teamSlug));
+    if (!team || post.siteScope !== "team" || post.teamId !== team.id) {
+      return mobileError("NOT_FOUND", "게시글을 찾을 수 없습니다.", 404);
+    }
+  }
   const blocked = await getMobileBlockedCommunityAuthors(actor.auth?.user.id);
   if (isMobileCommunityAuthorBlocked(post, blocked)) return mobileError("NOT_FOUND", "게시글을 찾을 수 없습니다.", 404);
   const visibleComments = comments.filter((comment) => !isMobileCommunityAuthorBlocked(comment, blocked));
@@ -88,6 +97,10 @@ export async function PATCH(request: Request, context: Context) {
   const boardType = typeof body?.boardType === "string" ? body.boardType : "";
   const validated = validateMobilePostInput({ boardType, content: body?.content, scope: post.siteScope, title: body?.title });
   if (!validated.ok) return mobileError("BAD_REQUEST", validated.error, 400);
+  if (!actor.auth) {
+    const attachmentError = getGuestPostAttachmentError(validated.content);
+    if (attachmentError) return mobileError("BAD_REQUEST", attachmentError, 400);
+  }
   await updatePost({ boardType, content: validated.content, postId, title: validated.title });
   scheduleMobileCommunityModeration({ postId, text: extractPlainText(validated.content, 1_000_000), title: validated.title });
   const data: MobileCommunityPostMutationDto = { id: postId, message: "수정 완료. 문장 결 살짝 정돈했어요." };

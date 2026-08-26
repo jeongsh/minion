@@ -4,7 +4,8 @@ import { MinionDock } from '@/components/minion-dock';
 
 export default function TabLayout() {
   const pathname = usePathname();
-  const hideDock = /^\/community\/(?:new|post\/[^/]+(?:\/edit)?)\/?$/.test(pathname);
+  const hideDock = /^\/community\/(?:new|post\/[^/]+(?:\/edit)?)\/?$/.test(pathname)
+    || /^\/fan\/[^/]+\/community\/(?:new|[^/]+\/new|post\/[^/]+(?:\/edit)?)\/?$/.test(pathname);
   return (
     <Tabs
       tabBar={() => hideDock ? null : <MinionDock />}

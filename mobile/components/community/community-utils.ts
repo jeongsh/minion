@@ -10,12 +10,27 @@ export const HUB_BOARDS = [
   { label: '자유', slug: 'free' },
 ] as const;
 
+export const TEAM_BOARDS = [
+  { label: '실시간', slug: 'live' },
+  { label: '토론', slug: 'discussion' },
+  { label: '소식', slug: 'news' },
+  { label: '팬아트', slug: 'fanart' },
+  { label: '직관', slug: 'onsite' },
+  { label: '자유', slug: 'free' },
+] as const;
+
+export type CommunityScope = 'hub' | 'team';
+
+export function boardsForScope(scope: CommunityScope) {
+  return scope === 'team' ? TEAM_BOARDS : HUB_BOARDS;
+}
+
 export const COMMENT_MAX_LENGTH = 200;
 export const POST_TEXT_MAX_LENGTH = 60_000;
 export const POST_TITLE_MAX_LENGTH = 100;
 
-export function boardLabel(slug: string) {
-  return HUB_BOARDS.find((board) => board.slug === slug)?.label ?? slug;
+export function boardLabel(slug: string, scope: CommunityScope = 'hub') {
+  return boardsForScope(scope).find((board) => board.slug === slug)?.label ?? slug;
 }
 
 export function displayAuthor(author: MobileCommunityPostSummary['author']) {

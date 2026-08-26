@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import ChevronDown from 'lucide-react-native/icons/chevron-down';
 import ChevronLeft from 'lucide-react-native/icons/chevron-left';
 import ChevronRight from 'lucide-react-native/icons/chevron-right';
@@ -15,18 +15,25 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BottomSheet } from '@/components/bottom-sheet';
+import { getMinionTeam } from '@/constants/teams';
 import { ErrorState } from '@/components/feedback-states';
 import { MinionScreen } from '@/components/minion-screen';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import type { MobileCommunityPostSummary, MobileCommunityPostsDto } from '@/lib/api-client';
 import { resolveApiAssetUrl } from '@/lib/api-client';
 import { useCachedQuery } from '@/hooks/use-cached-query';
-import { boardLabel, displayAuthor, formatCommunityDate, HUB_BOARDS } from './community-utils';
+import { boardLabel, boardsForScope, displayAuthor, formatCommunityDate, type CommunityScope } from './community-utils';
 
-export function CommunityFeedScreen() {
+export function CommunityFeedScreen({ scope = 'hub' }: { scope?: CommunityScope }) {
   const router = useRouter();
+  const params = useLocalSearchParams<{ team?: string | string[] }>();
+  const teamSlug = Array.isArray(params.team) ? params.team[0] : params.team;
   const insets = useSafeAreaInsets();
   const { fonts, theme } = useMinionTheme();
+  const team = scope === 'team' ? getMinionTeam(teamSlug) : null;
+  const accent = team?.primaryColor ?? theme.accent;
+  const basePath = teamSlug && scope === 'team' ? `/fan/${teamSlug}/community` : '/community';
+  const boards = boardsForScope(scope);
   const [page, setPage] = useState(1);
   const [view, setView] = useState<'all' | 'hot'>('all');
   const [category, setCategory] = useState<string | null>(null);
@@ -40,9 +47,10 @@ export function CommunityFeedScreen() {
     if (view === 'hot') params.set('view', 'hot');
     if (category) params.set('cat', category);
     if (committedQuery) params.set('q', committedQuery);
+    if (scope === 'team' && teamSlug) params.set('team', teamSlug);
     const suffix = params.toString();
     return `/api/mobile/v1/community/posts${suffix ? `?${suffix}` : ''}`;
-  }, [category, committedQuery, page, view]);
+  }, [category, committedQuery, page, scope, teamSlug, view]);
   const { data, error, loading, refresh, refreshing } = useCachedQuery<MobileCommunityPostsDto>(path);
 
   const updateView = (next: 'all' | 'hot') => {
@@ -65,7 +73,7 @@ export function CommunityFeedScreen() {
         <View style={[styles.ad, { backgroundColor: theme.adSurface }]}>
           <Text style={[styles.adText, { color: theme.muted, fontFamily: fonts.medium }]}>ADVERTISEMENT</Text>
         </View>
-        <View style={[styles.feed, { backgroundColor: theme.surface }]}>
+        <View style={[styles.feed, { backgroundColor: theme.surface, borderBottomColor: theme.border, borderTopColor: theme.border }]}>
           <View style={[styles.toolbar, { borderBottomColor: theme.divider }]}>
             <View style={styles.toolbarRow}>
               <View accessibilityLabel="게시글 보기" accessibilityRole="tablist" style={[styles.segment, { backgroundColor: theme.surfaceMuted }]}>
@@ -110,13 +118,13 @@ export function CommunityFeedScreen() {
                 ) : null}
               </View>
             ) : null}
-            {refreshing ? <View style={styles.refreshLine}><ActivityIndicator color={theme.accent} size="small" /></View> : null}
+            {refreshing ? <View style={styles.refreshLine}><ActivityIndicator color={accent} size="small" /></View> : null}
           </View>
 
           {loading && !data ? <CommunityFeedSkeleton /> : error && !data ? <ErrorState onRetry={refresh} title={error} /> : (
             <>
               <View accessibilityRole="list">
-                {[...(data?.notices ?? []), ...(data?.items ?? [])].map((post) => <PostRow key={`${post.isNotice ? 'notice' : 'post'}:${post.id}`} onPress={() => router.push(`/community/post/${post.id}` as never)} post={post} />)}
+                {[...(data?.notices ?? []), ...(data?.items ?? [])].map((post, index, posts) => <PostRow accent={accent} key={`${post.isNotice ? 'notice' : 'post'}:${post.id}`} last={index === posts.length - 1} onPress={() => router.push(`${basePath}/post/${post.id}` as never)} post={post} scope={scope} />)}
                 {(data?.items.length ?? 0) === 0 && (data?.notices.length ?? 0) === 0 ? (
                   <View style={styles.empty}>
                     <Text style={[styles.emptyTitle, { color: theme.ink, fontFamily: fonts.bold }]}>이 말머리엔 아직 조용해요</Text>
@@ -134,14 +142,14 @@ export function CommunityFeedScreen() {
           )}
         </View>
       </MinionScreen>
-      <Pressable accessibilityLabel="글쓰기" onPress={() => router.push('/community/new' as never)} style={[styles.compose, { backgroundColor: theme.ink, bottom: Math.max(insets.bottom, 6) + 68 }]}>
+      <Pressable accessibilityLabel="글쓰기" onPress={() => router.push(`${basePath}/new` as never)} style={[styles.compose, { backgroundColor: theme.ink, bottom: Math.max(insets.bottom, 6) + 68 }]}>
         <SquarePen color={theme.surface} size={20} strokeWidth={2} />
       </Pressable>
 
       <BottomSheet onClose={() => setCategoryOpen(false)} open={categoryOpen} title="말머리">
         <View style={styles.categoryList}>
           <CategoryOption active={!category} label="전체 말머리" onPress={() => selectCategory(null)} />
-          {(data?.categories ?? HUB_BOARDS).map((board) => <CategoryOption active={category === board.slug} key={board.slug} label={board.label} onPress={() => selectCategory(board.slug)} />)}
+          {(data?.categories ?? boards).map((board) => <CategoryOption active={category === board.slug} key={board.slug} label={board.label} onPress={() => selectCategory(board.slug)} />)}
         </View>
       </BottomSheet>
     </View>
@@ -153,25 +161,23 @@ function CategoryOption({ active, label, onPress }: { active: boolean; label: st
   return <Pressable accessibilityRole="menuitem" onPress={onPress} style={[styles.categoryOption, active ? { backgroundColor: theme.surfaceMuted } : null]}><Text style={{ color: active ? theme.ink : theme.text, fontFamily: active ? fonts.bold : fonts.medium, fontSize: 15 }}>{label}</Text></Pressable>;
 }
 
-function PostRow({ post, onPress }: { post: MobileCommunityPostSummary; onPress: () => void }) {
+function PostRow({ accent, last, post, onPress, scope }: { accent: string; last: boolean; post: MobileCommunityPostSummary; onPress: () => void; scope: CommunityScope }) {
   const { fonts, theme } = useMinionTheme();
   const title = post.isBlinded ? (post.blindedSource === 'ai' ? '정화봇이 숨긴 게시글입니다.' : '블라인드된 게시글입니다.') : post.title;
   return (
-    <Pressable accessibilityLabel={`${title} 게시글 보기`} accessibilityRole="link" onPress={onPress} style={[styles.postRow, post.isNotice ? { backgroundColor: theme.surfaceMuted } : null, { borderBottomColor: theme.divider }]}>
+    <Pressable accessibilityLabel={`${title} 게시글 보기`} accessibilityRole="link" onPress={onPress} style={[styles.postRow, last ? styles.postRowLast : null, post.isNotice ? { backgroundColor: theme.surfaceMuted } : null, { borderBottomColor: theme.divider }]}>
       <View style={styles.postMain}>
         <View style={styles.titleRow}>
-          {post.isNotice ? <View style={[styles.notice, { backgroundColor: theme.ink }]}><Megaphone color={theme.surface} size={10} /><Text style={{ color: theme.surface, fontFamily: fonts.medium, fontSize: 12 }}>공지</Text></View> : <Text style={{ color: theme.accent, fontFamily: fonts.medium, fontSize: 12 }}>{boardLabel(post.boardType)}</Text>}
-          {!post.isBlinded && post.isHot ? <View style={[styles.hot, { borderColor: theme.accent }]}><Text style={{ color: theme.accent, fontFamily: fonts.medium, fontSize: 12 }}>인기</Text></View> : null}
+          {post.isNotice ? <View style={[styles.notice, { backgroundColor: theme.ink }]}><Megaphone color={theme.surface} size={10} /><Text style={{ color: theme.surface, fontFamily: fonts.medium, fontSize: 12, fontWeight: '500' }}>공지</Text></View> : <Text style={{ color: accent, fontFamily: fonts.medium, fontSize: 12, fontWeight: '500', lineHeight: 18 }}>{boardLabel(post.boardType, scope)}</Text>}
+          {!post.isBlinded && post.isHot ? <View style={[styles.hot, { borderColor: accent }]}><Text style={{ color: accent, fontFamily: fonts.medium, fontSize: 12, fontWeight: '500' }}>인기</Text></View> : null}
           {post.isBlinded ? <EyeOff color={theme.muted} size={13} /> : null}
           <Text numberOfLines={1} style={[styles.postTitle, { color: post.isBlinded ? theme.muted : theme.ink, fontFamily: fonts.medium }]}>{title}</Text>
         </View>
         <View style={styles.metaRow}>
           <Text numberOfLines={1} style={[styles.author, { color: theme.text, fontFamily: fonts.medium }]}>{displayAuthor(post.author)}</Text>
           <Text style={[styles.meta, { color: theme.muted, fontFamily: fonts.regular }]}>{formatCommunityDate(post.createdAt)}</Text>
-          <MessageCircle color={theme.muted} size={11} strokeWidth={1.8} />
-          <Text style={[styles.meta, { color: theme.muted }]}>{post.commentCount}</Text>
-          <ThumbsUp color={theme.muted} size={11} strokeWidth={1.8} />
-          <Text style={[styles.meta, { color: theme.muted }]}>{post.likeCount}</Text>
+          <View style={styles.metaStat}><MessageCircle color={theme.muted} size={11} strokeWidth={1.8} /><Text style={[styles.meta, { color: theme.muted, fontFamily: fonts.regular }]}>{post.commentCount}</Text></View>
+          <View style={styles.metaStat}><ThumbsUp color={theme.muted} size={11} strokeWidth={1.8} /><Text style={[styles.meta, { color: theme.muted, fontFamily: fonts.regular }]}>{post.likeCount}</Text></View>
         </View>
       </View>
       {!post.isBlinded && post.thumbnail?.url ? <Image contentFit="cover" source={{ uri: resolveApiAssetUrl(post.thumbnail.url) ?? post.thumbnail.url }} style={[styles.thumbnail, { backgroundColor: theme.surfaceMuted }]} transition={150} /> : null}
@@ -186,11 +192,11 @@ function CommunityFeedSkeleton() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  fullBleed: { marginHorizontal: -16, marginTop: 0 },
+  fullBleed: { gap: 0, marginHorizontal: -16, marginTop: 0 },
   ad: { alignItems: 'center', height: 60, justifyContent: 'center' },
   adText: { fontSize: 11, letterSpacing: 2.2, lineHeight: 16.5 },
-  feed: { width: '100%' },
-  toolbar: { borderBottomWidth: 1, paddingHorizontal: 12, paddingVertical: 11 },
+  feed: { borderBottomWidth: 1, borderTopWidth: 1, width: '100%' },
+  toolbar: { borderBottomWidth: 1, paddingHorizontal: 12, paddingVertical: 10 },
   toolbarRow: { alignItems: 'center', flexDirection: 'row', gap: 8 },
   segment: { borderRadius: 8, flexDirection: 'row', height: 36, padding: 4 },
   segmentButton: { alignItems: 'center', borderRadius: 4, height: 28, justifyContent: 'center', paddingHorizontal: 12 },
@@ -203,19 +209,21 @@ const styles = StyleSheet.create({
   searchStatus: { alignItems: 'center', flexDirection: 'row', gap: 8, marginTop: 8 },
   searchStatusText: { flex: 1, fontSize: 12 },
   refreshLine: { height: 0, left: 0, position: 'absolute', right: 0, top: 2 },
-  postRow: { alignItems: 'center', borderBottomWidth: 1, flexDirection: 'row', gap: 12, minHeight: 65, paddingHorizontal: 12, paddingVertical: 7 },
+  postRow: { alignItems: 'center', borderBottomWidth: 1, flexDirection: 'row', gap: 12, minHeight: 66, paddingHorizontal: 12, paddingVertical: 8 },
+  postRowLast: { borderBottomWidth: 0, minHeight: 65 },
   postMain: { flex: 1, minWidth: 0 },
   titleRow: { alignItems: 'center', flexDirection: 'row', gap: 6, minWidth: 0 },
-  postTitle: { flex: 1, fontSize: 14, lineHeight: 21 },
+  postTitle: { flex: 1, fontSize: 14, fontWeight: '500', lineHeight: 21 },
   notice: { alignItems: 'center', borderRadius: 999, flexDirection: 'row', gap: 4, paddingHorizontal: 7, paddingVertical: 3 },
   hot: { borderRadius: 999, borderWidth: 1, paddingHorizontal: 6, paddingVertical: 2 },
-  metaRow: { alignItems: 'center', flexDirection: 'row', gap: 4, marginTop: 2, overflow: 'hidden' },
-  author: { flexShrink: 1, fontSize: 12, lineHeight: 18, maxWidth: 124 },
+  metaRow: { alignItems: 'center', flexDirection: 'row', gap: 8, marginTop: 2, overflow: 'hidden' },
+  metaStat: { alignItems: 'center', flexDirection: 'row', gap: 4 },
+  author: { flexShrink: 1, fontSize: 12, fontWeight: '500', lineHeight: 18, maxWidth: 124 },
   meta: { fontSize: 12, lineHeight: 18 },
   thumbnail: { borderRadius: 8, height: 57, width: 76 },
-  pagination: { alignItems: 'center', borderTopWidth: 1, flexDirection: 'row', gap: 6, height: 58, justifyContent: 'center' },
+  pagination: { alignItems: 'center', borderTopWidth: 1, flexDirection: 'row', gap: 6, height: 57, justifyContent: 'center' },
   pageButton: { alignItems: 'center', height: 40, justifyContent: 'center', width: 40 },
-  compose: { alignItems: 'center', borderRadius: 24, height: 48, justifyContent: 'center', position: 'absolute', right: 16, shadowColor: '#0f172a', shadowOffset: { height: 12, width: 0 }, shadowOpacity: 0.22, shadowRadius: 17, width: 48, zIndex: 80 },
+  compose: { alignItems: 'center', borderRadius: 24, height: 48, justifyContent: 'center', position: 'absolute', right: 16, width: 48, zIndex: 80 },
   categoryList: { gap: 2, paddingBottom: 8 },
   categoryOption: { borderRadius: 10, justifyContent: 'center', minHeight: 44, paddingHorizontal: 14 },
   empty: { alignItems: 'center', justifyContent: 'center', minHeight: 220, paddingHorizontal: 24 },

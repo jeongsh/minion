@@ -17,12 +17,13 @@ import { displayAuthor } from './community-utils';
 
 type Evidence = { target: 'post' | 'comment'; targetId: string };
 
-export function CommunityAuthor({ author, detailMeta, evidence, onBlocked, variant = 'comment' }: {
+export function CommunityAuthor({ author, detailMeta, evidence, hideAvatar = false, onBlocked, variant = 'comment' }: {
   author: MobileCommunityAuthor;
   detailMeta?: React.ReactNode;
   evidence?: Evidence;
   onBlocked?: () => void;
   variant?: 'detail' | 'comment' | 'profile';
+  hideAvatar?: boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -118,9 +119,9 @@ export function CommunityAuthor({ author, detailMeta, evidence, onBlocked, varia
         ref={triggerRef}
         style={[styles.trigger, variant === 'comment' ? styles.commentTrigger : null, variant === 'detail' ? styles.detailTrigger : null, menuOpen ? { borderColor: theme.accent, borderWidth: 2, margin: -2 } : null]}
       >
-        {guest ? <GuestAvatar size={variant === 'detail' ? 'detail' : 'comment'} /> : <RankAvatar fallback={name} profileImageUrl={author.profileImage?.url} size={variant === 'profile' ? 'large' : variant === 'detail' ? 'detail' : 'comment'} tier={author.tier} />}
+        {hideAvatar ? null : guest ? <GuestAvatar size={variant === 'detail' ? 'detail' : 'comment'} /> : <RankAvatar fallback={name} profileImageUrl={author.profileImage?.url} size={variant === 'profile' ? 'large' : variant === 'detail' ? 'detail' : 'comment'} tier={author.tier} />}
         <View style={styles.nameBlock}>
-          <Text numberOfLines={1} style={{ color: theme.ink, fontFamily: variant === 'profile' ? fonts.bold : fonts.medium, fontSize: variant === 'detail' ? 13 : variant === 'profile' ? 16 : 14, lineHeight: variant === 'detail' ? 18 : 20 }}>{name}</Text>
+          <Text numberOfLines={1} style={{ color: theme.ink, fontFamily: variant === 'profile' ? fonts.bold : fonts.medium, fontSize: variant === 'profile' ? 16 : variant === 'detail' ? 13 : 12, lineHeight: variant === 'profile' ? 20 : 18 }}>{name}</Text>
           {detailMeta ? <View style={styles.detailMeta}>{detailMeta}</View> : null}
         </View>
       </Pressable>
@@ -146,10 +147,10 @@ export function CommunityAuthor({ author, detailMeta, evidence, onBlocked, varia
   );
 }
 
-export function GuestAvatar({ size }: { size: 'detail' | 'comment' }) {
+export function GuestAvatar({ size }: { size: 'reply' | 'detail' | 'comment' }) {
   const { theme } = useMinionTheme();
-  const dimension = size === 'detail' ? 36 : 32;
-  return <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={{ alignItems: 'center', backgroundColor: theme.surfaceMuted, borderRadius: dimension / 2, height: dimension, justifyContent: 'center', width: dimension }}><UserRound color={theme.muted} size={size === 'detail' ? 21 : 18} strokeWidth={1.7} /></View>;
+  const dimension = size === 'detail' ? 36 : size === 'reply' ? 24 : 32;
+  return <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={{ alignItems: 'center', backgroundColor: theme.surfaceMuted, borderRadius: dimension / 2, height: dimension, justifyContent: 'center', width: dimension }}><UserRound color={theme.muted} size={size === 'detail' ? 21 : size === 'reply' ? 14 : 18} strokeWidth={1.7} /></View>;
 }
 
 function MenuItem({ danger = false, icon, label, onPress }: { danger?: boolean; icon: React.ReactNode; label: string; onPress: () => void }) {

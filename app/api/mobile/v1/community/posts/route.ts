@@ -1,6 +1,7 @@
 import type { MobileCommunityPostMutationDto, MobileCommunityPostsDto } from "@/packages/contracts/src/mobile-v1";
 import { categoriesForScope, type BoardScope } from "@/lib/community/boards";
 import { extractPlainText } from "@/lib/community/extract-thumbnail";
+import { getGuestPostAttachmentError } from "@/lib/community/limits";
 import { guestRateLimitError, isCommunityGuestSanctioned } from "@/lib/data/community-guests";
 import { isCommunityUserSanctioned } from "@/lib/data/community-users";
 import { createPost, getBoardPostPage } from "@/lib/data/community";
@@ -71,6 +72,10 @@ export async function POST(request: Request) {
   const boardType = typeof body?.boardType === "string" ? body.boardType : "";
   const validated = validateMobilePostInput({ boardType, content: body?.content, scope, title: body?.title });
   if (!validated.ok) return mobileError("BAD_REQUEST", validated.error, 400);
+  if (!actor.auth) {
+    const attachmentError = getGuestPostAttachmentError(validated.content);
+    if (attachmentError) return mobileError("BAD_REQUEST", attachmentError, 400);
+  }
 
   if (actor.auth && await isCommunityUserSanctioned(actor.auth.user.id)) {
     return mobileError("FORBIDDEN", "커뮤니티 이용이 영구 제한된 계정입니다.", 403);

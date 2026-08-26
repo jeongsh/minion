@@ -1,5 +1,4 @@
 import { Image } from 'expo-image';
-import { usePathname, useRouter } from 'expo-router';
 import Check from 'lucide-react-native/icons/check';
 import ExternalLink from 'lucide-react-native/icons/external-link';
 import { Fragment, useEffect, useState } from 'react';
@@ -8,7 +7,6 @@ import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from 'r
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import type { MobileCommunityPollDto, TiptapDocument, TiptapNode } from '@/lib/api-client';
 import { fetchMobileApi, mutateMobileApi, resolveApiAssetUrl } from '@/lib/api-client';
-import { useAuth } from '@/providers/auth-provider';
 
 export function CommunityPostContent({ document }: { document: TiptapDocument }) {
   return <View style={styles.document}>{document.content?.map((node, index) => <BlockNode key={`${node.type}:${index}`} node={node} />)}</View>;
@@ -76,44 +74,62 @@ function plainText(node: TiptapNode): string {
 }
 
 type PollOption = { id: string; label: string };
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function pollStorageId(value: string, namespace: 'option' | 'poll') {
+  if (UUID_PATTERN.test(value)) return value.toLowerCase();
+  const input = `${namespace}:${value}`;
+  const seeds = [0x811c9dc5, 0x9e3779b9, 0x85ebca6b, 0xc2b2ae35];
+  let hex = seeds.map((seed) => {
+    let hash = seed;
+    for (let index = 0; index < input.length; index += 1) {
+      hash ^= input.charCodeAt(index);
+      hash = Math.imul(hash, 0x01000193);
+    }
+    return (hash >>> 0).toString(16).padStart(8, '0');
+  }).join('');
+  hex = `${hex.slice(0, 12)}5${hex.slice(13, 16)}a${hex.slice(17)}`;
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
 
 function PollNode({ node }: { node: TiptapNode }) {
   const pollId = typeof node.attrs?.pollId === 'string' ? node.attrs.pollId : '';
   const options = Array.isArray(node.attrs?.options) ? node.attrs.options.filter((item): item is PollOption => Boolean(item && typeof item === 'object' && 'id' in item && 'label' in item)) : [];
   const question = typeof node.attrs?.question === 'string' ? node.attrs.question : '';
-  const pathname = usePathname();
-  const router = useRouter();
-  const { session } = useAuth();
   const { fonts, theme } = useMinionTheme();
   const [tally, setTally] = useState<MobileCommunityPollDto | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const storagePollId = pollStorageId(pollId, 'poll');
   useEffect(() => {
     if (!pollId) return;
     let active = true;
-    fetchMobileApi<MobileCommunityPollDto>(`/api/mobile/v1/community/polls/${pollId}`)
+    fetchMobileApi<MobileCommunityPollDto>(`/api/mobile/v1/community/polls/${storagePollId}`)
       .then((next) => { if (active) setTally(next); })
       .catch(() => { if (active) setTally(null); });
     return () => { active = false; };
-  }, [pollId]);
+  }, [pollId, storagePollId]);
   const vote = async (optionId: string) => {
-    if (!session) {
-      router.push(`/login?next=${encodeURIComponent(pathname)}` as never);
-      return;
-    }
+    setError(null);
     setLoading(true);
-    try { setTally(await mutateMobileApi<MobileCommunityPollDto>(`/api/mobile/v1/community/polls/${pollId}`, 'POST', { optionId })); } finally { setLoading(false); }
+    try {
+      setTally(await mutateMobileApi<MobileCommunityPollDto>(`/api/mobile/v1/community/polls/${storagePollId}`, 'POST', { optionId: pollStorageId(optionId, 'option') }));
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : '투표를 처리하지 못했습니다.');
+    } finally { setLoading(false); }
   };
   const voted = Boolean(tally?.myOptionId);
   return (
-    <View style={[styles.poll, { backgroundColor: theme.surfaceMuted, borderColor: theme.border }]}>
+    <View style={[styles.poll, { backgroundColor: theme.surface, borderColor: theme.border }]}>
       {question ? <Text style={[styles.pollQuestion, { color: theme.ink, fontFamily: fonts.bold }]}>{question}</Text> : null}
       {options.map((option) => {
-        const count = tally?.counts[option.id] ?? 0;
+        const storageOptionId = pollStorageId(option.id, 'option');
+        const count = tally?.counts[storageOptionId] ?? 0;
         const percent = voted && tally?.total ? Math.round(count / tally.total * 100) : 0;
-        const mine = tally?.myOptionId === option.id;
-        return <Pressable disabled={loading} key={option.id} onPress={() => void vote(option.id)} style={[styles.pollOption, { backgroundColor: theme.surface, borderColor: mine ? theme.accent : theme.border }]}><View style={[styles.pollFill, { backgroundColor: `${theme.accent}24`, width: `${percent}%` }]} /><Text numberOfLines={1} style={[styles.pollLabel, { color: theme.ink, fontFamily: fonts.medium }]}>{mine ? <Check color={theme.accent} size={13} /> : null} {option.label || '(빈 선택지)'}</Text>{voted ? <Text style={{ color: theme.text, fontFamily: fonts.medium, fontSize: 13 }}>{percent}% · {count}표</Text> : null}</Pressable>;
+        const mine = tally?.myOptionId === storageOptionId;
+        return <Pressable disabled={loading} key={option.id} onPress={() => void vote(option.id)} style={[styles.pollOption, { backgroundColor: mine ? `${theme.accent}0d` : theme.surface, borderColor: mine ? theme.accent : theme.border }]}><View style={[styles.pollFill, { backgroundColor: `${theme.accent}1f`, width: `${percent}%` }]} /><Text numberOfLines={1} style={[styles.pollLabel, { color: theme.ink, fontFamily: fonts.medium }]}>{option.label || '(빈 선택지)'}</Text>{voted ? <View style={styles.pollResult}>{mine ? <Check color={theme.accent} size={15} strokeWidth={2.5} /> : null}<Text style={{ color: theme.text, fontFamily: fonts.medium, fontSize: 13 }}>{percent}%</Text><Text style={{ color: theme.muted, fontFamily: fonts.medium, fontSize: 13 }}>{count}표</Text></View> : null}</Pressable>;
       })}
-      <View style={styles.pollStatus}>{loading ? <ActivityIndicator color={theme.accent} size="small" /> : <Text style={{ color: theme.muted, fontFamily: fonts.medium, fontSize: 13, lineHeight: 19.5 }}>{voted ? `${tally?.total ?? 0}명 참여 · 다시 누르면 취소돼요` : session ? `${tally?.total ?? 0}명 참여 · 투표하면 결과가 보여요` : '로그인하면 투표할 수 있어요'}</Text>}</View>
+      <View style={styles.pollStatus}>{loading ? <ActivityIndicator color={theme.accent} size="small" /> : error ? <Text style={{ color: '#ef4444', fontFamily: fonts.medium, fontSize: 13, lineHeight: 19.5 }}>{error}</Text> : <><Text style={{ color: theme.muted, fontFamily: fonts.medium, fontSize: 13, lineHeight: 19.5 }}>총 {tally?.total ?? 0}명 참여</Text><Text style={[styles.pollHint, { color: theme.muted, fontFamily: fonts.medium }]}>{voted ? '선택을 다시 누르면 취소할 수 있어요.' : '선택하면 결과를 확인할 수 있어요.'}</Text></>}</View>
     </View>
   );
 }
@@ -135,10 +151,12 @@ const styles = StyleSheet.create({
   image: { maxHeight: 520, width: '100%' },
   embed: { alignItems: 'center', aspectRatio: 16 / 9, borderRadius: 10, gap: 8, justifyContent: 'center', overflow: 'hidden', width: '100%' },
   embedShade: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,.34)' },
-  poll: { borderRadius: 16, borderWidth: 1, gap: 8, marginVertical: 6, padding: 14 },
-  pollQuestion: { fontSize: 15, lineHeight: 22 },
-  pollOption: { alignItems: 'center', borderRadius: 12, borderWidth: 1, flexDirection: 'row', gap: 8, minHeight: 44, overflow: 'hidden', paddingHorizontal: 14 },
+  poll: { borderRadius: 8, borderWidth: 1, gap: 8, marginVertical: 8, padding: 12 },
+  pollQuestion: { fontSize: 16, lineHeight: 24, marginBottom: 2 },
+  pollOption: { alignItems: 'center', borderRadius: 8, borderWidth: 1, flexDirection: 'row', gap: 10, minHeight: 48, overflow: 'hidden', paddingHorizontal: 12 },
   pollFill: { bottom: 0, left: 0, position: 'absolute', top: 0 },
-  pollLabel: { flex: 1, fontSize: 13 },
-  pollStatus: { alignItems: 'flex-start', minHeight: 18, justifyContent: 'center' },
+  pollLabel: { flex: 1, fontSize: 14 },
+  pollResult: { alignItems: 'center', flexDirection: 'row', gap: 6 },
+  pollStatus: { alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', minHeight: 24, rowGap: 2 },
+  pollHint: { fontSize: 13, lineHeight: 19.5, textAlign: 'right' },
 });
