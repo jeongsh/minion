@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { championLabel } from "@/lib/champions";
@@ -56,11 +57,11 @@ function ChampionCell({ row }: { row: ChampionUsageRow }) {
   if (!row.champion) return <span className="text-[var(--ui-muted)]">-</span>;
 
   return (
-    <span className="flex min-w-0 items-center justify-center gap-2 sm:justify-start">
+    <Link href={`/champions/${row.champion.slug}`} className="flex min-w-0 items-center justify-center gap-2 transition hover:opacity-75 sm:justify-start">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={championImageUrl(row.champion)} alt="" className="h-7 w-7 shrink-0 rounded-md object-cover sm:h-8 sm:w-8 lg:h-9 lg:w-9" />
       <span className="hidden truncate font-semibold text-[var(--ui-ink)] sm:inline">{championLabel(row.champion)}</span>
-    </span>
+    </Link>
   );
 }
 
