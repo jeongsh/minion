@@ -178,6 +178,41 @@ export type MobileNotificationPreferences = {
   ratingOpenEnabled: boolean;
 };
 
+export type MobileMatchActivityTeam = {
+  id: EntityId;
+  name: string;
+  shortName: string;
+  logoUrl: string | null;
+};
+
+export type MobileLiveMatchActivity = {
+  id: EntityId;
+  href: string;
+  competitionLabel: string;
+  teamA: MobileMatchActivityTeam;
+  teamB: MobileMatchActivityTeam;
+  teamAScore: number | null;
+  teamBScore: number | null;
+  currentSetNumber: number | null;
+};
+
+export type MobileRatingMatchActivity = {
+  id: EntityId;
+  matchId: EntityId;
+  href: string;
+  competitionLabel: string;
+  setNumber: number;
+  closesAt: IsoDateTime;
+  teamA: MobileMatchActivityTeam;
+  teamB: MobileMatchActivityTeam;
+};
+
+export type MobileMatchActivityDto = {
+  liveMatches: MobileLiveMatchActivity[];
+  ratings: MobileRatingMatchActivity[];
+  notificationPreferences: MobileNotificationPreferences;
+};
+
 export type MobileMeDto = {
   profile: {
     id: EntityId;
@@ -1029,6 +1064,7 @@ export const mobileApiRoutes = {
   authNaverCallback: { method: "GET", path: `${MOBILE_API_PREFIX}/auth/naver/callback`, owner: "native auth broker", auth: "public", cache: "no-store" },
   authNaverExchange: { method: "POST", path: `${MOBILE_API_PREFIX}/auth/naver/exchange`, owner: "native auth broker", auth: "public", cache: "no-store" },
   me: { method: "GET", path: `${MOBILE_API_PREFIX}/me`, owner: "account service", auth: "required", cache: "no-store" },
+  meMatchActivity: { method: "GET", path: `${MOBILE_API_PREFIX}/me/match-activity`, owner: "match activity service", auth: "required", cache: "no-store" },
   meProfileUpdate: { method: "POST", path: `${MOBILE_API_PREFIX}/me`, owner: "account profile service", auth: "required", cache: "no-store" },
   meUpdate: { method: "PATCH", path: `${MOBILE_API_PREFIX}/me`, owner: "account service", auth: "required", cache: "no-store" },
   meDelete: { method: "DELETE", path: `${MOBILE_API_PREFIX}/me`, owner: "account security service", auth: "required", cache: "no-store" },

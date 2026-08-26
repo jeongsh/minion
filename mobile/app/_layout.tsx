@@ -8,9 +8,9 @@ import { useEffect, useRef } from 'react';
 
 import { TeamPickerSheet } from '@/components/team-picker-sheet';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
-import { subscribeToForegroundPushToasts } from '@/lib/push-notifications';
 import { MinionShellProvider } from '@/providers/minion-shell-provider';
 import { AuthProvider, useAuth } from '@/providers/auth-provider';
+import { InAppNotificationsProvider } from '@/providers/in-app-notifications-provider';
 import { minionTeams } from '@/constants/teams';
 
 export default function RootLayout() {
@@ -18,7 +18,9 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <MinionShellProvider>
         <AuthProvider>
-          <RootNavigator />
+          <InAppNotificationsProvider>
+            <RootNavigator />
+          </InAppNotificationsProvider>
         </AuthProvider>
       </MinionShellProvider>
     </SafeAreaProvider>
@@ -55,15 +57,8 @@ function RootNavigator() {
       <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
       <TeamPickerSheet />
       <AccountShellSync />
-      <ForegroundPushToastBridge />
     </ThemeProvider>
   );
-}
-
-function ForegroundPushToastBridge() {
-  const { showToast } = useMinionTheme();
-  useEffect(() => subscribeToForegroundPushToasts(showToast), [showToast]);
-  return null;
 }
 
 function AccountShellSync() {

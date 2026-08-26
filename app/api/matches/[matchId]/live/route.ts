@@ -444,7 +444,7 @@ export async function GET(
         const { data: insertedEvents, error: eventsInsertError } = await supabase
           .from("live_match_events")
           .upsert(newEvents, { onConflict: "dedupe_key", ignoreDuplicates: true })
-          .select("event_type, side, team_id, killer_summoner_name, victim_summoner_name, dragon_type");
+          .select("id, event_type, side, team_id, killer_summoner_name, victim_summoner_name, dragon_type");
         if (eventsInsertError) console.error("live match events upsert failed", eventsInsertError);
         else if (insertedEvents && insertedEvents.length > 0) {
           void sendMatchEventPushNotifications(match.id, blueTeamId, redTeamId, insertedEvents).catch((error) =>

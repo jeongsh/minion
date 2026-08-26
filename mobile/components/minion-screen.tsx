@@ -20,16 +20,16 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BottomSheet } from '@/components/bottom-sheet';
-import { EmptyState } from '@/components/feedback-states';
 import { MinionFooter } from '@/components/minion-footer';
 import { MinionBrandLogo } from '@/components/minion-brand-logo';
+import { NotificationPanel } from '@/components/notifications/notification-panel';
 import { RankAvatar } from '@/components/rank-avatar';
 import { getMinionTeam, type MinionTeam } from '@/constants/teams';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import { resolveApiAssetUrl } from '@/lib/api-client';
 import { fanAccentText } from '@/lib/fan-colors';
 import { useAuth } from '@/providers/auth-provider';
+import { useInAppNotifications } from '@/providers/in-app-notifications-provider';
 
 const HEADER_HEIGHT = 56;
 const LOCAL_NAV_HEIGHT = 49;
@@ -84,6 +84,7 @@ export function MinionScreen({
   const insets = useSafeAreaInsets();
   const { colorScheme, fonts, theme, toggleTheme } = useMinionTheme();
   const { loading: authLoading, session, viewer } = useAuth();
+  const { unreadCount } = useInAppNotifications();
   const [notificationOpen, setNotificationOpen] = useState(false);
   const [teamSwitcherOpen, setTeamSwitcherOpen] = useState(false);
   const headerOffset = useRef(new Animated.Value(0)).current;
@@ -184,8 +185,13 @@ export function MinionScreen({
           ) : null}
         </View>
         <View style={styles.headerActions}>
-          <Pressable accessibilityLabel="알림 열기" onPress={() => setNotificationOpen(true)} style={styles.iconButton}>
+          <Pressable accessibilityLabel={`알림 열기${unreadCount > 0 ? `, 읽지 않은 알림 ${unreadCount}개` : ''}`} onPress={() => setNotificationOpen(true)} style={styles.iconButton}>
             <Bell color={headerIconColor} size={20} />
+            {unreadCount > 0 ? (
+              <View accessibilityElementsHidden pointerEvents="none" style={[styles.notificationBadge, { backgroundColor: theme.accent }]}>
+                <Text style={{ color: '#ffffff', ...fonts.medium, fontSize: 12, lineHeight: 16 }}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+              </View>
+            ) : null}
           </Pressable>
           <Pressable accessibilityLabel={colorScheme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'} onPress={toggleTheme} style={[styles.iconButton, styles.themeButton]}>
             {colorScheme === 'dark' ? <Sun color={headerIconColor} size={20} /> : <Moon color={headerIconColor} size={20} />}
@@ -259,9 +265,7 @@ export function MinionScreen({
         <View style={styles.footer}><MinionFooter accentColor={fanTeam?.primaryColor} /></View>
       </ScrollView>
 
-      <BottomSheet onClose={() => setNotificationOpen(false)} open={notificationOpen} title="알림">
-        <EmptyState description="새로운 경기와 팬 활동 알림이 여기에 표시됩니다." title="새 알림이 없습니다" />
-      </BottomSheet>
+      <NotificationPanel onClose={() => setNotificationOpen(false)} open={notificationOpen} />
     </View>
   );
 }
@@ -283,6 +287,7 @@ const styles = StyleSheet.create({
   teamSwitchChevronOpen: { transform: [{ rotate: '180deg' }] },
   headerActions: { alignItems: 'center', flexDirection: 'row', marginLeft: 'auto' },
   iconButton: { alignItems: 'center', height: 44, justifyContent: 'center', width: 44 },
+  notificationBadge: { alignItems: 'center', borderRadius: 8, height: 16, justifyContent: 'center', minWidth: 16, paddingHorizontal: 2, position: 'absolute', right: 1, top: 1 },
   themeButton: { marginRight: 8 },
   profileButton: { alignItems: 'center', height: 44, justifyContent: 'center', width: 32 },
   loginButton: { alignItems: 'center', backgroundColor: '#141517', borderRadius: 12, justifyContent: 'center', maxWidth: 76, minHeight: 44, paddingHorizontal: 12, paddingVertical: 8 },

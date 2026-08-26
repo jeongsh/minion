@@ -14,6 +14,7 @@ const DRAGON_LABELS: Record<string, string> = {
 };
 
 export type MatchEventForPush = {
+  id: string;
   event_type: "kill" | "tower" | "baron" | "inhibitor" | "dragon" | "end";
   side: "blue" | "red" | null;
   team_id: string | null;
@@ -80,13 +81,14 @@ export async function sendMatchEventPushNotifications(
   if (eligibleTokens.length === 0) return;
 
   const teamNameById = new Map((teams ?? []).map((team) => [team.id, team.short_name ?? team.name]));
-  const messages = events
-    .map((event) => describeEvent(event, event.team_id ? teamNameById.get(event.team_id) ?? null : null))
-    .filter((message): message is string => Boolean(message));
+  const messages = events.flatMap((event) => {
+    const message = describeEvent(event, event.team_id ? teamNameById.get(event.team_id) ?? null : null);
+    return message ? [{ eventId: event.id, message }] : [];
+  });
   if (messages.length === 0) return;
 
   const invalidTokens = new Set<string>();
-  for (const message of messages) {
+  for (const { eventId, message } of messages) {
     // 이 배치의 이벤트들은 호출부(live route)에서 이미 dedupe_key upsert로 확정
     // 저장된 뒤라 재시도 대상이 아니다 — 메시지 하나의 발송이 실패해도 여기서 잡아
     // 로그만 남기고 나머지 메시지는 계속 보낸다.
@@ -96,7 +98,7 @@ export async function sendMatchEventPushNotifications(
           to: token.expo_push_token,
           title: "경기 주요 이벤트",
           body: message,
-          data: { matchId, type: "match_event", url: `/matches/${matchId}` },
+          data: { eventId, matchId, type: "match_event", url: `/matches/${matchId}` },
         })),
       );
       result.invalidTokens.forEach((token) => invalidTokens.add(token));
