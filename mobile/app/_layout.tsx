@@ -4,7 +4,7 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 
 import { TeamPickerSheet } from '@/components/team-picker-sheet';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
@@ -62,19 +62,15 @@ function RootNavigator() {
 }
 
 function AccountShellSync() {
-  const { session, viewer } = useAuth();
+  const { loading, session, viewer } = useAuth();
   const { setFavoriteTeam } = useMinionTheme();
-  const hadSession = useRef(false);
   useEffect(() => {
-    if (session && viewer) {
-      hadSession.current = true;
-      setFavoriteTeam(minionTeams.find((team) => team.slug === viewer.favoriteTeamSlug) ?? null);
-    } else if (hadSession.current) {
-      if (!session) {
-        hadSession.current = false;
-        setFavoriteTeam(null);
-      }
+    if (loading) return;
+    if (!session) {
+      setFavoriteTeam(null);
+      return;
     }
-  }, [session, setFavoriteTeam, viewer]);
+    if (viewer) setFavoriteTeam(minionTeams.find((team) => team.slug === viewer.favoriteTeamSlug) ?? null);
+  }, [loading, session, setFavoriteTeam, viewer]);
   return null;
 }
