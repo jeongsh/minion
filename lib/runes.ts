@@ -15,6 +15,7 @@ type DdragonRuneSlot = {
     id: number;
     name: string;
     icon: string;
+    localizedName?: string;
   }>;
 };
 
@@ -23,6 +24,7 @@ export type DdragonRuneTree = {
   name: string;
   icon: string;
   slots: DdragonRuneSlot[];
+  localizedName?: string;
 };
 
 export function runeImageUrl(rune: Pick<GameRuneOption, "icon">) {
@@ -160,12 +162,34 @@ const STAT_SHARD_ICON_BY_NAME: Record<string, string> = {
  * 맞춰 매칭할 수 있도록 영문(en_US) 그대로 둔다. */
 export async function fetchFullRuneTrees(version = "16.12.1"): Promise<DdragonRuneTree[]> {
   try {
-    const response = await fetch(
-      `https://ddragon.leagueoflegends.com/cdn/${version}/data/en_US/runesReforged.json`,
-      { next: { revalidate: 60 * 60 * 24 } },
+    const [englishResponse, koreanResponse] = await Promise.all([
+      fetch(`https://ddragon.leagueoflegends.com/cdn/${version}/data/en_US/runesReforged.json`, {
+        next: { revalidate: 60 * 60 * 24 },
+      }),
+      fetch(`https://ddragon.leagueoflegends.com/cdn/${version}/data/ko_KR/runesReforged.json`, {
+        next: { revalidate: 60 * 60 * 24 },
+      }),
+    ]);
+    if (!englishResponse.ok) return [];
+
+    const english = (await englishResponse.json()) as DdragonRuneTree[];
+    const korean = koreanResponse.ok ? (await koreanResponse.json()) as DdragonRuneTree[] : [];
+    const koreanTreeById = new Map(korean.map((tree) => [tree.id, tree]));
+    const koreanRuneById = new Map(
+      korean.flatMap((tree) => tree.slots.flatMap((slot) => slot.runes)).map((rune) => [rune.id, rune]),
     );
-    if (!response.ok) return [];
-    return (await response.json()) as DdragonRuneTree[];
+
+    return english.map((tree) => ({
+      ...tree,
+      localizedName: koreanTreeById.get(tree.id)?.name,
+      slots: tree.slots.map((slot) => ({
+        ...slot,
+        runes: slot.runes.map((rune) => ({
+          ...rune,
+          localizedName: koreanRuneById.get(rune.id)?.name,
+        })),
+      })),
+    }));
   } catch {
     return [];
   }
@@ -189,10 +213,22 @@ const SHARD_ROWS: string[][] = [
   ["Health", "Tenacity and Slow Resist", "Health Scaling"],
 ];
 
+const SHARD_NAME_KO: Record<string, string> = {
+  "Adaptive Force": "적응형 능력치",
+  "Attack Speed": "공격 속도",
+  "Ability Haste": "스킬 가속",
+  "Move Speed": "이동 속도",
+  "Health Scaling": "성장 체력",
+  Health: "체력",
+  "Tenacity and Slow Resist": "강인함과 둔화 저항",
+};
+
 export type RuneGridOption = { name: string; url: string; selected: boolean };
 export type RuneGridRow = RuneGridOption[];
 
 export type RuneBuildGrid = {
+  /** 선택 상세가 없어 전체 트리를 비선택 상태로 보여주는 그리드인지 여부 */
+  empty?: boolean;
   primaryTreeName: string;
   primaryTreeIcon: string;
   /** [키스톤 행, 주계열 나머지 3행] */
@@ -235,7 +271,7 @@ export function buildRuneBuildGrid(
 
   const toRow = (runes: DdragonRuneSlot["runes"], selected: Set<string>): RuneGridRow =>
     runes.map((rune) => ({
-      name: rune.name,
+      name: rune.localizedName ?? rune.name,
       url: runeImageUrl(rune),
       selected: selected.has(rune.name.toLowerCase()),
     }));
@@ -246,23 +282,85 @@ export function buildRuneBuildGrid(
   const shardRows: RuneGridRow[] = SHARD_ROWS.map((options, rowIndex) => {
     const selectedKey = shardNames[rowIndex]?.toLowerCase();
     return options.map((name) => ({
-      name,
+      name: SHARD_NAME_KO[name] ?? name,
       url: STAT_SHARD_ICON_BY_NAME[name.toLowerCase()] ?? "",
       selected: name.toLowerCase() === selectedKey,
     }));
   });
 
   return {
-    primaryTreeName: TREE_NAME_KO[primaryTree.name] ?? primaryTree.name,
+    primaryTreeName: primaryTree.localizedName ?? TREE_NAME_KO[primaryTree.name] ?? primaryTree.name,
     primaryTreeIcon: treeIconUrl(primaryTree),
     primaryRows: primaryTree.slots.map((slot, index) =>
       toRow(slot.runes, index === 0 ? new Set([keystoneKey]) : primaryMinors),
     ),
-    secondaryTreeName: TREE_NAME_KO[secondaryTree.name] ?? secondaryTree.name,
+    secondaryTreeName: secondaryTree.localizedName ?? TREE_NAME_KO[secondaryTree.name] ?? secondaryTree.name,
     secondaryTreeIcon: treeIconUrl(secondaryTree),
     secondaryRows: secondaryTree.slots.slice(1).map((slot) => toRow(slot.runes, secondaryMinors)),
     shardRows,
   };
+}
+
+/**
+ * 세부 선택 데이터가 없을 때도 룬 영역의 형태를 유지한다. 남아 있는 룬 ID로 주·보조
+ * 계열을 복원하고, 모든 선택지를 비선택 상태로 반환한다.
+ */
+export function buildEmptyRuneBuildGrid(
+  runeIds: Array<number | null | undefined>,
+  trees: DdragonRuneTree[],
+): RuneBuildGrid | null {
+  if (trees.length < 2) return null;
+
+  const ids = new Set(runeIds.filter((id): id is number => typeof id === "number" && id > 0));
+  const primaryTree =
+    trees.find((tree) => tree.slots[0]?.runes.some((rune) => ids.has(rune.id))) ?? trees[0];
+  const secondaryTree =
+    trees.find((tree) => tree.id !== primaryTree.id && ids.has(tree.id)) ??
+    trees.find((tree) => tree.id !== primaryTree.id);
+
+  if (!secondaryTree) return null;
+
+  const emptyRow = (runes: DdragonRuneSlot["runes"]): RuneGridRow =>
+    runes.map((rune) => ({
+      name: rune.localizedName ?? rune.name,
+      url: runeImageUrl(rune),
+      selected: false,
+    }));
+  const treeIconUrl = (tree: DdragonRuneTree) =>
+    `https://ddragon.leagueoflegends.com/cdn/img/${tree.icon}`;
+  const shardRows: RuneGridRow[] = SHARD_ROWS.map((options) =>
+    options.map((name) => ({
+      name: SHARD_NAME_KO[name] ?? name,
+      url: STAT_SHARD_ICON_BY_NAME[name.toLowerCase()] ?? "",
+      selected: false,
+    })),
+  );
+
+  return {
+    empty: true,
+    primaryTreeName: primaryTree.localizedName ?? TREE_NAME_KO[primaryTree.name] ?? primaryTree.name,
+    primaryTreeIcon: treeIconUrl(primaryTree),
+    primaryRows: primaryTree.slots.map((slot) => emptyRow(slot.runes)),
+    secondaryTreeName:
+      secondaryTree.localizedName ?? TREE_NAME_KO[secondaryTree.name] ?? secondaryTree.name,
+    secondaryTreeIcon: treeIconUrl(secondaryTree),
+    secondaryRows: secondaryTree.slots.slice(1).map((slot) => emptyRow(slot.runes)),
+    shardRows,
+  };
+}
+
+export function localizeRuneNames(names: string[], trees: DdragonRuneTree[]) {
+  const translated = new Map<string, string>();
+  for (const tree of trees) {
+    translated.set(tree.name.toLowerCase(), tree.localizedName ?? TREE_NAME_KO[tree.name] ?? tree.name);
+    for (const slot of tree.slots) {
+      for (const rune of slot.runes) {
+        translated.set(rune.name.toLowerCase(), rune.localizedName ?? rune.name);
+      }
+    }
+  }
+  for (const [english, korean] of Object.entries(SHARD_NAME_KO)) translated.set(english.toLowerCase(), korean);
+  return names.map((name) => translated.get(name.toLowerCase()) ?? name);
 }
 
 export async function fetchRuneImages(version = "16.12.1"): Promise<Record<string, string>> {

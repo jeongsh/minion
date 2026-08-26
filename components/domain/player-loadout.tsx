@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { championImage, championLabel } from "@/lib/champions";
@@ -73,8 +74,12 @@ export function PlayerLoadout({
     <div className={`flex min-w-0 items-center gap-2 ${className}`}>
       <span className="flex shrink-0 items-center gap-1">
         <span className={`relative block shrink-0 overflow-hidden rounded-md border border-border bg-surface-muted ${championSize}`}>
-          {image ? <Image src={image} alt={championLabel(champion)} fill sizes={championImageSize} className="object-cover" /> : null}
-          {badge ? <span className="absolute bottom-0 right-0 rounded-tl bg-background/90 px-0.5 text-xs font-medium leading-4">{badge}</span> : null}
+          {image && champion?.slug ? (
+            <Link href={`/champions/${champion.slug}`} className="absolute inset-0 z-10" aria-label={`${championLabel(champion)} 챔피언 통계`}>
+              <Image src={image} alt={championLabel(champion)} fill sizes={championImageSize} className="object-cover" />
+            </Link>
+          ) : image ? <Image src={image} alt={championLabel(champion)} fill sizes={championImageSize} className="object-cover" /> : null}
+          {badge ? <span className="pointer-events-none absolute bottom-0 right-0 z-20 rounded-tl bg-background/90 px-0.5 text-xs font-medium leading-4">{badge}</span> : null}
         </span>
 
         <span className="flex shrink-0 items-center gap-0">
@@ -91,8 +96,8 @@ export function PlayerLoadout({
 
       {primaryLabel != null || secondaryLabel != null ? (
         <span className="min-w-0">
-          {primaryLabel != null ? <span className="block truncate text-sm font-semibold">{primaryLabel}</span> : null}
-          {secondaryLabel != null ? <span className="block truncate text-xs text-muted">{secondaryLabel}</span> : null}
+          {primaryLabel != null ? <span className="block truncate text-sm font-medium">{primaryLabel}</span> : null}
+          {secondaryLabel != null ? <span className="block truncate text-[13px] font-normal text-muted">{secondaryLabel}</span> : null}
         </span>
       ) : null}
     </div>

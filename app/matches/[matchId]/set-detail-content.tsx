@@ -31,7 +31,14 @@ import {
   voidGrubIconsForSide,
 } from "@/lib/objectives";
 import { ddragonVersionFromPatch } from "@/lib/ddragon";
-import { buildRuneBuildGrid, fetchFullRuneTrees, fetchRuneCatalog, resolveRunePairUrls, type RuneCatalog } from "@/lib/runes";
+import {
+  buildEmptyRuneBuildGrid,
+  buildRuneBuildGrid,
+  fetchFullRuneTrees,
+  fetchRuneCatalog,
+  resolveRunePairUrls,
+  type RuneCatalog,
+} from "@/lib/runes";
 import { fetchSpellCatalog, type GameSpell } from "@/lib/spells";
 import type {
   Champion,
@@ -642,7 +649,9 @@ export async function SetDetailContent({
     const champion = champions.find((item) => item.id === row.line.championId);
     const { keystoneUrl, treeUrl } = resolveRunePairUrls(row.line.runeIds, runeCatalog);
     const fullRuneNames = row.line.fullRuneNames;
-    const runeGrid = fullRuneNames ? buildRuneBuildGrid(fullRuneNames, fullRuneTrees) : null;
+    const runeGrid =
+      (fullRuneNames ? buildRuneBuildGrid(fullRuneNames, fullRuneTrees) : null) ??
+      buildEmptyRuneBuildGrid(row.line.runeIds, fullRuneTrees);
     const { skillOrder, itemPurchaseGroups } = buildPlayerLoadoutTimeline(playerBuildEvents, row.line.playerId);
     return {
       playerId: row.line.playerId,

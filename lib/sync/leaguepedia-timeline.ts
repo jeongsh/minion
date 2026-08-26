@@ -59,6 +59,13 @@ export type LeaguepediaTimelineSyncResult = {
   reason: string | null;
 };
 
+export type LeaguepediaTimelineSyncOptions = {
+  /** 지정하면 해당 이벤트 종류만 저장한다. 기존 타임라인에 선수 빌드만 보충할 때 사용한다. */
+  eventTypes?: string[];
+  /** 선수 빌드 이벤트만 보충할 때 이미 존재하는 분당 프레임 재저장을 생략한다. */
+  skipFrames?: boolean;
+};
+
 const POSITION_ORDER = ["TOP", "JGL", "MID", "BOT", "SUP"];
 
 function buildParticipantMap(stats: PlayerStatRow[], blueTeamId: string, redTeamId: string) {
@@ -324,9 +331,34 @@ async function fetchTimelineJson(pageName: string) {
   }
 }
 
+async function insertTimelineEventBatch(
+  supabase: SupabaseClient,
+  batch: ReturnType<typeof parseLeaguepediaTimelineEvents>,
+): Promise<{ inserted: number; skipped: number }> {
+  if (batch.length === 0) return { inserted: 0, skipped: 0 };
+
+  const { error } = await supabase.from("timeline_events").insert(batch);
+  if (!error) return { inserted: batch.length, skipped: 0 };
+  if (error.code !== "23505") throw error;
+  if (batch.length === 1) return { inserted: 0, skipped: 1 };
+
+  // 한 건의 중복 때문에 최대 200건을 전부 개별 INSERT하지 않도록 이분 탐색한다.
+  // 정상 행은 큰 묶음으로 저장하고, 실제 중복 행만 단건까지 좁혀서 건너뛴다.
+  const middle = Math.floor(batch.length / 2);
+  const [left, right] = await Promise.all([
+    insertTimelineEventBatch(supabase, batch.slice(0, middle)),
+    insertTimelineEventBatch(supabase, batch.slice(middle)),
+  ]);
+  return {
+    inserted: left.inserted + right.inserted,
+    skipped: left.skipped + right.skipped,
+  };
+}
+
 export async function syncLeaguepediaTimelineForSet(
   supabase: SupabaseClient,
   setId: string,
+  options: LeaguepediaTimelineSyncOptions = {},
 ): Promise<LeaguepediaTimelineSyncResult> {
   const { data: set, error: setError } = await supabase
     .from("sets")
@@ -372,20 +404,26 @@ export async function syncLeaguepediaTimelineForSet(
   );
   await syncFinalParticipantLevels(supabase, timelineResult.timeline, setId, participantMap);
 
-  const events = parseLeaguepediaTimelineEvents(
+  const parsedEvents = parseLeaguepediaTimelineEvents(
     timelineResult.timeline,
     setId,
     typedSet.blue_team_id,
     typedSet.red_team_id,
     participantMap,
   );
-  const frames = parseLeaguepediaTimelineFrames(
-    timelineResult.timeline,
-    setId,
-    typedSet.blue_team_id,
-    typedSet.red_team_id,
-    participantMap,
-  );
+  const selectedEventTypes = options.eventTypes ? new Set(options.eventTypes) : null;
+  const events = selectedEventTypes
+    ? parsedEvents.filter((event) => selectedEventTypes.has(event.event_type))
+    : parsedEvents;
+  const frames = options.skipFrames
+    ? []
+    : parseLeaguepediaTimelineFrames(
+        timelineResult.timeline,
+        setId,
+        typedSet.blue_team_id,
+        typedSet.red_team_id,
+        participantMap,
+      );
   if (events.length === 0 && frames.length === 0) {
     return { status: "waiting_for_source", eventCount: 0, inserted: 0, skipped: 0, framesInserted: 0, reason: "Timeline contains no supported events" };
   }
@@ -394,18 +432,9 @@ export async function syncLeaguepediaTimelineForSet(
   let skipped = 0;
   for (let index = 0; index < events.length; index += 200) {
     const batch = events.slice(index, index + 200);
-    const { error } = await supabase.from("timeline_events").insert(batch);
-    if (!error) {
-      inserted += batch.length;
-      continue;
-    }
-    if (error.code !== "23505") throw error;
-    for (const event of batch) {
-      const { error: eventError } = await supabase.from("timeline_events").insert(event);
-      if (!eventError) inserted += 1;
-      else if (eventError.code === "23505") skipped += 1;
-      else throw eventError;
-    }
+    const result = await insertTimelineEventBatch(supabase, batch);
+    inserted += result.inserted;
+    skipped += result.skipped;
   }
 
   let framesInserted = 0;

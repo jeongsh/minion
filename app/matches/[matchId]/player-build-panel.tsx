@@ -4,6 +4,7 @@ import Image from "next/image";
 import { ChevronRight } from "lucide-react";
 import { useState } from "react";
 
+import { SkillBuildTimeline } from "@/components/domain/skill-build-timeline";
 import type { ChampionAbilityIcons } from "@/lib/champions";
 import type { ItemPurchaseGroup, SkillLevelUp } from "@/lib/player-build";
 import type { RuneBuildGrid, RuneGridOption } from "@/lib/runes";
@@ -24,9 +25,6 @@ export type PlayerBuildPanelEntry = {
   skillOrder: SkillLevelUp[];
   itemPurchaseGroups: ItemPurchaseGroup[];
 };
-
-const SKILLS = [1, 2, 3, 4] as const;
-const SKILL_KEY: Record<(typeof SKILLS)[number], string> = { 1: "Q", 2: "W", 3: "E", 4: "R" };
 
 function PlayerTabs({
   entries,
@@ -85,20 +83,13 @@ function PlayerTabs({
 
   return (
     <div className="overflow-x-auto px-4 pb-3 pt-4">
-      <div className="mx-auto flex min-w-[700px] items-start justify-between gap-8">
-        <div>
-          <p className="mb-1.5 px-1 text-[13px] font-medium text-[var(--ui-muted)]">
-            {bluePlayers[0]?.teamName ?? "블루 팀"}
-          </p>
-          <div className="flex gap-1">{renderPlayers(bluePlayers)}</div>
-        </div>
-
-        <div>
-          <p className="mb-1.5 px-1 text-right text-[13px] font-medium text-[var(--ui-muted)]">
-            {redPlayers[0]?.teamName ?? "레드 팀"}
-          </p>
-          <div className="flex justify-end gap-1">{renderPlayers(redPlayers)}</div>
-        </div>
+      <div className="mx-auto flex w-full min-w-max items-start gap-1 sm:min-w-[700px] sm:justify-between sm:gap-8">
+        <div className="flex gap-1">{renderPlayers(bluePlayers)}</div>
+        <span
+          aria-hidden="true"
+          className="mx-1 h-10 w-px shrink-0 self-center bg-[var(--ui-card-divider)] sm:hidden"
+        />
+        <div className="flex gap-1 sm:justify-end">{renderPlayers(redPlayers)}</div>
       </div>
     </div>
   );
@@ -165,18 +156,27 @@ function RuneColumn({
   name,
   rows,
   primary = false,
+  muted = false,
 }: {
   icon?: string;
   name: string;
   rows: RuneGridOption[][];
   primary?: boolean;
+  muted?: boolean;
 }) {
   return (
     <div className="min-w-0">
       <div className="flex h-9 items-center justify-center gap-2">
         {icon ? (
           <span className="relative h-6 w-6 shrink-0">
-            <Image src={icon} alt="" fill sizes="24px" className="object-contain" unoptimized />
+            <Image
+              src={icon}
+              alt=""
+              fill
+              sizes="24px"
+              className={`object-contain ${muted ? "opacity-40 grayscale" : ""}`}
+              unoptimized
+            />
           </span>
         ) : null}
         <span className="text-sm font-medium text-[var(--ui-text)]">{name}</span>
@@ -206,11 +206,26 @@ function Runes({ entry }: { entry: PlayerBuildPanelEntry }) {
 
   if (!grid) {
     return (
-      <div className="flex min-h-64 items-center justify-center gap-5">
-        {[entry.keystoneUrl, entry.treeUrl].filter(Boolean).map((url) => (
-          <span key={url} className="relative h-10 w-10">
-            <Image src={url as string} alt="" fill sizes="40px" className="object-contain" unoptimized />
-          </span>
+      <div
+        className="mx-auto mt-2 grid min-h-64 w-full max-w-[480px] grid-cols-2 items-start gap-3 py-1"
+        aria-label="룬 데이터 없음"
+      >
+        {[0, 1].map((column) => (
+          <div key={column} className="min-w-0">
+            <div className="mx-auto mb-2 h-6 w-6 rounded-full bg-[#d9dce2] dark:bg-[#24272d]" />
+            {Array.from({ length: column === 0 ? 4 : 6 }, (_, rowIndex) => (
+              <div key={rowIndex} className="flex min-h-[48px] items-center justify-center gap-2.5">
+                {Array.from({ length: 3 }, (_, optionIndex) => (
+                  <span
+                    key={optionIndex}
+                    className={`rounded-full bg-[#d9dce2] dark:bg-[#24272d] ${
+                      column === 0 && rowIndex === 0 ? "h-12 w-12" : "h-8 w-8"
+                    }`}
+                  />
+                ))}
+              </div>
+            ))}
+          </div>
         ))}
       </div>
     );
@@ -223,12 +238,14 @@ function Runes({ entry }: { entry: PlayerBuildPanelEntry }) {
         name={grid.primaryTreeName}
         rows={grid.primaryRows}
         primary
+        muted={grid.empty}
       />
       <div className="min-w-0">
         <RuneColumn
           icon={grid.secondaryTreeIcon}
           name={grid.secondaryTreeName}
           rows={grid.secondaryRows}
+          muted={grid.empty}
         />
         <ShardColumn rows={grid.shardRows} />
       </div>
@@ -267,15 +284,44 @@ function purchaseTimeLabel(group: ItemPurchaseGroup, groupIndex: number) {
 
 function ItemBuild({ entry }: { entry: PlayerBuildPanelEntry }) {
   if (entry.itemPurchaseGroups.length === 0) {
-    return <div className="grid min-h-28 place-items-center text-base font-normal text-[var(--ui-muted)]">구매 기록 없음</div>;
+    return (
+      <div
+        className="flex min-h-28 flex-wrap content-start items-start gap-x-2 gap-y-3 pt-1"
+        aria-label="구매 기록 없음"
+      >
+        {[3, 2, 2, 3].map((itemCount, groupIndex) => (
+          <div key={groupIndex} className="flex shrink-0 items-start gap-2">
+            {groupIndex > 0 ? (
+              <span className="grid h-8 w-4 shrink-0 place-items-center rounded bg-[var(--ui-surface)] text-[var(--ui-card-divider)]">
+                <ChevronRight aria-hidden="true" className="h-4 w-4" />
+              </span>
+            ) : null}
+            <div>
+              <div className="flex gap-0.5">
+                {Array.from({ length: itemCount }, (_, itemIndex) => (
+                  <span
+                    key={itemIndex}
+                    className="h-8 w-8 rounded-md bg-[var(--ui-surface)]"
+                  />
+                ))}
+              </div>
+              <div className="mx-auto mt-1 h-[13px] w-10 rounded bg-[var(--ui-surface)]" />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
   }
 
   return (
-    <div className="flex flex-wrap content-start items-start gap-y-3 pt-1">
+    <div className="flex flex-wrap content-start items-start gap-x-2 gap-y-3 pt-1">
       {entry.itemPurchaseGroups.map((group, groupIndex) => (
-        <div key={`${group.minute}-${groupIndex}`} className="flex shrink-0 items-start">
+        <div key={`${group.minute}-${groupIndex}`} className="flex shrink-0 items-start gap-2">
           {groupIndex > 0 ? (
-            <span className="mx-2 grid h-8 w-5 shrink-0 place-items-center rounded bg-[var(--ui-surface)] text-[var(--ui-muted)]">
+            <span
+              aria-hidden="true"
+              className="grid h-8 w-4 shrink-0 place-items-center rounded bg-[var(--ui-surface)] text-[var(--ui-muted)]"
+            >
               <ChevronRight aria-hidden="true" className="h-4 w-4 opacity-70" />
             </span>
           ) : null}
@@ -296,57 +342,6 @@ function ItemBuild({ entry }: { entry: PlayerBuildPanelEntry }) {
           </div>
         </div>
       ))}
-    </div>
-  );
-}
-
-function SkillBuild({ entry }: { entry: PlayerBuildPanelEntry }) {
-  if (entry.skillOrder.length === 0) {
-    return <div className="grid min-h-28 place-items-center text-base font-normal text-[var(--ui-muted)]">스킬 기록 없음</div>;
-  }
-
-  const selected = new Set(entry.skillOrder.map(({ slot, level }) => `${slot}-${level}`));
-
-  return (
-    <div className="overflow-x-auto pb-0.5">
-      <div className="mx-auto grid w-full min-w-[624px] max-w-[760px] grid-cols-[repeat(19,minmax(30px,1fr))] gap-[3px]">
-        <span className="grid place-items-center text-[13px] font-medium text-[var(--ui-muted)]">레벨</span>
-        {Array.from({ length: 18 }, (_, index) => index + 1).map((level) => (
-          <span key={`level-${level}`} className="grid place-items-center text-xs font-medium tabular-nums text-[var(--ui-muted)]">
-            {level}
-          </span>
-        ))}
-
-        {SKILLS.map((slot) => (
-          <div key={slot} className="contents">
-            <div className="relative aspect-square w-full overflow-hidden rounded-md bg-[var(--ui-surface)]">
-              {entry.abilityIcons?.[slot] ? (
-                <Image src={entry.abilityIcons[slot]} alt="" fill sizes="36px" className="object-cover" />
-              ) : null}
-              <span className="absolute bottom-0 left-0 grid h-4 min-w-4 place-items-center rounded-tr bg-black/70 px-0.5 text-xs font-medium leading-none text-white">
-                {SKILL_KEY[slot]}
-              </span>
-            </div>
-
-            {Array.from({ length: 18 }, (_, index) => index + 1).map((level) => {
-              const learned = selected.has(`${slot}-${level}`);
-
-              return (
-                <span
-                  key={level}
-                  className={`grid aspect-square w-full place-items-center rounded-md text-xs font-medium tabular-nums ${
-                    learned
-                      ? "bg-[var(--accent)] text-[var(--accent-foreground)]"
-                      : "bg-[var(--ui-surface)] text-transparent"
-                  }`}
-                >
-                  {learned ? level : "·"}
-                </span>
-              );
-            })}
-          </div>
-        ))}
-      </div>
     </div>
   );
 }
@@ -384,7 +379,7 @@ export function PlayerBuildPanel({ entries }: { entries: PlayerBuildPanelEntry[]
 
             <div className="rounded-lg bg-[var(--ui-card-bg)] p-4">
               <SectionTitle>스킬 빌드</SectionTitle>
-              <SkillBuild entry={selected} />
+              <SkillBuildTimeline abilityIcons={selected.abilityIcons} skillOrder={selected.skillOrder} />
             </div>
           </div>
         </div>

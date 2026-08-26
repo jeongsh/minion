@@ -113,6 +113,41 @@ async function fetchSetIdsChunked(
   return result;
 }
 
+async function fetchPlayerBuildCoverage(
+  supabase: SupabaseClient,
+  setIds: string[],
+  chunkSize = 100,
+) {
+  const itemPlayerIdsBySet = new Map<string, Set<string>>();
+  const skillPlayerIdsBySet = new Map<string, Set<string>>();
+  const PAGE_SIZE = 1000;
+
+  for (let i = 0; i < setIds.length; i += chunkSize) {
+    const chunk = setIds.slice(i, i + chunkSize);
+    for (let offset = 0; ; offset += PAGE_SIZE) {
+      const { data, error } = await supabase
+        .from("timeline_events")
+        .select("set_id, player_id, event_type")
+        .in("set_id", chunk)
+        .in("event_type", ["ITEM_PURCHASED", "SKILL_LEVEL_UP"])
+        .not("player_id", "is", null)
+        .range(offset, offset + PAGE_SIZE - 1);
+      if (error) throw new Error(`선수 빌드 이벤트 조회 실패: ${error.message}`);
+
+      const rows = (data ?? []) as Array<{ set_id: string; player_id: string; event_type: string }>;
+      for (const row of rows) {
+        const coverage = row.event_type === "ITEM_PURCHASED" ? itemPlayerIdsBySet : skillPlayerIdsBySet;
+        const playerIds = coverage.get(row.set_id) ?? new Set<string>();
+        playerIds.add(row.player_id);
+        coverage.set(row.set_id, playerIds);
+      }
+      if (rows.length < PAGE_SIZE) break;
+    }
+  }
+
+  return { itemPlayerIdsBySet, skillPlayerIdsBySet };
+}
+
 // ─── 메인 ──────────────────────────────────────────────────────
 
 async function main() {
@@ -167,12 +202,15 @@ async function main() {
     segMatchIdSet ? rawSets.filter((s) => segMatchIdSet.has(s.match_id)) : rawSets
   ).map((s) => ({ id: s.id }));
 
-  // 골드 프레임까지 이미 채워진 세트는 제외 (--force 아닐 경우)
+  // 골드 프레임과 10명 전원의 아이템/스킬 이벤트까지 채워진 세트만 제외한다.
+  // 과거에는 프레임만 확인해서, 선수 빌드 이벤트 파싱이 추가되기 전에 동기화된 세트를
+  // 영구적으로 건너뛰는 문제가 있었다.
   let targetSets: SetRow[] = sets as SetRow[];
+  let missingBuildEventTypesBySet = new Map<string, string[]>();
+  let frameDone = new Set<string>();
   if (!force) {
     const existingFrameSetIds = await fetchSetIdsChunked(supabase, "match_timeline_frames", "set_id", targetSets.map((s) => s.id));
-    const done = new Set(existingFrameSetIds);
-    targetSets = targetSets.filter((s) => !done.has(s.id));
+    frameDone = new Set(existingFrameSetIds);
 
     // 선수 스탯 10명이 다 안 채워진 세트는 syncLeaguepediaTimelineForSet이 항상
     // "Player mapping is incomplete"로 스킵한다 — 선수 스탯이 나중에 채워지기 전까지는
@@ -188,6 +226,24 @@ async function main() {
     if (notReady > 0) {
       console.log(`선수 스탯이 아직 안 채워져 스킵: ${notReady}개 (세트/세트 ID 동기화가 먼저 끝나야 함)`);
     }
+
+    const coverage = await fetchPlayerBuildCoverage(supabase, targetSets.map((s) => s.id));
+    missingBuildEventTypesBySet = new Map(
+      targetSets.map((set) => {
+        const missing: string[] = [];
+        if ((coverage.itemPlayerIdsBySet.get(set.id)?.size ?? 0) < 10) {
+          missing.push("ITEM_PURCHASED", "ITEM_SOLD", "ITEM_UNDO");
+        }
+        if ((coverage.skillPlayerIdsBySet.get(set.id)?.size ?? 0) < 10) {
+          missing.push("SKILL_LEVEL_UP");
+        }
+        return [set.id, missing];
+      }),
+    );
+    targetSets = targetSets.filter((set) => {
+      const buildComplete = (missingBuildEventTypesBySet.get(set.id)?.length ?? 0) === 0;
+      return !frameDone.has(set.id) || !buildComplete;
+    });
   }
 
   console.log(`처리할 세트: ${targetSets.length}개 (전체 ${sets.length}개)`);
@@ -205,10 +261,24 @@ async function main() {
     }
 
     try {
-      let result = await syncLeaguepediaTimelineForSet(supabase, set.id);
+      const missingBuildEventTypes = missingBuildEventTypesBySet.get(set.id) ?? [];
+      const buildOnly = !force && frameDone.has(set.id) && missingBuildEventTypes.length > 0;
+      let result = await syncLeaguepediaTimelineForSet(
+        supabase,
+        set.id,
+        buildOnly
+          ? { eventTypes: missingBuildEventTypes, skipFrames: true }
+          : undefined,
+      );
       for (let attempt = 0; result.status === "rate_limited" && attempt < MAX_RATE_LIMIT_RETRIES; attempt++) {
         await sleep(REQUEST_DELAY_MS * (attempt + 2));
-        result = await syncLeaguepediaTimelineForSet(supabase, set.id);
+        result = await syncLeaguepediaTimelineForSet(
+          supabase,
+          set.id,
+          buildOnly
+            ? { eventTypes: missingBuildEventTypes, skipFrames: true }
+            : undefined,
+        );
       }
 
       if (result.status === "succeeded") {

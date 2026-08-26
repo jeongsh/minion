@@ -274,6 +274,8 @@ create table public.set_player_stats (
   spell1 integer,
   rune0 integer,
   rune1 integer,
+  role_bound_item integer,
+  full_rune_names text[],
   created_at timestamptz not null default now(),
   unique (set_id, player_id)
 );
@@ -1025,6 +1027,20 @@ create index idx_timeline_events_team_id on public.timeline_events(team_id);
 create index idx_timeline_events_player_id on public.timeline_events(player_id);
 create index idx_timeline_events_killer_player_id on public.timeline_events(killer_player_id);
 create index idx_timeline_events_victim_player_id on public.timeline_events(victim_player_id);
+create unique index idx_timeline_events_unique
+  on public.timeline_events(
+    set_id,
+    timestamp_ms,
+    event_type,
+    md5(raw_event_json::text),
+    coalesce(team_id::text, ''),
+    coalesce(player_id::text, ''),
+    coalesce(killer_player_id::text, ''),
+    coalesce(victim_player_id::text, ''),
+    coalesce(monster_type, ''),
+    coalesce(building_type, ''),
+    coalesce(lane_type, '')
+  );
 create index idx_soloq_accounts_player_id on public.soloq_accounts(player_id);
 create index idx_soloq_rank_snapshots_account_id on public.soloq_rank_snapshots(soloq_account_id);
 create index idx_soloq_matches_account_id on public.soloq_matches(soloq_account_id);
