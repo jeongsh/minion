@@ -23,7 +23,7 @@ export function BlockedUserList({ users, guests = [] }: { users: CommunityUserSu
       {users.map((user) => (
         <li key={user.id} className="flex items-center gap-3 py-3">
           <RankAvatar tier={user.tier} src={user.profileImageUrl} alt={user.nickname} fallback={user.nickname.charAt(0)} size="sm" />
-          <span className="min-w-0 flex-1 truncate text-sm font-semibold text-[var(--ui-ink)]">{user.nickname}</span>
+          <span className="min-w-0 flex-1 truncate text-sm font-medium text-[var(--ui-ink)]">{user.nickname}</span>
           <button
             type="button"
             disabled={pending}
@@ -32,7 +32,7 @@ export function BlockedUserList({ users, guests = [] }: { users: CommunityUserSu
               showToast({ title: result.ok ? "차단 해제" : "해제 실패", description: result.ok ? result.message : result.error, tone: result.ok ? "success" : "error" });
               if (result.ok) router.refresh();
             })}
-            className="rounded-lg border border-[var(--ui-border)] px-3 py-1.5 text-[13px] font-semibold hover:bg-[var(--ui-surface-muted)] disabled:opacity-50"
+            className="rounded-lg border border-[var(--ui-border)] px-3 py-1.5 text-[13px] font-medium hover:bg-[var(--ui-surface-muted)] disabled:opacity-50"
           >
             차단 해제
           </button>
@@ -41,7 +41,7 @@ export function BlockedUserList({ users, guests = [] }: { users: CommunityUserSu
       {guests.map((guest) => (
         <li key={guest.guestKey} className="flex items-center gap-3 py-3">
           <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[var(--ui-surface-muted)] text-[12px] font-medium text-[var(--ui-muted)]">G</span>
-          <span className="min-w-0 flex-1 truncate text-sm font-semibold text-[var(--ui-ink)]">{guest.nickname}</span>
+          <span className="min-w-0 flex-1 truncate text-sm font-medium text-[var(--ui-ink)]">{guest.nickname}</span>
           <button
             type="button"
             disabled={pending}
@@ -50,7 +50,7 @@ export function BlockedUserList({ users, guests = [] }: { users: CommunityUserSu
               showToast({ title: result.ok ? "차단 해제" : "해제 실패", description: result.ok ? result.message : result.error, tone: result.ok ? "success" : "error" });
               if (result.ok) router.refresh();
             })}
-            className="rounded-lg border border-[var(--ui-border)] px-3 py-1.5 text-[13px] font-semibold hover:bg-[var(--ui-surface-muted)] disabled:opacity-50"
+            className="rounded-lg border border-[var(--ui-border)] px-3 py-1.5 text-[13px] font-medium hover:bg-[var(--ui-surface-muted)] disabled:opacity-50"
           >
             차단 해제
           </button>

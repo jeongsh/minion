@@ -3,7 +3,6 @@
 import { useActionState, useMemo, useState } from "react";
 import { Camera } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import { RankAvatar } from "@/components/rank/rank-avatar";
 import { INITIAL_PROFILE_STATE } from "@/lib/auth/action-state";
 import { updateNicknameAction } from "@/lib/auth/actions";
@@ -30,16 +29,15 @@ export function ProfileForm({
   }, [initialNickname]);
 
   return (
-    <form action={formAction} className="flex flex-col gap-4 sm:gap-5">
+    <form action={formAction} className="flex flex-col gap-3 sm:gap-5">
       <div className="flex items-center gap-3 sm:gap-4">
-        <span className="sm:hidden"><RankAvatar tier={tier} src={previewUrl} alt="프로필 이미지 미리보기" fallback={initials || "MY"} size="profile" /></span>
         <span className="hidden sm:inline"><RankAvatar tier={tier} src={previewUrl} alt="프로필 이미지 미리보기" fallback={initials || "MY"} size="lg" /></span>
         <div className="min-w-0 flex-1">
           <label
             htmlFor="profileImage"
-            className="inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 text-[13px] font-semibold transition hover:bg-[var(--ui-surface-muted)] sm:gap-2 sm:px-4 sm:text-sm sm:font-bold"
+            className="inline-flex min-h-9 cursor-pointer items-center gap-1 rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 text-[13px] font-medium transition hover:bg-[var(--ui-surface-muted)] sm:min-h-11 sm:gap-2 sm:px-4 sm:text-sm"
           >
-            <Camera size={16} />
+            <Camera size={14} />
             프로필 이미지 변경
           </label>
           <input
@@ -54,14 +52,14 @@ export function ProfileForm({
               setPreviewUrl(URL.createObjectURL(file));
             }}
           />
-          <p className="mt-1.5 text-[12px] font-medium leading-[18px] text-[var(--ui-muted)] sm:mt-2 sm:text-[13px] sm:font-normal">
+          <p className="mt-1 text-[13px] font-medium leading-[18px] text-[var(--ui-muted)] sm:mt-2 sm:font-normal sm:leading-5">
             PNG, JPG, WEBP · 최대 5MB
           </p>
         </div>
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="nickname" className="text-sm font-semibold">
+        <label htmlFor="nickname" className="text-[13px] font-medium leading-[18px] sm:text-sm">
           닉네임
         </label>
         <input
@@ -72,7 +70,7 @@ export function ProfileForm({
           minLength={2}
           maxLength={16}
           required
-          className="min-h-11 rounded-lg border bg-[var(--ui-surface)] px-3 text-sm outline-none transition focus:border-[var(--accent)] focus:ring-[3px] focus:ring-[color-mix(in_srgb,var(--accent)_18%,transparent)]"
+          className="min-h-9 rounded-lg border bg-[var(--ui-surface)] px-3 text-[13px] outline-none transition focus:border-[var(--accent)] focus:ring-[3px] focus:ring-[color-mix(in_srgb,var(--accent)_18%,transparent)] sm:min-h-11 sm:text-sm"
           style={{ borderColor: "var(--border)" }}
         />
         <p className="text-[13px]" style={{ color: "var(--muted)" }}>
@@ -90,9 +88,9 @@ export function ProfileForm({
         </p>
       ) : null}
 
-      <Button type="submit" disabled={pending} className="h-11 w-full rounded-lg px-5 font-bold sm:w-auto sm:self-start">
+      <button type="submit" disabled={pending} className="h-9 w-full rounded-lg bg-[var(--accent)] px-5 text-[13px] font-medium text-[var(--accent-foreground)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 sm:h-11 sm:w-auto sm:self-start sm:text-sm">
         {pending ? "저장 중..." : "프로필 저장"}
-      </Button>
+      </button>
     </form>
   );
 }

@@ -59,7 +59,7 @@ export function CheckInButton({ alreadyChecked }: { alreadyChecked: boolean }) {
         <button
           type="submit"
           disabled={pending || done}
-          className={`relative min-h-11 w-full rounded-lg px-4 text-sm font-bold text-[var(--accent-foreground)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70 ${
+          className={`relative min-h-9 w-full rounded-lg px-4 text-[13px] font-medium text-[var(--accent-foreground)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70 sm:min-h-11 sm:text-sm ${
             justChecked ? "kitsch-pop" : ""
           }`}
           style={{ backgroundColor: "var(--accent)" }}

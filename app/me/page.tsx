@@ -77,17 +77,17 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
     <main className="layout-wide me-page max-w-6xl pb-6 pt-3 sm:py-8">
       <MobileAccountSummary user={user} summary={summary} progress={progress} initials={initials} />
 
-      <nav className="me-mobile-sticky-nav sticky z-20 -mx-[var(--layout-gutter)] mt-3 border-y border-[var(--ui-border)] bg-[var(--ui-surface)] px-[var(--layout-gutter)] py-2 lg:hidden" aria-label="내 계정 메뉴">
+      <nav className="mt-2.5 rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-2 lg:hidden" aria-label="내 계정 메뉴">
         <div className="grid grid-cols-4 gap-1.5">
           {MANAGE_LINKS.map(({ href, mobileLabel, icon: Icon }) => (
-            <a key={href} href={href} className="flex min-h-10 min-w-0 items-center justify-center gap-1 rounded-lg bg-[var(--ui-surface-muted)] px-1 text-[12px] font-medium text-[var(--ui-text)]">
-              <Icon size={14} className="shrink-0" /><span className="truncate">{mobileLabel}</span>
+            <a key={href} href={href} className="flex min-h-9 min-w-0 items-center justify-center gap-1 rounded-lg bg-[var(--ui-surface-muted)] px-1 text-[13px] font-medium leading-[18px] text-[var(--ui-text)]">
+              <Icon size={13} className="shrink-0" /><span className="truncate">{mobileLabel}</span>
             </a>
           ))}
         </div>
       </nav>
 
-      <div className="mt-3 grid items-start gap-5 sm:mt-5 lg:mt-0 lg:grid-cols-[280px_minmax(0,1fr)] lg:gap-8">
+      <div className="mt-2.5 grid items-start gap-5 sm:mt-5 lg:mt-0 lg:grid-cols-[280px_minmax(0,1fr)] lg:gap-8">
         <aside className="hidden space-y-4 lg:sticky lg:top-20 lg:block">
           <section className="me-card overflow-hidden rounded-2xl border">
             <div className="p-5 sm:p-6">
@@ -139,8 +139,8 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
         </aside>
 
         <div className="min-w-0">
-          <div className="space-y-3 sm:space-y-5">
-            <AccountSection id="profile" icon={UserRound} title="프로필" description="다른 사용자에게 보이는 닉네임과 이미지를 변경합니다.">
+          <div className="space-y-2.5 sm:space-y-5">
+            <AccountSection id="profile" icon={UserRound} title="프로필" description="닉네임과 프로필 이미지를 변경합니다.">
               <ProfileForm initialNickname={user.nickname ?? ""} initialProfileImageUrl={user.profileImageUrl} tier={summary.tier} />
             </AccountSection>
 
@@ -154,13 +154,13 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
 
             <AccountSection id="account" icon={LockKeyhole} title="계정 및 보안" description="로그인 정보와 보안 설정을 확인합니다.">
               <div className="rounded-xl bg-[var(--ui-surface-muted)] p-4">
-                <p className="text-[13px] font-bold text-[var(--ui-muted)]">로그인 계정</p>
-                <p className="mt-1 break-all text-sm font-semibold text-[var(--ui-ink)]">{accountLabel(user)}</p>
+                <p className="text-[13px] font-medium text-[var(--ui-muted)]">로그인 계정</p>
+                <p className="mt-1 break-all text-sm font-medium text-[var(--ui-ink)]">{accountLabel(user)}</p>
               </div>
 
               {user.hasPassword ? (
                 <details className="group mt-4 rounded-xl border border-[var(--ui-border)]">
-                  <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 px-4 text-sm font-bold text-[var(--ui-ink)] [&::-webkit-details-marker]:hidden">
+                  <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-4 text-[13px] font-medium text-[var(--ui-ink)] sm:min-h-14 sm:text-sm [&::-webkit-details-marker]:hidden">
                     비밀번호 변경 <ChevronRight size={17} className="text-[var(--ui-muted)] transition-transform group-open:rotate-90" />
                   </summary>
                   <div className="border-t border-[var(--ui-border)] p-4"><PasswordForm /></div>
@@ -168,7 +168,7 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
               ) : null}
 
               <details className="group mt-3 rounded-xl border border-[color-mix(in_srgb,#dc2626_28%,var(--ui-border))]">
-                <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 px-4 text-sm font-bold text-[#dc2626] [&::-webkit-details-marker]:hidden">
+                <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-4 text-[13px] font-medium text-[#dc2626] sm:min-h-14 sm:text-sm [&::-webkit-details-marker]:hidden">
                   회원 탈퇴 <ChevronRight size={17} className="transition-transform group-open:rotate-90" />
                 </summary>
                 <div className="border-t border-[color-mix(in_srgb,#dc2626_20%,var(--ui-border))] p-4">
@@ -192,11 +192,11 @@ function AccountSection({ id, icon: Icon, title, description, children }: {
 }) {
   return (
     <section id={id} className="me-card scroll-mt-28 rounded-xl border p-4 sm:scroll-mt-24 sm:rounded-2xl sm:p-6">
-      <div className="mb-4 flex items-start gap-2.5 sm:mb-5 sm:gap-3">
-        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[var(--ui-surface-muted)] text-[var(--ui-muted)] sm:h-10 sm:w-10 sm:rounded-xl"><Icon size={18} /></span>
+      <div className="mb-4 flex items-start gap-2 sm:mb-5 sm:gap-3">
+        <span className="grid h-[30px] w-[30px] shrink-0 place-items-center rounded-lg bg-[var(--ui-surface-muted)] text-[var(--ui-muted)] sm:h-10 sm:w-10 sm:rounded-xl"><Icon size={16} /></span>
         <div className="min-w-0">
-          <h3 className="text-base font-black tracking-[-0.02em] text-[var(--ui-ink)] sm:text-lg">{title}</h3>
-          <p className="mt-0.5 text-[12px] font-medium leading-[18px] text-[var(--ui-muted)] sm:text-sm sm:font-normal sm:leading-5">{description}</p>
+          <h3 className="text-[15px] font-black leading-[22px] tracking-[-0.02em] text-[var(--ui-ink)] sm:text-lg">{title}</h3>
+          <p className="text-[13px] font-medium leading-[18px] text-[var(--ui-muted)] sm:mt-0.5 sm:text-sm sm:font-normal sm:leading-5">{description}</p>
         </div>
       </div>
       {children}
@@ -212,28 +212,28 @@ function MobileAccountSummary({ user, summary, progress, initials }: {
 }) {
   return (
     <section className="me-card rounded-xl border p-4 lg:hidden">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2.5">
         <RankAvatar tier={summary.tier} src={user.profileImageUrl} alt="" fallback={initials} size="mobile" />
         <div className="min-w-0 flex-1">
-          <h1 className="truncate text-[18px] font-black tracking-[-0.025em] text-[var(--ui-ink)]">{user.nickname ?? "MINION 팬"}</h1>
-          <p className="mt-0.5 truncate text-[12px] font-medium text-[var(--ui-muted)]">{accountLabel(user)}</p>
-          <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[12px] font-medium">
+          <h1 className="truncate text-[15px] font-black leading-[22px] tracking-[-0.02em] text-[var(--ui-ink)]">{user.nickname ?? "MINION 팬"}</h1>
+          <p className="truncate text-[13px] font-medium leading-[18px] text-[var(--ui-muted)]">{accountLabel(user)}</p>
+          <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[13px] font-medium leading-[18px]">
             <span className="text-[var(--ui-ink)]">{progress.label}</span>
             <span className="text-[var(--ui-muted)]">{summary.lp.toLocaleString("ko-KR")} LP</span>
             {summary.overallRank ? <span className="text-[var(--ui-muted)]">전체 {summary.overallRank.toLocaleString("ko-KR")}위</span> : null}
           </div>
         </div>
       </div>
-      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[var(--ui-surface-muted)]">
+      <div className="mt-2 h-1 overflow-hidden rounded-full bg-[var(--ui-surface-muted)]">
         <div className="h-full rounded-full bg-[var(--accent)]" style={{ width: `${Math.round(progress.progressRatio * 100)}%` }} />
       </div>
-      <div className="mt-3"><CheckInButton alreadyChecked={summary.checkedInToday} /></div>
-      <div className="mt-2 grid grid-cols-2 gap-2">
-        <Link href={`/community/user/${user.id}`} className="flex min-h-10 items-center justify-center gap-1.5 rounded-lg bg-[var(--ui-surface-muted)] px-2 text-[13px] font-semibold text-[var(--ui-text)]">
-          <FileText size={15} />내 활동
+      <div className="mt-2"><CheckInButton alreadyChecked={summary.checkedInToday} /></div>
+      <div className="mt-1.5 grid grid-cols-2 gap-2">
+        <Link href={`/community/user/${user.id}`} className="flex min-h-9 items-center justify-center gap-1 rounded-lg bg-[var(--ui-surface-muted)] px-2 text-[13px] font-medium text-[var(--ui-text)]">
+          <FileText size={14} />내 활동
         </Link>
-        <div className="flex min-h-10 items-center justify-center gap-1.5 rounded-lg bg-[var(--ui-surface-muted)] px-2 text-[13px] font-semibold text-[#dc2626]">
-          <LogOut size={15} /><LogoutButton className="text-[13px] font-semibold text-[#dc2626]" />
+        <div className="flex min-h-9 items-center justify-center gap-1 rounded-lg bg-[var(--ui-surface-muted)] px-2 text-[13px] font-medium text-[#dc2626]">
+          <LogOut size={14} /><LogoutButton className="text-[13px] font-medium text-[#dc2626]" />
         </div>
       </div>
     </section>
