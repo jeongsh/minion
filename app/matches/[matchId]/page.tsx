@@ -87,7 +87,7 @@ function CompactTeamBlock({
         {teamName}
       </p>
       {resultLabel ? (
-        <p className={`mt-0.5 text-[10px] font-bold tracking-[0.08em] ${result === "WIN" ? "text-[var(--accent)]" : "text-[var(--ui-muted)]"}`}>
+        <p className={`mt-0.5 text-[13px] font-medium ${result === "WIN" ? "text-[var(--accent)]" : "text-[var(--ui-muted)]"}`}>
           {resultLabel}
         </p>
       ) : null}
@@ -132,11 +132,11 @@ function PlayerHighlight({
           // eslint-disable-next-line @next/next/no-img-element
           <img src={player.profileImageUrl} alt="" className="h-full w-full object-cover object-top" />
         ) : (
-          <span className="text-xs font-medium text-[var(--ui-muted)]">{player?.name?.slice(0, 2) ?? "-"}</span>
+          <span className="text-[13px] font-medium text-[var(--ui-muted)]">{player?.name?.slice(0, 2) ?? "-"}</span>
         )}
       </span>
-      <span className="text-[10px] font-bold tracking-[0.08em] text-[var(--ui-muted)]">{label}</span>
-      <span className="truncate text-[11px] font-bold text-[var(--ui-ink)]">{player?.name ?? "집계 전"}</span>
+      <span className="text-xs font-medium tracking-[0.08em] text-[var(--ui-muted)]">{label}</span>
+      <span className="truncate text-[13px] font-medium text-[var(--ui-ink)]">{player?.name ?? "집계 전"}</span>
     </span>
   );
 }
@@ -218,10 +218,10 @@ function TabNav({
             key={item.key}
             href={item.href}
             aria-current={isActive ? "page" : undefined}
-            className={`flex h-9 min-w-[4.25rem] shrink-0 items-center justify-center whitespace-nowrap border-b-2 px-2 text-[14px] transition-colors md:h-8 md:rounded-lg ${
+            className={`flex h-9 min-w-[4.25rem] shrink-0 items-center justify-center whitespace-nowrap border-b-2 px-2 text-[14px] font-medium transition-colors md:h-8 md:rounded-lg ${
               isActive
-                ? "border-[var(--accent)] font-extrabold text-[var(--ui-ink)] md:border md:border-[var(--ui-border)] md:bg-[var(--ui-surface)] md:dark:bg-[var(--ui-border)]"
-                : "border-transparent font-semibold text-[var(--ui-muted)] hover:text-[var(--ui-ink)]"
+                ? "border-[var(--accent)] text-[var(--ui-ink)] md:border md:border-[var(--ui-border)] md:bg-[var(--ui-surface)] md:dark:bg-[var(--ui-border)]"
+                : "border-transparent text-[var(--ui-muted)] hover:text-[var(--ui-ink)]"
             }`}
           >
             {item.label}
@@ -250,7 +250,7 @@ function SetSelector({
   if (sets.length === 0 && !snapshotHref) return null;
 
   return (
-    <div className="schedule-mobile-sticky sticky z-20 -mx-[var(--layout-gutter)] flex items-center justify-between gap-2 border-b border-[var(--ui-border)] bg-[var(--page-background)] px-[var(--layout-gutter)] py-1 md:mx-0 md:border-b-0 md:px-0 md:py-1.5">
+    <div className="schedule-mobile-sticky sticky z-30 -mx-[var(--layout-gutter)] flex items-center justify-between gap-2 border-b border-[var(--ui-border)] bg-[var(--page-background)] px-[var(--layout-gutter)] py-3 md:mx-0 md:border-b-0 md:px-0 md:py-1.5">
       {sets.length > 0 ? (
         <SegmentedControl
           items={sets.map((set) => ({
@@ -260,7 +260,7 @@ function SetSelector({
           }))}
           activeKey={activeSet?.id ?? ""}
           ariaLabel="세트 선택"
-          className="tab-scroll min-w-0 max-w-full overflow-x-auto"
+          className="tab-scroll min-w-0 max-w-full overflow-x-auto [&>a]:text-sm [&>a]:font-medium"
         />
       ) : <span />}
       {snapshotHref ? (
@@ -564,12 +564,12 @@ export default async function MatchDetailPage({
         <section className="mobile-full-bleed overflow-hidden rounded-md border-0 md:mx-0 md:border md:border-[var(--ui-border)]" aria-label="매치 요약">
           <h1 className="sr-only">{`${teamAName} vs ${teamBName}`}</h1>
 
-          <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 px-4 py-2 text-[11px] font-medium text-[var(--ui-muted)] sm:px-6">
-            <span className="min-w-0 truncate text-left font-bold text-[var(--ui-ink)]">{tournament?.name ?? "대회 미지정"}</span>
+          <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 px-4 py-2 text-[13px] font-medium text-[var(--ui-muted)] sm:px-6">
+            <span className="min-w-0 truncate text-left text-[var(--ui-ink)]">{tournament?.name ?? "대회 미지정"}</span>
             {pomPlayer ? (
               <PlayerHighlight label="POM" player={pomPlayer} />
             ) : (
-              <span className="rounded-full bg-[var(--ui-ink)] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--ui-surface)]">
+              <span className="rounded-full bg-[var(--ui-ink)] px-2.5 py-1 text-[13px] font-medium text-[var(--ui-surface)]">
                 {displayStatusLabel}
               </span>
             )}
@@ -589,12 +589,12 @@ export default async function MatchDetailPage({
                     <span className="text-xs font-medium opacity-40">:</span>
                     <span className={teamBResult === "LOSS" ? "opacity-45" : ""}>{scoreLabel(match.teamBScore)}</span>
                   </div>
-                  <span className="mt-1 text-[10px] font-medium text-[var(--ui-muted)] sm:text-[11px]">{formatDateTime(match.matchDate)}</span>
+                  <span className="mt-1 text-[13px] font-medium text-[var(--ui-muted)]">{formatDateTime(match.matchDate)}</span>
                 </>
               ) : (
                 <>
                   <span className="rounded-xl bg-[var(--ui-ink)] px-4 py-2 text-xl font-black leading-none text-[var(--ui-surface)] shadow-sm sm:text-[28px]">VS</span>
-                  <span className="mt-1 text-[10px] font-medium text-[var(--ui-muted)] sm:text-[11px]">{formatDateTime(match.matchDate)}</span>
+                  <span className="mt-1 text-[13px] font-medium text-[var(--ui-muted)]">{formatDateTime(match.matchDate)}</span>
                 </>
               )}
             </div>
@@ -622,14 +622,14 @@ export default async function MatchDetailPage({
       ) : null}
 
       {activeTab === "data" ? (
-        <section className="flex flex-col gap-3" aria-label="세트 데이터">
+        <section className="-mt-5 flex flex-col gap-4" aria-label="세트 데이터">
           <SetSelector sets={matchSets} activeSet={activeSet} />
           {activeSetCard}
         </section>
       ) : null}
 
       {activeTab === "rating" ? (
-        <div className="flex flex-col gap-2.5">
+        <div className="-mt-5 flex flex-col gap-2.5">
           <MatchRatingPanel
             matchId={matchId}
             set={activeSet}

@@ -2,8 +2,9 @@
 
 import { useRef, useState, useTransition, type FormEvent, type FormEventHandler } from "react";
 import Link from "next/link";
-import { Star, X } from "lucide-react";
+import { Star } from "lucide-react";
 
+import { DialogSheetHeader } from "@/components/responsive/adaptive-dialog";
 import { Button } from "@/components/ui/button";
 
 import { submitSetPlayerRatingAction } from "./actions";
@@ -360,53 +361,51 @@ export function SetRatingForm({
           <button
             type="button"
             aria-label="평가 입력 닫기"
-            className="modal-backdrop absolute inset-0 bg-black/35 [--modal-backdrop-dark-mobile:0.55]"
+            className="modal-backdrop absolute inset-0 bg-black/45 [--modal-backdrop-dark-mobile:0.65]"
             onClick={() => setMobileComposerOpen(false)}
           />
-          <div className="relative z-10 w-full rounded-t-2xl bg-[var(--ui-surface)] px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-3 shadow-2xl">
-            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-[var(--ui-border)]" aria-hidden="true" />
-            <div className="flex items-center gap-3">
-              <div className="h-12 w-12 shrink-0 overflow-hidden rounded-full bg-[var(--ui-surface-muted)]">
-                {selectedPlayer.profileImageUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={selectedPlayer.profileImageUrl} alt="" className="h-full w-full object-cover object-top" />
-                ) : (
-                  <div className="grid h-full place-items-center font-black text-[var(--ui-muted)]">
-                    {playerInitial(selectedPlayer.name)}
-                  </div>
-                )}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-base font-black text-[var(--ui-ink)]">{selectedPlayer.name} 평가</p>
-                <p className="text-xs font-normal text-[var(--ui-muted)]">{selectedPlayer.teamName} · {selectedPlayer.position}</p>
-              </div>
-              <button
-                type="button"
-                aria-label="닫기"
-                onClick={() => setMobileComposerOpen(false)}
-                className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-[var(--ui-muted)] hover:bg-[var(--ui-card-hover)] hover:text-[var(--ui-ink)]"
-              >
-                <X aria-hidden="true" className="h-5 w-5" />
-              </button>
-            </div>
-            <div className="mt-4">
-              <StarRatingPicker value={selectedRating} disabled={disabled} onChange={setSelectedRating} />
-            </div>
-            <textarea
-              rows={2}
-              maxLength={240}
-              disabled={disabled}
-              value={review}
-              onChange={(event) => setReview(event.target.value)}
-              onInput={resizeCommentInput}
-              placeholder="평가 코멘트 (선택)"
-              className="mt-4 block w-full resize-none overflow-hidden rounded-xl bg-[var(--ui-surface-muted)] p-3 text-base leading-7 text-[var(--ui-text)] outline-none placeholder:text-[var(--ui-muted)] disabled:cursor-not-allowed disabled:opacity-60"
+          <div className="relative z-10 w-full overflow-hidden rounded-t-[24px] bg-[var(--ui-surface)] shadow-2xl">
+            <DialogSheetHeader
+              closeLabel="평가 입력 닫기"
+              onClose={() => setMobileComposerOpen(false)}
+              title={`${selectedPlayer.name} 평가`}
             />
-            <div className="mt-3 flex items-center justify-end gap-3">
-              <span className="text-[13px] tabular-nums text-[var(--ui-muted)]">{review.length}/240자</span>
-              <Button type="submit" variant="secondary" disabled={!canSubmit}>
-                {isPending ? "등록 중" : "등록"}
-              </Button>
+            <div className="px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-2">
+              <div className="flex items-center gap-3">
+                <div className="h-12 w-12 shrink-0 overflow-hidden rounded-full bg-[var(--ui-surface-muted)]">
+                  {selectedPlayer.profileImageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={selectedPlayer.profileImageUrl} alt="" className="h-full w-full object-cover object-top" />
+                  ) : (
+                    <div className="grid h-full place-items-center font-black text-[var(--ui-muted)]">
+                      {playerInitial(selectedPlayer.name)}
+                    </div>
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[15px] font-bold text-[var(--ui-ink)]">{selectedPlayer.name}</p>
+                  <p className="text-[13px] font-normal text-[var(--ui-muted)]">{selectedPlayer.teamName} · {selectedPlayer.position}</p>
+                </div>
+              </div>
+              <div className="mt-4">
+                <StarRatingPicker value={selectedRating} disabled={disabled} onChange={setSelectedRating} />
+              </div>
+              <textarea
+                rows={2}
+                maxLength={240}
+                disabled={disabled}
+                value={review}
+                onChange={(event) => setReview(event.target.value)}
+                onInput={resizeCommentInput}
+                placeholder="평가 코멘트 (선택)"
+                className="mt-4 block w-full resize-none overflow-hidden rounded-xl bg-[var(--ui-surface-muted)] p-3 text-base leading-7 text-[var(--ui-text)] outline-none placeholder:text-[var(--ui-muted)] disabled:cursor-not-allowed disabled:opacity-60"
+              />
+              <div className="mt-3 flex items-center justify-end gap-3">
+                <span className="text-[13px] tabular-nums text-[var(--ui-muted)]">{review.length}/240자</span>
+                <Button type="submit" variant="secondary" disabled={!canSubmit}>
+                  {isPending ? "등록 중" : "등록"}
+                </Button>
+              </div>
             </div>
           </div>
         </div>

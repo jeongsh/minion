@@ -17,7 +17,7 @@ function CompactTeamBlock({ align, team, teamName, result }: { align: 'left' | '
     <View style={[styles.nameBlock, { alignItems: isRight ? 'flex-start' : 'flex-end' }]}>
       <Text numberOfLines={1} style={[styles.teamName, { color: theme.ink, fontFamily: fonts.black, textAlign: isRight ? 'left' : 'right' }]}>{teamName}</Text>
       {resultLabel ? (
-        <Text style={[styles.resultLabel, { color: result === 'WIN' ? theme.accent : theme.muted, fontFamily: fonts.bold }]}>{resultLabel}</Text>
+        <Text style={[styles.resultLabel, { color: result === 'WIN' ? theme.accent : theme.muted, fontFamily: fonts.medium }]}>{resultLabel}</Text>
       ) : null}
     </View>
   );
@@ -52,8 +52,8 @@ function PlayerHighlight({ label, player }: { label: string; player: MobileMatch
           <Text style={[styles.pomAvatarFallback, { color: theme.muted, fontFamily: fonts.medium }]}>{player?.name?.slice(0, 2) ?? '-'}</Text>
         )}
       </View>
-      <Text style={[styles.pomLabel, { color: theme.muted, fontFamily: fonts.bold }]}>{label}</Text>
-      <Text numberOfLines={1} style={[styles.pomName, { color: theme.ink, fontFamily: fonts.bold }]}>{player?.name ?? '집계 전'}</Text>
+      <Text style={[styles.pomLabel, { color: theme.muted, fontFamily: fonts.medium }]}>{label}</Text>
+      <Text numberOfLines={1} style={[styles.pomName, { color: theme.ink, fontFamily: fonts.medium }]}>{player?.name ?? '집계 전'}</Text>
     </View>
   );
 }
@@ -68,12 +68,12 @@ export function MatchHeader({ header, match }: { header: MobileMatchHeader; matc
   return (
     <View style={styles.root}>
       <View style={styles.metaRow}>
-        <Text numberOfLines={1} style={[styles.tournamentName, { color: theme.ink, fontFamily: fonts.bold }]}>{header.tournamentName}</Text>
+        <Text numberOfLines={1} style={[styles.tournamentName, { color: theme.ink, fontFamily: fonts.medium }]}>{header.tournamentName}</Text>
         {header.pomPlayer ? (
           <PlayerHighlight label="POM" player={header.pomPlayer} />
         ) : (
           <View style={[styles.statusBadge, { backgroundColor: theme.ink }]}>
-            <Text style={[styles.statusBadgeText, { color: theme.surface, fontFamily: fonts.bold }]}>{header.statusLabel}</Text>
+            <Text style={[styles.statusBadgeText, { color: theme.surface, fontFamily: fonts.medium }]}>{header.statusLabel}</Text>
           </View>
         )}
         <Text numberOfLines={1} style={[styles.stageLabel, { color: theme.muted, fontFamily: fonts.medium }]}>
@@ -117,28 +117,28 @@ function formatDateTime(iso: string) {
 }
 
 const styles = StyleSheet.create({
-  dateLabel: { fontSize: 10, lineHeight: 15, marginTop: 4 },
+  dateLabel: { fontSize: 13, lineHeight: 19.5, marginTop: 4 },
   metaRow: { alignItems: 'center', flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingVertical: 8 },
   nameBlock: { minWidth: 0 },
   pomAvatar: { alignItems: 'center', borderRadius: 10, height: 20, justifyContent: 'center', overflow: 'hidden', width: 20 },
-  pomAvatarFallback: { fontSize: 12, lineHeight: 16 },
+  pomAvatarFallback: { fontSize: 13, lineHeight: 16 },
   pomAvatarImage: { height: '100%', width: '100%' },
   pomChip: { alignItems: 'center', borderRadius: 999, flexDirection: 'row', gap: 6, paddingBottom: 4, paddingLeft: 4, paddingRight: 8, paddingTop: 4 },
-  pomLabel: { fontSize: 10, letterSpacing: 0.8, lineHeight: 15 },
-  pomName: { flexShrink: 1, fontSize: 11, lineHeight: 16.5 },
-  resultLabel: { fontSize: 10, letterSpacing: 0.8, marginTop: 2 },
+  pomLabel: { fontSize: 12, letterSpacing: 0.8, lineHeight: 16 },
+  pomName: { flexShrink: 1, fontSize: 13, lineHeight: 19.5 },
+  resultLabel: { fontSize: 13, lineHeight: 19.5, marginTop: 2 },
   root: { marginHorizontal: -16 },
   scoreBox: { alignItems: 'center', borderRadius: 12, flexDirection: 'row', gap: 8, paddingHorizontal: 14, paddingVertical: 8 },
   scoreCenter: { alignItems: 'center', flexShrink: 0, minWidth: 88, paddingHorizontal: 4 },
   scoreColon: { fontSize: 12, opacity: 0.4 },
   scoreNumber: { fontSize: 25, lineHeight: 25 },
   scoreRow: { alignItems: 'center', flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingVertical: 12 },
-  stageLabel: { flex: 1, fontSize: 11, lineHeight: 16.5, textAlign: 'right' },
+  stageLabel: { flex: 1, fontSize: 13, lineHeight: 19.5, textAlign: 'right' },
   statusBadge: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
-  statusBadgeText: { fontSize: 10, letterSpacing: 0.8, lineHeight: 15, textTransform: 'uppercase' },
+  statusBadgeText: { fontSize: 13, lineHeight: 19.5 },
   teamBlock: { alignItems: 'center', flex: 1, flexDirection: 'row', gap: 8, minWidth: 0 },
   teamName: { fontSize: 16, lineHeight: 20 },
-  tournamentName: { flex: 1, fontSize: 11, lineHeight: 16.5 },
+  tournamentName: { flex: 1, fontSize: 13, lineHeight: 19.5 },
   vsBox: { alignItems: 'center', borderRadius: 12, justifyContent: 'center', paddingHorizontal: 16, paddingVertical: 8 },
   vsText: { fontSize: 20, lineHeight: 20 },
 });

@@ -1,9 +1,10 @@
 "use client";
 
-import { ChevronDown, LoaderCircle, X } from "lucide-react";
+import { ChevronDown, LoaderCircle } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { PlayerStatTable } from "@/components/domain/player-stat-table";
+import { DialogSheetHeader } from "@/components/responsive/adaptive-dialog";
 import { DEFAULT_DDRAGON_VERSION, ddragonVersionFromPatch } from "@/lib/ddragon";
 import type { RuneCatalog } from "@/lib/runes";
 import type { GameSpell } from "@/lib/spells";
@@ -264,17 +265,7 @@ export function RecentMatchHistoryModal({
             aria-label="최근 경기 기록"
             className="flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-[24px] bg-[var(--ui-surface)] text-[var(--ui-ink)] shadow-2xl sm:max-w-7xl sm:rounded-[24px]"
           >
-            <div className="flex min-h-14 items-center justify-between border-b border-[var(--ui-border)] px-4 sm:min-h-16 sm:px-5">
-              <h2 className="home-section-title text-[length:var(--ui-title-size)] text-[var(--ui-ink)]">최근 경기 기록</h2>
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="grid h-11 w-11 place-items-center rounded-xl text-[var(--ui-muted)] hover:bg-[var(--ui-surface-muted)]"
-                aria-label="닫기"
-              >
-                <X size={21} />
-              </button>
-            </div>
+            <DialogSheetHeader onClose={() => setOpen(false)} title="최근 경기 기록" />
 
             <div
               ref={scrollRef}

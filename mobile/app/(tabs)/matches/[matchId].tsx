@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { type LayoutChangeEvent, StyleSheet, Text, View } from 'react-native';
 
 import { ErrorState } from '@/components/feedback-states';
 import { CompactScoreboard } from '@/components/matches/compact-scoreboard';
@@ -19,11 +19,17 @@ import { useCachedQuery } from '@/hooks/use-cached-query';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import { mobileApiOrigin, type MobileMatchDetailDto } from '@/lib/api-client';
 
+const COLLAPSIBLE_HEADER_HEIGHT = 56;
+
 export default function MatchDetailScreen() {
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
   const { fonts, theme } = useMinionTheme();
   const [selectedSetId, setSelectedSetId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<MatchTabKey>('data');
+  const [setSelectorLayout, setSetSelectorLayout] = useState<{ tab: MatchTabKey; threshold: number } | null>(null);
+  const [setSelectorStuck, setSetSelectorStuck] = useState(false);
+  const latestScroll = useRef({ headerVisible: true, y: 0 });
+  const setSelectorStuckRef = useRef(false);
 
   const path = useMemo(() => {
     const base = `/api/mobile/v1/matches/${encodeURIComponent(matchId ?? '')}`;
@@ -35,6 +41,30 @@ export default function MatchDetailScreen() {
   useEffect(() => {
     if (data && data.sets.length === 0 && activeTab === 'data') setActiveTab('preview');
   }, [activeTab, data]);
+
+  const updateSetSelectorStuck = useCallback((nextStuck: boolean) => {
+    if (setSelectorStuckRef.current === nextStuck) return;
+    setSelectorStuckRef.current = nextStuck;
+    setSetSelectorStuck(nextStuck);
+  }, []);
+
+  const handleSetSelectorLayout = useCallback((event: LayoutChangeEvent) => {
+    // ScrollView 안의 콘텐츠가 공용 헤더 아래 16px에서 시작하므로 그 지점을 임계값에 포함한다.
+    const threshold = event.nativeEvent.layout.y + 16;
+    setSetSelectorLayout({ tab: activeTab, threshold });
+    const stickyThreshold = threshold + (latestScroll.current.headerVisible ? 0 : COLLAPSIBLE_HEADER_HEIGHT);
+    updateSetSelectorStuck(latestScroll.current.y >= stickyThreshold);
+  }, [activeTab, updateSetSelectorStuck]);
+
+  const handleScrollYChange = useCallback((scrollY: number, headerVisible: boolean) => {
+    latestScroll.current = { headerVisible, y: scrollY };
+    const selectorTabActive = activeTab === 'data' || activeTab === 'rating';
+    const stickyThreshold = setSelectorLayout
+      ? setSelectorLayout.threshold + (headerVisible ? 0 : COLLAPSIBLE_HEADER_HEIGHT)
+      : null;
+    const nextStuck = selectorTabActive && setSelectorLayout?.tab === activeTab && stickyThreshold !== null && scrollY >= stickyThreshold;
+    updateSetSelectorStuck(nextStuck);
+  }, [activeTab, setSelectorLayout, updateSetSelectorStuck]);
 
   if (loading && !data) {
     return (
@@ -56,9 +86,19 @@ export default function MatchDetailScreen() {
 
   const activeSetId = selectedSetId ?? data.activeSetId ?? '';
   const availableTabs: MatchTabKey[] = ['preview', ...(data.match.status !== 'completed' ? ['live' as const] : []), ...(data.sets.length > 0 ? ['data' as const] : []), 'rating', 'video'];
+  const setSelectorVisible = data.sets.length > 0 && (activeTab === 'data' || activeTab === 'rating');
+  const snapshotUrl = activeTab === 'rating' && data.fanRating?.snapshotAvailable
+    ? `${mobileApiOrigin}/matches/${encodeURIComponent(data.match.id)}/sets/${encodeURIComponent(activeSetId)}/snapshot`
+    : undefined;
+  const stickySetSelectorVisible = setSelectorStuck && setSelectorLayout?.tab === activeTab;
 
   return (
-    <MinionScreen contentStyle={styles.content}>
+    <MinionScreen
+      contentStyle={styles.content}
+      onScrollYChange={handleScrollYChange}
+      stickyHeader={setSelectorVisible ? <MatchSetSelector activeSetId={activeSetId} onSelect={setSelectedSetId} sets={data.sets} snapshotUrl={snapshotUrl} /> : undefined}
+      stickyHeaderReserveSpace={false}
+      stickyHeaderVisible={stickySetSelectorVisible}>
       <View style={styles.topBlock}>
         <MatchHeader header={data.header} match={data.match} />
         <MatchTabNav activeTab={activeTab} availableTabs={availableTabs} onSelect={setActiveTab} />
@@ -69,8 +109,10 @@ export default function MatchDetailScreen() {
       {activeTab === 'live' ? <LiveMatchFeed matchId={data.match.id} teamA={data.match.teamA} teamB={data.match.teamB} /> : null}
 
       {activeTab === 'data' ? (
-        <View style={styles.dataTab}>
-          <MatchSetSelector activeSetId={activeSetId} onSelect={setSelectedSetId} sets={data.sets} />
+        <View onLayout={handleSetSelectorLayout} style={styles.dataTab}>
+          <View accessibilityElementsHidden={stickySetSelectorVisible} importantForAccessibility={stickySetSelectorVisible ? 'no-hide-descendants' : 'auto'}>
+            <MatchSetSelector activeSetId={activeSetId} onSelect={setSelectedSetId} sets={data.sets} />
+          </View>
           {data.activeSet ? (
             <View style={styles.setDetailBlock}>
               <CompactScoreboard set={data.activeSet} />
@@ -86,8 +128,10 @@ export default function MatchDetailScreen() {
       ) : null}
 
       {activeTab === 'rating' ? (
-        <View style={styles.ratingTab}>
-          <MatchSetSelector activeSetId={activeSetId} onSelect={setSelectedSetId} sets={data.sets} snapshotUrl={data.fanRating?.snapshotAvailable ? `${mobileApiOrigin}/matches/${encodeURIComponent(data.match.id)}/sets/${encodeURIComponent(activeSetId)}/snapshot` : undefined} />
+        <View onLayout={handleSetSelectorLayout} style={styles.ratingTab}>
+          <View accessibilityElementsHidden={stickySetSelectorVisible} importantForAccessibility={stickySetSelectorVisible ? 'no-hide-descendants' : 'auto'}>
+            <MatchSetSelector activeSetId={activeSetId} onSelect={setSelectedSetId} sets={data.sets} snapshotUrl={snapshotUrl} />
+          </View>
           <MatchRatingTab panel={data.fanRating} />
         </View>
       ) : null}
@@ -99,9 +143,9 @@ export default function MatchDetailScreen() {
 
 const styles = StyleSheet.create({
   content: { gap: 20, paddingBottom: 0 },
-  dataTab: { gap: 12 },
+  dataTab: { gap: 16, marginTop: -20 },
   emptyBox: { borderRadius: 8, borderStyle: 'dashed', borderWidth: 1, padding: 16 },
-  ratingTab: { gap: 12 },
+  ratingTab: { gap: 16, marginTop: -20 },
   setDetailBlock: { gap: 20 },
   topBlock: { gap: 8 },
 });
