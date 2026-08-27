@@ -177,16 +177,6 @@ html[data-navigation-pending="true"] body {
   top: var(--shell-mobile-header-offset, 56px);
 }
 
-.onboarding-dialog-panel {
-  max-width: none;
-}
-
-@media (min-width: 640px) {
-  .onboarding-dialog-panel {
-    max-width: var(--onboarding-dialog-max-width);
-  }
-}
-
 .schedule-mobile-sticky {
   top: calc(var(--shell-mobile-header-offset, 56px) + 48px);
   transition: top 0.2s cubic-bezier(0.4, 0, 0.2, 1);

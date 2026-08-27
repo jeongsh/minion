@@ -5,21 +5,12 @@ import { isIP } from "node:net";
 
 import { cookies, headers } from "next/headers";
 
+import { nicknameFromKey } from "@/lib/community/guest-nickname";
+
 const GUEST_COOKIE_NAME = "community_guest_id";
 const GUEST_COOKIE_MAX_AGE = 60 * 60 * 24 * 90;
 const GUEST_TOKEN_PATTERN = /^[A-Za-z0-9_-]{32}$/;
 const INSTALLATION_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-const MINION_PREFIXES = [
-  "꾸벅조는", "총총걷는", "뒤뚱대는", "간식찾는", "몰래쉬는", "딴짓하는", "눈치보는", "춤추는",
-  "신난", "삐진", "겁먹은", "배고픈", "멍때리는", "수풀숨은", "강구경온", "바론구경온",
-  "길을잃은", "집에가고픈", "무리놓친", "늦잠잔", "혼자남은", "뒤처진", "한대남은", "귀환못한",
-  "퇴근못한", "살고싶은", "정글에버려진", "미드에서헤맨", "집앞까지온", "넥서스처음본", "마지막까지남은", "아무도안잡는",
-  "막타훔친", "막타버틴", "CS다먹은", "귀환끊은", "길막하는", "어그로끈", "라인밀어버린", "라인얼려버린",
-  "경험치먹는", "킬먹고간", "펜타뺏은", "점멸뺀", "스킬피한", "논타겟막은", "그랩막아선", "승급전망친",
-  "바론버프받은", "장로버프받은", "용막타친", "바론막타친", "정글마실간", "탑끝까지민", "미드달리는", "백도어하는",
-  "다이브한", "포탑치는", "포탑맞는", "억제기앞에선", "넥서스치는", "서렌반대한", "와드인척한", "캐리중인",
-] as const;
 
 export type GuestIdentity = {
   key: string;
@@ -59,12 +50,6 @@ function adminIpLabel(ip: string): string {
   if (ip === "::1") return "127.0.*.*";
   const visible = ip.split(":").filter(Boolean).slice(0, 3);
   return `${visible.join(":")}:*`;
-}
-
-function nicknameFromKey(key: string): string {
-  const prefix = MINION_PREFIXES[Number.parseInt(key.slice(0, 2), 16) % MINION_PREFIXES.length];
-  const suffix = (Number.parseInt(key.slice(4, 10), 16) % 10_000).toString().padStart(4, "0");
-  return `${prefix}미니언${suffix}`;
 }
 
 function ipFromHeaders(requestHeaders: Headers): string {

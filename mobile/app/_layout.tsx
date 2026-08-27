@@ -51,7 +51,7 @@ function RootNavigator() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="login" />
         <Stack.Screen name="signup" />
-        <Stack.Screen name="favorite-team" />
+        <Stack.Screen name="favorite-team" options={{ gestureEnabled: false }} />
         <Stack.Screen name="auth/callback" />
         <Stack.Screen name="me" />
         <Stack.Screen name="me/profile" />

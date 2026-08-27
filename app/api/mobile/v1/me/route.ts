@@ -175,6 +175,7 @@ export async function PATCH(request: Request) {
   if (!auth) return mobileError("UNAUTHENTICATED", "로그인이 필요합니다.", 401);
   const input = await request.json().catch(() => null) as {
     nickname?: string;
+    onboardingComplete?: boolean;
     favoriteTeamId?: string | null;
     followedTeamIds?: string[];
     notificationPreferences?: Partial<MobileNotificationPreferences>;
@@ -221,6 +222,9 @@ export async function PATCH(request: Request) {
       if (!team) return mobileError("BAD_REQUEST", "팀 정보를 찾을 수 없습니다.", 400);
     }
     profileUpdates.favorite_team_id = input.favoriteTeamId;
+  }
+  if (input.onboardingComplete === true) {
+    profileUpdates.onboarding_completed_at = new Date().toISOString();
   }
   if (Object.keys(profileUpdates).length) {
     const { error } = await supabase.from("profiles").update(profileUpdates).eq("id", user.id);
