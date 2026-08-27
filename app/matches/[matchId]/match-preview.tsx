@@ -82,6 +82,35 @@ function formatMeetingDay(value: string) {
     .replace(/\.$/, "");
 }
 
+function formatPreviewTime(value: string) {
+  return new Intl.DateTimeFormat("ko-KR", {
+    timeZone: KST_TIMEZONE,
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(new Date(value));
+}
+
+function formatSourceDay(value: string | null) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return null;
+  return new Intl.DateTimeFormat("ko-KR", {
+    timeZone: KST_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
+function confidenceLabel(value: MatchAiPreview["confidence"]) {
+  if (value === "high") return "높음";
+  if (value === "medium") return "보통";
+  return "낮음";
+}
+
 /** 눈여겨볼 곳의 첫 문장만 형광펜 하이라이트로 강조한다. */
 function splitLeadSentence(text: string): [string, string] {
   const match = text.match(/^[^.!?]*[.!?]/);
@@ -104,7 +133,7 @@ function BriefingRow({
         align === "center" ? "sm:items-center" : "sm:items-start"
       }`}
     >
-      <span className="text-[13px] font-bold text-[var(--ui-muted)] sm:text-sm">{label}</span>
+      <span className="text-[14px] font-medium text-[var(--ui-muted)]">{label}</span>
       <div className="min-w-0">{children}</div>
     </div>
   );
@@ -125,10 +154,10 @@ function MetricCard({
 }) {
   return (
     <div className="rounded-lg bg-[var(--ui-surface)] px-2 py-2 sm:px-3">
-      <div className="text-[13px] font-bold text-[var(--ui-muted)] sm:text-sm">{label}</div>
-      <div className="mt-1 whitespace-nowrap text-sm font-black tabular-nums sm:text-base">
+      <div className="text-[13px] font-medium text-[var(--ui-muted)]">{label}</div>
+      <div className="mt-1 whitespace-nowrap text-base font-bold tabular-nums">
         <span style={{ color: colorA }}>{valueA}</span>
-        <span className="px-0.5 font-bold text-[var(--ui-muted)] sm:px-1">vs</span>
+        <span className="px-0.5 text-[13px] font-medium text-[var(--ui-muted)] sm:px-1">vs</span>
         <span style={{ color: colorB }}>{valueB}</span>
       </div>
     </div>
@@ -150,14 +179,14 @@ function MeetingSide({
 }) {
   const nameNode = (
     <span
-      className={`truncate text-sm ${won ? "font-black text-[var(--ui-ink)]" : "font-bold text-[var(--ui-muted)]"}`}
+      className={`truncate text-[15px] font-bold ${won ? "text-[var(--ui-ink)]" : "text-[var(--ui-muted)]"}`}
     >
       {name}
     </span>
   );
   const scoreNode = (
     <span
-      className={`shrink-0 text-base tabular-nums ${won ? "font-black text-[var(--ui-ink)]" : "font-bold text-[var(--ui-muted)]"}`}
+      className={`shrink-0 text-base font-bold tabular-nums ${won ? "text-[var(--ui-ink)]" : "text-[var(--ui-muted)]"}`}
     >
       {score ?? "-"}
     </span>
@@ -188,7 +217,7 @@ function MeetingRow({
 
   return (
     <div className="flex items-center gap-3 rounded-lg bg-[var(--ui-surface)] px-3 py-2">
-      <span className="shrink-0 whitespace-nowrap text-xs font-medium tabular-nums text-[var(--ui-muted)]">
+      <span className="shrink-0 whitespace-nowrap text-[13px] font-medium tabular-nums text-[var(--ui-muted)]">
         {formatMeetingDay(meeting.matchDate)}
       </span>
       <div className="flex min-w-0 flex-1 items-center justify-center gap-2 sm:gap-3">
@@ -199,7 +228,7 @@ function MeetingRow({
           won={meeting.winnerTeamId === meeting.teamAId}
           align="right"
         />
-        <span className="shrink-0 text-xs font-medium text-[var(--ui-muted)]">:</span>
+        <span className="shrink-0 text-[13px] font-medium text-[var(--ui-muted)]">:</span>
         <MeetingSide
           team={teamB}
           name={teamLabel(teams, meeting.teamBId)}
@@ -208,7 +237,7 @@ function MeetingRow({
         />
       </div>
       <span
-        className="shrink-0 whitespace-nowrap rounded-md px-2 py-1 text-xs font-medium text-white"
+        className="shrink-0 whitespace-nowrap rounded-md px-2 py-1 text-[13px] font-medium text-white"
         style={{ background: winnerColor }}
       >
         {teamLabel(teams, meeting.winnerTeamId)} 승

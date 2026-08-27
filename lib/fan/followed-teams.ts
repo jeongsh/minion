@@ -6,21 +6,11 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 const FAN_VOTER_COOKIE = "lckhub_fan_voter";
 
-export async function getFollowedTeamIds(): Promise<string[]> {
-  const [user, cookieStore] = await Promise.all([getCurrentUser(), cookies()]);
-  const raw = cookieStore.get(FAN_VOTER_COOKIE)?.value;
-  if (!user && !raw) return [];
-
-  const voterKey = raw ? createHash("sha256").update(raw).digest("hex") : null;
+async function getFollowedTeamKeys(filters: string[]): Promise<string[]> {
+  if (filters.length === 0) return [];
 
   try {
     const supabase = createSupabaseAdminClient();
-    // 팔로우는 계정(user_id)과 쿠키(voter_key) 두 경로로 쌓인다(actions.ts findFanRow와 동일).
-    // 한쪽만 보면 다른 기기/브라우저에서 누른 팔로우가 LNB에 빠진다.
-    const filters: string[] = [];
-    if (user) filters.push(`user_id.eq.${user.id}`);
-    if (voterKey) filters.push(`voter_key.eq.${voterKey}`);
-
     const { data, error } = await supabase
       .from("team_fans")
       .select("team_id")
@@ -48,4 +38,24 @@ export async function getFollowedTeamIds(): Promise<string[]> {
   } catch {
     return [];
   }
+}
+
+/** 계정 귀속 기능에서 브라우저의 익명 팬 쿠키가 섞이지 않도록 사용자 팔로우만 조회한다. */
+export async function getUserFollowedTeamIds(userId: string): Promise<string[]> {
+  return getFollowedTeamKeys([`user_id.eq.${userId}`]);
+}
+
+export async function getFollowedTeamIds(): Promise<string[]> {
+  const [user, cookieStore] = await Promise.all([getCurrentUser(), cookies()]);
+  const raw = cookieStore.get(FAN_VOTER_COOKIE)?.value;
+  if (!user && !raw) return [];
+
+  const voterKey = raw ? createHash("sha256").update(raw).digest("hex") : null;
+
+  // 팔로우는 계정(user_id)과 쿠키(voter_key) 두 경로로 쌓인다(actions.ts findFanRow와 동일).
+  // 한쪽만 보면 다른 기기/브라우저에서 누른 팔로우가 LNB에 빠진다.
+  const filters: string[] = [];
+  if (user) filters.push(`user_id.eq.${user.id}`);
+  if (voterKey) filters.push(`voter_key.eq.${voterKey}`);
+  return getFollowedTeamKeys(filters);
 }

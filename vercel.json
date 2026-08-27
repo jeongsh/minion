@@ -11,7 +11,7 @@
   "crons": [
     {
       "path": "/api/cron/match-previews",
-      "schedule": "15 21 * * *"
+      "schedule": "45 21 * * *"
     }
   ]
 }

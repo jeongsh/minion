@@ -40,6 +40,7 @@ import type { Tier } from "@/lib/rank/config";
 import type { NotificationPreferences } from "@/lib/notifications";
 
 export type AppShellUser = {
+  id: string;
   nickname: string | null;
   profileImageUrl: string | null;
   tier: Tier;
@@ -214,7 +215,7 @@ export function AppShell({
     markAllNotificationsRead,
     removeNotification,
     clearNotifications,
-  } = useMatchActivity(true, followedActivityTeamIds, notificationPreferences);
+  } = useMatchActivity(Boolean(currentUser), followedActivityTeamIds, notificationPreferences, currentUser?.id);
   const closeLiveActivity = () => {
     if (!liveCard) return;
     markNotificationRead(`match-live:${liveCard.id}`);
@@ -334,7 +335,15 @@ export function AppShell({
           >
             <ChevronLeft size={22} />
           </Link>
-          <p className="font-paperozi truncate text-center text-[16px] font-bold leading-tight text-[var(--ui-ink)] md:text-[24px] md:font-normal lg:text-[28px]">{focus.title}</p>
+          <p
+            className={`font-paperozi truncate text-center font-bold leading-tight text-[var(--ui-ink)] md:font-normal ${
+              pathname === "/login" || pathname === "/signup"
+                ? "text-[16px] md:text-xl lg:text-xl"
+                : "text-[16px] md:text-[24px] lg:text-[28px]"
+            }`}
+          >
+            {focus.title}
+          </p>
           <span aria-hidden="true" />
         </header>
       ) : (
@@ -385,10 +394,12 @@ export function AppShell({
         >
           <HeaderSearch className="pointer-events-auto w-[480px]" />
         </div>
-        <button type="button" onClick={() => setNotificationPanelOpen(true)} className="relative ml-auto grid h-11 w-11 shrink-0 place-items-center rounded-xl text-[#62666d] transition hover:bg-[var(--ui-card-hover)] dark:text-[#a7acb5]" aria-label={`알림${unreadNotificationCount > 0 ? `, 읽지 않은 알림 ${unreadNotificationCount}개` : ""}`} aria-haspopup="dialog">
-          <Bell size={20} />
-          {unreadNotificationCount > 0 ? <span className="absolute right-0.5 top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-[var(--accent)] px-0.5 text-[12px] font-medium leading-none text-white" aria-hidden>{unreadNotificationCount > 9 ? "9+" : unreadNotificationCount}</span> : null}
-        </button>
+        {currentUser ? (
+          <button type="button" onClick={() => setNotificationPanelOpen(true)} className="relative ml-auto grid h-11 w-11 shrink-0 place-items-center rounded-xl text-[#62666d] transition hover:bg-[var(--ui-card-hover)] dark:text-[#a7acb5]" aria-label={`알림${unreadNotificationCount > 0 ? `, 읽지 않은 알림 ${unreadNotificationCount}개` : ""}`} aria-haspopup="dialog">
+            <Bell size={20} />
+            {unreadNotificationCount > 0 ? <span className="absolute right-0.5 top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-[var(--accent)] px-0.5 text-[12px] font-medium leading-none text-white" aria-hidden>{unreadNotificationCount > 9 ? "9+" : unreadNotificationCount}</span> : null}
+          </button>
+        ) : <div className="ml-auto" />}
         <button type="button" onClick={toggleDarkMode} className="mr-2 grid h-11 w-11 shrink-0 place-items-center rounded-xl text-[#62666d] transition hover:bg-[var(--ui-card-hover)] sm:mr-2 dark:bg-[rgba(0,0,0,0)] dark:text-[#a7acb5]" aria-label="색상 모드 전환" title="색상 모드 전환">
           <Moon size={20} className="dark:hidden" />
           <Sun size={20} className="hidden dark:block" />
@@ -548,7 +559,7 @@ export function AppShell({
         </nav>
       ) : null}
 
-      <NotificationPanel
+      {currentUser ? <NotificationPanel
         open={notificationPanelOpen}
         onClose={() => setNotificationPanelOpen(false)}
         notifications={notifications}
@@ -557,8 +568,8 @@ export function AppShell({
         onReadAll={markAllNotificationsRead}
         onRemove={removeNotification}
         onClear={clearNotifications}
-      />
-      {liveCard || ratingCard ? (
+      /> : null}
+      {currentUser && (liveCard || ratingCard) ? (
         <div className="fixed bottom-5 right-5 z-[60] hidden w-[390px] flex-col gap-2 min-[1200px]:flex">
           {liveCard ? <LiveMatchCard match={liveCard} onOpen={closeLiveActivity} onClose={closeLiveActivity} /> : null}
           {ratingCard ? <RatingOpenCard rating={ratingCard} onOpen={closeRatingActivity} onClose={closeRatingActivity} /> : null}

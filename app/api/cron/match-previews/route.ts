@@ -11,8 +11,8 @@ export async function GET(request: Request) {
 
   try {
     const summary = await refreshMissingUpcomingMatchAiPreviews({
-      concurrency: 4,
-      limit: 8,
+      concurrency: 3,
+      limit: 6,
     });
     return Response.json({
       ok: summary.failed.length === 0,

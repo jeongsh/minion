@@ -64,6 +64,7 @@ export default async function RootLayout({
   if (user) {
     const summary = await getRankSummary(user.id);
     shellUser = {
+      id: user.id,
       nickname: user.nickname,
       profileImageUrl: user.profileImageUrl,
       tier: summary.tier,
@@ -100,6 +101,7 @@ export default async function RootLayout({
           <SpoilerFreeProvider>
             <NavigationTransitionProvider>
               <AppShell
+                key={user?.id ?? "guest"}
                 currentUser={shellUser}
                 isAdminUser={isAdminUser}
                 followedTeamIds={followedTeamIds}

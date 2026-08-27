@@ -8,7 +8,7 @@ import { SocialAuthButtons } from "@/components/auth/social-auth-buttons";
 import { signInAction } from "@/lib/auth/actions";
 import { INITIAL_AUTH_STATE } from "@/lib/auth/action-state";
 
-export function LoginForm({ initialError }: { initialError?: string }) {
+export function LoginForm({ initialError, next = "/" }: { initialError?: string; next?: string }) {
   const [state, formAction, pending] = useActionState(
     signInAction,
     initialError ? { error: initialError } : INITIAL_AUTH_STATE,
@@ -17,8 +17,9 @@ export function LoginForm({ initialError }: { initialError?: string }) {
   return (
     <div className="flex flex-col gap-5">
       <form action={formAction} className="flex flex-col gap-4">
+        <input type="hidden" name="next" value={next} />
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="email" className="text-sm font-semibold">
+          <label htmlFor="email" className="text-sm font-medium">
             이메일
           </label>
           <input
@@ -33,7 +34,7 @@ export function LoginForm({ initialError }: { initialError?: string }) {
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="password" className="text-sm font-semibold">
+          <label htmlFor="password" className="text-sm font-medium">
             비밀번호
           </label>
           <input
@@ -59,23 +60,23 @@ export function LoginForm({ initialError }: { initialError?: string }) {
 
         <p className="text-sm" style={{ color: "var(--muted)" }}>
           계정이 없으신가요?{" "}
-          <Link href="/signup" className="font-semibold underline">
+          <Link href="/signup" className="font-medium underline">
             회원가입
           </Link>
           {" · "}
-          <Link href="/forgot-password" className="font-semibold underline">
+          <Link href="/forgot-password" className="font-medium underline">
             비밀번호 재설정
           </Link>
         </p>
       </form>
 
-      <div className="flex items-center gap-3 text-[12px] font-medium text-[var(--ui-muted)]">
+      <div className="flex items-center gap-3 text-[13px] font-medium text-[var(--ui-muted)]">
         <span className="h-px flex-1 bg-[var(--ui-border)]" />
         또는
         <span className="h-px flex-1 bg-[var(--ui-border)]" />
       </div>
 
-      <SocialAuthButtons />
+      <SocialAuthButtons next={next} />
     </div>
   );
 }

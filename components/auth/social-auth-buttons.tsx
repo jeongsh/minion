@@ -62,12 +62,14 @@ function NaverIcon() {
 export function SocialAuthButtons({
   showConsentNotice = false,
   mode = "login",
+  next: requestedNext,
 }: {
   showConsentNotice?: boolean;
   mode?: "login" | "signup";
+  next?: string;
 }) {
   const actionLabel = mode === "signup" ? "회원가입" : "계속하기";
-  const next = mode === "signup" ? "/onboarding/favorite-team" : undefined;
+  const next = requestedNext ?? (mode === "signup" ? "/onboarding/favorite-team" : undefined);
   const isIPhone = useIsIPhone();
 
   return (
@@ -77,7 +79,7 @@ export function SocialAuthButtons({
         <form action={signInWithAppleAction}>
           <button
             type="submit"
-            className="flex min-h-10 w-full items-center justify-center gap-2 rounded-lg bg-black text-[13px] font-semibold text-white transition hover:brightness-110 active:scale-[0.99]"
+            className="flex min-h-10 w-full items-center justify-center gap-2 rounded-lg bg-black text-[13px] font-medium text-white transition hover:brightness-110 active:scale-[0.99]"
           >
             <AppleIcon />
             Apple로 {actionLabel}
@@ -89,7 +91,7 @@ export function SocialAuthButtons({
         {next ? <input type="hidden" name="next" value={next} /> : null}
         <button
           type="submit"
-          className="flex min-h-10 w-full items-center justify-center gap-2 rounded-lg border border-[#747775] bg-white text-[13px] font-semibold text-[#1f1f1f] transition hover:bg-[#f7f7f7] active:scale-[0.99] dark:border-[#8e918f] dark:bg-[#131314] dark:text-[#e3e3e3] dark:hover:bg-[#1b1b1b]"
+          className="flex min-h-10 w-full items-center justify-center gap-2 rounded-lg border border-[#747775] bg-white text-[13px] font-medium text-[#1f1f1f] transition hover:bg-[#f7f7f7] active:scale-[0.99] dark:border-[#8e918f] dark:bg-[#131314] dark:text-[#e3e3e3] dark:hover:bg-[#1b1b1b]"
         >
           <GoogleIcon />
           구글로 {actionLabel}
@@ -99,7 +101,7 @@ export function SocialAuthButtons({
         {next ? <input type="hidden" name="next" value={next} /> : null}
         <button
           type="submit"
-          className="flex min-h-10 w-full items-center justify-center gap-2 rounded-lg bg-[#FEE500] text-[13px] font-semibold text-[#191600] transition hover:brightness-95 active:scale-[0.99]"
+          className="flex min-h-10 w-full items-center justify-center gap-2 rounded-lg bg-[#FEE500] text-[13px] font-medium text-[#191600] transition hover:brightness-95 active:scale-[0.99]"
         >
           <KakaoIcon />
           카카오로 {actionLabel}
@@ -109,7 +111,7 @@ export function SocialAuthButtons({
         {next ? <input type="hidden" name="next" value={next} /> : null}
         <button
           type="submit"
-          className="flex min-h-10 w-full items-center justify-center gap-2 rounded-lg bg-[#03C75A] text-[13px] font-semibold text-white transition hover:brightness-95 active:scale-[0.99]"
+          className="flex min-h-10 w-full items-center justify-center gap-2 rounded-lg bg-[#03C75A] text-[13px] font-medium text-white transition hover:brightness-95 active:scale-[0.99]"
         >
           <NaverIcon />
           네이버로 {actionLabel}
@@ -117,7 +119,7 @@ export function SocialAuthButtons({
       </form>
 
       {showConsentNotice ? (
-        <p className="text-center text-[12px] leading-5 text-[var(--ui-muted)]">
+        <p className="text-center text-[13px] leading-5 text-[var(--ui-muted)]">
           계속 진행하면 만 14세 이상이며{" "}
           <Link href="/terms" target="_blank" rel="noreferrer" className="underline underline-offset-2">이용약관</Link>
           {" 및 "}

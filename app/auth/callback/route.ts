@@ -40,6 +40,20 @@ export async function GET(request: Request) {
     if (error) {
       return loginErrorRedirect(error.message);
     }
+
+    const { data: auth } = await supabase.auth.getUser();
+    if (auth.user) {
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("onboarding_completed_at")
+        .eq("id", auth.user.id)
+        .maybeSingle();
+      if (!profileError && profile && !profile.onboarding_completed_at) {
+        const safeNext = next.startsWith("/") && !next.startsWith("//") && !next.startsWith("/onboarding/") ? next : "/me";
+        const suffix = safeNext === "/me" ? "" : `?next=${encodeURIComponent(safeNext)}`;
+        return NextResponse.redirect(new URL(`/onboarding/favorite-team${suffix}`, siteBaseUrl()));
+      }
+    }
   }
 
   return NextResponse.redirect(new URL(next.startsWith("/") ? next : "/", siteBaseUrl()));

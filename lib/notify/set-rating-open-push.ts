@@ -79,7 +79,7 @@ export async function sendPendingSetRatingOpenPushNotifications(): Promise<{ sen
           to: token.expo_push_token,
           title: "세트 평가 오픈",
           body: `${matchName} ${setNumber}세트 평가 시작`,
-          data: { matchId, type: "rating_open", url: `/matches/${matchId}?tab=rating&set=${setNumber}` },
+          data: { matchId, type: "rating_open", url: `/matches/${matchId}?tab=rating&set=${setNumber}`, userId: token.user_id },
         })),
       );
       sent += result.sent;

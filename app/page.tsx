@@ -1,4 +1,5 @@
 import { HomeDashboard, type HomeStandingRow } from "@/components/domain/home-dashboard";
+import { OnboardingDialog } from "@/components/auth/onboarding-dialog";
 import type { HomeCalendarMatch } from "@/components/domain/home-calendar";
 import type { HomeMatchItem } from "@/components/domain/home-match-card";
 import { getHomePagePublicData } from "@/lib/data/home-cache";
@@ -11,6 +12,9 @@ import { getPredictionMarketData } from "@/lib/predictions";
 import { getTodayCelebrations } from "@/lib/calendar/events";
 import { getLckChannelVideos, type HomeVideo } from "@/lib/data/lck-channel-videos";
 import { getHomeNewsFeed } from "@/lib/data/naver-news";
+import { getCurrentUser } from "@/lib/auth/current-user";
+import { safeOnboardingNext } from "@/lib/auth/onboarding";
+import { createSupabaseAuthClient } from "@/lib/supabase/auth-server";
 import {
   COMMUNITY_HOME_HOT_CANDIDATE_LIMIT,
   COMMUNITY_HOME_LATEST_CANDIDATE_LIMIT,
@@ -24,7 +28,14 @@ function yearMonthKeyKST(value: string) {
   return dateKeyKST(value).slice(0, 7);
 }
 
-export default async function HomePage() {
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = searchParams ? await searchParams : {};
+  const showOnboarding = (Array.isArray(params.onboarding) ? params.onboarding[0] : params.onboarding) === "1";
+  const onboardingNext = safeOnboardingNext(params.next);
   const [homeData, popularCommunityPosts, latestCommunityPosts, predictionMarket, lckChannelVideos, pomEntries, homeNewsFeed] = await Promise.all([
     getHomePagePublicData(),
     getBoardPosts({ scope: "hub", hotOnly: true, limit: COMMUNITY_HOME_HOT_CANDIDATE_LIMIT }),
@@ -144,8 +155,32 @@ export default async function HomePage() {
   const homeCommunityPosts = selectCommunityHomePosts(popularCommunityPosts, latestCommunityPosts);
   const homeCommunityTitle = communityHomeSectionTitle(homeCommunityPosts);
 
+  let onboarding: React.ReactNode = null;
+  if (showOnboarding) {
+    const user = await getCurrentUser();
+    if (user) {
+      const supabase = await createSupabaseAuthClient();
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("nickname, profile_image_url, onboarding_completed_at")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (!profile?.onboarding_completed_at) {
+        onboarding = (
+          <OnboardingDialog
+            initialNickname={profile?.nickname ?? ""}
+            initialProfileImageUrl={profile?.profile_image_url ?? null}
+            teams={teams}
+            next={onboardingNext}
+          />
+        );
+      }
+    }
+  }
+
   return (
-    <HomeDashboard
+    <>
+      <HomeDashboard
       teams={teams}
       standingRows={standingRows}
       matchItems={matchItems}
@@ -159,6 +194,8 @@ export default async function HomePage() {
       communityTitle={homeCommunityTitle}
       pomEntries={pomEntries}
       newsItems={homeNewsFeed.articles}
-    />
+      />
+      {onboarding}
+    </>
   );
 }

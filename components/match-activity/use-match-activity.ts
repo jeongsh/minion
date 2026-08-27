@@ -12,10 +12,13 @@ import { OBJECTIVE_ICONS } from "@/lib/objectives";
 const ACTIVITY_POLL_MS = 30_000;
 const LIVE_EVENT_POLL_MS = 10_000;
 const LIVE_NOTIFICATION_DURATION_MS = 10_000;
-const NOTIFICATION_STORAGE_KEY = "minion-notifications-v1";
+const LEGACY_NOTIFICATION_STORAGE_KEY = "minion-notifications-v1";
+const NOTIFICATION_STORAGE_KEY_PREFIX = "minion-notifications-v2";
 const NOTIFICATION_CHANGE_EVENT = "minion-notifications-change";
-const DISMISSED_RATING_CARD_STORAGE_KEY = "minion-dismissed-rating-cards-v1";
-const DISMISSED_LIVE_CARD_STORAGE_KEY = "minion-dismissed-live-cards-v1";
+const LEGACY_DISMISSED_RATING_CARD_STORAGE_KEY = "minion-dismissed-rating-cards-v1";
+const LEGACY_DISMISSED_LIVE_CARD_STORAGE_KEY = "minion-dismissed-live-cards-v1";
+const DISMISSED_RATING_CARD_STORAGE_KEY_PREFIX = "minion-dismissed-rating-cards-v2";
+const DISMISSED_LIVE_CARD_STORAGE_KEY_PREFIX = "minion-dismissed-live-cards-v2";
 const EMPTY_NOTIFICATIONS_JSON = "[]";
 
 const EMPTY_ACTIVITY: MatchActivityResponse = { liveMatches: [], ratings: [] };
@@ -50,8 +53,12 @@ function subscribeToNotifications(onStoreChange: () => void) {
   };
 }
 
-function getNotificationsSnapshot() {
-  return window.localStorage.getItem(NOTIFICATION_STORAGE_KEY) ?? EMPTY_NOTIFICATIONS_JSON;
+function accountStorageKey(prefix: string, ownerId?: string | null) {
+  return ownerId ? `${prefix}:${ownerId}` : null;
+}
+
+function getNotificationsSnapshot(storageKey: string | null) {
+  return storageKey ? window.localStorage.getItem(storageKey) ?? EMPTY_NOTIFICATIONS_JSON : EMPTY_NOTIFICATIONS_JSON;
 }
 
 function parseNotifications(value: string): AppNotification[] {
@@ -63,25 +70,18 @@ function parseNotifications(value: string): AppNotification[] {
   }
 }
 
-function updateStoredNotifications(update: (current: AppNotification[]) => AppNotification[]) {
-  const current = parseNotifications(getNotificationsSnapshot());
+function updateStoredNotifications(storageKey: string | null, update: (current: AppNotification[]) => AppNotification[]) {
+  if (!storageKey) return;
+  const current = parseNotifications(getNotificationsSnapshot(storageKey));
   const next = update(current).slice(0, 100);
-  window.localStorage.setItem(NOTIFICATION_STORAGE_KEY, JSON.stringify(next));
+  window.localStorage.setItem(storageKey, JSON.stringify(next));
   window.dispatchEvent(new Event(NOTIFICATION_CHANGE_EVENT));
 }
 
-function dismissedRatingCardIds() {
+function dismissedCardIds(storageKey: string | null) {
+  if (!storageKey) return new Set<string>();
   try {
-    const parsed = JSON.parse(window.localStorage.getItem(DISMISSED_RATING_CARD_STORAGE_KEY) ?? "[]") as unknown;
-    return new Set(Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === "string") : []);
-  } catch {
-    return new Set<string>();
-  }
-}
-
-function dismissedLiveCardIds() {
-  try {
-    const parsed = JSON.parse(window.localStorage.getItem(DISMISSED_LIVE_CARD_STORAGE_KEY) ?? "[]") as unknown;
+    const parsed = JSON.parse(window.localStorage.getItem(storageKey) ?? "[]") as unknown;
     return new Set(Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === "string") : []);
   } catch {
     return new Set<string>();
@@ -142,12 +142,24 @@ function liveEventPresentation(event: LiveMatchEvent, match: LiveMatchActivity) 
   };
 }
 
-export function useMatchActivity(enabled: boolean, followedTeamIds: string[] = [], preferences: NotificationPreferences = DEFAULT_NOTIFICATION_PREFERENCES) {
+export function useMatchActivity(
+  enabled: boolean,
+  followedTeamIds: string[] = [],
+  preferences: NotificationPreferences = DEFAULT_NOTIFICATION_PREFERENCES,
+  notificationOwnerId?: string | null,
+) {
   const { showToast } = useToast();
   const [activity, setActivity] = useState<MatchActivityResponse>(EMPTY_ACTIVITY);
   const [ratingCard, setRatingCard] = useState<RatingMatchActivity | null>(null);
   const [liveCard, setLiveCard] = useState<LiveMatchActivity | null>(null);
-  const notificationsJson = useSyncExternalStore(subscribeToNotifications, getNotificationsSnapshot, () => EMPTY_NOTIFICATIONS_JSON);
+  const notificationStorageKey = accountStorageKey(NOTIFICATION_STORAGE_KEY_PREFIX, notificationOwnerId);
+  const dismissedRatingStorageKey = accountStorageKey(DISMISSED_RATING_CARD_STORAGE_KEY_PREFIX, notificationOwnerId);
+  const dismissedLiveStorageKey = accountStorageKey(DISMISSED_LIVE_CARD_STORAGE_KEY_PREFIX, notificationOwnerId);
+  const getNotificationSnapshot = useCallback(
+    () => getNotificationsSnapshot(notificationStorageKey),
+    [notificationStorageKey],
+  );
+  const notificationsJson = useSyncExternalStore(subscribeToNotifications, getNotificationSnapshot, () => EMPTY_NOTIFICATIONS_JSON);
   const notifications = useMemo(() => parseNotifications(notificationsJson), [notificationsJson]);
   const initialized = useRef(false);
   const previousLiveIds = useRef(new Set<string>());
@@ -160,18 +172,29 @@ export function useMatchActivity(enabled: boolean, followedTeamIds: string[] = [
   );
 
   useEffect(() => {
-    const current = parseNotifications(getNotificationsSnapshot());
+    // 기존 키에는 여러 로그인 계정과 비로그인 사용자의 내역이 섞일 수 있어 이관하지 않는다.
+    window.localStorage.removeItem(LEGACY_NOTIFICATION_STORAGE_KEY);
+    window.localStorage.removeItem(LEGACY_DISMISSED_RATING_CARD_STORAGE_KEY);
+    window.localStorage.removeItem(LEGACY_DISMISSED_LIVE_CARD_STORAGE_KEY);
+    initialized.current = false;
+    previousLiveIds.current.clear();
+    previousRatingIds.current.clear();
+    eventIdsByMatch.current.clear();
+    if (!notificationStorageKey) return;
+
+    const current = parseNotifications(getNotificationsSnapshot(notificationStorageKey));
     const next = current.filter((notification) => (
       !notification.id.includes("temporary-rating-card-preview")
       && !notification.id.includes("temporary-live-match-preview")
     ));
     if (next.length === current.length) return;
-    window.localStorage.setItem(NOTIFICATION_STORAGE_KEY, JSON.stringify(next));
+    window.localStorage.setItem(notificationStorageKey, JSON.stringify(next));
     window.dispatchEvent(new Event(NOTIFICATION_CHANGE_EVENT));
-  }, []);
+  }, [notificationStorageKey]);
 
   const publishNotification = useCallback((notification: AppNotification, duration: number) => {
-    updateStoredNotifications((current) => current.some((item) => item.id === notification.id)
+    if (!notificationStorageKey) return;
+    updateStoredNotifications(notificationStorageKey, (current) => current.some((item) => item.id === notification.id)
       ? current
       : [notification, ...current]);
     showToast({
@@ -182,49 +205,53 @@ export function useMatchActivity(enabled: boolean, followedTeamIds: string[] = [
       actionHref: notification.href,
       matchEvent: notification.matchEvent,
     });
-  }, [showToast]);
+  }, [notificationStorageKey, showToast]);
 
   const dismissRatingCard = useCallback(() => {
     setRatingCard((current) => {
       if (!current) return null;
-      const dismissed = dismissedRatingCardIds();
+      if (!dismissedRatingStorageKey) return null;
+      const dismissed = dismissedCardIds(dismissedRatingStorageKey);
       dismissed.add(current.id);
-      window.localStorage.setItem(DISMISSED_RATING_CARD_STORAGE_KEY, JSON.stringify([...dismissed].slice(-100)));
+      window.localStorage.setItem(dismissedRatingStorageKey, JSON.stringify([...dismissed].slice(-100)));
       return null;
     });
-  }, []);
+  }, [dismissedRatingStorageKey]);
 
   const dismissLiveCard = useCallback(() => {
     setLiveCard((current) => {
       if (!current) return null;
-      const dismissed = dismissedLiveCardIds();
+      if (!dismissedLiveStorageKey) return null;
+      const dismissed = dismissedCardIds(dismissedLiveStorageKey);
       dismissed.add(current.id);
-      window.localStorage.setItem(DISMISSED_LIVE_CARD_STORAGE_KEY, JSON.stringify([...dismissed].slice(-100)));
+      window.localStorage.setItem(dismissedLiveStorageKey, JSON.stringify([...dismissed].slice(-100)));
       return null;
     });
-  }, []);
+  }, [dismissedLiveStorageKey]);
 
   const markNotificationRead = useCallback((id: string) => {
     const readAt = new Date().toISOString();
-    updateStoredNotifications((current) => current.map((item) => item.id === id && !item.readAt ? { ...item, readAt } : item));
-  }, []);
+    updateStoredNotifications(notificationStorageKey, (current) => current.map((item) => item.id === id && !item.readAt ? { ...item, readAt } : item));
+  }, [notificationStorageKey]);
 
   const markAllNotificationsRead = useCallback(() => {
     const readAt = new Date().toISOString();
-    updateStoredNotifications((current) => current.map((item) => item.readAt ? item : { ...item, readAt }));
-  }, []);
+    updateStoredNotifications(notificationStorageKey, (current) => current.map((item) => item.readAt ? item : { ...item, readAt }));
+  }, [notificationStorageKey]);
 
   const removeNotification = useCallback((id: string) => {
-    updateStoredNotifications((current) => current.filter((item) => item.id !== id));
-  }, []);
+    updateStoredNotifications(notificationStorageKey, (current) => current.filter((item) => item.id !== id));
+  }, [notificationStorageKey]);
 
   const clearNotifications = useCallback(() => {
-    updateStoredNotifications(() => []);
-  }, []);
+    updateStoredNotifications(notificationStorageKey, () => []);
+  }, [notificationStorageKey]);
 
   const loadActivity = useCallback(async () => {
     if (!enabled) {
       setActivity(EMPTY_ACTIVITY);
+      setRatingCard(null);
+      setLiveCard(null);
       return;
     }
 
@@ -237,7 +264,7 @@ export function useMatchActivity(enabled: boolean, followedTeamIds: string[] = [
         : null;
 
       setRatingCard(
-        newestRating && !dismissedRatingCardIds().has(newestRating.id)
+        newestRating && !dismissedCardIds(dismissedRatingStorageKey).has(newestRating.id)
           ? newestRating
           : null,
       );
@@ -296,12 +323,12 @@ export function useMatchActivity(enabled: boolean, followedTeamIds: string[] = [
       previousRatingIds.current = new Set(next.ratings.map((rating) => rating.id));
       initialized.current = true;
       const newestLiveMatch = next.liveMatches[0] ?? null;
-      setLiveCard(newestLiveMatch && !dismissedLiveCardIds().has(newestLiveMatch.id) ? newestLiveMatch : null);
+      setLiveCard(newestLiveMatch && !dismissedCardIds(dismissedLiveStorageKey).has(newestLiveMatch.id) ? newestLiveMatch : null);
       setActivity(next);
     } catch {
       // 전역 보조 UI이므로 네트워크 오류가 페이지 탐색을 막지 않게 조용히 유지한다.
     }
-  }, [enabled, followedTeamIdSet, preferences.inAppEnabled, preferences.matchStartEnabled, preferences.ratingOpenEnabled, publishNotification]);
+  }, [dismissedLiveStorageKey, dismissedRatingStorageKey, enabled, followedTeamIdSet, preferences.inAppEnabled, preferences.matchStartEnabled, preferences.ratingOpenEnabled, publishNotification]);
 
   useEffect(() => {
     const initialLoad = window.setTimeout(() => void loadActivity(), 0);

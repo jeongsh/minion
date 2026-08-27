@@ -152,5 +152,16 @@ export async function GET(request: Request) {
     return errorRedirect("로그인 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
   }
 
+  const { data: onboardingProfile, error: onboardingError } = await supabase
+    .from("profiles")
+    .select("onboarding_completed_at")
+    .eq("id", userId)
+    .maybeSingle();
+  if (!onboardingError && onboardingProfile && !onboardingProfile.onboarding_completed_at) {
+    const safeNext = next.startsWith("/") && !next.startsWith("//") && !next.startsWith("/onboarding/") ? next : "/me";
+    const suffix = safeNext === "/me" ? "" : `?next=${encodeURIComponent(safeNext)}`;
+    return NextResponse.redirect(new URL(`/onboarding/favorite-team${suffix}`, siteBaseUrl()));
+  }
+
   return NextResponse.redirect(new URL(next.startsWith("/") ? next : "/", siteBaseUrl()));
 }

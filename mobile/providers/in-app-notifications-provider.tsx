@@ -17,7 +17,8 @@ import type { MatchEventToast } from '@/providers/minion-shell-provider';
 
 const ACTIVITY_POLL_MS = 30_000;
 const LIVE_EVENT_POLL_MS = 10_000;
-const NOTIFICATION_STORAGE_KEY = 'minion-notifications-v1';
+const LEGACY_NOTIFICATION_STORAGE_KEY = 'minion-notifications-v1';
+const NOTIFICATION_STORAGE_KEY_PREFIX = 'minion-notifications-v2';
 const MAX_NOTIFICATIONS = 100;
 
 const DEFAULT_PREFERENCES: MobileNotificationPreferences = {
@@ -167,16 +168,18 @@ export function InAppNotificationsProvider({ children }: PropsWithChildren) {
   const eventIdsByMatch = useRef(new Map<string, Set<string>>());
   const persistenceQueue = useRef(Promise.resolve());
   const userId = session?.user.id ?? null;
+  const notificationStorageKey = userId ? `${NOTIFICATION_STORAGE_KEY_PREFIX}:${userId}` : null;
 
   const replaceNotifications = useCallback((next: InAppNotification[]) => {
     const limited = next.slice(0, MAX_NOTIFICATIONS);
     notificationsRef.current = limited;
     setNotifications(limited);
+    if (!notificationStorageKey) return;
     persistenceQueue.current = persistenceQueue.current
       .catch(() => undefined)
-      .then(() => AsyncStorage.setItem(NOTIFICATION_STORAGE_KEY, JSON.stringify(limited)))
+      .then(() => AsyncStorage.setItem(notificationStorageKey, JSON.stringify(limited)))
       .catch(() => undefined);
-  }, []);
+  }, [notificationStorageKey]);
 
   const presentNotification = useCallback((notification: InAppNotification) => {
     if (notification.matchEvent) {
@@ -208,7 +211,17 @@ export function InAppNotificationsProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     let active = true;
-    void AsyncStorage.getItem(NOTIFICATION_STORAGE_KEY).then((raw) => {
+    notificationsRef.current = [];
+    setNotifications([]);
+    setHydrated(false);
+    void AsyncStorage.removeItem(LEGACY_NOTIFICATION_STORAGE_KEY).catch(() => undefined);
+
+    if (!notificationStorageKey) {
+      setHydrated(true);
+      return () => { active = false; };
+    }
+
+    void AsyncStorage.getItem(notificationStorageKey).then((raw) => {
       if (!active) return;
       const stored = parseNotifications(raw);
       notificationsRef.current = stored;
@@ -217,11 +230,13 @@ export function InAppNotificationsProvider({ children }: PropsWithChildren) {
       if (active) setHydrated(true);
     });
     return () => { active = false; };
-  }, []);
+  }, [notificationStorageKey]);
 
   useEffect(() => {
-    if (!hydrated) return;
+    if (!hydrated || !userId) return;
     return subscribeToForegroundPushNotifications((push) => {
+      const targetUserId = typeof push.data.userId === 'string' ? push.data.userId : null;
+      if (targetUserId !== userId) return;
       const type = push.data.type;
       if (!notificationAllowed(type, preferencesRef.current)) return;
       const kind: InAppNotificationKind = type === 'match_start'
@@ -249,7 +264,7 @@ export function InAppNotificationsProvider({ children }: PropsWithChildren) {
         title: push.title ?? '새 알림',
       }, type !== 'match_start' && type !== 'match_event' && type !== 'rating_open');
     });
-  }, [hydrated, publishNotification]);
+  }, [hydrated, publishNotification, userId]);
 
   useEffect(() => {
     initialized.current = false;

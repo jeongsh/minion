@@ -545,11 +545,12 @@ export default async function MatchDetailPage({
   // "rating" 탭 선수 카드에 세트에서 픽한 챔피언 아이콘을 보여주기 위함 — 다른 탭은 필요 없다.
   const ratingChampions: Champion[] = activeTab === "rating" ? await getChampions() : [];
   const aiPreview = activeTab === "preview"
-    ? await getMatchAiPreview({
-        match,
-        tournament,
-        teams,
-        matches: previewMatches,
+      ? await getMatchAiPreview({
+          match,
+          tournament,
+          stage,
+          teams,
+          matches: previewMatches,
         sets: previewSets,
         tournaments,
       })

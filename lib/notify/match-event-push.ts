@@ -98,7 +98,7 @@ export async function sendMatchEventPushNotifications(
           to: token.expo_push_token,
           title: "경기 주요 이벤트",
           body: message,
-          data: { eventId, matchId, type: "match_event", url: `/matches/${matchId}` },
+          data: { eventId, matchId, type: "match_event", url: `/matches/${matchId}`, userId: token.user_id },
         })),
       );
       result.invalidTokens.forEach((token) => invalidTokens.add(token));

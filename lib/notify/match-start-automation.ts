@@ -81,7 +81,7 @@ export async function runMatchStartNotificationAutomation(): Promise<MatchStartN
           to: token.expo_push_token,
           title: "경기가 시작했어요",
           body: `${matchup} 지금 시작합니다.`,
-          data: { matchId: match.id, type: "match_start", url: `/matches/${match.id}` },
+          data: { matchId: match.id, type: "match_start", url: `/matches/${match.id}`, userId: token.user_id },
         })),
       );
       notificationsSent += result.sent;

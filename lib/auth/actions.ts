@@ -12,6 +12,7 @@ import type {
 } from "@/lib/auth/action-state";
 import { DELETE_ACCOUNT_CONFIRM_TEXT } from "@/lib/auth/action-state";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { DEFAULT_PROFILE_IMAGE_URLS, safeOnboardingNext } from "@/lib/auth/onboarding";
 import { resizeImageForWeb } from "@/lib/images/resize-for-web";
 import { recordLpEvent } from "@/lib/rank/record-lp";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -146,20 +147,28 @@ export async function signInAction(
 ): Promise<AuthActionState> {
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
+  const next = safeOnboardingNext(String(formData.get("next") ?? ""), "/");
 
   if (!email || !password) {
     return { error: "이메일과 비밀번호를 입력해주세요." };
   }
 
   const supabase = await createSupabaseAuthClient();
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
     return { error: "이메일 또는 비밀번호가 올바르지 않습니다." };
   }
 
   revalidatePath("/", "layout");
-  redirect("/");
+  const { data: profile, error: profileError } = data.user
+    ? await supabase.from("profiles").select("onboarding_completed_at").eq("id", data.user.id).maybeSingle()
+    : { data: null, error: null };
+  if (!profileError && profile && !profile.onboarding_completed_at) {
+    const suffix = next === "/" ? "" : `?next=${encodeURIComponent(next)}`;
+    redirect(`/onboarding/favorite-team${suffix}`);
+  }
+  redirect(next);
 }
 
 export async function requestPasswordResetAction(
@@ -229,6 +238,7 @@ export async function updateNicknameAction(
   }
 
   const image = formData.get("profileImage");
+  const defaultProfileImage = String(formData.get("defaultProfileImage") ?? "");
   let profileImageUrl: string | null | undefined;
 
   if (image instanceof File && image.size > 0) {
@@ -266,6 +276,11 @@ export async function updateNicknameAction(
       data: { publicUrl },
     } = admin.storage.from(PROFILE_AVATAR_BUCKET).getPublicUrl(objectPath);
     profileImageUrl = publicUrl;
+  } else if (defaultProfileImage) {
+    if (!DEFAULT_PROFILE_IMAGE_URLS.has(defaultProfileImage)) {
+      return { status: "error", message: "기본 프로필 이미지 정보가 올바르지 않습니다." };
+    }
+    profileImageUrl = defaultProfileImage;
   }
 
   const supabase = await createSupabaseAuthClient();
