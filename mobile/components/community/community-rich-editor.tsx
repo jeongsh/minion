@@ -16,7 +16,7 @@ import Underline from 'lucide-react-native/icons/underline';
 import Undo from 'lucide-react-native/icons/undo';
 import Video from 'lucide-react-native/icons/video';
 import X from 'lucide-react-native/icons/x';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Image as NativeImage, Keyboard, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
@@ -34,6 +34,10 @@ type Props = {
   maxImages: number;
   onChange: (document: TiptapDocument) => void;
   value: TiptapDocument;
+};
+
+export type CommunityRichEditorHandle = {
+  flush: () => Promise<TiptapDocument>;
 };
 
 type LinkMode = 'youtube' | 'sns';
@@ -93,8 +97,10 @@ function imageHtml(node: TiptapNode) {
   const src = escapeHtml(String(node.attrs?.src ?? ''));
   const alt = escapeHtml(String(node.attrs?.alt ?? ''));
   const width = Math.max(80, Number(node.attrs?.width ?? 760) || 760);
+  const height = Math.max(0, Number(node.attrs?.height ?? 0) || 0);
+  const aspectRatio = height > 0 ? width / height : 0;
   const align = alignmentFrom(node);
-  return `<div class="image-shell" contenteditable="false" data-image-shell="true" data-align="${align}" data-width="${width}"><div class="image-frame"><div class="image-toolbar">${IMAGE_ALIGNMENT_BUTTONS}</div><img src="${src}" alt="${alt}" style="width:${width}px"><i class="resize-handle"></i></div></div>`;
+  return `<div class="image-shell" contenteditable="false" data-image-shell="true" data-align="${align}" data-aspect-ratio="${aspectRatio}"><div class="image-frame"><div class="image-toolbar">${IMAGE_ALIGNMENT_BUTTONS}</div><img src="${src}" alt="${alt}" style="width:${width}px"><i class="resize-handle"></i></div></div>`;
 }
 
 function youtubeHtml(srcValue: string) {
@@ -148,8 +154,11 @@ function imageCount(document: TiptapDocument) {
   return count;
 }
 
-export function CommunityRichEditor({ allowEmbeds, allowMedia, characterCount, characterLimit, maxImages, onChange, value }: Props) {
+export const CommunityRichEditor = forwardRef<CommunityRichEditorHandle, Props>(function CommunityRichEditor({ allowEmbeds, allowMedia, characterCount, characterLimit, maxImages, onChange, value }, ref) {
   const webView = useRef<WebView>(null);
+  const pendingFlushes = useRef(new Map<string, { resolve: (document: TiptapDocument) => void; timer: ReturnType<typeof setTimeout> }>());
+  const valueRef = useRef(value);
+  valueRef.current = value;
   const initial = useRef(value).current;
   const insets = useSafeAreaInsets();
   const { fonts, theme } = useMinionTheme();
@@ -166,6 +175,18 @@ export function CommunityRichEditor({ allowEmbeds, allowMedia, characterCount, c
   const html = useMemo(() => editorHtml(initialHtml(initial), { accent: theme.accent, background: theme.surface, border: theme.border, color: theme.text, ink: theme.ink, muted: theme.muted, mutedSurface: theme.surfaceMuted }), [initial, theme.accent, theme.border, theme.ink, theme.muted, theme.surface, theme.surfaceMuted, theme.text]);
   const command = (name: string, arg: unknown = '') => webView.current?.injectJavaScript(`window.minionCommand(${JSON.stringify(name)},${JSON.stringify(arg)});true;`);
 
+  useImperativeHandle(ref, () => ({
+    flush: () => new Promise<TiptapDocument>((resolve) => {
+      const requestId = newId();
+      const timer = setTimeout(() => {
+        pendingFlushes.current.delete(requestId);
+        resolve(valueRef.current);
+      }, 1_000);
+      pendingFlushes.current.set(requestId, { resolve, timer });
+      command('flush', requestId);
+    }),
+  }), []);
+
   useEffect(() => {
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
     const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
@@ -175,6 +196,11 @@ export function CommunityRichEditor({ allowEmbeds, allowMedia, characterCount, c
       showSubscription.remove();
       hideSubscription.remove();
     };
+  }, []);
+
+  useEffect(() => () => {
+    pendingFlushes.current.forEach(({ resolve, timer }) => { clearTimeout(timer); resolve(valueRef.current); });
+    pendingFlushes.current.clear();
   }, []);
 
   const pickImage = async () => {
@@ -189,7 +215,7 @@ export function CommunityRichEditor({ allowEmbeds, allowMedia, characterCount, c
         const formData = new FormData();
         formData.append('file', { name: asset.fileName ?? `community-${Date.now()}.jpg`, type: asset.mimeType ?? 'image/jpeg', uri: asset.uri } as never);
         const uploaded = await uploadMobileApi<MobileCommunityUploadDto>('/api/mobile/v1/community/upload', formData);
-        command('insertImage', { src: uploaded.url, width: Math.min(uploaded.width || 760, 760) });
+        command('insertImage', { aspectRatio: uploaded.width > 0 && uploaded.height > 0 ? uploaded.width / uploaded.height : 0, src: uploaded.url, width: Math.min(uploaded.width || 760, 760) });
       }
     } catch (caught) { Alert.alert('이미지 첨부 실패', caught instanceof Error ? caught.message : '이미지를 업로드하지 못했습니다.'); }
     finally { setUploading(false); }
@@ -197,8 +223,13 @@ export function CommunityRichEditor({ allowEmbeds, allowMedia, characterCount, c
 
   const onMessage = (event: WebViewMessageEvent) => {
     try {
-      const message = JSON.parse(event.nativeEvent.data) as { document?: TiptapDocument; id?: string; options?: { id: string; label: string }[]; question?: string; type?: string };
+      const message = JSON.parse(event.nativeEvent.data) as { document?: TiptapDocument; id?: string; options?: { id: string; label: string }[]; question?: string; requestId?: string; type?: string };
       if (message.type === 'change' && message.document?.type === 'doc') onChange(message.document);
+      if (message.type === 'flush' && message.document?.type === 'doc' && message.requestId) {
+        onChange(message.document);
+        const pending = pendingFlushes.current.get(message.requestId);
+        if (pending) { clearTimeout(pending.timer); pendingFlushes.current.delete(message.requestId); pending.resolve(message.document); }
+      }
       if (message.type === 'poll-edit') {
         setPoll({ id: message.id ?? null, options: message.options?.length ? message.options : emptyPoll().options, question: message.question ?? '' });
         setPollOpen(true);
@@ -255,15 +286,15 @@ export function CommunityRichEditor({ allowEmbeds, allowMedia, characterCount, c
       </View>
 
       <BottomSheet onClose={() => setPalette(null)} open={Boolean(palette)} title={palette === 'highlight' ? '배경색' : '글자색'}><View style={styles.palette}>{(palette === 'highlight' ? ['transparent', '#fef08a', '#bbf7d0', '#bfdbfe', '#fecdd3'] : ['#111827', '#ef4444', '#3b82f6', '#16a34a', '#a855f7']).map((color) => <Pressable accessibilityLabel={color === 'transparent' ? '배경색 제거' : `${color} 색상`} key={color} onPress={() => { command(palette === 'highlight' ? 'highlight' : 'foreColor', color); setPalette(null); }} style={[styles.swatch, { backgroundColor: color === 'transparent' ? theme.surface : color, borderColor: theme.border }]}>{color === 'transparent' ? <Text style={{ color: theme.text, ...fonts.medium, fontSize: 13 }}>없음</Text> : null}</Pressable>)}</View></BottomSheet>
-      <BottomSheet onClose={closeLink} open={linkOpen} title={linkMode === 'youtube' ? 'YouTube 영상 넣기' : 'SNS 게시물 넣기'}><TextInput autoCapitalize="none" autoCorrect={false} onChangeText={setLinkUrl} onSubmitEditing={insertLink} placeholder={linkMode === 'youtube' ? 'YouTube URL을 붙여넣으세요' : 'Instagram 또는 X URL을 붙여넣으세요'} placeholderTextColor={theme.muted} returnKeyType="done" style={[styles.linkInput, { borderColor: theme.border, color: theme.text, ...fonts.regular }]} value={linkUrl} /><Pressable disabled={!linkUrl.trim()} onPress={insertLink} style={({ pressed }) => [styles.sheetPrimary, { backgroundColor: theme.ink, opacity: !linkUrl.trim() ? 0.4 : pressed ? 0.78 : 1 }]}><Text style={{ color: theme.surface, ...fonts.medium, fontSize: 14 }}>넣기</Text></Pressable></BottomSheet>
-      <BottomSheet onClose={() => { setPollOpen(false); setPoll(emptyPoll()); }} open={pollOpen} title="투표 만들기">
+      <BottomSheet onClose={closeLink} open={linkOpen} scrollable title={linkMode === 'youtube' ? 'YouTube 영상 넣기' : 'SNS 게시물 넣기'}><TextInput autoCapitalize="none" autoCorrect={false} onChangeText={setLinkUrl} onSubmitEditing={insertLink} placeholder={linkMode === 'youtube' ? 'YouTube URL을 붙여넣으세요' : 'Instagram 또는 X URL을 붙여넣으세요'} placeholderTextColor={theme.muted} returnKeyType="done" style={[styles.linkInput, { borderColor: theme.border, color: theme.text, ...fonts.regular }]} value={linkUrl} /><Pressable disabled={!linkUrl.trim()} onPress={insertLink} style={({ pressed }) => [styles.sheetPrimary, { backgroundColor: theme.ink, opacity: !linkUrl.trim() ? 0.4 : pressed ? 0.78 : 1 }]}><Text style={{ color: theme.surface, ...fonts.medium, fontSize: 14 }}>넣기</Text></Pressable></BottomSheet>
+      <BottomSheet onClose={() => { setPollOpen(false); setPoll(emptyPoll()); }} open={pollOpen} scrollable title="투표 만들기">
         <Text style={{ color: theme.muted, ...fonts.medium, fontSize: 13, marginBottom: 14 }}>질문과 선택지를 입력해 주세요.</Text><Text style={[styles.fieldLabel, { color: theme.text, ...fonts.medium }]}>질문</Text><TextInput maxLength={100} onChangeText={(question) => setPoll((current) => ({ ...current, question }))} placeholder="무엇을 물어볼까요?" placeholderTextColor={theme.muted} style={[styles.pollInput, { borderColor: theme.border, color: theme.text, ...fonts.medium }]} value={poll.question} /><Text style={[styles.fieldLabel, { color: theme.text, ...fonts.medium, marginTop: 14 }]}>선택지</Text>
         <View style={styles.pollOptions}>{poll.options.map((option, index) => <View key={option.id} style={styles.pollOptionRow}><TextInput maxLength={40} onChangeText={(label) => setPoll((current) => ({ ...current, options: current.options.map((item) => item.id === option.id ? { ...item, label } : item) }))} placeholder={`선택지 ${index + 1}`} placeholderTextColor={theme.muted} style={[styles.pollInput, styles.pollOptionInput, { borderColor: theme.border, color: theme.text, ...fonts.medium }]} value={option.label} />{poll.options.length > 2 ? <Pressable accessibilityLabel={`선택지 ${index + 1} 삭제`} onPress={() => setPoll((current) => ({ ...current, options: current.options.filter((item) => item.id !== option.id) }))} style={styles.removeOption}><X color={theme.muted} size={17} /></Pressable> : null}</View>)}</View>
         {poll.options.length < MAX_POLL_OPTIONS ? <Pressable onPress={() => setPoll((current) => ({ ...current, options: [...current.options, { id: newId(), label: '' }] }))} style={[styles.addOption, { backgroundColor: theme.surface, borderColor: theme.border }]}><Plus color={theme.text} size={17} /><Text style={{ color: theme.text, ...fonts.medium, fontSize: 14 }}>선택지 추가</Text></Pressable> : null}<View style={[styles.pollActions, { borderTopColor: theme.border }]}>{poll.id ? <Pressable onPress={deletePoll} style={styles.deletePoll}><Text style={{ color: '#ef4444', ...fonts.medium, fontSize: 14 }}>투표 삭제</Text></Pressable> : <View style={styles.deletePoll} />}<Pressable onPress={savePoll} style={[styles.savePoll, { backgroundColor: theme.ink }]}><Text style={{ color: theme.surface, ...fonts.medium, fontSize: 14 }}>{poll.id ? '수정' : '추가'}</Text></Pressable></View>
       </BottomSheet>
     </View>
   );
-}
+});
 
 function Tool({ active = false, children, compact = false, disabled, label, onPress }: { active?: boolean; children: React.ReactNode; compact?: boolean; disabled?: boolean; label: string; onPress: () => void }) {
   const { theme } = useMinionTheme();
@@ -287,16 +318,17 @@ const editor=document.getElementById('editor');const fontMap={'1':'13px','2':'14
 function syncEmpty(){editor.classList.toggle('is-empty',!(editor.innerText||'').trim()&&!editor.querySelector('img,.media-block,.poll-block'))}
 function textNode(node){const marks=[];let p=node.parentElement;while(p&&p!==editor){const tag=p.tagName;if(tag==='STRONG'||tag==='B')marks.push({type:'bold'});if(tag==='EM'||tag==='I')marks.push({type:'italic'});if(tag==='S'||tag==='STRIKE')marks.push({type:'strike'});if(tag==='U')marks.push({type:'underline'});if(tag==='CODE')marks.push({type:'code'});if(tag==='A')marks.push({type:'link',attrs:{href:p.getAttribute('href')||''}});const color=p.style.color||(tag==='FONT'?p.getAttribute('color'):'');const fontSize=p.style.fontSize||(tag==='FONT'?fontMap[p.getAttribute('size')||'']:'');if(color||fontSize)marks.push({type:'textStyle',attrs:{color:color||null,fontSize:fontSize||null}});if(p.style.backgroundColor)marks.push({type:'highlight',attrs:{color:p.style.backgroundColor}});p=p.parentElement}return {type:'text',text:node.nodeValue||'',...(marks.length?{marks}:{})}}
 function inline(parent){const out=[];parent.childNodes.forEach(n=>{if(n.nodeType===3){if(n.nodeValue)out.push(textNode(n))}else if(n.nodeType===1){if(n.tagName==='BR')out.push({type:'hardBreak'});else out.push(...inline(n))}});return out}
-function block(el){const tag=el.tagName;if(el.dataset.imageShell){const img=el.querySelector('img');const width=Math.round(parseFloat(img&&img.style.width)||img&&img.getBoundingClientRect().width||760);const align=el.dataset.align||'left';return {type:'imageResize',attrs:{src:img&&img.getAttribute('src')||'',alt:img&&img.getAttribute('alt')||'',width,containerStyle:'width: '+width+'px; height: auto; cursor: pointer; margin: 0.5rem 0;',wrapperStyle:'display: flex; justify-content: '+(align==='center'?'center':align==='right'?'flex-end':'flex-start')+'; margin: 0;'}}}if(el.dataset.pollId){let options=[];try{options=JSON.parse(el.dataset.pollOptions||'[]')}catch{}return {type:'poll',attrs:{pollId:el.dataset.pollId,question:el.dataset.pollQuestion||'',options}}}if(el.dataset.youtubeUrl)return {type:'youtube',attrs:{src:el.dataset.youtubeUrl}};if(el.dataset.embedUrl)return {type:'embed',attrs:{url:el.dataset.embedUrl,type:el.dataset.embedType||'generic'}};if(tag==='P'||tag==='DIV')return {type:'paragraph',content:inline(el)};if(/^H[1-3]$/.test(tag))return {type:'heading',attrs:{level:Number(tag[1])},content:inline(el)};if(tag==='BLOCKQUOTE')return {type:'blockquote',content:Array.from(el.children).map(block)};if(tag==='UL'||tag==='OL')return {type:tag==='UL'?'bulletList':'orderedList',content:Array.from(el.children).map(block)};if(tag==='LI')return {type:'listItem',content:[{type:'paragraph',content:inline(el)}]};if(tag==='PRE')return {type:'codeBlock',content:[{type:'text',text:el.innerText||''}]};if(tag==='HR')return {type:'horizontalRule'};if(tag==='IMG')return {type:'image',attrs:{src:el.getAttribute('src')||'',alt:el.getAttribute('alt')||''}};return {type:'paragraph',content:inline(el)}}
-function emit(){const children=[];editor.childNodes.forEach(n=>{if(n.nodeType===3){if(n.nodeValue)children.push({type:'paragraph',content:[textNode(n)]})}else if(n.nodeType===1)children.push(block(n))});syncEmpty();window.ReactNativeWebView.postMessage(JSON.stringify({type:'change',document:{type:'doc',content:children.length?children:[{type:'paragraph'}]}}))}
-function insertBlock(el){const sel=getSelection();if(sel&&sel.rangeCount&&editor.contains(sel.anchorNode)){const range=sel.getRangeAt(0);range.deleteContents();range.insertNode(el);range.setStartAfter(el);range.collapse(true);sel.removeAllRanges();sel.addRange(range)}else editor.appendChild(el);const p=document.createElement('p');p.appendChild(document.createElement('br'));el.after(p);emit()}
-function imageBlock(data){const shell=document.createElement('div');shell.className='image-shell';shell.contentEditable='false';shell.dataset.imageShell='true';shell.dataset.align='left';shell.innerHTML='<div class="image-frame"><div class="image-toolbar">${IMAGE_ALIGNMENT_BUTTONS}</div><img><i class="resize-handle"></i></div>';const img=shell.querySelector('img');img.src=data.src;img.style.width=Math.max(80,Number(data.width)||760)+'px';return shell}
+function normalizeTopLevelLists(){editor.querySelectorAll('p>ul,p>ol,div>ul,div>ol').forEach(list=>{const parent=list.parentElement;if(!parent||parent.parentElement!==editor)return;const onlyList=Array.from(parent.childNodes).every(node=>node===list||(node.nodeType===3&&!node.nodeValue.trim())||(node.nodeType===1&&node.tagName==='BR'));if(onlyList)parent.replaceWith(list)})}
+function block(el){const tag=el.tagName;if(el.dataset.imageShell){const img=el.querySelector('img');const width=Math.round(parseFloat(img&&img.style.width)||img&&img.getBoundingClientRect().width||760);const loadedRatio=img&&img.naturalWidth&&img.naturalHeight?img.naturalWidth/img.naturalHeight:0;const aspectRatio=Number(el.dataset.aspectRatio)||loadedRatio;const height=aspectRatio>0?Math.round(width/aspectRatio):0;const align=el.dataset.align||'left';return {type:'imageResize',attrs:{src:img&&img.getAttribute('src')||'',alt:img&&img.getAttribute('alt')||'',width,...(height>0?{height}:{}),containerStyle:'width: '+width+'px; height: auto; cursor: pointer; margin: 0.5rem 0;',wrapperStyle:'display: flex; justify-content: '+(align==='center'?'center':align==='right'?'flex-end':'flex-start')+'; margin: 0;'}}}if(el.dataset.pollId){let options=[];try{options=JSON.parse(el.dataset.pollOptions||'[]')}catch{}return {type:'poll',attrs:{pollId:el.dataset.pollId,question:el.dataset.pollQuestion||'',options}}}if(el.dataset.youtubeUrl)return {type:'youtube',attrs:{src:el.dataset.youtubeUrl}};if(el.dataset.embedUrl)return {type:'embed',attrs:{url:el.dataset.embedUrl,type:el.dataset.embedType||'generic'}};if(tag==='P'||tag==='DIV')return {type:'paragraph',content:inline(el)};if(/^H[1-3]$/.test(tag))return {type:'heading',attrs:{level:Number(tag[1])},content:inline(el)};if(tag==='BLOCKQUOTE')return {type:'blockquote',content:Array.from(el.children).map(block)};if(tag==='UL'||tag==='OL')return {type:tag==='UL'?'bulletList':'orderedList',content:Array.from(el.children).map(block)};if(tag==='LI')return {type:'listItem',content:[{type:'paragraph',content:inline(el)}]};if(tag==='PRE')return {type:'codeBlock',content:[{type:'text',text:el.innerText||''}]};if(tag==='HR')return {type:'horizontalRule'};if(tag==='IMG')return {type:'image',attrs:{src:el.getAttribute('src')||'',alt:el.getAttribute('alt')||''}};return {type:'paragraph',content:inline(el)}}
+function emit(requestId=''){normalizeTopLevelLists();const children=[];editor.childNodes.forEach(n=>{if(n.nodeType===3){if(n.nodeValue)children.push({type:'paragraph',content:[textNode(n)]})}else if(n.nodeType===1)children.push(block(n))});syncEmpty();window.ReactNativeWebView.postMessage(JSON.stringify({type:requestId?'flush':'change',requestId:requestId||undefined,document:{type:'doc',content:children.length?children:[{type:'paragraph'}]}}))}
+function insertBlock(el){const sel=getSelection();let topLevel=null;if(sel&&sel.rangeCount&&editor.contains(sel.getRangeAt(0).commonAncestorContainer)){const range=sel.getRangeAt(0);topLevel=range.commonAncestorContainer.nodeType===1?range.commonAncestorContainer:range.commonAncestorContainer.parentElement;while(topLevel&&topLevel.parentElement&&topLevel.parentElement!==editor)topLevel=topLevel.parentElement;if(topLevel&&topLevel.parentElement===editor)editor.insertBefore(el,topLevel.nextSibling);else editor.appendChild(el);if(topLevel&&topLevel.matches('p')&&!topLevel.textContent.trim()&&!topLevel.querySelector('img'))topLevel.remove()}else editor.appendChild(el);const p=document.createElement('p');p.appendChild(document.createElement('br'));editor.insertBefore(p,el.nextSibling);const range=document.createRange();range.selectNodeContents(p);range.collapse(true);sel&&sel.removeAllRanges();sel&&sel.addRange(range);emit()}
+function imageBlock(data){const shell=document.createElement('div');shell.className='image-shell';shell.contentEditable='false';shell.dataset.imageShell='true';shell.dataset.align='left';shell.dataset.aspectRatio=Number(data.aspectRatio)>0?String(data.aspectRatio):'';shell.innerHTML='<div class="image-frame"><div class="image-toolbar">${IMAGE_ALIGNMENT_BUTTONS}</div><img><i class="resize-handle"></i></div>';const img=shell.querySelector('img');img.src=data.src;img.style.width=Math.max(80,Number(data.width)||760)+'px';return shell}
 function youtubeBlock(src){const el=document.createElement('div');el.className='media-block youtube-block';el.contentEditable='false';el.dataset.youtubeUrl=src;el.innerHTML='<iframe title="YouTube 영상" frameborder="0" allowfullscreen></iframe><p>YOU·TUBE</p>';el.querySelector('iframe').src=src;return el}
 function embedBlock(data){const el=document.createElement('div');el.className='media-block sns-block';el.contentEditable='false';el.dataset.embedUrl=data.url;el.dataset.embedType=data.type||'generic';const b=document.createElement('b');b.textContent=data.type==='instagram'?'Instagram':data.type==='twitter'?'X 게시물':'SNS 게시물';const span=document.createElement('span');span.textContent=data.url;el.append(b,span);return el}
 function pollBlock(data){const el=document.createElement('div');el.className='poll-block';el.contentEditable='false';el.dataset.pollId=data.pollId;el.dataset.pollQuestion=data.question;el.dataset.pollOptions=JSON.stringify(data.options);el.innerHTML='<div class="poll-heading"><b></b></div>';el.querySelector('.poll-heading b').textContent=data.question;data.options.forEach(option=>{const row=document.createElement('div');row.className='poll-option';const label=document.createElement('span');label.textContent=option.label;row.append(label);el.append(row)});const small=document.createElement('small');small.textContent='선택지는 최대 ${MAX_POLL_OPTIONS}개까지 추가할 수 있어요.';el.append(small);return el}
 function syncImageToolbar(shell){shell.querySelectorAll('[data-image-align]').forEach(button=>button.classList.toggle('active',button.dataset.imageAlign===shell.dataset.align))}editor.addEventListener('click',event=>{const target=event.target;const shell=target.closest&&target.closest('.image-shell');document.querySelectorAll('.image-shell.selected').forEach(el=>{if(el!==shell)el.classList.remove('selected')});if(shell){shell.classList.add('selected');const alignButton=target.closest('[data-image-align]');if(alignButton)shell.dataset.align=alignButton.dataset.imageAlign;syncImageToolbar(shell);if(alignButton)emit();return}const poll=target.closest&&target.closest('.poll-block');if(poll){let options=[];try{options=JSON.parse(poll.dataset.pollOptions||'[]')}catch{}window.ReactNativeWebView.postMessage(JSON.stringify({type:'poll-edit',id:poll.dataset.pollId,question:poll.dataset.pollQuestion,options}))}});
 editor.addEventListener('pointerdown',event=>{const handle=event.target.closest&&event.target.closest('.resize-handle');if(!handle)return;event.preventDefault();const shell=handle.closest('.image-shell');const img=shell.querySelector('img');const startX=event.clientX,startWidth=img.getBoundingClientRect().width;handle.setPointerCapture(event.pointerId);const move=e=>{img.style.width=Math.max(80,Math.min(editor.clientWidth,startWidth+(e.clientX-startX)))+'px'};const end=e=>{handle.releasePointerCapture(e.pointerId);handle.removeEventListener('pointermove',move);handle.removeEventListener('pointerup',end);emit()};handle.addEventListener('pointermove',move);handle.addEventListener('pointerup',end)});
-let timer;editor.addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(emit,80)});window.minionCommand=(name,arg)=>{editor.focus();if(name==='insertImage'){insertBlock(imageBlock(arg));return}if(name==='fontSize'){const size=Number(arg);document.execCommand('fontSize',false,size<=13?'1':size<=14?'2':size<=16?'3':size<=20?'4':size<=24?'5':'6');emit();return}if(name==='highlight'){document.execCommand('backColor',false,arg==='transparent'?'transparent':arg);emit();return}if(name==='insertYoutube'){insertBlock(youtubeBlock(arg));return}if(name==='insertEmbed'){insertBlock(embedBlock(arg));return}if(name==='insertPoll'){insertBlock(pollBlock(arg));return}if(name==='updatePoll'){const existing=editor.querySelector('[data-poll-id="'+CSS.escape(arg.pollId)+'"]');if(existing){existing.replaceWith(pollBlock(arg));emit()}return}if(name==='deletePoll'){const existing=editor.querySelector('[data-poll-id="'+CSS.escape(arg)+'"]');if(existing){existing.remove();emit()}return}document.execCommand(name,false,arg||null);emit()};syncEmpty();setTimeout(emit,100);
+let timer;editor.addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(emit,80)});window.minionCommand=(name,arg)=>{editor.focus();if(name==='flush'){clearTimeout(timer);emit(String(arg||''));return}if(name==='insertImage'){insertBlock(imageBlock(arg));return}if(name==='fontSize'){const size=Number(arg);document.execCommand('fontSize',false,size<=13?'1':size<=14?'2':size<=16?'3':size<=20?'4':size<=24?'5':'6');emit();return}if(name==='highlight'){document.execCommand('backColor',false,arg==='transparent'?'transparent':arg);emit();return}if(name==='insertYoutube'){insertBlock(youtubeBlock(arg));return}if(name==='insertEmbed'){insertBlock(embedBlock(arg));return}if(name==='insertPoll'){insertBlock(pollBlock(arg));return}if(name==='updatePoll'){const existing=editor.querySelector('[data-poll-id="'+CSS.escape(arg.pollId)+'"]');if(existing){existing.replaceWith(pollBlock(arg));emit()}return}if(name==='deletePoll'){const existing=editor.querySelector('[data-poll-id="'+CSS.escape(arg)+'"]');if(existing){existing.remove();emit()}return}document.execCommand(name,false,arg||null);emit()};syncEmpty();setTimeout(emit,100);
 </script></body></html>`;
 }
 

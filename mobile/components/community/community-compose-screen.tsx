@@ -1,8 +1,8 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import Check from 'lucide-react-native/icons/check';
 import ChevronDown from 'lucide-react-native/icons/chevron-down';
 import ChevronLeft from 'lucide-react-native/icons/chevron-left';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -14,7 +14,7 @@ import { invalidateApiCache, mutateMobileApi } from '@/lib/api-client';
 import { fanAccentText } from '@/lib/fan-colors';
 import { useCachedQuery } from '@/hooks/use-cached-query';
 import { useAuth } from '@/providers/auth-provider';
-import { CommunityRichEditor } from './community-rich-editor';
+import { CommunityRichEditor, type CommunityRichEditorHandle } from './community-rich-editor';
 import { boardLabel, boardsForScope, emptyTiptapDocument, isTiptapEmpty, POST_TEXT_MAX_LENGTH, POST_TITLE_MAX_LENGTH, tiptapTextLength, type CommunityScope } from './community-utils';
 
 export function CommunityComposeScreen({ edit = false, scope = 'hub' }: { edit?: boolean; scope?: CommunityScope }) {
@@ -29,16 +29,33 @@ export function CommunityComposeScreen({ edit = false, scope = 'hub' }: { edit?:
   const team = scope === 'team' ? getMinionTeam(teamSlug) : null;
   const accent = team ? fanAccentText(team.primaryColor) : theme.accent;
   const boards = boardsForScope(scope);
+  const defaultCategory = boards.some((board) => board.slug === requestedCategory) ? requestedCategory! : 'free';
   const basePath = teamSlug && scope === 'team' ? `/fan/${teamSlug}/community` : '/community';
   const detailPath = `/api/mobile/v1/community/posts/${encodeURIComponent(postId ?? '')}${teamSlug && scope === 'team' ? `?team=${encodeURIComponent(teamSlug)}` : ''}`;
   const detail = useCachedQuery<MobileCommunityPostDetailDto>(detailPath, { cache: false, enabled: edit && Boolean(postId) });
-  const [category, setCategory] = useState(() => boards.some((board) => board.slug === requestedCategory) ? requestedCategory! : 'free');
+  const [category, setCategory] = useState(defaultCategory);
   const [categoryOpen, setCategoryOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [document, setDocument] = useState<TiptapDocument>(emptyTiptapDocument);
+  const [editorVersion, setEditorVersion] = useState(0);
   const [initialized, setInitialized] = useState(!edit);
   const [submitting, setSubmitting] = useState(false);
+  const editorRef = useRef<CommunityRichEditorHandle>(null);
+  const hasFocused = useRef(false);
   const length = tiptapTextLength(document);
+
+  const resetDraft = useCallback(() => {
+    setCategory(defaultCategory);
+    setCategoryOpen(false);
+    setTitle('');
+    setDocument(emptyTiptapDocument());
+    setEditorVersion((version) => version + 1);
+  }, [defaultCategory]);
+
+  useFocusEffect(useCallback(() => {
+    if (!edit && hasFocused.current) resetDraft();
+    hasFocused.current = true;
+  }, [edit, resetDraft]));
 
   useEffect(() => {
     if (!edit || initialized || !detail.data) return;
@@ -51,15 +68,18 @@ export function CommunityComposeScreen({ edit = false, scope = 'hub' }: { edit?:
   const close = () => edit && postId ? router.replace(`${basePath}/post/${postId}` as never) : router.replace(basePath as never);
   const submit = async () => {
     if (!title.trim()) { Alert.alert('제목을 입력하세요.'); return; }
-    if (isTiptapEmpty(document)) { Alert.alert('내용을 입력하세요.'); return; }
-    if (length > POST_TEXT_MAX_LENGTH) { Alert.alert(`본문은 ${POST_TEXT_MAX_LENGTH.toLocaleString('ko-KR')}자까지 입력할 수 있습니다.`); return; }
     setSubmitting(true);
     try {
-      const payload = { boardType: category, content: JSON.stringify(document), scope, teamSlug, title: title.trim() };
+      const latestDocument = await editorRef.current?.flush() ?? document;
+      const latestLength = tiptapTextLength(latestDocument);
+      if (isTiptapEmpty(latestDocument)) { Alert.alert('내용을 입력하세요.'); return; }
+      if (latestLength > POST_TEXT_MAX_LENGTH) { Alert.alert(`본문은 ${POST_TEXT_MAX_LENGTH.toLocaleString('ko-KR')}자까지 입력할 수 있습니다.`); return; }
+      const payload = { boardType: category, content: JSON.stringify(latestDocument), scope, teamSlug, title: title.trim() };
       const result = edit && postId
         ? await mutateMobileApi<MobileCommunityPostMutationDto>(detailPath, 'PATCH', payload)
         : await mutateMobileApi<MobileCommunityPostMutationDto>('/api/mobile/v1/community/posts', 'POST', payload);
       await invalidateApiCache('/api/mobile/v1/community/posts');
+      if (!edit) resetDraft();
       router.replace(edit ? `${basePath}/post/${result.id}` as never : basePath as never);
     } catch (caught) { Alert.alert(edit ? '수정 실패' : '등록 실패', caught instanceof Error ? caught.message : '게시글을 저장하지 못했습니다.'); }
     finally { setSubmitting(false); }
@@ -90,7 +110,7 @@ export function CommunityComposeScreen({ edit = false, scope = 'hub' }: { edit?:
           </View>
           <TextInput accessibilityLabel="제목" maxLength={POST_TITLE_MAX_LENGTH} onChangeText={setTitle} placeholder="제목을 입력하세요" placeholderTextColor={colorWithAlpha(theme.muted, 0.55)} style={[styles.titleInput, { color: theme.ink, ...(title ? fonts.bold : fonts.medium) }]} value={title} />
         </View>
-        <View style={styles.editor}><CommunityRichEditor allowEmbeds={Boolean(session)} allowMedia characterCount={length} characterLimit={POST_TEXT_MAX_LENGTH} maxImages={session ? 10 : 1} onChange={setDocument} value={document} /></View>
+        <View style={styles.editor}><CommunityRichEditor allowEmbeds={Boolean(session)} allowMedia characterCount={length} characterLimit={POST_TEXT_MAX_LENGTH} key={editorVersion} maxImages={session ? 10 : 1} onChange={setDocument} ref={editorRef} value={document} /></View>
       </View>
     </KeyboardAvoidingView>
   );
