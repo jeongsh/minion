@@ -3,10 +3,11 @@ import Check from 'lucide-react-native/icons/check';
 import ExternalLink from 'lucide-react-native/icons/external-link';
 import { Fragment, useEffect, useState } from 'react';
 import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { WebView } from 'react-native-webview';
 
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import type { MobileCommunityPollDto, TiptapDocument, TiptapNode } from '@/lib/api-client';
-import { fetchMobileApi, mutateMobileApi, resolveApiAssetUrl } from '@/lib/api-client';
+import { fetchMobileApi, mobileApiOrigin, mutateMobileApi, resolveApiAssetUrl } from '@/lib/api-client';
 
 export function CommunityPostContent({ document }: { document: TiptapDocument }) {
   return <View style={styles.document}>{document.content?.map((node, index) => <BlockNode key={`${node.type}:${index}`} node={node} />)}</View>;
@@ -31,17 +32,52 @@ function BlockNode({ node, depth = 0 }: { node: TiptapNode; depth?: number }) {
     const src = typeof node.attrs?.src === 'string' ? resolveApiAssetUrl(node.attrs.src) : null;
     const width = Number(node.attrs?.width ?? 0);
     const height = Number(node.attrs?.height ?? 0);
+    const wrapperStyle = String(node.attrs?.wrapperStyle ?? '');
+    const alignItems = wrapperStyle.includes('center') ? 'center' : wrapperStyle.includes('flex-end') ? 'flex-end' : 'flex-start';
     if (!src) return null;
-    return <Image accessibilityLabel={typeof node.attrs?.alt === 'string' ? node.attrs.alt : '게시글 이미지'} contentFit="contain" source={{ uri: src }} style={[styles.image, { aspectRatio: width > 0 && height > 0 ? width / height : 4 / 3, backgroundColor: theme.surfaceMuted }]} transition={180} />;
+    return <View style={[styles.imageRow, { alignItems }]}><Image accessibilityLabel={typeof node.attrs?.alt === 'string' ? node.attrs.alt : '게시글 이미지'} contentFit="contain" source={{ uri: src }} style={[styles.image, { aspectRatio: width > 0 && height > 0 ? width / height : 4 / 3, backgroundColor: theme.surfaceMuted, width: width > 0 ? width : '100%' }]} transition={180} /></View>;
   }
-  if (node.type === 'youtube' || node.type === 'embed') {
+  if (node.type === 'youtube') {
     const href = String(node.attrs?.src ?? node.attrs?.url ?? '');
     if (!href) return null;
-    const youtubeId = href.match(/(?:v=|youtu\.be\/|embed\/)([\w-]{11})/)?.[1];
-    return <Pressable accessibilityRole="link" onPress={() => void Linking.openURL(href)} style={[styles.embed, { backgroundColor: theme.surfaceMuted }]}>{youtubeId ? <Image contentFit="cover" source={{ uri: `https://i.ytimg.com/vi/${youtubeId}/hqdefault.jpg` }} style={StyleSheet.absoluteFill} /> : null}<View style={styles.embedShade} /><ExternalLink color="#fff" size={24} /><Text numberOfLines={2} style={{ color: '#fff', ...fonts.medium, fontSize: 14 }}>{String(node.attrs?.title ?? '외부 콘텐츠 열기')}</Text></Pressable>;
+    return <YoutubeEmbed href={href} />;
+  }
+  if (node.type === 'embed') {
+    const href = String(node.attrs?.url ?? node.attrs?.src ?? '');
+    if (!href) return null;
+    return <Pressable accessibilityRole="link" onPress={() => void Linking.openURL(href)} style={[styles.embed, { backgroundColor: theme.surfaceMuted }]}><View style={styles.embedShade} /><ExternalLink color="#fff" size={24} /><Text numberOfLines={2} style={{ color: '#fff', ...fonts.medium, fontSize: 14 }}>{String(node.attrs?.title ?? '외부 콘텐츠 열기')}</Text></Pressable>;
   }
   if (node.type === 'poll') return <PollNode node={node} />;
   return node.content?.length ? <View>{node.content.map((child, index) => <BlockNode depth={depth + 1} key={index} node={child} />)}</View> : null;
+}
+
+function youtubeVideoId(href: string) {
+  return href.match(/(?:v=|youtu\.be\/|embed\/)([A-Za-z0-9_-]{11})/)?.[1] ?? (/^[A-Za-z0-9_-]{11}$/.test(href) ? href : null);
+}
+
+function YoutubeEmbed({ href }: { href: string }) {
+  const { theme } = useMinionTheme();
+  const videoId = youtubeVideoId(href);
+  if (!videoId) return <Pressable accessibilityRole="link" onPress={() => void Linking.openURL(href)} style={[styles.embed, { backgroundColor: theme.surfaceMuted }]}><ExternalLink color="#fff" size={24} /></Pressable>;
+  const origin = encodeURIComponent(mobileApiOrigin);
+  const playerUrl = `https://www.youtube.com/embed/${videoId}?playsinline=1&rel=0&origin=${origin}`;
+  const html = `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><style>*{box-sizing:border-box}html,body{background:#000;height:100%;margin:0;overflow:hidden;width:100%}iframe{border:0;height:100%;width:100%}</style></head><body><iframe src="${playerUrl}" title="YouTube 영상" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></body></html>`;
+  return (
+    <View accessibilityLabel="YouTube 영상" style={[styles.youtube, { backgroundColor: theme.surfaceMuted }]}>
+      <WebView
+        allowsFullscreenVideo
+        domStorageEnabled
+        javaScriptEnabled
+        mediaPlaybackRequiresUserAction
+        originWhitelist={['https://*', 'http://*']}
+        scrollEnabled={false}
+        source={{ baseUrl: `${mobileApiOrigin}/`, html }}
+        startInLoadingState
+        renderLoading={() => <View style={[StyleSheet.absoluteFill, styles.youtubeLoading, { backgroundColor: theme.surfaceMuted }]}><ActivityIndicator color={theme.accent} /></View>}
+        style={styles.youtubeWebView}
+      />
+    </View>
+  );
 }
 
 function inlineContent(node: TiptapNode) {
@@ -148,7 +184,11 @@ const styles = StyleSheet.create({
   listContent: { flex: 1 },
   codeBlock: { borderRadius: 8, marginVertical: 8, paddingHorizontal: 16, paddingVertical: 12 },
   rule: { height: 1, marginVertical: 16 },
-  image: { maxHeight: 520, width: '100%' },
+  imageRow: { width: '100%' },
+  image: { maxHeight: 520, maxWidth: '100%' },
+  youtube: { aspectRatio: 16 / 9, borderRadius: 10, marginVertical: 8, overflow: 'hidden', width: '100%' },
+  youtubeLoading: { alignItems: 'center', justifyContent: 'center' },
+  youtubeWebView: { backgroundColor: '#000', flex: 1 },
   embed: { alignItems: 'center', aspectRatio: 16 / 9, borderRadius: 10, gap: 8, justifyContent: 'center', overflow: 'hidden', width: '100%' },
   embedShade: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,.34)' },
   poll: { borderRadius: 8, borderWidth: 1, gap: 8, marginVertical: 8, padding: 12 },
