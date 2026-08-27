@@ -4,6 +4,8 @@ export type MatchPreviewGenerationPhase = "story" | "final";
 
 export const MATCH_PREVIEW_AUTOMATIC_WINDOW_MS = 24 * 60 * 60 * 1_000;
 export const MATCH_PREVIEW_FINAL_WINDOW_MS = 2 * 60 * 60 * 1_000;
+export const MATCH_PREVIEW_RETRY_BACKOFF_MS = 30 * 60 * 1_000;
+export const MATCH_PREVIEW_MAX_FAILURES_PER_PHASE = 2;
 
 export function matchPreviewGenerationPhase(
   matchDate: string,
@@ -29,6 +31,41 @@ export function matchPreviewNeedsRefresh({
   expectedPhase: MatchPreviewGenerationPhase;
 }) {
   return cachedHash !== expectedHash || cachedPhase !== expectedPhase;
+}
+
+export function matchPreviewResearchRetryDue({
+  researchFailed,
+  researchFailureCount,
+  generatedAt,
+  nowMs = Date.now(),
+}: {
+  researchFailed: boolean;
+  researchFailureCount: number;
+  generatedAt: string | null;
+  nowMs?: number;
+}) {
+  if (
+    !researchFailed ||
+    researchFailureCount >= MATCH_PREVIEW_MAX_FAILURES_PER_PHASE ||
+    !generatedAt
+  ) return false;
+  const generatedTime = new Date(generatedAt).getTime();
+  return Number.isFinite(generatedTime) && nowMs - generatedTime >= MATCH_PREVIEW_RETRY_BACKOFF_MS;
+}
+
+export function matchPreviewFailureRetryAllowed({
+  failureCount,
+  lastFailureAt,
+  nowMs = Date.now(),
+}: {
+  failureCount: number;
+  lastFailureAt: string | null;
+  nowMs?: number;
+}) {
+  if (failureCount <= 0) return true;
+  if (failureCount >= MATCH_PREVIEW_MAX_FAILURES_PER_PHASE || !lastFailureAt) return false;
+  const failedTime = new Date(lastFailureAt).getTime();
+  return Number.isFinite(failedTime) && nowMs - failedTime >= MATCH_PREVIEW_RETRY_BACKOFF_MS;
 }
 
 export function isPremiumMatchPreview({

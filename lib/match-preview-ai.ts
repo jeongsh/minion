@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 
 import {
   getAllTeams,
@@ -17,10 +17,13 @@ import {
   buildMatchPreviewFacts,
   type MatchPreviewFacts,
 } from "@/lib/match-preview-facts";
+import { bindUrlCitationsToClaims } from "@/lib/match-preview-citations";
 import {
   isPremiumMatchPreview,
+  matchPreviewFailureRetryAllowed,
   matchPreviewGenerationPhase,
   matchPreviewNeedsRefresh,
+  matchPreviewResearchRetryDue,
   type MatchPreviewGenerationPhase,
 } from "@/lib/match-preview-policy";
 import {
@@ -142,11 +145,13 @@ const WRITER_SCHEMA = {
   },
 } as const;
 
-const MATCH_PREVIEW_PROMPT_VERSION = 10;
+const MATCH_PREVIEW_PROMPT_VERSION = 12;
 const MATCH_PREVIEW_CONTENT_VERSION = 2;
 const DEFAULT_RESEARCH_MODEL = "gpt-5.4-mini";
 const DEFAULT_STANDARD_MODEL = "gpt-5.4-mini";
 const DEFAULT_PREMIUM_MODEL = "gpt-5.6-sol";
+const MATCH_PREVIEW_STEP_TIMEOUT_MS = 55_000;
+const MATCH_PREVIEW_LEASE_MS = 6 * 60 * 1_000;
 
 export type MatchAiPreviewSource = {
   title: string;
@@ -219,12 +224,24 @@ type MatchAiPreviewCacheRow = {
   content?: unknown;
   generated_at?: string;
   generation_phase?: string;
+  generation_lock_token?: string | null;
+};
+
+type MatchAiPreviewRunRetryRow = {
+  match_id: string;
+  input_hash: string;
+  generation_phase: string;
+  status: string;
+  started_at: string;
+  completed_at?: string | null;
 };
 
 type WebSearchSource = {
   type?: string;
   title?: string;
   url?: string;
+  start_index?: number;
+  end_index?: number;
 };
 
 type OpenAiResponseJson = {
@@ -266,6 +283,18 @@ type ResearchResult = {
   usage: MeasuredOpenAiUsage;
 };
 
+class MeasuredOpenAiStepError extends Error {
+  readonly responseId: string | null;
+  readonly usage: MeasuredOpenAiUsage;
+
+  constructor(message: string, responseId: string | null, usage: MeasuredOpenAiUsage) {
+    super(message);
+    this.name = "MeasuredOpenAiStepError";
+    this.responseId = responseId;
+    this.usage = usage;
+  }
+}
+
 type WriterResult = {
   preview: NormalizedWriterPreview;
   responseId: string | null;
@@ -296,6 +325,7 @@ export type RefreshMissingMatchAiPreviewsSummary = {
   eligible: number;
   missing: number;
   stale: number;
+  deferred: number;
   generated: number;
   estimatedCostUsd: number;
   generatedByPhase: Record<MatchPreviewGenerationPhase, number>;
@@ -362,13 +392,23 @@ function normalizedText(value: unknown, maxLength: number) {
 function normalizedOptionalDate(value: unknown) {
   const text = normalizedText(value, 32);
   if (!text) return null;
-  return Number.isFinite(new Date(text).getTime()) ? text : null;
+  const parsed = new Date(text);
+  return Number.isFinite(parsed.getTime()) ? parsed.toISOString() : null;
 }
 
 function canonicalSourceUrl(value: string) {
   try {
     const parsed = new URL(value);
     parsed.hash = "";
+    for (const key of [...parsed.searchParams.keys()]) {
+      if (
+        /^utm_/i.test(key) ||
+        ["fbclid", "gclid", "ref_src", "ref_url", "mc_cid", "mc_eid"].includes(key.toLowerCase())
+      ) {
+        parsed.searchParams.delete(key);
+      }
+    }
+    parsed.searchParams.sort();
     return parsed.toString().replace(/\/$/, "");
   } catch {
     return value.trim().replace(/\/$/, "");
@@ -384,18 +424,25 @@ function sourcePublisher(url: string) {
 }
 
 function isBlockedResearchSource(url: string) {
-  const hostname = sourcePublisher(url)?.toLowerCase() ?? "";
-  return [
-    "reddit.com",
-    "dcinside.com",
-    "fmkorea.com",
-    "theqoo.net",
-    "namu.wiki",
-    "blog.naver.com",
-    "cafe.naver.com",
-    "x.com",
-    "twitter.com",
-  ].some((domain) => hostname === domain || hostname.endsWith(`.${domain}`));
+  try {
+    const parsed = new URL(url);
+    const hostname = parsed.hostname.replace(/^www\./, "").toLowerCase();
+    const blockedHost = [
+      "reddit.com",
+      "dcinside.com",
+      "fmkorea.com",
+      "theqoo.net",
+      "namu.wiki",
+      "blog.naver.com",
+      "cafe.naver.com",
+      "x.com",
+      "twitter.com",
+    ].some((domain) => hostname === domain || hostname.endsWith(`.${domain}`));
+    const blockedForumPath = hostname.endsWith("inven.co.kr") && parsed.pathname.startsWith("/board/");
+    return blockedHost || blockedForumPath;
+  } catch {
+    return true;
+  }
 }
 
 function normalizedSources(value: unknown): MatchAiPreviewSource[] {
@@ -422,6 +469,30 @@ function normalizedSources(value: unknown): MatchAiPreviewSource[] {
       return [];
     }
   }).slice(0, 8);
+}
+
+function citedSourcesByClaim(
+  outputText: string,
+  annotations: WebSearchSource[],
+  searchedSources: WebSearchSource[],
+) {
+  const searchedByUrl = new Map(
+    normalizedSources(searchedSources).map((source) => [canonicalSourceUrl(source.url), source]),
+  );
+  return bindUrlCitationsToClaims(outputText, annotations).map((claimAnnotations) =>
+    normalizedSources(
+      claimAnnotations.flatMap((annotation) => {
+        if (!annotation.url) return [];
+        const searched = searchedByUrl.get(canonicalSourceUrl(annotation.url));
+        return [{
+          title: searched?.title ?? annotation.title,
+          url: annotation.url,
+          publisher: searched?.publisher,
+          publishedAt: searched?.publishedAt,
+        }];
+      }),
+    ),
+  );
 }
 
 function parseStoredEvidence(value: unknown): StoredEvidence {
@@ -478,6 +549,51 @@ function parseStoredRecentView(value: unknown): MatchAiPreviewRecentView | null 
     asOf: normalizedOptionalDate(row.asOf),
     sources,
   };
+}
+
+function parseStoredResearchState(value: unknown) {
+  if (!value || typeof value !== "object") {
+    return { researchFailed: false, researchFailureCount: 0 };
+  }
+  const content = value as { researchFailed?: unknown; researchFailureCount?: unknown };
+  return {
+    researchFailed: content.researchFailed === true,
+    researchFailureCount: typeof content.researchFailureCount === "number" &&
+        Number.isFinite(content.researchFailureCount)
+      ? Math.max(0, Math.trunc(content.researchFailureCount))
+      : content.researchFailed === true ? 1 : 0,
+  };
+}
+
+function isResearchRetryDue(row: { content?: unknown; generated_at?: string }) {
+  const state = parseStoredResearchState(row.content);
+  return matchPreviewResearchRetryDue({
+    ...state,
+    generatedAt: row.generated_at ?? null,
+  });
+}
+
+function generationFailureState(rows: MatchAiPreviewRunRetryRow[], nowMs = Date.now()) {
+  let failureCount = 0;
+  let lastFailureAt: string | null = null;
+  let hasActiveRun = false;
+  for (const row of rows) {
+    const startedTime = new Date(row.started_at).getTime();
+    const staleRunning = row.status === "running" &&
+      Number.isFinite(startedTime) && nowMs - startedTime >= MATCH_PREVIEW_LEASE_MS;
+    if (row.status === "running" && !staleRunning) {
+      hasActiveRun = true;
+      break;
+    }
+    if (row.status !== "failed" && !staleRunning) break;
+    failureCount += 1;
+    if (!lastFailureAt) lastFailureAt = row.completed_at ?? row.started_at;
+  }
+  return { failureCount, lastFailureAt, hasActiveRun };
+}
+
+function generationRunKey(matchId: string, inputHash: string, phase: string) {
+  return `${matchId}:${inputHash}:${phase}`;
 }
 
 function previewContext(match: Match, tournament?: Tournament, stage?: Stage) {
@@ -605,7 +721,7 @@ function responseOutputText(json: OpenAiResponseJson) {
   return message?.content?.find((item) => item.type === "output_text");
 }
 
-async function createOpenAiResponse(body: Record<string, unknown>) {
+async function createOpenAiResponse(body: Record<string, unknown>, model: string) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error("OPENAI_API_KEY가 설정되지 않았습니다.");
   const response = await fetch("https://api.openai.com/v1/responses", {
@@ -615,7 +731,7 @@ async function createOpenAiResponse(body: Record<string, unknown>) {
       authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify(body),
-    signal: AbortSignal.timeout(120_000),
+    signal: AbortSignal.timeout(MATCH_PREVIEW_STEP_TIMEOUT_MS),
   });
   if (!response.ok) {
     const detail = await response.text();
@@ -623,24 +739,24 @@ async function createOpenAiResponse(body: Record<string, unknown>) {
   }
   const json = await response.json() as OpenAiResponseJson;
   if (json.status === "incomplete") {
-    throw new Error(`OpenAI 응답이 잘렸습니다: ${JSON.stringify(json.incomplete_details)}`);
+    throw new MeasuredOpenAiStepError(
+      `OpenAI 응답이 잘렸습니다: ${JSON.stringify(json.incomplete_details)}`,
+      json.id ?? null,
+      measureOpenAiResponseUsage(json, model),
+    );
   }
   return json;
 }
 
 function normalizeResearchClaims(
   value: unknown,
-  actualSources: MatchAiPreviewSource[],
+  sourcesByClaim: MatchAiPreviewSource[][],
+  searchedSources: WebSearchSource[],
 ): ResearchClaim[] {
   if (!value || typeof value !== "object") return [];
   const rows = (value as { claims?: unknown }).claims;
   if (!Array.isArray(rows)) return [];
-  const actualByUrl = new Map(
-    actualSources
-      .filter((source) => !isBlockedResearchSource(source.url))
-      .map((source) => [canonicalSourceUrl(source.url), source]),
-  );
-  return rows.flatMap<ResearchClaim>((item) => {
+  return rows.flatMap<ResearchClaim>((item, claimIndex) => {
     if (!item || typeof item !== "object") return [];
     const row = item as {
       kind?: unknown;
@@ -658,9 +774,20 @@ function normalizeResearchClaims(
     const selectedUrls = Array.isArray(row.sourceUrls)
       ? row.sourceUrls.flatMap((url) => typeof url === "string" ? [canonicalSourceUrl(url)] : [])
       : [];
+    // Structured JSON responses do not always carry output_text annotations.
+    // A URL explicitly declared inside this claim is still acceptable when it
+    // exactly matches the Responses API's web-search source inventory.
+    const actualByUrl = new Map(
+      normalizedSources([
+        ...searchedSources,
+        ...(sourcesByClaim[claimIndex] ?? []),
+      ])
+        .filter((source) => !isBlockedResearchSource(source.url))
+        .map((source) => [canonicalSourceUrl(source.url), source]),
+    );
     const sources = selectedUrls.flatMap((url) => {
       const source = actualByUrl.get(url);
-      return source ? [{ ...source, publisher: attribution || source.publisher, publishedAt }] : [];
+      return source ? [{ ...source, publishedAt: publishedAt ?? source.publishedAt }] : [];
     });
     const uniqueSources = normalizedSources(sources);
     if (!kind || !claim || uniqueSources.length === 0) return [];
@@ -704,7 +831,7 @@ async function researchMatch({
           "최근 평가는 원칙적으로 14일 이내, 해당 경기 프리뷰는 72시간 이내 자료를 우선한다. 날짜를 확인하지 못하면 publishedAt을 빈 문자열로 둔다.",
           "'세간의 평가', '대체로', '중론' 같은 합의 표현의 후보는 서로 독립적인 출처가 2개 이상일 때만 만든다.",
           "복수심, 앙금, 각오 같은 내면은 선수·팀의 직접 발언 없이는 만들지 않는다. stage 이름만 보고 탈락이나 진출 조건을 추론하지 않는다.",
-          "각 claim의 sourceUrls에는 실제 검색에서 확인한 원문 URL만 넣는다. 출력은 지정된 JSON 스키마만 따른다.",
+          "각 claim의 sourceUrls에는 실제 검색에서 확인한 원문 URL만 넣고, 그 claim 객체 안의 claim 또는 URL에 해당 원문을 직접 인용한다. 출력은 지정된 JSON 스키마만 따른다.",
         ].join("\n"),
       },
       {
@@ -726,17 +853,34 @@ async function researchMatch({
         schema: RESEARCH_SCHEMA,
       },
     },
-  });
-  const outputText = responseOutputText(json);
-  if (!outputText?.text) throw new Error("OpenAI 리서치 응답 본문이 없습니다.");
-  const searchedSources = (json.output ?? []).flatMap((item) => item.action?.sources ?? []);
-  const citedSources = outputText.annotations ?? [];
-  const actualSources = normalizedSources([...citedSources, ...searchedSources]);
-  return {
-    claims: normalizeResearchClaims(JSON.parse(outputText.text), actualSources),
-    responseId: json.id ?? null,
-    usage: measureOpenAiResponseUsage(json, model),
-  };
+  }, model);
+  const usage = measureOpenAiResponseUsage(json, model);
+  try {
+    const outputText = responseOutputText(json);
+    if (!outputText?.text) throw new Error("OpenAI 리서치 응답 본문이 없습니다.");
+    const parsed = JSON.parse(outputText.text) as { claims?: unknown };
+    const searchedSources = (json.output ?? []).flatMap((item) => item.action?.sources ?? []);
+    const sourcesByClaim = citedSourcesByClaim(
+      outputText.text,
+      outputText.annotations ?? [],
+      searchedSources,
+    );
+    const claims = normalizeResearchClaims(parsed, sourcesByClaim, searchedSources);
+    if (Array.isArray(parsed.claims) && parsed.claims.length > 0 && claims.length === 0) {
+      throw new Error("검색 주장의 인용 위치와 원문 URL을 검증하지 못했습니다.");
+    }
+    return {
+      claims,
+      responseId: json.id ?? null,
+      usage,
+    };
+  } catch (error) {
+    throw new MeasuredOpenAiStepError(
+      error instanceof Error ? error.message : String(error),
+      json.id ?? null,
+      usage,
+    );
+  }
 }
 
 function claimIndexes(value: unknown, claims: ResearchClaim[]) {
@@ -754,6 +898,14 @@ function sourcesForClaims(claims: ResearchClaim[], indexes: number[]) {
 
 function sourceDomainCount(sources: MatchAiPreviewSource[]) {
   return new Set(sources.flatMap((source) => sourcePublisher(source.url) ?? [])).size;
+}
+
+function isRecentAttributedClaim(claim: ResearchClaim | undefined, nowMs = Date.now()) {
+  if (!claim || (claim.kind !== "assessment" && claim.kind !== "statement")) return false;
+  if (!claim.attribution || !claim.publishedAt) return false;
+  const publishedAt = new Date(claim.publishedAt).getTime();
+  const age = nowMs - publishedAt;
+  return Number.isFinite(publishedAt) && age >= 0 && age <= 14 * 86_400_000;
 }
 
 function cappedConfidence(
@@ -798,7 +950,11 @@ function normalizeWriterPreview({
   const narrativeSources = sourcesForClaims(claims, narrativeIndexes);
   const narrativeTitle = normalizedText(row.narrativeTitle, 80);
   const narrativeBody = normalizedText(row.narrativeBody, 420);
-  const narrative = narrativeTitle && narrativeBody && narrativeSources.length > 0
+  const narrativeConsensusLanguage = /세간|대체로|중론|공통된 평가|전반적인 평가/.test(narrativeBody);
+  const narrativeConsensusSupported =
+    !narrativeConsensusLanguage || sourceDomainCount(narrativeSources) >= 2;
+  const narrative =
+    narrativeTitle && narrativeBody && narrativeSources.length > 0 && narrativeConsensusSupported
     ? {
         title: narrativeTitle,
         body: narrativeBody,
@@ -814,12 +970,15 @@ function normalizeWriterPreview({
 
   const recentViewIndexes = claimIndexes(row.recentViewClaimIndexes, claims);
   const recentViewSources = sourcesForClaims(claims, recentViewIndexes);
-  const hasAttributedAssessment = recentViewIndexes.some((index) => {
-    const claim = claims[index];
-    return claim?.kind === "assessment" || claim?.kind === "statement";
-  });
+  const hasOnlyRecentAttributedAssessments =
+    recentViewIndexes.length > 0 &&
+    recentViewIndexes.every((index) => isRecentAttributedClaim(claims[index]));
   const recentViewTitle = normalizedText(row.recentViewTitle, 80);
   const recentViewBody = normalizedText(row.recentViewBody, 360);
+  const mentionsAttribution = recentViewIndexes.some((index) => {
+    const attribution = claims[index]?.attribution?.toLowerCase();
+    return attribution ? recentViewBody.toLowerCase().includes(attribution) : false;
+  });
   const consensusLanguage = /세간|대체로|중론|공통된 평가|전반적인 평가/.test(recentViewBody);
   const consensusSupported = !consensusLanguage || sourceDomainCount(recentViewSources) >= 2;
   const recentDates = recentViewSources
@@ -827,7 +986,7 @@ function normalizeWriterPreview({
     .sort((left, right) => right.localeCompare(left));
   const recentView =
     recentViewTitle && recentViewBody && recentViewSources.length > 0 &&
-    hasAttributedAssessment && consensusSupported
+    hasOnlyRecentAttributedAssessments && mentionsAttribution && consensusSupported
       ? {
           title: recentViewTitle,
           body: recentViewBody,
@@ -838,6 +997,9 @@ function normalizeWriterPreview({
 
   const meaningIndexes = claimIndexes(row.meaningClaimIndexes, claims);
   const meaningSources = sourcesForClaims(claims, meaningIndexes);
+  const matchMeaning = meaningSources.length > 0
+    ? normalizedText(row.matchMeaning, 240) || null
+    : null;
   const sources = normalizedSources([
     ...(narrative?.sources ?? []),
     ...(recentView?.sources ?? []),
@@ -850,7 +1012,7 @@ function normalizeWriterPreview({
     headline,
     summary,
     narrative,
-    matchMeaning: normalizedText(row.matchMeaning, 240) || null,
+    matchMeaning,
     recentView,
     teamAWinCondition: normalizedText(row.teamAWinCondition, 220) || null,
     teamBWinCondition: normalizedText(row.teamBWinCondition, 220) || null,
@@ -883,7 +1045,7 @@ async function writeMatchPreview({
   const json = await createOpenAiResponse({
     model,
     reasoning: { effort: "medium" },
-    max_output_tokens: 2_600,
+    max_output_tokens: 4_200,
     prompt_cache_key: `match-preview-writer-v${MATCH_PREVIEW_PROMPT_VERSION}`,
     input: [
       {
@@ -932,18 +1094,27 @@ async function writeMatchPreview({
         schema: WRITER_SCHEMA,
       },
     },
-  });
-  const outputText = responseOutputText(json);
-  if (!outputText?.text) throw new Error("OpenAI 프리뷰 응답 본문이 없습니다.");
-  return {
-    preview: normalizeWriterPreview({
-      value: JSON.parse(outputText.text),
-      claims,
-      evidenceCatalog,
-    }),
-    responseId: json.id ?? null,
-    usage: measureOpenAiResponseUsage(json, model),
-  };
+  }, model);
+  const usage = measureOpenAiResponseUsage(json, model);
+  try {
+    const outputText = responseOutputText(json);
+    if (!outputText?.text) throw new Error("OpenAI 프리뷰 응답 본문이 없습니다.");
+    return {
+      preview: normalizeWriterPreview({
+        value: JSON.parse(outputText.text),
+        claims,
+        evidenceCatalog,
+      }),
+      responseId: json.id ?? null,
+      usage,
+    };
+  } catch (error) {
+    throw new MeasuredOpenAiStepError(
+      error instanceof Error ? error.message : String(error),
+      json.id ?? null,
+      usage,
+    );
+  }
 }
 
 function previewGenerationPlan(
@@ -1022,90 +1193,277 @@ async function generateAndStoreMatchAiPreview(
   inputs: MatchAiPreviewInputs,
   plan: PreviewGenerationPlan,
 ): Promise<GenerateAndStoreResult> {
-  let research: ResearchResult | null = null;
-  try {
-    research = await researchMatch({
-      context: plan.context,
-      storyContext: plan.storyContext,
-      phase: plan.phase,
-      model: plan.researchModel,
-    });
-  } catch (error) {
-    console.warn(`[match-ai-preview] research failed for ${inputs.match.id}`, error);
-  }
-  const claims = research?.claims ?? [];
-  const writer = await writeMatchPreview({
-    context: plan.context,
-    facts: plan.facts,
-    storyContext: plan.storyContext,
-    evidenceCatalog: plan.evidenceCatalog,
-    claims,
-    phase: plan.phase,
-    model: plan.writerModel,
-  });
-  const usage = combineOpenAiUsage([...(research ? [research.usage] : []), writer.usage]);
-  const generatedAt = new Date().toISOString();
-  const preview: MatchAiPreview = {
-    ...writer.preview,
-    generatedAt,
-    generationPhase: plan.phase,
-    source: "ai",
-  };
   const admin = createSupabaseAdminClient();
-  const { data: latest } = await admin
-    .from("match_ai_previews")
-    .select("summary,watch_point,evidence,content,generated_at,generation_phase")
-    .eq("match_id", inputs.match.id)
-    .maybeSingle();
-  if (latest && phaseRank(latest.generation_phase as string) > phaseRank(plan.phase)) {
+  const lockToken = randomUUID();
+  const { data: claimed, error: claimError } = await admin.rpc(
+    "claim_match_ai_preview_generation",
+    {
+      p_match_id: inputs.match.id,
+      p_lock_token: lockToken,
+      p_input_hash: plan.inputHash,
+      p_generation_phase: plan.phase,
+    },
+  );
+  if (claimError) throw new Error(`AI 프리뷰 생성 lease 획득 실패: ${claimError.message}`);
+
+  if (claimed !== true) {
+    const { data: current, error: currentError } = await admin
+      .from("match_ai_previews")
+      .select("input_hash,summary,watch_point,evidence,content,generated_at,generation_phase")
+      .eq("match_id", inputs.match.id)
+      .maybeSingle();
+    if (currentError) throw new Error(currentError.message);
     return {
-      preview: previewFromCacheRow(latest as MatchAiPreviewCacheRow),
-      estimatedCostUsd: usage.estimatedCostUsd,
+      preview: current
+        ? previewFromCacheRow(current as MatchAiPreviewCacheRow)
+        : fallbackPreview(plan.facts),
+      estimatedCostUsd: 0,
       stored: false,
     };
   }
 
-  const { error } = await admin.from("match_ai_previews").upsert({
-    match_id: inputs.match.id,
-    input_hash: plan.inputHash,
-    model: plan.writerModel,
-    research_model: plan.researchModel,
-    generation_phase: plan.phase,
-    response_id: writer.responseId,
-    research_response_id: research?.responseId ?? null,
-    summary: preview.summary,
-    watch_point: preview.watchPoint,
-    evidence: {
-      version: MATCH_PREVIEW_CONTENT_VERSION,
-      facts: preview.evidence,
-      sources: preview.sources,
-      winProbabilityA: preview.winProbabilityA,
-    },
-    content: {
-      version: MATCH_PREVIEW_CONTENT_VERSION,
-      headline: preview.headline,
-      narrative: preview.narrative,
-      matchMeaning: preview.matchMeaning,
-      recentView: preview.recentView,
-      teamAWinCondition: preview.teamAWinCondition,
-      teamBWinCondition: preview.teamBWinCondition,
-      liveCheck: preview.liveCheck,
-      confidence: preview.confidence,
-      researchClaims: claims,
-      researchFailed: research === null,
-    },
-    input_tokens: usage.inputTokens,
-    cached_input_tokens: usage.cachedInputTokens,
-    output_tokens: usage.outputTokens,
-    reasoning_tokens: usage.reasoningTokens,
-    total_tokens: usage.totalTokens,
-    web_search_calls: usage.webSearchCalls,
-    estimated_cost_usd: usage.estimatedCostUsd,
-    pricing_snapshot: usage.pricingSnapshot,
-    generated_at: generatedAt,
-  });
-  if (error) throw new Error(error.message);
-  return { preview, estimatedCostUsd: usage.estimatedCostUsd, stored: true };
+  let runId: string | null = null;
+  let research: ResearchResult | null = null;
+  let researchResponseId: string | null = null;
+  let writerResponseId: string | null = null;
+  let researchErrorMessage: string | null = null;
+  let usageComplete = true;
+  const measuredUsage: MeasuredOpenAiUsage[] = [];
+
+  const usageFields = () => {
+    const usage = combineOpenAiUsage(measuredUsage);
+    return {
+      usage,
+      fields: {
+        response_id: writerResponseId,
+        research_response_id: researchResponseId,
+        input_tokens: usage.inputTokens,
+        cached_input_tokens: usage.cachedInputTokens,
+        output_tokens: usage.outputTokens,
+        reasoning_tokens: usage.reasoningTokens,
+        total_tokens: usage.totalTokens,
+        web_search_calls: usage.webSearchCalls,
+        estimated_cost_usd: usage.estimatedCostUsd,
+        pricing_snapshot: usage.pricingSnapshot,
+        usage_complete: usageComplete,
+      },
+    };
+  };
+
+  try {
+    const staleRunCutoff = new Date(Date.now() - MATCH_PREVIEW_LEASE_MS).toISOString();
+    const { error: staleRunError } = await admin
+      .from("match_ai_preview_runs")
+      .update({
+        status: "failed",
+        error_message: "Generation lease expired before completion.",
+        completed_at: new Date().toISOString(),
+      })
+      .eq("match_id", inputs.match.id)
+      .eq("status", "running")
+      .lt("started_at", staleRunCutoff);
+    if (staleRunError) throw new Error(`중단된 AI 프리뷰 실행 정리 실패: ${staleRunError.message}`);
+
+    const { data: run, error: runError } = await admin
+      .from("match_ai_preview_runs")
+      .insert({
+        match_id: inputs.match.id,
+        input_hash: plan.inputHash,
+        generation_phase: plan.phase,
+        status: "running",
+        model: plan.writerModel,
+        research_model: plan.researchModel,
+      })
+      .select("id")
+      .single();
+    if (runError || !run) {
+      throw new Error(`AI 프리뷰 비용 원장 생성 실패: ${runError?.message ?? "row missing"}`);
+    }
+    runId = run.id as string;
+
+    try {
+      research = await researchMatch({
+        context: plan.context,
+        storyContext: plan.storyContext,
+        phase: plan.phase,
+        model: plan.researchModel,
+      });
+      researchResponseId = research.responseId;
+      measuredUsage.push(research.usage);
+    } catch (error) {
+      researchErrorMessage = error instanceof Error ? error.message : String(error);
+      if (error instanceof MeasuredOpenAiStepError) {
+        researchResponseId = error.responseId;
+        measuredUsage.push(error.usage);
+      } else {
+        usageComplete = false;
+      }
+      console.warn(`[match-ai-preview] research failed for ${inputs.match.id}`, error);
+    }
+
+    const claims = research?.claims ?? [];
+    let writer: WriterResult;
+    try {
+      writer = await writeMatchPreview({
+        context: plan.context,
+        facts: plan.facts,
+        storyContext: plan.storyContext,
+        evidenceCatalog: plan.evidenceCatalog,
+        claims,
+        phase: plan.phase,
+        model: plan.writerModel,
+      });
+      writerResponseId = writer.responseId;
+      measuredUsage.push(writer.usage);
+    } catch (error) {
+      if (error instanceof MeasuredOpenAiStepError) {
+        writerResponseId = error.responseId;
+        measuredUsage.push(error.usage);
+      } else {
+        usageComplete = false;
+      }
+      throw error;
+    }
+
+    const generatedAt = new Date().toISOString();
+    const preview: MatchAiPreview = {
+      ...writer.preview,
+      generatedAt,
+      generationPhase: plan.phase,
+      source: "ai",
+    };
+    const { usage, fields } = usageFields();
+    const { error: usageError } = await admin
+      .from("match_ai_preview_runs")
+      .update(fields)
+      .eq("id", runId);
+    if (usageError) throw new Error(`AI 프리뷰 비용 기록 실패: ${usageError.message}`);
+
+    const { data: latest, error: latestError } = await admin
+      .from("match_ai_previews")
+      .select("input_hash,summary,watch_point,evidence,content,generated_at,generation_phase")
+      .eq("match_id", inputs.match.id)
+      .maybeSingle();
+    if (latestError) throw new Error(latestError.message);
+    if (latest && phaseRank(latest.generation_phase as string) > phaseRank(plan.phase)) {
+      const { error: supersededError } = await admin
+        .from("match_ai_preview_runs")
+        .update({ status: "superseded", completed_at: generatedAt })
+        .eq("id", runId);
+      if (supersededError) throw new Error(supersededError.message);
+      return {
+        preview: previewFromCacheRow(latest as MatchAiPreviewCacheRow),
+        estimatedCostUsd: usage.estimatedCostUsd,
+        stored: false,
+      };
+    }
+
+    const priorResearch = latest &&
+        latest.input_hash === plan.inputHash && latest.generation_phase === plan.phase
+      ? parseStoredResearchState(latest.content)
+      : { researchFailed: false, researchFailureCount: 0 };
+    const researchFailureCount = research
+      ? 0
+      : priorResearch.researchFailureCount + 1;
+    const { data: storedRow, error: storeError } = await admin
+      .from("match_ai_previews")
+      .upsert({
+        match_id: inputs.match.id,
+        input_hash: plan.inputHash,
+        model: plan.writerModel,
+        research_model: plan.researchModel,
+        generation_phase: plan.phase,
+        generation_lock_token: lockToken,
+        response_id: writer.responseId,
+        research_response_id: researchResponseId,
+        summary: preview.summary,
+        watch_point: preview.watchPoint,
+        evidence: {
+          version: MATCH_PREVIEW_CONTENT_VERSION,
+          facts: preview.evidence,
+          sources: preview.sources,
+          winProbabilityA: preview.winProbabilityA,
+        },
+        content: {
+          version: MATCH_PREVIEW_CONTENT_VERSION,
+          headline: preview.headline,
+          narrative: preview.narrative,
+          matchMeaning: preview.matchMeaning,
+          recentView: preview.recentView,
+          teamAWinCondition: preview.teamAWinCondition,
+          teamBWinCondition: preview.teamBWinCondition,
+          liveCheck: preview.liveCheck,
+          confidence: preview.confidence,
+          researchClaims: claims,
+          researchFailed: research === null,
+          researchFailureCount,
+        },
+        input_tokens: usage.inputTokens,
+        cached_input_tokens: usage.cachedInputTokens,
+        output_tokens: usage.outputTokens,
+        reasoning_tokens: usage.reasoningTokens,
+        total_tokens: usage.totalTokens,
+        web_search_calls: usage.webSearchCalls,
+        estimated_cost_usd: usage.estimatedCostUsd,
+        pricing_snapshot: usage.pricingSnapshot,
+        generated_at: generatedAt,
+      })
+      .select("input_hash,summary,watch_point,evidence,content,generated_at,generation_phase,generation_lock_token")
+      .maybeSingle();
+    if (storeError) {
+      throw new Error(`AI 프리뷰 캐시 저장 실패: ${storeError.message}`);
+    }
+
+    const writeAccepted = storedRow?.generation_lock_token === lockToken;
+    const superseded = !writeAccepted;
+    const status = superseded ? "superseded" : research ? "success" : "research_failed";
+    const { error: completeError } = await admin
+      .from("match_ai_preview_runs")
+      .update({
+        status,
+        error_message: researchErrorMessage?.slice(0, 1_000) ?? null,
+        completed_at: generatedAt,
+      })
+      .eq("id", runId);
+    if (completeError) throw new Error(`AI 프리뷰 비용 원장 완료 처리 실패: ${completeError.message}`);
+    return {
+      preview: superseded
+        ? storedRow
+          ? previewFromCacheRow(storedRow as MatchAiPreviewCacheRow)
+          : latest
+            ? previewFromCacheRow(latest as MatchAiPreviewCacheRow)
+            : fallbackPreview(plan.facts)
+        : preview,
+      estimatedCostUsd: usage.estimatedCostUsd,
+      stored: !superseded,
+    };
+  } catch (error) {
+    if (runId) {
+      const { fields } = usageFields();
+      const { error: failureError } = await admin
+        .from("match_ai_preview_runs")
+        .update({
+          ...fields,
+          status: "failed",
+          error_message: (error instanceof Error ? error.message : String(error)).slice(0, 1_000),
+          completed_at: new Date().toISOString(),
+        })
+        .eq("id", runId);
+      if (failureError) {
+        console.error(`[match-ai-preview] failed to close run ${runId}`, failureError);
+      }
+    }
+    throw error;
+  } finally {
+    const { error: releaseError } = await admin
+      .from("match_ai_preview_generation_locks")
+      .delete()
+      .eq("match_id", inputs.match.id)
+      .eq("lock_token", lockToken);
+    if (releaseError) {
+      console.error(`[match-ai-preview] failed to release lease for ${inputs.match.id}`, releaseError);
+    }
+  }
 }
 
 export async function getMatchAiPreview({
@@ -1199,24 +1557,41 @@ export async function refreshMatchAiPreviewCacheForMatchId(
     careerHistories,
   };
   const plan = previewGenerationPlan(inputs, phase);
-  if (
-    !options.force && cached &&
-    !matchPreviewNeedsRefresh({
+  const needsGeneration = !cached || matchPreviewNeedsRefresh({
       cachedHash: cached.input_hash as string | null,
       expectedHash: plan.inputHash,
       cachedPhase: cached.generation_phase as string | null,
       expectedPhase: phase,
-    })
-  ) {
+    }) || isResearchRetryDue(cached);
+  if (!options.force && !needsGeneration) {
     return previewFromCacheRow(cached as MatchAiPreviewCacheRow);
+  }
+  if (!options.force) {
+    const { data: recentRuns, error: runsError } = await admin
+      .from("match_ai_preview_runs")
+      .select("match_id,input_hash,generation_phase,status,started_at,completed_at")
+      .eq("match_id", match.id)
+      .eq("input_hash", plan.inputHash)
+      .eq("generation_phase", phase)
+      .order("started_at", { ascending: false })
+      .limit(3);
+    if (runsError) throw new Error(runsError.message);
+    const failureState = generationFailureState(
+      (recentRuns ?? []) as MatchAiPreviewRunRetryRow[],
+    );
+    if (failureState.hasActiveRun || !matchPreviewFailureRetryAllowed(failureState)) {
+      return cached
+        ? previewFromCacheRow(cached as MatchAiPreviewCacheRow)
+        : fallbackPreview(plan.facts);
+    }
   }
   return (await generateAndStoreMatchAiPreview(inputs, plan)).preview;
 }
 
 /**
  * 참가 팀이 확정됐고 24시간 안에 시작하는 경기만 자동 생성한다.
- * 각 경기는 story(24시간)와 final(2시간) phase에서 최대 한 번씩 생성되며,
- * 내부 경기 데이터나 프롬프트 버전이 바뀐 경우에만 같은 phase에서 갱신한다.
+ * 각 경기는 story(24시간)와 final(2시간) phase에서 생성된다.
+ * 같은 phase는 입력이 바뀌거나 실패 후 30분이 지난 경우에만 한 번 재시도한다.
  */
 export async function refreshMissingUpcomingMatchAiPreviews(
   options: RefreshMissingMatchAiPreviewsOptions = {},
@@ -1245,6 +1620,7 @@ export async function refreshMissingUpcomingMatchAiPreviews(
       eligible: 0,
       missing: 0,
       stale: 0,
+      deferred: 0,
       generated: 0,
       estimatedCostUsd: 0,
       generatedByPhase: { story: 0, final: 0 },
@@ -1258,7 +1634,7 @@ export async function refreshMissingUpcomingMatchAiPreviews(
   const admin = createSupabaseAdminClient();
   const { data: cachedRows, error: cacheError } = await admin
     .from("match_ai_previews")
-    .select("match_id,input_hash,generation_phase")
+    .select("match_id,input_hash,generation_phase,content,generated_at")
     .in("match_id", eligible.map(({ match }) => match.id));
   if (cacheError) throw new Error(cacheError.message);
   const cachedByMatchId = new Map((cachedRows ?? []).map((row) => [row.match_id as string, row]));
@@ -1279,17 +1655,40 @@ export async function refreshMissingUpcomingMatchAiPreviews(
     };
     return { inputs, plan: previewGenerationPlan(inputs, phase) };
   });
+  const { data: recentRunRows, error: runRowsError } = await admin
+    .from("match_ai_preview_runs")
+    .select("match_id,input_hash,generation_phase,status,started_at,completed_at")
+    .in("match_id", eligible.map(({ match }) => match.id))
+    .order("started_at", { ascending: false });
+  if (runRowsError) throw new Error(runRowsError.message);
+  const runsByGeneration = new Map<string, MatchAiPreviewRunRetryRow[]>();
+  for (const row of (recentRunRows ?? []) as MatchAiPreviewRunRetryRow[]) {
+    const key = generationRunKey(row.match_id, row.input_hash, row.generation_phase);
+    const group = runsByGeneration.get(key) ?? [];
+    group.push(row);
+    runsByGeneration.set(key, group);
+  }
   const allMissing = planned.filter(({ inputs }) => !cachedByMatchId.has(inputs.match.id));
   const allStale = planned.filter(({ inputs, plan }) => {
     const cached = cachedByMatchId.get(inputs.match.id);
-    return Boolean(cached) && matchPreviewNeedsRefresh({
-      cachedHash: cached?.input_hash as string | null,
+    if (!cached) return false;
+    return matchPreviewNeedsRefresh({
+      cachedHash: cached.input_hash as string | null,
       expectedHash: plan.inputHash,
-      cachedPhase: cached?.generation_phase as string | null,
+      cachedPhase: cached.generation_phase as string | null,
       expectedPhase: plan.phase,
-    });
+    }) || isResearchRetryDue(cached);
   });
-  const allPending = [...allMissing, ...allStale].sort(
+  const allCandidates = [...allMissing, ...allStale];
+  const allPending = allCandidates.filter(({ inputs, plan }) => {
+    const key = generationRunKey(inputs.match.id, plan.inputHash, plan.phase);
+    const failureState = generationFailureState(runsByGeneration.get(key) ?? [], now);
+    return !failureState.hasActiveRun && matchPreviewFailureRetryAllowed({
+      failureCount: failureState.failureCount,
+      lastFailureAt: failureState.lastFailureAt,
+      nowMs: now,
+    });
+  }).sort(
     (left, right) =>
       new Date(left.inputs.match.matchDate).getTime() - new Date(right.inputs.match.matchDate).getTime(),
   );
@@ -1325,6 +1724,7 @@ export async function refreshMissingUpcomingMatchAiPreviews(
     eligible: eligible.length,
     missing: allMissing.length,
     stale: allStale.length,
+    deferred: allCandidates.length - allPending.length,
     generated,
     estimatedCostUsd,
     generatedByPhase,

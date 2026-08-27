@@ -3,8 +3,10 @@ import { test } from "node:test";
 
 import {
   isPremiumMatchPreview,
+  matchPreviewFailureRetryAllowed,
   matchPreviewGenerationPhase,
   matchPreviewNeedsRefresh,
+  matchPreviewResearchRetryDue,
 } from "./match-preview-policy.ts";
 import type { Match, Stage, Tournament } from "./types.ts";
 
@@ -31,6 +33,51 @@ test("같은 phase와 hash만 재생성을 건너뛴다", () => {
     cachedPhase: "story",
     expectedPhase: "final",
   }), true);
+});
+
+test("검색 실패는 30분 뒤 같은 phase에서 한 번만 재시도한다", () => {
+  const generatedAt = new Date(now - 31 * 60 * 1_000).toISOString();
+  assert.equal(matchPreviewResearchRetryDue({
+    researchFailed: true,
+    researchFailureCount: 1,
+    generatedAt,
+    nowMs: now,
+  }), true);
+  assert.equal(matchPreviewResearchRetryDue({
+    researchFailed: true,
+    researchFailureCount: 2,
+    generatedAt,
+    nowMs: now,
+  }), false);
+  assert.equal(matchPreviewResearchRetryDue({
+    researchFailed: false,
+    researchFailureCount: 1,
+    generatedAt,
+    nowMs: now,
+  }), false);
+});
+
+test("생성 실패는 30분 backoff와 phase당 2회 상한을 적용한다", () => {
+  assert.equal(matchPreviewFailureRetryAllowed({
+    failureCount: 0,
+    lastFailureAt: null,
+    nowMs: now,
+  }), true);
+  assert.equal(matchPreviewFailureRetryAllowed({
+    failureCount: 1,
+    lastFailureAt: new Date(now - 29 * 60 * 1_000).toISOString(),
+    nowMs: now,
+  }), false);
+  assert.equal(matchPreviewFailureRetryAllowed({
+    failureCount: 1,
+    lastFailureAt: new Date(now - 31 * 60 * 1_000).toISOString(),
+    nowMs: now,
+  }), true);
+  assert.equal(matchPreviewFailureRetryAllowed({
+    failureCount: 2,
+    lastFailureAt: new Date(now - 31 * 60 * 1_000).toISOString(),
+    nowMs: now,
+  }), false);
 });
 
 test("플레이오프·결승 또는 BO5는 프리미엄 생성 대상으로 본다", () => {

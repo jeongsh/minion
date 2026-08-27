@@ -9,6 +9,8 @@ export type OpenAiTokenUsage = {
 
 export type OpenAiPricingSnapshot = {
   model: string;
+  verifiedAt: string;
+  promotionalThrough: string | null;
   inputUsdPerMillion: number;
   cachedInputUsdPerMillion: number;
   outputUsdPerMillion: number;
@@ -23,12 +25,14 @@ export type MeasuredOpenAiUsage = OpenAiTokenUsage & {
 
 const MODEL_PRICES: Array<{
   matches: (model: string) => boolean;
+  promotionalThrough?: string;
   inputUsdPerMillion: number;
   cachedInputUsdPerMillion: number;
   outputUsdPerMillion: number;
 }> = [
   {
     matches: (model) => model.startsWith("gpt-5.6-sol"),
+    promotionalThrough: "2026-11-21",
     inputUsdPerMillion: 4,
     cachedInputUsdPerMillion: 0.4,
     outputUsdPerMillion: 20,
@@ -70,6 +74,8 @@ export function pricingSnapshotForModel(model: string): OpenAiPricingSnapshot | 
   return prices
     ? {
         model,
+        verifiedAt: "2026-08-27",
+        promotionalThrough: prices.promotionalThrough ?? null,
         inputUsdPerMillion: prices.inputUsdPerMillion,
         cachedInputUsdPerMillion: prices.cachedInputUsdPerMillion,
         outputUsdPerMillion: prices.outputUsdPerMillion,

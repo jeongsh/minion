@@ -12,12 +12,12 @@ export async function GET(request: Request) {
   try {
     const summary = await refreshMissingUpcomingMatchAiPreviews({
       concurrency: 3,
-      limit: 6,
+      limit: 3,
     });
     return Response.json({
       ok: summary.failed.length === 0,
       ...summary,
-    });
+    }, { status: summary.failed.length === 0 ? 200 : 500 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown match preview automation error";
     console.error("[match-ai-preview]", error);
