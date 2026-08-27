@@ -12,7 +12,7 @@ import ThumbsDown from 'lucide-react-native/icons/thumbs-down';
 import ThumbsUp from 'lucide-react-native/icons/thumbs-up';
 import X from 'lucide-react-native/icons/x';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, type TextStyle, View } from 'react-native';
+import { ActivityIndicator, Alert, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, type TextStyle, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BottomSheet } from '@/components/bottom-sheet';
@@ -53,6 +53,7 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
   const [ownerMenuOpen, setOwnerMenuOpen] = useState(false);
   const [revealed, setRevealed] = useState(false);
   const [expandedReplies, setExpandedReplies] = useState<Set<string>>(() => new Set());
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
 
   useEffect(() => {
     setComment('');
@@ -63,6 +64,16 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
     setExpandedReplies(new Set());
     scrollRef.current?.scrollTo({ animated: false, y: 0 });
   }, [postId]);
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const showSubscription = Keyboard.addListener(showEvent, () => setKeyboardVisible(true));
+    const hideSubscription = Keyboard.addListener(hideEvent, () => setKeyboardVisible(false));
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, []);
   const roots = useMemo(() => data?.comments.filter((item) => !item.parentId) ?? [], [data?.comments]);
   const replies = useMemo(() => {
     const map = new Map<string, MobileCommunityComment[]>();
@@ -119,15 +130,16 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
   if (!data) return <FocusState><ErrorState onRetry={refresh} /></FocusState>;
 
   const title = data.isBlinded ? (data.blindedSource === 'ai' ? '정화봇이 숨긴 게시글입니다.' : '블라인드된 게시글입니다.') : data.title;
+  const bottomInset = keyboardVisible ? 0 : insets.bottom;
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={[styles.root, { backgroundColor: theme.pageBackground }]}>
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} enabled={keyboardVisible} style={[styles.root, { backgroundColor: theme.pageBackground }]}>
       <View style={[styles.safeTop, { backgroundColor: theme.pageBackground, height: insets.top }]} />
       <View style={[styles.header, { borderBottomColor: theme.divider, marginTop: insets.top }]}>
         <Pressable accessibilityLabel="게시글 닫기" onPress={() => router.replace(basePath as never)} style={styles.headerButton}><X color={theme.text} size={22} strokeWidth={1.8} /></Pressable>
         <Text numberOfLines={1} style={[styles.headerTitle, { color: theme.ink, ...fonts.display }]}>{team?.shortName ?? 'LCK'}</Text>
         {data.permissions.canEdit || data.permissions.canDelete ? <Pressable accessibilityLabel="게시글 관리" onPress={() => setOwnerMenuOpen(true)} style={styles.headerButton}><Ellipsis color={theme.text} size={21} strokeWidth={2} /></Pressable> : <View style={styles.headerButton} />}
       </View>
-      <ScrollView contentContainerStyle={{ paddingBottom: 56 + (Platform.OS === 'web' ? 0 : insets.bottom) }} keyboardShouldPersistTaps="handled" ref={scrollRef} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 56 + (Platform.OS === 'web' ? 0 : bottomInset) }} keyboardShouldPersistTaps="handled" ref={scrollRef} showsVerticalScrollIndicator={false}>
         <View style={[styles.ad, { backgroundColor: theme.adSurface }]}><Text style={[styles.adText, { color: theme.muted, ...fonts.medium }]}>ADVERTISEMENT</Text></View>
         <View style={[styles.article, { backgroundColor: theme.surface, borderTopColor: theme.border }]}>
           <View style={styles.postHeader}>
@@ -169,7 +181,7 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
           })}</View>
         </View>
       </ScrollView>
-      <View style={[styles.commentDock, { backgroundColor: theme.pageBackground, borderTopColor: theme.divider, paddingBottom: Platform.OS === 'web' ? 8 : Math.max(insets.bottom, 8) }]}>
+      <View style={[styles.commentDock, { backgroundColor: theme.pageBackground, borderTopColor: theme.divider, paddingBottom: Platform.OS === 'web' ? 8 : Math.max(bottomInset, 8) }]}>
         {replyTo ? <View style={styles.replying}><Text numberOfLines={1} style={{ color: theme.muted, flex: 1, ...fonts.medium, fontSize: 13 }}>{displayAuthor(replyTo.author)}님에게 답글</Text><Pressable onPress={() => setReplyTo(null)}><X color={theme.muted} size={16} /></Pressable></View> : null}
         {emojiOpen ? <View style={[styles.emojiBar, { backgroundColor: theme.surface }]}>{EMOJIS.map((emoji) => <Pressable key={emoji} onPress={() => setComment((value) => `${value}${emoji}`.slice(0, COMMENT_MAX_LENGTH))} style={styles.emoji}><Text style={styles.emojiText}>{emoji}</Text></Pressable>)}</View> : null}
         <View style={styles.commentComposer}>

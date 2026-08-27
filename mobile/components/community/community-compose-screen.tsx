@@ -3,7 +3,7 @@ import Check from 'lucide-react-native/icons/check';
 import ChevronDown from 'lucide-react-native/icons/chevron-down';
 import ChevronLeft from 'lucide-react-native/icons/chevron-left';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Keyboard, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ErrorState } from '@/components/feedback-states';
@@ -40,6 +40,7 @@ export function CommunityComposeScreen({ edit = false, scope = 'hub' }: { edit?:
   const [editorVersion, setEditorVersion] = useState(0);
   const [initialized, setInitialized] = useState(!edit);
   const [submitting, setSubmitting] = useState(false);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
   const editorRef = useRef<CommunityRichEditorHandle>(null);
   const hasFocused = useRef(false);
   const length = tiptapTextLength(document);
@@ -64,6 +65,17 @@ export function CommunityComposeScreen({ edit = false, scope = 'hub' }: { edit?:
     setDocument(detail.data.content);
     setInitialized(true);
   }, [detail.data, edit, initialized]);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const showSubscription = Keyboard.addListener(showEvent, () => setKeyboardVisible(true));
+    const hideSubscription = Keyboard.addListener(hideEvent, () => setKeyboardVisible(false));
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, []);
 
   const close = () => edit && postId ? router.replace(`${basePath}/post/${postId}` as never) : router.replace(basePath as never);
   const submit = async () => {
@@ -90,7 +102,7 @@ export function CommunityComposeScreen({ edit = false, scope = 'hub' }: { edit?:
   if (!initialized) return <ComposeState><ActivityIndicator color={theme.accent} /></ComposeState>;
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={[styles.root, { backgroundColor: theme.pageBackground }]}>
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} enabled={keyboardVisible} style={[styles.root, { backgroundColor: theme.pageBackground }]}>
       <View style={[styles.safeTop, { backgroundColor: theme.pageBackground, height: insets.top }]} />
       <View style={[styles.header, { borderBottomColor: theme.divider, marginTop: insets.top }]}>
         <Pressable accessibilityLabel="이전 화면" onPress={close} style={styles.headerButton}><ChevronLeft color={theme.text} size={22} /></Pressable>
