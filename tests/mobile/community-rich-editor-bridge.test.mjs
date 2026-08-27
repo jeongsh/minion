@@ -47,6 +47,26 @@ async function latestDocument(page) {
   return page.evaluate(() => window.__nativeMessages.filter((message) => message.type === "change").at(-1).document);
 }
 
+test("empty editor keeps the caret on the placeholder line", async () => {
+  await withEditor("<p><br></p>", async (page) => {
+    const layout = await page.locator("#editor").evaluate((editor) => {
+      const paragraph = editor.querySelector(":scope > p");
+      const editorRect = editor.getBoundingClientRect();
+      const paragraphRect = paragraph.getBoundingClientRect();
+      const placeholder = getComputedStyle(editor, "::before");
+      return {
+        paragraphTop: paragraphRect.top - editorRect.top,
+        placeholderPosition: placeholder.position,
+        placeholderTop: Number.parseFloat(placeholder.top),
+      };
+    });
+
+    assert.equal(layout.placeholderPosition, "absolute");
+    assert.equal(layout.placeholderTop, 16);
+    assert.equal(layout.paragraphTop, 16);
+  });
+});
+
 test("media commands insert top-level images, poll, YouTube, and SNS nodes from a text caret", async () => {
   await withEditor("<p>앞 문장</p>", async (page) => {
     await page.evaluate(() => {
