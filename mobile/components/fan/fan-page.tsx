@@ -80,22 +80,19 @@ function FanHome({ data }: { data: MobileTeamDetailDto }) {
 
 function HomeCommunityPreview({ items, teamColor, teamSlug }: { items: MobileTeamDetailDto['community']; teamColor: string; teamSlug: string }) {
   const router = useRouter();
-  const { theme } = useMinionTheme();
+  const title = items.length > 0 && items.every((post) => post.isHot) ? '인기글' : '최신글';
   return (
     <View>
-      <FanSectionHeading href={`/fan/${teamSlug}/community`}>인기글</FanSectionHeading>
+      <FanSectionHeading href={`/fan/${teamSlug}/community`}>{title}</FanSectionHeading>
       {items.length ? (
-        <View style={[styles.communityList, { backgroundColor: theme.surface, borderColor: teamColor }]}>
-          {items.slice(0, 6).map((post, index) => (
-            <HomeCommunityRow
-              key={post.id}
-              last={index === Math.min(items.length, 6) - 1}
-              onPress={() => router.push(`/fan/${teamSlug}/community/post/${post.id}` as never)}
-              post={post}
-              teamColor={teamColor}
-            />
-          ))}
-        </View>
+        items.slice(0, 6).map((post) => (
+          <HomeCommunityRow
+            key={post.id}
+            onPress={() => router.push(`/fan/${teamSlug}/community/post/${post.id}` as never)}
+            post={post}
+            teamColor={teamColor}
+          />
+        ))
       ) : (
         <View style={[styles.communityEmpty, { borderColor: teamColor }]}>
           <KitschEmptyState body="화력 좋은 글이 생기면 바로 모아둘게요." character="megapon" compact plain title="인기글 충전 중" />
@@ -105,33 +102,30 @@ function HomeCommunityPreview({ items, teamColor, teamSlug }: { items: MobileTea
   );
 }
 
-function HomeCommunityRow({ last, onPress, post, teamColor }: { last: boolean; onPress: () => void; post: MobileCommunityPostSummary; teamColor: string }) {
+function HomeCommunityRow({ onPress, post, teamColor }: { onPress: () => void; post: MobileCommunityPostSummary; teamColor: string }) {
   const { width } = useWindowDimensions();
   const { fonts, theme } = useMinionTheme();
   const wideMobile = width >= 390;
+  const detailSize = 13;
   const thumbnailUrl = resolveApiAssetUrl(post.thumbnail?.url);
   return (
     <Pressable
       accessibilityLabel={`${post.title} 게시글 보기`}
       accessibilityRole="link"
       onPress={onPress}
-      style={({ pressed }) => [
-        styles.communityRow,
-        { backgroundColor: pressed ? theme.surfaceMuted : theme.surface, borderBottomColor: theme.border, minHeight: wideMobile ? 65 : 58 },
-        last ? styles.communityRowLast : null,
-      ]}
+      style={[styles.communityRow, { borderBottomColor: theme.divider, gap: wideMobile ? 12 : 10, minHeight: wideMobile ? 65 : 58 }]}
     >
       <View style={styles.communityMain}>
         <View style={styles.communityTitleRow}>
-          <Text style={{ color: teamColor, ...fonts.medium, fontSize: 13, lineHeight: 19.5 }}>{boardLabel(post.boardType, 'team')}</Text>
-          <View style={[styles.communityHot, { borderColor: teamColor }]}><Text style={{ color: teamColor, ...fonts.medium, fontSize: 13, lineHeight: 19.5 }}>인기</Text></View>
+          <Text style={{ color: teamColor, ...fonts.medium, fontSize: detailSize }}>{boardLabel(post.boardType, 'team')}</Text>
+          {post.isHot ? <Text style={[styles.communityHot, { backgroundColor: `${teamColor}1f`, color: teamColor, ...fonts.medium, fontSize: detailSize, lineHeight: detailSize }]}>인기</Text> : null}
           <Text numberOfLines={1} style={[styles.communityTitle, { color: theme.ink, ...fonts.medium }]}>{post.title}</Text>
         </View>
-        <View style={styles.communityMetaRow}>
-          <Text numberOfLines={1} style={[styles.communityAuthor, { color: theme.text, ...fonts.medium }]}>{displayAuthor(post.author)}</Text>
-          <Text style={[styles.communityMeta, { color: theme.muted, ...fonts.regular }]}>{formatCommunityDate(post.createdAt)}</Text>
-          <View style={styles.communityStat}><MessageCircle color={theme.muted} size={12} strokeWidth={1.8} /><Text style={[styles.communityMeta, { color: theme.muted, ...fonts.regular }]}>{post.commentCount.toLocaleString('ko-KR')}</Text></View>
-          <View style={styles.communityStat}><ThumbsUp color={theme.muted} size={12} strokeWidth={1.8} /><Text style={[styles.communityMeta, { color: theme.muted, ...fonts.regular }]}>{post.likeCount.toLocaleString('ko-KR')}</Text></View>
+        <View style={[styles.communityMetaRow, { gap: wideMobile ? 8 : 6 }]}>
+          <Text numberOfLines={1} style={[styles.communityAuthor, { color: theme.text, ...fonts.medium, fontSize: detailSize }]}>{displayAuthor(post.author)}</Text>
+          <Text style={[styles.communityMeta, { color: theme.muted, ...fonts.regular, fontSize: detailSize }]}>{formatCommunityDate(post.createdAt)}</Text>
+          <View style={styles.communityStat}><MessageCircle color={theme.muted} size={11} strokeWidth={1.8} /><Text style={[styles.communityMeta, { color: theme.muted, ...fonts.regular, fontSize: detailSize }]}>{post.commentCount.toLocaleString('ko-KR')}</Text></View>
+          <View style={styles.communityStat}><ThumbsUp color={theme.muted} size={11} strokeWidth={1.8} /><Text style={[styles.communityMeta, { color: theme.muted, ...fonts.regular, fontSize: detailSize }]}>{post.likeCount.toLocaleString('ko-KR')}</Text></View>
         </View>
       </View>
       {thumbnailUrl ? <Image contentFit="cover" source={{ uri: thumbnailUrl }} style={[styles.communityThumbnail, { backgroundColor: theme.surfaceMuted }, wideMobile ? styles.communityThumbnailWide : null]} transition={150} /> : null}
@@ -328,13 +322,11 @@ const styles = StyleSheet.create({
   channelTitle: { fontSize: 24, letterSpacing: -0.84, lineHeight: 26 },
   communityAuthor: { flexShrink: 1, fontSize: 13, lineHeight: 19.5, maxWidth: 112 },
   communityEmpty: { borderRadius: 16, borderStyle: 'dashed', borderWidth: 2 },
-  communityHot: { borderRadius: 999, borderWidth: 1, paddingHorizontal: 6, paddingVertical: 1 },
-  communityList: { borderRadius: 12, borderWidth: 1, overflow: 'hidden' },
+  communityHot: { borderRadius: 999, overflow: 'hidden', paddingHorizontal: 6, paddingVertical: 2 },
   communityMain: { flex: 1, minWidth: 0 },
   communityMeta: { fontSize: 13, lineHeight: 19.5 },
-  communityMetaRow: { alignItems: 'center', flexDirection: 'row', gap: 8, marginTop: 1, overflow: 'hidden' },
-  communityRow: { alignItems: 'center', borderBottomWidth: 1, flexDirection: 'row', gap: 12, paddingHorizontal: 12, paddingVertical: 4 },
-  communityRowLast: { borderBottomWidth: 0 },
+  communityMetaRow: { alignItems: 'center', flexDirection: 'row', gap: 8, marginTop: 2, overflow: 'hidden' },
+  communityRow: { alignItems: 'center', borderBottomWidth: 1, flexDirection: 'row', paddingVertical: 8 },
   communityStat: { alignItems: 'center', flexDirection: 'row', gap: 4 },
   communityThumbnail: { borderRadius: 6, height: 51, width: 68 },
   communityThumbnailWide: { borderRadius: 8, height: 57, width: 76 },

@@ -1,7 +1,11 @@
 import type { MobileTeamDetailDto } from "@/packages/contracts/src/mobile-v1";
 import { getAllTeams, getFanVideoFeed, getMatches, getPlayersByTeamId, getTeamByFanSiteHost, getTeamBySlug, getTeamInstagramFeed, getTournaments } from "@/lib/data/lck";
 import { getBoardPosts } from "@/lib/data/community";
-import { compareHotPostsByRecentHype, isHotPost } from "@/lib/community/hot";
+import {
+  COMMUNITY_HOME_HOT_CANDIDATE_LIMIT,
+  COMMUNITY_HOME_LATEST_CANDIDATE_LIMIT,
+  selectCommunityHomePosts,
+} from "@/lib/community/hot";
 import { getActiveFanHeaderUrl } from "@/lib/fan/fan-header";
 import { getCalendarEvents } from "@/lib/calendar/events";
 import { mobileError, mobileSuccess, toMobileMatch, toMobileTeam } from "@/lib/mobile/api-response";
@@ -16,7 +20,7 @@ export async function GET(request: Request, context: { params: Promise<{ teamSlu
   if (!team) return mobileError("NOT_FOUND", "팀을 찾을 수 없습니다.", 404);
   const players = await getPlayersByTeamId(team.id);
   const playerIds = players.map((player) => player.id);
-  const [socialFeed, videoFeed, activeHeaderImage, matches, teams, tournaments, calendarEvents, boardPosts] = await Promise.all([
+  const [socialFeed, videoFeed, activeHeaderImage, matches, teams, tournaments, calendarEvents, popularBoardPosts, latestBoardPosts] = await Promise.all([
     getTeamInstagramFeed(team.id, playerIds),
     getFanVideoFeed(team.id, playerIds),
     getActiveFanHeaderUrl(team.id),
@@ -27,7 +31,10 @@ export async function GET(request: Request, context: { params: Promise<{ teamSlu
       ? getCalendarEvents({ teamId: team.id, includePastOneTime: section === "schedule" })
       : Promise.resolve([]),
     section === "home"
-      ? getBoardPosts({ scope: "team", teamId: team.id, hotOnly: true, limit: 30 })
+      ? getBoardPosts({ scope: "team", teamId: team.id, hotOnly: true, limit: COMMUNITY_HOME_HOT_CANDIDATE_LIMIT })
+      : Promise.resolve([]),
+    section === "home"
+      ? getBoardPosts({ scope: "team", teamId: team.id, limit: COMMUNITY_HOME_LATEST_CANDIDATE_LIMIT })
       : Promise.resolve([]),
   ]);
   const playerMap = new Map(players.map((player) => [player.id, player]));
@@ -51,10 +58,7 @@ export async function GET(request: Request, context: { params: Promise<{ teamSlu
       : team.fanSiteHost === "hle"
         ? { url: "/images/fan-headers/hle-header-bg-v1.jpg" }
         : null,
-    community: boardPosts
-      .filter((post) => !post.blindedAt && !post.isNotice && isHotPost(post))
-      .sort(compareHotPostsByRecentHype)
-      .slice(0, 12)
+    community: selectCommunityHomePosts(popularBoardPosts, latestBoardPosts)
       .map(toMobileCommunityPost),
     matches: matches
       .filter((match) => match.teamAId === team.id || match.teamBId === team.id)

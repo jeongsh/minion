@@ -11,6 +11,12 @@ import { getPredictionMarketData } from "@/lib/predictions";
 import { getTodayCelebrations } from "@/lib/calendar/events";
 import { getLckChannelVideos, type HomeVideo } from "@/lib/data/lck-channel-videos";
 import { getHomeNewsFeed } from "@/lib/data/naver-news";
+import {
+  COMMUNITY_HOME_HOT_CANDIDATE_LIMIT,
+  COMMUNITY_HOME_LATEST_CANDIDATE_LIMIT,
+  communityHomeSectionTitle,
+  selectCommunityHomePosts,
+} from "@/lib/community/hot";
 
 export const dynamic = "force-dynamic";
 
@@ -19,9 +25,10 @@ function yearMonthKeyKST(value: string) {
 }
 
 export default async function HomePage() {
-  const [homeData, communityPosts, predictionMarket, lckChannelVideos, pomEntries, homeNewsFeed] = await Promise.all([
+  const [homeData, popularCommunityPosts, latestCommunityPosts, predictionMarket, lckChannelVideos, pomEntries, homeNewsFeed] = await Promise.all([
     getHomePagePublicData(),
-    getBoardPosts({ scope: "hub", limit: 12 }),
+    getBoardPosts({ scope: "hub", hotOnly: true, limit: COMMUNITY_HOME_HOT_CANDIDATE_LIMIT }),
+    getBoardPosts({ scope: "hub", limit: COMMUNITY_HOME_LATEST_CANDIDATE_LIMIT }),
     getPredictionMarketData(),
     getLckChannelVideos(),
     getHomePomEntries(),
@@ -133,10 +140,9 @@ export default async function HomePage() {
     ...sortedTeamVideos.slice(0, HOME_VIDEO_LIMIT - lckQuota),
   ].sort(byNewest);
 
-  // 홈 게시판 캐러셀: 디자인 확인을 위해 최신글을 임시로 노출한다.
-  // 홈에 필요한 최신 12건만 조회하며, 블라인드/공지 글은 홈에서 제외한다.
-  const homeEligiblePosts = communityPosts.filter((post) => !post.blindedAt && !post.isNotice);
-  const homeCommunityPosts = homeEligiblePosts.slice(0, 12);
+  // 인기글을 우선 노출하고, 6개에 못 미치면 중복 없이 최신글로 채운다.
+  const homeCommunityPosts = selectCommunityHomePosts(popularCommunityPosts, latestCommunityPosts);
+  const homeCommunityTitle = communityHomeSectionTitle(homeCommunityPosts);
 
   return (
     <HomeDashboard
@@ -150,6 +156,7 @@ export default async function HomePage() {
       celebrationEvents={todayCelebrations}
       latestVideos={homeVideos}
       communityPosts={homeCommunityPosts}
+      communityTitle={homeCommunityTitle}
       pomEntries={pomEntries}
       newsItems={homeNewsFeed.articles}
     />

@@ -4,6 +4,11 @@ import { getHomePomEntries } from "@/lib/data/home-pom";
 import { getLckChannelVideos } from "@/lib/data/lck-channel-videos";
 import { getHomeNewsFeed } from "@/lib/data/naver-news";
 import { getBoardPosts } from "@/lib/data/community";
+import {
+  COMMUNITY_HOME_HOT_CANDIDATE_LIMIT,
+  COMMUNITY_HOME_LATEST_CANDIDATE_LIMIT,
+  selectCommunityHomePosts,
+} from "@/lib/community/hot";
 import { getTodayCelebrations } from "@/lib/calendar/events";
 import { isMatchLive } from "@/lib/match-display";
 import { mobileSuccess, toMobileMatch, toMobileTeam } from "@/lib/mobile/api-response";
@@ -12,13 +17,15 @@ import { buildTeamStandingRows, dateKeyKST } from "@/lib/view-data";
 export const revalidate = 30;
 
 export async function GET() {
-  const [{ teams, matches, tournaments, calendarEvents }, news, videos, communityPosts, pomEntries] = await Promise.all([
+  const [{ teams, matches, tournaments, calendarEvents }, news, videos, popularCommunityPosts, latestCommunityPosts, pomEntries] = await Promise.all([
     getHomePagePublicData(),
     getHomeNewsFeed(6),
     getLckChannelVideos(),
-    getBoardPosts({ scope: "hub", limit: 12 }),
+    getBoardPosts({ scope: "hub", hotOnly: true, limit: COMMUNITY_HOME_HOT_CANDIDATE_LIMIT }),
+    getBoardPosts({ scope: "hub", limit: COMMUNITY_HOME_LATEST_CANDIDATE_LIMIT }),
     getHomePomEntries(),
   ]);
+  const communityPosts = selectCommunityHomePosts(popularCommunityPosts, latestCommunityPosts);
   const teamMap = new Map(teams.map((team) => [team.id, team]));
   const tournamentMap = new Map(tournaments.map((tournament) => [tournament.id, tournament]));
   const byDateAsc = (a: (typeof matches)[number], b: (typeof matches)[number]) => new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime();
@@ -66,7 +73,7 @@ export async function GET() {
       type: event.type,
       yearsCount: event.yearsCount,
     })),
-    community: communityPosts.filter((post) => !post.blindedAt && !post.isNotice).slice(0, 6).map((post) => ({
+    community: communityPosts.map((post) => ({
       author: {
         guestIpLabel: post.guestIpLabel,
         id: post.authorId,

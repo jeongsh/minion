@@ -25,7 +25,12 @@ import {
   getTeamInstagramFeed,
 } from "@/lib/data/lck";
 import { getBoardPosts } from "@/lib/data/community";
-import { compareHotPostsByRecentHype, isHotPost } from "@/lib/community/hot";
+import {
+  COMMUNITY_HOME_HOT_CANDIDATE_LIMIT,
+  COMMUNITY_HOME_LATEST_CANDIDATE_LIMIT,
+  communityHomeSectionTitle,
+  selectCommunityHomePosts,
+} from "@/lib/community/hot";
 import { buildFanVideoItems } from "@/lib/fan-video-items";
 import { getCalendarEvents, getTodayCelebrations } from "@/lib/calendar/events";
 import { shouldUseWhiteLogoOnDark } from "@/lib/team-logos";
@@ -198,11 +203,12 @@ export default async function FanHomePage({
   // fanSiteHost가 비어 있으면 진입에 사용한 slug로 폴백해 하위 링크가 /fan/undefined로 깨지지 않게 한다.
   const fanSlug = team.fanSiteHost ?? teamSlug;
 
-  const [teams, players, matches, boardPosts, calendarEvents] = await Promise.all([
+  const [teams, players, matches, popularBoardPosts, latestBoardPosts, calendarEvents] = await Promise.all([
     getAllTeams(),
     getPlayers(),
     getMatches(),
-    getBoardPosts({ scope: "team", teamId: team.id, hotOnly: true, limit: 30 }),
+    getBoardPosts({ scope: "team", teamId: team.id, hotOnly: true, limit: COMMUNITY_HOME_HOT_CANDIDATE_LIMIT }),
+    getBoardPosts({ scope: "team", teamId: team.id, limit: COMMUNITY_HOME_LATEST_CANDIDATE_LIMIT }),
     getCalendarEvents({ teamId: team.id }),
   ]);
 
@@ -282,10 +288,8 @@ export default async function FanHomePage({
       likesCount: p.likesCount,
     })),
   ].sort((a, b) => (b.postedAt ? new Date(b.postedAt).getTime() : 0) - (a.postedAt ? new Date(a.postedAt).getTime() : 0));
-  const rankedHotBoardPosts = boardPosts
-    .filter((post) => !post.blindedAt && !post.isNotice && isHotPost(post))
-    .sort(compareHotPostsByRecentHype)
-    .slice(0, 12);
+  const featuredBoardPosts = selectCommunityHomePosts(popularBoardPosts, latestBoardPosts);
+  const communityTitle = communityHomeSectionTitle(featuredBoardPosts);
 
   return (
     <>
@@ -330,9 +334,9 @@ export default async function FanHomePage({
             경기 일정은 헤더 히어로(다음 경기)·티커(NEXT 1~4)·일정 탭이 이미 세 번 다루므로
             여기서 네 번째로 반복하지 않는다. */}
         <section>
-          <SectionHeading href={`/fan/${fanSlug}/community`}>인기글</SectionHeading>
+          <SectionHeading href={`/fan/${fanSlug}/community`}>{communityTitle}</SectionHeading>
           <HomeBoardCarousel
-            posts={rankedHotBoardPosts}
+            posts={featuredBoardPosts}
             scope="team"
             teamSlug={fanSlug}
           />

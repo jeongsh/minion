@@ -41,6 +41,7 @@ type Props = {
   celebrationEvents: CalendarEvent[];
   latestVideos: HomeVideo[];
   communityPosts: CommunityPostDetail[];
+  communityTitle: "인기글" | "최신글";
   pomEntries: HomePomEntry[];
   newsItems: NewsArticle[];
 };
@@ -68,6 +69,7 @@ export function HomeDashboard({
   celebrationEvents,
   latestVideos,
   communityPosts,
+  communityTitle,
   pomEntries,
   newsItems,
 }: Props) {
@@ -122,7 +124,7 @@ export function HomeDashboard({
       />
 
       <section className="mt-10">
-        <Heading href="/community">최신글</Heading>
+        <Heading href={communityTitle === "인기글" ? "/community?view=hot" : "/community"}>{communityTitle}</Heading>
         <HomeBoardCarousel posts={communityPosts} />
       </section>
 

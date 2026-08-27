@@ -412,7 +412,8 @@ export async function updateCommunitySettings(
   scope: BoardScope,
   settings: CommunitySettings,
 ): Promise<void> {
-  const { error } = await createSupabaseAdminClient()
+  const supabase = createSupabaseAdminClient();
+  const { error } = await supabase
     .from("community_settings")
     .upsert({
       scope,
@@ -421,6 +422,30 @@ export async function updateCommunitySettings(
       updated_at: new Date().toISOString(),
     });
   if (error) throw error;
+
+  // 컷을 낮춘 경우에도 다음 리액션을 기다리지 않고, 이미 기준을 충족한 기존 글을
+  // 즉시 인기글로 승격한다. 한 번 등재된 글은 기존 정책대로 컷을 올려도 유지한다.
+  const { data: candidates, error: candidatesError } = await supabase
+    .from("community_posts")
+    .select("id, like_count, dislike_count")
+    .eq("site_scope", scope)
+    .is("hot_at", null)
+    .is("blinded_at", null)
+    .is("deleted_at", null)
+    .or("is_notice.is.null,is_notice.eq.false")
+    .gte("like_count", settings.hotCut);
+  if (candidatesError) throw candidatesError;
+
+  const qualifyingIds = (candidates ?? [])
+    .filter((post) => post.like_count - (post.dislike_count ?? 0) >= settings.hotCut)
+    .map((post) => post.id);
+  if (qualifyingIds.length === 0) return;
+
+  const { error: promotionError } = await supabase
+    .from("community_posts")
+    .update({ hot_at: new Date().toISOString() })
+    .in("id", qualifyingIds);
+  if (promotionError) throw promotionError;
 }
 
 export type AdminUserReport = {
