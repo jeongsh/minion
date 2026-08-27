@@ -100,18 +100,19 @@ export function ScheduleList({
               const teamBLabel = teamB?.shortName || teamB?.name || "TBD";
 
               return (
-                <Link
-                  href={matchHref(match)}
+                <div
                   key={match.id}
-                  data-navigation-ignore={spoiled ? "true" : undefined}
-                  onClick={(event) => {
-                    if (!spoiled) return;
-                    event.preventDefault();
-                    reveal(match.id);
-                  }}
-                  className="grid grid-cols-[48px_minmax(0,1fr)] items-center gap-2.5 border-b border-[var(--ui-border)] px-3 py-3 transition-colors last:border-b-0 hover:bg-[var(--ui-card-hover)] md:grid-cols-[140px_minmax(0,1fr)_160px] md:gap-4 md:px-5 md:py-4"
+                  className="relative grid grid-cols-[48px_minmax(0,1fr)] items-center gap-2.5 border-b border-[var(--ui-border)] px-3 py-3 last:border-b-0 md:grid-cols-[140px_minmax(0,1fr)_160px] md:gap-4 md:px-5 md:py-4"
                 >
-                  <div className="flex flex-col items-start gap-1">
+                  <Link
+                    href={matchHref(match)}
+                    aria-label={`${teamALabel} 대 ${teamBLabel} 경기 상세 보기`}
+                    onClick={() => {
+                      if (spoiled) reveal(match.id);
+                    }}
+                    className="absolute inset-0 z-0 transition-colors hover:bg-[var(--ui-card-hover)]"
+                  />
+                  <div className="pointer-events-none relative z-[1] flex flex-col items-start gap-1">
                     <time className="text-[14px] font-black tabular-nums tracking-tight text-[var(--ui-ink)] md:text-base">{formatTimeKST(match.matchDate)}</time>
                     {live ? (
                       <span className="inline-flex w-fit items-center gap-1 rounded-full bg-red-500/15 px-1.5 py-0.5 text-[10px] font-medium text-red-500 md:px-2 md:py-1 md:text-[13px]">
@@ -124,19 +125,21 @@ export function ScheduleList({
                       </span>
                     )}
                   </div>
-                  <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_32px_minmax(0,1fr)] items-center gap-1 sm:grid-cols-[minmax(0,1fr)_48px_minmax(0,1fr)] sm:gap-2 md:grid-cols-[minmax(0,1fr)_64px_minmax(0,1fr)] md:gap-3.5">
+                  <div className="pointer-events-none relative z-[1] grid min-w-0 grid-cols-[minmax(0,1fr)_32px_minmax(0,1fr)] items-center gap-1 sm:grid-cols-[minmax(0,1fr)_48px_minmax(0,1fr)] sm:gap-2 md:grid-cols-[minmax(0,1fr)_64px_minmax(0,1fr)] md:gap-3.5">
                     <div className="flex min-w-0 flex-1 items-center justify-end gap-1.5 md:gap-2.5">
                       <p className={`${teamNameClass(match.teamAId)} text-right text-[15px]`} title={teamA?.name ?? "TBD"}>{teamALabel}</p>
                       <TeamLogo team={teamA} size="h-8 w-8 shrink-0 sm:h-9 sm:w-9 md:h-11 md:w-11" plain themeAware />
                     </div>
                     {spoiled ? (
-                      <span
-                        className="flex shrink-0 items-center justify-center text-[var(--ui-muted)]"
+                      <button
+                        type="button"
+                        onClick={() => reveal(match.id)}
+                        className="pointer-events-auto flex shrink-0 items-center justify-center text-[var(--ui-muted)]"
                         title="탭하여 결과 보기"
                         aria-label="결과가 가려져 있습니다. 탭하여 보기"
                       >
                         <EyeOff size={18} strokeWidth={1.8} />
-                      </span>
+                      </button>
                     ) : (
                       <p className="shrink-0 text-center text-[15px] font-black tabular-nums text-[var(--ui-ink)] sm:text-base md:text-xl">{score}</p>
                     )}
@@ -145,11 +148,11 @@ export function ScheduleList({
                       <p className={`${teamNameClass(match.teamBId)} text-[15px]`} title={teamB?.name ?? "TBD"}>{teamBLabel}</p>
                     </div>
                   </div>
-                  <div className="hidden items-center justify-between gap-2 md:flex md:flex-col md:items-end md:justify-center md:gap-0.5">
+                  <div className="pointer-events-none relative z-[1] hidden items-center justify-between gap-2 md:flex md:flex-col md:items-end md:justify-center md:gap-0.5">
                     <p className="truncate text-sm font-bold text-[var(--ui-text)]">{tournamentTypeLabel(tournament)}</p>
                     <p className="truncate text-[13px] font-semibold text-[var(--ui-muted)]">{stageName(stages, match.stageId)}</p>
                   </div>
-                </Link>
+                </div>
               );
             })}
           </div>

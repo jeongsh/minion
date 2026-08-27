@@ -1,4 +1,6 @@
 import { Image } from 'expo-image';
+import Eye from 'lucide-react-native/icons/eye';
+import EyeOff from 'lucide-react-native/icons/eye-off';
 import { type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
@@ -10,6 +12,7 @@ import { useMinionTheme } from '@/hooks/use-minion-theme';
 import { resolveApiAssetUrl, type MobileTeamSummary } from '@/lib/api-client';
 import { gridAutoFill } from '@/lib/grid-auto-fill';
 import { currentKSTMonthYear } from '@/lib/schedule-dates';
+import { useSpoilerFree } from '@/providers/spoiler-free-provider';
 
 const MONTHS = Array.from({ length: 12 }, (_, index) => index + 1);
 
@@ -36,6 +39,7 @@ export function ScheduleFilterSheet({
   years: number[];
 }) {
   const { fonts, theme } = useMinionTheme();
+  const { enabled: spoilerFreeEnabled, toggle: toggleSpoilerFree } = useSpoilerFree();
   const { width: windowWidth } = useWindowDimensions();
   const teamOptions = teams.filter((team) => team.isLckTeam !== false);
   // 다이얼로그 본문 padding(16px 양쪽) 뺀 실제 그리드 폭. 웹의 auto-fill 그리드와 동일한 공식을 씀.
@@ -94,6 +98,25 @@ export function ScheduleFilterSheet({
           ))}
         </View>
       </FilterGroup>
+
+      <View style={[styles.spoilerRow, { backgroundColor: theme.card, borderColor: theme.border }]}>
+        <Text style={[styles.spoilerLabel, { color: theme.ink, ...fonts.medium }]}>경기 결과 스포방지</Text>
+        <Pressable
+          accessibilityLabel={`스포방지 ${spoilerFreeEnabled ? '끄기' : '켜기'}`}
+          accessibilityState={{ selected: spoilerFreeEnabled }}
+          onPress={toggleSpoilerFree}
+          style={[
+            styles.spoilerToggle,
+            spoilerFreeEnabled
+              ? { backgroundColor: theme.ink, borderColor: theme.ink }
+              : { backgroundColor: theme.surface, borderColor: theme.border },
+          ]}>
+          {spoilerFreeEnabled ? <EyeOff color={theme.surface} size={16} /> : <Eye color={theme.ink} size={16} />}
+          <Text style={[styles.spoilerToggleText, { color: spoilerFreeEnabled ? theme.surface : theme.ink, ...fonts.medium }]}>
+            {spoilerFreeEnabled ? 'ON' : 'OFF'}
+          </Text>
+        </Pressable>
+      </View>
 
       <Pressable
         onPress={() => {
@@ -168,9 +191,13 @@ const styles = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   iconChip: { alignItems: 'center', borderRadius: 12, borderWidth: 1, height: 40, justifyContent: 'center' },
   plainChip: { alignItems: 'center', borderRadius: 8, borderWidth: 1, height: 40, justifyContent: 'center', paddingHorizontal: 8 },
-  plainChipText: { fontSize: 12, lineHeight: 15, textAlign: 'center' },
+  plainChipText: { fontSize: 13, lineHeight: 19.5, textAlign: 'center' },
   resetButton: { alignItems: 'center', borderRadius: 8, justifyContent: 'center', marginTop: 16, minHeight: 40, paddingHorizontal: 12 },
-  resetButtonText: { fontSize: 12, lineHeight: 18 },
+  resetButtonText: { fontSize: 13, lineHeight: 19.5 },
+  spoilerLabel: { fontSize: 14, lineHeight: 21 },
+  spoilerRow: { alignItems: 'center', borderRadius: 12, borderWidth: 1, flexDirection: 'row', justifyContent: 'space-between', marginTop: 16, paddingHorizontal: 12, paddingVertical: 10 },
+  spoilerToggle: { alignItems: 'center', borderRadius: 999, borderWidth: 1, flexDirection: 'row', gap: 6, minHeight: 32, paddingHorizontal: 10 },
+  spoilerToggleText: { fontSize: 13, lineHeight: 19.5 },
   teamChipLogo: { height: 28, width: 28 },
   yearMonthRow: { flexDirection: 'row', gap: 8 },
 });

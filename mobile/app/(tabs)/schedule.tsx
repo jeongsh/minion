@@ -1,6 +1,5 @@
 import CalendarDays from 'lucide-react-native/icons/calendar-days';
-import Eye from 'lucide-react-native/icons/eye';
-import EyeOff from 'lucide-react-native/icons/eye-off';
+import { useFocusEffect } from 'expo-router';
 import SlidersHorizontal from 'lucide-react-native/icons/sliders-horizontal';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { type LayoutChangeEvent, Pressable, StyleSheet, View } from 'react-native';
@@ -18,7 +17,6 @@ import { useCachedQuery } from '@/hooks/use-cached-query';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import type { MobileScheduleDto, MobileTeamsDto } from '@/lib/api-client';
 import { currentKSTMonthYear, dateKeyKST, weekDatesKST } from '@/lib/schedule-dates';
-import { useSpoilerFree } from '@/providers/spoiler-free-provider';
 
 function segmentMessageLabel(segment: ScheduleFilterState['segment'], year: number) {
   if (segment === 'all') return `${year} 전체`;
@@ -37,7 +35,6 @@ function buildQuery(filter: ScheduleFilterState) {
 export default function ScheduleScreen() {
   const { theme } = useMinionTheme();
   const insets = useSafeAreaInsets();
-  const { enabled: spoilerFreeEnabled, toggle: toggleSpoilerFree } = useSpoilerFree();
   const defaults = useMemo(() => currentKSTMonthYear(), []);
   const [filter, setFilter] = useState<ScheduleFilterState>({ month: defaults.month, segment: 'all', teamId: 'all', year: defaults.year });
   const [calendarOpen, setCalendarOpen] = useState(false);
@@ -88,6 +85,17 @@ export default function ScheduleScreen() {
   useEffect(() => {
     tryInitialScroll();
   }, [tryInitialScroll]);
+
+  // Expo Router는 탭과 스택 화면을 언마운트하지 않고 보관할 수 있다. 일정 화면에
+  // 다시 포커스될 때마다 이전 방문의 완료 표식을 지우고, 저장된 레이아웃 좌표로
+  // 오늘(없으면 가장 가까운 경기일) 섹션을 다시 맞춘다.
+  useFocusEffect(
+    useCallback(() => {
+      autoScrolledRef.current = null;
+      const frame = requestAnimationFrame(tryInitialScroll);
+      return () => cancelAnimationFrame(frame);
+    }, [tryInitialScroll]),
+  );
 
   const handleListLayout = useCallback(
     (event: LayoutChangeEvent) => {
@@ -154,18 +162,6 @@ export default function ScheduleScreen() {
 
       <View pointerEvents="box-none" style={StyleSheet.absoluteFillObject}>
         <View pointerEvents="box-none" style={[styles.fabRow, { bottom: theme.size.footerDockClearance + insets.bottom }]}>
-          <Pressable
-            accessibilityLabel={`스포방지 ${spoilerFreeEnabled ? '끄기' : '켜기'}`}
-            accessibilityState={{ selected: spoilerFreeEnabled }}
-            onPress={toggleSpoilerFree}
-            style={[
-              styles.fab,
-              spoilerFreeEnabled
-                ? { backgroundColor: theme.ink, borderColor: theme.border }
-                : { backgroundColor: theme.surface, borderColor: theme.border },
-            ]}>
-            {spoilerFreeEnabled ? <EyeOff color={theme.surface} size={20} /> : <Eye color={theme.ink} size={20} />}
-          </Pressable>
           <Pressable
             accessibilityLabel="캘린더 열기"
             onPress={() => setCalendarOpen(true)}

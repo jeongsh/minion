@@ -2,7 +2,7 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import EyeOff from 'lucide-react-native/icons/eye-off';
 import { useEffect, useRef } from 'react';
-import { Animated, Easing, type LayoutChangeEvent, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, type GestureResponderEvent, type LayoutChangeEvent, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { TeamLogo } from '@/components/data/team-logo';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
@@ -90,7 +90,6 @@ function MatchRow({ isLast, match }: { isLast: boolean; match: MobileMatchSummar
       onPress={() => {
         if (spoiled) {
           reveal(match.id);
-          return;
         }
         router.navigate(`/matches/${encodeURIComponent(match.id)}` as never);
       }}
@@ -116,9 +115,15 @@ function MatchRow({ isLast, match }: { isLast: boolean; match: MobileMatchSummar
             <TeamLogo plain size={32} team={match.teamA} themeAware />
           </View>
           {spoiled ? (
-            <View style={styles.scoreMasked}>
+            <Pressable
+              accessibilityLabel="결과가 가려져 있습니다. 탭하여 보기"
+              onPress={(event: GestureResponderEvent) => {
+                event.stopPropagation();
+                reveal(match.id);
+              }}
+              style={styles.scoreMasked}>
               <EyeOff color={theme.muted} size={16} />
-            </View>
+            </Pressable>
           ) : (
             <Text style={[styles.score, { color: theme.ink, ...fonts.black }]}>{score}</Text>
           )}

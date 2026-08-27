@@ -35,7 +35,7 @@ export function SpoilerToggleButton({ variant = "pill", className }: { variant?:
       aria-pressed={enabled}
       className={
         className ??
-        "inline-flex items-center gap-1.5 rounded-full border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 py-1.5 text-[13px] font-semibold text-[var(--ui-text)] transition-colors hover:border-[var(--ui-ink)] hover:text-[var(--ui-ink)]"
+        "inline-flex items-center gap-1.5 rounded-full border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 py-1.5 text-[13px] font-medium text-[var(--ui-text)] transition-colors hover:border-[var(--ui-ink)] hover:text-[var(--ui-ink)]"
       }
     >
       {enabled ? <EyeOff size={16} strokeWidth={1.8} /> : <Eye size={16} strokeWidth={1.8} />}

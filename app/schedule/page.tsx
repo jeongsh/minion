@@ -107,7 +107,6 @@ export default async function SchedulePage({
         </div>
       </div>
       <div className="fixed bottom-[calc(3.25rem+env(safe-area-inset-bottom)+18px)] right-4 z-40 flex flex-row gap-2 md:bottom-6 lg:hidden">
-        <SpoilerToggleButton variant="fab" />
         <AdaptiveDialog
           title={`${activeYear}년 ${activeMonth}월 캘린더`}
           trigger={<><CalendarDays size={20} /><span className="sr-only">캘린더 열기</span></>}
@@ -121,6 +120,10 @@ export default async function SchedulePage({
           triggerClassName="grid h-12 w-12 place-items-center rounded-full border border-[var(--ui-border)] bg-[var(--ui-ink)] text-[var(--ui-surface)] shadow-[0_12px_34px_rgba(15,23,42,0.22)] transition-opacity hover:opacity-90"
         >
           {mobileFilters}
+          <div className="mt-4 flex items-center justify-between rounded-xl border border-[var(--ui-border)] bg-[var(--ui-card-bg)] px-3 py-2.5">
+            <span className="text-[14px] font-medium text-[var(--ui-ink)]">경기 결과 스포방지</span>
+            <SpoilerToggleButton />
+          </div>
           <Link href="/schedule" className="mt-4 flex min-h-10 items-center justify-center rounded-lg bg-[var(--ui-ink)] px-3 text-[12px] font-medium text-[var(--ui-surface)]">필터 초기화</Link>
         </AdaptiveDialog>
       </div>
