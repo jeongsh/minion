@@ -4,6 +4,7 @@ import type {
   MobileCommunityPostMutationDto,
 } from "@/packages/contracts/src/mobile-v1";
 import { extractPlainText } from "@/lib/community/extract-thumbnail";
+import { selectBestComments } from "@/lib/community/best-comments";
 import { getGuestPostAttachmentError } from "@/lib/community/limits";
 import {
   deletePost,
@@ -52,6 +53,7 @@ export async function GET(request: Request, context: Context) {
   const blocked = await getMobileBlockedCommunityAuthors(actor.auth?.user.id);
   if (isMobileCommunityAuthorBlocked(post, blocked)) return mobileError("NOT_FOUND", "게시글을 찾을 수 없습니다.", 404);
   const visibleComments = comments.filter((comment) => !isMobileCommunityAuthorBlocked(comment, blocked));
+  const bestCommentIds = new Set(selectBestComments(visibleComments).map((comment) => comment.id));
 
   const reactionActor = actor.auth ? { userId: actor.auth.user.id } : { guestKey: actor.guest.key };
   const [reaction, commentReactions]: ["honor" | "dislike" | null, Record<string, "honor" | "dislike" | null>] = await Promise.all([
@@ -63,7 +65,12 @@ export async function GET(request: Request, context: Context) {
     : Boolean(post.guestKey && post.guestKey === actor.guest.key);
   const data: MobileCommunityPostDetailDto = {
     ...toMobileCommunityPost(post),
-    comments: visibleComments.map((comment) => toMobileCommunityComment(comment, actor, commentReactions[comment.id] ?? null)),
+    comments: visibleComments.map((comment) => toMobileCommunityComment(
+      comment,
+      actor,
+      commentReactions[comment.id] ?? null,
+      bestCommentIds.has(comment.id),
+    )),
     content: parseTiptapDocument(post.content),
     permissions: {
       canBlock: Boolean(actor.auth && !canManage),

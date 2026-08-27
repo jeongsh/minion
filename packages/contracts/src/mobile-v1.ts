@@ -155,6 +155,7 @@ export type MobileCommunityComment = {
   dislikeCount: number;
   reaction: "honor" | "dislike" | null;
   createdAt: IsoDateTime;
+  isBest: boolean;
   isBlinded: boolean;
   isDeleted: boolean;
   blindedSource?: "ai" | "report" | "admin" | null;

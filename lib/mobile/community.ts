@@ -117,6 +117,7 @@ export function toMobileCommunityComment(
   comment: CommunityCommentItem,
   actor: MobileCommunityActor,
   reaction: "honor" | "dislike" | null,
+  isBest = false,
 ): MobileCommunityComment {
   const canManage = comment.authorId
     ? comment.authorId === actor.auth?.user.id
@@ -128,6 +129,7 @@ export function toMobileCommunityComment(
     createdAt: comment.createdAt,
     dislikeCount: comment.dislikeCount,
     id: comment.id,
+    isBest,
     isBlinded: Boolean(comment.blindedAt),
     isDeleted: Boolean(comment.deletedAt),
     likeCount: comment.likeCount,

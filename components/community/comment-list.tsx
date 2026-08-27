@@ -17,6 +17,7 @@ import type { BoardScope } from "@/lib/community/boards";
 import { blindLabel } from "@/lib/community/moderation-labels";
 import type { CommunityCommentItem, ReactionState } from "@/lib/community/types";
 import { useCommentMaxLength } from "@/components/community/use-comment-max-length";
+import { selectBestComments } from "@/lib/community/best-comments";
 
 export function CommentList({ comments, commentReactions, scope, teamSlug, viewerId, currentGuestKey }: { comments: CommunityCommentItem[]; commentReactions: Record<string, ReactionState>; scope: BoardScope; teamSlug?: string; viewerId?: string | null; currentGuestKey?: string | null }) {
   const [replyTo, setReplyTo] = useState<string | null>(null);
@@ -28,6 +29,9 @@ export function CommentList({ comments, commentReactions, scope, teamSlug, viewe
   const { showToast } = useToast();
   const maxLength = useCommentMaxLength();
   const roots = comments.filter((comment) => !comment.parentId);
+  const bestComments = selectBestComments(roots);
+  const bestCommentIds = new Set(bestComments.map((comment) => comment.id));
+  const orderedRoots = [...bestComments, ...roots.filter((comment) => !bestCommentIds.has(comment.id))];
   const repliesByParent = new Map<string, CommunityCommentItem[]>();
   comments.filter((comment) => comment.parentId).forEach((comment) => {
     const replies = repliesByParent.get(comment.parentId!) ?? [];
@@ -113,12 +117,13 @@ export function CommentList({ comments, commentReactions, scope, teamSlug, viewe
     <span className={`grid shrink-0 place-items-center rounded-full bg-[var(--ui-surface-muted)] text-[var(--ui-muted)] ${reply ? "h-6 w-6" : "h-9 w-9"}`} aria-hidden="true"><UserRound size={reply ? 14 : 20} strokeWidth={1.7} /></span>
   );
 
-  const item = (comment: CommunityCommentItem, reply = false, continued = false) => (
+  const item = (comment: CommunityCommentItem, reply = false, continued = false, best = false) => (
     <div key={comment.id} className={`relative grid min-h-[78px] min-w-0 gap-4 ${reply ? "grid-cols-[24px_minmax(0,1fr)]" : "grid-cols-[36px_minmax(0,1fr)]"}`}>
       {continued ? <span className="absolute bottom-0 left-[18px] top-10 border-l border-[var(--ui-border)]" aria-hidden="true" /> : null}
       {commentAvatar(comment, reply)}
       <div className="relative min-w-0">
         <div className="flex h-5 min-w-0 items-center gap-1 pr-8">
+          {best ? <span className="mr-1 shrink-0 rounded bg-blue-500 px-1.5 py-0.5 text-xs font-medium leading-none text-white">BEST</span> : null}
           <AuthorMenu
             authorId={comment.authorId}
             authorName={comment.authorName}
@@ -166,12 +171,14 @@ export function CommentList({ comments, commentReactions, scope, teamSlug, viewe
 
   return (
     <ul className="min-w-0 px-[14px] md:px-8">
-      {roots.map((comment) => {
+      {orderedRoots.map((comment, index) => {
         const replyItems = repliesByParent.get(comment.id) ?? [];
         const expanded = expandedReplies.has(comment.id);
+        const best = bestCommentIds.has(comment.id);
+        const firstRegular = bestComments.length > 0 && index === bestComments.length;
         return (
-          <li key={comment.id} className="mb-4">
-            {comment.deletedAt ? deletedItem(comment) : item(comment, false, replyItems.length > 0)}
+          <li key={comment.id} className={`mb-4 ${best ? "-mx-2 rounded-lg bg-blue-500/[0.07] px-2 pt-3" : ""} ${firstRegular ? "border-t border-[var(--ui-border)] pt-5" : ""}`}>
+            {comment.deletedAt ? deletedItem(comment) : item(comment, false, replyItems.length > 0, best)}
             {replyItems.length > 0 && !expanded ? (
               <div className="relative h-[52px]">
                 <span className="absolute left-[18px] top-0 h-[30px] w-[18px] rounded-bl-[16px] border-b border-l border-[var(--ui-border)]" aria-hidden="true" />
