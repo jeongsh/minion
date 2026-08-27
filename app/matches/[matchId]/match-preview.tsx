@@ -2,7 +2,6 @@ import type { Match, SetResult, Team } from "@/lib/types";
 import { KST_TIMEZONE, teamLabel } from "@/lib/view-data";
 import type { MatchAiPreview } from "@/lib/match-preview-ai";
 import type { ReactNode } from "react";
-import { ExternalLink } from "lucide-react";
 
 import { TeamLogo } from "@/components/ui/team-logo";
 
@@ -105,12 +104,6 @@ function formatSourceDay(value: string | null) {
   }).format(date);
 }
 
-function confidenceLabel(value: MatchAiPreview["confidence"]) {
-  if (value === "high") return "높음";
-  if (value === "medium") return "보통";
-  return "낮음";
-}
-
 /** 경기 중 확인 문장의 첫 문장만 형광펜 하이라이트로 강조한다. */
 function splitLeadSentence(text: string): [string, string] {
   const match = text.match(/^[^.!?]*[.!?]/);
@@ -129,11 +122,11 @@ function BriefingRow({
 }) {
   return (
     <div
-      className={`mb-2.5 grid gap-2 rounded-lg bg-[var(--ui-card-bg)] px-4 py-3.5 last:mb-3 sm:grid-cols-[8.75rem_minmax(0,1fr)] sm:gap-4 sm:px-5 sm:py-4 ${
+      className={`mb-2 grid gap-1 rounded-lg bg-[var(--ui-card-bg)] px-3 py-2.5 last:mb-3 sm:grid-cols-[7rem_minmax(0,1fr)] sm:gap-3 sm:px-4 sm:py-3 ${
         align === "center" ? "sm:items-center" : "sm:items-start"
       }`}
     >
-      <h3 className="text-lg font-bold leading-7 text-[var(--ui-ink)]">{label}</h3>
+      <h3 className="text-[14px] font-medium leading-5 text-[var(--ui-ink)] sm:text-[15px] sm:font-bold sm:leading-6">{label}</h3>
       <div className="min-w-0">{children}</div>
     </div>
   );
@@ -153,11 +146,11 @@ function MetricCard({
   colorB: string;
 }) {
   return (
-    <div className="rounded-lg bg-[var(--ui-surface)] px-2 py-2 sm:px-3">
+    <div className="min-w-0 rounded-lg bg-[var(--ui-surface)] px-1.5 py-2 sm:px-3">
       <div className="text-[13px] font-medium text-[var(--ui-muted)]">{label}</div>
-      <div className="mt-1 whitespace-nowrap text-base font-bold tabular-nums">
+      <div className="mt-1 whitespace-nowrap text-[15px] font-bold tabular-nums sm:text-base">
         <span style={{ color: colorA }}>{valueA}</span>
-        <span className="px-0.5 text-[13px] font-medium text-[var(--ui-muted)] sm:px-1">vs</span>
+        <span className="px-px text-[12px] font-medium text-[var(--ui-muted)] sm:px-1 sm:text-[13px]">vs</span>
         <span style={{ color: colorB }}>{valueB}</span>
       </div>
     </div>
@@ -179,14 +172,14 @@ function MeetingSide({
 }) {
   const nameNode = (
     <span
-      className={`truncate text-[15px] font-bold ${won ? "text-[var(--ui-ink)]" : "text-[var(--ui-muted)]"}`}
+      className={`truncate text-[13px] font-medium sm:text-[15px] sm:font-bold ${won ? "text-[var(--ui-ink)]" : "text-[var(--ui-muted)]"}`}
     >
       {name}
     </span>
   );
   const scoreNode = (
     <span
-      className={`shrink-0 text-base font-bold tabular-nums ${won ? "text-[var(--ui-ink)]" : "text-[var(--ui-muted)]"}`}
+      className={`shrink-0 text-[15px] font-bold tabular-nums sm:text-base ${won ? "text-[var(--ui-ink)]" : "text-[var(--ui-muted)]"}`}
     >
       {score ?? "-"}
     </span>
@@ -194,11 +187,11 @@ function MeetingSide({
 
   return (
     <div
-      className={`flex min-w-0 flex-1 items-center gap-2 ${align === "right" ? "flex-row-reverse" : ""}`}
+      className={`flex min-w-0 flex-1 items-center gap-1.5 sm:gap-2 ${align === "right" ? "flex-row-reverse" : ""}`}
     >
       {scoreNode}
       {nameNode}
-      <TeamLogo team={team} size="h-6 w-6" plain themeAware />
+      <TeamLogo team={team} size="h-5 w-5 sm:h-6 sm:w-6" plain themeAware />
     </div>
   );
 }
@@ -216,11 +209,11 @@ function MeetingRow({
   const teamB = teams.find((team) => team.id === meeting.teamBId);
 
   return (
-    <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-2 rounded-lg bg-[var(--ui-surface)] px-3 py-2 sm:flex sm:gap-3">
+    <div className="grid grid-cols-[2.5rem_minmax(0,1fr)_auto] items-center gap-1.5 rounded-lg bg-[var(--ui-surface)] px-2.5 py-2 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:gap-3 sm:px-3">
       <span className="shrink-0 whitespace-nowrap text-[13px] font-medium tabular-nums text-[var(--ui-muted)]">
         {formatMeetingDay(meeting.matchDate)}
       </span>
-      <div className="flex min-w-0 flex-1 items-center justify-center gap-2 sm:gap-3">
+      <div className="flex min-w-0 items-center justify-center gap-1.5 sm:gap-3">
         <MeetingSide
           team={teamA}
           name={teamLabel(teams, meeting.teamAId)}
@@ -237,10 +230,11 @@ function MeetingRow({
         />
       </div>
       <span
-        className="col-span-2 shrink-0 justify-self-end whitespace-nowrap rounded-md px-2 py-1 text-[13px] font-medium text-white sm:col-span-1"
-        style={{ background: winnerColor }}
+        className="shrink-0 justify-self-end whitespace-nowrap text-[13px] font-medium"
+        style={{ color: winnerColor }}
+        aria-label={`${teamLabel(teams, meeting.winnerTeamId)} 승리`}
       >
-        {teamLabel(teams, meeting.winnerTeamId)} 승
+        승리
       </span>
     </div>
   );
@@ -277,9 +271,8 @@ export function MatchPreview({
   const teamBSummary = teamSetSummary(sets, previousMatches, match.teamBId);
   const [watchLead, watchRest] = splitLeadSentence(aiPreview.liveCheck);
   const winA = aiPreview.winProbabilityA;
-  const referenceCount = aiPreview.evidence.length + aiPreview.sources.length;
   const generatedMeta = aiPreview.generatedAt && aiPreview.generationPhase !== "legacy"
-    ? `${formatPreviewTime(aiPreview.generatedAt)} 기준 · 근거 신뢰도 ${confidenceLabel(aiPreview.confidence)}`
+    ? `${formatPreviewTime(aiPreview.generatedAt)} 기준`
     : null;
   const signed = (value: number) => (value > 0 ? `+${value}` : String(value));
   const record = (item: ReturnType<typeof teamRecentRecord>) =>
@@ -293,7 +286,10 @@ export function MatchPreview({
         aria-labelledby="ai-match-preview"
       >
         <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
-          <h2 id="ai-match-preview" className="home-section-title text-xl text-[var(--ui-ink)]">
+          <h2
+            id="ai-match-preview"
+            className="home-section-title text-[length:var(--ui-title-size)] text-[var(--ui-ink)]"
+          >
             AI 브리핑
           </h2>
           {generatedMeta ? (
@@ -302,9 +298,9 @@ export function MatchPreview({
         </div>
 
         {aiPreview.narrative ? (
-          <div className="mb-2.5 rounded-lg border border-[color-mix(in_srgb,var(--accent)_24%,var(--ui-border))] bg-[color-mix(in_srgb,var(--accent)_7%,var(--ui-card-bg))] px-4 py-4 sm:px-5">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[14px] font-medium text-[var(--accent)]">오늘의 서사</span>
+          <div className="mb-2 rounded-lg bg-[var(--ui-card-bg)] px-3 py-2.5 sm:px-4 sm:py-3">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="mr-0.5 text-[14px] font-medium text-[var(--ui-ink)]">오늘의 서사</span>
               {aiPreview.narrative.tags.map((tag) => (
                 <span
                   key={tag}
@@ -314,16 +310,16 @@ export function MatchPreview({
                 </span>
               ))}
             </div>
-            <h3 className="mt-2 text-lg font-extrabold leading-7 text-[var(--ui-ink)]">
+            <h3 className="mt-2 text-[15px] font-bold leading-[23px] text-[var(--ui-ink)] sm:text-base sm:leading-6">
               {aiPreview.narrative.title}
             </h3>
-            <p className="mt-2 text-base leading-7 text-[var(--ui-text)]">
+            <p className="mt-1.5 text-[14px] leading-[22px] text-[var(--ui-text)] sm:text-base sm:leading-6">
               {aiPreview.narrative.body}
             </p>
             {aiPreview.matchMeaning ? (
-              <div className="mt-3 border-t border-[var(--ui-border)] pt-3">
-                <p className="text-[14px] font-medium text-[var(--ui-muted)]">이 경기의 의미</p>
-                <p className="mt-1 text-base leading-7 text-[var(--ui-text)]">{aiPreview.matchMeaning}</p>
+              <div className="mt-2.5 border-t border-[var(--ui-border)] pt-2.5">
+                <p className="text-[13px] font-medium text-[var(--ui-muted)]">이 경기의 의미</p>
+                <p className="mt-1 text-[14px] leading-[22px] text-[var(--ui-text)] sm:text-base sm:leading-6">{aiPreview.matchMeaning}</p>
               </div>
             ) : null}
           </div>
@@ -332,11 +328,11 @@ export function MatchPreview({
         <BriefingRow label="전력 흐름">
           <div>
             {!aiPreview.narrative ? (
-              <h4 className="mb-1 text-lg font-extrabold leading-7 text-[var(--ui-ink)]">
+              <h4 className="mb-1 text-[15px] font-bold leading-[23px] text-[var(--ui-ink)] sm:text-base sm:leading-6">
                 {aiPreview.headline}
               </h4>
             ) : null}
-            <p className="text-base leading-7 text-[var(--ui-text)]">
+            <p className="text-[14px] leading-[22px] text-[var(--ui-text)] sm:text-base sm:leading-6">
               {aiPreview.summary}
             </p>
           </div>
@@ -344,17 +340,17 @@ export function MatchPreview({
 
         {!aiPreview.narrative && aiPreview.matchMeaning ? (
           <BriefingRow label="이 경기의 의미">
-            <p className="text-base leading-7 text-[var(--ui-text)]">{aiPreview.matchMeaning}</p>
+            <p className="text-[14px] leading-[22px] text-[var(--ui-text)] sm:text-base sm:leading-6">{aiPreview.matchMeaning}</p>
           </BriefingRow>
         ) : null}
 
         {aiPreview.recentView ? (
           <BriefingRow label="최근 평가 온도">
             <div>
-              <h4 className="text-lg font-extrabold leading-7 text-[var(--ui-ink)]">
+              <h4 className="text-[15px] font-bold leading-[23px] text-[var(--ui-ink)] sm:text-base sm:leading-6">
                 {aiPreview.recentView.title}
               </h4>
-              <p className="mt-1 text-base leading-7 text-[var(--ui-text)]">
+              <p className="mt-1 text-[14px] leading-[22px] text-[var(--ui-text)] sm:text-base sm:leading-6">
                 {aiPreview.recentView.body}
               </p>
               {aiPreview.recentView.asOf ? (
@@ -371,28 +367,28 @@ export function MatchPreview({
             <div className="grid gap-2 sm:grid-cols-2">
               {aiPreview.teamAWinCondition ? (
                 <div
-                  className="rounded-lg border bg-[var(--ui-surface)] p-3"
+                  className="rounded-lg border bg-[var(--ui-surface)] p-2.5 sm:p-3"
                   style={{ borderColor: colorA }}
                 >
                   <div className="flex items-center gap-2">
-                    <TeamLogo team={teamA} size="h-6 w-6" plain themeAware />
-                    <h4 className="text-[15px] font-bold text-[var(--ui-ink)]">{teamAName}</h4>
+                    <TeamLogo team={teamA} size="h-5 w-5 sm:h-6 sm:w-6" plain themeAware />
+                    <h4 className="text-[14px] font-medium text-[var(--ui-ink)] sm:text-[15px] sm:font-bold">{teamAName}</h4>
                   </div>
-                  <p className="mt-2 text-base leading-7 text-[var(--ui-text)]">
+                  <p className="mt-1.5 text-[14px] leading-[22px] text-[var(--ui-text)] sm:text-base sm:leading-6">
                     {aiPreview.teamAWinCondition}
                   </p>
                 </div>
               ) : null}
               {aiPreview.teamBWinCondition ? (
                 <div
-                  className="rounded-lg border bg-[var(--ui-surface)] p-3"
+                  className="rounded-lg border bg-[var(--ui-surface)] p-2.5 sm:p-3"
                   style={{ borderColor: colorB }}
                 >
                   <div className="flex items-center gap-2">
-                    <TeamLogo team={teamB} size="h-6 w-6" plain themeAware />
-                    <h4 className="text-[15px] font-bold text-[var(--ui-ink)]">{teamBName}</h4>
+                    <TeamLogo team={teamB} size="h-5 w-5 sm:h-6 sm:w-6" plain themeAware />
+                    <h4 className="text-[14px] font-medium text-[var(--ui-ink)] sm:text-[15px] sm:font-bold">{teamBName}</h4>
                   </div>
-                  <p className="mt-2 text-base leading-7 text-[var(--ui-text)]">
+                  <p className="mt-1.5 text-[14px] leading-[22px] text-[var(--ui-text)] sm:text-base sm:leading-6">
                     {aiPreview.teamBWinCondition}
                   </p>
                 </div>
@@ -402,7 +398,7 @@ export function MatchPreview({
         ) : null}
 
         <BriefingRow label="경기 중 확인">
-          <p className="text-base font-medium leading-7 text-[var(--ui-ink)]">
+          <p className="text-[14px] font-medium leading-[22px] text-[var(--ui-ink)] sm:text-base sm:leading-6">
             <span
               style={{
                 background:
@@ -420,12 +416,12 @@ export function MatchPreview({
             <div className="flex items-center justify-between gap-3">
               <span className="flex min-w-0 items-center gap-2">
                 <TeamLogo team={teamA} size="h-5 w-5" plain themeAware />
-                <b className="text-base font-bold tabular-nums text-[var(--ui-ink)]">
+                <b className="text-[15px] font-bold tabular-nums text-[var(--ui-ink)] sm:text-base">
                   {winA}%
                 </b>
               </span>
               <span className="flex min-w-0 items-center gap-2">
-                <b className="text-base font-bold tabular-nums text-[var(--ui-ink)]">
+                <b className="text-[15px] font-bold tabular-nums text-[var(--ui-ink)] sm:text-base">
                   {100 - winA}%
                 </b>
                 <TeamLogo team={teamB} size="h-5 w-5" plain themeAware />
@@ -470,7 +466,7 @@ export function MatchPreview({
 
         <BriefingRow label="최근 맞대결">
           {h2h.length === 0 ? (
-            <p className="text-base leading-7 text-[var(--ui-muted)]">
+            <p className="text-[14px] leading-[22px] text-[var(--ui-muted)] sm:text-base sm:leading-7">
               현재 수집된 기록 기준 첫 맞대결입니다. 최근 대진 난이도와 경기력으로 비교했습니다.
             </p>
           ) : (
@@ -487,50 +483,6 @@ export function MatchPreview({
           )}
         </BriefingRow>
 
-        {referenceCount > 0 ? (
-          <details className="mb-3 rounded-lg bg-[var(--ui-card-bg)]">
-            <summary className="cursor-pointer px-4 py-3.5 text-[14px] font-medium text-[var(--ui-ink)] sm:px-5">
-              근거와 출처 {referenceCount}건
-            </summary>
-            <div className="border-t border-[var(--ui-border)] px-4 py-4 sm:px-5">
-              {aiPreview.evidence.length > 0 ? (
-                <ul className="flex list-disc flex-col gap-1.5 pl-5 text-base font-medium leading-7 text-[var(--ui-text)]">
-                  {aiPreview.evidence.map((fact) => <li key={fact}>{fact}</li>)}
-                </ul>
-              ) : null}
-              {aiPreview.sources.length > 0 ? (
-                <div className={`flex flex-col gap-2 ${aiPreview.evidence.length > 0 ? "mt-4" : ""}`}>
-                  {aiPreview.sources.map((source) => {
-                    const publishedAt = formatSourceDay(source.publishedAt);
-                    return (
-                      <a
-                        key={source.url}
-                        href={source.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="group flex min-w-0 items-start justify-between gap-3 rounded-lg bg-[var(--ui-surface)] px-3 py-2.5 hover:text-[var(--ui-ink)]"
-                        title={source.title}
-                      >
-                        <span className="min-w-0">
-                          <span className="block truncate text-[14px] font-medium text-[var(--ui-text)] group-hover:text-[var(--ui-ink)]">
-                            {source.title}
-                          </span>
-                          {source.publisher || publishedAt ? (
-                            <span className="mt-0.5 block text-[13px] font-normal text-[var(--ui-muted)]">
-                              {[source.publisher, publishedAt].filter(Boolean).join(" · ")}
-                            </span>
-                          ) : null}
-                        </span>
-                        <ExternalLink aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={2} />
-                        <span className="sr-only">새 창에서 열기</span>
-                      </a>
-                    );
-                  })}
-                </div>
-              ) : null}
-            </div>
-          </details>
-        ) : null}
       </section>
     </div>
   );

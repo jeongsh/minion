@@ -1,5 +1,4 @@
-import ExternalLink from 'lucide-react-native/icons/external-link';
-import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { TeamLogo } from '@/components/data/team-logo';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
@@ -144,7 +143,6 @@ export function MatchPreviewTab({ data }: { data: MobileMatchDetailDto }) {
         <BriefingRow label="최근 맞대결">
           {meetings.length === 0 ? <Text style={{ color: theme.muted, ...fonts.regular, fontSize: 14, lineHeight: 21 }}>현재 수집된 기록 기준 첫 맞대결입니다. 최근 대진 난이도와 경기력으로 비교했습니다.</Text> : <View style={styles.meetingList}>{meetings.map((match) => <MeetingRow key={match.id} match={match} />)}</View>}
         </BriefingRow>
-        {ai.sources.length > 0 ? <BriefingRow label="참고한 전망"><View style={styles.sources}>{ai.sources.map((source) => <Pressable key={source.url} onPress={() => Linking.openURL(source.url)} style={styles.sourceLink}><Text numberOfLines={1} style={{ color: theme.text, ...fonts.bold, fontSize: 14, textDecorationLine: 'underline' }}>{source.title}</Text><ExternalLink color={theme.text} size={12} /></Pressable>)}</View></BriefingRow> : null}
       </View>
     </View>
   );
@@ -167,8 +165,6 @@ const styles = StyleSheet.create({
   prediction: { alignItems: 'stretch', borderRadius: 12, borderWidth: 1, flexDirection: 'row', height: 76, overflow: 'hidden' },
   predictionVs: { alignItems: 'center', justifyContent: 'center', width: 34 },
   root: { gap: 20 },
-  sourceLink: { alignItems: 'center', flexDirection: 'row', gap: 4, maxWidth: '100%' },
-  sources: { gap: 8 },
   winRow: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
   winTeam: { alignItems: 'center', flexDirection: 'row', gap: 8 },
   winTrack: { flexDirection: 'row', gap: 2, height: 8, marginTop: 8, overflow: 'hidden' },

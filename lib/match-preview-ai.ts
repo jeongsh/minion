@@ -35,6 +35,10 @@ import {
   measureOpenAiResponseUsage,
   type MeasuredOpenAiUsage,
 } from "@/lib/openai-usage-cost";
+import {
+  buildMatchPreviewWinConditionCandidates,
+  resolveMatchPreviewWinConditions,
+} from "@/lib/match-preview-win-conditions";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type {
   Match,
@@ -93,7 +97,9 @@ const WRITER_SCHEMA = {
     "recentViewBody",
     "recentViewClaimIndexes",
     "teamAWinCondition",
+    "teamAWinConditionCandidateId",
     "teamBWinCondition",
+    "teamBWinConditionCandidateId",
     "liveCheck",
     "winProbabilityA",
     "confidence",
@@ -132,7 +138,9 @@ const WRITER_SCHEMA = {
       items: { type: "integer", minimum: 0, maximum: 4 },
     },
     teamAWinCondition: { type: "string" },
+    teamAWinConditionCandidateId: { type: "string" },
     teamBWinCondition: { type: "string" },
+    teamBWinConditionCandidateId: { type: "string" },
     liveCheck: { type: "string" },
     winProbabilityA: { type: "integer", minimum: 5, maximum: 95 },
     confidence: { type: "string", enum: ["low", "medium", "high"] },
@@ -145,8 +153,8 @@ const WRITER_SCHEMA = {
   },
 } as const;
 
-const MATCH_PREVIEW_PROMPT_VERSION = 12;
-const MATCH_PREVIEW_CONTENT_VERSION = 2;
+const MATCH_PREVIEW_PROMPT_VERSION = 13;
+const MATCH_PREVIEW_CONTENT_VERSION = 3;
 const DEFAULT_RESEARCH_MODEL = "gpt-5.4-mini";
 const DEFAULT_STANDARD_MODEL = "gpt-5.4-mini";
 const DEFAULT_PREMIUM_MODEL = "gpt-5.6-sol";
@@ -668,6 +676,29 @@ function previewFromCacheRow(data: MatchAiPreviewCacheRow): MatchAiPreview {
   };
 }
 
+function upgradedCachedWinConditions(
+  preview: MatchAiPreview,
+  facts: MatchPreviewFacts,
+  content: unknown,
+) {
+  const version = content && typeof content === "object"
+    ? Number((content as { version?: unknown }).version)
+    : 0;
+  if (version >= MATCH_PREVIEW_CONTENT_VERSION) return preview;
+  const resolved = resolveMatchPreviewWinConditions({
+    candidates: buildMatchPreviewWinConditionCandidates(facts),
+    teamACandidateId: null,
+    teamBCandidateId: null,
+    teamAText: null,
+    teamBText: null,
+  });
+  return {
+    ...preview,
+    teamAWinCondition: resolved.teamA,
+    teamBWinCondition: resolved.teamB,
+  };
+}
+
 function buildInternalEvidenceCatalog(
   facts: MatchPreviewFacts,
   storyContext: MatchPreviewStoryContext,
@@ -924,10 +955,12 @@ function normalizeWriterPreview({
   value,
   claims,
   evidenceCatalog,
+  facts,
 }: {
   value: unknown;
   claims: ResearchClaim[];
   evidenceCatalog: InternalEvidence[];
+  facts: MatchPreviewFacts;
 }): NormalizedWriterPreview {
   if (!value || typeof value !== "object") throw new Error("AI 프리뷰 응답이 객체가 아닙니다.");
   const row = value as Record<string, unknown>;
@@ -937,11 +970,23 @@ function normalizeWriterPreview({
   if (!headline || !summary || !liveCheck) throw new Error("AI 프리뷰의 필수 문장이 없습니다.");
 
   const evidenceById = new Map(evidenceCatalog.map((item) => [item.id, item.text]));
-  const evidenceIds = Array.isArray(row.evidenceIds)
+  const winConditionCandidates = buildMatchPreviewWinConditionCandidates(facts);
+  const winConditions = resolveMatchPreviewWinConditions({
+    candidates: winConditionCandidates,
+    teamACandidateId: row.teamAWinConditionCandidateId,
+    teamBCandidateId: row.teamBWinConditionCandidateId,
+    teamAText: normalizedText(row.teamAWinCondition, 220) || null,
+    teamBText: normalizedText(row.teamBWinCondition, 220) || null,
+  });
+  const writerEvidenceIds = Array.isArray(row.evidenceIds)
     ? [...new Set(row.evidenceIds.flatMap((item) =>
         typeof item === "string" && evidenceById.has(item) ? [item] : [],
-      ))].slice(0, 4)
+      ))]
     : [];
+  const evidenceIds = [...new Set([
+    ...winConditions.evidenceIds,
+    ...writerEvidenceIds,
+  ])].filter((id) => evidenceById.has(id)).slice(0, 6);
   const fallbackEvidenceIds = evidenceCatalog.slice(0, 2).map((item) => item.id);
   const evidence = (evidenceIds.length > 0 ? evidenceIds : fallbackEvidenceIds)
     .flatMap((id) => evidenceById.get(id) ?? []);
@@ -1014,8 +1059,8 @@ function normalizeWriterPreview({
     narrative,
     matchMeaning,
     recentView,
-    teamAWinCondition: normalizedText(row.teamAWinCondition, 220) || null,
-    teamBWinCondition: normalizedText(row.teamBWinCondition, 220) || null,
+    teamAWinCondition: winConditions.teamA,
+    teamBWinCondition: winConditions.teamB,
     liveCheck,
     watchPoint: liveCheck,
     winProbabilityA,
@@ -1042,6 +1087,7 @@ async function writeMatchPreview({
   phase: MatchPreviewGenerationPhase;
   model: string;
 }): Promise<WriterResult> {
+  const winConditionCandidates = buildMatchPreviewWinConditionCandidates(facts);
   const json = await createOpenAiResponse({
     model,
     reasoning: { effort: "medium" },
@@ -1058,7 +1104,9 @@ async function writeMatchPreview({
           "recentView는 평가 주체를 문장 안에 명시하고 assessment 또는 statement claim만 사용한다. 합의 표현은 독립 출처 2개 이상일 때만 쓴다. 근거가 없으면 관련 필드를 비운다.",
           "matchMeaning은 stage·bracket 정보나 검증된 claim에 명시된 범위만 쓴다. stage 이름만으로 '패자 탈락', 진출권, 시드를 추정하지 않는다.",
           "summary는 정확히 2문장이다. 최근 팀·선수 지표를 비교해 한 팀의 강점과 상대의 반격 경로를 구체적으로 설명한다.",
-          "teamAWinCondition/teamBWinCondition은 각각 1문장이다. 15분 골드·경험치, DPM, 오브젝트 전환, 한타 진입처럼 internalFacts가 뒷받침하는 실행 조건을 쓴다.",
+          "teamAWinCondition/teamBWinCondition은 각각 1문장이다. winConditionCandidates에서 팀별로 후보 하나를 골라 그 id를 각 CandidateId에 그대로 넣고, 해당 후보의 근거 범위 안에서 구체화한다.",
+          "두 팀의 CandidateId는 axis가 반드시 달라야 한다. 같은 경기에서 양 팀을 모두 DPM·화력으로 설명하거나 같은 오브젝트 문장을 대칭 복제하지 않는다.",
+          "후보 우선순위는 팀 운영(economy/objectives), 라인 주도권(laning), 교전 화력(damage), 접전 대응(resilience) 순이다. damage는 다른 축이 더 뚜렷하지 않을 때 한 팀에만 사용한다.",
           "liveCheck는 정확히 1문장이다. 팀명 또는 선수명을 넣고 시청 중 확인 가능한 기준 하나만 쓴다.",
           "선수 수치는 roleMatchups에서 games가 1 이상일 때만 쓴다. 밴픽 성향, 컨디션, 집중력처럼 데이터에 없는 내용을 만들지 않는다.",
           "winProbabilityA는 internalFacts.teamA의 승률을 5~95 정수로 쓴다. 확정적 승패 표현은 금지한다.",
@@ -1075,6 +1123,7 @@ async function writeMatchPreview({
           internalFacts: facts,
           storyCandidates: storyContext,
           internalEvidenceCatalog: evidenceCatalog,
+          winConditionCandidates,
           externalClaims: claims.map((claim) => ({
             kind: claim.kind,
             claim: claim.claim,
@@ -1104,6 +1153,7 @@ async function writeMatchPreview({
         value: JSON.parse(outputText.text),
         claims,
         evidenceCatalog,
+        facts,
       }),
       responseId: json.id ?? null,
       usage,
@@ -1485,7 +1535,7 @@ export async function getMatchAiPreview({
     playerStats,
   });
   const fallback = fallbackPreview(facts);
-  if (!isUpcomingMatch(match) || !hasResolvedParticipants(match, teams)) return fallback;
+  if (!hasResolvedParticipants(match, teams)) return fallback;
   try {
     const admin = createSupabaseAdminClient();
     const { data, error } = await admin
@@ -1493,7 +1543,13 @@ export async function getMatchAiPreview({
       .select("summary,watch_point,evidence,content,generated_at,generation_phase")
       .eq("match_id", match.id)
       .maybeSingle();
-    if (!error && data) return previewFromCacheRow(data as MatchAiPreviewCacheRow);
+    if (!error && data) {
+      return upgradedCachedWinConditions(
+        previewFromCacheRow(data as MatchAiPreviewCacheRow),
+        facts,
+        data.content,
+      );
+    }
   } catch (error) {
     console.warn("[match-ai-preview] cache lookup failed", error);
   }
@@ -1515,19 +1571,24 @@ export async function refreshMatchAiPreviewCacheForMatchId(
   const [match, teams] = await Promise.all([getMatchById(matchId), getAllTeams()]);
   if (!match) throw new Error(`Match not found for AI preview refresh: ${matchId}`);
   const admin = createSupabaseAdminClient();
-  if (!hasResolvedParticipants(match, teams) || !isUpcomingMatch(match)) {
-    const { error } = await admin.from("match_ai_previews").delete().eq("match_id", match.id);
-    if (error) throw new Error(error.message);
-    return null;
-  }
-
-  const phase = matchPreviewGenerationPhase(match.matchDate, Date.now(), options.force === true);
   const { data: cached, error: cacheError } = await admin
     .from("match_ai_previews")
     .select("input_hash,summary,watch_point,evidence,content,generated_at,generation_phase")
     .eq("match_id", match.id)
     .maybeSingle();
   if (cacheError) throw new Error(cacheError.message);
+  // 팀 조회가 일시적으로 실패하면 getAllTeams()가 빈 배열로 복구될 수 있다.
+  // 이 상태를 실제 TBD 대진으로 오인해 이미 생성된 프리뷰를 지우지 않는다.
+  if (!hasResolvedParticipants(match, teams)) {
+    return cached ? previewFromCacheRow(cached as MatchAiPreviewCacheRow) : null;
+  }
+
+  const phase = matchPreviewGenerationPhase(match.matchDate, Date.now(), options.force === true);
+  // 경기 시작 후에는 새 프리뷰를 만들지 않되, 시작 전에 생성한 브리핑은
+  // 실시간 세트 동기화가 실행되어도 보존해 경기 중·종료 후에도 보여준다.
+  if (!isUpcomingMatch(match)) {
+    return cached ? previewFromCacheRow(cached as MatchAiPreviewCacheRow) : null;
+  }
   if (!phase) return cached ? previewFromCacheRow(cached as MatchAiPreviewCacheRow) : null;
 
   const [matches, sets, tournaments, players, playerStats, stages] = await Promise.all([
