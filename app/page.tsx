@@ -34,7 +34,9 @@ export default async function HomePage({
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = searchParams ? await searchParams : {};
-  const showOnboarding = (Array.isArray(params.onboarding) ? params.onboarding[0] : params.onboarding) === "1";
+  const onboardingMode = Array.isArray(params.onboarding) ? params.onboarding[0] : params.onboarding;
+  const showOnboarding = onboardingMode === "1" || onboardingMode === "debug";
+  const forceOnboarding = onboardingMode === "debug";
   const onboardingNext = safeOnboardingNext(params.next);
   const [homeData, popularCommunityPosts, latestCommunityPosts, predictionMarket, lckChannelVideos, pomEntries, homeNewsFeed] = await Promise.all([
     getHomePagePublicData(),
@@ -165,12 +167,15 @@ export default async function HomePage({
         .select("nickname, profile_image_url, onboarding_completed_at")
         .eq("id", user.id)
         .maybeSingle();
-      if (!profile?.onboarding_completed_at) {
+      if (forceOnboarding || !profile?.onboarding_completed_at) {
+        const initialNickname = forceOnboarding || !profile?.onboarding_completed_at
+          ? ""
+          : profile.nickname ?? "";
         onboarding = (
           <OnboardingDialog
-            initialNickname={profile?.nickname ?? ""}
+            initialNickname={initialNickname}
             initialProfileImageUrl={profile?.profile_image_url ?? null}
-            teams={teams}
+            teams={teams.filter((team) => team.isLckTeam)}
             next={onboardingNext}
           />
         );

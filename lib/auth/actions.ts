@@ -12,7 +12,7 @@ import type {
 } from "@/lib/auth/action-state";
 import { DELETE_ACCOUNT_CONFIRM_TEXT } from "@/lib/auth/action-state";
 import { getCurrentUser } from "@/lib/auth/current-user";
-import { DEFAULT_PROFILE_IMAGE_URLS, safeOnboardingNext } from "@/lib/auth/onboarding";
+import { safeOnboardingNext } from "@/lib/auth/onboarding";
 import { resizeImageForWeb } from "@/lib/images/resize-for-web";
 import { recordLpEvent } from "@/lib/rank/record-lp";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -238,7 +238,6 @@ export async function updateNicknameAction(
   }
 
   const image = formData.get("profileImage");
-  const defaultProfileImage = String(formData.get("defaultProfileImage") ?? "");
   let profileImageUrl: string | null | undefined;
 
   if (image instanceof File && image.size > 0) {
@@ -276,11 +275,6 @@ export async function updateNicknameAction(
       data: { publicUrl },
     } = admin.storage.from(PROFILE_AVATAR_BUCKET).getPublicUrl(objectPath);
     profileImageUrl = publicUrl;
-  } else if (defaultProfileImage) {
-    if (!DEFAULT_PROFILE_IMAGE_URLS.has(defaultProfileImage)) {
-      return { status: "error", message: "기본 프로필 이미지 정보가 올바르지 않습니다." };
-    }
-    profileImageUrl = defaultProfileImage;
   }
 
   const supabase = await createSupabaseAuthClient();
