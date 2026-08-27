@@ -576,10 +576,32 @@ export type MobileMatchHeader = {
 export type MobileMatchPreview = {
   prediction: MobilePredictionMarket & { closed: boolean };
   ai: {
+    headline: string;
     summary: string;
+    narrative: {
+      title: string;
+      body: string;
+      tags: string[];
+    } | null;
+    matchMeaning: string | null;
+    recentView: {
+      title: string;
+      body: string;
+      asOf: string | null;
+    } | null;
+    teamAWinCondition: string | null;
+    teamBWinCondition: string | null;
+    liveCheck: string;
     watchPoint: string;
     winProbabilityA: number | null;
-    sources: Array<{ title: string; url: string }>;
+    generatedAt: string | null;
+    generationPhase: "story" | "final" | "legacy" | null;
+    sources: Array<{
+      title: string;
+      url: string;
+      publisher: string | null;
+      publishedAt: string | null;
+    }>;
   };
   metrics: {
     recentRecordA: string;

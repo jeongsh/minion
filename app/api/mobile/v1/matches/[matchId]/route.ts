@@ -238,8 +238,29 @@ export async function GET(request: Request, context: { params: Promise<{ matchId
       .map((player) => ({ id: player.id, name: player.name, position: player.position, profileImage: player.profileImageUrl ? { url: player.profileImageUrl } : null, slug: player.slug, teamId: player.teamId })),
     preview: {
       ai: {
+        generatedAt: aiPreview.generatedAt,
+        generationPhase: aiPreview.generationPhase,
+        headline: aiPreview.headline,
+        liveCheck: aiPreview.liveCheck,
+        matchMeaning: aiPreview.matchMeaning,
+        narrative: aiPreview.narrative
+          ? {
+              body: aiPreview.narrative.body,
+              tags: aiPreview.narrative.tags,
+              title: aiPreview.narrative.title,
+            }
+          : null,
+        recentView: aiPreview.recentView
+          ? {
+              asOf: aiPreview.recentView.asOf,
+              body: aiPreview.recentView.body,
+              title: aiPreview.recentView.title,
+            }
+          : null,
         sources: aiPreview.sources,
         summary: aiPreview.summary,
+        teamAWinCondition: aiPreview.teamAWinCondition,
+        teamBWinCondition: aiPreview.teamBWinCondition,
         watchPoint: aiPreview.watchPoint,
         winProbabilityA: aiPreview.winProbabilityA,
       },
