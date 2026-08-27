@@ -103,6 +103,13 @@ export type MobileCommunityAuthor = {
   profileImage: MobileImage | null;
   tier: string | null;
   guestIpLabel: string | null;
+  favoriteTeam: {
+    id: EntityId;
+    slug: string;
+    name: string;
+    shortName: string;
+    primaryColor: string;
+  } | null;
 };
 
 export type MobileCommunityPostSummary = {

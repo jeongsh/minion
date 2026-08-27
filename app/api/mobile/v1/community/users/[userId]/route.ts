@@ -44,6 +44,7 @@ export async function GET(request: Request, context: Context) {
     if (!profile) return mobileError("NOT_FOUND", "사용자를 찾을 수 없습니다.", 404);
 
     const teamIds = [...new Set([
+      ...(profile.favoriteTeamId ? [profile.favoriteTeamId] : []),
       ...postsPage.items.flatMap((post) => post.teamId ? [post.teamId] : []),
       ...commentsPage.items.flatMap((comment) => comment.postTeamId ? [comment.postTeamId] : []),
     ])];
@@ -77,6 +78,13 @@ export async function GET(request: Request, context: Context) {
       posts: postsPage.items.map((post) => ({ ...toMobileCommunityPost(post), teamSlug: teamSlug(post.teamId) })),
       profile: {
         createdAt: profile.createdAt,
+        favoriteTeam: profile.favoriteTeamId && teams.get(profile.favoriteTeamId) ? {
+          id: teams.get(profile.favoriteTeamId)!.id,
+          name: teams.get(profile.favoriteTeamId)!.name,
+          primaryColor: teams.get(profile.favoriteTeamId)!.primaryColor,
+          shortName: teams.get(profile.favoriteTeamId)!.shortName,
+          slug: teams.get(profile.favoriteTeamId)!.slug,
+        } : null,
         guestIpLabel: null,
         id: profile.id,
         nickname: profile.nickname,

@@ -75,6 +75,13 @@ export async function GET() {
     })),
     community: communityPosts.map((post) => ({
       author: {
+        favoriteTeam: post.authorTeam ? {
+          id: post.authorTeam.id,
+          name: post.authorTeam.name,
+          primaryColor: post.authorTeam.primaryColor,
+          shortName: post.authorTeam.shortName,
+          slug: post.authorTeam.slug,
+        } : null,
         guestIpLabel: post.guestIpLabel,
         id: post.authorId,
         nickname: post.authorName,

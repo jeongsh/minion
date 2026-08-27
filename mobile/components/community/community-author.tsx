@@ -37,6 +37,7 @@ export function CommunityAuthor({ author, detailMeta, evidence, hideAvatar = fal
   const [reason, setReason] = useState('');
   const [pending, setPending] = useState(false);
   const name = displayAuthor(author);
+  const favoriteTeam = author.favoriteTeam;
   const guest = !author.id;
   const self = Boolean(author.id && author.id === viewer?.id);
   const navigationRows = guest ? 0 : variant === 'profile' ? 2 : 3;
@@ -111,7 +112,7 @@ export function CommunityAuthor({ author, detailMeta, evidence, hideAvatar = fal
   return (
     <View style={[styles.root, variant === 'comment' ? styles.commentRoot : null]}>
       <Pressable
-        accessibilityLabel={`${guest ? '비회원' : `${author.tier ?? '브론즈'} 티어 프로필`} ${name}`}
+        accessibilityLabel={`${guest ? '비회원' : `${author.tier ?? '브론즈'} 티어 프로필`} ${name}${favoriteTeam ? `, ${favoriteTeam.name} 팬` : ''}`}
         accessibilityRole="button"
         accessibilityState={{ expanded: menuOpen }}
         disabled={pending}
@@ -121,7 +122,10 @@ export function CommunityAuthor({ author, detailMeta, evidence, hideAvatar = fal
       >
         {hideAvatar ? null : guest ? <GuestAvatar size={variant === 'detail' ? 'detail' : 'comment'} /> : <RankAvatar fallback={name} profileImageUrl={author.profileImage?.url} size={variant === 'profile' ? 'large' : variant === 'detail' ? 'detail' : 'comment'} tier={author.tier} />}
         <View style={styles.nameBlock}>
-          <Text numberOfLines={1} style={{ color: theme.ink, ...(variant === 'profile' ? fonts.bold : fonts.medium), fontSize: variant === 'profile' ? 16 : variant === 'detail' ? 13 : 12, lineHeight: variant === 'profile' ? 20 : 18 }}>{name}</Text>
+          <View style={styles.nameRow}>
+            {favoriteTeam ? <TeamBadge primaryColor={favoriteTeam.primaryColor} shortName={favoriteTeam.shortName} teamName={favoriteTeam.name} /> : null}
+            <Text numberOfLines={1} style={[styles.name, { color: theme.ink, ...(variant === 'profile' ? fonts.bold : fonts.medium), fontSize: variant === 'profile' ? 16 : 13, lineHeight: variant === 'profile' ? 20 : 18 }]}>{name}</Text>
+          </View>
           {detailMeta ? <View style={styles.detailMeta}>{detailMeta}</View> : null}
         </View>
       </Pressable>
@@ -147,6 +151,19 @@ export function CommunityAuthor({ author, detailMeta, evidence, hideAvatar = fal
   );
 }
 
+function TeamBadge({ primaryColor, shortName, teamName }: { primaryColor: string; shortName: string; teamName: string }) {
+  const { fonts } = useMinionTheme();
+  return <View accessibilityLabel={`${teamName} 팬`} style={[styles.teamBadge, { backgroundColor: primaryColor }]}><Text numberOfLines={1} style={{ color: contrastAnchor(primaryColor), ...fonts.medium, fontSize: 13, lineHeight: 16 }}>{shortName}</Text></View>;
+}
+
+function contrastAnchor(hex: string) {
+  const value = hex.replace('#', '');
+  if (!/^[0-9a-f]{6}$/i.test(value)) return '#ffffff';
+  const [r, g, b] = [0, 2, 4].map((index) => Number.parseInt(value.slice(index, index + 2), 16));
+  const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+  return luminance > 0.58 ? '#111318' : '#ffffff';
+}
+
 export function GuestAvatar({ size }: { size: 'reply' | 'detail' | 'comment' }) {
   const { theme } = useMinionTheme();
   const dimension = size === 'detail' ? 36 : size === 'reply' ? 24 : 32;
@@ -165,6 +182,9 @@ const styles = StyleSheet.create({
   commentTrigger: { width: '100%' },
   detailTrigger: { gap: 12 },
   nameBlock: { flexShrink: 1, minWidth: 0 },
+  nameRow: { alignItems: 'center', flexDirection: 'row', gap: 6, minWidth: 0 },
+  name: { flexShrink: 1, minWidth: 0 },
+  teamBadge: { borderRadius: 999, flexShrink: 0, justifyContent: 'center', minHeight: 20, paddingHorizontal: 6, paddingVertical: 2 },
   detailMeta: { marginTop: 0 },
   menu: { borderRadius: 12, borderWidth: 1, elevation: 12, padding: 6, position: 'absolute', shadowColor: '#000', shadowOffset: { height: 8, width: 0 }, shadowOpacity: 0.14, shadowRadius: 18, width: 208 },
   menuItem: { alignItems: 'center', borderRadius: 8, flexDirection: 'row', gap: 10, height: 40, paddingHorizontal: 12 },

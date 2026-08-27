@@ -74,8 +74,15 @@ export function parseTiptapDocument(content: string): TiptapDocument {
   };
 }
 
-function toMobileAuthor(item: Pick<CommunityPostDetail, "authorId" | "authorName" | "authorImageUrl" | "authorTier" | "guestIpLabel"> | Pick<CommunityCommentItem, "authorId" | "authorName" | "authorImageUrl" | "authorTier" | "guestIpLabel">): MobileCommunityAuthor {
+function toMobileAuthor(item: Pick<CommunityPostDetail, "authorId" | "authorName" | "authorImageUrl" | "authorTier" | "authorTeam" | "guestIpLabel"> | Pick<CommunityCommentItem, "authorId" | "authorName" | "authorImageUrl" | "authorTier" | "authorTeam" | "guestIpLabel">): MobileCommunityAuthor {
   return {
+    favoriteTeam: item.authorTeam ? {
+      id: item.authorTeam.id,
+      name: item.authorTeam.name,
+      primaryColor: item.authorTeam.primaryColor,
+      shortName: item.authorTeam.shortName,
+      slug: item.authorTeam.slug,
+    } : null,
     guestIpLabel: item.guestIpLabel,
     id: item.authorId,
     nickname: item.authorName,
