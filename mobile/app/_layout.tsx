@@ -11,6 +11,7 @@ import { useMinionTheme } from '@/hooks/use-minion-theme';
 import { MinionShellProvider } from '@/providers/minion-shell-provider';
 import { AuthProvider, useAuth } from '@/providers/auth-provider';
 import { InAppNotificationsProvider } from '@/providers/in-app-notifications-provider';
+import { SpoilerFreeProvider } from '@/providers/spoiler-free-provider';
 import { minionTeams } from '@/constants/teams';
 
 export default function RootLayout() {
@@ -18,9 +19,11 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <MinionShellProvider>
         <AuthProvider>
-          <InAppNotificationsProvider>
-            <RootNavigator />
-          </InAppNotificationsProvider>
+          <SpoilerFreeProvider>
+            <InAppNotificationsProvider>
+              <RootNavigator />
+            </InAppNotificationsProvider>
+          </SpoilerFreeProvider>
         </AuthProvider>
       </MinionShellProvider>
     </SafeAreaProvider>

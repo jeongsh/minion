@@ -6,6 +6,7 @@ import { Suspense } from "react";
 import { HomeCalendar, type HomeCalendarMatch } from "@/components/domain/home-calendar";
 import { ScheduleList } from "@/components/domain/schedule-list";
 import { ScheduleWeekScroller } from "@/components/domain/schedule-week-scroller";
+import { SpoilerToggleButton } from "@/components/domain/spoiler-toggle-button";
 import { AdaptiveDialog } from "@/components/responsive/adaptive-dialog";
 import { getAllTeams, getMatches, getStages, getTournaments } from "@/lib/data/lck";
 import { tournamentTypeLabel } from "@/lib/match-display";
@@ -97,9 +98,16 @@ export default async function SchedulePage({
       <h1 className="sr-only">경기 일정</h1>
 
       <div className="sticky top-[var(--ui-header-height)] z-30 mt-2 hidden border-b border-[#e8e8eb] bg-[var(--page-background)] lg:block dark:border-[#383c44]">
-        <div className="layout-wide flex items-center justify-between gap-3 py-2.5">{desktopFilters}<Link href="/schedule" className="shrink-0 text-[13px] font-bold text-[var(--ui-muted)] hover:text-[var(--ui-ink)]">필터 초기화</Link></div>
+        <div className="layout-wide flex items-center justify-between gap-3 py-2.5">
+          {desktopFilters}
+          <div className="flex shrink-0 items-center gap-3">
+            <SpoilerToggleButton />
+            <Link href="/schedule" className="text-[13px] font-bold text-[var(--ui-muted)] hover:text-[var(--ui-ink)]">필터 초기화</Link>
+          </div>
+        </div>
       </div>
       <div className="fixed bottom-[calc(3.25rem+env(safe-area-inset-bottom)+18px)] right-4 z-40 flex flex-row gap-2 md:bottom-6 lg:hidden">
+        <SpoilerToggleButton variant="fab" />
         <AdaptiveDialog
           title={`${activeYear}년 ${activeMonth}월 캘린더`}
           trigger={<><CalendarDays size={20} /><span className="sr-only">캘린더 열기</span></>}

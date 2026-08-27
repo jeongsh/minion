@@ -1,12 +1,14 @@
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
+import EyeOff from 'lucide-react-native/icons/eye-off';
 import { useEffect, useRef } from 'react';
 import { Animated, Easing, type LayoutChangeEvent, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { TeamLogo } from '@/components/data/team-logo';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import type { MobileMatchSummary } from '@/lib/api-client';
-import { dateHeadingKST, dateKeyKST, formatTimeKST, isMatchLive, matchStatusLabel } from '@/lib/schedule-dates';
+import { dateHeadingKST, dateKeyKST, formatTimeKST, isMatchFinished, isMatchLive, matchStatusLabel } from '@/lib/schedule-dates';
+import { useSpoilerFree } from '@/providers/spoiler-free-provider';
 
 const EMPTY_BORDER = { dark: '#26735c', light: '#94dfc4' } as const;
 const CHARACTER_IMAGE = require('@/assets/characters/pen-4.png');
@@ -65,23 +67,33 @@ export function ScheduleMatchList({
 function MatchRow({ isLast, match }: { isLast: boolean; match: MobileMatchSummary }) {
   const router = useRouter();
   const { fonts, theme } = useMinionTheme();
+  const { enabled: spoilerFreeEnabled, isRevealed, reveal } = useSpoilerFree();
   const live = isMatchLive(match);
   const completed = match.status === 'completed';
-  const winnerId =
-    match.winnerTeamId ??
-    (completed && match.teamAScore !== null && match.teamBScore !== null
-      ? match.teamAScore > match.teamBScore
-        ? match.teamA?.id
-        : match.teamBScore > match.teamAScore
-          ? match.teamB?.id
-          : null
-      : null);
-  const teamColor = (teamId?: string | null) => (completed && winnerId ? (teamId === winnerId ? theme.ink : theme.muted) : theme.ink);
+  const spoiled = spoilerFreeEnabled && isMatchFinished(match) && !isRevealed(match.id);
+  const winnerId = spoiled
+    ? null
+    : match.winnerTeamId ??
+      (completed && match.teamAScore !== null && match.teamBScore !== null
+        ? match.teamAScore > match.teamBScore
+          ? match.teamA?.id
+          : match.teamBScore > match.teamAScore
+            ? match.teamB?.id
+            : null
+        : null);
+  const teamColor = (teamId?: string | null) => (!spoiled && completed && winnerId ? (teamId === winnerId ? theme.ink : theme.muted) : theme.ink);
   const score = match.teamAScore === null || match.teamBScore === null ? 'VS' : `${match.teamAScore} : ${match.teamBScore}`;
 
   return (
     <Pressable
-      onPress={() => router.navigate(`/matches/${encodeURIComponent(match.id)}` as never)}
+      accessibilityLabel={spoiled ? '탭하여 결과 보기' : undefined}
+      onPress={() => {
+        if (spoiled) {
+          reveal(match.id);
+          return;
+        }
+        router.navigate(`/matches/${encodeURIComponent(match.id)}` as never);
+      }}
       style={[styles.rowTouchable, !isLast && { borderBottomColor: theme.border, borderBottomWidth: 1 }]}>
         <View style={styles.timeColumn}>
           <Text style={[styles.time, { color: theme.ink, ...fonts.black }]}>{formatTimeKST(match.startsAt)}</Text>
@@ -103,7 +115,13 @@ function MatchRow({ isLast, match }: { isLast: boolean; match: MobileMatchSummar
             </Text>
             <TeamLogo plain size={32} team={match.teamA} themeAware />
           </View>
-          <Text style={[styles.score, { color: theme.ink, ...fonts.black }]}>{score}</Text>
+          {spoiled ? (
+            <View style={styles.scoreMasked}>
+              <EyeOff color={theme.muted} size={16} />
+            </View>
+          ) : (
+            <Text style={[styles.score, { color: theme.ink, ...fonts.black }]}>{score}</Text>
+          )}
           <View style={styles.teamSideRight}>
             <TeamLogo plain size={32} team={match.teamB} themeAware />
             <Text numberOfLines={1} style={[styles.teamName, { color: teamColor(match.teamB?.id), ...fonts.black }]}>
@@ -158,6 +176,7 @@ const styles = StyleSheet.create({
   liveText: { color: '#ef4444', fontSize: 10, lineHeight: 15 },
   rowTouchable: { alignItems: 'center', columnGap: 10, flexDirection: 'row', paddingHorizontal: 12, paddingVertical: 12 },
   score: { fontSize: 15, lineHeight: 22.5, textAlign: 'center', width: 32 },
+  scoreMasked: { alignItems: 'center', justifyContent: 'center', width: 32 },
   statusBadge: { borderRadius: 999, paddingHorizontal: 6, paddingVertical: 2 },
   statusText: { fontSize: 10, lineHeight: 15 },
   teamName: { flexShrink: 1, fontSize: 15, lineHeight: 22.5 },

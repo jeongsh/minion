@@ -3,6 +3,7 @@ import Script from "next/script";
 import { AppShell, type AppShellUser } from "@/components/layout/app-shell";
 import { NavigationTransitionProvider } from "@/components/navigation/navigation-transition-provider";
 import { ToastProvider } from "@/components/ui/toast";
+import { SpoilerFreeProvider } from "@/lib/spoiler-free/spoiler-free-context";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { isCurrentUserAdmin } from "@/lib/auth/admin";
 import { getTeams } from "@/lib/data/lck";
@@ -96,18 +97,20 @@ export default async function RootLayout({
           />
         ) : null}
         <ToastProvider>
-          <NavigationTransitionProvider>
-            <AppShell
-              currentUser={shellUser}
-              isAdminUser={isAdminUser}
-              followedTeamIds={followedTeamIds}
-              favoriteTeamId={favoriteTeamId}
-              shellTeams={shellTeams}
-              notificationPreferences={notificationPreferences}
-            >
-              {children}
-            </AppShell>
-          </NavigationTransitionProvider>
+          <SpoilerFreeProvider>
+            <NavigationTransitionProvider>
+              <AppShell
+                currentUser={shellUser}
+                isAdminUser={isAdminUser}
+                followedTeamIds={followedTeamIds}
+                favoriteTeamId={favoriteTeamId}
+                shellTeams={shellTeams}
+                notificationPreferences={notificationPreferences}
+              >
+                {children}
+              </AppShell>
+            </NavigationTransitionProvider>
+          </SpoilerFreeProvider>
         </ToastProvider>
       </body>
     </html>

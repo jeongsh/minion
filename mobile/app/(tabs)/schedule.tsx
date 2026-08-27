@@ -1,7 +1,10 @@
 import CalendarDays from 'lucide-react-native/icons/calendar-days';
+import Eye from 'lucide-react-native/icons/eye';
+import EyeOff from 'lucide-react-native/icons/eye-off';
 import SlidersHorizontal from 'lucide-react-native/icons/sliders-horizontal';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { type LayoutChangeEvent, Pressable, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ErrorState } from '@/components/feedback-states';
 import { MinionScreen } from '@/components/minion-screen';
@@ -15,6 +18,7 @@ import { useCachedQuery } from '@/hooks/use-cached-query';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import type { MobileScheduleDto, MobileTeamsDto } from '@/lib/api-client';
 import { currentKSTMonthYear, dateKeyKST, weekDatesKST } from '@/lib/schedule-dates';
+import { useSpoilerFree } from '@/providers/spoiler-free-provider';
 
 function segmentMessageLabel(segment: ScheduleFilterState['segment'], year: number) {
   if (segment === 'all') return `${year} 전체`;
@@ -32,6 +36,8 @@ function buildQuery(filter: ScheduleFilterState) {
 
 export default function ScheduleScreen() {
   const { theme } = useMinionTheme();
+  const insets = useSafeAreaInsets();
+  const { enabled: spoilerFreeEnabled, toggle: toggleSpoilerFree } = useSpoilerFree();
   const defaults = useMemo(() => currentKSTMonthYear(), []);
   const [filter, setFilter] = useState<ScheduleFilterState>({ month: defaults.month, segment: 'all', teamId: 'all', year: defaults.year });
   const [calendarOpen, setCalendarOpen] = useState(false);
@@ -147,7 +153,19 @@ export default function ScheduleScreen() {
       </MinionScreen>
 
       <View pointerEvents="box-none" style={StyleSheet.absoluteFillObject}>
-        <View pointerEvents="box-none" style={styles.fabRow}>
+        <View pointerEvents="box-none" style={[styles.fabRow, { bottom: theme.size.footerDockClearance + insets.bottom }]}>
+          <Pressable
+            accessibilityLabel={`스포방지 ${spoilerFreeEnabled ? '끄기' : '켜기'}`}
+            accessibilityState={{ selected: spoilerFreeEnabled }}
+            onPress={toggleSpoilerFree}
+            style={[
+              styles.fab,
+              spoilerFreeEnabled
+                ? { backgroundColor: theme.ink, borderColor: theme.border }
+                : { backgroundColor: theme.surface, borderColor: theme.border },
+            ]}>
+            {spoilerFreeEnabled ? <EyeOff color={theme.surface} size={20} /> : <Eye color={theme.ink} size={20} />}
+          </Pressable>
           <Pressable
             accessibilityLabel="캘린더 열기"
             onPress={() => setCalendarOpen(true)}
@@ -185,6 +203,6 @@ export default function ScheduleScreen() {
 const styles = StyleSheet.create({
   content: { gap: 0, paddingBottom: 0 },
   fab: { alignItems: 'center', borderRadius: 24, borderWidth: 1, height: 48, justifyContent: 'center', width: 48 },
-  fabRow: { bottom: 18, flexDirection: 'row', gap: 8, position: 'absolute', right: 16 },
+  fabRow: { flexDirection: 'row', gap: 8, position: 'absolute', right: 16, zIndex: 60 },
   list: { marginTop: 28 },
 });

@@ -6,6 +6,7 @@ import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { siteBaseUrl } from "@/lib/site";
 
+import { MatchSpoilerGate } from "@/components/domain/match-spoiler-gate";
 import { PredictionMatchBar } from "@/components/domain/prediction-match-bar";
 import { SetVodPlayer } from "@/components/domain/set-vod-player";
 import { SegmentedControl, type TabItem } from "@/components/ui/tabs";
@@ -29,7 +30,7 @@ import {
 } from "@/lib/data/lck";
 import { championImage } from "@/lib/champions";
 import type { Champion, FanRating, Match, Player, PlayerStatLine, SetResult, Team } from "@/lib/types";
-import { isMatchLive, matchStatusLabel } from "@/lib/match-display";
+import { isMatchFinished, isMatchLive, matchStatusLabel } from "@/lib/match-display";
 import {
   getSetRatingStartedAt,
   isSetRatingOpen,
@@ -556,6 +557,7 @@ export default async function MatchDetailPage({
   const embedUrl = youtubeEmbedUrl(match.vodUrl);
   return (
     <main className="layout-wide match-detail-page flex flex-col gap-5 pb-12 pt-5 text-[var(--ui-text)]">
+      <MatchSpoilerGate matchId={match.id} finished={isMatchFinished(match)} teamALabel={teamAName} teamBLabel={teamBName}>
       {/*
         페이지 제목 역할까지 이 카드가 겸한다. 별도 PageHeader를 두면 팀명이 카드와 그대로
         겹치고, 남는 건 400 weight 한 줄뿐이라 아래 스코어에 눌려 헤더가 없느니만 못했다.
@@ -685,6 +687,7 @@ export default async function MatchDetailPage({
       ) : null}
 
       <AdSlot placement="horizontal" className="hidden h-[60px] md:block xl:h-[90px]" />
+      </MatchSpoilerGate>
     </main>
   );
 }
