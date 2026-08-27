@@ -128,6 +128,24 @@ function pollStorageId(value: string, namespace: 'option' | 'poll') {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
+/** 서버 응답을 기다리지 않고 탭 즉시 반영한다. 실패하면 이전 상태로 되돌린다. */
+function optimisticTally(current: MobileCommunityPollDto, storageOptionId: string): MobileCommunityPollDto {
+  const counts = { ...current.counts };
+  const decrement = (id: string) => {
+    counts[id] = Math.max(0, (counts[id] ?? 0) - 1);
+  };
+
+  if (current.myOptionId === storageOptionId) {
+    decrement(storageOptionId);
+    return { ...current, counts, myOptionId: null, total: Math.max(0, current.total - 1) };
+  }
+
+  const total = current.myOptionId ? current.total : current.total + 1;
+  if (current.myOptionId) decrement(current.myOptionId);
+  counts[storageOptionId] = (counts[storageOptionId] ?? 0) + 1;
+  return { ...current, counts, myOptionId: storageOptionId, total };
+}
+
 function PollNode({ node }: { node: TiptapNode }) {
   const pollId = typeof node.attrs?.pollId === 'string' ? node.attrs.pollId : '';
   const options = Array.isArray(node.attrs?.options) ? node.attrs.options.filter((item): item is PollOption => Boolean(item && typeof item === 'object' && 'id' in item && 'label' in item)) : [];
@@ -146,11 +164,15 @@ function PollNode({ node }: { node: TiptapNode }) {
     return () => { active = false; };
   }, [pollId, storagePollId]);
   const vote = async (optionId: string) => {
+    const storageOptionId = pollStorageId(optionId, 'option');
+    const previousTally = tally;
+    if (previousTally) setTally(optimisticTally(previousTally, storageOptionId));
     setError(null);
     setLoading(true);
     try {
-      setTally(await mutateMobileApi<MobileCommunityPollDto>(`/api/mobile/v1/community/polls/${storagePollId}`, 'POST', { optionId: pollStorageId(optionId, 'option') }));
+      setTally(await mutateMobileApi<MobileCommunityPollDto>(`/api/mobile/v1/community/polls/${storagePollId}`, 'POST', { optionId: storageOptionId }));
     } catch (caught) {
+      setTally(previousTally);
       setError(caught instanceof Error ? caught.message : '투표를 처리하지 못했습니다.');
     } finally { setLoading(false); }
   };

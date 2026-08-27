@@ -123,6 +123,24 @@ function PollVoter({ node }: NodeViewProps) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  /** 서버 응답을 기다리지 않고 클릭 즉시 반영한다. 실패하면 이전 상태로 되돌린다. */
+  function optimisticTally(current: Tally, storageOptionId: string): Tally {
+    const counts = { ...current.counts };
+    const decrement = (id: string) => {
+      counts[id] = Math.max(0, (counts[id] ?? 0) - 1);
+    };
+
+    if (current.myOptionId === storageOptionId) {
+      decrement(storageOptionId);
+      return { ...current, counts, myOptionId: null, total: Math.max(0, current.total - 1) };
+    }
+
+    const total = current.myOptionId ? current.total : current.total + 1;
+    if (current.myOptionId) decrement(current.myOptionId);
+    counts[storageOptionId] = (counts[storageOptionId] ?? 0) + 1;
+    return { ...current, counts, myOptionId: storageOptionId, total };
+  }
+
   useEffect(() => {
     // 언마운트 후 setState 하지 않도록 플래그로 끊는다.
     let cancelled = false;
@@ -140,21 +158,26 @@ function PollVoter({ node }: NodeViewProps) {
   }, [storagePollId]);
 
   async function vote(optionId: string) {
+    const storageOptionId = pollStorageId(optionId, "option");
+    const previousTally = tally;
+    if (previousTally) setTally(optimisticTally(previousTally, storageOptionId));
     setBusy(true);
     setError(null);
     try {
       const response = await fetch(`/api/polls/${storagePollId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ optionId: pollStorageId(optionId, "option") }),
+        body: JSON.stringify({ optionId: storageOptionId }),
       });
       const payload = await response.json();
       if (!response.ok) {
+        setTally(previousTally);
         setError(payload.error ?? "투표에 실패했어요.");
         return;
       }
       setTally(payload);
     } catch (caught) {
+      setTally(previousTally);
       setError(caught instanceof Error ? caught.message : "투표를 처리하지 못했어요.");
     } finally {
       setBusy(false);
