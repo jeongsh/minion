@@ -759,18 +759,29 @@ const REACTION_META: Record<ReactionTarget, Record<ReactionKind, ReactionMeta>> 
   },
 };
 
+export type CommunityReactionActor =
+  | { userId: string; guestKey?: never }
+  | { userId?: never; guestKey: string };
+
+function reactionActor(actor: CommunityReactionActor): { column: "user_id" | "guest_key"; value: string } {
+  return actor.userId
+    ? { column: "user_id" as const, value: actor.userId }
+    : { column: "guest_key" as const, value: actor.guestKey as string };
+}
+
 async function existsReaction(
   target: ReactionTarget,
   kind: ReactionKind,
   targetId: string,
-  userId: string,
+  actor: CommunityReactionActor,
 ): Promise<boolean> {
   const meta = REACTION_META[target][kind];
-  const { data, error } = await createSupabaseServerClient()
+  const identity = reactionActor(actor);
+  const { data, error } = await createSupabaseAdminClient()
     .from(meta.table)
     .select("id")
     .eq(meta.fk, targetId)
-    .eq("user_id", userId)
+    .eq(identity.column, identity.value)
     .maybeSingle();
   if (error) throw error;
   return !!data;
@@ -780,11 +791,10 @@ async function existsReaction(
 export const getUserReaction = cache(async function getUserReaction(params: {
   target: ReactionTarget;
   targetId: string;
-  userId: string;
-}): Promise<ReactionState> {
+} & CommunityReactionActor): Promise<ReactionState> {
   if (!canQuerySupabase()) return null;
-  if (await existsReaction(params.target, "honor", params.targetId, params.userId)) return "honor";
-  if (await existsReaction(params.target, "dislike", params.targetId, params.userId)) return "dislike";
+  if (await existsReaction(params.target, "honor", params.targetId, params)) return "honor";
+  if (await existsReaction(params.target, "dislike", params.targetId, params)) return "dislike";
   return null;
 });
 
@@ -802,10 +812,11 @@ async function adjustCount(
     .maybeSingle();
   if (error) throw error;
   const current = (data as Record<string, number> | null)?.[meta.countCol] ?? 0;
-  await supabase
+  const { error: updateError } = await supabase
     .from(meta.countTable)
     .update({ [meta.countCol]: Math.max(0, current + delta) })
     .eq("id", id);
+  if (updateError) throw updateError;
 }
 
 /**
@@ -817,25 +828,26 @@ async function adjustCount(
 export async function setReaction(params: {
   target: ReactionTarget;
   targetId: string;
-  userId: string;
   kind: ReactionKind;
-}): Promise<{ before: ReactionState; after: ReactionState }> {
+} & CommunityReactionActor): Promise<{ before: ReactionState; after: ReactionState }> {
   const before = await getUserReaction(params);
   const after: ReactionState = before === params.kind ? null : params.kind;
   if (before === after) return { before, after };
 
   const supabase = createSupabaseAdminClient();
+  const identity = reactionActor(params);
 
   // 이전 stance 행 제거.
   if (before) {
     const meta = REACTION_META[params.target][before];
-    const { error } = await supabase
+    const { data: deleted, error } = await supabase
       .from(meta.table)
       .delete()
       .eq(meta.fk, params.targetId)
-      .eq("user_id", params.userId);
+      .eq(identity.column, identity.value)
+      .select("id");
     if (error) throw error;
-    await adjustCount(supabase, meta, params.targetId, -1);
+    if ((deleted ?? []).length > 0) await adjustCount(supabase, meta, params.targetId, -1);
   }
 
   // 새 stance 행 추가.
@@ -843,7 +855,11 @@ export async function setReaction(params: {
     const meta = REACTION_META[params.target][after];
     const { error } = await supabase
       .from(meta.table)
-      .insert({ [meta.fk]: params.targetId, user_id: params.userId });
+      .insert({
+        [meta.fk]: params.targetId,
+        guest_key: params.guestKey ?? null,
+        user_id: params.userId ?? null,
+      } as never);
     if (error) throw error;
     await adjustCount(supabase, meta, params.targetId, 1);
   }
@@ -854,17 +870,18 @@ export async function setReaction(params: {
 /** 여러 댓글에 대한 현재 사용자 stance 를 한 번에 조회(상세 페이지 초기 상태용). */
 export const getUserReactionsForComments = cache(async function getUserReactionsForComments(
   commentIds: string[],
-  userId: string,
+  actor: CommunityReactionActor,
 ): Promise<Record<string, ReactionState>> {
   const result: Record<string, ReactionState> = {};
   if (!canQuerySupabase() || commentIds.length === 0) return result;
-  const supabase = createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
+  const identity = reactionActor(actor);
 
   const { data: honors, error: honorErr } = await supabase
     .from("comment_honors")
     .select("comment_id")
     .in("comment_id", commentIds)
-    .eq("user_id", userId);
+    .eq(identity.column, identity.value);
   if (honorErr) throw honorErr;
   for (const row of (honors ?? []) as { comment_id: string }[]) {
     result[row.comment_id] = "honor";
@@ -874,7 +891,7 @@ export const getUserReactionsForComments = cache(async function getUserReactions
     .from("comment_dislikes")
     .select("comment_id")
     .in("comment_id", commentIds)
-    .eq("user_id", userId);
+    .eq(identity.column, identity.value);
   if (dislikeErr) throw dislikeErr;
   for (const row of (dislikes ?? []) as { comment_id: string }[]) {
     result[row.comment_id] = "dislike";
@@ -887,16 +904,19 @@ export const getUserReactionsForComments = cache(async function getUserReactions
 export async function createReport(params: {
   postId?: string | null;
   commentId?: string | null;
-  reporterId: string;
   reason?: string | null;
-}): Promise<{ id: string }> {
+} & (
+  | { reporterId: string; reporterGuestKey?: never }
+  | { reporterId?: never; reporterGuestKey: string }
+)): Promise<{ id: string }> {
   const supabase = createSupabaseAdminClient();
   const { data, error } = await supabase
     .from("post_reports")
     .insert({
       post_id: params.postId ?? null,
       comment_id: params.commentId ?? null,
-      reporter_id: params.reporterId,
+      reporter_id: params.reporterId ?? null,
+      guest_key: params.reporterGuestKey ?? null,
       reason: params.reason ?? null,
     })
     .select("id")

@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { useLocalSearchParams, usePathname, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import ChevronDown from 'lucide-react-native/icons/chevron-down';
 import ChevronUp from 'lucide-react-native/icons/chevron-up';
 import Eye from 'lucide-react-native/icons/eye';
@@ -25,7 +25,6 @@ import type { MobileCommunityActionDto, MobileCommunityAuthor, MobileCommunityCo
 import { mutateMobileApi } from '@/lib/api-client';
 import { fanAccentText } from '@/lib/fan-colors';
 import { useCachedQuery } from '@/hooks/use-cached-query';
-import { useAuth } from '@/providers/auth-provider';
 import { CommunityPostContent } from './community-post-content';
 import { CommunityAuthor, GuestAvatar } from './community-author';
 import { COMMENT_MAX_LENGTH, displayAuthor, formatCommunityDate, type CommunityScope } from './community-utils';
@@ -37,9 +36,7 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
   const { postId } = params;
   const teamSlug = Array.isArray(params.team) ? params.team[0] : params.team;
   const router = useRouter();
-  const pathname = usePathname();
   const insets = useSafeAreaInsets();
-  const { session } = useAuth();
   const { fonts, showToast, theme } = useMinionTheme();
   const team = scope === 'team' ? getMinionTeam(teamSlug) : null;
   const accent = team ? fanAccentText(team.primaryColor) : theme.accent;
@@ -79,20 +76,13 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
     });
   };
 
-  const requireLogin = () => {
-    if (session) return true;
-    router.push(`/login?next=${encodeURIComponent(pathname)}` as never);
-    return false;
-  };
   const react = async (target: 'post' | 'comment', targetId: string, kind: 'honor' | 'dislike') => {
-    if (!requireLogin()) return;
     try {
       await mutateMobileApi<MobileCommunityReactionDto>('/api/mobile/v1/community/reactions', 'POST', { kind, target, targetId });
       refresh();
     } catch (caught) { Alert.alert('반응 실패', caught instanceof Error ? caught.message : '잠시 후 다시 시도해주세요.'); }
   };
   const report = async (target: 'post' | 'comment', targetId: string) => {
-    if (!requireLogin()) return;
     try {
       const result = await mutateMobileApi<MobileCommunityActionDto>('/api/mobile/v1/community/reports', 'POST', { scope: data?.scope ?? 'hub', target, targetId });
       showToast(result.message, 'success');

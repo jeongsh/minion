@@ -2,7 +2,7 @@
 
 // 게시판 서버 액션.
 // - 글/댓글은 비회원도 닉네임·비밀번호·서버 검증 IP로 작성할 수 있다.
-// - 리액션/신고 등 계정 귀속 행동은 로그인을 유지한다.
+// - 리액션/신고는 회원 ID 또는 서버가 발급한 비회원 ID에 귀속한다.
 // - LP는 로그인 작성자에게만 반영한다.
 
 import { revalidatePath } from "next/cache";
@@ -84,6 +84,22 @@ async function communitySanctionError(
   return (await isCommunityUserSanctioned(userId))
     ? { ok: false, error: "커뮤니티 이용이 영구 제한된 계정입니다." }
     : null;
+}
+
+async function communityMutationActor() {
+  const user = await getCurrentUser();
+  if (user) {
+    const sanction = await communitySanctionError(user.id);
+    return sanction
+      ? sanction
+      : ({ ok: true, actor: { userId: user.id } as const, guestKey: null, userId: user.id } as const);
+  }
+
+  const guest = await getGuestIdentity();
+  if (await isCommunityGuestSanctioned(guest.key, guest.ipKey)) {
+    return { ok: false, error: "이 비회원 ID 또는 접속 환경은 커뮤니티 이용이 제한되었습니다." } as const;
+  }
+  return { ok: true, actor: { guestKey: guest.key } as const, guestKey: guest.key, userId: null } as const;
 }
 
 /** 리액션 액션 결과. 성공 시 최종 stance(state)를 돌려줘 클라이언트 UI 동기화에 쓴다. */
@@ -555,10 +571,8 @@ export async function reactAction(input: {
   scope: BoardScope;
   teamSlug?: string;
 }): Promise<ReactionActionResult> {
-  const user = await getCurrentUser();
-  if (!user) return { ok: false, error: "로그인이 필요합니다.", requiresLogin: true };
-  const sanction = await communitySanctionError(user.id);
-  if (sanction) return sanction;
+  const resolved = await communityMutationActor();
+  if (!resolved.ok) return resolved;
 
   // 대상 작성자(LP 반영 대상) 확인.
   const authorId =
@@ -569,8 +583,8 @@ export async function reactAction(input: {
   const { before, after } = await setReaction({
     target: input.target,
     targetId: input.targetId,
-    userId: user.id,
     kind: input.kind,
+    ...resolved.actor,
   });
 
   // 작성자 LP 반영. 명예↔싫어요 전환 시 취소+획득 두 이벤트가 함께 발생할 수 있다.
@@ -603,22 +617,20 @@ export async function reportPostAction(input: {
   scope: BoardScope;
   teamSlug?: string;
 }): Promise<ActionResult> {
-  const user = await getCurrentUser();
-  if (!user) return LOGIN_REQUIRED;
-  const sanction = await communitySanctionError(user.id);
-  if (sanction) return sanction;
+  const resolved = await communityMutationActor();
+  if (!resolved.ok) return resolved;
 
   const post = await getPostById(input.postId);
   if (!post) return { ok: false, error: "글을 찾을 수 없습니다." };
-  if (post.authorId && post.authorId === user.id) {
+  if ((post.authorId && post.authorId === resolved.userId) || (post.guestKey && post.guestKey === resolved.guestKey)) {
     return { ok: false, error: "자기 글은 리폿할 수 없습니다." };
   }
 
   try {
     await createReport({
       postId: input.postId,
-      reporterId: user.id,
       reason: input.reason,
+      ...(resolved.userId ? { reporterId: resolved.userId } : { reporterGuestKey: resolved.guestKey! }),
     });
   } catch (error) {
     if (isUniqueViolation(error)) {
@@ -660,22 +672,20 @@ export async function reportCommentAction(input: {
   scope: BoardScope;
   teamSlug?: string;
 }): Promise<ActionResult> {
-  const user = await getCurrentUser();
-  if (!user) return LOGIN_REQUIRED;
-  const sanction = await communitySanctionError(user.id);
-  if (sanction) return sanction;
+  const resolved = await communityMutationActor();
+  if (!resolved.ok) return resolved;
 
   const comment = await getCommentById(input.commentId);
   if (!comment) return { ok: false, error: "댓글을 찾을 수 없습니다." };
-  if (comment.authorId && comment.authorId === user.id) {
+  if ((comment.authorId && comment.authorId === resolved.userId) || (comment.guestKey && comment.guestKey === resolved.guestKey)) {
     return { ok: false, error: "자기 댓글은 리폿할 수 없습니다." };
   }
 
   try {
     await createReport({
       commentId: input.commentId,
-      reporterId: user.id,
       reason: input.reason,
+      ...(resolved.userId ? { reporterId: resolved.userId } : { reporterGuestKey: resolved.guestKey! }),
     });
   } catch (error) {
     if (isUniqueViolation(error)) {
@@ -710,8 +720,9 @@ export async function reportCommentAction(input: {
 /** 현재 사용자의 글 stance(명예/싫어요/없음). UI 초기 상태. */
 export async function getPostReactionState(postId: string): Promise<ReactionState> {
   const user = await getCurrentUser();
-  if (!user) return null;
-  return getUserReaction({ target: "post", targetId: postId, userId: user.id });
+  if (user) return getUserReaction({ target: "post", targetId: postId, userId: user.id });
+  const guestKey = await getExistingGuestKey();
+  return guestKey ? getUserReaction({ target: "post", targetId: postId, guestKey }) : null;
 }
 
 /** 현재 사용자의 댓글별 stance 맵. UI 초기 상태. */
@@ -719,8 +730,10 @@ export async function getCommentReactionStates(
   commentIds: string[],
 ): Promise<Record<string, ReactionState>> {
   const user = await getCurrentUser();
-  if (!user || commentIds.length === 0) return {};
-  return getUserReactionsForComments(commentIds, user.id);
+  if (commentIds.length === 0) return {};
+  if (user) return getUserReactionsForComments(commentIds, { userId: user.id });
+  const guestKey = await getExistingGuestKey();
+  return guestKey ? getUserReactionsForComments(commentIds, { guestKey }) : {};
 }
 
 function isUniqueViolation(error: unknown): boolean {

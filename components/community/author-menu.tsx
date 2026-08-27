@@ -133,7 +133,7 @@ export function AuthorMenu({
     }
     setOpen(false);
     startTransition(async () => {
-      const result = isGuest
+      const result = isGuest || !viewerId
         ? evidenceCommentId && evidencePostId
           ? await reportCommentAction({ commentId: evidenceCommentId, postId: evidencePostId, reason, scope, teamSlug })
           : evidencePostId

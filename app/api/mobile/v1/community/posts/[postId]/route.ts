@@ -53,12 +53,11 @@ export async function GET(request: Request, context: Context) {
   if (isMobileCommunityAuthorBlocked(post, blocked)) return mobileError("NOT_FOUND", "게시글을 찾을 수 없습니다.", 404);
   const visibleComments = comments.filter((comment) => !isMobileCommunityAuthorBlocked(comment, blocked));
 
-  const [reaction, commentReactions]: ["honor" | "dislike" | null, Record<string, "honor" | "dislike" | null>] = actor.auth
-    ? await Promise.all([
-        getUserReaction({ target: "post", targetId: postId, userId: actor.auth.user.id }),
-        getUserReactionsForComments(visibleComments.map((comment) => comment.id), actor.auth.user.id),
-      ])
-    : [null, {}];
+  const reactionActor = actor.auth ? { userId: actor.auth.user.id } : { guestKey: actor.guest.key };
+  const [reaction, commentReactions]: ["honor" | "dislike" | null, Record<string, "honor" | "dislike" | null>] = await Promise.all([
+    getUserReaction({ target: "post", targetId: postId, ...reactionActor }),
+    getUserReactionsForComments(visibleComments.map((comment) => comment.id), reactionActor),
+  ]);
   const canManage = post.authorId
     ? post.authorId === actor.auth?.user.id
     : Boolean(post.guestKey && post.guestKey === actor.guest.key);
@@ -70,8 +69,8 @@ export async function GET(request: Request, context: Context) {
       canBlock: Boolean(actor.auth && !canManage),
       canDelete: canManage,
       canEdit: canManage,
-      canReact: Boolean(actor.auth),
-      canReport: Boolean(actor.auth && !canManage),
+      canReact: true,
+      canReport: !canManage,
     },
     reaction,
   };
