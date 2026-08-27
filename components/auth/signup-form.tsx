@@ -150,13 +150,17 @@ export function SignupForm({ initialError }: { initialError?: string }) {
         </Link>
       </p>
 
-      <div className="flex items-center gap-3 text-[13px] font-medium text-[var(--ui-muted)]">
-        <span className="h-px flex-1 bg-[var(--ui-border)]" />
-        또는
-        <span className="h-px flex-1 bg-[var(--ui-border)]" />
-      </div>
+      {!showEmailForm ? (
+        <>
+          <div className="flex items-center gap-3 text-[13px] font-medium text-[var(--ui-muted)]">
+            <span className="h-px flex-1 bg-[var(--ui-border)]" />
+            또는
+            <span className="h-px flex-1 bg-[var(--ui-border)]" />
+          </div>
 
-      <SocialAuthButtons mode="signup" showConsentNotice />
+          <SocialAuthButtons mode="signup" showConsentNotice />
+        </>
+      ) : null}
     </div>
   );
 }

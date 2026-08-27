@@ -169,13 +169,17 @@ export function AuthScreen({ mode }: { mode: Mode }) {
             )}
 
             <Pressable onPress={() => router.replace(`/login?next=${encodeURIComponent(returnTo)}` as never)}><Text style={[styles.switchMode, { color: theme.muted, ...fonts.medium }]}>이미 계정이 있으신가요?  로그인</Text></Pressable>
-            <View style={styles.or}><View style={[styles.rule, { backgroundColor: theme.border }]} /><Text style={[styles.dividerText, { color: theme.muted, ...fonts.medium }]}>또는</Text><View style={[styles.rule, { backgroundColor: theme.border }]} /></View>
-            <View style={styles.socialList}>
-              <SocialButton border={colorScheme === 'dark' ? '#8e918f' : '#747775'} compact disabled={Boolean(pending)} icon={<GoogleIcon />} label="구글로 회원가입" onPress={() => void run('google', () => signInWithOAuth('google', favoriteTeamReturnTo))} pending={pending === 'google'} text={colorScheme === 'dark' ? '#e3e3e3' : '#1f1f1f'} tone={colorScheme === 'dark' ? '#131314' : '#ffffff'} />
-              <SocialButton compact disabled={Boolean(pending)} icon={<KakaoIcon />} label="카카오로 회원가입" onPress={() => void run('kakao', () => signInWithOAuth('kakao', favoriteTeamReturnTo))} pending={pending === 'kakao'} text="#191600" tone="#fee500" />
-              <SocialButton compact disabled={Boolean(pending)} icon={<NaverIcon />} label="네이버로 회원가입" onPress={() => void run('naver', () => signInWithOAuth('naver', favoriteTeamReturnTo))} pending={pending === 'naver'} text="#ffffff" tone="#03c75a" />
-            </View>
-            <Text style={[styles.consentNotice, { color: theme.muted, ...fonts.regular }]}>계속 진행하면 만 14세 이상이며 <Text onPress={() => void Linking.openURL(`${mobileApiOrigin}/terms`)} style={styles.noticeLink}>이용약관</Text> 및 <Text onPress={() => void Linking.openURL(`${mobileApiOrigin}/privacy`)} style={styles.noticeLink}>개인정보처리방침</Text>에 동의하는 것으로 간주합니다.</Text>
+            {!showEmailForm ? (
+              <>
+                <View style={styles.or}><View style={[styles.rule, { backgroundColor: theme.border }]} /><Text style={[styles.dividerText, { color: theme.muted, ...fonts.medium }]}>또는</Text><View style={[styles.rule, { backgroundColor: theme.border }]} /></View>
+                <View style={styles.socialList}>
+                  <SocialButton border={colorScheme === 'dark' ? '#8e918f' : '#747775'} compact disabled={Boolean(pending)} icon={<GoogleIcon />} label="구글로 회원가입" onPress={() => void run('google', () => signInWithOAuth('google', favoriteTeamReturnTo))} pending={pending === 'google'} text={colorScheme === 'dark' ? '#e3e3e3' : '#1f1f1f'} tone={colorScheme === 'dark' ? '#131314' : '#ffffff'} />
+                  <SocialButton compact disabled={Boolean(pending)} icon={<KakaoIcon />} label="카카오로 회원가입" onPress={() => void run('kakao', () => signInWithOAuth('kakao', favoriteTeamReturnTo))} pending={pending === 'kakao'} text="#191600" tone="#fee500" />
+                  <SocialButton compact disabled={Boolean(pending)} icon={<NaverIcon />} label="네이버로 회원가입" onPress={() => void run('naver', () => signInWithOAuth('naver', favoriteTeamReturnTo))} pending={pending === 'naver'} text="#ffffff" tone="#03c75a" />
+                </View>
+                <Text style={[styles.consentNotice, { color: theme.muted, ...fonts.regular }]}>계속 진행하면 만 14세 이상이며 <Text onPress={() => void Linking.openURL(`${mobileApiOrigin}/terms`)} style={styles.noticeLink}>이용약관</Text> 및 <Text onPress={() => void Linking.openURL(`${mobileApiOrigin}/privacy`)} style={styles.noticeLink}>개인정보처리방침</Text>에 동의하는 것으로 간주합니다.</Text>
+              </>
+            ) : null}
           </View>
         </View>
       </ScrollView>
