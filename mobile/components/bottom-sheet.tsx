@@ -1,7 +1,9 @@
 import X from 'lucide-react-native/icons/x';
 import type { PropsWithChildren, ReactNode } from 'react';
 import {
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -54,7 +56,7 @@ export function BottomSheet({
 
   return (
     <Modal animationType="fade" onRequestClose={onClose} transparent visible={open}>
-      <View style={styles.root}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.root}>
         <Pressable accessibilityLabel="닫기" onPress={onClose} style={[styles.backdrop, { backgroundColor: backdropColor }]} />
         <View accessibilityViewIsModal style={[styles.panel, { backgroundColor: theme.surface, maxHeight, paddingBottom: Math.max(insets.bottom, 18) }, panelStyle]}>
           <BottomSheetHandle />
@@ -69,13 +71,15 @@ export function BottomSheet({
             <ScrollView
               {...scrollViewProps}
               contentContainerStyle={[styles.body, contentStyle]}
+              keyboardDismissMode={scrollViewProps?.keyboardDismissMode ?? (Platform.OS === 'ios' ? 'interactive' : 'on-drag')}
+              keyboardShouldPersistTaps={scrollViewProps?.keyboardShouldPersistTaps ?? 'handled'}
               showsVerticalScrollIndicator={scrollViewProps?.showsVerticalScrollIndicator ?? false}
               style={[styles.scroll, scrollViewProps?.style]}>
               {children}
             </ScrollView>
           ) : <View style={[styles.body, contentStyle]}>{children}</View>}
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

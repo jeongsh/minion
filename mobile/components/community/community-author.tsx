@@ -138,7 +138,7 @@ export function CommunityAuthor({ author, detailMeta, evidence, hideAvatar = fal
         </View>
       </Modal>
 
-      <BottomSheet onClose={() => setReportOpen(false)} open={reportOpen} title="사용자 신고">
+      <BottomSheet onClose={() => setReportOpen(false)} open={reportOpen} scrollable title="사용자 신고">
         <Text style={{ color: theme.text, ...fonts.regular, fontSize: 16, lineHeight: 24 }}>신고 사유를 입력해주세요. 운영자가 관련 활동과 함께 확인합니다.</Text>
         <TextInput maxLength={1000} multiline onChangeText={setReason} placeholder="신고 사유" placeholderTextColor={theme.muted} style={[styles.reasonInput, { borderColor: theme.border, color: theme.text, ...fonts.regular }]} textAlignVertical="top" value={reason} />
         <Pressable disabled={!reason.trim() || pending} onPress={() => void submitReport()} style={[styles.reportSubmit, { backgroundColor: reason.trim() && !pending ? '#dc2626' : theme.border }]}><Text style={{ color: '#fff', ...fonts.medium, fontSize: 14 }}>{pending ? '접수 중' : '신고하기'}</Text></Pressable>
