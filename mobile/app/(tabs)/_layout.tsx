@@ -8,6 +8,7 @@ export default function TabLayout() {
     || /^\/fan\/[^/]+\/community\/(?:new|[^/]+\/new|post\/[^/]+(?:\/edit)?)\/?$/.test(pathname);
   return (
     <Tabs
+      backBehavior="history"
       tabBar={() => hideDock ? null : <MinionDock />}
       screenOptions={{
         headerShown: false,

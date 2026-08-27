@@ -65,6 +65,14 @@
 - 웹 컴포넌트를 그대로 import하지 않는다. 구조·수치·상태 규칙을 React Native로 정확히 번역한다.
 - 공용 컴포넌트가 필요하면 담당 영역 내부에 먼저 둔다. 양쪽이 함께 쓸 파일은 합의 후 분리한다.
 
+## 키보드와 하단 입력 UI
+
+- 키보드가 필요한 화면은 `mobile/components/keyboard-aware-view.tsx`의 `KeyboardAwareView`와 `mobile/hooks/use-keyboard-layout.ts`의 `useKeyboardLayout`만 사용한다.
+- 공용 파일 밖에서 `KeyboardAvoidingView`, `Keyboard.addListener` 또는 키보드 높이 보정 로직을 직접 추가하지 않는다.
+- 하단 입력창과 툴바의 safe area는 `useKeyboardLayout`이 반환하는 `bottomInset`을 사용한다. 키보드가 열리면 시스템 bottom inset을 다시 더하지 않는다.
+- 키보드가 닫히면 회피 레이아웃을 비활성화해 최초 화면 높이로 복원한다. 키보드 열기·닫기를 3회 반복한 뒤 최초 위치와 같은지 Android와 iPhone에서 확인한다.
+- 변경 후 `node --test tests/mobile/keyboard-layout-contract.test.mjs`를 실행해 공용 계약 우회를 검사한다.
+
 ## 충돌 방지
 
 1. 담당 파일 밖은 수정하지 않는다.

@@ -1,8 +1,7 @@
 import X from 'lucide-react-native/icons/x';
-import { useEffect, useState, type PropsWithChildren, type ReactNode } from 'react';
+import { useEffect, type PropsWithChildren, type ReactNode } from 'react';
 import {
   Keyboard,
-  KeyboardAvoidingView,
   Modal,
   Platform,
   Pressable,
@@ -15,14 +14,15 @@ import {
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { KeyboardAwareView } from '@/components/keyboard-aware-view';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 
 type BottomSheetProps = PropsWithChildren<{
   actions?: ReactNode;
   backdropColor?: string;
   contentStyle?: StyleProp<ViewStyle>;
+  dismissible?: boolean;
   headingStyle?: StyleProp<ViewStyle>;
   maxHeight?: DimensionValue;
   onClose: () => void;
@@ -43,6 +43,7 @@ export function BottomSheet({
   backdropColor = 'rgba(0,0,0,0.58)',
   children,
   contentStyle,
+  dismissible = true,
   headingStyle,
   maxHeight = '82%',
   onClose,
@@ -52,47 +53,44 @@ export function BottomSheet({
   scrollable = false,
   title,
 }: BottomSheetProps) {
-  const insets = useSafeAreaInsets();
   const { fonts, theme } = useMinionTheme();
-  const [keyboardVisible, setKeyboardVisible] = useState(false);
 
   useEffect(() => {
-    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-    const showSubscription = Keyboard.addListener(showEvent, () => setKeyboardVisible(true));
-    const hideSubscription = Keyboard.addListener(hideEvent, () => setKeyboardVisible(false));
-    return () => {
-      showSubscription.remove();
-      hideSubscription.remove();
-    };
-  }, []);
+    if (open) return;
+    Keyboard.dismiss();
+  }, [open]);
+
+  const close = () => {
+    Keyboard.dismiss();
+    onClose();
+  };
 
   return (
-    <Modal animationType="fade" onRequestClose={onClose} transparent visible={open}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} enabled={keyboardVisible} style={styles.root}>
-        <Pressable accessibilityLabel="닫기" onPress={onClose} style={[styles.backdrop, { backgroundColor: backdropColor }]} />
-        <View accessibilityViewIsModal style={[styles.panel, { backgroundColor: theme.surface, maxHeight, paddingBottom: keyboardVisible ? 8 : Math.max(insets.bottom, 18) }, panelStyle]}>
-          <BottomSheetHandle />
-          <View style={[styles.heading, headingStyle]}>
-            <Text style={[styles.title, { color: theme.ink, ...fonts.display }]}>{title}</Text>
-            {actions ? <View style={styles.actions}>{actions}</View> : null}
-            <Pressable accessibilityLabel={`${title} 닫기`} hitSlop={8} onPress={onClose} style={styles.close}>
-              <X color={theme.muted} size={22} />
-            </Pressable>
+    <Modal animationType="fade" onRequestClose={dismissible ? close : Keyboard.dismiss} transparent visible={open}>
+      <KeyboardAwareView minimumBottomInset={8} style={styles.root}>
+        {({ bottomInset, keyboardVisible }) => <>
+          <Pressable accessibilityLabel={dismissible ? '닫기' : undefined} accessibilityRole={dismissible ? 'button' : undefined} disabled={!dismissible} onPress={close} style={[styles.backdrop, { backgroundColor: backdropColor }]} />
+          <View accessibilityViewIsModal style={[styles.panel, { backgroundColor: theme.surface, maxHeight, paddingBottom: keyboardVisible ? bottomInset : Math.max(bottomInset, 18) }, panelStyle]}>
+            <BottomSheetHandle />
+            <View style={[styles.heading, headingStyle]}>
+              <Text style={[styles.title, { color: theme.ink, ...fonts.display }]}>{title}</Text>
+              {actions ? <View style={styles.actions}>{actions}</View> : null}
+              {dismissible ? <Pressable accessibilityLabel={`${title} 닫기`} hitSlop={8} onPress={close} style={styles.close}><X color={theme.muted} size={22} /></Pressable> : null}
+            </View>
+            {scrollable ? (
+              <ScrollView
+                {...scrollViewProps}
+                contentContainerStyle={[styles.body, contentStyle]}
+                keyboardDismissMode={scrollViewProps?.keyboardDismissMode ?? (Platform.OS === 'ios' ? 'interactive' : 'on-drag')}
+                keyboardShouldPersistTaps={scrollViewProps?.keyboardShouldPersistTaps ?? 'handled'}
+                showsVerticalScrollIndicator={scrollViewProps?.showsVerticalScrollIndicator ?? false}
+                style={[styles.scroll, scrollViewProps?.style]}>
+                {children}
+              </ScrollView>
+            ) : <View style={[styles.body, contentStyle]}>{children}</View>}
           </View>
-          {scrollable ? (
-            <ScrollView
-              {...scrollViewProps}
-              contentContainerStyle={[styles.body, contentStyle]}
-              keyboardDismissMode={scrollViewProps?.keyboardDismissMode ?? (Platform.OS === 'ios' ? 'interactive' : 'on-drag')}
-              keyboardShouldPersistTaps={scrollViewProps?.keyboardShouldPersistTaps ?? 'handled'}
-              showsVerticalScrollIndicator={scrollViewProps?.showsVerticalScrollIndicator ?? false}
-              style={[styles.scroll, scrollViewProps?.style]}>
-              {children}
-            </ScrollView>
-          ) : <View style={[styles.body, contentStyle]}>{children}</View>}
-        </View>
-      </KeyboardAvoidingView>
+        </>}
+      </KeyboardAwareView>
     </Modal>
   );
 }

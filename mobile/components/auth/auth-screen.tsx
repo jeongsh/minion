@@ -4,10 +4,11 @@ import Check from 'lucide-react-native/icons/check';
 import ChevronLeft from 'lucide-react-native/icons/chevron-left';
 import Mail from 'lucide-react-native/icons/mail';
 import { useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
+import { KeyboardAwareView } from '@/components/keyboard-aware-view';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import { mobileApiOrigin } from '@/lib/api-client';
 import { useAuth } from '@/providers/auth-provider';
@@ -58,7 +59,7 @@ export function AuthScreen({ mode }: { mode: Mode }) {
 
   if (mode === 'login') {
     return (
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={[styles.screen, { backgroundColor: theme.pageBackground }]}>
+      <KeyboardAwareView style={[styles.screen, { backgroundColor: theme.pageBackground }]}>
         <View style={[styles.header, { borderBottomColor: colorScheme === 'dark' ? '#343840' : '#e8e8eb', height: insets.top + 56, paddingTop: insets.top }]}>
           <Pressable accessibilityLabel="이전 화면" onPress={() => router.replace('/')} style={styles.headerBack}>
             <ChevronLeft color={theme.ink} size={22} />
@@ -126,12 +127,12 @@ export function AuthScreen({ mode }: { mode: Mode }) {
             </View>
           </View>
         </ScrollView>
-      </KeyboardAvoidingView>
+      </KeyboardAwareView>
     );
   }
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ backgroundColor: theme.pageBackground, flex: 1 }}>
+    <KeyboardAwareView style={{ backgroundColor: theme.pageBackground, flex: 1 }}>
       <ScrollView contentContainerStyle={[styles.page, { paddingBottom: insets.bottom + 24, paddingTop: insets.top + 12 }]} keyboardShouldPersistTaps="handled">
         <Pressable accessibilityLabel="뒤로" onPress={() => router.back()} style={styles.back}><ChevronLeft color={theme.ink} size={22} /></Pressable>
         <View style={[styles.shell, { backgroundColor: theme.surface, borderColor: theme.border }]}>
@@ -183,7 +184,7 @@ export function AuthScreen({ mode }: { mode: Mode }) {
           </View>
         </View>
       </ScrollView>
-    </KeyboardAvoidingView>
+    </KeyboardAwareView>
   );
 }
 

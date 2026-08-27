@@ -17,11 +17,11 @@ import Undo from 'lucide-react-native/icons/undo';
 import Video from 'lucide-react-native/icons/video';
 import X from 'lucide-react-native/icons/x';
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Image as NativeImage, Keyboard, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ActivityIndicator, Alert, Image as NativeImage, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 
 import { BottomSheet } from '@/components/bottom-sheet';
+import { useKeyboardLayout } from '@/hooks/use-keyboard-layout';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import type { MobileCommunityUploadDto, TiptapDocument, TiptapNode } from '@/lib/api-client';
 import { uploadMobileApi } from '@/lib/api-client';
@@ -160,9 +160,8 @@ export const CommunityRichEditor = forwardRef<CommunityRichEditorHandle, Props>(
   const valueRef = useRef(value);
   valueRef.current = value;
   const initial = useRef(value).current;
-  const insets = useSafeAreaInsets();
+  const { bottomInset } = useKeyboardLayout();
   const { fonts, theme } = useMinionTheme();
-  const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [formatOpen, setFormatOpen] = useState(false);
   const [palette, setPalette] = useState<PaletteMode>(null);
@@ -171,7 +170,6 @@ export const CommunityRichEditor = forwardRef<CommunityRichEditorHandle, Props>(
   const [linkUrl, setLinkUrl] = useState('');
   const [pollOpen, setPollOpen] = useState(false);
   const [poll, setPoll] = useState<PollDraft>(emptyPoll);
-  const bottomInset = keyboardVisible ? 0 : insets.bottom;
   const html = useMemo(() => editorHtml(initialHtml(initial), { accent: theme.accent, background: theme.surface, border: theme.border, color: theme.text, ink: theme.ink, muted: theme.muted, mutedSurface: theme.surfaceMuted }), [initial, theme.accent, theme.border, theme.ink, theme.muted, theme.surface, theme.surfaceMuted, theme.text]);
   const command = (name: string, arg: unknown = '') => webView.current?.injectJavaScript(`window.minionCommand(${JSON.stringify(name)},${JSON.stringify(arg)});true;`);
 
@@ -186,17 +184,6 @@ export const CommunityRichEditor = forwardRef<CommunityRichEditorHandle, Props>(
       command('flush', requestId);
     }),
   }), []);
-
-  useEffect(() => {
-    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-    const showSubscription = Keyboard.addListener(showEvent, () => setKeyboardVisible(true));
-    const hideSubscription = Keyboard.addListener(hideEvent, () => setKeyboardVisible(false));
-    return () => {
-      showSubscription.remove();
-      hideSubscription.remove();
-    };
-  }, []);
 
   useEffect(() => () => {
     pendingFlushes.current.forEach(({ resolve, timer }) => { clearTimeout(timer); resolve(valueRef.current); });
