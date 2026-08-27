@@ -3,7 +3,7 @@ import Check from 'lucide-react-native/icons/check';
 import ChevronDown from 'lucide-react-native/icons/chevron-down';
 import ChevronLeft from 'lucide-react-native/icons/chevron-left';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, BackHandler, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ErrorState } from '@/components/feedback-states';
@@ -66,18 +66,7 @@ export function CommunityComposeScreen({ edit = false, scope = 'hub' }: { edit?:
     setInitialized(true);
   }, [detail.data, edit, initialized]);
 
-  const close = useCallback(() => {
-    router.replace(edit && postId ? `${basePath}/post/${postId}` as never : basePath as never);
-  }, [basePath, edit, postId, router]);
-
-  useFocusEffect(useCallback(() => {
-    if (Platform.OS !== 'android') return undefined;
-    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
-      close();
-      return true;
-    });
-    return () => subscription.remove();
-  }, [close]));
+  const close = () => edit && postId ? router.replace(`${basePath}/post/${postId}` as never) : router.replace(basePath as never);
 
   const submit = async () => {
     if (!title.trim()) { Alert.alert('제목을 입력하세요.'); return; }

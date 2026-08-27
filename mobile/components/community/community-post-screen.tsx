@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { useFocusEffect, useLocalSearchParams, usePathname, useRouter } from 'expo-router';
+import { useLocalSearchParams, usePathname, useRouter } from 'expo-router';
 import ChevronDown from 'lucide-react-native/icons/chevron-down';
 import ChevronUp from 'lucide-react-native/icons/chevron-up';
 import Eye from 'lucide-react-native/icons/eye';
@@ -11,8 +11,8 @@ import Smile from 'lucide-react-native/icons/face-slightly-smiling';
 import ThumbsDown from 'lucide-react-native/icons/thumbs-down';
 import ThumbsUp from 'lucide-react-native/icons/thumbs-up';
 import X from 'lucide-react-native/icons/x';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, BackHandler, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, type TextStyle, View } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, type TextStyle, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BottomSheet } from '@/components/bottom-sheet';
@@ -54,15 +54,6 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
   const [ownerMenuOpen, setOwnerMenuOpen] = useState(false);
   const [revealed, setRevealed] = useState(false);
   const [expandedReplies, setExpandedReplies] = useState<Set<string>>(() => new Set());
-
-  useFocusEffect(useCallback(() => {
-    if (Platform.OS !== 'android') return undefined;
-    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
-      router.replace(basePath as never);
-      return true;
-    });
-    return () => subscription.remove();
-  }, [basePath, router]));
 
   useEffect(() => {
     setComment('');
