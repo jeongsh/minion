@@ -9,6 +9,7 @@ import {
   validateMobileCommentInput,
 } from "@/lib/mobile/community";
 import { recordLpEvent } from "@/lib/rank/record-lp";
+import { scheduleCommunityCommentNotifications } from "@/lib/notifications/community";
 
 export const dynamic = "force-dynamic";
 
@@ -45,6 +46,13 @@ export async function POST(request: Request) {
       postId,
     });
     if (actor.auth) await recordLpEvent({ commentId: created.id, reason: "comment_created", userId: actor.auth.user.id });
+    scheduleCommunityCommentNotifications({
+      actor: actor.auth ? { userId: actor.auth.user.id } : { guestKey: actor.guest.key },
+      actorName: actor.auth ? undefined : actor.guest.nickname,
+      commentId: created.id,
+      parentId,
+      postId,
+    });
     scheduleMobileCommunityModeration({ commentId: created.id, text: validated.content });
     const data: MobileCommunityCommentMutationDto = { id: created.id, message: "댓글 톡 붙여뒀어요." };
     return mobileSuccess(data, { headers: { "Cache-Control": "private, no-store" }, status: 201 });

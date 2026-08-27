@@ -12,6 +12,7 @@ import { after } from "next/server";
 import { isCurrentUserAdmin } from "@/lib/auth/admin";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { recordLpEvent } from "@/lib/rank/record-lp";
+import { scheduleCommunityCommentNotifications } from "@/lib/notifications/community";
 import type { BoardScope } from "@/lib/community/boards";
 import { getBoard } from "@/lib/community/boards";
 import { screenCommunityText } from "@/lib/community/ai-moderation";
@@ -436,6 +437,14 @@ export async function createCommentAction(input: {
   });
 
   if (user) await recordLpEvent({ userId: user.id, reason: "comment_created", commentId: id });
+
+  scheduleCommunityCommentNotifications({
+    actor: user ? { userId: user.id } : { guestKey: guest!.key },
+    actorName: user?.nickname ?? guest?.nickname ?? "비회원",
+    commentId: id,
+    parentId: input.parentId ?? null,
+    postId: input.postId,
+  });
 
   scheduleAiModeration({
     commentId: id,

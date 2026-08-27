@@ -149,6 +149,8 @@ export type {
   MobileCommunityAuthor,
   MobileCommunityComment,
   MobileCommunityCommentMutationDto,
+  MobileCommunityNotification,
+  MobileCommunityNotificationsDto,
   MobileCommunityPollDto,
   MobileCommunityPostDetailDto,
   MobileCommunityPostMutationDto,

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 
 import type { LiveMatchEvent, LiveMatchResponse } from "@/app/api/matches/[matchId]/live/route";
 import { useToast } from "@/components/ui/toast";
+import { isCommunityNotificationId, useCommunityNotifications } from "@/components/notifications/use-community-notifications";
 import { championCatalogEntries, normalizeChampionKey } from "@/lib/champions";
 import type { LiveMatchActivity, MatchActivityResponse, RatingMatchActivity } from "@/lib/match-activity";
 import { DEFAULT_NOTIFICATION_PREFERENCES, type AppNotification, type NotificationPreferences } from "@/lib/notifications";
@@ -160,7 +161,14 @@ export function useMatchActivity(
     [notificationStorageKey],
   );
   const notificationsJson = useSyncExternalStore(subscribeToNotifications, getNotificationSnapshot, () => EMPTY_NOTIFICATIONS_JSON);
-  const notifications = useMemo(() => parseNotifications(notificationsJson), [notificationsJson]);
+  const localNotifications = useMemo(() => parseNotifications(notificationsJson), [notificationsJson]);
+  const communityNotifications = useCommunityNotifications(notificationOwnerId ?? "guest");
+  const notifications = useMemo(
+    () => [...communityNotifications.notifications, ...localNotifications]
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, 100),
+    [communityNotifications.notifications, localNotifications],
+  );
   const initialized = useRef(false);
   const previousLiveIds = useRef(new Set<string>());
   const previousRatingIds = useRef(new Set<string>());
@@ -230,22 +238,32 @@ export function useMatchActivity(
   }, [dismissedLiveStorageKey]);
 
   const markNotificationRead = useCallback((id: string) => {
+    if (isCommunityNotificationId(id)) {
+      communityNotifications.markRead(id);
+      return;
+    }
     const readAt = new Date().toISOString();
     updateStoredNotifications(notificationStorageKey, (current) => current.map((item) => item.id === id && !item.readAt ? { ...item, readAt } : item));
-  }, [notificationStorageKey]);
+  }, [communityNotifications, notificationStorageKey]);
 
   const markAllNotificationsRead = useCallback(() => {
+    communityNotifications.markAllRead();
     const readAt = new Date().toISOString();
     updateStoredNotifications(notificationStorageKey, (current) => current.map((item) => item.readAt ? item : { ...item, readAt }));
-  }, [notificationStorageKey]);
+  }, [communityNotifications, notificationStorageKey]);
 
   const removeNotification = useCallback((id: string) => {
+    if (isCommunityNotificationId(id)) {
+      communityNotifications.remove(id);
+      return;
+    }
     updateStoredNotifications(notificationStorageKey, (current) => current.filter((item) => item.id !== id));
-  }, [notificationStorageKey]);
+  }, [communityNotifications, notificationStorageKey]);
 
   const clearNotifications = useCallback(() => {
+    communityNotifications.clear();
     updateStoredNotifications(notificationStorageKey, () => []);
-  }, [notificationStorageKey]);
+  }, [communityNotifications, notificationStorageKey]);
 
   const loadActivity = useCallback(async () => {
     if (!enabled) {

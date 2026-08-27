@@ -7,6 +7,8 @@ import { OBJECTIVE_ICON_PATHS } from '@/constants/objective-icons';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import {
   fetchMobileApi,
+  mutateMobileApi,
+  type MobileCommunityNotificationsDto,
   type MobileLiveMatchActivity,
   type MobileMatchActivityDto,
   type MobileNotificationPreferences,
@@ -159,6 +161,9 @@ export function InAppNotificationsProvider({ children }: PropsWithChildren) {
   const { showMatchEventToast, showToast } = useMinionTheme();
   const [hydrated, setHydrated] = useState(false);
   const [notifications, setNotifications] = useState<InAppNotification[]>([]);
+  const [hydratedStorageKey, setHydratedStorageKey] = useState<string | null>(null);
+  const [communityNotifications, setCommunityNotifications] = useState<InAppNotification[]>([]);
+  const [communityNotificationScope, setCommunityNotificationScope] = useState<string | null>(null);
   const [activity, setActivity] = useState<MobileMatchActivityDto | null>(null);
   const notificationsRef = useRef<InAppNotification[]>([]);
   const preferencesRef = useRef(DEFAULT_PREFERENCES);
@@ -168,6 +173,7 @@ export function InAppNotificationsProvider({ children }: PropsWithChildren) {
   const eventIdsByMatch = useRef(new Map<string, Set<string>>());
   const persistenceQueue = useRef(Promise.resolve());
   const userId = session?.user.id ?? null;
+  const identityScope = userId ? `user:${userId}` : 'guest';
   const notificationStorageKey = userId ? `${NOTIFICATION_STORAGE_KEY_PREFIX}:${userId}` : null;
 
   const replaceNotifications = useCallback((next: InAppNotification[]) => {
@@ -212,12 +218,16 @@ export function InAppNotificationsProvider({ children }: PropsWithChildren) {
   useEffect(() => {
     let active = true;
     notificationsRef.current = [];
-    setNotifications([]);
-    setHydrated(false);
+    queueMicrotask(() => {
+      if (!active) return;
+      setNotifications([]);
+      setHydratedStorageKey(notificationStorageKey);
+      setHydrated(false);
+    });
     void AsyncStorage.removeItem(LEGACY_NOTIFICATION_STORAGE_KEY).catch(() => undefined);
 
     if (!notificationStorageKey) {
-      setHydrated(true);
+      queueMicrotask(() => { if (active) setHydrated(true); });
       return () => { active = false; };
     }
 
@@ -231,6 +241,38 @@ export function InAppNotificationsProvider({ children }: PropsWithChildren) {
     });
     return () => { active = false; };
   }, [notificationStorageKey]);
+
+  const loadCommunityNotifications = useCallback(async () => {
+    const data = await fetchMobileApi<MobileCommunityNotificationsDto>('/api/mobile/v1/notifications');
+    setCommunityNotifications(data.notifications as InAppNotification[]);
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    queueMicrotask(() => {
+      if (!active) return;
+      setCommunityNotificationScope(identityScope);
+      setCommunityNotifications([]);
+    });
+    const load = async () => {
+      try {
+        const data = await fetchMobileApi<MobileCommunityNotificationsDto>('/api/mobile/v1/notifications');
+        if (active) setCommunityNotifications(data.notifications as InAppNotification[]);
+      } catch {
+        // 알림 조회 실패가 앱 탐색을 막지 않게 하고 다음 폴링에서 다시 시도한다.
+      }
+    };
+    void load();
+    const interval = setInterval(() => void load(), 15_000);
+    const appState = AppState.addEventListener('change', (state) => {
+      if (state === 'active') void load();
+    });
+    return () => {
+      active = false;
+      clearInterval(interval);
+      appState.remove();
+    };
+  }, [identityScope]);
 
   useEffect(() => {
     if (!hydrated || !userId) return;
@@ -271,7 +313,7 @@ export function InAppNotificationsProvider({ children }: PropsWithChildren) {
     previousLiveIds.current = new Set();
     previousRatingIds.current = new Set();
     eventIdsByMatch.current = new Map();
-    setActivity(null);
+    queueMicrotask(() => setActivity(null));
     preferencesRef.current = DEFAULT_PREFERENCES;
     if (!hydrated || !userId) return;
 
@@ -395,29 +437,53 @@ export function InAppNotificationsProvider({ children }: PropsWithChildren) {
   }, [activity, hydrated, publishNotification, userId]);
 
   const markNotificationRead = useCallback((id: string) => {
+    if (id.startsWith('community:')) {
+      const readAt = new Date().toISOString();
+      setCommunityNotifications((current) => current.map((item) => item.id === id && !item.readAt ? { ...item, readAt } : item));
+      void mutateMobileApi('/api/mobile/v1/notifications', 'PATCH', { id }).catch(() => loadCommunityNotifications());
+      return;
+    }
     const readAt = new Date().toISOString();
     replaceNotifications(notificationsRef.current.map((item) => item.id === id && !item.readAt ? { ...item, readAt } : item));
-  }, [replaceNotifications]);
+  }, [loadCommunityNotifications, replaceNotifications]);
 
   const markAllNotificationsRead = useCallback(() => {
+    setCommunityNotifications((current) => current.map((item) => item.readAt ? item : { ...item, readAt: new Date().toISOString() }));
+    void mutateMobileApi('/api/mobile/v1/notifications', 'PATCH', { all: true }).catch(() => loadCommunityNotifications());
     const readAt = new Date().toISOString();
     replaceNotifications(notificationsRef.current.map((item) => item.readAt ? item : { ...item, readAt }));
-  }, [replaceNotifications]);
+  }, [loadCommunityNotifications, replaceNotifications]);
 
   const removeNotification = useCallback((id: string) => {
+    if (id.startsWith('community:')) {
+      setCommunityNotifications((current) => current.filter((item) => item.id !== id));
+      void mutateMobileApi(`/api/mobile/v1/notifications?id=${encodeURIComponent(id)}`, 'DELETE').catch(() => loadCommunityNotifications());
+      return;
+    }
     replaceNotifications(notificationsRef.current.filter((item) => item.id !== id));
-  }, [replaceNotifications]);
+  }, [loadCommunityNotifications, replaceNotifications]);
 
-  const clearNotifications = useCallback(() => replaceNotifications([]), [replaceNotifications]);
-  const unreadCount = notifications.filter((notification) => !notification.readAt).length;
+  const clearNotifications = useCallback(() => {
+    setCommunityNotifications([]);
+    void mutateMobileApi('/api/mobile/v1/notifications?all=true', 'DELETE').catch(() => loadCommunityNotifications());
+    replaceNotifications([]);
+  }, [loadCommunityNotifications, replaceNotifications]);
+  const displayNotifications = useMemo(
+    () => [
+      ...(communityNotificationScope === identityScope ? communityNotifications : []),
+      ...(hydratedStorageKey === notificationStorageKey ? notifications : []),
+    ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, MAX_NOTIFICATIONS),
+    [communityNotificationScope, communityNotifications, hydratedStorageKey, identityScope, notificationStorageKey, notifications],
+  );
+  const unreadCount = displayNotifications.filter((notification) => !notification.readAt).length;
   const value = useMemo<NotificationContextValue>(() => ({
     clearNotifications,
     markAllNotificationsRead,
     markNotificationRead,
-    notifications,
+    notifications: displayNotifications,
     removeNotification,
     unreadCount,
-  }), [clearNotifications, markAllNotificationsRead, markNotificationRead, notifications, removeNotification, unreadCount]);
+  }), [clearNotifications, displayNotifications, markAllNotificationsRead, markNotificationRead, removeNotification, unreadCount]);
 
   return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>;
 }

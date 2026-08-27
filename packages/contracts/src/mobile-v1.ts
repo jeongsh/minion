@@ -213,6 +213,21 @@ export type MobileMatchActivityDto = {
   notificationPreferences: MobileNotificationPreferences;
 };
 
+export type MobileCommunityNotification = {
+  id: EntityId;
+  kind: "post_activity";
+  title: string;
+  description?: string;
+  href?: string;
+  imageUrl?: string | null;
+  createdAt: IsoDateTime;
+  readAt: IsoDateTime | null;
+};
+
+export type MobileCommunityNotificationsDto = {
+  notifications: MobileCommunityNotification[];
+};
+
 export type MobileMeDto = {
   profile: {
     id: EntityId;
@@ -1051,6 +1066,9 @@ export const mobileApiRoutes = {
   communityPostUpdate: { method: "PATCH", path: `${MOBILE_API_PREFIX}/community/posts/{postId}`, owner: "community service", auth: "optional", cache: "no-store" },
   communityPostDelete: { method: "DELETE", path: `${MOBILE_API_PREFIX}/community/posts/{postId}`, owner: "community service", auth: "optional", cache: "no-store" },
   communityComments: { method: "POST", path: `${MOBILE_API_PREFIX}/community/comments`, owner: "community service", auth: "optional", cache: "no-store" },
+  notifications: { method: "GET", path: `${MOBILE_API_PREFIX}/notifications`, owner: "community notification service", auth: "optional", cache: "no-store" },
+  notificationsUpdate: { method: "PATCH", path: `${MOBILE_API_PREFIX}/notifications`, owner: "community notification service", auth: "optional", cache: "no-store" },
+  notificationsDelete: { method: "DELETE", path: `${MOBILE_API_PREFIX}/notifications`, owner: "community notification service", auth: "optional", cache: "no-store" },
   communityCommentUpdate: { method: "PATCH", path: `${MOBILE_API_PREFIX}/community/comments/{commentId}`, owner: "community service", auth: "optional", cache: "no-store" },
   communityCommentDelete: { method: "DELETE", path: `${MOBILE_API_PREFIX}/community/comments/{commentId}`, owner: "community service", auth: "optional", cache: "no-store" },
   communityReactions: { method: "POST", path: `${MOBILE_API_PREFIX}/community/reactions`, owner: "community service", auth: "required", cache: "no-store" },
