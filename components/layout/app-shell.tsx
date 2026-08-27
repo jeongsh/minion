@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Bell,
+  Bug,
   CalendarDays,
   ChevronDown,
   ChevronLeft,
@@ -215,7 +216,7 @@ export function AppShell({
     markAllNotificationsRead,
     removeNotification,
     clearNotifications,
-  } = useMatchActivity(Boolean(currentUser), followedActivityTeamIds, notificationPreferences, currentUser?.id);
+  } = useMatchActivity(Boolean(currentUser), followedActivityTeamIds, notificationPreferences, currentUser?.id ?? "guest");
   const closeLiveActivity = () => {
     if (!liveCard) return;
     markNotificationRead(`match-live:${liveCard.id}`);
@@ -394,12 +395,21 @@ export function AppShell({
         >
           <HeaderSearch className="pointer-events-auto w-[480px]" />
         </div>
-        {currentUser ? (
-          <button type="button" onClick={() => setNotificationPanelOpen(true)} className="relative ml-auto grid h-11 w-11 shrink-0 place-items-center rounded-xl text-[#62666d] transition hover:bg-[var(--ui-card-hover)] dark:text-[#a7acb5]" aria-label={`알림${unreadNotificationCount > 0 ? `, 읽지 않은 알림 ${unreadNotificationCount}개` : ""}`} aria-haspopup="dialog">
-            <Bell size={20} />
-            {unreadNotificationCount > 0 ? <span className="absolute right-0.5 top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-[var(--accent)] px-0.5 text-[12px] font-medium leading-none text-white" aria-hidden>{unreadNotificationCount > 9 ? "9+" : unreadNotificationCount}</span> : null}
-          </button>
-        ) : <div className="ml-auto" />}
+        <button type="button" onClick={() => setNotificationPanelOpen(true)} className="relative ml-auto grid h-11 w-11 shrink-0 place-items-center rounded-xl text-[#62666d] transition hover:bg-[var(--ui-card-hover)] dark:text-[#a7acb5]" aria-label={`알림${unreadNotificationCount > 0 ? `, 읽지 않은 알림 ${unreadNotificationCount}개` : ""}`} aria-haspopup="dialog">
+          <Bell size={20} />
+          {unreadNotificationCount > 0 ? <span className="absolute right-0.5 top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-[var(--accent)] px-0.5 text-[12px] font-medium leading-none text-white" aria-hidden>{unreadNotificationCount > 9 ? "9+" : unreadNotificationCount}</span> : null}
+        </button>
+        {process.env.NODE_ENV !== "production" && currentUser ? (
+          <Link
+            href="/?onboarding=debug&next=%2Fme"
+            className="ml-1 flex h-10 shrink-0 items-center gap-1.5 rounded-xl border border-dashed border-[var(--accent)] px-2.5 text-[13px] font-medium text-[var(--accent)] transition hover:bg-[color-mix(in_srgb,var(--accent)_10%,transparent)]"
+            aria-label="온보딩 테스트 열기"
+            title="온보딩 테스트 열기"
+          >
+            <Bug size={16} />
+            <span className="hidden sm:inline">온보딩 테스트</span>
+          </Link>
+        ) : null}
         <button type="button" onClick={toggleDarkMode} className="mr-2 grid h-11 w-11 shrink-0 place-items-center rounded-xl text-[#62666d] transition hover:bg-[var(--ui-card-hover)] sm:mr-2 dark:bg-[rgba(0,0,0,0)] dark:text-[#a7acb5]" aria-label="색상 모드 전환" title="색상 모드 전환">
           <Moon size={20} className="dark:hidden" />
           <Sun size={20} className="hidden dark:block" />
@@ -559,7 +569,7 @@ export function AppShell({
         </nav>
       ) : null}
 
-      {currentUser ? <NotificationPanel
+      <NotificationPanel
         open={notificationPanelOpen}
         onClose={() => setNotificationPanelOpen(false)}
         notifications={notifications}
@@ -568,7 +578,7 @@ export function AppShell({
         onReadAll={markAllNotificationsRead}
         onRemove={removeNotification}
         onClear={clearNotifications}
-      /> : null}
+      />
       {currentUser && (liveCard || ratingCard) ? (
         <div className="fixed bottom-5 right-5 z-[60] hidden w-[390px] flex-col gap-2 min-[1200px]:flex">
           {liveCard ? <LiveMatchCard match={liveCard} onOpen={closeLiveActivity} onClose={closeLiveActivity} /> : null}
