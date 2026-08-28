@@ -146,7 +146,7 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
             const repliesExpanded = expandedReplies.has(item.id);
             const firstRegular = !item.isBest && index > 0 && orderedRoots[index - 1]?.isBest;
             return (
-              <View key={item.id} style={[styles.commentThread, item.isBest ? [styles.bestThread, { backgroundColor: `${accent}12` }] : null, firstRegular ? { borderTopColor: theme.border, borderTopWidth: 1, paddingTop: 20 } : null]}>
+              <View key={item.id} style={[styles.commentThread, firstRegular ? { borderTopColor: theme.border, borderTopWidth: 1, paddingTop: 20 } : null]}>
                 <CommentItem accent={accent} best={item.isBest} comment={item} continued={itemReplies.length > 0} onDelete={refresh} onReact={react} onReply={setReplyTo} onReport={report} />
                 {itemReplies.length > 0 && !repliesExpanded ? (
                   <View style={styles.threadToggleRow}>
@@ -246,7 +246,7 @@ function CommentItem({ accent, best = false, comment, continued = false, onDelet
       <CommentAvatar author={comment.author} reply={reply} />
       <View style={styles.commentInner}>
         <View style={styles.commentTop}>
-          {best ? <Text style={[styles.bestBadge, { backgroundColor: accent, ...fonts.medium }]}>BEST</Text> : null}
+          {best ? <View style={{ backgroundColor: theme.accent, borderRadius: 999, flexShrink: 0, justifyContent: 'center', minHeight: 20, paddingHorizontal: 6, paddingVertical: 2 }}><Text style={{ color: '#071a11', ...fonts.medium, fontSize: 13, lineHeight: 16 }}>BEST</Text></View> : null}
           <View style={styles.commentAuthor}><CommunityAuthor author={comment.author} evidence={{ target: 'comment', targetId: comment.id }} hideAvatar onBlocked={onDelete} /></View>
           <Text style={{ color: theme.muted, ...fonts.regular, fontSize: 12, lineHeight: 18 }}>{formatCommunityDate(comment.createdAt)}</Text>
           <Pressable accessibilityLabel="리폿" onPress={() => onReport('comment', comment.id)} style={styles.commentMenu}><Ellipsis color={theme.muted} size={17} strokeWidth={1.8} /></Pressable>

@@ -123,7 +123,7 @@ export function CommentList({ comments, commentReactions, scope, teamSlug, viewe
       {commentAvatar(comment, reply)}
       <div className="relative min-w-0">
         <div className="flex h-5 min-w-0 items-center gap-1 pr-8">
-          {best ? <span className="mr-1 shrink-0 rounded bg-blue-500 px-1.5 py-0.5 text-xs font-medium leading-none text-white">BEST</span> : null}
+          {best ? <span className="inline-flex shrink-0 items-center rounded-full bg-[var(--palette-green-butter-main)] px-1.5 py-0.5 text-xs font-medium leading-none text-[#071a11]">BEST</span> : null}
           <AuthorMenu
             authorId={comment.authorId}
             authorName={comment.authorName}
@@ -177,7 +177,7 @@ export function CommentList({ comments, commentReactions, scope, teamSlug, viewe
         const best = bestCommentIds.has(comment.id);
         const firstRegular = bestComments.length > 0 && index === bestComments.length;
         return (
-          <li key={comment.id} className={`mb-4 ${best ? "-mx-2 rounded-lg bg-blue-500/[0.07] px-2 pt-3" : ""} ${firstRegular ? "border-t border-[var(--ui-border)] pt-5" : ""}`}>
+          <li key={comment.id} className={`mb-4 ${firstRegular ? "border-t border-[var(--ui-border)] pt-5" : ""}`}>
             {comment.deletedAt ? deletedItem(comment) : item(comment, false, replyItems.length > 0, best)}
             {replyItems.length > 0 && !expanded ? (
               <div className="relative h-[52px]">
