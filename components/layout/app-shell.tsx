@@ -426,7 +426,7 @@ export function AppShell({
             어드민
             {pendingSupportInquiryCount > 0 ? (
               <span className="absolute -right-1.5 -top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white">
-                {pendingSupportInquiryCount > 99 ? "99+" : pendingSupportInquiryCount}
+                {pendingSupportInquiryCount > 9 ? "9+" : pendingSupportInquiryCount}
               </span>
             ) : null}
           </Link>

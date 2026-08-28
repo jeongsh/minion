@@ -3,6 +3,9 @@ import "server-only";
 // 고객센터 문의 접수의 공통 로직. 웹 서버 액션과 앱 API 라우트가 신원 확인(쿠키 vs
 // 설치 ID)만 다르게 하고, 검증·스팸 방지·저장은 이 모듈 하나로 통일해서 쓴다.
 
+import { nicknameFromKey } from "@/lib/community/guest-nickname";
+import { countOpenSupportInquiries } from "@/lib/data/support-admin";
+import { sendDiscordSupportInquiryAlert } from "@/lib/notify/discord";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { hashInquiryPassword } from "@/lib/support/password";
 
@@ -106,5 +109,39 @@ export async function submitSupportInquiry(
     return { ok: false, error: "문의 접수에 실패했어요. 잠시 후 다시 시도해주세요." };
   }
 
+  // 유저가 기다리는 응답을 막지 않도록 fire-and-forget으로 보낸다(docs/push-notifications.md 2.5).
+  void notifyDiscordNewInquiry(supabase, identity, {
+    subject,
+    message,
+    isPrivate: input.isPrivate,
+    contactEmail: contactEmail || null,
+  }).catch((caught) => console.warn("[support] discord notify failed", caught));
+
   return { ok: true, id: data.id };
+}
+
+async function notifyDiscordNewInquiry(
+  supabase: ReturnType<typeof createSupabaseAdminClient>,
+  identity: SupportInquiryIdentity,
+  input: { subject: string; message: string; isPrivate: boolean; contactEmail: string | null },
+): Promise<void> {
+  const webhookUrl = process.env.DISCORD_COMMUNITY_WEBHOOK_URL?.trim();
+  if (!webhookUrl) return;
+
+  const [authorLabel, pendingCount] = await Promise.all([
+    identity.userId
+      ? supabase.from("profiles").select("nickname").eq("id", identity.userId).maybeSingle()
+          .then(({ data }) => data?.nickname ?? "회원")
+      : Promise.resolve(nicknameFromKey(identity.guestKey ?? "0")),
+    countOpenSupportInquiries().catch(() => null),
+  ]);
+
+  await sendDiscordSupportInquiryAlert(webhookUrl, {
+    authorLabel,
+    subject: input.subject,
+    excerpt: input.message.replace(/\s+/g, " ").trim().slice(0, 300),
+    isPrivate: input.isPrivate,
+    contactEmail: input.contactEmail,
+    pendingCount,
+  }, process.env.NEXT_PUBLIC_SITE_URL);
 }

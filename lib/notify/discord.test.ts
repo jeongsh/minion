@@ -5,6 +5,7 @@ import {
   sendDiscordFanCalendarSubmissionAlert,
   sendDiscordCommunityModerationAlert,
   sendDiscordMatchAutomationAlert,
+  sendDiscordSupportInquiryAlert,
 } from "./discord.ts";
 
 test("커뮤니티 모더레이션 알림: 정화봇 차단 이벤트를 렌더링한다", async () => {
@@ -340,4 +341,66 @@ test("팬 일정 제보 Discord 네트워크·타임아웃 예외의 원문을 �
     retryable: true,
     retryAfterSeconds: null,
   });
+});
+
+test("고객센터 문의 알림: 공개 문의를 렌더링한다", async () => {
+  const requestBodies: Record<string, unknown>[] = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (_input, init) => {
+    requestBodies.push(JSON.parse(String(init?.body)) as Record<string, unknown>);
+    return new Response("{}", { status: 200 });
+  };
+  try {
+    await sendDiscordSupportInquiryAlert(
+      "https://discord.example/webhook",
+      {
+        authorLabel: "미니언",
+        subject: "로그인이 안 돼요",
+        excerpt: "비밀번호를 바꿨는데 로그인이 안 됩니다.",
+        isPrivate: false,
+        contactEmail: "user@example.com",
+        pendingCount: 3,
+      },
+      "https://example.com/",
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+
+  const body = requestBodies[0]!;
+  assert.equal(body.username, "고객센터");
+  const embed = (body.embeds as Array<{ title: string; description: string; url: string }>)[0]!;
+  assert.equal(embed.title, "새 문의: 로그인이 안 돼요");
+  assert.equal(embed.url, "https://example.com/admin/support");
+  assert.match(embed.description, /미니언님이 문의를 남겼어요/);
+  assert.match(embed.description, /비밀번호를 바꿨는데 로그인이 안 됩니다\./);
+  assert.match(embed.description, /연락처: user@example\.com/);
+  assert.match(embed.description, /미처리 문의 3건/);
+  assert.doesNotMatch(embed.description, /비공개/);
+});
+
+test("고객센터 문의 알림: 비공개 문의는 잠금 표시를 넣는다", async () => {
+  const requestBodies: Record<string, unknown>[] = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (_input, init) => {
+    requestBodies.push(JSON.parse(String(init?.body)) as Record<string, unknown>);
+    return new Response("{}", { status: 200 });
+  };
+  try {
+    await sendDiscordSupportInquiryAlert("https://discord.example/webhook", {
+      authorLabel: "GUEST",
+      subject: "결제 문의",
+      excerpt: "결제가 중복으로 됐어요.",
+      isPrivate: true,
+      contactEmail: null,
+      pendingCount: null,
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+
+  const embed = (requestBodies[0]!.embeds as Array<{ description: string }>)[0]!;
+  assert.match(embed.description, /🔒 비공개 문의/);
+  assert.doesNotMatch(embed.description, /연락처:/);
+  assert.doesNotMatch(embed.description, /미처리 문의/);
 });

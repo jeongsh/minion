@@ -240,6 +240,55 @@ export async function sendDiscordFanHeaderRequestAlert(
   }
 }
 
+export type SupportInquiryDiscordEvent = {
+  authorLabel: string;
+  subject: string;
+  /** 미리보기용 발췌(길면 잘라서 넘긴다). */
+  excerpt: string;
+  isPrivate: boolean;
+  contactEmail?: string | null;
+  pendingCount?: number | null;
+};
+
+/** 고객센터에 새 문의가 접수되면 운영 채널로 즉시 알린다. 커뮤니티 모더레이션과 같은 웹훅을 쓰되 username으로 봇 이름을 분리한다. */
+export async function sendDiscordSupportInquiryAlert(
+  webhookUrl: string,
+  event: SupportInquiryDiscordEvent,
+  siteUrl?: string,
+): Promise<void> {
+  const base = normalizedSiteUrl(siteUrl);
+  const adminUrl = base ? `${base}/admin/support` : undefined;
+  const description = [
+    `${event.authorLabel}님이 문의를 남겼어요.`,
+    event.isPrivate ? "🔒 비공개 문의" : null,
+    event.excerpt,
+    event.contactEmail ? `연락처: ${event.contactEmail}` : null,
+    typeof event.pendingCount === "number" ? `미처리 문의 ${event.pendingCount}건` : null,
+    adminUrl ? `[문의 확인하기](${adminUrl})` : null,
+  ].filter(Boolean).join("\n");
+
+  const response = await fetch(webhookUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      username: "고객센터",
+      allowed_mentions: { parse: [] },
+      embeds: [{
+        title: `새 문의: ${event.subject}`,
+        description,
+        url: adminUrl,
+        color: 0x03de8a,
+        timestamp: new Date().toISOString(),
+        footer: { text: "고객센터 문의 · Minion" },
+      }],
+    }),
+  });
+
+  if (!response.ok) {
+    console.warn(`[discord] support inquiry webhook failed: ${response.status} ${(await response.text()).slice(0, 300)}`);
+  }
+}
+
 export type FanCalendarSubmissionDiscordEvent = {
   submissionId: string;
   teamName: string;
