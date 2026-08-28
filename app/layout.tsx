@@ -6,6 +6,7 @@ import { ToastProvider } from "@/components/ui/toast";
 import { SpoilerFreeProvider } from "@/lib/spoiler-free/spoiler-free-context";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { isCurrentUserAdmin } from "@/lib/auth/admin";
+import { countOpenSupportInquiries } from "@/lib/data/support-admin";
 import { getTeams } from "@/lib/data/lck";
 import { getFollowedTeamIds } from "@/lib/fan/followed-teams";
 import { getFavoriteTeamId } from "@/lib/fan/favorite-team";
@@ -77,12 +78,13 @@ export default async function RootLayout({
       lp: summary.lp,
     };
   }
-  const [followedTeamIds, favoriteTeamId, shellTeams, notificationPreferences] = await Promise.all([
+  const [followedTeamIds, favoriteTeamId, shellTeams, notificationPreferences, pendingSupportInquiryCount] = await Promise.all([
     // 로그인한 유저에게만 "내 팀"을 보여준다 — 비로그인 상태의 쿠키 기반 팔로우는 사이드바에 노출하지 않는다.
     user ? getFollowedTeamIds() : Promise.resolve([]),
     getFavoriteTeamId(),
     getTeams(),
     getNotificationPreferences(),
+    isAdminUser ? countOpenSupportInquiries() : Promise.resolve(0),
   ]);
   const adsenseClient = process.env.NEXT_PUBLIC_GOOGLE_ADSENSE_CLIENT;
 
@@ -110,6 +112,7 @@ export default async function RootLayout({
                 key={user?.id ?? "guest"}
                 currentUser={shellUser}
                 isAdminUser={isAdminUser}
+                pendingSupportInquiryCount={pendingSupportInquiryCount}
                 followedTeamIds={followedTeamIds}
                 favoriteTeamId={favoriteTeamId}
                 shellTeams={shellTeams}

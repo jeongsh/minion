@@ -160,6 +160,7 @@ export function AppShell({
   children,
   currentUser = null,
   isAdminUser = false,
+  pendingSupportInquiryCount = 0,
   followedTeamIds = [],
   favoriteTeamId = null,
   shellTeams = fallbackTeams,
@@ -168,6 +169,7 @@ export function AppShell({
   children: React.ReactNode;
   currentUser?: AppShellUser;
   isAdminUser?: boolean;
+  pendingSupportInquiryCount?: number;
   followedTeamIds?: string[];
   favoriteTeamId?: string | null;
   shellTeams?: Team[];
@@ -415,8 +417,18 @@ export function AppShell({
           <Sun size={20} className="hidden dark:block" />
         </button>
         {isAdminUser ? (
-          <Link href="/admin" className="mr-2 hidden h-11 items-center rounded-xl border border-[#d9dce1] bg-white px-3 text-[13px] font-bold text-[#18191c] transition hover:bg-[var(--ui-card-hover)] sm:inline-flex dark:border-[var(--ui-border)] dark:bg-[#30343b] dark:text-white">
+          <Link
+            href="/admin"
+            className={`relative mr-2 hidden h-11 items-center rounded-xl border bg-white px-3 text-[13px] font-bold text-[#18191c] transition hover:bg-[var(--ui-card-hover)] sm:inline-flex dark:bg-[#30343b] dark:text-white ${
+              pendingSupportInquiryCount > 0 ? "border-red-500" : "border-[#d9dce1] dark:border-[var(--ui-border)]"
+            }`}
+          >
             어드민
+            {pendingSupportInquiryCount > 0 ? (
+              <span className="absolute -right-1.5 -top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white">
+                {pendingSupportInquiryCount > 99 ? "99+" : pendingSupportInquiryCount}
+              </span>
+            ) : null}
           </Link>
         ) : null}
         {currentUser ? (

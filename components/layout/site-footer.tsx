@@ -12,6 +12,7 @@ export function SiteFooter({ accentColor }: { accentColor?: string }) {
           <Link href="/privacy" className="hover:text-[#18191c] dark:hover:text-white">개인정보처리방침</Link>
           <Link href="/community/rules" className="hover:text-[#18191c] dark:hover:text-white">커뮤니티 운영원칙</Link>
           <Link href="/advertising" className="hover:text-[#18191c] dark:hover:text-white">광고·제휴 문의</Link>
+          <Link href="/support" className="hover:text-[#18191c] dark:hover:text-white">고객센터</Link>
         </nav>
       </div>
       <p className="mt-2 max-w-[1100px] text-[10px] leading-5 text-[#777b82] md:text-[12px] dark:text-[#8f98a8]">

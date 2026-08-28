@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -11,10 +12,14 @@ const FOOTER_LINKS = [
   { label: '개인정보처리방침', path: '/privacy' },
   { label: '커뮤니티 운영원칙', path: '/community/rules' },
   { label: '광고·제휴 문의', path: '/advertising' },
+  // 고객센터는 웹처럼 문의 내역을 앱 안에서 바로 보여줘야 해서, 나머지 정책 링크와
+  // 달리 외부 브라우저 대신 네이티브 화면(/support)으로 이동한다.
+  { label: '고객센터', path: '/support', internal: true },
 ];
 
 export function MinionFooter({ accentColor }: { accentColor?: string }) {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { fonts, theme } = useMinionTheme();
   const openWebPage = (path: string) => void Linking.openURL(resolveApiAssetUrl(path) ?? path);
 
@@ -24,7 +29,7 @@ export function MinionFooter({ accentColor }: { accentColor?: string }) {
         <MinionBrandLogo color={accentColor} />
         <View style={styles.footerNav}>
           {FOOTER_LINKS.map((link) => (
-            <Pressable key={link.path} onPress={() => openWebPage(link.path)}>
+            <Pressable key={link.path} onPress={() => link.internal ? router.push(link.path as never) : openWebPage(link.path)}>
               <Text style={[styles.footerLink, { color: theme.footerNav, ...fonts.bold }]}>{link.label}</Text>
             </Pressable>
           ))}

@@ -680,6 +680,39 @@ export type MobileCommunityPostsDto = {
   categories: Array<{ slug: string; label: string }>;
 };
 
+export type MobileSupportStatus = "open" | "answered" | "closed";
+
+// 고객센터는 게시판형: 목록은 누구나 보고, 비공개 글은 본문만 비밀번호로 잠근다
+// (웹 lib/data/support.ts와 같은 정책 — 제목은 항상 노출).
+export type MobileSupportBoardItem = {
+  id: EntityId;
+  subject: string;
+  status: MobileSupportStatus;
+  isPrivate: boolean;
+  authorLabel: string;
+  createdAt: IsoDateTime;
+};
+export type MobileSupportBoardDto = {
+  items: MobileSupportBoardItem[];
+  page: number;
+  totalPages: number;
+  totalCount: number;
+};
+export type MobileSupportInquiryDetailDto = {
+  id: EntityId;
+  subject: string;
+  status: MobileSupportStatus;
+  isPrivate: boolean;
+  authorLabel: string;
+  createdAt: IsoDateTime;
+  locked: boolean;
+  hasPassword: boolean;
+  message: string | null;
+  reply: string | null;
+  answeredAt: IsoDateTime | null;
+};
+export type MobileSupportInquiryMutationDto = { id: EntityId; message: string };
+
 export type MobileCommunityPostMutationDto = { id: EntityId; message: string };
 export type MobileCommunityCommentMutationDto = { id: EntityId; message: string };
 export type MobileCommunityActionDto = { message: string };
@@ -1117,6 +1150,10 @@ export const mobileApiRoutes = {
   meUpdate: { method: "PATCH", path: `${MOBILE_API_PREFIX}/me`, owner: "account service", auth: "required", cache: "no-store" },
   meDelete: { method: "DELETE", path: `${MOBILE_API_PREFIX}/me`, owner: "account security service", auth: "required", cache: "no-store" },
   devices: { method: "POST", path: `${MOBILE_API_PREFIX}/devices`, owner: "push device service", auth: "required", cache: "no-store" },
+  supportBoard: { method: "GET", path: `${MOBILE_API_PREFIX}/support/inquiries`, owner: "lib/data/support", auth: "public", cache: "no-store" },
+  supportInquiryCreate: { method: "POST", path: `${MOBILE_API_PREFIX}/support/inquiries`, owner: "lib/support/service", auth: "optional", cache: "no-store" },
+  supportInquiry: { method: "GET", path: `${MOBILE_API_PREFIX}/support/inquiries/{inquiryId}`, owner: "lib/data/support", auth: "optional", cache: "no-store" },
+  supportInquiryUnlock: { method: "POST", path: `${MOBILE_API_PREFIX}/support/inquiries/{inquiryId}/unlock`, owner: "lib/data/support", auth: "public", cache: "no-store" },
 } as const satisfies Record<string, MobileApiRouteDefinition>;
 
 export type MobileApiAuthMode = MobileApiRouteDefinition["auth"];
@@ -1187,6 +1224,9 @@ const routeRules: RouteRule[] = [
   { pattern: /^\/community\/user\/([^/]+)\/?$/, screen: "community-user", dockTab: null, keys: ["userId"] },
   { pattern: /^\/community\/([^/]+)\/?$/, screen: "community-board", dockTab: null, keys: ["board"] },
   { pattern: /^\/news(?:\/.*)?$/, screen: "news", dockTab: "news" },
+  { pattern: /^\/support\/?$/, screen: "support", dockTab: null },
+  { pattern: /^\/support\/new\/?$/, screen: "support-compose", dockTab: null, hideGlobalDock: true, focus: true, fallback: () => "/support" },
+  { pattern: /^\/support\/([^/]+)\/?$/, screen: "support-inquiry", dockTab: null, hideGlobalDock: true, keys: ["inquiryId"] },
   { pattern: /^\/me\/?$/, screen: "me", dockTab: null },
   { pattern: /^\/me\/(profile|settings)\/?$/, screen: "me-focus", dockTab: null, hideGlobalDock: true, focus: true, keys: ["section"], fallback: () => "/me" },
   { pattern: /^\/(login|signup)\/?$/, screen: "auth", dockTab: null, hideGlobalDock: true, focus: true, keys: ["mode"], fallback: p => p.mode === "signup" ? "/login" : "/" },
