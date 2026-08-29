@@ -2,6 +2,14 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { fetchMobileApi, readApiCache, subscribeApiCacheInvalidation, writeApiCache } from '@/lib/api-client';
 
+const NETWORK_ERROR_PATTERN = /failed to fetch|network request failed|load failed/i;
+
+function userFacingError(error: unknown) {
+  if (!(error instanceof Error) || !error.message) return '데이터를 불러오지 못했습니다.';
+  if (NETWORK_ERROR_PATTERN.test(error.message)) return '네트워크 연결을 확인한 뒤 다시 시도해주세요.';
+  return error.message;
+}
+
 export function useCachedQuery<T>(path: string, options: { enabled?: boolean; cache?: boolean } = {}) {
   const enabled = options.enabled ?? true;
   const cache = options.cache ?? true;
@@ -20,10 +28,7 @@ export function useCachedQuery<T>(path: string, options: { enabled?: boolean; ca
   }), [path, refresh]);
 
   useEffect(() => {
-    if (!enabled) {
-      setLoading(false);
-      return;
-    }
+    if (!enabled) return;
     const controller = new AbortController();
     let active = true;
     const load = async () => {
@@ -44,7 +49,7 @@ export function useCachedQuery<T>(path: string, options: { enabled?: boolean; ca
         if (cache) void writeApiCache(path, next);
       } catch (caught) {
         if (active && !controller.signal.aborted) {
-          setError(caught instanceof Error ? caught.message : '데이터를 불러오지 못했습니다.');
+          setError(userFacingError(caught));
           setErrorPath(path);
         }
       } finally {
@@ -65,5 +70,5 @@ export function useCachedQuery<T>(path: string, options: { enabled?: boolean; ca
   const currentError = errorPath === path ? error : null;
   const awaitingCurrentPath = enabled && currentData === null && currentError === null;
 
-  return { data: currentData, error: currentError, loading: loading || awaitingCurrentPath, refresh, refreshing };
+  return { data: currentData, error: currentError, loading: enabled && (loading || awaitingCurrentPath), refresh, refreshing };
 }
