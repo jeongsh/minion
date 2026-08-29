@@ -51,8 +51,8 @@ function Bone({ height, width }: { height: number; width: number | `${number}%` 
 
 function HomeSection({ kind, themeColor }: { kind: 'community' | 'match' | 'roster' | 'social' | 'video'; themeColor: string }) {
   const count = kind === 'match' ? 1 : kind === 'community' ? 3 : 3;
-  const height = kind === 'match' ? 56 : kind === 'community' ? 65 : kind === 'social' ? 152 : kind === 'video' ? 170 : 96;
-  return <View style={styles.homeSection}><Bone height={16} width="24%" /><View style={[styles.homeRail, kind === 'community' ? styles.communitySkeleton : null]}>{Array.from({ length: count }, (_, index) => <View key={index} style={{ backgroundColor: themeColor, borderRadius: kind === 'social' ? 12 : kind === 'community' ? 0 : 8, height, width: kind === 'match' || kind === 'community' ? '100%' : kind === 'video' ? 302 : kind === 'roster' ? 106 : 114 }} />)}</View></View>;
+  const height = kind === 'match' ? 56 : kind === 'community' ? 65 : kind === 'social' ? 152 : kind === 'video' ? 170 : 148;
+  return <View style={styles.homeSection}><Bone height={16} width="24%" /><View style={[styles.homeRail, kind === 'community' ? styles.communitySkeleton : null]}>{Array.from({ length: count }, (_, index) => <View key={index} style={{ backgroundColor: themeColor, borderRadius: kind === 'social' || kind === 'roster' ? 12 : kind === 'community' ? 0 : 8, height, width: kind === 'match' || kind === 'community' ? '100%' : kind === 'video' ? 302 : kind === 'roster' ? 112 : 114 }} />)}</View></View>;
 }
 
 const styles = StyleSheet.create({

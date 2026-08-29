@@ -48,8 +48,8 @@ export async function generateMetadata({ params }: { params: Promise<{ teamSlug:
   if (!team) return { title: "팀을 찾을 수 없습니다 | MINION" };
 
   const fanSlug = team.fanSiteHost ?? teamSlug;
-  const title = `${team.name} 팬 허브 | MINION`;
-  const description = `${team.name} 팀 소식, 경기 일정, 선수단, 팬 커뮤니티를 한곳에서 확인하세요.`;
+  const title = `${team.name} | MINION`;
+  const description = `${team.name} 팀 소식, 경기 일정, 선수단과 팬톡을 한곳에서 확인하세요.`;
 
   return {
     title,
@@ -153,30 +153,29 @@ function Roster({ players, teamSlug }: { players: Player[]; teamSlug: string }) 
   return (
     <div>
       <SectionHeading href={`/fan/${teamSlug}/players`}>선수단</SectionHeading>
-      <div className="grid auto-cols-[106px] grid-flow-col gap-2.5 overflow-x-auto pb-1 [scrollbar-width:none] sm:grid-flow-row sm:auto-cols-auto sm:grid-cols-2 sm:gap-4 sm:overflow-visible lg:grid-cols-5 [&::-webkit-scrollbar]:hidden">
+      <div className="grid auto-cols-[112px] grid-flow-col gap-2.5 overflow-x-auto pb-1 [scrollbar-width:none] sm:grid-flow-row sm:auto-cols-auto sm:grid-cols-2 sm:gap-4 sm:overflow-visible lg:grid-cols-5 [&::-webkit-scrollbar]:hidden">
         {players.slice(0, 5).map((player) => (
           <Link
             key={player.id}
             href={`/fan/${teamSlug}/players/${player.slug}`}
-            className="fan-roster-chip group flex min-h-[96px] flex-col items-center justify-center gap-1.5 rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-2 text-center transition sm:min-h-[88px] sm:flex-row sm:justify-start sm:gap-3 sm:rounded-2xl sm:p-4 sm:text-left"
+            className="fan-roster-chip group relative h-[148px] overflow-hidden rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface-muted)] transition sm:h-[184px] sm:rounded-2xl"
           >
-            <span className="h-11 w-11 shrink-0 overflow-hidden rounded-full bg-[var(--ui-surface)] sm:h-14 sm:w-14">
-              {player.profileImageUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={player.profileImageUrl}
-                  alt={player.name}
-                  className="h-full w-full object-cover object-top"
-                />
-              ) : (
-                <span className="grid h-full place-items-center text-[12px] font-medium text-[var(--ui-muted)] sm:text-[13px]">
-                  {player.name.slice(0, 2)}
-                </span>
-              )}
-            </span>
-            <div className="flex min-w-0 max-w-full flex-col gap-[1px]">
-              <span className="truncate text-[13px] font-extrabold text-[var(--ui-ink)] sm:text-[15px]">{player.name}</span>
-              <span className="whitespace-nowrap text-[11px] font-medium sm:text-[13px]" style={{ color: "var(--tp)" }}>
+            {player.profileImageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={player.profileImageUrl}
+                alt=""
+                className="absolute inset-0 h-full w-full object-cover object-top transition-transform duration-300 group-hover:scale-[1.03]"
+              />
+            ) : (
+              <span className="absolute inset-0 grid place-items-center text-[20px] font-medium text-[var(--ui-muted)]">
+                {player.name.slice(0, 2)}
+              </span>
+            )}
+            <span className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/15 via-55% to-transparent" />
+            <div className="absolute inset-x-0 bottom-0 flex min-w-0 flex-col px-3 pb-3 pt-8 text-left sm:px-4 sm:pb-4">
+              <span className="truncate text-[15px] font-extrabold leading-tight text-white">{player.name}</span>
+              <span className="mt-0.5 whitespace-nowrap text-[13px] font-medium leading-tight text-white/80">
                 {player.position}
               </span>
             </div>

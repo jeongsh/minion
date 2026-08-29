@@ -73,7 +73,7 @@ function FanHome({ data }: { data: MobileTeamDetailDto }) {
         <HomeCommunityPreview items={data.community ?? []} teamColor={data.team.primaryColor} teamSlug={data.team.fanSiteHost} />
         <HomeSocialPreview items={data.social} teamSlug={data.team.fanSiteHost} />
         <HomeVideoPreview items={data.videos} teamSlug={data.team.fanSiteHost} />
-        <HomeRoster players={sortedPlayers.slice(0, 5)} teamColor={data.team.primaryColor} teamSlug={data.team.fanSiteHost} />
+        <HomeRoster players={sortedPlayers.slice(0, 5)} teamSlug={data.team.fanSiteHost} />
       </View>
     </View>
   );
@@ -338,13 +338,13 @@ function HomeVideoPreview({ items, teamSlug }: { items: MobileTeamDetailDto['vid
   );
 }
 
-function HomeRoster({ players, teamColor, teamSlug }: { players: MobileTeamDetailDto['players']; teamColor: string; teamSlug: string }) {
+function HomeRoster({ players, teamSlug }: { players: MobileTeamDetailDto['players']; teamSlug: string }) {
   const router = useRouter();
   const { fonts, theme } = useMinionTheme();
   return (
     <View>
       <FanSectionHeading href={`/fan/${teamSlug}/players`}>선수단</FanSectionHeading>
-      {players.length ? <ScrollView contentContainerStyle={styles.rosterRail} horizontal showsHorizontalScrollIndicator={false}>{players.map((player) => { const imageUrl = resolveApiAssetUrl(player.profileImage?.url); return <Pressable key={player.id} onPress={() => router.navigate(`/players/${player.slug}` as never)} style={[styles.rosterChip, { backgroundColor: theme.surface, borderColor: theme.border }]}><View style={[styles.rosterPhoto, { backgroundColor: theme.surfaceMuted }]}>{imageUrl ? <Image contentFit="cover" contentPosition="top" source={{ uri: imageUrl }} style={StyleSheet.absoluteFill} transition={120} /> : <Text style={{ color: theme.muted, ...fonts.medium, fontSize: 12 }}>{player.name.slice(0, 2)}</Text>}</View><Text numberOfLines={1} style={{ color: theme.ink, ...fonts.black, fontSize: 13, maxWidth: '100%' }}>{player.name}</Text><Text style={{ color: teamColor, ...fonts.medium, fontSize: 11 }}>{player.position}</Text></Pressable>; })}</ScrollView> : <FanEmpty>등록된 선수가 없습니다.</FanEmpty>}
+      {players.length ? <ScrollView contentContainerStyle={styles.rosterRail} horizontal showsHorizontalScrollIndicator={false}>{players.map((player) => { const imageUrl = resolveApiAssetUrl(player.profileImage?.url); return <Pressable accessibilityLabel={`${player.name} ${player.position} 선수 보기`} accessibilityRole="link" key={player.id} onPress={() => router.navigate(`/players/${player.slug}` as never)} style={[styles.rosterChip, { backgroundColor: theme.surfaceMuted, borderColor: theme.border }]}>{imageUrl ? <Image contentFit="cover" contentPosition="top" source={{ uri: imageUrl }} style={StyleSheet.absoluteFill} transition={120} /> : <View style={styles.rosterFallback}><Text style={{ color: theme.muted, ...fonts.medium, fontSize: 20 }}>{player.name.slice(0, 2)}</Text></View>}<LinearGradient colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.16)', 'rgba(0,0,0,0.86)']} locations={[0, 0.5, 1]} pointerEvents="none" style={StyleSheet.absoluteFill} /><View style={styles.rosterLabel}><Text numberOfLines={1} style={{ color: '#ffffff', ...fonts.black, fontSize: 15, lineHeight: 19 }}>{player.name}</Text><Text style={{ color: 'rgba(255,255,255,0.8)', ...fonts.medium, fontSize: 13, lineHeight: 17 }}>{player.position}</Text></View></Pressable>; })}</ScrollView> : <FanEmpty>등록된 선수가 없습니다.</FanEmpty>}
     </View>
   );
 }
@@ -377,8 +377,9 @@ const styles = StyleSheet.create({
   matchInfo: { flex: 1, minWidth: 0 },
   matchRow: { alignItems: 'center', borderRadius: 12, borderWidth: 1, flexDirection: 'row', gap: 10, height: 56, overflow: 'hidden', paddingHorizontal: 12 },
   matchTitleRow: { alignItems: 'baseline', flexDirection: 'row', gap: 6 },
-  rosterChip: { alignItems: 'center', borderRadius: 12, borderWidth: 1, gap: 3, justifyContent: 'center', minHeight: 96, padding: 8, width: 106 },
-  rosterPhoto: { alignItems: 'center', borderRadius: 22, height: 44, justifyContent: 'center', overflow: 'hidden', width: 44 },
+  rosterChip: { borderRadius: 12, borderWidth: 1, height: 148, overflow: 'hidden', position: 'relative', width: 112 },
+  rosterFallback: { alignItems: 'center', bottom: 0, justifyContent: 'center', left: 0, position: 'absolute', right: 0, top: 0 },
+  rosterLabel: { bottom: 0, left: 0, paddingBottom: 12, paddingHorizontal: 12, paddingTop: 32, position: 'absolute', right: 0 },
   rosterRail: { gap: 10, paddingBottom: 4 },
   screenContent: { gap: 0, marginTop: 0, paddingHorizontal: 0 },
   socialCard: { aspectRatio: 3 / 4, borderRadius: 12, overflow: 'hidden' },
