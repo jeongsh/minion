@@ -1788,18 +1788,6 @@ async function getFanRatingsByTeamIdBase(teamId: string) {
   }, []);
 }
 
-async function getPlayerPomCountBase(playerId: string): Promise<number> {
-  return fromSupabase(async () => {
-    const { count, error } = await createSupabaseServerClient()
-      .from("matches")
-      .select("*", { count: "exact", head: true })
-      .eq("official_pom_player_id", playerId);
-
-    if (error) throw error;
-    return count ?? 0;
-  }, 0);
-}
-
 export type TimelineEvent = {
   id: string;
   setId: string;
@@ -2182,7 +2170,6 @@ export const getHubCommunityPosts = cache(getHubCommunityPostsBase);
 export const getFanRatings = cache(getFanRatingsBase);
 export const getFanRatingsByMatchId = cache(getFanRatingsByMatchIdBase);
 export const getFanRatingsByTeamId = cache(getFanRatingsByTeamIdBase);
-export const getPlayerPomCount = cache(getPlayerPomCountBase);
 export const getTimelineEvents = cache(getTimelineEventsBase);
 export const getPlayerBuildEvents = cache(getPlayerBuildEventsBase);
 export const getTimelineFrames = cache(getTimelineFramesBase);

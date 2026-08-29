@@ -2,7 +2,6 @@ import type { MobilePlayerDetailDto } from "@/packages/contracts/src/mobile-v1";
 import { championImage, championLabel } from "@/lib/champions";
 import {
   getPlayerBySlug,
-  getPlayerPomCount,
   getPlayerStatLines,
 } from "@/lib/data/lck";
 import {
@@ -115,12 +114,14 @@ export async function getMobilePlayerDetail(
   const player = await getPlayerBySlug(playerSlug);
   if (!player) return null;
 
-  const [sharedData, playerOwnLines, pomCount] = await Promise.all([
+  const [sharedData, playerOwnLines] = await Promise.all([
     getPlayerPageSharedData(),
+    // 이 선수 전체 스탯라인. 구간 탭 판단 + 아래 구간 필터 소스로 재사용한다.
     getPlayerStatLines(undefined, player.id),
-    getPlayerPomCount(player.id),
   ]);
   const { teams, players, matches, sets, fanRatings, tournaments, champions, standings } = sharedData;
+  // POM 횟수는 이미 로드된 matches 로 센다(별도 count 쿼리 불필요).
+  const pomCount = matches.filter((match) => match.officialPomPlayerId === player.id).length;
   const visibleSegments = PLAYER_PAGE_SEGMENTS.filter((segment) =>
     segmentHasPlayerData(segment, playerOwnLines, matches, tournaments, sets),
   );
@@ -131,12 +132,12 @@ export async function getMobilePlayerDetail(
   const segmentMatches = filterMatchesBySegment(matches, tournaments, activeSegment);
   const segmentSets = filterSetsByMatches(sets, segmentMatches);
   const segmentSetIds = segmentSets.map((set) => set.id);
-  const [playerSegmentLines, segmentData] = segmentSetIds.length
-    ? await Promise.all([
-      getPlayerStatLines(segmentSetIds, player.id),
-      getPlayerPageSegmentData(segmentSetIds),
-    ])
-    : [[], { radarBenchmarkByPosition: {}, pickBanByChampion: {}, mainUserIdsByChampion: {} }];
+  // 이 선수의 구간 스탯라인은 이미 받아온 playerOwnLines 에서 걸러 쓴다(중복 쿼리 제거).
+  const segmentSetIdSet = new Set(segmentSetIds);
+  const playerSegmentLines = playerOwnLines.filter((line) => segmentSetIdSet.has(line.setId));
+  const segmentData = segmentSetIds.length
+    ? await getPlayerPageSegmentData(segmentSetIds)
+    : { radarBenchmarkByPosition: {}, pickBanByChampion: {}, mainUserIdsByChampion: {} };
   const playerLines = enrichLines(playerSegmentLines, segmentSets, segmentMatches);
   const radarBenchmark = segmentData.radarBenchmarkByPosition[player.position];
   const aggregateStats = aggregateLines(playerLines, radarBenchmark);
