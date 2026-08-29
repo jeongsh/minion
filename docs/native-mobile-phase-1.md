@@ -14,4 +14,4 @@
 - 최애팀 설정 후 팬 독바 팀 로고 표시
 - 라이트·다크 테마, safe area, 바텀시트와 토스트
 
-이 영역은 A/B 담당자가 임의 수정하지 않는다. 현재 수치와 검증 규칙은 [`docs/native-mobile/README.md`](./native-mobile/README.md)에 있다.
+이 영역은 잠금 상태이므로 일반 화면 작업에서 임의 수정하지 않는다. 현재 수치와 검증 규칙은 [`docs/native-mobile/README.md`](./native-mobile/README.md)에 있다.
