@@ -12,6 +12,7 @@ import { buildFanVideoItems } from "@/lib/fan-video-items";
 import { getFollowedTeamIds } from "@/lib/fan/followed-teams";
 
 export const dynamic = "force-dynamic";
+const FEED_PREVIEW_LIMIT = 12;
 
 export const metadata: Metadata = {
   title: "팀 | MINION",
@@ -45,8 +46,8 @@ export default async function TeamsPage({
   const teamPlayers = players.filter((player) => player.teamId === selectedTeam.id);
   const playerIds = teamPlayers.map((player) => player.id);
   const [instagramFeed, videoFeed] = await Promise.all([
-    getTeamInstagramFeed(selectedTeam.id, playerIds),
-    getFanVideoFeed(selectedTeam.id, playerIds),
+    getTeamInstagramFeed(selectedTeam.id, playerIds, FEED_PREVIEW_LIMIT),
+    getFanVideoFeed(selectedTeam.id, playerIds, FEED_PREVIEW_LIMIT),
   ]);
   const playersById = new Map(teamPlayers.map((player) => [player.id, player]));
   const socialItems: FeedInstaItem[] = [
@@ -67,13 +68,13 @@ export default async function TeamsPage({
       postedAt: post.postedAt,
       likesCount: post.likesCount,
     })),
-  ].sort((a, b) => new Date(b.postedAt ?? 0).getTime() - new Date(a.postedAt ?? 0).getTime());
+  ].sort((a, b) => new Date(b.postedAt ?? 0).getTime() - new Date(a.postedAt ?? 0).getTime()).slice(0, FEED_PREVIEW_LIMIT);
   const videos = buildFanVideoItems({
     team: selectedTeam,
     players: teamPlayers,
     teamVideos: videoFeed.teamVideos,
     playerVideos: videoFeed.playerVideos,
-  });
+  }).slice(0, FEED_PREVIEW_LIMIT);
 
   return (
     <main className="min-h-screen text-[var(--ui-text)]">

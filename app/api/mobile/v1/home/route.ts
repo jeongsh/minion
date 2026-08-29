@@ -1,6 +1,8 @@
+import { unstable_cache } from "next/cache";
+
 import type { MobileHomeDto } from "@/packages/contracts/src/mobile-v1";
-import { getHomePagePublicData } from "@/lib/data/home-cache";
-import { getHomePomEntries } from "@/lib/data/home-pom";
+import { getMobileHomePublicData, HOME_PUBLIC_DATA_TAG } from "@/lib/data/home-cache";
+import { buildHomePomEntries, getHomePomPlayers, HOME_POM_TAG } from "@/lib/data/home-pom";
 import { getLckChannelVideos } from "@/lib/data/lck-channel-videos";
 import { getHomeNewsFeed } from "@/lib/data/naver-news";
 import { getBoardPosts } from "@/lib/data/community";
@@ -16,15 +18,16 @@ import { buildTeamStandingRows, dateKeyKST } from "@/lib/view-data";
 
 export const revalidate = 30;
 
-export async function GET() {
-  const [{ teams, matches, tournaments, calendarEvents }, news, videos, popularCommunityPosts, latestCommunityPosts, pomEntries] = await Promise.all([
-    getHomePagePublicData(),
+async function buildMobileHomeData(): Promise<MobileHomeDto> {
+  const [{ teams, matches, tournaments, calendarEvents }, news, videos, popularCommunityPosts, latestCommunityPosts, pomPlayers] = await Promise.all([
+    getMobileHomePublicData(),
     getHomeNewsFeed(6),
     getLckChannelVideos(),
     getBoardPosts({ scope: "hub", hotOnly: true, limit: COMMUNITY_HOME_HOT_CANDIDATE_LIMIT }),
     getBoardPosts({ scope: "hub", limit: COMMUNITY_HOME_LATEST_CANDIDATE_LIMIT }),
-    getHomePomEntries(),
+    getHomePomPlayers(),
   ]);
+  const pomEntries = buildHomePomEntries({ matches, players: pomPlayers, teams, tournaments });
   const communityPosts = selectCommunityHomePosts(popularCommunityPosts, latestCommunityPosts);
   const teamMap = new Map(teams.map((team) => [team.id, team]));
   const tournamentMap = new Map(tournaments.map((tournament) => [tournament.id, tournament]));
@@ -46,11 +49,20 @@ export async function GET() {
     .map((tournament) => tournament.id));
   const regularSeasonMatches = matches.filter((match) => regularSeasonTournamentIds.has(match.tournamentId));
   const standingRows = buildTeamStandingRows(lckTeams, regularSeasonMatches, []);
-  const calendar = Array.from(new Set(matches.map((match) => dateKeyKST(match.matchDate))))
-    .map((date) => ({
-      date,
-      matches: matches.filter((match) => dateKeyKST(match.matchDate) === date).map((match) => toMobileMatch(match, teamMap, tournamentMap)),
-    }));
+  // 홈 캘린더 컴포넌트가 실제로 사용하는 현재 월 경기만 직렬화한다. 과거/미래
+  // 전체 경기 200여 건을 홈 첫 응답에 반복해서 싣지 않는다.
+  const currentMonthKey = todayKey.slice(0, 7);
+  const calendarByDate = new Map<string, MobileHomeDto["calendar"][number]["matches"]>();
+  for (const match of matches) {
+    const date = dateKeyKST(match.matchDate);
+    if (!date.startsWith(currentMonthKey)) continue;
+    const current = calendarByDate.get(date) ?? [];
+    current.push(toMobileMatch(match, teamMap, tournamentMap));
+    calendarByDate.set(date, current);
+  }
+  const calendar = [...calendarByDate.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, dateMatches]) => ({ date, matches: dateMatches }));
   const data: MobileHomeDto = {
     calendar,
     calendarEvents: calendarEvents.map((event) => ({
@@ -130,5 +142,20 @@ export async function GET() {
     })),
     videos: videos.slice(0, 12).map((video) => ({ channelName: video.channelName, id: video.id, publishedAt: video.publishedAt, thumbnail: { url: video.thumbnailUrl }, title: video.title, url: video.videoUrl })),
   };
-  return mobileSuccess(data, { headers: { "Cache-Control": "public, max-age=0, s-maxage=30, stale-while-revalidate=120" } });
+  return data;
+}
+
+const getMobileHomeData = unstable_cache(
+  buildMobileHomeData,
+  ["mobile-home-v1-response"],
+  { revalidate: 30, tags: [HOME_PUBLIC_DATA_TAG, HOME_POM_TAG] },
+);
+
+export async function GET() {
+  const data = await getMobileHomeData();
+  return mobileSuccess(data, {
+    headers: {
+      "Cache-Control": "public, max-age=0, s-maxage=30, stale-while-revalidate=120",
+    },
+  });
 }

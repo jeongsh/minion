@@ -3,7 +3,7 @@ import { OnboardingDialog } from "@/components/auth/onboarding-dialog";
 import type { HomeCalendarMatch } from "@/components/domain/home-calendar";
 import type { HomeMatchItem } from "@/components/domain/home-match-card";
 import { getHomePagePublicData } from "@/lib/data/home-cache";
-import { getHomePomEntries } from "@/lib/data/home-pom";
+import { buildHomePomEntries, getHomePomPlayers } from "@/lib/data/home-pom";
 import type { Match } from "@/lib/types";
 import { getBoardPosts } from "@/lib/data/community";
 import { buildTeamStandingRows, dateKeyKST, formatTimeKST, matchHref } from "@/lib/view-data";
@@ -38,16 +38,17 @@ export default async function HomePage({
   const showOnboarding = onboardingMode === "1" || onboardingMode === "debug";
   const forceOnboarding = onboardingMode === "debug";
   const onboardingNext = safeOnboardingNext(params.next);
-  const [homeData, popularCommunityPosts, latestCommunityPosts, predictionMarket, lckChannelVideos, pomEntries, homeNewsFeed] = await Promise.all([
+  const [homeData, popularCommunityPosts, latestCommunityPosts, predictionMarket, lckChannelVideos, pomPlayers, homeNewsFeed] = await Promise.all([
     getHomePagePublicData(),
     getBoardPosts({ scope: "hub", hotOnly: true, limit: COMMUNITY_HOME_HOT_CANDIDATE_LIMIT }),
     getBoardPosts({ scope: "hub", limit: COMMUNITY_HOME_LATEST_CANDIDATE_LIMIT }),
     getPredictionMarketData(),
     getLckChannelVideos(),
-    getHomePomEntries(),
+    getHomePomPlayers(),
     getHomeNewsFeed(6),
   ]);
   const { teams, matches, tournaments, latestVideos, calendarEvents } = homeData;
+  const pomEntries = buildHomePomEntries({ matches, players: pomPlayers, teams, tournaments });
 
   // 오늘의 기념일. 배너를 누르면 해당 팀 게시판으로 이동한다.
   const todayCelebrations = getTodayCelebrations(calendarEvents);

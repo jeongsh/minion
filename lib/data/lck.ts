@@ -1564,23 +1564,25 @@ async function getTeamNewsBase(teamId: string) {
   }, { videos: [], socialPosts: [] });
 }
 
-async function getFanVideoFeedBase(teamId: string, playerIds: string[]) {
+async function getFanVideoFeedBase(teamId: string, playerIds: string[], limit?: number) {
   return fromSupabase(async () => {
     const supabase = createSupabaseServerClient();
+    const teamVideosQuery = supabase
+      .from("team_videos")
+      .select("*")
+      .eq("team_id", teamId)
+      .order("published_at", { ascending: false, nullsFirst: false });
+    const playerVideosQuery = supabase
+      .from("player_videos")
+      .select("*")
+      .eq("team_id", teamId)
+      .in("player_id", playerIds)
+      .order("published_at", { ascending: false, nullsFirst: false });
     const [teamVideosResult, playerVideosResult] = await Promise.all([
-      supabase
-        .from("team_videos")
-        .select("*")
-        .eq("team_id", teamId)
-        .order("published_at", { ascending: false, nullsFirst: false }),
+      limit ? teamVideosQuery.limit(limit) : teamVideosQuery,
       playerIds.length === 0
         ? Promise.resolve({ data: [], error: null })
-        : supabase
-            .from("player_videos")
-            .select("*")
-            .eq("team_id", teamId)
-            .in("player_id", playerIds)
-            .order("published_at", { ascending: false, nullsFirst: false }),
+        : limit ? playerVideosQuery.limit(limit) : playerVideosQuery,
     ]);
 
     if (teamVideosResult.error) {
@@ -2001,26 +2003,29 @@ function mapPlayerSocialPost(row: PlayerSocialPostRow): PlayerSocialPost {
 async function getTeamInstagramFeedBase(
   teamId: string,
   playerIds: string[],
+  limit?: number,
 ): Promise<{ teamPosts: TeamSocialPost[]; playerPosts: PlayerSocialPost[] }> {
   return fromSupabase(async () => {
     const supabase = createSupabaseServerClient();
+    const teamPostsQuery = supabase
+      .from("team_social_posts")
+      .select("*")
+      .eq("team_id", teamId)
+      .eq("platform", "instagram")
+      .order("published_at", { ascending: false, nullsFirst: false });
+    const playerPostsQuery = supabase
+      .from("player_social_posts")
+      .select("*")
+      .eq("team_id", teamId)
+      .in("player_id", playerIds)
+      .eq("platform", "instagram")
+      .order("posted_at", { ascending: false, nullsFirst: false });
 
     const [teamResult, playerResult] = await Promise.all([
-      supabase
-        .from("team_social_posts")
-        .select("*")
-        .eq("team_id", teamId)
-        .eq("platform", "instagram")
-        .order("published_at", { ascending: false, nullsFirst: false }),
+      limit ? teamPostsQuery.limit(limit) : teamPostsQuery,
       playerIds.length === 0
         ? Promise.resolve({ data: [], error: null })
-        : supabase
-            .from("player_social_posts")
-            .select("*")
-            .eq("team_id", teamId)
-            .in("player_id", playerIds)
-            .eq("platform", "instagram")
-            .order("posted_at", { ascending: false, nullsFirst: false }),
+        : limit ? playerPostsQuery.limit(limit) : playerPostsQuery,
     ]);
 
     if (teamResult.error) throw teamResult.error;

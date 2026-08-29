@@ -40,6 +40,7 @@ import { siteBaseUrl } from "@/lib/site";
 import type { Match, Player, Team } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
+const FEED_PREVIEW_LIMIT = 12;
 
 export async function generateMetadata({ params }: { params: Promise<{ teamSlug: string }> }): Promise<Metadata> {
   const { teamSlug } = await params;
@@ -221,8 +222,8 @@ export default async function FanHomePage({
   const playerIds = teamPlayers.map((p) => p.id);
 
   const [instagramFeed, videoFeed] = await Promise.all([
-    getTeamInstagramFeed(team.id, playerIds),
-    getFanVideoFeed(team.id, playerIds),
+    getTeamInstagramFeed(team.id, playerIds, FEED_PREVIEW_LIMIT),
+    getFanVideoFeed(team.id, playerIds, FEED_PREVIEW_LIMIT),
   ]);
 
   const teamMatches = matches
@@ -268,7 +269,7 @@ export default async function FanHomePage({
     players: teamPlayers,
     teamVideos: videoFeed.teamVideos,
     playerVideos: videoFeed.playerVideos,
-  });
+  }).slice(0, FEED_PREVIEW_LIMIT);
   const feedInsta: FeedInstaItem[] = [
     ...instagramFeed.teamPosts.map((p) => ({
       id: `team-${p.id}`,
@@ -287,7 +288,7 @@ export default async function FanHomePage({
       postedAt: p.postedAt,
       likesCount: p.likesCount,
     })),
-  ].sort((a, b) => (b.postedAt ? new Date(b.postedAt).getTime() : 0) - (a.postedAt ? new Date(a.postedAt).getTime() : 0));
+  ].sort((a, b) => (b.postedAt ? new Date(b.postedAt).getTime() : 0) - (a.postedAt ? new Date(a.postedAt).getTime() : 0)).slice(0, FEED_PREVIEW_LIMIT);
   const featuredBoardPosts = selectCommunityHomePosts(popularBoardPosts, latestBoardPosts);
   const communityTitle = communityHomeSectionTitle(featuredBoardPosts);
 

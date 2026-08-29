@@ -1,5 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { getAllPlayers, getAllTeams, getMatches, getTournaments } from "@/lib/data/lck";
+import type { Match, Player, Team, Tournament } from "@/lib/types";
 import { matchHref } from "@/lib/view-data";
 
 /**
@@ -28,6 +29,68 @@ export type HomePomEntry = {
 
 const HOME_POM_LIMIT = 10;
 
+export const getHomePomPlayers = unstable_cache(
+  getAllPlayers,
+  ["home-pom-players"],
+  { revalidate: 300, tags: [HOME_POM_TAG] },
+);
+
+export function buildHomePomEntries({
+  matches,
+  players,
+  teams,
+  tournaments,
+}: {
+  matches: Match[];
+  players: Player[];
+  teams: Team[];
+  tournaments: Tournament[];
+}): HomePomEntry[] {
+  const playersById = new Map(players.map((player) => [player.id, player]));
+  const teamsById = new Map(teams.map((team) => [team.id, team]));
+  const tournamentNamesById = new Map(tournaments.map((tournament) => [tournament.id, tournament.name]));
+
+  const entries: HomePomEntry[] = [];
+  const recentCompleted = matches
+    .filter((match) => match.status === "completed" && match.officialPomPlayerId)
+    .sort((a, b) => new Date(b.matchDate).getTime() - new Date(a.matchDate).getTime());
+
+  for (const match of recentCompleted) {
+    if (entries.length >= HOME_POM_LIMIT) break;
+
+    const player = playersById.get(match.officialPomPlayerId!);
+    if (!player) continue;
+
+    // 선수의 현재 소속팀이 아니라 그 경기에서 뛴 팀을 보여줘야 맞지만, 매치 단위
+    // 로스터가 없어 현재 소속팀으로 대신한다. 이적 직후에는 어긋날 수 있다.
+    const team = teamsById.get(player.teamId);
+    const isTeamA = match.teamAId === player.teamId;
+    const opponentId = isTeamA ? match.teamBId : match.teamAId;
+
+    const ownScore = isTeamA ? match.teamAScore : match.teamBScore;
+    const opponentScore = isTeamA ? match.teamBScore : match.teamAScore;
+    const scoreLabel = ownScore != null && opponentScore != null ? `${ownScore}:${opponentScore}` : null;
+
+    entries.push({
+      matchId: match.id,
+      href: matchHref(match),
+      matchDate: match.matchDate,
+      playerSlug: player.slug,
+      playerName: player.name,
+      playerImageUrl: player.profileImageUrl,
+      position: player.position,
+      teamShortName: team?.shortName ?? "",
+      teamLogoUrl: team?.logoUrl ?? null,
+      teamPrimaryColor: team?.primaryColor ?? null,
+      opponentShortName: teamsById.get(opponentId)?.shortName ?? "",
+      tournamentName: tournamentNamesById.get(match.tournamentId) ?? "",
+      scoreLabel,
+    });
+  }
+
+  return entries;
+}
+
 /**
  * 최근 POM(공식 MVP) 선수 목록.
  *
@@ -47,52 +110,7 @@ export const getHomePomEntries = unstable_cache(
       getTournaments(),
     ]);
 
-    const playersById = new Map(players.map((player) => [player.id, player]));
-    const teamsById = new Map(teams.map((team) => [team.id, team]));
-    const tournamentNamesById = new Map(tournaments.map((tournament) => [tournament.id, tournament.name]));
-
-    const entries: HomePomEntry[] = [];
-    const recentCompleted = matches
-      .filter((match) => match.status === "completed" && match.officialPomPlayerId)
-      .sort((a, b) => new Date(b.matchDate).getTime() - new Date(a.matchDate).getTime());
-
-    for (const match of recentCompleted) {
-      if (entries.length >= HOME_POM_LIMIT) break;
-
-      const player = playersById.get(match.officialPomPlayerId!);
-      if (!player) continue;
-
-      // 선수의 현재 소속팀이 아니라 그 경기에서 뛴 팀을 보여줘야 맞지만, 매치 단위
-      // 로스터가 없어 현재 소속팀으로 대신한다. 이적 직후에는 어긋날 수 있다.
-      const team = teamsById.get(player.teamId);
-      const isTeamA = match.teamAId === player.teamId;
-      const opponentId = isTeamA ? match.teamBId : match.teamAId;
-
-      // 스코어는 POM 선수 팀을 앞에 둔다(카드에서 팀명 순서와 맞춘다).
-      const ownScore = isTeamA ? match.teamAScore : match.teamBScore;
-      const opponentScore = isTeamA ? match.teamBScore : match.teamAScore;
-      const scoreLabel =
-        ownScore != null && opponentScore != null ? `${ownScore}:${opponentScore}` : null;
-
-      entries.push({
-        matchId: match.id,
-        href: matchHref(match),
-        matchDate: match.matchDate,
-        playerSlug: player.slug,
-        playerName: player.name,
-        playerImageUrl: player.profileImageUrl,
-        position: player.position,
-        teamShortName: team?.shortName ?? "",
-        teamLogoUrl: team?.logoUrl ?? null,
-        teamPrimaryColor: team?.primaryColor ?? null,
-        opponentShortName: teamsById.get(opponentId)?.shortName ?? "",
-        tournamentName: tournamentNamesById.get(match.tournamentId) ?? "",
-        scoreLabel,
-      });
-    }
-
-    // 캐시에는 원본 행이 아니라 위에서 추린 10건만 담는다(unstable_cache 2MB 한도).
-    return entries;
+    return buildHomePomEntries({ matches, players, teams, tournaments });
   },
   ["home-pom-entries"],
   { revalidate: 300, tags: [HOME_POM_TAG] },
