@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { RefreshCw, Sword } from "lucide-react";
 
-import type { LiveMatchEvent, LiveMatchResponse } from "@/app/api/matches/[matchId]/live/route";
+import type { LiveMatchEvent, LiveMatchResponse, LiveSeriesScore } from "@/app/api/matches/[matchId]/live/route";
 import { TeamLogo } from "@/components/ui/team-logo";
 import { championCatalogEntries, normalizeChampionKey } from "@/lib/champions";
 import { OBJECTIVE_ICONS } from "@/lib/objectives";
@@ -181,6 +181,7 @@ function ObjectiveRow({ event, teamOf }: { event: LiveMatchEvent; teamOf: (teamI
 export function LiveMatchFeed({ matchId, teamA, teamB }: { matchId: string; teamA?: Team; teamB?: Team }) {
   const [status, setStatus] = useState<LiveMatchResponse["status"] | "loading">("loading");
   const [events, setEvents] = useState<LiveMatchEvent[]>([]);
+  const [series, setSeries] = useState<LiveSeriesScore | null>(null);
   const [clock, setClock] = useState<number | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   // 새로고침 버튼을 누르면 이 값을 올려서 아래 effect를 다시 실행시킨다 — 기존
@@ -197,6 +198,8 @@ export function LiveMatchFeed({ matchId, teamA, teamB }: { matchId: string; team
         if (cancelled) return;
 
         setStatus(data.status);
+        // 세트 스코어는 매 폴링마다 갱신 — 세트가 끝나면 다음 폴링(최대 10초) 안에 반영된다.
+        if ("series" in data && data.series) setSeries(data.series);
         // 이벤트 목록은 서버(DB)가 게임 시작부터 쌓아온 걸 그대로 내려주므로, 클라이언트는
         // diff 계산 없이 받은 그대로 반영하면 된다 — 늦게 들어온 시청자도 처음부터 보인다.
         if (data.status === "live") setClock(data.durationSeconds);
@@ -233,6 +236,9 @@ export function LiveMatchFeed({ matchId, teamA, teamB }: { matchId: string; team
     return undefined;
   };
 
+  // 세트가 한 번이라도 끝났으면(=시리즈 스코어 합 > 0) 세트 사이 공백 문구를 다르게 보여준다.
+  const seriesStarted = Boolean(series && series.teamAWins + series.teamBWins > 0);
+
   return (
     <section aria-label="실시간 경기 피드">
       <div className="mb-3 flex min-h-8 items-center justify-between px-1">
@@ -244,7 +250,7 @@ export function LiveMatchFeed({ matchId, teamA, teamB }: { matchId: string; team
         ) : (
           <span className="text-[13px] font-medium text-[var(--ui-muted)]">
             {status === "loading" ? "불러오는 중..." :
-              status === "not_started" ? "경기 시작 전입니다" :
+              status === "not_started" ? (seriesStarted ? "다음 세트 준비 중" : "경기 시작 전입니다") :
               status === "ended" ? "게임이 진행 중이지 않습니다" :
               "실시간 데이터를 가져올 수 없습니다"}
           </span>

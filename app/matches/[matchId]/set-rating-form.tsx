@@ -1,11 +1,12 @@
 "use client";
 
-import { useRef, useState, useTransition, type FormEvent, type FormEventHandler } from "react";
+import { useEffect, useRef, useState, useTransition, type FormEvent, type FormEventHandler } from "react";
 import Link from "next/link";
 import { Star } from "lucide-react";
 
 import { DialogSheetHeader } from "@/components/responsive/adaptive-dialog";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/toast";
 
 import { submitSetPlayerRatingAction } from "./actions";
 
@@ -226,20 +227,26 @@ export function SetRatingForm({
   playerOptions: RatingPlayerOption[];
 }) {
   const formRef = useRef<HTMLFormElement>(null);
+  const { showToast } = useToast();
   const [isPending, startTransition] = useTransition();
-  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const [selectedPlayerId, setSelectedPlayerId] = useState("");
   const [selectedRating, setSelectedRating] = useState<number | null>(null);
   const [review, setReview] = useState("");
   const [mobileComposerOpen, setMobileComposerOpen] = useState(false);
+  // 모바일 시트(.modal-backdrop 포함)는 데스크탑에선 DOM에 넣지 않는다.
+  // globals.css 의 `html:has(.modal-backdrop) { overflow: hidden }` 는 :has() 특성상
+  // display:none 인 요소도 매칭해, sm:hidden 로만 숨기면 데스크탑에서 스크롤이 잠긴다.
+  const [isSmallScreen, setIsSmallScreen] = useState(false);
+  useEffect(() => {
+    const query = window.matchMedia("(max-width: 639px)");
+    const sync = () => setIsSmallScreen(query.matches);
+    sync();
+    query.addEventListener("change", sync);
+    return () => query.removeEventListener("change", sync);
+  }, []);
   const selectedPlayer = playerOptions.find((player) => player.value === selectedPlayerId);
   const disabled = !ratingOpen || !isLoggedIn || playerOptions.length === 0 || isPending;
   const canSubmit = !disabled && selectedPlayerId !== "" && selectedRating != null;
-
-  function showToast(message: string, type: "success" | "error") {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 3000);
-  }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -249,33 +256,20 @@ export function SetRatingForm({
     startTransition(async () => {
       const result = await submitSetPlayerRatingAction(formData);
       if (result.ok) {
-        showToast("평점이 제출되었습니다!", "success");
+        showToast({ title: "평점이 제출되었습니다!", tone: "success" });
         formRef.current?.reset();
         setSelectedPlayerId("");
         setSelectedRating(null);
         setReview("");
         setMobileComposerOpen(false);
       } else {
-        showToast(result.error ?? "평점 제출에 실패했습니다.", "error");
+        showToast({ title: result.error ?? "평점 제출에 실패했습니다.", tone: "error" });
       }
     });
   }
 
   return (
     <form ref={formRef} onSubmit={handleSubmit} className="relative flex flex-col gap-4">
-      {toast ? (
-        <div className="pointer-events-none absolute -top-3 left-0 right-0 z-10 flex -translate-y-full justify-center">
-          <span
-            className={`rounded-full px-4 py-1.5 text-[15px] font-bold shadow-lg ${
-              toast.type === "success"
-                ? "bg-emerald-600 text-white"
-                : "bg-red-600 text-white"
-            }`}
-          >
-            {toast.message}
-          </span>
-        </div>
-      ) : null}
       <input type="hidden" name="matchId" value={matchId} />
       <input type="hidden" name="setId" value={setId} />
       <input type="hidden" name="playerId" value={selectedPlayerId} />
@@ -356,7 +350,7 @@ export function SetRatingForm({
         </div>
       </div>
 
-      {selectedPlayer && mobileComposerOpen ? (
+      {selectedPlayer && mobileComposerOpen && isSmallScreen ? (
         <div className="fixed inset-x-0 top-0 bottom-[var(--shell-bottom-nav-height)] z-50 flex items-end sm:hidden">
           <button
             type="button"

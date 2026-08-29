@@ -6,7 +6,6 @@ import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { siteBaseUrl } from "@/lib/site";
 
-import { MatchSpoilerGate } from "@/components/domain/match-spoiler-gate";
 import { PredictionMatchBar } from "@/components/domain/prediction-match-bar";
 import { SetVodPlayer } from "@/components/domain/set-vod-player";
 import { SegmentedControl, type TabItem } from "@/components/ui/tabs";
@@ -30,7 +29,7 @@ import {
 } from "@/lib/data/lck";
 import { championImage } from "@/lib/champions";
 import type { Champion, FanRating, Match, Player, PlayerStatLine, SetResult, Team } from "@/lib/types";
-import { isMatchFinished, isMatchLive, matchStatusLabel } from "@/lib/match-display";
+import { isMatchLive, matchStatusLabel } from "@/lib/match-display";
 import {
   getSetRatingStartedAt,
   isSetRatingOpen,
@@ -46,6 +45,7 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 import { getMatchAiPreview } from "@/lib/match-preview-ai";
 
 import { LiveMatchFeed } from "./live-match-feed";
+import { LiveMatchScoreBox } from "./live-match-score-box";
 import { MatchPreview } from "./match-preview";
 import { SetDetailContent } from "./set-detail-content";
 import { SetRatingForm } from "./set-rating-form";
@@ -63,10 +63,6 @@ const TAB_LABELS: Record<MatchTab, string> = {
 
 function setLabel(set: SetResult) {
   return `${set.setNumber}세트`;
-}
-
-function scoreLabel(score: number | null | undefined) {
-  return score ?? "-";
 }
 
 function CompactTeamBlock({
@@ -560,8 +556,10 @@ export default async function MatchDetailPage({
   const embedUrl = youtubeEmbedUrl(match.vodUrl);
   return (
     <main className="layout-wide match-detail-page flex flex-col gap-5 pb-12 pt-5 text-[var(--ui-text)]">
-      <MatchSpoilerGate matchId={match.id} finished={isMatchFinished(match)} teamALabel={teamAName} teamBLabel={teamBName}>
       {/*
+        스포일러 게이트는 목록/홈처럼 무심코 점수를 보게 되는 화면용이다. 특정 매치 상세로
+        직접 들어온 사용자는 그 결과를 보려고 온 것이므로 여기서는 가리지 않고 바로 보여준다.
+
         페이지 제목 역할까지 이 카드가 겸한다. 별도 PageHeader를 두면 팀명이 카드와 그대로
         겹치고, 남는 건 400 weight 한 줄뿐이라 아래 스코어에 눌려 헤더가 없느니만 못했다.
       */}
@@ -590,9 +588,15 @@ export default async function MatchDetailPage({
               {hasScore ? (
                 <>
                   <div className="flex items-center gap-2 rounded-xl bg-[var(--ui-ink)] px-3.5 py-2 text-[25px] font-black leading-none text-[var(--ui-surface)] shadow-sm tabular-nums sm:text-[30px]">
-                    <span className={teamAResult === "LOSS" ? "opacity-45" : ""}>{scoreLabel(match.teamAScore)}</span>
-                    <span className="text-xs font-medium opacity-40">:</span>
-                    <span className={teamBResult === "LOSS" ? "opacity-45" : ""}>{scoreLabel(match.teamBScore)}</span>
+                    <LiveMatchScoreBox
+                      key={match.id}
+                      matchId={match.id}
+                      initialTeamAScore={match.teamAScore}
+                      initialTeamBScore={match.teamBScore}
+                      teamALoser={teamAResult === "LOSS"}
+                      teamBLoser={teamBResult === "LOSS"}
+                      poll={match.status !== "completed"}
+                    />
                   </div>
                   <span className="mt-1 text-[13px] font-medium text-[var(--ui-muted)]">{formatDateTime(match.matchDate)}</span>
                 </>
@@ -690,7 +694,6 @@ export default async function MatchDetailPage({
       ) : null}
 
       <AdSlot placement="horizontal" className="hidden h-[60px] md:block xl:h-[90px]" />
-      </MatchSpoilerGate>
     </main>
   );
 }

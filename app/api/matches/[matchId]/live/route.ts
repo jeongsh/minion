@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { getAllTeams, getMatchById } from "@/lib/data/lck";
 import { fetchLolesportsGameData, LiveGameUnavailableError } from "@/lib/lolesports-game-data";
 import { fetchTrackedLolesportsEvents } from "@/lib/lolesports";
-import { findLolesportsMatch } from "@/lib/lolesports-match-matcher";
+import { findLolesportsMatch, type AlignedLolesportsMatch } from "@/lib/lolesports-match-matcher";
 import { sendMatchEventPushNotifications } from "@/lib/notify/match-event-push";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -50,11 +50,14 @@ export type LiveMatchEvent = {
   dragonType: string | null;
 };
 
+/** 시리즈(BO) 스코어 = 팀별 세트 승수. teamA/teamB 는 우리 DB 매치의 team_a/team_b 순서. */
+export type LiveSeriesScore = { teamAWins: number; teamBWins: number };
+
 export type LiveMatchResponse =
   | { status: "not_found" }
-  | { status: "unavailable" }
-  | { status: "not_started"; events: LiveMatchEvent[] }
-  | { status: "ended"; events: LiveMatchEvent[] }
+  | { status: "unavailable"; series?: LiveSeriesScore }
+  | { status: "not_started"; events: LiveMatchEvent[]; series: LiveSeriesScore }
+  | { status: "ended"; events: LiveMatchEvent[]; series: LiveSeriesScore }
   | {
       status: "live";
       durationSeconds: number | null;
@@ -62,7 +65,20 @@ export type LiveMatchResponse =
       red: LiveSideSummary;
       participants: LiveMatchParticipant[];
       events: LiveMatchEvent[];
+      series: LiveSeriesScore;
     };
+
+/**
+ * 시리즈 스코어. 스케줄 API 정합 결과(aligned)가 있으면 그 실시간 값을,
+ * 없으면 우리 DB 매치 점수를 쓴다(자동 리컨사일이 세트 종료마다 갱신).
+ */
+function seriesOf(
+  match: { teamAScore: number | null; teamBScore: number | null },
+  aligned?: AlignedLolesportsMatch | null,
+): LiveSeriesScore {
+  if (aligned) return { teamAWins: aligned.teamAScore, teamBWins: aligned.teamBScore };
+  return { teamAWins: match.teamAScore ?? 0, teamBWins: match.teamBScore ?? 0 };
+}
 
 type CursorRow = {
   match_id: string;
@@ -312,21 +328,21 @@ export async function GET(
       await insertEndMarker(supabase, match.id, cursorRow);
       await supabase.from("live_match_cursors").delete().eq("match_id", match.id);
       const events = await loadEvents(supabase, match.id);
-      return NextResponse.json({ status: "ended", events });
+      return NextResponse.json({ status: "ended", events, series: seriesOf(match) });
     }
 
     await supabase.from("live_match_events").delete().eq("match_id", match.id);
-    return NextResponse.json({ status: "ended", events: [] });
+    return NextResponse.json({ status: "ended", events: [], series: seriesOf(match) });
   }
 
   const teams = await getAllTeams();
   const teamA = teams.find((team) => team.id === match.teamAId);
   const teamB = teams.find((team) => team.id === match.teamBId);
-  if (!teamA || !teamB) return NextResponse.json({ status: "unavailable" });
+  if (!teamA || !teamB) return NextResponse.json({ status: "unavailable", series: seriesOf(match) });
 
   try {
     const matchDate = new Date(match.matchDate);
-    if (Number.isNaN(matchDate.getTime())) return NextResponse.json({ status: "unavailable" });
+    if (Number.isNaN(matchDate.getTime())) return NextResponse.json({ status: "unavailable", series: seriesOf(match) });
 
     const scheduleEvents = await fetchTrackedLolesportsEvents({
       start: new Date(matchDate.getTime() - 3 * 60 * 60 * 1000),
@@ -343,7 +359,7 @@ export async function GET(
       },
       scheduleEvents,
     );
-    if (!aligned) return NextResponse.json({ status: "unavailable" });
+    if (!aligned) return NextResponse.json({ status: "unavailable", series: seriesOf(match) });
 
     const liveGame = aligned.event.match?.games?.find((game) => game?.state === "inProgress");
     const liveGameId = liveGame?.id;
@@ -361,7 +377,7 @@ export async function GET(
       // "게임 ID가 바뀌었다"는 걸 감지해 그때 비로소 정리할 수 있게 한다.
       if (cursorRow) await insertEndMarker(supabase, match.id, cursorRow);
       const events = await loadEvents(supabase, match.id);
-      return NextResponse.json({ status: aligned.state === "completed" ? "ended" : "not_started", events });
+      return NextResponse.json({ status: aligned.state === "completed" ? "ended" : "not_started", events, series: seriesOf(match, aligned) });
     }
 
     let gameData;
@@ -375,7 +391,7 @@ export async function GET(
       if (error instanceof LiveGameUnavailableError) {
         if (cursorRow) await insertEndMarker(supabase, match.id, cursorRow);
         const events = await loadEvents(supabase, match.id);
-        return NextResponse.json({ status: aligned.state === "completed" ? "ended" : "not_started", events });
+        return NextResponse.json({ status: aligned.state === "completed" ? "ended" : "not_started", events, series: seriesOf(match, aligned) });
       }
       throw error;
     }
@@ -385,9 +401,11 @@ export async function GET(
     // 라이엇 라이브 스탯이 몇 초간 아직 안 올라와 요청이 실패하는 일이 흔한데 그때
     // catch로 빠지면서 이전 세트 기록만 날리고 아무것도 새로 못 채우는 사고가 난다 —
     // 실제로 이 경합 때문에 넥서스가 부서지는 마지막 순간이 통째로 유실된 적이 있었다.
+    // 이전 세트의 "경기 종료" 마커는 여기서 다시 넣지 않는다 — 그건 세트가 끝났을 때
+    // (!liveGameId 분기)에 이미 보여줬고, 지금은 새 세트가 라이브라 이전 세트 마커가
+    // 남아 있으면 진행 중인 세트 타임라인에 뜬금없이 "경기 종료"가 박혀 보인다.
     if (cursorRow && cursorRow.lolesports_game_id !== liveGameId) {
       await supabase.from("live_match_events").delete().eq("match_id", match.id);
-      await insertEndMarker(supabase, match.id, cursorRow);
       cursorRow = null;
     }
 
@@ -481,8 +499,9 @@ export async function GET(
       red,
       participants,
       events,
+      series: seriesOf(match, aligned),
     });
   } catch {
-    return NextResponse.json({ status: "unavailable" });
+    return NextResponse.json({ status: "unavailable", series: seriesOf(match) });
   }
 }

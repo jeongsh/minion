@@ -11,7 +11,6 @@ import { MatchPlayerStatTable } from '@/components/matches/match-player-stat-tab
 import { MatchPreviewTab } from '@/components/matches/match-preview-tab';
 import { MatchRatingTab } from '@/components/matches/match-rating-tab';
 import { MatchSetSelector } from '@/components/matches/match-set-selector';
-import { MatchSpoilerGate } from '@/components/matches/match-spoiler-gate';
 import { MatchTabNav, type MatchTabKey } from '@/components/matches/match-tab-nav';
 import { MatchVideoTab } from '@/components/matches/match-video-tab';
 import { SetTimelineSection } from '@/components/matches/set-timeline-section';
@@ -19,7 +18,6 @@ import { MinionScreen } from '@/components/minion-screen';
 import { useCachedQuery } from '@/hooks/use-cached-query';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import { mobileApiOrigin, type MobileMatchDetailDto } from '@/lib/api-client';
-import { isMatchFinished } from '@/lib/schedule-dates';
 
 const COLLAPSIBLE_HEADER_HEIGHT = 56;
 
@@ -101,11 +99,10 @@ export default function MatchDetailScreen() {
       stickyHeader={setSelectorVisible ? <MatchSetSelector activeSetId={activeSetId} onSelect={setSelectedSetId} sets={data.sets} snapshotUrl={snapshotUrl} /> : undefined}
       stickyHeaderReserveSpace={false}
       stickyHeaderVisible={stickySetSelectorVisible}>
-      <MatchSpoilerGate
-        finished={isMatchFinished(data.match)}
-        matchId={data.match.id}
-        teamALabel={data.match.teamA?.shortName ?? data.match.teamA?.name ?? 'TBD'}
-        teamBLabel={data.match.teamB?.shortName ?? data.match.teamB?.name ?? 'TBD'}>
+      {/*
+        스포일러 게이트는 목록/홈처럼 무심코 점수를 보게 되는 화면용이다. 특정 매치 상세로
+        직접 들어온 사용자는 그 결과를 보려고 온 것이므로 여기서는 가리지 않고 바로 보여준다.
+      */}
       <View style={styles.topBlock}>
         <MatchHeader header={data.header} match={data.match} />
         <MatchTabNav activeTab={activeTab} availableTabs={availableTabs} onSelect={setActiveTab} />
@@ -144,7 +141,6 @@ export default function MatchDetailScreen() {
       ) : null}
 
       {activeTab === 'video' ? <MatchVideoTab matchName={data.match.name} matchVodUrl={data.matchVodUrl} vods={data.vods} /> : null}
-      </MatchSpoilerGate>
     </MinionScreen>
   );
 }
