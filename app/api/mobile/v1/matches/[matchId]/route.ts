@@ -86,7 +86,7 @@ export async function GET(request: Request, context: { params: Promise<{ matchId
     getSetsByMatchId(match.id),
     getMatchVodsByMatchId(match.id),
     getFanRatingsByMatchId(match.id),
-    getPredictionMarketData(),
+    getPredictionMarketData(undefined, match.id),
     getMatches(),
     getSets(),
   ]);

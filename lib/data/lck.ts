@@ -115,6 +115,9 @@ const TEAM_STANDING_COLUMNS =
   "id, tournament_id, team_id, rank, wins, losses, set_diff, win_rate, kda, kills, deaths, assists";
 const PLAYER_CAREER_HISTORY_COLUMNS =
   "id, player_id, team_id, team_name, position, start_date, end_date, notes";
+// mapMatch 가 읽는 컬럼만. created_at / vod_thumbnail_url / start_notification_sent_at 등 내부용은 제외.
+const MATCH_COLUMNS =
+  "id, tournament_id, stage_id, name, match_date, status, team_a_id, team_b_id, team_a_score, team_b_score, best_of, winner_team_id, official_pom_player_id, leaguepedia_match_id, lolesports_match_id, venue, vod_url, bracket_side, bracket_order, advances_to_match_id, group_index";
 
 type ChampionRow = {
   id: string;
@@ -1111,7 +1114,7 @@ async function getMatchesBase() {
   return fromSupabase(async () => {
     const { data, error } = await createSupabaseServerClient()
       .from("matches")
-      .select("*")
+      .select(MATCH_COLUMNS)
       .order("match_date", { ascending: true });
 
     if (error) {
@@ -1132,30 +1135,27 @@ async function getMatchByIdBase(matchId: string) {
 
   return fromSupabase(async () => {
     const supabase = createSupabaseServerClient();
-    const byId = isUuid
-      ? supabase.from("matches").select("*").eq("id", decodedMatchId).maybeSingle()
-      : Promise.resolve({ data: null, error: null });
-    const byLeaguepediaId = supabase
-      .from("matches")
-      .select("*")
-      .eq("leaguepedia_match_id", decodedMatchId)
-      .maybeSingle();
-    const byLolesportsId = supabase
-      .from("matches")
-      .select("*")
-      .eq("lolesports_match_id", decodedMatchId)
-      .maybeSingle();
 
-    const [idResult, leaguepediaResult, lolesportsResult] = await Promise.all([
-      byId,
-      byLeaguepediaId,
-      byLolesportsId,
+    // 대부분의 링크는 내부 UUID를 쓴다. UUID면 그 조회를 먼저 시도하고, 맞으면
+    // 원본 ID 조회 2건은 건너뛴다.
+    if (isUuid) {
+      const idResult = await supabase
+        .from("matches")
+        .select(MATCH_COLUMNS)
+        .eq("id", decodedMatchId)
+        .maybeSingle();
+      if (idResult.error) throw idResult.error;
+      if (idResult.data) return mapMatch(idResult.data as MatchRow);
+    }
+
+    const [leaguepediaResult, lolesportsResult] = await Promise.all([
+      supabase.from("matches").select(MATCH_COLUMNS).eq("leaguepedia_match_id", decodedMatchId).maybeSingle(),
+      supabase.from("matches").select(MATCH_COLUMNS).eq("lolesports_match_id", decodedMatchId).maybeSingle(),
     ]);
-    if (idResult.error) throw idResult.error;
     if (leaguepediaResult.error) throw leaguepediaResult.error;
     if (lolesportsResult.error) throw lolesportsResult.error;
 
-    const row = idResult.data ?? leaguepediaResult.data ?? lolesportsResult.data;
+    const row = leaguepediaResult.data ?? lolesportsResult.data;
     return row ? mapMatch(row as MatchRow) : undefined;
   }, undefined);
 }

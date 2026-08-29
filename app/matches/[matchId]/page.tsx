@@ -478,7 +478,7 @@ export default async function MatchDetailPage({
     getAllPlayers(),
     getSetsByMatchId(match.id),
     getFanRatingsByMatchId(match.id),
-    getPredictionMarketData(currentUser?.id),
+    getPredictionMarketData(currentUser?.id, match.id),
     getTournaments(),
     getStages(),
     getMatchVodsByMatchId(match.id),
@@ -489,16 +489,18 @@ export default async function MatchDetailPage({
     requestedSet ??
     matchSets.find((set) => set.setNumber === 1) ??
     matchSets[0];
-  const matchPlayerStatLines =
-    matchSets.length > 0
-      ? await getPlayerStatLines(matchSets.map((set) => set.id))
-      : [];
   const defaultTab: MatchTab = defaultSet ? "data" : "preview";
   const activeTab = normalizeTab(query.tab, defaultTab);
   const activeSet = requestedSet ?? defaultSet;
-  const fanRatingReactionStates = currentUser
-    ? await getFanRatingReactionStates(fanRatings.map((rating) => rating.id), currentUser.id)
-    : {};
+  // 아래 둘은 "rating" 탭에서만 쓰인다(MatchRatingPanel). 다른 탭에선 조회하지 않는다.
+  const matchPlayerStatLines =
+    activeTab === "rating" && matchSets.length > 0
+      ? await getPlayerStatLines(matchSets.map((set) => set.id))
+      : [];
+  const fanRatingReactionStates =
+    activeTab === "rating" && currentUser
+      ? await getFanRatingReactionStates(fanRatings.map((rating) => rating.id), currentUser.id)
+      : {};
   const tournament = tournaments.find((item) => item.id === match.tournamentId);
   const stage = stages.find((item) => item.id === match.stageId);
   const teamA = teams.find((team) => team.id === match.teamAId);
@@ -532,7 +534,7 @@ export default async function MatchDetailPage({
 
   const poll = (
     <section aria-label="LP 승부예측">
-      <PredictionMatchBar match={match} teamA={teamA} teamB={teamB} bets={predictionMarket.bets.filter((bet) => bet.matchId === match.id)} currentUserId={currentUser?.id} balance={predictionMarket.balance} now={now} />
+      <PredictionMatchBar match={match} teamA={teamA} teamB={teamB} bets={predictionMarket.bets} currentUserId={currentUser?.id} balance={predictionMarket.balance} now={now} />
     </section>
   );
   // "preview" 탭에서만 필요한 전체 매치/세트 히스토리는 그 탭일 때만 조회한다.

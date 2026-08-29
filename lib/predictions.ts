@@ -47,17 +47,27 @@ export function predictionMarketForMatch(bets: PredictionBet[], matchId: string,
   };
 }
 
-export const getPredictionMarketData = cache(async function getPredictionMarketData(userId?: string) {
+// matchId 를 넘기면 그 경기 베팅만 조회하고 전체 랭킹은 건너뛴다(매치 상세/모바일 매치
+// 라우트는 해당 경기 시장 정보만 쓴다). 미지정 시 전체 베팅 + 상위 랭킹까지 조회한다.
+export const getPredictionMarketData = cache(async function getPredictionMarketData(
+  userId?: string,
+  matchId?: string,
+) {
   const supabase = createSupabaseServerClient();
+  let betsQuery = supabase
+    .from("prediction_bets")
+    .select("id, user_id, match_id, team_id, stake, status");
+  if (matchId) betsQuery = betsQuery.eq("match_id", matchId);
+
   const [betsResult, rankingsResult, walletResult] = await Promise.all([
-    supabase
-      .from("prediction_bets")
-      .select("id, user_id, match_id, team_id, stake, status"),
-    supabase
-      .from("prediction_rankings")
-      .select("user_id, nickname, balance, profit, bet_count, win_count, rank")
-      .order("rank", { ascending: true })
-      .limit(10),
+    betsQuery,
+    matchId
+      ? Promise.resolve({ data: [], error: null })
+      : supabase
+          .from("prediction_rankings")
+          .select("user_id, nickname, balance, profit, bet_count, win_count, rank")
+          .order("rank", { ascending: true })
+          .limit(10),
     userId
       ? supabase.from("profiles").select("lp").eq("id", userId).maybeSingle()
       : Promise.resolve({ data: null, error: null }),

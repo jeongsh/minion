@@ -48,7 +48,10 @@ export default async function SchedulePage({
 }) {
   const params = await searchParams;
   const defaults = currentKSTMonthYear();
-  const activeMonth = params.month ? Number(params.month) : defaults.month;
+  const requestedMonth = params.month ? Number(params.month) : Number.NaN;
+  const activeMonth = Number.isInteger(requestedMonth) && requestedMonth >= 1 && requestedMonth <= 12
+    ? requestedMonth
+    : defaults.month;
   const activeSegment = parseSeasonSegment(params.segment);
   const activeTeam = params.team ?? "all";
 
