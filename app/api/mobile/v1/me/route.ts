@@ -2,7 +2,6 @@ import type { MobileMeDto, MobileNotificationPreferences } from "@/packages/cont
 import { getMobileAuth } from "@/lib/mobile/auth";
 import { mobileError, mobileSuccess } from "@/lib/mobile/api-response";
 import { resizeImageForWeb } from "@/lib/images/resize-for-web";
-import { recordLpEvent } from "@/lib/rank/record-lp";
 import { tierProgress, type Tier } from "@/lib/rank/config";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -189,10 +188,11 @@ export async function PATCH(request: Request) {
   if (!input) return mobileError("BAD_REQUEST", "요청 본문이 올바르지 않습니다.", 400);
   const { supabase, user } = auth;
   if (input.checkIn) {
-    const { error } = await supabase.from("attendance_checks").insert({ user_id: user.id });
-    if (error?.code === "23505") return mobileError("CONFLICT", "오늘 도장은 이미 콕 찍혀 있어요.", 409);
+    // attendance insert + LP 원장 + profiles 갱신을 단일 트랜잭션 함수로 처리(웹 checkInAction과 동일).
+    const { data: result, error } = await supabase.rpc("check_in");
     if (error) return mobileError("INTERNAL", "출석체크에 실패했습니다.", 500);
-    await recordLpEvent({ userId: user.id, reason: "attendance" });
+    if (result === "already") return mobileError("CONFLICT", "오늘 도장은 이미 콕 찍혀 있어요.", 409);
+    if (result !== "checked_in") return mobileError("INTERNAL", "출석체크에 실패했습니다.", 500);
   }
   if (input.passwordChange) {
     const providers = Array.isArray(user.app_metadata?.providers) ? user.app_metadata.providers as string[] : [];

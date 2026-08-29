@@ -1,10 +1,12 @@
 // 공유 seam: 랭크(LP) 트랙이 구현, 게시판 트랙이 호출한다.
-// LP 원장 기록 + profiles.lp 갱신(MIN_LP 미만 clamp) + 기본 티어 재계산.
+// LP 원장 기록 + profiles.lp 갱신(MIN_LP 미만 clamp) + 기본 티어 재계산을
+// record_lp_event(uuid,text,integer,uuid,uuid) SQL 함수 한 번의 호출로 위임한다.
+// 트랜잭션 원자성 + `lp + delta` 원자 갱신으로 부분 실패·동시 이벤트 delta 손실을 막는다.
 // 챌린저 50명 cap은 읽기 시 ranked_profiles 뷰에서 동적 계산하므로 여기선 base tier만 갱신.
 // 게시판 트랙은 이 시그니처에만 의존하므로 export 형태/타입은 유지한다.
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { LP_DELTAS, MIN_LP, baseTierForLp } from "@/lib/rank/config";
+import { LP_DELTAS } from "@/lib/rank/config";
 
 export type LpReason =
   | "attendance" // 출첵
@@ -46,32 +48,19 @@ export async function recordLpEvent(input: RecordLpInput): Promise<void> {
     return;
   }
 
-  // 대상 프로필 조회. 없으면 무시.
-  const { data: profile, error: profileError } = await admin
-    .from("profiles")
-    .select("id, lp")
-    .eq("id", userId)
-    .maybeSingle();
-
-  if (profileError || !profile) {
-    return;
-  }
-
-  const nextLp = Math.max(MIN_LP, profile.lp + delta);
-  const nextTier = baseTierForLp(nextLp);
-
-  // 원장 기록.
-  await admin.from("lp_ledger").insert({
-    user_id: userId,
-    reason,
-    delta,
-    post_id: postId ?? null,
-    comment_id: commentId ?? null,
+  // 원장 insert + profiles.lp/tier 갱신을 SQL 함수 한 번(단일 트랜잭션)으로 처리한다.
+  // 프로필이 없으면 함수가 조용히 무시한다(기존 동작 유지).
+  const { error } = await admin.rpc("record_lp_event", {
+    p_user_id: userId,
+    p_reason: reason,
+    p_delta: delta,
+    p_post_id: postId ?? null,
+    p_comment_id: commentId ?? null,
   });
 
-  // 프로필 LP/티어 갱신.
-  await admin
-    .from("profiles")
-    .update({ lp: nextLp, tier: nextTier })
-    .eq("id", userId);
+  // 호출부(글/댓글/좋아요 등)의 주 작업은 이미 성공한 상태라 여기서 throw 하지 않는다.
+  // 다만 조용히 삼키면 LP 누락을 추적할 수 없으므로 로그는 남긴다.
+  if (error) {
+    console.error("recordLpEvent failed", { userId, reason, error });
+  }
 }

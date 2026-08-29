@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useActionState, useEffect } from "react";
 
 import flag from "@/assets/characters/flag-3.png";
@@ -18,6 +19,7 @@ const CONFETTI_PARTICLES = [
 ];
 
 export function CheckInButton({ alreadyChecked }: { alreadyChecked: boolean }) {
+  const router = useRouter();
   const { showToast } = useToast();
   const [state, formAction, pending] = useActionState(
     checkInAction,
@@ -35,7 +37,9 @@ export function CheckInButton({ alreadyChecked }: { alreadyChecked: boolean }) {
       tone: "success",
       iconSrc: flag.src,
     });
-  }, [justChecked, showToast]);
+    // 서버 액션은 revalidate 없이 즉시 반환한다. LP/랭크 표시는 배경에서 갱신.
+    router.refresh();
+  }, [justChecked, showToast, router]);
 
   return (
     <form action={formAction} className="flex flex-col gap-2">

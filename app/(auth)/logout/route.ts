@@ -6,7 +6,8 @@ import { createSupabaseAuthClient } from "@/lib/supabase/auth-server";
 // 직접 호출(GET/POST)도 지원한다.
 async function handle(request: NextRequest) {
   const supabase = await createSupabaseAuthClient();
-  await supabase.auth.signOut();
+  // scope: "local" — 쿠키만 삭제(서버 액션 signOutAction과 동일). 전역 폐기 왕복 생략.
+  await supabase.auth.signOut({ scope: "local" });
   return NextResponse.redirect(new URL("/", request.url));
 }
 

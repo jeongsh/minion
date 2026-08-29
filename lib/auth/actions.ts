@@ -14,7 +14,6 @@ import { DELETE_ACCOUNT_CONFIRM_TEXT } from "@/lib/auth/action-state";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { safeOnboardingNext } from "@/lib/auth/onboarding";
 import { resizeImageForWeb } from "@/lib/images/resize-for-web";
-import { recordLpEvent } from "@/lib/rank/record-lp";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseAuthClient } from "@/lib/supabase/auth-server";
 import { POLICY_VERSION, siteBaseUrl } from "@/lib/site";
@@ -435,7 +434,8 @@ export async function deleteAccountAction(
 
 export async function signOutAction(): Promise<void> {
   const supabase = await createSupabaseAuthClient();
-  await supabase.auth.signOut();
+  // scope: "local" — 쿠키만 삭제하고 GoTrue로의 전역 토큰 폐기 왕복을 생략(프로덕션 체감 지연의 주원인).
+  await supabase.auth.signOut({ scope: "local" });
   revalidatePath("/", "layout");
   redirect("/");
 }
@@ -452,19 +452,23 @@ export async function checkInAction(
     return { status: "unauthenticated", message: "로그인이 필요합니다." };
   }
 
-  const { error } = await supabase
-    .from("attendance_checks")
-    .insert({ user_id: user.id });
+  // attendance insert + LP 원장 + profiles 갱신을 단일 트랜잭션 함수로 처리한다.
+  // (예전엔 attendance 를 먼저 커밋하고 recordLpEvent 를 따로 호출해서, 후자가 실패하면
+  //  "출석은 됐는데 LP 는 안 들어온" 상태가 남았다. 하루 1회 제약이라 재시도도 불가.)
+  const { data: result, error } = await supabase.rpc("check_in");
 
   if (error) {
-    if (error.code === "23505") {
-      return { status: "already", message: "오늘 도장은 이미 콕 찍혀 있어요." };
-    }
+    return { status: "error", message: "출석체크에 실패했습니다." };
+  }
+  if (result === "already") {
+    return { status: "already", message: "오늘 도장은 이미 콕 찍혀 있어요." };
+  }
+  if (result !== "checked_in") {
     return { status: "error", message: "출석체크에 실패했습니다." };
   }
 
-  await recordLpEvent({ userId: user.id, reason: "attendance" });
-
-  revalidatePath("/me");
+  // revalidatePath("/me")를 여기서 하면 useActionState의 pending이 /me 전체
+  // 재렌더(랭크·알림·차단목록 재조회)를 기다리느라 버튼이 오래 묶인다.
+  // 대신 클라이언트(CheckInButton)가 성공 후 router.refresh()로 배경 갱신한다.
   return { status: "success", message: "출석 도장 쾅! +100 LP" };
 }
