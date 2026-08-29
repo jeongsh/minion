@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition, type FormEvent, type FormEventHandler } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Star } from "lucide-react";
 
 import { DialogSheetHeader } from "@/components/responsive/adaptive-dialog";
@@ -227,12 +228,21 @@ export function SetRatingForm({
   playerOptions: RatingPlayerOption[];
 }) {
   const formRef = useRef<HTMLFormElement>(null);
+  const router = useRouter();
   const { showToast } = useToast();
   const [isPending, startTransition] = useTransition();
   const [selectedPlayerId, setSelectedPlayerId] = useState("");
   const [selectedRating, setSelectedRating] = useState<number | null>(null);
   const [review, setReview] = useState("");
   const [mobileComposerOpen, setMobileComposerOpen] = useState(false);
+  // 제출 직후 "내 평점"을 서버 재검증 없이 바로 반영하기 위한 낙관적 값(선수 id → 평점).
+  const [localRatings, setLocalRatings] = useState<Record<string, number>>({});
+  const [refreshTick, setRefreshTick] = useState(0);
+  useEffect(() => {
+    if (refreshTick === 0) return;
+    // 서버 액션은 revalidate 없이 즉시 반환한다. 평균/코멘트 등 나머지는 배경에서 갱신.
+    router.refresh();
+  }, [refreshTick, router]);
   // 모바일 시트(.modal-backdrop 포함)는 데스크탑에선 DOM에 넣지 않는다.
   // globals.css 의 `html:has(.modal-backdrop) { overflow: hidden }` 는 :has() 특성상
   // display:none 인 요소도 매칭해, sm:hidden 로만 숨기면 데스크탑에서 스크롤이 잠긴다.
@@ -244,7 +254,10 @@ export function SetRatingForm({
     query.addEventListener("change", sync);
     return () => query.removeEventListener("change", sync);
   }, []);
-  const selectedPlayer = playerOptions.find((player) => player.value === selectedPlayerId);
+  const effectiveOptions = playerOptions.map((player) =>
+    player.value in localRatings ? { ...player, myRating: localRatings[player.value] } : player,
+  );
+  const selectedPlayer = effectiveOptions.find((player) => player.value === selectedPlayerId);
   const disabled = !ratingOpen || !isLoggedIn || playerOptions.length === 0 || isPending;
   const canSubmit = !disabled && selectedPlayerId !== "" && selectedRating != null;
 
@@ -253,15 +266,22 @@ export function SetRatingForm({
     if (!canSubmit) return;
     const formData = new FormData(event.currentTarget);
 
+    const submittedPlayerId = selectedPlayerId;
+    const submittedRating = selectedRating;
+
     startTransition(async () => {
       const result = await submitSetPlayerRatingAction(formData);
       if (result.ok) {
         showToast({ title: "평점이 제출되었습니다!", tone: "success" });
+        if (submittedRating != null) {
+          setLocalRatings((prev) => ({ ...prev, [submittedPlayerId]: submittedRating }));
+        }
         formRef.current?.reset();
         setSelectedPlayerId("");
         setSelectedRating(null);
         setReview("");
         setMobileComposerOpen(false);
+        setRefreshTick((tick) => tick + 1);
       } else {
         showToast({ title: result.error ?? "평점 제출에 실패했습니다.", tone: "error" });
       }
@@ -291,8 +311,8 @@ export function SetRatingForm({
       <div className="relative">
         <div className="flex flex-col gap-5 sm:gap-8">
           {[
-            playerOptions.filter((player) => player.teamId === blueTeamId),
-            playerOptions.filter((player) => player.teamId !== blueTeamId),
+            effectiveOptions.filter((player) => player.teamId === blueTeamId),
+            effectiveOptions.filter((player) => player.teamId !== blueTeamId),
           ].map((teamPlayers, teamIndex) =>
             teamPlayers.length === 0 ? null : (
               <div key={teamIndex} className="flex flex-col gap-2">

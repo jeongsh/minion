@@ -264,8 +264,9 @@ export async function submitSetPlayerRatingAction(
       throw new Error(error.message);
     }
 
-    revalidatePath(`/matches/${set.match_id}`);
-    revalidatePath(`/matches/${routeMatchId}`);
+    // revalidatePath 를 여기서 하면 useTransition 이 매치 페이지 전체 재렌더를
+    // 기다리느라 "등록 중" 버튼이 오래 묶인다. 클라이언트(SetRatingForm)가 제출 성공 후
+    // 낙관적 갱신 + router.refresh() 로 배경 갱신한다. (AI 검수 blind 는 아래 after 에서 별도 revalidate)
 
     if (review && savedRating) {
       after(async () => {
