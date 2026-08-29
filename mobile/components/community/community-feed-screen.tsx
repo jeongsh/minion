@@ -23,6 +23,7 @@ import { useMinionTheme } from '@/hooks/use-minion-theme';
 import type { MobileCommunityPostSummary, MobileCommunityPostsDto } from '@/lib/api-client';
 import { resolveApiAssetUrl } from '@/lib/api-client';
 import { useCachedQuery } from '@/hooks/use-cached-query';
+import { CommunityDirectoryNav } from './community-directory-nav';
 import { boardLabel, boardsForScope, displayAuthor, formatCommunityDate, type CommunityScope } from './community-utils';
 
 export function CommunityFeedScreen({ scope = 'hub' }: { scope?: CommunityScope }) {
@@ -74,6 +75,7 @@ export function CommunityFeedScreen({ scope = 'hub' }: { scope?: CommunityScope 
         <View style={[styles.ad, { backgroundColor: theme.adSurface }]}>
           <Text style={[styles.adText, { color: theme.muted, ...fonts.medium }]}>ADVERTISEMENT</Text>
         </View>
+        <CommunityDirectoryNav accent={accent} scope={scope} teamSlug={teamSlug} />
         <View style={[styles.feed, { backgroundColor: theme.surface, borderBottomColor: theme.border, borderTopColor: theme.border }]}>
           <View style={[styles.toolbar, { borderBottomColor: theme.divider }]}>
             <View style={styles.toolbarRow}>

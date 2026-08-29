@@ -6,7 +6,7 @@ import { siteContactEmail } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "서비스 소개",
-  description: "LCK 팬 허브 MINION의 서비스와 데이터·편집 원칙을 소개합니다.",
+  description: "LCK 서비스 MINION의 데이터·편집 원칙을 소개합니다.",
 };
 
 export default function AboutPage() {

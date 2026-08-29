@@ -5,9 +5,9 @@ import { usePathname } from "next/navigation";
 
 const mobileCoreTabs = [
   { label: "홈", segment: "" },
+  { label: "팬톡", segment: "community" },
   { label: "캘린더", segment: "matches" },
   { label: "선수", segment: "players" },
-  { label: "커뮤니티", segment: "community" },
 ];
 
 const mobileSecondaryTabs = [
@@ -17,9 +17,9 @@ const mobileSecondaryTabs = [
 
 const desktopTabs = [
   { label: "홈", segment: "" },
+  { label: "팬톡", segment: "community" },
   { label: "캘린더", segment: "matches" },
   { label: "선수", segment: "players" },
-  { label: "커뮤니티", segment: "community" },
   // { label: "비난양파", segment: "onion" },
   { label: "소셜", segment: "instagram" },
   { label: "영상", segment: "videos" },

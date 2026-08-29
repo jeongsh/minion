@@ -29,8 +29,8 @@ const themeInitScript = `
 })();
 `;
 
-const defaultTitle = "MINION | LCK 팬 허브";
-const defaultDescription = "LCK 경기 일정, 팀과 선수 기록, 주간 리포트, 팬 평가와 커뮤니티를 한곳에서 확인하는 팬 허브입니다.";
+const defaultTitle = "MINION | LCK";
+const defaultDescription = "LCK 경기 일정, 팀과 선수 기록, 주간 리포트, 팬 평가와 팬톡을 한곳에서 확인하세요.";
 
 export const metadata: Metadata = {
   title: defaultTitle,

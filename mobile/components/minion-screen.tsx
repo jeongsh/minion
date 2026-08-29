@@ -41,19 +41,19 @@ type LocalItem = { label: string; href: Href };
 
 const hubItems: LocalItem[] = [
   { label: '메인', href: '/' },
-  { label: '대회', href: '/tournaments' },
+  { label: '팬톡', href: '/community' },
   { label: '승부예측', href: '/predictions' },
+  { label: '대회', href: '/tournaments' },
   { label: '선수', href: '/players' },
   { label: '챔피언', href: '/champions' },
-  { label: '커뮤니티', href: '/community' },
 ];
 
 function getFanItems(team: string): LocalItem[] {
   return [
     { label: '홈', href: `/fan/${team}` },
+    { label: '팬톡', href: `/fan/${team}/community` },
     { label: '일정', href: `/fan/${team}/schedule` },
     { label: '선수', href: `/fan/${team}/players` },
-    { label: '커뮤니티', href: `/fan/${team}/community` },
     { label: '소셜', href: `/fan/${team}/social` },
     { label: '영상', href: `/fan/${team}/videos` },
   ];

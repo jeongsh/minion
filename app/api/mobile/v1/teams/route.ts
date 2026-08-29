@@ -39,6 +39,14 @@ export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;
   const selectedKey = params.get("team")?.trim() ?? "";
   const teams = await getTeamsSortedByRank();
+  if (params.get("view") === "directory") {
+    const data: MobileTeamsPageDto = {
+      followedTeamIds: await followedTeamIds(request),
+      items: teams.map(toMobileTeam),
+      selected: null,
+    };
+    return mobileSuccess(data, { headers: { "Cache-Control": "private, no-store" } });
+  }
   if (params.get("view") !== "explorer") {
     const data: MobileTeamsDto = { items: teams.map(toMobileTeam) };
     return mobileSuccess(data, { headers: { "Cache-Control": "public, max-age=0, s-maxage=21600, stale-while-revalidate=86400" } });

@@ -14,6 +14,7 @@ import {
   Heart,
   Home,
   Menu,
+  MessagesSquare,
   Moon,
   Rss,
   Shield,
@@ -21,7 +22,6 @@ import {
   Sun,
   Swords,
   UserRound,
-  Users,
   X,
 } from "lucide-react";
 import { LogoutButton } from "@/components/auth/logout-button";
@@ -57,6 +57,7 @@ function applyTheme(theme: "dark" | "light") {
 
 const desktopNav = [
   { href: "/", label: "홈", icon: Home },
+  { href: "/community", label: "팬톡", icon: MessagesSquare },
   { href: "/schedule", label: "일정 및 매치", icon: CalendarDays },
   // /tournaments는 매번 오늘 날짜 기준으로 목적지가 바뀌는 완전 동적 리다이렉트라
   // 프리페치가 무의미하고, 프리페치 응답과 클릭 시 실제 응답이 같은 URL로 중복
@@ -67,7 +68,6 @@ const desktopNav = [
   { href: "/players", label: "선수", icon: UserRound },
   { href: "/champions", label: "챔피언", icon: Crown },
   { href: "/news", label: "뉴스", icon: Rss },
-  { href: "/community", label: "커뮤니티", icon: Users },
 ];
 
 const compactNav = [
@@ -80,11 +80,11 @@ const compactNav = [
 
 const hubLocalNav = [
   { href: "/", label: "메인" },
-  { href: "/tournaments", label: "대회", prefetch: false },
+  { href: "/community", label: "팬톡" },
   { href: "/predictions", label: "승부예측" },
+  { href: "/tournaments", label: "대회", prefetch: false },
   { href: "/players", label: "선수" },
   { href: "/champions", label: "챔피언" },
-  { href: "/community", label: "커뮤니티" },
 ];
 
 function isGlobalNavActive(pathname: string, href: string) {

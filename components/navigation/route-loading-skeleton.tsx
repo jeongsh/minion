@@ -88,6 +88,18 @@ function CommunityFeedSkeleton({ count = 9 }: { count?: number }) {
   );
 }
 
+function CommunityDirectorySkeleton() {
+  return (
+    <div className="mobile-full-bleed flex min-w-0 overflow-hidden border-y border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 py-2.5 sm:mx-0 sm:w-full sm:rounded-[var(--ui-card-radius)] sm:border sm:px-4 sm:py-3">
+      <div className="flex min-w-0 flex-1 gap-1 overflow-hidden sm:flex-wrap">
+        {Array.from({ length: 11 }, (_, index) => (
+          <Skeleton key={index} className={`h-9 shrink-0 rounded-[var(--ui-control-radius)] ${index === 0 ? "w-[62px]" : "w-[66px]"}`} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function NeutralLoadingSkeleton() {
   return <LoadingMain />;
 }
@@ -177,7 +189,7 @@ export function NewsLoadingSkeleton() {
 export function CommunityLoadingSkeleton() {
   return (
     <LoadingMain className="layout-wide flex flex-col gap-5 pb-6 sm:py-8">
-      <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_300px] xl:items-start xl:gap-6"><section><Skeleton className="community-mobile-ad h-[60px] w-full !rounded-none md:mb-4 xl:hidden" /><CommunityFeedSkeleton /></section><aside className="hidden space-y-4 xl:block"><div className="overflow-hidden rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)]"><div className="border-b border-[var(--ui-border)] p-4"><SectionTitle width="w-20" /></div><CommunityPostRows count={5} /></div><Skeleton className="h-[250px] w-full rounded-xl" /></aside></div>
+      <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_300px] xl:items-start xl:gap-6"><section><Skeleton className="community-mobile-ad h-[60px] w-full !rounded-none md:mb-4 xl:hidden" /><div className="flex flex-col gap-4"><CommunityDirectorySkeleton /><CommunityFeedSkeleton /></div></section><aside className="hidden space-y-4 xl:block"><div className="overflow-hidden rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)]"><div className="border-b border-[var(--ui-border)] p-4"><SectionTitle width="w-20" /></div><CommunityPostRows count={5} /></div><Skeleton className="h-[250px] w-full rounded-xl" /></aside></div>
     </LoadingMain>
   );
 }
@@ -235,7 +247,7 @@ export function FanPlayersLoadingSkeleton() {
 export function FanCommunityLoadingSkeleton() {
   return (
     <LoadingMain className="fan-page-container flex flex-col gap-5 py-7 md:py-9">
-      <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_300px] xl:items-start xl:gap-6"><section><Skeleton className="community-mobile-ad h-[60px] w-full !rounded-none md:mb-4 xl:hidden" /><CommunityFeedSkeleton /></section><aside className="hidden space-y-4 xl:block"><div className="overflow-hidden rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)]"><div className="border-b border-[var(--ui-border)] p-4"><SectionTitle width="w-16" /></div><CommunityPostRows count={5} /></div><Skeleton className="h-[250px] w-full rounded-xl" /></aside></div>
+      <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_300px] xl:items-start xl:gap-6"><section><Skeleton className="community-mobile-ad h-[60px] w-full !rounded-none md:mb-4 xl:hidden" /><div className="flex flex-col gap-4"><CommunityDirectorySkeleton /><CommunityFeedSkeleton /></div></section><aside className="hidden space-y-4 xl:block"><div className="overflow-hidden rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)]"><div className="border-b border-[var(--ui-border)] p-4"><SectionTitle width="w-16" /></div><CommunityPostRows count={5} /></div><Skeleton className="h-[250px] w-full rounded-xl" /></aside></div>
     </LoadingMain>
   );
 }
