@@ -1,5 +1,5 @@
 import type { MobileStandingsGroup, MobileTournamentDetailDto } from "@/packages/contracts/src/mobile-v1";
-import { getAllTeams, getBracketStages, getMatches, getPlayers, getStages, getTournaments } from "@/lib/data/lck";
+import { getAllPlayers, getAllTeams, getBracketStages, getMatches, getStages, getTournaments } from "@/lib/data/lck";
 import { mobileError, mobileSuccess, toMobilePlayer, toMobileStandingRow, toMobileTeam } from "@/lib/mobile/api-response";
 import { isGroupBracketStage, isWeekStage, buildStageColumns } from "@/lib/tournaments/bracket";
 import { buildBracketData } from "@/lib/tournaments/bracket-view";
@@ -35,7 +35,7 @@ export async function GET(request: Request, context: { params: Promise<{ segment
     getMatches(),
     getAllTeams(),
     getBracketStages(),
-    getPlayers(),
+    getAllPlayers(), // POM 순위 조회용 — 은퇴/이적 선수도 포함해야 하므로 전체 선수.
   ]);
 
   const segmentTournaments = tournaments.filter((tournament) => matchesTournamentSegment(tournament, segmentTheme.key));
@@ -44,6 +44,7 @@ export async function GET(request: Request, context: { params: Promise<{ segment
   const seasons = [...new Set(segmentTournaments.map((tournament) => tournament.season).filter(isSupportedSeasonYear))].sort((a, b) => b - a);
   const requestedSeason = Number(search.get("year"));
   const activeSeason = seasons.includes(requestedSeason) ? requestedSeason : seasons[0];
+  if (activeSeason === undefined) return mobileError("NOT_FOUND", "대회를 찾을 수 없습니다.", 404);
 
   const seasonTournaments = segmentTournaments.filter((tournament) => tournament.season === activeSeason);
 
@@ -88,7 +89,6 @@ export async function GET(request: Request, context: { params: Promise<{ segment
     const viewLabels = LCK_SPLIT_VIEW_LABELS[activeSplit];
 
     const cupTournamentIds = new Set(activeTournaments.filter((tournament) => tournament.split === "Cup").map((tournament) => tournament.id));
-    const cupMatches = segmentMatches.filter((match) => cupTournamentIds.has(match.tournamentId));
     const cupStages = segmentStages.filter((stage) => cupTournamentIds.has(stage.tournamentId));
     const cupWeekStages = cupStages.filter((stage) => isWeekStage(stage.name));
     const cupOtherStages = cupStages.filter((stage) => !isWeekStage(stage.name));
@@ -96,8 +96,6 @@ export async function GET(request: Request, context: { params: Promise<{ segment
     const cupBracketStages = bracketStages.filter((bracketStage) => cupTournamentIds.has(bracketStage.tournamentId));
     const cupPlayInBracketStage = cupBracketStages.find((bracketStage) => /플레이.?인/.test(bracketStage.name));
     const cupPlayoffBracketStage = cupBracketStages.find((bracketStage) => /플레이오프/.test(bracketStage.name));
-    const cupPlayInColumns = buildStageColumns(cupOtherStages.filter((stage) => stage.bracketStageId === cupPlayInBracketStage?.id), segmentMatches);
-    const cupPlayoffColumns = buildStageColumns(cupOtherStages.filter((stage) => stage.bracketStageId === cupPlayoffBracketStage?.id), segmentMatches);
 
     let split1Groups: MobileStandingsGroup[] = [];
     if (cupWeekStages.length > 0) {
@@ -120,8 +118,6 @@ export async function GET(request: Request, context: { params: Promise<{ segment
     const split2Groups: MobileStandingsGroup[] = [{ rows: buildTeamStandingRows(lckTeams, rounds12Matches, []).map(toMobileStandingRow), title: "정규 시즌" }];
 
     const roadToMsiTournamentIds = new Set(activeTournaments.filter((tournament) => tournament.split === "Road to MSI").map((tournament) => tournament.id));
-    const roadToMsiStages = segmentStages.filter((stage) => roadToMsiTournamentIds.has(stage.tournamentId));
-    const roadToMsiColumns = buildStageColumns(roadToMsiStages, segmentMatches);
 
     const rounds34Matches = segmentMatches.filter((match) => activeTournaments.some((tournament) => tournament.id === match.tournamentId && /^Rounds 3-\d+$/.test(tournament.split ?? "")));
     const regularSeasonMatches = [...rounds12Matches, ...rounds34Matches];
@@ -141,35 +137,44 @@ export async function GET(request: Request, context: { params: Promise<{ segment
     }
 
     const playInTournamentIds = new Set(activeTournaments.filter((tournament) => tournament.split === "Season Play-In").map((tournament) => tournament.id));
-    const playInStages = segmentStages.filter((stage) => playInTournamentIds.has(stage.tournamentId));
-    const playInColumns = buildStageColumns(playInStages, segmentMatches);
-
     const playoffsTournamentIds = new Set(activeTournaments.filter((tournament) => tournament.split === "Season Playoffs").map((tournament) => tournament.id));
-    const playoffsStages = segmentStages.filter((stage) => playoffsTournamentIds.has(stage.tournamentId));
-    const playoffsColumns = buildStageColumns(playoffsStages, segmentMatches);
 
     const standingsBySplit: Record<LckSplitKey, MobileStandingsGroup[]> = { "1": split1Groups, "2": split2Groups, "3": split3Groups };
-    const bracketAvailableBySplit: Record<LckSplitKey, boolean> = {
-      "1": (activePhase === "playoffs" ? cupPlayoffColumns : cupPlayInColumns).length > 0,
-      "2": roadToMsiColumns.length > 0,
-      "3": (activePhase === "playoffs" ? playoffsColumns : playInColumns).length > 0,
-    };
 
-    const pomMatches = activeSplit === "1" ? cupMatches : regularSeasonMatches;
-    const pomRows = buildPomRankingRows(pomMatches, players, teamMap).map((row) => ({
-      count: row.count,
-      player: toMobilePlayer(row.player),
-      points: row.points,
-      rank: row.rank,
-      team: row.team ? toMobileTeam(row.team) : null,
-    }));
+    // POM 순위는 각 스플릿의 해당 라운드만(웹 /tournaments 와 동일). 플레이-인·플레이오프 제외.
+    // pom 뷰가 아니면 계산 자체를 건너뛴다.
+    const pomRows = activeView === "pom"
+      ? buildPomRankingRows(
+          activeSplit === "1" ? cupWeekMatches : activeSplit === "2" ? rounds12Matches : rounds34Matches,
+          players,
+          teamMap,
+        ).map((row) => ({
+          count: row.count,
+          player: toMobilePlayer(row.player),
+          points: row.points,
+          rank: row.rank,
+          team: row.team ? toMobileTeam(row.team) : null,
+        }))
+      : [];
 
-    const bracketColumnsBySplit: Record<LckSplitKey, ReturnType<typeof buildStageColumns>> = {
-      "1": activePhase === "playoffs" ? cupPlayoffColumns : cupPlayInColumns,
-      "2": roadToMsiColumns,
-      "3": activePhase === "playoffs" ? playoffsColumns : playInColumns,
-    };
-    const bracketAvailable = bracketAvailableBySplit[activeSplit];
+    // 활성 스플릿의 대진표 컬럼만 계산한다(bracketAvailable 판정 + bracket 데이터 공용).
+    const activeBracketColumns =
+      activeSplit === "1"
+        ? buildStageColumns(
+            cupOtherStages.filter(
+              (stage) => stage.bracketStageId === (activePhase === "playoffs" ? cupPlayoffBracketStage : cupPlayInBracketStage)?.id,
+            ),
+            segmentMatches,
+          )
+        : activeSplit === "2"
+          ? buildStageColumns(segmentStages.filter((stage) => roadToMsiTournamentIds.has(stage.tournamentId)), segmentMatches)
+          : buildStageColumns(
+              segmentStages.filter((stage) =>
+                (activePhase === "playoffs" ? playoffsTournamentIds : playInTournamentIds).has(stage.tournamentId),
+              ),
+              segmentMatches,
+            );
+    const bracketAvailable = activeBracketColumns.length > 0;
 
     const data: MobileTournamentDetailDto = {
       ...base,
@@ -177,7 +182,7 @@ export async function GET(request: Request, context: { params: Promise<{ segment
       activePhase,
       activeSplit,
       activeView,
-      bracket: activeView === "bracket" && bracketAvailable ? buildBracketData(bracketColumnsBySplit[activeSplit], teamMap) : null,
+      bracket: activeView === "bracket" && bracketAvailable ? buildBracketData(activeBracketColumns, teamMap) : null,
       bracketAvailable,
       bracketStages: [],
       pomRows: activeView === "pom" ? pomRows : null,

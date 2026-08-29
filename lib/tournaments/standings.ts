@@ -114,9 +114,17 @@ export function buildPomRankingRows(segmentMatches: Match[], players: Player[], 
     if (player) unranked.push({ player, team: teamMap.get(player.teamId), count, points: count * POM_POINTS_PER_AWARD });
   }
 
-  return unranked
-    .sort((a, b) => b.count - a.count)
-    .map((row, index) => ({ ...row, rank: index + 1 }));
+  // 동점(=POM 횟수 동일)은 같은 등수, 다음 등수는 인원수만큼 건너뛴다(1,1,1,4,4,4,7…).
+  const sorted = unranked.sort((a, b) => b.count - a.count);
+  let rank = 0;
+  let prevCount: number | null = null;
+  return sorted.map((row, index) => {
+    if (row.count !== prevCount) {
+      rank = index + 1;
+      prevCount = row.count;
+    }
+    return { ...row, rank };
+  });
 }
 
 // 숫자만으로는 실제 대회 단계를 알기 어려우므로 LCK 공식 포맷의 라운드명을 바로 노출한다.

@@ -6,7 +6,7 @@ import { Fragment } from "react";
 import { PageHeader } from "@/components/ui/page-header";
 import { DataTable } from "@/components/ui/data-table";
 import { TeamLogo } from "@/components/ui/team-logo";
-import { getAllTeams, getBracketStages, getMatches, getPlayers, getStages, getTournaments } from "@/lib/data/lck";
+import { getAllPlayers, getAllTeams, getBracketStages, getMatches, getStages, getTournaments } from "@/lib/data/lck";
 import {
   buildStageColumns,
   formatBracketColumnLabel,
@@ -718,13 +718,15 @@ export default async function TournamentBracketPage({
   }
 
   const search = await searchParams;
+  // POM 순위표 조회에만 쓴다. 은퇴/이적/벤치(is_active=false, is_lck_player=false)한
+  // POM 수상자도 집계에 포함돼야 하므로 현역 로스터(getPlayers)가 아닌 전체 선수를 쓴다.
   const [tournaments, stages, matches, teams, bracketStages, players] = await Promise.all([
     getTournaments(),
     getStages(),
     getMatches(),
     getAllTeams(),
     getBracketStages(),
-    getPlayers(),
+    getAllPlayers(),
   ]);
 
   const segmentTournaments = tournaments.filter((tournament) =>
@@ -740,6 +742,12 @@ export default async function TournamentBracketPage({
   );
   const requestedSeason = search.year ? Number(search.year) : Number.NaN;
   const activeSeason = seasons.includes(requestedSeason) ? requestedSeason : seasons[0];
+
+  // 지원 시즌(2026+) 대회가 하나도 없으면 보여줄 게 없다. year=undefined 로 이어지는
+  // 깨진 URL을 만들지 않도록 여기서 끊는다.
+  if (activeSeason === undefined) {
+    notFound();
+  }
 
   const seasonTournaments = segmentTournaments.filter(
     (tournament) => tournament.season === activeSeason,
@@ -802,7 +810,6 @@ export default async function TournamentBracketPage({
     const cupTournamentIds = new Set(
       activeTournaments.filter((tournament) => tournament.split === "Cup").map((tournament) => tournament.id),
     );
-    const cupMatches = segmentMatches.filter((match) => cupTournamentIds.has(match.tournamentId));
     const cupStages = segmentStages.filter((stage) => cupTournamentIds.has(stage.tournamentId));
     const cupWeekStages = cupStages.filter((stage) => isWeekStage(stage.name));
     const cupOtherStages = cupStages.filter((stage) => !isWeekStage(stage.name));
@@ -811,14 +818,6 @@ export default async function TournamentBracketPage({
     const cupBracketStages = bracketStages.filter((bracketStage) => cupTournamentIds.has(bracketStage.tournamentId));
     const cupPlayInBracketStage = cupBracketStages.find((bracketStage) => /플레이.?인/.test(bracketStage.name));
     const cupPlayoffBracketStage = cupBracketStages.find((bracketStage) => /플레이오프/.test(bracketStage.name));
-    const cupPlayInColumns = buildStageColumns(
-      cupOtherStages.filter((stage) => stage.bracketStageId === cupPlayInBracketStage?.id),
-      segmentMatches,
-    );
-    const cupPlayoffColumns = buildStageColumns(
-      cupOtherStages.filter((stage) => stage.bracketStageId === cupPlayoffBracketStage?.id),
-      segmentMatches,
-    );
 
     let split1Standings: React.ReactNode = (
       <p className="rounded-lg border border-border bg-surface px-5 py-10 text-center text-sm text-muted">
@@ -857,8 +856,6 @@ export default async function TournamentBracketPage({
     const roadToMsiTournamentIds = new Set(
       activeTournaments.filter((tournament) => tournament.split === "Road to MSI").map((tournament) => tournament.id),
     );
-    const roadToMsiStages = segmentStages.filter((stage) => roadToMsiTournamentIds.has(stage.tournamentId));
-    const roadToMsiColumns = buildStageColumns(roadToMsiStages, segmentMatches);
 
     // 스플릿 3: Rounds 3-4(시즌에 따라 "Rounds 3-5"로 불리기도 함) 정규시즌 순위 +
     // 롤드컵으로 가는 길(시즌 플레이인+플레이오프) 토너먼트.
@@ -897,36 +894,50 @@ export default async function TournamentBracketPage({
     const playInTournamentIds = new Set(
       activeTournaments.filter((tournament) => tournament.split === "Season Play-In").map((tournament) => tournament.id),
     );
-    const playInStages = segmentStages.filter((stage) => playInTournamentIds.has(stage.tournamentId));
-    const playInColumns = buildStageColumns(playInStages, segmentMatches);
-
     const playoffsTournamentIds = new Set(
       activeTournaments.filter((tournament) => tournament.split === "Season Playoffs").map((tournament) => tournament.id),
     );
-    const playoffsStages = segmentStages.filter((stage) => playoffsTournamentIds.has(stage.tournamentId));
-    const playoffsColumns = buildStageColumns(playoffsStages, segmentMatches);
 
-    const split1Bracket = bracketOrEmpty(activePhase === "playoffs" ? cupPlayoffColumns : cupPlayInColumns);
-    const split3Bracket = bracketOrEmpty(activePhase === "playoffs" ? playoffsColumns : playInColumns);
+    // 실제로 렌더할 스플릿·뷰의 콘텐츠만 만든다. 나머지 스플릿·뷰의 표/대진표는 계산하지 않는다.
+    // (순위표 3종 split{1,2,3}Standings 는 위에서 이미 만들었고, 여기선 활성 스플릿 것만 고른다.)
+    const activeStandingsContent =
+      activeSplit === "1" ? split1Standings : activeSplit === "2" ? split2Standings : split3Standings;
 
-    const splitStandingsContent: Record<LckSplitKey, React.ReactNode> = {
-      "1": split1Standings,
-      "2": split2Standings,
-      "3": split3Standings,
-    };
-    const splitBracketContent: Record<LckSplitKey, React.ReactNode> = {
-      "1": split1Bracket,
-      "2": bracketOrEmpty(roadToMsiColumns),
-      "3": split3Bracket,
-    };
+    // POM 순위: 각 스플릿의 해당 라운드 경기만(라벨 "1-2라운드"/"3-4라운드"). 플레이-인·플레이오프·
+    // Road to MSI 제외 — 공식 Most POM(라운드별) 범위와 일치. 순위표는 시즌 누적이지만 POM 은
+    // 라운드 단위 시상이라 스코프가 다르다.
+    const activePomRows =
+      activeView === "pom"
+        ? buildPomRankingRows(
+            activeSplit === "1" ? cupWeekMatches : activeSplit === "2" ? rounds12Matches : rounds34Matches,
+            players,
+            teamMap,
+          )
+        : [];
 
-    // LCK 컵과 LCK 정규 시즌은 별도 대회다. 컵에서는 컵 전체 POM을, 정규 시즌에서는
-    // 공식 Most POM 집계 범위인 정규 라운드(R1-2 + R3-4/5)만 누적한다.
-    const pomRowsBySplit: Record<LckSplitKey, PomRow[]> = {
-      "1": buildPomRankingRows(cupMatches, players, teamMap),
-      "2": buildPomRankingRows(regularSeasonMatches, players, teamMap),
-      "3": buildPomRankingRows(regularSeasonMatches, players, teamMap),
-    };
+    let activeBracketContent: React.ReactNode = null;
+    if (activeView === "bracket") {
+      const bracketColumns =
+        activeSplit === "1"
+          ? buildStageColumns(
+              cupOtherStages.filter(
+                (stage) => stage.bracketStageId === (activePhase === "playoffs" ? cupPlayoffBracketStage : cupPlayInBracketStage)?.id,
+              ),
+              segmentMatches,
+            )
+          : activeSplit === "2"
+            ? buildStageColumns(
+                segmentStages.filter((stage) => roadToMsiTournamentIds.has(stage.tournamentId)),
+                segmentMatches,
+              )
+            : buildStageColumns(
+                segmentStages.filter((stage) =>
+                  (activePhase === "playoffs" ? playoffsTournamentIds : playInTournamentIds).has(stage.tournamentId),
+                ),
+                segmentMatches,
+              );
+      activeBracketContent = bracketOrEmpty(bracketColumns);
+    }
 
     contentSection = (
       <section className="flex flex-col gap-6">
@@ -988,11 +999,11 @@ export default async function TournamentBracketPage({
         </div>
 
         {activeView === "pom" ? (
-          <PomRankingTable rows={pomRowsBySplit[activeSplit]} />
+          <PomRankingTable rows={activePomRows} />
         ) : activeView === "standings" ? (
-          splitStandingsContent[activeSplit]
+          activeStandingsContent
         ) : (
-          splitBracketContent[activeSplit]
+          activeBracketContent
         )}
       </section>
     );
