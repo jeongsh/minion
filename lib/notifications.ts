@@ -9,16 +9,31 @@ export type NotificationKind =
 
 export type NotificationPreferences = {
   inAppEnabled: boolean;
+  communityEnabled: boolean;
   matchStartEnabled: boolean;
   matchEventsEnabled: boolean;
   ratingOpenEnabled: boolean;
+  teamContentEnabled: boolean;
 };
 
 export const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
   inAppEnabled: true,
+  communityEnabled: true,
   matchStartEnabled: true,
   matchEventsEnabled: false,
   ratingOpenEnabled: true,
+  teamContentEnabled: true,
+};
+
+export type TeamNotificationPreferences = {
+  teamId: string;
+  teamName: string;
+  teamShortName: string;
+  matchAlertsEnabled: boolean;
+  liveMatchAlertsEnabled: boolean;
+  instagramAlertsEnabled: boolean;
+  videoAlertsEnabled: boolean;
+  soloQueueAlertsEnabled: boolean;
 };
 
 export type MatchEventPresentation = {

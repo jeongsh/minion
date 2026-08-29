@@ -123,7 +123,24 @@ async function createCommunityCommentNotifications(input: {
   });
   if (recipients.length === 0) return;
 
-  const rows = recipients.map(({ recipient, kind }) => ({
+  const recipientUserIds = recipients.flatMap(({ recipient }) => recipient.userId ? [recipient.userId] : []);
+  const enabledUserIds = new Set(recipientUserIds);
+  if (recipientUserIds.length > 0) {
+    const { data: preferences, error } = await admin
+      .from("user_notification_preferences")
+      .select("user_id, in_app_enabled, community_enabled")
+      .in("user_id", recipientUserIds);
+    if (error) throw error;
+    const preferencesByUserId = new Map((preferences ?? []).map((preference) => [preference.user_id, preference]));
+    for (const userId of recipientUserIds) {
+      const preference = preferencesByUserId.get(userId);
+      if (preference && (!preference.in_app_enabled || !preference.community_enabled)) enabledUserIds.delete(userId);
+    }
+  }
+
+  const rows = recipients.filter(({ recipient }) => (
+    !recipient.userId || enabledUserIds.has(recipient.userId)
+  )).map(({ recipient, kind }) => ({
     ...recipientColumns(recipient),
     actor_user_id: input.actor.userId ?? null,
     actor_name: actorName,
@@ -135,6 +152,7 @@ async function createCommunityCommentNotifications(input: {
     href,
     dedupe_key: `${input.commentId}:${recipientKey(recipient)}`,
   }));
+  if (rows.length === 0) return;
   const { error } = await admin.from("community_notifications").upsert(rows, { onConflict: "dedupe_key", ignoreDuplicates: true });
   if (error) throw error;
 }

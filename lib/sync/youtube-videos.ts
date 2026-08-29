@@ -204,16 +204,16 @@ export async function upsertYoutubeVideo(
         };
 
   if (options.dryRun) {
-    return { inserted: !existing.data, title: entry.title };
+    return { id: existing.data?.id ?? null, inserted: !existing.data, title: entry.title };
   }
 
   if (existing.data) {
     const { error } = await supabase.from(table).update(payload).eq("id", existing.data.id);
     if (error) throw error;
-    return { inserted: false, title: entry.title };
+    return { id: existing.data.id, inserted: false, title: entry.title };
   }
 
-  const { error } = await supabase.from(table).insert({ ...payload, is_new: true });
+  const { data, error } = await supabase.from(table).insert({ ...payload, is_new: true }).select("id").single();
   if (error) throw error;
-  return { inserted: true, title: entry.title };
+  return { id: data.id as string, inserted: true, title: entry.title };
 }

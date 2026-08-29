@@ -10,6 +10,8 @@ export type ExpoPushMessage = {
   title: string;
   body: string;
   data?: Record<string, unknown>;
+  channelId?: 'community' | 'content' | 'live' | 'match';
+  sound?: 'default' | null;
 };
 
 type ExpoPushTicket =
@@ -48,7 +50,8 @@ export async function sendExpoPushNotifications(messages: ExpoPushMessage[]): Pr
         title: message.title,
         body: message.body,
         data: message.data,
-        sound: "default",
+        channelId: message.channelId,
+        sound: message.sound,
       }))),
     });
 

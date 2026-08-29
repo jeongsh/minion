@@ -211,6 +211,7 @@ export type {
   MobileTeamFavoriteDto,
   MobileTeamFanDto,
   MobileTeamNotificationDto,
+  MobileTeamNotificationSettings,
   MobileTeamSummary,
   MobileTeamsPageDto,
   MobileTeamsDto,

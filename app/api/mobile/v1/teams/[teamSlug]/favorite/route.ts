@@ -29,8 +29,28 @@ export async function POST(request: Request, context: { params: Promise<{ teamSl
     const filters = [auth ? `user_id.eq.${auth.user.id}` : null, voterKey ? `voter_key.eq.${voterKey}` : null].filter((value): value is string => Boolean(value));
     const { data: existing } = await supabase.from("team_fans").select("id").eq("team_id", team.id).or(filters.join(",")).limit(1);
     if (!existing?.length) {
-      const { error } = await supabase.from("team_fans").insert({ team_id: team.id, user_id: auth?.user.id ?? null, voter_key: voterKey });
+      const { data: insertedFan, error } = await supabase
+        .from("team_fans")
+        .insert({ team_id: team.id, user_id: auth?.user.id ?? null, voter_key: voterKey })
+        .select("id")
+        .single();
       if (error) return mobileError("INTERNAL", "최애팀 팔로우 등록에 실패했습니다.", 500);
+      if (auth) {
+        const { error: subscriptionError } = await supabase.from("fan_notification_subscriptions").upsert({
+          user_id: auth.user.id,
+          team_id: team.id,
+          match_alerts: false,
+          live_match_alerts: false,
+          instagram_alerts: false,
+          video_alerts: false,
+          solo_queue_alerts: false,
+          news_alerts: false,
+        }, { onConflict: "user_id,team_id" });
+        if (subscriptionError) {
+          await supabase.from("team_fans").delete().eq("id", insertedFan.id);
+          return mobileError("INTERNAL", "최애팀 알림 등록에 실패했습니다.", 500);
+        }
+      }
     }
   }
   if (auth) {

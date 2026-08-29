@@ -1,5 +1,4 @@
 import { Image } from 'expo-image';
-import * as Haptics from 'expo-haptics';
 import { usePathname, useRouter } from 'expo-router';
 import type { LucideIcon } from 'lucide-react-native';
 import CalendarDays from 'lucide-react-native/icons/calendar-days';
@@ -48,7 +47,6 @@ export function MinionDock() {
             accessibilityState={{ selected: active }}
             key={href}
             onPress={() => {
-              void Haptics.selectionAsync();
               if (href === '/fan') {
                 if (!favoriteTeam) openTeamPicker();
                 else router.navigate(`/fan/${favoriteTeam.slug}`);

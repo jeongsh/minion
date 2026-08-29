@@ -32,3 +32,11 @@ export type MatchActivityResponse = {
   liveMatches: LiveMatchActivity[];
   ratings: RatingMatchActivity[];
 };
+
+export type MatchActivityNotificationResponse = MatchActivityResponse & {
+  teamNotificationSettings: Array<{
+    teamId: string;
+    matchAlertsEnabled: boolean;
+    liveMatchAlertsEnabled: boolean;
+  }>;
+};

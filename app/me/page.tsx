@@ -14,6 +14,7 @@ import { getCurrentUser, type CurrentUser } from "@/lib/auth/current-user";
 import { listBlockedCommunityGuests } from "@/lib/data/community-guests";
 import { listBlockedCommunityUsers } from "@/lib/data/community-users";
 import { getNotificationPreferences } from "@/lib/notifications/preferences";
+import { getTeamNotificationPreferences } from "@/lib/notifications/team-preferences";
 import { tierProgress } from "@/lib/rank/config";
 import { getRankSummary } from "@/lib/rank/queries";
 
@@ -64,9 +65,10 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
     );
   }
 
-  const [summary, preferences, blockedUsers, blockedGuests] = await Promise.all([
+  const [summary, preferences, teamNotificationPreferences, blockedUsers, blockedGuests] = await Promise.all([
     getRankSummary(user.id),
     getNotificationPreferences(),
+    getTeamNotificationPreferences(),
     listBlockedCommunityUsers(user.id),
     listBlockedCommunityGuests(user.id),
   ]);
@@ -144,8 +146,8 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
               <ProfileForm initialNickname={user.nickname ?? ""} initialProfileImageUrl={user.profileImageUrl} tier={summary.tier} />
             </AccountSection>
 
-            <AccountSection id="notifications" icon={Bell} title="알림" description="필요한 경기 소식만 골라서 받아보세요.">
-              <NotificationSettingsForm initialPreferences={preferences} />
+            <AccountSection id="notifications" icon={Bell} title="알림" description="팔로우한 팀별로 받을 알림을 선택합니다.">
+              <NotificationSettingsForm initialPreferences={preferences} initialTeams={teamNotificationPreferences} />
             </AccountSection>
 
             <AccountSection id="blocks" icon={ShieldBan} title="차단 관리" description="차단한 사용자와 해제할 사용자를 관리합니다.">

@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 
 import { PolicyPage } from "@/components/policy/policy-page";
-import { POLICY_EFFECTIVE_DATE, siteContactEmail } from "@/lib/site";
+import { siteContactEmail } from "@/lib/site";
+
+const PRIVACY_POLICY_EFFECTIVE_DATE = "2026년 8월 29일";
 
 export const metadata: Metadata = {
   title: "개인정보처리방침",
@@ -12,7 +14,7 @@ export default function PrivacyPage() {
   const email = siteContactEmail();
 
   return (
-    <PolicyPage title="개인정보처리방침" description="MINION은 필요한 범위에서만 개인정보를 처리하고, 이용자의 권리를 존중합니다." effectiveDate={POLICY_EFFECTIVE_DATE}>
+    <PolicyPage title="개인정보처리방침" description="MINION은 필요한 범위에서만 개인정보를 처리하고, 이용자의 권리를 존중합니다." effectiveDate={PRIVACY_POLICY_EFFECTIVE_DATE}>
       <section>
         <h2>1. 처리하는 개인정보와 이용 목적</h2>
         <div className="overflow-x-auto">
@@ -22,6 +24,7 @@ export default function PrivacyPage() {
               <tr><td>회원가입·인증</td><td>이메일 주소, 암호화된 비밀번호, 회원 식별자, 인증·세션 정보</td><td>회원 식별, 로그인, 계정 보안, 문의 대응</td></tr>
               <tr><td>프로필</td><td>닉네임, 선택 입력한 프로필 이미지, LP·티어</td><td>프로필 표시, 커뮤니티와 랭킹 기능 제공</td></tr>
               <tr><td>서비스 활동</td><td>게시글·댓글·업로드 이미지, 평가·투표·신고·예측·팔로우·출석 기록 및 관련 시각</td><td>커뮤니티, 팬 평가, 승부예측, 개인화 기능과 부정 이용 방지</td></tr>
+              <tr><td>모바일 앱·알림</td><td>앱 설치 식별자, 기기 운영체제, Expo push token, 알림 허용 상태와 알림 종류별 설정</td><td>앱 요청 식별과 부정 이용 방지, 로그인 중계, 이용자가 선택한 푸시 알림 전송</td></tr>
               <tr><td>자동 생성 정보</td><td>IP 주소, 접속 기록, 브라우저·기기 정보, 쿠키 및 광고 식별 정보</td><td>서비스 안정성, 보안, 오류 분석, 이용 통계 및 광고 제공</td></tr>
               <tr><td>문의</td><td>이메일 주소와 문의 내용, 첨부 자료</td><td>문의 확인과 답변, 분쟁 처리</td></tr>
             </tbody>
@@ -36,6 +39,7 @@ export default function PrivacyPage() {
           <li>회원·프로필·활동 기록: 회원 탈퇴 시까지. 다만 법령상 보존 의무, 분쟁 처리 또는 부정 이용 방지를 위해 필요한 정보는 해당 목적 달성 시까지 별도 보관할 수 있습니다.</li>
           <li>게시글과 댓글: 이용자가 삭제하거나 운영자가 삭제할 때까지 보관할 수 있습니다. 탈퇴 시 작성자 식별 정보는 분리 또는 삭제되며, 공개된 콘텐츠는 서비스의 연속성과 다른 이용자와의 관계를 위해 익명 상태로 남을 수 있습니다.</li>
           <li>업로드 이미지: 게시물 삭제, 회원 탈퇴 후 정리 또는 이용자의 삭제 요청 처리 시까지 보관합니다.</li>
+          <li>푸시 토큰: 로그아웃, 회원 탈퇴, 알림 토큰 만료 또는 이용자의 알림 철회 시까지 보관합니다. 앱 설치 식별자는 해당 설치에서 재발급되거나 부정 이용 방지 목적이 끝날 때까지 보관할 수 있습니다.</li>
           <li>문의 기록: 답변 완료 후 3년 또는 분쟁 종료 시까지 보관할 수 있습니다.</li>
           <li>접속·보안 기록: 수집일로부터 최대 1년을 원칙으로 하되, 보안 사고 조사에 필요한 경우 해당 조사 종료 시까지 보관할 수 있습니다.</li>
         </ul>
@@ -56,6 +60,7 @@ export default function PrivacyPage() {
             <tbody>
               <tr><td>Supabase, Inc.</td><td>회원 인증, 데이터베이스, 파일 저장. 회원·프로필·활동 정보와 인증 로그</td><td>프로젝트 리전 일본(ap-northeast-1) 등 서비스 제공 국가 / 서비스 이용 시 네트워크 전송 / 탈퇴 또는 위탁 종료 시까지</td></tr>
               <tr><td>Vercel Inc.</td><td>웹사이트 호스팅, 전송, 보안 로그. IP 주소, 요청 정보와 브라우저 정보</td><td>미국 등 서비스 제공 국가 / 페이지 요청 시 / 계약 및 로그 보관 정책에 따른 기간</td></tr>
+              <tr><td>Expo(650 Industries, Inc.), Apple Inc., Google LLC</td><td>모바일 푸시 알림 전송. 푸시 토큰, 기기 운영체제와 알림 제목·내용·이동 경로</td><td>미국 등 각 사업자가 처리하는 국가 / 이용자가 푸시 알림을 허용하고 알림을 전송할 때 / 알림 전송 및 각 사업자 정책에 따른 기간</td></tr>
               <tr><td>Google LLC</td><td>YouTube 임베드 및 AdSense가 활성화된 경우 광고 제공·측정. 쿠키, IP 주소, 기기·이용 정보</td><td>미국 등 Google이 처리하는 국가 / 콘텐츠·광고 로드 시 / Google 정책에 따른 기간</td></tr>
               <tr><td>Meta Platforms, Inc.</td><td>Instagram 임베드 제공. 쿠키, IP 주소, 기기·이용 정보</td><td>미국 등 Meta가 처리하는 국가 / 임베드 로드 시 / Meta 정책에 따른 기간</td></tr>
             </tbody>
@@ -73,6 +78,7 @@ export default function PrivacyPage() {
           <li>유럽경제지역·영국·스위스 이용자: Google의 인증된 동의 관리 화면에서 광고 목적별 동의 선택</li>
         </ul>
         <p>필수 쿠키를 차단하면 로그인 등 일부 기능이 정상 동작하지 않을 수 있습니다.</p>
+        <p>모바일 푸시 알림은 이용자가 기기에서 직접 허용한 경우에만 전송합니다. 앱의 알림 설정에서 종류별 수신 여부를 바꾸고, 기기 시스템 설정에서 푸시 알림 권한을 언제든 철회할 수 있습니다.</p>
       </section>
 
       <section>

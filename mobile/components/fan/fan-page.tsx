@@ -8,7 +8,7 @@ import MessageCircle from 'lucide-react-native/icons/message-circle';
 import Star from 'lucide-react-native/icons/star';
 import ThumbsUp from 'lucide-react-native/icons/thumbs-up';
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
 import { TeamLogo } from '@/components/data/team-logo';
 import { boardLabel, displayAuthor, formatCommunityDate } from '@/components/community/community-utils';
@@ -28,6 +28,7 @@ import { useCachedQuery } from '@/hooks/use-cached-query';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import { mutateMobileApi, resolveApiAssetUrl, type MobileCommunityPostSummary, type MobileMatchSummary, type MobileTeamDetailDto, type MobileTeamFanDto, type MobileTeamFavoriteDto, type MobileTeamNotificationDto } from '@/lib/api-client';
 import { fanAccentText, fanHeaderControlColor } from '@/lib/fan-colors';
+import { getPushPermissionStatus, requestPushPermissionAndRegister, syncPushTokenIfAuthorized } from '@/lib/push-notifications';
 import { formatTimeKST } from '@/lib/schedule-dates';
 import { useAuth } from '@/providers/auth-provider';
 
@@ -139,7 +140,9 @@ function FanChannelHeader({ data }: { data: MobileTeamDetailDto }) {
   const { refreshViewer, session, viewer } = useAuth();
   const headerUrl = resolveApiAssetUrl(data.headerImage?.url);
   const fanPath = `/api/mobile/v1/teams/${encodeURIComponent(data.team.fanSiteHost)}/fan`;
+  const notificationPath = `/api/mobile/v1/teams/${encodeURIComponent(data.team.fanSiteHost)}/notifications`;
   const { data: fanState, refresh: refreshFanState } = useCachedQuery<MobileTeamFanDto>(fanPath, { cache: false });
+  const { data: notificationState, refresh: refreshNotificationState } = useCachedQuery<MobileTeamNotificationDto>(notificationPath, { cache: false, enabled: Boolean(session) });
   const [followingOverride, setFollowingOverride] = useState<boolean | null>(null);
   const [countOverride, setCountOverride] = useState<number | null>(null);
   const [notificationOverride, setNotificationOverride] = useState<boolean | null>(null);
@@ -148,7 +151,7 @@ function FanChannelHeader({ data }: { data: MobileTeamDetailDto }) {
   const favorite = favoriteTeam?.id === data.team.id || favoriteTeam?.slug === data.team.slug || viewer?.favoriteTeamId === data.team.id;
   const following = followingOverride ?? fanState?.following ?? false;
   const fanCount = countOverride ?? fanState?.fanCount ?? 0;
-  const notificationEnabled = notificationOverride ?? Boolean(viewer?.followedTeamIds.includes(data.team.id));
+  const notificationEnabled = notificationOverride ?? notificationState?.enabled ?? false;
   const foreground = headerUrl ? '#ffffff' : theme.ink;
   const controlBackground = theme.surface;
   const controlBorder = theme.border;
@@ -203,6 +206,36 @@ function FanChannelHeader({ data }: { data: MobileTeamDetailDto }) {
     finally { setPending(null); }
   }
 
+  async function offerDevicePushAfterEnabling() {
+    try {
+      const permission = await getPushPermissionStatus();
+      if (permission.status === 'granted') {
+        void syncPushTokenIfAuthorized();
+      } else if (permission.status === 'undetermined' && permission.canAskAgain) {
+        Alert.alert(
+          '푸시 알림 받기',
+          '경기 시작과 세트 평가 소식을 앱 밖에서도 알려드릴게요. 라이브 경기와 팀 콘텐츠 알림은 내 정보에서 따로 선택할 수 있어요.',
+          [
+            { style: 'cancel', text: '나중에' },
+            {
+              text: '알림 받기',
+              onPress: () => {
+                void requestPushPermissionAndRegister()
+                  .then((next) => showToast(next.status === 'granted' ? '이 기기의 푸시 알림을 켰습니다.' : '푸시 알림이 허용되지 않았습니다.', next.status === 'granted' ? 'success' : 'error'))
+                  .catch((error) => showToast(error instanceof Error ? error.message : '푸시 알림을 설정하지 못했습니다.', 'error'));
+              },
+            },
+          ],
+        );
+      } else if (permission.status === 'denied') {
+        showToast('앱 내 팀 알림은 켜졌습니다. 기기 푸시는 내 정보에서 허용할 수 있어요.');
+      }
+    } catch (error) {
+      console.log('[fan] push permission check failed:', error);
+      showToast('팀 경기 알림은 켜졌지만 기기 푸시 상태를 확인하지 못했습니다.', 'error');
+    }
+  }
+
   async function toggleNotification() {
     if (pending) return;
     if (!session) { router.push(`/login?next=/fan/${data.team.fanSiteHost}` as never); return; }
@@ -210,10 +243,12 @@ function FanChannelHeader({ data }: { data: MobileTeamDetailDto }) {
     setNotificationOverride(next);
     setPending('notification');
     try {
-      const result = await mutateMobileApi<MobileTeamNotificationDto>(`/api/mobile/v1/teams/${encodeURIComponent(data.team.fanSiteHost)}/notifications`, 'POST', { enabled: next });
+      const result = await mutateMobileApi<MobileTeamNotificationDto>(notificationPath, 'POST', { enabled: next });
       setNotificationOverride(result.enabled);
+      refreshNotificationState();
       await refreshViewer();
-      showToast(result.enabled ? '새 소식 알림을 켰습니다.' : '새 소식 알림을 껐습니다.', 'success');
+      showToast(result.enabled ? '팀 경기 알림을 켰습니다.' : '팀 알림을 껐습니다.', 'success');
+      if (result.enabled) void offerDevicePushAfterEnabling();
     } catch (caught) {
       setNotificationOverride(null);
       showToast(caught instanceof Error ? caught.message : '알림 설정을 바꾸지 못했습니다.', 'error');

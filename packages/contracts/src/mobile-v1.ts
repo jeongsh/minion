@@ -181,9 +181,22 @@ export type MobileBootstrapDto = {
 
 export type MobileNotificationPreferences = {
   inAppEnabled: boolean;
+  communityEnabled: boolean;
   matchStartEnabled: boolean;
   matchEventsEnabled: boolean;
   ratingOpenEnabled: boolean;
+  teamContentEnabled: boolean;
+};
+
+export type MobileTeamNotificationSettings = {
+  teamId: EntityId;
+  teamName: string;
+  teamShortName: string;
+  matchAlertsEnabled: boolean;
+  liveMatchAlertsEnabled: boolean;
+  instagramAlertsEnabled: boolean;
+  videoAlertsEnabled: boolean;
+  soloQueueAlertsEnabled: boolean;
 };
 
 export type MobileMatchActivityTeam = {
@@ -219,11 +232,12 @@ export type MobileMatchActivityDto = {
   liveMatches: MobileLiveMatchActivity[];
   ratings: MobileRatingMatchActivity[];
   notificationPreferences: MobileNotificationPreferences;
+  teamNotificationSettings: Array<Pick<MobileTeamNotificationSettings, "teamId" | "matchAlertsEnabled" | "liveMatchAlertsEnabled">>;
 };
 
 export type MobileCommunityNotification = {
   id: EntityId;
-  kind: "post_activity";
+  kind: "post_activity" | "team_video" | "team_social";
   title: string;
   description?: string;
   href?: string;
@@ -250,6 +264,7 @@ export type MobileMeDto = {
     status: "active" | "deleted";
   };
   notificationPreferences: MobileNotificationPreferences;
+  teamNotificationSettings: MobileTeamNotificationSettings[];
   rank: {
     checkedInToday: boolean;
     overallRank: number | null;
@@ -1116,6 +1131,7 @@ export const mobileApiRoutes = {
   teamFan: { method: "GET", path: `${MOBILE_API_PREFIX}/teams/{teamSlug}/fan`, owner: "fan service", auth: "optional", cache: "no-store" },
   teamFanToggle: { method: "POST", path: `${MOBILE_API_PREFIX}/teams/{teamSlug}/fan`, owner: "fan service", auth: "optional", cache: "no-store" },
   teamFavorite: { method: "POST", path: `${MOBILE_API_PREFIX}/teams/{teamSlug}/favorite`, owner: "favorite team service", auth: "optional", cache: "no-store" },
+  teamNotificationRead: { method: "GET", path: `${MOBILE_API_PREFIX}/teams/{teamSlug}/notifications`, owner: "fan notification service", auth: "required", cache: "no-store" },
   teamNotification: { method: "POST", path: `${MOBILE_API_PREFIX}/teams/{teamSlug}/notifications`, owner: "fan notification service", auth: "required", cache: "no-store" },
   players: { method: "GET", path: `${MOBILE_API_PREFIX}/players`, owner: "lib/data/lck", auth: "public", cache: "21600s" },
   player: { method: "GET", path: `${MOBILE_API_PREFIX}/players/{playerSlug}`, owner: "player aggregation service", auth: "public", cache: "300s" },

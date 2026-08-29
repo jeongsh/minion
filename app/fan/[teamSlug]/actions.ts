@@ -90,10 +90,28 @@ export async function setFavoriteTeamAction(
     const voterKey = await getOrCreateVoterKey();
     const existing = await findFanRows(teamId, user?.id, voterKey);
     if (existing.length === 0) {
-      const { error } = await supabase
+      const { data: insertedFan, error } = await supabase
         .from("team_fans")
-        .insert({ team_id: teamId, voter_key: voterKey, user_id: user?.id ?? null });
+        .insert({ team_id: teamId, voter_key: voterKey, user_id: user?.id ?? null })
+        .select("id")
+        .single();
       if (error) return { ok: false, favorite: false, error: error.message };
+      if (user) {
+        const { error: subscriptionError } = await supabase.from("fan_notification_subscriptions").upsert({
+          user_id: user.id,
+          team_id: teamId,
+          match_alerts: false,
+          live_match_alerts: false,
+          instagram_alerts: false,
+          video_alerts: false,
+          solo_queue_alerts: false,
+          news_alerts: false,
+        }, { onConflict: "user_id,team_id" });
+        if (subscriptionError) {
+          await supabase.from("team_fans").delete().eq("id", insertedFan.id);
+          return { ok: false, favorite: false, error: subscriptionError.message };
+        }
+      }
     }
   }
 
@@ -142,6 +160,14 @@ export async function toggleFanAction(
   const existing = await findFanRows(teamId, user?.id, voterKey);
 
   if (existing.length > 0) {
+    if (user) {
+      const { error: subscriptionError } = await supabase
+        .from("fan_notification_subscriptions")
+        .delete()
+        .eq("team_id", teamId)
+        .eq("user_id", user.id);
+      if (subscriptionError) return { ok: false, isFan: true, error: subscriptionError.message };
+    }
     const { error } = await supabase
       .from("team_fans")
       .delete()
@@ -157,10 +183,28 @@ export async function toggleFanAction(
     return { ok: true, isFan: false };
   }
 
-  const { error } = await supabase
+  const { data: insertedFan, error } = await supabase
     .from("team_fans")
-    .insert({ team_id: teamId, voter_key: voterKey, user_id: user?.id ?? null });
+    .insert({ team_id: teamId, voter_key: voterKey, user_id: user?.id ?? null })
+    .select("id")
+    .single();
   if (error) return { ok: false, isFan: false, error: error.message };
+  if (user) {
+    const { error: subscriptionError } = await supabase.from("fan_notification_subscriptions").upsert({
+      user_id: user.id,
+      team_id: teamId,
+      match_alerts: false,
+      live_match_alerts: false,
+      instagram_alerts: false,
+      video_alerts: false,
+      solo_queue_alerts: false,
+      news_alerts: false,
+    }, { onConflict: "user_id,team_id" });
+    if (subscriptionError) {
+      await supabase.from("team_fans").delete().eq("id", insertedFan.id);
+      return { ok: false, isFan: false, error: subscriptionError.message };
+    }
+  }
   revalidateFollow(teamSlug);
   return { ok: true, isFan: true };
 }
@@ -183,7 +227,7 @@ export async function getFanNotificationEnabled(teamId: string): Promise<boolean
 
   const { data, error } = await supabase
     .from("fan_notification_subscriptions")
-    .select("id")
+    .select("match_alerts, live_match_alerts, instagram_alerts, video_alerts, solo_queue_alerts")
     .eq("team_id", teamId)
     .eq("user_id", user.id)
     .maybeSingle();
@@ -193,7 +237,13 @@ export async function getFanNotificationEnabled(teamId: string): Promise<boolean
     throw new Error(error.message);
   }
 
-  return Boolean(data);
+  return Boolean(data && (
+    data.match_alerts
+    || data.live_match_alerts
+    || data.instagram_alerts
+    || data.video_alerts
+    || data.solo_queue_alerts
+  ));
 }
 
 export async function toggleFanNotificationAction(
@@ -213,7 +263,15 @@ export async function toggleFanNotificationAction(
   if (!nextEnabled) {
     const { error } = await supabase
       .from("fan_notification_subscriptions")
-      .delete()
+      .update({
+        match_alerts: false,
+        live_match_alerts: false,
+        instagram_alerts: false,
+        video_alerts: false,
+        solo_queue_alerts: false,
+        news_alerts: false,
+        updated_at: new Date().toISOString(),
+      })
       .eq("team_id", teamId)
       .eq("user_id", user.id);
 
@@ -225,6 +283,15 @@ export async function toggleFanNotificationAction(
     return { ok: true, enabled: false };
   }
 
+  const { data: fan } = await supabase
+    .from("team_fans")
+    .select("id")
+    .eq("team_id", teamId)
+    .eq("user_id", user.id)
+    .limit(1)
+    .maybeSingle();
+  if (!fan) return { ok: false, enabled: false, error: "팀을 먼저 팔로우해주세요." };
+
   const { error } = await supabase
     .from("fan_notification_subscriptions")
     .upsert(
@@ -232,7 +299,12 @@ export async function toggleFanNotificationAction(
         team_id: teamId,
         user_id: user.id,
         match_alerts: true,
-        news_alerts: true,
+        live_match_alerts: false,
+        instagram_alerts: false,
+        video_alerts: false,
+        solo_queue_alerts: false,
+        news_alerts: false,
+        updated_at: new Date().toISOString(),
       },
       { onConflict: "user_id,team_id" },
     );

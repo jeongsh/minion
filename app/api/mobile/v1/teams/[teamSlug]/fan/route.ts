@@ -64,14 +64,38 @@ export async function POST(request: Request, context: { params: Promise<{ teamSl
   if (findError) return mobileError("INTERNAL", "팬 상태를 확인하지 못했습니다.", 500);
 
   if (body.following && !rows?.length) {
-    const { error } = await supabase.from("team_fans").insert({
+    const { data: insertedFan, error } = await supabase.from("team_fans").insert({
       team_id: resolved.team.id,
       user_id: resolved.auth?.user.id ?? null,
       voter_key: resolved.voterKey,
-    });
+    }).select("id").single();
     if (error) return mobileError("INTERNAL", "팬 등록에 실패했습니다.", 500);
+    if (resolved.auth) {
+      const { error: subscriptionError } = await supabase.from("fan_notification_subscriptions").upsert({
+        user_id: resolved.auth.user.id,
+        team_id: resolved.team.id,
+        match_alerts: false,
+        live_match_alerts: false,
+        instagram_alerts: false,
+        video_alerts: false,
+        solo_queue_alerts: false,
+        news_alerts: false,
+      }, { onConflict: "user_id,team_id" });
+      if (subscriptionError) {
+        await supabase.from("team_fans").delete().eq("id", insertedFan.id);
+        return mobileError("INTERNAL", "팬 알림 등록에 실패했습니다.", 500);
+      }
+    }
   }
   if (!body.following && rows?.length) {
+    if (resolved.auth) {
+      const { error: subscriptionError } = await supabase
+        .from("fan_notification_subscriptions")
+        .delete()
+        .eq("team_id", resolved.team.id)
+        .eq("user_id", resolved.auth.user.id);
+      if (subscriptionError) return mobileError("INTERNAL", "팬 알림 해제에 실패했습니다.", 500);
+    }
     const { error } = await supabase.from("team_fans").delete().in("id", rows.map((row) => row.id));
     if (error) return mobileError("INTERNAL", "팬 등록 해제에 실패했습니다.", 500);
     if (resolved.auth) {

@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { createSupabaseAdminClient } from "../lib/supabase/admin.ts";
+import { notifyTeamContentUpdate } from "../lib/notifications/team-content.ts";
 import { fetchYoutubeVideoEntries } from "../lib/youtube-feed.ts";
 import {
   getYoutubeVideoOwners,
@@ -55,6 +56,16 @@ async function main() {
         if (result.inserted) {
           inserted += 1;
           console.log(`[new] ${owner.kind}:${owner.name} - ${result.title}`);
+          if (owner.teamId && result.id) {
+            await notifyTeamContentUpdate(supabase, {
+              kind: "team_video",
+              sourceId: result.id,
+              teamId: owner.teamId,
+              contentTitle: entry.title,
+              imageUrl: entry.thumbnailUrl,
+              publishedAt: entry.publishedAt,
+            });
+          }
         }
       }
 

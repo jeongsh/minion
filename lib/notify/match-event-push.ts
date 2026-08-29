@@ -45,9 +45,8 @@ function describeEvent(event: MatchEventForPush, teamName: string | null): strin
 }
 
 /**
- * 방금 새로 감지된 라이브 경기 이벤트(킬/오브젝트)를 두 팀 중 하나라도 팔로우한
- * 로그인 유저에게 푸시로 보낸다. match_events_enabled는 기본값이 false(옵트인)라,
- * 명시적으로 켠 유저만 대상으로 한다 — match_start_enabled(기본 true, 옵트아웃)와 반대.
+ * 방금 새로 감지된 라이브 경기 이벤트(킬/오브젝트)를 두 팀 중 하나의 라이브 경기
+ * 알림을 켠 로그인 유저에게 푸시로 보낸다. 전체 알림이 꺼진 유저는 제외한다.
  * live 폴링 응답을 늦추지 않도록 호출부에서 await 없이 fire-and-forget으로 쓴다.
  */
 export async function sendMatchEventPushNotifications(
@@ -61,23 +60,23 @@ export async function sendMatchEventPushNotifications(
   if (teamIds.length === 0) return;
 
   const admin = createSupabaseAdminClient();
-  const [{ data: teams }, { data: fans }] = await Promise.all([
+  const [{ data: teams }, { data: subscriptions }] = await Promise.all([
     admin.from("teams").select("id, short_name, name").in("id", teamIds),
-    admin.from("team_fans").select("user_id").in("team_id", teamIds).not("user_id", "is", null),
+    admin.from("fan_notification_subscriptions").select("user_id").in("team_id", teamIds).eq("live_match_alerts", true),
   ]);
 
-  const userIds = [...new Set((fans ?? []).map((fan) => fan.user_id as string))];
+  const userIds = [...new Set((subscriptions ?? []).map((subscription) => subscription.user_id as string))];
   if (userIds.length === 0) return;
 
   const [{ data: preferences }, { data: tokens }] = await Promise.all([
-    admin.from("user_notification_preferences").select("user_id, match_events_enabled").in("user_id", userIds),
+    admin.from("user_notification_preferences").select("user_id, in_app_enabled").in("user_id", userIds),
     admin.from("push_tokens").select("user_id, expo_push_token").in("user_id", userIds),
   ]);
 
-  const optedInUserIds = new Set(
-    (preferences ?? []).filter((pref) => pref.match_events_enabled === true).map((pref) => pref.user_id),
+  const optedOutUserIds = new Set(
+    (preferences ?? []).filter((pref) => pref.in_app_enabled === false).map((pref) => pref.user_id),
   );
-  const eligibleTokens = (tokens ?? []).filter((token) => optedInUserIds.has(token.user_id));
+  const eligibleTokens = (tokens ?? []).filter((token) => !optedOutUserIds.has(token.user_id));
   if (eligibleTokens.length === 0) return;
 
   const teamNameById = new Map((teams ?? []).map((team) => [team.id, team.short_name ?? team.name]));
@@ -98,6 +97,8 @@ export async function sendMatchEventPushNotifications(
           to: token.expo_push_token,
           title: "경기 주요 이벤트",
           body: message,
+          channelId: "live",
+          sound: null,
           data: { eventId, matchId, type: "match_event", url: `/matches/${matchId}`, userId: token.user_id },
         })),
       );

@@ -1,17 +1,26 @@
 import Bell from 'lucide-react-native/icons/bell';
+import Camera from 'lucide-react-native/icons/camera';
 import ChevronRight from 'lucide-react-native/icons/chevron-right';
+import Gamepad2 from 'lucide-react-native/icons/gamepad-2';
 import LockKeyhole from 'lucide-react-native/icons/lock-keyhole';
+import MessageCircle from 'lucide-react-native/icons/message-circle';
 import Radio from 'lucide-react-native/icons/radio';
 import ShieldBan from 'lucide-react-native/icons/shield-ban';
-import Sparkles from 'lucide-react-native/icons/sparkles';
 import Swords from 'lucide-react-native/icons/swords';
+import Video from 'lucide-react-native/icons/video';
 import type { LucideIcon } from 'lucide-react-native';
-import { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, AppState, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import type { MobileMeDto, MobileNotificationPreferences } from '../../../packages/contracts/src/mobile-v1';
+import type { MobileMeDto, MobileNotificationPreferences, MobileTeamNotificationSettings } from '../../../packages/contracts/src/mobile-v1';
 import { RankAvatar } from '@/components/rank-avatar';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
+import {
+  getPushPermissionStatus,
+  openPushNotificationSettings,
+  requestPushPermissionAndRegister,
+  type PushPermissionSnapshot,
+} from '@/lib/push-notifications';
 
 export function AccountSection({ children, description, icon: Icon, title }: { children: React.ReactNode; description: string; icon: LucideIcon; title: string }) {
   const { fonts, theme } = useMinionTheme();
@@ -24,34 +33,108 @@ export function AccountSection({ children, description, icon: Icon, title }: { c
   </View>;
 }
 
-const notificationOptions: { key: Exclude<keyof MobileNotificationPreferences, 'inAppEnabled'>; title: string; description: string; icon: LucideIcon }[] = [
-  { key: 'matchStartEnabled', title: '경기 시작', description: '팔로우한 팀의 경기가 시작되면 알려드려요.', icon: Swords },
-  { key: 'matchEventsEnabled', title: '경기 주요 이벤트', description: '킬과 주요 오브젝트 등 실시간 경기 소식을 받아요.', icon: Radio },
-  { key: 'ratingOpenEnabled', title: '세트 평가 오픈', description: '경기 세트 평가가 열리면 알려드려요.', icon: Sparkles },
+type TeamPreferenceKey = Exclude<keyof MobileTeamNotificationSettings, 'teamId' | 'teamName' | 'teamShortName'>;
+const notificationOptions: { key: TeamPreferenceKey; title: string; description: string; icon: LucideIcon }[] = [
+  { key: 'matchAlertsEnabled', title: '경기', description: '경기 시작과 세트 평가를 알려드려요.', icon: Swords },
+  { key: 'liveMatchAlertsEnabled', title: '라이브 경기', description: '킬과 주요 오브젝트를 실시간으로 알려드려요.', icon: Radio },
+  { key: 'instagramAlertsEnabled', title: 'Instagram', description: '팀과 소속 선수의 새 게시물을 알려드려요.', icon: Camera },
+  { key: 'videoAlertsEnabled', title: '동영상', description: '팀과 소속 선수의 새 영상을 알려드려요.', icon: Video },
+  { key: 'soloQueueAlertsEnabled', title: '솔랭', description: '소속 선수가 솔랭을 시작하면 알려드려요.', icon: Gamepad2 },
 ];
 
-export function NotificationSection({ initialPreferences, onSave }: { initialPreferences: MobileNotificationPreferences; onSave: (preferences: MobileNotificationPreferences) => Promise<void> }) {
+function teamNotificationSummary(team: MobileTeamNotificationSettings) {
+  const enabled = notificationOptions.filter((option) => team[option.key]).map((option) => option.title);
+  return enabled.length > 0 ? enabled.join(' · ') : '모든 알림 꺼짐';
+}
+
+export function NotificationSection({ initialPreferences, initialTeams, onSave }: {
+  initialPreferences: MobileNotificationPreferences;
+  initialTeams: MobileTeamNotificationSettings[];
+  onSave: (preferences: MobileNotificationPreferences, teams: MobileTeamNotificationSettings[]) => Promise<void>;
+}) {
   const { fonts, showToast, theme } = useMinionTheme();
   const [preferences, setPreferences] = useState(initialPreferences);
+  const [teams, setTeams] = useState(initialTeams);
+  const [expandedTeamId, setExpandedTeamId] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [pushPending, setPushPending] = useState(false);
+  const [pushPermission, setPushPermission] = useState<PushPermissionSnapshot | null>(null);
   const toggle = (key: keyof MobileNotificationPreferences) => setPreferences((current) => ({ ...current, [key]: !current[key] }));
-  return <AccountSection description="필요한 경기 소식만 골라서 받아보세요." icon={Bell} title="알림">
-    <NotificationRow checked={preferences.inAppEnabled} description="MINION을 이용하는 동안 알림함과 토스트로 소식을 받아요." emphasized icon={Bell} onPress={() => toggle('inAppEnabled')} title="인앱 알림" />
-    <View style={[styles.notificationList, { opacity: preferences.inAppEnabled ? 1 : 0.45 }]} pointerEvents={preferences.inAppEnabled ? 'auto' : 'none'}>
-      {notificationOptions.map((option, index) => <View key={option.key} style={index ? { borderTopColor: theme.border, borderTopWidth: 1 } : null}><NotificationRow checked={preferences[option.key]} description={option.description} icon={option.icon} onPress={() => toggle(option.key)} title={option.title} /></View>)}
+  const updateTeam = (teamId: string, key: TeamPreferenceKey) => setTeams((current) => current.map((team) => team.teamId === teamId ? { ...team, [key]: !team[key] } : team));
+
+  useEffect(() => {
+    const refresh = () => { void getPushPermissionStatus().then(setPushPermission).catch(() => setPushPermission({ canAskAgain: false, status: 'unsupported' })); };
+    refresh();
+    const subscription = AppState.addEventListener('change', (state) => { if (state === 'active') refresh(); });
+    return () => subscription.remove();
+  }, []);
+
+  const pushDescription = pushPermission?.status === 'granted'
+    ? '이 기기에서 앱 밖 알림을 받을 수 있어요. 눌러 시스템 설정에서 변경합니다.'
+    : pushPermission?.status === 'denied'
+      ? '시스템에서 차단되어 있어요. 눌러 기기 설정에서 허용해주세요.'
+      : pushPermission?.status === 'unsupported'
+        ? '설치된 개발 빌드 또는 정식 앱에서 설정할 수 있어요.'
+        : pushPermission
+          ? '경기 시작과 댓글을 앱 밖에서도 받아요.'
+          : '이 기기의 푸시 알림 상태를 확인하고 있어요.';
+
+  const changePushPermission = async () => {
+    if (!pushPermission || pushPending || pushPermission.status === 'unsupported') return;
+    setPushPending(true);
+    try {
+      if (pushPermission.status === 'granted' || pushPermission.status === 'denied' || !pushPermission.canAskAgain) {
+        await openPushNotificationSettings();
+        return;
+      }
+      const next = await requestPushPermissionAndRegister();
+      setPushPermission(next);
+      showToast(next.status === 'granted' ? '이 기기의 푸시 알림을 켰습니다.' : '푸시 알림이 허용되지 않았습니다.', next.status === 'granted' ? 'success' : 'error');
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : '푸시 알림을 설정하지 못했습니다.', 'error');
+      void getPushPermissionStatus().then(setPushPermission);
+    } finally {
+      setPushPending(false);
+    }
+  };
+
+  return <AccountSection description="커뮤니티와 팔로우한 팀별 알림을 선택합니다." icon={Bell} title="알림">
+    <View style={[styles.devicePushCard, { borderColor: theme.border }]}>
+      <NotificationRow checked={pushPermission?.status === 'granted'} description={pushDescription} disabled={!pushPermission || pushPermission.status === 'unsupported' || pushPending} emphasized icon={Bell} onPress={() => void changePushPermission()} title="푸시 알림 (이 기기)" />
+    </View>
+    <NotificationRow checked={preferences.inAppEnabled} description="끄면 모든 알림을 잠시 받지 않아요. 세부 설정은 유지됩니다." emphasized icon={Bell} onPress={() => toggle('inAppEnabled')} title="전체 알림" />
+    <View style={{ opacity: preferences.inAppEnabled ? 1 : 0.45 }}>
+      <View style={[styles.communityNotificationCard, { borderColor: theme.border }]}>
+        <NotificationRow checked={preferences.communityEnabled} description="내 글의 새 댓글과 내 댓글의 새 답글을 알려드려요." icon={MessageCircle} onPress={() => toggle('communityEnabled')} title="커뮤니티 알림" />
+      </View>
+      <View style={styles.teamNotificationList}>
+      {teams.length > 0 ? teams.map((team) => {
+        const expanded = expandedTeamId === team.teamId;
+        return <View key={team.teamId} style={[styles.teamNotificationCard, { borderColor: theme.border }]}>
+          <Pressable accessibilityRole="button" onPress={() => setExpandedTeamId(expanded ? null : team.teamId)} style={styles.teamNotificationHeader}>
+            <View style={[styles.teamInitial, { backgroundColor: theme.surfaceMuted }]}><Text style={{ color: theme.ink, ...fonts.medium, fontSize: 14 }}>{team.teamShortName.slice(0, 2)}</Text></View>
+            <View style={styles.notificationCopy}><Text numberOfLines={1} style={[styles.teamNotificationName, { color: theme.ink, ...fonts.black }]}>{team.teamName}</Text><Text numberOfLines={1} style={[styles.teamNotificationSummary, { color: theme.muted, ...fonts.medium }]}>{teamNotificationSummary(team)}</Text></View>
+            <ChevronRight color={theme.muted} size={17} style={{ transform: [{ rotate: expanded ? '90deg' : '0deg' }] }} />
+          </Pressable>
+          {expanded ? <View style={{ borderTopColor: theme.border, borderTopWidth: 1, paddingHorizontal: 8 }}>
+            {notificationOptions.map((option, index) => <View key={option.key} style={index ? { borderTopColor: theme.border, borderTopWidth: 1 } : null}><NotificationRow checked={team[option.key]} description={option.description} icon={option.icon} onPress={() => updateTeam(team.teamId, option.key)} title={option.title} /></View>)}
+          </View> : null}
+        </View>;
+      }) : <View style={[styles.notificationEmpty, { borderColor: theme.border }]}><Text style={{ color: theme.muted, ...fonts.regular, fontSize: 16, lineHeight: 24 }}>팔로우한 팀이 없습니다.</Text></View>}
+      </View>
     </View>
     <View style={[styles.notificationFooter, { borderTopColor: theme.border }]}>
-      <Text style={[styles.notificationFootnote, { color: theme.muted, ...fonts.medium }]}>설정은 로그인한 모든 기기에 적용됩니다.</Text>
-      <Pressable disabled={pending} onPress={() => { setPending(true); void onSave(preferences).catch((error) => showToast(error instanceof Error ? error.message : '알림 설정을 저장하지 못했습니다.', 'error')).finally(() => setPending(false)); }} style={[styles.primaryButton, { backgroundColor: theme.accent, opacity: pending ? 0.5 : 1 }]}>
+      <Text style={[styles.notificationFootnote, { color: theme.muted, ...fonts.medium }]}>알림 종류는 계정의 모든 기기에 적용되고, 푸시 허용 여부는 기기별로 관리됩니다.</Text>
+      <Pressable disabled={pending} onPress={() => { setPending(true); void onSave(preferences, teams).catch((error) => showToast(error instanceof Error ? error.message : '알림 설정을 저장하지 못했습니다.', 'error')).finally(() => setPending(false)); }} style={[styles.primaryButton, { backgroundColor: theme.accent, opacity: pending ? 0.5 : 1 }]}>
         {pending ? <ActivityIndicator color={theme.accentForeground} size="small" /> : <Text style={[styles.primaryButtonText, { color: theme.accentForeground, ...fonts.medium }]}>변경사항 저장</Text>}
       </Pressable>
     </View>
   </AccountSection>;
 }
 
-function NotificationRow({ checked, description, emphasized = false, icon: Icon, onPress, title }: { checked: boolean; description: string; emphasized?: boolean; icon: LucideIcon; onPress: () => void; title: string }) {
+function NotificationRow({ checked, description, disabled = false, emphasized = false, icon: Icon, onPress, title }: { checked: boolean; description: string; disabled?: boolean; emphasized?: boolean; icon: LucideIcon; onPress: () => void; title: string }) {
   const { fonts, theme } = useMinionTheme();
-  return <Pressable accessibilityRole="switch" accessibilityState={{ checked }} onPress={onPress} style={[styles.notificationRow, emphasized ? { backgroundColor: theme.surfaceMuted } : null]}>
+  return <Pressable accessibilityRole="switch" accessibilityState={{ checked, disabled }} disabled={disabled} onPress={onPress} style={[styles.notificationRow, emphasized ? { backgroundColor: theme.surfaceMuted } : null, disabled ? { opacity: 0.55 } : null]}>
     <View style={[styles.notificationIcon, { backgroundColor: theme.surface }]}><Icon color={theme.muted} size={17} /></View>
     <View style={styles.notificationCopy}><Text style={[styles.notificationTitle, { color: theme.ink, ...fonts.medium }]}>{title}</Text><Text style={[styles.notificationDescription, { color: theme.muted, ...fonts.medium }]}>{description}</Text></View>
     <View style={[styles.switchTrack, { backgroundColor: checked ? theme.accent : theme.border }]}><View style={[styles.switchKnob, { transform: [{ translateX: checked ? 20 : 0 }] }]} /></View>
@@ -108,7 +191,7 @@ function SmallButton({ danger = false, disabled = false, label, onPress, seconda
 
 const styles = StyleSheet.create({
   section: { borderRadius: 12, borderWidth: 1, padding: 16 }, sectionHeading: { alignItems: 'flex-start', flexDirection: 'row', gap: 8, marginBottom: 16 }, sectionIcon: { alignItems: 'center', borderRadius: 8, height: 30, justifyContent: 'center', width: 30 }, sectionCopy: { flex: 1, minWidth: 0 }, sectionTitle: { fontSize: 15, letterSpacing: -0.3, lineHeight: 22 }, sectionDescription: { fontSize: 13, lineHeight: 18 },
-  notificationList: { marginTop: 8 }, notificationRow: { alignItems: 'center', borderRadius: 12, flexDirection: 'row', gap: 8, minHeight: 56, paddingHorizontal: 8, paddingVertical: 8 }, notificationIcon: { alignItems: 'center', borderRadius: 8, height: 30, justifyContent: 'center', width: 30 }, notificationCopy: { flex: 1, minWidth: 0 }, notificationTitle: { fontSize: 13, lineHeight: 18 }, notificationDescription: { fontSize: 13, lineHeight: 18, marginTop: 2 }, switchTrack: { borderRadius: 12, height: 24, padding: 2, width: 44 }, switchKnob: { backgroundColor: '#fff', borderRadius: 10, height: 20, shadowColor: '#000', shadowOffset: { height: 1, width: 0 }, shadowOpacity: 0.15, shadowRadius: 2, width: 20 }, notificationFooter: { borderTopWidth: 1, gap: 12, marginTop: 12, paddingTop: 12 }, notificationFootnote: { fontSize: 13, lineHeight: 18 }, primaryButton: { alignItems: 'center', borderRadius: 8, height: 36, justifyContent: 'center', width: '100%' }, primaryButtonText: { fontSize: 13, lineHeight: 18 },
+  devicePushCard: { borderRadius: 12, borderWidth: 1, marginBottom: 8, overflow: 'hidden' }, communityNotificationCard: { borderRadius: 12, borderWidth: 1, marginTop: 12, overflow: 'hidden', paddingHorizontal: 8 }, teamNotificationList: { gap: 8, marginTop: 12 }, teamNotificationCard: { borderRadius: 12, borderWidth: 1, overflow: 'hidden' }, teamNotificationHeader: { alignItems: 'center', flexDirection: 'row', gap: 10, minHeight: 56, paddingHorizontal: 12, paddingVertical: 8 }, teamInitial: { alignItems: 'center', borderRadius: 8, height: 36, justifyContent: 'center', width: 36 }, teamNotificationName: { fontSize: 15, lineHeight: 22 }, teamNotificationSummary: { fontSize: 13, lineHeight: 18 }, notificationEmpty: { alignItems: 'center', borderRadius: 12, borderStyle: 'dashed', borderWidth: 1, padding: 24 }, notificationRow: { alignItems: 'center', borderRadius: 12, flexDirection: 'row', gap: 8, minHeight: 56, paddingHorizontal: 8, paddingVertical: 8 }, notificationIcon: { alignItems: 'center', borderRadius: 8, height: 30, justifyContent: 'center', width: 30 }, notificationCopy: { flex: 1, minWidth: 0 }, notificationTitle: { fontSize: 13, lineHeight: 18 }, notificationDescription: { fontSize: 13, lineHeight: 18, marginTop: 2 }, switchTrack: { borderRadius: 12, height: 24, padding: 2, width: 44 }, switchKnob: { backgroundColor: '#fff', borderRadius: 10, height: 20, shadowColor: '#000', shadowOffset: { height: 1, width: 0 }, shadowOpacity: 0.15, shadowRadius: 2, width: 20 }, notificationFooter: { borderTopWidth: 1, gap: 12, marginTop: 12, paddingTop: 12 }, notificationFootnote: { fontSize: 13, lineHeight: 18 }, primaryButton: { alignItems: 'center', borderRadius: 8, height: 36, justifyContent: 'center', width: '100%' }, primaryButtonText: { fontSize: 13, lineHeight: 18 },
   blockedEmpty: { fontSize: 13, lineHeight: 20, paddingVertical: 20, textAlign: 'center' }, blockedRow: { alignItems: 'center', flexDirection: 'row', gap: 12, minHeight: 56, paddingVertical: 12 }, blockedName: { flex: 1, fontSize: 14, lineHeight: 20 }, guestAvatar: { alignItems: 'center', borderRadius: 16, height: 32, justifyContent: 'center', width: 32 }, unblock: { borderRadius: 8, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 6 },
   accountInfo: { borderRadius: 12, padding: 12 }, accountLabel: { fontSize: 13, lineHeight: 18 }, accountValue: { fontSize: 13, lineHeight: 18, marginTop: 3 }, collapsible: { borderRadius: 12, borderWidth: 1, marginTop: 10, overflow: 'hidden' }, collapsibleHeader: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', minHeight: 48, paddingHorizontal: 14 }, collapsibleBody: { borderTopWidth: 1, padding: 16 }, securityForm: { gap: 12 }, securityField: { gap: 4 }, label: { fontSize: 13, lineHeight: 18 }, input: { borderRadius: 8, borderWidth: 1, fontSize: 13, height: 36, lineHeight: 18, paddingHorizontal: 10, paddingVertical: 0 }, hint: { fontSize: 13, lineHeight: 18 }, smallButton: { alignItems: 'center', alignSelf: 'flex-start', borderRadius: 8, height: 36, justifyContent: 'center', paddingHorizontal: 16 }, deleteDescription: { fontSize: 13, lineHeight: 22 }, reauthText: { fontSize: 13, lineHeight: 18 }, buttonRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
 });

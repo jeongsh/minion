@@ -1,4 +1,4 @@
-import type { MobileMeDto, MobileNotificationPreferences } from "@/packages/contracts/src/mobile-v1";
+import type { MobileMeDto, MobileNotificationPreferences, MobileTeamNotificationSettings } from "@/packages/contracts/src/mobile-v1";
 import { getMobileAuth } from "@/lib/mobile/auth";
 import { mobileError, mobileSuccess } from "@/lib/mobile/api-response";
 import { resizeImageForWeb } from "@/lib/images/resize-for-web";
@@ -34,9 +34,11 @@ function profileImageExtension(type: string, name: string): string {
 
 const defaultPreferences: MobileNotificationPreferences = {
   inAppEnabled: true,
+  communityEnabled: true,
   matchStartEnabled: true,
   matchEventsEnabled: false,
   ratingOpenEnabled: true,
+  teamContentEnabled: true,
 };
 
 function plainText(value: unknown): string {
@@ -58,8 +60,8 @@ async function readMe(request: Request): Promise<MobileMeDto | null> {
     supabase.from("profiles").select("nickname, profile_image_url, tier, lp, favorite_team_id").eq("id", user.id).maybeSingle(),
     supabase.from("ranked_profiles").select("effective_tier, lp, overall_rank").eq("id", user.id).maybeSingle(),
     supabase.from("attendance_checks").select("id").eq("user_id", user.id).eq("check_date", new Date().toISOString().slice(0, 10)).maybeSingle(),
-    supabase.from("user_notification_preferences").select("in_app_enabled, match_start_enabled, match_events_enabled, rating_open_enabled").eq("user_id", user.id).maybeSingle(),
-    supabase.from("fan_notification_subscriptions").select("team_id").eq("user_id", user.id),
+    supabase.from("user_notification_preferences").select("in_app_enabled, community_enabled, match_start_enabled, match_events_enabled, rating_open_enabled, team_content_enabled").eq("user_id", user.id).maybeSingle(),
+    supabase.from("fan_notification_subscriptions").select("team_id, match_alerts, live_match_alerts, instagram_alerts, video_alerts, solo_queue_alerts").eq("user_id", user.id).order("created_at", { ascending: true }),
     supabase.from("community_posts").select("id, title, created_at").eq("author_id", user.id).order("created_at", { ascending: false }).limit(5),
     supabase.from("community_comments").select("id, post_id, content, created_at").eq("author_id", user.id).order("created_at", { ascending: false }).limit(5),
     supabase.from("community_posts").select("id", { count: "exact", head: true }).eq("author_id", user.id),
@@ -68,9 +70,16 @@ async function readMe(request: Request): Promise<MobileMeDto | null> {
     supabase.from("community_guest_blocks").select("guest_key, guest_nickname, created_at").eq("blocker_id", user.id).order("created_at", { ascending: false }),
   ]);
   const blockedIds = (blocksResult.data ?? []).map((item) => item.blocked_id);
-  const { data: blockedProfiles } = blockedIds.length
-    ? await supabase.from("profiles").select("id, nickname, profile_image_url, tier").in("id", blockedIds)
-    : { data: [] };
+  const followedTeamIds = (subscriptionsResult.data ?? []).map((item) => item.team_id);
+  const [{ data: blockedProfiles }, { data: followedTeams }] = await Promise.all([
+    blockedIds.length
+      ? supabase.from("profiles").select("id, nickname, profile_image_url, tier").in("id", blockedIds)
+      : Promise.resolve({ data: [] }),
+    followedTeamIds.length
+      ? supabase.from("teams").select("id, name, short_name").in("id", followedTeamIds)
+      : Promise.resolve({ data: [] }),
+  ]);
+  const followedTeamById = new Map((followedTeams ?? []).map((team) => [team.id, team]));
   const profile = profileResult.data;
   const ranked = rankedResult.data;
   const preferences = preferencesResult.data;
@@ -89,16 +98,32 @@ async function readMe(request: Request): Promise<MobileMeDto | null> {
       tier,
       lp,
       favoriteTeamId: profile?.favorite_team_id ?? null,
-      followedTeamIds: (subscriptionsResult.data ?? []).map((item) => item.team_id),
+      followedTeamIds,
       authProvider: (user.app_metadata?.provider as string | undefined) ?? providers[0] ?? null,
       status: "active",
     },
     notificationPreferences: preferences ? {
       inAppEnabled: preferences.in_app_enabled,
+      communityEnabled: preferences.community_enabled,
       matchStartEnabled: preferences.match_start_enabled,
       matchEventsEnabled: preferences.match_events_enabled,
       ratingOpenEnabled: preferences.rating_open_enabled,
+      teamContentEnabled: preferences.team_content_enabled,
     } : defaultPreferences,
+    teamNotificationSettings: (subscriptionsResult.data ?? []).flatMap((subscription) => {
+      const team = followedTeamById.get(subscription.team_id);
+      if (!team) return [];
+      return [{
+        teamId: subscription.team_id,
+        teamName: team.name,
+        teamShortName: team.short_name ?? team.name,
+        matchAlertsEnabled: subscription.match_alerts,
+        liveMatchAlertsEnabled: subscription.live_match_alerts,
+        instagramAlertsEnabled: subscription.instagram_alerts,
+        videoAlertsEnabled: subscription.video_alerts,
+        soloQueueAlertsEnabled: subscription.solo_queue_alerts,
+      }];
+    }),
     rank: {
       checkedInToday: Boolean(attendanceResult.data),
       overallRank: ranked?.overall_rank ?? null,
@@ -178,6 +203,7 @@ export async function PATCH(request: Request) {
     favoriteTeamId?: string | null;
     followedTeamIds?: string[];
     notificationPreferences?: Partial<MobileNotificationPreferences>;
+    teamNotificationSettings?: MobileTeamNotificationSettings[];
     unblockUserId?: string;
     unblockGuestKey?: string;
     checkIn?: boolean;
@@ -236,12 +262,46 @@ export async function PATCH(request: Request) {
     const { error } = await supabase.from("user_notification_preferences").upsert({
       user_id: user.id,
       in_app_enabled: Boolean(next.inAppEnabled),
+      community_enabled: Boolean(next.communityEnabled),
       match_start_enabled: Boolean(next.matchStartEnabled),
       match_events_enabled: Boolean(next.matchEventsEnabled),
       rating_open_enabled: Boolean(next.ratingOpenEnabled),
+      team_content_enabled: Boolean(next.teamContentEnabled),
       updated_at: new Date().toISOString(),
     }, { onConflict: "user_id" });
     if (error) return mobileError("INTERNAL", "알림 설정을 저장하지 못했습니다.", 500);
+  }
+  if (input.teamNotificationSettings) {
+    const teamIds = [...new Set(input.teamNotificationSettings.map((setting) => setting.teamId))];
+    if (teamIds.length !== input.teamNotificationSettings.length || teamIds.length > 20) {
+      return mobileError("BAD_REQUEST", "팀별 알림 설정이 올바르지 않습니다.", 400);
+    }
+    if (teamIds.length > 0) {
+      const { data: existing, error: readError } = await supabase
+        .from("fan_notification_subscriptions")
+        .select("team_id")
+        .in("team_id", teamIds);
+      const existingTeamIds = new Set((existing ?? []).map((row) => row.team_id));
+      if (readError || teamIds.some((teamId) => !existingTeamIds.has(teamId))) {
+        return mobileError("BAD_REQUEST", "팔로우한 팀의 알림만 변경할 수 있습니다.", 400);
+      }
+      const updatedAt = new Date().toISOString();
+      const { error } = await supabase.from("fan_notification_subscriptions").upsert(
+        input.teamNotificationSettings.map((setting) => ({
+          user_id: user.id,
+          team_id: setting.teamId,
+          match_alerts: Boolean(setting.matchAlertsEnabled),
+          live_match_alerts: Boolean(setting.liveMatchAlertsEnabled),
+          instagram_alerts: Boolean(setting.instagramAlertsEnabled),
+          video_alerts: Boolean(setting.videoAlertsEnabled),
+          solo_queue_alerts: Boolean(setting.soloQueueAlertsEnabled),
+          news_alerts: Boolean(setting.instagramAlertsEnabled || setting.videoAlertsEnabled),
+          updated_at: updatedAt,
+        })),
+        { onConflict: "user_id,team_id" },
+      );
+      if (error) return mobileError("INTERNAL", "팀별 알림 설정을 저장하지 못했습니다.", 500);
+    }
   }
   if (input.followedTeamIds) {
     const teamIds = [...new Set(input.followedTeamIds)].slice(0, 20);
@@ -257,7 +317,16 @@ export async function PATCH(request: Request) {
       if (error) return mobileError("INTERNAL", "팔로우 팀을 저장하지 못했습니다.", 500);
     }
     if (teamIds.length) {
-      const { error } = await supabase.from("fan_notification_subscriptions").upsert(teamIds.map((teamId) => ({ user_id: user.id, team_id: teamId })), { onConflict: "user_id,team_id" });
+      const { error } = await supabase.from("fan_notification_subscriptions").upsert(teamIds.map((teamId) => ({
+        user_id: user.id,
+        team_id: teamId,
+        match_alerts: false,
+        live_match_alerts: false,
+        instagram_alerts: false,
+        video_alerts: false,
+        solo_queue_alerts: false,
+        news_alerts: false,
+      })), { ignoreDuplicates: true, onConflict: "user_id,team_id" });
       if (error) return mobileError("INTERNAL", "팔로우 팀을 저장하지 못했습니다.", 500);
     }
   }

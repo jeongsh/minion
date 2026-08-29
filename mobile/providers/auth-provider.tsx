@@ -7,7 +7,7 @@ import { AppState, Platform } from 'react-native';
 
 import type { MobileBootstrapDto } from '../../packages/contracts/src/mobile-v1';
 import { fetchMobileApi, mobileApiOrigin } from '@/lib/api-client';
-import { registerPushToken, unregisterPushToken } from '@/lib/push-notifications';
+import { syncPushTokenIfAuthorized, unregisterPushToken } from '@/lib/push-notifications';
 import { getInstallationId, setAuthReturnTo, takeAuthReturnTo } from '@/lib/secure-storage';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 
@@ -111,7 +111,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   const finishLogin = useCallback(async () => {
     await refreshViewer();
-    void registerPushToken();
+    void syncPushTokenIfAuthorized();
     const returnTo = await takeAuthReturnTo();
     router.replace(returnTo as never);
   }, [refreshViewer, router]);
@@ -161,7 +161,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       setSession(data.session);
       if (data.session) {
         await refreshViewer();
-        void registerPushToken();
+        void syncPushTokenIfAuthorized();
       }
       setLoading(false);
     });

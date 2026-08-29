@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { resizeImageForWeb } from "../images/resize-for-web.ts";
+import { notifyTeamContentUpdate } from "../notifications/team-content.ts";
 import {
   scrapeInstagramPosts,
   scrapeInstagramStories,
@@ -197,6 +198,20 @@ export async function syncOwnerPosts(
         if (stored && stored !== post.imageUrl) {
           await supabase.from("player_social_posts").update({ image_url: stored }).eq("id", data[0].id);
         }
+        if (owner.teamId) {
+          try {
+            await notifyTeamContentUpdate(supabase, {
+              kind: "team_social",
+              sourceId: data[0].id,
+              teamId: owner.teamId,
+              contentTitle: post.caption,
+              imageUrl: stored ?? post.imageUrl,
+              publishedAt: post.postedAt.toISOString(),
+            });
+          } catch (error) {
+            console.error(`[team-content-notifications] player_social:${data[0].id} failed`, error);
+          }
+        }
       }
     } else {
       const { data, error } = await supabase
@@ -223,6 +238,18 @@ export async function syncOwnerPosts(
         );
         if (stored && stored !== post.imageUrl) {
           await supabase.from("team_social_posts").update({ thumbnail_url: stored }).eq("id", data[0].id);
+        }
+        try {
+          await notifyTeamContentUpdate(supabase, {
+            kind: "team_social",
+            sourceId: data[0].id,
+            teamId: owner.id,
+            contentTitle: post.caption,
+            imageUrl: stored ?? post.imageUrl,
+            publishedAt: post.postedAt.toISOString(),
+          });
+        } catch (error) {
+          console.error(`[team-content-notifications] team_social:${data[0].id} failed`, error);
         }
       }
     }

@@ -1,8 +1,10 @@
 "use server";
 
 import { revalidatePath, updateTag } from "next/cache";
+import { after } from "next/server";
 import { createSupabaseAdminActionClient, createSupabaseAdminClient } from "@/lib/auth/admin";
 import { HOME_PUBLIC_DATA_TAG } from "@/lib/data/home-cache";
+import { notifyTeamContentUpdate } from "@/lib/notifications/team-content";
 
 function revalidate() {
   revalidatePath("/admin/news");
@@ -38,7 +40,7 @@ export async function createVideoAction(formData: FormData) {
   const now = new Date().toISOString();
 
   const supabase = await createSupabaseAdminActionClient();
-  await supabase.from("team_videos").insert({
+  const { data, error } = await supabase.from("team_videos").insert({
     team_id: teamId,
     platform,
     title,
@@ -51,7 +53,19 @@ export async function createVideoAction(formData: FormData) {
     is_new: true,
     first_seen_at: now,
     last_seen_at: now,
-  });
+  }).select("id").single();
+  if (error) throw error;
+
+  after(() => notifyTeamContentUpdate(createSupabaseAdminClient(), {
+    kind: "team_video",
+    sourceId: data.id,
+    teamId,
+    contentTitle: title,
+    imageUrl: finalThumb,
+    publishedAt: publishedAt || now,
+  }).catch((notificationError) => {
+    console.error(`[team-content-notifications] team_video:${data.id} failed`, notificationError);
+  }));
 
   revalidate();
 }

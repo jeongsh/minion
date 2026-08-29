@@ -8,6 +8,7 @@ import { getMobileAuth } from "@/lib/mobile/auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
+const FEED_PREVIEW_LIMIT = 12;
 
 function installationVoterKey(request: Request) {
   const installationId = request.headers.get("x-minion-installation-id")?.trim();
@@ -53,8 +54,8 @@ export async function GET(request: Request) {
   const teamPlayers = players.filter((player) => player.teamId === selectedTeam.id);
   const playerIds = teamPlayers.map((player) => player.id);
   const [instagramFeed, videoFeed] = await Promise.all([
-    getTeamInstagramFeed(selectedTeam.id, playerIds),
-    getFanVideoFeed(selectedTeam.id, playerIds),
+    getTeamInstagramFeed(selectedTeam.id, playerIds, FEED_PREVIEW_LIMIT),
+    getFanVideoFeed(selectedTeam.id, playerIds, FEED_PREVIEW_LIMIT),
   ]);
   const playersById = new Map(teamPlayers.map((player) => [player.id, player]));
   const social = [
@@ -74,13 +75,13 @@ export async function GET(request: Request) {
       title: post.caption,
       url: post.sourceUrl,
     })),
-  ].sort((a, b) => new Date(b.publishedAt ?? 0).getTime() - new Date(a.publishedAt ?? 0).getTime());
+  ].sort((a, b) => new Date(b.publishedAt ?? 0).getTime() - new Date(a.publishedAt ?? 0).getTime()).slice(0, FEED_PREVIEW_LIMIT);
   const videos = buildFanVideoItems({
     team: selectedTeam,
     players: teamPlayers,
     playerVideos: videoFeed.playerVideos,
     teamVideos: videoFeed.teamVideos,
-  }).map((video) => ({
+  }).slice(0, FEED_PREVIEW_LIMIT).map((video) => ({
     channelName: video.ownerName,
     embedUrl: video.embedUrl ?? null,
     id: video.id,

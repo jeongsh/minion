@@ -1,33 +1,54 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { AppNotification } from "@/lib/notifications";
 
-const POLL_MS = 15_000;
+const MEMBER_POLL_MS = 60_000;
+const GUEST_POLL_MS = 5 * 60_000;
 
-export function isCommunityNotificationId(id: string) {
-  return id.startsWith("community:");
+export function isRemoteNotificationId(id: string) {
+  return id.startsWith("community:") || id.startsWith("content:");
 }
 
-export function useCommunityNotifications(identityScope: string) {
+export function useCommunityNotifications(identityScope: string, onNewNotification?: (notification: AppNotification) => void) {
   const [state, setState] = useState<{ identityScope: string; notifications: AppNotification[] }>({
     identityScope: "",
     notifications: [],
   });
+  const knownNotificationIds = useRef<{ identityScope: string; ids: Set<string> } | null>(null);
+  const onNewNotificationRef = useRef(onNewNotification);
   const notifications = state.identityScope === identityScope ? state.notifications : [];
+
+  useEffect(() => {
+    onNewNotificationRef.current = onNewNotification;
+  }, [onNewNotification]);
 
   const refresh = useCallback(async (signal?: AbortSignal) => {
     const response = await fetch("/api/notifications", { cache: "no-store", signal });
     if (!response.ok) return;
     const body = await response.json() as { notifications?: AppNotification[] };
-    setState({ identityScope, notifications: Array.isArray(body.notifications) ? body.notifications : [] });
+    const next = Array.isArray(body.notifications) ? body.notifications : [];
+    const previous = knownNotificationIds.current;
+    knownNotificationIds.current = { identityScope, ids: new Set(next.map((notification) => notification.id)) };
+    if (previous?.identityScope === identityScope) {
+      for (const notification of next) {
+        if (!previous.ids.has(notification.id) && (notification.kind === "team_video" || notification.kind === "team_social")) {
+          onNewNotificationRef.current?.(notification);
+        }
+      }
+    }
+    setState({ identityScope, notifications: next });
   }, [identityScope]);
 
   useEffect(() => {
+    knownNotificationIds.current = null;
     const controller = new AbortController();
+    const pollMs = identityScope === "guest" ? GUEST_POLL_MS : MEMBER_POLL_MS;
     const initialLoad = window.setTimeout(() => void refresh(controller.signal).catch(() => undefined), 0);
-    const interval = window.setInterval(() => void refresh().catch(() => undefined), POLL_MS);
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === "visible") void refresh().catch(() => undefined);
+    }, pollMs);
     const onVisibilityChange = () => {
       if (document.visibilityState === "visible") void refresh().catch(() => undefined);
     };

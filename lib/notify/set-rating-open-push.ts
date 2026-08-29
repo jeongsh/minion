@@ -19,7 +19,7 @@ type PendingEventRow = {
  * 이벤트를 읽어 두 팀 중 하나라도 팔로우한 로그인 유저에게 푸시를 보낸다. Discord 알림
  * (deliverPendingDiscordEvents)과 같은 이벤트 큐를 보되, claimed_at/delivered_at은 Discord
  * 발송 전용이라 건드리지 않고 별도 push_delivered_at 컬럼으로 독립적으로 추적한다.
- * rating_open_enabled는 기본값이 true(옵트아웃)라 명시적으로 false인 유저만 제외한다.
+ * 두 팀 중 하나의 경기 알림을 켠 유저에게만 보내고 전체 알림이 꺼진 유저는 제외한다.
  */
 export async function sendPendingSetRatingOpenPushNotifications(): Promise<{ sent: number }> {
   const admin = createSupabaseAdminClient();
@@ -55,21 +55,21 @@ export async function sendPendingSetRatingOpenPushNotifications(): Promise<{ sen
       const teamIds = [match?.team_a_id, match?.team_b_id].filter((id): id is string => Boolean(id));
       if (teamIds.length === 0) continue;
 
-      const { data: fans } = await admin
-        .from("team_fans")
+      const { data: subscriptions } = await admin
+        .from("fan_notification_subscriptions")
         .select("user_id")
         .in("team_id", teamIds)
-        .not("user_id", "is", null);
-      const userIds = [...new Set((fans ?? []).map((fan) => fan.user_id as string))];
+        .eq("match_alerts", true);
+      const userIds = [...new Set((subscriptions ?? []).map((subscription) => subscription.user_id as string))];
       if (userIds.length === 0) continue;
 
       const [{ data: preferences }, { data: tokens }] = await Promise.all([
-        admin.from("user_notification_preferences").select("user_id, rating_open_enabled").in("user_id", userIds),
+        admin.from("user_notification_preferences").select("user_id, in_app_enabled").in("user_id", userIds),
         admin.from("push_tokens").select("user_id, expo_push_token").in("user_id", userIds),
       ]);
 
       const optedOutUserIds = new Set(
-        (preferences ?? []).filter((pref) => pref.rating_open_enabled === false).map((pref) => pref.user_id),
+        (preferences ?? []).filter((pref) => pref.in_app_enabled === false).map((pref) => pref.user_id),
       );
       const eligibleTokens = (tokens ?? []).filter((token) => !optedOutUserIds.has(token.user_id));
       if (eligibleTokens.length === 0) continue;
@@ -79,6 +79,8 @@ export async function sendPendingSetRatingOpenPushNotifications(): Promise<{ sen
           to: token.expo_push_token,
           title: "세트 평가 오픈",
           body: `${matchName} ${setNumber}세트 평가 시작`,
+          channelId: "match",
+          sound: "default",
           data: { matchId, type: "rating_open", url: `/matches/${matchId}?tab=rating&set=${setNumber}`, userId: token.user_id },
         })),
       );

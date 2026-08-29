@@ -14,9 +14,8 @@ export type MatchStartNotificationSummary = {
 };
 
 /**
- * 예정 시각이 막 지난(최근 3분 이내) 경기를 찾아, 두 팀 중 하나라도 팔로우한(team_fans)
- * 로그인 유저에게 "경기 시작" 푸시를 보낸다. user_notification_preferences.match_start_enabled
- * =false면 제외한다. matches.start_notification_sent_at 로 중복 발송을 막는다.
+ * 예정 시각이 막 지난(최근 3분 이내) 경기를 찾아, 두 팀 중 하나의 경기 알림을
+ * 켠 로그인 유저에게 푸시를 보낸다. 전체 알림이 꺼진 유저는 제외한다.
  */
 export async function runMatchStartNotificationAutomation(): Promise<MatchStartNotificationSummary> {
   const admin = createSupabaseAdminClient();
@@ -53,21 +52,21 @@ export async function runMatchStartNotificationAutomation(): Promise<MatchStartN
       const teamIds = [match.team_a_id, match.team_b_id].filter((id): id is string => Boolean(id));
       if (teamIds.length === 0) continue;
 
-      const [{ data: teams }, { data: fans }] = await Promise.all([
+      const [{ data: teams }, { data: subscriptions }] = await Promise.all([
         admin.from("teams").select("id, short_name, name").in("id", teamIds),
-        admin.from("team_fans").select("user_id").in("team_id", teamIds).not("user_id", "is", null),
+        admin.from("fan_notification_subscriptions").select("user_id").in("team_id", teamIds).eq("match_alerts", true),
       ]);
 
-      const userIds = [...new Set((fans ?? []).map((fan) => fan.user_id as string))];
+      const userIds = [...new Set((subscriptions ?? []).map((subscription) => subscription.user_id as string))];
       if (userIds.length === 0) continue;
 
       const [{ data: preferences }, { data: tokens }] = await Promise.all([
-        admin.from("user_notification_preferences").select("user_id, match_start_enabled").in("user_id", userIds),
+        admin.from("user_notification_preferences").select("user_id, in_app_enabled").in("user_id", userIds),
         admin.from("push_tokens").select("user_id, expo_push_token").in("user_id", userIds),
       ]);
 
       const optedOutUserIds = new Set(
-        (preferences ?? []).filter((pref) => pref.match_start_enabled === false).map((pref) => pref.user_id),
+        (preferences ?? []).filter((pref) => pref.in_app_enabled === false).map((pref) => pref.user_id),
       );
       const eligibleTokens = (tokens ?? []).filter((token) => !optedOutUserIds.has(token.user_id));
       if (eligibleTokens.length === 0) continue;
@@ -81,6 +80,8 @@ export async function runMatchStartNotificationAutomation(): Promise<MatchStartN
           to: token.expo_push_token,
           title: "경기가 시작했어요",
           body: `${matchup} 지금 시작합니다.`,
+          channelId: "match",
+          sound: "default",
           data: { matchId: match.id, type: "match_start", url: `/matches/${match.id}`, userId: token.user_id },
         })),
       );

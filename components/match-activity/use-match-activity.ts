@@ -4,9 +4,9 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 
 import type { LiveMatchEvent, LiveMatchResponse } from "@/app/api/matches/[matchId]/live/route";
 import { useToast } from "@/components/ui/toast";
-import { isCommunityNotificationId, useCommunityNotifications } from "@/components/notifications/use-community-notifications";
+import { isRemoteNotificationId, useCommunityNotifications } from "@/components/notifications/use-community-notifications";
 import { championCatalogEntries, normalizeChampionKey } from "@/lib/champions";
-import type { LiveMatchActivity, MatchActivityResponse, RatingMatchActivity } from "@/lib/match-activity";
+import type { LiveMatchActivity, MatchActivityNotificationResponse, RatingMatchActivity } from "@/lib/match-activity";
 import { DEFAULT_NOTIFICATION_PREFERENCES, type AppNotification, type NotificationPreferences } from "@/lib/notifications";
 import { OBJECTIVE_ICONS } from "@/lib/objectives";
 
@@ -22,7 +22,7 @@ const DISMISSED_RATING_CARD_STORAGE_KEY_PREFIX = "minion-dismissed-rating-cards-
 const DISMISSED_LIVE_CARD_STORAGE_KEY_PREFIX = "minion-dismissed-live-cards-v2";
 const EMPTY_NOTIFICATIONS_JSON = "[]";
 
-const EMPTY_ACTIVITY: MatchActivityResponse = { liveMatches: [], ratings: [] };
+const EMPTY_ACTIVITY: MatchActivityNotificationResponse = { liveMatches: [], ratings: [], teamNotificationSettings: [] };
 
 const CHAMPION_IMAGE_BY_KEY = new Map(
   championCatalogEntries().map((champion) => [
@@ -145,12 +145,11 @@ function liveEventPresentation(event: LiveMatchEvent, match: LiveMatchActivity) 
 
 export function useMatchActivity(
   enabled: boolean,
-  followedTeamIds: string[] = [],
   preferences: NotificationPreferences = DEFAULT_NOTIFICATION_PREFERENCES,
   notificationOwnerId?: string | null,
 ) {
   const { showToast } = useToast();
-  const [activity, setActivity] = useState<MatchActivityResponse>(EMPTY_ACTIVITY);
+  const [activity, setActivity] = useState<MatchActivityNotificationResponse>(EMPTY_ACTIVITY);
   const [ratingCard, setRatingCard] = useState<RatingMatchActivity | null>(null);
   const [liveCard, setLiveCard] = useState<LiveMatchActivity | null>(null);
   const notificationStorageKey = accountStorageKey(NOTIFICATION_STORAGE_KEY_PREFIX, notificationOwnerId);
@@ -162,7 +161,17 @@ export function useMatchActivity(
   );
   const notificationsJson = useSyncExternalStore(subscribeToNotifications, getNotificationSnapshot, () => EMPTY_NOTIFICATIONS_JSON);
   const localNotifications = useMemo(() => parseNotifications(notificationsJson), [notificationsJson]);
-  const communityNotifications = useCommunityNotifications(notificationOwnerId ?? "guest");
+  const presentRemoteNotification = useCallback((notification: AppNotification) => {
+    if (!preferences.inAppEnabled) return;
+    showToast({
+      title: notification.title,
+      description: notification.description,
+      tone: "info",
+      duration: LIVE_NOTIFICATION_DURATION_MS,
+      actionHref: notification.href,
+    });
+  }, [preferences.inAppEnabled, showToast]);
+  const communityNotifications = useCommunityNotifications(notificationOwnerId ?? "guest", presentRemoteNotification);
   const notifications = useMemo(
     () => [...communityNotifications.notifications, ...localNotifications]
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
@@ -173,10 +182,11 @@ export function useMatchActivity(
   const previousLiveIds = useRef(new Set<string>());
   const previousRatingIds = useRef(new Set<string>());
   const eventIdsByMatch = useRef(new Map<string, Set<string>>());
-  const followedTeamIdSet = useMemo(() => new Set(followedTeamIds), [followedTeamIds]);
+  const liveMatchAlertTeamIds = useMemo(() => new Set(activity.teamNotificationSettings.filter((setting) => setting.liveMatchAlertsEnabled).map((setting) => setting.teamId)), [activity.teamNotificationSettings]);
+  const matchAllowed = useCallback((match: Pick<LiveMatchActivity, "teamA" | "teamB">, teamIds: Set<string>) => teamIds.has(match.teamA.id) || teamIds.has(match.teamB.id), []);
   const alertLiveMatches = useMemo(
-    () => activity.liveMatches.filter((match) => followedTeamIdSet.has(match.teamA.id) || followedTeamIdSet.has(match.teamB.id)),
-    [activity.liveMatches, followedTeamIdSet],
+    () => activity.liveMatches.filter((match) => matchAllowed(match, liveMatchAlertTeamIds)),
+    [activity.liveMatches, liveMatchAlertTeamIds, matchAllowed],
   );
 
   useEffect(() => {
@@ -238,7 +248,7 @@ export function useMatchActivity(
   }, [dismissedLiveStorageKey]);
 
   const markNotificationRead = useCallback((id: string) => {
-    if (isCommunityNotificationId(id)) {
+    if (isRemoteNotificationId(id)) {
       communityNotifications.markRead(id);
       return;
     }
@@ -253,7 +263,7 @@ export function useMatchActivity(
   }, [communityNotifications, notificationStorageKey]);
 
   const removeNotification = useCallback((id: string) => {
-    if (isCommunityNotificationId(id)) {
+    if (isRemoteNotificationId(id)) {
       communityNotifications.remove(id);
       return;
     }
@@ -276,9 +286,10 @@ export function useMatchActivity(
     try {
       const response = await fetch("/api/me/match-activity", { cache: "no-store" });
       if (!response.ok) return;
-      const next = await response.json() as MatchActivityResponse;
-      const newestRating = preferences.inAppEnabled && preferences.ratingOpenEnabled
-        ? latestRating(next.ratings)
+      const next = await response.json() as MatchActivityNotificationResponse;
+      const matchRatings = next.ratings.filter((rating) => matchAllowed(rating, new Set(next.teamNotificationSettings.filter((setting) => setting.matchAlertsEnabled).map((setting) => setting.teamId))));
+      const newestRating = preferences.inAppEnabled
+        ? latestRating(matchRatings)
         : null;
 
       setRatingCard(
@@ -288,10 +299,9 @@ export function useMatchActivity(
       );
 
       if (initialized.current && preferences.inAppEnabled) {
-        const followedLiveMatches = next.liveMatches.filter(
-          (match) => followedTeamIdSet.has(match.teamA.id) || followedTeamIdSet.has(match.teamB.id),
-        );
-        for (const match of preferences.matchStartEnabled ? followedLiveMatches : []) {
+        const nextMatchAlertTeamIds = new Set(next.teamNotificationSettings.filter((setting) => setting.matchAlertsEnabled).map((setting) => setting.teamId));
+        const followedLiveMatches = next.liveMatches.filter((match) => matchAllowed(match, nextMatchAlertTeamIds));
+        for (const match of followedLiveMatches) {
           if (!previousLiveIds.current.has(match.id)) {
             publishNotification({
               id: `match-live:${match.id}`,
@@ -311,7 +321,7 @@ export function useMatchActivity(
             }, LIVE_NOTIFICATION_DURATION_MS);
           }
         }
-        for (const rating of preferences.ratingOpenEnabled ? next.ratings : []) {
+        for (const rating of matchRatings) {
           if (!previousRatingIds.current.has(rating.id)) {
             publishNotification({
               id: `rating-open:${rating.id}`,
@@ -334,23 +344,23 @@ export function useMatchActivity(
       }
 
       previousLiveIds.current = new Set(
-        next.liveMatches
-          .filter((match) => followedTeamIdSet.has(match.teamA.id) || followedTeamIdSet.has(match.teamB.id))
-          .map((match) => match.id),
+        next.liveMatches.filter((match) => matchAllowed(match, new Set(next.teamNotificationSettings.filter((setting) => setting.matchAlertsEnabled).map((setting) => setting.teamId)))).map((match) => match.id),
       );
-      previousRatingIds.current = new Set(next.ratings.map((rating) => rating.id));
+      previousRatingIds.current = new Set(matchRatings.map((rating) => rating.id));
       initialized.current = true;
-      const newestLiveMatch = next.liveMatches[0] ?? null;
+      const newestLiveMatch = next.liveMatches.find((match) => matchAllowed(match, new Set(next.teamNotificationSettings.filter((setting) => setting.matchAlertsEnabled).map((setting) => setting.teamId)))) ?? null;
       setLiveCard(newestLiveMatch && !dismissedCardIds(dismissedLiveStorageKey).has(newestLiveMatch.id) ? newestLiveMatch : null);
       setActivity(next);
     } catch {
       // 전역 보조 UI이므로 네트워크 오류가 페이지 탐색을 막지 않게 조용히 유지한다.
     }
-  }, [dismissedLiveStorageKey, dismissedRatingStorageKey, enabled, followedTeamIdSet, preferences.inAppEnabled, preferences.matchStartEnabled, preferences.ratingOpenEnabled, publishNotification]);
+  }, [dismissedLiveStorageKey, dismissedRatingStorageKey, enabled, matchAllowed, preferences.inAppEnabled, publishNotification]);
 
   useEffect(() => {
     const initialLoad = window.setTimeout(() => void loadActivity(), 0);
-    const interval = window.setInterval(() => void loadActivity(), ACTIVITY_POLL_MS);
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === "visible") void loadActivity();
+    }, ACTIVITY_POLL_MS);
     const onVisibilityChange = () => {
       if (document.visibilityState === "visible") void loadActivity();
     };
@@ -363,7 +373,7 @@ export function useMatchActivity(
   }, [loadActivity]);
 
   useEffect(() => {
-    if (!enabled || !preferences.inAppEnabled || !preferences.matchEventsEnabled || alertLiveMatches.length === 0) return;
+    if (!enabled || !preferences.inAppEnabled || alertLiveMatches.length === 0) return;
 
     const pollEvents = async () => {
       await Promise.all(alertLiveMatches.map(async (match) => {
@@ -400,9 +410,11 @@ export function useMatchActivity(
     };
 
     void pollEvents();
-    const interval = window.setInterval(() => void pollEvents(), LIVE_EVENT_POLL_MS);
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === "visible") void pollEvents();
+    }, LIVE_EVENT_POLL_MS);
     return () => window.clearInterval(interval);
-  }, [alertLiveMatches, enabled, preferences.inAppEnabled, preferences.matchEventsEnabled, publishNotification]);
+  }, [alertLiveMatches, enabled, preferences.inAppEnabled, publishNotification]);
 
   const unreadNotificationCount = notifications.filter((notification) => !notification.readAt).length;
 

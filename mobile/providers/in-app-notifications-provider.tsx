@@ -13,21 +13,25 @@ import {
   type MobileMatchActivityDto,
   type MobileNotificationPreferences,
 } from '@/lib/api-client';
-import { subscribeToForegroundPushNotifications } from '@/lib/push-notifications';
+import { subscribeToForegroundPushNotifications, subscribeToPushNotificationResponses } from '@/lib/push-notifications';
 import { useAuth } from '@/providers/auth-provider';
 import type { MatchEventToast } from '@/providers/minion-shell-provider';
 
 const ACTIVITY_POLL_MS = 30_000;
 const LIVE_EVENT_POLL_MS = 10_000;
+const MEMBER_NOTIFICATION_POLL_MS = 60_000;
+const GUEST_NOTIFICATION_POLL_MS = 5 * 60_000;
 const LEGACY_NOTIFICATION_STORAGE_KEY = 'minion-notifications-v1';
 const NOTIFICATION_STORAGE_KEY_PREFIX = 'minion-notifications-v2';
 const MAX_NOTIFICATIONS = 100;
 
 const DEFAULT_PREFERENCES: MobileNotificationPreferences = {
   inAppEnabled: true,
+  communityEnabled: true,
   matchStartEnabled: true,
   matchEventsEnabled: false,
   ratingOpenEnabled: true,
+  teamContentEnabled: true,
 };
 
 const DRAGON_PRESENTATION: Record<string, { icon: string; label: string }> = {
@@ -149,10 +153,7 @@ function liveEventPresentation(event: LiveMatchEvent, match: MobileLiveMatchActi
 
 function notificationAllowed(type: unknown, preferences: MobileNotificationPreferences) {
   if (!preferences.inAppEnabled) return false;
-  if (type === 'match_start') return preferences.matchStartEnabled;
-  if (type === 'match_event') return preferences.matchEventsEnabled;
-  if (type === 'rating_open') return preferences.ratingOpenEnabled;
-  return true;
+  return type === 'post_activity' ? preferences.communityEnabled : true;
 }
 
 export function InAppNotificationsProvider({ children }: PropsWithChildren) {
@@ -172,9 +173,22 @@ export function InAppNotificationsProvider({ children }: PropsWithChildren) {
   const previousRatingIds = useRef(new Set<string>());
   const eventIdsByMatch = useRef(new Map<string, Set<string>>());
   const persistenceQueue = useRef(Promise.resolve());
+  const handledPushResponseIds = useRef(new Set<string>());
   const userId = session?.user.id ?? null;
   const identityScope = userId ? `user:${userId}` : 'guest';
   const notificationStorageKey = userId ? `${NOTIFICATION_STORAGE_KEY_PREFIX}:${userId}` : null;
+
+  useEffect(() => {
+    if (!userId) return;
+    return subscribeToPushNotificationResponses((response) => {
+      if (handledPushResponseIds.current.has(response.id)) return;
+      const targetUserId = typeof response.data.userId === 'string' ? response.data.userId : null;
+      const url = typeof response.data.url === 'string' ? response.data.url : null;
+      if (targetUserId !== userId || !url) return;
+      handledPushResponseIds.current.add(response.id);
+      router.push(url as never);
+    });
+  }, [router, userId]);
 
   const replaceNotifications = useCallback((next: InAppNotification[]) => {
     const limited = next.slice(0, MAX_NOTIFICATIONS);
@@ -263,7 +277,10 @@ export function InAppNotificationsProvider({ children }: PropsWithChildren) {
       }
     };
     void load();
-    const interval = setInterval(() => void load(), 15_000);
+    const pollMs = userId ? MEMBER_NOTIFICATION_POLL_MS : GUEST_NOTIFICATION_POLL_MS;
+    const interval = setInterval(() => {
+      if (AppState.currentState === 'active') void load();
+    }, pollMs);
     const appState = AppState.addEventListener('change', (state) => {
       if (state === 'active') void load();
     });
@@ -272,7 +289,7 @@ export function InAppNotificationsProvider({ children }: PropsWithChildren) {
       clearInterval(interval);
       appState.remove();
     };
-  }, [identityScope]);
+  }, [identityScope, userId]);
 
   useEffect(() => {
     if (!hydrated || !userId) return;
@@ -287,9 +304,27 @@ export function InAppNotificationsProvider({ children }: PropsWithChildren) {
           ? 'rating_open'
           : type === 'match_event'
             ? 'match_event'
-            : 'post_activity';
+            : type === 'team_video'
+              ? 'team_video'
+              : type === 'team_social'
+                ? 'team_social'
+                : 'post_activity';
       const matchId = typeof push.data.matchId === 'string' ? push.data.matchId : null;
       const eventId = typeof push.data.eventId === 'string' ? push.data.eventId : null;
+      const remoteNotificationId = typeof push.data.notificationId === 'string' ? push.data.notificationId : null;
+      if (kind === 'team_video' || kind === 'team_social') {
+        presentNotification({
+          createdAt: push.createdAt,
+          description: push.body ?? undefined,
+          href: typeof push.data.url === 'string' ? push.data.url : undefined,
+          id: remoteNotificationId ? `content:${remoteNotificationId}` : `push:${push.id}`,
+          kind,
+          readAt: null,
+          title: push.title ?? '새 팀 소식',
+        });
+        void loadCommunityNotifications();
+        return;
+      }
       const notificationId = type === 'match_start' && matchId
         ? `match-live:${matchId}`
         : type === 'match_event' && eventId
@@ -306,7 +341,7 @@ export function InAppNotificationsProvider({ children }: PropsWithChildren) {
         title: push.title ?? '새 알림',
       }, type !== 'match_start' && type !== 'match_event' && type !== 'rating_open');
     });
-  }, [hydrated, publishNotification, userId]);
+  }, [hydrated, loadCommunityNotifications, presentNotification, publishNotification, userId]);
 
   useEffect(() => {
     initialized.current = false;
@@ -324,56 +359,55 @@ export function InAppNotificationsProvider({ children }: PropsWithChildren) {
         if (!active) return;
         const preferences = next.notificationPreferences;
         preferencesRef.current = preferences;
+        const matchAlertTeamIds = new Set(next.teamNotificationSettings.filter((setting) => setting.matchAlertsEnabled).map((setting) => setting.teamId));
+        const matchLiveMatches = next.liveMatches.filter((match) => matchAlertTeamIds.has(match.teamA.id) || matchAlertTeamIds.has(match.teamB.id));
+        const matchRatings = next.ratings.filter((rating) => matchAlertTeamIds.has(rating.teamA.id) || matchAlertTeamIds.has(rating.teamB.id));
 
         if (initialized.current && preferences.inAppEnabled) {
-          if (preferences.matchStartEnabled) {
-            for (const match of next.liveMatches) {
-              if (previousLiveIds.current.has(match.id)) continue;
-              publishNotification({
-                createdAt: new Date().toISOString(),
-                description: '팔로우한 팀의 경기가 시작됐어요.',
-                href: match.href,
-                id: `match-live:${match.id}`,
-                kind: 'match_live',
-                matchEvent: {
-                  badge: 'LIVE',
-                  kind: 'start',
-                  leftLabel: '경기',
-                  matchup: `${match.teamA.shortName} vs ${match.teamB.shortName}`,
-                  rightLabel: '시작',
-                },
-                matchEventKind: 'start',
-                readAt: null,
-                title: `${match.teamA.shortName} vs ${match.teamB.shortName}`,
-              });
-            }
+          for (const match of matchLiveMatches) {
+            if (previousLiveIds.current.has(match.id)) continue;
+            publishNotification({
+              createdAt: new Date().toISOString(),
+              description: '팔로우한 팀의 경기가 시작됐어요.',
+              href: match.href,
+              id: `match-live:${match.id}`,
+              kind: 'match_live',
+              matchEvent: {
+                badge: 'LIVE',
+                kind: 'start',
+                leftLabel: '경기',
+                matchup: `${match.teamA.shortName} vs ${match.teamB.shortName}`,
+                rightLabel: '시작',
+              },
+              matchEventKind: 'start',
+              readAt: null,
+              title: `${match.teamA.shortName} vs ${match.teamB.shortName}`,
+            });
           }
-          if (preferences.ratingOpenEnabled) {
-            for (const rating of next.ratings) {
-              if (previousRatingIds.current.has(rating.id)) continue;
-              publishNotification({
-                createdAt: new Date().toISOString(),
-                description: `${rating.teamA.shortName} vs ${rating.teamB.shortName}`,
-                href: rating.href,
-                id: `rating-open:${rating.id}`,
-                kind: 'rating_open',
-                matchEvent: {
-                  badge: '평가',
-                  kind: 'rating',
-                  leftLabel: `${rating.setNumber}세트`,
-                  matchup: `${rating.teamA.shortName} vs ${rating.teamB.shortName}`,
-                  rightLabel: '평가하기',
-                },
-                matchEventKind: 'rating',
-                readAt: null,
-                title: `${rating.setNumber}세트 평가가 열렸어요`,
-              });
-            }
+          for (const rating of matchRatings) {
+            if (previousRatingIds.current.has(rating.id)) continue;
+            publishNotification({
+              createdAt: new Date().toISOString(),
+              description: `${rating.teamA.shortName} vs ${rating.teamB.shortName}`,
+              href: rating.href,
+              id: `rating-open:${rating.id}`,
+              kind: 'rating_open',
+              matchEvent: {
+                badge: '평가',
+                kind: 'rating',
+                leftLabel: `${rating.setNumber}세트`,
+                matchup: `${rating.teamA.shortName} vs ${rating.teamB.shortName}`,
+                rightLabel: '평가하기',
+              },
+              matchEventKind: 'rating',
+              readAt: null,
+              title: `${rating.setNumber}세트 평가가 열렸어요`,
+            });
           }
         }
 
-        previousLiveIds.current = new Set(next.liveMatches.map((match) => match.id));
-        previousRatingIds.current = new Set(next.ratings.map((rating) => rating.id));
+        previousLiveIds.current = new Set(matchLiveMatches.map((match) => match.id));
+        previousRatingIds.current = new Set(matchRatings.map((rating) => rating.id));
         initialized.current = true;
         setActivity(next);
       } catch {
@@ -382,7 +416,9 @@ export function InAppNotificationsProvider({ children }: PropsWithChildren) {
     };
 
     void loadActivity();
-    const interval = setInterval(() => void loadActivity(), ACTIVITY_POLL_MS);
+    const interval = setInterval(() => {
+      if (AppState.currentState === 'active') void loadActivity();
+    }, ACTIVITY_POLL_MS);
     const appState = AppState.addEventListener('change', (state) => {
       if (state === 'active') void loadActivity();
     });
@@ -394,10 +430,13 @@ export function InAppNotificationsProvider({ children }: PropsWithChildren) {
   }, [hydrated, publishNotification, userId]);
 
   useEffect(() => {
-    if (!hydrated || !userId || !activity?.notificationPreferences.inAppEnabled || !activity.notificationPreferences.matchEventsEnabled || activity.liveMatches.length === 0) return;
+    if (!hydrated || !userId || !activity?.notificationPreferences.inAppEnabled || activity.liveMatches.length === 0) return;
+    const liveMatchAlertTeamIds = new Set(activity.teamNotificationSettings.filter((setting) => setting.liveMatchAlertsEnabled).map((setting) => setting.teamId));
+    const liveMatches = activity.liveMatches.filter((match) => liveMatchAlertTeamIds.has(match.teamA.id) || liveMatchAlertTeamIds.has(match.teamB.id));
+    if (liveMatches.length === 0) return;
     let active = true;
     const pollEvents = async () => {
-      await Promise.all(activity.liveMatches.map(async (match: MobileLiveMatchActivity) => {
+      await Promise.all(liveMatches.map(async (match: MobileLiveMatchActivity) => {
         try {
           const data = await fetchMobileApi<LiveMatchResponse>(`/api/mobile/v1/matches/${encodeURIComponent(match.id)}/live`);
           if (!active || !Array.isArray(data.events)) return;
@@ -429,7 +468,9 @@ export function InAppNotificationsProvider({ children }: PropsWithChildren) {
       }));
     };
     void pollEvents();
-    const interval = setInterval(() => void pollEvents(), LIVE_EVENT_POLL_MS);
+    const interval = setInterval(() => {
+      if (AppState.currentState === 'active') void pollEvents();
+    }, LIVE_EVENT_POLL_MS);
     return () => {
       active = false;
       clearInterval(interval);
@@ -437,7 +478,7 @@ export function InAppNotificationsProvider({ children }: PropsWithChildren) {
   }, [activity, hydrated, publishNotification, userId]);
 
   const markNotificationRead = useCallback((id: string) => {
-    if (id.startsWith('community:')) {
+    if (id.startsWith('community:') || id.startsWith('content:')) {
       const readAt = new Date().toISOString();
       setCommunityNotifications((current) => current.map((item) => item.id === id && !item.readAt ? { ...item, readAt } : item));
       void mutateMobileApi('/api/mobile/v1/notifications', 'PATCH', { id }).catch(() => loadCommunityNotifications());
@@ -455,7 +496,7 @@ export function InAppNotificationsProvider({ children }: PropsWithChildren) {
   }, [loadCommunityNotifications, replaceNotifications]);
 
   const removeNotification = useCallback((id: string) => {
-    if (id.startsWith('community:')) {
+    if (id.startsWith('community:') || id.startsWith('content:')) {
       setCommunityNotifications((current) => current.filter((item) => item.id !== id));
       void mutateMobileApi(`/api/mobile/v1/notifications?id=${encodeURIComponent(id)}`, 'DELETE').catch(() => loadCommunityNotifications());
       return;

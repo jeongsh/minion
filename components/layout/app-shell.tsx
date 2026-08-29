@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Bell,
   Bug,
@@ -196,12 +196,6 @@ export function AppShell({
   const showHubLocalNavigation = compactHubShell && !communityPostDetail && pathname !== "/fan" && !pathname.startsWith("/admin");
   const followedTeamIdSet = new Set(followedTeamIds);
   const followedTeams = shellTeams.filter((team) => followedTeamIdSet.has(team.id) || followedTeamIdSet.has(team.fanSiteHost));
-  const followedActivityTeamIds = useMemo(() => {
-    const followedIds = new Set(followedTeamIds);
-    return shellTeams
-      .filter((team) => followedIds.has(team.id) || followedIds.has(team.fanSiteHost))
-      .map((team) => team.id);
-  }, [followedTeamIds, shellTeams]);
   const channelTeams = shellTeams.filter((team) => !followedTeamIdSet.has(team.id) && !followedTeamIdSet.has(team.fanSiteHost));
   const currentFanTeam = fanKey ? shellTeams.find((team) => team.fanSiteHost === fanKey || team.slug === fanKey) : null;
   const favoriteTeam = favoriteTeamId ? shellTeams.find((team) => team.id === favoriteTeamId) : null;
@@ -218,7 +212,7 @@ export function AppShell({
     markAllNotificationsRead,
     removeNotification,
     clearNotifications,
-  } = useMatchActivity(Boolean(currentUser), followedActivityTeamIds, notificationPreferences, currentUser?.id ?? "guest");
+  } = useMatchActivity(Boolean(currentUser), notificationPreferences, currentUser?.id ?? "guest");
   const closeLiveActivity = () => {
     if (!liveCard) return;
     markNotificationRead(`match-live:${liveCard.id}`);

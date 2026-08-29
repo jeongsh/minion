@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
+import { after } from "next/server";
 
+import { notifyTeamContentUpdate, type TeamContentNotificationInput } from "@/lib/notifications/team-content";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { fetchYoutubeVideoEntry, parseYoutubeFeedEntries } from "@/lib/youtube-feed";
 import { findYoutubeOwnerByChannelId, upsertYoutubeVideo } from "@/lib/sync/youtube-videos";
@@ -30,6 +32,7 @@ export async function POST(request: Request) {
   let inserted = 0;
   let updated = 0;
   let skipped = 0;
+  const notificationInputs: TeamContentNotificationInput[] = [];
   const since = new Date(process.env.YOUTUBE_VIDEO_SINCE ?? "2026-01-01T00:00:00.000Z");
 
   for (const pushedEntry of pushedEntries) {
@@ -47,8 +50,31 @@ export async function POST(request: Request) {
     }
 
     const result = await upsertYoutubeVideo(supabase, owner, verifiedEntry);
-    if (result.inserted) inserted += 1;
-    else updated += 1;
+    if (result.inserted) {
+      inserted += 1;
+      if (owner.teamId && result.id) {
+        notificationInputs.push({
+          kind: "team_video",
+          sourceId: result.id,
+          teamId: owner.teamId,
+          contentTitle: verifiedEntry.title,
+          imageUrl: verifiedEntry.thumbnailUrl,
+          publishedAt: verifiedEntry.publishedAt,
+        });
+      }
+    } else updated += 1;
+  }
+
+  if (notificationInputs.length > 0) {
+    after(async () => {
+      for (const input of notificationInputs) {
+        try {
+          await notifyTeamContentUpdate(createSupabaseAdminClient(), input);
+        } catch (error) {
+          console.error(`[team-content-notifications] ${input.kind}:${input.sourceId} failed`, error);
+        }
+      }
+    });
   }
 
   return NextResponse.json({ ok: true, inserted, updated, skipped }, { status: 202 });

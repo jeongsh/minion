@@ -8,7 +8,7 @@ import UserRound from 'lucide-react-native/icons/user-round';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 
-import type { MobileMeDto, MobileNotificationPreferences } from '../../packages/contracts/src/mobile-v1';
+import type { MobileMeDto, MobileNotificationPreferences, MobileTeamNotificationSettings } from '../../packages/contracts/src/mobile-v1';
 import { AccountSecuritySection, BlockedSection, NotificationSection } from '@/components/account/account-sections';
 import { ProfileForm } from '@/components/account/profile-form';
 import { MinionDock } from '@/components/minion-dock';
@@ -46,7 +46,7 @@ export default function MeScreen() {
       <AccountSummary checkingIn={checkingIn} data={data} onCheckIn={() => void checkIn()} onLogout={() => void signOut()} onOpenActivity={() => router.navigate('/community' as never)} />
       <View accessibilityRole="tablist" style={[styles.menuGrid, { backgroundColor: theme.surface, borderColor: theme.border }]}>{menuItems.map(({ icon: Icon, key, label }) => <Pressable accessibilityRole="tab" hitSlop={4} key={key} onPress={() => navigateSection(key)} style={[styles.menuItem, { backgroundColor: theme.surfaceMuted }]}><Icon color={theme.muted} size={13} /><Text numberOfLines={1} style={{ color: theme.text, ...fonts.medium, fontSize: 13, lineHeight: 18 }}>{label}</Text></Pressable>)}</View>
       <View onLayout={sectionLayout('profile')}><ProfileForm initialProfile={data.profile} onSave={saveProfile} /></View>
-      <View onLayout={sectionLayout('notifications')}><NotificationSection initialPreferences={data.notificationPreferences} onSave={async (preferences: MobileNotificationPreferences) => { await updateData({ notificationPreferences: preferences }, '변경한 설정을 적용했어요.'); }} /></View>
+      <View onLayout={sectionLayout('notifications')}><NotificationSection initialPreferences={data.notificationPreferences} initialTeams={data.teamNotificationSettings} onSave={async (preferences: MobileNotificationPreferences, teamNotificationSettings: MobileTeamNotificationSettings[]) => { await updateData({ notificationPreferences: preferences, teamNotificationSettings }, '변경한 설정을 적용했어요.'); }} /></View>
       <View onLayout={sectionLayout('blocks')}><BlockedSection blockedGuests={data.blockedGuests} blockedUsers={data.blockedUsers} onUnblockGuest={async (guestKey) => { await updateData({ unblockGuestKey: guestKey }, '차단을 해제했습니다.'); }} onUnblockUser={async (userId) => { await updateData({ unblockUserId: userId }, '차단을 해제했습니다.'); }} /></View>
       <View onLayout={sectionLayout('account')}><AccountSecuritySection account={data.account} authProvider={data.profile.authProvider} email={data.profile.email} onChangePassword={async (input) => { await updateData({ passwordChange: input }); }} onDelete={async (input) => { await mutateMobileApi<{ deleted: boolean }>('/api/mobile/v1/me', 'DELETE', input); await signOut(); }} onReauthenticate={async () => { const provider = data.profile.authProvider === 'custom:naver' ? 'naver' : data.profile.authProvider; if (!provider || !['google', 'kakao', 'apple', 'naver'].includes(provider)) throw new Error('연결된 로그인 방식을 확인할 수 없습니다.'); const result = await signInWithOAuth(provider as 'google' | 'kakao' | 'apple' | 'naver', '/me'); if (result.error) throw new Error(result.error); }} /></View>
     </>}

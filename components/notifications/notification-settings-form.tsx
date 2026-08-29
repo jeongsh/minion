@@ -1,63 +1,108 @@
 "use client";
 
-import { Bell, Radio, Sparkles, Swords } from "lucide-react";
+import { Bell, Camera, ChevronDown, Gamepad2, MessageCircle, Radio, Swords, Video } from "lucide-react";
 import { useState, useTransition } from "react";
 
 import { updateNotificationPreferencesAction } from "@/app/me/settings/actions";
 import { useToast } from "@/components/ui/toast";
-import type { NotificationPreferences } from "@/lib/notifications";
+import type { NotificationPreferences, TeamNotificationPreferences } from "@/lib/notifications";
 
-type PreferenceKey = keyof NotificationPreferences;
+type TeamPreferenceKey = Exclude<keyof TeamNotificationPreferences, "teamId" | "teamName" | "teamShortName">;
 
-const OPTIONS: Array<{
-  key: Exclude<PreferenceKey, "inAppEnabled">;
+const TEAM_OPTIONS: Array<{
+  key: TeamPreferenceKey;
   title: string;
   description: string;
   icon: typeof Bell;
 }> = [
-  { key: "matchStartEnabled", title: "경기 시작", description: "팔로우한 팀의 경기가 시작되면 알려드려요.", icon: Swords },
-  { key: "matchEventsEnabled", title: "경기 주요 이벤트", description: "킬과 주요 오브젝트 등 실시간 경기 소식을 받아요.", icon: Radio },
-  { key: "ratingOpenEnabled", title: "세트 평가 오픈", description: "경기 세트 평가가 열리면 알려드려요.", icon: Sparkles },
+  { key: "matchAlertsEnabled", title: "경기", description: "경기 시작과 세트 평가를 알려드려요.", icon: Swords },
+  { key: "liveMatchAlertsEnabled", title: "라이브 경기", description: "킬과 주요 오브젝트를 실시간으로 알려드려요.", icon: Radio },
+  { key: "instagramAlertsEnabled", title: "Instagram", description: "팀과 소속 선수의 새 게시물을 알려드려요.", icon: Camera },
+  { key: "videoAlertsEnabled", title: "동영상", description: "팀과 소속 선수의 새 영상을 알려드려요.", icon: Video },
+  { key: "soloQueueAlertsEnabled", title: "솔랭", description: "소속 선수가 솔랭을 시작하면 알려드려요.", icon: Gamepad2 },
 ];
 
-export function NotificationSettingsForm({ initialPreferences }: { initialPreferences: NotificationPreferences }) {
+function enabledSummary(team: TeamNotificationPreferences) {
+  const enabled = TEAM_OPTIONS.filter((option) => team[option.key]).map((option) => option.title);
+  return enabled.length > 0 ? enabled.join(" · ") : "모든 알림 꺼짐";
+}
+
+export function NotificationSettingsForm({ initialPreferences, initialTeams }: {
+  initialPreferences: NotificationPreferences;
+  initialTeams: TeamNotificationPreferences[];
+}) {
   const [preferences, setPreferences] = useState(initialPreferences);
+  const [teams, setTeams] = useState(initialTeams);
   const [pending, startTransition] = useTransition();
   const { showToast } = useToast();
 
-  const update = (key: PreferenceKey, value: boolean) => {
-    setPreferences((current) => ({ ...current, [key]: value }));
+  const updateTeam = (teamId: string, key: TeamPreferenceKey, value: boolean) => {
+    setTeams((current) => current.map((team) => team.teamId === teamId ? { ...team, [key]: value } : team));
   };
 
   return (
     <div>
       <SettingRow
         icon={Bell}
-        title="인앱 알림"
-        description="MINION을 이용하는 동안 알림함과 토스트로 소식을 받아요."
+        title="전체 알림"
+        description="끄면 모든 알림을 잠시 받지 않아요. 세부 설정은 유지됩니다."
         checked={preferences.inAppEnabled}
-        onChange={(checked) => update("inAppEnabled", checked)}
+        onChange={(checked) => setPreferences((current) => ({ ...current, inAppEnabled: checked }))}
         emphasized
       />
-      <div className={`mt-2 divide-y divide-[var(--ui-border)] transition-opacity ${preferences.inAppEnabled ? "opacity-100" : "pointer-events-none opacity-45"}`} aria-disabled={!preferences.inAppEnabled}>
-        {OPTIONS.map((option) => (
+
+      <div className={`transition-opacity ${preferences.inAppEnabled ? "opacity-100" : "opacity-45"}`}>
+        <div className="mt-3 rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] px-2">
           <SettingRow
-            key={option.key}
-            icon={option.icon}
-            title={option.title}
-            description={option.description}
-            checked={preferences[option.key]}
-            onChange={(checked) => update(option.key, checked)}
+            icon={MessageCircle}
+            title="커뮤니티 알림"
+            description="내 글의 새 댓글과 내 댓글의 새 답글을 알려드려요."
+            checked={preferences.communityEnabled}
+            onChange={(checked) => setPreferences((current) => ({ ...current, communityEnabled: checked }))}
           />
-        ))}
+        </div>
+
+        <div className="mt-3 space-y-2">
+          {teams.length > 0 ? teams.map((team) => (
+          <details key={team.teamId} className="group rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)]">
+            <summary className="flex min-h-14 cursor-pointer list-none items-center gap-3 px-3 py-2 [&::-webkit-details-marker]:hidden">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[var(--ui-surface-muted)] text-[14px] font-medium text-[var(--ui-ink)]">
+                {team.teamShortName.slice(0, 2)}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[15px] font-black leading-[22px] text-[var(--ui-ink)]">{team.teamName}</span>
+                <span className="block truncate text-[13px] font-medium leading-[18px] text-[var(--ui-muted)]">{enabledSummary(team)}</span>
+              </span>
+              <ChevronDown size={17} className="shrink-0 text-[var(--ui-muted)] transition-transform group-open:rotate-180" />
+            </summary>
+            <div className="divide-y divide-[var(--ui-border)] border-t border-[var(--ui-border)] px-2">
+              {TEAM_OPTIONS.map((option) => (
+                <SettingRow
+                  key={option.key}
+                  icon={option.icon}
+                  title={option.title}
+                  description={option.description}
+                  checked={team[option.key]}
+                  onChange={(checked) => updateTeam(team.teamId, option.key, checked)}
+                />
+              ))}
+            </div>
+          </details>
+          )) : (
+            <div className="rounded-xl border border-dashed border-[var(--ui-border)] px-4 py-6 text-center">
+              <p className="text-base font-medium text-[var(--ui-muted)]">팔로우한 팀이 없습니다.</p>
+            </div>
+          )}
+        </div>
       </div>
+
       <div className="mt-4 flex flex-col gap-3 border-t border-[var(--ui-border)] pt-4 sm:mt-5 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:pt-5">
         <p className="text-[13px] font-medium text-[var(--ui-muted)] sm:font-normal">설정은 로그인한 모든 기기에 적용됩니다.</p>
         <button
           type="button"
           disabled={pending}
           onClick={() => startTransition(async () => {
-            const result = await updateNotificationPreferencesAction(preferences);
+            const result = await updateNotificationPreferencesAction(preferences, teams);
             showToast({
               title: result.ok ? "알림 설정 저장" : "저장 실패",
               description: result.ok ? "변경한 설정을 적용했어요." : result.error,
@@ -82,10 +127,10 @@ function SettingRow({ icon: Icon, title, description, checked, onChange, emphasi
   emphasized?: boolean;
 }) {
   return (
-    <label className={`flex min-h-14 cursor-pointer items-center gap-2 rounded-xl px-2 py-2 sm:min-h-[72px] sm:gap-3 sm:px-3 sm:py-3 ${emphasized ? "bg-[var(--ui-surface-muted)]" : ""}`}>
+    <label className={`flex min-h-14 cursor-pointer items-center gap-2 rounded-xl px-2 py-2 sm:min-h-[68px] sm:gap-3 sm:px-3 ${emphasized ? "bg-[var(--ui-surface-muted)]" : ""}`}>
       <span className="grid h-[30px] w-[30px] shrink-0 place-items-center rounded-lg bg-[var(--ui-surface)] text-[var(--ui-muted)] sm:h-9 sm:w-9"><Icon size={16} /></span>
       <span className="min-w-0 flex-1">
-        <span className="block text-[13px] font-medium text-[var(--ui-ink)] sm:text-sm">{title}</span>
+        <span className="block text-[14px] font-medium text-[var(--ui-ink)]">{title}</span>
         <span className="mt-0.5 block text-[13px] font-medium leading-5 text-[var(--ui-muted)] sm:font-normal">{description}</span>
       </span>
       <input type="checkbox" className="peer sr-only" checked={checked} onChange={(event) => onChange(event.target.checked)} />

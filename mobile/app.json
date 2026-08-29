@@ -18,6 +18,15 @@
     "android": {
       "package": "com.minion.app",
       "googleServicesFile": "./google-services.json",
+      "blockedPermissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_VIDEO",
+        "android.permission.READ_MEDIA_VISUAL_USER_SELECTED"
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#F8F4EE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -51,16 +60,26 @@
           }
         }
       ],
-      "expo-secure-store",
+      [
+        "expo-secure-store",
+        {
+          "faceIDPermission": false
+        }
+      ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "게시글에 사진을 첨부하기 위해 사진 보관함에 접근합니다.",
+          "photosPermission": false,
           "cameraPermission": false,
           "microphonePermission": false
         }
       ],
-      "expo-notifications"
+      [
+        "expo-notifications",
+        {
+          "defaultChannel": "match"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
