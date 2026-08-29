@@ -18,7 +18,7 @@ export async function generateMetadata({ params }: { params: Promise<{ playerSlu
     title,
     description,
     alternates: { canonical: `/players/${playerSlug}` },
-    openGraph: { title, description, url: `${siteBaseUrl()}/players/${playerSlug}`, type: "profile", images: ["/images/minion.png"] },
+    openGraph: { title, description, url: `${siteBaseUrl()}/players/${playerSlug}`, type: "profile", images: ["/images/minion-og-20260829.png"] },
   };
 }
 

@@ -40,7 +40,7 @@ export const metadata: Metadata = {
     title: defaultTitle,
     description: defaultDescription,
     siteName: "MINION",
-    images: [{ url: "/images/minion.png", width: 1408, height: 768 }],
+    images: [{ url: "/images/minion-og-20260829.png", width: 1200, height: 630 }],
   },
   verification: {
     other: { "naver-site-verification": "e5b9086e86ccaedc10305bf4dc5325f6051a1a05" },
@@ -49,7 +49,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: defaultTitle,
     description: defaultDescription,
-    images: ["/images/minion.png"],
+    images: ["/images/minion-og-20260829.png"],
   },
 };
 
