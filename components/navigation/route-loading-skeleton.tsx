@@ -145,10 +145,49 @@ export function ScheduleLoadingSkeleton() {
 export function TournamentLoadingSkeleton() {
   return (
     <LoadingMain className="layout-wide flex flex-col gap-6 pt-6 sm:pt-10">
-      <header className="flex items-center justify-between gap-4"><div className="flex items-center gap-3"><Skeleton className="h-10 w-10 rounded-full" /><div className="space-y-2"><Skeleton className="h-3 w-20" /><Skeleton className="h-7 w-40" /></div></div><Skeleton className="h-10 w-24 rounded-xl" /></header>
-      <div className="flex gap-2 overflow-hidden">{Array.from({ length: 6 }, (_, index) => <Skeleton key={index} className="h-10 w-24 shrink-0 rounded-xl" />)}</div>
-      <div className="flex flex-col gap-3 border-b border-[var(--ui-border)] pb-3 sm:flex-row sm:items-end sm:justify-between"><div className="flex gap-5"><Skeleton className="h-9 w-20 rounded-none" /><Skeleton className="h-9 w-24 rounded-none" /><Skeleton className="h-9 w-24 rounded-none" /></div><div className="flex gap-1"><Skeleton className="h-9 w-20 rounded-lg" /><Skeleton className="h-9 w-20 rounded-lg" /><Skeleton className="h-9 w-20 rounded-lg" /></div></div>
-      <section className="grid gap-4 sm:grid-cols-2"><div className="overflow-hidden rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)]"><div className="p-4"><SectionTitle /></div><TableRows count={5} /></div><div className="overflow-hidden rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)]"><div className="p-4"><SectionTitle /></div><TableRows count={5} /></div></section>
+      <header className="flex min-w-0 flex-col gap-3">
+        <div className="hidden items-center gap-2 md:flex">
+          <Skeleton className="h-3 w-7" /><Skeleton className="h-3 w-3" /><Skeleton className="h-3 w-8" />
+          <Skeleton className="h-3 w-3" /><Skeleton className="h-3 w-16" />
+        </div>
+        <div className="flex min-h-10 items-center gap-3">
+          <div className="flex min-w-0 items-center gap-2.5 md:gap-3">
+            <Skeleton className="h-7 w-12 shrink-0 rounded-sm md:h-9 md:w-[62px]" />
+            <Skeleton className="h-5 w-24 md:h-7 md:w-32" />
+          </div>
+        </div>
+      </header>
+      <div className="-ml-4 flex gap-1.5 overflow-hidden pl-4 sm:ml-0 sm:gap-2 sm:pl-0">
+        {Array.from({ length: 7 }, (_, index) => (
+          <Skeleton key={index} className={`h-8 shrink-0 rounded-lg sm:h-10 sm:rounded-xl ${index === 0 ? "w-[74px] sm:w-[88px]" : "w-[82px] sm:w-24"}`} />
+        ))}
+      </div>
+      <div className="flex flex-col gap-3">
+        <div className="flex w-fit gap-0.5 rounded-lg bg-[var(--ui-card-bg)] p-0.5">
+          {Array.from({ length: 3 }, (_, index) => <Skeleton key={index} className="h-7 w-[72px] rounded-md" />)}
+        </div>
+        <div className="flex gap-4 overflow-hidden border-b border-[var(--ui-border)]">
+          {Array.from({ length: 4 }, (_, index) => <Skeleton key={index} className={`h-[33px] shrink-0 rounded-none ${index === 0 ? "w-12" : "w-[62px]"}`} />)}
+        </div>
+      </div>
+      <section className="grid gap-4 sm:grid-cols-2">
+        {Array.from({ length: 2 }, (_, group) => (
+          <div key={group} className="flex flex-col gap-2.5">
+            <div className="flex items-center gap-2"><span className="h-[14px] w-[3px] rounded-full bg-[var(--accent)]" /><Skeleton className="h-[15px] w-20" /></div>
+            <div className="overflow-hidden rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)]">
+              <div className="divide-y divide-[var(--ui-border)]">
+                {Array.from({ length: 5 }, (_, index) => (
+                  <div key={index} className="grid min-h-[52px] grid-cols-[1.5rem_minmax(0,1fr)_auto_auto] items-center gap-2 px-3 py-2">
+                    <Skeleton className="h-4 w-4" />
+                    <div className="flex min-w-0 items-center gap-2"><Skeleton className="h-6 w-6 shrink-0 rounded-full" /><Skeleton className={`h-4 ${index % 3 === 0 ? "w-28" : "w-20"}`} /></div>
+                    <Skeleton className="h-4 w-7" /><Skeleton className="h-4 w-14" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        ))}
+      </section>
     </LoadingMain>
   );
 }
