@@ -8,6 +8,7 @@ import { ScheduleList } from "@/components/domain/schedule-list";
 import { ScheduleWeekScroller } from "@/components/domain/schedule-week-scroller";
 import { SpoilerToggleButton } from "@/components/domain/spoiler-toggle-button";
 import { AdaptiveDialog } from "@/components/responsive/adaptive-dialog";
+import { getCalendarEvents } from "@/lib/calendar/events";
 import { getAllTeams, getMatches, getStages, getTournaments } from "@/lib/data/lck";
 import { tournamentTypeLabel } from "@/lib/match-display";
 import { shouldUseWhiteLogoOnDark } from "@/lib/team-logos";
@@ -55,13 +56,22 @@ export default async function SchedulePage({
   const activeSegment = parseSeasonSegment(params.segment);
   const activeTeam = params.team ?? "all";
 
-  const [matches, teams, tournaments, stages] = await Promise.all([getMatches(), getAllTeams(), getTournaments(), getStages()]);
+  const [matches, teams, tournaments, stages, calendarEvents] = await Promise.all([
+    getMatches(),
+    getAllTeams(),
+    getTournaments(),
+    getStages(),
+    getCalendarEvents({ includePastOneTime: true }),
+  ]);
   const requestedYear = params.year ? Number(params.year) : Number.NaN;
   const tournamentYears = tournaments.map((item) => item.season).filter(isSupportedSeasonYear);
   const yearCandidates = isSupportedSeasonYear(defaults.year) ? [...tournamentYears, defaults.year] : tournamentYears;
   const years = Array.from(new Set(yearCandidates)).sort((a, b) => b - a);
   const activeYear = years.includes(requestedYear) ? requestedYear : (years.includes(defaults.year) ? defaults.year : (years[0] ?? defaults.year));
   const selectedTeam = teams.find((team) => team.id === activeTeam);
+  const filteredCalendarEvents = selectedTeam
+    ? calendarEvents.filter((event) => event.teamId === selectedTeam.id)
+    : calendarEvents;
   const filtered = filterMatchesBySegment(matches, tournaments, activeSegment, activeYear)
     .filter((match) => getYearKST(match.matchDate) === activeYear && getMonthKST(match.matchDate) === activeMonth && (!selectedTeam || match.teamAId === selectedTeam.id || match.teamBId === selectedTeam.id))
     .sort((a, b) => new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime());
@@ -115,7 +125,11 @@ export default async function SchedulePage({
           trigger={<><CalendarDays size={20} /><span className="sr-only">캘린더 열기</span></>}
           triggerClassName="grid h-12 w-12 place-items-center rounded-full border border-[var(--ui-border)] bg-[var(--ui-surface)] text-[var(--ui-ink)] shadow-[0_12px_34px_rgba(15,23,42,0.18)] transition-colors hover:bg-[var(--ui-card-hover)]"
         >
-          <HomeCalendar initialMonthKey={`${activeYear}-${String(activeMonth).padStart(2, "0")}`} matches={calendarMatches} events={[]} />
+          <HomeCalendar
+            initialMonthKey={`${activeYear}-${String(activeMonth).padStart(2, "0")}`}
+            matches={calendarMatches}
+            events={filteredCalendarEvents}
+          />
         </AdaptiveDialog>
         <AdaptiveDialog
           title="일정 필터"

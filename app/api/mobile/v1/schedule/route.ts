@@ -1,4 +1,5 @@
 import type { MobileScheduleDto } from "@/packages/contracts/src/mobile-v1";
+import { getCalendarEvents } from "@/lib/calendar/events";
 import { getAllTeams, getMatches, getTournaments } from "@/lib/data/lck";
 import { mobileSuccess, toMobileMatch } from "@/lib/mobile/api-response";
 import { filterMatchesBySegment, parseSeasonSegment } from "@/lib/tournament-filters";
@@ -8,7 +9,12 @@ export const revalidate = 60;
 
 export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;
-  const [matches, teams, tournaments] = await Promise.all([getMatches(), getAllTeams(), getTournaments()]);
+  const [matches, teams, tournaments, calendarEvents] = await Promise.all([
+    getMatches(),
+    getAllTeams(),
+    getTournaments(),
+    getCalendarEvents({ includePastOneTime: true }),
+  ]);
   const now = new Date().toISOString();
   const currentYear = getYearKST(now);
   const currentMonth = getMonthKST(now);
@@ -26,6 +32,20 @@ export async function GET(request: Request) {
     .filter((match) => !activeTeamId || match.teamAId === activeTeamId || match.teamBId === activeTeamId)
     .sort((a, b) => new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime());
   const data: MobileScheduleDto = {
+    calendarEvents: calendarEvents
+      .filter((event) => !activeTeamId || event.teamId === activeTeamId)
+      .map((event) => ({
+        date: event.nextDateKey,
+        dday: event.dday,
+        id: event.key,
+        image: event.playerImageUrl ? { url: event.playerImageUrl } : event.teamLogoUrl ? { url: event.teamLogoUrl } : null,
+        isRecurring: event.isRecurring,
+        monthDay: event.monthDay,
+        title: event.title,
+        type: event.type,
+        eventTime: event.eventTime,
+        sourceUrl: event.sourceUrl,
+      })),
     filters: { activeMonth, activeSegment, activeTeamId, activeYear, years },
     matches: filtered.map((match) => toMobileMatch(match, teamMap, tournamentMap)),
   };

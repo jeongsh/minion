@@ -180,6 +180,7 @@ export default function ScheduleScreen() {
       <ScheduleCalendarDialog
         activeMonth={filter.month}
         activeYear={filter.year}
+        events={data.calendarEvents}
         matches={data.matches}
         onClose={() => setCalendarOpen(false)}
         open={calendarOpen}

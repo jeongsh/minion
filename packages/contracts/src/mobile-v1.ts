@@ -338,6 +338,7 @@ export type MobileScheduleDto = {
     activeSegment: string;
     activeTeamId: EntityId | null;
   };
+  calendarEvents: MobileHomeDto["calendarEvents"];
   matches: MobileMatchSummary[];
 };
 

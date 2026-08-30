@@ -9,13 +9,12 @@ import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } fr
 
 import { ScheduleDialogChrome } from '@/components/schedule/schedule-dialog-chrome';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
-import { resolveApiAssetUrl, type MobileMatchSummary, type MobileTeamSummary } from '@/lib/api-client';
+import { resolveApiAssetUrl, type MobileHomeDto, type MobileMatchSummary, type MobileTeamSummary } from '@/lib/api-client';
 import { dateKeyKST, formatTimeKST } from '@/lib/schedule-dates';
 import { tournamentTypeLabel } from '@/lib/tournament-label';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
-/** 웹 lib/calendar/theme.ts(CALENDAR_EVENT_COLORS)와 동일한 색. 일정 화면은 이벤트 데이터를 쓰지 않지만
- * 웹 HomeCalendar는 데이터 유무와 무관하게 4개 항목 범례를 항상 그리므로 그대로 맞춘다. */
+const EVENT_COLOR = { birthday: '#304ffe', championship: '#f5c518', custom: '#f5c518', debut: '#7c5cff' } as const;
 const LEGEND = [
   { color: '#00b979', label: '경기' },
   { color: '#304ffe', label: '생일' },
@@ -29,15 +28,26 @@ function calendarDays(year: number, month: number) {
   return Array.from({ length: 42 }, (_, index) => new Date(start.getFullYear(), start.getMonth(), start.getDate() + index, 12));
 }
 
+function monthDayOf(date: Date) {
+  return dateKeyKST(date).slice(5);
+}
+
+function ddayLabel(dday: number) {
+  if (dday === 0) return 'D-DAY';
+  return dday > 0 ? `D-${dday}` : `D+${Math.abs(dday)}`;
+}
+
 export function ScheduleCalendarDialog({
   activeMonth,
   activeYear,
+  events = [],
   matches,
   onClose,
   open,
 }: {
   activeMonth: number;
   activeYear: number;
+  events: MobileHomeDto['calendarEvents'];
   matches: MobileMatchSummary[];
   onClose: () => void;
   open: boolean;
@@ -70,6 +80,9 @@ export function ScheduleCalendarDialog({
 
   const days = useMemo(() => calendarDays(year, month), [month, year]);
   const selectedMatches = selectedKey ? (matchesByDate.get(selectedKey) ?? []) : [];
+  const selectedEvents = selectedKey
+    ? events.filter((event) => event.isRecurring ? event.monthDay === selectedKey.slice(5) : event.date === selectedKey)
+    : [];
   const today = dateKeyKST(new Date());
 
   function moveMonth(delta: number) {
@@ -87,7 +100,7 @@ export function ScheduleCalendarDialog({
   return (
     <ScheduleDialogChrome onClose={onClose} open={open} title={`${activeYear}년 ${activeMonth}월 캘린더`}>
       <View style={[styles.shell, { backgroundColor: colorScheme === 'dark' ? '#1c1e22' : '#ffffff', borderColor: theme.border }]}>
-        {selectedKey && selectedMatches.length > 0 ? (
+        {selectedKey && (selectedMatches.length > 0 || selectedEvents.length > 0) ? (
           <View style={styles.detail}>
             <View style={styles.detailHeader}>
               <Pressable onPress={() => setSelectedKey(null)} style={styles.detailBack}>
@@ -119,6 +132,22 @@ export function ScheduleCalendarDialog({
                   </View>
                 </Pressable>
               ))}
+              {selectedEvents.map((event) => {
+                const imageUrl = resolveApiAssetUrl(event.image?.url);
+                return (
+                  <View key={event.id} style={[styles.eventDetail, { backgroundColor: theme.card }]}>
+                    {imageUrl ? (
+                      <Image alt="" contentFit="cover" contentPosition="top" source={{ uri: imageUrl }} style={styles.eventImage} />
+                    ) : (
+                      <View style={[styles.eventIcon, { backgroundColor: `${EVENT_COLOR[event.type]}1f` }]}>
+                        <Text>{event.type === 'birthday' ? '🎂' : event.type === 'debut' ? '🎉' : event.type === 'championship' ? '🏆' : '🎈'}</Text>
+                      </View>
+                    )}
+                    <Text numberOfLines={1} style={{ color: theme.ink, flex: 1, ...fonts.medium, fontSize: 13, lineHeight: 19.5 }}>{event.title}</Text>
+                    <Text style={{ color: EVENT_COLOR[event.type], ...fonts.medium, fontSize: 13, lineHeight: 19.5 }}>{ddayLabel(event.dday)}</Text>
+                  </View>
+                );
+              })}
             </ScrollView>
           </View>
         ) : (
@@ -145,16 +174,22 @@ export function ScheduleCalendarDialog({
                   {days.slice(week * 7, week * 7 + 7).map((day) => {
                     const key = dateKeyKST(day);
                     const dayMatches = matchesByDate.get(key) ?? [];
+                    const dayEvents = events.filter((event) => event.isRecurring ? event.monthDay === monthDayOf(day) : event.date === key);
                     const outside = day.getMonth() !== month;
                     const isToday = key === today;
+                    const hasAnything = dayMatches.length > 0 || dayEvents.length > 0;
+                    const eventTypes = Array.from(new Set(dayEvents.map((event) => event.type))).slice(0, dayMatches.length ? 2 : 3);
                     return (
                       <View key={key} style={styles.dayCell}>
                         <Pressable
-                          disabled={dayMatches.length === 0}
+                          disabled={!hasAnything}
                           onPress={() => setSelectedKey(key)}
                           style={[styles.dayButton, isToday && { backgroundColor: `${theme.ink}1f` }]}>
                           <Text style={[styles.dayText, { color: outside ? '#b0b3b8' : theme.text, ...fonts.medium }]}>{day.getDate()}</Text>
-                          <View style={styles.dots}>{dayMatches.length ? <View style={[styles.dot, { backgroundColor: '#00b979' }]} /> : null}</View>
+                          <View style={styles.dots}>
+                            {dayMatches.length ? <View style={[styles.dot, { backgroundColor: '#00b979' }]} /> : null}
+                            {eventTypes.map((type) => <View key={type} style={[styles.dot, { backgroundColor: EVENT_COLOR[type] }]} />)}
+                          </View>
                         </Pressable>
                       </View>
                     );
@@ -183,7 +218,7 @@ function CalendarTeamLogo({ team }: { team: MobileTeamSummary | null }) {
   const useWhite = colorScheme === 'dark' && Boolean(team?.useWhiteLogoOnDark) && Boolean(team?.logoDark?.url);
   const uri = resolveApiAssetUrl(useWhite ? (team?.logoDark?.url ?? null) : (team?.logo?.url ?? null));
   if (!uri) return null;
-  return <Image contentFit="contain" source={{ uri }} style={styles.detailTeamLogo} />;
+  return <Image alt="" contentFit="contain" source={{ uri }} style={styles.detailTeamLogo} />;
 }
 
 const styles = StyleSheet.create({
@@ -203,6 +238,9 @@ const styles = StyleSheet.create({
   detailTeams: { alignItems: 'center', flex: 1, flexDirection: 'row', gap: 6, justifyContent: 'flex-end' },
   dot: { borderRadius: 2, height: 4, width: 4 },
   dots: { alignItems: 'center', flexDirection: 'row', gap: 2, height: 4, justifyContent: 'center' },
+  eventDetail: { alignItems: 'center', borderRadius: 12, flexDirection: 'row', gap: 10, paddingHorizontal: 12, paddingVertical: 8 },
+  eventImage: { borderRadius: 16, height: 32, width: 32 },
+  eventIcon: { alignItems: 'center', borderRadius: 16, height: 32, justifyContent: 'center', width: 32 },
   legend: { alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: 16, justifyContent: 'center', marginTop: 12, rowGap: 6 },
   legendDot: { borderRadius: 4, height: 8, width: 8 },
   legendItem: { alignItems: 'center', flexDirection: 'row', gap: 6 },
