@@ -14,11 +14,11 @@ export async function GET(request: Request) {
   const teamSlug = params.get("team") || null;
   const requestedPage = Math.min(Math.max(Number.parseInt(params.get("page") ?? "1", 10) || 1, 1), MAX_NEWS_PAGES);
   let page = requestedPage;
-  let feed = await getNewsFeed({ display: PAGE_SIZE, query, scanLimit: PAGE_SIZE * MAX_NEWS_PAGES, start: (page - 1) * PAGE_SIZE + 1, teamSlug: teamSlug ?? undefined });
+  let feed = await getNewsFeed({ display: PAGE_SIZE, query, start: (page - 1) * PAGE_SIZE + 1, teamSlug: teamSlug ?? undefined });
   const totalPages = Math.max(1, Math.min(MAX_NEWS_PAGES, Math.ceil(feed.total / PAGE_SIZE)));
   if (page > totalPages) {
     page = totalPages;
-    feed = await getNewsFeed({ display: PAGE_SIZE, query, scanLimit: PAGE_SIZE * MAX_NEWS_PAGES, start: (page - 1) * PAGE_SIZE + 1, teamSlug: teamSlug ?? undefined });
+    feed = await getNewsFeed({ display: PAGE_SIZE, query, start: (page - 1) * PAGE_SIZE + 1, teamSlug: teamSlug ?? undefined });
   }
   const next = page * PAGE_SIZE;
   const data: MobileNewsDto = {

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { NewsCard } from "@/components/news/news-card";
 import { NewsThumbnail } from "@/components/news/news-thumbnail";
+import { useNewsThumbnail } from "@/components/news/use-news-thumbnail";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { formatNewsDate, type NewsArticle } from "@/lib/data/news";
 
@@ -18,7 +19,10 @@ function isOsenArticle(article: NewsArticle) {
 }
 
 function LeadNewsCard({ article }: { article: NewsArticle }) {
-  const [hasThumbnail, setHasThumbnail] = useState(Boolean(article.thumbnailUrl));
+  const { pending, src } = useNewsThumbnail(article.url, article.thumbnailUrl);
+  const [errored, setErrored] = useState(false);
+  const showThumbnail = !errored && (pending || Boolean(src));
+  const thumbClassName = "aspect-[16/9] max-h-[300px] w-full rounded-lg sm:rounded-xl md:max-h-[260px] lg:max-h-[250px] xl:max-h-[300px]";
 
   return (
     <a
@@ -27,8 +31,12 @@ function LeadNewsCard({ article }: { article: NewsArticle }) {
       rel="noopener noreferrer"
       className="group block min-w-0"
     >
-      {hasThumbnail ? <NewsThumbnail article={article} priority onError={() => setHasThumbnail(false)} className="aspect-[16/9] max-h-[300px] w-full rounded-lg sm:rounded-xl md:max-h-[260px] lg:max-h-[250px] xl:max-h-[300px]" /> : null}
-      <div className={hasThumbnail ? "mt-2.5 sm:mt-3.5" : ""}>
+      {showThumbnail ? (
+        src
+          ? <NewsThumbnail article={article} src={src} priority onError={() => setErrored(true)} className={thumbClassName} />
+          : <div className={`animate-pulse bg-[var(--ui-card-bg)] ${thumbClassName}`} />
+      ) : null}
+      <div className={showThumbnail ? "mt-2.5 sm:mt-3.5" : ""}>
         <h3 className="font-paperozi line-clamp-2 text-[14px] !font-bold leading-[1.4] tracking-[-0.035em] text-[var(--ui-ink)] group-hover:underline sm:text-[19px]">
           {article.title}
         </h3>

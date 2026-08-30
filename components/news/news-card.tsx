@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { NewsThumbnail } from "@/components/news/news-thumbnail";
+import { useNewsThumbnail } from "@/components/news/use-news-thumbnail";
 import { formatNewsDate, type NewsArticle } from "@/lib/data/news";
 
 export function NewsCard({
@@ -13,17 +14,24 @@ export function NewsCard({
 }) {
   const home = size === "home" || size === "news";
   const news = size === "news";
-  const [hasThumbnail, setHasThumbnail] = useState(Boolean(article.thumbnailUrl));
+  const { pending, src } = useNewsThumbnail(article.url, article.thumbnailUrl);
+  const [errored, setErrored] = useState(false);
+  const showThumbnail = !errored && (pending || Boolean(src));
 
   if (home) {
+    const thumbClassName = "aspect-video w-full rounded-md min-[390px]:rounded-lg";
     return (
       <a
         href={article.url}
         target="_blank"
         rel="noopener noreferrer"
-        className={`group grid min-w-0 items-center ${news ? "gap-3" : "gap-2.5 min-[390px]:gap-3"} ${hasThumbnail ? news ? "grid-cols-[104px_minmax(0,1fr)]" : "grid-cols-[88px_minmax(0,1fr)] min-[390px]:grid-cols-[104px_minmax(0,1fr)]" : "grid-cols-1"}`}
+        className={`group grid min-w-0 items-center ${news ? "gap-3" : "gap-2.5 min-[390px]:gap-3"} ${showThumbnail ? news ? "grid-cols-[104px_minmax(0,1fr)]" : "grid-cols-[88px_minmax(0,1fr)] min-[390px]:grid-cols-[104px_minmax(0,1fr)]" : "grid-cols-1"}`}
       >
-        {hasThumbnail ? <NewsThumbnail article={article} onError={() => setHasThumbnail(false)} className="aspect-video w-full rounded-md min-[390px]:rounded-lg" /> : null}
+        {showThumbnail ? (
+          src
+            ? <NewsThumbnail article={article} src={src} onError={() => setErrored(true)} className={thumbClassName} />
+            : <div className={`animate-pulse bg-[var(--ui-card-bg)] ${thumbClassName}`} />
+        ) : null}
         <div className="flex min-w-0 flex-col">
           <h3 className={`${news ? "font-paperozi text-[14px] !font-bold leading-[1.45]" : "font-paperozi text-[14px] !font-bold leading-[1.45] sm:leading-[1.5]"} line-clamp-2 tracking-[-0.02em] text-[var(--ui-ink)] group-hover:underline`}>
             {article.title}
@@ -38,14 +46,19 @@ export function NewsCard({
     );
   }
 
+  const thumbClassName = "aspect-[4/3] w-full rounded-md sm:aspect-[16/10] sm:max-h-[118px] sm:rounded-lg";
   return (
     <a
       href={article.url}
       target="_blank"
       rel="noopener noreferrer"
-      className={`group grid min-w-0 gap-2.5 rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-2 transition-colors duration-200 motion-reduce:transition-none dark:bg-[var(--ui-surface-muted)] min-[390px]:gap-3 min-[390px]:p-2.5 sm:gap-5 sm:rounded-2xl sm:p-3 lg:p-4 ${hasThumbnail ? "grid-cols-[72px_minmax(0,1fr)] min-[390px]:grid-cols-[84px_minmax(0,1fr)] sm:grid-cols-[196px_minmax(0,1fr)]" : "grid-cols-1"}`}
+      className={`group grid min-w-0 gap-2.5 rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-2 transition-colors duration-200 motion-reduce:transition-none dark:bg-[var(--ui-surface-muted)] min-[390px]:gap-3 min-[390px]:p-2.5 sm:gap-5 sm:rounded-2xl sm:p-3 lg:p-4 ${showThumbnail ? "grid-cols-[72px_minmax(0,1fr)] min-[390px]:grid-cols-[84px_minmax(0,1fr)] sm:grid-cols-[196px_minmax(0,1fr)]" : "grid-cols-1"}`}
     >
-      {hasThumbnail ? <NewsThumbnail article={article} onError={() => setHasThumbnail(false)} className="aspect-[4/3] w-full rounded-md sm:aspect-[16/10] sm:max-h-[118px] sm:rounded-lg" /> : null}
+      {showThumbnail ? (
+        src
+          ? <NewsThumbnail article={article} src={src} onError={() => setErrored(true)} className={thumbClassName} />
+          : <div className={`animate-pulse bg-[var(--ui-card-bg)] ${thumbClassName}`} />
+      ) : null}
       <div className="flex min-w-0 flex-col py-0.5">
         <div className="flex min-w-0 items-center gap-1 text-[10.5px] font-medium text-[var(--ui-muted)] min-[390px]:text-[11px] sm:gap-1.5 sm:text-[12px]">
           <span className="truncate text-[var(--ui-ink)]">{article.source}</span>

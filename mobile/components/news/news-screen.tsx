@@ -15,7 +15,7 @@ import { ErrorState } from '@/components/feedback-states';
 import { MinionScreen } from '@/components/minion-screen';
 import { useCachedQuery } from '@/hooks/use-cached-query';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
-import { resolveApiAssetUrl, type MobileNewsDto, type MobileNewsItem } from '@/lib/api-client';
+import { mobileApiOrigin, resolveApiAssetUrl, type MobileNewsDto, type MobileNewsItem } from '@/lib/api-client';
 
 function first(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] ?? '' : value ?? '';
@@ -124,16 +124,35 @@ function FilterOption({ active, detail, label, onPress, team }: { active: boolea
   return <Pressable accessibilityRole="menuitem" accessibilityState={{ selected: active }} onPress={onPress} style={({ pressed }) => [styles.filterOption, active || pressed ? { backgroundColor: theme.surfaceMuted } : null]}>{team ? <TeamLogo plain size={28} team={team} themeAware /> : <View style={[styles.allTeamsIcon, { backgroundColor: theme.surfaceMuted }]}><ListFilter color={theme.muted} size={17} /></View>}<View style={styles.filterOptionCopy}><Text numberOfLines={1} style={{ color: theme.ink, ...fonts.medium, fontSize: 14, lineHeight: 21 }}>{label}</Text><Text numberOfLines={1} style={{ color: theme.muted, ...fonts.regular, fontSize: 13, lineHeight: 19.5 }}>{detail}</Text></View>{active ? <Check color={theme.ink} size={17} /> : null}</Pressable>;
 }
 
+// 썸네일은 목록 응답에서 제외되어 있어, 렌더 후 기사 원문 URL로 개별 해석한다.
+function useResolvedThumbnail(article: MobileNewsItem) {
+  const initial = article.thumbnail?.url ?? null;
+  const [state, setState] = useState<{ path: string | null; pending: boolean }>(() => ({ path: initial, pending: !initial }));
+  useEffect(() => {
+    if (!state.pending) return;
+    let active = true;
+    const controller = new AbortController();
+    fetch(`${mobileApiOrigin}/api/news/thumbnail/resolve?url=${encodeURIComponent(article.url)}`, { signal: controller.signal })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((body: { thumbnail: string | null } | null) => { if (active) setState({ path: body?.thumbnail ?? null, pending: false }); })
+      .catch(() => { if (active) setState({ path: null, pending: false }); });
+    return () => { active = false; controller.abort(); };
+  }, [article.url, state.pending]);
+  return state;
+}
+
 function NewsRow({ article, onOpenError }: { article: MobileNewsItem; onOpenError: () => void }) {
   const { fonts, theme } = useMinionTheme();
-  const [hasThumbnail, setHasThumbnail] = useState(Boolean(article.thumbnail?.url));
-  const thumbnail = resolveApiAssetUrl(article.thumbnail?.url);
+  const { path, pending } = useResolvedThumbnail(article);
+  const [errored, setErrored] = useState(false);
+  const thumbnail = resolveApiAssetUrl(path);
+  const showThumbnail = !errored && (pending || Boolean(thumbnail));
   const open = async () => {
     try { await Linking.openURL(article.url); } catch { onOpenError(); }
   };
   return (
     <Pressable accessibilityLabel={`${article.title} ${article.source} ${formatNewsDate(article.publishedAt)}`} accessibilityRole="link" onPress={() => void open()} style={styles.newsRow}>
-      {hasThumbnail && thumbnail ? <View style={[styles.thumbnail, { backgroundColor: theme.card }]}><Image contentFit="cover" onError={() => setHasThumbnail(false)} source={{ uri: thumbnail }} style={StyleSheet.absoluteFill} transition={120} /></View> : null}
+      {showThumbnail ? <View style={[styles.thumbnail, { backgroundColor: theme.card }]}>{thumbnail ? <Image contentFit="cover" onError={() => setErrored(true)} source={{ uri: thumbnail }} style={StyleSheet.absoluteFill} transition={120} /> : null}</View> : null}
       <View style={styles.newsCopy}>
         <Text accessibilityRole="header" aria-level={3} numberOfLines={2} style={[styles.newsTitle, { color: theme.ink, ...fonts.display }]}>{article.title}</Text>
         <View style={styles.newsMeta}><Text numberOfLines={1} style={[styles.newsSource, { color: theme.muted, ...fonts.medium }]}>{article.source}</Text><Text style={{ color: theme.muted, ...fonts.medium, fontSize: 13 }}>·</Text><Text style={{ color: theme.muted, ...fonts.medium, fontSize: 13, lineHeight: 19.5 }}>{formatNewsDate(article.publishedAt)}</Text></View>

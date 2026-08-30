@@ -42,7 +42,6 @@ type NewsFeedOptions = {
   query?: string;
   display?: number;
   start?: number;
-  scanLimit?: number;
 };
 
 type TeamNewsConfig = {
@@ -156,7 +155,7 @@ async function fetchArticleHtml(value: string, redirects = 0): Promise<{ html: s
       "User-Agent": "Mozilla/5.0 (compatible; MINION-News/1.0)",
     },
     redirect: "manual",
-    signal: AbortSignal.timeout(4500),
+    signal: AbortSignal.timeout(2500),
     next: { revalidate: ARTICLE_METADATA_TTL_SECONDS },
   });
 
@@ -167,11 +166,14 @@ async function fetchArticleHtml(value: string, redirects = 0): Promise<{ html: s
   }
 
   if (!response.ok || !response.headers.get("content-type")?.includes("text/html")) return null;
-  return { html: (await response.text()).slice(0, 750_000), url: response.url || value };
+  // og:image 메타태그는 <head>에 있으므로 앞부분만 받아 파싱 비용과 전송량을 줄인다.
+  return { html: (await response.text()).slice(0, 200_000), url: response.url || value };
 }
 
 async function findArticleThumbnail(candidates: string[]) {
-  for (const candidate of candidates) {
+  // 첫 후보(originallink)만 시도한다. 네이버 링크 폴백은 유효한 og:image가 드문 반면 지연만 키운다.
+  // 원문 HTML fetch 자체는 next 데이터 캐시(revalidate 6h)로 재요청 시 재사용된다.
+  for (const candidate of candidates.slice(0, 1)) {
     try {
       const page = await fetchArticleHtml(candidate);
       if (!page) continue;
@@ -299,7 +301,7 @@ type NormalizedNewsBatch = {
 };
 
 async function collectNormalizedItems(options: NewsFeedOptions): Promise<NormalizedNewsBatch | null> {
-  const { teamSlug, query = "", display = DEFAULT_DISPLAY, start = 1, scanLimit = 0 } = options;
+  const { teamSlug, query = "", display = DEFAULT_DISPLAY, start = 1 } = options;
   const clientId = process.env.NAVER_API_HUB_CLIENT_ID?.trim();
   const clientSecret = process.env.NAVER_API_HUB_CLIENT_SECRET?.trim();
   if (!clientId || !clientSecret) return null;
@@ -308,10 +310,9 @@ async function collectNormalizedItems(options: NewsFeedOptions): Promise<Normali
   const searchQuery = [baseQuery, query.trim()].filter(Boolean).join(" ");
   const requestedDisplay = Math.min(Math.max(display, 1), 100);
   const requestedOffset = Math.max(start, 1) - 1;
-  const requiredItemCount = Math.max(
-    requestedOffset + requestedDisplay + 1,
-    Math.max(scanLimit, 0) + 1,
-  );
+  // 요청한 페이지를 채우고 "다음 페이지 유무"를 판단할 만큼만 모은다. 총 기사 수(totalPages)는
+  // 네이버가 내려주는 rawTotal로 추정하므로, 관련 기사가 드물어도 1000건까지 전부 훑지 않는다.
+  const requiredItemCount = requestedOffset + requestedDisplay + 1;
   const apiDisplay = 100;
 
   const seenUrls = new Set<string>();
@@ -343,9 +344,10 @@ async function collectNormalizedItems(options: NewsFeedOptions): Promise<Normali
           "X-NCP-APIGW-API-KEY-ID": clientId,
           "X-NCP-APIGW-API-KEY": clientSecret,
         },
+        signal: AbortSignal.timeout(3000),
         next: { revalidate: 300 },
-      });
-      if (!response.ok) return null;
+      }).catch(() => null);
+      if (!response?.ok) return null;
       return response.json() as Promise<NaverNewsResponse>;
     }));
 
@@ -391,7 +393,20 @@ async function attachThumbnails(items: NormalizedNewsItem[]): Promise<NewsArticl
   })));
 }
 
-export async function getNewsFeed(options: NewsFeedOptions = {}): Promise<NewsFeed> {
+/**
+ * 기사 원문 URL 하나에 대한 썸네일(프록시 경로)만 해석한다. 뉴스 목록 응답에서 분리해
+ * 클라이언트가 렌더 후 개별 호출하도록 하여, 원문 og:image 스크래핑 지연이 목록 TTFB에 얹히지 않게 한다.
+ */
+export const resolveNewsThumbnail = unstable_cache(
+  async (articleUrl: string): Promise<string | null> => {
+    if (!isSafePublicNewsUrl(articleUrl)) return null;
+    return newsThumbnailProxyUrl(await findArticleThumbnail([articleUrl]) ?? "") ?? null;
+  },
+  ["news-thumbnail-resolve"],
+  { revalidate: ARTICLE_METADATA_TTL_SECONDS },
+);
+
+async function getNewsFeedUncached(options: NewsFeedOptions = {}): Promise<NewsFeed> {
   const { display = DEFAULT_DISPLAY, start = 1 } = options;
   const requestedDisplay = Math.min(Math.max(display, 1), 100);
   const requestedOffset = Math.max(start, 1) - 1;
@@ -402,7 +417,8 @@ export async function getNewsFeed(options: NewsFeedOptions = {}): Promise<NewsFe
     const { normalizedItems, rawTotal, reachedRawEnd } = batch;
 
     const visibleItems = normalizedItems.slice(requestedOffset, requestedOffset + requestedDisplay);
-    const articles = await attachThumbnails(visibleItems);
+    // 썸네일은 목록 응답에서 제외한다. 원문 스크래핑은 클라이언트가 /api/news/thumbnail/resolve로 개별 요청한다.
+    const articles = visibleItems.map((item) => item.article);
 
     return {
       articles,
@@ -414,6 +430,17 @@ export async function getNewsFeed(options: NewsFeedOptions = {}): Promise<NewsFe
     return fallbackFeed(options);
   }
 }
+
+/**
+ * 팀/검색어/페이지 조합별 뉴스 피드. 네이버 검색 스캔과 원문 썸네일 스크래핑이 요청 경로에
+ * 얹히므로, 조합을 키로 결과를 캐시해 revalidate 주기 안에서는 외부 호출을 건너뛴다.
+ * (fallbackFeed로 떨어진 결과도 잠깐 캐시되지만 revalidate가 짧아 곧 복구된다.)
+ */
+export const getNewsFeed = unstable_cache(
+  getNewsFeedUncached,
+  ["news-feed"],
+  { revalidate: 180 },
+);
 
 function selectDiverseArticles<T>(
   items: T[],

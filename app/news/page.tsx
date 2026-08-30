@@ -43,7 +43,6 @@ export default async function NewsPage({ searchParams }: { searchParams: SearchP
     query,
     display: PAGE_SIZE,
     start: (requestedPage - 1) * PAGE_SIZE + 1,
-    scanLimit: PAGE_SIZE * MAX_NEWS_PAGES,
   });
   const totalPages = Math.max(1, Math.min(MAX_NEWS_PAGES, Math.ceil(newsFeed.total / PAGE_SIZE)));
   if (parsedPage !== requestedPage || requestedPage > totalPages) {
