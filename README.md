@@ -105,3 +105,4 @@ LCK 통합 허브:
 새 Supabase public 테이블이 Data API에 자동 노출되지 않을 수 있으므로, 스키마에는 명시적인 `GRANT` 문과 RLS 정책을 함께 포함했습니다.
 
 깃 테스트
+npm.cmd --prefix mobile run start -- --dev-client
