@@ -209,7 +209,7 @@ export default async function FanHomePage({
     getMatches(),
     getBoardPosts({ scope: "team", teamId: team.id, hotOnly: true, limit: COMMUNITY_HOME_HOT_CANDIDATE_LIMIT }),
     getBoardPosts({ scope: "team", teamId: team.id, limit: COMMUNITY_HOME_LATEST_CANDIDATE_LIMIT }),
-    getCalendarEvents({ teamId: team.id }),
+    getCalendarEvents({ teamId: team.id, includePastOneTime: true }),
   ]);
 
   const todayCelebrations = getTodayCelebrations(calendarEvents);

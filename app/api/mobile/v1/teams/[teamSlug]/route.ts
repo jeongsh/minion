@@ -28,7 +28,7 @@ export async function GET(request: Request, context: { params: Promise<{ teamSlu
     getAllTeams(),
     getTournaments(),
     section === "home" || section === "schedule"
-      ? getCalendarEvents({ teamId: team.id, includePastOneTime: section === "schedule" })
+      ? getCalendarEvents({ teamId: team.id, includePastOneTime: true })
       : Promise.resolve([]),
     section === "home"
       ? getBoardPosts({ scope: "team", teamId: team.id, hotOnly: true, limit: COMMUNITY_HOME_HOT_CANDIDATE_LIMIT })

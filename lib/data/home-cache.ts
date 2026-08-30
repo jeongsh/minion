@@ -23,7 +23,7 @@ export const getMobileHomePublicData = unstable_cache(
       getAllTeams(),
       getMatches(),
       getTournaments(),
-      getCalendarEvents(),
+      getCalendarEvents({ includePastOneTime: true }),
     ]);
 
     return { teams, matches, tournaments, calendarEvents };

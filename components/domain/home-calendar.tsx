@@ -51,7 +51,8 @@ function monthDayFromLocalDate(date: Date) {
 }
 
 function ddayLabel(dday: number) {
-  return dday === 0 ? "D-DAY" : `D-${dday}`;
+  if (dday === 0) return "D-DAY";
+  return dday > 0 ? `D-${dday}` : `D+${Math.abs(dday)}`;
 }
 
 function CalendarDetailList({
