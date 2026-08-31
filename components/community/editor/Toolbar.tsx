@@ -11,6 +11,7 @@ import {
   ListOrdered,
   Redo,
   Share2,
+  Sticker,
   Strikethrough,
   Type,
   Underline as UnderlineIcon,
@@ -21,6 +22,8 @@ import {
 import { useRef, useState } from "react";
 
 import { FilterDropdown } from "@/components/match-filter-dropdown";
+import { MiniconPickerPanel, rememberMiniconUse } from "@/components/community/minicon-picker";
+import type { MiniconItem, MiniconPack } from "@/lib/minicons/types";
 
 import { ColorPicker } from "./ColorPicker";
 import { getImageUploadErrorMessage, uploadAndInsertEditorImage } from "./editor-image-upload";
@@ -30,12 +33,13 @@ interface Props {
   allowMedia?: boolean;
   allowEmbeds?: boolean;
   maxImages?: number;
+  miniconPacks?: MiniconPack[];
 }
 
-type OpenPanel = "format" | "youtube" | "sns" | null;
+type OpenPanel = "format" | "youtube" | "sns" | "minicon" | null;
 type SavedSelection = { from: number; to: number } | null;
 
-export default function Toolbar({ editor, allowMedia = true, allowEmbeds = allowMedia, maxImages = 10 }: Props) {
+export default function Toolbar({ editor, allowMedia = true, allowEmbeds = allowMedia, maxImages = 10, miniconPacks = [] }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const savedColorSelection = useRef<SavedSelection>(null);
   const savedHighlightSelection = useRef<SavedSelection>(null);
@@ -110,6 +114,30 @@ export default function Toolbar({ editor, allowMedia = true, allowEmbeds = allow
     setOpenPanel(null);
   };
 
+  const insertMinicon = (item: MiniconItem) => {
+    let imageCount = 0;
+    editor.state.doc.descendants((node) => {
+      if (node.type.name === "image" || node.type.name === "imageResize") imageCount += 1;
+    });
+    if (imageCount >= maxImages) {
+      alert(`이미지와 미니콘은 합쳐서 ${maxImages}장까지 넣을 수 있습니다.`);
+      return;
+    }
+    editor.chain().focus().insertContent({
+      type: "imageResize",
+      attrs: {
+        src: item.imageUrl,
+        alt: `${item.packName} ${item.name} 미니콘`,
+        width: 200,
+        height: 200,
+        containerStyle: "width: 200px; height: auto; cursor: pointer; margin: 0.5rem 0;",
+        wrapperStyle: "display: flex; justify-content: flex-start; margin: 0;",
+      },
+    }).run();
+    rememberMiniconUse(item.id);
+    setOpenPanel(null);
+  };
+
   const formatButtonClass = (active = false) =>
     `grid h-10 w-10 shrink-0 place-items-center rounded-lg transition ${active
       ? "bg-[var(--ui-ink)] text-[var(--ui-surface)]"
@@ -132,7 +160,7 @@ export default function Toolbar({ editor, allowMedia = true, allowEmbeds = allow
   };
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-40 border-y border-[var(--ui-border)] bg-[var(--ui-surface)] pb-[env(safe-area-inset-bottom)] md:static md:order-first md:mb-2 md:rounded-lg md:border md:border-[var(--ui-border)] md:pb-0">
+    <div className="fixed inset-x-0 bottom-0 z-40 border-y border-[var(--ui-border)] bg-[var(--ui-surface)] pb-[env(safe-area-inset-bottom)] md:relative md:inset-auto md:order-first md:mb-2 md:rounded-lg md:border md:border-[var(--ui-border)] md:pb-0">
       {openPanel === "format" ? (
         <div className="absolute inset-x-2 bottom-[calc(100%+10px)] flex flex-wrap items-center gap-1 rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-2 sm:left-auto sm:right-2 sm:w-auto">
           <button type="button" onClick={() => editor.chain().focus().toggleBold().run()} className={formatButtonClass(editor.isActive("bold"))} aria-label="굵게"><Bold size={18} /></button>
@@ -160,6 +188,10 @@ export default function Toolbar({ editor, allowMedia = true, allowEmbeds = allow
         </div>
       ) : null}
 
+      {openPanel === "minicon" ? (
+        <MiniconPickerPanel packs={miniconPacks} onSelect={insertMinicon} placement="editor" showDoubleMode={false} />
+      ) : null}
+
       <div className="flex min-h-12 items-center justify-center overflow-x-auto px-1.5 py-1 [scrollbar-width:none] md:hidden [&::-webkit-scrollbar]:hidden">
         {allowMedia ? (
           <>
@@ -169,6 +201,7 @@ export default function Toolbar({ editor, allowMedia = true, allowEmbeds = allow
             <button type="button" onClick={() => editor.chain().focus().insertPoll().run()} className={primaryButtonClass()} aria-label="투표 추가"><BarChart3 size={18} /></button>
           </>
         ) : null}
+        {miniconPacks.length > 0 ? <button type="button" onClick={() => togglePanel("minicon")} className={primaryButtonClass(openPanel === "minicon")} aria-label="미니콘 넣기"><Sticker size={18} /></button> : null}
         <button type="button" onClick={() => togglePanel("format")} className={primaryButtonClass(openPanel === "format")} aria-label="텍스트 서식"><span className="text-[16px] font-medium leading-none">Aa</span></button>
         <span className="mx-1 h-6 w-px shrink-0 bg-[var(--ui-border)]" aria-hidden="true" />
         <button type="button" onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()} className={`${primaryButtonClass()} disabled:opacity-30`} aria-label="실행 취소"><Undo size={18} /></button>
@@ -198,6 +231,7 @@ export default function Toolbar({ editor, allowMedia = true, allowEmbeds = allow
             <button type="button" onClick={() => editor.chain().focus().insertPoll().run()} className={formatButtonClass()} aria-label="투표 추가"><BarChart3 size={18} /></button>
           </>
         ) : null}
+        {miniconPacks.length > 0 ? <button type="button" onClick={() => togglePanel("minicon")} className={formatButtonClass(openPanel === "minicon")} aria-label="미니콘 넣기"><Sticker size={18} /></button> : null}
 
         <div className="ml-auto flex shrink-0 items-center gap-1 pl-2">
           <button type="button" onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()} className={`${formatButtonClass()} disabled:opacity-30`} aria-label="실행 취소"><Undo size={18} /></button>

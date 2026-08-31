@@ -30,6 +30,8 @@ export function MiniconPickerPanel({
   onDoubleModeChange,
   onStartDouble,
   mobile = false,
+  placement = "comment",
+  showDoubleMode = true,
 }: {
   packs: MiniconPack[];
   selectedIds?: string[];
@@ -38,6 +40,8 @@ export function MiniconPickerPanel({
   onDoubleModeChange?: (enabled: boolean) => void;
   onStartDouble?: (item: MiniconItem) => void;
   mobile?: boolean;
+  placement?: "comment" | "editor";
+  showDoubleMode?: boolean;
 }) {
   const [recentIds, setRecentIds] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState(packs[0]?.id ?? "recent");
@@ -75,22 +79,24 @@ export function MiniconPickerPanel({
 
   return (
     <div
-      className={`${mobile ? "fixed inset-x-2 bottom-[calc(4rem+env(safe-area-inset-bottom))]" : "absolute bottom-11 left-0"} z-30 flex max-h-[min(62vh,430px)] w-auto flex-col overflow-hidden rounded-[18px] border border-[var(--ui-border)] bg-[var(--ui-surface)] shadow-xl md:w-[372px]`}
+      className={`${placement === "editor" ? "fixed inset-x-2 bottom-[calc(4rem+env(safe-area-inset-bottom))] md:absolute md:inset-x-auto md:bottom-auto md:left-0 md:top-[calc(100%+0.5rem)]" : mobile ? "fixed inset-x-2 bottom-[calc(4rem+env(safe-area-inset-bottom))]" : "absolute bottom-11 left-0"} z-30 flex max-h-[min(62vh,430px)] w-auto flex-col overflow-hidden rounded-[18px] border border-[var(--ui-border)] bg-[var(--ui-surface)] shadow-xl md:w-[372px]`}
       role="dialog"
       aria-label="미니콘 선택"
     >
       <div className="flex items-center justify-between border-b border-[var(--ui-border)] px-2 py-1.5">
-        <button
-          type="button"
-          onClick={() => onDoubleModeChange?.(!doubleMode)}
-          className="flex h-8 items-center gap-1.5 px-1.5 text-[13px] font-medium text-[var(--ui-text)]"
-          aria-pressed={doubleMode}
-        >
-          <span className={`grid h-4 w-4 place-items-center border ${doubleMode ? "border-[var(--tp)] bg-[var(--tp)] text-white" : "border-[var(--ui-border)]"}`} aria-hidden="true">
-            {doubleMode ? <Check size={12} strokeWidth={2.5} /> : null}
-          </span>
-          더블콘
-        </button>
+        {showDoubleMode ? (
+          <button
+            type="button"
+            onClick={() => onDoubleModeChange?.(!doubleMode)}
+            className="flex h-8 items-center gap-1.5 px-1.5 text-[13px] font-medium text-[var(--ui-text)]"
+            aria-pressed={doubleMode}
+          >
+            <span className={`grid h-4 w-4 place-items-center border ${doubleMode ? "border-[var(--tp)] bg-[var(--tp)] text-white" : "border-[var(--ui-border)]"}`} aria-hidden="true">
+              {doubleMode ? <Check size={12} strokeWidth={2.5} /> : null}
+            </span>
+            더블콘
+          </button>
+        ) : <span />}
         <div className="flex items-center gap-0.5">
           <Link
             href="/minicons"

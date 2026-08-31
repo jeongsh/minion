@@ -1,7 +1,7 @@
 "use client";
 
 import { SendHorizontal, Sticker, X } from "lucide-react";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
@@ -38,9 +38,11 @@ export function CommentForm({
   const [selectedMinicons, setSelectedMinicons] = useState<MiniconItem[]>([]);
   const [doubleMode, setDoubleMode] = useState(false);
   const [pending, startTransition] = useTransition();
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const maxLength = useCommentMaxLength();
 
   const toggleMiniconPanel = () => {
+    if (!miniconOpen) inputRef.current?.blur();
     setMiniconOpen((open) => !open);
   };
 
@@ -134,6 +136,7 @@ export function CommentForm({
               </div>
             ) : (
               <textarea
+                ref={inputRef}
                 id={`comment-content-${parentId ?? "root"}-dock`}
                 name="content"
                 value={content}
@@ -182,6 +185,7 @@ export function CommentForm({
           </div>
         ) : (
           <textarea
+            ref={inputRef}
             id={`comment-content-${parentId ?? "root"}`}
             name="content"
             value={content}

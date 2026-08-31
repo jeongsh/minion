@@ -9,6 +9,7 @@ import { useNavigationTransition } from "@/components/navigation/navigation-tran
 import { Button } from "@/components/ui/button";
 import { createPostAction, updatePostAction } from "@/lib/community/actions";
 import type { BoardDef, BoardScope } from "@/lib/community/boards";
+import type { MiniconPack } from "@/lib/minicons/types";
 import {
   getCommunityPostTextLength,
   POST_TEXT_MAX_LENGTH,
@@ -54,6 +55,7 @@ export function PostForm({
   initialContent = "",
   canSetNotice = false,
   isGuest = false,
+  miniconPacks = [],
 }: {
   scope: BoardScope;
   categories: BoardDef[];
@@ -65,6 +67,7 @@ export function PostForm({
   initialContent?: string;
   canSetNotice?: boolean;
   isGuest?: boolean;
+  miniconPacks?: MiniconPack[];
 }) {
   const router = useRouter();
   const { startNavigation } = useNavigationTransition();
@@ -174,6 +177,7 @@ export function PostForm({
           allowEmbeds={!isGuest}
           allowMedia
           maxImages={isGuest ? 1 : 10}
+          miniconPacks={miniconPacks}
           placeholder="내용을 입력하세요"
         />
         <p className={`text-right text-[13px] tabular-nums ${contentTextLength > POST_TEXT_MAX_LENGTH ? "text-red-500" : "text-[var(--ui-muted)]"}`}>

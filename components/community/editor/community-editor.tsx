@@ -7,6 +7,7 @@ import Toolbar from "./Toolbar";
 import { buildCommunityExtensions } from "./community-extensions";
 import { useEmbedHydration } from "./use-embed-hydration";
 import { getImageUploadErrorMessage, uploadAndInsertEditorImage } from "./editor-image-upload";
+import type { MiniconPack } from "@/lib/minicons/types";
 
 interface Props {
   content: string;
@@ -15,9 +16,10 @@ interface Props {
   allowEmbeds?: boolean;
   maxImages?: number;
   placeholder?: string;
+  miniconPacks?: MiniconPack[];
 }
 
-export default function CommunityEditor({ content, onChange, allowMedia = true, allowEmbeds = allowMedia, maxImages = 10, placeholder }: Props) {
+export default function CommunityEditor({ content, onChange, allowMedia = true, allowEmbeds = allowMedia, maxImages = 10, placeholder, miniconPacks = [] }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [uploadingDropImage, setUploadingDropImage] = useState(false);
 
@@ -101,7 +103,7 @@ export default function CommunityEditor({ content, onChange, allowMedia = true, 
         <div className="border-b border-border bg-surface-muted px-4 py-2 text-[13px] text-muted">이미지 업로드 중...</div>
       ) : null}
       <EditorContent editor={editor} />
-      <Toolbar editor={editor} allowEmbeds={allowEmbeds} allowMedia={allowMedia} maxImages={maxImages} />
+      <Toolbar editor={editor} allowEmbeds={allowEmbeds} allowMedia={allowMedia} maxImages={maxImages} miniconPacks={miniconPacks} />
     </div>
   );
 }

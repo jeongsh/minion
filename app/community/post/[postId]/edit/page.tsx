@@ -6,6 +6,7 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 import { categoriesForScope } from "@/lib/community/boards";
 import { getExistingGuestKey } from "@/lib/community/guest-identity";
 import { getPostById } from "@/lib/data/community";
+import { getUserMiniconPacks } from "@/lib/data/minicons";
 
 export default async function EditCommunityPostPage({ params }: { params: Promise<{ postId: string }> }) {
   const { postId } = await params;
@@ -13,11 +14,12 @@ export default async function EditCommunityPostPage({ params }: { params: Promis
   const isGuestOwner = Boolean(post?.guestKey && !post.authorId && post.guestKey === guestKey);
   if (!user && !isGuestOwner) redirect(`/login?next=/community/post/${postId}/edit`);
   if (!post || post.siteScope !== "hub" || (post.authorId !== user?.id && !isGuestOwner)) notFound();
+  const miniconPacks = await getUserMiniconPacks(user?.id);
 
   return (
     <main className="layout-wide subpage flex min-h-screen flex-col gap-5 py-6 sm:py-8">
       <SurfacePanel variant="section" className="mobile-full-bleed p-4 sm:mx-0 sm:p-8">
-        <PostForm scope="hub" categories={categoriesForScope("hub")} defaultCategory={post.boardType} postId={post.id} initialTitle={post.title} initialContent={post.content} isGuest={isGuestOwner} />
+        <PostForm scope="hub" categories={categoriesForScope("hub")} defaultCategory={post.boardType} postId={post.id} initialTitle={post.title} initialContent={post.content} isGuest={isGuestOwner} miniconPacks={miniconPacks} />
       </SurfacePanel>
     </main>
   );
