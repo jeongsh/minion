@@ -425,6 +425,8 @@ type ScopedData = {
   playersById: Map<string, Player>;
   teamsById: Map<string, Team>;
   stats: PlayerStatLine[];
+  /** stats grouped by setId, so per-game lookups don't rescan the whole scope. */
+  statsBySet: Map<string, PlayerStatLine[]>;
   pickBans: SetPickBan[];
   completeDraftSetIds: Set<string>;
 };
@@ -538,6 +540,12 @@ function scopedData(input: ChampionAnalysisInput): ScopedData {
       completeDraftSetIds.add(set.id);
     }
   }
+  const statsBySet = new Map<string, PlayerStatLine[]>();
+  for (const line of stats) {
+    const rows = statsBySet.get(line.setId) ?? [];
+    rows.push(line);
+    statsBySet.set(line.setId, rows);
+  }
 
   return {
     setsById,
@@ -547,6 +555,7 @@ function scopedData(input: ChampionAnalysisInput): ScopedData {
     playersById: new Map((input.players ?? []).map((player) => [player.id, player])),
     teamsById: new Map((input.teams ?? []).map((team) => [team.id, team])),
     stats,
+    statsBySet,
     pickBans,
     completeDraftSetIds,
   };
@@ -676,12 +685,11 @@ function comparePatch(left: string, right: string) {
   return left.localeCompare(right);
 }
 
-export function buildChampionOverview(
-  input: ChampionAnalysisInput,
+function overviewFromData(
+  data: ScopedData,
   championId: string,
   position?: PlayerPosition,
 ): ChampionOverview {
-  const data = scopedData(input);
   const positions = positionSummaries(data, championId);
   const selectedPosition = resolveSelectedPosition(positions, position);
   const selected = positions.find((summary) => summary.position === selectedPosition)!;
@@ -739,6 +747,14 @@ export function buildChampionOverview(
   };
 }
 
+export function buildChampionOverview(
+  input: ChampionAnalysisInput,
+  championId: string,
+  position?: PlayerPosition,
+): ChampionOverview {
+  return overviewFromData(scopedData(input), championId, position);
+}
+
 function matchDateForSet(data: ScopedData, setId: string) {
   const set = data.setsById.get(setId);
   return set ? (data.matchesById.get(set.matchId)?.matchDate ?? null) : null;
@@ -749,9 +765,10 @@ function compareRecent(left: RecentResult, right: RecentResult) {
 }
 
 function opponentForLine(data: ScopedData, line: PlayerStatLine) {
-  const candidates = data.stats.filter(
+  // The set's own stat rows already bound the search space (~10 rows), so scanning
+  // just that bucket instead of every scoped stat line avoids an O(games x scope) scan.
+  const candidates = (data.statsBySet.get(line.setId) ?? []).filter(
     (candidate) =>
-      candidate.setId === line.setId &&
       candidate.teamId !== line.teamId &&
       candidate.position === line.position &&
       Boolean(candidate.championId),
@@ -759,12 +776,11 @@ function opponentForLine(data: ScopedData, line: PlayerStatLine) {
   return candidates.length === 1 ? candidates[0] : null;
 }
 
-export function buildChampionMatchups(
-  input: ChampionAnalysisInput,
+function matchupsFromData(
+  data: ScopedData,
   championId: string,
   position: PlayerPosition,
 ): ChampionMatchup[] {
-  const data = scopedData(input);
   const grouped = new Map<string, Array<{ line: PlayerStatLine; opponent: PlayerStatLine }>>();
   for (const line of resultLines(data, championLines(data, championId, position))) {
     const opponent = opponentForLine(data, line);
@@ -811,9 +827,17 @@ export function buildChampionMatchups(
     );
 }
 
+export function buildChampionMatchups(
+  input: ChampionAnalysisInput,
+  championId: string,
+  position: PlayerPosition,
+): ChampionMatchup[] {
+  return matchupsFromData(scopedData(input), championId, position);
+}
+
 function teamPositionLine(data: ScopedData, setId: string, teamId: string, position: PlayerPosition) {
-  const rows = data.stats.filter(
-    (line) => line.setId === setId && line.teamId === teamId && line.position === position && Boolean(line.championId),
+  const rows = (data.statsBySet.get(setId) ?? []).filter(
+    (line) => line.teamId === teamId && line.position === position && Boolean(line.championId),
   );
   return rows.length === 1 ? rows[0] : null;
 }
@@ -824,13 +848,12 @@ function opposingTeamId(set: SetResult, teamId: string) {
   return null;
 }
 
-export function buildChampionDuos(
-  input: ChampionAnalysisInput,
+function duosFromData(
+  data: ScopedData,
   championId: string,
   position: PlayerPosition,
 ): ChampionDuo[] {
   if (position !== "BOT" && position !== "SUP") return [];
-  const data = scopedData(input);
   const partnerPosition: "BOT" | "SUP" = position === "BOT" ? "SUP" : "BOT";
   const grouped = new Map<string, Array<{ selected: PlayerStatLine; partner: PlayerStatLine }>>();
 
@@ -951,12 +974,19 @@ export function buildChampionDuos(
     );
 }
 
-export function buildChampionPlayerPreferences(
+export function buildChampionDuos(
   input: ChampionAnalysisInput,
   championId: string,
   position: PlayerPosition,
+): ChampionDuo[] {
+  return duosFromData(scopedData(input), championId, position);
+}
+
+function playerPreferencesFromData(
+  data: ScopedData,
+  championId: string,
+  position: PlayerPosition,
 ): ChampionPlayerPreference[] {
-  const data = scopedData(input);
   const grouped = new Map<string, PlayerStatLine[]>();
   for (const line of resultLines(data, championLines(data, championId, position))) {
     const rows = grouped.get(line.playerId) ?? [];
@@ -1011,6 +1041,14 @@ export function buildChampionPlayerPreferences(
       } satisfies ChampionPlayerPreference;
     })
     .sort((left, right) => right.games - left.games || right.wins - left.wins || (left.player?.name ?? "").localeCompare(right.player?.name ?? "", "ko"));
+}
+
+export function buildChampionPlayerPreferences(
+  input: ChampionAnalysisInput,
+  championId: string,
+  position: PlayerPosition,
+): ChampionPlayerPreference[] {
+  return playerPreferencesFromData(scopedData(input), championId, position);
 }
 
 type PreferenceAccumulator<T> = {
@@ -1172,12 +1210,12 @@ function skillSequencesForLines(input: ChampionAnalysisInput, lines: readonly Pl
     .filter(({ ids }) => ids.length > 0);
 }
 
-export function buildChampionLoadoutPreferences(
+function loadoutPreferencesFromData(
+  data: ScopedData,
   input: ChampionAnalysisInput,
   championId: string,
   position: PlayerPosition,
 ): ChampionLoadoutPreferences {
-  const data = scopedData(input);
   const lines = resultLines(data, championLines(data, championId, position));
   const runePairGroups = groupPreferences(
     lines,
@@ -1279,18 +1317,26 @@ export function buildChampionLoadoutPreferences(
   };
 }
 
+export function buildChampionLoadoutPreferences(
+  input: ChampionAnalysisInput,
+  championId: string,
+  position: PlayerPosition,
+): ChampionLoadoutPreferences {
+  return loadoutPreferencesFromData(scopedData(input), input, championId, position);
+}
+
 function sideForLine(set: SetResult, line: PlayerStatLine) {
   if (set.blueTeamId === line.teamId) return "blue" as const;
   if (set.redTeamId === line.teamId) return "red" as const;
   return null;
 }
 
-export function buildChampionGameRows(
+function gameRowsFromData(
+  data: ScopedData,
   input: ChampionAnalysisInput,
   championId: string,
   position: PlayerPosition,
 ): ChampionGameRow[] {
-  const data = scopedData(input);
   const purchaseByGamePlayer = new Map(
     purchaseSequencesForLines(input, resultLines(data, championLines(data, championId, position)))
       .map(({ line, sequence }) => [`${line.setId}\u0000${line.playerId}`, sequence]),
@@ -1348,20 +1394,31 @@ export function buildChampionGameRows(
     );
 }
 
+export function buildChampionGameRows(
+  input: ChampionAnalysisInput,
+  championId: string,
+  position: PlayerPosition,
+): ChampionGameRow[] {
+  return gameRowsFromData(scopedData(input), input, championId, position);
+}
+
 export function buildChampionAnalysis(
   input: ChampionAnalysisInput,
   championId: string,
   position?: PlayerPosition,
 ): ChampionAnalysis {
-  const overview = buildChampionOverview(input, championId, position);
+  // scopedData() dedupes and indexes every scoped pick/ban and player-stat row; computing
+  // it once and sharing it across sections avoids repeating that pass six times per request.
+  const data = scopedData(input);
+  const overview = overviewFromData(data, championId, position);
   const selectedPosition = overview.selectedPosition;
   return {
     overview,
-    matchups: buildChampionMatchups(input, championId, selectedPosition),
-    duos: buildChampionDuos(input, championId, selectedPosition),
-    players: buildChampionPlayerPreferences(input, championId, selectedPosition),
-    loadouts: buildChampionLoadoutPreferences(input, championId, selectedPosition),
-    games: buildChampionGameRows(input, championId, selectedPosition),
+    matchups: matchupsFromData(data, championId, selectedPosition),
+    duos: duosFromData(data, championId, selectedPosition),
+    players: playerPreferencesFromData(data, championId, selectedPosition),
+    loadouts: loadoutPreferencesFromData(data, input, championId, selectedPosition),
+    games: gameRowsFromData(data, input, championId, selectedPosition),
   };
 }
 

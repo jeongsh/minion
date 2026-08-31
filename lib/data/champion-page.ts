@@ -30,10 +30,10 @@ export const CHAMPION_PAGE_DATA_TAG = "champion-page-data";
 
 const CACHE_SECONDS = 300;
 const PAGE_SIZE = 1_000;
+// Pick/ban and player-stat tables are small enough (low thousands of rows) to pull in
+// full and filter to scope in memory, so their pages can be much larger than PAGE_SIZE.
+const FULL_SCAN_PAGE_SIZE = 5_000;
 // UUIDs plus PostgREST query syntax stay comfortably below common URL limits.
-// Ninety UUIDs stay within practical PostgREST URL limits. A complete draft chunk is
-// at most 1,800 rows and a player-stat chunk 900 rows, keeping request count bounded.
-const SET_ID_CHUNK_SIZE = 90;
 const BUILD_EVENT_SET_ID_CHUNK_SIZE = 20;
 const PLAYER_ID_CHUNK_SIZE = 50;
 const MAX_PARALLEL_CHUNKS = 6;
@@ -616,36 +616,32 @@ async function querySetsPage(afterId: string | null): Promise<SetRow[]> {
   return (data ?? []) as unknown as SetRow[];
 }
 
-async function queryPickBansPage(
-  setIds: string[],
-  afterId: string | null,
-): Promise<PickBanRow[]> {
-  if (!canQuerySupabase() || setIds.length === 0) return [];
+// Pick/ban and player-stat rows are fetched for the whole table (a few thousand rows
+// total, not per-request-scope) and filtered to the requested set ids in memory. That
+// keeps this behind one shared cache entry regardless of which season/tournament/patch
+// combination a visitor picks, instead of a fresh chunked round trip per distinct scope.
+async function queryAllPickBansPage(afterId: string | null): Promise<PickBanRow[]> {
+  if (!canQuerySupabase()) return [];
   let query = createSupabaseServerClient()
     .from("set_picks_bans")
     .select(PICK_BAN_COLUMNS)
-    .in("set_id", setIds)
     .order("id", { ascending: true })
-    .limit(PAGE_SIZE);
+    .limit(FULL_SCAN_PAGE_SIZE);
   if (afterId) query = query.gt("id", afterId);
   const { data, error } = await query;
   if (error) throw error;
   return (data ?? []) as unknown as PickBanRow[];
 }
 
-async function queryPlayerStatsPage(
-  setIds: string[],
-  afterId: string | null,
-): Promise<PlayerStatRow[]> {
-  if (!canQuerySupabase() || setIds.length === 0) return [];
+async function queryAllPlayerStatsPage(afterId: string | null): Promise<PlayerStatRow[]> {
+  if (!canQuerySupabase()) return [];
 
   async function readPage(columns: string) {
     let query = createSupabaseServerClient()
       .from("set_player_stats")
       .select(columns)
-      .in("set_id", setIds)
       .order("id", { ascending: true })
-      .limit(PAGE_SIZE);
+      .limit(FULL_SCAN_PAGE_SIZE);
     if (afterId) query = query.gt("id", afterId);
     return query;
   }
@@ -712,14 +708,14 @@ const querySetsPageCached = unstable_cache(
   ["champion-page-sets-page-v1"],
   CACHE_OPTIONS,
 );
-const queryPickBansPageCached = unstable_cache(
-  queryPickBansPage,
-  ["champion-page-pick-bans-page-v1"],
+const queryAllPickBansPageCached = unstable_cache(
+  queryAllPickBansPage,
+  ["champion-page-all-pick-bans-page-v1"],
   CACHE_OPTIONS,
 );
-const queryPlayerStatsPageCached = unstable_cache(
-  queryPlayerStatsPage,
-  ["champion-page-player-stats-page-v1"],
+const queryAllPlayerStatsPageCached = unstable_cache(
+  queryAllPlayerStatsPage,
+  ["champion-page-all-player-stats-page-v1"],
   CACHE_OPTIONS,
 );
 const queryBuildEventsPageCached = unstable_cache(
@@ -775,14 +771,22 @@ async function getChampionBySlugBase(slug: string): Promise<Champion | null> {
 
 export const getChampionBySlug = cache(getChampionBySlugBase);
 
+async function getAllPickBansBase(): Promise<PickBanRow[]> {
+  return collectPages(queryAllPickBansPageCached);
+}
+
+/** Whole-table pick/ban rows, shared across every scope filter combination. */
+const getAllPickBans = cache(getAllPickBansBase);
+
 async function getPickBansForSets(setIds: readonly string[]): Promise<SetPickBan[]> {
-  const idChunks = chunksOf(uniqueSorted(setIds), SET_ID_CHUNK_SIZE);
-  const pages = await mapWithConcurrency(idChunks, MAX_PARALLEL_CHUNKS, (ids) =>
-    collectPages((afterId) => queryPickBansPageCached(ids, afterId)),
-  );
+  const scopedSetIds = new Set(setIds);
+  const rows = await getAllPickBans();
   // Missing champion/side identities must make the containing set incomplete instead
   // of being fabricated as a blue-side action. A team id is not required when side exists.
-  return pages.flat().filter(hasCompletePickBanFields).map(mapPickBan);
+  return rows
+    .filter((row) => scopedSetIds.has(row.set_id))
+    .filter(hasCompletePickBanFields)
+    .map(mapPickBan);
 }
 
 function mapPlayerStats(rows: PlayerStatRow[], sets: readonly SetResult[]) {
@@ -851,15 +855,20 @@ function mapPlayerStats(rows: PlayerStatRow[], sets: readonly SetResult[]) {
   });
 }
 
+async function getAllPlayerStatRowsBase(): Promise<PlayerStatRow[]> {
+  return collectPages(queryAllPlayerStatsPageCached);
+}
+
+/** Whole-table player-stat rows, shared across every scope filter combination. */
+const getAllPlayerStatRows = cache(getAllPlayerStatRowsBase);
+
 async function getPlayerStatsForSets(
   setIds: readonly string[],
   sets: readonly SetResult[],
 ): Promise<ChampionPagePlayerStatLine[]> {
-  const idChunks = chunksOf(uniqueSorted(setIds), SET_ID_CHUNK_SIZE);
-  const pages = await mapWithConcurrency(idChunks, MAX_PARALLEL_CHUNKS, (ids) =>
-    collectPages((afterId) => queryPlayerStatsPageCached(ids, afterId)),
-  );
-  return mapPlayerStats(pages.flat(), sets);
+  const scopedSetIds = new Set(setIds);
+  const rows = await getAllPlayerStatRows();
+  return mapPlayerStats(rows.filter((row) => scopedSetIds.has(row.set_id)), sets);
 }
 
 /**
