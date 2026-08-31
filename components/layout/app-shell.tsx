@@ -75,21 +75,23 @@ const compactNav = [
   { href: "/schedule", label: "매치", icon: CalendarDays },
   { href: "/fan", label: "팬", icon: Heart },
   { href: "/teams", label: "팀", icon: Shield },
-  { href: "/news", label: "뉴스", icon: Rss },
+  { href: "/community", label: "팬톡", icon: MessagesSquare },
 ];
 
 const hubLocalNav = [
   { href: "/", label: "메인" },
-  { href: "/community", label: "팬톡" },
   { href: "/predictions", label: "승부예측" },
   { href: "/tournaments", label: "대회", prefetch: false },
   { href: "/players", label: "선수" },
   { href: "/champions", label: "챔피언" },
+  { href: "/news", label: "뉴스" },
 ];
 
 function isGlobalNavActive(pathname: string, href: string) {
   if (href === "/") return pathname === "/";
-  if (href === "/fan") return pathname === "/fan" || pathname.startsWith("/fan/");
+  const fanTalkRoute = pathname === "/community" || pathname.startsWith("/community/") || /^\/fan\/[^/]+\/community(?:\/|$)/.test(pathname);
+  if (href === "/fan") return !fanTalkRoute && (pathname === "/fan" || pathname.startsWith("/fan/"));
+  if (href === "/community") return fanTalkRoute;
   if (href === "/schedule") {
     return pathname.startsWith("/schedule") || pathname.startsWith("/matches/") || pathname.startsWith("/tournaments") || pathname.startsWith("/predictions");
   }
@@ -535,7 +537,11 @@ export function AppShell({
         <aside className={`fixed bottom-0 left-0 top-16 z-40 hidden w-16 flex-col items-center border-r border-[#ececef] bg-[var(--page-background)] py-3 dark:border-[var(--ui-border)] ${mobileMenuOpen ? "" : "md:max-[1199px]:flex"}`} aria-label="태블릿 주요 메뉴">
           {compactNav.map(({ href, label, icon: Icon }) => {
             const active = isGlobalNavActive(pathname, href);
-            const destination = href === "/fan" ? (favoriteTeam ? `/fan/${favoriteTeam.fanSiteHost}` : "/teams") : href;
+            const destination = href === "/fan"
+              ? (favoriteTeam ? `/fan/${favoriteTeam.fanSiteHost}` : "/teams")
+              : href === "/community" && favoriteTeam
+                ? `/fan/${favoriteTeam.fanSiteHost}/community`
+                : href;
             return <Link key={href} href={destination} aria-current={active ? "page" : undefined} title={label} className={`relative mb-1 grid h-12 w-12 place-items-center rounded-xl transition ${active ? "bg-[var(--ui-card-bg)] text-[#18191c] dark:text-white" : "text-[#777b82] hover:bg-[var(--ui-card-hover)]"}`}><span className="relative">{href === "/fan" && favoriteTeam ? <TeamLogo team={favoriteTeam} size="h-7 w-7" themeAware /> : <Icon size={21} />}</span><span className="sr-only">{label}</span></Link>;
           })}
         </aside>
@@ -567,7 +573,11 @@ export function AppShell({
           {compactNav.map(({ href, label, icon: Icon }) => {
             const active = isGlobalNavActive(pathname, href);
             const fanItem = href === "/fan";
-            const destination = fanItem ? (favoriteTeam ? `/fan/${favoriteTeam.fanSiteHost}` : "/teams") : href;
+            const destination = fanItem
+              ? (favoriteTeam ? `/fan/${favoriteTeam.fanSiteHost}` : "/teams")
+              : href === "/community" && favoriteTeam
+                ? `/fan/${favoriteTeam.fanSiteHost}/community`
+                : href;
             const itemClassName = `font-paperozi relative flex min-w-0 flex-1 flex-col items-center gap-0.5 px-1 py-1 text-[11px] font-medium ${active ? "text-[var(--ui-ink)]" : "text-[#777b82]"}`;
             if (fanItem && !favoriteTeam) {
               return <FanTeamPicker key={href} teams={shellTeams} followedTeams={followedTeams} currentTeam={currentFanTeam} active={active} className={itemClassName} />;

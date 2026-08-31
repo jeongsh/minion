@@ -4,25 +4,28 @@ import type { LucideIcon } from 'lucide-react-native';
 import CalendarDays from 'lucide-react-native/icons/calendar-days';
 import Heart from 'lucide-react-native/icons/heart';
 import Home from 'lucide-react-native/icons/house';
-import Rss from 'lucide-react-native/icons/rss';
+import MessagesSquare from 'lucide-react-native/icons/messages-square';
 import Shield from 'lucide-react-native/icons/shield';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 
-type DockItem = { href: '/' | '/schedule' | '/fan' | '/teams' | '/news'; label: string; icon: LucideIcon };
+type DockItem = { href: '/' | '/schedule' | '/fan' | '/teams' | '/community'; label: string; icon: LucideIcon };
 
 const items: DockItem[] = [
   { href: '/', label: '홈', icon: Home },
   { href: '/schedule', label: '매치', icon: CalendarDays },
   { href: '/fan', label: '팬', icon: Heart },
   { href: '/teams', label: '팀', icon: Shield },
-  { href: '/news', label: '뉴스', icon: Rss },
+  { href: '/community', label: '팬톡', icon: MessagesSquare },
 ];
 
 function isActive(pathname: string, href: DockItem['href']) {
   if (href === '/') return pathname === '/' || pathname === '/index';
+  const fanTalkRoute = pathname === '/community' || pathname.startsWith('/community/') || /^\/fan\/[^/]+\/community(?:\/|$)/.test(pathname);
+  if (href === '/fan') return !fanTalkRoute && (pathname === '/fan' || pathname.startsWith('/fan/'));
+  if (href === '/community') return fanTalkRoute;
   if (href === '/schedule') return ['/schedule', '/matches', '/tournaments', '/predictions'].some((path) => pathname.startsWith(path));
   return pathname === href || pathname.startsWith(`${href}/`);
 }
@@ -50,6 +53,10 @@ export function MinionDock() {
               if (href === '/fan') {
                 if (!favoriteTeam) openTeamPicker();
                 else router.navigate(`/fan/${favoriteTeam.slug}`);
+                return;
+              }
+              if (href === '/community') {
+                router.navigate(favoriteTeam ? `/fan/${favoriteTeam.slug}/community` : '/community');
                 return;
               }
               router.navigate(href);

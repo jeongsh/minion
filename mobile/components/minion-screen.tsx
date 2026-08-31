@@ -41,11 +41,11 @@ type LocalItem = { label: string; href: Href };
 
 const hubItems: LocalItem[] = [
   { label: '메인', href: '/' },
-  { label: '팬톡', href: '/community' },
   { label: '승부예측', href: '/predictions' },
   { label: '대회', href: '/tournaments' },
   { label: '선수', href: '/players' },
   { label: '챔피언', href: '/champions' },
+  { label: '뉴스', href: '/news' },
 ];
 
 function getFanItems(team: string): LocalItem[] {
