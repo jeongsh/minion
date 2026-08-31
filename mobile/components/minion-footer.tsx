@@ -36,16 +36,16 @@ export function MinionFooter({ accentColor }: { accentColor?: string }) {
         </View>
       </View>
       <Text style={[styles.footerDisclaimer, { color: theme.footerText, ...fonts.regular }]}>
-        {"MINION isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games or anyone officially involved in producing or managing League of Legends. League of Legends and Riot Games are trademarks or registered trademarks of Riot Games, Inc. League of Legends © Riot Games, Inc."}
+        {"MINION isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties. Riot Games and all associated properties are trademarks or registered trademarks of Riot Games, Inc."}
       </Text>
       <Text style={[styles.footerCredit, { color: theme.footerText, ...fonts.regular }]}>
-        Some content is provided courtesy of{' '}
+        Data adapted from{' '}
         <Text onPress={() => void Linking.openURL('https://lol.fandom.com/wiki/League_of_Legends_Esports_Wiki')} style={styles.footerInlineLink}>
           Leaguepedia
         </Text>
-        , under a{' '}
+        {' '}under{' '}
         <Text onPress={() => void Linking.openURL('https://creativecommons.org/licenses/by-sa/3.0/')} style={styles.footerInlineLink}>
-          CC-BY-SA 3.0 license
+          CC BY-SA 3.0
         </Text>
         .
       </Text>
@@ -56,9 +56,9 @@ export function MinionFooter({ accentColor }: { accentColor?: string }) {
 
 const styles = StyleSheet.create({
   footer: { paddingTop: 40 },
-  footerCopyright: { fontSize: 10, lineHeight: 15, marginTop: 12 },
-  footerCredit: { fontSize: 10, lineHeight: 20, marginTop: 4 },
-  footerDisclaimer: { fontSize: 10, lineHeight: 20, marginTop: 8 },
+  footerCopyright: { fontSize: 13, lineHeight: 19.5, marginTop: 12 },
+  footerCredit: { fontSize: 13, lineHeight: 20, marginTop: 4 },
+  footerDisclaimer: { fontSize: 13, lineHeight: 20, marginTop: 8 },
   footerInlineLink: { textDecorationLine: 'underline' },
   footerLink: { fontSize: 13, lineHeight: 19.5 },
   footerNav: { columnGap: 16, flexDirection: 'row', flexWrap: 'wrap', rowGap: 8, width: '100%' },
