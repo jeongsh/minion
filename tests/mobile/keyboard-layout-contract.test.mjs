@@ -31,6 +31,7 @@ test("keyboard state and safe-area calculations have one source of truth", async
   assert.match(hook, /keyboardVisible \? minimumBottomInset : Math\.max\(insets\.bottom, minimumBottomInset\)/);
   assert.match(hook, /keyboardWillShow/);
   assert.match(hook, /keyboardDidHide/);
+  assert.match(hook, /Platform\.OS === 'ios' \? 'padding' : 'height'/);
 
   const files = await codeFiles(mobileRoot);
   for (const filePath of files) {
@@ -54,6 +55,14 @@ test("keyboard avoidance is only configured by KeyboardAwareView", async () => {
 test("mobile web keeps fixed input docks inside the resized keyboard viewport", async () => {
   const layout = await source(path.join(root, "app", "layout.tsx"));
   const commentForm = await source(path.join(root, "components", "community", "comment-form.tsx"));
+  const mobilePost = await source(path.join(mobileRoot, "components", "community", "community-post-screen.tsx"));
   assert.match(layout, /interactiveWidget:\s*["']resizes-content["']/);
   assert.match(commentForm, /focus-within:pb-2/);
+  assert.match(commentForm, /toggleMiniconPanel[\s\S]*inputRef\.current\?\.blur\(\)/);
+  assert.match(mobilePost, /toggleMiniconPicker[\s\S]*Keyboard\.dismiss\(\)/);
+});
+
+test("Android native builds request resized keyboard windows", async () => {
+  const appConfig = JSON.parse(await source(path.join(mobileRoot, "app.json")));
+  assert.equal(appConfig.expo.android.softwareKeyboardLayoutMode, "resize");
 });

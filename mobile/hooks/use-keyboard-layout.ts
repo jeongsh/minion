@@ -3,7 +3,7 @@ import { Keyboard, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export type KeyboardLayoutState = {
-  behavior: 'padding' | undefined;
+  behavior: 'height' | 'padding';
   bottomInset: number;
   keyboardVisible: boolean;
 };
@@ -24,10 +24,10 @@ export function useKeyboardLayout(minimumBottomInset = 0): KeyboardLayoutState {
   }, []);
 
   return {
-    // Android는 기본 windowSoftInputMode가 이미 "resize"라 창 자체가 키보드만큼 줄어든다.
-    // 여기서 또 'height'로 RN이 한 번 더 줄이면 이중 보정이 되어 키보드가 실제보다 떠
-    // 보이고 그 아래에 빈 공간이 남는다. Android는 behavior 없이 네이티브 리사이즈만 쓴다.
-    behavior: Platform.OS === 'ios' ? 'padding' : undefined,
+    // Android의 시스템 resize가 edge-to-edge나 Expo Go 조합에서 전달되지 않아도
+    // 하단 입력 UI가 가려지지 않게 공용 뷰가 실제 키보드 겹침만큼 높이를 줄인다.
+    // 공용 회피 뷰는 이미 줄어든 창에서는 겹침을 0으로 계산하므로 이중 보정하지 않는다.
+    behavior: Platform.OS === 'ios' ? 'padding' : 'height',
     bottomInset: keyboardVisible ? minimumBottomInset : Math.max(insets.bottom, minimumBottomInset),
     keyboardVisible,
   };
