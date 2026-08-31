@@ -14,6 +14,7 @@ import {
   getBoardPosts,
   getPostComments,
 } from "@/lib/data/community";
+import { getUserMiniconPacks } from "@/lib/data/minicons";
 
 export default async function HubPostDetailPage({
   params,
@@ -21,19 +22,20 @@ export default async function HubPostDetailPage({
   params: Promise<{ postId: string }>;
 }) {
   const { postId } = await params;
-  const [post, comments] = await Promise.all([
+  const [post, comments, user] = await Promise.all([
     getPostByIdAndIncrementView(postId),
     getPostComments(postId),
+    getCurrentUser(),
   ]);
   if (!post || post.siteScope !== "hub") notFound();
 
-  const [reaction, commentReactions, user, posts, canSetNotice, currentGuestKey] = await Promise.all([
+  const [reaction, commentReactions, posts, canSetNotice, currentGuestKey, miniconPacks] = await Promise.all([
     getPostReactionState(postId),
     getCommentReactionStates(comments.map((c) => c.id)),
-    getCurrentUser(),
     getBoardPosts({ scope: "hub", hotOnly: true, limit: 30 }),
     isCurrentUserAdmin(),
     getExistingGuestKey(),
+    getUserMiniconPacks(user?.id),
   ]);
 
   return (
@@ -51,6 +53,7 @@ export default async function HubPostDetailPage({
             canSetNotice={canSetNotice}
             viewerId={user?.id}
             currentGuestKey={currentGuestKey}
+            miniconPacks={miniconPacks}
           />
         </CommunityContentLayout>
       </div>

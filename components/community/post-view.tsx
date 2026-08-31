@@ -16,6 +16,7 @@ import { setPostNoticeInlineAction } from "@/lib/community/admin-actions";
 import type { BoardScope } from "@/lib/community/boards";
 import { blindDescription, blindLabel } from "@/lib/community/moderation-labels";
 import type { CommunityCommentItem, CommunityPostDetail, ReactionState } from "@/lib/community/types";
+import type { MiniconPack } from "@/lib/minicons/types";
 
 export function PostView({
   post,
@@ -28,6 +29,7 @@ export function PostView({
   canSetNotice = false,
   viewerId,
   currentGuestKey,
+  miniconPacks = [],
 }: {
   post: CommunityPostDetail;
   comments: CommunityCommentItem[];
@@ -39,6 +41,7 @@ export function PostView({
   canSetNotice?: boolean;
   viewerId?: string | null;
   currentGuestKey?: string | null;
+  miniconPacks?: MiniconPack[];
 }) {
   const boardHref = scope === "team" && teamSlug ? `/fan/${teamSlug}/community` : "/community";
   const blinded = Boolean(post.blindedAt);
@@ -144,13 +147,13 @@ export function PostView({
             <span className="text-[13px] font-medium leading-[1.5] text-[var(--tp)] md:text-base">{post.commentCount}</span>
           </div>
           <div className="hidden px-4 pb-5 md:block md:px-8 md:pb-8">
-            <CommentForm postId={post.id} scope={scope} teamSlug={teamSlug} isGuest={!viewerId} />
+            <CommentForm postId={post.id} scope={scope} teamSlug={teamSlug} isGuest={!viewerId} miniconPacks={miniconPacks} />
           </div>
-        <CommentList comments={comments} commentReactions={commentReactions} scope={scope} teamSlug={teamSlug} viewerId={viewerId} currentGuestKey={currentGuestKey} />
+        <CommentList comments={comments} commentReactions={commentReactions} scope={scope} teamSlug={teamSlug} viewerId={viewerId} currentGuestKey={currentGuestKey} miniconPacks={miniconPacks} />
         </section>
       </SurfacePanel>
       <div className="fixed inset-x-0 bottom-0 z-50 md:hidden">
-        <CommentForm postId={post.id} scope={scope} teamSlug={teamSlug} isGuest={!viewerId} variant="mobileDock" />
+        <CommentForm postId={post.id} scope={scope} teamSlug={teamSlug} isGuest={!viewerId} variant="mobileDock" miniconPacks={miniconPacks} />
       </div>
     </article>
   );

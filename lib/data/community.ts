@@ -14,6 +14,8 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 import { getBlockedCommunityUserIds } from "@/lib/data/community-users";
 import { getBlockedCommunityGuestKeys } from "@/lib/data/community-guests";
 import { getTeams } from "@/lib/data/lck";
+import { getRenderableMiniconItemsById } from "@/lib/data/minicons";
+import type { CommentMinicon } from "@/lib/minicons/types";
 import type {
   BlindSource,
   CommunityAuthorCommentItem,
@@ -76,7 +78,10 @@ type CommentRow = {
   guest_nickname: string | null;
   guest_ip_label: string | null;
   guest_key: string | null;
+  content_kind: "text" | "minicon";
   content: string;
+  minicon_item_id: string | null;
+  minicon_item_id_2: string | null;
   like_count: number;
   dislike_count: number | null;
   created_at: string;
@@ -89,7 +94,7 @@ const POST_COLUMNS =
   "id, board_type, site_scope, team_id, title, content, author_id, guest_nickname, guest_ip_label, guest_key, like_count, dislike_count, comment_count, view_count, report_count, created_at, hot_at, is_notice, blinded_at, blinded_source, deleted_at";
 
 const COMMENT_COLUMNS =
-  "id, post_id, parent_id, author_id, guest_nickname, guest_ip_label, guest_key, content, like_count, dislike_count, created_at, blinded_at, blinded_source, deleted_at";
+  "id, post_id, parent_id, author_id, guest_nickname, guest_ip_label, guest_key, content_kind, content, minicon_item_id, minicon_item_id_2, like_count, dislike_count, created_at, blinded_at, blinded_source, deleted_at";
 
 export const COMMUNITY_PAGE_SIZE = 15;
 export const COMMUNITY_AUTHOR_PAGE_SIZE = 10;
@@ -181,6 +186,7 @@ function mapComment(
   authorImageUrl: string | null = null,
   authorTier: Tier = DEFAULT_TIER,
   authorTeam: CommunityAuthorTeam | null = null,
+  minicons: CommentMinicon[] = [],
 ): CommunityCommentItem {
   return {
     id: row.id,
@@ -193,8 +199,10 @@ function mapComment(
     authorTeam: row.author_id ? authorTeam : null,
     guestKey: row.guest_key,
     guestIpLabel: row.guest_ip_label,
+    contentKind: row.content_kind,
     // 삭제된 댓글 본문은 클라이언트로 내려보내지 않는다(답글 유지를 위한 자리표시만 필요).
     content: row.deleted_at ? "" : row.content,
+    minicons: row.deleted_at ? [] : minicons,
     likeCount: row.like_count,
     dislikeCount: row.dislike_count ?? 0,
     createdAt: row.created_at,
@@ -206,13 +214,18 @@ function mapComment(
 
 async function mapCommentsWithAuthors(rows: CommentRow[]): Promise<CommunityCommentItem[]> {
   const authorIds = [...new Set(rows.flatMap((row) => (row.author_id ? [row.author_id] : [])))];
-  if (authorIds.length === 0) return rows.map((row) => mapComment(row));
-
-  const [profiles, teamsById] = await Promise.all([getPublicRankProfiles(authorIds), authorTeamsByFavoriteId()]);
+  const miniconIds = rows.flatMap((row) => [row.minicon_item_id, row.minicon_item_id_2].filter((id): id is string => Boolean(id)));
+  const [profiles, teamsById, minicons] = await Promise.all([
+    authorIds.length > 0 ? getPublicRankProfiles(authorIds) : Promise.resolve(new Map()),
+    authorIds.length > 0 ? authorTeamsByFavoriteId() : Promise.resolve(new Map()),
+    getRenderableMiniconItemsById(miniconIds),
+  ]);
   return rows.map((row) => {
     const profile = row.author_id ? profiles.get(row.author_id) : undefined;
     const authorTeam = profile?.favoriteTeamId ? teamsById.get(profile.favoriteTeamId) ?? null : null;
-    return mapComment(row, profile?.nickname ?? null, profile?.profileImageUrl ?? null, profile?.tier, authorTeam);
+    const commentMinicons = [row.minicon_item_id, row.minicon_item_id_2]
+      .flatMap((id) => id && minicons.has(id) ? [minicons.get(id)!] : []);
+    return mapComment(row, profile?.nickname ?? null, profile?.profileImageUrl ?? null, profile?.tier, authorTeam, commentMinicons);
   });
 }
 
@@ -640,6 +653,9 @@ export async function createComment(params: {
   authorId: string | null;
   guest?: { nickname: string; key: string; ipKey: string; ipLabel: string };
   parentId?: string | null;
+  contentKind?: "text" | "minicon";
+  miniconItemId?: string | null;
+  miniconItemId2?: string | null;
 }): Promise<{ id: string }> {
   const supabase = createSupabaseAdminClient();
   const { data, error } = await supabase
@@ -648,6 +664,9 @@ export async function createComment(params: {
       post_id: params.postId,
       parent_id: params.parentId ?? null,
       content: params.content,
+      content_kind: params.contentKind ?? "text",
+      minicon_item_id: params.miniconItemId ?? null,
+      minicon_item_id_2: params.miniconItemId2 ?? null,
       author_id: params.authorId,
       guest_nickname: params.guest?.nickname ?? null,
       guest_ip_label: null,
@@ -735,6 +754,7 @@ export async function updateGuestComment(commentId: string, content: string): Pr
     .from("community_comments")
     .update({ content })
     .eq("id", commentId)
+    .eq("content_kind", "text")
     .is("deleted_at", null);
   if (error) throw error;
 }

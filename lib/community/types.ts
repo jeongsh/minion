@@ -3,6 +3,7 @@
 // 작성자/명예/리폿/댓글 등 쓰기·상세 흐름에 필요한 필드를 포함한다.
 
 import type { BoardScope } from "@/lib/community/boards";
+import type { CommentMinicon } from "@/lib/minicons/types";
 import type { Tier } from "@/lib/rank/config";
 
 /** 리액션 종류. honor=명예(좋아요), dislike=싫어요(디스). */
@@ -81,7 +82,9 @@ export type CommunityCommentItem = {
   authorTeam: CommunityAuthorTeam | null;
   guestKey: string | null;
   guestIpLabel: string | null;
+  contentKind: "text" | "minicon";
   content: string;
+  minicons: CommentMinicon[];
   likeCount: number;
   dislikeCount: number;
   createdAt: string;

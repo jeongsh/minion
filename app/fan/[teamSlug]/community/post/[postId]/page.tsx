@@ -14,6 +14,7 @@ import {
   getBoardPosts,
   getPostComments,
 } from "@/lib/data/community";
+import { getUserMiniconPacks } from "@/lib/data/minicons";
 import { getTeamByFanSiteHost, getTeamBySlug } from "@/lib/data/lck";
 
 export default async function FanPostDetailPage({
@@ -25,19 +26,20 @@ export default async function FanPostDetailPage({
   const team = (await getTeamByFanSiteHost(teamSlug)) ?? (await getTeamBySlug(teamSlug));
   if (!team) notFound();
 
-  const [post, comments] = await Promise.all([
+  const [post, comments, user] = await Promise.all([
     getPostByIdAndIncrementView(postId),
     getPostComments(postId),
+    getCurrentUser(),
   ]);
   if (!post || post.siteScope !== "team" || post.teamId !== team.id) notFound();
 
-  const [reaction, commentReactions, user, posts, canSetNotice, currentGuestKey] = await Promise.all([
+  const [reaction, commentReactions, posts, canSetNotice, currentGuestKey, miniconPacks] = await Promise.all([
     getPostReactionState(postId),
     getCommentReactionStates(comments.map((c) => c.id)),
-    getCurrentUser(),
     getBoardPosts({ scope: "team", teamId: team.id, hotOnly: true, limit: 30 }),
     isCurrentUserAdmin(),
     getExistingGuestKey(),
+    getUserMiniconPacks(user?.id),
   ]);
 
   return (
@@ -55,6 +57,7 @@ export default async function FanPostDetailPage({
           canSetNotice={canSetNotice}
           viewerId={user?.id}
           currentGuestKey={currentGuestKey}
+          miniconPacks={miniconPacks}
         />
       </CommunityContentLayout>
     </main>

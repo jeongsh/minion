@@ -1,4 +1,4 @@
-import { Bell, ChevronRight, FileText, LockKeyhole, LogOut, ShieldBan, UserRound } from "lucide-react";
+import { Bell, ChevronRight, FileText, LockKeyhole, LogOut, ShieldBan, Sticker, UserRound } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -31,6 +31,7 @@ const SOCIAL_PROVIDER_LABELS: Record<string, string> = {
 
 const MANAGE_LINKS = [
   { href: "#profile", label: "프로필", mobileLabel: "프로필", icon: UserRound },
+  { href: "/me/minicons", label: "내 미니콘", mobileLabel: "미니콘", icon: Sticker },
   { href: "#notifications", label: "알림", mobileLabel: "알림", icon: Bell },
   { href: "#blocks", label: "차단 관리", mobileLabel: "차단 관리", icon: ShieldBan },
   { href: "#account", label: "계정 및 보안", mobileLabel: "계정·보안", icon: LockKeyhole },
@@ -80,7 +81,7 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
       <MobileAccountSummary user={user} summary={summary} progress={progress} initials={initials} />
 
       <nav className="mt-2.5 rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-2 lg:hidden" aria-label="내 계정 메뉴">
-        <div className="grid grid-cols-4 gap-1.5">
+        <div className="grid grid-cols-5 gap-1.5">
           {MANAGE_LINKS.map(({ href, mobileLabel, icon: Icon }) => (
             <a key={href} href={href} className="flex min-h-9 min-w-0 items-center justify-center gap-1 rounded-lg bg-[var(--ui-surface-muted)] px-1 text-[13px] font-medium leading-[18px] text-[var(--ui-text)]">
               <Icon size={13} className="shrink-0" /><span className="truncate">{mobileLabel}</span>

@@ -30,6 +30,7 @@ import { AI_MODERATOR_NAME } from "@/lib/community/moderation-labels";
 import { sendDiscordCommunityModerationAlert } from "@/lib/notify/discord";
 import { isCommunityUserSanctioned } from "@/lib/data/community-users";
 import { guestRateLimitError, isCommunityGuestSanctioned } from "@/lib/data/community-guests";
+import { getPublishedMiniconItem } from "@/lib/data/minicons";
 import {
   getExistingGuestKey,
   getGuestIdentity,
@@ -472,6 +473,77 @@ export async function createCommentAction(input: {
 
   revalidatePath(postPath(input.scope, input.teamSlug, input.postId));
   return { ok: true, message: "댓글 톡 붙여뒀어요." };
+}
+
+/** 미니콘 댓글 작성. 일반 댓글 LP 적립과 텍스트 AI 검수는 적용하지 않는다. */
+export async function createMiniconCommentAction(input: {
+  postId: string;
+  miniconItemIds: string[];
+  parentId?: string | null;
+  scope: BoardScope;
+  teamSlug?: string;
+}): Promise<ActionResult> {
+  const user = await getCurrentUser();
+  if (user) {
+    const sanction = await communitySanctionError(user.id);
+    if (sanction) return sanction;
+  }
+
+  const miniconItemIds = input.miniconItemIds;
+  if (
+    input.miniconItemIds.length < 1
+    || input.miniconItemIds.length > 2
+    || miniconItemIds.some((id) => !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id))
+  ) {
+    return { ok: false, error: "미니콘 정보를 확인하지 못했습니다." };
+  }
+
+  const minicons = await Promise.all(miniconItemIds.map((id) => getPublishedMiniconItem(id)));
+  if (minicons.some((minicon) => !minicon)) return { ok: false, error: "사용할 수 없는 미니콘입니다." };
+
+  if (input.parentId) {
+    const parent = await getCommentById(input.parentId);
+    if (!parent || parent.postId !== input.postId) {
+      return { ok: false, error: "답글을 작성할 댓글을 찾을 수 없습니다." };
+    }
+  }
+
+  let guest: { nickname: string; key: string; ipKey: string; ipLabel: string } | undefined;
+  if (!user) {
+    try {
+      const identity = await getGuestIdentity();
+      if (await isCommunityGuestSanctioned(identity.key, identity.ipKey)) {
+        return { ok: false, error: "이 비회원 ID 또는 접속 환경은 커뮤니티 이용이 제한되었습니다." };
+      }
+      const rateError = await guestRateLimitError(identity.ipKey, "comment");
+      if (rateError) return { ok: false, error: rateError };
+      guest = identity;
+    } catch (error) {
+      return { ok: false, error: error instanceof Error ? error.message : "비회원 정보를 확인하지 못했습니다." };
+    }
+  }
+
+  const { id } = await createComment({
+    postId: input.postId,
+    content: "[미니콘]",
+    contentKind: "minicon",
+    miniconItemId: miniconItemIds[0],
+    miniconItemId2: miniconItemIds[1] ?? null,
+    authorId: user?.id ?? null,
+    guest,
+    parentId: input.parentId ?? null,
+  });
+
+  scheduleCommunityCommentNotifications({
+    actor: user ? { userId: user.id } : { guestKey: guest!.key },
+    actorName: user?.nickname ?? guest?.nickname ?? "비회원",
+    commentId: id,
+    parentId: input.parentId ?? null,
+    postId: input.postId,
+  });
+
+  revalidatePath(postPath(input.scope, input.teamSlug, input.postId));
+  return { ok: true, message: miniconItemIds.length === 2 ? "더블 미니콘을 붙였어요." : "미니콘을 붙였어요." };
 }
 
 export async function deleteGuestPostAction(input: {

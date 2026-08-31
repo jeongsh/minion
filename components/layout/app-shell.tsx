@@ -138,6 +138,8 @@ function LiveMatchCard({ match, onOpen, onClose }: { match: LiveMatchActivity; o
 function focusRouteMeta(pathname: string) {
   if (pathname === "/login") return { title: "로그인", backHref: "/" };
   if (pathname === "/signup") return { title: "회원가입", backHref: "/login" };
+  if (pathname === "/minicons/apply") return { title: "미니콘 신청", backHref: "/minicons" };
+  if (pathname === "/me/minicons") return { title: "내 미니콘", backHref: "/minicons" };
   if (pathname === "/me/profile") return { title: "프로필 관리", backHref: "/me" };
   if (pathname === "/me/settings") return { title: "설정", backHref: "/me" };
   if (pathname.endsWith("/snapshot")) {

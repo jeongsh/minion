@@ -16,10 +16,11 @@ import { deleteCommentAction, updateGuestCommentAction } from "@/lib/community/a
 import type { BoardScope } from "@/lib/community/boards";
 import { blindLabel } from "@/lib/community/moderation-labels";
 import type { CommunityCommentItem, ReactionState } from "@/lib/community/types";
+import type { MiniconPack } from "@/lib/minicons/types";
 import { useCommentMaxLength } from "@/components/community/use-comment-max-length";
 import { selectBestComments } from "@/lib/community/best-comments";
 
-export function CommentList({ comments, commentReactions, scope, teamSlug, viewerId, currentGuestKey }: { comments: CommunityCommentItem[]; commentReactions: Record<string, ReactionState>; scope: BoardScope; teamSlug?: string; viewerId?: string | null; currentGuestKey?: string | null }) {
+export function CommentList({ comments, commentReactions, scope, teamSlug, viewerId, currentGuestKey, miniconPacks = [] }: { comments: CommunityCommentItem[]; commentReactions: Record<string, ReactionState>; scope: BoardScope; teamSlug?: string; viewerId?: string | null; currentGuestKey?: string | null; miniconPacks?: MiniconPack[] }) {
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingContent, setEditingContent] = useState("");
@@ -98,7 +99,7 @@ export function CommentList({ comments, commentReactions, scope, teamSlug, viewe
     });
   };
 
-  const guestEditButton = (comment: CommunityCommentItem) => comment.guestKey && comment.guestKey === currentGuestKey ? (
+  const guestEditButton = (comment: CommunityCommentItem) => comment.contentKind === "text" && comment.guestKey && comment.guestKey === currentGuestKey ? (
     <button type="button" disabled={pending} onClick={() => beginGuestEdit(comment)} className="text-[13px] font-semibold text-[var(--ui-muted)] hover:text-[var(--ui-ink)] disabled:opacity-50">수정</button>
   ) : null;
 
@@ -115,6 +116,32 @@ export function CommentList({ comments, commentReactions, scope, teamSlug, viewe
     <RankAvatar tier={comment.authorTier} src={comment.authorImageUrl} alt={comment.authorName ?? "알 수 없음"} fallback={(comment.authorName ?? "?").charAt(0)} size={reply ? "reply" : "detail"} />
   ) : (
     <span className={`grid shrink-0 place-items-center rounded-full bg-[var(--ui-surface-muted)] text-[var(--ui-muted)] ${reply ? "h-6 w-6" : "h-9 w-9"}`} aria-hidden="true"><UserRound size={reply ? 14 : 20} strokeWidth={1.7} /></span>
+  );
+
+  const commentBody = (comment: CommunityCommentItem) => comment.contentKind === "minicon" ? (
+    comment.minicons.length > 0 ? (
+      <figure className="mt-2 flex w-fit items-start gap-0">
+        {comment.minicons.map((minicon) => (
+          // 미니콘 두 장은 400×200 원본처럼 이어지도록 간격·테두리·곡선을 두지 않는다.
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            key={minicon.id}
+            src={minicon.imageUrl}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            className="block h-[100px] w-[100px] shrink-0 object-cover"
+          />
+        ))}
+        <figcaption className="sr-only">{comment.minicons.map((minicon) => minicon.name).join(", ")} 미니콘</figcaption>
+      </figure>
+    ) : (
+      <div className="mt-2 grid h-[100px] w-[100px] place-items-center rounded-[18px] border border-[var(--ui-border)] bg-[var(--ui-surface-muted)] px-3 text-center text-[13px] font-normal leading-5 text-[var(--ui-muted)]">
+        사용할 수 없는 미니콘
+      </div>
+    )
+  ) : (
+    <p className="mt-0.5 whitespace-pre-wrap break-words text-sm leading-5 text-[var(--ui-text)] [overflow-wrap:anywhere]">{comment.content}</p>
   );
 
   const item = (comment: CommunityCommentItem, reply = false, continued = false, best = false) => (
@@ -159,17 +186,17 @@ export function CommentList({ comments, commentReactions, scope, teamSlug, viewe
           </div>
         ) : comment.blindedAt ? (
           <BlindedContent compact label={blindLabel(comment.blindedSource, "comment")} source={comment.blindedSource}>
-            <p className="mt-0.5 whitespace-pre-wrap break-words text-sm leading-5 text-[var(--ui-text)] [overflow-wrap:anywhere]">{comment.content}</p>
+            {commentBody(comment)}
           </BlindedContent>
         ) : (
-          <p className="mt-0.5 whitespace-pre-wrap break-words text-sm leading-5 text-[var(--ui-text)] [overflow-wrap:anywhere]">{comment.content}</p>
+          commentBody(comment)
         )}
         <div className="-ml-2 mt-1 flex h-8 items-center gap-2">
           <ReactionButtons target="comment" targetId={comment.id} postId={comment.postId} scope={scope} teamSlug={teamSlug} initialState={commentReactions[comment.id] ?? null} initialHonorCount={comment.likeCount} initialDislikeCount={comment.dislikeCount} size="sm" />
           {!reply ? <button type="button" onClick={() => setReplyTo((current) => current === comment.id ? null : comment.id)} className="h-8 rounded-[var(--ui-control-radius)] px-2 text-[13px] font-medium text-[var(--ui-text)] hover:bg-[var(--ui-surface-muted)]">답글</button> : null}
           {guestEditButton(comment)}
         </div>
-        {replyTo === comment.id ? <div className="mt-2"><CommentForm postId={comment.postId} parentId={comment.id} scope={scope} teamSlug={teamSlug} isGuest={!viewerId} onSubmitted={() => setReplyTo(null)} /></div> : null}
+        {replyTo === comment.id ? <div className="mt-2"><CommentForm postId={comment.postId} parentId={comment.id} scope={scope} teamSlug={teamSlug} isGuest={!viewerId} miniconPacks={miniconPacks} onSubmitted={() => setReplyTo(null)} /></div> : null}
       </div>
     </div>
   );
