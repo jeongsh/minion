@@ -19,8 +19,10 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null) as Record<string, unknown> | null;
   const target = body?.target === "comment" ? "comment" : body?.target === "post" ? "post" : null;
   const targetId = typeof body?.targetId === "string" ? body.targetId : "";
-  const reason = typeof body?.reason === "string" ? body.reason.trim().slice(0, 1000) : undefined;
+  const reason = typeof body?.reason === "string" ? body.reason.trim() : "";
   if (!target || !targetId) return mobileError("BAD_REQUEST", "리폿 대상을 확인해 주세요.", 400);
+  if (!reason) return mobileError("BAD_REQUEST", "리폿 사유를 입력해주세요.", 400);
+  if (reason.length > 1_000) return mobileError("BAD_REQUEST", "리폿 사유는 1,000자까지 입력할 수 있습니다.", 400);
   const item = target === "post" ? await getPostById(targetId) : await getCommentById(targetId);
   if (!item) return mobileError("NOT_FOUND", "리폿 대상을 찾을 수 없습니다.", 404);
   if (

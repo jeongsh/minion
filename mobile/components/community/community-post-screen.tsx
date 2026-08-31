@@ -10,6 +10,7 @@ import SendHorizontal from 'lucide-react-native/icons/send-horizontal';
 import Smile from 'lucide-react-native/icons/face-slightly-smiling';
 import ThumbsDown from 'lucide-react-native/icons/thumbs-down';
 import ThumbsUp from 'lucide-react-native/icons/thumbs-up';
+import Trash2 from 'lucide-react-native/icons/trash-2';
 import X from 'lucide-react-native/icons/x';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, type TextStyle, View } from 'react-native';
@@ -30,6 +31,7 @@ import { CommunityAuthor, GuestAvatar } from './community-author';
 import { COMMENT_MAX_LENGTH, displayAuthor, formatCommunityDate, type CommunityScope } from './community-utils';
 
 const EMOJIS = ['😀', '😂', '😍', '😮', '😢', '😡', '👍', '👏', '🔥', '🎉'];
+type ReportTarget = { target: 'post' | 'comment'; targetId: string };
 
 export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope }) {
   const params = useLocalSearchParams<{ postId: string; team?: string | string[] }>();
@@ -49,6 +51,9 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [ownerMenuOpen, setOwnerMenuOpen] = useState(false);
+  const [reportPending, setReportPending] = useState(false);
+  const [reportReason, setReportReason] = useState('');
+  const [reportTarget, setReportTarget] = useState<ReportTarget | null>(null);
   const [revealed, setRevealed] = useState(false);
   const [expandedReplies, setExpandedReplies] = useState<Set<string>>(() => new Set());
 
@@ -57,6 +62,9 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
     setReplyTo(null);
     setEmojiOpen(false);
     setOwnerMenuOpen(false);
+    setReportPending(false);
+    setReportReason('');
+    setReportTarget(null);
     setRevealed(false);
     setExpandedReplies(new Set());
     scrollRef.current?.scrollTo({ animated: false, y: 0 });
@@ -88,12 +96,23 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
       refresh();
     } catch (caught) { Alert.alert('반응 실패', caught instanceof Error ? caught.message : '잠시 후 다시 시도해주세요.'); }
   };
-  const report = async (target: 'post' | 'comment', targetId: string) => {
+  const startReport = (target: 'post' | 'comment', targetId: string) => {
+    setReportReason('');
+    setReportTarget({ target, targetId });
+  };
+  const submitReport = async () => {
+    const reason = reportReason.trim();
+    if (!reason || !reportTarget || reportPending) return;
+    setReportPending(true);
     try {
-      const result = await mutateMobileApi<MobileCommunityActionDto>('/api/mobile/v1/community/reports', 'POST', { scope: data?.scope ?? 'hub', target, targetId });
+      const result = await mutateMobileApi<MobileCommunityActionDto>('/api/mobile/v1/community/reports', 'POST', { reason, scope: data?.scope ?? 'hub', ...reportTarget });
+      setReportTarget(null);
+      setReportReason('');
       showToast(result.message, 'success');
     } catch (caught) {
       showToast(caught instanceof Error ? caught.message : '잠시 후 다시 시도해주세요.', 'error');
+    } finally {
+      setReportPending(false);
     }
   };
   const submitComment = async () => {
@@ -138,7 +157,7 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
           </View>
           <View style={[styles.postActions, { borderColor: theme.divider }]}>
             <View style={styles.reactions}><ReactionButton accent={accent} active={data.reaction === 'honor'} count={data.likeCount} icon="honor" label="와드" onPress={() => void react('post', data.id, 'honor')} /><ReactionButton accent={accent} active={data.reaction === 'dislike'} count={data.dislikeCount} icon="dislike" label="비추천" onPress={() => void react('post', data.id, 'dislike')} /></View>
-            <Pressable onPress={() => report('post', data.id)} style={[styles.report, { backgroundColor: theme.surface, borderColor: theme.border }]}><Flag color={theme.muted} size={15} strokeWidth={1.8} /><Text style={{ color: theme.muted, ...fonts.medium, fontSize: 13, lineHeight: 19.5 }}>리폿</Text></Pressable>
+            {data.permissions.canReport ? <Pressable onPress={() => startReport('post', data.id)} style={[styles.report, { backgroundColor: theme.surface, borderColor: theme.border }]}><Flag color={theme.muted} size={15} strokeWidth={1.8} /><Text style={{ color: theme.muted, ...fonts.medium, fontSize: 13, lineHeight: 19.5 }}>리폿</Text></Pressable> : null}
           </View>
           <View style={styles.commentTitle}><Text style={{ color: theme.ink, ...fonts.bold, fontSize: 15, lineHeight: 22.5 }}>댓글</Text><Text style={{ color: accent, ...fonts.medium, fontSize: 13, lineHeight: 19.5 }}>{data.commentCount}</Text></View>
           <View style={styles.comments}>{orderedRoots.map((item, index) => {
@@ -147,7 +166,7 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
             const firstRegular = !item.isBest && index > 0 && orderedRoots[index - 1]?.isBest;
             return (
               <View key={item.id} style={[styles.commentThread, firstRegular ? { borderTopColor: theme.border, borderTopWidth: 1, paddingTop: 20 } : null]}>
-                <CommentItem accent={accent} best={item.isBest} comment={item} continued={itemReplies.length > 0} onDelete={refresh} onReact={react} onReply={setReplyTo} onReport={report} />
+                <CommentItem accent={accent} best={item.isBest} comment={item} continued={itemReplies.length > 0} onDelete={refresh} onReact={react} onReply={setReplyTo} onReport={startReport} />
                 {itemReplies.length > 0 && !repliesExpanded ? (
                   <View style={styles.threadToggleRow}>
                     <View style={[styles.threadConnection, { borderColor: theme.border }]} />
@@ -156,7 +175,7 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
                 ) : null}
                 {itemReplies.length > 0 && repliesExpanded ? (
                   <View>
-                    {itemReplies.map((reply) => <View key={reply.id} style={styles.replyThreadRow}><View style={[styles.replyThreadStem, { backgroundColor: theme.border }]} /><View style={[styles.replyThreadElbow, { borderColor: theme.border }]} /><View style={styles.replyThreadContent}><CommentItem accent={accent} comment={reply} onDelete={refresh} onReact={react} onReport={report} reply /></View></View>)}
+                    {itemReplies.map((reply) => <View key={reply.id} style={styles.replyThreadRow}><View style={[styles.replyThreadStem, { backgroundColor: theme.border }]} /><View style={[styles.replyThreadElbow, { borderColor: theme.border }]} /><View style={styles.replyThreadContent}><CommentItem accent={accent} comment={reply} onDelete={refresh} onReact={react} onReport={startReport} reply /></View></View>)}
                     <View style={styles.threadToggleRow}>
                       <View style={[styles.threadConnection, { borderColor: theme.border }]} />
                       <Pressable accessibilityState={{ expanded: true }} onPress={() => toggleReplies(item.id)} style={styles.threadToggleButton}><Text style={{ color: theme.text, ...fonts.medium, fontSize: 14, lineHeight: 20 }}>답글 숨기기</Text><ChevronUp color={theme.text} size={18} strokeWidth={2} /></Pressable>
@@ -179,6 +198,11 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
         <BottomSheet onClose={() => setOwnerMenuOpen(false)} open={ownerMenuOpen} title="게시글 관리">
           {data.permissions.canEdit ? <OwnerAction label="수정" onPress={() => { setOwnerMenuOpen(false); router.push(`${basePath}/post/${data.id}/edit` as never); }} /> : null}
           {data.permissions.canDelete ? <OwnerAction destructive label="삭제" onPress={() => { setOwnerMenuOpen(false); deletePost(); }} /> : null}
+        </BottomSheet>
+        <BottomSheet onClose={() => { if (!reportPending) setReportTarget(null); }} open={Boolean(reportTarget)} scrollable title={`${reportTarget?.target === 'post' ? '게시글' : '댓글'} 리폿`}>
+          <Text style={{ color: theme.text, ...fonts.regular, fontSize: 16, lineHeight: 24 }}>리폿 사유를 입력해주세요. 운영자가 해당 내용을 확인합니다.</Text>
+          <TextInput maxLength={1000} multiline onChangeText={setReportReason} placeholder="리폿 사유" placeholderTextColor={theme.muted} style={[styles.reasonInput, { borderColor: theme.border, color: theme.text, ...fonts.regular }]} textAlignVertical="top" value={reportReason} />
+          <Pressable disabled={!reportReason.trim() || reportPending} onPress={() => void submitReport()} style={[styles.reportSubmit, { backgroundColor: reportReason.trim() && !reportPending ? '#dc2626' : theme.border }]}><Text style={{ color: '#fff', ...fonts.medium, fontSize: 14 }}>{reportPending ? '접수 중' : '리폿하기'}</Text></Pressable>
         </BottomSheet>
       </>}
     </KeyboardAwareView>
@@ -249,7 +273,11 @@ function CommentItem({ accent, best = false, comment, continued = false, onDelet
           {best ? <View style={{ backgroundColor: theme.accent, borderRadius: 999, flexShrink: 0, justifyContent: 'center', minHeight: 20, paddingHorizontal: 6, paddingVertical: 2 }}><Text style={{ color: '#071a11', ...fonts.medium, fontSize: 13, lineHeight: 16 }}>BEST</Text></View> : null}
           <View style={styles.commentAuthor}><CommunityAuthor author={comment.author} evidence={{ target: 'comment', targetId: comment.id }} hideAvatar onBlocked={onDelete} /></View>
           <Text style={{ color: theme.muted, ...fonts.regular, fontSize: 12, lineHeight: 18 }}>{formatCommunityDate(comment.createdAt)}</Text>
-          <Pressable accessibilityLabel="리폿" onPress={() => onReport('comment', comment.id)} style={styles.commentMenu}><Ellipsis color={theme.muted} size={17} strokeWidth={1.8} /></Pressable>
+          {!comment.isDeleted && comment.permissions.canDelete ? (
+            <Pressable accessibilityLabel="댓글 삭제" onPress={remove} style={styles.commentMenu}><Trash2 color="#ef4444" size={17} strokeWidth={1.8} /></Pressable>
+          ) : !comment.isDeleted && comment.permissions.canReport ? (
+            <Pressable accessibilityLabel="리폿" onPress={() => onReport('comment', comment.id)} style={styles.commentMenu}><Flag color={theme.muted} size={17} strokeWidth={1.8} /></Pressable>
+          ) : null}
         </View>
         {comment.isDeleted ? (
           <Text style={[styles.commentBody, { color: theme.muted, ...fonts.regular, fontSize: 14 }]}>삭제된 댓글입니다.</Text>
@@ -270,7 +298,6 @@ function CommentItem({ accent, best = false, comment, continued = false, onDelet
           <View style={styles.commentReactions}><ReactionButton accent={accent} active={comment.reaction === 'honor'} count={comment.likeCount} icon="honor" label="와드" onPress={() => void onReact('comment', comment.id, 'honor')} small /><ReactionButton accent={accent} active={comment.reaction === 'dislike'} count={comment.dislikeCount} icon="dislike" label="비추천" onPress={() => void onReact('comment', comment.id, 'dislike')} small /></View>
           {!reply && !comment.isDeleted && onReply ? <Pressable onPress={() => onReply(comment)}><Text style={commentLinkText(theme.muted, fonts.medium)}>답글</Text></Pressable> : null}
           {comment.permissions.canEdit && !comment.isDeleted ? <Pressable onPress={() => setEditing(true)}><Text style={commentLinkText(theme.muted, fonts.medium)}>수정</Text></Pressable> : null}
-          {comment.permissions.canDelete && !comment.isDeleted ? <Pressable onPress={remove}><Text style={commentLinkText(theme.muted, fonts.medium)}>삭제</Text></Pressable> : null}
         </View>
       </View>
     </View>
@@ -284,5 +311,5 @@ function commentLinkText(color: string, font: TextStyle) {
 function OwnerAction({ destructive = false, label, onPress }: { destructive?: boolean; label: string; onPress: () => void }) { const { fonts, theme } = useMinionTheme(); return <Pressable onPress={onPress} style={styles.ownerAction}><Text style={{ color: destructive ? '#ef4444' : theme.text, ...fonts.bold, fontSize: 15 }}>{label}</Text></Pressable>; }
 
 const styles = StyleSheet.create({
-  root: { flex: 1 }, safeTop: { left: 0, position: 'absolute', right: 0, top: 0 }, header: { alignItems: 'center', borderBottomWidth: 1, flexDirection: 'row', height: 48, paddingHorizontal: 12 }, headerButton: { alignItems: 'center', height: 44, justifyContent: 'center', width: 44 }, headerTitle: { flex: 1, fontSize: 16, lineHeight: 24, textAlign: 'center' }, ad: { alignItems: 'center', height: 60, justifyContent: 'center' }, adText: { fontSize: 13, letterSpacing: 2.2, lineHeight: 19.5 }, article: { borderTopWidth: 1, minHeight: 500 }, postHeader: { paddingBottom: 20, paddingHorizontal: 14, paddingTop: 16 }, postTitle: { fontSize: 16, lineHeight: 23.2 }, authorRow: { alignItems: 'center', flexDirection: 'row', marginTop: 12 }, detailMeta: { alignItems: 'center', flexDirection: 'row', gap: 5 }, divider: { height: 1, marginHorizontal: 14 }, body: { minHeight: 180, paddingHorizontal: 14, paddingVertical: 24 }, blinded: { alignItems: 'center', borderRadius: 12, gap: 7, justifyContent: 'center', minHeight: 150, padding: 20 }, blindedCharacter: { height: 112, width: 112 }, blindedComment: { alignItems: 'center', alignSelf: 'flex-start', borderRadius: 8, flexDirection: 'row', gap: 8, marginTop: 2, paddingHorizontal: 10, paddingVertical: 6 }, blindedCommentCharacter: { height: 32, width: 32 }, postActions: { alignItems: 'center', borderBottomWidth: 1, borderTopWidth: 1, flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 16 }, reactions: { flexDirection: 'row', gap: 8 }, reaction: { alignItems: 'center', borderRadius: 8, borderWidth: 1, flexDirection: 'row', gap: 6, height: 36, paddingHorizontal: 12 }, smallReaction: { alignItems: 'center', borderRadius: 8, flexDirection: 'row', gap: 4, height: 32, justifyContent: 'center', paddingHorizontal: 8 }, report: { alignItems: 'center', borderRadius: 8, borderWidth: 1, flexDirection: 'row', gap: 6, height: 36, paddingHorizontal: 12 }, commentTitle: { alignItems: 'baseline', flexDirection: 'row', gap: 4, paddingHorizontal: 14, paddingVertical: 16 }, comments: { paddingHorizontal: 14 }, commentThread: { marginBottom: 16 }, bestThread: { borderRadius: 8, marginHorizontal: -8, paddingHorizontal: 8, paddingTop: 12 }, bestBadge: { borderRadius: 2, color: '#ffffff', fontSize: 12, lineHeight: 16, overflow: 'hidden', paddingHorizontal: 5 }, commentItem: { alignItems: 'flex-start', flexDirection: 'row', gap: 16, minHeight: 78 }, commentContinuation: { bottom: 0, left: 18, position: 'absolute', top: 40, width: 1 }, commentInner: { flex: 1, minWidth: 0, position: 'relative' }, commentTop: { alignItems: 'center', flexDirection: 'row', gap: 4, height: 20, paddingRight: 30 }, commentAuthor: { flexShrink: 1, minWidth: 0 }, commentMenu: { alignItems: 'center', height: 32, justifyContent: 'center', position: 'absolute', right: 0, top: -6, width: 32 }, commentReactions: { flexDirection: 'row', gap: 4 }, commentBody: { fontSize: 14, lineHeight: 20, marginTop: 2 }, commentLinks: { alignItems: 'center', flexDirection: 'row', gap: 8, height: 32, marginLeft: -8, marginTop: 4 }, threadToggleRow: { height: 52, position: 'relative' }, threadConnection: { borderBottomLeftRadius: 16, borderBottomWidth: 1, borderLeftWidth: 1, height: 30, left: 18, position: 'absolute', top: 0, width: 18 }, threadToggleButton: { alignItems: 'center', borderRadius: 20, flexDirection: 'row', gap: 6, height: 40, left: 36, paddingHorizontal: 16, position: 'absolute', top: 12 }, replyThreadRow: { minHeight: 90, position: 'relative' }, replyThreadStem: { bottom: 0, left: 18, position: 'absolute', top: 0, width: 1 }, replyThreadElbow: { borderBottomLeftRadius: 16, borderBottomWidth: 1, borderLeftWidth: 1, height: 24, left: 18, position: 'absolute', top: 0, width: 30 }, replyThreadContent: { marginLeft: 48, paddingTop: 12 }, editBox: { borderRadius: 8, borderWidth: 1, marginTop: 4, padding: 10 }, editActions: { alignItems: 'center', flexDirection: 'row', gap: 18, justifyContent: 'flex-end', marginTop: 7 }, commentDock: { borderTopWidth: 1, bottom: 0, left: 0, paddingHorizontal: 10, paddingTop: 8, position: 'absolute', right: 0 }, replying: { alignItems: 'center', flexDirection: 'row', paddingBottom: 6, paddingHorizontal: 8 }, emojiBar: { borderRadius: 10, flexDirection: 'row', justifyContent: 'space-between', marginBottom: 7, padding: 5 }, emoji: { alignItems: 'center', height: 32, justifyContent: 'center', width: 32 }, emojiText: { fontSize: 20 }, commentComposer: { alignItems: 'center', flexDirection: 'row', gap: 6, minHeight: 40 }, commentInputWrap: { alignItems: 'center', borderRadius: 20, flex: 1, flexDirection: 'row', minHeight: 40, paddingHorizontal: 14, paddingVertical: 6 }, commentInput: { flex: 1, fontSize: 14, lineHeight: 24, maxHeight: 80, minHeight: 24, paddingVertical: 0 }, emojiButton: { alignItems: 'center', height: 28, justifyContent: 'center', width: 28 }, send: { alignItems: 'center', height: 36, justifyContent: 'center', width: 36 }, ownerAction: { justifyContent: 'center', minHeight: 48, paddingHorizontal: 14 }, focusState: { alignItems: 'center', flex: 1, justifyContent: 'center' }, loadingAuthor: { alignItems: 'center', flexDirection: 'row', gap: 10, marginTop: 12 }, loadingAuthorCopy: { flex: 1, gap: 6 }, loadingMeta: { flexDirection: 'row', gap: 6 }, loadingBody: { gap: 10, minHeight: 180, paddingHorizontal: 14, paddingVertical: 24 }, loadingComment: { gap: 8, paddingVertical: 14 }, loadingCommentTop: { alignItems: 'center', flexDirection: 'row', gap: 8 }, loadingCommentReactions: { flexDirection: 'row', gap: 12, marginLeft: 'auto' }, loadingLinks: { flexDirection: 'row', gap: 12 },
+  root: { flex: 1 }, safeTop: { left: 0, position: 'absolute', right: 0, top: 0 }, header: { alignItems: 'center', borderBottomWidth: 1, flexDirection: 'row', height: 48, paddingHorizontal: 12 }, headerButton: { alignItems: 'center', height: 44, justifyContent: 'center', width: 44 }, headerTitle: { flex: 1, fontSize: 16, lineHeight: 24, textAlign: 'center' }, ad: { alignItems: 'center', height: 60, justifyContent: 'center' }, adText: { fontSize: 13, letterSpacing: 2.2, lineHeight: 19.5 }, article: { borderTopWidth: 1, minHeight: 500 }, postHeader: { paddingBottom: 20, paddingHorizontal: 14, paddingTop: 16 }, postTitle: { fontSize: 16, lineHeight: 23.2 }, authorRow: { alignItems: 'center', flexDirection: 'row', marginTop: 12 }, detailMeta: { alignItems: 'center', flexDirection: 'row', gap: 5 }, divider: { height: 1, marginHorizontal: 14 }, body: { minHeight: 180, paddingHorizontal: 14, paddingVertical: 24 }, blinded: { alignItems: 'center', borderRadius: 12, gap: 7, justifyContent: 'center', minHeight: 150, padding: 20 }, blindedCharacter: { height: 112, width: 112 }, blindedComment: { alignItems: 'center', alignSelf: 'flex-start', borderRadius: 8, flexDirection: 'row', gap: 8, marginTop: 2, paddingHorizontal: 10, paddingVertical: 6 }, blindedCommentCharacter: { height: 32, width: 32 }, postActions: { alignItems: 'center', borderBottomWidth: 1, borderTopWidth: 1, flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 16 }, reactions: { flexDirection: 'row', gap: 8 }, reaction: { alignItems: 'center', borderRadius: 8, borderWidth: 1, flexDirection: 'row', gap: 6, height: 36, paddingHorizontal: 12 }, smallReaction: { alignItems: 'center', borderRadius: 8, flexDirection: 'row', gap: 4, height: 32, justifyContent: 'center', paddingHorizontal: 8 }, report: { alignItems: 'center', borderRadius: 8, borderWidth: 1, flexDirection: 'row', gap: 6, height: 36, paddingHorizontal: 12 }, commentTitle: { alignItems: 'baseline', flexDirection: 'row', gap: 4, paddingHorizontal: 14, paddingVertical: 16 }, comments: { paddingHorizontal: 14 }, commentThread: { marginBottom: 16 }, bestThread: { borderRadius: 8, marginHorizontal: -8, paddingHorizontal: 8, paddingTop: 12 }, bestBadge: { borderRadius: 2, color: '#ffffff', fontSize: 12, lineHeight: 16, overflow: 'hidden', paddingHorizontal: 5 }, commentItem: { alignItems: 'flex-start', flexDirection: 'row', gap: 16, minHeight: 78 }, commentContinuation: { bottom: 0, left: 18, position: 'absolute', top: 40, width: 1 }, commentInner: { flex: 1, minWidth: 0, position: 'relative' }, commentTop: { alignItems: 'center', flexDirection: 'row', gap: 4, height: 20, paddingRight: 30 }, commentAuthor: { flexShrink: 1, minWidth: 0 }, commentMenu: { alignItems: 'center', height: 32, justifyContent: 'center', position: 'absolute', right: 0, top: -6, width: 32 }, commentReactions: { flexDirection: 'row', gap: 4 }, commentBody: { fontSize: 14, lineHeight: 20, marginTop: 2 }, commentLinks: { alignItems: 'center', flexDirection: 'row', gap: 8, height: 32, marginLeft: -8, marginTop: 4 }, threadToggleRow: { height: 52, position: 'relative' }, threadConnection: { borderBottomLeftRadius: 16, borderBottomWidth: 1, borderLeftWidth: 1, height: 30, left: 18, position: 'absolute', top: 0, width: 18 }, threadToggleButton: { alignItems: 'center', borderRadius: 20, flexDirection: 'row', gap: 6, height: 40, left: 36, paddingHorizontal: 16, position: 'absolute', top: 12 }, replyThreadRow: { minHeight: 90, position: 'relative' }, replyThreadStem: { bottom: 0, left: 18, position: 'absolute', top: 0, width: 1 }, replyThreadElbow: { borderBottomLeftRadius: 16, borderBottomWidth: 1, borderLeftWidth: 1, height: 24, left: 18, position: 'absolute', top: 0, width: 30 }, replyThreadContent: { marginLeft: 48, paddingTop: 12 }, editBox: { borderRadius: 8, borderWidth: 1, marginTop: 4, padding: 10 }, editActions: { alignItems: 'center', flexDirection: 'row', gap: 18, justifyContent: 'flex-end', marginTop: 7 }, reasonInput: { borderRadius: 10, borderWidth: 1, fontSize: 16, lineHeight: 24, marginTop: 14, minHeight: 112, padding: 12 }, reportSubmit: { alignItems: 'center', borderRadius: 8, height: 44, justifyContent: 'center', marginBottom: 4, marginTop: 12 }, commentDock: { borderTopWidth: 1, bottom: 0, left: 0, paddingHorizontal: 10, paddingTop: 8, position: 'absolute', right: 0 }, replying: { alignItems: 'center', flexDirection: 'row', paddingBottom: 6, paddingHorizontal: 8 }, emojiBar: { borderRadius: 10, flexDirection: 'row', justifyContent: 'space-between', marginBottom: 7, padding: 5 }, emoji: { alignItems: 'center', height: 32, justifyContent: 'center', width: 32 }, emojiText: { fontSize: 20 }, commentComposer: { alignItems: 'center', flexDirection: 'row', gap: 6, minHeight: 40 }, commentInputWrap: { alignItems: 'center', borderRadius: 20, flex: 1, flexDirection: 'row', minHeight: 40, paddingHorizontal: 14, paddingVertical: 6 }, commentInput: { flex: 1, fontSize: 14, lineHeight: 24, maxHeight: 80, minHeight: 24, paddingVertical: 0 }, emojiButton: { alignItems: 'center', height: 28, justifyContent: 'center', width: 28 }, send: { alignItems: 'center', height: 36, justifyContent: 'center', width: 36 }, ownerAction: { justifyContent: 'center', minHeight: 48, paddingHorizontal: 14 }, focusState: { alignItems: 'center', flex: 1, justifyContent: 'center' }, loadingAuthor: { alignItems: 'center', flexDirection: 'row', gap: 10, marginTop: 12 }, loadingAuthorCopy: { flex: 1, gap: 6 }, loadingMeta: { flexDirection: 'row', gap: 6 }, loadingBody: { gap: 10, minHeight: 180, paddingHorizontal: 14, paddingVertical: 24 }, loadingComment: { gap: 8, paddingVertical: 14 }, loadingCommentTop: { alignItems: 'center', flexDirection: 'row', gap: 8 }, loadingCommentReactions: { flexDirection: 'row', gap: 12, marginLeft: 'auto' }, loadingLinks: { flexDirection: 'row', gap: 12 },
 });

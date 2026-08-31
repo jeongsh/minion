@@ -495,23 +495,24 @@ export async function deleteGuestPostAction(input: {
   return { ok: true, message: "게시글을 삭제했습니다." };
 }
 
-export async function deleteGuestCommentAction(input: {
+export async function deleteCommentAction(input: {
   commentId: string;
   postId: string;
   scope: BoardScope;
   teamSlug?: string;
 }): Promise<ActionResult> {
   const comment = await getCommentById(input.commentId);
-  if (!comment?.guestKey || comment.postId !== input.postId) {
-    return { ok: false, error: "비회원 댓글을 찾을 수 없습니다." };
+  if (!comment || comment.postId !== input.postId) {
+    return { ok: false, error: "댓글을 찾을 수 없습니다." };
   }
-  try {
-    if ((await getGuestIdentity()).key !== comment.guestKey) {
-      return { ok: false, error: "이 댓글을 작성한 브라우저에서만 삭제할 수 있습니다." };
-    }
-  } catch (error) {
-    return { ok: false, error: error instanceof Error ? error.message : "비회원 ID를 확인하지 못했습니다." };
+
+  const [user, guestKey] = await Promise.all([getCurrentUser(), getExistingGuestKey()]);
+  const isRegisteredOwner = Boolean(comment.authorId && comment.authorId === user?.id);
+  const isGuestOwner = Boolean(!comment.authorId && comment.guestKey && comment.guestKey === guestKey);
+  if (!isRegisteredOwner && !isGuestOwner) {
+    return { ok: false, error: "댓글을 삭제할 권한이 없습니다." };
   }
+
   await deleteGuestComment(input.commentId);
   revalidatePath(postPath(input.scope, input.teamSlug, input.postId));
   return { ok: true, message: "댓글을 삭제했습니다." };
@@ -613,12 +614,15 @@ export async function reactAction(input: {
 /** 리폿(글). 본인 글 리폿 금지, 중복 리폿 방지. */
 export async function reportPostAction(input: {
   postId: string;
-  reason?: string;
+  reason: string;
   scope: BoardScope;
   teamSlug?: string;
 }): Promise<ActionResult> {
   const resolved = await communityMutationActor();
   if (!resolved.ok) return resolved;
+  const reason = input.reason?.trim();
+  if (!reason) return { ok: false, error: "리폿 사유를 입력해주세요." };
+  if (reason.length > 1_000) return { ok: false, error: "리폿 사유는 1,000자까지 입력할 수 있습니다." };
 
   const post = await getPostById(input.postId);
   if (!post) return { ok: false, error: "글을 찾을 수 없습니다." };
@@ -629,7 +633,7 @@ export async function reportPostAction(input: {
   try {
     await createReport({
       postId: input.postId,
-      reason: input.reason,
+      reason,
       ...(resolved.userId ? { reporterId: resolved.userId } : { reporterGuestKey: resolved.guestKey! }),
     });
   } catch (error) {
@@ -668,12 +672,15 @@ export async function reportPostAction(input: {
 export async function reportCommentAction(input: {
   commentId: string;
   postId: string;
-  reason?: string;
+  reason: string;
   scope: BoardScope;
   teamSlug?: string;
 }): Promise<ActionResult> {
   const resolved = await communityMutationActor();
   if (!resolved.ok) return resolved;
+  const reason = input.reason?.trim();
+  if (!reason) return { ok: false, error: "리폿 사유를 입력해주세요." };
+  if (reason.length > 1_000) return { ok: false, error: "리폿 사유는 1,000자까지 입력할 수 있습니다." };
 
   const comment = await getCommentById(input.commentId);
   if (!comment) return { ok: false, error: "댓글을 찾을 수 없습니다." };
@@ -684,7 +691,7 @@ export async function reportCommentAction(input: {
   try {
     await createReport({
       commentId: input.commentId,
-      reason: input.reason,
+      reason,
       ...(resolved.userId ? { reporterId: resolved.userId } : { reporterGuestKey: resolved.guestKey! }),
     });
   } catch (error) {

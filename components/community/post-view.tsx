@@ -135,7 +135,7 @@ export function PostView({
             initialHonorCount={post.likeCount}
             initialDislikeCount={post.dislikeCount}
           />
-          <ReportButton target="post" postId={post.id} scope={scope} teamSlug={teamSlug} />
+          {!canManage && !isGuestOwner ? <ReportButton target="post" postId={post.id} scope={scope} teamSlug={teamSlug} /> : null}
         </div>
 
         <section aria-label="댓글">

@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, ChevronUp, UserRound } from "lucide-react";
+import { ChevronDown, ChevronUp, Trash2, UserRound } from "lucide-react";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
@@ -12,7 +12,7 @@ import { ReactionButtons } from "@/components/community/reaction-buttons";
 import { ReportButton } from "@/components/community/report-button";
 import { RankAvatar } from "@/components/rank/rank-avatar";
 import { useToast } from "@/components/ui/toast";
-import { deleteGuestCommentAction, updateGuestCommentAction } from "@/lib/community/actions";
+import { deleteCommentAction, updateGuestCommentAction } from "@/lib/community/actions";
 import type { BoardScope } from "@/lib/community/boards";
 import { blindLabel } from "@/lib/community/moderation-labels";
 import type { CommunityCommentItem, ReactionState } from "@/lib/community/types";
@@ -48,10 +48,10 @@ export function CommentList({ comments, commentReactions, scope, teamSlug, viewe
     });
   };
 
-  const removeGuestComment = (comment: CommunityCommentItem) => {
+  const removeComment = (comment: CommunityCommentItem) => {
     if (!window.confirm("이 댓글을 삭제할까요?")) return;
     startTransition(async () => {
-      const result = await deleteGuestCommentAction({
+      const result = await deleteCommentAction({
         commentId: comment.id,
         postId: comment.postId,
         scope,
@@ -66,9 +66,9 @@ export function CommentList({ comments, commentReactions, scope, teamSlug, viewe
     });
   };
 
-  const guestDeleteButton = (comment: CommunityCommentItem) => comment.guestKey && comment.guestKey === currentGuestKey ? (
-    <button type="button" disabled={pending} onClick={() => removeGuestComment(comment)} className="text-[13px] font-semibold text-[var(--ui-muted)] hover:text-red-500 disabled:opacity-50">삭제</button>
-  ) : null;
+  const ownsComment = (comment: CommunityCommentItem) => comment.authorId
+    ? comment.authorId === viewerId
+    : Boolean(comment.guestKey && comment.guestKey === currentGuestKey);
 
   const beginGuestEdit = (comment: CommunityCommentItem) => {
     setEditingId(comment.id);
@@ -140,7 +140,13 @@ export function CommentList({ comments, commentReactions, scope, teamSlug, viewe
             hideAvatar
           />
           <span className="shrink-0 text-xs leading-[18px] text-[var(--ui-muted)]">{formatRelativeOrDate(comment.createdAt)}</span>
-          <span className="absolute -top-1.5 right-0"><ReportButton target="comment" commentId={comment.id} postId={comment.postId} scope={scope} teamSlug={teamSlug} /></span>
+          <span className="absolute -top-1.5 right-0">
+            {ownsComment(comment) ? (
+              <button type="button" disabled={pending} onClick={() => removeComment(comment)} aria-label={pending ? "댓글 삭제 중" : "댓글 삭제"} className="grid h-8 w-8 place-items-center rounded-full text-red-500 transition-colors hover:bg-red-50 disabled:opacity-50 dark:hover:bg-red-950/30"><Trash2 size={17} strokeWidth={1.8} /></button>
+            ) : (
+              <ReportButton target="comment" commentId={comment.id} postId={comment.postId} scope={scope} teamSlug={teamSlug} />
+            )}
+          </span>
         </div>
         {editingId === comment.id ? (
           <div className="mt-1.5 rounded-[var(--ui-control-radius)] border border-[var(--ui-border)] bg-[var(--ui-surface)] p-3">
@@ -162,7 +168,6 @@ export function CommentList({ comments, commentReactions, scope, teamSlug, viewe
           <ReactionButtons target="comment" targetId={comment.id} postId={comment.postId} scope={scope} teamSlug={teamSlug} initialState={commentReactions[comment.id] ?? null} initialHonorCount={comment.likeCount} initialDislikeCount={comment.dislikeCount} size="sm" />
           {!reply ? <button type="button" onClick={() => setReplyTo((current) => current === comment.id ? null : comment.id)} className="h-8 rounded-[var(--ui-control-radius)] px-2 text-[13px] font-medium text-[var(--ui-text)] hover:bg-[var(--ui-surface-muted)]">답글</button> : null}
           {guestEditButton(comment)}
-          {guestDeleteButton(comment)}
         </div>
         {replyTo === comment.id ? <div className="mt-2"><CommentForm postId={comment.postId} parentId={comment.id} scope={scope} teamSlug={teamSlug} isGuest={!viewerId} onSubmitted={() => setReplyTo(null)} /></div> : null}
       </div>
