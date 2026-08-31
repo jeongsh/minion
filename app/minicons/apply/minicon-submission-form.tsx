@@ -204,7 +204,7 @@ export function MiniconSubmissionForm({ pendingApplicationCount }: { pendingAppl
           className="min-h-12 rounded-[var(--ui-control-radius)] border border-dashed border-[var(--ui-border)] bg-[var(--ui-surface-muted)] px-3 py-3 text-[14px] font-normal file:mr-3 file:rounded-lg file:border-0 file:bg-[var(--ui-ink)] file:px-3 file:py-1.5 file:text-[13px] file:font-medium file:text-[var(--ui-surface)] disabled:opacity-60"
         />
         <span className="text-[13px] font-normal leading-5 text-[var(--ui-muted)]">
-          200×200px · JPG·PNG·GIF · 개당 2MB 이하 · 10~200개 · 첫 파일이 대표 이미지
+          200×200px · JPG·PNG·GIF · 개당 2MB 이하 · 10~50개 · 첫 파일이 대표 이미지
         </span>
       </label>
 

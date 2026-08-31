@@ -4,7 +4,7 @@ export const MINICON_UPLOAD_BUCKET = "minicons";
 export const MINICON_MAX_BYTES = 2 * 1024 * 1024;
 export const MINICON_SIZE = 200;
 export const MINICON_MIN_PACK_ITEMS = 10;
-export const MINICON_MAX_PACK_ITEMS = 200;
+export const MINICON_MAX_PACK_ITEMS = 50;
 
 const ALLOWED_TYPES = new Set(["image/png", "image/jpeg", "image/gif"]);
 

@@ -89,7 +89,7 @@ async function loadMiniconSettings(userId: string) {
   const persistedSelection = ((selectionData ?? []) as UserMiniconPackRow[])
     .map((row) => row.pack_id)
     .filter((packId) => publishedPackIds.has(packId));
-  const defaultPack = packs.find((pack) => pack.slug === "minion-starter") ?? packs.find((pack) => pack.isOfficial) ?? packs[0];
+  const defaultPack = packs.find((pack) => pack.isOfficial) ?? packs[0];
   const initialSelectedPackIds = persistedSelection.length > 0
     ? persistedSelection
     : defaultPack

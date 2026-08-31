@@ -18,6 +18,7 @@ type MiniconPackRow = {
   cover_url: string;
   is_official: boolean;
   sort_order: number;
+  published_at: string | null;
 };
 
 type MiniconItemRow = {
@@ -28,45 +29,62 @@ type MiniconItemRow = {
   sort_order: number;
 };
 
-const starterItems = [
-  ["좋아", "01-good.png"],
-  ["가자", "02-go.png"],
-  ["인정", "03-agree.png"],
-  ["대박", "04-wow.png"],
-  ["아쉽", "05-close.png"],
-  ["수고", "06-good-game.png"],
-  ["ㅋㅋ", "07-lol.png"],
-  ["집중", "08-focus.png"],
-  ["승리", "09-win.png"],
-  ["파이팅", "10-fighting.png"],
+const defaultItems = [
+  ["좋아요", "01-like.png"],
+  ["싫어요", "02-dislike.png"],
+  ["리폿", "03-report.png"],
+  ["박제", "04-pin.png"],
+  ["메모", "05-memo.png"],
+  ["ㄹㅇ;", "06-for-real.png"],
+  ["ㅋㅋㅋ", "07-lol.png"],
+  ["뭐죠?", "08-what.png"],
+  ["이건 좀", "09-this-is-a-bit.png"],
+  ["긁?", "10-triggered.png"],
+  ["팝콘", "11-popcorn.png"],
+  ["비상", "12-emergency.png"],
+  ["노관심", "13-no-interest.png"],
+  ["이마짚", "14-facepalm.png"],
+  ["이게 나야", "15-this-is-me.png"],
+  ["해줘", "16-do-it-for-me.png"],
+  ["밴픽차이", "17-draft-diff.png"],
+  ["범인 찾음", "18-found-culprit.png"],
+  ["또 너야?", "19-you-again.png"],
+  ["팀탓 ON", "20-team-blame-on.png"],
+  ["유관 행동", "21-winner-behavior.png"],
+  ["무관 행동", "22-no-title-behavior.png"],
+  ["빨간약", "23-red-pill.png"],
+  ["긁혔누", "24-triggered-nu.png"],
 ] as const;
 
-const STARTER_PACK_ID = "00000000-0000-4000-8000-000000000001";
+const DEFAULT_PACK_ID = "00000000-0000-4000-8000-000000000002";
 
-export const STARTER_MINICON_PACK: MiniconPack = {
-  id: STARTER_PACK_ID,
-  slug: "minion-starter",
-  name: "미니콘 스타터",
-  description: "MINION 커뮤니티에서 바로 사용할 수 있는 기본 미니콘입니다.",
-  coverUrl: "/minicons/minion-starter/01-good.png",
+export const DEFAULT_MINICON_PACK: MiniconPack = {
+  id: DEFAULT_PACK_ID,
+  slug: "blue-red-community-v1",
+  name: "미니콘",
+  description: "커뮤니티 반응과 롤 밈을 담은 파랑·빨강 미니콘입니다.",
+  coverUrl: "/minicons/blue-red-community-v1/01-like.png",
   isOfficial: true,
-  items: starterItems.map(([name, file], index) => ({
-    id: `00000000-0000-4000-8001-${String(index + 1).padStart(12, "0")}`,
-    packId: STARTER_PACK_ID,
-    packName: "미니콘 스타터",
+  creatorName: "MINION 운영팀",
+  publishedAt: null,
+  tags: ["공식", "미니콘"],
+  items: defaultItems.map(([name, file], index) => ({
+    id: `00000000-0000-4000-8002-${String(index + 1).padStart(12, "0")}`,
+    packId: DEFAULT_PACK_ID,
+    packName: "미니콘",
     name,
-    imageUrl: `/minicons/minion-starter/${file}`,
+    imageUrl: `/minicons/blue-red-community-v1/${file}`,
   })),
 };
 
 export const getPublishedMiniconPacks = cache(async function getPublishedMiniconPacks(): Promise<MiniconPack[]> {
-  if (!canQuerySupabase()) return [STARTER_MINICON_PACK];
+  if (!canQuerySupabase()) return [DEFAULT_MINICON_PACK];
 
   const supabase = createSupabaseServerClient();
   const [{ data: packData, error: packError }, { data: itemData, error: itemError }] = await Promise.all([
     supabase
       .from("minicon_packs")
-      .select("id, slug, name, description, cover_url, is_official, sort_order")
+      .select("id, slug, name, description, cover_url, is_official, sort_order, published_at")
       .eq("status", "published")
       .order("is_official", { ascending: false })
       .order("sort_order", { ascending: true }),
@@ -86,6 +104,35 @@ export const getPublishedMiniconPacks = cache(async function getPublishedMinicon
   const packs = (packData ?? []) as MiniconPackRow[];
   const items = (itemData ?? []) as MiniconItemRow[];
   if (packs.length === 0) return [];
+
+  const creatorNames = new Map<string, string>();
+  try {
+    const admin = createSupabaseAdminClient();
+    const { data: creatorData, error: creatorError } = await admin
+      .from("minicon_packs")
+      .select("id, creator_id")
+      .in("id", packs.map((pack) => pack.id));
+    if (creatorError) throw creatorError;
+
+    const creatorRows = (creatorData ?? []) as { id: string; creator_id: string | null }[];
+    const creatorIds = [...new Set(creatorRows.flatMap((pack) => pack.creator_id ? [pack.creator_id] : []))];
+    const profileResult = creatorIds.length > 0
+      ? await admin.from("profiles").select("id, nickname").in("id", creatorIds)
+      : { data: [], error: null };
+    if (profileResult.error) throw profileResult.error;
+
+    const nicknames = new Map(
+      ((profileResult.data ?? []) as { id: string; nickname: string | null }[])
+        .flatMap((profile) => profile.nickname ? [[profile.id, profile.nickname] as const] : []),
+    );
+    for (const pack of creatorRows) {
+      if (pack.creator_id && nicknames.has(pack.creator_id)) {
+        creatorNames.set(pack.id, nicknames.get(pack.creator_id)!);
+      }
+    }
+  } catch (error) {
+    console.warn("[minicons] creator lookup failed", error instanceof Error ? error.message : error);
+  }
 
   const packNames = new Map(packs.map((pack) => [pack.id, pack.name]));
   const itemsByPack = new Map<string, MiniconItem[]>();
@@ -111,22 +158,25 @@ export const getPublishedMiniconPacks = cache(async function getPublishedMinicon
       description: pack.description,
       coverUrl: pack.cover_url,
       isOfficial: pack.is_official,
+      creatorName: creatorNames.get(pack.id) ?? (pack.is_official ? "MINION 운영팀" : "커뮤니티 제작자"),
+      publishedAt: pack.published_at,
+      tags: [pack.is_official ? "공식" : "사용자 제작", "미니콘"],
       items: packItems,
     }] : [];
   });
 });
 
 function defaultSelectedPacks(packs: MiniconPack[]) {
-  const starter = packs.find((pack) => pack.slug === STARTER_MINICON_PACK.slug)
+  const defaultPack = packs.find((pack) => pack.slug === DEFAULT_MINICON_PACK.slug)
     ?? packs.find((pack) => pack.isOfficial)
     ?? packs[0];
-  return starter ? [starter] : [];
+  return defaultPack ? [defaultPack] : [];
 }
 
 /**
  * 댓글 선택기에 노출할 사용자별 패키지를 반환한다.
  *
- * 비회원과 아직 설정을 저장하지 않은 회원은 스타터 팩 하나로 시작한다. 저장된
+ * 비회원과 아직 설정을 저장하지 않은 회원은 기본 공식 팩 하나로 시작한다. 저장된
  * 패키지가 모두 공개 종료된 경우에도 선택기가 비지 않도록 같은 기본값을 쓴다.
  */
 export async function getUserMiniconPacks(userId: string | null | undefined): Promise<MiniconPack[]> {

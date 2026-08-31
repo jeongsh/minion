@@ -13,6 +13,9 @@ export type MiniconPack = {
   description: string;
   coverUrl: string;
   isOfficial: boolean;
+  creatorName?: string;
+  publishedAt?: string | null;
+  tags?: string[];
   items: MiniconItem[];
 };
 

@@ -107,7 +107,7 @@ export function MiniconPackForm() {
           onChange={(event) => setFileNames(Array.from(event.currentTarget.files ?? []).map((file) => file.name))}
           className="min-h-12 rounded-[var(--ui-control-radius)] border border-dashed border-[var(--ui-border)] bg-[var(--ui-surface-muted)] px-3 py-3 text-[14px] font-normal file:mr-3 file:rounded-lg file:border-0 file:bg-[var(--ui-ink)] file:px-3 file:py-1.5 file:text-[13px] file:font-medium file:text-[var(--ui-surface)]"
         />
-        <span className="text-[13px] font-normal leading-5 text-[var(--ui-muted)]">정확히 200×200px, JPG·PNG·GIF, 개당 2MB 이하 · 한 번에 10~200개</span>
+        <span className="text-[13px] font-normal leading-5 text-[var(--ui-muted)]">정확히 200×200px, JPG·PNG·GIF, 개당 2MB 이하 · 한 번에 10~50개</span>
       </label>
 
       {fileNames.length > 0 ? (
