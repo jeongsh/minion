@@ -7,13 +7,13 @@ import EyeOff from 'lucide-react-native/icons/eye-off';
 import Ellipsis from 'lucide-react-native/icons/ellipsis';
 import Flag from 'lucide-react-native/icons/flag';
 import SendHorizontal from 'lucide-react-native/icons/send-horizontal';
-import Smile from 'lucide-react-native/icons/face-slightly-smiling';
+import Sticker from 'lucide-react-native/icons/sticker';
 import ThumbsDown from 'lucide-react-native/icons/thumbs-down';
 import ThumbsUp from 'lucide-react-native/icons/thumbs-up';
 import Trash2 from 'lucide-react-native/icons/trash-2';
 import X from 'lucide-react-native/icons/x';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, type TextStyle, View } from 'react-native';
+import { ActivityIndicator, Alert, Keyboard, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, type TextStyle, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BottomSheet } from '@/components/bottom-sheet';
@@ -22,15 +22,15 @@ import { getMinionTeam } from '@/constants/teams';
 import { ErrorState } from '@/components/feedback-states';
 import { RankAvatar } from '@/components/rank-avatar';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
-import type { MobileCommunityActionDto, MobileCommunityAuthor, MobileCommunityComment, MobileCommunityCommentMutationDto, MobileCommunityPostDetailDto, MobileCommunityReactionDto } from '@/lib/api-client';
-import { mutateMobileApi } from '@/lib/api-client';
+import type { MobileCommunityActionDto, MobileCommunityAuthor, MobileCommunityComment, MobileCommunityCommentMutationDto, MobileCommunityPostDetailDto, MobileCommunityReactionDto, MobileMiniconItem } from '@/lib/api-client';
+import { mutateMobileApi, resolveApiAssetUrl } from '@/lib/api-client';
 import { fanAccentText } from '@/lib/fan-colors';
 import { useCachedQuery } from '@/hooks/use-cached-query';
 import { CommunityPostContent } from './community-post-content';
 import { CommunityAuthor, GuestAvatar } from './community-author';
 import { COMMENT_MAX_LENGTH, displayAuthor, formatCommunityDate, type CommunityScope } from './community-utils';
+import { MiniconPicker, rememberMiniconUse } from './minicon-picker';
 
-const EMOJIS = ['😀', '😂', '😍', '😮', '😢', '😡', '👍', '👏', '🔥', '🎉'];
 type ReportTarget = { target: 'post' | 'comment'; targetId: string };
 
 export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope }) {
@@ -48,7 +48,9 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
   const scrollRef = useRef<ScrollView>(null);
   const [comment, setComment] = useState('');
   const [replyTo, setReplyTo] = useState<MobileCommunityComment | null>(null);
-  const [emojiOpen, setEmojiOpen] = useState(false);
+  const [miniconOpen, setMiniconOpen] = useState(false);
+  const [selectedMinicons, setSelectedMinicons] = useState<MobileMiniconItem[]>([]);
+  const [doubleMode, setDoubleMode] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [ownerMenuOpen, setOwnerMenuOpen] = useState(false);
   const [reportPending, setReportPending] = useState(false);
@@ -60,7 +62,9 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
   useEffect(() => {
     setComment('');
     setReplyTo(null);
-    setEmojiOpen(false);
+    setMiniconOpen(false);
+    setSelectedMinicons([]);
+    setDoubleMode(false);
     setOwnerMenuOpen(false);
     setReportPending(false);
     setReportReason('');
@@ -121,9 +125,52 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
     setSubmitting(true);
     try {
       await mutateMobileApi<MobileCommunityCommentMutationDto>('/api/mobile/v1/community/comments', 'POST', { content, parentId: replyTo?.id ?? null, postId: data.id });
-      setComment(''); setReplyTo(null); setEmojiOpen(false); refresh();
+      setComment(''); setReplyTo(null); setMiniconOpen(false); refresh();
     } catch (caught) { Alert.alert('등록 실패', caught instanceof Error ? caught.message : '댓글을 등록하지 못했습니다.'); }
     finally { setSubmitting(false); }
+  };
+  const submitMinicons = async (items: MobileMiniconItem[]) => {
+    if (submitting || !data) return;
+    setSubmitting(true);
+    setComment('');
+    setMiniconOpen(false);
+    setSelectedMinicons([]);
+    try {
+      await mutateMobileApi<MobileCommunityCommentMutationDto>('/api/mobile/v1/community/comments', 'POST', {
+        miniconItemIds: items.map((item) => item.id),
+        parentId: replyTo?.id ?? null,
+        postId: data.id,
+      });
+      items.forEach((item) => { void rememberMiniconUse(item.id); });
+      setReplyTo(null);
+      showToast(replyTo ? '답글 등록 완료' : '댓글 등록 완료', 'success');
+      refresh();
+    } catch (caught) {
+      showToast(caught instanceof Error ? caught.message : '미니콘을 등록하지 못했습니다.', 'error');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+  const selectMinicon = (item: MobileMiniconItem) => {
+    if (!doubleMode) {
+      void submitMinicons([item]);
+      return;
+    }
+    if (selectedMinicons.length === 0) {
+      setSelectedMinicons([item]);
+      setComment('');
+      return;
+    }
+    void submitMinicons([selectedMinicons[0], item]);
+  };
+  const startDoubleMinicon = (item: MobileMiniconItem) => {
+    setDoubleMode(true);
+    setSelectedMinicons([item]);
+    setComment('');
+  };
+  const toggleMiniconPicker = () => {
+    if (!miniconOpen) Keyboard.dismiss();
+    setMiniconOpen((open) => !open);
   };
   const deletePost = () => Alert.alert('게시글 삭제', '이 게시글을 삭제할까요?', [
     { style: 'cancel', text: '취소' },
@@ -187,12 +234,15 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
           })}</View>
         </View>
         </ScrollView>
+        {miniconOpen ? <MiniconPicker bottom={64 + bottomInset} doubleMode={doubleMode} onDoubleModeChange={(enabled) => { setDoubleMode(enabled); setSelectedMinicons([]); }} onSelect={selectMinicon} onStartDouble={startDoubleMinicon} packs={data.miniconPacks} selectedIds={selectedMinicons.map((item) => item.id)} /> : null}
         <View style={[styles.commentDock, { backgroundColor: theme.pageBackground, borderTopColor: theme.divider, paddingBottom: bottomInset }]}>
         {replyTo ? <View style={styles.replying}><Text numberOfLines={1} style={{ color: theme.muted, flex: 1, ...fonts.medium, fontSize: 13 }}>{displayAuthor(replyTo.author)}님에게 답글</Text><Pressable onPress={() => setReplyTo(null)}><X color={theme.muted} size={16} /></Pressable></View> : null}
-        {emojiOpen ? <View style={[styles.emojiBar, { backgroundColor: theme.surface }]}>{EMOJIS.map((emoji) => <Pressable key={emoji} onPress={() => setComment((value) => `${value}${emoji}`.slice(0, COMMENT_MAX_LENGTH))} style={styles.emoji}><Text style={styles.emojiText}>{emoji}</Text></Pressable>)}</View> : null}
         <View style={styles.commentComposer}>
-          <View style={[styles.commentInputWrap, { backgroundColor: theme.surfaceMuted }]}><TextInput maxLength={COMMENT_MAX_LENGTH} multiline numberOfLines={1} onChangeText={setComment} placeholder="댓글을 입력해 주세요." placeholderTextColor={theme.muted} style={[styles.commentInput, { color: theme.text, ...fonts.regular }]} value={comment} /><Pressable accessibilityLabel="이모지 선택" onPress={() => setEmojiOpen((open) => !open)} style={styles.emojiButton}><Smile color={theme.muted} size={19} strokeWidth={1.7} /></Pressable></View>
-          <Pressable accessibilityLabel={submitting ? '댓글 등록 중' : '댓글 등록'} disabled={!comment.trim() || submitting} onPress={() => void submitComment()} style={styles.send}>{submitting ? <ActivityIndicator color={accent} size="small" /> : <SendHorizontal color={comment.trim() ? accent : theme.muted} size={22} strokeWidth={2} />}</Pressable>
+          <View style={[styles.commentInputWrap, { backgroundColor: theme.surfaceMuted }]}>
+            {selectedMinicons[0] ? <View style={styles.selectedPreview}><Image accessibilityLabel={`${selectedMinicons[0].name} 미니콘`} contentFit="cover" source={{ uri: resolveApiAssetUrl(selectedMinicons[0].imageUrl) ?? selectedMinicons[0].imageUrl }} style={styles.selectedPreviewImage} /><Pressable accessibilityLabel="선택한 미니콘 취소" onPress={() => setSelectedMinicons([])} style={[styles.selectedPreviewClose, { backgroundColor: theme.ink }]}><X color={theme.surface} size={13} strokeWidth={2} /></Pressable></View> : <TextInput maxLength={COMMENT_MAX_LENGTH} multiline numberOfLines={1} onChangeText={setComment} placeholder="댓글을 입력해 주세요." placeholderTextColor={theme.muted} style={[styles.commentInput, { color: theme.text, ...fonts.regular }]} value={comment} />}
+            <Pressable accessibilityLabel="미니콘 선택" accessibilityState={{ expanded: miniconOpen }} onPress={toggleMiniconPicker} style={styles.miniconButton}><Sticker color={miniconOpen || selectedMinicons.length > 0 ? accent : theme.muted} size={19} strokeWidth={1.7} /></Pressable>
+          </View>
+          <Pressable accessibilityLabel={submitting ? '댓글 등록 중' : '댓글 등록'} disabled={!comment.trim() || selectedMinicons.length > 0 || submitting} onPress={() => void submitComment()} style={styles.send}>{submitting ? <ActivityIndicator color={accent} size="small" /> : <SendHorizontal color={comment.trim() && selectedMinicons.length === 0 ? accent : theme.muted} size={22} strokeWidth={2} />}</Pressable>
         </View>
         </View>
         <BottomSheet onClose={() => setOwnerMenuOpen(false)} open={ownerMenuOpen} title="게시글 관리">
@@ -291,6 +341,8 @@ function CommentItem({ accent, best = false, comment, continued = false, onDelet
             {comment.blindedSource === 'ai' ? <Image accessibilityLabel="" contentFit="contain" source={require('@/assets/characters/pen-warning-blocked-red.png')} style={styles.blindedCommentCharacter} /> : <EyeOff color={theme.muted} size={14} strokeWidth={1.8} />}
             <Text style={[styles.commentBody, { color: theme.muted, ...fonts.regular }]}>블라인드된 댓글입니다.</Text>
           </View>
+        ) : comment.contentKind === 'minicon' ? (
+          comment.minicons.length > 0 ? <View accessibilityLabel={`${comment.minicons.map((minicon) => minicon.name).join(', ')} 미니콘`} style={styles.miniconComment}>{comment.minicons.map((minicon) => <Image accessibilityLabel="" contentFit="cover" key={minicon.id} source={{ uri: resolveApiAssetUrl(minicon.imageUrl) ?? minicon.imageUrl }} style={styles.miniconCommentImage} />)}</View> : <View style={[styles.unavailableMinicon, { backgroundColor: theme.surfaceMuted, borderColor: theme.border }]}><Text style={{ color: theme.muted, ...fonts.regular, fontSize: 13, lineHeight: 20, textAlign: 'center' }}>사용할 수 없는 미니콘</Text></View>
         ) : (
           <Text style={[styles.commentBody, { color: theme.text, ...fonts.regular }]}>{String(comment.content)}</Text>
         )}
@@ -311,5 +363,5 @@ function commentLinkText(color: string, font: TextStyle) {
 function OwnerAction({ destructive = false, label, onPress }: { destructive?: boolean; label: string; onPress: () => void }) { const { fonts, theme } = useMinionTheme(); return <Pressable onPress={onPress} style={styles.ownerAction}><Text style={{ color: destructive ? '#ef4444' : theme.text, ...fonts.bold, fontSize: 15 }}>{label}</Text></Pressable>; }
 
 const styles = StyleSheet.create({
-  root: { flex: 1 }, safeTop: { left: 0, position: 'absolute', right: 0, top: 0 }, header: { alignItems: 'center', borderBottomWidth: 1, flexDirection: 'row', height: 48, paddingHorizontal: 12 }, headerButton: { alignItems: 'center', height: 44, justifyContent: 'center', width: 44 }, headerTitle: { flex: 1, fontSize: 16, lineHeight: 24, textAlign: 'center' }, ad: { alignItems: 'center', height: 60, justifyContent: 'center' }, adText: { fontSize: 13, letterSpacing: 2.2, lineHeight: 19.5 }, article: { borderTopWidth: 1, minHeight: 500 }, postHeader: { paddingBottom: 20, paddingHorizontal: 14, paddingTop: 16 }, postTitle: { fontSize: 16, lineHeight: 23.2 }, authorRow: { alignItems: 'center', flexDirection: 'row', marginTop: 12 }, detailMeta: { alignItems: 'center', flexDirection: 'row', gap: 5 }, divider: { height: 1, marginHorizontal: 14 }, body: { minHeight: 180, paddingHorizontal: 14, paddingVertical: 24 }, blinded: { alignItems: 'center', borderRadius: 12, gap: 7, justifyContent: 'center', minHeight: 150, padding: 20 }, blindedCharacter: { height: 112, width: 112 }, blindedComment: { alignItems: 'center', alignSelf: 'flex-start', borderRadius: 8, flexDirection: 'row', gap: 8, marginTop: 2, paddingHorizontal: 10, paddingVertical: 6 }, blindedCommentCharacter: { height: 32, width: 32 }, postActions: { alignItems: 'center', borderBottomWidth: 1, borderTopWidth: 1, flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 16 }, reactions: { flexDirection: 'row', gap: 8 }, reaction: { alignItems: 'center', borderRadius: 8, borderWidth: 1, flexDirection: 'row', gap: 6, height: 36, paddingHorizontal: 12 }, smallReaction: { alignItems: 'center', borderRadius: 8, flexDirection: 'row', gap: 4, height: 32, justifyContent: 'center', paddingHorizontal: 8 }, report: { alignItems: 'center', borderRadius: 8, borderWidth: 1, flexDirection: 'row', gap: 6, height: 36, paddingHorizontal: 12 }, commentTitle: { alignItems: 'baseline', flexDirection: 'row', gap: 4, paddingHorizontal: 14, paddingVertical: 16 }, comments: { paddingHorizontal: 14 }, commentThread: { marginBottom: 16 }, bestThread: { borderRadius: 8, marginHorizontal: -8, paddingHorizontal: 8, paddingTop: 12 }, bestBadge: { borderRadius: 2, color: '#ffffff', fontSize: 12, lineHeight: 16, overflow: 'hidden', paddingHorizontal: 5 }, commentItem: { alignItems: 'flex-start', flexDirection: 'row', gap: 16, minHeight: 78 }, commentContinuation: { bottom: 0, left: 18, position: 'absolute', top: 40, width: 1 }, commentInner: { flex: 1, minWidth: 0, position: 'relative' }, commentTop: { alignItems: 'center', flexDirection: 'row', gap: 4, height: 20, paddingRight: 30 }, commentAuthor: { flexShrink: 1, minWidth: 0 }, commentMenu: { alignItems: 'center', height: 32, justifyContent: 'center', position: 'absolute', right: 0, top: -6, width: 32 }, commentReactions: { flexDirection: 'row', gap: 4 }, commentBody: { fontSize: 14, lineHeight: 20, marginTop: 2 }, commentLinks: { alignItems: 'center', flexDirection: 'row', gap: 8, height: 32, marginLeft: -8, marginTop: 4 }, threadToggleRow: { height: 52, position: 'relative' }, threadConnection: { borderBottomLeftRadius: 16, borderBottomWidth: 1, borderLeftWidth: 1, height: 30, left: 18, position: 'absolute', top: 0, width: 18 }, threadToggleButton: { alignItems: 'center', borderRadius: 20, flexDirection: 'row', gap: 6, height: 40, left: 36, paddingHorizontal: 16, position: 'absolute', top: 12 }, replyThreadRow: { minHeight: 90, position: 'relative' }, replyThreadStem: { bottom: 0, left: 18, position: 'absolute', top: 0, width: 1 }, replyThreadElbow: { borderBottomLeftRadius: 16, borderBottomWidth: 1, borderLeftWidth: 1, height: 24, left: 18, position: 'absolute', top: 0, width: 30 }, replyThreadContent: { marginLeft: 48, paddingTop: 12 }, editBox: { borderRadius: 8, borderWidth: 1, marginTop: 4, padding: 10 }, editActions: { alignItems: 'center', flexDirection: 'row', gap: 18, justifyContent: 'flex-end', marginTop: 7 }, reasonInput: { borderRadius: 10, borderWidth: 1, fontSize: 16, lineHeight: 24, marginTop: 14, minHeight: 112, padding: 12 }, reportSubmit: { alignItems: 'center', borderRadius: 8, height: 44, justifyContent: 'center', marginBottom: 4, marginTop: 12 }, commentDock: { borderTopWidth: 1, bottom: 0, left: 0, paddingHorizontal: 10, paddingTop: 8, position: 'absolute', right: 0 }, replying: { alignItems: 'center', flexDirection: 'row', paddingBottom: 6, paddingHorizontal: 8 }, emojiBar: { borderRadius: 10, flexDirection: 'row', justifyContent: 'space-between', marginBottom: 7, padding: 5 }, emoji: { alignItems: 'center', height: 32, justifyContent: 'center', width: 32 }, emojiText: { fontSize: 20 }, commentComposer: { alignItems: 'center', flexDirection: 'row', gap: 6, minHeight: 40 }, commentInputWrap: { alignItems: 'center', borderRadius: 20, flex: 1, flexDirection: 'row', minHeight: 40, paddingHorizontal: 14, paddingVertical: 6 }, commentInput: { flex: 1, fontSize: 14, lineHeight: 24, maxHeight: 80, minHeight: 24, paddingVertical: 0 }, emojiButton: { alignItems: 'center', height: 28, justifyContent: 'center', width: 28 }, send: { alignItems: 'center', height: 36, justifyContent: 'center', width: 36 }, ownerAction: { justifyContent: 'center', minHeight: 48, paddingHorizontal: 14 }, focusState: { alignItems: 'center', flex: 1, justifyContent: 'center' }, loadingAuthor: { alignItems: 'center', flexDirection: 'row', gap: 10, marginTop: 12 }, loadingAuthorCopy: { flex: 1, gap: 6 }, loadingMeta: { flexDirection: 'row', gap: 6 }, loadingBody: { gap: 10, minHeight: 180, paddingHorizontal: 14, paddingVertical: 24 }, loadingComment: { gap: 8, paddingVertical: 14 }, loadingCommentTop: { alignItems: 'center', flexDirection: 'row', gap: 8 }, loadingCommentReactions: { flexDirection: 'row', gap: 12, marginLeft: 'auto' }, loadingLinks: { flexDirection: 'row', gap: 12 },
+  root: { flex: 1 }, safeTop: { left: 0, position: 'absolute', right: 0, top: 0 }, header: { alignItems: 'center', borderBottomWidth: 1, flexDirection: 'row', height: 48, paddingHorizontal: 12 }, headerButton: { alignItems: 'center', height: 44, justifyContent: 'center', width: 44 }, headerTitle: { flex: 1, fontSize: 16, lineHeight: 24, textAlign: 'center' }, ad: { alignItems: 'center', height: 60, justifyContent: 'center' }, adText: { fontSize: 13, letterSpacing: 2.2, lineHeight: 19.5 }, article: { borderTopWidth: 1, minHeight: 500 }, postHeader: { paddingBottom: 20, paddingHorizontal: 14, paddingTop: 16 }, postTitle: { fontSize: 16, lineHeight: 23.2 }, authorRow: { alignItems: 'center', flexDirection: 'row', marginTop: 12 }, detailMeta: { alignItems: 'center', flexDirection: 'row', gap: 5 }, divider: { height: 1, marginHorizontal: 14 }, body: { minHeight: 180, paddingHorizontal: 14, paddingVertical: 24 }, blinded: { alignItems: 'center', borderRadius: 12, gap: 7, justifyContent: 'center', minHeight: 150, padding: 20 }, blindedCharacter: { height: 112, width: 112 }, blindedComment: { alignItems: 'center', alignSelf: 'flex-start', borderRadius: 8, flexDirection: 'row', gap: 8, marginTop: 2, paddingHorizontal: 10, paddingVertical: 6 }, blindedCommentCharacter: { height: 32, width: 32 }, postActions: { alignItems: 'center', borderBottomWidth: 1, borderTopWidth: 1, flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 16 }, reactions: { flexDirection: 'row', gap: 8 }, reaction: { alignItems: 'center', borderRadius: 8, borderWidth: 1, flexDirection: 'row', gap: 6, height: 36, paddingHorizontal: 12 }, smallReaction: { alignItems: 'center', borderRadius: 8, flexDirection: 'row', gap: 4, height: 32, justifyContent: 'center', paddingHorizontal: 8 }, report: { alignItems: 'center', borderRadius: 8, borderWidth: 1, flexDirection: 'row', gap: 6, height: 36, paddingHorizontal: 12 }, commentTitle: { alignItems: 'baseline', flexDirection: 'row', gap: 4, paddingHorizontal: 14, paddingVertical: 16 }, comments: { paddingHorizontal: 14 }, commentThread: { marginBottom: 16 }, bestThread: { borderRadius: 8, marginHorizontal: -8, paddingHorizontal: 8, paddingTop: 12 }, bestBadge: { borderRadius: 2, color: '#ffffff', fontSize: 12, lineHeight: 16, overflow: 'hidden', paddingHorizontal: 5 }, commentItem: { alignItems: 'flex-start', flexDirection: 'row', gap: 16, minHeight: 78 }, commentContinuation: { bottom: 0, left: 18, position: 'absolute', top: 40, width: 1 }, commentInner: { flex: 1, minWidth: 0, position: 'relative' }, commentTop: { alignItems: 'center', flexDirection: 'row', gap: 4, height: 20, paddingRight: 30 }, commentAuthor: { flexShrink: 1, minWidth: 0 }, commentMenu: { alignItems: 'center', height: 32, justifyContent: 'center', position: 'absolute', right: 0, top: -6, width: 32 }, commentReactions: { flexDirection: 'row', gap: 4 }, commentBody: { fontSize: 14, lineHeight: 20, marginTop: 2 }, miniconComment: { flexDirection: 'row', marginTop: 8 }, miniconCommentImage: { height: 100, width: 100 }, unavailableMinicon: { alignItems: 'center', borderRadius: 18, borderWidth: 1, height: 100, justifyContent: 'center', marginTop: 8, paddingHorizontal: 12, width: 100 }, commentLinks: { alignItems: 'center', flexDirection: 'row', gap: 8, height: 32, marginLeft: -8, marginTop: 4 }, threadToggleRow: { height: 52, position: 'relative' }, threadConnection: { borderBottomLeftRadius: 16, borderBottomWidth: 1, borderLeftWidth: 1, height: 30, left: 18, position: 'absolute', top: 0, width: 18 }, threadToggleButton: { alignItems: 'center', borderRadius: 20, flexDirection: 'row', gap: 6, height: 40, left: 36, paddingHorizontal: 16, position: 'absolute', top: 12 }, replyThreadRow: { minHeight: 90, position: 'relative' }, replyThreadStem: { bottom: 0, left: 18, position: 'absolute', top: 0, width: 1 }, replyThreadElbow: { borderBottomLeftRadius: 16, borderBottomWidth: 1, borderLeftWidth: 1, height: 24, left: 18, position: 'absolute', top: 0, width: 30 }, replyThreadContent: { marginLeft: 48, paddingTop: 12 }, editBox: { borderRadius: 8, borderWidth: 1, marginTop: 4, padding: 10 }, editActions: { alignItems: 'center', flexDirection: 'row', gap: 18, justifyContent: 'flex-end', marginTop: 7 }, reasonInput: { borderRadius: 10, borderWidth: 1, fontSize: 16, lineHeight: 24, marginTop: 14, minHeight: 112, padding: 12 }, reportSubmit: { alignItems: 'center', borderRadius: 8, height: 44, justifyContent: 'center', marginBottom: 4, marginTop: 12 }, commentDock: { borderTopWidth: 1, bottom: 0, left: 0, paddingHorizontal: 10, paddingTop: 8, position: 'absolute', right: 0 }, replying: { alignItems: 'center', flexDirection: 'row', paddingBottom: 6, paddingHorizontal: 8 }, commentComposer: { alignItems: 'center', flexDirection: 'row', gap: 6, minHeight: 40 }, commentInputWrap: { alignItems: 'center', borderRadius: 20, flex: 1, flexDirection: 'row', minHeight: 40, paddingHorizontal: 14, paddingVertical: 6 }, commentInput: { flex: 1, fontSize: 14, lineHeight: 24, maxHeight: 80, minHeight: 24, paddingVertical: 0 }, miniconButton: { alignItems: 'center', height: 28, justifyContent: 'center', width: 28 }, selectedPreview: { height: 40, marginVertical: -6, position: 'relative', width: 40 }, selectedPreviewImage: { height: 40, width: 40 }, selectedPreviewClose: { alignItems: 'center', borderRadius: 999, height: 20, justifyContent: 'center', position: 'absolute', right: -6, top: -6, width: 20 }, send: { alignItems: 'center', height: 36, justifyContent: 'center', width: 36 }, ownerAction: { justifyContent: 'center', minHeight: 48, paddingHorizontal: 14 }, focusState: { alignItems: 'center', flex: 1, justifyContent: 'center' }, loadingAuthor: { alignItems: 'center', flexDirection: 'row', gap: 10, marginTop: 12 }, loadingAuthorCopy: { flex: 1, gap: 6 }, loadingMeta: { flexDirection: 'row', gap: 6 }, loadingBody: { gap: 10, minHeight: 180, paddingHorizontal: 14, paddingVertical: 24 }, loadingComment: { gap: 8, paddingVertical: 14 }, loadingCommentTop: { alignItems: 'center', flexDirection: 'row', gap: 8 }, loadingCommentReactions: { flexDirection: 'row', gap: 12, marginLeft: 'auto' }, loadingLinks: { flexDirection: 'row', gap: 12 },
 });

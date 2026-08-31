@@ -10,8 +10,11 @@ import {
 } from "@/lib/mobile/community";
 import { recordLpEvent } from "@/lib/rank/record-lp";
 import { scheduleCommunityCommentNotifications } from "@/lib/notifications/community";
+import { getPublishedMiniconItemsById } from "@/lib/data/minicons";
 
 export const dynamic = "force-dynamic";
+
+const MINICON_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export async function POST(request: Request) {
   const actor = await getMobileCommunityActor(request).catch(() => null);
@@ -25,8 +28,21 @@ export async function POST(request: Request) {
     const parent = await getCommentById(parentId);
     if (!parent || parent.postId !== postId) return mobileError("BAD_REQUEST", "답글을 작성할 댓글을 찾을 수 없습니다.", 400);
   }
-  const validated = validateMobileCommentInput(body?.content);
-  if (!validated.ok) return mobileError("BAD_REQUEST", validated.error, 400);
+  const rawMiniconItemIds = body?.miniconItemIds;
+  const rawMiniconItemCount = Array.isArray(rawMiniconItemIds) ? rawMiniconItemIds.length : 0;
+  const miniconItemIds = Array.isArray(rawMiniconItemIds)
+    ? rawMiniconItemIds.filter((value): value is string => typeof value === "string")
+    : null;
+  if (miniconItemIds && (
+    miniconItemIds.length < 1
+    || miniconItemIds.length > 2
+    || miniconItemIds.length !== rawMiniconItemCount
+    || miniconItemIds.some((id) => !MINICON_ID_PATTERN.test(id))
+  )) {
+    return mobileError("BAD_REQUEST", "미니콘 정보를 확인하지 못했습니다.", 400);
+  }
+  const validated = miniconItemIds ? null : validateMobileCommentInput(body?.content);
+  if (validated && !validated.ok) return mobileError("BAD_REQUEST", validated.error, 400);
   if (actor.auth && await isCommunityUserSanctioned(actor.auth.user.id)) {
     return mobileError("FORBIDDEN", "커뮤니티 이용이 영구 제한된 계정입니다.", 403);
   }
@@ -38,6 +54,35 @@ export async function POST(request: Request) {
     if (rateError) return mobileError("RATE_LIMITED", rateError, 429);
   }
   try {
+    if (miniconItemIds) {
+      const minicons = await getPublishedMiniconItemsById(miniconItemIds);
+      if (miniconItemIds.some((id) => !minicons.has(id))) {
+        return mobileError("BAD_REQUEST", "사용할 수 없는 미니콘입니다.", 400);
+      }
+      const created = await createComment({
+        authorId: actor.auth?.user.id ?? null,
+        content: "[미니콘]",
+        contentKind: "minicon",
+        guest: actor.auth ? undefined : actor.guest,
+        miniconItemId: miniconItemIds[0],
+        miniconItemId2: miniconItemIds[1] ?? null,
+        parentId,
+        postId,
+      });
+      scheduleCommunityCommentNotifications({
+        actor: actor.auth ? { userId: actor.auth.user.id } : { guestKey: actor.guest.key },
+        actorName: actor.auth ? undefined : actor.guest.nickname,
+        commentId: created.id,
+        parentId,
+        postId,
+      });
+      const data: MobileCommunityCommentMutationDto = {
+        id: created.id,
+        message: miniconItemIds.length === 2 ? "더블 미니콘을 붙였어요." : "미니콘을 붙였어요.",
+      };
+      return mobileSuccess(data, { headers: { "Cache-Control": "private, no-store" }, status: 201 });
+    }
+    if (!validated?.ok) return mobileError("BAD_REQUEST", "댓글 내용을 입력하세요.", 400);
     const created = await createComment({
       authorId: actor.auth?.user.id ?? null,
       content: validated.content,

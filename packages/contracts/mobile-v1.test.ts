@@ -19,6 +19,7 @@ test("mobile API authentication follows the shared web access boundaries", () =>
   assert.equal(mobileApiAuthForRequest("GET", "/api/mobile/v1/matches/match-1"), "public");
   assert.equal(mobileApiAuthForRequest("GET", "/api/mobile/v1/matches/match-1/live"), "public");
   assert.equal(mobileApiAuthForRequest("GET", "/api/mobile/v1/bootstrap"), "optional");
+  assert.equal(mobileApiAuthForRequest("GET", "/api/mobile/v1/minicons/picker"), "optional");
   assert.equal(mobileApiAuthForRequest("POST", "/api/mobile/v1/community/polls/sample-id"), "optional");
   assert.equal(mobileApiAuthForRequest("POST", "/api/mobile/v1/community/upload"), "optional");
   assert.equal(mobileApiAuthForRequest("GET", "/api/mobile/v1/predictions"), "optional");
@@ -36,20 +37,22 @@ test("dock activation follows the current compact navigation policy", () => {
   assert.equal(matchMobileRoute("/tournaments/regular")?.dockTab, "matches");
   assert.equal(matchMobileRoute("/predictions")?.dockTab, "matches");
   assert.equal(matchMobileRoute("/fan/t1/videos")?.dockTab, "fan");
+  assert.equal(matchMobileRoute("/fan/t1/community")?.dockTab, "fan-talk");
+  assert.equal(matchMobileRoute("/community")?.dockTab, "fan-talk");
   assert.equal(matchMobileRoute("/fan/t1/schedule")?.params.section, "schedule");
   assert.equal(matchMobileRoute("/fan/t1/social")?.params.section, "social");
   assert.equal(matchMobileRoute("/search")?.screen, "search");
   assert.equal(matchMobileRoute("/champions")?.screen, "champions");
   assert.equal(matchMobileRoute("/champions/orianna")?.params.championSlug, "orianna");
   assert.equal(matchMobileRoute("/teams/t1")?.dockTab, "teams");
-  assert.equal(matchMobileRoute("/news/article")?.dockTab, "news");
+  assert.equal(matchMobileRoute("/news/article")?.dockTab, null);
 });
 
 test("focus and post-detail routes carry navigation behavior", () => {
   assert.deepEqual(matchMobileRoute("/community/post/post-1"), {
     screen: "community-post",
     params: { postId: "post-1" },
-    dockTab: null,
+    dockTab: "fan-talk",
     hideGlobalDock: true,
     focus: false,
   });

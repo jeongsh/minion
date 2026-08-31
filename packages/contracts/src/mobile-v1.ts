@@ -145,12 +145,38 @@ export type TiptapNode = {
   text?: string;
 };
 
+export type MobileMiniconItem = {
+  id: EntityId;
+  packId: EntityId;
+  packName: string;
+  name: string;
+  imageUrl: string;
+};
+
+export type MobileMiniconPack = {
+  id: EntityId;
+  slug: string;
+  name: string;
+  description: string;
+  coverUrl: string;
+  isOfficial: boolean;
+  items: MobileMiniconItem[];
+};
+
+export type MobileMiniconCatalogDto = { packs: MobileMiniconPack[] };
+export type MobileMiniconSettingsDto = MobileMiniconCatalogDto & {
+  selectedPackIds: EntityId[];
+  selectionSaved: boolean;
+};
+
 export type MobileCommunityComment = {
   id: EntityId;
   postId: EntityId;
   parentId: EntityId | null;
   author: MobileCommunityAuthor;
+  contentKind: "text" | "minicon";
   content: TiptapDocument | string;
+  minicons: MobileMiniconItem[];
   likeCount: number;
   dislikeCount: number;
   reaction: "honor" | "dislike" | null;
@@ -683,6 +709,7 @@ export type MobileCommunityPostDetailDto = MobileCommunityPostSummary & {
   content: TiptapDocument;
   reaction: "honor" | "dislike" | null;
   comments: MobileCommunityComment[];
+  miniconPacks: MobileMiniconPack[];
   permissions: { canEdit: boolean; canDelete: boolean; canReact: boolean; canReport: boolean; canBlock: boolean };
 };
 
@@ -1158,6 +1185,10 @@ export const mobileApiRoutes = {
   communityUpload: { method: "POST", path: `${MOBILE_API_PREFIX}/community/upload`, owner: "community upload service", auth: "optional", cache: "no-store" },
   communityUser: { method: "GET", path: `${MOBILE_API_PREFIX}/community/users/{userId}`, owner: "community user activity service", auth: "optional", cache: "no-store" },
   communityAuthorAction: { method: "POST", path: `${MOBILE_API_PREFIX}/community/authors/actions`, owner: "community user actions service", auth: "required", cache: "no-store" },
+  minicons: { method: "GET", path: `${MOBILE_API_PREFIX}/minicons`, owner: "minicon catalog service", auth: "public", cache: "60s" },
+  miniconPicker: { method: "GET", path: `${MOBILE_API_PREFIX}/minicons/picker`, owner: "minicon catalog service", auth: "optional", cache: "no-store" },
+  meMinicons: { method: "GET", path: `${MOBILE_API_PREFIX}/me/minicons`, owner: "minicon settings service", auth: "required", cache: "no-store" },
+  meMiniconsUpdate: { method: "PATCH", path: `${MOBILE_API_PREFIX}/me/minicons`, owner: "minicon settings service", auth: "required", cache: "no-store" },
   authNaverStart: { method: "GET", path: `${MOBILE_API_PREFIX}/auth/naver/start`, owner: "native auth broker", auth: "public", cache: "no-store" },
   authNaverCallback: { method: "GET", path: `${MOBILE_API_PREFIX}/auth/naver/callback`, owner: "native auth broker", auth: "public", cache: "no-store" },
   authNaverExchange: { method: "POST", path: `${MOBILE_API_PREFIX}/auth/naver/exchange`, owner: "native auth broker", auth: "public", cache: "no-store" },
@@ -1193,7 +1224,7 @@ export function mobileApiAuthForRequest(method: MobileApiRouteDefinition["method
   }
 }
 
-export type MobileDockTab = "home" | "matches" | "fan" | "teams" | "news";
+export type MobileDockTab = "home" | "matches" | "fan" | "teams" | "fan-talk";
 
 export type MobileRouteMatch = {
   screen: string;
@@ -1230,17 +1261,17 @@ const routeRules: RouteRule[] = [
   { pattern: /^\/search\/?$/, screen: "search", dockTab: null },
   { pattern: /^\/fan\/([^/]+)\/?$/, screen: "fan-home", dockTab: "fan", keys: ["teamSlug"] },
   { pattern: /^\/fan\/([^/]+)\/(schedule|players|social|videos)\/?$/, screen: "fan-section", dockTab: "fan", keys: ["teamSlug", "section"] },
-  { pattern: /^\/fan\/([^/]+)\/community\/post\/([^/]+)\/?$/, screen: "community-post", dockTab: "fan", hideGlobalDock: true, keys: ["teamSlug", "postId"] },
+  { pattern: /^\/fan\/([^/]+)\/community\/post\/([^/]+)\/?$/, screen: "community-post", dockTab: "fan-talk", hideGlobalDock: true, keys: ["teamSlug", "postId"] },
   { pattern: /^\/fan\/([^/]+)\/community\/(?:new|[^/]+\/new)\/?$/, screen: "community-compose", dockTab: null, hideGlobalDock: true, focus: true, keys: ["teamSlug"], fallback: p => `/fan/${p.teamSlug}/community` },
   { pattern: /^\/fan\/([^/]+)\/community\/post\/([^/]+)\/edit\/?$/, screen: "community-edit", dockTab: null, hideGlobalDock: true, focus: true, keys: ["teamSlug", "postId"], fallback: p => `/fan/${p.teamSlug}/community/post/${p.postId}` },
-  { pattern: /^\/fan\/([^/]+)\/community(?:\/([^/]+))?\/?$/, screen: "fan-community", dockTab: "fan", keys: ["teamSlug", "board"] },
-  { pattern: /^\/community\/?$/, screen: "community", dockTab: null },
-  { pattern: /^\/community\/post\/([^/]+)\/?$/, screen: "community-post", dockTab: null, hideGlobalDock: true, keys: ["postId"] },
+  { pattern: /^\/fan\/([^/]+)\/community(?:\/([^/]+))?\/?$/, screen: "fan-community", dockTab: "fan-talk", keys: ["teamSlug", "board"] },
+  { pattern: /^\/community\/?$/, screen: "community", dockTab: "fan-talk" },
+  { pattern: /^\/community\/post\/([^/]+)\/?$/, screen: "community-post", dockTab: "fan-talk", hideGlobalDock: true, keys: ["postId"] },
   { pattern: /^\/community\/(?:new|[^/]+\/new)\/?$/, screen: "community-compose", dockTab: null, hideGlobalDock: true, focus: true, fallback: () => "/community" },
   { pattern: /^\/community\/post\/([^/]+)\/edit\/?$/, screen: "community-edit", dockTab: null, hideGlobalDock: true, focus: true, keys: ["postId"], fallback: p => `/community/post/${p.postId}` },
-  { pattern: /^\/community\/user\/([^/]+)\/?$/, screen: "community-user", dockTab: null, keys: ["userId"] },
-  { pattern: /^\/community\/([^/]+)\/?$/, screen: "community-board", dockTab: null, keys: ["board"] },
-  { pattern: /^\/news(?:\/.*)?$/, screen: "news", dockTab: "news" },
+  { pattern: /^\/community\/user\/([^/]+)\/?$/, screen: "community-user", dockTab: "fan-talk", keys: ["userId"] },
+  { pattern: /^\/community\/([^/]+)\/?$/, screen: "community-board", dockTab: "fan-talk", keys: ["board"] },
+  { pattern: /^\/news(?:\/.*)?$/, screen: "news", dockTab: null },
   { pattern: /^\/support\/?$/, screen: "support", dockTab: null },
   { pattern: /^\/support\/new\/?$/, screen: "support-compose", dockTab: null, hideGlobalDock: true, focus: true, fallback: () => "/support" },
   { pattern: /^\/support\/([^/]+)\/?$/, screen: "support-inquiry", dockTab: null, hideGlobalDock: true, keys: ["inquiryId"] },

@@ -10,7 +10,7 @@ import { ErrorState } from '@/components/feedback-states';
 import { KeyboardAwareView } from '@/components/keyboard-aware-view';
 import { getMinionTeam } from '@/constants/teams';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
-import type { MobileCommunityPostDetailDto, MobileCommunityPostMutationDto, TiptapDocument } from '@/lib/api-client';
+import type { MobileCommunityPostDetailDto, MobileCommunityPostMutationDto, MobileMiniconCatalogDto, TiptapDocument } from '@/lib/api-client';
 import { invalidateApiCache, mutateMobileApi } from '@/lib/api-client';
 import { fanAccentText } from '@/lib/fan-colors';
 import { useCachedQuery } from '@/hooks/use-cached-query';
@@ -34,6 +34,7 @@ export function CommunityComposeScreen({ edit = false, scope = 'hub' }: { edit?:
   const basePath = teamSlug && scope === 'team' ? `/fan/${teamSlug}/community` : '/community';
   const detailPath = `/api/mobile/v1/community/posts/${encodeURIComponent(postId ?? '')}${teamSlug && scope === 'team' ? `?team=${encodeURIComponent(teamSlug)}` : ''}`;
   const detail = useCachedQuery<MobileCommunityPostDetailDto>(detailPath, { cache: false, enabled: edit && Boolean(postId) });
+  const minicons = useCachedQuery<MobileMiniconCatalogDto>('/api/mobile/v1/minicons/picker', { cache: false });
   const [category, setCategory] = useState(defaultCategory);
   const [categoryOpen, setCategoryOpen] = useState(false);
   const [title, setTitle] = useState('');
@@ -112,7 +113,7 @@ export function CommunityComposeScreen({ edit = false, scope = 'hub' }: { edit?:
           </View>
           <TextInput accessibilityLabel="제목" maxLength={POST_TITLE_MAX_LENGTH} onChangeText={setTitle} placeholder="제목을 입력하세요" placeholderTextColor={colorWithAlpha(theme.muted, 0.55)} style={[styles.titleInput, { color: theme.ink, ...(title ? fonts.bold : fonts.medium) }]} value={title} />
         </View>
-        <View style={styles.editor}><CommunityRichEditor allowEmbeds={Boolean(session)} allowMedia characterCount={length} characterLimit={POST_TEXT_MAX_LENGTH} key={editorVersion} maxImages={session ? 10 : 1} onChange={setDocument} ref={editorRef} value={document} /></View>
+        <View style={styles.editor}><CommunityRichEditor allowEmbeds={Boolean(session)} allowMedia characterCount={length} characterLimit={POST_TEXT_MAX_LENGTH} key={editorVersion} maxImages={session ? 10 : 1} miniconPacks={detail.data?.miniconPacks ?? minicons.data?.packs ?? []} onChange={setDocument} ref={editorRef} value={document} /></View>
       </View>
     </KeyboardAwareView>
   );

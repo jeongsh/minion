@@ -126,6 +126,7 @@ export function toMobileCommunityComment(
     author: toMobileAuthor(comment),
     blindedSource: comment.blindedSource,
     content: comment.content,
+    contentKind: comment.contentKind,
     createdAt: comment.createdAt,
     dislikeCount: comment.dislikeCount,
     id: comment.id,
@@ -133,8 +134,9 @@ export function toMobileCommunityComment(
     isBlinded: Boolean(comment.blindedAt),
     isDeleted: Boolean(comment.deletedAt),
     likeCount: comment.likeCount,
+    minicons: comment.minicons,
     parentId: comment.parentId,
-    permissions: { canDelete: canManage, canEdit: canManage, canReport: !canManage },
+    permissions: { canDelete: canManage, canEdit: canManage && comment.contentKind === "text", canReport: !canManage },
     postId: comment.postId,
     reaction,
   };

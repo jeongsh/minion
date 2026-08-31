@@ -10,6 +10,7 @@ import ListOrdered from 'lucide-react-native/icons/list-ordered';
 import Plus from 'lucide-react-native/icons/plus';
 import Redo from 'lucide-react-native/icons/redo';
 import Share2 from 'lucide-react-native/icons/share-2';
+import Sticker from 'lucide-react-native/icons/sticker';
 import Strikethrough from 'lucide-react-native/icons/strikethrough';
 import Type from 'lucide-react-native/icons/type';
 import Underline from 'lucide-react-native/icons/underline';
@@ -17,14 +18,15 @@ import Undo from 'lucide-react-native/icons/undo';
 import Video from 'lucide-react-native/icons/video';
 import X from 'lucide-react-native/icons/x';
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Image as NativeImage, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Image as NativeImage, Keyboard, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 
 import { BottomSheet } from '@/components/bottom-sheet';
 import { useKeyboardLayout } from '@/hooks/use-keyboard-layout';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
-import type { MobileCommunityUploadDto, TiptapDocument, TiptapNode } from '@/lib/api-client';
-import { uploadMobileApi } from '@/lib/api-client';
+import type { MobileCommunityUploadDto, MobileMiniconItem, MobileMiniconPack, TiptapDocument, TiptapNode } from '@/lib/api-client';
+import { resolveApiAssetUrl, uploadMobileApi } from '@/lib/api-client';
+import { MiniconPicker, rememberMiniconUse } from './minicon-picker';
 
 type Props = {
   allowEmbeds: boolean;
@@ -32,6 +34,7 @@ type Props = {
   characterCount: number;
   characterLimit: number;
   maxImages: number;
+  miniconPacks: MobileMiniconPack[];
   onChange: (document: TiptapDocument) => void;
   value: TiptapDocument;
 };
@@ -154,7 +157,7 @@ function imageCount(document: TiptapDocument) {
   return count;
 }
 
-export const CommunityRichEditor = forwardRef<CommunityRichEditorHandle, Props>(function CommunityRichEditor({ allowEmbeds, allowMedia, characterCount, characterLimit, maxImages, onChange, value }, ref) {
+export const CommunityRichEditor = forwardRef<CommunityRichEditorHandle, Props>(function CommunityRichEditor({ allowEmbeds, allowMedia, characterCount, characterLimit, maxImages, miniconPacks, onChange, value }, ref) {
   const webView = useRef<WebView>(null);
   const pendingFlushes = useRef(new Map<string, { resolve: (document: TiptapDocument) => void; timer: ReturnType<typeof setTimeout> }>());
   const valueRef = useRef(value);
@@ -170,6 +173,7 @@ export const CommunityRichEditor = forwardRef<CommunityRichEditorHandle, Props>(
   const [linkUrl, setLinkUrl] = useState('');
   const [pollOpen, setPollOpen] = useState(false);
   const [poll, setPoll] = useState<PollDraft>(emptyPoll);
+  const [miniconOpen, setMiniconOpen] = useState(false);
   const html = useMemo(() => editorHtml(initialHtml(initial), { accent: theme.accent, background: theme.surface, border: theme.border, color: theme.text, ink: theme.ink, muted: theme.muted, mutedSurface: theme.surfaceMuted }), [initial, theme.accent, theme.border, theme.ink, theme.muted, theme.surface, theme.surfaceMuted, theme.text]);
   const command = (name: string, arg: unknown = '') => webView.current?.injectJavaScript(`window.minionCommand(${JSON.stringify(name)},${JSON.stringify(arg)});true;`);
 
@@ -246,6 +250,16 @@ export const CommunityRichEditor = forwardRef<CommunityRichEditorHandle, Props>(
   };
 
   const openNewPoll = () => { setFormatOpen(false); setPoll(emptyPoll()); setPollOpen(true); };
+  const insertMinicon = (item: MobileMiniconItem) => {
+    if (imageCount(valueRef.current) >= maxImages) {
+      Alert.alert('미니콘 넣기', `이미지와 미니콘은 합쳐서 ${maxImages}장까지 넣을 수 있습니다.`);
+      return;
+    }
+    const src = resolveApiAssetUrl(item.imageUrl) ?? item.imageUrl;
+    command('insertImage', { alt: `${item.packName} ${item.name} 미니콘`, aspectRatio: 1, src, width: 200 });
+    void rememberMiniconUse(item.id);
+    setMiniconOpen(false);
+  };
   const savePoll = () => {
     const question = poll.question.trim();
     const options = poll.options.map((option) => ({ ...option, label: option.label.trim() })).filter((option) => Boolean(option.label));
@@ -266,9 +280,12 @@ export const CommunityRichEditor = forwardRef<CommunityRichEditorHandle, Props>(
         <Tool compact label="굵게" onPress={() => command('bold')}><Bold color={theme.text} size={18} /></Tool><Tool compact label="기울임" onPress={() => command('italic')}><Italic color={theme.text} size={18} /></Tool><Tool compact label="밑줄" onPress={() => command('underline')}><Underline color={theme.text} size={18} /></Tool><Tool compact label="취소선" onPress={() => command('strikeThrough')}><Strikethrough color={theme.text} size={18} /></Tool><View style={[styles.formatDivider, { backgroundColor: theme.border }]} /><Tool compact label="글머리 목록" onPress={() => command('insertUnorderedList')}><List color={theme.text} size={18} /></Tool><Tool compact label="번호 목록" onPress={() => command('insertOrderedList')}><ListOrdered color={theme.text} size={18} /></Tool><FormatColorTool color="#000000" label="글자색" onPress={() => setPalette('text')}><Type color={theme.text} size={16} /></FormatColorTool><FormatColorTool color="transparent" label="배경색" onPress={() => setPalette('highlight')}><Highlighter color={theme.text} size={16} /></FormatColorTool>
       </View> : null}
 
+      {miniconOpen ? <MiniconPicker bottom={60 + bottomInset} doubleMode={false} onSelect={insertMinicon} packs={miniconPacks} selectedIds={[]} showDoubleMode={false} /> : null}
+
       <Text style={[styles.count, { color: characterCount > characterLimit ? '#ef4444' : theme.muted, ...fonts.regular }]}>{characterCount.toLocaleString('ko-KR')}/{characterLimit.toLocaleString('ko-KR')}자</Text>
       <View style={[styles.toolbar, { backgroundColor: theme.surface, borderColor: theme.border, height: 54 + bottomInset, paddingBottom: bottomInset }]}>
         {allowMedia ? <><Tool disabled={uploading} label={uploading ? '이미지 업로드 중' : '이미지 첨부'} onPress={() => void pickImage()}>{uploading ? <ActivityIndicator color={theme.accent} size="small" /> : <ImageIcon color={theme.text} size={18} />}</Tool>{allowEmbeds ? <><Tool label="YouTube 영상 첨부" onPress={() => openLink('youtube')}><Video color={theme.text} size={18} /></Tool><Tool label="SNS 게시물 첨부" onPress={() => openLink('sns')}><Share2 color={theme.text} size={18} /></Tool></> : null}<Tool label="투표 추가" onPress={openNewPoll}><BarChart3 color={theme.text} size={18} /></Tool></> : null}
+        {miniconPacks.length > 0 ? <Tool active={miniconOpen} label="미니콘 넣기" onPress={() => { setFormatOpen(false); Keyboard.dismiss(); setMiniconOpen((open) => !open); }}><Sticker color={toolColor(miniconOpen)} size={18} /></Tool> : null}
         <Tool active={formatOpen} label="텍스트 서식" onPress={() => setFormatOpen((open) => !open)}><Text style={{ color: toolColor(formatOpen), ...fonts.medium, fontSize: 16, lineHeight: 18 }}>Aa</Text></Tool><View style={[styles.toolDivider, { backgroundColor: theme.border }]} /><Tool label="실행 취소" onPress={() => command('undo')}><Undo color={theme.text} size={18} /></Tool><Tool label="다시 실행" onPress={() => command('redo')}><Redo color={theme.text} size={18} /></Tool>
       </View>
 
@@ -309,7 +326,7 @@ function normalizeTopLevelLists(){editor.querySelectorAll('p>ul,p>ol,div>ul,div>
 function block(el){const tag=el.tagName;if(el.dataset.imageShell){const img=el.querySelector('img');const width=Math.round(parseFloat(img&&img.style.width)||img&&img.getBoundingClientRect().width||760);const loadedRatio=img&&img.naturalWidth&&img.naturalHeight?img.naturalWidth/img.naturalHeight:0;const aspectRatio=Number(el.dataset.aspectRatio)||loadedRatio;const height=aspectRatio>0?Math.round(width/aspectRatio):0;const align=el.dataset.align||'left';return {type:'imageResize',attrs:{src:img&&img.getAttribute('src')||'',alt:img&&img.getAttribute('alt')||'',width,...(height>0?{height}:{}),containerStyle:'width: '+width+'px; height: auto; cursor: pointer; margin: 0.5rem 0;',wrapperStyle:'display: flex; justify-content: '+(align==='center'?'center':align==='right'?'flex-end':'flex-start')+'; margin: 0;'}}}if(el.dataset.pollId){let options=[];try{options=JSON.parse(el.dataset.pollOptions||'[]')}catch{}return {type:'poll',attrs:{pollId:el.dataset.pollId,question:el.dataset.pollQuestion||'',options}}}if(el.dataset.youtubeUrl)return {type:'youtube',attrs:{src:el.dataset.youtubeUrl}};if(el.dataset.embedUrl)return {type:'embed',attrs:{url:el.dataset.embedUrl,type:el.dataset.embedType||'generic'}};if(tag==='P'||tag==='DIV')return {type:'paragraph',content:inline(el)};if(/^H[1-3]$/.test(tag))return {type:'heading',attrs:{level:Number(tag[1])},content:inline(el)};if(tag==='BLOCKQUOTE')return {type:'blockquote',content:Array.from(el.children).map(block)};if(tag==='UL'||tag==='OL')return {type:tag==='UL'?'bulletList':'orderedList',content:Array.from(el.children).map(block)};if(tag==='LI')return {type:'listItem',content:[{type:'paragraph',content:inline(el)}]};if(tag==='PRE')return {type:'codeBlock',content:[{type:'text',text:el.innerText||''}]};if(tag==='HR')return {type:'horizontalRule'};if(tag==='IMG')return {type:'image',attrs:{src:el.getAttribute('src')||'',alt:el.getAttribute('alt')||''}};return {type:'paragraph',content:inline(el)}}
 function emit(requestId=''){normalizeTopLevelLists();const children=[];editor.childNodes.forEach(n=>{if(n.nodeType===3){if(n.nodeValue)children.push({type:'paragraph',content:[textNode(n)]})}else if(n.nodeType===1)children.push(block(n))});syncEmpty();window.ReactNativeWebView.postMessage(JSON.stringify({type:requestId?'flush':'change',requestId:requestId||undefined,document:{type:'doc',content:children.length?children:[{type:'paragraph'}]}}))}
 function insertBlock(el){const sel=getSelection();let topLevel=null;if(sel&&sel.rangeCount&&editor.contains(sel.getRangeAt(0).commonAncestorContainer)){const range=sel.getRangeAt(0);topLevel=range.commonAncestorContainer.nodeType===1?range.commonAncestorContainer:range.commonAncestorContainer.parentElement;while(topLevel&&topLevel.parentElement&&topLevel.parentElement!==editor)topLevel=topLevel.parentElement;if(topLevel&&topLevel.parentElement===editor)editor.insertBefore(el,topLevel.nextSibling);else editor.appendChild(el);if(topLevel&&topLevel.matches('p')&&!topLevel.textContent.trim()&&!topLevel.querySelector('img'))topLevel.remove()}else editor.appendChild(el);const p=document.createElement('p');p.appendChild(document.createElement('br'));editor.insertBefore(p,el.nextSibling);const range=document.createRange();range.selectNodeContents(p);range.collapse(true);sel&&sel.removeAllRanges();sel&&sel.addRange(range);emit()}
-function imageBlock(data){const shell=document.createElement('div');shell.className='image-shell';shell.contentEditable='false';shell.dataset.imageShell='true';shell.dataset.align='left';shell.dataset.aspectRatio=Number(data.aspectRatio)>0?String(data.aspectRatio):'';shell.innerHTML='<div class="image-frame"><div class="image-toolbar">${IMAGE_ALIGNMENT_BUTTONS}</div><img><i class="resize-handle"></i></div>';const img=shell.querySelector('img');img.src=data.src;img.style.width=Math.max(80,Number(data.width)||760)+'px';return shell}
+function imageBlock(data){const shell=document.createElement('div');shell.className='image-shell';shell.contentEditable='false';shell.dataset.imageShell='true';shell.dataset.align='left';shell.dataset.aspectRatio=Number(data.aspectRatio)>0?String(data.aspectRatio):'';shell.innerHTML='<div class="image-frame"><div class="image-toolbar">${IMAGE_ALIGNMENT_BUTTONS}</div><img><i class="resize-handle"></i></div>';const img=shell.querySelector('img');img.src=data.src;img.alt=data.alt||'';img.style.width=Math.max(80,Number(data.width)||760)+'px';return shell}
 function youtubeBlock(src){const el=document.createElement('div');el.className='media-block youtube-block';el.contentEditable='false';el.dataset.youtubeUrl=src;el.innerHTML='<iframe title="YouTube 영상" frameborder="0" allowfullscreen></iframe><p>YOU·TUBE</p>';el.querySelector('iframe').src=src;return el}
 function embedBlock(data){const el=document.createElement('div');el.className='media-block sns-block';el.contentEditable='false';el.dataset.embedUrl=data.url;el.dataset.embedType=data.type||'generic';const b=document.createElement('b');b.textContent=data.type==='instagram'?'Instagram':data.type==='twitter'?'X 게시물':'SNS 게시물';const span=document.createElement('span');span.textContent=data.url;el.append(b,span);return el}
 function pollBlock(data){const el=document.createElement('div');el.className='poll-block';el.contentEditable='false';el.dataset.pollId=data.pollId;el.dataset.pollQuestion=data.question;el.dataset.pollOptions=JSON.stringify(data.options);el.innerHTML='<div class="poll-heading"><b></b></div>';el.querySelector('.poll-heading b').textContent=data.question;data.options.forEach(option=>{const row=document.createElement('div');row.className='poll-option';const label=document.createElement('span');label.textContent=option.label;row.append(label);el.append(row)});const small=document.createElement('small');small.textContent='선택지는 최대 ${MAX_POLL_OPTIONS}개까지 추가할 수 있어요.';el.append(small);return el}

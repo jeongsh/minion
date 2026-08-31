@@ -10,6 +10,7 @@ import ListOrdered from 'lucide-react-native/icons/list-ordered';
 import Plus from 'lucide-react-native/icons/plus';
 import Redo from 'lucide-react-native/icons/redo';
 import Share2 from 'lucide-react-native/icons/share-2';
+import Sticker from 'lucide-react-native/icons/sticker';
 import Strikethrough from 'lucide-react-native/icons/strikethrough';
 import Type from 'lucide-react-native/icons/type';
 import Underline from 'lucide-react-native/icons/underline';
@@ -21,10 +22,11 @@ import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, TextInput, View 
 
 import { BottomSheet } from '@/components/bottom-sheet';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
-import type { MobileCommunityUploadDto, TiptapDocument, TiptapNode } from '@/lib/api-client';
-import { uploadMobileApi } from '@/lib/api-client';
+import type { MobileCommunityUploadDto, MobileMiniconItem, MobileMiniconPack, TiptapDocument, TiptapNode } from '@/lib/api-client';
+import { resolveApiAssetUrl, uploadMobileApi } from '@/lib/api-client';
+import { MiniconPicker, rememberMiniconUse } from './minicon-picker';
 
-type Props = { allowEmbeds: boolean; allowMedia: boolean; characterCount: number; characterLimit: number; maxImages: number; onChange: (document: TiptapDocument) => void; value: TiptapDocument };
+type Props = { allowEmbeds: boolean; allowMedia: boolean; characterCount: number; characterLimit: number; maxImages: number; miniconPacks: MobileMiniconPack[]; onChange: (document: TiptapDocument) => void; value: TiptapDocument };
 type LinkMode = 'youtube' | 'sns';
 type PaletteMode = 'text' | 'highlight' | null;
 type PollOption = { id: string; label: string };
@@ -63,7 +65,11 @@ function blockHtml(node: TiptapNode): string {
   if (node.type === 'orderedList') return `<ol>${node.content?.map(blockHtml).join('') ?? ''}</ol>`;
   if (node.type === 'listItem') return `<li>${node.content?.map(blockHtml).join('') ?? ''}</li>`;
   if (node.type === 'blockquote') return `<blockquote>${node.content?.map(blockHtml).join('') ?? ''}</blockquote>`;
-  if (node.type === 'image' || node.type === 'imageResize') return `<img src="${escapeHtml(String(node.attrs?.src ?? ''))}" alt="${escapeHtml(String(node.attrs?.alt ?? ''))}">`;
+  if (node.type === 'image' || node.type === 'imageResize') {
+    const width = Number(node.attrs?.width ?? 0);
+    const height = Number(node.attrs?.height ?? 0);
+    return `<img src="${escapeHtml(String(node.attrs?.src ?? ''))}" alt="${escapeHtml(String(node.attrs?.alt ?? ''))}"${width > 0 ? ` data-width="${width}" style="width:${width}px"` : ''}${height > 0 ? ` data-height="${height}"` : ''}>`;
+  }
   if (node.type === 'youtube') { const src = escapeHtml(String(node.attrs?.src ?? '')); return `<div class="mobile-media mobile-youtube" contenteditable="false" data-youtube-url="${src}"><iframe src="${src}" title="YouTube 영상"></iframe><span>YouTube</span></div>`; }
   if (node.type === 'embed') { const url = escapeHtml(String(node.attrs?.url ?? '')); const type = escapeHtml(String(node.attrs?.type ?? 'generic')); return `<div class="mobile-media mobile-sns" contenteditable="false" data-embed-url="${url}" data-embed-type="${type}"><b>${type === 'instagram' ? 'Instagram' : type === 'twitter' ? 'X 게시물' : 'SNS 게시물'}</b><span>${url}</span></div>`; }
   if (node.type === 'poll') return pollMarkup(String(node.attrs?.pollId ?? ''), String(node.attrs?.question ?? ''), Array.isArray(node.attrs?.options) ? node.attrs.options as PollOption[] : []);
@@ -95,7 +101,11 @@ function blockNode(element: HTMLElement): TiptapNode {
   if (element.dataset.pollId) { let options: PollOption[] = []; try { options = JSON.parse(element.dataset.pollOptions ?? '[]') as PollOption[]; } catch { /* Keep empty. */ } return { type: 'poll', attrs: { pollId: element.dataset.pollId, question: element.dataset.pollQuestion ?? '', options } }; }
   if (element.dataset.youtubeUrl) return { type: 'youtube', attrs: { src: element.dataset.youtubeUrl } };
   if (element.dataset.embedUrl) return { type: 'embed', attrs: { url: element.dataset.embedUrl, type: element.dataset.embedType ?? 'generic' } };
-  if (element.tagName === 'IMG') return { type: 'image', attrs: { src: element.getAttribute('src') ?? '', alt: element.getAttribute('alt') ?? '' } };
+  if (element.tagName === 'IMG') {
+    const width = Number(element.dataset.width ?? 0);
+    const height = Number(element.dataset.height ?? 0);
+    return { type: width > 0 ? 'imageResize' : 'image', attrs: { src: element.getAttribute('src') ?? '', alt: element.getAttribute('alt') ?? '', ...(width > 0 ? { width, height: height || width, containerStyle: `width: ${width}px; height: auto; cursor: pointer; margin: 0.5rem 0;`, wrapperStyle: 'display: flex; justify-content: flex-start; margin: 0;' } : {}) } };
+  }
   if (element.matches('ul,ol')) return { type: element.tagName === 'UL' ? 'bulletList' : 'orderedList', content: Array.from(element.children).map((child) => blockNode(child as HTMLElement)) };
   if (element.tagName === 'LI') return { type: 'listItem', content: [{ type: 'paragraph', content: inlineNodes(element) }] };
   if (/^H[1-3]$/.test(element.tagName)) return { type: 'heading', attrs: { level: Number(element.tagName[1]) }, content: inlineNodes(element) };
@@ -103,7 +113,7 @@ function blockNode(element: HTMLElement): TiptapNode {
   return { type: 'paragraph', content: inlineNodes(element) };
 }
 
-export function CommunityRichEditor({ allowEmbeds, allowMedia, characterCount, characterLimit, maxImages, onChange, value }: Props) {
+export function CommunityRichEditor({ allowEmbeds, allowMedia, characterCount, characterLimit, maxImages, miniconPacks, onChange, value }: Props) {
   const editorRef = useRef<HTMLDivElement>(null);
   const initializedRef = useRef(false);
   const selectionRef = useRef<Range | null>(null);
@@ -118,6 +128,7 @@ export function CommunityRichEditor({ allowEmbeds, allowMedia, characterCount, c
   const [linkUrl, setLinkUrl] = useState('');
   const [pollOpen, setPollOpen] = useState(false);
   const [poll, setPoll] = useState<PollDraft>(emptyPoll);
+  const [miniconOpen, setMiniconOpen] = useState(false);
 
   useLayoutEffect(() => {
     if (initializedRef.current || !editorRef.current) return;
@@ -200,6 +211,17 @@ export function CommunityRichEditor({ allowEmbeds, allowMedia, characterCount, c
     setLinkOpen(false); setLinkUrl('');
   };
 
+  const insertMinicon = (item: MobileMiniconItem) => {
+    if ((editorRef.current?.querySelectorAll('img').length ?? 0) >= maxImages) {
+      Alert.alert('미니콘 넣기', `이미지와 미니콘은 합쳐서 ${maxImages}장까지 넣을 수 있습니다.`);
+      return;
+    }
+    const src = resolveApiAssetUrl(item.imageUrl) ?? item.imageUrl;
+    insertMarkup(`<img src="${escapeHtml(src)}" alt="${escapeHtml(`${item.packName} ${item.name} 미니콘`)}" data-width="200" data-height="200" style="width:200px">`);
+    void rememberMiniconUse(item.id);
+    setMiniconOpen(false);
+  };
+
   const savePoll = () => {
     const question = poll.question.trim(); const options = poll.options.map((option) => ({ ...option, label: option.label.trim() })).filter((option) => option.label);
     if (!question) { Alert.alert('투표 만들기', '질문을 입력해 주세요.'); return; }
@@ -216,8 +238,9 @@ export function CommunityRichEditor({ allowEmbeds, allowMedia, characterCount, c
     <style>{`.mobile-rich-editor{box-sizing:border-box;color:${theme.text};flex:1;font-family:Pretendard,sans-serif;font-size:16px;line-height:1.75;min-height:0;outline:none;overflow-y:auto;padding:16px 0 24px;position:relative;width:100%}.mobile-rich-editor[data-empty="true"]:before{color:${theme.muted};content:attr(data-placeholder);left:0;opacity:.72;pointer-events:none;position:absolute;top:16px}.mobile-rich-editor p{margin:0 0 8px}.mobile-rich-editor img{border-radius:8px;display:block;height:auto;margin:12px 0;max-width:100%}.mobile-media{border:1px solid ${theme.border};border-radius:12px;margin:12px 0;overflow:hidden}.mobile-youtube{aspect-ratio:16/9;background:#000;position:relative}.mobile-youtube iframe{border:0;height:100%;pointer-events:none;width:100%}.mobile-youtube>span{background:rgba(0,0,0,.68);bottom:8px;color:white;font-size:13px;left:8px;padding:4px 8px;position:absolute}.mobile-sns{background:${theme.surfaceMuted};display:flex;flex-direction:column;gap:4px;padding:14px}.mobile-sns>span{color:${theme.muted};font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.mobile-poll{border:1px solid ${theme.border};border-radius:8px;display:flex;flex-direction:column;gap:8px;margin:14px 0;padding:12px}.mobile-poll-heading{margin-bottom:2px}.mobile-poll-heading b{color:${theme.ink};font-size:16px;line-height:24px}.mobile-poll-option{align-items:center;border:1px solid ${theme.border};border-radius:8px;display:flex;min-height:48px;padding:0 12px}.mobile-poll small{color:${theme.muted};font-size:13px;line-height:19px;text-align:right}`}</style>
     <div className="mobile-rich-editor" contentEditable data-placeholder="내용을 입력하세요" onBlur={rememberSelection} onClick={editPoll} onInput={emit} onKeyUp={rememberSelection} onMouseUp={rememberSelection} ref={editorRef} suppressContentEditableWarning />
     {formatOpen ? <View style={[styles.formatPanel, { backgroundColor: theme.surface, borderColor: theme.border }]}><Tool compact label="굵게" onPress={() => execute('bold')}><Bold color={theme.text} size={18} /></Tool><Tool compact label="기울임" onPress={() => execute('italic')}><Italic color={theme.text} size={18} /></Tool><Tool compact label="밑줄" onPress={() => execute('underline')}><Underline color={theme.text} size={18} /></Tool><Tool compact label="취소선" onPress={() => execute('strikeThrough')}><Strikethrough color={theme.text} size={18} /></Tool><View style={[styles.formatDivider, { backgroundColor: theme.border }]} /><Tool compact label="글머리 목록" onPress={() => execute('insertUnorderedList')}><List color={theme.text} size={18} /></Tool><Tool compact label="번호 목록" onPress={() => execute('insertOrderedList')}><ListOrdered color={theme.text} size={18} /></Tool><FormatColorTool color="#000000" label="글자색" onPress={() => setPalette('text')}><Type color={theme.text} size={16} /></FormatColorTool><FormatColorTool color="transparent" label="배경색" onPress={() => setPalette('highlight')}><Highlighter color={theme.text} size={16} /></FormatColorTool></View> : null}
+    {miniconOpen ? <MiniconPicker bottom={60} doubleMode={false} onSelect={insertMinicon} packs={miniconPacks} selectedIds={[]} showDoubleMode={false} /> : null}
     <Text style={[styles.count, { color: characterCount > characterLimit ? '#ef4444' : theme.muted, ...fonts.regular }]}>{characterCount.toLocaleString('ko-KR')}/{characterLimit.toLocaleString('ko-KR')}자</Text>
-    <View style={[styles.toolbar, { backgroundColor: theme.surface, borderColor: theme.border }]}>{allowMedia ? <><Tool disabled={uploading} label={uploading ? '이미지 업로드 중' : '이미지 첨부'} onPress={() => void pickImage()}>{uploading ? <ActivityIndicator color={theme.accent} size="small" /> : <ImageIcon color={theme.text} size={18} />}</Tool>{allowEmbeds ? <><Tool label="YouTube 영상 첨부" onPress={() => { setFormatOpen(false); setLinkMode('youtube'); setLinkOpen(true); }}><Video color={theme.text} size={18} /></Tool><Tool label="SNS 게시물 첨부" onPress={() => { setFormatOpen(false); setLinkMode('sns'); setLinkOpen(true); }}><Share2 color={theme.text} size={18} /></Tool></> : null}<Tool label="투표 추가" onPress={() => { setFormatOpen(false); setPoll(emptyPoll()); setPollOpen(true); }}><BarChart3 color={theme.text} size={18} /></Tool></> : null}<Tool active={formatOpen} label="텍스트 서식" onPress={() => setFormatOpen((open) => !open)}><Text style={{ color: formatOpen ? theme.accent : theme.text, ...fonts.medium, fontSize: 16 }}>Aa</Text></Tool><View style={[styles.divider, { backgroundColor: theme.border }]} /><Tool label="실행 취소" onPress={() => execute('undo')}><Undo color={theme.text} size={18} /></Tool><Tool label="다시 실행" onPress={() => execute('redo')}><Redo color={theme.text} size={18} /></Tool></View>
+    <View style={[styles.toolbar, { backgroundColor: theme.surface, borderColor: theme.border }]}>{allowMedia ? <><Tool disabled={uploading} label={uploading ? '이미지 업로드 중' : '이미지 첨부'} onPress={() => void pickImage()}>{uploading ? <ActivityIndicator color={theme.accent} size="small" /> : <ImageIcon color={theme.text} size={18} />}</Tool>{allowEmbeds ? <><Tool label="YouTube 영상 첨부" onPress={() => { setFormatOpen(false); setLinkMode('youtube'); setLinkOpen(true); }}><Video color={theme.text} size={18} /></Tool><Tool label="SNS 게시물 첨부" onPress={() => { setFormatOpen(false); setLinkMode('sns'); setLinkOpen(true); }}><Share2 color={theme.text} size={18} /></Tool></> : null}<Tool label="투표 추가" onPress={() => { setFormatOpen(false); setPoll(emptyPoll()); setPollOpen(true); }}><BarChart3 color={theme.text} size={18} /></Tool></> : null}{miniconPacks.length > 0 ? <Tool active={miniconOpen} label="미니콘 넣기" onPress={() => { setFormatOpen(false); setMiniconOpen((open) => !open); }}><Sticker color={miniconOpen ? theme.accent : theme.text} size={18} /></Tool> : null}<Tool active={formatOpen} label="텍스트 서식" onPress={() => setFormatOpen((open) => !open)}><Text style={{ color: formatOpen ? theme.accent : theme.text, ...fonts.medium, fontSize: 16 }}>Aa</Text></Tool><View style={[styles.divider, { backgroundColor: theme.border }]} /><Tool label="실행 취소" onPress={() => execute('undo')}><Undo color={theme.text} size={18} /></Tool><Tool label="다시 실행" onPress={() => execute('redo')}><Redo color={theme.text} size={18} /></Tool></View>
     <BottomSheet onClose={() => setPalette(null)} open={Boolean(palette)} title={palette === 'highlight' ? '배경색' : '글자색'}><View style={styles.palette}>{(palette === 'highlight' ? ['transparent', '#fef08a', '#bbf7d0', '#bfdbfe', '#fecdd3'] : ['#111827', '#ef4444', '#3b82f6', '#16a34a', '#a855f7']).map((color) => <Pressable key={color} onPress={() => { execute(palette === 'highlight' ? 'backColor' : 'foreColor', color); setPalette(null); }} style={[styles.swatch, { backgroundColor: color === 'transparent' ? theme.surface : color, borderColor: theme.border }]}>{color === 'transparent' ? <Text style={{ color: theme.text, ...fonts.medium, fontSize: 13 }}>없음</Text> : null}</Pressable>)}</View></BottomSheet>
     <BottomSheet onClose={() => { setLinkOpen(false); setLinkUrl(''); }} open={linkOpen} title={linkMode === 'youtube' ? 'YouTube 영상 넣기' : 'SNS 게시물 넣기'}><TextInput autoCapitalize="none" autoCorrect={false} onChangeText={setLinkUrl} onSubmitEditing={insertLink} placeholder={linkMode === 'youtube' ? 'YouTube URL을 붙여넣으세요' : 'Instagram 또는 X URL을 붙여넣으세요'} placeholderTextColor={theme.muted} style={[styles.input, { borderColor: theme.border, color: theme.text, ...fonts.regular }]} value={linkUrl} /><Pressable disabled={!linkUrl.trim()} onPress={insertLink} style={[styles.primary, { backgroundColor: theme.ink, opacity: linkUrl.trim() ? 1 : 0.4 }]}><Text style={{ color: theme.surface, ...fonts.medium, fontSize: 14 }}>넣기</Text></Pressable></BottomSheet>
     <BottomSheet onClose={() => { setPollOpen(false); setPoll(emptyPoll()); }} open={pollOpen} title="투표 만들기"><Text style={{ color: theme.muted, ...fonts.medium, fontSize: 13, marginBottom: 14 }}>질문과 선택지를 입력해 주세요.</Text><Text style={[styles.label, { color: theme.text, ...fonts.medium }]}>질문</Text><TextInput onChangeText={(question) => setPoll((current) => ({ ...current, question }))} placeholder="무엇을 물어볼까요?" placeholderTextColor={theme.muted} style={[styles.input, { borderColor: theme.border, color: theme.text, ...fonts.medium }]} value={poll.question} /><Text style={[styles.label, { color: theme.text, ...fonts.medium, marginTop: 14 }]}>선택지</Text><View style={styles.options}>{poll.options.map((option, index) => <View key={option.id} style={styles.optionRow}><TextInput onChangeText={(label) => setPoll((current) => ({ ...current, options: current.options.map((item) => item.id === option.id ? { ...item, label } : item) }))} placeholder={`선택지 ${index + 1}`} placeholderTextColor={theme.muted} style={[styles.input, styles.optionInput, { borderColor: theme.border, color: theme.text, ...fonts.medium }]} value={option.label} />{poll.options.length > 2 ? <Pressable onPress={() => setPoll((current) => ({ ...current, options: current.options.filter((item) => item.id !== option.id) }))} style={styles.remove}><X color={theme.muted} size={17} /></Pressable> : null}</View>)}</View>{poll.options.length < MAX_POLL_OPTIONS ? <Pressable onPress={() => setPoll((current) => ({ ...current, options: [...current.options, { id: newId(), label: '' }] }))} style={[styles.add, { backgroundColor: theme.surface, borderColor: theme.border }]}><Plus color={theme.text} size={17} /><Text style={{ color: theme.text, ...fonts.medium, fontSize: 14 }}>선택지 추가</Text></Pressable> : null}<View style={[styles.actions, { borderTopColor: theme.border }]}>{poll.id ? <Pressable onPress={deletePoll} style={styles.delete}><Text style={{ color: '#ef4444', ...fonts.medium, fontSize: 14 }}>투표 삭제</Text></Pressable> : <View style={styles.delete} />}<Pressable onPress={savePoll} style={[styles.save, { backgroundColor: theme.ink }]}><Text style={{ color: theme.surface, ...fonts.medium, fontSize: 14 }}>{poll.id ? '수정' : '추가'}</Text></Pressable></View></BottomSheet>

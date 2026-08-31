@@ -27,6 +27,7 @@ export default function TabLayout() {
       <Tabs.Screen name="community" options={{ href: null }} />
       <Tabs.Screen name="search" options={{ href: null }} />
       <Tabs.Screen name="matches/[matchId]" options={{ href: null }} />
+      <Tabs.Screen name="minicons" options={{ href: null }} />
     </Tabs>
   );
 }

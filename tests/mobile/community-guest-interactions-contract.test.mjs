@@ -47,7 +47,7 @@ test('web and mobile comment action slots delete owned comments and flag other c
     source('components', 'community', 'report-button.tsx'),
   ]);
 
-  assert.match(mapper, /permissions: \{ canDelete: canManage, canEdit: canManage, canReport: !canManage \}/);
+  assert.match(mapper, /permissions: \{ canDelete: canManage, canEdit: canManage && comment\.contentKind === "text", canReport: !canManage \}/);
   assert.match(mobileScreen, /comment\.permissions\.canDelete[\s\S]*accessibilityLabel="댓글 삭제"[\s\S]*<Trash2/);
   assert.match(mobileScreen, /comment\.permissions\.canReport[\s\S]*accessibilityLabel="리폿"[\s\S]*<Flag/);
   assert.doesNotMatch(mobileScreen, /accessibilityLabel="리폿"[^\n]*<Ellipsis/);

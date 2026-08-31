@@ -18,6 +18,7 @@ import {
 import { isCommunityGuestSanctioned } from "@/lib/data/community-guests";
 import { isCommunityUserSanctioned } from "@/lib/data/community-users";
 import { getTeamByFanSiteHost, getTeamBySlug } from "@/lib/data/lck";
+import { getUserMiniconPacks } from "@/lib/data/minicons";
 import { mobileError, mobileSuccess } from "@/lib/mobile/api-response";
 import {
   getMobileCommunityActor,
@@ -56,9 +57,10 @@ export async function GET(request: Request, context: Context) {
   const bestCommentIds = new Set(selectBestComments(visibleComments).map((comment) => comment.id));
 
   const reactionActor = actor.auth ? { userId: actor.auth.user.id } : { guestKey: actor.guest.key };
-  const [reaction, commentReactions]: ["honor" | "dislike" | null, Record<string, "honor" | "dislike" | null>] = await Promise.all([
+  const [reaction, commentReactions, miniconPacks]: ["honor" | "dislike" | null, Record<string, "honor" | "dislike" | null>, MobileCommunityPostDetailDto["miniconPacks"]] = await Promise.all([
     getUserReaction({ target: "post", targetId: postId, ...reactionActor }),
     getUserReactionsForComments(visibleComments.map((comment) => comment.id), reactionActor),
+    getUserMiniconPacks(actor.auth?.user.id),
   ]);
   const canManage = post.authorId
     ? post.authorId === actor.auth?.user.id
@@ -72,6 +74,7 @@ export async function GET(request: Request, context: Context) {
       bestCommentIds.has(comment.id),
     )),
     content: parseTiptapDocument(post.content),
+    miniconPacks,
     permissions: {
       canBlock: Boolean(actor.auth && !canManage),
       canDelete: canManage,
