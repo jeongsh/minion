@@ -29,6 +29,7 @@ export type TeamNotificationPreferences = {
   teamId: string;
   teamName: string;
   teamShortName: string;
+  teamLogoUrl: string | null;
   matchAlertsEnabled: boolean;
   liveMatchAlertsEnabled: boolean;
   instagramAlertsEnabled: boolean;

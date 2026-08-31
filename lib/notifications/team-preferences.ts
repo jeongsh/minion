@@ -24,7 +24,7 @@ export async function getTeamNotificationPreferences(): Promise<TeamNotification
     const rows = subscriptions as SubscriptionRow[];
     const { data: teams, error: teamError } = await supabase
       .from("teams")
-      .select("id, name, short_name")
+      .select("id, name, short_name, logo_url")
       .in("id", rows.map((row) => row.team_id));
     if (teamError) return [];
 
@@ -36,6 +36,7 @@ export async function getTeamNotificationPreferences(): Promise<TeamNotification
         teamId: row.team_id,
         teamName: team.name,
         teamShortName: team.short_name ?? team.name,
+        teamLogoUrl: team.logo_url,
         matchAlertsEnabled: row.match_alerts,
         liveMatchAlertsEnabled: row.live_match_alerts,
         instagramAlertsEnabled: row.instagram_alerts,

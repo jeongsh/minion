@@ -143,19 +143,19 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
 
         <div className="min-w-0">
           <div className="space-y-2.5 sm:space-y-5">
-            <AccountSection id="profile" icon={UserRound} title="프로필" description="닉네임과 프로필 이미지를 변경합니다.">
+            <AccountSection id="profile" icon={UserRound} title="프로필">
               <ProfileForm initialNickname={user.nickname ?? ""} initialProfileImageUrl={user.profileImageUrl} tier={summary.tier} />
             </AccountSection>
 
-            <AccountSection id="notifications" icon={Bell} title="알림" description="팔로우한 팀별로 받을 알림을 선택합니다.">
+            <AccountSection id="notifications" icon={Bell} title="알림">
               <NotificationSettingsForm initialPreferences={preferences} initialTeams={teamNotificationPreferences} />
             </AccountSection>
 
-            <AccountSection id="blocks" icon={ShieldBan} title="차단 관리" description="차단한 사용자와 해제할 사용자를 관리합니다.">
+            <AccountSection id="blocks" icon={ShieldBan} title="차단 관리">
               <BlockedUserList users={blockedUsers} guests={blockedGuests} />
             </AccountSection>
 
-            <AccountSection id="account" icon={LockKeyhole} title="계정 및 보안" description="로그인 정보와 보안 설정을 확인합니다.">
+            <AccountSection id="account" icon={LockKeyhole} title="계정 및 보안">
               <div className="rounded-xl bg-[var(--ui-surface-muted)] p-4">
                 <p className="text-[13px] font-medium text-[var(--ui-muted)]">로그인 계정</p>
                 <p className="mt-1 break-all text-sm font-medium text-[var(--ui-ink)]">{accountLabel(user)}</p>
@@ -186,21 +186,17 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
   );
 }
 
-function AccountSection({ id, icon: Icon, title, description, children }: {
+function AccountSection({ id, icon: Icon, title, children }: {
   id: string;
   icon: typeof UserRound;
   title: string;
-  description: string;
   children: React.ReactNode;
 }) {
   return (
     <section id={id} className="me-card scroll-mt-28 rounded-xl border p-4 sm:scroll-mt-24 sm:rounded-2xl sm:p-6">
       <div className="mb-4 flex items-start gap-2 sm:mb-5 sm:gap-3">
         <span className="grid h-[30px] w-[30px] shrink-0 place-items-center rounded-lg bg-[var(--ui-surface-muted)] text-[var(--ui-muted)] sm:h-10 sm:w-10 sm:rounded-xl"><Icon size={16} /></span>
-        <div className="min-w-0">
-          <h3 className="text-[15px] font-black leading-[22px] tracking-[-0.02em] text-[var(--ui-ink)] sm:text-lg">{title}</h3>
-          <p className="text-[13px] font-medium leading-[18px] text-[var(--ui-muted)] sm:mt-0.5 sm:text-sm sm:font-normal sm:leading-5">{description}</p>
-        </div>
+        <h3 className="min-w-0 text-[15px] font-black leading-[30px] tracking-[-0.02em] text-[var(--ui-ink)] sm:text-lg sm:leading-10">{title}</h3>
       </div>
       {children}
     </section>
