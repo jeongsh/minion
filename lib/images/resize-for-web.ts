@@ -16,9 +16,13 @@ export type ResizedImage = {
 export async function resizeImageForWeb(
   bytes: Buffer,
   contentType: string,
-  { maxEdge, quality = 84 }: { maxEdge: number; quality?: number },
+  {
+    maxEdge,
+    quality = 84,
+    preserveGif = true,
+  }: { maxEdge: number; quality?: number; preserveGif?: boolean },
 ): Promise<ResizedImage> {
-  if (contentType === "image/gif") {
+  if (contentType === "image/gif" && preserveGif) {
     return { bytes, contentType, extension: "gif", transformed: false };
   }
 

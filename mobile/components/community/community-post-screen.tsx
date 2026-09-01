@@ -173,10 +173,19 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
     if (!miniconOpen) Keyboard.dismiss();
     setMiniconOpen((open) => !open);
   };
-  const deletePost = () => Alert.alert('게시글 삭제', '이 게시글을 삭제할까요?', [
-    { style: 'cancel', text: '취소' },
-    { style: 'destructive', text: '삭제', onPress: () => void mutateMobileApi<MobileCommunityActionDto>(path, 'DELETE').then(() => router.replace(basePath as never)).catch((caught) => Alert.alert('삭제 실패', caught instanceof Error ? caught.message : '게시글을 삭제하지 못했습니다.')) },
-  ]);
+  const performDeletePost = () => void mutateMobileApi<MobileCommunityActionDto>(path, 'DELETE')
+    .then(() => router.replace(basePath as never))
+    .catch((caught) => Alert.alert('삭제 실패', caught instanceof Error ? caught.message : '게시글을 삭제하지 못했습니다.'));
+  const deletePost = () => {
+    if (Platform.OS === 'web') {
+      if (window.confirm('이 게시글을 삭제할까요?')) performDeletePost();
+      return;
+    }
+    Alert.alert('게시글 삭제', '이 게시글을 삭제할까요?', [
+      { style: 'cancel', text: '취소' },
+      { style: 'destructive', text: '삭제', onPress: performDeletePost },
+    ]);
+  };
 
   if (loading && !data) return <CommunityPostLoadingState headerTitle={team?.shortName ?? 'LCK'} onClose={() => router.replace(basePath as never)} />;
   if (error && !data) return <FocusState><ErrorState onRetry={refresh} title={error} /></FocusState>;

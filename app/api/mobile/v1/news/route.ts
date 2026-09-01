@@ -1,5 +1,6 @@
 import type { MobileNewsDto } from "@/packages/contracts/src/mobile-v1";
 import { getNewsFeed } from "@/lib/data/naver-news";
+import { scheduleNewsThumbnailWarmup } from "@/lib/data/news-thumbnail-warmup";
 import { mobileSuccess, toMobileTeam } from "@/lib/mobile/api-response";
 import { teams } from "@/lib/team-themes";
 
@@ -20,6 +21,7 @@ export async function GET(request: Request) {
     page = totalPages;
     feed = await getNewsFeed({ display: PAGE_SIZE, query, start: (page - 1) * PAGE_SIZE + 1, teamSlug: teamSlug ?? undefined });
   }
+  scheduleNewsThumbnailWarmup(feed.articles);
   const next = page * PAGE_SIZE;
   const data: MobileNewsDto = {
     hasMore: page < totalPages,

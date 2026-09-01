@@ -6,6 +6,7 @@ import { NewsFilter } from "@/components/news/news-filter";
 import { NewsFeedLayout } from "@/components/news/home-news-section";
 import { Pagination } from "@/components/ui/pagination";
 import { getNewsFeed } from "@/lib/data/naver-news";
+import { scheduleNewsThumbnailWarmup } from "@/lib/data/news-thumbnail-warmup";
 import { teams } from "@/lib/team-themes";
 
 export const metadata: Metadata = {
@@ -50,6 +51,7 @@ export default async function NewsPage({ searchParams }: { searchParams: SearchP
   }
 
   const pageArticles = newsFeed.articles;
+  scheduleNewsThumbnailWarmup(pageArticles);
 
   return (
     <main className="layout-wide pb-16 pt-4 text-[var(--ui-ink)] min-[390px]:pt-5 sm:pt-7">

@@ -5,6 +5,7 @@ import { getMobileHomePublicData, HOME_PUBLIC_DATA_TAG } from "@/lib/data/home-c
 import { buildHomePomEntries, getHomePomPlayers, HOME_POM_TAG } from "@/lib/data/home-pom";
 import { getLckChannelVideos } from "@/lib/data/lck-channel-videos";
 import { getHomeNewsFeed } from "@/lib/data/naver-news";
+import { scheduleNewsThumbnailWarmup } from "@/lib/data/news-thumbnail-warmup";
 import { getBoardPosts } from "@/lib/data/community";
 import {
   COMMUNITY_HOME_HOT_CANDIDATE_LIMIT,
@@ -27,6 +28,7 @@ async function buildMobileHomeData(): Promise<MobileHomeDto> {
     getBoardPosts({ scope: "hub", limit: COMMUNITY_HOME_LATEST_CANDIDATE_LIMIT }),
     getHomePomPlayers(),
   ]);
+  scheduleNewsThumbnailWarmup(news.articles);
   const pomEntries = buildHomePomEntries({ matches, players: pomPlayers, teams, tournaments });
   const communityPosts = selectCommunityHomePosts(popularCommunityPosts, latestCommunityPosts);
   const teamMap = new Map(teams.map((team) => [team.id, team]));

@@ -5,7 +5,7 @@ import { isSafePublicNewsUrl } from "@/lib/data/news-thumbnail";
 export const runtime = "nodejs";
 export const revalidate = 21600;
 
-// 기사 원문 URL → 썸네일 프록시 경로. 목록 응답에서 분리해 렌더 후 지연 로드한다.
+// 기사 원문 URL → 영구 R2 썸네일 URL. 최초 요청만 생성하고 이후에는 CDN URL을 재사용한다.
 export async function GET(request: NextRequest) {
   const url = request.nextUrl.searchParams.get("url") ?? "";
   if (!isSafePublicNewsUrl(url)) {
@@ -17,7 +17,9 @@ export async function GET(request: NextRequest) {
     { thumbnail },
     {
       headers: {
-        "Cache-Control": "public, max-age=0, s-maxage=21600, stale-while-revalidate=86400",
+        "Cache-Control": thumbnail
+          ? "public, max-age=21600, s-maxage=21600, stale-while-revalidate=86400"
+          : "public, max-age=60, s-maxage=60, stale-while-revalidate=300",
       },
     },
   );

@@ -2,13 +2,14 @@ import "server-only";
 
 import { unstable_cache } from "next/cache";
 import { newsArticles as sampleNewsArticles, type NewsArticle, type NewsTone } from "@/lib/data/news";
-import { isSafePublicNewsUrl, newsThumbnailProxyUrl } from "@/lib/data/news-thumbnail";
+import { attachStoredNewsThumbnails, materializeNewsThumbnail } from "@/lib/data/news-thumbnail-cache";
+import { isSafePublicNewsUrl } from "@/lib/data/news-thumbnail";
 
 const NAVER_NEWS_ENDPOINT = "https://naverapihub.apigw.ntruss.com/search/v1/news";
 const DEFAULT_DISPLAY = 10;
 const MAX_NAVER_START = 1000;
 const MAX_PARALLEL_NAVER_PAGE_FETCHES = 4;
-const ARTICLE_METADATA_TTL_SECONDS = 60 * 60 * 6;
+const NEWS_THUMBNAIL_RESOLVE_TTL_SECONDS = 60 * 60 * 6;
 
 type NewsFeedSource = "naver" | "sample";
 
@@ -34,7 +35,6 @@ type NaverNewsResponse = {
 
 type NormalizedNewsItem = {
   article: NewsArticle;
-  thumbnailCandidates: string[];
 };
 
 type NewsFeedOptions = {
@@ -122,70 +122,6 @@ function isHttpUrl(value: string) {
   }
 }
 
-function metaAttribute(tag: string, attribute: string) {
-  const quoted = tag.match(new RegExp(`${attribute}\\s*=\\s*(["'])(.*?)\\1`, "i"));
-  if (quoted?.[2]) return quoted[2];
-  return tag.match(new RegExp(`${attribute}\\s*=\\s*([^\\s>]+)`, "i"))?.[1] ?? "";
-}
-
-function findMetadataImage(html: string, pageUrl: string) {
-  const acceptedKeys = new Set(["og:image", "og:image:url", "twitter:image", "twitter:image:src"]);
-  for (const tag of html.match(/<meta\s[^>]*>/gi) ?? []) {
-    const key = (metaAttribute(tag, "property") || metaAttribute(tag, "name")).toLowerCase();
-    if (!acceptedKeys.has(key)) continue;
-    const content = decodeNewsText(metaAttribute(tag, "content"));
-    if (!content) continue;
-
-    try {
-      const imageUrl = new URL(content, pageUrl).toString();
-      if (isSafePublicNewsUrl(imageUrl)) return imageUrl;
-    } catch {
-      continue;
-    }
-  }
-  return undefined;
-}
-
-async function fetchArticleHtml(value: string, redirects = 0): Promise<{ html: string; url: string } | null> {
-  if (!isSafePublicNewsUrl(value) || redirects > 3) return null;
-
-  const response = await fetch(value, {
-    headers: {
-      Accept: "text/html,application/xhtml+xml",
-      "User-Agent": "Mozilla/5.0 (compatible; MINION-News/1.0)",
-    },
-    redirect: "manual",
-    signal: AbortSignal.timeout(2500),
-    next: { revalidate: ARTICLE_METADATA_TTL_SECONDS },
-  });
-
-  if (response.status >= 300 && response.status < 400) {
-    const location = response.headers.get("location");
-    if (!location) return null;
-    return fetchArticleHtml(new URL(location, value).toString(), redirects + 1);
-  }
-
-  if (!response.ok || !response.headers.get("content-type")?.includes("text/html")) return null;
-  // og:image 메타태그는 <head>에 있으므로 앞부분만 받아 파싱 비용과 전송량을 줄인다.
-  return { html: (await response.text()).slice(0, 200_000), url: response.url || value };
-}
-
-async function findArticleThumbnail(candidates: string[]) {
-  // 첫 후보(originallink)만 시도한다. 네이버 링크 폴백은 유효한 og:image가 드문 반면 지연만 키운다.
-  // 원문 HTML fetch 자체는 next 데이터 캐시(revalidate 6h)로 재요청 시 재사용된다.
-  for (const candidate of candidates.slice(0, 1)) {
-    try {
-      const page = await fetchArticleHtml(candidate);
-      if (!page) continue;
-      const imageUrl = findMetadataImage(page.html, page.url);
-      if (imageUrl) return imageUrl;
-    } catch {
-      continue;
-    }
-  }
-  return undefined;
-}
-
 function sourceFromUrl(value: string) {
   try {
     const hostname = new URL(value).hostname.toLowerCase().replace(/^www\./, "");
@@ -266,8 +202,6 @@ function normalizeArticle(item: NaverNewsItem): NormalizedNewsItem | null {
       tone: TEAM_NEWS_CONFIG[teamSlugs[0]]?.tone ?? "league",
       isOfficial: source === "LCK",
     },
-    thumbnailCandidates: [item.originallink, item.link]
-      .filter((candidate): candidate is string => Boolean(candidate && isSafePublicNewsUrl(candidate))),
   };
 }
 
@@ -386,24 +320,17 @@ async function collectNormalizedItems(options: NewsFeedOptions): Promise<Normali
   return { normalizedItems, rawTotal, reachedRawEnd };
 }
 
-async function attachThumbnails(items: NormalizedNewsItem[]): Promise<NewsArticle[]> {
-  return Promise.all(items.map(async ({ article, thumbnailCandidates }) => ({
-    ...article,
-    thumbnailUrl: newsThumbnailProxyUrl(await findArticleThumbnail(thumbnailCandidates) ?? ""),
-  })));
-}
-
 /**
- * 기사 원문 URL 하나에 대한 썸네일(프록시 경로)만 해석한다. 뉴스 목록 응답에서 분리해
- * 클라이언트가 렌더 후 개별 호출하도록 하여, 원문 og:image 스크래핑 지연이 목록 TTFB에 얹히지 않게 한다.
+ * 기사 원문 URL 하나를 불변 R2 썸네일 URL로 해석한다. 최초 한 번만 원문과 이미지를
+ * 가져와 변환하고 이후 요청은 R2 객체를 재사용한다.
  */
 export const resolveNewsThumbnail = unstable_cache(
   async (articleUrl: string): Promise<string | null> => {
     if (!isSafePublicNewsUrl(articleUrl)) return null;
-    return newsThumbnailProxyUrl(await findArticleThumbnail([articleUrl]) ?? "") ?? null;
+    return materializeNewsThumbnail(articleUrl);
   },
   ["news-thumbnail-resolve"],
-  { revalidate: ARTICLE_METADATA_TTL_SECONDS },
+  { revalidate: NEWS_THUMBNAIL_RESOLVE_TTL_SECONDS },
 );
 
 async function getNewsFeedUncached(options: NewsFeedOptions = {}): Promise<NewsFeed> {
@@ -417,8 +344,9 @@ async function getNewsFeedUncached(options: NewsFeedOptions = {}): Promise<NewsF
     const { normalizedItems, rawTotal, reachedRawEnd } = batch;
 
     const visibleItems = normalizedItems.slice(requestedOffset, requestedOffset + requestedDisplay);
-    // 썸네일은 목록 응답에서 제외한다. 원문 스크래핑은 클라이언트가 /api/news/thumbnail/resolve로 개별 요청한다.
-    const articles = visibleItems.map((item) => item.article);
+    // R2 HEAD만 병렬 확인하고 이미 생성된 썸네일 URL을 즉시 응답에 포함한다.
+    // 누락 항목의 원문 조회·변환은 응답 이후 warmup과 클라이언트 resolve가 담당한다.
+    const articles = await attachStoredNewsThumbnails(visibleItems.map((item) => item.article));
 
     return {
       articles,
@@ -483,9 +411,9 @@ async function getHomeNewsFeedUncached(limit = 4): Promise<NewsFeed> {
       return { ...fallback, articles: pickHomeArticles(fallback.articles, limit) };
     }
 
-    // 후보군 중 실제로 노출할 기사만 골라낸 뒤 썸네일을 가져와, 버려질 기사의 원문 페이지를 스크래핑하지 않는다.
+    // 후보군 중 실제 노출 기사만 고르고, 이미 R2에 만들어진 URL만 빠르게 붙인다.
     const picked = selectDiverseArticles(batch.normalizedItems, limit, (item) => item.article);
-    const articles = await attachThumbnails(picked);
+    const articles = await attachStoredNewsThumbnails(picked.map((item) => item.article));
 
     return {
       articles,
@@ -500,9 +428,8 @@ async function getHomeNewsFeedUncached(limit = 4): Promise<NewsFeed> {
 }
 
 /**
- * 홈 화면 뉴스 피드. Naver 검색 API 호출에 더해 노출될 기사마다 원문 og:image를
- * 스크래핑하므로(attachThumbnails) 홈 페이지 요청 경로에 실시간 외부 네트워크 지연이
- * 그대로 얹힌다. LCK 채널 영상(getLckChannelVideos)과 같은 이유로 짧게 캐시한다.
+ * 홈 화면 뉴스 피드. 요청 경로에서는 R2 존재 여부만 확인하고 원문 스크래핑과 변환은
+ * 응답 이후 워밍으로 넘긴다. LCK 채널 영상과 같은 이유로 짧게 캐시한다.
  */
 export const getHomeNewsFeed = unstable_cache(
   getHomeNewsFeedUncached,
