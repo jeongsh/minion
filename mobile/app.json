@@ -28,7 +28,7 @@
         "android.permission.READ_MEDIA_VISUAL_USER_SELECTED"
       ],
       "adaptiveIcon": {
-        "backgroundColor": "#F8F4EE",
+        "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
@@ -54,7 +54,10 @@
           "image": "./assets/images/splash-logo.png",
           "imageWidth": 308,
           "resizeMode": "contain",
-          "backgroundColor": "#F8F4EE",
+          "backgroundColor": "#FFFFFF",
+          "android": {
+            "imageWidth": 180
+          },
           "dark": {
             "image": "./assets/images/splash-logo.png",
             "backgroundColor": "#141517"
