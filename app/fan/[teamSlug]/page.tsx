@@ -18,8 +18,8 @@ import { TeamLogo } from "@/components/ui/team-logo";
 import {
   getAllTeams,
   getFanVideoFeed,
-  getMatches,
-  getPlayers,
+  getMatchesByTeamId,
+  getPlayersByTeamId,
   getTeamByFanSiteHost,
   getTeamBySlug,
   getTeamInstagramFeed,
@@ -204,31 +204,27 @@ export default async function FanHomePage({
   // fanSiteHost가 비어 있으면 진입에 사용한 slug로 폴백해 하위 링크가 /fan/undefined로 깨지지 않게 한다.
   const fanSlug = team.fanSiteHost ?? teamSlug;
 
-  const [teams, players, matches, popularBoardPosts, latestBoardPosts, calendarEvents] = await Promise.all([
-    getAllTeams(),
-    getPlayers(),
-    getMatches(),
-    getBoardPosts({ scope: "team", teamId: team.id, hotOnly: true, limit: COMMUNITY_HOME_HOT_CANDIDATE_LIMIT }),
-    getBoardPosts({ scope: "team", teamId: team.id, limit: COMMUNITY_HOME_LATEST_CANDIDATE_LIMIT }),
-    getCalendarEvents({ teamId: team.id, includePastOneTime: true }),
-  ]);
+  // 인스타/영상 피드가 팀 선수 id를 필요로 하므로 선수단을 먼저 조회한 뒤,
+  // 나머지(피드 포함)를 한 번의 병렬 웨이브로 처리한다.
+  const teamPlayers = (await getPlayersByTeamId(team.id))
+    .sort((a, b) => POSITION_ORDER.indexOf(a.position) - POSITION_ORDER.indexOf(b.position));
+  const playerIds = teamPlayers.map((p) => p.id);
+
+  const [teams, teamMatchesRaw, popularBoardPosts, latestBoardPosts, calendarEvents, instagramFeed, videoFeed] =
+    await Promise.all([
+      getAllTeams(),
+      getMatchesByTeamId(team.id),
+      getBoardPosts({ scope: "team", teamId: team.id, hotOnly: true, limit: COMMUNITY_HOME_HOT_CANDIDATE_LIMIT }),
+      getBoardPosts({ scope: "team", teamId: team.id, limit: COMMUNITY_HOME_LATEST_CANDIDATE_LIMIT }),
+      getCalendarEvents({ teamId: team.id, includePastOneTime: true }),
+      getTeamInstagramFeed(team.id, playerIds, FEED_PREVIEW_LIMIT),
+      getFanVideoFeed(team.id, playerIds, FEED_PREVIEW_LIMIT),
+    ]);
 
   const todayCelebrations = getTodayCelebrations(calendarEvents);
   const calendarMonthKey = dateKeyKST(new Date()).slice(0, 7);
 
-  const teamPlayers = players
-    .filter((player) => player.teamId === team.id)
-    .sort((a, b) => POSITION_ORDER.indexOf(a.position) - POSITION_ORDER.indexOf(b.position));
-  const playerIds = teamPlayers.map((p) => p.id);
-
-  const [instagramFeed, videoFeed] = await Promise.all([
-    getTeamInstagramFeed(team.id, playerIds, FEED_PREVIEW_LIMIT),
-    getFanVideoFeed(team.id, playerIds, FEED_PREVIEW_LIMIT),
-  ]);
-
-  const teamMatches = matches
-    .filter((match) => match.teamAId === team.id || match.teamBId === team.id)
-    .sort(byMatchDate);
+  const teamMatches = [...teamMatchesRaw].sort(byMatchDate);
   const teamsById = new Map(teams.map((item) => [item.id, item]));
   const calendarMatches = teamMatches.filter((match) => yearMonthKeyKST(match.matchDate) === calendarMonthKey);
   const calendarClientMatches: HomeCalendarMatch[] = calendarMatches.map((match) => {

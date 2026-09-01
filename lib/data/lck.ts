@@ -1144,6 +1144,24 @@ async function getMatchesInRangeBase(startIso: string, endIso: string) {
   }, []);
 }
 
+// 팬 홈/서브페이지는 한 팀의 경기만 보여준다. 전체 매치를 받아 메모리에서 거르지 않고
+// 해당 팀이 참가한 경기만 조회한다.
+async function getMatchesByTeamIdBase(teamId: string) {
+  return fromSupabase(async () => {
+    const { data, error } = await createSupabaseServerClient()
+      .from("matches")
+      .select(MATCH_COLUMNS)
+      .or(`team_a_id.eq.${teamId},team_b_id.eq.${teamId}`)
+      .order("match_date", { ascending: true });
+
+    if (error) {
+      throw error;
+    }
+
+    return (data as MatchRow[]).map(mapMatch);
+  }, []);
+}
+
 // 일정 화면은 특정 월만 렌더한다. match_date는 timestamptz라 KST 월 경계를
 // UTC instant로 환산해 [start, nextMonthStart) 로 조회한다.
 async function getMatchesByMonthBase(year: number, month: number) {
@@ -2160,6 +2178,7 @@ const getTournamentsShared = unstable_cache(getTournamentsBase, ["lck-tournament
 const getMatchesShared = unstable_cache(getMatchesBase, ["lck-matches"], { revalidate: 30 });
 const getMatchesByMonthShared = unstable_cache(getMatchesByMonthBase, ["lck-matches-by-month"], { revalidate: 30 });
 const getMatchesInRangeShared = unstable_cache(getMatchesInRangeBase, ["lck-matches-in-range"], { revalidate: 30 });
+const getMatchesByTeamIdShared = unstable_cache(getMatchesByTeamIdBase, ["lck-matches-by-team"], { revalidate: 30 });
 const getSetsShared = unstable_cache(getSetsBase, ["lck-sets"], { revalidate: 30 });
 
 // 요청(render) 내 동일 인자 재호출도 dedupe한다.
@@ -2187,6 +2206,7 @@ export const getPlayerById = cache(getPlayerByIdBase);
 export const getMatches = cache(getMatchesShared);
 export const getMatchesByMonth = cache(getMatchesByMonthShared);
 export const getMatchesInRange = cache(getMatchesInRangeShared);
+export const getMatchesByTeamId = cache(getMatchesByTeamIdShared);
 export const getMatchById = cache(getMatchByIdBase);
 export const getSetsByMatchId = cache(getSetsByMatchIdBase);
 export const getSetDataCompletionBySetId = cache(getSetDataCompletionBySetIdBase);
