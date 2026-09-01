@@ -1,12 +1,10 @@
-import ImageIcon from 'lucide-react-native/icons/image';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import * as WebBrowser from 'expo-web-browser';
 
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import type { MobileMatchSetSummary } from '@/lib/api-client';
 
 /** 세트가 1개(BO1)여도 웹처럼 현재 세트를 알약으로 명확히 보여준다. */
-export function MatchSetSelector({ activeSetId, onSelect, sets, snapshotUrl }: { activeSetId: string; onSelect: (setId: string) => void; sets: MobileMatchSetSummary[]; snapshotUrl?: string }) {
+export function MatchSetSelector({ activeSetId, onSelect, sets }: { activeSetId: string; onSelect: (setId: string) => void; sets: MobileMatchSetSummary[] }) {
   const { colorScheme, fonts, theme } = useMinionTheme();
   if (sets.length === 0) return null;
 
@@ -28,7 +26,6 @@ export function MatchSetSelector({ activeSetId, onSelect, sets, snapshotUrl }: {
           );
         })}
       </View>
-      {snapshotUrl ? <Pressable accessibilityLabel="공유 스냅샷 보기" onPress={() => WebBrowser.openBrowserAsync(snapshotUrl)} style={[styles.snapshot, { backgroundColor: theme.ink }]}><ImageIcon color={theme.surface} size={14} /></Pressable> : null}
     </View>
   );
 }
@@ -36,7 +33,6 @@ export function MatchSetSelector({ activeSetId, onSelect, sets, snapshotUrl }: {
 const styles = StyleSheet.create({
   pill: { alignItems: 'center', borderRadius: 8, height: 32, justifyContent: 'center', paddingHorizontal: 14 },
   pillText: { fontSize: 14, lineHeight: 21 },
-  snapshot: { alignItems: 'center', borderRadius: 8, height: 32, justifyContent: 'center', width: 32 },
   track: { alignItems: 'center', alignSelf: 'flex-start', borderRadius: 10, flexDirection: 'row', gap: 2, padding: 3 },
-  wrap: { alignItems: 'center', borderBottomWidth: 1, flexDirection: 'row', justifyContent: 'space-between', marginHorizontal: -16, paddingHorizontal: 16, paddingVertical: 12 },
+  wrap: { alignItems: 'center', borderBottomWidth: 1, flexDirection: 'row', marginHorizontal: -16, paddingHorizontal: 16, paddingVertical: 12 },
 });
