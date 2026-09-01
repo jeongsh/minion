@@ -154,13 +154,12 @@ export default async function SetRatingSnapshotPage({ params }: { params: Promis
   const blueIsWinner = set.winnerTeamId === set.blueTeamId
     || (set.winnerTeamId == null && (set.blueKills ?? 0) > (set.redKills ?? 0));
   const redIsWinner = !blueIsWinner;
-  const backgroundImage = "/images/fan-headers/hle-header-bg-v1.jpg";
+  const backgroundImage = "/images/rating-snapshots/lck-championship-wings-v1.png";
   const filename = `${teamA?.shortName ?? "팀A"}-${teamB?.shortName ?? "팀B"}-${set.setNumber}세트-팬평점.png`;
 
   return (
     <main className={shellClass}>
       <div id="rating-share-card" className="relative isolate aspect-[4/5] w-full overflow-hidden bg-[#07111f] text-white shadow-[0_24px_70px_rgba(0,0,0,0.32)]">
-        {/* 임시 배경: 추후 전용 경기 이미지로 이 한 줄만 교체할 수 있다. */}
         <div className="absolute inset-0 -z-30 bg-cover bg-center" style={{ backgroundImage: `url(${backgroundImage})` }} />
         <div className="absolute inset-0 -z-20 bg-[linear-gradient(180deg,rgba(4,11,23,0.44)_0%,rgba(4,10,20,0.7)_42%,rgba(5,11,20,0.88)_100%)]" />
         <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_50%_25%,rgba(65,135,255,0.2),transparent_38%)]" />
