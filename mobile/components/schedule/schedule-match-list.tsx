@@ -1,7 +1,7 @@
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import EyeOff from 'lucide-react-native/icons/eye-off';
-import { useEffect, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { Animated, Easing, type GestureResponderEvent, type LayoutChangeEvent, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { TeamLogo } from '@/components/data/team-logo';
@@ -11,6 +11,8 @@ import { dateHeadingKST, dateKeyKST, formatTimeKST, isMatchFinished, isMatchLive
 import { useSpoilerFree } from '@/providers/spoiler-free-provider';
 
 const EMPTY_BORDER = { dark: '#26735c', light: '#94dfc4' } as const;
+// Expo assets use Metro's numeric module reference at runtime.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const CHARACTER_IMAGE = require('@/assets/characters/pen-4.png');
 
 export function ScheduleMatchList({
@@ -82,7 +84,7 @@ function MatchRow({ isLast, match }: { isLast: boolean; match: MobileMatchSummar
             : null
         : null);
   const teamColor = (teamId?: string | null) => (!spoiled && completed && winnerId ? (teamId === winnerId ? theme.ink : theme.muted) : theme.ink);
-  const score = match.teamAScore === null || match.teamBScore === null ? 'VS' : `${match.teamAScore} : ${match.teamBScore}`;
+  const score = match.teamAScore === null || match.teamBScore === null ? 'VS' : `${match.teamAScore}\u00a0:\u00a0${match.teamBScore}`;
 
   return (
     <Pressable
@@ -125,7 +127,7 @@ function MatchRow({ isLast, match }: { isLast: boolean; match: MobileMatchSummar
               <EyeOff color={theme.muted} size={16} />
             </Pressable>
           ) : (
-            <Text style={[styles.score, { color: theme.ink, ...fonts.black }]}>{score}</Text>
+            <Text numberOfLines={1} style={[styles.score, { color: theme.ink, ...fonts.black }]}>{score}</Text>
           )}
           <View style={styles.teamSideRight}>
             <TeamLogo plain size={32} team={match.teamB} themeAware />
@@ -140,7 +142,7 @@ function MatchRow({ isLast, match }: { isLast: boolean; match: MobileMatchSummar
 
 function ScheduleEmptyState({ body }: { body: string }) {
   const { colorScheme, fonts, theme } = useMinionTheme();
-  const bob = useRef(new Animated.Value(0)).current;
+  const [bob] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     const loop = Animated.loop(
@@ -180,8 +182,8 @@ const styles = StyleSheet.create({
   liveDot: { backgroundColor: '#ef4444', borderRadius: 3, height: 6, width: 6 },
   liveText: { color: '#ef4444', fontSize: 10, lineHeight: 15 },
   rowTouchable: { alignItems: 'center', columnGap: 10, flexDirection: 'row', paddingHorizontal: 12, paddingVertical: 12 },
-  score: { fontSize: 15, lineHeight: 22.5, textAlign: 'center', width: 32 },
-  scoreMasked: { alignItems: 'center', justifyContent: 'center', width: 32 },
+  score: { fontSize: 15, lineHeight: 22.5, textAlign: 'center', width: 33 },
+  scoreMasked: { alignItems: 'center', justifyContent: 'center', width: 33 },
   statusBadge: { borderRadius: 999, paddingHorizontal: 6, paddingVertical: 2 },
   statusText: { fontSize: 10, lineHeight: 15 },
   teamName: { flexShrink: 1, fontSize: 15, lineHeight: 22.5 },
