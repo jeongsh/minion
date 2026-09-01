@@ -27,7 +27,7 @@ export function FilterSelect({
   const selectedLabel = options.find((option) => option.value === value)?.label ?? '-';
 
   return (
-    <View style={styles.select}>
+    <View style={[styles.select, open && styles.selectOpen]}>
       <Text style={[styles.selectLabel, { color: theme.muted, ...fonts.medium }]}>{label}</Text>
       <Pressable
         accessibilityLabel={accessibilityLabel ?? `${label} 선택`}
@@ -70,7 +70,8 @@ export function FilterSelect({
 
 const styles = StyleSheet.create({
   chevronOpen: { transform: [{ rotate: '180deg' }] },
-  select: { flex: 1, gap: 6, position: 'relative', zIndex: 20 },
+  select: { flex: 1, gap: 6, position: 'relative' },
+  selectOpen: { zIndex: 30 },
   selectLabel: { fontSize: 13, lineHeight: 19.5 },
   selectList: {
     borderRadius: 12,

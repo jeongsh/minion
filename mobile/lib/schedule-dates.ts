@@ -35,17 +35,16 @@ const WEEKDAY_LABELS = ['월', '화', '수', '목', '금', '토', '일'];
 
 export type WeekDate = { day: number; key: string; weekday: string };
 
-export function weekDatesKST(): WeekDate[] {
-  // 기기 로컬 타임존이 KST가 아니면 today.getDay()/getDate()가 실제 KST 날짜와
-  // 어긋날 수 있어, KST 달력 날짜를 먼저 구한 뒤 UTC 기준으로만 날짜 연산을 한다.
-  const [year, month, day] = dateKeyKST(new Date()).split('-').map(Number);
-  const today = new Date(Date.UTC(year, month - 1, day));
-  const start = new Date(today);
-  start.setUTCDate(today.getUTCDate() - ((today.getUTCDay() + 6) % 7));
-  return Array.from({ length: 7 }, (_, index) => {
-    const date = new Date(start);
-    date.setUTCDate(start.getUTCDate() + index);
-    return { day: date.getUTCDate(), key: dateKeyKST(date), weekday: WEEKDAY_LABELS[index] };
+export function monthDatesKST(year: number, month: number): WeekDate[] {
+  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  return Array.from({ length: lastDay }, (_, index) => {
+    const day = index + 1;
+    const date = new Date(Date.UTC(year, month - 1, day));
+    return {
+      day,
+      key: `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
+      weekday: WEEKDAY_LABELS[(date.getUTCDay() + 6) % 7],
+    };
   });
 }
 

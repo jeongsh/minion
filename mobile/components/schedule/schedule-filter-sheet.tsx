@@ -199,5 +199,5 @@ const styles = StyleSheet.create({
   spoilerToggle: { alignItems: 'center', borderRadius: 999, borderWidth: 1, flexDirection: 'row', gap: 6, minHeight: 32, paddingHorizontal: 10 },
   spoilerToggleText: { fontSize: 13, lineHeight: 19.5 },
   teamChipLogo: { height: 28, width: 28 },
-  yearMonthRow: { flexDirection: 'row', gap: 8 },
+  yearMonthRow: { flexDirection: 'row', gap: 8, zIndex: 30 },
 });

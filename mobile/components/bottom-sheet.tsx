@@ -12,6 +12,7 @@ import {
   type DimensionValue,
   type ScrollViewProps,
   type StyleProp,
+  type TextStyle,
   type ViewStyle,
 } from 'react-native';
 
@@ -31,6 +32,7 @@ type BottomSheetProps = PropsWithChildren<{
   scrollViewProps?: Omit<ScrollViewProps, 'contentContainerStyle'>;
   scrollable?: boolean;
   title: string;
+  titleStyle?: StyleProp<TextStyle>;
 }>;
 
 export function BottomSheetHandle() {
@@ -52,6 +54,7 @@ export function BottomSheet({
   scrollViewProps,
   scrollable = false,
   title,
+  titleStyle,
 }: BottomSheetProps) {
   const { fonts, theme } = useMinionTheme();
 
@@ -73,7 +76,7 @@ export function BottomSheet({
           <View accessibilityViewIsModal style={[styles.panel, { backgroundColor: theme.surface, maxHeight, paddingBottom: keyboardVisible ? bottomInset : Math.max(bottomInset, 18) }, panelStyle]}>
             <BottomSheetHandle />
             <View style={[styles.heading, headingStyle]}>
-              <Text style={[styles.title, { color: theme.ink, ...fonts.display }]}>{title}</Text>
+              <Text style={[styles.title, { color: theme.ink, ...fonts.display }, titleStyle]}>{title}</Text>
               {actions ? <View style={styles.actions}>{actions}</View> : null}
               {dismissible ? <Pressable accessibilityLabel={`${title} 닫기`} hitSlop={8} onPress={close} style={styles.close}><X color={theme.muted} size={22} /></Pressable> : null}
             </View>

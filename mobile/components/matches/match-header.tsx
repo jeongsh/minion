@@ -9,16 +9,12 @@ function scoreLabel(score: number | null) {
   return score ?? '-';
 }
 
-function CompactTeamBlock({ align, team, teamName, result }: { align: 'left' | 'right'; team: MobileMatchSummary['teamA']; teamName: string; result: 'WIN' | 'LOSS' | null }) {
+function CompactTeamBlock({ align, team, teamName }: { align: 'left' | 'right'; team: MobileMatchSummary['teamA']; teamName: string }) {
   const { fonts, theme } = useMinionTheme();
   const isRight = align === 'right';
-  const resultLabel = result === 'WIN' ? '승리' : result === 'LOSS' ? '패배' : null;
   const nameBlock = (
     <View style={[styles.nameBlock, { alignItems: isRight ? 'flex-start' : 'flex-end' }]}>
       <Text numberOfLines={1} style={[styles.teamName, { color: theme.ink, ...fonts.black, textAlign: isRight ? 'left' : 'right' }]}>{teamName}</Text>
-      {resultLabel ? (
-        <Text style={[styles.resultLabel, { color: result === 'WIN' ? theme.accent : theme.muted, ...fonts.medium }]}>{resultLabel}</Text>
-      ) : null}
     </View>
   );
   const logo = <TeamLogo plain size={36} team={team} themeAware />;
@@ -82,7 +78,7 @@ export function MatchHeader({ header, match }: { header: MobileMatchHeader; matc
       </View>
 
       <View style={styles.scoreRow}>
-        <CompactTeamBlock align="left" result={teamAResult} team={match.teamA} teamName={match.teamA?.shortName ?? match.teamA?.name ?? '-'} />
+        <CompactTeamBlock align="left" team={match.teamA} teamName={match.teamA?.shortName ?? match.teamA?.name ?? '-'} />
 
         <View style={styles.scoreCenter}>
           {hasScore ? (
@@ -104,7 +100,7 @@ export function MatchHeader({ header, match }: { header: MobileMatchHeader; matc
           )}
         </View>
 
-        <CompactTeamBlock align="right" result={teamBResult} team={match.teamB} teamName={match.teamB?.shortName ?? match.teamB?.name ?? '-'} />
+        <CompactTeamBlock align="right" team={match.teamB} teamName={match.teamB?.shortName ?? match.teamB?.name ?? '-'} />
       </View>
     </View>
   );
@@ -126,7 +122,6 @@ const styles = StyleSheet.create({
   pomChip: { alignItems: 'center', borderRadius: 999, flexDirection: 'row', gap: 6, paddingBottom: 4, paddingLeft: 4, paddingRight: 8, paddingTop: 4 },
   pomLabel: { fontSize: 12, letterSpacing: 0.8, lineHeight: 16 },
   pomName: { flexShrink: 1, fontSize: 13, lineHeight: 19.5 },
-  resultLabel: { fontSize: 13, lineHeight: 19.5, marginTop: 2 },
   root: { marginHorizontal: -16 },
   scoreBox: { alignItems: 'center', borderRadius: 12, flexDirection: 'row', gap: 8, paddingHorizontal: 14, paddingVertical: 8 },
   scoreCenter: { alignItems: 'center', flexShrink: 0, minWidth: 88, paddingHorizontal: 4 },
