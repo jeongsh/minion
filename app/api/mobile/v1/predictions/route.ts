@@ -1,5 +1,5 @@
 import type { MobilePredictionMutationDto, MobilePredictionsDto } from "@/packages/contracts/src/mobile-v1";
-import { getAllTeams, getMatches } from "@/lib/data/lck";
+import { getAllTeams, getMatchesInRange } from "@/lib/data/lck";
 import { mobileError, mobileSuccess, toMobileTeam } from "@/lib/mobile/api-response";
 import { getMobileAuth } from "@/lib/mobile/auth";
 import { getPredictionMarketData, predictionMarketForMatch } from "@/lib/predictions";
@@ -29,20 +29,31 @@ async function jsonBody(request: Request) {
 
 export async function GET(request: Request) {
   const auth = await getMobileAuth(request);
-  const [matches, teams, market] = await Promise.all([
-    getMatches(),
+
+  const now = Date.now();
+  const DAY_MS = 1000 * 60 * 60 * 24;
+  const windowStart = now - DAY_MS * 7;
+  const windowEnd = now + DAY_MS * 21;
+  // DB 조회 범위는 하루 단위로 넉넉히 확장해 unstable_cache 키가 매 요청 달라지지 않게 한다.
+  // 정확한 노출 판정은 아래 visibleMatches 필터가 처리한다.
+  const rangeStartIso = new Date(Math.floor((windowStart - DAY_MS) / DAY_MS) * DAY_MS).toISOString();
+  const rangeEndIso = new Date(Math.ceil((windowEnd + DAY_MS) / DAY_MS) * DAY_MS).toISOString();
+
+  const [matches, teams] = await Promise.all([
+    getMatchesInRange(rangeStartIso, rangeEndIso),
     getAllTeams(),
-    getPredictionMarketData(auth?.user.id),
   ]);
   const teamMap = new Map(teams.map((team) => [team.id, team]));
 
-  const now = Date.now();
-  const windowStart = now - 1000 * 60 * 60 * 24 * 7;
-  const windowEnd = now + 1000 * 60 * 60 * 24 * 21;
   const visibleMatches = matches.filter((match) => {
     const matchTime = new Date(match.matchDate).getTime();
     return matchTime >= windowStart && matchTime <= windowEnd && match.teamAId && match.teamBId;
   });
+  const market = await getPredictionMarketData(
+    auth?.user.id,
+    undefined,
+    visibleMatches.map((match) => match.id),
+  );
 
   const data: MobilePredictionsDto = {
     balance: market.balance,
