@@ -12,7 +12,7 @@ async function liquipediaFetch(params: URLSearchParams): Promise<unknown> {
   const res = await fetch(`${LIQUIPEDIA_API}?${params}`, {
     headers: {
       "Accept-Encoding": "gzip",
-      "User-Agent": "LCKHubMinion/0.1 (LCK awards sync; contact: tmdgus4720@gmail.com)",
+      "User-Agent": "LCKHubMinion/0.1 (LCK awards sync; contact: lck.minion@gmail.com)",
       "Accept": "application/json",
     },
   });
