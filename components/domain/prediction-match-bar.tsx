@@ -50,9 +50,9 @@ function TeamChoice({
           <span className="min-w-0 truncate text-[15px] font-black text-[var(--ui-ink)] sm:text-xl">
             {team?.shortName ?? "TBD"}
           </span>
-          <span className="shrink-0 text-[11px] font-medium text-[var(--ui-muted)] sm:text-[13px]">
+          <span className="hidden shrink-0 text-[13px] font-medium text-[var(--ui-muted)] sm:inline">
             {odds === null ? "1.00" : odds.toFixed(2)}
-            <span className="text-[10px] sm:text-[12px]">{"\u00a0배"}</span>
+            <span className="text-[12px]">{"\u00a0배"}</span>
           </span>
         </span>
       </span>

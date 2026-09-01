@@ -8,10 +8,6 @@ function teamColor(team: MobileTeamSummary | null, fallback: string) {
   return team?.primaryColor && /^#[\da-f]{6}$/i.test(team.primaryColor) ? team.primaryColor : fallback;
 }
 
-function oddsLabel(value: number | null) {
-  return (value ?? 1).toFixed(2);
-}
-
 function signed(value: number) {
   return value > 0 ? `+${value}` : String(value);
 }
@@ -47,16 +43,13 @@ function sourceDay(value: string | null) {
   }).format(date);
 }
 
-function PredictionChoice({ odds, percent, reverse, team }: { odds: number | null; percent: number; reverse?: boolean; team: MobileTeamSummary | null }) {
+function PredictionChoice({ percent, reverse, team }: { percent: number; reverse?: boolean; team: MobileTeamSummary | null }) {
   const { fonts, theme } = useMinionTheme();
   return (
     <View style={[styles.choice, reverse && styles.choiceReverse]}>
       <View style={[styles.choiceIdentity, reverse && styles.choiceReverse]}>
         <TeamLogo plain size={28} team={team} themeAware />
-        <View style={[styles.choiceLabel, reverse && styles.choiceReverse]}>
-          <Text numberOfLines={1} style={{ color: theme.ink, ...fonts.black, fontSize: 15, lineHeight: 20 }}>{team?.shortName ?? 'TBD'}</Text>
-          <Text style={{ color: theme.muted, ...fonts.medium, fontSize: 13, lineHeight: 18 }}>{oddsLabel(odds)} 배</Text>
-        </View>
+        <Text numberOfLines={1} style={{ color: theme.ink, ...fonts.black, fontSize: 15, lineHeight: 20 }}>{team?.shortName ?? 'TBD'}</Text>
       </View>
       <Text style={{ color: theme.ink, ...fonts.black, fontSize: 17, lineHeight: 20 }}>{percent}<Text style={{ color: theme.muted, ...fonts.medium, fontSize: 12 }}>%</Text></Text>
     </View>
@@ -67,9 +60,9 @@ function PredictionBar({ data }: { data: MobileMatchDetailDto }) {
   const { colorScheme, fonts, theme } = useMinionTheme();
   return (
     <View style={[styles.prediction, { backgroundColor: colorScheme === 'dark' ? theme.surfaceMuted : theme.surface, borderColor: theme.border }]}>
-      <PredictionChoice odds={data.preview.prediction.teamAOdds} percent={data.preview.prediction.teamAPercent} team={data.match.teamA} />
+      <PredictionChoice percent={data.preview.prediction.teamAPercent} team={data.match.teamA} />
       <View style={styles.predictionVs}><Text style={{ color: theme.muted, ...fonts.medium, fontSize: 13 }}>VS</Text></View>
-      <PredictionChoice odds={data.preview.prediction.teamBOdds} percent={data.preview.prediction.teamBPercent} reverse team={data.match.teamB} />
+      <PredictionChoice percent={data.preview.prediction.teamBPercent} reverse team={data.match.teamB} />
     </View>
   );
 }
@@ -245,7 +238,6 @@ const styles = StyleSheet.create({
   briefingRow: { borderRadius: 8, gap: 4, marginBottom: 8, paddingHorizontal: 12, paddingVertical: 10 },
   choice: { alignItems: 'center', alignSelf: 'stretch', flex: 1, flexDirection: 'row', gap: 6, minWidth: 0, paddingHorizontal: 8 },
   choiceIdentity: { alignItems: 'center', flex: 1, flexDirection: 'row', gap: 6, minWidth: 0 },
-  choiceLabel: { alignItems: 'baseline', flexDirection: 'row', gap: 4, minWidth: 0 },
   choiceReverse: { flexDirection: 'row-reverse' },
   meetingList: { gap: 6 },
   meetingPair: { alignItems: 'center', flex: 1, flexDirection: 'row', gap: 6, justifyContent: 'center', minWidth: 0 },

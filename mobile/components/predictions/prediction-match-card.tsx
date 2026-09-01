@@ -19,11 +19,11 @@ export function PredictionMatchCard({ match, now, onChooseTeam }: { match: Mobil
         </View>
       </View>
       <View style={[styles.card, { backgroundColor: colorScheme === 'dark' ? theme.surfaceMuted : theme.surface, borderColor: match.myBet ? theme.accent : theme.border }]}>
-        <TeamChoice disabled={match.closed} onPress={() => match.teamA && onChooseTeam(match.teamA.id)} percent={match.market.teamAPercent} selected={match.myBet?.teamId === match.teamA?.id} team={match.teamA} odds={match.market.teamAOdds} />
+        <TeamChoice disabled={match.closed} onPress={() => match.teamA && onChooseTeam(match.teamA.id)} percent={match.market.teamAPercent} selected={match.myBet?.teamId === match.teamA?.id} team={match.teamA} />
         <View style={styles.vsColumn}>
           <Text style={[styles.vsText, { color: theme.muted, ...fonts.black }]}>VS</Text>
         </View>
-        <TeamChoice disabled={match.closed} onPress={() => match.teamB && onChooseTeam(match.teamB.id)} percent={match.market.teamBPercent} selected={match.myBet?.teamId === match.teamB?.id} team={match.teamB} odds={match.market.teamBOdds} right />
+        <TeamChoice disabled={match.closed} onPress={() => match.teamB && onChooseTeam(match.teamB.id)} percent={match.market.teamBPercent} selected={match.myBet?.teamId === match.teamB?.id} team={match.teamB} right />
       </View>
     </View>
   );
@@ -31,7 +31,6 @@ export function PredictionMatchCard({ match, now, onChooseTeam }: { match: Mobil
 
 function TeamChoice({
   disabled,
-  odds,
   onPress,
   percent,
   right = false,
@@ -39,7 +38,6 @@ function TeamChoice({
   team,
 }: {
   disabled: boolean;
-  odds: number | null;
   onPress: () => void;
   percent: number;
   right?: boolean;
@@ -52,13 +50,7 @@ function TeamChoice({
     <Pressable disabled={disabled || !team} onPress={onPress} style={[styles.choice, right && styles.choiceRight, selected && { backgroundColor: `${theme.accent}18` }]}>
       <View style={[styles.choiceInfo, right && styles.choiceInfoRight]}>
         <TeamLogo plain size={28} team={team} themeAware />
-        <View style={[styles.choiceNameRow, right && styles.choiceNameRowRight]}>
-          <Text numberOfLines={1} style={[styles.choiceName, { color: theme.ink, ...fonts.black }]}>{team?.shortName ?? 'TBD'}</Text>
-          <Text style={[styles.choiceOdds, { color: theme.muted, ...fonts.medium }]}>
-            {odds === null ? '1.00' : odds.toFixed(2)}
-            <Text style={styles.choiceOddsUnit}> 배</Text>
-          </Text>
-        </View>
+        <Text numberOfLines={1} style={[styles.choiceName, { color: theme.ink, ...fonts.black }]}>{team?.shortName ?? 'TBD'}</Text>
       </View>
       <Text style={[styles.choicePercent, { color: theme.ink, ...fonts.black }]}>
         {percent}
@@ -74,10 +66,6 @@ const styles = StyleSheet.create({
   choiceInfo: { alignItems: 'center', flex: 1, flexDirection: 'row', gap: 6, minWidth: 0 },
   choiceInfoRight: { flexDirection: 'row-reverse' },
   choiceName: { flexShrink: 1, fontSize: 15, lineHeight: 21 },
-  choiceNameRow: { alignItems: 'baseline', flexDirection: 'row', gap: 4, minWidth: 0 },
-  choiceNameRowRight: { flexDirection: 'row-reverse' },
-  choiceOdds: { flexShrink: 0, fontSize: 11, lineHeight: 16.5 },
-  choiceOddsUnit: { fontSize: 10 },
   choicePercent: { flexShrink: 0, fontSize: 17, lineHeight: 17 },
   choicePercentSign: { fontSize: 12 },
   choiceRight: { flexDirection: 'row-reverse' },
