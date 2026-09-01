@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { PostView } from "@/components/community/post-view";
@@ -16,6 +17,9 @@ import {
 } from "@/lib/data/community";
 import { getUserMiniconPacks } from "@/lib/data/minicons";
 import { getTeamByFanSiteHost, getTeamBySlug } from "@/lib/data/lck";
+
+// 사용자 생성 게시글이라 검색 색인 대상에서 제외한다.
+export const metadata: Metadata = { title: "게시글", robots: { index: false } };
 
 export default async function FanPostDetailPage({
   params,

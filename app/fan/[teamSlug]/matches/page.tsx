@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { FanCalendarSubmissionForm } from "@/components/fan/fan-calendar-submission-form";
@@ -6,9 +7,20 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 import { getCalendarEvents } from "@/lib/calendar/events";
 import { getAllTeams, getMatches, getTeamByFanSiteHost, getTeamBySlug } from "@/lib/data/lck";
 import { shouldUseWhiteLogoOnDark } from "@/lib/team-logos";
+import { getTeamByRouteKey } from "@/lib/team-themes";
 import { dateKeyKST, formatTimeKST, matchHref } from "@/lib/view-data";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ teamSlug: string }>;
+}): Promise<Metadata> {
+  const { teamSlug } = await params;
+  const fanSlug = getTeamByRouteKey(teamSlug)?.fanSiteHost ?? teamSlug;
+  return { title: "경기 일정", alternates: { canonical: `/fan/${fanSlug}/matches` } };
+}
 
 export default async function FanSchedulePage({
   params,

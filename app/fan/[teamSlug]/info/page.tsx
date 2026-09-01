@@ -1,6 +1,18 @@
+import type { Metadata } from "next";
+
 import { DataTable } from "@/components/ui/data-table";
 import { FanPageShell, FanSubpageHeader } from "@/components/fan/fan-page-shell";
 import { getTeamByRouteKey } from "@/lib/team-themes";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ teamSlug: string }>;
+}): Promise<Metadata> {
+  const { teamSlug } = await params;
+  const fanSlug = getTeamByRouteKey(teamSlug)?.fanSiteHost ?? teamSlug;
+  return { title: "팀 정보", alternates: { canonical: `/fan/${fanSlug}/info` } };
+}
 
 export default async function FanInfoPage({
   params,

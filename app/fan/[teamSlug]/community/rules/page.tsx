@@ -4,7 +4,8 @@ import { CommunityRules } from "@/components/community/community-rules";
 import { PageHeader } from "@/components/ui/page-header";
 import { getTeamByFanSiteHost, getTeamBySlug } from "@/lib/data/lck";
 
-export const metadata = { title: "커뮤니티 이용 규칙" };
+// 팀마다 거의 동일한 내용이라(허브 /community/rules와 중복) 색인에서 제외한다.
+export const metadata = { title: "커뮤니티 이용 규칙", robots: { index: false } };
 
 export default async function FanCommunityRulesPage({
   params,

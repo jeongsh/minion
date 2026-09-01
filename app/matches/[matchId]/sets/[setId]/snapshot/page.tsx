@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -19,6 +20,9 @@ import { formatDateTime, setHref } from "@/lib/view-data";
 import { SnapshotActions } from "./snapshot-actions";
 
 export const dynamic = "force-dynamic";
+
+// 세트 팬 평가를 이미지로 공유하기 위한 파생 화면. 경기 페이지와 내용이 겹치므로 색인 제외.
+export const metadata: Metadata = { title: "세트 평가 스냅샷", robots: { index: false } };
 
 const POSITION_ORDER = new Map<string, number>(
   ["TOP", "JGL", "MID", "BOT", "SUP"].map((position, index) => [position, index]),

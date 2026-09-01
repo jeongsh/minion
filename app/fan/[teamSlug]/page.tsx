@@ -45,14 +45,15 @@ const FEED_PREVIEW_LIMIT = 12;
 export async function generateMetadata({ params }: { params: Promise<{ teamSlug: string }> }): Promise<Metadata> {
   const { teamSlug } = await params;
   const team = (await getTeamByFanSiteHost(teamSlug)) ?? (await getTeamBySlug(teamSlug));
-  if (!team) return { title: "팀을 찾을 수 없습니다 | MINION" };
+  if (!team) return { title: { absolute: "팀을 찾을 수 없습니다 | MINION" } };
 
   const fanSlug = team.fanSiteHost ?? teamSlug;
   const title = `${team.name} | MINION`;
   const description = `${team.name} 팀 소식, 경기 일정, 선수단과 팬톡을 한곳에서 확인하세요.`;
 
   return {
-    title,
+    // 레이아웃 template("%s | {팀} 팬 | MINION")이 덧붙지 않도록 absolute로 고정한다.
+    title: { absolute: title },
     description,
     alternates: { canonical: `/fan/${fanSlug}` },
     openGraph: { title, description, url: `${siteBaseUrl()}/fan/${fanSlug}`, type: "website", images: ["/images/minion-og-20260829.png"] },

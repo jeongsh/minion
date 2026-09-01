@@ -1,4 +1,5 @@
 import { Eye, FileText, MessageCircle, MessageSquareText, ThumbsUp } from "lucide-react";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -24,6 +25,9 @@ import { getTeamById } from "@/lib/data/lck";
 import { TIER_LABELS } from "@/lib/rank/config";
 
 type ActivityTab = "posts" | "comments";
+
+// 커뮤니티 사용자 활동 페이지. 얇은 목록형이라 색인 제외.
+export const metadata: Metadata = { title: "사용자 활동", robots: { index: false } };
 
 export default async function CommunityUserPage({
   params,

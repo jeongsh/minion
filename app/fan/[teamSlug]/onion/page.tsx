@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import type { CSSProperties } from "react";
 
@@ -7,6 +8,9 @@ import { getActiveFanOnions, getFanTemperatureSnapshot } from "@/lib/data/fan-pu
 import { getTeamByFanSiteHost, getTeamBySlug } from "@/lib/data/lck";
 
 export const dynamic = "force-dynamic";
+
+// 팬 여론 게시판(사용자 생성 콘텐츠)이라 검색 색인 대상이 아니다.
+export const metadata: Metadata = { title: "비난양파", robots: { index: false } };
 
 export default async function FanOnionPage({
   params,

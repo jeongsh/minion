@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { PostView } from "@/components/community/post-view";
@@ -15,6 +16,9 @@ import {
   getPostComments,
 } from "@/lib/data/community";
 import { getUserMiniconPacks } from "@/lib/data/minicons";
+
+// 사용자 생성 게시글이라 검색 색인 대상에서 제외한다.
+export const metadata: Metadata = { title: "게시글", robots: { index: false } };
 
 export default async function HubPostDetailPage({
   params,
