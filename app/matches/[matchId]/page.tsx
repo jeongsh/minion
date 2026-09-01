@@ -1,6 +1,5 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { ImageIcon } from "lucide-react";
 import { Suspense } from "react";
 
 import { notFound } from "next/navigation";
@@ -43,6 +42,7 @@ import {
 import { getPredictionMarketData } from "@/lib/predictions";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { getMatchAiPreview } from "@/lib/match-preview-ai";
+import { compactMatchStageName, compactMatchTournamentName } from "@/lib/match-header-labels";
 
 import { LiveMatchFeed } from "./live-match-feed";
 import { LiveMatchScoreBox } from "./live-match-score-box";
@@ -69,25 +69,17 @@ function CompactTeamBlock({
   align = "left",
   team,
   teamName,
-  result,
 }: {
   align?: "left" | "right";
   team?: Team;
   teamName: string;
-  result: "WIN" | "LOSS" | null;
 }) {
   const isRight = align === "right";
-  const resultLabel = result === "WIN" ? "승리" : result === "LOSS" ? "패배" : null;
   const nameBlock = (
     <div className={`min-w-0 ${isRight ? "text-left" : "text-right"}`}>
       <p className="truncate text-[16px] font-black leading-tight text-[var(--ui-ink)] sm:text-[20px]">
         {teamName}
       </p>
-      {resultLabel ? (
-        <p className={`mt-0.5 text-[13px] font-medium ${result === "WIN" ? "text-[var(--accent)]" : "text-[var(--ui-muted)]"}`}>
-          {resultLabel}
-        </p>
-      ) : null}
     </div>
   );
   const logo = <TeamLogo team={team} size="h-9 w-9 sm:h-12 sm:w-12" plain themeAware />;
@@ -265,10 +257,9 @@ function SetSelector({
           href={snapshotHref}
           title="공유 스냅샷 보기"
           aria-label="공유 스냅샷 보기"
-          className="inline-flex h-8 shrink-0 items-center justify-center gap-1 rounded-lg bg-[var(--ui-ink)] px-2 text-[13px] font-normal text-[var(--ui-surface)] shadow-sm transition-opacity hover:opacity-85 sm:px-2.5"
+          className="hidden h-8 shrink-0 items-center justify-center gap-1 rounded-lg bg-[var(--ui-ink)] px-2 text-[13px] font-normal text-[var(--ui-surface)] shadow-sm transition-opacity hover:opacity-85 sm:inline-flex sm:px-2.5"
         >
-          <ImageIcon aria-hidden="true" className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">공유 스냅샷</span>
+          <span>공유 스냅샷</span>
         </Link>
       ) : null}
     </div>
@@ -511,9 +502,7 @@ export default async function MatchDetailPage({
     : null;
   const hasScore = match.teamAScore !== null || match.teamBScore !== null;
   const displayStatusLabel = matchStatusLabel(isMatchLive(match) ? "live" : match.status);
-  const topFanLeader = fanRatingLeader(fanRatings);
   const pomPlayer = players.find((p) => p.id === match.officialPomPlayerId);
-  const topFanPlayer = topFanLeader ? players.find((p) => p.id === topFanLeader.playerId) : undefined;
   // Snapshot once per dynamic request; the client receives the same cutoff as the predictions page.
   // eslint-disable-next-line react-hooks/purity
   const now = Date.now();
@@ -568,7 +557,10 @@ export default async function MatchDetailPage({
           <h1 className="sr-only">{`${teamAName} vs ${teamBName}`}</h1>
 
           <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 px-4 py-2 text-[13px] font-medium text-[var(--ui-muted)] sm:px-6">
-            <span className="min-w-0 truncate text-left text-[var(--ui-ink)]">{tournament?.name ?? "대회 미지정"}</span>
+            <span className="min-w-0 truncate text-left text-[var(--ui-ink)]">
+              <span className="sm:hidden">{compactMatchTournamentName(tournament?.name ?? "대회 미지정")}</span>
+              <span className="hidden sm:inline">{tournament?.name ?? "대회 미지정"}</span>
+            </span>
             {pomPlayer ? (
               <PlayerHighlight label="POM" player={pomPlayer} />
             ) : (
@@ -577,12 +569,14 @@ export default async function MatchDetailPage({
               </span>
             )}
             <span className="min-w-0 truncate text-right">
-              {stage?.name ?? "스테이지 미지정"} · BO{match.bestOf ?? "-"}
+              <span className="sm:hidden">{compactMatchStageName(stage?.name ?? "스테이지 미지정")}</span>
+              <span className="hidden sm:inline">{stage?.name ?? "스테이지 미지정"}</span>
+              {" · "}BO{match.bestOf ?? "-"}
             </span>
           </div>
 
           <div className="mx-auto grid w-full max-w-[720px] min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 px-4 py-3 sm:gap-5 sm:px-6 sm:py-4">
-            <CompactTeamBlock team={teamA} teamName={teamAName} result={teamAResult} />
+            <CompactTeamBlock team={teamA} teamName={teamAName} />
 
             <div className="flex min-w-[5.5rem] shrink-0 flex-col items-center px-1 sm:min-w-[7rem]">
               {hasScore ? (
@@ -608,7 +602,7 @@ export default async function MatchDetailPage({
               )}
             </div>
 
-            <CompactTeamBlock align="right" team={teamB} teamName={teamBName} result={teamBResult} />
+            <CompactTeamBlock align="right" team={teamB} teamName={teamBName} />
           </div>
         </section>
 

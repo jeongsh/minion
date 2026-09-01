@@ -17,3 +17,7 @@ backups/
 
 # Mobile build and font-conversion artifacts
 .tmp-font-parity/
+
+# Mobile store build outputs and browser capture profiles
+mobile/store-assets/*.aab
+mobile/store-assets/edge-*/

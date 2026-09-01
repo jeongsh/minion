@@ -14,6 +14,7 @@ import { getPredictionMarketData } from "@/lib/predictions";
 import { getTodayCelebrations } from "@/lib/calendar/events";
 import { getLckChannelVideos, type HomeVideo } from "@/lib/data/lck-channel-videos";
 import { getHomeNewsFeed } from "@/lib/data/naver-news";
+import { scheduleNewsThumbnailWarmup } from "@/lib/data/news-thumbnail-warmup";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { safeOnboardingNext } from "@/lib/auth/onboarding";
 import { createSupabaseAuthClient } from "@/lib/supabase/auth-server";
@@ -53,6 +54,7 @@ export default async function HomePage({
     getHomePomPlayers(),
     getHomeNewsFeed(6),
   ]);
+  scheduleNewsThumbnailWarmup(homeNewsFeed.articles);
   const { teams, matches, tournaments, latestVideos, calendarEvents } = homeData;
   const pomEntries = buildHomePomEntries({ matches, players: pomPlayers, teams, tournaments });
 

@@ -36,7 +36,7 @@ type AuthorMenuProps = {
 };
 
 function TeamBadge({ team, size }: { team: CommunityAuthorTeam; size: "detail" | "profile" | "comment" }) {
-  const textClass = size === "profile" ? "px-2 py-0.5 text-[13px]" : "px-1.5 py-0.5 text-xs";
+  const paddingClass = size === "profile" ? "px-2" : "px-1.5";
   // 배경을 테마색과 섞지 않고 팀색 그대로 칠해서, 라이트/다크 어느 배경 위에서도
   // 항상 같은 대비를 유지한다. 글씨색은 배경 밝기에 맞춰 검정/흰색으로 고정.
   const style: React.CSSProperties = {
@@ -47,7 +47,7 @@ function TeamBadge({ team, size }: { team: CommunityAuthorTeam; size: "detail" |
     <span
       title={`${team.name} 팬`}
       style={style}
-      className={`inline-flex shrink-0 items-center rounded-full font-medium leading-none ${textClass}`}
+      className={`inline-flex shrink-0 items-center rounded-full py-0.5 text-xs font-medium leading-none ${paddingClass}`}
     >
       {team.shortName}
     </span>

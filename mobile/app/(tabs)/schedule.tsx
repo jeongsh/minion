@@ -16,7 +16,7 @@ import { SCHEDULE_SEGMENTS } from '@/constants/schedule-segments';
 import { useCachedQuery } from '@/hooks/use-cached-query';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import type { MobileScheduleDto, MobileTeamsDto } from '@/lib/api-client';
-import { currentKSTMonthYear, dateKeyKST, weekDatesKST } from '@/lib/schedule-dates';
+import { currentKSTMonthYear, dateKeyKST, monthDatesKST } from '@/lib/schedule-dates';
 
 function segmentMessageLabel(segment: ScheduleFilterState['segment'], year: number) {
   if (segment === 'all') return `${year} 전체`;
@@ -43,22 +43,28 @@ export default function ScheduleScreen() {
   const sectionOffsetsRef = useRef(new Map<string, number>());
   const autoScrolledRef = useRef<string | null>(null);
   const [scrollRequest, setScrollRequest] = useState<{ animated: boolean; y: number } | null>(null);
+  const [requestedActiveDateKey, setRequestedActiveDateKey] = useState<string | undefined>();
 
   const query = buildQuery(filter);
   const { data, error, loading, refresh } = useCachedQuery<MobileScheduleDto>(`/api/mobile/v1/schedule?${query}`);
   const { data: teamsData } = useCachedQuery<MobileTeamsDto>('/api/mobile/v1/teams');
 
-  const currentWeek = useMemo(() => weekDatesKST(), []);
+  const activeMonthDates = useMemo(() => monthDatesKST(filter.year, filter.month), [filter.month, filter.year]);
+  const activeMonthDateKeys = useMemo(() => new Set(activeMonthDates.map((date) => date.key)), [activeMonthDates]);
   const todayKey = dateKeyKST(new Date());
   const availableDateKeys = useMemo(
-    () => Array.from(new Set((data?.matches ?? []).map((match) => dateKeyKST(match.startsAt)))),
-    [data?.matches],
+    () => Array.from(new Set((data?.matches ?? []).map((match) => dateKeyKST(match.startsAt))))
+      .filter((dateKey) => activeMonthDateKeys.has(dateKey)),
+    [activeMonthDateKeys, data?.matches],
   );
   const scheduleLayoutKey = useMemo(
     () => `${query}:${(data?.matches ?? []).map((match) => `${match.id}@${match.startsAt}`).join('|')}`,
     [data?.matches, query],
   );
   const autoScrollTarget = scheduleTargetForDate(todayKey, availableDateKeys);
+  const activeDateKey = requestedActiveDateKey && availableDateKeys.includes(requestedActiveDateKey)
+    ? requestedActiveDateKey
+    : autoScrollTarget ?? activeMonthDates[0]?.key;
 
   // 섹션 y좌표는 onLayout이 실제로 갱신할 때만 값이 바뀌므로 항상 최신값으로 신뢰한다.
   // 캐시 데이터 → 실제 데이터로 교체될 때 오늘 섹션의 위치가 우연히 동일하면
@@ -116,10 +122,24 @@ export default function ScheduleScreen() {
   const handleSelectDate = useCallback(
     (dateKey: string) => {
       const targetKey = scheduleTargetForDate(dateKey, availableDateKeys);
-      if (targetKey) scrollToDate(targetKey, true);
+      if (targetKey) {
+        setRequestedActiveDateKey(targetKey);
+        scrollToDate(targetKey, true);
+      }
     },
     [availableDateKeys, scrollToDate],
   );
+
+  const handleScrollYChange = useCallback((y: number) => {
+    let nextDateKey = availableDateKeys[0];
+    for (const dateKey of availableDateKeys) {
+      const sectionOffset = sectionOffsetsRef.current.get(dateKey);
+      if (sectionOffset == null || listOffsetRef.current == null) continue;
+      if (listOffsetRef.current + sectionOffset <= y + 1) nextDateKey = dateKey;
+      else break;
+    }
+    if (nextDateKey) setRequestedActiveDateKey((current) => current === nextDateKey ? current : nextDateKey);
+  }, [availableDateKeys]);
 
   if (loading && !data) {
     return (
@@ -145,11 +165,13 @@ export default function ScheduleScreen() {
     <>
       <MinionScreen
         contentStyle={styles.content}
+        onScrollYChange={handleScrollYChange}
         scrollRequest={scrollRequest}
         stickyHeader={
           <ScheduleWeekScroller
+            activeDateKey={activeDateKey}
             availableDateKeys={availableDateKeys}
-            dates={currentWeek}
+            dates={activeMonthDates}
             onSelectDate={handleSelectDate}
             todayKey={todayKey}
           />

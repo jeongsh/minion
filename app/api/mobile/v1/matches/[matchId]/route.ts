@@ -37,6 +37,8 @@ import {
 import { fetchRuneCatalog } from "@/lib/runes";
 import { fetchSpellCatalog } from "@/lib/spells";
 import type { Team } from "@/lib/types";
+import { getMobileAuth } from "@/lib/mobile/auth";
+import { compactMatchStageName, compactMatchTournamentName } from "@/lib/match-header-labels";
 
 const POSITION_ORDER = new Map(["TOP", "JGL", "MID", "BOT", "SUP"].map((position, index) => [position, index]));
 
@@ -70,12 +72,12 @@ function recentSetMetrics(
   return { averageKills: teamSets.length > 0 ? kills / teamSets.length : null, setDiff: score.wins - score.losses };
 }
 
-export const revalidate = 30;
+export const dynamic = "force-dynamic";
 
 export async function GET(request: Request, context: { params: Promise<{ matchId: string }> }) {
   const { matchId } = await context.params;
   const requestedSetId = new URL(request.url).searchParams.get("set");
-  const match = await getMatchById(matchId);
+  const [match, auth] = await Promise.all([getMatchById(matchId), getMobileAuth(request)]);
   if (!match) return mobileError("NOT_FOUND", "경기를 찾을 수 없습니다.", 404);
 
   const [teams, players, tournaments, stages, sets, vods, fanRatings, predictionData, allMatches, allSets] = await Promise.all([
@@ -96,7 +98,7 @@ export async function GET(request: Request, context: { params: Promise<{ matchId
   const stage = stages.find((item) => item.id === match.stageId);
   const pomPlayer = players.find((item) => item.id === match.officialPomPlayerId);
 
-  const requestedSet = sets.find((set) => set.id === requestedSetId);
+  const requestedSet = sets.find((set) => set.id === requestedSetId || String(set.setNumber) === requestedSetId);
   const defaultSet = requestedSet ?? sets.find((set) => set.setNumber === 1) ?? sets[0];
 
   const priorMatches = completedBefore(allMatches, match);
@@ -203,6 +205,7 @@ export async function GET(request: Request, context: { params: Promise<{ matchId
           id: line.playerId,
           isPog: leader?.playerId === line.playerId,
           name: player?.name ?? "-",
+          myRating: auth ? ratings.find((rating) => rating.authorId === auth.user.id)?.rating ?? null : null,
           position: line.position,
           profileImage: player?.profileImageUrl ? { url: player.profileImageUrl } : null,
           ratingCount: ratings.length,
@@ -226,9 +229,9 @@ export async function GET(request: Request, context: { params: Promise<{ matchId
       pomPlayer: pomPlayer
         ? { id: pomPlayer.id, name: pomPlayer.name, position: pomPlayer.position, profileImage: pomPlayer.profileImageUrl ? { url: pomPlayer.profileImageUrl } : null, slug: pomPlayer.slug, teamId: pomPlayer.teamId }
         : null,
-      stageName: stage?.name ?? "스테이지 미지정",
+      stageName: compactMatchStageName(stage?.name ?? "스테이지 미지정"),
       statusLabel: matchStatusLabel(isMatchLive(match) ? "live" : match.status),
-      tournamentName: tournament?.name ?? "대회 미지정",
+      tournamentName: compactMatchTournamentName(tournament?.name ?? "대회 미지정"),
     },
     live: { available: match.status === "live", pollingIntervalMs: 5000 },
     match: toMobileMatch(match, teamMap, tournamentMap),
@@ -284,5 +287,5 @@ export async function GET(request: Request, context: { params: Promise<{ matchId
     sets: sets.map((set) => ({ durationSeconds: set.durationSeconds, id: set.id, setNumber: set.setNumber, status: set.status, winnerTeamId: set.winnerTeamId })),
     vods: vods.map((vod, index) => ({ channelName: vod.provider, embedUrl: vod.embedUrl ?? null, id: `${match.id}-${vod.setNumber}-${index}`, publishedAt: null, thumbnail: vod.thumbnailUrl ? { url: vod.thumbnailUrl } : null, title: `${vod.setNumber}세트 다시보기`, url: vod.url })),
   };
-  return mobileSuccess(data, { headers: { "Cache-Control": match.status === "live" ? "no-store" : "public, max-age=0, s-maxage=30, stale-while-revalidate=120" } });
+  return mobileSuccess(data, { headers: { "Cache-Control": auth || match.status === "live" ? "private, no-store" : "public, max-age=0, s-maxage=30, stale-while-revalidate=120" } });
 }

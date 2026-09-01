@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { MiniconTabs } from "../minicon-tabs";
 import { MiniconSubmissionForm } from "./minicon-submission-form";
 
 export const dynamic = "force-dynamic";
@@ -124,6 +125,7 @@ export default async function MiniconApplyPage() {
   return (
     <main className="min-h-screen text-[var(--ui-text)]">
       <div className="layout-wide max-w-5xl pb-20 pt-6 sm:pt-10">
+        <MiniconTabs active="apply" />
         {!user ? (
           <section className="mt-5 rounded-lg bg-[var(--ui-surface-muted)] p-5 text-center">
             <p className="text-[16px] font-normal text-[var(--ui-muted)]">로그인 후 미니콘을 신청할 수 있습니다.</p>

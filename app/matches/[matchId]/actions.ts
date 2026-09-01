@@ -1,20 +1,17 @@
 "use server";
 
-import { createHash, randomUUID } from "crypto";
+import { randomUUID } from "crypto";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { isSetRatingOpen, normalizeSetStatus } from "@/lib/set-status";
 import { getCurrentUser } from "@/lib/auth/current-user";
-import { screenCommunityText } from "@/lib/community/ai-moderation";
-import { findProfanity, maskProfanity } from "@/lib/community/content-filter";
 import { isCommunityUserSanctioned } from "@/lib/data/community-users";
+import { moderateFanRatingReview, submitFanRating } from "@/lib/fan-rating-submission";
 
 const VOTER_COOKIE = "lckhub_match_prediction_voter";
 const RATING_VOTER_COOKIE = "lckhub_fan_rating_voter";
-const MAX_REVIEW_LENGTH = 240;
 const FAN_RATING_BLIND_REPORT_COUNT = 3;
 
 type RatingReaction = "honor" | "dislike";
@@ -22,21 +19,6 @@ type RatingReaction = "honor" | "dislike";
 function textOrNull(value: FormDataEntryValue | null) {
   const text = typeof value === "string" ? value.trim() : "";
   return text.length > 0 ? text : null;
-}
-
-function parseRating(value: FormDataEntryValue | null) {
-  const parsed = Number(typeof value === "string" ? value : "");
-
-  if (!Number.isFinite(parsed) || parsed < 1 || parsed > 5) {
-    throw new Error("평점은 1.0점부터 5.0점까지 입력해주세요.");
-  }
-
-  const rounded = Math.round(parsed * 2) / 2;
-  if (Math.abs(rounded - parsed) > 0.001) {
-    throw new Error("평점은 0.5점 단위로 입력해주세요.");
-  }
-
-  return rounded;
 }
 
 async function getOrCreateCookie(name: string) {
@@ -55,10 +37,6 @@ async function getOrCreateCookie(name: string) {
   }
 
   return value;
-}
-
-function hashVoterKey(value: string) {
-  return createHash("sha256").update(value).digest("hex");
 }
 
 export async function updateMatchPredictionAction(formData: FormData) {
@@ -180,114 +158,37 @@ export async function submitSetPlayerRatingAction(
     const routeMatchId = textOrNull(formData.get("matchId"));
     const setId = textOrNull(formData.get("setId"));
     const playerId = textOrNull(formData.get("playerId"));
-    const rating = parseRating(formData.get("rating"));
-    const review = textOrNull(formData.get("review"));
+    const rating = formData.get("rating");
+    const review = formData.get("review");
 
     if (!routeMatchId || !setId || !playerId) {
       throw new Error("평점을 제출할 세트와 선수를 확인해주세요.");
-    }
-
-    if (review && review.length > MAX_REVIEW_LENGTH) {
-      throw new Error(`리뷰는 ${MAX_REVIEW_LENGTH}자 이내로 입력해주세요.`);
-    }
-
-    if (review) {
-      const profanity = findProfanity(review);
-      if (profanity) {
-        throw new Error(`금칙어(${maskProfanity(profanity)})가 포함되어 등록할 수 없습니다. 표현을 수정해 주세요.`);
-      }
     }
 
     const currentUser = await getCurrentUser();
     if (!currentUser) {
       throw new Error("평점을 남기려면 로그인이 필요합니다.");
     }
-    if (await isCommunityUserSanctioned(currentUser.id)) {
-      throw new Error("커뮤니티 이용이 영구 제한된 계정입니다.");
-    }
-
-    const supabase = createSupabaseAdminClient();
-    const { data: set, error: setError } = await supabase
-      .from("sets")
-      .select("id, match_id, status, result_recorded_at")
-      .eq("id", setId)
-      .maybeSingle();
-
-    if (setError) {
-      throw new Error(setError.message);
-    }
-
-    if (!set) {
-      throw new Error("세트를 찾을 수 없습니다.");
-    }
-
-    if (
-      !isSetRatingOpen({
-        status: normalizeSetStatus(set.status),
-        resultRecordedAt: set.result_recorded_at,
-      })
-    ) {
-      throw new Error("세트 결과가 기록된 뒤부터 평점을 입력할 수 있습니다.");
-    }
-
-    const { data: line, error: lineError } = await supabase
-      .from("set_player_stats")
-      .select("player_id, team_id")
-      .eq("set_id", set.id)
-      .eq("player_id", playerId)
-      .maybeSingle();
-
-    if (lineError) {
-      throw new Error(lineError.message);
-    }
-
-    if (!line) {
-      throw new Error("해당 세트의 평점 대상 선수가 아닙니다.");
-    }
-
-    const voterKey = hashVoterKey(await getOrCreateCookie(RATING_VOTER_COOKIE));
-    const { data: savedRating, error } = await supabase.from("fan_ratings").upsert(
-      {
-        set_id: set.id,
-        match_id: set.match_id,
-        player_id: line.player_id,
-        team_id: line.team_id,
-        voter_key: voterKey,
-        author_id: currentUser.id,
-        rating,
-        review,
-      },
-      { onConflict: "set_id,player_id,author_id" },
-    ).select("id").single();
-
-    if (error) {
-      throw new Error(error.message);
-    }
+    const savedRating = await submitFanRating({
+      matchId: routeMatchId,
+      playerId,
+      rating,
+      review,
+      setId,
+      userId: currentUser.id,
+      voterKey: await getOrCreateCookie(RATING_VOTER_COOKIE),
+    });
 
     // revalidatePath 를 여기서 하면 useTransition 이 매치 페이지 전체 재렌더를
     // 기다리느라 "등록 중" 버튼이 오래 묶인다. 클라이언트(SetRatingForm)가 제출 성공 후
     // 낙관적 갱신 + router.refresh() 로 배경 갱신한다. (AI 검수 blind 는 아래 after 에서 별도 revalidate)
 
-    if (review && savedRating) {
+    if (savedRating.review) {
       after(async () => {
         try {
-          const verdict = await screenCommunityText({ text: review });
-          if (!verdict.flagged) return;
-
-          await supabase
-            .from("fan_ratings")
-            .update({ blinded_at: new Date().toISOString(), blinded_source: "ai" })
-            .eq("id", savedRating.id)
-            .is("blinded_at", null);
-          const { error: aiReportError } = await supabase.from("fan_rating_reports").insert({
-            rating_id: savedRating.id,
-            reporter_id: null,
-            source: "ai",
-            reason: verdict.detail ? `${verdict.category} - ${verdict.detail}` : verdict.category,
-          });
-          if (aiReportError && aiReportError.code !== "23505") throw aiReportError;
-
-          revalidatePath(`/matches/${routeMatchId}`);
+          if (await moderateFanRatingReview(savedRating.ratingId, savedRating.review!)) {
+            revalidatePath(`/matches/${routeMatchId}`);
+          }
         } catch (moderationError) {
           console.warn("[fan-rating-moderation] AI 검수 실패", moderationError);
         }

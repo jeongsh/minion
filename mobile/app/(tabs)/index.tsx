@@ -13,6 +13,7 @@ import { ErrorState } from '@/components/feedback-states';
 import { HomeCalendarDialog } from '@/components/home/home-calendar-dialog';
 import { HomeLoadingSkeleton } from '@/components/home/home-loading-skeleton';
 import { MinionScreen } from '@/components/minion-screen';
+import { SHOW_MOBILE_AD_SLOTS } from '@/constants/mobile-ads';
 import { useCachedQuery } from '@/hooks/use-cached-query';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import { resolveApiAssetUrl, type MobileHomeDto, type MobileMatchSummary, type MobileNewsItem, type MobileVideoItem } from '@/lib/api-client';
@@ -77,11 +78,11 @@ export default function HomeScreen() {
       </View>
       {data.celebrations.length > 0 ? <View style={styles.celebrations}>{data.celebrations.map((event) => <CelebrationBanner event={event} key={event.id} />)}</View> : null}
       <NewsSection contentWidth={contentWidth} items={data.news} />
-      <View style={styles.adAfterNews}><AdPlaceholder /></View>
+      {SHOW_MOBILE_AD_SLOTS ? <View style={styles.adAfterNews}><AdPlaceholder /></View> : null}
       <View style={styles.section40}><CommunitySection items={data.community} /></View>
       {(data.pom ?? []).length > 0 ? <View style={styles.section40}><PomSection cardWidth={pomWidth} items={data.pom ?? []} /></View> : null}
       <View style={styles.section40}><TeamChannels teams={data.teams} /></View>
-      <View style={styles.section40}><VideoSection cardWidth={videoWidth} items={data.videos} /><View style={styles.videoAd}><AdPlaceholder /></View></View>
+      <View style={styles.section40}><VideoSection cardWidth={videoWidth} items={data.videos} />{SHOW_MOBILE_AD_SLOTS ? <View style={styles.videoAd}><AdPlaceholder /></View> : null}</View>
     </MinionScreen>
   );
 }

@@ -18,6 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BottomSheet } from '@/components/bottom-sheet';
 import { KeyboardAwareView } from '@/components/keyboard-aware-view';
+import { SHOW_MOBILE_AD_SLOTS } from '@/constants/mobile-ads';
 import { getMinionTeam } from '@/constants/teams';
 import { ErrorState } from '@/components/feedback-states';
 import { RankAvatar } from '@/components/rank-avatar';
@@ -172,10 +173,19 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
     if (!miniconOpen) Keyboard.dismiss();
     setMiniconOpen((open) => !open);
   };
-  const deletePost = () => Alert.alert('게시글 삭제', '이 게시글을 삭제할까요?', [
-    { style: 'cancel', text: '취소' },
-    { style: 'destructive', text: '삭제', onPress: () => void mutateMobileApi<MobileCommunityActionDto>(path, 'DELETE').then(() => router.replace(basePath as never)).catch((caught) => Alert.alert('삭제 실패', caught instanceof Error ? caught.message : '게시글을 삭제하지 못했습니다.')) },
-  ]);
+  const performDeletePost = () => void mutateMobileApi<MobileCommunityActionDto>(path, 'DELETE')
+    .then(() => router.replace(basePath as never))
+    .catch((caught) => Alert.alert('삭제 실패', caught instanceof Error ? caught.message : '게시글을 삭제하지 못했습니다.'));
+  const deletePost = () => {
+    if (Platform.OS === 'web') {
+      if (window.confirm('이 게시글을 삭제할까요?')) performDeletePost();
+      return;
+    }
+    Alert.alert('게시글 삭제', '이 게시글을 삭제할까요?', [
+      { style: 'cancel', text: '취소' },
+      { style: 'destructive', text: '삭제', onPress: performDeletePost },
+    ]);
+  };
 
   if (loading && !data) return <CommunityPostLoadingState headerTitle={team?.shortName ?? 'LCK'} onClose={() => router.replace(basePath as never)} />;
   if (error && !data) return <FocusState><ErrorState onRetry={refresh} title={error} /></FocusState>;
@@ -192,7 +202,7 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
           {data.permissions.canEdit || data.permissions.canDelete ? <Pressable accessibilityLabel="게시글 관리" onPress={() => setOwnerMenuOpen(true)} style={styles.headerButton}><Ellipsis color={theme.text} size={21} strokeWidth={2} /></Pressable> : <View style={styles.headerButton} />}
         </View>
         <ScrollView contentContainerStyle={{ paddingBottom: 56 + bottomInset }} keyboardShouldPersistTaps="handled" ref={scrollRef} showsVerticalScrollIndicator={false}>
-        <View style={[styles.ad, { backgroundColor: theme.adSurface }]}><Text style={[styles.adText, { color: theme.muted, ...fonts.medium }]}>ADVERTISEMENT</Text></View>
+        {SHOW_MOBILE_AD_SLOTS ? <View style={[styles.ad, { backgroundColor: theme.adSurface }]}><Text style={[styles.adText, { color: theme.muted, ...fonts.medium }]}>ADVERTISEMENT</Text></View> : null}
         <View style={[styles.article, { backgroundColor: theme.surface, borderTopColor: theme.border }]}>
           <View style={styles.postHeader}>
             <Text style={[styles.postTitle, { color: data.isBlinded ? theme.muted : theme.ink, ...(data.isBlinded ? fonts.medium : fonts.bold) }]}>{title}</Text>

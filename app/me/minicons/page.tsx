@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import type { MiniconItem, MiniconPack } from "@/lib/minicons/types";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { MiniconTabs } from "@/app/minicons/minicon-tabs";
 import { MiniconSettingsForm } from "./minicon-settings-form";
 
 export const dynamic = "force-dynamic";
@@ -133,6 +134,7 @@ export default async function MyMiniconsPage() {
   return (
     <main className="layout-wide max-w-6xl pb-12 pt-6 sm:pt-10">
       <div>
+        <MiniconTabs active="mine" />
         <MiniconSettingsForm
           packs={settings.packs}
           initialSelectedPackIds={settings.initialSelectedPackIds}

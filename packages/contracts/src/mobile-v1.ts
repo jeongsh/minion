@@ -160,6 +160,9 @@ export type MobileMiniconPack = {
   description: string;
   coverUrl: string;
   isOfficial: boolean;
+  creatorName?: string;
+  publishedAt?: IsoDateTime | null;
+  tags?: string[];
   items: MobileMiniconItem[];
 };
 
@@ -168,6 +171,27 @@ export type MobileMiniconSettingsDto = MobileMiniconCatalogDto & {
   selectedPackIds: EntityId[];
   selectionSaved: boolean;
 };
+
+export type MobileMiniconApplication = {
+  id: EntityId;
+  name: string;
+  description: string;
+  status: string;
+  coverUrl: string;
+  submittedAt: IsoDateTime;
+  reviewedAt: IsoDateTime | null;
+  reviewNote: string | null;
+  itemCount: number;
+};
+
+export type MobileMiniconApplicationsDto = {
+  applications: MobileMiniconApplication[];
+  pendingApplicationCount: number;
+  maxPendingApplications: number;
+};
+
+export type MobileMiniconApplicationMutationDto = { message: string };
+export type MobileMiniconUploadDto = { receiptId: EntityId };
 
 export type MobileCommunityComment = {
   id: EntityId;
@@ -666,6 +690,7 @@ export type MobileFanRatingPlayer = {
   champion: MobileChampionRef | null;
   averageRating: number | null;
   ratingCount: number;
+  myRating: number | null;
   isPog: boolean;
 };
 
@@ -689,6 +714,11 @@ export type MobileFanRatingPanel = {
   statusNote: string;
   players: MobileFanRatingPlayer[];
   comments: MobileFanRatingComment[];
+};
+
+export type MobileFanRatingMutationDto = {
+  playerId: EntityId;
+  rating: number;
 };
 
 export type MobileMatchDetailDto = {
@@ -1151,7 +1181,8 @@ export const mobileApiRoutes = {
   predictions: { method: "GET", path: `${MOBILE_API_PREFIX}/predictions`, owner: "lib/predictions", auth: "optional", cache: "30s" },
   predictionPlace: { method: "POST", path: `${MOBILE_API_PREFIX}/predictions`, owner: "lib/predictions", auth: "required", cache: "no-store" },
   predictionCancel: { method: "DELETE", path: `${MOBILE_API_PREFIX}/predictions`, owner: "lib/predictions", auth: "required", cache: "no-store" },
-  match: { method: "GET", path: `${MOBILE_API_PREFIX}/matches/{matchId}`, owner: "match aggregation service", auth: "public", cache: "30s" },
+  match: { method: "GET", path: `${MOBILE_API_PREFIX}/matches/{matchId}`, owner: "match aggregation service", auth: "optional", cache: "30s" },
+  matchRating: { method: "POST", path: `${MOBILE_API_PREFIX}/matches/{matchId}/ratings`, owner: "fan rating service", auth: "required", cache: "no-store" },
   matchLive: { method: "GET", path: `${MOBILE_API_PREFIX}/matches/{matchId}/live`, owner: "lib/lolesports-game-data", auth: "public", cache: "no-store" },
   teams: { method: "GET", path: `${MOBILE_API_PREFIX}/teams`, owner: "lib/data/lck + fan service", auth: "optional", cache: "no-store" },
   team: { method: "GET", path: `${MOBILE_API_PREFIX}/teams/{teamSlug}`, owner: "team aggregation service", auth: "public", cache: "60s" },
@@ -1187,6 +1218,10 @@ export const mobileApiRoutes = {
   communityAuthorAction: { method: "POST", path: `${MOBILE_API_PREFIX}/community/authors/actions`, owner: "community user actions service", auth: "required", cache: "no-store" },
   minicons: { method: "GET", path: `${MOBILE_API_PREFIX}/minicons`, owner: "minicon catalog service", auth: "public", cache: "60s" },
   miniconPicker: { method: "GET", path: `${MOBILE_API_PREFIX}/minicons/picker`, owner: "minicon catalog service", auth: "optional", cache: "no-store" },
+  miniconApplications: { method: "GET", path: `${MOBILE_API_PREFIX}/minicons/applications`, owner: "minicon application service", auth: "required", cache: "no-store" },
+  miniconApplicationCreate: { method: "POST", path: `${MOBILE_API_PREFIX}/minicons/applications`, owner: "minicon application service", auth: "required", cache: "no-store" },
+  miniconApplicationCleanup: { method: "DELETE", path: `${MOBILE_API_PREFIX}/minicons/applications`, owner: "minicon application service", auth: "required", cache: "no-store" },
+  miniconUpload: { method: "POST", path: `${MOBILE_API_PREFIX}/minicons/upload`, owner: "minicon upload service", auth: "required", cache: "no-store" },
   meMinicons: { method: "GET", path: `${MOBILE_API_PREFIX}/me/minicons`, owner: "minicon settings service", auth: "required", cache: "no-store" },
   meMiniconsUpdate: { method: "PATCH", path: `${MOBILE_API_PREFIX}/me/minicons`, owner: "minicon settings service", auth: "required", cache: "no-store" },
   authNaverStart: { method: "GET", path: `${MOBILE_API_PREFIX}/auth/naver/start`, owner: "native auth broker", auth: "public", cache: "no-store" },
@@ -1272,6 +1307,9 @@ const routeRules: RouteRule[] = [
   { pattern: /^\/community\/user\/([^/]+)\/?$/, screen: "community-user", dockTab: "fan-talk", keys: ["userId"] },
   { pattern: /^\/community\/([^/]+)\/?$/, screen: "community-board", dockTab: "fan-talk", keys: ["board"] },
   { pattern: /^\/news(?:\/.*)?$/, screen: "news", dockTab: null },
+  { pattern: /^\/minicons\/apply\/?$/, screen: "minicon-apply", dockTab: null, hideGlobalDock: true, focus: true, fallback: () => "/minicons" },
+  { pattern: /^\/minicons\/?$/, screen: "minicons", dockTab: null },
+  { pattern: /^\/me\/minicons\/?$/, screen: "me-minicons", dockTab: null, hideGlobalDock: true, focus: true, fallback: () => "/minicons" },
   { pattern: /^\/support\/?$/, screen: "support", dockTab: null },
   { pattern: /^\/support\/new\/?$/, screen: "support-compose", dockTab: null, hideGlobalDock: true, focus: true, fallback: () => "/support" },
   { pattern: /^\/support\/([^/]+)\/?$/, screen: "support-inquiry", dockTab: null, hideGlobalDock: true, keys: ["inquiryId"] },

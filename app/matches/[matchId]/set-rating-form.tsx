@@ -321,7 +321,7 @@ export function SetRatingForm({
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={teamPlayers[0].teamLogoUrl} alt="" className="h-7 w-7 object-contain sm:h-8 sm:w-8" />
                   ) : null}
-                  <h3 className="text-base font-black text-[var(--ui-ink)] sm:text-lg">{teamPlayers[0].teamName}</h3>
+                  <h3 className="text-[14px] font-medium text-[var(--ui-ink)] sm:text-lg sm:font-black">{teamPlayers[0].teamName}</h3>
                 </div>
                 <div className="grid gap-2 sm:grid-cols-5">
                   {teamPlayers.map((player) => (
@@ -383,6 +383,7 @@ export function SetRatingForm({
               closeLabel="평가 입력 닫기"
               onClose={() => setMobileComposerOpen(false)}
               title={`${selectedPlayer.name} 평가`}
+              titleClassName="!text-[14px]"
             />
             <div className="px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-2">
               <div className="flex items-center gap-3">
@@ -412,7 +413,7 @@ export function SetRatingForm({
                 onChange={(event) => setReview(event.target.value)}
                 onInput={resizeCommentInput}
                 placeholder="평가 코멘트 (선택)"
-                className="mt-4 block w-full resize-none overflow-hidden rounded-xl bg-[var(--ui-surface-muted)] p-3 text-base leading-7 text-[var(--ui-text)] outline-none placeholder:text-[var(--ui-muted)] disabled:cursor-not-allowed disabled:opacity-60"
+                className="mt-4 block w-full resize-none overflow-hidden rounded-xl bg-[var(--ui-surface-muted)] p-3 text-[14px] leading-[22px] text-[var(--ui-text)] outline-none placeholder:text-[var(--ui-muted)] disabled:cursor-not-allowed disabled:opacity-60"
               />
               <div className="mt-3 flex items-center justify-end gap-3">
                 <span className="text-[13px] tabular-nums text-[var(--ui-muted)]">{review.length}/240자</span>

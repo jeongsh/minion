@@ -46,6 +46,7 @@ test("dock activation follows the current compact navigation policy", () => {
   assert.equal(matchMobileRoute("/champions/orianna")?.params.championSlug, "orianna");
   assert.equal(matchMobileRoute("/teams/t1")?.dockTab, "teams");
   assert.equal(matchMobileRoute("/news/article")?.dockTab, null);
+  assert.equal(matchMobileRoute("/minicons")?.screen, "minicons");
 });
 
 test("focus and post-detail routes carry navigation behavior", () => {
@@ -60,6 +61,8 @@ test("focus and post-detail routes carry navigation behavior", () => {
   assert.equal(matchMobileRoute("/fan/t1/community/new")?.screen, "community-compose");
   assert.equal(matchMobileRoute("/fan/t1/community/new")?.focus, true);
   assert.equal(matchMobileRoute("/me/settings")?.fallbackPath, "/me");
+  assert.equal(matchMobileRoute("/minicons/apply")?.fallbackPath, "/minicons");
+  assert.equal(matchMobileRoute("/me/minicons")?.screen, "me-minicons");
 });
 
 test("web-only and unknown routes do not produce app deep links", () => {

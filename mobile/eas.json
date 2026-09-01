@@ -12,10 +12,19 @@
       "distribution": "internal"
     },
     "production": {
+      "environment": "production",
+      "env": {
+        "MINION_APP_ENV": "production",
+        "EXPO_PUBLIC_API_URL": "https://minion.fan"
+      },
       "autoIncrement": true
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "android": {
+        "track": "internal"
+      }
+    }
   }
 }

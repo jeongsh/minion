@@ -31,14 +31,17 @@ function currentKSTMonthYear() {
   };
 }
 
-function weekDates() {
-  const today = new Date();
-  const start = new Date(today);
-  start.setDate(today.getDate() - ((today.getDay() + 6) % 7));
-  return Array.from({ length: 7 }, (_, index) => {
-    const date = new Date(start);
-    date.setDate(start.getDate() + index);
-    return { key: dateKeyKST(date), day: date.getDate(), weekday: ["월", "화", "수", "목", "금", "토", "일"][index] };
+function monthDates(year: number, month: number) {
+  const weekdays = ["월", "화", "수", "목", "금", "토", "일"];
+  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  return Array.from({ length: lastDay }, (_, index) => {
+    const day = index + 1;
+    const date = new Date(Date.UTC(year, month - 1, day));
+    return {
+      key: `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`,
+      day,
+      weekday: weekdays[(date.getUTCDay() + 6) % 7],
+    };
   });
 }
 
@@ -80,7 +83,7 @@ export default async function SchedulePage({
     .sort((a, b) => new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime());
   const teamMap = new Map(teams.map((team) => [team.id, team]));
   const tournamentMap = new Map(tournaments.map((tournament) => [tournament.id, tournament]));
-  const currentWeek = weekDates();
+  const activeMonthDates = monthDates(activeYear, activeMonth);
   const todayKey = dateKeyKST(new Date());
   const availableDateKeys = Array.from(new Set(filtered.map((match) => dateKeyKST(match.matchDate))));
   const calendarMatches: HomeCalendarMatch[] = filtered.map((match) => {
@@ -107,7 +110,7 @@ export default async function SchedulePage({
     <main className="schedule-page text-[var(--ui-text)]">
       <div className="schedule-mobile-sticky sticky z-30 border-b border-[var(--ui-border)] bg-[var(--page-background)] shadow-[0_10px_20px_rgba(15,23,42,0.035)] lg:hidden">
         <div className="layout-wide py-2">
-          <ScheduleWeekScroller dates={currentWeek} todayKey={todayKey} availableDateKeys={availableDateKeys} />
+          <ScheduleWeekScroller dates={activeMonthDates} todayKey={todayKey} availableDateKeys={availableDateKeys} />
         </div>
       </div>
 

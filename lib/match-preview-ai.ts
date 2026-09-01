@@ -158,6 +158,10 @@ const MATCH_PREVIEW_CONTENT_VERSION = 3;
 const DEFAULT_RESEARCH_MODEL = "gpt-5.4-mini";
 const DEFAULT_STANDARD_MODEL = "gpt-5.4-mini";
 const DEFAULT_PREMIUM_MODEL = "gpt-5.6-sol";
+// Responses API output limits include both visible JSON and reasoning tokens.
+// Leave enough headroom for reasoning models to finish the strict schemas.
+const MATCH_PREVIEW_RESEARCH_MAX_OUTPUT_TOKENS = 4_000;
+const MATCH_PREVIEW_WRITER_MAX_OUTPUT_TOKENS = 12_000;
 const MATCH_PREVIEW_STEP_TIMEOUT_MS = 55_000;
 const MATCH_PREVIEW_LEASE_MS = 6 * 60 * 1_000;
 
@@ -845,7 +849,7 @@ async function researchMatch({
     tool_choice: "auto",
     max_tool_calls: 2,
     include: ["web_search_call.action.sources"],
-    max_output_tokens: 2_200,
+    max_output_tokens: MATCH_PREVIEW_RESEARCH_MAX_OUTPUT_TOKENS,
     prompt_cache_key: `match-preview-research-v${MATCH_PREVIEW_PROMPT_VERSION}`,
     input: [
       {
@@ -1091,7 +1095,7 @@ async function writeMatchPreview({
   const json = await createOpenAiResponse({
     model,
     reasoning: { effort: "medium" },
-    max_output_tokens: 4_200,
+    max_output_tokens: MATCH_PREVIEW_WRITER_MAX_OUTPUT_TOKENS,
     prompt_cache_key: `match-preview-writer-v${MATCH_PREVIEW_PROMPT_VERSION}`,
     input: [
       {

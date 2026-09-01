@@ -153,7 +153,7 @@ export function CommunityAuthor({ author, detailMeta, evidence, hideAvatar = fal
 
 function TeamBadge({ primaryColor, shortName, teamName }: { primaryColor: string; shortName: string; teamName: string }) {
   const { fonts } = useMinionTheme();
-  return <View accessibilityLabel={`${teamName} 팬`} style={[styles.teamBadge, { backgroundColor: primaryColor }]}><Text numberOfLines={1} style={{ color: contrastAnchor(primaryColor), ...fonts.medium, fontSize: 13, lineHeight: 16 }}>{shortName}</Text></View>;
+  return <View accessibilityLabel={`${teamName} 팬`} style={[styles.teamBadge, { backgroundColor: primaryColor }]}><Text numberOfLines={1} style={{ color: contrastAnchor(primaryColor), ...fonts.medium, fontSize: 12, lineHeight: 16 }}>{shortName}</Text></View>;
 }
 
 function contrastAnchor(hex: string) {
