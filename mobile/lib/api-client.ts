@@ -166,6 +166,7 @@ export type {
   MobileCommunityUserActivityPost,
   MobileCommunityUserDto,
   MobileFanRatingComment,
+  MobileFanRatingMutationDto,
   MobileFanRatingPanel,
   MobileFanRatingPlayer,
   MobileFanCalendarSubmissionDto,

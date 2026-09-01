@@ -138,7 +138,7 @@ export function RatingCommentList({
   if (items.length === 0) {
     return (
       <>
-        <h3 className="text-base font-black text-[var(--ui-ink)]">평가 코멘트</h3>
+        <h3 className="text-[14px] font-medium text-[var(--ui-ink)] sm:text-base sm:font-black">평가 코멘트</h3>
         <p className="mt-2 text-sm font-normal text-[var(--ui-muted)]">아직 작성된 평가 코멘트가 없습니다.</p>
       </>
     );
@@ -147,7 +147,7 @@ export function RatingCommentList({
   return (
     <>
       <div className="flex items-center justify-between gap-3">
-        <h3 className="text-base font-black text-[var(--ui-ink)]">평가 코멘트</h3>
+        <h3 className="text-[14px] font-medium text-[var(--ui-ink)] sm:text-base sm:font-black">평가 코멘트</h3>
         <label className="relative block min-w-0 shrink-0">
           <span className="sr-only">선수별 코멘트 필터</span>
           <select

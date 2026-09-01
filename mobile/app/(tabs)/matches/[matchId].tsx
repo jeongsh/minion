@@ -1,5 +1,5 @@
 import { useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { type LayoutChangeEvent, StyleSheet, Text, View } from 'react-native';
 
 import { ErrorState } from '@/components/feedback-states';
@@ -17,15 +17,17 @@ import { SetTimelineSection } from '@/components/matches/set-timeline-section';
 import { MinionScreen } from '@/components/minion-screen';
 import { useCachedQuery } from '@/hooks/use-cached-query';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
-import { mobileApiOrigin, type MobileMatchDetailDto } from '@/lib/api-client';
+import { type MobileMatchDetailDto } from '@/lib/api-client';
+import { useAuth } from '@/providers/auth-provider';
 
 const COLLAPSIBLE_HEADER_HEIGHT = 56;
 
 export default function MatchDetailScreen() {
-  const { matchId } = useLocalSearchParams<{ matchId: string }>();
+  const { matchId, set: requestedSet, tab: requestedTab } = useLocalSearchParams<{ matchId: string; set?: string; tab?: string }>();
+  const { loading: authLoading, session } = useAuth();
   const { fonts, theme } = useMinionTheme();
-  const [selectedSetId, setSelectedSetId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<MatchTabKey>('data');
+  const [selectedSetId, setSelectedSetId] = useState<string | null>(requestedSet ?? null);
+  const [activeTab, setActiveTab] = useState<MatchTabKey>(requestedTab === 'rating' ? 'rating' : 'data');
   const [setSelectorLayout, setSetSelectorLayout] = useState<{ tab: MatchTabKey; threshold: number } | null>(null);
   const [setSelectorStuck, setSetSelectorStuck] = useState(false);
   const latestScroll = useRef({ headerVisible: true, y: 0 });
@@ -36,11 +38,8 @@ export default function MatchDetailScreen() {
     return selectedSetId ? `${base}?set=${encodeURIComponent(selectedSetId)}` : base;
   }, [matchId, selectedSetId]);
 
-  const { data, error, loading, refresh } = useCachedQuery<MobileMatchDetailDto>(path, { enabled: Boolean(matchId) });
-
-  useEffect(() => {
-    if (data && data.sets.length === 0 && activeTab === 'data') setActiveTab('preview');
-  }, [activeTab, data]);
+  const { data, error, loading, refresh } = useCachedQuery<MobileMatchDetailDto>(path, { cache: !session, enabled: Boolean(matchId) && !authLoading });
+  const currentTab = data && data.sets.length === 0 && activeTab === 'data' ? 'preview' : activeTab;
 
   const updateSetSelectorStuck = useCallback((nextStuck: boolean) => {
     if (setSelectorStuckRef.current === nextStuck) return;
@@ -51,22 +50,22 @@ export default function MatchDetailScreen() {
   const handleSetSelectorLayout = useCallback((event: LayoutChangeEvent) => {
     // ScrollView 안의 콘텐츠가 공용 헤더 아래 16px에서 시작하므로 그 지점을 임계값에 포함한다.
     const threshold = event.nativeEvent.layout.y + 16;
-    setSetSelectorLayout({ tab: activeTab, threshold });
+    setSetSelectorLayout({ tab: currentTab, threshold });
     const stickyThreshold = threshold + (latestScroll.current.headerVisible ? 0 : COLLAPSIBLE_HEADER_HEIGHT);
     updateSetSelectorStuck(latestScroll.current.y >= stickyThreshold);
-  }, [activeTab, updateSetSelectorStuck]);
+  }, [currentTab, updateSetSelectorStuck]);
 
   const handleScrollYChange = useCallback((scrollY: number, headerVisible: boolean) => {
     latestScroll.current = { headerVisible, y: scrollY };
-    const selectorTabActive = activeTab === 'data' || activeTab === 'rating';
+    const selectorTabActive = currentTab === 'data' || currentTab === 'rating';
     const stickyThreshold = setSelectorLayout
       ? setSelectorLayout.threshold + (headerVisible ? 0 : COLLAPSIBLE_HEADER_HEIGHT)
       : null;
-    const nextStuck = selectorTabActive && setSelectorLayout?.tab === activeTab && stickyThreshold !== null && scrollY >= stickyThreshold;
+    const nextStuck = selectorTabActive && setSelectorLayout?.tab === currentTab && stickyThreshold !== null && scrollY >= stickyThreshold;
     updateSetSelectorStuck(nextStuck);
-  }, [activeTab, setSelectorLayout, updateSetSelectorStuck]);
+  }, [currentTab, setSelectorLayout, updateSetSelectorStuck]);
 
-  if (loading && !data) {
+  if ((authLoading || loading) && !data) {
     return (
       <MinionScreen>
         <MatchLoadingSkeleton />
@@ -84,19 +83,16 @@ export default function MatchDetailScreen() {
 
   if (!data) return null;
 
-  const activeSetId = selectedSetId ?? data.activeSetId ?? '';
+  const activeSetId = selectedSetId && data.sets.some((item) => item.id === selectedSetId) ? selectedSetId : data.activeSetId ?? '';
   const availableTabs: MatchTabKey[] = ['preview', ...(data.match.status !== 'completed' ? ['live' as const] : []), ...(data.sets.length > 0 ? ['data' as const] : []), 'rating', 'video'];
-  const setSelectorVisible = data.sets.length > 0 && (activeTab === 'data' || activeTab === 'rating');
-  const snapshotUrl = activeTab === 'rating' && data.fanRating?.snapshotAvailable
-    ? `${mobileApiOrigin}/matches/${encodeURIComponent(data.match.id)}/sets/${encodeURIComponent(activeSetId)}/snapshot`
-    : undefined;
-  const stickySetSelectorVisible = setSelectorStuck && setSelectorLayout?.tab === activeTab;
+  const setSelectorVisible = data.sets.length > 0 && (currentTab === 'data' || currentTab === 'rating');
+  const stickySetSelectorVisible = setSelectorStuck && setSelectorLayout?.tab === currentTab;
 
   return (
     <MinionScreen
       contentStyle={styles.content}
       onScrollYChange={handleScrollYChange}
-      stickyHeader={setSelectorVisible ? <MatchSetSelector activeSetId={activeSetId} onSelect={setSelectedSetId} sets={data.sets} snapshotUrl={snapshotUrl} /> : undefined}
+      stickyHeader={setSelectorVisible ? <MatchSetSelector activeSetId={activeSetId} onSelect={setSelectedSetId} sets={data.sets} /> : undefined}
       stickyHeaderReserveSpace={false}
       stickyHeaderVisible={stickySetSelectorVisible}>
       {/*
@@ -105,14 +101,14 @@ export default function MatchDetailScreen() {
       */}
       <View style={styles.topBlock}>
         <MatchHeader header={data.header} match={data.match} />
-        <MatchTabNav activeTab={activeTab} availableTabs={availableTabs} onSelect={setActiveTab} />
+        <MatchTabNav activeTab={currentTab} availableTabs={availableTabs} onSelect={setActiveTab} />
       </View>
 
-      {activeTab === 'preview' ? <MatchPreviewTab data={data} /> : null}
+      {currentTab === 'preview' ? <MatchPreviewTab data={data} /> : null}
 
-      {activeTab === 'live' ? <LiveMatchFeed matchId={data.match.id} teamA={data.match.teamA} teamB={data.match.teamB} /> : null}
+      {currentTab === 'live' ? <LiveMatchFeed matchId={data.match.id} teamA={data.match.teamA} teamB={data.match.teamB} /> : null}
 
-      {activeTab === 'data' ? (
+      {currentTab === 'data' ? (
         <View onLayout={handleSetSelectorLayout} style={styles.dataTab}>
           <View accessibilityElementsHidden={stickySetSelectorVisible} importantForAccessibility={stickySetSelectorVisible ? 'no-hide-descendants' : 'auto'}>
             <MatchSetSelector activeSetId={activeSetId} onSelect={setSelectedSetId} sets={data.sets} />
@@ -131,16 +127,16 @@ export default function MatchDetailScreen() {
         </View>
       ) : null}
 
-      {activeTab === 'rating' ? (
+      {currentTab === 'rating' ? (
         <View onLayout={handleSetSelectorLayout} style={styles.ratingTab}>
           <View accessibilityElementsHidden={stickySetSelectorVisible} importantForAccessibility={stickySetSelectorVisible ? 'no-hide-descendants' : 'auto'}>
-            <MatchSetSelector activeSetId={activeSetId} onSelect={setSelectedSetId} sets={data.sets} snapshotUrl={snapshotUrl} />
+            <MatchSetSelector activeSetId={activeSetId} onSelect={setSelectedSetId} sets={data.sets} />
           </View>
-          <MatchRatingTab panel={data.fanRating} />
+          <MatchRatingTab key={activeSetId} matchId={data.match.id} panel={data.fanRating} setId={activeSetId} />
         </View>
       ) : null}
 
-      {activeTab === 'video' ? <MatchVideoTab matchName={data.match.name} matchVodUrl={data.matchVodUrl} vods={data.vods} /> : null}
+      {currentTab === 'video' ? <MatchVideoTab matchName={data.match.name} matchVodUrl={data.matchVodUrl} vods={data.vods} /> : null}
     </MinionScreen>
   );
 }

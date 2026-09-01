@@ -666,6 +666,7 @@ export type MobileFanRatingPlayer = {
   champion: MobileChampionRef | null;
   averageRating: number | null;
   ratingCount: number;
+  myRating: number | null;
   isPog: boolean;
 };
 
@@ -689,6 +690,11 @@ export type MobileFanRatingPanel = {
   statusNote: string;
   players: MobileFanRatingPlayer[];
   comments: MobileFanRatingComment[];
+};
+
+export type MobileFanRatingMutationDto = {
+  playerId: EntityId;
+  rating: number;
 };
 
 export type MobileMatchDetailDto = {
@@ -1151,7 +1157,8 @@ export const mobileApiRoutes = {
   predictions: { method: "GET", path: `${MOBILE_API_PREFIX}/predictions`, owner: "lib/predictions", auth: "optional", cache: "30s" },
   predictionPlace: { method: "POST", path: `${MOBILE_API_PREFIX}/predictions`, owner: "lib/predictions", auth: "required", cache: "no-store" },
   predictionCancel: { method: "DELETE", path: `${MOBILE_API_PREFIX}/predictions`, owner: "lib/predictions", auth: "required", cache: "no-store" },
-  match: { method: "GET", path: `${MOBILE_API_PREFIX}/matches/{matchId}`, owner: "match aggregation service", auth: "public", cache: "30s" },
+  match: { method: "GET", path: `${MOBILE_API_PREFIX}/matches/{matchId}`, owner: "match aggregation service", auth: "optional", cache: "30s" },
+  matchRating: { method: "POST", path: `${MOBILE_API_PREFIX}/matches/{matchId}/ratings`, owner: "fan rating service", auth: "required", cache: "no-store" },
   matchLive: { method: "GET", path: `${MOBILE_API_PREFIX}/matches/{matchId}/live`, owner: "lib/lolesports-game-data", auth: "public", cache: "no-store" },
   teams: { method: "GET", path: `${MOBILE_API_PREFIX}/teams`, owner: "lib/data/lck + fan service", auth: "optional", cache: "no-store" },
   team: { method: "GET", path: `${MOBILE_API_PREFIX}/teams/{teamSlug}`, owner: "team aggregation service", auth: "public", cache: "60s" },
