@@ -15,6 +15,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BottomSheet } from '@/components/bottom-sheet';
+import { SHOW_MOBILE_AD_SLOTS } from '@/constants/mobile-ads';
 import { getMinionTeam } from '@/constants/teams';
 import { ErrorState } from '@/components/feedback-states';
 import { KitschEmptyState } from '@/components/kitsch-empty-state';
@@ -72,9 +73,9 @@ export function CommunityFeedScreen({ scope = 'hub' }: { scope?: CommunityScope 
   return (
     <View style={[styles.root, { backgroundColor: theme.pageBackground }]}>
       <MinionScreen contentStyle={styles.fullBleed}>
-        <View style={[styles.ad, { backgroundColor: theme.adSurface }]}>
+        {SHOW_MOBILE_AD_SLOTS ? <View style={[styles.ad, { backgroundColor: theme.adSurface }]}>
           <Text style={[styles.adText, { color: theme.muted, ...fonts.medium }]}>ADVERTISEMENT</Text>
-        </View>
+        </View> : null}
         <CommunityDirectoryNav accent={accent} scope={scope} teamSlug={teamSlug} />
         <View style={[styles.feed, { backgroundColor: theme.surface, borderBottomColor: theme.border, borderTopColor: theme.border }]}>
           <View style={[styles.toolbar, { borderBottomColor: theme.divider }]}>

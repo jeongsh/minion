@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, useWindowDimensions, View, type StyleProp, type ViewStyle } from 'react-native';
 
+import { SHOW_MOBILE_AD_SLOTS } from '@/constants/mobile-ads';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 
 const CARD_GAP = 12;
@@ -74,7 +75,7 @@ export function HomeLoadingSkeleton() {
         </View>
       </View>
 
-      <Bone style={[styles.ad, { backgroundColor: theme.adSurface }]} />
+      {SHOW_MOBILE_AD_SLOTS ? <Bone style={[styles.ad, { backgroundColor: theme.adSurface }]} /> : null}
 
       <View style={styles.section40}>
         <SectionTitleSkeleton />
