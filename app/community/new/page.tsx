@@ -1,5 +1,9 @@
+import type { Metadata } from "next";
+
 import { NewPostPage } from "@/components/community/new-post-page";
 import { celebrationPostTitle, findTodayCelebration } from "@/lib/calendar/events";
+
+export const metadata: Metadata = { title: "글쓰기", robots: { index: false } };
 
 export default async function HubNewPostPage({
   searchParams,

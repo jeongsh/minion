@@ -1,8 +1,11 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { NewPostPage } from "@/components/community/new-post-page";
 import { celebrationPostTitle, findTodayCelebration } from "@/lib/calendar/events";
 import { getTeamByFanSiteHost, getTeamBySlug } from "@/lib/data/lck";
+
+export const metadata: Metadata = { title: "글쓰기", robots: { index: false } };
 
 export default async function FanNewPostPage({
   params,

@@ -1,4 +1,5 @@
 import { Play } from "lucide-react";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -18,6 +19,8 @@ import {
 } from "@/lib/fan-video-items";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = { title: "영상", robots: { index: false } };
 
 function RelatedVideo({ teamSlug, video }: { teamSlug: string; video: FanVideoItem }) {
   return (

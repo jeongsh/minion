@@ -48,16 +48,19 @@ export function predictionMarketForMatch(bets: PredictionBet[], matchId: string,
 }
 
 // matchId 를 넘기면 그 경기 베팅만 조회하고 전체 랭킹은 건너뛴다(매치 상세/모바일 매치
-// 라우트는 해당 경기 시장 정보만 쓴다). 미지정 시 전체 베팅 + 상위 랭킹까지 조회한다.
+// 라우트는 해당 경기 시장 정보만 쓴다). matchIds 를 넘기면 그 경기들 베팅만 조회한다
+// (승부예측 화면은 노출되는 시간 창 안의 경기만 필요). 둘 다 미지정 시 전체 베팅을 조회한다.
 export const getPredictionMarketData = cache(async function getPredictionMarketData(
   userId?: string,
   matchId?: string,
+  matchIds?: string[],
 ) {
   const supabase = createSupabaseServerClient();
   let betsQuery = supabase
     .from("prediction_bets")
     .select("id, user_id, match_id, team_id, stake, status");
   if (matchId) betsQuery = betsQuery.eq("match_id", matchId);
+  else if (matchIds) betsQuery = betsQuery.in("match_id", matchIds);
 
   const [betsResult, rankingsResult, walletResult] = await Promise.all([
     betsQuery,

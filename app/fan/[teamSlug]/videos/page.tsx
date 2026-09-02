@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { FanVideoFeed } from "@/components/fan/fan-video-feed";
@@ -11,6 +12,9 @@ import {
 import { buildFanVideoItems } from "@/lib/fan-video-items";
 
 export const dynamic = "force-dynamic";
+
+// 외부 유튜브 임베드 위주라 색인 가치가 낮고 팀마다 내용이 겹친다. title만 부여하고 색인 제외.
+export const metadata: Metadata = { title: "영상", robots: { index: false } };
 
 export default async function FanVideosPage({
   params,

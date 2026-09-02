@@ -9,7 +9,7 @@ import { ScheduleWeekScroller } from "@/components/domain/schedule-week-scroller
 import { SpoilerToggleButton } from "@/components/domain/spoiler-toggle-button";
 import { AdaptiveDialog } from "@/components/responsive/adaptive-dialog";
 import { getCalendarEvents } from "@/lib/calendar/events";
-import { getAllTeams, getMatches, getStages, getTournaments } from "@/lib/data/lck";
+import { getAllTeams, getMatchesByMonth, getStages, getTournaments } from "@/lib/data/lck";
 import { tournamentTypeLabel } from "@/lib/match-display";
 import { shouldUseWhiteLogoOnDark } from "@/lib/team-logos";
 import { filterMatchesBySegment, parseSeasonSegment, segmentLabel } from "@/lib/tournament-filters";
@@ -59,18 +59,21 @@ export default async function SchedulePage({
   const activeSegment = parseSeasonSegment(params.segment);
   const activeTeam = params.team ?? "all";
 
-  const [matches, teams, tournaments, stages, calendarEvents] = await Promise.all([
-    getMatches(),
-    getAllTeams(),
-    getTournaments(),
-    getStages(),
-    getCalendarEvents({ includePastOneTime: true }),
-  ]);
+  // activeYear가 시즌 목록(tournaments)에 의존하므로 먼저 조회해 연/월을 확정한 뒤,
+  // 전체 매치를 받지 않고 해당 월 범위만 조회한다.
+  const tournaments = await getTournaments();
   const requestedYear = params.year ? Number(params.year) : Number.NaN;
   const tournamentYears = tournaments.map((item) => item.season).filter(isSupportedSeasonYear);
   const yearCandidates = isSupportedSeasonYear(defaults.year) ? [...tournamentYears, defaults.year] : tournamentYears;
   const years = Array.from(new Set(yearCandidates)).sort((a, b) => b - a);
   const activeYear = years.includes(requestedYear) ? requestedYear : (years.includes(defaults.year) ? defaults.year : (years[0] ?? defaults.year));
+
+  const [matches, teams, stages, calendarEvents] = await Promise.all([
+    getMatchesByMonth(activeYear, activeMonth),
+    getAllTeams(),
+    getStages(),
+    getCalendarEvents({ includePastOneTime: true }),
+  ]);
   const selectedTeam = teams.find((team) => team.id === activeTeam);
   const filteredCalendarEvents = selectedTeam
     ? calendarEvents.filter((event) => event.teamId === selectedTeam.id)

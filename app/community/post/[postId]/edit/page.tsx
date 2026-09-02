@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
 import { PostForm } from "@/components/community/post-form";
@@ -7,6 +8,8 @@ import { categoriesForScope } from "@/lib/community/boards";
 import { getExistingGuestKey } from "@/lib/community/guest-identity";
 import { getPostById } from "@/lib/data/community";
 import { getUserMiniconPacks } from "@/lib/data/minicons";
+
+export const metadata: Metadata = { title: "글 수정", robots: { index: false } };
 
 export default async function EditCommunityPostPage({ params }: { params: Promise<{ postId: string }> }) {
   const { postId } = await params;

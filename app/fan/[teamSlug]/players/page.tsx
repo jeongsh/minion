@@ -1,8 +1,20 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { PlayerCard } from "@/components/domain/player-card";
 import { FanPageShell } from "@/components/fan/fan-page-shell";
 import { getPlayers, getTeamByFanSiteHost, getTeamBySlug } from "@/lib/data/lck";
+import { getTeamByRouteKey } from "@/lib/team-themes";
 import type { Player } from "@/lib/types";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ teamSlug: string }>;
+}): Promise<Metadata> {
+  const { teamSlug } = await params;
+  const fanSlug = getTeamByRouteKey(teamSlug)?.fanSiteHost ?? teamSlug;
+  return { title: "선수단", alternates: { canonical: `/fan/${fanSlug}/players` } };
+}
 
 const POSITION_ORDER: Player["position"][] = ["TOP", "JGL", "MID", "BOT", "SUP"];
 

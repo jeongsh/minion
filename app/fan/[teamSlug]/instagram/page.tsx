@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { FanInstagramFeed } from "@/components/fan/fan-instagram-feed";
@@ -11,6 +12,9 @@ import {
 } from "@/lib/data/lck";
 
 export const dynamic = "force-dynamic";
+
+// 외부 인스타그램 임베드 피드라 색인 대상에서 제외한다.
+export const metadata: Metadata = { title: "인스타그램", robots: { index: false } };
 
 export default async function FanInstagramPage({
   params,

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
 import { PostForm } from "@/components/community/post-form";
@@ -8,6 +9,8 @@ import { getExistingGuestKey } from "@/lib/community/guest-identity";
 import { getPostById } from "@/lib/data/community";
 import { getTeamByFanSiteHost, getTeamBySlug } from "@/lib/data/lck";
 import { getUserMiniconPacks } from "@/lib/data/minicons";
+
+export const metadata: Metadata = { title: "글 수정", robots: { index: false } };
 
 export default async function EditFanPostPage({ params }: { params: Promise<{ teamSlug: string; postId: string }> }) {
   const { teamSlug, postId } = await params;

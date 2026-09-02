@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 import { HomeDashboard, type HomeStandingRow } from "@/components/domain/home-dashboard";
 import { OnboardingDialog } from "@/components/auth/onboarding-dialog";
 import type { HomeCalendarMatch } from "@/components/domain/home-calendar";
@@ -24,6 +26,10 @@ import {
 } from "@/lib/community/hot";
 
 export const dynamic = "force-dynamic";
+
+// title/description/OG는 루트 레이아웃 기본값이 곧 홈 콘텐츠라 그대로 두고, canonical만 고정해
+// 쿼리스트링이 붙은 변형 URL이 별도 색인되지 않도록 한다.
+export const metadata: Metadata = { alternates: { canonical: "/" } };
 
 function yearMonthKeyKST(value: string) {
   return dateKeyKST(value).slice(0, 7);
