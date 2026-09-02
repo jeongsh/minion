@@ -275,6 +275,7 @@ const positionOrder = new Map<Player["position"], number>(
 
 function MatchRatingPanel({
   matchId,
+  routeMatchId,
   set,
   sets,
   teams,
@@ -287,6 +288,7 @@ function MatchRatingPanel({
   reactionStates,
 }: {
   matchId: string;
+  routeMatchId: string;
   set?: SetResult;
   sets: SetResult[];
   teams: Team[];
@@ -311,7 +313,7 @@ function MatchRatingPanel({
   const ratingStartedAt = getSetRatingStartedAt(set);
   const ratingOpen = isSetRatingOpen(set);
   const snapshotReady = isSetRatingSnapshotReady(set);
-  const snapshotHref = `/matches/${matchId}/sets/${set.id}/snapshot`;
+  const snapshotHref = `/matches/${routeMatchId}/sets/${set.id}/snapshot`;
   const leader = set.winnerTeamId
     ? fanRatingLeader(
         setRatings.filter((rating) => rating.teamId === set.winnerTeamId),
@@ -349,7 +351,7 @@ function MatchRatingPanel({
             blueTeamId={set.blueTeamId}
             ratingOpen={ratingOpen}
             isLoggedIn={isLoggedIn}
-            loginHref={`/login?next=${encodeURIComponent(`/matches/${matchId}?tab=rating&set=${set.id}`)}`}
+            loginHref={`/login?next=${encodeURIComponent(`/matches/${routeMatchId}?tab=rating&set=${set.id}`)}`}
             ratingStatusNote={
               ratingOpen && ratingStartedAt !== null
                 ? "평점 입력이 열렸습니다. 종료 기한은 없습니다."
@@ -634,7 +636,8 @@ export default async function MatchDetailPage({
       {activeTab === "rating" ? (
         <div className="-mt-5 flex flex-col gap-2.5">
           <MatchRatingPanel
-            matchId={matchId}
+            matchId={match.id}
+            routeMatchId={matchId}
             set={activeSet}
             sets={matchSets}
             teams={teams}
