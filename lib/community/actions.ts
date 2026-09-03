@@ -30,7 +30,7 @@ import { AI_MODERATOR_NAME } from "@/lib/community/moderation-labels";
 import { sendDiscordCommunityModerationAlert } from "@/lib/notify/discord";
 import { isCommunityUserSanctioned } from "@/lib/data/community-users";
 import { guestRateLimitError, isCommunityGuestSanctioned } from "@/lib/data/community-guests";
-import { getPublishedMiniconItem } from "@/lib/data/minicons";
+import { getPublishedMiniconItemsById } from "@/lib/data/minicons";
 import {
   getExistingGuestKey,
   getGuestIdentity,
@@ -453,7 +453,9 @@ export async function createCommentAction(input: {
     parentId: input.parentId ?? null,
   });
 
-  if (user) await recordLpEvent({ userId: user.id, reason: "comment_created", commentId: id });
+  if (user) {
+    after(() => recordLpEvent({ userId: user.id, reason: "comment_created", commentId: id }));
+  }
 
   scheduleCommunityCommentNotifications({
     actor: user ? { userId: user.id } : { guestKey: guest!.key },
@@ -471,7 +473,6 @@ export async function createCommentAction(input: {
     text: content,
   });
 
-  revalidatePath(postPath(input.scope, input.teamSlug, input.postId));
   return { ok: true, message: "댓글 톡 붙여뒀어요." };
 }
 
@@ -498,8 +499,8 @@ export async function createMiniconCommentAction(input: {
     return { ok: false, error: "미니콘 정보를 확인하지 못했습니다." };
   }
 
-  const minicons = await Promise.all(miniconItemIds.map((id) => getPublishedMiniconItem(id)));
-  if (minicons.some((minicon) => !minicon)) return { ok: false, error: "사용할 수 없는 미니콘입니다." };
+  const minicons = await getPublishedMiniconItemsById(miniconItemIds);
+  if (miniconItemIds.some((id) => !minicons.has(id))) return { ok: false, error: "사용할 수 없는 미니콘입니다." };
 
   if (input.parentId) {
     const parent = await getCommentById(input.parentId);
@@ -542,7 +543,6 @@ export async function createMiniconCommentAction(input: {
     postId: input.postId,
   });
 
-  revalidatePath(postPath(input.scope, input.teamSlug, input.postId));
   return { ok: true, message: miniconItemIds.length === 2 ? "더블 미니콘을 붙였어요." : "미니콘을 붙였어요." };
 }
 
