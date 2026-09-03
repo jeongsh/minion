@@ -221,32 +221,25 @@ export async function getPublishedMiniconItemsById(itemIds: string[]): Promise<M
   const supabase = createSupabaseServerClient();
   const { data: itemData, error: itemError } = await supabase
     .from("minicon_items")
-    .select("id, pack_id, name, image_url, sort_order")
+    .select("id, pack_id, name, image_url, sort_order, minicon_packs!inner(name)")
     .in("id", uniqueIds)
-    .eq("is_active", true);
+    .eq("is_active", true)
+    .eq("minicon_packs.status", "published");
   if (itemError) return new Map();
 
-  const items = (itemData ?? []) as MiniconItemRow[];
-  const packIds = [...new Set(items.map((item) => item.pack_id))];
-  if (packIds.length === 0) return new Map();
-
-  const { data: packData, error: packError } = await supabase
-    .from("minicon_packs")
-    .select("id, name")
-    .in("id", packIds)
-    .eq("status", "published");
-  if (packError) return new Map();
-
-  const packNames = new Map(((packData ?? []) as { id: string; name: string }[]).map((pack) => [pack.id, pack.name]));
+  const items = (itemData ?? []) as unknown as (MiniconItemRow & {
+    minicon_packs: { name: string } | { name: string }[];
+  })[];
   return new Map(items.flatMap((item) => {
-    const packName = packNames.get(item.pack_id);
-    return packName ? [[item.id, {
+    const pack = Array.isArray(item.minicon_packs) ? item.minicon_packs[0] : item.minicon_packs;
+    if (!pack) return [];
+    return [[item.id, {
       id: item.id,
       packId: item.pack_id,
-      packName,
+      packName: pack.name,
       name: item.name,
       imageUrl: item.image_url,
-    } satisfies CommentMinicon] as const] : [];
+    } satisfies CommentMinicon] as const];
   }));
 }
 

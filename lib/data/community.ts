@@ -657,50 +657,22 @@ export async function createComment(params: {
   miniconItemId?: string | null;
   miniconItemId2?: string | null;
 }): Promise<{ id: string }> {
-  const supabase = createSupabaseAdminClient();
-  const { data, error } = await supabase
-    .from("community_comments")
-    .insert({
-      post_id: params.postId,
-      parent_id: params.parentId ?? null,
-      content: params.content,
-      content_kind: params.contentKind ?? "text",
-      minicon_item_id: params.miniconItemId ?? null,
-      minicon_item_id_2: params.miniconItemId2 ?? null,
-      author_id: params.authorId,
-      guest_nickname: params.guest?.nickname ?? null,
-      guest_ip_label: null,
-      guest_key: params.guest?.key ?? null,
-    })
-    .select("id")
-    .single();
+  const { data, error } = await createSupabaseAdminClient().rpc("create_community_comment", {
+    p_post_id: params.postId,
+    p_content: params.content,
+    p_author_id: params.authorId,
+    p_guest_nickname: params.guest?.nickname ?? null,
+    p_guest_key: params.guest?.key ?? null,
+    p_guest_ip_key: params.guest?.ipKey ?? null,
+    p_guest_ip_label: params.guest?.ipLabel ?? null,
+    p_parent_id: params.parentId ?? null,
+    p_content_kind: params.contentKind ?? "text",
+    p_minicon_item_id: params.miniconItemId ?? null,
+    p_minicon_item_id_2: params.miniconItemId2 ?? null,
+  });
 
   if (error) throw error;
-  const id = (data as { id: string }).id;
-  if (params.guest) {
-    const { error: credentialError } = await supabase
-      .from("community_guest_comment_credentials")
-      .insert({
-        comment_id: id,
-        guest_key: params.guest.key,
-        ip_key: params.guest.ipKey,
-        ip_label: params.guest.ipLabel,
-      });
-    if (credentialError) {
-      await supabase.from("community_comments").delete().eq("id", id);
-      throw credentialError;
-    }
-  }
-
-  const post = await getPostById(params.postId);
-  if (post) {
-    await supabase
-      .from("community_posts")
-      .update({ comment_count: post.commentCount + 1 })
-      .eq("id", params.postId);
-  }
-
-  return { id };
+  return { id: data as string };
 }
 
 export async function getGuestContentPasswordHash(params: {

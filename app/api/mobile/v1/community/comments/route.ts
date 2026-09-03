@@ -1,4 +1,5 @@
 import type { MobileCommunityCommentMutationDto } from "@/packages/contracts/src/mobile-v1";
+import { after } from "next/server";
 import { createComment, getCommentById, getPostById } from "@/lib/data/community";
 import { guestRateLimitError, isCommunityGuestSanctioned } from "@/lib/data/community-guests";
 import { isCommunityUserSanctioned } from "@/lib/data/community-users";
@@ -90,7 +91,10 @@ export async function POST(request: Request) {
       parentId,
       postId,
     });
-    if (actor.auth) await recordLpEvent({ commentId: created.id, reason: "comment_created", userId: actor.auth.user.id });
+    const actorUserId = actor.auth?.user.id;
+    if (actorUserId) {
+      after(() => recordLpEvent({ commentId: created.id, reason: "comment_created", userId: actorUserId }));
+    }
     scheduleCommunityCommentNotifications({
       actor: actor.auth ? { userId: actor.auth.user.id } : { guestKey: actor.guest.key },
       actorName: actor.auth ? undefined : actor.guest.nickname,

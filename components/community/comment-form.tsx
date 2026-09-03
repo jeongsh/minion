@@ -1,6 +1,7 @@
 "use client";
 
 import { SendHorizontal, Sticker, X } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,7 @@ export function CommentForm({
   miniconPacks?: MiniconPack[];
 }) {
   const { showToast } = useToast();
+  const router = useRouter();
   const [content, setContent] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [miniconOpen, setMiniconOpen] = useState(false);
@@ -64,6 +66,7 @@ export function CommentForm({
         setMessage(null);
         showToast({ title: parentId ? "답글 등록 완료" : "댓글 등록 완료", tone: "success" });
         onSubmitted?.();
+        window.setTimeout(() => router.refresh(), 0);
       } else {
         setMessage(result.error);
         showToast({ title: "등록 실패", description: result.error, tone: "error" });
@@ -109,6 +112,7 @@ export function CommentForm({
           tone: "success",
         });
         onSubmitted?.();
+        window.setTimeout(() => router.refresh(), 0);
       } else {
         setMessage(result.error);
         showToast({ title: "등록 실패", description: result.error, tone: "error" });
