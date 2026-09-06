@@ -346,6 +346,7 @@ function MatchRatingPanel({
       <section>
         <div>
           <SetRatingForm
+            key={set.id}
             matchId={matchId}
             setId={set.id}
             blueTeamId={set.blueTeamId}
