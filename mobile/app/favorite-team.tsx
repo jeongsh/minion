@@ -5,7 +5,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import Camera from 'lucide-react-native/icons/camera';
 import Check from 'lucide-react-native/icons/check';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Keyboard, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Keyboard, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import type { MobileMeDto, MobileTeamFavoriteDto } from '../../packages/contracts/src/mobile-v1';
 import { nicknameFromKey } from '../../lib/community/guest-nickname';
@@ -16,6 +16,7 @@ import { useMinionTheme } from '@/hooks/use-minion-theme';
 import { mutateMobileApi, uploadMobileApi } from '@/lib/api-client';
 import { getInstallationId } from '@/lib/secure-storage';
 import { useAuth } from '@/providers/auth-provider';
+import { favoriteTeamConfirmationMessage } from '../../lib/fan/favorite-team-cooldown';
 
 const MAX_PROFILE_IMAGE_BYTES = 5 * 1024 * 1024;
 const PROFILE_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
@@ -138,6 +139,19 @@ export default function FavoriteTeamScreen() {
     }
   };
 
+  const confirmTeamAndComplete = (teamId: string) => {
+    const team = minionTeams.find((candidate) => candidate.id === teamId);
+    if (!team) return;
+    Alert.alert(
+      '최애팀 설정',
+      favoriteTeamConfirmationMessage(team.name, true),
+      [
+        { style: 'cancel', text: '취소' },
+        { text: '확인', onPress: () => void completeOnboarding(team.id) },
+      ],
+    );
+  };
+
   return (
     <View style={[styles.screen, { backgroundColor: theme.pageBackground }]}>
       <BottomSheet dismissible={false} maxHeight="92%" onClose={() => undefined} open={!loading && Boolean(session)} scrollable title={step === 1 ? '프로필 설정' : '최애팀 선택'}>
@@ -216,7 +230,7 @@ export default function FavoriteTeamScreen() {
               <Pressable disabled={Boolean(pendingTeamId)} onPress={() => void completeOnboarding()} style={({ pressed }) => [styles.skip, { backgroundColor: pressed ? theme.cardHover : 'transparent', opacity: pendingTeamId ? 0.5 : 1 }]}>
                 <Text style={[styles.skipText, { color: theme.muted, ...fonts.medium }]}>{pendingTeamId === 'skip' ? '완료 중…' : '건너뛰기'}</Text>
               </Pressable>
-              <Pressable disabled={!selectedTeamId || Boolean(pendingTeamId)} onPress={() => void completeOnboarding(selectedTeamId ?? undefined)} style={[styles.apply, { backgroundColor: theme.accent, opacity: selectedTeamId && !pendingTeamId ? 1 : 0.45 }]}>
+              <Pressable disabled={!selectedTeamId || Boolean(pendingTeamId)} onPress={() => selectedTeamId && confirmTeamAndComplete(selectedTeamId)} style={[styles.apply, { backgroundColor: theme.accent, opacity: selectedTeamId && !pendingTeamId ? 1 : 0.45 }]}>
                 {pendingTeamId && pendingTeamId !== 'skip' ? <ActivityIndicator color={theme.accentForeground} size="small" /> : <Text style={[styles.primaryText, { color: theme.accentForeground, ...fonts.medium }]}>선택한 팀 적용</Text>}
               </Pressable>
             </View>

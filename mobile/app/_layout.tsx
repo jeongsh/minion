@@ -13,6 +13,7 @@ import { AuthProvider, useAuth } from '@/providers/auth-provider';
 import { InAppNotificationsProvider } from '@/providers/in-app-notifications-provider';
 import { SpoilerFreeProvider } from '@/providers/spoiler-free-provider';
 import { minionTeams } from '@/constants/teams';
+import { requestInitialPushPermission, syncPushTokenIfAuthorized } from '@/lib/push-notifications';
 
 export default function RootLayout() {
   return (
@@ -60,8 +61,22 @@ function RootNavigator() {
       <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
       <TeamPickerSheet />
       <AccountShellSync />
+      <InitialPushPermissionRequest />
     </ThemeProvider>
   );
+}
+
+function InitialPushPermissionRequest() {
+  const { loading, session } = useAuth();
+  useEffect(() => {
+    if (loading) return;
+    void requestInitialPushPermission()
+      .then((permission) => {
+        if (permission.status === 'granted' && session) void syncPushTokenIfAuthorized();
+      })
+      .catch((error) => console.log('[push] initial permission request failed:', error));
+  }, [loading, session]);
+  return null;
 }
 
 function AccountShellSync() {

@@ -8,7 +8,13 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 import { getActiveFanOnions, getFanTemperatureSnapshot } from "@/lib/data/fan-pulse";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseAuthClient } from "@/lib/supabase/auth-server";
-import { FAVORITE_TEAM_COOKIE } from "@/lib/fan/favorite-team";
+import { FAVORITE_TEAM_CHANGE_AVAILABLE_AT_COOKIE, FAVORITE_TEAM_COOKIE } from "@/lib/fan/favorite-team";
+import {
+  activeFavoriteTeamCooldown,
+  favoriteTeamCooldownFromError,
+  favoriteTeamCooldownMessage,
+  nextFavoriteTeamChangeAvailableAt,
+} from "@/lib/fan/favorite-team-cooldown";
 
 const FAN_VOTER_COOKIE = "lckhub_fan_voter";
 const ONION_MAX_LENGTH = 100;
@@ -85,6 +91,31 @@ export async function setFavoriteTeamAction(
     .maybeSingle();
   if (teamError || !team) return { ok: false, favorite: false, error: "팀 정보를 찾을 수 없습니다." };
 
+  const currentCookieTeamId = cookieStore.get(FAVORITE_TEAM_COOKIE)?.value ?? null;
+  let currentFavoriteTeamId = currentCookieTeamId;
+  let changeAvailableAt = activeFavoriteTeamCooldown(
+    cookieStore.get(FAVORITE_TEAM_CHANGE_AVAILABLE_AT_COOKIE)?.value,
+  );
+
+  if (user) {
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("favorite_team_id, favorite_team_change_available_at")
+      .eq("id", user.id)
+      .maybeSingle();
+    if (profileError) return { ok: false, favorite: false, error: "최애팀 상태를 확인하지 못했습니다." };
+    currentFavoriteTeamId = profile?.favorite_team_id ?? null;
+    changeAvailableAt = activeFavoriteTeamCooldown(profile?.favorite_team_change_available_at);
+  }
+
+  const nextFavoriteTeamId = nextFavorite ? teamId : null;
+  if (currentFavoriteTeamId === nextFavoriteTeamId) {
+    return { ok: true, favorite: nextFavorite };
+  }
+  if (changeAvailableAt) {
+    return { ok: false, favorite: currentFavoriteTeamId === teamId, error: favoriteTeamCooldownMessage(changeAvailableAt) };
+  }
+
   if (nextFavorite) {
     // 최애팀은 팬 경험의 기본 컨텍스트이므로 설정과 동시에 팔로우도 보장한다.
     const voterKey = await getOrCreateVoterKey();
@@ -120,8 +151,17 @@ export async function setFavoriteTeamAction(
       .from("profiles")
       .update({ favorite_team_id: nextFavorite ? teamId : null })
       .eq("id", user.id);
-    if (error) return { ok: false, favorite: !nextFavorite, error: error.message };
+    if (error) {
+      const blockedUntil = favoriteTeamCooldownFromError(error);
+      return {
+        ok: false,
+        favorite: currentFavoriteTeamId === teamId,
+        error: blockedUntil ? favoriteTeamCooldownMessage(blockedUntil) : error.message,
+      };
+    }
   }
+
+  const nextChangeAvailableAt = nextFavoriteTeamChangeAvailableAt();
 
   if (nextFavorite) {
     cookieStore.set(FAVORITE_TEAM_COOKIE, teamId, {
@@ -134,6 +174,13 @@ export async function setFavoriteTeamAction(
   } else if (cookieStore.get(FAVORITE_TEAM_COOKIE)?.value === teamId) {
     cookieStore.delete(FAVORITE_TEAM_COOKIE);
   }
+  cookieStore.set(FAVORITE_TEAM_CHANGE_AVAILABLE_AT_COOKIE, nextChangeAvailableAt, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    maxAge: 60 * 60 * 24 * 14,
+    path: "/",
+  });
 
   revalidateFollow(teamSlug);
   return { ok: true, favorite: nextFavorite };
@@ -154,12 +201,51 @@ export async function toggleFanAction(
   teamSlug: string,
 ): Promise<{ ok: boolean; isFan: boolean; error?: string }> {
   const user = await getCurrentUser();
+  const cookieStore = await cookies();
   const voterKey = await getOrCreateVoterKey();
   const supabase = createSupabaseAdminClient();
 
   const existing = await findFanRows(teamId, user?.id, voterKey);
 
   if (existing.length > 0) {
+    let clearsFavorite = false;
+    if (user) {
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("favorite_team_id, favorite_team_change_available_at")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (profileError) return { ok: false, isFan: true, error: "최애팀 상태를 확인하지 못했습니다." };
+      const blockedUntil = profile?.favorite_team_id === teamId
+        ? activeFavoriteTeamCooldown(profile.favorite_team_change_available_at)
+        : null;
+      if (blockedUntil) return { ok: false, isFan: true, error: favoriteTeamCooldownMessage(blockedUntil) };
+      clearsFavorite = profile?.favorite_team_id === teamId;
+    } else if (cookieStore.get(FAVORITE_TEAM_COOKIE)?.value === teamId) {
+      const blockedUntil = activeFavoriteTeamCooldown(cookieStore.get(FAVORITE_TEAM_CHANGE_AVAILABLE_AT_COOKIE)?.value);
+      if (blockedUntil) return { ok: false, isFan: true, error: favoriteTeamCooldownMessage(blockedUntil) };
+      clearsFavorite = true;
+    }
+
+    // 제한 확인과 최애 해제를 먼저 끝내야 뒤의 팔로우 삭제가 실패해도 최애-팔로우 불변식이 깨지지 않는다.
+    if (user && clearsFavorite) {
+      const { error: favoriteError } = await supabase.from("profiles").update({ favorite_team_id: null }).eq("id", user.id).eq("favorite_team_id", teamId);
+      if (favoriteError) {
+        const blockedUntil = favoriteTeamCooldownFromError(favoriteError);
+        return { ok: false, isFan: true, error: blockedUntil ? favoriteTeamCooldownMessage(blockedUntil) : favoriteError.message };
+      }
+    }
+    if (clearsFavorite && cookieStore.get(FAVORITE_TEAM_COOKIE)?.value === teamId) {
+      cookieStore.delete(FAVORITE_TEAM_COOKIE);
+      cookieStore.set(FAVORITE_TEAM_CHANGE_AVAILABLE_AT_COOKIE, nextFavoriteTeamChangeAvailableAt(), {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        maxAge: 60 * 60 * 24 * 14,
+        path: "/",
+      });
+    }
+
     if (user) {
       const { error: subscriptionError } = await supabase
         .from("fan_notification_subscriptions")
@@ -173,12 +259,6 @@ export async function toggleFanAction(
       .delete()
       .in("id", existing.map((row) => row.id));
     if (error) return { ok: false, isFan: true, error: error.message };
-    // 최애팀 팔로우를 직접 해제하면 최애 컨텍스트도 함께 정리해 상태가 어긋나지 않게 한다.
-    if (user) {
-      await supabase.from("profiles").update({ favorite_team_id: null }).eq("id", user.id).eq("favorite_team_id", teamId);
-    }
-    const cookieStore = await cookies();
-    if (cookieStore.get(FAVORITE_TEAM_COOKIE)?.value === teamId) cookieStore.delete(FAVORITE_TEAM_COOKIE);
     revalidateFollow(teamSlug);
     return { ok: true, isFan: false };
   }

@@ -28,9 +28,11 @@ import { useCachedQuery } from '@/hooks/use-cached-query';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import { mutateMobileApi, resolveApiAssetUrl, type MobileCommunityPostSummary, type MobileMatchSummary, type MobileTeamDetailDto, type MobileTeamFanDto, type MobileTeamFavoriteDto, type MobileTeamNotificationDto } from '@/lib/api-client';
 import { fanAccentText, fanHeaderControlColor } from '@/lib/fan-colors';
-import { getPushPermissionStatus, requestPushPermissionAndRegister, syncPushTokenIfAuthorized } from '@/lib/push-notifications';
+import { getLocalFavoriteTeamCooldown, recordLocalFavoriteTeamChange } from '@/lib/favorite-team-cooldown';
+import { getPushPermissionStatus, openPushNotificationSettings, requestPushPermission, requestPushPermissionAndRegister, syncPushTokenIfAuthorized } from '@/lib/push-notifications';
 import { formatTimeKST } from '@/lib/schedule-dates';
 import { useAuth } from '@/providers/auth-provider';
+import { favoriteTeamConfirmationMessage, favoriteTeamCooldownMessage } from '../../../lib/fan/favorite-team-cooldown';
 
 export type FanPageSection = 'home' | 'players' | 'schedule' | 'social' | 'videos';
 
@@ -171,6 +173,29 @@ function FanChannelHeader({ data }: { data: MobileTeamDetailDto }) {
   async function toggleFollow() {
     if (pending) return;
     const next = !following;
+    if (!next && favorite && !session) {
+      const blockedUntil = await getLocalFavoriteTeamCooldown();
+      if (blockedUntil) {
+        showToast(favoriteTeamCooldownMessage(blockedUntil), 'error');
+        return;
+      }
+    }
+    if (!next && favorite) {
+      Alert.alert(
+        '최애팀 해제',
+        favoriteTeamConfirmationMessage(data.team.name, false),
+        [
+          { style: 'cancel', text: '취소' },
+          { text: '확인', onPress: () => void applyFollow(next) },
+        ],
+      );
+      return;
+    }
+    await applyFollow(next);
+  }
+
+  async function applyFollow(next: boolean) {
+    if (pending) return;
     setFollowingOverride(next);
     setCountOverride(Math.max(0, fanCount + (next ? 1 : -1)));
     setPending('follow');
@@ -178,8 +203,12 @@ function FanChannelHeader({ data }: { data: MobileTeamDetailDto }) {
       const result = await mutateMobileApi<MobileTeamFanDto>(fanPath, 'POST', { following: next });
       setFollowingOverride(result.following);
       setCountOverride(result.fanCount);
-      if (!result.following && favorite) setFavoriteTeam(null);
+      if (!result.following && favorite) {
+        setFavoriteTeam(null);
+        if (!session) await recordLocalFavoriteTeamChange();
+      }
       showToast(result.following ? '팬 등록을 완료했습니다.' : '팬 등록을 해제했습니다.', 'success');
+      if (result.following) void offerDevicePushAfterEnabling();
       refreshFanState();
     } catch (caught) {
       setFollowingOverride(null);
@@ -188,22 +217,42 @@ function FanChannelHeader({ data }: { data: MobileTeamDetailDto }) {
     } finally { setPending(null); }
   }
 
-  async function toggleFavorite() {
+  async function applyFavorite(next: boolean) {
     if (!staticTeam || pending) return;
-    const next = !favorite;
     setPending('favorite');
     try {
       const result = await mutateMobileApi<MobileTeamFavoriteDto>(`/api/mobile/v1/teams/${encodeURIComponent(data.team.fanSiteHost)}/favorite`, 'POST', { favorite: next });
       setFavoriteTeam(result.favorite ? staticTeam : null);
+      if (!session) await recordLocalFavoriteTeamChange();
       if (result.favorite) {
         setFollowingOverride(true);
         setCountOverride(following ? fanCount : fanCount + 1);
       }
       await refreshViewer();
       refreshFanState();
-      showToast(result.favorite ? `${data.team.shortName}, 내 최애팀` : '최애팀 설정을 해제했습니다.', 'success');
+      showToast(result.favorite ? `${data.team.shortName}, 내 최애팀 · 7일 후 변경 가능` : '최애팀 해제 · 7일 후 다시 선택 가능', 'success');
     } catch (caught) { showToast(caught instanceof Error ? caught.message : '최애팀을 설정하지 못했습니다.', 'error'); }
     finally { setPending(null); }
+  }
+
+  async function toggleFavorite() {
+    if (!staticTeam || pending) return;
+    if (!session) {
+      const blockedUntil = await getLocalFavoriteTeamCooldown();
+      if (blockedUntil) {
+        showToast(favoriteTeamCooldownMessage(blockedUntil), 'error');
+        return;
+      }
+    }
+    const next = !favorite;
+    Alert.alert(
+      next ? '최애팀 설정' : '최애팀 해제',
+      favoriteTeamConfirmationMessage(data.team.name, next),
+      [
+        { style: 'cancel', text: '취소' },
+        { text: '확인', onPress: () => void applyFavorite(next) },
+      ],
+    );
   }
 
   async function offerDevicePushAfterEnabling() {
@@ -214,13 +263,14 @@ function FanChannelHeader({ data }: { data: MobileTeamDetailDto }) {
       } else if (permission.status === 'undetermined' && permission.canAskAgain) {
         Alert.alert(
           '푸시 알림 받기',
-          '경기 시작과 세트 평가 소식을 앱 밖에서도 알려드릴게요. 라이브 경기와 팀 콘텐츠 알림은 내 정보에서 따로 선택할 수 있어요.',
+          '팔로우한 팀의 경기와 콘텐츠 소식을 앱 밖에서도 받으려면 알림 권한이 필요해요. 알림 종류는 내 정보에서 선택할 수 있어요.',
           [
             { style: 'cancel', text: '나중에' },
             {
               text: '알림 받기',
               onPress: () => {
-                void requestPushPermissionAndRegister()
+                const request = session ? requestPushPermissionAndRegister() : requestPushPermission();
+                void request
                   .then((next) => showToast(next.status === 'granted' ? '이 기기의 푸시 알림을 켰습니다.' : '푸시 알림이 허용되지 않았습니다.', next.status === 'granted' ? 'success' : 'error'))
                   .catch((error) => showToast(error instanceof Error ? error.message : '푸시 알림을 설정하지 못했습니다.', 'error'));
               },
@@ -228,7 +278,14 @@ function FanChannelHeader({ data }: { data: MobileTeamDetailDto }) {
           ],
         );
       } else if (permission.status === 'denied') {
-        showToast('앱 내 팀 알림은 켜졌습니다. 기기 푸시는 내 정보에서 허용할 수 있어요.');
+        Alert.alert(
+          '알림 권한이 꺼져 있어요',
+          '팔로우한 팀의 소식을 앱 밖에서도 받으려면 기기 설정에서 MINION 알림을 허용해주세요.',
+          [
+            { style: 'cancel', text: '나중에' },
+            { text: '설정으로 이동', onPress: () => void openPushNotificationSettings() },
+          ],
+        );
       }
     } catch (error) {
       console.log('[fan] push permission check failed:', error);

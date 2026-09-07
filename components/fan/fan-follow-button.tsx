@@ -11,6 +11,7 @@ import {
   fanHeaderIconButtonClass,
 } from "@/components/fan/fan-header-control-styles";
 import { useToast } from "@/components/ui/toast";
+import { favoriteTeamConfirmationMessage } from "@/lib/fan/favorite-team-cooldown";
 
 export function FanFollowButton({
   teamId,
@@ -18,6 +19,7 @@ export function FanFollowButton({
   teamName,
   initialCount,
   initialFollowing,
+  initialFavorite,
   teamColor,
   variant = "hero",
 }: {
@@ -26,6 +28,7 @@ export function FanFollowButton({
   teamName: string;
   initialCount: number;
   initialFollowing: boolean;
+  initialFavorite: boolean;
   teamColor: string;
   variant?: "hero" | "channel" | "spotlight" | "icon" | "header";
 }) {
@@ -46,6 +49,7 @@ export function FanFollowButton({
 
   function handleClick() {
     const nextFollowing = !following;
+    if (!nextFollowing && initialFavorite && !window.confirm(favoriteTeamConfirmationMessage(teamName, false))) return;
     setFollowing(nextFollowing);
     setCount((c) => Math.max(0, c + (nextFollowing ? 1 : -1)));
 
@@ -54,7 +58,7 @@ export function FanFollowButton({
       if (!result.ok) {
         setFollowing(!nextFollowing);
         setCount((c) => Math.max(0, c + (nextFollowing ? -1 : 1)));
-        showToast({ title: "팔로우 실패", description: "잠시 뒤 다시 시도해 주세요.", tone: "error" });
+        showToast({ title: "팔로우 실패", description: result.error ?? "잠시 뒤 다시 시도해 주세요.", tone: "error" });
       } else {
         setFollowing(result.isFan);
         showToast({
