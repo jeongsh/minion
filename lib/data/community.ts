@@ -11,6 +11,7 @@ import type { BoardScope } from "@/lib/community/boards";
 import { DEFAULT_TIER, type Tier } from "@/lib/rank/config";
 import { getPublicRankProfiles } from "@/lib/rank/public-profile";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { getCurrentIpKey } from "@/lib/community/guest-identity";
 import { getBlockedCommunityUserIds } from "@/lib/data/community-users";
 import { getBlockedCommunityGuestKeys } from "@/lib/data/community-guests";
 import { getTeams } from "@/lib/data/lck";
@@ -407,6 +408,7 @@ export const getPostById = cache(async function getPostById(
 /** 단건 조회 + 조회수 증가. 상세 페이지 진입 시 사용. */
 export async function getPostByIdAndIncrementView(
   postId: string,
+  viewerIpKey?: string | null,
 ): Promise<CommunityPostDetail | null> {
   const post = await getPostById(postId);
   if (!post) return null;
@@ -415,9 +417,11 @@ export async function getPostByIdAndIncrementView(
     // 카운트 갱신은 작성자 외 사용자도 수행하므로 RLS 우회(service-role).
     // 조회수는 best-effort: 서비스 롤 키 미설정 등으로 실패해도 렌더는 막지 않는다.
     try {
+      const ipKey = viewerIpKey ?? await getCurrentIpKey().catch(() => null);
+      if (!ipKey) return post;
       const { data } = await createSupabaseAdminClient().rpc(
         "increment_community_post_view_count",
-        { p_post_id: postId },
+        { p_post_id: postId, p_viewer_ip_key: ipKey },
       );
       if (typeof data === "number") {
         return { ...post, viewCount: data };

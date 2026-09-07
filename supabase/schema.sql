@@ -363,6 +363,13 @@ create table public.community_comments (
   created_at timestamptz not null default now()
 );
 
+create table public.community_post_views (
+  post_id uuid not null references public.community_posts(id) on delete cascade,
+  ip_key text not null,
+  viewed_at timestamptz not null default now(),
+  primary key (post_id, ip_key)
+);
+
 create table public.team_social_posts (
   id uuid primary key default gen_random_uuid(),
   team_id uuid not null references public.teams(id) on delete cascade,
@@ -987,6 +994,7 @@ create index idx_posts_player_id on public.community_posts(player_id);
 create index idx_posts_champion_id on public.community_posts(champion_id);
 create index idx_comments_post_id on public.community_comments(post_id);
 create index idx_comments_author_id on public.community_comments(author_id);
+create index idx_community_post_views_viewed_at on public.community_post_views(viewed_at);
 create index idx_fan_ratings_match_id on public.fan_ratings(match_id);
 create index idx_fan_ratings_set_id on public.fan_ratings(set_id);
 create index idx_fan_ratings_player_id on public.fan_ratings(player_id);
@@ -1068,6 +1076,7 @@ alter table public.fan_pog_votes enable row level security;
 alter table public.fan_match_predictions enable row level security;
 alter table public.community_posts enable row level security;
 alter table public.community_comments enable row level security;
+alter table public.community_post_views enable row level security;
 alter table public.team_social_posts enable row level security;
 alter table public.player_social_posts enable row level security;
 alter table public.team_videos enable row level security;

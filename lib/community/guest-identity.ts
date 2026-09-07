@@ -68,6 +68,14 @@ async function currentIp(): Promise<string> {
   return ipFromHeaders(await headers());
 }
 
+export function getIpKeyFromHeaders(requestHeaders: Headers): string {
+  return digest("ip", ipFromHeaders(requestHeaders));
+}
+
+export async function getCurrentIpKey(): Promise<string> {
+  return digest("ip", await currentIp());
+}
+
 export async function getExistingGuestKey(): Promise<string | null> {
   const token = (await cookies()).get(GUEST_COOKIE_NAME)?.value;
   return token && GUEST_TOKEN_PATTERN.test(token) ? digest("guest", token) : null;
