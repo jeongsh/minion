@@ -53,7 +53,17 @@ const defaultItems = [
   ["유관 행동", "21-winner-behavior.png"],
   ["무관 행동", "22-no-title-behavior.png"],
   ["빨간약", "23-red-pill.png"],
-  ["긁혔누", "24-triggered-nu.png"],
+  ["탑차이", "25-top-diff.png"],
+  ["정글차이", "26-jungle-diff.png"],
+  ["미드차이", "27-mid-diff.png"],
+  ["원딜차이", "28-adc-diff.png"],
+  ["서폿차이", "29-support-diff.png"],
+  ["줴줴이야", "30-jwejwei.png"],
+  ["gg", "31-gg.png"],
+  ["노래 틀어", "32-song-play.png"],
+  ["이걸?", "33-this.png"],
+  ["따운", "34-down.png"],
+  ["캐리", "35-carry.png"],
 ] as const;
 
 const DEFAULT_PACK_ID = "00000000-0000-4000-8000-000000000002";
