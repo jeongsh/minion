@@ -52,6 +52,87 @@ function parseCookieString(cookieStr: string) {
 
 // ─── 응답 파싱: 게시물 ──────────────────────────────────────────
 
+const MONTHS: Record<string, number> = {
+  January: 0,
+  February: 1,
+  March: 2,
+  April: 3,
+  May: 4,
+  June: 5,
+  July: 6,
+  August: 7,
+  September: 8,
+  October: 9,
+  November: 10,
+  December: 11,
+};
+
+function parseAccessibilityDate(text: unknown): Date | null {
+  if (typeof text !== "string") return null;
+  const match = text.match(/\bon\s+([A-Z][a-z]+)\s+(\d{1,2}),\s+(\d{4})\b/);
+  if (!match) return null;
+  const month = MONTHS[match[1]];
+  if (month === undefined) return null;
+  return new Date(Date.UTC(Number(match[3]), month, Number(match[2]), 12));
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function parsePolarisNode(node: any): NormalizedPost | null {
+  if (!node || typeof node !== "object" || !node.code) return null;
+  const shortcode = String(node.code);
+  const postedAt = node.taken_at
+    ? new Date((node.taken_at as number) * 1000)
+    : (parseAccessibilityDate(node.accessibility_caption) ?? new Date(0));
+
+  return {
+    postId: String(node.pk ?? shortcode),
+    shortcode,
+    imageUrl: typeof node.display_uri === "string" ? node.display_uri : "",
+    caption: typeof node.caption?.text === "string" ? node.caption.text : "",
+    postedAt,
+    likesCount: typeof node.like_count === "number" ? node.like_count : 0,
+    commentsCount: typeof node.comment_count === "number" ? node.comment_count : 0,
+    sourceUrl: `https://www.instagram.com/p/${shortcode}/`,
+  };
+}
+
+function collectPolarisPosts(
+  value: unknown,
+  expectedUsername: string,
+  posts: NormalizedPost[] = [],
+): NormalizedPost[] {
+  if (!value || typeof value !== "object") return posts;
+  if (Array.isArray(value)) {
+    for (const item of value) collectPolarisPosts(item, expectedUsername, posts);
+    return posts;
+  }
+
+  const record = value as Record<string, unknown>;
+  const connection = record.polaris_ordered_timeline_connection as
+    | { edges?: unknown }
+    | undefined;
+  const edges = connection?.edges;
+  if (Array.isArray(edges)) {
+    for (const edge of edges) {
+      if (!edge || typeof edge !== "object") continue;
+      const node = (edge as Record<string, unknown>).node;
+      if (!node || typeof node !== "object") continue;
+      const user = (node as Record<string, unknown>).user;
+      const postUsername = user && typeof user === "object"
+        ? String((user as Record<string, unknown>).username ?? "").toLowerCase()
+        : "";
+      if (postUsername !== expectedUsername) continue;
+      const parsed = parsePolarisNode(node);
+      if (parsed) posts.push(parsed);
+    }
+  }
+
+  for (const child of Object.values(record)) {
+    collectPolarisPosts(child, expectedUsername, posts);
+  }
+  return posts;
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function parseProfilePosts(data: any): NormalizedPost[] {
   // web_profile_info 형식
@@ -116,6 +197,30 @@ function parseProfilePosts(data: any): NormalizedPost[] {
       } satisfies NormalizedPost;
     })
     .filter((p): p is NormalizedPost => p !== null);
+}
+
+function parsePrefetchedProfilePosts(
+  scriptContents: string[],
+  username: string,
+): NormalizedPost[] {
+  const postsMap = new Map<string, NormalizedPost>();
+  const expectedUsername = username.toLowerCase();
+
+  for (const content of scriptContents) {
+    if (!content.includes("polaris_ordered_timeline_connection")) continue;
+    try {
+      const parsed = JSON.parse(content);
+      for (const post of collectPolarisPosts(parsed, expectedUsername)) {
+        postsMap.set(post.postId, post);
+      }
+    } catch {
+      // Ignore unrelated JSON script payloads.
+    }
+  }
+
+  return Array.from(postsMap.values()).sort(
+    (a, b) => b.postedAt.getTime() - a.postedAt.getTime(),
+  );
 }
 
 // ─── 응답 파싱: 스토리 ──────────────────────────────────────────
@@ -295,6 +400,20 @@ export async function scrapeInstagramPosts(
     }
 
     console.log(`  [pagination-start] posts=${postsMap.size} userId=${userId || "(none)"} hasNextPage=${hasNextPage} cursor=${endCursor?.slice(0, 20) || "(none)"}`);
+
+    if (postsMap.size === 0) {
+      const scriptPosts = parsePrefetchedProfilePosts(
+        await page.evaluate(() =>
+          Array.from(document.querySelectorAll('script[type="application/json"]'))
+            .map((script) => script.textContent ?? ""),
+        ),
+        username,
+      );
+      for (const post of scriptPosts) postsMap.set(post.postId, post);
+      if (scriptPosts.length > 0) {
+        console.log(`  [prefetch-fallback] +${scriptPosts.length} posts (total: ${postsMap.size})`);
+      }
+    }
 
     // 페이지네이션: page.evaluate 안에서 fetch → 브라우저 쿠키·헤더 전부 자동 포함
     while (postsMap.size < maxPosts && hasNextPage && userId && endCursor) {
