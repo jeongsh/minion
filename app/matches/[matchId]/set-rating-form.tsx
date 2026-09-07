@@ -8,6 +8,7 @@ import { Star } from "lucide-react";
 import { DialogSheetHeader } from "@/components/responsive/adaptive-dialog";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
+import { fanRatingDisplayValue, formatFanRating } from "@/lib/fan-rating-display";
 
 import { submitSetPlayerRatingAction } from "./actions";
 
@@ -91,12 +92,12 @@ function PlayerChip({
             aria-hidden="true"
             className={`h-2.5 w-2.5 ${player.averageRating == null ? "text-white/45" : "fill-amber-400 text-amber-400"}`}
           />
-          <span className="tabular-nums">{player.averageRating == null ? "-" : player.averageRating.toFixed(1)}</span>
+          <span className="tabular-nums">{formatFanRating(player.averageRating)}</span>
           <span className="hidden text-white/60 lg:inline">· {player.ratingCount}</span>
         </span>
         {player.myRating != null ? (
           <span className="rounded-md bg-white/90 px-1.5 py-0.5 text-xs font-normal leading-4 text-black shadow-sm">
-            내 평점 {player.myRating.toFixed(1)}
+            내 평점 {formatFanRating(player.myRating)}
           </span>
         ) : null}
       </span>
@@ -121,13 +122,13 @@ function PlayerChip({
             ) : null}
           </span>
           <span className="mt-1 block text-xs font-normal text-[var(--ui-muted)]">
-            {player.myRating != null ? `내 평점 ${player.myRating.toFixed(1)}` : "눌러서 평가하기"}
+            {player.myRating != null ? `내 평점 ${formatFanRating(player.myRating)}` : "눌러서 평가하기"}
           </span>
         </span>
         <span className="shrink-0 text-right">
           <span className="flex items-center justify-end gap-1 text-[var(--ui-ink)]">
             <Star className={`h-3.5 w-3.5 ${player.averageRating == null ? "text-[var(--ui-border)]" : "fill-amber-400 text-amber-400"}`} />
-            <b className="text-lg tabular-nums">{player.averageRating == null ? "-" : player.averageRating.toFixed(1)}</b>
+            <b className="text-lg tabular-nums">{formatFanRating(player.averageRating)}</b>
           </span>
           <span className="block text-xs font-normal text-[var(--ui-muted)]">{player.ratingCount}명 참여</span>
         </span>
@@ -159,7 +160,7 @@ function HalfStar({
       type="button"
       disabled={disabled}
       onClick={() => onSelect(value)}
-      aria-label={`${value.toFixed(1)}점`}
+      aria-label={`${fanRatingDisplayValue(value).toFixed(1)}점`}
       className="relative h-5 w-2.5 shrink-0 overflow-hidden disabled:cursor-not-allowed"
     >
       <Star aria-hidden="true" className={`absolute top-0 h-5 w-5 text-[var(--ui-border)] ${sidePosition}`} />
@@ -201,8 +202,8 @@ function StarRatingPicker({
         })}
       </div>
       <span className="inline-flex items-baseline text-[15px] font-bold leading-none tabular-nums text-[var(--ui-ink)]">
-        {value == null ? "-" : value.toFixed(1)}
-        <span className="ml-1 text-sm font-normal text-[var(--ui-muted)]">/ 5</span>
+        {formatFanRating(value)}
+        <span className="ml-1 text-sm font-normal text-[var(--ui-muted)]">/ 10</span>
       </span>
     </div>
   );

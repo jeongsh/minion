@@ -5,6 +5,7 @@ import { ChevronDown, LoaderCircle, Star } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { AuthorMenu } from "@/components/community/author-menu";
+import { formatFanRating } from "@/lib/fan-rating-display";
 import type { FanRating } from "@/lib/types";
 
 const PAGE_SIZE = 5;
@@ -29,7 +30,7 @@ function FanReviewComment({ rating, meta, href }: FanReviewItem) {
           />
           <span className="ml-auto flex shrink-0 items-center gap-1 text-base font-bold tabular-nums text-[var(--ui-ink)]">
             <Star aria-hidden="true" className="h-4 w-4 fill-amber-400 text-amber-400" />
-            {rating.rating.toFixed(1)}
+            {formatFanRating(rating.rating)}
           </span>
         </div>
         <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-[var(--ui-text)] [overflow-wrap:anywhere] sm:mt-1.5 sm:text-base sm:leading-7">{rating.review}</p>

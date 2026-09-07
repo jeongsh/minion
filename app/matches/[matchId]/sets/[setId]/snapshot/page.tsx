@@ -13,8 +13,9 @@ import {
   getSetById,
   getTournaments,
 } from "@/lib/data/lck";
+import { formatFanRating } from "@/lib/fan-rating-display";
 import { isSetRatingSnapshotReady } from "@/lib/set-status";
-import type { Champion, FanRating, Player, Team } from "@/lib/types";
+import type { Champion, FanRating, Player, PlayerPosition, Team } from "@/lib/types";
 import { formatDateTime, setHref } from "@/lib/view-data";
 
 import { SnapshotActions } from "./snapshot-actions";
@@ -27,6 +28,14 @@ export const metadata: Metadata = { title: "세트 평가 스냅샷", robots: { 
 const POSITION_ORDER = new Map<string, number>(
   ["TOP", "JGL", "MID", "BOT", "SUP"].map((position, index) => [position, index]),
 );
+
+const POSITION_ICON_SRC: Record<PlayerPosition, string> = {
+  TOP: "/objectives/position-top.svg",
+  JGL: "/objectives/position-jungle.svg",
+  MID: "/objectives/position-middle.svg",
+  BOT: "/objectives/position-bottom.svg",
+  SUP: "/objectives/position-utility.svg",
+};
 
 function averageRating(ratings: FanRating[]) {
   if (ratings.length === 0) return null;
@@ -88,9 +97,18 @@ function RatingPill({ value, opponentValue, isWinner }: { value: number | null; 
   const tone = isHigher ? "bg-[#ed3150]" : "bg-[#2968e8]";
 
   return (
-    <strong className={`min-w-[48px] rounded-lg px-2 py-1.5 text-center text-lg font-bold tabular-nums text-white shadow-lg ${tone}`}>
-      {value == null ? "-" : value.toFixed(1)}
+    <strong className={`min-w-[46px] rounded-md px-2 py-1 text-center text-[17px] font-bold tabular-nums text-white shadow-lg ${tone}`}>
+      {formatFanRating(value)}
     </strong>
+  );
+}
+
+function PositionIcon({ position }: { position?: PlayerPosition }) {
+  if (!position) return <span aria-hidden="true" className="h-px w-3 bg-white/25" />;
+
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={POSITION_ICON_SRC[position]} alt="" className="h-6 w-6 opacity-85 brightness-0 invert drop-shadow-[0_4px_10px_rgba(0,0,0,0.5)]" />
   );
 }
 
@@ -103,8 +121,8 @@ function PlayerRatingRow({
   leftIsWinner,
   rightIsWinner,
 }: {
-  left?: { playerId: string; championId?: string | null };
-  right?: { playerId: string; championId?: string | null };
+  left?: { playerId: string; championId?: string | null; position: PlayerPosition };
+  right?: { playerId: string; championId?: string | null; position: PlayerPosition };
   players: Player[];
   champions: Champion[];
   ratingsForPlayer: (playerId: string) => FanRating[];
@@ -119,13 +137,15 @@ function PlayerRatingRow({
   const rightAverage = right ? averageRating(ratingsForPlayer(right.playerId)) : null;
 
   return (
-    <div className="grid h-[64px] grid-cols-[minmax(0,1fr)_auto_12px_auto_minmax(0,1fr)] items-center gap-1.5 px-2">
+    <div className="grid h-[64px] grid-cols-[minmax(0,1fr)_auto_26px_auto_minmax(0,1fr)] items-center gap-1.5 px-2">
       <div className="flex min-w-0 items-center gap-2">
         <PlayerMark player={leftPlayer} champion={leftChampion} />
         <span className="whitespace-nowrap text-[15px] font-bold text-white">{leftPlayer?.name ?? "-"}</span>
       </div>
       <RatingPill value={leftAverage} opponentValue={rightAverage} isWinner={leftIsWinner} />
-      <span aria-hidden="true" className="mx-auto h-px w-2 bg-white/25" />
+      <span className="grid place-items-center">
+        <PositionIcon position={left?.position ?? right?.position} />
+      </span>
       <RatingPill value={rightAverage} opponentValue={leftAverage} isWinner={rightIsWinner} />
       <div className="flex min-w-0 flex-row-reverse items-center gap-2 text-right">
         <PlayerMark player={rightPlayer} champion={rightChampion} />

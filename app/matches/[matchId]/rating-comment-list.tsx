@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 
 import { AuthorMenu } from "@/components/community/author-menu";
 import { useToast } from "@/components/ui/toast";
+import { formatFanRating } from "@/lib/fan-rating-display";
 import type { Tier } from "@/lib/rank/config";
 
 import { reactFanRatingAction, reportFanRatingAction } from "./actions";
@@ -193,7 +194,7 @@ export function RatingCommentList({
                 </span>
                 <span className="ml-auto flex shrink-0 items-center gap-1 text-[15px] font-bold tabular-nums text-[var(--ui-ink)]">
                   <Star aria-hidden="true" className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                  {item.rating.toFixed(1)}
+                  {formatFanRating(item.rating)}
                 </span>
               </div>
               <p className="mt-1.5 whitespace-pre-wrap break-words text-sm leading-6 text-[var(--ui-text)] [overflow-wrap:anywhere] sm:text-[15px]">{item.review}</p>

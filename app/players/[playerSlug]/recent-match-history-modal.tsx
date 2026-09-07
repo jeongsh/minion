@@ -6,6 +6,7 @@ import { createPortal } from "react-dom";
 import { PlayerStatTable } from "@/components/domain/player-stat-table";
 import { DialogSheetHeader } from "@/components/responsive/adaptive-dialog";
 import { DEFAULT_DDRAGON_VERSION, ddragonVersionFromPatch } from "@/lib/ddragon";
+import { formatFanRating } from "@/lib/fan-rating-display";
 import type { RuneCatalog } from "@/lib/runes";
 import type { GameSpell } from "@/lib/spells";
 import type { FanRating, Match, Player, PlayerStatLine, SetResult, Team } from "@/lib/types";
@@ -108,7 +109,7 @@ export function RecentMatchSetRows({
       secondaryLabel: (
         <>
           {champion?.name ?? "-"}
-          <span className="hidden sm:inline"> · 평점 {rating ? rating.rating.toFixed(1) : "-"}</span>
+          <span className="hidden sm:inline"> · 평점 {formatFanRating(rating?.rating)}</span>
         </>
       ),
       championLevel: line.championLevel,

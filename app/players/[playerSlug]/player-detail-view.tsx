@@ -6,6 +6,7 @@ import { AdSlot } from "@/components/ui/ad-slot";
 import { SectionHeading } from "@/components/ui/section-heading";
 
 import { uniqueDdragonVersionsForPatches } from "@/lib/ddragon";
+import { formatFanRating } from "@/lib/fan-rating-display";
 import { fetchRuneCatalog } from "@/lib/runes";
 import { fetchSpellCatalog } from "@/lib/spells";
 import {
@@ -108,7 +109,7 @@ function enrichLines(lines: PlayerStatLine[], sets: SetResult[], matches: Match[
 
 function averageRating(ratings: FanRating[]) {
   if (ratings.length === 0) return "-";
-  return (ratings.reduce((sum, rating) => sum + rating.rating, 0) / ratings.length).toFixed(1);
+  return formatFanRating(ratings.reduce((sum, rating) => sum + rating.rating, 0) / ratings.length);
 }
 
 function formatReviewDate(value: string) {
@@ -299,8 +300,8 @@ export async function PlayerDetailView({
   playerSlug,
   segment,
   linkBase = "/players",
-  breadcrumbLead = [{ label: "???", href: "/players" }],
-  showPosition = false,
+  breadcrumbLead: _breadcrumbLead = [{ label: "???", href: "/players" }],
+  showPosition: _showPosition = false,
 }: {
   playerSlug: string;
   segment?: string;
@@ -479,7 +480,7 @@ export async function PlayerDetailView({
         <section className="flex min-w-0 items-start gap-4 md:hidden" aria-label={`${player.name} 프로필`}>
           <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl bg-[var(--ui-card-bg)]">
             <PlayerImage src={player.profileImageUrl} alt={player.name} className="h-full w-full object-cover object-top" />
-            <span className="absolute bottom-1.5 left-1.5 rounded-md px-1.5 py-0.5 text-[10px] font-bold leading-4 text-white" style={{ background: "var(--tp)" }}>
+            <span className="absolute bottom-1.5 left-1.5 rounded-md px-1.5 py-0.5 text-xs font-medium leading-4 text-white" style={{ background: "var(--tp)" }}>
               {player.position}
             </span>
           </div>

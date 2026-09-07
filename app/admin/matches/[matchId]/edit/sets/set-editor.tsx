@@ -9,6 +9,7 @@ import { PlayerStatRunesEditor } from "@/components/domain/player-stat-runes-edi
 import { PlayerStatSpellsEditor } from "@/components/domain/player-stat-spells-editor";
 import { championImage } from "@/lib/champions";
 import { draftEditorChampions } from "@/lib/draft-champions";
+import { formatFanRating } from "@/lib/fan-rating-display";
 import { teamDraftSide } from "@/lib/draft-slots";
 import { itemImageUrl, type GameItem } from "@/lib/items";
 import { matchStatusLabel } from "@/lib/match-display";
@@ -942,7 +943,7 @@ export function AdminSetEditor({
             rows={relatedRatings}
             columns={[
               { key: "player", label: "Player", render: (row) => playerLabel(players, row.playerId) },
-              { key: "rating", label: "Rating", render: (row) => row.rating.toFixed(1) },
+              { key: "rating", label: "Rating", render: (row) => formatFanRating(row.rating) },
               { key: "review", label: "Review", render: (row) => row.review },
             ]}
           />

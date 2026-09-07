@@ -2,6 +2,7 @@ import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { SectionHeader } from "@/components/layout/section-header";
 import { DataTable } from "@/components/ui/data-table";
 import { getAllPlayers, getFanRatings } from "@/lib/data/lck";
+import { formatFanRating } from "@/lib/fan-rating-display";
 import { playerLabel } from "@/lib/view-data";
 
 export default async function AdminRatingsPage() {
@@ -17,7 +18,7 @@ export default async function AdminRatingsPage() {
         rows={fanRatings}
         columns={[
           { key: "player", label: "선수", render: (row) => playerLabel(players, row.playerId) },
-          { key: "rating", label: "평점", render: (row) => row.rating.toFixed(1) },
+          { key: "rating", label: "평점", render: (row) => formatFanRating(row.rating) },
           { key: "review", label: "리뷰", render: (row) => row.review },
           { key: "created", label: "작성일", render: (row) => new Date(row.createdAt).toLocaleDateString("ko-KR") },
         ]}
