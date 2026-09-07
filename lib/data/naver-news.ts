@@ -67,7 +67,6 @@ const SOURCE_NAMES: Array<[string, string]> = [
   ["lolesports.com", "LCK"],
   ["dailyesports.com", "데일리e스포츠"],
   ["inven.co.kr", "인벤"],
-  ["fomos.kr", "포모스"],
   ["game.donga.com", "게임동아"],
   ["thisisgame.com", "디스이즈게임"],
   ["gamefocus.co.kr", "게임포커스"],
@@ -85,7 +84,6 @@ const SOURCE_NAMES: Array<[string, string]> = [
 const ESPORTS_EDITORIAL_DOMAINS = [
   "dailyesports.com",
   "inven.co.kr",
-  "fomos.kr",
   "game.donga.com",
   "thisisgame.com",
   "gamefocus.co.kr",
@@ -98,7 +96,7 @@ const ESPORTS_EDITORIAL_DOMAINS = [
   "mhnse.com",
 ] as const;
 
-const EXCLUDED_NEWS_DOMAINS = ["gamemeca.com"] as const;
+const EXCLUDED_NEWS_DOMAINS = ["fomos.kr", "gamemeca.com"] as const;
 
 function decodeNewsText(value = "") {
   return value
