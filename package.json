@@ -18,7 +18,7 @@
     "e2e:install": "playwright install chromium",
     "baseline:mobile-web": "node scripts/capture-mobile-baseline.mjs",
     "test:mobile-contract": "node --experimental-strip-types --test packages/contracts/mobile-v1.test.ts",
-    "test:mobile-editor": "node --test tests/mobile/community-rich-editor-bridge.test.mjs",
+    "test:mobile-editor": "node --test tests/mobile/community-rich-editor-bridge.test.mjs tests/mobile/community-post-embed-contract.test.mjs",
     "test:mobile-keyboard": "node --test tests/mobile/keyboard-layout-contract.test.mjs",
     "test:mobile-permissions": "node --test tests/mobile/permissions-contract.test.mjs",
     "test:fan-rating": "node --experimental-strip-types --test lib/fan-rating.test.ts",
