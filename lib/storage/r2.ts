@@ -51,15 +51,20 @@ export function r2PublicUrl(path: string): string {
 
 /** 객체 본문을 내려받지 않고 R2에 이미 존재하는지만 확인한다. */
 export async function r2ObjectExists(path: string): Promise<boolean> {
+  return Boolean(await r2ObjectHead(path));
+}
+
+/** 객체 본문을 내려받지 않고 R2 객체의 HEAD 응답만 가져온다. */
+export async function r2ObjectHead(path: string): Promise<{ metadata?: Record<string, string> } | null> {
   try {
-    await getR2Client().send(new HeadObjectCommand({ Bucket: getBucketName(), Key: path }));
-    return true;
+    const result = await getR2Client().send(new HeadObjectCommand({ Bucket: getBucketName(), Key: path }));
+    return { metadata: result.Metadata };
   } catch (error) {
     const status = typeof error === "object" && error && "$metadata" in error
       ? (error as { $metadata?: { httpStatusCode?: number } }).$metadata?.httpStatusCode
       : undefined;
     const name = error instanceof Error ? error.name : "";
-    if (status === 404 || name === "NotFound" || name === "NoSuchKey") return false;
+    if (status === 404 || name === "NotFound" || name === "NoSuchKey") return null;
     throw error;
   }
 }
@@ -69,7 +74,7 @@ export async function uploadToR2(
   path: string,
   bytes: Buffer,
   contentType: string,
-  options: { cacheControl?: string } = {},
+  options: { cacheControl?: string; metadata?: Record<string, string> } = {},
 ): Promise<string> {
   await getR2Client().send(
     new PutObjectCommand({
@@ -78,6 +83,7 @@ export async function uploadToR2(
       Body: bytes,
       ContentType: contentType,
       CacheControl: options.cacheControl,
+      Metadata: options.metadata,
     }),
   );
 

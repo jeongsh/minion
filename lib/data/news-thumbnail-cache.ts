@@ -7,7 +7,7 @@ import { resizeImageForWeb } from "@/lib/images/resize-for-web";
 import {
   isR2Configured,
   isR2Url,
-  r2ObjectExists,
+  r2ObjectHead,
   r2PublicUrl,
   uploadToR2,
 } from "@/lib/storage/r2";
@@ -16,6 +16,12 @@ const ARTICLE_METADATA_TTL_SECONDS = 60 * 60 * 6;
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 const NEWS_THUMBNAIL_CACHE_CONTROL = "public, max-age=31536000, immutable";
 const inFlightMaterializations = new Map<string, Promise<string | null>>();
+
+type StoredNewsThumbnail = {
+  url: string;
+  width?: number;
+  height?: number;
+};
 
 function decodeNewsText(value = "") {
   return value
@@ -117,14 +123,27 @@ export async function fetchNewsThumbnailImage(value: string, redirects = 0): Pro
 /** 기사 URL이 같으면 배포·서버 인스턴스와 관계없이 항상 같은 불변 R2 key를 사용한다. */
 export function newsThumbnailStoragePath(articleUrl: string) {
   const hash = createHash("sha256").update(articleUrl).digest("hex");
-  return `news-thumbnails/v1/${hash}.webp`;
+  return `news-thumbnails/v2/${hash}.webp`;
 }
 
 /** 원문을 다시 조회하지 않고 이미 생성된 R2 썸네일 URL만 찾는다. */
 export async function getStoredNewsThumbnail(articleUrl: string): Promise<string | null> {
+  return (await getStoredNewsThumbnailMetadata(articleUrl))?.url ?? null;
+}
+
+/** 원문을 다시 조회하지 않고 이미 생성된 R2 썸네일 URL과 크기 메타데이터만 찾는다. */
+export async function getStoredNewsThumbnailMetadata(articleUrl: string): Promise<StoredNewsThumbnail | null> {
   if (!isSafePublicNewsUrl(articleUrl) || !isR2Configured()) return null;
   const path = newsThumbnailStoragePath(articleUrl);
-  return await r2ObjectExists(path) ? r2PublicUrl(path) : null;
+  const head = await r2ObjectHead(path);
+  if (!head) return null;
+  const width = Number(head.metadata?.width);
+  const height = Number(head.metadata?.height);
+  return {
+    url: r2PublicUrl(path),
+    ...(Number.isFinite(width) && width > 0 ? { width } : {}),
+    ...(Number.isFinite(height) && height > 0 ? { height } : {}),
+  };
 }
 
 async function createPersistentNewsThumbnail(articleUrl: string): Promise<string | null> {
@@ -154,7 +173,13 @@ async function createPersistentNewsThumbnail(articleUrl: string): Promise<string
       newsThumbnailStoragePath(articleUrl),
       resized.bytes,
       resized.contentType,
-      { cacheControl: NEWS_THUMBNAIL_CACHE_CONTROL },
+      {
+        cacheControl: NEWS_THUMBNAIL_CACHE_CONTROL,
+        metadata: {
+          ...(resized.width ? { width: String(resized.width) } : {}),
+          ...(resized.height ? { height: String(resized.height) } : {}),
+        },
+      },
     );
   } catch (error) {
     console.error("[news-thumbnail] R2 materialization failed", error);
@@ -181,6 +206,26 @@ export async function attachStoredNewsThumbnails(articles: NewsArticle[]): Promi
     try {
       const stored = await getStoredNewsThumbnail(article.url);
       return stored ? { ...article, thumbnailUrl: stored } : article;
+    } catch {
+      return article;
+    }
+  }));
+}
+
+/** 피드 응답에는 이미 R2에 있는 URL과 썸네일 크기만 붙인다. */
+export async function attachStoredNewsThumbnailMetadata(articles: NewsArticle[]): Promise<NewsArticle[]> {
+  if (!isR2Configured()) return articles;
+  return Promise.all(articles.map(async (article) => {
+    try {
+      const stored = await getStoredNewsThumbnailMetadata(article.url);
+      return stored
+        ? {
+          ...article,
+          thumbnailHeight: stored.height,
+          thumbnailUrl: stored.url,
+          thumbnailWidth: stored.width,
+        }
+        : article;
     } catch {
       return article;
     }

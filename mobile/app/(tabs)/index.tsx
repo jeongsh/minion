@@ -148,13 +148,17 @@ function isOsenArticle(article: MobileNewsItem) {
   }
 }
 
+function hasLeadNewsThumbnail(article: MobileNewsItem) {
+  return Boolean(article.thumbnail?.url && typeof article.thumbnail.width === 'number' && article.thumbnail.width >= 600);
+}
+
 function NewsSection({ contentWidth, items }: { contentWidth: number; items: MobileNewsItem[] }) {
   const router = useRouter();
   const { fonts, theme } = useMinionTheme();
-  const lead = items.find((article) => !isOsenArticle(article));
-  if (!lead) return null;
-  const secondary = items.filter((article) => article.id !== lead.id).slice(0, 3);
-  return <View><SectionHeader action={() => router.navigate('/news')} title="LCK 뉴스" /><View style={styles.newsGrid}><Pressable onPress={() => void Linking.openURL(lead.url)}><MediaImage height={contentWidth * 9 / 16} radius={8} url={lead.thumbnail?.url} /><Text numberOfLines={2} style={[styles.leadTitle, { color: theme.ink, ...fonts.display }]}>{lead.title}</Text><View style={styles.leadMeta}><Text numberOfLines={1} style={[styles.newsSource, { color: theme.ink, ...fonts.medium }]}>{lead.source}</Text><Text style={[styles.newsMetaDot, { color: theme.muted, ...fonts.medium }]}>·</Text><Text style={[styles.newsMetaText, { color: theme.muted, ...fonts.medium }]}>{newsDate(lead.publishedAt)}</Text></View></Pressable><View>{secondary.map((article, index) => <Pressable key={article.id} onPress={() => void Linking.openURL(article.url)} style={[styles.newsRow, index === 0 && styles.newsRowFirst, index === secondary.length - 1 && styles.newsRowLast, { borderBottomColor: theme.divider }]}><MediaImage height={58.5} radius={8} url={article.thumbnail?.url} width={104} /><View style={styles.newsRowCopy}><Text numberOfLines={2} style={[styles.rowTitle, { color: theme.ink, ...fonts.display }]}>{article.title}</Text><View style={styles.rowMeta}><Text numberOfLines={1} style={[styles.newsMetaText, styles.newsRowSource, { color: theme.muted, ...fonts.medium }]}>{article.source}</Text><Text style={[styles.newsMetaDot, { color: theme.muted, ...fonts.medium }]}>·</Text><Text style={[styles.newsMetaText, { color: theme.muted, ...fonts.medium }]}>{newsDate(article.publishedAt)}</Text></View></View></Pressable>)}</View></View></View>;
+  const lead = items.find((article) => !isOsenArticle(article) && hasLeadNewsThumbnail(article));
+  if (items.length === 0) return null;
+  const secondary = (lead ? items.filter((article) => article.id !== lead.id).slice(0, 3) : items.slice(0, 4));
+  return <View><SectionHeader action={() => router.navigate('/news')} title="LCK 뉴스" /><View style={styles.newsGrid}>{lead ? <Pressable onPress={() => void Linking.openURL(lead.url)}><MediaImage height={contentWidth * 9 / 16} radius={8} url={lead.thumbnail?.url} /><Text numberOfLines={2} style={[styles.leadTitle, { color: theme.ink, ...fonts.display }]}>{lead.title}</Text><View style={styles.leadMeta}><Text numberOfLines={1} style={[styles.newsSource, { color: theme.ink, ...fonts.medium }]}>{lead.source}</Text><Text style={[styles.newsMetaDot, { color: theme.muted, ...fonts.medium }]}>·</Text><Text style={[styles.newsMetaText, { color: theme.muted, ...fonts.medium }]}>{newsDate(lead.publishedAt)}</Text></View></Pressable> : null}<View>{secondary.map((article, index) => <Pressable key={article.id} onPress={() => void Linking.openURL(article.url)} style={[styles.newsRow, index === 0 && styles.newsRowFirst, index === secondary.length - 1 && styles.newsRowLast, { borderBottomColor: theme.divider }]}><MediaImage height={58.5} radius={8} url={article.thumbnail?.url} width={104} /><View style={styles.newsRowCopy}><Text numberOfLines={2} style={[styles.rowTitle, { color: theme.ink, ...fonts.display }]}>{article.title}</Text><View style={styles.rowMeta}><Text numberOfLines={1} style={[styles.newsMetaText, styles.newsRowSource, { color: theme.muted, ...fonts.medium }]}>{article.source}</Text><Text style={[styles.newsMetaDot, { color: theme.muted, ...fonts.medium }]}>·</Text><Text style={[styles.newsMetaText, { color: theme.muted, ...fonts.medium }]}>{newsDate(article.publishedAt)}</Text></View></View></Pressable>)}</View></View></View>;
 }
 
 function AdPlaceholder() {

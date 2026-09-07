@@ -1,8 +1,8 @@
 import "server-only";
 
 import { unstable_cache } from "next/cache";
-import { newsArticles as sampleNewsArticles, type NewsArticle, type NewsTone } from "@/lib/data/news";
-import { attachStoredNewsThumbnails, materializeNewsThumbnail } from "@/lib/data/news-thumbnail-cache";
+import { hasHomeLeadThumbnail, newsArticles as sampleNewsArticles, type NewsArticle, type NewsTone } from "@/lib/data/news";
+import { attachStoredNewsThumbnailMetadata, attachStoredNewsThumbnails, materializeNewsThumbnail } from "@/lib/data/news-thumbnail-cache";
 import { isSafePublicNewsUrl } from "@/lib/data/news-thumbnail";
 
 const NAVER_NEWS_ENDPOINT = "https://naverapihub.apigw.ntruss.com/search/v1/news";
@@ -399,6 +399,13 @@ function pickHomeArticles(articles: NewsArticle[], limit: number) {
   return selectDiverseArticles(articles, limit, (article) => article);
 }
 
+function pickHomeArticlesWithLeadThumbnail(articles: NewsArticle[], limit: number) {
+  const lead = articles.find(hasHomeLeadThumbnail);
+  if (!lead) return pickHomeArticles(articles, limit);
+  const rest = pickHomeArticles(articles.filter((article) => article.id !== lead.id), Math.max(limit - 1, 0));
+  return [lead, ...rest].slice(0, limit);
+}
+
 async function getHomeNewsFeedUncached(limit = 4): Promise<NewsFeed> {
   const candidateDisplay = Math.max(limit * 2, 8);
 
@@ -409,9 +416,10 @@ async function getHomeNewsFeedUncached(limit = 4): Promise<NewsFeed> {
       return { ...fallback, articles: pickHomeArticles(fallback.articles, limit) };
     }
 
-    // 후보군 중 실제 노출 기사만 고르고, 이미 R2에 만들어진 URL만 빠르게 붙인다.
-    const picked = selectDiverseArticles(batch.normalizedItems, limit, (item) => item.article);
-    const articles = await attachStoredNewsThumbnails(picked.map((item) => item.article));
+    // 후보군에 이미 R2에 만들어진 썸네일 URL과 크기만 빠르게 붙인 뒤, 큰 카드에
+    // 올릴 수 있는 600px 이상 썸네일 기사를 lead로 우선 배치한다.
+    const candidates = await attachStoredNewsThumbnailMetadata(batch.normalizedItems.map((item) => item.article));
+    const articles = pickHomeArticlesWithLeadThumbnail(candidates, limit);
 
     return {
       articles,

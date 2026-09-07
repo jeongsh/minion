@@ -26,7 +26,7 @@ export async function GET(request: Request) {
   const data: MobileNewsDto = {
     hasMore: page < totalPages,
     isFallback: feed.isFallback,
-    items: feed.articles.map((article) => ({ id: article.id, publishedAt: article.publishedAt, source: article.source, thumbnail: article.thumbnailUrl ? { url: article.thumbnailUrl } : null, title: article.title, url: article.url })),
+    items: feed.articles.map((article) => ({ id: article.id, publishedAt: article.publishedAt, source: article.source, thumbnail: article.thumbnailUrl ? { height: article.thumbnailHeight, url: article.thumbnailUrl, width: article.thumbnailWidth } : null, title: article.title, url: article.url })),
     nextCursor: page < totalPages ? String(next) : null,
     page,
     query,

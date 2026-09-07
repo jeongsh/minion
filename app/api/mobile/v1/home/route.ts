@@ -123,7 +123,7 @@ async function buildMobileHomeData(): Promise<MobileHomeDto> {
       id: article.id,
       publishedAt: article.publishedAt,
       source: article.source,
-      thumbnail: article.thumbnailUrl ? { url: article.thumbnailUrl } : null,
+      thumbnail: article.thumbnailUrl ? { height: article.thumbnailHeight, url: article.thumbnailUrl, width: article.thumbnailWidth } : null,
       title: article.title,
       url: article.url,
     })),

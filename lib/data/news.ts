@@ -11,9 +11,17 @@ export type NewsArticle = {
   teamSlugs: string[];
   tone: NewsTone;
   thumbnailUrl?: string;
+  thumbnailWidth?: number;
+  thumbnailHeight?: number;
   isOfficial?: boolean;
   homeRank?: number;
 };
+
+export const HOME_NEWS_LEAD_MIN_THUMBNAIL_WIDTH = 600;
+
+export function hasHomeLeadThumbnail(article: Pick<NewsArticle, "thumbnailUrl" | "thumbnailWidth">) {
+  return Boolean(article.thumbnailUrl && typeof article.thumbnailWidth === "number" && article.thumbnailWidth >= HOME_NEWS_LEAD_MIN_THUMBNAIL_WIDTH);
+}
 
 /** NAVER API HUB를 사용할 수 없을 때만 노출하는 화면 유지용 데이터다. */
 export const newsArticles: NewsArticle[] = [

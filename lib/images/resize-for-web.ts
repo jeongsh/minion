@@ -4,6 +4,8 @@ export type ResizedImage = {
   bytes: Buffer;
   contentType: string;
   extension: string;
+  width?: number;
+  height?: number;
   transformed: boolean;
 };
 
@@ -23,17 +25,18 @@ export async function resizeImageForWeb(
   }: { maxEdge: number; quality?: number; preserveGif?: boolean },
 ): Promise<ResizedImage> {
   if (contentType === "image/gif" && preserveGif) {
-    return { bytes, contentType, extension: "gif", transformed: false };
+    const metadata = await sharp(bytes).metadata().catch(() => null);
+    return { bytes, contentType, extension: "gif", height: metadata?.height, transformed: false, width: metadata?.width };
   }
 
   try {
-    const output = await sharp(bytes)
+    const result = await sharp(bytes)
       .rotate()
       .resize({ width: maxEdge, height: maxEdge, fit: "inside", withoutEnlargement: true })
       .webp({ quality })
-      .toBuffer();
+      .toBuffer({ resolveWithObject: true });
 
-    return { bytes: output, contentType: "image/webp", extension: "webp", transformed: true };
+    return { bytes: result.data, contentType: "image/webp", extension: "webp", height: result.info.height, transformed: true, width: result.info.width };
   } catch {
     return { bytes, contentType, extension: "jpg", transformed: false };
   }

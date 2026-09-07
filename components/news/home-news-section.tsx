@@ -5,7 +5,7 @@ import { NewsCard } from "@/components/news/news-card";
 import { NewsThumbnail } from "@/components/news/news-thumbnail";
 import { useNewsThumbnail } from "@/components/news/use-news-thumbnail";
 import { SectionHeading } from "@/components/ui/section-heading";
-import { formatNewsDate, type NewsArticle } from "@/lib/data/news";
+import { formatNewsDate, hasHomeLeadThumbnail, type NewsArticle } from "@/lib/data/news";
 
 function isOsenArticle(article: NewsArticle) {
   if (article.source.trim().toLocaleLowerCase("ko-KR") === "osen") return true;
@@ -67,7 +67,7 @@ export function NewsFeedLayout({
   if (articles.length === 0) return null;
 
   const lead = featured
-    ? articles.find((article) => !isOsenArticle(article))
+    ? articles.find((article) => !isOsenArticle(article) && hasHomeLeadThumbnail(article))
     : undefined;
   const secondary = lead
     ? articles.filter((article) => article.id !== lead.id)
