@@ -46,8 +46,6 @@ function MatchEventIcon({ kind }: { kind: MatchEventPresentation["kind"] }) {
     return <Sword size={16} strokeWidth={2} />;
   }
   if (kind === "start") return <Radio size={15} strokeWidth={2} />;
-  if (kind === "end") return <span className="text-[12px] font-medium">END</span>;
-
   return null;
 }
 
@@ -84,7 +82,7 @@ function MatchEventToast({ item, onClose }: { item: ToastItem; onClose: () => vo
           <span className="truncate text-right">{event.leftLabel ?? ""}</span>
           {event.leftImageSrc ? eventImage(event.leftImageSrc) : null}
         </span>
-        {event.kind !== "rating" ? <span className="mx-auto grid h-5 w-5 place-items-center text-[var(--ui-muted)]"><MatchEventIcon kind={event.kind} /></span> : null}
+        {event.kind !== "rating" && event.kind !== "end" ? <span className="mx-auto grid h-5 w-5 place-items-center text-[var(--ui-muted)]"><MatchEventIcon kind={event.kind} /></span> : null}
         <span className="flex min-w-0 flex-1 items-center gap-1">
           {event.rightImageSrc ? eventImage(event.rightImageSrc) : null}
           <span className="truncate">{event.rightLabel}</span>
@@ -123,7 +121,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       {children}
       {mounted
         ? createPortal(
-            <div className="pointer-events-none fixed bottom-auto left-[calc(1rem+var(--shell-toast-lnb-offset,0px))] right-4 top-20 z-[1200] flex flex-col items-center gap-2 transition-[left] duration-200 sm:top-24" aria-live="polite" aria-atomic="true">
+            <div className="pointer-events-none fixed bottom-auto left-[calc(1rem+var(--shell-toast-lnb-offset,0px))] right-4 top-20 z-[1200] flex flex-col items-center gap-2 transition-[left] duration-200" aria-live="polite" aria-atomic="true">
               {items.map((item) => {
                 if (item.matchEvent) {
                   return (
