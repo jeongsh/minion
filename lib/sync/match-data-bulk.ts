@@ -19,7 +19,8 @@ export type MatchDataBulkSyncSummary = {
  * 선수 스탯·타임라인(골드 그래프)·공식 POM은 건드리지 않는다 — 그래서 지금까지는
  * 경기가 끝나도 관리자가 각 매치 편집 화면에서 "경기 데이터 동기화"를 매번 따로
  * 눌러줘야 골드 그래프가 채워졌다. 이 함수는 그 수동 단계를 최근 종료된 경기들에
- * 대해 일괄로 대신 해준다(문서 8.1절 2~7단계와 동일한 순서: 세트 → 타임라인 → POM).
+ * 대해 일괄로 대신 해준다. POM은 세트 수집 실패와 무관하게 노출돼야 하므로 먼저 처리하고,
+ * 세트와 타임라인은 기존 순서대로 이어서 처리한다.
  *
  * 이미 다 채워진 매치까지 매일 다시 훑으면 Leaguepedia에 불필요한 요청이 계속 쌓이므로,
  * "세트가 하나도 없거나 / 타임라인 이벤트가 하나도 없거나 / 공식 POM이 비어있는" 매치만
@@ -84,6 +85,18 @@ export async function syncMatchDataForRecentCompletedMatches(
 
     onProgress?.(`매치 ${match.id} 데이터 동기화 중...`);
 
+    // 경기 POM은 세트/타임라인 수집과 독립적인 MatchSchedule 데이터다. 세트 데이터가
+    // 늦게 올라오거나 수집에 실패해도 메인과 경기 상세의 POM 노출까지 막히지 않게 먼저 처리한다.
+    try {
+      await syncPomForMatch(supabase, match.id);
+    } catch (error) {
+      summary.errors.push({
+        matchId: match.id,
+        step: "pom",
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
     try {
       const setsSummary = await syncLeaguepediaMatchSets(supabase, match.id, { refreshAiPreview: false });
       summary.setsUpserted += setsSummary.upserted;
@@ -104,16 +117,6 @@ export async function syncMatchDataForRecentCompletedMatches(
       summary.errors.push({
         matchId: match.id,
         step: "timeline",
-        error: error instanceof Error ? error.message : String(error),
-      });
-    }
-
-    try {
-      await syncPomForMatch(supabase, match.id);
-    } catch (error) {
-      summary.errors.push({
-        matchId: match.id,
-        step: "pom",
         error: error instanceof Error ? error.message : String(error),
       });
     }

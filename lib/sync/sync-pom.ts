@@ -251,7 +251,7 @@ export async function syncPom(
   // 5. Update matches with the POM player ID
   for (const match of matches) {
     const mvpName = globalPomMap.get(match.leaguepedia_match_id);
-    if (!mvpName) {
+    if (!mvpName || /^(n\/?a|tbd|-|없음)$/i.test(mvpName.trim())) {
       summary.skipped.push({
         matchId: match.id,
         leaguepediaMatchId: match.leaguepedia_match_id,

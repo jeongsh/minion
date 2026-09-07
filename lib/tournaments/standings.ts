@@ -136,3 +136,20 @@ export const LCK_SPLIT_VIEW_LABELS: Record<LckSplitKey, { standings: string; bra
   "2": { standings: "정규 시즌", bracket: "로드 투 MSI" },
   "3": { standings: "그룹 순위", bracket: "포스트시즌" },
 };
+
+/**
+ * LCK POM 포인트는 포스트시즌 POM과 별개인 정규시즌 누적 기록이다.
+ * 1-2라운드와 3-4라운드 화면 모두 1-4라운드 전체를 합산한다.
+ * 플레이-인과 플레이오프 경기는 애초에 인자로 받지 않아 포인트에 섞이지 않는다.
+ */
+export function selectLckPomPointMatches(
+  split: LckSplitKey,
+  scopes: {
+    cupRegularMatches: Match[];
+    rounds12Matches: Match[];
+    rounds34Matches: Match[];
+  },
+): Match[] {
+  if (split === "1") return scopes.cupRegularMatches;
+  return [...scopes.rounds12Matches, ...scopes.rounds34Matches];
+}

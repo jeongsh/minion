@@ -20,6 +20,7 @@ import {
 } from "@/lib/tournaments/bracket";
 import { segmentThemeByKey } from "@/lib/tournaments/international-segments";
 import { buildSegmentNav } from "@/lib/tournaments/segment-nav";
+import { getLckDefaultView } from "@/lib/tournaments/lck-default-view";
 import { isSupportedSeasonYear, matchesTournamentSegment } from "@/lib/tournaments/season-2026";
 import {
   buildPomRankingRows,
@@ -27,6 +28,7 @@ import {
   deriveMatchGroups,
   LCK_SPLIT_LABELS,
   LCK_SPLIT_VIEW_LABELS,
+  selectLckPomPointMatches,
   type LckSplitKey,
   type PomRow,
 } from "@/lib/tournaments/standings";
@@ -785,13 +787,15 @@ export default async function TournamentBracketPage({
   let contentSection: React.ReactNode;
 
   if (isLck) {
-    const activeSplit: LckSplitKey = ["1", "2", "3"].includes(search.split ?? "")
+    const requestedSplit = ["1", "2", "3"].includes(search.split ?? "")
       ? (search.split as LckSplitKey)
-      : "1";
+      : undefined;
+    const defaultView = getLckDefaultView(segmentMatches, activeTournaments, segmentStages, bracketStages, requestedSplit);
+    const activeSplit = requestedSplit ?? defaultView.split;
     const activeView: "standings" | "bracket" | "pom" =
-      search.view === "bracket" ? "bracket" : search.view === "pom" ? "pom" : "standings";
+      search.view === "bracket" ? "bracket" : search.view === "pom" ? "pom" : search.view === "standings" ? "standings" : defaultView.view;
     const viewLabels = LCK_SPLIT_VIEW_LABELS[activeSplit];
-    const activePhase: "playin" | "playoffs" = search.phase === "playoffs" ? "playoffs" : "playin";
+    const activePhase: "playin" | "playoffs" = search.phase === "playoffs" ? "playoffs" : search.phase === "playin" ? "playin" : defaultView.phase;
 
     const bracketOrEmpty = (columns: StageColumn[]) =>
       columns.length === 0 ? (
@@ -904,13 +908,16 @@ export default async function TournamentBracketPage({
     const activeStandingsContent =
       activeSplit === "1" ? split1Standings : activeSplit === "2" ? split2Standings : split3Standings;
 
-    // POM 순위: 각 스플릿의 해당 라운드 경기만(라벨 "1-2라운드"/"3-4라운드"). 플레이-인·플레이오프·
-    // Road to MSI 제외 — 공식 Most POM(라운드별) 범위와 일치. 순위표는 시즌 누적이지만 POM 은
-    // 라운드 단위 시상이라 스코프가 다르다.
+    // POM 포인트는 라운드별로 나누지 않는 정규시즌 누적 기록이다.
+    // 1-2·3-4라운드 화면 모두 1-4라운드를 합산하되 플레이-인·플레이오프·Road to MSI는 제외한다.
     const activePomRows =
       activeView === "pom"
         ? buildPomRankingRows(
-            activeSplit === "1" ? cupWeekMatches : activeSplit === "2" ? rounds12Matches : rounds34Matches,
+            selectLckPomPointMatches(activeSplit, {
+              cupRegularMatches: cupWeekMatches,
+              rounds12Matches,
+              rounds34Matches,
+            }),
             players,
             teamMap,
           )
