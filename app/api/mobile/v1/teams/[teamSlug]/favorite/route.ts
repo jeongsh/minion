@@ -4,6 +4,11 @@ import type { MobileTeamFavoriteDto } from "@/packages/contracts/src/mobile-v1";
 import { getTeamByFanSiteHost, getTeamBySlug } from "@/lib/data/lck";
 import { getMobileAuth } from "@/lib/mobile/auth";
 import { mobileError, mobileSuccess } from "@/lib/mobile/api-response";
+import {
+  activeFavoriteTeamCooldown,
+  favoriteTeamCooldownFromError,
+  favoriteTeamCooldownMessage,
+} from "@/lib/fan/favorite-team-cooldown";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
@@ -25,6 +30,21 @@ export async function POST(request: Request, context: { params: Promise<{ teamSl
   if (!auth && !voterKey) return mobileError("BAD_REQUEST", "앱 설치 식별자가 필요합니다.", 400);
 
   const supabase = createSupabaseAdminClient();
+  if (auth) {
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("favorite_team_id, favorite_team_change_available_at")
+      .eq("id", auth.user.id)
+      .maybeSingle();
+    if (profileError) return mobileError("INTERNAL", "최애팀 상태를 확인하지 못했습니다.", 500);
+    const nextFavoriteTeamId = body.favorite ? team.id : null;
+    if ((profile?.favorite_team_id ?? null) === nextFavoriteTeamId) {
+      return mobileSuccess({ favorite: body.favorite } satisfies MobileTeamFavoriteDto, { headers: { "Cache-Control": "private, no-store" } });
+    }
+    const blockedUntil = activeFavoriteTeamCooldown(profile?.favorite_team_change_available_at);
+    if (blockedUntil) return mobileError("CONFLICT", favoriteTeamCooldownMessage(blockedUntil), 409);
+  }
+
   if (body.favorite) {
     const filters = [auth ? `user_id.eq.${auth.user.id}` : null, voterKey ? `voter_key.eq.${voterKey}` : null].filter((value): value is string => Boolean(value));
     const { data: existing } = await supabase.from("team_fans").select("id").eq("team_id", team.id).or(filters.join(",")).limit(1);
@@ -55,7 +75,14 @@ export async function POST(request: Request, context: { params: Promise<{ teamSl
   }
   if (auth) {
     const { error } = await supabase.from("profiles").update({ favorite_team_id: body.favorite ? team.id : null }).eq("id", auth.user.id);
-    if (error) return mobileError("INTERNAL", "최애팀 설정에 실패했습니다.", 500);
+    if (error) {
+      const blockedUntil = favoriteTeamCooldownFromError(error);
+      return mobileError(
+        blockedUntil ? "CONFLICT" : "INTERNAL",
+        blockedUntil ? favoriteTeamCooldownMessage(blockedUntil) : "최애팀 설정에 실패했습니다.",
+        blockedUntil ? 409 : 500,
+      );
+    }
   }
   const data: MobileTeamFavoriteDto = { favorite: body.favorite };
   return mobileSuccess(data, { headers: { "Cache-Control": "private, no-store" } });

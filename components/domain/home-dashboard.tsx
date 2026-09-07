@@ -115,6 +115,11 @@ export function HomeDashboard({
           <CelebrationBanner events={celebrationEvents} />
         </section>
       ) : null}
+      <section aria-labelledby="home-guide" className="mb-8 rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface-muted)] p-5 sm:p-6">
+        <h2 id="home-guide" className="font-paperozi text-xl font-normal leading-7">경기 기록, 이렇게 읽어보세요</h2>
+        <p className="mt-3 text-base font-normal leading-7">매치 승률과 세트 승률은 다릅니다. 밴픽률이 높다고 승률도 높은 것은 아닙니다. 실제 비교에 앞서 집계 기준과 표본을 예시로 확인해 보세요.</p>
+        <Link href="/guide" className="mt-4 inline-flex min-h-11 items-center text-sm font-medium underline underline-offset-4">경기 기록 읽는 법</Link>
+      </section>
       <HomeNewsSection articles={newsItems} />
 
       <Ad

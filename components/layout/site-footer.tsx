@@ -6,7 +6,8 @@ export function SiteFooter({ accentColor }: { accentColor?: string }) {
     <div className="layout-wide pb-[calc(74px+env(safe-area-inset-bottom))] pt-10 text-left md:pb-0">
       <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
         <BrandLogo accentColor={accentColor} className="w-16 shrink-0" />
-        <nav className="flex flex-wrap gap-x-4 gap-y-2 text-[13px] font-bold text-[#666a71] dark:text-[#a0a7b2]" aria-label="서비스 정책">
+        <nav className="flex flex-wrap gap-x-4 gap-y-2 text-[13px] font-medium text-[#666a71] dark:text-[#a0a7b2]" aria-label="서비스 안내 및 정책">
+          <Link href="/guide" className="hover:text-[#18191c] dark:hover:text-white">경기 기록 읽는 법</Link>
           <Link href="/about" className="hover:text-[#18191c] dark:hover:text-white">서비스 소개</Link>
           <Link href="/terms" className="hover:text-[#18191c] dark:hover:text-white">이용약관</Link>
           <Link href="/privacy" className="hover:text-[#18191c] dark:hover:text-white">개인정보처리방침</Link>

@@ -3,7 +3,7 @@ import Check from 'lucide-react-native/icons/check';
 import ExternalLink from 'lucide-react-native/icons/external-link';
 import { Fragment, useEffect, useState } from 'react';
 import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
-import { WebView } from 'react-native-webview';
+import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import type { MobileCommunityPollDto, TiptapDocument, TiptapNode } from '@/lib/api-client';
@@ -45,6 +45,8 @@ function BlockNode({ node, depth = 0 }: { node: TiptapNode; depth?: number }) {
   if (node.type === 'embed') {
     const href = String(node.attrs?.url ?? node.attrs?.src ?? '');
     if (!href) return null;
+    const provider = socialEmbedProvider(href, node.attrs?.type);
+    if (provider) return <SocialEmbed href={href} provider={provider} />;
     return <Pressable accessibilityRole="link" onPress={() => void Linking.openURL(href)} style={[styles.embed, { backgroundColor: theme.surfaceMuted }]}><View style={styles.embedShade} /><ExternalLink color="#fff" size={24} /><Text numberOfLines={2} style={{ color: '#fff', ...fonts.medium, fontSize: 14 }}>{String(node.attrs?.title ?? '외부 콘텐츠 열기')}</Text></Pressable>;
   }
   if (node.type === 'poll') return <PollNode node={node} />;
@@ -75,6 +77,60 @@ function YoutubeEmbed({ href }: { href: string }) {
         startInLoadingState
         renderLoading={() => <View style={[StyleSheet.absoluteFill, styles.youtubeLoading, { backgroundColor: theme.surfaceMuted }]}><ActivityIndicator color={theme.accent} /></View>}
         style={styles.youtubeWebView}
+      />
+    </View>
+  );
+}
+
+type SocialEmbedProvider = 'instagram' | 'twitter';
+
+function socialEmbedProvider(href: string, value: unknown): SocialEmbedProvider | null {
+  if (value === 'twitter' || value === 'instagram') return value;
+  try {
+    const hostname = new URL(href).hostname.toLowerCase();
+    if (hostname === 'x.com' || hostname.endsWith('.x.com') || hostname === 'twitter.com' || hostname.endsWith('.twitter.com')) return 'twitter';
+    if (hostname === 'instagram.com' || hostname.endsWith('.instagram.com')) return 'instagram';
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+function escapeHtmlAttribute(value: string) {
+  return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function SocialEmbed({ href, provider }: { href: string; provider: SocialEmbedProvider }) {
+  const { colorScheme, theme } = useMinionTheme();
+  const [height, setHeight] = useState(provider === 'twitter' ? 240 : 480);
+  const safeHref = escapeHtmlAttribute(href);
+  const markup = provider === 'twitter'
+    ? `<blockquote class="twitter-tweet" data-dnt="true" data-theme="${colorScheme === 'dark' ? 'dark' : 'light'}"><a href="${safeHref}">${safeHref}</a></blockquote><script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>`
+    : `<blockquote class="instagram-media" data-instgrm-permalink="${safeHref}" data-instgrm-version="14"><a href="${safeHref}">${safeHref}</a></blockquote><script async src="https://www.instagram.com/embed.js"></script>`;
+  const html = `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><style>*{box-sizing:border-box}html,body{background:${theme.surface};margin:0;overflow:hidden;padding:0;width:100%}blockquote{margin:0!important;max-width:100%!important;min-width:0!important;width:100%!important}</style></head><body>${markup}<script>(function(){const send=data=>window.ReactNativeWebView.postMessage(JSON.stringify(data));const report=()=>{const next=Math.ceil(Math.max(document.body.scrollHeight,document.documentElement.scrollHeight));if(next>0)send({type:'height',height:next})};document.addEventListener('click',event=>{const anchor=event.target.closest&&event.target.closest('a');if(!anchor||!anchor.href)return;event.preventDefault();send({type:'open-url',url:anchor.href})},true);new MutationObserver(report).observe(document.body,{attributes:true,childList:true,subtree:true});if(window.ResizeObserver)new ResizeObserver(report).observe(document.body);window.addEventListener('load',report);[100,300,700,1500,3000].forEach(delay=>setTimeout(report,delay));report()})()</script></body></html>`;
+  const onMessage = (event: WebViewMessageEvent) => {
+    try {
+      const message = JSON.parse(event.nativeEvent.data) as { height?: number; type?: string; url?: string };
+      if (message.type === 'height' && Number.isFinite(message.height)) setHeight(Math.max(80, Math.min(1_200, Math.ceil(message.height!))));
+      if (message.type === 'open-url' && message.url && /^https?:\/\//i.test(message.url)) void Linking.openURL(message.url);
+    } catch {
+      // Ignore third-party widget bridge noise.
+    }
+  };
+  return (
+    <View accessibilityLabel={provider === 'twitter' ? 'X 게시물' : 'Instagram 게시물'} style={[styles.socialEmbed, { backgroundColor: theme.surfaceMuted, height }]}>
+      <WebView
+        domStorageEnabled
+        javaScriptEnabled
+        onMessage={onMessage}
+        originWhitelist={['https://*', 'http://*']}
+        scrollEnabled={false}
+        setSupportMultipleWindows={false}
+        source={{ baseUrl: `${mobileApiOrigin}/`, html }}
+        startInLoadingState
+        renderLoading={() => <View style={[StyleSheet.absoluteFill, styles.youtubeLoading, { backgroundColor: theme.surfaceMuted }]}><ActivityIndicator color={theme.accent} /></View>}
+        style={[styles.socialWebView, { backgroundColor: theme.surface }]}
+        thirdPartyCookiesEnabled
       />
     </View>
   );
@@ -211,6 +267,8 @@ const styles = StyleSheet.create({
   youtube: { aspectRatio: 16 / 9, borderRadius: 10, marginVertical: 8, overflow: 'hidden', width: '100%' },
   youtubeLoading: { alignItems: 'center', justifyContent: 'center' },
   youtubeWebView: { backgroundColor: '#000', flex: 1 },
+  socialEmbed: { marginVertical: 8, overflow: 'hidden', width: '100%' },
+  socialWebView: { flex: 1 },
   embed: { alignItems: 'center', aspectRatio: 16 / 9, borderRadius: 10, gap: 8, justifyContent: 'center', overflow: 'hidden', width: '100%' },
   embedShade: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,.34)' },
   poll: { borderRadius: 8, borderWidth: 1, gap: 8, marginVertical: 8, padding: 12 },

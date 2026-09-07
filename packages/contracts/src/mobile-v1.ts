@@ -242,6 +242,7 @@ export type MobileTeamNotificationSettings = {
   teamId: EntityId;
   teamName: string;
   teamShortName: string;
+  teamLogoUrl?: string | null;
   matchAlertsEnabled: boolean;
   liveMatchAlertsEnabled: boolean;
   instagramAlertsEnabled: boolean;

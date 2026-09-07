@@ -10,6 +10,7 @@ import { DialogSheetHandle } from "@/components/responsive/adaptive-dialog";
 import { TeamLogo } from "@/components/ui/team-logo";
 import { INITIAL_PROFILE_STATE } from "@/lib/auth/action-state";
 import { getGuestNicknameAction } from "@/lib/community/actions";
+import { favoriteTeamConfirmationMessage } from "@/lib/fan/favorite-team-cooldown";
 import type { Team } from "@/lib/types";
 
 type OnboardingTeam = Pick<
@@ -198,7 +199,7 @@ export function OnboardingDialog({
                 disabled={!selectedTeamId || finishing}
                 onClick={() => {
                   const selectedTeam = teams.find((team) => team.id === selectedTeamId);
-                  if (selectedTeam) finish(selectedTeam);
+                  if (selectedTeam && window.confirm(favoriteTeamConfirmationMessage(selectedTeam.name, true))) finish(selectedTeam);
                 }}
                 className="flex min-h-11 flex-1 items-center justify-center rounded-xl bg-[var(--accent)] px-4 text-sm font-medium text-[var(--accent-foreground)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-45 sm:flex-none sm:px-5"
               >

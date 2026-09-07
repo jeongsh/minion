@@ -4,6 +4,11 @@ import type { MobileTeamFanDto } from "@/packages/contracts/src/mobile-v1";
 import { getTeamByFanSiteHost, getTeamBySlug } from "@/lib/data/lck";
 import { getMobileAuth } from "@/lib/mobile/auth";
 import { mobileError, mobileSuccess } from "@/lib/mobile/api-response";
+import {
+  activeFavoriteTeamCooldown,
+  favoriteTeamCooldownFromError,
+  favoriteTeamCooldownMessage,
+} from "@/lib/fan/favorite-team-cooldown";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
@@ -88,6 +93,31 @@ export async function POST(request: Request, context: { params: Promise<{ teamSl
     }
   }
   if (!body.following && rows?.length) {
+    let clearsFavorite = false;
+    if (resolved.auth) {
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("favorite_team_id, favorite_team_change_available_at")
+        .eq("id", resolved.auth.user.id)
+        .maybeSingle();
+      if (profileError) return mobileError("INTERNAL", "최애팀 상태를 확인하지 못했습니다.", 500);
+      const blockedUntil = profile?.favorite_team_id === resolved.team.id
+        ? activeFavoriteTeamCooldown(profile.favorite_team_change_available_at)
+        : null;
+      if (blockedUntil) return mobileError("CONFLICT", favoriteTeamCooldownMessage(blockedUntil), 409);
+      clearsFavorite = profile?.favorite_team_id === resolved.team.id;
+      if (clearsFavorite) {
+        const { error: favoriteError } = await supabase.from("profiles").update({ favorite_team_id: null }).eq("id", resolved.auth.user.id).eq("favorite_team_id", resolved.team.id);
+        if (favoriteError) {
+          const racedBlockedUntil = favoriteTeamCooldownFromError(favoriteError);
+          return mobileError(
+            racedBlockedUntil ? "CONFLICT" : "INTERNAL",
+            racedBlockedUntil ? favoriteTeamCooldownMessage(racedBlockedUntil) : "최애팀 설정을 해제하지 못했습니다.",
+            racedBlockedUntil ? 409 : 500,
+          );
+        }
+      }
+    }
     if (resolved.auth) {
       const { error: subscriptionError } = await supabase
         .from("fan_notification_subscriptions")
@@ -98,9 +128,6 @@ export async function POST(request: Request, context: { params: Promise<{ teamSl
     }
     const { error } = await supabase.from("team_fans").delete().in("id", rows.map((row) => row.id));
     if (error) return mobileError("INTERNAL", "팬 등록 해제에 실패했습니다.", 500);
-    if (resolved.auth) {
-      await supabase.from("profiles").update({ favorite_team_id: null }).eq("id", resolved.auth.user.id).eq("favorite_team_id", resolved.team.id);
-    }
   }
 
   return mobileSuccess(await fanState(resolved.team.id, resolved.auth?.user.id, resolved.voterKey), { headers: { "Cache-Control": "private, no-store" } });

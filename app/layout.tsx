@@ -30,7 +30,7 @@ const themeInitScript = `
 `;
 
 const defaultTitle = "MINION | LCK";
-const defaultDescription = "LCK 경기 일정, 팀과 선수 기록, 주간 리포트, 팬 평가와 팬톡을 한곳에서 확인하세요.";
+const defaultDescription = "LCK 경기 일정, 팀과 선수 기록, 팬 평가와 팬톡을 한곳에서 확인하세요.";
 
 export const metadata: Metadata = {
   title: defaultTitle,

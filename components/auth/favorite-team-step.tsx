@@ -6,6 +6,7 @@ import { useState, useTransition } from "react";
 
 import { setFavoriteTeamAction } from "@/app/fan/[teamSlug]/actions";
 import { TeamLogo } from "@/components/ui/team-logo";
+import { favoriteTeamConfirmationMessage } from "@/lib/fan/favorite-team-cooldown";
 import type { Team } from "@/lib/types";
 
 type FavoriteTeamOption = Pick<
@@ -21,6 +22,7 @@ export function FavoriteTeamStep({ teams, next = "/me" }: { teams: FavoriteTeamO
 
   function selectTeam(team: FavoriteTeamOption) {
     if (pending) return;
+    if (!window.confirm(favoriteTeamConfirmationMessage(team.name, true))) return;
     setPendingTeamId(team.id);
     setError(null);
     startTransition(async () => {

@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useMemo, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { AlertCircle, CheckCircle2, Info, Radio, Star, Sword, X } from "lucide-react";
+import { AlertCircle, CheckCircle2, Info, Radio, Sword, X } from "lucide-react";
 
 import type { MatchEventPresentation } from "@/lib/notifications";
 
@@ -46,7 +46,6 @@ function MatchEventIcon({ kind }: { kind: MatchEventPresentation["kind"] }) {
     return <Sword size={16} strokeWidth={2} />;
   }
   if (kind === "start") return <Radio size={15} strokeWidth={2} />;
-  if (kind === "rating") return <Star size={15} strokeWidth={2} />;
   if (kind === "end") return <span className="text-[12px] font-medium">END</span>;
 
   return null;
@@ -76,7 +75,7 @@ function MatchEventToast({ item, onClose }: { item: ToastItem; onClose: () => vo
   const content = (
     <>
       <span className="flex min-w-0 items-center gap-1.5 text-[12px] font-medium">
-        {event.badge === "LIVE" ? <span className="h-2 w-2 shrink-0 animate-pulse rounded-full !bg-[#ff3158]" aria-hidden /> : <Star size={13} />}
+        {event.badge === "LIVE" ? <span className="h-2 w-2 shrink-0 animate-pulse rounded-full !bg-[#ff3158]" aria-hidden /> : null}
         <span className={event.badge === "LIVE" ? "text-[#e51643]" : "text-[var(--accent)]"}>{event.badge}</span>
         <span className="truncate text-[var(--ui-muted)]">{event.matchup}</span>
       </span>
@@ -85,7 +84,7 @@ function MatchEventToast({ item, onClose }: { item: ToastItem; onClose: () => vo
           <span className="truncate text-right">{event.leftLabel ?? ""}</span>
           {event.leftImageSrc ? eventImage(event.leftImageSrc) : null}
         </span>
-        <span className="mx-auto grid h-5 w-5 place-items-center text-[var(--ui-muted)]"><MatchEventIcon kind={event.kind} /></span>
+        {event.kind !== "rating" ? <span className="mx-auto grid h-5 w-5 place-items-center text-[var(--ui-muted)]"><MatchEventIcon kind={event.kind} /></span> : null}
         <span className="flex min-w-0 flex-1 items-center gap-1">
           {event.rightImageSrc ? eventImage(event.rightImageSrc) : null}
           <span className="truncate">{event.rightLabel}</span>

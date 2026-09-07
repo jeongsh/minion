@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { Linking, Platform } from 'react-native';
 
@@ -25,6 +26,9 @@ export type PushPermissionSnapshot = {
 
 type NotificationsModule = typeof import('expo-notifications');
 type NotificationPermission = Awaited<ReturnType<NotificationsModule['getPermissionsAsync']>>;
+
+const INITIAL_PERMISSION_REQUESTED_KEY = 'minion.push.initial-permission-requested-v1';
+let initialPermissionRequestPromise: Promise<PushPermissionSnapshot> | null = null;
 
 function projectId() {
   return Constants.expoConfig?.extra?.eas?.projectId as string | undefined;
@@ -84,9 +88,8 @@ async function prepareAndroidChannels(Notifications: NotificationsModule) {
   ]);
 }
 
-// 앱이 켜져있을 때(포그라운드) 도착한 푸시는 시스템 배너 대신 앱 안에서 토스트로만
-// 보여준다 — 이미 보고 있는 화면 위에 OS 알림 배너까지 뜨면 과하기 때문. 백그라운드/
-// 종료 상태일 땐 이 핸들러가 아예 호출되지 않아 시스템 알림이 평소처럼 뜬다.
+// 포그라운드 푸시는 앱 토스트로 표시하므로 시스템 UI를 끈다. 백그라운드와 종료
+// 상태에서는 이 핸들러가 호출되지 않아 OS 푸시가 평소처럼 표시된다.
 async function loadNotifications() {
   if (!supportsRemotePushNotifications()) return null;
   notificationsModulePromise ??= import('expo-notifications').then((Notifications) => {
@@ -167,6 +170,39 @@ export async function getPushPermissionStatus(): Promise<PushPermissionSnapshot>
   return permissionSnapshot(Notifications, permission);
 }
 
+/** 새 설치의 첫 앱 실행에서 OS 알림 권한 창을 한 번만 연다. 토큰 등록은 인증 흐름에서 처리한다. */
+export async function requestInitialPushPermission(): Promise<PushPermissionSnapshot> {
+  initialPermissionRequestPromise ??= requestInitialPushPermissionOnce();
+  return initialPermissionRequestPromise;
+}
+
+async function requestInitialPushPermissionOnce(): Promise<PushPermissionSnapshot> {
+  const Notifications = await loadNotifications();
+  if (!Notifications) return { canAskAgain: false, status: 'unsupported' };
+
+  const alreadyRequested = await AsyncStorage.getItem(INITIAL_PERMISSION_REQUESTED_KEY);
+  if (alreadyRequested) return getPushPermissionStatus();
+
+  await prepareAndroidChannels(Notifications);
+  let permission = await Notifications.getPermissionsAsync();
+  let snapshot = permissionSnapshot(Notifications, permission);
+
+  // 요청 호출 전에 기록해 React 개발 모드의 effect 재실행이나 빠른 재시작에서도
+  // 첫 실행 권한 창이 두 번 열리지 않게 한다. 앱 삭제 시 AsyncStorage도 함께 지워진다.
+  await AsyncStorage.setItem(INITIAL_PERMISSION_REQUESTED_KEY, '1');
+  if (snapshot.status === 'undetermined' && snapshot.canAskAgain) {
+    permission = await Notifications.requestPermissionsAsync({
+      ios: {
+        allowAlert: true,
+        allowBadge: false,
+        allowSound: true,
+      },
+    });
+    snapshot = permissionSnapshot(Notifications, permission);
+  }
+  return snapshot;
+}
+
 /** 이미 허용된 기기만 토큰을 동기화한다. 로그인과 세션 복원 중에는 OS 권한을 요청하지 않는다. */
 export async function syncPushTokenIfAuthorized(): Promise<PushPermissionSnapshot> {
   try {
@@ -184,7 +220,7 @@ export async function syncPushTokenIfAuthorized(): Promise<PushPermissionSnapsho
 }
 
 /** 사용자가 알림 받기를 직접 선택한 순간에만 호출한다. */
-export async function requestPushPermissionAndRegister(): Promise<PushPermissionSnapshot> {
+export async function requestPushPermission(): Promise<PushPermissionSnapshot> {
   const Notifications = await loadNotifications();
   if (!Notifications) return { canAskAgain: false, status: 'unsupported' };
   await prepareAndroidChannels(Notifications);
@@ -200,6 +236,15 @@ export async function requestPushPermissionAndRegister(): Promise<PushPermission
     });
     snapshot = permissionSnapshot(Notifications, permission);
   }
+  return snapshot;
+}
+
+/** 로그인 사용자가 알림 받기를 선택하면 권한 요청 뒤 이 기기의 토큰까지 등록한다. */
+export async function requestPushPermissionAndRegister(): Promise<PushPermissionSnapshot> {
+  const snapshot = await requestPushPermission();
+  if (snapshot.status !== 'granted') return snapshot;
+  const Notifications = await loadNotifications();
+  if (!Notifications) return { canAskAgain: false, status: 'unsupported' };
   if (snapshot.status === 'granted') await uploadPushToken(Notifications);
   return snapshot;
 }

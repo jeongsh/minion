@@ -71,10 +71,7 @@ export function ProfileForm({
     <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
       <View style={styles.headingRow}>
         <View style={[styles.headingIcon, { backgroundColor: theme.surfaceMuted }]}><UserRound color={theme.muted} size={16} /></View>
-        <View style={styles.headingCopy}>
-          <Text style={[styles.heading, { color: theme.ink, ...fonts.black }]}>프로필</Text>
-          <Text style={[styles.description, { color: theme.muted, ...fonts.medium }]}>닉네임과 프로필 이미지를 변경합니다.</Text>
-        </View>
+        <Text style={[styles.heading, { color: theme.ink, ...fonts.black }]}>프로필</Text>
       </View>
 
       <View style={styles.form}>
@@ -104,11 +101,9 @@ export function ProfileForm({
 
 const styles = StyleSheet.create({
   card: { borderRadius: 12, borderWidth: 1, padding: 16 },
-  headingRow: { alignItems: 'flex-start', flexDirection: 'row', gap: 8, marginBottom: 12 },
+  headingRow: { alignItems: 'center', flexDirection: 'row', gap: 8, marginBottom: 16 },
   headingIcon: { alignItems: 'center', borderRadius: 8, height: 30, justifyContent: 'center', width: 30 },
-  headingCopy: { flex: 1, minWidth: 0 },
-  heading: { fontSize: 15, letterSpacing: -0.3, lineHeight: 22 },
-  description: { fontSize: 13, lineHeight: 18 },
+  heading: { flex: 1, fontSize: 15, letterSpacing: -0.3, lineHeight: 30 },
   form: { gap: 12 },
   imageActions: { minWidth: 0 },
   imageButton: { alignItems: 'center', alignSelf: 'flex-start', borderRadius: 8, borderWidth: 1, flexDirection: 'row', gap: 5, height: 36, paddingHorizontal: 10 },

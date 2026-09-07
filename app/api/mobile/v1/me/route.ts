@@ -2,6 +2,11 @@ import type { MobileMeDto, MobileNotificationPreferences, MobileTeamNotification
 import { getMobileAuth } from "@/lib/mobile/auth";
 import { mobileError, mobileSuccess } from "@/lib/mobile/api-response";
 import { resizeImageForWeb } from "@/lib/images/resize-for-web";
+import {
+  activeFavoriteTeamCooldown,
+  favoriteTeamCooldownFromError,
+  favoriteTeamCooldownMessage,
+} from "@/lib/fan/favorite-team-cooldown";
 import { tierProgress, type Tier } from "@/lib/rank/config";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -76,7 +81,7 @@ async function readMe(request: Request): Promise<MobileMeDto | null> {
       ? supabase.from("profiles").select("id, nickname, profile_image_url, tier").in("id", blockedIds)
       : Promise.resolve({ data: [] }),
     followedTeamIds.length
-      ? supabase.from("teams").select("id, name, short_name").in("id", followedTeamIds)
+      ? supabase.from("teams").select("id, name, short_name, logo_url").in("id", followedTeamIds)
       : Promise.resolve({ data: [] }),
   ]);
   const followedTeamById = new Map((followedTeams ?? []).map((team) => [team.id, team]));
@@ -117,6 +122,7 @@ async function readMe(request: Request): Promise<MobileMeDto | null> {
         teamId: subscription.team_id,
         teamName: team.name,
         teamShortName: team.short_name ?? team.name,
+        teamLogoUrl: team.logo_url,
         matchAlertsEnabled: subscription.match_alerts,
         liveMatchAlertsEnabled: subscription.live_match_alerts,
         instagramAlertsEnabled: subscription.instagram_alerts,
@@ -243,9 +249,19 @@ export async function PATCH(request: Request) {
     profileUpdates.nickname = nickname;
   }
   if (input.favoriteTeamId !== undefined) {
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("favorite_team_id, favorite_team_change_available_at")
+      .eq("id", user.id)
+      .maybeSingle();
+    if (profileError) return mobileError("INTERNAL", "최애팀 상태를 확인하지 못했습니다.", 500);
     if (input.favoriteTeamId) {
       const { data: team } = await supabase.from("teams").select("id").eq("id", input.favoriteTeamId).maybeSingle();
       if (!team) return mobileError("BAD_REQUEST", "팀 정보를 찾을 수 없습니다.", 400);
+    }
+    if ((profile?.favorite_team_id ?? null) !== input.favoriteTeamId) {
+      const blockedUntil = activeFavoriteTeamCooldown(profile?.favorite_team_change_available_at);
+      if (blockedUntil) return mobileError("CONFLICT", favoriteTeamCooldownMessage(blockedUntil), 409);
     }
     profileUpdates.favorite_team_id = input.favoriteTeamId;
   }
@@ -255,7 +271,14 @@ export async function PATCH(request: Request) {
   if (Object.keys(profileUpdates).length) {
     const { error } = await supabase.from("profiles").update(profileUpdates).eq("id", user.id);
     if (error?.code === "23505") return mobileError("CONFLICT", "이미 사용 중인 닉네임입니다.", 409);
-    if (error) return mobileError("INTERNAL", "프로필을 저장하지 못했습니다.", 500);
+    if (error) {
+      const blockedUntil = favoriteTeamCooldownFromError(error);
+      return mobileError(
+        blockedUntil ? "CONFLICT" : "INTERNAL",
+        blockedUntil ? favoriteTeamCooldownMessage(blockedUntil) : "프로필을 저장하지 못했습니다.",
+        blockedUntil ? 409 : 500,
+      );
+    }
   }
   if (input.notificationPreferences) {
     const next = { ...defaultPreferences, ...input.notificationPreferences };

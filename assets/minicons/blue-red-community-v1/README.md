@@ -1,7 +1,7 @@
 # 파랑·빨강 커뮤니티 미니콘 v1
 
 - 생성 방식: Codex built-in `image_gen`
-- 마스터: 이 폴더의 `01-24 *.png` (1254×1254, RGBA)
+- 마스터: 이 폴더의 활성 `01-23, 25-35 *.png` (정사각형, RGBA)
 - 사이트용: `public/minicons/blue-red-community-v1` (200×200, RGBA)
 - 원본 보관: `rgb-originals` (배경 교정 전 생성본)
 - 미리보기: `public/minicons/blue-red-community-v1/contact-sheet.png`
@@ -31,7 +31,17 @@
 | 21 | 유관 행동 | 파랑 | 21-winner-behavior.png |
 | 22 | 무관 행동 | 빨강 | 22-no-title-behavior.png |
 | 23 | 빨간약 | 빨강 | 23-red-pill.png |
-| 24 | 긁혔누 | 파랑 | 24-triggered-nu.png |
+| 25 | 탑차이 | 빨강 | 25-top-diff.png |
+| 26 | 정글차이 | 파랑 | 26-jungle-diff.png |
+| 27 | 미드차이 | 빨강 | 27-mid-diff.png |
+| 28 | 원딜차이 | 파랑 | 28-adc-diff.png |
+| 29 | 서폿차이 | 빨강 | 29-support-diff.png |
+| 30 | 줴줴이야 | 파랑 | 30-jwejwei.png |
+| 31 | gg | 빨강 | 31-gg.png |
+| 32 | 노래 틀어 | 파랑 | 32-song-play.png |
+| 33 | 이걸? | 빨강 | 33-this.png |
+| 34 | 따운 | 파랑 | 34-down.png |
+| 35 | 캐리 | 빨강 | 35-carry.png |
 
 ## 공통 생성 지시
 

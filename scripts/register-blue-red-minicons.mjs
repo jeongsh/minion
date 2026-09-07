@@ -61,10 +61,20 @@ const itemDefinitions = [
   ["유관 행동", "21-winner-behavior.png"],
   ["무관 행동", "22-no-title-behavior.png"],
   ["빨간약", "23-red-pill.png"],
-  ["긁혔누", "24-triggered-nu.png"],
+  ["탑차이", "25-top-diff.png", 24],
+  ["정글차이", "26-jungle-diff.png", 25],
+  ["미드차이", "27-mid-diff.png", 26],
+  ["원딜차이", "28-adc-diff.png", 27],
+  ["서폿차이", "29-support-diff.png", 28],
+  ["줴줴이야", "30-jwejwei.png", 29],
+  ["gg", "31-gg.png", 30],
+  ["노래 틀어", "32-song-play.png", 31],
+  ["이걸?", "33-this.png", 32],
+  ["따운", "34-down.png", 33],
+  ["캐리", "35-carry.png", 34],
 ];
 
-const itemRows = itemDefinitions.map(([name, file], sortOrder) => {
+const itemRows = itemDefinitions.map(([name, file, explicitSortOrder], sortOrder) => {
   const filePath = path.join(publicDirectory, file);
   const { size } = fs.statSync(filePath);
   return {
@@ -75,7 +85,7 @@ const itemRows = itemDefinitions.map(([name, file], sortOrder) => {
     byte_size: size,
     width: 200,
     height: 200,
-    sort_order: sortOrder,
+    sort_order: explicitSortOrder ?? sortOrder,
     is_active: true,
   };
 });
@@ -119,6 +129,12 @@ const { data: pack, error: packError } = await supabase
   .select("id, slug, status")
   .single();
 if (packError) throw packError;
+
+const { error: deactivateItemError } = await supabase
+  .from("minicon_items")
+  .update({ is_active: false })
+  .eq("pack_id", pack.id);
+if (deactivateItemError) throw deactivateItemError;
 
 const { error: itemError } = await supabase
   .from("minicon_items")
@@ -169,6 +185,7 @@ const { data: verifiedItems, error: verifyItemsError } = await supabase
   .from("minicon_items")
   .select("name, image_url, width, height, sort_order, is_active")
   .eq("pack_id", pack.id)
+  .eq("is_active", true)
   .order("sort_order");
 if (verifyItemsError) throw verifyItemsError;
 
@@ -186,7 +203,7 @@ if (publicPackError) throw publicPackError;
 
 const publicPack = publicPacks.find((candidate) => candidate.slug === slug);
 const { data: publicItems, error: publicItemError } = publicPack
-  ? await publicSupabase.from("minicon_items").select("id").eq("pack_id", publicPack.id)
+  ? await publicSupabase.from("minicon_items").select("id").eq("pack_id", publicPack.id).eq("is_active", true)
   : { data: [], error: null };
 if (publicItemError) throw publicItemError;
 

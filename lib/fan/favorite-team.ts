@@ -6,6 +6,7 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export const FAVORITE_TEAM_COOKIE = "minion_favorite_team";
+export const FAVORITE_TEAM_CHANGE_AVAILABLE_AT_COOKIE = "minion_favorite_team_change_available_at";
 
 export async function getFavoriteTeamId(): Promise<string | null> {
   const [user, cookieStore] = await Promise.all([getCurrentUser(), cookies()]);

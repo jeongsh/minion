@@ -7,6 +7,7 @@ import { useState, useTransition } from "react";
 import { setFavoriteTeamAction } from "@/app/fan/[teamSlug]/actions";
 import { FanHeaderTooltip, fanHeaderIconButtonClass } from "@/components/fan/fan-header-control-styles";
 import { useToast } from "@/components/ui/toast";
+import { favoriteTeamConfirmationMessage } from "@/lib/fan/favorite-team-cooldown";
 
 export function FavoriteTeamButton({
   teamId,
@@ -34,6 +35,7 @@ export function FavoriteTeamButton({
 
   function toggleFavorite() {
     const nextFavorite = !favorite;
+    if (!window.confirm(favoriteTeamConfirmationMessage(teamName, nextFavorite))) return;
     setFavorite(nextFavorite);
     startTransition(async () => {
       const result = await setFavoriteTeamAction(teamId, teamSlug, nextFavorite);
@@ -45,7 +47,9 @@ export function FavoriteTeamButton({
       setFavorite(result.favorite);
       showToast({
         title: result.favorite ? `${teamName}, 내 최애팀` : "최애팀 설정 해제",
-        description: result.favorite ? "자동으로 팔로우했고 중앙 독에 팀 로고를 표시합니다." : "팬 허브에서 다른 최애팀을 선택할 수 있어요.",
+        description: result.favorite
+          ? "자동으로 팔로우했습니다. 7일 후 다시 변경할 수 있습니다."
+          : "7일 후 다른 최애팀을 선택할 수 있습니다.",
         tone: "success",
       });
       router.refresh();
