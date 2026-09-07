@@ -1,11 +1,12 @@
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import ChevronRight from 'lucide-react-native/icons/chevron-right';
 import MessageCircle from 'lucide-react-native/icons/message-circle';
 import Play from 'lucide-react-native/icons/play';
 import ThumbsUp from 'lucide-react-native/icons/thumbs-up';
-import { Linking, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { useCallback, useRef } from 'react';
+import { AppState, Linking, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { RemoteImage } from '@/components/data/remote-image';
 import { TeamLogo } from '@/components/data/team-logo';
@@ -59,6 +60,22 @@ function relativeDate(value: string) {
 export default function HomeScreen() {
   const { width } = useWindowDimensions();
   const { data, error, loading, refresh } = useCachedQuery<MobileHomeDto>('/api/mobile/v1/home');
+  const focusedOnce = useRef(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!focusedOnce.current) {
+        focusedOnce.current = true;
+      } else {
+        refresh();
+      }
+      const subscription = AppState.addEventListener('change', (state) => {
+        if (state === 'active') refresh();
+      });
+      return () => subscription.remove();
+    }, [refresh]),
+  );
+
   if (loading && !data) return <MinionScreen contentStyle={styles.homeContent}><HomeLoadingSkeleton /></MinionScreen>;
   if (error && !data) return <MinionScreen><ErrorState onRetry={refresh} /></MinionScreen>;
   if (!data) return null;
