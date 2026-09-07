@@ -24,7 +24,7 @@ import { ErrorState } from '@/components/feedback-states';
 import { RankAvatar } from '@/components/rank-avatar';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import type { MobileCommunityActionDto, MobileCommunityAuthor, MobileCommunityComment, MobileCommunityCommentMutationDto, MobileCommunityPostDetailDto, MobileCommunityReactionDto, MobileMiniconItem } from '@/lib/api-client';
-import { mutateMobileApi, resolveApiAssetUrl } from '@/lib/api-client';
+import { invalidateApiCache, mutateMobileApi, resolveApiAssetUrl } from '@/lib/api-client';
 import { fanAccentText } from '@/lib/fan-colors';
 import { useCachedQuery } from '@/hooks/use-cached-query';
 import { CommunityPostContent } from './community-post-content';
@@ -94,11 +94,16 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
       return next;
     });
   };
+  const refreshCommunityData = () => {
+    void invalidateApiCache('/api/mobile/v1/community/posts');
+    void invalidateApiCache('/api/mobile/v1/home');
+    refresh();
+  };
 
   const react = async (target: 'post' | 'comment', targetId: string, kind: 'honor' | 'dislike') => {
     try {
       await mutateMobileApi<MobileCommunityReactionDto>('/api/mobile/v1/community/reactions', 'POST', { kind, target, targetId });
-      refresh();
+      refreshCommunityData();
     } catch (caught) { Alert.alert('반응 실패', caught instanceof Error ? caught.message : '잠시 후 다시 시도해주세요.'); }
   };
   const startReport = (target: 'post' | 'comment', targetId: string) => {
@@ -126,7 +131,7 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
     setSubmitting(true);
     try {
       await mutateMobileApi<MobileCommunityCommentMutationDto>('/api/mobile/v1/community/comments', 'POST', { content, parentId: replyTo?.id ?? null, postId: data.id });
-      setComment(''); setReplyTo(null); setMiniconOpen(false); refresh();
+      setComment(''); setReplyTo(null); setMiniconOpen(false); refreshCommunityData();
     } catch (caught) { Alert.alert('등록 실패', caught instanceof Error ? caught.message : '댓글을 등록하지 못했습니다.'); }
     finally { setSubmitting(false); }
   };
@@ -145,7 +150,7 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
       items.forEach((item) => { void rememberMiniconUse(item.id); });
       setReplyTo(null);
       showToast(replyTo ? '답글 등록 완료' : '댓글 등록 완료', 'success');
-      refresh();
+      refreshCommunityData();
     } catch (caught) {
       showToast(caught instanceof Error ? caught.message : '미니콘을 등록하지 못했습니다.', 'error');
     } finally {
@@ -174,7 +179,11 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
     setMiniconOpen((open) => !open);
   };
   const performDeletePost = () => void mutateMobileApi<MobileCommunityActionDto>(path, 'DELETE')
-    .then(() => router.replace(basePath as never))
+    .then(async () => {
+      await invalidateApiCache('/api/mobile/v1/community/posts');
+      await invalidateApiCache('/api/mobile/v1/home');
+      router.replace(basePath as never);
+    })
     .catch((caught) => Alert.alert('삭제 실패', caught instanceof Error ? caught.message : '게시글을 삭제하지 못했습니다.'));
   const deletePost = () => {
     if (Platform.OS === 'web') {
@@ -223,7 +232,7 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
             const firstRegular = !item.isBest && index > 0 && orderedRoots[index - 1]?.isBest;
             return (
               <View key={item.id} style={[styles.commentThread, firstRegular ? { borderTopColor: theme.border, borderTopWidth: 1, paddingTop: 20 } : null]}>
-                <CommentItem accent={accent} best={item.isBest} comment={item} continued={itemReplies.length > 0} onDelete={refresh} onReact={react} onReply={setReplyTo} onReport={startReport} />
+                <CommentItem accent={accent} best={item.isBest} comment={item} continued={itemReplies.length > 0} onDelete={refreshCommunityData} onReact={react} onReply={setReplyTo} onReport={startReport} />
                 {itemReplies.length > 0 && !repliesExpanded ? (
                   <View style={styles.threadToggleRow}>
                     <View style={[styles.threadConnection, { borderColor: theme.border }]} />
@@ -232,7 +241,7 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
                 ) : null}
                 {itemReplies.length > 0 && repliesExpanded ? (
                   <View>
-                    {itemReplies.map((reply) => <View key={reply.id} style={styles.replyThreadRow}><View style={[styles.replyThreadStem, { backgroundColor: theme.border }]} /><View style={[styles.replyThreadElbow, { borderColor: theme.border }]} /><View style={styles.replyThreadContent}><CommentItem accent={accent} comment={reply} onDelete={refresh} onReact={react} onReport={startReport} reply /></View></View>)}
+                    {itemReplies.map((reply) => <View key={reply.id} style={styles.replyThreadRow}><View style={[styles.replyThreadStem, { backgroundColor: theme.border }]} /><View style={[styles.replyThreadElbow, { borderColor: theme.border }]} /><View style={styles.replyThreadContent}><CommentItem accent={accent} comment={reply} onDelete={refreshCommunityData} onReact={react} onReport={startReport} reply /></View></View>)}
                     <View style={styles.threadToggleRow}>
                       <View style={[styles.threadConnection, { borderColor: theme.border }]} />
                       <Pressable accessibilityState={{ expanded: true }} onPress={() => toggleReplies(item.id)} style={styles.threadToggleButton}><Text style={{ color: theme.text, ...fonts.medium, fontSize: 14, lineHeight: 20 }}>답글 숨기기</Text><ChevronUp color={theme.text} size={18} strokeWidth={2} /></Pressable>

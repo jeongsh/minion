@@ -1,5 +1,8 @@
+import { revalidatePath, revalidateTag } from "next/cache";
+
 import type { MobileCommunityReactionDto } from "@/packages/contracts/src/mobile-v1";
 import { getCommentById, getPostById, promotePostIfHot, setReaction } from "@/lib/data/community";
+import { HOME_PUBLIC_DATA_TAG } from "@/lib/data/home-cache";
 import { isCommunityGuestSanctioned } from "@/lib/data/community-guests";
 import { isCommunityUserSanctioned } from "@/lib/data/community-users";
 import { mobileError, mobileSuccess } from "@/lib/mobile/api-response";
@@ -7,6 +10,11 @@ import { getMobileCommunityActor } from "@/lib/mobile/community";
 import { recordLpEvent } from "@/lib/rank/record-lp";
 
 export const dynamic = "force-dynamic";
+
+function revalidateCommunityHome() {
+  revalidatePath("/");
+  revalidateTag(HOME_PUBLIC_DATA_TAG, "max");
+}
 
 export async function POST(request: Request) {
   const actor = await getMobileCommunityActor(request).catch(() => null);
@@ -36,7 +44,10 @@ export async function POST(request: Request) {
       if (changed.after === "honor") await recordLpEvent({ reason: "honor_received", userId: authorId, ...ref });
       if (changed.after === "dislike") await recordLpEvent({ reason: "dishonor_received", userId: authorId, ...ref });
     }
-    if (target === "post" && changed.before !== changed.after) await promotePostIfHot(targetId);
+    if (target === "post" && changed.before !== changed.after) {
+      await promotePostIfHot(targetId);
+      revalidateCommunityHome();
+    }
     const refreshed = target === "post" ? await getPostById(targetId) : await getCommentById(targetId);
     const data: MobileCommunityReactionDto = {
       dislikeCount: refreshed?.dislikeCount ?? 0,

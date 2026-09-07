@@ -1,3 +1,5 @@
+import { revalidatePath, revalidateTag } from "next/cache";
+
 import type { MobileCommunityPostMutationDto, MobileCommunityPostsDto } from "@/packages/contracts/src/mobile-v1";
 import { categoriesForScope, type BoardScope } from "@/lib/community/boards";
 import { extractPlainText } from "@/lib/community/extract-thumbnail";
@@ -5,6 +7,7 @@ import { getGuestPostAttachmentError } from "@/lib/community/limits";
 import { guestRateLimitError, isCommunityGuestSanctioned } from "@/lib/data/community-guests";
 import { isCommunityUserSanctioned } from "@/lib/data/community-users";
 import { createPost, getBoardPostPage } from "@/lib/data/community";
+import { HOME_PUBLIC_DATA_TAG } from "@/lib/data/home-cache";
 import { getTeamByFanSiteHost, getTeamBySlug } from "@/lib/data/lck";
 import { mobileError, mobileSuccess } from "@/lib/mobile/api-response";
 import {
@@ -18,6 +21,11 @@ import {
 import { recordLpEvent } from "@/lib/rank/record-lp";
 
 export const dynamic = "force-dynamic";
+
+function revalidateCommunityHome() {
+  revalidatePath("/");
+  revalidateTag(HOME_PUBLIC_DATA_TAG, "max");
+}
 
 async function scopeContext(url: URL) {
   const teamSlug = url.searchParams.get("team")?.trim() || null;
@@ -112,6 +120,7 @@ export async function POST(request: Request) {
       text: extractPlainText(validated.content, 1_000_000),
       title: validated.title,
     });
+    revalidateCommunityHome();
     const data: MobileCommunityPostMutationDto = { id: created.id, message: "글 발사 완료. 게시판에 착지했어요." };
     return mobileSuccess(data, { headers: { "Cache-Control": "private, no-store" }, status: 201 });
   } catch {

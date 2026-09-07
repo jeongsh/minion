@@ -1,3 +1,5 @@
+import { revalidatePath, revalidateTag } from "next/cache";
+
 import type {
   MobileCommunityActionDto,
   MobileCommunityPostDetailDto,
@@ -6,6 +8,7 @@ import type {
 import { extractPlainText } from "@/lib/community/extract-thumbnail";
 import { selectBestComments } from "@/lib/community/best-comments";
 import { getGuestPostAttachmentError } from "@/lib/community/limits";
+import { getIpKeyFromHeaders } from "@/lib/community/guest-identity";
 import {
   deletePost,
   getPostById,
@@ -15,6 +18,7 @@ import {
   getUserReactionsForComments,
   updatePost,
 } from "@/lib/data/community";
+import { HOME_PUBLIC_DATA_TAG } from "@/lib/data/home-cache";
 import { isCommunityGuestSanctioned } from "@/lib/data/community-guests";
 import { isCommunityUserSanctioned } from "@/lib/data/community-users";
 import { getTeamByFanSiteHost, getTeamBySlug } from "@/lib/data/lck";
@@ -33,14 +37,20 @@ import {
 
 export const dynamic = "force-dynamic";
 
+function revalidateCommunityHome() {
+  revalidatePath("/");
+  revalidateTag(HOME_PUBLIC_DATA_TAG, "max");
+}
+
 type Context = { params: Promise<{ postId: string }> };
 
 export async function GET(request: Request, context: Context) {
   const { postId } = await context.params;
   const actor = await getMobileCommunityActor(request).catch(() => null);
   if (!actor) return mobileError("BAD_REQUEST", "비회원 ID를 확인하지 못했습니다.", 400);
+  const viewerIpKey = getIpKeyFromHeaders(request.headers);
   const [post, comments] = await Promise.all([
-    getPostByIdAndIncrementView(postId),
+    getPostByIdAndIncrementView(postId, viewerIpKey),
     getPostComments(postId),
   ]);
   if (!post) return mobileError("NOT_FOUND", "게시글을 찾을 수 없습니다.", 404);
@@ -112,6 +122,7 @@ export async function PATCH(request: Request, context: Context) {
   }
   await updatePost({ boardType, content: validated.content, postId, title: validated.title });
   scheduleMobileCommunityModeration({ postId, text: extractPlainText(validated.content, 1_000_000), title: validated.title });
+  revalidateCommunityHome();
   const data: MobileCommunityPostMutationDto = { id: postId, message: "수정 완료. 문장 결 살짝 정돈했어요." };
   return mobileSuccess(data, { headers: { "Cache-Control": "private, no-store" } });
 }
@@ -126,6 +137,7 @@ export async function DELETE(request: Request, context: Context) {
     : Boolean(post?.guestKey && post.guestKey === actor.guest.key);
   if (!post || !canManage) return mobileError("FORBIDDEN", "게시글을 삭제할 권한이 없습니다.", 403);
   await deletePost(postId);
+  revalidateCommunityHome();
   const data: MobileCommunityActionDto = { message: "게시글을 삭제했습니다." };
   return mobileSuccess(data, { headers: { "Cache-Control": "private, no-store" } });
 }
