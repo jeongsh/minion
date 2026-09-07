@@ -8,6 +8,7 @@ import {
   notificationOwnerKey,
   type NotificationOwner,
 } from "@/lib/notifications/community-recipients";
+import { sendExpoPushNotifications } from "@/lib/notify/push";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export type NotificationRecipient = NotificationOwner;
@@ -19,6 +20,14 @@ type NotificationRow = {
   href: string;
   created_at: string;
   read_at: string | null;
+};
+
+type CreatedCommunityNotificationRow = {
+  id: string;
+  recipient_user_id: string | null;
+  title: string;
+  description: string;
+  href: string;
 };
 
 export type CommunityAppNotification = AppNotification & { kind: "post_activity" };
@@ -153,8 +162,50 @@ async function createCommunityCommentNotifications(input: {
     dedupe_key: `${input.commentId}:${recipientKey(recipient)}`,
   }));
   if (rows.length === 0) return;
-  const { error } = await admin.from("community_notifications").upsert(rows, { onConflict: "dedupe_key", ignoreDuplicates: true });
+  const { data: createdRows, error } = await admin
+    .from("community_notifications")
+    .upsert(rows, { onConflict: "dedupe_key", ignoreDuplicates: true })
+    .select("id, recipient_user_id, title, description, href");
   if (error) throw error;
+
+  const createdByUserId = new Map(
+    ((createdRows ?? []) as CreatedCommunityNotificationRow[])
+      .filter((row) => row.recipient_user_id)
+      .map((row) => [row.recipient_user_id!, row]),
+  );
+  if (createdByUserId.size === 0) return;
+
+  const { data: tokens, error: tokenError } = await admin
+    .from("push_tokens")
+    .select("user_id, expo_push_token")
+    .in("user_id", [...createdByUserId.keys()]);
+  if (tokenError) throw tokenError;
+
+  const pushResult = await sendExpoPushNotifications((tokens ?? []).flatMap((token) => {
+    const notification = createdByUserId.get(token.user_id);
+    if (!notification) return [];
+    return [{
+      to: token.expo_push_token,
+      title: notification.title,
+      body: notification.description,
+      channelId: "community" as const,
+      sound: "default" as const,
+      data: {
+        notificationId: notification.id,
+        type: "post_activity",
+        url: notification.href,
+        userId: token.user_id,
+      },
+    }];
+  }));
+
+  if (pushResult.invalidTokens.length > 0) {
+    const { error: deleteError } = await admin
+      .from("push_tokens")
+      .delete()
+      .in("expo_push_token", pushResult.invalidTokens);
+    if (deleteError) throw deleteError;
+  }
 }
 
 export function scheduleCommunityCommentNotifications(input: Parameters<typeof createCommunityCommentNotifications>[0]) {

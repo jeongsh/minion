@@ -251,15 +251,16 @@ export function InAppNotificationsProvider({ children }: PropsWithChildren) {
       const matchId = typeof push.data.matchId === 'string' ? push.data.matchId : null;
       const eventId = typeof push.data.eventId === 'string' ? push.data.eventId : null;
       const remoteNotificationId = typeof push.data.notificationId === 'string' ? push.data.notificationId : null;
-      if (kind === 'team_video' || kind === 'team_social') {
+      if (kind === 'team_video' || kind === 'team_social' || kind === 'post_activity') {
+        const notificationPrefix = kind === 'post_activity' ? 'community' : 'content';
         presentNotification({
           createdAt: push.createdAt,
           description: push.body ?? undefined,
           href: typeof push.data.url === 'string' ? push.data.url : undefined,
-          id: remoteNotificationId ? `content:${remoteNotificationId}` : `push:${push.id}`,
+          id: remoteNotificationId ? `${notificationPrefix}:${remoteNotificationId}` : `push:${push.id}`,
           kind,
           readAt: null,
-          title: push.title ?? '새 팀 소식',
+          title: push.title ?? (kind === 'post_activity' ? '새 커뮤니티 알림' : '새 팀 소식'),
         });
         void loadCommunityNotifications();
         return;
