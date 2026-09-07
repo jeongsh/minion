@@ -6,7 +6,6 @@ import * as SystemUI from 'expo-system-ui';
 import CheckCircle2 from 'lucide-react-native/icons/circle-check-big';
 import Info from 'lucide-react-native/icons/info';
 import Radio from 'lucide-react-native/icons/radio';
-import Star from 'lucide-react-native/icons/star';
 import Sword from 'lucide-react-native/icons/sword';
 import TriangleAlert from 'lucide-react-native/icons/triangle-alert';
 import X from 'lucide-react-native/icons/x';
@@ -194,7 +193,6 @@ function MatchEventIcon({ kind }: { kind: MatchEventToast['kind'] }) {
   const { fonts, theme } = useMinionShell();
   if (kind === 'kill' || kind === 'tower' || kind === 'baron' || kind === 'inhibitor' || kind === 'dragon') return <Sword color={theme.muted} size={16} strokeWidth={2} />;
   if (kind === 'start') return <Radio color={theme.muted} size={15} strokeWidth={2} />;
-  if (kind === 'rating') return <Star color={theme.muted} size={15} strokeWidth={2} />;
   if (kind === 'end') return <Text style={{ color: theme.muted, ...fonts.medium, fontSize: 12 }}>END</Text>;
   return null;
 }
@@ -210,7 +208,7 @@ function MatchEventToastView({ event, onClose, onPress }: { event: MatchEventToa
   const content = (
     <View style={styles.matchEventContent}>
       <View style={styles.matchEventMeta}>
-        {event.badge === 'LIVE' ? <View style={styles.liveDot} /> : <Star color={theme.accent} size={13} />}
+        {event.badge === 'LIVE' ? <View style={styles.liveDot} /> : null}
         <Text style={{ color: event.badge === 'LIVE' ? '#e51643' : theme.accent, ...fonts.medium, fontSize: event.badge === 'LIVE' ? 12 : 13, lineHeight: 17 }}>{event.badge}</Text>
         <Text numberOfLines={1} style={{ color: theme.muted, flex: 1, ...fonts.medium, fontSize: 12, lineHeight: 17 }}>{event.matchup}</Text>
       </View>
@@ -219,7 +217,7 @@ function MatchEventToastView({ event, onClose, onPress }: { event: MatchEventToa
           <Text numberOfLines={1} style={{ color: theme.ink, flexShrink: 1, ...fonts.medium, fontSize: 13, lineHeight: 18, textAlign: 'right' }}>{event.leftLabel ?? ''}</Text>
           {event.leftImageSrc ? <MatchEventImage kind={event.kind} src={event.leftImageSrc} /> : null}
         </View>
-        <View style={styles.matchEventKind}><MatchEventIcon kind={event.kind} /></View>
+        {event.kind !== 'rating' ? <View style={styles.matchEventKind}><MatchEventIcon kind={event.kind} /></View> : null}
         <View style={styles.matchEventSide}>
           {event.rightImageSrc ? <MatchEventImage kind={event.kind} src={event.rightImageSrc} /> : null}
           <Text numberOfLines={1} style={{ color: theme.ink, flexShrink: 1, ...fonts.medium, fontSize: 13, lineHeight: 18 }}>{event.rightLabel}</Text>

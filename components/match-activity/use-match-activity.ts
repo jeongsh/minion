@@ -160,18 +160,22 @@ export function useMatchActivity(
     [notificationStorageKey],
   );
   const notificationsJson = useSyncExternalStore(subscribeToNotifications, getNotificationSnapshot, () => EMPTY_NOTIFICATIONS_JSON);
-  const localNotifications = useMemo(() => parseNotifications(notificationsJson), [notificationsJson]);
-  const presentRemoteNotification = useCallback((notification: AppNotification) => {
+  const localNotifications = useMemo(
+    () => parseNotifications(notificationsJson).filter((notification) => notification.kind !== "match_event"),
+    [notificationsJson],
+  );
+  const presentNotification = useCallback((notification: AppNotification, duration = LIVE_NOTIFICATION_DURATION_MS) => {
     if (!preferences.inAppEnabled) return;
     showToast({
       title: notification.title,
       description: notification.description,
       tone: "info",
-      duration: LIVE_NOTIFICATION_DURATION_MS,
+      duration,
       actionHref: notification.href,
+      matchEvent: notification.matchEvent,
     });
   }, [preferences.inAppEnabled, showToast]);
-  const communityNotifications = useCommunityNotifications(notificationOwnerId ?? "guest", presentRemoteNotification);
+  const communityNotifications = useCommunityNotifications(notificationOwnerId ?? "guest", presentNotification);
   const notifications = useMemo(
     () => [...communityNotifications.notifications, ...localNotifications]
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
@@ -202,7 +206,8 @@ export function useMatchActivity(
 
     const current = parseNotifications(getNotificationsSnapshot(notificationStorageKey));
     const next = current.filter((notification) => (
-      !notification.id.includes("temporary-rating-card-preview")
+      notification.kind !== "match_event"
+      && !notification.id.includes("temporary-rating-card-preview")
       && !notification.id.includes("temporary-live-match-preview")
     ));
     if (next.length === current.length) return;
@@ -215,15 +220,8 @@ export function useMatchActivity(
     updateStoredNotifications(notificationStorageKey, (current) => current.some((item) => item.id === notification.id)
       ? current
       : [notification, ...current]);
-    showToast({
-      title: notification.title,
-      description: notification.description,
-      tone: "info",
-      duration,
-      actionHref: notification.href,
-      matchEvent: notification.matchEvent,
-    });
-  }, [notificationStorageKey, showToast]);
+    presentNotification(notification, duration);
+  }, [notificationStorageKey, presentNotification]);
 
   const dismissRatingCard = useCallback(() => {
     setRatingCard((current) => {
@@ -393,7 +391,7 @@ export function useMatchActivity(
           const newEvents = data.events.filter((event) => !known.has(event.id)).slice(-2);
           eventIdsByMatch.current.set(match.id, currentIds);
           for (const event of newEvents) {
-            publishNotification({
+            presentNotification({
               id: `match-event:${event.id}`,
               kind: "match_event",
               title: `${match.teamA.shortName} vs ${match.teamB.shortName}`,
@@ -414,7 +412,7 @@ export function useMatchActivity(
       if (document.visibilityState === "visible") void pollEvents();
     }, LIVE_EVENT_POLL_MS);
     return () => window.clearInterval(interval);
-  }, [alertLiveMatches, enabled, preferences.inAppEnabled, publishNotification]);
+  }, [alertLiveMatches, enabled, preferences.inAppEnabled, presentNotification]);
 
   const unreadNotificationCount = notifications.filter((notification) => !notification.readAt).length;
 

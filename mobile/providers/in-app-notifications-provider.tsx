@@ -3,13 +3,11 @@ import { useRouter } from 'expo-router';
 import { createContext, type PropsWithChildren, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 
-import { OBJECTIVE_ICON_PATHS } from '@/constants/objective-icons';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import {
   fetchMobileApi,
   mutateMobileApi,
   type MobileCommunityNotificationsDto,
-  type MobileLiveMatchActivity,
   type MobileMatchActivityDto,
   type MobileNotificationPreferences,
 } from '@/lib/api-client';
@@ -34,16 +32,6 @@ const DEFAULT_PREFERENCES: MobileNotificationPreferences = {
   teamContentEnabled: true,
 };
 
-const DRAGON_PRESENTATION: Record<string, { icon: string; label: string }> = {
-  chemtech: { icon: OBJECTIVE_ICON_PATHS.chemtechDragon, label: '화학공학 드래곤' },
-  cloud: { icon: OBJECTIVE_ICON_PATHS.cloudDragon, label: '바람 드래곤' },
-  elder: { icon: OBJECTIVE_ICON_PATHS.elder, label: '장로 드래곤' },
-  hextech: { icon: OBJECTIVE_ICON_PATHS.hextechDragon, label: '마법공학 드래곤' },
-  infernal: { icon: OBJECTIVE_ICON_PATHS.infernalDragon, label: '화염 드래곤' },
-  mountain: { icon: OBJECTIVE_ICON_PATHS.mountainDragon, label: '대지 드래곤' },
-  ocean: { icon: OBJECTIVE_ICON_PATHS.oceanDragon, label: '바다 드래곤' },
-};
-
 export type InAppNotificationKind = 'match_live' | 'match_event' | 'rating_open' | 'team_video' | 'team_social' | 'player_live' | 'post_activity';
 type MatchEventKind = 'kill' | 'tower' | 'baron' | 'inhibitor' | 'dragon' | 'end' | 'start' | 'rating';
 
@@ -59,19 +47,6 @@ export type InAppNotification = {
   readAt: string | null;
   title: string;
 };
-
-type LiveMatchEvent = {
-  dragonType: string | null;
-  id: string;
-  killerChampionId: string | null;
-  killerSummonerName: string | null;
-  teamId: string | null;
-  type: Exclude<MatchEventKind, 'start' | 'rating'>;
-  victimChampionId: string | null;
-  victimSummonerName: string | null;
-};
-
-type LiveMatchResponse = { events?: LiveMatchEvent[]; status: string };
 
 type NotificationContextValue = {
   clearNotifications: () => void;
@@ -100,57 +75,6 @@ function parseNotifications(raw: string | null): InAppNotification[] {
   }
 }
 
-function championImage(championId: string | null) {
-  if (!championId) return null;
-  return `https://ddragon.leagueoflegends.com/cdn/img/champion/tiles/${encodeURIComponent(championId)}_0.jpg`;
-}
-
-function liveEventPresentation(event: LiveMatchEvent, match: MobileLiveMatchActivity): MatchEventToast {
-  const matchup = `${match.teamA.shortName} vs ${match.teamB.shortName}`;
-  if (event.type === 'kill') {
-    return {
-      badge: 'LIVE',
-      kind: event.type,
-      leftImageSrc: championImage(event.killerChampionId) ?? undefined,
-      leftLabel: event.killerSummonerName ?? '선수',
-      matchup,
-      rightImageSrc: championImage(event.victimChampionId) ?? undefined,
-      rightLabel: event.victimSummonerName ?? '상대 선수',
-    };
-  }
-
-  const teamLabel = event.teamId === match.teamA.id
-    ? match.teamA.shortName
-    : event.teamId === match.teamB.id
-      ? match.teamB.shortName
-      : '경기';
-  const dragon = event.dragonType ? DRAGON_PRESENTATION[event.dragonType.toLowerCase()] : undefined;
-  const objectiveLabel = event.type === 'baron'
-    ? '바론'
-    : event.type === 'dragon'
-      ? dragon?.label ?? '드래곤'
-      : event.type === 'tower'
-        ? '포탑'
-        : event.type === 'inhibitor'
-          ? '억제기'
-          : '종료';
-  const objectiveImage = event.type === 'baron'
-    ? OBJECTIVE_ICON_PATHS.baron
-    : event.type === 'dragon'
-      ? dragon?.icon ?? OBJECTIVE_ICON_PATHS.dragon
-      : event.type === 'tower' || event.type === 'inhibitor'
-        ? OBJECTIVE_ICON_PATHS.tower
-        : undefined;
-  return {
-    badge: 'LIVE',
-    kind: event.type,
-    leftLabel: event.type === 'end' ? '세트' : teamLabel,
-    matchup,
-    rightImageSrc: objectiveImage,
-    rightLabel: objectiveLabel,
-  };
-}
-
 function notificationAllowed(type: unknown, preferences: MobileNotificationPreferences) {
   if (!preferences.inAppEnabled) return false;
   return type === 'post_activity' ? preferences.communityEnabled : true;
@@ -171,7 +95,6 @@ export function InAppNotificationsProvider({ children }: PropsWithChildren) {
   const initialized = useRef(false);
   const previousLiveIds = useRef(new Set<string>());
   const previousRatingIds = useRef(new Set<string>());
-  const eventIdsByMatch = useRef(new Map<string, Set<string>>());
   const persistenceQueue = useRef(Promise.resolve());
   const handledPushResponseIds = useRef(new Set<string>());
   const userId = session?.user.id ?? null;
@@ -247,9 +170,13 @@ export function InAppNotificationsProvider({ children }: PropsWithChildren) {
 
     void AsyncStorage.getItem(notificationStorageKey).then((raw) => {
       if (!active) return;
-      const stored = parseNotifications(raw);
+      const parsed = parseNotifications(raw);
+      const stored = parsed.filter((notification) => notification.kind !== 'match_event');
       notificationsRef.current = stored;
       setNotifications(stored);
+      if (stored.length !== parsed.length) {
+        void AsyncStorage.setItem(notificationStorageKey, JSON.stringify(stored)).catch(() => undefined);
+      }
     }).finally(() => {
       if (active) setHydrated(true);
     });
@@ -298,6 +225,18 @@ export function InAppNotificationsProvider({ children }: PropsWithChildren) {
       if (targetUserId !== userId) return;
       const type = push.data.type;
       if (!notificationAllowed(type, preferencesRef.current)) return;
+      if (type === 'match_event') {
+        presentNotification({
+          createdAt: push.createdAt,
+          description: push.body ?? undefined,
+          href: typeof push.data.url === 'string' ? push.data.url : undefined,
+          id: `push:${push.id}`,
+          kind: 'match_event',
+          readAt: null,
+          title: push.title ?? '경기 주요 이벤트',
+        });
+        return;
+      }
       const kind: InAppNotificationKind = type === 'match_start'
         ? 'match_live'
         : type === 'rating_open'
@@ -347,7 +286,6 @@ export function InAppNotificationsProvider({ children }: PropsWithChildren) {
     initialized.current = false;
     previousLiveIds.current = new Set();
     previousRatingIds.current = new Set();
-    eventIdsByMatch.current = new Map();
     queueMicrotask(() => setActivity(null));
     preferencesRef.current = DEFAULT_PREFERENCES;
     if (!hydrated || !userId) return;
@@ -434,34 +372,12 @@ export function InAppNotificationsProvider({ children }: PropsWithChildren) {
     const liveMatchAlertTeamIds = new Set(activity.teamNotificationSettings.filter((setting) => setting.liveMatchAlertsEnabled).map((setting) => setting.teamId));
     const liveMatches = activity.liveMatches.filter((match) => liveMatchAlertTeamIds.has(match.teamA.id) || liveMatchAlertTeamIds.has(match.teamB.id));
     if (liveMatches.length === 0) return;
-    let active = true;
     const pollEvents = async () => {
-      await Promise.all(liveMatches.map(async (match: MobileLiveMatchActivity) => {
+      await Promise.all(liveMatches.map(async (match) => {
         try {
-          const data = await fetchMobileApi<LiveMatchResponse>(`/api/mobile/v1/matches/${encodeURIComponent(match.id)}/live`);
-          if (!active || !Array.isArray(data.events)) return;
-          const known = eventIdsByMatch.current.get(match.id);
-          const currentIds = new Set(data.events.map((event) => event.id));
-          if (!known) {
-            eventIdsByMatch.current.set(match.id, currentIds);
-            return;
-          }
-          const newEvents = data.events.filter((event) => !known.has(event.id)).slice(-2);
-          eventIdsByMatch.current.set(match.id, currentIds);
-          for (const event of newEvents) {
-            const matchEvent = liveEventPresentation(event, match);
-            publishNotification({
-              createdAt: new Date().toISOString(),
-              href: match.href,
-              id: `match-event:${event.id}`,
-              imageUrl: matchEvent.rightImageSrc ?? matchEvent.leftImageSrc,
-              kind: 'match_event',
-              matchEvent,
-              matchEventKind: event.type,
-              readAt: null,
-              title: `${match.teamA.shortName} vs ${match.teamB.shortName}`,
-            });
-          }
+          // 이 요청이 서버의 신규 이벤트 감지와 모바일 푸시 발송을 트리거한다.
+          // 앱 UI에는 응답 이벤트를 복제하지 않는다.
+          await fetchMobileApi<unknown>(`/api/mobile/v1/matches/${encodeURIComponent(match.id)}/live`);
         } catch {
           // 라이브 피드가 잠시 끊겨도 다음 폴링에서 이어 받는다.
         }
@@ -472,10 +388,9 @@ export function InAppNotificationsProvider({ children }: PropsWithChildren) {
       if (AppState.currentState === 'active') void pollEvents();
     }, LIVE_EVENT_POLL_MS);
     return () => {
-      active = false;
       clearInterval(interval);
     };
-  }, [activity, hydrated, publishNotification, userId]);
+  }, [activity, hydrated, userId]);
 
   const markNotificationRead = useCallback((id: string) => {
     if (id.startsWith('community:') || id.startsWith('content:')) {
@@ -512,7 +427,7 @@ export function InAppNotificationsProvider({ children }: PropsWithChildren) {
   const displayNotifications = useMemo(
     () => [
       ...(communityNotificationScope === identityScope ? communityNotifications : []),
-      ...(hydratedStorageKey === notificationStorageKey ? notifications : []),
+      ...(hydratedStorageKey === notificationStorageKey ? notifications.filter((notification) => notification.kind !== 'match_event') : []),
     ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, MAX_NOTIFICATIONS),
     [communityNotificationScope, communityNotifications, hydratedStorageKey, identityScope, notificationStorageKey, notifications],
   );
