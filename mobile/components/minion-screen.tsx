@@ -196,7 +196,7 @@ export function MinionScreen({
           <Pressable accessibilityLabel={colorScheme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'} onPress={toggleTheme} style={[styles.iconButton, styles.themeButton]}>
             {colorScheme === 'dark' ? <Sun color={headerIconColor} size={20} /> : <Moon color={headerIconColor} size={20} />}
           </Pressable>
-          <Pressable disabled={authLoading} onPress={() => session ? router.navigate('/me') : router.navigate(`/login?next=${encodeURIComponent(pathname)}` as never)} style={session ? styles.profileButton : styles.loginButton}>
+          <Pressable disabled={authLoading} onPress={() => session ? pathname !== '/me' && router.push('/me') : router.navigate(`/login?next=${encodeURIComponent(pathname)}` as never)} style={session ? styles.profileButton : styles.loginButton}>
             {session ? <RankAvatar fallback={viewer?.nickname ?? 'MY'} profileImageUrl={viewer?.profileImage?.url} tier={viewer?.tier} /> : <Text style={[styles.loginText, { ...fonts.bold }]}>로그인</Text>}
           </Pressable>
         </View>

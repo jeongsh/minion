@@ -226,7 +226,7 @@ function MobileAccountSummary({ user, summary, progress, initials }: {
       <div className="mt-2 h-1 overflow-hidden rounded-full bg-[var(--ui-surface-muted)]">
         <div className="h-full rounded-full bg-[var(--accent)]" style={{ width: `${Math.round(progress.progressRatio * 100)}%` }} />
       </div>
-      <div className="mt-2"><CheckInButton alreadyChecked={summary.checkedInToday} /></div>
+      <div className="mb-1 mt-2"><CheckInButton alreadyChecked={summary.checkedInToday} /></div>
       <div className="mt-1.5 grid grid-cols-2 gap-2">
         <Link href={`/community/user/${user.id}`} className="flex min-h-9 items-center justify-center gap-1 rounded-lg bg-[var(--ui-surface-muted)] px-2 text-[13px] font-medium text-[var(--ui-text)]">
           <FileText size={14} />내 활동
