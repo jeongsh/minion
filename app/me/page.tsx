@@ -36,6 +36,7 @@ const MANAGE_LINKS = [
   { href: "#blocks", label: "차단 관리", mobileLabel: "차단 관리", icon: ShieldBan },
   { href: "#account", label: "계정 및 보안", mobileLabel: "계정·보안", icon: LockKeyhole },
 ];
+const MOBILE_SECTION_LINKS = MANAGE_LINKS.filter(({ href }) => href.startsWith("#"));
 
 function isRecentlyReauthenticated(user: CurrentUser) {
   if (user.hasPassword || !user.lastSignInAt) return false;
@@ -80,9 +81,15 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
     <main className="layout-wide me-page max-w-6xl pb-6 pt-3 sm:py-8">
       <MobileAccountSummary user={user} summary={summary} progress={progress} initials={initials} />
 
+      <Link href="/me/minicons" className="mt-2.5 flex min-h-11 items-center gap-2 rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 text-sm font-medium text-[var(--ui-text)] lg:hidden">
+        <Sticker size={16} className="shrink-0 text-[var(--ui-muted)]" />
+        <span className="min-w-0 flex-1 truncate">내 미니콘</span>
+        <ChevronRight size={15} className="shrink-0 text-[var(--ui-muted)] opacity-60" />
+      </Link>
+
       <nav className="mt-2.5 rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-2 lg:hidden" aria-label="내 계정 메뉴">
-        <div className="grid grid-cols-5 gap-1.5">
-          {MANAGE_LINKS.map(({ href, mobileLabel, icon: Icon }) => (
+        <div className="grid grid-cols-4 gap-1.5">
+          {MOBILE_SECTION_LINKS.map(({ href, mobileLabel, icon: Icon }) => (
             <a key={href} href={href} className="flex min-h-9 min-w-0 items-center justify-center gap-1 rounded-lg bg-[var(--ui-surface-muted)] px-1 text-[13px] font-medium leading-[18px] text-[var(--ui-text)]">
               <Icon size={13} className="shrink-0" /><span className="truncate">{mobileLabel}</span>
             </a>
