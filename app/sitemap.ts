@@ -1,6 +1,5 @@
 import type { MetadataRoute } from "next";
 import { getMatches, getPlayers, getTeams, getTournaments } from "@/lib/data/lck";
-import { getWeeklyReportIndex } from "@/lib/reports/queries";
 import { siteBaseUrl } from "@/lib/site";
 import { canQuerySupabase } from "@/lib/supabase/server";
 import { DOMESTIC_SEGMENTS, INTERNATIONAL_SEGMENTS } from "@/lib/tournaments/international-segments";
@@ -18,8 +17,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/players",
     "/tournaments",
     "/news",
-    "/records",
-    "/reports",
     "/community",
     "/minicons",
     "/predictions",
@@ -29,6 +26,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/advertising",
     "/support",
     "/about",
+    "/guide",
   ];
 
   const staticRoutes = routes.map((route) => ({
@@ -41,11 +39,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   if (!canQuerySupabase()) return staticRoutes;
 
   try {
-    const [teams, players, matches, reports, tournaments] = await Promise.all([
+    const [teams, players, matches, tournaments] = await Promise.all([
       getTeams(),
       getPlayers(),
       getMatches(),
-      getWeeklyReportIndex(),
       getTournaments(),
     ]);
 
@@ -70,13 +67,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: match.status === "scheduled" ? 0.75 : 0.55,
     }));
 
-    const reportRoutes = reports.map((report) => ({
-      url: `${baseUrl}/reports/${report.week_key}`,
-      lastModified: new Date(report.period_end),
-      changeFrequency: "monthly" as const,
-      priority: 0.65,
-    }));
-
     const tournamentRoutes = [...DOMESTIC_SEGMENTS, ...INTERNATIONAL_SEGMENTS]
       .filter((segment) => tournaments.some((tournament) => matchesTournamentSegment(tournament, segment.key)))
       .map((segment) => ({
@@ -86,7 +76,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         priority: 0.75,
       }));
 
-    return [...staticRoutes, ...teamRoutes, ...playerRoutes, ...matchRoutes, ...reportRoutes, ...tournamentRoutes];
+    return [...staticRoutes, ...teamRoutes, ...playerRoutes, ...matchRoutes, ...tournamentRoutes];
   } catch {
     return staticRoutes;
   }

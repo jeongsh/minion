@@ -1,3 +1,0 @@
-body:has([data-navigation-immediate="true"]) [data-testid="navigation-loading-overlay"] {
-  display: none;
-}

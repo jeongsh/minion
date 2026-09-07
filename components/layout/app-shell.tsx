@@ -309,7 +309,6 @@ export function AppShell({
     localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
   };
 
-  if (pathname === "/lab/chzzk-concept") return <>{children}</>;
 
   return (
     <div
