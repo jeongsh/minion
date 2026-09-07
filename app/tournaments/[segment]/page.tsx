@@ -94,7 +94,7 @@ function GroupStandingsTable({
                 <span className="shrink-0 text-right text-[12px] font-medium tabular-nums text-muted">
                   {setDiffLabel(row)}
                 </span>
-                <span className="shrink-0 text-right text-[12px] font-black tabular-nums text-foreground">
+                <span className="shrink-0 text-right text-[12px] font-medium tabular-nums text-foreground">
                   {recordLabel(row)}
                 </span>
               </div>

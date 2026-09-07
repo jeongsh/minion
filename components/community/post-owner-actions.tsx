@@ -45,12 +45,11 @@ export function PostOwnerActions({ postId, scope, teamSlug, guest = false, varia
       </span>
       {confirmOpen && typeof document !== "undefined"
         ? createPortal(
-            <div className="modal-backdrop fixed inset-0 z-[1000] flex items-end justify-center bg-black/45 [--modal-backdrop-dark-mobile:0.65] sm:items-center sm:p-6" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setConfirmOpen(false)}>
+            <div data-community-owner-dialog className="modal-backdrop fixed inset-0 z-[1000] flex items-end justify-center bg-black/45 [--modal-backdrop-dark-mobile:0.65] sm:items-center sm:p-6" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setConfirmOpen(false)}>
               <section className="adaptive-dialog-panel flex w-full max-w-sm flex-col overflow-hidden rounded-t-[24px] bg-[var(--ui-surface)] shadow-2xl sm:rounded-[24px] sm:border sm:border-[var(--ui-border)] dark:bg-[var(--ui-surface-muted)]" role="dialog" aria-modal="true" aria-labelledby="delete-post-title">
                 <DialogSheetHeader onClose={() => setConfirmOpen(false)} title="게시글 삭제" titleId="delete-post-title" />
                 <div className="px-5 pb-5 pt-2">
-                  <p className="text-[13px] font-medium text-red-500">DELETE POST</p>
-                  <h3 className="mt-1 text-lg font-black text-[var(--ui-ink)]">게시글을 삭제할까요?</h3>
+                  <h3 className="text-lg font-black text-[var(--ui-ink)]">게시글을 삭제할까요?</h3>
                   <p className="mt-3 text-sm font-medium leading-6 text-[var(--ui-muted)]">삭제한 게시글은 복구할 수 없습니다.</p>
                   <div className="mt-5 grid grid-cols-2 gap-2">
                     <button type="button" onClick={() => setConfirmOpen(false)} className="h-10 rounded-lg bg-[var(--ui-surface-muted)] text-sm font-medium text-[var(--ui-ink)]">취소</button>

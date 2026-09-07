@@ -132,7 +132,7 @@ export function SupportWriteForm({ defaultEmail, isGuest }: { defaultEmail?: str
         {showPasswordFields ? (
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="support-password" className="text-[12px] font-semibold text-[var(--ui-ink)]">비밀번호</label>
+              <label htmlFor="support-password" className="text-[13px] font-medium text-[var(--ui-ink)]">비밀번호</label>
               <input
                 id="support-password"
                 type="password"
@@ -146,7 +146,7 @@ export function SupportWriteForm({ defaultEmail, isGuest }: { defaultEmail?: str
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="support-password-confirm" className="text-[12px] font-semibold text-[var(--ui-ink)]">비밀번호 확인</label>
+              <label htmlFor="support-password-confirm" className="text-[13px] font-medium text-[var(--ui-ink)]">비밀번호 확인</label>
               <input
                 id="support-password-confirm"
                 type="password"

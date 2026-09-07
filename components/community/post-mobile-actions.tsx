@@ -30,7 +30,10 @@ export function PostMobileActions({
   useEffect(() => {
     if (!open) return;
     const close = (event: MouseEvent | TouchEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      if (target.closest("[data-community-owner-dialog]")) return;
+      if (!rootRef.current?.contains(target)) setOpen(false);
     };
     document.addEventListener("mousedown", close);
     document.addEventListener("touchstart", close);

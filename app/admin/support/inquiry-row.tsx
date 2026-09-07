@@ -88,7 +88,7 @@ export function SupportInquiryRow({ inquiry }: { inquiry: AdminSupportInquiry })
       </div>
 
       <div className="flex flex-col gap-1.5 rounded-lg bg-neutral-50 p-3 dark:bg-neutral-800/50">
-        <label className="text-[12px] font-semibold text-neutral-500">이용자에게 보이는 답변</label>
+        <label className="text-[13px] font-medium text-neutral-500">이용자에게 보이는 답변</label>
         <textarea
           value={reply}
           onChange={(event) => setReply(event.target.value)}
