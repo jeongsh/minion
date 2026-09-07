@@ -42,7 +42,7 @@ export function useCachedQuery<T>(path: string, options: { enabled?: boolean; ca
         setRefreshing(true);
       } else if (active) setLoading(true);
       try {
-        const next = await fetchMobileApi<T>(path, controller.signal);
+        const next = await fetchMobileApi<T>(path, controller.signal, { fresh: requestVersion > 0 });
         if (!active) return;
         setData(next);
         setDataPath(path);

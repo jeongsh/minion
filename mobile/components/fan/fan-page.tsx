@@ -1,14 +1,14 @@
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import Bell from 'lucide-react-native/icons/bell';
 import ChevronRight from 'lucide-react-native/icons/chevron-right';
 import Heart from 'lucide-react-native/icons/heart';
 import MessageCircle from 'lucide-react-native/icons/message-circle';
 import Star from 'lucide-react-native/icons/star';
 import ThumbsUp from 'lucide-react-native/icons/thumbs-up';
-import { useEffect, useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, AppState, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
 import { TeamLogo } from '@/components/data/team-logo';
 import { boardLabel, displayAuthor, formatCommunityDate } from '@/components/community/community-utils';
@@ -41,6 +41,21 @@ export function FanPage({ section }: { section: FanPageSection }) {
   const teamSlug = Array.isArray(params.team) ? params.team[0] : params.team;
   const path = teamSlug ? `/api/mobile/v1/teams/${encodeURIComponent(teamSlug)}?section=${section}` : '/api/mobile/v1/teams/__missing__';
   const { data, error, loading, refresh } = useCachedQuery<MobileTeamDetailDto>(path, { enabled: Boolean(teamSlug) });
+  const focusedOnce = useRef(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!focusedOnce.current) {
+        focusedOnce.current = true;
+      } else {
+        refresh();
+      }
+      const subscription = AppState.addEventListener('change', (state) => {
+        if (state === 'active') refresh();
+      });
+      return () => subscription.remove();
+    }, [refresh]),
+  );
 
   if (loading && !data) return <MinionScreen contentStyle={styles.screenContent}><FanLoadingSkeleton section={section} /></MinionScreen>;
   if (error && !data) return <MinionScreen contentStyle={styles.screenContent}><View style={styles.error}><ErrorState onRetry={refresh} title={error} /></View></MinionScreen>;

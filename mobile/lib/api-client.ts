@@ -66,9 +66,16 @@ async function requestHeaders(auth: MobileApiAuthMode, json = false) {
   };
 }
 
-export async function fetchMobileApi<T>(path: string, signal?: AbortSignal): Promise<T> {
-  const response = await fetch(`${mobileApiOrigin}${path}`, {
-    headers: await requestHeaders(authForRequest('GET', path)),
+function freshPath(path: string) {
+  const separator = path.includes('?') ? '&' : '?';
+  return `${path}${separator}_minion_t=${Date.now()}`;
+}
+
+export async function fetchMobileApi<T>(path: string, signal?: AbortSignal, options: { fresh?: boolean } = {}): Promise<T> {
+  const headers = await requestHeaders(authForRequest('GET', path));
+  const response = await fetch(`${mobileApiOrigin}${options.fresh ? freshPath(path) : path}`, {
+    cache: options.fresh ? 'no-store' : 'default',
+    headers: options.fresh ? { ...headers, 'Cache-Control': 'no-cache', Pragma: 'no-cache' } : headers,
     signal,
   });
   return readMobileResponse<T>(response);

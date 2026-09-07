@@ -3,6 +3,7 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { after } from "next/server";
 import { createComment, getCommentById, getPostById } from "@/lib/data/community";
 import { HOME_PUBLIC_DATA_TAG } from "@/lib/data/home-cache";
+import { getTeamById } from "@/lib/data/lck";
 import { guestRateLimitError, isCommunityGuestSanctioned } from "@/lib/data/community-guests";
 import { isCommunityUserSanctioned } from "@/lib/data/community-users";
 import { mobileError, mobileSuccess } from "@/lib/mobile/api-response";
@@ -19,8 +20,12 @@ export const dynamic = "force-dynamic";
 
 const MINICON_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-function revalidateCommunityHome() {
+async function revalidateCommunityHome(teamId?: string | null) {
   revalidatePath("/");
+  if (teamId) {
+    const team = await getTeamById(teamId);
+    if (team) revalidatePath(`/fan/${team.fanSiteHost || team.slug}`);
+  }
   revalidateTag(HOME_PUBLIC_DATA_TAG, "max");
 }
 
@@ -84,7 +89,7 @@ export async function POST(request: Request) {
         parentId,
         postId,
       });
-      revalidateCommunityHome();
+      await revalidateCommunityHome(post.teamId);
       const data: MobileCommunityCommentMutationDto = {
         id: created.id,
         message: miniconItemIds.length === 2 ? "더블 미니콘을 붙였어요." : "미니콘을 붙였어요.",
@@ -111,7 +116,7 @@ export async function POST(request: Request) {
       postId,
     });
     scheduleMobileCommunityModeration({ commentId: created.id, text: validated.content });
-    revalidateCommunityHome();
+    await revalidateCommunityHome(post.teamId);
     const data: MobileCommunityCommentMutationDto = { id: created.id, message: "댓글 톡 붙여뒀어요." };
     return mobileSuccess(data, { headers: { "Cache-Control": "private, no-store" }, status: 201 });
   } catch {

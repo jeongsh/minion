@@ -1,8 +1,9 @@
 import { revalidatePath, revalidateTag } from "next/cache";
 
 import type { MobileCommunityActionDto, MobileCommunityCommentMutationDto } from "@/packages/contracts/src/mobile-v1";
-import { deleteGuestComment, getCommentById, updateGuestComment } from "@/lib/data/community";
+import { deleteGuestComment, getCommentById, getPostById, updateGuestComment } from "@/lib/data/community";
 import { HOME_PUBLIC_DATA_TAG } from "@/lib/data/home-cache";
+import { getTeamById } from "@/lib/data/lck";
 import { isCommunityGuestSanctioned } from "@/lib/data/community-guests";
 import { isCommunityUserSanctioned } from "@/lib/data/community-users";
 import { mobileError, mobileSuccess } from "@/lib/mobile/api-response";
@@ -11,8 +12,12 @@ import { getMobileCommunityActor, scheduleMobileCommunityModeration, validateMob
 export const dynamic = "force-dynamic";
 type Context = { params: Promise<{ commentId: string }> };
 
-function revalidateCommunityHome() {
+async function revalidateCommunityHome(teamId?: string | null) {
   revalidatePath("/");
+  if (teamId) {
+    const team = await getTeamById(teamId);
+    if (team) revalidatePath(`/fan/${team.fanSiteHost || team.slug}`);
+  }
   revalidateTag(HOME_PUBLIC_DATA_TAG, "max");
 }
 
@@ -46,8 +51,9 @@ export async function DELETE(request: Request, context: Context) {
   const { actor, comment, owned } = await ownedComment(request, commentId);
   if (!actor) return mobileError("BAD_REQUEST", "비회원 ID를 확인하지 못했습니다.", 400);
   if (!comment || !owned) return mobileError("FORBIDDEN", "댓글을 삭제할 권한이 없습니다.", 403);
+  const post = await getPostById(comment.postId);
   await deleteGuestComment(commentId);
-  revalidateCommunityHome();
+  await revalidateCommunityHome(post?.teamId);
   const data: MobileCommunityActionDto = { message: "댓글을 삭제했습니다." };
   return mobileSuccess(data, { headers: { "Cache-Control": "private, no-store" } });
 }

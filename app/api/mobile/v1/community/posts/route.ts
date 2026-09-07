@@ -22,8 +22,9 @@ import { recordLpEvent } from "@/lib/rank/record-lp";
 
 export const dynamic = "force-dynamic";
 
-function revalidateCommunityHome() {
+function revalidateCommunityHome(teamSlug?: string | null) {
   revalidatePath("/");
+  if (teamSlug) revalidatePath(`/fan/${teamSlug}`);
   revalidateTag(HOME_PUBLIC_DATA_TAG, "max");
 }
 
@@ -97,11 +98,13 @@ export async function POST(request: Request) {
   }
 
   let teamId: string | null = null;
+  let teamSlug: string | null = null;
   if (scope === "team") {
-    const teamSlug = typeof body?.teamSlug === "string" ? body.teamSlug : "";
-    const team = await getTeamByFanSiteHost(teamSlug).then((value) => value ?? getTeamBySlug(teamSlug));
+    const requestedTeamSlug = typeof body?.teamSlug === "string" ? body.teamSlug : "";
+    const team = await getTeamByFanSiteHost(requestedTeamSlug).then((value) => value ?? getTeamBySlug(requestedTeamSlug));
     if (!team) return mobileError("NOT_FOUND", "팀을 찾을 수 없습니다.", 404);
     teamId = team.id;
+    teamSlug = team.fanSiteHost || team.slug;
   }
 
   try {
@@ -120,7 +123,7 @@ export async function POST(request: Request) {
       text: extractPlainText(validated.content, 1_000_000),
       title: validated.title,
     });
-    revalidateCommunityHome();
+    revalidateCommunityHome(teamSlug);
     const data: MobileCommunityPostMutationDto = { id: created.id, message: "글 발사 완료. 게시판에 착지했어요." };
     return mobileSuccess(data, { headers: { "Cache-Control": "private, no-store" }, status: 201 });
   } catch {
