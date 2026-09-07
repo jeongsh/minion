@@ -6,7 +6,7 @@ import LogOut from 'lucide-react-native/icons/log-out';
 import ShieldBan from 'lucide-react-native/icons/shield-ban';
 import Sticker from 'lucide-react-native/icons/sticker';
 import UserRound from 'lucide-react-native/icons/user-round';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 
 import type { MobileMeDto, MobileNotificationPreferences, MobileTeamNotificationSettings } from '../../packages/contracts/src/mobile-v1';
@@ -31,7 +31,7 @@ export default function MeScreen() {
   const { fonts, showToast, theme } = useMinionTheme();
   const { loading: authLoading, refreshViewer, session, signInWithOAuth, signOut } = useAuth();
   const [data, setData] = useState<MobileMeDto | null>(null); const [error, setError] = useState<string | null>(null); const [checkingIn, setCheckingIn] = useState(false);
-  const [sectionPositions, setSectionPositions] = useState<Partial<Record<SectionKey, number>>>({}); const [scrollRequest, setScrollRequest] = useState<{ animated: boolean; y: number } | null>(null);
+  const sectionPositionsRef = useRef<Partial<Record<SectionKey, number>>>({}); const [scrollRequest, setScrollRequest] = useState<{ animated: boolean; y: number } | null>(null);
   const load = useCallback(async () => { try { setError(null); setData(await fetchMobileApi<MobileMeDto>('/api/mobile/v1/me')); } catch (caught) { setError(caught instanceof Error ? caught.message : '내 정보를 불러오지 못했습니다.'); } }, []);
   useEffect(() => { if (authLoading) return; if (!session) router.replace('/login?next=/me'); else void load(); }, [authLoading, load, router, session]);
   if (!session && !authLoading) return null;
@@ -39,10 +39,9 @@ export default function MeScreen() {
   const updateData = async (payload: unknown, success?: string, successCharacter?: 'attendance') => { const next = await mutateMobileApi<MobileMeDto>('/api/mobile/v1/me', 'PATCH', payload); setData(next); await refreshViewer(); if (success) showToast(success, 'success', successCharacter); return next; };
   const saveProfile = async (formData: FormData) => { const next = await uploadMobileApi<MobileMeDto>('/api/mobile/v1/me', formData); setData(next); await refreshViewer(); return next; };
   const checkIn = async () => { if (!data || data.rank.checkedInToday || checkingIn) return; setCheckingIn(true); try { await updateData({ checkIn: true }, '출석 도장 쾅! +100 LP', 'attendance'); } catch (caught) { showToast(caught instanceof Error ? caught.message : '출석체크에 실패했습니다.', 'error'); await load(); } finally { setCheckingIn(false); } };
-  const navigateSection = (key: SectionKey) => { const y = sectionPositions[key]; if (y !== undefined) setScrollRequest({ animated: true, y: Math.max(0, y + 105) }); };
+  const navigateSection = (key: SectionKey) => { const y = sectionPositionsRef.current[key]; if (y !== undefined) setScrollRequest({ animated: true, y: Math.max(0, y + 105) }); };
   const sectionLayout = (key: SectionKey) => (event: LayoutChangeEvent) => {
-    const y = event.nativeEvent.layout.y;
-    setSectionPositions((current) => ({ ...current, [key]: y }));
+    sectionPositionsRef.current[key] = event.nativeEvent.layout.y;
   };
 
   return <View style={[styles.root, { backgroundColor: theme.pageBackground }]}><MinionScreen contentStyle={styles.content} scrollRequest={scrollRequest}>
