@@ -691,7 +691,7 @@ export default async function MatchDetailPage({
         </section>
       ) : null}
 
-      <AdSlot placement="horizontal" className="hidden h-[60px] md:block xl:h-[90px]" />
+      <AdSlot enabled={activeTab === "data" && Boolean(activeSet?.winnerTeamId)} placement="horizontal" className="hidden h-[60px] md:block xl:h-[90px]" />
     </main>
   );
 }

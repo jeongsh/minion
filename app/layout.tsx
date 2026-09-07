@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import Script from "next/script";
+import { AdDocumentBoundary } from "@/components/ads/ad-runtime";
 import { AppShell, type AppShellUser } from "@/components/layout/app-shell";
 import { NavigationTransitionProvider } from "@/components/navigation/navigation-transition-provider";
 import { ToastProvider } from "@/components/ui/toast";
@@ -96,15 +96,7 @@ export default async function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body>
-        {adsenseClient ? (
-          <Script
-            id="google-adsense"
-            async
-            strategy="afterInteractive"
-            crossOrigin="anonymous"
-            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseClient}`}
-          />
-        ) : null}
+        <AdDocumentBoundary />
         <ToastProvider>
           <SpoilerFreeProvider>
             <NavigationTransitionProvider>

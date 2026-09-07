@@ -118,6 +118,7 @@ export function HomeDashboard({
       <HomeNewsSection articles={newsItems} />
 
       <Ad
+        enabled={matchItems.length > 0}
         placement="horizontal"
         format="auto"
         className="mt-8 h-[100px] sm:mt-10 md:h-[60px] xl:h-[90px]"
@@ -207,7 +208,8 @@ export function HomeDashboard({
         <Heading>최신 영상</Heading>
         <HomeVideoSwiper videos={latestVideos} />
         <Ad
-          placement="horizontal"
+          enabled={matchItems.length > 0}
+        placement="horizontal"
           format="auto"
           className="mt-10 h-[100px] md:h-[60px] xl:h-[90px]"
         />

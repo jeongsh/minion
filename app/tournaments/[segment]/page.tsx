@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Fragment } from "react";
+import { RailAdContent } from "@/components/ads/rail-ad-content";
 
 import { PageHeader } from "@/components/ui/page-header";
 import { DataTable } from "@/components/ui/data-table";
@@ -1107,6 +1108,7 @@ export default async function TournamentBracketPage({
 
   return (
     <main className="layout-wide flex flex-col gap-6 pt-6 sm:pt-10">
+      <RailAdContent enabled={segmentMatches.length > 0} />
       <PageHeader
         title={segmentTheme.name}
         leading={

@@ -356,7 +356,7 @@ export default async function FanHomePage({
           <Roster players={teamPlayers} teamSlug={fanSlug} />
         </section>
 
-        <AdSlot placement="horizontal" className="hidden h-[60px] md:block xl:h-[90px]" />
+        <AdSlot enabled={matchRows.length > 0} placement="horizontal" className="hidden h-[60px] md:block xl:h-[90px]" />
 
       </div>
       </FanPageShell>

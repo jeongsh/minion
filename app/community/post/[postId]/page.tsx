@@ -1,3 +1,4 @@
+import { hasAdPostContent } from "@/lib/ads-policy";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
@@ -46,7 +47,7 @@ export default async function HubPostDetailPage({
     <main className="subpage min-h-screen">
       <div className="layout-wide flex flex-col gap-0 py-0 sm:gap-5 sm:py-8">
         <h1 className="sr-only">게시글</h1>
-        <CommunityContentLayout posts={posts} scope="hub" currentPostId={post.id}>
+        <CommunityContentLayout adsEnabled={!post.blindedAt && !post.deletedAt && hasAdPostContent(post.content)} posts={posts} scope="hub" currentPostId={post.id}>
           <PostView
             post={post}
             comments={comments}

@@ -7,7 +7,7 @@ import { compareHotPostsByRecentHype, isHotPost } from "@/lib/community/hot";
 import type { CommunityPostDetail } from "@/lib/community/types";
 import { KitschEmptyState } from "@/components/ui/kitsch-empty-state";
 
-export function CommunityContentLayout({ children, posts, scope, teamSlug, currentPostId }: { children: ReactNode; posts: CommunityPostDetail[]; scope: BoardScope; teamSlug?: string; currentPostId?: string }) {
+export function CommunityContentLayout({ children, posts, scope, teamSlug, currentPostId, adsEnabled = false }: { children: ReactNode; posts: CommunityPostDetail[]; scope: BoardScope; teamSlug?: string; currentPostId?: string; adsEnabled?: boolean }) {
   // Right rail mirrors the hot tab: only promoted posts, ranked by recent hype.
   const popular = [...posts]
     .filter((post) => post.id !== currentPostId && !post.blindedAt && !post.isNotice && isHotPost(post))
@@ -20,7 +20,7 @@ export function CommunityContentLayout({ children, posts, scope, teamSlug, curre
   return (
     <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_300px] xl:items-start xl:gap-6">
       <div className="min-w-0">
-        <AdSlot placement="community" format="horizontal" className="community-mobile-ad h-[60px] w-full !rounded-none md:mb-4 xl:hidden" />
+        <AdSlot enabled={adsEnabled} placement="community" format="horizontal" className="community-mobile-ad h-[60px] w-full !rounded-none md:mb-4 xl:hidden" />
         {children}
       </div>
       <aside className="hidden w-full max-w-[300px] flex-col gap-4 xl:sticky xl:top-[88px] xl:flex" aria-label="커뮤니티 보조 정보">
@@ -44,7 +44,7 @@ export function CommunityContentLayout({ children, posts, scope, teamSlug, curre
             </div>
           )}
         </section>
-        <AdSlot placement="community" format="rectangle" className="h-[250px] w-full max-w-[300px]" />
+        <AdSlot enabled={adsEnabled} placement="community" format="rectangle" className="h-[250px] w-full max-w-[300px]" />
       </aside>
     </div>
   );

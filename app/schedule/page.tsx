@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { CalendarDays, SlidersHorizontal } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
+import { RailAdContent } from "@/components/ads/rail-ad-content";
 
 import { HomeCalendar, type HomeCalendarMatch } from "@/components/domain/home-calendar";
 import { ScheduleList } from "@/components/domain/schedule-list";
@@ -108,6 +109,7 @@ export default async function SchedulePage({
 
   return (
     <main className="schedule-page text-[var(--ui-text)]">
+      <RailAdContent enabled={filtered.length > 0} />
       <div className="schedule-mobile-sticky sticky z-30 border-b border-[var(--ui-border)] bg-[var(--page-background)] shadow-[0_10px_20px_rgba(15,23,42,0.035)] lg:hidden">
         <div className="layout-wide py-2">
           <ScheduleWeekScroller dates={activeMonthDates} todayKey={todayKey} availableDateKeys={availableDateKeys} />

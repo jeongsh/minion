@@ -54,7 +54,7 @@ export async function CommunityFeedPage({
       <main className="community-neutral fan-page-container flex flex-col gap-5 pb-7 pt-0 md:py-9" style={{ ["--tp" as string]: "var(--team-primary, #6158ff)" }}>
         <h1 className="sr-only">{title ?? "커뮤니티"}</h1>
         <CelebrationBanner events={todayCelebrations} action="write" />
-        <CommunityContentLayout posts={postPage.popularPosts} scope={scope} teamSlug={teamSlug}>
+        <CommunityContentLayout adsEnabled={!search && [...postPage.posts, ...postPage.notices].some((post) => !post.blindedAt)} posts={postPage.popularPosts} scope={scope} teamSlug={teamSlug}>
           <div className="flex min-w-0 flex-col gap-4">
             <CommunityDirectoryNav favoriteTeamId={favoriteTeamId} followedTeamIds={followedTeamIds} scope={scope} teamSlug={teamSlug} teams={communityTeams} />
             <CommunityFeed key={`${category ?? "all"}:${search ?? ""}:${hotOnly}:${postPage.page}`} postPage={postPage} scope={scope} teamSlug={teamSlug} newPath={newPath} viewerId={viewer?.id} activeCategory={category} searchQuery={search} hotOnly={hotOnly} />
@@ -68,7 +68,7 @@ export async function CommunityFeedPage({
     <main className="subpage community-neutral min-h-screen">
       <div className="layout-wide flex flex-col gap-5 pb-6 sm:py-8">
         <h1 className="sr-only">{title ?? "커뮤니티"}</h1>
-        <CommunityContentLayout posts={postPage.popularPosts} scope={scope} teamSlug={teamSlug}>
+        <CommunityContentLayout adsEnabled={!search && [...postPage.posts, ...postPage.notices].some((post) => !post.blindedAt)} posts={postPage.popularPosts} scope={scope} teamSlug={teamSlug}>
           <div className="flex min-w-0 flex-col gap-4">
             <CommunityDirectoryNav favoriteTeamId={favoriteTeamId} followedTeamIds={followedTeamIds} scope={scope} teamSlug={teamSlug} teams={communityTeams} />
             <CommunityFeed key={`${category ?? "all"}:${search ?? ""}:${hotOnly}:${postPage.page}`} postPage={postPage} scope={scope} teamSlug={teamSlug} newPath={newPath} viewerId={viewer?.id} activeCategory={category} searchQuery={search} hotOnly={hotOnly} />

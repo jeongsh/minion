@@ -187,7 +187,7 @@ export function PredictionBoard({ matches, teams, tournaments, bets, currentUser
             </div>
           </section>
 
-          <PredictionAdSlot className="mt-4 xl:hidden" />
+          <PredictionAdSlot hasContent={filteredMatches.length > 0} className="mt-4 xl:hidden" />
           {error ? <div className="mt-4 rounded-xl bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-600">{error}</div> : null}
 
           <div className="mt-9 flex flex-col gap-10">
@@ -247,7 +247,7 @@ export function PredictionBoard({ matches, teams, tournaments, bets, currentUser
         </div>
         <div className="hidden xl:sticky xl:top-24 xl:flex xl:flex-col xl:gap-5">
           <PredictionLeaderboard entries={leaderboard} />
-          <PredictionAdSlot />
+          <PredictionAdSlot hasContent={filteredMatches.length > 0} />
         </div>
         {dialog ? (
           <BetAmountDialog
@@ -267,9 +267,9 @@ export function PredictionBoard({ matches, teams, tournaments, bets, currentUser
   );
 }
 
-function PredictionAdSlot({ className = "" }: { className?: string }) {
+function PredictionAdSlot({ className = "", hasContent }: { className?: string; hasContent: boolean }) {
   const enabled = process.env.NEXT_PUBLIC_ADSENSE_ENABLE_PREDICTIONS === "true";
-  return <AdSlot enabled={enabled} placement="prediction" format="rectangle" className={`h-[100px] xl:h-[250px] xl:max-w-[300px] ${className}`} />;
+  return <AdSlot enabled={enabled && hasContent} placement="prediction" format="rectangle" className={`h-[100px] xl:h-[250px] xl:max-w-[300px] ${className}`} />;
 }
 
 function FilterButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {

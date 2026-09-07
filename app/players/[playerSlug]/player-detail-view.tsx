@@ -616,7 +616,7 @@ export async function PlayerDetailView({
           </div>
         </section>
 
-        <AdSlot placement="horizontal" className="hidden h-[60px] md:block xl:h-[90px]" />
+        <AdSlot enabled={playerLines.length > 0} placement="horizontal" className="hidden h-[60px] md:block xl:h-[90px]" />
 
         {/* 5. 챔피언 */}
         <section>

@@ -17,7 +17,7 @@ export function ErrorState({
   digest?: string;
 }) {
   return (
-    <section className="mx-auto flex w-full max-w-xl flex-col items-center text-center">
+    <section data-ads-blocked="true" className="mx-auto flex w-full max-w-xl flex-col items-center text-center">
       <p className="text-xs font-medium uppercase tracking-[0.16em] text-[var(--ui-muted)]">{code}</p>
       <Image
         src={megaphoneBuddy}

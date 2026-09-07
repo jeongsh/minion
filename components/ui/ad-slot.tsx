@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
+import { isAdContentPath } from "@/lib/ads-policy";
+import { canRequestAd, loadAdScript } from "@/components/ads/ad-runtime";
 
 export type AdPlacement =
   | "horizontal"
@@ -30,7 +33,7 @@ export function AdSlot({
   className = "",
   placement = "horizontal",
   format,
-  enabled = true,
+  enabled = false,
 }: {
   className?: string;
   placement?: AdPlacement;
@@ -39,38 +42,50 @@ export function AdSlot({
 }) {
   const containerRef = useRef<HTMLElement>(null);
   const initializedRef = useRef(false);
+  const pathname = usePathname();
+  const allowed = enabled && isAdContentPath(pathname);
   const slot = slotFor(placement);
-  const configured = enabled && Boolean(AD_CLIENT && slot);
+  const configured = allowed && Boolean(AD_CLIENT && slot);
   const resolvedFormat = format ?? (placement === "horizontal" ? "horizontal" : "rectangle");
 
   useEffect(() => {
     const container = containerRef.current;
     if (!configured || !container || initializedRef.current) return;
 
-    const requestAd = () => {
+    let disposed = false;
+    let pending = false;
+    const requestAd = async () => {
       const { width, height } = container.getBoundingClientRect();
-      if (initializedRef.current || width < 120 || height < 50) return;
+      if (disposed || pending || initializedRef.current || width < 120 || height < 50 || !canRequestAd(container)) return;
 
+      pending = true;
       try {
+        await loadAdScript(AD_CLIENT!);
+        const currentSize = container.getBoundingClientRect();
+        if (disposed || !canRequestAd(container) || currentSize.width < 120 || currentSize.height < 50) return;
         window.adsbygoogle = window.adsbygoogle || [];
         window.adsbygoogle.push({});
         initializedRef.current = true;
       } catch {
         // Ad blockers and preview environments may reject the request.
+      } finally {
+        pending = false;
       }
     };
 
     requestAd();
     const observer = new ResizeObserver(requestAd);
     observer.observe(container);
-    return () => observer.disconnect();
-  }, [configured]);
+    return () => { disposed = true; observer.disconnect(); };
+  }, [configured, pathname]);
 
-  if (!enabled || (!configured && !SHOW_PLACEHOLDER)) return null;
+  if (!allowed || (!configured && !SHOW_PLACEHOLDER)) return null;
 
   return (
     <aside
       ref={containerRef}
+      data-ad-page={pathname}
+      data-ad-content={configured ? "true" : undefined}
       aria-label="광고"
       className={`min-w-0 ${configured ? "" : "grid place-items-center rounded-[var(--ui-card-radius)] bg-[var(--ui-ad-surface)] text-[12px] font-medium tracking-[.18em] text-[#96999f]"} ${className}`}
     >

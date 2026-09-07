@@ -1,3 +1,4 @@
+import { hasAdPostContent } from "@/lib/ads-policy";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
@@ -49,7 +50,7 @@ export default async function FanPostDetailPage({
   return (
     <main className="community-neutral fan-page-container flex flex-col gap-0 py-0 md:gap-5 md:py-9">
       <h1 className="sr-only">게시글</h1>
-      <CommunityContentLayout posts={posts} scope="team" teamSlug={teamSlug} currentPostId={post.id}>
+      <CommunityContentLayout adsEnabled={!post.blindedAt && !post.deletedAt && hasAdPostContent(post.content)} posts={posts} scope="team" teamSlug={teamSlug} currentPostId={post.id}>
         <PostView
           post={post}
           comments={comments}
