@@ -30,12 +30,8 @@ function BlockNode({ node, depth = 0 }: { node: TiptapNode; depth?: number }) {
   if (node.type === 'horizontalRule') return <View style={[styles.rule, { backgroundColor: theme.divider }]} />;
   if (node.type === 'image' || node.type === 'imageResize') {
     const src = typeof node.attrs?.src === 'string' ? resolveApiAssetUrl(node.attrs.src) : null;
-    const width = Number(node.attrs?.width ?? 0);
-    const height = Number(node.attrs?.height ?? 0);
-    const wrapperStyle = String(node.attrs?.wrapperStyle ?? '');
-    const alignItems = wrapperStyle.includes('center') ? 'center' : wrapperStyle.includes('flex-end') ? 'flex-end' : 'flex-start';
     if (!src) return null;
-    return <View style={[styles.imageRow, { alignItems }]}><Image accessibilityLabel={typeof node.attrs?.alt === 'string' ? node.attrs.alt : '게시글 이미지'} contentFit="contain" source={{ uri: src }} style={[styles.image, { aspectRatio: width > 0 && height > 0 ? width / height : 4 / 3, backgroundColor: theme.surfaceMuted, width: width > 0 ? width : '100%' }]} transition={180} /></View>;
+    return <PostImage node={node} src={src} />;
   }
   if (node.type === 'youtube') {
     const href = String(node.attrs?.src ?? node.attrs?.url ?? '');
@@ -51,6 +47,51 @@ function BlockNode({ node, depth = 0 }: { node: TiptapNode; depth?: number }) {
   }
   if (node.type === 'poll') return <PollNode node={node} />;
   return node.content?.length ? <View>{node.content.map((child, index) => <BlockNode depth={depth + 1} key={index} node={child} />)}</View> : null;
+}
+
+function PostImage({ node, src }: { node: TiptapNode; src: string }) {
+  const { theme } = useMinionTheme();
+  const requestedWidth = Number(node.attrs?.width ?? 0);
+  const requestedHeight = Number(node.attrs?.height ?? 0);
+  const wrapperStyle = String(node.attrs?.wrapperStyle ?? '');
+  const alignItems = wrapperStyle.includes('center') ? 'center' : wrapperStyle.includes('flex-end') ? 'flex-end' : 'flex-start';
+  const [availableWidth, setAvailableWidth] = useState(0);
+  const [loadedSize, setLoadedSize] = useState<{ height: number; src: string; width: number } | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    void Image.loadAsync(src)
+      .then(({ height, width }) => {
+        if (active && width > 0 && height > 0) setLoadedSize({ height, src, width });
+      })
+      .catch(() => undefined);
+    return () => { active = false; };
+  }, [src]);
+
+  const naturalSize = loadedSize?.src === src ? loadedSize : null;
+  const aspectRatio = requestedWidth > 0 && requestedHeight > 0
+    ? requestedWidth / requestedHeight
+    : naturalSize && naturalSize.width > 0 && naturalSize.height > 0
+      ? naturalSize.width / naturalSize.height
+      : 0;
+  const sourceWidth = requestedWidth > 0 ? requestedWidth : naturalSize?.width ?? 0;
+  const displayWidth = availableWidth > 0 && sourceWidth > 0 ? Math.min(sourceWidth, availableWidth) : 0;
+  const displayHeight = displayWidth > 0 && aspectRatio > 0 ? displayWidth / aspectRatio : 0;
+
+  return (
+    <View onLayout={(event) => setAvailableWidth(event.nativeEvent.layout.width)} style={[styles.imageRow, { alignItems }]}>
+      {displayWidth > 0 && displayHeight > 0 ? (
+        <Image
+          accessibilityLabel={typeof node.attrs?.alt === 'string' ? node.attrs.alt : '게시글 이미지'}
+          alt={typeof node.attrs?.alt === 'string' ? node.attrs.alt : '게시글 이미지'}
+          contentFit="contain"
+          source={{ uri: src }}
+          style={{ backgroundColor: theme.surfaceMuted, height: displayHeight, width: displayWidth }}
+          transition={180}
+        />
+      ) : null}
+    </View>
+  );
 }
 
 function youtubeVideoId(href: string) {
@@ -263,7 +304,6 @@ const styles = StyleSheet.create({
   codeBlock: { borderRadius: 8, marginVertical: 8, paddingHorizontal: 16, paddingVertical: 12 },
   rule: { height: 1, marginVertical: 16 },
   imageRow: { width: '100%' },
-  image: { maxHeight: 520, maxWidth: '100%' },
   youtube: { aspectRatio: 16 / 9, borderRadius: 10, marginVertical: 8, overflow: 'hidden', width: '100%' },
   youtubeLoading: { alignItems: 'center', justifyContent: 'center' },
   youtubeWebView: { backgroundColor: '#000', flex: 1 },

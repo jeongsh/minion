@@ -1528,6 +1528,7 @@ html[class~="dark"] .hub-home .home-calendar-shell {
   font-size: 0.9em;
 }
 .community-prose pre code { background: transparent; padding: 0; }
+.community-prose > div:has(> img) { max-width: 100%; }
 .community-prose img { display: block; margin: 0; max-width: 100%; height: auto; }
 .community-prose hr { border: 0; border-top: 1px solid var(--border); margin: 1rem 0; }
 .community-prose mark { color: inherit; }
