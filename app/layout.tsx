@@ -29,8 +29,8 @@ const themeInitScript = `
 })();
 `;
 
-const defaultTitle = "MINION | LCK";
-const defaultDescription = "LCK 경기 일정, 팀과 선수 기록, 팬 평가와 팬톡을 한곳에서 확인하세요.";
+const defaultTitle = "LCK 경기 일정·결과·팀과 선수 기록 | MINION";
+const defaultDescription = "LCK 경기 일정과 결과, 팀 순위와 선수 기록을 MINION에서 확인하세요. 경기별 팬 평가, 승부예측과 팬톡도 함께 즐길 수 있습니다.";
 
 export const metadata: Metadata = {
   title: defaultTitle,

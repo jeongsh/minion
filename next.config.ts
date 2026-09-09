@@ -2,6 +2,16 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["127.0.0.1", "10.0.2.2"],
+  async redirects() {
+    return [
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "www\\.minion\\.fan" }],
+        destination: "https://minion.fan/:path*",
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [
       {
