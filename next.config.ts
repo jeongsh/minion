@@ -19,7 +19,7 @@ const nextConfig: NextConfig = {
         headers: [
           { key: "Access-Control-Allow-Origin", value: "*" },
           { key: "Access-Control-Allow-Methods", value: "GET, HEAD, POST, PATCH, DELETE, OPTIONS" },
-          { key: "Access-Control-Allow-Headers", value: "Accept, Authorization, Content-Type, X-Minion-Installation-Id" },
+          { key: "Access-Control-Allow-Headers", value: "Accept, Authorization, Content-Type, X-Minion-Installation-Id, Cache-Control, Pragma" },
           { key: "Access-Control-Max-Age", value: "86400" },
         ],
       },

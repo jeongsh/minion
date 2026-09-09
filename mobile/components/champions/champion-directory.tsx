@@ -86,10 +86,10 @@ export function ChampionDirectory() {
     return () => clearTimeout(timeout);
   }, [query]);
   const path = useMemo(() => qs({ position, sort, q: committedQuery, season, tournament, patch }), [committedQuery, patch, position, season, sort, tournament]);
-  const { data, error, loading, refresh } = useCachedQuery<MobileChampionsDto>(path);
-  useEffect(() => {
-    if (!season && data?.scope.season) setSeason(String(data.scope.season));
-  }, [data?.scope.season, season]);
+  const { data, error, loading, refresh } = useCachedQuery<MobileChampionsDto>(path, { staleTimeMs: 30_000, cancelOnUnused: true });
+  // The response already contains the default season's data. Keep it separate
+  // from the requested filter so resolving that default does not fetch again.
+  const effectiveSeason = season || String(data?.scope.season ?? '');
 
   if (loading && !data) return <MinionScreen><DirectorySkeleton /></MinionScreen>;
   if (error && !data) return <MinionScreen><ErrorState onRetry={refresh} title={error} /></MinionScreen>;
@@ -99,10 +99,24 @@ export function ChampionDirectory() {
   const cellWidth = Math.floor((contentWidth - (columns - 1) * 8) / columns);
   const sortLabel = SORT_OPTIONS.find((option) => option.value === sort)?.label ?? '픽밴률순';
   const scope = data?.scope;
-  const detailQuery = qs({ season, tournament, patch }).replace('/api/mobile/v1/champions', '');
+  const detailQuery = qs({ season: effectiveSeason, tournament, patch }).replace('/api/mobile/v1/champions', '');
+  const rows = Array.from({ length: Math.ceil((data?.items.length ?? 0) / columns) }, (_, index) => data!.items.slice(index * columns, (index + 1) * columns));
 
   return (
-    <MinionScreen>
+    <MinionScreen virtualList={rows.length ? {
+      accessibilityLabel: '챔피언 목록',
+      data: rows,
+      initialNumToRender: 8,
+      keyExtractor: (row) => row.map((champion) => champion.id).join(':'),
+      maxToRenderPerBatch: 6,
+      rowGap: 8,
+      renderItem: ({ item: row }) => <View style={styles.virtualRow}>{row.map((champion) => (
+        <Pressable accessibilityRole="link" key={champion.id} onPress={() => router.push(`/champions/${champion.slug}${detailQuery}` as never)} style={({ pressed }) => [styles.champion, { width: cellWidth, backgroundColor: pressed ? theme.cardHover : 'transparent' }]}>
+          {champion.image?.url ? <Image accessibilityLabel={champion.name} contentFit="cover" source={{ uri: resolveApiAssetUrl(champion.image.url) ?? champion.image.url }} style={styles.face} transition={100} /> : <View style={[styles.face, { backgroundColor: theme.card }]} />}
+          <Text numberOfLines={1} style={{ color: theme.ink, ...fonts.medium, fontSize: 13, lineHeight: 18, maxWidth: cellWidth }}>{champion.name}</Text>
+        </Pressable>
+      ))}</View>,
+    } : undefined}>
       <View style={styles.page}>
         <View style={styles.topRow}>
           <Text style={{ color: theme.muted, ...fonts.medium, fontSize: 14, lineHeight: 20 }}>{data?.items.length ?? 0}개</Text>
@@ -121,23 +135,14 @@ export function ChampionDirectory() {
             <ChevronDown color={theme.muted} size={16} />
           </Pressable>
         </View>
-        {data?.items.length ? (
-          <View accessibilityLabel="챔피언 목록" style={styles.grid}>
-            {data.items.map((champion) => (
-              <Pressable accessibilityRole="link" key={champion.id} onPress={() => router.push(`/champions/${champion.slug}${detailQuery}` as never)} style={({ pressed }) => [styles.champion, { width: cellWidth, backgroundColor: pressed ? theme.cardHover : 'transparent' }]}>
-                {champion.image?.url ? <Image accessibilityLabel={champion.name} contentFit="cover" source={{ uri: resolveApiAssetUrl(champion.image.url) ?? champion.image.url }} style={styles.face} transition={100} /> : <View style={[styles.face, { backgroundColor: theme.card }]} />}
-                <Text numberOfLines={1} style={{ color: theme.ink, ...fonts.medium, fontSize: 13, lineHeight: 18, maxWidth: cellWidth }}>{champion.name}</Text>
-              </Pressable>
-            ))}
-          </View>
-        ) : (
+        {!data?.items.length ? (
           <View style={styles.empty}><Text style={{ color: theme.ink, ...fonts.medium, fontSize: 16, lineHeight: 24 }}>챔피언을 찾지 못했습니다.</Text><Text style={{ color: theme.muted, ...fonts.regular, fontSize: 14, lineHeight: 22, marginTop: 4 }}>필터나 검색어를 바꿔보세요.</Text></View>
-        )}
+        ) : null}
       </View>
       <BottomSheet contentStyle={styles.sheet} onClose={() => setFilterOpen(false)} open={filterOpen} scrollable title="챔피언 필터">
         <FilterSection label="포지션">{POSITION_OPTIONS.map((option) => <Choice active={position === option.value} key={option.value} label={option.label} onPress={() => setPosition(option.value)} />)}</FilterSection>
         {scope ? <>
-          <FilterSection label="시즌">{scope.seasons.map((value) => <Choice active={season === String(value)} key={value} label={String(value)} onPress={() => setSeason(String(value))} />)}</FilterSection>
+          <FilterSection label="시즌">{scope.seasons.map((value) => <Choice active={effectiveSeason === String(value)} key={value} label={String(value)} onPress={() => setSeason(String(value))} />)}</FilterSection>
           <FilterSection label="대회"><Choice active={tournament === 'all'} label="전체" onPress={() => setTournament('all')} />{scope.tournaments.map((option) => <Choice active={tournament === option.value} key={option.value} label={option.label} onPress={() => setTournament(option.value)} />)}</FilterSection>
           <FilterSection label="패치"><Choice active={patch === 'all'} label="전체" onPress={() => setPatch('all')} />{scope.patches.map((value) => <Choice active={patch === value} key={value} label={value} onPress={() => setPatch(value)} />)}</FilterSection>
         </> : null}
@@ -159,6 +164,7 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, fontSize: 14, height: 40, lineHeight: 20, minWidth: 0, padding: 0 },
   sortButton: { alignItems: 'center', borderRadius: 12, flexDirection: 'row', gap: 6, height: 40, justifyContent: 'space-between', paddingHorizontal: 11, width: 128 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  virtualRow: { flexDirection: 'row', gap: 8 },
   champion: { alignItems: 'center', borderRadius: 12, gap: 4, paddingBottom: 5, paddingTop: 4 },
   face: { borderRadius: 8, height: 48, width: 48 },
   empty: { alignItems: 'center', justifyContent: 'center', minHeight: 256, paddingHorizontal: 20 },

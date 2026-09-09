@@ -1,4 +1,5 @@
 import { useLocalSearchParams } from 'expo-router';
+import { useIsFocused } from '@react-navigation/native';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { type LayoutChangeEvent, StyleSheet, Text, View } from 'react-native';
 
@@ -17,17 +18,18 @@ import { SetTimelineSection } from '@/components/matches/set-timeline-section';
 import { MinionScreen } from '@/components/minion-screen';
 import { useCachedQuery } from '@/hooks/use-cached-query';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
-import { type MobileMatchDetailDto } from '@/lib/api-client';
+import { type MobileMatchTabDto } from '@/lib/api-client';
 import { useAuth } from '@/providers/auth-provider';
 
 const COLLAPSIBLE_HEADER_HEIGHT = 56;
 
 export default function MatchDetailScreen() {
   const { matchId, set: requestedSet, tab: requestedTab } = useLocalSearchParams<{ matchId: string; set?: string; tab?: string }>();
+  const isFocused = useIsFocused();
   const { loading: authLoading, session } = useAuth();
   const { fonts, theme } = useMinionTheme();
   const [selectedSetId, setSelectedSetId] = useState<string | null>(requestedSet ?? null);
-  const [activeTab, setActiveTab] = useState<MatchTabKey>(requestedTab === 'rating' ? 'rating' : 'data');
+  const [activeTab, setActiveTab] = useState<MatchTabKey>(['preview', 'rating', 'live', 'video'].includes(requestedTab ?? '') ? requestedTab as MatchTabKey : 'data');
   const [setSelectorLayout, setSetSelectorLayout] = useState<{ tab: MatchTabKey; threshold: number } | null>(null);
   const [setSelectorStuck, setSetSelectorStuck] = useState(false);
   const latestScroll = useRef({ headerVisible: true, y: 0 });
@@ -35,10 +37,10 @@ export default function MatchDetailScreen() {
 
   const path = useMemo(() => {
     const base = `/api/mobile/v1/matches/${encodeURIComponent(matchId ?? '')}`;
-    return selectedSetId ? `${base}?set=${encodeURIComponent(selectedSetId)}` : base;
-  }, [matchId, selectedSetId]);
+    return `${base}?tab=${activeTab}${selectedSetId ? `&set=${encodeURIComponent(selectedSetId)}` : ''}`;
+  }, [activeTab, matchId, selectedSetId]);
 
-  const { data, error, loading, refresh } = useCachedQuery<MobileMatchDetailDto>(path, { cache: !session, enabled: Boolean(matchId) && !authLoading });
+  const { data, error, loading, refresh } = useCachedQuery<MobileMatchTabDto>(path, { cache: 'memory', cacheScope: session?.user.id ?? 'guest', enabled: Boolean(matchId) && !authLoading && isFocused });
   const currentTab = data && data.sets.length === 0 && activeTab === 'data' ? 'preview' : activeTab;
 
   const updateSetSelectorStuck = useCallback((nextStuck: boolean) => {
@@ -104,7 +106,7 @@ export default function MatchDetailScreen() {
         <MatchTabNav activeTab={currentTab} availableTabs={availableTabs} onSelect={setActiveTab} />
       </View>
 
-      {currentTab === 'preview' ? <MatchPreviewTab data={data} /> : null}
+      {currentTab === 'preview' && data.preview ? <MatchPreviewTab data={{ ...data, preview: data.preview }} /> : null}
 
       {currentTab === 'live' ? <LiveMatchFeed matchId={data.match.id} teamA={data.match.teamA} teamB={data.match.teamB} /> : null}
 

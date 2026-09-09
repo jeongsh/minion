@@ -119,7 +119,7 @@ function FilterSheet({ children, onClose, open }: { children: React.ReactNode; o
 }
 
 export function PlayerDirectory() {
-  const { data, error, loading, refresh } = useCachedQuery<MobilePlayersDto>('/api/mobile/v1/players');
+  const { data, error, loading, refresh } = useCachedQuery<MobilePlayersDto>('/api/mobile/v1/players', { staleTimeMs: 30_000 });
   const { fonts, theme } = useMinionTheme();
   const [division, setDivision] = useState<Division>('first');
   const [teamId, setTeamId] = useState('all');
@@ -145,8 +145,17 @@ export function PlayerDirectory() {
   if (error && !data) return <MinionScreen><ErrorState onRetry={refresh} title={error} /></MinionScreen>;
 
   const filters = <PlayerFilters position={position} setPosition={setPosition} setTeamId={setTeamId} teamId={teamId} teams={teams} />;
+  const rows = Array.from({ length: Math.ceil(sortedVisible.length / 2) }, (_, index) => sortedVisible.slice(index * 2, index * 2 + 2));
   return (
-    <MinionScreen>
+    <MinionScreen virtualList={rows.length ? {
+      accessibilityLabel: '선수 목록',
+      data: rows,
+      initialNumToRender: 3,
+      keyExtractor: (row) => row.map((player) => player.id).join(':'),
+      maxToRenderPerBatch: 3,
+      rowGap: 10,
+      renderItem: ({ item: row }) => <View style={styles.virtualRow}>{row.map((player) => <PlayerCard key={player.id} player={player} team={player.teamId ? teamMap.get(player.teamId) : undefined} />)}</View>,
+    } : undefined}>
       <View style={styles.page}>
         <View style={[styles.divisionShell, { backgroundColor: theme.card }]}>
           {([['first', '1군'], ['challengers', '2군']] as const).map(([value, label]) => {
@@ -161,15 +170,13 @@ export function PlayerDirectory() {
             <Text style={{ color: theme.ink, ...fonts.black, fontSize: 14, lineHeight: 20 }}>필터</Text>
           </Pressable>
         </View>
-        {sortedVisible.length ? (
-          <View accessibilityLabel="선수 목록" style={styles.grid}>{sortedVisible.map((player) => <PlayerCard key={player.id} player={player} team={player.teamId ? teamMap.get(player.teamId) : undefined} />)}</View>
-        ) : (
+        {!sortedVisible.length ? (
           <View style={[styles.empty, { borderColor: theme.border }]}>
             <Image contentFit="contain" source={require('@/assets/characters/pen-4.png')} style={styles.emptyImage} />
             <Text style={{ color: theme.ink, ...fonts.display, fontSize: 17 }}>이 조합엔 선수가 숨어있어요</Text>
             <Text style={{ color: theme.muted, ...fonts.regular, fontSize: 14, lineHeight: 24, marginTop: 6 }}>팀이나 포지션 필터를 살짝 바꿔보세요.</Text>
           </View>
-        )}
+        ) : null}
       </View>
       <FilterSheet onClose={() => setFilterOpen(false)} open={filterOpen}>{filters}</FilterSheet>
     </MinionScreen>
@@ -183,6 +190,7 @@ const styles = StyleSheet.create({
   mobileFilterRow: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16, marginTop: 16, minHeight: 44 },
   filterTrigger: { alignItems: 'center', borderRadius: 12, borderWidth: 1, flexDirection: 'row', gap: 8, minHeight: 44, paddingHorizontal: 12 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  virtualRow: { flexDirection: 'row', gap: 10 },
   card: { borderRadius: 16, borderWidth: 1, overflow: 'hidden', width: '48.6%' },
   cardImage: { aspectRatio: 4 / 5, overflow: 'hidden', position: 'relative', width: '100%' },
   fallback: { alignItems: 'center', flex: 1, justifyContent: 'center' },

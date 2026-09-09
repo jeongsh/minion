@@ -1,14 +1,16 @@
 import { Image } from 'expo-image';
+import { useIsFocused } from '@react-navigation/native';
 import RefreshCw from 'lucide-react-native/icons/refresh-cw';
 import Sword from 'lucide-react-native/icons/sword';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { TeamLogo } from '@/components/data/team-logo';
 import { ObjectiveIcon } from '@/components/matches/objective-icon';
 import { OBJECTIVE_ICON_PATHS } from '@/constants/objective-icons';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
-import { fetchMobileApi, type MobileTeamSummary } from '@/lib/api-client';
+import { type MobileTeamSummary } from '@/lib/api-client';
+import { subscribeLiveMatch } from '@/lib/live-match-polling';
 
 type LiveEvent = { id: string; time: number; type: 'kill' | 'tower' | 'baron' | 'inhibitor' | 'dragon' | 'end'; teamId: string | null; killerSummonerName: string | null; killerChampionId: string | null; victimSummonerName: string | null; victimChampionId: string | null; dragonType: string | null };
 type LiveResponse = { status: 'not_found' | 'unavailable' | 'not_started' | 'ended' | 'live'; events?: LiveEvent[]; durationSeconds?: number | null };
@@ -84,27 +86,28 @@ function EventContent({ event, teamA, teamB }: { event: LiveEvent; teamA: Mobile
 }
 
 export function LiveMatchFeed({ matchId, teamA, teamB }: { matchId: string; teamA: MobileTeamSummary | null; teamB: MobileTeamSummary | null }) {
+  const focused = useIsFocused();
   const { fonts, theme } = useMinionTheme();
   const [data, setData] = useState<LiveResponse>({ status: 'unavailable' });
   const [loading, setLoading] = useState(true);
-  const load = useCallback(async () => {
-    setLoading(true);
-    try { setData(await fetchMobileApi<LiveResponse>(`/api/mobile/v1/matches/${encodeURIComponent(matchId)}/live`)); }
-    catch { setData({ status: 'unavailable' }); }
-    finally { setLoading(false); }
-  }, [matchId]);
+  const subscription = useRef<ReturnType<typeof subscribeLiveMatch> | null>(null);
   useEffect(() => {
-    void load();
-    const timer = setInterval(() => { void load(); }, 10_000);
-    return () => clearInterval(timer);
-  }, [load]);
+    if (!focused) return;
+    const current = subscribeLiveMatch<LiveResponse>(matchId, {
+      onData: setData,
+      onError: () => setData({ status: 'unavailable' }),
+      onLoading: setLoading,
+    });
+    subscription.current = current;
+    return () => { current.unsubscribe(); subscription.current = null; };
+  }, [focused, matchId]);
   const status = loading && !data.events ? 'loading' : data.status;
   const events = data.events ?? [];
   return (
     <View accessibilityLabel="실시간 경기 피드">
       <View style={styles.header}>
         {status === 'live' ? <View style={styles.liveLabel}><View style={[styles.liveDot, { backgroundColor: theme.accent }]} /><Text style={{ color: theme.ink, ...fonts.medium, fontSize: 12 }}>LIVE</Text></View> : <Text style={{ color: theme.muted, ...fonts.medium, fontSize: 13 }}>{statusText(status)}</Text>}
-        <View style={styles.headerActions}>{status === 'live' ? <Text style={{ color: theme.muted, ...fonts.medium, fontSize: 12 }}>{clock(data.durationSeconds)}</Text> : null}<Pressable accessibilityLabel="새로고침" disabled={loading} onPress={() => void load()} style={styles.refresh}><RefreshCw color={theme.muted} size={16} /></Pressable></View>
+        <View style={styles.headerActions}>{status === 'live' ? <Text style={{ color: theme.muted, ...fonts.medium, fontSize: 12 }}>{clock(data.durationSeconds)}</Text> : null}<Pressable accessibilityLabel="새로고침" disabled={loading} onPress={() => void subscription.current?.refresh()} style={styles.refresh}><RefreshCw color={theme.muted} size={16} /></Pressable></View>
       </View>
       {events.length === 0 ? <View style={[styles.empty, { backgroundColor: theme.card }]}><Text style={{ color: theme.muted, ...fonts.regular, fontSize: 13 }}>{status === 'live' ? '곧 새 소식이 올라옵니다...' : '아직 표시할 이벤트가 없습니다.'}</Text></View> : <View style={styles.timeline}><View pointerEvents="none" style={[styles.timelineLine, { backgroundColor: theme.accent }]} />{events.map((event, index) => <View key={event.id} style={[styles.eventRow, { backgroundColor: theme.card }]}><TimelineMarker latest={index === 0} /><Text style={{ color: theme.muted, ...fonts.medium, fontSize: 12, width: 40 }}>{clock(event.time)}</Text><EventContent event={event} teamA={teamA} teamB={teamB} /></View>)}</View>}
     </View>

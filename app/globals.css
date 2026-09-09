@@ -214,10 +214,6 @@ html[data-navigation-pending="true"] body {
   }
 }
 
-html[data-navigation-pending="true"] :is(a, button, input, select, textarea, [role="button"], [role="tab"]) {
-  pointer-events: none !important;
-}
-
 .navigation-progress-track {
   position: fixed;
   inset: 0 0 auto;
@@ -1494,6 +1490,8 @@ html[class~="dark"] .hub-home .home-calendar-shell {
 
 /* 커뮤니티 에디터 / 본문 뷰어 공용 스타일 (typography 플러그인 미사용). */
 .community-prose {
+  /* Read-only posts render on the server without Tiptap's injected stylesheet. */
+  white-space: break-spaces;
   color: var(--foreground);
   word-break: break-word;
 }
@@ -1515,6 +1513,7 @@ html[class~="dark"] .hub-home .home-calendar-shell {
 }
 .community-prose a { color: var(--accent); text-decoration: underline; }
 .community-prose pre {
+  white-space: pre-wrap;
   background: var(--surface-muted);
   border-radius: var(--radius);
   padding: 0.75rem 1rem;

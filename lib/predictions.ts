@@ -54,6 +54,7 @@ export const getPredictionMarketData = cache(async function getPredictionMarketD
   userId?: string,
   matchId?: string,
   matchIds?: string[],
+  includeRankings = true,
 ) {
   const supabase = createSupabaseServerClient();
   let betsQuery = supabase
@@ -64,7 +65,7 @@ export const getPredictionMarketData = cache(async function getPredictionMarketD
 
   const [betsResult, rankingsResult, walletResult] = await Promise.all([
     betsQuery,
-    matchId
+    matchId || !includeRankings
       ? Promise.resolve({ data: [], error: null })
       : supabase
           .from("prediction_rankings")

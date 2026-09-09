@@ -15,9 +15,19 @@ export function RailAdContent({ enabled }: { enabled: boolean }) {
 
   useEffect(() => {
     if (!allowed || !marker.current || !canRequestAd(marker.current)) return;
-    void loadAdScript(AD_CLIENT!).catch(() => {
-      // Ad blockers may reject the script; content remains usable.
-    });
+    // The site's Auto ads configuration enables desktop side rails only.
+    // Loading that runtime on phones provides no rail placement but would
+    // force full-document navigation through AdDocumentBoundary afterwards.
+    const desktop = window.matchMedia("(min-width: 1200px) and (hover: hover)");
+    const requestRails = () => {
+      if (!desktop.matches || !marker.current || !canRequestAd(marker.current)) return;
+      void loadAdScript(AD_CLIENT!).catch(() => {
+        // Ad blockers may reject the script; content remains usable.
+      });
+    };
+    requestRails();
+    desktop.addEventListener("change", requestRails);
+    return () => desktop.removeEventListener("change", requestRails);
   }, [allowed, pathname]);
 
   return allowed ? <span ref={marker} hidden data-ad-page={pathname} data-ad-content="true" /> : null;

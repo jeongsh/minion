@@ -12,11 +12,11 @@ import {
   type MobileNotificationPreferences,
 } from '@/lib/api-client';
 import { subscribeToForegroundPushNotifications, subscribeToPushNotificationResponses } from '@/lib/push-notifications';
+import { subscribeLiveMatch } from '@/lib/live-match-polling';
 import { useAuth } from '@/providers/auth-provider';
 import type { MatchEventToast } from '@/providers/minion-shell-provider';
 
 const ACTIVITY_POLL_MS = 30_000;
-const LIVE_EVENT_POLL_MS = 10_000;
 const MEMBER_NOTIFICATION_POLL_MS = 60_000;
 const GUEST_NOTIFICATION_POLL_MS = 5 * 60_000;
 const LEGACY_NOTIFICATION_STORAGE_KEY = 'minion-notifications-v1';
@@ -368,30 +368,18 @@ export function InAppNotificationsProvider({ children }: PropsWithChildren) {
     };
   }, [hydrated, publishNotification, userId]);
 
+  const liveMatchIds = useMemo(() => {
+    if (!activity?.notificationPreferences.inAppEnabled) return '[]';
+    const teamIds = new Set(activity.teamNotificationSettings.filter((setting) => setting.liveMatchAlertsEnabled).map((setting) => setting.teamId));
+    return JSON.stringify(activity.liveMatches.filter((match) => teamIds.has(match.teamA.id) || teamIds.has(match.teamB.id)).map((match) => match.id).sort());
+  }, [activity]);
   useEffect(() => {
-    if (!hydrated || !userId || !activity?.notificationPreferences.inAppEnabled || activity.liveMatches.length === 0) return;
-    const liveMatchAlertTeamIds = new Set(activity.teamNotificationSettings.filter((setting) => setting.liveMatchAlertsEnabled).map((setting) => setting.teamId));
-    const liveMatches = activity.liveMatches.filter((match) => liveMatchAlertTeamIds.has(match.teamA.id) || liveMatchAlertTeamIds.has(match.teamB.id));
-    if (liveMatches.length === 0) return;
-    const pollEvents = async () => {
-      await Promise.all(liveMatches.map(async (match) => {
-        try {
-          // 이 요청이 서버의 신규 이벤트 감지와 모바일 푸시 발송을 트리거한다.
-          // 앱 UI에는 응답 이벤트를 복제하지 않는다.
-          await fetchMobileApi<unknown>(`/api/mobile/v1/matches/${encodeURIComponent(match.id)}/live`);
-        } catch {
-          // 라이브 피드가 잠시 끊겨도 다음 폴링에서 이어 받는다.
-        }
-      }));
-    };
-    void pollEvents();
-    const interval = setInterval(() => {
-      if (AppState.currentState === 'active') void pollEvents();
-    }, LIVE_EVENT_POLL_MS);
-    return () => {
-      clearInterval(interval);
-    };
-  }, [activity, hydrated, userId]);
+    if (!hydrated || !userId) return;
+    // Preserve server event detection / push delivery while sharing the same
+    // foreground poll with any visible feed. Unchanged IDs keep their cadence.
+    const subscriptions = (JSON.parse(liveMatchIds) as string[]).map((matchId) => subscribeLiveMatch(matchId));
+    return () => subscriptions.forEach((subscription) => subscription.unsubscribe());
+  }, [hydrated, liveMatchIds, userId]);
 
   const markNotificationRead = useCallback((id: string) => {
     if (id.startsWith('community:') || id.startsWith('content:')) {

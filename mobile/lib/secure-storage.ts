@@ -37,7 +37,17 @@ export const secureSessionStorage = {
   },
 };
 
-export async function getInstallationId() {
+let installationIdPromise: Promise<string> | undefined;
+
+export function getInstallationId(): Promise<string> {
+  installationIdPromise ??= readOrCreateInstallationId().catch((error) => {
+    installationIdPromise = undefined;
+    throw error;
+  });
+  return installationIdPromise;
+}
+
+async function readOrCreateInstallationId() {
   if (isSsr) return 'server-render';
   const existing = Platform.OS === 'web'
     ? await AsyncStorage.getItem(INSTALLATION_ID_KEY)

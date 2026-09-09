@@ -28,8 +28,6 @@ async function jsonBody(request: Request) {
 }
 
 export async function GET(request: Request) {
-  const auth = await getMobileAuth(request);
-
   const now = Date.now();
   const DAY_MS = 1000 * 60 * 60 * 24;
   const windowStart = now - DAY_MS * 7;
@@ -39,9 +37,10 @@ export async function GET(request: Request) {
   const rangeStartIso = new Date(Math.floor((windowStart - DAY_MS) / DAY_MS) * DAY_MS).toISOString();
   const rangeEndIso = new Date(Math.ceil((windowEnd + DAY_MS) / DAY_MS) * DAY_MS).toISOString();
 
-  const [matches, teams] = await Promise.all([
+  const [matches, teams, auth] = await Promise.all([
     getMatchesInRange(rangeStartIso, rangeEndIso),
     getAllTeams(),
+    getMobileAuth(request),
   ]);
   const teamMap = new Map(teams.map((team) => [team.id, team]));
 
@@ -53,6 +52,7 @@ export async function GET(request: Request) {
     auth?.user.id,
     undefined,
     visibleMatches.map((match) => match.id),
+    false,
   );
 
   const data: MobilePredictionsDto = {

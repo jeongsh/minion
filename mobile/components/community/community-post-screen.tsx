@@ -1,4 +1,5 @@
 import { Image } from 'expo-image';
+import { useIsFocused } from '@react-navigation/native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import ChevronDown from 'lucide-react-native/icons/chevron-down';
 import ChevronUp from 'lucide-react-native/icons/chevron-up';
@@ -27,6 +28,7 @@ import type { MobileCommunityActionDto, MobileCommunityAuthor, MobileCommunityCo
 import { invalidateApiCache, mutateMobileApi, resolveApiAssetUrl } from '@/lib/api-client';
 import { fanAccentText } from '@/lib/fan-colors';
 import { useCachedQuery } from '@/hooks/use-cached-query';
+import { useAuth } from '@/providers/auth-provider';
 import { CommunityPostContent } from './community-post-content';
 import { CommunityAuthor, GuestAvatar } from './community-author';
 import { COMMENT_MAX_LENGTH, displayAuthor, formatCommunityDate, type CommunityScope } from './community-utils';
@@ -37,6 +39,8 @@ type ReportTarget = { target: 'post' | 'comment'; targetId: string };
 export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope }) {
   const params = useLocalSearchParams<{ postId: string; team?: string | string[] }>();
   const { postId } = params;
+  const isFocused = useIsFocused();
+  const { loading: authLoading, session } = useAuth();
   const teamSlug = Array.isArray(params.team) ? params.team[0] : params.team;
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -45,7 +49,7 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
   const accent = team ? fanAccentText(team.primaryColor) : theme.accent;
   const basePath = teamSlug && scope === 'team' ? `/fan/${teamSlug}/community` : '/community';
   const path = `/api/mobile/v1/community/posts/${encodeURIComponent(postId ?? '')}${teamSlug && scope === 'team' ? `?team=${encodeURIComponent(teamSlug)}` : ''}`;
-  const { data, error, loading, refresh } = useCachedQuery<MobileCommunityPostDetailDto>(path, { cache: false, enabled: Boolean(postId) });
+  const { data, error, loading, refresh } = useCachedQuery<MobileCommunityPostDetailDto>(path, { cache: 'memory', cacheScope: session?.user.id ?? 'guest', enabled: Boolean(postId) && !authLoading && isFocused });
   const scrollRef = useRef<ScrollView>(null);
   const [comment, setComment] = useState('');
   const [replyTo, setReplyTo] = useState<MobileCommunityComment | null>(null);
@@ -97,7 +101,6 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
   const refreshCommunityData = () => {
     void invalidateApiCache('/api/mobile/v1/community/posts');
     void invalidateApiCache('/api/mobile/v1/home');
-    refresh();
   };
 
   const react = async (target: 'post' | 'comment', targetId: string, kind: 'honor' | 'dislike') => {
@@ -196,7 +199,7 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
     ]);
   };
 
-  if (loading && !data) return <CommunityPostLoadingState headerTitle={team?.shortName ?? 'LCK'} onClose={() => router.replace(basePath as never)} />;
+  if ((authLoading || loading) && !data) return <CommunityPostLoadingState headerTitle={team?.shortName ?? 'LCK'} onClose={() => router.replace(basePath as never)} />;
   if (error && !data) return <FocusState><ErrorState onRetry={refresh} title={error} /></FocusState>;
   if (!data) return <FocusState><ErrorState onRetry={refresh} /></FocusState>;
 

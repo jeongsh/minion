@@ -6,7 +6,7 @@ import { createContext, type PropsWithChildren, useCallback, useContext, useEffe
 import { AppState, Platform } from 'react-native';
 
 import type { MobileBootstrapDto } from '../../packages/contracts/src/mobile-v1';
-import { fetchMobileApi, mobileApiOrigin } from '@/lib/api-client';
+import { clearApiMemoryCache, fetchMobileApi, mobileApiOrigin, resetApiSessionRead } from '@/lib/api-client';
 import { syncPushTokenIfAuthorized, unregisterPushToken } from '@/lib/push-notifications';
 import { getInstallationId, setAuthReturnTo, takeAuthReturnTo } from '@/lib/secure-storage';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
@@ -88,11 +88,15 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const [session, setSession] = useState<Session | null>(null);
   const [viewer, setViewer] = useState<Viewer | null>(null);
   const handledUrls = useRef(new Set<string>());
+  const cacheUserId = useRef<string | null>(null);
 
   const refreshViewer = useCallback(async () => {
+    const requestedUserId = cacheUserId.current;
+    if (!requestedUserId) return;
     try {
       const bootstrap = await fetchMobileApi<MobileBootstrapDto>('/api/mobile/v1/bootstrap');
-      if (bootstrap.viewer) {
+      if (cacheUserId.current !== requestedUserId) return;
+      if (bootstrap.viewer?.id === requestedUserId) {
         setViewer(bootstrap.viewer);
         return;
       }
@@ -103,7 +107,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
     try {
       const directViewer = await readViewerFromSupabase();
-      if (directViewer) setViewer(directViewer);
+      if (directViewer?.id === requestedUserId && cacheUserId.current === requestedUserId) setViewer(directViewer);
     } catch {
       // Keep the last known profile during a transient network failure.
     }
@@ -152,6 +156,13 @@ export function AuthProvider({ children }: PropsWithChildren) {
       } else supabase.auth.stopAutoRefresh();
     });
     const auth = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      resetApiSessionRead();
+      const nextUserId = nextSession?.user.id ?? null;
+      if (cacheUserId.current !== nextUserId) {
+        cacheUserId.current = nextUserId;
+        setViewer(null);
+        clearApiMemoryCache();
+      }
       setSession(nextSession);
       if (!nextSession) setViewer(null);
     });
@@ -159,12 +170,13 @@ export function AuthProvider({ children }: PropsWithChildren) {
     const links = Linking.addEventListener('url', ({ url }) => { void handleCallback(url).catch(reportCallbackError); });
     void supabase.auth.getSession().then(async ({ data }) => {
       setSession(data.session);
+      // Route queries need the session; profile and push setup can finish later.
+      setLoading(false);
       if (data.session) {
         await refreshViewer();
         void syncPushTokenIfAuthorized();
       }
-      setLoading(false);
-    });
+    }).catch(() => { setLoading(false); });
     void Linking.getInitialURL().then((url) => { if (url?.includes('/auth/callback')) void handleCallback(url).catch(reportCallbackError); });
     return () => { appState.remove(); auth.data.subscription.unsubscribe(); links.remove(); };
   }, [handleCallback, refreshViewer, router]);

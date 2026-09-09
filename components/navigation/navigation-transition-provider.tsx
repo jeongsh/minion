@@ -20,7 +20,6 @@ type NavigationTransitionContextValue = {
 
 const NavigationTransitionContext = createContext<NavigationTransitionContextValue | null>(null);
 const PAGE_READY_TIMEOUT_MS = 15_000;
-const PAGE_READY_QUIET_MS = 120;
 const PAGE_READY_POLL_MS = 50;
 
 function waitForDelay(milliseconds: number) {
@@ -31,44 +30,16 @@ function waitForFrame() {
   return new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
 }
 
-async function waitForPageReady() {
+async function waitForPageReady(isCurrent: () => boolean) {
   const deadline = Date.now() + PAGE_READY_TIMEOUT_MS;
-  let lastMutationAt = performance.now();
+  await waitForFrame();
+  await waitForFrame();
 
-  const observer = new MutationObserver(() => {
-    lastMutationAt = performance.now();
-  });
-
-  observer.observe(document.body, {
-    childList: true,
-    subtree: true,
-    attributes: true,
-    attributeFilter: ["class", "data-page-readiness"],
-  });
-
-  try {
-    await waitForFrame();
-    await waitForFrame();
-
-    while (Date.now() < deadline) {
-      await waitForFrame();
-
-      const hasRouteFallback = Boolean(document.querySelector('[data-route-loading="true"]'));
-      const hasPendingClientWidget = Boolean(
-        document.querySelector('[data-page-readiness="pending"]'),
-      );
-      const isDomQuiet = performance.now() - lastMutationAt >= PAGE_READY_QUIET_MS;
-
-      // 이미지와 영상은 각자의 자리에서 점진적으로 표시한다. 페이지 전환은
-      // 라우트 데이터와 명시적인 클라이언트 위젯만 준비되면 끝낸다.
-      if (!hasRouteFallback && !hasPendingClientWidget && isDomQuiet) {
-        return;
-      }
-
-      await waitForDelay(Math.min(PAGE_READY_POLL_MS, Math.max(0, deadline - Date.now())));
-    }
-  } finally {
-    observer.disconnect();
+  // The committed route's skeleton is the readiness boundary. Ads, carousels,
+  // images and live widgets can update indefinitely after content is usable.
+  while (isCurrent() && Date.now() < deadline) {
+    if (!document.querySelector('[data-route-loading="true"]')) return;
+    await waitForDelay(PAGE_READY_POLL_MS);
   }
 }
 
@@ -127,7 +98,7 @@ export function NavigationTransitionProvider({ children }: { children: React.Rea
   const completeNavigationWhenReady = useCallback(async () => {
     const runId = readinessRunRef.current + 1;
     readinessRunRef.current = runId;
-    await waitForPageReady();
+    await waitForPageReady(() => readinessRunRef.current === runId);
 
     if (readinessRunRef.current === runId) {
       completeNavigation();
@@ -214,6 +185,7 @@ export function NavigationTransitionProvider({ children }: { children: React.Rea
     window.addEventListener("popstate", handlePopState);
 
     return () => {
+      readinessRunRef.current += 1;
       document.removeEventListener("click", handleClick, true);
       window.removeEventListener("popstate", handlePopState);
       navigatingRef.current = false;

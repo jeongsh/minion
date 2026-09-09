@@ -1,4 +1,4 @@
-import type { MobileMatchDetailDto, MobileSetDetail } from "@/packages/contracts/src/mobile-v1";
+import type { MobileMatchDetailDto, MobileMatchTabDto, MobileSetDetail } from "@/packages/contracts/src/mobile-v1";
 import {
   getAllTeams,
   getAllPlayers,
@@ -76,21 +76,28 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: Request, context: { params: Promise<{ matchId: string }> }) {
   const { matchId } = await context.params;
-  const requestedSetId = new URL(request.url).searchParams.get("set");
-  const [match, auth] = await Promise.all([getMatchById(matchId), getMobileAuth(request)]);
+  const url = new URL(request.url);
+  const query = url.searchParams;
+  const requestedSetId = query.get("set");
+  const requestedTab = query.get("tab");
+  const full = !requestedTab || !["data", "preview", "rating", "live", "video"].includes(requestedTab);
+  const [match, auth, sets] = await Promise.all([getMatchById(matchId), getMobileAuth(request), getSetsByMatchId(matchId)]);
   if (!match) return mobileError("NOT_FOUND", "경기를 찾을 수 없습니다.", 404);
+  const includePreview = full || requestedTab === "preview" || (requestedTab === "data" && sets.length === 0);
+  const includeData = full || requestedTab === "data";
+  const includeRating = full || requestedTab === "rating";
+  const includeVideo = full || requestedTab === "video";
 
-  const [teams, players, tournaments, stages, sets, vods, fanRatings, predictionData, allMatches, allSets] = await Promise.all([
+  const [teams, players, tournaments, stages, vods, fanRatings, predictionData, allMatches, allSets] = await Promise.all([
     getAllTeams(),
     getAllPlayers(),
     getTournaments(),
     getStages(),
-    getSetsByMatchId(match.id),
-    getMatchVodsByMatchId(match.id),
-    getFanRatingsByMatchId(match.id),
-    getPredictionMarketData(undefined, match.id),
-    getMatches(),
-    getSets(),
+    includeVideo ? getMatchVodsByMatchId(match.id) : [],
+    includeRating ? getFanRatingsByMatchId(match.id) : [],
+    includePreview ? getPredictionMarketData(undefined, match.id) : { bets: [] },
+    includePreview ? getMatches() : [],
+    includePreview ? getSets() : [],
   ]);
   const teamMap = new Map(teams.map((team) => [team.id, team]));
   const tournamentMap = new Map(tournaments.map((tournament) => [tournament.id, tournament]));
@@ -110,23 +117,24 @@ export async function GET(request: Request, context: { params: Promise<{ matchId
     .slice(0, 5);
   const teamAMetrics = recentSetMetrics(allSets, priorMatches, match.teamAId);
   const teamBMetrics = recentSetMetrics(allSets, priorMatches, match.teamBId);
-  const aiPreview = await getMatchAiPreview({ match, tournament, teams, matches: allMatches, sets: allSets, tournaments });
+  const aiPreviewPromise = includePreview ? getMatchAiPreview({ match, tournament, teams, matches: allMatches, sets: allSets, tournaments }) : Promise.resolve(null);
   const prediction = predictionMarketForMatch(predictionData.bets, match.id, match.teamAId, match.teamBId);
 
   let activeSet: MobileSetDetail | null = null;
   let fanRating: MobileMatchDetailDto["fanRating"] = null;
   const detailPlayerIds = new Set<string>();
-  if (defaultSet) {
-    const [picksBans, statLines, timelineEvents, timelineFrames, champions] = await Promise.all([
-      getSetPicksBans(defaultSet.id),
-      getPlayerStatLines(defaultSet.id),
-      getTimelineEvents(defaultSet.id),
-      getTimelineFrames(defaultSet.id),
-      getChampions(),
-    ]);
+  if (defaultSet && (includeData || includeRating)) {
     const itemVersion = ddragonVersionFromPatch(defaultSet.patch);
+    const [picksBans, statLines, timelineEvents, timelineFrames, champions, spells, runeCatalog] = await Promise.all([
+      includeData ? getSetPicksBans(defaultSet.id) : [],
+      getPlayerStatLines(defaultSet.id),
+      includeData ? getTimelineEvents(defaultSet.id) : [],
+      includeData ? getTimelineFrames(defaultSet.id) : [],
+      getChampions(),
+      includeData ? fetchSpellCatalog(itemVersion) : [],
+      includeData ? fetchRuneCatalog(itemVersion) : null,
+    ]);
     statLines.forEach((line) => detailPlayerIds.add(line.playerId));
-    const [spells, runeCatalog] = await Promise.all([fetchSpellCatalog(itemVersion), fetchRuneCatalog(itemVersion)]);
     const teamFor = (id: string): Team | undefined => teamMap.get(id);
     const blueLines = statLines.filter((line) => line.teamId === defaultSet.blueTeamId);
     const redLines = statLines.filter((line) => line.teamId === defaultSet.redTeamId);
@@ -135,7 +143,7 @@ export async function GET(request: Request, context: { params: Promise<{ matchId
     const banItems = (side: "blue" | "red") =>
       picksBans.filter((item) => item.side === side && item.actionType === "ban");
 
-    activeSet = {
+    if (includeData && runeCatalog) activeSet = {
       blueGold: defaultSet.blueGold,
       blueKills,
       blueObjectives: toMobileObjectiveCounts(defaultSet, "blue"),
@@ -173,7 +181,7 @@ export async function GET(request: Request, context: { params: Promise<{ matchId
       if (a.teamId !== b.teamId) return a.teamId === defaultSet.blueTeamId ? -1 : 1;
       return (POSITION_ORDER.get(a.position) ?? 99) - (POSITION_ORDER.get(b.position) ?? 99);
     });
-    fanRating = {
+    if (includeRating) fanRating = {
       comments: setRatings
         .filter((rating) => rating.review)
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
@@ -220,7 +228,8 @@ export async function GET(request: Request, context: { params: Promise<{ matchId
     };
   }
 
-  const data: MobileMatchDetailDto = {
+  const aiPreview = await aiPreviewPromise;
+  const data: MobileMatchTabDto = {
     activeSet,
     activeSetId: defaultSet?.id ?? null,
     fanRating,
@@ -239,7 +248,7 @@ export async function GET(request: Request, context: { params: Promise<{ matchId
     players: players
       .filter((player) => detailPlayerIds.has(player.id) || player.id === match.officialPomPlayerId)
       .map((player) => ({ id: player.id, name: player.name, position: player.position, profileImage: player.profileImageUrl ? { url: player.profileImageUrl } : null, slug: player.slug, teamId: player.teamId })),
-    preview: {
+    preview: aiPreview ? {
       ai: {
         generatedAt: aiPreview.generatedAt,
         generationPhase: aiPreview.generationPhase,
@@ -283,7 +292,7 @@ export async function GET(request: Request, context: { params: Promise<{ matchId
         teamBOdds: prediction.teamBOdds,
         teamBPercent: prediction.teamBPercent,
       },
-    },
+    } : null,
     sets: sets.map((set) => ({ durationSeconds: set.durationSeconds, id: set.id, setNumber: set.setNumber, status: set.status, winnerTeamId: set.winnerTeamId })),
     vods: vods.map((vod, index) => ({ channelName: vod.provider, embedUrl: vod.embedUrl ?? null, id: `${match.id}-${vod.setNumber}-${index}`, publishedAt: null, thumbnail: vod.thumbnailUrl ? { url: vod.thumbnailUrl } : null, title: `${vod.setNumber}세트 다시보기`, url: vod.url })),
   };

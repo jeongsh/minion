@@ -8,7 +8,7 @@ import type {
 import { extractPlainText } from "@/lib/community/extract-thumbnail";
 import { selectBestComments } from "@/lib/community/best-comments";
 import { getGuestPostAttachmentError } from "@/lib/community/limits";
-import { getIpKeyFromHeaders } from "@/lib/community/guest-identity";
+import { getIpKeyFromHeaders, getMobileGuestIdentity } from "@/lib/community/guest-identity";
 import {
   deletePost,
   getPostById,
@@ -50,32 +50,37 @@ type Context = { params: Promise<{ postId: string }> };
 
 export async function GET(request: Request, context: Context) {
   const { postId } = await context.params;
-  const actor = await getMobileCommunityActor(request).catch(() => null);
-  if (!actor) return mobileError("BAD_REQUEST", "비회원 ID를 확인하지 못했습니다.", 400);
-  const viewerIpKey = getIpKeyFromHeaders(request.headers);
-  const [post, comments] = await Promise.all([
-    getPostByIdAndIncrementView(postId, viewerIpKey),
-    getPostComments(postId),
-  ]);
-  if (!post) return mobileError("NOT_FOUND", "게시글을 찾을 수 없습니다.", 404);
+  try { getMobileGuestIdentity(request); }
+  catch { return mobileError("BAD_REQUEST", "비회원 ID를 확인하지 못했습니다.", 400); }
+  const actorPromise = getMobileCommunityActor(request).catch(() => null);
+  const commentsPromise = getPostComments(postId);
   const teamSlug = new URL(request.url).searchParams.get("team")?.trim();
+  const [actor, post, comments, team, viewerData, commentReactions] = await Promise.all([
+    actorPromise,
+    getPostByIdAndIncrementView(postId, getIpKeyFromHeaders(request.headers)),
+    commentsPromise,
+    teamSlug ? getTeamByFanSiteHost(teamSlug).then((value) => value ?? getTeamBySlug(teamSlug)) : null,
+    actorPromise.then((actor) => actor ? Promise.all([
+      getMobileBlockedCommunityAuthors(actor.auth?.user.id),
+      getUserReaction({ target: "post", targetId: postId, ...(actor.auth ? { userId: actor.auth.user.id } : { guestKey: actor.guest.key }) }),
+      getUserMiniconPacks(actor.auth?.user.id),
+    ]) : null),
+    Promise.all([actorPromise, commentsPromise]).then(([actor, comments]) => actor
+      ? getUserReactionsForComments(comments.map((comment) => comment.id), actor.auth ? { userId: actor.auth.user.id } : { guestKey: actor.guest.key })
+      : {} as Record<string, "honor" | "dislike" | null>),
+  ]);
+  if (!actor || !viewerData) return mobileError("BAD_REQUEST", "비회원 ID를 확인하지 못했습니다.", 400);
+  if (!post) return mobileError("NOT_FOUND", "게시글을 찾을 수 없습니다.", 404);
   if (teamSlug) {
-    const team = await getTeamByFanSiteHost(teamSlug).then((value) => value ?? getTeamBySlug(teamSlug));
     if (!team || post.siteScope !== "team" || post.teamId !== team.id) {
       return mobileError("NOT_FOUND", "게시글을 찾을 수 없습니다.", 404);
     }
   }
-  const blocked = await getMobileBlockedCommunityAuthors(actor.auth?.user.id);
+  const [blocked, reaction, miniconPacks] = viewerData;
   if (isMobileCommunityAuthorBlocked(post, blocked)) return mobileError("NOT_FOUND", "게시글을 찾을 수 없습니다.", 404);
   const visibleComments = comments.filter((comment) => !isMobileCommunityAuthorBlocked(comment, blocked));
   const bestCommentIds = new Set(selectBestComments(visibleComments).map((comment) => comment.id));
 
-  const reactionActor = actor.auth ? { userId: actor.auth.user.id } : { guestKey: actor.guest.key };
-  const [reaction, commentReactions, miniconPacks]: ["honor" | "dislike" | null, Record<string, "honor" | "dislike" | null>, MobileCommunityPostDetailDto["miniconPacks"]] = await Promise.all([
-    getUserReaction({ target: "post", targetId: postId, ...reactionActor }),
-    getUserReactionsForComments(visibleComments.map((comment) => comment.id), reactionActor),
-    getUserMiniconPacks(actor.auth?.user.id),
-  ]);
   const canManage = post.authorId
     ? post.authorId === actor.auth?.user.id
     : Boolean(post.guestKey && post.guestKey === actor.guest.key);

@@ -736,6 +736,11 @@ export type MobileMatchDetailDto = {
   live: { pollingIntervalMs: number; available: boolean };
 };
 
+/** Opt-in tab response; GET without tab retains the complete MobileMatchDetailDto. */
+export type MobileMatchTabDto = Omit<MobileMatchDetailDto, "preview"> & {
+  preview: MobileMatchPreview | null;
+};
+
 export type MobileCommunityPostDetailDto = MobileCommunityPostSummary & {
   content: TiptapDocument;
   reaction: "honor" | "dislike" | null;

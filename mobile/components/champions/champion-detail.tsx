@@ -146,8 +146,6 @@ export function ChampionDetail() {
   const [championOpen, setChampionOpen] = useState(false);
   const path = useMemo(() => buildPath(slug, { season, tournament, patch, position }), [patch, position, season, slug, tournament]);
   const { data, error, loading, refresh } = useCachedQuery<MobileChampionDetailDto>(path, { enabled: Boolean(slug) });
-  useEffect(() => { if (!season && data?.scope.season) setSeason(String(data.scope.season)); }, [data?.scope.season, season]);
-  useEffect(() => { if (!position && data?.selectedPosition) setPosition(data.selectedPosition); }, [data?.selectedPosition, position]);
   useEffect(() => { if (tab === 'duos' && data && data.selectedPosition !== 'BOT' && data.selectedPosition !== 'SUP') setTab('stats'); }, [data, tab]);
 
   if (loading && !data) return <MinionScreen><Loading /></MinionScreen>;
@@ -155,6 +153,8 @@ export function ChampionDetail() {
   if (!data) return <MinionScreen><ErrorState onRetry={refresh} title="챔피언 정보를 찾을 수 없습니다." /></MinionScreen>;
 
   const scope = data.scope;
+  const effectiveSeason = season || String(scope.season);
+  const effectivePosition = position || data.selectedPosition;
   const view = tab === 'overview' ? <ChampionBuildView build={data.build} />
     : tab === 'matchups' ? <MatchupView rows={data.matchups} />
       : tab === 'duos' ? <DuoView rows={data.duos} />
@@ -165,10 +165,10 @@ export function ChampionDetail() {
   const navigateChampion = (nextSlug: string) => {
     setChampionOpen(false);
     const query = new URLSearchParams();
-    if (season) query.set('season', season);
+    if (effectiveSeason) query.set('season', effectiveSeason);
     if (tournament !== 'all') query.set('tournament', tournament);
     if (patch !== 'all') query.set('patch', patch);
-    if (position) query.set('position', position);
+    if (effectivePosition) query.set('position', effectivePosition);
     if (tab !== 'overview') query.set('tab', tab);
     router.replace(`/champions/${nextSlug}${query.toString() ? `?${query}` : ''}` as never);
   };
@@ -177,13 +177,13 @@ export function ChampionDetail() {
     <MinionScreen>
       <View style={styles.page}>
         <ProfileHeader data={data} onChampionOpen={() => setChampionOpen(true)} onPositionOpen={() => setPositionOpen(true)} />
-        <ScopeControls data={data} onOpen={setScopeOpen} patch={patch} season={season} tournament={tournament} />
+        <ScopeControls data={data} onOpen={setScopeOpen} patch={patch} season={effectiveSeason} tournament={tournament} />
         <Summary data={data} />
         <TabNav active={tab} data={data} onSelect={setTab} />
         {view}
       </View>
       <BottomSheet contentStyle={styles.sheet} onClose={() => setScopeOpen(null)} open={scopeOpen != null} scrollable title={scopeOpen === 'season' ? '시즌' : scopeOpen === 'tournament' ? '대회' : '패치'}>
-        {scopeOpen === 'season' ? <FilterSection label="시즌">{scope.seasons.map((value) => <Choice active={season === String(value)} key={value} label={String(value)} onPress={() => { setSeason(String(value)); setScopeOpen(null); }} />)}</FilterSection> : null}
+        {scopeOpen === 'season' ? <FilterSection label="시즌">{scope.seasons.map((value) => <Choice active={effectiveSeason === String(value)} key={value} label={String(value)} onPress={() => { setSeason(String(value)); setScopeOpen(null); }} />)}</FilterSection> : null}
         {scopeOpen === 'tournament' ? <FilterSection label="대회"><Choice active={tournament === 'all'} label="전체" onPress={() => { setTournament('all'); setScopeOpen(null); }} />{scope.tournaments.map((option) => <Choice active={tournament === option.value} key={option.value} label={option.label} onPress={() => { setTournament(option.value); setScopeOpen(null); }} />)}</FilterSection> : null}
         {scopeOpen === 'patch' ? <FilterSection label="패치"><Choice active={patch === 'all'} label="전체" onPress={() => { setPatch('all'); setScopeOpen(null); }} />{scope.patches.map((value) => <Choice active={patch === value} key={value} label={value} onPress={() => { setPatch(value); setScopeOpen(null); }} />)}</FilterSection> : null}
       </BottomSheet>

@@ -5,6 +5,7 @@ import { cache } from "react";
 
 import { createSupabaseServerClient, canQuerySupabase } from "@/lib/supabase/server";
 import { normalizeSetStatus } from "@/lib/set-status";
+import { collectCountedKeysetPages, collectUuidPartitions, mapWithConcurrency, type CountedPage } from "@/lib/data/paged-read";
 import {
   SEASON_2026_SEGMENTS,
   segmentForTournament,
@@ -30,9 +31,6 @@ export const CHAMPION_PAGE_DATA_TAG = "champion-page-data";
 
 const CACHE_SECONDS = 300;
 const PAGE_SIZE = 1_000;
-// Pick/ban and player-stat tables are small enough (low thousands of rows) to pull in
-// full and filter to scope in memory, so their pages can be much larger than PAGE_SIZE.
-const FULL_SCAN_PAGE_SIZE = 5_000;
 // UUIDs plus PostgREST query syntax stay comfortably below common URL limits.
 const BUILD_EVENT_SET_ID_CHUNK_SIZE = 20;
 const PLAYER_ID_CHUNK_SIZE = 50;
@@ -309,29 +307,6 @@ function chunksOf<T>(values: readonly T[], size: number): T[][] {
   return chunks;
 }
 
-async function mapWithConcurrency<Input, Output>(
-  values: readonly Input[],
-  concurrency: number,
-  mapper: (value: Input) => Promise<Output>,
-): Promise<Output[]> {
-  const output = new Array<Output>(values.length);
-  let nextIndex = 0;
-
-  async function worker() {
-    while (true) {
-      const index = nextIndex;
-      nextIndex += 1;
-      if (index >= values.length) return;
-      output[index] = await mapper(values[index]);
-    }
-  }
-
-  await Promise.all(
-    Array.from({ length: Math.min(concurrency, values.length) }, () => worker()),
-  );
-  return output;
-}
-
 function mapTeam(row: TeamRow): Team {
   return {
     id: row.id,
@@ -538,120 +513,126 @@ function reportsMissingColumn(error: unknown, column: string) {
   return (record.code === "42703" || record.code === "PGRST204") && message.includes(column);
 }
 
-async function queryTeamsPage(afterId: string | null): Promise<TeamRow[]> {
-  if (!canQuerySupabase()) return [];
+async function queryTeamsPage(afterId: string | null): Promise<CountedPage<TeamRow>> {
+  if (!canQuerySupabase()) return { rows: [], count: 0 };
   let query = createSupabaseServerClient()
     .from("teams")
-    .select(TEAM_COLUMNS)
+    .select(TEAM_COLUMNS, { count: "exact" })
     .order("id", { ascending: true })
     .limit(PAGE_SIZE);
   if (afterId) query = query.gt("id", afterId);
-  const { data, error } = await query;
+  const { data, error, count } = await query;
   if (error) throw error;
-  return (data ?? []) as unknown as TeamRow[];
+  return { rows: (data ?? []) as unknown as TeamRow[], count };
 }
 
-async function queryPlayersPage(afterId: string | null): Promise<PlayerRow[]> {
-  if (!canQuerySupabase()) return [];
+async function queryPlayersPage(afterId: string | null): Promise<CountedPage<PlayerRow>> {
+  if (!canQuerySupabase()) return { rows: [], count: 0 };
   let query = createSupabaseServerClient()
     .from("players")
-    .select(PLAYER_COLUMNS)
+    .select(PLAYER_COLUMNS, { count: "exact" })
     .order("id", { ascending: true })
     .limit(PAGE_SIZE);
   if (afterId) query = query.gt("id", afterId);
-  const { data, error } = await query;
+  const { data, error, count } = await query;
   if (error) throw error;
-  return (data ?? []) as unknown as PlayerRow[];
+  return { rows: (data ?? []) as unknown as PlayerRow[], count };
 }
 
-async function queryChampionsPage(afterId: string | null): Promise<ChampionRow[]> {
-  if (!canQuerySupabase()) return [];
+async function queryChampionsPage(afterId: string | null): Promise<CountedPage<ChampionRow>> {
+  if (!canQuerySupabase()) return { rows: [], count: 0 };
   let query = createSupabaseServerClient()
     .from("champions")
-    .select(CHAMPION_COLUMNS)
+    .select(CHAMPION_COLUMNS, { count: "exact" })
     .order("id", { ascending: true })
     .limit(PAGE_SIZE);
   if (afterId) query = query.gt("id", afterId);
-  const { data, error } = await query;
+  const { data, error, count } = await query;
   if (error) throw error;
-  return (data ?? []) as unknown as ChampionRow[];
+  return { rows: (data ?? []) as unknown as ChampionRow[], count };
 }
 
-async function queryTournamentsPage(afterId: string | null): Promise<TournamentRow[]> {
-  if (!canQuerySupabase()) return [];
+async function queryTournamentsPage(afterId: string | null): Promise<CountedPage<TournamentRow>> {
+  if (!canQuerySupabase()) return { rows: [], count: 0 };
   let query = createSupabaseServerClient()
     .from("tournaments")
-    .select(TOURNAMENT_COLUMNS)
+    .select(TOURNAMENT_COLUMNS, { count: "exact" })
     .order("id", { ascending: true })
     .limit(PAGE_SIZE);
   if (afterId) query = query.gt("id", afterId);
-  const { data, error } = await query;
+  const { data, error, count } = await query;
   if (error) throw error;
-  return (data ?? []) as unknown as TournamentRow[];
+  return { rows: (data ?? []) as unknown as TournamentRow[], count };
 }
 
-async function queryMatchesPage(afterId: string | null): Promise<MatchRow[]> {
-  if (!canQuerySupabase()) return [];
+async function queryMatchesPage(afterId: string | null): Promise<CountedPage<MatchRow>> {
+  if (!canQuerySupabase()) return { rows: [], count: 0 };
   let query = createSupabaseServerClient()
     .from("matches")
-    .select(MATCH_COLUMNS)
+    .select(MATCH_COLUMNS, { count: "exact" })
     .order("id", { ascending: true })
     .limit(PAGE_SIZE);
   if (afterId) query = query.gt("id", afterId);
-  const { data, error } = await query;
+  const { data, error, count } = await query;
   if (error) throw error;
-  return (data ?? []) as unknown as MatchRow[];
+  return { rows: (data ?? []) as unknown as MatchRow[], count };
 }
 
-async function querySetsPage(afterId: string | null): Promise<SetRow[]> {
-  if (!canQuerySupabase()) return [];
+async function querySetsPage(afterId: string | null): Promise<CountedPage<SetRow>> {
+  if (!canQuerySupabase()) return { rows: [], count: 0 };
   let query = createSupabaseServerClient()
     .from("sets")
-    .select(SET_COLUMNS)
+    .select(SET_COLUMNS, { count: "exact" })
     .order("id", { ascending: true })
     .limit(PAGE_SIZE);
   if (afterId) query = query.gt("id", afterId);
-  const { data, error } = await query;
+  const { data, error, count } = await query;
   if (error) throw error;
-  return (data ?? []) as unknown as SetRow[];
+  return { rows: (data ?? []) as unknown as SetRow[], count };
 }
 
-// Pick/ban and player-stat rows are fetched for the whole table (a few thousand rows
-// total, not per-request-scope) and filtered to the requested set ids in memory. That
-// keeps this behind one shared cache entry regardless of which season/tournament/patch
-// combination a visitor picks, instead of a fresh chunked round trip per distinct scope.
-async function queryAllPickBansPage(afterId: string | null): Promise<PickBanRow[]> {
-  if (!canQuerySupabase()) return [];
+// Whole-table facts remain shared across scopes. Four independent UUID ranges remove
+// the long serial scan while keyset cursors preserve ordering and avoid offset shifts.
+async function queryAllPickBansPage(
+  lowerId: string, upperId: string | null, afterId: string | null,
+): Promise<CountedPage<PickBanRow>> {
+  if (!canQuerySupabase()) return { rows: [], count: 0 };
   let query = createSupabaseServerClient()
     .from("set_picks_bans")
-    .select(PICK_BAN_COLUMNS)
+    .select(PICK_BAN_COLUMNS, { count: "exact" })
+    .gte("id", lowerId)
     .order("id", { ascending: true })
-    .limit(FULL_SCAN_PAGE_SIZE);
+    .limit(PAGE_SIZE);
+  if (upperId) query = query.lt("id", upperId);
   if (afterId) query = query.gt("id", afterId);
-  const { data, error } = await query;
+  const { data, error, count } = await query;
   if (error) throw error;
-  return (data ?? []) as unknown as PickBanRow[];
+  return { rows: (data ?? []) as unknown as PickBanRow[], count };
 }
 
-async function queryAllPlayerStatsPage(afterId: string | null): Promise<PlayerStatRow[]> {
-  if (!canQuerySupabase()) return [];
+async function queryAllPlayerStatsPage(
+  lowerId: string, upperId: string | null, afterId: string | null,
+): Promise<CountedPage<PlayerStatRow>> {
+  if (!canQuerySupabase()) return { rows: [], count: 0 };
 
   async function readPage(columns: string) {
     let query = createSupabaseServerClient()
       .from("set_player_stats")
-      .select(columns)
+      .select(columns, { count: "exact" })
+      .gte("id", lowerId)
       .order("id", { ascending: true })
-      .limit(FULL_SCAN_PAGE_SIZE);
+      .limit(PAGE_SIZE);
+    if (upperId) query = query.lt("id", upperId);
     if (afterId) query = query.gt("id", afterId);
     return query;
   }
 
-  let { data, error } = await readPage(PLAYER_STAT_COLUMNS);
+  let { data, error, count } = await readPage(PLAYER_STAT_COLUMNS);
   if (reportsMissingColumn(error, "role_bound_item")) {
-    ({ data, error } = await readPage(PLAYER_STAT_COLUMNS_WITHOUT_ROLE_BOUND_ITEM));
+    ({ data, error, count } = await readPage(PLAYER_STAT_COLUMNS_WITHOUT_ROLE_BOUND_ITEM));
   }
   if (error) throw error;
-  return (data ?? []) as unknown as PlayerStatRow[];
+  return { rows: (data ?? []) as unknown as PlayerStatRow[], count };
 }
 
 async function queryBuildEventsPage(
@@ -680,42 +661,42 @@ async function queryBuildEventsPage(
 
 const queryTeamsPageCached = unstable_cache(
   queryTeamsPage,
-  ["champion-page-teams-page-v1"],
+  ["champion-page-teams-counted-page-v2"],
   CACHE_OPTIONS,
 );
 const queryPlayersPageCached = unstable_cache(
   queryPlayersPage,
-  ["champion-page-players-page-v1"],
+  ["champion-page-players-counted-page-v2"],
   CACHE_OPTIONS,
 );
 const queryChampionsPageCached = unstable_cache(
   queryChampionsPage,
-  ["champion-page-champions-page-v1"],
+  ["champion-page-champions-counted-page-v2"],
   CACHE_OPTIONS,
 );
 const queryTournamentsPageCached = unstable_cache(
   queryTournamentsPage,
-  ["champion-page-tournaments-page-v1"],
+  ["champion-page-tournaments-counted-page-v2"],
   CACHE_OPTIONS,
 );
 const queryMatchesPageCached = unstable_cache(
   queryMatchesPage,
-  ["champion-page-matches-page-v1"],
+  ["champion-page-matches-counted-page-v2"],
   CACHE_OPTIONS,
 );
 const querySetsPageCached = unstable_cache(
   querySetsPage,
-  ["champion-page-sets-page-v1"],
+  ["champion-page-sets-counted-page-v2"],
   CACHE_OPTIONS,
 );
 const queryAllPickBansPageCached = unstable_cache(
   queryAllPickBansPage,
-  ["champion-page-all-pick-bans-page-v1"],
+  ["champion-page-all-pick-bans-partition-v2"],
   CACHE_OPTIONS,
 );
 const queryAllPlayerStatsPageCached = unstable_cache(
   queryAllPlayerStatsPage,
-  ["champion-page-all-player-stats-page-v1"],
+  ["champion-page-all-player-stats-partition-v2"],
   CACHE_OPTIONS,
 );
 const queryBuildEventsPageCached = unstable_cache(
@@ -727,12 +708,12 @@ const queryBuildEventsPageCached = unstable_cache(
 async function getChampionPageReferenceDataBase(): Promise<ChampionPageReferenceData> {
   const [teamRows, playerRows, championRows, tournamentRows, matchRows, setRows] =
     await Promise.all([
-      collectPages(queryTeamsPageCached),
-      collectPages(queryPlayersPageCached),
-      collectPages(queryChampionsPageCached),
-      collectPages(queryTournamentsPageCached),
-      collectPages(queryMatchesPageCached),
-      collectPages(querySetsPageCached),
+      collectCountedKeysetPages(queryTeamsPageCached),
+      collectCountedKeysetPages(queryPlayersPageCached),
+      collectCountedKeysetPages(queryChampionsPageCached),
+      collectCountedKeysetPages(queryTournamentsPageCached),
+      collectCountedKeysetPages(queryMatchesPageCached),
+      collectCountedKeysetPages(querySetsPageCached),
     ]);
 
   return {
@@ -772,7 +753,7 @@ async function getChampionBySlugBase(slug: string): Promise<Champion | null> {
 export const getChampionBySlug = cache(getChampionBySlugBase);
 
 async function getAllPickBansBase(): Promise<PickBanRow[]> {
-  return collectPages(queryAllPickBansPageCached);
+  return collectUuidPartitions(queryAllPickBansPageCached);
 }
 
 /** Whole-table pick/ban rows, shared across every scope filter combination. */
@@ -856,7 +837,7 @@ function mapPlayerStats(rows: PlayerStatRow[], sets: readonly SetResult[]) {
 }
 
 async function getAllPlayerStatRowsBase(): Promise<PlayerStatRow[]> {
-  return collectPages(queryAllPlayerStatsPageCached);
+  return collectUuidPartitions(queryAllPlayerStatsPageCached);
 }
 
 /** Whole-table player-stat rows, shared across every scope filter combination. */

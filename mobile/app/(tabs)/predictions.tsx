@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useIsFocused } from '@react-navigation/native';
 import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 
@@ -11,7 +12,7 @@ import { PredictionMatchCard } from '@/components/predictions/prediction-match-c
 import { PredictionWeekBar } from '@/components/predictions/prediction-week-bar';
 import { useCachedQuery } from '@/hooks/use-cached-query';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
-import { mutateMobileApi, type MobilePredictionMutationDto, type MobilePredictionsDto } from '@/lib/api-client';
+import { invalidateApiCache, mutateMobileApi, type MobilePredictionMutationDto, type MobilePredictionsDto } from '@/lib/api-client';
 import { predictionDateLabel, weekStartKey } from '@/lib/prediction-dates';
 import { predictionMaxStake } from '@/lib/predictions';
 import { dateKeyKST } from '@/lib/schedule-dates';
@@ -19,9 +20,10 @@ import { useAuth } from '@/providers/auth-provider';
 
 export default function PredictionsScreen() {
   const router = useRouter();
+  const isFocused = useIsFocused();
   const { loading: authLoading, refreshViewer, session, viewer } = useAuth();
   const { fonts, showToast, theme } = useMinionTheme();
-  const { data, error, loading, refresh } = useCachedQuery<MobilePredictionsDto>('/api/mobile/v1/predictions', { cache: false, enabled: !authLoading });
+  const { data, error, loading, refresh } = useCachedQuery<MobilePredictionsDto>('/api/mobile/v1/predictions', { cache: 'memory', cacheScope: session?.user.id ?? 'guest', enabled: !authLoading && isFocused });
   const [selectedWeek, setSelectedWeek] = useState(() => weekStartKey(new Date().toISOString()));
   const [dialog, setDialog] = useState<PredictionBetDialogState | null>(null);
   const [stake, setStake] = useState('100');
@@ -86,7 +88,7 @@ export default function PredictionsScreen() {
       setBalanceOverride(result.balance);
       setDialog(null);
       showToast(`${dialog.teamName} 승리 예측이 확정됐습니다.`, 'success', 'prediction');
-      refresh();
+      void invalidateApiCache('/api/mobile/v1/predictions');
       await refreshViewer();
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : '예측을 등록하지 못했습니다.';
@@ -107,7 +109,7 @@ export default function PredictionsScreen() {
       setBalanceOverride(result.balance);
       setDialog(null);
       showToast(`${refundedStake.toLocaleString('ko-KR')} LP가 반환됐습니다.`, 'success', 'prediction');
-      refresh();
+      void invalidateApiCache('/api/mobile/v1/predictions');
       await refreshViewer();
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : '예측을 취소하지 못했습니다.';

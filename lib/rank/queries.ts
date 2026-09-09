@@ -67,16 +67,31 @@ function asTier(value: string | null | undefined): Tier {
   return value && VALID_TIERS.has(value as Tier) ? (value as Tier) : DEFAULT_TIER;
 }
 
+/** Header/profile facts; the shell does not need ledger or attendance queries. */
+export const getRankProfile = cache(async function getRankProfile(
+  userId: string,
+): Promise<Pick<RankSummary, "tier" | "baseTier" | "lp" | "overallRank">> {
+  const supabase = await createSupabaseAuthClient();
+  const { data: ranked } = await supabase
+    .from("ranked_profiles")
+    .select("base_tier, effective_tier, lp, overall_rank")
+    .eq("id", userId)
+    .maybeSingle();
+
+  return {
+    tier: asTier(ranked?.effective_tier),
+    baseTier: asTier(ranked?.base_tier),
+    lp: ranked?.lp ?? 0,
+    overallRank: ranked?.overall_rank ?? null,
+  };
+});
+
 export const getRankSummary = cache(async function getRankSummary(userId: string): Promise<RankSummary> {
   const supabase = await createSupabaseAuthClient();
 
   // 챌린저 cap 반영된 effective_tier는 ranked_profiles 뷰에서.
-  const [rankedRes, ledgerRes, attendanceRes] = await Promise.all([
-    supabase
-      .from("ranked_profiles")
-      .select("base_tier, effective_tier, lp, overall_rank")
-      .eq("id", userId)
-      .maybeSingle(),
+  const [ranked, ledgerRes, attendanceRes] = await Promise.all([
+    getRankProfile(userId),
     supabase
       .from("lp_ledger")
       .select("id, reason, delta, created_at")
@@ -91,13 +106,8 @@ export const getRankSummary = cache(async function getRankSummary(userId: string
       .maybeSingle(),
   ]);
 
-  const ranked = rankedRes.data;
-
   return {
-    tier: asTier(ranked?.effective_tier),
-    baseTier: asTier(ranked?.base_tier),
-    lp: ranked?.lp ?? 0,
-    overallRank: ranked?.overall_rank ?? null,
+    ...ranked,
     recentLedger: (ledgerRes.data ?? []) as LedgerEntry[],
     checkedInToday: Boolean(attendanceRes.data),
   };

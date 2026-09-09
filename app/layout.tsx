@@ -6,12 +6,13 @@ import { ToastProvider } from "@/components/ui/toast";
 import { SpoilerFreeProvider } from "@/lib/spoiler-free/spoiler-free-context";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { isCurrentUserAdmin } from "@/lib/auth/admin";
+import { getVerifiedAuth } from "@/lib/auth/verified-user";
 import { countOpenSupportInquiries } from "@/lib/data/support-admin";
 import { getTeams } from "@/lib/data/lck";
 import { getFollowedTeamIds } from "@/lib/fan/followed-teams";
 import { getFavoriteTeamId } from "@/lib/fan/favorite-team";
 import { getNotificationPreferences } from "@/lib/notifications/preferences";
-import { getRankSummary } from "@/lib/rank/queries";
+import { getRankProfile } from "@/lib/rank/queries";
 import { siteBaseUrl } from "@/lib/site";
 import "./globals.css";
 
@@ -64,28 +65,28 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const user = await getCurrentUser();
-  const isAdminUser = user ? await isCurrentUserAdmin() : false;
-
-  let shellUser: AppShellUser = null;
-  if (user) {
-    const summary = await getRankSummary(user.id);
-    shellUser = {
-      id: user.id,
-      nickname: user.nickname,
-      profileImageUrl: user.profileImageUrl,
-      tier: summary.tier,
-      lp: summary.lp,
-    };
-  }
-  const [followedTeamIds, favoriteTeamId, shellTeams, notificationPreferences, pendingSupportInquiryCount] = await Promise.all([
-    // 로그인한 유저에게만 "내 팀"을 보여준다 — 비로그인 상태의 쿠키 기반 팔로우는 사이드바에 노출하지 않는다.
-    user ? getFollowedTeamIds() : Promise.resolve([]),
+  const userPromise = getCurrentUser();
+  const adminPromise = isCurrentUserAdmin();
+  const [user, isAdminUser, rankProfile, followedTeamIds, favoriteTeamId, shellTeams, notificationPreferences, pendingSupportInquiryCount] = await Promise.all([
+    userPromise,
+    adminPromise,
+    getVerifiedAuth().then((auth) => auth ? getRankProfile(auth.user.id) : null),
+    // 비로그인 쿠키 팔로우는 기존처럼 shell에 노출하지 않는다.
+    userPromise.then((current) => current ? getFollowedTeamIds() : []),
     getFavoriteTeamId(),
     getTeams(),
     getNotificationPreferences(),
-    isAdminUser ? countOpenSupportInquiries() : Promise.resolve(0),
+    adminPromise.then((admin) => admin ? countOpenSupportInquiries() : 0),
   ]);
+  const shellUser: AppShellUser = user && rankProfile
+    ? {
+      id: user.id,
+      nickname: user.nickname,
+      profileImageUrl: user.profileImageUrl,
+      tier: rankProfile.tier,
+      lp: rankProfile.lp,
+    }
+    : null;
   const adsenseClient = process.env.NEXT_PUBLIC_GOOGLE_ADSENSE_CLIENT;
 
   return (

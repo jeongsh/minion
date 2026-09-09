@@ -8,6 +8,8 @@ import { type PropsWithChildren, type ReactNode, useEffect, useRef, useState } f
 import {
   Animated,
   Easing,
+  FlatList,
+  type FlatListProps,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
   Pressable,
@@ -59,7 +61,7 @@ function getFanItems(team: string): LocalItem[] {
   ];
 }
 
-type MinionScreenProps = PropsWithChildren<{
+type MinionScreenProps<T> = PropsWithChildren<{
   contentStyle?: StyleProp<ViewStyle>;
   onScrollYChange?: (y: number, headerVisible: boolean) => void;
   scrollRequest?: { animated: boolean; y: number } | null;
@@ -67,9 +69,10 @@ type MinionScreenProps = PropsWithChildren<{
   stickyHeaderHeight?: number;
   stickyHeaderReserveSpace?: boolean;
   stickyHeaderVisible?: boolean;
+  virtualList?: Pick<FlatListProps<T>, 'accessibilityLabel' | 'data' | 'renderItem' | 'keyExtractor' | 'initialNumToRender' | 'maxToRenderPerBatch'> & { rowGap: number };
 }>;
 
-export function MinionScreen({
+export function MinionScreen<T>({
   children,
   contentStyle,
   onScrollYChange,
@@ -78,7 +81,8 @@ export function MinionScreen({
   stickyHeaderHeight = 0,
   stickyHeaderReserveSpace = true,
   stickyHeaderVisible = true,
-}: MinionScreenProps) {
+  virtualList,
+}: MinionScreenProps<T>) {
   const pathname = usePathname();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -91,6 +95,7 @@ export function MinionScreen({
   const headerVisible = useRef(true);
   const lastScrollY = useRef(0);
   const scrollViewRef = useRef<ScrollView>(null);
+  const listRef = useRef<FlatList<T>>(null);
   const fanMatch = pathname.match(/^\/fan\/([^/]+)/);
   const fanTeam = getMinionTeam(fanMatch?.[1]);
   const accent = fanTeam ? fanAccentText(fanTeam.primaryColor) : theme.accent;
@@ -122,6 +127,7 @@ export function MinionScreen({
     headerVisible.current = true;
     headerOffset.setValue(0);
     scrollViewRef.current?.scrollTo({ animated: false, x: 0, y: 0 });
+    listRef.current?.scrollToOffset({ animated: false, offset: 0 });
     setTeamSwitcherOpen(false);
   }, [headerOffset, pathname]);
 
@@ -129,6 +135,7 @@ export function MinionScreen({
     if (!scrollRequest) return;
     const frame = requestAnimationFrame(() => {
       scrollViewRef.current?.scrollTo({ animated: scrollRequest.animated, x: 0, y: scrollRequest.y });
+      listRef.current?.scrollToOffset({ animated: scrollRequest.animated, offset: scrollRequest.y });
     });
     return () => cancelAnimationFrame(frame);
   }, [scrollRequest]);
@@ -254,7 +261,27 @@ export function MinionScreen({
         </Animated.View>
       ) : null}
 
-      <ScrollView
+      {virtualList ? <FlatList
+        accessibilityLabel={virtualList.accessibilityLabel}
+        data={virtualList.data}
+        initialNumToRender={virtualList.initialNumToRender}
+        ItemSeparatorComponent={() => <View style={{ height: virtualList.rowGap }} />}
+        keyboardShouldPersistTaps="handled"
+        keyExtractor={virtualList.keyExtractor}
+        ListFooterComponent={<View style={styles.footer}><MinionFooter accentColor={fanTeam?.primaryColor} /></View>}
+        ListHeaderComponent={<>
+          <View aria-hidden style={{ height: contentChromeOffset }} />
+          <View style={[styles.content, { marginTop: contentFlowOffset }, contentStyle]}>{children}</View>
+        </>}
+        maxToRenderPerBatch={virtualList.maxToRenderPerBatch}
+        onScroll={handleScroll}
+        ref={listRef}
+        removeClippedSubviews={false}
+        renderItem={(info) => <View style={styles.virtualRow}>{virtualList.renderItem?.(info)}</View>}
+        scrollEventThrottle={16}
+        showsVerticalScrollIndicator={false}
+        windowSize={3}
+      /> : <ScrollView
         keyboardShouldPersistTaps="handled"
         onScroll={handleScroll}
         ref={scrollViewRef}
@@ -263,7 +290,7 @@ export function MinionScreen({
         <View aria-hidden style={{ height: contentChromeOffset }} />
         <View style={[styles.content, { marginTop: contentFlowOffset }, contentStyle]}>{children}</View>
         <View style={styles.footer}><MinionFooter accentColor={fanTeam?.primaryColor} /></View>
-      </ScrollView>
+      </ScrollView>}
 
       <NotificationPanel onClose={() => setNotificationOpen(false)} open={notificationOpen} />
     </View>
@@ -299,4 +326,5 @@ const styles = StyleSheet.create({
   footer: { paddingHorizontal: 16 },
   stickyHeader: { left: 0, paddingHorizontal: 16, position: 'absolute', right: 0, zIndex: 30 },
   content: { gap: 16, paddingBottom: 0, paddingHorizontal: 16 },
+  virtualRow: { paddingHorizontal: 16 },
 });

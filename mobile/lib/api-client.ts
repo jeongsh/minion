@@ -4,10 +4,117 @@ import Constants from 'expo-constants';
 import { mobileApiAuthForRequest, type MobileApiAuthMode, type MobileApiError, type MobileApiRouteDefinition, type MobileApiSuccess } from '../../packages/contracts/src/mobile-v1';
 import { getInstallationId } from '@/lib/secure-storage';
 import { supabase } from '@/lib/supabase';
+import { createQueryMemoryCache } from '@/lib/query-memory-cache';
 
 const CACHE_PREFIX = 'minion-api-v1:';
 const LOGIN_REQUIRED_MESSAGE = '로그인이 필요합니다.';
 const cacheInvalidationListeners = new Set<(pathPrefix: string) => void>();
+const memoryCache = createQueryMemoryCache();
+type QueryRequest = {
+  promise: Promise<unknown>;
+  fresh: boolean;
+  controller: AbortController;
+  subscribers: Set<AbortSignal>;
+  keepAlive: boolean;
+  settled: boolean;
+};
+const queryRequests = new Map<string, QueryRequest>();
+const storageInvalidations = new Set<string>();
+let sessionRequest: ReturnType<typeof supabase.auth.getSession> | undefined;
+let sessionRevision = 0;
+
+export function resetApiSessionRead() {
+  sessionRevision += 1;
+  sessionRequest = undefined;
+}
+
+function readRequestSession() {
+  if (sessionRequest) return sessionRequest;
+  const request = supabase.auth.getSession().finally(() => {
+    if (sessionRequest === request) sessionRequest = undefined;
+  });
+  sessionRequest = request;
+  return request;
+}
+
+export class MobileApiRequestError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.status = status;
+  }
+}
+
+export function discardApiMemoryCache(key: string) {
+  memoryCache.invalidate(key);
+}
+
+export const readApiMemoryCache = memoryCache.read;
+
+export function clearApiMemoryCache() {
+  memoryCache.invalidate();
+  queryRequests.clear();
+  cacheInvalidationListeners.forEach((listener) => listener(''));
+}
+
+export type ApiCacheMode = boolean | 'memory';
+
+type QueryRequestOptions = { staleTimeMs?: number; signal?: AbortSignal; cancelOnUnused?: boolean };
+
+function subscribeRequest<T>(request: QueryRequest, { signal, cancelOnUnused }: QueryRequestOptions) {
+  if (!signal || !cancelOnUnused) request.keepAlive = true;
+  if (signal) {
+    request.subscribers.add(signal);
+    const release = () => {
+      signal.removeEventListener('abort', release);
+      request.subscribers.delete(signal);
+      if (!request.settled && !request.keepAlive && request.subscribers.size === 0) request.controller.abort();
+    };
+    signal.addEventListener('abort', release, { once: true });
+    void request.promise.then(release, release);
+    if (signal.aborted) release();
+  }
+  return request.promise as Promise<T>;
+}
+
+export function fetchMobileQuery<T>(path: string, key: string, cache: ApiCacheMode, fresh: boolean, options: QueryRequestOptions = {}): Promise<T> {
+  const revision = memoryCache.revision;
+  const requestKey = JSON.stringify([key, cache, revision]);
+  const existing = queryRequests.get(requestKey);
+  if (existing && !existing.controller.signal.aborted && (!fresh || existing.fresh)) return subscribeRequest<T>(existing, options);
+  if (cache && !fresh && (options.staleTimeMs ?? 0) > 0 && authForRequest('GET', path) === 'public') {
+    const snapshot = memoryCache.read<T>(key);
+    if (snapshot && Date.now() - snapshot.savedAt < options.staleTimeMs!) return Promise.resolve(snapshot.data);
+  }
+  const controller = new AbortController();
+  let timeoutId: ReturnType<typeof setTimeout>;
+  const timeout = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new Error('연결이 지연되고 있습니다. 네트워크를 확인한 뒤 다시 시도해주세요.'));
+      controller.abort();
+    }, 20_000);
+    controller.signal.addEventListener('abort', () => {
+      const error = new Error('Request cancelled');
+      error.name = 'AbortError';
+      reject(error);
+    }, { once: true });
+  });
+  const entry: QueryRequest = { promise: Promise.resolve(), fresh, controller, subscribers: new Set(), keepAlive: false, settled: false };
+  const request = Promise.race([fetchMobileApi<T>(path, controller.signal, { fresh }), timeout]).then((data) => {
+    if (cache && memoryCache.revision === revision && queryRequests.get(requestKey)?.promise === request) {
+      memoryCache.write(key, data);
+      if (cache === true) void writeApiCache(key, data);
+    }
+    return data;
+  }).finally(() => {
+    entry.settled = true;
+    clearTimeout(timeoutId);
+    if (queryRequests.get(requestKey)?.promise === request) queryRequests.delete(requestKey);
+  });
+  entry.promise = request;
+  queryRequests.set(requestKey, entry);
+  return subscribeRequest<T>(entry, options);
+}
 
 function defaultApiOrigin() {
   const hostUri = Constants.expoConfig?.hostUri;
@@ -26,7 +133,13 @@ async function accessTokenFor(auth: MobileApiAuthMode) {
   if (auth === 'public') return null;
 
   try {
-    const { data, error } = await supabase.auth.getSession();
+    let revision: number;
+    let result: Awaited<ReturnType<typeof readRequestSession>>;
+    do {
+      revision = sessionRevision;
+      result = await readRequestSession();
+    } while (revision !== sessionRevision);
+    const { data, error } = result;
     if (error) throw error;
     const accessToken = data.session?.access_token ?? null;
     if (auth === 'required' && !accessToken) throw new Error(LOGIN_REQUIRED_MESSAGE);
@@ -52,7 +165,7 @@ async function readMobileResponse<T>(response: Response): Promise<T> {
   } catch {
     throw new Error(`서버 응답을 처리하지 못했습니다. (HTTP ${response.status})`);
   }
-  if (!response.ok || 'error' in body) throw new Error('error' in body ? body.error.message : `HTTP ${response.status}`);
+  if (!response.ok || 'error' in body) throw new MobileApiRequestError('error' in body ? body.error.message : `HTTP ${response.status}`, response.status);
   return body.data;
 }
 
@@ -100,20 +213,37 @@ export async function uploadMobileApi<T>(path: string, formData: FormData): Prom
 }
 
 export async function readApiCache<T>(key: string) {
-  const raw = await AsyncStorage.getItem(`${CACHE_PREFIX}${key}`);
-  if (!raw) return null;
+  const memory = memoryCache.read<T>(key);
+  if (memory) return memory;
+  const revision = memoryCache.revision;
   try {
-    return JSON.parse(raw) as { data: T; savedAt: number };
+    if ([...storageInvalidations].some((prefix) => key.startsWith(prefix))) return null;
+    const raw = await AsyncStorage.getItem(`${CACHE_PREFIX}${key}`);
+    if (!raw || revision !== memoryCache.revision) return null;
+    const entry = JSON.parse(raw) as { data: T; savedAt: number };
+    const current = memoryCache.read<T>(key);
+    if (current) return current;
+    if (!entry || !Number.isFinite(entry.savedAt) || !('data' in entry)) return null;
+    memoryCache.write(key, entry.data, entry.savedAt);
+    return memoryCache.read<T>(key);
   } catch {
     return null;
   }
 }
 
 export async function writeApiCache<T>(key: string, data: T) {
-  await AsyncStorage.setItem(`${CACHE_PREFIX}${key}`, JSON.stringify({ data, savedAt: Date.now() }));
+  memoryCache.write(key, data);
+  try {
+    await AsyncStorage.setItem(`${CACHE_PREFIX}${key}`, JSON.stringify({ data, savedAt: Date.now() }));
+  } catch {
+    // The network result remains usable when storage is unavailable or full.
+  }
 }
 
 export async function invalidateApiCache(pathPrefix: string) {
+  memoryCache.invalidate(pathPrefix);
+  storageInvalidations.add(pathPrefix);
+  cacheInvalidationListeners.forEach((listener) => listener(pathPrefix));
   try {
     const cacheKeyPrefix = `${CACHE_PREFIX}${pathPrefix}`;
     const keys = await AsyncStorage.getAllKeys();
@@ -122,7 +252,7 @@ export async function invalidateApiCache(pathPrefix: string) {
   } catch {
     // 캐시 정리 실패가 이미 완료된 게시글 등록을 실패로 바꾸면 안 된다.
   } finally {
-    cacheInvalidationListeners.forEach((listener) => listener(pathPrefix));
+    storageInvalidations.delete(pathPrefix);
   }
 }
 
@@ -188,6 +318,7 @@ export type {
   MobileMatchActivityDto,
   MobileNotificationPreferences,
   MobileMatchDetailDto,
+  MobileMatchTabDto,
   MobileMatchHeader,
   MobileMatchPreview,
   MobileMatchSetSummary,

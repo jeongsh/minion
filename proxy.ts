@@ -7,7 +7,7 @@ const MOBILE_API_PREFIX = "/api/mobile/v1/";
 const MOBILE_CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, HEAD, POST, PATCH, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Accept, Authorization, Content-Type, X-Minion-Installation-Id",
+  "Access-Control-Allow-Headers": "Accept, Authorization, Content-Type, X-Minion-Installation-Id, Cache-Control, Pragma",
   "Access-Control-Max-Age": "86400",
 };
 

@@ -8,6 +8,7 @@ import ThumbsUp from 'lucide-react-native/icons/thumbs-up';
 import { useCallback, useRef } from 'react';
 import { AppState, Linking, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
+import { boardLabel } from '@/components/community/community-utils';
 import { RemoteImage } from '@/components/data/remote-image';
 import { TeamLogo } from '@/components/data/team-logo';
 import { ErrorState } from '@/components/feedback-states';
@@ -22,7 +23,6 @@ import { resolveApiAssetUrl, type MobileHomeDto, type MobileMatchSummary, type M
 const CARD_GAP = 12;
 const LCK_LOGO = require('@/assets/images/lck.svg');
 const LCK_LOGO_DARK = require('@/assets/images/lck-dark.svg');
-const BOARD_LABELS: Record<string, string> = { free: '자유', live: '실시간', humor: '유머', information: '정보', question: '질문' };
 const HOME_TEAM_ORDER = ['t1', 'geng', 'hle', 'dk', 'kt', 'drx', 'ns', 'bro', 'fox', 'soop'];
 type CelebrationEvent = MobileHomeDto['celebrations'][number];
 type CelebrationType = CelebrationEvent['type'];
@@ -191,7 +191,7 @@ function CommunitySection({ items }: { items: MobileHomeDto['community'] }) {
   const detailSize = 13;
   const thumbnail = wideMobile ? { height: 57, radius: 8, width: 76 } : { height: 51, radius: 6, width: 68 };
   const title = items.length > 0 && items.every((post) => post.isHot) ? '인기글' : '최신글';
-  return <View><SectionHeader action={() => router.navigate('/community')} title={title} />{items.map((post) => <Pressable key={post.id} onPress={() => router.push(`/community/post/${post.id}` as never)} style={[styles.postRow, { borderBottomColor: theme.divider, gap: wideMobile ? 12 : 10, minHeight: wideMobile ? 65 : 58 }]}><View style={styles.flex}><View style={styles.postTitleRow}><Text style={{ color: theme.accent, ...fonts.medium, fontSize: detailSize }}>{BOARD_LABELS[post.boardType] ?? post.boardType}</Text>{post.isHot ? <Text style={[styles.hotLabel, { backgroundColor: `${theme.accent}1f`, color: theme.accent, ...fonts.medium, fontSize: detailSize, lineHeight: detailSize }]}>인기</Text> : null}<Text numberOfLines={1} style={[styles.postTitle, { color: theme.ink, ...fonts.medium }]}>{post.title}</Text></View><View style={[styles.postMeta, { gap: wideMobile ? 8 : 6 }]}><Text numberOfLines={1} style={[styles.postMetaText, { color: theme.text, ...fonts.medium, fontSize: detailSize }]}>{post.author.nickname ?? post.author.guestIpLabel ?? '작성자 없음'}</Text><Text style={[styles.postMetaText, { color: theme.muted, ...fonts.regular, fontSize: detailSize }]}>{relativeDate(post.createdAt)}</Text><MessageCircle color={theme.muted} size={11} strokeWidth={1.8} /><Text style={[styles.postMetaText, { color: theme.muted, fontSize: detailSize }]}>{post.commentCount}</Text><ThumbsUp color={theme.muted} size={11} strokeWidth={1.8} /><Text style={[styles.postMetaText, { color: theme.muted, fontSize: detailSize }]}>{post.likeCount}</Text></View></View>{post.thumbnail ? <MediaImage height={thumbnail.height} radius={thumbnail.radius} url={post.thumbnail.url} width={thumbnail.width} /> : null}</Pressable>)}</View>;
+  return <View><SectionHeader action={() => router.navigate('/community')} title={title} />{items.map((post) => <Pressable key={post.id} onPress={() => router.push(`/community/post/${post.id}` as never)} style={[styles.postRow, { borderBottomColor: theme.divider, gap: wideMobile ? 12 : 10, minHeight: wideMobile ? 65 : 58 }]}><View style={styles.flex}><View style={styles.postTitleRow}><Text style={{ color: theme.accent, ...fonts.medium, fontSize: detailSize }}>{boardLabel(post.boardType)}</Text>{post.isHot ? <Text style={[styles.hotLabel, { backgroundColor: `${theme.accent}1f`, color: theme.accent, ...fonts.medium, fontSize: detailSize, lineHeight: detailSize }]}>인기</Text> : null}<Text numberOfLines={1} style={[styles.postTitle, { color: theme.ink, ...fonts.medium }]}>{post.title}</Text></View><View style={[styles.postMeta, { gap: wideMobile ? 8 : 6 }]}><Text numberOfLines={1} style={[styles.postMetaText, { color: theme.text, ...fonts.medium, fontSize: detailSize }]}>{post.author.nickname ?? post.author.guestIpLabel ?? '작성자 없음'}</Text><Text style={[styles.postMetaText, { color: theme.muted, ...fonts.regular, fontSize: detailSize }]}>{relativeDate(post.createdAt)}</Text><MessageCircle color={theme.muted} size={11} strokeWidth={1.8} /><Text style={[styles.postMetaText, { color: theme.muted, fontSize: detailSize }]}>{post.commentCount}</Text><ThumbsUp color={theme.muted} size={11} strokeWidth={1.8} /><Text style={[styles.postMetaText, { color: theme.muted, fontSize: detailSize }]}>{post.likeCount}</Text></View></View>{post.thumbnail ? <MediaImage height={thumbnail.height} radius={thumbnail.radius} url={post.thumbnail.url} width={thumbnail.width} /> : null}</Pressable>)}</View>;
 }
 
 function PomSection({ cardWidth, items }: { cardWidth: number; items: MobileHomeDto['pom'] }) {

@@ -6,7 +6,7 @@ import {
   getFanRatings,
   getLeagueAverageStatsBase,
   getMatches,
-  getPlayerStatLines,
+  getPlayerBenchmarkStatLines,
   getSetPicksBans,
   getSets,
   getTeamStandings,
@@ -69,9 +69,8 @@ export type PlayerPageSegmentData = {
 
 /**
  * 활성 시즌 구간 세트들의 "리그 전체" 집계.
- * set_picks_bans 는 2만 행이 넘어 구간 전체를 조회하면 페이지네이션으로 수십 번의 순차
- * 요청이 발생한다 — 선수 페이지에서 단연 가장 비싼 쿼리다. 게다가 원본 행을 그대로
- * 반환하면 5MB가 넘어 unstable_cache(2MB 한도)에 저장되지 못한다.
+ * 원본 행 전체는 캐시 항목 크기 제한을 넘을 수 있다. 집계 전용 열만 읽고 세트 청크를
+ * 제한된 수로 병렬 처리한 뒤 화면에 쓰는 작은 집계 결과만 저장한다.
  * 그래서 화면에 실제로 쓰이는 값(포지션 벤치마크·챔피언 픽밴 수·사용 선수)만 미리 집계해
  * 작게 캐시한다. 이 결과는 선수와 무관하게 구간(세트 집합)에만 의존하므로 전 선수가 공유한다.
  */
@@ -82,7 +81,7 @@ export const getPlayerPageSegmentData = unstable_cache(
     }
 
     const [scopedLines, scopedPicksBans] = await Promise.all([
-      getPlayerStatLines(segmentSetIds),
+      getPlayerBenchmarkStatLines(segmentSetIds),
       getSetPicksBans(segmentSetIds),
     ]);
 

@@ -35,6 +35,7 @@ import { findProfanity } from "@/lib/community/content-filter";
 import { DEFAULT_TIER, type Tier } from "@/lib/rank/config";
 import { getPublicRankProfiles } from "@/lib/rank/public-profile";
 import { normalizeYoutubeVideo } from "@/lib/youtube";
+import { mapWithConcurrency } from "@/lib/data/paged-read";
 
 type TeamRow = {
   id: string;
@@ -1375,14 +1376,14 @@ async function getSetPicksBansBase(setId?: string | string[]) {
 
   return fromSupabase(async () => {
     const supabase = createSupabaseServerClient();
-    const rows: SetPickBanRow[] = [];
     const pageSize = 1000;
 
-    for (const ids of setIdChunks(setId)) {
-      for (let from = 0; ; from += pageSize) {
+    const rows = (await mapWithConcurrency(setIdChunks(setId), 4, async (ids) => {
+      const chunkRows: SetPickBanRow[] = [];
+      for (let from = 0; ;) {
         let query = supabase
           .from("set_picks_bans")
-          .select("*")
+          .select("id, set_id, phase, action_type, order_index, team_id, champion_id, side", { count: "exact" })
           .order("order_index", { ascending: true })
           .order("set_id", { ascending: true })
           .range(from, from + pageSize - 1);
@@ -1393,19 +1394,22 @@ async function getSetPicksBansBase(setId?: string | string[]) {
           query = query.eq("set_id", ids);
         }
 
-        const { data, error } = await query;
+        const { data, error, count } = await query;
 
         if (error) {
           throw error;
         }
 
-        rows.push(...((data ?? []) as SetPickBanRow[]));
+        chunkRows.push(...((data ?? []) as SetPickBanRow[]));
 
-        if (!data || data.length < pageSize) {
+        if (!data?.length || (count !== null && chunkRows.length >= count)) {
           break;
         }
+        // Advance by returned rows, since a project can cap below pageSize.
+        from += data.length;
       }
-    }
+      return chunkRows;
+    })).flat();
 
     return rows.map((row) => ({
       id: row.id,
@@ -1420,19 +1424,22 @@ async function getSetPicksBansBase(setId?: string | string[]) {
   }, []);
 }
 
-async function getPlayerStatLinesBase(setId?: string | string[], playerId?: string) {
+async function getPlayerStatLinesBase(setId?: string | string[], playerId?: string, includeLoadout = true) {
+  if (Array.isArray(setId) && setId.length === 0) return [];
   return fromSupabase(async () => {
     const supabase = createSupabaseServerClient();
-    const rows: SetPlayerStatsRow[] = [];
     const pageSize = 1000;
+    const metricColumns = "set_id, player_id, team_id, position, champion_id, kills, deaths, assists, cs, gold, damage_to_champions, vision_score, dpm, damage_share, vision_score_per_minute, cs_per_minute, gold_diff_at_10, xp_diff_at_10, cs_diff_at_10, gold_diff_at_15, xp_diff_at_15, cs_diff_at_15, sets(duration_seconds, patch)";
+    const columns = includeLoadout
+      ? `${metricColumns}, champion_level, item0, item1, item2, item3, item4, item5, item6, spell0, spell1, rune0, rune1, role_bound_item, full_rune_names`
+      : metricColumns;
 
-    for (const ids of setIdChunks(setId)) {
-      for (let from = 0; ; from += pageSize) {
+    const rows = (await mapWithConcurrency(setIdChunks(setId), 4, async (ids) => {
+      const chunkRows: SetPlayerStatsRow[] = [];
+      for (let from = 0; ;) {
         let query = supabase
           .from("set_player_stats")
-          .select(
-            "set_id, player_id, team_id, position, champion_id, champion_level, kills, deaths, assists, cs, gold, damage_to_champions, vision_score, dpm, damage_share, vision_score_per_minute, cs_per_minute, gold_diff_at_10, xp_diff_at_10, cs_diff_at_10, gold_diff_at_15, xp_diff_at_15, cs_diff_at_15, item0, item1, item2, item3, item4, item5, item6, spell0, spell1, rune0, rune1, role_bound_item, full_rune_names, sets(duration_seconds, patch)",
-          )
+          .select(columns, { count: "exact" })
           .order("position", { ascending: true })
           .order("set_id", { ascending: true })
           .range(from, from + pageSize - 1);
@@ -1447,19 +1454,21 @@ async function getPlayerStatLinesBase(setId?: string | string[], playerId?: stri
           query = query.eq("player_id", playerId);
         }
 
-        const { data, error } = await query;
+        const { data, error, count } = await query;
 
         if (error) {
           throw error;
         }
 
-        rows.push(...((data ?? []) as unknown as SetPlayerStatsRow[]));
+        chunkRows.push(...((data ?? []) as unknown as SetPlayerStatsRow[]));
 
-        if (!data || data.length < pageSize) {
+        if (!data?.length || (count !== null && chunkRows.length >= count)) {
           break;
         }
+        from += data.length;
       }
-    }
+      return chunkRows;
+    })).flat();
 
     const teamDamageBySetTeam = new Map<string, number>();
     for (const row of rows) {
@@ -1510,6 +1519,11 @@ async function getPlayerStatLinesBase(setId?: string | string[], playerId?: stri
       patch: Array.isArray(row.sets) ? (row.sets[0]?.patch ?? null) : (row.sets?.patch ?? null),
     }));
   }, []);
+}
+
+/** Same statistics/order as detailed lines, without item/spell/rune payloads. */
+export async function getPlayerBenchmarkStatLines(setIds: string[]) {
+  return getPlayerStatLinesBase(setIds, undefined, false);
 }
 
 export async function getLeagueAverageStatsBase() {
