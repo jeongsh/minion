@@ -17,6 +17,7 @@ const eslintConfig = [
       "node_modules/**",
       "out/**",
       "tmp/**",
+      "tools/shorts-studio/**",
       "tsconfig.tsbuildinfo",
     ],
   },
