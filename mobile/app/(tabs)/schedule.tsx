@@ -46,8 +46,18 @@ export default function ScheduleScreen() {
   const [requestedActiveDateKey, setRequestedActiveDateKey] = useState<string | undefined>();
 
   const query = buildQuery(filter);
-  const { data, error, loading, refresh } = useCachedQuery<MobileScheduleDto>(`/api/mobile/v1/schedule?${query}`);
-  const { data: teamsData } = useCachedQuery<MobileTeamsDto>('/api/mobile/v1/teams');
+  const scheduleBasePath = `/api/mobile/v1/schedule?${query}`;
+  const schedulePath = `${scheduleBasePath}&calendar=0`;
+  const { data, error, loading, refresh } = useCachedQuery<MobileScheduleDto>(schedulePath, { staleTimeMs: 60_000 });
+  const { data: calendarData } = useCachedQuery<MobileScheduleDto>(`${scheduleBasePath}&calendar=1`, {
+    cache: 'memory',
+    enabled: calendarOpen,
+    staleTimeMs: 5 * 60_000,
+  });
+  const { data: teamsData } = useCachedQuery<MobileTeamsDto>('/api/mobile/v1/teams', {
+    enabled: filterOpen,
+    staleTimeMs: 6 * 60 * 60_000,
+  });
 
   const activeMonthDates = useMemo(() => monthDatesKST(filter.year, filter.month), [filter.month, filter.year]);
   const activeMonthDateKeys = useMemo(() => new Set(activeMonthDates.map((date) => date.key)), [activeMonthDates]);
@@ -202,8 +212,8 @@ export default function ScheduleScreen() {
       <ScheduleCalendarDialog
         activeMonth={filter.month}
         activeYear={filter.year}
-        events={data.calendarEvents}
-        matches={data.matches}
+        events={calendarData?.calendarEvents ?? []}
+        matches={calendarData?.matches ?? data.matches}
         onClose={() => setCalendarOpen(false)}
         open={calendarOpen}
       />
