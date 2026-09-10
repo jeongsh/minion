@@ -64,6 +64,7 @@ async function main() {
 
   const kindFilter = onlyArg?.replace(/s$/, "");
   let owners = kindFilter ? allOwners.filter((o) => o.kind === kindFilter) : allOwners;
+  if (owners.length === 0) throw new Error("No Instagram owners found.");
   const total = owners.length;
   if (offsetArg > 0) owners = owners.slice(offsetArg);
   if (limitArg > 0) owners = owners.slice(0, limitArg);
@@ -76,6 +77,8 @@ async function main() {
 
   let postsInserted = 0;
   let errors = 0;
+  let checked = 0;
+  let healthyOwners = 0;
 
   for (const owner of owners) {
     if (!owner.instagramUrl) continue;
@@ -85,6 +88,8 @@ async function main() {
       try {
         const result = await syncOwnerPosts(supabase, owner, { dryRun, sessionCookie });
         postsInserted += result.inserted;
+        checked += result.checked;
+        healthyOwners += 1;
         console.log(`[posts] ${owner.kind}:${owner.name} — checked=${result.checked} new=${result.inserted}`);
       } catch (err) {
         errors += 1;
@@ -113,7 +118,7 @@ async function main() {
   }
 
   console.log(
-    `\nDone. posts_new=${postsInserted} errors=${errors} dryRun=${dryRun}`,
+    `\nDone. owners=${owners.length} healthy=${healthyOwners} checked=${checked} posts_new=${postsInserted} errors=${errors} dryRun=${dryRun}`,
   );
 
   // Discord 알림 (스토리 비활성화로 미사용)
@@ -134,6 +139,9 @@ async function main() {
   // }
 
   await closeBrowser();
+  if (errors > 0 || healthyOwners === 0 || checked === 0) {
+    throw new Error(`Instagram sync unhealthy: healthy=${healthyOwners} checked=${checked} errors=${errors}`);
+  }
 }
 
 main().catch(async (err) => {

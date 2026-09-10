@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import { createSupabaseAdminClient } from "../lib/supabase/admin.ts";
 import { youtubeWebsubTopicUrl } from "../lib/youtube-feed.ts";
 import { getYoutubeVideoOwners, resolveOwnerChannelId } from "../lib/sync/youtube-videos.ts";
+import { retryFetch } from "../lib/sync/retry-fetch.ts";
 
 const HUB_URL = "https://pubsubhubbub.appspot.com/subscribe";
 const args = new Set(process.argv.slice(2));
@@ -37,11 +38,11 @@ async function subscribeTopic(callbackUrl: string, topicUrl: string) {
     "hub.topic": topicUrl,
   });
 
-  const response = await fetch(HUB_URL, {
+  const response = await retryFetch(HUB_URL, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body,
-  });
+  }, { timeoutMs: 25_000 });
 
   if (!response.ok) {
     throw new Error(`Hub ${response.status}: ${await response.text()}`);
@@ -58,31 +59,43 @@ async function main() {
 
   const supabase = createSupabaseAdminClient();
   const owners = await getYoutubeVideoOwners(supabase);
+  if (owners.length === 0) throw new Error("No YouTube owners found.");
   let subscribed = 0;
   let skipped = 0;
+  let failed = 0;
+  let consecutiveFailures = 0;
+  const subscribedChannels = new Set<string>();
 
   for (const owner of owners) {
     try {
       const channelId = await resolveOwnerChannelId(supabase, owner);
       if (!channelId) {
-        skipped += 1;
-        console.log(`[skip] ${owner.kind}:${owner.name} channel id not found`);
-        continue;
+        throw new Error("channel id not found");
       }
+      if (subscribedChannels.has(channelId)) { skipped += 1; continue; }
 
       const topicUrl = youtubeWebsubTopicUrl(channelId);
       await subscribeTopic(callbackUrl, topicUrl);
       subscribed += 1;
+      subscribedChannels.add(channelId);
+      consecutiveFailures = 0;
       console.log(
         `[ok] ${unsubscribe ? "unsubscribed" : "subscribed"} ${owner.kind}:${owner.name} ${topicUrl}`,
       );
     } catch (error) {
-      skipped += 1;
+      failed += 1;
+      consecutiveFailures += 1;
       console.error(`[error] ${owner.kind}:${owner.name} ${(error as Error).message}`);
+      if (consecutiveFailures >= 3) {
+        throw new Error("Three consecutive WebSub renewals failed; stopping this run. API polling continues independently.");
+      }
     }
   }
 
-  console.log(`Done. ${unsubscribe ? "unsubscribed" : "subscribed"}=${subscribed} skipped=${skipped}`);
+  console.log(`Done. ${unsubscribe ? "unsubscribed" : "subscribed"}=${subscribed} skipped=${skipped} failed=${failed}`);
+  if (failed > 0) {
+    throw new Error(`YouTube WebSub ${unsubscribe ? "unsubscribe" : "renewal"} failed for ${failed} channel(s).`);
+  }
 }
 
 main().catch((error) => {

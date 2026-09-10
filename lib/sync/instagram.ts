@@ -120,7 +120,7 @@ function extractUsername(instagramUrl: string): string {
 }
 
 export async function getInstagramOwners(supabase: SupabaseClient): Promise<InstagramOwner[]> {
-  const [{ data: players }, { data: teams }] = await Promise.all([
+  const [{ data: players, error: playersError }, { data: teams, error: teamsError }] = await Promise.all([
     supabase
       .from("players")
       .select("id, name, instagram_url, team_id, teams!inner(is_lck_team)")
@@ -134,6 +134,8 @@ export async function getInstagramOwners(supabase: SupabaseClient): Promise<Inst
       .eq("is_active", true)
       .eq("is_lck_team", true),
   ]);
+  if (playersError) throw playersError;
+  if (teamsError) throw teamsError;
 
   return [
     ...(players ?? []).map((p) => ({

@@ -1,5 +1,6 @@
 import type { YoutubeFeedEntry } from "./youtube-feed.ts";
 import { youtubeThumbnailUrl } from "./youtube.ts";
+import { retryFetch } from "./sync/retry-fetch.ts";
 
 type YoutubeApiError = {
   error?: {
@@ -9,6 +10,7 @@ type YoutubeApiError = {
 
 type PlaylistItemsResponse = {
   items?: Array<{
+    contentDetails?: { videoPublishedAt?: string };
     snippet?: {
       channelId?: string;
       title?: string;
@@ -59,7 +61,7 @@ async function youtubeApiGet<T>(path: string, params: Record<string, string>, ap
   }
   url.searchParams.set("key", apiKey);
 
-  const response = await fetch(url, { signal: AbortSignal.timeout(YOUTUBE_API_TIMEOUT_MS) });
+  const response = await retryFetch(url, {}, { timeoutMs: YOUTUBE_API_TIMEOUT_MS });
   const body = (await response.json()) as T & YoutubeApiError;
   if (!response.ok) {
     throw new Error(body.error?.message ?? `YouTube API ${response.status}: ${path}`);
@@ -102,24 +104,27 @@ export async function fetchYoutubeApiVideoEntries(
 
   while (true) {
     const params: Record<string, string> = {
-      part: "snippet",
+      part: "snippet,contentDetails",
       playlistId: uploadsPlaylistId(channelId),
       maxResults: "50",
     };
     if (pageToken) params.pageToken = pageToken;
 
     const data = await youtubeApiGet<PlaylistItemsResponse>("playlistItems", params, options.apiKey);
+    if (!Array.isArray(data.items)) throw new Error("YouTube playlist response format changed: items is missing");
 
     for (const item of data.items ?? []) {
       const snippet = item.snippet;
       const videoId = snippet?.resourceId?.videoId;
       if (!snippet || snippet.resourceId?.kind !== "youtube#video" || !videoId) continue;
 
+      const publishedAt = item.contentDetails?.videoPublishedAt ?? snippet.publishedAt;
       if (options.since && new Date(snippet.publishedAt ?? 0) < options.since) {
         return entries;
       }
+      if (options.since && new Date(publishedAt ?? 0) < options.since) continue;
 
-      const entry = mapSnippetToEntry(videoId, channelId, snippet);
+      const entry = mapSnippetToEntry(videoId, channelId, { ...snippet, publishedAt });
       if (entry) entries.push(entry);
 
       if (options.limit && entries.length >= options.limit) return entries;

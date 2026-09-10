@@ -1,0 +1,51 @@
+name: Social collection health monitor
+
+on:
+  schedule:
+    - cron: '11 * * * *'
+  workflow_dispatch:
+  workflow_run:
+    workflows: ['YouTube API recovery sync', 'Renew YouTube WebSub subscriptions', 'Instagram Sync']
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: social-health-monitor
+  cancel-in-progress: false
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - uses: actions/cache/restore@v4
+        with:
+          path: artifacts/social-monitor-state.json
+          key: social-monitor-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: social-monitor-
+      - name: Detect failed or missing collection runs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          DISCORD_SOCIAL_WEBHOOK_URL: ${{ secrets.DISCORD_SOCIAL_WEBHOOK_URL }}
+        run: node --experimental-strip-types scripts/check-social-health.ts
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: artifacts/social-monitor-state.json
+          key: social-monitor-${{ github.run_id }}-${{ github.run_attempt }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: social-health
+          path: artifacts/social-health.json
+          retention-days: 14

@@ -308,6 +308,23 @@ export async function scrapeInstagramPosts(
   sessionCookie?: string,
   maxPosts = 500,
 ): Promise<NormalizedPost[]> {
+  try {
+    return await scrapeInstagramPostsOnce(username, sessionCookie, maxPosts);
+  } catch (error) {
+    // Public profile collection can recover from a stale saved login session.
+    if (sessionCookie && error instanceof Error && /INSTAGRAM_(EMPTY|LOGIN)/.test(error.message)) {
+      console.warn(`[recovery] @${username}: saved session unusable; retrying the public profile once`);
+      return scrapeInstagramPostsOnce(username, undefined, maxPosts);
+    }
+    throw error;
+  }
+}
+
+async function scrapeInstagramPostsOnce(
+  username: string,
+  sessionCookie: string | undefined,
+  maxPosts: number,
+): Promise<NormalizedPost[]> {
   const context = await createContext(sessionCookie);
 
   try {
@@ -318,6 +335,7 @@ export async function scrapeInstagramPosts(
     let userId = "";
     let endCursor = "";
     let hasNextPage = false;
+    let confirmedEmpty = false;
 
     page.on("response", async (res) => {
       try {
@@ -336,6 +354,7 @@ export async function scrapeInstagramPosts(
         // web_profile_info 형식
         const userData = json?.data?.user ?? json?.graphql?.user;
         if (userData) {
+          if (userData.is_private !== true && userData.edge_owner_to_timeline_media?.count === 0) confirmedEmpty = true;
           if (userData.id) userId = String(userData.id);
           const pageInfo = userData.edge_owner_to_timeline_media?.page_info;
           if (pageInfo) {
@@ -373,16 +392,20 @@ export async function scrapeInstagramPosts(
       } catch { /* ignore */ }
     });
 
-    await page.goto(`https://www.instagram.com/${username}/`, {
+    const navigation = await page.goto(`https://www.instagram.com/${username}/`, {
       waitUntil: "networkidle",
       timeout: 40_000,
     });
+    if (navigation && navigation.status() >= 400) throw new Error(`INSTAGRAM_HTTP_${navigation.status()}: @${username}`);
     await page.waitForTimeout(3_000);
 
     // 로그인 상태 확인
     const title = await page.title();
-    if (title.toLowerCase().includes("login") || title.includes("로그인")) {
-      console.log(`  [warn] Instagram 비로그인 상태 — 세션 쿠키가 만료되었거나 차단됨 (title: "${title}")`);
+    if (/\/(challenge|checkpoint)\//.test(page.url())) {
+      throw new Error(`INSTAGRAM_CHALLENGE: @${username}; account verification required`);
+    }
+    if (title.toLowerCase().includes("login") || title.includes("로그인") || page.url().includes("/accounts/login")) {
+      throw new Error(`INSTAGRAM_LOGIN: @${username}; login session expired or login required`);
     }
 
     // userId를 페이지 JS 상태에서 추출 (web_profile_info가 막혀도 동작)
@@ -435,11 +458,10 @@ export async function scrapeInstagramPosts(
         }
       }, { uid: userId, cur: cursor }).catch(() => null);
 
-      if (!json) break;
+      if (!json) throw new Error(`INSTAGRAM_PAGINATION: @${username}; empty API response`);
 
       if (json.require_login || json.status === "fail") {
-        console.log(`  [paginate] session error: ${json.message ?? json.status}`);
-        break;
+        throw new Error(`INSTAGRAM_LOGIN: @${username}; pagination rejected`);
       }
 
       hasNextPage = json.more_available ?? false;
@@ -453,6 +475,9 @@ export async function scrapeInstagramPosts(
       await page.waitForTimeout(800);
     }
 
+    if (postsMap.size === 0 && !confirmedEmpty) {
+      throw new Error(`INSTAGRAM_EMPTY: @${username}; no readable feed (session, access, or response format changed)`);
+    }
     return Array.from(postsMap.values()).sort(
       (a, b) => b.postedAt.getTime() - a.postedAt.getTime(),
     );

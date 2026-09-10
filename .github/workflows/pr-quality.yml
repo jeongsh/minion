@@ -55,5 +55,8 @@ jobs:
       - name: Install Playwright
         run: npx playwright install --with-deps chromium
 
+      - name: Social collection failure and recovery tests
+        run: node --experimental-strip-types --test lib/sync/social-health.test.ts lib/scraper/instagram-health.test.ts
+
       - name: E2E smoke
         run: npm run e2e
