@@ -884,7 +884,12 @@ export type MobileTeamFanDto = {
   following: boolean;
 };
 
-export type MobileTeamNotificationDto = { enabled: boolean };
+export type MobileTeamNotificationSelection = Pick<
+  MobileTeamNotificationSettings,
+  "matchAlertsEnabled" | "liveMatchAlertsEnabled" | "instagramAlertsEnabled" | "videoAlertsEnabled"
+>;
+
+export type MobileTeamNotificationDto = MobileTeamNotificationSelection & { enabled: boolean };
 export type MobileTeamFavoriteDto = { favorite: boolean };
 export type MobileFanCalendarSubmissionDto = { message: string };
 

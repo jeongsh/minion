@@ -16,6 +16,7 @@ import { ErrorState } from '@/components/feedback-states';
 import { FanCalendarDialog } from '@/components/fan/fan-calendar-dialog';
 import { FanLoadingSkeleton } from '@/components/fan/fan-loading-skeleton';
 import { FanInstagramModal } from '@/components/fan/fan-instagram-modal';
+import { FanNotificationPreferenceSheet } from '@/components/fan/fan-notification-preference-sheet';
 import { FanPlayers } from '@/components/fan/fan-players';
 import { FanSchedule } from '@/components/fan/fan-schedule';
 import { FAN_POSITION_ORDER, FanEmpty, FanSectionHeading, FanVideoThumbnail, InstagramGlyph } from '@/components/fan/fan-shared';
@@ -26,7 +27,7 @@ import { MinionScreen } from '@/components/minion-screen';
 import { getMinionTeam } from '@/constants/teams';
 import { useCachedQuery } from '@/hooks/use-cached-query';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
-import { mutateMobileApi, resolveApiAssetUrl, type MobileCommunityPostSummary, type MobileMatchSummary, type MobileTeamDetailDto, type MobileTeamFanDto, type MobileTeamFavoriteDto, type MobileTeamNotificationDto } from '@/lib/api-client';
+import { mutateMobileApi, resolveApiAssetUrl, type MobileCommunityPostSummary, type MobileMatchSummary, type MobileTeamDetailDto, type MobileTeamFanDto, type MobileTeamFavoriteDto, type MobileTeamNotificationDto, type MobileTeamNotificationSelection } from '@/lib/api-client';
 import { fanAccentText, fanHeaderControlColor } from '@/lib/fan-colors';
 import { getLocalFavoriteTeamCooldown, recordLocalFavoriteTeamChange } from '@/lib/favorite-team-cooldown';
 import { getPushPermissionStatus, openPushNotificationSettings, requestPushPermission, requestPushPermissionAndRegister, syncPushTokenIfAuthorized } from '@/lib/push-notifications';
@@ -163,6 +164,7 @@ function FanChannelHeader({ data }: { data: MobileTeamDetailDto }) {
   const [followingOverride, setFollowingOverride] = useState<boolean | null>(null);
   const [countOverride, setCountOverride] = useState<number | null>(null);
   const [notificationOverride, setNotificationOverride] = useState<boolean | null>(null);
+  const [notificationSheetOpen, setNotificationSheetOpen] = useState(false);
   const [pending, setPending] = useState<'favorite' | 'follow' | 'notification' | null>(null);
   const staticTeam = getMinionTeam(data.team.slug) ?? getMinionTeam(data.team.fanSiteHost);
   const favorite = favoriteTeam?.id === data.team.id || favoriteTeam?.slug === data.team.slug || viewer?.favoriteTeamId === data.team.id;
@@ -223,7 +225,7 @@ function FanChannelHeader({ data }: { data: MobileTeamDetailDto }) {
         if (!session) await recordLocalFavoriteTeamChange();
       }
       showToast(result.following ? '팬 등록을 완료했습니다.' : '팬 등록을 해제했습니다.', 'success');
-      if (result.following) void offerDevicePushAfterEnabling();
+      if (result.following) setNotificationSheetOpen(true);
       refreshFanState();
     } catch (caught) {
       setFollowingOverride(null);
@@ -327,7 +329,26 @@ function FanChannelHeader({ data }: { data: MobileTeamDetailDto }) {
     } finally { setPending(null); }
   }
 
+  async function saveNotificationSelection(selection: MobileTeamNotificationSelection) {
+    if (pending || !session) return;
+    setPending('notification');
+    try {
+      const result = await mutateMobileApi<MobileTeamNotificationDto>(notificationPath, 'POST', { selection });
+      setNotificationOverride(result.enabled);
+      setNotificationSheetOpen(false);
+      refreshNotificationState();
+      await refreshViewer();
+      showToast(result.enabled ? '선택한 팀 알림을 켰습니다.' : '알림 없이 팀을 팔로우합니다.', 'success');
+      if (result.enabled) void offerDevicePushAfterEnabling();
+    } catch (caught) {
+      showToast(caught instanceof Error ? caught.message : '알림 설정을 저장하지 못했습니다.', 'error');
+    } finally {
+      setPending(null);
+    }
+  }
+
   return (
+    <>
     <View style={[styles.channelHeader, { borderBottomColor: theme.border, height: headerUrl ? 220 : 132 }]}>
       {headerUrl ? <Image contentFit="cover" contentPosition={{ left: 'center', top: '34%' }} source={{ uri: headerUrl }} style={StyleSheet.absoluteFill} /> : null}
       {headerUrl ? <LinearGradient colors={['rgba(0,0,0,0.18)', 'rgba(0,0,0,0.34)', 'rgba(0,0,0,0.68)']} locations={[0, 0.48, 1]} style={StyleSheet.absoluteFill} /> : null}
@@ -347,6 +368,19 @@ function FanChannelHeader({ data }: { data: MobileTeamDetailDto }) {
         </View>
       </View>
     </View>
+    {notificationSheetOpen ? <FanNotificationPreferenceSheet
+      canConfigure={Boolean(session)}
+      onClose={() => setNotificationSheetOpen(false)}
+      onLogin={() => {
+        setNotificationSheetOpen(false);
+        router.push(`/login?next=/fan/${data.team.fanSiteHost}` as never);
+      }}
+      onSave={saveNotificationSelection}
+      open
+      teamColor={data.team.primaryColor}
+      teamName={data.team.shortName}
+    /> : null}
+    </>
   );
 }
 

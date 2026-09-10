@@ -358,6 +358,7 @@ export type {
   MobileTeamFavoriteDto,
   MobileTeamFanDto,
   MobileTeamNotificationDto,
+  MobileTeamNotificationSelection,
   MobileTeamNotificationSettings,
   MobileTeamSummary,
   MobileTeamsPageDto,
