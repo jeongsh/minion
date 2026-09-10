@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import {
+  buildChampionAnalysis,
   buildChampionDirectory,
   buildChampionDirectoryFromAggregates,
   buildChampionDuos,
@@ -25,6 +26,28 @@ import type {
   Team,
   Tournament,
 } from "./types.ts";
+
+test("detail analysis preserves global draft rates with stats limited to champion appearance sets", () => {
+  const input: ChampionAnalysisInput = {
+    champions: [A, B, X, Y, OTHER],
+    sets: [makeSet("played", "blue"), makeSet("banned", "red"), makeSet("absent", "blue")],
+    pickBans: [
+      ...completeDraft("played", { picked: A.id }),
+      ...completeDraft("banned", { banned: A.id }),
+      ...completeDraft("absent", { picked: B.id }),
+    ],
+    playerStats: [
+      makeLine({ setId: "played", playerId: "bot", teamId: "blue", position: "BOT", championId: A.id }),
+      makeLine({ setId: "played", playerId: "support", teamId: "blue", position: "SUP", championId: X.id }),
+      makeLine({ setId: "played", playerId: "enemy", teamId: "red", position: "BOT", championId: B.id }),
+      makeLine({ setId: "banned", playerId: "bot", teamId: "blue", position: "BOT", championId: B.id }),
+      makeLine({ setId: "absent", playerId: "bot", teamId: "blue", position: "BOT", championId: B.id }),
+    ],
+  };
+  const scoped = { ...input, playerStats: input.playerStats.filter((line) => line.setId === "played") };
+  assert.deepEqual(buildChampionAnalysis(scoped, A.id, "BOT"), buildChampionAnalysis(input, A.id, "BOT"));
+  assert.equal(buildChampionOverview(scoped, A.id).draft.eligibleSets, 3);
+});
 
 const A = { id: "a", slug: "a", name: "A" } satisfies Champion;
 const B = { id: "b", slug: "b", name: "B" } satisfies Champion;

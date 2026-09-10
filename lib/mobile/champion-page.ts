@@ -14,7 +14,6 @@ import type {
 } from "@/packages/contracts/src/mobile-v1";
 import {
   buildChampionAnalysis,
-  buildChampionDirectory,
   buildChampionDirectoryFromAggregates,
   buildChampionOverview,
   buildCompletedItemSequenceSummaries,
@@ -339,7 +338,10 @@ export async function getMobileChampionDetail(championSlug: string, searchParams
   const [champion, references] = await Promise.all([getChampionBySlug(championSlug), getChampionPageReferenceData()]);
   if (!champion) return null;
   const scope = resolveChampionScope(references, scopeInput(searchParams));
-  const data = await getChampionDetailData(champion.id, scope.setIds);
+  const [data, directoryStats] = await Promise.all([
+    getChampionDetailData(champion.id, scope.setIds),
+    getChampionDirectoryStats(scope.setIds),
+  ]);
   const defaultOverview = buildChampionOverview(data, champion.id);
   const requested = searchParams.get("position");
   const requestedPosition = POSITIONS.has(requested as MobileChampionPosition) ? requested as MobileChampionPosition : null;
@@ -347,7 +349,8 @@ export async function getMobileChampionDetail(championSlug: string, searchParams
     ? requestedPosition
     : defaultOverview.selectedPosition;
   const analysis = buildChampionAnalysis(data, champion.id, position as PlayerPosition);
-  const directory = buildChampionDirectory(data).filter((row) => row.draft.picks > 0 || row.draft.bans > 0);
+  const directory = buildChampionDirectoryFromAggregates(references.champions, directoryStats)
+    .filter((row) => row.draft.picks > 0 || row.draft.bans > 0);
   const representativePatch = scope.patch !== "all" ? scope.patch : analysis.games[0]?.patch ?? data.sets.find((set) => set.patch)?.patch;
   const build = await buildMobileBuild(analysis, champion, representativePatch);
 

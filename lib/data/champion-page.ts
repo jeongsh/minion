@@ -36,6 +36,7 @@ const PAGE_SIZE = 1_000;
 // UUIDs plus PostgREST query syntax stay comfortably below common URL limits.
 const BUILD_EVENT_SET_ID_CHUNK_SIZE = 20;
 const PLAYER_ID_CHUNK_SIZE = 50;
+const DETAIL_SET_CHUNK_SIZE = 80;
 const MAX_PARALLEL_CHUNKS = 6;
 const DIRECTORY_POSITIONS = new Set<PlayerPosition>(["TOP", "JGL", "MID", "BOT", "SUP"]);
 
@@ -662,6 +663,57 @@ async function queryBuildEventsPage(
   return (data ?? []) as unknown as BuildEventRow[];
 }
 
+type ChampionAppearanceRow = { id: string; set_id: string; player_id: string };
+
+async function queryChampionAppearancesPage(championId: string, afterId: string | null): Promise<CountedPage<ChampionAppearanceRow>> {
+  if (!canQuerySupabase()) return { rows: [], count: 0 };
+  let query = createSupabaseServerClient().from("set_player_stats")
+    .select("id,set_id,player_id", { count: "exact" })
+    .eq("champion_id", championId).order("id").limit(PAGE_SIZE);
+  if (afterId) query = query.gt("id", afterId);
+  const { data, error, count } = await query;
+  if (error) throw error;
+  return { rows: data ?? [], count };
+}
+
+async function queryDetailStatsPage(setIds: string[], afterId: string | null): Promise<CountedPage<PlayerStatRow>> {
+  if (!canQuerySupabase() || !setIds.length) return { rows: [], count: 0 };
+  async function read(columns: string) {
+    let query = createSupabaseServerClient().from("set_player_stats")
+      .select(columns, { count: "exact" }).in("set_id", setIds).order("id").limit(PAGE_SIZE);
+    if (afterId) query = query.gt("id", afterId);
+    return query;
+  }
+  let { data, error, count } = await read(PLAYER_STAT_COLUMNS);
+  if (reportsMissingColumn(error, "role_bound_item")) {
+    ({ data, error, count } = await read(PLAYER_STAT_COLUMNS_WITHOUT_ROLE_BOUND_ITEM));
+  }
+  if (error) throw error;
+  return { rows: (data ?? []) as unknown as PlayerStatRow[], count };
+}
+
+async function queryDetailEventsPage(pairs: string[], afterId: string | null): Promise<CountedPage<BuildEventRow>> {
+  if (!canQuerySupabase() || !pairs.length) return { rows: [], count: 0 };
+  // These identities come from database UUID columns, never route/query strings.
+  const filters = pairs.map((pair) => {
+    const [setId, playerId] = pair.split(":");
+    return `and(set_id.eq.${setId},player_id.eq.${playerId})`;
+  });
+  let query = createSupabaseServerClient().from("timeline_events")
+    .select(BUILD_EVENT_COLUMNS, { count: "exact" })
+    .or(filters.join(","))
+    .in("event_type", ["ITEM_PURCHASED", "ITEM_SOLD", "ITEM_UNDO", "SKILL_LEVEL_UP"])
+    .order("id").limit(PAGE_SIZE);
+  if (afterId) query = query.gt("id", afterId);
+  const { data, error, count } = await query;
+  if (error) throw error;
+  return { rows: (data ?? []) as unknown as BuildEventRow[], count };
+}
+
+const queryChampionAppearancesPageCached = unstable_cache(queryChampionAppearancesPage, ["champion-detail-appearances-v1"], CACHE_OPTIONS);
+const queryDetailStatsPageCached = unstable_cache(queryDetailStatsPage, ["champion-detail-stats-v1"], CACHE_OPTIONS);
+const queryDetailEventsPageCached = unstable_cache(queryDetailEventsPage, ["champion-detail-events-v1"], CACHE_OPTIONS);
+
 const queryTeamsPageCached = unstable_cache(
   queryTeamsPage,
   ["champion-page-teams-counted-page-v2"],
@@ -947,8 +999,11 @@ export async function getChampionBuildEvents(
       ),
   );
 
-  return pageGroups
-    .flat()
+  return mapBuildEvents(pageGroups.flat());
+}
+
+function mapBuildEvents(rows: BuildEventRow[]): ChampionBuildEvent[] {
+  return rows
     .map<ChampionBuildEvent>((row) => ({
       setId: row.set_id,
       playerId: row.player_id,
@@ -1012,22 +1067,43 @@ export const getChampionDirectoryData = getChampionPageData;
 async function getChampionDetailDataBase(
   championId: string,
   setIds: readonly string[],
+  includeBuildEvents = true,
 ): Promise<ChampionPageData> {
-  const data = await getChampionPageData(setIds);
-  const targetRows = data.playerStats.filter((row) => row.championId === championId);
-  const targetPairs = new Set(targetRows.map((row) => `${row.setId}:${row.playerId}`));
+  const [references, appearances] = await Promise.all([
+    getChampionPageReferenceData(),
+    collectCountedKeysetPages((afterId) => queryChampionAppearancesPageCached(championId, afterId)),
+  ]);
+  const scopeIds = new Set(setIds);
+  const sets = references.sets.filter((set) => scopeIds.has(set.id));
+  const targetRows = appearances.filter((row) => scopeIds.has(row.set_id));
+  const targetSetIds = uniqueSorted(targetRows.map((row) => row.set_id));
+  const targetPairs = uniqueSorted(targetRows.map((row) => `${row.set_id}:${row.player_id}`));
 
-  // Restrict the costly timeline scan to sets and players that actually used this champion.
-  const buildEvents = await getChampionBuildEvents(
-    targetRows.map((row) => row.setId),
-    targetRows.map((row) => row.playerId),
-  );
+  const [pickBans, statGroups, eventGroups] = await Promise.all([
+    // Keep every scoped draft: presence rates include games where this champion was absent.
+    getPickBansForSets(setIds),
+    // Keep all teammates/opponents in these sets for matchups, duos and team totals.
+    mapWithConcurrency(chunksOf(targetSetIds, DETAIL_SET_CHUNK_SIZE), MAX_PARALLEL_CHUNKS,
+      (ids) => collectCountedKeysetPages((afterId) => queryDetailStatsPageCached(ids, afterId))),
+    includeBuildEvents
+      ? mapWithConcurrency(chunksOf(targetPairs, BUILD_EVENT_SET_ID_CHUNK_SIZE), MAX_PARALLEL_CHUNKS,
+        (pairs) => collectCountedKeysetPages((afterId) => queryDetailEventsPageCached(pairs, afterId)))
+      : Promise.resolve([]),
+  ]);
+  // Match the shared UUID-partition loader's ordering, including duplicate-row precedence.
+  const statRows = statGroups.flat().sort((a, b) => a.id.localeCompare(b.id));
+  const matchIds = new Set(sets.map((set) => set.matchId));
+  const matches = references.matches.filter((match) => matchIds.has(match.id));
+  const tournamentIds = new Set(matches.map((match) => match.tournamentId));
 
   return {
-    ...data,
-    buildEvents: buildEvents.filter((event) =>
-      targetPairs.has(`${event.setId}:${event.playerId}`),
-    ),
+    ...references,
+    sets,
+    matches,
+    tournaments: references.tournaments.filter((tournament) => tournamentIds.has(tournament.id)),
+    pickBans,
+    playerStats: mapPlayerStats(statRows, sets),
+    buildEvents: mapBuildEvents(eventGroups.flat()),
   };
 }
 

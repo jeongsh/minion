@@ -4,9 +4,9 @@ import { notFound } from "next/navigation";
 import { ChampionDetail, type ChampionCatalogs } from "@/components/champions/champion-detail";
 import type { ChampionDetailTab } from "@/components/champions/champion-navigation";
 import { ChampionScopeFilter } from "@/components/champions/champion-scope-filter";
-import { buildChampionAnalysis, buildChampionDirectory, buildChampionOverview } from "@/lib/champion-analysis";
+import { buildChampionAnalysis, buildChampionDirectoryFromAggregates, buildChampionOverview } from "@/lib/champion-analysis";
 import { championImage, championSearchText, fetchChampionAbilityIcons, normalizedDdragonId } from "@/lib/champions";
-import { getChampionBySlug, getChampionDetailData, getChampionPageData, getChampionPageReferenceData, resolveChampionScope } from "@/lib/data/champion-page";
+import { getChampionBySlug, getChampionDetailData, getChampionDirectoryStats, getChampionPageReferenceData, resolveChampionScope } from "@/lib/data/champion-page";
 import { DEFAULT_DDRAGON_VERSION, ddragonVersionFromPatch, uniqueDdragonVersionsForPatches } from "@/lib/ddragon";
 import { fetchDetailedItemCatalog, type DetailedGameItem, type GameItem } from "@/lib/items";
 import { fetchFullRuneTrees, fetchRuneCatalog } from "@/lib/runes";
@@ -97,9 +97,10 @@ export default async function ChampionDetailPage({
   const requestedTab = TABS.has(query.tab as ChampionDetailTab)
     ? query.tab as ChampionDetailTab
     : "overview";
-  const data = requestedTab === "overview"
-    ? await getChampionDetailData(champion.id, scope.setIds)
-    : await getChampionPageData(scope.setIds);
+  const [data, directoryStats] = await Promise.all([
+    getChampionDetailData(champion.id, scope.setIds, requestedTab === "overview"),
+    getChampionDirectoryStats(scope.setIds),
+  ]);
   const defaultOverview = buildChampionOverview(data, champion.id);
   const requestedPosition = POSITIONS.has(query.position as PlayerPosition)
     ? query.position as PlayerPosition
@@ -123,7 +124,7 @@ export default async function ChampionDetailPage({
   const gamePage = Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
   if (activeTab === "games" && gamePage > 1) paramsForLinks.set("page", String(gamePage));
 
-  const directory = buildChampionDirectory(data)
+  const directory = buildChampionDirectoryFromAggregates(references.champions, directoryStats)
     .filter((row) => row.draft.picks > 0 || row.draft.bans > 0);
   const pickerOptions = directory.map((row) => ({
     id: row.champion.id,
