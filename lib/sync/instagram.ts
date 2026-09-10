@@ -222,7 +222,7 @@ export async function syncOwnerPosts(
           {
             team_id: owner.id,
             platform: "instagram",
-            title: post.caption.slice(0, 200) || "Instagram post",
+            title: Array.from(post.caption).slice(0, 200).join("") || "Instagram post",
             content: post.caption,
             source_url: post.sourceUrl,
             thumbnail_url: post.imageUrl || null,

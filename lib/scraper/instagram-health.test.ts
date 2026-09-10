@@ -1,6 +1,8 @@
 import test, { after } from "node:test";
 import assert from "node:assert/strict";
 import { getBrowser, closeBrowser, scrapeInstagramPosts } from "./instagram-browser.ts";
+import { syncOwnerPosts } from "../sync/instagram.ts";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 after(closeBrowser);
 async function fixture(html: (cookie: string) => string, action: () => Promise<void>) {
@@ -8,7 +10,7 @@ async function fixture(html: (cookie: string) => string, action: () => Promise<v
   const original = browser.newContext.bind(browser);
   browser.newContext = async (...args) => {
     const context = await original(...args);
-    await context.route("**/*", (route) => route.fulfill({ contentType: "text/html", body: html(route.request().headers().cookie ?? "") }));
+    await context.route("**/*", (route) => route.fulfill({ contentType: "text/html; charset=utf-8", body: html(route.request().headers().cookie ?? "") }));
     return context;
   };
   try { await action(); } finally { browser.newContext = original; }
@@ -31,5 +33,18 @@ test("expired cookie retries public profile and reads its prefetched posts", asy
     assert.equal(posts.length, 1);
     assert.equal(posts[0].shortcode, "TEST");
     assert.equal(attempts, 2);
+  });
+});
+
+test("long captions cannot split an emoji into invalid JSON for Postgres", async () => {
+  const caption = "a".repeat(199) + "🔥remaining caption";
+  const data = { polaris_ordered_timeline_connection: { edges: [{ node: { code: "EMOJI", pk: "2", taken_at: 1789000000, user: { username: "test" }, caption: { text: caption } } }] } };
+  let title = "";
+  const database = { from: () => ({ upsert: (payload: { title: string }) => { title = payload.title; return { select: async () => ({ data: [], error: null }) }; } }) } as unknown as SupabaseClient;
+  await fixture(() => `<script type="application/json">${JSON.stringify(data)}</script>`, async () => {
+    const result = await syncOwnerPosts(database, { kind: "team", id: "team", name: "TEST", instagramUrl: "https://www.instagram.com/test/" }, { noNotify: true });
+    assert.equal(result.checked, 1);
+    assert.equal(title, "a".repeat(199) + "🔥");
+    assert.equal(title.isWellFormed(), true);
   });
 });
