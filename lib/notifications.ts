@@ -37,6 +37,11 @@ export type TeamNotificationPreferences = {
   soloQueueAlertsEnabled: boolean;
 };
 
+export type FanNotificationSelection = Pick<
+  TeamNotificationPreferences,
+  "matchAlertsEnabled" | "liveMatchAlertsEnabled" | "instagramAlertsEnabled" | "videoAlertsEnabled"
+>;
+
 export type MatchEventPresentation = {
   badge: "LIVE" | "평가";
   kind: "kill" | "tower" | "baron" | "inhibitor" | "dragon" | "end" | "start" | "rating";

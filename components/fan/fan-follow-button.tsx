@@ -10,6 +10,7 @@ import {
   fanHeaderCountButtonClass,
   fanHeaderIconButtonClass,
 } from "@/components/fan/fan-header-control-styles";
+import { FanNotificationPreferenceDialog } from "@/components/fan/fan-notification-preference-dialog";
 import { useToast } from "@/components/ui/toast";
 import { favoriteTeamConfirmationMessage } from "@/lib/fan/favorite-team-cooldown";
 
@@ -21,6 +22,7 @@ export function FanFollowButton({
   initialFollowing,
   initialFavorite,
   teamColor,
+  canConfigureNotifications = false,
   variant = "hero",
 }: {
   teamId: string;
@@ -30,11 +32,13 @@ export function FanFollowButton({
   initialFollowing: boolean;
   initialFavorite: boolean;
   teamColor: string;
+  canConfigureNotifications?: boolean;
   variant?: "hero" | "channel" | "spotlight" | "icon" | "header";
 }) {
   const [count, setCount] = useState(initialCount);
   const [following, setFollowing] = useState(initialFollowing);
   const [isPending, startTransition] = useTransition();
+  const [notificationDialogOpen, setNotificationDialogOpen] = useState(false);
   const router = useRouter();
   const { showToast } = useToast();
 
@@ -66,6 +70,7 @@ export function FanFollowButton({
           description: result.isFan ? "팀 소식을 더 빠르게 볼 수 있어요." : "언제든 다시 팔로우할 수 있어요.",
           tone: "success",
         });
+        if (result.isFan) setNotificationDialogOpen(true);
         router.refresh();
       }
     });
@@ -85,8 +90,22 @@ export function FanFollowButton({
     />
   );
 
+  const notificationDialog = notificationDialogOpen ? (
+    <FanNotificationPreferenceDialog
+      canConfigure={canConfigureNotifications}
+      onClose={() => setNotificationDialogOpen(false)}
+      onSaved={() => router.refresh()}
+      open={notificationDialogOpen}
+      teamColor={teamColor}
+      teamId={teamId}
+      teamName={teamName}
+      teamSlug={teamSlug}
+    />
+  ) : null;
+
   if (variant === "header") {
     return (
+      <>
       <button
         type="button"
         onClick={handleClick}
@@ -101,11 +120,14 @@ export function FanFollowButton({
         <span>{compactCount}</span>
         <FanHeaderTooltip>{following ? "팔로우 취소" : "팔로우"}</FanHeaderTooltip>
       </button>
+      {notificationDialog}
+      </>
     );
   }
 
   if (variant === "icon") {
     return (
+      <>
       <button
         type="button"
         onClick={handleClick}
@@ -119,11 +141,14 @@ export function FanFollowButton({
         {heart}
         <FanHeaderTooltip>{following ? "팔로우 취소" : "팔로우"}</FanHeaderTooltip>
       </button>
+      {notificationDialog}
+      </>
     );
   }
 
   if (variant === "spotlight") {
     return (
+      <>
       <button
         type="button"
         onClick={handleClick}
@@ -140,11 +165,14 @@ export function FanFollowButton({
         <span>{label}</span>
         <span className="hidden opacity-55 md:inline">{count.toLocaleString("ko-KR")}</span>
       </button>
+      {notificationDialog}
+      </>
     );
   }
 
   if (variant === "channel") {
     return (
+      <>
       <button
         type="button"
         onClick={handleClick}
@@ -160,10 +188,13 @@ export function FanFollowButton({
         {heart}
         <span>{label}</span>
       </button>
+      {notificationDialog}
+      </>
     );
   }
 
   return (
+    <>
     <button
       type="button"
       onClick={handleClick}
@@ -180,5 +211,7 @@ export function FanFollowButton({
       <span>{label}</span>
       <span className="opacity-60">{count.toLocaleString("ko-KR")}</span>
     </button>
+    {notificationDialog}
+    </>
   );
 }

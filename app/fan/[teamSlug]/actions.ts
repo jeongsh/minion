@@ -9,6 +9,7 @@ import { getActiveFanOnions, getFanTemperatureSnapshot } from "@/lib/data/fan-pu
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseAuthClient } from "@/lib/supabase/auth-server";
 import { FAVORITE_TEAM_CHANGE_AVAILABLE_AT_COOKIE, FAVORITE_TEAM_COOKIE } from "@/lib/fan/favorite-team";
+import type { FanNotificationSelection } from "@/lib/notifications";
 import {
   activeFavoriteTeamCooldown,
   favoriteTeamCooldownFromError,
@@ -324,6 +325,43 @@ export async function getFanNotificationEnabled(teamId: string): Promise<boolean
     || data.video_alerts
     || data.solo_queue_alerts
   ));
+}
+
+export async function updateFanNotificationSelectionAction(
+  teamId: string,
+  teamSlug: string,
+  selection: FanNotificationSelection,
+): Promise<{ ok: boolean; error?: string }> {
+  const user = await getCurrentUser();
+  if (!user) return { ok: false, error: "로그인 후 알림을 설정할 수 있습니다." };
+
+  const supabase = await createSupabaseAuthClient();
+  const { data: subscription, error: readError } = await supabase
+    .from("fan_notification_subscriptions")
+    .select("team_id")
+    .eq("team_id", teamId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (readError || !subscription) return { ok: false, error: "팔로우한 팀의 알림만 설정할 수 있습니다." };
+
+  const { error } = await supabase
+    .from("fan_notification_subscriptions")
+    .update({
+      match_alerts: Boolean(selection.matchAlertsEnabled),
+      live_match_alerts: Boolean(selection.liveMatchAlertsEnabled),
+      instagram_alerts: Boolean(selection.instagramAlertsEnabled),
+      video_alerts: Boolean(selection.videoAlertsEnabled),
+      news_alerts: Boolean(selection.instagramAlertsEnabled || selection.videoAlertsEnabled),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("team_id", teamId)
+    .eq("user_id", user.id);
+  if (error) return { ok: false, error: "알림 설정을 저장하지 못했습니다." };
+
+  revalidatePath(`/fan/${teamSlug}`);
+  revalidatePath("/me");
+  revalidatePath("/me/settings");
+  return { ok: true };
 }
 
 export async function toggleFanNotificationAction(

@@ -95,6 +95,7 @@ export async function FanChannelHeader({ teamSlug, calendarSlot }: { teamSlug: s
                   initialCount={fanCount}
                   initialFollowing={isFan}
                   initialFavorite={favoriteTeamId === team.id}
+                  canConfigureNotifications={Boolean(user)}
                   teamColor={team.primaryColor}
                   variant="header"
                 />
