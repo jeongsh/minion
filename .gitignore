@@ -9,6 +9,7 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 .vercel
+/supabase/.temp/
 *.tsbuildinfo
 .agent
 .agents/

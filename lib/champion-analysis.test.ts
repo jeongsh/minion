@@ -3,6 +3,7 @@ import { test } from "node:test";
 
 import {
   buildChampionDirectory,
+  buildChampionDirectoryFromAggregates,
   buildChampionDuos,
   buildChampionGameRows,
   buildChampionLoadoutPreferences,
@@ -223,6 +224,39 @@ test("directory and overview use only complete drafts and keep bans global", () 
   assert.ok(row);
   assert.equal(row.record.picks, 2);
   assert.equal(row.draft.bans, 1, "a position filter must not manufacture position-scoped bans");
+});
+
+test("directory aggregates preserve list sorting, draft rates and position records", () => {
+  const rows = buildChampionDirectoryFromAggregates([A, B], [{
+    championId: A.id,
+    totalSets: 3,
+    eligibleSets: 2,
+    draftPicks: 1,
+    draftBans: 1,
+    recordPicks: 3,
+    recordGames: 3,
+    recordWins: 2,
+    positions: [
+      { position: "BOT", picks: 2, games: 2, wins: 2 },
+      { position: "MID", picks: 1, games: 1, wins: 0 },
+    ],
+  }], { position: "BOT" });
+
+  assert.equal(rows[0].champion.id, A.id);
+  assert.deepEqual(rows[0].draft, {
+    eligibleSets: 2,
+    incompleteSets: 1,
+    picks: 1,
+    bans: 1,
+    pickRate: 50,
+    banRate: 50,
+    presenceRate: 100,
+  });
+  assert.equal(rows[0].record.picks, 2);
+  assert.equal(rows[0].record.games, 2);
+  assert.equal(rows[0].record.wins, 2);
+  assert.equal(rows[0].record.winRate, 100);
+  assert.ok(Math.abs((rows[0].positions.find((row) => row.position === "MID")?.pickShare ?? 0) - (100 / 3)) < 1e-10);
 });
 
 test("matchups join exactly one opponent in the same set and role and exclude missing metric values", () => {

@@ -97,6 +97,23 @@ export type ChampionDirectoryRow = {
   positions: ChampionPositionSummary[];
 };
 
+export type ChampionDirectoryAggregate = {
+  championId: string;
+  totalSets: number;
+  eligibleSets: number;
+  draftPicks: number;
+  draftBans: number;
+  recordPicks: number;
+  recordGames: number;
+  recordWins: number;
+  positions: Array<{
+    position: PlayerPosition;
+    picks: number;
+    games: number;
+    wins: number;
+  }>;
+};
+
 export type ChampionSideSummary = ChampionRecordSummary & {
   side: "blue" | "red";
 };
@@ -650,6 +667,83 @@ export function buildChampionDirectory(
         record: options.position
           ? positions.find((summary) => summary.position === options.position)!
           : recordFor(data, championLines(data, champion.id)),
+        positions,
+      } satisfies ChampionDirectoryRow;
+    })
+    .sort(
+      (left, right) =>
+        (right.draft.presenceRate ?? -1) - (left.draft.presenceRate ?? -1) ||
+        right.draft.picks - left.draft.picks ||
+        compareChampionName(left.champion, right.champion),
+    );
+}
+
+function aggregateRecord(
+  picks: number,
+  games: number,
+  wins: number,
+): ChampionRecordSummary {
+  const losses = Math.max(0, games - wins);
+  const emptyMetric = (): AverageMetric => ({ value: null, recordedGames: 0 });
+  return {
+    picks,
+    games,
+    wins,
+    losses,
+    winRate: percentage(wins, games),
+    sampleWarning: sampleWarning(games),
+    metrics: {
+      kda: emptyMetric(),
+      dpm: emptyMetric(),
+      csPerMinute: emptyMetric(),
+      visionScorePerMinute: emptyMetric(),
+      goldDiffAt15: emptyMetric(),
+      xpDiffAt15: emptyMetric(),
+      csDiffAt15: emptyMetric(),
+    },
+  };
+}
+
+/** Builds the directory from database aggregates without loading every raw game row. */
+export function buildChampionDirectoryFromAggregates(
+  champions: readonly Champion[],
+  aggregates: readonly ChampionDirectoryAggregate[],
+  options: { position?: PlayerPosition } = {},
+): ChampionDirectoryRow[] {
+  const aggregateByChampion = new Map(aggregates.map((row) => [row.championId, row]));
+
+  return champions
+    .map((champion) => {
+      const aggregate = aggregateByChampion.get(champion.id);
+      const totalPicks = aggregate?.recordPicks ?? 0;
+      const positionByName = new Map(aggregate?.positions.map((row) => [row.position, row]) ?? []);
+      const positions = CHAMPION_POSITIONS.map((position) => {
+        const row = positionByName.get(position);
+        const record = aggregateRecord(row?.picks ?? 0, row?.games ?? 0, row?.wins ?? 0);
+        return {
+          position,
+          ...record,
+          pickShare: selectionPercentage(record.picks, totalPicks),
+        } satisfies ChampionPositionSummary;
+      });
+      const eligibleSets = aggregate?.eligibleSets ?? 0;
+      const draftPicks = aggregate?.draftPicks ?? 0;
+      const draftBans = aggregate?.draftBans ?? 0;
+
+      return {
+        champion,
+        draft: {
+          eligibleSets,
+          incompleteSets: Math.max(0, (aggregate?.totalSets ?? 0) - eligibleSets),
+          picks: draftPicks,
+          bans: draftBans,
+          pickRate: percentage(draftPicks, eligibleSets),
+          banRate: percentage(draftBans, eligibleSets),
+          presenceRate: percentage(draftPicks + draftBans, eligibleSets),
+        },
+        record: options.position
+          ? positions.find((summary) => summary.position === options.position)!
+          : aggregateRecord(totalPicks, aggregate?.recordGames ?? 0, aggregate?.recordWins ?? 0),
         positions,
       } satisfies ChampionDirectoryRow;
     })

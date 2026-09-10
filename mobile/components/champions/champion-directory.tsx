@@ -85,11 +85,24 @@ export function ChampionDirectory() {
     const timeout = setTimeout(() => setCommittedQuery(query.trim()), 250);
     return () => clearTimeout(timeout);
   }, [query]);
-  const path = useMemo(() => qs({ position, sort, q: committedQuery, season, tournament, patch }), [committedQuery, patch, position, season, sort, tournament]);
+  const path = useMemo(() => qs({ season, tournament, patch }), [patch, season, tournament]);
   const { data, error, loading, refresh } = useCachedQuery<MobileChampionsDto>(path, { staleTimeMs: 30_000, cancelOnUnused: true });
   // The response already contains the default season's data. Keep it separate
   // from the requested filter so resolving that default does not fetch again.
   const effectiveSeason = season || String(data?.scope.season ?? '');
+  const items = useMemo(() => {
+    const normalizedQuery = committedQuery.toLocaleLowerCase('ko-KR');
+    return [...(data?.items ?? [])]
+      .filter((champion) => position === 'all' || champion.positions.includes(position))
+      .filter((champion) => !normalizedQuery || `${champion.name} ${champion.slug}`.toLocaleLowerCase('ko-KR').includes(normalizedQuery))
+      .sort((left, right) => {
+        if (sort === 'picks') return right.picks - left.picks || right.bans - left.bans;
+        if (sort === 'bans') return right.bans - left.bans || right.picks - left.picks;
+        if (sort === 'winRate') return (right.winRate ?? -1) - (left.winRate ?? -1) || right.picks - left.picks;
+        if (sort === 'name') return left.name.localeCompare(right.name, 'ko');
+        return (right.presenceRate ?? -1) - (left.presenceRate ?? -1) || right.picks - left.picks;
+      });
+  }, [committedQuery, data?.items, position, sort]);
 
   if (loading && !data) return <MinionScreen><DirectorySkeleton /></MinionScreen>;
   if (error && !data) return <MinionScreen><ErrorState onRetry={refresh} title={error} /></MinionScreen>;
@@ -100,7 +113,7 @@ export function ChampionDirectory() {
   const sortLabel = SORT_OPTIONS.find((option) => option.value === sort)?.label ?? '픽밴률순';
   const scope = data?.scope;
   const detailQuery = qs({ season: effectiveSeason, tournament, patch }).replace('/api/mobile/v1/champions', '');
-  const rows = Array.from({ length: Math.ceil((data?.items.length ?? 0) / columns) }, (_, index) => data!.items.slice(index * columns, (index + 1) * columns));
+  const rows = Array.from({ length: Math.ceil(items.length / columns) }, (_, index) => items.slice(index * columns, (index + 1) * columns));
 
   return (
     <MinionScreen virtualList={rows.length ? {
@@ -119,7 +132,7 @@ export function ChampionDirectory() {
     } : undefined}>
       <View style={styles.page}>
         <View style={styles.topRow}>
-          <Text style={{ color: theme.muted, ...fonts.medium, fontSize: 14, lineHeight: 20 }}>{data?.items.length ?? 0}개</Text>
+          <Text style={{ color: theme.muted, ...fonts.medium, fontSize: 14, lineHeight: 20 }}>{items.length}개</Text>
           <Pressable onPress={() => setFilterOpen(true)} style={[styles.filterButton, { borderColor: theme.border }]}>
             <SlidersHorizontal color={theme.ink} size={17} />
             <Text style={{ color: theme.ink, ...fonts.medium, fontSize: 14, lineHeight: 20 }}>필터</Text>
@@ -135,7 +148,7 @@ export function ChampionDirectory() {
             <ChevronDown color={theme.muted} size={16} />
           </Pressable>
         </View>
-        {!data?.items.length ? (
+        {!items.length ? (
           <View style={styles.empty}><Text style={{ color: theme.ink, ...fonts.medium, fontSize: 16, lineHeight: 24 }}>챔피언을 찾지 못했습니다.</Text><Text style={{ color: theme.muted, ...fonts.regular, fontSize: 14, lineHeight: 22, marginTop: 4 }}>필터나 검색어를 바꿔보세요.</Text></View>
         ) : null}
       </View>

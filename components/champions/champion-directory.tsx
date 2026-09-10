@@ -174,6 +174,7 @@ export function ChampionDirectoryTable({
           <Link
             key={row.champion.id}
             href={href}
+            prefetch={false}
             aria-label={`${row.champion.name} 상세 보기`}
             className="group flex w-14 min-w-0 flex-col items-center gap-1 rounded-xl py-1 text-center transition-colors hover:bg-[var(--ui-card-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] sm:w-16 sm:gap-1.5 sm:py-2"
           >

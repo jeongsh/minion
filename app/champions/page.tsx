@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 
 import { ChampionDirectoryFilters, ChampionDirectoryTable, ChampionDirectoryToolbar } from "@/components/champions/champion-directory";
 import { ChampionScopeFilter } from "@/components/champions/champion-scope-filter";
-import { buildChampionDirectory } from "@/lib/champion-analysis";
+import { buildChampionDirectoryFromAggregates } from "@/lib/champion-analysis";
 import { championSearchText } from "@/lib/champions";
-import { getChampionDirectoryData, getChampionPageReferenceData, resolveChampionScope } from "@/lib/data/champion-page";
+import { getChampionDirectoryStats, getChampionPageReferenceData, resolveChampionScope } from "@/lib/data/champion-page";
 import type { PlayerPosition } from "@/lib/types";
 
 export const metadata: Metadata = {
@@ -27,13 +27,13 @@ export default async function ChampionsPage({ searchParams }: { searchParams: Pr
   const query = await searchParams;
   const references = await getChampionPageReferenceData();
   const scope = resolveChampionScope(references, query);
-  const data = await getChampionDirectoryData(scope.setIds);
+  const directoryStats = await getChampionDirectoryStats(scope.setIds);
   const position = POSITIONS.has(query.position as PlayerPosition) ? query.position as PlayerPosition : "all";
   const search = (query.q ?? "").trim();
   const allowedSorts = new Set(["presence", "picks", "bans", "winRate", "name"]);
   const sort = allowedSorts.has(query.sort ?? "") ? query.sort! : "presence";
 
-  let rows = buildChampionDirectory(data, position === "all" ? {} : { position })
+  let rows = buildChampionDirectoryFromAggregates(references.champions, directoryStats, position === "all" ? {} : { position })
     .filter((row) => row.draft.picks > 0 || row.draft.bans > 0)
     .filter((row) => position === "all" || row.record.picks > 0)
     .filter((row) => !search || championSearchText(row.champion).includes(search.toLowerCase()));

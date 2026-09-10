@@ -15,6 +15,7 @@ import type {
 import {
   buildChampionAnalysis,
   buildChampionDirectory,
+  buildChampionDirectoryFromAggregates,
   buildChampionOverview,
   buildCompletedItemSequenceSummaries,
   type ChampionAnalysis,
@@ -29,7 +30,7 @@ import {
 import {
   getChampionBySlug,
   getChampionDetailData,
-  getChampionDirectoryData,
+  getChampionDirectoryStats,
   getChampionPageReferenceData,
   resolveChampionScope,
   type ChampionScopeInput,
@@ -101,7 +102,7 @@ function scopeInput(searchParams: URLSearchParams): ChampionScopeInput {
 export async function getMobileChampions(searchParams: URLSearchParams): Promise<MobileChampionsDto> {
   const references = await getChampionPageReferenceData();
   const scope = resolveChampionScope(references, scopeInput(searchParams));
-  const data = await getChampionDirectoryData(scope.setIds);
+  const directoryStats = await getChampionDirectoryStats(scope.setIds);
   const requestedPosition = searchParams.get("position");
   const position = POSITIONS.has(requestedPosition as MobileChampionPosition)
     ? requestedPosition as MobileChampionPosition
@@ -113,7 +114,7 @@ export async function getMobileChampions(searchParams: URLSearchParams): Promise
     : "presence";
   const normalizedQuery = query.toLocaleLowerCase("ko-KR");
 
-  const rows = buildChampionDirectory(data)
+  const rows = buildChampionDirectoryFromAggregates(references.champions, directoryStats)
     .filter((row) => row.draft.picks > 0 || row.draft.bans > 0)
     .filter((row) => position === "all" || row.positions.some((entry) => entry.position === position && entry.picks > 0))
     .filter((row) => !normalizedQuery || championSearchText(row.champion).toLocaleLowerCase("ko-KR").includes(normalizedQuery))

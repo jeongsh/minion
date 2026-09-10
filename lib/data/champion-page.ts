@@ -5,6 +5,7 @@ import { cache } from "react";
 
 import { createSupabaseServerClient, canQuerySupabase } from "@/lib/supabase/server";
 import { normalizeSetStatus } from "@/lib/set-status";
+import type { ChampionDirectoryAggregate } from "@/lib/champion-analysis";
 import { collectCountedKeysetPages, collectUuidPartitions, mapWithConcurrency, type CountedPage } from "@/lib/data/paged-read";
 import {
   SEASON_2026_SEGMENTS,
@@ -16,6 +17,7 @@ import type {
   Champion,
   Match,
   Player,
+  PlayerPosition,
   PlayerStatLine,
   SetPickBan,
   SetResult,
@@ -35,6 +37,7 @@ const PAGE_SIZE = 1_000;
 const BUILD_EVENT_SET_ID_CHUNK_SIZE = 20;
 const PLAYER_ID_CHUNK_SIZE = 50;
 const MAX_PARALLEL_CHUNKS = 6;
+const DIRECTORY_POSITIONS = new Set<PlayerPosition>(["TOP", "JGL", "MID", "BOT", "SUP"]);
 
 const CACHE_OPTIONS: { revalidate: number; tags: string[] } = {
   revalidate: CACHE_SECONDS,
@@ -704,6 +707,69 @@ const queryBuildEventsPageCached = unstable_cache(
   ["champion-page-build-events-page-v2"],
   CACHE_OPTIONS,
 );
+
+type ChampionDirectoryStatsRow = {
+  champion_id: string;
+  total_sets: number | string;
+  eligible_sets: number | string;
+  draft_picks: number | string;
+  draft_bans: number | string;
+  record_picks: number | string;
+  record_games: number | string;
+  record_wins: number | string;
+  positions: unknown;
+};
+
+function countValue(value: number | string) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function directoryPositions(value: unknown): ChampionDirectoryAggregate["positions"] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((candidate) => {
+    if (!candidate || typeof candidate !== "object") return [];
+    const row = candidate as Record<string, unknown>;
+    if (!DIRECTORY_POSITIONS.has(row.position as PlayerPosition)) return [];
+    return [{
+      position: row.position as PlayerPosition,
+      picks: countValue(row.picks as number | string),
+      games: countValue(row.games as number | string),
+      wins: countValue(row.wins as number | string),
+    }];
+  });
+}
+
+async function queryChampionDirectoryStats(
+  setIds: readonly string[],
+): Promise<ChampionDirectoryAggregate[]> {
+  if (!canQuerySupabase() || setIds.length === 0) return [];
+  const { data, error } = await createSupabaseServerClient().rpc(
+    "get_champion_directory_stats",
+    { p_set_ids: uniqueSorted(setIds) },
+  );
+  if (error) throw error;
+  return ((data ?? []) as ChampionDirectoryStatsRow[]).map((row) => ({
+    championId: row.champion_id,
+    totalSets: countValue(row.total_sets),
+    eligibleSets: countValue(row.eligible_sets),
+    draftPicks: countValue(row.draft_picks),
+    draftBans: countValue(row.draft_bans),
+    recordPicks: countValue(row.record_picks),
+    recordGames: countValue(row.record_games),
+    recordWins: countValue(row.record_wins),
+    positions: directoryPositions(row.positions),
+  }));
+}
+
+const queryChampionDirectoryStatsCached = unstable_cache(
+  queryChampionDirectoryStats,
+  ["champion-directory-stats-v1"],
+  CACHE_OPTIONS,
+);
+
+/** Compact list-only aggregates; detailed pages retain the raw fact loaders below. */
+export const getChampionDirectoryStats = cache(queryChampionDirectoryStatsCached);
 
 async function getChampionPageReferenceDataBase(): Promise<ChampionPageReferenceData> {
   const [teamRows, playerRows, championRows, tournamentRows, matchRows, setRows] =
