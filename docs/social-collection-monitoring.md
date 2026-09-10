@@ -14,6 +14,7 @@
 1. GitHub `2yongtech2/minion`의 네 수집/감시 워크플로 최신 실행과 summary를 확인한다. 성공 배지만 보지 말고 checked/failed/errors와 원본 대비 누락도 확인한다.
 2. YouTube WebSub 503 중에도 API 수집이 정상인지 확인한다. API 키/쿼터 오류는 원인을 구분하고 반복 호출을 피한다. 수동 보충은 `node --experimental-strip-types scripts/sync-youtube-videos.ts --recent --no-notify`로 할 수 있다.
 3. Instagram 로그인/인증 확인/접근 제한은 오류를 숨기거나 우회하지 않는다. 공개 프로필 재시도 후에도 실패하면 세션 재인증 필요 여부와 응답 형식을 조사한다. 모든 계정이 빈 결과인 경우 성공으로 표시하지 않는다.
+   현재 PC에서 공개 프로필이 정상 조회되는 경우 `node --experimental-strip-types scripts/sync-instagram.ts --only=teams --no-notify`로 운영자 확인하에 보충할 수 있다. 이것이 서버 로그인 문제까지 해결했다는 뜻은 아니다. `--no-notify`는 과거 누락분 보충 시 팬 알림을 발송하지 않는다.
 4. 수정은 실제 API·DB·사이트 결과로 검증한다. 사용자 작업 파일은 보존한다. 이미 저장된 데이터는 삭제하지 않는다.
 5. 스케줄러 자체가 멈추면 같은 스케줄러의 감시도 멈출 수 있다. Codex는 네 워크플로의 마지막 실행 시간을 별도로 확인한다.
 

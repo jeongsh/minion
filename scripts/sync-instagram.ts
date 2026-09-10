@@ -31,6 +31,7 @@ const modeArg = argv.find((a) => a.startsWith("--mode="))?.split("=", 2)[1] || "
 const limitArg = parseInt(argv.find((a) => a.startsWith("--limit="))?.split("=", 2)[1] ?? "0");
 const offsetArg = parseInt(argv.find((a) => a.startsWith("--offset="))?.split("=", 2)[1] ?? "0");
 const dryRun = argSet.has("--dry-run");
+const noNotify = argSet.has("--no-notify");
 
 const DELAY_MS = 1500;
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -86,7 +87,7 @@ async function main() {
     // ── 게시물 ──
     if (modeArg === "all" || modeArg === "posts") {
       try {
-        const result = await syncOwnerPosts(supabase, owner, { dryRun, sessionCookie });
+        const result = await syncOwnerPosts(supabase, owner, { dryRun, sessionCookie, noNotify });
         postsInserted += result.inserted;
         checked += result.checked;
         healthyOwners += 1;

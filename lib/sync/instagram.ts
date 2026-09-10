@@ -160,7 +160,7 @@ export async function getInstagramOwners(supabase: SupabaseClient): Promise<Inst
 export async function syncOwnerPosts(
   supabase: SupabaseClient,
   owner: InstagramOwner,
-  opts: { dryRun?: boolean; engine?: SyncEngine; sessionCookie?: string } = {},
+  opts: { dryRun?: boolean; engine?: SyncEngine; sessionCookie?: string; noNotify?: boolean } = {},
 ): Promise<{ inserted: number; checked: number }> {
   const username = extractUsername(owner.instagramUrl!);
   const posts = await scrapeInstagramPosts(username, opts.sessionCookie);
@@ -200,7 +200,7 @@ export async function syncOwnerPosts(
         if (stored && stored !== post.imageUrl) {
           await supabase.from("player_social_posts").update({ image_url: stored }).eq("id", data[0].id);
         }
-        if (owner.teamId) {
+        if (owner.teamId && !opts.noNotify) {
           try {
             await notifyTeamContentUpdate(supabase, {
               kind: "team_social",
@@ -241,17 +241,19 @@ export async function syncOwnerPosts(
         if (stored && stored !== post.imageUrl) {
           await supabase.from("team_social_posts").update({ thumbnail_url: stored }).eq("id", data[0].id);
         }
-        try {
-          await notifyTeamContentUpdate(supabase, {
-            kind: "team_social",
-            sourceId: data[0].id,
-            teamId: owner.id,
-            contentTitle: post.caption,
-            imageUrl: stored ?? post.imageUrl,
-            publishedAt: post.postedAt.toISOString(),
-          });
-        } catch (error) {
-          console.error(`[team-content-notifications] team_social:${data[0].id} failed`, error);
+        if (!opts.noNotify) {
+          try {
+            await notifyTeamContentUpdate(supabase, {
+              kind: "team_social",
+              sourceId: data[0].id,
+              teamId: owner.id,
+              contentTitle: post.caption,
+              imageUrl: stored ?? post.imageUrl,
+              publishedAt: post.postedAt.toISOString(),
+            });
+          } catch (error) {
+            console.error(`[team-content-notifications] team_social:${data[0].id} failed`, error);
+          }
         }
       }
     }
