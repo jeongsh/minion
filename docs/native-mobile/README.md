@@ -42,11 +42,14 @@
 
 ### 승인된 통합 변경 기록
 
+- 2026-09-09: 사용자가 앱·웹 전반 성능 감사의 개선 실행을 승인해, 긴 선수·챔피언 목록의 네이티브 View 생성을 줄이는 통합 작업을 진행한다. 웹 원본은 `app/players/page.tsx`, `components/players/player-directory.tsx`, `app/champions/page.tsx`, `components/champions/champion-directory.tsx`의 동일 순서·필터·격자·상세 이동이다. 잠금 파일 `mobile/components/minion-screen.tsx`에는 이 두 목록에서만 사용하는 가상 행 스크롤 경로를 추가하고 기존 헤더·로컬 내비게이션·푸터·스크롤 이벤트 및 다른 화면의 ScrollView 경로는 유지한다. 통합 검증 결과는 `entry-performance.md`에 추가한다. 이후 사용자 요청에 따라 별도로 추가했던 네이티브 폰트 config plugin과 런타임 별칭 변경은 원복했다.
+
 - 2026-08-22: 홈 최초 로딩을 공통 스피너형 placeholder에서 실제 홈 구조를 따르는 전용 skeleton으로 교체했다. 데이터가 준비된 뒤의 홈 레이아웃과 동작은 변경하지 않았으며, `mobile/app/(tabs)/index.tsx` 변경은 이 로딩 상태 연결 한 줄로 제한했다.
 - 2026-08-29: 웹 전역·팀 로컬 내비게이션의 `/community` 표시명을 `팬톡`으로 변경한 것에 맞춰 앱 헤더의 허브·팀 로컬 내비게이션 라벨도 `팬톡`으로 통합했다. 허브 순서는 웹과 앱 모두 `메인 → 팬톡 → 승부예측 → 대회 → 선수 → 챔피언`으로 맞췄으며 경로, 레이아웃, 헤더 동작은 변경하지 않았다.
 - 2026-08-31: 웹·앱 모바일 독바의 `뉴스` 자리를 `팬톡`으로 교체했다. 최애팀이 있으면 해당 팀의 `/fan/{team}/community`, 없으면 LCK `/community`로 이동하며, 뉴스는 허브 상단 로컬 내비게이션으로 옮겼다. 이 요청을 위해 잠금 파일 `mobile/components/minion-dock.tsx`와 `mobile/components/minion-screen.tsx`의 내비게이션 항목 및 활성 상태 판정만 통합 변경했다.
 - 2026-08-31: 독바 변경 과정에서 함께 조정했던 내비게이션 타이포그래피는 기존 디자인으로 복원하고, 독바와 중복되는 허브 상단 `팬톡` 항목은 웹·앱에서 제거했다. 팀 팬페이지 내부의 로컬 `팬톡` 항목은 유지한다.
 - 2026-09-04: Android 배포 빌드에서 헤더 프로필 진입 시 `router.navigate('/me')`가 기존 루트 스택을 되감는 과정에서 앱이 종료되는 문제를 피하도록, 웹 원본의 `/me` 링크 목적지는 유지하면서 앱 헤더의 로그인 사용자 프로필 이동만 `router.push('/me')`로 변경했다. 이미 `/me`에 있을 때는 중복 push하지 않는다.
+- 2026-09-09: 사용자 요청으로 홈 최신글의 `news`, `analysis` 등 영문 말머리 노출을 수정했다. 웹 `components/domain/home-board-carousel.tsx`가 `lib/community/boards.ts`의 `boardLabel`로 한글을 표시하는 것에 맞춰, 잠금 파일 `mobile/app/(tabs)/index.tsx`의 오래된 `BOARD_LABELS`만 제거하고 앱 공용 `community-utils.ts`의 `boardLabel`을 연결했다. 변경 범위는 import와 말머리 변환식이며, API 계약·레이아웃·타이포그래피는 유지했다. 타입 검사와 린트(기존 경고 2건, 오류 없음), 허브 전체 7개 말머리 및 미등록 값 fallback의 웹 일치 검증을 통과했다. 390×844 라이트·다크의 웹/Expo Web 실행에서 동일한 실제 게시글 6개의 말머리와 13px 크기를 확인했다. iPhone·Android Expo Go 실기기 및 네이티브 1px 비교는 미실행이다.
 
 위 파일은 일반 화면 작업에서 임의 수정하지 않는다. 변경이 꼭 필요하면 작업을 멈추고 변경 이유와 웹 근거를 기록한 뒤 별도 통합 작업으로 처리한다.
 
