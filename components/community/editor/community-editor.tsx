@@ -1,7 +1,6 @@
 "use client";
 
 import { useEditor, EditorContent } from "@tiptap/react";
-import { LoaderCircle } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import Toolbar from "./Toolbar";
@@ -25,6 +24,7 @@ export default function CommunityEditor({ content, onChange, allowMedia = true, 
   const [uploadingDropImage, setUploadingDropImage] = useState(false);
   const [uploadingToolbarImage, setUploadingToolbarImage] = useState(false);
   const uploadingImage = uploadingDropImage || uploadingToolbarImage;
+  const [imageSize, setImageSize] = useState<{ width: number; height: number } | null>(null);
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -70,14 +70,16 @@ export default function CommunityEditor({ content, onChange, allowMedia = true, 
       return;
     }
     setUploadingDropImage(true);
+    setImageSize(null);
     try {
       for (const file of files.slice(0, remaining)) {
-        await uploadAndInsertEditorImage({ editor, file });
+        await uploadAndInsertEditorImage({ editor, file, onSize: setImageSize });
       }
     } catch (error) {
       alert("이미지 업로드 실패: " + getImageUploadErrorMessage(error, "알 수 없는 오류"));
     } finally {
       setUploadingDropImage(false);
+      setImageSize(null);
     }
   };
 
@@ -102,17 +104,11 @@ export default function CommunityEditor({ content, onChange, allowMedia = true, 
 
   return (
     <div ref={containerRef} className="community-editor relative flex flex-col bg-transparent md:bg-[var(--ui-surface)]">
-      {uploadingImage ? (
-        <div className="pointer-events-none absolute inset-x-3 top-3 z-20 flex min-h-28 items-center justify-center gap-3 rounded-xl border border-[var(--ui-border)] bg-[color-mix(in_srgb,var(--ui-surface)_94%,transparent)] px-4 shadow-sm" role="status" aria-live="polite">
-          <LoaderCircle className="animate-spin text-[var(--accent)]" size={24} aria-hidden="true" />
-          <div>
-            <p className="text-[14px] font-medium text-[var(--ui-ink)]">이미지를 올리는 중이에요</p>
-            <p className="mt-0.5 text-[13px] font-normal text-[var(--ui-muted)]">완료되면 이 위치에 이미지가 표시됩니다.</p>
-          </div>
-        </div>
+      {uploadingImage && imageSize ? (
+        <div className="community-media-placeholder pointer-events-none my-3 max-w-full rounded-lg" style={{ width: imageSize.width, aspectRatio: imageSize.width / imageSize.height }} role="status" aria-label="이미지 업로드 중"><span className="community-media-spinner" aria-hidden="true" /></div>
       ) : null}
       <EditorContent editor={editor} />
-      <Toolbar editor={editor} allowEmbeds={allowEmbeds} allowMedia={allowMedia} maxImages={maxImages} miniconPacks={miniconPacks} onUploadingChange={setUploadingToolbarImage} />
+      <Toolbar editor={editor} allowEmbeds={allowEmbeds} allowMedia={allowMedia} maxImages={maxImages} miniconPacks={miniconPacks} onImageSize={setImageSize} onUploadingChange={(uploading) => { setUploadingToolbarImage(uploading); if (!uploading) setImageSize(null); }} />
     </div>
   );
 }

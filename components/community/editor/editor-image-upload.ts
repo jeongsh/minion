@@ -104,23 +104,32 @@ async function uploadImage(file: File): Promise<{ url: string }> {
   return { url: body.url };
 }
 
-export async function uploadAndInsertEditorImage(params: { editor: Editor; file: File }): Promise<void> {
+export async function uploadAndInsertEditorImage(params: { editor: Editor; file: File; onSize?: (size: { width: number; height: number }) => void }): Promise<void> {
   const { editor } = params;
   validateImageFile(params.file);
 
-  const { file, width } = await compressImageFile(params.file);
+  const compressed = await compressImageFile(params.file);
+  const { file } = compressed;
+  const { width, height } = compressed.width > 0 ? compressed : await getImageSize(file);
+  if (width <= 0 || height <= 0) throw new Error("이미지 크기를 확인하지 못했습니다.");
+  params.onSize?.({ width: Math.min(width, 760), height: Math.min(width, 760) * height / width });
   const { url } = await uploadImage(file);
 
   const initialWidth = width > 0 ? Math.min(width, 760) : 760;
+  const insertPosition = editor.state.selection.to;
 
   editor
     .chain()
     .focus()
-    .setImage({
-      src: url,
-      width: initialWidth,
-      containerStyle: `width: ${initialWidth}px; height: auto; cursor: pointer; margin: 0.5rem 0;`,
-      wrapperStyle: "display: flex; justify-content: flex-start; margin: 0;",
-    } as never)
+    .insertContentAt(insertPosition, {
+      type: "imageResize",
+      attrs: {
+        src: url,
+        width: initialWidth,
+        height: Math.round(initialWidth * height / width),
+        containerStyle: `width: ${initialWidth}px; height: auto; cursor: pointer; margin: 0.5rem 0;`,
+        wrapperStyle: "display: flex; justify-content: flex-start; margin: 0;",
+      },
+    })
     .run();
 }

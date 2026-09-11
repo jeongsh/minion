@@ -143,7 +143,7 @@ function escapeHtmlAttribute(value: string) {
 
 function SocialEmbed({ href, provider }: { href: string; provider: SocialEmbedProvider }) {
   const { colorScheme, fonts, theme } = useMinionTheme();
-  const [height, setHeight] = useState(provider === 'twitter' ? 240 : 480);
+  const [height, setHeight] = useState(80);
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   useEffect(() => {
     const timeout = setTimeout(() => setStatus((current) => current === 'loading' ? 'error' : current), 12_000);
@@ -157,7 +157,7 @@ function SocialEmbed({ href, provider }: { href: string; provider: SocialEmbedPr
   const onMessage = (event: WebViewMessageEvent) => {
     try {
       const message = JSON.parse(event.nativeEvent.data) as { height?: number; type?: string; url?: string };
-      if (message.type === 'height' && Number.isFinite(message.height)) setHeight(Math.max(80, Math.min(1_200, Math.ceil(message.height!))));
+      if (message.type === 'height' && Number.isFinite(message.height) && message.height! > 0) setHeight(Math.ceil(message.height!));
       if (message.type === 'ready') setStatus('ready');
       if (message.type === 'open-url' && message.url && /^https?:\/\//i.test(message.url)) void Linking.openURL(message.url);
     } catch {
@@ -180,7 +180,7 @@ function SocialEmbed({ href, provider }: { href: string; provider: SocialEmbedPr
         style={[styles.socialWebView, { backgroundColor: theme.surface }]}
         thirdPartyCookiesEnabled
       />
-      {status === 'loading' ? <View accessibilityLiveRegion="polite" accessibilityRole="progressbar" pointerEvents="none" style={[StyleSheet.absoluteFill, styles.socialStatus, { backgroundColor: theme.surfaceMuted }]}><ActivityIndicator color={theme.accent} size="large" /><Text style={{ color: theme.muted, ...fonts.medium, fontSize: 14 }}>SNS 게시물을 불러오는 중이에요</Text></View> : null}
+      {status === 'loading' ? <View accessibilityLabel="SNS 게시물 불러오는 중" accessibilityLiveRegion="polite" accessibilityRole="progressbar" pointerEvents="none" style={[StyleSheet.absoluteFill, styles.socialStatus, { backgroundColor: `${theme.muted}33` }]}><ActivityIndicator color={theme.accent} size="large" /></View> : null}
       {status === 'error' ? <View style={[StyleSheet.absoluteFill, styles.socialStatus, { backgroundColor: theme.surfaceMuted }]}><Text style={{ color: theme.muted, ...fonts.medium, fontSize: 14 }}>게시물을 불러오지 못했습니다.</Text><Pressable accessibilityRole="link" onPress={() => void Linking.openURL(href)}><Text style={{ color: theme.accent, ...fonts.medium, fontSize: 14 }}>원문 보기</Text></Pressable></View> : null}
     </View>
   );

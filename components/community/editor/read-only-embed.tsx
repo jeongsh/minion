@@ -1,6 +1,5 @@
 "use client";
 
-import { LoaderCircle } from "lucide-react";
 import { memo, useEffect, useRef, useState } from "react";
 
 const scripts = new Map<string, Promise<void>>();
@@ -43,8 +42,15 @@ export function ReadOnlyEmbed({ url, provider }: { url: string; provider: "twitt
     if (!element) return;
     let cancelled = false;
     let started = false;
+    const frameSizes = new ResizeObserver(() => {
+      const frame = element.querySelector("iframe");
+      if (frame && frame.getBoundingClientRect().height > 0) {
+        element.style.minHeight = "";
+      }
+    });
     const readyObserver = new MutationObserver(() => {
-      if (element.querySelector("iframe")) setStatus("ready");
+      const frame = element.querySelector("iframe");
+      if (frame) { frameSizes.observe(frame); setStatus("ready"); }
     });
     readyObserver.observe(element, { childList: true, subtree: true });
     const timeout = window.setTimeout(() => setStatus((current) => current === "loading" ? "error" : current), 12_000);
@@ -66,11 +72,11 @@ export function ReadOnlyEmbed({ url, provider }: { url: string; provider: "twitt
       if (entries.some((entry) => entry.isIntersecting)) { observer.disconnect(); void hydrate(); }
     }, { rootMargin: "600px" });
     observer.observe(element);
-    return () => { cancelled = true; observer.disconnect(); readyObserver.disconnect(); window.clearTimeout(timeout); };
+    return () => { cancelled = true; observer.disconnect(); readyObserver.disconnect(); frameSizes.disconnect(); window.clearTimeout(timeout); };
   }, [provider, url]);
 
-  return <div ref={root} className="embed-block relative my-4 min-h-[180px] overflow-hidden rounded-xl" data-embed-url={url} data-embed-type={provider}>
-    {status === "loading" ? <div className="absolute inset-0 z-10 flex items-center justify-center gap-3 border border-[var(--ui-border)] bg-[var(--ui-surface-muted)]" role="status" aria-live="polite"><LoaderCircle className="animate-spin text-[var(--accent)]" size={24} aria-hidden="true" /><span className="text-[14px] font-medium text-[var(--ui-muted)]">SNS 게시물을 불러오는 중이에요</span></div> : null}
+  return <div ref={root} className="embed-block relative my-4 overflow-hidden rounded-lg" style={{ minHeight: status === "ready" ? undefined : 80, width: "fit-content", maxWidth: "100%" }} data-embed-url={url} data-embed-type={provider}>
+    {status === "loading" ? <div className="community-media-placeholder absolute inset-0 z-10" role="status" aria-label="SNS 게시물 불러오는 중"><span className="community-media-spinner" aria-hidden="true" /></div> : null}
     {status === "error" ? <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 border border-[var(--ui-border)] bg-[var(--ui-surface-muted)]"><span className="text-[14px] font-medium text-[var(--ui-muted)]">게시물을 불러오지 못했습니다.</span><a className="text-[14px] font-medium text-[var(--accent)]" href={url} target="_blank" rel="noopener noreferrer">원문 보기</a></div> : null}
     <div className={status === "ready" ? "visible" : "invisible"}>
       <EmbedMarkup url={url} provider={provider} />

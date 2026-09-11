@@ -1533,31 +1533,35 @@ html[class~="dark"] .hub-home .home-calendar-shell {
 .community-prose mark { color: inherit; }
 .community-prose iframe { max-width: 100%; }
 
+.community-media-placeholder,
 .community-prose .embed-block.embed-loading {
-  align-items: center;
-  background: var(--ui-surface-muted);
-  border: 1px solid var(--ui-border);
-  border-radius: 12px;
-  display: flex;
-  justify-content: center;
-  min-height: 180px;
+  background: color-mix(in srgb, var(--ui-surface-muted) 68%, var(--ui-muted));
+  border-radius: 8px;
   overflow: hidden;
   position: relative;
 }
 
+.community-media-spinner,
 .community-prose .embed-block.embed-loading::after {
-  animation: community-embed-spin 0.8s linear infinite;
-  border: 3px solid color-mix(in srgb, var(--accent) 22%, transparent);
+  animation: community-placeholder-spin 0.8s linear infinite;
+  border: 3px solid color-mix(in srgb, var(--accent) 24%, transparent);
   border-radius: 999px;
   border-top-color: var(--accent);
-  content: "";
   height: 26px;
+  left: 50%;
+  margin: -13px 0 0 -13px;
+  position: absolute;
+  top: 50%;
   width: 26px;
 }
 
-@keyframes community-embed-spin {
+.community-prose .embed-block.embed-loading::after { content: ""; }
+
+@keyframes community-placeholder-spin {
   to { transform: rotate(360deg); }
 }
+
+.community-prose .embed-block.embed-loading { min-height: 80px; width: fit-content; max-width: 100%; }
 
 .community-prose .embed-block.embed-loading > blockquote {
   visibility: hidden;
