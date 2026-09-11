@@ -1,8 +1,15 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { LoaderCircle } from "lucide-react";
+import { memo, useEffect, useRef, useState } from "react";
 
 const scripts = new Map<string, Promise<void>>();
+
+const EmbedMarkup = memo(function EmbedMarkup({ url, provider }: { url: string; provider: "twitter" | "instagram" }) {
+  return provider === "twitter"
+    ? <blockquote className="twitter-tweet"><a href={url}>{url}</a></blockquote>
+    : <blockquote className="instagram-media" data-instgrm-permalink={url} data-instgrm-version="14"><a href={url}>{url}</a></blockquote>;
+});
 
 function externalScript(src: string) {
   const pending = scripts.get(src);
@@ -30,11 +37,17 @@ function externalScript(src: string) {
 
 export function ReadOnlyEmbed({ url, provider }: { url: string; provider: "twitter" | "instagram" }) {
   const root = useRef<HTMLDivElement>(null);
+  const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   useEffect(() => {
     const element = root.current;
     if (!element) return;
     let cancelled = false;
     let started = false;
+    const readyObserver = new MutationObserver(() => {
+      if (element.querySelector("iframe")) setStatus("ready");
+    });
+    readyObserver.observe(element, { childList: true, subtree: true });
+    const timeout = window.setTimeout(() => setStatus((current) => current === "loading" ? "error" : current), 12_000);
     const hydrate = async () => {
       if (started) return;
       started = true;
@@ -47,17 +60,20 @@ export function ReadOnlyEmbed({ url, provider }: { url: string; provider: "twitt
         };
         if (provider === "twitter") widgets.twttr?.widgets?.load(element);
         else widgets.instgrm?.Embeds?.process();
-      } catch { /* The server-rendered link remains available. */ }
+      } catch { setStatus("error"); }
     };
     const observer = new IntersectionObserver((entries) => {
       if (entries.some((entry) => entry.isIntersecting)) { observer.disconnect(); void hydrate(); }
     }, { rootMargin: "600px" });
     observer.observe(element);
-    return () => { cancelled = true; observer.disconnect(); };
+    return () => { cancelled = true; observer.disconnect(); readyObserver.disconnect(); window.clearTimeout(timeout); };
   }, [provider, url]);
 
-  return <div ref={root} className="embed-block my-4" data-embed-url={url} data-embed-type={provider}>
-    {provider === "twitter" ? <blockquote className="twitter-tweet"><a href={url}>{url}</a></blockquote>
-      : <blockquote className="instagram-media" data-instgrm-permalink={url} data-instgrm-version="14"><a href={url}>{url}</a></blockquote>}
+  return <div ref={root} className="embed-block relative my-4 min-h-[180px] overflow-hidden rounded-xl" data-embed-url={url} data-embed-type={provider}>
+    {status === "loading" ? <div className="absolute inset-0 z-10 flex items-center justify-center gap-3 border border-[var(--ui-border)] bg-[var(--ui-surface-muted)]" role="status" aria-live="polite"><LoaderCircle className="animate-spin text-[var(--accent)]" size={24} aria-hidden="true" /><span className="text-[14px] font-medium text-[var(--ui-muted)]">SNS 게시물을 불러오는 중이에요</span></div> : null}
+    {status === "error" ? <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 border border-[var(--ui-border)] bg-[var(--ui-surface-muted)]"><span className="text-[14px] font-medium text-[var(--ui-muted)]">게시물을 불러오지 못했습니다.</span><a className="text-[14px] font-medium text-[var(--accent)]" href={url} target="_blank" rel="noopener noreferrer">원문 보기</a></div> : null}
+    <div className={status === "ready" ? "visible" : "invisible"}>
+      <EmbedMarkup url={url} provider={provider} />
+    </div>
   </div>;
 }

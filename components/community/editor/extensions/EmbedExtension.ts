@@ -42,7 +42,7 @@ export const EmbedExtension = Node.create({
     if (HTMLAttributes.type === "twitter") {
       const attrs = mergeAttributes(HTMLAttributes, {
         ...baseAttrs,
-        class: "embed-block my-4",
+        class: "embed-block embed-loading my-4",
       });
 
       return [
@@ -55,7 +55,7 @@ export const EmbedExtension = Node.create({
     if (HTMLAttributes.type === "instagram") {
       const attrs = mergeAttributes(HTMLAttributes, {
         ...baseAttrs,
-        class: "embed-block my-4",
+        class: "embed-block embed-loading my-4",
       });
       return [
         "div",

@@ -42,7 +42,7 @@ function BlockNode({ node, depth = 0 }: { node: TiptapNode; depth?: number }) {
     const href = String(node.attrs?.url ?? node.attrs?.src ?? '');
     if (!href) return null;
     const provider = socialEmbedProvider(href, node.attrs?.type);
-    if (provider) return <SocialEmbed href={href} provider={provider} />;
+    if (provider) return <SocialEmbed href={href} key={href} provider={provider} />;
     return <Pressable accessibilityRole="link" onPress={() => void Linking.openURL(href)} style={[styles.embed, { backgroundColor: theme.surfaceMuted }]}><View style={styles.embedShade} /><ExternalLink color="#fff" size={24} /><Text numberOfLines={2} style={{ color: '#fff', ...fonts.medium, fontSize: 14 }}>{String(node.attrs?.title ?? '외부 콘텐츠 열기')}</Text></Pressable>;
   }
   if (node.type === 'poll') return <PollNode node={node} />;
@@ -142,17 +142,23 @@ function escapeHtmlAttribute(value: string) {
 }
 
 function SocialEmbed({ href, provider }: { href: string; provider: SocialEmbedProvider }) {
-  const { colorScheme, theme } = useMinionTheme();
+  const { colorScheme, fonts, theme } = useMinionTheme();
   const [height, setHeight] = useState(provider === 'twitter' ? 240 : 480);
+  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+  useEffect(() => {
+    const timeout = setTimeout(() => setStatus((current) => current === 'loading' ? 'error' : current), 12_000);
+    return () => clearTimeout(timeout);
+  }, [href, provider]);
   const safeHref = escapeHtmlAttribute(href);
   const markup = provider === 'twitter'
     ? `<blockquote class="twitter-tweet" data-dnt="true" data-theme="${colorScheme === 'dark' ? 'dark' : 'light'}"><a href="${safeHref}">${safeHref}</a></blockquote><script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>`
     : `<blockquote class="instagram-media" data-instgrm-permalink="${safeHref}" data-instgrm-version="14"><a href="${safeHref}">${safeHref}</a></blockquote><script async src="https://www.instagram.com/embed.js"></script>`;
-  const html = `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><style>*{box-sizing:border-box}html,body{background:${theme.surface};margin:0;overflow:hidden;padding:0;width:100%}blockquote{margin:0!important;max-width:100%!important;min-width:0!important;width:100%!important}</style></head><body>${markup}<script>(function(){const send=data=>window.ReactNativeWebView.postMessage(JSON.stringify(data));const report=()=>{const next=Math.ceil(Math.max(document.body.scrollHeight,document.documentElement.scrollHeight));if(next>0)send({type:'height',height:next})};document.addEventListener('click',event=>{const anchor=event.target.closest&&event.target.closest('a');if(!anchor||!anchor.href)return;event.preventDefault();send({type:'open-url',url:anchor.href})},true);new MutationObserver(report).observe(document.body,{attributes:true,childList:true,subtree:true});if(window.ResizeObserver)new ResizeObserver(report).observe(document.body);window.addEventListener('load',report);[100,300,700,1500,3000].forEach(delay=>setTimeout(report,delay));report()})()</script></body></html>`;
+  const html = `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><style>*{box-sizing:border-box}html,body{background:${theme.surface};margin:0;overflow:hidden;padding:0;width:100%}body:not(.ready) blockquote{visibility:hidden}blockquote{margin:0!important;max-width:100%!important;min-width:0!important;width:100%!important}</style></head><body>${markup}<script>(function(){const send=data=>window.ReactNativeWebView.postMessage(JSON.stringify(data));let ready=false;const report=()=>{const frame=document.querySelector('iframe');if(frame&&!ready){ready=true;document.body.classList.add('ready');send({type:'ready'})}const next=Math.ceil(Math.max(document.body.scrollHeight,document.documentElement.scrollHeight));if(next>0)send({type:'height',height:next})};document.addEventListener('click',event=>{const anchor=event.target.closest&&event.target.closest('a');if(!anchor||!anchor.href)return;event.preventDefault();send({type:'open-url',url:anchor.href})},true);new MutationObserver(report).observe(document.body,{attributes:true,childList:true,subtree:true});if(window.ResizeObserver)new ResizeObserver(report).observe(document.body);window.addEventListener('load',report);[100,300,700,1500,3000].forEach(delay=>setTimeout(report,delay));report()})()</script></body></html>`;
   const onMessage = (event: WebViewMessageEvent) => {
     try {
       const message = JSON.parse(event.nativeEvent.data) as { height?: number; type?: string; url?: string };
       if (message.type === 'height' && Number.isFinite(message.height)) setHeight(Math.max(80, Math.min(1_200, Math.ceil(message.height!))));
+      if (message.type === 'ready') setStatus('ready');
       if (message.type === 'open-url' && message.url && /^https?:\/\//i.test(message.url)) void Linking.openURL(message.url);
     } catch {
       // Ignore third-party widget bridge noise.
@@ -163,6 +169,7 @@ function SocialEmbed({ href, provider }: { href: string; provider: SocialEmbedPr
       <WebView
         domStorageEnabled
         javaScriptEnabled
+        onError={() => setStatus('error')}
         onMessage={onMessage}
         originWhitelist={['https://*', 'http://*']}
         scrollEnabled={false}
@@ -173,6 +180,8 @@ function SocialEmbed({ href, provider }: { href: string; provider: SocialEmbedPr
         style={[styles.socialWebView, { backgroundColor: theme.surface }]}
         thirdPartyCookiesEnabled
       />
+      {status === 'loading' ? <View accessibilityLiveRegion="polite" accessibilityRole="progressbar" pointerEvents="none" style={[StyleSheet.absoluteFill, styles.socialStatus, { backgroundColor: theme.surfaceMuted }]}><ActivityIndicator color={theme.accent} size="large" /><Text style={{ color: theme.muted, ...fonts.medium, fontSize: 14 }}>SNS 게시물을 불러오는 중이에요</Text></View> : null}
+      {status === 'error' ? <View style={[StyleSheet.absoluteFill, styles.socialStatus, { backgroundColor: theme.surfaceMuted }]}><Text style={{ color: theme.muted, ...fonts.medium, fontSize: 14 }}>게시물을 불러오지 못했습니다.</Text><Pressable accessibilityRole="link" onPress={() => void Linking.openURL(href)}><Text style={{ color: theme.accent, ...fonts.medium, fontSize: 14 }}>원문 보기</Text></Pressable></View> : null}
     </View>
   );
 }
@@ -308,6 +317,7 @@ const styles = StyleSheet.create({
   youtubeLoading: { alignItems: 'center', justifyContent: 'center' },
   youtubeWebView: { backgroundColor: '#000', flex: 1 },
   socialEmbed: { marginVertical: 8, overflow: 'hidden', width: '100%' },
+  socialStatus: { alignItems: 'center', gap: 10, justifyContent: 'center', paddingHorizontal: 16 },
   socialWebView: { flex: 1 },
   embed: { alignItems: 'center', aspectRatio: 16 / 9, borderRadius: 10, gap: 8, justifyContent: 'center', overflow: 'hidden', width: '100%' },
   embedShade: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,.34)' },

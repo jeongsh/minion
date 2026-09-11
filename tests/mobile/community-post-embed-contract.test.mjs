@@ -8,7 +8,7 @@ test('mobile post viewer hydrates YouTube, X, and Instagram embeds', async () =>
   const source = await readFile(sourcePath, 'utf8');
 
   assert.match(source, /if \(node\.type === 'youtube'\)[\s\S]*<YoutubeEmbed href=\{href\}/);
-  assert.match(source, /if \(node\.type === 'embed'\)[\s\S]*<SocialEmbed href=\{href\} provider=\{provider\}/);
+  assert.match(source, /if \(node\.type === 'embed'\)[\s\S]*<SocialEmbed\b[^>]*href=\{href\}[^>]*provider=\{provider\}/);
   assert.match(source, /https:\/\/platform\.twitter\.com\/widgets\.js/);
   assert.match(source, /https:\/\/www\.instagram\.com\/embed\.js/);
   assert.match(source, /new MutationObserver\(report\)/);

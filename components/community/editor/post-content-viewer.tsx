@@ -68,7 +68,7 @@ function renderNode(node: ContentNode, key: string, depth = 0): ReactNode {
     case "embed": {
       const url = contentUrl(attrs.url);
       if (!url) return null;
-      if (attrs.type === "twitter" || attrs.type === "instagram") return <ReadOnlyEmbed key={key} url={url} provider={attrs.type} />;
+      if (attrs.type === "twitter" || attrs.type === "instagram") return <ReadOnlyEmbed key={`${key}:${url}`} url={url} provider={attrs.type} />;
       return <div key={key} data-embed-url={url} data-embed-type="generic" className="embed-block my-4 rounded border border-border bg-surface-muted p-3"><a href={url} target="_blank" rel="noopener noreferrer">{url}</a></div>;
     }
     case "poll": {
