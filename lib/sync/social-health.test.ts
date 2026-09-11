@@ -1,19 +1,38 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { shouldAlertSocialFailure, workflowHealth, type SocialWorkflowRun } from "./social-health.ts";
+import { connectionState, hasConnectionFailure, shouldAlertSocialFailure, workflowHealth, type SocialWorkflowRun } from "./social-health.ts";
 import { retryFetch } from "./retry-fetch.ts";
 
 const now = Date.parse("2026-09-10T12:00:00Z");
 const policy = { maximumAgeHours: 1.5, maximumRunMinutes: 20 };
 test("alerts once per failure incident and silently rearms after recovery", () => {
-  const states = ["healthy", "failed", "failed", "stale", "unavailable", "healthy", "healthy", "failed"];
+  const states = ["healthy", "disconnected", "disconnected", "disconnected", "disconnected", "healthy", "healthy", "disconnected"];
   let previous: string | undefined;
   assert.deepEqual(states.map((current) => {
     const alert = shouldAlertSocialFailure(previous, current);
     previous = current;
     return alert;
   }), [false, true, false, false, false, false, false, true]);
-  assert.equal(shouldAlertSocialFailure(undefined, "failed"), true);
+  assert.equal(shouldAlertSocialFailure(undefined, "disconnected"), true);
+});
+
+test("missing activity and generic failures never request reconnection", () => {
+  for (const status of ["healthy", "stale", "stalled", "missing", "unavailable", "failed"]) {
+    assert.equal(shouldAlertSocialFailure(undefined, status), false);
+    assert.equal(connectionState("disconnected", status, false), status === "healthy" ? "healthy" : "disconnected");
+  }
+});
+
+test("only explicit provider authentication errors qualify", () => {
+  assert.equal(hasConnectionFailure("sync-instagram.yml", "[error] team:HLE posts — INSTAGRAM_LOGIN: @hle; login session expired or login required"), true);
+  assert.equal(hasConnectionFailure("sync-instagram.yml", "[error] INSTAGRAM_CHALLENGE: @hle; account verification required"), true);
+  assert.equal(hasConnectionFailure("sync-youtube.yml", "[error] team:HLE API key not valid. Please pass a valid API key."), true);
+  for (const error of ["INSTAGRAM_EMPTY", "INSTAGRAM_HTTP_403", "INSTAGRAM_HTTP_429", "INSTAGRAM_HTTP_503", "INSTAGRAM_LOGIN: @hle; pagination rejected", "checked=0", "quotaExceeded", "timeout"]) {
+    for (const workflow of ["sync-instagram.yml", "sync-youtube.yml", "renew-youtube-websub.yml"]) {
+      assert.equal(hasConnectionFailure(workflow, `[error] ${error}`), false);
+    }
+  }
+  assert.equal(hasConnectionFailure("sync-instagram.yml", "[retry] INSTAGRAM_LOGIN: @hle; login session expired or login required"), false);
 });
 function run(minutes: number, conclusion: string | null = "success", status = "completed"): SocialWorkflowRun {
   const time = new Date(now - minutes * 60_000).toISOString();

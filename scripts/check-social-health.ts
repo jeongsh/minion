@@ -1,6 +1,6 @@
 import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
-import { SOCIAL_WORKFLOWS, shouldAlertSocialFailure, workflowHealth, type SocialWorkflowRun } from "../lib/sync/social-health.ts";
+import { SOCIAL_WORKFLOWS, connectionState, hasConnectionFailure, shouldAlertSocialFailure, workflowHealth, type SocialWorkflowRun } from "../lib/sync/social-health.ts";
 import { retryFetch } from "../lib/sync/retry-fetch.ts";
 
 const statePath = "artifacts/social-monitor-state.json";
@@ -28,22 +28,38 @@ async function main() {
     } catch {
       console.error(`[error] Cannot verify workflow status: ${workflow.file}`);
     }
-    statuses[workflow.file] = status;
-    results.push({ name: workflow.name, workflow: workflow.file, status, runUrl: runs[0]?.html_url ?? `https://github.com/${repository}/actions/workflows/${workflow.file}`, lastRunAt: runs[0]?.created_at ?? null });
+    let disconnected = false;
+    const completed = runs.find((run) => run.status === "completed");
+    if (completed?.conclusion === "failure" && workflow.file !== "renew-youtube-websub.yml") {
+      try {
+        const headers = { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json" };
+        const jobsResponse = await retryFetch(`https://api.github.com/repos/${repository}/actions/runs/${completed.id}/jobs?per_page=100`, { headers });
+        if (!jobsResponse.ok) throw new Error("Cannot read collection jobs");
+        const jobs = await jobsResponse.json() as { jobs: { id: number; conclusion: string | null }[] };
+        for (const job of jobs.jobs.filter((job) => job.conclusion === "failure")) {
+          const logs = await retryFetch(`https://api.github.com/repos/${repository}/actions/jobs/${job.id}/logs`, { headers });
+          if (!logs.ok) throw new Error("Cannot read collection logs");
+          disconnected ||= hasConnectionFailure(workflow.file, await logs.text());
+        }
+      } catch {
+        console.error(`[error] Cannot verify connection failure: ${workflow.file}`);
+      }
+    }
+    statuses[workflow.file] = connectionState(previous[workflow.file], status, disconnected);
+    results.push({ name: workflow.name, workflow: workflow.file, status, disconnected, runUrl: completed?.html_url ?? `https://github.com/${repository}/actions/workflows/${workflow.file}`, lastRunAt: runs[0]?.created_at ?? null });
   }
   mkdirSync(dirname(reportPath), { recursive: true });
   writeFileSync(reportPath, JSON.stringify({ checkedAt: new Date().toISOString(), results }, null, 2));
   const summary = results.map((result) => `- ${result.name}: ${result.status} ${result.runUrl}`).join("\n");
   console.log(summary);
   if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Social collection health\n\n${summary}\n`);
-  const changed = results.filter((result) => shouldAlertSocialFailure(previous[result.workflow], result.status));
+  const changed = results.filter((result) => result.disconnected && shouldAlertSocialFailure(previous[result.workflow], statuses[result.workflow]));
   const webhook = process.env.DISCORD_SOCIAL_WEBHOOK_URL;
   if (webhook && changed.length) {
-    const labels: Record<string, string> = { failed: "수집 실패", stale: "정상 수집 장시간 없음", stalled: "실행 지연·중단", missing: "실행 기록 없음", unavailable: "감시 API 확인 실패" };
     const response = await retryFetch(webhook, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: "미니언 연결 알림", allowed_mentions: { parse: [] }, content: changed.map((r) => `${r.name}: **${labels[r.status] ?? r.status}**\n연결을 확인하고 다시 연결해 주세요.\n${r.runUrl}`).join("\n\n") }),
+      body: JSON.stringify({ username: "미니언 연결 알림", allowed_mentions: { parse: [] }, content: changed.map((r) => `${r.name}: **연결 인증 실패**\n인증을 확인하고 다시 연결해 주세요.\n${r.runUrl}`).join("\n\n") }),
     });
     if (!response.ok) throw new Error(`Social alert delivery failed (${response.status})`);
   }
