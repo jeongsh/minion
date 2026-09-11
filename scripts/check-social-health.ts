@@ -1,6 +1,6 @@
 import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
-import { SOCIAL_WORKFLOWS, workflowHealth, type SocialWorkflowRun } from "../lib/sync/social-health.ts";
+import { SOCIAL_WORKFLOWS, shouldAlertSocialFailure, workflowHealth, type SocialWorkflowRun } from "../lib/sync/social-health.ts";
 import { retryFetch } from "../lib/sync/retry-fetch.ts";
 
 const statePath = "artifacts/social-monitor-state.json";
@@ -36,10 +36,10 @@ async function main() {
   const summary = results.map((result) => `- ${result.name}: ${result.status} ${result.runUrl}`).join("\n");
   console.log(summary);
   if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Social collection health\n\n${summary}\n`);
-  const changed = results.filter((result) => previous[result.workflow] !== result.status && (previous[result.workflow] || result.status !== "healthy"));
+  const changed = results.filter((result) => shouldAlertSocialFailure(previous[result.workflow], result.status));
   const webhook = process.env.DISCORD_SOCIAL_WEBHOOK_URL;
   if (webhook && changed.length) {
-    const labels: Record<string, string> = { healthy: "정상 복구", failed: "수집 실패", stale: "정상 수집 장시간 없음", stalled: "실행 지연·중단", missing: "실행 기록 없음", unavailable: "감시 API 확인 실패" };
+    const labels: Record<string, string> = { failed: "수집 실패", stale: "정상 수집 장시간 없음", stalled: "실행 지연·중단", missing: "실행 기록 없음", unavailable: "감시 API 확인 실패" };
     const response = await retryFetch(webhook, {
       method: "POST",
       headers: { "Content-Type": "application/json" },

@@ -1,10 +1,20 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { workflowHealth, type SocialWorkflowRun } from "./social-health.ts";
+import { shouldAlertSocialFailure, workflowHealth, type SocialWorkflowRun } from "./social-health.ts";
 import { retryFetch } from "./retry-fetch.ts";
 
 const now = Date.parse("2026-09-10T12:00:00Z");
 const policy = { maximumAgeHours: 1.5, maximumRunMinutes: 20 };
+test("alerts once per failure incident and silently rearms after recovery", () => {
+  const states = ["healthy", "failed", "failed", "stale", "unavailable", "healthy", "healthy", "failed"];
+  let previous: string | undefined;
+  assert.deepEqual(states.map((current) => {
+    const alert = shouldAlertSocialFailure(previous, current);
+    previous = current;
+    return alert;
+  }), [false, true, false, false, false, false, false, true]);
+  assert.equal(shouldAlertSocialFailure(undefined, "failed"), true);
+});
 function run(minutes: number, conclusion: string | null = "success", status = "completed"): SocialWorkflowRun {
   const time = new Date(now - minutes * 60_000).toISOString();
   return { id: minutes, status, conclusion, created_at: time, updated_at: time, html_url: "https://example.com/run" };

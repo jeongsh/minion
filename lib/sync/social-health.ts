@@ -13,6 +13,10 @@ export const SOCIAL_WORKFLOWS = [
   { file: "sync-instagram.yml", name: "Instagram", maximumAgeHours: 30, maximumRunMinutes: 40 },
 ] as const;
 
+export function shouldAlertSocialFailure(previous: string | undefined, current: string) {
+  return current !== "healthy" && (previous === undefined || previous === "healthy");
+}
+
 export function workflowHealth(
   workflow: { maximumAgeHours: number; maximumRunMinutes: number },
   runs: SocialWorkflowRun[],
