@@ -43,7 +43,7 @@ async function main() {
     const response = await retryFetch(webhook, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: "미니언 수집 감시", allowed_mentions: { parse: [] }, content: changed.map((r) => `${r.name}: **${labels[r.status] ?? r.status}**\n${r.runUrl}`).join("\n\n") }),
+      body: JSON.stringify({ username: "미니언 연결 알림", allowed_mentions: { parse: [] }, content: changed.map((r) => `${r.name}: **${labels[r.status] ?? r.status}**\n연결을 확인하고 다시 연결해 주세요.\n${r.runUrl}`).join("\n\n") }),
     });
     if (!response.ok) throw new Error(`Social alert delivery failed (${response.status})`);
   }
