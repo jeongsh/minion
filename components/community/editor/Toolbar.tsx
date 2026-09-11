@@ -34,12 +34,13 @@ interface Props {
   allowEmbeds?: boolean;
   maxImages?: number;
   miniconPacks?: MiniconPack[];
+  onUploadingChange?: (uploading: boolean) => void;
 }
 
 type OpenPanel = "format" | "youtube" | "sns" | "minicon" | null;
 type SavedSelection = { from: number; to: number } | null;
 
-export default function Toolbar({ editor, allowMedia = true, allowEmbeds = allowMedia, maxImages = 10, miniconPacks = [] }: Props) {
+export default function Toolbar({ editor, allowMedia = true, allowEmbeds = allowMedia, maxImages = 10, miniconPacks = [], onUploadingChange }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const savedColorSelection = useRef<SavedSelection>(null);
   const savedHighlightSelection = useRef<SavedSelection>(null);
@@ -83,12 +84,14 @@ export default function Toolbar({ editor, allowMedia = true, allowEmbeds = allow
       return;
     }
     setUploadingImage(true);
+    onUploadingChange?.(true);
     try {
       for (const file of files.slice(0, remaining)) await uploadAndInsertEditorImage({ editor, file });
     } catch (error) {
       alert("이미지 업로드 실패: " + getImageUploadErrorMessage(error, "알 수 없는 오류"));
     } finally {
       setUploadingImage(false);
+      onUploadingChange?.(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
