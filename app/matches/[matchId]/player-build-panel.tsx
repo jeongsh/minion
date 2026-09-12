@@ -55,17 +55,17 @@ function PlayerTabs({
           aria-label={`${entry.playerName} 빌드 보기`}
           aria-pressed={selected}
           onClick={() => onSelect(entry.playerId)}
-          className={`group flex h-[72px] w-14 shrink-0 flex-col items-center justify-center rounded-lg outline-none transition-colors focus-visible:outline-none ${focusSurface} ${
+          className={`group flex h-16 w-full min-w-0 max-w-20 flex-col items-center justify-center justify-self-center rounded-lg outline-none transition-colors focus-visible:outline-none sm:h-[72px] ${focusSurface} ${
             selected ? selectedSurface : "hover:bg-[var(--ui-card-hover)]"
           }`}
         >
-          <span className="relative h-10 w-10 overflow-hidden rounded-md bg-[var(--ui-card-bg)]">
+          <span className="relative h-8 w-8 overflow-hidden rounded-md bg-[var(--ui-card-bg)] sm:h-10 sm:w-10">
             {entry.championImageUrl ? (
               <Image
                 src={entry.championImageUrl}
                 alt={entry.championName}
                 fill
-                sizes="40px"
+                sizes="(min-width: 640px) 40px, 32px"
                 className={`object-cover transition-opacity ${selected ? "opacity-100" : "opacity-75 group-hover:opacity-100"}`}
               />
             ) : null}
@@ -82,15 +82,9 @@ function PlayerTabs({
     });
 
   return (
-    <div className="overflow-x-auto px-4 pb-3 pt-4">
-      <div className="mx-auto flex w-full min-w-max items-start gap-1 sm:min-w-[700px] sm:justify-between sm:gap-8">
-        <div className="flex gap-1">{renderPlayers(bluePlayers)}</div>
-        <span
-          aria-hidden="true"
-          className="mx-1 h-10 w-px shrink-0 self-center bg-[var(--ui-card-divider)] sm:hidden"
-        />
-        <div className="flex gap-1 sm:justify-end">{renderPlayers(redPlayers)}</div>
-      </div>
+    <div className="grid gap-2 px-3 pb-3 pt-3 sm:grid-cols-2 sm:gap-4 sm:px-4 sm:pt-4" aria-label="빌드 선수 선택">
+      <div className="grid min-w-0 grid-cols-5 gap-1">{renderPlayers(bluePlayers)}</div>
+      <div className="grid min-w-0 grid-cols-5 gap-1">{renderPlayers(redPlayers)}</div>
     </div>
   );
 }
@@ -104,8 +98,8 @@ function RuneIcon({
   keystone?: boolean;
   shard?: boolean;
 }) {
-  const size = keystone ? "h-12 w-12" : shard ? "h-8 w-8" : "h-9 w-9";
-  const iconPadding = keystone || shard ? "p-1" : "p-0.5";
+  const size = keystone ? "h-9 w-9 sm:h-10 sm:w-10" : shard ? "h-7 w-7 sm:h-8 sm:w-8" : "h-[30px] w-[30px] sm:h-[34px] sm:w-[34px]";
+  const iconPadding = keystone ? "p-1" : "p-0.5";
   const slotBackground = shard
     ? "bg-[#cdd0d6] dark:bg-[#24272d]"
     : "bg-[#d9dce2] dark:bg-[#24272d]";
@@ -120,7 +114,7 @@ function RuneIcon({
           src={rune.url}
           alt={rune.name}
           fill
-          sizes={keystone ? "48px" : shard ? "32px" : "36px"}
+          sizes={keystone ? "(min-width: 640px) 40px, 36px" : shard ? "(min-width: 640px) 32px, 28px" : "(min-width: 640px) 34px, 30px"}
           className={`object-contain ${iconPadding} ${rune.selected ? "opacity-100" : "opacity-[0.32] grayscale"}`}
           unoptimized
         />
@@ -140,8 +134,8 @@ function RuneRow({
 }) {
   return (
     <div
-      className={`flex items-center justify-center gap-2.5 ${
-        keystone ? "min-h-[60px]" : shard ? "min-h-[42px]" : "min-h-[54px]"
+      className={`flex items-center justify-center gap-1 sm:gap-2 ${
+        keystone ? "min-h-[44px] sm:min-h-12" : shard ? "min-h-[34px] sm:min-h-[38px]" : "min-h-[38px] sm:min-h-[42px]"
       }`}
     >
       {row.map((rune) => (
@@ -166,20 +160,20 @@ function RuneColumn({
 }) {
   return (
     <div className="min-w-0">
-      <div className="flex h-9 items-center justify-center gap-2">
+      <div className="flex h-8 items-center justify-center gap-1.5">
         {icon ? (
-          <span className="relative h-6 w-6 shrink-0">
+          <span className="relative h-[18px] w-[18px] shrink-0">
             <Image
               src={icon}
               alt=""
               fill
-              sizes="24px"
+              sizes="18px"
               className={`object-contain ${muted ? "opacity-40 grayscale" : ""}`}
               unoptimized
             />
           </span>
         ) : null}
-        <span className="text-sm font-medium text-[var(--ui-text)]">{name}</span>
+        <span className="text-[13px] font-medium text-[var(--ui-text)]">{name}</span>
       </div>
 
       <div className="mt-1">
@@ -193,7 +187,7 @@ function RuneColumn({
 
 function ShardColumn({ rows }: { rows: RuneGridOption[][] }) {
   return (
-    <div className="mt-3 min-w-0" aria-label="능력치 파편">
+    <div className="mt-2 min-w-0" aria-label="능력치 파편">
       {rows.map((row, index) => (
         <RuneRow key={`능력치 파편-${index}`} row={row} shard />
       ))}
@@ -207,19 +201,19 @@ function Runes({ entry }: { entry: PlayerBuildPanelEntry }) {
   if (!grid) {
     return (
       <div
-        className="mx-auto mt-2 grid min-h-64 w-full max-w-[480px] grid-cols-2 items-start gap-3 py-1"
+        className="mx-auto mt-1 grid w-full max-w-[440px] grid-cols-[minmax(max-content,1.2fr)_minmax(max-content,1fr)] items-start gap-2"
         aria-label="룬 데이터 없음"
       >
         {[0, 1].map((column) => (
           <div key={column} className="min-w-0">
-            <div className="mx-auto mb-2 h-6 w-6 rounded-full bg-[#d9dce2] dark:bg-[#24272d]" />
+            <div className="flex h-8 items-center justify-center"><span className="h-[18px] w-[18px] rounded-full bg-[#d9dce2] dark:bg-[#24272d]" /></div>
             {Array.from({ length: column === 0 ? 4 : 6 }, (_, rowIndex) => (
-              <div key={rowIndex} className="flex min-h-[48px] items-center justify-center gap-2.5">
+              <div key={rowIndex} className={`flex items-center justify-center gap-1 sm:gap-2 ${column === 0 && rowIndex === 0 ? "min-h-[44px] sm:min-h-12" : column === 1 && rowIndex >= 3 ? "min-h-[34px] sm:min-h-[38px]" : "min-h-[38px] sm:min-h-[42px]"}`}>
                 {Array.from({ length: 3 }, (_, optionIndex) => (
                   <span
                     key={optionIndex}
                     className={`rounded-full bg-[#d9dce2] dark:bg-[#24272d] ${
-                      column === 0 && rowIndex === 0 ? "h-12 w-12" : "h-8 w-8"
+                      column === 0 && rowIndex === 0 ? "h-9 w-9 sm:h-10 sm:w-10" : column === 1 && rowIndex >= 3 ? "h-7 w-7 sm:h-8 sm:w-8" : "h-[30px] w-[30px] sm:h-[34px] sm:w-[34px]"
                     }`}
                   />
                 ))}
@@ -232,7 +226,7 @@ function Runes({ entry }: { entry: PlayerBuildPanelEntry }) {
   }
 
   return (
-    <div className="mx-auto mt-2 grid w-full max-w-[480px] flex-1 grid-cols-2 items-start gap-3 py-1">
+    <div className="mx-auto mt-1 grid w-full max-w-[440px] flex-1 grid-cols-[minmax(max-content,1.2fr)_minmax(max-content,1fr)] items-start gap-2">
       <RuneColumn
         icon={grid.primaryTreeIcon}
         name={grid.primaryTreeName}
@@ -257,7 +251,7 @@ function ItemImage({ itemId, version, sold }: { itemId: number; version: string;
   return (
     <span
       title={sold ? "판매한 아이템" : undefined}
-      className={`relative block h-8 w-8 shrink-0 overflow-hidden rounded-md bg-[var(--ui-surface)] ${
+      className={`relative block h-6 w-6 shrink-0 overflow-hidden rounded-md bg-[var(--ui-surface)] ${
         sold ? "opacity-30 grayscale" : ""
       }`}
     >
@@ -265,7 +259,7 @@ function ItemImage({ itemId, version, sold }: { itemId: number; version: string;
         src={`https://ddragon.leagueoflegends.com/cdn/${version}/img/item/${itemId}.png`}
         alt={`아이템 ${itemId}`}
         fill
-        sizes="32px"
+        sizes="24px"
         className="object-cover"
       />
       {sold ? <span aria-hidden="true" className="absolute inset-x-0 top-1/2 h-px -rotate-[35deg] bg-white/90" /> : null}
@@ -290,18 +284,18 @@ function ItemBuild({ entry }: { entry: PlayerBuildPanelEntry }) {
         aria-label="구매 기록 없음"
       >
         {[3, 2, 2, 3].map((itemCount, groupIndex) => (
-          <div key={groupIndex} className="flex shrink-0 items-start gap-2">
+          <div key={groupIndex} className="flex min-w-0 max-w-full items-start gap-2">
             {groupIndex > 0 ? (
-              <span className="grid h-8 w-4 shrink-0 place-items-center rounded bg-[var(--ui-surface)] text-[var(--ui-card-divider)]">
+              <span className="grid h-6 w-4 shrink-0 place-items-center rounded bg-[var(--ui-surface)] text-[var(--ui-card-divider)]">
                 <ChevronRight aria-hidden="true" className="h-4 w-4" />
               </span>
             ) : null}
-            <div>
-              <div className="flex gap-0.5">
+            <div className="min-w-0">
+              <div className="flex flex-wrap gap-0.5">
                 {Array.from({ length: itemCount }, (_, itemIndex) => (
                   <span
                     key={itemIndex}
-                    className="h-8 w-8 rounded-md bg-[var(--ui-surface)]"
+                    className="h-6 w-6 rounded-md bg-[var(--ui-surface)]"
                   />
                 ))}
               </div>
@@ -316,17 +310,17 @@ function ItemBuild({ entry }: { entry: PlayerBuildPanelEntry }) {
   return (
     <div className="flex flex-wrap content-start items-start gap-x-2 gap-y-3 pt-1">
       {entry.itemPurchaseGroups.map((group, groupIndex) => (
-        <div key={`${group.minute}-${groupIndex}`} className="flex shrink-0 items-start gap-2">
+        <div key={`${group.minute}-${groupIndex}`} className="flex min-w-0 max-w-full items-start gap-2">
           {groupIndex > 0 ? (
             <span
               aria-hidden="true"
-              className="grid h-8 w-4 shrink-0 place-items-center rounded bg-[var(--ui-surface)] text-[var(--ui-muted)]"
+              className="grid h-6 w-4 shrink-0 place-items-center rounded bg-[var(--ui-surface)] text-[var(--ui-muted)]"
             >
               <ChevronRight aria-hidden="true" className="h-4 w-4 opacity-70" />
             </span>
           ) : null}
           <div className="min-w-0">
-            <div className="flex items-center gap-0.5">
+            <div className="flex flex-wrap items-center gap-0.5">
               {group.purchases.map((purchase, purchaseIndex) => (
                 <ItemImage
                   key={`${purchase.itemId}-${purchase.timestampMs}-${purchaseIndex}`}
@@ -347,7 +341,7 @@ function ItemBuild({ entry }: { entry: PlayerBuildPanelEntry }) {
 }
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <h3 className="mb-3 text-lg font-bold leading-6 text-[var(--ui-ink)]">{children}</h3>;
+  return <h3 className="mb-3 text-[15px] font-bold leading-[22px] text-[var(--ui-ink)] sm:text-[18px]">{children}</h3>;
 }
 
 export function PlayerBuildPanel({ entries }: { entries: PlayerBuildPanelEntry[] }) {
@@ -358,26 +352,26 @@ export function PlayerBuildPanel({ entries }: { entries: PlayerBuildPanelEntry[]
 
   return (
     <section className="w-full" aria-labelledby="player-build-title">
-      <h2 id="player-build-title" className="home-section-title mb-3 text-xl text-[var(--ui-ink)]">
+      <h2 id="player-build-title" className="home-section-title mb-3 text-[16px] !leading-[22px] text-[var(--ui-ink)] sm:text-[20px]">
         빌드
       </h2>
 
       <div className="w-full overflow-hidden rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] text-[var(--ui-text)]">
         <PlayerTabs entries={entries} selectedId={selected.playerId} onSelect={setSelectedId} />
 
-        <div className="grid items-stretch gap-3 px-3 pb-3 min-[1450px]:grid-cols-[42fr_58fr]">
-          <div className="flex min-w-0 flex-col rounded-lg bg-[var(--ui-card-bg)] p-4">
+        <div className="grid items-stretch gap-3 pb-3 sm:px-3 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+          <div className="flex min-w-0 flex-col rounded-lg bg-[var(--ui-card-bg)] p-3 sm:p-4">
             <SectionTitle>룬</SectionTitle>
             <Runes entry={selected} />
           </div>
 
           <div className="flex min-w-0 flex-col gap-3">
-            <div className="min-h-0 flex-1 rounded-lg bg-[var(--ui-card-bg)] p-4">
+            <div className="min-h-0 flex-1 rounded-lg bg-[var(--ui-card-bg)] p-3 sm:p-4">
               <SectionTitle>아이템 빌드</SectionTitle>
               <ItemBuild entry={selected} />
             </div>
 
-            <div className="rounded-lg bg-[var(--ui-card-bg)] p-4">
+            <div className="min-w-0 rounded-lg bg-[var(--ui-card-bg)] p-3 sm:p-4">
               <SectionTitle>스킬 빌드</SectionTitle>
               <SkillBuildTimeline abilityIcons={selected.abilityIcons} skillOrder={selected.skillOrder} />
             </div>

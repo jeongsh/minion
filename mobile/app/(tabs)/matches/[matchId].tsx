@@ -9,6 +9,7 @@ import { LiveMatchFeed } from '@/components/matches/live-match-feed';
 import { MatchHeader } from '@/components/matches/match-header';
 import { MatchLoadingSkeleton } from '@/components/matches/match-loading-skeleton';
 import { MatchPlayerStatTable } from '@/components/matches/match-player-stat-table';
+import { MatchPlayerBuildPanel } from '@/components/matches/match-player-build-panel';
 import { MatchPreviewTab } from '@/components/matches/match-preview-tab';
 import { MatchRatingTab } from '@/components/matches/match-rating-tab';
 import { MatchSetSelector } from '@/components/matches/match-set-selector';
@@ -124,6 +125,7 @@ function MatchDetailContent({ matchId, requestedSet, requestedTab }: { matchId: 
             <View style={styles.setDetailBlock}>
               <CompactScoreboard set={data.activeSet} />
               <MatchPlayerStatTable set={data.activeSet} />
+              <MatchPlayerBuildPanel entries={data.activeSet.playerBuilds ?? []} />
               <SetTimelineSection players={data.players} set={data.activeSet} />
             </View>
           ) : (

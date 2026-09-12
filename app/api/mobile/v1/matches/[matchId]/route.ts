@@ -8,6 +8,7 @@ import {
   getMatches,
   getMatchVodsByMatchId,
   getPlayerStatLines,
+  getPlayerBuildEvents,
   getSetPicksBans,
   getSetsByMatchId,
   getSets,
@@ -17,7 +18,8 @@ import {
   getTournaments,
 } from "@/lib/data/lck";
 import { ddragonVersionFromPatch } from "@/lib/ddragon";
-import { championImage } from "@/lib/champions";
+import { championImage, fetchChampionAbilityIcons, normalizedDdragonId } from "@/lib/champions";
+import { buildPlayerLoadoutTimeline } from "@/lib/player-build";
 import { isMatchLive, matchStatusLabel } from "@/lib/match-display";
 import { getMatchAiPreview } from "@/lib/match-preview-ai";
 import { getPredictionMarketData, predictionMarketForMatch } from "@/lib/predictions";
@@ -34,7 +36,7 @@ import {
   toMobileTimelineEvent,
   toMobileTimelineFrame,
 } from "@/lib/mobile/api-response";
-import { fetchRuneCatalog } from "@/lib/runes";
+import { fetchRuneCatalog, fetchFullRuneTrees, buildRuneBuildGrid, buildEmptyRuneBuildGrid } from "@/lib/runes";
 import { fetchSpellCatalog } from "@/lib/spells";
 import type { Team } from "@/lib/types";
 import { getMobileAuth } from "@/lib/mobile/auth";
@@ -81,8 +83,9 @@ export async function GET(request: Request, context: { params: Promise<{ matchId
   const requestedSetId = query.get("set");
   const requestedTab = query.get("tab");
   const full = !requestedTab || !["data", "preview", "rating", "live", "video"].includes(requestedTab);
-  const [match, auth, sets] = await Promise.all([getMatchById(matchId), getMobileAuth(request), getSetsByMatchId(matchId)]);
+  const [match, auth] = await Promise.all([getMatchById(matchId), getMobileAuth(request)]);
   if (!match) return mobileError("NOT_FOUND", "경기를 찾을 수 없습니다.", 404);
+  const sets = await getSetsByMatchId(match.id);
   const includePreview = full || requestedTab === "preview" || (requestedTab === "data" && sets.length === 0);
   const includeData = full || requestedTab === "data";
   const includeRating = full || requestedTab === "rating";
@@ -125,7 +128,7 @@ export async function GET(request: Request, context: { params: Promise<{ matchId
   const detailPlayerIds = new Set<string>();
   if (defaultSet && (includeData || includeRating)) {
     const itemVersion = ddragonVersionFromPatch(defaultSet.patch);
-    const [picksBans, statLines, timelineEvents, timelineFrames, champions, spells, runeCatalog] = await Promise.all([
+    const [picksBans, statLines, timelineEvents, timelineFrames, champions, spells, runeCatalog, buildEvents, runeTrees] = await Promise.all([
       includeData ? getSetPicksBans(defaultSet.id) : [],
       getPlayerStatLines(defaultSet.id),
       includeData ? getTimelineEvents(defaultSet.id) : [],
@@ -133,7 +136,11 @@ export async function GET(request: Request, context: { params: Promise<{ matchId
       getChampions(),
       includeData ? fetchSpellCatalog(itemVersion) : [],
       includeData ? fetchRuneCatalog(itemVersion) : null,
+      includeData ? getPlayerBuildEvents(defaultSet.id) : [],
+      includeData ? fetchFullRuneTrees(itemVersion) : [],
     ]);
+    const championIds = includeData ? [...new Set(statLines.map((line) => normalizedDdragonId(champions.find((champion) => champion.id === line.championId))).filter(Boolean))] : [];
+    const abilityIcons = new Map(await Promise.all(championIds.map(async (id) => [id, await fetchChampionAbilityIcons(id, itemVersion)] as const)));
     statLines.forEach((line) => detailPlayerIds.add(line.playerId));
     const teamFor = (id: string): Team | undefined => teamMap.get(id);
     const blueLines = statLines.filter((line) => line.teamId === defaultSet.blueTeamId);
@@ -160,6 +167,25 @@ export async function GET(request: Request, context: { params: Promise<{ matchId
       hasPickBan: picksBans.length > 0,
       id: defaultSet.id,
       playerStats: statLines.map((line) => toMobileSetPlayerStat(line, players, champions, spells, itemVersion, runeCatalog)),
+      playerBuilds: [...statLines].filter((line) => line.teamId === defaultSet.blueTeamId || line.teamId === defaultSet.redTeamId).sort((a, b) => {
+        if (a.teamId !== b.teamId) return a.teamId === defaultSet.blueTeamId ? -1 : 1;
+        return (POSITION_ORDER.get(a.position) ?? 99) - (POSITION_ORDER.get(b.position) ?? 99);
+      }).map((line) => {
+        const champion = champions.find((item) => item.id === line.championId);
+        const { skillOrder, itemPurchaseGroups } = buildPlayerLoadoutTimeline(buildEvents, line.playerId);
+        return {
+          playerId: line.playerId,
+          playerName: players.find((player) => player.id === line.playerId)?.name ?? "-",
+          championName: champion?.name ?? "-",
+          championImageUrl: championImage(champion),
+          side: line.teamId === defaultSet.blueTeamId ? "blue" as const : "red" as const,
+          version: itemVersion,
+          abilityIcons: abilityIcons.get(normalizedDdragonId(champion)) ?? null,
+          runeGrid: (line.fullRuneNames ? buildRuneBuildGrid(line.fullRuneNames, runeTrees) : null) ?? buildEmptyRuneBuildGrid(line.runeIds, runeTrees),
+          skillOrder,
+          itemPurchaseGroups,
+        };
+      }),
       redGold: defaultSet.redGold,
       redKills,
       redObjectives: toMobileObjectiveCounts(defaultSet, "red"),

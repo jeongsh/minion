@@ -491,17 +491,23 @@ function PlayerStatBoard({
     },
   ];
 
+  const heading = (
+    <h2 id="player-stats" className="home-section-title text-[length:var(--ui-title-size)] text-[var(--ui-ink)]">
+      선수 스탯
+    </h2>
+  );
+
   return (
     <section className="flex flex-col gap-4" aria-labelledby="player-stats">
-      <h2 id="player-stats" className="home-section-title text-[length:var(--ui-title-size)] text-[var(--ui-ink)]">
-        선수 스탯
-      </h2>
       {blueRows.length + redRows.length === 0 ? (
-        <div className="rounded-lg bg-surface p-4 text-sm text-muted shadow-sm ring-1 ring-border/60">
-          선수 스탯이 아직 연결되지 않았습니다.
-        </div>
+        <>
+          {heading}
+          <div className="rounded-lg bg-surface p-4 text-sm text-muted shadow-sm ring-1 ring-border/60">
+            선수 스탯이 아직 연결되지 않았습니다.
+          </div>
+        </>
       ) : (
-        <PlayerStatTable groups={groups} maxDamage={maxDamage} />
+        <PlayerStatTable groups={groups} maxDamage={maxDamage} heading={heading} enableMobileStats />
       )}
     </section>
   );

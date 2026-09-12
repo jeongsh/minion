@@ -47,6 +47,7 @@ export function PlayerLoadout({
   badge,
   size = "md",
   className = "",
+  showSpellsAndRunes = true,
 }: {
   champion?: Champion;
   spellIds: Array<number | null | undefined>;
@@ -60,6 +61,7 @@ export function PlayerLoadout({
   badge?: ReactNode;
   size?: "sm" | "md";
   className?: string;
+  showSpellsAndRunes?: boolean;
   position?: PlayerPosition;
 }) {
   const image = championImage(champion);
@@ -82,16 +84,18 @@ export function PlayerLoadout({
           {badge ? <span className="pointer-events-none absolute bottom-0 right-0 z-20 rounded-tl bg-background/90 px-0.5 text-xs font-medium leading-4">{badge}</span> : null}
         </span>
 
-        <span className="flex shrink-0 items-center gap-0">
-          <span className="flex flex-col gap-0">
-            <SpellIcon src={spell0Url} size={size} />
-            <SpellIcon src={spell1Url} size={size} />
+        {showSpellsAndRunes ? (
+          <span className="flex shrink-0 items-center gap-0">
+            <span className="flex flex-col gap-0">
+              <SpellIcon src={spell0Url} size={size} />
+              <SpellIcon src={spell1Url} size={size} />
+            </span>
+            <span className="flex flex-col gap-0">
+              <RuneIcon src={resolvedRuneUrls[0]} size={size} />
+              <RuneIcon src={resolvedRuneUrls[1]} size={size} isTree />
+            </span>
           </span>
-          <span className="flex flex-col gap-0">
-            <RuneIcon src={resolvedRuneUrls[0]} size={size} />
-            <RuneIcon src={resolvedRuneUrls[1]} size={size} isTree />
-          </span>
-        </span>
+        ) : null}
       </span>
 
       {primaryLabel != null || secondaryLabel != null ? (
