@@ -214,6 +214,7 @@ export async function GET(request: Request, context: { params: Promise<{ matchId
           isPog: leader?.playerId === line.playerId,
           name: player?.name ?? "-",
           myRating: auth ? ratings.find((rating) => rating.authorId === auth.user.id)?.rating ?? null : null,
+          myReview: auth ? ratings.find((rating) => rating.authorId === auth.user.id)?.review ?? null : null,
           position: line.position,
           profileImage: player?.profileImageUrl ? { url: player.profileImageUrl } : null,
           ratingCount: ratings.length,

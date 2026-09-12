@@ -692,6 +692,7 @@ export type MobileFanRatingPlayer = {
   averageRating: number | null;
   ratingCount: number;
   myRating: number | null;
+  myReview?: string | null;
   isPog: boolean;
 };
 
