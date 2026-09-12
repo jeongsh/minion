@@ -29,8 +29,10 @@ type BottomSheetProps = PropsWithChildren<{
   onClose: () => void;
   open: boolean;
   panelStyle?: StyleProp<ViewStyle>;
+  placement?: 'bottom' | 'center';
   scrollViewProps?: Omit<ScrollViewProps, 'contentContainerStyle'>;
   scrollable?: boolean;
+  showHandle?: boolean;
   title: string;
   titleStyle?: StyleProp<TextStyle>;
 }>;
@@ -51,8 +53,10 @@ export function BottomSheet({
   onClose,
   open,
   panelStyle,
+  placement = 'bottom',
   scrollViewProps,
   scrollable = false,
+  showHandle = true,
   title,
   titleStyle,
 }: BottomSheetProps) {
@@ -70,11 +74,11 @@ export function BottomSheet({
 
   return (
     <Modal animationType="fade" onRequestClose={dismissible ? close : Keyboard.dismiss} transparent visible={open}>
-      <KeyboardAwareView minimumBottomInset={8} style={styles.root}>
+      <KeyboardAwareView minimumBottomInset={8} style={[styles.root, placement === 'center' ? styles.centeredRoot : null]}>
         {({ bottomInset, keyboardVisible }) => <>
           <Pressable accessibilityLabel={dismissible ? '닫기' : undefined} accessibilityRole={dismissible ? 'button' : undefined} disabled={!dismissible} onPress={close} style={[styles.backdrop, { backgroundColor: backdropColor }]} />
-          <View accessibilityViewIsModal style={[styles.panel, { backgroundColor: theme.surface, maxHeight, paddingBottom: keyboardVisible ? bottomInset : Math.max(bottomInset, 18) }, panelStyle]}>
-            <BottomSheetHandle />
+          <View accessibilityViewIsModal style={[styles.panel, placement === 'center' ? styles.centeredPanel : null, { backgroundColor: theme.surface, maxHeight, paddingBottom: keyboardVisible ? bottomInset : Math.max(bottomInset, 18) }, panelStyle]}>
+            {showHandle ? <BottomSheetHandle /> : null}
             <View style={[styles.heading, headingStyle]}>
               <Text style={[styles.title, { color: theme.ink, ...fonts.display }, titleStyle]}>{title}</Text>
               {actions ? <View style={styles.actions}>{actions}</View> : null}
@@ -100,8 +104,10 @@ export function BottomSheet({
 
 const styles = StyleSheet.create({
   root: { flex: 1, justifyContent: 'flex-end' },
+  centeredRoot: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16 },
   backdrop: { ...StyleSheet.absoluteFillObject },
   panel: { borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden', paddingTop: 8, width: '100%' },
+  centeredPanel: { borderBottomLeftRadius: 24, borderBottomRightRadius: 24, maxWidth: 390, paddingTop: 0 },
   handle: { alignSelf: 'center', borderRadius: 999, height: 4, marginBottom: 8, width: 40 },
   heading: { alignItems: 'center', flexDirection: 'row', minHeight: 48, paddingHorizontal: 18 },
   title: { flex: 1, fontSize: 16, letterSpacing: -0.35 },

@@ -129,8 +129,7 @@ export function InAppNotificationsProvider({ children }: PropsWithChildren) {
       showMatchEventToast(notification.matchEvent, notification.href ? () => router.push(notification.href as never) : undefined);
       return;
     }
-    const message = [notification.title, notification.description].filter(Boolean).join(' — ');
-    if (message) showToast(message, 'info');
+    if (notification.title) showToast({ title: notification.title, description: notification.description }, 'info');
   }, [router, showMatchEventToast, showToast]);
 
   const publishNotification = useCallback((notification: InAppNotification, present = true) => {

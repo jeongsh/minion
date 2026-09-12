@@ -19,7 +19,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { Platform, Pressable, StyleSheet, Text, type TextStyle, useColorScheme, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, type TextStyle, useColorScheme, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { minionRadius, minionSize, minionThemes, type MinionTheme } from '@/constants/minion-theme';
@@ -34,6 +34,7 @@ const PAPEROZI_WEB_STACK = 'Paperozi, Pretendard, sans-serif';
 type ColorScheme = 'light' | 'dark';
 type ToastCharacter = 'attendance' | 'prediction';
 type ToastTone = 'success' | 'info' | 'error';
+type ToastContent = string | { description?: string; title: string };
 export type MatchEventToast = {
   badge: 'LIVE' | '평가';
   kind: 'kill' | 'tower' | 'baron' | 'inhibitor' | 'dragon' | 'end' | 'start' | 'rating';
@@ -45,10 +46,11 @@ export type MatchEventToast = {
 };
 type ToastItem = {
   character?: ToastCharacter;
+  description?: string;
   id: number;
   matchEvent?: MatchEventToast;
-  message: string;
   onPress?: () => void;
+  title: string;
   tone: ToastTone;
 };
 
@@ -60,7 +62,7 @@ type ShellContextValue = {
   setFavoriteTeam: (team: MinionTeam | null) => void;
   setTeamPickerOpen: (open: boolean) => void;
   showMatchEventToast: (event: MatchEventToast, onPress?: () => void) => void;
-  showToast: (message: string, tone?: ToastTone, character?: ToastCharacter) => void;
+  showToast: (content: ToastContent, tone?: ToastTone, character?: ToastCharacter) => void;
   teamPickerOpen: boolean;
   theme: MinionTheme;
   toggleTheme: () => void;
@@ -147,12 +149,12 @@ export function MinionShellProvider({ children }: PropsWithChildren) {
     toastTimers.current.set(id, setTimeout(() => removeToast(id), duration));
   }, [removeToast]);
 
-  const showToast = useCallback((message: string, tone: ToastTone = 'info', character?: ToastCharacter) => {
-    enqueueToast({ character, message, tone }, 2600);
+  const showToast = useCallback((content: ToastContent, tone: ToastTone = 'info', character?: ToastCharacter) => {
+    enqueueToast({ character, ...(typeof content === 'string' ? { title: content } : content), tone }, 2600);
   }, [enqueueToast]);
 
   const showMatchEventToast = useCallback((matchEvent: MatchEventToast, onPress?: () => void) => {
-    enqueueToast({ matchEvent, message: '', onPress, tone: 'info' }, 10_000);
+    enqueueToast({ matchEvent, onPress, title: '', tone: 'info' }, 10_000);
   }, [enqueueToast]);
 
   const value = useMemo<ShellContextValue>(() => ({
@@ -190,92 +192,95 @@ export function useMinionShell() {
 }
 
 function MatchEventIcon({ kind }: { kind: MatchEventToast['kind'] }) {
-  const { fonts, theme } = useMinionShell();
+  const { theme } = useMinionShell();
   if (kind === 'kill' || kind === 'tower' || kind === 'baron' || kind === 'inhibitor' || kind === 'dragon') return <Sword color={theme.muted} size={16} strokeWidth={2} />;
   if (kind === 'start') return <Radio color={theme.muted} size={15} strokeWidth={2} />;
-  if (kind === 'end') return <Text style={{ color: theme.muted, ...fonts.medium, fontSize: 12 }}>END</Text>;
   return null;
 }
 
 function MatchEventImage({ kind, src }: { kind: MatchEventToast['kind']; src: string }) {
+  const { theme } = useMinionShell();
   const uri = resolveApiAssetUrl(src);
   if (!uri) return null;
-  return <Image contentFit={kind === 'kill' ? 'cover' : 'contain'} source={{ uri }} style={[styles.matchEventImage, kind === 'kill' ? styles.matchEventImageKill : null]} />;
+  const mutedStructure = kind === 'tower' || kind === 'inhibitor';
+  return <Image contentFit={kind === 'kill' ? 'cover' : 'contain'} source={{ uri }} style={[styles.matchEventImage, kind === 'kill' ? styles.matchEventImageKill : null, mutedStructure ? { tintColor: theme.muted } : null]} />;
 }
 
-function MatchEventToastView({ event, onClose, onPress }: { event: MatchEventToast; onClose: () => void; onPress?: () => void }) {
-  const { fonts, theme } = useMinionShell();
-  const content = (
-    <View style={styles.matchEventContent}>
-      <View style={styles.matchEventMeta}>
+function MatchEventToastView({ event, maxWidth, onClose, onPress }: { event: MatchEventToast; maxWidth: number; onClose: () => void; onPress?: () => void }) {
+  const { colorScheme, fonts, theme } = useMinionShell();
+  const open = onPress ? () => { onClose(); onPress(); } : undefined;
+  return (
+    <Pressable accessibilityLiveRegion="polite" accessibilityRole={onPress ? 'button' : undefined} onPress={open} style={[styles.matchEventToast, { backgroundColor: colorScheme === 'dark' ? theme.surfaceMuted : theme.surface, borderColor: theme.border, maxWidth, minWidth: Math.min(352, maxWidth) }]}>
+      <View style={styles.matchEventBadge}>
         {event.badge === 'LIVE' ? <View style={styles.liveDot} /> : null}
         <Text style={{ color: event.badge === 'LIVE' ? '#e51643' : theme.accent, ...fonts.medium, fontSize: event.badge === 'LIVE' ? 12 : 13, lineHeight: 17 }}>{event.badge}</Text>
-        <Text numberOfLines={1} style={{ color: theme.muted, flex: 1, ...fonts.medium, fontSize: 12, lineHeight: 17 }}>{event.matchup}</Text>
       </View>
       <View style={styles.matchEventMain}>
-        <View style={[styles.matchEventSide, styles.matchEventLeft]}>
-          <Text numberOfLines={1} style={{ color: theme.ink, flexShrink: 1, ...fonts.medium, fontSize: 13, lineHeight: 18, textAlign: 'right' }}>{event.leftLabel ?? ''}</Text>
-          {event.leftImageSrc ? <MatchEventImage kind={event.kind} src={event.leftImageSrc} /> : null}
-        </View>
-        {event.kind !== 'rating' ? <View style={styles.matchEventKind}><MatchEventIcon kind={event.kind} /></View> : null}
-        <View style={styles.matchEventSide}>
-          {event.rightImageSrc ? <MatchEventImage kind={event.kind} src={event.rightImageSrc} /> : null}
-          <Text numberOfLines={1} style={{ color: theme.ink, flexShrink: 1, ...fonts.medium, fontSize: 13, lineHeight: 18 }}>{event.rightLabel}</Text>
-        </View>
+        <Text numberOfLines={1} style={{ color: theme.ink, flexShrink: 1, ...fonts.medium, fontSize: 14, lineHeight: 20, textAlign: 'right' }}>{event.leftLabel ?? ''}</Text>
+        {event.leftImageSrc ? <MatchEventImage kind={event.kind} src={event.leftImageSrc} /> : null}
+        {event.kind !== 'rating' && event.kind !== 'end' ? <View style={styles.matchEventKind}><MatchEventIcon kind={event.kind} /></View> : null}
+        {event.rightImageSrc ? <MatchEventImage kind={event.kind} src={event.rightImageSrc} /> : null}
+        <Text numberOfLines={1} style={{ color: theme.ink, flexShrink: 1, ...fonts.medium, fontSize: 14, lineHeight: 20 }}>{event.rightLabel}</Text>
       </View>
-    </View>
+      <Pressable accessibilityLabel="알림 닫기" hitSlop={4} onPress={(pressEvent) => { pressEvent.stopPropagation(); onClose(); }} style={styles.matchEventClose}><X color={theme.muted} size={15} /></Pressable>
+    </Pressable>
   );
+}
+
+function ToastCopy({ description, title }: { description?: string; title: string }) {
+  const { fonts, theme } = useMinionShell();
   return (
-    <View accessibilityLiveRegion="polite" style={[styles.matchEventToast, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-      {onPress ? <Pressable accessibilityRole="button" onPress={() => { onClose(); onPress(); }} style={styles.matchEventPressable}>{content}</Pressable> : content}
-      <Pressable accessibilityLabel="알림 닫기" hitSlop={4} onPress={onClose} style={styles.matchEventClose}><X color={theme.muted} size={15} /></Pressable>
+    <View style={styles.toastCopy}>
+      <Text numberOfLines={1} style={{ color: theme.ink, ...fonts.display, fontSize: 14, lineHeight: 20 }}>{title}</Text>
+      {description ? <Text numberOfLines={1} style={{ color: theme.muted, ...fonts.regular, fontSize: 13, lineHeight: 20 }}>{description}</Text> : null}
     </View>
   );
 }
 
-function ToastItemView({ onClose, toast }: { onClose: () => void; toast: ToastItem }) {
-  const { fonts, theme } = useMinionShell();
+function ToastItemView({ maxWidth, onClose, toast }: { maxWidth: number; onClose: () => void; toast: ToastItem }) {
+  const { colorScheme, theme } = useMinionShell();
   const Icon = toast.tone === 'success' ? CheckCircle2 : toast.tone === 'error' ? TriangleAlert : Info;
-  const color = toast.tone === 'error' ? '#ef4444' : theme.accent;
-  if (toast.matchEvent) return <MatchEventToastView event={toast.matchEvent} onClose={onClose} onPress={toast.onPress} />;
+  const color = toast.tone === 'error' ? '#ef4444' : toast.tone === 'success' ? theme.accent : theme.muted;
+  if (toast.matchEvent) return <MatchEventToastView event={toast.matchEvent} maxWidth={maxWidth} onClose={onClose} onPress={toast.onPress} />;
   return (
-    <View accessibilityLiveRegion="polite" pointerEvents="none" style={[styles.toast, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+    <View accessibilityLiveRegion="polite" style={[styles.toast, { backgroundColor: colorScheme === 'dark' ? theme.surfaceMuted : theme.surface, borderColor: theme.border, maxWidth, minWidth: Math.min(384, maxWidth) }]}>
       {toast.character ? (
         <Image
           contentFit="contain"
           source={toast.character === 'attendance' ? require('@/assets/characters/flag-3.png') : require('@/assets/characters/flag-2.png')}
           style={styles.toastCharacter}
         />
-      ) : <Icon color={color} size={19} strokeWidth={2.2} />}
-      <Text style={{ color: theme.text, flex: 1, ...fonts.medium, fontSize: 14 }}>{toast.message}</Text>
+      ) : <Icon color={color} size={24} strokeWidth={2.2} />}
+      <ToastCopy description={toast.description} title={toast.title} />
+      <Pressable accessibilityLabel="알림 닫기" hitSlop={4} onPress={onClose} style={styles.toastClose}><X color={theme.muted} size={16} /></Pressable>
     </View>
   );
 }
 
 function ToastViewport({ onClose, toasts }: { onClose: (id: number) => void; toasts: ToastItem[] }) {
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const maxWidth = width * 0.98;
   if (toasts.length === 0) return null;
   return (
     <View style={[styles.toastWrap, { top: insets.top + 62 }]}>
-      {toasts.map((toast) => <ToastItemView key={toast.id} onClose={() => onClose(toast.id)} toast={toast} />)}
+      {toasts.map((toast) => <ToastItemView key={toast.id} maxWidth={maxWidth} onClose={() => onClose(toast.id)} toast={toast} />)}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  toastWrap: { alignItems: 'center', gap: 8, left: 16, pointerEvents: 'box-none', position: 'absolute', right: 16, zIndex: 1200 },
-  toast: { alignItems: 'center', borderRadius: 14, borderWidth: 1, boxShadow: '0 5px 12px rgba(0,0,0,0.18)', elevation: 8, flexDirection: 'row', gap: 10, maxWidth: 420, paddingHorizontal: 16, paddingVertical: 13, width: '100%' },
-  toastCharacter: { height: 36, width: 36 },
-  matchEventClose: { alignItems: 'center', height: 32, justifyContent: 'center', marginLeft: 4, width: 32 },
-  matchEventContent: { flex: 1, minWidth: 0 },
-  matchEventImage: { height: 24, width: 24 },
+  toastWrap: { alignItems: 'center', gap: 8, left: '1%', pointerEvents: 'box-none', position: 'absolute', right: '1%', zIndex: 1200 },
+  toast: { alignItems: 'center', borderRadius: 16, borderWidth: 1, boxShadow: '0 5px 12px rgba(0,0,0,0.18)', elevation: 8, flexDirection: 'row', gap: 12, paddingHorizontal: 16, paddingVertical: 12 },
+  toastCharacter: { height: 40, width: 40 },
+  toastClose: { alignItems: 'center', height: 32, justifyContent: 'center', width: 32 },
+  toastCopy: { flexShrink: 1, minWidth: 0 },
+  matchEventBadge: { alignItems: 'center', flexDirection: 'row', gap: 6 },
+  matchEventClose: { alignItems: 'center', height: 32, justifyContent: 'center', width: 32 },
+  matchEventImage: { height: 28, width: 28 },
   matchEventImageKill: { borderRadius: 6 },
   matchEventKind: { alignItems: 'center', height: 20, justifyContent: 'center', width: 20 },
-  matchEventLeft: { justifyContent: 'flex-end' },
-  matchEventMain: { alignItems: 'center', flexDirection: 'row', gap: 4, marginTop: 4, minWidth: 0 },
-  matchEventMeta: { alignItems: 'center', flexDirection: 'row', gap: 6, minWidth: 0 },
-  matchEventPressable: { flex: 1, minWidth: 0 },
-  matchEventSide: { alignItems: 'center', flex: 1, flexDirection: 'row', gap: 4, minWidth: 0 },
-  matchEventToast: { alignItems: 'center', borderRadius: 12, borderWidth: 1, boxShadow: '0 5px 12px rgba(0,0,0,0.10)', elevation: 8, flexDirection: 'row', maxWidth: 352, paddingBottom: 8, paddingLeft: 12, paddingRight: 6, paddingTop: 8, width: '100%' },
+  matchEventMain: { alignItems: 'center', flexDirection: 'row', gap: 8, minWidth: 0 },
+  matchEventToast: { alignItems: 'center', borderRadius: 12, borderWidth: 1, boxShadow: '0 5px 12px rgba(0,0,0,0.10)', elevation: 8, flexDirection: 'row', gap: 8, justifyContent: 'space-between', overflow: 'hidden', paddingBottom: 8, paddingLeft: 12, paddingRight: 6, paddingTop: 8 },
   liveDot: { backgroundColor: '#ff3158', borderRadius: 4, height: 8, width: 8 },
 });

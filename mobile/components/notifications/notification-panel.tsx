@@ -106,7 +106,9 @@ export function NotificationPanel({ onClose, open }: { onClose: () => void; open
       onClose={onClose}
       open={open}
       panelStyle={{ backgroundColor: theme.pageBackground }}
+      placement="center"
       scrollable={notifications.length > 0}
+      showHandle={false}
       title="알림">
       {notifications.length > 0 ? (
         <View style={styles.list}>
@@ -128,7 +130,7 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 10, paddingTop: 4 },
   copy: { flex: 1, minWidth: 0, paddingVertical: 4 },
   description: { flexShrink: 1, fontSize: 13, lineHeight: 18 },
-  empty: { alignItems: 'center', minHeight: 180, paddingHorizontal: 12, paddingTop: 44 },
+  empty: { alignItems: 'center', justifyContent: 'center', minHeight: 180, paddingHorizontal: 12 },
   heading: { paddingHorizontal: 12 },
   iconBox: { alignItems: 'center', borderRadius: 6, height: 28, justifyContent: 'center', position: 'relative', width: 28 },
   imageContain: { height: 20, width: 20 },
