@@ -22,10 +22,11 @@ tools/
 
 # Local test and performance-audit sources (already tracked tests stay tracked)
 tests/
-**/*.test.ts
-**/*.test.tsx
-**/*.test.js
-**/*.test.mjs
+**/*.test.*
+**/*.spec.*
+coverage/
+test-results/
+playwright-report/
 docs/contribution-analysis-*.md
 docs/contribution-audit-*/
 docs/performance-audit-*.md
@@ -42,6 +43,12 @@ public/game-assets/
 
 # Mobile build and font-conversion artifacts
 .tmp-font-parity/
+
+# Agent-created scratch files and temporary output
+/.tmp/
+/tmp/
+*.tmp
+*.temp
 
 # Mobile store build outputs and browser capture profiles
 mobile/store-assets/*.aab

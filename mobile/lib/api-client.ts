@@ -347,6 +347,7 @@ export type {
   MobileSetDetail,
   MobileSetDraftSide,
   MobileSetPlayerStat,
+  MobileSetPlayerBuild,
   MobileStandingRow,
   MobileStandingsGroup,
   MobileSupportBoardDto,

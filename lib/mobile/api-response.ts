@@ -128,7 +128,7 @@ export function toMobileMatch(
 
 export function toMobileChampionRef(champion: Champion | undefined): MobileChampionRef {
   const image = championImage(champion);
-  return { id: champion?.id ?? null, image: image ? { url: image } : null, name: championLabel(champion) };
+  return { id: champion?.id ?? null, slug: champion?.slug ?? null, image: image ? { url: image } : null, name: championLabel(champion) };
 }
 
 export function toMobileObjectiveCounts(set: SetResult, side: "blue" | "red"): MobileObjectiveCounts {

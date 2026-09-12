@@ -6,6 +6,50 @@ export type TabItem = {
   href: string;
 };
 
+function segmentedTrackClassName(compact: boolean) {
+  return `inline-flex w-fit shrink-0 gap-0.5 bg-[var(--ui-card-bg)] ${compact ? "rounded-lg p-0.5" : "rounded-[10px] p-[3px]"}`;
+}
+
+function segmentedItemClassName(active: boolean, compact: boolean) {
+  // 다크 모드의 활성 항목은 트랙보다 밝은 border 톤을 사용한다.
+  return `flex shrink-0 items-center whitespace-nowrap transition-colors ${compact ? "h-7 rounded-md px-2.5 text-[12px]" : "h-8 rounded-lg px-3.5 text-[13px]"} ${
+    active
+      ? "border border-[var(--ui-border)] bg-[var(--ui-surface)] font-extrabold text-[var(--ui-ink)] dark:bg-[var(--ui-border)]"
+      : "font-semibold text-[var(--ui-muted)] hover:text-[var(--ui-ink)]"
+  }`;
+}
+
+export function SegmentedToggle<T extends string>({
+  items,
+  activeKey,
+  ariaLabel,
+  controlsId,
+  onSelect,
+}: {
+  items: ReadonlyArray<{ key: T; label: string }>;
+  activeKey: T;
+  ariaLabel: string;
+  controlsId?: string;
+  onSelect: (key: T) => void;
+}) {
+  return (
+    <div role="group" aria-label={ariaLabel} className={segmentedTrackClassName(false)}>
+      {items.map((item) => (
+        <button
+          key={item.key}
+          type="button"
+          aria-pressed={activeKey === item.key}
+          aria-controls={controlsId}
+          onClick={() => onSelect(item.key)}
+          className={`${segmentedItemClassName(activeKey === item.key, false)} !text-sm !font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent`}
+        >
+          {item.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 /**
  * 세그먼티드 컨트롤. 회색 트랙 위에서 활성 항목만 흰 알약으로 떠오르는 iOS식 토글로,
  * 언더라인 탭과 한 줄에 나란히 놓아도 1차 내비게이션(탭)과 시각적으로 구분된다.
@@ -29,7 +73,7 @@ export function SegmentedControl({
   return (
     <nav
       aria-label={ariaLabel}
-      className={`inline-flex w-fit shrink-0 gap-0.5 bg-[var(--ui-card-bg)] ${compact ? "rounded-lg p-0.5" : "rounded-[10px] p-[3px]"} ${className}`}
+      className={`${segmentedTrackClassName(compact)} ${className}`}
     >
       {items.map((item) => {
         const isActive = item.key === activeKey;
@@ -39,13 +83,7 @@ export function SegmentedControl({
             key={item.key}
             href={item.href}
             aria-current={isActive ? "page" : undefined}
-            className={`flex shrink-0 items-center whitespace-nowrap transition-colors ${compact ? "h-7 rounded-md px-2.5 text-[12px]" : "h-8 rounded-lg px-3.5 text-[13px]"} ${
-              // 다크모드에서는 surface가 트랙보다 어두워 "떠오른 알약"이 거꾸로 파인 것처럼
-              // 보인다. 트랙보다 밝은 border 톤으로 바꿔 위계를 유지한다.
-              isActive
-                ? "border border-[var(--ui-border)] bg-[var(--ui-surface)] font-extrabold text-[var(--ui-ink)] dark:bg-[var(--ui-border)]"
-                : "font-semibold text-[var(--ui-muted)] hover:text-[var(--ui-ink)]"
-            }`}
+            className={segmentedItemClassName(isActive, compact)}
           >
             {item.label}
           </Link>

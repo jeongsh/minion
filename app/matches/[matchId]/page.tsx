@@ -365,7 +365,7 @@ function MatchRatingPanel({
               const playerRatings = setRatings.filter((rating) => rating.playerId === line.playerId);
               const ratingTotal = playerRatings.reduce((sum, rating) => sum + rating.rating, 0);
               const myRating = currentUserId
-                ? playerRatings.find((rating) => rating.authorId === currentUserId)?.rating
+                ? playerRatings.find((rating) => rating.authorId === currentUserId)
                 : undefined;
               return {
                 value: line.playerId,
@@ -380,7 +380,8 @@ function MatchRatingPanel({
                 championName: champion?.name,
                 averageRating: playerRatings.length > 0 ? ratingTotal / playerRatings.length : undefined,
                 ratingCount: playerRatings.length,
-                myRating,
+                myRating: myRating?.rating,
+                myReview: myRating?.review,
                 isPog: leader?.playerId === line.playerId,
               };
             })}

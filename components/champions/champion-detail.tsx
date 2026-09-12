@@ -239,8 +239,8 @@ function BuildPanelTitle({ children }: { children: ReactNode }) {
 }
 
 function RuneIcon({ rune, keystone = false, shard = false }: { rune: RuneGridOption; keystone?: boolean; shard?: boolean }) {
-  const size = keystone ? "h-8 w-8 sm:h-9 sm:w-9" : shard ? "h-[18px] w-[18px] sm:h-5 sm:w-5" : "h-6 w-6 sm:h-7 sm:w-7";
-  const padding = keystone || shard ? "p-1" : "p-0.5";
+  const size = keystone ? "h-9 w-9 sm:h-10 sm:w-10" : shard ? "h-7 w-7 sm:h-8 sm:w-8" : "h-[30px] w-[30px] sm:h-[34px] sm:w-[34px]";
+  const padding = keystone ? "p-1" : "p-0.5";
   const background = shard ? "bg-[#cdd0d6] dark:bg-[#24272d]" : "bg-[#d9dce2] dark:bg-[#24272d]";
   return (
     <span title={rune.name} className={`relative block shrink-0 rounded-full ${background} ${size}`}>
@@ -254,7 +254,7 @@ function RuneIcon({ rune, keystone = false, shard = false }: { rune: RuneGridOpt
 
 function RuneRow({ row, keystone = false, shard = false }: { row: RuneGridOption[]; keystone?: boolean; shard?: boolean }) {
   return (
-    <div className={`flex items-center justify-center gap-1.5 sm:gap-2 ${keystone ? "min-h-[38px] sm:min-h-[42px]" : shard ? "min-h-6 sm:min-h-7" : "min-h-8 sm:min-h-[38px]"}`}>
+    <div className={`flex items-center justify-center gap-1 sm:gap-2 ${keystone ? "min-h-[44px] sm:min-h-12" : shard ? "min-h-[34px] sm:min-h-[38px]" : "min-h-[38px] sm:min-h-[42px]"}`}>
       {row.map((rune) => <RuneIcon key={rune.name} rune={rune} keystone={keystone} shard={shard} />)}
     </div>
   );
@@ -277,7 +277,7 @@ function RuneColumn({ icon, name, rows, primary = false }: { icon?: string; name
 
 function RuneGridView({ grid }: { grid: RuneBuildGrid }) {
   return (
-    <div className="mx-auto mt-1 grid w-full max-w-[440px] flex-1 grid-cols-2 items-start gap-2">
+    <div className="mx-auto mt-1 grid w-full max-w-[440px] flex-1 grid-cols-[minmax(max-content,1.2fr)_minmax(max-content,1fr)] items-start gap-2">
       <RuneColumn icon={grid.primaryTreeIcon} name={grid.primaryTreeName} rows={grid.primaryRows} primary />
       <div className="min-w-0">
         <RuneColumn icon={grid.secondaryTreeIcon} name={grid.secondaryTreeName} rows={grid.secondaryRows} />

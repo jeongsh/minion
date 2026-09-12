@@ -27,11 +27,10 @@ export function MatchLoadingSkeleton() {
       <Bone style={{ borderRadius: 8, height: 130, marginHorizontal: -16 }} />
       <Bone style={{ borderRadius: 10, height: 38 }} />
       <Bone style={{ borderRadius: 10, height: 38, width: 130 }} />
-      <View style={styles.rows}>
-        {Array.from({ length: 5 }, (_, index) => (
-          <Bone key={index} style={{ borderRadius: 8, height: 58 }} />
-        ))}
-      </View>
+      <Bone style={{ height: 238 }} />
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}><Bone style={{ height: 22, width: 80 }} /><Bone style={{ height: 38, width: 112 }} /></View>
+      <View style={styles.rows}>{[0, 1].map((team) => <View key={team}><Bone style={{ height: 40 }} />{Array.from({ length: 5 }, (_, index) => <Bone key={index} style={{ borderRadius: 0, height: index ? 59 : 58 }} />)}</View>)}</View>
+      <View style={{ gap: 12 }}><Bone style={{ height: 22, width: 48 }} /><View style={{ gap: 8, padding: 12 }}>{[0, 1].map((team) => <View key={team} style={{ flexDirection: 'row', gap: 4 }}>{Array.from({ length: 5 }, (_, index) => <Bone key={index} style={{ flex: 1, height: 64 }} />)}</View>)}</View><Bone style={{ height: 320 }} /><Bone style={{ height: 224 }} /><Bone style={{ height: 186 }} /></View>
     </Animated.View>
   );
 }
