@@ -1,27 +1,26 @@
 import { useMemo, useState } from 'react';
 import { LayoutChangeEvent, Pressable, StyleSheet, Text, View } from 'react-native';
-import { Circle, Defs, G, Image as SvgImage, Line, LinearGradient, Mask, Path, Rect, Stop, Svg, Text as SvgText } from 'react-native-svg';
+import { Circle, Defs, G, Line, LinearGradient, Path, Stop, Svg, Text as SvgText } from 'react-native-svg';
 
 import { tournamentTokens } from '@/constants/tournament-theme';
 import { OBJECTIVE_ICON_PATHS } from '@/constants/objective-icons';
 import { TEAM_BLUE, TEAM_RED } from '@/constants/team-colors';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
-import { resolveApiAssetUrl, type MobilePlayerSummary, type MobileTimelineEvent, type MobileTimelineFrame } from '@/lib/api-client';
+import { type MobilePlayerSummary, type MobileTimelineEvent, type MobileTimelineFrame } from '@/lib/api-client';
 import { ObjectiveIcon } from './objective-icon';
 
 const SVG_W = 440;
 const PAD_X = 42;
-const ITEM_SZ = 10;
+const TOUCH_SIZE = 20;
+const ICON_SIZE = 14;
 const ITEM_SLT = 18;
-const KILL_R = 3.5;
 const TOP_MAR = 16;
 const BOT_MAR = 26;
 const MIN_HALF = 82;
 const CTR_GAP = 10;
-const BADGE_R = 4;
 
 function toX(ms: number, duration: number) {
-  return PAD_X + (ms / 1000 / duration) * (SVG_W - PAD_X * 2);
+  return PAD_X + (ms / 1000 / duration) * (SVG_W - PAD_X);
 }
 
 type ObjInfo = { label: string; color: string; iconPath?: string };
@@ -206,10 +205,9 @@ export function GameTimelineChart({
   const { colorScheme, fonts, theme } = useMinionTheme();
   const [containerWidth, setContainerWidth] = useState(SVG_W);
   const [showObjectives, setShowObjectives] = useState(true);
-  const [tooltip, setTooltip] = useState<{ lines: string[]; xPct: number; yPct: number } | null>(null);
+  const [tooltip, setTooltip] = useState<{ id: string; lines: string[] } | null>(null);
   const gridColor = colorScheme === 'dark' ? '#2a2f38' : '#e3e8f0';
   const mutedColor = colorScheme === 'dark' ? '#8a93a3' : '#8a93a3';
-  const surfaceColor = colorScheme === 'dark' ? '#1a1d23' : '#f4f6fb';
 
   const layout = useMemo(() => {
     const duration = durationSeconds ?? Math.ceil((events.at(-1)?.timestampMs ?? 0) / 1000);
@@ -222,6 +220,23 @@ export function GameTimelineChart({
 
     const blueClusters = clusterTeamEvents(markerEvents.filter((e) => e.teamId === blueTeamId), 60_000, players);
     const redClusters = clusterTeamEvents(markerEvents.filter((e) => e.teamId === redTeamId), 60_000, players);
+
+    // Keep every target 20dp wide; nearby objectives occupy separate rows.
+    const scale = containerWidth / SVG_W;
+    const slot = TOUCH_SIZE / scale;
+    const placeClusters = (clusters: Cluster[]) => {
+      const rowEnds: number[] = [];
+      const placed = clusters.map((cluster) => {
+        const x = Math.min(SVG_W - slot / 2, Math.max(slot / 2, toX(cluster.ms, duration)));
+        let row = rowEnds.findIndex((end) => x - end >= slot);
+        if (row < 0) row = rowEnds.length;
+        rowEnds[row] = x;
+        return { ...cluster, row };
+      });
+      return { placed, rows: rowEnds.length };
+    };
+    const blueMarkers = placeClusters(blueClusters);
+    const redMarkers = placeClusters(redClusters);
 
     const goldPoints = frames
       .filter((f) => f.goldDiff !== null || (f.blueTotalGold !== null && f.redTotalGold !== null))
@@ -295,10 +310,10 @@ export function GameTimelineChart({
       blueH = totalH - redH;
     }
 
-    const graphTop = TOP_MAR;
+    const graphTop = TOP_MAR + (showObjectives ? blueMarkers.rows * slot : 0);
     const centerY = graphTop + blueH + CTR_GAP;
     const graphBot = centerY + CTR_GAP + redH;
-    const axisY = graphBot;
+    const axisY = graphBot + (showObjectives ? redMarkers.rows * slot : 0);
     const svgH = axisY + BOT_MAR;
 
     const ampBlue = blueH * 0.92;
@@ -306,14 +321,14 @@ export function GameTimelineChart({
     const dy = (d: number) => (d >= 0 ? centerY - (d / blueScaleMax) * ampBlue : centerY + (-d / redScaleMax) * ampRed);
 
     const chartPoints: Point[] = hasGoldFrames
-      ? goldPoints.map((p) => ({ x: toX(p.seconds * 1000, duration), y: dy(p.diff) - centerY }))
+      ? [...goldPoints, ...(goldPoints.at(-1)!.seconds < duration ? [{ seconds: duration, diff: goldPoints.at(-1)!.diff }] : [])].map((p) => ({ x: toX(p.seconds * 1000, duration), y: dy(p.diff) - centerY }))
       : (() => {
           const sampleStep = Math.max(5, duration / 140);
           const points: Point[] = [];
           for (let seconds = 0; seconds < duration; seconds += sampleStep) {
             points.push({ x: toX(seconds * 1000, duration), y: dy(displayDiffAt(seconds)) - centerY });
           }
-          points.push({ x: SVG_W - PAD_X, y: dy(displayDiffAt(duration)) - centerY });
+          points.push({ x: SVG_W, y: dy(displayDiffAt(duration)) - centerY });
           return points;
         })();
 
@@ -347,8 +362,8 @@ export function GameTimelineChart({
 
     return {
       axisY,
-      blueCY: graphTop + ITEM_SZ / 2,
-      blueClusters,
+      blueCY: (row: number) => graphTop - (row + 0.5) * slot,
+      blueClusters: blueMarkers.placed,
       centerY,
       coloredRuns,
       dy,
@@ -359,11 +374,11 @@ export function GameTimelineChart({
       graphTop,
       gridValues,
       mins,
-      redCY: graphBot - ITEM_SZ / 2,
-      redClusters,
+      redCY: (row: number) => graphBot + (row + 0.5) * slot,
+      redClusters: redMarkers.placed,
       svgH,
     };
-  }, [blueTeamId, durationSeconds, events, frames, players, redTeamId]);
+  }, [blueTeamId, containerWidth, durationSeconds, events, frames, players, redTeamId, showObjectives]);
 
   const onLayoutRoot = (e: LayoutChangeEvent) => {
     const width = e.nativeEvent.layout.width;
@@ -380,6 +395,7 @@ export function GameTimelineChart({
 
   const scale = containerWidth / SVG_W;
   const renderedHeight = layout.svgH * scale;
+  const markerX = (ms: number) => Math.min(containerWidth - TOUCH_SIZE / 2, Math.max(TOUCH_SIZE / 2, toX(ms, layout.duration) * scale));
 
   return (
     <View onLayout={onLayoutRoot} style={styles.root}>
@@ -400,19 +416,19 @@ export function GameTimelineChart({
             const y = layout.dy(d);
             return (
               <G key={`grid-${d}`}>
-                <Line stroke={gridColor} strokeWidth={d === 0 ? 1.2 : 0.7} x1={PAD_X} x2={SVG_W - PAD_X} y1={y} y2={y} />
-                <SvgText fill={d > 0 ? TEAM_BLUE : d < 0 ? TEAM_RED : mutedColor} fontSize={9} fontWeight="600" textAnchor="end" x={PAD_X - 4} y={y + 3}>
+                <Line stroke={gridColor} strokeWidth={d === 0 ? 1.2 : 0.7} x1={PAD_X} x2={SVG_W} y1={y} y2={y} />
+                <SvgText fill={d > 0 ? TEAM_BLUE : d < 0 ? TEAM_RED : mutedColor} fontSize={13 / scale} fontWeight="500" textAnchor="end" x={PAD_X - 4} y={y + 3}>
                   {layout.formatDiffLabel(d)}
                 </SvgText>
               </G>
             );
           })}
 
-          <SvgText fill={TEAM_BLUE} fontSize={9} fontWeight="500" x={PAD_X + 6} y={layout.graphTop + 11}>{blueTeamName}</SvgText>
-          <SvgText fill={TEAM_RED} fontSize={9} fontWeight="500" x={PAD_X + 6} y={layout.graphBot - 6}>{redTeamName}</SvgText>
+          <SvgText fill={TEAM_BLUE} fontSize={13 / scale} fontWeight="500" x={PAD_X + 6} y={layout.graphTop + 11}>{blueTeamName}</SvgText>
+          <SvgText fill={TEAM_RED} fontSize={13 / scale} fontWeight="500" x={PAD_X + 6} y={layout.graphBot - 6}>{redTeamName}</SvgText>
 
           {layout.mins.map((m) => (
-            <SvgText fill={mutedColor} fontSize={9} key={m} textAnchor="middle" x={toX(m * 60 * 1000, layout.duration)} y={layout.axisY + 20}>
+            <SvgText fill={mutedColor} fontSize={13 / scale} key={m} textAnchor="middle" x={toX(m * 60 * 1000, layout.duration)} y={layout.axisY + 20}>
               {m}&apos;
             </SvgText>
           ))}
@@ -430,44 +446,54 @@ export function GameTimelineChart({
             />
           ))}
 
-          {showObjectives ? (
-            <>
-              {layout.blueClusters.map((cluster) => (
-                <ClusterIcon
-                  cluster={cluster}
-                  color={TEAM_BLUE}
-                  curveY={layout.dy(layout.displayDiffAt(cluster.ms / 1000))}
-                  cx={toX(cluster.ms, layout.duration)}
-                  cy={layout.blueCY}
-                  key={`b-${cluster.id}`}
-                  onPress={() => setTooltip({ lines: cluster.tooltipLines, xPct: (toX(cluster.ms, layout.duration) / SVG_W) * 100, yPct: (layout.blueCY / layout.svgH) * 100 })}
-                  surfaceColor={surfaceColor}
-                />
-              ))}
-              {layout.redClusters.map((cluster) => (
-                <ClusterIcon
-                  cluster={cluster}
-                  color={TEAM_RED}
-                  curveY={layout.dy(layout.displayDiffAt(cluster.ms / 1000))}
-                  cx={toX(cluster.ms, layout.duration)}
-                  cy={layout.redCY}
-                  key={`r-${cluster.id}`}
-                  onPress={() => setTooltip({ lines: cluster.tooltipLines, xPct: (toX(cluster.ms, layout.duration) / SVG_W) * 100, yPct: (layout.redCY / layout.svgH) * 100 })}
-                  surfaceColor={surfaceColor}
-                />
-              ))}
-            </>
-          ) : null}
+          {showObjectives && [
+            { clusters: layout.blueClusters, color: TEAM_BLUE, cy: layout.blueCY, side: 'blue' },
+            { clusters: layout.redClusters, color: TEAM_RED, cy: layout.redCY, side: 'red' },
+          ].flatMap(({ clusters, color, cy, side }) => clusters.map((cluster) => {
+            const x = toX(cluster.ms, layout.duration);
+            const curveY = layout.dy(layout.displayDiffAt(cluster.ms / 1000));
+            return (
+              <G key={`${side}-${cluster.id}`}>
+                <Line stroke={color} strokeDasharray="1.5 2" strokeOpacity={0.6} strokeWidth={0.9} x1={markerX(cluster.ms) / scale} x2={x} y1={cy(cluster.row)} y2={curveY} />
+                <Circle cx={x} cy={curveY} fill={color} r={1.8} />
+              </G>
+            );
+          }))}
         </Svg>
-
-        {showObjectives && tooltip ? (
-          <View pointerEvents="none" style={[styles.tooltip, { backgroundColor: theme.surface, borderColor: theme.border, left: `${Math.min(Math.max(tooltip.xPct, 5), 85)}%`, top: `${tooltip.yPct}%` }]}>
-            {tooltip.lines.map((line, i) => (
-              <Text key={i} style={{ color: theme.text, ...fonts.medium, fontSize: 12 }}>{line}</Text>
-            ))}
-          </View>
-        ) : null}
+        {showObjectives && [
+          { clusters: layout.blueClusters, color: TEAM_BLUE, cy: layout.blueCY, side: 'blue' },
+          { clusters: layout.redClusters, color: TEAM_RED, cy: layout.redCY, side: 'red' },
+        ].flatMap(({ clusters, color, cy, side }) => clusters.map((cluster) => {
+          const id = `${side}-${cluster.id}`;
+          const selected = tooltip?.id === id;
+          return (
+            <Pressable
+              accessibilityLabel={cluster.tooltipLines.join(', ')}
+              accessibilityRole="button"
+              accessibilityState={{ selected }}
+              key={id}
+              onPress={() => setTooltip(selected ? null : { id, lines: cluster.tooltipLines })}
+              style={[styles.markerTarget, { left: markerX(cluster.ms) - TOUCH_SIZE / 2, top: cy(cluster.row) * scale - TOUCH_SIZE / 2 }]}
+            >
+              <View style={[styles.marker, { backgroundColor: theme.surface, borderColor: color, borderWidth: selected ? 2 : 1 }]}>
+                {cluster.info?.iconPath ? <ObjectiveIcon path={cluster.info.iconPath} size={ICON_SIZE} tintColor={color} /> : null}
+              </View>
+              {cluster.count > 1 ? (
+                <View style={[styles.badge, { backgroundColor: color }]}>
+                  <Text style={{ color: '#fff', ...fonts.medium, fontSize: 7, lineHeight: 10, includeFontPadding: false }}>{cluster.count}</Text>
+                </View>
+              ) : null}
+            </Pressable>
+          );
+        }))}
       </View>
+      {showObjectives && tooltip ? (
+        <View accessibilityLiveRegion="polite" style={[styles.tooltip, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          {tooltip.lines.map((line, i) => (
+            <Text key={i} style={{ color: theme.text, ...fonts.medium, fontSize: 14, lineHeight: 20, flexShrink: 1 }}>{line}</Text>
+          ))}
+        </View>
+      ) : null}
 
       <View style={styles.legendRow}>
         <View style={styles.legendItems}>
@@ -480,63 +506,16 @@ export function GameTimelineChart({
               ].map((item) => (
                 <View key={item.label} style={styles.legendItem}>
                   <ObjectiveIcon path={item.path} size={16} />
-                  <Text style={{ color: tournamentTokens[colorScheme].muted, ...fonts.medium, fontSize: 11 }}>{item.label}</Text>
+                  <Text style={{ color: tournamentTokens[colorScheme].muted, ...fonts.medium, fontSize: 13 }}>{item.label}</Text>
                 </View>
               ))
             : null}
         </View>
-        <Pressable onPress={() => setShowObjectives((v) => !v)} style={[styles.toggleButton, { borderColor: theme.border }]}>
-          <Text style={{ color: tournamentTokens[colorScheme].muted, ...fonts.medium, fontSize: 11 }}>{showObjectives ? '오브젝트 숨기기' : '오브젝트 보기'}</Text>
+        <Pressable accessibilityRole="button" onPress={() => { setShowObjectives((v) => !v); setTooltip(null); }} style={[styles.toggleButton, { borderColor: theme.border }]}>
+          <Text style={{ color: tournamentTokens[colorScheme].muted, ...fonts.medium, fontSize: 13 }}>{showObjectives ? '오브젝트 숨기기' : '오브젝트 보기'}</Text>
         </Pressable>
       </View>
     </View>
-  );
-}
-
-function ClusterIcon({ cluster, color, cx, cy, curveY, onPress, surfaceColor }: { cluster: Cluster; color: string; cx: number; cy: number; curveY: number; onPress: () => void; surfaceColor: string }) {
-  const half = ITEM_SZ / 2;
-  const { info, count } = cluster;
-  const below = curveY > cy;
-  const lineStart = below ? cy + half : cy - half;
-  const showConnector = Math.abs(curveY - lineStart) > 2;
-  const iconUri = info?.iconPath ? resolveApiAssetUrl(info.iconPath) : null;
-  const maskId = `obj-${cluster.id.replace(/[^a-zA-Z0-9_-]/g, '')}-${Math.round(cx)}-${Math.round(cy)}`;
-
-  return (
-    <G onPress={onPress}>
-      {showConnector ? (
-        <>
-          <Line stroke={color} strokeDasharray="1.5 2" strokeOpacity={0.6} strokeWidth={0.9} x1={cx} x2={cx} y1={lineStart} y2={curveY} />
-          <Circle cx={cx} cy={curveY} fill={color} r={1.8} />
-        </>
-      ) : null}
-      {!info ? (
-        <>
-          <Circle cx={cx} cy={cy} fill={color} r={count > 1 ? KILL_R + 1.5 : KILL_R} stroke={surfaceColor} strokeWidth={1.2} />
-          {count > 1 ? <SvgText fill="#0f172a" fontSize={5.5} fontWeight="500" textAnchor="middle" x={cx} y={cy + 2.5}>{count}</SvgText> : null}
-        </>
-      ) : iconUri ? (
-        <>
-          <Circle cx={cx} cy={cy} fill={color} fillOpacity={0.18} r={half + 1.5} />
-          <Circle cx={cx} cy={cy} fill="none" r={half + 1.5} stroke={color} strokeOpacity={0.7} strokeWidth={0.9} />
-          <Mask height={ITEM_SZ} id={maskId} maskUnits="userSpaceOnUse" width={ITEM_SZ} x={cx - half} y={cy - half}>
-            <SvgImage height={ITEM_SZ} href={{ uri: iconUri }} width={ITEM_SZ} x={cx - half} y={cy - half} />
-          </Mask>
-          <Rect fill={color} height={ITEM_SZ} mask={`url(#${maskId})`} width={ITEM_SZ} x={cx - half} y={cy - half} />
-          {count > 1 ? (
-            <>
-              <Circle cx={cx + half} cy={cy - half} fill={color} r={BADGE_R} stroke={surfaceColor} strokeWidth={1} />
-              <SvgText fill="#fff" fontSize={5} fontWeight="500" textAnchor="middle" x={cx + half} y={cy - half + 2.6}>{count}</SvgText>
-            </>
-          ) : null}
-        </>
-      ) : (
-        <>
-          <Circle cx={cx} cy={cy} fill={info.color} r={half} />
-          <SvgText fill="#fff" fontSize={5} fontWeight="500" textAnchor="middle" x={cx} y={cy + 2.2}>{info.label}</SvgText>
-        </>
-      )}
-    </G>
   );
 }
 
@@ -546,6 +525,9 @@ const styles = StyleSheet.create({
   legendItems: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   legendRow: { alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 4, paddingBottom: 12 },
   root: { width: '100%' },
-  toggleButton: { borderRadius: 999, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 4 },
-  tooltip: { borderRadius: 6, borderWidth: 1, paddingHorizontal: 8, paddingVertical: 4, position: 'absolute' },
+  markerTarget: { position: 'absolute', width: TOUCH_SIZE, height: TOUCH_SIZE, alignItems: 'center', justifyContent: 'center' },
+  marker: { width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  badge: { position: 'absolute', right: -4, top: -4, minWidth: 10, height: 10, paddingHorizontal: 1, borderRadius: 5, alignItems: 'center', justifyContent: 'center' },
+  toggleButton: { minHeight: 44, justifyContent: 'center', borderRadius: 999, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 4 },
+  tooltip: { borderRadius: 6, borderWidth: 1, marginHorizontal: 12, marginBottom: 8, paddingHorizontal: 10, paddingVertical: 8, gap: 4 },
 });
