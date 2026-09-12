@@ -25,6 +25,11 @@ const COLLAPSIBLE_HEADER_HEIGHT = 56;
 
 export default function MatchDetailScreen() {
   const { matchId, set: requestedSet, tab: requestedTab } = useLocalSearchParams<{ matchId: string; set?: string; tab?: string }>();
+  // 알림으로 같은 경기의 다른 세트에 재진입하면 기존 탭/세트 상태도 새 경로에 맞춘다.
+  return <MatchDetailContent key={JSON.stringify([matchId, requestedSet, requestedTab])} matchId={matchId} requestedSet={requestedSet} requestedTab={requestedTab} />;
+}
+
+function MatchDetailContent({ matchId, requestedSet, requestedTab }: { matchId: string; requestedSet?: string; requestedTab?: string }) {
   const isFocused = useIsFocused();
   const { loading: authLoading, session } = useAuth();
   const { fonts, theme } = useMinionTheme();

@@ -474,7 +474,7 @@ export default async function MatchDetailPage({
     getMatchVodsByMatchId(match.id),
   ]);
 
-  const requestedSet = matchSets.find((set) => set.id === query.set);
+  const requestedSet = matchSets.find((set) => set.id === query.set || String(set.setNumber) === query.set);
   const defaultSet =
     requestedSet ??
     matchSets.find((set) => set.setNumber === 1) ??

@@ -7,6 +7,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, useWindowDimensions, Vi
 import { RankAvatar } from '@/components/rank-avatar';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import type { MobilePlayerReview } from '@/lib/api-client';
+import { formatFanRating } from '@/lib/fan-rating-display';
 
 const PAGE_SIZE = 5;
 
@@ -69,7 +70,7 @@ export const PlayerFanReviews = forwardRef<PlayerFanReviewsHandle, {
       <View style={styles.headingRow}>
         <Text style={{ color: theme.ink, ...fonts.display, fontSize: 16, lineHeight: 22 }}>팬 평가</Text>
         <Text style={[styles.headingMeta, { color: theme.muted, ...fonts.medium }]}>
-          팬 평점 <Text style={{ color: theme.ink, ...fonts.medium }}>{averageRating == null ? '-' : averageRating.toFixed(1)}</Text>
+          팬 평점 <Text style={{ color: theme.ink, ...fonts.medium }}>{formatFanRating(averageRating)}</Text>
         </Text>
         <Text style={[styles.headingMeta, { color: theme.muted, ...fonts.medium }]}>
           팬 POG <Text style={{ color: theme.ink, ...fonts.medium }}>{pogCount}</Text>
@@ -90,7 +91,7 @@ export const PlayerFanReviews = forwardRef<PlayerFanReviewsHandle, {
                 </View>
                 <View style={styles.rating}>
                   <Star color="#fbbf24" fill="#fbbf24" size={16} />
-                  <Text style={{ color: theme.ink, ...fonts.medium, fontSize: 16, lineHeight: 24 }}>{review.rating.toFixed(1)}</Text>
+                  <Text style={{ color: theme.ink, ...fonts.medium, fontSize: 16, lineHeight: 24 }}>{formatFanRating(review.rating)}</Text>
                 </View>
               </View>
               <Text style={{ color: theme.text, ...fonts.regular, fontSize: 16, lineHeight: 24, marginTop: 8 }}>{review.review}</Text>

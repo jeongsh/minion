@@ -11,6 +11,7 @@ import { BottomSheet } from '@/components/bottom-sheet';
 import { TeamLogo } from '@/components/data/team-logo';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import { invalidateApiCache, mutateMobileApi, resolveApiAssetUrl, type MobileFanRatingComment, type MobileFanRatingMutationDto, type MobileFanRatingPanel, type MobileFanRatingPlayer } from '@/lib/api-client';
+import { formatFanRating } from '@/lib/fan-rating-display';
 import { useAuth } from '@/providers/auth-provider';
 
 const MAX_REVIEW_LENGTH = 240;
@@ -20,7 +21,7 @@ function RatingPlayerRow({ disabled, myRating, onSelect, player, selected }: { d
   const profileUrl = resolveApiAssetUrl(player.profileImage?.url);
   return (
     <Pressable
-      accessibilityLabel={`${player.name} ${player.position ?? ''} ${myRating == null ? '눌러서 평가하기' : `내 평점 ${myRating.toFixed(1)}`} 평균 ${player.averageRating?.toFixed(1) ?? '-'} ${player.ratingCount}명 참여`}
+      accessibilityLabel={`${player.name} ${player.position ?? ''} ${myRating == null ? '눌러서 평가하기' : `내 평점 ${formatFanRating(myRating)}`} 평균 ${formatFanRating(player.averageRating)} ${player.ratingCount}명 참여`}
       accessibilityRole="button"
       accessibilityState={{ disabled, selected }}
       disabled={disabled}
@@ -35,10 +36,10 @@ function RatingPlayerRow({ disabled, myRating, onSelect, player, selected }: { d
           <Text style={{ color: theme.muted, ...fonts.regular, fontSize: 13 }}>{player.position}</Text>
           {player.isPog ? <View style={styles.pog}><Text style={{ color: '#000000', ...fonts.regular, fontSize: 12 }}>POG</Text></View> : null}
         </View>
-        <Text style={{ color: theme.muted, ...fonts.regular, fontSize: 13, lineHeight: 17 }}>{myRating == null ? '눌러서 평가하기' : `내 평점 ${myRating.toFixed(1)}`}</Text>
+        <Text style={{ color: theme.muted, ...fonts.regular, fontSize: 13, lineHeight: 17 }}>{myRating == null ? '눌러서 평가하기' : `내 평점 ${formatFanRating(myRating)}`}</Text>
       </View>
       <View style={styles.ratingSummary}>
-        <View style={styles.ratingValue}><Star color={player.averageRating === null ? theme.border : '#fbbf24'} fill={player.averageRating === null ? 'transparent' : '#fbbf24'} size={14} /><Text style={{ color: theme.ink, ...fonts.bold, fontSize: 18 }}>{player.averageRating?.toFixed(1) ?? '-'}</Text></View>
+        <View style={styles.ratingValue}><Star color={player.averageRating === null ? theme.border : '#fbbf24'} fill={player.averageRating === null ? 'transparent' : '#fbbf24'} size={14} /><Text style={{ color: theme.ink, ...fonts.bold, fontSize: 18 }}>{formatFanRating(player.averageRating)}</Text></View>
         <Text style={{ color: theme.muted, ...fonts.regular, fontSize: 13 }}>{player.ratingCount}명 참여</Text>
       </View>
     </Pressable>
@@ -65,7 +66,7 @@ function RatingComment({ item }: { item: MobileFanRatingComment }) {
         <View style={[styles.authorAvatar, { backgroundColor: theme.surfaceMuted }]}>{item.authorImage?.url ? <Image accessibilityLabel="" contentFit="cover" source={{ uri: resolveApiAssetUrl(item.authorImage.url) ?? undefined }} style={styles.fill} /> : null}</View>
         <Text numberOfLines={1} style={{ color: theme.ink, ...fonts.medium, fontSize: 14 }}>{item.authorName}</Text>
         <View style={[styles.playerBadge, { backgroundColor: theme.surface }]}>{item.playerImage?.url ? <Image accessibilityLabel="" contentFit="cover" contentPosition="top" source={{ uri: resolveApiAssetUrl(item.playerImage.url) ?? undefined }} style={styles.badgeImage} /> : null}<Text style={{ color: theme.muted, ...fonts.regular, fontSize: 13 }}>{item.playerName}</Text></View>
-        <View style={styles.commentScore}><Star color="#fbbf24" fill="#fbbf24" size={14} /><Text style={{ color: theme.ink, ...fonts.bold, fontSize: 15 }}>{item.rating.toFixed(1)}</Text></View>
+        <View style={styles.commentScore}><Star color="#fbbf24" fill="#fbbf24" size={14} /><Text style={{ color: theme.ink, ...fonts.bold, fontSize: 15 }}>{formatFanRating(item.rating)}</Text></View>
       </View>
       <Text style={{ color: theme.text, ...fonts.regular, fontSize: 14, lineHeight: 22, marginTop: 6 }}>{item.review}</Text>
       <View style={styles.commentActions}><View style={styles.commentAction}><ThumbsUp color={theme.muted} size={14} /><Text style={{ color: theme.muted, ...fonts.regular, fontSize: 13 }}>좋아요 {item.honorCount}</Text></View><View style={styles.commentAction}><ThumbsDown color={theme.muted} size={14} /><Text style={{ color: theme.muted, ...fonts.regular, fontSize: 13 }}>싫어요 {item.dislikeCount}</Text></View></View>
@@ -85,13 +86,13 @@ function StarRatingPicker({ disabled, onChange, value }: { disabled: boolean; on
             <View key={star} style={styles.starSlot}>
               <Star color={theme.border} size={20} />
               {fillWidth > 0 ? <View pointerEvents="none" style={[styles.starFillClip, { width: fillWidth }]}><Star color="#fbbf24" fill="#fbbf24" size={20} /></View> : null}
-              <Pressable accessibilityLabel={`${(star - 0.5).toFixed(1)}점`} accessibilityRole="radio" accessibilityState={{ checked: value === star - 0.5, disabled }} disabled={disabled} hitSlop={{ bottom: 10, top: 10 }} onPress={() => onChange(star - 0.5)} style={styles.leftHalf} />
-              <Pressable accessibilityLabel={`${star.toFixed(1)}점`} accessibilityRole="radio" accessibilityState={{ checked: value === star, disabled }} disabled={disabled} hitSlop={{ bottom: 10, top: 10 }} onPress={() => onChange(star)} style={styles.rightHalf} />
+              <Pressable accessibilityLabel={`${formatFanRating(star - 0.5)}점`} accessibilityRole="radio" accessibilityState={{ checked: value === star - 0.5, disabled }} disabled={disabled} hitSlop={{ bottom: 10, top: 10 }} onPress={() => onChange(star - 0.5)} style={styles.leftHalf} />
+              <Pressable accessibilityLabel={`${formatFanRating(star)}점`} accessibilityRole="radio" accessibilityState={{ checked: value === star, disabled }} disabled={disabled} hitSlop={{ bottom: 10, top: 10 }} onPress={() => onChange(star)} style={styles.rightHalf} />
             </View>
           );
         })}
       </View>
-      <View style={styles.selectedValue}><Text style={{ color: theme.ink, ...fonts.bold, fontSize: 15 }}>{value == null ? '-' : value.toFixed(1)}</Text><Text style={{ color: theme.muted, ...fonts.regular, fontSize: 14 }}>/ 5</Text></View>
+      <View style={styles.selectedValue}><Text style={{ color: theme.ink, ...fonts.bold, fontSize: 15 }}>{formatFanRating(value)}</Text><Text style={{ color: theme.muted, ...fonts.regular, fontSize: 14 }}>/ 10</Text></View>
     </View>
   );
 }
