@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import type { Editor } from "@tiptap/react";
+import { observeEmbedLoading } from "./observe-embed-loading";
 
 function loadExternalScript(src: string) {
   return new Promise<void>((resolve, reject) => {
@@ -32,18 +33,25 @@ export function useEmbedHydration(editor: Editor | null) {
     let cancelled = false;
     const root = editor.view.dom;
 
+    const blocks = new Map<HTMLElement, () => void>();
     const updateEmbedStates = () => {
+      blocks.forEach((stop, block) => {
+        if (!root.contains(block)) { stop(); blocks.delete(block); }
+      });
       root.querySelectorAll<HTMLElement>(".embed-block[data-embed-type]").forEach((block) => {
-        if (block.querySelector("iframe")) {
-          block.classList.remove("embed-loading", "embed-error");
-          block.classList.add("embed-ready");
-        }
+        if (blocks.has(block) || !["twitter", "instagram"].includes(block.dataset.embedType ?? "")) return;
+        blocks.set(block, observeEmbedLoading(block, (state) => {
+          block.classList.toggle("embed-loading", state === "loading");
+          block.classList.toggle("embed-ready", state === "ready");
+          block.classList.toggle("embed-error", state === "error");
+        }));
       });
     };
     const observer = new MutationObserver(updateEmbedStates);
     observer.observe(root, { childList: true, subtree: true });
 
     const hydrateEmbeds = async () => {
+      updateEmbedStates();
       const hasTwitter = !!root.querySelector(".twitter-tweet");
       const hasInstagram = !!root.querySelector(".instagram-media");
       if (!hasTwitter && !hasInstagram) return;
@@ -77,6 +85,7 @@ export function useEmbedHydration(editor: Editor | null) {
     return () => {
       cancelled = true;
       observer.disconnect();
+      blocks.forEach((stop) => stop());
       editor.off("transaction", hydrateEmbeds);
     };
   }, [editor]);

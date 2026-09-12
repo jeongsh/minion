@@ -1563,7 +1563,23 @@ html[class~="dark"] .hub-home .home-calendar-shell {
 
 .community-prose .embed-block.embed-loading { min-height: 80px; width: fit-content; max-width: 100%; }
 
-.community-prose .embed-block.embed-loading > blockquote {
+.embed-block.embed-loading:not(.embed-measured) {
+  width: min(100%, 540px);
+  aspect-ratio: 4 / 5;
+}
+
+.embed-block.embed-measured {
+  width: fit-content;
+  max-width: 100%;
+}
+
+.embed-block.embed-loading:not(.embed-measured) > blockquote {
+  position: absolute;
+  inset: 0;
+}
+
+.community-prose .embed-block.embed-loading > *,
+.community-prose .embed-block.embed-loading iframe {
   visibility: hidden;
 }
 

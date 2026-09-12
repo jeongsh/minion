@@ -1,7 +1,7 @@
 import { Image } from 'expo-image';
 import Check from 'lucide-react-native/icons/check';
 import ExternalLink from 'lucide-react-native/icons/external-link';
-import { Fragment, useEffect, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 
@@ -42,7 +42,7 @@ function BlockNode({ node, depth = 0 }: { node: TiptapNode; depth?: number }) {
     const href = String(node.attrs?.url ?? node.attrs?.src ?? '');
     if (!href) return null;
     const provider = socialEmbedProvider(href, node.attrs?.type);
-    if (provider) return <SocialEmbed href={href} key={href} provider={provider} />;
+    if (provider) return <SocialEmbed href={href} key={`${href}:${provider}:${colorScheme}`} provider={provider} />;
     return <Pressable accessibilityRole="link" onPress={() => void Linking.openURL(href)} style={[styles.embed, { backgroundColor: theme.surfaceMuted }]}><View style={styles.embedShade} /><ExternalLink color="#fff" size={24} /><Text numberOfLines={2} style={{ color: '#fff', ...fonts.medium, fontSize: 14 }}>{String(node.attrs?.title ?? '외부 콘텐츠 열기')}</Text></Pressable>;
   }
   if (node.type === 'poll') return <PollNode node={node} />;
@@ -143,41 +143,87 @@ function escapeHtmlAttribute(value: string) {
 
 function SocialEmbed({ href, provider }: { href: string; provider: SocialEmbedProvider }) {
   const { colorScheme, fonts, theme } = useMinionTheme();
-  const [height, setHeight] = useState(80);
+  const [height, setHeight] = useState<number | null>(null);
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
-  useEffect(() => {
-    const timeout = setTimeout(() => setStatus((current) => current === 'loading' ? 'error' : current), 12_000);
-    return () => clearTimeout(timeout);
-  }, [href, provider]);
+  const timeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const startLoading = () => {
+    if (timeout.current) clearTimeout(timeout.current);
+    setStatus('loading');
+    setHeight(null);
+    timeout.current = setTimeout(() => setStatus((current) => current === 'loading' ? 'error' : current), 30_000);
+  };
+  useEffect(() => () => { if (timeout.current) clearTimeout(timeout.current); }, []);
   const safeHref = escapeHtmlAttribute(href);
   const markup = provider === 'twitter'
     ? `<blockquote class="twitter-tweet" data-dnt="true" data-theme="${colorScheme === 'dark' ? 'dark' : 'light'}"><a href="${safeHref}">${safeHref}</a></blockquote><script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>`
     : `<blockquote class="instagram-media" data-instgrm-permalink="${safeHref}" data-instgrm-version="14"><a href="${safeHref}">${safeHref}</a></blockquote><script async src="https://www.instagram.com/embed.js"></script>`;
-  const html = `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><style>*{box-sizing:border-box}html,body{background:${theme.surface};margin:0;overflow:hidden;padding:0;width:100%}body:not(.ready) blockquote{visibility:hidden}blockquote{margin:0!important;max-width:100%!important;min-width:0!important;width:100%!important}</style></head><body>${markup}<script>(function(){const send=data=>window.ReactNativeWebView.postMessage(JSON.stringify(data));let ready=false;const report=()=>{const frame=document.querySelector('iframe');if(frame&&!ready){ready=true;document.body.classList.add('ready');send({type:'ready'})}const next=Math.ceil(Math.max(document.body.scrollHeight,document.documentElement.scrollHeight));if(next>0)send({type:'height',height:next})};document.addEventListener('click',event=>{const anchor=event.target.closest&&event.target.closest('a');if(!anchor||!anchor.href)return;event.preventDefault();send({type:'open-url',url:anchor.href})},true);new MutationObserver(report).observe(document.body,{attributes:true,childList:true,subtree:true});if(window.ResizeObserver)new ResizeObserver(report).observe(document.body);window.addEventListener('load',report);[100,300,700,1500,3000].forEach(delay=>setTimeout(report,delay));report()})()</script></body></html>`;
+  // Install the bridge before async provider scripts, including cached responses.
+  const bridge = `
+(function(){
+  const send=data=>window.ReactNativeWebView.postMessage(JSON.stringify(data));
+  let frame=null,src='',loaded=false,ready=false,lastSize='',stableTimer,lastHeight=0;
+  const selectFrame=()=>document.querySelector('iframe.instagram-media,iframe[id^="twitter-widget-"]');
+  const reset=()=>{clearTimeout(stableTimer);loaded=false;ready=false;lastSize='';document.body.classList.remove('ready');send({type:'loading'})};
+  const report=()=>{
+    const nextFrame=selectFrame();
+    const nextSrc=nextFrame&&nextFrame.getAttribute('src')||'';
+    if(nextFrame!==frame||nextSrc!==src){frame=nextFrame;src=nextSrc;reset()}
+    if(!frame)return;
+    const rect=frame.getBoundingClientRect();
+    const nextHeight=Math.ceil(rect.bottom+window.scrollY);
+    if(rect.height>0&&nextHeight>0&&nextHeight!==lastHeight){lastHeight=nextHeight;send({type:'height',height:nextHeight})}
+    const size=rect.width+':'+rect.height;
+    if(!loaded||rect.width<=0||rect.height<=0){clearTimeout(stableTimer);lastSize='';return}
+    if(size===lastSize)return;
+    lastSize=size;clearTimeout(stableTimer);
+    const currentFrame=frame,currentSrc=src;
+    stableTimer=setTimeout(()=>{
+      if(currentFrame!==selectFrame()||currentSrc!==frame.getAttribute('src'))return;
+      if(!ready){ready=true;document.body.classList.add('ready');send({type:'ready'})}
+    },600);
+  };
+  document.addEventListener('load',event=>{
+    if(event.target!==selectFrame())return;
+    report();
+    if(!src||src==='about:blank')return;
+    loaded=true;lastSize='';report();
+  },true);
+  document.addEventListener('click',event=>{const anchor=event.target.closest&&event.target.closest('a');if(!anchor||!anchor.href)return;event.preventDefault();send({type:'open-url',url:anchor.href})},true);
+  new MutationObserver(report).observe(document.body,{attributes:true,childList:true,subtree:true});
+  if(window.ResizeObserver)new ResizeObserver(report).observe(document.body);
+  // ResizeObserver on body alone can miss provider changes inside fixed wrappers.
+  const poll=setInterval(report,100);
+  window.addEventListener('pagehide',()=>{clearInterval(poll);clearTimeout(stableTimer)});
+  report();
+})();`;
+  const html = `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><style>*{box-sizing:border-box}html,body{background:${theme.surface};margin:0;overflow:hidden;padding:0;width:100%}body:not(.ready) blockquote{visibility:hidden}blockquote{margin:0!important;max-width:100%!important;min-width:0!important;width:100%!important}</style></head><body><script>${bridge}</script>${markup}</body></html>`;
   const onMessage = (event: WebViewMessageEvent) => {
     try {
       const message = JSON.parse(event.nativeEvent.data) as { height?: number; type?: string; url?: string };
       if (message.type === 'height' && Number.isFinite(message.height) && message.height! > 0) setHeight(Math.ceil(message.height!));
-      if (message.type === 'ready') setStatus('ready');
+      if (message.type === 'loading') startLoading();
+      if (message.type === 'ready') {
+        if (timeout.current) clearTimeout(timeout.current);
+        setStatus('ready');
+      }
       if (message.type === 'open-url' && message.url && /^https?:\/\//i.test(message.url)) void Linking.openURL(message.url);
     } catch {
       // Ignore third-party widget bridge noise.
     }
   };
   return (
-    <View accessibilityLabel={provider === 'twitter' ? 'X 게시물' : 'Instagram 게시물'} style={[styles.socialEmbed, { backgroundColor: theme.surfaceMuted, height }]}>
+    <View accessibilityLabel={provider === 'twitter' ? 'X 게시물' : 'Instagram 게시물'} style={[styles.socialEmbed, { backgroundColor: theme.surfaceMuted, maxWidth: 540 }, height === null ? { aspectRatio: 4 / 5 } : { height }]}>
       <WebView
         domStorageEnabled
         javaScriptEnabled
         onError={() => setStatus('error')}
+        onLoadStart={startLoading}
         onMessage={onMessage}
         originWhitelist={['https://*', 'http://*']}
         scrollEnabled={false}
         setSupportMultipleWindows={false}
         source={{ baseUrl: `${mobileApiOrigin}/`, html }}
-        startInLoadingState
-        renderLoading={() => <View style={[StyleSheet.absoluteFill, styles.youtubeLoading, { backgroundColor: theme.surfaceMuted }]}><ActivityIndicator color={theme.accent} /></View>}
-        style={[styles.socialWebView, { backgroundColor: theme.surface }]}
+        style={[styles.socialWebView, { backgroundColor: theme.surface, opacity: status === 'ready' ? 1 : 0 }]}
         thirdPartyCookiesEnabled
       />
       {status === 'loading' ? <View accessibilityLabel="SNS 게시물 불러오는 중" accessibilityLiveRegion="polite" accessibilityRole="progressbar" pointerEvents="none" style={[StyleSheet.absoluteFill, styles.socialStatus, { backgroundColor: `${theme.muted}33` }]}><ActivityIndicator color={theme.accent} size="large" /></View> : null}
