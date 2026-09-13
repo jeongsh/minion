@@ -14,6 +14,7 @@ import { getFavoriteTeamId } from "@/lib/fan/favorite-team";
 import { getNotificationPreferences } from "@/lib/notifications/preferences";
 import { getRankProfile } from "@/lib/rank/queries";
 import { siteBaseUrl } from "@/lib/site";
+import { PRETENDARD_UNICODE_FALLBACK_CSS } from "@/packages/fonts/pretendard";
 import "./globals.css";
 
 const themeInitScript = `
@@ -92,6 +93,7 @@ export default async function RootLayout({
   return (
     <html lang="ko" suppressHydrationWarning>
       <head>
+        <style dangerouslySetInnerHTML={{ __html: PRETENDARD_UNICODE_FALLBACK_CSS }} />
         <meta name="color-scheme" content="light dark" />
         {adsenseClient ? <meta name="google-adsense-account" content={adsenseClient} /> : null}
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />

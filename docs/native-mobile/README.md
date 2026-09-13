@@ -42,6 +42,8 @@
 
 ### 승인된 통합 변경 기록
 
+- 2026-09-13: 사용자가 성능 재검증에서 발견한 문제와 폰트 전달 방식의 수정을 요청해, 잠금 영역 `mobile/providers/minion-shell-provider.tsx`의 **Expo Web 폰트 등록만** 통합 변경한다. 웹 원본 `app/globals.css`와 Expo Web `mobile/app/+html.tsx`는 Pretendard/Paperozi CSS 글꼴을 사용하지만 기존 provider는 브라우저에서도 네이티브 별칭 TTF 5개를 등록해 preload와 별도 다운로드를 만들었다. 웹에서는 `useFonts`에 빈 맵을 전달하고, Android/iOS의 기존 `require` 폰트 맵·별칭·자산·스플래시 처리·테마 동작은 유지한다. 같은 Pretendard 버전의 문자 분할과 누락 문자 fallback을 웹과 Expo Web에 공유한다. 네이티브 폰트 config plugin은 추가하지 않는다. 검증 근거는 `artifacts/performance-fixes-2026-09-13/fonts`에 기록하며, 실기기 검증 여부는 완료 보고에서 별도로 명시한다.
+
 - 2026-09-09: 사용자가 앱·웹 전반 성능 감사의 개선 실행을 승인해, 긴 선수·챔피언 목록의 네이티브 View 생성을 줄이는 통합 작업을 진행한다. 웹 원본은 `app/players/page.tsx`, `components/players/player-directory.tsx`, `app/champions/page.tsx`, `components/champions/champion-directory.tsx`의 동일 순서·필터·격자·상세 이동이다. 잠금 파일 `mobile/components/minion-screen.tsx`에는 이 두 목록에서만 사용하는 가상 행 스크롤 경로를 추가하고 기존 헤더·로컬 내비게이션·푸터·스크롤 이벤트 및 다른 화면의 ScrollView 경로는 유지한다. 통합 검증 결과는 `entry-performance.md`에 추가한다. 이후 사용자 요청에 따라 별도로 추가했던 네이티브 폰트 config plugin과 런타임 별칭 변경은 원복했다.
 
 - 2026-08-22: 홈 최초 로딩을 공통 스피너형 placeholder에서 실제 홈 구조를 따르는 전용 skeleton으로 교체했다. 데이터가 준비된 뒤의 홈 레이아웃과 동작은 변경하지 않았으며, `mobile/app/(tabs)/index.tsx` 변경은 이 로딩 상태 연결 한 줄로 제한했다.
