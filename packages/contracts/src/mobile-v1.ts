@@ -1191,7 +1191,7 @@ export type MobileNewsDto = CursorPage<MobileNewsItem> & {
 };
 
 export type MobileSearchResult = {
-  type: "team" | "player" | "match" | "tournament";
+  type: "team" | "player" | "champion" | "match" | "tournament";
   title: string;
   subtitle: string;
   href: string;

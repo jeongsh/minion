@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
+
+import ChampionDetailLoading from "./loading";
 
 import { ChampionDetail, type ChampionCatalogs } from "@/components/champions/champion-detail";
 import type { ChampionDetailTab } from "@/components/champions/champion-navigation";
@@ -85,12 +88,33 @@ export default async function ChampionDetailPage({
   params: Promise<{ championSlug: string }>;
   searchParams: Promise<ChampionDetailSearchParams>;
 }) {
-  const [{ championSlug }, query, references] = await Promise.all([
+  const [{ championSlug }, query] = await Promise.all([
     params,
     searchParams,
-    getChampionPageReferenceData(),
   ]);
-  const champion = await getChampionBySlug(championSlug);
+  const contentKey = JSON.stringify([
+    championSlug,
+    query.season,
+    query.tournament,
+    query.patch,
+    query.position,
+    query.tab,
+    query.page,
+  ]);
+
+  return (
+    <Suspense key={contentKey} fallback={<ChampionDetailLoading />}>
+      <ChampionDetailContent championSlug={championSlug} query={query} />
+    </Suspense>
+  );
+}
+
+async function ChampionDetailContent({ championSlug, query }: {
+  championSlug: string;
+  query: ChampionDetailSearchParams;
+}) {
+  const references = await getChampionPageReferenceData();
+  const champion = await getChampionBySlug(championSlug, references.champions);
   if (!champion) notFound();
 
   const scope = resolveChampionScope(references, query);
@@ -98,7 +122,7 @@ export default async function ChampionDetailPage({
     ? query.tab as ChampionDetailTab
     : "overview";
   const [data, directoryStats] = await Promise.all([
-    getChampionDetailData(champion.id, scope.setIds, requestedTab === "overview"),
+    getChampionDetailData(champion.id, scope.setIds, requestedTab === "overview", references),
     getChampionDirectoryStats(scope.setIds),
   ]);
   const defaultOverview = buildChampionOverview(data, champion.id);

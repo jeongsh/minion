@@ -144,13 +144,14 @@ function focusRouteMeta(pathname: string) {
   if (pathname === "/me/minicons") return { title: "내 미니콘", backHref: "/minicons" };
   if (pathname === "/me/profile") return { title: "프로필 관리", backHref: "/me" };
   if (pathname === "/me/settings") return { title: "설정", backHref: "/me" };
-  if (pathname.endsWith("/snapshot")) {
+  const snapshotRoute = pathname.match(/^\/matches\/([^/]+)\/sets\/([^/]+)\/snapshot$/);
+  if (snapshotRoute) {
     // 스냅샷은 매치 상세의 "평가" 탭(쿼리스트링 포함)처럼 URL만으로는 복원 못 하는
     // 곳에서도 진입한다. backHref는 히스토리가 없을 때(직접 방문/새 탭)의 대비용
     // 폴백이고, 있으면 실제 뒤로가기(브라우저 히스토리)로 원래 있던 화면 그대로 돌아간다.
     return {
       title: "평점 공유 이미지",
-      backHref: pathname.replace(/\/snapshot$/, ""),
+      backHref: `/matches/${snapshotRoute[1]}?tab=rating&set=${snapshotRoute[2]}`,
       preferHistoryBack: true,
     };
   }

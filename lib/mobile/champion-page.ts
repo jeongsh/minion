@@ -335,11 +335,12 @@ async function buildMobileBuild(analysis: ChampionAnalysis, champion: Champion, 
 }
 
 export async function getMobileChampionDetail(championSlug: string, searchParams: URLSearchParams): Promise<MobileChampionDetailDto | null> {
-  const [champion, references] = await Promise.all([getChampionBySlug(championSlug), getChampionPageReferenceData()]);
+  const references = await getChampionPageReferenceData();
+  const champion = await getChampionBySlug(championSlug, references.champions);
   if (!champion) return null;
   const scope = resolveChampionScope(references, scopeInput(searchParams));
   const [data, directoryStats] = await Promise.all([
-    getChampionDetailData(champion.id, scope.setIds),
+    getChampionDetailData(champion.id, scope.setIds, true, references),
     getChampionDirectoryStats(scope.setIds),
   ]);
   const defaultOverview = buildChampionOverview(data, champion.id);

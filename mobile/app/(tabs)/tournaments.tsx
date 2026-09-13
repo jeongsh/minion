@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useLocalSearchParams } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { ErrorState } from '@/components/feedback-states';
@@ -43,15 +44,21 @@ function buildQuery({
   return params.toString();
 }
 
-export default function TournamentsScreen() {
+export default function TournamentsRoute() {
+  const params = useLocalSearchParams<{ segment?: string | string[] }>();
+  const segment = Array.isArray(params.segment) ? params.segment[0] : params.segment;
+  return <TournamentsScreen initialSegment={segment} key={segment ?? 'default'} />;
+}
+
+function TournamentsScreen({ initialSegment }: { initialSegment?: string }) {
   const { fonts, theme } = useMinionTheme();
-  const [segmentKey, setSegmentKey] = useState('lck');
+  const [segmentKey, setSegmentKey] = useState(initialSegment ?? 'lck');
   const [year, setYear] = useState<number | null>(null);
   const [split, setSplit] = useState<'1' | '2' | '3'>('1');
   const [phase, setPhase] = useState<'playin' | 'playoffs'>('playin');
   const [view, setView] = useState<ViewKey>('standings');
   const [activeBracketStageId, setActiveBracketStageId] = useState<string | null>(null);
-  const appliedDefaultSegment = useRef(false);
+  const appliedDefaultSegment = useRef(Boolean(initialSegment));
 
   const isLck = segmentKey === 'lck';
   const query = buildQuery({ activeBracketStageId, isLck, phase, split, view, year });

@@ -65,7 +65,7 @@ function GroupRow({ isLast, row, tokens }: { isLast: boolean; row: MobileStandin
 
   return (
     <Pressable
-      onPress={() => router.navigate(`/teams/${encodeURIComponent(row.team.slug)}` as never)}
+      onPress={() => router.navigate(`/teams?team=${encodeURIComponent(row.team.fanSiteHost || row.team.slug)}` as never)}
       style={[styles.groupRow, !isLast && { borderBottomColor: tokens.border, borderBottomWidth: 1 }]}>
       <Text style={[styles.groupRank, { color: tokens.foreground, ...fonts.black }]}>{row.rank}</Text>
       <View style={styles.groupTeam}>
@@ -97,7 +97,7 @@ function RegularRow({ isLast, row, tokens }: { isLast: boolean; row: MobileStand
 
   return (
     <Pressable
-      onPress={() => router.navigate(`/teams/${encodeURIComponent(row.team.slug)}` as never)}
+      onPress={() => router.navigate(`/teams?team=${encodeURIComponent(row.team.fanSiteHost || row.team.slug)}` as never)}
       style={[styles.dataRow, !isLast && { borderBottomColor: tokens.border, borderBottomWidth: 1 }]}>
       <View style={styles.dataMain}>
         <Text style={[styles.dataRank, { color: theme.ink, ...fonts.black }]}>{row.rank}</Text>

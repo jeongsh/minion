@@ -40,7 +40,7 @@ export const PlayerFanReviews = forwardRef<PlayerFanReviewsHandle, {
       setVisibleCount((count) => Math.min(count + PAGE_SIZE, reviews.length));
       loadingRef.current = false;
       setLoading(false);
-    }, 450);
+    }, 0);
   }, [hasMore, reviews.length]);
 
   const checkViewport = useCallback(() => {
