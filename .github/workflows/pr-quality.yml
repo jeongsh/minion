@@ -40,6 +40,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install mobile lint dependencies
+        run: npm --prefix mobile ci
+
       - name: Typecheck
         run: npm run typecheck
 

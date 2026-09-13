@@ -13,9 +13,12 @@ const eslintConfig = [
       "coverage/**",
       "dist/**",
       "docs/**",
+      // Expo uses its own config via the mobile lint step in npm run lint.
+      "mobile/**",
       "next-env.d.ts",
       "node_modules/**",
       "out/**",
+      "output/**",
       "tmp/**",
       "tools/shorts-studio/**",
       "tsconfig.tsbuildinfo",
