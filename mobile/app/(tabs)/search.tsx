@@ -1,5 +1,5 @@
-import { RouteCanvas } from '@/components/route-canvas';
+import { SearchScreen } from '@/components/search/search-screen';
 
-export default function SearchScreen() {
-  return <RouteCanvas />;
+export default function SearchRoute() {
+  return <SearchScreen />;
 }
