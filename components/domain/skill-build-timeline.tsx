@@ -48,7 +48,7 @@ export function SkillBuildTimeline({
                       : "bg-[var(--ui-surface)] text-transparent"
                   }`}
                 >
-                  {learned ? level : "·"}
+                  {learned ? level : null}
                 </span>
               );
             })}
