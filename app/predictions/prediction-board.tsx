@@ -166,7 +166,7 @@ export function PredictionBoard({ matches, teams, tournaments, bets, currentUser
 
   return (
     <div>
-      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_300px]">
         <div className="min-w-0">
           <section className="rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] px-4 py-4 dark:bg-[var(--ui-surface-muted)] sm:px-5">
             <div className="flex items-center justify-between gap-3">
@@ -245,7 +245,7 @@ export function PredictionBoard({ matches, teams, tournaments, bets, currentUser
             ) : null}
           </div>
         </div>
-        <div className="hidden xl:sticky xl:top-24 xl:flex xl:flex-col xl:gap-5">
+        <div className="hidden w-full max-w-[300px] xl:sticky xl:top-[88px] xl:flex xl:flex-col xl:gap-4">
           <PredictionLeaderboard entries={leaderboard} />
           <PredictionAdSlot hasContent={filteredMatches.length > 0} />
         </div>
@@ -304,25 +304,26 @@ function TeamChoice({ team, percent, odds, selected, disabled, onClick, right = 
 
 function PredictionLeaderboard({ entries }: { entries: PredictionRanking[] }) {
   return (
-    <aside className="rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-5 dark:bg-[var(--ui-surface-muted)]">
-      <div className="flex items-end justify-between gap-3">
-        <div>
-          <p className="text-[13px] font-bold uppercase tracking-[0.14em] text-[var(--ui-muted)]">USER RANKING</p>
-          <h2 className="mt-1 text-lg font-black text-[var(--ui-ink)]">예측 랭킹</h2>
-        </div>
-        <span className="text-[13px] font-bold text-[var(--ui-muted)]">예측 수익</span>
+    <aside aria-labelledby="prediction-ranking-title" className="overflow-hidden rounded-[var(--ui-card-radius)] border border-[var(--ui-border)] bg-[var(--ui-surface)]">
+      <div className="flex items-center justify-between gap-3 border-b border-[var(--ui-border)] px-4 py-3.5">
+        <h2 id="prediction-ranking-title" className="home-section-title text-xl text-[var(--ui-ink)]">예측 랭킹</h2>
+        <span className="text-[13px] font-medium leading-5 text-[var(--ui-muted)]">예측 수익</span>
       </div>
-      <ol className="mt-4 divide-y divide-[var(--ui-border)]">
+      <ol className="divide-y divide-[var(--ui-border)] px-4">
         {entries.map((entry) => (
-          <li key={entry.userId} className="grid grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-2 py-3 text-sm">
-            <span className={`font-black ${entry.rank <= 3 ? "text-[var(--ui-ink)]" : "text-[var(--ui-muted)]"}`}>{entry.rank}</span>
-            <span className="truncate font-bold text-[var(--ui-text)]">{entry.nickname}</span>
-            <span className={`font-black tabular-nums ${entry.profit > 0 ? "text-emerald-600" : entry.profit < 0 ? "text-red-500" : "text-[var(--ui-ink)]"}`}>{entry.profit > 0 ? "+" : ""}{entry.profit.toLocaleString("ko-KR")} LP</span>
+          <li key={entry.userId} className="grid grid-cols-[20px_minmax(0,1fr)_auto] items-center gap-2 py-3">
+            <span className={`text-sm font-medium leading-5 tabular-nums ${entry.rank <= 3 ? "text-[var(--ui-ink)]" : "text-[var(--ui-muted)]"}`}>{entry.rank}</span>
+            <span className="truncate text-[15px] font-bold leading-6 text-[var(--ui-text)]" title={entry.nickname}>{entry.nickname}</span>
+            <span className={`text-sm font-medium leading-5 tabular-nums ${entry.profit > 0 ? "text-emerald-600 dark:text-emerald-400" : entry.profit < 0 ? "text-red-500 dark:text-red-400" : "text-[var(--ui-ink)]"}`}>{entry.profit > 0 ? "+" : ""}{entry.profit.toLocaleString("ko-KR")} LP</span>
           </li>
         ))}
       </ol>
-      {!entries.length ? <KitschEmptyState character="flag" title="랭킹 집계 중" body="첫 예측 수익이 생기면 순위가 올라와요." compact /> : null}
-      <p className="mt-3 text-[13px] leading-5 text-[var(--ui-muted)]">두 번 이상 LP 예측에 참여한 사용자를 수익 기준으로 표시합니다.</p>
+      {!entries.length ? (
+        <div className="px-4 py-6 text-center">
+          <p className="text-[15px] font-bold leading-6 text-[var(--ui-ink)]">랭킹 집계 중</p>
+          <p className="mt-1.5 break-keep text-base font-normal leading-6 text-[var(--ui-muted)]">첫 예측 수익이 생기면 순위가 올라와요.</p>
+        </div>
+      ) : null}
     </aside>
   );
 }

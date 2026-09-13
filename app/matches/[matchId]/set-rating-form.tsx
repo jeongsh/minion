@@ -26,6 +26,7 @@ export type RatingPlayerOption = {
   averageRating?: number;
   ratingCount: number;
   myRating?: number;
+  myReview?: string;
   isPog: boolean;
 };
 
@@ -236,8 +237,8 @@ export function SetRatingForm({
   const [selectedRating, setSelectedRating] = useState<number | null>(null);
   const [review, setReview] = useState("");
   const [mobileComposerOpen, setMobileComposerOpen] = useState(false);
-  // 제출 직후 "내 평점"을 서버 재검증 없이 바로 반영하기 위한 낙관적 값(선수 id → 평점).
-  const [localRatings, setLocalRatings] = useState<Record<string, number>>({});
+  // 제출 직후 평점과 한줄평을 서버 갱신 전에도 다시 불러올 수 있도록 보관한다.
+  const [localRatings, setLocalRatings] = useState<Record<string, { myRating: number; myReview: string }>>({});
   const [refreshTick, setRefreshTick] = useState(0);
   useEffect(() => {
     if (refreshTick === 0) return;
@@ -255,8 +256,14 @@ export function SetRatingForm({
     query.addEventListener("change", sync);
     return () => query.removeEventListener("change", sync);
   }, []);
+  useEffect(() => {
+    formRef.current?.querySelectorAll("textarea").forEach((input) => {
+      input.style.height = "auto";
+      input.style.height = `${input.scrollHeight}px`;
+    });
+  }, [review, selectedPlayerId, mobileComposerOpen, isSmallScreen]);
   const effectiveOptions = playerOptions.map((player) =>
-    player.value in localRatings ? { ...player, myRating: localRatings[player.value] } : player,
+    player.value in localRatings ? { ...player, ...localRatings[player.value] } : player,
   );
   const selectedPlayer = effectiveOptions.find((player) => player.value === selectedPlayerId);
   const disabled = !ratingOpen || !isLoggedIn || playerOptions.length === 0 || isPending;
@@ -269,13 +276,17 @@ export function SetRatingForm({
 
     const submittedPlayerId = selectedPlayerId;
     const submittedRating = selectedRating;
+    const submittedReview = review.trim();
 
     startTransition(async () => {
       const result = await submitSetPlayerRatingAction(formData);
       if (result.ok) {
         showToast({ title: "평점이 제출되었습니다!", tone: "success" });
         if (submittedRating != null) {
-          setLocalRatings((prev) => ({ ...prev, [submittedPlayerId]: submittedRating }));
+          setLocalRatings((prev) => ({
+            ...prev,
+            [submittedPlayerId]: { myRating: submittedRating, myReview: submittedReview },
+          }));
         }
         formRef.current?.reset();
         setSelectedPlayerId("");
@@ -334,6 +345,7 @@ export function SetRatingForm({
                       onSelect={() => {
                         setSelectedPlayerId(player.value);
                         setSelectedRating(player.myRating ?? null);
+                        setReview(player.myReview ?? "");
                         setMobileComposerOpen(true);
                       }}
                     />

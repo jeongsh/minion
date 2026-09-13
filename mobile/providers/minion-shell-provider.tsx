@@ -81,7 +81,8 @@ export function MinionShellProvider({ children }: PropsWithChildren) {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const toastTimers = useRef(new Map<number, ReturnType<typeof setTimeout>>());
   const favoriteTeamOverridden = useRef(false);
-  const [fontsLoaded, fontError] = useFonts({
+  // Expo Web uses the font CSS in +html; native keeps the bundled font files.
+  const [fontsLoaded, fontError] = useFonts(Platform.OS === 'web' ? {} : {
     'Pretendard-Regular': require('@/assets/fonts/Pretendard-Regular.ttf'),
     'Pretendard-Medium': require('@/assets/fonts/Pretendard-Medium.ttf'),
     'Pretendard-Bold': require('@/assets/fonts/Pretendard-Bold.ttf'),

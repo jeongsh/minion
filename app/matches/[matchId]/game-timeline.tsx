@@ -54,18 +54,16 @@ const DESKTOP_SVG_W = 800;
 const TABLET_SVG_W = 680;
 const MOBILE_SVG_W = 440;
 const PAD_X    = 42;
-const ITEM_SZ  = 10;   // icon diameter
+const TOUCH_SIZE = 20;
 const ITEM_SLT = 18;   // px per row
-const KILL_R   = 3.5;  // kill dot radius
 const TOP_MAR  = 16;
 const BOT_MAR  = 26;
 const MIN_HALF = 82;
 const CTR_GAP  = 10;
-const BADGE_R  = 4;    // count badge radius
 const CARD_RX  = 16;   // 카드 모서리 반경(라운드 코너 밖으로 축선이 튀어나오지 않게 인셋 계산에도 사용)
 
 function toX(ms: number, duration: number, svgW: number): number {
-  return PAD_X + (ms / 1000 / duration) * (svgW - PAD_X * 2);
+  return PAD_X + (ms / 1000 / duration) * (svgW - PAD_X);
 }
 
 function useTimelineSvgWidth() {
@@ -225,91 +223,6 @@ type PlacedCluster = Cluster & { row: number };
 
 // ── 아이콘 렌더러 ─────────────────────────────────────────────────
 
-function ClusterIcon({
-  cx, cy, cluster, curveY, onHover, onLeave,
-}: {
-  cx: number; cy: number; cluster: PlacedCluster; curveY: number; onHover: () => void; onLeave: () => void;
-}) {
-  const half = ITEM_SZ / 2;
-  const { info, count } = cluster;
-  // 선/동그라미/글로우는 오브젝트 종류색이 아니라 팀색(부모 g의 currentColor)으로 통일한다.
-  const lineColor = "currentColor";
-  // 전경 SVG 전체는 pointer-events:none이라 아이콘 위에서만 다시 auto로 켜서
-  // 호버를 받고, 그 외 투명한 배경은 아래 chart.js 캔버스로 이벤트가 그대로 통과한다.
-  const interactiveProps = { className: "cursor-pointer", style: { pointerEvents: "auto" as const }, onMouseEnter: onHover, onMouseLeave: onLeave };
-
-  // 아이콘에서 골드 곡선 위 지점까지 얇은 점선으로 연결한다(첨부 레퍼런스처럼). 아이콘이 곡선
-  // 위쪽(블루)이면 아래로, 아래쪽(레드)이면 위로 선을 긋고, 끝에 작은 점을 찍는다.
-  const below = curveY > cy;
-  const lineStart = below ? cy + half : cy - half;
-  const showConnector = Math.abs(curveY - lineStart) > 2;
-  const connector = showConnector ? (
-    <g style={{ pointerEvents: "none" }}>
-      <line x1={cx} y1={lineStart} x2={cx} y2={curveY}
-        stroke={lineColor} strokeOpacity={0.6} strokeWidth={0.9} strokeDasharray="1.5 2" />
-      <circle cx={cx} cy={curveY} r={1.8} fill={lineColor} />
-    </g>
-  ) : null;
-
-  const badge = count > 1 ? (
-    <g>
-      <circle cx={cx + half} cy={cy - half} r={BADGE_R} fill="currentColor" stroke="var(--timeline-chart-surface)" strokeWidth={1} />
-      <text x={cx + half} y={cy - half + 2.6} textAnchor="middle" fontSize={5} fill="#fff" fontWeight="500">
-        {count}
-      </text>
-    </g>
-  ) : null;
-
-  if (!info) {
-    // 킬 도트
-    return (
-      <g {...interactiveProps}>
-        {connector}
-        <circle cx={cx} cy={cy} r={count > 1 ? KILL_R + 1.5 : KILL_R}
-          fill="currentColor" stroke="var(--timeline-chart-surface)" strokeWidth={1.2} />
-        {count > 1 && (
-          <text x={cx} y={cy + 2.5} textAnchor="middle" fontSize={5.5} fill="#0f172a" fontWeight="500">{count}</text>
-        )}
-      </g>
-    );
-  }
-
-  if (info.iconUrl) {
-    // 모든 오브젝트 아이콘(드래곤·바론·전령·공허충)은 타임라인에서 실루엣만 살리고 색은
-    // 팀색(currentColor)으로 통일한다. 아이콘의 알파 채널을 마스크로 써서 팀색 사각형을
-    // 아이콘 모양대로 오려낸다(블루=파랑, 레드=빨강).
-    const maskId = `obj-${cluster.id}-${Math.round(cx)}-${Math.round(cy)}`;
-    return (
-      <g {...interactiveProps}>
-        {connector}
-        <circle cx={cx} cy={cy} r={half + 1.5} fill="currentColor" fillOpacity={0.18} />
-        <circle cx={cx} cy={cy} r={half + 1.5} fill="none" stroke="currentColor" strokeOpacity={0.7} strokeWidth={0.9} />
-        <mask
-          id={maskId}
-          maskUnits="userSpaceOnUse"
-          x={cx - half}
-          y={cy - half}
-          width={ITEM_SZ}
-          height={ITEM_SZ}
-          style={{ maskType: "alpha" }}
-        >
-          <image href={info.iconUrl} x={cx - half} y={cy - half} width={ITEM_SZ} height={ITEM_SZ} />
-        </mask>
-        <rect x={cx - half} y={cy - half} width={ITEM_SZ} height={ITEM_SZ} fill="currentColor" mask={`url(#${maskId})`} />
-        {badge}
-      </g>
-    );
-  }
-  return (
-    <g {...interactiveProps}>
-      {connector}
-      <circle cx={cx} cy={cy} r={half} fill={info.color} />
-      <text x={cx} y={cy + 2.2} textAnchor="middle" fontSize={5} fill="#fff" fontWeight="500">{info.label}</text>
-      {badge}
-    </g>
-  );
-}
-
 // ── 헤더 요약 ────────────────────────────────────────────────────
 
 function fmtClock(totalSeconds: number): string {
@@ -332,7 +245,7 @@ function StatStrip({ stats, accent }: { stats: TeamStats; accent: "blue" | "red"
     /* eslint-enable @next/next/no-img-element */
   ];
   return (
-    <span className="flex items-center gap-1.5 text-[13px] font-semibold tabular-nums text-muted sm:gap-2">
+    <span className="flex items-center gap-1.5 text-[13px] font-medium tabular-nums text-muted sm:gap-2">
       {items.map(({ node, count, key }) => (
         <span key={key} className="flex items-center gap-0.5">
           {node}
@@ -370,12 +283,26 @@ export function GameTimeline({
   redGold?: number | null;
   winnerTeamId?: string | null;
 }) {
-  const [tooltip, setTooltip] = useState<{ lines: string[]; xPct: number; yPct: number } | null>(null);
+  const [tooltip, setTooltip] = useState<{ id: string; lines: string[] } | null>(null);
   const [showObjectives, setShowObjectives] = useState(true);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const chartRef = useRef<Chart | null>(null);
 
   const svgW = useTimelineSvgWidth();
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(MOBILE_SVG_W);
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    const observer = new ResizeObserver(([entry]) => {
+      if (entry.contentRect.width > 0) setContainerWidth(entry.contentRect.width);
+    });
+    observer.observe(root);
+    return () => observer.disconnect();
+  }, []);
+  const scale = containerWidth / svgW;
+  const slot = TOUCH_SIZE / scale;
+  const markerX = (ms: number) => Math.min(containerWidth - TOUCH_SIZE / 2, Math.max(TOUCH_SIZE / 2, toX(ms, duration, svgW) * scale)) / scale;
   const duration = durationSeconds ?? Math.ceil((events.at(-1)?.timestampMs ?? 0) / 1000);
   const tx = (ms: number) => toX(ms, duration, svgW);
 
@@ -409,11 +336,20 @@ export function GameTimeline({
   const blueStats = countObjectives(blueTeamId);
   const redStats  = countObjectives(redTeamId);
 
-  // 1분 클러스터링. 행 배치 없이 블루는 전부 최상단 한 줄, 레드는 전부 최하단 한 줄에 고정한다.
-  const blueRaw = markerEvents.filter((e) => e.teamId === blueTeamId);
-  const redRaw  = markerEvents.filter((e) => e.teamId === redTeamId);
-  const blueClusters: PlacedCluster[] = clusterTeamEvents(blueRaw, 60_000, players).map((c) => ({ ...c, row: 0 }));
-  const redClusters:  PlacedCluster[] = clusterTeamEvents(redRaw,  60_000, players).map((c) => ({ ...c, row: 0 }));
+  const placeClusters = (teamId: string): PlacedCluster[] => {
+    const rowEnds: number[] = [];
+    return clusterTeamEvents(markerEvents.filter((e) => e.teamId === teamId), 60_000, players).map((c) => {
+      const x = markerX(c.ms);
+      let row = rowEnds.findIndex((end) => x - end >= slot);
+      if (row < 0) row = rowEnds.length;
+      rowEnds[row] = x;
+      return { ...c, row };
+    });
+  };
+  const blueClusters = placeClusters(blueTeamId);
+  const redClusters = placeClusters(redTeamId);
+  const blueRows = Math.max(0, ...blueClusters.map((c) => c.row + 1));
+  const redRows = Math.max(0, ...redClusters.map((c) => c.row + 1));
 
   // 단일 행이므로 아이콘이 차지하는 최소 높이는 한 줄분이다.
   const blueIconMin = ITEM_SLT;
@@ -500,15 +436,15 @@ export function GameTimeline({
   if (blueH < blueIconMin) { blueH = blueIconMin; redH = totalH - blueH; }
   if (redH < redIconMin)   { redH = redIconMin;   blueH = totalH - redH; }
 
-  const graphTop = TOP_MAR;
+  const graphTop = TOP_MAR + (showObjectives ? blueRows * slot : 0);
   const centerY  = graphTop + blueH + CTR_GAP;
   const graphBot = centerY  + CTR_GAP + redH;
-  const axisY    = graphBot;
+  const axisY    = graphBot + (showObjectives ? redRows * slot : 0);
   const svgH     = axisY + BOT_MAR;
 
-  // 블루는 카드 최상단, 레드는 카드 최하단에 붙인다(row는 항상 0이라 한 줄).
-  const blueCY = (row: number) => graphTop + ITEM_SZ / 2 + row * ITEM_SLT;
-  const redCY  = (row: number) => graphBot - ITEM_SZ / 2 - row * ITEM_SLT;
+  // 가까운 오브젝트는 20px 터치 영역이 겹치지 않도록 별도 행에 배치한다.
+  const blueCY = (row: number) => graphTop - (row + 0.5) * slot;
+  const redCY  = (row: number) => graphBot + (row + 0.5) * slot;
 
   const ampBlue = blueH * 0.92;
   const ampRed  = redH  * 0.92;
@@ -523,14 +459,14 @@ export function GameTimeline({
   // 채우기)을 그대로 쓸 수 있어 라인과 채우기가 항상 완전히 일치한다(직접 그리던 방식은
   // 베지어 곡선을 손으로 재현하다 보니 미세하게 어긋나는 지점이 생겼었음).
   const chartPoints: ChartPoint[] = hasGoldFrames
-    ? goldPoints.map((p) => ({ x: toX(p.seconds * 1000, duration, svgW), y: dy(p.diff) - centerY }))
+    ? [...goldPoints, ...(goldPoints.at(-1)!.seconds < duration ? [{ seconds: duration, diff: goldPoints.at(-1)!.diff }] : [])].map((p) => ({ x: toX(p.seconds * 1000, duration, svgW), y: dy(p.diff) - centerY }))
     : (() => {
         const sampleStep = Math.max(5, duration / 140);
         const points: ChartPoint[] = [];
         for (let seconds = 0; seconds < duration; seconds += sampleStep) {
           points.push({ x: toX(seconds * 1000, duration, svgW), y: dy(displayDiffAt(seconds)) - centerY });
         }
-        points.push({ x: svgW - PAD_X, y: dy(displayDiffAt(duration)) - centerY });
+        points.push({ x: svgW, y: dy(displayDiffAt(duration)) - centerY });
         return points;
       })();
 
@@ -614,14 +550,14 @@ export function GameTimeline({
             callbacks: {
               title: (items) => {
                 const xPx = items[0]?.parsed.x ?? PAD_X;
-                const seconds = ((xPx - PAD_X) / (svgW - PAD_X * 2)) * duration;
+                const seconds = ((xPx - PAD_X) / (svgW - PAD_X)) * duration;
                 const m = Math.floor(seconds / 60);
                 const s = Math.floor(seconds % 60);
                 return `${m}:${String(s).padStart(2, "0")}`;
               },
               label: (items) => {
                 const xPx = items.parsed.x ?? PAD_X;
-                const seconds = ((xPx - PAD_X) / (svgW - PAD_X * 2)) * duration;
+                const seconds = ((xPx - PAD_X) / (svgW - PAD_X)) * duration;
                 const v = displayDiffAt(seconds);
                 const leader = v > 0 ? blueTeamName : v < 0 ? redTeamName : "동점";
                 const abs = Math.abs(v);
@@ -632,7 +568,7 @@ export function GameTimeline({
           },
         },
         scales: {
-          x: { type: "linear", min: PAD_X, max: svgW - PAD_X, display: false },
+          x: { type: "linear", min: PAD_X, max: svgW, display: false },
           y: { type: "linear", min: graphTop - centerY, max: graphBot - centerY, reverse: true, display: false },
         },
       },
@@ -643,40 +579,40 @@ export function GameTimeline({
       chartRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- chartPoints/centerY/graphTop/graphBot는 아래 props에서 결정론적으로 파생됨
-  }, [events, frames, durationSeconds, blueTeamId, redTeamId, svgW]);
+  }, [events, frames, durationSeconds, blueTeamId, redTeamId, svgW, containerWidth, showObjectives]);
 
   if (!events.length) {
     return <div className="flex items-center justify-center py-6 text-[15px] text-muted">타임라인 데이터 없음</div>;
   }
 
   return (
-    <div className="game-timeline-chart relative w-full select-none">
+    <div ref={rootRef} className="game-timeline-chart relative w-full select-none">
       <div className="relative w-full">
         {/* 배경 레이어: 카드 배경, y축 그리드/라벨, 팀명, 시간 눈금 */}
         <svg viewBox={`0 0 ${svgW} ${svgH}`} className="block w-full">
-          <rect x={PAD_X} y={graphTop} width={svgW - PAD_X * 2} height={graphBot - graphTop} rx={CARD_RX} fill="transparent" />
+          <rect x={PAD_X} y={graphTop} width={svgW - PAD_X} height={graphBot - graphTop} rx={CARD_RX} fill="transparent" />
 
           {gridValues.map((d) => {
             const y = dy(d);
             return (
               <g key={`gy${d}`}>
-                <line x1={PAD_X} y1={y} x2={svgW - PAD_X} y2={y}
+                <line x1={PAD_X} y1={y} x2={svgW} y2={y}
                   stroke="var(--timeline-chart-grid)" strokeWidth={d === 0 ? 1.2 : 0.7} />
-                <text x={PAD_X - 4} y={y + 3} textAnchor="end" fontSize={9}
-                  fill={d > 0 ? "var(--team-blue)" : d < 0 ? "var(--team-red)" : "var(--timeline-chart-muted)"} fontWeight="600">
+                <text x={PAD_X - 4} y={y + 3} textAnchor="end" fontSize={13 / scale}
+                  fill={d > 0 ? "var(--team-blue)" : d < 0 ? "var(--team-red)" : "var(--timeline-chart-muted)"} fontWeight="500">
                   {formatDiffLabel(d)}
                 </text>
               </g>
             );
           })}
 
-          <text x={PAD_X + 6} y={graphTop + 11} textAnchor="start" fontSize={9} fontWeight="500" fill="var(--team-blue)">{blueTeamName}</text>
-          <text x={PAD_X + 6} y={graphBot - 6} textAnchor="start" fontSize={9} fontWeight="500" fill="var(--team-red)">{redTeamName}</text>
+          <text x={PAD_X + 6} y={graphTop + 11} textAnchor="start" fontSize={13 / scale} fontWeight="500" fill="var(--team-blue)">{blueTeamName}</text>
+          <text x={PAD_X + 6} y={graphBot - 6} textAnchor="start" fontSize={13 / scale} fontWeight="500" fill="var(--team-red)">{redTeamName}</text>
 
           {mins.map((m) => {
             const x = tx(m * 60 * 1000);
             return (
-              <text key={m} x={x} y={axisY + 20} textAnchor="middle" fontSize={9} fill="var(--timeline-chart-muted)">{m}&apos;</text>
+              <text key={m} x={x} y={axisY + 20} textAnchor="middle" fontSize={13 / scale} fill="var(--timeline-chart-muted)">{m}&apos;</text>
             );
           })}
         </svg>
@@ -690,7 +626,7 @@ export function GameTimeline({
           style={{
             left: `${(PAD_X / svgW) * 100}%`,
             top: `${(graphTop / svgH) * 100}%`,
-            width: `${((svgW - PAD_X * 2) / svgW) * 100}%`,
+            width: `${((svgW - PAD_X) / svgW) * 100}%`,
             height: `${((graphBot - graphTop) / svgH) * 100}%`,
             borderRadius: `${(CARD_RX / svgW) * 100}%`,
           }}
@@ -706,44 +642,46 @@ export function GameTimeline({
           className="absolute inset-0 block h-full w-full"
           style={{ pointerEvents: "none" }}
         >
-          {showObjectives && blueClusters.map((c) => {
-            const x = tx(c.ms);
-            const cy = blueCY(c.row);
-            const curveY = dy(displayDiffAt(c.ms / 1000));
-            return (
-              <g key={`b-${c.id}`} className="text-team-blue">
-                <ClusterIcon cx={x} cy={cy} cluster={c} curveY={curveY}
-                  onHover={() => setTooltip({ lines: c.tooltipLines, xPct: (x / svgW) * 100, yPct: (cy / svgH) * 100 })}
-                  onLeave={() => setTooltip(null)} />
-              </g>
-            );
-          })}
-
-          {showObjectives && redClusters.map((c) => {
-            const x = tx(c.ms);
-            const cy = redCY(c.row);
-            const curveY = dy(displayDiffAt(c.ms / 1000));
-            return (
-              <g key={`r-${c.id}`} className="text-team-red">
-                <ClusterIcon cx={x} cy={cy} cluster={c} curveY={curveY}
-                  onHover={() => setTooltip({ lines: c.tooltipLines, xPct: (x / svgW) * 100, yPct: (cy / svgH) * 100 })}
-                  onLeave={() => setTooltip(null)} />
-              </g>
-            );
-          })}
+          {showObjectives && [
+            { clusters: blueClusters, cy: blueCY, side: "blue" },
+            { clusters: redClusters, cy: redCY, side: "red" },
+          ].flatMap(({ clusters, cy, side }) => clusters.map((c) => (
+            <g key={`${side}-${c.id}`} className={side === "blue" ? "text-team-blue" : "text-team-red"}>
+              <line x1={markerX(c.ms)} y1={cy(c.row)} x2={tx(c.ms)} y2={dy(displayDiffAt(c.ms / 1000))} stroke="currentColor" strokeOpacity={0.6} strokeWidth={0.9} strokeDasharray="1.5 2" />
+              <circle cx={tx(c.ms)} cy={dy(displayDiffAt(c.ms / 1000))} r={1.8} fill="currentColor" />
+            </g>
+          )))}
         </svg>
-
-        {showObjectives && tooltip && (
-          <div
-            className="pointer-events-none absolute z-10 whitespace-nowrap rounded bg-background/95 px-2 py-1 text-[15px] ring-1 ring-border"
-            style={{ left: `${Math.min(Math.max(tooltip.xPct, 5), 85)}%`, top: `calc(${tooltip.yPct}% + ${ITEM_SZ / 2 + 6}px)` }}
-          >
-            {tooltip.lines.map((line, i) => <div key={i}>{line}</div>)}
-          </div>
-        )}
+        {showObjectives && [
+          { clusters: blueClusters, cy: blueCY, side: "blue" },
+          { clusters: redClusters, cy: redCY, side: "red" },
+        ].flatMap(({ clusters, cy, side }) => clusters.map((c) => {
+          const id = `${side}-${c.id}`;
+          const selected = tooltip?.id === id;
+          return (
+            <button
+              key={id} type="button" aria-label={c.tooltipLines.join(", ")} aria-pressed={selected}
+              onClick={() => setTooltip({ id, lines: c.tooltipLines })}
+              onMouseEnter={() => { if (window.matchMedia("(hover: hover)").matches) setTooltip({ id, lines: c.tooltipLines }); }}
+              onFocus={() => setTooltip({ id, lines: c.tooltipLines })}
+              className={`absolute flex h-5 w-5 items-center justify-center rounded-full focus-visible:outline focus-visible:outline-2 ${side === "blue" ? "text-team-blue" : "text-team-red"}`}
+              style={{ left: markerX(c.ms) * scale - TOUCH_SIZE / 2, top: cy(c.row) * scale - TOUCH_SIZE / 2 }}
+            >
+              <span className={`flex h-5 w-5 items-center justify-center rounded-full border-current bg-background ${selected ? "border-2" : "border"}`}>
+                {c.info?.iconUrl && <span aria-hidden="true" className="h-3.5 w-3.5 bg-current" style={{ maskImage: `url(${c.info.iconUrl})`, maskSize: "contain", maskRepeat: "no-repeat", maskPosition: "center" }} />}
+              </span>
+              {c.count > 1 && <span className={`absolute -right-1 -top-1 flex h-2.5 min-w-2.5 items-center justify-center rounded-full px-px text-[7px] font-medium leading-[10px] text-white ${side === "blue" ? "bg-team-blue" : "bg-team-red"}`}>{c.count}</span>}
+            </button>
+          );
+        }))}
       </div>
+      {showObjectives && tooltip && (
+        <div aria-live="polite" className="mx-3 mb-2 space-y-1 rounded border border-border bg-background px-2.5 py-2 text-sm font-medium leading-5 break-words">
+          {tooltip.lines.map((line, i) => <div key={i}>{line}</div>)}
+        </div>
+      )}
 
-      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 px-4 pb-3 pt-1 text-[11px] text-muted sm:gap-x-3 sm:text-sm">
+      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 px-4 pb-3 pt-1 text-[13px] text-muted sm:gap-x-3 sm:text-sm">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 sm:gap-x-3">
           {showObjectives && [
             { src: OBJECTIVE_ICONS.elder,    label: "장로" },
@@ -760,8 +698,8 @@ export function GameTimeline({
         </div>
         <button
           type="button"
-          onClick={() => setShowObjectives((v) => !v)}
-          className="shrink-0 rounded-full border border-border px-2.5 py-1 text-[11px] font-medium text-muted hover:bg-surface-muted sm:text-[13px]"
+          onClick={() => { setShowObjectives((v) => !v); setTooltip(null); }}
+          className="min-h-11 shrink-0 rounded-full border border-border px-2.5 py-1 text-[13px] font-medium text-muted hover:bg-surface-muted sm:text-[13px]"
         >
           {showObjectives ? "오브젝트 숨기기" : "오브젝트 보기"}
         </button>

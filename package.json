@@ -11,7 +11,7 @@
     "mobile:tunnel": "npm --prefix mobile run start:tunnel",
     "mobile:typecheck": "npm --prefix mobile run typecheck",
     "mobile:doctor": "npm --prefix mobile run doctor",
-    "lint": "npm run lint:typography && eslint .",
+    "lint": "npm run lint:typography && eslint . && npm --prefix mobile run lint",
     "lint:typography": "node scripts/check-small-bold-text.mjs",
     "typecheck": "tsc --noEmit",
     "e2e": "playwright test",

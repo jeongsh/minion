@@ -1,6 +1,8 @@
 import { Image } from 'expo-image';
 import ChevronRight from 'lucide-react-native/icons/chevron-right';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useId } from 'react';
+import { Platform, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import Svg, { Defs, FeColorMatrix, Filter, Image as SvgImage } from 'react-native-svg';
 
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import { resolveApiAssetUrl, type MobileChampionBuild, type MobileChampionItem, type MobileChampionItemSequence, type MobileChampionRuneColumn, type MobileChampionRuneOption } from '@/lib/api-client';
@@ -35,14 +37,23 @@ function Empty({ children = '표본 부족' }: { children?: string }) {
   return <Text style={{ color: theme.muted, ...fonts.regular, fontSize: 14, lineHeight: 22, paddingVertical: 12 }}>{children}</Text>;
 }
 
+function RuneAsset({ url, size, padding = 0, muted = false }: { url?: string | null; size: number; padding?: number; muted?: boolean }) {
+  const filterId = `build-gray-${useId().replace(/[^a-zA-Z0-9-]/g, '')}`;
+  // iOS does not implement React Native's grayscale View filter.
+  if (Platform.OS === 'ios' && muted && url) return <View style={{ width: size, height: size, padding, opacity: 0.32 }}><Svg width={size - padding * 2} height={size - padding * 2}><Defs><Filter id={filterId}><FeColorMatrix type="saturate" values="0" /></Filter></Defs><SvgImage href={{ uri: url }} width="100%" height="100%" preserveAspectRatio="xMidYMid meet" filter={`url(#${filterId})`} /></Svg></View>;
+  return <View style={{ height: size, width: size, padding, opacity: muted ? 0.32 : 1, filter: muted ? 'grayscale(1)' : undefined }}>{url ? <Image source={{ uri: url }} contentFit="contain" style={{ width: '100%', height: '100%' }} /> : null}</View>;
+}
+
 function RuneRow({ row, large = false, shard = false }: { row: MobileChampionRuneOption[]; large?: boolean; shard?: boolean }) {
-  const { theme } = useMinionTheme();
-  const size = large ? 32 : shard ? 18 : 24;
+  const { colorScheme } = useMinionTheme();
+  const { width } = useWindowDimensions();
+  const sm = width >= 640;
+  const size = large ? (sm ? 40 : 36) : shard ? (sm ? 32 : 28) : (sm ? 34 : 30);
   return (
-    <View style={[styles.runeRow, { minHeight: large ? 38 : shard ? 24 : 32 }]}>
+    <View style={[styles.runeRow, { gap: sm ? 8 : 4, minHeight: large ? (sm ? 48 : 44) : shard ? (sm ? 38 : 34) : (sm ? 42 : 38) }]}>
       {row.map((rune) => (
-        <View key={rune.name} style={{ backgroundColor: theme.surfaceMuted, borderRadius: size / 2, height: size, opacity: rune.selected ? 1 : 0.34, padding: large ? 3 : 2, width: size }}>
-          <AssetImage radius={size / 2} size={size - (large ? 6 : 4)} source={rune.image?.url} />
+        <View key={rune.name} accessibilityLabel={rune.name} style={{ backgroundColor: colorScheme === 'dark' ? '#24272d' : shard ? '#cdd0d6' : '#d9dce2', borderRadius: size / 2, overflow: 'hidden' }}>
+          <RuneAsset size={size} padding={large ? 4 : 2} muted={!rune.selected} url={resolveApiAssetUrl(rune.image?.url)} />
         </View>
       ))}
     </View>
@@ -52,22 +63,25 @@ function RuneRow({ row, large = false, shard = false }: { row: MobileChampionRun
 function RuneColumn({ column, primary = false }: { column: MobileChampionRuneColumn; primary?: boolean }) {
   const { fonts, theme } = useMinionTheme();
   return (
-    <View style={styles.runeColumn}>
-      <View style={styles.runeTitle}><AssetImage radius={9} size={18} source={column.image?.url} /><Text style={{ color: theme.ink, ...fonts.medium, fontSize: 13, lineHeight: 20 }}>{column.name}</Text></View>
-      {column.rows.map((row, index) => <RuneRow key={`${column.name}-${index}`} large={primary && index === 0} row={row} />)}
+    <View style={{ minWidth: 0 }}>
+      <View style={styles.runeTitle}><RuneAsset size={18} url={resolveApiAssetUrl(column.image?.url)} /><Text style={{ color: theme.text, ...fonts.medium, fontSize: 13, lineHeight: 20 }}>{column.name}</Text></View>
+      <View style={{ marginTop: 4 }}>{column.rows.map((row, index) => <RuneRow key={`${column.name}-${index}`} large={primary && index === 0} row={row} />)}</View>
     </View>
   );
 }
 
 function RunePanel({ build }: { build: MobileChampionBuild }) {
-  const { theme } = useMinionTheme();
+  const { theme, fonts } = useMinionTheme();
+  const { width } = useWindowDimensions();
+  const sm = width >= 640;
+  const count = build.runes.primary?.rows[0]?.length ?? 3;
   return (
-    <View style={[styles.largePanel, { backgroundColor: theme.card }]}>
-      <Title>선호 룬</Title>
+    <View style={[styles.largePanel, { backgroundColor: theme.card, padding: sm ? 16 : 12 }]}>
+      <Text style={{ color: theme.ink, ...fonts.bold, fontSize: sm ? 18 : 15, lineHeight: 22, marginBottom: 4 }}>선호 룬</Text>
       {build.runes.primary && build.runes.secondary ? (
         <View style={styles.runeGrid}>
-          <RuneColumn column={build.runes.primary} primary />
-          <View style={styles.runeColumn}><RuneColumn column={build.runes.secondary} />{build.runes.shards.map((row, index) => <RuneRow key={`shard-${index}`} row={row} shard />)}</View>
+          <View style={{ flex: 1.2, minWidth: count * (sm ? 40 : 36) + (count - 1) * (sm ? 8 : 4) }}><RuneColumn column={build.runes.primary} primary /></View>
+          <View style={{ flex: 1, minWidth: sm ? 118 : 98 }}><RuneColumn column={build.runes.secondary} /><View accessibilityLabel="능력치 파편" style={{ marginTop: 8 }}>{build.runes.shards.map((row, index) => <RuneRow key={`shard-${index}`} row={row} shard />)}</View></View>
         </View>
       ) : <Empty>룬 기록이 없습니다.</Empty>}
     </View>
@@ -187,9 +201,8 @@ const styles = StyleSheet.create({
   compactPanel: { borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10 },
   panelHeading: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
   stats: { alignItems: 'baseline', flexDirection: 'row', gap: 6, justifyContent: 'flex-end', minWidth: 80 },
-  runeGrid: { flexDirection: 'row', gap: 4, justifyContent: 'center', marginTop: 4 },
-  runeColumn: { flex: 1, minWidth: 0 },
-  runeTitle: { alignItems: 'center', flexDirection: 'row', gap: 5, height: 30, justifyContent: 'center' },
+  runeGrid: { flexDirection: 'row', gap: 8, alignItems: 'flex-start', alignSelf: 'center', width: '100%', maxWidth: 440, marginTop: 4 },
+  runeTitle: { alignItems: 'center', flexDirection: 'row', gap: 6, height: 32, justifyContent: 'center' },
   runeRow: { alignItems: 'center', flexDirection: 'row', gap: 6, justifyContent: 'center' },
   spellRow: { alignItems: 'center', flexDirection: 'row', gap: 8, minHeight: 42 },
   assetRow: { flexDirection: 'row', gap: 5 },

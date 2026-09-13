@@ -1903,6 +1903,8 @@ export type PlayerBuildEvent = {
   minute: number;
   eventType: "ITEM_PURCHASED" | "ITEM_SOLD" | "ITEM_UNDO" | "SKILL_LEVEL_UP";
   itemId: number | null;
+  beforeItemId: number | null;
+  afterItemId: number | null;
   skillSlot: number | null;
   levelUpType: string | null;
 };
@@ -1921,13 +1923,15 @@ async function getPlayerBuildEventsBase(setId: string): Promise<PlayerBuildEvent
     if (error) throw error;
 
     return (data ?? []).map((row) => {
-      const raw = (row.raw_event_json ?? {}) as { itemId?: number; skillSlot?: number; levelUpType?: string };
+      const raw = (row.raw_event_json ?? {}) as { itemId?: number; beforeId?: number; afterId?: number; skillSlot?: number; levelUpType?: string };
       return {
         playerId: row.player_id as string,
         timestampMs: row.timestamp_ms as number,
         minute: row.minute as number,
         eventType: row.event_type as PlayerBuildEvent["eventType"],
         itemId: typeof raw.itemId === "number" ? raw.itemId : null,
+        beforeItemId: typeof raw.beforeId === "number" ? raw.beforeId : null,
+        afterItemId: typeof raw.afterId === "number" ? raw.afterId : null,
         skillSlot: typeof raw.skillSlot === "number" ? raw.skillSlot : null,
         levelUpType: raw.levelUpType ?? null,
       };

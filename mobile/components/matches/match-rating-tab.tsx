@@ -110,6 +110,7 @@ export function MatchRatingTab({ matchId, panel, setId }: { matchId: string; pan
   const [pending, setPending] = useState(false);
   const [mutationError, setMutationError] = useState<string | null>(null);
   const [localRatings, setLocalRatings] = useState<Record<string, number>>({});
+  const [localReviews, setLocalReviews] = useState<Record<string, string>>({});
   const comments = useMemo(() => playerId ? panel?.comments.filter((item) => item.playerId === playerId) ?? [] : panel?.comments ?? [], [panel, playerId]);
   if (!panel) return <View style={[styles.empty, { borderColor: theme.border }]}><Text style={{ color: theme.muted, ...fonts.regular, fontSize: 14, lineHeight: 22 }}>투표할 세트가 없습니다.</Text></View>;
   const teams = [...new Set(panel.players.map((player) => player.team?.id).filter(Boolean))];
@@ -120,7 +121,7 @@ export function MatchRatingTab({ matchId, panel, setId }: { matchId: string; pan
     if (ratingDisabled) return;
     setSelectedPlayer(player);
     setSelectedRating(localRatings[player.id] ?? player.myRating);
-    setReview('');
+    setReview(localReviews[player.id] ?? player.myReview ?? '');
     setMutationError(null);
     setComposerOpen(true);
   }
@@ -135,9 +136,11 @@ export function MatchRatingTab({ matchId, panel, setId }: { matchId: string; pan
     if (!selectedPlayer || selectedRating == null || pending) return;
     setPending(true);
     setMutationError(null);
+    const submittedReview = review.trim();
     try {
       const saved = await mutateMobileApi<MobileFanRatingMutationDto>(`/api/mobile/v1/matches/${encodeURIComponent(matchId)}/ratings`, 'POST', { playerId: selectedPlayer.id, rating: selectedRating, review, setId });
       setLocalRatings((current) => ({ ...current, [saved.playerId]: saved.rating }));
+      setLocalReviews((current) => ({ ...current, [saved.playerId]: submittedReview }));
       setComposerOpen(false);
       setSelectedPlayer(null);
       setReview('');

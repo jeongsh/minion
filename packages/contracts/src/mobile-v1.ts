@@ -539,6 +539,7 @@ export type MobileMatchSetSummary = {
 
 export type MobileChampionRef = {
   id: EntityId | null;
+  slug?: string | null;
   name: string;
   image: MobileImage | null;
 };
@@ -611,6 +612,28 @@ export type MobileTimelineFrame = {
   redTotalGold: number | null;
 };
 
+export type MobileSetPlayerBuild = {
+  playerId: EntityId;
+  playerName: string;
+  championName: string;
+  championImageUrl: string | null;
+  side: "blue" | "red";
+  version: string;
+  abilityIcons: Record<1 | 2 | 3 | 4, string> | null;
+  runeGrid: {
+    empty?: boolean;
+    primaryTreeName: string;
+    primaryTreeIcon: string;
+    primaryRows: { name: string; url: string; selected: boolean }[][];
+    secondaryTreeName: string;
+    secondaryTreeIcon: string;
+    secondaryRows: { name: string; url: string; selected: boolean }[][];
+    shardRows: { name: string; url: string; selected: boolean }[][];
+  } | null;
+  skillOrder: { level: number; slot: 1 | 2 | 3 | 4 }[];
+  itemPurchaseGroups: { minute: number; purchases: { itemId: number; timestampMs: number; minute: number; sold: boolean }[] }[];
+};
+
 export type MobileSetDetail = {
   id: EntityId;
   setNumber: number;
@@ -629,6 +652,8 @@ export type MobileSetDetail = {
   hasPickBan: boolean;
   draft: { blue: MobileSetDraftSide; red: MobileSetDraftSide } | null;
   playerStats: MobileSetPlayerStat[];
+  /** Optional for previously cached v1 responses. */
+  playerBuilds?: MobileSetPlayerBuild[];
   timelineEvents: MobileTimelineEvent[];
   timelineFrames: MobileTimelineFrame[];
 };
@@ -692,6 +717,7 @@ export type MobileFanRatingPlayer = {
   averageRating: number | null;
   ratingCount: number;
   myRating: number | null;
+  myReview?: string | null;
   isPog: boolean;
 };
 
@@ -1165,7 +1191,7 @@ export type MobileNewsDto = CursorPage<MobileNewsItem> & {
 };
 
 export type MobileSearchResult = {
-  type: "team" | "player" | "match" | "tournament";
+  type: "team" | "player" | "champion" | "match" | "tournament";
   title: string;
   subtitle: string;
   href: string;
