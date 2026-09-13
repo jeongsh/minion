@@ -195,9 +195,12 @@ export function TournamentLoadingSkeleton() {
 export function PredictionLoadingSkeleton() {
   return (
     <LoadingMain className="layout-wide flex flex-col pt-6 sm:pt-8 xl:px-10">
-      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_300px]">
         <div><div className="flex items-center justify-between rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-4"><Skeleton className="h-9 w-44 rounded-lg" /><Skeleton className="h-7 w-24 rounded-lg" /></div><div className="mt-9 space-y-10">{Array.from({ length: 2 }, (_, day) => <section key={day}><Skeleton className="mb-3 h-6 w-24" /><div className="space-y-5">{Array.from({ length: 3 }, (_, row) => <div key={row}><div className="mb-2 flex justify-between"><Skeleton className="h-4 w-32" /><Skeleton className="h-4 w-24" /></div><Skeleton className="h-[76px] w-full rounded-xl" /></div>)}</div></section>)}</div></div>
-        <aside className="hidden overflow-hidden rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-5 xl:block"><SectionTitle /><div className="mt-4"><TableRows count={7} /></div></aside>
+        <aside className="hidden overflow-hidden rounded-[var(--ui-card-radius)] border border-[var(--ui-border)] bg-[var(--ui-surface)] xl:block">
+          <div className="flex items-center justify-between border-b border-[var(--ui-border)] px-4 py-3.5"><Skeleton className="h-[27px] w-24" /><Skeleton className="h-5 w-14" /></div>
+          <div className="divide-y divide-[var(--ui-border)] px-4">{Array.from({ length: 7 }, (_, index) => <div key={index} className="grid grid-cols-[20px_minmax(0,1fr)_auto] items-center gap-2 py-3"><Skeleton className="h-5 w-4" /><Skeleton className="h-6 w-20" /><Skeleton className="h-5 w-16" /></div>)}</div>
+        </aside>
       </div>
     </LoadingMain>
   );
