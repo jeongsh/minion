@@ -227,7 +227,7 @@ export function RecentMatchHistoryModal({
           timerRef.current = setTimeout(() => {
             setVisibleCount((count) => Math.min(count + 3, rows.length));
             setLoading(false);
-          }, 450);
+          }, 0);
         }
       },
       { root, rootMargin: "120px 0px" },

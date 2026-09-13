@@ -145,7 +145,7 @@ export function ChampionDetail() {
   const [positionOpen, setPositionOpen] = useState(false);
   const [championOpen, setChampionOpen] = useState(false);
   const path = useMemo(() => buildPath(slug, { season, tournament, patch, position }), [patch, position, season, slug, tournament]);
-  const { data, error, loading, refresh } = useCachedQuery<MobileChampionDetailDto>(path, { enabled: Boolean(slug) });
+  const { data, error, loading, refresh } = useCachedQuery<MobileChampionDetailDto>(path, { enabled: Boolean(slug), staleTimeMs: 30_000 });
   useEffect(() => { if (tab === 'duos' && data && data.selectedPosition !== 'BOT' && data.selectedPosition !== 'SUP') setTab('stats'); }, [data, tab]);
 
   if (loading && !data) return <MinionScreen><Loading /></MinionScreen>;

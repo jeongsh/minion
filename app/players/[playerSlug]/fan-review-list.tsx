@@ -69,7 +69,7 @@ export function FanReviewList({ items }: { items: FanReviewItem[] }) {
           timerRef.current = setTimeout(() => {
             setVisibleCount((count) => Math.min(count + PAGE_SIZE, items.length));
             setLoading(false);
-          }, 450);
+          }, 0);
         }
       },
       { rootMargin: "120px 0px" },

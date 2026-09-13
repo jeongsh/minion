@@ -851,7 +851,7 @@ async function getChampionPageReferenceDataBase(): Promise<ChampionPageReference
 /** Small/reference entities plus match/set scope metadata; all underlying pages are shared-cache backed. */
 export const getChampionPageReferenceData = cache(getChampionPageReferenceDataBase);
 
-async function getChampionBySlugBase(slug: string): Promise<Champion | null> {
+async function getChampionBySlugBase(slug: string, knownChampions?: readonly Champion[]): Promise<Champion | null> {
   let decoded = slug;
   try {
     decoded = decodeURIComponent(slug);
@@ -860,7 +860,11 @@ async function getChampionBySlugBase(slug: string): Promise<Champion | null> {
   }
   const normalized = decoded.trim().toLocaleLowerCase("en-US");
   if (!normalized) return null;
-  const { champions } = await getChampionPageReferenceData();
+  // Metadata only needs champion identity. API handlers can reuse their reference
+  // snapshot; React cache() does not memoize calls outside Server Components.
+  const champions = knownChampions ?? (await collectCountedKeysetPages(queryChampionsPageCached))
+    .map(mapChampion)
+    .sort((a, b) => a.name.localeCompare(b.name, "ko"));
   return (
     champions.find(
       (champion) => champion.slug.toLocaleLowerCase("en-US") === normalized,
@@ -1068,9 +1072,10 @@ async function getChampionDetailDataBase(
   championId: string,
   setIds: readonly string[],
   includeBuildEvents = true,
+  referenceData?: ChampionPageReferenceData,
 ): Promise<ChampionPageData> {
   const [references, appearances] = await Promise.all([
-    getChampionPageReferenceData(),
+    referenceData ?? getChampionPageReferenceData(),
     collectCountedKeysetPages((afterId) => queryChampionAppearancesPageCached(championId, afterId)),
   ]);
   const scopeIds = new Set(setIds);

@@ -340,10 +340,16 @@ export async function PlayerDetailView({
   // 이 선수의 구간 스탯라인은 이미 받아온 playerOwnLines 에서 걸러 쓴다(중복 쿼리 제거).
   const segmentSetIdSet = new Set(segmentSetIds);
   const playerSegmentLines = playerOwnLines.filter((line) => segmentSetIdSet.has(line.setId));
-  const segmentData = segmentSetIds.length
-    ? await getPlayerPageSegmentData(segmentSetIds)
-    : { radarBenchmarkByPosition: {}, pickBanByChampion: {}, mainUserIdsByChampion: {} };
   const playerLines = enrichLines(playerSegmentLines, segmentSets, segmentMatches);
+  const itemVersions = uniqueDdragonVersionsForPatches(playerLines.map((line) => line.set.patch));
+  // Catalogs depend on the selected games, not on the league benchmark query.
+  const [segmentData, versionedAssets] = await Promise.all([
+    getPlayerPageSegmentData(segmentSetIds),
+    Promise.all(itemVersions.map(async (version) => {
+      const [spells, runeCatalog] = await Promise.all([fetchSpellCatalog(version), fetchRuneCatalog(version)]);
+      return [version, { spells, runeCatalog }] as const;
+    })),
+  ]);
   const radarBenchmark = segmentData.radarBenchmarkByPosition[player.position];
   const aggregateStats = aggregateLines(playerLines, radarBenchmark);
   const playerTeam = teams.find((team) => team.id === player.teamId);
@@ -428,13 +434,6 @@ export async function PlayerDetailView({
     playerLines.length === 0
       ? "-"
       : `${playerLines.reduce((sum, line) => sum + line.kills, 0)} / ${playerLines.reduce((sum, line) => sum + line.deaths, 0)} / ${playerLines.reduce((sum, line) => sum + line.assists, 0)}`;
-  const itemVersions = uniqueDdragonVersionsForPatches(playerLines.map((line) => line.set.patch));
-  const versionedAssets = await Promise.all(
-    itemVersions.map(async (version) => {
-      const [spells, runeCatalog] = await Promise.all([fetchSpellCatalog(version), fetchRuneCatalog(version)]);
-      return [version, { spells, runeCatalog }] as const;
-    }),
-  );
   const spellsByVersion = Object.fromEntries(versionedAssets.map(([version, assets]) => [version, assets.spells]));
   const runeCatalogByVersion = Object.fromEntries(versionedAssets.map(([version, assets]) => [version, assets.runeCatalog]));
 

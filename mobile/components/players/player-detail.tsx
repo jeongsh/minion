@@ -172,7 +172,7 @@ export function PlayerDetail() {
     const base = `/api/mobile/v1/players/${encodeURIComponent(playerSlug ?? '')}?view=${PLAYER_DETAIL_VIEW_VERSION}`;
     return selectedSegment ? `${base}&segment=${encodeURIComponent(selectedSegment)}` : base;
   }, [playerSlug, selectedSegment]);
-  const { data, error, loading, refresh } = useCachedQuery<MobilePlayerDetailDto>(path, { enabled: Boolean(playerSlug) });
+  const { data, error, loading, refresh } = useCachedQuery<MobilePlayerDetailDto>(path, { enabled: Boolean(playerSlug), staleTimeMs: 30_000 });
   const playerData = isPlayerDetailDto(data) ? data : null;
 
   if (error && !playerData) return <MinionScreen><ErrorState onRetry={refresh} title={error} /></MinionScreen>;

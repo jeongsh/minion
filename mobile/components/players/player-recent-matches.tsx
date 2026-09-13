@@ -137,7 +137,7 @@ function MatchHistoryModal({ matches, onClose, open }: { matches: MobilePlayerRe
       setVisibleCount((count) => Math.min(count + 3, matches.length));
       loadingRef.current = false;
       setLoading(false);
-    }, 450);
+    }, 0);
   }, [matches.length, visibleCount]);
 
   const loadIfNearEnd = useCallback(() => {
