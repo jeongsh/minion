@@ -26,7 +26,7 @@ function isActive(pathname: string, href: DockItem['href']) {
   const fanTalkRoute = pathname === '/community' || pathname.startsWith('/community/') || /^\/fan\/[^/]+\/community(?:\/|$)/.test(pathname);
   if (href === '/fan') return !fanTalkRoute && (pathname === '/fan' || pathname.startsWith('/fan/'));
   if (href === '/community') return fanTalkRoute;
-  if (href === '/schedule') return ['/schedule', '/matches', '/tournaments', '/predictions'].some((path) => pathname.startsWith(path));
+  if (href === '/schedule') return ['/schedule', '/matches'].some((path) => pathname.startsWith(path));
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 

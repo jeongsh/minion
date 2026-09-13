@@ -93,7 +93,7 @@ function isGlobalNavActive(pathname: string, href: string) {
   if (href === "/fan") return !fanTalkRoute && (pathname === "/fan" || pathname.startsWith("/fan/"));
   if (href === "/community") return fanTalkRoute;
   if (href === "/schedule") {
-    return pathname.startsWith("/schedule") || pathname.startsWith("/matches/") || pathname.startsWith("/tournaments") || pathname.startsWith("/predictions");
+    return pathname.startsWith("/schedule") || pathname.startsWith("/matches/");
   }
   if (href === "/teams") return pathname === "/teams" || pathname.startsWith("/teams/");
   return pathname === href || pathname.startsWith(`${href}/`);
