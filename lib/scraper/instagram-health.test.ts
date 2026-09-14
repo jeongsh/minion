@@ -10,7 +10,9 @@ test("cookie configuration requires a single sessionid without revealing values"
   assert.deepEqual(parseInstagramCookie("Cookie: sessionid=secret%3Avalue; csrftoken=csrf; ds_user_id=123"), [
     { name: "sessionid", value: "secret%3Avalue" }, { name: "csrftoken", value: "csrf" }, { name: "ds_user_id", value: "123" },
   ]);
-  for (const value of ["123%3Aprivate-value", "csrftoken=private-value", "sessionid=", '"sessionid=private-value"', "sessionid=private-value; sessionid=other", "sessionid=private-value\ncsrftoken=other"]) {
+  assert.deepEqual(parseInstagramCookie("123%3Atest-session%3A1%3Atest-signature"), [{ name: "sessionid", value: "123%3Atest-session%3A1%3Atest-signature" }]);
+  assert.deepEqual(parseInstagramCookie("123:test-session:1:test-signature"), [{ name: "sessionid", value: "123:test-session:1:test-signature" }]);
+  for (const value of ["123456", "private-value", "csrftoken=private-value", "sessionid=", '"sessionid=private-value"', "sessionid=private-value; sessionid=other", "sessionid=private-value\ncsrftoken=other"]) {
     assert.throws(() => parseInstagramCookie(value), (error: Error) => {
       assert.match(error.message, /^INSTAGRAM_COOKIE_FORMAT:/);
       assert.ok(!error.message.includes("private-value"));

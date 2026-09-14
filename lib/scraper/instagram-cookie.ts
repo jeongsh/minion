@@ -1,9 +1,12 @@
 /** Validate configuration before making a request; never include cookie values in errors. */
 export function parseInstagramCookie(cookieString: string): { name: string; value: string }[] {
   const invalid = () => new Error(
-    "INSTAGRAM_COOKIE_FORMAT: expected a Cookie header containing sessionid=VALUE; do not paste only the Value, an email code, or a password.",
+    "INSTAGRAM_COOKIE_FORMAT: expected sessionid=VALUE or its copied session Value; email codes and passwords are not session cookies.",
   );
-  const header = cookieString.trim().replace(/^Cookie:\s*/i, "");
+  let header = cookieString.trim().replace(/^Cookie:\s*/i, "");
+  // DevTools copies only Value. Recognize the delimited session token, not a
+  // generic string (which could be an email verification code or password).
+  if (/^\d+(?::|%3a)[A-Za-z0-9%:._~+-]+$/i.test(header)) header = `sessionid=${header}`;
   if (!header || /[\r\n]/.test(header)) throw invalid();
   const cookies = header.split(";").filter((pair) => pair.trim()).map((pair) => {
     const separator = pair.indexOf("=");
