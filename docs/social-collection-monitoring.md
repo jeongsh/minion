@@ -19,6 +19,7 @@
    - `Instagram session check`를 `username=t1lol`로 실행한다. HTTP 429라면 `Retry-After`를 따르고 즉시 다시 실행하지 않는다. 헤더가 없으면 수동 반복 실행을 멈추고 다음 예약 실행까지 기다린다.
    - 로컬에서는 `.env.local`에 갱신한 쿠키를 설정한 뒤 `node --experimental-strip-types scripts/sync-instagram.ts --check-session --username=t1lol`로 확인한다. 이 명령은 Supabase/R2 키 없이도 실행되며, 비로그인 조회로 성공 처리하지 않는다.
    - 세션 확인 성공 후 실제 전체 수집의 `healthy`, `checked`, `errors`와 사이트 피드까지 확인해야 복구 완료다. 세션 확인 워크플로 성공만으로 전체 수집이 정상이라는 뜻은 아니다.
+   - 누락분 복구를 위해 `Instagram Sync`를 수동 실행할 때는 기본값인 `no_notify=true`를 유지한다. 예약 실행은 새 게시물 알림을 계속 보내며, 수동 실행에서도 새 글 알림이 필요한 경우에만 `no_notify=false`를 선택한다.
    현재 PC에서 공개 프로필이 정상 조회되는 경우 `node --experimental-strip-types scripts/sync-instagram.ts --only=teams --no-notify`로 운영자 확인하에 보충할 수 있다. 이것이 서버 로그인 문제까지 해결했다는 뜻은 아니다. `--no-notify`는 과거 누락분 보충 시 팬 알림을 발송하지 않는다.
 4. 수정은 실제 API·DB·사이트 결과로 검증한다. 사용자 작업 파일은 보존한다. 이미 저장된 데이터는 삭제하지 않는다.
 5. 스케줄러 자체가 멈추면 같은 스케줄러의 감시도 멈출 수 있다. 필요 시 운영자가 네 워크플로의 마지막 실행 시간을 확인한다.
