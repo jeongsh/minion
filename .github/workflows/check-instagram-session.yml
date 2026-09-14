@@ -1,0 +1,36 @@
+name: Instagram session check
+
+on:
+  workflow_dispatch:
+    inputs:
+      username:
+        description: Public profile to check with the saved session (no data writes)
+        type: string
+        default: t1lol
+
+permissions:
+  contents: read
+
+# A connection check must not run alongside collection or reset the collection
+# monitor's incident state. This workflow is intentionally separate from sync.
+concurrency:
+  group: instagram-sync
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install chromium --with-deps
+      - name: Check saved session without public fallback or data writes
+        env:
+          INSTAGRAM_SESSION_COOKIE: ${{ secrets.INSTAGRAM_SESSION_COOKIE }}
+          INSTAGRAM_USERNAME: ${{ inputs.username }}
+        run: node --experimental-strip-types scripts/sync-instagram.ts --check-session --username="$INSTAGRAM_USERNAME"

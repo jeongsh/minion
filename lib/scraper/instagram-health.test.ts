@@ -3,14 +3,18 @@ import assert from "node:assert/strict";
 import { getBrowser, closeBrowser, scrapeInstagramPosts } from "./instagram-browser.ts";
 import { syncOwnerPosts } from "../sync/instagram.ts";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { hasConnectionFailure } from "../sync/social-health.ts";
 
 after(closeBrowser);
-async function fixture(html: (cookie: string) => string, action: () => Promise<void>) {
+async function fixture(html: (cookie: string, url: string) => string | { body: string; status?: number; contentType?: string; headers?: Record<string, string> }, action: () => Promise<void>) {
   const browser = await getBrowser();
   const original = browser.newContext.bind(browser);
   browser.newContext = async (...args) => {
     const context = await original(...args);
-    await context.route("**/*", (route) => route.fulfill({ contentType: "text/html; charset=utf-8", body: html(route.request().headers().cookie ?? "") }));
+    await context.route("**/*", (route) => {
+      const response = html(route.request().headers().cookie ?? "", route.request().url());
+      return route.fulfill({ contentType: "text/html; charset=utf-8", ...(typeof response === "string" ? { body: response } : response) });
+    });
     return context;
   };
   try { await action(); } finally { browser.newContext = original; }
@@ -20,9 +24,69 @@ test("blank Instagram output is an error, not a healthy zero-post sync", async (
     await assert.rejects(scrapeInstagramPosts("test"), /INSTAGRAM_EMPTY/);
   });
 });
-test("login page is reported explicitly", async () => {
+test("public login gate is reported without claiming an expired saved session", async () => {
   await fixture(() => "<html><title>Login • Instagram</title></html>", async () => {
-    await assert.rejects(scrapeInstagramPosts("test"), /INSTAGRAM_LOGIN/);
+    await assert.rejects(scrapeInstagramPosts("test"), (error: Error) => {
+      assert.match(error.message, /INSTAGRAM_LOGIN_REQUIRED:/);
+      assert.equal(hasConnectionFailure("sync-instagram.yml", `[error] ${error.message}`), false);
+      return true;
+    });
+  });
+});
+
+test("saved-session login failure is retained when the public retry also requires login", async () => {
+  let attempts = 0;
+  await fixture(() => { attempts++; return "<title>Login • Instagram</title>"; }, async () => {
+    await assert.rejects(scrapeInstagramPosts("test", "sessionid=expired"), (error: Error) => {
+      assert.equal(hasConnectionFailure("sync-instagram.yml", `[error] ${error.message}`), true);
+      return true;
+    });
+    assert.equal(attempts, 2);
+  });
+});
+
+test("a rate-limited public retry stays a rate limit, not a session-expiry alert", async () => {
+  let attempts = 0;
+  await fixture((cookie) => {
+    attempts++;
+    return cookie.includes("sessionid=") ? "<title>Login • Instagram</title>" : { status: 429, headers: { "retry-after": "120" }, body: "Too Many Requests" };
+  }, async () => {
+    await assert.rejects(scrapeInstagramPosts("test", "sessionid=expired"), (error: Error) => {
+      assert.match(error.message, /INSTAGRAM_HTTP_429:.*Retry-After=120/);
+      assert.equal(hasConnectionFailure("sync-instagram.yml", `[error] ${error.message}`), false);
+      return true;
+    });
+    assert.equal(attempts, 2);
+  });
+});
+
+test("session verification cannot pass by silently retrying without the saved cookie", async () => {
+  let attempts = 0;
+  await fixture(() => { attempts++; return "<title>Login • Instagram</title>"; }, async () => {
+    await assert.rejects(scrapeInstagramPosts("test", "sessionid=expired", 12, { allowPublicFallback: false }), /INSTAGRAM_SESSION_REJECTED:/);
+    assert.equal(attempts, 1);
+  });
+});
+
+test("feed API rate limits stop even when the profile document returned HTTP 200", async () => {
+  await fixture((_cookie, url) => url.includes("/graphql/")
+    ? { status: 429, body: "{}", contentType: "application/json", headers: { "retry-after": "60" } }
+    : '<title>Instagram</title><script>fetch("/graphql/query")</script>', async () => {
+    await assert.rejects(scrapeInstagramPosts("test", "sessionid=valid"), /INSTAGRAM_HTTP_429:.*Retry-After=60/);
+  });
+});
+
+test("pagination preserves HTTP 429 instead of mislabeling status fail as a login error", async () => {
+  const initial = { data: { user: { id: "123", edge_owner_to_timeline_media: { count: 2, edges: [], page_info: { has_next_page: true, end_cursor: "next" } } } } };
+  let requests = 0;
+  await fixture((_cookie, url) => {
+    requests++;
+    if (url.includes("/graphql/")) return { body: JSON.stringify(initial), contentType: "application/json" };
+    if (url.includes("/api/v1/feed/")) return { status: 429, body: '{"status":"fail"}', contentType: "application/json", headers: { "retry-after": "90" } };
+    return '<title>Instagram</title><script>fetch("/graphql/query")</script>';
+  }, async () => {
+    await assert.rejects(scrapeInstagramPosts("test", "sessionid=valid"), /INSTAGRAM_HTTP_429:.*Retry-After=90/);
+    assert.equal(requests, 3);
   });
 });
 test("expired cookie retries public profile and reads its prefetched posts", async () => {

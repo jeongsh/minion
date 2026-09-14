@@ -8,6 +8,7 @@
 import { chromium, type Browser } from "playwright";
 
 import type { NormalizedPost, NormalizedStory } from "../sync/instagram.ts";
+import { instagramLoginError } from "./instagram-failure.ts";
 
 // ─── 브라우저 싱글턴 ────────────────────────────────────────────
 
@@ -307,14 +308,24 @@ export async function scrapeInstagramPosts(
   username: string,
   sessionCookie?: string,
   maxPosts = 500,
+  options: { allowPublicFallback?: boolean } = {},
 ): Promise<NormalizedPost[]> {
   try {
     return await scrapeInstagramPostsOnce(username, sessionCookie, maxPosts);
   } catch (error) {
     // Public profile collection can recover from a stale saved login session.
-    if (sessionCookie && error instanceof Error && /INSTAGRAM_(EMPTY|LOGIN)/.test(error.message)) {
+    if (options.allowPublicFallback !== false && sessionCookie && error instanceof Error && /INSTAGRAM_(EMPTY|SESSION_REJECTED):/.test(error.message)) {
       console.warn(`[recovery] @${username}: saved session unusable; retrying the public profile once`);
-      return scrapeInstagramPostsOnce(username, undefined, maxPosts);
+      try {
+        return await scrapeInstagramPostsOnce(username, undefined, maxPosts);
+      } catch (publicError) {
+        // Preserve a known saved-session rejection only when the public retry also
+        // asks for login. Rate limits and other access errors keep their own cause.
+        if (error.message.startsWith("INSTAGRAM_SESSION_REJECTED:") && publicError instanceof Error && publicError.message.startsWith("INSTAGRAM_LOGIN_REQUIRED:")) {
+          throw error;
+        }
+        throw publicError;
+      }
     }
     throw error;
   }
@@ -336,10 +347,16 @@ async function scrapeInstagramPostsOnce(
     let endCursor = "";
     let hasNextPage = false;
     let confirmedEmpty = false;
+    let rateLimitError: Error | null = null;
 
     page.on("response", async (res) => {
       try {
         const url = res.url();
+        if (new URL(url).hostname !== "www.instagram.com") return;
+        if (res.status() === 429 && /\/graphql|\/api\//.test(url)) {
+          rateLimitError = new Error(`INSTAGRAM_HTTP_429: @${username}; Retry-After=${res.headers()["retry-after"] ?? "unspecified"}`);
+          return;
+        }
         const ct = res.headers()["content-type"] ?? "";
         if (!ct.includes("json") && !ct.includes("javascript")) return;
         if (
@@ -396,16 +413,18 @@ async function scrapeInstagramPostsOnce(
       waitUntil: "networkidle",
       timeout: 40_000,
     });
-    if (navigation && navigation.status() >= 400) throw new Error(`INSTAGRAM_HTTP_${navigation.status()}: @${username}`);
+    if (navigation?.status() === 401) throw instagramLoginError(username, Boolean(sessionCookie));
+    if (navigation && navigation.status() >= 400) throw new Error(`INSTAGRAM_HTTP_${navigation.status()}: @${username}; Retry-After=${navigation.headers()["retry-after"] ?? "unspecified"}`);
     await page.waitForTimeout(3_000);
+    if (rateLimitError) throw rateLimitError;
 
     // 로그인 상태 확인
     const title = await page.title();
     if (/\/(challenge|checkpoint)\//.test(page.url())) {
-      throw new Error(`INSTAGRAM_CHALLENGE: @${username}; account verification required`);
+      throw new Error(`INSTAGRAM_${sessionCookie ? "SESSION_" : ""}CHALLENGE: @${username}; account verification required`);
     }
     if (title.toLowerCase().includes("login") || title.includes("로그인") || page.url().includes("/accounts/login")) {
-      throw new Error(`INSTAGRAM_LOGIN: @${username}; login session expired or login required`);
+      throw instagramLoginError(username, Boolean(sessionCookie));
     }
 
     // userId를 페이지 JS 상태에서 추출 (web_profile_info가 막혀도 동작)
@@ -446,23 +465,28 @@ async function scrapeInstagramPostsOnce(
       console.log(`  [paginate] cursor=${cursor.slice(0, 20)}...`);
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const json: any = await page.evaluate(async ({ uid, cur }) => {
+      const result: { status: number; retryAfter: string | null; json: any } | null = await page.evaluate(async ({ uid, cur }) => {
         try {
           const res = await fetch(
             `https://www.instagram.com/api/v1/feed/user/${uid}/?count=12&max_id=${encodeURIComponent(cur)}`,
             { credentials: "include", headers: { "X-Requested-With": "XMLHttpRequest", "X-IG-App-ID": "936619743392459" } },
           );
-          return res.json();
+          return { status: res.status, retryAfter: res.headers.get("retry-after"), json: await res.json().catch(() => null) };
         } catch {
           return null;
         }
       }, { uid: userId, cur: cursor }).catch(() => null);
 
+      if (result?.status === 401) throw instagramLoginError(username, Boolean(sessionCookie));
+      if (result && result.status >= 400) throw new Error(`INSTAGRAM_HTTP_${result.status}: @${username}; Retry-After=${result.retryAfter ?? "unspecified"}`);
+      const json = result?.json;
       if (!json) throw new Error(`INSTAGRAM_PAGINATION: @${username}; empty API response`);
 
-      if (json.require_login || json.status === "fail") {
-        throw new Error(`INSTAGRAM_LOGIN: @${username}; pagination rejected`);
+      if (json.challenge || json.message === "challenge_required" || json.message === "checkpoint_required") {
+        throw new Error(`INSTAGRAM_${sessionCookie ? "SESSION_" : ""}CHALLENGE: @${username}; account verification required`);
       }
+      if (json.require_login || json.message === "login_required") throw instagramLoginError(username, Boolean(sessionCookie));
+      if (json.status === "fail") throw new Error(`INSTAGRAM_PAGINATION: @${username}; feed request rejected`);
 
       hasNextPage = json.more_available ?? false;
       endCursor = json.next_max_id ?? "";
