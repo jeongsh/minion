@@ -9,6 +9,7 @@ import { chromium, type Browser } from "playwright";
 
 import type { NormalizedPost, NormalizedStory } from "../sync/instagram.ts";
 import { instagramLoginError } from "./instagram-failure.ts";
+import { parseInstagramCookie } from "./instagram-cookie.ts";
 
 // ─── 브라우저 싱글턴 ────────────────────────────────────────────
 
@@ -34,21 +35,6 @@ export async function closeBrowser(): Promise<void> {
     await _browser.close();
     _browser = null;
   }
-}
-
-// ─── 쿠키 파싱 ──────────────────────────────────────────────────
-
-function parseCookieString(cookieStr: string) {
-  return cookieStr
-    .split(";")
-    .map((pair) => {
-      const idx = pair.indexOf("=");
-      if (idx === -1) return null;
-      const name = pair.slice(0, idx).trim();
-      const value = pair.slice(idx + 1).trim();
-      return name ? { name, value } : null;
-    })
-    .filter((c): c is { name: string; value: string } => c !== null);
 }
 
 // ─── 응답 파싱: 게시물 ──────────────────────────────────────────
@@ -269,6 +255,7 @@ function parseStories(data: any): NormalizedStory[] {
 // ─── 공통: 새 브라우저 컨텍스트 생성 ────────────────────────────
 
 async function createContext(sessionCookie?: string) {
+  const cookies = sessionCookie ? parseInstagramCookie(sessionCookie) : [];
   const browser = await getBrowser();
   const context = await browser.newContext({
     userAgent:
@@ -289,7 +276,7 @@ async function createContext(sessionCookie?: string) {
 
   if (sessionCookie) {
     await context.addCookies(
-      parseCookieString(sessionCookie).map((c) => ({
+      cookies.map((c) => ({
         ...c,
         domain: ".instagram.com",
         path: "/",

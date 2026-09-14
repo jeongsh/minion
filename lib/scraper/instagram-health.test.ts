@@ -4,6 +4,21 @@ import { getBrowser, closeBrowser, scrapeInstagramPosts } from "./instagram-brow
 import { syncOwnerPosts } from "../sync/instagram.ts";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { hasConnectionFailure } from "../sync/social-health.ts";
+import { parseInstagramCookie } from "./instagram-cookie.ts";
+
+test("cookie configuration requires a single sessionid without revealing values", () => {
+  assert.deepEqual(parseInstagramCookie("Cookie: sessionid=secret%3Avalue; csrftoken=csrf; ds_user_id=123"), [
+    { name: "sessionid", value: "secret%3Avalue" }, { name: "csrftoken", value: "csrf" }, { name: "ds_user_id", value: "123" },
+  ]);
+  for (const value of ["123%3Aprivate-value", "csrftoken=private-value", "sessionid=", '"sessionid=private-value"', "sessionid=private-value; sessionid=other", "sessionid=private-value\ncsrftoken=other"]) {
+    assert.throws(() => parseInstagramCookie(value), (error: Error) => {
+      assert.match(error.message, /^INSTAGRAM_COOKIE_FORMAT:/);
+      assert.ok(!error.message.includes("private-value"));
+      assert.equal(hasConnectionFailure("sync-instagram.yml", `[error] ${error.message}`), false);
+      return true;
+    });
+  }
+});
 
 after(closeBrowser);
 async function fixture(html: (cookie: string, url: string) => string | { body: string; status?: number; contentType?: string; headers?: Record<string, string> }, action: () => Promise<void>) {

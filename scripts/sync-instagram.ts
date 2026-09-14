@@ -25,6 +25,7 @@ import {
 } from "../lib/sync/instagram.ts";
 import { closeBrowser, scrapeInstagramPosts } from "../lib/scraper/instagram-browser.ts";
 import { instagramFailureKind, instagramStopReason } from "../lib/scraper/instagram-failure.ts";
+import { parseInstagramCookie } from "../lib/scraper/instagram-cookie.ts";
 
 const argv = process.argv.slice(2);
 const argSet = new Set(argv);
@@ -51,10 +52,12 @@ async function main() {
   loadEnvFile();
 
   const sessionCookie = process.env.INSTAGRAM_SESSION_COOKIE?.trim();
+  if (sessionCookie) parseInstagramCookie(sessionCookie);
   if (argSet.has("--check-session")) {
     const username = argv.find((arg) => arg.startsWith("--username="))?.slice("--username=".length) ?? "t1lol";
     if (!/^[A-Za-z0-9._]{1,30}$/.test(username)) throw new Error("Invalid Instagram username.");
     if (!sessionCookie) throw new Error("INSTAGRAM_SESSION_COOKIE is missing; add the refreshed session before checking.");
+    console.log("[session] Cookie format valid; non-empty sessionid present. Values are not logged.");
     const posts = await scrapeInstagramPosts(username, sessionCookie, 12, { allowPublicFallback: false });
     if (posts.length === 0) throw new Error("Instagram session check inconclusive: no readable posts.");
     const summary = `Instagram saved-session check passed: @${username}, checked=${posts.length}. No posts saved or notifications sent.`;

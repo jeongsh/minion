@@ -15,7 +15,7 @@
 1. GitHub `2yongtech2/minion`의 네 수집/감시 워크플로 최신 실행과 summary를 확인한다. 성공 배지만 보지 말고 checked/failed/errors와 원본 대비 누락도 확인한다.
 2. YouTube WebSub 503 중에도 API 수집이 정상인지 확인한다. API 키/쿼터 오류는 원인을 구분하고 반복 호출을 피한다. 수동 보충은 `node --experimental-strip-types scripts/sync-youtube-videos.ts --recent --no-notify`로 할 수 있다.
 3. Instagram 로그인/인증 확인/접근 제한은 오류를 숨기거나 우회하지 않는다. 공개 프로필 재시도 후에도 실패하면 세션 재인증 필요 여부와 응답 형식을 조사한다. 모든 계정이 빈 결과인 경우 성공으로 표시하지 않는다.
-   - 수집용 Instagram 계정의 로그인·추가 인증을 정상적으로 완료한 뒤, 해당 세션의 Cookie 헤더(`sessionid=...; csrftoken=...; ds_user_id=...`)를 GitHub `2yongtech2/minion` → Settings → Secrets and variables → Actions의 기존 `INSTAGRAM_SESSION_COOKIE`에 갱신한다. 쿠키 값은 채팅·로그·커밋에 남기지 않는다.
+   - 수집용 Instagram 계정의 로그인·추가 인증을 정상적으로 완료한 뒤, 해당 세션의 Cookie 헤더(`sessionid=...; csrftoken=...; ds_user_id=...`)를 GitHub `2yongtech2/minion` → Settings → Secrets and variables → Actions의 기존 `INSTAGRAM_SESSION_COOKIE`에 갱신한다. 쿠키 값은 채팅·로그·커밋에 남기지 않는다. Value만 복사했다면 반드시 앞에 `sessionid=`를 붙인다. 이메일 인증 코드·비밀번호는 입력하지 않는다. 형식 오류는 네트워크 요청 전에 `INSTAGRAM_COOKIE_FORMAT`으로 중단하며 세션 만료로 간주하지 않는다.
    - `Instagram session check`를 `username=t1lol`로 실행한다. HTTP 429라면 `Retry-After`를 따르고 즉시 다시 실행하지 않는다. 헤더가 없으면 수동 반복 실행을 멈추고 다음 예약 실행까지 기다린다.
    - 로컬에서는 `.env.local`에 갱신한 쿠키를 설정한 뒤 `node --experimental-strip-types scripts/sync-instagram.ts --check-session --username=t1lol`로 확인한다. 이 명령은 Supabase/R2 키 없이도 실행되며, 비로그인 조회로 성공 처리하지 않는다.
    - 세션 확인 성공 후 실제 전체 수집의 `healthy`, `checked`, `errors`와 사이트 피드까지 확인해야 복구 완료다. 세션 확인 워크플로 성공만으로 전체 수집이 정상이라는 뜻은 아니다.
