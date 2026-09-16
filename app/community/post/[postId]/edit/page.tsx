@@ -8,6 +8,7 @@ import { categoriesForScope } from "@/lib/community/boards";
 import { getExistingGuestKey } from "@/lib/community/guest-identity";
 import { getPostById } from "@/lib/data/community";
 import { getUserMiniconPacks } from "@/lib/data/minicons";
+import { canManageStudioContent } from "@/lib/community/ai-studio-management";
 
 export const metadata: Metadata = { title: "글 수정", robots: { index: false } };
 
@@ -16,7 +17,7 @@ export default async function EditCommunityPostPage({ params }: { params: Promis
   const [post, user, guestKey] = await Promise.all([getPostById(postId), getCurrentUser(), getExistingGuestKey()]);
   const isGuestOwner = Boolean(post?.guestKey && !post.authorId && post.guestKey === guestKey);
   if (!user && !isGuestOwner) redirect(`/login?next=/community/post/${postId}/edit`);
-  if (!post || post.siteScope !== "hub" || (post.authorId !== user?.id && !isGuestOwner)) notFound();
+  if (!post || post.siteScope !== "hub" || (post.authorId !== user?.id && !isGuestOwner && !await canManageStudioContent(post))) notFound();
   const miniconPacks = await getUserMiniconPacks(user?.id);
 
   return (

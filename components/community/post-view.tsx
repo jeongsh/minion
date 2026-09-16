@@ -17,8 +17,9 @@ import type { BoardScope } from "@/lib/community/boards";
 import { blindDescription, blindLabel } from "@/lib/community/moderation-labels";
 import type { CommunityCommentItem, CommunityPostDetail, ReactionState } from "@/lib/community/types";
 import type { MiniconPack } from "@/lib/minicons/types";
+import { canManageStudioContent } from "@/lib/community/ai-studio-management";
 
-export function PostView({
+export async function PostView({
   post,
   comments,
   reaction,
@@ -43,6 +44,8 @@ export function PostView({
   currentGuestKey?: string | null;
   miniconPacks?: MiniconPack[];
 }) {
+  canManage = canManage || await canManageStudioContent(post);
+  const managedAiCommentIds = (await Promise.all(comments.map(async comment => await canManageStudioContent(comment) ? comment.id : null))).filter((id): id is string => id !== null);
   const boardHref = scope === "team" && teamSlug ? `/fan/${teamSlug}/community` : "/community";
   const blinded = Boolean(post.blindedAt);
   const isGuestOwner = Boolean(post.guestKey && post.guestKey === currentGuestKey);
@@ -149,7 +152,7 @@ export function PostView({
           <div className="hidden px-4 pb-5 md:block md:px-8 md:pb-8">
             <CommentForm postId={post.id} scope={scope} teamSlug={teamSlug} isGuest={!viewerId} miniconPacks={miniconPacks} />
           </div>
-        <CommentList comments={comments} commentReactions={commentReactions} scope={scope} teamSlug={teamSlug} viewerId={viewerId} currentGuestKey={currentGuestKey} miniconPacks={miniconPacks} />
+        <CommentList comments={comments} commentReactions={commentReactions} scope={scope} teamSlug={teamSlug} viewerId={viewerId} currentGuestKey={currentGuestKey} miniconPacks={miniconPacks} managedAiCommentIds={managedAiCommentIds} />
         </section>
       </SurfacePanel>
       <div className="fixed inset-x-0 bottom-0 z-50 md:hidden">

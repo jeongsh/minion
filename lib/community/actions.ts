@@ -10,6 +10,7 @@ import { headers } from "next/headers";
 import { after } from "next/server";
 
 import { isCurrentUserAdmin } from "@/lib/auth/admin";
+import { canManageStudioContent, stopStudioReservations } from "@/lib/community/ai-studio-management";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { recordLpEvent } from "@/lib/rank/record-lp";
 import { HOME_PUBLIC_DATA_TAG } from "@/lib/data/home-cache";
@@ -329,12 +330,13 @@ export async function updatePostAction(input: {
   const user = await getCurrentUser();
   const post = await getPostById(input.postId);
   const isRegisteredOwner = Boolean(user && post?.authorId === user.id);
+  const isAiAdmin = await canManageStudioContent(post);
   const isGuestOwner = Boolean(
     post?.guestKey
     && !post.authorId
     && post.guestKey === await getExistingGuestKey(),
   );
-  if (!post || (!isRegisteredOwner && !isGuestOwner) || post.siteScope !== input.scope) {
+  if (!post || (!isRegisteredOwner && !isGuestOwner && !isAiAdmin) || post.siteScope !== input.scope) {
     return { ok: false, error: "게시글을 수정할 권한이 없습니다." };
   }
   if (user && isRegisteredOwner) {
@@ -364,6 +366,7 @@ export async function updatePostAction(input: {
     if (attachmentError) return { ok: false, error: attachmentError };
   }
 
+  if (isAiAdmin) await stopStudioReservations(input.postId);
   await updatePost({ postId: input.postId, boardType: input.boardType, title, content });
 
   // 수정 시에도 재검수 — "정상 글로 등록 후 광고로 수정" 우회를 막는다.
@@ -378,7 +381,7 @@ export async function updatePostAction(input: {
 
   revalidatePath(postPath(input.scope, input.teamSlug, input.postId));
   revalidateCommunityHome(input.scope, input.teamSlug);
-  return { ok: true, message: "수정 완료. 문장 결 살짝 정돈했어요." };
+  return { ok: true, message: isAiAdmin ? "AI 게시글을 수정했습니다. 남은 댓글 예약은 일시정지했습니다." : "수정 완료. 문장 결 살짝 정돈했어요." };
 }
 
 export async function deletePostAction(input: {
@@ -390,13 +393,15 @@ export async function deletePostAction(input: {
   if (!user) return LOGIN_REQUIRED;
 
   const post = await getPostById(input.postId);
-  if (!post || post.authorId !== user.id || post.siteScope !== input.scope) {
+  const isAiAdmin = await canManageStudioContent(post);
+  if (!post || (post.authorId !== user.id && !isAiAdmin) || post.siteScope !== input.scope) {
     return { ok: false, error: "게시글을 삭제할 권한이 없습니다." };
   }
 
+  if (isAiAdmin) await stopStudioReservations(input.postId, true);
   await deletePost(input.postId);
   revalidateCommunityHome(input.scope, input.teamSlug);
-  return { ok: true, message: "게시글을 조용히 치웠어요." };
+  return { ok: true, message: isAiAdmin ? "AI 게시글을 삭제하고 남은 댓글 예약을 취소했습니다." : "게시글을 조용히 치웠어요." };
 }
 
 /** 댓글 작성. */
@@ -583,14 +588,16 @@ export async function deleteCommentAction(input: {
   const [user, guestKey] = await Promise.all([getCurrentUser(), getExistingGuestKey()]);
   const isRegisteredOwner = Boolean(comment.authorId && comment.authorId === user?.id);
   const isGuestOwner = Boolean(!comment.authorId && comment.guestKey && comment.guestKey === guestKey);
-  if (!isRegisteredOwner && !isGuestOwner) {
+  const isAiAdmin = await canManageStudioContent(comment);
+  if (!isRegisteredOwner && !isGuestOwner && !isAiAdmin) {
     return { ok: false, error: "댓글을 삭제할 권한이 없습니다." };
   }
 
+  if (isAiAdmin) await stopStudioReservations(input.postId);
   await deleteGuestComment(input.commentId);
   revalidateCommunityHome(input.scope, input.teamSlug);
   revalidatePath(postPath(input.scope, input.teamSlug, input.postId));
-  return { ok: true, message: "댓글을 삭제했습니다." };
+  return { ok: true, message: isAiAdmin ? "AI 댓글을 삭제했습니다. 남은 댓글 예약은 일시정지했습니다." : "댓글을 삭제했습니다." };
 }
 
 export async function updateGuestCommentAction(input: {
@@ -600,25 +607,28 @@ export async function updateGuestCommentAction(input: {
   scope: BoardScope;
   teamSlug?: string;
 }): Promise<ActionResult> {
+  const comment = await getCommentById(input.commentId);
+  const isAiAdmin = await canManageStudioContent(comment);
   const content = input.content.trim();
   if (!content) return { ok: false, error: "댓글 내용을 입력해주세요." };
-  const maxLength = await requestCommentMaxLength();
+  const requestLimit = await requestCommentMaxLength();
+  const maxLength = isAiAdmin ? Math.max(620, requestLimit) : requestLimit;
   if (content.length > maxLength) {
     return { ok: false, error: `댓글은 ${maxLength}자까지 입력할 수 있습니다.` };
   }
   // const profanity = profanityError({ plainText: content });
   // if (profanity) return { ok: false, error: profanity };
-
-  const comment = await getCommentById(input.commentId);
   const guestKey = await getExistingGuestKey();
-  if (!comment?.guestKey || comment.postId !== input.postId || comment.guestKey !== guestKey) {
+  if (!comment || comment.deletedAt || comment.contentKind !== "text" || comment.postId !== input.postId || (!isAiAdmin && (!comment.guestKey || comment.authorId || comment.guestKey !== guestKey))) {
     return { ok: false, error: "이 댓글을 수정할 권한이 없습니다." };
   }
 
-  const identity = await getGuestIdentity();
-  if (await isCommunityGuestSanctioned(identity.key, identity.ipKey)) {
-    return { ok: false, error: "이 비회원 ID 또는 접속 환경은 커뮤니티 이용이 제한되었습니다." };
-  }
+  if (!isAiAdmin) {
+    const identity = await getGuestIdentity();
+    if (await isCommunityGuestSanctioned(identity.key, identity.ipKey)) {
+      return { ok: false, error: "이 비회원 ID 또는 접속 환경은 커뮤니티 이용이 제한되었습니다." };
+    }
+  } else await stopStudioReservations(input.postId);
 
   await updateGuestComment(input.commentId, content);
   scheduleAiModeration({
@@ -629,7 +639,7 @@ export async function updateGuestCommentAction(input: {
     text: content,
   });
   revalidatePath(postPath(input.scope, input.teamSlug, input.postId));
-  return { ok: true, message: "댓글을 수정했습니다." };
+  return { ok: true, message: isAiAdmin ? "AI 댓글을 수정했습니다. 남은 댓글 예약은 일시정지했습니다." : "댓글을 수정했습니다." };
 }
 
 /**

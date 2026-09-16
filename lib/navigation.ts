@@ -33,6 +33,7 @@ export const adminNavItems: NavItem[] = [
   { href: "/admin/calendar", label: "일정·기념일 관리" },
   { href: "/admin/ratings", label: "팬 평점 관리" },
   { href: "/admin/community", label: "커뮤니티 관리" },
+  { href: "/admin/ai-studio", label: "AI 캐릭터 작업실", description: "캐릭터별 게시글·댓글 초안 생성과 검토" },
   { href: "/admin/minicons", label: "미니콘 관리" },
   { href: "/admin/support", label: "고객센터 문의" },
   { href: "/admin/fan-sites", label: "팬사이트 관리" },
