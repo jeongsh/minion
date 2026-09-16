@@ -17,6 +17,10 @@ export function shouldAlertSocialFailure(previous: string | undefined, current: 
   return current === "disconnected" && previous !== "disconnected";
 }
 
+export function isNewSocialIncident(previous: string | undefined, current: string) {
+  return current !== "healthy" && previous !== current;
+}
+
 export function hasConnectionFailure(workflow: string, logs: string) {
   const errors = logs.split(/\r?\n/).filter((line) => line.includes("[error]"));
   if (workflow === "sync-instagram.yml") {

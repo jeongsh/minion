@@ -36,7 +36,7 @@ const offsetArg = parseInt(argv.find((a) => a.startsWith("--offset="))?.split("=
 const dryRun = argSet.has("--dry-run");
 const noNotify = argSet.has("--no-notify");
 
-const DELAY_MS = 1500;
+const DELAY_MS = 5000;
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 function loadEnvFile() {

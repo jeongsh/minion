@@ -42,7 +42,7 @@ async function subscribeTopic(callbackUrl: string, topicUrl: string) {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body,
-  }, { timeoutMs: 25_000 });
+  }, { timeoutMs: 25_000, retries: 3, baseDelayMs: 5_000, maxDelayMs: 60_000 });
 
   if (!response.ok) {
     throw new Error(`Hub ${response.status}: ${await response.text()}`);

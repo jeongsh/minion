@@ -340,6 +340,12 @@ async function scrapeInstagramPostsOnce(
       try {
         const url = res.url();
         if (new URL(url).hostname !== "www.instagram.com") return;
+        if (/\/graphql|\/api\//.test(url) && res.status() >= 400 && res.status() !== 429) {
+          rateLimitError = res.status() === 401
+            ? instagramLoginError(username, Boolean(sessionCookie))
+            : new Error(`INSTAGRAM_HTTP_${res.status()}: @${username}; feed request rejected`);
+          return;
+        }
         if (res.status() === 429 && /\/graphql|\/api\//.test(url)) {
           rateLimitError = new Error(`INSTAGRAM_HTTP_429: @${username}; Retry-After=${res.headers()["retry-after"] ?? "unspecified"}`);
           return;
@@ -354,6 +360,14 @@ async function scrapeInstagramPostsOnce(
 
         const json = await res.json().catch(() => null);
         if (!json || typeof json !== "object") return;
+        if (json.challenge || /^(challenge_required|checkpoint_required)$/.test(json.message ?? "")) {
+          rateLimitError = new Error(`INSTAGRAM_${sessionCookie ? "SESSION_" : ""}CHALLENGE: @${username}; account verification required`);
+          return;
+        }
+        if (json.require_login || json.message === "login_required") {
+          rateLimitError = instagramLoginError(username, Boolean(sessionCookie));
+          return;
+        }
 
         // web_profile_info 형식
         const userData = json?.data?.user ?? json?.graphql?.user;
@@ -444,46 +458,29 @@ async function scrapeInstagramPostsOnce(
       }
     }
 
-    // 페이지네이션: page.evaluate 안에서 fetch → 브라우저 쿠키·헤더 전부 자동 포함
-    while (postsMap.size < maxPosts && hasNextPage && userId && endCursor) {
-      const cursor = endCursor;
-      hasNextPage = false;
-
-      console.log(`  [paginate] cursor=${cursor.slice(0, 20)}...`);
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result: { status: number; retryAfter: string | null; json: any } | null = await page.evaluate(async ({ uid, cur }) => {
-        try {
-          const res = await fetch(
-            `https://www.instagram.com/api/v1/feed/user/${uid}/?count=12&max_id=${encodeURIComponent(cur)}`,
-            { credentials: "include", headers: { "X-Requested-With": "XMLHttpRequest", "X-IG-App-ID": "936619743392459" } },
-          );
-          return { status: res.status, retryAfter: res.headers.get("retry-after"), json: await res.json().catch(() => null) };
-        } catch {
-          return null;
-        }
-      }, { uid: userId, cur: cursor }).catch(() => null);
-
-      if (result?.status === 401) throw instagramLoginError(username, Boolean(sessionCookie));
-      if (result && result.status >= 400) throw new Error(`INSTAGRAM_HTTP_${result.status}: @${username}; Retry-After=${result.retryAfter ?? "unspecified"}`);
-      const json = result?.json;
-      if (!json) throw new Error(`INSTAGRAM_PAGINATION: @${username}; empty API response`);
-
-      if (json.challenge || json.message === "challenge_required" || json.message === "checkpoint_required") {
+    // GraphQL cursors are opaque and cannot be used as REST feed max_id values.
+    // Let Instagram issue its own next-page request and capture its response.
+    while (postsMap.size < maxPosts && hasNextPage) {
+      const before = postsMap.size;
+      const previousCursor = endCursor;
+      await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+      for (let wait = 0; wait < 10; wait += 1) {
+        await page.waitForTimeout(500);
+        if (rateLimitError || postsMap.size > before || !hasNextPage) break;
+      }
+      if (rateLimitError) throw rateLimitError;
+      if (/\/(challenge|checkpoint)\//.test(page.url())) {
         throw new Error(`INSTAGRAM_${sessionCookie ? "SESSION_" : ""}CHALLENGE: @${username}; account verification required`);
       }
-      if (json.require_login || json.message === "login_required") throw instagramLoginError(username, Boolean(sessionCookie));
-      if (json.status === "fail") throw new Error(`INSTAGRAM_PAGINATION: @${username}; feed request rejected`);
-
-      hasNextPage = json.more_available ?? false;
-      endCursor = json.next_max_id ?? "";
-
-      const parsed = parseProfilePosts(json);
-      const before = postsMap.size;
-      for (const p of parsed) postsMap.set(p.postId, p);
-      console.log(`  [paginate] +${postsMap.size - before} posts (total: ${postsMap.size}), more: ${hasNextPage}`);
-
-      await page.waitForTimeout(800);
+      if (page.url().includes("/accounts/login")) throw instagramLoginError(username, Boolean(sessionCookie));
+      if (postsMap.size === before) {
+        if (!hasNextPage) break;
+        throw new Error(`INSTAGRAM_PAGINATION: @${username}; browser feed did not advance`);
+      }
+      if (hasNextPage && endCursor === previousCursor) {
+        throw new Error(`INSTAGRAM_PAGINATION: @${username}; feed cursor did not advance`);
+      }
+      await page.waitForTimeout(1_500);
     }
 
     if (postsMap.size === 0 && !confirmedEmpty) {

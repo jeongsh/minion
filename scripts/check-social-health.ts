@@ -1,6 +1,6 @@
 import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
-import { SOCIAL_WORKFLOWS, connectionState, hasConnectionFailure, shouldAlertSocialFailure, workflowHealth, type SocialWorkflowRun } from "../lib/sync/social-health.ts";
+import { SOCIAL_WORKFLOWS, connectionState, hasConnectionFailure, isNewSocialIncident, shouldAlertSocialFailure, workflowHealth, type SocialWorkflowRun } from "../lib/sync/social-health.ts";
 import { retryFetch } from "../lib/sync/retry-fetch.ts";
 
 const statePath = "artifacts/social-monitor-state.json";
@@ -13,6 +13,7 @@ async function main() {
   let previous: Record<string, string> = {};
   try { previous = JSON.parse(readFileSync(statePath, "utf8")); } catch { /* First check. */ }
   const statuses: Record<string, string> = {};
+  let newIncident = false;
   const results = [];
   for (const workflow of SOCIAL_WORKFLOWS) {
     const url = `https://api.github.com/repos/${repository}/actions/workflows/${workflow.file}/runs?branch=main&per_page=20`;
@@ -46,6 +47,10 @@ async function main() {
       }
     }
     statuses[workflow.file] = connectionState(previous[workflow.file], status, disconnected);
+    const healthKey = `${workflow.file}:health`;
+    const healthState = statuses[workflow.file] === "disconnected" ? "disconnected" : status;
+    newIncident ||= isNewSocialIncident(previous[healthKey], healthState);
+    statuses[healthKey] = healthState;
     results.push({ name: workflow.name, workflow: workflow.file, status, disconnected, runUrl: completed?.html_url ?? `https://github.com/${repository}/actions/workflows/${workflow.file}`, lastRunAt: runs[0]?.created_at ?? null });
   }
   mkdirSync(dirname(reportPath), { recursive: true });
@@ -64,7 +69,12 @@ async function main() {
     if (!response.ok) throw new Error(`Social alert delivery failed (${response.status})`);
   }
   writeFileSync(statePath, JSON.stringify(statuses, null, 2));
-  if (results.some((result) => result.status !== "healthy")) process.exitCode = 1;
+  // A successful monitor execution is not proof that collection is healthy.
+  // Keep the report explicit, but fail only on a new incident/state change.
+  for (const result of results.filter((result) => result.status !== "healthy")) {
+    console.log(`::warning::${result.name}: ${result.status} (${result.runUrl})`);
+  }
+  if (newIncident) process.exitCode = 1;
 }
 
 main().catch((error) => { console.error(error instanceof Error ? error.message : "Social health check failed"); process.exitCode = 1; });
