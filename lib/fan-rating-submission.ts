@@ -1,7 +1,8 @@
 import { createHash } from "crypto";
 
 import { screenCommunityText } from "@/lib/community/ai-moderation";
-import { findProfanity, maskProfanity } from "@/lib/community/content-filter";
+// 욕설 필터 비활성화(2026-09-16).
+// import { findProfanity, maskProfanity } from "@/lib/community/content-filter";
 import { isCommunityUserSanctioned } from "@/lib/data/community-users";
 import { isSetRatingOpen, normalizeSetStatus } from "@/lib/set-status";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -35,12 +36,8 @@ function normalizedReview(value: unknown) {
   if (review.length > FAN_RATING_MAX_REVIEW_LENGTH) {
     throw new Error(`리뷰는 ${FAN_RATING_MAX_REVIEW_LENGTH}자 이내로 입력해주세요.`);
   }
-  if (review) {
-    const profanity = findProfanity(review);
-    if (profanity) {
-      throw new Error(`금칙어(${maskProfanity(profanity)})가 포함되어 등록할 수 없습니다. 표현을 수정해 주세요.`);
-    }
-  }
+  // const profanity = findProfanity(review);
+  // if (profanity) throw new Error(`금칙어(${maskProfanity(profanity)})가 포함되어 등록할 수 없습니다. 표현을 수정해 주세요.`);
   return review || null;
 }
 

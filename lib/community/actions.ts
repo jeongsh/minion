@@ -17,7 +17,8 @@ import { scheduleCommunityCommentNotifications } from "@/lib/notifications/commu
 import type { BoardScope } from "@/lib/community/boards";
 import { getBoard } from "@/lib/community/boards";
 import { screenCommunityText } from "@/lib/community/ai-moderation";
-import { findProfanity, maskProfanity } from "@/lib/community/content-filter";
+// 욕설 필터 비활성화(2026-09-16). 재활성화 시 아래 import와 각 검사 블록을 복구한다.
+// import { findProfanity, maskProfanity } from "@/lib/community/content-filter";
 import { extractPlainText } from "@/lib/community/extract-thumbnail";
 import {
   getGuestPostAttachmentError,
@@ -147,21 +148,11 @@ function postLengthError(title: string, content: string): ActionResult | null {
   return null;
 }
 
-/**
- * 금칙어(쌍욕) 동기 검사. 걸리면 에러 메시지를, 통과하면 null 을 반환한다.
- * 글 본문은 에디터 JSON 이므로 평문을 뽑아 제목과 함께 검사한다.
- */
-function profanityError(texts: { title?: string; editorContent?: string; plainText?: string }): string | null {
-  const combined = [
-    texts.title ?? "",
-    texts.editorContent ? extractPlainText(texts.editorContent, 1_000_000) : "",
-    texts.plainText ?? "",
-  ].join("\n");
-
-  const matched = findProfanity(combined);
-  if (!matched) return null;
-  return `금칙어(${maskProfanity(matched)})가 포함되어 등록할 수 없습니다. 표현을 수정해 주세요.`;
-}
+// function profanityError(texts: { title?: string; editorContent?: string; plainText?: string }): string | null {
+//   const combined = [texts.title ?? "", texts.editorContent ? extractPlainText(texts.editorContent, 1_000_000) : "", texts.plainText ?? ""].join("\n");
+//   const matched = findProfanity(combined);
+//   return matched ? `금칙어(${maskProfanity(matched)})가 포함되어 등록할 수 없습니다. 표현을 수정해 주세요.` : null;
+// }
 
 /**
  * 디스코드 모더레이션 알림(웹훅 미설정 시 건너뜀). 실패해도 흐름을 막지 않는다.
@@ -278,8 +269,9 @@ export async function createPostAction(input: {
   const lengthError = postLengthError(title, content);
   if (lengthError) return lengthError;
 
-  const profanity = profanityError({ title, editorContent: content });
-  if (profanity) return { ok: false, error: profanity };
+  // const profanity = profanityError({ title, editorContent: content });
+  // if (profanity) return { ok: false, error: profanity };
+
   if (!user) {
     const attachmentError = getGuestPostAttachmentError(content);
     if (attachmentError) return { ok: false, error: attachmentError };
@@ -364,8 +356,9 @@ export async function updatePostAction(input: {
   const lengthError = postLengthError(title, content);
   if (lengthError) return lengthError;
 
-  const profanity = profanityError({ title, editorContent: content });
-  if (profanity) return { ok: false, error: profanity };
+  // const profanity = profanityError({ title, editorContent: content });
+  // if (profanity) return { ok: false, error: profanity };
+
   if (isGuestOwner) {
     const attachmentError = getGuestPostAttachmentError(content);
     if (attachmentError) return { ok: false, error: attachmentError };
@@ -427,8 +420,8 @@ export async function createCommentAction(input: {
     return { ok: false, error: `댓글은 ${maxLength}자까지 입력할 수 있습니다.` };
   }
 
-  const profanity = profanityError({ plainText: content });
-  if (profanity) return { ok: false, error: profanity };
+  // const profanity = profanityError({ plainText: content });
+  // if (profanity) return { ok: false, error: profanity };
 
   if (input.parentId) {
     const parent = await getCommentById(input.parentId);
@@ -613,8 +606,8 @@ export async function updateGuestCommentAction(input: {
   if (content.length > maxLength) {
     return { ok: false, error: `댓글은 ${maxLength}자까지 입력할 수 있습니다.` };
   }
-  const profanity = profanityError({ plainText: content });
-  if (profanity) return { ok: false, error: profanity };
+  // const profanity = profanityError({ plainText: content });
+  // if (profanity) return { ok: false, error: profanity };
 
   const comment = await getCommentById(input.commentId);
   const guestKey = await getExistingGuestKey();

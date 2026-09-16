@@ -8,8 +8,8 @@ import type {
 } from "@/packages/contracts/src/mobile-v1";
 import { screenCommunityText } from "@/lib/community/ai-moderation";
 import { getBoard, type BoardScope } from "@/lib/community/boards";
-import { findProfanity, maskProfanity } from "@/lib/community/content-filter";
-import { extractPlainText } from "@/lib/community/extract-thumbnail";
+// 욕설 필터 비활성화(2026-09-16). 재활성화 시 import와 검사 블록을 복구한다.
+// import { findProfanity, maskProfanity } from "@/lib/community/content-filter";
 import { getMobileGuestIdentity, type GuestIdentity } from "@/lib/community/guest-identity";
 import {
   COMMENT_MOBILE_MAX_LENGTH,
@@ -160,10 +160,10 @@ function containsRenderableNode(content: string) {
   }
 }
 
-function profanityMessage(text: string) {
-  const matched = findProfanity(text);
-  return matched ? `금칙어(${maskProfanity(matched)})가 포함되어 등록할 수 없습니다. 표현을 수정해 주세요.` : null;
-}
+// function profanityMessage(text: string) {
+//   const matched = findProfanity(text);
+//   return matched ? `금칙어(${maskProfanity(matched)})가 포함되어 등록할 수 없습니다. 표현을 수정해 주세요.` : null;
+// }
 
 export function validateMobilePostInput(input: {
   scope: BoardScope;
@@ -179,8 +179,8 @@ export function validateMobilePostInput(input: {
   if (title.length > POST_TITLE_MAX_LENGTH) return { error: `제목은 ${POST_TITLE_MAX_LENGTH}자까지 입력할 수 있습니다.`, ok: false } as const;
   if (content.length > POST_SERIALIZED_MAX_LENGTH) return { error: "본문의 서식 또는 첨부 정보가 너무 큽니다.", ok: false } as const;
   if (getCommunityPostTextLength(content) > POST_TEXT_MAX_LENGTH) return { error: `본문은 ${POST_TEXT_MAX_LENGTH.toLocaleString("ko-KR")}자까지 입력할 수 있습니다.`, ok: false } as const;
-  const profanity = profanityMessage(`${title}\n${extractPlainText(content, 1_000_000)}`);
-  if (profanity) return { error: profanity, ok: false } as const;
+  // const profanity = profanityMessage(`${title}\n${extractPlainText(content, 1_000_000)}`);
+  // if (profanity) return { error: profanity, ok: false } as const;
   return { content, ok: true, title } as const;
 }
 
@@ -188,8 +188,9 @@ export function validateMobileCommentInput(content: unknown) {
   const value = typeof content === "string" ? content.trim() : "";
   if (!value) return { error: "댓글 내용을 입력하세요.", ok: false } as const;
   if (value.length > COMMENT_MOBILE_MAX_LENGTH) return { error: `댓글은 ${COMMENT_MOBILE_MAX_LENGTH}자까지 입력할 수 있습니다.`, ok: false } as const;
-  const profanity = profanityMessage(value);
-  return profanity ? ({ error: profanity, ok: false } as const) : ({ content: value, ok: true } as const);
+  // const profanity = profanityMessage(value);
+  // if (profanity) return { error: profanity, ok: false } as const;
+  return { content: value, ok: true } as const;
 }
 
 export function scheduleMobileCommunityModeration(input: {
