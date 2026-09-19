@@ -4,6 +4,7 @@ import { siteBaseUrl } from "@/lib/site";
 import { canQuerySupabase } from "@/lib/supabase/server";
 import { DOMESTIC_SEGMENTS, INTERNATIONAL_SEGMENTS } from "@/lib/tournaments/international-segments";
 import { matchesTournamentSegment } from "@/lib/tournaments/season-2026";
+import { matchHref } from "@/lib/view-data";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = siteBaseUrl();
@@ -16,7 +17,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/schedule",
     "/teams",
     "/players",
-    "/tournaments",
+    "/champions",
     "/news",
     "/minicons",
     "/predictions",
@@ -57,13 +58,22 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }));
 
     const matchRoutes = matches.map((match) => ({
-      url: `${baseUrl}/matches/${match.id}`,
+      url: `${baseUrl}${matchHref(match)}`,
       changeFrequency: match.status === "scheduled" ? ("daily" as const) : ("monthly" as const),
       priority: match.status === "scheduled" ? 0.75 : 0.55,
     }));
 
     const tournamentRoutes = [...DOMESTIC_SEGMENTS, ...INTERNATIONAL_SEGMENTS]
-      .filter((segment) => tournaments.some((tournament) => matchesTournamentSegment(tournament, segment.key)))
+      .filter((segment) => {
+        const segmentTournaments = tournaments.filter((tournament) => matchesTournamentSegment(tournament, segment.key));
+        const latestSeason = Math.max(...segmentTournaments.map((tournament) => tournament.season));
+        const visibleTournamentIds = new Set(segmentTournaments
+          .filter((tournament) => tournament.season === latestSeason)
+          .map((tournament) => tournament.id));
+        // The default page shows the latest season. Don't submit a placeholder
+        // just because a tournament row exists without any published matches.
+        return matches.some((match) => visibleTournamentIds.has(match.tournamentId));
+      })
       .map((segment) => ({
         url: `${baseUrl}/tournaments/${segment.key}`,
         changeFrequency: "daily" as const,

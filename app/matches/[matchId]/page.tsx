@@ -37,6 +37,7 @@ import {
 import {
   fanRatingLeader,
   formatDateTime,
+  matchHref,
   teamLabel,
 } from "@/lib/view-data";
 import { getPredictionMarketData } from "@/lib/predictions";
@@ -430,12 +431,13 @@ export async function generateMetadata({ params }: { params: Promise<{ matchId: 
   const scoreLabel = hasScore ? ` ${match.teamAScore ?? 0}:${match.teamBScore ?? 0} ` : " vs ";
   const title = `${teamAName}${scoreLabel}${teamBName} - ${tournament?.name ?? "LCK"} | MINION`;
   const description = `${tournament?.name ?? "LCK"} ${teamAName} vs ${teamBName} 경기 결과, 세트별 스코어, 선수 스탯, 밴픽을 확인하세요.`;
+  const canonicalPath = matchHref(match);
 
   return {
     title,
     description,
-    alternates: { canonical: `/matches/${matchId}` },
-    openGraph: { title, description, url: `${siteBaseUrl()}/matches/${matchId}`, type: "article", images: ["/images/minion-og-20260829.png"] },
+    alternates: { canonical: canonicalPath },
+    openGraph: { title, description, url: `${siteBaseUrl()}${canonicalPath}`, type: "article", images: ["/images/minion-og-20260829.png"] },
   };
 }
 
@@ -639,7 +641,7 @@ export default async function MatchDetailPage({
         <div className="-mt-5 flex flex-col gap-2.5">
           <MatchRatingPanel
             matchId={match.id}
-            routeMatchId={matchId}
+            routeMatchId={match.id}
             set={activeSet}
             sets={matchSets}
             teams={teams}

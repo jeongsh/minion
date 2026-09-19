@@ -151,7 +151,9 @@ export function matchRouteId(match: Match) {
 }
 
 export function matchHref(match: Match) {
-  return `/matches/${matchRouteId(match)}`;
+  // Public URLs use the stable database ID. Source IDs may contain slashes and
+  // resolve to a different route when a crawler normalizes their encoding.
+  return `/matches/${encodeURIComponent(match.id)}`;
 }
 
 export function setHref(match: Match, set: SetResult) {

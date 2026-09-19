@@ -187,7 +187,7 @@ function ChampionHeader({
               <ChampionPicker champions={pickerOptions} currentChampionId={champion.id} preservedQuery={pickerQuery} compact />
             </div>
             <div className="mt-0.5 flex items-center gap-1 text-[13px] font-normal text-[var(--ui-muted)] sm:mt-1 sm:text-[14px]">
-              <ChampionUrlDropdown
+              {positionOptions.length > 0 ? <ChampionUrlDropdown
                 ariaLabel="포지션 선택"
                 options={positionOptions}
                 selected={selected.position}
@@ -195,7 +195,7 @@ function ChampionHeader({
                 resetKeys={["page"]}
                 omitValues={[]}
                 triggerClassName="h-8 min-h-8 px-0 !text-[13px] !font-medium [&_svg]:size-4 sm:h-9 sm:min-h-9 sm:!text-[14px] sm:[&_svg]:size-5"
-              />
+              /> : <span>포지션 기록 없음</span>}
             </div>
           </div>
         </div>
@@ -1010,6 +1010,14 @@ export function ChampionDetail({
         scopeControl={scopeControl}
       />
 
+      {analysis.overview.overall.picks === 0 && analysis.overview.draft.bans === 0 ? (
+        <div className="rounded-xl border border-[var(--ui-border)]">
+          <EmptyPanel title="선택한 범위에 기록이 없습니다." body="다른 시즌·대회·패치를 선택하거나 챔피언 목록에서 기록을 확인해 주세요." />
+          <div className="pb-6 text-center">
+            <Link href="/champions" className="text-[14px] font-medium underline underline-offset-4">챔피언 목록 보기</Link>
+          </div>
+        </div>
+      ) : <>
       <ChampionTabNav basePath={basePath} params={params} activeTab={activeTab} position={analysis.overview.selectedPosition} />
 
       {activeTab === "overview" ? <BuildTab analysis={analysis} catalogs={catalogs} /> : null}
@@ -1018,6 +1026,7 @@ export function ChampionDetail({
       {activeTab === "pros" ? <PlayersTab players={analysis.players} /> : null}
       {activeTab === "games" ? <GamesTab analysis={analysis} params={params} basePath={basePath} page={gamePage} /> : null}
       {activeTab === "stats" ? <StatsTab analysis={analysis} /> : null}
+      </>}
     </div>
   );
 }

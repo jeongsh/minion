@@ -785,8 +785,31 @@ export default async function TournamentBracketPage({
   );
 
   let contentSection: React.ReactNode;
+  let hasAdContent = false;
 
-  if (isLck) {
+  if (segmentMatches.length === 0) {
+    const registeredDates = activeTournaments.flatMap((tournament) => [tournament.startDate, tournament.endDate])
+      .filter((value): value is string => Boolean(value) && Number.isFinite(new Date(value!).getTime()))
+      .sort();
+    const dateLabel = (value: string) => new Intl.DateTimeFormat("ko-KR", {
+      timeZone: "Asia/Seoul", year: "numeric", month: "long", day: "numeric",
+    }).format(new Date(value));
+    contentSection = (
+      <section className="rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-6 sm:p-8">
+        <h2 className="font-paperozi text-[20px] text-[var(--ui-ink)]">경기 일정 등록 전</h2>
+        <p className="mt-3 text-[16px] font-normal leading-7 text-[var(--ui-muted)]">
+          MINION에 등록된 {activeSeason}년 {segmentTheme.name} 경기 일정과 결과가 없습니다.
+        </p>
+        {registeredDates.length > 0 ? (
+          <p className="mt-3 text-[13px] font-normal leading-5 text-[var(--ui-muted)]">
+            등록된 대회 기간: {dateLabel(registeredDates[0])}
+            {registeredDates.at(-1) !== registeredDates[0] ? ` ~ ${dateLabel(registeredDates.at(-1)!)}` : ""}
+          </p>
+        ) : null}
+        <Link href="/schedule" className="mt-5 inline-flex min-h-11 items-center text-[14px] font-medium underline underline-offset-4">전체 경기 일정 보기</Link>
+      </section>
+    );
+  } else if (isLck) {
     const requestedSplit = ["1", "2", "3"].includes(search.split ?? "")
       ? (search.split as LckSplitKey)
       : undefined;
@@ -945,6 +968,11 @@ export default async function TournamentBracketPage({
                 segmentMatches,
               );
       activeBracketContent = bracketOrEmpty(bracketColumns);
+      hasAdContent = bracketColumns.some((column) => column.matches.length > 0);
+    }
+    if (activeView === "pom") hasAdContent = activePomRows.length > 0;
+    if (activeView === "standings") {
+      hasAdContent = (activeSplit === "1" ? cupWeekMatches : activeSplit === "2" ? rounds12Matches : regularSeasonMatches).length > 0;
     }
 
     contentSection = (
@@ -1069,6 +1097,9 @@ export default async function TournamentBracketPage({
     const groupStageTeams = teams.filter((team) =>
       groupStageMatches.some((match) => match.teamAId === team.id || match.teamBId === team.id),
     );
+    hasAdContent = isGroupStageBracket
+      ? groupStageMatches.length > 0
+      : columns.some((column) => column.matches.length > 0);
 
     contentSection = (
       <section className="flex flex-col gap-4">
@@ -1114,8 +1145,8 @@ export default async function TournamentBracketPage({
   }
 
   return (
-    <main className="layout-wide flex flex-col gap-6 pt-6 sm:pt-10">
-      <RailAdContent enabled={segmentMatches.length > 0} />
+    <main className="layout-wide flex flex-col gap-6 pt-6 sm:pt-10" data-ads-blocked={!hasAdContent ? "true" : undefined}>
+      <RailAdContent enabled={hasAdContent} />
       <PageHeader
         title={segmentTheme.name}
         leading={

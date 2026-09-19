@@ -60,7 +60,7 @@ function segmentHasPlayerData(
   sets: SetResult[],
 ) {
   const segmentMatches = filterMatchesBySegment(matches, tournaments, segment);
-  const segmentSetIds = new Set(filterSetsByMatches(sets, segmentMatches).map((set) => set.id));
+  const segmentSetIds = new Set(filterSetsByMatches(sets, segmentMatches).filter((set) => set.winnerTeamId).map((set) => set.id));
   return playerLines.some((line) => segmentSetIds.has(line.setId));
 }
 
@@ -324,9 +324,6 @@ export async function PlayerDetailView({
   const { teams, players, matches, sets, fanRatings, tournaments, champions, standings } = sharedData;
   const matchById = new Map(matches.map((match) => [match.id, match]));
   const setById = new Map(sets.map((set) => [set.id, set]));
-  // POM 횟수는 이미 로드된 matches 로 센다(별도 count 쿼리 불필요).
-  const pomCount = matches.filter((match) => match.officialPomPlayerId === player.id).length;
-
   const visibleSegments = PLAYER_PAGE_SEGMENTS.filter((segment) =>
     segmentHasPlayerData(segment, playerOwnLines, matches, tournaments, sets),
   );
@@ -335,7 +332,8 @@ export async function PlayerDetailView({
     ? requestedSegment
     : (visibleSegments[0] ?? "all");
   const segmentMatches = filterMatchesBySegment(matches, tournaments, activeSegment);
-  const segmentSets = filterSetsByMatches(sets, segmentMatches);
+  const segmentSets = filterSetsByMatches(sets, segmentMatches).filter((set) => set.winnerTeamId);
+  const pomCount = segmentMatches.filter((match) => match.status === "completed" && match.officialPomPlayerId === player.id).length;
   const segmentSetIds = segmentSets.map((set) => set.id);
   // 이 선수의 구간 스탯라인은 이미 받아온 playerOwnLines 에서 걸러 쓴다(중복 쿼리 제거).
   const segmentSetIdSet = new Set(segmentSetIds);
@@ -381,7 +379,7 @@ export async function PlayerDetailView({
       const champion = champions.find((item) => item.id === championId);
       const lines = playerLines.filter((line) => line.championId === championId);
       const stats = aggregateLines(lines);
-      const wins = lines.filter((line) => line.set.winnerTeamId === player.teamId).length;
+      const wins = lines.filter((line) => line.set.winnerTeamId === line.teamId).length;
       const championRatings = fanRatings.filter((rating) => rating.playerId === player.id && lines.some((line) => line.setId === rating.setId));
       const championPogCount = lines.filter((line) => playerFanPogSetIds.has(line.setId)).length;
       const pickBan = segmentData.pickBanByChampion[championId] ?? { pickCount: 0, banCount: 0 };
@@ -428,7 +426,7 @@ export async function PlayerDetailView({
     };
   });
 
-  const wins = playerLines.filter((line) => line.set.winnerTeamId === player.teamId).length;
+  const wins = playerLines.filter((line) => line.set.winnerTeamId === line.teamId).length;
   const losses = Math.max(playerLines.length - wins, 0);
   const playerKdaLine =
     playerLines.length === 0
@@ -464,6 +462,7 @@ export async function PlayerDetailView({
   return (
     <main
       className="min-h-screen bg-[var(--ui-surface)] text-[var(--ui-text)]"
+      data-ads-blocked={playerLines.length === 0 ? "true" : undefined}
       style={
         {
           "--tp": playerTeam?.primaryColor ?? "#6158ff",
@@ -514,7 +513,7 @@ export async function PlayerDetailView({
             />
           }
         />
-        <PlayerSegmentSelect activeSegment={activeSegment} options={segmentOptions} />
+        {segmentOptions.length > 0 ? <PlayerSegmentSelect activeSegment={activeSegment} options={segmentOptions} /> : null}
 
         {/* 3. 팀 메타 스트립 */}
         <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] px-5 py-3.5">
@@ -566,7 +565,8 @@ export async function PlayerDetailView({
             </div>
           </div>
 
-          <section aria-labelledby="stats-overview">
+          <section aria-label={aggregateStats ? "선수 지표" : "경기 기록 안내"}>
+            {aggregateStats ? <>
             <SectionHeading
               aside={
                 <div className="flex items-center gap-3 pb-0.5 text-[13px] text-[var(--ui-muted)]">
@@ -579,20 +579,30 @@ export async function PlayerDetailView({
                 </div>
               }
             >선수 지표</SectionHeading>
-            {aggregateStats ? (
-              <StatsOverview stats={aggregateStats} averageStats={radarBenchmark?.average} />
-            ) : (
-              <p className="text-sm text-[var(--ui-muted)]">표시할 경기 지표가 없습니다.</p>
+            <StatsOverview stats={aggregateStats} averageStats={radarBenchmark?.average} />
+            </> : (
+              <div className="rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-card-bg)] p-6">
+                <h2 className="font-paperozi text-[20px] text-[var(--ui-ink)]">경기 기록 안내</h2>
+                <p className="mt-3 text-[16px] font-normal leading-7 text-[var(--ui-muted)]">
+                  MINION에 등록된 {playerSegmentLabel(activeSegment)} 경기 기록이 없습니다.
+                  선수 프로필과 소속팀 정보는 이 페이지에서 확인할 수 있습니다.
+                </p>
+                <div className="mt-4 flex flex-wrap gap-4 text-[14px] font-medium">
+                  <Link href="/players" className="underline underline-offset-4">선수단 보기</Link>
+                  <Link href="/schedule" className="underline underline-offset-4">경기 일정 보기</Link>
+                </div>
+              </div>
             )}
           </section>
         </div>
 
+        {playerLines.length > 0 ? <>
         {/* 5. 시즌 요약 */}
         <section>
           <SectionHeading caption={playerSegmentLabel(activeSegment)}>시즌 요약</SectionHeading>
           <div className="overflow-hidden rounded-lg border border-[var(--ui-border)]">
             <div className="overflow-hidden bg-[var(--ui-surface)]">
-              <div className="grid h-9 grid-cols-5 items-center bg-[var(--ui-card-bg)] text-center text-xs font-medium leading-tight text-[var(--ui-muted)] lg:text-sm">
+              <div className="grid h-9 grid-cols-5 items-center bg-[var(--ui-card-bg)] text-center text-[13px] font-medium leading-tight text-[var(--ui-muted)] lg:text-sm">
                 <span>출전 세트</span>
                 <span>승률</span>
                 <span>KDA</span>
@@ -661,6 +671,7 @@ export async function PlayerDetailView({
             ))
           )}
         </section>
+        </> : null}
 
         {/* 7. 팬 평가 */}
         <section id="fan-reviews" className="scroll-mt-24">
