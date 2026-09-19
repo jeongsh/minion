@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
-import { isAdContentPath, isRailAdContentPath } from "@/lib/ads-policy";
+import { ADS_ENABLED, isAdContentPath, isRailAdContentPath } from "@/lib/ads-policy";
 
 let scriptPromise: Promise<void> | undefined;
 let adDocumentUrl: string | undefined;
@@ -20,6 +20,7 @@ export function canRequestAd(element: HTMLElement): boolean {
 }
 
 export function loadAdScript(client: string): Promise<void> {
+  if (!ADS_ENABLED) return Promise.reject(new Error("Ads are disabled"));
   if (!scriptPromise) {
     adDocumentUrl = documentUrl();
     scriptPromise = new Promise((resolve, reject) => {

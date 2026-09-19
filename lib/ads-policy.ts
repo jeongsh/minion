@@ -1,3 +1,6 @@
+// Opt in only after review; false also removes design placeholders.
+export const ADS_ENABLED = process.env.NEXT_PUBLIC_ADSENSE_ENABLED === "true";
+
 // Only implemented content placements may opt in. New routes default to no ads.
 export function hasAdPostContent(content: string): boolean {
   // Empty editor markup and embed-only posts are not editorial content.
@@ -5,6 +8,7 @@ export function hasAdPostContent(content: string): boolean {
 }
 
 export function isAdContentPath(pathname: string): boolean {
+  if (!ADS_ENABLED) return false;
   const path = pathname.replace(/\/+$/, "") || "/";
   return path === "/"
     || /^\/matches\/[^/]+$/.test(path)
@@ -19,6 +23,7 @@ export function isAdContentPath(pathname: string): boolean {
 
 // These content pages have no manual slots; Auto ads formats are set in AdSense.
 export function isRailAdContentPath(pathname: string): boolean {
+  if (!ADS_ENABLED) return false;
   const path = pathname.replace(/\/+$/, "") || "/";
   return path === "/schedule" || path === "/players" || /^\/tournaments\/[^/]+$/.test(path);
 }
