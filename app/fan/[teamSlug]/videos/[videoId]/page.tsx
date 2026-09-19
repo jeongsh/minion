@@ -75,6 +75,7 @@ export default async function FanVideoDetailPage({
     <main className="fan-page-container grid gap-7 py-6 min-[1200px]:grid-cols-[minmax(0,1fr)_360px] min-[1200px]:items-start">
       <PageHeader
         title={video.title}
+        preserveTitle
         breadcrumbs={[
           { label: team.shortName, href: `/fan/${teamSlug}` },
           { label: "영상", href: `/fan/${teamSlug}/videos` },

@@ -19,6 +19,7 @@ export function PageHeader({
   leading,
   action,
   breadcrumbs,
+  preserveTitle = false,
   className = "",
 }: {
   eyebrow?: string;
@@ -27,12 +28,14 @@ export function PageHeader({
   leading?: React.ReactNode;
   action?: React.ReactNode;
   breadcrumbs?: Crumb[];
+  /** 영상 등 콘텐츠의 원문 제목은 영문을 보존하고 줄바꿈을 허용한다. */
+  preserveTitle?: boolean;
   className?: string;
 }) {
   const resolvedBreadcrumbs = breadcrumbs?.length
     ? breadcrumbs
     : [{ label: "홈", href: "/" }, { label: title }];
-  const displayTitle = pageHeaderTitle(title);
+  const displayTitle = preserveTitle ? title : pageHeaderTitle(title);
 
   return (
     <header className={`flex min-w-0 flex-col gap-3 ${className}`}>
@@ -40,7 +43,7 @@ export function PageHeader({
       <div className="flex min-w-0 items-center justify-between gap-3 md:items-end">
         <div className="flex min-w-0 items-center gap-2.5 md:gap-3">
           {leading}
-          <h1 className="home-section-title font-paperozi min-w-0 truncate text-[20px] leading-tight text-[var(--ui-ink)] md:text-[24px] lg:text-[28px]">
+          <h1 className={`home-section-title font-paperozi min-w-0 ${preserveTitle ? "whitespace-normal break-words" : "truncate"} text-[20px] leading-tight text-[var(--ui-ink)] md:text-[24px] lg:text-[28px]`}>
             {displayTitle || title}
           </h1>
         </div>
