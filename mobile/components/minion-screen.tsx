@@ -86,7 +86,7 @@ export function MinionScreen<T>({
   const pathname = usePathname();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { colorScheme, fonts, theme, toggleTheme } = useMinionTheme();
+  const { colorScheme, fonts, isThemeChanging, theme, toggleTheme } = useMinionTheme();
   const { loading: authLoading, session, viewer } = useAuth();
   const { unreadCount } = useInAppNotifications();
   const [notificationOpen, setNotificationOpen] = useState(false);
@@ -200,7 +200,7 @@ export function MinionScreen<T>({
               </View>
             ) : null}
           </Pressable>
-          <Pressable accessibilityLabel={colorScheme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'} onPress={toggleTheme} style={[styles.iconButton, styles.themeButton]}>
+          <Pressable accessibilityLabel={colorScheme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'} accessibilityRole="button" accessibilityState={{ busy: isThemeChanging, disabled: isThemeChanging }} disabled={isThemeChanging} onPress={toggleTheme} style={[styles.iconButton, styles.themeButton]}>
             {colorScheme === 'dark' ? <Sun color={headerIconColor} size={20} /> : <Moon color={headerIconColor} size={20} />}
           </Pressable>
           <Pressable disabled={authLoading} onPress={() => session ? pathname !== '/me' && router.push('/me') : router.navigate(`/login?next=${encodeURIComponent(pathname)}` as never)} style={session ? styles.profileButton : styles.loginButton}>

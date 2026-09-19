@@ -42,6 +42,8 @@
 
 ### 승인된 통합 변경 기록
 
+- 2026-09-19: 사용자 요청으로 테마 전환 중 연속 탭을 차단한다. 웹 `components/layout/app-shell.tsx`의 `toggleDarkMode`는 DOM 테마를 즉시 적용하지만 앱은 전체 테마 소비자의 렌더링과 네이티브 배경색 적용을 기다려야 한다. 잠금 파일 `mobile/providers/minion-shell-provider.tsx`에 즉시 재진입 방지와 전환 중 상태를 추가하고, `mobile/components/minion-screen.tsx`의 테마 버튼에 비활성·접근성 상태를 연결하는 통합 변경으로 한정한다. 기존 색상·아이콘·레이아웃·폰트와 저장 키는 유지한다. 앱 타입 검사·린트(기존 경고 2건, 오류 없음), 실제 콜백을 추출한 모의 실행의 연속 20회 입력·저장/배경색 대기·두 프레임 후 해제·실패 시 해제·언마운트 정리를 검증했다. 실기기 및 390×844 캡처 비교는 미실행이다.
+
 - 2026-09-13: 사용자 요청으로 승부예측·대회 페이지에서 하단 독바의 매치 탭이 활성화되는 오류를 수정했다. 웹 원본 `components/layout/app-shell.tsx`의 `isGlobalNavActive`와 잠금 파일 `mobile/components/minion-dock.tsx`의 `isActive`에서 매치 활성 경로에 포함된 `/predictions`, `/tournaments`만 제외했다. 기존 일정·매치 상세 경로의 활성 상태와 독바 이동·레이아웃·타이포그래피는 유지했다. 웹·앱 활성 판정 함수 각각 10개 경로 검사, 양쪽 타입 검사, 웹 타이포그래피 검사·변경 파일 ESLint, 앱 lint(기존 경고 2건, 오류 없음)를 통과했다. 390×844 라이트·다크 웹 실행에서 승부예측·대회(리다이렉트 후 상세 경로 포함)는 비활성, 일정은 활성임을 확인했다. 앱 실기기 및 웹/앱 1px 캡처 비교는 미실행이다.
 
 - 2026-09-13: 사용자가 성능 재검증에서 발견한 문제와 폰트 전달 방식의 수정을 요청해, 잠금 영역 `mobile/providers/minion-shell-provider.tsx`의 **Expo Web 폰트 등록만** 통합 변경한다. 웹 원본 `app/globals.css`와 Expo Web `mobile/app/+html.tsx`는 Pretendard/Paperozi CSS 글꼴을 사용하지만 기존 provider는 브라우저에서도 네이티브 별칭 TTF 5개를 등록해 preload와 별도 다운로드를 만들었다. 웹에서는 `useFonts`에 빈 맵을 전달하고, Android/iOS의 기존 `require` 폰트 맵·별칭·자산·스플래시 처리·테마 동작은 유지한다. 같은 Pretendard 버전의 문자 분할과 누락 문자 fallback을 웹과 Expo Web에 공유한다. 네이티브 폰트 config plugin은 추가하지 않는다. 검증 근거는 `artifacts/performance-fixes-2026-09-13/fonts`에 기록하며, 실기기 검증 여부는 완료 보고에서 별도로 명시한다.
