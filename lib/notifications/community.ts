@@ -3,6 +3,7 @@ import "server-only";
 import { after } from "next/server";
 
 import type { AppNotification } from "@/lib/notifications";
+import type { BoardScope } from "@/lib/community/boards";
 import {
   communityNotificationRecipients,
   notificationOwnerKey,
@@ -115,14 +116,15 @@ async function createCommunityCommentNotifications(input: {
   if (actorProfileResult.error) throw actorProfileResult.error;
   if (!postResult.data) return;
 
-  const post = postResult.data as { author_id: string | null; guest_key: string | null; site_scope: string; team_id: string | null };
+  const post = postResult.data as { author_id: string | null; guest_key: string | null; site_scope: BoardScope; team_id: string | null };
   const parent = parentResult.data as { author_id: string | null; guest_key: string | null } | null;
   const actorName = input.actorName ?? actorProfileResult.data?.nickname ?? "회원";
   let href = `/community/post/${input.postId}`;
-  if (post.site_scope === "fan" && post.team_id) {
-    const { data: team, error } = await admin.from("teams").select("fan_site_host").eq("id", post.team_id).maybeSingle();
+  if (post.site_scope === "team" && post.team_id) {
+    const { data: team, error } = await admin.from("teams").select("fan_site_host, slug").eq("id", post.team_id).maybeSingle();
     if (error) throw error;
-    if (team?.fan_site_host) href = `/fan/${team.fan_site_host}/community/post/${input.postId}`;
+    const teamSlug = team?.fan_site_host || team?.slug;
+    if (teamSlug) href = `/fan/${teamSlug}/community/post/${input.postId}`;
   }
 
   const recipients = communityNotificationRecipients({

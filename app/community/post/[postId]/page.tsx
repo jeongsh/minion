@@ -1,6 +1,6 @@
 import { hasAdPostContent } from "@/lib/ads-policy";
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { PostView } from "@/components/community/post-view";
 import { CommunityContentLayout } from "@/components/community/community-content-layout";
@@ -12,11 +12,13 @@ import {
   getPostReactionState,
 } from "@/lib/community/actions";
 import {
+  getPostById,
   getPostByIdAndIncrementView,
   getBoardPosts,
   getPostComments,
 } from "@/lib/data/community";
 import { getUserMiniconPacks } from "@/lib/data/minicons";
+import { getTeamById } from "@/lib/data/lck";
 
 // 사용자 생성 게시글이라 검색 색인 대상에서 제외한다.
 export const metadata: Metadata = { title: "게시글", robots: { index: false } };
@@ -27,6 +29,15 @@ export default async function HubPostDetailPage({
   params: Promise<{ postId: string }>;
 }) {
   const { postId } = await params;
+  // 예전에 발송된 알림의 허브 주소도 원래 팀 게시글로 연결한다.
+  const existingPost = await getPostById(postId);
+  if (!existingPost) notFound();
+  if (existingPost.siteScope === "team" && existingPost.teamId) {
+    const team = await getTeamById(existingPost.teamId);
+    if (team) redirect(`/fan/${team.fanSiteHost || team.slug}/community/post/${postId}`);
+  }
+  if (existingPost.siteScope !== "hub") notFound();
+
   const [post, comments, user] = await Promise.all([
     getPostByIdAndIncrementView(postId),
     getPostComments(postId),
