@@ -3,7 +3,8 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 
 import { parseStudioConversation, parseStudioInput, type StudioDraft, type StudioInput } from "./ai-studio.ts";
-import { normalizeStudioPunctuation, STUDIO_STYLE_GUIDE } from "./ai-studio-style.ts";
+import { assertStudioVocabulary, normalizeStudioPunctuation, STUDIO_STYLE_GUIDE } from "./ai-studio-style.ts";
+import { STUDIO_DISCUSSION_EXAMPLES, STUDIO_LEAGUE_KNOWLEDGE } from "./ai-studio-knowledge.ts";
 
 export const DEFAULT_STUDIO_MODEL = "gpt-5.4";
 
@@ -60,7 +61,7 @@ export function studioGenerationRequest(input: StudioInput, model: string) {
           "facts에 적힌 내용을 제공된 참고 내용으로만 사용한다. 독립적으로 사실 검증하거나 sourceUrl에 접속한 것처럼 말하지 않는다.",
           "개인 경험, 직관 경험, 내부 정보, 경기 결과, 발언, 수치, 다른 팬 반응을 새로 만들어내지 않는다. 근거가 부족하면 의견이나 질문으로 쓰고 reviewNotes에 확인할 점을 적는다.",
           "게시글은 원문의 인물·행동·사건·맥락·농담의 뉘앙스를 보존하고, 말투와 짧은 감상만 캐릭터에 맞춘다. 새로운 논쟁으로 바꾸거나 원문 제목의 추측을 사실로 단정하지 않는다. 긴 원문이나 고유한 창작 표현을 그대로 복제하지 말고 핵심 의미를 짧게 재서술한다. mediaContext에 설명된 실제 영상 맥락을 제목의 추측보다 우선한다.",
-          "원문 topic·facts는 무엇을 화제로 삼는지 정하는 기준이고 mediaContext는 사실 보완 자료다. 영상 분석에 인물 이름이 없다는 이유로 원문에 명시된 중심 인물을 지우지 않는다. 게시글 제목과 본문에서 원문의 주인공과 행동을 유지하고, 댓글 흐름도 원문이 주목한 포인트에서 크게 벗어나지 않는다. 모든 댓글에 이름을 반복할 필요는 없다. 캐릭터 성격 때문에 무관한 선수 서열·팬덤 논쟁을 새로 만들지 않는다.",
+          "원문 topic·facts는 무엇을 화제로 삼는지 정하는 기준이고 mediaContext는 사실 보완 자료다. 영상 분석에 인물 이름이 없다는 이유로 원문에 명시된 중심 인물을 지우지 않는다. 게시글 제목과 본문에서 원문의 주인공과 행동을 유지하고, 댓글 흐름도 원문이 주목한 포인트에서 크게 벗어나지 않는다. 모든 댓글에 이름을 반복할 필요는 없다. 캐릭터 성격 때문에 무관한 선수 비교·팬덤 논쟁을 새로 만들지 않는다.",
           "예: 원문이 강소라가 페이커 소개 멘트를 읽어준다는 데 놀라는 글이면, 제목은 '강소라가 이걸 읽어주네 ㅋㅋ', 본문은 '페이커 소개 멘트를 강소라 목소리로 듣네 ㅋㅋ'처럼 강소라의 참여를 중심에 둔다. 댓글도 '아니 강소라가 이걸 해주네 ㅋㅋ' 같은 반응에서 시작한다. '페이커 헌정시 영상 있음'처럼 강소라를 빼고 일반 영상 소개로 바꾸지 않는다. 단, 원문 제목의 '팬이었어?' 같은 추측은 팬이라는 사실로 확정하거나 팬 여부 논쟁으로 확대하지 않는다.",
           "facts에 실제 원문 댓글이 포함된 경우 그 댓글의 관심사·감정·농담 방향을 참고해 새 문장으로 쓴다. 원문 댓글이 없으면 댓글 반응이나 여론을 수집한 것처럼 만들지 않고 원문 게시글의 화제에 맞춰 창작한다. 원문과 영상의 구체적 사실이 충돌하면 확인된 사실을 사용하고 충돌 내용은 reviewNotes에 적는다.",
           "원문 의미 보존 예: 배우 강소라가 무협풍으로 지난 월즈 페이커 소개 멘트를 재현하는 영상이면, 소개 멘트를 읽었다는 소식과 무협 같은 소개 문구의 재미에 짧게 반응한다. 영상의 화면이나 낭독 분위기를 묘사하는 감상문으로 바꾸지 않는다.",
@@ -72,11 +73,14 @@ export function studioGenerationRequest(input: StudioInput, model: string) {
           "현실의 특정 이용자를 겨냥한 괴롭힘, 위협, 신상 언급, 성별·인종 비하, 외부 이용자 공격 유도는 쓰지 않는다. 원출처의 닉네임·개인 경험을 가져오지 않는다.",
           "친목 인사나 짜고 치는 맞장구는 피한다. 상대 댓글의 구체적인 말에 답한다. 모두가 끝에 동의하거나 사과하는 결말을 강요하지 않는다. 비판 대상은 이 대화 속 주장이다.",
           STUDIO_STYLE_GUIDE,
+          STUDIO_LEAGUE_KNOWLEDGE,
+          STUDIO_DISCUSSION_EXAMPLES,
           "authorId 캐릭터로 게시글 1개를 쓴다. 제목은 100자 이하, 본문은 1~3개의 짧은 문장, 최대 2000자다. 한 문장으로 충분하면 설명을 덧붙이지 않는다.",
-          `댓글과 대댓글을 합쳐 정확히 ${input.commentCount}개다. 댓글 작성에는 소재와 관련 있는 서로 다른 캐릭터 최소 2명이 참여한다. 이번 situation의 구체적인 상호작용을 반영하되 기본 여섯 명을 매번 모두 등장시키지 않는다. 첫 댓글은 게시글에 반응한다. 6개 이상일 때 최상위 댓글은 2~3개, 나머지는 대댓글로 구성해 한 쟁점이 실제로 이어지게 한다. 3~5개일 때도 대댓글은 최소 1개다.`,
+          `댓글과 대댓글을 합쳐 정확히 ${input.commentCount}개다. 댓글 작성에는 소재와 관련 있는 서로 다른 캐릭터 최소 2명이 참여한다. 6개 댓글이면 보통 3~4명이 대화를 이어가며 한 명씩 출석하는 여섯 명 대본으로 쓰지 않는다. 적은 정보의 소재는 2~3명만으로 충분하다. 이번 situation에서 명시한 참여 요청은 반영하되 관련 없는 C·E·F를 숫자를 채우려고 넣지 않는다. 첫 댓글은 게시글에 반응한다. 6개 이상일 때 최상위 댓글은 2~3개, 나머지는 대댓글로 구성해 한 쟁점이 실제로 이어지게 한다. 3~5개일 때도 대댓글은 최소 1개다.`,
           "각 댓글은 보통 한 줄~2문장, 필요한 반박은 3문장까지, F는 경기 분석에 근거가 필요할 때만 2~4문장으로 쓴다. 비경기 소재의 F는 'ㅋㅋ 존나 웃기네'처럼 소재에 맞는 감정과 말이 붙는 짧은 리액션을 한다. 웃음 표시만 나열하지 않는다. 모든 댓글은 최대 600자다. 댓글에 답할 때 replyTo에 이전 댓글의 0부터 시작하는 인덱스를 넣고, 게시글에 답할 때는 null을 넣는다. 대댓글에 다시 답할 수도 있다. 자기 자신의 글이나 뒤의 댓글을 참조하지 않는다.",
           "본문은 서식 없는 일반 텍스트로 작성한다. 캐릭터가 AI라는 표시는 화면에서 별도로 붙이므로 문장마다 반복하지 않는다.",
           "reviewNotes는 검토자가 확인할 사실·추측 구분이나 누락된 맥락을 최대 5개, 각각 500자 이하로 적는다. 필요 없으면 빈 배열이다.",
+          "반환 전 대사만 점검한다: 입력에 없는 과거 팬 반응·먼저 한 도발·구체적인 경기 장면을 썼으면 지운다. 정보 부족·자료 범위·검증 과정 설명은 대사에서 빼고 reviewNotes로 옮긴다. 반박은 대상 댓글의 실제 주장에 답하고 상대가 하지 않은 정신력·팬덤 주장으로 바꾸지 않는다. 필요한 캐릭터의 의견이 이어지도록 하고 무관한 등장인물과 상투적인 화해는 빼라.",
         ].join("\n"),
       },
       { role: "user", content: JSON.stringify(writingInput) },
@@ -129,9 +133,10 @@ export async function generateStudioDraft(
       if (!conversation.post.title || !conversation.post.content || conversation.comments.some(comment => !comment.content)) throw new Error("내용이 비어 있음");
       if (conversation.comments.length !== input.commentCount) throw new Error("댓글 수 불일치");
       const visible = [conversation.post.title, conversation.post.content, ...conversation.comments.map(c => c.content)].join("\n");
+      assertStudioVocabulary(visible);
       if (/(?:링크|영상)[^\n.!?]{0,20}(?:확인\s*전|미확인|확인하지\s*못|안\s*봤)|제목만\s*(?:보면|봐서)/.test(visible)) throw new Error("운영 안내가 대사에 포함됨");
     } catch {
-      throw new StudioGenerationError("생성된 대화의 길이 또는 댓글 연결이 올바르지 않습니다. 다시 생성해 주세요.");
+      throw new StudioGenerationError("생성된 대화가 표현·길이 또는 댓글 연결 기준을 충족하지 못했습니다. 다시 생성해 주세요.");
     }
     return {
       ...conversation, id: randomUUID(), createdAt: new Date().toISOString(), model,
