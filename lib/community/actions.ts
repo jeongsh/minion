@@ -10,6 +10,7 @@ import { headers } from "next/headers";
 import { after } from "next/server";
 
 import { isCurrentUserAdmin } from "@/lib/auth/admin";
+import { canManageStudioContent, stopStudioReservations } from "@/lib/community/ai-studio-management";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { recordLpEvent } from "@/lib/rank/record-lp";
 import { HOME_PUBLIC_DATA_TAG } from "@/lib/data/home-cache";
@@ -17,7 +18,8 @@ import { scheduleCommunityCommentNotifications } from "@/lib/notifications/commu
 import type { BoardScope } from "@/lib/community/boards";
 import { getBoard } from "@/lib/community/boards";
 import { screenCommunityText } from "@/lib/community/ai-moderation";
-import { findProfanity, maskProfanity } from "@/lib/community/content-filter";
+// 욕설 필터 비활성화(2026-09-16). 재활성화 시 아래 import와 각 검사 블록을 복구한다.
+// import { findProfanity, maskProfanity } from "@/lib/community/content-filter";
 import { extractPlainText } from "@/lib/community/extract-thumbnail";
 import {
   getGuestPostAttachmentError,
@@ -147,21 +149,11 @@ function postLengthError(title: string, content: string): ActionResult | null {
   return null;
 }
 
-/**
- * 금칙어(쌍욕) 동기 검사. 걸리면 에러 메시지를, 통과하면 null 을 반환한다.
- * 글 본문은 에디터 JSON 이므로 평문을 뽑아 제목과 함께 검사한다.
- */
-function profanityError(texts: { title?: string; editorContent?: string; plainText?: string }): string | null {
-  const combined = [
-    texts.title ?? "",
-    texts.editorContent ? extractPlainText(texts.editorContent, 1_000_000) : "",
-    texts.plainText ?? "",
-  ].join("\n");
-
-  const matched = findProfanity(combined);
-  if (!matched) return null;
-  return `금칙어(${maskProfanity(matched)})가 포함되어 등록할 수 없습니다. 표현을 수정해 주세요.`;
-}
+// function profanityError(texts: { title?: string; editorContent?: string; plainText?: string }): string | null {
+//   const combined = [texts.title ?? "", texts.editorContent ? extractPlainText(texts.editorContent, 1_000_000) : "", texts.plainText ?? ""].join("\n");
+//   const matched = findProfanity(combined);
+//   return matched ? `금칙어(${maskProfanity(matched)})가 포함되어 등록할 수 없습니다. 표현을 수정해 주세요.` : null;
+// }
 
 /**
  * 디스코드 모더레이션 알림(웹훅 미설정 시 건너뜀). 실패해도 흐름을 막지 않는다.
@@ -278,8 +270,9 @@ export async function createPostAction(input: {
   const lengthError = postLengthError(title, content);
   if (lengthError) return lengthError;
 
-  const profanity = profanityError({ title, editorContent: content });
-  if (profanity) return { ok: false, error: profanity };
+  // const profanity = profanityError({ title, editorContent: content });
+  // if (profanity) return { ok: false, error: profanity };
+
   if (!user) {
     const attachmentError = getGuestPostAttachmentError(content);
     if (attachmentError) return { ok: false, error: attachmentError };
@@ -337,12 +330,13 @@ export async function updatePostAction(input: {
   const user = await getCurrentUser();
   const post = await getPostById(input.postId);
   const isRegisteredOwner = Boolean(user && post?.authorId === user.id);
+  const isAiAdmin = await canManageStudioContent(post);
   const isGuestOwner = Boolean(
     post?.guestKey
     && !post.authorId
     && post.guestKey === await getExistingGuestKey(),
   );
-  if (!post || (!isRegisteredOwner && !isGuestOwner) || post.siteScope !== input.scope) {
+  if (!post || (!isRegisteredOwner && !isGuestOwner && !isAiAdmin) || post.siteScope !== input.scope) {
     return { ok: false, error: "게시글을 수정할 권한이 없습니다." };
   }
   if (user && isRegisteredOwner) {
@@ -364,13 +358,15 @@ export async function updatePostAction(input: {
   const lengthError = postLengthError(title, content);
   if (lengthError) return lengthError;
 
-  const profanity = profanityError({ title, editorContent: content });
-  if (profanity) return { ok: false, error: profanity };
+  // const profanity = profanityError({ title, editorContent: content });
+  // if (profanity) return { ok: false, error: profanity };
+
   if (isGuestOwner) {
     const attachmentError = getGuestPostAttachmentError(content);
     if (attachmentError) return { ok: false, error: attachmentError };
   }
 
+  if (isAiAdmin) await stopStudioReservations(input.postId);
   await updatePost({ postId: input.postId, boardType: input.boardType, title, content });
 
   // 수정 시에도 재검수 — "정상 글로 등록 후 광고로 수정" 우회를 막는다.
@@ -385,7 +381,7 @@ export async function updatePostAction(input: {
 
   revalidatePath(postPath(input.scope, input.teamSlug, input.postId));
   revalidateCommunityHome(input.scope, input.teamSlug);
-  return { ok: true, message: "수정 완료. 문장 결 살짝 정돈했어요." };
+  return { ok: true, message: isAiAdmin ? "AI 게시글을 수정했습니다. 남은 댓글 예약은 일시정지했습니다." : "수정 완료. 문장 결 살짝 정돈했어요." };
 }
 
 export async function deletePostAction(input: {
@@ -397,13 +393,15 @@ export async function deletePostAction(input: {
   if (!user) return LOGIN_REQUIRED;
 
   const post = await getPostById(input.postId);
-  if (!post || post.authorId !== user.id || post.siteScope !== input.scope) {
+  const isAiAdmin = await canManageStudioContent(post);
+  if (!post || (post.authorId !== user.id && !isAiAdmin) || post.siteScope !== input.scope) {
     return { ok: false, error: "게시글을 삭제할 권한이 없습니다." };
   }
 
+  if (isAiAdmin) await stopStudioReservations(input.postId, true);
   await deletePost(input.postId);
   revalidateCommunityHome(input.scope, input.teamSlug);
-  return { ok: true, message: "게시글을 조용히 치웠어요." };
+  return { ok: true, message: isAiAdmin ? "AI 게시글을 삭제하고 남은 댓글 예약을 취소했습니다." : "게시글을 조용히 치웠어요." };
 }
 
 /** 댓글 작성. */
@@ -427,8 +425,8 @@ export async function createCommentAction(input: {
     return { ok: false, error: `댓글은 ${maxLength}자까지 입력할 수 있습니다.` };
   }
 
-  const profanity = profanityError({ plainText: content });
-  if (profanity) return { ok: false, error: profanity };
+  // const profanity = profanityError({ plainText: content });
+  // if (profanity) return { ok: false, error: profanity };
 
   if (input.parentId) {
     const parent = await getCommentById(input.parentId);
@@ -590,14 +588,16 @@ export async function deleteCommentAction(input: {
   const [user, guestKey] = await Promise.all([getCurrentUser(), getExistingGuestKey()]);
   const isRegisteredOwner = Boolean(comment.authorId && comment.authorId === user?.id);
   const isGuestOwner = Boolean(!comment.authorId && comment.guestKey && comment.guestKey === guestKey);
-  if (!isRegisteredOwner && !isGuestOwner) {
+  const isAiAdmin = await canManageStudioContent(comment);
+  if (!isRegisteredOwner && !isGuestOwner && !isAiAdmin) {
     return { ok: false, error: "댓글을 삭제할 권한이 없습니다." };
   }
 
+  if (isAiAdmin) await stopStudioReservations(input.postId);
   await deleteGuestComment(input.commentId);
   revalidateCommunityHome(input.scope, input.teamSlug);
   revalidatePath(postPath(input.scope, input.teamSlug, input.postId));
-  return { ok: true, message: "댓글을 삭제했습니다." };
+  return { ok: true, message: isAiAdmin ? "AI 댓글을 삭제했습니다. 남은 댓글 예약은 일시정지했습니다." : "댓글을 삭제했습니다." };
 }
 
 export async function updateGuestCommentAction(input: {
@@ -607,25 +607,28 @@ export async function updateGuestCommentAction(input: {
   scope: BoardScope;
   teamSlug?: string;
 }): Promise<ActionResult> {
+  const comment = await getCommentById(input.commentId);
+  const isAiAdmin = await canManageStudioContent(comment);
   const content = input.content.trim();
   if (!content) return { ok: false, error: "댓글 내용을 입력해주세요." };
-  const maxLength = await requestCommentMaxLength();
+  const requestLimit = await requestCommentMaxLength();
+  const maxLength = isAiAdmin ? Math.max(620, requestLimit) : requestLimit;
   if (content.length > maxLength) {
     return { ok: false, error: `댓글은 ${maxLength}자까지 입력할 수 있습니다.` };
   }
-  const profanity = profanityError({ plainText: content });
-  if (profanity) return { ok: false, error: profanity };
-
-  const comment = await getCommentById(input.commentId);
+  // const profanity = profanityError({ plainText: content });
+  // if (profanity) return { ok: false, error: profanity };
   const guestKey = await getExistingGuestKey();
-  if (!comment?.guestKey || comment.postId !== input.postId || comment.guestKey !== guestKey) {
+  if (!comment || comment.deletedAt || comment.contentKind !== "text" || comment.postId !== input.postId || (!isAiAdmin && (!comment.guestKey || comment.authorId || comment.guestKey !== guestKey))) {
     return { ok: false, error: "이 댓글을 수정할 권한이 없습니다." };
   }
 
-  const identity = await getGuestIdentity();
-  if (await isCommunityGuestSanctioned(identity.key, identity.ipKey)) {
-    return { ok: false, error: "이 비회원 ID 또는 접속 환경은 커뮤니티 이용이 제한되었습니다." };
-  }
+  if (!isAiAdmin) {
+    const identity = await getGuestIdentity();
+    if (await isCommunityGuestSanctioned(identity.key, identity.ipKey)) {
+      return { ok: false, error: "이 비회원 ID 또는 접속 환경은 커뮤니티 이용이 제한되었습니다." };
+    }
+  } else await stopStudioReservations(input.postId);
 
   await updateGuestComment(input.commentId, content);
   scheduleAiModeration({
@@ -636,7 +639,7 @@ export async function updateGuestCommentAction(input: {
     text: content,
   });
   revalidatePath(postPath(input.scope, input.teamSlug, input.postId));
-  return { ok: true, message: "댓글을 수정했습니다." };
+  return { ok: true, message: isAiAdmin ? "AI 댓글을 수정했습니다. 남은 댓글 예약은 일시정지했습니다." : "댓글을 수정했습니다." };
 }
 
 /**

@@ -24,6 +24,7 @@ import { getMinionTeam } from '@/constants/teams';
 import { ErrorState } from '@/components/feedback-states';
 import { RankAvatar } from '@/components/rank-avatar';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
+import { useKeyboardLayout } from '@/hooks/use-keyboard-layout';
 import type { MobileCommunityActionDto, MobileCommunityAuthor, MobileCommunityComment, MobileCommunityCommentMutationDto, MobileCommunityPostDetailDto, MobileCommunityReactionDto, MobileMiniconItem } from '@/lib/api-client';
 import { invalidateApiCache, mutateMobileApi, resolveApiAssetUrl } from '@/lib/api-client';
 import { fanAccentText } from '@/lib/fan-colors';
@@ -205,7 +206,7 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
 
   const title = data.isBlinded ? (data.blindedSource === 'ai' ? '정화봇이 숨긴 게시글입니다.' : '블라인드된 게시글입니다.') : data.title;
   return (
-    <KeyboardAwareView minimumBottomInset={8} style={[styles.root, { backgroundColor: theme.pageBackground }]}>
+    <KeyboardAwareView style={[styles.root, { backgroundColor: theme.pageBackground }]}>
       {({ bottomInset }) => <>
         <View style={[styles.safeTop, { backgroundColor: theme.pageBackground, height: insets.top }]} />
         <View style={[styles.header, { borderBottomColor: theme.divider, marginTop: insets.top }]}>
@@ -257,7 +258,7 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
         </View>
         </ScrollView>
         {miniconOpen ? <MiniconPicker bottom={64 + bottomInset} doubleMode={doubleMode} onDoubleModeChange={(enabled) => { setDoubleMode(enabled); setSelectedMinicons([]); }} onSelect={selectMinicon} onStartDouble={startDoubleMinicon} packs={data.miniconPacks} selectedIds={selectedMinicons.map((item) => item.id)} /> : null}
-        <View style={[styles.commentDock, { backgroundColor: theme.pageBackground, borderTopColor: theme.divider, paddingBottom: bottomInset }]}>
+        <View style={[styles.commentDock, { backgroundColor: theme.pageBackground, borderTopColor: theme.divider, paddingBottom: 8 + bottomInset }]}>
         {replyTo ? <View style={styles.replying}><Text numberOfLines={1} style={{ color: theme.muted, flex: 1, ...fonts.medium, fontSize: 13 }}>{displayAuthor(replyTo.author)}님에게 답글</Text><Pressable onPress={() => setReplyTo(null)}><X color={theme.muted} size={16} /></Pressable></View> : null}
         <View style={styles.commentComposer}>
           <View style={[styles.commentInputWrap, { backgroundColor: theme.surfaceMuted }]}>
@@ -288,6 +289,7 @@ function FocusState({ children }: { children: React.ReactNode }) {
 
 function CommunityPostLoadingState({ headerTitle, onClose }: { headerTitle: string; onClose: () => void }) {
   const insets = useSafeAreaInsets();
+  const { bottomInset } = useKeyboardLayout();
   const { fonts, theme } = useMinionTheme();
   return (
     <View style={[styles.root, { backgroundColor: theme.pageBackground }]}>
@@ -297,7 +299,7 @@ function CommunityPostLoadingState({ headerTitle, onClose }: { headerTitle: stri
         <Text style={[styles.headerTitle, { color: theme.ink, ...fonts.display }]}>{headerTitle}</Text>
         <View style={styles.headerButton} />
       </View>
-      <ScrollView contentContainerStyle={{ paddingBottom: 56 + (Platform.OS === 'web' ? 0 : insets.bottom) }} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 56 + bottomInset }} showsVerticalScrollIndicator={false}>
         <Bone height={60} radius={0} width="100%" />
         <View style={[styles.article, { backgroundColor: theme.surface, borderTopColor: theme.border }]}>
           <View style={styles.postHeader}>
@@ -311,7 +313,7 @@ function CommunityPostLoadingState({ headerTitle, onClose }: { headerTitle: stri
           <View style={styles.comments}>{Array.from({ length: 4 }, (_, index) => <View key={index} style={[styles.loadingComment, index > 0 ? { borderTopColor: theme.border, borderTopWidth: 1 } : null]}><View style={styles.loadingCommentTop}><Bone height={32} radius={16} width={32} /><Bone height={14} width={96} /><Bone height={13} width={56} /><View style={styles.loadingCommentReactions}><Bone height={14} width={48} /><Bone height={14} width={56} /></View></View><Bone height={15} width={index % 2 === 0 ? '80%' : '60%'} /><View style={styles.loadingLinks}><Bone height={13} width={48} /><Bone height={13} width={32} /></View></View>)}</View>
         </View>
       </ScrollView>
-      <View style={[styles.commentDock, { backgroundColor: theme.pageBackground, borderTopColor: theme.divider, paddingBottom: Platform.OS === 'web' ? 8 : Math.max(insets.bottom, 8) }]}><View style={styles.commentComposer}><View style={{ flex: 1 }}><Bone height={40} radius={20} width="100%" /></View><Bone height={36} radius={18} width={36} /></View></View>
+      <View style={[styles.commentDock, { backgroundColor: theme.pageBackground, borderTopColor: theme.divider, paddingBottom: 8 + bottomInset }]}><View style={styles.commentComposer}><View style={{ flex: 1 }}><Bone height={40} radius={20} width="100%" /></View><Bone height={36} radius={18} width={36} /></View></View>
     </View>
   );
 }

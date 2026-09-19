@@ -65,6 +65,10 @@ function renderNode(node: ContentNode, key: string, depth = 0): ReactNode {
       const src = youtubeEmbedUrl(attrs.src, attrs.start);
       return src ? <div key={key} data-youtube-video=""><iframe src={src} title="YouTube 영상" width={Number(attrs.width) || 480} height={Number(attrs.height) || 270} allowFullScreen loading="lazy" className="my-4 rounded" /></div> : null;
     }
+    case "video": {
+      const src = contentUrl(attrs.src);
+      return src ? <video key={key} src={src} controls playsInline preload="metadata" className="my-4 max-h-[640px] w-full rounded" /> : null;
+    }
     case "embed": {
       const url = contentUrl(attrs.url);
       if (!url) return null;

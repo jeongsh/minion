@@ -20,7 +20,7 @@ import type { MiniconPack } from "@/lib/minicons/types";
 import { useCommentMaxLength } from "@/components/community/use-comment-max-length";
 import { selectBestComments } from "@/lib/community/best-comments";
 
-export function CommentList({ comments, commentReactions, scope, teamSlug, viewerId, currentGuestKey, miniconPacks = [] }: { comments: CommunityCommentItem[]; commentReactions: Record<string, ReactionState>; scope: BoardScope; teamSlug?: string; viewerId?: string | null; currentGuestKey?: string | null; miniconPacks?: MiniconPack[] }) {
+export function CommentList({ comments, commentReactions, scope, teamSlug, viewerId, currentGuestKey, miniconPacks = [], managedAiCommentIds = [] }: { comments: CommunityCommentItem[]; commentReactions: Record<string, ReactionState>; scope: BoardScope; teamSlug?: string; viewerId?: string | null; currentGuestKey?: string | null; miniconPacks?: MiniconPack[]; managedAiCommentIds?: string[] }) {
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingContent, setEditingContent] = useState("");
@@ -29,6 +29,7 @@ export function CommentList({ comments, commentReactions, scope, teamSlug, viewe
   const router = useRouter();
   const { showToast } = useToast();
   const maxLength = useCommentMaxLength();
+  const editLimit = (comment: CommunityCommentItem) => managedAiCommentIds.includes(comment.id) ? Math.max(620, maxLength) : maxLength;
   const roots = comments.filter((comment) => !comment.parentId);
   const bestComments = selectBestComments(roots);
   const bestCommentIds = new Set(bestComments.map((comment) => comment.id));
@@ -67,13 +68,13 @@ export function CommentList({ comments, commentReactions, scope, teamSlug, viewe
     });
   };
 
-  const ownsComment = (comment: CommunityCommentItem) => comment.authorId
+  const ownsComment = (comment: CommunityCommentItem) => managedAiCommentIds.includes(comment.id) || (comment.authorId
     ? comment.authorId === viewerId
-    : Boolean(comment.guestKey && comment.guestKey === currentGuestKey);
+    : Boolean(comment.guestKey && comment.guestKey === currentGuestKey));
 
   const beginGuestEdit = (comment: CommunityCommentItem) => {
     setEditingId(comment.id);
-    setEditingContent(comment.content.slice(0, maxLength));
+    setEditingContent(comment.content);
     setReplyTo(null);
   };
 
@@ -99,8 +100,8 @@ export function CommentList({ comments, commentReactions, scope, teamSlug, viewe
     });
   };
 
-  const guestEditButton = (comment: CommunityCommentItem) => comment.contentKind === "text" && comment.guestKey && comment.guestKey === currentGuestKey ? (
-    <button type="button" disabled={pending} onClick={() => beginGuestEdit(comment)} className="text-[13px] font-semibold text-[var(--ui-muted)] hover:text-[var(--ui-ink)] disabled:opacity-50">수정</button>
+  const guestEditButton = (comment: CommunityCommentItem) => comment.contentKind === "text" && (managedAiCommentIds.includes(comment.id) || (comment.guestKey && comment.guestKey === currentGuestKey)) ? (
+    <button type="button" disabled={pending} onClick={() => beginGuestEdit(comment)} className="text-[13px] font-medium text-[var(--ui-muted)] hover:text-[var(--ui-ink)] disabled:opacity-50">수정</button>
   ) : null;
 
   if (comments.length === 0) return null;
@@ -177,11 +178,11 @@ export function CommentList({ comments, commentReactions, scope, teamSlug, viewe
         </div>
         {editingId === comment.id ? (
           <div className="mt-1.5 rounded-[var(--ui-control-radius)] border border-[var(--ui-border)] bg-[var(--ui-surface)] p-3">
-            <textarea value={editingContent} onChange={(event) => setEditingContent(event.target.value)} rows={4} maxLength={maxLength} className="block w-full resize-none bg-transparent text-base leading-7 text-[var(--ui-text)] outline-none" aria-label="댓글 수정" />
+            <textarea value={editingContent} onChange={(event) => setEditingContent(event.target.value)} rows={4} maxLength={editLimit(comment)} className="block w-full resize-none bg-transparent text-base leading-7 text-[var(--ui-text)] outline-none" aria-label="댓글 수정" />
             <div className="mt-2 flex items-center justify-end gap-2">
-              <span className="mr-auto text-[13px] tabular-nums text-[var(--ui-muted)]">{editingContent.length.toLocaleString("ko-KR")}/{maxLength.toLocaleString("ko-KR")}자</span>
+              <span className="mr-auto text-[13px] tabular-nums text-[var(--ui-muted)]">{editingContent.length.toLocaleString("ko-KR")}/{editLimit(comment).toLocaleString("ko-KR")}자</span>
               <button type="button" disabled={pending} onClick={() => setEditingId(null)} className="h-8 rounded-[var(--ui-control-radius)] px-3 text-[13px] font-medium text-[var(--ui-muted)] hover:bg-[var(--ui-surface-muted)]">취소</button>
-              <button type="button" disabled={pending || !editingContent.trim() || editingContent.length > maxLength} onClick={() => saveGuestEdit(comment)} className="h-8 rounded-[var(--ui-control-radius)] bg-[var(--ui-ink)] px-3 text-[13px] font-medium text-[var(--ui-surface)] disabled:opacity-50">{pending ? "저장 중" : "저장"}</button>
+              <button type="button" disabled={pending || !editingContent.trim() || editingContent.length > editLimit(comment)} onClick={() => saveGuestEdit(comment)} className="h-8 rounded-[var(--ui-control-radius)] bg-[var(--ui-ink)] px-3 text-[13px] font-medium text-[var(--ui-surface)] disabled:opacity-50">{pending ? "저장 중" : "저장"}</button>
             </div>
           </div>
         ) : comment.blindedAt ? (

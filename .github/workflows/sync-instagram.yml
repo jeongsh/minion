@@ -10,6 +10,10 @@ on:
         type: choice
         default: all
         options: [all, teams, players]
+      no_notify:
+        description: Skip fan notifications while recovering missed posts
+        type: boolean
+        default: true
 
 permissions:
   contents: read
@@ -50,9 +54,13 @@ jobs:
           R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
           NEXT_PUBLIC_R2_PUBLIC_URL: ${{ secrets.NEXT_PUBLIC_R2_PUBLIC_URL }}
           INSTAGRAM_SCOPE: ${{ inputs.scope || 'all' }}
+          INSTAGRAM_NO_NOTIFY: ${{ github.event_name == 'workflow_dispatch' && inputs.no_notify && 'true' || 'false' }}
         run: |
-          if [ "$INSTAGRAM_SCOPE" = all ]; then
-            node --experimental-strip-types scripts/sync-instagram.ts
-          else
-            node --experimental-strip-types scripts/sync-instagram.ts --only="$INSTAGRAM_SCOPE"
+          args=()
+          if [ "$INSTAGRAM_SCOPE" != all ]; then
+            args+=(--only="$INSTAGRAM_SCOPE")
           fi
+          if [ "$INSTAGRAM_NO_NOTIFY" = true ]; then
+            args+=(--no-notify)
+          fi
+          node --experimental-strip-types scripts/sync-instagram.ts "${args[@]}"

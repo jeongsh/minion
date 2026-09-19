@@ -9,6 +9,7 @@ import { getExistingGuestKey } from "@/lib/community/guest-identity";
 import { getPostById } from "@/lib/data/community";
 import { getTeamByFanSiteHost, getTeamBySlug } from "@/lib/data/lck";
 import { getUserMiniconPacks } from "@/lib/data/minicons";
+import { canManageStudioContent } from "@/lib/community/ai-studio-management";
 
 export const metadata: Metadata = { title: "글 수정", robots: { index: false } };
 
@@ -22,7 +23,7 @@ export default async function EditFanPostPage({ params }: { params: Promise<{ te
   ]);
   const isGuestOwner = Boolean(post?.guestKey && !post.authorId && post.guestKey === guestKey);
   if (!user && !isGuestOwner) redirect(`/login?next=/fan/${teamSlug}/community/post/${postId}/edit`);
-  if (!team || !post || post.siteScope !== "team" || post.teamId !== team.id || (post.authorId !== user?.id && !isGuestOwner)) notFound();
+  if (!team || !post || post.siteScope !== "team" || post.teamId !== team.id || (post.authorId !== user?.id && !isGuestOwner && !await canManageStudioContent(post))) notFound();
   const miniconPacks = await getUserMiniconPacks(user?.id);
 
   return (

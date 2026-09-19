@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { connectionState, hasConnectionFailure, shouldAlertSocialFailure, workflowHealth, type SocialWorkflowRun } from "./social-health.ts";
 import { retryFetch } from "./retry-fetch.ts";
+import { instagramStopReason } from "../scraper/instagram-failure.ts";
 
 const now = Date.parse("2026-09-10T12:00:00Z");
 const policy = { maximumAgeHours: 1.5, maximumRunMinutes: 20 };
@@ -24,15 +25,25 @@ test("missing activity and generic failures never request reconnection", () => {
 });
 
 test("only explicit provider authentication errors qualify", () => {
-  assert.equal(hasConnectionFailure("sync-instagram.yml", "[error] team:HLE posts — INSTAGRAM_LOGIN: @hle; login session expired or login required"), true);
-  assert.equal(hasConnectionFailure("sync-instagram.yml", "[error] INSTAGRAM_CHALLENGE: @hle; account verification required"), true);
+  assert.equal(hasConnectionFailure("sync-instagram.yml", "[error] team:HLE posts — INSTAGRAM_SESSION_REJECTED: @hle; saved session requires login"), true);
+  assert.equal(hasConnectionFailure("sync-instagram.yml", "[error] INSTAGRAM_SESSION_CHALLENGE: @hle; account verification required"), true);
   assert.equal(hasConnectionFailure("sync-youtube.yml", "[error] team:HLE API key not valid. Please pass a valid API key."), true);
-  for (const error of ["INSTAGRAM_EMPTY", "INSTAGRAM_HTTP_403", "INSTAGRAM_HTTP_429", "INSTAGRAM_HTTP_503", "INSTAGRAM_LOGIN: @hle; pagination rejected", "checked=0", "quotaExceeded", "timeout"]) {
+  for (const error of ["INSTAGRAM_EMPTY", "INSTAGRAM_HTTP_401", "INSTAGRAM_HTTP_403", "INSTAGRAM_HTTP_429", "INSTAGRAM_HTTP_503", "INSTAGRAM_LOGIN_REQUIRED: @hle; public profile requires login", "INSTAGRAM_CHALLENGE: @hle; account verification required", "INSTAGRAM_LOGIN: @hle; login session expired or login required", "INSTAGRAM_LOGIN: @hle; pagination rejected", "checked=0", "quotaExceeded", "timeout"]) {
     for (const workflow of ["sync-instagram.yml", "sync-youtube.yml", "renew-youtube-websub.yml"]) {
       assert.equal(hasConnectionFailure(workflow, `[error] ${error}`), false);
     }
   }
-  assert.equal(hasConnectionFailure("sync-instagram.yml", "[retry] INSTAGRAM_LOGIN: @hle; login session expired or login required"), false);
+  assert.equal(hasConnectionFailure("sync-instagram.yml", "[recovery] INSTAGRAM_SESSION_REJECTED: @hle; saved session requires login"), false);
+});
+
+test("rate limits and verification stop immediately; repeated access failures stop after three", () => {
+  assert.match(instagramStopReason("INSTAGRAM_HTTP_429: @t1lol; Retry-After=120", 0)!, /rate limit/);
+  assert.match(instagramStopReason("INSTAGRAM_SESSION_CHALLENGE: @t1lol", 0)!, /verification/);
+  for (const code of ["SESSION_REJECTED", "LOGIN_REQUIRED", "HTTP_401", "HTTP_403", "EMPTY"]) {
+    assert.equal(instagramStopReason(`INSTAGRAM_${code}: @t1lol`, 2), null);
+    assert.match(instagramStopReason(`INSTAGRAM_${code}: @t1lol`, 3)!, /Three consecutive/);
+  }
+  assert.equal(instagramStopReason("Database connection failed", 3), null);
 });
 function run(minutes: number, conclusion: string | null = "success", status = "completed"): SocialWorkflowRun {
   const time = new Date(now - minutes * 60_000).toISOString();

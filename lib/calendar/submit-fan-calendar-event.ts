@@ -5,7 +5,7 @@ import {
   validateFanCalendarSubmission,
 } from "@/lib/calendar/submissions";
 import { attemptFanCalendarSubmissionNotification } from "@/lib/calendar/submission-notifications";
-import { findProfanity } from "@/lib/community/content-filter";
+// 욕설 필터 비활성화(2026-09-16): import { findProfanity } from "@/lib/community/content-filter";
 import { isCommunityUserSanctioned } from "@/lib/data/community-users";
 import { recordOperationalEvent } from "@/lib/observability/operational-events";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -60,9 +60,9 @@ export async function createFanCalendarSubmission(
     }
   }
 
-  if (findProfanity(`${input.title}\n${input.description ?? ""}`)) {
-    return { ok: false, error: "금칙어가 포함되어 있어 내용을 등록할 수 없어요." };
-  }
+  // if (findProfanity(`${input.title}\n${input.description ?? ""}`)) {
+  //   return { ok: false, error: "금칙어가 포함되어 있어 내용을 등록할 수 없어요." };
+  // }
 
   const { data: submissionId, error } = await supabase.rpc("submit_fan_calendar_event_submission", {
     p_team_id: team.id,

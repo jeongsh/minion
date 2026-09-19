@@ -8,13 +8,14 @@ import { createFanOnionAction } from "@/app/fan/[teamSlug]/actions";
 import type { FanOnionItem, FanTemperatureSnapshot } from "@/lib/data/fan-pulse";
 
 const MAX_LENGTH = 100;
-const PROFANITY_PATTERNS = [
-  /씨\s*발|시\s*발|ㅅ\s*ㅂ|ㅆ\s*ㅂ/gi,
-  /병\s*신|븅\s*신|ㅂ\s*ㅅ/gi,
-  /개\s*새\s*끼|개\s*새|개\s*자\s*식/gi,
-  /좆|존\s*나|졸\s*라|지\s*랄|꺼\s*져/gi,
-  /fuck|shit|bitch|asshole/gi,
-];
+// 욕설 마스킹 비활성화(2026-09-16). 서버 액션의 보관 코드와 함께 재활성화한다.
+// const PROFANITY_PATTERNS = [
+//   /씨\s*발|시\s*발|ㅅ\s*ㅂ|ㅆ\s*ㅂ/gi,
+//   /병\s*신|븅\s*신|ㅂ\s*ㅅ/gi,
+//   /개\s*새\s*끼|개\s*새|개\s*자\s*식/gi,
+//   /좆|존\s*나|졸\s*라|지\s*랄|꺼\s*져/gi,
+//   /fuck|shit|bitch|asshole/gi,
+// ];
 
 const RETENTION_OPTIONS = [
   { label: "5분", value: 5 },
@@ -23,12 +24,9 @@ const RETENTION_OPTIONS = [
   { label: "1시간", value: 60 },
 ] as const;
 
-function maskProfanity(value: string) {
-  return PROFANITY_PATTERNS.reduce(
-    (next, pattern) => next.replace(pattern, (match) => "＊".repeat(Math.max(2, match.length))),
-    value,
-  );
-}
+// function maskProfanity(value: string) {
+//   return PROFANITY_PATTERNS.reduce((next, pattern) => next.replace(pattern, (match) => "＊".repeat(Math.max(2, match.length))), value);
+// }
 
 export function FanOnionBoard({
   teamId,
@@ -88,7 +86,8 @@ export function FanOnionBoard({
   }
 
   function handleContentChange(value: string) {
-    setContent(maskProfanity(value).slice(0, MAX_LENGTH));
+    setContent(value.slice(0, MAX_LENGTH));
+    // 재활성화 시: setContent(maskProfanity(value).slice(0, MAX_LENGTH));
   }
 
   function handleTextareaKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
@@ -104,7 +103,7 @@ export function FanOnionBoard({
       <header className="flex items-center justify-between gap-3 border-b border-[var(--ui-border)] bg-[var(--ui-surface)] px-5 py-5">
         <div className="min-w-0">
           <h2 className="truncate text-lg font-black text-[var(--ui-ink)]">지금 올라온 양파</h2>
-          <p className="mt-1 text-[13px] font-bold text-[var(--ui-muted)]">비속어는 자동으로 가려지고, 설정한 시간이 지나면 사라져요.</p>
+          <p className="mt-1 text-[13px] font-bold text-[var(--ui-muted)]">설정한 시간이 지나면 화면에서 자동으로 사라져요.</p>
         </div>
         <div className="shrink-0 text-right text-[13px] font-bold text-[var(--ui-muted)]">
           <span className="block text-sm font-black" style={{ color: teamColor }}>

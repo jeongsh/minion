@@ -22,13 +22,14 @@ const ONION_MAX_LENGTH = 100;
 const ONION_COOLDOWN_MS = 60 * 1000;
 const FAN_PULSE_NOT_READY = "팬온도/비난양파 DB 마이그레이션이 아직 적용되지 않았어요.";
 const ALLOWED_ONION_RETENTION_MINUTES = new Set([5, 15, 30, 60]);
-const PROFANITY_PATTERNS = [
-  /씨\s*발|시\s*발|ㅅ\s*ㅂ|ㅆ\s*ㅂ/gi,
-  /병\s*신|븅\s*신|ㅂ\s*ㅅ/gi,
-  /개\s*새\s*끼|개\s*새|개\s*자\s*식/gi,
-  /좆|존\s*나|졸\s*라|지\s*랄|꺼\s*져/gi,
-  /fuck|shit|bitch|asshole/gi,
-];
+// 욕설 마스킹 비활성화(2026-09-16). 재활성화 시 아래 패턴과 maskProfanity 호출을 복구한다.
+// const PROFANITY_PATTERNS = [
+//   /씨\s*발|시\s*발|ㅅ\s*ㅂ|ㅆ\s*ㅂ/gi,
+//   /병\s*신|븅\s*신|ㅂ\s*ㅅ/gi,
+//   /개\s*새\s*끼|개\s*새|개\s*자\s*식/gi,
+//   /좆|존\s*나|졸\s*라|지\s*랄|꺼\s*져/gi,
+//   /fuck|shit|bitch|asshole/gi,
+// ];
 
 async function getOrCreateVoterKey() {
   const cookieStore = await cookies();
@@ -464,12 +465,9 @@ function normalizeOnionContent(value: string) {
     .trim();
 }
 
-function maskProfanity(value: string) {
-  return PROFANITY_PATTERNS.reduce(
-    (next, pattern) => next.replace(pattern, (match) => "＊".repeat(Math.max(2, match.length))),
-    value,
-  );
-}
+// function maskProfanity(value: string) {
+//   return PROFANITY_PATTERNS.reduce((next, pattern) => next.replace(pattern, (match) => "＊".repeat(Math.max(2, match.length))), value);
+// }
 
 function isUnsafeOnionContent(value: string) {
   const patterns = [
@@ -548,7 +546,8 @@ export async function createFanOnionAction(input: {
   snapshot?: Awaited<ReturnType<typeof getFanTemperatureSnapshot>>;
 }> {
   const voterKey = await getOrCreateVoterKey();
-  const content = maskProfanity(normalizeOnionContent(input.content));
+  const content = normalizeOnionContent(input.content);
+  // 재활성화 시: const content = maskProfanity(normalizeOnionContent(input.content));
   const retentionMinutes = ALLOWED_ONION_RETENTION_MINUTES.has(input.retentionMinutes)
     ? input.retentionMinutes
     : 5;

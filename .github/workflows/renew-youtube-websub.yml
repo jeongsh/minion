@@ -2,8 +2,8 @@ name: Renew YouTube WebSub subscriptions
 
 on:
   schedule:
-    # WebSub subscriptions expire. Renew daily at 03:15 KST (18:15 UTC).
-    - cron: "15 18 * * *"
+    # Retry renewal every six hours so a transient hub outage does not cost a day.
+    - cron: "15 0,6,12,18 * * *"
   workflow_dispatch:
 
 concurrency:

@@ -3,10 +3,11 @@
 ## 자동 복구와 감지
 
 - `sync-youtube.yml`: 15분 간격 예약. 공식 YouTube Data API로 최근 7일을 대조해 누락을 보충한다. WebSub와 독립 실행한다. GitHub Actions 예약은 지연될 수 있어 15분 이내 반영을 보장하지는 않는다.
-- `renew-youtube-websub.yml`: 매일 구독 갱신. 일시 오류는 한 번 재시도하고, 연속 3개 채널 실패 시 중단하여 장애를 명시한다. 갱신 실패를 성공으로 처리하지 않는다.
-- `sync-instagram.yml`: 하루 두 번 공개 게시물 수집. 저장된 세션이 로그인/빈 결과 오류를 내면 로그인 없는 공개 프로필로 한 번 재시도한다. 로그인 확인·빈 피드·HTTP 오류·페이지네이션 실패를 기록한다. 모든 계정이 0건이면 실패다. 비활성화된 스토리는 감시 대상이 아니다.
+- `renew-youtube-websub.yml`: 6시간마다 구독 갱신. 일시 오류는 5·10·20초 간격으로 최대 세 번 재시도하고 (Retry-After는 최대 60초까지 준수, 더 길면 다음 실행으로 넘김), 연속 3개 채널 실패 시 중단하여 장애를 명시한다. 갱신 실패를 성공으로 처리하지 않는다.
+- `sync-instagram.yml`: 하루 두 번 공개 게시물 수집. 저장된 세션이 로그인/빈 결과 오류를 내면 로그인 없는 공개 프로필로 한 번 재시도한다. HTTP 429 또는 계정 인증 화면이 나오면 즉시 중단하며, 로그인 요구·403·빈 피드 등 접근 오류가 3개 계정 연속 발생해도 중단한다. 정상 수집 시 연속 오류 횟수를 초기화한다. 페이지네이션의 HTTP 상태와 `Retry-After`를 보존하고, 일반 API 실패를 로그인 오류로 바꾸지 않는다. 실제 시도·미시도 계정 수와 중단 원인을 Actions summary에 기록하며 모든 계정이 0건이면 실패다. 비활성화된 스토리는 감시 대상이 아니다.
+- `check-instagram-session.yml`: 운영자가 실행하는 세션 확인 전용 작업. 저장된 쿠키로 지정한 공개 프로필 하나를 조회하며 비로그인 재시도, DB 저장, 팬 알림은 하지 않는다. 전체 수집 복구와 구별하기 위해 감시 대상에서 제외한다. 수집 작업과 동일한 concurrency 그룹을 사용한다.
 - `monitor-social.yml`: 수집 작업 종료 직후와 매시간 실행. 최근 실패, 과도하게 지연된 실행, 장시간 정상 실행이 없는 상태를 확인한다. YouTube API 90분, Instagram 30시간, WebSub 36시간이 기준이다. 새 게시물이 없는 정상 채널을 장애로 판단하지 않는다.
-- 운영 결과는 GitHub Actions summary와 `social-health` artifact에 저장한다. Discord 재연결 알림은 실패한 수집 작업의 최종 오류 로그에서 명시적인 로그인 만료·계정 인증 요구·인증 키 오류가 확인될 때만 한 번 보낸다. 게시물 없음, 수집 기록 오래됨, 예약 지연, 일반 작업 실패, 403·429·503, 감시 API 오류, WebSub 갱신 오류는 재연결 알림 대상이 아니다. 로그를 읽을 수 없어도 연결 끊김으로 추측하지 않는다. 인증 오류 이후 원인 불명 상태가 이어져도 중복 발송하지 않고, 정상 수집이 확인된 후 새 인증 오류가 발생할 때만 다시 알린다. 정상·진행·복구·완료 알림은 보내지 않는다. `DISCORD_SOCIAL_WEBHOOK_URL` 미설정 시 Discord 발송은 하지 않는다.
+- 운영 결과는 GitHub Actions summary와 `social-health` artifact에 저장한다. Discord 재연결 알림은 실패한 수집 작업의 최종 오류 로그에서 저장된 Instagram 세션의 로그인 거부(`INSTAGRAM_SESSION_REJECTED`)·계정 인증 요구(`INSTAGRAM_SESSION_CHALLENGE`) 또는 YouTube 인증 키 오류가 확인될 때만 한 번 보낸다. 비로그인 공개 프로필의 로그인 요구(`INSTAGRAM_LOGIN_REQUIRED`)는 세션 만료의 증거가 아니다. 이전 코드의 모호한 `INSTAGRAM_LOGIN`, `INSTAGRAM_CHALLENGE`, `INSTAGRAM_HTTP_401` 로그로도 새 재연결 알림을 만들지 않는다. 게시물 없음, 수집 기록 오래됨, 예약 지연, 일반 작업 실패, 403·429·503, 감시 API 오류, WebSub 갱신 오류는 재연결 알림 대상이 아니다. 로그를 읽을 수 없어도 연결 끊김으로 추측하지 않는다. 인증 오류 이후 원인 불명 상태가 이어져도 중복 발송하지 않고, 정상 수집이 확인된 후 새 인증 오류가 발생할 때만 다시 알린다. 정상·진행·복구·완료 알림은 보내지 않는다. `DISCORD_SOCIAL_WEBHOOK_URL` 미설정 시 Discord 발송은 하지 않는다.
 - GPT/Codex 자동 감시는 사용하지 않는다. GitHub Actions가 PC와 무관하게 수집 실패를 감지하고 기존 디스코드 운영 채널에 “연결을 확인하고 다시 연결해 주세요”라는 알림을 보낸다. GPT의 자동 조사·수정·정책 확인은 실행하지 않는다.
 
 ## 장애 대응
@@ -14,6 +15,11 @@
 1. GitHub `2yongtech2/minion`의 네 수집/감시 워크플로 최신 실행과 summary를 확인한다. 성공 배지만 보지 말고 checked/failed/errors와 원본 대비 누락도 확인한다.
 2. YouTube WebSub 503 중에도 API 수집이 정상인지 확인한다. API 키/쿼터 오류는 원인을 구분하고 반복 호출을 피한다. 수동 보충은 `node --experimental-strip-types scripts/sync-youtube-videos.ts --recent --no-notify`로 할 수 있다.
 3. Instagram 로그인/인증 확인/접근 제한은 오류를 숨기거나 우회하지 않는다. 공개 프로필 재시도 후에도 실패하면 세션 재인증 필요 여부와 응답 형식을 조사한다. 모든 계정이 빈 결과인 경우 성공으로 표시하지 않는다.
+   - 수집용 Instagram 계정의 로그인·추가 인증을 정상적으로 완료한 뒤, 해당 세션의 Cookie 헤더(`sessionid=...; csrftoken=...; ds_user_id=...`)를 GitHub `2yongtech2/minion` → Settings → Secrets and variables → Actions의 기존 `INSTAGRAM_SESSION_COOKIE`에 갱신한다. 쿠키 값은 채팅·로그·커밋에 남기지 않는다. DevTools의 `sessionid` Value만 복사한 형식도 인식하지만 `sessionid=`를 붙인 형식을 권장한다. 이메일 인증 코드·비밀번호는 입력하지 않는다. 형식 오류는 네트워크 요청 전에 `INSTAGRAM_COOKIE_FORMAT`으로 중단하며 세션 만료로 간주하지 않는다.
+   - `Instagram session check`를 `username=t1lol`로 실행한다. HTTP 429라면 `Retry-After`를 따르고 즉시 다시 실행하지 않는다. 헤더가 없으면 수동 반복 실행을 멈추고 다음 예약 실행까지 기다린다.
+   - 로컬에서는 `.env.local`에 갱신한 쿠키를 설정한 뒤 `node --experimental-strip-types scripts/sync-instagram.ts --check-session --username=t1lol`로 확인한다. 이 명령은 Supabase/R2 키 없이도 실행되며, 비로그인 조회로 성공 처리하지 않는다.
+   - 세션 확인 성공 후 실제 전체 수집의 `healthy`, `checked`, `errors`와 사이트 피드까지 확인해야 복구 완료다. 세션 확인 워크플로 성공만으로 전체 수집이 정상이라는 뜻은 아니다.
+   - 누락분 복구를 위해 `Instagram Sync`를 수동 실행할 때는 기본값인 `no_notify=true`를 유지한다. 예약 실행은 새 게시물 알림을 계속 보내며, 수동 실행에서도 새 글 알림이 필요한 경우에만 `no_notify=false`를 선택한다.
    현재 PC에서 공개 프로필이 정상 조회되는 경우 `node --experimental-strip-types scripts/sync-instagram.ts --only=teams --no-notify`로 운영자 확인하에 보충할 수 있다. 이것이 서버 로그인 문제까지 해결했다는 뜻은 아니다. `--no-notify`는 과거 누락분 보충 시 팬 알림을 발송하지 않는다.
 4. 수정은 실제 API·DB·사이트 결과로 검증한다. 사용자 작업 파일은 보존한다. 이미 저장된 데이터는 삭제하지 않는다.
 5. 스케줄러 자체가 멈추면 같은 스케줄러의 감시도 멈출 수 있다. 필요 시 운영자가 네 워크플로의 마지막 실행 시간을 확인한다.
@@ -26,3 +32,8 @@
 - https://developers.facebook.com/docs/instagram-platform/changelog
 
 문서 변경 자체를 장애로 확정하거나 알림을 보내지 않는다. 현재 수집 방식에 영향을 주는 폐기 일정·인증·요청 한도·정책 변경인지 확인하고 근거와 대응을 상태 파일에 기록한다. 사전 공지 없는 변경도 실제 수집 실패/빈 결과 감지로 확인한다.
+
+## 반복 알림 및 페이지네이션 보정
+
+- 감시 작업은 제공자별 장애 상태가 처음 발생하거나 바뀔 때만 실패한다. 같은 장애가 계속되면 경고와 summary/artifact를 유지하면서 감시 실행은 성공한다. 감시 성공과 수집 복구는 다르다. 정상 수집 후 같은 장애가 재발하면 다시 실패한다. 캐시가 소실되면 최초 알림이 다시 발생할 수 있다.
+- Instagram GraphQL 커서를 REST max_id로 전달하지 않는다. 브라우저 스크롤이 발생시키는 실제 피드 응답을 수집한다. 추가 페이지가 있다고 표시됐는데 진행되지 않으면 누락을 숨기지 않고 실패한다. 계정 사이 간격은 5초다.

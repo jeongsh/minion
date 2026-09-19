@@ -56,6 +56,7 @@ type ToastItem = {
 
 type ShellContextValue = {
   colorScheme: ColorScheme;
+  isThemeChanging: boolean;
   favoriteTeam: MinionTeam | null;
   fonts: { regular: TextStyle; medium: TextStyle; bold: TextStyle; black: TextStyle; display: TextStyle };
   openTeamPicker: () => void;
@@ -75,6 +76,9 @@ void SplashScreen.preventAutoHideAsync();
 export function MinionShellProvider({ children }: PropsWithChildren) {
   const systemScheme = useColorScheme();
   const [savedScheme, setSavedScheme] = useState<ColorScheme | null>(null);
+  const [isThemeChanging, setIsThemeChanging] = useState(false);
+  const themeChangeLocked = useRef(false);
+  const themeWrite = useRef<Promise<void>>(Promise.resolve());
   const [favoriteSlug, setFavoriteSlug] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
   const [teamPickerOpen, setTeamPickerOpen] = useState(false);
@@ -111,7 +115,28 @@ export function MinionShellProvider({ children }: PropsWithChildren) {
   }, [fontError, fontsLoaded, hydrated]);
 
   useEffect(() => {
-    if (Platform.OS !== 'web') void SystemUI.setBackgroundColorAsync(theme.pageBackground);
+    let cancelled = false;
+    let frame: number | undefined;
+    const backgroundUpdate = Platform.OS !== 'web'
+      ? SystemUI.setBackgroundColorAsync(theme.pageBackground)
+      : Promise.resolve();
+
+    void Promise.allSettled([backgroundUpdate, themeWrite.current]).then(() => {
+      if (cancelled || !themeChangeLocked.current) return;
+      // Keep the lock through the committed theme's next paint, not just its render.
+      frame = requestAnimationFrame(() => {
+        frame = requestAnimationFrame(() => {
+          if (cancelled) return;
+          themeChangeLocked.current = false;
+          setIsThemeChanging(false);
+        });
+      });
+    });
+
+    return () => {
+      cancelled = true;
+      if (frame !== undefined) cancelAnimationFrame(frame);
+    };
   }, [theme.pageBackground]);
 
   useEffect(() => () => {
@@ -120,13 +145,16 @@ export function MinionShellProvider({ children }: PropsWithChildren) {
   }, []);
 
   const toggleTheme = useCallback(() => {
-    setSavedScheme((current) => {
-      const effective = current ?? (systemScheme === 'dark' ? 'dark' : 'light');
-      const next = effective === 'dark' ? 'light' : 'dark';
-      void AsyncStorage.setItem(THEME_KEY, next);
-      return next;
+    // A ref also blocks presses queued before React commits disabled to the button.
+    if (!hydrated || themeChangeLocked.current) return;
+    themeChangeLocked.current = true;
+    setIsThemeChanging(true);
+    const next = colorScheme === 'dark' ? 'light' : 'dark';
+    themeWrite.current = AsyncStorage.setItem(THEME_KEY, next).catch((error) => {
+      console.warn('Failed to save theme preference', error);
     });
-  }, [systemScheme]);
+    setSavedScheme(next);
+  }, [colorScheme, hydrated]);
 
   const setFavoriteTeam = useCallback((team: MinionTeam | null) => {
     favoriteTeamOverridden.current = true;
@@ -160,6 +188,7 @@ export function MinionShellProvider({ children }: PropsWithChildren) {
 
   const value = useMemo<ShellContextValue>(() => ({
     colorScheme,
+    isThemeChanging,
     favoriteTeam,
     fonts: {
       regular: fontsLoaded ? Platform.select({ web: { fontFamily: PRETENDARD_WEB_STACK, fontWeight: '400' }, default: { fontFamily: 'Pretendard-Regular', fontWeight: '400' } }) : {},
@@ -176,7 +205,7 @@ export function MinionShellProvider({ children }: PropsWithChildren) {
     teamPickerOpen,
     theme,
     toggleTheme,
-  }), [colorScheme, favoriteTeam, fontsLoaded, openTeamPicker, setFavoriteTeam, showMatchEventToast, showToast, teamPickerOpen, theme, toggleTheme]);
+  }), [colorScheme, favoriteTeam, fontsLoaded, isThemeChanging, openTeamPicker, setFavoriteTeam, showMatchEventToast, showToast, teamPickerOpen, theme, toggleTheme]);
 
   return (
     <ShellContext.Provider value={value}>

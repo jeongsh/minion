@@ -17,10 +17,14 @@ export function shouldAlertSocialFailure(previous: string | undefined, current: 
   return current === "disconnected" && previous !== "disconnected";
 }
 
+export function isNewSocialIncident(previous: string | undefined, current: string) {
+  return current !== "healthy" && previous !== current;
+}
+
 export function hasConnectionFailure(workflow: string, logs: string) {
   const errors = logs.split(/\r?\n/).filter((line) => line.includes("[error]"));
   if (workflow === "sync-instagram.yml") {
-    return errors.some((line) => /INSTAGRAM_LOGIN:.*login session expired or login required|INSTAGRAM_CHALLENGE:|INSTAGRAM_HTTP_401:/.test(line));
+    return errors.some((line) => /INSTAGRAM_SESSION_REJECTED:|INSTAGRAM_SESSION_CHALLENGE:/.test(line));
   }
   if (workflow === "sync-youtube.yml") {
     return errors.some((line) => /API key not valid|API key expired|API_KEY_INVALID|API_KEY_EXPIRED|invalid authentication credentials|invalid_grant|UNAUTHENTICATED/i.test(line));

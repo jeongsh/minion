@@ -9,12 +9,13 @@
  *   npx tsx scripts/sync-instagram.ts --mode=posts     # 게시물만
  *   npx tsx scripts/sync-instagram.ts --mode=stories   # 스토리만
  *   npx tsx scripts/sync-instagram.ts --dry-run
+ *   npx tsx scripts/sync-instagram.ts --check-session --username=t1lol
  *
  * 환경변수:
  *   INSTAGRAM_SESSION_COOKIE  (권장) - 로그인 세션 쿠키
  */
 
-import { readFileSync } from "node:fs";
+import { appendFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { createSupabaseAdminClient } from "../lib/supabase/admin.ts";
@@ -22,7 +23,9 @@ import {
   getInstagramOwners,
   syncOwnerPosts,
 } from "../lib/sync/instagram.ts";
-import { closeBrowser } from "../lib/scraper/instagram-browser.ts";
+import { closeBrowser, scrapeInstagramPosts } from "../lib/scraper/instagram-browser.ts";
+import { instagramFailureKind, instagramStopReason } from "../lib/scraper/instagram-failure.ts";
+import { parseInstagramCookie } from "../lib/scraper/instagram-cookie.ts";
 
 const argv = process.argv.slice(2);
 const argSet = new Set(argv);
@@ -33,21 +36,15 @@ const offsetArg = parseInt(argv.find((a) => a.startsWith("--offset="))?.split("=
 const dryRun = argSet.has("--dry-run");
 const noNotify = argSet.has("--no-notify");
 
-const DELAY_MS = 1500;
+const DELAY_MS = 5000;
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 function loadEnvFile() {
   const envPath = resolve(process.cwd(), ".env.local");
   try {
-    const content = readFileSync(envPath, "utf8");
-    for (const line of content.split(/\r?\n/)) {
-      const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith("#") || !trimmed.includes("=")) continue;
-      const [key, ...valueParts] = trimmed.split("=");
-      if (!process.env[key]) process.env[key] = valueParts.join("=");
-    }
-  } catch {
-    // optional
+    process.loadEnvFile(envPath);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
   }
 }
 
@@ -55,8 +52,22 @@ async function main() {
   loadEnvFile();
 
   const sessionCookie = process.env.INSTAGRAM_SESSION_COOKIE?.trim();
+  if (sessionCookie) parseInstagramCookie(sessionCookie);
+  if (argSet.has("--check-session")) {
+    const username = argv.find((arg) => arg.startsWith("--username="))?.slice("--username=".length) ?? "t1lol";
+    if (!/^[A-Za-z0-9._]{1,30}$/.test(username)) throw new Error("Invalid Instagram username.");
+    if (!sessionCookie) throw new Error("INSTAGRAM_SESSION_COOKIE is missing; add the refreshed session before checking.");
+    console.log("[session] Cookie format valid; non-empty sessionid present. Values are not logged.");
+    const posts = await scrapeInstagramPosts(username, sessionCookie, 12, { allowPublicFallback: false });
+    if (posts.length === 0) throw new Error("Instagram session check inconclusive: no readable posts.");
+    const summary = `Instagram saved-session check passed: @${username}, checked=${posts.length}. No posts saved or notifications sent.`;
+    console.log(summary);
+    if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${summary}\n`);
+    await closeBrowser();
+    return;
+  }
   if (sessionCookie) console.log(`[browser] Instagram session cookie loaded`);
-  else console.log(`[browser] INSTAGRAM_SESSION_COOKIE 없음 — 게시물만 수집 (스토리 스킵)`);
+  else console.log(`[browser] INSTAGRAM_SESSION_COOKIE 없음 — 비로그인 공개 프로필 수집`);
 
   console.log(`[mode] ${modeArg} / dryRun=${dryRun}`);
 
@@ -80,21 +91,33 @@ async function main() {
   let errors = 0;
   let checked = 0;
   let healthyOwners = 0;
+  let attemptedOwners = 0;
+  let consecutiveAccessFailures = 0;
+  let stoppedReason: string | null = null;
 
   for (const owner of owners) {
     if (!owner.instagramUrl) continue;
 
     // ── 게시물 ──
     if (modeArg === "all" || modeArg === "posts") {
+      attemptedOwners += 1;
       try {
         const result = await syncOwnerPosts(supabase, owner, { dryRun, sessionCookie, noNotify });
         postsInserted += result.inserted;
         checked += result.checked;
         healthyOwners += 1;
+        consecutiveAccessFailures = 0;
         console.log(`[posts] ${owner.kind}:${owner.name} — checked=${result.checked} new=${result.inserted}`);
       } catch (err) {
         errors += 1;
-        console.error(`[error] ${owner.kind}:${owner.name} posts — ${(err as Error).message}`);
+        const message = err instanceof Error ? err.message : String(err);
+        console.error(`[error] ${owner.kind}:${owner.name} posts — ${message}`);
+        consecutiveAccessFailures = instagramFailureKind(message) === "access" ? consecutiveAccessFailures + 1 : 0;
+        stoppedReason = instagramStopReason(message, consecutiveAccessFailures);
+        if (stoppedReason) {
+          console.error(`[stopped] ${stoppedReason}`);
+          break;
+        }
       }
       await delay(DELAY_MS);
     }
@@ -118,9 +141,9 @@ async function main() {
     // }
   }
 
-  console.log(
-    `\nDone. owners=${owners.length} healthy=${healthyOwners} checked=${checked} posts_new=${postsInserted} errors=${errors} dryRun=${dryRun}`,
-  );
+  const summary = `owners=${owners.length} attempted=${attemptedOwners} skipped=${owners.length - attemptedOwners} healthy=${healthyOwners} checked=${checked} posts_new=${postsInserted} errors=${errors} dryRun=${dryRun}`;
+  console.log(`\nDone. ${summary}`);
+  if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Instagram collection\n\n${summary}\n\n${stoppedReason ?? "Collection finished."}\n`);
 
   // Discord 알림 (스토리 비활성화로 미사용)
   // const discordWebhook = process.env.DISCORD_WEBHOOK_URL?.trim();
