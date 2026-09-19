@@ -19,7 +19,7 @@ export function studioQueueItems(draft: StudioDraft, guestKey: string, start = D
     const prefix = target && target.replyTo !== null ? `@${DEFAULT_STUDIO_PERSONAS.find(p => p.id === target.personaId)?.name} ` : "";
     const content = prefix + comment.content;
     if (content.length > 600) throw new StudioPublishError("답글 대상 이름을 포함해 댓글을 600자 이하로 줄여 주세요.", 400);
-    due += randomInt(ordinal === 0 ? 120 : 180, ordinal === 0 ? 301 : 601) * 1000;
+    due += randomInt(0, 301) * 1000;
     return { id: ids[ordinal], ordinal, persona_id: comment.personaId, author_id: guest ? null : studioMemberAuthor(comment.personaId).id,
       guest_key: guest ? guestKey : null, guest_nickname: guest ? studioGuestNickname(guestKey) : null, content,
       parent_id: comment.replyTo === null ? null : ids[roots[comment.replyTo]], due_at: new Date(due).toISOString() };
@@ -55,11 +55,11 @@ export async function publishStudioCampaign(value: unknown) {
 
 export async function studioDashboard() {
   const client = createSupabaseAdminClient();
-  const campaigns = await client.from("community_ai_studio_campaigns").select("post_id,state,created_at,community_posts(title)").order("created_at", { ascending: false }).limit(30);
+  const campaigns = await client.from("community_ai_studio_campaigns").select("post_id,state,auto_reply_enabled,created_at,community_posts(title)").order("created_at", { ascending: false }).limit(30);
   if (campaigns.error) throw new StudioPublishError("예약 목록을 불러오지 못했습니다.");
   const results = await Promise.all([
     campaigns.data.length ? client.from("community_ai_studio_queue").select("id,post_id,ordinal,persona_id,content,parent_id,due_at,status,error,published_at").in("post_id", campaigns.data.map(c => c.post_id)).order("ordinal").limit(1000) : Promise.resolve({ data: [], error: null }),
-    client.from("community_ai_studio_inbox").select("id,post_id,comment_id,status,event_type,response_persona,response_text,created_at,community_posts(title)").in("status", ["pending", "drafted"]).order("created_at", { ascending: false }).limit(40),
+    client.from("community_ai_studio_inbox").select("id,post_id,comment_id,status,event_type,response_persona,response_text,attempts,last_error,created_at,community_posts(title)").in("status", ["pending", "drafted"]).order("created_at", { ascending: false }).limit(40),
     client.from("community_ai_studio_settings").select("watch_enabled").eq("singleton", true).single(),
   ]);
   if (results.some(r => r.error)) throw new StudioPublishError("예약·검토 목록을 불러오지 못했습니다. DB 설정을 확인해 주세요.");
