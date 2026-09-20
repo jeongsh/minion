@@ -4,6 +4,28 @@ import { createContext, useCallback, useContext, useMemo, useState, useSyncExter
 
 const STORAGE_KEY = "minion-spoiler-free-v1";
 const CHANGE_EVENT = "minion-spoiler-free-change";
+const REVEALED_STORAGE_KEY = "minion-revealed-matches-v1";
+
+function getRevealedSnapshot() {
+  try {
+    return window.localStorage.getItem(REVEALED_STORAGE_KEY) ?? "[]";
+  } catch {
+    return "[]";
+  }
+}
+
+function parseRevealedIds(snapshot: string): Set<string> {
+  try {
+    const value: unknown = JSON.parse(snapshot);
+    return new Set(Array.isArray(value) ? value.filter((id): id is string => typeof id === "string") : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function getServerRevealedSnapshot() {
+  return "[]";
+}
 
 type SpoilerFreeContextValue = {
   enabled: boolean;
@@ -39,6 +61,8 @@ function getServerSnapshot() {
 export function SpoilerFreeProvider({ children }: { children: ReactNode }) {
   const enabled = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   const [revealedIds, setRevealedIds] = useState<Set<string>>(() => new Set());
+  const revealedSnapshot = useSyncExternalStore(subscribe, getRevealedSnapshot, getServerRevealedSnapshot);
+  const savedRevealedIds = useMemo(() => parseRevealedIds(revealedSnapshot), [revealedSnapshot]);
 
   const toggle = useCallback(() => {
     try {
@@ -50,6 +74,17 @@ export function SpoilerFreeProvider({ children }: { children: ReactNode }) {
   }, [enabled]);
 
   const reveal = useCallback((matchId: string) => {
+    // Read at interaction time so records from other tabs are preserved.
+    const savedIds = parseRevealedIds(getRevealedSnapshot());
+    if (!savedIds.has(matchId)) {
+      savedIds.add(matchId);
+      try {
+        window.localStorage.setItem(REVEALED_STORAGE_KEY, JSON.stringify([...savedIds]));
+      } catch {
+        // Keep the in-memory record when browser storage is unavailable.
+      }
+      window.dispatchEvent(new Event(CHANGE_EVENT));
+    }
     setRevealedIds((current) => {
       if (current.has(matchId)) return current;
       const next = new Set(current);
@@ -58,7 +93,7 @@ export function SpoilerFreeProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const isRevealed = useCallback((matchId: string) => revealedIds.has(matchId), [revealedIds]);
+  const isRevealed = useCallback((matchId: string) => revealedIds.has(matchId) || savedRevealedIds.has(matchId), [revealedIds, savedRevealedIds]);
 
   const value = useMemo(() => ({ enabled, toggle, isRevealed, reveal }), [enabled, toggle, isRevealed, reveal]);
 

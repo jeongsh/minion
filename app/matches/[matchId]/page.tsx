@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { siteBaseUrl } from "@/lib/site";
 
 import { PredictionMatchBar } from "@/components/domain/prediction-match-bar";
+import { MatchResultSeen } from "@/components/domain/match-result-seen";
 import { SetVodPlayer } from "@/components/domain/set-vod-player";
 import { SegmentedControl, type TabItem } from "@/components/ui/tabs";
 import { AdSlot } from "@/components/ui/ad-slot";
@@ -28,7 +29,7 @@ import {
 } from "@/lib/data/lck";
 import { championImage } from "@/lib/champions";
 import type { Champion, FanRating, Match, Player, PlayerStatLine, SetResult, Team } from "@/lib/types";
-import { isMatchLive, matchStatusLabel } from "@/lib/match-display";
+import { isMatchFinished, isMatchLive, matchStatusLabel } from "@/lib/match-display";
 import {
   getSetRatingStartedAt,
   isSetRatingOpen,
@@ -551,6 +552,7 @@ export default async function MatchDetailPage({
   const embedUrl = youtubeEmbedUrl(match.vodUrl);
   return (
     <main className="layout-wide match-detail-page flex flex-col gap-5 pb-12 pt-5 text-[var(--ui-text)]">
+      <MatchResultSeen matchId={match.id} finished={isMatchFinished(match)} />
       {/*
         스포일러 게이트는 목록/홈처럼 무심코 점수를 보게 되는 화면용이다. 특정 매치 상세로
         직접 들어온 사용자는 그 결과를 보려고 온 것이므로 여기서는 가리지 않고 바로 보여준다.
