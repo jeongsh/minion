@@ -7,6 +7,9 @@
     "icon": "./assets/images/app-icon.png",
     "scheme": "minion",
     "userInterfaceStyle": "automatic",
+    "androidNavigationBar": {
+      "enforceContrast": false
+    },
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,

@@ -151,6 +151,10 @@ html:has(.schedule-page) {
   scroll-behavior: smooth;
 }
 
+html:root {
+  background: var(--page-background);
+}
+
 body {
   min-height: 100vh;
   margin: 0;

@@ -41,6 +41,12 @@ export const INTERNATIONAL_SEGMENTS: InternationalSegmentTheme[] = [
     logoAspect: 133 / 26,
   },
   {
+    key: "demacia-cup",
+    name: "데마시아컵",
+    description: "Demacia Cup Global Invitational",
+    accent: "#c99b45",
+  },
+  {
     key: "worlds",
     name: "월드 챔피언십",
     description: "리그 오브 레전드 월드 챔피언십",

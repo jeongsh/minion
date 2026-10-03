@@ -11,6 +11,7 @@ const LEAGUE_OPTIONS = [
   { value: "first-stand", label: "First Stand" },
   { value: "msi", label: "MSI" },
   { value: "ewc", label: "EWC" },
+  { value: "demacia-cup", label: "데마시아컵" },
   { value: "worlds", label: "Worlds" },
   { value: "enc", label: "ENC" },
   { value: "kespa-cup", label: "KeSPA Cup" },

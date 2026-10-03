@@ -4,6 +4,7 @@ export type SeasonSegmentKey =
   | "lck"
   | "msi"
   | "ewc"
+  | "demacia-cup"
   | "worlds"
   | "enc"
   | "kespa-cup";
@@ -28,6 +29,7 @@ export const SEASON_2026_SEGMENTS: SeasonSegment[] = [
   { key: "lck", label: "LCK", description: "LCK 정규 리그" },
   { key: "msi", label: "MSI", description: "Mid-Season Invitational" },
   { key: "ewc", label: "EWC", description: "Esports World Cup" },
+  { key: "demacia-cup", label: "데마시아컵", description: "Demacia Cup Global Invitational" },
   { key: "worlds", label: "Worlds", description: "World Championship" },
   { key: "enc", label: "ENC", description: "Esports Nations Cup" },
   { key: "kespa-cup", label: "KeSPA Cup", description: "KeSPA 주관 컵 대회" },
@@ -154,6 +156,18 @@ export const SEASON_2026_TOURNAMENTS: SeasonTournamentConfig[] = [
     league: "EWC",
     startDate: "2026-07-15",
     endDate: "2026-07-19",
+  },
+  {
+    segmentKey: "demacia-cup",
+    season: 2026,
+    name: "Demacia Cup Global Invitational 2026",
+    overviewPage: "2026 Demacia Cup Global Invitational",
+    split: "Demacia Cup Global Invitational",
+    category: "international",
+    region: "International",
+    league: "Demacia Cup Global Invitational",
+    startDate: "2026-10-03",
+    endDate: "2026-10-17",
   },
   {
     segmentKey: "worlds",

@@ -40,6 +40,7 @@ const PLAYER_PAGE_SEGMENTS: Array<SeasonSegmentKey | "all"> = [
   "first-stand",
   "msi",
   "ewc",
+  "demacia-cup",
   "worlds",
   "enc",
   "kespa-cup",

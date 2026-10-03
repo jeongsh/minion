@@ -419,12 +419,22 @@ export async function getPostByIdAndIncrementView(
     try {
       const ipKey = viewerIpKey ?? await getCurrentIpKey().catch(() => null);
       if (!ipKey) return post;
-      const { data } = await createSupabaseAdminClient().rpc(
+      const admin = createSupabaseAdminClient();
+      const { data, error } = await admin.rpc(
         "increment_community_post_view_count",
         { p_post_id: postId, p_viewer_ip_key: ipKey },
       );
       if (typeof data === "number") {
         return { ...post, viewCount: data };
+      }
+      // 구버전 DB에는 IP 중복 방지 전의 단일 인자 RPC만 존재한다.
+      if (error?.code === "PGRST202") {
+        const legacy = await admin.rpc("increment_community_post_view_count", {
+          p_post_id: postId,
+        });
+        if (typeof legacy.data === "number") {
+          return { ...post, viewCount: legacy.data };
+        }
       }
     } catch {
       return post;
@@ -433,7 +443,7 @@ export async function getPostByIdAndIncrementView(
     return post;
   }
 
-  return { ...post, viewCount: post.viewCount + 1 };
+  return post;
 }
 
 /** 댓글 목록 조회(오래된 순). */

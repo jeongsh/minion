@@ -3,6 +3,8 @@ import 'react-native-reanimated';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import * as NavigationBar from 'expo-navigation-bar';
+import { AppState, Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useEffect } from 'react';
 
@@ -34,6 +36,17 @@ export default function RootLayout() {
 function RootNavigator() {
   const { colorScheme, theme } = useMinionTheme();
   const navigationTheme = colorScheme === 'dark' ? DarkTheme : DefaultTheme;
+
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+    // Edge-to-edge exposes the existing page/safe-area background beneath the bar.
+    const syncNavigationBar = () => NavigationBar.setStyle(colorScheme);
+    syncNavigationBar();
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') syncNavigationBar();
+    });
+    return () => subscription.remove();
+  }, [colorScheme]);
 
   return (
     <ThemeProvider

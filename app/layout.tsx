@@ -27,6 +27,8 @@ const themeInitScript = `
     var theme = hasUserTheme ? savedTheme : (prefersDark ? 'dark' : 'light');
     document.documentElement.classList.toggle('dark', theme === 'dark');
     document.documentElement.style.colorScheme = theme;
+    var themeColor = document.querySelector('meta[name="theme-color"]');
+    if (themeColor) themeColor.setAttribute('content', theme === 'dark' ? '#141517' : '#ffffff');
   } catch (e) {}
 })();
 `;
@@ -95,6 +97,7 @@ export default async function RootLayout({
       <head>
         <style dangerouslySetInnerHTML={{ __html: PRETENDARD_UNICODE_FALLBACK_CSS }} />
         <meta name="color-scheme" content="light dark" />
+        <meta name="theme-color" content="#ffffff" suppressHydrationWarning />
         {adsenseClient ? <meta name="google-adsense-account" content={adsenseClient} /> : null}
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
