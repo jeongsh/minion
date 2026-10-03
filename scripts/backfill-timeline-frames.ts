@@ -9,7 +9,7 @@
  * --force: 이미 프레임이 있는 세트도 다시 채움(덮어씀)
  * --match: 특정 매치 ID만 처리
  * --set: 특정 세트 ID만 처리
- * --segment=: 리그 필터 (lck, lck-cup, first-stand, msi, ewc, worlds, enc, international)
+ * --segment=: 리그 필터 (lck, lck-cup, first-stand, msi, ewc, demacia-cup, worlds, enc, international)
  */
 
 import { readFileSync } from "node:fs";
@@ -53,6 +53,7 @@ async function tournamentIdsForSegment(
     case "first-stand":   q = q.eq("league", "First Stand"); break;
     case "msi":           q = q.eq("league", "MSI"); break;
     case "ewc":           q = q.eq("league", "EWC"); break;
+    case "demacia-cup":   q = q.eq("source_tournament_id", "2026 Demacia Cup Global Invitational"); break;
     case "worlds":        q = q.eq("league", "Worlds"); break;
     case "enc":           q = q.eq("league", "ENC"); break;
     case "international": q = q.eq("category", "international"); break;

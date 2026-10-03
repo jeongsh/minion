@@ -74,7 +74,8 @@
     "server-only": "^0.0.1",
     "sharp": "0.35.3",
     "swiper": "^12.2.0",
-    "tiptap-extension-resize-image": "^1.4.3"
+    "tiptap-extension-resize-image": "^1.4.3",
+    "tsx": "4.23.15"
   },
   "overrides": {
     "postcss": "8.5.10"
