@@ -217,6 +217,13 @@ export function championImage(champion?: Champion) {
   return ddragonId ? `https://ddragon.leagueoflegends.com/cdn/img/champion/tiles/${ddragonId}_0.jpg` : "";
 }
 
+/** Default champion loading artwork, cropped for image-led cards. */
+export function championArtwork(champion?: Champion) {
+  if (!champion) return "";
+  const id = normalizedDdragonId(champion);
+  return id ? `https://ddragon.leagueoflegends.com/cdn/img/champion/loading/${id}_0.jpg` : "";
+}
+
 export function championLabel(champion?: Champion) {
   if (!champion) return "미입력";
   return champion.name;

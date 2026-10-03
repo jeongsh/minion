@@ -43,7 +43,7 @@ function MatchTeamLogo({ team }: { team?: Team }) {
     );
   }
 
-  return <TeamLogo team={team} size="h-7 w-7 shrink-0" plain />;
+  return <TeamLogo team={team} size="h-7 w-7 shrink-0" plain themeAware />;
 }
 
 /**
@@ -148,13 +148,14 @@ export function HomeMatchCard({
             aria-label={`승부예측 ${teamA?.shortName ?? "TBD"} ${market.teamAPercent}%, ${teamB?.shortName ?? "TBD"} ${market.teamBPercent}%`}
           >
             <span
+              className={teamA?.slug === "shopify-rebellion" ? "dark:invert" : undefined}
               style={{
                 width: `${market.teamAPercent}%`,
                 background: teamA?.primaryColor || "var(--ui-ink)",
               }}
             />
             <span
-              className="flex-1"
+              className={`flex-1 ${teamB?.slug === "shopify-rebellion" ? "dark:invert" : ""}`}
               style={{ background: teamB?.primaryColor || "var(--ui-muted)" }}
             />
           </div>

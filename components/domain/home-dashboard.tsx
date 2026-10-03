@@ -3,19 +3,17 @@ import { CalendarDays } from "lucide-react";
 import { HomeCalendar, type HomeCalendarMatch } from "@/components/domain/home-calendar";
 import { HomeCalendarWorkspace } from "@/components/domain/home-calendar-workspace";
 import { HomeBoardCarousel } from "@/components/domain/home-board-carousel";
-import { HomeVideoSwiper } from "@/components/domain/home-video-swiper";
+import { HomeMetaSection, HomeBuildSection } from "@/components/domain/home-insights";
+import type { HomeInsights } from "@/lib/data/home-insights";
 import { HomeMatchSwiper } from "@/components/domain/home-match-swiper";
 import type { HomeMatchItem } from "@/components/domain/home-match-card";
 import { HomePomSwiper } from "@/components/domain/home-pom-swiper";
-import { HomeNewsSection } from "@/components/news/home-news-section";
 import { CelebrationBanner } from "@/components/domain/celebration-banner";
 import type { CalendarEvent } from "@/lib/calendar/events";
 import type { HomePomEntry } from "@/lib/data/home-pom";
 import { teams as themeTeams } from "@/lib/team-themes";
 import type { Team } from "@/lib/types";
-import type { HomeVideo } from "@/lib/data/lck-channel-videos";
 import type { CommunityPostDetail } from "@/lib/community/types";
-import type { NewsArticle } from "@/lib/data/news";
 import { SectionHeading as Heading } from "@/components/ui/section-heading";
 import { AdSlot as Ad } from "@/components/ui/ad-slot";
 import { TeamLogo as Logo } from "@/components/ui/team-logo";
@@ -30,6 +28,13 @@ export type HomeStandingRow = {
   setDiff: number;
 };
 
+/* 홈 뉴스/영상 비활성화: 기존 import 보관
+import { HomeVideoSwiper } from "@/components/domain/home-video-swiper";
+import { HomeNewsSection } from "@/components/news/home-news-section";
+import type { HomeVideo } from "@/lib/data/lck-channel-videos";
+import type { NewsArticle } from "@/lib/data/news";
+*/
+
 type Props = {
   teams: Team[];
   standingRows: HomeStandingRow[];
@@ -39,11 +44,12 @@ type Props = {
   calendarMatches: HomeCalendarMatch[];
   calendarEvents: CalendarEvent[];
   celebrationEvents: CalendarEvent[];
-  latestVideos: HomeVideo[];
   communityPosts: CommunityPostDetail[];
   communityTitle: "인기글" | "최신글";
   pomEntries: HomePomEntry[];
-  newsItems: NewsArticle[];
+  // latestVideos: HomeVideo[];
+  // newsItems: NewsArticle[];
+  insights: HomeInsights | null;
 };
 
 /** 순위표는 10팀을 5+5 두 칼럼으로 나눈다. 옆 광고 높이도 이 값에서 계산한다. */
@@ -67,11 +73,12 @@ export function HomeDashboard({
   calendarMatches,
   calendarEvents,
   celebrationEvents,
-  latestVideos,
   communityPosts,
   communityTitle,
   pomEntries,
-  newsItems,
+  // latestVideos,
+  // newsItems,
+  insights,
 }: Props) {
   const activeTeams = themeTeams
     .map(
@@ -115,7 +122,8 @@ export function HomeDashboard({
           <CelebrationBanner events={celebrationEvents} />
         </section>
       ) : null}
-      <HomeNewsSection articles={newsItems} />
+
+      {/* <HomeNewsSection articles={newsItems} /> */}
 
       <Ad
         enabled={matchItems.length > 0}
@@ -204,6 +212,7 @@ export function HomeDashboard({
         </div>
       </section>
 
+      {/* 홈 영상 비활성화: 기존 섹션 보관
       <section className={HOME_SECTION_SPACING}>
         <Heading>최신 영상</Heading>
         <HomeVideoSwiper videos={latestVideos} />
@@ -214,6 +223,18 @@ export function HomeDashboard({
           className="mt-10 h-[100px] md:h-[60px] xl:h-[90px]"
         />
       </section>
+      */}
+
+      <div className="mt-6 sm:mt-8 lg:mt-10"><HomeMetaSection data={insights} /></div>
+      <HomeBuildSection data={insights} />
+      <div>
+        <Ad
+          enabled={matchItems.length > 0}
+        placement="horizontal"
+          format="auto"
+          className="mt-10 h-[100px] md:h-[60px] xl:h-[90px]"
+        />
+      </div>
     </main>
   );
 }

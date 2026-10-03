@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { ChevronRight } from "lucide-react";
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 import { SkillBuildTimeline } from "@/components/domain/skill-build-timeline";
 import type { ChampionAbilityIcons } from "@/lib/champions";
@@ -345,7 +346,14 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 }
 
 export function PlayerBuildPanel({ entries }: { entries: PlayerBuildPanelEntry[] }) {
-  const [selectedId, setSelectedId] = useState(entries[0]?.playerId ?? "");
+  const query = useSearchParams();
+  const requestedId = query.get("player");
+  const initialId = entries.find((entry) => entry.playerId === requestedId)?.playerId ?? entries[0]?.playerId ?? "";
+  return <SelectablePlayerBuildPanel key={initialId} entries={entries} initialId={initialId} />;
+}
+
+function SelectablePlayerBuildPanel({ entries, initialId }: { entries: PlayerBuildPanelEntry[]; initialId: string }) {
+  const [selectedId, setSelectedId] = useState(initialId);
   const selected = entries.find((entry) => entry.playerId === selectedId) ?? entries[0];
 
   if (!selected) return null;

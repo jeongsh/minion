@@ -4,7 +4,7 @@ import { HomeDashboard, type HomeStandingRow } from "@/components/domain/home-da
 import { OnboardingDialog } from "@/components/auth/onboarding-dialog";
 import type { HomeCalendarMatch } from "@/components/domain/home-calendar";
 import type { HomeMatchItem } from "@/components/domain/home-match-card";
-import { getHomePagePublicData } from "@/lib/data/home-cache";
+import { getMobileHomePublicData } from "@/lib/data/home-cache";
 import { buildHomePomEntries, getHomePomPlayers } from "@/lib/data/home-pom";
 import type { Match } from "@/lib/types";
 import { getBoardPosts } from "@/lib/data/community";
@@ -12,9 +12,7 @@ import { buildTeamStandingRows, dateKeyKST, formatTimeKST, matchHref } from "@/l
 import { isMatchLive } from "@/lib/match-display";
 import { getPredictionMarketData } from "@/lib/predictions";
 import { getTodayCelebrations } from "@/lib/calendar/events";
-import { getLckChannelVideos, type HomeVideo } from "@/lib/data/lck-channel-videos";
-import { getHomeNewsFeed } from "@/lib/data/naver-news";
-import { scheduleNewsThumbnailWarmup } from "@/lib/data/news-thumbnail-warmup";
+import { getHomeInsights } from "@/lib/data/home-insights";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { safeOnboardingNext } from "@/lib/auth/onboarding";
 import { createSupabaseAuthClient } from "@/lib/supabase/auth-server";
@@ -24,6 +22,13 @@ import {
   communityHomeSectionTitle,
   selectCommunityHomePosts,
 } from "@/lib/community/hot";
+
+/* 홈 뉴스/영상 비활성화: 기존 import 보관
+import { getHomePagePublicData } from "@/lib/data/home-cache";
+import { getLckChannelVideos, type HomeVideo } from "@/lib/data/lck-channel-videos";
+import { getHomeNewsFeed } from "@/lib/data/naver-news";
+import { scheduleNewsThumbnailWarmup } from "@/lib/data/news-thumbnail-warmup";
+*/
 
 export const dynamic = "force-dynamic";
 
@@ -45,17 +50,18 @@ export default async function HomePage({
   const showOnboarding = onboardingMode === "1" || onboardingMode === "debug";
   const forceOnboarding = onboardingMode === "debug";
   const onboardingNext = safeOnboardingNext(params.next);
-  const [homeData, popularCommunityPosts, latestCommunityPosts, predictionMarket, lckChannelVideos, pomPlayers, homeNewsFeed] = await Promise.all([
-    getHomePagePublicData(),
+  const [homeData, popularCommunityPosts, latestCommunityPosts, predictionMarket, pomPlayers, insights] = await Promise.all([
+    getMobileHomePublicData(),
     getBoardPosts({ scope: "hub", hotOnly: true, limit: COMMUNITY_HOME_HOT_CANDIDATE_LIMIT }),
     getBoardPosts({ scope: "hub", limit: COMMUNITY_HOME_LATEST_CANDIDATE_LIMIT }),
     getPredictionMarketData(),
-    getLckChannelVideos(),
     getHomePomPlayers(),
-    getHomeNewsFeed(6),
+    getHomeInsights().catch((error) => {
+      console.error("Home insights unavailable", error);
+      return null;
+    }),
   ]);
-  scheduleNewsThumbnailWarmup(homeNewsFeed.articles);
-  const { teams, matches, tournaments, latestVideos, calendarEvents } = homeData;
+  const { teams, matches, tournaments, calendarEvents } = homeData;
   const pomEntries = buildHomePomEntries({ matches, players: pomPlayers, teams, tournaments });
 
   // 오늘의 기념일. 배너를 누르면 해당 팀 게시판으로 이동한다.
@@ -140,6 +146,13 @@ export default async function HomePage({
       teamBLogoUrl: teamB?.logoUrl ?? null,
     };
   });
+  /* 홈 뉴스/영상 비활성화: 기존 데이터 처리 보관
+  // 기존 뉴스/영상 데이터 로딩 (복원 시 Promise.all 결과와 호출을 함께 추가)
+  const homeData = await getHomePagePublicData();
+  const lckChannelVideos = await getLckChannelVideos();
+  const homeNewsFeed = await getHomeNewsFeed(6);
+  scheduleNewsThumbnailWarmup(homeNewsFeed.articles);
+  const { latestVideos } = homeData;
   // 최신 영상: 팀/선수 채널 영상과 LCK 공식 채널 영상을 최신순으로 섞어 12개만 노출한다.
   const teamVideoItems: HomeVideo[] = latestVideos.map((video) => ({
     id: video.id,
@@ -161,6 +174,8 @@ export default async function HomePage({
     ...sortedLckVideos.slice(0, lckQuota),
     ...sortedTeamVideos.slice(0, HOME_VIDEO_LIMIT - lckQuota),
   ].sort(byNewest);
+
+  */
 
   // 인기글을 우선 노출하고, 6개에 못 미치면 중복 없이 최신글로 채운다.
   const homeCommunityPosts = selectCommunityHomePosts(popularCommunityPosts, latestCommunityPosts);
@@ -203,11 +218,14 @@ export default async function HomePage({
       calendarMatches={calendarClientMatches}
       calendarEvents={calendarEvents}
       celebrationEvents={todayCelebrations}
-      latestVideos={homeVideos}
       communityPosts={homeCommunityPosts}
       communityTitle={homeCommunityTitle}
       pomEntries={pomEntries}
+      /* 기존 뉴스/영상 props
+      latestVideos={homeVideos}
       newsItems={homeNewsFeed.articles}
+      */
+      insights={insights}
       />
       {onboarding}
     </>

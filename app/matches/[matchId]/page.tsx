@@ -499,6 +499,11 @@ export default async function MatchDetailPage({
   const stage = stages.find((item) => item.id === match.stageId);
   const teamA = teams.find((team) => team.id === match.teamAId);
   const teamB = teams.find((team) => team.id === match.teamBId);
+  const hasResolvedPreviewTeams = Boolean(teamA && teamB
+    && teamA.id !== teamB.id
+    && [teamA, teamB].every((team) =>
+      !/^(?:TBD|TBA|미정|미정 팀|Unknown|-)$/i.test(team.shortName.trim())
+      && !/^(?:TBD|TBA|미정|미정 팀|Unknown|-)$/i.test(team.name.trim())));
   const teamAName = teamLabel(teams, match.teamAId);
   const teamBName = teamLabel(teams, match.teamBId);
   const teamAResult: "WIN" | "LOSS" | null = match.winnerTeamId
@@ -533,12 +538,12 @@ export default async function MatchDetailPage({
   // "data" 탭이 기본인 완료된 경기가 대다수라 이 전체 스캔을 매 요청 무조건 돌리면 낭비다.
   let previewMatches: Match[] = [];
   let previewSets: SetResult[] = [];
-  if (activeTab === "preview") {
+  if (activeTab === "preview" && hasResolvedPreviewTeams) {
     [previewMatches, previewSets] = await Promise.all([getMatches(), getSets()]);
   }
   // "rating" 탭 선수 카드에 세트에서 픽한 챔피언 아이콘을 보여주기 위함 — 다른 탭은 필요 없다.
   const ratingChampions: Champion[] = activeTab === "rating" ? await getChampions() : [];
-  const aiPreview = activeTab === "preview"
+  const aiPreview = activeTab === "preview" && hasResolvedPreviewTeams
       ? await getMatchAiPreview({
           match,
           tournament,
@@ -617,14 +622,14 @@ export default async function MatchDetailPage({
         <TabNav activeTab={activeTab} sets={matchSets} showLive={match.status !== "completed"} />
       </div>
 
-      {activeTab === "preview" ? (
+      {activeTab === "preview" && aiPreview ? (
         <MatchPreview
           match={match}
           teams={teams}
           matches={previewMatches}
           sets={previewSets}
           poll={poll}
-          aiPreview={aiPreview!}
+          aiPreview={aiPreview}
         />
       ) : null}
 
