@@ -20,7 +20,7 @@ export function HomeCalendarWorkspace({
   return (
     <div
       className={`w-full max-w-[360px] ${
-        compactOnDesktop ? "home-calendar-compact xl:max-w-none" : ""
+        compactOnDesktop ? "home-calendar-compact xl:flex xl:max-w-none xl:flex-1 xl:flex-col" : ""
       }`}
     >
       <HomeCalendar
@@ -29,7 +29,7 @@ export function HomeCalendarWorkspace({
         events={events}
         heightClassName={
           compactOnDesktop
-            ? "h-[400px] sm:h-[410px] xl:h-[282px]"
+            ? "h-[400px] sm:h-[410px] xl:h-auto xl:min-h-[282px] xl:flex-1"
             : "h-[400px] sm:h-[410px]"
         }
         detailMode="popover"
