@@ -6,12 +6,14 @@ export function SectionHeading({
   href,
   caption,
   aside,
+  titleAccessory,
   className = "",
 }: {
   children: React.ReactNode;
   href?: string;
   caption?: React.ReactNode;
   aside?: React.ReactNode;
+  titleAccessory?: React.ReactNode;
   className?: string;
 }) {
   const trailing = aside ?? (href ? (
@@ -26,6 +28,7 @@ export function SectionHeading({
   return (
     <div className={`mb-3 flex items-end justify-between gap-4 ${className}`}>
       <h2 className="home-section-title text-[length:var(--ui-title-size)] text-[var(--ui-ink)]">{children}</h2>
+      {titleAccessory}
       {trailing}
     </div>
   );
