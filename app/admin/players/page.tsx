@@ -9,11 +9,13 @@ import {
 } from "@/lib/data/lck";
 import { PlayerList } from "./player-list";
 
-export default async function AdminPlayersPage() {
+export default async function AdminPlayersPage({ searchParams }: { searchParams: Promise<{ division?: string }> }) {
+  const params = await searchParams;
+  const division = params.division === "challengers" ? "challengers" : "first";
   const [players, retiredPlayers, challengersPlayers, teams] = await Promise.all([
-    getPlayers(),
-    getRetiredPlayers(),
-    getChallengersPlayers(),
+    division === "first" ? getPlayers() : Promise.resolve([]),
+    division === "first" ? getRetiredPlayers() : Promise.resolve([]),
+    division === "challengers" ? getChallengersPlayers() : Promise.resolve([]),
     getTeamsSortedByRank(),
   ]);
 
@@ -31,6 +33,7 @@ export default async function AdminPlayersPage() {
         <SectionHeader title="선수 관리" />
       </div>
       <PlayerList
+        division={division}
         players={players}
         retiredPlayers={retiredPlayers}
         challengersPlayers={challengersPlayers}

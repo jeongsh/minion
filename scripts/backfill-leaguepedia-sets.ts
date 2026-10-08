@@ -3,6 +3,8 @@ import { resolve } from "node:path";
 import { createClient } from "@supabase/supabase-js";
 
 import { countLeaguepediaScoreboardGames, syncLeaguepediaMatchSets } from "../lib/sync/leaguepedia-match-sets.ts";
+import { syncInternationalMatches2026 } from "../lib/sync/leaguepedia-lck-2026.ts";
+import { SEASON_2026_TOURNAMENTS } from "../lib/tournaments/season-2026.ts";
 
 function loadEnvFile() {
   const envPath = resolve(process.cwd(), ".env.local");
@@ -69,6 +71,20 @@ async function main() {
   );
 
   const segment = parseSegmentArg();
+  const internationalTournaments = SEASON_2026_TOURNAMENTS.filter(
+    (t) => t.category === "international" && (segment === "international" || t.segmentKey === segment),
+  );
+  if (internationalTournaments.length > 0) {
+    console.log("세트 수집 전 국제대회 대진과 결과 동기화");
+    const schedule = await syncInternationalMatches2026(supabase, {
+      mode: "full",
+      tournaments: internationalTournaments,
+    });
+    console.log(JSON.stringify(schedule));
+    if (schedule.skipped.length > 0) {
+      throw new Error("대진 동기화 누락이 있습니다. 위 skipped 내용을 확인해주세요.");
+    }
+  }
   let tournamentIds: string[] | null = null;
   if (segment) {
     tournamentIds = await tournamentIdsForSegment(supabase, segment);

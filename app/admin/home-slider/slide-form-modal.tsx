@@ -97,7 +97,7 @@ export function SlideFormModal({ mode, slide }: { mode: "create" | "edit"; slide
         {mode === "create" ? "슬라이드 등록" : "수정"}
       </button>
 
-      <dialog
+      {open ? <dialog
         ref={dialogRef}
         className="modal-native fixed inset-0 m-auto w-[min(100%,40rem)] rounded-2xl border border-border bg-surface p-0 shadow-xl backdrop:bg-black/50"
         onClose={handleClose}
@@ -216,7 +216,7 @@ export function SlideFormModal({ mode, slide }: { mode: "create" | "edit"; slide
             </div>
           </form>
         </div>
-      </dialog>
+      </dialog> : null}
     </>
   );
 }

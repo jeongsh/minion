@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { SectionHeader } from "@/components/layout/section-header";
-import { getAllTeamVideos, getCommunityPosts, getAllTeams } from "@/lib/data/lck";
+import { getAdminNewsPage, getAllTeams } from "@/lib/data/lck";
 import { NewsSearchBar } from "./news-search-bar";
 import { VideoFormModal } from "./news-video-modal";
 import { PostFormModal } from "./news-post-modal";
@@ -33,14 +33,14 @@ export default async function AdminNewsPage({
   const query = params.q?.trim() ?? "";
   const type = params.type === "post" ? "post" : "video";
   const sort = SORT_OPTIONS.find((o) => o.value === params.sort)?.value ?? "date_desc";
-  const page = Math.max(1, Number(params.page) || 1);
 
-  const [videos, posts, teams] = await Promise.all([
-    getAllTeamVideos(),
-    getCommunityPosts(),
+
+  const [newsPage, teams] = await Promise.all([
+    getAdminNewsPage({ type, query, sort, page: params.page }),
     getAllTeams(),
   ]);
 
+  const { videos, posts, totalCount, totalPages, page: safePage } = newsPage;
   const teamMap = new Map(teams.map((t) => [t.id, t]));
 
   // ── 영상 목록 처리 ────────────────────────────────────────────
@@ -115,32 +115,7 @@ export default async function AdminNewsPage({
     }));
   }
 
-  // ── 검색 ──────────────────────────────────────────────────────
-  if (query) {
-    rows = rows.filter((r) => r.title.toLowerCase().includes(query.toLowerCase()));
-  }
-
-  // ── 정렬 ──────────────────────────────────────────────────────
-  rows = [...rows].sort((a, b) => {
-    switch (sort) {
-      case "date_asc":
-        return new Date(a.date).getTime() - new Date(b.date).getTime();
-      case "views_desc":
-        return b.views - a.views;
-      case "views_asc":
-        return a.views - b.views;
-      case "title_asc":
-        return a.title.localeCompare(b.title, "ko");
-      default: // date_desc
-        return new Date(b.date).getTime() - new Date(a.date).getTime();
-    }
-  });
-
-  // ── 페이지네이션 ──────────────────────────────────────────────
-  const totalCount = rows.length;
-  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
-  const safePage = Math.min(page, totalPages);
-  const pageRows = rows.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+  const pageRows = rows;
 
   function buildUrl(overrides: Partial<SearchParams>) {
     const p = new URLSearchParams();

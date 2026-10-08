@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 
-import { getAllTeams, getChampions, getMatchById, getMatches } from "@/lib/data/lck";
+import { getAllTeams, getChampions, getMatchById } from "@/lib/data/lck";
 import { DEFAULT_DDRAGON_VERSION } from "@/lib/ddragon";
 import { fetchItemCatalog } from "@/lib/items";
 import { fetchRuneCatalog } from "@/lib/runes";
@@ -22,9 +22,10 @@ export default async function AdminMatchSetCreatePage({
     notFound();
   }
 
-  const [matches, teams, champions] = await Promise.all([getMatches(), getAllTeams(), getChampions()]);
   const itemVersion = DEFAULT_DDRAGON_VERSION;
-  const [items, spells, runeCatalog] = await Promise.all([
+  const [teams, champions, items, spells, runeCatalog] = await Promise.all([
+    getAllTeams(),
+    getChampions(),
     fetchItemCatalog(itemVersion),
     fetchSpellCatalog(itemVersion),
     fetchRuneCatalog(itemVersion),
@@ -36,7 +37,6 @@ export default async function AdminMatchSetCreatePage({
       title={`${teamLabel(teams, match.teamAId)} vs ${teamLabel(teams, match.teamBId)} 세트 추가`}
       match={match}
       teams={teams}
-      matches={matches}
       champions={champions}
       items={items}
       spells={spells}

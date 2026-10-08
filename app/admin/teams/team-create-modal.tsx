@@ -29,7 +29,7 @@ export function TeamCreateModal() {
         + 팀 추가
       </Button>
 
-      <dialog
+      {open ? <dialog
         ref={dialogRef}
         className="modal-native fixed inset-0 m-auto w-[min(100%,42rem)] max-h-[90vh] overflow-y-auto rounded-lg border border-border bg-surface p-0 shadow-xl backdrop:bg-black/50"
         onClose={handleClose}
@@ -67,7 +67,7 @@ export function TeamCreateModal() {
               </Button>
           </form>
         </div>
-      </dialog>
+      </dialog> : null}
     </>
   );
 }

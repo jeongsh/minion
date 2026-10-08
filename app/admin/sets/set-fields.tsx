@@ -113,7 +113,7 @@ export function SetFields({
   lockedMatchId,
 }: {
   set?: SetResult;
-  matches: Match[];
+  matches: Pick<Match, "id" | "name">[];
   teams: Team[];
   lockedMatchId?: string;
 }) {

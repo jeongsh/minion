@@ -5,7 +5,7 @@ import { SectionHeader } from "@/components/layout/section-header";
 import { DataTable } from "@/components/ui/data-table";
 import { requireAdmin } from "@/lib/auth/admin";
 import { getTeams } from "@/lib/data/lck";
-import { listFanHeaderRequests } from "@/lib/fan/fan-header-admin";
+import { getFanHeaderRequestCounts } from "@/lib/fan/fan-header-admin";
 import type { Team } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -17,14 +17,14 @@ type FanSiteRow = Team & {
 
 export default async function AdminFanSitesPage() {
   await requireAdmin();
-  const [teams, requests] = await Promise.all([getTeams(), listFanHeaderRequests()]);
+  const [teams, counts] = await Promise.all([getTeams(), getFanHeaderRequestCounts()]);
 
   const rows: FanSiteRow[] = teams.map((team) => {
-    const teamRequests = requests.filter((request) => request.teamId === team.id);
+    const teamCounts = counts.get(team.id);
     return {
       ...team,
-      pendingHeaderCount: teamRequests.filter((request) => request.status === "pending").length,
-      approvedHeaderCount: teamRequests.filter((request) => request.status === "approved").length,
+      pendingHeaderCount: teamCounts?.pending ?? 0,
+      approvedHeaderCount: teamCounts?.approved ?? 0,
     };
   });
 

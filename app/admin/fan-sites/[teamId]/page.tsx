@@ -25,7 +25,7 @@ export default async function AdminFanSiteTeamPage({
 }) {
   await requireAdmin();
   const { teamId } = await params;
-  const [team, allRequests] = await Promise.all([getTeamById(teamId), listFanHeaderRequests()]);
+  const [team, allRequests] = await Promise.all([getTeamById(teamId), listFanHeaderRequests(teamId)]);
 
   if (!team) notFound();
 

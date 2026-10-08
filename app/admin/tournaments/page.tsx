@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { SectionHeader } from "@/components/layout/section-header";
 import { Button } from "@/components/ui/button";
-import { getAllTeams, getBracketStages, getMatches, getStages, getTournaments } from "@/lib/data/lck";
+import { getAllTeams, getBracketStages, getMatchesByTournamentIds, getStages, getTournaments } from "@/lib/data/lck";
 import { buildAllStageColumns, isWeekStage, splitBracketSides } from "@/lib/tournaments/bracket";
 import {
   DOMESTIC_SEGMENTS,
@@ -139,13 +139,7 @@ export default async function AdminTournamentsPage({
   const requestedSegment = params.segment ? segmentThemeByKey(params.segment) : null;
   const segmentTheme = requestedSegment ?? ALL_SEGMENTS[0];
 
-  const [tournaments, stages, matches, teams, bracketStages] = await Promise.all([
-    getTournaments(),
-    getStages(),
-    getMatches(),
-    getAllTeams(),
-    getBracketStages(),
-  ]);
+  const [tournaments, teams] = await Promise.all([getTournaments(), getAllTeams()]);
 
   const segmentTournaments = tournaments.filter((tournament) =>
     matchesTournamentSegment(tournament, segmentTheme.key),
@@ -160,7 +154,13 @@ export default async function AdminTournamentsPage({
   const activeTournaments = segmentTournaments.filter(
     (tournament) => tournament.season === activeSeason,
   );
-  const tournamentIds = new Set(activeTournaments.map((tournament) => tournament.id));
+  const selectedIds = activeTournaments.map((tournament) => tournament.id);
+  const tournamentIds = new Set(selectedIds);
+  const [stages, matches, bracketStages] = await Promise.all([
+    getStages(selectedIds),
+    getMatchesByTournamentIds(selectedIds),
+    getBracketStages(selectedIds),
+  ]);
 
   const splitOptions = buildSplitOptions(
     activeTournaments,

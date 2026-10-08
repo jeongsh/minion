@@ -42,16 +42,16 @@ export default async function AdminMatchEditPage({
     notFound();
   }
 
-  const [teams, players, tournaments, stages, sets] = await Promise.all([
+  const setsPromise = getSetsByMatchId(match.id);
+  const [teams, players, tournaments, stages, sets, completion] = await Promise.all([
     getAllTeams(),
     getAllPlayers(),
     getTournaments(),
     getStages(),
-    getSetsByMatchId(match.id),
+    setsPromise,
+    setsPromise.then((rows) => getSetDataCompletionBySetId(rows.map((set) => set.id))),
   ]);
-  const completionBySetId = Object.fromEntries(
-    await getSetDataCompletionBySetId(sets.map((set) => set.id)),
-  );
+  const completionBySetId = Object.fromEntries(completion);
 
   const adminMatchPath = `/admin/matches/${matchRouteId(match)}/edit`;
   const hasLeaguepediaMatchId = Boolean(match.leaguepediaMatchId);

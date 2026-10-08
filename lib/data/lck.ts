@@ -35,7 +35,8 @@ import { normalizeSetStatus } from "@/lib/set-status";
 import { DEFAULT_TIER, type Tier } from "@/lib/rank/config";
 import { getPublicRankProfiles } from "@/lib/rank/public-profile";
 import { normalizeYoutubeVideo } from "@/lib/youtube";
-import { mapWithConcurrency } from "@/lib/data/paged-read";
+import { collectCountedKeysetPages, mapWithConcurrency } from "@/lib/data/paged-read";
+import { ADMIN_PAGE_SIZE, readAdminPage } from "@/lib/data/admin-pagination";
 
 type TeamRow = {
   id: string;
@@ -920,12 +921,14 @@ async function getTeamByFanSiteHostBase(host: string) {
   return teams.find((team) => team.fanSiteHost === host);
 }
 
-async function getTeamIdentityHistoriesBase() {
+async function getTeamIdentityHistoriesBase(teamId?: string) {
   return fromSupabase(async () => {
-    const { data, error } = await createSupabaseServerClient()
+    let query = createSupabaseServerClient()
       .from("team_identity_histories")
       .select("*")
       .order("effective_from", { ascending: false });
+    if (teamId) query = query.eq("team_id", teamId);
+    const { data, error } = await query;
 
     if (error) {
       throw error;
@@ -1064,12 +1067,15 @@ async function getTournamentsBase() {
   }, []);
 }
 
-async function getStagesBase() {
+async function getStagesBase(tournamentIds?: string[]) {
+  if (tournamentIds?.length === 0) return [];
   return fromSupabase(async () => {
-    const { data, error } = await createSupabaseServerClient()
+    let query = createSupabaseServerClient()
       .from("stages")
       .select("id, tournament_id, bracket_stage_id, name, order_index")
       .order("order_index", { ascending: true });
+    if (tournamentIds) query = query.in("tournament_id", tournamentIds);
+    const { data, error } = await query;
 
     if (error) {
       throw error;
@@ -1079,12 +1085,15 @@ async function getStagesBase() {
   }, []);
 }
 
-async function getBracketStagesBase() {
+async function getBracketStagesBase(tournamentIds?: string[]) {
+  if (tournamentIds?.length === 0) return [];
   return fromSupabase(async () => {
-    const { data, error } = await createSupabaseServerClient()
+    let query = createSupabaseServerClient()
       .from("bracket_stages")
       .select("id, tournament_id, name, order_index, display_mode")
       .order("order_index", { ascending: true });
+    if (tournamentIds) query = query.in("tournament_id", tournamentIds);
+    const { data, error } = await query;
 
     if (error) {
       throw error;
@@ -1244,37 +1253,18 @@ async function getSetDataCompletionBySetIdBase(
 
   return fromSupabase(async () => {
     const supabase = createSupabaseServerClient();
-    const [pickBanRes, playerStatRes, timelineRes] = await Promise.all([
-      supabase.from("set_picks_bans").select("set_id, action_type").in("set_id", setIds),
-      supabase.from("set_player_stats").select("set_id").in("set_id", setIds),
-      supabase.from("timeline_events").select("set_id").in("set_id", setIds),
-    ]);
-
-    if (pickBanRes.error) throw pickBanRes.error;
-    if (playerStatRes.error) throw playerStatRes.error;
-    if (timelineRes.error) throw timelineRes.error;
-
-    function entry(setId: string) {
-      const existing = result.get(setId);
-      if (existing) return existing;
-      const created = { pickCount: 0, banCount: 0, playerStatCount: 0, timelineEventCount: 0 };
-      result.set(setId, created);
-      return created;
-    }
-
-    for (const row of (pickBanRes.data ?? []) as Array<{ set_id: string; action_type: string }>) {
-      const target = entry(row.set_id);
-      if (row.action_type === "pick") {
-        target.pickCount += 1;
-      } else {
-        target.banCount += 1;
-      }
-    }
-    for (const row of (playerStatRes.data ?? []) as Array<{ set_id: string }>) {
-      entry(row.set_id).playerStatCount += 1;
-    }
-    for (const row of (timelineRes.data ?? []) as Array<{ set_id: string }>) {
-      entry(row.set_id).timelineEventCount += 1;
+    const { data, error } = await supabase.from("sets")
+      .select("id, set_picks_bans(action_type), set_player_stats(count), timeline_events(count)")
+      .in("id", setIds);
+    if (error) throw error;
+    for (const row of data ?? []) {
+      const actions = row.set_picks_bans as { action_type: string }[];
+      result.set(row.id, {
+        pickCount: actions.filter((action) => action.action_type === "pick").length,
+        banCount: actions.filter((action) => action.action_type !== "pick").length,
+        playerStatCount: row.set_player_stats[0]?.count ?? 0,
+        timelineEventCount: row.timeline_events[0]?.count ?? 0,
+      });
     }
 
     return result;
@@ -2255,3 +2245,139 @@ export const getFanPogVotes = cache(getFanPogVotesBase);
 export const getFanMatchPredictions = cache(getFanMatchPredictionsBase);
 export const getTeamInstagramFeed = cache(getTeamInstagramFeedBase);
 export const getInstagramStories = cache(getInstagramStoriesBase);
+
+// Admin lists are paged at the database. Keep these uncached across requests so
+// a successful edit/delete is visible on the next navigation.
+export async function getAdminNewsPage(options: {
+  type: "video" | "post"; query: string; sort: string; page?: string;
+}) {
+  const { type, sort } = options;
+  const titlePattern = `%${options.query.replace(/[\\%_]/g, "\\$&")}%`;
+  const column = sort.startsWith("views") ? "view_count" : sort === "title_asc" ? "title"
+    : type === "video" ? "published_at" : "created_at";
+  const ascending = sort.endsWith("_asc");
+  const supabase = createSupabaseServerClient();
+  if (type === "video") {
+    const result = await readAdminPage(options.page, 20, (from, to) => {
+      let query = supabase.from("team_videos")
+        .select("id, team_id, platform, title, video_url, youtube_video_id, embed_url, thumbnail_url, published_at, view_count", { count: "exact" });
+      if (options.query) query = query.ilike("title", titlePattern);
+      return query.order(column, { ascending, nullsFirst: false }).order("id").range(from, to);
+    });
+    return { ...result, videos: (result.rows as TeamVideoRow[]).map(mapTeamVideo), posts: [] as CommunityPost[] };
+  }
+  const result = await readAdminPage(options.page, 20, (from, to) => {
+    let query = supabase.from("community_posts")
+      .select("id, board_type, site_scope, team_id, title, content, like_count, comment_count, view_count, created_at", { count: "exact" })
+      .is("deleted_at", null);
+    if (options.query) query = query.ilike("title", titlePattern);
+    return query.order(column, { ascending, nullsFirst: false }).order("id").range(from, to);
+  });
+  return { ...result, posts: (result.rows as CommunityPostRow[]).map(mapCommunityPost), videos: [] as TeamVideo[] };
+}
+
+export async function getAdminMatchesPage(tournamentIds: string[], page?: string) {
+  if (!tournamentIds.length) return { rows: [] as Match[], totalCount: 0, totalPages: 1, page: 1 };
+  const supabase = createSupabaseServerClient();
+  const result = await readAdminPage(page, ADMIN_PAGE_SIZE, (from, to) => supabase.from("matches")
+    .select(MATCH_COLUMNS, { count: "exact" }).in("tournament_id", tournamentIds)
+    .order("match_date", { ascending: false }).order("id").range(from, to));
+  return { ...result, rows: (result.rows as MatchRow[]).map(mapMatch) };
+}
+
+export async function getMatchesByTournamentIds(tournamentIds: string[]) {
+  if (!tournamentIds.length) return [];
+  const supabase = createSupabaseServerClient();
+  const rows = await collectCountedKeysetPages<MatchRow>(async (afterId) => {
+    let query = supabase.from("matches").select(MATCH_COLUMNS, { count: "exact" })
+      .in("tournament_id", tournamentIds).order("id").limit(500);
+    if (afterId) query = query.gt("id", afterId);
+    const { data, error, count } = await query;
+    if (error) throw error;
+    return { rows: (data ?? []) as MatchRow[], count };
+  });
+  return rows.map(mapMatch).sort((a, b) => a.matchDate.localeCompare(b.matchDate));
+}
+
+export async function getAdminSetsPage(page?: string) {
+  const supabase = createSupabaseServerClient();
+  const result = await readAdminPage(page, ADMIN_PAGE_SIZE, (from, to) => supabase.from("sets")
+    .select("id, match_id, set_number, status, winner_team_id, blue_team_id, red_team_id, blue_kills, red_kills, blue_gold, red_gold", { count: "exact" })
+    .order("created_at", { ascending: false }).order("id").range(from, to));
+  return { ...result, rows: result.rows.map((row) => ({
+    id: row.id as string,
+    matchId: row.match_id as string,
+    setNumber: row.set_number as number,
+    status: normalizeSetStatus(row.status),
+    winnerTeamId: row.winner_team_id as string | null,
+    blueTeamId: row.blue_team_id as string | null,
+    redTeamId: row.red_team_id as string | null,
+    blueKills: row.blue_kills as number | null,
+    redKills: row.red_kills as number | null,
+    blueGold: row.blue_gold as number | null,
+    redGold: row.red_gold as number | null,
+  })) };
+}
+
+export async function getAdminMatchOptions() {
+  const supabase = createSupabaseServerClient();
+  type Row = { id: string; name: string; leaguepedia_match_id: string | null; match_date: string };
+  const rows = await collectCountedKeysetPages<Row>(async (afterId) => {
+    let query = supabase.from("matches").select("id, name, leaguepedia_match_id, match_date", { count: "exact" })
+      .order("id").limit(500);
+    if (afterId) query = query.gt("id", afterId);
+    const { data, error, count } = await query;
+    if (error) throw error;
+    return { rows: (data ?? []) as Row[], count };
+  });
+  return rows.sort((a, b) => a.match_date.localeCompare(b.match_date)).map((row) => ({
+    id: row.id, name: row.name, leaguepediaMatchId: row.leaguepedia_match_id,
+  }));
+}
+
+export async function getAdminRosterSummary(teamIds: string[]) {
+  const summary = new Map<string, { playerCount: number; missingImages: number }>();
+  if (!teamIds.length) return summary;
+  const supabase = createSupabaseServerClient();
+  type Row = { id: string; team_id: string; profile_image_url: string | null };
+  const rows = await collectCountedKeysetPages<Row>(async (afterId) => {
+    let query = supabase.from("players")
+      .select("id, team_id, profile_image_url", { count: "exact" })
+      .in("team_id", teamIds).or("is_active.eq.true,is_active.is.null").order("id").limit(500);
+    if (afterId) query = query.gt("id", afterId);
+    const { data, error, count } = await query;
+    if (error) throw error;
+    return { rows: (data ?? []) as Row[], count };
+  });
+  for (const row of rows) {
+    const counts = summary.get(row.team_id) ?? { playerCount: 0, missingImages: 0 };
+    counts.playerCount += 1;
+    if (!row.profile_image_url) counts.missingImages += 1;
+    summary.set(row.team_id, counts);
+  }
+  return summary;
+}
+
+const ADMIN_RATING_COLUMNS = "id, set_id, match_id, player_id, team_id, rating, review, created_at, author_id, blinded_at";
+
+export async function getAdminRatingsPage(page?: string) {
+  const supabase = createSupabaseServerClient();
+  const result = await readAdminPage(page, ADMIN_PAGE_SIZE, (from, to) => supabase.from("fan_ratings")
+    .select(`${ADMIN_RATING_COLUMNS}, players(name)`, { count: "exact" }).order("created_at", { ascending: false }).order("id").range(from, to));
+  // These screens display scores/reviews, not author ranks or reaction counts.
+  return { ...result, rows: (result.rows as unknown as (FanRatingRow & { players: { name: string } | null })[])
+    .map((row) => ({ ...mapFanRating(row), playerName: row.players?.name ?? "-" })) };
+}
+
+export async function getAdminSetRatings(setId: string) {
+  const supabase = createSupabaseServerClient();
+  const rows = await collectCountedKeysetPages<FanRatingRow>(async (afterId) => {
+    let query = supabase.from("fan_ratings").select(ADMIN_RATING_COLUMNS, { count: "exact" })
+      .eq("set_id", setId).order("id").limit(500);
+    if (afterId) query = query.gt("id", afterId);
+    const { data, error, count } = await query;
+    if (error) throw error;
+    return { rows: (data ?? []) as FanRatingRow[], count };
+  });
+  return rows.map((row) => mapFanRating(row));
+}

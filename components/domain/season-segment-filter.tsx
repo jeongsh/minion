@@ -26,6 +26,7 @@ export function SeasonSegmentFilter({
 
   function navigate(segment: SeasonSegmentKey | "all") {
     const params = new URLSearchParams(searchParams.toString());
+    params.delete("page");
 
     for (const key of preserveKeys) {
       const value = searchParams.get(key);

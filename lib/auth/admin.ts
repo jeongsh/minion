@@ -2,7 +2,6 @@ import "server-only";
 
 import { redirect } from "next/navigation";
 
-import { createSupabaseAuthClient } from "@/lib/supabase/auth-server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getVerifiedAuth } from "@/lib/auth/verified-user";
 
@@ -50,15 +49,12 @@ export async function isCurrentUserAdmin(): Promise<boolean> {
 }
 
 export async function requireAdmin(): Promise<AdminUser> {
-  const supabase = await createSupabaseAuthClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
+  const auth = await getVerifiedAuth();
+  if (!auth) {
     redirect("/login");
   }
 
+  const { user } = auth;
   const email = user.email?.toLowerCase() ?? null;
   if (isAdminUser(user)) {
     return { id: user.id, email };
