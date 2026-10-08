@@ -334,6 +334,7 @@ async function scrapeInstagramPostsOnce(
     let endCursor = "";
     let hasNextPage = false;
     let confirmedEmpty = false;
+    let privateProfile = false;
     let rateLimitError: Error | null = null;
 
     page.on("response", async (res) => {
@@ -372,6 +373,7 @@ async function scrapeInstagramPostsOnce(
         // web_profile_info 형식
         const userData = json?.data?.user ?? json?.graphql?.user;
         if (userData) {
+          if (userData.is_private === true) privateProfile = true;
           if (userData.is_private !== true && userData.edge_owner_to_timeline_media?.count === 0) confirmedEmpty = true;
           if (userData.id) userId = String(userData.id);
           const pageInfo = userData.edge_owner_to_timeline_media?.page_info;
@@ -426,6 +428,21 @@ async function scrapeInstagramPostsOnce(
     }
     if (title.toLowerCase().includes("login") || title.includes("로그인") || page.url().includes("/accounts/login")) {
       throw instagramLoginError(username, Boolean(sessionCookie));
+    }
+
+    // Private profiles are outside this public-feed collector's scope. Do not
+    // mistake their empty feed for a rejected session and retry anonymously.
+    const privateNotice = await page.locator("body").innerText();
+    if (postsMap.size === 0
+      && /(?:^|\n)(?:죄송합니다\.\s*)?페이지를 사용할 수 없습니다\.|(?:^|\n)Sorry, this page isn't available\./i.test(privateNotice)) {
+      throw new Error(`INSTAGRAM_UNAVAILABLE: @${username}; profile page is unavailable`);
+    }
+    if (privateProfile || (postsMap.size === 0 && /(?:^|\n)(?:비공개 (?:프로필|계정)입니다|This (?:account|profile) is private)/i.test(privateNotice))) {
+      throw new Error(`INSTAGRAM_PRIVATE: @${username}; private profile excluded from public collection`);
+    }
+    if (postsMap.size === 0 && !hasNextPage
+      && await page.getByRole("heading", { name: /^(게시물 없음|No Posts Yet)$/i }).isVisible()) {
+      confirmedEmpty = true;
     }
 
     // userId를 페이지 JS 상태에서 추출 (web_profile_info가 막혀도 동작)

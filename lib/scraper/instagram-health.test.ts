@@ -51,6 +51,34 @@ test("public login gate is reported without claiming an expired saved session", 
   });
 });
 
+test("private profile notice does not retry anonymously or claim session failure", async () => {
+  let attempts = 0;
+  await fixture(() => { attempts++; return "<title>Instagram</title><body>비공개 프로필입니다 사진과 동영상을 보려면 팔로우하세요.</body>"; }, async () => {
+    await assert.rejects(scrapeInstagramPosts("test", "sessionid=valid"), (error: Error) => {
+      assert.match(error.message, /^INSTAGRAM_PRIVATE:/);
+      assert.equal(hasConnectionFailure("sync-instagram.yml", `[error] ${error.message}`), false);
+      return true;
+    });
+    assert.equal(attempts, 1);
+  });
+});
+
+test("an explicit missing profile does not retry with an anonymous session", async () => {
+  let attempts = 0;
+  await fixture(() => { attempts++; return '<title>Instagram</title><body>죄송합니다. 페이지를 사용할 수 없습니다.</body>'; }, async () => {
+    await assert.rejects(scrapeInstagramPosts('test', 'sessionid=valid'), /INSTAGRAM_UNAVAILABLE:/);
+    assert.equal(attempts, 1);
+  });
+});
+
+test("an explicit no-posts heading is a valid empty profile without a public retry", async () => {
+  let attempts = 0;
+  await fixture(() => { attempts++; return '<title>Instagram</title><body><main><h1>게시물 없음</h1></main></body>'; }, async () => {
+    assert.deepEqual(await scrapeInstagramPosts('test', 'sessionid=valid'), []);
+    assert.equal(attempts, 1);
+  });
+});
+
 test("saved-session login failure is retained when the public retry also requires login", async () => {
   let attempts = 0;
   await fixture(() => { attempts++; return "<title>Login • Instagram</title>"; }, async () => {

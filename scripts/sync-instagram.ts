@@ -92,6 +92,8 @@ async function main() {
   let checked = 0;
   let healthyOwners = 0;
   let attemptedOwners = 0;
+  let privateOwners = 0;
+  let unavailableOwners = 0;
   let consecutiveAccessFailures = 0;
   let stoppedReason: string | null = null;
 
@@ -109,8 +111,20 @@ async function main() {
         consecutiveAccessFailures = 0;
         console.log(`[posts] ${owner.kind}:${owner.name} — checked=${result.checked} new=${result.inserted}`);
       } catch (err) {
-        errors += 1;
         const message = err instanceof Error ? err.message : String(err);
+        if (message.startsWith("INSTAGRAM_UNAVAILABLE:")) {
+          unavailableOwners += 1;
+          console.log(`[unavailable] ${owner.kind}:${owner.name} — ${message}`);
+          await delay(DELAY_MS);
+          continue;
+        }
+        if (message.startsWith("INSTAGRAM_PRIVATE:")) {
+          privateOwners += 1;
+          console.log(`[private] ${owner.kind}:${owner.name} — ${message}`);
+          await delay(DELAY_MS);
+          continue;
+        }
+        errors += 1;
         console.error(`[error] ${owner.kind}:${owner.name} posts — ${message}`);
         consecutiveAccessFailures = instagramFailureKind(message) === "access" ? consecutiveAccessFailures + 1 : 0;
         stoppedReason = instagramStopReason(message, consecutiveAccessFailures);
@@ -141,7 +155,7 @@ async function main() {
     // }
   }
 
-  const summary = `owners=${owners.length} attempted=${attemptedOwners} skipped=${owners.length - attemptedOwners} healthy=${healthyOwners} checked=${checked} posts_new=${postsInserted} errors=${errors} dryRun=${dryRun}`;
+  const summary = `owners=${owners.length} attempted=${attemptedOwners} skipped=${owners.length - attemptedOwners} private=${privateOwners} unavailable=${unavailableOwners} healthy=${healthyOwners} checked=${checked} posts_new=${postsInserted} errors=${errors} dryRun=${dryRun}`;
   console.log(`\nDone. ${summary}`);
   if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Instagram collection\n\n${summary}\n\n${stoppedReason ?? "Collection finished."}\n`);
 
