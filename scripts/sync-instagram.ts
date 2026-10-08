@@ -9,6 +9,7 @@
  *   npx tsx scripts/sync-instagram.ts --mode=posts     # 게시물만
  *   npx tsx scripts/sync-instagram.ts --mode=stories   # 스토리만
  *   npx tsx scripts/sync-instagram.ts --dry-run
+ *   npx tsx scripts/sync-instagram.ts --max-posts=500 --no-notify # history recovery
  *   npx tsx scripts/sync-instagram.ts --check-session --username=t1lol
  *
  * 환경변수:
@@ -35,6 +36,7 @@ const limitArg = parseInt(argv.find((a) => a.startsWith("--limit="))?.split("=",
 const offsetArg = parseInt(argv.find((a) => a.startsWith("--offset="))?.split("=", 2)[1] ?? "0");
 const dryRun = argSet.has("--dry-run");
 const noNotify = argSet.has("--no-notify");
+const maxPosts = Number(argv.find((arg) => arg.startsWith("--max-posts="))?.slice("--max-posts=".length) ?? "60");
 
 const DELAY_MS = 5000;
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -49,6 +51,9 @@ function loadEnvFile() {
 }
 
 async function main() {
+  if (!Number.isInteger(maxPosts) || maxPosts < 1 || maxPosts > 500) {
+    throw new Error("--max-posts must be an integer between 1 and 500.");
+  }
   loadEnvFile();
 
   const sessionCookie = process.env.INSTAGRAM_SESSION_COOKIE?.trim();
@@ -69,7 +74,7 @@ async function main() {
   if (sessionCookie) console.log(`[browser] Instagram session cookie loaded`);
   else console.log(`[browser] INSTAGRAM_SESSION_COOKIE 없음 — 비로그인 공개 프로필 수집`);
 
-  console.log(`[mode] ${modeArg} / dryRun=${dryRun}`);
+  console.log(`[mode] ${modeArg} / dryRun=${dryRun} / maxPosts=${maxPosts}`);
 
   const supabase = createSupabaseAdminClient();
   const allOwners = await getInstagramOwners(supabase);
@@ -104,7 +109,7 @@ async function main() {
     if (modeArg === "all" || modeArg === "posts") {
       attemptedOwners += 1;
       try {
-        const result = await syncOwnerPosts(supabase, owner, { dryRun, sessionCookie, noNotify });
+        const result = await syncOwnerPosts(supabase, owner, { dryRun, sessionCookie, noNotify, maxPosts });
         postsInserted += result.inserted;
         checked += result.checked;
         healthyOwners += 1;

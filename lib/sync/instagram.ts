@@ -160,10 +160,10 @@ export async function getInstagramOwners(supabase: SupabaseClient): Promise<Inst
 export async function syncOwnerPosts(
   supabase: SupabaseClient,
   owner: InstagramOwner,
-  opts: { dryRun?: boolean; engine?: SyncEngine; sessionCookie?: string; noNotify?: boolean } = {},
+  opts: { dryRun?: boolean; engine?: SyncEngine; sessionCookie?: string; noNotify?: boolean; maxPosts?: number } = {},
 ): Promise<{ inserted: number; checked: number }> {
   const username = extractUsername(owner.instagramUrl!);
-  const posts = await scrapeInstagramPosts(username, opts.sessionCookie);
+  const posts = await scrapeInstagramPosts(username, opts.sessionCookie, opts.maxPosts);
 
   if (opts.dryRun) return { inserted: 0, checked: posts.length };
 
