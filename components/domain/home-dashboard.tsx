@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { HomeTournamentOverview, type HomeTournamentOption } from "@/components/domain/home-tournament-overview";
+import type { HomeTournamentOverview as Overview } from "@/lib/tournaments/home-overview";
 import { CalendarDays } from "lucide-react";
 import { HomeCalendar, type HomeCalendarMatch } from "@/components/domain/home-calendar";
 import { HomeCalendarWorkspace } from "@/components/domain/home-calendar-workspace";
@@ -19,15 +21,6 @@ import { AdSlot as Ad } from "@/components/ui/ad-slot";
 import { TeamLogo as Logo } from "@/components/ui/team-logo";
 import { AdaptiveDialog } from "@/components/responsive/adaptive-dialog";
 
-export type HomeStandingRow = {
-  team: Team;
-  teamId: string;
-  rank: number;
-  wins: number;
-  losses: number;
-  setDiff: number;
-};
-
 /* 홈 뉴스/영상 비활성화: 기존 import 보관
 import { HomeVideoSwiper } from "@/components/domain/home-video-swiper";
 import { HomeNewsSection } from "@/components/news/home-news-section";
@@ -37,7 +30,8 @@ import type { NewsArticle } from "@/lib/data/news";
 
 type Props = {
   teams: Team[];
-  standingRows: HomeStandingRow[];
+  tournamentOverview: Overview;
+  tournamentOptions: HomeTournamentOption[];
   matchItems: HomeMatchItem[];
   calendarMonthKey: string;
   calendarTodayKey: string;
@@ -52,14 +46,11 @@ type Props = {
   insights: HomeInsights | null;
 };
 
-/** 순위표는 10팀을 5+5 두 칼럼으로 나눈다. 옆 광고 높이도 이 값에서 계산한다. */
-const STANDING_ROWS_PER_COLUMN = 5;
-const STANDING_ROW_HEIGHT = 56;
 const HOME_SECTION_SPACING = "mt-10";
 
 function HeadingSpacer() {
   return (
-    <div className="invisible" aria-hidden>
+    <div className="invisible h-11 shrink-0" aria-hidden>
       <Heading>&nbsp;</Heading>
     </div>
   );
@@ -67,7 +58,8 @@ function HeadingSpacer() {
 
 export function HomeDashboard({
   teams,
-  standingRows,
+  tournamentOverview,
+  tournamentOptions,
   matchItems,
   calendarMonthKey,
   calendarMatches,
@@ -168,38 +160,11 @@ export function HomeDashboard({
         </div>
       </section>
 
-      <section className={`${HOME_SECTION_SPACING} hidden gap-4 xl:grid xl:grid-cols-3`}>
-        <div className="min-w-0 xl:col-span-2">
-          <Heading>LCK 현황</Heading>
-          <div className="grid gap-4 sm:grid-cols-2">
-            {[0, 1].map((column) => (
-              <div
-                key={column}
-                className="overflow-hidden rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] dark:bg-[var(--ui-surface-muted)]"
-              >
-                {standingRows
-                  .slice(column * STANDING_ROWS_PER_COLUMN, (column + 1) * STANDING_ROWS_PER_COLUMN)
-                  .map((row) => (
-                    <Link
-                      href={`/teams?team=${encodeURIComponent(row.team.fanSiteHost || row.team.slug)}`}
-                      key={row.teamId}
-                      className="flex items-center gap-3 border-b border-[var(--ui-border)] px-3 last:border-0 sm:px-4"
-                      style={{ minHeight: STANDING_ROW_HEIGHT }}
-                    >
-                      <b className="w-5 shrink-0 text-center text-[13px]">{row.rank}</b>
-                      <Logo team={row.team} themeAware size="h-8 w-8 shrink-0" />
-                      <b className="min-w-0 flex-1 truncate text-sm">{row.team.shortName}</b>
-                      <span className="shrink-0 text-[13px] text-[var(--ui-muted)]">{row.setDiff >= 0 ? `+${row.setDiff}` : row.setDiff}</span>
-                      <span className="shrink-0 text-sm font-bold">
-                        {row.wins}승 {row.losses}패
-                      </span>
-                    </Link>
-                  ))}
-              </div>
-            ))}
-          </div>
+      <section className={`${HOME_SECTION_SPACING} grid gap-4 xl:grid-cols-3`}>
+        <div className="flex min-w-0 flex-col xl:col-span-2">
+          <HomeTournamentOverview overview={tournamentOverview} options={tournamentOptions} teams={teams} />
         </div>
-        <div className="flex min-w-0 flex-col">
+        <div className="hidden min-w-0 flex-col xl:flex">
           <div className="hidden xl:block">
             <HeadingSpacer />
           </div>

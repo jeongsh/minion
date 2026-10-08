@@ -66,10 +66,9 @@ export async function POST(request: Request) {
 
   const stream = new ReadableStream({
     start(controller) {
-      const child = spawn("npx", ["tsx", scriptPath, ...args], {
+      const child = spawn(process.execPath, ["--import", "tsx", scriptPath, ...args], {
         cwd,
         env: { ...process.env },
-        shell: true,
       });
 
       const send = (text: string) => {

@@ -334,6 +334,7 @@ async function scrapeInstagramPostsOnce(
     let endCursor = "";
     let hasNextPage = false;
     let confirmedEmpty = false;
+    let privateProfile = false;
     let rateLimitError: Error | null = null;
 
     page.on("response", async (res) => {
@@ -372,6 +373,7 @@ async function scrapeInstagramPostsOnce(
         // web_profile_info 형식
         const userData = json?.data?.user ?? json?.graphql?.user;
         if (userData) {
+          if (userData.is_private === true) privateProfile = true;
           if (userData.is_private !== true && userData.edge_owner_to_timeline_media?.count === 0) confirmedEmpty = true;
           if (userData.id) userId = String(userData.id);
           const pageInfo = userData.edge_owner_to_timeline_media?.page_info;
@@ -428,6 +430,21 @@ async function scrapeInstagramPostsOnce(
       throw instagramLoginError(username, Boolean(sessionCookie));
     }
 
+    // Private profiles are outside this public-feed collector's scope. Do not
+    // mistake their empty feed for a rejected session and retry anonymously.
+    const privateNotice = await page.locator("body").innerText();
+    if (postsMap.size === 0
+      && /(?:^|\n)(?:죄송합니다\.\s*)?페이지를 사용할 수 없습니다\.|(?:^|\n)Sorry, this page isn't available\./i.test(privateNotice)) {
+      throw new Error(`INSTAGRAM_UNAVAILABLE: @${username}; profile page is unavailable`);
+    }
+    if (privateProfile || (postsMap.size === 0 && /(?:^|\n)(?:비공개 (?:프로필|계정)입니다|This (?:account|profile) is private)/i.test(privateNotice))) {
+      throw new Error(`INSTAGRAM_PRIVATE: @${username}; private profile excluded from public collection`);
+    }
+    if (postsMap.size === 0 && !hasNextPage
+      && await page.getByRole("heading", { name: /^(게시물 없음|No Posts Yet)$/i }).isVisible()) {
+      confirmedEmpty = true;
+    }
+
     // userId를 페이지 JS 상태에서 추출 (web_profile_info가 막혀도 동작)
     if (!userId) {
       userId = await page.evaluate(() => {
@@ -460,13 +477,14 @@ async function scrapeInstagramPostsOnce(
 
     // GraphQL cursors are opaque and cannot be used as REST feed max_id values.
     // Let Instagram issue its own next-page request and capture its response.
+    let duplicatePages = 0;
     while (postsMap.size < maxPosts && hasNextPage) {
       const before = postsMap.size;
       const previousCursor = endCursor;
       await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
       for (let wait = 0; wait < 10; wait += 1) {
         await page.waitForTimeout(500);
-        if (rateLimitError || postsMap.size > before || !hasNextPage) break;
+        if (rateLimitError || postsMap.size > before || endCursor !== previousCursor || !hasNextPage) break;
       }
       if (rateLimitError) throw rateLimitError;
       if (/\/(challenge|checkpoint)\//.test(page.url())) {
@@ -475,7 +493,15 @@ async function scrapeInstagramPostsOnce(
       if (page.url().includes("/accounts/login")) throw instagramLoginError(username, Boolean(sessionCookie));
       if (postsMap.size === before) {
         if (!hasNextPage) break;
-        throw new Error(`INSTAGRAM_PAGINATION: @${username}; browser feed did not advance`);
+        // Instagram can repeat the first page while switching cursor formats.
+        // An advancing cursor is progress even when every post is a duplicate.
+        duplicatePages += 1;
+        if (!endCursor || endCursor === previousCursor || duplicatePages > 3) {
+          throw new Error(`INSTAGRAM_PAGINATION: @${username}; browser feed did not advance`);
+        }
+        await page.evaluate(() => window.scrollBy(0, -window.innerHeight / 2));
+      } else {
+        duplicatePages = 0;
       }
       if (hasNextPage && endCursor === previousCursor) {
         throw new Error(`INSTAGRAM_PAGINATION: @${username}; feed cursor did not advance`);

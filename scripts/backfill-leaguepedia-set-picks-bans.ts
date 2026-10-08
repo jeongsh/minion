@@ -148,6 +148,7 @@ async function tournamentIdsForSegment(supabase: SupabaseClient, segment: string
     case "first-stand":   q = q.eq("league", "First Stand"); break;
     case "msi":           q = q.eq("league", "MSI"); break;
     case "ewc":           q = q.eq("league", "EWC"); break;
+    case "demacia-cup":   q = q.eq("source_tournament_id", "2026 Demacia Cup Global Invitational"); break;
     case "worlds":        q = q.eq("league", "Worlds"); break;
     case "enc":           q = q.eq("league", "ENC"); break;
     case "kespa-cup":     q = q.eq("league", "KeSPA Cup"); break;

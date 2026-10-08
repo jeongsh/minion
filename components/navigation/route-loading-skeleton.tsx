@@ -127,6 +127,15 @@ export function HomeLoadingSkeleton() {
         </div>
       </section>
       <section><SectionTitle width="w-40" /><div className="flex gap-3 overflow-hidden">{Array.from({ length: 6 }, (_, index) => <Skeleton key={index} className="aspect-[3/4] min-w-[calc((100%-12px)/2.2)] flex-1 rounded-2xl min-[520px]:min-w-[calc((100%-24px)/3.2)] md:min-w-[calc((100%-42px)/4.2)] lg:min-w-[calc((100%-64px)/5.2)] xl:min-w-0" />)}</div></section>
+      <section className="grid gap-4 xl:grid-cols-3">
+        <div className="min-w-0 xl:col-span-2">
+          <SectionTitle width="w-40" />
+          <div className="mt-3 rounded-2xl bg-[var(--ui-card-bg)] p-4 xl:min-h-[282px]">
+            <div className="grid gap-4 sm:grid-cols-2">{Array.from({ length: 2 }, (_, index) => <div key={index} className="min-w-0"><Skeleton className="mb-2 h-5 w-24" /><div className="space-y-2 rounded-xl bg-[var(--ui-surface)] p-3">{Array.from({ length: 3 }, (_, row) => <div key={row} className="space-y-2 py-1"><Skeleton className="h-3 w-28" /><Skeleton className="h-7 w-full" /></div>)}</div></div>)}</div>
+          </div>
+        </div>
+        <Skeleton className="mt-8 hidden min-h-[282px] w-full rounded-2xl xl:block" />
+      </section>
     </LoadingMain>
   );
 }
