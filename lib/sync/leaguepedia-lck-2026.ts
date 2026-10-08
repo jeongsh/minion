@@ -597,6 +597,19 @@ async function findExistingMatchId(
     return byLeaguepediaId.id;
   }
 
+  // 추첨 이후 원본 MatchId가 바뀌어도 같은 시간의 미정 슬롯은 그대로 채운다.
+  // 확정된 경기나 같은 시간에 여러 슬롯이 있는 경우는 임의로 매칭하지 않는다.
+  const { data: placeholders, error: placeholderError } = await supabase
+    .from("matches")
+    .select("id")
+    .eq("tournament_id", payload.tournament_id)
+    .eq("match_date", payload.match_date)
+    .eq("status", "scheduled")
+    .is("team_a_id", null)
+    .is("team_b_id", null);
+  if (placeholderError) throw placeholderError;
+  if (placeholders?.length === 1) return placeholders[0].id;
+
   // 레거시(gol:%) 매칭은 양 팀이 모두 확정된 경우에만 가능
   if (!payload.team_a_id || !payload.team_b_id) {
     return null;

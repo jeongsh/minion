@@ -1,10 +1,11 @@
+import { AdminPagination } from "@/components/admin/pagination";
 import Link from "next/link";
 
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { SectionHeader } from "@/components/layout/section-header";
 import { DataTable } from "@/components/ui/data-table";
 import { Button } from "@/components/ui/button";
-import { getAllTeams, getMatches, getSets } from "@/lib/data/lck";
+import { getAllTeams, getAdminMatchOptions, getAdminSetsPage } from "@/lib/data/lck";
 import { setStatusLabel } from "@/lib/set-status";
 import type { Match, Team } from "@/lib/types";
 import { matchRouteId } from "@/lib/view-data";
@@ -16,17 +17,18 @@ function teamName(teams: Team[], teamId: string | null | undefined) {
   return teams.find((team) => team.id === teamId)?.shortName ?? "-";
 }
 
-function matchName(matches: Match[], matchId: string) {
+function matchName(matches: Pick<Match, "id" | "name">[], matchId: string) {
   return matches.find((match) => match.id === matchId)?.name ?? matchId;
 }
 
-function matchAdminPath(matches: Match[], matchId: string) {
+function matchAdminPath(matches: Pick<Match, "id" | "leaguepediaMatchId">[], matchId: string) {
   const match = matches.find((item) => item.id === matchId);
   return match ? `/admin/matches/${matchRouteId(match)}/edit` : "/admin/matches";
 }
 
-export default async function AdminSetsPage() {
-  const [sets, matches, teams] = await Promise.all([getSets(), getMatches(), getAllTeams()]);
+export default async function AdminSetsPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
+  const { page } = await searchParams;
+  const [listPage, matches, teams] = await Promise.all([getAdminSetsPage(page), getAdminMatchOptions(), getAllTeams()]);
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-[var(--page-inline)] py-10">
@@ -50,7 +52,7 @@ export default async function AdminSetsPage() {
       <section className="flex flex-col gap-4">
         <h2 className="text-lg font-semibold">세트 목록</h2>
         <DataTable
-          rows={sets}
+          rows={listPage.rows}
           columns={[
             { key: "match", label: "경기", render: (row) => matchName(matches, row.matchId) },
             { key: "set", label: "세트", render: (row) => `${row.setNumber}세트` },
@@ -74,6 +76,7 @@ export default async function AdminSetsPage() {
           ]}
         />
       </section>
+      <AdminPagination pathname="/admin/sets" {...listPage} />
     </main>
   );
 }

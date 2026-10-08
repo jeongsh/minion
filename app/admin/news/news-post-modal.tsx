@@ -69,7 +69,7 @@ export function PostFormModal({
         {mode === "create" ? "+ 글 추가" : "수정"}
       </button>
 
-      <dialog
+      {open ? <dialog
         ref={dialogRef}
         className="modal-native fixed inset-0 m-auto w-[min(100%,34rem)] rounded-xl border border-border bg-surface p-0 shadow-xl backdrop:bg-black/50"
         onClose={handleClose}
@@ -184,7 +184,7 @@ export function PostFormModal({
             </Button>
           </form>
         </div>
-      </dialog>
+      </dialog> : null}
     </>
   );
 }

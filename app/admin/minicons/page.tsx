@@ -1,3 +1,6 @@
+import { AdminPagination } from "@/components/admin/pagination";
+import { readAdminPage } from "@/lib/data/admin-pagination";
+import { collectCountedKeysetPages } from "@/lib/data/paged-read";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { SectionHeader } from "@/components/layout/section-header";
 import { requireAdmin } from "@/lib/auth/admin";
@@ -28,33 +31,40 @@ type MiniconItemRow = {
   pack_id: string;
   name: string;
   image_url: string;
+  sort_order: number;
 };
 
-async function getAdminMiniconPacks(): Promise<AdminMiniconPack[]> {
+async function getAdminMiniconPacks(params: { pendingPage?: string; page?: string }) {
   await requireAdmin();
   const admin = createSupabaseAdminClient();
-  const [{ data: packData, error: packError }, { data: itemData, error: itemError }] = await Promise.all([
-    admin
-      .from("minicon_packs")
-      .select("id, name, description, cover_url, status, is_official, creator_id, created_at, published_at, review_note, reviewed_at, reviewed_by")
-      .order("created_at", { ascending: false }),
-    admin
-      .from("minicon_items")
-      .select("id, pack_id, name, image_url")
-      .order("sort_order", { ascending: true }),
+  const packColumns = "id, name, description, cover_url, status, is_official, creator_id, created_at, published_at, review_note, reviewed_at, reviewed_by";
+  const [pendingPage, reviewedPage] = await Promise.all([
+    readAdminPage(params.pendingPage, 12, (from, to) => admin.from("minicon_packs")
+      .select(packColumns, { count: "exact" }).eq("status", "pending_review")
+      .order("created_at", { ascending: true }).order("id").range(from, to)),
+    readAdminPage(params.page, 12, (from, to) => admin.from("minicon_packs")
+      .select(packColumns, { count: "exact" }).neq("status", "pending_review")
+      .order("created_at", { ascending: false }).order("id").range(from, to)),
   ]);
-
-  if (packError) throw packError;
-  if (itemError) throw itemError;
-
-  const packs = (packData ?? []) as MiniconPackRow[];
-  const items = (itemData ?? []) as MiniconItemRow[];
+  const packs = [...pendingPage.rows, ...reviewedPage.rows] as MiniconPackRow[];
+  const itemsPromise = packs.length ? collectCountedKeysetPages<MiniconItemRow>(async (afterId) => {
+    let query = admin.from("minicon_items").select("id, pack_id, name, image_url, sort_order", { count: "exact" })
+      .in("pack_id", packs.map((pack) => pack.id)).order("id").limit(500);
+    if (afterId) query = query.gt("id", afterId);
+    const { data, error, count } = await query;
+    if (error) throw error;
+    return { rows: (data ?? []) as MiniconItemRow[], count };
+  }) : Promise.resolve([]);
   const profileIds = [...new Set(
     packs.flatMap((pack) => [pack.creator_id, pack.reviewed_by]).filter((id): id is string => Boolean(id)),
   )];
-  const profileResult = profileIds.length > 0
-    ? await admin.from("profiles").select("id, nickname").in("id", profileIds)
-    : { data: [], error: null };
+  const [items, profileResult] = await Promise.all([
+    itemsPromise,
+    profileIds.length > 0
+      ? admin.from("profiles").select("id, nickname").in("id", profileIds)
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+  items.sort((a, b) => a.sort_order - b.sort_order || a.id.localeCompare(b.id));
   if (profileResult.error) throw profileResult.error;
 
   const nicknameById = new Map(
@@ -69,7 +79,7 @@ async function getAdminMiniconPacks(): Promise<AdminMiniconPack[]> {
     ]);
   }
 
-  return packs.map((pack) => {
+  const mapped: AdminMiniconPack[] = packs.map((pack) => {
     const packItems = itemsByPack.get(pack.id) ?? [];
     return {
       id: pack.id,
@@ -95,10 +105,12 @@ async function getAdminMiniconPacks(): Promise<AdminMiniconPack[]> {
         : null,
     };
   });
+  return { packs: mapped, pendingPage, reviewedPage };
 }
 
-export default async function AdminMiniconsPage() {
-  const packs = await getAdminMiniconPacks();
+export default async function AdminMiniconsPage({ searchParams }: { searchParams: Promise<{ pendingPage?: string; page?: string }> }) {
+  const params = await searchParams;
+  const { packs, pendingPage, reviewedPage } = await getAdminMiniconPacks(params);
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-[var(--page-inline)] py-10">
@@ -116,9 +128,15 @@ export default async function AdminMiniconsPage() {
       <section className="grid gap-4" aria-labelledby="minicon-review-title">
         <div className="flex items-end justify-between gap-4">
           <h2 id="minicon-review-title" className="text-[18px] font-bold text-[var(--ui-ink)]">사용자 신청 심사</h2>
-          <span className="text-[13px] font-normal text-[var(--ui-muted)]">총 {packs.length}개</span>
+          <span className="text-[13px] font-normal text-[var(--ui-muted)]">총 {pendingPage.totalCount + reviewedPage.totalCount}개</span>
         </div>
-        <MiniconReviewManager packs={packs} />
+        <MiniconReviewManager
+          packs={packs}
+          pendingCount={pendingPage.totalCount}
+          reviewedCount={reviewedPage.totalCount}
+          pendingPagination={<AdminPagination pathname="/admin/minicons" {...pendingPage} pageKey="pendingPage" filters={{ page: String(reviewedPage.page) }} />}
+          reviewedPagination={<AdminPagination pathname="/admin/minicons" {...reviewedPage} filters={{ pendingPage: String(pendingPage.page) }} />}
+        />
       </section>
     </main>
   );

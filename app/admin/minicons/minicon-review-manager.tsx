@@ -2,7 +2,7 @@
 
 import { CheckCircle2, ChevronDown, Loader2, XCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useState, useTransition, type ReactNode } from "react";
 
 import { useToast } from "@/components/ui/toast";
 
@@ -210,7 +210,13 @@ function MiniconPackCard({ pack }: { pack: AdminMiniconPack }) {
   );
 }
 
-export function MiniconReviewManager({ packs }: { packs: AdminMiniconPack[] }) {
+export function MiniconReviewManager({ packs, pendingCount, reviewedCount, pendingPagination, reviewedPagination }: {
+  packs: AdminMiniconPack[];
+  pendingCount: number;
+  reviewedCount: number;
+  pendingPagination: ReactNode;
+  reviewedPagination: ReactNode;
+}) {
   const pendingPacks = packs.filter((pack) => pack.status === "pending_review");
   const reviewedPacks = packs.filter((pack) => pack.status !== "pending_review");
 
@@ -219,7 +225,7 @@ export function MiniconReviewManager({ packs }: { packs: AdminMiniconPack[] }) {
       <section className="flex flex-col gap-3" aria-labelledby="pending-minicon-packs">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h3 id="pending-minicon-packs" className="text-[18px] font-bold text-[var(--ui-ink)]">심사 대기</h3>
-          <span className="text-[13px] font-normal text-[var(--ui-muted)]">{pendingPacks.length}건</span>
+          <span className="text-[13px] font-normal text-[var(--ui-muted)]">{pendingCount}건</span>
         </div>
         {pendingPacks.length > 0 ? (
           <div className="grid gap-3">
@@ -230,12 +236,13 @@ export function MiniconReviewManager({ packs }: { packs: AdminMiniconPack[] }) {
             심사를 기다리는 미니콘 신청이 없습니다.
           </p>
         )}
+        {pendingPagination}
       </section>
 
       <section className="flex flex-col gap-3" aria-labelledby="reviewed-minicon-packs">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h3 id="reviewed-minicon-packs" className="text-[18px] font-bold text-[var(--ui-ink)]">최근 처리 및 등록 내역</h3>
-          <span className="text-[13px] font-normal text-[var(--ui-muted)]">{reviewedPacks.length}건</span>
+          <span className="text-[13px] font-normal text-[var(--ui-muted)]">{reviewedCount}건</span>
         </div>
         {reviewedPacks.length > 0 ? (
           <div className="grid gap-3 lg:grid-cols-2">
@@ -246,6 +253,7 @@ export function MiniconReviewManager({ packs }: { packs: AdminMiniconPack[] }) {
             아직 처리되거나 등록된 미니콘 패키지가 없습니다.
           </p>
         )}
+        {reviewedPagination}
       </section>
     </div>
   );

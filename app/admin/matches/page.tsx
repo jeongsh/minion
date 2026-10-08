@@ -1,3 +1,4 @@
+import { AdminPagination } from "@/components/admin/pagination";
 import { Suspense } from "react";
 import Link from "next/link";
 
@@ -6,12 +7,12 @@ import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { SectionHeader } from "@/components/layout/section-header";
 import { DataTable } from "@/components/ui/data-table";
 import { Button } from "@/components/ui/button";
-import { getAllPlayers, getAllTeams, getMatches, getStages, getTournaments } from "@/lib/data/lck";
+import { getAllPlayers, getAllTeams, getAdminMatchesPage, getStages, getTournaments } from "@/lib/data/lck";
 import {
-  filterMatchesBySegment,
   parseSeasonSegment,
   segmentLabel,
 } from "@/lib/tournament-filters";
+import { tournamentIdsForSegment } from "@/lib/tournaments/season-2026";
 import type { Team } from "@/lib/types";
 import { formatDateTime, matchHref, matchRouteId } from "@/lib/view-data";
 
@@ -38,24 +39,24 @@ function tournamentName(
 export default async function AdminMatchesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ segment?: string }>;
+  searchParams: Promise<{ segment?: string; page?: string }>;
 }) {
   const params = await searchParams;
   const activeSegment = parseSeasonSegment(params.segment);
 
-  const [matches, teams, tournaments, stages, players, syncCursor] = await Promise.all([
-    getMatches(),
+  const tournamentsPromise = getTournaments();
+  const [teams, tournaments, stages, players, syncCursor, matchPage] = await Promise.all([
     getAllTeams(),
-    getTournaments(),
+    tournamentsPromise,
     getStages(),
     getAllPlayers(),
     getLeaguepediaSyncCursor(),
+    tournamentsPromise.then((items) => getAdminMatchesPage(
+      [...tournamentIdsForSegment(items, activeSegment)], params.page,
+    )),
   ]);
 
-  const segmentMatches = filterMatchesBySegment(matches, tournaments, activeSegment);
-  const sortedMatches = [...segmentMatches].sort(
-    (a, b) => new Date(b.matchDate).getTime() - new Date(a.matchDate).getTime(),
-  );
+  const sortedMatches = matchPage.rows;
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-[var(--page-inline)] py-10">
@@ -86,7 +87,7 @@ export default async function AdminMatchesPage({
       <section className="flex flex-col gap-4">
         <div className="flex flex-col gap-3">
           <h2 className="text-lg font-semibold">
-            {segmentLabel(activeSegment)} 경기 목록 ({sortedMatches.length}건)
+            {segmentLabel(activeSegment)} 경기 목록 ({matchPage.totalCount}건)
           </h2>
           <Suspense fallback={null}>
             <SeasonSegmentFilter activeSegment={activeSegment} basePath="/admin/matches" />
@@ -136,6 +137,7 @@ export default async function AdminMatchesPage({
             },
           ]}
         />
+        <AdminPagination pathname="/admin/matches" {...matchPage} filters={{ segment: activeSegment }} />
       </section>
     </main>
   );

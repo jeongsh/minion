@@ -146,7 +146,7 @@ export function tournamentStatus(
   return "ongoing";
 }
 
-export function matchRouteId(match: Match) {
+export function matchRouteId(match: Pick<Match, "id" | "leaguepediaMatchId">) {
   return encodeURIComponent(match.leaguepediaMatchId || match.id);
 }
 

@@ -17,7 +17,7 @@ export default async function AdminTeamDetailPage({
     notFound();
   }
 
-  const histories = (await getTeamIdentityHistories())
+  const histories = (await getTeamIdentityHistories(team.id))
     .filter((history) => history.teamId === team.id)
     .sort((a, b) => b.effectiveFrom.localeCompare(a.effectiveFrom));
 

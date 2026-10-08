@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { Player, PlayerCareerHistory, Team } from "@/lib/types";
 import { reactivatePlayerAction } from "./actions";
 import { CareerHistoryPanel } from "./career-history-panel";
@@ -19,20 +19,31 @@ const POS_LABEL: Record<string, string> = {
 type Division = "first" | "challengers";
 
 export function PlayerList({
+  division,
   players,
   retiredPlayers,
   challengersPlayers,
   teams,
   careerHistories,
 }: {
+  division: Division;
   players: Player[];
   retiredPlayers: Player[];
   challengersPlayers: Player[];
   teams: Team[];
   careerHistories: PlayerCareerHistory[];
 }) {
+  const historiesByPlayer = useMemo(() => {
+    const grouped = new Map<string, PlayerCareerHistory[]>();
+    for (const history of careerHistories) {
+      const rows = grouped.get(history.playerId) ?? [];
+      rows.push(history);
+      grouped.set(history.playerId, rows);
+    }
+    for (const rows of grouped.values()) rows.sort((a, b) => b.startDate.localeCompare(a.startDate));
+    return grouped;
+  }, [careerHistories]);
   const [query, setQuery] = useState("");
-  const [division, setDivision] = useState<Division>("first");
 
   const activePlayers = division === "first" ? players : challengersPlayers;
 
@@ -84,28 +95,28 @@ export function PlayerList({
           className="w-full max-w-sm rounded-md border border-border bg-background px-4 py-2 text-sm outline-none focus:border-accent"
         />
         <div className="flex shrink-0 rounded-md border border-border p-0.5">
-          <button
-            type="button"
-            onClick={() => setDivision("first")}
-            className={`rounded px-3 py-1.5 text-sm font-semibold transition-colors ${
+          <Link
+            href="/admin/players"
+            scroll={false}
+            className={`rounded px-3 py-1.5 text-sm font-medium transition-colors ${
               division === "first"
                 ? "bg-accent text-background"
                 : "text-muted hover:text-foreground"
             }`}
           >
             1군
-          </button>
-          <button
-            type="button"
-            onClick={() => setDivision("challengers")}
-            className={`rounded px-3 py-1.5 text-sm font-semibold transition-colors ${
+          </Link>
+          <Link
+            href="/admin/players?division=challengers"
+            scroll={false}
+            className={`rounded px-3 py-1.5 text-sm font-medium transition-colors ${
               division === "challengers"
                 ? "bg-accent text-background"
                 : "text-muted hover:text-foreground"
             }`}
           >
             2군
-          </button>
+          </Link>
         </div>
         <PlayerCreateModal teams={teams} />
         <SyncContractButton />
@@ -182,7 +193,7 @@ export function PlayerList({
                           />
                           <CareerHistoryPanel
                             player={p}
-                            histories={careerHistories}
+                            histories={historiesByPlayer.get(p.id) ?? []}
                             teams={teams}
                           />
                         </div>
@@ -211,9 +222,7 @@ export function PlayerList({
           ) : (
             <div className="flex flex-col gap-3">
               {filteredRetired.map((p) => {
-                const mine = careerHistories
-                  .filter((h) => h.playerId === p.id)
-                  .sort((a, b) => b.startDate.localeCompare(a.startDate));
+                const mine = historiesByPlayer.get(p.id) ?? [];
 
                 return (
                   <div
@@ -274,7 +283,7 @@ export function PlayerList({
                         <p className="text-sm font-semibold">역대 소속 팀</p>
                         <CareerHistoryPanel
                           player={p}
-                          histories={careerHistories}
+                          histories={historiesByPlayer.get(p.id) ?? []}
                           teams={teams}
                         />
                       </div>

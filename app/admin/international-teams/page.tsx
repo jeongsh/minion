@@ -2,12 +2,11 @@ import Link from "next/link";
 
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { SectionHeader } from "@/components/layout/section-header";
-import { getAllPlayers, getAllTeams } from "@/lib/data/lck";
-import type { Player, Team } from "@/lib/types";
+import { getAdminRosterSummary, getAllTeams } from "@/lib/data/lck";
+import type { Team } from "@/lib/types";
 import { InternationalRosterScriptHint } from "./script-hint";
 
-function TeamCard({ team, players }: { team: Team; players: Player[] }) {
-  const missingImages = players.filter((player) => !player.profileImageUrl).length;
+function TeamCard({ team, playerCount, missingImages }: { team: Team; playerCount: number; missingImages: number }) {
 
   return (
     <Link
@@ -37,7 +36,7 @@ function TeamCard({ team, players }: { team: Team; players: Player[] }) {
       </div>
 
       <div className="mt-auto flex items-center gap-2 text-sm">
-        <span className="text-muted">선수 {players.length}명</span>
+        <span className="text-muted">선수 {playerCount}명</span>
         {missingImages > 0 ? (
           <span className="rounded-full bg-red-500/10 px-2 py-0.5 font-semibold text-red-500">
             이미지 누락 {missingImages}
@@ -53,16 +52,9 @@ function TeamCard({ team, players }: { team: Team; players: Player[] }) {
 }
 
 export default async function AdminInternationalTeamsPage() {
-  const [teams, players] = await Promise.all([getAllTeams(), getAllPlayers()]);
+  const teams = await getAllTeams();
   const internationalTeams = teams.filter((team) => !team.isLckTeam);
-
-  const playersByTeam = new Map<string, Player[]>();
-  for (const player of players) {
-    if (player.isActive === false) continue;
-    const list = playersByTeam.get(player.teamId) ?? [];
-    list.push(player);
-    playersByTeam.set(player.teamId, list);
-  }
+  const summary = await getAdminRosterSummary(internationalTeams.map((team) => team.id));
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-[var(--page-inline)] py-10">
@@ -86,7 +78,7 @@ export default async function AdminInternationalTeamsPage() {
         {internationalTeams.length > 0 ? (
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {internationalTeams.map((team) => (
-              <TeamCard key={team.id} team={team} players={playersByTeam.get(team.id) ?? []} />
+              <TeamCard key={team.id} team={team} playerCount={summary.get(team.id)?.playerCount ?? 0} missingImages={summary.get(team.id)?.missingImages ?? 0} />
             ))}
           </div>
         ) : (

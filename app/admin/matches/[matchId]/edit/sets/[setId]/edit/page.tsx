@@ -4,9 +4,8 @@ import {
   getAllPlayers,
   getAllTeams,
   getChampions,
-  getFanRatings,
+  getAdminSetRatings,
   getMatchById,
-  getMatches,
   getPlayerStatLines,
   getSetById,
   getSetDataCompletionBySetId,
@@ -34,24 +33,22 @@ export default async function AdminMatchSetEditPage({
     notFound();
   }
 
-  const [matches, teams, players, champions, picksBans, playerStatLines, fanRatings, matchSets] =
+  const itemVersion = ddragonVersionFromPatch(set.patch);
+  const [teams, players, champions, picksBans, playerStatLines, fanRatings, matchSets, items, spells, runeCatalog, completionBySet] =
     await Promise.all([
-      getMatches(),
       getAllTeams(),
       getAllPlayers(),
       getChampions(),
       getSetPicksBans(set.id),
       getPlayerStatLines(set.id),
-      getFanRatings(),
+      getAdminSetRatings(set.id),
       getSetsByMatchId(match.id),
+      fetchItemCatalog(itemVersion),
+      fetchSpellCatalog(itemVersion),
+      fetchRuneCatalog(itemVersion),
+      getSetDataCompletionBySetId([set.id]),
     ]);
-  const itemVersion = ddragonVersionFromPatch(set.patch);
-  const [items, spells, runeCatalog] = await Promise.all([
-    fetchItemCatalog(itemVersion),
-    fetchSpellCatalog(itemVersion),
-    fetchRuneCatalog(itemVersion),
-  ]);
-  const completion = (await getSetDataCompletionBySetId([set.id])).get(set.id);
+  const completion = completionBySet.get(set.id);
   const adminMatchPath = `/admin/matches/${matchRouteId(match)}/edit`;
 
   return (
@@ -60,7 +57,6 @@ export default async function AdminMatchSetEditPage({
       match={match}
       set={set}
       teams={teams}
-      matches={matches}
       adminMatchPath={adminMatchPath}
       action={updateSetAction}
       submitLabel="Save set"
