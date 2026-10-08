@@ -477,13 +477,14 @@ async function scrapeInstagramPostsOnce(
 
     // GraphQL cursors are opaque and cannot be used as REST feed max_id values.
     // Let Instagram issue its own next-page request and capture its response.
+    let duplicatePages = 0;
     while (postsMap.size < maxPosts && hasNextPage) {
       const before = postsMap.size;
       const previousCursor = endCursor;
       await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
       for (let wait = 0; wait < 10; wait += 1) {
         await page.waitForTimeout(500);
-        if (rateLimitError || postsMap.size > before || !hasNextPage) break;
+        if (rateLimitError || postsMap.size > before || endCursor !== previousCursor || !hasNextPage) break;
       }
       if (rateLimitError) throw rateLimitError;
       if (/\/(challenge|checkpoint)\//.test(page.url())) {
@@ -492,7 +493,15 @@ async function scrapeInstagramPostsOnce(
       if (page.url().includes("/accounts/login")) throw instagramLoginError(username, Boolean(sessionCookie));
       if (postsMap.size === before) {
         if (!hasNextPage) break;
-        throw new Error(`INSTAGRAM_PAGINATION: @${username}; browser feed did not advance`);
+        // Instagram can repeat the first page while switching cursor formats.
+        // An advancing cursor is progress even when every post is a duplicate.
+        duplicatePages += 1;
+        if (!endCursor || endCursor === previousCursor || duplicatePages > 3) {
+          throw new Error(`INSTAGRAM_PAGINATION: @${username}; browser feed did not advance`);
+        }
+        await page.evaluate(() => window.scrollBy(0, -window.innerHeight / 2));
+      } else {
+        duplicatePages = 0;
       }
       if (hasNextPage && endCursor === previousCursor) {
         throw new Error(`INSTAGRAM_PAGINATION: @${username}; feed cursor did not advance`);

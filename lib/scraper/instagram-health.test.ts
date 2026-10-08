@@ -63,6 +63,22 @@ test("private profile notice does not retry anonymously or claim session failure
   });
 });
 
+test("a repeated feed page with an advancing cursor can reach newer pages", async () => {
+  let pageNumber = 0;
+  await fixture((_cookie, url) => {
+    if (url.includes('/graphql/')) {
+      const current = pageNumber++;
+      const node = { pk: current < 2 ? '1' : '2', code: current < 2 ? 'FIRST' : 'SECOND', taken_at: 1789000000 };
+      return { contentType: 'application/json', body: JSON.stringify({ data: { xdt_api__v1__feed__user_timeline_graphql_connection: { edges: [{ node }], page_info: { has_next_page: current < 2, end_cursor: `cursor-${current}` } } } }) };
+    }
+    return '<title>Instagram</title><body style="height:4000px"><script>fetch("/graphql/query"); addEventListener("scroll",()=>fetch("/graphql/query"));</script></body>';
+  }, async () => {
+    const posts = await scrapeInstagramPosts('test', 'sessionid=valid', 2);
+    assert.deepEqual(posts.map(post => post.shortcode).sort(), ['FIRST', 'SECOND']);
+    assert.ok(pageNumber >= 3);
+  });
+});
+
 test("an explicit missing profile does not retry with an anonymous session", async () => {
   let attempts = 0;
   await fixture(() => { attempts++; return '<title>Instagram</title><body>죄송합니다. 페이지를 사용할 수 없습니다.</body>'; }, async () => {
@@ -128,7 +144,7 @@ test("pagination preserves HTTP 429 instead of mislabeling status fail as a logi
     requests++;
     if (url.includes("/graphql/")) return { body: JSON.stringify(initial), contentType: "application/json" };
     if (url.includes("/api/v1/feed/")) return { status: 429, body: '{"status":"fail"}', contentType: "application/json", headers: { "retry-after": "90" } };
-    return '<title>Instagram</title><script>fetch("/graphql/query")</script>';
+    return '<title>Instagram</title><body style="height:4000px"><script>fetch("/graphql/query"); addEventListener("scroll",()=>fetch("/api/v1/feed/test/"),{once:true});</script></body>';
   }, async () => {
     await assert.rejects(scrapeInstagramPosts("test", "sessionid=valid"), /INSTAGRAM_HTTP_429:.*Retry-After=90/);
     assert.equal(requests, 3);
