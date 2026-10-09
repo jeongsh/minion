@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { isAdContentPath } from "@/lib/ads-policy";
 import { canRequestAd, loadAdScript } from "@/components/ads/ad-runtime";
+import { AutoAdContent } from "@/components/ads/auto-ad-content";
 
 export type AdPlacement =
   | "horizontal"
@@ -79,27 +80,32 @@ export function AdSlot({
     return () => { disposed = true; observer.disconnect(); };
   }, [configured, pathname]);
 
-  if (!allowed || (!configured && !SHOW_PLACEHOLDER)) return null;
+  if (!allowed) return null;
+  const autoContent = <AutoAdContent enabled={allowed} />;
+  if (!configured && !SHOW_PLACEHOLDER) return autoContent;
 
   return (
-    <aside
-      ref={containerRef}
-      data-ad-page={pathname}
-      data-ad-content={configured ? "true" : undefined}
-      aria-label="광고"
-      className={`min-w-0 ${configured ? "" : "grid place-items-center rounded-[var(--ui-card-radius)] bg-[var(--ui-ad-surface)] text-[12px] font-medium tracking-[.18em] text-[#96999f]"} ${className}`}
-    >
-      {configured ? (
-        <ins
-          className="adsbygoogle block h-full w-full"
-          data-ad-client={AD_CLIENT}
-          data-ad-slot={slot}
-          data-ad-format={resolvedFormat}
-          data-full-width-responsive={resolvedFormat === "auto" ? "true" : "false"}
-        />
-      ) : (
-        "ADVERTISEMENT"
-      )}
-    </aside>
+    <>
+      {autoContent}
+      <aside
+        ref={containerRef}
+        data-ad-page={pathname}
+        data-ad-content={configured ? "true" : undefined}
+        aria-label="광고"
+        className={`min-w-0 ${configured ? "" : "grid place-items-center rounded-[var(--ui-card-radius)] bg-[var(--ui-ad-surface)] text-[12px] font-medium tracking-[.18em] text-[#96999f]"} ${className}`}
+      >
+        {configured ? (
+          <ins
+            className="adsbygoogle block h-full w-full"
+            data-ad-client={AD_CLIENT}
+            data-ad-slot={slot}
+            data-ad-format={resolvedFormat}
+            data-full-width-responsive={resolvedFormat === "auto" ? "true" : "false"}
+          />
+        ) : (
+          "ADVERTISEMENT"
+        )}
+      </aside>
+    </>
   );
 }

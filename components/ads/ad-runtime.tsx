@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
-import { ADS_ENABLED, isAdContentPath, isRailAdContentPath } from "@/lib/ads-policy";
+import { ADS_ENABLED, isAutoAdContentPath, isRailAdContentPath } from "@/lib/ads-policy";
 
 let scriptPromise: Promise<void> | undefined;
 let adDocumentUrl: string | undefined;
@@ -14,7 +14,7 @@ function documentUrl() {
 export function canRequestAd(element: HTMLElement): boolean {
   return element.isConnected
     && element.dataset.adPage === window.location.pathname
-    && (isAdContentPath(window.location.pathname) || isRailAdContentPath(window.location.pathname))
+    && (isAutoAdContentPath(window.location.pathname) || isRailAdContentPath(window.location.pathname))
     && !document.querySelector('[data-ads-blocked="true"]')
     && (!adDocumentUrl || adDocumentUrl === documentUrl());
 }

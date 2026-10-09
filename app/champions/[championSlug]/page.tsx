@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { AutoAdContent } from "@/components/ads/auto-ad-content";
 
 import ChampionDetailLoading from "./loading";
 
@@ -205,6 +206,7 @@ async function ChampionDetailContent({ championSlug, query }: {
 
   return (
     <main className="min-h-screen bg-[var(--ui-surface)] text-[var(--ui-text)]">
+      <AutoAdContent enabled={analysis.overview.overall.picks > 0 || analysis.overview.draft.bans > 0} />
       <div className="layout-wide pb-16 pt-6 sm:pt-8">
         <ChampionDetail
           champion={champion}
