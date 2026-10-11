@@ -15,7 +15,7 @@ import { ErrorState } from '@/components/feedback-states';
 import { HomeCalendarDialog } from '@/components/home/home-calendar-dialog';
 import { HomeLoadingSkeleton } from '@/components/home/home-loading-skeleton';
 import { MinionScreen } from '@/components/minion-screen';
-import { SHOW_MOBILE_AD_SLOTS } from '@/constants/mobile-ads';
+import { ContentBanner } from '@/components/ads/content-banner';
 import { useCachedQuery } from '@/hooks/use-cached-query';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import { resolveApiAssetUrl, type MobileHomeDto, type MobileMatchSummary, type MobileNewsItem, type MobileVideoItem } from '@/lib/api-client';
@@ -95,11 +95,11 @@ export default function HomeScreen() {
       </View>
       {data.celebrations.length > 0 ? <View style={styles.celebrations}>{data.celebrations.map((event) => <CelebrationBanner event={event} key={event.id} />)}</View> : null}
       <NewsSection contentWidth={contentWidth} items={data.news} />
-      {SHOW_MOBILE_AD_SLOTS ? <View style={styles.adAfterNews}><AdPlaceholder /></View> : null}
+      <ContentBanner enabled={data.news.length > 0} />
       <View style={styles.section40}><CommunitySection items={data.community} /></View>
       {(data.pom ?? []).length > 0 ? <View style={styles.section40}><PomSection cardWidth={pomWidth} items={data.pom ?? []} /></View> : null}
       <View style={styles.section40}><TeamChannels teams={data.teams} /></View>
-      <View style={styles.section40}><VideoSection cardWidth={videoWidth} items={data.videos} />{SHOW_MOBILE_AD_SLOTS ? <View style={styles.videoAd}><AdPlaceholder /></View> : null}</View>
+      <View style={styles.section40}><VideoSection cardWidth={videoWidth} items={data.videos} /></View>
     </MinionScreen>
   );
 }
@@ -176,11 +176,6 @@ function NewsSection({ contentWidth, items }: { contentWidth: number; items: Mob
   if (items.length === 0) return null;
   const secondary = (lead ? items.filter((article) => article.id !== lead.id).slice(0, 3) : items.slice(0, 4));
   return <View><SectionHeader action={() => router.navigate('/news')} title="LCK 뉴스" /><View style={styles.newsGrid}>{lead ? <Pressable onPress={() => void Linking.openURL(lead.url)}><MediaImage height={contentWidth * 9 / 16} radius={8} url={lead.thumbnail?.url} /><Text numberOfLines={2} style={[styles.leadTitle, { color: theme.ink, ...fonts.display }]}>{lead.title}</Text><View style={styles.leadMeta}><Text numberOfLines={1} style={[styles.newsSource, { color: theme.ink, ...fonts.medium }]}>{lead.source}</Text><Text style={[styles.newsMetaDot, { color: theme.muted, ...fonts.medium }]}>·</Text><Text style={[styles.newsMetaText, { color: theme.muted, ...fonts.medium }]}>{newsDate(lead.publishedAt)}</Text></View></Pressable> : null}<View>{secondary.map((article, index) => <Pressable key={article.id} onPress={() => void Linking.openURL(article.url)} style={[styles.newsRow, index === 0 && styles.newsRowFirst, index === secondary.length - 1 && styles.newsRowLast, { borderBottomColor: theme.divider }]}><MediaImage height={58.5} radius={8} url={article.thumbnail?.url} width={104} /><View style={styles.newsRowCopy}><Text numberOfLines={2} style={[styles.rowTitle, { color: theme.ink, ...fonts.display }]}>{article.title}</Text><View style={styles.rowMeta}><Text numberOfLines={1} style={[styles.newsMetaText, styles.newsRowSource, { color: theme.muted, ...fonts.medium }]}>{article.source}</Text><Text style={[styles.newsMetaDot, { color: theme.muted, ...fonts.medium }]}>·</Text><Text style={[styles.newsMetaText, { color: theme.muted, ...fonts.medium }]}>{newsDate(article.publishedAt)}</Text></View></View></Pressable>)}</View></View></View>;
-}
-
-function AdPlaceholder() {
-  const { fonts, theme } = useMinionTheme();
-  return <View style={[styles.ad, { backgroundColor: theme.adSurface }]}><Text style={styles.adText}><Text style={{ ...fonts.medium }}>ADVERTISEMENT</Text></Text></View>;
 }
 
 function CommunitySection({ items }: { items: MobileHomeDto['community'] }) {

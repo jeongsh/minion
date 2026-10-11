@@ -21,6 +21,12 @@ export function isAdContentPath(pathname: string): boolean {
     || path === "/predictions";
 }
 
+export function isAutoAdContentPath(pathname: string): boolean {
+  if (!ADS_ENABLED) return false;
+  const path = pathname.replace(/\/+$/, "") || "/";
+  return isAdContentPath(path) || path === "/champions" || /^\/champions\/[^/]+$/.test(path);
+}
+
 // These content pages have no manual slots; Auto ads formats are set in AdSense.
 export function isRailAdContentPath(pathname: string): boolean {
   if (!ADS_ENABLED) return false;

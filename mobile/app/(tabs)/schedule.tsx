@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { type LayoutChangeEvent, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { ContentBanner } from '@/components/ads/content-banner';
 import { ErrorState } from '@/components/feedback-states';
 import { MinionScreen } from '@/components/minion-screen';
 import { ScheduleCalendarDialog } from '@/components/schedule/schedule-calendar-dialog';
@@ -190,6 +191,7 @@ export default function ScheduleScreen() {
         <View onLayout={handleListLayout} style={styles.list}>
           <ScheduleMatchList emptyMessage={emptyMessage} matches={data.matches} onSectionLayout={handleSectionLayout} />
         </View>
+        <ContentBanner enabled={data.matches.length > 0 && !calendarOpen && !filterOpen} style={{ paddingBottom: 88 }} />
       </MinionScreen>
 
       <View pointerEvents="box-none" style={StyleSheet.absoluteFillObject}>

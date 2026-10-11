@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { AutoAdContent } from "@/components/ads/auto-ad-content";
 
 import { ChampionDirectoryFilters, ChampionDirectoryTable, ChampionDirectoryToolbar } from "@/components/champions/champion-directory";
 import { ChampionScopeFilter } from "@/components/champions/champion-scope-filter";
@@ -60,6 +61,7 @@ export default async function ChampionsPage({ searchParams }: { searchParams: Pr
 
   return (
     <main className="layout-wide min-h-screen pb-16 pt-6 text-[var(--ui-text)] sm:pt-8">
+      <AutoAdContent enabled={!search && rows.length > 0} />
       <section className="md:grid md:grid-cols-[180px_minmax(0,1fr)] md:items-start md:gap-6 lg:grid-cols-[200px_minmax(0,1fr)]" aria-label="챔피언 탐색">
         <ChampionDirectoryFilters
           params={baseParams}

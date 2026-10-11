@@ -3,6 +3,7 @@ import { useIsFocused } from '@react-navigation/native';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { type LayoutChangeEvent, StyleSheet, Text, View } from 'react-native';
 
+import { ContentBanner } from '@/components/ads/content-banner';
 import { ErrorState } from '@/components/feedback-states';
 import { CompactScoreboard } from '@/components/matches/compact-scoreboard';
 import { LiveMatchFeed } from '@/components/matches/live-match-feed';
@@ -124,6 +125,7 @@ function MatchDetailContent({ matchId, requestedSet, requestedTab }: { matchId: 
           {data.activeSet ? (
             <View style={styles.setDetailBlock}>
               <CompactScoreboard set={data.activeSet} />
+              <ContentBanner enabled={Boolean(data.activeSet.winnerTeamId)} />
               <MatchPlayerStatTable set={data.activeSet} />
               <MatchPlayerBuildPanel entries={data.activeSet.playerBuilds ?? []} />
               <SetTimelineSection players={data.players} set={data.activeSet} />
