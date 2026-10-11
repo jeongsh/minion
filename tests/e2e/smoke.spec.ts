@@ -32,12 +32,12 @@ test("mobile fan pages keep global and local navigation distinct", async ({ page
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.locator("header.fixed").first().getByRole("button", { name: /T1/ }).click();
   await expect(page.getByRole("menu").locator('a[role="menuitem"][href^="/fan/"]')).toHaveCount(10);
-  await expect(localNav.getByRole("link", { name: "일정", exact: true })).toHaveAttribute("aria-current", "page");
-  await expect(localNav.getByRole("link", { name: "커뮤니티", exact: true })).toBeVisible();
+  await expect(localNav.getByRole("link", { name: "캘린더", exact: true })).toHaveAttribute("aria-current", "page");
+  await expect(localNav.getByRole("link", { name: "팬톡", exact: true })).toBeVisible();
   await expect(localNav.getByRole("link", { name: "기록", exact: true })).toHaveCount(0);
   await expect(globalNav.getByRole("link")).toHaveCount(4);
   await expect(globalNav.getByRole("button", { name: "팬페이지 팀 선택" })).toBeVisible();
-  await expect(globalNav.getByRole("link", { name: "뉴스", exact: true })).toBeVisible();
+  await expect(globalNav.getByRole("link", { name: "팬톡", exact: true })).toBeVisible();
   await expect(globalNav.getByRole("link", { name: "피드", exact: true })).toHaveCount(0);
 
   await globalNav.getByRole("button", { name: "팬페이지 팀 선택" }).click();
@@ -81,7 +81,7 @@ test("team dock opens the team media explorer instead of a detail page", async (
 
 test("mobile hub local navigation and schedule date bar share the header offset", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/schedule");
+  await page.goto("/schedule?year=2026&month=10");
 
   await expect(page.getByRole("button", { name: "내비게이션 열기" })).toBeHidden();
   const hubNav = page.getByRole("navigation", { name: "허브 로컬 메뉴" });
@@ -90,7 +90,8 @@ test("mobile hub local navigation and schedule date bar share the header offset"
   await expect(hubNav.getByRole("link", { name: "메인", exact: true })).toBeVisible();
   await expect(hubNav.getByRole("link", { name: "대회", exact: true })).toBeVisible();
   await expect(hubNav.getByRole("link", { name: "승부예측", exact: true })).toBeVisible();
-  await expect(hubNav.getByRole("link", { name: "커뮤니티", exact: true })).toBeVisible();
+  await expect(hubNav.getByRole("link", { name: "이적시장", exact: true })).toBeVisible();
+  await expect(hubNav.getByRole("link", { name: "커뮤니티", exact: true })).toHaveCount(0);
   await expect(hubNav.getByRole("link", { name: "피드", exact: true })).toHaveCount(0);
   await expect(hubNav.getByRole("link", { name: "리포트", exact: true })).toHaveCount(0);
   await expect(dateBar).toHaveCSS("top", "104px");
