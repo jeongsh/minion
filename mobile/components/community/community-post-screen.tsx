@@ -19,7 +19,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BottomSheet } from '@/components/bottom-sheet';
 import { KeyboardAwareView } from '@/components/keyboard-aware-view';
-import { SHOW_MOBILE_AD_SLOTS } from '@/constants/mobile-ads';
+import { ContentBanner } from '@/components/ads/content-banner';
 import { getMinionTeam } from '@/constants/teams';
 import { ErrorState } from '@/components/feedback-states';
 import { RankAvatar } from '@/components/rank-avatar';
@@ -215,7 +215,6 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
           {data.permissions.canEdit || data.permissions.canDelete ? <Pressable accessibilityLabel="게시글 관리" onPress={() => setOwnerMenuOpen(true)} style={styles.headerButton}><Ellipsis color={theme.text} size={21} strokeWidth={2} /></Pressable> : <View style={styles.headerButton} />}
         </View>
         <ScrollView contentContainerStyle={{ paddingBottom: 56 + bottomInset }} keyboardShouldPersistTaps="handled" ref={scrollRef} showsVerticalScrollIndicator={false}>
-        {SHOW_MOBILE_AD_SLOTS ? <View style={[styles.ad, { backgroundColor: theme.adSurface }]}><Text style={[styles.adText, { color: theme.muted, ...fonts.medium }]}>ADVERTISEMENT</Text></View> : null}
         <View style={[styles.article, { backgroundColor: theme.surface, borderTopColor: theme.border }]}>
           <View style={styles.postHeader}>
             <Text style={[styles.postTitle, { color: data.isBlinded ? theme.muted : theme.ink, ...(data.isBlinded ? fonts.medium : fonts.bold) }]}>{title}</Text>
@@ -229,6 +228,7 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
             <View style={styles.reactions}><ReactionButton accent={accent} active={data.reaction === 'honor'} count={data.likeCount} icon="honor" label="와드" onPress={() => void react('post', data.id, 'honor')} /><ReactionButton accent={accent} active={data.reaction === 'dislike'} count={data.dislikeCount} icon="dislike" label="비추천" onPress={() => void react('post', data.id, 'dislike')} /></View>
             {data.permissions.canReport ? <Pressable onPress={() => startReport('post', data.id)} style={[styles.report, { backgroundColor: theme.surface, borderColor: theme.border }]}><Flag color={theme.muted} size={15} strokeWidth={1.8} /><Text style={{ color: theme.muted, ...fonts.medium, fontSize: 13, lineHeight: 19.5 }}>리폿</Text></Pressable> : null}
           </View>
+          <ContentBanner enabled={!data.isBlinded && !ownerMenuOpen && !reportTarget && !miniconOpen} />
           <View style={styles.commentTitle}><Text style={{ color: theme.ink, ...fonts.bold, fontSize: 15, lineHeight: 22.5 }}>댓글</Text><Text style={{ color: accent, ...fonts.medium, fontSize: 13, lineHeight: 19.5 }}>{data.commentCount}</Text></View>
           <View style={styles.comments}>{orderedRoots.map((item, index) => {
             const itemReplies = replies.get(item.id) ?? [];

@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import { resolveApiAssetUrl } from '@/lib/api-client';
+import { AdsPrivacyOptions } from '@/components/ads/ads-privacy-options';
 import { MinionBrandLogo } from '@/components/minion-brand-logo';
 
 const FOOTER_LINKS = [
@@ -33,6 +34,7 @@ export function MinionFooter({ accentColor }: { accentColor?: string }) {
               <Text style={[styles.footerLink, { color: theme.footerNav, ...fonts.bold }]}>{link.label}</Text>
             </Pressable>
           ))}
+          <AdsPrivacyOptions />
         </View>
       </View>
       <Text style={[styles.footerDisclaimer, { color: theme.footerText, ...fonts.regular }]}>

@@ -15,7 +15,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BottomSheet } from '@/components/bottom-sheet';
-import { SHOW_MOBILE_AD_SLOTS } from '@/constants/mobile-ads';
+import { ContentBanner } from '@/components/ads/content-banner';
 import { getMinionTeam } from '@/constants/teams';
 import { ErrorState } from '@/components/feedback-states';
 import { KitschEmptyState } from '@/components/kitsch-empty-state';
@@ -73,9 +73,6 @@ export function CommunityFeedScreen({ scope = 'hub' }: { scope?: CommunityScope 
   return (
     <View style={[styles.root, { backgroundColor: theme.pageBackground }]}>
       <MinionScreen contentStyle={styles.fullBleed}>
-        {SHOW_MOBILE_AD_SLOTS ? <View style={[styles.ad, { backgroundColor: theme.adSurface }]}>
-          <Text style={[styles.adText, { color: theme.muted, ...fonts.medium }]}>ADVERTISEMENT</Text>
-        </View> : null}
         <CommunityDirectoryNav accent={accent} scope={scope} teamSlug={teamSlug} />
         <View style={[styles.feed, { backgroundColor: theme.surface, borderBottomColor: theme.border, borderTopColor: theme.border }]}>
           <View style={[styles.toolbar, { borderBottomColor: theme.divider }]}>
@@ -128,7 +125,7 @@ export function CommunityFeedScreen({ scope = 'hub' }: { scope?: CommunityScope 
           {loading && !data ? <CommunityFeedSkeleton /> : error && !data ? <ErrorState onRetry={refresh} title={error} /> : (
             <>
               <View accessibilityRole="list">
-                {[...(data?.notices ?? []), ...(data?.items ?? [])].map((post, index, posts) => <PostRow accent={accent} key={`${post.isNotice ? 'notice' : 'post'}:${post.id}`} last={index === posts.length - 1} onPress={() => router.push(`${basePath}/post/${post.id}` as never)} post={post} scope={scope} />)}
+                {[...(data?.notices ?? []), ...(data?.items ?? [])].map((post, index, posts) => <View key={`${post.isNotice ? 'notice' : 'post'}:${post.id}`}><PostRow accent={accent} last={index === posts.length - 1} onPress={() => router.push(`${basePath}/post/${post.id}` as never)} post={post} scope={scope} />{index === Math.min(4, posts.length - 1) && !committedQuery ? <ContentBanner enabled={!categoryOpen && !error} /> : null}</View>)}
                 {(data?.items.length ?? 0) === 0 && (data?.notices.length ?? 0) === 0 ? (
                   <KitschEmptyState
                     animated

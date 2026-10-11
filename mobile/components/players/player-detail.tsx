@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
+import { ContentBanner } from '@/components/ads/content-banner';
 import { ErrorState } from '@/components/feedback-states';
 import { MinionScreen } from '@/components/minion-screen';
 import { PlayerChampionUsageTable } from '@/components/players/player-champion-usage-table';
@@ -188,6 +189,7 @@ export function PlayerDetail() {
         <TeamMeta accent={accent} data={playerData} />
         <StatsSection accent={accent} data={playerData} />
         <SeasonSummary data={playerData} />
+        <ContentBanner enabled={playerData.season.setCount > 0 && !segmentOpen} />
         <View>
           <SectionHeading caption={`전체 ${playerData.champions.length}개`}>챔피언</SectionHeading>
           <PlayerChampionUsageTable accent={accent} rows={playerData.champions} />

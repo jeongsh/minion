@@ -1,9 +1,10 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import {
+  ArrowLeftRight,
   Bell,
   Bug,
   CalendarDays,
@@ -69,6 +70,7 @@ const desktopNav = [
   { href: "/tournaments", label: "대회", icon: Swords, prefetch: false },
   { href: "/predictions", label: "승부예측", icon: Sparkles },
   { href: "/players", label: "선수", icon: UserRound },
+  { href: "/transfers", label: "이적시장", icon: ArrowLeftRight },
   { href: "/champions", label: "챔피언", icon: Crown },
   { href: "/news", label: "뉴스", icon: Rss },
 ];
@@ -81,8 +83,14 @@ const compactNav = [
   { href: "/community", label: "팬톡", icon: MessagesSquare },
 ];
 
+const tabletNav = [
+  ...compactNav.map((item) => ({ ...item, prefetch: undefined })),
+  ...desktopNav.filter((item) => !compactNav.some(({ href }) => href === item.href)),
+];
+
 const hubLocalNav = [
   { href: "/", label: "메인" },
+  { href: "/transfers", label: "이적시장" },
   { href: "/predictions", label: "승부예측" },
   { href: "/tournaments", label: "대회", prefetch: false },
   { href: "/players", label: "선수" },
@@ -537,15 +545,15 @@ export function AppShell({
       </aside> : null}
 
       {compactHubShell ? (
-        <aside className={`fixed bottom-0 left-0 top-16 z-40 hidden w-16 flex-col items-center border-r border-[#ececef] bg-[var(--page-background)] py-3 dark:border-[var(--ui-border)] ${mobileMenuOpen ? "" : "md:max-[1199px]:flex"}`} aria-label="태블릿 주요 메뉴">
-          {compactNav.map(({ href, label, icon: Icon }) => {
+        <aside className={`app-lnb-scrollbar fixed bottom-0 left-0 top-16 z-40 hidden w-16 flex-col items-center overflow-y-auto border-r border-[#ececef] bg-[var(--page-background)] py-3 dark:border-[var(--ui-border)] ${mobileMenuOpen ? "" : "md:max-[1199px]:flex"}`} aria-label="태블릿 주요 메뉴">
+          {tabletNav.map(({ href, label, icon: Icon, prefetch }) => {
             const active = isGlobalNavActive(pathname, href);
             const destination = href === "/fan"
               ? (favoriteTeam ? `/fan/${favoriteTeam.fanSiteHost}` : "/teams")
               : href === "/community" && favoriteTeam
                 ? `/fan/${favoriteTeam.fanSiteHost}/community`
                 : href;
-            return <Link key={href} href={destination} aria-current={active ? "page" : undefined} title={label} className={`relative mb-1 grid h-12 w-12 place-items-center rounded-xl transition ${active ? "bg-[var(--ui-card-bg)] text-[#18191c] dark:text-white" : "text-[#777b82] hover:bg-[var(--ui-card-hover)]"}`}><span className="relative">{href === "/fan" && favoriteTeam ? <TeamLogo team={favoriteTeam} size="h-7 w-7" themeAware /> : <Icon size={21} />}</span><span className="sr-only">{label}</span></Link>;
+            return <Link key={href} href={destination} prefetch={prefetch} aria-current={active ? "page" : undefined} title={label} className={`relative mb-1 grid h-12 w-12 shrink-0 place-items-center rounded-xl transition ${active ? "bg-[var(--ui-card-bg)] text-[#18191c] dark:text-white" : "text-[#777b82] hover:bg-[var(--ui-card-hover)]"}`}><span className="relative">{href === "/fan" && favoriteTeam ? <TeamLogo team={favoriteTeam} size="h-7 w-7" themeAware /> : <Icon size={21} />}</span><span className="sr-only">{label}</span></Link>;
           })}
         </aside>
       ) : null}
@@ -557,7 +565,7 @@ export function AppShell({
               <div className="flex h-12 w-full items-stretch overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 {hubLocalNav.map((item) => {
                   const active = isActiveRoute(pathname, item.href);
-                  return <Link key={item.href} href={item.href} prefetch={item.prefetch} aria-current={active ? "page" : undefined} className={`font-paperozi flex min-w-[64px] flex-1 items-center justify-center whitespace-nowrap border-b-[3px] pt-0.5 text-[14px] font-bold transition-colors ${active ? "border-[var(--accent)] text-[var(--accent)]" : "border-transparent text-[var(--ui-muted)] hover:text-[var(--ui-ink)]"}`}>{item.label}</Link>;
+                  return <Link key={item.href} href={item.href} prefetch={item.prefetch} aria-current={active ? "page" : undefined} className={`flex min-w-[64px] flex-1 items-center justify-center whitespace-nowrap border-b-[3px] pt-0.5 text-[14px] font-medium transition-colors ${active ? "border-[var(--accent)] text-[var(--accent)]" : "border-transparent text-[var(--ui-muted)] hover:text-[var(--ui-ink)]"}`}>{item.label}</Link>;
                 })}
               </div>
             </nav>

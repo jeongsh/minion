@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { Analytics } from "@vercel/analytics/next";
 import { AdDocumentBoundary } from "@/components/ads/ad-runtime";
 import { AppShell, type AppShellUser } from "@/components/layout/app-shell";
 import { NavigationTransitionProvider } from "@/components/navigation/navigation-transition-provider";
@@ -121,6 +122,7 @@ export default async function RootLayout({
             </NavigationTransitionProvider>
           </SpoilerFreeProvider>
         </ToastProvider>
+        <Analytics />
       </body>
     </html>
   );

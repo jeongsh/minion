@@ -13,6 +13,7 @@ export const hubNavItems: NavItem[] = [
   { href: "/tournaments", label: "대회" },
   { href: "/teams", label: "팀" },
   { href: "/players", label: "선수" },
+  { href: "/transfers", label: "이적시장" },
   { href: "/community", label: "커뮤니티" },
 ];
 
@@ -30,6 +31,7 @@ export const adminNavItems: NavItem[] = [
   { href: "/admin/international-teams", label: "해외팀 관리" },
   { href: "/admin/teams", label: "팀 관리" },
   { href: "/admin/players", label: "선수 관리" },
+  { href: "/admin/transfers", label: "이적시장 관리" },
   { href: "/admin/calendar", label: "일정·기념일 관리" },
   { href: "/admin/ratings", label: "팬 평점 관리" },
   { href: "/admin/community", label: "커뮤니티 관리" },

@@ -1,7 +1,10 @@
 import Link from "next/link";
+import Image from "next/image";
+import marker from "@/assets/characters/pen-1.png";
+import { KITSCH_PALETTES } from "@/lib/theme/palettes";
 import { HomeTournamentOverview, type HomeTournamentOption } from "@/components/domain/home-tournament-overview";
 import type { HomeTournamentOverview as Overview } from "@/lib/tournaments/home-overview";
-import { CalendarDays } from "lucide-react";
+import { CalendarDays, ChevronRight } from "lucide-react";
 import { HomeCalendar, type HomeCalendarMatch } from "@/components/domain/home-calendar";
 import { HomeCalendarWorkspace } from "@/components/domain/home-calendar-workspace";
 import { HomeBoardCarousel } from "@/components/domain/home-board-carousel";
@@ -108,6 +111,24 @@ export function HomeDashboard({
           </AdaptiveDialog>
         </div>
       </section>
+
+      <Link
+        href="/transfers"
+        className="group relative flex items-center gap-3 overflow-hidden rounded-2xl px-4 py-3 transition hover:brightness-105 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--ui-ink)] sm:justify-center sm:gap-5 sm:px-6 sm:py-3.5"
+        style={{ backgroundColor: KITSCH_PALETTES.grapeLime.main }}
+      >
+        <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-white sm:h-14 sm:w-14">
+          <Image src={marker} alt="" className="h-10 w-10 object-contain sm:h-12 sm:w-12" />
+        </span>
+        <span className="min-w-0 flex-1 sm:flex-initial">
+          <span className="block text-[13px] font-medium leading-5" style={{ color: KITSCH_PALETTES.grapeLime.point }}>2026 LCK 스토브리그</span>
+          <span className="block break-keep text-base font-bold leading-7 text-white sm:text-[18px]">이적 확정부터 FA 소식까지, 한눈에!</span>
+        </span>
+        <span className="flex shrink-0 items-center gap-0.5 rounded-lg bg-white px-2.5 py-2 text-[13px] font-medium sm:px-3.5" style={{ color: KITSCH_PALETTES.grapeLime.main }}>
+          <span className="hidden sm:inline">이적시장 보기</span>
+          <ChevronRight size={14} strokeWidth={2.5} aria-hidden className="transition group-hover:translate-x-0.5" />
+        </span>
+      </Link>
 
       {celebrationEvents.length > 0 ? (
         <section className="my-8">

@@ -1,7 +1,7 @@
 import Image from "next/image";
-import Link from "next/link";
 
 import { TeamLogo } from "@/components/ui/team-logo";
+import { TeamDirectoryItem } from "@/components/ui/team-directory-item";
 import type { BoardScope } from "@/lib/community/boards";
 import type { Team } from "@/lib/types";
 
@@ -26,7 +26,7 @@ export function CommunityDirectoryNav({
       className="mobile-full-bleed flex min-w-0 overflow-hidden border-y border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 py-2.5 sm:mx-0 sm:w-full sm:rounded-[var(--ui-card-radius)] sm:border sm:px-4 sm:py-3"
     >
       <div className="-mr-3 flex min-w-0 flex-1 gap-1 overflow-x-auto pr-3 [scrollbar-width:none] sm:mr-0 sm:flex-wrap sm:overflow-visible sm:pr-0 [&::-webkit-scrollbar]:hidden">
-        <CommunityLink
+        <TeamDirectoryItem
           href="/community"
           label="LCK"
           ariaLabel="LCK 커뮤니티로 이동"
@@ -48,7 +48,7 @@ export function CommunityDirectoryNav({
             (team.fanSiteHost === teamSlug || team.slug === teamSlug);
 
           return (
-            <CommunityLink
+            <TeamDirectoryItem
               key={team.id}
               href={`/fan/${team.fanSiteHost}/community`}
               label={team.shortName}
@@ -76,34 +76,4 @@ function orderCommunityTeams(teams: Team[], favoriteTeamId: string | null, follo
   const prioritized = new Set([...(favorite ? [favorite.id] : []), ...followed.map((team) => team.id)]);
 
   return [...(favorite ? [favorite] : []), ...followed, ...teams.filter((team) => !prioritized.has(team.id))];
-}
-
-function CommunityLink({
-  href,
-  label,
-  ariaLabel,
-  active,
-  icon,
-}: {
-  href: string;
-  label: string;
-  ariaLabel: string;
-  active: boolean;
-  icon: React.ReactNode;
-}) {
-  return (
-    <Link
-      href={href}
-      aria-label={ariaLabel}
-      aria-current={active ? "page" : undefined}
-      className={`flex h-9 shrink-0 items-center gap-1 rounded-[var(--ui-control-radius)] border px-2 text-[13px] font-medium transition-colors ${
-        active
-          ? "border-[var(--tp)] bg-[var(--ui-surface)] text-[var(--ui-ink)]"
-          : "border-transparent bg-[var(--ui-surface-muted)] text-[var(--ui-text)] hover:border-[var(--ui-border)] hover:text-[var(--ui-ink)]"
-      }`}
-    >
-      {icon}
-      <span>{label}</span>
-    </Link>
-  );
 }

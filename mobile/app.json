@@ -2,7 +2,7 @@
   "expo": {
     "name": "MINION",
     "slug": "minion",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/app-icon.png",
     "scheme": "minion",
@@ -20,6 +20,7 @@
     },
     "android": {
       "package": "com.minion.app",
+      "versionCode": 27,
       "googleServicesFile": "./google-services.json",
       "blockedPermissions": [
         "android.permission.CAMERA",
@@ -85,6 +86,14 @@
         "expo-notifications",
         {
           "defaultChannel": "match"
+        }
+      ],
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-7060554754100656~8115086249",
+          "iosAppId": "ca-app-pub-3940256099942544~1458002511",
+          "delayAppMeasurementInit": true
         }
       ]
     ],

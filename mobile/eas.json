@@ -6,21 +6,36 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_ADMOB_TEST_ADS": "true"
+      }
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_ADMOB_TEST_ADS": "true"
+      }
     },
     "production": {
       "environment": "production",
       "env": {
         "MINION_APP_ENV": "production",
-        "EXPO_PUBLIC_API_URL": "https://minion.fan"
+        "EXPO_PUBLIC_API_URL": "https://minion.fan",
+        "EXPO_PUBLIC_ADMOB_ENABLED": "true",
+        "EXPO_PUBLIC_ADMOB_TEST_ADS": "false"
       },
       "autoIncrement": true
     }
   },
   "submit": {
+    "admob-release": {
+      "android": {
+        "track": "production",
+        "releaseStatus": "draft",
+        "changesNotSentForReview": true
+      }
+    },
     "production": {
       "android": {
         "track": "alpha"

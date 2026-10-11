@@ -1,0 +1,30 @@
+name: LCK Transfer Sync
+
+on:
+  schedule:
+    - cron: '23 * * 1,2,9,10,11,12 *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lck-transfer-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Sync NamuWiki LCK offseason
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node --experimental-strip-types scripts/sync-transfers.ts --scheduled
