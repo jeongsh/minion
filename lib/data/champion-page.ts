@@ -1,3 +1,4 @@
+import { compactTournamentName } from "@/packages/contracts/src/tournament-label";
 import "server-only";
 
 import { unstable_cache } from "next/cache";
@@ -1195,7 +1196,7 @@ function buildTournamentOptions(tournaments: readonly Tournament[]): ChampionTou
       const ends = ordered.map((item) => item.endDate).filter((date): date is string => !!date);
       return {
         key,
-        name: ordered[0]?.name ?? "",
+        name: compactTournamentName(ordered[0]?.name ?? ""),
         tournamentIds: ordered.map((item) => item.id),
         sourceCount: ordered.length,
         startDate: starts[0] ?? null,

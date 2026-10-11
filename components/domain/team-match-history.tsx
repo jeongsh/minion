@@ -19,12 +19,14 @@ type Props = {
 const LEAGUE_LABELS: Record<string, string> = {
   LCK: "LCK",
   MSI: "MSI",
-  Worlds: "월즈",
-  "First Stand": "퍼스트스탠드",
+  Worlds: "Worlds",
+  "First Stand": "First Stand",
   EWC: "EWC",
-  "KeSPA Cup": "케스파컵",
+  "KeSPA Cup": "KeSPA Cup",
+  "Demacia Cup": "Demacia Cup",
+  ENC: "ENC",
 };
-const LEAGUE_ORDER = ["LCK", "MSI", "Worlds", "First Stand", "EWC", "KeSPA Cup"];
+const LEAGUE_ORDER = ["LCK", "MSI", "Worlds", "First Stand", "EWC", "KeSPA Cup", "Demacia Cup", "ENC"];
 
 export function TeamMatchHistory({ teamId, matches, sets, teams, players, tournaments }: Props) {
   const tournamentMap = new Map(tournaments.map((t) => [t.id, t]));

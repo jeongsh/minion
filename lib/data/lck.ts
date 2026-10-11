@@ -1,3 +1,4 @@
+import { compactTournamentName } from "@/packages/contracts/src/tournament-label";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { cache } from "react";
 import { unstable_cache } from "next/cache";
@@ -512,12 +513,12 @@ function mapMatch(row: MatchRow): Match {
 function mapTournament(row: TournamentRow): Tournament {
   return {
     id: row.id,
-    name: row.name,
+    name: compactTournamentName(row.name),
     season: row.season,
     category: row.category,
     split: row.split ?? null,
     region: row.region ?? null,
-    league: row.league ?? null,
+    league: row.league ? compactTournamentName(row.league) : null,
     startDate: row.start_date ?? null,
     endDate: row.end_date ?? null,
     source: row.source ?? null,
@@ -2183,7 +2184,7 @@ const getTeamsShared = unstable_cache(getTeamsBase, ["lck-teams"], { revalidate:
 const getAllTeamsShared = unstable_cache(getAllTeamsBase, ["lck-all-teams"], { revalidate: 30 });
 const getPlayersShared = unstable_cache(getPlayersBase, ["lck-roster-players"], { revalidate: 30 });
 const getAllPlayersShared = unstable_cache(getAllPlayersBase, ["lck-all-players"], { revalidate: 30 });
-const getTournamentsShared = unstable_cache(getTournamentsBase, ["lck-tournaments"], { revalidate: 30 });
+const getTournamentsShared = unstable_cache(getTournamentsBase, ["lck-tournaments-compact-labels"], { revalidate: 30 });
 const getMatchesShared = unstable_cache(getMatchesBase, ["lck-matches"], { revalidate: 30 });
 const getMatchesByMonthShared = unstable_cache(getMatchesByMonthBase, ["lck-matches-by-month"], { revalidate: 30 });
 const getMatchesInRangeShared = unstable_cache(getMatchesInRangeBase, ["lck-matches-in-range"], { revalidate: 30 });

@@ -1,3 +1,4 @@
+import { compactTournamentName } from "@/packages/contracts/src/tournament-label";
 import { NextResponse } from "next/server";
 
 import type {
@@ -68,7 +69,7 @@ export function toMobileTeam(team: Team): MobileTeamSummary {
 }
 
 export function toMobileTournament(tournament: Tournament): MobileTournamentSummary {
-  return { category: tournament.category, id: tournament.id, league: tournament.league ?? null, name: tournament.name, season: tournament.season, split: tournament.split ?? null };
+  return { category: tournament.category, id: tournament.id, league: tournament.league ? compactTournamentName(tournament.league) : null, name: compactTournamentName(tournament.name), season: tournament.season, split: tournament.split ?? null };
 }
 
 export function toMobilePlayer(player: Player): MobilePlayerSummary {

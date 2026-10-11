@@ -29,7 +29,7 @@ export const SEASON_2026_SEGMENTS: SeasonSegment[] = [
   { key: "lck", label: "LCK", description: "LCK 정규 리그" },
   { key: "msi", label: "MSI", description: "Mid-Season Invitational" },
   { key: "ewc", label: "EWC", description: "Esports World Cup" },
-  { key: "demacia-cup", label: "데마시아컵", description: "Demacia Cup Global Invitational" },
+  { key: "demacia-cup", label: "Demacia Cup", description: "Demacia Cup" },
   { key: "worlds", label: "Worlds", description: "World Championship" },
   { key: "enc", label: "ENC", description: "Esports Nations Cup" },
   { key: "kespa-cup", label: "KeSPA Cup", description: "KeSPA 주관 컵 대회" },
@@ -52,7 +52,7 @@ export const SEASON_2026_TOURNAMENTS: SeasonTournamentConfig[] = [
   {
     segmentKey: "lck-cup",
     season: 2026,
-    name: "LCK Cup 2026",
+    name: "LCK Cup",
     overviewPage: "LCK/2026 Season/Cup",
     split: "Cup",
     category: "domestic",
@@ -64,7 +64,7 @@ export const SEASON_2026_TOURNAMENTS: SeasonTournamentConfig[] = [
   {
     segmentKey: "first-stand",
     season: 2026,
-    name: "First Stand 2026",
+    name: "First Stand",
     overviewPage: "2026 First Stand",
     split: "First Stand",
     category: "international",
@@ -76,7 +76,7 @@ export const SEASON_2026_TOURNAMENTS: SeasonTournamentConfig[] = [
   {
     segmentKey: "lck",
     season: 2026,
-    name: "LCK 2026 Rounds 1-2",
+    name: "LCK R1-2",
     overviewPage: "LCK/2026 Season/Rounds 1-2",
     split: "Rounds 1-2",
     category: "domestic",
@@ -88,7 +88,7 @@ export const SEASON_2026_TOURNAMENTS: SeasonTournamentConfig[] = [
   {
     segmentKey: "lck",
     season: 2026,
-    name: "LCK 2026 Road to MSI",
+    name: "LCK Road to MSI",
     overviewPage: "LCK/2026 Season/Road to MSI",
     split: "Road to MSI",
     category: "domestic",
@@ -100,7 +100,7 @@ export const SEASON_2026_TOURNAMENTS: SeasonTournamentConfig[] = [
   {
     segmentKey: "lck",
     season: 2026,
-    name: "LCK 2026 Rounds 3-4",
+    name: "LCK R3-4",
     overviewPage: "LCK/2026 Season/Rounds 3-4",
     split: "Rounds 3-4",
     category: "domestic",
@@ -112,7 +112,7 @@ export const SEASON_2026_TOURNAMENTS: SeasonTournamentConfig[] = [
   {
     segmentKey: "lck",
     season: 2026,
-    name: "LCK 2026 Season Play-In",
+    name: "LCK Play-In",
     overviewPage: "LCK/2026 Season/Season Play-In",
     split: "Season Play-In",
     category: "domestic",
@@ -124,7 +124,7 @@ export const SEASON_2026_TOURNAMENTS: SeasonTournamentConfig[] = [
   {
     segmentKey: "lck",
     season: 2026,
-    name: "LCK 2026 Season Playoffs",
+    name: "LCK Playoffs",
     overviewPage: "LCK/2026 Season/Season Playoffs",
     split: "Season Playoffs",
     category: "domestic",
@@ -136,7 +136,7 @@ export const SEASON_2026_TOURNAMENTS: SeasonTournamentConfig[] = [
   {
     segmentKey: "msi",
     season: 2026,
-    name: "MSI 2026",
+    name: "MSI",
     overviewPage: "2026 Mid-Season Invitational",
     split: "MSI",
     category: "international",
@@ -148,7 +148,7 @@ export const SEASON_2026_TOURNAMENTS: SeasonTournamentConfig[] = [
   {
     segmentKey: "ewc",
     season: 2026,
-    name: "EWC 2026",
+    name: "EWC",
     overviewPage: "Esports World Cup 2026",
     split: "EWC",
     category: "international",
@@ -160,7 +160,7 @@ export const SEASON_2026_TOURNAMENTS: SeasonTournamentConfig[] = [
   {
     segmentKey: "demacia-cup",
     season: 2026,
-    name: "Demacia Cup Global Invitational 2026",
+    name: "Demacia Cup",
     overviewPage: "2026 Demacia Cup Global Invitational",
     split: "Demacia Cup Global Invitational",
     category: "international",
@@ -172,7 +172,7 @@ export const SEASON_2026_TOURNAMENTS: SeasonTournamentConfig[] = [
   {
     segmentKey: "worlds",
     season: 2026,
-    name: "Worlds 2026",
+    name: "Worlds",
     overviewPage: "2026 Season World Championship",
     split: "Worlds",
     category: "international",
@@ -184,7 +184,7 @@ export const SEASON_2026_TOURNAMENTS: SeasonTournamentConfig[] = [
   {
     segmentKey: "enc",
     season: 2026,
-    name: "ENC 2026",
+    name: "ENC",
     overviewPage: "2026 Esports Nations Cup",
     split: "ENC",
     category: "international",
@@ -196,7 +196,7 @@ export const SEASON_2026_TOURNAMENTS: SeasonTournamentConfig[] = [
   {
     segmentKey: "kespa-cup",
     season: 2026,
-    name: "KeSPA Cup 2026",
+    name: "KeSPA Cup",
     overviewPage: "2026 LoL KeSPA Cup",
     split: "KeSPA Cup",
     category: "domestic",
@@ -279,6 +279,10 @@ export function segmentForTournament(tournament: {
 
   if (tournament.league === "EWC" || tournament.split === "EWC") {
     return "ewc";
+  }
+
+  if (tournament.league === "Demacia Cup" || tournament.league === "Demacia Cup Global Invitational" || tournament.split === "Demacia Cup Global Invitational") {
+    return "demacia-cup";
   }
 
   if (tournament.league === "Worlds" || tournament.split === "Worlds") {
