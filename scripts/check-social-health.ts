@@ -22,16 +22,26 @@ async function main() {
     throw new Error("Invalid incident state; refusing to resend alerts.");
   }
   const now = Date.now();
+  const headers = { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json" };
+  const workflowsResponse = await retryFetch(`https://api.github.com/repos/${repository}/actions/workflows?per_page=100`, { headers });
+  if (!workflowsResponse.ok) throw new Error(`Cannot verify enabled workflows (${workflowsResponse.status})`);
+  const workflows = await workflowsResponse.json() as { workflows: { path: string; state: string }[] };
+  if (!Array.isArray(workflows.workflows)) throw new Error("Invalid workflow list");
+  const disabled = new Set(workflows.workflows.filter((workflow) => workflow.state.startsWith("disabled")).map((workflow) => workflow.path.split("/").at(-1)));
   const results = [];
   const alerts = [];
   for (const workflow of SOCIAL_WORKFLOWS) {
+    if (disabled.has(workflow.file)) {
+      delete state.incidents[workflow.file];
+      continue;
+    }
     // The transfer schedule intentionally stops outside the offseason.
     if (workflow.activeMonths && !workflow.activeMonths.includes(new Date(now).getUTCMonth() + 1)) continue;
     const url = `https://api.github.com/repos/${repository}/actions/workflows/${workflow.file}/runs?branch=${workflow.branch ?? "main"}&per_page=100`;
     let runs: SocialWorkflowRun[] = [];
     let status = "unavailable";
     try {
-      const response = await retryFetch(url, { headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json" } });
+      const response = await retryFetch(url, { headers });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const body = await response.json() as { workflow_runs: SocialWorkflowRun[] };
       if (!Array.isArray(body.workflow_runs)) throw new Error("Invalid workflow response");
