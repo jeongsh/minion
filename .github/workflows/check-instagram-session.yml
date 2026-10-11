@@ -1,10 +1,10 @@
-name: Instagram session check
+name: Instagram API check
 
 on:
   workflow_dispatch:
     inputs:
       username:
-        description: Public profile to check with the saved session (no data writes)
+        description: Verified profile to check with the official API (no data writes)
         type: string
         default: t1lol
 
@@ -28,9 +28,9 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
-      - run: npx playwright install chromium --with-deps
-      - name: Check saved session without public fallback or data writes
+      - name: Check official API without data writes
         env:
-          INSTAGRAM_SESSION_COOKIE: ${{ secrets.INSTAGRAM_SESSION_COOKIE }}
+          INSTAGRAM_GRAPH_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_GRAPH_ACCESS_TOKEN }}
+          INSTAGRAM_GRAPH_USER_ID: ${{ secrets.INSTAGRAM_GRAPH_USER_ID }}
           INSTAGRAM_USERNAME: ${{ inputs.username }}
-        run: node --experimental-strip-types scripts/sync-instagram.ts --check-session --username="$INSTAGRAM_USERNAME"
+        run: node --experimental-strip-types scripts/sync-instagram.ts --check-api --username="$INSTAGRAM_USERNAME"

@@ -7,6 +7,7 @@ import {
   scrapeInstagramStories,
 } from "../scraper/instagram-browser.ts";
 import { isR2Url, uploadToR2 } from "../storage/r2.ts";
+import { fetchInstagramGraphPosts } from "../scraper/instagram-graph.ts";
 
 export type SyncEngine = "browser" | "auto";
 
@@ -108,7 +109,7 @@ export function extractShortcode(sourceUrl: string): string | null {
   }
 }
 
-function extractUsername(instagramUrl: string): string {
+export function extractUsername(instagramUrl: string): string {
   const trimmed = instagramUrl.trim();
   if (!trimmed.includes("instagram.com")) return trimmed.replace(/^@/, "");
   try {
@@ -163,7 +164,7 @@ export async function syncOwnerPosts(
   opts: { dryRun?: boolean; engine?: SyncEngine; sessionCookie?: string; noNotify?: boolean; maxPosts?: number } = {},
 ): Promise<{ inserted: number; checked: number }> {
   const username = extractUsername(owner.instagramUrl!);
-  const posts = await scrapeInstagramPosts(username, opts.sessionCookie, opts.maxPosts);
+  const posts = await fetchInstagramGraphPosts(username.toLowerCase(), opts.maxPosts);
 
   if (opts.dryRun) return { inserted: 0, checked: posts.length };
 
