@@ -5,9 +5,9 @@ on:
     - cron: '11 * * * *'
   workflow_dispatch:
   workflow_run:
-    workflows: ['YouTube API recovery sync', 'Renew YouTube WebSub subscriptions', 'Instagram Sync']
+    workflows: ['YouTube API recovery sync', 'Renew YouTube WebSub subscriptions', 'Instagram Sync', 'Leaguepedia Incremental Sync', 'LCK Transfer Sync', 'PR quality', 'Weekly Report Generation', 'Instagram session check', 'LoL Esports API smoke test', 'Mirror dev to Personal main (Vercel deploy)']
     types: [completed]
-    branches: [main]
+    branches: [main, dev]
 
 permissions:
   contents: read
@@ -19,6 +19,7 @@ concurrency:
 
 jobs:
   monitor:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -28,21 +29,38 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: '22'
-      - uses: actions/cache/restore@v4
+      - name: Find latest saved incident state
+        id: state
+        uses: actions/github-script@v7
         with:
-          path: artifacts/social-monitor-state.json
-          key: social-monitor-${{ github.run_id }}-${{ github.run_attempt }}
-          restore-keys: social-monitor-
+          script: |
+            const { data } = await github.rest.actions.listArtifactsForRepo({ ...context.repo, name: 'workflow-incident-state-v2', per_page: 100 });
+            const artifact = data.artifacts
+              .filter(a => !a.expired && a.workflow_run?.head_branch === 'main' && a.workflow_run.head_repository_id === a.workflow_run.repository_id && a.workflow_run.id !== context.runId)
+              .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))[0];
+            if (artifact) {
+              const { data: run } = await github.rest.actions.getWorkflowRun({ ...context.repo, run_id: artifact.workflow_run.id });
+              if (run.path !== '.github/workflows/monitor-social.yml') throw new Error('Incident state came from an unexpected workflow');
+              core.setOutput('run-id', run.id);
+            }
+      - uses: actions/download-artifact@v4
+        if: steps.state.outputs.run-id != ''
+        with:
+          name: workflow-incident-state-v2
+          path: artifacts
+          github-token: ${{ github.token }}
+          run-id: ${{ steps.state.outputs.run-id }}
       - name: Detect failed or missing collection runs
         env:
           GITHUB_TOKEN: ${{ github.token }}
           DISCORD_SOCIAL_WEBHOOK_URL: ${{ secrets.DISCORD_SOCIAL_WEBHOOK_URL }}
         run: node --experimental-strip-types scripts/check-social-health.ts
-      - uses: actions/cache/save@v4
+      - uses: actions/upload-artifact@v4
         if: always()
         with:
+          name: workflow-incident-state-v2
           path: artifacts/social-monitor-state.json
-          key: social-monitor-${{ github.run_id }}-${{ github.run_attempt }}
+          retention-days: 90
       - uses: actions/upload-artifact@v4
         if: always()
         with:

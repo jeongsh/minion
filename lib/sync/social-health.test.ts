@@ -1,11 +1,41 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { connectionState, hasConnectionFailure, shouldAlertSocialFailure, workflowHealth, type SocialWorkflowRun } from "./social-health.ts";
+import { connectionState, hasConnectionFailure, shouldAlertSocialFailure, unresolvedIncident, FAILURE_CONFIRMATION_MS, workflowHealth, type SocialWorkflowRun } from "./social-health.ts";
 import { retryFetch } from "./retry-fetch.ts";
 import { instagramStopReason } from "../scraper/instagram-failure.ts";
 
 const now = Date.parse("2026-09-10T12:00:00Z");
 const policy = { maximumAgeHours: 1.5, maximumRunMinutes: 20 };
+
+test("only an unresolved incident is alerted once, despite changes in failure type", () => {
+  const first = unresolvedIncident(undefined, "failed", now);
+  assert.equal(first.alert, false);
+  assert.equal(unresolvedIncident(first.incident, "failed", now + FAILURE_CONFIRMATION_MS - 1).alert, false);
+  const confirmed = unresolvedIncident(first.incident, "stale", now + FAILURE_CONFIRMATION_MS);
+  assert.equal(confirmed.alert, true);
+  const delivered = { ...confirmed.incident!, alerted: true };
+  for (const status of ["failed", "stale", "stalled", "missing", "unavailable"]) {
+    assert.equal(unresolvedIncident(delivered, status, now + 7 * 24 * FAILURE_CONFIRMATION_MS).alert, false);
+  }
+  const recovery = unresolvedIncident(delivered, "healthy", now + 8 * FAILURE_CONFIRMATION_MS);
+  assert.equal(recovery.incident, undefined);
+  assert.equal(recovery.alert, false);
+  const next = unresolvedIncident(recovery.incident, "failed", now + 9 * FAILURE_CONFIRMATION_MS);
+  assert.equal(next.alert, false);
+  assert.equal(unresolvedIncident(next.incident, "failed", now + 10 * FAILURE_CONFIRMATION_MS).alert, true);
+});
+
+test("a failure recovered during the confirmation window never alerts", () => {
+  const first = unresolvedIncident(undefined, "failed", now);
+  assert.deepEqual(unresolvedIncident(first.incident, "healthy", now + 30 * 60_000), { incident: undefined, alert: false });
+});
+
+test("optional workflows do not alert before their first run or on cancellation", () => {
+  const optional = { maximumAgeHours: Infinity, maximumRunMinutes: 30 };
+  assert.equal(workflowHealth(optional, [], now), "healthy");
+  assert.equal(workflowHealth(optional, [run(10, "cancelled"), run(20)], now), "healthy");
+  assert.equal(workflowHealth(optional, [run(10, "failure"), run(20)], now), "failed");
+});
 test("alerts once per failure incident and silently rearms after recovery", () => {
   const states = ["healthy", "disconnected", "disconnected", "disconnected", "disconnected", "healthy", "healthy", "disconnected"];
   let previous: string | undefined;
