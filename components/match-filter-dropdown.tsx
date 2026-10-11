@@ -1,18 +1,10 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import type { CSSProperties, ReactNode } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent, ReactNode } from "react";
 import { createPortal } from "react-dom";
 
 export type FilterOption = { value: string; label: string };
-
-export function Divider() {
-  return (
-    <span aria-hidden="true" className="hidden text-2xl text-[var(--ui-border)] sm:inline">
-      ·
-    </span>
-  );
-}
 
 export function FilterDropdown({
   ariaLabel,
@@ -43,14 +35,24 @@ export function FilterDropdown({
   const ref = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popupRef = useRef<HTMLDivElement>(null);
+  const popupId = useId();
+  const initialFocus = useRef<"selected" | "last">("selected");
   const [popupStyle, setPopupStyle] = useState<CSSProperties>({});
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    const items = popupRef.current?.querySelectorAll<HTMLButtonElement>('[role="option"]:not([disabled])');
+    const selectedItem = popupRef.current?.querySelector<HTMLButtonElement>('[aria-selected="true"]:not([disabled])');
+    const target = initialFocus.current === "last" ? items?.[items.length - 1] : selectedItem ?? items?.[0];
+    target?.focus();
+  }, [open]);
 
   useEffect(() => {
     if (!open) {
       return;
     }
 
-    function onPointerDown(event: MouseEvent) {
+    function onPointerDown(event: PointerEvent) {
       const target = event.target as Node;
       if (!ref.current?.contains(target) && !popupRef.current?.contains(target)) {
         setOpen(false);
@@ -59,15 +61,17 @@ export function FilterDropdown({
 
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
+        event.preventDefault();
         setOpen(false);
+        triggerRef.current?.focus();
       }
     }
 
-    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("pointerdown", onPointerDown);
     document.addEventListener("keydown", onKeyDown);
 
     return () => {
-      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("pointerdown", onPointerDown);
       document.removeEventListener("keydown", onKeyDown);
     };
   }, [open]);
@@ -101,9 +105,29 @@ export function FilterDropdown({
   }, [open, variant]);
 
   function choose(value: string) {
-    setOpen(false);
     if (disabled) return;
+    setOpen(false);
+    triggerRef.current?.focus();
     onSelect(value);
+  }
+
+  function onOptionKeyDown(event: ReactKeyboardEvent<HTMLDivElement>) {
+    if (event.key === "Tab") {
+      setOpen(false);
+      triggerRef.current?.focus();
+      return;
+    }
+    const items = Array.from(popupRef.current?.querySelectorAll<HTMLButtonElement>('[role="option"]:not([disabled])') ?? []);
+    const index = items.indexOf(document.activeElement as HTMLButtonElement);
+    const step = variant === "grid" ? 3 : 1;
+    const offsets: Record<string, number> = { ArrowDown: step, ArrowUp: -step, ArrowRight: 1, ArrowLeft: -1 };
+    let next: number;
+    if (event.key === "Home") next = 0;
+    else if (event.key === "End") next = items.length - 1;
+    else if (event.key in offsets) next = Math.max(0, Math.min(items.length - 1, index + offsets[event.key]));
+    else return;
+    event.preventDefault();
+    items[next]?.focus();
   }
 
   return (
@@ -114,8 +138,18 @@ export function FilterDropdown({
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-label={ariaLabel}
+        aria-controls={open ? popupId : undefined}
         disabled={disabled}
-        onClick={() => setOpen((value) => !value)}
+        onClick={() => {
+          initialFocus.current = "selected";
+          setOpen((value) => !value);
+        }}
+        onKeyDown={(event) => {
+          if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+          event.preventDefault();
+          initialFocus.current = event.key === "ArrowUp" ? "last" : "selected";
+          setOpen(true);
+        }}
         className={`inline-flex items-center gap-1.5 rounded-lg px-1.5 text-[var(--ui-ink)] disabled:cursor-wait disabled:opacity-60 ${controlSize === "compact" ? "min-h-8" : "min-h-10"} ${triggerTypography === "ui" ? "text-[13px] font-medium leading-[19.5px] tracking-normal" : "text-[15px] font-bold tracking-tight sm:text-base"} ${triggerClassName}`}
       >
         {triggerIcon ? <span className="shrink-0">{triggerIcon}</span> : null}
@@ -126,9 +160,14 @@ export function FilterDropdown({
       {open && typeof document !== "undefined" ? createPortal(
         <div
           ref={popupRef}
+          id={popupId}
           role="listbox"
           aria-label={ariaLabel}
           style={popupStyle}
+          onKeyDown={onOptionKeyDown}
+          onBlur={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget) && !ref.current?.contains(event.relatedTarget)) setOpen(false);
+          }}
           className="z-[80] max-h-[min(70vh,28rem)] overflow-y-auto rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-1.5 shadow-lg"
         >
           {variant === "grid" ? (
@@ -142,6 +181,7 @@ export function FilterDropdown({
                     type="button"
                     disabled={disabled}
                     role="option"
+                    tabIndex={-1}
                     aria-selected={isSelected}
                     onClick={() => choose(option.value)}
                     className={`rounded-lg px-2 py-2.5 text-sm font-medium transition ${
@@ -165,6 +205,7 @@ export function FilterDropdown({
                   type="button"
                   disabled={disabled}
                   role="option"
+                  tabIndex={-1}
                   aria-selected={isSelected}
                   onClick={() => choose(option.value)}
                   className={`flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition ${

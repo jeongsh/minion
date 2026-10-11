@@ -133,10 +133,10 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
                       <img src={item.iconSrc} alt="" className="h-10 w-10 shrink-0 object-contain" />
                     ) : <Icon className="h-6 w-6 shrink-0 text-[var(--app-toast-accent)]" strokeWidth={2.2} />}
                     <div className="min-w-0 flex-1">
-                      <p className="font-paperozi truncate whitespace-nowrap text-[14px] leading-5 text-[var(--ui-ink)]">{item.title}</p>
+                      <p className="font-medium truncate whitespace-nowrap text-[14px] leading-5 text-[var(--ui-ink)]">{item.title}</p>
                       {item.description ? <p className="truncate whitespace-nowrap text-[13px] font-normal leading-5 text-[var(--ui-muted)]">{item.description}</p> : null}
                       {item.actionHref && item.actionLabel ? (
-                        <Link href={item.actionHref} onClick={() => removeToast(item.id)} className="mt-1.5 inline-flex min-h-8 items-center text-[13px] font-bold text-[var(--accent)]">
+                        <Link href={item.actionHref} onClick={() => removeToast(item.id)} className="mt-1.5 inline-flex min-h-8 items-center text-[13px] font-medium text-[var(--accent)]">
                           {item.actionLabel}
                         </Link>
                       ) : null}

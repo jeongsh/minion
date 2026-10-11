@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { TournamentMark } from "@/app/tournaments/tournament-mark";
-import { Divider, FilterDropdown } from "@/components/match-filter-dropdown";
+import { FilterDropdown } from "@/components/match-filter-dropdown";
 import { useNavigationTransition } from "@/components/navigation/navigation-transition-provider";
 import { TeamLogo } from "@/components/ui/team-logo";
 import { segmentThemeByKey } from "@/lib/tournaments/international-segments";
@@ -136,8 +136,6 @@ export function ScheduleFilters({
         triggerClassName={barTriggerClassName}
       />
 
-      <Divider />
-
       <FilterDropdown
         ariaLabel="월 선택"
         variant="grid"
@@ -148,8 +146,6 @@ export function ScheduleFilters({
         triggerClassName={barTriggerClassName}
       />
 
-      <Divider />
-
       <FilterDropdown
         ariaLabel="대회 선택"
         selected={activeSegment}
@@ -158,8 +154,6 @@ export function ScheduleFilters({
         disabled={isNavigating}
         triggerClassName={barTriggerClassName}
       />
-
-      <Divider />
 
       <FilterDropdown
         ariaLabel="팀 선택"

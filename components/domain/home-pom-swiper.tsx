@@ -48,7 +48,7 @@ export function HomePomSwiper({ entries }: { entries: HomePomEntry[] }) {
                 style={entry.teamPrimaryColor ? { background: `${entry.teamPrimaryColor}1f` } : undefined}
               >
                 {entry.tournamentName ? (
-                  <span className="absolute left-2 top-2 max-w-[calc(100%-1rem)] truncate rounded-md bg-black/55 px-1.5 py-0.5 text-[10px] font-medium leading-4 text-white/90 backdrop-blur-sm">
+                  <span className="absolute left-2 top-2 max-w-[calc(100%-1rem)] truncate rounded-md bg-black/55 px-1.5 py-0.5 text-[13px] font-medium leading-5 text-white backdrop-blur-sm">
                     {entry.tournamentName}
                   </span>
                 ) : null}
@@ -65,13 +65,13 @@ export function HomePomSwiper({ entries }: { entries: HomePomEntry[] }) {
                 <span className="absolute z-2 inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-black/85 via-black/45 to-transparent" />
                 <span className="absolute bottom-2 left-2 right-2 min-w-0 z-3">
                   <span className="flex min-w-0 items-baseline gap-1">
-                    <b className="min-w-0 truncate text-sm leading-5 text-white">{entry.playerName}</b>
-                    <span className="shrink-0 text-[10px] font-medium leading-4 text-white/60">
+                    <b className="min-w-0 truncate text-[15px] font-bold leading-5 text-white">{entry.playerName}</b>
+                    <span className="shrink-0 text-[12px] font-medium leading-4 text-white/80">
                       {entry.position}
                     </span>
                   </span>
                   {/* 소속팀 로고 + "우리팀 스코어 상대팀" 순서로 둬야 어느 쪽이 팀이고 상대인지 헷갈리지 않는다. */}
-                  <span className="mt-0.5 flex min-w-0 items-center gap-1 text-[11px] font-medium leading-4">
+                  <span className="mt-0.5 flex min-w-0 items-center gap-1 text-[13px] font-medium leading-5">
                     {entry.teamLogoUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
@@ -83,12 +83,12 @@ export function HomePomSwiper({ entries }: { entries: HomePomEntry[] }) {
                     ) : null}
                     <span className="truncate text-white">{entry.teamShortName}</span>
                     {entry.scoreLabel ? (
-                      <span className="shrink-0 rounded bg-white/20 px-1 text-[10px] tabular-nums text-white">
+                      <span className="shrink-0 rounded bg-white/20 px-1 text-[12px] tabular-nums text-white">
                         {entry.scoreLabel}
                       </span>
                     ) : null}
                     {entry.opponentShortName ? (
-                      <span className="truncate text-white/60">{entry.opponentShortName}</span>
+                      <span className="truncate text-white/80">{entry.opponentShortName}</span>
                     ) : null}
                   </span>
                 </span>

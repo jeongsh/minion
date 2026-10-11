@@ -101,6 +101,9 @@
 ```powershell
 npm.cmd run typecheck
 npm.cmd run lint:typography
+npm.cmd run lint:typography:design-system
 npm.cmd exec eslint -- <변경한 파일>
 git diff --check
 ```
+
+`lint:typography:design-system`은 공용 UI와 이번에 정리한 홈 및 선수 컴포넌트에 대해 최소 크기, 한글 최소 13px, 14px 이하 최대 weight 500, JSX 부모 크기 상속 및 조작 요소의 글꼴을 검사한다. 조건부 클래스는 분기별로 검사하고 화면에 표시되지 않는 `sr-only`는 제외한다. 다른 변경 파일은 `npm.cmd run lint:typography -- --strict <파일 경로>`로 검사한다. 동적 문구, CSS 토큰과 클래스 함수의 조합, 실제 글꼴 및 반응형 계산값은 브라우저에서 추가로 확인한다.

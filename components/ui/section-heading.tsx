@@ -17,7 +17,7 @@ export function SectionHeading({
   className?: string;
 }) {
   const trailing = aside ?? (href ? (
-    <Link href={href} className="ml-auto flex shrink-0 items-center text-sm font-medium text-[var(--ui-muted)]">
+    <Link href={href} className="ml-auto flex min-h-11 shrink-0 items-center text-sm font-medium text-[var(--ui-muted)]">
       전체보기
       <ChevronRight size={16} />
     </Link>
@@ -26,7 +26,7 @@ export function SectionHeading({
   ) : null);
 
   return (
-    <div className={`mb-3 flex items-end justify-between gap-4 ${className}`}>
+    <div className={`mb-3 flex items-center justify-between gap-4 ${className}`}>
       <h2 className="home-section-title text-[length:var(--ui-title-size)] text-[var(--ui-ink)]">{children}</h2>
       {titleAccessory}
       {trailing}

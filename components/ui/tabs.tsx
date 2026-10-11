@@ -12,10 +12,10 @@ function segmentedTrackClassName(compact: boolean) {
 
 function segmentedItemClassName(active: boolean, compact: boolean) {
   // 다크 모드의 활성 항목은 트랙보다 밝은 border 톤을 사용한다.
-  return `flex shrink-0 items-center whitespace-nowrap transition-colors ${compact ? "h-7 rounded-md px-2.5 text-[12px]" : "h-8 rounded-lg px-3.5 text-[13px]"} ${
+  return `flex shrink-0 items-center whitespace-nowrap transition-colors ${compact ? "h-7 rounded-md px-2.5 text-[13px]" : "h-8 rounded-lg px-3.5 text-[13px]"} ${
     active
-      ? "border border-[var(--ui-border)] bg-[var(--ui-surface)] font-extrabold text-[var(--ui-ink)] dark:bg-[var(--ui-border)]"
-      : "font-semibold text-[var(--ui-muted)] hover:text-[var(--ui-ink)]"
+      ? "border border-[var(--ui-border)] bg-[var(--ui-surface)] font-medium text-[var(--ui-ink)] dark:bg-[var(--ui-border)]"
+      : "font-medium text-[var(--ui-muted)] hover:text-[var(--ui-ink)]"
   }`;
 }
 
@@ -94,7 +94,7 @@ export function SegmentedControl({
 }
 
 /**
- * 언더라인 탭. 팬 페이지 채널 내비와 같은 언어(파페로치 볼드 + 3px 언더라인)로, 화면의 주
+ * 언더라인 탭. 팬 페이지 채널 내비와 같은 언어(Pretendard + 3px 언더라인)로, 화면의 주
  * 콘텐츠를 바꾸는 1차 내비게이션(순위/대진표/POM)에 쓴다.
  */
 export function UnderlineNav({
@@ -133,7 +133,7 @@ export function UnderlineNav({
             key={item.key}
             href={item.href}
             aria-current={isActive ? "page" : undefined}
-            className={`font-paperozi flex shrink-0 items-center justify-center whitespace-nowrap font-bold transition-colors ${compact ? "border-b-2 py-1.5 text-[14px] sm:py-2 sm:text-[15px]" : "border-b-[3px] py-2.5 text-[15px] sm:py-3 sm:text-[16px]"} ${
+            className={`flex shrink-0 items-center justify-center whitespace-nowrap font-medium transition-colors ${compact ? "border-b-2 py-1.5 text-[14px] sm:py-2" : "border-b-[3px] py-2.5 text-[16px] sm:py-3"} ${
               isActive
                 ? activeTone === "ink"
                   ? "border-[var(--ui-ink)] text-[var(--ui-ink)]"

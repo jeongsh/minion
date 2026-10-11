@@ -58,13 +58,12 @@ export function LoginForm({ initialError, next = "/" }: { initialError?: string;
           {pending ? "로그인 중…" : "로그인"}
         </Button>
 
-        <p className="text-sm" style={{ color: "var(--muted)" }}>
+        <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-base font-normal" style={{ color: "var(--muted)" }}>
           계정이 없으신가요?{" "}
-          <Link href="/signup" className="font-medium underline">
+          <Link href="/signup" className="text-sm font-medium underline">
             회원가입
           </Link>
-          {" · "}
-          <Link href="/forgot-password" className="font-medium underline">
+          <Link href="/forgot-password" className="text-sm font-medium underline">
             비밀번호 재설정
           </Link>
         </p>

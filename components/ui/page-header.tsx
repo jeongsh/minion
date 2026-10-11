@@ -43,7 +43,7 @@ export function PageHeader({
       <div className="flex min-w-0 items-center justify-between gap-3 md:items-end">
         <div className="flex min-w-0 items-center gap-2.5 md:gap-3">
           {leading}
-          <h1 className={`home-section-title font-paperozi min-w-0 ${preserveTitle ? "whitespace-normal break-words" : "truncate"} text-[20px] leading-tight text-[var(--ui-ink)] md:text-[24px] lg:text-[28px]`}>
+          <h1 className={`home-section-title font-paperozi min-w-0 ${preserveTitle ? "whitespace-normal break-words" : "truncate"} text-[length:var(--type-page)] leading-tight text-[var(--ui-ink)]`}>
             {displayTitle || title}
           </h1>
         </div>

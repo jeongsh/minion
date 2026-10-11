@@ -145,7 +145,7 @@ export function HomeMatchCard({
         </div>
 
         <div className="mt-auto pt-2">
-          <div className="mb-1 flex items-center justify-between text-[10px] font-medium tabular-nums text-[var(--ui-muted)]">
+          <div className="mb-1 flex items-center justify-between text-[13px] font-medium tabular-nums text-[var(--ui-muted)]">
             <span>{market.teamAPercent}%</span>
             <span>{market.teamBPercent}%</span>
           </div>

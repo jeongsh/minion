@@ -47,10 +47,10 @@ export function KitschEmptyState({
             animated ? "kitsch-empty-state__character--animated" : ""
           }`}
         />
-        <p className={`font-paperozi text-[17px] text-[var(--ui-ink)] ${compact ? "text-[15px]" : ""}`}>
+        <p className={`font-bold text-[18px] text-[var(--ui-ink)] ${compact ? "text-[16px]" : ""}`}>
           {title}
         </p>
-        {body ? <p className="mt-1.5 text-sm font-normal leading-6 text-[var(--ui-muted)]">{body}</p> : null}
+        {body ? <p className="mt-1.5 text-base font-normal leading-6 text-[var(--ui-muted)]">{body}</p> : null}
         {action ? <div className="mt-4">{action}</div> : null}
       </div>
     </div>

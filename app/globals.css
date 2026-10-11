@@ -26,7 +26,7 @@
 @font-face {
   font-family: 'Paperozi';
   src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-7Bold.woff2') format('woff2');
-  font-weight: 700;
+  font-weight: 400;
   font-display: swap;
 }
 :root {
@@ -53,7 +53,7 @@
   --ui-ad-surface: #e7e8ea;
   --ui-card-radius: 16px;
   --ui-control-radius: 8px;
-  --ui-title-size: 16px;
+  --ui-title-size: var(--type-section);
   --ui-header-height: 56px;
   --ui-sidebar-width: 56px;
   --shell-lnb-width: 56px;
@@ -66,14 +66,14 @@
   --layout-capture: 576px;
   --layout-gutter: 16px;
   /* CHZZK-inspired type hierarchy: badge 12, meta 13, UI 14, card 15,
-     body 16, section 18, page 28. */
+     body 16, section 20, page 28. */
   --type-badge: 12px;
   --type-meta: 13px;
   --type-ui: 14px;
   --type-card: 15px;
   --type-body: 16px;
   --type-subheading: 18px;
-  --type-section: 18px;
+  --type-section: 20px;
   --type-page: 28px;
   --page-background: #fff;
   --background: #fff;
@@ -83,7 +83,7 @@
   --border: #d8dee9;
   --muted: #667085;
   --accent: #03DE8A;
-  --accent-foreground: #ffffff;
+  --accent-foreground: #061018;
   --radius: 8px;
   --page-inline: clamp(1rem, 3vw, 2rem);
   /* 게임 타임라인 차트 (라이트) — 플롯 배경 · 그리드/축 라인 · 축 라벨 */
@@ -93,12 +93,6 @@
   /* 블루/레드 팀 색 — 라이트에선 흰 배경에서 잘 보이도록 진하고 채도를 살짝 낮춘 톤(형광 방지) */
   --team-blue: #2262f8;
   --team-red: #ff2f44;
-}
-
-@media (min-width: 640px) {
-  :root {
-    --ui-title-size: 18px;
-  }
 }
 
 @theme inline {

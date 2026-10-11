@@ -26,7 +26,7 @@ export function buttonClassName({
   className?: string;
 } = {}) {
   return [
-    "inline-flex shrink-0 items-center justify-center rounded-md font-semibold transition disabled:cursor-not-allowed disabled:opacity-50",
+    "inline-flex shrink-0 items-center justify-center rounded-md font-medium transition disabled:cursor-not-allowed disabled:opacity-50",
     variantClasses[variant],
     sizeClasses[size],
     className,
