@@ -19,6 +19,12 @@ export type HomeMatchItem = {
 };
 
 function tournamentLogo(name: string) {
+  if (name === "데마시아컵") {
+    return {
+      src: "/logos/tournaments/demacia-cup.svg",
+      className: "h-[18px] w-[18px] shrink-0 object-contain brightness-0 dark:invert",
+    };
+  }
   if (name.toLowerCase().includes("kespa")) {
     return {
       src: "/logos/tournaments/kespa-cup.webp",
@@ -75,7 +81,8 @@ export function HomeMatchCard({
     weekday: "short",
   }).format(matchDateValue);
   const matchDate = `${monthDay} ${weekday}`;
-  const tournamentName = tournament ?? match.name;
+  const fullTournamentName = tournament ?? match.name;
+  const tournamentName = /demacia|데마시아/i.test(fullTournamentName) ? "데마시아컵" : fullTournamentName;
   const tournamentLogoAsset = tournamentLogo(tournamentName);
   const centerLabel = match.status === "completed"
     ? `${match.teamAScore ?? 0} : ${match.teamBScore ?? 0}`
@@ -103,7 +110,7 @@ export function HomeMatchCard({
       />
 
       <div className="pointer-events-none relative z-20 flex h-full min-w-0 flex-col">
-        <div className="flex min-w-0 items-center gap-2 text-[11px] font-medium text-[var(--ui-muted)]">
+        <div className="flex min-w-0 items-center gap-2 text-[13px] font-medium text-[var(--ui-muted)]">
           <span className="flex min-w-0 items-center gap-1.5">
             <Image
               src={tournamentLogoAsset.src}
