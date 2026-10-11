@@ -111,7 +111,7 @@ export function ChampionTabNav({
               key={tab.key}
               href={hrefWith(basePath, params, { tab: tab.key === "overview" ? null : tab.key, page: null })}
               aria-current={active ? "page" : undefined}
-              className={`flex h-9 min-w-[3.9rem] flex-1 shrink-0 items-center justify-center whitespace-nowrap rounded-lg border px-2.5 text-[13px] font-medium transition-colors md:min-w-[4.5rem] md:flex-none md:px-3 md:text-[14px] ${
+              className={`flex h-9 min-w-[3.9rem] flex-1 shrink-0 items-center justify-center whitespace-nowrap rounded-lg border px-2.5 text-[16px] font-medium leading-6 transition-colors md:min-w-[4.5rem] md:flex-none md:px-3 ${
                 active
                   ? "border-[var(--ui-ink)] bg-[var(--ui-ink)] text-[var(--ui-surface)] md:border-[var(--ui-border)] md:bg-[var(--ui-surface)] md:text-[var(--ui-ink)]"
                   : "border-transparent text-[var(--ui-muted)] hover:bg-[var(--ui-surface)] hover:text-[var(--ui-ink)]"
