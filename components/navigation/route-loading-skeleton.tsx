@@ -309,7 +309,7 @@ export function FanCommunityLoadingSkeleton() {
 function CommunityPostArticleSkeleton({ fullWidth = false }: { fullWidth?: boolean }) {
   return (
     <article className={`${fullWidth ? "w-full" : "content-reading"} community-post-modal mobile-full-bleed pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:mx-auto md:pb-0`}>
-      <section className="mobile-surface-section overflow-hidden rounded-[var(--ui-card-radius)] border border-[var(--ui-border)] bg-[var(--ui-surface)]">
+      <section className="mobile-surface-section overflow-hidden rounded-[var(--ui-card-radius)] border border-[var(--ui-border)] bg-transparent">
         <header className="px-[14px] pb-5 pt-4 md:px-8 md:pb-6 md:pt-8">
           <div className="hidden items-center justify-between gap-4 md:flex">
             <Skeleton className="h-5 w-20" />

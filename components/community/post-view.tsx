@@ -11,7 +11,6 @@ import { PostOwnerActions } from "@/components/community/post-owner-actions";
 import { PostMobileActions } from "@/components/community/post-mobile-actions";
 import { ReactionButtons } from "@/components/community/reaction-buttons";
 import { ReportButton } from "@/components/community/report-button";
-import { SurfacePanel } from "@/components/ui/surface-panel";
 import { setPostNoticeInlineAction } from "@/lib/community/admin-actions";
 import type { BoardScope } from "@/lib/community/boards";
 import { blindDescription, blindLabel } from "@/lib/community/moderation-labels";
@@ -61,7 +60,7 @@ export async function PostView({
         canManage={canManage || isGuestOwner}
         guest={isGuestOwner && !canManage}
       />
-      <SurfacePanel variant="section">
+      <section className="mobile-surface-section overflow-hidden rounded-[var(--ui-card-radius)] border border-[var(--ui-border)] bg-transparent">
         <header className="px-[14px] pb-5 pt-4 md:px-8 md:pb-6 md:pt-8">
           <div className="hidden items-center justify-between gap-4 md:flex">
             <Link href={boardHref} className="hidden items-center gap-1 text-sm font-normal text-[var(--tp)] hover:opacity-70 md:inline-flex"><ArrowLeft size={16} strokeWidth={2} />목록으로</Link>
@@ -154,7 +153,7 @@ export async function PostView({
           </div>
         <CommentList comments={comments} commentReactions={commentReactions} scope={scope} teamSlug={teamSlug} viewerId={viewerId} currentGuestKey={currentGuestKey} miniconPacks={miniconPacks} managedAiCommentIds={managedAiCommentIds} />
         </section>
-      </SurfacePanel>
+      </section>
       <div className="fixed inset-x-0 bottom-0 z-50 md:hidden">
         <CommentForm postId={post.id} scope={scope} teamSlug={teamSlug} isGuest={!viewerId} variant="mobileDock" miniconPacks={miniconPacks} />
       </div>
