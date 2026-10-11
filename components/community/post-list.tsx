@@ -46,7 +46,7 @@ export function PostList({
     const cleansingBotBlinded = post.blindedSource === "ai";
 
     return (
-      <li key={post.id} className={`relative border-b border-[var(--ui-border)] last:border-b-0 ${isNoticeRow ? "bg-[var(--ui-surface-muted)]" : ""}`}>
+      <li key={post.id} className={`relative border-b border-[var(--ui-border)] last:border-b-0 ${isNoticeRow ? "bg-[var(--ui-surface-muted)] sm:-mx-4 sm:px-4" : ""}`}>
         <Link
           href={detailHref(post.id)}
           className="absolute inset-0 z-0 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--tp)]"
