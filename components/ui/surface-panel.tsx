@@ -16,7 +16,7 @@ type SurfacePanelProps = HTMLAttributes<HTMLElement> & {
 export function SurfacePanel({ className = "", variant = "card", ...props }: SurfacePanelProps) {
   return (
     <section
-      className={`overflow-hidden rounded-[var(--ui-card-radius)] bg-[var(--ui-card-bg)] ${mobileVariantClass[variant]} ${className}`}
+      className={`overflow-hidden rounded-[var(--ui-card-radius)] bg-[var(--ui-surface)] ${mobileVariantClass[variant]} ${className}`}
       {...props}
     />
   );
