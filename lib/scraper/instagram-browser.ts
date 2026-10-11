@@ -426,7 +426,12 @@ async function scrapeInstagramPostsOnce(
     if (/\/(challenge|checkpoint)\//.test(page.url())) {
       throw new Error(`INSTAGRAM_${sessionCookie ? "SESSION_" : ""}CHALLENGE: @${username}; account verification required`);
     }
-    if (title.toLowerCase().includes("login") || title.includes("로그인") || page.url().includes("/accounts/login")) {
+    // Rejected sessions can now redirect to the root login form with the generic
+    // "Instagram" title, instead of /accounts/login. A profile's login prompt
+    // alone is not evidence of rejection, so require the root URL as well.
+    const rootLoginForm = new URL(page.url()).pathname === "/"
+      && await page.locator('input[type="password"]').count() > 0;
+    if (rootLoginForm || title.toLowerCase().includes("login") || title.includes("로그인") || page.url().includes("/accounts/login")) {
       throw instagramLoginError(username, Boolean(sessionCookie));
     }
 

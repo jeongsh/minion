@@ -64,13 +64,19 @@ test('user-driven push request creates Android channels first and skips iOS badg
   assert.match(requestFlow, /allowSound:\s*true/);
 });
 
-test('following a team reoffers push permission and links denied users to system settings', async () => {
+test('following opens alert selection and only enabling alerts reoffers push permission', async () => {
   const source = await read('mobile/components/fan/fan-page.tsx');
   const followStart = source.indexOf('async function applyFollow');
   const favoriteStart = source.indexOf('async function applyFavorite', followStart);
   const followFlow = source.slice(followStart, favoriteStart);
 
-  assert.match(followFlow, /if \(result\.following\) void offerDevicePushAfterEnabling\(\)/);
+  assert.match(followFlow, /if \(result\.following\) setNotificationSheetOpen\(true\)/);
+  assert.doesNotMatch(followFlow, /offerDevicePushAfterEnabling/);
+  const saveStart = source.indexOf('async function saveNotificationSelection');
+  const saveEnd = source.indexOf('\n  return', saveStart);
+  const saveFlow = source.slice(saveStart, saveEnd);
+  assert.match(source, /onSave=\{saveNotificationSelection\}/);
+  assert.match(saveFlow, /if \(result\.enabled\) void offerDevicePushAfterEnabling\(\)/);
   assert.match(source, /permission\.status === 'denied'/);
   assert.match(source, /openPushNotificationSettings\(\)/);
 });

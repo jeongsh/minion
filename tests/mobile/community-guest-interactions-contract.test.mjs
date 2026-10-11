@@ -69,7 +69,8 @@ test('web and mobile comment action slots delete owned comments and flag other c
   assert.match(actions, /export async function deleteCommentAction/);
   assert.match(actions, /comment\.authorId === user\?\.id/);
   assert.match(actions, /comment\.guestKey === guestKey/);
-  assert.match(actions, /if \(!isRegisteredOwner && !isGuestOwner\)/);
+  assert.match(actions, /const isAiAdmin = await canManageStudioContent\(comment\)/);
+  assert.match(actions, /if \(!isRegisteredOwner && !isGuestOwner && !isAiAdmin\)/);
   assert.equal((actions.match(/if \(!reason\) return \{ ok: false, error: "리폿 사유를 입력해주세요\." \}/g) ?? []).length, 2);
 });
 

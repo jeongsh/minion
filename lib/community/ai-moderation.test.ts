@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { screenCommunityText } from "./ai-moderation.ts";
+import { screenCommunityText, screenWithModerationApi } from "./ai-moderation.ts";
 
 type FetchCall = { url: string; body: Record<string, unknown> };
 
@@ -34,7 +34,7 @@ function moderationResponse(flagged: boolean): Response {
   );
 }
 
-function spamResponse(verdict: "ad" | "gambling" | "normal"): Response {
+function spamResponse(verdict: "illegal_ad" | "gambling" | "normal"): Response {
   return new Response(
     JSON.stringify({
       status: "completed",
@@ -55,9 +55,8 @@ test("모더레이션 API가 걸면 카테고리와 함께 위반 판정한다",
   process.env.OPENAI_API_KEY = "test-key";
   const { calls, restore } = mockFetch(() => moderationResponse(true));
   try {
-    const verdict = await screenCommunityText({ title: "제목", text: "본문" });
+    const verdict = await screenWithModerationApi("제목\n본문", "test-key");
     assert.deepEqual(verdict, { flagged: true, category: "혐오 표현", detail: "모더레이션 점수 91%" });
-    // 1단계에서 걸리면 2단계(스팸 분류)는 호출하지 않는다.
     assert.equal(calls.length, 1);
     assert.match(calls[0]!.url, /moderations/);
   } finally {
@@ -65,21 +64,22 @@ test("모더레이션 API가 걸면 카테고리와 함께 위반 판정한다",
   }
 });
 
-test("모더레이션 통과 + 광고 판정이면 광고로 위반 처리한다", async () => {
+test("커뮤니티 검수는 광범위 모더레이션 없이 사기·불법 광고를 분류한다", async () => {
   process.env.OPENAI_API_KEY = "test-key";
   const { calls, restore } = mockFetch((url) =>
-    url.includes("moderations") ? moderationResponse(false) : spamResponse("ad"),
+    url.includes("moderations") ? moderationResponse(true) : spamResponse("illegal_ad"),
   );
   try {
     const verdict = await screenCommunityText({ text: "최저가 구매 링크 클릭" });
-    assert.deepEqual(verdict, { flagged: true, category: "광고·홍보", detail: "테스트 사유" });
-    assert.equal(calls.length, 2);
+    assert.deepEqual(verdict, { flagged: true, category: "사기·불법 광고", detail: "테스트 사유" });
+    assert.equal(calls.length, 1);
+    assert.match(calls[0]!.url, /\/responses$/);
   } finally {
     restore();
   }
 });
 
-test("둘 다 통과하면 정상 판정한다", async () => {
+test("스팸 분류를 통과하면 정상 판정한다", async () => {
   process.env.OPENAI_API_KEY = "test-key";
   const { restore } = mockFetch((url) =>
     url.includes("moderations") ? moderationResponse(false) : spamResponse("normal"),
