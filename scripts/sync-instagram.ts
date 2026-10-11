@@ -1,32 +1,13 @@
-/**
- * 선수/팀의 인스타그램 게시물 + 스토리를 Playwright 브라우저로 가져와 DB에 저장합니다.
- *
- * 사용법:
- *   npx tsx scripts/sync-instagram.ts
- *   npx tsx scripts/sync-instagram.ts --only=players
- *   npx tsx scripts/sync-instagram.ts --only=teams
- *   npx tsx scripts/sync-instagram.ts --limit=20 --offset=0
- *   npx tsx scripts/sync-instagram.ts --mode=posts     # 게시물만
- *   npx tsx scripts/sync-instagram.ts --mode=stories   # 스토리만
- *   npx tsx scripts/sync-instagram.ts --dry-run
- *   npx tsx scripts/sync-instagram.ts --max-posts=500 --no-notify # history recovery
- *   npx tsx scripts/sync-instagram.ts --check-session --username=t1lol
- *
- * 환경변수:
- *   INSTAGRAM_SESSION_COOKIE  (권장) - 로그인 세션 쿠키
- */
-
 import { appendFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { createSupabaseAdminClient } from "../lib/supabase/admin.ts";
 import {
   getInstagramOwners,
+  extractUsername,
   syncOwnerPosts,
 } from "../lib/sync/instagram.ts";
-import { closeBrowser, scrapeInstagramPosts } from "../lib/scraper/instagram-browser.ts";
-import { instagramFailureKind, instagramStopReason } from "../lib/scraper/instagram-failure.ts";
-import { parseInstagramCookie } from "../lib/scraper/instagram-cookie.ts";
+import { fetchInstagramGraphPosts, instagramGraphCredentials, INSTAGRAM_GRAPH_USERNAMES } from "../lib/scraper/instagram-graph.ts";
 
 const argv = process.argv.slice(2);
 const argSet = new Set(argv);
@@ -56,24 +37,15 @@ async function main() {
   }
   loadEnvFile();
 
-  const sessionCookie = process.env.INSTAGRAM_SESSION_COOKIE?.trim();
-  if (sessionCookie) parseInstagramCookie(sessionCookie);
-  if (argSet.has("--check-session")) {
+  instagramGraphCredentials();
+  if (argSet.has("--check-api")) {
     const username = argv.find((arg) => arg.startsWith("--username="))?.slice("--username=".length) ?? "t1lol";
-    if (!/^[A-Za-z0-9._]{1,30}$/.test(username)) throw new Error("Invalid Instagram username.");
-    if (!sessionCookie) throw new Error("INSTAGRAM_SESSION_COOKIE is missing; add the refreshed session before checking.");
-    console.log("[session] Cookie format valid; non-empty sessionid present. Values are not logged.");
-    const posts = await scrapeInstagramPosts(username, sessionCookie, 12, { allowPublicFallback: false });
-    if (posts.length === 0) throw new Error("Instagram session check inconclusive: no readable posts.");
-    const summary = `Instagram saved-session check passed: @${username}, checked=${posts.length}. No posts saved or notifications sent.`;
-    console.log(summary);
-    if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${summary}\n`);
-    await closeBrowser();
+    const posts = await fetchInstagramGraphPosts(username.toLowerCase(), 1);
+    if (!posts.length) throw new Error("Official API check returned no media.");
+    console.log(`[graph] @${username}: API check passed. No database writes or notifications.`);
     return;
   }
-  if (sessionCookie) console.log(`[browser] Instagram session cookie loaded`);
-  else console.log(`[browser] INSTAGRAM_SESSION_COOKIE 없음 — 비로그인 공개 프로필 수집`);
-
+  if (!["all", "posts"].includes(modeArg) || argSet.has("--check-session")) throw new Error("Only official API post collection is supported.");
   console.log(`[mode] ${modeArg} / dryRun=${dryRun} / maxPosts=${maxPosts}`);
 
   const supabase = createSupabaseAdminClient();
@@ -83,6 +55,9 @@ async function main() {
   let owners = kindFilter ? allOwners.filter((o) => o.kind === kindFilter) : allOwners;
   if (owners.length === 0) throw new Error("No Instagram owners found.");
   const total = owners.length;
+  owners = owners.filter((owner) => owner.instagramUrl && INSTAGRAM_GRAPH_USERNAMES.has(extractUsername(owner.instagramUrl).toLowerCase()));
+  const unsupported = total - owners.length;
+  console.log(`[graph] verified=${owners.length} unsupported_skipped=${unsupported}; no cookie/browser fallback`);
   if (offsetArg > 0) owners = owners.slice(offsetArg);
   if (limitArg > 0) owners = owners.slice(0, limitArg);
 
@@ -97,9 +72,6 @@ async function main() {
   let checked = 0;
   let healthyOwners = 0;
   let attemptedOwners = 0;
-  let privateOwners = 0;
-  let unavailableOwners = 0;
-  let consecutiveAccessFailures = 0;
   let stoppedReason: string | null = null;
 
   for (const owner of owners) {
@@ -109,30 +81,16 @@ async function main() {
     if (modeArg === "all" || modeArg === "posts") {
       attemptedOwners += 1;
       try {
-        const result = await syncOwnerPosts(supabase, owner, { dryRun, sessionCookie, noNotify, maxPosts });
+        const result = await syncOwnerPosts(supabase, owner, { dryRun, noNotify, maxPosts });
         postsInserted += result.inserted;
         checked += result.checked;
         healthyOwners += 1;
-        consecutiveAccessFailures = 0;
         console.log(`[posts] ${owner.kind}:${owner.name} — checked=${result.checked} new=${result.inserted}`);
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
-        if (message.startsWith("INSTAGRAM_UNAVAILABLE:")) {
-          unavailableOwners += 1;
-          console.log(`[unavailable] ${owner.kind}:${owner.name} — ${message}`);
-          await delay(DELAY_MS);
-          continue;
-        }
-        if (message.startsWith("INSTAGRAM_PRIVATE:")) {
-          privateOwners += 1;
-          console.log(`[private] ${owner.kind}:${owner.name} — ${message}`);
-          await delay(DELAY_MS);
-          continue;
-        }
         errors += 1;
         console.error(`[error] ${owner.kind}:${owner.name} posts — ${message}`);
-        consecutiveAccessFailures = instagramFailureKind(message) === "access" ? consecutiveAccessFailures + 1 : 0;
-        stoppedReason = instagramStopReason(message, consecutiveAccessFailures);
+        stoppedReason = message.startsWith("INSTAGRAM_GRAPH_STOP:") ? message : null;
         if (stoppedReason) {
           console.error(`[stopped] ${stoppedReason}`);
           break;
@@ -141,54 +99,19 @@ async function main() {
       await delay(DELAY_MS);
     }
 
-    // ── 스토리 (비활성화) ──
-    // if (modeArg === "all" || modeArg === "stories") {
-    //   try {
-    //     const result = await syncOwnerStories(supabase, owner, { dryRun, sessionCookie });
-    //     storiesInserted += result.inserted;
-    //     if (result.newStories.length > 0) {
-    //       newStoryMap.push({ owner, stories: result.newStories });
-    //     }
-    //     console.log(
-    //       `[stories] ${owner.kind}:${owner.name} — checked=${result.checked} new=${result.newStories.length} updated=${result.inserted}`,
-    //     );
-    //   } catch (err) {
-    //     errors += 1;
-    //     console.error(`[error] ${owner.kind}:${owner.name} stories — ${(err as Error).message}`);
-    //   }
-    //   await delay(DELAY_MS);
-    // }
   }
 
-  const summary = `owners=${owners.length} attempted=${attemptedOwners} skipped=${owners.length - attemptedOwners} private=${privateOwners} unavailable=${unavailableOwners} healthy=${healthyOwners} checked=${checked} posts_new=${postsInserted} errors=${errors} dryRun=${dryRun}`;
+  const summary = `owners=${owners.length} attempted=${attemptedOwners} skipped=${owners.length - attemptedOwners} unsupported=${unsupported} healthy=${healthyOwners} checked=${checked} posts_new=${postsInserted} errors=${errors} dryRun=${dryRun}`;
   console.log(`\nDone. ${summary}`);
   if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Instagram collection\n\n${summary}\n\n${stoppedReason ?? "Collection finished."}\n`);
 
-  // Discord 알림 (스토리 비활성화로 미사용)
-  // const discordWebhook = process.env.DISCORD_WEBHOOK_URL?.trim();
-  // if (discordWebhook && newStoryMap.length > 0 && !dryRun) {
-  //   console.log(`[discord] 새 스토리 알림 발송 (${newStoryMap.length}명)`);
-  //   await sendDiscordStoryAlert(
-  //     discordWebhook,
-  //     newStoryMap.map(({ owner, stories }) => ({
-  //       ownerName: owner.name,
-  //       ownerKind: owner.kind,
-  //       instagramUrl: owner.instagramUrl ?? "",
-  //       newCount: stories.length,
-  //       thumbnailUrl: stories.find((s) => s.thumbnailUrl ?? s.mediaType === "image")
-  //         ?.thumbnailUrl ?? stories[0]?.mediaUrl,
-  //     })),
-  //   );
-  // }
 
-  await closeBrowser();
   if (errors > 0 || healthyOwners === 0 || checked === 0) {
     throw new Error(`Instagram sync unhealthy: healthy=${healthyOwners} checked=${checked} errors=${errors}`);
   }
 }
 
-main().catch(async (err) => {
+main().catch((err) => {
   console.error(err);
-  await closeBrowser();
   process.exit(1);
 });

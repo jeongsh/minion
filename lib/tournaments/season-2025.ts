@@ -4,7 +4,7 @@ export const SEASON_2025_TOURNAMENTS: SeasonTournamentConfig[] = [
   {
     segmentKey: "lck-cup",
     season: 2025,
-    name: "LCK Cup 2025",
+    name: "LCK Cup",
     overviewPage: "LCK/2025 Season/Cup",
     split: "Cup",
     category: "domestic",
@@ -16,7 +16,7 @@ export const SEASON_2025_TOURNAMENTS: SeasonTournamentConfig[] = [
   {
     segmentKey: "lck",
     season: 2025,
-    name: "LCK 2025 Season Play-In",
+    name: "LCK Play-In",
     overviewPage: "LCK/2025 Season/Season Play-In",
     split: "Season Play-In",
     category: "domestic",
@@ -28,7 +28,7 @@ export const SEASON_2025_TOURNAMENTS: SeasonTournamentConfig[] = [
   {
     segmentKey: "lck",
     season: 2025,
-    name: "LCK 2025 Rounds 1-2",
+    name: "LCK R1-2",
     overviewPage: "LCK/2025 Season/Rounds 1-2",
     split: "Rounds 1-2",
     category: "domestic",
@@ -40,7 +40,7 @@ export const SEASON_2025_TOURNAMENTS: SeasonTournamentConfig[] = [
   {
     segmentKey: "lck",
     season: 2025,
-    name: "LCK 2025 Road to MSI",
+    name: "LCK Road to MSI",
     overviewPage: "LCK/2025 Season/Road to MSI",
     split: "Road to MSI",
     category: "domestic",
@@ -52,7 +52,7 @@ export const SEASON_2025_TOURNAMENTS: SeasonTournamentConfig[] = [
   {
     segmentKey: "lck",
     season: 2025,
-    name: "LCK 2025 Rounds 3-5",
+    name: "LCK R3-5",
     overviewPage: "LCK/2025 Season/Rounds 3-5",
     split: "Rounds 3-5",
     category: "domestic",
@@ -64,7 +64,7 @@ export const SEASON_2025_TOURNAMENTS: SeasonTournamentConfig[] = [
   {
     segmentKey: "lck",
     season: 2025,
-    name: "LCK 2025 Season Playoffs",
+    name: "LCK Playoffs",
     overviewPage: "LCK/2025 Season/Season Playoffs",
     split: "Season Playoffs",
     category: "domestic",

@@ -129,6 +129,13 @@ test("session verification cannot pass by silently retrying without the saved co
   });
 });
 
+test("root login form with a generic title identifies a rejected session", async () => {
+  await fixture(() => '<title>Instagram</title><input type="password" aria-label="비밀번호"><script>history.replaceState({}, "", "/")</script>', async () => {
+    await assert.rejects(scrapeInstagramPosts("test", "sessionid=expired", 12, { allowPublicFallback: false }), /INSTAGRAM_SESSION_REJECTED:/);
+    await assert.rejects(scrapeInstagramPosts("test", undefined), /INSTAGRAM_LOGIN_REQUIRED:/);
+  });
+});
+
 test("feed API rate limits stop even when the profile document returned HTTP 200", async () => {
   await fixture((_cookie, url) => url.includes("/graphql/")
     ? { status: 429, body: "{}", contentType: "application/json", headers: { "retry-after": "60" } }

@@ -1,16 +1,11 @@
+import { compactTournamentName } from "../packages/contracts/src/tournament-label.ts";
+
 function normalizeSpaces(value: string) {
   return value.replace(/\s+/g, " ").trim();
 }
 
 export function compactMatchTournamentName(name: string) {
-  return normalizeSpaces(
-    name
-      .replace(/\b(?:19|20)\d{2}\b/g, "")
-      .replace(/\bRegular Season\b/gi, "Regular")
-      .replace(/\bSeason\b/gi, "")
-      .replace(/\bPlayoffs?\b/gi, "PO")
-      .replace(/플레이오프/g, "PO"),
-  );
+  return compactTournamentName(name);
 }
 
 export function compactMatchStageName(name: string) {

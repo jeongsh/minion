@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { tournamentDisplayLabel } from "@/packages/contracts/src/tournament-label";
 
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { SectionHeader } from "@/components/layout/section-header";
@@ -95,7 +96,7 @@ function buildSplitOptions(
 
   return [...bestByKey.entries()]
     .sort(([, a], [, b]) => (a.startDate ?? "").localeCompare(b.startDate ?? ""))
-    .map(([key, tournament]) => ({ key, label: tournament.split ?? tournament.name, tournamentId: tournament.id }));
+    .map(([key, tournament]) => ({ key, label: tournamentDisplayLabel(tournament), tournamentId: tournament.id }));
 }
 
 function SplitTabs({

@@ -1,3 +1,4 @@
+import { compactTournamentName } from "@/packages/contracts/src/tournament-label";
 import "server-only";
 
 import { unstable_cache } from "next/cache";
@@ -83,7 +84,7 @@ export const getHomeInsights = unstable_cache(async (): Promise<HomeInsights> =>
     }
   }
   return {
-    tournament: tournament.name, date: dateKeyKST(latestMatch.matchDate), patches: scope.options.patches,
+    tournament: compactTournamentName(tournament.name), date: dateKeyKST(latestMatch.matchDate), patches: scope.options.patches,
     setCount: scope.counts.sets, href: `/champions?${query}`,
     champions: rows.map((row) => ({ id: row.champion.id, name: championLabel(row.champion), image: championImage(row.champion), artwork: championArtwork(row.champion), href: `/champions/${row.champion.slug}?${query}`, picks: row.draft.picks, bans: row.draft.bans, presence: row.draft.presenceRate, winRate: row.record.winRate, games: row.record.games })),
     builds,

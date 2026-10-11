@@ -7,18 +7,35 @@ export type SocialWorkflowRun = {
   html_url: string;
 };
 
-export const SOCIAL_WORKFLOWS = [
+export const SOCIAL_WORKFLOWS: readonly { file: string; name: string; maximumAgeHours: number; maximumRunMinutes: number; branch?: string; activeMonths?: number[] }[] = [
   { file: "sync-youtube.yml", name: "YouTube API", maximumAgeHours: 1.5, maximumRunMinutes: 20 },
   { file: "renew-youtube-websub.yml", name: "YouTube WebSub", maximumAgeHours: 36, maximumRunMinutes: 20 },
   { file: "sync-instagram.yml", name: "Instagram", maximumAgeHours: 30, maximumRunMinutes: 40 },
-] as const;
+  { file: "sync-leaguepedia-incremental.yml", name: "Leaguepedia", maximumAgeHours: 36, maximumRunMinutes: 40 },
+  { file: "sync-transfers.yml", name: "LCK 이적 동기화", maximumAgeHours: 2, maximumRunMinutes: 10, activeMonths: [1, 2, 9, 10, 11, 12] },
+  { file: "pr-quality.yml", name: "PR 검사", maximumAgeHours: Infinity, maximumRunMinutes: 30 },
+  { file: "generate-weekly-report.yml", name: "주간 리포트", maximumAgeHours: 192, maximumRunMinutes: 40 },
+  { file: "check-instagram-session.yml", name: "Instagram 인증 검사", maximumAgeHours: Infinity, maximumRunMinutes: 20 },
+  { file: "lolesports-api-smoke.yml", name: "LoL Esports API 검사", maximumAgeHours: Infinity, maximumRunMinutes: 10 },
+  { file: "mirror-to-personal.yml", name: "개인 저장소 동기화", maximumAgeHours: Infinity, maximumRunMinutes: 60, branch: "dev" },
+];
+
+export type FailureIncident = { startedAt: number; alerted: boolean };
+export const FAILURE_CONFIRMATION_MS = 60 * 60_000;
+
+/** All unhealthy states belong to one incident until a successful recovery. */
+export function unresolvedIncident(previous: FailureIncident | undefined, health: string, now = Date.now()) {
+  if (health === "healthy") return { incident: undefined, alert: false };
+  const incident = previous ?? { startedAt: now, alerted: false };
+  return { incident, alert: !incident.alerted && now - incident.startedAt >= FAILURE_CONFIRMATION_MS };
+}
 
 export function shouldAlertSocialFailure(previous: string | undefined, current: string) {
   return current === "disconnected" && previous !== "disconnected";
 }
 
 export function isNewSocialIncident(previous: string | undefined, current: string) {
-  return current !== "healthy" && previous !== current;
+  return current !== "healthy" && (previous === undefined || previous === "healthy");
 }
 
 export function hasConnectionFailure(workflow: string, logs: string) {
@@ -44,10 +61,11 @@ export function workflowHealth(
   now = Date.now(),
 ) {
   const latest = runs[0];
-  if (!latest) return "missing";
+  if (!latest) return Number.isFinite(workflow.maximumAgeHours) ? "missing" : "healthy";
   if (latest.status !== "completed" && now - Date.parse(latest.created_at) > workflow.maximumRunMinutes * 60_000) return "stalled";
-  const completed = runs.find((run) => run.status === "completed");
+  const completed = runs.find((run) => run.status === "completed" && !["cancelled", "skipped", "neutral"].includes(run.conclusion ?? ""));
   if (completed && completed.conclusion !== "success") return "failed";
+  if (!Number.isFinite(workflow.maximumAgeHours)) return "healthy";
   const success = runs.find((run) => run.conclusion === "success");
   if (!success || now - Date.parse(success.updated_at) > workflow.maximumAgeHours * 3_600_000) return "stale";
   return "healthy";
