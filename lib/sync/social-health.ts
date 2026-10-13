@@ -3,12 +3,13 @@ export type SocialWorkflowRun = {
   status: string;
   conclusion: string | null;
   created_at: string;
+  run_started_at?: string;
   updated_at: string;
   html_url: string;
 };
 
-export const SOCIAL_WORKFLOWS: readonly { file: string; name: string; maximumAgeHours: number; maximumRunMinutes: number; branch?: string; activeMonths?: number[] }[] = [
-  { file: "sync-youtube.yml", name: "YouTube API", maximumAgeHours: 1.5, maximumRunMinutes: 20 },
+export const SOCIAL_WORKFLOWS: readonly { file: string; name: string; maximumAgeHours: number; maximumRunMinutes: number; ignoreScheduleDelay?: boolean; branch?: string; activeMonths?: number[] }[] = [
+  { file: "sync-youtube.yml", name: "YouTube API", maximumAgeHours: Infinity, maximumRunMinutes: 20, ignoreScheduleDelay: true },
   { file: "renew-youtube-websub.yml", name: "YouTube WebSub", maximumAgeHours: 36, maximumRunMinutes: 20 },
   { file: "sync-instagram.yml", name: "Instagram", maximumAgeHours: 30, maximumRunMinutes: 40 },
   { file: "sync-leaguepedia-incremental.yml", name: "Leaguepedia", maximumAgeHours: 36, maximumRunMinutes: 40 },
@@ -56,13 +57,14 @@ export function connectionState(previous: string | undefined, health: string, di
 }
 
 export function workflowHealth(
-  workflow: { maximumAgeHours: number; maximumRunMinutes: number },
+  workflow: { maximumAgeHours: number; maximumRunMinutes: number; ignoreScheduleDelay?: boolean },
   runs: SocialWorkflowRun[],
   now = Date.now(),
 ) {
   const latest = runs[0];
   if (!latest) return Number.isFinite(workflow.maximumAgeHours) ? "missing" : "healthy";
-  if (latest.status !== "completed" && now - Date.parse(latest.created_at) > workflow.maximumRunMinutes * 60_000) return "stalled";
+  const startedAt = workflow.ignoreScheduleDelay ? latest.run_started_at ?? latest.updated_at : latest.created_at;
+  if (latest.status !== "completed" && !(workflow.ignoreScheduleDelay && ["queued", "waiting", "requested", "pending"].includes(latest.status)) && now - Date.parse(startedAt) > workflow.maximumRunMinutes * 60_000) return "stalled";
   const completed = runs.find((run) => run.status === "completed" && !["cancelled", "skipped", "neutral"].includes(run.conclusion ?? ""));
   if (completed && completed.conclusion !== "success") return "failed";
   if (!Number.isFinite(workflow.maximumAgeHours)) return "healthy";
