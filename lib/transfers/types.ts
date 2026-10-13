@@ -23,6 +23,24 @@ export type TransferMarket = {
   content_hash: string; checked_at: string; synced_at: string; auto_sync: boolean;
 };
 
+export type TransferTeam = {
+  id: string; slug: string; name: string; short_name: string;
+  leaguepedia_page: string | null; source_team_id: string | null;
+  is_lck_team: boolean; aliases: string[];
+};
+
+export function findTransferTeam(name: string, teams: TransferTeam[]) {
+  const key = normalizeTransferName(name.replace(/^lp:/i, ""));
+  if (!key) return null;
+  const code = lckTeamCode(name);
+  const matches = teams.filter((team) =>
+    (code && team.is_lck_team && lckTeamCode(team.short_name) === code) ||
+    [team.name, team.short_name, team.slug, team.leaguepedia_page, team.source_team_id, ...team.aliases]
+      .some((value) => value && normalizeTransferName(value.replace(/^lp:/i, "")) === key),
+  );
+  return matches.length === 1 ? matches[0] : null;
+}
+
 export function transferSeason(now = new Date()) {
   const year = Number(new Intl.DateTimeFormat("en", { timeZone: "Asia/Seoul", year: "numeric" }).format(now));
   const month = Number(new Intl.DateTimeFormat("en", { timeZone: "Asia/Seoul", month: "numeric" }).format(now));
