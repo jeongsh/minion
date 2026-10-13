@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { connectionState, hasConnectionFailure, shouldAlertSocialFailure, unresolvedIncident, FAILURE_CONFIRMATION_MS, workflowHealth, type SocialWorkflowRun } from "./social-health.ts";
+import { SOCIAL_WORKFLOWS, connectionState, hasConnectionFailure, shouldAlertSocialFailure, unresolvedIncident, FAILURE_CONFIRMATION_MS, workflowHealth, type SocialWorkflowRun } from "./social-health.ts";
 import { retryFetch } from "./retry-fetch.ts";
 import { instagramStopReason } from "../scraper/instagram-failure.ts";
 
@@ -100,4 +100,17 @@ test("authentication errors and long rate-limit cooldowns are not retried", asyn
     assert.equal(result.status, status);
     assert.equal(calls, 1);
   }
+});
+
+test("YouTube schedule delays stay quiet while real failures remain unhealthy", () => {
+  const youtube = SOCIAL_WORKFLOWS.find(item => item.file === "sync-youtube.yml")!;
+  assert.equal(workflowHealth(youtube, [run(600)], now), "healthy");
+  assert.equal(workflowHealth(youtube, [], now), "healthy");
+  assert.equal(workflowHealth(youtube, [run(120, null, "queued"), run(600)], now), "healthy");
+  assert.equal(workflowHealth(youtube, [run(120, null, "queued"), run(600, "failure")], now), "failed");
+  assert.equal(workflowHealth(youtube, [run(120, "failure")], now), "failed");
+  assert.equal(workflowHealth(youtube, [run(30, null, "in_progress")], now), "stalled");
+  assert.equal(workflowHealth(youtube, [{ ...run(120, null, "in_progress"), run_started_at: new Date(now - 60_000).toISOString() }], now), "healthy");
+  const oldIncident = { startedAt: now - FAILURE_CONFIRMATION_MS, alerted: true };
+  assert.equal(unresolvedIncident(oldIncident, workflowHealth(youtube, [run(600)], now), now).incident, undefined);
 });
