@@ -5,12 +5,10 @@ import { useMemo, useState } from "react";
 import { ChevronsRight, Search, UserRound } from "lucide-react";
 import { FilterDropdown } from "@/components/match-filter-dropdown";
 import { TeamLogo } from "@/components/ui/team-logo";
-import { A11y, Navigation } from "swiper/modules";
+import { A11y } from "swiper/modules";
 import { Swiper, SwiperSlide } from "swiper/react";
-import { SwiperNav, useSwiperNav } from "@/components/ui/swiper-nav";
 import { useSwiperResize } from "@/components/ui/use-swiper-resize";
 import "swiper/css";
-import "swiper/css/navigation";
 import { SegmentedToggle } from "@/components/ui/tabs";
 import type { Player, Team } from "@/lib/types";
 import { departuresForTeam, resolveTransferRosters } from "@/lib/transfers/view";
@@ -31,14 +29,13 @@ function destination(event: TransferEvent) {
 }
 
 export function TransferMarketView({ market, teams, players, followedTeamIds = [] }: { market: TransferMarket; teams: Team[]; players: Player[]; followedTeamIds?: string[] }) {
-  const { setPrevEl, setNextEl, navigationProps } = useSwiperNav();
   const setSwiper = useSwiperResize();
   const [tab, setTab] = useState("rosters");
   const [teamFilter, setTeamFilter] = useState("all");
   const [movement, setMovement] = useState("all");
   const [role, setRole] = useState("all");
   const [query, setQuery] = useState("");
-  const [reports, setReports] = useState(false);
+  const [reports, setReports] = useState(true);
   const allEvents = useMemo(() => marketEvents(market), [market]);
   const events = allEvents.filter((e) => reports || e.provenance !== "report");
   const rosters = useMemo(() => resolveTransferRosters(market.snapshot.rosters, allEvents, market.season), [market, allEvents]);
@@ -89,7 +86,7 @@ export function TransferMarketView({ market, teams, players, followedTeamIds = [
   return <div className="min-w-0">
     <section className="relative mb-4 min-w-0" aria-label="최근 변동">
       {recentEvents.length ? <>
-        <Swiper key={teamFilter} modules={[Navigation, A11y]} {...navigationProps} onSwiper={setSwiper} slidesPerView="auto" spaceBetween={8} watchOverflow>
+        <Swiper key={teamFilter} modules={[A11y]} onSwiper={setSwiper} slidesPerView="auto" spaceBetween={8} watchOverflow grabCursor>
           {recentEvents.map((event) => <SwiperSlide key={event.id} style={{ width: "auto", maxWidth: "100%", height: "auto" }}>
             <article className="flex min-h-11 w-max max-w-full flex-wrap items-center gap-x-3 gap-y-1 rounded-lg bg-[var(--ui-card-bg)] px-3 py-2">
               <span className="shrink-0 rounded bg-[var(--ui-surface)] px-1.5 py-0.5 text-[13px] font-medium text-[var(--accent)]">{TRANSFER_KIND_LABELS[event.kind]}</span>
@@ -98,7 +95,6 @@ export function TransferMarketView({ market, teams, players, followedTeamIds = [
             </article>
           </SwiperSlide>)}
         </Swiper>
-        <SwiperNav setPrevEl={setPrevEl} setNextEl={setNextEl} />
       </> : <p className="text-base font-normal text-[var(--ui-muted)]">확인된 변동이 없습니다.</p>}
     </section>
     <div className="mb-4">

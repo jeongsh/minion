@@ -20,6 +20,7 @@ export default function TabLayout() {
       <Tabs.Screen name="fan" />
       <Tabs.Screen name="teams" />
       <Tabs.Screen name="news" />
+      <Tabs.Screen name="transfers" options={{ href: null }} />
       <Tabs.Screen name="tournaments" options={{ href: null }} />
       <Tabs.Screen name="predictions" options={{ href: null }} />
       <Tabs.Screen name="players" options={{ href: null }} />
