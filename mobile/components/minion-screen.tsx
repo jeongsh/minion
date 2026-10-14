@@ -43,6 +43,7 @@ type LocalItem = { label: string; href: Href };
 
 const hubItems: LocalItem[] = [
   { label: '메인', href: '/' },
+  { label: '이적시장', href: '/transfers' as Href },
   { label: '승부예측', href: '/predictions' },
   { label: '대회', href: '/tournaments' },
   { label: '선수', href: '/players' },
@@ -54,7 +55,7 @@ function getFanItems(team: string): LocalItem[] {
   return [
     { label: '홈', href: `/fan/${team}` },
     { label: '팬톡', href: `/fan/${team}/community` },
-    { label: '일정', href: `/fan/${team}/schedule` },
+    { label: '캘린더', href: `/fan/${team}/schedule` },
     { label: '선수', href: `/fan/${team}/players` },
     { label: '소셜', href: `/fan/${team}/social` },
     { label: '영상', href: `/fan/${team}/videos` },
@@ -235,7 +236,7 @@ export function MinionScreen<T>({
                   accessibilityState={{ selected: active }}
                   key={href}
                   onPress={() => router.navigate(item.href)}
-                  style={[styles.localItem, { minWidth: fanTeam ? 56 : 64 }]}>
+                  style={styles.localItem}>
                   <Text style={{ color: active ? accent : theme.muted, ...fonts.display, fontSize: 14, lineHeight: 21 }}>{item.label}</Text>
                   {active ? <View style={[styles.activeLine, { backgroundColor: accent }]} /> : null}
                 </Pressable>
@@ -321,7 +322,7 @@ const styles = StyleSheet.create({
   loginText: { color: '#ffffff', fontSize: 13, lineHeight: 19.5, maxWidth: 52 },
   localBar: { height: 49, left: 0, position: 'absolute', right: 0, zIndex: 40 },
   localContent: { minWidth: '100%' },
-  localItem: { alignItems: 'center', flexBasis: 0, flexGrow: 1, height: 48, justifyContent: 'center', paddingBottom: 3, paddingTop: 2, position: 'relative' },
+  localItem: { alignItems: 'center', flexShrink: 0, height: 48, justifyContent: 'center', paddingHorizontal: 16, paddingBottom: 3, paddingTop: 2, position: 'relative' },
   activeLine: { bottom: 0, height: 3, left: 0, position: 'absolute', right: 0 },
   footer: { paddingHorizontal: 16 },
   stickyHeader: { left: 0, paddingHorizontal: 16, position: 'absolute', right: 0, zIndex: 30 },
