@@ -17,6 +17,8 @@ export function TransferManager({ market, season, teams }: { market: TransferMar
   const [failed, setFailed] = useState(false);
   const [editing, setEditing] = useState<TransferEvent | null>(null);
   const [toTeamId, setToTeamId] = useState("");
+  const [fromTeamId, setFromTeamId] = useState("");
+  const [customFrom, setCustomFrom] = useState("");
   const [kind, setKind] = useState("transfer"), [role, setRole] = useState("TOP"), [provenance, setProvenance] = useState("official");
   const formRef = useRef<HTMLFormElement>(null);
   const events = market ? marketEvents(market) : [];
@@ -27,6 +29,11 @@ export function TransferManager({ market, season, teams }: { market: TransferMar
     ...(legacyDestination ? [{ value: "legacy", label: legacyDestination }] : []),
     ...teams.map((team) => ({ value: team.id, label: team.name })),
   ];
+  const fromOptions = [{ value: "", label: "선택 안 함" },
+    ...teams.map((team) => ({ value: team.id, label: team.name })),
+    { value: "custom", label: "직접 입력" },
+  ];
+  const fromTeam = teams.find((team) => team.id === fromTeamId);
 
   function run(task: () => Promise<string>) {
     setMessage(""); setFailed(false);
@@ -38,6 +45,8 @@ export function TransferManager({ market, season, teams }: { market: TransferMar
   function edit(event: TransferEvent | null) {
     setEditing(event); setKind(event?.kind ?? "transfer"); setRole(event?.role ?? "TOP"); setProvenance(event?.provenance ?? "official");
     setToTeamId(event?.to ? findTransferTeam(event.to, teams)?.id ?? "legacy" : "");
+    setFromTeamId(event?.from ? findTransferTeam(event.from, teams)?.id ?? "custom" : "");
+    setCustomFrom(event?.from ?? "");
     formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
@@ -64,11 +73,12 @@ export function TransferManager({ market, season, teams }: { market: TransferMar
         <input type="hidden" name="season" value={season} /><input type="hidden" name="id" value={editing?.id ?? ""} />
         <input type="hidden" name="kind" value={kind} /><input type="hidden" name="role" value={role} /><input type="hidden" name="provenance" value={provenance} />
         <input type="hidden" name="toTeamId" value={noDestination ? "" : selectedTeam?.id ?? ""} /><input type="hidden" name="to" value={noDestination ? "" : selectedTeam?.name ?? legacyDestination} />
+        {fromTeamId !== "custom" && <input type="hidden" name="from" value={fromTeam?.name ?? ""} />}
         <div className="flex flex-wrap gap-3"><FilterDropdown ariaLabel="변동 종류" selected={kind} onSelect={setKind} options={Object.entries(TRANSFER_KIND_LABELS).map(([value, label]) => ({ value, label }))} triggerTypography="ui" /><FilterDropdown ariaLabel="포지션" selected={role} onSelect={setRole} options={[...TRANSFER_ROLES, "COACH"].map((value) => ({ value, label: value === "COACH" ? "감독 / 코치" : value }))} triggerTypography="ui" /><FilterDropdown ariaLabel="확인 상태" selected={provenance} onSelect={setProvenance} options={[{ value: "official", label: "공식 발표" }, { value: "report", label: "보도" }, { value: "namuwiki", label: "나무위키" }]} triggerTypography="ui" /></div>
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="text-sm font-medium">선수 닉네임<input name="player" required maxLength={50} defaultValue={editing?.player} className={inputClass} /></label>
           <label className="text-sm font-medium">발표일<input name="date" type="date" required defaultValue={editing?.date ?? new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul" }).format(new Date())} className={inputClass} /></label>
-          <label className="text-sm font-medium">이전 팀<input name="from" required maxLength={100} placeholder="T1 또는 FA" defaultValue={editing?.from} className={inputClass} /></label>
+          <div className="min-w-0 text-sm font-medium"><span>이전 팀</span><FilterDropdown ariaLabel="이전 팀" selected={fromTeamId} onSelect={setFromTeamId} options={fromOptions} disabled={pending} triggerTypography="ui" rootClassName="mt-1" triggerClassName="min-h-11 w-full justify-between bg-[var(--ui-surface)] px-3 py-2" />{fromTeamId === "custom" && <input name="from" aria-label="이전 팀 직접 입력" required maxLength={100} placeholder="팀명 또는 FA" value={customFrom} onChange={(event) => setCustomFrom(event.target.value)} disabled={pending} className={inputClass} />}</div>
           <div className="min-w-0 text-sm font-medium"><span>새 팀</span><FilterDropdown ariaLabel="새 팀" selected={noDestination ? "" : toTeamId} onSelect={setToTeamId} options={teamOptions} disabled={pending || noDestination} triggerTypography="ui" rootClassName="mt-1" triggerClassName="min-h-11 w-full justify-between bg-[var(--ui-surface)] px-3 py-2" /></div>
           <label className="text-sm font-medium">출처 링크<input name="sourceUrl" type="url" required placeholder="https://" defaultValue={editing?.references[0] ?? editing?.sourceUrl} className={inputClass} /></label>
           <label className="text-sm font-medium">계약 종료일 (선택)<input name="contractUntil" type="date" defaultValue={editing?.contractUntil ?? ""} className={inputClass} /></label>
