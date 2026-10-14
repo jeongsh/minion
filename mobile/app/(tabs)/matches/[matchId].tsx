@@ -26,12 +26,12 @@ import { useAuth } from '@/providers/auth-provider';
 const COLLAPSIBLE_HEADER_HEIGHT = 56;
 
 export default function MatchDetailScreen() {
-  const { matchId, set: requestedSet, tab: requestedTab } = useLocalSearchParams<{ matchId: string; set?: string; tab?: string }>();
+  const { matchId, set: requestedSet, tab: requestedTab, player: requestedPlayerId } = useLocalSearchParams<{ matchId: string; set?: string; tab?: string; player?: string }>();
   // 알림으로 같은 경기의 다른 세트에 재진입하면 기존 탭/세트 상태도 새 경로에 맞춘다.
-  return <MatchDetailContent key={JSON.stringify([matchId, requestedSet, requestedTab])} matchId={matchId} requestedSet={requestedSet} requestedTab={requestedTab} />;
+  return <MatchDetailContent key={JSON.stringify([matchId, requestedSet, requestedTab, requestedPlayerId])} matchId={matchId} requestedSet={requestedSet} requestedTab={requestedTab} requestedPlayerId={requestedPlayerId} />;
 }
 
-function MatchDetailContent({ matchId, requestedSet, requestedTab }: { matchId: string; requestedSet?: string; requestedTab?: string }) {
+function MatchDetailContent({ matchId, requestedSet, requestedTab, requestedPlayerId }: { matchId: string; requestedSet?: string; requestedTab?: string; requestedPlayerId?: string }) {
   const isFocused = useIsFocused();
   const { loading: authLoading, session } = useAuth();
   const { fonts, theme } = useMinionTheme();
@@ -127,7 +127,7 @@ function MatchDetailContent({ matchId, requestedSet, requestedTab }: { matchId: 
               <CompactScoreboard set={data.activeSet} />
               <ContentBanner enabled={Boolean(data.activeSet.winnerTeamId)} />
               <MatchPlayerStatTable set={data.activeSet} />
-              <MatchPlayerBuildPanel entries={data.activeSet.playerBuilds ?? []} />
+              <MatchPlayerBuildPanel key={activeSetId} entries={data.activeSet.playerBuilds ?? []} requestedPlayerId={requestedPlayerId} />
               <SetTimelineSection players={data.players} set={data.activeSet} />
             </View>
           ) : (

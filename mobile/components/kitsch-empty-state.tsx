@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { useEffect, useRef, type ReactNode } from 'react';
-import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, StyleSheet, Text, View, type StyleProp, type TextStyle } from 'react-native';
 
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 
@@ -21,6 +21,8 @@ export function KitschEmptyState({
   compact = false,
   plain = false,
   title,
+  titleStyle,
+  bodyStyle,
 }: {
   action?: ReactNode;
   animated?: boolean;
@@ -29,6 +31,8 @@ export function KitschEmptyState({
   compact?: boolean;
   plain?: boolean;
   title: string;
+  titleStyle?: StyleProp<TextStyle>;
+  bodyStyle?: StyleProp<TextStyle>;
 }) {
   const { colorScheme, fonts, theme } = useMinionTheme();
   const bob = useRef(new Animated.Value(0)).current;
@@ -54,8 +58,8 @@ export function KitschEmptyState({
       <Animated.View style={transform ? { transform } : undefined}>
         <Image contentFit="contain" source={CHARACTER_IMAGES[character]} style={compact ? styles.compactCharacter : styles.character} />
       </Animated.View>
-      <Text style={[compact ? styles.compactTitle : styles.title, { color: theme.ink, ...fonts.display }]}>{title}</Text>
-      {body ? <Text style={[styles.body, { color: theme.muted, ...fonts.regular }]}>{body}</Text> : null}
+      <Text style={[compact ? styles.compactTitle : styles.title, { color: theme.ink, ...fonts.display }, titleStyle]}>{title}</Text>
+      {body ? <Text style={[styles.body, { color: theme.muted, ...fonts.regular }, bodyStyle]}>{body}</Text> : null}
       {action ? <View style={styles.action}>{action}</View> : null}
     </View>
   );
