@@ -84,6 +84,7 @@ export type MobileTournamentSummary = {
 };
 
 export type MobileMatchSummary = {
+  prediction?: { teamAPercent: number; teamBPercent: number };
   id: EntityId;
   name: string;
   startsAt: IsoDateTime;
@@ -337,6 +338,8 @@ export type MobileMeDto = {
 };
 
 export type MobileHomeDto = {
+  insights?: import("./home-insights").HomeInsights | null;
+  tournamentOverview?: MobileHomeTournamentOverview | null;
   teams: MobileTeamSummary[];
   matches: MobileMatchSummary[];
   standings: Array<{ teamId: EntityId; rank: number; wins: number; losses: number; setDiff: number }>;
@@ -379,6 +382,23 @@ export type MobileHomeDto = {
     scoreLabel: string | null;
   }>;
   videos: MobileVideoItem[];
+};
+
+export type MobileHomeTournamentEntry = { stage: string; match: MobileMatchSummary };
+export type MobileHomeTournamentOverview = {
+  name: string;
+  href: string;
+  groups: Array<{ title: string; rows: Array<{ team: MobileTeamSummary; rank: number; wins: number; losses: number; setDiff: number }> }>;
+  final: MobileHomeTournamentEntry | null;
+  champion: MobileTeamSummary | null;
+  panels: Array<{ title: string; entries: MobileHomeTournamentEntry[] }>;
+  hasBracket: boolean;
+};
+
+export type MobileTransfersDto = {
+  market: import("./transfers").TransferMarket | null;
+  teams: MobileTeamSummary[];
+  players: Array<{ name: string; slug: string }>;
 };
 
 export type MobileScheduleDto = {
@@ -1212,6 +1232,7 @@ export type MobileApiRouteDefinition = {
 export const mobileApiRoutes = {
   bootstrap: { method: "GET", path: `${MOBILE_API_PREFIX}/bootstrap`, owner: "shell/auth + lib/data/lck", auth: "optional", cache: "30s" },
   home: { method: "GET", path: `${MOBILE_API_PREFIX}/home`, owner: "home aggregation service", auth: "public", cache: "30s" },
+  transfers: { method: "GET", path: `${MOBILE_API_PREFIX}/transfers`, owner: "transfer market service", auth: "public", cache: "30s" },
   schedule: { method: "GET", path: `${MOBILE_API_PREFIX}/schedule`, owner: "lib/data/lck + tournament filters", auth: "public", cache: "60s" },
   tournaments: { method: "GET", path: `${MOBILE_API_PREFIX}/tournaments`, owner: "lib/data/lck + tournaments", auth: "public", cache: "300s" },
   tournament: { method: "GET", path: `${MOBILE_API_PREFIX}/tournaments/{segment}`, owner: "tournament aggregation service", auth: "public", cache: "300s" },
@@ -1319,6 +1340,7 @@ type RouteRule = {
 
 const routeRules: RouteRule[] = [
   { pattern: /^\/$/, screen: "home", dockTab: "home" },
+  { pattern: /^\/transfers\/?$/, screen: "transfers", dockTab: null },
   { pattern: /^\/schedule\/?$/, screen: "schedule", dockTab: "matches" },
   { pattern: /^\/tournaments(?:\/([^/]+))?\/?$/, screen: "tournaments", dockTab: "matches", keys: ["segment"] },
   { pattern: /^\/predictions\/?$/, screen: "predictions", dockTab: "matches" },

@@ -9,6 +9,7 @@ export type FilterSelectOption = { label: string; value: string };
 
 export function FilterSelect({
   accessibilityLabel,
+  compact = false,
   disabled,
   label,
   onChange,
@@ -16,6 +17,7 @@ export function FilterSelect({
   value,
 }: {
   accessibilityLabel?: string;
+  compact?: boolean;
   disabled?: boolean;
   label: string;
   onChange: (value: string) => void;
@@ -28,14 +30,14 @@ export function FilterSelect({
 
   return (
     <View style={[styles.select, open && styles.selectOpen]}>
-      <Text style={[styles.selectLabel, { color: theme.muted, ...fonts.medium }]}>{label}</Text>
+      {!compact ? <Text style={[styles.selectLabel, { color: theme.muted, ...fonts.medium }]}>{label}</Text> : null}
       <Pressable
         accessibilityLabel={accessibilityLabel ?? `${label} 선택`}
         accessibilityRole="button"
         accessibilityState={{ disabled, expanded: open }}
         disabled={disabled}
         onPress={() => setOpen((current) => !current)}
-        style={[styles.selectTrigger, { backgroundColor: theme.card, borderColor: theme.border }]}>
+        style={[styles.selectTrigger, compact && styles.compactTrigger, { backgroundColor: compact ? theme.surface : theme.card, borderColor: theme.border }]}>
         <Text style={[styles.selectValue, { color: theme.ink, ...fonts.medium }]}>{selectedLabel}</Text>
         <ChevronDown color={theme.muted} size={16} style={open ? styles.chevronOpen : null} />
       </Pressable>
@@ -69,6 +71,7 @@ export function FilterSelect({
 }
 
 const styles = StyleSheet.create({
+  compactTrigger: { borderRadius: 6, height: 32, paddingHorizontal: 8 },
   chevronOpen: { transform: [{ rotate: '180deg' }] },
   select: { flex: 1, gap: 6, position: 'relative' },
   selectOpen: { zIndex: 30 },

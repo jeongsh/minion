@@ -55,29 +55,11 @@ export function HomeLoadingSkeleton() {
       </View>
       <Bone style={styles.calendar} />
 
-      <View style={styles.newsSection}>
-        <SectionTitleSkeleton />
-        <Bone style={{ borderRadius: 8, height: contentWidth * 9 / 16, width: contentWidth }} />
-        <Bone style={styles.leadTitle} />
-        <Bone style={styles.leadMeta} />
-        <View style={styles.newsRows}>
-          {Array.from({ length: 3 }, (_, index) => (
-            <View key={index} style={[styles.newsRow, { borderBottomColor: theme.divider }]}>
-              <Bone style={styles.newsThumb} />
-              <View style={styles.flex}>
-                <Bone style={styles.rowTitle} />
-                <Bone style={styles.rowTitleShort} />
-                <Bone style={styles.rowMeta} />
-              </View>
-            </View>
-          ))}
-        </View>
-      </View>
-
+      <Bone style={{ borderRadius: 16, height: 60, marginTop: 32, width: contentWidth }} />
 
       <View style={styles.section40}>
         <SectionTitleSkeleton />
-        {Array.from({ length: 5 }, (_, index) => (
+        {Array.from({ length: 6 }, (_, index) => (
           <View key={index} style={[styles.postRow, { borderBottomColor: theme.divider }]}>
             <View style={styles.flex}>
               <Bone style={styles.postTitle} />
@@ -87,35 +69,29 @@ export function HomeLoadingSkeleton() {
           </View>
         ))}
       </View>
+      <View style={styles.section40}><SectionTitleSkeleton /><Bone style={{ height: (contentWidth - 14.4) / 2.2 * 4 / 3, borderRadius: 16 }} /></View>
+      <View style={styles.section40}><SectionTitleSkeleton /><Bone style={{ height: 96 }} /></View>
+      <View style={styles.section40}><SectionTitleSkeleton /><Bone style={{ height: 220, borderRadius: 16 }} /></View>
+      {[0, 1].map((key) => <View key={key} style={{ marginTop: 24 }}><SectionTitleSkeleton /><View style={{ flexDirection: 'row', gap: 12 }}>{[0, 1].map((column) => <Bone key={column} style={{ width: (contentWidth - 14.4) / 2.2, aspectRatio: 3 / 4, borderRadius: 16 }} />)}</View></View>)}
     </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
-  ad: { borderRadius: 16, height: 100, marginTop: 32, width: '100%' },
   between: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
   bone: { borderRadius: 6 },
   calendar: { borderRadius: 10, height: 44, marginTop: 12, width: '100%' },
   flex: { flex: 1, minWidth: 0 },
-  leadMeta: { height: 12, marginTop: 8, width: '38%' },
-  leadTitle: { height: 16, marginTop: 10, width: '88%' },
-  matchCard: { borderRadius: 12, minHeight: 112, padding: 12 },
+  matchCard: { borderRadius: 12, minHeight: 119, padding: 12 },
   matchDate: { height: 10, width: 54 },
   matchMeta: { height: 10, width: 100 },
   matchTeams: { alignItems: 'center', flexDirection: 'row', gap: 8, justifyContent: 'center', marginTop: 13 },
-  newsRow: { alignItems: 'center', borderBottomWidth: 1, flexDirection: 'row', gap: 12, paddingVertical: 12 },
-  newsRows: { marginTop: 20 },
-  newsSection: { marginTop: 32 },
-  newsThumb: { borderRadius: 8, height: 58.5, width: 104 },
   odds: { borderRadius: 999, height: 4, marginTop: 15, width: '100%' },
   postMeta: { height: 10, marginTop: 7, width: '42%' },
-  postRow: { alignItems: 'center', borderBottomWidth: 1, flexDirection: 'row', gap: 10, minHeight: 58, paddingVertical: 8 },
+  postRow: { alignItems: 'center', borderBottomWidth: 1, flexDirection: 'row', gap: 12, minHeight: 65, paddingVertical: 8 },
   postThumb: { borderRadius: 8, height: 44, width: 64 },
   postTitle: { height: 13, width: '82%' },
   root: { paddingBottom: 20 },
-  rowMeta: { height: 10, marginTop: 'auto', width: '46%' },
-  rowTitle: { height: 13, width: '94%' },
-  rowTitleShort: { height: 13, marginTop: 6, width: '68%' },
   score: { borderRadius: 6, height: 30, width: 54 },
   section40: { marginTop: 40 },
   sectionAction: { height: 12, width: 52 },

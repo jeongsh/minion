@@ -10,15 +10,8 @@ import { getPlayerStatLines } from "@/lib/data/lck";
 import { CHAMPION_PAGE_DATA_TAG, getChampionDirectoryStats, getChampionPageReferenceData, resolveChampionScope } from "@/lib/data/champion-page";
 import { dateKeyKST } from "@/lib/view-data";
 
-export type HomeInsights = {
-  tournament: string;
-  date: string;
-  patches: string[];
-  setCount: number;
-  href: string;
-  champions: { id: string; name: string; image: string; artwork: string; href: string; picks: number; bans: number; presence: number | null; winRate: number | null; games: number }[];
-  builds: { id: string; player: string; playerImage: string; team: string; position: string; champion: string; image: string; artwork: string; matchup: string; date: string; setNumber: number; patch: string | null; won: boolean; href: string; items: { name: string; image: string }[] }[];
-};
+import type { HomeInsights } from "@/packages/contracts/src/home-insights";
+export type { HomeInsights } from "@/packages/contracts/src/home-insights";
 
 const empty: HomeInsights = { tournament: "", date: "", patches: [], setCount: 0, href: "/champions", champions: [], builds: [] };
 

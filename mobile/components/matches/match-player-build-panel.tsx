@@ -90,10 +90,10 @@ function Skills({ entry }: { entry: MobileSetPlayerBuild }) {
   </View>;
 }
 
-export function MatchPlayerBuildPanel({ entries }: { entries: MobileSetPlayerBuild[] }) {
+export function MatchPlayerBuildPanel({ entries, requestedPlayerId }: { entries: MobileSetPlayerBuild[]; requestedPlayerId?: string }) {
   const { fonts, theme } = useMinionTheme();
   const { width } = useWindowDimensions();
-  const [selectedId, setSelectedId] = useState(entries[0]?.playerId ?? '');
+  const [selectedId, setSelectedId] = useState(requestedPlayerId ?? entries[0]?.playerId ?? '');
   const selected = entries.find((entry) => entry.playerId === selectedId) ?? entries[0];
   const sm = width >= 640;
   if (!selected) return null;

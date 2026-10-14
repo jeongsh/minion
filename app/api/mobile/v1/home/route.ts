@@ -3,9 +3,10 @@ import { unstable_cache } from "next/cache";
 import type { MobileHomeDto } from "@/packages/contracts/src/mobile-v1";
 import { getMobileHomePublicData, HOME_PUBLIC_DATA_TAG } from "@/lib/data/home-cache";
 import { buildHomePomEntries, getHomePomPlayers, HOME_POM_TAG } from "@/lib/data/home-pom";
-import { getLckChannelVideos } from "@/lib/data/lck-channel-videos";
-import { getHomeNewsFeed } from "@/lib/data/naver-news";
-import { scheduleNewsThumbnailWarmup } from "@/lib/data/news-thumbnail-warmup";
+import { getStages, getBracketStages } from "@/lib/data/lck";
+import { getHomeInsights } from "@/lib/data/home-insights";
+import { mobileHomeOverview } from "@/lib/mobile/home-overview";
+import { getPredictionMarketData, predictionMarketForMatch } from "@/lib/predictions";
 import { getBoardPosts } from "@/lib/data/community";
 import {
   COMMUNITY_HOME_HOT_CANDIDATE_LIMIT,
@@ -20,15 +21,16 @@ import { buildTeamStandingRows, dateKeyKST } from "@/lib/view-data";
 export const revalidate = 30;
 
 async function buildMobileHomeData(): Promise<MobileHomeDto> {
-  const [{ teams, matches, tournaments, calendarEvents }, news, videos, popularCommunityPosts, latestCommunityPosts, pomPlayers] = await Promise.all([
+  const [{ teams, matches, tournaments, calendarEvents }, popularCommunityPosts, latestCommunityPosts, pomPlayers, stages, bracketStages, insights, predictionMarket] = await Promise.all([
     getMobileHomePublicData(),
-    getHomeNewsFeed(6),
-    getLckChannelVideos(),
     getBoardPosts({ scope: "hub", hotOnly: true, limit: COMMUNITY_HOME_HOT_CANDIDATE_LIMIT }),
     getBoardPosts({ scope: "hub", limit: COMMUNITY_HOME_LATEST_CANDIDATE_LIMIT }),
     getHomePomPlayers(),
+    getStages(),
+    getBracketStages(),
+    getHomeInsights().catch((error) => { console.error("Home insights unavailable", error); return null; }),
+    getPredictionMarketData(),
   ]);
-  scheduleNewsThumbnailWarmup(news.articles);
   const pomEntries = buildHomePomEntries({ matches, players: pomPlayers, teams, tournaments });
   const communityPosts = selectCommunityHomePosts(popularCommunityPosts, latestCommunityPosts);
   const teamMap = new Map(teams.map((team) => [team.id, team]));
@@ -43,7 +45,10 @@ async function buildMobileHomeData(): Promise<MobileHomeDto> {
     ...matches.filter((match) => match.status === "completed" && dateKeyKST(match.matchDate) === todayKey).sort(byDateDesc),
   ].slice(0, 12);
   if (sectionMatches.length === 0) sectionMatches = matches.filter((match) => match.status === "completed").sort(byDateDesc).slice(0, 6);
-  const orderedMatches = sectionMatches.map((match) => toMobileMatch(match, teamMap, tournamentMap));
+  const orderedMatches = sectionMatches.map((match) => {
+    const { teamAPercent, teamBPercent } = predictionMarketForMatch(predictionMarket.bets, match.id, match.teamAId, match.teamBId);
+    return { ...toMobileMatch(match, teamMap, tournamentMap), prediction: { teamAPercent, teamBPercent } };
+  });
   const lckTeams = teams.filter((team) => team.isLckTeam);
   const latestSeason = tournaments.length > 0 ? Math.max(...tournaments.map((tournament) => tournament.season)) : new Date().getFullYear();
   const regularSeasonTournamentIds = new Set(tournaments
@@ -66,6 +71,8 @@ async function buildMobileHomeData(): Promise<MobileHomeDto> {
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([date, dateMatches]) => ({ date, matches: dateMatches }));
   const data: MobileHomeDto = {
+    insights,
+    tournamentOverview: mobileHomeOverview({ teams, matches, tournaments, stages, bracketStages }),
     calendar,
     calendarEvents: calendarEvents.map((event) => ({
       date: event.nextDateKey,
@@ -119,14 +126,7 @@ async function buildMobileHomeData(): Promise<MobileHomeDto> {
       viewCount: post.viewCount,
     })),
     matches: orderedMatches,
-    news: news.articles.map((article) => ({
-      id: article.id,
-      publishedAt: article.publishedAt,
-      source: article.source,
-      thumbnail: article.thumbnailUrl ? { height: article.thumbnailHeight, url: article.thumbnailUrl, width: article.thumbnailWidth } : null,
-      title: article.title,
-      url: article.url,
-    })),
+    news: [],
     standings: standingRows.slice(0, 10).map((row) => ({ losses: row.matchLosses, rank: row.rank, setDiff: row.setDiff, teamId: row.team.id, wins: row.matchWins })),
     teams: lckTeams.map(toMobileTeam),
     pom: pomEntries.map((entry) => ({
@@ -142,14 +142,14 @@ async function buildMobileHomeData(): Promise<MobileHomeDto> {
       teamShortName: entry.teamShortName,
       tournamentName: entry.tournamentName,
     })),
-    videos: videos.slice(0, 12).map((video) => ({ channelName: video.channelName, id: video.id, publishedAt: video.publishedAt, thumbnail: { url: video.thumbnailUrl }, title: video.title, url: video.videoUrl })),
+    videos: [],
   };
   return data;
 }
 
 const getMobileHomeData = unstable_cache(
   buildMobileHomeData,
-  ["mobile-home-v1-response"],
+  ["mobile-home-v1-response-web-sync"],
   { revalidate: 30, tags: [HOME_PUBLIC_DATA_TAG, HOME_POM_TAG] },
 );
 

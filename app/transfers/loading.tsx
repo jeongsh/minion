@@ -2,7 +2,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function TransfersLoading() {
   return <main className="layout-wide pb-16 pt-5 sm:pt-7" data-route-loading="true" aria-busy="true" aria-label="이적시장 불러오는 중">
-    <Skeleton className="mb-3 h-9 w-32" />
+    <Skeleton className="mb-3 h-7 w-24 sm:h-[42px] sm:w-32" />
     <div className="mb-4 flex gap-2 overflow-hidden">{[264, 168, 195, 180, 172].map((width, i) => <div key={i} style={{ width }} className="shrink-0 rounded-lg bg-[var(--ui-card-bg)] px-3 py-2"><Skeleton className="h-7 w-full" /></div>)}</div>
     <div className="mb-4 inline-flex h-[38px] items-center gap-0.5 rounded-[10px] bg-[var(--ui-card-bg)] p-[3px]"><Skeleton className="h-8 w-24 rounded-lg" /><Skeleton className="h-8 w-24 rounded-lg" /><Skeleton className="h-8 w-12 rounded-lg" /></div>
     <Skeleton className="mb-4 h-8 w-[140px] rounded-md" />

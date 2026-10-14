@@ -42,7 +42,7 @@ export function FanChannelNavigation({ teamSlug }: { teamSlug: string }) {
           const href = hrefFor(tab.segment);
           const active = isActive(tab.segment);
           return (
-            <Link key={href} href={href} aria-current={active ? "page" : undefined} className={`flex min-w-[56px] flex-1 items-center justify-center border-b-[3px] pt-0.5 text-[14px] font-bold transition-colors font-paperozi ${active ? "border-[var(--team-accent-text)] text-[var(--team-accent-text)]" : "border-transparent text-[var(--ui-muted)] hover:text-[var(--ui-ink)]"}`}>
+            <Link key={href} href={href} aria-current={active ? "page" : undefined} className={`flex shrink-0 items-center justify-center border-b-[3px] px-4 pt-0.5 text-[14px] font-bold transition-colors font-paperozi ${active ? "border-[var(--team-accent-text)] text-[var(--team-accent-text)]" : "border-transparent text-[var(--ui-muted)] hover:text-[var(--ui-ink)]"}`}>
               <span className="whitespace-nowrap">{tab.label}</span>
             </Link>
           );
@@ -51,7 +51,7 @@ export function FanChannelNavigation({ teamSlug }: { teamSlug: string }) {
           const href = hrefFor(tab.segment);
           const active = isActive(tab.segment);
           return (
-            <Link key={href} href={href} aria-current={active ? "page" : undefined} className={`flex min-w-[56px] flex-1 items-center justify-center border-b-[3px] pt-0.5 text-[14px] font-bold transition-colors font-paperozi ${active ? "border-[var(--team-accent-text)] text-[var(--team-accent-text)]" : "border-transparent text-[var(--ui-muted)] hover:text-[var(--ui-ink)]"}`}>
+            <Link key={href} href={href} aria-current={active ? "page" : undefined} className={`flex shrink-0 items-center justify-center border-b-[3px] px-4 pt-0.5 text-[14px] font-bold transition-colors font-paperozi ${active ? "border-[var(--team-accent-text)] text-[var(--team-accent-text)]" : "border-transparent text-[var(--ui-muted)] hover:text-[var(--ui-ink)]"}`}>
               <span className="whitespace-nowrap">{tab.label}</span>
             </Link>
           );

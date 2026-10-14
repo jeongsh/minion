@@ -119,7 +119,7 @@ export function HomeLoadingSkeleton() {
         </div>
         <Skeleton className="mt-3 h-11 w-full rounded-xl" />
       </section>
-      <Skeleton className="h-[72px] w-full rounded-2xl sm:h-[84px]" />
+      <Skeleton className="h-[60px] w-full rounded-2xl sm:h-[72px]" />
       <Skeleton className="h-24 w-full rounded-2xl" />
       <section>
         <SectionTitle width="w-40" />
