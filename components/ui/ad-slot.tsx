@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { isAdContentPath } from "@/lib/ads-policy";
 import { canRequestAd, loadAdScript } from "@/components/ads/ad-runtime";
@@ -42,7 +42,9 @@ export function AdSlot({
   enabled?: boolean;
 }) {
   const containerRef = useRef<HTMLElement>(null);
+  const adRef = useRef<HTMLModElement>(null);
   const initializedRef = useRef(false);
+  const [unfilled, setUnfilled] = useState(false);
   const pathname = usePathname();
   const allowed = enabled && isAdContentPath(pathname);
   const slot = slotFor(placement);
@@ -51,7 +53,8 @@ export function AdSlot({
 
   useEffect(() => {
     const container = containerRef.current;
-    if (!configured || !container || initializedRef.current) return;
+    const ad = adRef.current;
+    if (!configured || !container || !ad || initializedRef.current) return;
 
     let disposed = false;
     let pending = false;
@@ -64,6 +67,8 @@ export function AdSlot({
         await loadAdScript(AD_CLIENT!);
         const currentSize = container.getBoundingClientRect();
         if (disposed || !canRequestAd(container) || currentSize.width < 120 || currentSize.height < 50) return;
+        // Request the reserved height instead of letting Auto sizing expand it.
+        ad.style.height = `${currentSize.height}px`;
         window.adsbygoogle = window.adsbygoogle || [];
         window.adsbygoogle.push({});
         initializedRef.current = true;
@@ -74,10 +79,14 @@ export function AdSlot({
       }
     };
 
+    const statusObserver = new MutationObserver(() => {
+      setUnfilled(ad.dataset.adStatus === "unfilled");
+    });
+    statusObserver.observe(ad, { attributes: true, attributeFilter: ["data-ad-status"] });
     requestAd();
     const observer = new ResizeObserver(requestAd);
     observer.observe(container);
-    return () => { disposed = true; observer.disconnect(); };
+    return () => { disposed = true; observer.disconnect(); statusObserver.disconnect(); };
   }, [configured, pathname]);
 
   if (!allowed) return null;
@@ -92,15 +101,16 @@ export function AdSlot({
         data-ad-page={pathname}
         data-ad-content={configured ? "true" : undefined}
         aria-label="광고"
-        className={`min-w-0 ${configured ? "" : "grid place-items-center rounded-[var(--ui-card-radius)] bg-[var(--ui-ad-surface)] text-[12px] font-medium tracking-[.18em] text-[#96999f]"} ${className}`}
+        style={unfilled ? { display: "none" } : undefined}
+        className={`min-w-0 ${resolvedFormat !== "rectangle" ? "max-md:!h-[100px]" : ""} ${configured ? "" : "grid place-items-center rounded-[var(--ui-card-radius)] bg-[var(--ui-ad-surface)] text-[12px] font-medium tracking-[.18em] text-[#96999f]"} ${className}`}
       >
         {configured ? (
           <ins
+            ref={adRef}
             className="adsbygoogle block h-full w-full"
+            style={{ display: "block", width: "100%", height: "100%" }}
             data-ad-client={AD_CLIENT}
             data-ad-slot={slot}
-            data-ad-format={resolvedFormat}
-            data-full-width-responsive={resolvedFormat === "auto" ? "true" : "false"}
           />
         ) : (
           "ADVERTISEMENT"
