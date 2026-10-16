@@ -110,12 +110,17 @@ export default async function HomePage({
   }
   const tournamentNamesById = new Map(tournaments.map((tournament) => [tournament.id, tournament.name]));
   const tournamentLeagueById = new Map(tournaments.map((tournament) => [tournament.id, tournament.league ?? ""]));
+  const tournamentLogosById = new Map(tournaments.map((tournament) => [
+    tournament.id,
+    ALL_SEGMENTS.find((segment) => matchesTournamentSegment(tournament, segment.key))?.logo,
+  ]));
 
   const matchItems: HomeMatchItem[] = sectionMatches.map((match) => ({
     match,
     teamA: teamsById.get(match.teamAId),
     teamB: teamsById.get(match.teamBId),
     tournament: tournamentNamesById.get(match.tournamentId),
+    tournamentLogo: tournamentLogosById.get(match.tournamentId),
     bets: predictionBetsByMatchId.get(match.id) ?? [],
   }));
 

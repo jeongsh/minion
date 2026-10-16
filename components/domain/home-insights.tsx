@@ -42,7 +42,7 @@ function PresenceRing({ value }: { value: number | null }) {
 }
 
 function ChampionArt({ src }: { src: string }) {
-  return src ? <Image src={src} alt="" fill sizes="(max-width: 519px) 45vw, (max-width: 767px) 31vw, (max-width: 1279px) 24vw, 220px" className="object-cover object-[center_25%]" /> : null;
+  return src ? <Image src={src} alt="" fill sizes="(max-width: 519px) 45vw, (max-width: 767px) 31vw, (max-width: 1279px) 24vw, 220px" className="scale-110 object-cover object-[center_25%]" /> : null;
 }
 
 export function HomeMetaSection({ data }: { data: HomeInsights | null }) {
