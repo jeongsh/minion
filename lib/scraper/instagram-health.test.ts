@@ -1,171 +1,38 @@
-import test, { after } from "node:test";
+import test from "node:test";
 import assert from "node:assert/strict";
-import { getBrowser, closeBrowser, scrapeInstagramPosts } from "./instagram-browser.ts";
 import { syncOwnerPosts } from "../sync/instagram.ts";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { hasConnectionFailure } from "../sync/social-health.ts";
-import { parseInstagramCookie } from "./instagram-cookie.ts";
+import { fetchInstagramGraphPosts } from "./instagram-graph.ts";
 
-test("cookie configuration requires a single sessionid without revealing values", () => {
-  assert.deepEqual(parseInstagramCookie("Cookie: sessionid=secret%3Avalue; csrftoken=csrf; ds_user_id=123"), [
-    { name: "sessionid", value: "secret%3Avalue" }, { name: "csrftoken", value: "csrf" }, { name: "ds_user_id", value: "123" },
-  ]);
-  assert.deepEqual(parseInstagramCookie("123%3Atest-session%3A1%3Atest-signature"), [{ name: "sessionid", value: "123%3Atest-session%3A1%3Atest-signature" }]);
-  assert.deepEqual(parseInstagramCookie("123:test-session:1:test-signature"), [{ name: "sessionid", value: "123:test-session:1:test-signature" }]);
-  for (const value of ["123456", "private-value", "csrftoken=private-value", "sessionid=", '"sessionid=private-value"', "sessionid=private-value; sessionid=other", "sessionid=private-value\ncsrftoken=other"]) {
-    assert.throws(() => parseInstagramCookie(value), (error: Error) => {
-      assert.match(error.message, /^INSTAGRAM_COOKIE_FORMAT:/);
-      assert.ok(!error.message.includes("private-value"));
-      assert.equal(hasConnectionFailure("sync-instagram.yml", `[error] ${error.message}`), false);
-      return true;
-    });
-  }
-});
-
-after(closeBrowser);
-async function fixture(html: (cookie: string, url: string) => string | { body: string; status?: number; contentType?: string; headers?: Record<string, string> }, action: () => Promise<void>) {
-  const browser = await getBrowser();
-  const original = browser.newContext.bind(browser);
-  browser.newContext = async (...args) => {
-    const context = await original(...args);
-    await context.route("**/*", (route) => {
-      const response = html(route.request().headers().cookie ?? "", route.request().url());
-      return route.fulfill({ contentType: "text/html; charset=utf-8", ...(typeof response === "string" ? { body: response } : response) });
-    });
-    return context;
-  };
-  try { await action(); } finally { browser.newContext = original; }
-}
-test("blank Instagram output is an error, not a healthy zero-post sync", async () => {
-  await fixture(() => "<html><title>Instagram</title><body>Unavailable</body></html>", async () => {
-    await assert.rejects(scrapeInstagramPosts("test"), /INSTAGRAM_EMPTY/);
+test("official API failures stop without browser or cookie requests", async (t) => {
+  const previous = { token: process.env.INSTAGRAM_GRAPH_ACCESS_TOKEN, id: process.env.INSTAGRAM_GRAPH_USER_ID };
+  process.env.INSTAGRAM_GRAPH_ACCESS_TOKEN = "fixture-token";
+  process.env.INSTAGRAM_GRAPH_USER_ID = "123";
+  t.after(() => {
+    if (previous.token === undefined) delete process.env.INSTAGRAM_GRAPH_ACCESS_TOKEN; else process.env.INSTAGRAM_GRAPH_ACCESS_TOKEN = previous.token;
+    if (previous.id === undefined) delete process.env.INSTAGRAM_GRAPH_USER_ID; else process.env.INSTAGRAM_GRAPH_USER_ID = previous.id;
   });
-});
-test("public login gate is reported without claiming an expired saved session", async () => {
-  await fixture(() => "<html><title>Login • Instagram</title></html>", async () => {
-    await assert.rejects(scrapeInstagramPosts("test"), (error: Error) => {
-      assert.match(error.message, /INSTAGRAM_LOGIN_REQUIRED:/);
-      assert.equal(hasConnectionFailure("sync-instagram.yml", `[error] ${error.message}`), false);
-      return true;
-    });
-  });
-});
-
-test("private profile notice does not retry anonymously or claim session failure", async () => {
-  let attempts = 0;
-  await fixture(() => { attempts++; return "<title>Instagram</title><body>비공개 프로필입니다 사진과 동영상을 보려면 팔로우하세요.</body>"; }, async () => {
-    await assert.rejects(scrapeInstagramPosts("test", "sessionid=valid"), (error: Error) => {
-      assert.match(error.message, /^INSTAGRAM_PRIVATE:/);
-      assert.equal(hasConnectionFailure("sync-instagram.yml", `[error] ${error.message}`), false);
-      return true;
-    });
-    assert.equal(attempts, 1);
-  });
-});
-
-test("a repeated feed page with an advancing cursor can reach newer pages", async () => {
-  let pageNumber = 0;
-  await fixture((_cookie, url) => {
-    if (url.includes('/graphql/')) {
-      const current = pageNumber++;
-      const node = { pk: current < 2 ? '1' : '2', code: current < 2 ? 'FIRST' : 'SECOND', taken_at: 1789000000 };
-      return { contentType: 'application/json', body: JSON.stringify({ data: { xdt_api__v1__feed__user_timeline_graphql_connection: { edges: [{ node }], page_info: { has_next_page: current < 2, end_cursor: `cursor-${current}` } } } }) };
-    }
-    return '<title>Instagram</title><body style="height:4000px"><script>fetch("/graphql/query"); addEventListener("scroll",()=>fetch("/graphql/query"));</script></body>';
-  }, async () => {
-    const posts = await scrapeInstagramPosts('test', 'sessionid=valid', 2);
-    assert.deepEqual(posts.map(post => post.shortcode).sort(), ['FIRST', 'SECOND']);
-    assert.ok(pageNumber >= 3);
-  });
-});
-
-test("an explicit missing profile does not retry with an anonymous session", async () => {
-  let attempts = 0;
-  await fixture(() => { attempts++; return '<title>Instagram</title><body>죄송합니다. 페이지를 사용할 수 없습니다.</body>'; }, async () => {
-    await assert.rejects(scrapeInstagramPosts('test', 'sessionid=valid'), /INSTAGRAM_UNAVAILABLE:/);
-    assert.equal(attempts, 1);
-  });
-});
-
-test("an explicit no-posts heading is a valid empty profile without a public retry", async () => {
-  let attempts = 0;
-  await fixture(() => { attempts++; return '<title>Instagram</title><body><main><h1>게시물 없음</h1></main></body>'; }, async () => {
-    assert.deepEqual(await scrapeInstagramPosts('test', 'sessionid=valid'), []);
-    assert.equal(attempts, 1);
-  });
-});
-
-test("saved-session login failure is retained when the public retry also requires login", async () => {
-  let attempts = 0;
-  await fixture(() => { attempts++; return "<title>Login • Instagram</title>"; }, async () => {
-    await assert.rejects(scrapeInstagramPosts("test", "sessionid=expired"), (error: Error) => {
-      assert.equal(hasConnectionFailure("sync-instagram.yml", `[error] ${error.message}`), true);
-      return true;
-    });
-    assert.equal(attempts, 2);
-  });
-});
-
-test("a rate-limited public retry stays a rate limit, not a session-expiry alert", async () => {
-  let attempts = 0;
-  await fixture((cookie) => {
-    attempts++;
-    return cookie.includes("sessionid=") ? "<title>Login • Instagram</title>" : { status: 429, headers: { "retry-after": "120" }, body: "Too Many Requests" };
-  }, async () => {
-    await assert.rejects(scrapeInstagramPosts("test", "sessionid=expired"), (error: Error) => {
-      assert.match(error.message, /INSTAGRAM_HTTP_429:.*Retry-After=120/);
-      assert.equal(hasConnectionFailure("sync-instagram.yml", `[error] ${error.message}`), false);
-      return true;
-    });
-    assert.equal(attempts, 2);
-  });
-});
-
-test("session verification cannot pass by silently retrying without the saved cookie", async () => {
-  let attempts = 0;
-  await fixture(() => { attempts++; return "<title>Login • Instagram</title>"; }, async () => {
-    await assert.rejects(scrapeInstagramPosts("test", "sessionid=expired", 12, { allowPublicFallback: false }), /INSTAGRAM_SESSION_REJECTED:/);
-    assert.equal(attempts, 1);
-  });
-});
-
-test("root login form with a generic title identifies a rejected session", async () => {
-  await fixture(() => '<title>Instagram</title><input type="password" aria-label="비밀번호"><script>history.replaceState({}, "", "/")</script>', async () => {
-    await assert.rejects(scrapeInstagramPosts("test", "sessionid=expired", 12, { allowPublicFallback: false }), /INSTAGRAM_SESSION_REJECTED:/);
-    await assert.rejects(scrapeInstagramPosts("test", undefined), /INSTAGRAM_LOGIN_REQUIRED:/);
-  });
-});
-
-test("feed API rate limits stop even when the profile document returned HTTP 200", async () => {
-  await fixture((_cookie, url) => url.includes("/graphql/")
-    ? { status: 429, body: "{}", contentType: "application/json", headers: { "retry-after": "60" } }
-    : '<title>Instagram</title><script>fetch("/graphql/query")</script>', async () => {
-    await assert.rejects(scrapeInstagramPosts("test", "sessionid=valid"), /INSTAGRAM_HTTP_429:.*Retry-After=60/);
-  });
-});
-
-test("pagination preserves HTTP 429 instead of mislabeling status fail as a login error", async () => {
-  const initial = { data: { user: { id: "123", edge_owner_to_timeline_media: { count: 2, edges: [], page_info: { has_next_page: true, end_cursor: "next" } } } } };
   let requests = 0;
-  await fixture((_cookie, url) => {
+  t.mock.method(globalThis, "fetch", async (input: string | URL | Request, init?: RequestInit) => {
     requests++;
-    if (url.includes("/graphql/")) return { body: JSON.stringify(initial), contentType: "application/json" };
-    if (url.includes("/api/v1/feed/")) return { status: 429, body: '{"status":"fail"}', contentType: "application/json", headers: { "retry-after": "90" } };
-    return '<title>Instagram</title><body style="height:4000px"><script>fetch("/graphql/query"); addEventListener("scroll",()=>fetch("/api/v1/feed/test/"),{once:true});</script></body>';
-  }, async () => {
-    await assert.rejects(scrapeInstagramPosts("test", "sessionid=valid"), /INSTAGRAM_HTTP_429:.*Retry-After=90/);
-    assert.equal(requests, 3);
+    const url = new URL(String(input));
+    assert.equal(url.origin, "https://graph.facebook.com");
+    assert.equal(url.searchParams.has("access_token"), false);
+    const headers = new Headers(init?.headers);
+    assert.equal(headers.get("Authorization"), "Bearer fixture-token");
+    assert.equal(headers.has("Cookie"), false);
+    return Response.json({ error: { code: 190, error_subcode: 463 } }, { status: 401 });
   });
-});
-test("expired cookie retries public profile and reads its prefetched posts", async () => {
-  const data = { polaris_ordered_timeline_connection: { edges: [{ node: { code: "TEST", pk: "1", taken_at: 1789000000, display_uri: "https://example.com/image.jpg", user: { username: "test" }, caption: { text: "test caption" } } }] } };
-  let attempts = 0;
-  await fixture((cookie) => { attempts++; return cookie.includes("sessionid=") ? "<title>Login • Instagram</title>" : `<script type="application/json">${JSON.stringify(data)}</script>`; }, async () => {
-    const posts = await scrapeInstagramPosts("test", "sessionid=expired");
-    assert.equal(posts.length, 1);
-    assert.equal(posts[0].shortcode, "TEST");
-    assert.equal(attempts, 2);
+  await assert.rejects(fetchInstagramGraphPosts("t1lol", 1), (error: Error) => {
+    assert.match(error.message, /INSTAGRAM_GRAPH_STOP:.*HTTP=401 code=190 subcode=463/);
+    assert.ok(!error.message.includes("fixture-token"));
+    return true;
   });
+  assert.equal(requests, 1);
+  await assert.rejects(fetchInstagramGraphPosts("unverified_account", 1), /INSTAGRAM_GRAPH_UNSUPPORTED:/);
+  delete process.env.INSTAGRAM_GRAPH_ACCESS_TOKEN;
+  await assert.rejects(fetchInstagramGraphPosts("t1lol", 1), /INSTAGRAM_GRAPH_CONFIG:/);
+  assert.equal(requests, 1);
 });
 
 test("long captions cannot split an emoji into invalid JSON for Postgres", async (t) => {

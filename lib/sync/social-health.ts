@@ -41,8 +41,8 @@ export function isNewSocialIncident(previous: string | undefined, current: strin
 
 export function hasConnectionFailure(workflow: string, logs: string) {
   const errors = logs.split(/\r?\n/).filter((line) => line.includes("[error]"));
-  if (workflow === "sync-instagram.yml") {
-    return errors.some((line) => /INSTAGRAM_SESSION_REJECTED:|INSTAGRAM_SESSION_CHALLENGE:/.test(line));
+  if (["sync-instagram.yml", "check-instagram-session.yml"].includes(workflow)) {
+    return errors.some((line) => /INSTAGRAM_GRAPH_STOP:.*(?:HTTP=(?:401|403)\b|code=(?:10|190|200)\b)/.test(line));
   }
   if (workflow === "sync-youtube.yml") {
     return errors.some((line) => /API key not valid|API key expired|API_KEY_INVALID|API_KEY_EXPIRED|invalid authentication credentials|invalid_grant|UNAUTHENTICATED/i.test(line));
