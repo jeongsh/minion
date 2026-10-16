@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { PlayerCard } from "@/components/domain/player-card";
+import { RailAdContent } from "@/components/ads/rail-ad-content";
 import { FanPageShell } from "@/components/fan/fan-page-shell";
 import { getPlayers, getTeamByFanSiteHost, getTeamBySlug } from "@/lib/data/lck";
 import { getTeamByRouteKey } from "@/lib/team-themes";
@@ -50,6 +51,7 @@ export default async function FanPlayersPage({
 
   return (
     <FanPageShell>
+      <RailAdContent enabled={players.length > 0} />
       <h1 className="sr-only">선수</h1>
       <section className="fan-card grid grid-cols-2 gap-2.5 py-2 sm:grid-cols-3 md:py-4 lg:grid-cols-4 xl:grid-cols-5">
         {players.map((player) => (

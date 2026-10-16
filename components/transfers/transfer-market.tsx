@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { ChevronsRight, Search, UserRound } from "lucide-react";
 import { FilterDropdown } from "@/components/match-filter-dropdown";
 import { TeamLogo } from "@/components/ui/team-logo";
+import { AdSlot } from "@/components/ui/ad-slot";
 import { A11y } from "swiper/modules";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { useSwiperResize } from "@/components/ui/use-swiper-resize";
@@ -51,6 +52,9 @@ export function TransferMarketView({ market, teams, players, followedTeamIds = [
   const matching = (e: TransferEvent) => matchesTeam(e) && (role === "all" || role === e.role) && (!keyword || normalizeTransferName(`${e.player} ${e.realName}`).includes(keyword));
   const recentEvents = allEvents.filter((e) => e.provenance !== "report" && matchesTeam(e));
   const visibleEvents = (tab === "fa" ? freeAgents : events).filter((e) => matching(e) && (tab === "fa" || movement === "all" || movementCategory(e) === movement || (movement === "outgoing" && movementCategory(e) === "tracked")));
+  const hasAdContent = recentEvents.length > 0 || (tab === "rosters"
+    ? ordered.some((roster) => (teamFilter === "all" || teamFilter === roster.team) && roster.slots.some((slot) => slot.previous.length > 0 || slot.next.length > 0))
+    : visibleEvents.length > 0);
 
   function playerName(person: TransferPerson | { name: string }, muted = false) {
     const player = playerByName.get(normalizeTransferName(person.name));
@@ -147,5 +151,6 @@ export function TransferMarketView({ market, teams, players, followedTeamIds = [
       {tab === "fa" && <section className="mt-8"><h2 className="home-section-title mb-3 text-xl font-normal">계약 종료 예정</h2><p className="mb-4 text-base font-normal text-[var(--ui-muted)]">실제 계약 종료가 발표되기 전까지는 FA로 분류하지 않습니다.</p><div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{market.snapshot.faCandidates.filter((p) => (teamFilter === "all" || p.team === teamFilter) && (role === "all" || role === p.role) && (!keyword || normalizeTransferName(p.player).includes(keyword)) && !latest.some((e) => normalizeTransferName(e.player) === normalizeTransferName(p.player))).map((p) => <div key={`${p.team}:${p.player}`} className="flex items-center gap-3 rounded-xl bg-[var(--ui-card-bg)] p-3"><RoleIcon role={p.role} />{playerName({ name: p.player })}<span className="ml-auto">{teamName(p.team, true)}</span></div>)}</div></section>}
     </div>}
     {tab !== "rosters" && <footer className="mt-5 text-[13px] font-normal leading-5 text-[var(--ui-muted)]">확인 {new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(market.checked_at))}</footer>}
+    <AdSlot enabled={hasAdContent} placement="horizontal" className="mt-6 h-[60px] xl:h-[90px]" />
   </div>;
 }

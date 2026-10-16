@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { PostList } from "@/components/community/post-list";
 import { Pagination } from "@/components/ui/pagination";
+import { AdSlot } from "@/components/ui/ad-slot";
 import { categoriesForScope, type BoardDef, type BoardScope } from "@/lib/community/boards";
 import type { BoardPostPage } from "@/lib/data/community";
 
@@ -105,6 +106,8 @@ export function CommunityFeed({
           <Pagination page={postPage.page} totalPages={postPage.totalPages} getHref={(page) => hrefWith({ page: page > 1 ? String(page) : null })} />
         </div>
       </div>
+
+      <AdSlot enabled={!searchQuery && [...postPage.posts, ...postPage.notices].some((post) => !post.blindedAt && !post.deletedAt)} placement="horizontal" className="mt-6 h-[60px] xl:h-[90px]" />
 
       <Link href={newPath} className="fixed bottom-[calc(3.25rem+env(safe-area-inset-bottom)+18px)] right-4 z-40 grid h-12 w-12 place-items-center rounded-full border border-[var(--ui-border)] bg-[var(--ui-ink)] text-[var(--ui-surface)] shadow-[0_12px_34px_rgba(15,23,42,0.22)] transition-opacity hover:opacity-90 md:bottom-6 lg:hidden" aria-label="글쓰기">
         <SquarePen size={20} strokeWidth={2} />

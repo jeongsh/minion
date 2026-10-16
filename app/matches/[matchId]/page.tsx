@@ -701,7 +701,11 @@ export default async function MatchDetailPage({
         </section>
       ) : null}
 
-      <AdSlot enabled={activeTab === "data" && Boolean(activeSet?.winnerTeamId)} placement="horizontal" className="hidden h-[60px] md:block xl:h-[90px]" />
+      <AdSlot
+        enabled={Boolean(activeSet?.winnerTeamId) && (activeTab === "data" || (activeTab === "rating" && matchPlayerStatLines.some((line) => line.setId === activeSet?.id) && fanRatings.some((rating) => rating.setId === activeSet?.id)))}
+        placement="horizontal"
+        className={activeTab === "rating" ? "h-[60px] xl:h-[90px]" : "hidden h-[60px] md:block xl:h-[90px]"}
+      />
     </main>
   );
 }
