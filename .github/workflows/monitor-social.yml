@@ -5,7 +5,7 @@ on:
     - cron: '11 * * * *'
   workflow_dispatch:
   workflow_run:
-    workflows: ['YouTube API recovery sync', 'Renew YouTube WebSub subscriptions', 'Instagram Sync', 'Leaguepedia Incremental Sync', 'LCK Transfer Sync', 'PR quality', 'Weekly Report Generation', 'Instagram session check', 'LoL Esports API smoke test', 'Mirror dev to Personal main (Vercel deploy)']
+    workflows: ['YouTube API recovery sync', 'Renew YouTube WebSub subscriptions', 'Instagram Sync', 'Leaguepedia Incremental Sync', 'LCK Transfer Sync', 'PR quality', 'Weekly Report Generation', 'Instagram API check', 'LoL Esports API smoke test', 'Mirror dev to Personal main (Vercel deploy)']
     types: [completed]
     branches: [main, dev]
 

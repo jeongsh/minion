@@ -2,14 +2,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { resizeImageForWeb } from "../images/resize-for-web.ts";
 import { notifyTeamContentUpdate } from "../notifications/team-content.ts";
-import {
-  scrapeInstagramPosts,
-  scrapeInstagramStories,
-} from "../scraper/instagram-browser.ts";
 import { isR2Url, uploadToR2 } from "../storage/r2.ts";
 import { fetchInstagramGraphPosts } from "../scraper/instagram-graph.ts";
-
-export type SyncEngine = "browser" | "auto";
 
 // ─── 공통 타입 ──────────────────────────────────────────────────
 
@@ -30,15 +24,6 @@ export interface NormalizedPost {
   likesCount: number;
   commentsCount: number;
   sourceUrl: string;
-}
-
-export interface NormalizedStory {
-  storyPk: string;
-  mediaUrl: string;
-  mediaType: "image" | "video";
-  thumbnailUrl?: string;
-  takenAt: Date;
-  expiresAt: Date;
 }
 
 // ─── 이미지 영구 저장 (Supabase Storage) ─────────────────────────
@@ -161,7 +146,7 @@ export async function getInstagramOwners(supabase: SupabaseClient): Promise<Inst
 export async function syncOwnerPosts(
   supabase: SupabaseClient,
   owner: InstagramOwner,
-  opts: { dryRun?: boolean; engine?: SyncEngine; sessionCookie?: string; noNotify?: boolean; maxPosts?: number } = {},
+  opts: { dryRun?: boolean; noNotify?: boolean; maxPosts?: number } = {},
 ): Promise<{ inserted: number; checked: number }> {
   const username = extractUsername(owner.instagramUrl!);
   const posts = await fetchInstagramGraphPosts(username.toLowerCase(), opts.maxPosts);
@@ -261,127 +246,4 @@ export async function syncOwnerPosts(
   }
 
   return { inserted, checked: posts.length };
-}
-
-// ─── 1회용: 기존 게시물 이미지 복구 ──────────────────────────────
-// 프로필을 새로 스크랩해, DB에 있는 게시물 중 아직 Storage 이미지가 없는
-// 항목을 신선한 URL로 내려받아 저장한다. (만료된 기존 이미지 치료용)
-
-export async function restoreOwnerImages(
-  supabase: SupabaseClient,
-  owner: InstagramOwner,
-  opts: { dryRun?: boolean; sessionCookie?: string } = {},
-): Promise<{ checked: number; restored: number; missingInDb: number }> {
-  const username = extractUsername(owner.instagramUrl!);
-  const posts = await scrapeInstagramPosts(username, opts.sessionCookie);
-
-  let restored = 0;
-  let missingInDb = 0;
-  for (const post of posts) {
-    if (owner.kind === "player") {
-      const { data } = await supabase
-        .from("player_social_posts")
-        .select("id, image_url")
-        .eq("source_url", post.sourceUrl)
-        .maybeSingle();
-      if (!data) {
-        missingInDb += 1;
-        continue;
-      }
-      if (data.image_url && isStoredImageUrl(data.image_url)) continue;
-      if (opts.dryRun) {
-        restored += 1;
-        continue;
-      }
-      const stored = await storeInstagramImage(
-        `player_${post.shortcode || post.postId}`,
-        post.imageUrl,
-      );
-      if (stored && stored !== post.imageUrl) {
-        await supabase.from("player_social_posts").update({ image_url: stored }).eq("id", data.id);
-        restored += 1;
-      }
-    } else {
-      const { data } = await supabase
-        .from("team_social_posts")
-        .select("id, thumbnail_url")
-        .eq("source_url", post.sourceUrl)
-        .maybeSingle();
-      if (!data) {
-        missingInDb += 1;
-        continue;
-      }
-      if (data.thumbnail_url && isStoredImageUrl(data.thumbnail_url)) continue;
-      if (opts.dryRun) {
-        restored += 1;
-        continue;
-      }
-      const stored = await storeInstagramImage(
-        `team_${post.shortcode || post.postId}`,
-        post.imageUrl,
-      );
-      if (stored && stored !== post.imageUrl) {
-        await supabase.from("team_social_posts").update({ thumbnail_url: stored }).eq("id", data.id);
-        restored += 1;
-      }
-    }
-  }
-
-  return { checked: posts.length, restored, missingInDb };
-}
-
-// ─── upsert: 스토리 ──────────────────────────────────────────────
-
-export async function syncOwnerStories(
-  supabase: SupabaseClient,
-  owner: InstagramOwner,
-  opts: { dryRun?: boolean; engine?: SyncEngine; sessionCookie?: string } = {},
-): Promise<{ inserted: number; checked: number; newStories: NormalizedStory[] }> {
-  const username = extractUsername(owner.instagramUrl!);
-  const stories = await scrapeInstagramStories(username, opts.sessionCookie);
-
-  if (opts.dryRun) return { inserted: 0, checked: stories.length, newStories: [] };
-
-  // 만료된 스토리 삭제
-  await supabase
-    .from("instagram_stories")
-    .delete()
-    .eq("owner_type", owner.kind)
-    .eq("owner_id", owner.id)
-    .lt("expires_at", new Date().toISOString());
-
-  // 새 스토리 감지용: upsert 전 기존 story_pk 조회
-  const { data: existing } = await supabase
-    .from("instagram_stories")
-    .select("story_pk")
-    .eq("owner_type", owner.kind)
-    .eq("owner_id", owner.id);
-  const existingPks = new Set((existing ?? []).map((r) => r.story_pk as string));
-  const newStories = stories.filter((s) => !existingPks.has(s.storyPk));
-
-  let inserted = 0;
-  for (const story of stories) {
-    const { data, error } = await supabase
-      .from("instagram_stories")
-      .upsert(
-        {
-          owner_type: owner.kind,
-          owner_id: owner.id,
-          team_id: owner.kind === "team" ? owner.id : (owner.teamId ?? null),
-          story_pk: story.storyPk,
-          media_url: story.mediaUrl,
-          media_type: story.mediaType,
-          thumbnail_url: story.thumbnailUrl ?? null,
-          expires_at: story.expiresAt.toISOString(),
-          taken_at: story.takenAt.toISOString(),
-          scraped_at: new Date().toISOString(),
-        },
-        { onConflict: "owner_type, owner_id, story_pk", ignoreDuplicates: false },
-      )
-      .select("id");
-    if (error) throw error;
-    inserted += data?.length ?? 0;
-  }
-
-  return { inserted, checked: stories.length, newStories };
 }
