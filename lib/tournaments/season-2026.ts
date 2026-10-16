@@ -40,6 +40,7 @@ export type SeasonTournamentConfig = {
   season: number;
   name: string;
   overviewPage: string;
+  matchOverviewPages?: string[];
   split: string;
   category: "domestic" | "international";
   region: string;
@@ -174,6 +175,10 @@ export const SEASON_2026_TOURNAMENTS: SeasonTournamentConfig[] = [
     season: 2026,
     name: "Worlds",
     overviewPage: "2026 Season World Championship",
+    matchOverviewPages: [
+      "2026 Season World Championship/Play-In",
+      "2026 Season World Championship/Main Event",
+    ],
     split: "Worlds",
     category: "international",
     region: "International",

@@ -306,7 +306,10 @@ async function cargoQuery(
       );
     }
 
-    return (body.cargoquery ?? []).map((entry) => entry.title);
+    if (!Array.isArray(body.cargoquery)) {
+      throw new Error("Leaguepedia 응답에 cargoquery가 없습니다.");
+    }
+    return body.cargoquery.map((entry) => entry.title);
   }
 
   throw new Error("Leaguepedia rate limit retries exhausted.");
@@ -364,6 +367,26 @@ function matchesByOverviewPage(rows: CargoMatchRow[]) {
   }
 
   return grouped;
+}
+
+function tournamentMatchPages(tournament: SeasonTournamentConfig) {
+  return [tournament.overviewPage, ...(tournament.matchOverviewPages ?? [])];
+}
+
+function rowsForTournament(
+  tournament: SeasonTournamentConfig,
+  rowsByOverviewPage: Map<string, CargoMatchRow[]>,
+) {
+  return tournamentMatchPages(tournament)
+    .flatMap((page) => rowsByOverviewPage.get(page) ?? [])
+    .sort((a, b) => String(a.MatchDateTime ?? "").localeCompare(String(b.MatchDateTime ?? "")));
+}
+
+function tournamentStageName(tournament: SeasonTournamentConfig, row: CargoMatchRow) {
+  const stageName = stageNameFromRow(row);
+  const prefix = `${tournament.overviewPage}/`;
+  const page = row.OverviewPage?.trim();
+  return page?.startsWith(prefix) ? `${page.slice(prefix.length)} - ${stageName}` : stageName;
 }
 
 async function getRequiredTeams(supabase: SupabaseClient) {
@@ -820,28 +843,20 @@ export async function syncInternationalMatches2026(
     skipped: [],
   };
 
-  let fetchedRows: CargoMatchRow[];
-  try {
-    fetchedRows = await fetchTournamentMatches(
-      tournamentConfigs.map((tournament) => tournament.overviewPage),
-      queryCursor,
-      mode,
-      options.dateRange,
-      onRetry,
-    );
-  } catch (err) {
-    summary.skipped.push({
-      reason: `leaguepedia_fetch_error:${(err as Error).message}`,
-    });
-    return summary;
-  }
+  const fetchedRows = await fetchTournamentMatches(
+    tournamentConfigs.flatMap(tournamentMatchPages),
+    queryCursor,
+    mode,
+    options.dateRange,
+    onRetry,
+  );
   summary.matchesFetched = fetchedRows.length;
   const rowsByOverviewPage = matchesByOverviewPage(fetchedRows);
 
   for (const tournament of tournamentConfigs) {
     const tournamentId = await findOrCreateTournament(supabase, tournament);
     summary.tournaments += 1;
-    const rows = rowsByOverviewPage.get(tournament.overviewPage) ?? [];
+    const rows = rowsForTournament(tournament, rowsByOverviewPage);
 
     const stageOrder = new Map<string, number>();
     const seenStages = new Set<string>();
@@ -904,7 +919,7 @@ export async function syncInternationalMatches2026(
         continue;
       }
 
-      const stageName = stageNameFromRow(row);
+      const stageName = tournamentStageName(tournament, row);
       if (!stageOrder.has(stageName)) {
         stageOrder.set(stageName, stageOrder.size + 1);
       }
@@ -1016,28 +1031,20 @@ export async function syncLeaguepediaLck2026(
     skipped: [],
   };
 
-  let fetchedRows: CargoMatchRow[];
-  try {
-    fetchedRows = await fetchTournamentMatches(
-      tournamentConfigs.map((tournament) => tournament.overviewPage),
-      queryCursor,
-      mode,
-      options.dateRange,
-      onRetry,
-    );
-  } catch (err) {
-    summary.skipped.push({
-      reason: `leaguepedia_fetch_error:${(err as Error).message}`,
-    });
-    return summary;
-  }
+  const fetchedRows = await fetchTournamentMatches(
+    tournamentConfigs.flatMap(tournamentMatchPages),
+    queryCursor,
+    mode,
+    options.dateRange,
+    onRetry,
+  );
   summary.matchesFetched = fetchedRows.length;
   const rowsByOverviewPage = matchesByOverviewPage(fetchedRows);
 
   for (const tournament of tournamentConfigs) {
     const tournamentId = await findOrCreateTournament(supabase, tournament);
     summary.tournaments += 1;
-    const rows = rowsByOverviewPage.get(tournament.overviewPage) ?? [];
+    const rows = rowsForTournament(tournament, rowsByOverviewPage);
 
     const stageOrder = new Map<string, number>();
     const seenStages = new Set<string>();
@@ -1085,7 +1092,7 @@ export async function syncLeaguepediaLck2026(
         continue;
       }
 
-      const stageName = stageNameFromRow(row);
+      const stageName = tournamentStageName(tournament, row);
       if (!stageOrder.has(stageName)) {
         stageOrder.set(stageName, stageOrder.size + 1);
       }

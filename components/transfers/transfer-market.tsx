@@ -97,11 +97,9 @@ export function TransferMarketView({ market, teams, players, followedTeamIds = [
         </Swiper>
       </> : <p className="text-base font-normal text-[var(--ui-muted)]">확인된 변동이 없습니다.</p>}
     </section>
-    <div className="mb-4">
-      <SegmentedToggle items={VIEW_OPTIONS} activeKey={tab} onSelect={setTab} ariaLabel="이적시장 보기" controlsId="transfer-market-content" />
-    </div>
     <div className="mb-4 flex flex-wrap items-center gap-2">
-        <FilterDropdown ariaLabel="팀 선택" selected={teamFilter} onSelect={setTeamFilter} options={[{ value: "all", label: "전체 팀" }, ...ordered.map((roster) => ({ value: roster.team, label: roster.team === "DNS" ? "DN SOOPers" : teamByCode.get(roster.team)?.shortName ?? roster.team }))]} controlSize="compact" rootClassName="min-w-[140px]" triggerClassName={filterTrigger} triggerTypography="ui" />
+      <SegmentedToggle items={VIEW_OPTIONS} activeKey={tab} onSelect={setTab} ariaLabel="이적시장 보기" controlsId="transfer-market-content" />
+        <FilterDropdown ariaLabel="팀 선택" selected={teamFilter} onSelect={setTeamFilter} options={[{ value: "all", label: "전체 팀" }, ...ordered.map((roster) => ({ value: roster.team, label: roster.team === "DNS" ? "DN SOOPers" : teamByCode.get(roster.team)?.shortName ?? roster.team }))]} controlSize="compact" rootClassName="min-w-[104px] sm:min-w-[140px]" triggerClassName={filterTrigger} triggerTypography="ui" />
         {tab !== "rosters" && <>
         {tab === "moves" && <FilterDropdown ariaLabel="변동 종류" selected={movement} onSelect={setMovement} options={MOVEMENT_OPTIONS} controlSize="compact" rootClassName="min-w-[128px]" triggerClassName={filterTrigger} triggerTypography="ui" />}
         <FilterDropdown ariaLabel="포지션" selected={role} onSelect={setRole} options={[{ value: "all", label: "전체 포지션" }, ...[...TRANSFER_ROLES, "COACH" as const].map((r) => ({ value: r, label: ROLE_LABELS[r] }))]} controlSize="compact" rootClassName="min-w-[128px]" triggerClassName={filterTrigger} triggerTypography="ui" />

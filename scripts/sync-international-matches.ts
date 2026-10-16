@@ -52,6 +52,9 @@ async function main() {
   });
 
   console.log(JSON.stringify(summary, null, 2));
+  if (summary.skipped.length > 0) {
+    throw new Error("대진 동기화 누락이 있습니다. 위 skipped 내용을 확인해주세요.");
+  }
 }
 
 main().catch((error) => {

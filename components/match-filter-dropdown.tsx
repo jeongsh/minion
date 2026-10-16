@@ -37,14 +37,14 @@ export function FilterDropdown({
   const popupRef = useRef<HTMLDivElement>(null);
   const popupId = useId();
   const initialFocus = useRef<"selected" | "last">("selected");
-  const [popupStyle, setPopupStyle] = useState<CSSProperties>({});
+  const [popupStyle, setPopupStyle] = useState<CSSProperties>({ position: "fixed" });
 
   useLayoutEffect(() => {
     if (!open) return;
     const items = popupRef.current?.querySelectorAll<HTMLButtonElement>('[role="option"]:not([disabled])');
     const selectedItem = popupRef.current?.querySelector<HTMLButtonElement>('[aria-selected="true"]:not([disabled])');
     const target = initialFocus.current === "last" ? items?.[items.length - 1] : selectedItem ?? items?.[0];
-    target?.focus();
+    target?.focus({ preventScroll: true });
   }, [open]);
 
   useEffect(() => {
@@ -63,7 +63,7 @@ export function FilterDropdown({
       if (event.key === "Escape") {
         event.preventDefault();
         setOpen(false);
-        triggerRef.current?.focus();
+        triggerRef.current?.focus({ preventScroll: true });
       }
     }
 
@@ -107,14 +107,14 @@ export function FilterDropdown({
   function choose(value: string) {
     if (disabled) return;
     setOpen(false);
-    triggerRef.current?.focus();
+    triggerRef.current?.focus({ preventScroll: true });
     onSelect(value);
   }
 
   function onOptionKeyDown(event: ReactKeyboardEvent<HTMLDivElement>) {
     if (event.key === "Tab") {
       setOpen(false);
-      triggerRef.current?.focus();
+      triggerRef.current?.focus({ preventScroll: true });
       return;
     }
     const items = Array.from(popupRef.current?.querySelectorAll<HTMLButtonElement>('[role="option"]:not([disabled])') ?? []);
