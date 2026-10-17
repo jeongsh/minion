@@ -302,6 +302,7 @@ async function main() {
   }
 
   console.log(`\n완료: ${processed}개 성공, ${failed}개 실패`);
+  if (failed > 0) process.exitCode = 1;
 }
 
 main().catch((err) => {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { FilterDropdown } from "@/components/match-filter-dropdown";
 
 // ─── 데이터 정의 ──────────────────────────────────────────────
 
@@ -92,6 +93,7 @@ const GROUPS: GroupDef[] = [
 // ─── GroupPanel ────────────────────────────────────────────────
 
 type ScriptInfo = { state: RunState; exitCode: number | null };
+type RemoteRun = { runId: number; url: string; scriptId: string };
 
 function GroupPanel({ group }: { group: GroupDef }) {
   const [flagChecked, setFlagChecked] = useState(false);
@@ -105,11 +107,61 @@ function GroupPanel({ group }: { group: GroupDef }) {
   const [activeScriptId, setActiveScriptId] = useState<string | null>(null);
   const [logs, setLogs] = useState<string[]>([]);
   const [countdown, setCountdown] = useState(0);
+  const [remoteRun, setRemoteRun] = useState<RemoteRun | null>(null);
+  const remoteRunRef = useRef<RemoteRun | null>(null);
 
   const abortRef = useRef<AbortController | null>(null);
-  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const logContainerRef = useRef<HTMLDivElement>(null);
+
+  const watchRemoteRun = useCallback(async (run: RemoteRun, signal: AbortSignal) => {
+    remoteRunRef.current = run;
+    setRemoteRun(run);
+    // 저장 공간을 사용할 수 없어도 이미 시작된 서버 작업은 계속 확인한다.
+    try { localStorage.setItem(`admin-script-${group.id}`, JSON.stringify(run)); } catch { /* storage unavailable */ }
+    while (!signal.aborted) {
+      const response = await fetch(`/api/admin/run-script/status?runId=${run.runId}`, { signal, cache: "no-store" });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || `실행 상태 조회 실패 (${response.status})`);
+      const status = result.status === "completed"
+        ? result.conclusion === "success" ? "완료" : result.conclusion === "cancelled" ? "중지됨" : `실패 (${result.conclusion})`
+        : result.status === "in_progress" ? "실행 중" : "실행 대기 중";
+      setLogs([`서버 작업 #${run.runId}: ${status}`]);
+      if (result.status === "completed") {
+        try { localStorage.removeItem(`admin-script-${group.id}`); } catch { /* storage unavailable */ }
+        remoteRunRef.current = null;
+        const code = result.conclusion === "success" ? 0 : 1;
+        setScriptInfos((prev) => ({ ...prev, [run.scriptId]: { state: result.conclusion === "cancelled" ? "idle" : code === 0 ? "done" : "error", exitCode: code } }));
+        return result.conclusion as string;
+      }
+      await new Promise<void>((resolve, reject) => {
+        const onAbort = () => { clearTimeout(timer); reject(new DOMException("Aborted", "AbortError")); };
+        const timer = setTimeout(() => { signal.removeEventListener("abort", onAbort); resolve(); }, 10_000);
+        signal.addEventListener("abort", onAbort, { once: true });
+        if (signal.aborted) onAbort();
+      });
+    }
+  }, [group.id]);
+
+  useEffect(() => {
+    let run: RemoteRun;
+    try {
+      const stored = localStorage.getItem(`admin-script-${group.id}`);
+      if (!stored) return;
+      run = JSON.parse(stored);
+      if (!Number.isSafeInteger(run.runId) || !group.scripts.some((script) => script.id === run.scriptId)) return;
+    } catch { return; }
+    const controller = new AbortController();
+    abortRef.current = controller;
+    setActiveScriptId(run.scriptId);
+    setScriptInfos((prev) => ({ ...prev, [run.scriptId]: { state: "running", exitCode: null } }));
+    void watchRemoteRun(run, controller.signal).catch((error: Error) => {
+      if (error.name === "AbortError") return;
+      setLogs((prev) => [...prev, `오류: ${error.message}`]);
+      setScriptInfos((prev) => ({ ...prev, [run.scriptId]: { state: "error", exitCode: null } }));
+    });
+    return () => controller.abort();
+  }, [group.id, group.scripts, watchRemoteRun]);
 
   useEffect(() => {
     const el = logContainerRef.current;
@@ -119,7 +171,6 @@ function GroupPanel({ group }: { group: GroupDef }) {
   useEffect(() => {
     return () => {
       abortRef.current?.abort();
-      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
       if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
     };
   }, []);
@@ -137,9 +188,21 @@ function GroupPanel({ group }: { group: GroupDef }) {
     }, 1000);
   }, []);
 
-  const stopAll = useCallback(() => {
+  const stopAll = useCallback(async () => {
+    if (remoteRunRef.current) {
+      try {
+        const response = await fetch(`/api/admin/run-script/status?runId=${remoteRunRef.current.runId}`, { method: "DELETE" });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || "작업 중지 실패");
+        setLogs((prev) => [...prev, "중지를 요청했습니다."]);
+        if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
+        setCountdown(0);
+      } catch (error) {
+        setLogs((prev) => [...prev, `오류: ${(error as Error).message}`]);
+      }
+      return;
+    }
     abortRef.current?.abort();
-    if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
     if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
     setCountdown(0);
     setActiveScriptId((prev) => {
@@ -153,7 +216,6 @@ function GroupPanel({ group }: { group: GroupDef }) {
   const runScript = useCallback(
     async (script: ScriptEntry) => {
       abortRef.current?.abort();
-      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
       if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
       setCountdown(0);
 
@@ -161,6 +223,7 @@ function GroupPanel({ group }: { group: GroupDef }) {
       abortRef.current = controller;
 
       setActiveScriptId(script.id);
+      setRemoteRun(null);
       setLogs([]);
       setScriptInfos((prev) => ({ ...prev, [script.id]: { state: "running", exitCode: null } }));
 
@@ -174,6 +237,10 @@ function GroupPanel({ group }: { group: GroupDef }) {
         setScriptInfos((prev) => ({ ...prev, [script.id]: { state, exitCode } }));
 
       try {
+        if (remoteRunRef.current) {
+          await watchRemoteRun(remoteRunRef.current, controller.signal);
+          return;
+        }
         const res = await fetch("/api/admin/run-script", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -182,38 +249,45 @@ function GroupPanel({ group }: { group: GroupDef }) {
         });
 
         if (!res.ok || !res.body) {
-          setLogs((prev) => [...prev, `HTTP 오류: ${res.status}`]);
+          const error = await res.json().catch(() => null);
+          setLogs((prev) => [...prev, error?.error || `HTTP 오류: ${res.status}`]);
           setInfo("error", null);
           return;
         }
 
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = "";
+        if (res.status === 202) {
+          const run = await res.json() as { runId: number; url: string };
+          const conclusion = await watchRemoteRun({ ...run, scriptId: script.id }, controller.signal);
+          if (conclusion === "cancelled") return;
+        } else {
+          const reader = res.body.getReader();
+          const decoder = new TextDecoder();
+          let buffer = "";
 
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split("\n");
-          buffer = lines.pop() ?? "";
-          for (const line of lines) {
-            const m = line.match(/__EXIT__:(-?\d+)/);
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split("\n");
+            buffer = lines.pop() ?? "";
+            for (const line of lines) {
+              const m = line.match(/__EXIT__:(-?\d+)/);
+              if (m) {
+                const code = parseInt(m[1], 10);
+                setInfo(code === 0 ? "done" : "error", code);
+              } else if (line) {
+                setLogs((prev) => [...prev, line]);
+              }
+            }
+          }
+          if (buffer) {
+            const m = buffer.match(/__EXIT__:(-?\d+)/);
             if (m) {
               const code = parseInt(m[1], 10);
               setInfo(code === 0 ? "done" : "error", code);
-            } else if (line) {
-              setLogs((prev) => [...prev, line]);
+            } else if (buffer) {
+              setLogs((prev) => [...prev, buffer]);
             }
-          }
-        }
-        if (buffer) {
-          const m = buffer.match(/__EXIT__:(-?\d+)/);
-          if (m) {
-            const code = parseInt(m[1], 10);
-            setInfo(code === 0 ? "done" : "error", code);
-          } else if (buffer) {
-            setLogs((prev) => [...prev, buffer]);
           }
         }
       } catch (err) {
@@ -230,10 +304,10 @@ function GroupPanel({ group }: { group: GroupDef }) {
         startCountdown(retryIntervalSec, () => runScript(script));
       }
     },
-    [group.sharedFlag, flagChecked, year, segment, autoRetry, retryIntervalSec, startCountdown],
+    [group.sharedFlag, flagChecked, year, segment, autoRetry, retryIntervalSec, startCountdown, watchRemoteRun],
   );
 
-  const anyRunning = Object.values(scriptInfos).some((s) => s.state === "running");
+  const anyRunning = remoteRunRef.current !== null || Object.values(scriptInfos).some((s) => s.state === "running");
 
   const flagLabel =
     group.sharedFlag === "--full" ? "전체 재동기화 (--full)" : "전체 덮어쓰기 (--force)";
@@ -267,15 +341,14 @@ function GroupPanel({ group }: { group: GroupDef }) {
         {group.showSegment && (
           <div className="flex items-center gap-1.5">
             <span>리그</span>
-            <select
-              value={segment}
-              onChange={(e) => setSegment(e.target.value)}
-              className="rounded border border-border bg-background px-2 py-0.5 text-[13px] text-foreground"
-            >
-              {LEAGUE_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
+            <FilterDropdown
+              ariaLabel="경기 동기화 리그"
+              options={LEAGUE_OPTIONS}
+              selected={segment}
+              onSelect={setSegment}
+              controlSize="compact"
+              triggerTypography="ui"
+            />
           </div>
         )}
         {group.showYear && (
@@ -361,7 +434,7 @@ function GroupPanel({ group }: { group: GroupDef }) {
             onClick={stopAll}
             className="rounded-lg border border-border px-4 py-2 text-sm text-muted hover:bg-surface-muted"
           >
-            {countdown}초 후 재실행 · 취소
+            {countdown}초 후 재실행 취소
           </button>
         )}
       </div>
@@ -377,7 +450,12 @@ function GroupPanel({ group }: { group: GroupDef }) {
               <div key={i} className="whitespace-pre-wrap text-foreground/80">{line}</div>
             ))}
           </div>
-          <div className="flex justify-end border-t border-border px-3 py-1">
+          <div className="flex justify-end gap-4 border-t border-border px-3 py-1">
+            {remoteRun && (
+              <a href={remoteRun.url} target="_blank" rel="noopener noreferrer" className="text-[13px] text-muted hover:text-foreground">
+                실행 로그
+              </a>
+            )}
             <button
               type="button"
               onClick={() => setLogs([])}

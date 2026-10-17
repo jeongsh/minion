@@ -138,6 +138,7 @@ async function main() {
   console.log(`처리할 경기: ${eligible.length}개 (force: ${force})`);
 
   let processed = 0;
+  let failed = 0;
   let skipped = 0;
   let setsTotal = 0;
   let picksBansTotal = 0;
@@ -180,6 +181,7 @@ async function main() {
         }),
       );
     } catch (err) {
+      failed++;
       const msg = err instanceof Error ? err.message : JSON.stringify(err);
       console.error(JSON.stringify({ matchId: match.id, leaguepediaMatchId: match.leaguepedia_match_id, error: msg }));
     }
@@ -194,6 +196,7 @@ async function main() {
       {
         force,
         matchesProcessed: processed,
+        matchesFailed: failed,
         matchesSkippedNoChange: skipped,
         setsUpserted: setsTotal,
         picksBansUpserted: picksBansTotal,
@@ -203,6 +206,7 @@ async function main() {
       2,
     ),
   );
+  if (failed > 0) process.exitCode = 1;
 }
 
 main().catch((error) => {

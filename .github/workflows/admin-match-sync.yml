@@ -1,0 +1,83 @@
+name: Admin Match Sync
+run-name: "${{ inputs.script }} ${{ inputs.segment }}"
+
+on:
+  workflow_dispatch:
+    inputs:
+      script:
+        description: Script
+        required: true
+        type: choice
+        options:
+          - backfill-timeline-events
+          - backfill-leaguepedia-sets
+          - backfill-leaguepedia-set-ids
+          - sync-leaguepedia-lck
+          - sync-international-matches
+      segment:
+        description: League segment (empty for all)
+        type: string
+      year:
+        description: LCK season
+        default: "2026"
+        type: string
+      force:
+        description: Overwrite match data
+        default: false
+        type: boolean
+      full:
+        description: Full tournament sync
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+# Serialize manual backfills to avoid overlapping writes and Leaguepedia requests.
+concurrency:
+  group: admin-match-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Run match sync
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          LEAGUEPEDIA_BOT_USERNAME: ${{ secrets.LEAGUEPEDIA_BOT_USERNAME }}
+          LEAGUEPEDIA_BOT_PASSWORD: ${{ secrets.LEAGUEPEDIA_BOT_PASSWORD }}
+          SYNC_SCRIPT: ${{ inputs.script }}
+          SYNC_SEGMENT: ${{ inputs.segment }}
+          SYNC_YEAR: ${{ inputs.year }}
+          SYNC_FORCE: ${{ inputs.force }}
+          SYNC_FULL: ${{ inputs.full }}
+        run: |
+          node --import tsx --input-type=module <<'NODE'
+          import { spawnSync } from 'node:child_process';
+          import { matchWorkflowInputs } from './lib/sync/admin-match-workflow.ts';
+          for (const name of ['NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'LEAGUEPEDIA_BOT_USERNAME', 'LEAGUEPEDIA_BOT_PASSWORD']) {
+            if (!process.env[name]) throw new Error(`Missing required GitHub Actions secret: ${name}`);
+          }
+          const script = process.env.SYNC_SCRIPT;
+          const args = [];
+          if (process.env.SYNC_SEGMENT) args.push(`--segment=${process.env.SYNC_SEGMENT}`);
+          if (script === 'sync-leaguepedia-lck') args.push(`--year=${process.env.SYNC_YEAR}`);
+          if (process.env.SYNC_FORCE === 'true') args.push('--force');
+          if (process.env.SYNC_FULL === 'true') args.push('--full');
+          matchWorkflowInputs(script, args);
+          const result = spawnSync(process.execPath, ['--import', 'tsx', `scripts/${script}.ts`, ...args], { stdio: 'inherit' });
+          if (result.error) throw result.error;
+          process.exit(result.status ?? 1);
+          NODE
