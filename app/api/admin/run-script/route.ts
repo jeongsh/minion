@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import { NextResponse } from "next/server";
 
 import { isCurrentUserAdmin } from "@/lib/auth/admin";
+import { dispatchMatchWorkflow, matchWorkflowInputs, REMOTE_MATCH_SCRIPTS } from "@/lib/sync/admin-match-workflow";
 
 export const runtime = "nodejs";
 
@@ -54,6 +55,20 @@ export async function POST(request: Request) {
   }
   if (!areArgsSafe(args)) {
     return NextResponse.json({ error: "허용되지 않은 인자" }, { status: 400 });
+  }
+
+  if (process.env.VERCEL === "1" && (REMOTE_MATCH_SCRIPTS as readonly string[]).includes(script)) {
+    let inputs;
+    try {
+      inputs = matchWorkflowInputs(script, args);
+    } catch (error) {
+      return NextResponse.json({ error: (error as Error).message }, { status: 400 });
+    }
+    try {
+      return NextResponse.json(await dispatchMatchWorkflow(inputs), { status: 202 });
+    } catch (error) {
+      return NextResponse.json({ error: error instanceof Error ? error.message : "경기 동기화 실행 실패" }, { status: 502 });
+    }
   }
 
   // resolve(process.cwd())를 사용하면 Turbopack의 파일 추적기가 cwd를 동적 파일
