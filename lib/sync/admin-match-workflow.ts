@@ -62,8 +62,19 @@ export async function getMatchWorkflow(runId: string) {
   const response = await github(`runs/${runId}`);
   const run = await response.json() as { path: string; status: string; conclusion: string | null; html_url: string };
   // 다른 배포/관리 워크플로의 조회나 취소에는 사용할 수 없다.
-  if (run.path.split("@")[0] !== `.github/workflows/${WORKFLOW}`) throw new Error("경기 동기화 작업이 아닙니다.");
+  if (![`.github/workflows/${WORKFLOW}`, ".github/workflows/sync-instagram.yml"].includes(run.path.split("@")[0])) throw new Error("관리자 동기화 작업이 아닙니다.");
   return { runId: Number(runId), status: run.status, conclusion: run.conclusion, url: run.html_url };
+}
+
+export async function dispatchInstagramWorkflow(args: string[]) {
+  if (args.length) throw new Error("인스타그램은 공식 API 기본 수집만 실행할 수 있습니다.");
+  const response = await github("workflows/sync-instagram.yml/dispatches", {
+    method: "POST",
+    body: JSON.stringify({ ref: "main", inputs: { scope: "all", no_notify: "true" }, return_run_details: true }),
+  });
+  const run = await response.json() as { workflow_run_id: number; html_url: string };
+  if (!Number.isSafeInteger(run.workflow_run_id)) throw new Error("실행 번호를 받지 못했습니다. GitHub Actions에서 실행 여부를 확인해주세요.");
+  return { runId: run.workflow_run_id, url: run.html_url };
 }
 
 export async function cancelMatchWorkflow(runId: string) {

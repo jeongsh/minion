@@ -1,3 +1,4 @@
+import type { InstagramRun } from "../sync/instagram-control.ts";
 import type { NormalizedPost } from "../sync/instagram.ts";
 
 // Business Discovery + media verified on 2026-10-12. Expand only after a successful audit.
@@ -52,47 +53,85 @@ export function normalizeGraphMedia(media: GraphMedia): NormalizedPost {
   };
 }
 
-export async function fetchInstagramGraphPosts(username: string, maxPosts = 60): Promise<NormalizedPost[]> {
-  if (!INSTAGRAM_GRAPH_USERNAMES.has(username.toLowerCase())) {
-    throw new Error(`INSTAGRAM_GRAPH_UNSUPPORTED: @${username} is not in the verified collection list.`);
-  }
-  if (!Number.isInteger(maxPosts) || maxPosts < 1 || maxPosts > 500) throw new Error("Invalid maxPosts.");
+export function safeInstagramMessage(value: unknown): string {
+  let text = String(value ?? "");
+  const token = process.env.INSTAGRAM_GRAPH_ACCESS_TOKEN?.trim();
+  if (token) text = text.split(token).join("[REDACTED]");
+  return text.replace(/https?:\/\/\S+/g, "[URL]").replace(/(?:EAA|IGAA)[A-Za-z0-9_-]+/g, "[REDACTED]").replace(/[\r\n]/g, " ").slice(0, 500);
+}
+
+export async function* fetchInstagramGraphPages(username: string, maxPosts: number, run: InstagramRun): AsyncGenerator<NormalizedPost[]> {
+  if (!INSTAGRAM_GRAPH_USERNAMES.has(username.toLowerCase())) throw new Error(`INSTAGRAM_GRAPH_UNSUPPORTED: @${username}`);
+  if (!Number.isInteger(maxPosts) || maxPosts < 1 || maxPosts > 60) throw new Error("Invalid maxPosts (1-60).");
   const { token, userId } = instagramGraphCredentials();
-  const posts = new Map<string, NormalizedPost>();
+  const seen = new Set<string>();
   const cursors = new Set<string>();
   let after: string | undefined;
+  let requests = 0;
   do {
-    const count = Math.min(50, maxPosts - posts.size);
+    run.beforeRequest();
+    if (requests >= Math.ceil(maxPosts / 20)) {
+      await run.fail("transient");
+      throw new Error("INSTAGRAM_GRAPH_STOP: page request budget exhausted");
+    }
+    const count = Math.min(20, maxPosts - seen.size);
     const cursor = after ? `.after(${after})` : "";
-    const fields = `business_discovery.username(${username}){id,media.limit(${count})${cursor}{id,permalink,timestamp,caption,media_type,media_url,thumbnail_url,like_count,comments_count,children{media_type,media_url,thumbnail_url}}}`;
+    const fields = `business_discovery.username(${username}){id,media.limit(${count})${cursor}{id,permalink,timestamp,caption,media_type,media_url,thumbnail_url,children.limit(1){media_type,media_url,thumbnail_url}}}`;
     const url = new URL(`https://graph.facebook.com/v26.0/${userId}`);
     url.searchParams.set("fields", fields);
-    const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(30000) });
-    const body = await response.json() as {
-      error?: { code?: number; error_subcode?: number };
-      business_discovery?: { id?: string; media?: { data?: GraphMedia[]; paging?: { next?: string; cursors?: { after?: string } } } };
-    };
-    if (!response.ok || body.error) {
-      const code = body.error?.code;
-      const fatal = response.status === 401 || response.status === 403 || response.status === 429 || [4, 10, 17, 32, 190, 200, 613].includes(code ?? 0);
-      // Never log the raw response/request: pagination URLs may contain credentials.
-      throw new Error(`INSTAGRAM_GRAPH_${fatal ? "STOP" : "ERROR"}: @${username} HTTP=${response.status} code=${code ?? "unknown"} subcode=${body.error?.error_subcode ?? "none"}`);
+    const started = Date.now();
+    let response: Response;
+    try {
+      response = await fetch(url, { headers: { Authorization: `Bearer ${token}` }, redirect: "error", signal: AbortSignal.timeout(30_000) });
+    } catch {
+      await run.fail("transient");
+      throw new Error(`INSTAGRAM_GRAPH_STOP: @${username} network/timeout; no retry`);
     }
-    if (!body.business_discovery?.id || !Array.isArray(body.business_discovery.media?.data)) {
-      throw new Error(`INSTAGRAM_GRAPH_DATA: @${username} missing discovery/media response.`);
+    requests++;
+    const body = await response.json().catch(() => null) as {
+      error?: { code?: number; error_subcode?: number; message?: string; is_transient?: boolean; fbtrace_id?: string };
+      business_discovery?: { id?: string; media?: { data?: GraphMedia[]; paging?: { cursors?: { after?: string } } } };
+    } | null;
+    const usage: Record<string, number> = {};
+    for (const header of ["x-app-usage", "x-page-usage", "x-business-use-case-usage"]) {
+      const collect = (value: unknown) => {
+        if (!value || typeof value !== "object") return;
+        for (const [key, item] of Object.entries(value)) {
+          if (["call_count", "total_cputime", "total_time", "estimated_time_to_regain_access"].includes(key) && typeof item === "number") usage[key] = Math.max(usage[key] ?? 0, item);
+          else if (item && typeof item === "object") collect(item);
+        }
+      };
+      try { collect(JSON.parse(response.headers.get(header) ?? "null")); } catch { /* optional diagnostics */ }
+    }
+    console.log(`[graph-request] @${username} page=${requests} HTTP=${response.status} elapsed_ms=${Date.now() - started} usage=${JSON.stringify(usage)}`);
+    const retryHeader = response.headers.get("retry-after");
+    const retryMs = retryHeader ? (/^\d+$/.test(retryHeader) ? Number(retryHeader) * 1000 : Math.max(0, Date.parse(retryHeader) - Date.now()) || 0) : 0;
+    const code = body?.error?.code;
+    const rate = response.status === 429 || [4, 17, 32, 613, 80004].includes(code ?? 0)
+      || [usage.call_count, usage.total_cputime, usage.total_time].some(n => n >= 80) || (usage.estimated_time_to_regain_access ?? 0) > 0 || retryMs > 0;
+    const auth = response.status === 401 || response.status === 403 || [10, 190, 200].includes(code ?? 0);
+    if (rate || auth || !response.ok || body?.error || !body?.business_discovery?.id || !Array.isArray(body.business_discovery.media?.data)) {
+      await run.fail(auth ? "auth" : rate ? "rate" : "transient", Math.max(retryMs, (usage.estimated_time_to_regain_access ?? 0) * 60_000));
+      throw new Error(`INSTAGRAM_GRAPH_STOP: @${username} HTTP=${response.status} code=${code ?? "unknown"} subcode=${body?.error?.error_subcode ?? "none"} transient=${body?.error?.is_transient ?? "unknown"} trace=${safeInstagramMessage(body?.error?.fbtrace_id)} message=${safeInstagramMessage(body?.error?.message)}; no retry`);
     }
     const media = body.business_discovery.media;
-    for (const item of media.data!) {
-      const post = normalizeGraphMedia(item);
-      posts.set(post.sourceUrl, post);
+    const page = media.data!.map(normalizeGraphMedia).filter(post => !seen.has(post.sourceUrl));
+    for (const post of page) seen.add(post.sourceUrl);
+    yield page;
+    const next = media.paging?.cursors?.after;
+    if (!next || media.data!.length < count || seen.size >= maxPosts) break;
+    if (!page.length || !/^[A-Za-z0-9_=-]+$/.test(next) || cursors.has(next)) {
+      await run.fail("transient");
+      throw new Error("INSTAGRAM_GRAPH_STOP: invalid/repeated pagination cursor");
     }
-    // Nested Business Discovery media can expose cursors without a next URL.
-    const nextCursor = media.paging?.cursors?.after;
-    if (!nextCursor || media.data!.length < count || posts.size >= maxPosts) break;
-    if (!/^[A-Za-z0-9_=-]+$/.test(nextCursor) || cursors.has(nextCursor)) throw new Error("INSTAGRAM_GRAPH_DATA: invalid/repeated pagination cursor.");
-    cursors.add(nextCursor);
-    after = nextCursor;
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    cursors.add(next);
+    after = next;
+    await new Promise(resolve => setTimeout(resolve, 1500));
   } while (after);
-  return [...posts.values()].slice(0, maxPosts);
+}
+
+export async function fetchInstagramGraphPosts(username: string, maxPosts: number, run: InstagramRun): Promise<NormalizedPost[]> {
+  const posts: NormalizedPost[] = [];
+  for await (const page of fetchInstagramGraphPages(username, maxPosts, run)) posts.push(...page);
+  return posts;
 }

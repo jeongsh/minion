@@ -300,7 +300,7 @@ function GroupPanel({ group }: { group: GroupDef }) {
         }
       }
 
-      if (autoRetry) {
+      if (autoRetry && script.id !== "sync-instagram") {
         startCountdown(retryIntervalSec, () => runScript(script));
       }
     },
@@ -382,7 +382,7 @@ function GroupPanel({ group }: { group: GroupDef }) {
             onChange={(e) => setAutoRetry(e.target.checked)}
             className="rounded"
           />
-          <span>자동 재실행</span>
+          <span>{group.id === "sns" ? "자동 재실행 (인스타그램 제외)" : "자동 재실행"}</span>
         </label>
         {autoRetry && (
           <div className="flex items-center gap-1.5">

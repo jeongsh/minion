@@ -2,7 +2,7 @@ import { HeadObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s
 
 let client: S3Client | null = null;
 
-function getR2Client(): S3Client {
+export function getR2Client(): S3Client {
   if (client) return client;
 
   const accountId = process.env.R2_ACCOUNT_ID;
@@ -27,7 +27,7 @@ function getPublicUrlBase(): string {
   return base.replace(/\/$/, "");
 }
 
-function getBucketName(): string {
+export function getBucketName(): string {
   const bucket = process.env.R2_BUCKET_NAME;
   if (!bucket) throw new Error("R2 uploads require R2_BUCKET_NAME.");
   return bucket;
@@ -74,7 +74,7 @@ export async function uploadToR2(
   path: string,
   bytes: Buffer,
   contentType: string,
-  options: { cacheControl?: string; metadata?: Record<string, string> } = {},
+  options: { cacheControl?: string; metadata?: Record<string, string>; signal?: AbortSignal } = {},
 ): Promise<string> {
   await getR2Client().send(
     new PutObjectCommand({
@@ -85,6 +85,7 @@ export async function uploadToR2(
       CacheControl: options.cacheControl,
       Metadata: options.metadata,
     }),
+    { abortSignal: options.signal },
   );
 
   return r2PublicUrl(path);

@@ -1,11 +1,3 @@
-const ALLOWED_HOSTS = [
-  "scontent-icn2-1.cdninstagram.com",
-  "scontent-gmp1-1.cdninstagram.com",
-  "scontent.cdninstagram.com",
-  "cdninstagram.com",
-  "instagram.com",
-];
-
 // 동기화 후 영구 저장된 이미지는 Supabase Storage 또는 R2 공개 URL로 바뀐다.
 // 프런트는 동일하게 프록시를 거치므로, 우리 스토리지 호스트도 허용한다.
 function supabaseHost(): string | null {
@@ -30,9 +22,10 @@ function r2Host(): string | null {
 
 function isAllowedUrl(raw: string): boolean {
   try {
-    const { hostname } = new URL(raw);
-    if (hostname === supabaseHost() || hostname === r2Host()) return true;
-    return ALLOWED_HOSTS.some((h) => hostname === h || hostname.endsWith(`.${h}`));
+    const url = new URL(raw);
+    if (url.protocol !== "https:" || url.username || url.password || url.port) return false;
+    return (url.hostname === supabaseHost() && url.pathname.startsWith("/storage/v1/object/public/"))
+      || (url.hostname === r2Host() && !url.pathname.startsWith("/_control/"));
   } catch {
     return false;
   }
@@ -48,11 +41,8 @@ export async function GET(request: Request) {
 
   try {
     const upstream = await fetch(url, {
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
-        Referer: "https://www.instagram.com/",
-      },
+      redirect: "error",
+      signal: AbortSignal.timeout(15_000),
       next: { revalidate: 3600 },
     });
 
@@ -60,7 +50,8 @@ export async function GET(request: Request) {
       return new Response("Not Found", { status: 404 });
     }
 
-    const contentType = upstream.headers.get("content-type") ?? "image/jpeg";
+    const contentType = upstream.headers.get("content-type") ?? "";
+    if (!contentType.startsWith("image/")) return new Response("Unsupported media", { status: 415 });
     const body = await upstream.arrayBuffer();
 
     return new Response(body, {

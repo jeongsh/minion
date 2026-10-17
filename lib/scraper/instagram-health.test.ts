@@ -1,3 +1,5 @@
+import type { InstagramRun } from "../sync/instagram-control.ts";
+const run: InstagramRun = { beforeRequest() {}, async fail() {}, async finish() {} };
 import test from "node:test";
 import assert from "node:assert/strict";
 import { syncOwnerPosts } from "../sync/instagram.ts";
@@ -23,15 +25,15 @@ test("official API failures stop without browser or cookie requests", async (t) 
     assert.equal(headers.has("Cookie"), false);
     return Response.json({ error: { code: 190, error_subcode: 463 } }, { status: 401 });
   });
-  await assert.rejects(fetchInstagramGraphPosts("t1lol", 1), (error: Error) => {
+  await assert.rejects(fetchInstagramGraphPosts("t1lol", 1, run), (error: Error) => {
     assert.match(error.message, /INSTAGRAM_GRAPH_STOP:.*HTTP=401 code=190 subcode=463/);
     assert.ok(!error.message.includes("fixture-token"));
     return true;
   });
   assert.equal(requests, 1);
-  await assert.rejects(fetchInstagramGraphPosts("unverified_account", 1), /INSTAGRAM_GRAPH_UNSUPPORTED:/);
+  await assert.rejects(fetchInstagramGraphPosts("unverified_account", 1, run), /INSTAGRAM_GRAPH_UNSUPPORTED:/);
   delete process.env.INSTAGRAM_GRAPH_ACCESS_TOKEN;
-  await assert.rejects(fetchInstagramGraphPosts("t1lol", 1), /INSTAGRAM_GRAPH_CONFIG:/);
+  await assert.rejects(fetchInstagramGraphPosts("t1lol", 1, run), /INSTAGRAM_GRAPH_CONFIG:/);
   assert.equal(requests, 1);
 });
 
@@ -54,8 +56,8 @@ test("long captions cannot split an emoji into invalid JSON for Postgres", async
     }] } } });
   });
   let title = "";
-  const database = { from: () => ({ upsert: (payload: { title: string }) => { title = payload.title; return { select: async () => ({ data: [], error: null }) }; } }) } as unknown as SupabaseClient;
-  const result = await syncOwnerPosts(database, { kind: "team", id: "team", name: "T1", instagramUrl: "https://www.instagram.com/t1lol/" }, { noNotify: true });
+  const database = { from: () => ({ select: () => ({ eq: () => ({ eq: () => ({ in: async () => ({ data: [], error: null }) }) }) }), upsert: (payload: { title: string }) => { title = payload.title; return { select: async () => ({ data: [], error: null }) }; } }) } as unknown as SupabaseClient;
+  const result = await syncOwnerPosts(database, { kind: "team", id: "team", name: "T1", instagramUrl: "https://www.instagram.com/t1lol/" }, { noNotify: true, run });
   assert.equal(result.checked, 1);
   assert.equal(title, "a".repeat(199) + "🔥");
   assert.equal(title.isWellFormed(), true);
