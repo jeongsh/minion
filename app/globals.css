@@ -894,6 +894,12 @@ html[class~="dark"] .app-lnb-scrollbar:hover::-webkit-scrollbar-thumb {
   padding-inline: var(--layout-gutter);
 }
 
+@media (width >= 128rem) {
+  .fan-channel-cover {
+    mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
+  }
+}
+
 .layout-wide,
 .layout-reading,
 .layout-form,

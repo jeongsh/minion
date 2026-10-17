@@ -37,19 +37,19 @@ export async function FanChannelHeader({ teamSlug, calendarSlot }: { teamSlug: s
     <header
       className={
         hasHeaderBackground
-          ? "relative isolate overflow-hidden border-b border-[var(--ui-border)] bg-[var(--ui-surface-muted)] text-white"
+          ? "relative isolate overflow-hidden border-b border-[var(--ui-border)] bg-black text-white"
           : "border-b border-[var(--ui-border)] bg-[var(--page-background)] text-[var(--ui-ink)]"
       }
     >
       {displayHeaderBackground ? (
         <>
-          {/* 팬 대문이 있으면 헤더 전체를 채우는 배경으로 사용한다. */}
+          {/* 울트라와이드에서도 사진이 과도하게 확대되지 않도록 폭을 제한한다. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={displayHeaderBackground}
             alt=""
             aria-hidden="true"
-            className="absolute inset-0 -z-20 h-full w-full object-cover object-[center_34%] saturate-[0.9]"
+            className="fan-channel-cover absolute inset-y-0 left-1/2 -z-20 h-full w-full max-w-[1920px] -translate-x-1/2 object-cover object-[center_34%] saturate-[0.9]"
           />
           <div
             aria-hidden="true"
@@ -61,7 +61,7 @@ export async function FanChannelHeader({ teamSlug, calendarSlot }: { teamSlug: s
       <div
         className={
           hasHeaderBackground
-            ? "fan-page-container flex min-h-[220px] items-end py-5 sm:min-h-[260px] sm:py-6 lg:min-h-[300px] lg:py-7"
+            ? "fan-page-container flex min-h-[220px] items-end py-5 sm:min-h-[260px] sm:py-6 lg:min-h-[clamp(360px,20vw,480px)] lg:py-7"
             : "fan-page-container flex min-h-[132px] items-end py-5 sm:min-h-[148px] sm:py-6 lg:min-h-0 lg:py-7"
         }
       >

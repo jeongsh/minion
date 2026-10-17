@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CelebrationSlides } from "@/components/domain/celebration-slides";
 import { ChevronRight } from "lucide-react";
 
 import {
@@ -108,11 +109,12 @@ export function CelebrationBanner({
   action?: CelebrationAction;
 }) {
   if (events.length === 0) return null;
+  if (events.length === 1) return <CelebrationCard event={events[0]} action={action} />;
   return (
-    <div className="flex flex-col gap-2.5">
+    <CelebrationSlides>
       {events.map((event) => (
         <CelebrationCard key={event.key} event={event} action={action} />
       ))}
-    </div>
+    </CelebrationSlides>
   );
 }
