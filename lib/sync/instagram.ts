@@ -3,7 +3,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { resizeImageForWeb } from "../images/resize-for-web.ts";
 import { notifyTeamContentUpdate } from "../notifications/team-content.ts";
 import { isR2Url, uploadToR2 } from "../storage/r2.ts";
-import { fetchInstagramGraphPosts } from "../scraper/instagram-graph.ts";
+import { fetchInstagramGraphPages } from "../scraper/instagram-graph.ts";
+import type { InstagramRun } from "./instagram-control.ts";
 
 // ─── 공통 타입 ──────────────────────────────────────────────────
 
@@ -30,14 +31,13 @@ export interface NormalizedPost {
 
 export const INSTAGRAM_MEDIA_BUCKET = "instagram-media";
 
-const IMAGE_FETCH_HEADERS = {
-  "User-Agent":
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
-  Referer: "https://www.instagram.com/",
-};
-
 export function isStoredImageUrl(url: string): boolean {
-  return url.includes(`/storage/v1/object/public/${INSTAGRAM_MEDIA_BUCKET}/`) || isR2Url(url);
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "https:" && !parsed.username && !parsed.password && !parsed.port
+      && (isR2Url(url) || (parsed.hostname === new URL(process.env.NEXT_PUBLIC_SUPABASE_URL!).hostname
+        && parsed.pathname.startsWith(`/storage/v1/object/public/${INSTAGRAM_MEDIA_BUCKET}/`)));
+  } catch { return false; }
 }
 
 function sanitizeStorageKey(key: string): string {
@@ -46,7 +46,7 @@ function sanitizeStorageKey(key: string): string {
 
 /**
  * 인스타 CDN 이미지를 내려받아 R2(instagram-media)에 올리고
- * 만료되지 않는 공개 URL을 돌려준다. 실패하면 null.
+ * 만료되지 않는 공개 URL을 돌려준다. API에 이미지가 없으면 null, 다운로드나 저장 실패는 오류로 보고한다.
  * 이미 우리 스토리지 URL이면 그대로 반환한다.
  */
 export async function storeInstagramImage(
@@ -56,17 +56,23 @@ export async function storeInstagramImage(
   if (!sourceUrl) return null;
   if (isStoredImageUrl(sourceUrl)) return sourceUrl;
 
+  const url = new URL(sourceUrl);
+  if (url.protocol !== "https:" || url.username || url.password || url.port || !["cdninstagram.com", "fbcdn.net"].some(host => url.hostname === host || url.hostname.endsWith(`.${host}`))) {
+    throw new Error("INSTAGRAM_MEDIA_STOP: non-CDN URL rejected");
+  }
   try {
-    const res = await fetch(sourceUrl, { headers: IMAGE_FETCH_HEADERS });
-    if (!res.ok) return null;
+    const res = await fetch(url, { redirect: "error", signal: AbortSignal.timeout(20_000) });
+    if (!res.ok) throw new Error("CDN response failed");
 
     const contentType = res.headers.get("content-type") ?? "image/jpeg";
-    if (!contentType.startsWith("image/")) return null;
+    if (!contentType.startsWith("image/")) throw new Error("Invalid image response");
+    const bytes = Buffer.from(await res.arrayBuffer());
+    if (bytes.length > 10 * 1024 * 1024) throw new Error("Image exceeds 10 MiB");
 
     // 인스타 CDN 원본을 그대로 영구 저장하면 피드/모자이크에서 실제 표시 크기보다
     // 훨씬 큰 파일이 계속 서빙된다. 인스타 피드 사진 자체가 1080px를 넘지 않아
     // 화질 손실 없이 줄일 수 있다.
-    const resized = await resizeImageForWeb(Buffer.from(await res.arrayBuffer()), contentType, { maxEdge: 1080 });
+    const resized = await resizeImageForWeb(bytes, contentType, { maxEdge: 1080 });
     const ext = resized.transformed
       ? resized.extension
       : contentType.includes("png")
@@ -76,9 +82,9 @@ export async function storeInstagramImage(
           : "jpg";
     const path = `posts/${sanitizeStorageKey(key)}.${ext}`;
 
-    return await uploadToR2(path, resized.bytes, resized.contentType);
+    return await uploadToR2(path, resized.bytes, resized.contentType, { signal: AbortSignal.timeout(20_000) });
   } catch {
-    return null;
+    throw new Error("INSTAGRAM_MEDIA_STOP: image download/storage failed; no retry");
   }
 }
 
@@ -143,107 +149,78 @@ export async function getInstagramOwners(supabase: SupabaseClient): Promise<Inst
 
 // ─── upsert: 게시물 ──────────────────────────────────────────────
 
+export class InstagramSyncError extends Error {
+  inserted: number;
+  checked: number;
+  constructor(cause: unknown, inserted: number, checked: number) {
+    super(cause instanceof Error ? cause.message : "Instagram storage failed");
+    this.inserted = inserted;
+    this.checked = checked;
+  }
+}
+
 export async function syncOwnerPosts(
   supabase: SupabaseClient,
   owner: InstagramOwner,
-  opts: { dryRun?: boolean; noNotify?: boolean; maxPosts?: number } = {},
+  opts: { dryRun?: boolean; noNotify?: boolean; maxPosts?: number; run: InstagramRun; full?: boolean },
 ): Promise<{ inserted: number; checked: number }> {
-  const username = extractUsername(owner.instagramUrl!);
-  const posts = await fetchInstagramGraphPosts(username.toLowerCase(), opts.maxPosts);
-
-  if (opts.dryRun) return { inserted: 0, checked: posts.length };
-
+  const username = extractUsername(owner.instagramUrl!).toLowerCase();
+  const player = owner.kind === "player";
+  const table = player ? "player_social_posts" : "team_social_posts";
+  const imageColumn = player ? "image_url" : "thumbnail_url";
   let inserted = 0;
-  for (const post of posts) {
-    if (owner.kind === "player") {
-      const { data, error } = await supabase
-        .from("player_social_posts")
-        .upsert(
-          {
-            player_id: owner.id,
-            team_id: owner.teamId ?? null,
-            platform: "instagram",
-            post_id: post.postId,
-            caption: post.caption,
-            source_url: post.sourceUrl,
-            image_url: post.imageUrl || null,
-            likes_count: post.likesCount,
-            comments_count: post.commentsCount,
-            posted_at: post.postedAt.toISOString(),
-            scraped_at: new Date().toISOString(),
-          },
-          { onConflict: "source_url", ignoreDuplicates: true },
-        )
-        .select("id");
-      if (error) throw error;
-      // 새로 추가된 게시물만 이미지를 영구 저장(만료 전 신선한 URL을 즉시 보관).
-      if (data?.length) {
-        inserted += data.length;
-        const stored = await storeInstagramImage(
-          `player_${post.shortcode || post.postId}`,
-          post.imageUrl,
-        );
-        if (stored && stored !== post.imageUrl) {
-          await supabase.from("player_social_posts").update({ image_url: stored }).eq("id", data[0].id);
+  let checked = 0;
+  try {
+    for await (const posts of fetchInstagramGraphPages(username, opts.maxPosts ?? 60, opts.run)) {
+      if (!posts.length) break;
+      const { data: existing, error: readError } = await supabase.from(table)
+        .select(`id,source_url,${imageColumn}`).eq("platform", "instagram")
+        .eq(player ? "player_id" : "team_id", owner.id).in("source_url", posts.map(p => p.sourceUrl));
+      if (readError) throw readError;
+      const known = new Map((existing as unknown as Array<{ id: string; source_url: string; image_url?: string; thumbnail_url?: string }> ?? []).map(row => [row.source_url, row]));
+      checked += posts.length;
+      for (const post of posts) {
+        if (opts.dryRun) continue;
+        const prior = known.get(post.sourceUrl);
+        const priorImage = prior?.[imageColumn];
+        if (priorImage && isStoredImageUrl(priorImage)) continue;
+        // Only fresh official API media URLs reach the downloader. Missing media is legitimate.
+        opts.run.beforeRequest();
+        const stored = await storeInstagramImage(`${owner.kind}_${post.shortcode}`, post.imageUrl);
+        if (prior) {
+          if (stored !== (priorImage ?? null)) {
+            const { error } = await supabase.from(table).update({ [imageColumn]: stored }).eq("id", prior.id);
+            if (error) throw error;
+          }
+          continue;
         }
-        if (owner.teamId && !opts.noNotify) {
+        const row: Record<string, unknown> = player ? {
+          player_id: owner.id, team_id: owner.teamId ?? null, platform: "instagram", post_id: post.postId,
+          caption: post.caption, source_url: post.sourceUrl, image_url: stored,
+          likes_count: post.likesCount, comments_count: post.commentsCount,
+          posted_at: post.postedAt.toISOString(), scraped_at: new Date().toISOString(),
+        } : {
+          team_id: owner.id, platform: "instagram", title: Array.from(post.caption).slice(0, 200).join("") || "Instagram post",
+          content: post.caption, source_url: post.sourceUrl, thumbnail_url: stored, published_at: post.postedAt.toISOString(),
+        };
+        const { data, error } = await supabase.from(table).upsert(row, { onConflict: "source_url", ignoreDuplicates: true }).select("id");
+        if (error) throw error;
+        inserted += data?.length ?? 0;
+        if (data?.length && owner.teamId && !opts.noNotify) {
           try {
-            await notifyTeamContentUpdate(supabase, {
-              kind: "team_social",
-              sourceId: data[0].id,
-              teamId: owner.teamId,
-              contentTitle: post.caption,
-              imageUrl: stored ?? post.imageUrl,
-              publishedAt: post.postedAt.toISOString(),
-            });
-          } catch (error) {
-            console.error(`[team-content-notifications] player_social:${data[0].id} failed`, error);
+            await notifyTeamContentUpdate(supabase, { kind: "team_social", sourceId: data[0].id, teamId: owner.teamId,
+              contentTitle: post.caption, imageUrl: stored, publishedAt: post.postedAt.toISOString() });
+          } catch {
+            console.error(`[team-content-notifications] ${owner.kind}:${owner.name} failed`);
           }
         }
       }
-    } else {
-      const { data, error } = await supabase
-        .from("team_social_posts")
-        .upsert(
-          {
-            team_id: owner.id,
-            platform: "instagram",
-            title: Array.from(post.caption).slice(0, 200).join("") || "Instagram post",
-            content: post.caption,
-            source_url: post.sourceUrl,
-            thumbnail_url: post.imageUrl || null,
-            published_at: post.postedAt.toISOString(),
-          },
-          { onConflict: "source_url", ignoreDuplicates: true },
-        )
-        .select("id");
-      if (error) throw error;
-      if (data?.length) {
-        inserted += data.length;
-        const stored = await storeInstagramImage(
-          `team_${post.shortcode || post.postId}`,
-          post.imageUrl,
-        );
-        if (stored && stored !== post.imageUrl) {
-          await supabase.from("team_social_posts").update({ thumbnail_url: stored }).eq("id", data[0].id);
-        }
-        if (!opts.noNotify) {
-          try {
-            await notifyTeamContentUpdate(supabase, {
-              kind: "team_social",
-              sourceId: data[0].id,
-              teamId: owner.id,
-              contentTitle: post.caption,
-              imageUrl: stored ?? post.imageUrl,
-              publishedAt: post.postedAt.toISOString(),
-            });
-          } catch (error) {
-            console.error(`[team-content-notifications] team_social:${data[0].id} failed`, error);
-          }
-        }
-      }
+      console.log(`[graph-page] @${username} checked=${checked} new=${inserted}`);
+      // A whole known page avoids stopping at a pinned old post.
+      if (!opts.full && posts.every(post => known.has(post.sourceUrl))) break;
     }
+  } catch (error) {
+    throw new InstagramSyncError(error, inserted, checked);
   }
-
-  return { inserted, checked: posts.length };
+  return { inserted, checked };
 }

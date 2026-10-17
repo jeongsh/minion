@@ -1,8 +1,8 @@
-import { spawn } from "node:child_process";
+import { spawn, type ChildProcess } from "node:child_process";
 import { NextResponse } from "next/server";
 
 import { isCurrentUserAdmin } from "@/lib/auth/admin";
-import { dispatchMatchWorkflow, matchWorkflowInputs, REMOTE_MATCH_SCRIPTS } from "@/lib/sync/admin-match-workflow";
+import { dispatchInstagramWorkflow, dispatchMatchWorkflow, matchWorkflowInputs, REMOTE_MATCH_SCRIPTS } from "@/lib/sync/admin-match-workflow";
 
 export const runtime = "nodejs";
 
@@ -57,6 +57,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "허용되지 않은 인자" }, { status: 400 });
   }
 
+  if (script === "sync-instagram" && process.env.VERCEL === "1") {
+    try {
+      return NextResponse.json(await dispatchInstagramWorkflow(args), { status: 202 });
+    } catch (error) {
+      return NextResponse.json({ error: error instanceof Error ? error.message : "인스타그램 수집 실행 실패" }, { status: 502 });
+    }
+  }
+
   if (process.env.VERCEL === "1" && (REMOTE_MATCH_SCRIPTS as readonly string[]).includes(script)) {
     let inputs;
     try {
@@ -78,6 +86,8 @@ export async function POST(request: Request) {
   const scriptPath = `scripts/${script}.ts`;
 
   const encoder = new TextEncoder();
+  let runningChild: ChildProcess | undefined;
+  const stopInstagram = () => { if (script === "sync-instagram") runningChild?.kill("SIGTERM"); };
 
   const stream = new ReadableStream({
     start(controller) {
@@ -85,6 +95,9 @@ export async function POST(request: Request) {
         cwd,
         env: { ...process.env },
       });
+      runningChild = child;
+      request.signal.addEventListener("abort", stopInstagram, { once: true });
+      if (request.signal.aborted) stopInstagram();
 
       const send = (text: string) => {
         try {
@@ -98,6 +111,7 @@ export async function POST(request: Request) {
       child.stderr.on("data", (data: Buffer) => send(data.toString()));
 
       child.on("close", (code) => {
+        request.signal.removeEventListener("abort", stopInstagram);
         send(`\n__EXIT__:${code ?? -1}`);
         try {
           controller.close();
@@ -107,6 +121,7 @@ export async function POST(request: Request) {
       });
 
       child.on("error", (err) => {
+        request.signal.removeEventListener("abort", stopInstagram);
         send(`\n오류: ${err.message}\n__EXIT__:-1`);
         try {
           controller.close();
@@ -115,6 +130,7 @@ export async function POST(request: Request) {
         }
       });
     },
+    cancel() { stopInstagram(); },
   });
 
   return new Response(stream, {

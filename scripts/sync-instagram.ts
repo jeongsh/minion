@@ -1,3 +1,5 @@
+import { acquireInstagramRun } from "../lib/sync/instagram-control.ts";
+import type { InstagramRun } from "../lib/sync/instagram-control.ts";
 import { appendFileSync } from "node:fs";
 import { resolve } from "node:path";
 
@@ -6,6 +8,7 @@ import {
   getInstagramOwners,
   extractUsername,
   syncOwnerPosts,
+  InstagramSyncError,
 } from "../lib/sync/instagram.ts";
 import { fetchInstagramGraphPosts, instagramGraphCredentials, INSTAGRAM_GRAPH_USERNAMES } from "../lib/scraper/instagram-graph.ts";
 
@@ -31,16 +34,16 @@ function loadEnvFile() {
   }
 }
 
-async function main() {
-  if (!Number.isInteger(maxPosts) || maxPosts < 1 || maxPosts > 500) {
-    throw new Error("--max-posts must be an integer between 1 and 500.");
+async function collect(run: InstagramRun) {
+  if (!Number.isInteger(maxPosts) || maxPosts < 1 || maxPosts > 60) {
+    throw new Error("--max-posts must be an integer between 1 and 60.");
   }
   loadEnvFile();
 
   instagramGraphCredentials();
   if (argSet.has("--check-api")) {
     const username = argv.find((arg) => arg.startsWith("--username="))?.slice("--username=".length) ?? "t1lol";
-    const posts = await fetchInstagramGraphPosts(username.toLowerCase(), 1);
+    const posts = await fetchInstagramGraphPosts(username.toLowerCase(), 1, run);
     if (!posts.length) throw new Error("Official API check returned no media.");
     console.log(`[graph] @${username}: API check passed. No database writes or notifications.`);
     return;
@@ -81,7 +84,7 @@ async function main() {
     if (modeArg === "all" || modeArg === "posts") {
       attemptedOwners += 1;
       try {
-        const result = await syncOwnerPosts(supabase, owner, { dryRun, noNotify, maxPosts });
+        const result = await syncOwnerPosts(supabase, owner, { dryRun, noNotify, maxPosts, run, full: argSet.has("--full") });
         postsInserted += result.inserted;
         checked += result.checked;
         healthyOwners += 1;
@@ -90,7 +93,12 @@ async function main() {
         const message = err instanceof Error ? err.message : String(err);
         errors += 1;
         console.error(`[error] ${owner.kind}:${owner.name} posts — ${message}`);
-        stoppedReason = message.startsWith("INSTAGRAM_GRAPH_STOP:") ? message : null;
+        if (err instanceof InstagramSyncError) {
+          postsInserted += err.inserted;
+          checked += err.checked;
+        }
+        // Never advance to another owner after any upstream/storage failure.
+        stoppedReason = message;
         if (stoppedReason) {
           console.error(`[stopped] ${stoppedReason}`);
           break;
@@ -109,6 +117,14 @@ async function main() {
   if (errors > 0 || healthyOwners === 0 || checked === 0) {
     throw new Error(`Instagram sync unhealthy: healthy=${healthyOwners} checked=${checked} errors=${errors}`);
   }
+}
+
+async function main() {
+  loadEnvFile();
+  instagramGraphCredentials();
+  const run = await acquireInstagramRun();
+  try { await collect(run); }
+  finally { await run.finish(); }
 }
 
 main().catch((err) => {
