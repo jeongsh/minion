@@ -112,24 +112,6 @@ export function HomeDashboard({
         </div>
       </section>
 
-      <Link
-        href="/transfers"
-        className="group relative flex items-center gap-3 overflow-hidden rounded-2xl px-4 py-3 transition hover:brightness-105 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--ui-ink)] sm:justify-center sm:gap-5 sm:px-6 sm:py-3.5"
-        style={{ backgroundColor: KITSCH_PALETTES.grapeLime.main }}
-      >
-        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white sm:h-10 sm:w-10">
-          <Image src={marker} alt="" className="h-8 w-8 object-contain sm:h-9 sm:w-9" />
-        </span>
-        <span className="min-w-0 flex-1 sm:flex-initial">
-          <span className="block truncate text-[13px] font-normal leading-4 sm:text-sm sm:leading-5" style={{ color: KITSCH_PALETTES.grapeLime.point }}>2026 LCK 스토브리그</span>
-          <span className="block truncate font-paperozi text-base text-white">이적 확정부터 FA 소식까지, 한눈에!</span>
-        </span>
-        <span className="flex shrink-0 items-center gap-0.5 rounded-lg bg-white px-2.5 py-2 text-[13px] font-medium sm:px-3.5" style={{ color: KITSCH_PALETTES.grapeLime.main }}>
-          <span className="hidden sm:inline">이적시장 보기</span>
-          <ChevronRight size={14} strokeWidth={2.5} aria-hidden className="transition group-hover:translate-x-0.5" />
-        </span>
-      </Link>
-
       {celebrationEvents.length > 0 ? (
         <section className="my-8">
           <CelebrationBanner events={celebrationEvents} />
@@ -144,6 +126,24 @@ export function HomeDashboard({
         format="auto"
         className="mt-8 h-[100px] sm:mt-10 md:h-[60px] xl:h-[90px]"
       />
+
+      <Link
+        href="/transfers"
+        className="mt-8 group relative flex items-center gap-3 overflow-hidden rounded-2xl px-4 py-3 transition hover:brightness-105 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--ui-ink)] sm:justify-center sm:gap-5 sm:px-6 sm:py-3.5"
+        style={{ backgroundColor: KITSCH_PALETTES.grapeLime.main }}
+      >
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white sm:h-10 sm:w-10">
+          <Image src={marker} alt="" className="h-8 w-8 object-contain sm:h-9 sm:w-9" />
+        </span>
+        <span className="min-w-0 flex-1 sm:flex-initial">
+          <span className="block truncate text-[13px] font-normal leading-4 sm:text-sm sm:leading-5" style={{ color: KITSCH_PALETTES.grapeLime.point }}>2026 LCK 스토브리그</span>
+          <span className="block truncate font-paperozi text-base text-white">이적 확정부터 FA 소식까지, 한눈에!</span>
+        </span>
+        <span className="flex shrink-0 items-center gap-0.5 rounded-lg bg-white px-2.5 py-2 text-[13px] font-medium sm:px-3.5" style={{ color: KITSCH_PALETTES.grapeLime.main }}>
+          <span className="hidden sm:inline">이적시장 보기</span>
+          <ChevronRight size={14} strokeWidth={2.5} aria-hidden className="transition group-hover:translate-x-0.5" />
+        </span>
+      </Link>
 
       <section className="mt-10">
         <Heading href={communityTitle === "인기글" ? "/community?view=hot" : "/community"}>{communityTitle}</Heading>
