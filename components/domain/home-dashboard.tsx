@@ -122,7 +122,7 @@ export function HomeDashboard({
         </span>
         <span className="min-w-0 flex-1 sm:flex-initial">
           <span className="block truncate text-[13px] font-normal leading-4 sm:text-sm sm:leading-5" style={{ color: KITSCH_PALETTES.grapeLime.point }}>2026 LCK 스토브리그</span>
-          <span className="block truncate text-sm font-medium leading-5 text-white sm:text-base sm:leading-6">이적 확정부터 FA 소식까지, 한눈에!</span>
+          <span className="block truncate font-paperozi text-base text-white">이적 확정부터 FA 소식까지, 한눈에!</span>
         </span>
         <span className="flex shrink-0 items-center gap-0.5 rounded-lg bg-white px-2.5 py-2 text-[13px] font-medium sm:px-3.5" style={{ color: KITSCH_PALETTES.grapeLime.main }}>
           <span className="hidden sm:inline">이적시장 보기</span>

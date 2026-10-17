@@ -52,6 +52,13 @@ const TYPE_LABEL: Record<CalendarEventType, string> = {
   custom: "기념일",
 };
 
+// 이번 피어엑스 우승 축하 배너는 시작일을 포함해 7일간 표시한다.
+const FEARX_CHAMPIONSHIP_EVENT_ID = "a8fb5123-271d-4dd8-8297-0b214a6f356f";
+
+function celebrationDurationDays(eventId: string): number {
+  return eventId === FEARX_CHAMPIONSHIP_EVENT_ID ? 7 : 1;
+}
+
 /** KST 기준 오늘의 연/월/일. */
 function todayPartsKST(): { year: number; month: number; day: number } {
   const parts = new Intl.DateTimeFormat("en-CA", {
@@ -239,7 +246,7 @@ export const getCalendarEvents = cache(async function getCalendarEvents(
     const [ey, em, ed] = row.event_date.split("-").map(Number);
     if (!em || !ed) continue;
     const oneTimeDday = row.is_recurring ? null : daysUntil(row.event_date, today);
-    if (!row.is_recurring && (oneTimeDday == null || (!includePastOneTime && oneTimeDday < 0))) continue;
+    if (!row.is_recurring && (oneTimeDday == null || (!includePastOneTime && oneTimeDday <= -celebrationDurationDays(row.id)))) continue;
     const occ = row.is_recurring
       ? nextOccurrence(em, ed, today)
       : { year: ey, dday: oneTimeDday ?? 0, nextDateKey: row.event_date };
@@ -281,9 +288,12 @@ export const getCalendarEvents = cache(async function getCalendarEvents(
   return events;
 });
 
-/** dday === 0 (오늘) 인 이벤트만. */
+/** 오늘의 기념일과 노출 기간이 남은 일회성 축하 이벤트. */
 export function getTodayCelebrations(events: CalendarEvent[]): CalendarEvent[] {
-  return events.filter((e) => e.dday === 0);
+  return events.filter((event) => {
+    const duration = event.isRecurring ? 1 : celebrationDurationDays(event.key.split(":")[1] ?? "");
+    return event.dday <= 0 && event.dday > -duration;
+  });
 }
 
 /** 축하글이 모이는 게시판 경로. 팀이 없는 기념일은 허브 커뮤니티로 보낸다. */
