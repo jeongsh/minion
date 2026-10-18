@@ -143,7 +143,7 @@ export function TransferMarketView({ market, teams, players, followedTeamIds = [
               </div>)}</div>
               <ChevronsRight size={18} strokeWidth={1.75} className="text-[var(--ui-muted)]" aria-hidden />
               <div className="min-w-0 text-right" aria-label="새 로스터">{next.length ? next.map((p) => <div key={p.name}>
-                <div className="flex min-w-0 flex-wrap items-center justify-end gap-1.5">{slotReports.some((event) => normalizeTransferName(event.player) === normalizeTransferName(p.name)) ? <span className="shrink-0 text-[13px] font-medium text-[var(--ui-muted)]">재계약 거피셜</span> : arrivalNames.has(normalizeTransferName(p.name)) && <span className="shrink-0 text-[13px] font-medium text-[var(--accent)]">합류</span>}{playerName(p)}</div>
+                <div className="flex min-w-0 flex-wrap items-center justify-end gap-1.5">{slotReports.some((event) => normalizeTransferName(event.player) === normalizeTransferName(p.name)) ? <span className="shrink-0 text-[13px] font-medium text-[var(--ui-muted)]">거피셜</span> : arrivalNames.has(normalizeTransferName(p.name)) && <span className="shrink-0 text-[13px] font-medium text-[var(--accent)]">합류</span>}{playerName(p)}</div>
               </div>) : <span aria-label="미발표" className="text-base font-medium text-[var(--ui-muted)]">—</span>}</div>
             </div>;
             })}
