@@ -31,7 +31,7 @@ export function parseGprPage(html, now = new Date()) {
 }
 
 const normalize = (value) => (value ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
-const codeAliases = { cloud9: 'c9', lll: 'loud', agal: 'al' };
+const codeAliases = { cloud9: 'c9', lll: 'loud', agal: 'al', ml: 'los', mibrlos: 'los' };
 const code = (value) => codeAliases[normalize(value)] ?? normalize(value);
 
 export function mapGprTeams(rankings, teams) {
