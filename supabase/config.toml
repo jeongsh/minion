@@ -1,0 +1,3 @@
+[functions.developer-predictions]
+# The handler validates the Vault cron token before accessing GPR or placing bets.
+verify_jwt = false
