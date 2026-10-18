@@ -1,5 +1,14 @@
 # MINION 프로젝트 지침
 
+## 최우선 원칙: 핵심과 컴팩트함
+
+- 디자인, 화면 문구뿐 아니라 AI 브리핑, 요약, 분석, 게시글, 알림, 보고서, 채팅 답변에도 적용한다. 모든 결과물은 핵심부터 짧게 전달하며, 자세함이나 설명량을 완성도의 기준으로 삼지 않는다. AI 생성 기능의 프롬프트를 작성하거나 수정할 때도 이 기준을 반영한다.
+- 브리핑과 요약은 중요한 사실이나 결론부터 쓴다. 판단에 필요한 근거와 맥락만 덧붙이고, 도입문, 상투적 해설, 중복 요약과 반복 결론은 생략한다.
+- 정보는 중요도로 선별하고 같은 이슈는 합친다. 분량이나 항목 수를 채우려고 부차적인 내용을 추가하지 않는다. 압축하더라도 핵심 수치와 조건, 사실과 추정의 구분은 유지한다.
+- 화면에는 현재 판단과 행동에 필요한 정보와 조작만 남긴다. 설명을 빼도 이해하고 사용할 수 있으면 생략한다. 도움이 될 수도 있다는 이유만으로 부가 설명을 넣지 않는다.
+- 컴팩트함은 불필요한 문구, 중복 정보, 컨테이너, 과도한 여백을 줄여 만든다. 글자 크기, 가독성, 터치 영역을 희생하거나 필수 기능을 숨기지 않는다.
+- 답변도 결론과 중요한 결과를 먼저 전달한다. 반복 요약, 자명한 과정 설명, 요청하지 않은 제안은 생략한다. 상세 설명은 요청받거나 정확한 판단에 꼭 필요할 때만 덧붙인다.
+
 ## 디자인 변경 필수 지침
 
 - MINION 웹 UI를 구현하거나 수정하기 전에 `minion-design` 스킬과 `docs/DESIGN.md`를 읽는다. 스킬이 설치되지 않은 환경에서는 `docs/DESIGN.md`를 실행 기준으로 삼는다.
@@ -201,6 +210,7 @@ Do not compensate for a simple interface by adding explanatory copy or decorativ
 
 Before completing any UI-related task, verify:
 
+- Remove any text or visual block that can be omitted without impairing the user's understanding or task.
 - No unsolicited English subtitles or decorative English labels.
 - No unnecessary Korean descriptions, slogans, or helper text.
 - No decorative middle-dot text separators.
