@@ -30,9 +30,11 @@ function rowCenterY(
 export function BracketConnectors({
   connections,
   children,
+  groupConnections = false,
 }: {
   connections: BracketConnection[];
   children: React.ReactNode;
+  groupConnections?: boolean;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [paths, setPaths] = useState<Path[]>([]);
@@ -88,7 +90,7 @@ export function BracketConnectors({
         // 소스끼리는 세로선 x가 우연히 같아져서 자연스럽게 하나로 합쳐진 것처럼 보인다.
         for (const [index, source] of sortedByY.entries()) {
           const toRow: 0 | 1 | undefined =
-            sortedByY.length > 1 ? (index === 0 ? 0 : 1) : source.toRow;
+            groupConnections ? undefined : sortedByY.length > 1 ? (index === 0 ? 0 : 1) : source.toRow;
           const y2 =
             rowCenterY(container, containerRect, toMatchId, toRow) ?? toRect.top + toRect.height / 2 - containerRect.top;
           const midX = (source.x1 + x2) / 2;
@@ -100,6 +102,7 @@ export function BracketConnectors({
       }
 
       setPaths(nextPaths);
+      if (groupConnections) return;
 
       // 카드 2개가 하나의 다음 경기로 합류하는 지점(승자조 결승끼리 만나는 결승, 상위권 라운드
       // 통합 등)은 그리드가 잡아준 자연스러운 위치가 실제로 연결되는 두 경기의 중간 지점과
@@ -157,7 +160,7 @@ export function BracketConnectors({
       observer.disconnect();
       window.removeEventListener("resize", measure);
     };
-  }, [connections]);
+  }, [connections, groupConnections]);
 
   return (
     // 스크롤 컨테이너(flex)의 자식이라 기본적으로 내용 폭으로 줄어든다. 대진표가 컨테이너보다
@@ -168,6 +171,7 @@ export function BracketConnectors({
         {paths.map((path) => (
           <path
             key={path.id}
+            data-connection={path.id}
             d={path.d}
             fill="none"
             stroke="var(--border)"

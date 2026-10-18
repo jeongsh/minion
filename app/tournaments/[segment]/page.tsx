@@ -42,6 +42,7 @@ import { SegmentedControl, UnderlineNav } from "@/components/ui/tabs";
 import { YearSelect } from "../year-select";
 import { BracketConnectors, type BracketConnection } from "./bracket-connectors";
 import { BracketScroller } from "./bracket-scroller";
+import { buildSwissRounds, buildWorldsPlayInBracket, completedMatchWinner, formatWorldsStageLabel, groupWorldsStages, seriesFormatLabel, swissRecordLabel, WORLDS_PHASE_LABELS, type WorldsPhase } from "@/lib/tournaments/worlds";
 
 const BRACKET_DATE_TIME_FORMATTER = new Intl.DateTimeFormat("ko-KR", {
   timeZone: "Asia/Seoul",
@@ -303,44 +304,63 @@ function TeamRow({
   );
 }
 
+function InlineMatchTeams({ match, teamA, teamB, accent }: { match?: Match; teamA?: Team; teamB?: Team; accent: string }) {
+  const hasScore = match?.teamAScore !== null && match?.teamAScore !== undefined && match?.teamBScore !== null && match?.teamBScore !== undefined;
+  return (
+    <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-0.5 px-2 py-2">
+      {[teamA, teamB].map((team, index) => {
+        const winner = match?.status === "completed" && match.winnerTeamId === team?.id;
+        return <Fragment key={index}>
+          {index === 1 ? <span className="text-center text-[13px] font-medium tabular-nums text-foreground">{hasScore ? `${match.teamAScore} : ${match.teamBScore}` : "vs"}</span> : null}
+          <span className={`flex min-w-0 items-center gap-0.5 ${index === 1 ? "flex-row-reverse" : ""}`} aria-label={team?.name ?? "미정 팀"}>
+            <span className="h-5 w-1 shrink-0 rounded-full" style={{ backgroundColor: team?.primaryColor ?? accent }} aria-hidden="true" />
+            <TeamLogo team={team} size="h-6 w-6" plain themeAware />
+            <span className={`min-w-0 truncate text-[14px] font-bold ${match?.status === "completed" && !winner ? "text-muted" : "text-foreground"}`}>{team?.shortName || "미정"}</span>
+          </span>
+        </Fragment>;
+      })}
+    </div>
+  );
+}
+
 function MatchCard({
   match,
   teamMap,
   accent,
+  bestOf,
+  placeholder,
+  showFormat = false,
+  grouped = false,
 }: {
-  match: Match;
+  match?: Match;
   teamMap: Map<string, Team>;
   accent: string;
+  bestOf?: number;
+  placeholder?: string;
+  showFormat?: boolean;
+  grouped?: boolean;
 }) {
-  const teamA = teamMap.get(match.teamAId);
-  const teamB = teamMap.get(match.teamBId);
-  const winnerA = match.status === "completed" && match.winnerTeamId === teamA?.id;
-  const winnerB = match.status === "completed" && match.winnerTeamId === teamB?.id;
+  const rawTeamA = match ? teamMap.get(match.teamAId) : undefined;
+  const rawTeamB = match ? teamMap.get(match.teamBId) : undefined;
+  const teamA = showFormat && /^(tbd|미정)$/i.test(rawTeamA?.name ?? "") ? undefined : rawTeamA;
+  const teamB = showFormat && /^(tbd|미정)$/i.test(rawTeamB?.name ?? "") ? undefined : rawTeamB;
+  const winnerA = match?.status === "completed" && match.winnerTeamId === teamA?.id;
+  const winnerB = match?.status === "completed" && match.winnerTeamId === teamB?.id;
+  const format = match?.bestOf ?? bestOf;
+  const rows = showFormat ? <InlineMatchTeams match={match} teamA={teamA} teamB={teamB} accent={accent} /> : <>
+    <TeamRow team={teamA} placeholder={placeholder ?? (showFormat ? "대진 미정" : undefined)} score={match?.teamAScore ?? null} isWinner={winnerA} accentColor={teamA?.primaryColor ?? accent} rowIndex={0} />
+    <div className="h-px bg-border" />
+    <TeamRow team={teamB} placeholder={placeholder ?? (showFormat ? "대진 미정" : undefined)} score={match?.teamBScore ?? null} isWinner={winnerB} accentColor={teamB?.primaryColor ?? accent} rowIndex={1} />
+  </>;
+  const cardClassName = grouped ? "block overflow-hidden rounded-md bg-surface transition-colors hover:bg-surface-muted" : "block overflow-hidden rounded-md border border-border bg-surface transition-colors hover:border-accent";
 
   return (
     <div className="flex flex-col gap-1.5">
-      <div className="truncate px-0.5 text-[12px] font-medium text-muted">{formatBracketDateTime(match.matchDate)}</div>
-      <Link
-        href={matchHref(match)}
-        data-match-id={match.id}
-        className="block overflow-hidden rounded-md border border-border bg-surface transition-colors hover:border-accent"
-      >
-        <TeamRow
-          team={teamA}
-          score={match.teamAScore}
-          isWinner={winnerA}
-          accentColor={teamA?.primaryColor ?? accent}
-          rowIndex={0}
-        />
-        <div className="h-px bg-border" />
-        <TeamRow
-          team={teamB}
-          score={match.teamBScore}
-          isWinner={winnerB}
-          accentColor={teamB?.primaryColor ?? accent}
-          rowIndex={1}
-        />
-      </Link>
+      {!grouped ? <div className={showFormat ? "flex items-center justify-between gap-2 px-0.5 text-[13px] font-medium text-muted" : "truncate px-0.5 text-[12px] font-medium text-muted"}>
+        <span>{match ? formatBracketDateTime(match.matchDate) : "대진 미정"}</span>
+        {showFormat ? <span className="shrink-0 text-foreground">{seriesFormatLabel(format)}</span> : null}
+      </div> : null}
+      {match ? <Link href={matchHref(match)} data-match-id={match.id} className={cardClassName}>{rows}</Link> : <div className={cardClassName}>{rows}</div>}
     </div>
   );
 }
@@ -349,28 +369,35 @@ function GrandFinalsCard({
   match,
   teamMap,
   accent,
+  showFormat = false,
 }: {
   match: Match;
   teamMap: Map<string, Team>;
   accent: string;
+  showFormat?: boolean;
 }) {
-  const teamA = teamMap.get(match.teamAId);
-  const teamB = teamMap.get(match.teamBId);
+  const rawTeamA = teamMap.get(match.teamAId);
+  const rawTeamB = teamMap.get(match.teamBId);
+  const teamA = showFormat && /^(tbd|미정)$/i.test(rawTeamA?.name ?? "") ? undefined : rawTeamA;
+  const teamB = showFormat && /^(tbd|미정)$/i.test(rawTeamB?.name ?? "") ? undefined : rawTeamB;
   const winnerA = match.status === "completed" && match.winnerTeamId === teamA?.id;
   const winnerB = match.status === "completed" && match.winnerTeamId === teamB?.id;
 
   return (
     <div className="flex flex-col gap-1.5">
-      <div className="truncate px-0.5 text-[12px] font-medium text-muted">{formatBracketDateTime(match.matchDate)}</div>
+      <div className={showFormat ? "flex items-center justify-between gap-2 px-0.5 text-[13px] font-medium text-muted" : "truncate px-0.5 text-[12px] font-medium text-muted"}>
+        <span>{formatBracketDateTime(match.matchDate)}</span>
+        {showFormat ? <span className="shrink-0 text-foreground">{seriesFormatLabel(match.bestOf ?? 5)}</span> : null}
+      </div>
       <Link
         href={matchHref(match)}
         data-match-id={match.id}
         style={{ borderColor: accent }}
         className="block overflow-hidden rounded-md border-2 bg-surface transition-colors hover:bg-surface-muted"
       >
-        <TeamRow
+        {showFormat ? <InlineMatchTeams match={match} teamA={teamA} teamB={teamB} accent={accent} /> : <><TeamRow
           team={teamA}
-          placeholder="Upper winner"
+          placeholder={showFormat ? "대진 미정" : "Upper winner"}
           score={match.teamAScore}
           isWinner={winnerA}
           accentColor={teamA?.primaryColor ?? accent}
@@ -379,12 +406,12 @@ function GrandFinalsCard({
         <div className="h-px bg-border" />
         <TeamRow
           team={teamB}
-          placeholder="Lower winner"
+          placeholder={showFormat ? "대진 미정" : "Lower winner"}
           score={match.teamBScore}
           isWinner={winnerB}
           accentColor={teamB?.primaryColor ?? accent}
           rowIndex={1}
-        />
+        /></>}
       </Link>
     </div>
   );
@@ -447,10 +474,11 @@ const UPPER_ROW = 2;
 
 // 롤 이스포츠 브래킷의 라운드 라벨처럼 박스 없이 대문자 텍스트로만 처리한다. 스테이지가
 // 많은 브래킷에서 회색 알약 박스가 반복되면 시각적 소음이 커진다.
-function ColumnHeader({ label }: { label: string }) {
+function ColumnHeader({ label, localize = false }: { label: string; localize?: boolean }) {
+  const text = localize ? formatWorldsStageLabel(label) : label;
   return (
-    <span className="inline-block w-fit whitespace-nowrap text-[12px] font-medium uppercase tracking-[0.08em] text-muted">
-      {label}
+    <span className={`inline-block w-fit whitespace-nowrap font-medium text-muted ${/[가-힣]/.test(text) ? "text-[13px]" : "text-[12px] uppercase tracking-[0.08em]"}`}>
+      {text}
     </span>
   );
 }
@@ -520,15 +548,97 @@ function buildPositionedGroups(regularColumns: StageColumn[]) {
   return { groups, gapRows, lastRow: rowCursor - 1 };
 }
 
+const SWISS_GROUP_POSITIONS: Record<string, { column: number; row: number; span: number }> = {
+  "0-0": { column: 1, row: 7, span: 36 },
+  "1-0": { column: 2, row: 3, span: 21 }, "0-1": { column: 2, row: 26, span: 21 },
+  "2-0": { column: 3, row: 1, span: 12 }, "1-1": { column: 3, row: 15, span: 20 }, "0-2": { column: 3, row: 37, span: 12 },
+  "2-1": { column: 4, row: 9, span: 17 }, "1-2": { column: 4, row: 27, span: 17 },
+  "2-2": { column: 5, row: 20, span: 17 },
+};
+const SWISS_RESULT_POSITIONS = [
+  { wins: 3, losses: 0, column: 4, row: 1, span: 6, from: "2-0", count: 2 },
+  { wins: 0, losses: 3, column: 4, row: 44, span: 4, from: "0-2", count: 2 },
+  { wins: 3, losses: 1, column: 5, row: 7, span: 4, from: "2-1", count: 3 },
+  { wins: 1, losses: 3, column: 5, row: 41, span: 4, from: "1-2", count: 3 },
+  { wins: 3, losses: 2, column: 6, row: 21, span: 4, from: "2-2", count: 3 },
+  { wins: 2, losses: 3, column: 6, row: 33, span: 4, from: "2-2", count: 3 },
+];
+
+function SwissBracket({ columns, teamMap, accent }: { columns: StageColumn[]; teamMap: Map<string, Team>; accent: string }) {
+  const knownTeamIds = new Set([...teamMap.values()].filter((team) => !/^(tbd|미정)$/i.test(team.name.trim())).map((team) => team.id));
+  const rounds = buildSwissRounds(columns, knownTeamIds);
+  const groups = rounds.flatMap((round) => round.groups.map((group) => ({ ...group, round })));
+  const connections: BracketConnection[] = groups.flatMap((group) => [
+    { fromMatchId: `swiss-${group.wins}-${group.losses}`, toMatchId: `swiss-${group.wins + 1}-${group.losses}` },
+    { fromMatchId: `swiss-${group.wins}-${group.losses}`, toMatchId: `swiss-${group.wins}-${group.losses + 1}` },
+  ]);
+  const nodeStyle = (position: { column: number; row: number; span: number }) => ({ gridColumn: position.column, gridRow: `${position.row} / span ${position.span}` });
+  const roundDates = (matches: Match[]) => {
+    const days = [...new Set(matches.map((match) => formatBracketDateTime(match.matchDate).split(" ")[0]))];
+    return days.length > 1 ? `${days[0]} ~ ${days[days.length - 1]}` : days[0];
+  };
+  return (
+    <BracketConnectors connections={connections} groupConnections>
+      <div className="relative grid w-max min-w-full gap-x-8" data-swiss-bracket style={{ gridTemplateColumns: "repeat(6, calc(12.5rem + 1rem + 2px))", gridTemplateRows: "repeat(48, 15px)", justifyContent: "start" }}>
+        {groups.map((group) => {
+          const key = `${group.wins}-${group.losses}`;
+          const label = group.wins === 2 && group.losses === 2 ? "최종 진출전" : group.wins === 2 ? "진출 결정전" : group.losses === 2 ? "탈락 결정전" : "";
+          const pending = group.round.unclassified.length === 0 ? Math.max(0, group.expectedMatches - group.matches.length) : 0;
+          return (
+            <section key={key} className="flex snap-start flex-col gap-2 self-center" style={nodeStyle(SWISS_GROUP_POSITIONS[key])} aria-label={`${swissRecordLabel(group)} 대진`}>
+              <div className="flex items-baseline justify-between gap-2 px-0.5"><h3 className="text-[14px] font-medium text-foreground">{swissRecordLabel(group)}</h3>{label ? <span className="text-[13px] font-medium text-muted">{label}</span> : null}</div>
+              <div data-match-id={`swiss-${key}`} data-swiss-group={key} className="overflow-hidden rounded-md border border-border bg-surface">
+                <div className="flex flex-col gap-2 bg-[var(--ui-card-bg)] p-2">
+                  {group.matches.map((match) => <MatchCard key={match.id} match={match} teamMap={teamMap} accent={accent} grouped showFormat />)}
+                  {Array.from({ length: pending }, (_, index) => <MatchCard key={index} teamMap={teamMap} accent={accent} grouped showFormat placeholder="미정" />)}
+                </div>
+                <div className="flex items-center justify-between gap-2 border-t border-border px-3 py-2 text-[13px] font-medium"><span className="text-foreground">{seriesFormatLabel(group.bestOf)}</span><span className="text-muted">{roundDates(group.round.matches)}</span></div>
+              </div>
+            </section>
+          );
+        })}
+        {SWISS_RESULT_POSITIONS.map((result) => {
+          const key = `${result.wins}-${result.losses}`;
+          const source = groups.find((group) => `${group.wins}-${group.losses}` === result.from);
+          const qualified = result.wins === 3;
+          const ids = source?.matches.flatMap((match) => {
+            const winner = completedMatchWinner(match);
+            return winner ? [qualified ? winner : match.teamAId === winner ? match.teamBId : match.teamAId] : [];
+          }) ?? [];
+          return (
+            <section key={key} className="flex snap-start flex-col gap-2 self-center" style={nodeStyle(result)} aria-label={`${swissRecordLabel(result)} ${qualified ? "8강 진출" : "탈락"}`}>
+              <div className="flex items-baseline justify-between gap-2 px-0.5"><h3 className="text-[14px] font-medium text-foreground">{swissRecordLabel(result)}</h3><span className="text-[13px] font-medium text-muted">{qualified ? "8강 진출" : "탈락"}</span></div>
+              <div data-match-id={`swiss-${key}`} data-swiss-result={key} className="flex min-h-12 items-center justify-around gap-2 rounded-md border border-border bg-surface px-2 py-2" style={qualified ? { borderColor: accent } : undefined}>
+                {Array.from({ length: result.count }, (_, index) => {
+                  const team = ids[index] ? teamMap.get(ids[index]) : undefined;
+                  return <span key={index} className="flex min-w-0 items-center gap-1.5" aria-label={team?.name ?? "미정 팀"}><TeamLogo team={team} size="h-5 w-5" plain themeAware /><span className="min-w-0 truncate text-[13px] font-medium text-foreground">{team?.shortName ?? "–"}</span></span>;
+                })}
+              </div>
+            </section>
+          );
+        })}
+        {rounds.some((round) => round.unclassified.length > 0) ? <div className="col-span-6 mt-5 flex flex-wrap gap-4" style={{ gridRow: 49 }}>{rounds.flatMap((round) => round.unclassified).map((match) => <div key={match.id} className="w-[12.5rem]"><MatchCard match={match} teamMap={teamMap} accent={accent} showFormat /></div>)}</div> : null}
+      </div>
+    </BracketConnectors>
+  );
+}
+
 function BracketGrid({
-  columns,
+  columns: sourceColumns,
   teamMap,
   accent,
+  worldsPhase,
 }: {
   columns: StageColumn[];
   teamMap: Map<string, Team>;
   accent: string;
+  worldsPhase?: WorldsPhase;
 }) {
+  if (worldsPhase === "swiss") {
+    return <SwissBracket columns={sourceColumns} teamMap={teamMap} accent={accent} />;
+  }
+  const playIn = worldsPhase === "playin" ? buildWorldsPlayInBracket(sourceColumns) : null;
+  const columns = playIn?.columns ?? sourceColumns;
   // "결승"이라는 이름의 최종 진출전이 그랜드 파이널("Finals")과 별개 스테이지로 함께 있는
   // 시즌이 있다(예: 2026 LCK컵 플레이오프). 열은 날짜순이므로 매칭되는 것 중 '마지막'이
   // 진짜 그랜드 파이널이다 — 첫 매칭을 집으면 앞 단계 경기가 오른쪽 끝으로 빠지고 연결선이
@@ -547,8 +657,8 @@ function BracketGrid({
 
   const matchById = new Map(columns.flatMap((column) => column.matches).map((match) => [match.id, match]));
 
-  const connections: BracketConnection[] = [];
-  for (const column of columns) {
+  const connections: BracketConnection[] = playIn?.connections ?? [];
+  for (const column of playIn ? [] : columns) {
     for (const match of column.matches) {
       if (match.advancesToMatchId) {
         const toMatch = matchById.get(match.advancesToMatchId);
@@ -571,7 +681,7 @@ function BracketGrid({
   }
 
   return (
-    <BracketConnectors connections={connections}>
+    <BracketConnectors connections={connections} groupConnections={Boolean(playIn)}>
       <div
         className="grid w-max min-w-full gap-x-4 gap-y-2"
         style={{
@@ -596,8 +706,9 @@ function BracketGrid({
                 className="flex snap-start flex-col gap-2"
               >
                 <ColumnHeader
+                  localize={Boolean(worldsPhase)}
                   label={
-                    useGroupLabels
+                    playIn?.labels.get(matches[0]?.id) ?? (useGroupLabels
                       ? formatBracketColumnLabel(regularColumns[columnIndex]?.stage.name ?? `${columnIndex + 1}R`, {
                           group: groupLetterLabel(group.groupIndex),
                         })
@@ -605,12 +716,12 @@ function BracketGrid({
                         ? formatBracketColumnLabel(regularColumns[columnIndex]?.stage.name ?? `${columnIndex + 1}R`, {
                             prefix: "Upper",
                           })
-                        : formatBracketColumnLabel(regularColumns[columnIndex]?.stage.name ?? `${columnIndex + 1}R`)
+                        : formatBracketColumnLabel(regularColumns[columnIndex]?.stage.name ?? `${columnIndex + 1}R`))
                   }
                 />
                 <div className="flex flex-col gap-3">
                   {matches.map((match) => (
-                    <MatchCard key={match.id} match={match} teamMap={teamMap} accent={accent} />
+                    <MatchCard key={match.id} match={match} teamMap={teamMap} accent={accent} showFormat={Boolean(worldsPhase)} bestOf={worldsPhase ? 5 : undefined} />
                   ))}
                 </div>
               </div>
@@ -626,20 +737,21 @@ function BracketGrid({
                     className="flex flex-col gap-2"
                   >
                     <ColumnHeader
+                      localize={Boolean(worldsPhase)}
                       label={
-                        useGroupLabels
+                        playIn?.labels.get(matches[0]?.id) ?? (useGroupLabels
                           ? formatBracketColumnLabel(regularColumns[columnIndex]?.stage.name ?? `${columnIndex + 1}R`, {
                               group: groupLetterLabel(group.groupIndex),
                               lower: true,
                             })
                           : formatBracketColumnLabel(regularColumns[columnIndex]?.stage.name ?? `${columnIndex + 1}R`, {
                               prefix: "Lower",
-                            })
+                            }))
                       }
                     />
                     <div className="flex flex-col gap-3">
                       {matches.map((match) => (
-                        <MatchCard key={match.id} match={match} teamMap={teamMap} accent={accent} />
+                        <MatchCard key={match.id} match={match} teamMap={teamMap} accent={accent} showFormat={Boolean(worldsPhase)} bestOf={worldsPhase ? 5 : undefined} />
                       ))}
                     </div>
                   </div>
@@ -652,7 +764,7 @@ function BracketGrid({
         {finalsMatch ? (
           <Fragment>
             <div style={{ gridColumn: finalsGridColumn, gridRow: 1 }} className="flex flex-col gap-2">
-              <ColumnHeader label="Final" />
+              <ColumnHeader label={playIn ? "최종 진출전" : "Final"} localize={Boolean(worldsPhase)} />
             </div>
             <div
               data-merge-slot="true"
@@ -662,7 +774,7 @@ function BracketGrid({
               }}
               className="flex flex-col justify-center"
             >
-              <GrandFinalsCard match={finalsMatch} teamMap={teamMap} accent={accent} />
+              <GrandFinalsCard match={finalsMatch} teamMap={teamMap} accent={accent} showFormat={Boolean(worldsPhase)} />
             </div>
           </Fragment>
         ) : null}
@@ -1079,16 +1191,28 @@ export default async function TournamentBracketPage({
       currentBracketStage ??
       segmentBracketStages[0] ??
       null;
-    const activeStages = activeBracketStage
-      ? segmentStages.filter((stage) => stage.bracketStageId === activeBracketStage.id)
-      : segmentStages;
+    const worldsPhases = segmentTheme.key === "worlds" ? groupWorldsStages(segmentStages, segmentBracketStages) : null;
+    const worldsPhaseKeys = Object.keys(WORLDS_PHASE_LABELS) as WorldsPhase[];
+    const phaseMatches = (phase: WorldsPhase) => {
+      const ids = new Set(worldsPhases?.[phase].map((stage) => stage.id));
+      return segmentMatches.filter((match) => ids.has(match.stageId));
+    };
+    const worldsPhase = worldsPhases
+      ? worldsPhaseKeys.find((phase) => phase === search.bracketStage || phase === search.phase)
+        ?? worldsPhaseKeys.find((phase) => worldsPhases[phase].some((stage) => stage.bracketStageId === search.bracketStage))
+        ?? worldsPhaseKeys.find((phase) => phaseMatches(phase).some((match) => match.status !== "completed"))
+        ?? worldsPhaseKeys.findLast((phase) => phaseMatches(phase).length > 0)
+        ?? "swiss"
+      : undefined;
+    const activeStages = worldsPhase && worldsPhases ? worldsPhases[worldsPhase]
+      : activeBracketStage ? segmentStages.filter((stage) => stage.bracketStageId === activeBracketStage.id) : segmentStages;
     const columns = buildStageColumns(activeStages, segmentMatches);
 
     // 조별 라운드로빈(예: 케스파컵/퍼스트 스탠드 그룹 스테이지)은 대진표 대신 LCK
     // 정규시즌처럼 승-패 순위표로도 보여줄 수 있다. 이름에 "그룹"이 들어가거나 어드민이
     // 순위표로 지정해둔 스테이지는 두 뷰를 모두 지원하며, 기본값은 순위표다.
     const supportsGroupToggle = Boolean(
-      activeBracketStage && isGroupBracketStage(activeBracketStage.name, activeBracketStage.displayMode),
+      !worldsPhase && activeBracketStage && isGroupBracketStage(activeBracketStage.name, activeBracketStage.displayMode),
     );
     const requestedGroupView: "standings" | "bracket" = search.view === "bracket" ? "bracket" : "standings";
     const isGroupStageBracket = supportsGroupToggle && requestedGroupView === "standings";
@@ -1120,8 +1244,8 @@ export default async function TournamentBracketPage({
             ) : null}
           </div>
           <BracketStagePills
-            bracketStages={segmentBracketStages}
-            activeBracketStageId={activeBracketStage?.id ?? ""}
+            bracketStages={worldsPhase ? worldsPhaseKeys.map((phase) => ({ id: phase, name: WORLDS_PHASE_LABELS[phase] })) : segmentBracketStages}
+            activeBracketStageId={worldsPhase ?? activeBracketStage?.id ?? ""}
             segmentKey={segmentTheme.key}
             activeSeason={activeSeason}
           />
@@ -1136,7 +1260,7 @@ export default async function TournamentBracketPage({
         ) : (
           <div className="rounded-lg border border-border bg-surface p-4 md:p-6">
             <BracketScroller>
-              <BracketGrid columns={columns} teamMap={teamMap} accent={segmentTheme.accent} />
+              <BracketGrid columns={columns} teamMap={teamMap} accent={segmentTheme.accent} worldsPhase={worldsPhase} />
             </BracketScroller>
           </div>
         )}
