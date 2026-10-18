@@ -125,6 +125,7 @@ export function TransferMarketView({ market, teams, players, followedTeamIds = [
         const confirmedArrivals = latest.filter((event) => lckTeamCode(event.to) === roster.team && ["transfer", "loan", "promote"].includes(event.kind) && (event.kind === "promote" || lckTeamCode(event.from) !== roster.team) && roster.slots.some((slot) => slot.next.some((person) => normalizeTransferName(person.name) === normalizeTransferName(event.player))));
         const arrivalNames = new Set(confirmedArrivals.map((event) => normalizeTransferName(event.player)));
         const arrivals = [...confirmedArrivals, ...reported.filter((event) => lckTeamCode(event.to) === roster.team && ["transfer", "loan", "promote"].includes(event.kind) && (event.kind === "promote" || lckTeamCode(event.from) !== roster.team) && !arrivalNames.has(normalizeTransferName(event.player)))];
+        const renewalReports = reported.filter((event) => event.kind === "renew" && lckTeamCode(event.to) === roster.team && (!event.contractUntil || Number(event.contractUntil.slice(0, 4)) > market.season) && (!event.date || event.date >= `${market.season}-09-01` || Boolean(event.contractUntil && Number(event.contractUntil.slice(0, 4)) > market.season)));
         return <article key={roster.team} className="grid min-w-0 grid-cols-2 gap-px overflow-hidden rounded-md bg-[var(--ui-border)] p-px md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)]">
           <section className="col-span-2 min-w-0 bg-[var(--ui-surface)] dark:bg-[var(--ui-card-bg)] md:col-span-1" aria-label={`${roster.team} 포지션별 로스터`}>
           <header className="relative flex h-12 items-center gap-2.5 border-b border-[var(--ui-card-divider)] bg-[var(--ui-card-bg)] px-3">
@@ -132,16 +133,20 @@ export function TransferMarketView({ market, teams, players, followedTeamIds = [
             <h2 className="max-w-40 break-keep text-[16px] font-bold leading-5">{roster.team === "DNS" ? "DN SOOPers" : team?.name ?? roster.team}</h2>
           </header>
           <div className="divide-y divide-[var(--ui-card-divider)] dark:divide-transparent">
-            {[...roster.slots.filter((s) => s.role !== "COACH"), ...roster.slots.filter((s) => s.role === "COACH")].map((slot) => <div key={slot.role} className="grid min-h-14 grid-cols-[20px_minmax(0,1fr)_18px_minmax(0,1fr)] items-center gap-x-2 px-3 py-1.5 dark:odd:bg-[var(--ui-card-hover)]">
+            {[...roster.slots.filter((s) => s.role !== "COACH"), ...roster.slots.filter((s) => s.role === "COACH")].map((slot) => {
+              const slotReports = renewalReports.filter((event) => event.role === slot.role);
+              const next = [...slot.next, ...slotReports.filter((event) => !slot.next.some((person) => normalizeTransferName(person.name) === normalizeTransferName(event.player))).map((event) => ({ name: event.player }))];
+              return <div key={slot.role} className="grid min-h-14 grid-cols-[20px_minmax(0,1fr)_18px_minmax(0,1fr)] items-center gap-x-2 px-3 py-1.5 dark:odd:bg-[var(--ui-card-hover)]">
               <RoleIcon role={slot.role} />
               <div className="min-w-0" aria-label="기존 선수">{slot.previous.map((p) => <div key={p.name}>
                 {playerName(p, true)}
               </div>)}</div>
               <ChevronsRight size={18} strokeWidth={1.75} className="text-[var(--ui-muted)]" aria-hidden />
-              <div className="min-w-0 text-right" aria-label="새 로스터">{slot.next.length ? slot.next.map((p) => <div key={p.name}>
-                <div className="flex min-w-0 items-center justify-end gap-1.5">{arrivalNames.has(normalizeTransferName(p.name)) && <span className="shrink-0 text-[13px] font-medium text-[var(--accent)]">합류</span>}{playerName(p)}</div>
+              <div className="min-w-0 text-right" aria-label="새 로스터">{next.length ? next.map((p) => <div key={p.name}>
+                <div className="flex min-w-0 flex-wrap items-center justify-end gap-1.5">{slotReports.some((event) => normalizeTransferName(event.player) === normalizeTransferName(p.name)) ? <span className="shrink-0 text-[13px] font-medium text-[var(--ui-muted)]">재계약 거피셜</span> : arrivalNames.has(normalizeTransferName(p.name)) && <span className="shrink-0 text-[13px] font-medium text-[var(--accent)]">합류</span>}{playerName(p)}</div>
               </div>) : <span aria-label="미발표" className="text-base font-medium text-[var(--ui-muted)]">—</span>}</div>
-            </div>)}
+            </div>;
+            })}
           </div>
           </section>
             {movementSummary("합류", arrivals, true, roster.team)}
