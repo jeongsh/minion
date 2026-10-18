@@ -127,6 +127,21 @@ export function HomeLoadingSkeleton() {
           {Array.from({ length: 6 }, (_, index) => <div key={index} className="min-w-[calc((100%-12px)/2.2)] overflow-hidden rounded-2xl bg-[var(--ui-card-bg)] min-[520px]:min-w-[calc((100%-24px)/3.2)] md:min-w-[calc((100%-42px)/4.2)] lg:min-w-[calc((100%-64px)/5.2)] xl:min-w-0 xl:flex-1"><div className="relative aspect-[3/4]"><Skeleton className="h-full w-full rounded-none" /><Skeleton className="absolute left-4 top-4 h-6 w-24" /><Skeleton className="absolute bottom-4 left-2 h-10 w-10" /><Skeleton className="absolute bottom-2 right-2 size-[60px] rounded-full" /></div></div>)}
         </div>
       </section>
+      <section>
+        <SectionTitle width="w-40" />
+        <div className="grid gap-x-8 md:grid-cols-2">
+          {Array.from({ length: 6 }, (_, index) => (
+            <div key={index} className="flex min-h-[76px] items-center gap-3 py-2">
+              <Skeleton className="h-[60px] w-20 shrink-0 rounded-md sm:w-24" />
+              <div className="min-w-0 flex-1">
+                <Skeleton className="h-5 w-full" />
+                <Skeleton className="mt-1 h-5 w-3/4" />
+                <Skeleton className="mt-1 h-5 w-32" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
       <section><SectionTitle width="w-40" /><div className="flex gap-3 overflow-hidden">{Array.from({ length: 6 }, (_, index) => <Skeleton key={index} className="aspect-[3/4] min-w-[calc((100%-12px)/2.2)] flex-1 rounded-2xl min-[520px]:min-w-[calc((100%-24px)/3.2)] md:min-w-[calc((100%-42px)/4.2)] lg:min-w-[calc((100%-64px)/5.2)] xl:min-w-0" />)}</div></section>
       <section className="grid gap-4 xl:grid-cols-3">
         <div className="min-w-0 xl:col-span-2">
