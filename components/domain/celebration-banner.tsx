@@ -21,6 +21,9 @@ export type CelebrationAction = "board" | "write";
 
 /** 윗줄 — 무슨 날인지. */
 function eyebrow(event: CalendarEvent) {
+  if (event.key.split(":")[1] === "a8fb5123-271d-4dd8-8297-0b214a6f356f") {
+    return "데마시아컵 우승";
+  }
   if (event.type === "birthday") {
     const nth = event.yearsCount ? `${event.yearsCount}번째 ` : "";
     return `오늘은 ${event.subjectName} 선수의 ${nth}생일!`;
