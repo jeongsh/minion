@@ -11,9 +11,14 @@ export function isAdContentPath(pathname: string): boolean {
   if (!ADS_ENABLED) return false;
   const path = pathname.replace(/\/+$/, "") || "/";
   return path === "/"
+    || path === "/transfers"
+    || path === "/schedule"
+    || path === "/players"
     || /^\/matches\/[^/]+$/.test(path)
     || /^\/players\/[^/]+$/.test(path)
     || /^\/fan\/[^/]+$/.test(path)
+    || /^\/fan\/[^/]+\/matches$/.test(path)
+    || /^\/fan\/[^/]+\/players\/[^/]+$/.test(path)
     || path === "/community"
     || /^\/community\/post\/[^/]+$/.test(path)
     || /^\/fan\/[^/]+\/community$/.test(path)
@@ -31,5 +36,6 @@ export function isAutoAdContentPath(pathname: string): boolean {
 export function isRailAdContentPath(pathname: string): boolean {
   if (!ADS_ENABLED) return false;
   const path = pathname.replace(/\/+$/, "") || "/";
-  return path === "/schedule" || path === "/players" || /^\/tournaments\/[^/]+$/.test(path);
+  return path === "/schedule" || path === "/players" || /^\/tournaments\/[^/]+$/.test(path)
+    || /^\/fan\/[^/]+\/players$/.test(path);
 }

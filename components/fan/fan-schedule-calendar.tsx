@@ -7,6 +7,7 @@ import { createPortal } from "react-dom";
 
 import type { CalendarEvent, CalendarEventType } from "@/lib/calendar/events";
 import { CALENDAR_EVENT_COLORS } from "@/lib/calendar/theme";
+import { AdSlot } from "@/components/ui/ad-slot";
 
 export type FanScheduleMatch = {
   id: string;
@@ -370,6 +371,7 @@ export function FanScheduleCalendar({
 
   const monthLabel = `${visibleMonth.getFullYear()}년 ${visibleMonth.getMonth() + 1}월`;
   const selectedMobileItems = selectedMobileDateKey ? itemsForDate(selectedMobileDateKey) : [];
+  const hasAdContent = weeks.some((week) => week.some((day) => itemsForDate(dateKey(day)).length > 0));
 
   return (
     <div className="min-w-0">
@@ -551,6 +553,8 @@ export function FanScheduleCalendar({
           </span>
         ))}
       </div>
+
+      <AdSlot enabled={hasAdContent} placement="horizontal" className="mt-6 h-[60px] xl:h-[90px]" />
 
       {selectedMobileDateKey && selectedMobileItems.length > 0 ? (
         <MobileCalendarPopup

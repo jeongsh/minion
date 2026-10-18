@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CelebrationSlides } from "@/components/domain/celebration-slides";
 import { ChevronRight } from "lucide-react";
 
 import {
@@ -24,6 +25,9 @@ function eyebrow(event: CalendarEvent) {
     const nth = event.yearsCount ? `${event.yearsCount}번째 ` : "";
     return `오늘은 ${event.subjectName} 선수의 ${nth}생일!`;
   }
+  if (event.type === "championship" && event.teamFanSlug === "fox") {
+    return "피어엑스 우승을 축하합니다!";
+  }
   return `오늘은 ${event.title}!`;
 }
 
@@ -37,7 +41,16 @@ function headline(event: CalendarEvent, action: CelebrationAction) {
 function CelebrationCard({ event, action }: { event: CalendarEvent; action: CelebrationAction }) {
   const href = action === "write" ? celebrationWriteHref(event) : celebrationBoardHref(event);
   const ctaLabel = action === "write" ? "축하글 쓰기" : "축하하러 가기";
-  const theme = CALENDAR_EVENT_BANNER_THEME[event.type];
+  const isFearxChampionship = event.type === "championship" && event.teamFanSlug === "fox";
+  const imageUrl = isFearxChampionship ? event.teamLogoUrl : event.playerImageUrl;
+  const theme = isFearxChampionship
+    ? {
+        background: event.teamColor ?? "#fed200",
+        accent: "#111111",
+        soft: "#ffffff",
+        foreground: "#111111",
+      }
+    : CALENDAR_EVENT_BANNER_THEME[event.type];
 
   return (
     <Link
@@ -49,9 +62,13 @@ function CelebrationCard({ event, action }: { event: CalendarEvent; action: Cele
         className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full text-lg sm:h-10 sm:w-10"
         style={{ background: theme.soft }}
       >
-        {event.playerImageUrl ? (
+        {imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={event.playerImageUrl} alt="" className="h-full w-full object-cover object-top" />
+          <img
+            src={imageUrl}
+            alt=""
+            className={isFearxChampionship ? "h-full w-full object-contain" : "h-full w-full object-cover object-top"}
+          />
         ) : (
           TYPE_EMOJI[event.type]
         )}
@@ -64,14 +81,14 @@ function CelebrationCard({ event, action }: { event: CalendarEvent; action: Cele
         >
           {eyebrow(event)}
         </span>
-        <span className="block font-paperozi truncate text-sm sm:text-base" style={{ color: theme.foreground }}>
+        <span className="block truncate font-paperozi text-base" style={{ color: theme.foreground }}>
           {headline(event, action)}
         </span>
       </span>
 
       <span
-        className="flex shrink-0 items-center gap-0.5 rounded-lg bg-white px-2.5 py-2 text-[13px] font-bold sm:px-3.5"
-        style={{ color: theme.background }}
+        className="flex shrink-0 items-center gap-0.5 rounded-lg bg-white px-2.5 py-2 text-[13px] font-medium sm:px-3.5"
+        style={{ color: isFearxChampionship ? theme.foreground : theme.background }}
       >
         <span className="hidden sm:inline">{ctaLabel}</span>
         <ChevronRight size={14} strokeWidth={2.5} />
@@ -92,11 +109,12 @@ export function CelebrationBanner({
   action?: CelebrationAction;
 }) {
   if (events.length === 0) return null;
+  if (events.length === 1) return <CelebrationCard event={events[0]} action={action} />;
   return (
-    <div className="flex flex-col gap-2.5">
+    <CelebrationSlides>
       {events.map((event) => (
         <CelebrationCard key={event.key} event={event} action={action} />
       ))}
-    </div>
+    </CelebrationSlides>
   );
 }
