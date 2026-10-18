@@ -47,13 +47,13 @@ export function DataTable<T>({
         title="아직 숫자가 안 잡혔어요"
         body={emptyText}
         compact
-        className={`${className} ${mobileFlat ? "mobile-data-list" : ""} bg-[var(--ui-card-bg)]`}
+        className={`${className} ${mobileFlat ? "mobile-data-list" : ""} bg-[var(--ui-surface)] dark:bg-[var(--ui-card-bg)]`}
       />
     );
   }
 
   return (
-    <div className={`${className} ${mobileFlat ? "mobile-data-list" : ""} overflow-hidden rounded-[var(--ui-card-radius)] bg-[var(--ui-card-bg)]`}>
+    <div className={`${className} ${mobileFlat ? "mobile-data-list" : ""} overflow-hidden rounded-[var(--ui-card-radius)] bg-[var(--ui-surface)] dark:bg-[var(--ui-card-bg)]`}>
       <div className="divide-y divide-[var(--ui-card-divider)] md:hidden">
         {rows.map((row, index) => {
           const href = getRowHref?.(row);
