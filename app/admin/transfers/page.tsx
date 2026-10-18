@@ -5,6 +5,7 @@ import { transferSeason } from "@/lib/transfers/types";
 import { TransferManager } from "./transfer-manager";
 import { createSupabaseAdminActionClient } from "@/lib/auth/admin";
 import { getTransferTeams } from "@/lib/transfers/teams";
+import { getPlayers } from "@/lib/data/lck";
 
 export const dynamic = "force-dynamic";
 
@@ -12,10 +13,10 @@ export default async function AdminTransfersPage({ searchParams }: { searchParam
   const requested = Number((await searchParams).season);
   const season = Number.isInteger(requested) && requested >= 2026 && requested <= transferSeason() ? requested : transferSeason();
   const client = await createSupabaseAdminActionClient();
-  const [market, teams] = await Promise.all([getTransferMarket(season), getTransferTeams(client)]);
+  const [market, teams, players] = await Promise.all([getTransferMarket(season), getTransferTeams(client), getPlayers()]);
   return <main className="mx-auto w-full max-w-5xl px-[var(--page-inline)] py-8 text-[var(--ui-ink)]">
     <Breadcrumb items={[{ label: "관리자", href: "/admin" }, { label: "이적시장 관리" }]} />
     <header className="my-6 flex flex-wrap items-center justify-between gap-3"><h1 className="home-section-title text-[28px] font-normal">이적시장 관리</h1><Link href={`/transfers?season=${season}`} className="text-sm font-medium underline underline-offset-4">이적시장 보기</Link></header>
-    <TransferManager key={season} market={market} season={season} teams={teams} />
+    <TransferManager key={season} market={market} season={season} teams={teams} players={players.map(({ name, position }) => ({ name, position }))} />
   </main>;
 }

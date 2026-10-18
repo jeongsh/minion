@@ -46,6 +46,7 @@ export function TransferMarketView({ market, teams, players, followedTeamIds = [
   const isFollowed = (code: string) => { const team = teamByCode.get(code); return team && (followedTeamIds.includes(team.id) || followedTeamIds.includes(team.fanSiteHost)); };
   const ordered = [...rosters].sort((a, b) => Number(Boolean(isFollowed(b.team))) - Number(Boolean(isFollowed(a.team))));
   const latest = latestPlayerEvents(events.filter((e) => e.provenance !== "report"));
+  const reported = latestPlayerEvents(allEvents.filter((e) => e.provenance === "report")).filter((report) => !latest.some((confirmed) => normalizeTransferName(confirmed.player) === normalizeTransferName(report.player) && (confirmed.date ?? "") >= (report.date ?? "")));
   const freeAgents = latest.filter((e) => e.kind === "leave" && !e.to);
   const keyword = normalizeTransferName(query);
   const matchesTeam = (e: TransferEvent) => teamFilter === "all" || lckTeamCode(e.from) === teamFilter || lckTeamCode(e.to) === teamFilter || market.snapshot.rosters.find((r) => r.team === teamFilter)?.slots.some((s) => s.previous.some((p) => normalizeTransferName(p.name) === normalizeTransferName(e.player)));
@@ -72,17 +73,23 @@ export function TransferMarketView({ market, teams, players, followedTeamIds = [
     return <section className="@container/movement min-w-0 bg-[var(--ui-surface)] dark:bg-[var(--ui-card-bg)]" aria-label={`${team} ${label}`}>
       <h3 className={`flex h-12 items-center gap-2 border-b border-[var(--ui-card-divider)] bg-[var(--ui-card-bg)] px-3 text-[16px] font-bold ${incoming ? "text-[var(--accent)]" : "text-[var(--ui-ink)]"}`}>{label}<span className="text-[13px] font-normal text-[var(--ui-muted)]">{moves.length}</span></h3>
       <div className="divide-y divide-[var(--ui-card-divider)] dark:divide-transparent" aria-label={`${team} ${label} 선수 목록`}>
-        {moves.length ? moves.map((event) => <div key={event.id} className="grid min-h-14 min-w-0 grid-cols-[20px_minmax(0,1fr)] items-center gap-x-2 px-2 py-1.5 @[220px]/movement:px-3 dark:odd:bg-[var(--ui-card-hover)]" aria-label={`${event.player} ${event.from || "이전 팀 미정"}에서 ${destination(event)}`}>
-          <RoleIcon role={event.role} />
-          <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+        {[...TRANSFER_ROLES, "COACH" as const].map((position) => {
+          const positionMoves = moves.filter((event) => event.role === position);
+          return <div key={position} className="grid min-h-14 min-w-0 grid-cols-[20px_minmax(0,1fr)] items-center gap-x-2 px-2 py-1.5 @[220px]/movement:px-3 dark:odd:bg-[var(--ui-card-hover)]" aria-label={`${ROLE_LABELS[position]} ${label}`}>
+          <RoleIcon role={position} />
+          <div className="min-w-0 space-y-1.5">
+          {positionMoves.length ? positionMoves.map((event) => <div key={event.id} className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1" aria-label={`${event.player} ${event.from || "이전 팀 미정"}에서 ${destination(event)}`}>
             {playerName({ name: event.player })}
+            {event.provenance === "report" && <span className="shrink-0 text-[13px] font-medium text-[var(--ui-muted)]">거피셜</span>}
             <div className="flex min-w-0 max-w-full items-center gap-2" title={`${event.from || "이전 팀 미정"} → ${destination(event)}`}>
               {teamName(event.from || "미정", true, "movement")}
               <ChevronsRight size={18} strokeWidth={1.75} className="shrink-0 text-[var(--ui-muted)]" aria-hidden />
               {teamName(destination(event), true, "movement")}
             </div>
+          </div>) : <span className="text-[13px] font-normal text-[var(--ui-muted)]" aria-label={`${ROLE_LABELS[position]} ${label} 없음`}>—</span>}
           </div>
-        </div>) : <span className="flex h-14 items-center px-3 text-[13px] font-normal text-[var(--ui-muted)]" aria-label={`${label} 없음`}>—</span>}
+        </div>;
+        })}
       </div>
     </section>;
   }
@@ -107,7 +114,7 @@ export function TransferMarketView({ market, teams, players, followedTeamIds = [
         {tab !== "rosters" && <>
         {tab === "moves" && <FilterDropdown ariaLabel="변동 종류" selected={movement} onSelect={setMovement} options={MOVEMENT_OPTIONS} controlSize="compact" rootClassName="min-w-[128px]" triggerClassName={filterTrigger} triggerTypography="ui" />}
         <FilterDropdown ariaLabel="포지션" selected={role} onSelect={setRole} options={[{ value: "all", label: "전체 포지션" }, ...[...TRANSFER_ROLES, "COACH" as const].map((r) => ({ value: r, label: ROLE_LABELS[r] }))]} controlSize="compact" rootClassName="min-w-[128px]" triggerClassName={filterTrigger} triggerTypography="ui" />
-        {tab === "moves" && <label className="flex h-8 items-center gap-1.5 text-[13px] font-medium text-[var(--ui-text)]"><input type="checkbox" checked={reports} onChange={(e) => setReports(e.target.checked)} className="size-3.5 accent-[var(--accent)]" />보도 포함</label>}
+        {tab === "moves" && <label className="flex h-8 items-center gap-1.5 text-[13px] font-medium text-[var(--ui-text)]"><input type="checkbox" checked={reports} onChange={(e) => setReports(e.target.checked)} className="size-3.5 accent-[var(--accent)]" />거피셜 포함</label>}
         <label className="relative min-w-0 basis-full sm:ml-auto sm:w-60 sm:basis-auto"><span className="sr-only">선수 검색</span><Search size={16} aria-hidden className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ui-muted)]" /><input type="search" aria-label="선수 검색" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="선수 검색" className="h-8 w-full rounded-md border border-[var(--ui-border)] bg-[var(--ui-surface)] pl-9 pr-3 text-[13px] font-medium outline-none transition placeholder:text-[var(--ui-muted)] focus:border-[var(--ui-ink)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--ui-ink)_12%,transparent)]" /></label>
         </>}
     </div>
@@ -115,8 +122,9 @@ export function TransferMarketView({ market, teams, players, followedTeamIds = [
       {ordered.filter((r) => teamFilter === "all" || teamFilter === r.team).map((roster) => {
         const team = teamByCode.get(roster.team);
         const departures = departuresForTeam(roster.team, market.snapshot.rosters, allEvents);
-        const arrivals = latest.filter((event) => lckTeamCode(event.to) === roster.team && ["transfer", "loan", "promote"].includes(event.kind) && (event.kind === "promote" || lckTeamCode(event.from) !== roster.team) && roster.slots.some((slot) => slot.next.some((person) => normalizeTransferName(person.name) === normalizeTransferName(event.player))));
-        const arrivalNames = new Set(arrivals.map((event) => normalizeTransferName(event.player)));
+        const confirmedArrivals = latest.filter((event) => lckTeamCode(event.to) === roster.team && ["transfer", "loan", "promote"].includes(event.kind) && (event.kind === "promote" || lckTeamCode(event.from) !== roster.team) && roster.slots.some((slot) => slot.next.some((person) => normalizeTransferName(person.name) === normalizeTransferName(event.player))));
+        const arrivalNames = new Set(confirmedArrivals.map((event) => normalizeTransferName(event.player)));
+        const arrivals = [...confirmedArrivals, ...reported.filter((event) => lckTeamCode(event.to) === roster.team && ["transfer", "loan", "promote"].includes(event.kind) && (event.kind === "promote" || lckTeamCode(event.from) !== roster.team) && !arrivalNames.has(normalizeTransferName(event.player)))];
         return <article key={roster.team} className="grid min-w-0 grid-cols-2 gap-px overflow-hidden rounded-md bg-[var(--ui-border)] p-px md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)]">
           <section className="col-span-2 min-w-0 bg-[var(--ui-surface)] dark:bg-[var(--ui-card-bg)] md:col-span-1" aria-label={`${roster.team} 포지션별 로스터`}>
           <header className="relative flex h-12 items-center gap-2.5 border-b border-[var(--ui-card-divider)] bg-[var(--ui-card-bg)] px-3">
