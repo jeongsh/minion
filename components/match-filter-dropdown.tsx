@@ -4,11 +4,12 @@ import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent, ReactNode } from "react";
 import { createPortal } from "react-dom";
 
-export type FilterOption = { value: string; label: string };
+export type FilterOption = { value: string; label: string; icon?: ReactNode; indicator?: ReactNode };
 
 export function FilterDropdown({
   ariaLabel,
   controlSize = "default",
+  appearance = "default",
   options,
   selected,
   onSelect,
@@ -17,10 +18,11 @@ export function FilterDropdown({
   rootClassName = "",
   triggerIcon,
   triggerClassName = "",
-  triggerTypography = "default",
+  placeholder = "-",
 }: {
   ariaLabel: string;
   controlSize?: "default" | "compact";
+  appearance?: "default" | "plain";
   options: FilterOption[];
   selected: string;
   onSelect: (value: string) => void;
@@ -30,6 +32,7 @@ export function FilterDropdown({
   triggerIcon?: ReactNode;
   triggerClassName?: string;
   triggerTypography?: "default" | "ui";
+  placeholder?: string;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -76,7 +79,9 @@ export function FilterDropdown({
     };
   }, [open]);
 
-  const triggerLabel = options.find((option) => option.value === selected)?.label ?? "-";
+  const selectedOption = options.find((option) => option.value === selected);
+  const triggerLabel = selectedOption?.label ?? placeholder;
+  const selectedIcon = triggerIcon ?? selectedOption?.icon;
 
   useLayoutEffect(() => {
     if (!open || !triggerRef.current) return;
@@ -150,10 +155,11 @@ export function FilterDropdown({
           initialFocus.current = event.key === "ArrowUp" ? "last" : "selected";
           setOpen(true);
         }}
-        className={`inline-flex items-center gap-1.5 rounded-lg px-1.5 text-[var(--ui-ink)] disabled:cursor-wait disabled:opacity-60 ${controlSize === "compact" ? "min-h-8" : "min-h-10"} ${triggerTypography === "ui" ? "text-[13px] font-medium leading-[19.5px] tracking-normal" : "text-[15px] font-bold tracking-tight sm:text-base"} ${triggerClassName}`}
+        className={`inline-flex items-center rounded-lg text-sm font-medium text-[var(--ui-ink)] outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-wait disabled:opacity-60 ${appearance === "plain" ? "gap-1.5 px-1.5" : "justify-between gap-2 border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3"} ${controlSize === "compact" ? "min-h-9" : "min-h-10"} ${triggerClassName}`}
       >
-        {triggerIcon ? <span className="shrink-0">{triggerIcon}</span> : null}
+        {selectedIcon ? <span aria-hidden="true" className="flex shrink-0 items-center">{selectedIcon}</span> : null}
         {triggerLabel}
+        {selectedOption?.indicator}
         <Chevron open={open} />
       </button>
 
@@ -168,7 +174,7 @@ export function FilterDropdown({
           onBlur={(event) => {
             if (!event.currentTarget.contains(event.relatedTarget) && !ref.current?.contains(event.relatedTarget)) setOpen(false);
           }}
-          className="z-[80] max-h-[min(70vh,28rem)] overflow-y-auto rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-1.5 shadow-lg"
+          className="z-[1100] max-h-[min(70vh,28rem)] overflow-y-auto rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-1.5 shadow-lg"
         >
           {variant === "grid" ? (
             <div className="grid grid-cols-3 gap-1">
@@ -190,7 +196,11 @@ export function FilterDropdown({
                         : "text-[var(--ui-muted)] hover:bg-[var(--ui-surface-muted)] hover:text-[var(--ui-ink)]"
                     }`}
                   >
-                    {option.label}
+                    <span className="inline-flex items-center gap-2">
+                      {option.icon ? <span aria-hidden="true" className="flex shrink-0 items-center">{option.icon}</span> : null}
+                      {option.label}
+                      {option.indicator}
+                    </span>
                   </button>
                 );
               })}
@@ -214,7 +224,11 @@ export function FilterDropdown({
                       : "text-[var(--ui-muted)] hover:bg-[var(--ui-surface-muted)] hover:text-[var(--ui-ink)]"
                   }`}
                 >
-                  <span>{option.label}</span>
+                  <span className="flex items-center gap-2">
+                    {option.icon ? <span aria-hidden="true" className="flex shrink-0 items-center">{option.icon}</span> : null}
+                    {option.label}
+                    {option.indicator}
+                  </span>
                   {isSelected ? <CheckIcon /> : null}
                 </button>
               );

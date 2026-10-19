@@ -1,7 +1,7 @@
 import Check from 'lucide-react-native/icons/check';
 import ChevronDown from 'lucide-react-native/icons/chevron-down';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 
@@ -15,6 +15,7 @@ export function FilterSelect({
   onChange,
   options,
   value,
+  variant = 'default',
 }: {
   accessibilityLabel?: string;
   compact?: boolean;
@@ -23,30 +24,33 @@ export function FilterSelect({
   onChange: (value: string) => void;
   options: FilterSelectOption[];
   value: string;
+  variant?: 'default' | 'web';
 }) {
   const { fonts, theme } = useMinionTheme();
   const [open, setOpen] = useState(false);
+  const { height } = useWindowDimensions();
+  const web = variant === 'web';
   const selectedLabel = options.find((option) => option.value === value)?.label ?? '-';
 
   return (
     <View style={[styles.select, open && styles.selectOpen]}>
-      {!compact ? <Text style={[styles.selectLabel, { color: theme.muted, ...fonts.medium }]}>{label}</Text> : null}
+      {!compact ? <Text style={[styles.selectLabel, web && { fontSize: 14, lineHeight: 20 }, { color: theme.muted, ...fonts.medium }]}>{label}</Text> : null}
       <Pressable
         accessibilityLabel={accessibilityLabel ?? `${label} 선택`}
         accessibilityRole="button"
         accessibilityState={{ disabled, expanded: open }}
         disabled={disabled}
         onPress={() => setOpen((current) => !current)}
-        style={[styles.selectTrigger, compact && styles.compactTrigger, { backgroundColor: compact ? theme.surface : theme.card, borderColor: theme.border }]}>
-        <Text style={[styles.selectValue, { color: theme.ink, ...fonts.medium }]}>{selectedLabel}</Text>
-        <ChevronDown color={theme.muted} size={16} style={open ? styles.chevronOpen : null} />
+        style={[styles.selectTrigger, compact && styles.compactTrigger, { backgroundColor: compact || web ? theme.surface : theme.card, borderColor: theme.border }, web && { borderRadius: 8 }]}>
+        <Text style={[styles.selectValue, web && { lineHeight: 20 }, { color: theme.ink, ...fonts.medium }]}>{selectedLabel}</Text>
+        <ChevronDown color={theme.muted} size={web ? 20 : 16} strokeWidth={web ? 2.5 : 2} style={open ? styles.chevronOpen : null} />
       </Pressable>
       {open ? (
         <ScrollView
           accessibilityLabel={`${label} 선택 목록`}
           contentContainerStyle={styles.selectListContent}
           nestedScrollEnabled
-          style={[styles.selectList, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          style={[styles.selectList, { backgroundColor: theme.surface, borderColor: theme.border }, web && { marginTop: 8, minWidth: 176, maxHeight: Math.min(height * 0.7, 448) }]}>
           {options.map((option) => {
             const selected = option.value === value;
             return (
@@ -58,9 +62,9 @@ export function FilterSelect({
                   setOpen(false);
                   if (option.value !== value) onChange(option.value);
                 }}
-                style={[styles.selectOption, selected && { backgroundColor: theme.ink }]}>
-                <Text style={[styles.selectOptionText, { color: selected ? theme.surface : theme.ink, ...fonts.medium }]}>{option.label}</Text>
-                {selected ? <Check color={theme.surface} size={15} /> : null}
+                style={[styles.selectOption, selected && { backgroundColor: web ? theme.surfaceMuted : theme.ink }, web && { paddingVertical: 10 }]}>
+                <Text style={[styles.selectOptionText, web && { fontSize: 14, lineHeight: 20 }, { color: selected && !web ? theme.surface : theme.ink, ...fonts.medium }]}>{option.label}</Text>
+                {selected ? <Check color={web ? theme.ink : theme.surface} size={web ? 16 : 15} strokeWidth={web ? 3 : 2} /> : null}
               </Pressable>
             );
           })}

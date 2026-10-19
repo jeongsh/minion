@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { CalendarDays, SlidersHorizontal } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
+import { EventFilterBar } from "@/components/ui/event-filter-bar";
 import { AdSlot } from "@/components/ui/ad-slot";
 
 import { HomeCalendar, type HomeCalendarMatch } from "@/components/domain/home-calendar";
@@ -104,29 +105,31 @@ export default async function SchedulePage({
       teamBLogoDarkUrl: shouldUseWhiteLogoOnDark(teamB) ? teamB?.logoWhiteUrl : null,
     };
   });
-  const mobileFilters = <Suspense fallback={null}><ScheduleFilters activeYear={activeYear} activeMonth={activeMonth} activeSegment={activeSegment} activeTeam={activeTeam} years={years} teams={teams} layout="sheet" /></Suspense>;
-  const desktopFilters = <Suspense fallback={null}><ScheduleFilters activeYear={activeYear} activeMonth={activeMonth} activeSegment={activeSegment} activeTeam={activeTeam} years={years} teams={teams} /></Suspense>;
-
   return (
     <main className="schedule-page text-[var(--ui-text)]">
-      <div className="schedule-mobile-sticky sticky z-30 border-b border-[var(--ui-border)] bg-[var(--page-background)] shadow-[0_10px_20px_rgba(15,23,42,0.035)] lg:hidden">
+      <h1 className="sr-only">경기 일정</h1>
+      <div className="mt-2 hidden border-b border-[var(--ui-border)] bg-[var(--page-background)] lg:sticky lg:top-[var(--ui-header-height)] lg:z-30 lg:block">
+        <div className="layout-wide py-2.5">
+          <EventFilterBar
+            actions={
+              <>
+                <SpoilerToggleButton className="inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2 text-[13px] font-medium text-[var(--ui-text)] hover:bg-[var(--ui-card-hover)]" />
+                <Link href="/schedule" className="inline-flex min-h-11 items-center px-1 text-[13px] font-medium text-[var(--ui-muted)] hover:text-[var(--ui-ink)]">초기화</Link>
+              </>
+            }
+          >
+            <Suspense fallback={null}>
+              <ScheduleFilters activeYear={activeYear} activeMonth={activeMonth} activeSegment={activeSegment} activeTeam={activeTeam} years={years} teams={teams} />
+            </Suspense>
+          </EventFilterBar>
+        </div>
+      </div>
+      <div className="schedule-mobile-sticky sticky z-30 border-b border-[var(--ui-border)] bg-[var(--page-background)] lg:hidden">
         <div className="layout-wide py-2">
           <ScheduleWeekScroller dates={activeMonthDates} todayKey={todayKey} availableDateKeys={availableDateKeys} />
         </div>
       </div>
-
-      <h1 className="sr-only">경기 일정</h1>
-
-      <div className="sticky top-[var(--ui-header-height)] z-30 mt-2 hidden border-b border-[#e8e8eb] bg-[var(--page-background)] lg:block dark:border-[#383c44]">
-        <div className="layout-wide flex items-center justify-between gap-3 py-2.5">
-          {desktopFilters}
-          <div className="flex shrink-0 items-center gap-3">
-            <SpoilerToggleButton />
-            <Link href="/schedule" className="text-[13px] font-bold text-[var(--ui-muted)] hover:text-[var(--ui-ink)]">필터 초기화</Link>
-          </div>
-        </div>
-      </div>
-      <div className="fixed bottom-[calc(3.25rem+env(safe-area-inset-bottom)+18px)] right-4 z-40 flex flex-row gap-2 md:bottom-6 lg:hidden">
+      <div className="fixed bottom-[calc(3.25rem+env(safe-area-inset-bottom)+18px)] right-4 z-40 flex gap-2 md:bottom-6 lg:hidden">
         <AdaptiveDialog
           title={`${activeYear}년 ${activeMonth}월 캘린더`}
           trigger={<><CalendarDays size={20} /><span className="sr-only">캘린더 열기</span></>}
@@ -138,21 +141,14 @@ export default async function SchedulePage({
             events={filteredCalendarEvents}
           />
         </AdaptiveDialog>
-        <AdaptiveDialog
-          title="일정 필터"
-          trigger={<><SlidersHorizontal size={20} /><span className="sr-only">필터 열기</span></>}
-          triggerClassName="grid h-12 w-12 place-items-center rounded-full border border-[var(--ui-border)] bg-[var(--ui-ink)] text-[var(--ui-surface)] shadow-[0_12px_34px_rgba(15,23,42,0.22)] transition-opacity hover:opacity-90"
-        >
-          {mobileFilters}
-          <div className="mt-4 flex items-center justify-between rounded-xl border border-[var(--ui-border)] bg-[var(--ui-card-bg)] px-3 py-2.5">
-            <span className="text-[14px] font-medium text-[var(--ui-ink)]">경기 결과 스포방지</span>
-            <SpoilerToggleButton />
-          </div>
-          <Link href="/schedule" className="mt-4 flex min-h-10 items-center justify-center rounded-lg bg-[var(--ui-ink)] px-3 text-[12px] font-medium text-[var(--ui-surface)]">필터 초기화</Link>
+        <AdaptiveDialog title="일정 필터" trigger={<SlidersHorizontal size={20} />} triggerAriaLabel="필터 열기" triggerClassName="grid h-12 w-12 place-items-center rounded-full border border-[var(--ui-border)] bg-[var(--ui-ink)] text-[var(--ui-surface)] shadow-[0_12px_34px_rgba(15,23,42,0.22)] transition-opacity hover:opacity-90">
+          <Suspense fallback={null}><ScheduleFilters activeYear={activeYear} activeMonth={activeMonth} activeSegment={activeSegment} activeTeam={activeTeam} years={years} teams={teams} layout="sheet" /></Suspense>
+          <div className="mt-4 flex items-center justify-between gap-2 rounded-xl border border-[var(--ui-border)] bg-[var(--ui-card-bg)] px-3 py-2.5"><span className="text-sm font-medium text-[var(--ui-ink)]">경기 결과 스포방지</span><SpoilerToggleButton /></div>
+          <Link href="/schedule" className="mt-4 flex min-h-11 items-center justify-center rounded-lg bg-[var(--ui-ink)] px-3 text-[13px] font-medium text-[var(--ui-surface)]">필터 초기화</Link>
         </AdaptiveDialog>
       </div>
       <div className="layout-wide">
-        <div className="mt-7 lg:mt-10"><ScheduleList matches={filtered} teams={teams} tournaments={tournaments} stages={stages} emptyMessage={`${activeYear}년 ${activeMonth}월 · ${segmentLabel(activeSegment, activeYear)} 조건에 해당하는 경기가 없습니다.`} /></div>
+        <div className="mt-7 lg:mt-6"><ScheduleList matches={filtered} teams={teams} tournaments={tournaments} stages={stages} emptyMessage={`${activeYear}년 ${activeMonth}월 ${segmentLabel(activeSegment, activeYear)} 조건에 해당하는 경기가 없습니다.`} /></div>
         <AdSlot enabled={filtered.length > 0} placement="horizontal" className="my-6 h-[60px] xl:h-[90px]" />
       </div>
     </main>

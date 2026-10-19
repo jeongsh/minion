@@ -17,6 +17,8 @@ import { isMatchLive } from "@/lib/match-display";
 import { getPredictionMarketData } from "@/lib/predictions";
 import { getTodayCelebrations } from "@/lib/calendar/events";
 import { getHomeInsights } from "@/lib/data/home-insights";
+import { getHomeNewsFeed } from "@/lib/data/naver-news";
+import { scheduleNewsThumbnailWarmup } from "@/lib/data/news-thumbnail-warmup";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { safeOnboardingNext } from "@/lib/auth/onboarding";
 import { createSupabaseAuthClient } from "@/lib/supabase/auth-server";
@@ -54,7 +56,7 @@ export default async function HomePage({
   const showOnboarding = onboardingMode === "1" || onboardingMode === "debug";
   const forceOnboarding = onboardingMode === "debug";
   const onboardingNext = safeOnboardingNext(params.next);
-  const [homeData, popularCommunityPosts, latestCommunityPosts, predictionMarket, pomPlayers, insights, stages, bracketStages] = await Promise.all([
+  const [homeData, popularCommunityPosts, latestCommunityPosts, predictionMarket, pomPlayers, insights, stages, bracketStages, homeNewsFeed] = await Promise.all([
     getMobileHomePublicData(),
     getBoardPosts({ scope: "hub", hotOnly: true, limit: COMMUNITY_HOME_HOT_CANDIDATE_LIMIT }),
     getBoardPosts({ scope: "hub", limit: COMMUNITY_HOME_LATEST_CANDIDATE_LIMIT }),
@@ -66,7 +68,10 @@ export default async function HomePage({
     }),
     getStages(),
     getBracketStages(),
+    getHomeNewsFeed(6),
   ]);
+  const newsItems = homeNewsFeed.isFallback ? [] : homeNewsFeed.articles;
+  scheduleNewsThumbnailWarmup(newsItems);
   const { teams, matches, tournaments, calendarEvents } = homeData;
   const pomEntries = buildHomePomEntries({ matches, players: pomPlayers, teams, tournaments });
 
@@ -220,6 +225,7 @@ export default async function HomePage({
       communityPosts={homeCommunityPosts}
       communityTitle={homeCommunityTitle}
       pomEntries={pomEntries}
+      newsItems={newsItems}
       /* 기존 뉴스/영상 props
       latestVideos={homeVideos}
       newsItems={homeNewsFeed.articles}

@@ -44,7 +44,7 @@ export function PredictionLoadingSkeleton() {
       <View style={styles.sections}>
         {Array.from({ length: 2 }, (_, section) => (
           <View key={section} style={styles.section}>
-            <Bone style={{ height: 24, width: 96 }} />
+            <Bone style={{ height: 28, width: 96 }} />
             <View style={styles.rows}>
               {Array.from({ length: 3 }, (_, row) => (
                 <MatchRowSkeleton key={row} />
@@ -61,8 +61,8 @@ const styles = StyleSheet.create({
   bone: { borderRadius: 6 },
   root: { gap: 36 },
   row: { gap: 8 },
-  rowMeta: { flexDirection: 'row', justifyContent: 'space-between' },
-  rows: { gap: 20, marginTop: 12 },
+  rowMeta: { alignItems: 'center', flexDirection: 'row', height: 20, justifyContent: 'space-between' },
+  rows: { gap: 20 },
   section: { gap: 12 },
   sections: { gap: 40 },
   topBar: { alignItems: 'center', borderRadius: 16, borderWidth: 1, flexDirection: 'row', justifyContent: 'space-between', padding: 16 },

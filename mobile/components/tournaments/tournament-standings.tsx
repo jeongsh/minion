@@ -4,7 +4,8 @@ import { useEffect, useRef } from 'react';
 import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { TeamLogo } from '@/components/data/team-logo';
-import { tournamentTokens, type TournamentTokens } from '@/constants/tournament-theme';
+import { TournamentDataTable } from '@/components/tournaments/tournament-data-table';
+import { tournamentTokens } from '@/constants/tournament-theme';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import { resolveApiAssetUrl, type MobilePomRow, type MobileStandingRow, type MobileStandingsGroup } from '@/lib/api-client';
 
@@ -32,137 +33,57 @@ export function TournamentStandingsGroups({ groups }: { groups: MobileStandingsG
   );
 }
 
-function GroupStandingsCard({ group }: { group: MobileStandingsGroup }) {
+function DataText({ children, medium = false, italic = false }: { children: React.ReactNode; medium?: boolean; italic?: boolean }) {
   const { fonts, theme } = useMinionTheme();
-  const tokens = useTokens();
-
-  return (
-    <View style={styles.groupBlock}>
-      <View style={styles.groupTitleRow}>
-        <View style={[styles.groupTitleBar, { backgroundColor: theme.accent }]} />
-        <Text style={[styles.groupTitleText, { color: theme.ink, ...fonts.display }]}>{group.title}</Text>
-      </View>
-      {group.rows.length === 0 ? (
-        <View style={[styles.groupEmpty, { backgroundColor: tokens.surface, borderColor: tokens.border }]}>
-          <Text style={{ color: tokens.muted, ...fonts.regular, fontSize: 14, lineHeight: 21 }}>아직 등록된 순위가 없습니다.</Text>
-        </View>
-      ) : (
-        <View style={[styles.groupCard, { backgroundColor: tokens.surface, borderColor: tokens.border }]}>
-          {group.rows.map((row, index) => (
-            <GroupRow isLast={index === group.rows.length - 1} key={row.team.id} row={row} tokens={tokens} />
-          ))}
-        </View>
-      )}
-    </View>
-  );
+  return <Text style={{ color: theme.text, fontSize: 14, lineHeight: 20, ...(medium ? fonts.medium : fonts.regular), ...(italic ? { fontStyle: 'italic' } : {}) }}>{children}</Text>;
 }
 
-function GroupRow({ isLast, row, tokens }: { isLast: boolean; row: MobileStandingRow; tokens: TournamentTokens; }) {
+function TeamIdentity({ team, size = 28 }: { team: MobileStandingRow['team']; size?: number }) {
   const router = useRouter();
-  const { fonts } = useMinionTheme();
-  const record = `${row.matchWins}승 · ${row.matchLosses}패`;
-  const diff = row.setDiff >= 0 ? `+${row.setDiff}` : `${row.setDiff}`;
+  const { fonts, theme } = useMinionTheme();
+  return <Pressable onPress={() => router.navigate(`/teams?team=${encodeURIComponent(team.fanSiteHost || team.slug)}` as never)} style={{ alignItems: 'center', flexDirection: 'row', gap: 8 }}>
+    {team.logo?.url ? <TeamLogo plain size={size} team={team} themeAware /> : null}
+    <Text numberOfLines={1} style={{ color: theme.text, fontSize: 14, lineHeight: 20, ...fonts.medium }}>{team.name}</Text>
+  </Pressable>;
+}
 
-  return (
-    <Pressable
-      onPress={() => router.navigate(`/teams?team=${encodeURIComponent(row.team.fanSiteHost || row.team.slug)}` as never)}
-      style={[styles.groupRow, !isLast && { borderBottomColor: tokens.border, borderBottomWidth: 1 }]}>
-      <Text style={[styles.groupRank, { color: tokens.foreground, ...fonts.black }]}>{row.rank}</Text>
-      <View style={styles.groupTeam}>
-        <TeamLogo plain size={24} team={row.team} themeAware />
-        <Text numberOfLines={1} style={[styles.groupTeamName, { color: tokens.foreground, ...fonts.bold }]}>{row.team.name}</Text>
-      </View>
-      <Text style={[styles.groupDiff, { color: tokens.muted, ...fonts.medium }]}>{diff}</Text>
-      <Text style={[styles.groupRecord, { color: tokens.foreground, ...fonts.black }]}>{record}</Text>
-    </Pressable>
-  );
+function GroupStandingsCard({ group }: { group: MobileStandingsGroup }) {
+  const { fonts, theme } = useMinionTheme();
+  return <View style={styles.groupBlock}>
+    <View style={styles.groupTitleRow}><View style={[styles.groupTitleBar, { backgroundColor: theme.accent }]} /><Text style={[styles.groupTitleText, { color: theme.ink, ...fonts.display }]}>{group.title}</Text></View>
+    {group.rows.length === 0 ? <DataListEmptyState message="표시할 데이터가 없습니다." /> : <TournamentDataTable rows={group.rows} columns={[
+      { key: 'rank', label: '순위', width: 56, render: row => <DataText medium italic>{row.rank}</DataText> },
+      { key: 'team', label: '팀', width: 112, flex: true, render: row => <TeamIdentity team={row.team} /> },
+      { key: 'diff', label: '득실차', width: 65.25, align: 'center', render: row => <DataText>{row.setDiff >= 0 ? '+' : ''}{row.setDiff}</DataText> },
+      { key: 'record', label: '전적', width: 74.59375, align: 'center', render: row => <DataText>{row.matchWins}승 {row.matchLosses}패</DataText> },
+    ]} />}
+  </View>;
 }
 
 function RegularStandingsList({ rows }: { rows: MobileStandingRow[] }) {
-  const tokens = useTokens();
   if (rows.length === 0) return <DataListEmptyState message="아직 등록된 경기가 없습니다." />;
-
-  return (
-    <View style={[styles.dataList, { backgroundColor: tokens.surface }]}>
-      {rows.map((row, index) => (
-        <RegularRow isLast={index === rows.length - 1} key={row.team.id} row={row} tokens={tokens} />
-      ))}
-    </View>
-  );
-}
-
-function RegularRow({ isLast, row, tokens }: { isLast: boolean; row: MobileStandingRow; tokens: TournamentTokens }) {
-  const router = useRouter();
-  const { fonts, theme } = useMinionTheme();
-
-  return (
-    <Pressable
-      onPress={() => router.navigate(`/teams?team=${encodeURIComponent(row.team.fanSiteHost || row.team.slug)}` as never)}
-      style={[styles.dataRow, !isLast && { borderBottomColor: tokens.border, borderBottomWidth: 1 }]}>
-      <View style={styles.dataMain}>
-        <Text style={[styles.dataRank, { color: theme.ink, ...fonts.black }]}>{row.rank}</Text>
-        <View style={styles.dataTeam}>
-          <TeamLogo plain size={24} team={row.team} themeAware />
-          <Text numberOfLines={1} style={[styles.dataTeamName, { color: theme.ink, ...fonts.bold }]}>{row.team.name}</Text>
-        </View>
-      </View>
-      <View style={styles.dataMetrics}>
-        <Metric compact label="승" theme={theme} value={String(row.matchWins)} />
-        <Metric compact label="패" theme={theme} value={String(row.matchLosses)} />
-      </View>
-    </Pressable>
-  );
-}
-
-function Metric({ compact = false, label, theme, value }: { compact?: boolean; label: string; theme: ReturnType<typeof useMinionTheme>['theme']; value: string }) {
-  const { fonts } = useMinionTheme();
-  return (
-    <View style={[styles.metric, compact && styles.metricCompact]}>
-      <Text style={[compact ? styles.metricLabelCompact : styles.metricLabel, { color: theme.muted, ...fonts.medium }]}>{label}</Text>
-      <Text style={[compact ? styles.metricValueCompact : styles.metricValue, { color: theme.text, ...fonts.bold }]}>{value}</Text>
-    </View>
-  );
+  return <TournamentDataTable rows={rows} columns={[
+    { key: 'team', label: '팀 순위', width: 288, flex: true, render: row => <View style={{ alignItems: 'center', flexDirection: 'row', gap: 10 }}><View style={{ alignItems: 'center', width: 24 }}><DataText medium italic>{row.rank}</DataText></View><TeamIdentity team={row.team} size={24} /></View> },
+    { key: 'wins', label: '승', width: 44, align: 'center', render: row => <DataText medium>{row.matchWins}</DataText> },
+    { key: 'losses', label: '패', width: 44, align: 'center', render: row => <DataText>{row.matchLosses}</DataText> },
+    { key: 'diff', label: '득실차', width: 65.25, align: 'center', render: row => <DataText>{row.setDiff}</DataText> },
+    { key: 'rate', label: '승률', width: 74, align: 'center', render: row => <DataText>{row.winRate}</DataText> },
+  ]} />;
 }
 
 export function TournamentPomList({ rows }: { rows: MobilePomRow[] }) {
-  const tokens = useTokens();
-  if (rows.length === 0) return <DataListEmptyState message="아직 선정된 POM이 없습니다." />;
-
-  return (
-    <View style={[styles.dataList, { backgroundColor: tokens.surface }]}>
-      {rows.map((row, index) => (
-        <PomRow isLast={index === rows.length - 1} key={row.player.id} row={row} tokens={tokens} />
-      ))}
-    </View>
-  );
-}
-
-function PomRow({ isLast, row, tokens }: { isLast: boolean; row: MobilePomRow; tokens: TournamentTokens }) {
   const router = useRouter();
   const { fonts, theme } = useMinionTheme();
-  const imageUri = resolveApiAssetUrl(row.player.profileImage?.url);
-
-  return (
-    <Pressable
-      onPress={() => router.navigate(`/players/${encodeURIComponent(row.player.slug)}` as never)}
-      style={[styles.pomRow, !isLast && { borderBottomColor: tokens.border, borderBottomWidth: 1 }]}>
-      <View style={styles.pomMain}>
-        <Text style={[styles.pomRank, { color: theme.ink, ...fonts.black }]}>{row.rank}</Text>
-        <View style={styles.pomPlayer}>
-          {imageUri ? <Image contentFit="cover" source={{ uri: imageUri }} style={styles.pomAvatar} /> : null}
-          <View style={styles.pomIdentity}>
-            <Text numberOfLines={1} style={[styles.pomName, { color: theme.ink, ...fonts.bold }]}>{row.player.name}</Text>
-            <Text numberOfLines={1} style={[styles.pomTeam, { color: theme.muted, ...fonts.regular }]}>{row.team?.shortName ?? '-'}</Text>
-          </View>
-        </View>
-      </View>
-      <View style={styles.dataMetrics}>
-        <Metric compact label="포인트" theme={theme} value={String(row.points)} />
-      </View>
-    </Pressable>
-  );
+  if (rows.length === 0) return <DataListEmptyState message="아직 선정된 POM이 없습니다." />;
+  return <TournamentDataTable rows={rows} onPressRow={row => router.navigate(`/players/${encodeURIComponent(row.player.slug)}` as never)} columns={[
+    { key: 'player', label: '선수', width: 288, flex: true, render: row => <View style={{ alignItems: 'center', flexDirection: 'row', gap: 8 }}>
+      <View style={{ alignItems: 'center', width: 24 }}><DataText medium italic>{row.rank}</DataText></View>
+      {row.player.profileImage?.url ? <Image contentFit="cover" source={{ uri: resolveApiAssetUrl(row.player.profileImage.url) ?? undefined }} style={styles.pomAvatar} /> : null}
+      <View style={styles.pomIdentity}><Text numberOfLines={1} style={{ color: theme.text, fontSize: 13, lineHeight: 19.5, ...fonts.medium }}>{row.player.name}</Text><Text numberOfLines={1} style={{ color: theme.muted, fontSize: 13, lineHeight: 19.5, ...fonts.medium }}>{row.team?.shortName ?? '-'}</Text></View>
+    </View> },
+    { key: 'points', label: '포인트', width: 60.3125, align: 'center', render: row => <DataText medium>{row.points}</DataText> },
+  ]} />;
 }
-
 function DataListEmptyState({ message }: { message: string }) {
   const { colorScheme, fonts, theme } = useMinionTheme();
   const bob = useRef(new Animated.Value(0)).current;

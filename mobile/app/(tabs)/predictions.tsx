@@ -165,7 +165,7 @@ export default function PredictionsScreen() {
               </View>
               <View style={styles.matchList}>
                 {dayMatches.map((match) => (
-                  <PredictionMatchCard key={match.id} match={match} now={data.now} onChooseTeam={(teamId) => onChooseTeam(match.id, teamId)} />
+                  <PredictionMatchCard key={match.id} match={match} now={data.now} onChooseTeam={(teamId) => onChooseTeam(match.id, teamId)} pending={pending} />
                 ))}
               </View>
             </View>

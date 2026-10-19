@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
 import { PostForm } from "@/components/community/post-form";
-import { SurfacePanel } from "@/components/ui/surface-panel";
+import { PostFormLayout } from "@/components/community/post-form-layout";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { categoriesForScope } from "@/lib/community/boards";
 import { getExistingGuestKey } from "@/lib/community/guest-identity";
@@ -27,10 +27,8 @@ export default async function EditFanPostPage({ params }: { params: Promise<{ te
   const miniconPacks = await getUserMiniconPacks(user?.id);
 
   return (
-    <main className="community-neutral fan-page-container flex flex-col gap-5 py-7 md:py-9">
-      <SurfacePanel variant="section" className="mobile-full-bleed p-4 sm:mx-0 sm:p-8">
-        <PostForm scope="team" categories={categoriesForScope("team")} defaultCategory={post.boardType} teamId={team.id} teamSlug={teamSlug} postId={post.id} initialTitle={post.title} initialContent={post.content} isGuest={isGuestOwner} miniconPacks={miniconPacks} />
-      </SurfacePanel>
-    </main>
+    <PostFormLayout scope="team">
+      <PostForm scope="team" categories={categoriesForScope("team")} defaultCategory={post.boardType} teamId={team.id} teamSlug={teamSlug} postId={post.id} initialTitle={post.title} initialContent={post.content} isGuest={isGuestOwner} miniconPacks={miniconPacks} />
+    </PostFormLayout>
   );
 }

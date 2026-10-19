@@ -1,9 +1,10 @@
 import { useRouter } from 'expo-router';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View, type View as RNView } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
 import { TeamLogo } from '@/components/data/team-logo';
+import { InlineTournamentMatch } from '@/components/tournaments/tournament-swiss-bracket';
 import { tournamentTokens, type TournamentTokens } from '@/constants/tournament-theme';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import type { MobileBracketData, MobileBracketMatch } from '@/lib/api-client';
@@ -21,13 +22,14 @@ const MATCHES_GAP = 12;
 const LABEL_HEIGHT = 18;
 const LABEL_GAP = 8;
 const ROW_GAP = 8;
+const ShowFormatContext = createContext(false);
 
 /** 웹은 CSS Grid의 공유 행(row) 트랙 덕에, 특정 칸에 승자조 경기가 없어도 패자조가 이웃 칸의
  * 패자조와 같은 높이에서 시작한다. RN엔 그 개념이 없어서, 그룹 안에서 가장 큰 승자조 구획
  * 높이를 계산해 모든 칸의 패자조 시작 위치를 거기에 맞춰 스페이서로 밀어준다. */
-function upperSectionHeight(matchCount: number) {
+function upperSectionHeight(matchCount: number, inline = false) {
   if (matchCount === 0) return 0;
-  return LABEL_HEIGHT + LABEL_GAP + matchCount * MATCH_UNIT_HEIGHT + (matchCount - 1) * MATCHES_GAP;
+  return (inline ? 19.5 : LABEL_HEIGHT) + LABEL_GAP + matchCount * (inline ? 67.5 : MATCH_UNIT_HEIGHT) + (matchCount - 1) * MATCHES_GAP;
 }
 
 const BRACKET_DATE_FORMATTER = new Intl.DateTimeFormat('ko-KR', { day: 'numeric', hour: '2-digit', hour12: false, minute: '2-digit', month: 'numeric', timeZone: 'Asia/Seoul' });
@@ -42,7 +44,7 @@ type Rect = { height: number; width: number; x: number; y: number };
 type MeasureFn = (matchId: string, node: RNView | null) => void;
 
 /** 매치 카드들의 실제 화면 좌표를 모아 승자 진출 연결선(SVG)을 계산한다. 웹 bracket-connectors.tsx와 동일한 꺾은선(H-V-H) 공식. */
-function useBracketConnectors(connections: MobileBracketData['connections']) {
+function useBracketConnectors(connections: MobileBracketData['connections'], inline = false) {
   const containerRef = useRef<RNView>(null);
   const containerPos = useRef<{ x: number; y: number } | null>(null);
   const matchRects = useRef<Map<string, Rect>>(new Map());
@@ -93,7 +95,7 @@ function useBracketConnectors(connections: MobileBracketData['connections']) {
       const rect = matchRects.current.get(matchId);
       if (!rect) return null;
       const top = rect.y - origin!.y;
-      if (row === null) return top + rect.height / 2;
+      if (row === null || inline) return top + rect.height / 2;
       return row === 0 ? top + CARD_ROW_HEIGHT / 2 : top + CARD_ROW_HEIGHT + 1 + CARD_ROW_HEIGHT / 2;
     }
 
@@ -130,21 +132,21 @@ function useBracketConnectors(connections: MobileBracketData['connections']) {
     }
     return result;
     // eslint-disable-next-line react-hooks/exhaustive-deps -- renderTick은 값 자체가 아니라 ref(matchRects/containerPos)가 갱신됐다는 신호로만 쓴다.
-  }, [connections, renderTick]);
+  }, [connections, inline, renderTick]);
 
   return { containerRef, onContainerLayout, paths, registerMatch };
 }
 
-export function TournamentBracket({ accent, bracket }: { accent: string; bracket: MobileBracketData }) {
+export function TournamentBracket({ accent, bracket, showFormat = false }: { accent: string; bracket: MobileBracketData; showFormat?: boolean }) {
   const tokens = useTournamentTokens();
-  const { containerRef, onContainerLayout, paths, registerMatch } = useBracketConnectors(bracket.connections);
+  const { containerRef, onContainerLayout, paths, registerMatch } = useBracketConnectors(bracket.connections, showFormat);
   // 앱 업데이트 전에 저장된 API 캐시에도 안전하게 대응한다. 새 응답은 원래 웹 열 번호를
   // 명시하고, 구 응답은 배열 순서를 열 번호로 사용한다.
   const columnCount = bracket.columnCount ?? Math.max(1, ...bracket.groups.map((group) => group.columns.length));
   const displayGroups = bracket.groups.length > 0 ? bracket.groups : [{ columns: [] }];
 
   return (
-    <View style={[styles.outerBox, { backgroundColor: tokens.surface, borderColor: tokens.border }]}>
+    <ShowFormatContext.Provider value={showFormat}><View style={[styles.outerBox, { backgroundColor: tokens.surface, borderColor: tokens.border }]}>
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         <View onLayout={onContainerLayout} ref={containerRef} style={styles.content}>
           <Svg pointerEvents="none" style={StyleSheet.absoluteFillObject}>
@@ -153,7 +155,7 @@ export function TournamentBracket({ accent, bracket }: { accent: string; bracket
             ))}
           </Svg>
           {displayGroups.map((group, groupIndex) => {
-            const maxUpperHeight = Math.max(0, ...group.columns.map((column) => upperSectionHeight(column.matches.length)));
+            const maxUpperHeight = Math.max(0, ...group.columns.map((column) => upperSectionHeight(column.matches.length, showFormat)));
             const columnsByIndex = new Map(group.columns.map((column, index) => [column.columnIndex ?? index, column]));
             return (
               <View key={groupIndex} style={[styles.groupRow, groupIndex > 0 && { marginTop: GROUP_GAP }]}>
@@ -171,7 +173,7 @@ export function TournamentBracket({ accent, bracket }: { accent: string; bracket
           })}
         </View>
       </ScrollView>
-    </View>
+    </View></ShowFormatContext.Provider>
   );
 }
 
@@ -191,13 +193,14 @@ function BracketColumnView({
 }) {
   const tokens = useTournamentTokens();
   const { fonts } = useMinionTheme();
-  const ownUpperHeight = upperSectionHeight(column.matches.length);
+  const showFormat = useContext(ShowFormatContext);
+  const ownUpperHeight = upperSectionHeight(column.matches.length, showFormat);
 
   return (
     <View style={styles.column}>
       {column.matches.length > 0 ? (
         <View style={styles.columnSection}>
-          <Text style={[styles.columnHeader, { color: tokens.muted, ...fonts.medium }]}>{column.label.toUpperCase()}</Text>
+          <Text style={[styles.columnHeader, /[가-힣]/.test(column.label) && { fontSize: 13, lineHeight: 19.5, letterSpacing: 0 }, { color: tokens.muted, ...fonts.medium }]}>{column.label.toUpperCase()}</Text>
           <View style={styles.matchStack}>
             {column.matches.map((match) => (
               <BracketMatchCard key={match.id} match={match} registerMatch={registerMatch} />
@@ -209,7 +212,7 @@ function BracketColumnView({
         <>
           <View style={{ height: maxUpperHeight - ownUpperHeight + ROW_GAP }} />
           <View style={styles.columnSection}>
-            <Text style={[styles.columnHeader, { color: tokens.muted, ...fonts.medium }]}>{(column.lowerLabel ?? '').toUpperCase()}</Text>
+            <Text style={[styles.columnHeader, /[가-힣]/.test(column.lowerLabel ?? '') && { fontSize: 13, lineHeight: 19.5, letterSpacing: 0 }, { color: tokens.muted, ...fonts.medium }]}>{(column.lowerLabel ?? '').toUpperCase()}</Text>
             <View style={styles.matchStack}>
               {column.lowerMatches.map((match) => (
                 <BracketMatchCard key={match.id} match={match} registerMatch={registerMatch} />
@@ -257,10 +260,11 @@ function BracketMatchCard({
   const nodeRef = useRef<RNView>(null);
   const winnerA = match.status === 'completed' && match.winnerTeamId === match.teamA?.id;
   const winnerB = match.status === 'completed' && match.winnerTeamId === match.teamB?.id;
+  const showFormat = useContext(ShowFormatContext);
 
   return (
     <View style={styles.matchUnit}>
-      <Text numberOfLines={1} style={[styles.dateLabel, { color: tokens.muted, ...fonts.medium }]}>{formatBracketDateTime(match.matchDate)}</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingHorizontal: 2 }}><Text numberOfLines={1} style={[styles.dateLabel, showFormat && { fontSize: 13, lineHeight: 19.5 }, { color: tokens.muted, ...fonts.medium }]}>{formatBracketDateTime(match.matchDate)}</Text>{showFormat ? <Text style={{ color: tokens.foreground, fontSize: 13, lineHeight: 19.5, ...fonts.medium }}>BO{match.bestOf ?? 5}</Text> : null}</View>
       <Pressable
         onLayout={() => registerMatch(match.id, nodeRef.current)}
         onPress={() => router.navigate(`/matches/${encodeURIComponent(match.id)}` as never)}
@@ -270,9 +274,9 @@ function BracketMatchCard({
           { backgroundColor: tokens.surface },
           final ? { borderColor: accent, borderWidth: 2 } : { borderColor: tokens.border, borderWidth: 1 },
         ]}>
-        <BracketTeamRow accent={accent} isWinner={winnerA} placeholder={teamAPlaceholder} score={match.teamAScore} team={match.teamA} tokens={tokens} />
+        {showFormat ? <InlineTournamentMatch match={match} /> : <><BracketTeamRow accent={accent} isWinner={winnerA} placeholder={teamAPlaceholder} score={match.teamAScore} team={match.teamA} tokens={tokens} />
         <View style={[styles.divider, { backgroundColor: tokens.border }]} />
-        <BracketTeamRow accent={accent} isWinner={winnerB} placeholder={teamBPlaceholder} score={match.teamBScore} team={match.teamB} tokens={tokens} />
+        <BracketTeamRow accent={accent} isWinner={winnerB} placeholder={teamBPlaceholder} score={match.teamBScore} team={match.teamB} tokens={tokens} /></>}
       </Pressable>
     </View>
   );
@@ -298,12 +302,12 @@ function BracketTeamRow({
 
   return (
     <View style={styles.teamRow}>
-      <View style={[styles.accentBar, { backgroundColor: team?.primaryColor ?? accent ?? tokens.muted }]} />
+      <View style={[styles.accentBar, { backgroundColor: !team || /^(tbd|미정)$/i.test(team.name.trim()) ? tokens.muted : team.primaryColor ?? accent ?? tokens.muted }]} />
       <TeamLogo plain size={20} team={team} themeAware />
-      <Text numberOfLines={1} style={[styles.teamName, { color: textColor, ...(isWinner ? fonts.bold : fonts.medium) }]}>
+      <Text numberOfLines={1} style={[styles.teamName, { color: textColor, ...fonts.medium }]}>
         {team?.name ?? placeholder ?? 'TBD'}
       </Text>
-      <Text style={[styles.score, { color: textColor, ...(isWinner ? fonts.bold : fonts.medium) }]}>{score ?? '-'}</Text>
+      <Text style={[styles.score, { color: textColor, ...fonts.medium }]}>{score ?? '-'}</Text>
     </View>
   );
 }
@@ -315,7 +319,7 @@ const styles = StyleSheet.create({
   columnHeader: { fontSize: 12, letterSpacing: 0.96, lineHeight: 18, textTransform: 'uppercase' },
   columnSection: { gap: 8 },
   content: { paddingBottom: 8 },
-  dateLabel: { fontSize: 12, lineHeight: 18, paddingHorizontal: 2 },
+  dateLabel: { fontSize: 12, lineHeight: 18 },
   divider: { height: 1, width: '100%' },
   finalsCenter: { alignItems: 'center', flex: 1, justifyContent: 'center' },
   finalsColumn: { gap: 8, width: COLUMN_WIDTH },

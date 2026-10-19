@@ -23,6 +23,7 @@ type BottomSheetProps = PropsWithChildren<{
   actions?: ReactNode;
   backdropColor?: string;
   contentStyle?: StyleProp<ViewStyle>;
+  chrome?: 'default' | 'web';
   dismissible?: boolean;
   headingStyle?: StyleProp<ViewStyle>;
   maxHeight?: DimensionValue;
@@ -46,6 +47,7 @@ export function BottomSheet({
   actions,
   backdropColor = 'rgba(0,0,0,0.58)',
   children,
+  chrome = 'default',
   contentStyle,
   dismissible = true,
   headingStyle,
@@ -74,15 +76,15 @@ export function BottomSheet({
 
   return (
     <Modal animationType="fade" onRequestClose={dismissible ? close : Keyboard.dismiss} transparent visible={open}>
-      <KeyboardAwareView minimumBottomInset={8} style={[styles.root, placement === 'center' ? styles.centeredRoot : null]}>
+      <KeyboardAwareView minimumBottomInset={chrome === 'web' ? 0 : 8} style={[styles.root, placement === 'center' ? styles.centeredRoot : null]}>
         {({ bottomInset, keyboardVisible }) => <>
           <Pressable accessibilityLabel={dismissible ? '닫기' : undefined} accessibilityRole={dismissible ? 'button' : undefined} disabled={!dismissible} onPress={close} style={[styles.backdrop, { backgroundColor: backdropColor }]} />
-          <View accessibilityViewIsModal style={[styles.panel, placement === 'center' ? styles.centeredPanel : null, { backgroundColor: theme.surface, maxHeight, paddingBottom: keyboardVisible ? bottomInset : Math.max(bottomInset, 18) }, panelStyle]}>
+          <View accessibilityViewIsModal style={[styles.panel, placement === 'center' ? styles.centeredPanel : null, { backgroundColor: theme.surface, maxHeight, paddingBottom: keyboardVisible ? bottomInset : Math.max(bottomInset, chrome === 'web' ? 0 : 18) }, panelStyle]}>
             {showHandle ? <BottomSheetHandle /> : null}
-            <View style={[styles.heading, headingStyle]}>
-              <Text style={[styles.title, { color: theme.ink, ...fonts.display }, titleStyle]}>{title}</Text>
+            <View style={[styles.heading, chrome === 'web' && { gap: 4, paddingHorizontal: 16 }, headingStyle]}>
+              <Text style={[styles.title, { color: theme.ink, ...fonts.display }, chrome === 'web' && { letterSpacing: -0.32, lineHeight: 24 }, titleStyle]}>{title}</Text>
               {actions ? <View style={styles.actions}>{actions}</View> : null}
-              {dismissible ? <Pressable accessibilityLabel={`${title} 닫기`} hitSlop={8} onPress={close} style={styles.close}><X color={theme.muted} size={22} /></Pressable> : null}
+              {dismissible ? <Pressable accessibilityLabel={`${title} 닫기`} hitSlop={8} onPress={close} style={styles.close}><X color={theme.muted} size={chrome === 'web' ? 18 : 22} /></Pressable> : null}
             </View>
             {scrollable ? (
               <ScrollView

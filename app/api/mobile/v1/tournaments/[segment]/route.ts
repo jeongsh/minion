@@ -5,12 +5,16 @@ import { isGroupBracketStage, isWeekStage, buildStageColumns } from "@/lib/tourn
 import { buildBracketData } from "@/lib/tournaments/bracket-view";
 import { segmentThemeByKey } from "@/lib/tournaments/international-segments";
 import { buildSegmentNav } from "@/lib/tournaments/segment-nav";
+import { getLckDefaultView } from "@/lib/tournaments/lck-default-view";
+import { buildWorldsPlayInBracket, formatWorldsStageLabel, groupWorldsStages, WORLDS_PHASE_LABELS, type WorldsPhase } from "@/lib/tournaments/worlds";
+import { buildSwissBracketData } from "@/lib/tournaments/swiss-view";
 import {
   buildPomRankingRows,
   deriveCrossGroups,
   deriveMatchGroups,
   LCK_SPLIT_LABELS,
   LCK_SPLIT_VIEW_LABELS,
+  selectLckPomPointMatches,
   type LckSplitKey,
 } from "@/lib/tournaments/standings";
 import { isSupportedSeasonYear, matchesTournamentSegment } from "@/lib/tournaments/season-2026";
@@ -82,10 +86,12 @@ export async function GET(request: Request, context: { params: Promise<{ segment
   };
 
   if (isLck) {
-    const activeSplit: LckSplitKey = (["1", "2", "3"].includes(search.get("split") ?? "") ? search.get("split") : "1") as LckSplitKey;
+    const requestedSplit = ["1", "2", "3"].includes(search.get("split") ?? "") ? search.get("split") as LckSplitKey : undefined;
+    const defaultView = getLckDefaultView(segmentMatches, activeTournaments, segmentStages, bracketStages, requestedSplit);
+    const activeSplit = requestedSplit ?? defaultView.split;
     const requestedView = search.get("view");
-    const activeView: "pom" | "standings" | "bracket" = requestedView === "bracket" ? "bracket" : requestedView === "pom" ? "pom" : "standings";
-    const activePhase: "playin" | "playoffs" = search.get("phase") === "playoffs" ? "playoffs" : "playin";
+    const activeView: "pom" | "standings" | "bracket" = requestedView === "bracket" ? "bracket" : requestedView === "pom" ? "pom" : requestedView === "standings" ? "standings" : defaultView.view;
+    const activePhase = search.get("phase") === "playoffs" ? "playoffs" : search.get("phase") === "playin" ? "playin" : defaultView.phase;
     const viewLabels = LCK_SPLIT_VIEW_LABELS[activeSplit];
 
     const cupTournamentIds = new Set(activeTournaments.filter((tournament) => tournament.split === "Cup").map((tournament) => tournament.id));
@@ -141,11 +147,10 @@ export async function GET(request: Request, context: { params: Promise<{ segment
 
     const standingsBySplit: Record<LckSplitKey, MobileStandingsGroup[]> = { "1": split1Groups, "2": split2Groups, "3": split3Groups };
 
-    // POM 순위는 각 스플릿의 해당 라운드만(웹 /tournaments 와 동일). 플레이-인·플레이오프 제외.
-    // pom 뷰가 아니면 계산 자체를 건너뛴다.
+    // 웹과 같은 정규시즌 누적 POM 범위를 사용한다.
     const pomRows = activeView === "pom"
       ? buildPomRankingRows(
-          activeSplit === "1" ? cupWeekMatches : activeSplit === "2" ? rounds12Matches : rounds34Matches,
+          selectLckPomPointMatches(activeSplit, { cupRegularMatches: cupWeekMatches, rounds12Matches, rounds34Matches }),
           players,
           teamMap,
         ).map((row) => ({
@@ -210,10 +215,22 @@ export async function GET(request: Request, context: { params: Promise<{ segment
     ? null
     : (bracketStageInfo.find((info) => info.hasToday) ?? bracketStageInfo.find((info) => !info.isDone && info.bracketStage.displayMode !== "standings") ?? bracketStageInfo.find((info) => !info.isDone))?.bracketStage;
   const activeBracketStage = segmentBracketStages.find((bracketStage) => bracketStage.id === search.get("bracketStage")) ?? currentBracketStage ?? segmentBracketStages[0] ?? null;
-  const activeStages = activeBracketStage ? segmentStages.filter((stage) => stage.bracketStageId === activeBracketStage.id) : segmentStages;
+  const worldsPhases = segmentTheme.key === "worlds" ? groupWorldsStages(segmentStages, segmentBracketStages) : null;
+  const worldsPhaseKeys = Object.keys(WORLDS_PHASE_LABELS) as WorldsPhase[];
+  const phaseMatches = (phase: WorldsPhase) => {
+    const ids = new Set(worldsPhases?.[phase].map(stage => stage.id));
+    return segmentMatches.filter(match => ids.has(match.stageId));
+  };
+  const worldsPhase = worldsPhases
+    ? worldsPhaseKeys.find(phase => phase === search.get("bracketStage") || phase === search.get("phase"))
+      ?? worldsPhaseKeys.find(phase => worldsPhases[phase].some(stage => stage.bracketStageId === search.get("bracketStage")))
+      ?? worldsPhaseKeys.find(phase => phaseMatches(phase).some(match => match.status !== "completed"))
+      ?? worldsPhaseKeys.findLast(phase => phaseMatches(phase).length > 0) ?? "swiss"
+    : undefined;
+  const activeStages = worldsPhase && worldsPhases ? worldsPhases[worldsPhase] : activeBracketStage ? segmentStages.filter((stage) => stage.bracketStageId === activeBracketStage.id) : segmentStages;
   const columns = buildStageColumns(activeStages, segmentMatches);
 
-  const supportsGroupToggle = Boolean(activeBracketStage && isGroupBracketStage(activeBracketStage.name, activeBracketStage.displayMode));
+  const supportsGroupToggle = Boolean(!worldsPhase && activeBracketStage && isGroupBracketStage(activeBracketStage.name, activeBracketStage.displayMode));
   const requestedGroupView: "standings" | "bracket" = search.get("view") === "bracket" ? "bracket" : "standings";
   const isGroupStageBracket = supportsGroupToggle && requestedGroupView === "standings";
   const activeStageIds = new Set(activeStages.map((stage) => stage.id));
@@ -222,15 +239,27 @@ export async function GET(request: Request, context: { params: Promise<{ segment
 
   const bracketAvailable = !isGroupStageBracket && columns.length > 0;
 
+  const playIn = worldsPhase === "playin" ? buildWorldsPlayInBracket(columns) : null;
+  const displayBracket = bracketAvailable ? buildBracketData(playIn?.columns ?? columns, teamMap) : null;
+  if (displayBracket && worldsPhase) {
+    if (displayBracket.finals) displayBracket.finals.label = formatWorldsStageLabel(displayBracket.finals.label);
+    for (const group of displayBracket.groups) for (const column of group.columns) {
+      column.label = playIn?.labels.get(column.matches[0]?.id) ?? formatWorldsStageLabel(column.label);
+      column.lowerLabel = playIn?.labels.get(column.lowerMatches[0]?.id) ?? (column.lowerLabel ? formatWorldsStageLabel(column.lowerLabel) : null);
+    }
+    if (playIn) displayBracket.connections = playIn.connections.map(edge => ({ ...edge, fromRow: edge.fromRow ?? null, toRow: edge.toRow ?? null }));
+  }
   const data: MobileTournamentDetailDto = {
     ...base,
-    activeBracketStageId: activeBracketStage?.id ?? null,
+    worldsPhase,
+    swissBracket: worldsPhase === "swiss" ? buildSwissBracketData(columns, teamMap) : undefined,
+    activeBracketStageId: worldsPhase ?? activeBracketStage?.id ?? null,
     activePhase: null,
     activeSplit: null,
     activeView: isGroupStageBracket ? "standings" : "bracket",
-    bracket: bracketAvailable ? buildBracketData(columns, teamMap) : null,
+    bracket: displayBracket,
     bracketAvailable,
-    bracketStages: segmentBracketStages.map((bracketStage) => ({ id: bracketStage.id, name: bracketStage.name })),
+    bracketStages: worldsPhase ? worldsPhaseKeys.map(phase => ({ id: phase, name: WORLDS_PHASE_LABELS[phase] })) : segmentBracketStages.map((bracketStage) => ({ id: bracketStage.id, name: bracketStage.name })),
     pomRows: null,
     splitLabels: null,
     standingsGroups: isGroupStageBracket ? [{ rows: buildTeamStandingRows(groupStageTeams, groupStageMatches, []).map(toMobileStandingRow), title: "" }] : null,

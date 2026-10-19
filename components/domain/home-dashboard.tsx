@@ -23,6 +23,8 @@ import { SectionHeading as Heading } from "@/components/ui/section-heading";
 import { AdSlot as Ad } from "@/components/ui/ad-slot";
 import { TeamLogo as Logo } from "@/components/ui/team-logo";
 import { AdaptiveDialog } from "@/components/responsive/adaptive-dialog";
+import { HomeNewsSection } from "@/components/news/home-news-section";
+import type { NewsArticle } from "@/lib/data/news";
 
 /* 홈 뉴스/영상 비활성화: 기존 import 보관
 import { HomeVideoSwiper } from "@/components/domain/home-video-swiper";
@@ -45,7 +47,7 @@ type Props = {
   communityTitle: "인기글" | "최신글";
   pomEntries: HomePomEntry[];
   // latestVideos: HomeVideo[];
-  // newsItems: NewsArticle[];
+  newsItems: NewsArticle[];
   insights: HomeInsights | null;
 };
 
@@ -72,7 +74,7 @@ export function HomeDashboard({
   communityTitle,
   pomEntries,
   // latestVideos,
-  // newsItems,
+  newsItems,
   insights,
 }: Props) {
   const activeTeams = themeTeams
@@ -118,8 +120,6 @@ export function HomeDashboard({
         </section>
       ) : null}
 
-      {/* <HomeNewsSection articles={newsItems} /> */}
-
       <Ad
         enabled={matchItems.length > 0}
         placement="horizontal"
@@ -149,6 +149,8 @@ export function HomeDashboard({
         <Heading href={communityTitle === "인기글" ? "/community?view=hot" : "/community"}>{communityTitle}</Heading>
         <HomeBoardCarousel posts={communityPosts} />
       </section>
+
+      <HomeNewsSection articles={newsItems} />
 
       {pomEntries.length > 0 ? (
         <section className={HOME_SECTION_SPACING}>

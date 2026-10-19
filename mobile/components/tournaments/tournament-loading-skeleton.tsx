@@ -46,31 +46,7 @@ export function TournamentLoadingSkeleton() {
 
   return (
     <Animated.View accessibilityLabel="대회 정보 불러오는 중" accessibilityRole="progressbar" style={[styles.root, { opacity }]}>
-      <View style={styles.header}>
-        <Bone style={styles.headerLogo} />
-        <Bone style={styles.headerTitle} />
-      </View>
-
-      <View style={styles.switcherRow}>
-        {Array.from({ length: 5 }, (_, index) => (
-          <Bone key={index} style={{ borderRadius: 8, height: 32, width: index === 0 ? 74 : 82 }} />
-        ))}
-      </View>
-
-      <View style={styles.tabsBlock}>
-        <View style={[styles.pillRow, { backgroundColor: theme.card }]}>
-          <Bone style={styles.pillBone} />
-          <Bone style={styles.pillBone} />
-          <Bone style={styles.pillBone} />
-        </View>
-        <View style={[styles.tabsRow, { borderBottomColor: theme.border }]}>
-          <Bone style={{ height: 33, width: 48 }} />
-          <Bone style={{ height: 33, width: 62 }} />
-          <Bone style={{ height: 33, width: 62 }} />
-          <Bone style={{ height: 33, width: 62 }} />
-        </View>
-      </View>
-
+      <Bone style={{ height: 28, width: 240 }} />
       <View style={styles.groupGrid}>
         {Array.from({ length: 2 }, (_, group) => (
           <View key={group} style={styles.groupBlock}>
