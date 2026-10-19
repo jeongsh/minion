@@ -1,3 +1,4 @@
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import type { Metadata } from "next";
 
 import { PolicyPage } from "@/components/policy/policy-page";
@@ -18,18 +19,18 @@ export default function PrivacyPage() {
       <section>
         <h2>1. 처리하는 개인정보와 이용 목적</h2>
         <div className="overflow-x-auto">
-          <table>
-            <thead><tr><th>구분</th><th>처리 항목</th><th>목적</th></tr></thead>
-            <tbody>
-              <tr><td>회원가입·인증</td><td>이메일 주소, 암호화된 비밀번호, 회원 식별자, 인증·세션 정보</td><td>회원 식별, 로그인, 계정 보안, 문의 대응</td></tr>
-              <tr><td>프로필</td><td>닉네임, 선택 입력한 프로필 이미지, LP·티어</td><td>프로필 표시, 커뮤니티와 랭킹 기능 제공</td></tr>
-              <tr><td>서비스 활동</td><td>게시글·댓글·업로드 이미지, 평가·투표·신고·예측·팔로우·출석 기록 및 관련 시각</td><td>커뮤니티, 팬 평가, 승부예측, 개인화 기능과 부정 이용 방지</td></tr>
-              <tr><td>모바일 앱·알림</td><td>앱 설치 식별자, 기기 운영체제, Expo push token, 알림 허용 상태와 알림 종류별 설정</td><td>앱 요청 식별과 부정 이용 방지, 로그인 중계, 이용자가 선택한 푸시 알림 전송</td></tr>
-              <tr><td>자동 생성 정보</td><td>IP 주소, 접속 기록, 브라우저·기기 정보, 쿠키 및 광고 식별 정보</td><td>서비스 안정성, 보안, 오류 분석, 이용 통계 및 광고 제공</td></tr>
-              <tr><td>모바일 앱 광고</td><td>Google AdMob SDK가 처리하는 IP 주소, 광고 식별자와 앱 설치 관련 식별자, 광고 상호작용 및 진단 정보</td><td>광고 제공, 광고 성과 측정 및 부정 이용 방지</td></tr>
-              <tr><td>문의</td><td>이메일 주소와 문의 내용, 첨부 자료</td><td>문의 확인과 답변, 분쟁 처리</td></tr>
-            </tbody>
-          </table>
+          <Table>
+            <TableHeader><TableRow><TableHead>구분</TableHead><TableHead>처리 항목</TableHead><TableHead>목적</TableHead></TableRow></TableHeader>
+            <TableBody>
+              <TableRow><TableCell>회원가입·인증</TableCell><TableCell>이메일 주소, 암호화된 비밀번호, 회원 식별자, 인증·세션 정보</TableCell><TableCell>회원 식별, 로그인, 계정 보안, 문의 대응</TableCell></TableRow>
+              <TableRow><TableCell>프로필</TableCell><TableCell>닉네임, 선택 입력한 프로필 이미지, LP·티어</TableCell><TableCell>프로필 표시, 커뮤니티와 랭킹 기능 제공</TableCell></TableRow>
+              <TableRow><TableCell>서비스 활동</TableCell><TableCell>게시글·댓글·업로드 이미지, 평가·투표·신고·예측·팔로우·출석 기록 및 관련 시각</TableCell><TableCell>커뮤니티, 팬 평가, 승부예측, 개인화 기능과 부정 이용 방지</TableCell></TableRow>
+              <TableRow><TableCell>모바일 앱·알림</TableCell><TableCell>앱 설치 식별자, 기기 운영체제, Expo push token, 알림 허용 상태와 알림 종류별 설정</TableCell><TableCell>앱 요청 식별과 부정 이용 방지, 로그인 중계, 이용자가 선택한 푸시 알림 전송</TableCell></TableRow>
+              <TableRow><TableCell>자동 생성 정보</TableCell><TableCell>IP 주소, 접속 기록, 브라우저·기기 정보, 쿠키 및 광고 식별 정보</TableCell><TableCell>서비스 안정성, 보안, 오류 분석, 이용 통계 및 광고 제공</TableCell></TableRow>
+              <TableRow><TableCell>모바일 앱 광고</TableCell><TableCell>Google AdMob SDK가 처리하는 IP 주소, 광고 식별자와 앱 설치 관련 식별자, 광고 상호작용 및 진단 정보</TableCell><TableCell>광고 제공, 광고 성과 측정 및 부정 이용 방지</TableCell></TableRow>
+              <TableRow><TableCell>문의</TableCell><TableCell>이메일 주소와 문의 내용, 첨부 자료</TableCell><TableCell>문의 확인과 답변, 분쟁 처리</TableCell></TableRow>
+            </TableBody>
+          </Table>
         </div>
         <p>서비스는 만 14세 미만 아동을 대상으로 하지 않으며, 만 14세 미만 아동의 회원가입을 받지 않습니다.</p>
       </section>
@@ -56,16 +57,16 @@ export default function PrivacyPage() {
         <h2>4. 처리 위탁 및 국외 이전</h2>
         <p>서비스 제공을 위해 다음 외부 서비스를 이용합니다. 외부 사업자는 각자의 개인정보처리방침과 계약에 따라 정보를 처리합니다.</p>
         <div className="overflow-x-auto">
-          <table>
-            <thead><tr><th>사업자·서비스</th><th>업무와 이전 항목</th><th>이전 국가·시점·기간</th></tr></thead>
-            <tbody>
-              <tr><td>Supabase, Inc.</td><td>회원 인증, 데이터베이스, 파일 저장. 회원·프로필·활동 정보와 인증 로그</td><td>프로젝트 리전 일본(ap-northeast-1) 등 서비스 제공 국가 / 서비스 이용 시 네트워크 전송 / 탈퇴 또는 위탁 종료 시까지</td></tr>
-              <tr><td>Vercel Inc.</td><td>웹사이트 호스팅, 전송, 보안 로그. IP 주소, 요청 정보와 브라우저 정보</td><td>미국 등 서비스 제공 국가 / 페이지 요청 시 / 계약 및 로그 보관 정책에 따른 기간</td></tr>
-              <tr><td>Expo(650 Industries, Inc.), Apple Inc., Google LLC</td><td>모바일 푸시 알림 전송. 푸시 토큰, 기기 운영체제와 알림 제목·내용·이동 경로</td><td>미국 등 각 사업자가 처리하는 국가 / 이용자가 푸시 알림을 허용하고 알림을 전송할 때 / 알림 전송 및 각 사업자 정책에 따른 기간</td></tr>
-              <tr><td>Google LLC</td><td>YouTube 임베드, 웹 AdSense 및 모바일 앱 AdMob 광고 제공과 측정. 쿠키, IP 주소, 기기 및 광고 식별 정보, 광고 상호작용과 진단 정보</td><td>미국 등 Google이 처리하는 국가 / 콘텐츠 및 광고 SDK 로드 시 / Google 정책에 따른 기간</td></tr>
-              <tr><td>Meta Platforms, Inc.</td><td>Instagram 임베드 제공. 쿠키, IP 주소, 기기·이용 정보</td><td>미국 등 Meta가 처리하는 국가 / 임베드 로드 시 / Meta 정책에 따른 기간</td></tr>
-            </tbody>
-          </table>
+          <Table>
+            <TableHeader><TableRow><TableHead>사업자·서비스</TableHead><TableHead>업무와 이전 항목</TableHead><TableHead>이전 국가·시점·기간</TableHead></TableRow></TableHeader>
+            <TableBody>
+              <TableRow><TableCell>Supabase, Inc.</TableCell><TableCell>회원 인증, 데이터베이스, 파일 저장. 회원·프로필·활동 정보와 인증 로그</TableCell><TableCell>프로젝트 리전 일본(ap-northeast-1) 등 서비스 제공 국가 / 서비스 이용 시 네트워크 전송 / 탈퇴 또는 위탁 종료 시까지</TableCell></TableRow>
+              <TableRow><TableCell>Vercel Inc.</TableCell><TableCell>웹사이트 호스팅, 전송, 보안 로그. IP 주소, 요청 정보와 브라우저 정보</TableCell><TableCell>미국 등 서비스 제공 국가 / 페이지 요청 시 / 계약 및 로그 보관 정책에 따른 기간</TableCell></TableRow>
+              <TableRow><TableCell>Expo(650 Industries, Inc.), Apple Inc., Google LLC</TableCell><TableCell>모바일 푸시 알림 전송. 푸시 토큰, 기기 운영체제와 알림 제목·내용·이동 경로</TableCell><TableCell>미국 등 각 사업자가 처리하는 국가 / 이용자가 푸시 알림을 허용하고 알림을 전송할 때 / 알림 전송 및 각 사업자 정책에 따른 기간</TableCell></TableRow>
+              <TableRow><TableCell>Google LLC</TableCell><TableCell>YouTube 임베드, 웹 AdSense 및 모바일 앱 AdMob 광고 제공과 측정. 쿠키, IP 주소, 기기 및 광고 식별 정보, 광고 상호작용과 진단 정보</TableCell><TableCell>미국 등 Google이 처리하는 국가 / 콘텐츠 및 광고 SDK 로드 시 / Google 정책에 따른 기간</TableCell></TableRow>
+              <TableRow><TableCell>Meta Platforms, Inc.</TableCell><TableCell>Instagram 임베드 제공. 쿠키, IP 주소, 기기·이용 정보</TableCell><TableCell>미국 등 Meta가 처리하는 국가 / 임베드 로드 시 / Meta 정책에 따른 기간</TableCell></TableRow>
+            </TableBody>
+          </Table>
         </div>
         <p>국외 이전을 원하지 않는 경우 외부 임베드가 포함된 페이지 이용을 중단하거나 브라우저에서 제3자 쿠키를 차단할 수 있습니다. 회원 인증·저장 인프라 이전을 거부하면 회원 기능 이용이 어려울 수 있습니다.</p>
       </section>
