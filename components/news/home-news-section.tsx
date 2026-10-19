@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { NewsCard } from "@/components/news/news-card";
 import { NewsThumbnail } from "@/components/news/news-thumbnail";
 import { useNewsThumbnail } from "@/components/news/use-news-thumbnail";
@@ -93,6 +93,27 @@ export function NewsFeedLayout({
 function CompactHomeNewsCard({ article }: { article: NewsArticle }) {
   const { pending, src } = useNewsThumbnail(article.url, article.thumbnailUrl);
   const [errored, setErrored] = useState(false);
+  const [originalTitle, setOriginalTitle] = useState<{ url: string; title: string } | null>(null);
+  const title = originalTitle?.url === article.url ? originalTitle.title : article.title;
+
+  useEffect(() => {
+    if (!/(?:\.{3}|…)\s*$/.test(article.title)) return;
+    const controller = new AbortController();
+    void fetch(`/api/news/title?url=${encodeURIComponent(article.url)}`, { signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) throw new Error(`News title request failed: ${response.status}`);
+        return response.json() as Promise<{ title: string | null }>;
+      })
+      .then(({ title }) => {
+        if (title && title.length > article.title.replace(/(?:\.{3}|…)\s*$/, "").length) {
+          setOriginalTitle({ url: article.url, title });
+        }
+      })
+      .catch((error: unknown) => {
+        if (!controller.signal.aborted) console.error("[news-title] Original title unavailable", error);
+      });
+    return () => controller.abort();
+  }, [article.url, article.title]);
 
   return (
     <a
@@ -111,9 +132,9 @@ function CompactHomeNewsCard({ article }: { article: NewsArticle }) {
       ) : pending ? (
         <div className="h-[60px] w-20 shrink-0 animate-pulse rounded-md bg-[var(--ui-card-bg)] sm:w-24" />
       ) : null}
-      <div className="min-w-0">
-        <h3 className="line-clamp-2 text-[15px] font-bold leading-[1.45] text-[var(--ui-ink)] group-hover:underline">
-          {article.title}
+      <div className="min-w-0 flex-1">
+        <h3 className="truncate text-[15px] font-bold leading-[1.45] text-[var(--ui-ink)] group-hover:underline">
+          {title}
         </h3>
         <div className="mt-1 flex items-center gap-2 text-[13px] font-normal leading-5 text-[var(--ui-muted)]">
           <span className="truncate">{article.source}</span>

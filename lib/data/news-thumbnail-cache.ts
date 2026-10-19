@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createHash } from "node:crypto";
+import { load } from "cheerio";
 import type { NewsArticle } from "@/lib/data/news";
 import { isSafePublicNewsUrl, newsThumbnailProxyUrl } from "@/lib/data/news-thumbnail";
 import { resizeImageForWeb } from "@/lib/images/resize-for-web";
@@ -90,6 +91,20 @@ async function findArticleThumbnail(articleUrl: string) {
   } catch {
     return null;
   }
+}
+
+export async function resolveNewsTitle(articleUrl: string): Promise<string | null> {
+  const page = await fetchArticleHtml(articleUrl);
+  if (!page) return null;
+  for (const key of ["og:title", "twitter:title"]) {
+    for (const tag of page.html.match(/<meta\s[^>]*>/gi) ?? []) {
+      const property = (metaAttribute(tag, "property") || metaAttribute(tag, "name")).toLowerCase();
+      if (property !== key) continue;
+      const title = load(tag)("meta").attr("content")?.replace(/\s+/g, " ").trim();
+      if (title) return title;
+    }
+  }
+  return null;
 }
 
 /** 서명된 프록시와 R2 영구 캐시가 함께 사용하는 제한된 외부 이미지 fetch. */

@@ -195,11 +195,10 @@ export default async function HomePage({
         .eq("id", user.id)
         .maybeSingle();
       if (forceOnboarding || !profile?.onboarding_completed_at) {
-        const initialNickname = forceOnboarding || !profile?.onboarding_completed_at
-          ? ""
-          : profile.nickname ?? "";
+        const initialNickname = profile?.onboarding_completed_at ? profile.nickname ?? "" : "";
         onboarding = (
           <OnboardingDialog
+            preview={forceOnboarding}
             initialNickname={initialNickname}
             initialProfileImageUrl={profile?.profile_image_url ?? null}
             teams={teams.filter((team) => team.isLckTeam)}
