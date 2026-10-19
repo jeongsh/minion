@@ -159,9 +159,9 @@ export function HomeLoadingSkeleton() {
 export function ScheduleLoadingSkeleton() {
   return (
     <LoadingMain className="schedule-page flex flex-col">
-      <div className="schedule-mobile-sticky border-b border-[var(--ui-border)] lg:hidden"><div className="layout-wide py-2"><div className="grid grid-cols-7 gap-1 rounded-xl border border-[var(--ui-border)] bg-[var(--ui-card-bg)] p-1">{Array.from({ length: 7 }, (_, index) => <Skeleton key={index} className={`h-11 w-full rounded-lg ${index === 3 ? "bg-[var(--ui-ink)]" : ""}`} />)}</div></div></div>
-      <div className="mt-2 hidden border-b border-[var(--ui-border)] lg:block"><div className="layout-wide flex items-center justify-between gap-4 py-2.5"><div className="flex gap-2"><Skeleton className="h-9 w-9 rounded-lg" /><Skeleton className="h-9 w-28 rounded-lg" /><Skeleton className="h-9 w-9 rounded-lg" /></div><div className="flex gap-2"><Skeleton className="h-9 w-24 rounded-lg" /><Skeleton className="h-9 w-24 rounded-lg" /></div></div></div>
-      <div className="layout-wide mt-7 flex flex-col gap-8 lg:mt-10">
+      <div className="mt-2 hidden border-b border-[var(--ui-border)] lg:block"><div className="layout-wide flex flex-wrap items-center gap-2 py-2.5">{Array.from({ length: 4 }, (_, index) => <Skeleton key={index} className="h-11 w-24 rounded-lg" />)}<Skeleton className="h-11 w-36 rounded-lg sm:ml-auto" /></div></div>
+      <div className="schedule-mobile-sticky border-b border-[var(--ui-border)] lg:hidden"><div className="layout-wide py-2"><div className="grid grid-cols-7 gap-1 rounded-xl border border-[var(--ui-border)] bg-[var(--ui-card-bg)] p-1">{Array.from({ length: 7 }, (_, index) => <Skeleton key={index} className="h-11 w-full rounded-lg" />)}</div></div></div>
+      <div className="layout-wide mt-7 flex flex-col gap-8 lg:mt-6">
         {Array.from({ length: 3 }, (_, day) => (
           <section key={day}><div className="mb-3 flex items-center gap-2"><Skeleton className="h-6 w-24" />{day === 0 ? <Skeleton className="h-6 w-12 rounded-full" /> : null}</div><div className="overflow-hidden rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)]">{Array.from({ length: day === 0 ? 3 : 2 }, (_, row) => <MatchRowSkeleton key={row} />)}</div></section>
         ))}
@@ -172,32 +172,10 @@ export function ScheduleLoadingSkeleton() {
 
 export function TournamentLoadingSkeleton() {
   return (
-    <LoadingMain className="layout-wide flex flex-col gap-6 pt-6 sm:pt-10">
-      <header className="flex min-w-0 flex-col gap-3">
-        <div className="hidden items-center gap-2 md:flex">
-          <Skeleton className="h-3 w-7" /><Skeleton className="h-3 w-3" /><Skeleton className="h-3 w-8" />
-          <Skeleton className="h-3 w-3" /><Skeleton className="h-3 w-16" />
-        </div>
-        <div className="flex min-h-10 items-center gap-3">
-          <div className="flex min-w-0 items-center gap-2.5 md:gap-3">
-            <Skeleton className="h-7 w-12 shrink-0 rounded-sm md:h-9 md:w-[62px]" />
-            <Skeleton className="h-5 w-24 md:h-7 md:w-32" />
-          </div>
-        </div>
-      </header>
-      <div className="-ml-4 flex gap-1.5 overflow-hidden pl-4 sm:ml-0 sm:gap-2 sm:pl-0">
-        {Array.from({ length: 7 }, (_, index) => (
-          <Skeleton key={index} className={`h-8 shrink-0 rounded-lg sm:h-10 sm:rounded-xl ${index === 0 ? "w-[74px] sm:w-[88px]" : "w-[82px] sm:w-24"}`} />
-        ))}
-      </div>
-      <div className="flex flex-col gap-3">
-        <div className="flex w-fit gap-0.5 rounded-lg bg-[var(--ui-card-bg)] p-0.5">
-          {Array.from({ length: 3 }, (_, index) => <Skeleton key={index} className="h-7 w-[72px] rounded-md" />)}
-        </div>
-        <div className="flex gap-4 overflow-hidden border-b border-[var(--ui-border)]">
-          {Array.from({ length: 4 }, (_, index) => <Skeleton key={index} className={`h-[33px] shrink-0 rounded-none ${index === 0 ? "w-12" : "w-[62px]"}`} />)}
-        </div>
-      </div>
+    <LoadingMain className="flex flex-col">
+      <div className="mt-2 hidden border-b border-[var(--ui-border)] lg:block"><div className="layout-wide flex flex-wrap gap-2 py-2.5">{Array.from({ length: 4 }, (_, index) => <Skeleton key={index} className="h-11 w-24 rounded-lg" />)}</div></div>
+      <div className="layout-wide mt-6 flex flex-col gap-6">
+      <Skeleton className="h-7 w-60 max-w-full" /><div className="hidden gap-4 border-b border-[var(--ui-border)] lg:flex"><Skeleton className="h-11 w-16" /><Skeleton className="h-11 w-12" /></div>
       <section className="grid gap-4 sm:grid-cols-2">
         {Array.from({ length: 2 }, (_, group) => (
           <div key={group} className="flex flex-col gap-2.5">
@@ -216,6 +194,7 @@ export function TournamentLoadingSkeleton() {
           </div>
         ))}
       </section>
+      </div>
     </LoadingMain>
   );
 }

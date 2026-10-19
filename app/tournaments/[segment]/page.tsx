@@ -1,10 +1,13 @@
+import { SWISS_GROUP_POSITIONS, SWISS_RESULT_POSITIONS } from "@/packages/contracts/src/tournament-bracket-layout";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Fragment } from "react";
+import { SlidersHorizontal } from "lucide-react";
+import { AdaptiveDialog } from "@/components/responsive/adaptive-dialog";
 import { RailAdContent } from "@/components/ads/rail-ad-content";
 
-import { PageHeader } from "@/components/ui/page-header";
+import { EventFilterBar } from "@/components/ui/event-filter-bar";
 import { DataTable } from "@/components/ui/data-table";
 import { TeamLogo } from "@/components/ui/team-logo";
 import { getAllPlayers, getAllTeams, getBracketStages, getMatches, getStages, getTournaments } from "@/lib/data/lck";
@@ -36,10 +39,10 @@ import { siteBaseUrl } from "@/lib/site";
 import type { Match, Team, Tournament } from "@/lib/types";
 import { buildTeamStandingRows, dateKeyKST, matchHref } from "@/lib/view-data";
 
-import { SegmentSwitcher } from "../segment-switcher";
-import { TournamentMark } from "../tournament-mark";
-import { SegmentedControl, UnderlineNav } from "@/components/ui/tabs";
-import { YearSelect } from "../year-select";
+import { TournamentFilters, type TournamentFilter } from "../tournament-filters";
+
+import { UnderlineNav } from "@/components/ui/tabs";
+
 import { BracketConnectors, type BracketConnection } from "./bracket-connectors";
 import { BracketScroller } from "./bracket-scroller";
 import { buildSwissRounds, buildWorldsPlayInBracket, completedMatchWinner, formatWorldsStageLabel, groupWorldsStages, seriesFormatLabel, swissRecordLabel, WORLDS_PHASE_LABELS, type WorldsPhase } from "@/lib/tournaments/worlds";
@@ -67,7 +70,7 @@ function GroupStandingsTable({
   title: string;
   rows: ReturnType<typeof buildTeamStandingRows>;
 }) {
-  const recordLabel = (row: (typeof rows)[number]) => `${row.matchWins}승 · ${row.matchLosses}패`;
+  const recordLabel = (row: (typeof rows)[number]) => `${row.matchWins}승 ${row.matchLosses}패`;
   const setDiffLabel = (row: (typeof rows)[number]) => (row.setDiff >= 0 ? `+${row.setDiff}` : `${row.setDiff}`);
 
   return (
@@ -76,42 +79,8 @@ function GroupStandingsTable({
         <span aria-hidden="true" className="h-[14px] w-[3px] rounded-full bg-[var(--accent)]" />
         <span className="font-paperozi text-[15px] leading-none text-[var(--ui-ink)]">{title}</span>
       </div>
-      {rows.length > 0 ? (
-        <div className="overflow-hidden rounded-xl border border-border bg-surface md:hidden">
-          <div className="divide-y divide-border">
-            {rows.map((row) => (
-              <div
-                key={row.team.id}
-                className="grid min-h-[52px] grid-cols-[1.5rem_minmax(0,1fr)_auto_auto] items-center gap-2 px-3 py-2"
-              >
-                <span className="text-[13px] font-black italic tabular-nums text-foreground">{row.rank}</span>
-                <Link
-                  href={`/teams?team=${encodeURIComponent(row.team.fanSiteHost || row.team.slug)}`}
-                  className="flex min-w-0 items-center gap-2 font-semibold text-foreground hover:text-accent"
-                >
-                  {row.team.logoUrl ? (
-                    <TeamLogo team={row.team} size="h-6 w-6" plain themeAware />
-                  ) : null}
-                  <span className="min-w-0 truncate text-[13px]">{row.team.name}</span>
-                </Link>
-                <span className="shrink-0 text-right text-[12px] font-medium tabular-nums text-muted">
-                  {setDiffLabel(row)}
-                </span>
-                <span className="shrink-0 text-right text-[12px] font-medium tabular-nums text-foreground">
-                  {recordLabel(row)}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : (
-        <div className="rounded-xl border border-border bg-surface p-6 text-sm text-muted md:hidden">
-          아직 등록된 순위가 없습니다.
-        </div>
-      )}
       <DataTable
         mobileSurface="flat"
-        className="hidden md:block"
         rows={rows}
         compact
         columns={[
@@ -119,14 +88,14 @@ function GroupStandingsTable({
             key: "rank",
             label: "순위",
             headerClassName: "w-14",
-            cellClassName: "font-black italic tabular-nums",
+            cellClassName: "font-medium italic tabular-nums",
             render: (row) => row.rank,
           },
           {
             key: "team",
             label: "팀",
             render: (row) => (
-              <Link href={`/teams?team=${encodeURIComponent(row.team.fanSiteHost || row.team.slug)}`} className="flex items-center gap-2 font-semibold hover:text-accent">
+              <Link href={`/teams?team=${encodeURIComponent(row.team.fanSiteHost || row.team.slug)}`} className="flex items-center gap-2 font-medium hover:text-accent">
                 {row.team.logoUrl ? (
                   <TeamLogo team={row.team} size="h-7 w-7" plain themeAware />
                 ) : null}
@@ -134,18 +103,18 @@ function GroupStandingsTable({
               </Link>
             ),
           },
-          {
+          { align: "center",
             key: "setDiff",
             label: "득실차",
-            headerClassName: "text-center",
-            cellClassName: "text-center tabular-nums",
+            headerClassName: "",
+            cellClassName: "tabular-nums",
             render: (row) => setDiffLabel(row),
           },
-          {
+          { align: "center",
             key: "record",
             label: "전적",
-            headerClassName: "text-center",
-            cellClassName: "text-center tabular-nums",
+            headerClassName: "",
+            cellClassName: "tabular-nums",
             render: (row) => recordLabel(row),
           },
         ]}
@@ -170,10 +139,10 @@ function RegularStandingsTable({ rows }: { rows: ReturnType<typeof buildTeamStan
           cellClassName: "min-w-[18rem]",
           render: (row) => (
             <div className="flex items-center gap-2.5 md:gap-3">
-              <span className="w-6 shrink-0 text-center text-sm font-black italic tabular-nums md:w-7 md:text-base">{row.rank}</span>
+              <span className="w-6 shrink-0 text-center text-sm font-medium italic tabular-nums md:w-7 md:text-base">{row.rank}</span>
               <Link
                 href={`/teams?team=${encodeURIComponent(row.team.fanSiteHost || row.team.slug)}`}
-                className="flex min-w-0 items-center gap-2 font-semibold hover:text-accent"
+                className="flex min-w-0 items-center gap-2 font-medium hover:text-accent"
               >
                 {row.team.logoUrl ? (
                   <TeamLogo team={row.team} size="h-6 w-6 md:h-7 md:w-7" plain themeAware />
@@ -183,32 +152,32 @@ function RegularStandingsTable({ rows }: { rows: ReturnType<typeof buildTeamStan
             </div>
           ),
         },
-        {
+        { align: "center",
           key: "wins",
           label: "승",
-          headerClassName: "text-center",
-          cellClassName: "text-center font-bold tabular-nums",
+          headerClassName: "",
+          cellClassName: "font-medium tabular-nums",
           render: (row) => row.matchWins,
         },
-        {
+        { align: "center",
           key: "losses",
           label: "패",
-          headerClassName: "text-center",
-          cellClassName: "text-center tabular-nums",
+          headerClassName: "",
+          cellClassName: "tabular-nums",
           render: (row) => row.matchLosses,
         },
-        {
+        { align: "center",
           key: "diff",
           label: "득실차",
-          headerClassName: "text-center",
-          cellClassName: "text-center tabular-nums",
+          headerClassName: "",
+          cellClassName: "tabular-nums",
           render: (row) => row.setDiff,
         },
-        {
+        { align: "center",
           key: "rate",
           label: "승률",
-          headerClassName: "text-center",
-          cellClassName: "text-center tabular-nums",
+          headerClassName: "",
+          cellClassName: "tabular-nums",
           render: (row) => row.winRate,
         },
       ]}
@@ -233,7 +202,7 @@ function PomRankingTable({ rows }: { rows: PomRow[] }) {
           cellClassName: "min-w-[18rem]",
           render: (row) => (
             <div className="flex items-center gap-2 md:gap-3">
-              <span className="w-6 shrink-0 text-center text-sm font-black italic tabular-nums md:w-7 md:text-base">{row.rank}</span>
+              <span className="w-6 shrink-0 text-center text-sm font-medium italic tabular-nums md:w-7 md:text-base">{row.rank}</span>
               <div className="flex min-w-0 items-center gap-2">
                 {row.player.profileImageUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -244,18 +213,18 @@ function PomRankingTable({ rows }: { rows: PomRow[] }) {
                   />
                 ) : null}
                 <div className="flex min-w-0 items-baseline gap-1 md:gap-1.5">
-                  <p className="truncate text-[13px] font-semibold md:text-sm">{row.player.name}</p>
-                  <p className="truncate text-[11px] text-muted md:text-[12px]">{row.team?.shortName ?? "-"}</p>
+                  <p className="truncate text-[13px] font-medium md:text-sm">{row.player.name}</p>
+                  <p className="truncate text-[13px] font-medium text-muted">{row.team?.shortName ?? "-"}</p>
                 </div>
               </div>
             </div>
           ),
         },
-        {
+        { align: "center",
           key: "points",
           label: "포인트",
-          headerClassName: "text-center",
-          cellClassName: "text-center font-bold tabular-nums",
+          headerClassName: "",
+          cellClassName: "font-medium tabular-nums",
           render: (row) => row.points,
         },
       ]}
@@ -282,20 +251,20 @@ function TeamRow({
     <div data-team-row={rowIndex} className="flex items-center gap-2 px-2.5 py-1.5">
       <span
         className="h-5 w-1 shrink-0 self-stretch rounded-full"
-        style={{ backgroundColor: accentColor }}
+        style={{ backgroundColor: !team || /^(tbd|미정)$/i.test(team.name.trim()) ? "var(--ui-muted)" : accentColor }}
         aria-hidden="true"
       />
       <TeamLogo team={team} size="h-5 w-5" plain themeAware />
       <span
         className={`min-w-0 flex-1 truncate text-[13px] ${
-          isWinner ? "font-bold text-foreground" : "font-medium text-muted"
+          isWinner ? "font-medium text-foreground" : "font-medium text-muted"
         }`}
       >
         {team?.name ?? placeholder ?? "TBD"}
       </span>
       <span
         className={`shrink-0 text-[13px] tabular-nums ${
-          isWinner ? "font-bold text-foreground" : "font-medium text-muted"
+          isWinner ? "font-medium text-foreground" : "font-medium text-muted"
         }`}
       >
         {score ?? "-"}
@@ -313,9 +282,9 @@ function InlineMatchTeams({ match, teamA, teamB, accent }: { match?: Match; team
         return <Fragment key={index}>
           {index === 1 ? <span className="text-center text-[13px] font-medium tabular-nums text-foreground">{hasScore ? `${match.teamAScore} : ${match.teamBScore}` : "vs"}</span> : null}
           <span className={`flex min-w-0 items-center gap-0.5 ${index === 1 ? "flex-row-reverse" : ""}`} aria-label={team?.name ?? "미정 팀"}>
-            <span className="h-5 w-1 shrink-0 rounded-full" style={{ backgroundColor: team?.primaryColor ?? accent }} aria-hidden="true" />
+            <span className="h-5 w-1 shrink-0 rounded-full" style={{ backgroundColor: team ? team.primaryColor ?? accent : "var(--ui-muted)" }} aria-hidden="true" />
             <TeamLogo team={team} size="h-6 w-6" plain themeAware />
-            <span className={`min-w-0 truncate text-[14px] font-bold ${match?.status === "completed" && !winner ? "text-muted" : "text-foreground"}`}>{team?.shortName || "미정"}</span>
+            <span className={`min-w-0 truncate text-[14px] font-medium ${match?.status === "completed" && !winner ? "text-muted" : "text-foreground"}`}>{team?.shortName || "미정"}</span>
           </span>
         </Fragment>;
       })}
@@ -414,31 +383,6 @@ function GrandFinalsCard({
         /></>}
       </Link>
     </div>
-  );
-}
-
-function BracketStagePills({
-  bracketStages,
-  activeBracketStageId,
-  segmentKey,
-  activeSeason,
-}: {
-  bracketStages: { id: string; name: string }[];
-  activeBracketStageId: string;
-  segmentKey: string;
-  activeSeason: number;
-}) {
-  return (
-    <SegmentedControl
-      ariaLabel="대진표 스테이지 선택"
-      activeKey={activeBracketStageId}
-      compact
-      items={bracketStages.map((bracketStage) => ({
-        key: bracketStage.id,
-        label: bracketStage.name,
-        href: `/tournaments/${segmentKey}?year=${activeSeason}&bracketStage=${bracketStage.id}`,
-      }))}
-    />
   );
 }
 
@@ -547,22 +491,6 @@ function buildPositionedGroups(regularColumns: StageColumn[]) {
 
   return { groups, gapRows, lastRow: rowCursor - 1 };
 }
-
-const SWISS_GROUP_POSITIONS: Record<string, { column: number; row: number; span: number }> = {
-  "0-0": { column: 1, row: 7, span: 36 },
-  "1-0": { column: 2, row: 3, span: 21 }, "0-1": { column: 2, row: 26, span: 21 },
-  "2-0": { column: 3, row: 1, span: 12 }, "1-1": { column: 3, row: 15, span: 20 }, "0-2": { column: 3, row: 37, span: 12 },
-  "2-1": { column: 4, row: 9, span: 17 }, "1-2": { column: 4, row: 27, span: 17 },
-  "2-2": { column: 5, row: 20, span: 17 },
-};
-const SWISS_RESULT_POSITIONS = [
-  { wins: 3, losses: 0, column: 4, row: 1, span: 6, from: "2-0", count: 2 },
-  { wins: 0, losses: 3, column: 4, row: 44, span: 4, from: "0-2", count: 2 },
-  { wins: 3, losses: 1, column: 5, row: 7, span: 4, from: "2-1", count: 3 },
-  { wins: 1, losses: 3, column: 5, row: 41, span: 4, from: "1-2", count: 3 },
-  { wins: 3, losses: 2, column: 6, row: 21, span: 4, from: "2-2", count: 3 },
-  { wins: 2, losses: 3, column: 6, row: 33, span: 4, from: "2-2", count: 3 },
-];
 
 function SwissBracket({ columns, teamMap, accent }: { columns: StageColumn[]; teamMap: Map<string, Team>; accent: string }) {
   const knownTeamIds = new Set([...teamMap.values()].filter((team) => !/^(tbd|미정)$/i.test(team.name.trim())).map((team) => team.id));
@@ -896,7 +824,21 @@ export default async function TournamentBracketPage({
     matches,
   );
 
+  const filters: TournamentFilter[] = [
+    {
+      label: "연도",
+      selected: String(activeSeason),
+      options: seasons.map((season) => ({ value: String(season), label: String(season), href: `/tournaments/${segmentTheme.key}?year=${season}` })),
+    },
+    {
+      label: "대회",
+      selected: segmentTheme.key,
+      options: segmentNav.map((item) => ({ value: item.key, label: item.name, href: `/tournaments/${item.key}?year=${activeSeason}`, isOngoing: item.isOngoing })),
+    },
+  ];
+
   let contentSection: React.ReactNode;
+  let contentTitle = segmentTheme.name;
   let hasAdContent = false;
 
   if (segmentMatches.length === 0) {
@@ -932,6 +874,33 @@ export default async function TournamentBracketPage({
     const viewLabels = LCK_SPLIT_VIEW_LABELS[activeSplit];
     const activePhase: "playin" | "playoffs" = search.phase === "playoffs" ? "playoffs" : search.phase === "playin" ? "playin" : defaultView.phase;
 
+    const lckHref = (query: Record<string, string>) => `/tournaments/${segmentTheme.key}?${new URLSearchParams({ year: String(activeSeason), split: activeSplit, ...query })}`;
+    filters.push(
+      {
+        label: "시즌 구간",
+        selected: activeSplit,
+        options: (Object.keys(LCK_SPLIT_LABELS) as LckSplitKey[]).map((split) => ({ value: split, label: LCK_SPLIT_LABELS[split], href: lckHref({ split }) })),
+      },
+      {
+        label: "세부 단계",
+        selected: activeView === "bracket" ? (activeSplit === "2" ? "bracket" : activePhase) : activeView,
+        options: [
+          { value: "pom", label: "POM", href: lckHref({ view: "pom" }) },
+          { value: "standings", label: activeSplit === "3" ? "그룹 배틀" : viewLabels.standings, href: lckHref({ view: "standings" }) },
+          ...(activeSplit === "2"
+            ? [{ value: "bracket", label: viewLabels.bracket, href: lckHref({ view: "bracket" }) }]
+            : [
+              { value: "playin", label: "플레이인", href: lckHref({ view: "bracket", phase: "playin" }) },
+              { value: "playoffs", label: "플레이오프", href: lckHref({ view: "bracket", phase: "playoffs" }) },
+            ]),
+        ],
+      },
+    );
+
+    const splitTitle = activeSplit === "1" ? LCK_SPLIT_LABELS[activeSplit] : `${segmentTheme.name} ${LCK_SPLIT_LABELS[activeSplit]}`;
+    const phaseTitle = activeView === "pom" ? "POM 순위" : activeView === "standings" ? `${activeSplit === "3" ? "그룹 배틀" : viewLabels.standings} 순위표` : `${activeSplit === "2" ? viewLabels.bracket : activePhase === "playin" ? "플레이인" : "플레이오프"} 대진표`;
+    contentTitle = `${splitTitle} ${phaseTitle}`;
+
     const bracketOrEmpty = (columns: StageColumn[]) =>
       columns.length === 0 ? (
         <p className="rounded-lg border border-border bg-surface px-5 py-10 text-center text-sm text-muted">
@@ -940,7 +909,7 @@ export default async function TournamentBracketPage({
       ) : (
         <div className="rounded-lg border border-border bg-surface p-4 md:p-6">
           <BracketScroller>
-            <BracketGrid columns={columns} teamMap={teamMap} accent={segmentTheme.accent} />
+            <BracketGrid columns={columns} teamMap={teamMap} accent="var(--accent)" />
           </BracketScroller>
         </div>
       );
@@ -1089,63 +1058,8 @@ export default async function TournamentBracketPage({
 
     contentSection = (
       <section className="flex flex-col gap-6">
-        {/* 상세 탭(1차)과 스플릿(2차)은 데스크탑에서 한 줄을 공유한다 — 탭은 왼쪽 언더라인,
-            스플릿은 오른쪽 세그먼티드 컨트롤로 위계를 나눈다. 모바일에서는 가로 폭이 부족해
-            스플릿을 위, 탭을 아래로 쌓고 탭이 트랙 보더를 직접 그린다. */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4 sm:border-b sm:border-[var(--ui-border)]">
-          {activeSplit === "1" || activeSplit === "3" ? (
-            <UnderlineNav
-              ariaLabel="대회 상세 탭"
-              bordered={false}
-              compact
-              className="order-2 border-b border-[var(--ui-border)] sm:order-1 sm:-mb-px sm:border-b-0"
-              activeKey={activeView === "bracket" ? activePhase : activeView}
-              items={(
-                [
-                  { key: "pom", label: "POM", query: { view: "pom" } },
-                  { key: "standings", label: viewLabels.standings, query: { view: "standings" } },
-                  { key: "playin", label: "플레이-인", query: { view: "bracket", phase: "playin" } },
-                  { key: "playoffs", label: "플레이오프", query: { view: "bracket", phase: "playoffs" } },
-                ] as const
-              ).map((tab) => ({
-                key: tab.key,
-                label: tab.label,
-                href: `/tournaments/${segmentTheme.key}?${new URLSearchParams({
-                  year: String(activeSeason),
-                  split: activeSplit,
-                  ...tab.query,
-                }).toString()}`,
-              }))}
-            />
-          ) : (
-            <ViewTabs
-              labels={{ pom: "POM", standings: viewLabels.standings, bracket: viewLabels.bracket }}
-              activeTab={activeView}
-              segmentKey={segmentTheme.key}
-              activeSeason={activeSeason}
-              paramName="view"
-              extraParams={{ split: activeSplit }}
-              className="order-2 border-b border-[var(--ui-border)] sm:order-1 sm:-mb-px sm:border-b-0"
-            />
-          )}
-
-          <SegmentedControl
-            ariaLabel="대회 단계 선택"
-            activeKey={activeSplit}
-            compact
-            className="order-1 sm:order-2 sm:mb-2"
-            items={(Object.keys(LCK_SPLIT_LABELS) as LckSplitKey[]).map((split) => ({
-              key: split,
-              label: LCK_SPLIT_LABELS[split],
-              href: `/tournaments/${segmentTheme.key}?${new URLSearchParams({
-                year: String(activeSeason),
-                split,
-                view: activeView,
-              }).toString()}`,
-            }))}
-          />
-        </div>
-
+        <h2 className="home-section-title text-xl text-[var(--ui-ink)]">{contentTitle}</h2>
+        <div className="hidden lg:block"><UnderlineNav ariaLabel="대회 상세 탭" activeKey={activeView === "bracket" && activeSplit !== "2" ? activePhase : activeView} bordered={false} compact items={filters.at(-1)!.options.map(option => ({ key: option.value, label: option.label, href: option.href }))} /></div>
         {activeView === "pom" ? (
           <PomRankingTable rows={activePomRows} />
         ) : activeView === "standings" ? (
@@ -1208,6 +1122,11 @@ export default async function TournamentBracketPage({
       : activeBracketStage ? segmentStages.filter((stage) => stage.bracketStageId === activeBracketStage.id) : segmentStages;
     const columns = buildStageColumns(activeStages, segmentMatches);
 
+    const stageOptions = worldsPhase
+      ? worldsPhaseKeys.map((phase) => ({ value: phase, label: WORLDS_PHASE_LABELS[phase], href: `/tournaments/${segmentTheme.key}?year=${activeSeason}&bracketStage=${phase}` }))
+      : segmentBracketStages.map((stage) => ({ value: stage.id, label: stage.name, href: `/tournaments/${segmentTheme.key}?year=${activeSeason}&bracketStage=${stage.id}` }));
+    if (stageOptions.length > 0) filters.push({ label: "세부 단계", selected: worldsPhase ?? activeBracketStage?.id ?? "", options: stageOptions });
+
     // 조별 라운드로빈(예: 케스파컵/퍼스트 스탠드 그룹 스테이지)은 대진표 대신 LCK
     // 정규시즌처럼 승-패 순위표로도 보여줄 수 있다. 이름에 "그룹"이 들어가거나 어드민이
     // 순위표로 지정해둔 스테이지는 두 뷰를 모두 지원하며, 기본값은 순위표다.
@@ -1216,6 +1135,12 @@ export default async function TournamentBracketPage({
     );
     const requestedGroupView: "standings" | "bracket" = search.view === "bracket" ? "bracket" : "standings";
     const isGroupStageBracket = supportsGroupToggle && requestedGroupView === "standings";
+    const activeStageName = worldsPhase ? WORLDS_PHASE_LABELS[worldsPhase] : activeBracketStage?.name;
+    contentTitle = [segmentTheme.name, activeStageName, isGroupStageBracket ? "순위표" : "대진표"].filter(Boolean).join(" ");
+    if (supportsGroupToggle) filters.push({ label: "보기", selected: requestedGroupView, options: [
+      { value: "standings", label: "순위표", href: `/tournaments/${segmentTheme.key}?year=${activeSeason}&bracketStage=${activeBracketStage?.id}&view=standings` },
+      { value: "bracket", label: "대진표", href: `/tournaments/${segmentTheme.key}?year=${activeSeason}&bracketStage=${activeBracketStage?.id}&view=bracket` },
+    ] });
     const activeStageIds = new Set(activeStages.map((stage) => stage.id));
     const groupStageMatches = segmentMatches.filter((match) => activeStageIds.has(match.stageId));
     const groupStageTeams = teams.filter((team) =>
@@ -1230,9 +1155,9 @@ export default async function TournamentBracketPage({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-3">
             <h2 className="home-section-title text-[length:var(--ui-title-size)] text-[var(--ui-ink)]">
-              {isGroupStageBracket ? "조 순위" : "대진표"}
+              {contentTitle}
             </h2>
-            {supportsGroupToggle ? (
+            {supportsGroupToggle ? <div className="hidden lg:block">
               <ViewTabs
                 labels={{ standings: "순위표", bracket: "대진표" }}
                 activeTab={requestedGroupView}
@@ -1241,14 +1166,8 @@ export default async function TournamentBracketPage({
                 paramName="view"
                 extraParams={activeBracketStage ? { bracketStage: activeBracketStage.id } : undefined}
               />
-            ) : null}
+            </div> : null}
           </div>
-          <BracketStagePills
-            bracketStages={worldsPhase ? worldsPhaseKeys.map((phase) => ({ id: phase, name: WORLDS_PHASE_LABELS[phase] })) : segmentBracketStages}
-            activeBracketStageId={worldsPhase ?? activeBracketStage?.id ?? ""}
-            segmentKey={segmentTheme.key}
-            activeSeason={activeSeason}
-          />
         </div>
 
         {isGroupStageBracket ? (
@@ -1260,7 +1179,7 @@ export default async function TournamentBracketPage({
         ) : (
           <div className="rounded-lg border border-border bg-surface p-4 md:p-6">
             <BracketScroller>
-              <BracketGrid columns={columns} teamMap={teamMap} accent={segmentTheme.accent} worldsPhase={worldsPhase} />
+              <BracketGrid columns={columns} teamMap={teamMap} accent="var(--accent)" worldsPhase={worldsPhase} />
             </BracketScroller>
           </div>
         )}
@@ -1269,43 +1188,22 @@ export default async function TournamentBracketPage({
   }
 
   return (
-    <main className="layout-wide flex flex-col gap-6 pt-6 sm:pt-10" data-ads-blocked={!hasAdContent ? "true" : undefined}>
+    <main data-ads-blocked={!hasAdContent ? "true" : undefined}>
       <RailAdContent enabled={hasAdContent} />
-      <PageHeader
-        title={segmentTheme.name}
-        leading={
-          segmentTheme.logo ? (
-            <TournamentMark
-              logo={segmentTheme.logo}
-              aspect={segmentTheme.logoAspect}
-              className="h-7 max-w-[62px] text-[var(--ui-ink)] md:h-9 md:max-w-[80px]"
-            />
-          ) : undefined
-        }
-        action={
-          <YearSelect
-            seasons={seasons}
-            activeSeason={activeSeason}
-            segmentKey={segmentTheme.key}
-          />
-        }
-        breadcrumbs={[
-          { label: "홈", href: "/" },
-          { label: "대회", href: "/tournaments" },
-          { label: segmentTheme.name },
-        ]}
-      />
-
-      <div className="flex items-center">
-        <SegmentSwitcher
-          items={segmentNav}
-          activeKey={segmentTheme.key}
-          activeSeason={activeSeason}
-          className="min-w-0 flex-1"
-        />
+      <h1 className="sr-only">{segmentTheme.name} 대회</h1>
+      <header className="mt-2 hidden border-b border-[var(--ui-border)] bg-[var(--page-background)] lg:sticky lg:top-[var(--ui-header-height)] lg:z-30 lg:block">
+        <div className="layout-wide py-2.5">
+          <EventFilterBar>
+            <TournamentFilters filters={filters} />
+          </EventFilterBar>
+        </div>
+      </header>
+      <div className="fixed bottom-[calc(3.25rem+env(safe-area-inset-bottom)+18px)] right-4 z-40 md:bottom-6 lg:hidden">
+        <AdaptiveDialog title="대회 필터" trigger={<SlidersHorizontal size={20} />} triggerAriaLabel="필터 열기" triggerClassName="grid h-12 w-12 place-items-center rounded-full border border-[var(--ui-border)] bg-[var(--ui-ink)] text-[var(--ui-surface)] shadow-[0_12px_34px_rgba(15,23,42,0.22)] transition-opacity hover:opacity-90">
+          <TournamentFilters filters={filters} layout="sheet" />
+        </AdaptiveDialog>
       </div>
-
-      {contentSection}
+      <div className="layout-wide mt-6">{contentSection}</div>
     </main>
   );
 }

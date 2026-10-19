@@ -1,3 +1,11 @@
+import { segmentThemeByKey } from "@/lib/tournaments/international-segments";
+
+export function TournamentOptionMark({ segmentKey }: { segmentKey: string }) {
+  const theme = segmentThemeByKey(segmentKey === "lck-cup" ? "lck" : segmentKey);
+  if (!theme?.logo) return null;
+  return <span className="flex h-5 w-8 shrink-0 items-center justify-center"><TournamentMark logo={theme.logo} aspect={theme.logoAspect} className="h-5 max-w-8" /></span>;
+}
+
 /**
  * 대회 로고 마크. 단색 svg를 mask + currentColor로 그려서, 로고 파일의 fill 색과 무관하게
  * 부모의 텍스트 색을 따라간다(활성 잉크 칩 위에서는 흰색, 비활성에서는 회색, 다크모드 자동
