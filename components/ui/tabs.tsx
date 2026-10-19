@@ -1,18 +1,21 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 
 export type TabItem = {
   key: string;
-  label: string;
+  label: ReactNode;
   href: string;
+  scroll?: boolean;
+  disabled?: boolean;
 };
 
-function segmentedTrackClassName(compact: boolean) {
-  return `inline-flex w-fit shrink-0 gap-0.5 bg-[var(--ui-card-bg)] ${compact ? "rounded-lg p-0.5" : "rounded-[10px] p-[3px]"}`;
+function segmentedTrackClassName(compact: boolean, stretch = false) {
+  return `inline-flex ${stretch ? "w-full" : "w-fit"} shrink-0 gap-0.5 bg-[var(--ui-card-bg)] ${compact ? "rounded-lg p-0.5" : "rounded-[10px] p-[3px]"}`;
 }
 
 function segmentedItemClassName(active: boolean, compact: boolean) {
   // 다크 모드의 활성 항목은 트랙보다 밝은 border 톤을 사용한다.
-  return `flex shrink-0 items-center whitespace-nowrap transition-colors ${compact ? "h-7 rounded-md px-2.5 text-[13px]" : "h-8 rounded-lg px-3.5 text-[13px]"} ${
+  return `flex shrink-0 items-center whitespace-nowrap transition-colors ${compact ? "h-9 rounded-md px-3 text-sm" : "h-10 rounded-lg px-3.5 text-sm"} ${
     active
       ? "border border-[var(--ui-border)] bg-[var(--ui-surface)] font-medium text-[var(--ui-ink)] dark:bg-[var(--ui-border)]"
       : "font-medium text-[var(--ui-muted)] hover:text-[var(--ui-ink)]"
@@ -61,29 +64,34 @@ export function SegmentedControl({
   ariaLabel,
   className = "",
   compact = false,
+  stretch = false,
 }: {
   items: TabItem[];
   activeKey: string;
   ariaLabel: string;
   className?: string;
   compact?: boolean;
+  stretch?: boolean;
 }) {
   if (items.length <= 1) return null;
 
   return (
     <nav
       aria-label={ariaLabel}
-      className={`${segmentedTrackClassName(compact)} ${className}`}
+      className={`${segmentedTrackClassName(compact, stretch)} ${className}`}
     >
       {items.map((item) => {
         const isActive = item.key === activeKey;
 
+        const itemClassName = segmentedItemClassName(isActive, compact) + (stretch ? " flex-1 justify-center" : "");
+        if (item.disabled) return <span key={item.key} aria-disabled="true" className={itemClassName + " opacity-40"}>{item.label}</span>;
         return (
           <Link
             key={item.key}
             href={item.href}
             aria-current={isActive ? "page" : undefined}
-            className={segmentedItemClassName(isActive, compact)}
+            scroll={item.scroll}
+            className={itemClassName}
           >
             {item.label}
           </Link>
@@ -132,6 +140,7 @@ export function UnderlineNav({
           <Link
             key={item.key}
             href={item.href}
+            scroll={item.scroll}
             aria-current={isActive ? "page" : undefined}
             className={`flex shrink-0 items-center justify-center whitespace-nowrap font-medium transition-colors ${compact ? "border-b-2 py-1.5 text-[14px] sm:py-2" : "border-b-[3px] py-2.5 text-[16px] sm:py-3"} ${
               isActive
