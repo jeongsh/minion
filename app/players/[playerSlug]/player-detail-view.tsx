@@ -1,3 +1,4 @@
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PlayerSocialLinks } from "@/components/domain/player-social-links";
@@ -602,28 +603,13 @@ export async function PlayerDetailView({
         <section>
           <SectionHeading caption={playerSegmentLabel(activeSegment)}>시즌 요약</SectionHeading>
           <div className="overflow-hidden rounded-lg border border-[var(--ui-border)]">
-            <div className="overflow-hidden bg-[var(--ui-surface)]">
-              <div className="grid h-9 grid-cols-5 items-center bg-[var(--ui-card-bg)] text-center text-[13px] font-medium leading-tight text-[var(--ui-muted)] lg:text-sm">
-                <span>출전 세트</span>
-                <span>승률</span>
-                <span>KDA</span>
-                <span>최근 폼</span>
-                <span>공식 POM</span>
-              </div>
-              <div className="grid min-h-12 grid-cols-5 items-center divide-x divide-[var(--ui-border)] text-center">
-                <strong className="px-1 text-base tabular-nums text-[var(--ui-ink)] sm:text-lg">{playerLines.length}</strong>
-                <div className="min-w-0 px-1">
+            <Table><TableHeader><TableRow><TableHead scope="col" className="text-center">출전 세트</TableHead><TableHead scope="col" className="text-center">승률</TableHead><TableHead scope="col" className="text-center">KDA</TableHead><TableHead scope="col" className="text-center">최근 폼</TableHead><TableHead scope="col" className="text-center">공식 POM</TableHead></TableRow></TableHeader><TableBody><TableRow><TableCell className="text-center whitespace-nowrap"><strong className="px-1 text-base tabular-nums text-[var(--ui-ink)] sm:text-lg">{playerLines.length}</strong></TableCell><TableCell className="text-center whitespace-nowrap"><div className="min-w-0 px-1">
                   <strong className="text-base tabular-nums text-[var(--ui-ink)] sm:text-lg">{percentValue(playerLines.length ? (wins / playerLines.length) * 100 : null)}</strong>
                   <span className="ml-1.5 hidden whitespace-nowrap text-xs text-[var(--ui-muted)] lg:inline">{wins}W {losses}L</span>
-                </div>
-                <div className="min-w-0 px-1">
+                </div></TableCell><TableCell className="text-center whitespace-nowrap"><div className="min-w-0 px-1">
                   <strong className="text-base tabular-nums text-[var(--ui-ink)] sm:text-lg">{statValue(aggregateStats?.kda, 2)}</strong>
                   <span className="ml-1.5 hidden whitespace-nowrap text-xs text-[var(--ui-muted)] xl:inline">{playerKdaLine}</span>
-                </div>
-                <strong className="px-1 text-base tabular-nums text-[var(--ui-ink)] sm:text-lg">{statValue(recentStats?.formScore)}</strong>
-                <strong className="px-1 text-base tabular-nums text-[var(--ui-ink)] sm:text-lg">{pomCount}</strong>
-              </div>
-            </div>
+                </div></TableCell><TableCell className="text-center whitespace-nowrap"><strong className="px-1 text-base tabular-nums text-[var(--ui-ink)] sm:text-lg">{statValue(recentStats?.formScore)}</strong></TableCell><TableCell className="text-center whitespace-nowrap"><strong className="px-1 text-base tabular-nums text-[var(--ui-ink)] sm:text-lg">{pomCount}</strong></TableCell></TableRow></TableBody></Table>
           </div>
         </section>
 

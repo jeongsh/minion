@@ -1,4 +1,6 @@
 "use client";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
+
 
 import Link from "next/link";
 import { useState } from "react";
@@ -60,7 +62,7 @@ function ChampionCell({ row }: { row: ChampionUsageRow }) {
     <Link href={`/champions/${row.champion.slug}`} className="flex min-w-0 items-center justify-center gap-2 transition hover:opacity-75 sm:justify-start">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={championImageUrl(row.champion)} alt="" className="h-7 w-7 shrink-0 rounded-md object-cover sm:h-8 sm:w-8 lg:h-9 lg:w-9" />
-      <span className="hidden truncate font-semibold text-[var(--ui-ink)] sm:inline">{championLabel(row.champion)}</span>
+      <span className="hidden truncate font-medium text-[var(--ui-ink)] sm:inline">{championLabel(row.champion)}</span>
     </Link>
   );
 }
@@ -82,53 +84,42 @@ export function ChampionUsageTable({ rows, initialRows = 5 }: { rows: ChampionUs
     <div>
       <div className="overflow-hidden rounded-lg border border-[var(--ui-border)]">
         <div className="overflow-hidden bg-[var(--ui-surface)]">
-          <table className="w-full table-fixed border-collapse text-left text-xs lg:text-sm">
-            <colgroup>
-              <col className="w-[16%] sm:w-[18%]" />
-              <col className="w-[10%] sm:w-[9%]" />
-              <col className="w-[11%] sm:w-[9%]" />
-              <col className="w-[11%] sm:w-[9%]" />
-              <col className="w-[16%] sm:w-[12%]" />
-              <col className="w-[12%] sm:w-[11%]" />
-              <col className="w-[12%] sm:w-[10%]" />
-              <col className="hidden w-[11%] sm:table-column" />
-              <col className="w-[12%] sm:w-[11%]" />
-            </colgroup>
-            <thead>
-              <tr className="h-10 bg-[var(--ui-card-bg)] text-xs font-medium leading-tight text-[var(--ui-muted)] lg:text-sm">
-                <th scope="col" className="px-1.5 font-semibold sm:px-2 lg:px-3">챔피언</th>
-                <th scope="col" className="px-1 text-center font-semibold sm:px-2 lg:px-3">세트</th>
-                <th scope="col" className="px-1 text-center font-semibold sm:px-2 lg:px-3">승률</th>
-                <th scope="col" className="px-1 text-center font-semibold sm:px-2 lg:px-3">KDA</th>
-                <th scope="col" className="px-1 text-center font-semibold sm:px-2 lg:px-3">대미지</th>
-                <th scope="col" className="px-1 text-center font-semibold sm:px-2 lg:px-3">DPM</th>
-                <th scope="col" className="px-1 text-center font-semibold sm:px-2 lg:px-3">CSM</th>
-                <th scope="col" className="hidden px-1 text-center font-semibold sm:table-cell sm:px-2 lg:px-3">팬평점</th>
-                <th scope="col" className="px-1 text-center font-semibold sm:px-2 lg:px-3">
+          <Table className="min-w-[44rem]">
+            <TableHeader>
+              <TableRow className="h-10 leading-tight text-[var(--ui-muted)]">
+                <TableHead scope="col" >챔피언</TableHead>
+                <TableHead scope="col" className="text-center">세트</TableHead>
+                <TableHead scope="col" className="text-center">승률</TableHead>
+                <TableHead scope="col" className="text-center">KDA</TableHead>
+                <TableHead scope="col" className="text-center">대미지</TableHead>
+                <TableHead scope="col" className="text-center">DPM</TableHead>
+                <TableHead scope="col" className="text-center">CSM</TableHead>
+                <TableHead scope="col" className="hidden text-center sm:table-cell">팬평점</TableHead>
+                <TableHead scope="col" className="text-center">
                   <span className="sm:hidden">POG</span>
                   <span className="hidden sm:inline">팬 POG</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--ui-border)] bg-[var(--ui-surface)]">
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody >
               {visibleRows.map((row, index) => (
-                <tr key={row.champion?.id ?? index} className="align-middle transition-colors hover:bg-[var(--ui-surface-muted)]">
-                  <td className="px-1 py-2 sm:px-2 lg:px-3"><ChampionCell row={row} /></td>
-                  <td className="px-1 py-2 text-center font-semibold tabular-nums text-[var(--ui-ink)] sm:px-2 lg:px-3">{row.lines.length}</td>
-                  <td className="px-1 py-2 text-center font-semibold tabular-nums text-[var(--tp)] sm:px-2 lg:px-3">{percentValue(row.winRate)}</td>
-                  <td className="px-1 py-2 text-center font-semibold tabular-nums text-[var(--ui-ink)] sm:px-2 lg:px-3">{statValue(row.stats?.kda, 2)}</td>
-                  <td className="px-1 py-2 text-center font-semibold tabular-nums text-[var(--ui-text)] sm:px-2 lg:px-3">
+                <TableRow key={row.champion?.id ?? index} className="align-middle transition-colors">
+                  <TableCell ><ChampionCell row={row} /></TableCell>
+                  <TableCell className="text-center tabular-nums text-[var(--ui-ink)]">{row.lines.length}</TableCell>
+                  <TableCell className="text-center tabular-nums text-[var(--tp)]">{percentValue(row.winRate)}</TableCell>
+                  <TableCell className="text-center tabular-nums text-[var(--ui-ink)]">{statValue(row.stats?.kda, 2)}</TableCell>
+                  <TableCell className="text-center tabular-nums text-[var(--ui-text)]">
                     <span className="sm:hidden">{compactNumberValue(row.avgDamage)}</span>
                     <span className="hidden sm:inline">{numberValue(row.avgDamage)}</span>
-                  </td>
-                  <td className="px-1 py-2 text-center font-semibold tabular-nums text-[var(--ui-text)] sm:px-2 lg:px-3">{statValue(row.stats?.dpm, 1)}</td>
-                  <td className="px-1 py-2 text-center font-semibold tabular-nums text-[var(--ui-text)] sm:px-2 lg:px-3">{statValue(row.stats?.csm, 1)}</td>
-                  <td className="hidden px-1 py-2 text-center font-semibold tabular-nums text-[var(--ui-text)] sm:table-cell sm:px-2 lg:px-3">{row.avgRating}</td>
-                  <td className="px-1 py-2 text-center font-semibold tabular-nums text-[var(--ui-text)] sm:px-2 lg:px-3">{row.fanPogCount}</td>
-                </tr>
+                  </TableCell>
+                  <TableCell className="text-center tabular-nums text-[var(--ui-text)]">{statValue(row.stats?.dpm, 1)}</TableCell>
+                  <TableCell className="text-center tabular-nums text-[var(--ui-text)]">{statValue(row.stats?.csm, 1)}</TableCell>
+                  <TableCell className="hidden text-center tabular-nums text-[var(--ui-text)] sm:table-cell">{row.avgRating}</TableCell>
+                  <TableCell className="text-center tabular-nums text-[var(--ui-text)]">{row.fanPogCount}</TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       </div>
       {remainingCount > 0 ? (
