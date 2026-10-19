@@ -19,11 +19,13 @@ type OnboardingTeam = Pick<
 >;
 
 export function OnboardingDialog({
+  preview = false,
   initialNickname,
   initialProfileImageUrl,
   next,
   teams,
 }: {
+  preview?: boolean;
   initialNickname: string;
   initialProfileImageUrl: string | null;
   next: string;
@@ -31,7 +33,10 @@ export function OnboardingDialog({
 }) {
   const router = useRouter();
   const [profileState, profileAction, profilePending] = useActionState(
-    saveOnboardingProfileAction,
+    async (previous: typeof INITIAL_PROFILE_STATE, formData: FormData) => {
+      if (preview) return { status: "success" as const, message: "" };
+      return saveOnboardingProfileAction(previous, formData);
+    },
     INITIAL_PROFILE_STATE,
   );
   const [previewUrl, setPreviewUrl] = useState<string | null>(initialProfileImageUrl);
@@ -60,6 +65,10 @@ export function OnboardingDialog({
 
   function finish(team?: OnboardingTeam) {
     if (finishing) return;
+    if (preview) {
+      router.replace(next);
+      return;
+    }
     setPendingTeamId(team?.id ?? "skip");
     setTeamError(null);
     startFinishing(async () => {
@@ -90,7 +99,7 @@ export function OnboardingDialog({
         <DialogSheetHandle />
         <div className="px-4 pb-3 pt-1 sm:px-6 sm:pt-4">
           <div className="flex items-center justify-between gap-4 text-[13px] font-medium text-[var(--ui-muted)]">
-            <span>{step === 1 ? "프로필 설정" : "최애팀 선택"}</span>
+            <span>{preview ? "테스트 모드 (저장 안 됨)" : step === 1 ? "프로필 설정" : "최애팀 선택"}</span>
             <span>{step} / 2</span>
           </div>
           <div className="mt-2.5 grid grid-cols-2 gap-2" aria-label={`온보딩 ${step}/2단계`}>
@@ -199,7 +208,7 @@ export function OnboardingDialog({
                 disabled={!selectedTeamId || finishing}
                 onClick={() => {
                   const selectedTeam = teams.find((team) => team.id === selectedTeamId);
-                  if (selectedTeam && window.confirm(favoriteTeamConfirmationMessage(selectedTeam.name, true))) finish(selectedTeam);
+                  if (selectedTeam && (preview || window.confirm(favoriteTeamConfirmationMessage(selectedTeam.name, true)))) finish(selectedTeam);
                 }}
                 className="flex min-h-11 flex-1 items-center justify-center rounded-xl bg-[var(--accent)] px-4 text-sm font-medium text-[var(--accent-foreground)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-45 sm:flex-none sm:px-5"
               >

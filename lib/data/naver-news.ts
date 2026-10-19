@@ -1,6 +1,7 @@
 import "server-only";
 
 import { unstable_cache } from "next/cache";
+import { load } from "cheerio";
 import { hasHomeLeadThumbnail, newsArticles as sampleNewsArticles, type NewsArticle, type NewsTone } from "@/lib/data/news";
 import { attachStoredNewsThumbnailMetadata, attachStoredNewsThumbnails, materializeNewsThumbnail } from "@/lib/data/news-thumbnail-cache";
 import { isSafePublicNewsUrl } from "@/lib/data/news-thumbnail";
@@ -99,14 +100,7 @@ const ESPORTS_EDITORIAL_DOMAINS = [
 const EXCLUDED_NEWS_DOMAINS = ["fomos.kr", "gamemeca.com"] as const;
 
 function decodeNewsText(value = "") {
-  return value
-    .replace(/<[^>]*>/g, "")
-    .replace(/&quot;/g, "\"")
-    .replace(/&apos;|&#39;/g, "'")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
+  return load(value.replace(/<[^>]*>/g, ""), null, false).text()
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -364,7 +358,7 @@ async function getNewsFeedUncached(options: NewsFeedOptions = {}): Promise<NewsF
  */
 export const getNewsFeed = unstable_cache(
   getNewsFeedUncached,
-  ["news-feed"],
+  ["news-feed-html-entities-v2"],
   { revalidate: 180 },
 );
 
@@ -439,6 +433,6 @@ async function getHomeNewsFeedUncached(limit = 4): Promise<NewsFeed> {
  */
 export const getHomeNewsFeed = unstable_cache(
   getHomeNewsFeedUncached,
-  ["home-news-feed"],
+  ["home-news-feed-html-entities-v2"],
   { revalidate: 180 },
 );

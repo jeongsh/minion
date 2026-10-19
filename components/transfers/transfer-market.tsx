@@ -82,7 +82,7 @@ export function TransferMarketView({ market, teams, players, followedTeamIds = [
           <div className="min-w-0 space-y-1.5">
           {positionMoves.length ? positionMoves.map((event) => <div key={event.id} className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1" aria-label={`${event.player} ${event.from || "이전 팀 미정"}에서 ${destination(event)}`}>
             {playerName({ name: event.player })}
-            {event.provenance === "report" && <span className="shrink-0 text-[13px] font-medium text-[var(--ui-muted)]">거피셜</span>}
+            {event.provenance === "report" && <span className="shrink-0 whitespace-nowrap rounded bg-[var(--ui-card-hover)] px-1.5 py-0.5 text-[13px] font-medium leading-5 text-[var(--ui-text)]">거피셜</span>}
             <div className="flex min-w-0 max-w-full items-center gap-2" title={`${event.from || "이전 팀 미정"} → ${destination(event)}`}>
               {teamName(event.from || "미정", true, "movement")}
               <ChevronsRight size={18} strokeWidth={1.75} className="shrink-0 text-[var(--ui-muted)]" aria-hidden />
@@ -145,7 +145,7 @@ export function TransferMarketView({ market, teams, players, followedTeamIds = [
               </div>)}</div>
               <ChevronsRight size={18} strokeWidth={1.75} className="text-[var(--ui-muted)]" aria-hidden />
               <div className="min-w-0 text-right" aria-label="새 로스터">{next.length ? next.map((p) => <div key={p.name}>
-                <div className="flex min-w-0 flex-wrap items-center justify-end gap-1.5">{slotReports.some((event) => normalizeTransferName(event.player) === normalizeTransferName(p.name)) ? <span className="shrink-0 text-[13px] font-medium text-[var(--ui-muted)]">거피셜</span> : arrivalNames.has(normalizeTransferName(p.name)) && <span className="shrink-0 text-[13px] font-medium text-[var(--accent)]">합류</span>}{playerName(p)}</div>
+                <div className="flex min-w-0 flex-wrap items-center justify-end gap-1.5">{slotReports.some((event) => normalizeTransferName(event.player) === normalizeTransferName(p.name)) ? <span className="shrink-0 whitespace-nowrap rounded bg-[var(--ui-card-hover)] px-1.5 py-0.5 text-[13px] font-medium leading-5 text-[var(--ui-text)]">거피셜</span> : arrivalNames.has(normalizeTransferName(p.name)) && <span className="shrink-0 text-[13px] font-medium text-[var(--accent)]">합류</span>}{playerName(p)}</div>
               </div>) : <span aria-label="미발표" className="text-base font-medium text-[var(--ui-muted)]">—</span>}</div>
             </div>;
             })}

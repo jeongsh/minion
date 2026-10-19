@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useRef } from "react";
 import { Bell, CheckCheck, MessageCircle, Radio, Star, Trash2, UserRound, Video, X } from "lucide-react";
 
 import { DialogSheetHeader } from "@/components/responsive/adaptive-dialog";
@@ -107,10 +108,17 @@ export function NotificationPanel({
   onRemove: (id: string) => void;
   onClear: () => void;
 }) {
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Auto ads can use the maximum z-index; the top layer stays above them.
+    if (open) panelRef.current?.showPopover?.();
+  }, [open]);
+
   if (!open) return null;
 
   return (
-    <div className="notification-panel-root fixed inset-0 z-[1000] min-[1200px]:pointer-events-none" role="presentation">
+    <div ref={panelRef} popover="manual" className="notification-panel-root fixed inset-0 z-[2147483647] m-0 h-auto w-auto border-0 bg-transparent p-0 text-inherit min-[1200px]:pointer-events-none" role="presentation">
       <button type="button" className="notification-panel-backdrop modal-backdrop absolute inset-0 bg-black/45 [--modal-backdrop-dark-mobile:0.65] min-[1200px]:hidden" onClick={onClose} aria-label="알림 닫기" />
       <section role="dialog" aria-modal="true" aria-labelledby="notification-panel-title" className="notification-panel-dialog absolute inset-x-0 bottom-0 flex max-h-[82dvh] flex-col overflow-hidden rounded-t-[24px] bg-[var(--page-background)] shadow-2xl min-[1200px]:pointer-events-auto min-[1200px]:left-auto min-[1200px]:right-4 min-[1200px]:top-20 min-[1200px]:bottom-auto min-[1200px]:w-[390px] min-[1200px]:max-h-[calc(100vh-6rem)] min-[1200px]:rounded-2xl min-[1200px]:border min-[1200px]:border-[var(--ui-border)]">
         <DialogSheetHeader
