@@ -1,8 +1,10 @@
 "use client";
+import { SearchInput } from "@/components/ui/search-input";
+
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { ChevronsRight, Search, UserRound } from "lucide-react";
+import { ChevronsRight, UserRound } from "lucide-react";
 import { FilterDropdown } from "@/components/match-filter-dropdown";
 import { TeamLogo } from "@/components/ui/team-logo";
 import { AdSlot } from "@/components/ui/ad-slot";
@@ -19,7 +21,7 @@ const ROLE_ICONS: Record<string, string> = { TOP: "top", JGL: "jungle", MID: "mi
 const ROLE_LABELS: Record<TransferRole, string> = { TOP: "탑", JGL: "정글", MID: "미드", BOT: "원딜", SUP: "서포터", COACH: "감독" };
 const MOVEMENT_OPTIONS = [ { value: "all", label: "전체 변동" }, { value: "domestic", label: "LCK 내 이동" }, { value: "outgoing", label: "LCK 이탈" }, { value: "incoming", label: "LCK 합류" }, { value: "renew", label: "재계약" }, { value: "leave", label: "계약 종료" }, { value: "retire", label: "은퇴" }, { value: "inactive", label: "휴식 / 군 복무" } ];
 const VIEW_OPTIONS = [{ key: "rosters", label: "팀별 로스터" }, { key: "moves", label: "선수 이동" }, { key: "fa", label: "FA" }];
-const filterTrigger = "h-8 w-full justify-between whitespace-nowrap rounded-md border border-[var(--ui-border)] bg-[var(--ui-surface)] px-2 text-[var(--ui-text)] outline-none focus-visible:border-[var(--ui-ink)] focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--ui-ink)_12%,transparent)]";
+const filterTrigger = "w-full whitespace-nowrap";
 
 function RoleIcon({ role }: { role: TransferRole }) {
   return <span className="flex w-5 shrink-0 items-center justify-center" title={ROLE_LABELS[role]}>{role === "COACH" ? <UserRound size={18} className="text-[var(--ui-muted)]" aria-label="감독" /> : <span role="img" aria-label={ROLE_LABELS[role]} className="block size-5 bg-[var(--ui-muted)]" style={{ maskImage: `url(/objectives/position-${ROLE_ICONS[role]}.svg)`, maskSize: "contain", maskRepeat: "no-repeat", maskPosition: "center" }} />}</span>;
@@ -110,12 +112,12 @@ export function TransferMarketView({ market, teams, players, followedTeamIds = [
     </section>
     <div className="mb-4 flex flex-wrap items-center gap-2">
       <SegmentedToggle items={VIEW_OPTIONS} activeKey={tab} onSelect={setTab} ariaLabel="이적시장 보기" controlsId="transfer-market-content" />
-        <FilterDropdown ariaLabel="팀 선택" selected={teamFilter} onSelect={setTeamFilter} options={[{ value: "all", label: "전체 팀" }, ...ordered.map((roster) => ({ value: roster.team, label: roster.team === "DNS" ? "DN SOOPers" : teamByCode.get(roster.team)?.shortName ?? roster.team }))]} controlSize="compact" rootClassName="min-w-[104px] sm:min-w-[140px]" triggerClassName={filterTrigger} triggerTypography="ui" />
+        <FilterDropdown ariaLabel="팀 선택" selected={teamFilter} onSelect={setTeamFilter} options={[{ value: "all", label: "전체 팀" }, ...ordered.map((roster) => ({ value: roster.team, label: roster.team === "DNS" ? "DN SOOPers" : teamByCode.get(roster.team)?.shortName ?? roster.team }))]} rootClassName="min-w-[104px] sm:min-w-[140px]" triggerClassName={filterTrigger} triggerTypography="ui" />
         {tab !== "rosters" && <>
-        {tab === "moves" && <FilterDropdown ariaLabel="변동 종류" selected={movement} onSelect={setMovement} options={MOVEMENT_OPTIONS} controlSize="compact" rootClassName="min-w-[128px]" triggerClassName={filterTrigger} triggerTypography="ui" />}
-        <FilterDropdown ariaLabel="포지션" selected={role} onSelect={setRole} options={[{ value: "all", label: "전체 포지션" }, ...[...TRANSFER_ROLES, "COACH" as const].map((r) => ({ value: r, label: ROLE_LABELS[r] }))]} controlSize="compact" rootClassName="min-w-[128px]" triggerClassName={filterTrigger} triggerTypography="ui" />
+        {tab === "moves" && <FilterDropdown ariaLabel="변동 종류" selected={movement} onSelect={setMovement} options={MOVEMENT_OPTIONS} rootClassName="min-w-[128px]" triggerClassName={filterTrigger} triggerTypography="ui" />}
+        <FilterDropdown ariaLabel="포지션" selected={role} onSelect={setRole} options={[{ value: "all", label: "전체 포지션" }, ...[...TRANSFER_ROLES, "COACH" as const].map((r) => ({ value: r, label: ROLE_LABELS[r] }))]} rootClassName="min-w-[128px]" triggerClassName={filterTrigger} triggerTypography="ui" />
         {tab === "moves" && <label className="flex h-8 items-center gap-1.5 text-[13px] font-medium text-[var(--ui-text)]"><input type="checkbox" checked={reports} onChange={(e) => setReports(e.target.checked)} className="size-3.5 accent-[var(--accent)]" />거피셜 포함</label>}
-        <label className="relative min-w-0 basis-full sm:ml-auto sm:w-60 sm:basis-auto"><span className="sr-only">선수 검색</span><Search size={16} aria-hidden className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ui-muted)]" /><input type="search" aria-label="선수 검색" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="선수 검색" className="h-8 w-full rounded-md border border-[var(--ui-border)] bg-[var(--ui-surface)] pl-9 pr-3 text-[13px] font-medium outline-none transition placeholder:text-[var(--ui-muted)] focus:border-[var(--ui-ink)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--ui-ink)_12%,transparent)]" /></label>
+        <SearchInput aria-label="선수 검색" value={query} onChange={event=>setQuery(event.target.value)} placeholder="선수 검색" containerClassName="basis-full sm:ml-auto sm:max-w-60 sm:basis-auto" />
         </>}
     </div>
     {tab === "rosters" ? <div id="transfer-market-content" className="space-y-5" aria-label="팀별 로스터">

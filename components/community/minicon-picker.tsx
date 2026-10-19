@@ -1,4 +1,5 @@
 "use client";
+import { SegmentedToggle } from "@/components/ui/tabs";
 
 import Link from "next/link";
 import { Check, Grid2X2, Settings } from "lucide-react";
@@ -116,34 +117,12 @@ export function MiniconPickerPanel({
           </Link>
         </div>
       </div>
-      <div className="flex shrink-0 gap-1 overflow-x-auto border-b border-[var(--ui-border)] px-2 py-2" role="tablist" aria-label="미니콘 패키지">
-        {recentItems.length > 0 ? (
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === "recent"}
-            onClick={() => setActiveTab("recent")}
-            className={`h-8 shrink-0 rounded-full px-3 text-[13px] font-medium ${activeTab === "recent" ? "bg-[var(--ui-ink)] text-[var(--ui-surface)]" : "text-[var(--ui-muted)] hover:bg-[var(--ui-surface-muted)]"}`}
-          >
-            최근
-          </button>
-        ) : null}
-        {packs.map((pack) => (
-          <button
-            key={pack.id}
-            type="button"
-            role="tab"
-            aria-selected={activeTab === pack.id}
-            onClick={() => setActiveTab(pack.id)}
-            className={`h-8 shrink-0 rounded-full px-3 text-[13px] font-medium ${activeTab === pack.id ? "bg-[var(--ui-ink)] text-[var(--ui-surface)]" : "text-[var(--ui-muted)] hover:bg-[var(--ui-surface-muted)]"}`}
-          >
-            {pack.name}
-          </button>
-        ))}
+      <div className="shrink-0 overflow-x-auto border-b border-[var(--ui-border)] px-2 py-2">
+        <SegmentedToggle items={[...(recentItems.length ? [{key:"recent",label:"최근"}] : []),...packs.map(pack=>({key:pack.id,label:pack.name}))]} activeKey={activeTab} ariaLabel="미니콘 패키지" onSelect={setActiveTab} />
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto p-2.5">
         {visibleItems.length > 0 ? (
-          <div className="grid grid-cols-5 gap-1.5" role="tabpanel">
+          <div className="grid grid-cols-5 gap-1.5" role="region" aria-label="미니콘">
             {visibleItems.map((item) => (
               <button
                 key={item.id}

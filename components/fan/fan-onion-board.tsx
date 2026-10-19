@@ -1,4 +1,5 @@
 "use client";
+import { FilterDropdown } from "@/components/match-filter-dropdown";
 
 import { Send, Timer } from "lucide-react";
 import type { FormEvent, KeyboardEvent } from "react";
@@ -128,19 +129,8 @@ export function FanOnionBoard({
         className="sticky bottom-0 border-t border-[var(--ui-border)] bg-[var(--ui-surface)] p-3 md:p-4"
       >
         <div className="mb-2 flex items-center justify-between gap-3">
-          <label className="text-[13px] font-black text-[var(--ui-muted)]" htmlFor="fan-onion-retention">표시 시간</label>
-          <select
-            id="fan-onion-retention"
-            value={retentionMinutes}
-            onChange={(event) => setRetentionMinutes(Number(event.target.value))}
-            className="h-9 rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 text-[13px] font-black text-[var(--ui-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--team-accent-text)]"
-          >
-            {RETENTION_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+          <label className="text-[13px] font-black text-[var(--ui-muted)]" >표시 시간</label>
+          <FilterDropdown ariaLabel="표시 시간" selected={String(retentionMinutes)} options={RETENTION_OPTIONS.map(option=>({value:String(option.value),label:option.label}))} onSelect={value=>setRetentionMinutes(Number(value))} />
         </div>
         <div className="flex items-end gap-2">
           <div className="flex min-w-0 flex-1 items-center rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 py-2 focus-within:ring-2 focus-within:ring-[var(--team-accent-text)]">
