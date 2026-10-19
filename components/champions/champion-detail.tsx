@@ -1,3 +1,6 @@
+import { ExpandableTableRow } from "@/components/ui/expandable-table-row";
+import { Pagination } from "@/components/ui/pagination";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import type { ReactNode } from "react";
@@ -671,9 +674,9 @@ function BuildTab({ analysis, catalogs }: { analysis: ChampionAnalysis; catalogs
 
 function StatCell({ label, value, helper, className = "" }: { label: string; value: string; helper?: string; className?: string }) {
   return (
-    <span aria-label={`${label} ${value}${helper ? `, ${helper}` : ""}`} className={`min-w-0 whitespace-nowrap text-right md:text-left ${className}`}>
-      <strong className="text-[15px] font-medium leading-6 tabular-nums text-[var(--ui-ink)]">{value}</strong>
-      {helper ? <span className="ml-1 hidden text-[13px] font-normal text-[var(--ui-muted)] xl:inline">· {helper}</span> : null}
+    <span aria-label={`${label} ${value}${helper ? `, ${helper}` : ""}`} className={`min-w-0 whitespace-nowrap ${className}`}>
+      <strong className="text-sm font-normal leading-5 tabular-nums text-[var(--ui-ink)]">{value}</strong>
+      {helper ? <span className="ml-1 hidden text-[13px] font-normal text-[var(--ui-muted)] xl:inline">{helper}</span> : null}
     </span>
   );
 }
@@ -682,92 +685,193 @@ function MatchupsTab({ rows }: { rows: ChampionMatchup[] }) {
   return (
     <SectionCard title="상대 전적">
       {rows.length ? (
-        <>
-          <div className="hidden grid-cols-[minmax(11rem,1.4fr)_4.5rem_5.5rem_7rem_7rem] gap-3 whitespace-nowrap bg-[var(--ui-card-bg)] px-5 py-2.5 text-[13px] font-normal text-[var(--ui-muted)] md:grid">
-            <span>상대 챔피언</span><span>경기</span><span>승률</span><span>15분 골드</span><span>15분 CS</span>
-          </div>
-          <div className="divide-y divide-[var(--ui-border)] px-4 sm:px-5">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead scope="col">상대 챔피언</TableHead>
+              <TableHead scope="col">경기</TableHead>
+              <TableHead scope="col">승률</TableHead>
+              <TableHead scope="col">15분 골드</TableHead>
+              <TableHead scope="col">15분 CS</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {rows.map((row) => (
-              <div key={row.opponentChampionId} className="grid min-h-14 grid-cols-[minmax(0,1fr)_4.75rem] items-center gap-3 py-2.5 md:grid-cols-[minmax(11rem,1.4fr)_4.5rem_5.5rem_7rem_7rem] md:gap-3">
-                <div className="flex min-w-0 items-center gap-2.5">
-                  <ChampionFace champion={row.opponentChampion} size="sm" />
-                  <strong className="truncate text-[16px] font-bold leading-6 text-[var(--ui-ink)]">{row.opponentChampion?.name ?? "알 수 없음"}</strong>
-                  <span className="hidden lg:inline"><SampleBadge games={row.games} /></span>
-                </div>
-                <StatCell label="승률" value={formatPercent(row.winRate, 1)} className="md:hidden" />
-                <StatCell label="경기" value={`${row.games}`} className="hidden md:block" />
-                <StatCell label="승률" value={formatPercent(row.winRate, 1)} className="hidden md:block" />
-                <StatCell label="15분 골드" value={formatSigned(row.metrics.goldDiffAt15.value)} helper={`${row.metrics.goldDiffAt15.recordedGames}경기`} className="hidden md:block" />
-                <StatCell label="15분 CS" value={formatSigned(row.metrics.csDiffAt15.value, 1)} helper={`${row.metrics.csDiffAt15.recordedGames}경기`} className="hidden md:block" />
-              </div>
+              <TableRow key={row.opponentChampionId}>
+                <TableCell className="min-w-44">
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <ChampionFace champion={row.opponentChampion} size="sm" />
+                    <strong className="truncate text-[16px] font-bold leading-6 text-[var(--ui-ink)]">
+                      {row.opponentChampion?.name ?? "알 수 없음"}
+                    </strong>
+                    <span className="hidden lg:inline">
+                      <SampleBadge games={row.games} />
+                    </span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <StatCell label="경기" value={`${row.games}`} />
+                </TableCell>
+                <TableCell>
+                  <StatCell
+                    label="승률"
+                    value={formatPercent(row.winRate, 1)}
+                  />
+                </TableCell>
+                <TableCell>
+                  <StatCell
+                    label="15분 골드"
+                    value={formatSigned(row.metrics.goldDiffAt15.value)}
+                    helper={`${row.metrics.goldDiffAt15.recordedGames}경기`}
+                  />
+                </TableCell>
+                <TableCell>
+                  <StatCell
+                    label="15분 CS"
+                    value={formatSigned(row.metrics.csDiffAt15.value, 1)}
+                    helper={`${row.metrics.csDiffAt15.recordedGames}경기`}
+                  />
+                </TableCell>
+              </TableRow>
             ))}
-          </div>
-        </>
-      ) : <EmptyPanel title="상대 전적이 없습니다." body="선택한 범위에 상대 기록이 없습니다." />}
+          </TableBody>
+        </Table>
+      ) : (
+        <EmptyPanel
+          title="상대 전적이 없습니다."
+          body="선택한 범위에 상대 기록이 없습니다."
+        />
+      )}
     </SectionCard>
   );
 }
 
 function DuoRow({ duo }: { duo: ChampionDuo }) {
   return (
-    <details className="group">
-      <summary className="grid min-h-14 cursor-pointer list-none grid-cols-[minmax(0,1fr)_4.75rem] items-center gap-3 py-2.5 [&::-webkit-details-marker]:hidden md:grid-cols-[minmax(11rem,1.4fr)_4.5rem_5.5rem_8rem_2rem] md:gap-3">
-        <div className="flex min-w-0 items-center gap-2.5">
-          <ChampionFace champion={duo.partnerChampion} size="sm" />
-          <strong className="truncate text-[16px] font-bold leading-6 text-[var(--ui-ink)]">{duo.partnerChampion?.name ?? "알 수 없음"}</strong>
-          <span className="hidden lg:inline"><SampleBadge games={duo.games} /></span>
-        </div>
-        <StatCell label="승률" value={formatPercent(duo.winRate, 1)} className="md:hidden" />
-        <StatCell label="경기" value={`${duo.games}`} className="hidden md:block" />
-        <StatCell label="승률" value={formatPercent(duo.winRate, 1)} className="hidden md:block" />
-        <StatCell label="15분 골드" value={formatSigned(duo.duoGoldDiffAt15.value)} helper={`${duo.duoGoldDiffAt15.recordedGames}경기`} className="hidden md:block" />
-        <ChevronRight size={18} className="hidden text-[var(--ui-muted)] transition-transform group-open:rotate-90 md:block" />
-      </summary>
+    <ExpandableTableRow
+      label={(duo.partnerChampion?.name ?? "파트너") + " 조합 상세"}
+      cells={[
+        <div key="1">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <ChampionFace champion={duo.partnerChampion} size="sm" />
+            <strong className="truncate text-[16px] font-bold leading-6 text-[var(--ui-ink)]">
+              {duo.partnerChampion?.name ?? "알 수 없음"}
+            </strong>
+            <span className="hidden lg:inline">
+              <SampleBadge games={duo.games} />
+            </span>
+          </div>
+        </div>,
+        <div key="2">
+          <StatCell label="경기" value={`${duo.games}`} />
+        </div>,
+        <div key="3">
+          <StatCell label="승률" value={formatPercent(duo.winRate, 1)} />
+        </div>,
+        <div key="4">
+          <StatCell
+            label="15분 골드"
+            value={formatSigned(duo.duoGoldDiffAt15.value)}
+            helper={`${duo.duoGoldDiffAt15.recordedGames}경기`}
+          />
+        </div>,
+      ]}
+    >
       <div className="mb-4 grid gap-5 rounded-xl bg-[var(--ui-card-bg)] p-4 lg:grid-cols-2">
         <div>
-          <h3 className="text-[18px] font-bold leading-6 text-[var(--ui-ink)]">선수 조합</h3>
+          <h3 className="text-[18px] font-bold leading-6 text-[var(--ui-ink)]">
+            선수 조합
+          </h3>
           <div className="mt-2 divide-y divide-[var(--ui-border)]">
             {duo.playerPairs.slice(0, 5).map((pair) => (
-              <div key={`${pair.botPlayerId}:${pair.supPlayerId}`} className="flex items-center gap-3 py-2.5">
+              <div
+                key={`${pair.botPlayerId}:${pair.supPlayerId}`}
+                className="flex items-center gap-3 py-2.5"
+              >
                 <PlayerAvatar player={pair.botPlayer} size="sm" />
-                <strong className="min-w-0 flex-1 truncate text-[16px] font-bold leading-6 text-[var(--ui-ink)]">{pair.botPlayer?.name ?? "-"} + {pair.supPlayer?.name ?? "-"}</strong>
-                <span className="shrink-0 whitespace-nowrap text-right text-[13px] font-normal text-[var(--ui-muted)]"><strong className="text-[13px] font-medium text-[var(--ui-ink)]">{formatPercent(pair.winRate, 1)}</strong> · {pair.games}경기</span>
+                <strong className="min-w-0 flex-1 truncate text-[16px] font-bold leading-6 text-[var(--ui-ink)]">
+                  {pair.botPlayer?.name ?? "-"} + {pair.supPlayer?.name ?? "-"}
+                </strong>
+                <span className="shrink-0 whitespace-nowrap text-right text-[13px] font-normal text-[var(--ui-muted)]">
+                  <strong className="text-[13px] font-medium text-[var(--ui-ink)]">
+                    {formatPercent(pair.winRate, 1)}
+                  </strong>{" "}
+                  · {pair.games}경기
+                </span>
               </div>
             ))}
           </div>
         </div>
         <div>
-          <h3 className="text-[18px] font-bold leading-6 text-[var(--ui-ink)]">상대 조합</h3>
+          <h3 className="text-[18px] font-bold leading-6 text-[var(--ui-ink)]">
+            상대 조합
+          </h3>
           <div className="mt-2 divide-y divide-[var(--ui-border)]">
             {duo.opponentDuos.slice(0, 5).map((opponent) => (
-              <div key={`${opponent.botChampionId}:${opponent.supChampionId}`} className="flex items-center gap-3 py-2.5">
+              <div
+                key={`${opponent.botChampionId}:${opponent.supChampionId}`}
+                className="flex items-center gap-3 py-2.5"
+              >
                 <span className="flex shrink-0">
                   <ChampionFace champion={opponent.botChampion} size="sm" />
-                  <span className="-ml-2"><ChampionFace champion={opponent.supChampion} size="sm" /></span>
+                  <span className="-ml-2">
+                    <ChampionFace champion={opponent.supChampion} size="sm" />
+                  </span>
                 </span>
-                <strong className="min-w-0 flex-1 truncate text-[16px] font-bold leading-6 text-[var(--ui-ink)]">{opponent.botChampion?.name ?? "-"} + {opponent.supChampion?.name ?? "-"}</strong>
-                <span className="shrink-0 whitespace-nowrap text-right text-[13px] font-normal text-[var(--ui-muted)]"><strong className="text-[13px] font-medium text-[var(--ui-ink)]">{formatPercent(opponent.winRate, 1)}</strong> · {opponent.games}경기</span>
+                <strong className="min-w-0 flex-1 truncate text-[16px] font-bold leading-6 text-[var(--ui-ink)]">
+                  {opponent.botChampion?.name ?? "-"} +{" "}
+                  {opponent.supChampion?.name ?? "-"}
+                </strong>
+                <span className="shrink-0 whitespace-nowrap text-right text-[13px] font-normal text-[var(--ui-muted)]">
+                  <strong className="text-[13px] font-medium text-[var(--ui-ink)]">
+                    {formatPercent(opponent.winRate, 1)}
+                  </strong>{" "}
+                  · {opponent.games}경기
+                </span>
               </div>
             ))}
           </div>
         </div>
       </div>
-    </details>
+    </ExpandableTableRow>
   );
 }
 
-function DuosTab({ rows, position }: { rows: ChampionDuo[]; position: PlayerPosition }) {
+function DuosTab({
+  rows,
+  position,
+}: {
+  rows: ChampionDuo[];
+  position: PlayerPosition;
+}) {
   if (position !== "BOT" && position !== "SUP") return null;
   return (
     <SectionCard title="바텀 조합" caption="동시 출전 기준">
       {rows.length ? (
-        <>
-          <div className="hidden grid-cols-[minmax(11rem,1.4fr)_4.5rem_5.5rem_8rem_2rem] gap-3 whitespace-nowrap bg-[var(--ui-card-bg)] px-5 py-2.5 text-[13px] font-normal text-[var(--ui-muted)] md:grid">
-            <span>파트너</span><span>경기</span><span>승률</span><span>15분 골드</span><span />
-          </div>
-          <div className="divide-y divide-[var(--ui-border)] px-4 sm:px-5">{rows.map((duo) => <DuoRow key={duo.partnerChampionId} duo={duo} />)}</div>
-        </>
-      ) : <EmptyPanel title="바텀 조합이 없습니다." body="선택한 범위에 동시 출전 기록이 없습니다." />}
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead scope="col">파트너</TableHead>
+              <TableHead scope="col">경기</TableHead>
+              <TableHead scope="col">승률</TableHead>
+              <TableHead scope="col">15분 골드</TableHead>
+              <TableHead scope="col">
+                <span className="sr-only">상세</span>
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {rows.map((duo) => (
+              <DuoRow key={duo.partnerChampionId} duo={duo} />
+            ))}
+          </TableBody>
+        </Table>
+      ) : (
+        <EmptyPanel
+          title="바텀 조합이 없습니다."
+          body="선택한 범위에 동시 출전 기록이 없습니다."
+        />
+      )}
     </SectionCard>
   );
 }
@@ -776,128 +880,259 @@ function PlayersTab({ players }: { players: ChampionPlayerPreference[] }) {
   return (
     <SectionCard title="선수">
       {players.length ? (
-        <>
-          <div className="hidden grid-cols-[minmax(11rem,1.5fr)_4.5rem_5.5rem_4.5rem_7rem_7rem] gap-3 whitespace-nowrap bg-[var(--ui-card-bg)] px-5 py-2.5 text-[13px] font-normal text-[var(--ui-muted)] md:grid">
-            <span>선수</span><span>경기</span><span>승률</span><span>KDA</span><span>DPM</span><span>15분 골드</span>
-          </div>
-          <div className="divide-y divide-[var(--ui-border)] px-4 sm:px-5">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead scope="col">선수</TableHead>
+              <TableHead scope="col">경기</TableHead>
+              <TableHead scope="col">승률</TableHead>
+              <TableHead scope="col">KDA</TableHead>
+              <TableHead scope="col">DPM</TableHead>
+              <TableHead scope="col">15분 골드</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {players.map((row) => {
               const team = row.historicalTeams[0]?.team ?? null;
               return (
-                <div key={row.playerId} className="grid min-h-14 grid-cols-[minmax(0,1fr)_4.75rem] items-center gap-3 py-2.5 md:grid-cols-[minmax(11rem,1.5fr)_4.5rem_5.5rem_4.5rem_7rem_7rem] md:gap-3">
-                  <div className="flex min-w-0 items-center gap-2.5">
-                    <PlayerAvatar player={row.player} size="sm" />
-                    {row.player ? <Link href={`/players/${row.player.slug}`} className="truncate text-[16px] font-bold leading-6 text-[var(--ui-ink)] hover:text-[var(--accent)]">{row.player.name}</Link> : <strong className="truncate text-[16px] font-bold leading-6">알 수 없음</strong>}
-                    {team ? <span className="hidden shrink-0 items-center gap-1 text-[13px] font-normal text-[var(--ui-muted)] lg:flex"><TeamLogo team={team} size="h-5 w-5" plain themeAware />{team.shortName}</span> : null}
-                    <span className="hidden xl:inline"><SampleBadge games={row.games} /></span>
-                  </div>
-                  <StatCell label="승률" value={formatPercent(row.winRate, 1)} className="md:hidden" />
-                  <StatCell label="경기" value={`${row.games}`} className="hidden md:block" />
-                  <StatCell label="승률" value={formatPercent(row.winRate, 1)} className="hidden md:block" />
-                  <StatCell label="KDA" value={formatNumber(row.kda, 2)} className="hidden md:block" />
-                  <StatCell label="DPM" value={formatNumber(row.dpm.value)} helper={`${row.dpm.recordedGames}경기`} className="hidden md:block" />
-                  <StatCell label="15분 골드" value={formatSigned(row.goldDiffAt15.value)} helper={`${row.goldDiffAt15.recordedGames}경기`} className="hidden md:block" />
-                </div>
+                <TableRow key={row.playerId}>
+                  <TableCell className="min-w-44">
+                    <div className="flex min-w-0 items-center gap-2.5">
+                      <PlayerAvatar player={row.player} size="sm" />
+                      {row.player ? (
+                        <Link
+                          href={`/players/${row.player.slug}`}
+                          className="truncate text-[16px] font-bold leading-6 text-[var(--ui-ink)] hover:text-[var(--accent)]"
+                        >
+                          {row.player.name}
+                        </Link>
+                      ) : (
+                        <strong className="truncate text-[16px] font-bold leading-6">
+                          알 수 없음
+                        </strong>
+                      )}
+                      {team ? (
+                        <span className="hidden shrink-0 items-center gap-1 text-[13px] font-normal text-[var(--ui-muted)] lg:flex">
+                          <TeamLogo
+                            team={team}
+                            size="h-5 w-5"
+                            plain
+                            themeAware
+                          />
+                          {team.shortName}
+                        </span>
+                      ) : null}
+                      <span className="hidden xl:inline">
+                        <SampleBadge games={row.games} />
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <StatCell label="경기" value={`${row.games}`} />
+                  </TableCell>
+                  <TableCell>
+                    <StatCell
+                      label="승률"
+                      value={formatPercent(row.winRate, 1)}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <StatCell label="KDA" value={formatNumber(row.kda, 2)} />
+                  </TableCell>
+                  <TableCell>
+                    <StatCell
+                      label="DPM"
+                      value={formatNumber(row.dpm.value)}
+                      helper={`${row.dpm.recordedGames}경기`}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <StatCell
+                      label="15분 골드"
+                      value={formatSigned(row.goldDiffAt15.value)}
+                      helper={`${row.goldDiffAt15.recordedGames}경기`}
+                    />
+                  </TableCell>
+                </TableRow>
               );
             })}
-          </div>
-        </>
-      ) : <EmptyPanel title="선수 기록이 없습니다." body="선택한 범위에 사용 기록이 없습니다." />}
+          </TableBody>
+        </Table>
+      ) : (
+        <EmptyPanel
+          title="선수 기록이 없습니다."
+          body="선택한 범위에 사용 기록이 없습니다."
+        />
+      )}
     </SectionCard>
   );
 }
 
-function GamesTab({ analysis, params, basePath, page }: { analysis: ChampionAnalysis; params: URLSearchParams; basePath: string; page: number }) {
+function GamesTab({
+  analysis,
+  params,
+  basePath,
+  page,
+}: {
+  analysis: ChampionAnalysis;
+  params: URLSearchParams;
+  basePath: string;
+  page: number;
+}) {
   const pageSize = 20;
   const pageCount = Math.max(1, Math.ceil(analysis.games.length / pageSize));
   const activePage = Math.max(1, Math.min(pageCount, page));
-  const rows = analysis.games.slice((activePage - 1) * pageSize, activePage * pageSize);
+  const rows = analysis.games.slice(
+    (activePage - 1) * pageSize,
+    activePage * pageSize,
+  );
   return (
-    <SectionCard title="경기" caption={`${analysis.games.length.toLocaleString("ko-KR")}경기 · 최신순`}>
+    <SectionCard
+      title="경기"
+      caption={`${analysis.games.length.toLocaleString("ko-KR")}경기 · 최신순`}
+    >
       {rows.length ? (
-        <>
-          <div className="grid h-10 grid-cols-[2.25rem_minmax(0,1fr)_4.5rem_6.5rem] items-center gap-2 bg-[var(--ui-card-bg)] px-2.5 text-[13px] font-medium text-[var(--ui-muted)] min-[480px]:grid-cols-[2.25rem_minmax(0,1fr)_4.5rem_6.5rem_6.5rem] min-[560px]:grid-cols-[2.25rem_10rem_4.5rem_minmax(6.5rem,1fr)_6.5rem] min-[720px]:grid-cols-[2.25rem_10.5rem_4.5rem_minmax(6.5rem,1fr)_auto] min-[720px]:px-3 min-[1024px]:text-[14px] min-[1280px]:hidden">
-            <span className="text-center">결과</span>
-            <span>선수</span>
-            <span className="text-center">KDA</span>
-            <span className="hidden min-[480px]:block">상대</span>
-            <span className="text-center min-[720px]:text-left">아이템</span>
-          </div>
-          <div className="hidden h-10 grid-cols-[2.25rem_11rem_5rem_5.5rem_12rem_minmax(19rem,1fr)_1.25rem] items-center gap-2 bg-[var(--ui-card-bg)] px-2.5 text-[14px] font-medium text-[var(--ui-muted)] min-[1280px]:grid">
-            <span className="text-center">결과</span>
-            <span>선수</span>
-            <span className="text-center">KDA</span>
-            <span>대회</span>
-            <span>상대</span>
-            <span>아이템</span>
-            <span />
-          </div>
-          <div className="divide-y divide-border/35">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead scope="col">결과</TableHead>
+              <TableHead scope="col">선수</TableHead>
+              <TableHead scope="col">KDA</TableHead>
+              <TableHead scope="col">대회</TableHead>
+              <TableHead scope="col">상대</TableHead>
+              <TableHead scope="col">아이템</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {rows.map((game) => {
-              const tournamentLabel = compactTournamentLabel(game.tournamentName ?? game.matchName);
+              const tournamentLabel = compactTournamentLabel(
+                game.tournamentName ?? game.matchName,
+              );
               const version = ddragonVersionFromPatch(game.patch);
-              const itemIds = [...game.finalItemIds.slice(0, 6), ...Array<number | null>(6).fill(null)].slice(0, 6).concat(game.trinketId);
+              const itemIds = [
+                ...game.finalItemIds.slice(0, 6),
+                ...Array<number | null>(6).fill(null),
+              ]
+                .slice(0, 6)
+                .concat(game.trinketId);
               const opponentLabel = game.opponentChampion?.name ?? "-";
               return (
-                <Link
-                  key={`${game.setId}:${game.playerId}`}
-                  href={game.href ?? "#"}
-                  aria-label={`${game.player?.name ?? "선수"} ${tournamentLabel} 경기 상세`}
-                  className="group grid min-w-0 grid-cols-[2.25rem_minmax(0,1fr)_4.5rem_6.5rem] items-center gap-2 bg-[var(--ui-surface)] px-2.5 py-2 transition-colors hover:bg-[var(--ui-surface-muted)] focus-visible:bg-[var(--ui-surface-muted)] focus-visible:outline-none min-[480px]:grid-cols-[2.25rem_minmax(0,1fr)_4.5rem_6.5rem_6.5rem] min-[560px]:grid-cols-[2.25rem_10rem_4.5rem_minmax(6.5rem,1fr)_6.5rem] min-[720px]:grid-cols-[2.25rem_10.5rem_4.5rem_minmax(6.5rem,1fr)_auto] min-[720px]:px-3 min-[1280px]:grid-cols-[2.25rem_11rem_5rem_5.5rem_12rem_minmax(19rem,1fr)_1.25rem] min-[1280px]:px-2.5 min-[1280px]:text-[14px]"
-                >
-                  <span className={`grid h-6 w-6 place-items-center justify-self-center rounded text-[12px] font-medium text-white ${game.result === "W" ? "bg-emerald-500" : "bg-rose-500"}`}>{game.result}</span>
-                  <span className="flex min-w-0 items-center gap-2">
-                    <PlayerAvatar player={game.player} size="sm" />
-                    <span className="min-w-0">
-                      <strong className="block truncate text-[16px] font-bold leading-6 text-[var(--ui-ink)]">{game.player?.name ?? "-"}</strong>
-                      <span className="block truncate text-[13px] font-normal text-[var(--ui-muted)]">
-                        <span className="min-[1280px]:hidden">{tournamentLabel} · vs {opponentLabel}</span>
-                        <span className="hidden min-[1280px]:inline">{game.team?.shortName ?? game.team?.name ?? tournamentLabel}</span>
+                <TableRow key={`${game.setId}:${game.playerId}`}>
+                  <TableCell>
+                    {game.href ? (
+                      <Link
+                        href={game.href}
+                        aria-label={
+                          (game.player?.name ?? "선수") + " 경기 상세"
+                        }
+                      >
+                        <span
+                          className={`grid h-6 w-6 place-items-center justify-self-center rounded text-[12px] font-medium text-white ${game.result === "W" ? "bg-emerald-500" : "bg-rose-500"}`}
+                        >
+                          {game.result}
+                        </span>
+                      </Link>
+                    ) : (
+                      <span
+                        className={`grid h-6 w-6 place-items-center justify-self-center rounded text-[12px] font-medium text-white ${game.result === "W" ? "bg-emerald-500" : "bg-rose-500"}`}
+                      >
+                        {game.result}
+                      </span>
+                    )}
+                  </TableCell>
+                  <TableCell className="min-w-44">
+                    <span className="flex min-w-0 items-center gap-2">
+                      <PlayerAvatar player={game.player} size="sm" />
+                      <span className="min-w-0">
+                        <strong className="block truncate text-[16px] font-bold leading-6 text-[var(--ui-ink)]">
+                          {game.player?.name ?? "-"}
+                        </strong>
+                        <span className="block truncate text-[13px] font-normal text-[var(--ui-muted)]">
+                          <span className="min-[1280px]:hidden">
+                            {tournamentLabel} · vs {opponentLabel}
+                          </span>
+                          <span className="hidden min-[1280px]:inline">
+                            {game.team?.shortName ??
+                              game.team?.name ??
+                              tournamentLabel}
+                          </span>
+                        </span>
                       </span>
                     </span>
-                  </span>
-                  <div className="text-center leading-tight">
-                    <strong className="block whitespace-nowrap text-[15px] font-medium tabular-nums text-[var(--ui-ink)]">
-                      {game.kills} / {game.deaths} / {game.assists}
-                    </strong>
-                    <span className="mt-0.5 block text-[14px] font-medium tabular-nums text-[var(--ui-muted)]">{formatNumber(game.metrics.kda.value, 2)}</span>
-                  </div>
-                  <span className="hidden truncate text-[13px] font-medium text-[var(--ui-muted)] min-[1280px]:block" title={game.tournamentName ?? game.matchName ?? undefined}>{tournamentLabel}</span>
-                  <span className="hidden min-w-0 items-center gap-2 min-[480px]:flex">
-                    <ChampionFace champion={game.opponentChampion} size="xs" />
-                    <span className="truncate text-[13px] font-medium text-[var(--ui-ink)] min-[1024px]:text-[14px]">{opponentLabel}</span>
-                  </span>
-                  <PlayerItemSlots
-                    itemIds={itemIds}
-                    roleBoundItem={game.roleBoundItemId}
-                    version={version}
-                    compactGrid
-                    className="justify-self-end min-[720px]:hidden"
-                    slotClassName="h-6 w-6"
-                    imageSizes="24px"
-                  />
-                  <PlayerItemSlots
-                    itemIds={itemIds}
-                    roleBoundItem={game.roleBoundItemId}
-                    version={version}
-                    className="hidden justify-start min-[720px]:flex min-[1280px]:!gap-0"
-                    slotClassName="h-7 w-7 min-[1000px]:h-8 min-[1000px]:w-8 min-[1280px]:h-9 min-[1280px]:w-9"
-                    separatorClassName="h-5 w-px min-[1000px]:h-6"
-                    imageSizes="(min-width: 1280px) 36px, (min-width: 1000px) 32px, 28px"
-                  />
-                  <ChevronRight size={17} className="hidden text-[var(--ui-muted)] transition-transform group-hover:translate-x-0.5 min-[1280px]:block" />
-                </Link>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-center leading-tight">
+                      <strong className="block whitespace-nowrap text-[15px] font-medium tabular-nums text-[var(--ui-ink)]">
+                        {game.kills} / {game.deaths} / {game.assists}
+                      </strong>
+                      <span className="mt-0.5 block text-[14px] font-medium tabular-nums text-[var(--ui-muted)]">
+                        {formatNumber(game.metrics.kda.value, 2)}
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <span
+                      className="truncate text-[13px] font-medium text-[var(--ui-muted)]"
+                      title={game.tournamentName ?? game.matchName ?? undefined}
+                    >
+                      {tournamentLabel}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <span className="flex min-w-0 items-center gap-2 min-[480px]:flex">
+                      <ChampionFace
+                        champion={game.opponentChampion}
+                        size="xs"
+                      />
+                      <span className="truncate text-[13px] font-medium text-[var(--ui-ink)] min-[1024px]:text-[14px]">
+                        {opponentLabel}
+                      </span>
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <PlayerItemSlots
+                      itemIds={itemIds}
+                      roleBoundItem={game.roleBoundItemId}
+                      version={version}
+                      compactGrid
+                      className="justify-self-end min-[720px]:hidden"
+                      slotClassName="h-6 w-6"
+                      imageSizes="24px"
+                    />
+                    <PlayerItemSlots
+                      itemIds={itemIds}
+                      roleBoundItem={game.roleBoundItemId}
+                      version={version}
+                      className="hidden justify-start min-[720px]:flex min-[1280px]:!gap-0"
+                      slotClassName="h-7 w-7 min-[1000px]:h-8 min-[1000px]:w-8 min-[1280px]:h-9 min-[1280px]:w-9"
+                      separatorClassName="h-5 w-px min-[1000px]:h-6"
+                      imageSizes="(min-width: 1280px) 36px, (min-width: 1000px) 32px, 28px"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <ChevronRight
+                      size={17}
+                      className="hidden text-[var(--ui-muted)] transition-transform group-hover:translate-x-0.5 min-[1280px]:block"
+                    />
+                  </TableCell>
+                </TableRow>
               );
             })}
-          </div>
-        </>
-      ) : <EmptyPanel title="경기 기록이 없습니다." body="선택한 범위에 경기 기록이 없습니다." />}
+          </TableBody>
+        </Table>
+      ) : (
+        <EmptyPanel
+          title="경기 기록이 없습니다."
+          body="선택한 범위에 경기 기록이 없습니다."
+        />
+      )}
       {pageCount > 1 ? (
-        <nav aria-label="경기 페이지" className="flex items-center justify-between bg-[var(--ui-card-bg)] px-4 py-3 sm:px-5">
-          {activePage > 1 ? <Link href={buildHref(basePath, params, { page: activePage - 1 })} className="rounded-lg bg-[var(--ui-surface)] px-4 py-2 text-[14px] font-medium text-[var(--ui-ink)]">이전</Link> : <span />}
-          <span className="text-[14px] font-normal tabular-nums text-[var(--ui-muted)]">{activePage} / {pageCount}</span>
-          {activePage < pageCount ? <Link href={buildHref(basePath, params, { page: activePage + 1 })} className="rounded-lg bg-[var(--ui-surface)] px-4 py-2 text-[14px] font-medium text-[var(--ui-ink)]">다음</Link> : <span />}
-        </nav>
+        <Pagination
+          page={activePage}
+          totalPages={pageCount}
+          getHref={(next) => buildHref(basePath, params, { page: next })}
+          className="py-3"
+        />
       ) : null}
     </SectionCard>
   );
