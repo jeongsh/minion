@@ -1,4 +1,6 @@
 "use client";
+import { Table, TableBody, TableRow, TableCell } from "@/components/ui/table";
+
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
@@ -149,17 +151,17 @@ export function PlayerList({
                 <span className="text-[13px] text-muted">({sorted.length}명)</span>
               </div>
 
-              <table className="w-full text-sm">
-                <tbody>
+              <Table className="w-full">
+                <TableBody>
                   {sorted.map((p) => (
-                    <tr
+                    <TableRow
                       key={p.id}
-                      className="border-b border-border/50 last:border-0 hover:bg-surface-muted"
+                      className="border-b border-border/50 last:border-0"
                     >
-                      <td className="w-14 shrink-0 px-4 py-2.5 text-[13px] text-muted">
+                      <TableCell className="w-14 shrink-0 text-muted">
                         {POS_LABEL[p.position]}
-                      </td>
-                      <td className="max-w-[100px] truncate px-2 py-2.5 font-medium">
+                      </TableCell>
+                      <TableCell className="max-w-[100px] truncate">
                         <Link
                           href={`/admin/players/${p.id}`}
                           className="hover:underline"
@@ -167,14 +169,14 @@ export function PlayerList({
                         >
                           {p.name}
                         </Link>
-                      </td>
-                      <td
-                        className="max-w-[110px] truncate px-2 py-2.5 text-[13px] text-muted"
+                      </TableCell>
+                      <TableCell
+                        className="max-w-[110px] truncate text-muted"
                         title={p.realName || undefined}
                       >
                         {p.realName || "-"}
-                      </td>
-                      <td className="w-14 shrink-0 px-2 py-2.5">
+                      </TableCell>
+                      <TableCell className="w-14 shrink-0">
                         {p.isStarter ? (
                           <span className="rounded-full bg-accent/10 px-2 py-0.5 text-[13px] font-semibold text-accent">
                             주전
@@ -182,8 +184,8 @@ export function PlayerList({
                         ) : (
                           <span className="text-[13px] text-muted">서브</span>
                         )}
-                      </td>
-                      <td className="px-4 py-2.5">
+                      </TableCell>
+                      <TableCell >
                         <div className="flex flex-row flex-wrap items-center gap-1.5">
                           <RetireButton id={p.id} />
                           <DeleteButton id={p.id} />
@@ -197,11 +199,11 @@ export function PlayerList({
                             teams={teams}
                           />
                         </div>
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </section>
           );
         })}

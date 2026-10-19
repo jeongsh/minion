@@ -2,11 +2,11 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { createPortal } from "react-dom";
+
 
 import { cancelPredictionBetAction, placePredictionBetAction } from "@/app/predictions/actions";
 import flag from "@/assets/characters/flag-2.png";
-import { DialogSheetHeader } from "@/components/responsive/adaptive-dialog";
+import { ControlledDialog, DialogSheetHeader } from "@/components/responsive/adaptive-dialog";
 import { useToast } from "@/components/ui/toast";
 import type { PredictionBet } from "@/lib/predictions";
 import { predictionMaxStake } from "@/lib/predictions";
@@ -85,10 +85,7 @@ export function usePredictionBetDialog({ currentUserId, balance, bets }: { curre
     open,
     pending,
     modal: typeof document !== "undefined" && dialog
-      ? createPortal(
-          <PredictionBetDialog dialog={dialog} balance={balance ?? 0} stake={stake} pending={pending} error={error} onStakeChange={setStake} onClose={() => setDialog(null)} onSubmit={submit} onCancel={cancel} />,
-          document.body,
-        )
+      ? <PredictionBetDialog dialog={dialog} balance={balance ?? 0} stake={stake} pending={pending} error={error} onStakeChange={setStake} onClose={() => setDialog(null)} onSubmit={submit} onCancel={cancel} />
       : null,
   };
 }
@@ -99,8 +96,7 @@ function PredictionBetDialog({ dialog, balance, stake, pending, error, onStakeCh
   const valid = Number.isSafeInteger(amount) && amount >= 100 && amount <= maxStake;
 
   return (
-    <div className="modal-backdrop fixed inset-0 z-[80] flex items-end justify-center bg-black/45 [--modal-backdrop-dark-mobile:0.65] sm:items-center sm:p-6" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
-      <section className="adaptive-dialog-panel flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-[24px] bg-[var(--ui-surface)] shadow-2xl sm:max-w-md sm:rounded-[24px] dark:bg-[var(--ui-surface-muted)]" role="dialog" aria-modal="true" aria-labelledby="quick-bet-title">
+    <ControlledDialog open onClose={onClose} labelledBy="quick-bet-title" panelClassName="sm:max-w-md">
         <DialogSheetHeader onClose={onClose} title="승부예측" titleId="quick-bet-title" />
 
         <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
@@ -131,7 +127,6 @@ function PredictionBetDialog({ dialog, balance, stake, pending, error, onStakeCh
             )}
             {error ? <p className="mt-3 text-center text-[12px] font-medium text-red-500">{error}</p> : null}
         </div>
-      </section>
-    </div>
+      </ControlledDialog>
   );
 }

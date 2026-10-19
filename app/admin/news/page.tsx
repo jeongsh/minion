@@ -1,3 +1,4 @@
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import Link from "next/link";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { SectionHeader } from "@/components/layout/section-header";
@@ -185,41 +186,41 @@ export default async function AdminNewsPage({
         {pageRows.length === 0 ? (
           <p className="py-16 text-center text-sm text-muted">결과가 없습니다.</p>
         ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-surface-muted text-left text-[13px] text-muted">
+          <Table className="w-full">
+            <TableHeader>
+              <TableRow className="border-b border-border text-left text-muted">
                 {type === "video" ? (
                   <>
-                    <th className="w-12 px-4 py-3 font-semibold">#</th>
-                    <th className="px-4 py-3 font-semibold">제목</th>
-                    <th className="px-4 py-3 font-semibold">팀</th>
-                    <th className="px-4 py-3 text-right font-semibold">조회수</th>
-                    <th className="px-4 py-3 text-right font-semibold">게시일</th>
-                    <th className="px-4 py-3 font-semibold"></th>
+                    <TableHead className="w-12">#</TableHead>
+                    <TableHead >제목</TableHead>
+                    <TableHead >팀</TableHead>
+                    <TableHead className="text-right">조회수</TableHead>
+                    <TableHead className="text-right">게시일</TableHead>
+                    <TableHead ></TableHead>
                   </>
                 ) : (
                   <>
-                    <th className="w-12 px-4 py-3 font-semibold">#</th>
-                    <th className="px-4 py-3 font-semibold">제목</th>
-                    <th className="px-4 py-3 font-semibold">게시판</th>
-                    <th className="px-4 py-3 font-semibold">범위</th>
-                    <th className="px-4 py-3 text-right font-semibold">조회</th>
-                    <th className="px-4 py-3 text-right font-semibold">좋아요</th>
-                    <th className="px-4 py-3 text-right font-semibold">댓글</th>
-                    <th className="px-4 py-3 text-right font-semibold">게시일</th>
-                    <th className="px-4 py-3 font-semibold"></th>
+                    <TableHead className="w-12">#</TableHead>
+                    <TableHead >제목</TableHead>
+                    <TableHead >게시판</TableHead>
+                    <TableHead >범위</TableHead>
+                    <TableHead className="text-right">조회</TableHead>
+                    <TableHead className="text-right">좋아요</TableHead>
+                    <TableHead className="text-right">댓글</TableHead>
+                    <TableHead className="text-right">게시일</TableHead>
+                    <TableHead ></TableHead>
                   </>
                 )}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
+              </TableRow>
+            </TableHeader>
+            <TableBody >
               {pageRows.map((row, idx) => {
                 const rowNum = (safePage - 1) * PAGE_SIZE + idx + 1;
                 if (row._type === "video") {
                   return (
-                    <tr key={row.id} className="transition-colors hover:bg-surface-muted">
-                      <td className="px-4 py-3 tabular-nums text-muted">{rowNum}</td>
-                      <td className="px-4 py-3">
+                    <TableRow key={row.id} className="transition-colors">
+                      <TableCell className="tabular-nums text-muted">{rowNum}</TableCell>
+                      <TableCell >
                         <div className="flex items-center gap-3">
                           {row.thumbnail && (
                             <img
@@ -230,20 +231,20 @@ export default async function AdminNewsPage({
                           )}
                           <span className="line-clamp-1 font-medium">{row.title}</span>
                         </div>
-                      </td>
-                      <td className="px-4 py-3">
+                      </TableCell>
+                      <TableCell >
                         <div className="flex items-center gap-1.5">
                           {row.teamLogo && (
                             <img src={row.teamLogo} alt="" className="h-4 w-4 object-contain" />
                           )}
                           <span className="text-muted">{row.teamName}</span>
                         </div>
-                      </td>
-                      <td className="px-4 py-3 text-right tabular-nums text-muted">
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums text-muted">
                         {row.views.toLocaleString()}
-                      </td>
-                      <td className="px-4 py-3 text-right text-muted">{formatDate(row.date)}</td>
-                      <td className="px-4 py-3">
+                      </TableCell>
+                      <TableCell className="text-right text-muted">{formatDate(row.date)}</TableCell>
+                      <TableCell >
                         <div className="flex items-center gap-1.5">
                           <a
                             href={row.url}
@@ -269,18 +270,18 @@ export default async function AdminNewsPage({
                           />
                           <NewsDeleteButton id={row.id} type="video" />
                         </div>
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   );
                 }
                 return (
-                  <tr key={row.id} className="transition-colors hover:bg-surface-muted">
-                    <td className="px-4 py-3 tabular-nums text-muted">{rowNum}</td>
-                    <td className="px-4 py-3">
+                  <TableRow key={row.id} className="transition-colors">
+                    <TableCell className="tabular-nums text-muted">{rowNum}</TableCell>
+                    <TableCell >
                       <span className="line-clamp-1 font-medium">{row.title}</span>
-                    </td>
-                    <td className="px-4 py-3 text-muted">{row.boardType}</td>
-                    <td className="px-4 py-3">
+                    </TableCell>
+                    <TableCell className="text-muted">{row.boardType}</TableCell>
+                    <TableCell >
                       <span
                         className={`rounded-full px-2 py-0.5 text-[13px] font-semibold ${
                           row.siteScope === "hub"
@@ -290,14 +291,14 @@ export default async function AdminNewsPage({
                       >
                         {row.siteScope === "hub" ? "허브" : "팀"}
                       </span>
-                    </td>
-                    <td className="px-4 py-3 text-right tabular-nums text-muted">
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums text-muted">
                       {row.views.toLocaleString()}
-                    </td>
-                    <td className="px-4 py-3 text-right tabular-nums text-muted">{row.likes}</td>
-                    <td className="px-4 py-3 text-right tabular-nums text-muted">{row.comments}</td>
-                    <td className="px-4 py-3 text-right text-muted">{formatDate(row.date)}</td>
-                    <td className="px-4 py-3">
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums text-muted">{row.likes}</TableCell>
+                    <TableCell className="text-right tabular-nums text-muted">{row.comments}</TableCell>
+                    <TableCell className="text-right text-muted">{formatDate(row.date)}</TableCell>
+                    <TableCell >
                       <div className="flex items-center gap-1.5">
                         <Link
                           href={row.url}
@@ -319,12 +320,12 @@ export default async function AdminNewsPage({
                         />
                         <NewsDeleteButton id={row.id} type="post" />
                       </div>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 );
               })}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         )}
       </div>
 

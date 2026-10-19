@@ -1,4 +1,5 @@
-import { Search, SlidersHorizontal } from "lucide-react";
+import { SearchInput } from "@/components/ui/search-input";
+import { SlidersHorizontal } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -109,16 +110,7 @@ export function ChampionDirectoryToolbar({
           key !== "q" && key !== "sort" ? [<input key={key} type="hidden" name={key} value={value} />] : [],
         )}
         {sort !== "presence" ? <input type="hidden" name="sort" value={sort} /> : null}
-        <label className="flex h-10 min-w-0 items-center gap-2.5 rounded-xl bg-[var(--ui-card-bg)] px-3.5 focus-within:ring-2 focus-within:ring-[var(--accent)]">
-          <Search size={17} className="shrink-0 text-[var(--ui-muted)]" />
-          <span className="sr-only">챔피언 검색</span>
-          <input
-            name="q"
-            defaultValue={query}
-            placeholder="챔피언 검색"
-            className="min-w-0 flex-1 bg-transparent text-[14px] font-normal text-[var(--ui-ink)] outline-none placeholder:text-[var(--ui-muted)]"
-          />
-        </label>
+        <SearchInput aria-label="챔피언 검색" name="q" defaultValue={query} placeholder="챔피언 검색" />
         <div className="flex h-10 min-w-0 items-center [&>div]:w-full">
           <ChampionUrlDropdown
             ariaLabel="정렬 선택"

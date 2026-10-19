@@ -4,9 +4,9 @@ import { Pencil, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { createPortal } from "react-dom";
 
-import { DialogSheetHeader } from "@/components/responsive/adaptive-dialog";
+
+import { ControlledDialog, DialogSheetHeader } from "@/components/responsive/adaptive-dialog";
 import { useToast } from "@/components/ui/toast";
 import { deleteGuestPostAction, deletePostAction } from "@/lib/community/actions";
 import type { BoardScope } from "@/lib/community/boards";
@@ -43,10 +43,8 @@ export function PostOwnerActions({ postId, scope, teamSlug, guest = false, varia
         <button type="button" onClick={() => setConfirmOpen(true)} disabled={pending} className={menu ? "flex h-10 w-full items-center gap-2.5 rounded-lg px-3 text-sm font-semibold text-red-500 hover:bg-[var(--ui-surface-muted)] disabled:opacity-50" : "inline-flex h-9 w-9 items-center justify-center rounded-[var(--ui-control-radius)] border border-red-300 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50 md:w-auto md:gap-1.5 md:px-3.5 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950/30"} aria-label={pending ? "게시글 삭제 중" : "게시글 삭제"}><Trash2 size={15} strokeWidth={1.8} /><span className={menu ? "inline" : "hidden md:inline"}>{pending ? "삭제 중" : "삭제"}</span></button>
         {message ? <span className="text-[13px] text-[var(--ui-muted)]">{message}</span> : null}
       </span>
-      {confirmOpen && typeof document !== "undefined"
-        ? createPortal(
-            <div data-community-owner-dialog className="modal-backdrop fixed inset-0 z-[1000] flex items-end justify-center bg-black/45 [--modal-backdrop-dark-mobile:0.65] sm:items-center sm:p-6" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setConfirmOpen(false)}>
-              <section className="adaptive-dialog-panel flex w-full max-w-sm flex-col overflow-hidden rounded-t-[24px] bg-[var(--ui-surface)] shadow-2xl sm:rounded-[24px] sm:border sm:border-[var(--ui-border)] dark:bg-[var(--ui-surface-muted)]" role="dialog" aria-modal="true" aria-labelledby="delete-post-title">
+      {<ControlledDialog open={confirmOpen} onClose={() => { if (!pending) setConfirmOpen(false); }} labelledBy={"delete-post-title"} panelClassName="sm:max-w-sm">
+              <div data-community-owner-dialog className="contents">
                 <DialogSheetHeader onClose={() => setConfirmOpen(false)} title="게시글 삭제" titleId="delete-post-title" />
                 <div className="px-5 pb-5 pt-2">
                   <h3 className="text-lg font-black text-[var(--ui-ink)]">게시글을 삭제할까요?</h3>
@@ -56,11 +54,8 @@ export function PostOwnerActions({ postId, scope, teamSlug, guest = false, varia
                     <button type="button" onClick={remove} disabled={pending} className="h-10 rounded-lg bg-[var(--palette-tomato-butter-main)] text-sm font-medium text-white transition hover:bg-[var(--palette-tomato-butter-hover)] disabled:opacity-50">삭제</button>
                   </div>
                 </div>
-              </section>
-            </div>,
-            document.body,
-          )
-        : null}
+              </div>
+              </ControlledDialog>}
     </>
   );
 }

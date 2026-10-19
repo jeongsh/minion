@@ -66,11 +66,11 @@ export default async function AdminFanSitesPage() {
               label: "대문 요청",
               render: (row) => `${row.pendingHeaderCount} 대기 / ${row.approvedHeaderCount} 승인`,
             },
-            {
+            { align: "right",
               key: "actions",
               label: "",
-              headerClassName: "text-right",
-              cellClassName: "text-right",
+              headerClassName: "",
+              cellClassName: "",
               render: (row) => (
                 <Link
                   href={`/admin/fan-sites/${row.id}`}

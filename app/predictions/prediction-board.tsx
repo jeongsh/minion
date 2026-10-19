@@ -1,4 +1,5 @@
 "use client";
+import { Button } from "@/components/ui/button";
 
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
@@ -7,7 +8,7 @@ import { ChevronLeft, ChevronRight, Clock3, Coins } from "lucide-react";
 import { cancelPredictionBetAction, placePredictionBetAction } from "@/app/predictions/actions";
 import flag from "@/assets/characters/flag-2.png";
 import { ScheduleTodayScroll } from "@/components/domain/schedule-today-scroll";
-import { DialogSheetHeader } from "@/components/responsive/adaptive-dialog";
+import { ControlledDialog, DialogSheetHeader } from "@/components/responsive/adaptive-dialog";
 import { AdSlot } from "@/components/ui/ad-slot";
 import { KitschEmptyState } from "@/components/ui/kitsch-empty-state";
 import { TeamLogo } from "@/components/ui/team-logo";
@@ -273,7 +274,7 @@ function PredictionAdSlot({ className = "", hasContent }: { className?: string; 
 }
 
 function FilterButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
-  return <button type="button" onClick={onClick} className={`h-9 shrink-0 rounded-lg px-3.5 text-[13px] font-bold transition active:scale-[0.98] ${active ? "bg-[var(--ui-ink)] text-[var(--ui-surface)]" : "text-[var(--ui-muted)] hover:bg-[var(--ui-surface)] hover:text-[var(--ui-ink)]"}`}>{children}</button>;
+  return <Button variant={active ? "neutral" : "secondary"} aria-pressed={active} onClick={onClick}>{children}</Button>;
 }
 
 function TeamChoice({ team, percent, odds, selected, disabled, onClick, right = false }: { team?: Team; percent: number; odds: number | null; selected: boolean; disabled: boolean; onClick: () => void; right?: boolean }) {
@@ -355,8 +356,7 @@ function BetAmountDialog({
   const presets = [0.25, 0.5, 0.75, 1];
 
   return (
-    <div className="modal-backdrop fixed inset-0 z-[80] flex items-end justify-center bg-black/45 [--modal-backdrop-dark-mobile:0.65] sm:items-center sm:p-6" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
-      <section className="adaptive-dialog-panel flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-[24px] bg-[var(--ui-surface)] shadow-2xl sm:max-w-md sm:rounded-[24px] dark:bg-[var(--ui-surface-muted)]" role="dialog" aria-modal="true" aria-labelledby="bet-dialog-title">
+    <ControlledDialog open onClose={onClose} labelledBy="bet-dialog-title" panelClassName="sm:max-w-md">
         <DialogSheetHeader onClose={onClose} title="승부예측" titleId="bet-dialog-title" />
 
         <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
@@ -385,7 +385,6 @@ function BetAmountDialog({
             )}
             {error ? <p className="mt-3 text-center text-[12px] font-medium text-red-500">{error}</p> : null}
         </div>
-      </section>
-    </div>
+      </ControlledDialog>
   );
 }

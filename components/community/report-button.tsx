@@ -1,10 +1,10 @@
 "use client";
 
 import { Flag } from "lucide-react";
-import { useEffect, useId, useState, useTransition } from "react";
-import { createPortal } from "react-dom";
+import { useId, useState, useTransition } from "react";
 
-import { DialogSheetHeader } from "@/components/responsive/adaptive-dialog";
+
+import { ControlledDialog, DialogSheetHeader } from "@/components/responsive/adaptive-dialog";
 import { useToast } from "@/components/ui/toast";
 import { reportCommentAction, reportPostAction } from "@/lib/community/actions";
 import type { BoardScope } from "@/lib/community/boards";
@@ -18,19 +18,7 @@ export function ReportButton({ target, postId, commentId, scope, teamSlug }: { t
   const titleId = useId();
   const postButton = target === "post";
 
-  useEffect(() => {
-    if (!open) return;
-    const previous = document.body.style.overflow;
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !pending) setOpen(false);
-    };
-    document.body.style.overflow = "hidden";
-    window.addEventListener("keydown", closeOnEscape);
-    return () => {
-      document.body.style.overflow = previous;
-      window.removeEventListener("keydown", closeOnEscape);
-    };
-  }, [open, pending]);
+
 
   const close = () => {
     if (pending) return;
@@ -75,10 +63,7 @@ export function ReportButton({ target, postId, commentId, scope, teamSlug }: { t
       >
         {postButton ? <><Flag size={15} strokeWidth={1.8} />리폿</> : <Flag size={17} strokeWidth={1.8} />}
       </button>
-      {open && typeof document !== "undefined"
-        ? createPortal(
-            <div className="modal-backdrop fixed inset-0 z-[1000] flex items-end justify-center bg-black/45 [--modal-backdrop-dark-mobile:0.65] sm:items-center sm:p-6" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && close()}>
-              <section className="adaptive-dialog-panel flex w-full max-w-md flex-col overflow-hidden rounded-t-[24px] bg-[var(--ui-surface)] shadow-2xl sm:rounded-[24px] sm:border sm:border-[var(--ui-border)] dark:bg-[var(--ui-surface-muted)]" role="dialog" aria-modal="true" aria-labelledby={titleId}>
+      {<ControlledDialog open={open} onClose={close} labelledBy={titleId} panelClassName="sm:max-w-md">
                 <DialogSheetHeader onClose={close} title={`${postButton ? "게시글" : "댓글"} 리폿`} titleId={titleId} />
                 <form className="px-5 pb-5 pt-2" onSubmit={(event) => { event.preventDefault(); submit(); }}>
                   <p className="text-base font-normal leading-6 text-[var(--ui-text)]">리폿 사유를 입력해주세요. 운영자가 해당 내용을 확인합니다.</p>
@@ -88,11 +73,7 @@ export function ReportButton({ target, postId, commentId, scope, teamSlug }: { t
                     <button type="submit" disabled={!reason.trim() || pending} className="h-10 rounded-[var(--ui-control-radius)] bg-red-600 px-5 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40">{pending ? "접수 중" : "리폿하기"}</button>
                   </div>
                 </form>
-              </section>
-            </div>,
-            document.body,
-          )
-        : null}
+              </ControlledDialog>}
     </>
   );
 }

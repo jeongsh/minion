@@ -1,6 +1,9 @@
 "use client";
+import { ChevronDown } from "lucide-react";
 
-import { ChevronDown, Flag, LoaderCircle, Star, ThumbsDown, ThumbsUp } from "lucide-react";
+import { FilterDropdown } from "@/components/match-filter-dropdown";
+
+import { Flag, LoaderCircle, Star, ThumbsDown, ThumbsUp } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 
 import { AuthorMenu } from "@/components/community/author-menu";
@@ -149,27 +152,12 @@ export function RatingCommentList({
     <>
       <div className="flex items-center justify-between gap-3">
         <h3 className="text-[14px] font-medium text-[var(--ui-ink)] sm:text-base sm:font-black">평가 코멘트</h3>
-        <label className="relative block min-w-0 shrink-0">
-          <span className="sr-only">선수별 코멘트 필터</span>
-          <select
-            value={playerId ?? "all"}
-            onChange={(event) => {
-              if (timerRef.current) clearTimeout(timerRef.current);
-              setLoading(false);
-              setVisibleCount(PAGE_SIZE);
-              setPlayerId(event.target.value === "all" ? null : event.target.value);
-            }}
-            className="h-9 w-auto min-w-40 max-w-[55vw] appearance-none truncate rounded-lg bg-[var(--ui-card-bg)] py-0 pl-3 pr-9 text-sm font-normal text-[var(--ui-ink)] outline-none transition-colors hover:bg-[var(--ui-card-hover)] focus-visible:ring-2 focus-visible:ring-[var(--tp)]"
-          >
-            <option value="all">전체 선수 ({items.length})</option>
-            {players.map((player) => (
-              <option key={player.id} value={player.id}>
-                {player.name} ({player.count})
-              </option>
-            ))}
-          </select>
-          <ChevronDown aria-hidden="true" className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--ui-muted)]" />
-        </label>
+        <FilterDropdown ariaLabel="선수별 코멘트 필터" selected={playerId ?? "all"} options={[{value:"all",label:"전체 선수 ("+items.length+")"},...players.map(player=>({value:player.id,label:player.name+" ("+player.count+")"}))]} onSelect={value=>{
+          if(timerRef.current) clearTimeout(timerRef.current);
+          setLoading(false);
+          setVisibleCount(PAGE_SIZE);
+          setPlayerId(value === "all" ? null : value);
+        }} rootClassName="min-w-40 max-w-[55vw]" triggerClassName="w-full" />
       </div>
 
       <div className="mt-2 grid gap-3">

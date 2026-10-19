@@ -1,4 +1,6 @@
 "use client";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
+
 
 import Link from "next/link";
 import { useState } from "react";
@@ -163,35 +165,35 @@ export function TeamEditForm({
           <p className="mt-4 text-sm text-muted">등록된 변경 이력이 없습니다.</p>
         ) : (
           <div className="mt-4 overflow-x-auto">
-            <table className="w-full min-w-[36rem] text-sm">
-              <thead>
-                <tr className="border-b border-border text-left text-[13px] text-muted">
-                  <th className="px-3 py-2 font-medium">팀명</th>
-                  <th className="px-3 py-2 font-medium">스폰서</th>
-                  <th className="px-3 py-2 font-medium">slug</th>
-                  <th className="px-3 py-2 font-medium">적용 기간</th>
-                  <th className="px-3 py-2 font-medium">메모</th>
-                </tr>
-              </thead>
-              <tbody>
+            <Table className="w-full min-w-[36rem]">
+              <TableHeader>
+                <TableRow className="border-b border-border text-left text-muted">
+                  <TableHead >팀명</TableHead>
+                  <TableHead >스폰서</TableHead>
+                  <TableHead >slug</TableHead>
+                  <TableHead >적용 기간</TableHead>
+                  <TableHead >메모</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {histories.map((history) => (
-                  <tr key={history.id} className="border-b border-border/50 last:border-0">
-                    <td className="px-3 py-3">
+                  <TableRow key={history.id} className="border-b border-border/50 last:border-0">
+                    <TableCell >
                       <p className="font-medium">{history.name}</p>
                       <p className="text-[13px] text-muted">{history.shortName}</p>
-                    </td>
-                    <td className="px-3 py-3 text-muted">{history.sponsorName ?? "-"}</td>
-                    <td className="px-3 py-3 font-mono text-[13px]">{history.slug}</td>
-                    <td className="px-3 py-3 text-muted">
+                    </TableCell>
+                    <TableCell className="text-muted">{history.sponsorName ?? "-"}</TableCell>
+                    <TableCell className="font-mono">{history.slug}</TableCell>
+                    <TableCell className="text-muted">
                       {history.effectiveFrom}
                       {" ~ "}
                       {history.effectiveTo ?? "현재"}
-                    </td>
-                    <td className="px-3 py-3 text-muted">{history.note ?? "-"}</td>
-                  </tr>
+                    </TableCell>
+                    <TableCell className="text-muted">{history.note ?? "-"}</TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         )}
 
