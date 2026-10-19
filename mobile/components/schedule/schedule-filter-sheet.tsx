@@ -41,7 +41,7 @@ export function ScheduleFilterSheet({
   const { fonts, theme } = useMinionTheme();
   const { enabled: spoilerFreeEnabled, toggle: toggleSpoilerFree } = useSpoilerFree();
   const { width: windowWidth } = useWindowDimensions();
-  const teamOptions = teams.filter((team) => team.isLckTeam !== false);
+  const teamOptions = teams.filter((team) => team.isLckTeam !== false).sort((a, b) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
   // 다이얼로그 본문 padding(16px 양쪽) 뺀 실제 그리드 폭. 웹의 auto-fill 그리드와 동일한 공식을 씀.
   const gridWidth = windowWidth - 32;
   const segmentGrid = gridAutoFill(gridWidth, 46, 8);
@@ -56,6 +56,7 @@ export function ScheduleFilterSheet({
     <ScheduleDialogChrome onClose={onClose} open={open} title="일정 필터">
       <View style={styles.yearMonthRow}>
         <FilterSelect
+          variant="web"
           disabled={!open}
           label="연도"
           onChange={(value) => onApply({ ...filter, year: Number(value) })}
@@ -63,6 +64,7 @@ export function ScheduleFilterSheet({
           value={String(filter.year)}
         />
         <FilterSelect
+          variant="web"
           disabled={!open}
           label="월"
           onChange={(value) => onApply({ ...filter, month: Number(value) })}
@@ -81,7 +83,8 @@ export function ScheduleFilterSheet({
                 active={filter.segment === segment.key}
                 aspect={segment.logoAspect ?? 1.4}
                 key={segment.key}
-                logo={segment.logo}
+                label={segment.label}
+                logo={segment.logo ?? resolveApiAssetUrl(segment.logoPath) ?? undefined}
                 onPress={() => choose({ segment: segment.key as ScheduleSegmentKey })}
                 width={segmentGrid.itemWidth}
               />
@@ -107,13 +110,11 @@ export function ScheduleFilterSheet({
           onPress={toggleSpoilerFree}
           style={[
             styles.spoilerToggle,
-            spoilerFreeEnabled
-              ? { backgroundColor: theme.ink, borderColor: theme.ink }
-              : { backgroundColor: theme.surface, borderColor: theme.border },
+            { backgroundColor: theme.surface, borderColor: theme.border },
           ]}>
-          {spoilerFreeEnabled ? <EyeOff color={theme.surface} size={16} /> : <Eye color={theme.ink} size={16} />}
-          <Text style={[styles.spoilerToggleText, { color: spoilerFreeEnabled ? theme.surface : theme.ink, ...fonts.medium }]}>
-            {spoilerFreeEnabled ? 'ON' : 'OFF'}
+          {spoilerFreeEnabled ? <EyeOff color={theme.text} size={16} strokeWidth={1.8} /> : <Eye color={theme.text} size={16} strokeWidth={1.8} />}
+          <Text style={[styles.spoilerToggleText, { color: theme.text, ...fonts.medium }]}>
+            스포방지 {spoilerFreeEnabled ? 'ON' : 'OFF'}
           </Text>
         </Pressable>
       </View>
@@ -135,7 +136,7 @@ function FilterGroup({ children, title }: { children: ReactNode; title: string }
   const { fonts, theme } = useMinionTheme();
   return (
     <View style={styles.filterGroup}>
-      <Text style={[styles.filterGroupTitle, { color: theme.muted, ...fonts.bold }]}>{title}</Text>
+      <Text style={[styles.filterGroupTitle, { color: theme.muted, ...fonts.medium }]}>{title}</Text>
       {children}
     </View>
   );
@@ -156,11 +157,12 @@ function PlainFilterChip({ active, label, onPress, width }: { active: boolean; l
   );
 }
 
-function IconFilterChip({ active, aspect, logo, onPress, width }: { active: boolean; aspect: number; logo?: number; onPress: () => void; width: number }) {
+function IconFilterChip({ active, aspect, label, logo, onPress, width }: { active: boolean; aspect: number; label: string; logo?: number | string; onPress: () => void; width: number }) {
   const { theme } = useMinionTheme();
   const iconWidth = Math.min(34, 20 * aspect);
   return (
     <Pressable
+      accessibilityLabel={`${label} 선택`}
       onPress={onPress}
       style={[styles.iconChip, { width }, active ? { backgroundColor: theme.ink, borderColor: theme.ink } : { backgroundColor: theme.card, borderColor: theme.border }]}>
       {logo ? <Image contentFit="contain" source={logo} style={{ height: 20, width: iconWidth }} tintColor={active ? theme.surface : theme.muted} /> : null}
@@ -190,13 +192,13 @@ const styles = StyleSheet.create({
   filterGroupTitle: { fontSize: 13, lineHeight: 19.5, marginBottom: 8 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   iconChip: { alignItems: 'center', borderRadius: 12, borderWidth: 1, height: 40, justifyContent: 'center' },
-  plainChip: { alignItems: 'center', borderRadius: 8, borderWidth: 1, height: 40, justifyContent: 'center', paddingHorizontal: 8 },
+  plainChip: { alignItems: 'center', borderRadius: 12, borderWidth: 1, height: 40, justifyContent: 'center', paddingHorizontal: 8 },
   plainChipText: { fontSize: 13, lineHeight: 19.5, textAlign: 'center' },
-  resetButton: { alignItems: 'center', borderRadius: 8, justifyContent: 'center', marginTop: 16, minHeight: 40, paddingHorizontal: 12 },
+  resetButton: { alignItems: 'center', borderRadius: 8, justifyContent: 'center', marginTop: 16, minHeight: 44, paddingHorizontal: 12 },
   resetButtonText: { fontSize: 13, lineHeight: 19.5 },
-  spoilerLabel: { fontSize: 14, lineHeight: 21 },
+  spoilerLabel: { fontSize: 14, lineHeight: 20 },
   spoilerRow: { alignItems: 'center', borderRadius: 12, borderWidth: 1, flexDirection: 'row', justifyContent: 'space-between', marginTop: 16, paddingHorizontal: 12, paddingVertical: 10 },
-  spoilerToggle: { alignItems: 'center', borderRadius: 999, borderWidth: 1, flexDirection: 'row', gap: 6, minHeight: 32, paddingHorizontal: 10 },
+  spoilerToggle: { alignItems: 'center', borderRadius: 999, borderWidth: 1, flexDirection: 'row', gap: 6, paddingHorizontal: 12, paddingVertical: 6 },
   spoilerToggleText: { fontSize: 13, lineHeight: 19.5 },
   teamChipLogo: { height: 28, width: 28 },
   yearMonthRow: { flexDirection: 'row', gap: 8, zIndex: 30 },

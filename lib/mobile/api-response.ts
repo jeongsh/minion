@@ -96,6 +96,7 @@ export function toMobileStandingRow(row: ReturnType<typeof buildTeamStandingRows
 
 export function toMobileBracketMatch(match: Match, teams: Map<string, Team>): MobileBracketMatch {
   return {
+    bestOf: match.bestOf ?? null,
     id: match.id,
     matchDate: match.matchDate,
     status: match.status,

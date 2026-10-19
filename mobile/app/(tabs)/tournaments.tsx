@@ -1,48 +1,22 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
-import { StyleSheet, Text, View } from 'react-native';
+import SlidersHorizontal from 'lucide-react-native/icons/sliders-horizontal';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ErrorState } from '@/components/feedback-states';
 import { MinionScreen } from '@/components/minion-screen';
 import { TournamentBracket } from '@/components/tournaments/tournament-bracket';
-import { TournamentHeader } from '@/components/tournaments/tournament-header';
+import { TournamentSwissBracket } from '@/components/tournaments/tournament-swiss-bracket';
+import { TournamentFilterSheet, type TournamentFilterGroup } from '@/components/tournaments/tournament-filter-sheet';
 import { TournamentLoadingSkeleton } from '@/components/tournaments/tournament-loading-skeleton';
-import { TournamentSegmentSwitcher } from '@/components/tournaments/tournament-segment-switcher';
 import { TournamentEmptyNotice, TournamentPomList, TournamentStandingsGroups } from '@/components/tournaments/tournament-standings';
-import { TournamentSegmentedControl, TournamentUnderlineNav, type TournamentTabItem } from '@/components/tournaments/tournament-tabs';
 import { useCachedQuery } from '@/hooks/use-cached-query';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import type { MobileTournamentDetailDto } from '@/lib/api-client';
 
 type ViewKey = 'pom' | 'standings' | 'bracket';
-
-function buildQuery({
-  activeBracketStageId,
-  isLck,
-  phase,
-  split,
-  view,
-  year,
-}: {
-  activeBracketStageId: string | null;
-  isLck: boolean;
-  phase: 'playin' | 'playoffs';
-  split: '1' | '2' | '3';
-  view: ViewKey;
-  year: number | null;
-}) {
-  const params = new URLSearchParams();
-  if (year) params.set('year', String(year));
-  if (isLck) {
-    params.set('split', split);
-    params.set('view', view);
-    if (view === 'bracket') params.set('phase', phase);
-  } else {
-    params.set('view', view === 'pom' ? 'standings' : view);
-    if (activeBracketStageId) params.set('bracketStage', activeBracketStageId);
-  }
-  return params.toString();
-}
+type SplitKey = '1' | '2' | '3';
 
 export default function TournamentsRoute() {
   const params = useLocalSearchParams<{ segment?: string | string[] }>();
@@ -52,16 +26,23 @@ export default function TournamentsRoute() {
 
 function TournamentsScreen({ initialSegment }: { initialSegment?: string }) {
   const { fonts, theme } = useMinionTheme();
+  const insets = useSafeAreaInsets();
   const [segmentKey, setSegmentKey] = useState(initialSegment ?? 'lck');
   const [year, setYear] = useState<number | null>(null);
-  const [split, setSplit] = useState<'1' | '2' | '3'>('1');
-  const [phase, setPhase] = useState<'playin' | 'playoffs'>('playin');
-  const [view, setView] = useState<ViewKey>('standings');
+  const [split, setSplit] = useState<SplitKey | null>(null);
+  const [phase, setPhase] = useState<'playin' | 'playoffs' | null>(null);
+  const [view, setView] = useState<ViewKey | null>(null);
   const [activeBracketStageId, setActiveBracketStageId] = useState<string | null>(null);
+  const [filterOpen, setFilterOpen] = useState(false);
   const appliedDefaultSegment = useRef(Boolean(initialSegment));
 
-  const isLck = segmentKey === 'lck';
-  const query = buildQuery({ activeBracketStageId, isLck, phase, split, view, year });
+  const query = new URLSearchParams();
+  if (year !== null) query.set('year', String(year));
+  if (segmentKey === 'lck') {
+    if (split) query.set('split', split);
+    if (phase) query.set('phase', phase);
+  } else if (activeBracketStageId) query.set('bracketStage', activeBracketStageId);
+  if (view) query.set('view', view);
   const { data, error, loading, refresh } = useCachedQuery<MobileTournamentDetailDto>(`/api/mobile/v1/tournaments/${segmentKey}?${query}`);
 
   useEffect(() => {
@@ -75,149 +56,76 @@ function TournamentsScreen({ initialSegment }: { initialSegment?: string }) {
     }
   }, [data, segmentKey, year]);
 
-  function selectSegment(key: string) {
-    setSegmentKey(key);
-    setSplit('1');
-    setPhase('playin');
-    setView('standings');
+  function resetStage() {
+    setSplit(null);
+    setPhase(null);
+    setView(null);
     setActiveBracketStageId(null);
   }
 
-  if (loading && !data) {
-    return (
-      <MinionScreen contentStyle={styles.screenContent}>
-        <View style={styles.page}>
-          <TournamentLoadingSkeleton />
-        </View>
-      </MinionScreen>
-    );
-  }
-
-  if (error && !data) {
-    return (
-      <MinionScreen contentStyle={styles.screenContent}>
-        <View style={styles.page}>
-          <ErrorState onRetry={refresh} />
-        </View>
-      </MinionScreen>
-    );
-  }
-
+  if (loading && !data) return <MinionScreen contentStyle={styles.screenContent}><View style={styles.page}><TournamentLoadingSkeleton /></View></MinionScreen>;
+  if (error && !data) return <MinionScreen contentStyle={styles.screenContent}><View style={styles.page}><ErrorState onRetry={refresh} /></View></MinionScreen>;
   if (!data) return null;
 
-  const lckHasPhases = data.isLck && split !== '2';
-  const viewItems: TournamentTabItem[] = data.isLck
-    ? lckHasPhases
-      ? [
-          { key: 'pom', label: 'POM' },
-          { key: 'standings', label: data.viewLabels?.standings ?? '순위표' },
-          { key: 'playin', label: '플레이-인' },
-          { key: 'playoffs', label: '플레이오프' },
-        ]
-      : [
-          { key: 'pom', label: 'POM' },
-          { key: 'standings', label: data.viewLabels?.standings ?? '순위표' },
-          { key: 'bracket', label: data.viewLabels?.bracket ?? '대진표' },
-        ]
-    : data.supportsGroupToggle
-      ? [
-          { key: 'standings', label: '순위표' },
-          { key: 'bracket', label: '대진표' },
-        ]
-      : [];
-
-  const activeViewKey =
-    data.isLck && lckHasPhases
-      ? data.activeView === 'bracket'
-        ? (data.activePhase ?? 'playin')
-        : data.activeView
-      : data.activeView;
-
-  function selectView(key: string) {
-    if (data!.isLck) {
-      if (key === 'playin' || key === 'playoffs') {
-        setView('bracket');
-        setPhase(key);
-      } else {
-        setView(key as ViewKey);
-      }
-      return;
-    }
-    setView(key as ViewKey);
+  const groups: TournamentFilterGroup[] = [
+    { label: '연도', selected: String(data.activeSeason), options: data.seasons.map(season => ({ value: String(season), label: String(season) })), onSelect: value => { setYear(Number(value)); resetStage(); } },
+    { label: '대회', selected: data.segment.key, options: data.segmentNav.map(item => ({ ...item, value: item.key, label: item.name })), onSelect: value => { setSegmentKey(value); resetStage(); } },
+  ];
+  let title: string;
+  if (data.isLck) {
+    const activeSplit = data.activeSplit ?? '1';
+    const regularLabel = activeSplit === '3' ? '그룹 배틀' : data.viewLabels?.standings ?? '순위표';
+    const options = [
+      { value: 'pom', label: 'POM' },
+      { value: 'standings', label: regularLabel },
+      ...(activeSplit === '2' ? [{ value: 'bracket', label: data.viewLabels?.bracket ?? '로드 투 MSI' }] : [{ value: 'playin', label: '플레이인' }, { value: 'playoffs', label: '플레이오프' }]),
+    ];
+    const active = data.activeView === 'bracket' && activeSplit !== '2' ? data.activePhase ?? 'playin' : data.activeView;
+    groups.push(
+      { label: '시즌 구간', selected: activeSplit, options: (['1', '2', '3'] as const).map(key => ({ value: key, label: data.splitLabels?.[key] ?? key })), onSelect: value => { setSplit(value as SplitKey); setView(null); setPhase(null); } },
+      { label: '세부 단계', selected: active, options, onSelect: value => {
+        if (value === 'playin' || value === 'playoffs') { setView('bracket'); setPhase(value); }
+        else setView(value as ViewKey);
+      } },
+    );
+    const splitTitle = activeSplit === '1' ? data.splitLabels?.[activeSplit] ?? 'LCK 컵' : `${data.segment.name} ${data.splitLabels?.[activeSplit] ?? activeSplit}`;
+    const phaseTitle = data.activeView === 'pom' ? 'POM 순위' : data.activeView === 'standings' ? `${regularLabel} 순위표` : `${options.find(option => option.value === active)?.label ?? '대진표'} 대진표`;
+    title = `${splitTitle} ${phaseTitle}`;
+  } else {
+    if (data.bracketStages.length > 0) groups.push({ label: '세부 단계', selected: data.activeBracketStageId ?? '', options: data.bracketStages.map(stage => ({ value: stage.id, label: stage.name })), onSelect: value => { setActiveBracketStageId(value); setView(null); } });
+    if (data.supportsGroupToggle) groups.push({ label: '보기', selected: data.activeView, options: [{ value: 'standings', label: '순위표' }, { value: 'bracket', label: '대진표' }], onSelect: value => setView(value as ViewKey) });
+    title = [data.segment.name, data.bracketStages.find(stage => stage.id === data.activeBracketStageId)?.name, data.activeView === 'standings' ? '순위표' : '대진표'].filter(Boolean).join(' ');
   }
 
-  return (
+  return <>
     <MinionScreen contentStyle={styles.screenContent}>
-      <View style={styles.page}>
-        <TournamentHeader segment={data.segment} />
-        <View style={styles.segmentRow}>
-          <TournamentSegmentSwitcher activeKey={segmentKey} items={data.segmentNav} onSelect={selectSegment} />
-        </View>
-
-        {data.isLck ? (
-          <View style={styles.lckSection}>
-            <View style={styles.lckTabs}>
-              <TournamentSegmentedControl
-                activeKey={split}
-                items={(['1', '2', '3'] as const).map((key) => ({ key, label: data.splitLabels?.[key] ?? key }))}
-                onSelect={(key) => {
-                  setSplit(key as '1' | '2' | '3');
-                  if (view === 'bracket') setPhase('playin');
-                }}
-              />
-              <TournamentUnderlineNav activeKey={activeViewKey} bordered={false} items={viewItems} onSelect={selectView} />
-            </View>
-            <TournamentBody data={data} />
-          </View>
-        ) : (
-          <View style={styles.nonLckSection}>
-            <View style={styles.nonLckHeader}>
-              <View style={styles.nonLckTitleGroup}>
-                <Text style={[styles.nonLckTitle, { color: theme.ink, ...fonts.display }]}>
-                  {data.activeView === 'standings' ? '조 순위' : '대진표'}
-                </Text>
-                {viewItems.length > 0 ? <TournamentUnderlineNav activeKey={activeViewKey} bordered={false} items={viewItems} onSelect={selectView} /> : null}
-              </View>
-              {data.bracketStages.length > 1 ? (
-                <TournamentSegmentedControl
-                  activeKey={data.activeBracketStageId ?? ''}
-                  items={data.bracketStages.map((stage) => ({ key: stage.id, label: stage.name }))}
-                  onSelect={(key) => {
-                    setActiveBracketStageId(key);
-                    setView('standings');
-                  }}
-                />
-              ) : null}
-            </View>
-            <TournamentBody data={data} />
-          </View>
-        )}
+      <View style={[styles.page, data.isLck && styles.lckPage]}>
+        <Text accessibilityRole="header" style={[styles.title, { color: theme.ink, ...fonts.display }]}>{title}</Text>
+        <TournamentBody data={data} />
       </View>
     </MinionScreen>
-  );
+    <View pointerEvents="box-none" style={StyleSheet.absoluteFillObject}>
+      <Pressable accessibilityLabel="필터 열기" accessibilityRole="button" onPress={() => setFilterOpen(true)} style={[styles.fab, { bottom: theme.size.footerDockClearance + insets.bottom, backgroundColor: theme.ink, borderColor: theme.border }]}>
+        <SlidersHorizontal color={theme.surface} size={20} />
+      </Pressable>
+    </View>
+    <TournamentFilterSheet groups={groups} onClose={() => setFilterOpen(false)} open={filterOpen} />
+  </>;
 }
 
 function TournamentBody({ data }: { data: MobileTournamentDetailDto }) {
+  const { theme } = useMinionTheme();
   if (data.activeView === 'pom') return <TournamentPomList rows={data.pomRows ?? []} />;
-  if (data.activeView === 'standings') {
-    return data.standingsGroups
-      ? <TournamentStandingsGroups groups={data.standingsGroups} />
-      : <TournamentEmptyNotice message="아직 등록된 순위가 없습니다." />;
-  }
-  if (data.bracketAvailable && data.bracket) {
-    return <TournamentBracket accent={data.segment.accent} bracket={data.bracket} />;
-  }
+  if (data.activeView === 'standings') return data.standingsGroups ? <TournamentStandingsGroups groups={data.standingsGroups} /> : <TournamentEmptyNotice message="아직 등록된 순위가 없습니다." />;
+  if (data.swissBracket) return <TournamentSwissBracket data={data.swissBracket} />;
+  if (data.bracketAvailable && data.bracket) return <TournamentBracket accent={theme.accent} bracket={data.bracket} showFormat={Boolean(data.worldsPhase)} />;
   return <TournamentEmptyNotice message={data.isLck ? '아직 공개된 일정이 없습니다.' : '아직 공개된 대진표가 없습니다.'} />;
 }
 
 const styles = StyleSheet.create({
-  lckSection: { gap: 24 },
-  lckTabs: { gap: 12 },
-  nonLckHeader: { alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: 12, justifyContent: 'space-between' },
-  nonLckSection: { gap: 16 },
-  nonLckTitle: { fontSize: 20, lineHeight: 26 },
-  nonLckTitleGroup: { alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  page: { gap: 24, marginTop: 8 },
-  screenContent: { gap: 0, paddingBottom: 0 },
-  segmentRow: { alignItems: 'center', flexDirection: 'row' },
+  fab: { alignItems: 'center', borderRadius: 24, borderWidth: 1, height: 48, justifyContent: 'center', position: 'absolute', right: 16, width: 48, zIndex: 60 },
+  lckPage: { gap: 24 },
+  page: { gap: 16, marginTop: 24, paddingBottom: 88 },
+  screenContent: { gap: 0, marginTop: 0, paddingBottom: 0 },
+  title: { fontSize: 20, lineHeight: 28 },
 });

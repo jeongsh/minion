@@ -447,6 +447,7 @@ export type MobileTournamentSegmentNavItem = {
 export type MobileBracketStagePill = { id: EntityId; name: string };
 
 export type MobileBracketMatch = {
+  bestOf?: number | null;
   id: EntityId;
   matchDate: IsoDateTime;
   teamA: MobileTeamSummary | null;
@@ -486,6 +487,8 @@ export type MobileBracketData = {
 };
 
 export type MobileTournamentDetailDto = {
+  worldsPhase?: "playin" | "swiss" | "knockout";
+  swissBracket?: MobileSwissBracketData;
   segment: { key: string; name: string; logo: string | null; logoAspect: number; accent: string };
   seasons: number[];
   activeSeason: number;
@@ -510,6 +513,12 @@ export type MobileTournamentDetailDto = {
   bracketAvailable: boolean;
   /** activeView==="bracket" && bracketAvailable일 때만 채워짐. */
   bracket: MobileBracketData | null;
+};
+
+export type MobileSwissBracketData = {
+  groups: { key: string; wins: number; losses: number; bestOf: number; dateLabel: string; pending: number; matches: MobileBracketMatch[] }[];
+  results: { key: string; wins: number; losses: number; teams: (MobileTeamSummary | null)[] }[];
+  unclassified: MobileBracketMatch[];
 };
 
 export type MobilePredictionMarket = {

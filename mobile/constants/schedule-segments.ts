@@ -5,6 +5,7 @@ export type ScheduleSegmentOption = {
   key: ScheduleSegmentKey | 'all';
   label: string;
   logo?: number;
+  logoPath?: string;
   logoAspect?: number;
 };
 
@@ -15,7 +16,7 @@ export const SCHEDULE_SEGMENTS: ScheduleSegmentOption[] = [
   { key: 'lck', label: 'LCK', logo: require('@/assets/logos/tournaments/lck.svg'), logoAspect: 205.05 / 145.52 },
   { key: 'msi', label: 'MSI', logo: require('@/assets/logos/tournaments/msi.svg'), logoAspect: 63.13 / 64 },
   { key: 'ewc', label: 'EWC', logo: require('@/assets/logos/tournaments/ewc.svg'), logoAspect: 133 / 26 },
-  { key: 'demacia-cup', label: 'Demacia Cup' },
+  { key: 'demacia-cup', label: 'Demacia Cup', logoPath: '/logos/tournaments/demacia-cup.svg', logoAspect: 128 / 141 },
   { key: 'worlds', label: 'Worlds', logo: require('@/assets/logos/tournaments/worlds.svg'), logoAspect: 1 },
   { key: 'enc', label: 'ENC', logo: require('@/assets/logos/tournaments/enc.webp'), logoAspect: 399 / 90 },
   { key: 'kespa-cup', label: 'KeSPA Cup', logo: require('@/assets/logos/tournaments/kespa-cup.svg'), logoAspect: 200 / 219 },
