@@ -922,7 +922,7 @@ html[class~="dark"] .app-lnb-scrollbar:hover::-webkit-scrollbar-thumb {
     --ad-rail-width: 160px;
     display: block;
     position: absolute;
-    top: 96px;
+    top: calc(96px + var(--ad-secondary-header-height, 0px));
     bottom: 0;
     left: 56px;
     right: 0;
@@ -947,11 +947,11 @@ html[class~="dark"] .app-lnb-scrollbar:hover::-webkit-scrollbar-thumb {
   }
 }
 
-/* Keep the entire creative visible below the 64px desktop header. */
-@media (min-width: 1800px) and (min-height: 700px) and (hover: hover) {
-  .desktop-ad-rail-right {
+/* Include the measured secondary header and keep the whole creative visible. */
+@media (min-width: 1800px) and (hover: hover) {
+  .desktop-ad-rails[data-sticky-fits="true"] .desktop-ad-rail-right {
     position: sticky;
-    top: 80px;
+    top: calc(80px + var(--ad-secondary-header-height, 0px));
   }
 }
 

@@ -108,7 +108,7 @@ export default async function SchedulePage({
   return (
     <main className="schedule-page text-[var(--ui-text)]">
       <h1 className="sr-only">경기 일정</h1>
-      <div className="mt-2 hidden border-b border-[var(--ui-border)] bg-[var(--page-background)] lg:sticky lg:top-[var(--ui-header-height)] lg:z-30 lg:block">
+      <div data-ad-secondary-header className="mt-2 hidden border-b border-[var(--ui-border)] bg-[var(--page-background)] lg:sticky lg:top-[var(--ui-header-height)] lg:z-30 lg:block">
         <div className="layout-wide py-2.5">
           <EventFilterBar
             actions={

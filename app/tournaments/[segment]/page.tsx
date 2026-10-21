@@ -1191,7 +1191,7 @@ export default async function TournamentBracketPage({
     <main data-ads-blocked={!hasAdContent ? "true" : undefined}>
       <RailAdContent enabled={hasAdContent} />
       <h1 className="sr-only">{segmentTheme.name} 대회</h1>
-      <header className="mt-2 hidden border-b border-[var(--ui-border)] bg-[var(--page-background)] lg:sticky lg:top-[var(--ui-header-height)] lg:z-30 lg:block">
+      <header data-ad-secondary-header className="mt-2 hidden border-b border-[var(--ui-border)] bg-[var(--page-background)] lg:sticky lg:top-[var(--ui-header-height)] lg:z-30 lg:block">
         <div className="layout-wide py-2.5">
           <EventFilterBar>
             <TournamentFilters filters={filters} />
