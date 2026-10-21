@@ -390,26 +390,8 @@ function tournamentStageName(tournament: SeasonTournamentConfig, row: CargoMatch
 }
 
 async function getRequiredTeams(supabase: SupabaseClient) {
-  const { data, error } = await supabase
-    .from("teams")
-    .select("id, slug, name, short_name, leaguepedia_page, source_team_id");
-
-  if (error) {
-    throw error;
-  }
-
-  const bySlug = new Map(data.map((team) => [team.slug, team]));
-  const byLeaguepediaPage = new Map<string, TeamRow>();
-  for (const team of data) {
-    for (const key of [team.leaguepedia_page, team.source_team_id, team.name, team.short_name]) {
-      const normalized = normalizeLookupKey(key);
-      if (normalized) {
-        byLeaguepediaPage.set(normalized, team);
-      }
-    }
-  }
-
-  return { bySlug, byLeaguepediaPage };
+  // Scheduled sync must resolve the same renamed teams as international sync.
+  return getTeamsForIntl(supabase);
 }
 
 function resolveTeam(name: string, teams: Awaited<ReturnType<typeof getRequiredTeams>>) {
@@ -1045,6 +1027,16 @@ export async function syncLeaguepediaLck2026(
     const tournamentId = await findOrCreateTournament(supabase, tournament);
     summary.tournaments += 1;
     const rows = rowsForTournament(tournament, rowsByOverviewPage);
+
+    // Validate the entire tournament before changing fixtures. Skipping an unknown
+    // team used to mix the old draw with the new one and duplicate other pairings.
+    const unresolvedTeams = [...new Set(rows.flatMap((row) => [row.Team1, row.Team2]))]
+      .map((name) => name?.trim())
+      .filter((name): name is string => Boolean(name) && name !== "TBD")
+      .filter((name) => !resolveTeam(name, teams));
+    if (unresolvedTeams.length > 0) {
+      throw new Error(`일정 동기화 중단 (${tournament.name}): 팀 별칭을 등록해주세요: ${unresolvedTeams.join(", ")}`);
+    }
 
     const stageOrder = new Map<string, number>();
     const seenStages = new Set<string>();
