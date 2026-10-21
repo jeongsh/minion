@@ -148,6 +148,7 @@ export default async function SchedulePage({
         </AdaptiveDialog>
       </div>
       <div className="layout-wide">
+        <AdSlot enabled={filtered.length > 0} placement="horizontal" className="mt-6 h-[60px] xl:h-[90px]" />
         <div className="mt-7 lg:mt-6"><ScheduleList matches={filtered} teams={teams} tournaments={tournaments} stages={stages} emptyMessage={`${activeYear}년 ${activeMonth}월 ${segmentLabel(activeSegment, activeYear)} 조건에 해당하는 경기가 없습니다.`} /></div>
         <AdSlot enabled={filtered.length > 0} placement="horizontal" className="my-6 h-[60px] xl:h-[90px]" />
       </div>

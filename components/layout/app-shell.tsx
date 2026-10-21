@@ -27,6 +27,7 @@ import { BrandLogo } from "@/components/layout/brand-logo";
 import { FanTeamPicker } from "@/components/layout/fan-team-picker";
 import { HeaderSearch } from "@/components/layout/header-search";
 import { SiteFooter } from "@/components/layout/site-footer";
+import { DesktopAdRails } from "@/components/ads/desktop-ad-rails";
 import { useMatchActivity } from "@/components/match-activity/use-match-activity";
 import { RatingOpenCard } from "@/components/match-activity/rating-open-card";
 import { NotificationPanel } from "@/components/notifications/notification-panel";
@@ -490,6 +491,7 @@ export function AppShell({
       ) : null}
 
       <div className={`flex flex-col md:pt-16 ${focusRoute || communityPostDetail ? "pt-12" : "pt-14 sm:pt-16"} ${focusRoute ? "" : "md:pl-14"}`}>
+        {!focusRoute ? <DesktopAdRails /> : null}
         <div className={`${!focusRoute && !communityPostDetail ? "compact-hub-content pb-0" : "pb-0"}`} data-shell-content={!focusRoute && !communityPostDetail ? "compact-hub" : undefined}>
           {showHubLocalNavigation ? (
             <nav aria-label="허브 로컬 메뉴" className="hub-local-navigation sticky z-30 border-b border-[var(--ui-border)] bg-[var(--page-background)] transition-[top] duration-200 md:hidden">
