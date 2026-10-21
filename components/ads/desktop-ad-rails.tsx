@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { AdSlot } from "@/components/ui/ad-slot";
 import { isAutoAdContentPath, isRailAdContentPath } from "@/lib/ads-policy";
 
-/** Ordinary scrolling placements: AdSense forbids mirrored sticky units. */
+/** Only the right placement sticks: AdSense forbids mirrored sticky units. */
 export function DesktopAdRails() {
   const pathname = usePathname();
   const [contentPath, setContentPath] = useState<string | null>(null);
@@ -34,7 +34,9 @@ export function DesktopAdRails() {
   return (
     <div className="desktop-ad-rails">
       <AdSlot key={`${pathname}-left`} enabled placement="rail-left" className="desktop-ad-rail desktop-ad-rail-left" />
-      <AdSlot key={`${pathname}-right`} enabled placement="rail-right" className="desktop-ad-rail desktop-ad-rail-right" />
+      <div className="desktop-ad-rail-track">
+        <AdSlot key={`${pathname}-right`} enabled placement="rail-right" className="desktop-ad-rail desktop-ad-rail-right" />
+      </div>
     </div>
   );
 }

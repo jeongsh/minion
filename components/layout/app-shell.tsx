@@ -490,7 +490,7 @@ export function AppShell({
         </aside>
       ) : null}
 
-      <div className={`flex flex-col md:pt-16 ${focusRoute || communityPostDetail ? "pt-12" : "pt-14 sm:pt-16"} ${focusRoute ? "" : "md:pl-14"}`}>
+      <div className={`ad-rail-layout flex flex-col md:pt-16 ${focusRoute || communityPostDetail ? "pt-12" : "pt-14 sm:pt-16"} ${focusRoute ? "" : "md:pl-14"}`}>
         {!focusRoute ? <DesktopAdRails /> : null}
         <div className={`${!focusRoute && !communityPostDetail ? "compact-hub-content pb-0" : "pb-0"}`} data-shell-content={!focusRoute && !communityPostDetail ? "compact-hub" : undefined}>
           {showHubLocalNavigation ? (
