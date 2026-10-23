@@ -59,6 +59,7 @@ type TeamRow = {
   leaguepedia_page: string | null;
   source_team_id: string | null;
   is_lck_team: boolean | null;
+  region: string | null;
   imported_scope: Team["importedScope"] | null;
   is_active: boolean | null;
   head_coach: string | null;
@@ -111,7 +112,7 @@ type PlayerRow = {
 // projection explicit so newly added/internal columns do not silently increase
 // every response and Supabase Database Egress.
 const TEAM_COLUMNS =
-  "id, slug, name, short_name, logo_url, logo_white_url, use_white_logo_on_dark, profile_image_url, background_url, primary_color, secondary_color, fan_site_host, official_homepage_url, official_youtube_url, official_x_url, official_instagram_url, leaguepedia_page, source_team_id, is_lck_team, imported_scope, is_active, head_coach, coaches, global_power_rank, popularity, search_aliases";
+  "id, slug, name, short_name, logo_url, logo_white_url, use_white_logo_on_dark, profile_image_url, background_url, primary_color, secondary_color, fan_site_host, official_homepage_url, official_youtube_url, official_x_url, official_instagram_url, leaguepedia_page, source_team_id, is_lck_team, region, imported_scope, is_active, head_coach, coaches, global_power_rank, popularity, search_aliases";
 const PLAYER_COLUMNS =
   "id, slug, name, real_name, team_id, position, profile_image_url, stream_url, twitter_url, instagram_url, youtube_url, facebook_url, discord_url, solo_queue_account, contract_expiry, is_starter, is_lck_player, imported_scope, is_active, retired_at, leaguepedia_page, source_player_id, search_aliases";
 const TEAM_STANDING_COLUMNS =
@@ -419,6 +420,7 @@ function mapTeam(row: TeamRow): Team {
     leaguepediaPage: row.leaguepedia_page ?? "",
     sourceTeamId: row.source_team_id ?? "",
     isLckTeam: row.is_lck_team ?? true,
+    region: row.region ?? null,
     importedScope: row.imported_scope ?? "lck",
     isActive: row.is_active ?? true,
     headCoach: row.head_coach ?? null,

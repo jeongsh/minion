@@ -20,6 +20,8 @@ export type Team = {
   leaguepediaPage?: string;
   sourceTeamId?: string;
   isLckTeam?: boolean;
+  /** Leaguepedia Teams.Region 원문. 비LCK 팀의 리그 간 비교에만 쓴다. */
+  region?: string | null;
   importedScope?: "lck" | "international_event" | "manual";
   isActive?: boolean;
   headCoach?: string | null;
@@ -212,6 +214,14 @@ export type SetResult = {
   redGold: number | null;
   blueDragons: number | null;
   redDragons: number | null;
+  /** Leaguepedia 보충 세트의 첫 원소 드래곤 처치 시각. 타임라인이 없으면 null. */
+  blueFirstDragonAtMs?: number | null;
+  redFirstDragonAtMs?: number | null;
+  /** 선수별 타임라인과 별개로 검증된 팀 단위 15분 지표. */
+  blueGoldDiffAt15?: number | null;
+  redGoldDiffAt15?: number | null;
+  blueXpDiffAt15?: number | null;
+  redXpDiffAt15?: number | null;
   blueClouds?: number | null;
   redClouds?: number | null;
   blueInfernals?: number | null;

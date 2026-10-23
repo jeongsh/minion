@@ -11,21 +11,36 @@ export const TEAM_RADAR_AXES = [
   { label: "XPD15", title: "15분 경험치차", decimals: 0, signed: true },
 ] as const;
 
+/** 팀 지표 비교에 필요한 최소 세트 수. 해외팀도 이 수만큼 미리 수집한다. */
+export const BRIEFING_MIN_SETS = 20;
+const BRIEFING_FORM_MATCHES = 5;
+const BRIEFING_MAX_STAT_MATCHES = 25;
+
 export function matchBriefingSample(match: Match, matches: Match[], sets: SetResult[]) {
   const cutoff = new Date(match.matchDate).getTime();
   const previous = matches.filter((item) => item.id !== match.id && item.status === "completed" && item.winnerTeamId && new Date(item.matchDate).getTime() < cutoff)
     .sort((a, b) => new Date(b.matchDate).getTime() - new Date(a.matchDate).getTime());
+  // 최근 폼은 5매치, 지표는 세트 수가 BRIEFING_MIN_SETS를 처음 넘는 매치까지 쓴다.
   const byTeam = new Map<string, Match[]>();
+  const statByTeam = new Map<string, Match[]>();
+  const statSets = new Map<string, number>();
   for (const item of previous) {
     for (const teamId of [item.teamAId, item.teamBId]) {
       const recent = byTeam.get(teamId) ?? [];
-      if (recent.length < 5) recent.push(item);
+      if (recent.length < BRIEFING_FORM_MATCHES) recent.push(item);
       byTeam.set(teamId, recent);
+      const stat = statByTeam.get(teamId) ?? [];
+      const count = statSets.get(teamId) ?? 0;
+      if (count < BRIEFING_MIN_SETS && stat.length < BRIEFING_MAX_STAT_MATCHES) {
+        stat.push(item);
+        statSets.set(teamId, count + (item.teamAScore ?? 0) + (item.teamBScore ?? 0));
+      }
+      statByTeam.set(teamId, stat);
     }
   }
-  const matchIds = new Set([...byTeam.values()].flat().map((item) => item.id));
+  const matchIds = new Set([...statByTeam.values()].flat().map((item) => item.id));
   const completedSets = sets.filter((set) => matchIds.has(set.matchId) && set.winnerTeamId);
-  return { byTeam, sets: completedSets, setIds: completedSets.map((set) => set.id) };
+  return { byTeam, statByTeam, sets: completedSets, setIds: completedSets.map((set) => set.id) };
 }
 
 function mean(values: Array<number | null>) {
@@ -51,6 +66,13 @@ export type BriefingTeamStats = {
   scores: Array<number | null>;
 };
 
+export function briefingTeamMetricAt15(set: SetResult, teamId: string, metric: "goldDiffAt15" | "xpDiffAt15") {
+  const value = metric === "goldDiffAt15"
+    ? set.blueTeamId === teamId ? set.blueGoldDiffAt15 : set.redTeamId === teamId ? set.redGoldDiffAt15 : null
+    : set.blueTeamId === teamId ? set.blueXpDiffAt15 : set.redTeamId === teamId ? set.redXpDiffAt15 : null;
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
 export function buildMatchBriefingStats(match: Match, matches: Match[], sets: SetResult[], playerStats: PlayerStatLine[]) {
   const sample = matchBriefingSample(match, matches, sets);
   const linesByTeamSet = new Map<string, PlayerStatLine[]>();
@@ -63,8 +85,9 @@ export function buildMatchBriefingStats(match: Match, matches: Match[], sets: Se
   const teams = new Map<string, BriefingTeamStats>();
   for (const teamId of new Set([...sample.byTeam.keys(), match.teamAId, match.teamBId])) {
     const recent = sample.byTeam.get(teamId) ?? [];
-    const ids = new Set(recent.map((item) => item.id));
+    const ids = new Set((sample.statByTeam.get(teamId) ?? []).map((item) => item.id));
     const teamSets = sample.sets.filter((set) => ids.has(set.matchId) && [set.blueTeamId, set.redTeamId].includes(teamId));
+    const setById = new Map(teamSets.map((set) => [set.id, set]));
     // 합계 지표에 일부 선수만 섞이지 않도록 완전한 5인 기록만 집계한다.
     const games = teamSets.map((set) => linesByTeamSet.get(`${teamId}:${set.id}`) ?? [])
       .filter((lines) => lines.length === 5 && new Set(lines.map((line) => line.playerId)).size === 5 && new Set(lines.map((line) => line.position)).size === 5);
@@ -79,7 +102,11 @@ export function buildMatchBriefingStats(match: Match, matches: Match[], sets: Se
       mean(games.map((lines) => completeSum(lines, (line) => perMinute(line, line.dpm, line.damageToChampions)))),
       mean(games.map((lines) => completeSum(lines, (line) => line.visionScore))),
       mean(games.map((lines) => completeSum(lines, (line) => perMinute(line, line.csPerMinute, line.cs)))),
-      ...(["goldDiffAt10", "xpDiffAt10", "goldDiffAt15", "xpDiffAt15"] as const).map((key) => mean(games.map((lines) => completeSum(lines, (line) => line[key])))),
+      ...(["goldDiffAt10", "xpDiffAt10", "goldDiffAt15", "xpDiffAt15"] as const).map((key) => mean(games.map((lines) => {
+        const total = completeSum(lines, (line) => line[key]);
+        const set = setById.get(lines[0].setId);
+        return total ?? (set && (key === "goldDiffAt15" || key === "xpDiffAt15") ? briefingTeamMetricAt15(set, teamId, key) : null);
+      }))),
     ];
     const scored = recent.filter((item) => item.teamAScore != null && item.teamBScore != null);
     const setWins = scored.reduce((sum, item) => sum + (item.teamAId === teamId ? item.teamAScore! : item.teamBScore!), 0);
@@ -92,7 +119,7 @@ export function buildMatchBriefingStats(match: Match, matches: Match[], sets: Se
       statSetCount: games.length, values, scores: [],
     });
   }
-  // 두 참가 팀만으로 축을 늘리지 않고, 수집된 모든 팀의 최근 5매치를 공통 모집단으로 쓴다.
+  // 두 참가 팀만으로 축을 늘리지 않고, 수집된 모든 팀의 최근 세트를 공통 모집단으로 쓴다.
   for (const team of teams.values()) {
     team.scores = team.values.map((value, index) => {
       const population = [...teams.values()].flatMap((item) => item.values[index] == null ? [] : [item.values[index]!]);

@@ -1,6 +1,6 @@
 import type { Match, Player, PlayerPosition, PlayerStatLine, SetResult, Team } from "./types.ts";
 import { normalizeLeaguepediaKey, resolveLeaguepediaIdentity } from "./leaguepedia-identity.ts";
-import { buildMatchBriefingStats, matchBriefingSample } from "./match-briefing-stats.ts";
+import { BRIEFING_MIN_SETS, buildMatchBriefingStats, matchBriefingSample } from "./match-briefing-stats.ts";
 import type { MatchPowerRankings } from "./power-rankings.ts";
 
 export type BriefingData = { matches: Match[]; sets: SetResult[]; playerStats: PlayerStatLine[] };
@@ -37,10 +37,18 @@ export function briefingTeamsNeedingData(match: Match, data: BriefingData) {
   const sample = matchBriefingSample(match, data.matches, data.sets);
   const stats = buildMatchBriefingStats(match, data.matches, data.sets, data.playerStats);
   return [stats.teamA, stats.teamB].filter((team) => {
-    const recent = sample.byTeam.get(team.teamId) ?? [];
+    const recent = sample.statByTeam.get(team.teamId) ?? [];
+    const matchIds = new Set(recent.map((item) => item.id));
+    const setIds = new Set(sample.sets.filter((set) => matchIds.has(set.matchId)).map((set) => set.id));
+    const missingTimeline = data.playerStats.some((line) => line.teamId === team.teamId && setIds.has(line.setId)
+      && (["goldDiffAt10", "xpDiffAt10", "goldDiffAt15", "xpDiffAt15"] as const).some((key) => !Number.isFinite(line[key])));
+    const missingChampions = data.playerStats.some((line) => line.teamId === team.teamId && setIds.has(line.setId) && !line.championId);
+    const missingDragons = sample.sets.some((set) => setIds.has(set.id) && set.id.startsWith("leaguepedia-game:")
+      && (set.blueTeamId === team.teamId ? (set.blueDragons ?? 0) > 0 && set.blueFirstDragonAtMs == null
+        : set.redTeamId === team.teamId && (set.redDragons ?? 0) > 0 && set.redFirstDragonAtMs == null));
     const expected = recent.reduce((sum, item) => sum + (item.teamAScore ?? 0) + (item.teamBScore ?? 0), 0);
-    return recent.length < 5 || recent.some((item) => item.teamAScore == null || item.teamBScore == null)
-      || team.statSetCount < expected || team.values.some((value) => value == null);
+    return expected < BRIEFING_MIN_SETS || recent.some((item) => item.teamAScore == null || item.teamBScore == null)
+      || team.statSetCount < expected || team.values.some((value) => value == null) || missingTimeline || missingChampions || missingDragons;
   }).map((team) => team.teamId);
 }
 
@@ -120,6 +128,9 @@ export function mergeLeaguepediaBriefingData(
       durationSeconds: duration(row.Gamelength), blueKills: number(metric(blue, "Kills")), redKills: number(metric(red, "Kills")),
       blueGold: gold(metric(blue, "Gold")), redGold: gold(metric(red, "Gold")), blueDragons: number(metric(blue, "Dragons")), redDragons: number(metric(red, "Dragons")),
       blueBarons: number(metric(blue, "Barons")), redBarons: number(metric(red, "Barons")), blueTowers: number(metric(blue, "Towers")), redTowers: number(metric(red, "Towers")),
+      blueFirstDragonAtMs: number(row.BlueFirstDragonMs), redFirstDragonAtMs: number(row.RedFirstDragonMs),
+      blueGoldDiffAt15: number(metric(blue, "GoldDiffAt15")), redGoldDiffAt15: number(metric(red, "GoldDiffAt15")),
+      blueXpDiffAt15: number(metric(blue, "XpDiffAt15")), redXpDiffAt15: number(metric(red, "XpDiffAt15")),
       leaguepediaGameId: row.GameId, patch: row.Patch ?? null };
     if (set) {
       const filled = { ...incoming, ...Object.fromEntries(Object.entries(set).filter(([, value]) => value != null)) } as SetResult;
@@ -129,19 +140,33 @@ export function mergeLeaguepediaBriefingData(
     for (const line of gamePlayers) {
       const side = teamId(line.Team);
       const position = ROLES[line.Role?.toLowerCase() ?? ""];
+      if (!position || ![blue, red].includes(side)) continue;
+      const existingIndex = playerStats.findIndex((item) => item.setId === set.id && item.teamId === side && item.position === position);
+      const timelineMetrics = {
+        goldDiffAt10: number(line.GoldDiffAt10), xpDiffAt10: number(line.XpDiffAt10),
+        goldDiffAt15: number(line.GoldDiffAt15), xpDiffAt15: number(line.XpDiffAt15),
+      };
+      // 타임라인 지표 보충은 박스 스코어의 시야 점수 등 누락과 독립적으로 처리한다.
+      if (existingIndex >= 0) {
+        const existing = playerStats[existingIndex];
+        playerStats[existingIndex] = {
+          ...existing,
+          championId: existing.championId ?? line.ChampionId ?? null,
+          ...Object.fromEntries(Object.entries(timelineMetrics).map(([key, value]) =>
+            [key, existing[key as keyof typeof timelineMetrics] ?? value])),
+        };
+      }
       // Required box-score metrics must all exist. Empty source fields are never converted to zero.
       const values = [line.Kills, line.Deaths, line.Assists, line.CS, line.Gold, line.DamageToChampions, line.VisionScore].map(number);
-      if (!position || !line.Link || ![blue, red].includes(side) || values.some((value) => value == null) || !set.durationSeconds) continue;
+      if (!line.Link || values.some((value) => value == null) || !set.durationSeconds) continue;
       const playerId = resolveLeaguepediaIdentity(line.Link, playerIdentities, playerAliases)?.id ?? `leaguepedia-player:${normalizeLeaguepediaKey(line.Link)}`;
-      const existingIndex = playerStats.findIndex((item) => item.setId === set.id && item.teamId === side && item.position === position);
       const [kills, deaths, assists, cs, playerGold, damage, visionScore] = values as number[];
       const sameSide = gamePlayers.filter((item) => teamId(item.Team) === side);
-      const incomingLine: PlayerStatLine = { setId: set.id, playerId, teamId: side, position, kills, deaths, assists, cs, gold: playerGold,
+      const incomingLine: PlayerStatLine = { setId: set.id, playerId, teamId: side, position, championId: line.ChampionId ?? null, kills, deaths, assists, cs, gold: playerGold,
         damageToChampions: damage, visionScore, gameMinutes: set.durationSeconds / 60,
         teamKills: (side === blue ? set.blueKills : set.redKills) ?? sameSide.reduce((sum, item) => sum + (number(item.Kills) ?? 0), 0),
         teamDamage: sameSide.reduce((sum, item) => sum + (number(item.DamageToChampions) ?? 0), 0),
-        goldDiffAt10: number(line.GoldDiffAt10), xpDiffAt10: number(line.XpDiffAt10),
-        goldDiffAt15: number(line.GoldDiffAt15), xpDiffAt15: number(line.XpDiffAt15),
+        ...timelineMetrics,
         itemIds: [], spellIds: [], runeIds: [], roleBoundItem: null, patch: set.patch ?? null };
       if (existingIndex < 0) playerStats.push(incomingLine);
       else {

@@ -90,6 +90,8 @@ const WRITER_SCHEMA = {
   additionalProperties: false,
   required: [
     "headline",
+    "oneLiner",
+    "watchPoints",
     "summary",
     "narrativeTitle",
     "narrativeBody",
@@ -111,6 +113,13 @@ const WRITER_SCHEMA = {
   ],
   properties: {
     headline: { type: "string" },
+    oneLiner: { type: "string" },
+    watchPoints: {
+      type: "array",
+      minItems: 3,
+      maxItems: 3,
+      items: { type: "string" },
+    },
     summary: { type: "string" },
     narrativeTitle: { type: "string" },
     narrativeBody: { type: "string" },
@@ -157,7 +166,7 @@ const WRITER_SCHEMA = {
   },
 } as const;
 
-const MATCH_PREVIEW_PROMPT_VERSION = 15;
+const MATCH_PREVIEW_PROMPT_VERSION = 18;
 const MATCH_PREVIEW_CONTENT_VERSION = 3;
 const DEFAULT_RESEARCH_MODEL = "gpt-5.4-mini";
 const DEFAULT_STANDARD_MODEL = "gpt-5.4-mini";
@@ -194,6 +203,10 @@ export type MatchAiPreviewConfidence = "low" | "medium" | "high";
 
 export type MatchAiPreview = {
   headline: string;
+  /** 차트 위에 놓는 두 줄 평. 기존 필드명은 캐시와 소비자 호환을 위해 유지한다. */
+  oneLiner: string | null;
+  /** 데이터 근거와 확인할 장면을 담은 관전 포인트 3개. 이전 세대 캐시와 fallback에서는 빈 배열. */
+  watchPoints: string[];
   summary: string;
   narrative: MatchAiPreviewNarrative | null;
   matchMeaning: string | null;
@@ -376,6 +389,8 @@ function fallbackPreview(facts: MatchPreviewFacts): MatchAiPreview {
 
   return {
     headline: "데이터로 보는 매치업",
+    oneLiner: null,
+    watchPoints: [],
     summary: `${meetingLead} ${scheduleLine}`,
     narrative: null,
     matchMeaning: null,
@@ -404,6 +419,12 @@ function normalizedWinProbability(value: unknown): number | null {
 
 function normalizedText(value: unknown, maxLength: number) {
   return typeof value === "string" ? value.trim().slice(0, maxLength) : "";
+}
+
+function normalizedWatchPoints(value: unknown) {
+  return Array.isArray(value)
+    ? value.flatMap((item) => normalizedText(item, 120) || []).slice(0, 3)
+    : [];
 }
 
 function normalizedOptionalDate(value: unknown) {
@@ -652,6 +673,8 @@ function previewFromCacheRow(data: MatchAiPreviewCacheRow): MatchAiPreview {
   const content = data.content && typeof data.content === "object"
     ? data.content as {
         headline?: unknown;
+        oneLiner?: unknown;
+        watchPoints?: unknown;
         narrative?: unknown;
         matchMeaning?: unknown;
         recentView?: unknown;
@@ -667,6 +690,8 @@ function previewFromCacheRow(data: MatchAiPreviewCacheRow): MatchAiPreview {
     : "legacy";
   return {
     headline: normalizedText(content.headline, 80) || "AI 매치업 브리핑",
+    oneLiner: normalizedText(content.oneLiner, 160) || null,
+    watchPoints: normalizedWatchPoints(content.watchPoints),
     summary: data.summary,
     narrative: parseStoredNarrative(content.narrative),
     matchMeaning: normalizedText(content.matchMeaning, 240) || null,
@@ -1062,8 +1087,16 @@ function normalizeWriterPreview({
   const requestedConfidence = parseConfidence(row.confidence);
   const winProbabilityA = normalizedWinProbability(row.winProbabilityA);
   if (winProbabilityA === null) throw new Error("AI 프리뷰의 예상 승률이 없습니다.");
+  const oneLiner = normalizedText(row.oneLiner, 160);
+  const watchPoints = normalizedWatchPoints(row.watchPoints);
+  if (!oneLiner) throw new Error("AI 프리뷰의 두줄평이 없습니다.");
+  if (!Array.isArray(row.watchPoints) || row.watchPoints.length !== 3 || new Set(watchPoints).size !== 3) {
+    throw new Error("AI 프리뷰의 관전 포인트는 서로 다른 내용으로 정확히 3개가 필요합니다.");
+  }
   return {
     headline,
+    oneLiner,
+    watchPoints,
     summary,
     narrative,
     matchMeaning,
@@ -1117,6 +1150,10 @@ async function writeMatchPreview({
           "두 팀의 CandidateId는 axis가 반드시 달라야 한다. 같은 경기에서 양 팀을 모두 DPM·화력으로 설명하거나 같은 오브젝트 문장을 대칭 복제하지 않는다.",
           "후보 우선순위는 팀 운영(economy/objectives), 라인 주도권(laning), 교전 화력(damage), 접전 대응(resilience) 순이다. damage는 다른 축이 더 뚜렷하지 않을 때 한 팀에만 사용한다.",
           "liveCheck는 정확히 1문장이다. 팀명 또는 선수명을 넣고 시청 중 확인 가능한 기준 하나만 쓴다.",
+          "oneLiner는 차트 위에 놓는 두줄평이다. 전체 60~100자 안팎의 짧은 두 문장을 쓰고 문장 사이에 줄바꿈 하나를 넣는다. 첫 문장은 뉴스 헤드라인이나 중계 캐치프레이즈처럼 팀명 또는 선수명과 핵심 대결 구도를 선명하게 잡고, 둘째 문장은 상대의 반격 경로나 승부를 가를 변수를 구체적으로 덧붙인다. 리듬감 있는 표현을 쓰되 두 문장이 같은 내용을 반복하지 않는다. 수치 나열, '치열한 승부' 같은 상투어, 근거 없는 과장, 확정적 승패, 비하 표현은 피하고 headline을 그대로 반복하지 않는다.",
+          "watchPoints는 반드시 정확히 3개다. 항목마다 50~100자 안팎의 짧은 1~2문장으로, 한두 줄 분량을 목표로 쓴다. 별도 제목이나 줄바꿈 없이 핵심 장면부터 바로 설명한다.",
+          "각 관전 포인트에는 어느 팀 또는 선수를 볼지, 어떤 시간대나 상황에서 무엇을 확인할지, 그것이 상대와의 승부에 왜 중요한지를 담는다. internalFacts에서 확인되는 핵심 수치 하나를 근거로 연결하되, 통계만 나열하거나 '주목해야 한다', '관건이다'로 두루뭉술하게 끝내지 않는다. 실제 경기에서 비교할 행동이나 결과를 구체적으로 제시한다.",
+          "관전 포인트 3개는 라인 주도권, 오브젝트 운영, 교전이나 접전 대응 등 데이터가 뒷받침하는 서로 다른 축으로 고른다. 수치가 부족한 축은 확인 가능한 기록이나 대결 구도로 설명하고, 개수를 채우려고 사실이나 전술을 만들지 않는다. summary, 승리 조건, liveCheck의 문장을 그대로 반복하지 않는다.",
           "선수 수치는 roleMatchups에서 games가 1 이상일 때만 쓴다. 밴픽 성향, 컨디션, 집중력처럼 데이터에 없는 내용을 만들지 않는다.",
           "winProbabilityA는 internalFacts.teamA의 승률을 5~95 정수로 쓴다. 확정적 승패 표현은 금지한다.",
           "evidenceIds에는 최종 데이터 문장에 실제로 쓴 internalEvidenceCatalog의 id만 넣는다. 숫자를 새로 작성한 evidence 문장은 출력하지 않는다.",
@@ -1448,6 +1485,8 @@ async function generateAndStoreMatchAiPreview(
           briefingData: createMatchBriefingSnapshot(inputs.match, inputs.briefingRows ?? [],
             await getPowerRankings(new Date(inputs.match.matchDate).getUTCFullYear())),
           headline: preview.headline,
+          oneLiner: preview.oneLiner,
+          watchPoints: preview.watchPoints,
           narrative: preview.narrative,
           matchMeaning: preview.matchMeaning,
           recentView: preview.recentView,

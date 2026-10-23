@@ -165,7 +165,7 @@ export function parseLeaguepediaTimelineEvents(
         rows.push({
           ...base,
           event_type: event.type,
-          team_id: teamIdFromRiot(event.killerTeamId, blueTeamId, redTeamId),
+          team_id: teamIdFromRiot(event.killerTeamId, blueTeamId, redTeamId) ?? killer?.teamId ?? null,
           player_id: killer?.playerId ?? null,
           killer_player_id: killer?.playerId ?? null,
           victim_player_id: null,

@@ -3,12 +3,12 @@ import { createSupabaseAdminClient } from "../supabase/admin.ts";
 import type { MatchBriefingSnapshot } from "../match-briefing-data.ts";
 
 /** 기존 AI 문구와 생성 시각을 보존하면서 수집 자료만 보충한다. */
-export async function backfillMatchBriefingSnapshot(snapshot: MatchBriefingSnapshot) {
+export async function backfillMatchBriefingSnapshot(snapshot: MatchBriefingSnapshot, { replaceExisting = false } = {}) {
   const admin = createSupabaseAdminClient();
   const { data: cached, error } = await admin.from("match_ai_previews")
     .select("content,input_hash,generation_phase,generated_at").eq("match_id", snapshot.matchId).maybeSingle();
   if (error) throw new Error(error.message);
-  if (!cached || cached.content?.briefingData) return false;
+  if (!cached || (cached.content?.briefingData && !replaceExisting)) return false;
   const lockToken = randomUUID();
   const { data: claimed, error: claimError } = await admin.rpc("claim_match_ai_preview_generation", {
     p_match_id: snapshot.matchId, p_lock_token: lockToken,
