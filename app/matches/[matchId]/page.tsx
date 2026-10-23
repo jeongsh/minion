@@ -31,7 +31,7 @@ import {
   getStages,
   getTournaments,
 } from "@/lib/data/lck";
-import { championImage } from "@/lib/champions";
+import { championImage, pickerChampions } from "@/lib/champions";
 import type { Champion, FanRating, Match, Player, PlayerStatLine, SetResult, Team } from "@/lib/types";
 import { isMatchFinished, isMatchLive, matchStatusLabel } from "@/lib/match-display";
 import {
@@ -49,7 +49,11 @@ import { getPredictionMarketData } from "@/lib/predictions";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { getMatchAiPreview } from "@/lib/match-preview-ai";
 import { getStoredMatchBriefingData } from "@/lib/data/match-briefing";
-import { buildMatchBriefingStats, matchBriefingSample } from "@/lib/match-briefing-stats";
+import { matchBriefingSample } from "@/lib/match-briefing-stats";
+import { buildChampionPriority, buildLeagueSetRecord, buildMatchBriefingVisuals, buildTeamStyles, type BriefingTeamVisuals, type DragonEvent } from "@/lib/match-preview-visuals";
+import { getDragonEvents } from "@/lib/data/match-preview-timeline";
+import { buildMatchPreviewAccuracy, type StoredPreviewPrediction } from "@/lib/match-preview-accuracy";
+import { getStoredPreviewPredictions } from "@/lib/data/match-preview-accuracy";
 import type { MatchPowerRankings } from "@/lib/power-rankings";
 import { compactMatchStageName, compactMatchTournamentName } from "@/lib/match-header-labels";
 
@@ -547,8 +551,15 @@ export default async function MatchDetailPage({
   let previewSets: SetResult[] = [];
   let previewPlayerStats: PlayerStatLine[] = [];
   let powerRankings: MatchPowerRankings = { status: "error", sourceUrl: "https://lolesports.com/en-US/gpr", teams: [] };
+  let previewPredictions: StoredPreviewPrediction[] = [];
+  let previewVisuals: { teamA: BriefingTeamVisuals; teamB: BriefingTeamVisuals } | null = null;
+  let previewChampions: Champion[] = [];
+  let previewDragonEvents: DragonEvent[] = [];
   if (activeTab === "preview" && hasResolvedPreviewTeams) {
-    [previewMatches, previewSets] = await Promise.all([getMatches(), getSets()]);
+    [previewMatches, previewSets, previewPredictions] = await Promise.all([getMatches(), getSets(), getStoredPreviewPredictions().catch((error) => {
+      console.warn("[match-ai-preview] 적중률 조회 실패", error);
+      return [];
+    })]);
     const sample = matchBriefingSample(match, previewMatches, previewSets);
     previewPlayerStats = await getPlayerBenchmarkStatLines(sample.setIds);
     const supplemented = await getStoredMatchBriefingData(match, teams, players, {
@@ -558,6 +569,15 @@ export default async function MatchDetailPage({
     previewSets = supplemented.sets;
     previewPlayerStats = supplemented.playerStats;
     powerRankings = supplemented.powerRankings;
+    const visuals = buildMatchBriefingVisuals(match, previewMatches, previewSets, previewPlayerStats);
+    previewVisuals = visuals;
+    [previewChampions, previewDragonEvents] = await Promise.all([
+      getChampions().then(pickerChampions),
+      getDragonEvents([...visuals.teamA.setIds, ...visuals.teamB.setIds], previewSets).catch((error) => {
+        console.warn("[match-ai-preview] 드래곤 이벤트 조회 실패", error);
+        return [];
+      }),
+    ]);
   }
   // "rating" 탭 선수 카드에 세트에서 픽한 챔피언 아이콘을 보여주기 위함 — 다른 탭은 필요 없다.
   const ratingChampions: Champion[] = activeTab === "rating" ? await getChampions() : [];
@@ -643,12 +663,19 @@ export default async function MatchDetailPage({
 
       <TabNav activeTab={activeTab} activeSet={activeSet} sets={matchSets} showLive={match.status !== "completed"} />
 
-      {activeTab === "preview" && aiPreview ? (
+      {activeTab === "preview" && aiPreview && previewVisuals ? (
         <MatchPreview
           match={match}
           teams={teams}
+          players={players}
+          champions={previewChampions}
           matches={previewMatches.filter((item) => !item.id.startsWith("leaguepedia-match:"))}
-          stats={buildMatchBriefingStats(match, previewMatches, previewSets, previewPlayerStats)}
+          styles={buildTeamStyles(match, previewMatches, previewSets, previewPlayerStats)}
+          visuals={previewVisuals}
+          championPriority={buildChampionPriority([previewVisuals.teamA, previewVisuals.teamB], previewPlayerStats)}
+          dragonEvents={previewDragonEvents}
+          leagueRecord={buildLeagueSetRecord({ match, teams, matches: previewMatches, sets: previewSets, tournaments })}
+          accuracy={buildMatchPreviewAccuracy(previewPredictions, previewMatches, tournaments, tournament?.season ?? new Date(match.matchDate).getUTCFullYear())}
           powerRankings={powerRankings}
           poll={poll}
           aiPreview={aiPreview}

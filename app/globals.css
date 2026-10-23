@@ -1896,3 +1896,53 @@ html[class~="dark"] .me-page {
   --me-card-border: var(--ui-border);
   --me-card-shadow: none;
 }
+
+/* 매치 프리뷰 차트 진입 애니메이션. ChartReveal이 화면에 들어올 때 data-revealed를 켠다. */
+.preview-reveal [data-bar] {
+  transform: scaleX(0);
+  transform-origin: var(--bar-origin, left center);
+  transition: transform 900ms cubic-bezier(0.22, 1, 0.36, 1) calc(var(--i, 0) * 70ms);
+}
+.preview-reveal [data-arc] {
+  stroke-dashoffset: var(--arc-length);
+  transition: stroke-dashoffset 1200ms cubic-bezier(0.22, 1, 0.36, 1) 150ms;
+}
+.preview-reveal [data-pop] {
+  opacity: 0;
+  scale: 0.4;
+  transition: opacity 360ms ease calc(var(--i, 0) * 45ms), scale 560ms cubic-bezier(0.34, 1.56, 0.64, 1) calc(var(--i, 0) * 45ms);
+}
+.preview-reveal [data-wipe] {
+  clip-path: inset(0 100% 0 0);
+  transition: clip-path 1300ms cubic-bezier(0.22, 1, 0.36, 1) 100ms;
+}
+.preview-reveal [data-radar] svg > g {
+  opacity: 0;
+  transform: scale(0.15);
+  transform-origin: 140px 140px;
+  transition: opacity 500ms ease, transform 900ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.preview-reveal [data-radar] svg > g:last-of-type {
+  transition-delay: 120ms;
+}
+.preview-reveal[data-revealed="true"] [data-bar] {
+  transform: scaleX(1);
+}
+.preview-reveal[data-revealed="true"] [data-arc] {
+  stroke-dashoffset: var(--arc-offset, 0);
+}
+.preview-reveal[data-revealed="true"] [data-pop] {
+  opacity: 1;
+  scale: 1;
+}
+.preview-reveal[data-revealed="true"] [data-wipe] {
+  clip-path: inset(0 0 0 0);
+}
+.preview-reveal[data-revealed="true"] [data-radar] svg > g {
+  opacity: 1;
+  transform: none;
+}
+.preview-reveal[data-instant] *,
+.preview-reveal[data-instant] svg > g {
+  transition: none !important;
+}
