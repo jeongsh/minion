@@ -37,3 +37,14 @@
 - 웹/앱 타입 검사, 앱 린트(기존 경고 2개), 변경 웹 파일 ESLint, strict 타이포그래피 검사와 `git diff --check`를 통과했다.
 
 위 측정은 Chromium의 웹/Expo Web 비교다. iPhone 실기기에서의 렌더링과 화면 전체의 네이티브 1px 일치까지 통과한 것으로 보고하지 않는다. 빌드 및 배포 보류는 유지한다.
+
+## 후속 iOS 테스트 배포
+
+- 후속 사용자 요청으로 iOS 빌드와 TestFlight 제출 보류를 해제했다. Android 빌드는 실행하지 않았다.
+- 기능별 한글 커밋 8개를 `origin/dev`에 푸시했다. 앱 빌드 기준 커밋은 `5a45c6bb3c5f689de80cd5edea9b6b773991c3b5`다.
+- 웹과 앱 타입 검사, 변경 웹 파일 ESLint, 타이포그래피 검사와 테스트 182개를 통과했다. 앱 린트는 오류 없이 기존 경고 2개가 남는다. 이번 배포 작업에서 실기기 검증은 실행하지 않았다.
+- 기존 마이그레이션 `20261023110202`, `20261023110532`의 운영 DB 적용 이력과 테이블 및 컬럼 존재를 확인했다. 새 스키마 변경은 실행하지 않았다. 보안 advisor에 기존 함수 실행 권한 및 유출 비밀번호 보호 경고가 남아 있으며 이번 범위에서 변경하지 않았다.
+- 푸시로 시작된 Vercel 운영 배포가 완료됐다. 운영 모바일 프리뷰 API에서 `preview.briefing.charts`와 두 팀 응답을 확인했다.
+- EAS production iOS `1.0.2 (11)` 빌드 `436acdb1-e9dd-4fb8-bd95-ae8fea7462f0`가 2026-10-24 01:04 KST에 성공했다. 운영 API `https://minion.fan`을 사용하는 기존 production 설정을 적용했다.
+- 자동 제출 `1dbef646-f58f-46df-9e07-333f3f7b053f`가 2026-10-24 01:34:59 KST에 성공했다. 빌드 완료 후 Expo 제출 대기열에서 약 30분이 걸렸다.
+- App Store Connect 조회에서 빌드 11의 `processingState=VALID`, `internalState=IN_BETA_TESTING`을 확인했다. 내부 테스터가 TestFlight에서 설치할 수 있다. App Store 정식 심사 제출은 실행하지 않았다. 조회 결과는 `.tmp/ios-testflight-11.json`에 저장했다.
