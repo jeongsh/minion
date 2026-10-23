@@ -34,7 +34,7 @@ function TeamProfile({ team, stats, rank, condition, winColor }: { team?: Team; 
   const strongest = stats.scores.map((score, index) => ({ score, index }))
     .filter((item) => item.score != null).sort((a, b) => b.score! - a.score!).slice(0, 2);
   return (
-    <section className={`row-span-4 grid min-w-0 grid-rows-subgrid gap-y-4 rounded-xl ${CARD_SURFACE} p-3.5 sm:p-4`} aria-label={`${team?.shortName ?? "팀"} 프로필`}>
+    <section className={`grid min-w-0 gap-y-4 rounded-xl ${CARD_SURFACE} p-3.5 sm:p-4`} aria-label={`${team?.shortName ?? "팀"} 프로필`}>
       <div className="flex min-w-0 items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
           <span className="hidden shrink-0 sm:block"><TeamLogo team={team} size="h-7 w-7" plain themeAware /></span>
@@ -113,7 +113,7 @@ export function MatchPreview({ match, teams, matches, poll, aiPreview, stats, po
             {tags.length ? <div className="mt-3 flex flex-wrap gap-1.5">{tags.map((tag, index) => <span key={index} className="rounded-md border border-[var(--ui-border)] px-2 py-0.5 text-[13px] font-medium text-[var(--ui-muted)]">#{tag}</span>)}</div> : null}
           </div>
         ) : null}
-        <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
+        <div className="grid grid-cols-1 gap-2.5 sm:gap-3">
           <TeamProfile team={teamA} stats={stats.teamA} rank={rankings[0]?.history.at(-1)?.rank ?? null} condition={aiPreview.teamAWinCondition} winColor={winColors[0]} />
           <TeamProfile team={teamB} stats={stats.teamB} rank={rankings[1]?.history.at(-1)?.rank ?? null} condition={aiPreview.teamBWinCondition} winColor={winColors[1]} />
         </div>

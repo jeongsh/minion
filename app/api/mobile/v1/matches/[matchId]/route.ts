@@ -24,7 +24,6 @@ import { buildPlayerLoadoutTimeline } from "@/lib/player-build";
 import { isMatchLive, matchStatusLabel } from "@/lib/match-display";
 import { getMatchAiPreview } from "@/lib/match-preview-ai";
 import { supplementMatchBriefingData } from "@/lib/data/match-briefing";
-import { matchBriefingSample } from "@/lib/match-briefing-stats";
 import { getPredictionMarketData, predictionMarketForMatch } from "@/lib/predictions";
 import { fanRatingLeader } from "@/lib/view-data";
 import { getSetRatingStartedAt, isSetRatingOpen, isSetRatingSnapshotReady } from "@/lib/set-status";
@@ -44,6 +43,10 @@ import { fetchSpellCatalog } from "@/lib/spells";
 import type { Team } from "@/lib/types";
 import { getMobileAuth } from "@/lib/mobile/auth";
 import { compactMatchStageName, compactMatchTournamentName } from "@/lib/match-header-labels";
+
+import { buildMatchBriefingStats, matchBriefingSample, TEAM_RADAR_AXES, formatTeamMetric } from "@/lib/match-briefing-stats";
+import { getPowerRankings } from "@/lib/data/power-rankings";
+import { teamPowerRanking } from "@/lib/power-rankings";
 
 const POSITION_ORDER = new Map(["TOP", "JGL", "MID", "BOT", "SUP"].map((position, index) => [position, index]));
 
@@ -121,12 +124,29 @@ export async function GET(request: Request, context: { params: Promise<{ matchId
       (item.teamAId === match.teamBId && item.teamBId === match.teamAId),
     )
     .slice(0, 5);
-  const previewDataPromise = includePreview ? (async () => {
+  const resolvedTeams = [teamMap.get(match.teamAId), teamMap.get(match.teamBId)];
+  const hasResolvedTeams = match.teamAId !== match.teamBId && resolvedTeams.every((team) => team
+    && !/^(?:TBD|TBA|미정|미정 팀|Unknown|-)$/i.test(team.shortName.trim())
+    && !/^(?:TBD|TBA|미정|미정 팀|Unknown|-)$/i.test(team.name.trim()));
+  const briefingPromise = includePreview && hasResolvedTeams ? (async () => {
     const sample = matchBriefingSample(match, allMatches, allSets);
-    const playerStats = await getPlayerBenchmarkStatLines(sample.setIds);
+    const [playerStats, rankings] = await Promise.all([getPlayerBenchmarkStatLines(sample.setIds), getPowerRankings(new Date(match.matchDate).getUTCFullYear())]);
     const supplemented = await supplementMatchBriefingData(match, teams, players, { matches: allMatches, sets: allSets, playerStats });
+    const stats = buildMatchBriefingStats(match, supplemented.matches, supplemented.sets, supplemented.playerStats);
+    const briefingTeams = [stats.teamA, stats.teamB].map((item, index) => {
+      const ranking = teamPowerRanking(resolvedTeams[index], rankings.teams, match.matchDate);
+      return { ...item, values: item.values.map(formatTeamMetric), rank: ranking?.history.at(-1)?.rank ?? null, history: ranking?.history ?? [] };
+    });
     const ai = await getMatchAiPreview({ match, tournament, stage, teams, ...supplemented, tournaments, players });
-    return { ai, ...supplemented };
+    const supplementedHistory = completedBefore(supplemented.matches, match);
+    const teamAMetrics = recentSetMetrics(supplemented.sets, supplementedHistory, match.teamAId);
+    const teamBMetrics = recentSetMetrics(supplemented.sets, supplementedHistory, match.teamBId);
+    const metrics = { averageKillsA: teamAMetrics.averageKills, averageKillsB: teamBMetrics.averageKills,
+      recentRecordA: recentRecord(supplementedHistory, match.teamAId), recentRecordB: recentRecord(supplementedHistory, match.teamBId),
+      setDiffA: teamAMetrics.setDiff, setDiffB: teamBMetrics.setDiff };
+    return { ai, metrics, briefing: { axes: TEAM_RADAR_AXES.map(({ label, title }) => ({ label, title })), teams: briefingTeams,
+      powerRankings: { status: rankings.status, sourceUrl: rankings.sourceUrl },
+      issue: ai.narrative?.title ?? (ai.source === "ai" ? ai.headline : null), issueSource: ai.narrative?.sources[0]?.url ?? null } };
   })() : Promise.resolve(null);
   const prediction = predictionMarketForMatch(predictionData.bets, match.id, match.teamAId, match.teamBId);
 
@@ -262,11 +282,8 @@ export async function GET(request: Request, context: { params: Promise<{ matchId
     };
   }
 
-  const previewData = await previewDataPromise;
-  const aiPreview = previewData?.ai;
-  const previewHistory = completedBefore(previewData?.matches ?? allMatches, match);
-  const teamAMetrics = recentSetMetrics(previewData?.sets ?? allSets, previewHistory, match.teamAId);
-  const teamBMetrics = recentSetMetrics(previewData?.sets ?? allSets, previewHistory, match.teamBId);
+  const briefingResult = await briefingPromise;
+  const aiPreview = briefingResult?.ai;
   const data: MobileMatchTabDto = {
     activeSet,
     activeSetId: defaultSet?.id ?? null,
@@ -287,6 +304,7 @@ export async function GET(request: Request, context: { params: Promise<{ matchId
       .filter((player) => detailPlayerIds.has(player.id) || player.id === match.officialPomPlayerId)
       .map((player) => ({ id: player.id, name: player.name, position: player.position, profileImage: player.profileImageUrl ? { url: player.profileImageUrl } : null, slug: player.slug, teamId: player.teamId })),
     preview: aiPreview ? {
+      briefing: briefingResult!.briefing,
       ai: {
         generatedAt: aiPreview.generatedAt,
         generationPhase: aiPreview.generationPhase,
@@ -315,14 +333,7 @@ export async function GET(request: Request, context: { params: Promise<{ matchId
         winProbabilityA: aiPreview.winProbabilityA,
       },
       meetings: h2h.map((item) => toMobileMatch(item, teamMap, tournamentMap)),
-      metrics: {
-        averageKillsA: teamAMetrics.averageKills,
-        averageKillsB: teamBMetrics.averageKills,
-        recentRecordA: recentRecord(previewHistory, match.teamAId),
-        recentRecordB: recentRecord(previewHistory, match.teamBId),
-        setDiffA: teamAMetrics.setDiff,
-        setDiffB: teamBMetrics.setDiff,
-      },
+      metrics: briefingResult!.metrics,
       prediction: {
         closed: match.status !== "scheduled" || new Date(match.matchDate).getTime() <= Date.now(),
         teamAOdds: prediction.teamAOdds,

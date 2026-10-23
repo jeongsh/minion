@@ -709,6 +709,24 @@ export type MobileMatchHeader = {
 };
 
 export type MobileMatchPreview = {
+  briefing?: {
+    axes: Array<{ label: string; title: string }>;
+    teams: Array<{
+      teamId: string;
+      wins: number;
+      losses: number;
+      form: Array<"W" | "L">;
+      setWinRate: number | null;
+      statSetCount: number;
+      scores: Array<number | null>;
+      values: string[];
+      rank: number | null;
+      history: Array<{ date: string; rank: number }>;
+    }>;
+    powerRankings: { status: "ready" | "error"; sourceUrl: string };
+    issue: string | null;
+    issueSource: string | null;
+  };
   prediction: MobilePredictionMarket & { closed: boolean };
   ai: {
     headline: string;
