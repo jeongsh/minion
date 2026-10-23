@@ -2,7 +2,6 @@ import type { Match, Stage, Tournament } from "./types.ts";
 
 export type MatchPreviewGenerationPhase = "story" | "final";
 
-export const MATCH_PREVIEW_AUTOMATIC_WINDOW_MS = 24 * 60 * 60 * 1_000;
 export const MATCH_PREVIEW_FINAL_WINDOW_MS = 2 * 60 * 60 * 1_000;
 export const MATCH_PREVIEW_RETRY_BACKOFF_MS = 30 * 60 * 1_000;
 export const MATCH_PREVIEW_MAX_FAILURES_PER_PHASE = 2;
@@ -10,13 +9,11 @@ export const MATCH_PREVIEW_MAX_FAILURES_PER_PHASE = 2;
 export function matchPreviewGenerationPhase(
   matchDate: string,
   nowMs = Date.now(),
-  allowFarFuture = false,
 ): MatchPreviewGenerationPhase | null {
   const startsIn = new Date(matchDate).getTime() - nowMs;
   if (!Number.isFinite(startsIn) || startsIn <= 0) return null;
   if (startsIn <= MATCH_PREVIEW_FINAL_WINDOW_MS) return "final";
-  if (allowFarFuture || startsIn <= MATCH_PREVIEW_AUTOMATIC_WINDOW_MS) return "story";
-  return null;
+  return "story";
 }
 
 export function matchPreviewNeedsRefresh({

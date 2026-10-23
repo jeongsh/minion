@@ -13,11 +13,13 @@ import type { Match, Stage, Tournament } from "./types.ts";
 const hour = 60 * 60 * 1_000;
 const now = Date.parse("2026-08-27T00:00:00.000Z");
 
-test("자동 생성은 24시간 전 story와 2시간 전 final 두 단계다", () => {
-  assert.equal(matchPreviewGenerationPhase(new Date(now + 25 * hour).toISOString(), now), null);
+test("대진 확정 시점부터 story를 만들고 2시간 전 final로 갱신한다", () => {
+  assert.equal(matchPreviewGenerationPhase(new Date(now + 14 * 24 * hour).toISOString(), now), "story");
+  assert.equal(matchPreviewGenerationPhase(new Date(now + 25 * hour).toISOString(), now), "story");
   assert.equal(matchPreviewGenerationPhase(new Date(now + 24 * hour).toISOString(), now), "story");
   assert.equal(matchPreviewGenerationPhase(new Date(now + 2 * hour).toISOString(), now), "final");
   assert.equal(matchPreviewGenerationPhase(new Date(now - hour).toISOString(), now), null);
+  assert.equal(matchPreviewGenerationPhase("invalid", now), null);
 });
 
 test("같은 phase와 hash만 재생성을 건너뛴다", () => {
