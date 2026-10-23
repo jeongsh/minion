@@ -1074,6 +1074,7 @@ async function getChampionDetailDataBase(
   setIds: readonly string[],
   includeBuildEvents = true,
   referenceData?: ChampionPageReferenceData,
+  includeDraftDetails = true,
 ): Promise<ChampionPageData> {
   const [references, appearances] = await Promise.all([
     referenceData ?? getChampionPageReferenceData(),
@@ -1086,8 +1087,9 @@ async function getChampionDetailDataBase(
   const targetPairs = uniqueSorted(targetRows.map((row) => `${row.set_id}:${row.player_id}`));
 
   const [pickBans, statGroups, eventGroups] = await Promise.all([
-    // Keep every scoped draft: presence rates include games where this champion was absent.
-    getPickBansForSets(setIds),
+    // Only the statistics tab needs draft distributions. Other web tabs reuse the
+    // directory RPC's complete-draft aggregates instead of reading the whole table.
+    includeDraftDetails ? getPickBansForSets(setIds) : Promise.resolve([]),
     // Keep all teammates/opponents in these sets for matchups, duos and team totals.
     mapWithConcurrency(chunksOf(targetSetIds, DETAIL_SET_CHUNK_SIZE), MAX_PARALLEL_CHUNKS,
       (ids) => collectCountedKeysetPages((afterId) => queryDetailStatsPageCached(ids, afterId))),

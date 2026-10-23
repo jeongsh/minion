@@ -123,7 +123,8 @@ async function ChampionDetailContent({ championSlug, query }: {
     ? query.tab as ChampionDetailTab
     : "overview";
   const [data, directoryStats] = await Promise.all([
-    getChampionDetailData(champion.id, scope.setIds, requestedTab === "overview", references),
+    getChampionDetailData(champion.id, scope.setIds, requestedTab === "overview", references,
+      requestedTab === "stats" || requestedTab === "duos"),
     getChampionDirectoryStats(scope.setIds),
   ]);
   const defaultOverview = buildChampionOverview(data, champion.id);
@@ -135,6 +136,11 @@ async function ChampionDetailContent({ championSlug, query }: {
     : false;
   const position = requestedPositionHasData ? requestedPosition! : defaultOverview.selectedPosition;
   const analysis = buildChampionAnalysis(data, champion.id, position);
+  const directory = buildChampionDirectoryFromAggregates(references.champions, directoryStats);
+  // This summary includes absent/banned games and incomplete-draft coverage, just
+  // like the full raw-draft calculation retained for the statistics tab.
+  const championDraft = directory.find((row) => row.champion.id === champion.id)?.draft;
+  if (championDraft) analysis.overview.draft = championDraft;
 
   let activeTab = requestedTab;
   if (activeTab === "duos" && position !== "BOT" && position !== "SUP") activeTab = "stats";
@@ -149,9 +155,7 @@ async function ChampionDetailContent({ championSlug, query }: {
   const gamePage = Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
   if (activeTab === "games" && gamePage > 1) paramsForLinks.set("page", String(gamePage));
 
-  const directory = buildChampionDirectoryFromAggregates(references.champions, directoryStats)
-    .filter((row) => row.draft.picks > 0 || row.draft.bans > 0);
-  const pickerOptions = directory.map((row) => ({
+  const pickerOptions = directory.filter((row) => row.draft.picks > 0 || row.draft.bans > 0).map((row) => ({
     id: row.champion.id,
     slug: row.champion.slug,
     name: row.champion.name,
