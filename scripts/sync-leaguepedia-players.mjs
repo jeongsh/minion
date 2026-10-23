@@ -396,13 +396,13 @@ async function fetchPlayerImagesByPages(pageNames) {
 
     const playerRows = await cargoQuery({
       tables: "Players",
-      fields: "ID,Image",
-      where: `ID IN ('${escaped.join("','")}')`,
+      fields: "OverviewPage,Image",
+      where: `OverviewPage IN ('${escaped.join("','")}')`,
       limit: String(CHUNK + 10),
     });
     const playerImageByPage = new Map(
       playerRows
-        .map((row) => [row.ID?.trim(), row.Image?.trim()])
+        .map((row) => [row.OverviewPage?.trim(), row.Image?.trim()])
         .filter(([page, image]) => page && isValidPlayerImageFilename(image)),
     );
 
@@ -476,7 +476,7 @@ async function fetchPlayersByTeamNames(teamNames) {
   const escaped = teamNames.map((n) => n.replace(/'/g, "\\'"));
   return cargoQuery({
     tables: "Players",
-    fields: "ID,Name,NationalityPrimary,Birthdate,Role,Team,Image",
+    fields: "OverviewPage,ID,Name,NationalityPrimary,Birthdate,Role,Team,Image",
     where: `Team IN ('${escaped.join("','")}')`,
     order_by: "Team,Role",
     limit: "300",
@@ -491,15 +491,15 @@ async function fetchPlayersByTeamLike(patterns) {
   const conditions = patterns.map((p) => `Team LIKE '%${p.replace(/'/g, "\\'")}%'`);
   return cargoQuery({
     tables: "Players",
-    fields: "ID,Name,NationalityPrimary,Birthdate,Role,Team,Image",
+    fields: "OverviewPage,ID,Name,NationalityPrimary,Birthdate,Role,Team,Image",
     where: conditions.join(" OR "),
     order_by: "Team,Role",
     limit: "200",
   });
 }
 
-/** 선수 ID 목록으로 Players 상세 일괄 조회 */
-async function fetchPlayerDetailsByIds(pageNames) {
+/** 닉네임이 같은 다른 인물을 섞지 않도록 고유 문서와 명시적 리다이렉트만 사용한다. */
+async function fetchPlayerDetailsByPages(pageNames) {
   if (pageNames.length === 0) return new Map();
 
   const CHUNK = 40;
@@ -508,14 +508,49 @@ async function fetchPlayerDetailsByIds(pageNames) {
   for (let i = 0; i < pageNames.length; i += CHUNK) {
     const chunk = pageNames.slice(i, i + CHUNK);
     const escaped = chunk.map((n) => n.replace(/'/g, "\\'"));
+    const fields = "OverviewPage,ID,Name,NationalityPrimary,Birthdate,Role,Team,Image";
     const rows = await cargoQuery({
       tables: "Players",
-      fields: "ID,Name,NationalityPrimary,Birthdate,Role,Team,Image",
-      where: `ID IN ('${escaped.join("','")}')`,
+      fields,
+      where: `OverviewPage IN ('${escaped.join("','")}')`,
       limit: String(CHUNK + 10),
     });
     for (const row of rows) {
-      if (row.ID) result.set(row.ID, row);
+      if (row.OverviewPage) result.set(row.OverviewPage, row);
+    }
+
+    const missing = chunk.filter((page) => !result.has(page));
+    if (missing.length === 0) continue;
+    const missingEscaped = missing.map((page) => page.replace(/'/g, "\\'"));
+    const redirects = await cargoQuery({
+      tables: "PlayerRedirects",
+      fields: "OverviewPage,AllName",
+      where: `AllName IN ('${missingEscaped.join("','")}')`,
+      limit: "500",
+    });
+    const canonicalByAlias = new Map();
+    for (const row of redirects) {
+      if (!missing.includes(row.AllName) || !row.OverviewPage) continue;
+      const pages = canonicalByAlias.get(row.AllName) ?? new Set();
+      pages.add(row.OverviewPage);
+      canonicalByAlias.set(row.AllName, pages);
+    }
+    const canonicalPages = [...new Set(
+      [...canonicalByAlias.values()].filter((pages) => pages.size === 1).flatMap((pages) => [...pages]),
+    )];
+    if (canonicalPages.length === 0) continue;
+    const canonicalEscaped = canonicalPages.map((page) => page.replace(/'/g, "\\'"));
+    const canonicalRows = await cargoQuery({
+      tables: "Players",
+      fields,
+      where: `OverviewPage IN ('${canonicalEscaped.join("','")}')`,
+      limit: String(canonicalPages.length + 10),
+    });
+    const canonicalByPage = new Map(canonicalRows.map((row) => [row.OverviewPage, row]));
+    for (const [alias, pages] of canonicalByAlias) {
+      if (pages.size !== 1) continue;
+      const details = canonicalByPage.get([...pages][0]);
+      if (details) result.set(alias, details);
     }
   }
 
@@ -658,8 +693,9 @@ async function sync() {
           teamRosters.set(team.slug, { teamId: team.id, players: [] });
         }
         const existing = teamRosters.get(team.slug).players;
-        if (!existing.find((p) => p.page === player.ID)) {
-          existing.push({ page: player.ID, role: player.Role ?? "", isSub: false });
+        if (!player.OverviewPage) continue;
+        if (!existing.find((p) => p.page === player.OverviewPage)) {
+          existing.push({ page: player.OverviewPage, role: player.Role ?? "", isSub: false });
         }
       }
     }
@@ -740,7 +776,7 @@ async function sync() {
   );
 
   console.log(`\nFetching details for ${allPageNames.length} player(s)...`);
-  const playerDetails = await fetchPlayerDetailsByIds(allPageNames);
+  const playerDetails = await fetchPlayerDetailsByPages(allPageNames);
   console.log(`  Details fetched: ${playerDetails.size}`);
 
   console.log(`\nFetching profile images for ${allPageNames.length} player(s)...`);
@@ -760,6 +796,11 @@ async function sync() {
 
     for (const playerRef of players) {
       const details = playerDetails.get(playerRef.page);
+      if (!details?.OverviewPage) {
+        summary.skipped.push({ page: playerRef.page, reason: "unresolved_player_identity" });
+        console.warn(`  Skip ${playerRef.page}: 고유 선수 문서를 확인할 수 없습니다.`);
+        continue;
+      }
       const position =
         normalizeRole(playerRef.role) ?? normalizeRole(details?.Role);
 
@@ -773,7 +814,8 @@ async function sync() {
         continue;
       }
 
-      const displayName = displayNameFromLeaguepediaPage(playerRef.page);
+      const leaguepediaPage = details.OverviewPage;
+      const displayName = displayNameFromLeaguepediaPage(leaguepediaPage);
       const slug = makeSlug(displayName);
 
       const rawDate = details?.Birthdate?.trim();
@@ -787,15 +829,15 @@ async function sync() {
         team_id: teamId,
         position,
         nationality: details?.NationalityPrimary?.trim() || null,
-        birth_date: birthDate,
-        leaguepedia_page: playerRef.page,
-        source_player_id: `lp:${playerRef.page}`,
+        ...(birthDate ? { birth_date: birthDate } : {}),
+        leaguepedia_page: leaguepediaPage,
+        source_player_id: `lp:${leaguepediaPage}`,
         profile_image_url: profileImageUrlFor(playerRef.page, imageByPage, imageUrls),
       };
 
       const existingId = await findExistingPlayerId(supabase, {
         slug,
-        leaguepediaPage: playerRef.page,
+        leaguepediaPage,
         displayName,
       });
 
