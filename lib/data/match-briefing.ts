@@ -4,6 +4,7 @@ import { briefingTeamsNeedingData, mergeLeaguepediaBriefingData, restoreMatchBri
 import { storeTeamBriefingSource } from "../sync/team-briefing-source.ts";
 import { createSupabaseAdminClient } from "../supabase/admin.ts";
 import { getTeamBriefingSourceRows } from "./team-briefing-sources.ts";
+import { getStoredMatchAiPreview } from "./match-ai-preview-cache.ts";
 
 const inFlight = new Map<string, ReturnType<typeof storeTeamBriefingSource>>();
 
@@ -42,13 +43,20 @@ export async function supplementMatchBriefingData(match: Match, teams: Team[], p
 }
 
 /** 저장된 프리뷰와 팀 원본만 읽는다. 외부 조회를 시작하지 않는다. */
-export async function getStoredMatchBriefingData(match: Match, teams: Team[], players: Player[], data: BriefingData) {
-  const admin = createSupabaseAdminClient();
-  const { data: cached, error } = await admin.from("match_ai_previews").select("content").eq("match_id", match.id).maybeSingle();
-  if (error) throw new Error(`매치 브리핑 기록 조회 실패: ${error.message}`);
-  let result = restoreMatchBriefingData(match, teams, players, data, cached?.content?.briefingData as MatchBriefingSnapshot | undefined);
+export async function getStoredMatchBriefingSources(match: Match) {
+  const [preview, sources] = await Promise.all([
+    getStoredMatchAiPreview(match.id),
+    getTeamBriefingSourceRows([match.teamAId, match.teamBId]),
+  ]);
+  return { preview, sources };
+}
+
+export async function getStoredMatchBriefingData(match: Match, teams: Team[], players: Player[], data: BriefingData,
+  stored?: Awaited<ReturnType<typeof getStoredMatchBriefingSources>>) {
+  const { preview, sources } = stored ?? await getStoredMatchBriefingSources(match);
+  const content = preview?.content as { briefingData?: MatchBriefingSnapshot } | undefined;
+  let result = restoreMatchBriefingData(match, teams, players, data, content?.briefingData);
   // 프리뷰 생성 이후 수집된 지표도 반영한다. 병합 함수가 경기 시작 이후 기록을 제외한다.
-  const sources = await getTeamBriefingSourceRows([match.teamAId, match.teamBId]);
   for (const rows of sources.values()) {
     result = { ...result, ...mergeLeaguepediaBriefingData(match, result, rows, teams, players) };
   }

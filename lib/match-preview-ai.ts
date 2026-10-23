@@ -41,6 +41,7 @@ import {
 } from "@/lib/match-preview-win-conditions";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { supplementMatchBriefingData } from "@/lib/data/match-briefing";
+import { getStoredMatchAiPreview, type MatchAiPreviewCacheRow } from "@/lib/data/match-ai-preview-cache";
 import { createMatchBriefingSnapshot, type LeaguepediaBriefingRows } from "@/lib/match-briefing-data";
 import { getPowerRankings } from "@/lib/data/power-rankings";
 import { backfillMatchBriefingSnapshot } from "@/lib/data/match-briefing-snapshot";
@@ -244,17 +245,6 @@ type StoredEvidence = {
   facts: string[];
   sources: MatchAiPreviewSource[];
   winProbabilityA: number | null;
-};
-
-type MatchAiPreviewCacheRow = {
-  input_hash?: string;
-  summary: string;
-  watch_point: string;
-  evidence: unknown;
-  content?: unknown;
-  generated_at?: string;
-  generation_phase?: string;
-  generation_lock_token?: string | null;
 };
 
 type MatchAiPreviewRunRetryRow = {
@@ -1574,7 +1564,7 @@ export async function getMatchAiPreview({
   tournaments,
   players,
   playerStats,
-}: MatchAiPreviewInputs): Promise<MatchAiPreview> {
+}: MatchAiPreviewInputs, storedPreview?: MatchAiPreviewCacheRow | null): Promise<MatchAiPreview> {
   const facts = buildMatchPreviewFacts({
     match,
     teams,
@@ -1587,13 +1577,9 @@ export async function getMatchAiPreview({
   const fallback = fallbackPreview(facts);
   if (!hasResolvedParticipants(match, teams)) return fallback;
   try {
-    const admin = createSupabaseAdminClient();
-    const { data, error } = await admin
-      .from("match_ai_previews")
-      .select("summary,watch_point,evidence,content,generated_at,generation_phase")
-      .eq("match_id", match.id)
-      .maybeSingle();
-    if (!error && data) {
+    // null은 조회 결과가 없다는 뜻이므로 다시 조회하지 않는다.
+    const data = storedPreview === undefined ? await getStoredMatchAiPreview(match.id) : storedPreview;
+    if (data) {
       return upgradedCachedWinConditions(
         previewFromCacheRow(data as MatchAiPreviewCacheRow),
         facts,

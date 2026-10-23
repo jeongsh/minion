@@ -80,8 +80,17 @@ export function mergeLeaguepediaBriefingData(
   const playerIdentities = players.map((player) => ({ ...player, leaguepedia_page: player.leaguepediaPage, source_id: player.sourcePlayerId }));
   const aliases = teams.flatMap((team) => (team.searchAliases ?? []).map((page_name) => ({ entity_id: team.id, page_name })));
   const playerAliases = players.flatMap((player) => (player.searchAliases ?? []).map((page_name) => ({ entity_id: player.id, page_name })));
-  const teamId = (name: string | undefined) => resolveLeaguepediaIdentity(name, identities, aliases)?.id
-    ?? `leaguepedia-team:${normalizeLeaguepediaKey(name)}`;
+  // 같은 원본 이름을 세트/선수 행마다 반복 검색하지 않는다. 매 병합의 ID/별칭 기준은 유지한다.
+  const teamIds = new Map<string | undefined, string>();
+  const playerIds = new Map<string, string>();
+  const teamId = (name: string | undefined) => {
+    let id = teamIds.get(name);
+    if (id === undefined) {
+      id = resolveLeaguepediaIdentity(name, identities, aliases)?.id ?? `leaguepedia-team:${normalizeLeaguepediaKey(name)}`;
+      teamIds.set(name, id);
+    }
+    return id;
+  };
   const matchMap = new Map<string, Match>();
   for (const row of rows.matches) {
     const date = row.MatchDateTime ? `${row.MatchDateTime.replace(" ", "T")}Z` : "";
@@ -159,7 +168,11 @@ export function mergeLeaguepediaBriefingData(
       // Required box-score metrics must all exist. Empty source fields are never converted to zero.
       const values = [line.Kills, line.Deaths, line.Assists, line.CS, line.Gold, line.DamageToChampions, line.VisionScore].map(number);
       if (!line.Link || values.some((value) => value == null) || !set.durationSeconds) continue;
-      const playerId = resolveLeaguepediaIdentity(line.Link, playerIdentities, playerAliases)?.id ?? `leaguepedia-player:${normalizeLeaguepediaKey(line.Link)}`;
+      let playerId = playerIds.get(line.Link);
+      if (playerId === undefined) {
+        playerId = resolveLeaguepediaIdentity(line.Link, playerIdentities, playerAliases)?.id ?? `leaguepedia-player:${normalizeLeaguepediaKey(line.Link)}`;
+        playerIds.set(line.Link, playerId);
+      }
       const [kills, deaths, assists, cs, playerGold, damage, visionScore] = values as number[];
       const sameSide = gamePlayers.filter((item) => teamId(item.Team) === side);
       const incomingLine: PlayerStatLine = { setId: set.id, playerId, teamId: side, position, championId: line.ChampionId ?? null, kills, deaths, assists, cs, gold: playerGold,

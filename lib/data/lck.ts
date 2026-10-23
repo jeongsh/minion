@@ -1516,8 +1516,19 @@ async function getPlayerStatLinesBase(setId?: string | string[], playerId?: stri
 }
 
 /** Same statistics/order as detailed lines, without item/spell/rune payloads. */
+const getPlayerBenchmarkStatLinesChunk = unstable_cache(
+  (setIds: string[]) => getPlayerStatLinesBase(setIds, undefined, false),
+  ["lck-player-benchmark-stat-lines-chunk-v1"],
+  { revalidate: 30 },
+);
+
 export async function getPlayerBenchmarkStatLines(setIds: string[]) {
-  return getPlayerStatLinesBase(setIds, undefined, false);
+  if (setIds.length === 0) return [];
+  // 공개 경기/세트 목록과 같은 주기로 재사용하며 개인별 데이터는 포함하지 않는다.
+  // 표본 전체가 2MB 캐시 제한을 넘지 않도록 기존 조회 단위인 100세트씩 저장한다.
+  const chunks: string[][] = [];
+  for (let index = 0; index < setIds.length; index += 100) chunks.push(setIds.slice(index, index + 100));
+  return (await mapWithConcurrency(chunks, 4, getPlayerBenchmarkStatLinesChunk)).flat();
 }
 
 export async function getLeagueAverageStatsBase() {

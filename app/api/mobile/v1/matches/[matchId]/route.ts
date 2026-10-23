@@ -23,7 +23,7 @@ import { championImage, fetchChampionAbilityIcons, normalizedDdragonId } from "@
 import { buildPlayerLoadoutTimeline } from "@/lib/player-build";
 import { isMatchLive, matchStatusLabel } from "@/lib/match-display";
 import { getMatchAiPreview } from "@/lib/match-preview-ai";
-import { getStoredMatchBriefingData } from "@/lib/data/match-briefing";
+import { getStoredMatchBriefingData, getStoredMatchBriefingSources } from "@/lib/data/match-briefing";
 import { getPredictionMarketData, predictionMarketForMatch } from "@/lib/predictions";
 import { fanRatingLeader } from "@/lib/view-data";
 import { getSetRatingStartedAt, isSetRatingOpen, isSetRatingSnapshotReady } from "@/lib/set-status";
@@ -92,24 +92,30 @@ export async function GET(request: Request, context: { params: Promise<{ matchId
   const requestedSetId = query.get("set");
   const requestedTab = query.get("tab");
   const full = !requestedTab || !["data", "preview", "rating", "live", "video"].includes(requestedTab);
-  const [match, auth] = await Promise.all([getMatchById(matchId), getMobileAuth(request)]);
+  const previewRequested = full || requestedTab === "preview";
+  // 프리뷰 요청은 경기 조회를 기다리지 않고 공개 자료도 함께 읽는다.
+  const [match, auth, sets, teams, players, tournaments, stages, initialPreviewData] = await Promise.all([
+    getMatchById(matchId),
+    getMobileAuth(request),
+    getSetsByMatchId(matchId),
+    getAllTeams(),
+    getAllPlayers(),
+    getTournaments(),
+    getStages(),
+    previewRequested ? Promise.all([getPredictionMarketData(undefined, matchId), getMatches(), getSets()]) : null,
+  ]);
   if (!match) return mobileError("NOT_FOUND", "경기를 찾을 수 없습니다.", 404);
-  const sets = await getSetsByMatchId(match.id);
   const includePreview = full || requestedTab === "preview" || (requestedTab === "data" && sets.length === 0);
   const includeData = full || requestedTab === "data";
   const includeRating = full || requestedTab === "rating";
   const includeVideo = full || requestedTab === "video";
 
-  const [teams, players, tournaments, stages, vods, fanRatings, predictionData, allMatches, allSets] = await Promise.all([
-    getAllTeams(),
-    getAllPlayers(),
-    getTournaments(),
-    getStages(),
+  const [vods, fanRatings, [predictionData, allMatches, allSets]] = await Promise.all([
     includeVideo ? getMatchVodsByMatchId(match.id) : [],
     includeRating ? getFanRatingsByMatchId(match.id) : [],
-    includePreview ? getPredictionMarketData(undefined, match.id) : { bets: [] },
-    includePreview ? getMatches() : [],
-    includePreview ? getSets() : [],
+    initialPreviewData ?? (includePreview
+      ? Promise.all([getPredictionMarketData(undefined, match.id), getMatches(), getSets()])
+      : [{ bets: [] }, [], []] as [Pick<Awaited<ReturnType<typeof getPredictionMarketData>>, "bets">, Awaited<ReturnType<typeof getMatches>>, Awaited<ReturnType<typeof getSets>>]),
   ]);
   const teamMap = new Map(teams.map((team) => [team.id, team]));
   const tournamentMap = new Map(tournaments.map((tournament) => [tournament.id, tournament]));
@@ -133,29 +139,31 @@ export async function GET(request: Request, context: { params: Promise<{ matchId
     && !/^(?:TBD|TBA|미정|미정 팀|Unknown|-)$/i.test(team.name.trim()));
   const briefingPromise = includePreview && hasResolvedTeams ? (async () => {
     const sample = matchBriefingSample(match, allMatches, allSets);
-    const playerStats = await getPlayerBenchmarkStatLines(sample.setIds);
-    const supplemented = await getStoredMatchBriefingData(match, teams, players, { matches: allMatches, sets: allSets, playerStats });
+    // 지표와 저장본, 차트의 공통 자료는 서로 기다릴 필요가 없다.
+    const [playerStats, stored, champions, predictions] = await Promise.all([
+      getPlayerBenchmarkStatLines(sample.setIds),
+      getStoredMatchBriefingSources(match),
+      getChampions(),
+      getStoredPreviewPredictions().catch((error) => {
+        console.warn("[mobile-match-preview] 적중률 조회 실패", error);
+        return [];
+      }),
+    ]);
+    const supplemented = await getStoredMatchBriefingData(match, teams, players, { matches: allMatches, sets: allSets, playerStats }, stored);
     const rankings = supplemented.powerRankings;
     const stats = buildMatchBriefingStats(match, supplemented.matches, supplemented.sets, supplemented.playerStats);
     const briefingTeams = [stats.teamA, stats.teamB].map((item, index) => {
       const ranking = teamPowerRanking(resolvedTeams[index], rankings.teams, match.matchDate);
       return { ...item, values: item.values.map(formatTeamMetric), rank: ranking?.history.at(-1)?.rank ?? null, history: ranking?.history ?? [] };
     });
-    const ai = await getMatchAiPreview({ match, tournament, stage, teams, ...supplemented, tournaments, players });
+    const ai = await getMatchAiPreview({ match, tournament, stage, teams, ...supplemented, tournaments, players }, stored.preview);
     const visuals = buildMatchBriefingVisuals(match, supplemented.matches, supplemented.sets, supplemented.playerStats);
     const styles = buildTeamStyles(match, supplemented.matches, supplemented.sets, supplemented.playerStats);
     const visualTeams = [visuals.teamA, visuals.teamB];
-    const [champions, dragons, predictions] = await Promise.all([
-      getChampions(),
-      getDragonEvents(visualTeams.flatMap((team) => team.setIds), supplemented.sets).catch((error) => {
-        console.warn("[mobile-match-preview] 드래곤 이벤트 조회 실패", error);
-        return [];
-      }),
-      getStoredPreviewPredictions().catch((error) => {
-        console.warn("[mobile-match-preview] 적중률 조회 실패", error);
-        return [];
-      }),
-    ]);
+    const dragons = await getDragonEvents(visualTeams.flatMap((team) => team.setIds), supplemented.sets).catch((error) => {
+      console.warn("[mobile-match-preview] 드래곤 이벤트 조회 실패", error);
+      return [];
+    });
     const leagueRecord = buildLeagueSetRecord({ match, teams, matches: supplemented.matches, sets: supplemented.sets, tournaments });
     const charts = {
       axes: TEAM_STYLE_AXES.map(({ label, title }) => ({ label, title })),
