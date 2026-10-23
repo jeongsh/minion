@@ -69,6 +69,7 @@ export function HomeLoadingSkeleton() {
           </View>
         ))}
       </View>
+      <View style={styles.section40}><SectionTitleSkeleton />{Array.from({ length: 6 }, (_, index) => <View key={index} style={{ flexDirection: 'row', gap: 12, paddingVertical: 8, minHeight: 76 }}><Bone style={{ width: 80, height: 60 }} /><View style={{ flex: 1, justifyContent: 'center', gap: 4 }}><Bone style={{ width: '95%', height: 22 }} /><Bone style={{ width: '70%', height: 20 }} /></View></View>)}</View>
       <View style={styles.section40}><SectionTitleSkeleton /><Bone style={{ height: (contentWidth - 14.4) / 2.2 * 4 / 3, borderRadius: 16 }} /></View>
       <View style={styles.section40}><SectionTitleSkeleton /><Bone style={{ height: 96 }} /></View>
       <View style={styles.section40}><SectionTitleSkeleton /><Bone style={{ height: 220, borderRadius: 16 }} /></View>

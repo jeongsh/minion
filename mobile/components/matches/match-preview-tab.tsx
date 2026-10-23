@@ -1,46 +1,22 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { Linking, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
+import { StatRadar } from '@/components/charts/stat-radar';
+import { PowerRankingChart } from '@/components/charts/power-ranking-chart';
 import { TeamLogo } from '@/components/data/team-logo';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
-import type { MobileMatchDetailDto, MobileMatchSummary, MobileTeamSummary } from '@/lib/api-client';
+import type { MobileMatchDetailDto, MobileTeamSummary } from '@/lib/api-client';
+
+type Briefing = NonNullable<MobileMatchDetailDto['preview']['briefing']>;
+const day = (value: string) => new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', month: 'numeric', day: 'numeric' }).format(new Date(value));
 
 function teamColor(team: MobileTeamSummary | null, fallback: string) {
   return team?.primaryColor && /^#[\da-f]{6}$/i.test(team.primaryColor) ? team.primaryColor : fallback;
 }
 
-function signed(value: number) {
-  return value > 0 ? `+${value}` : String(value);
-}
-
-function meetingDate(value: string) {
-  const parts = new Intl.DateTimeFormat('ko-KR', { day: '2-digit', month: '2-digit', timeZone: 'Asia/Seoul' }).formatToParts(new Date(value));
-  return `${parts.find((part) => part.type === 'month')?.value ?? '--'}. ${parts.find((part) => part.type === 'day')?.value ?? '--'}`;
-}
-
-function previewTime(value: string | null) {
-  if (!value) return null;
-  const date = new Date(value);
-  if (!Number.isFinite(date.getTime())) return null;
-  return new Intl.DateTimeFormat('ko-KR', {
-    day: 'numeric',
-    hour: '2-digit',
-    hour12: false,
-    minute: '2-digit',
-    month: 'long',
-    timeZone: 'Asia/Seoul',
-  }).format(date);
-}
-
-function sourceDay(value: string | null) {
-  if (!value) return null;
-  const date = new Date(value);
-  if (!Number.isFinite(date.getTime())) return null;
-  return new Intl.DateTimeFormat('ko-KR', {
-    day: '2-digit',
-    month: '2-digit',
-    timeZone: 'Asia/Seoul',
-    year: 'numeric',
-  }).format(date);
+function mixColor(color: string, ink: string, weight: number) {
+  if (!/^#[\da-f]{6}$/i.test(color) || !/^#[\da-f]{6}$/i.test(ink)) return color;
+  return '#' + [1, 3, 5].map((i) => Math.round(parseInt(color.slice(i, i + 2), 16) * weight + parseInt(ink.slice(i, i + 2), 16) * (1 - weight)).toString(16).padStart(2, '0')).join('');
 }
 
 function PredictionChoice({ percent, reverse, team }: { percent: number; reverse?: boolean; team: MobileTeamSummary | null }) {
@@ -67,204 +43,60 @@ function PredictionBar({ data }: { data: MobileMatchDetailDto }) {
   );
 }
 
-function WatchPoint({ lead, rest }: { lead: string; rest: string }) {
+
+function Legend({ names, colors }: { names: string[]; colors: string[] }) {
   const { fonts, theme } = useMinionTheme();
-  return (
-    <View style={styles.watchPointLine}>
-      <View style={styles.watchPointLead}>
-        <View pointerEvents="none" style={[styles.watchPointHighlight, { backgroundColor: `${theme.accent}38` }]} />
-        <Text style={[styles.watchPointText, { color: theme.ink, ...fonts.medium }]}>{lead}</Text>
-      </View>
-      {rest ? <Text style={[styles.watchPointText, { color: theme.ink, ...fonts.medium }]}> {rest}</Text> : null}
-    </View>
-  );
+  return <View style={{ flexDirection: 'row', gap: 12 }}>{names.map((name, i) => <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}><View style={{ width: 16, borderTopWidth: 2, borderColor: colors[i], borderStyle: i ? 'dashed' : 'solid' }} /><Text style={{ color: theme.muted, ...fonts.medium, fontSize: 13, lineHeight: 20 }}>{name}</Text></View>)}</View>;
 }
 
-function BriefingRow({ children, label }: { children: React.ReactNode; label: string }) {
-  const { fonts, theme } = useMinionTheme();
-  return (
-    <View style={[styles.briefingRow, { backgroundColor: theme.card }]}>
-      <Text style={{ color: theme.ink, ...fonts.medium, fontSize: 14, lineHeight: 20 }}>{label}</Text>
-      {children}
-    </View>
-  );
-}
-
-function MetricCard({ colorA, colorB, label, valueA, valueB }: { colorA: string; colorB: string; label: string; valueA: string; valueB: string }) {
-  const { fonts, theme } = useMinionTheme();
-  return (
-    <View style={[styles.metricCard, { backgroundColor: theme.surface }]}>
-      <Text style={{ color: theme.muted, ...fonts.medium, fontSize: 13, lineHeight: 19.5 }}>{label}</Text>
-      <Text numberOfLines={1} style={{ ...fonts.bold, fontSize: 15, lineHeight: 21 }}>
-        <Text style={{ color: colorA }}>{valueA}</Text><Text style={{ color: theme.muted, ...fonts.medium, fontSize: 12 }}>vs</Text><Text style={{ color: colorB }}>{valueB}</Text>
-      </Text>
-    </View>
-  );
-}
-
-function MeetingSide({ match, side }: { match: MobileMatchSummary; side: 'a' | 'b' }) {
-  const { fonts, theme } = useMinionTheme();
-  const team = side === 'a' ? match.teamA : match.teamB;
-  const score = side === 'a' ? match.teamAScore : match.teamBScore;
-  const won = match.winnerTeamId === team?.id;
-  return (
-    <View style={[styles.meetingSide, side === 'a' && styles.meetingSideA]}>
-      <Text style={{ color: won ? theme.ink : theme.muted, ...fonts.bold, fontSize: 15, lineHeight: 20 }}>{score ?? '-'}</Text>
-      <Text numberOfLines={1} style={{ color: won ? theme.ink : theme.muted, ...fonts.medium, fontSize: 13, lineHeight: 20 }}>{team?.shortName ?? 'TBD'}</Text>
-      <TeamLogo plain size={20} team={team} themeAware />
-    </View>
-  );
-}
-
-function MeetingRow({ match }: { match: MobileMatchSummary }) {
-  const { fonts, theme } = useMinionTheme();
-  const winner = match.winnerTeamId === match.teamA?.id ? match.teamA : match.teamB;
-  const winnerColor = teamColor(winner, theme.ink);
-  return (
-    <View style={[styles.meetingRow, { backgroundColor: theme.surface }]}>
-      <Text style={{ color: theme.muted, ...fonts.medium, fontSize: 13, lineHeight: 20, width: 40 }}>{meetingDate(match.startsAt)}</Text>
-      <View style={styles.meetingPair}>
-        <MeetingSide match={match} side="a" />
-        <Text style={{ color: theme.muted, ...fonts.medium, fontSize: 13 }}>:</Text>
-        <MeetingSide match={match} side="b" />
-      </View>
-      <Text accessibilityLabel={`${winner?.shortName ?? '-'} 승리`} style={{ color: winnerColor, ...fonts.medium, fontSize: 13, lineHeight: 20 }}>승리</Text>
-    </View>
-  );
+function TeamProfile({ team, stats, condition, axes }: { team: MobileTeamSummary | null; stats: Briefing['teams'][number]; condition: string | null; axes: Briefing['axes'] }) {
+  const { colorScheme, fonts, theme } = useMinionTheme();
+  const { width } = useWindowDimensions();
+  const strongest = stats.scores.map((score, index) => ({ score, index })).filter((item) => item.score != null).sort((a, b) => b.score! - a.score!).slice(0, 2);
+  const muted = { color: theme.muted, ...fonts.medium, fontSize: 13, lineHeight: 19.5 } as const;
+  return <View accessibilityLabel={`${team?.shortName ?? '팀'} 프로필`} style={[styles.card, { backgroundColor: colorScheme === 'dark' ? theme.surfaceMuted : theme.surface, borderColor: theme.border, padding: width >= 640 ? 16 : 14, gap: 16 }]}>
+    <View style={styles.between}><View style={{ flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 8 }}>{width >= 640 ? <TeamLogo plain size={28} team={team} themeAware /> : null}<View style={{ flex: 1, minWidth: 0 }}><Text numberOfLines={1} style={{ color: theme.ink, ...fonts.black, fontSize: 15, lineHeight: 20 }}>{team?.shortName ?? '-'}</Text><Text numberOfLines={1} style={[muted, { lineHeight: 16 }]}>{team?.name}</Text></View></View><View style={{ alignItems: 'flex-end' }}><Text style={{ color: theme.ink, ...fonts.black, fontSize: 15, lineHeight: 20 }}>{stats.rank != null ? `${stats.rank}위` : '-'}</Text><Text style={[muted, { lineHeight: 16 }]}>세계 순위</Text></View></View>
+    <View style={{ flexDirection: width >= 640 ? 'row' : 'column', gap: width >= 640 ? 16 : 12 }}><View style={{ flex: width >= 640 ? 1 : undefined }}><Text style={{ color: theme.ink, ...fonts.black, fontSize: 20, lineHeight: 24 }}>{stats.form.length ? `${stats.wins}승 ${stats.losses}패` : '-'}</Text><Text style={[muted, { marginTop: 2 }]}>최근 {stats.form.length || 5}매치</Text><View accessibilityLabel={stats.form.map((item) => item === 'W' ? '승' : '패').join(' ') || '최근 경기 없음'} style={{ flexDirection: 'row', gap: 4, marginTop: 8 }}>{stats.form.map((result, i) => <View key={i} style={{ flex: 1, height: 4, borderRadius: 999, backgroundColor: result === 'W' ? teamColor(team, theme.ink) : theme.muted, opacity: result === 'W' ? 1 : 0.35 }} />)}</View></View><View style={{ flex: width >= 640 ? 1 : undefined }}><Text style={{ color: theme.ink, ...fonts.black, fontSize: 20, lineHeight: 24 }}>{stats.setWinRate != null ? `${stats.setWinRate}%` : '-'}</Text><Text style={[muted, { marginTop: 2 }]}>세트 승률</Text></View></View>
+    <View><Text style={muted}>강점</Text><View style={{ marginTop: 4 }}>{strongest.length ? strongest.map(({ index }) => <Text key={index} style={{ color: theme.text, ...fonts.regular, fontSize: 16, lineHeight: 24 }}>{axes[index].title} <Text style={{ color: theme.ink }}>{stats.values[index]}</Text></Text>) : <Text style={{ color: theme.text, ...fonts.regular, fontSize: 16, lineHeight: 24 }}>수집된 지표 없음</Text>}</View></View>
+    <View><Text style={muted}>승리 조건</Text><Text style={{ color: theme.text, ...fonts.regular, fontSize: 16, lineHeight: 24, marginTop: 4 }}>{condition ?? '분석 대기'}</Text></View>
+  </View>;
 }
 
 export function MatchPreviewTab({ data }: { data: MobileMatchDetailDto }) {
-  const { fonts, theme } = useMinionTheme();
-  const { ai, meetings, metrics } = data.preview;
-  const colorA = teamColor(data.match.teamA, theme.ink);
-  const colorB = teamColor(data.match.teamB, theme.muted);
-  const leadMatch = ai.liveCheck.match(/^[^.!?]*[.!?]/);
-  const lead = leadMatch?.[0] ?? ai.liveCheck;
-  const rest = leadMatch ? ai.liveCheck.slice(lead.length).trim() : '';
-  const generatedLabel = ai.generatedAt && ai.generationPhase !== 'legacy' ? `${previewTime(ai.generatedAt)} 기준` : null;
-  const teamAName = data.match.teamA?.shortName ?? data.match.teamA?.name ?? 'TBD';
-  const teamBName = data.match.teamB?.shortName ?? data.match.teamB?.name ?? 'TBD';
-  const bodyText = { color: theme.text, ...fonts.regular, fontSize: 14, lineHeight: 22 } as const;
-  return (
-    <View style={styles.root}>
-      <PredictionBar data={data} />
-      <View>
-        <View style={styles.briefingHeadingRow}>
-          <Text style={[styles.briefingHeading, { color: theme.ink, ...fonts.display }]}>AI 브리핑</Text>
-          {generatedLabel ? <Text style={{ color: theme.muted, ...fonts.medium, fontSize: 13, lineHeight: 20 }}>{generatedLabel}</Text> : null}
+  const router = useRouter();
+  const { width } = useWindowDimensions();
+  const { colorScheme, fonts, showToast, theme } = useMinionTheme();
+  const { ai, briefing, meetings } = data.preview;
+  const teams = [data.match.teamA, data.match.teamB];
+  const names = teams.map((team) => team?.shortName ?? team?.name ?? 'TBD');
+  const colors = teams.map((team) => mixColor(teamColor(team, theme.ink), theme.ink, colorScheme === 'dark' ? 0.6 : 0.85));
+  const series = briefing?.teams.map((stats, i) => ({ label: names[i], color: colors[i], scores: stats.scores, values: stats.values, history: stats.history, dashed: i === 1 })) ?? [];
+  const latestDate = briefing?.teams.flatMap((stats) => stats.history.at(-1)?.date ?? []).sort().at(-1);
+  const openSource = (url: string) => { void Linking.openURL(url).catch(() => showToast('출처를 열지 못했습니다.', 'error')); };
+  const card = [styles.card, { backgroundColor: colorScheme === 'dark' ? theme.surfaceMuted : theme.surface, borderColor: theme.border, padding: width >= 640 ? 16 : 14 }];
+  return <View style={{ gap: 20 }}>
+    <PredictionBar data={data} />
+    <View>
+      <View style={[styles.between, { marginBottom: 12 }]}><Text accessibilityRole="header" style={{ color: theme.ink, ...fonts.display, fontSize: 20, lineHeight: 28 }}>AI 브리핑</Text>{ai.generatedAt ? <Text style={{ color: theme.muted, ...fonts.medium, fontSize: 13, lineHeight: 20 }}>{day(ai.generatedAt)} 기준</Text> : null}</View>
+      {briefing?.issue || ai.summary ? <View style={[card, { marginBottom: 16 }]}>{briefing?.issue ? <Pressable disabled={!briefing.issueSource} accessibilityRole={briefing.issueSource ? 'link' : undefined} onPress={() => briefing.issueSource && openSource(briefing.issueSource)}><Text style={{ color: theme.ink, ...fonts.black, fontSize: 16, lineHeight: 24 }}>{briefing.issue}</Text></Pressable> : null}{ai.summary ? <Text style={{ color: theme.text, ...fonts.regular, fontSize: 16, lineHeight: 28, marginTop: briefing?.issue ? 6 : 0 }}>{ai.summary}</Text> : null}{ai.narrative?.tags.length ? <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 12 }}>{ai.narrative.tags.map((tag, i) => <Text key={i} style={{ color: theme.muted, ...fonts.medium, fontSize: 13, lineHeight: 20, borderWidth: 1, borderColor: theme.border, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2 }}>#{tag}</Text>)}</View> : null}</View> : null}
+      {briefing ? <>
+        <View style={{ gap: width >= 640 ? 12 : 10 }}>{briefing.teams.map((stats, i) => <TeamProfile key={stats.teamId} stats={stats} team={teams[i]} axes={briefing.axes} condition={i ? ai.teamBWinCondition : ai.teamAWinCondition} />)}</View>
+        <View style={{ marginTop: 10, gap: width >= 640 ? 12 : 10, flexDirection: width >= 768 ? 'row' : 'column' }}>
+          <View style={[card, { flex: width >= 768 ? 1 : undefined, gap: 8 }]}><View style={styles.chartHeading}><Text style={{ color: theme.ink, ...fonts.bold, fontSize: 18, lineHeight: 28 }}>팀 지표 비교</Text><Legend names={names} colors={colors} /></View><Text style={{ color: theme.muted, ...fonts.medium, fontSize: 13, lineHeight: 20 }}>최근 5매치 수집 팀 내 백분위</Text>{briefing.teams.some((item) => item.statSetCount) ? <StatRadar axes={briefing.axes} series={series} showComparisonValues label={`${names[0]}와 ${names[1]}의 최근 5매치 팀 지표 비교`} /> : <View style={styles.emptyChart}><Text style={{ color: theme.muted, ...fonts.regular, fontSize: 16 }}>수집된 팀 지표 없음</Text></View>}</View>
+          <View style={[card, { flex: width >= 768 ? 1 : undefined, gap: 8 }]}><View style={styles.chartHeading}><Text style={{ color: theme.ink, ...fonts.bold, fontSize: 18, lineHeight: 28 }}>파워랭킹 추이</Text><Legend names={names} colors={colors} /></View><Pressable accessibilityRole="link" onPress={() => openSource(briefing.powerRankings.sourceUrl)}><Text style={{ color: theme.muted, ...fonts.medium, fontSize: 13, lineHeight: 20 }}>LoL Esports{latestDate ? ` ${day(latestDate)} 기준` : ''}</Text></Pressable><PowerRankingChart series={series} error={briefing.powerRankings.status === 'error'} /></View>
         </View>
-
-        {ai.narrative ? (
-          <View style={[styles.narrativeCard, { backgroundColor: theme.card }]}>
-            <View style={styles.tagRow}>
-              <Text style={{ color: theme.ink, ...fonts.medium, fontSize: 14, lineHeight: 20 }}>오늘의 서사</Text>
-              {ai.narrative.tags.map((tag) => (
-                <View key={tag} style={[styles.tag, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-                  <Text style={{ color: theme.muted, ...fonts.medium, fontSize: 13, lineHeight: 18 }}>{tag}</Text>
-                </View>
-              ))}
-            </View>
-            <Text style={{ color: theme.ink, ...fonts.bold, fontSize: 15, lineHeight: 23, marginTop: 8 }}>{ai.narrative.title}</Text>
-            <Text style={[bodyText, styles.narrativeBody]}>{ai.narrative.body}</Text>
-            {ai.matchMeaning ? (
-              <View style={[styles.meaningBlock, { borderTopColor: theme.border }]}>
-                <Text style={{ color: theme.muted, ...fonts.medium, fontSize: 13, lineHeight: 20 }}>이 경기의 의미</Text>
-                <Text style={[bodyText, styles.meaningBody]}>{ai.matchMeaning}</Text>
-              </View>
-            ) : null}
-          </View>
-        ) : null}
-
-        <BriefingRow label="전력 흐름">
-          {!ai.narrative ? <Text style={{ color: theme.ink, ...fonts.bold, fontSize: 15, lineHeight: 23, marginBottom: 4 }}>{ai.headline}</Text> : null}
-          <Text style={bodyText}>{ai.summary}</Text>
-        </BriefingRow>
-
-        {!ai.narrative && ai.matchMeaning ? <BriefingRow label="이 경기의 의미"><Text style={bodyText}>{ai.matchMeaning}</Text></BriefingRow> : null}
-
-        {ai.recentView ? (
-          <BriefingRow label="최근 평가 온도">
-            <Text style={{ color: theme.ink, ...fonts.bold, fontSize: 15, lineHeight: 23 }}>{ai.recentView.title}</Text>
-            <Text style={[bodyText, styles.recentViewBody]}>{ai.recentView.body}</Text>
-            {ai.recentView.asOf ? <Text style={{ color: theme.muted, ...fonts.medium, fontSize: 13, lineHeight: 20 }}>{sourceDay(ai.recentView.asOf)} 자료 기준</Text> : null}
-          </BriefingRow>
-        ) : null}
-
-        {ai.teamAWinCondition || ai.teamBWinCondition ? (
-          <BriefingRow label="승리 조건">
-            <View style={styles.winConditionList}>
-              {ai.teamAWinCondition ? (
-                <View style={[styles.winConditionCard, { backgroundColor: theme.surface, borderColor: colorA }]}>
-                  <View style={styles.winConditionTitle}><TeamLogo plain size={20} team={data.match.teamA} themeAware /><Text style={{ color: theme.ink, ...fonts.medium, fontSize: 14 }}>{teamAName}</Text></View>
-                  <Text style={[bodyText, styles.winConditionBody]}>{ai.teamAWinCondition}</Text>
-                </View>
-              ) : null}
-              {ai.teamBWinCondition ? (
-                <View style={[styles.winConditionCard, { backgroundColor: theme.surface, borderColor: colorB }]}>
-                  <View style={styles.winConditionTitle}><TeamLogo plain size={20} team={data.match.teamB} themeAware /><Text style={{ color: theme.ink, ...fonts.medium, fontSize: 14 }}>{teamBName}</Text></View>
-                  <Text style={[bodyText, styles.winConditionBody]}>{ai.teamBWinCondition}</Text>
-                </View>
-              ) : null}
-            </View>
-          </BriefingRow>
-        ) : null}
-
-        <BriefingRow label="경기 중 확인">
-          <WatchPoint lead={lead} rest={rest} />
-        </BriefingRow>
-
-        {ai.winProbabilityA !== null ? (
-          <BriefingRow label="예상 승률">
-            <View style={styles.winRow}><View style={styles.winTeam}><TeamLogo plain size={20} team={data.match.teamA} themeAware /><Text style={{ color: theme.ink, ...fonts.bold, fontSize: 15 }}>{ai.winProbabilityA}%</Text></View><View style={styles.winTeam}><Text style={{ color: theme.ink, ...fonts.bold, fontSize: 15 }}>{100 - ai.winProbabilityA}%</Text><TeamLogo plain size={20} team={data.match.teamB} themeAware /></View></View>
-            <View style={styles.winTrack}><View style={{ backgroundColor: colorA, borderBottomLeftRadius: 999, borderTopLeftRadius: 999, width: `${ai.winProbabilityA}%` }} /><View style={{ backgroundColor: colorB, borderBottomRightRadius: 999, borderTopRightRadius: 999, flex: 1 }} /></View>
-          </BriefingRow>
-        ) : null}
-
-        <BriefingRow label="전력 지표">
-          <View style={styles.metrics}><MetricCard colorA={colorA} colorB={colorB} label="최근 5전" valueA={metrics.recentRecordA} valueB={metrics.recentRecordB} /><MetricCard colorA={colorA} colorB={colorB} label="세트 득실" valueA={signed(metrics.setDiffA)} valueB={signed(metrics.setDiffB)} /><MetricCard colorA={colorA} colorB={colorB} label="평균 킬" valueA={metrics.averageKillsA?.toFixed(1) ?? '-'} valueB={metrics.averageKillsB?.toFixed(1) ?? '-'} /></View>
-        </BriefingRow>
-
-        <BriefingRow label="최근 맞대결">
-          {meetings.length === 0 ? <Text style={{ color: theme.muted, ...fonts.regular, fontSize: 14, lineHeight: 22 }}>현재 수집된 기록 기준 첫 맞대결입니다. 최근 대진 난이도와 경기력으로 비교했습니다.</Text> : <View style={styles.meetingList}>{meetings.map((match) => <MeetingRow key={match.id} match={match} />)}</View>}
-        </BriefingRow>
-      </View>
+      </> : null}
+      {meetings.length ? <View style={{ marginTop: 16 }}><Text style={{ color: theme.ink, ...fonts.bold, fontSize: 18, lineHeight: 28, marginBottom: 8 }}>최근 맞대결</Text><View style={{ gap: 8 }}>{meetings.map((match) => <Pressable key={match.id} accessibilityRole="link" onPress={() => router.push(`/matches/${encodeURIComponent(match.id)}` as never)} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: theme.card }}><Text style={{ color: theme.muted, ...fonts.medium, fontSize: 13, lineHeight: 20 }}>{day(match.startsAt)}</Text><View style={{ flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}><TeamLogo plain size={20} team={match.teamA} themeAware /><Text numberOfLines={1} style={{ color: theme.ink, flexShrink: 1, ...fonts.medium, fontSize: 15 }}>{match.teamA?.shortName ?? '-'}</Text><Text style={{ color: theme.ink, ...fonts.black, fontSize: 15 }}>{match.teamAScore} : {match.teamBScore}</Text><Text numberOfLines={1} style={{ color: theme.ink, flexShrink: 1, ...fonts.medium, fontSize: 15 }}>{match.teamB?.shortName ?? '-'}</Text><TeamLogo plain size={20} team={match.teamB} themeAware /></View><Text style={{ color: theme.muted, ...fonts.medium, fontSize: 12 }}>BO{match.bestOf}</Text></Pressable>)}</View></View> : null}
     </View>
-  );
+  </View>;
 }
 
 const styles = StyleSheet.create({
-  briefingHeading: { fontSize: 18, lineHeight: 24 },
-  briefingHeadingRow: { alignItems: 'flex-end', flexDirection: 'row', gap: 8, justifyContent: 'space-between', marginBottom: 12 },
-  briefingRow: { borderRadius: 8, gap: 4, marginBottom: 8, paddingHorizontal: 12, paddingVertical: 10 },
-  choice: { alignItems: 'center', alignSelf: 'stretch', flex: 1, flexDirection: 'row', gap: 6, minWidth: 0, paddingHorizontal: 8 },
-  choiceIdentity: { alignItems: 'center', flex: 1, flexDirection: 'row', gap: 6, minWidth: 0 },
-  choiceReverse: { flexDirection: 'row-reverse' },
-  meetingList: { gap: 6 },
-  meetingPair: { alignItems: 'center', flex: 1, flexDirection: 'row', gap: 6, justifyContent: 'center', minWidth: 0 },
-  meetingRow: { alignItems: 'center', borderRadius: 8, flexDirection: 'row', gap: 6, paddingHorizontal: 10, paddingVertical: 8 },
-  meetingSide: { alignItems: 'center', flex: 1, flexDirection: 'row', gap: 6, minWidth: 0 },
-  meetingSideA: { flexDirection: 'row-reverse' },
-  meaningBlock: { borderTopWidth: StyleSheet.hairlineWidth, marginTop: 10, paddingTop: 10 },
-  meaningBody: { marginTop: 4 },
-  metricCard: { borderRadius: 8, flex: 1, minWidth: 0, paddingHorizontal: 6, paddingVertical: 8 },
-  metrics: { flexDirection: 'row', gap: 6 },
-  narrativeBody: { marginTop: 6 },
-  narrativeCard: { borderRadius: 8, marginBottom: 8, paddingHorizontal: 12, paddingVertical: 10 },
+  between: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  card: { borderWidth: 1, borderRadius: 12, minWidth: 0 },
+  chartHeading: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  emptyChart: { height: 280, alignItems: 'center', justifyContent: 'center' },
   prediction: { alignItems: 'stretch', borderRadius: 12, borderWidth: 1, flexDirection: 'row', height: 76, overflow: 'hidden' },
-  predictionVs: { alignItems: 'center', justifyContent: 'center', width: 34 },
-  recentViewBody: { marginTop: 4 },
-  root: { gap: 20 },
-  tag: { borderRadius: 999, borderWidth: 1, paddingHorizontal: 8, paddingVertical: 4 },
-  tagRow: { alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  winConditionBody: { marginTop: 6 },
-  winConditionCard: { borderRadius: 8, borderWidth: 1, padding: 10 },
-  winConditionList: { gap: 8 },
-  winConditionTitle: { alignItems: 'center', flexDirection: 'row', gap: 8 },
-  winRow: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
-  winTeam: { alignItems: 'center', flexDirection: 'row', gap: 8 },
-  winTrack: { flexDirection: 'row', gap: 2, height: 8, marginTop: 8, overflow: 'hidden' },
-  watchPointHighlight: { bottom: 3, height: 9, left: 0, position: 'absolute', right: 0 },
-  watchPointLead: { alignSelf: 'flex-start', maxWidth: '100%', position: 'relative' },
-  watchPointLine: { alignItems: 'flex-start', flexDirection: 'row', flexWrap: 'wrap' },
-  watchPointText: { fontSize: 14, lineHeight: 22 },
+  choice: { alignItems: 'center', alignSelf: 'stretch', flex: 1, flexDirection: 'row', gap: 6, minWidth: 0, paddingHorizontal: 8 }, choiceReverse: { flexDirection: 'row-reverse' },
+  choiceIdentity: { alignItems: 'center', flex: 1, flexDirection: 'row', gap: 6, minWidth: 0 }, predictionVs: { alignItems: 'center', justifyContent: 'center', width: 34 },
 });

@@ -11,7 +11,7 @@ function userFacingError(error: unknown) {
   return error.message;
 }
 
-export function useCachedQuery<T>(path: string, options: { enabled?: boolean; cache?: ApiCacheMode; cacheScope?: string; staleTimeMs?: number; cancelOnUnused?: boolean } = {}) {
+export function useCachedQuery<T>(path: string, options: { enabled?: boolean; cache?: ApiCacheMode; cacheScope?: string; staleTimeMs?: number; cancelOnUnused?: boolean; keepPreviousData?: boolean } = {}) {
   const enabled = options.enabled ?? true;
   const cache = options.cache ?? true;
   const staleTimeMs = options.staleTimeMs ?? 0;
@@ -85,5 +85,6 @@ export function useCachedQuery<T>(path: string, options: { enabled?: boolean; ca
   const currentError = errorPath === key ? error : null;
   const awaitingCurrentPath = enabled && currentData === null && currentError === null;
 
-  return { data: currentData, error: currentError, loading: awaitingCurrentPath, refresh, refreshing: enabled && refreshing };
+  const displayedData = currentData ?? (options.keepPreviousData && dataPath !== key ? data : null);
+  return { data: displayedData, error: currentError, loading: awaitingCurrentPath, refresh, refreshing: enabled && refreshing };
 }

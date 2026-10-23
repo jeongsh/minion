@@ -173,28 +173,39 @@ export function ScheduleLoadingSkeleton() {
 export function TournamentLoadingSkeleton() {
   return (
     <LoadingMain className="flex flex-col">
-      <div className="mt-2 hidden border-b border-[var(--ui-border)] lg:block"><div className="layout-wide flex flex-wrap gap-2 py-2.5">{Array.from({ length: 4 }, (_, index) => <Skeleton key={index} className="h-11 w-24 rounded-lg" />)}</div></div>
-      <div className="layout-wide mt-6 flex flex-col gap-6">
-      <Skeleton className="h-7 w-60 max-w-full" /><div className="hidden gap-4 border-b border-[var(--ui-border)] lg:flex"><Skeleton className="h-11 w-16" /><Skeleton className="h-11 w-12" /></div>
-      <section className="grid gap-4 sm:grid-cols-2">
-        {Array.from({ length: 2 }, (_, group) => (
-          <div key={group} className="flex flex-col gap-2.5">
-            <div className="flex items-center gap-2"><span className="h-[14px] w-[3px] rounded-full bg-[var(--accent)]" /><Skeleton className="h-[15px] w-20" /></div>
-            <div className="overflow-hidden rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)]">
-              <div className="divide-y divide-[var(--ui-border)]">
-                {Array.from({ length: 5 }, (_, index) => (
-                  <div key={index} className="grid min-h-[52px] grid-cols-[1.5rem_minmax(0,1fr)_auto_auto] items-center gap-2 px-3 py-2">
-                    <Skeleton className="h-4 w-4" />
-                    <div className="flex min-w-0 items-center gap-2"><Skeleton className="h-6 w-6 shrink-0 rounded-full" /><Skeleton className={`h-4 ${index % 3 === 0 ? "w-28" : "w-20"}`} /></div>
-                    <Skeleton className="h-4 w-7" /><Skeleton className="h-4 w-14" />
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        ))}
-      </section>
+      <div className="mt-2 hidden border-b border-[var(--ui-border)] lg:block">
+        <div className="layout-wide flex flex-wrap gap-2 py-2.5">
+          {Array.from({ length: 4 }, (_, index) => <Skeleton key={index} className="h-11 w-24 rounded-lg" />)}
+        </div>
       </div>
+      <section className="layout-wide mt-6 flex min-w-0 flex-col gap-4">
+        <Skeleton className="h-7 w-60 max-w-full" />
+        <div className="overflow-hidden rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] p-4 md:p-6">
+          <div className="flex min-w-max gap-6 md:gap-8">
+            {[4, 2, 1].map((count, round) => (
+              <div key={round} className="flex w-[216px] shrink-0 flex-col gap-4">
+                <Skeleton className="h-5 w-24" />
+                <div className="flex flex-1 flex-col justify-around gap-4">
+                  {Array.from({ length: count }, (_, match) => (
+                    <div key={match} className="rounded-lg bg-[var(--ui-surface)] p-3">
+                      <Skeleton className="mb-3 h-3 w-24" />
+                      <div className="space-y-2">
+                        {[0, 1].map((team) => (
+                          <div key={team} className="flex items-center gap-2">
+                            <Skeleton className="size-6 shrink-0 rounded-full" />
+                            <Skeleton className="h-4 w-20" />
+                            <Skeleton className="ml-auto h-4 w-4" />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
     </LoadingMain>
   );
 }

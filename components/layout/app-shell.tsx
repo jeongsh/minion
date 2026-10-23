@@ -27,6 +27,8 @@ import { BrandLogo } from "@/components/layout/brand-logo";
 import { FanTeamPicker } from "@/components/layout/fan-team-picker";
 import { HeaderSearch } from "@/components/layout/header-search";
 import { SiteFooter } from "@/components/layout/site-footer";
+import { DesktopAdRails } from "@/components/ads/desktop-ad-rails";
+import { TournamentEntryFallback } from "@/components/navigation/tournament-content-cache";
 import { useMatchActivity } from "@/components/match-activity/use-match-activity";
 import { RatingOpenCard } from "@/components/match-activity/rating-open-card";
 import { NotificationPanel } from "@/components/notifications/notification-panel";
@@ -421,7 +423,7 @@ export function AppShell({
         ) : null}
         {currentUser ? (
           <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
-            <Link href="/me" className="flex min-h-11 min-w-0 max-w-[126px] items-center gap-1.5 text-[13px] font-bold sm:max-w-none sm:gap-2 sm:text-sm">
+            <Link href="/me" prefetch={true} className="flex min-h-11 min-w-0 max-w-[126px] items-center gap-1.5 text-[13px] font-bold sm:max-w-none sm:gap-2 sm:text-sm">
               <RankAvatar
                 tier={currentUser.tier}
                 src={currentUser.profileImageUrl}
@@ -489,19 +491,25 @@ export function AppShell({
         </aside>
       ) : null}
 
-      <div className={`flex flex-col md:pt-16 ${focusRoute || communityPostDetail ? "pt-12" : "pt-14 sm:pt-16"} ${focusRoute ? "" : "md:pl-14"}`}>
+      <div className={`ad-rail-layout flex flex-col md:pt-16 ${focusRoute || communityPostDetail ? "pt-12" : "pt-14 sm:pt-16"} ${focusRoute ? "" : "md:pl-14"}`}>
+        {!focusRoute ? <DesktopAdRails /> : null}
         <div className={`${!focusRoute && !communityPostDetail ? "compact-hub-content pb-0" : "pb-0"}`} data-shell-content={!focusRoute && !communityPostDetail ? "compact-hub" : undefined}>
           {showHubLocalNavigation ? (
             <nav aria-label="허브 로컬 메뉴" className="hub-local-navigation sticky z-30 border-b border-[var(--ui-border)] bg-[var(--page-background)] transition-[top] duration-200 md:hidden">
               <div className="flex h-12 w-full items-stretch overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 {hubLocalNav.map((item) => {
                   const active = isActiveRoute(pathname, item.href);
-                  return <Link key={item.href} href={item.href} prefetch={item.prefetch} aria-current={active ? "page" : undefined} className={`flex shrink-0 items-center justify-center whitespace-nowrap border-b-[3px] px-4 pt-0.5 text-[14px] font-medium transition-colors ${active ? "border-[var(--accent)] text-[var(--accent)]" : "border-transparent text-[var(--ui-muted)] hover:text-[var(--ui-ink)]"}`}>{item.label}</Link>;
+                  return <Link key={item.href} href={item.href} prefetch={item.prefetch} aria-current={active ? "page" : undefined} className={`font-paperozi flex shrink-0 items-center justify-center whitespace-nowrap border-b-[3px] px-4 pt-0.5 text-[14px] font-medium transition-colors ${active ? "border-[var(--accent)] text-[var(--accent)]" : "border-transparent text-[var(--ui-muted)] hover:text-[var(--ui-ink)]"}`}>{item.label}</Link>;
                 })}
               </div>
             </nav>
           ) : null}
-          {children}
+          {pathname === "/tournaments" || pathname.startsWith("/tournaments/") ? (
+            <div className="tournament-entry">
+              <TournamentEntryFallback />
+              <div className="tournament-entry-content">{children}</div>
+            </div>
+          ) : children}
         </div>
         {focusRoute ? (
           <div className="hidden md:block"><SiteFooter accentColor={currentFanTeam?.primaryColor} /></div>

@@ -38,7 +38,9 @@ async function waitForPageReady(isCurrent: () => boolean) {
   // The committed route's skeleton is the readiness boundary. Ads, carousels,
   // images and live widgets can update indefinitely after content is usable.
   while (isCurrent() && Date.now() < deadline) {
-    if (!document.querySelector('[data-route-loading="true"]')) return;
+    const hasVisibleSkeleton = Array.from(document.querySelectorAll('[data-route-loading="true"]'))
+      .some((element) => element.getClientRects().length > 0);
+    if (!hasVisibleSkeleton) return;
     await waitForDelay(PAGE_READY_POLL_MS);
   }
 }

@@ -1001,6 +1001,7 @@ function GamesTab({
               <TableHead scope="col">대회</TableHead>
               <TableHead scope="col">상대</TableHead>
               <TableHead scope="col">아이템</TableHead>
+              <TableHead scope="col" aria-label="상세" />
             </TableRow>
           </TableHeader>
           <TableBody>

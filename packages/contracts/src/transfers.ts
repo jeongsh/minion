@@ -90,3 +90,17 @@ export function latestPlayerEvents(events: TransferEvent[]) {
   }
   return [...map.values()];
 }
+
+export function transferArticleUrl(event: TransferEvent | undefined) {
+  if (!event) return null;
+  const candidates = event.provenance === "namuwiki" ? event.references : [event.sourceUrl, ...event.references];
+  for (const candidate of candidates) {
+    try {
+      const url = new URL(candidate);
+      if (["https:", "http:"].includes(url.protocol) && url.hostname !== "namu.wiki" && !url.hostname.endsWith(".namu.wiki")) return url.href;
+    } catch {
+      continue;
+    }
+  }
+  return null;
+}

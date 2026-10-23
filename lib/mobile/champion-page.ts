@@ -378,10 +378,13 @@ export async function getMobileChampionDetail(championSlug: string, searchParams
     matchups: analysis.matchups.map((row) => ({
       champion: toChampion(row.opponentChampion), games: row.games, wins: row.wins, losses: row.losses,
       winRate: row.winRate, goldDiffAt15: row.metrics.goldDiffAt15.value,
+      csDiffAt15: row.metrics.csDiffAt15.value, goldRecordedGames: row.metrics.goldDiffAt15.recordedGames, csRecordedGames: row.metrics.csDiffAt15.recordedGames,
     })),
     duos: analysis.duos.map((row) => ({
       champion: toChampion(row.partnerChampion), games: row.games, wins: row.wins, losses: row.losses,
-      winRate: row.winRate, goldDiffAt15: row.duoGoldDiffAt15.value,
+      winRate: row.winRate, goldDiffAt15: row.duoGoldDiffAt15.value, goldRecordedGames: row.duoGoldDiffAt15.recordedGames,
+      playerPairs: row.playerPairs.slice(0, 5).map((pair) => ({ botPlayer: toPlayer(pair.botPlayer), supPlayer: toPlayer(pair.supPlayer), games: pair.games, winRate: pair.winRate })),
+      opponentDuos: row.opponentDuos.slice(0, 5).map((pair) => ({ botChampion: toChampion(pair.botChampion), supChampion: toChampion(pair.supChampion), games: pair.games, winRate: pair.winRate })),
     })),
     pros: analysis.players.map((row) => ({
       player: toPlayer(row.player),
@@ -408,6 +411,7 @@ export async function getMobileChampionDetail(championSlug: string, searchParams
         assists: row.assists,
         kda: row.metrics.kda.value,
         items: ids.map((id) => ({ id, image: image(itemImageUrl(id, version)) })),
+        itemSlots: [...Array.from({ length: 6 }, (_, index) => row.finalItemIds[index] ?? null), row.trinketId, row.roleBoundItemId].map((id) => id ? image(itemImageUrl(id, version)) : null),
       };
     }),
     stats: {

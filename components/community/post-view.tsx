@@ -84,7 +84,7 @@ export async function PostView({
               {canManage ? <PostOwnerActions postId={post.id} scope={scope} teamSlug={teamSlug} /> : isGuestOwner ? <PostOwnerActions postId={post.id} scope={scope} teamSlug={teamSlug} guest /> : null}
             </div>
           </div>
-          <h1 className={`text-[16px] leading-[1.45] md:mt-2 md:text-[24px] md:leading-[1.35] ${blinded ? "font-medium text-[var(--ui-muted)]" : "font-bold text-[var(--ui-ink)]"}`}>
+          <h1 className={`text-[20px] leading-[1.45] md:mt-2 md:leading-[1.35] ${blinded ? "font-medium text-[var(--ui-muted)]" : "font-bold text-[var(--ui-ink)]"}`}>
             {blinded ? blindLabel(post.blindedSource, "post") : post.title}
           </h1>
 

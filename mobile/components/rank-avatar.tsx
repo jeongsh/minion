@@ -1,4 +1,3 @@
-import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Defs, LinearGradient as SvgLinearGradient, Path, Stop } from 'react-native-svg';
 import { useId } from 'react';
@@ -6,6 +5,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import { resolveApiAssetUrl } from '@/lib/api-client';
+import { AvatarImage } from '@/components/avatar-image';
 
 const TIERS = ['iron', 'bronze', 'silver', 'gold', 'platinum', 'emerald', 'diamond', 'master', 'grandmaster', 'challenger'] as const;
 type Tier = typeof TIERS[number];
@@ -65,11 +65,8 @@ export function RankAvatar({ fallback = 'MY', profileImageUrl, reserveMedalSpace
         <View pointerEvents="none" style={[styles.outerStroke, { borderRadius: dimensions.ringRadius + 1 }]} />
         <View pointerEvents="none" style={[styles.topHighlight, { borderRadius: dimensions.ringRadius }]} />
         <View style={[styles.imageFrame, { backgroundColor: theme.surfaceMuted, borderRadius: dimensions.frameRadius, bottom: dimensions.frameInset, left: dimensions.frameInset, right: dimensions.frameInset, top: dimensions.frameInset }]}>
-          {uri ? (
-            <Image contentFit="cover" source={{ uri }} style={[StyleSheet.absoluteFill, { borderRadius: dimensions.frameRadius }]} />
-          ) : (
-            <Text style={{ color: theme.muted, ...fonts.medium, fontSize: size === 'large' ? 27 : size === 'profile' ? 20 : size === 'mobile' ? 16 : size === 'detail' || size === 'reply' ? 11 : 10, lineHeight: size === 'large' ? 32 : size === 'profile' ? 24 : size === 'mobile' ? 20 : size === 'detail' ? 14 : size === 'reply' ? 12 : 12 }}>{fallback.slice(0, 2).toUpperCase()}</Text>
-          )}
+          <Text style={{ color: theme.muted, ...fonts.medium, fontSize: size === 'large' ? 27 : size === 'profile' ? 20 : size === 'mobile' ? 16 : 13, lineHeight: size === 'large' ? 32 : size === 'profile' ? 24 : size === 'mobile' ? 20 : 16 }}>{fallback.slice(0, 2).toUpperCase()}</Text>
+          {uri ? <AvatarImage key={uri} uri={uri} radius={dimensions.frameRadius} /> : null}
         </View>
         <Svg height={dimensions.medal * 1.08} style={[styles.medal, { bottom: dimensions.medalBottom, left: dimensions.medalLeft, shadowColor: finish.shadow }]} viewBox="0 0 10 10.8" width={dimensions.medal}>
           <Defs>

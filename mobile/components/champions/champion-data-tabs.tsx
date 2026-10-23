@@ -1,8 +1,9 @@
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import ChevronRight from 'lucide-react-native/icons/chevron-right';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { DataTable, type DataTableColumn } from '@/components/data-table';
+import { useState } from 'react';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import { resolveApiAssetUrl, type MobileChampionDetailDto, type MobileChampionSummary, type MobilePlayerSummary } from '@/lib/api-client';
 
@@ -28,7 +29,7 @@ function PlayerFace({ player, size = 32 }: { player: MobilePlayerSummary | null;
 
 function SectionTitle({ caption, children }: { caption?: string; children: string }) {
   const { fonts, theme } = useMinionTheme();
-  return <View style={styles.sectionTitle}><Text style={{ color: theme.ink, ...fonts.display, fontSize: 16, lineHeight: 22 }}>{children}</Text>{caption ? <Text style={{ color: theme.muted, ...fonts.regular, fontSize: 13, lineHeight: 20, marginTop: 4 }}>{caption}</Text> : null}</View>;
+  return <View style={styles.sectionTitle}><Text style={{ color: theme.ink, ...fonts.display, fontSize: 20, lineHeight: 28 }}>{children}</Text>{caption ? <Text style={{ color: theme.muted, ...fonts.regular, fontSize: 13, lineHeight: 20, marginTop: 4 }}>{caption}</Text> : null}</View>;
 }
 
 function Empty({ children }: { children: string }) {
@@ -36,42 +37,79 @@ function Empty({ children }: { children: string }) {
   return <View style={styles.empty}><Text style={{ color: theme.muted, ...fonts.regular, fontSize: 14, lineHeight: 22 }}>{children}</Text></View>;
 }
 
-function Value({ value, muted = false }: { value: string; muted?: boolean }) {
+function Stat({ value }: { value: string }) {
   const { fonts, theme } = useMinionTheme();
-  return <Text numberOfLines={1} style={{ color: muted ? theme.muted : theme.ink, ...fonts.medium, fontSize: muted ? 13 : 14, lineHeight: 20, textAlign: 'right' }}>{value}</Text>;
+  return <Text style={{ color: theme.ink, ...fonts.regular, fontSize: 14, lineHeight: 20 }}>{value}</Text>;
+}
+
+function signed(value: number | null | undefined, digits = 0) {
+  return value == null ? '-' : `${value > 0 ? '+' : ''}${value.toFixed(digits)}`;
+}
+
+function ChampionIdentity({ champion }: { champion: MobileChampionSummary | null }) {
+  const { fonts, theme } = useMinionTheme();
+  return <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, minWidth: 0 }}><ChampionFace champion={champion} size={36} /><Text numberOfLines={1} style={{ color: theme.ink, ...fonts.bold, fontSize: 16, lineHeight: 24, flexShrink: 1 }}>{champion?.name ?? '알 수 없음'}</Text></View>;
 }
 
 export function MatchupView({ rows }: { rows: MobileChampionDetailDto['matchups'] }) {
+  const columns: DataTableColumn<MobileChampionDetailDto['matchups'][number]>[] = [
+    { key: 'champion', label: '상대 챔피언', width: 176, flex: true, render: (row) => <ChampionIdentity champion={row.champion} /> },
+    { key: 'games', label: '경기', width: 64, render: (row) => <Stat value={String(row.games)} /> },
+    { key: 'rate', label: '승률', width: 80, render: (row) => <Stat value={percent(row.winRate)} /> },
+    { key: 'gold', label: '15분 골드', width: 100, render: (row) => <Stat value={signed(row.goldDiffAt15)} /> },
+    { key: 'cs', label: '15분 CS', width: 92, render: (row) => <Stat value={signed(row.csDiffAt15, 1)} /> },
+  ];
+  return <View><SectionTitle>상대 전적</SectionTitle>{rows.length ? <DataTable columns={columns} rows={rows} getRowKey={(row) => row.champion?.id ?? 'unknown'} /> : <Empty>선택한 범위에 상대 기록이 없습니다.</Empty>}</View>;
+}
+
+function DuoDetails({ row }: { row: MobileChampionDetailDto['duos'][number] }) {
   const { fonts, theme } = useMinionTheme();
-  return <View><SectionTitle>상대 전적</SectionTitle>{rows.length ? <View style={[styles.table, { backgroundColor: theme.surface }]}><View style={[styles.header, { backgroundColor: theme.card }]}><Text style={[styles.headerGrow, { color: theme.muted, ...fonts.medium }]}>상대</Text><Text style={[styles.headerValue, { color: theme.muted, ...fonts.medium }]}>경기</Text><Text style={[styles.headerValue, { color: theme.muted, ...fonts.medium }]}>승률</Text></View>{rows.map((row) => <View key={row.champion?.id ?? 'unknown'} style={[styles.row, { borderBottomColor: theme.border }]}><View style={styles.identity}><ChampionFace champion={row.champion} /><Text numberOfLines={1} style={{ color: theme.ink, flex: 1, ...fonts.medium, fontSize: 14, lineHeight: 20 }}>{row.champion?.name ?? '-'}</Text></View><Value value={String(row.games)} /><Value value={percent(row.winRate)} /></View>)}</View> : <Empty>선택한 범위에 상대 전적이 없습니다.</Empty>}</View>;
+  return <View style={{ backgroundColor: theme.card, padding: 16, borderRadius: 12, marginBottom: 16, gap: 20 }}>
+    <View><Text style={{ color: theme.ink, ...fonts.bold, fontSize: 18, lineHeight: 24 }}>선수 조합</Text><View style={{ marginTop: 8 }}>{(row.playerPairs ?? []).slice(0, 5).map((pair, i) => <View key={i} style={[styles.detailRow, i > 0 && { borderTopWidth: 1, borderColor: theme.border }]}><PlayerFace player={pair.botPlayer} size={36} /><Text numberOfLines={1} style={{ color: theme.ink, ...fonts.bold, flex: 1, fontSize: 16, lineHeight: 24 }}>{pair.botPlayer?.name ?? '-'} + {pair.supPlayer?.name ?? '-'}</Text><View style={{ alignItems: 'flex-end' }}><Text style={{ color: theme.ink, ...fonts.medium, fontSize: 13, lineHeight: 20 }}>{percent(pair.winRate)}</Text><Text style={{ color: theme.muted, ...fonts.regular, fontSize: 13, lineHeight: 20 }}>{pair.games}경기</Text></View></View>)}</View></View>
+    <View><Text style={{ color: theme.ink, ...fonts.bold, fontSize: 18, lineHeight: 24 }}>상대 조합</Text><View style={{ marginTop: 8 }}>{(row.opponentDuos ?? []).slice(0, 5).map((pair, i) => <View key={i} style={[styles.detailRow, i > 0 && { borderTopWidth: 1, borderColor: theme.border }]}><View style={{ flexDirection: 'row' }}><ChampionFace champion={pair.botChampion} size={36} /><View style={{ marginLeft: -8 }}><ChampionFace champion={pair.supChampion} size={36} /></View></View><Text numberOfLines={1} style={{ color: theme.ink, ...fonts.bold, flex: 1, fontSize: 16, lineHeight: 24 }}>{pair.botChampion?.name ?? '-'} + {pair.supChampion?.name ?? '-'}</Text><View style={{ alignItems: 'flex-end' }}><Text style={{ color: theme.ink, ...fonts.medium, fontSize: 13, lineHeight: 20 }}>{percent(pair.winRate)}</Text><Text style={{ color: theme.muted, ...fonts.regular, fontSize: 13, lineHeight: 20 }}>{pair.games}경기</Text></View></View>)}</View></View>
+  </View>;
 }
 
 export function DuoView({ rows }: { rows: MobileChampionDetailDto['duos'] }) {
-  const { fonts, theme } = useMinionTheme();
-  return <View><SectionTitle>바텀 조합</SectionTitle>{rows.length ? <View style={[styles.table, { backgroundColor: theme.surface }]}>{rows.map((row) => <View key={row.champion?.id ?? 'unknown'} style={[styles.row, { borderBottomColor: theme.border }]}><View style={styles.identity}><ChampionFace champion={row.champion} /><View style={styles.identityCopy}><Text numberOfLines={1} style={{ color: theme.ink, ...fonts.medium, fontSize: 14, lineHeight: 20 }}>{row.champion?.name ?? '-'}</Text><Text style={{ color: theme.muted, ...fonts.regular, fontSize: 13, lineHeight: 18 }}>{row.wins}승 · {row.losses}패</Text></View></View><Value value={`${row.games}세트`} muted /><Value value={percent(row.winRate)} /></View>)}</View> : <Empty>선택한 범위에 바텀 조합이 없습니다.</Empty>}</View>;
+  const columns: DataTableColumn<MobileChampionDetailDto['duos'][number]>[] = [
+    { key: 'partner', label: '파트너', width: 176, flex: true, render: (row) => <ChampionIdentity champion={row.champion} /> },
+    { key: 'games', label: '경기', width: 64, render: (row) => <Stat value={String(row.games)} /> },
+    { key: 'rate', label: '승률', width: 80, render: (row) => <Stat value={percent(row.winRate)} /> },
+    { key: 'gold', label: '15분 골드', width: 100, render: (row) => <Stat value={signed(row.goldDiffAt15)} /> },
+  ];
+  return <View><SectionTitle caption="동시 출전 기준">바텀 조합</SectionTitle>{rows.length ? <DataTable columns={columns} rows={rows} getRowKey={(row) => row.champion?.id ?? 'unknown'} rowLabel={(row) => `${row.champion?.name ?? '파트너'} 조합 상세`} renderExpanded={(row) => <DuoDetails row={row} />} /> : <Empty>선택한 범위에 바텀 조합 기록이 없습니다.</Empty>}</View>;
 }
 
 export function ProView({ rows }: { rows: MobileChampionDetailDto['pros'] }) {
   const router = useRouter();
   const { fonts, theme } = useMinionTheme();
-  return <View><SectionTitle>선수</SectionTitle>{rows.length ? <View style={[styles.table, { backgroundColor: theme.surface }]}>{rows.map((row, index) => <Pressable disabled={!row.player} key={row.player?.id ?? index} onPress={() => row.player && router.push(`/players/${row.player.slug}`)} style={({ pressed }) => [styles.row, { borderBottomColor: theme.border, backgroundColor: pressed ? theme.cardHover : 'transparent' }]}><View style={styles.identity}><PlayerFace player={row.player} /><View style={styles.identityCopy}><Text numberOfLines={1} style={{ color: theme.ink, ...fonts.medium, fontSize: 14, lineHeight: 20 }}>{row.player?.name ?? '-'}</Text><Text style={{ color: theme.muted, ...fonts.regular, fontSize: 13, lineHeight: 18 }}>{row.team?.shortName ?? 'FA'} · KDA {number(row.kda, 2)}</Text></View></View><Value value={`${row.games}세트`} muted /><Value value={percent(row.winRate)} /></Pressable>)}</View> : <Empty>선택한 범위에 선수 기록이 없습니다.</Empty>}</View>;
+  const columns: DataTableColumn<MobileChampionDetailDto['pros'][number]>[] = [
+    { key: 'player', label: '선수', width: 176, flex: true, render: (row) => <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}><PlayerFace player={row.player} size={36} /><Pressable disabled={!row.player} accessibilityRole="link" onPress={() => row.player && router.push(`/players/${row.player.slug}`)}><Text style={{ color: theme.ink, ...fonts.bold, fontSize: 16, lineHeight: 24 }}>{row.player?.name ?? '알 수 없음'}</Text></Pressable></View> },
+    { key: 'games', label: '경기', width: 64, render: (row) => <Stat value={String(row.games)} /> },
+    { key: 'rate', label: '승률', width: 80, render: (row) => <Stat value={percent(row.winRate)} /> },
+    { key: 'kda', label: 'KDA', width: 80, render: (row) => <Stat value={number(row.kda, 2)} /> },
+    { key: 'dpm', label: 'DPM', width: 80, render: (row) => <Stat value={number(row.dpm)} /> },
+    { key: 'gold', label: '15분 골드', width: 100, render: (row) => <Stat value={signed(row.goldDiffAt15)} /> },
+  ];
+  return <View><SectionTitle>선수</SectionTitle>{rows.length ? <DataTable columns={columns} rows={rows} /> : <Empty>선택한 범위에 사용 기록이 없습니다.</Empty>}</View>;
 }
 
 export function GamesView({ rows }: { rows: MobileChampionDetailDto['games'] }) {
   const router = useRouter();
   const { fonts, theme } = useMinionTheme();
-  return (
-    <View><SectionTitle>경기</SectionTitle>{rows.length ? <View style={[styles.table, { backgroundColor: theme.surface }]}>
-      <View style={[styles.gameHeader, { backgroundColor: theme.card }]}><Text style={[styles.resultHead, { color: theme.muted, ...fonts.medium }]}>결과</Text><Text style={[styles.gamePlayerHead, { color: theme.muted, ...fonts.medium }]}>선수</Text><Text style={[styles.kdaHead, { color: theme.muted, ...fonts.medium }]}>KDA</Text><Text style={[styles.itemHead, { color: theme.muted, ...fonts.medium }]}>아이템</Text></View>
-      {rows.map((game) => <Pressable accessibilityRole="link" key={`${game.setId}:${game.player?.id}`} onPress={() => router.push(`/matches/${encodeURIComponent(game.matchId)}?tab=data&set=${encodeURIComponent(game.setId)}` as never)} style={({ pressed }) => [styles.gameRow, { borderBottomColor: theme.border, backgroundColor: pressed ? theme.cardHover : 'transparent' }]}>
-        <View style={[styles.result, { backgroundColor: game.result === 'W' ? '#10b981' : '#f43f5e' }]}><Text style={{ color: '#ffffff', ...fonts.medium, fontSize: 12, lineHeight: 24 }}>{game.result}</Text></View>
-        <View style={styles.gameIdentity}><PlayerFace player={game.player} size={32} /><View style={styles.identityCopy}><Text numberOfLines={1} style={{ color: theme.ink, ...fonts.medium, fontSize: 14, lineHeight: 20 }}>{game.player?.name ?? '-'}</Text><Text numberOfLines={1} style={{ color: theme.muted, ...fonts.regular, fontSize: 13, lineHeight: 18 }}>{game.tournament} · vs {game.opponentChampion?.name ?? '-'}</Text></View></View>
-        <View style={styles.kda}><Text style={{ color: theme.ink, ...fonts.medium, fontSize: 13, lineHeight: 18 }}>{game.kills}/{game.deaths}/{game.assists}</Text><Text style={{ color: theme.muted, ...fonts.regular, fontSize: 12, lineHeight: 16 }}>{number(game.kda, 2)}</Text></View>
-        <View style={styles.items}>{game.items.slice(0, 6).map((item, index) => <Image key={`${item.id}-${index}`} contentFit="cover" source={{ uri: resolveApiAssetUrl(item.image?.url) ?? item.image?.url ?? '' }} style={styles.item} />)}</View>
-        <ChevronRight color={theme.muted} size={15} />
-      </Pressable>)}
-    </View> : <Empty>선택한 범위에 경기 기록이 없습니다.</Empty>}</View>
-  );
+  const [page, setPage] = useState(1);
+  const pageCount = Math.max(1, Math.ceil(rows.length / 20));
+  const activePage = Math.min(page, pageCount);
+  const columns: DataTableColumn<MobileChampionDetailDto['games'][number]>[] = [
+    { key: 'result', label: '결과', width: 56, render: (game) => <View style={{ width: 24, height: 24, borderRadius: 4, justifyContent: 'center', alignItems: 'center', backgroundColor: game.result === 'W' ? '#10b981' : '#f43f5e' }}><Text style={{ color: '#fff', ...fonts.medium, fontSize: 12, lineHeight: 24 }}>{game.result}</Text></View> },
+    { key: 'player', label: '선수', width: 176, flex: true, render: (game) => <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, minWidth: 0 }}><PlayerFace player={game.player} size={36} /><View style={{ flex: 1, minWidth: 0 }}><Text numberOfLines={1} style={{ color: theme.ink, ...fonts.bold, fontSize: 16, lineHeight: 24 }}>{game.player?.name ?? '-'}</Text><Text numberOfLines={1} style={{ color: theme.muted, ...fonts.regular, fontSize: 13, lineHeight: 20 }}>{game.tournament} vs {game.opponentChampion?.name ?? '-'}</Text></View></View> },
+    { key: 'kda', label: 'KDA', width: 108, align: 'center', render: (game) => <View style={{ alignItems: 'center' }}><Text style={{ color: theme.ink, ...fonts.medium, fontSize: 15, lineHeight: 18 }}>{game.kills} / {game.deaths} / {game.assists}</Text><Text style={{ color: theme.muted, ...fonts.medium, fontSize: 14, lineHeight: 18, marginTop: 2 }}>{number(game.kda, 2)}</Text></View> },
+    { key: 'tournament', label: '대회', width: 100, render: (game) => <Text numberOfLines={1} style={{ color: theme.muted, ...fonts.medium, fontSize: 13, lineHeight: 20 }}>{game.tournament}</Text> },
+    { key: 'opponent', label: '상대', width: 140, render: (game) => <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}><ChampionFace champion={game.opponentChampion} size={28} /><Text style={{ color: theme.ink, ...fonts.medium, fontSize: 13 }}>{game.opponentChampion?.name ?? '-'}</Text></View> },
+    { key: 'items', label: '아이템', width: 120, render: (game) => <View style={{ width: 102, flexDirection: 'row', flexWrap: 'wrap', gap: 2 }}>{(game.itemSlots ?? game.items.map((item) => item.image)).map((item, i) => <View key={i} style={{ width: 24, height: 24, backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border }}>{item?.url ? <Image contentFit="cover" source={{ uri: resolveApiAssetUrl(item.url) ?? item.url }} style={{ width: 22, height: 22 }} /> : null}</View>)}</View> },
+    { key: 'detail', label: '', width: 24, render: () => null },
+  ];
+  return <View><SectionTitle caption={`${rows.length.toLocaleString('ko-KR')}경기 최신순`}>경기</SectionTitle>{rows.length ? <DataTable columns={columns} rows={rows.slice((activePage - 1) * 20, activePage * 20)} getRowKey={(row) => `${row.setId}:${row.player?.id}`} rowLabel={(row) => `${row.player?.name ?? '선수'} 경기 상세`} onPressRow={(row) => { if (row.href) router.push(row.href as never); }} /> : <Empty>선택한 범위에 경기 기록이 없습니다.</Empty>}{pageCount > 1 ? <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 12 }}><Pressable disabled={activePage === 1} accessibilityLabel="이전 페이지" onPress={() => setPage(activePage - 1)} style={{ padding: 12, opacity: activePage === 1 ? 0.3 : 1 }}><Text style={{ color: theme.muted, ...fonts.medium, fontSize: 14 }}>이전</Text></Pressable>{Array.from({ length: Math.min(5, pageCount) }, (_, i) => Math.max(1, Math.min(activePage - 2, pageCount - 4)) + i).map((value) => <Pressable key={value} accessibilityState={{ selected: value === activePage }} onPress={() => setPage(value)} style={{ minWidth: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 8, backgroundColor: value === activePage ? theme.ink : undefined }}><Text style={{ color: value === activePage ? theme.surface : theme.muted, ...fonts.medium, fontSize: 14 }}>{value}</Text></Pressable>)}<Pressable disabled={activePage === pageCount} accessibilityLabel="다음 페이지" onPress={() => setPage(activePage + 1)} style={{ padding: 12, opacity: activePage === pageCount ? 0.3 : 1 }}><Text style={{ color: theme.muted, ...fonts.medium, fontSize: 14 }}>다음</Text></Pressable></View> : null}</View>;
 }
 
 function Distribution({ title, rows }: { title: string; rows: { key: string; count: number; rate: number }[] }) {
@@ -115,6 +153,7 @@ export function StatsView({ stats, totalGames }: { stats: MobileChampionDetailDt
 }
 
 const styles = StyleSheet.create({
+  detailRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10 },
   table: { borderRadius: 8, overflow: 'hidden' },
   sectionTitle: { marginBottom: 12 },
   header: { alignItems: 'center', flexDirection: 'row', height: 36, paddingHorizontal: 12 },

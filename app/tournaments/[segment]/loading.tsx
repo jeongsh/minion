@@ -1,10 +1,10 @@
 import { NavigationLoadingOverlay } from "@/components/navigation/navigation-loading-overlay";
-import { TournamentLoadingSkeleton } from "@/components/navigation/route-loading-skeleton";
+import { TournamentPendingContent } from "@/components/navigation/tournament-content-cache";
 
 export default function Loading() {
   return (
     <>
-      <TournamentLoadingSkeleton />
+      <TournamentPendingContent />
       <NavigationLoadingOverlay />
     </>
   );

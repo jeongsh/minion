@@ -84,6 +84,7 @@ export type MobileTournamentSummary = {
 };
 
 export type MobileMatchSummary = {
+  tournamentLogo?: MobileImage | null;
   prediction?: { teamAPercent: number; teamBPercent: number };
   id: EntityId;
   name: string;
@@ -357,6 +358,18 @@ export type MobileHomeDto = {
     sourceUrl?: string | null;
   }>;
   celebrations: Array<{
+    banner?: {
+      eyebrow: string;
+      headline: string;
+      href: string;
+      image: MobileImage | null;
+      contain: boolean;
+      background: string;
+      accent: string;
+      foreground: string;
+      soft: string;
+      ctaColor: string;
+    };
     id: EntityId;
     type: "birthday" | "debut" | "championship" | "custom";
     title: string;
@@ -696,6 +709,24 @@ export type MobileMatchHeader = {
 };
 
 export type MobileMatchPreview = {
+  briefing?: {
+    axes: Array<{ label: string; title: string }>;
+    teams: Array<{
+      teamId: string;
+      wins: number;
+      losses: number;
+      form: Array<"W" | "L">;
+      setWinRate: number | null;
+      statSetCount: number;
+      scores: Array<number | null>;
+      values: string[];
+      rank: number | null;
+      history: Array<{ date: string; rank: number }>;
+    }>;
+    powerRankings: { status: "ready" | "error"; sourceUrl: string };
+    issue: string | null;
+    issueSource: string | null;
+  };
   prediction: MobilePredictionMarket & { closed: boolean };
   ai: {
     headline: string;
@@ -1038,6 +1069,9 @@ export type MobileChampionBuild = {
 };
 
 export type MobileChampionMatchup = {
+  csDiffAt15?: number | null;
+  goldRecordedGames?: number;
+  csRecordedGames?: number;
   champion: MobileChampionSummary | null;
   games: number;
   wins: number;
@@ -1047,6 +1081,9 @@ export type MobileChampionMatchup = {
 };
 
 export type MobileChampionDuo = {
+  goldRecordedGames?: number;
+  playerPairs?: Array<{ botPlayer: MobilePlayerSummary | null; supPlayer: MobilePlayerSummary | null; games: number; winRate: number }>;
+  opponentDuos?: Array<{ botChampion: MobileChampionSummary | null; supChampion: MobileChampionSummary | null; games: number; winRate: number }>;
   champion: MobileChampionSummary | null;
   games: number;
   wins: number;
@@ -1066,6 +1103,7 @@ export type MobileChampionPro = {
 };
 
 export type MobileChampionGame = {
+  itemSlots?: Array<MobileImage | null>;
   setId: EntityId;
   matchId: EntityId;
   href: string | null;
@@ -1264,6 +1302,7 @@ export const mobileApiRoutes = {
   champions: { method: "GET", path: `${MOBILE_API_PREFIX}/champions`, owner: "champion aggregation service", auth: "public", cache: "300s" },
   champion: { method: "GET", path: `${MOBILE_API_PREFIX}/champions/{championSlug}`, owner: "champion aggregation service", auth: "public", cache: "300s" },
   news: { method: "GET", path: `${MOBILE_API_PREFIX}/news`, owner: "lib/data/news + lib/data/naver-news", auth: "public", cache: "60s" },
+  newsArticle: { method: "GET", path: `${MOBILE_API_PREFIX}/news/article`, owner: "news title and thumbnail resolvers", auth: "public", cache: "21600s" },
   search: { method: "GET", path: `${MOBILE_API_PREFIX}/search`, owner: "search service", auth: "public", cache: "30s" },
   communityPosts: { method: "GET", path: `${MOBILE_API_PREFIX}/community/posts`, owner: "lib/data/community", auth: "optional", cache: "10s" },
   communityPostCreate: { method: "POST", path: `${MOBILE_API_PREFIX}/community/posts`, owner: "community service", auth: "optional", cache: "no-store" },

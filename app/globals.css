@@ -167,6 +167,16 @@ html[data-navigation-pending="true"] body {
   cursor: progress;
 }
 
+/* Keep the route slot populated before Next streams its loading boundary. */
+.tournament-entry:has(> .tournament-entry-content main:not(:empty):not([hidden] *)) > .tournament-entry-fallback {
+  display: none;
+}
+
+/* Cached content stays usable while the fresh route is being streamed. */
+body:has([data-tournament-cached="true"]:not([hidden] *)) [data-testid="navigation-loading-overlay"] {
+  display: none;
+}
+
 .fan-local-navigation {
   top: var(--shell-mobile-header-offset, 56px);
 }
@@ -912,6 +922,56 @@ html[class~="dark"] .app-lnb-scrollbar:hover::-webkit-scrollbar-thumb {
 .layout-wide,
 .layout-wide-max { max-width: var(--breakpoint-wide); }
 .layout-reading { max-width: var(--layout-reading); }
+.desktop-ad-rails { display: none; }
+
+/* One sticky unit, with a full-height track clear of navigation and content. */
+@media (min-width: 1800px) and (hover: hover) {
+  .ad-rail-layout { position: relative; }
+  .desktop-ad-rails {
+    --ad-content-width: var(--breakpoint-wide);
+    --ad-rail-width: 160px;
+    display: block;
+    position: absolute;
+    top: calc(96px + var(--ad-secondary-header-height, 0px));
+    bottom: 0;
+    left: 56px;
+    right: 0;
+    pointer-events: none;
+  }
+  .desktop-ad-rail {
+    width: var(--ad-rail-width);
+    height: 600px;
+    pointer-events: auto;
+  }
+  .desktop-ad-rail-left {
+    position: absolute;
+    top: 0;
+    right: calc(50% + var(--ad-content-width) / 2 + 24px);
+  }
+  .desktop-ad-rail-track {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: calc(50% + var(--ad-content-width) / 2 + 24px);
+    width: var(--ad-rail-width);
+  }
+}
+
+/* Include the measured secondary header and keep the whole creative visible. */
+@media (min-width: 1800px) and (hover: hover) {
+  .desktop-ad-rails[data-sticky-fits="true"] .desktop-ad-rail-right {
+    position: sticky;
+    top: calc(80px + var(--ad-secondary-header-height, 0px));
+  }
+}
+
+@media (min-width: 2080px) and (hover: hover) {
+  .desktop-ad-rails { --ad-rail-width: 300px; }
+}
+
+@media (min-width: 2560px) and (hover: hover) {
+  .desktop-ad-rails { --ad-content-width: var(--container-ultrawide); }
+}
 .layout-form { max-width: var(--layout-form); }
 .layout-capture { max-width: var(--layout-capture); }
 

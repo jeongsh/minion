@@ -20,6 +20,7 @@ import {
   getFanRatingReactionStates,
   getMatchById,
   getMatches,
+  getPlayerBenchmarkStatLines,
   getPlayerStatLines,
   getSets,
   getMatchVodsByMatchId,
@@ -44,6 +45,10 @@ import {
 import { getPredictionMarketData } from "@/lib/predictions";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { getMatchAiPreview } from "@/lib/match-preview-ai";
+import { supplementMatchBriefingData } from "@/lib/data/match-briefing";
+import { buildMatchBriefingStats, matchBriefingSample } from "@/lib/match-briefing-stats";
+import { getPowerRankings } from "@/lib/data/power-rankings";
+import type { MatchPowerRankings } from "@/lib/power-rankings";
 import { compactMatchStageName, compactMatchTournamentName } from "@/lib/match-header-labels";
 
 import { LiveMatchFeed } from "./live-match-feed";
@@ -538,8 +543,21 @@ export default async function MatchDetailPage({
   // "data" 탭이 기본인 완료된 경기가 대다수라 이 전체 스캔을 매 요청 무조건 돌리면 낭비다.
   let previewMatches: Match[] = [];
   let previewSets: SetResult[] = [];
+  let previewPlayerStats: PlayerStatLine[] = [];
+  let powerRankings: MatchPowerRankings = { status: "error", sourceUrl: "https://lolesports.com/en-US/gpr", teams: [] };
   if (activeTab === "preview" && hasResolvedPreviewTeams) {
     [previewMatches, previewSets] = await Promise.all([getMatches(), getSets()]);
+    const sample = matchBriefingSample(match, previewMatches, previewSets);
+    [previewPlayerStats, powerRankings] = await Promise.all([
+      getPlayerBenchmarkStatLines(sample.setIds),
+      getPowerRankings(new Date(match.matchDate).getUTCFullYear()),
+    ]);
+    const supplemented = await supplementMatchBriefingData(match, teams, players, {
+      matches: previewMatches, sets: previewSets, playerStats: previewPlayerStats,
+    });
+    previewMatches = supplemented.matches;
+    previewSets = supplemented.sets;
+    previewPlayerStats = supplemented.playerStats;
   }
   // "rating" 탭 선수 카드에 세트에서 픽한 챔피언 아이콘을 보여주기 위함 — 다른 탭은 필요 없다.
   const ratingChampions: Champion[] = activeTab === "rating" ? await getChampions() : [];
@@ -550,9 +568,11 @@ export default async function MatchDetailPage({
           stage,
           teams,
           matches: previewMatches,
-        sets: previewSets,
-        tournaments,
-      })
+          sets: previewSets,
+          tournaments,
+          players,
+          playerStats: previewPlayerStats,
+        })
     : null;
   const embedUrl = youtubeEmbedUrl(match.vodUrl);
   return (
@@ -626,8 +646,9 @@ export default async function MatchDetailPage({
         <MatchPreview
           match={match}
           teams={teams}
-          matches={previewMatches}
-          sets={previewSets}
+          matches={previewMatches.filter((item) => !item.id.startsWith("leaguepedia-match:"))}
+          stats={buildMatchBriefingStats(match, previewMatches, previewSets, previewPlayerStats)}
+          powerRankings={powerRankings}
           poll={poll}
           aiPreview={aiPreview}
         />

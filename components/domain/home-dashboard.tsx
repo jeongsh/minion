@@ -183,6 +183,8 @@ export function HomeDashboard({
         </div>
       </section>
 
+      <Ad enabled={matchItems.length > 0} placement="horizontal" className="mt-10 h-[100px] md:h-[60px] xl:h-[90px]" />
+
       <section className={`${HOME_SECTION_SPACING} grid gap-4 xl:grid-cols-3`}>
         <div className="flex min-w-0 flex-col xl:col-span-2">
           <HomeTournamentOverview overview={tournamentOverview} options={tournamentOptions} teams={teams} />

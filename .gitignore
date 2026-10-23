@@ -21,9 +21,15 @@ output/
 tools/
 
 # Local test and performance-audit sources (already tracked tests stay tracked)
-tests/
+tests/*
 **/*.test.*
 **/*.spec.*
+# Regression coverage for recurring profile image failures.
+!lib/images/prepare-profile-image.test.ts
+!tests/mobile/
+tests/mobile/*
+!tests/mobile/profile-image.test.mjs
+!tests/mobile/profile-viewer.test.mjs
 coverage/
 test-results/
 playwright-report/

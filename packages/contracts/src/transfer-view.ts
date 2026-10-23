@@ -1,4 +1,9 @@
-import { latestPlayerEvents, lckTeamCode, normalizeTransferName, type TransferEvent, type TransferRoster } from "./transfers.ts";
+import { latestPlayerEvents, lckTeamCode, normalizeTransferName, type TransferEvent, type TransferMarket, type TransferRoster } from "./transfers.ts";
+
+export function transferEventsInStorageOrder(moves: TransferEvent[], market: TransferMarket) {
+  const order = new Map([...market.snapshot.events, ...market.manual_events].map((event, index) => [event.id, index]));
+  return [...moves].sort((a, b) => (order.get(a.id) ?? Infinity) - (order.get(b.id) ?? Infinity));
+}
 
 export function transferContract(playerName: string, team: string, events: TransferEvent[], registered?: { team: string | null; until: string | null }) {
   const name = normalizeTransferName(playerName);

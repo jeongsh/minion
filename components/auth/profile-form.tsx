@@ -44,7 +44,7 @@ export function ProfileForm({
             id="profileImage"
             name="profileImage"
             type="file"
-            accept="image/png,image/jpeg,image/webp"
+            accept="image/png,image/jpeg,image/webp,image/gif,image/avif"
             className="sr-only"
             onChange={(event) => {
               const file = event.target.files?.[0];
@@ -53,7 +53,7 @@ export function ProfileForm({
             }}
           />
           <p className="mt-1 text-[13px] font-medium leading-[18px] text-[var(--ui-muted)] sm:mt-2 sm:font-normal sm:leading-5">
-            PNG, JPG, WEBP · 최대 5MB
+            PNG, JPG, WEBP, GIF, AVIF 최대 5MB
           </p>
         </div>
       </div>

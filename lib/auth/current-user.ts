@@ -25,11 +25,12 @@ export const getCurrentUser = cache(async function getCurrentUser(): Promise<Cur
   const { supabase, user } = auth;
 
   // profiles에서 nickname을 가져온다(없을 수 있음).
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("nickname, profile_image_url")
-    .eq("id", user.id)
-    .maybeSingle();
+  const readProfile = () => supabase.from("profiles")
+    .select("nickname, profile_image_url").eq("id", user.id).maybeSingle();
+  let result = await readProfile();
+  if (result.error) result = await readProfile();
+  if (result.error) throw new Error("프로필을 불러오지 못했습니다.", { cause: result.error });
+  const profile = result.data;
 
   const providers = Array.isArray(user.app_metadata?.providers)
     ? (user.app_metadata.providers as string[])

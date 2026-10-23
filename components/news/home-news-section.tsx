@@ -99,7 +99,7 @@ function CompactHomeNewsCard({ article }: { article: NewsArticle }) {
   useEffect(() => {
     if (!/(?:\.{3}|…)\s*$/.test(article.title)) return;
     const controller = new AbortController();
-    void fetch(`/api/news/title?url=${encodeURIComponent(article.url)}`, { signal: controller.signal })
+    void fetch(`/api/news/title?v=2&url=${encodeURIComponent(article.url)}`, { signal: controller.signal })
       .then(async (response) => {
         if (!response.ok) throw new Error(`News title request failed: ${response.status}`);
         return response.json() as Promise<{ title: string | null }>;

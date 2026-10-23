@@ -11,6 +11,8 @@ import { boardLabel } from '@/components/community/community-utils';
 import { RemoteImage } from '@/components/data/remote-image';
 import { TeamLogo } from '@/components/data/team-logo';
 import { ErrorState } from '@/components/feedback-states';
+import { HomeCelebrationCarousel } from '@/components/home/home-celebration-carousel';
+import { HomeNewsSection } from '@/components/home/home-news-section';
 import { HomeCalendarDialog } from '@/components/home/home-calendar-dialog';
 import { HomeSectionHeading as SectionHeader } from '@/components/home/home-section-heading';
 import { HomeTournamentOverview } from '@/components/home/home-tournament-overview';
@@ -24,20 +26,7 @@ import { useMinionTheme } from '@/hooks/use-minion-theme';
 import { resolveApiAssetUrl, type MobileHomeDto, type MobileMatchSummary } from '@/lib/api-client';
 
 const CARD_GAP = 12;
-const LCK_LOGO = require('@/assets/images/lck.svg');
-const LCK_LOGO_DARK = require('@/assets/images/lck-dark.svg');
 const HOME_TEAM_ORDER = ['t1', 'geng', 'hle', 'dk', 'kt', 'drx', 'ns', 'bro', 'fox', 'soop'];
-type CelebrationEvent = MobileHomeDto['celebrations'][number];
-type CelebrationType = CelebrationEvent['type'];
-
-const CELEBRATION_EMOJI: Record<CelebrationType, string> = { birthday: '🎂', championship: '🏆', custom: '🎈', debut: '🎉' };
-const CELEBRATION_THEME: Record<CelebrationType, { accent: string; background: string; foreground: string; soft: string }> = {
-  birthday: { accent: '#d4ff3d', background: '#304ffe', foreground: '#ffffff', soft: '#556ffe' },
-  debut: { accent: '#e4ddff', background: '#7c5cff', foreground: '#ffffff', soft: '#927dff' },
-  championship: { accent: '#5a4600', background: '#f5c518', foreground: '#211a00', soft: '#ffe46b' },
-  custom: { accent: '#5a4600', background: '#f5c518', foreground: '#211a00', soft: '#ffe46b' },
-};
-
 function matchDate(value: string) {
   const date = new Date(value);
   const monthDay = new Intl.DateTimeFormat('ko-KR', { day: 'numeric', month: 'numeric', timeZone: 'Asia/Seoul' }).format(date);
@@ -92,10 +81,11 @@ export default function HomeScreen() {
           <HomeCalendarDialog calendar={data.calendar} events={data.calendarEvents ?? []} />
         </View>
       </View>
-      <StoveLeagueBanner />
-      {data.celebrations.length > 0 ? <View style={styles.celebrations}>{data.celebrations.map((event) => <CelebrationBanner event={event} key={event.id} />)}</View> : null}
+      <HomeCelebrationCarousel events={data.celebrations} />
       <ContentBanner enabled={data.matches.length > 0} />
+      <StoveLeagueBanner />
       <View style={styles.section40}><CommunitySection items={data.community} /></View>
+      <HomeNewsSection articles={data.news} />
       {(data.pom ?? []).length > 0 ? <View style={styles.section40}><PomSection cardWidth={pomWidth} items={data.pom ?? []} /></View> : null}
       <View style={styles.section40}><TeamChannels teams={data.teams} /></View>
       <View style={styles.section40}><HomeTournamentOverview overview={data.tournamentOverview} /></View>
@@ -119,12 +109,11 @@ function HomeMatchCard({ cardWidth, match }: { cardWidth: number; match: MobileM
   const live = match.status === 'live';
   const fullTournamentName = match.tournament?.name ?? match.name;
   const tournamentName = /demacia|데마시아/i.test(fullTournamentName) ? '데마시아컵' : fullTournamentName;
-  const kespa = tournamentName.toLocaleLowerCase('ko-KR').includes('kespa');
   const centerLabel = match.status === 'completed' ? `${match.teamAScore ?? 0} : ${match.teamBScore ?? 0}` : timeOnly(match.startsAt);
   return (
     <Pressable onPress={() => router.navigate(`/matches/${encodeURIComponent(match.id)}` as never)} style={[styles.matchCard, { backgroundColor: theme.card, width: cardWidth }]}>
       <View style={styles.matchMetaRow}>
-        <View style={styles.tournamentMeta}><Image contentFit="contain" source={tournamentName === '데마시아컵' ? { uri: resolveApiAssetUrl('/logos/tournaments/demacia-cup.svg') ?? undefined } : kespa ? { uri: resolveApiAssetUrl('/logos/tournaments/kespa-cup.webp') ?? undefined } : colorScheme === 'dark' ? LCK_LOGO_DARK : LCK_LOGO} tintColor={tournamentName === '데마시아컵' ? colorScheme === 'dark' ? '#fff' : '#000' : undefined} style={styles.tournamentLogo} /><Text numberOfLines={1} style={[styles.matchMeta, styles.flex, { color: theme.muted, ...fonts.medium }]}>{tournamentName}</Text></View>
+        <View style={styles.tournamentMeta}>{match.tournamentLogo?.url ? <Image contentFit="contain" source={{ uri: resolveApiAssetUrl(match.tournamentLogo.url) ?? undefined }} tintColor={colorScheme === 'dark' ? '#fff' : '#000'} style={styles.tournamentLogo} /> : null}<Text numberOfLines={1} style={[styles.matchMeta, styles.flex, { color: theme.muted, ...fonts.medium }]}>{tournamentName}</Text></View>
         <Text style={[styles.matchMeta, styles.matchDate, { color: theme.muted, ...fonts.medium }]}>{matchDate(match.startsAt)}</Text>
       </View>
       <View style={styles.matchTeams}>
@@ -137,27 +126,12 @@ function HomeMatchCard({ cardWidth, match }: { cardWidth: number; match: MobileM
   );
 }
 
-function CelebrationBanner({ event }: { event: CelebrationEvent }) {
-  const router = useRouter();
-  const { fonts } = useMinionTheme();
-  const nth = event.yearsCount ? `${event.yearsCount}번째 ` : '';
-  const palette = CELEBRATION_THEME[event.type];
-  const imageUrl = resolveApiAssetUrl(event.image?.url);
-  return (
-    <Pressable onPress={() => event.teamSlug ? router.navigate(`/fan/${event.teamSlug}/community` as never) : router.navigate('/community')} style={[styles.celebration, { backgroundColor: palette.background }]}>
-      <View style={[styles.celebrationAvatar, { backgroundColor: palette.soft }]}>{imageUrl ? <Image contentFit="cover" contentPosition="top" source={{ uri: imageUrl }} style={styles.celebrationImage} /> : <Text style={styles.celebrationEmoji}>{CELEBRATION_EMOJI[event.type]}</Text>}</View>
-      <View style={styles.flex}><Text numberOfLines={1} style={[styles.celebrationTop, { color: palette.accent, ...fonts.regular }]}>{event.type === 'birthday' ? `오늘은 ${event.subjectName} 선수의 ${nth}생일!` : `오늘은 ${event.title}!`}</Text><Text numberOfLines={1} style={[styles.celebrationTitle, { color: palette.foreground, ...fonts.display }]}>{event.teamShort ? `${event.teamShort} 커뮤니티에서 함께 축하해요` : '커뮤니티에서 함께 축하해요'}</Text></View>
-      <View style={styles.celebrationCta}><ChevronRight color={palette.background} size={14} strokeWidth={2.5} /></View>
-    </Pressable>
-  );
-}
-
 function StoveLeagueBanner() {
   const router = useRouter();
   const { fonts } = useMinionTheme();
   return <Pressable accessibilityRole="link" onPress={() => router.navigate('/transfers' as never)} style={[styles.celebration, { backgroundColor: '#4b22c9' }]}>
     <View style={[styles.celebrationAvatar, { backgroundColor: '#fff' }]}><Image source={require('../../../assets/characters/pen-1.png')} contentFit="contain" style={{ width: 32, height: 32 }} /></View>
-    <View style={styles.flex}><Text numberOfLines={1} style={[styles.celebrationTop, { color: '#b9ff66', ...fonts.regular }]}>2026 LCK 스토브리그</Text><Text numberOfLines={1} style={[styles.celebrationTitle, { color: '#fff', ...fonts.medium }]}>이적 확정부터 FA 소식까지, 한눈에!</Text></View>
+    <View style={styles.flex}><Text numberOfLines={1} style={[styles.celebrationTop, { color: '#b9ff66', ...fonts.regular }]}>2026 LCK 스토브리그</Text><Text numberOfLines={1} style={[styles.celebrationTitle, { color: '#fff', ...fonts.display }]}>이적 확정부터 FA 소식까지, 한눈에!</Text></View>
     <View style={styles.celebrationCta}><ChevronRight color="#4b22c9" size={14} strokeWidth={2.5} /></View>
   </Pressable>;
 }
@@ -197,11 +171,10 @@ const styles = StyleSheet.create({
   calendarTrigger: { marginTop: 12 },
   celebration: { alignItems: 'center', borderRadius: 16, flexDirection: 'row', gap: 12, minHeight: 60, paddingHorizontal: 16, paddingVertical: 12 },
   celebrationAvatar: { alignItems: 'center', borderRadius: 18, height: 36, justifyContent: 'center', overflow: 'hidden', width: 36 },
-  celebrations: { gap: 10, marginTop: 32 },
   celebrationCta: { alignItems: 'center', backgroundColor: '#fff', borderRadius: 8, height: 30, justifyContent: 'center', width: 34 },
   celebrationEmoji: { fontSize: 18, lineHeight: 24 },
   celebrationImage: { height: 36, width: 36 },
-  celebrationTitle: { color: '#fff', fontSize: 14, lineHeight: 20 },
+  celebrationTitle: { color: '#fff', fontSize: 16, lineHeight: 24 },
   celebrationTop: { fontSize: 13, lineHeight: 16 },
   flex: { flex: 1, minWidth: 0 },
   homeContent: { gap: 0, paddingBottom: 0 },

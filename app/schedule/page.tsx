@@ -108,7 +108,7 @@ export default async function SchedulePage({
   return (
     <main className="schedule-page text-[var(--ui-text)]">
       <h1 className="sr-only">경기 일정</h1>
-      <div className="mt-2 hidden border-b border-[var(--ui-border)] bg-[var(--page-background)] lg:sticky lg:top-[var(--ui-header-height)] lg:z-30 lg:block">
+      <div data-ad-secondary-header className="mt-2 hidden border-b border-[var(--ui-border)] bg-[var(--page-background)] lg:sticky lg:top-[var(--ui-header-height)] lg:z-30 lg:block">
         <div className="layout-wide py-2.5">
           <EventFilterBar
             actions={
@@ -148,6 +148,7 @@ export default async function SchedulePage({
         </AdaptiveDialog>
       </div>
       <div className="layout-wide">
+        <AdSlot enabled={filtered.length > 0} placement="horizontal" className="mt-6 h-[60px] xl:h-[90px]" />
         <div className="mt-7 lg:mt-6"><ScheduleList matches={filtered} teams={teams} tournaments={tournaments} stages={stages} emptyMessage={`${activeYear}년 ${activeMonth}월 ${segmentLabel(activeSegment, activeYear)} 조건에 해당하는 경기가 없습니다.`} /></div>
         <AdSlot enabled={filtered.length > 0} placement="horizontal" className="my-6 h-[60px] xl:h-[90px]" />
       </div>

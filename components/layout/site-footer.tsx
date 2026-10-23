@@ -3,7 +3,7 @@ import { BrandLogo } from "@/components/layout/brand-logo";
 
 export function SiteFooter({ accentColor }: { accentColor?: string }) {
   return <footer className="bg-[var(--page-background)] text-[#18191c] dark:text-[#f8f8f8]">
-    <div className="layout-wide pb-[calc(74px+env(safe-area-inset-bottom))] pt-10 text-left md:pb-0">
+    <div className="layout-wide pb-[calc(74px+env(safe-area-inset-bottom))] pt-10 text-left md:pb-8">
       <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
         <BrandLogo accentColor={accentColor} className="w-16 shrink-0" />
         <nav className="flex flex-wrap gap-x-4 gap-y-2 text-[13px] font-medium text-[#666a71] dark:text-[#a0a7b2]" aria-label="서비스 안내 및 정책">

@@ -8,7 +8,7 @@ import {
   getMatches,
   getPlayerCareerHistories,
   getPlayerStatLines,
-  getPlayers,
+  getAllPlayers,
   getSets,
   getStages,
   getTournaments,
@@ -40,6 +40,7 @@ import {
   resolveMatchPreviewWinConditions,
 } from "@/lib/match-preview-win-conditions";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { supplementMatchBriefingData } from "@/lib/data/match-briefing";
 import type {
   Match,
   Player,
@@ -153,7 +154,7 @@ const WRITER_SCHEMA = {
   },
 } as const;
 
-const MATCH_PREVIEW_PROMPT_VERSION = 13;
+const MATCH_PREVIEW_PROMPT_VERSION = 15;
 const MATCH_PREVIEW_CONTENT_VERSION = 3;
 const DEFAULT_RESEARCH_MODEL = "gpt-5.4-mini";
 const DEFAULT_STANDARD_MODEL = "gpt-5.4-mini";
@@ -625,11 +626,11 @@ function previewContext(match: Match, tournament?: Tournament, stage?: Stage) {
 function isTbdTeam(team: Team | undefined) {
   if (!team) return true;
   const names = [team.shortName, team.name, team.slug].map((value) => value.trim().toLowerCase());
-  return names.some((value) => value === "tbd");
+  return names.some((value) => /^(?:tbd|tba|미정|미정 팀|unknown|-)$/.test(value));
 }
 
 function hasResolvedParticipants(match: Match, teams: Team[]) {
-  if (!match.teamAId || !match.teamBId) return false;
+  if (!match.teamAId || !match.teamBId || match.teamAId === match.teamBId) return false;
   return !isTbdTeam(teams.find((team) => team.id === match.teamAId)) &&
     !isTbdTeam(teams.find((team) => team.id === match.teamBId));
 }
@@ -1102,20 +1103,20 @@ async function writeMatchPreview({
         role: "system",
         content: [
           "역할: 검증된 자료와 경기 데이터로 한국어 LoL e스포츠 프리뷰를 쓰는 에디터다.",
-          "독자가 경기 전 1분 안에 오늘의 서사, 최근 평가, 양 팀 승리 조건, 경기 중 확인할 장면을 이해하게 한다.",
+          "중요한 사실부터 짧게 제공한다. 독자에게 가르치거나 자명한 내용을 해설하지 않고, 도입문·상투적 해설·중복 요약·반복 결론은 쓰지 않는다.",
           "externalClaims만 외부 사실로 사용할 수 있다. claim에 없는 이적 시점·트레이드 관계·부상·감정·동기·탈락 조건을 만들지 않는다.",
           "narrativeTitle/body를 썼다면 실제로 사용한 externalClaims의 0부터 시작하는 인덱스를 narrativeClaimIndexes에 넣는다. 근거가 없으면 제목·본문·태그·인덱스를 모두 비운다.",
           "recentView는 평가 주체를 문장 안에 명시하고 assessment 또는 statement claim만 사용한다. 합의 표현은 독립 출처 2개 이상일 때만 쓴다. 근거가 없으면 관련 필드를 비운다.",
           "matchMeaning은 stage·bracket 정보나 검증된 claim에 명시된 범위만 쓴다. stage 이름만으로 '패자 탈락', 진출권, 시드를 추정하지 않는다.",
           "summary는 정확히 2문장이다. 최근 팀·선수 지표를 비교해 한 팀의 강점과 상대의 반격 경로를 구체적으로 설명한다.",
-          "teamAWinCondition/teamBWinCondition은 각각 1문장이다. winConditionCandidates에서 팀별로 후보 하나를 골라 그 id를 각 CandidateId에 그대로 넣고, 해당 후보의 근거 범위 안에서 구체화한다.",
+          "teamAWinCondition/teamBWinCondition은 각각 70자 이내 1문장이다. 판단에 필요한 핵심 수치와 조건만 유지한다. winConditionCandidates에서 팀별로 후보 하나를 골라 그 id를 각 CandidateId에 그대로 넣고, 해당 후보의 근거 범위 안에서 구체화한다.",
           "두 팀의 CandidateId는 axis가 반드시 달라야 한다. 같은 경기에서 양 팀을 모두 DPM·화력으로 설명하거나 같은 오브젝트 문장을 대칭 복제하지 않는다.",
           "후보 우선순위는 팀 운영(economy/objectives), 라인 주도권(laning), 교전 화력(damage), 접전 대응(resilience) 순이다. damage는 다른 축이 더 뚜렷하지 않을 때 한 팀에만 사용한다.",
           "liveCheck는 정확히 1문장이다. 팀명 또는 선수명을 넣고 시청 중 확인 가능한 기준 하나만 쓴다.",
           "선수 수치는 roleMatchups에서 games가 1 이상일 때만 쓴다. 밴픽 성향, 컨디션, 집중력처럼 데이터에 없는 내용을 만들지 않는다.",
           "winProbabilityA는 internalFacts.teamA의 승률을 5~95 정수로 쓴다. 확정적 승패 표현은 금지한다.",
           "evidenceIds에는 최종 데이터 문장에 실제로 쓴 internalEvidenceCatalog의 id만 넣는다. 숫자를 새로 작성한 evidence 문장은 출력하지 않는다.",
-          "headline은 서사가 있으면 가장 강한 검증 서사를, 없으면 데이터상 가장 선명한 대결 구도를 18~45자로 쓴다.",
+          "headline과 narrativeTitle은 서사가 있으면 트레이드·전 소속팀 대결처럼 두 팀 사이의 가장 강한 검증 이슈를 1문장 45자 이내로 쓴다. 서사가 없으면 headline에 데이터상 가장 선명한 대결 구도만 쓴다.",
           "confidence는 출처 수·최신성·내부 표본을 함께 보고 low/medium/high 중 고른다. 출력은 지정된 JSON 스키마만 따른다.",
         ].join("\n"),
       },
@@ -1562,8 +1563,11 @@ export async function getMatchAiPreview({
 
 export async function refreshMatchAiPreviewCache(
   inputs: MatchAiPreviewInputs,
-  phase = matchPreviewGenerationPhase(inputs.match.matchDate, Date.now(), true) ?? "story",
+  phase = matchPreviewGenerationPhase(inputs.match.matchDate, Date.now()) ?? "story",
 ): Promise<MatchAiPreview> {
+  inputs = { ...inputs, ...await supplementMatchBriefingData(inputs.match, inputs.teams, inputs.players ?? [], {
+    matches: inputs.matches, sets: inputs.sets, playerStats: inputs.playerStats ?? [],
+  }) };
   const plan = previewGenerationPlan(inputs, phase);
   return (await generateAndStoreMatchAiPreview(inputs, plan)).preview;
 }
@@ -1587,7 +1591,7 @@ export async function refreshMatchAiPreviewCacheForMatchId(
     return cached ? previewFromCacheRow(cached as MatchAiPreviewCacheRow) : null;
   }
 
-  const phase = matchPreviewGenerationPhase(match.matchDate, Date.now(), options.force === true);
+  const phase = matchPreviewGenerationPhase(match.matchDate, Date.now());
   // 경기 시작 후에는 새 프리뷰를 만들지 않되, 시작 전에 생성한 브리핑은
   // 실시간 세트 동기화가 실행되어도 보존해 경기 중·종료 후에도 보여준다.
   if (!isUpcomingMatch(match)) {
@@ -1599,7 +1603,7 @@ export async function refreshMatchAiPreviewCacheForMatchId(
     getMatches(),
     getSets(),
     getTournaments(),
-    getPlayers(),
+    getAllPlayers(),
     getPlayerStatLines(),
     getStages(),
   ]);
@@ -1621,6 +1625,7 @@ export async function refreshMatchAiPreviewCacheForMatchId(
     playerStats,
     careerHistories,
   };
+  Object.assign(inputs, await supplementMatchBriefingData(match, teams, players, { matches, sets, playerStats }));
   const plan = previewGenerationPlan(inputs, phase);
   const needsGeneration = !cached || matchPreviewNeedsRefresh({
       cachedHash: cached.input_hash as string | null,
@@ -1666,7 +1671,7 @@ export async function refreshMissingUpcomingMatchAiPreviews(
     getMatches(),
     getSets(),
     getTournaments(),
-    getPlayers(),
+    getAllPlayers(),
     getPlayerStatLines(),
     getStages(),
   ]);
@@ -1703,7 +1708,7 @@ export async function refreshMissingUpcomingMatchAiPreviews(
     .in("match_id", eligible.map(({ match }) => match.id));
   if (cacheError) throw new Error(cacheError.message);
   const cachedByMatchId = new Map((cachedRows ?? []).map((row) => [row.match_id as string, row]));
-  const planned = eligible.map(({ match, phase }) => {
+  const planned = await Promise.all(eligible.map(async ({ match, phase }) => {
     const tournament = tournaments.find((item) => item.id === match.tournamentId);
     const stage = stages.find((item) => item.id === match.stageId);
     const inputs: MatchAiPreviewInputs = {
@@ -1718,8 +1723,9 @@ export async function refreshMissingUpcomingMatchAiPreviews(
       playerStats,
       careerHistories,
     };
+    Object.assign(inputs, await supplementMatchBriefingData(match, teams, players, { matches, sets, playerStats }));
     return { inputs, plan: previewGenerationPlan(inputs, phase) };
-  });
+  }));
   const { data: recentRunRows, error: runRowsError } = await admin
     .from("match_ai_preview_runs")
     .select("match_id,input_hash,generation_phase,status,started_at,completed_at")

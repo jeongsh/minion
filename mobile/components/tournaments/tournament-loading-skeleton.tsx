@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
-import { tournamentTokens } from '@/constants/tournament-theme';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 
 function Bone({ style }: { style?: StyleProp<ViewStyle> }) {
@@ -9,28 +8,8 @@ function Bone({ style }: { style?: StyleProp<ViewStyle> }) {
   return <View style={[styles.bone, { backgroundColor: theme.surfaceMuted }, style]} />;
 }
 
-function TableRow({ index, isLast }: { index: number; isLast: boolean }) {
-  const { colorScheme } = useMinionTheme();
-  const tokens = tournamentTokens[colorScheme];
-
-  return (
-    <View style={[styles.tableRow, !isLast && { borderBottomColor: tokens.border, borderBottomWidth: 1 }]}>
-      <View style={styles.tableMain}>
-        <Bone style={styles.rankBone} />
-        <Bone style={styles.teamLogoBone} />
-        <Bone style={{ height: 14, width: index % 3 === 0 ? 104 : 76 }} />
-      </View>
-      <View style={styles.metrics}>
-        <Bone style={styles.diffBone} />
-        <Bone style={styles.recordBone} />
-      </View>
-    </View>
-  );
-}
-
 export function TournamentLoadingSkeleton() {
-  const { colorScheme, theme } = useMinionTheme();
-  const tokens = tournamentTokens[colorScheme];
+  const { theme } = useMinionTheme();
   const opacity = useRef(new Animated.Value(0.5)).current;
 
   useEffect(() => {
@@ -45,22 +24,32 @@ export function TournamentLoadingSkeleton() {
   }, [opacity]);
 
   return (
-    <Animated.View accessibilityLabel="대회 정보 불러오는 중" accessibilityRole="progressbar" style={[styles.root, { opacity }]}>
-      <Bone style={{ height: 28, width: 240 }} />
-      <View style={styles.groupGrid}>
-        {Array.from({ length: 2 }, (_, group) => (
-          <View key={group} style={styles.groupBlock}>
-            <View style={styles.groupTitleRow}>
-              <View style={[styles.groupTitleBar, { backgroundColor: theme.accent }]} />
-              <Bone style={styles.groupTitleBone} />
+    <Animated.View accessibilityLabel="대회 정보 불러오는 중" accessibilityRole="progressbar" accessibilityState={{ busy: true }} style={[styles.root, { opacity }]}>
+      <Bone style={{ height: 28, maxWidth: '100%', width: 240 }} />
+      <View style={[styles.bracket, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+        <View style={styles.rounds}>
+          {[4, 2, 1].map((count, round) => (
+            <View key={round} style={styles.round}>
+              <Bone style={{ height: 20, width: 96 }} />
+              <View style={styles.matches}>
+                {Array.from({ length: count }, (_, match) => (
+                  <View key={match} style={[styles.match, { backgroundColor: theme.surface }]}>
+                    <Bone style={{ height: 12, marginBottom: 12, width: 96 }} />
+                    <View style={styles.teams}>
+                      {[0, 1].map(team => (
+                        <View key={team} style={styles.team}>
+                          <Bone style={styles.logo} />
+                          <Bone style={{ height: 16, width: 80 }} />
+                          <Bone style={{ height: 16, marginLeft: 'auto', width: 16 }} />
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                ))}
+              </View>
             </View>
-            <View style={[styles.table, { backgroundColor: tokens.surface, borderColor: tokens.border }]}>
-              {Array.from({ length: 5 }, (_, index) => (
-                <TableRow index={index} isLast={index === 4} key={index} />
-              ))}
-            </View>
-          </View>
-        ))}
+          ))}
+        </View>
       </View>
     </Animated.View>
   );
@@ -68,26 +57,13 @@ export function TournamentLoadingSkeleton() {
 
 const styles = StyleSheet.create({
   bone: { borderRadius: 6 },
-  diffBone: { height: 13, width: 24 },
-  groupBlock: { gap: 10 },
-  groupGrid: { gap: 16 },
-  groupTitleBar: { borderRadius: 999, height: 14, width: 3 },
-  groupTitleBone: { height: 15, width: 80 },
-  groupTitleRow: { alignItems: 'center', flexDirection: 'row', gap: 8 },
-  header: { alignItems: 'center', flexDirection: 'row', gap: 10, minHeight: 40 },
-  headerLogo: { borderRadius: 2, height: 28, width: 48 },
-  headerTitle: { height: 20, width: 104 },
-  metrics: { alignItems: 'center', flexDirection: 'row', flexShrink: 0, gap: 10 },
-  pillBone: { borderRadius: 6, height: 28, width: 72 },
-  pillRow: { alignSelf: 'flex-start', borderRadius: 8, flexDirection: 'row', gap: 2, padding: 2 },
-  rankBone: { height: 14, width: 24 },
-  recordBone: { height: 13, width: 52 },
-  root: { gap: 24 },
-  switcherRow: { flexDirection: 'row', gap: 6, marginHorizontal: -16, overflow: 'hidden', paddingLeft: 16 },
-  table: { borderRadius: 12, borderWidth: 1, overflow: 'hidden' },
-  tableMain: { alignItems: 'center', flex: 1, flexDirection: 'row', gap: 8, minWidth: 0 },
-  tableRow: { alignItems: 'center', flexDirection: 'row', gap: 12, minHeight: 52, paddingHorizontal: 12, paddingVertical: 8 },
-  tabsBlock: { gap: 12 },
-  tabsRow: { borderBottomWidth: 1, flexDirection: 'row', gap: 16 },
-  teamLogoBone: { borderRadius: 12, height: 24, width: 24 },
+  bracket: { borderRadius: 8, borderWidth: 1, overflow: 'hidden', padding: 16 },
+  logo: { borderRadius: 12, flexShrink: 0, height: 24, width: 24 },
+  match: { borderRadius: 8, padding: 12 },
+  matches: { flex: 1, gap: 16, justifyContent: 'space-around' },
+  root: { gap: 16 },
+  round: { flexShrink: 0, gap: 16, width: 216 },
+  rounds: { flexDirection: 'row', gap: 24 },
+  team: { alignItems: 'center', flexDirection: 'row', gap: 8 },
+  teams: { gap: 8 },
 });

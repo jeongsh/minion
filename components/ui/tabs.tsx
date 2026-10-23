@@ -15,7 +15,7 @@ function segmentedTrackClassName(compact: boolean, stretch = false) {
 
 function segmentedItemClassName(active: boolean, compact: boolean) {
   // 다크 모드의 활성 항목은 트랙보다 밝은 border 톤을 사용한다.
-  return `flex shrink-0 items-center whitespace-nowrap transition-colors ${compact ? "h-9 rounded-md px-3 text-sm" : "h-10 rounded-lg px-3.5 text-sm"} ${
+  return `flex shrink-0 items-center whitespace-nowrap transition-colors ${compact ? "h-9 rounded-md px-3 text-sm" : "h-[34px] rounded-lg px-3.5 text-sm"} ${
     active
       ? "border border-[var(--ui-border)] bg-[var(--ui-surface)] font-medium text-[var(--ui-ink)] dark:bg-[var(--ui-border)]"
       : "font-medium text-[var(--ui-muted)] hover:text-[var(--ui-ink)]"

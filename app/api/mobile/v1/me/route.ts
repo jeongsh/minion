@@ -1,7 +1,7 @@
 import type { MobileMeDto, MobileNotificationPreferences, MobileTeamNotificationSettings } from "@/packages/contracts/src/mobile-v1";
 import { getMobileAuth } from "@/lib/mobile/auth";
 import { mobileError, mobileSuccess } from "@/lib/mobile/api-response";
-import { resizeImageForWeb } from "@/lib/images/resize-for-web";
+import { prepareProfileImage } from "@/lib/images/prepare-profile-image";
 import {
   activeFavoriteTeamCooldown,
   favoriteTeamCooldownFromError,
@@ -15,7 +15,6 @@ export const dynamic = "force-dynamic";
 
 const PROFILE_AVATAR_BUCKET = "profile-avatars";
 const MAX_PROFILE_IMAGE_BYTES = 5 * 1024 * 1024;
-const PROFILE_IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
 const DELETE_ACCOUNT_CONFIRM_TEXT = "탈퇴합니다";
 const REAUTH_WINDOW_MS = 5 * 60 * 1000;
 const VALID_TIERS = new Set<Tier>(["iron", "bronze", "silver", "gold", "platinum", "emerald", "diamond", "master", "grandmaster", "challenger"]);
@@ -27,14 +26,6 @@ function asTier(value: string | null | undefined): Tier {
 function translatePasswordError(message: string): string {
   if (message.startsWith("Password should contain at least one character of each") || (/password/i.test(message) && /at least/i.test(message))) return "영문 대/소문자, 숫자, 특수문자를 섞어서 입력해주세요.";
   return message;
-}
-
-function profileImageExtension(type: string, name: string): string {
-  if (type === "image/png") return "png";
-  if (type === "image/webp") return "webp";
-  if (type === "image/jpeg") return "jpg";
-  const fromName = name.split(".").pop()?.toLowerCase();
-  return fromName && /^[a-z0-9]+$/.test(fromName) ? fromName : "jpg";
 }
 
 const defaultPreferences: MobileNotificationPreferences = {
@@ -74,6 +65,7 @@ async function readMe(request: Request): Promise<MobileMeDto | null> {
     supabase.from("community_user_blocks").select("blocked_id").eq("blocker_id", user.id),
     supabase.from("community_guest_blocks").select("guest_key, guest_nickname, created_at").eq("blocker_id", user.id).order("created_at", { ascending: false }),
   ]);
+  if (profileResult.error || !profileResult.data) throw new Error("프로필을 불러오지 못했습니다.", { cause: profileResult.error });
   const blockedIds = (blocksResult.data ?? []).map((item) => item.blocked_id);
   const followedTeamIds = (subscriptionsResult.data ?? []).map((item) => item.team_id);
   const [{ data: blockedProfiles }, { data: followedTeams }] = await Promise.all([
@@ -172,7 +164,6 @@ export async function POST(request: Request) {
   const image = formData.get("profileImage");
   let profileImageUrl: string | undefined;
   if (image instanceof File && image.size > 0) {
-    if (!PROFILE_IMAGE_TYPES.has(image.type)) return mobileError("BAD_REQUEST", "프로필 이미지는 PNG, JPG, WEBP만 업로드할 수 있습니다.", 400);
     if (image.size > MAX_PROFILE_IMAGE_BYTES) return mobileError("BAD_REQUEST", "프로필 이미지는 5MB 이하만 업로드할 수 있습니다.", 400);
     let admin;
     try {
@@ -181,8 +172,8 @@ export async function POST(request: Request) {
       return mobileError("INTERNAL", "프로필 이미지 업로드 설정이 필요합니다.", 500);
     }
     try {
-      const resized = await resizeImageForWeb(Buffer.from(await image.arrayBuffer()), image.type, { maxEdge: 512 });
-      const objectPath = `${auth.user.id}/${crypto.randomUUID()}.${resized.transformed ? resized.extension : profileImageExtension(image.type, image.name)}`;
+      const resized = await prepareProfileImage(Buffer.from(await image.arrayBuffer()));
+      const objectPath = `${auth.user.id}/${crypto.randomUUID()}.${resized.extension}`;
       const { error: uploadError } = await admin.storage.from(PROFILE_AVATAR_BUCKET).upload(objectPath, resized.bytes, { cacheControl: "31536000", contentType: resized.contentType, upsert: false });
       if (uploadError) return mobileError("INTERNAL", uploadError.message || "프로필 이미지 업로드에 실패했습니다.", 500);
       profileImageUrl = admin.storage.from(PROFILE_AVATAR_BUCKET).getPublicUrl(objectPath).data.publicUrl;

@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { useLocalSearchParams } from 'expo-router';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import SlidersHorizontal from 'lucide-react-native/icons/sliders-horizontal';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -14,6 +14,7 @@ import { TournamentEmptyNotice, TournamentPomList, TournamentStandingsGroups } f
 import { useCachedQuery } from '@/hooks/use-cached-query';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import type { MobileTournamentDetailDto } from '@/lib/api-client';
+import { readTournamentSelection, restoreTournamentSelection, saveTournamentSelection, type TournamentSelection } from '@/lib/tournament-selection-cache';
 
 type ViewKey = 'pom' | 'standings' | 'bracket';
 type SplitKey = '1' | '2' | '3';
@@ -21,20 +22,29 @@ type SplitKey = '1' | '2' | '3';
 export default function TournamentsRoute() {
   const params = useLocalSearchParams<{ segment?: string | string[] }>();
   const segment = Array.isArray(params.segment) ? params.segment[0] : params.segment;
-  return <TournamentsScreen initialSegment={segment} key={segment ?? 'default'} />;
+  const [restored, setRestored] = useState(readTournamentSelection);
+  const [ready, setReady] = useState(() => Boolean(segment || readTournamentSelection()));
+  useEffect(() => {
+    let active = true;
+    if (!ready) void restoreTournamentSelection().then(selection => { if (active) { setRestored(selection); setReady(true); } });
+    return () => { active = false; };
+  }, [ready]);
+  if (!ready) return <MinionScreen contentStyle={styles.screenContent}><View style={styles.page}><TournamentLoadingSkeleton /></View></MinionScreen>;
+  return <TournamentsScreen initialSegment={segment} initialSelection={restored} key={segment ?? 'default'} />;
 }
 
-function TournamentsScreen({ initialSegment }: { initialSegment?: string }) {
+function TournamentsScreen({ initialSegment, initialSelection }: { initialSegment?: string; initialSelection: TournamentSelection | null }) {
+  const saved = !initialSegment || initialSegment === initialSelection?.segmentKey ? initialSelection : null;
   const { fonts, theme } = useMinionTheme();
   const insets = useSafeAreaInsets();
-  const [segmentKey, setSegmentKey] = useState(initialSegment ?? 'lck');
-  const [year, setYear] = useState<number | null>(null);
-  const [split, setSplit] = useState<SplitKey | null>(null);
-  const [phase, setPhase] = useState<'playin' | 'playoffs' | null>(null);
-  const [view, setView] = useState<ViewKey | null>(null);
-  const [activeBracketStageId, setActiveBracketStageId] = useState<string | null>(null);
+  const [segmentKey, setSegmentKey] = useState(initialSegment ?? saved?.segmentKey ?? 'lck');
+  const [year, setYear] = useState<number | null>(saved?.year ?? null);
+  const [split, setSplit] = useState<SplitKey | null>(saved?.split ?? null);
+  const [phase, setPhase] = useState<'playin' | 'playoffs' | null>(saved?.phase ?? null);
+  const [view, setView] = useState<ViewKey | null>(saved?.view ?? null);
+  const [activeBracketStageId, setActiveBracketStageId] = useState<string | null>(saved?.activeBracketStageId ?? null);
   const [filterOpen, setFilterOpen] = useState(false);
-  const appliedDefaultSegment = useRef(Boolean(initialSegment));
+  const appliedDefaultSegment = useRef(Boolean(initialSegment || saved));
 
   const query = new URLSearchParams();
   if (year !== null) query.set('year', String(year));
@@ -43,7 +53,16 @@ function TournamentsScreen({ initialSegment }: { initialSegment?: string }) {
     if (phase) query.set('phase', phase);
   } else if (activeBracketStageId) query.set('bracketStage', activeBracketStageId);
   if (view) query.set('view', view);
-  const { data, error, loading, refresh } = useCachedQuery<MobileTournamentDetailDto>(`/api/mobile/v1/tournaments/${segmentKey}?${query}`);
+  const { data, error, loading, refresh } = useCachedQuery<MobileTournamentDetailDto>(`/api/mobile/v1/tournaments/${segmentKey}?${query}`, { keepPreviousData: true });
+
+  const hasFocused = useRef(false);
+  useFocusEffect(useCallback(() => {
+    if (hasFocused.current) refresh();
+    hasFocused.current = true;
+  }, [refresh]));
+  useEffect(() => {
+    if (data && !loading && !error && appliedDefaultSegment.current) saveTournamentSelection({ segmentKey, year, split, phase, view, activeBracketStageId });
+  }, [data, loading, error, segmentKey, year, split, phase, view, activeBracketStageId]);
 
   useEffect(() => {
     if (!data || appliedDefaultSegment.current) return;
@@ -65,7 +84,7 @@ function TournamentsScreen({ initialSegment }: { initialSegment?: string }) {
 
   if (loading && !data) return <MinionScreen contentStyle={styles.screenContent}><View style={styles.page}><TournamentLoadingSkeleton /></View></MinionScreen>;
   if (error && !data) return <MinionScreen contentStyle={styles.screenContent}><View style={styles.page}><ErrorState onRetry={refresh} /></View></MinionScreen>;
-  if (!data) return null;
+  if (!data) return <MinionScreen contentStyle={styles.screenContent}><View style={styles.page}><TournamentLoadingSkeleton /></View></MinionScreen>;
 
   const groups: TournamentFilterGroup[] = [
     { label: '연도', selected: String(data.activeSeason), options: data.seasons.map(season => ({ value: String(season), label: String(season) })), onSelect: value => { setYear(Number(value)); resetStage(); } },
