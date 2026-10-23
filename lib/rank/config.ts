@@ -19,7 +19,7 @@ export type Tier =
 export const MIN_LP = 0;
 
 // LP 임계값(누적 LP가 이 값 이상이면 해당 티어). 오름차순.
-// iron은 lp < bronze(0)일 때 적용되며, iron 키 값은 진행도 표시용 하한(MIN_LP)이다.
+// iron은 lp < bronze(10000)일 때 적용되며, iron 키 값은 진행도 표시용 하한(MIN_LP)이다.
 // challenger는 임계값(grandmaster와 동일선상) + "상위 50명 cap"으로 별도 처리한다.
 export const TIER_THRESHOLDS: Record<Exclude<Tier, "challenger">, number> = {
   iron: MIN_LP,
