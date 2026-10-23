@@ -45,7 +45,7 @@ function NotificationRow({
   );
   const content = (
     <>
-      <span className="relative grid h-7 w-7 shrink-0 place-items-center overflow-hidden rounded-md bg-[var(--ui-card-bg)] text-[var(--ui-muted)]">
+      <span className="relative grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-lg bg-[var(--ui-card-bg)] text-[var(--ui-muted)]">
         {imageUrl && useObjectiveMask ? (
           <span
             aria-hidden="true"
@@ -65,26 +65,26 @@ function NotificationRow({
           // eslint-disable-next-line @next/next/no-img-element
           <img src={imageUrl} alt="" className={notification.matchEvent?.kind === "kill" ? "h-full w-full object-cover" : "h-5 w-5 object-contain"} />
         ) : <NotificationTypeIcon kind={notification.kind} />}
-        {!notification.readAt ? <span className="absolute right-0.5 top-0.5 h-1.5 w-1.5 rounded-full bg-[var(--accent)]" aria-hidden /> : null}
+        {!notification.readAt ? <span className="absolute right-0.5 top-0.5 h-2 w-2 rounded-full bg-[var(--accent)] ring-2 ring-[var(--ui-surface)]" aria-hidden /> : null}
       </span>
-      <span className="flex min-w-0 flex-1 flex-col items-start py-1">
-        <span className={`text-[12px] leading-4 ${notification.readAt ? "font-semibold text-[var(--ui-muted)]" : "font-black text-[var(--ui-ink)]"}`}>{notification.title}</span>
-        <span className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-1.5 text-[11px] leading-4 text-[var(--ui-muted)]">
-          {notification.description ? <span>{notification.description}</span> : null}
-          <time dateTime={notification.createdAt} className="shrink-0 font-medium">{relativeTime(notification.createdAt)}</time>
+      <span className="flex min-h-9 min-w-0 flex-1 flex-col justify-center">
+        <span className="flex items-baseline gap-2">
+          <span className={`min-w-0 flex-1 truncate text-[15px] leading-[18px] ${notification.readAt ? "font-medium text-[var(--ui-muted)]" : "font-bold text-[var(--ui-ink)]"}`}>{notification.title}</span>
+          <time dateTime={notification.createdAt} className="shrink-0 text-[13px] leading-[18px] font-medium text-[var(--ui-muted)]">{relativeTime(notification.createdAt)}</time>
         </span>
+        {notification.description ? <span className="line-clamp-2 text-[13px] leading-[18px] text-[var(--ui-muted)]">{notification.description}</span> : null}
       </span>
     </>
   );
 
   return (
-    <div className={`flex min-h-12 items-center gap-1 rounded-lg border px-2 py-1 transition ${notification.readAt ? "border-transparent bg-transparent" : "border-[var(--ui-border)] bg-[var(--ui-surface)]"}`}>
+    <div className={`flex items-start gap-1.5 rounded-xl border border-[var(--ui-border)] px-2.5 py-2.5 transition ${notification.readAt ? "bg-transparent" : "bg-[var(--ui-surface)]"}`}>
       {notification.href ? (
-        <Link href={notification.href} onClick={() => { onRead(notification.id); onClose(); }} className="flex min-w-0 flex-1 items-center gap-2 rounded-md">{content}</Link>
+        <Link href={notification.href} onClick={() => { onRead(notification.id); onClose(); }} className="flex min-w-0 flex-1 items-start gap-2.5 rounded-md">{content}</Link>
       ) : (
-        <button type="button" onClick={() => onRead(notification.id)} className="flex min-w-0 flex-1 items-center gap-2 rounded-md text-left">{content}</button>
+        <button type="button" onClick={() => onRead(notification.id)} className="flex min-w-0 flex-1 items-start gap-2.5 rounded-md text-left">{content}</button>
       )}
-      <button type="button" onClick={() => onRemove(notification.id)} className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-[var(--ui-muted)] hover:bg-[var(--ui-card-hover)] hover:text-[var(--ui-ink)]" aria-label={`${notification.title} 알림 삭제`}><X size={15} /></button>
+      <button type="button" onClick={() => onRemove(notification.id)} className="grid h-8 w-8 shrink-0 self-center place-items-center rounded-lg text-[var(--ui-muted)] hover:bg-[var(--ui-card-hover)] hover:text-[var(--ui-ink)]" aria-label={`${notification.title} 알림 삭제`}><X size={15} /></button>
     </div>
   );
 }
