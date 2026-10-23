@@ -140,9 +140,10 @@ export function PostForm({
         </label>
       ) : null}
       <div className="flex flex-col gap-2 border-b border-[var(--ui-border)] pb-3">
-        <div className="w-fit rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] px-1.5">
+        <div className="w-fit">
           <FilterDropdown
             ariaLabel="말머리 선택"
+            controlSize="compact"
             options={categoryOptions}
             selected={boardType}
             onSelect={setBoardType}
@@ -162,7 +163,7 @@ export function PostForm({
           maxLength={POST_TITLE_MAX_LENGTH}
           required
           placeholder="제목을 입력하세요"
-          className="min-w-0 bg-transparent px-0 py-1 text-[16px] font-bold leading-[1.45] tracking-[-0.025em] text-[var(--ui-ink)] outline-none placeholder:font-medium placeholder:text-[#b8bcc4] md:text-[28px] md:leading-tight dark:placeholder:text-[#666b73]"
+          className="min-w-0 bg-transparent px-0 py-1 text-[20px] font-bold leading-[1.45] tracking-[-0.025em] text-[var(--ui-ink)] outline-none placeholder:font-medium placeholder:text-[#b8bcc4] md:leading-tight dark:placeholder:text-[#666b73]"
         />
       </div>
 

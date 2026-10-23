@@ -155,7 +155,7 @@ export function FilterDropdown({
           initialFocus.current = event.key === "ArrowUp" ? "last" : "selected";
           setOpen(true);
         }}
-        className={`inline-flex items-center rounded-lg text-sm font-medium text-[var(--ui-ink)] outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-wait disabled:opacity-60 ${appearance === "plain" ? "gap-1.5 px-1.5" : "justify-between gap-2 border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3"} ${controlSize === "compact" ? "min-h-9" : "min-h-10"} ${triggerClassName}`}
+        className={`inline-flex items-center rounded-lg text-sm font-medium text-[var(--ui-ink)] outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-wait disabled:opacity-60 ${appearance === "plain" ? "gap-1.5 px-1.5" : "justify-between gap-2 border border-[var(--ui-card-bg)] bg-[var(--ui-surface)] px-3"} ${controlSize === "compact" ? "min-h-9" : "min-h-10"} ${triggerClassName}`}
       >
         {selectedIcon ? <span aria-hidden="true" className="flex shrink-0 items-center">{selectedIcon}</span> : null}
         {triggerLabel}

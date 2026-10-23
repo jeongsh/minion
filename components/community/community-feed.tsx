@@ -8,7 +8,6 @@ import { useState } from "react";
 import { FilterDropdown } from "@/components/match-filter-dropdown";
 import { SearchInput } from "@/components/ui/search-input";
 import { SegmentedToggle } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
 import { PostList } from "@/components/community/post-list";
 import { Pagination } from "@/components/ui/pagination";
 import { AdSlot } from "@/components/ui/ad-slot";
@@ -77,7 +76,7 @@ export function CommunityFeed({
             <SegmentedToggle items={[{key:"all",label:"전체"},{key:"hot",label:"인기글"}]} activeKey={hotOnly ? "hot" : "all"} ariaLabel="게시글 보기" onSelect={(key) => navigateWith({view:key === "hot" ? "hot" : null,cat:null})} />
             <FilterDropdown ariaLabel="말머리 선택" placeholder="말머리" selected={categoryValue} options={categories.map(category=>({value:category.slug,label:category.label}))} onSelect={value=>navigateWith({cat:value,view:null})} rootClassName="min-w-28" triggerClassName="w-full" />
 
-            <button type="button" onClick={() => setMobileSearchOpen((open) => !open)} className="ml-auto grid h-9 w-9 place-items-center rounded-[var(--ui-control-radius)] border border-[var(--ui-border)] text-[var(--ui-muted)] md:hidden" aria-label={mobileSearchOpen ? "검색 닫기" : "게시글 검색"} aria-expanded={mobileSearchOpen}>
+            <button type="button" onClick={() => setMobileSearchOpen((open) => !open)} className="ml-auto grid h-10 w-10 place-items-center rounded-[var(--ui-control-radius)] border border-[var(--ui-border)] text-[var(--ui-muted)] md:hidden" aria-label={mobileSearchOpen ? "검색 닫기" : "게시글 검색"} aria-expanded={mobileSearchOpen}>
               {mobileSearchOpen ? <X size={17} /> : <Search size={17} />}
             </button>
 
@@ -86,7 +85,7 @@ export function CommunityFeed({
               {searchQuery ? <SearchStatus query={searchQuery} count={postPage.totalCount} onClear={clearSearch} /> : null}
             </div>
 
-            <Link href={newPath} className="hidden h-9 shrink-0 items-center gap-1.5 rounded-[var(--ui-control-radius)] bg-[var(--ui-ink)] px-3.5 text-[13px] font-semibold text-[var(--ui-surface)] transition-opacity hover:opacity-85 lg:inline-flex" aria-label="글쓰기">
+            <Link href={newPath} className="hidden h-10 shrink-0 items-center gap-1.5 rounded-[var(--ui-control-radius)] bg-[var(--ui-ink)] px-3.5 text-[13px] font-medium text-[var(--ui-surface)] transition-opacity hover:opacity-85 lg:inline-flex" aria-label="글쓰기">
               <SquarePen size={15} strokeWidth={2} />글쓰기
             </Link>
           </div>
@@ -118,8 +117,7 @@ export function CommunityFeed({
 function SearchForm({ query, setQuery, onSubmit, className }: { query: string; setQuery: (value: string) => void; onSubmit: (event: React.FormEvent<HTMLFormElement>) => void; className: string }) {
   return (
     <form className={`items-center gap-2 ${className}`} onSubmit={onSubmit}>
-      <SearchInput aria-label="게시글 검색" value={query} onChange={event=>setQuery(event.target.value)} placeholder="제목, 내용 검색" />
-      <Button type="submit" variant="secondary" aria-label="검색"><Search size={16} /></Button>
+      <SearchInput submitButton enterKeyHint="search" aria-label="게시글 검색" value={query} onChange={event=>setQuery(event.target.value)} placeholder="제목, 내용 검색" />
     </form>
   );
 }
