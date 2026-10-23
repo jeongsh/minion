@@ -63,7 +63,7 @@ function NotificationRow({
           />
         ) : imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={imageUrl} alt="" className={notification.matchEvent?.kind === "kill" ? "h-full w-full object-cover" : "h-5 w-5 object-contain"} />
+          <img src={imageUrl} alt="" className={notification.matchEvent?.kind === "kill" || notification.kind === "team_video" ? "h-full w-full object-cover" : "h-5 w-5 object-contain"} />
         ) : <NotificationTypeIcon kind={notification.kind} />}
         {!notification.readAt ? <span className="absolute right-0.5 top-0.5 h-2 w-2 rounded-full bg-[var(--accent)] ring-2 ring-[var(--ui-surface)]" aria-hidden /> : null}
       </span>

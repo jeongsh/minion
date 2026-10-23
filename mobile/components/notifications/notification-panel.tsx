@@ -43,6 +43,7 @@ function NotificationRow({ notification, onClose }: { notification: InAppNotific
   const Icon = iconFor(notification.kind);
   const imageUrl = resolveApiAssetUrl(notification.imageUrl ?? notification.matchEvent?.rightImageSrc ?? notification.matchEvent?.leftImageSrc);
   const eventKind = notification.matchEvent?.kind ?? notification.matchEventKind;
+  const fillThumbnail = eventKind === 'kill' || notification.kind === 'team_video';
   const unread = !notification.readAt;
 
   const open = () => {
@@ -54,20 +55,20 @@ function NotificationRow({ notification, onClose }: { notification: InAppNotific
   };
 
   return (
-    <View style={[styles.row, { backgroundColor: unread ? theme.surface : 'transparent', borderColor: unread ? theme.border : 'transparent' }]}>
+    <View style={[styles.row, { backgroundColor: unread ? theme.surface : 'transparent', borderColor: theme.border }]}>
       <Pressable accessibilityLabel={`${notification.title} 알림${unread ? ', 읽지 않음' : ''}`} onPress={open} style={styles.rowMain}>
         <View style={[styles.iconBox, { backgroundColor: theme.card, overflow: 'hidden' }]}>
           {imageUrl ? (
-            <Image contentFit={eventKind === 'kill' ? 'cover' : 'contain'} source={{ uri: imageUrl }} style={eventKind === 'kill' ? styles.imageFill : styles.imageContain} />
+            <Image contentFit={fillThumbnail ? 'cover' : 'contain'} source={{ uri: imageUrl }} style={fillThumbnail ? styles.imageFill : styles.imageContain} />
           ) : <Icon color={theme.muted} size={17} />}
-          {unread ? <View accessibilityElementsHidden style={[styles.unreadDot, { backgroundColor: theme.accent }]} /> : null}
+          {unread ? <View accessibilityElementsHidden style={[styles.unreadDot, { backgroundColor: theme.accent, borderColor: theme.surface }]} /> : null}
         </View>
         <View style={styles.copy}>
-          <Text numberOfLines={1} style={{ color: unread ? theme.ink : theme.muted, ...fonts.medium, fontSize: 13, lineHeight: 18 }}>{notification.title}</Text>
-          <View style={styles.metaRow}>
-            {notification.description ? <Text numberOfLines={1} style={[styles.description, { color: theme.muted, ...fonts.regular }]}>{notification.description}</Text> : null}
-            <Text style={{ color: theme.muted, ...fonts.medium, fontSize: 13, lineHeight: 18 }}>{relativeTime(notification.createdAt)}</Text>
+          <View style={styles.titleRow}>
+            <Text numberOfLines={1} style={[styles.title, { color: unread ? theme.ink : theme.muted }, unread ? fonts.bold : fonts.medium]}>{notification.title}</Text>
+            <Text style={[styles.time, { color: theme.muted }, fonts.medium]}>{relativeTime(notification.createdAt)}</Text>
           </View>
+          {notification.description ? <Text numberOfLines={2} style={[styles.description, { color: theme.muted }, fonts.regular]}>{notification.description}</Text> : null}
         </View>
       </Pressable>
       <Pressable accessibilityLabel={`${notification.title} 알림 삭제`} hitSlop={4} onPress={() => removeNotification(notification.id)} style={styles.removeButton}>
@@ -128,17 +129,19 @@ export function NotificationPanel({ onClose, open }: { onClose: () => void; open
 const styles = StyleSheet.create({
   actionButton: { alignItems: 'center', flexDirection: 'row', gap: 4, minHeight: 36, paddingHorizontal: 7 },
   content: { paddingHorizontal: 10, paddingTop: 4 },
-  copy: { flex: 1, minWidth: 0, paddingVertical: 4 },
-  description: { flexShrink: 1, fontSize: 13, lineHeight: 18 },
+  copy: { flex: 1, justifyContent: 'center', minHeight: 36, minWidth: 0 },
+  description: { fontSize: 13, lineHeight: 18 },
   empty: { alignItems: 'center', justifyContent: 'center', minHeight: 180, paddingHorizontal: 12 },
   heading: { paddingHorizontal: 12 },
-  iconBox: { alignItems: 'center', borderRadius: 6, height: 28, justifyContent: 'center', position: 'relative', width: 28 },
+  iconBox: { alignItems: 'center', borderRadius: 8, height: 36, justifyContent: 'center', position: 'relative', width: 36 },
   imageContain: { height: 20, width: 20 },
-  imageFill: { height: 28, width: 28 },
+  imageFill: { height: 36, width: 36 },
   list: { gap: 4, paddingBottom: 4 },
-  metaRow: { alignItems: 'center', flexDirection: 'row', gap: 6, minWidth: 0 },
-  removeButton: { alignItems: 'center', height: 32, justifyContent: 'center', width: 32 },
-  row: { alignItems: 'center', borderRadius: 8, borderWidth: 1, flexDirection: 'row', gap: 4, minHeight: 48, paddingHorizontal: 8, paddingVertical: 4 },
-  rowMain: { alignItems: 'center', flex: 1, flexDirection: 'row', gap: 8, minWidth: 0 },
-  unreadDot: { borderRadius: 3, height: 6, position: 'absolute', right: 2, top: 2, width: 6 },
+  removeButton: { alignItems: 'center', alignSelf: 'center', height: 32, justifyContent: 'center', width: 32 },
+  row: { alignItems: 'flex-start', borderRadius: 12, borderWidth: 1, flexDirection: 'row', gap: 6, paddingHorizontal: 10, paddingVertical: 10 },
+  rowMain: { alignItems: 'flex-start', flex: 1, flexDirection: 'row', gap: 10, minWidth: 0 },
+  time: { fontSize: 13, lineHeight: 18 },
+  title: { flex: 1, fontSize: 15, lineHeight: 18, minWidth: 0 },
+  titleRow: { alignItems: 'baseline', flexDirection: 'row', gap: 8 },
+  unreadDot: { borderRadius: 4, borderWidth: 2, height: 8, position: 'absolute', right: 2, top: 2, width: 8 },
 });
