@@ -5,6 +5,7 @@ import { PlayerSocialLinks } from "@/components/domain/player-social-links";
 import { PageHeader } from "@/components/ui/page-header";
 import { AdSlot } from "@/components/ui/ad-slot";
 import { SectionHeading } from "@/components/ui/section-heading";
+import { StatRadar } from "@/components/charts/stat-radar";
 
 import { uniqueDdragonVersionsForPatches } from "@/lib/ddragon";
 import { formatFanRating } from "@/lib/fan-rating-display";
@@ -164,89 +165,29 @@ function StatsOverview({
     { label: "XPD15", score: stats.radarXpDiffAt15, raw: stats.xpDiffAt15, averageScore: averageStats?.radarXpDiffAt15, averageRaw: averageStats?.xpDiffAt15, decimals: 1 },
   ] as const;
 
-  const center = 130;
-  const maxRadius = 90;
-  const pointsFor = (values: number[]) =>
-    values
-      .map((value, index) => {
-        const angle = -Math.PI / 2 + (index * Math.PI * 2) / axes.length;
-        const radius = (Math.max(0, Math.min(100, value)) / 100) * maxRadius;
-        return `${center + Math.cos(angle) * radius},${center + Math.sin(angle) * radius}`;
-      })
-      .join(" ");
-  const playerPoints = pointsFor(axes.map((axis) => axis.score));
-  const averagePoints = averageStats ? pointsFor(axes.map((axis) => axis.averageScore ?? 0)) : null;
-  const gridPolys = [0.25, 0.5, 0.75, 1].map((scale) =>
-    axes
-      .map((_, index) => {
-        const angle = -Math.PI / 2 + (index * Math.PI * 2) / axes.length;
-        const radius = maxRadius * scale;
-        return `${center + Math.cos(angle) * radius},${center + Math.sin(angle) * radius}`;
-      })
-      .join(" "),
-  );
-
   return (
     <div className="grid gap-6 md:grid-cols-[300px_1fr] md:items-center">
-      <svg viewBox="0 0 260 260" className="mx-auto h-[280px] w-[280px]">
-        {gridPolys
-          .slice()
-          .reverse()
-          .map((polygon, index) => (
-            <polygon
-              key={polygon}
-              points={polygon}
-              fill={index % 2 === 0 ? "var(--ui-surface-muted)" : "var(--ui-surface)"}
-              stroke="var(--ui-border)"
-            />
-          ))}
-        {axes.map((_, index) => {
-          const angle = -Math.PI / 2 + (index * Math.PI * 2) / axes.length;
-          return (
-            <line
-              key={index}
-              x1={center}
-              y1={center}
-              x2={center + Math.cos(angle) * maxRadius}
-              y2={center + Math.sin(angle) * maxRadius}
-              stroke="var(--ui-border)"
-            />
-          );
-        })}
-        {averagePoints ? (
-          <polygon points={averagePoints} fill="color-mix(in oklab, var(--ui-muted) 18%, transparent)" stroke="var(--ui-muted)" strokeWidth="2" />
-        ) : null}
-        <polygon
-          points={playerPoints}
-          fill="color-mix(in oklab, var(--tp) 16%, transparent)"
-          stroke="var(--tp)"
-          strokeWidth="2"
-        />
-        {axes.map((axis, index) => {
-          const angle = -Math.PI / 2 + (index * Math.PI * 2) / axes.length;
-          const x = center + Math.cos(angle) * (maxRadius + 20);
-          const y = center + Math.sin(angle) * (maxRadius + 16);
-          return (
-            <text key={axis.label} x={x} y={y} textAnchor="middle" className="fill-[var(--ui-ink)] text-[13px] font-bold">
-              <tspan x={x}>{axis.label}</tspan>
-              <tspan x={x} dy="12" className="fill-[var(--ui-muted)] font-semibold">{Math.round(axis.score)}</tspan>
-            </text>
-          );
-        })}
-      </svg>
+      <StatRadar
+        axes={axes}
+        label="선수와 같은 포지션 평균의 지표 비교"
+        series={[
+          { label: "선수", color: "var(--tp)", scores: axes.map((axis) => axis.score), values: axes.map((axis) => statValue(axis.raw, axis.decimals)) },
+          ...(averageStats ? [{ label: "포지션 평균", color: "var(--ui-muted)", scores: axes.map((axis) => axis.averageScore ?? null), values: axes.map((axis) => statValue(axis.averageRaw, axis.decimals)) }] : []),
+        ]}
+      />
 
       {/* 한 개의 그리드로 묶어 라벨/바/점수 열을 행 간 정렬한다(바 트랙 폭 통일). */}
       <ul className="grid grid-cols-[42px_minmax(0,1fr)_auto_auto] items-center gap-x-3 gap-y-3 text-[13px]">
         {axes.map((axis) => (
           <li key={axis.label} className="contents">
-            <span className="font-bold text-[var(--ui-ink)]">{axis.label}</span>
+            <span className="font-medium text-[var(--ui-ink)]">{axis.label}</span>
             <span className="h-[7px] w-full overflow-hidden rounded-full bg-[var(--ui-surface-muted)]">
               <span
                 className="block h-full rounded-full bg-[var(--tp)]"
                 style={{ width: `${Math.max(0, Math.min(100, axis.score))}%` }}
               />
             </span>
-            <span className="text-right font-bold tabular-nums text-[var(--ui-ink)]">
+            <span className="text-right font-medium tabular-nums text-[var(--ui-ink)]">
               {Math.round(axis.score)}
               <span className="ml-1 font-normal text-[var(--ui-muted)]">({statValue(axis.raw, axis.decimals)})</span>
             </span>
