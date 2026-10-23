@@ -64,6 +64,8 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
   const [reportTarget, setReportTarget] = useState<ReportTarget | null>(null);
   const [revealed, setRevealed] = useState(false);
   const [expandedReplies, setExpandedReplies] = useState<Set<string>>(() => new Set());
+  const [reactionOverrides, setReactionOverrides] = useState<Record<string, MobileCommunityReactionDto>>({});
+  const [pendingReactions, setPendingReactions] = useState<Set<string>>(() => new Set());
 
   useEffect(() => {
     setComment('');
@@ -77,6 +79,8 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
     setReportTarget(null);
     setRevealed(false);
     setExpandedReplies(new Set());
+    setReactionOverrides({});
+    setPendingReactions(new Set());
     scrollRef.current?.scrollTo({ animated: false, y: 0 });
   }, [postId]);
   const roots = useMemo(() => data?.comments.filter((item) => !item.parentId) ?? [], [data?.comments]);
@@ -105,10 +109,46 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
   };
 
   const react = async (target: 'post' | 'comment', targetId: string, kind: 'honor' | 'dislike') => {
+    const key = `${target}:${targetId}`;
+    if (pendingReactions.has(key)) return;
+    const comment = target === 'comment' ? data?.comments.find((item) => item.id === targetId) : null;
+    const saved = reactionOverrides[key];
+    const previous: MobileCommunityReactionDto = saved ?? {
+      state: target === 'post' ? data?.reaction ?? null : comment?.reaction ?? null,
+      honorCount: target === 'post' ? data?.likeCount ?? 0 : comment?.likeCount ?? 0,
+      dislikeCount: target === 'post' ? data?.dislikeCount ?? 0 : comment?.dislikeCount ?? 0,
+    };
+    const nextState = previous.state === kind ? null : kind;
+    const optimistic: MobileCommunityReactionDto = {
+      state: nextState,
+      honorCount: Math.max(0, previous.honorCount + (nextState === 'honor' ? 1 : 0) - (previous.state === 'honor' ? 1 : 0)),
+      dislikeCount: Math.max(0, previous.dislikeCount + (nextState === 'dislike' ? 1 : 0) - (previous.state === 'dislike' ? 1 : 0)),
+    };
+    setReactionOverrides((current) => ({ ...current, [key]: optimistic }));
+    setPendingReactions((current) => new Set(current).add(key));
     try {
-      await mutateMobileApi<MobileCommunityReactionDto>('/api/mobile/v1/community/reactions', 'POST', { kind, target, targetId });
+      const result = await mutateMobileApi<MobileCommunityReactionDto>('/api/mobile/v1/community/reactions', 'POST', { kind, target, targetId });
+      setReactionOverrides((current) => ({ ...current, [key]: result }));
       refreshCommunityData();
-    } catch (caught) { Alert.alert('반응 실패', caught instanceof Error ? caught.message : '잠시 후 다시 시도해주세요.'); }
+    } catch (caught) {
+      setReactionOverrides((current) => {
+        const next = { ...current };
+        if (saved) next[key] = saved;
+        else delete next[key];
+        return next;
+      });
+      Alert.alert('반응 실패', caught instanceof Error ? caught.message : '잠시 후 다시 시도해주세요.');
+    } finally {
+      setPendingReactions((current) => {
+        const next = new Set(current);
+        next.delete(key);
+        return next;
+      });
+    }
+  };
+  const commentWithReaction = (comment: MobileCommunityComment) => {
+    const reaction = reactionOverrides[`comment:${comment.id}`];
+    return reaction ? { ...comment, reaction: reaction.state, likeCount: reaction.honorCount, dislikeCount: reaction.dislikeCount } : comment;
   };
   const startReport = (target: 'post' | 'comment', targetId: string) => {
     setReportReason('');
@@ -225,7 +265,7 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
             {data.isBlinded && !revealed ? <Pressable onPress={() => setRevealed(true)} style={[styles.blinded, { backgroundColor: theme.surfaceMuted }]}>{data.blindedSource === 'ai' ? <Image accessibilityLabel="" contentFit="contain" source={require('@/assets/characters/pen-warning-blocked-red.png')} style={styles.blindedCharacter} /> : <EyeOff color={theme.muted} size={28} strokeWidth={1.6} />}<Text style={{ color: theme.ink, ...fonts.bold, fontSize: 15 }}>{title}</Text><Text style={{ color: theme.muted, ...fonts.regular, fontSize: 14 }}>내용을 보려면 눌러주세요.</Text></Pressable> : <CommunityPostContent document={data.content} />}
           </View>
           <View style={[styles.postActions, { borderColor: theme.divider }]}>
-            <View style={styles.reactions}><ReactionButton accent={accent} active={data.reaction === 'honor'} count={data.likeCount} icon="honor" label="와드" onPress={() => void react('post', data.id, 'honor')} /><ReactionButton accent={accent} active={data.reaction === 'dislike'} count={data.dislikeCount} icon="dislike" label="비추천" onPress={() => void react('post', data.id, 'dislike')} /></View>
+            <View style={styles.reactions}><ReactionButton accent={accent} active={(reactionOverrides[`post:${data.id}`] ? reactionOverrides[`post:${data.id}`].state : data.reaction) === 'honor'} count={reactionOverrides[`post:${data.id}`]?.honorCount ?? data.likeCount} disabled={pendingReactions.has(`post:${data.id}`)} icon="honor" label="와드" onPress={() => void react('post', data.id, 'honor')} /><ReactionButton accent={accent} active={(reactionOverrides[`post:${data.id}`] ? reactionOverrides[`post:${data.id}`].state : data.reaction) === 'dislike'} count={reactionOverrides[`post:${data.id}`]?.dislikeCount ?? data.dislikeCount} disabled={pendingReactions.has(`post:${data.id}`)} icon="dislike" label="비추천" onPress={() => void react('post', data.id, 'dislike')} /></View>
             {data.permissions.canReport ? <Pressable onPress={() => startReport('post', data.id)} style={[styles.report, { backgroundColor: theme.surface, borderColor: theme.border }]}><Flag color={theme.muted} size={15} strokeWidth={1.8} /><Text style={{ color: theme.muted, ...fonts.medium, fontSize: 13, lineHeight: 19.5 }}>리폿</Text></Pressable> : null}
           </View>
           <ContentBanner enabled={!data.isBlinded && !ownerMenuOpen && !reportTarget && !miniconOpen} />
@@ -236,7 +276,7 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
             const firstRegular = !item.isBest && index > 0 && orderedRoots[index - 1]?.isBest;
             return (
               <View key={item.id} style={[styles.commentThread, firstRegular ? { borderTopColor: theme.border, borderTopWidth: 1, paddingTop: 20 } : null]}>
-                <CommentItem accent={accent} best={item.isBest} comment={item} continued={itemReplies.length > 0} onDelete={refreshCommunityData} onReact={react} onReply={setReplyTo} onReport={startReport} />
+                <CommentItem accent={accent} best={item.isBest} comment={commentWithReaction(item)} continued={itemReplies.length > 0} pendingReactions={pendingReactions} onDelete={refreshCommunityData} onReact={react} onReply={setReplyTo} onReport={startReport} />
                 {itemReplies.length > 0 && !repliesExpanded ? (
                   <View style={styles.threadToggleRow}>
                     <View style={[styles.threadConnection, { borderColor: theme.border }]} />
@@ -245,7 +285,7 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
                 ) : null}
                 {itemReplies.length > 0 && repliesExpanded ? (
                   <View>
-                    {itemReplies.map((reply) => <View key={reply.id} style={styles.replyThreadRow}><View style={[styles.replyThreadStem, { backgroundColor: theme.border }]} /><View style={[styles.replyThreadElbow, { borderColor: theme.border }]} /><View style={styles.replyThreadContent}><CommentItem accent={accent} comment={reply} onDelete={refreshCommunityData} onReact={react} onReport={startReport} reply /></View></View>)}
+                    {itemReplies.map((reply) => <View key={reply.id} style={styles.replyThreadRow}><View style={[styles.replyThreadStem, { backgroundColor: theme.border }]} /><View style={[styles.replyThreadElbow, { borderColor: theme.border }]} /><View style={styles.replyThreadContent}><CommentItem accent={accent} comment={commentWithReaction(reply)} pendingReactions={pendingReactions} onDelete={refreshCommunityData} onReact={react} onReport={startReport} reply /></View></View>)}
                     <View style={styles.threadToggleRow}>
                       <View style={[styles.threadConnection, { borderColor: theme.border }]} />
                       <Pressable accessibilityState={{ expanded: true }} onPress={() => toggleReplies(item.id)} style={styles.threadToggleButton}><Text style={{ color: theme.text, ...fonts.medium, fontSize: 14, lineHeight: 20 }}>답글 숨기기</Text><ChevronUp color={theme.text} size={18} strokeWidth={2} /></Pressable>
@@ -323,10 +363,10 @@ function Bone({ height, radius = 5, width }: { height: number; radius?: number; 
   return <View style={{ backgroundColor: theme.surfaceMuted, borderRadius: radius, flexShrink: 0, height, width }} />;
 }
 
-function ReactionButton({ accent, active, count, icon, label, onPress, small = false }: { accent?: string; active: boolean; count: number; icon: 'honor' | 'dislike'; label: string; onPress: () => void; small?: boolean }) {
+function ReactionButton({ accent, active, count, disabled = false, icon, label, onPress, small = false }: { accent?: string; active: boolean; count: number; disabled?: boolean; icon: 'honor' | 'dislike'; label: string; onPress: () => void; small?: boolean }) {
   const { fonts, theme } = useMinionTheme(); const Icon = icon === 'honor' ? ThumbsUp : ThumbsDown;
   const activeColor = accent ?? theme.accent;
-  return <Pressable accessibilityLabel={`${label} ${count}`} accessibilityState={{ selected: active }} onPress={onPress} style={[small ? styles.smallReaction : styles.reaction, small ? null : { borderColor: theme.border }]}><Icon color={active ? activeColor : small ? theme.muted : theme.text} size={16} strokeWidth={1.8} />{small ? <Text style={{ color: active ? activeColor : theme.muted, ...fonts.medium, fontSize: 12, lineHeight: 18 }}>{count}</Text> : <Text style={{ color: active ? activeColor : theme.text, ...fonts.medium, fontSize: 13, lineHeight: 19.5 }}>{label} {count}</Text>}</Pressable>;
+  return <Pressable accessibilityLabel={`${label} ${count}`} accessibilityState={{ disabled, selected: active }} disabled={disabled} onPress={onPress} style={[small ? styles.smallReaction : styles.reaction, small ? null : { borderColor: theme.border }, disabled ? { opacity: 0.5 } : null]}><Icon color={active ? activeColor : small ? theme.muted : theme.text} size={16} strokeWidth={1.8} />{small ? <Text style={{ color: active ? activeColor : theme.muted, ...fonts.medium, fontSize: 12, lineHeight: 18 }}>{count}</Text> : <Text style={{ color: active ? activeColor : theme.text, ...fonts.medium, fontSize: 13, lineHeight: 19.5 }}>{label} {count}</Text>}</Pressable>;
 }
 
 function CommentAvatar({ author, reply }: { author: MobileCommunityAuthor; reply: boolean }) {
@@ -334,7 +374,7 @@ function CommentAvatar({ author, reply }: { author: MobileCommunityAuthor; reply
   return author.id ? <RankAvatar fallback={name} profileImageUrl={author.profileImage?.url} size={reply ? 'reply' : 'detail'} tier={author.tier} /> : <GuestAvatar size={reply ? 'reply' : 'detail'} />;
 }
 
-function CommentItem({ accent, best = false, comment, continued = false, onDelete, onReact, onReply, onReport, reply = false }: { accent: string; best?: boolean; comment: MobileCommunityComment; continued?: boolean; onDelete: () => void; onReact: (target: 'comment', id: string, kind: 'honor' | 'dislike') => Promise<void>; onReply?: (comment: MobileCommunityComment) => void; onReport: (target: 'comment', id: string) => void; reply?: boolean }) {
+function CommentItem({ accent, best = false, comment, continued = false, onDelete, onReact, onReply, onReport, pendingReactions, reply = false }: { accent: string; best?: boolean; comment: MobileCommunityComment; continued?: boolean; onDelete: () => void; onReact: (target: 'comment', id: string, kind: 'honor' | 'dislike') => Promise<void>; onReply?: (comment: MobileCommunityComment) => void; onReport: (target: 'comment', id: string) => void; pendingReactions: Set<string>; reply?: boolean }) {
   const { fonts, theme } = useMinionTheme(); const [editing, setEditing] = useState(false); const [content, setContent] = useState(typeof comment.content === 'string' ? comment.content : ''); const [busy, setBusy] = useState(false);
   const save = async () => { setBusy(true); try { await mutateMobileApi<MobileCommunityCommentMutationDto>(`/api/mobile/v1/community/comments/${comment.id}`, 'PATCH', { content }); setEditing(false); onDelete(); } catch (caught) { Alert.alert('수정 실패', caught instanceof Error ? caught.message : '댓글을 수정하지 못했습니다.'); } finally { setBusy(false); } };
   const remove = () => Alert.alert('댓글 삭제', '이 댓글을 삭제할까요?', [{ text: '취소', style: 'cancel' }, { text: '삭제', style: 'destructive', onPress: () => void mutateMobileApi<MobileCommunityActionDto>(`/api/mobile/v1/community/comments/${comment.id}`, 'DELETE').then(onDelete).catch((caught) => Alert.alert('삭제 실패', caught instanceof Error ? caught.message : '댓글을 삭제하지 못했습니다.')) }]);
@@ -371,7 +411,7 @@ function CommentItem({ accent, best = false, comment, continued = false, onDelet
           <Text style={[styles.commentBody, { color: theme.text, ...fonts.regular }]}>{String(comment.content)}</Text>
         )}
         <View style={styles.commentLinks}>
-          <View style={styles.commentReactions}><ReactionButton accent={accent} active={comment.reaction === 'honor'} count={comment.likeCount} icon="honor" label="와드" onPress={() => void onReact('comment', comment.id, 'honor')} small /><ReactionButton accent={accent} active={comment.reaction === 'dislike'} count={comment.dislikeCount} icon="dislike" label="비추천" onPress={() => void onReact('comment', comment.id, 'dislike')} small /></View>
+          <View style={styles.commentReactions}><ReactionButton accent={accent} active={comment.reaction === 'honor'} count={comment.likeCount} disabled={pendingReactions.has(`comment:${comment.id}`)} icon="honor" label="와드" onPress={() => void onReact('comment', comment.id, 'honor')} small /><ReactionButton accent={accent} active={comment.reaction === 'dislike'} count={comment.dislikeCount} disabled={pendingReactions.has(`comment:${comment.id}`)} icon="dislike" label="비추천" onPress={() => void onReact('comment', comment.id, 'dislike')} small /></View>
           {!reply && !comment.isDeleted && onReply ? <Pressable onPress={() => onReply(comment)}><Text style={commentLinkText(theme.muted, fonts.medium)}>답글</Text></Pressable> : null}
           {comment.permissions.canEdit && !comment.isDeleted ? <Pressable onPress={() => setEditing(true)}><Text style={commentLinkText(theme.muted, fonts.medium)}>수정</Text></Pressable> : null}
         </View>

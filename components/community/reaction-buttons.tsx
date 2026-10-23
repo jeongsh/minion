@@ -15,14 +15,38 @@ export function ReactionButtons({ target, targetId, postId, scope, teamSlug, ini
   const [pending, startTransition] = useTransition();
 
   const press = (kind: ReactionKind) => {
+    const previous = { state, honorCount, dislikeCount };
+    const optimisticState: ReactionState = state === kind ? null : kind;
+    const adjustCount = (count: number, current: ReactionState, next: ReactionState, reaction: ReactionKind) =>
+      Math.max(0, count + (next === reaction ? 1 : 0) - (current === reaction ? 1 : 0));
+
+    setState(optimisticState);
+    setHonorCount((count) => adjustCount(count, state, optimisticState, "honor"));
+    setDislikeCount((count) => adjustCount(count, state, optimisticState, "dislike"));
+    setMessage(null);
+
     startTransition(async () => {
-      const result = await reactAction({ target, targetId, kind, postId, scope, teamSlug });
-      if (!result.ok) { setMessage(result.error); return; }
-      const next = result.state;
-      setHonorCount((count) => Math.max(0, count + (next === "honor" ? 1 : 0) - (state === "honor" ? 1 : 0)));
-      setDislikeCount((count) => Math.max(0, count + (next === "dislike" ? 1 : 0) - (state === "dislike" ? 1 : 0)));
-      setState(next);
-      setMessage(null);
+      try {
+        const result = await reactAction({ target, targetId, kind, postId, scope, teamSlug });
+        if (!result.ok) {
+          setState(previous.state);
+          setHonorCount(previous.honorCount);
+          setDislikeCount(previous.dislikeCount);
+          setMessage(result.error);
+          return;
+        }
+
+        if (result.state !== optimisticState) {
+          setState(result.state);
+          setHonorCount(adjustCount(previous.honorCount, previous.state, result.state, "honor"));
+          setDislikeCount(adjustCount(previous.dislikeCount, previous.state, result.state, "dislike"));
+        }
+      } catch (error) {
+        setState(previous.state);
+        setHonorCount(previous.honorCount);
+        setDislikeCount(previous.dislikeCount);
+        throw error;
+      }
     });
   };
 
