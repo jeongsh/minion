@@ -14,10 +14,15 @@ export function AutoAdContent({ enabled }: { enabled: boolean }) {
   const allowed = enabled && Boolean(AD_CLIENT) && isAutoAdContentPath(pathname);
 
   useEffect(() => {
-    if (!allowed || !marker.current || !canRequestAd(marker.current)) return;
-    void loadAdScript(AD_CLIENT!).catch(() => {
-      // Ad blockers and preview environments may reject the request.
-    });
+    const element = marker.current;
+    if (!allowed || !element) return;
+    element.dataset.adReady = "true";
+    if (canRequestAd(element)) {
+      void loadAdScript(AD_CLIENT!).catch(() => {
+        // Ad blockers and preview environments may reject the request.
+      });
+    }
+    return () => { delete element.dataset.adReady; };
   }, [allowed, pathname]);
 
   return allowed ? <span ref={marker} hidden data-ad-page={pathname} data-ad-content="true" /> : null;

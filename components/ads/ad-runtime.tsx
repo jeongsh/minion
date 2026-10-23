@@ -6,16 +6,38 @@ import { ADS_ENABLED, isAutoAdContentPath, isRailAdContentPath } from "@/lib/ads
 
 let scriptPromise: Promise<void> | undefined;
 let adDocumentUrl: string | undefined;
+let leavingDocument = false;
+const CONTENT_SETTLE_MS = 500;
 
 function documentUrl() {
   return window.location.origin + window.location.pathname + window.location.search;
 }
 
+export function hasReadyAdContent(): boolean {
+  return Array.from(document.querySelectorAll<HTMLElement>('[data-ad-content="true"][data-ad-ready="true"]'))
+    .some((element) => element.dataset.adPage === window.location.pathname
+      && Boolean(element.parentElement?.getClientRects().length));
+}
+
+function pageIsLoading() {
+  return document.readyState === "loading"
+    || Array.from(document.querySelectorAll('[data-route-loading="true"]'))
+      .some((element) => element.getClientRects().length > 0);
+}
+
+function reloadDocument() {
+  if (leavingDocument) return;
+  leavingDocument = true;
+  window.location.reload();
+}
+
 export function canRequestAd(element: HTMLElement): boolean {
   return element.isConnected
+    && !leavingDocument
     && element.dataset.adPage === window.location.pathname
     && (isAutoAdContentPath(window.location.pathname) || isRailAdContentPath(window.location.pathname))
     && !document.querySelector('[data-ads-blocked="true"]')
+    && hasReadyAdContent()
     && (!adDocumentUrl || adDocumentUrl === documentUrl());
 }
 
@@ -41,10 +63,15 @@ export function loadAdScript(client: string): Promise<void> {
 export function AdDocumentBoundary() {
   const pathname = usePathname();
   useEffect(() => {
-    if (adDocumentUrl && adDocumentUrl !== documentUrl()) window.location.reload();
+    if (adDocumentUrl && adDocumentUrl !== documentUrl()) reloadDocument();
   }, [pathname]);
 
   useEffect(() => {
+    let contentCheck: number | undefined;
+    const clearContentCheck = () => {
+      window.clearTimeout(contentCheck);
+      contentCheck = undefined;
+    };
     const onClick = (event: MouseEvent) => {
       if (!adDocumentUrl || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
       const anchor = event.target instanceof Element ? event.target.closest("a[href]") : null;
@@ -53,21 +80,43 @@ export function AdDocumentBoundary() {
       if (url.origin !== window.location.origin || (url.pathname === location.pathname && url.search === location.search)) return;
       event.preventDefault();
       event.stopPropagation();
+      if (leavingDocument) return;
+      leavingDocument = true;
       window.location.assign(url.href);
     };
     const checkDocument = () => {
-      if (!adDocumentUrl) return;
-      if (adDocumentUrl !== documentUrl() || document.querySelector('[data-ads-blocked="true"]') || !document.querySelector('[data-ad-content="true"]')) {
-        window.location.reload();
+      if (!adDocumentUrl || leavingDocument) return;
+      if (adDocumentUrl !== documentUrl()) {
+        reloadDocument();
+        return;
       }
+      if (!document.querySelector('[data-ads-blocked="true"]') && hasReadyAdContent()) {
+        clearContentCheck();
+        return;
+      }
+      // Streaming and hydration recovery may temporarily replace the content.
+      // Only leave a settled empty/error document, never its loading fallback.
+      if (contentCheck !== undefined) return;
+      contentCheck = window.setTimeout(() => {
+        contentCheck = undefined;
+        if (pageIsLoading()) return;
+        if (document.querySelector('[data-ads-blocked="true"]') || !hasReadyAdContent()) reloadDocument();
+      }, CONTENT_SETTLE_MS);
     };
     document.addEventListener("click", onClick, true);
     window.addEventListener("popstate", checkDocument);
+    const onPageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) leavingDocument = false;
+      checkDocument();
+    };
     const observer = new MutationObserver(checkDocument);
-    observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["data-ad-content", "data-ads-blocked"] });
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["data-ad-content", "data-ad-ready", "data-ads-blocked"] });
+    window.addEventListener("pageshow", onPageShow);
     return () => {
+      clearContentCheck();
       document.removeEventListener("click", onClick, true);
       window.removeEventListener("popstate", checkDocument);
+      window.removeEventListener("pageshow", onPageShow);
       observer.disconnect();
     };
   }, []);

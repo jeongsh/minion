@@ -14,7 +14,9 @@ export function RailAdContent({ enabled }: { enabled: boolean }) {
   const allowed = enabled && Boolean(AD_CLIENT) && isRailAdContentPath(pathname);
 
   useEffect(() => {
-    if (!allowed || !marker.current || !canRequestAd(marker.current)) return;
+    const element = marker.current;
+    if (!allowed || !element) return;
+    element.dataset.adReady = "true";
     // Match the manual rails. Hidden desktop placements must not load ads on phones.
     const desktop = window.matchMedia("(min-width: 1800px) and (hover: hover)");
     const requestRails = () => {
@@ -25,7 +27,10 @@ export function RailAdContent({ enabled }: { enabled: boolean }) {
     };
     requestRails();
     desktop.addEventListener("change", requestRails);
-    return () => desktop.removeEventListener("change", requestRails);
+    return () => {
+      delete element.dataset.adReady;
+      desktop.removeEventListener("change", requestRails);
+    };
   }, [allowed, pathname]);
 
   return allowed ? <span ref={marker} hidden data-ad-page={pathname} data-ad-content="true" /> : null;

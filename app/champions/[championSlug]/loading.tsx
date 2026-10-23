@@ -4,7 +4,7 @@ function Pulse({ className }: { className: string }) {
 
 export default function ChampionDetailLoading() {
   return (
-    <main className="layout-wide min-h-screen pb-16 pt-6 text-[var(--ui-text)] sm:pt-8">
+    <main data-route-loading="true" aria-busy="true" className="layout-wide min-h-screen pb-16 pt-6 text-[var(--ui-text)] sm:pt-8">
       <Pulse className="h-16 w-full" />
       <section className="mt-4 rounded-2xl bg-[var(--ui-surface)] p-5">
         <div className="flex gap-4">

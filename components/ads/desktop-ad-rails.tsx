@@ -3,6 +3,7 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import { usePathname } from "next/navigation";
 import { AdSlot } from "@/components/ui/ad-slot";
+import { hasReadyAdContent } from "@/components/ads/ad-runtime";
 import { isAutoAdContentPath, isRailAdContentPath } from "@/lib/ads-policy";
 
 /** Only the right placement sticks: AdSense forbids mirrored sticky units. */
@@ -34,8 +35,7 @@ export function DesktopAdRails() {
       }
       setSecondaryHeaderHeight(headerHeight);
       setStickyFits(window.innerHeight >= 700 + headerHeight);
-      const hasContent = Array.from(document.querySelectorAll<HTMLElement>('[data-ad-content="true"]'))
-        .some((element) => element.dataset.adPage === pathname);
+      const hasContent = hasReadyAdContent();
       setContentPath(hasContent && !document.querySelector('[data-ads-blocked="true"]') ? pathname : null);
     };
     const resizeObserver = new ResizeObserver(update);
@@ -46,7 +46,7 @@ export function DesktopAdRails() {
       childList: true,
       subtree: true,
       attributes: true,
-      attributeFilter: ["data-ad-content", "data-ad-page", "data-ads-blocked"],
+      attributeFilter: ["data-ad-content", "data-ad-page", "data-ad-ready", "data-ads-blocked"],
     });
     return () => {
       observer.disconnect();

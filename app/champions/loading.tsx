@@ -4,7 +4,7 @@ function Pulse({ className }: { className: string }) {
 
 export default function ChampionsLoading() {
   return (
-    <main className="layout-wide min-h-screen pb-16 pt-6 text-[var(--ui-text)] sm:pt-8">
+    <main data-route-loading="true" aria-busy="true" className="layout-wide min-h-screen pb-16 pt-6 text-[var(--ui-text)] sm:pt-8">
       <div className="flex items-center justify-between">
         <Pulse className="h-9 w-28" />
         <Pulse className="h-5 w-12" />
