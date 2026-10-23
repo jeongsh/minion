@@ -1,10 +1,35 @@
 import type { Match, Player, PlayerPosition, PlayerStatLine, SetResult, Team } from "./types.ts";
 import { normalizeLeaguepediaKey, resolveLeaguepediaIdentity } from "./leaguepedia-identity.ts";
 import { buildMatchBriefingStats, matchBriefingSample } from "./match-briefing-stats.ts";
+import type { MatchPowerRankings } from "./power-rankings.ts";
 
 export type BriefingData = { matches: Match[]; sets: SetResult[]; playerStats: PlayerStatLine[] };
 export type CargoBriefingRow = Record<string, string | undefined>;
 export type LeaguepediaBriefingRows = { matches: CargoBriefingRow[]; games: CargoBriefingRow[]; players: CargoBriefingRow[] };
+export type MatchBriefingSnapshot = {
+  version: 1;
+  matchId: string;
+  matchDate: string;
+  teamAId: string;
+  teamBId: string;
+  rows: LeaguepediaBriefingRows[];
+  powerRankings: MatchPowerRankings;
+};
+
+export function createMatchBriefingSnapshot(match: Match, rows: LeaguepediaBriefingRows[], powerRankings: MatchPowerRankings): MatchBriefingSnapshot {
+  return { version: 1, matchId: match.id, matchDate: match.matchDate, teamAId: match.teamAId, teamBId: match.teamBId, rows, powerRankings };
+}
+
+export function restoreMatchBriefingData(match: Match, teams: Team[], players: Player[], data: BriefingData, snapshot?: MatchBriefingSnapshot | null) {
+  const powerRankings: MatchPowerRankings = { status: "error", sourceUrl: `https://lolesports.com/en-US/gpr/${new Date(match.matchDate).getUTCFullYear()}/current`, teams: [] };
+  if (!snapshot || snapshot.version !== 1 || snapshot.matchId !== match.id || Date.parse(snapshot.matchDate) !== Date.parse(match.matchDate)
+    || snapshot.teamAId !== match.teamAId || snapshot.teamBId !== match.teamBId || !Array.isArray(snapshot.rows)) {
+    return { ...data, powerRankings };
+  }
+  // 원본 source ID로 다시 병합하므로 이후 정규 동기화된 경기와 중복되지 않는다.
+  const restored = snapshot.rows.reduce((result, rows) => mergeLeaguepediaBriefingData(match, result, rows, teams, players), data);
+  return { ...restored, powerRankings: snapshot.powerRankings ?? powerRankings };
+}
 
 const ROLES: Record<string, PlayerPosition> = { top: "TOP", jungle: "JGL", mid: "MID", bot: "BOT", adc: "BOT", support: "SUP" };
 

@@ -23,7 +23,7 @@ import { championImage, fetchChampionAbilityIcons, normalizedDdragonId } from "@
 import { buildPlayerLoadoutTimeline } from "@/lib/player-build";
 import { isMatchLive, matchStatusLabel } from "@/lib/match-display";
 import { getMatchAiPreview } from "@/lib/match-preview-ai";
-import { supplementMatchBriefingData } from "@/lib/data/match-briefing";
+import { getStoredMatchBriefingData } from "@/lib/data/match-briefing";
 import { getPredictionMarketData, predictionMarketForMatch } from "@/lib/predictions";
 import { fanRatingLeader } from "@/lib/view-data";
 import { getSetRatingStartedAt, isSetRatingOpen, isSetRatingSnapshotReady } from "@/lib/set-status";
@@ -45,7 +45,6 @@ import { getMobileAuth } from "@/lib/mobile/auth";
 import { compactMatchStageName, compactMatchTournamentName } from "@/lib/match-header-labels";
 
 import { buildMatchBriefingStats, matchBriefingSample, TEAM_RADAR_AXES, formatTeamMetric } from "@/lib/match-briefing-stats";
-import { getPowerRankings } from "@/lib/data/power-rankings";
 import { teamPowerRanking } from "@/lib/power-rankings";
 
 const POSITION_ORDER = new Map(["TOP", "JGL", "MID", "BOT", "SUP"].map((position, index) => [position, index]));
@@ -130,8 +129,9 @@ export async function GET(request: Request, context: { params: Promise<{ matchId
     && !/^(?:TBD|TBA|미정|미정 팀|Unknown|-)$/i.test(team.name.trim()));
   const briefingPromise = includePreview && hasResolvedTeams ? (async () => {
     const sample = matchBriefingSample(match, allMatches, allSets);
-    const [playerStats, rankings] = await Promise.all([getPlayerBenchmarkStatLines(sample.setIds), getPowerRankings(new Date(match.matchDate).getUTCFullYear())]);
-    const supplemented = await supplementMatchBriefingData(match, teams, players, { matches: allMatches, sets: allSets, playerStats });
+    const playerStats = await getPlayerBenchmarkStatLines(sample.setIds);
+    const supplemented = await getStoredMatchBriefingData(match, teams, players, { matches: allMatches, sets: allSets, playerStats });
+    const rankings = supplemented.powerRankings;
     const stats = buildMatchBriefingStats(match, supplemented.matches, supplemented.sets, supplemented.playerStats);
     const briefingTeams = [stats.teamA, stats.teamB].map((item, index) => {
       const ranking = teamPowerRanking(resolvedTeams[index], rankings.teams, match.matchDate);

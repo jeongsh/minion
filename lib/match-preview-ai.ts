@@ -41,6 +41,9 @@ import {
 } from "@/lib/match-preview-win-conditions";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { supplementMatchBriefingData } from "@/lib/data/match-briefing";
+import { createMatchBriefingSnapshot, type LeaguepediaBriefingRows } from "@/lib/match-briefing-data";
+import { getPowerRankings } from "@/lib/data/power-rankings";
+import { backfillMatchBriefingSnapshot } from "@/lib/data/match-briefing-snapshot";
 import type {
   Match,
   Player,
@@ -221,6 +224,7 @@ type MatchAiPreviewInputs = {
   players?: Player[];
   playerStats?: PlayerStatLine[];
   careerHistories?: PlayerCareerHistory[];
+  briefingRows?: LeaguepediaBriefingRows[];
 };
 
 type StoredEvidence = {
@@ -1441,6 +1445,8 @@ async function generateAndStoreMatchAiPreview(
         },
         content: {
           version: MATCH_PREVIEW_CONTENT_VERSION,
+          briefingData: createMatchBriefingSnapshot(inputs.match, inputs.briefingRows ?? [],
+            await getPowerRankings(new Date(inputs.match.matchDate).getUTCFullYear())),
           headline: preview.headline,
           narrative: preview.narrative,
           matchMeaning: preview.matchMeaning,
@@ -1634,6 +1640,10 @@ export async function refreshMatchAiPreviewCacheForMatchId(
       expectedPhase: phase,
     }) || isResearchRetryDue(cached);
   if (!options.force && !needsGeneration) {
+    if (!(cached.content as { briefingData?: unknown } | null)?.briefingData) {
+      await backfillMatchBriefingSnapshot(createMatchBriefingSnapshot(match, inputs.briefingRows ?? [],
+        await getPowerRankings(new Date(match.matchDate).getUTCFullYear())));
+    }
     return previewFromCacheRow(cached as MatchAiPreviewCacheRow);
   }
   if (!options.force) {
@@ -1724,6 +1734,11 @@ export async function refreshMissingUpcomingMatchAiPreviews(
       careerHistories,
     };
     Object.assign(inputs, await supplementMatchBriefingData(match, teams, players, { matches, sets, playerStats }));
+    const cached = cachedByMatchId.get(match.id);
+    if (cached && !(cached.content as { briefingData?: unknown } | null)?.briefingData) {
+      await backfillMatchBriefingSnapshot(createMatchBriefingSnapshot(match, inputs.briefingRows ?? [],
+        await getPowerRankings(new Date(match.matchDate).getUTCFullYear())));
+    }
     return { inputs, plan: previewGenerationPlan(inputs, phase) };
   }));
   const { data: recentRunRows, error: runRowsError } = await admin

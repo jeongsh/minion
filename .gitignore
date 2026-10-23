@@ -26,6 +26,7 @@ tests/*
 **/*.spec.*
 # Regression coverage for recurring profile image failures.
 !lib/images/prepare-profile-image.test.ts
+!lib/match-briefing-stats.test.ts
 !tests/mobile/
 tests/mobile/*
 !tests/mobile/profile-image.test.mjs

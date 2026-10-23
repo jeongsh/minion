@@ -45,9 +45,8 @@ import {
 import { getPredictionMarketData } from "@/lib/predictions";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { getMatchAiPreview } from "@/lib/match-preview-ai";
-import { supplementMatchBriefingData } from "@/lib/data/match-briefing";
+import { getStoredMatchBriefingData } from "@/lib/data/match-briefing";
 import { buildMatchBriefingStats, matchBriefingSample } from "@/lib/match-briefing-stats";
-import { getPowerRankings } from "@/lib/data/power-rankings";
 import type { MatchPowerRankings } from "@/lib/power-rankings";
 import { compactMatchStageName, compactMatchTournamentName } from "@/lib/match-header-labels";
 
@@ -548,16 +547,14 @@ export default async function MatchDetailPage({
   if (activeTab === "preview" && hasResolvedPreviewTeams) {
     [previewMatches, previewSets] = await Promise.all([getMatches(), getSets()]);
     const sample = matchBriefingSample(match, previewMatches, previewSets);
-    [previewPlayerStats, powerRankings] = await Promise.all([
-      getPlayerBenchmarkStatLines(sample.setIds),
-      getPowerRankings(new Date(match.matchDate).getUTCFullYear()),
-    ]);
-    const supplemented = await supplementMatchBriefingData(match, teams, players, {
+    previewPlayerStats = await getPlayerBenchmarkStatLines(sample.setIds);
+    const supplemented = await getStoredMatchBriefingData(match, teams, players, {
       matches: previewMatches, sets: previewSets, playerStats: previewPlayerStats,
     });
     previewMatches = supplemented.matches;
     previewSets = supplemented.sets;
     previewPlayerStats = supplemented.playerStats;
+    powerRankings = supplemented.powerRankings;
   }
   // "rating" 탭 선수 카드에 세트에서 픽한 챔피언 아이콘을 보여주기 위함 — 다른 탭은 필요 없다.
   const ratingChampions: Champion[] = activeTab === "rating" ? await getChampions() : [];

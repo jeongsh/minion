@@ -113,7 +113,7 @@ export function MatchPreview({ match, teams, matches, poll, aiPreview, stats, po
             {tags.length ? <div className="mt-3 flex flex-wrap gap-1.5">{tags.map((tag, index) => <span key={index} className="rounded-md border border-[var(--ui-border)] px-2 py-0.5 text-[13px] font-medium text-[var(--ui-muted)]">#{tag}</span>)}</div> : null}
           </div>
         ) : null}
-        <div className="grid grid-cols-1 gap-2.5 sm:gap-3">
+        <div className="grid grid-cols-1 gap-2.5 sm:gap-3 md:grid-cols-2">
           <TeamProfile team={teamA} stats={stats.teamA} rank={rankings[0]?.history.at(-1)?.rank ?? null} condition={aiPreview.teamAWinCondition} winColor={winColors[0]} />
           <TeamProfile team={teamB} stats={stats.teamB} rank={rankings[1]?.history.at(-1)?.rank ?? null} condition={aiPreview.teamBWinCondition} winColor={winColors[1]} />
         </div>
