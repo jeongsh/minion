@@ -8,6 +8,7 @@ import {
   getMatches,
   getMatchVodsByMatchId,
   getPlayerStatLines,
+  getPlayerBenchmarkStatLines,
   getPlayerBuildEvents,
   getSetPicksBans,
   getSetsByMatchId,
@@ -22,6 +23,8 @@ import { championImage, fetchChampionAbilityIcons, normalizedDdragonId } from "@
 import { buildPlayerLoadoutTimeline } from "@/lib/player-build";
 import { isMatchLive, matchStatusLabel } from "@/lib/match-display";
 import { getMatchAiPreview } from "@/lib/match-preview-ai";
+import { supplementMatchBriefingData } from "@/lib/data/match-briefing";
+import { matchBriefingSample } from "@/lib/match-briefing-stats";
 import { getPredictionMarketData, predictionMarketForMatch } from "@/lib/predictions";
 import { fanRatingLeader } from "@/lib/view-data";
 import { getSetRatingStartedAt, isSetRatingOpen, isSetRatingSnapshotReady } from "@/lib/set-status";
@@ -118,9 +121,13 @@ export async function GET(request: Request, context: { params: Promise<{ matchId
       (item.teamAId === match.teamBId && item.teamBId === match.teamAId),
     )
     .slice(0, 5);
-  const teamAMetrics = recentSetMetrics(allSets, priorMatches, match.teamAId);
-  const teamBMetrics = recentSetMetrics(allSets, priorMatches, match.teamBId);
-  const aiPreviewPromise = includePreview ? getMatchAiPreview({ match, tournament, teams, matches: allMatches, sets: allSets, tournaments }) : Promise.resolve(null);
+  const previewDataPromise = includePreview ? (async () => {
+    const sample = matchBriefingSample(match, allMatches, allSets);
+    const playerStats = await getPlayerBenchmarkStatLines(sample.setIds);
+    const supplemented = await supplementMatchBriefingData(match, teams, players, { matches: allMatches, sets: allSets, playerStats });
+    const ai = await getMatchAiPreview({ match, tournament, stage, teams, ...supplemented, tournaments, players });
+    return { ai, ...supplemented };
+  })() : Promise.resolve(null);
   const prediction = predictionMarketForMatch(predictionData.bets, match.id, match.teamAId, match.teamBId);
 
   let activeSet: MobileSetDetail | null = null;
@@ -255,7 +262,11 @@ export async function GET(request: Request, context: { params: Promise<{ matchId
     };
   }
 
-  const aiPreview = await aiPreviewPromise;
+  const previewData = await previewDataPromise;
+  const aiPreview = previewData?.ai;
+  const previewHistory = completedBefore(previewData?.matches ?? allMatches, match);
+  const teamAMetrics = recentSetMetrics(previewData?.sets ?? allSets, previewHistory, match.teamAId);
+  const teamBMetrics = recentSetMetrics(previewData?.sets ?? allSets, previewHistory, match.teamBId);
   const data: MobileMatchTabDto = {
     activeSet,
     activeSetId: defaultSet?.id ?? null,
@@ -307,8 +318,8 @@ export async function GET(request: Request, context: { params: Promise<{ matchId
       metrics: {
         averageKillsA: teamAMetrics.averageKills,
         averageKillsB: teamBMetrics.averageKills,
-        recentRecordA: recentRecord(priorMatches, match.teamAId),
-        recentRecordB: recentRecord(priorMatches, match.teamBId),
+        recentRecordA: recentRecord(previewHistory, match.teamAId),
+        recentRecordB: recentRecord(previewHistory, match.teamBId),
         setDiffA: teamAMetrics.setDiff,
         setDiffB: teamBMetrics.setDiff,
       },

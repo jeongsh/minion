@@ -8,7 +8,7 @@ import {
   getMatches,
   getPlayerCareerHistories,
   getPlayerStatLines,
-  getPlayers,
+  getAllPlayers,
   getSets,
   getStages,
   getTournaments,
@@ -40,6 +40,7 @@ import {
   resolveMatchPreviewWinConditions,
 } from "@/lib/match-preview-win-conditions";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { supplementMatchBriefingData } from "@/lib/data/match-briefing";
 import type {
   Match,
   Player,
@@ -153,7 +154,7 @@ const WRITER_SCHEMA = {
   },
 } as const;
 
-const MATCH_PREVIEW_PROMPT_VERSION = 14;
+const MATCH_PREVIEW_PROMPT_VERSION = 15;
 const MATCH_PREVIEW_CONTENT_VERSION = 3;
 const DEFAULT_RESEARCH_MODEL = "gpt-5.4-mini";
 const DEFAULT_STANDARD_MODEL = "gpt-5.4-mini";
@@ -1564,6 +1565,9 @@ export async function refreshMatchAiPreviewCache(
   inputs: MatchAiPreviewInputs,
   phase = matchPreviewGenerationPhase(inputs.match.matchDate, Date.now()) ?? "story",
 ): Promise<MatchAiPreview> {
+  inputs = { ...inputs, ...await supplementMatchBriefingData(inputs.match, inputs.teams, inputs.players ?? [], {
+    matches: inputs.matches, sets: inputs.sets, playerStats: inputs.playerStats ?? [],
+  }) };
   const plan = previewGenerationPlan(inputs, phase);
   return (await generateAndStoreMatchAiPreview(inputs, plan)).preview;
 }
@@ -1599,7 +1603,7 @@ export async function refreshMatchAiPreviewCacheForMatchId(
     getMatches(),
     getSets(),
     getTournaments(),
-    getPlayers(),
+    getAllPlayers(),
     getPlayerStatLines(),
     getStages(),
   ]);
@@ -1621,6 +1625,7 @@ export async function refreshMatchAiPreviewCacheForMatchId(
     playerStats,
     careerHistories,
   };
+  Object.assign(inputs, await supplementMatchBriefingData(match, teams, players, { matches, sets, playerStats }));
   const plan = previewGenerationPlan(inputs, phase);
   const needsGeneration = !cached || matchPreviewNeedsRefresh({
       cachedHash: cached.input_hash as string | null,
@@ -1666,7 +1671,7 @@ export async function refreshMissingUpcomingMatchAiPreviews(
     getMatches(),
     getSets(),
     getTournaments(),
-    getPlayers(),
+    getAllPlayers(),
     getPlayerStatLines(),
     getStages(),
   ]);
@@ -1703,7 +1708,7 @@ export async function refreshMissingUpcomingMatchAiPreviews(
     .in("match_id", eligible.map(({ match }) => match.id));
   if (cacheError) throw new Error(cacheError.message);
   const cachedByMatchId = new Map((cachedRows ?? []).map((row) => [row.match_id as string, row]));
-  const planned = eligible.map(({ match, phase }) => {
+  const planned = await Promise.all(eligible.map(async ({ match, phase }) => {
     const tournament = tournaments.find((item) => item.id === match.tournamentId);
     const stage = stages.find((item) => item.id === match.stageId);
     const inputs: MatchAiPreviewInputs = {
@@ -1718,8 +1723,9 @@ export async function refreshMissingUpcomingMatchAiPreviews(
       playerStats,
       careerHistories,
     };
+    Object.assign(inputs, await supplementMatchBriefingData(match, teams, players, { matches, sets, playerStats }));
     return { inputs, plan: previewGenerationPlan(inputs, phase) };
-  });
+  }));
   const { data: recentRunRows, error: runRowsError } = await admin
     .from("match_ai_preview_runs")
     .select("match_id,input_hash,generation_phase,status,started_at,completed_at")

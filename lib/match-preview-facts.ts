@@ -309,7 +309,6 @@ function playerFacts({
       player.teamId === teamId &&
       player.position === position &&
       player.isActive !== false &&
-      player.isLckPlayer !== false &&
       player.importedScope !== "challengers",
   );
   const rosterIds = new Set(rosterCandidates.map((player) => player.id));

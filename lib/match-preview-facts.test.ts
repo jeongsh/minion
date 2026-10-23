@@ -10,6 +10,9 @@ import type {
   Tournament,
 } from "./types.ts";
 import { buildMatchPreviewFacts } from "./match-preview-facts.ts";
+import { briefingTeamsNeedingData, mergeLeaguepediaBriefingData, type BriefingData, type LeaguepediaBriefingRows } from "./match-briefing-data.ts";
+import { buildMatchBriefingStats } from "./match-briefing-stats.ts";
+import { addBriefingTimelineMetrics } from "./sync/leaguepedia-briefing.ts";
 
 const teams = ["A", "B", "C", "D", "E", "F", "G"].map((id) => ({
   id,
@@ -230,3 +233,116 @@ test("케스파컵 경기는 팀·선수 프리뷰 표본에서 제외한다", (
   assert.equal(facts.teamA.recentSeries[0]?.opponent, "C");
   assert.equal(facts.teamA.recentSeries[0]?.result, "W");
 });
+
+{
+  const match = { id: "upcoming", teamAId: "g2", teamBId: "t1", matchDate: "2026-10-23T10:00:00Z" } as Match;
+  const teams = [
+    { id: "g2", name: "G2 Esports", leaguepediaPage: "G2 Esports", shortName: "G2" },
+    { id: "t1", name: "T1", leaguepediaPage: "T1", shortName: "T1" },
+  ] as Team[];
+  const empty = (): BriefingData => ({ matches: [], sets: [], playerStats: [] });
+  function fixture(): LeaguepediaBriefingRows {
+    return {
+      matches: [{ MatchId: "LEC_final", MatchDateTime: "2026-09-20 15:00:00", Team1: "G2 Esports", Team2: "T1", Team1Score: "1", Team2Score: "0", Winner: "1" }],
+      games: [{ MatchId: "LEC_final", GameId: "game1", N_GameInMatch: "1", Team1: "G2 Esports", Team2: "T1", Winner: "1", Gamelength: "30:00", Team1Kills: "10", Team2Kills: "5", Team1Gold: "55.1", Team2Gold: "50.2" }],
+      players: ["G2 Esports", "T1"].flatMap((Team, side) => ["Top", "Jungle", "Mid", "Bot", "Support"].map((Role, index) => ({
+        GameId: "game1", Team, Side: side ? "Red" : "Blue", Role, Link: `${Team}${index}`, Kills: "2", Deaths: "1", Assists: "3", CS: "200", Gold: "11000", DamageToChampions: "15000", VisionScore: "20",
+      }))),
+    };
+  }
+
+  test("empty teams request supplementation; source result supplies records and four box-score axes", () => {
+    assert.deepEqual(briefingTeamsNeedingData(match, empty()), ["g2", "t1"]);
+    const data = mergeLeaguepediaBriefingData(match, empty(), fixture(), teams, []);
+    const stats = buildMatchBriefingStats(match, data.matches, data.sets, data.playerStats);
+    assert.equal(stats.teamA.wins, 1);
+    assert.equal(stats.teamB.losses, 1);
+    assert.equal(stats.teamA.setWinRate, 100);
+    assert.deepEqual(stats.teamA.values, [5, 2500, 100, 1000 / 30, null, null, null, null]);
+    assert.equal(data.sets[0].blueGold, 55100);
+  });
+
+  test("source IDs reuse local match, set and player and preserve locally collected metrics", () => {
+    const rows = fixture();
+    const player = { id: "local-player", name: "G2 Esports0", leaguepediaPage: "G2 Esports0" } as Player;
+    const base = mergeLeaguepediaBriefingData(match, empty(), rows, teams, [player]);
+    base.matches[0].id = "local-match";
+    base.sets[0].matchId = "local-match";
+    base.sets[0].id = "local-set";
+    base.playerStats.forEach((line) => { line.setId = "local-set"; line.goldDiffAt10 = 123; });
+    rows.players[0].GoldDiffAt10 = "999";
+    const merged = mergeLeaguepediaBriefingData(match, base, rows, teams, [player]);
+    assert.equal(merged.matches.length, 1);
+    assert.equal(merged.sets.length, 1);
+    assert.equal(merged.playerStats.length, 10);
+    assert.equal(merged.playerStats[0].playerId, "local-player");
+    assert.equal(merged.playerStats[0].goldDiffAt10, 123);
+    assert.equal(base.playerStats[0].goldDiffAt10, 123);
+  });
+
+  test("future and unfinished matches cannot leak into briefing history", () => {
+    const rows = fixture();
+    rows.matches[0].MatchDateTime = "2026-10-24 15:00:00";
+    assert.equal(mergeLeaguepediaBriefingData(match, empty(), rows, teams, []).matches.length, 0);
+    rows.matches[0].MatchDateTime = "2026-09-20 15:00:00";
+    rows.matches[0].Winner = "";
+    assert.equal(mergeLeaguepediaBriefingData(match, empty(), rows, teams, []).matches.length, 0);
+  });
+
+  test("missing source metrics do not become fabricated zeroes or partial team totals", () => {
+    const rows = fixture();
+    rows.players[0].DamageToChampions = "";
+    const data = mergeLeaguepediaBriefingData(match, empty(), rows, teams, []);
+    const stats = buildMatchBriefingStats(match, data.matches, data.sets, data.playerStats);
+    assert.equal(stats.teamA.statSetCount, 0);
+    assert.deepEqual(stats.teamA.values, Array(8).fill(null));
+    assert.equal(stats.teamA.wins, 1);
+  });
+
+  test("timeline accepts Riot snapshot drift and numeric source sides", () => {
+    const rows = fixture();
+    rows.players[0].Side = "1";
+    rows.players[5].Side = "2";
+    addBriefingTimelineMetrics(rows.players, [{ timestamp: 600096, participantFrames: {
+      "1": { totalGold: 4000, xp: 5000 }, "6": { totalGold: 3500, xp: 4800 },
+    } }]);
+    assert.equal(rows.players[0].GoldDiffAt10, "500");
+    assert.equal(rows.players[5].GoldDiffAt10, "-500");
+    assert.equal(rows.players[0].XpDiffAt10, "200");
+    assert.equal(rows.players[0].GoldDiffAt15, undefined);
+  });
+
+  test("five complete matches and all eight axes do not request external data", () => {
+    const data = empty();
+    for (let index = 0; index < 5; index++) {
+      const rows = fixture();
+      rows.matches[0].MatchId = `match${index}`;
+      rows.games[0].MatchId = `match${index}`;
+      rows.games[0].GameId = `game${index}`;
+      rows.matches[0].MatchDateTime = `2026-09-${20 - index} 15:00:00`;
+      rows.players.forEach((row) => Object.assign(row, { GameId: `game${index}`, GoldDiffAt10: "0", XpDiffAt10: "0", GoldDiffAt15: "0", XpDiffAt15: "0" }));
+      Object.assign(data, mergeLeaguepediaBriefingData(match, data, rows, teams, []));
+    }
+    assert.deepEqual(briefingTeamsNeedingData(match, data), []);
+  });
+
+  test("foreign roster players contribute supplemented statistics to AI facts", () => {
+    const players = [{ id: "foreign-top", name: "G2 Esports0", leaguepediaPage: "G2 Esports0", teamId: "g2", position: "TOP", isLckPlayer: false, isActive: true }] as Player[];
+    const data = mergeLeaguepediaBriefingData(match, empty(), fixture(), teams, players);
+    const facts = buildMatchPreviewFacts({ match, teams, players, ...data });
+    assert.equal(facts.roleMatchups[0].teamA?.player, "G2 Esports0");
+    assert.equal(facts.roleMatchups[0].teamA?.games, 1);
+    assert.equal(facts.roleMatchups[0].teamA?.dpm, 500);
+  });
+
+  test("box-score team order does not override the actual blue and red sides", () => {
+    const rows = fixture();
+    rows.players.forEach((row) => { row.Side = row.Team === "G2 Esports" ? "2" : "1"; });
+    const data = mergeLeaguepediaBriefingData(match, empty(), rows, teams, []);
+    assert.equal(data.sets[0].blueTeamId, "t1");
+    assert.equal(data.sets[0].redTeamId, "g2");
+    assert.equal(data.sets[0].winnerTeamId, "g2");
+    assert.equal(data.sets[0].blueGold, 50200);
+    assert.equal(data.sets[0].redKills, 10);
+  });
+}
