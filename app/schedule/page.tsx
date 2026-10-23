@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { EventFilterBar } from "@/components/ui/event-filter-bar";
 import { AdSlot } from "@/components/ui/ad-slot";
+import { RailAdContent } from "@/components/ads/rail-ad-content";
 
 import { HomeCalendar, type HomeCalendarMatch } from "@/components/domain/home-calendar";
 import { ScheduleList } from "@/components/domain/schedule-list";
@@ -107,6 +108,7 @@ export default async function SchedulePage({
   });
   return (
     <main className="schedule-page text-[var(--ui-text)]">
+      <RailAdContent enabled={filtered.length > 0} />
       <h1 className="sr-only">경기 일정</h1>
       <div data-ad-secondary-header className="mt-2 hidden border-b border-[var(--ui-border)] bg-[var(--page-background)] lg:sticky lg:top-[var(--ui-header-height)] lg:z-30 lg:block">
         <div className="layout-wide py-2.5">

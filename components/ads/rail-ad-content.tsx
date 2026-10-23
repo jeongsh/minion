@@ -18,7 +18,7 @@ export function RailAdContent({ enabled }: { enabled: boolean }) {
     if (!allowed || !element) return;
     element.dataset.adReady = "true";
     // Match the manual rails. Hidden desktop placements must not load ads on phones.
-    const desktop = window.matchMedia("(min-width: 1800px) and (hover: hover)");
+    const desktop = window.matchMedia(`(min-width: ${pathname === "/schedule" ? 1440 : 1800}px) and (hover: hover)`);
     const requestRails = () => {
       if (!desktop.matches || !marker.current || !canRequestAd(marker.current)) return;
       void loadAdScript(AD_CLIENT!).catch(() => {

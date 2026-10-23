@@ -6,7 +6,7 @@ import { AdSlot } from "@/components/ui/ad-slot";
 import { hasReadyAdContent } from "@/components/ads/ad-runtime";
 import { isAutoAdContentPath, isRailAdContentPath } from "@/lib/ads-policy";
 
-/** Only the right placement sticks: AdSense forbids mirrored sticky units. */
+/** One placement sticks: left on the schedule, right on other pages. */
 export function DesktopAdRails() {
   const pathname = usePathname();
   const [contentPath, setContentPath] = useState<string | null>(null);
@@ -74,7 +74,9 @@ export function DesktopAdRails() {
         "--ad-rail-start": `${railStart}px`,
       } as CSSProperties}
     >
-      <AdSlot key={`${pathname}-left`} enabled placement="rail-left" className="desktop-ad-rail desktop-ad-rail-left" />
+      <div className="desktop-ad-rail-left-track">
+        <AdSlot key={`${pathname}-left`} enabled placement="rail-left" className="desktop-ad-rail desktop-ad-rail-left" />
+      </div>
       <div className="desktop-ad-rail-track">
         <AdSlot key={`${pathname}-right`} enabled placement="rail-right" className="desktop-ad-rail desktop-ad-rail-right" />
       </div>

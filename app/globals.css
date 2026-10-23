@@ -923,6 +923,46 @@ html[class~="dark"] .app-lnb-scrollbar:hover::-webkit-scrollbar-thumb {
 .layout-wide-max { max-width: var(--breakpoint-wide); }
 .layout-reading { max-width: var(--layout-reading); }
 .desktop-ad-rails { display: none; }
+.desktop-ad-rail-left-track { display: contents; }
+
+@media (min-width: 1440px) and (hover: hover) {
+  .ad-rail-layout:has(.schedule-page) .desktop-ad-rail-left-track {
+    display: block;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: calc(50% + var(--ad-content-width) / 2 + 24px);
+    width: var(--ad-rail-width, 160px);
+  }
+  .ad-rail-layout:has(.schedule-page) .desktop-ad-rail-left {
+    position: static;
+  }
+  .ad-rail-layout:has(.schedule-page) .desktop-ad-rails[data-sticky-fits="true"] .desktop-ad-rail-left {
+    position: sticky;
+    top: calc(80px + var(--ad-secondary-header-height, 0px));
+  }
+}
+
+@media (1440px <= width < 1800px) and (hover: hover) {
+  .ad-rail-layout:has(.schedule-page) { position: relative; }
+  .ad-rail-layout:has(.schedule-page) .desktop-ad-rails {
+    display: block;
+    position: absolute;
+    top: calc(96px + var(--ad-secondary-header-height, 0px));
+    bottom: 0;
+    left: 80px;
+    width: 160px;
+    pointer-events: none;
+  }
+  .ad-rail-layout:has(.schedule-page) .desktop-ad-rail-left {
+    width: 160px;
+    height: 600px;
+    pointer-events: auto;
+  }
+  .ad-rail-layout:has(.schedule-page) .desktop-ad-rail-left-track { right: 0; }
+  .ad-rail-layout:has(.schedule-page) .desktop-ad-rail-track { display: none; }
+  .schedule-page { padding-left: 208px; }
+}
 
 /* One sticky unit, with a full-height track clear of navigation and content. */
 @media (min-width: 1800px) and (hover: hover) {
@@ -959,7 +999,7 @@ html[class~="dark"] .app-lnb-scrollbar:hover::-webkit-scrollbar-thumb {
 
 /* Include the measured secondary header and keep the whole creative visible. */
 @media (min-width: 1800px) and (hover: hover) {
-  .desktop-ad-rails[data-sticky-fits="true"] .desktop-ad-rail-right {
+  .ad-rail-layout:not(:has(.schedule-page)) .desktop-ad-rails[data-sticky-fits="true"] .desktop-ad-rail-right {
     position: sticky;
     top: calc(80px + var(--ad-secondary-header-height, 0px));
   }
