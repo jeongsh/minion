@@ -81,7 +81,7 @@ export default async function FanVideoDetailPage({
           { label: "영상", href: `/fan/${teamSlug}/videos` },
           { label: video.title },
         ]}
-        className="min-[1200px]:col-span-2"
+        className="[--type-page:18px] md:[--type-page:22px] min-[1200px]:col-span-2"
       />
       <article className="min-w-0">
         <div className="aspect-video overflow-hidden rounded-xl bg-black shadow-sm">
