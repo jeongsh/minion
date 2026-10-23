@@ -1,3 +1,4 @@
+import { TournamentContentCache } from "@/components/navigation/tournament-content-cache";
 import { SWISS_GROUP_POSITIONS, SWISS_RESULT_POSITIONS } from "@/packages/contracts/src/tournament-bracket-layout";
 import Link from "next/link";
 import type { Metadata } from "next";
@@ -1059,7 +1060,6 @@ export default async function TournamentBracketPage({
     contentSection = (
       <section className="flex flex-col gap-6">
         <h2 className="home-section-title text-xl text-[var(--ui-ink)]">{contentTitle}</h2>
-        <div className="hidden lg:block"><UnderlineNav ariaLabel="대회 상세 탭" activeKey={activeView === "bracket" && activeSplit !== "2" ? activePhase : activeView} bordered={false} compact items={filters.at(-1)!.options.map(option => ({ key: option.value, label: option.label, href: option.href }))} /></div>
         {activeView === "pom" ? (
           <PomRankingTable rows={activePomRows} />
         ) : activeView === "standings" ? (
@@ -1187,7 +1187,16 @@ export default async function TournamentBracketPage({
     );
   }
 
+  const cacheSearch = new URLSearchParams();
+  for (const key of ["year", "split", "phase", "view", "bracketStage"] as const) {
+    const value = search[key];
+    if (value) cacheSearch.set(key, value);
+  }
+  cacheSearch.sort();
+  const cacheKey = "/tournaments/" + segmentKey + (cacheSearch.size ? "?" + cacheSearch.toString() : "");
+
   return (
+    <TournamentContentCache key={cacheKey} cacheKey={cacheKey}>
     <main data-ads-blocked={!hasAdContent ? "true" : undefined}>
       <RailAdContent enabled={hasAdContent} />
       <h1 className="sr-only">{segmentTheme.name} 대회</h1>
@@ -1205,5 +1214,6 @@ export default async function TournamentBracketPage({
       </div>
       <div className="layout-wide mt-6">{contentSection}</div>
     </main>
+    </TournamentContentCache>
   );
 }

@@ -28,6 +28,7 @@ import { FanTeamPicker } from "@/components/layout/fan-team-picker";
 import { HeaderSearch } from "@/components/layout/header-search";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { DesktopAdRails } from "@/components/ads/desktop-ad-rails";
+import { TournamentEntryFallback } from "@/components/navigation/tournament-content-cache";
 import { useMatchActivity } from "@/components/match-activity/use-match-activity";
 import { RatingOpenCard } from "@/components/match-activity/rating-open-card";
 import { NotificationPanel } from "@/components/notifications/notification-panel";
@@ -422,7 +423,7 @@ export function AppShell({
         ) : null}
         {currentUser ? (
           <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
-            <Link href="/me" className="flex min-h-11 min-w-0 max-w-[126px] items-center gap-1.5 text-[13px] font-bold sm:max-w-none sm:gap-2 sm:text-sm">
+            <Link href="/me" prefetch={true} className="flex min-h-11 min-w-0 max-w-[126px] items-center gap-1.5 text-[13px] font-bold sm:max-w-none sm:gap-2 sm:text-sm">
               <RankAvatar
                 tier={currentUser.tier}
                 src={currentUser.profileImageUrl}
@@ -503,7 +504,12 @@ export function AppShell({
               </div>
             </nav>
           ) : null}
-          {children}
+          {pathname === "/tournaments" || pathname.startsWith("/tournaments/") ? (
+            <div className="tournament-entry">
+              <TournamentEntryFallback />
+              <div className="tournament-entry-content">{children}</div>
+            </div>
+          ) : children}
         </div>
         {focusRoute ? (
           <div className="hidden md:block"><SiteFooter accentColor={currentFanTeam?.primaryColor} /></div>

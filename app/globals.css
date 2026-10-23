@@ -167,6 +167,16 @@ html[data-navigation-pending="true"] body {
   cursor: progress;
 }
 
+/* Keep the route slot populated before Next streams its loading boundary. */
+.tournament-entry:has(> .tournament-entry-content main:not(:empty):not([hidden] *)) > .tournament-entry-fallback {
+  display: none;
+}
+
+/* Cached content stays usable while the fresh route is being streamed. */
+body:has([data-tournament-cached="true"]:not([hidden] *)) [data-testid="navigation-loading-overlay"] {
+  display: none;
+}
+
 .fan-local-navigation {
   top: var(--shell-mobile-header-offset, 56px);
 }
