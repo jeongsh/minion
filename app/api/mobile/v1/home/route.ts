@@ -13,6 +13,11 @@ import {
   COMMUNITY_HOME_LATEST_CANDIDATE_LIMIT,
   selectCommunityHomePosts,
 } from "@/lib/community/hot";
+import { ALL_SEGMENTS } from "@/lib/tournaments/segment-nav";
+import { matchesTournamentSegment } from "@/lib/tournaments/season-2026";
+import { getHomeNewsFeed } from "@/lib/data/naver-news";
+import { scheduleNewsThumbnailWarmup } from "@/lib/data/news-thumbnail-warmup";
+import { celebrationBoardHref } from "@/lib/calendar/events";
 import { getTodayCelebrations } from "@/lib/calendar/events";
 import { isMatchLive } from "@/lib/match-display";
 import { mobileSuccess, toMobileMatch, toMobileTeam } from "@/lib/mobile/api-response";
@@ -21,7 +26,7 @@ import { buildTeamStandingRows, dateKeyKST } from "@/lib/view-data";
 export const revalidate = 30;
 
 async function buildMobileHomeData(): Promise<MobileHomeDto> {
-  const [{ teams, matches, tournaments, calendarEvents }, popularCommunityPosts, latestCommunityPosts, pomPlayers, stages, bracketStages, insights, predictionMarket] = await Promise.all([
+  const [{ teams, matches, tournaments, calendarEvents }, popularCommunityPosts, latestCommunityPosts, pomPlayers, stages, bracketStages, insights, predictionMarket, newsFeed] = await Promise.all([
     getMobileHomePublicData(),
     getBoardPosts({ scope: "hub", hotOnly: true, limit: COMMUNITY_HOME_HOT_CANDIDATE_LIMIT }),
     getBoardPosts({ scope: "hub", limit: COMMUNITY_HOME_LATEST_CANDIDATE_LIMIT }),
@@ -30,7 +35,10 @@ async function buildMobileHomeData(): Promise<MobileHomeDto> {
     getBracketStages(),
     getHomeInsights().catch((error) => { console.error("Home insights unavailable", error); return null; }),
     getPredictionMarketData(),
+    getHomeNewsFeed(6),
   ]);
+  scheduleNewsThumbnailWarmup(newsFeed.articles);
+  const tournamentLogos = new Map(tournaments.map((t) => [t.id, ALL_SEGMENTS.find((segment) => matchesTournamentSegment(t, segment.key))?.logo]));
   const pomEntries = buildHomePomEntries({ matches, players: pomPlayers, teams, tournaments });
   const communityPosts = selectCommunityHomePosts(popularCommunityPosts, latestCommunityPosts);
   const teamMap = new Map(teams.map((team) => [team.id, team]));
@@ -47,7 +55,7 @@ async function buildMobileHomeData(): Promise<MobileHomeDto> {
   if (sectionMatches.length === 0) sectionMatches = matches.filter((match) => match.status === "completed").sort(byDateDesc).slice(0, 6);
   const orderedMatches = sectionMatches.map((match) => {
     const { teamAPercent, teamBPercent } = predictionMarketForMatch(predictionMarket.bets, match.id, match.teamAId, match.teamBId);
-    return { ...toMobileMatch(match, teamMap, tournamentMap), prediction: { teamAPercent, teamBPercent } };
+    return { ...toMobileMatch(match, teamMap, tournamentMap), tournamentLogo: tournamentLogos.get(match.tournamentId) ? { url: tournamentLogos.get(match.tournamentId)! } : null, prediction: { teamAPercent, teamBPercent } };
   });
   const lckTeams = teams.filter((team) => team.isLckTeam);
   const latestSeason = tournaments.length > 0 ? Math.max(...tournaments.map((tournament) => tournament.season)) : new Date().getFullYear();
@@ -85,6 +93,26 @@ async function buildMobileHomeData(): Promise<MobileHomeDto> {
       type: event.type,
     })),
     celebrations: getTodayCelebrations(calendarEvents).map((event) => ({
+      banner: (() => {
+        const fearx = event.type === "championship" && event.teamFanSlug === "fox";
+        const palettes = {
+          birthday: { background: "#304ffe", accent: "#d4ff3d", soft: "#556ffe", foreground: "#ffffff" },
+          debut: { background: "#7c5cff", accent: "#e4ddff", soft: "#927dff", foreground: "#ffffff" },
+          championship: { background: "#f5c518", accent: "#5a4600", soft: "#ffe46b", foreground: "#211a00" },
+          custom: { background: "#f5c518", accent: "#5a4600", soft: "#ffe46b", foreground: "#211a00" },
+        };
+        const palette = fearx ? { background: event.teamColor ?? "#fed200", accent: "#111111", soft: "#ffffff", foreground: "#111111" } : palettes[event.type];
+        const url = fearx ? event.teamLogoUrl : event.playerImageUrl;
+        const where = event.teamShort ?? event.teamName;
+        return {
+          ...palette, ctaColor: fearx ? palette.foreground : palette.background,
+          eyebrow: event.key.split(":")[1] === "a8fb5123-271d-4dd8-8297-0b214a6f356f" ? "데마시아컵 우승"
+            : event.type === "birthday" ? `오늘은 ${event.subjectName} 선수의 ${event.yearsCount ? `${event.yearsCount}번째 ` : ""}생일!`
+            : fearx ? "피어엑스 우승을 축하합니다!" : `오늘은 ${event.title}!`,
+          headline: where ? `${where} 커뮤니티에서 함께 축하해요` : "커뮤니티에서 함께 축하해요",
+          href: celebrationBoardHref(event), image: url ? { url } : null, contain: fearx,
+        };
+      })(),
       id: event.key,
       image: event.playerImageUrl ? { url: event.playerImageUrl } : event.teamLogoUrl ? { url: event.teamLogoUrl } : null,
       subjectName: event.subjectName,
@@ -126,7 +154,7 @@ async function buildMobileHomeData(): Promise<MobileHomeDto> {
       viewCount: post.viewCount,
     })),
     matches: orderedMatches,
-    news: [],
+    news: (newsFeed.isFallback ? [] : newsFeed.articles).map((article) => ({ id: article.id, title: article.title, source: article.source, publishedAt: article.publishedAt, url: article.url, thumbnail: article.thumbnailUrl ? { url: article.thumbnailUrl, width: article.thumbnailWidth, height: article.thumbnailHeight } : null })),
     standings: standingRows.slice(0, 10).map((row) => ({ losses: row.matchLosses, rank: row.rank, setDiff: row.setDiff, teamId: row.team.id, wins: row.matchWins })),
     teams: lckTeams.map(toMobileTeam),
     pom: pomEntries.map((entry) => ({
@@ -149,7 +177,7 @@ async function buildMobileHomeData(): Promise<MobileHomeDto> {
 
 const getMobileHomeData = unstable_cache(
   buildMobileHomeData,
-  ["mobile-home-v1-response-web-sync"],
+  ["mobile-home-v1-response-web-sync-20261023"],
   { revalidate: 30, tags: [HOME_PUBLIC_DATA_TAG, HOME_POM_TAG] },
 );
 

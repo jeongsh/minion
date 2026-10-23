@@ -84,6 +84,7 @@ export type MobileTournamentSummary = {
 };
 
 export type MobileMatchSummary = {
+  tournamentLogo?: MobileImage | null;
   prediction?: { teamAPercent: number; teamBPercent: number };
   id: EntityId;
   name: string;
@@ -357,6 +358,18 @@ export type MobileHomeDto = {
     sourceUrl?: string | null;
   }>;
   celebrations: Array<{
+    banner?: {
+      eyebrow: string;
+      headline: string;
+      href: string;
+      image: MobileImage | null;
+      contain: boolean;
+      background: string;
+      accent: string;
+      foreground: string;
+      soft: string;
+      ctaColor: string;
+    };
     id: EntityId;
     type: "birthday" | "debut" | "championship" | "custom";
     title: string;
@@ -1264,6 +1277,7 @@ export const mobileApiRoutes = {
   champions: { method: "GET", path: `${MOBILE_API_PREFIX}/champions`, owner: "champion aggregation service", auth: "public", cache: "300s" },
   champion: { method: "GET", path: `${MOBILE_API_PREFIX}/champions/{championSlug}`, owner: "champion aggregation service", auth: "public", cache: "300s" },
   news: { method: "GET", path: `${MOBILE_API_PREFIX}/news`, owner: "lib/data/news + lib/data/naver-news", auth: "public", cache: "60s" },
+  newsArticle: { method: "GET", path: `${MOBILE_API_PREFIX}/news/article`, owner: "news title and thumbnail resolvers", auth: "public", cache: "21600s" },
   search: { method: "GET", path: `${MOBILE_API_PREFIX}/search`, owner: "search service", auth: "public", cache: "30s" },
   communityPosts: { method: "GET", path: `${MOBILE_API_PREFIX}/community/posts`, owner: "lib/data/community", auth: "optional", cache: "10s" },
   communityPostCreate: { method: "POST", path: `${MOBILE_API_PREFIX}/community/posts`, owner: "community service", auth: "optional", cache: "no-store" },
