@@ -50,8 +50,6 @@ export function CommunityDirectoryNav({
         styles.directory,
         {
           backgroundColor: theme.surface,
-          borderBottomColor: theme.border,
-          borderTopColor: theme.border,
         },
       ]}
     >
@@ -136,9 +134,6 @@ function CommunityLink({
 
 const styles = StyleSheet.create({
   directory: {
-    borderBottomWidth: 1,
-    borderTopWidth: 1,
-    marginBottom: 16,
     paddingVertical: 10,
   },
   label: { fontSize: 13, lineHeight: 19.5 },

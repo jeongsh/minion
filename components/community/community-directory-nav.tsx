@@ -23,7 +23,7 @@ export function CommunityDirectoryNav({
   return (
     <nav
       aria-label="다른 커뮤니티로 이동"
-      className="mobile-full-bleed flex min-w-0 overflow-hidden border-y border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 py-2.5 sm:mx-0 sm:w-full sm:rounded-[var(--ui-card-radius)] sm:border sm:px-4 sm:py-3"
+      className="mobile-full-bleed flex min-w-0 overflow-hidden bg-[var(--ui-surface)] px-3 py-2.5 sm:mx-0 sm:w-full sm:rounded-[var(--ui-card-radius)] sm:px-4 sm:py-3"
     >
       <div className="-mr-3 flex min-w-0 flex-1 gap-1 overflow-x-auto pr-3 [scrollbar-width:none] sm:mr-0 sm:flex-wrap sm:overflow-visible sm:pr-0 [&::-webkit-scrollbar]:hidden">
         <TeamDirectoryItem

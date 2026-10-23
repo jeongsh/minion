@@ -39,7 +39,7 @@ export function CommunityContentLayout({ children, posts, scope, teamSlug, curre
               ))}
             </ol>
           ) : (
-            <div className="px-3 py-4">
+            <div className="py-4">
               <KitschEmptyState character="megapon" title="인기글 충전 중" body="화력 좋은 글이 생기면 바로 꽂아둘게요." compact plain />
             </div>
           )}
