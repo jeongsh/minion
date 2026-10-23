@@ -499,7 +499,7 @@ export function AppShell({
               <div className="flex h-12 w-full items-stretch overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 {hubLocalNav.map((item) => {
                   const active = isActiveRoute(pathname, item.href);
-                  return <Link key={item.href} href={item.href} prefetch={item.prefetch} aria-current={active ? "page" : undefined} className={`flex shrink-0 items-center justify-center whitespace-nowrap border-b-[3px] px-4 pt-0.5 text-[14px] font-medium transition-colors ${active ? "border-[var(--accent)] text-[var(--accent)]" : "border-transparent text-[var(--ui-muted)] hover:text-[var(--ui-ink)]"}`}>{item.label}</Link>;
+                  return <Link key={item.href} href={item.href} prefetch={item.prefetch} aria-current={active ? "page" : undefined} className={`font-paperozi flex shrink-0 items-center justify-center whitespace-nowrap border-b-[3px] px-4 pt-0.5 text-[14px] font-medium transition-colors ${active ? "border-[var(--accent)] text-[var(--accent)]" : "border-transparent text-[var(--ui-muted)] hover:text-[var(--ui-ink)]"}`}>{item.label}</Link>;
                 })}
               </div>
             </nav>
