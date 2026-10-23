@@ -1,5 +1,5 @@
 import { fetchAuthenticatedLeaguepediaApi } from "./leaguepedia-api.ts";
-import { parseLeaguepediaTimelineEvents } from "./leaguepedia-timeline.ts";
+import { parseLeaguepediaEarlyStatDiffs, parseLeaguepediaTimelineEvents } from "./leaguepedia-timeline.ts";
 import type { CargoBriefingRow, LeaguepediaBriefingRows } from "../match-briefing-data.ts";
 
 const escape = (value: string) => value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
@@ -22,32 +22,65 @@ async function request(params: Record<string, string>) {
 }
 
 async function cargo(params: Record<string, string>): Promise<CargoBriefingRow[]> {
-  const body = await request({ action: "cargoquery", limit: "500", ...params });
-  return (body.cargoquery ?? []).map((item: { title: CargoBriefingRow }) => item.title);
+  const rows: CargoBriefingRow[] = [];
+  const limit = Number(params.limit ?? 500);
+  for (let offset = 0; ; offset += limit) {
+    const body = await request({ action: "cargoquery", limit: String(limit), ...params, offset: String(offset) });
+    const batch = (body.cargoquery ?? []).map((item: { title: CargoBriefingRow }) => item.title);
+    rows.push(...batch);
+    if (batch.length < limit || params.limit) return rows;
+  }
 }
 
 type TimelineFrame = NonNullable<Parameters<typeof parseLeaguepediaTimelineEvents>[0]["frames"]>[number];
+
+/** 플랫폼 ID가 확인된 세트의 실제 타임라인을 묶어서 읽는다. 없는 페이지는 결과에서 제외한다. */
+export async function fetchBriefingTimelines(pages: Array<{ gameId: string; title: string }>) {
+  const result = new Map<string, TimelineFrame[]>();
+  for (let index = 0; index < pages.length; index += 5) {
+    const batch = pages.slice(index, index + 5);
+    const body = await request({ action: "query", titles: batch.map((row) => row.title).join("|"), prop: "revisions", rvprop: "content", rvslots: "main" });
+    for (const page of Object.values(body.query?.pages ?? {}) as Array<{ title: string; revisions?: Array<{ slots?: { main?: { "*"?: string } } }> }>) {
+      const gameId = batch.find((row) => row.title.replace(/_/g, " ") === page.title.replace(/_/g, " "))?.gameId;
+      const content = page.revisions?.[0]?.slots?.main?.["*"];
+      if (!gameId || !content) continue;
+      const timeline = JSON.parse(content) as { frames?: TimelineFrame[] };
+      if (timeline.frames?.length) result.set(gameId, timeline.frames);
+    }
+  }
+  return result;
+}
 const positions = ["Top", "Jungle", "Mid", "Bot", "Support"];
 
 export function addBriefingTimelineMetrics(rows: CargoBriefingRow[], frames: TimelineFrame[]) {
   // Riot participant IDs 1..5 are blue TOP..SUP; 6..10 are red TOP..SUP,
   // matching the existing Leaguepedia timeline synchronizer.
-  for (const minute of [10, 15]) {
-    // Riot snapshots drift by a few milliseconds (e.g. 600096 at minute 10).
-    const frame = frames.find((item) => item.timestamp >= minute * 60_000 && item.timestamp < minute * 60_000 + 5000);
-    if (!frame?.participantFrames) continue;
-    for (const row of rows) {
-      const role = positions.findIndex((position) => position.toLowerCase() === row.Role?.toLowerCase());
-      const side = row.Side === "1" ? "blue" : row.Side === "2" ? "red" : row.Side?.toLowerCase();
-      if (role < 0 || (side !== "blue" && side !== "red")) continue;
-      const id = role + 1 + (side === "red" ? 5 : 0);
-      const opponentId = role + 1 + (side === "red" ? 0 : 5);
-      const own = frame.participantFrames[String(id)], opponent = frame.participantFrames[String(opponentId)];
-      if (!own || !opponent) continue;
-      if (typeof own.totalGold === "number" && typeof opponent.totalGold === "number") row[`GoldDiffAt${minute}`] = String(own.totalGold - opponent.totalGold);
-      if (typeof own.xp === "number" && typeof opponent.xp === "number") row[`XpDiffAt${minute}`] = String(own.xp - opponent.xp);
+  for (const row of rows) {
+    const role = positions.findIndex((position) => position.toLowerCase() === row.Role?.toLowerCase());
+    const side = row.Side === "1" ? "blue" : row.Side === "2" ? "red" : row.Side?.toLowerCase();
+    if (role < 0 || (side !== "blue" && side !== "red")) continue;
+    const metrics = parseLeaguepediaEarlyStatDiffs({ frames }, role + 1 + (side === "red" ? 5 : 0));
+    for (const minute of [10, 15] as const) {
+      for (const [field, key] of [["gold", "Gold"], ["xp", "Xp"]] as const) {
+        const value = metrics[`${field}_diff_at_${minute}`];
+        if (value != null) row[`${key}DiffAt${minute}`] = String(value);
+      }
     }
   }
+}
+
+export async function fetchBriefingGameTimelines(games: CargoBriefingRow[]) {
+  if (!games.length) return new Map<string, TimelineFrame[]>();
+  const metadata = await cargo({ tables: "PostgameJsonMetadata", fields: "GameId=GameId,TimelinePage=TimelinePage",
+    where: `GameId IN (${games.map((game) => `"${escape(game.GameId!)}"`).join(",")})`, order_by: "GameId" });
+  const pages = games.flatMap((game) => {
+    const title = metadata.find((row) => row.GameId === game.GameId)?.TimelinePage
+      || (game.RiotPlatformGameId ? `V5 data:${game.RiotPlatformGameId.replace(/_/g, " ")}/Timeline` : null);
+    if (!title) return [];
+    game.TimelinePage = title;
+    return [{ gameId: game.GameId!, title }];
+  });
+  return fetchBriefingTimelines(pages);
 }
 
 /** LCK 세트 동기화와 같은 타임라인 이벤트에서 진영별 첫 원소 드래곤 시각을 구한다. */
@@ -90,35 +123,18 @@ export async function fetchLeaguepediaBriefingRows(teamPage: string | string[], 
   try {
     const games = await cargo({ tables: "ScoreboardGames=SG",
       fields: ["MatchId", "GameId", "RiotPlatformGameId", "MatchHistory", "N_GameInMatch", "Team1", "Team2", "Winner", "Gamelength", "Team1Kills", "Team2Kills", "Team1Gold", "Team2Gold", "Team1Dragons", "Team2Dragons", "Team1Barons", "Team2Barons", "Team1Towers", "Team2Towers", "Patch"].map((field) => `SG.${field}=${field}`).join(","),
-      where: `SG.MatchId IN (${ids})` });
+      where: `SG.MatchId IN (${ids})`, order_by: "SG.GameId" });
     result.games = games;
     const players = await cargo({ tables: "ScoreboardPlayers=SP",
       fields: ["GameId", "Link", "Champion", "Team", "Role", "Side", "Kills", "Deaths", "Assists", "CS", "Gold", "DamageToChampions", "VisionScore"].map((field) => `SP.${field}=${field}`).join(","),
-      where: `SP.MatchId IN (${ids})` });
+      where: `SP.MatchId IN (${ids})`, order_by: "SP.GameId,SP.Link" });
     result.players = players;
     if (!games.length) return result;
     // Box scores lack GD10/15 and XPD10/15. Read their actual timeline snapshots as well.
-    const metadata = await cargo({ tables: "PostgameJsonMetadata", fields: "GameId=GameId,TimelinePage=TimelinePage",
-      where: `GameId IN (${games.map((game) => `"${escape(game.GameId!)}"`).join(",")})` });
-    // 일부 경기의 Cargo 메타데이터가 비어 있으면 LCK 동기화와 동일한 플랫폼 ID 경로를 쓴다.
-    const pages = games.flatMap((game) => {
-      const page = metadata.find((row) => row.GameId === game.GameId)?.TimelinePage
-        || (game.RiotPlatformGameId ? `V5 data:${game.RiotPlatformGameId.replace(/_/g, " ")}/Timeline` : null);
-      return page ? [{ GameId: game.GameId, TimelinePage: page }] : [];
-    });
-    for (let index = 0; index < pages.length; index += 5) {
-      const batch = pages.slice(index, index + 5);
-      const body = await request({ action: "query", titles: batch.map((row) => row.TimelinePage).join("|"), prop: "revisions", rvprop: "content", rvslots: "main" });
-      for (const page of Object.values(body.query?.pages ?? {}) as Array<{ title: string; revisions?: Array<{ slots?: { main?: { "*"?: string } } }> }>) {
-        const gameId = batch.find((row) => row.TimelinePage?.replace(/_/g, " ") === page.title.replace(/_/g, " "))?.GameId;
-        const content = page.revisions?.[0]?.slots?.main?.["*"];
-        if (!content || !gameId) continue;
-        const timeline = JSON.parse(content) as { frames?: TimelineFrame[] };
-        addBriefingTimelineMetrics(players.filter((row) => row.GameId === gameId), timeline.frames ?? []);
-        const game = games.find((row) => row.GameId === gameId)!;
-        game.TimelinePage = page.title;
-        addBriefingTimelineObjectives(game, timeline.frames ?? []);
-      }
+    const timelines = await fetchBriefingGameTimelines(games);
+    for (const [gameId, frames] of timelines) {
+      addBriefingTimelineMetrics(players.filter((row) => row.GameId === gameId), frames);
+      addBriefingTimelineObjectives(games.find((row) => row.GameId === gameId)!, frames);
     }
   } catch (error) {
     // Keep verified results and box scores even when optional timeline data is unavailable.

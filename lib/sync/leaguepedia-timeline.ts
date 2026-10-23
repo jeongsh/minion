@@ -14,6 +14,10 @@ type PlayerStatRow = {
   player_id: string;
   team_id: string;
   position: string;
+  gold_diff_at_10?: number | null;
+  xp_diff_at_10?: number | null;
+  gold_diff_at_15?: number | null;
+  xp_diff_at_15?: number | null;
 };
 
 type RiotEvent = {
@@ -91,22 +95,50 @@ function teamIdFromRiot(
   return null;
 }
 
-async function syncFinalParticipantLevels(
+export function parseLeaguepediaEarlyStatDiffs(timeline: RiotTimeline, participantId: number) {
+  const result: Partial<Record<"gold_diff_at_10" | "xp_diff_at_10" | "gold_diff_at_15" | "xp_diff_at_15", number>> = {};
+  if (!Number.isInteger(participantId) || participantId < 1 || participantId > 10) return result;
+  const opponentId = participantId <= 5 ? participantId + 5 : participantId - 5;
+  for (const minute of [10, 15] as const) {
+    const frame = timeline.frames?.find((item) => item.timestamp >= minute * 60_000 && item.timestamp < minute * 60_000 + 5000);
+    const own = frame?.participantFrames?.[String(participantId)];
+    const opponent = frame?.participantFrames?.[String(opponentId)];
+    for (const [field, key] of [["totalGold", "gold"], ["xp", "xp"]] as const) {
+      const left = own?.[field], right = opponent?.[field];
+      if (typeof left === "number" && Number.isFinite(left) && typeof right === "number" && Number.isFinite(right)) {
+        result[`${key}_diff_at_${minute}`] = left - right;
+      }
+    }
+  }
+  return result;
+}
+
+async function syncParticipantStats(
   supabase: SupabaseClient,
   timeline: RiotTimeline,
   setId: string,
   participantMap: Map<number, { playerId: string; teamId: string }>,
+  stats: PlayerStatRow[],
 ) {
   const finalFrame = timeline.frames?.at(-1);
-  for (const [participantId, frame] of Object.entries(finalFrame?.participantFrames ?? {})) {
-    const participant = participantMap.get(Number(participantId));
-    const level = frame.level;
-    if (!participant || typeof level !== "number" || !Number.isInteger(level) || level < 1 || level > 18) continue;
-    const { error } = await supabase
+  for (const [participantId, participant] of participantMap) {
+    const patch: Record<string, number> = {};
+    const level = finalFrame?.participantFrames?.[String(participantId)]?.level;
+    if (typeof level === "number" && Number.isInteger(level) && level >= 1 && level <= 18) patch.champion_level = level;
+    const existing = stats.find((row) => row.player_id === participant.playerId);
+    for (const [key, value] of Object.entries(parseLeaguepediaEarlyStatDiffs(timeline, participantId))) {
+      if (existing?.[key as keyof PlayerStatRow] == null) patch[key] = value;
+    }
+    if (!Object.keys(patch).length) continue;
+    let query = supabase
       .from("set_player_stats")
-      .update({ champion_level: level })
+      .update(patch)
       .eq("set_id", setId)
       .eq("player_id", participant.playerId);
+    for (const key of Object.keys(patch)) {
+      if (key !== "champion_level") query = query.is(key, null);
+    }
+    const { error } = await query;
     if (error) throw error;
   }
 }
@@ -373,10 +405,14 @@ export async function syncLeaguepediaTimelineForSet(
 
   const { data: stats, error: statsError } = await supabase
     .from("set_player_stats")
-    .select("player_id, team_id, position")
+    .select("player_id, team_id, position, gold_diff_at_10, xp_diff_at_10, gold_diff_at_15, xp_diff_at_15")
     .eq("set_id", setId);
   if (statsError) throw statsError;
-  if ((stats ?? []).length < 10) {
+  const validRoles = [typedSet.blue_team_id, typedSet.red_team_id].every((teamId) => {
+    const own = (stats ?? []).filter((row) => row.team_id === teamId);
+    return own.length === 5 && POSITION_ORDER.every((position) => own.filter((row) => row.position === position).length === 1);
+  });
+  if ((stats ?? []).length !== 10 || !validRoles) {
     return { status: "waiting_for_source", eventCount: 0, inserted: 0, skipped: 0, framesInserted: 0, reason: `Player mapping is incomplete: players=${stats?.length ?? 0}` };
   }
 
@@ -402,7 +438,7 @@ export async function syncLeaguepediaTimelineForSet(
     typedSet.blue_team_id,
     typedSet.red_team_id,
   );
-  await syncFinalParticipantLevels(supabase, timelineResult.timeline, setId, participantMap);
+  await syncParticipantStats(supabase, timelineResult.timeline, setId, participantMap, stats ?? []);
 
   const parsedEvents = parseLeaguepediaTimelineEvents(
     timelineResult.timeline,
