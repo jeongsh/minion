@@ -11,6 +11,7 @@ export function DesktopAdRails() {
   const pathname = usePathname();
   const [contentPath, setContentPath] = useState<string | null>(null);
   const [secondaryHeaderHeight, setSecondaryHeaderHeight] = useState(0);
+  const [railStart, setRailStart] = useState(0);
   const [stickyFits, setStickyFits] = useState(false);
   const allowed = isAutoAdContentPath(pathname) || isRailAdContentPath(pathname);
 
@@ -19,14 +20,21 @@ export function DesktopAdRails() {
     const observedHeaders = new Set<Element>();
     const update = () => {
       const headers = Array.from(document.querySelectorAll<HTMLElement>('[data-ad-secondary-header]'));
+      const railStarts = Array.from(document.querySelectorAll<HTMLElement>('[data-ad-rail-start]'));
       let headerHeight = 0;
-      for (const header of headers) {
+      for (const header of [...headers, ...railStarts]) {
         if (!observedHeaders.has(header)) {
           observedHeaders.add(header);
           resizeObserver.observe(header);
         }
-        headerHeight = Math.max(headerHeight, header.getBoundingClientRect().height);
+        if (header.matches('[data-ad-secondary-header]')) {
+          headerHeight = Math.max(headerHeight, header.getBoundingClientRect().height);
+        }
       }
+      const layout = document.querySelector<HTMLElement>('.ad-rail-layout');
+      setRailStart(layout ? Math.max(0, ...railStarts.map((header) =>
+        header.getBoundingClientRect().bottom - layout.getBoundingClientRect().top + 24,
+      )) : 0);
       for (const header of observedHeaders) {
         if (!header.isConnected) {
           resizeObserver.unobserve(header);
@@ -61,7 +69,10 @@ export function DesktopAdRails() {
     <div
       className="desktop-ad-rails"
       data-sticky-fits={stickyFits}
-      style={{ "--ad-secondary-header-height": `${secondaryHeaderHeight}px` } as CSSProperties}
+      style={{
+        "--ad-secondary-header-height": `${secondaryHeaderHeight}px`,
+        "--ad-rail-start": `${railStart}px`,
+      } as CSSProperties}
     >
       <AdSlot key={`${pathname}-left`} enabled placement="rail-left" className="desktop-ad-rail desktop-ad-rail-left" />
       <div className="desktop-ad-rail-track">

@@ -621,6 +621,7 @@ export async function PlayerDetailView({
             </div>
           )}
         </section>
+        <AdSlot enabled={playerLines.length > 0} placement="horizontal" className="h-[60px] xl:h-[90px]" />
       </div>
     </main>
   );

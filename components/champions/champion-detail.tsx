@@ -2,6 +2,7 @@ import { ExpandableTableRow } from "@/components/ui/expandable-table-row";
 import { Pagination } from "@/components/ui/pagination";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import Link from "next/link";
+import { AdSlot } from "@/components/ui/ad-slot";
 import { ChevronRight } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -1254,6 +1255,7 @@ export function ChampionDetail({
           </div>
         </div>
       ) : <>
+      <AdSlot enabled placement="horizontal" className="h-[60px] xl:h-[90px]" />
       <ChampionTabNav basePath={basePath} params={params} activeTab={activeTab} position={analysis.overview.selectedPosition} />
 
       {activeTab === "overview" ? <BuildTab analysis={analysis} catalogs={catalogs} /> : null}
@@ -1262,6 +1264,7 @@ export function ChampionDetail({
       {activeTab === "pros" ? <PlayersTab players={analysis.players} /> : null}
       {activeTab === "games" ? <GamesTab analysis={analysis} params={params} basePath={basePath} page={gamePage} /> : null}
       {activeTab === "stats" ? <StatsTab analysis={analysis} /> : null}
+      <AdSlot enabled placement="horizontal" className="h-[60px] xl:h-[90px]" />
       </>}
     </div>
   );

@@ -35,6 +35,7 @@ export async function FanChannelHeader({ teamSlug, calendarSlot }: { teamSlug: s
 
   return (
     <header
+      data-ad-rail-start
       className={
         hasHeaderBackground
           ? "relative isolate overflow-hidden border-b border-[var(--ui-border)] bg-black text-white"

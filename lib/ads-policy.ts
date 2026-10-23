@@ -14,6 +14,8 @@ export function isAdContentPath(pathname: string): boolean {
     || path === "/transfers"
     || path === "/schedule"
     || path === "/players"
+    || path === "/champions"
+    || /^\/champions\/[^/]+$/.test(path)
     || /^\/matches\/[^/]+$/.test(path)
     || /^\/players\/[^/]+$/.test(path)
     || /^\/fan\/[^/]+$/.test(path)

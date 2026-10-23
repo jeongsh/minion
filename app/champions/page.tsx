@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { AutoAdContent } from "@/components/ads/auto-ad-content";
+import { AdSlot } from "@/components/ui/ad-slot";
 
 import { ChampionDirectoryFilters, ChampionDirectoryTable, ChampionDirectoryToolbar } from "@/components/champions/champion-directory";
 import { ChampionScopeFilter } from "@/components/champions/champion-scope-filter";
@@ -94,6 +95,7 @@ export default async function ChampionsPage({ searchParams }: { searchParams: Pr
           </div>
         </div>
       </section>
+      <AdSlot enabled={!search && rows.length > 0} placement="horizontal" className="mt-6 h-[60px] xl:h-[90px]" />
     </main>
   );
 }

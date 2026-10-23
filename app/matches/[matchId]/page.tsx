@@ -12,6 +12,7 @@ import { MatchResultSeen } from "@/components/domain/match-result-seen";
 import { SetVodPlayer } from "@/components/domain/set-vod-player";
 import { SegmentedControl, type TabItem } from "@/components/ui/tabs";
 import { AdSlot } from "@/components/ui/ad-slot";
+import { AutoAdContent } from "@/components/ads/auto-ad-content";
 import { MatchSetSkeleton } from "@/components/navigation/route-loading-skeleton";
 import { TeamLogo } from "@/components/ui/team-logo";
 import {
@@ -576,6 +577,7 @@ export default async function MatchDetailPage({
   const videoId = match.vodUrl ? youtubeVideoIdFromUrl(match.vodUrl) : null;
   return (
     <main className="layout-wide match-detail-page flex flex-col gap-5 pb-12 pt-5 text-[var(--ui-text)]">
+      <AutoAdContent enabled={hasResolvedPreviewTeams || matchPlayerStatLines.length > 0} />
       <MatchResultSeen matchId={match.id} finished={isMatchFinished(match)} />
       {/*
         스포일러 게이트는 목록/홈처럼 무심코 점수를 보게 되는 화면용이다. 특정 매치 상세로
