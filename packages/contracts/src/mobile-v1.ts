@@ -708,8 +708,31 @@ export type MobileMatchHeader = {
   statusLabel: string;
 };
 
+export type MobileMatchPreviewCharts = {
+  teams: Array<{
+    teamId: string; sets: number; league: string | null;
+    scores: Array<number | null>; values: string[];
+    lanes: Array<{ position: "TOP" | "JGL" | "MID" | "BOT" | "SUP"; goldDiffAt15: number | null }>;
+    blue: { wins: number; games: number }; red: { wins: number; games: number };
+    dragonMinutes: number[];
+  }>;
+  axes: Array<{ label: string; title: string }>;
+  champions: Array<{ championId: string; name: string; imageUrl: string; picksA: number; picksB: number }>;
+  leagueRecord: { leagues: string[]; winsA: number; winsB: number } | null;
+  accuracy: {
+    season: number;
+    all: { hits: number; graded: number }; domestic: { hits: number; graded: number };
+    international: { hits: number; graded: number }; confident: { hits: number; graded: number };
+    recent: boolean[];
+  };
+  oneLiner: string | null;
+  oneLinerStrong: boolean;
+  watchPoints: string[];
+};
+
 export type MobileMatchPreview = {
   briefing?: {
+    charts?: MobileMatchPreviewCharts;
     axes: Array<{ label: string; title: string }>;
     teams: Array<{
       teamId: string;

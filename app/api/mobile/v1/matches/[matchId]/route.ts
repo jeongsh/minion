@@ -46,6 +46,10 @@ import { compactMatchStageName, compactMatchTournamentName } from "@/lib/match-h
 
 import { buildMatchBriefingStats, matchBriefingSample, TEAM_RADAR_AXES, formatTeamMetric } from "@/lib/match-briefing-stats";
 import { teamPowerRanking } from "@/lib/power-rankings";
+import { buildChampionPriority, buildFirstDragonMinutes, buildLeagueSetRecord, buildMatchBriefingVisuals, buildTeamStyles, formatTeamStyle, regionLeague, TEAM_STYLE_AXES, teamRegion } from "@/lib/match-preview-visuals";
+import { getDragonEvents } from "@/lib/data/match-preview-timeline";
+import { buildMatchPreviewAccuracy } from "@/lib/match-preview-accuracy";
+import { getStoredPreviewPredictions } from "@/lib/data/match-preview-accuracy";
 
 const POSITION_ORDER = new Map(["TOP", "JGL", "MID", "BOT", "SUP"].map((position, index) => [position, index]));
 
@@ -138,13 +142,48 @@ export async function GET(request: Request, context: { params: Promise<{ matchId
       return { ...item, values: item.values.map(formatTeamMetric), rank: ranking?.history.at(-1)?.rank ?? null, history: ranking?.history ?? [] };
     });
     const ai = await getMatchAiPreview({ match, tournament, stage, teams, ...supplemented, tournaments, players });
+    const visuals = buildMatchBriefingVisuals(match, supplemented.matches, supplemented.sets, supplemented.playerStats);
+    const styles = buildTeamStyles(match, supplemented.matches, supplemented.sets, supplemented.playerStats);
+    const visualTeams = [visuals.teamA, visuals.teamB];
+    const [champions, dragons, predictions] = await Promise.all([
+      getChampions(),
+      getDragonEvents(visualTeams.flatMap((team) => team.setIds), supplemented.sets).catch((error) => {
+        console.warn("[mobile-match-preview] 드래곤 이벤트 조회 실패", error);
+        return [];
+      }),
+      getStoredPreviewPredictions().catch((error) => {
+        console.warn("[mobile-match-preview] 적중률 조회 실패", error);
+        return [];
+      }),
+    ]);
+    const leagueRecord = buildLeagueSetRecord({ match, teams, matches: supplemented.matches, sets: supplemented.sets, tournaments });
+    const charts = {
+      axes: TEAM_STYLE_AXES.map(({ label, title }) => ({ label, title })),
+      teams: visualTeams.map((team, index) => {
+        const style = index ? styles.teamB : styles.teamA;
+        const region = teamRegion(resolvedTeams[index]);
+        return { teamId: team.teamId, sets: team.sets, league: region ? regionLeague(region) : null,
+          scores: style.scores, values: style.values.map(formatTeamStyle),
+          lanes: team.lanes.map(({ position, goldDiffAt15 }) => ({ position, goldDiffAt15 })),
+          blue: team.blue, red: team.red, dragonMinutes: buildFirstDragonMinutes(team, dragons) };
+      }),
+      champions: buildChampionPriority(visualTeams, supplemented.playerStats).map((item) => {
+        const champion = champions.find((entry) => entry.id === item.championId);
+        return { ...item, name: champion?.name ?? "-", imageUrl: championImage(champion) };
+      }),
+      leagueRecord: leagueRecord ? { leagues: [regionLeague(leagueRecord.regionA), regionLeague(leagueRecord.regionB)], winsA: leagueRecord.winsA, winsB: leagueRecord.winsB } : null,
+      accuracy: buildMatchPreviewAccuracy(predictions, supplemented.matches, tournaments, tournament?.season ?? new Date(match.matchDate).getUTCFullYear()),
+      oneLiner: ai.oneLiner ?? (ai.source === "ai" ? ai.summary : null),
+      oneLinerStrong: Boolean(ai.oneLiner),
+      watchPoints: ai.watchPoints.length ? ai.watchPoints : [ai.liveCheck].filter(Boolean),
+    };
     const supplementedHistory = completedBefore(supplemented.matches, match);
     const teamAMetrics = recentSetMetrics(supplemented.sets, supplementedHistory, match.teamAId);
     const teamBMetrics = recentSetMetrics(supplemented.sets, supplementedHistory, match.teamBId);
     const metrics = { averageKillsA: teamAMetrics.averageKills, averageKillsB: teamBMetrics.averageKills,
       recentRecordA: recentRecord(supplementedHistory, match.teamAId), recentRecordB: recentRecord(supplementedHistory, match.teamBId),
       setDiffA: teamAMetrics.setDiff, setDiffB: teamBMetrics.setDiff };
-    return { ai, metrics, briefing: { axes: TEAM_RADAR_AXES.map(({ label, title }) => ({ label, title })), teams: briefingTeams,
+    return { ai, metrics, briefing: { charts, axes: TEAM_RADAR_AXES.map(({ label, title }) => ({ label, title })), teams: briefingTeams,
       powerRankings: { status: rankings.status, sourceUrl: rankings.sourceUrl },
       issue: ai.narrative?.title ?? (ai.source === "ai" ? ai.headline : null), issueSource: ai.narrative?.sources[0]?.url ?? null } };
   })() : Promise.resolve(null);

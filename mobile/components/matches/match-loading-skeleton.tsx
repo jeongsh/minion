@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Animated, Easing, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Animated, Easing, StyleSheet, useWindowDimensions, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 
@@ -8,7 +8,8 @@ function Bone({ style }: { style?: StyleProp<ViewStyle> }) {
   return <View style={[styles.bone, { backgroundColor: theme.surfaceMuted }, style]} />;
 }
 
-export function MatchLoadingSkeleton() {
+export function MatchLoadingSkeleton({ preview = false }: { preview?: boolean }) {
+  const { width } = useWindowDimensions();
   const opacity = useRef(new Animated.Value(0.5)).current;
 
   useEffect(() => {
@@ -26,10 +27,12 @@ export function MatchLoadingSkeleton() {
     <Animated.View accessibilityLabel="경기 상세 불러오는 중" accessibilityRole="progressbar" style={[styles.root, { opacity }]}>
       <Bone style={{ borderRadius: 8, height: 130, marginHorizontal: -16 }} />
       <View style={{ flexDirection: 'row', gap: 8, paddingVertical: 8 }}><Bone style={{ borderRadius: 10, height: 40, flex: 1 }} /><Bone style={{ borderRadius: 8, height: 40, width: 85 }} /></View>
+      {preview ? <View style={{ gap: 12 }}><Bone style={{ height: 76, borderRadius: 12 }} /><Bone style={{ height: 28, width: 100, marginTop: 8 }} /><Bone style={{ height: width >= 640 ? 220 : 320, borderRadius: 12 }} /><View style={{ flexDirection: width >= 768 ? 'row' : 'column', gap: 12 }}>{[0, 1].map((key) => <Bone key={key} style={{ height: 400, borderRadius: 12, flex: width >= 768 ? 1 : undefined }} />)}</View><Bone style={{ height: 296, borderRadius: 12 }} /><View style={{ flexDirection: width >= 768 ? 'row' : 'column', gap: 12 }}><Bone style={{ height: 224, borderRadius: 12, flex: width >= 768 ? 1 : undefined }} /><Bone style={{ height: 294, borderRadius: 12, flex: width >= 768 ? 1 : undefined }} /></View></View> : <>
       <Bone style={{ height: 238 }} />
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}><Bone style={{ height: 22, width: 80 }} /><Bone style={{ height: 38, width: 112 }} /></View>
       <View style={styles.rows}>{[0, 1].map((team) => <View key={team}><Bone style={{ height: 40 }} />{Array.from({ length: 5 }, (_, index) => <Bone key={index} style={{ borderRadius: 0, height: index ? 59 : 58 }} />)}</View>)}</View>
       <View style={{ gap: 12 }}><Bone style={{ height: 22, width: 48 }} /><View style={{ gap: 8, padding: 12 }}>{[0, 1].map((team) => <View key={team} style={{ flexDirection: 'row', gap: 4 }}>{Array.from({ length: 5 }, (_, index) => <Bone key={index} style={{ flex: 1, height: 64 }} />)}</View>)}</View><Bone style={{ height: 320 }} /><Bone style={{ height: 224 }} /><Bone style={{ height: 186 }} /></View>
+      </>}
     </Animated.View>
   );
 }

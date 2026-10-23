@@ -76,7 +76,7 @@ function MatchDetailContent({ matchId, requestedSet, requestedTab, requestedPlay
   if ((authLoading || loading) && !data) {
     return (
       <MinionScreen>
-        <MatchLoadingSkeleton />
+        <MatchLoadingSkeleton preview={activeTab === 'preview'} />
       </MinionScreen>
     );
   }
