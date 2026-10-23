@@ -19,6 +19,7 @@ export function FilterDropdown({
   triggerIcon,
   triggerClassName = "",
   placeholder = "-",
+  matchTriggerWidth = false,
 }: {
   ariaLabel: string;
   controlSize?: "default" | "compact";
@@ -33,6 +34,7 @@ export function FilterDropdown({
   triggerClassName?: string;
   triggerTypography?: "default" | "ui";
   placeholder?: string;
+  matchTriggerWidth?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -89,7 +91,7 @@ export function FilterDropdown({
     function updatePosition() {
       if (!triggerRef.current) return;
       const rect = triggerRef.current.getBoundingClientRect();
-      const width = variant === "grid" ? 224 : Math.max(176, rect.width);
+      const width = matchTriggerWidth ? rect.width : variant === "grid" ? 224 : Math.max(176, rect.width);
       const left = Math.min(Math.max(12, rect.left), window.innerWidth - width - 12);
       setPopupStyle({
         position: "fixed",
@@ -107,7 +109,7 @@ export function FilterDropdown({
       window.removeEventListener("resize", updatePosition);
       window.removeEventListener("scroll", updatePosition, true);
     };
-  }, [open, variant]);
+  }, [open, variant, matchTriggerWidth]);
 
   function choose(value: string) {
     if (disabled) return;
@@ -218,7 +220,7 @@ export function FilterDropdown({
                   tabIndex={-1}
                   aria-selected={isSelected}
                   onClick={() => choose(option.value)}
-                  className={`flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition ${
+                  className={`flex w-full items-center justify-between rounded-lg py-2.5 text-left text-sm font-medium transition ${matchTriggerWidth ? "gap-1 whitespace-nowrap px-1" : "gap-3 px-3"} ${
                     isSelected
                       ? "bg-[var(--ui-surface-muted)] text-[var(--ui-ink)]"
                       : "text-[var(--ui-muted)] hover:bg-[var(--ui-surface-muted)] hover:text-[var(--ui-ink)]"

@@ -56,6 +56,7 @@ import { MatchPreview } from "./match-preview";
 import { SetDetailContent } from "./set-detail-content";
 import { SetRatingForm } from "./set-rating-form";
 import { RatingCommentList } from "./rating-comment-list";
+import { MatchSetSelect } from "./match-set-select";
 
 type MatchTab = "preview" | "data" | "rating" | "video" | "live";
 
@@ -182,10 +183,12 @@ function youtubeEmbedUrl(value: string | null | undefined) {
 
 function TabNav({
   activeTab,
+  activeSet,
   sets,
   showLive,
 }: {
   activeTab: MatchTab;
+  activeSet?: SetResult;
   sets: SetResult[];
   showLive: boolean;
 }) {
@@ -201,29 +204,49 @@ function TabNav({
   ];
 
   return (
-    <nav
-      aria-label="매치 상세 탭"
-      className="tab-scroll -mx-[var(--layout-gutter)] grid max-w-none grid-flow-col auto-cols-fr overflow-x-auto border-b border-[var(--ui-border)] bg-[var(--page-background)] md:mx-0 md:max-w-full md:gap-0.5 md:rounded-[10px] md:border-b-0 md:bg-[var(--ui-card-bg)] md:p-[3px]"
-    >
-      {items.map((item) => {
-        const isActive = item.key === activeTab;
+    <div className="champion-mobile-sticky-tabs sticky z-30 -mx-[var(--layout-gutter)] -mt-3 bg-[var(--page-background)] px-[var(--layout-gutter)] py-2 md:static md:mx-0 md:px-0 md:py-0">
+      <div className="flex items-center justify-between gap-2 md:hidden">
+        <div className="min-w-0 flex-1">
+          <SegmentedControl
+            stretch
+            items={items.map((item) => ({ ...item, scroll: false }))}
+            activeKey={activeTab}
+            ariaLabel="매치 상세 탭"
+            className="max-w-full overflow-x-auto"
+          />
+        </div>
+        {(activeTab === "data" || activeTab === "rating") && sets.length > 0 ? (
+          <MatchSetSelect
+            options={sets.map((set) => ({ value: set.id, label: setLabel(set) }))}
+            selected={activeSet?.id ?? firstSetId ?? ""}
+            tab={activeTab}
+          />
+        ) : null}
+      </div>
+      <nav
+        aria-label="매치 상세 탭"
+        className="tab-scroll hidden grid-flow-col auto-cols-fr overflow-x-auto md:grid md:max-w-full md:gap-0.5 md:rounded-[10px] md:bg-[var(--ui-card-bg)] md:p-[3px]"
+      >
+        {items.map((item) => {
+          const isActive = item.key === activeTab;
 
-        return (
-          <Link
-            key={item.key}
-            href={item.href}
-            aria-current={isActive ? "page" : undefined}
-            className={`flex h-9 min-w-[4.25rem] shrink-0 items-center justify-center whitespace-nowrap border-b-2 px-2 text-[14px] font-medium transition-colors md:h-8 md:rounded-lg ${
-              isActive
-                ? "border-[var(--accent)] text-[var(--ui-ink)] md:border md:border-[var(--ui-border)] md:bg-[var(--ui-surface)] md:dark:bg-[var(--ui-border)]"
-                : "border-transparent text-[var(--ui-muted)] hover:text-[var(--ui-ink)]"
-            }`}
-          >
-            {item.label}
-          </Link>
-        );
-      })}
-    </nav>
+          return (
+            <Link
+              key={item.key}
+              href={item.href}
+              aria-current={isActive ? "page" : undefined}
+              className={`flex h-9 min-w-[4.25rem] shrink-0 items-center justify-center whitespace-nowrap border-b-2 px-2 text-[14px] font-medium transition-colors md:h-8 md:rounded-lg ${
+                isActive
+                  ? "border-[var(--accent)] text-[var(--ui-ink)] md:border md:border-[var(--ui-border)] md:bg-[var(--ui-surface)] md:dark:bg-[var(--ui-border)]"
+                  : "border-transparent text-[var(--ui-muted)] hover:text-[var(--ui-ink)]"
+              }`}
+            >
+              {item.label}
+            </Link>
+          );
+        })}
+      </nav>
+    </div>
   );
 }
 
@@ -245,13 +268,14 @@ function SetSelector({
   if (sets.length === 0 && !snapshotHref) return null;
 
   return (
-    <div className="schedule-mobile-sticky sticky z-30 -mx-[var(--layout-gutter)] flex items-center justify-between gap-2 border-b border-[var(--ui-border)] bg-[var(--page-background)] px-[var(--layout-gutter)] py-3 md:mx-0 md:border-b-0 md:px-0 md:py-1.5">
+    <div className="sticky top-16 z-30 hidden items-center justify-between gap-2 bg-[var(--page-background)] py-1.5 md:flex">
       {sets.length > 0 ? (
         <SegmentedControl
           items={sets.map((set) => ({
             key: set.id,
             label: setLabel(set),
             href: tabHref(tab, set.id),
+            scroll: false,
           }))}
           activeKey={activeSet?.id ?? ""}
           ariaLabel="세트 선택"
@@ -635,9 +659,9 @@ export default async function MatchDetailPage({
             <CompactTeamBlock align="right" team={teamB} teamName={teamBName} />
           </div>
         </section>
-
-        <TabNav activeTab={activeTab} sets={matchSets} showLive={match.status !== "completed"} />
       </div>
+
+      <TabNav activeTab={activeTab} activeSet={activeSet} sets={matchSets} showLive={match.status !== "completed"} />
 
       {activeTab === "preview" && aiPreview ? (
         <MatchPreview

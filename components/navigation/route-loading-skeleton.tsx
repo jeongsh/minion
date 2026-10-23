@@ -267,8 +267,8 @@ export function MatchLoadingSkeleton() {
   return (
     <LoadingMain className="layout-wide flex flex-col gap-5 pb-12 pt-5">
       <section className="mobile-full-bleed overflow-hidden rounded-md border border-[var(--ui-border)] bg-[var(--ui-surface)] md:mx-0"><div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 px-4 py-2"><Skeleton className="h-3 w-24 max-w-full" /><Skeleton className="h-6 w-16 rounded-full" /><Skeleton className="ml-auto h-3 w-20 max-w-full" /></div><div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 px-4 py-3 sm:gap-5 sm:px-6 sm:py-4"><div className="flex min-w-0 items-center justify-end gap-2"><Skeleton className="h-5 w-12 sm:w-20" /><Skeleton className="h-9 w-9 rounded-full sm:h-12 sm:w-12" /></div><Skeleton className="h-10 w-[88px] rounded-xl sm:h-12 sm:w-28" /><div className="flex min-w-0 items-center gap-2"><Skeleton className="h-9 w-9 rounded-full sm:h-12 sm:w-12" /><Skeleton className="h-5 w-12 sm:w-20" /></div></div></section>
-      <div className="grid grid-cols-5 gap-1 rounded-xl bg-[var(--ui-card-bg)] p-1">{Array.from({ length: 5 }, (_, index) => <Skeleton key={index} className="h-8 w-full rounded-lg" />)}</div>
-      <div className="flex gap-2">{Array.from({ length: 3 }, (_, index) => <Skeleton key={index} className="h-9 w-20 rounded-lg" />)}</div>
+      <div className="champion-mobile-sticky-tabs sticky z-30 -mx-[var(--layout-gutter)] -mt-3 flex items-center justify-between gap-2 bg-[var(--page-background)] px-[var(--layout-gutter)] py-2 md:static md:mx-0 md:mt-0 md:px-0 md:py-0"><div className="grid min-w-0 flex-1 grid-cols-4 gap-0.5 rounded-[10px] bg-[var(--ui-card-bg)] p-[3px] md:grid-cols-5">{Array.from({ length: 5 }, (_, index) => <Skeleton key={index} className={`h-[34px] w-full rounded-lg md:h-8 ${index === 4 ? "hidden md:block" : ""}`} />)}</div><Skeleton className="h-10 w-20 shrink-0 rounded-lg md:hidden" /></div>
+      <div className="hidden gap-2 md:flex">{Array.from({ length: 3 }, (_, index) => <Skeleton key={index} className="h-9 w-20 rounded-lg" />)}</div>
       <MatchSetSkeleton />
     </LoadingMain>
   );
