@@ -4,6 +4,12 @@ import { Play } from "lucide-react";
 import { useState } from "react";
 
 import type { MatchVod } from "@/lib/types";
+import { youtubeThumbnailUrl, youtubeVideoIdFromUrl } from "@/lib/youtube";
+
+function vodThumbnailUrl(vod: MatchVod) {
+  const videoId = youtubeVideoIdFromUrl(vod.url);
+  return vod.thumbnailUrl || (videoId ? youtubeThumbnailUrl(videoId) : null);
+}
 
 function providerLabel(provider: string | null) {
   if (provider === "afreecatv") return "SOOP";
@@ -12,12 +18,13 @@ function providerLabel(provider: string | null) {
 }
 
 function SetThumbnail({ vod }: { vod: MatchVod }) {
+  const thumbnailUrl = vodThumbnailUrl(vod);
   return (
     <div className="relative aspect-video overflow-hidden rounded-lg bg-black">
-      {vod.thumbnailUrl ? (
+      {thumbnailUrl ? (
         // 외부 CDN 이미지라 next/image 대신 img 를 쓴다.
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={vod.thumbnailUrl} alt="" loading="lazy" className="h-full w-full object-cover" />
+        <img src={thumbnailUrl} alt="" loading="lazy" className="h-full w-full object-cover" />
       ) : (
         <span className="grid h-full place-items-center text-white/70">
           <Play className="h-5 w-5" />
@@ -32,6 +39,7 @@ export function SetVodPlayer({ vods, matchName }: { vods: MatchVod[]; matchName:
   const active = vods.find((vod) => vod.setNumber === activeSet) ?? vods[0];
 
   if (!active) return null;
+  const thumbnailUrl = vodThumbnailUrl(active);
 
   return (
     <div className="grid gap-5 min-[1200px]:grid-cols-[minmax(0,1fr)_320px] min-[1200px]:items-start">
@@ -49,10 +57,10 @@ export function SetVodPlayer({ vods, matchName }: { vods: MatchVod[]; matchName:
             />
           ) : (
             // 내부 재생이 불가능한 제공처는 썸네일을 눌러 새 창으로 보낸다.
-            <a href={active.url} target="_blank" rel="noreferrer noopener" className="relative block h-full w-full">
-              {active.thumbnailUrl ? (
+            <a href={active.url} target="_blank" rel="noreferrer noopener" aria-label={`${matchName} ${active.setNumber}세트 원본 영상 열기`} className="relative block h-full w-full">
+              {thumbnailUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={active.thumbnailUrl} alt="" className="h-full w-full object-cover" />
+                <img src={thumbnailUrl} alt="" className="h-full w-full object-cover" />
               ) : null}
               <span className="absolute inset-0 grid place-items-center text-white">
                 <Play className="h-14 w-14 fill-white" />

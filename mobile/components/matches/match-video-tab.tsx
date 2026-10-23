@@ -1,8 +1,8 @@
 import { Image } from 'expo-image';
+import * as Linking from 'expo-linking';
 import Play from 'lucide-react-native/icons/play';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import * as WebBrowser from 'expo-web-browser';
 
 import { tournamentTokens } from '@/constants/tournament-theme';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
@@ -15,38 +15,43 @@ function providerLabel(provider: string | null) {
   return '다시보기';
 }
 
-function youtubeEmbedUrl(value: string | null | undefined) {
-  if (!value) return null;
+function videoThumbnailUrl(value: string, thumbnailUrl?: string | null) {
+  if (thumbnailUrl) return thumbnailUrl;
   try {
     const url = new URL(value);
-    if (url.hostname.includes('youtu.be')) {
-      const id = url.pathname.split('/').filter(Boolean)[0];
-      return id ? `https://www.youtube.com/embed/${id}` : null;
+    const host = url.hostname.toLowerCase();
+    const parts = url.pathname.split('/').filter(Boolean);
+    let videoId: string | null = null;
+    if (host === 'youtu.be') videoId = parts[0] ?? null;
+    if (host === 'youtube.com' || host.endsWith('.youtube.com')) {
+      videoId = url.pathname === '/watch'
+        ? url.searchParams.get('v')
+        : ['embed', 'shorts', 'live'].includes(parts[0]) ? parts[1] ?? null : null;
     }
-    if (url.hostname.includes('youtube.com')) {
-      const id = url.searchParams.get('v') ?? url.pathname.split('/').filter(Boolean).pop();
-      return id ? `https://www.youtube.com/embed/${id}` : null;
-    }
+    return videoId && /^[a-zA-Z0-9_-]{11}$/.test(videoId)
+      ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`
+      : null;
   } catch {
     return null;
   }
-  return null;
 }
 
-function SetVodPlayer({ matchName, vods }: { matchName: string; vods: MobileVideoItem[] }) {
+function SetVodPlayer({ matchName, onOpen, vods }: { matchName: string; onOpen: (url: string) => Promise<void>; vods: MobileVideoItem[] }) {
   const { colorScheme, fonts, theme } = useMinionTheme();
   const [activeIndex, setActiveIndex] = useState(0);
   const active = vods[activeIndex] ?? vods[0];
   if (!active) return null;
-  const embedUrl = active.embedUrl ?? youtubeEmbedUrl(active.url);
+  // 서버의 임베드 가능 여부를 웹과 동일하게 따른다.
+  const embedUrl = active.embedUrl;
+  const thumbnailUrl = videoThumbnailUrl(active.url, active.thumbnail?.url);
 
   return (
     <View style={styles.vodPlayerRoot}>
       {embedUrl ? (
         <InlineVideoPlayer title={`${matchName} ${active.title}`} url={embedUrl} />
       ) : (
-        <Pressable onPress={() => WebBrowser.openBrowserAsync(active.url)} style={[styles.previewBox, { backgroundColor: '#000000' }]}>
-          {active.thumbnail?.url ? <Image contentFit="cover" source={{ uri: active.thumbnail.url }} style={styles.previewImage} /> : null}
+        <Pressable accessibilityRole="link" accessibilityLabel={`${matchName} ${active.title} 원본 영상 열기`} onPress={() => void onOpen(active.url)} style={[styles.previewBox, { backgroundColor: '#000000' }]}>
+          {thumbnailUrl ? <Image contentFit="cover" source={{ uri: thumbnailUrl }} style={styles.previewImage} /> : null}
           <View style={styles.previewPlayOverlay}>
             <Play color="#ffffff" fill="#ffffff" size={56} />
           </View>
@@ -58,6 +63,7 @@ function SetVodPlayer({ matchName, vods }: { matchName: string; vods: MobileVide
       <View style={styles.vodList}>
         {vods.map((vod, index) => {
           const selected = index === activeIndex;
+          const thumbnailUrl = videoThumbnailUrl(vod.url, vod.thumbnail?.url);
           return (
             <Pressable
               key={vod.id}
@@ -65,8 +71,8 @@ function SetVodPlayer({ matchName, vods }: { matchName: string; vods: MobileVide
               style={[styles.vodRow, selected && { backgroundColor: tournamentTokens[colorScheme].surfaceMuted }]}
             >
               <View style={[styles.vodThumb, { backgroundColor: '#000000' }]}>
-                {vod.thumbnail?.url ? (
-                  <Image contentFit="cover" source={{ uri: vod.thumbnail.url }} style={styles.previewImage} />
+                {thumbnailUrl ? (
+                  <Image contentFit="cover" source={{ uri: thumbnailUrl }} style={styles.previewImage} />
                 ) : (
                   <View style={styles.previewPlayOverlay}>
                     <Play color="#ffffff" fill="#ffffff" size={20} />
@@ -86,22 +92,37 @@ function SetVodPlayer({ matchName, vods }: { matchName: string; vods: MobileVide
 }
 
 export function MatchVideoTab({ matchName, matchVodUrl, vods }: { matchName: string; matchVodUrl: string | null; vods: MobileVideoItem[] }) {
-  const { fonts, theme } = useMinionTheme();
+  const { fonts, showToast, theme } = useMinionTheme();
   const hasContent = Boolean(matchVodUrl) || vods.length > 0;
-  const matchEmbedUrl = youtubeEmbedUrl(matchVodUrl);
+  const matchThumbnailUrl = matchVodUrl ? videoThumbnailUrl(matchVodUrl) : null;
+
+  async function openVideo(url: string) {
+    try {
+      await Linking.openURL(url);
+    } catch {
+      showToast('영상을 열지 못했습니다.', 'error');
+    }
+  }
 
   return (
     <View style={styles.section}>
       <Text style={[styles.heading, { color: theme.ink, ...fonts.display }]}>영상</Text>
       {hasContent ? (
         <View style={styles.contentWrap}>
-          {matchEmbedUrl ? <InlineVideoPlayer title={`${matchName} VOD`} url={matchEmbedUrl} /> : null}
           {matchVodUrl ? (
-            <Pressable onPress={() => WebBrowser.openBrowserAsync(matchVodUrl)}>
+            <Pressable accessibilityRole="link" onPress={() => void openVideo(matchVodUrl)}>
+              {matchThumbnailUrl ? (
+                <View style={[styles.previewBox, { backgroundColor: '#000000' }]}>
+                  <Image contentFit="cover" source={{ uri: matchThumbnailUrl }} style={styles.previewImage} />
+                  <View style={styles.previewPlayOverlay}>
+                    <Play color="#ffffff" fill="#ffffff" size={56} />
+                  </View>
+                </View>
+              ) : null}
               <Text style={[styles.originalLink, { color: theme.accent, ...fonts.bold }]}>원본 영상 열기</Text>
             </Pressable>
           ) : null}
-          {vods.length > 0 ? <SetVodPlayer matchName={matchName} vods={vods} /> : null}
+          {vods.length > 0 ? <SetVodPlayer matchName={matchName} onOpen={openVideo} vods={vods} /> : null}
         </View>
       ) : (
         <View style={[styles.emptyBox, { borderColor: theme.border }]}>

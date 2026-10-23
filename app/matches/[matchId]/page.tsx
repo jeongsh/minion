@@ -1,9 +1,11 @@
 import Link from "next/link";
+import { Play } from "lucide-react";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import { notFound } from "next/navigation";
 import { siteBaseUrl } from "@/lib/site";
+import { youtubeThumbnailUrl, youtubeVideoIdFromUrl } from "@/lib/youtube";
 
 import { PredictionMatchBar } from "@/components/domain/prediction-match-bar";
 import { MatchResultSeen } from "@/components/domain/match-result-seen";
@@ -155,30 +157,6 @@ function normalizeTab(value: string | undefined, fallback: MatchTab): MatchTab {
     value === "live"
     ? value
     : fallback;
-}
-
-function youtubeEmbedUrl(value: string | null | undefined) {
-  if (!value) return null;
-
-  try {
-    const url = new URL(value);
-
-    if (url.hostname.includes("youtu.be")) {
-      const id = url.pathname.split("/").filter(Boolean)[0];
-      return id ? `https://www.youtube.com/embed/${id}` : null;
-    }
-
-    if (url.hostname.includes("youtube.com")) {
-      const id =
-        url.searchParams.get("v") ??
-        url.pathname.split("/").filter(Boolean).pop();
-      return id ? `https://www.youtube.com/embed/${id}` : null;
-    }
-  } catch {
-    return null;
-  }
-
-  return null;
 }
 
 function TabNav({
@@ -595,7 +573,7 @@ export default async function MatchDetailPage({
           playerStats: previewPlayerStats,
         })
     : null;
-  const embedUrl = youtubeEmbedUrl(match.vodUrl);
+  const videoId = match.vodUrl ? youtubeVideoIdFromUrl(match.vodUrl) : null;
   return (
     <main className="layout-wide match-detail-page flex flex-col gap-5 pb-12 pt-5 text-[var(--ui-text)]">
       <MatchResultSeen matchId={match.id} finished={isMatchFinished(match)} />
@@ -715,21 +693,22 @@ export default async function MatchDetailPage({
           </h2>
           {match.vodUrl || setVods.length > 0 ? (
             <div className="mt-3 flex flex-col gap-2.5">
-              {embedUrl ? (
-                <iframe
-                  src={embedUrl}
-                  title={`${match.name} VOD`}
-                  className="aspect-video w-full rounded-md border border-border"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  allowFullScreen
-                />
-              ) : null}
               {match.vodUrl ? (
                 <Link
                   href={match.vodUrl}
-                  className="text-[15px] font-semibold text-accent"
+                  className="flex flex-col gap-2.5 text-[15px] font-bold text-accent"
                   target="_blank"
+                  rel="noopener noreferrer"
                 >
+                  {videoId ? (
+                    <span className="relative block aspect-video overflow-hidden rounded-xl bg-black">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={youtubeThumbnailUrl(videoId)} alt="" className="h-full w-full object-cover" />
+                      <span className="absolute inset-0 grid place-items-center text-white">
+                        <Play aria-hidden="true" className="h-14 w-14 fill-white" />
+                      </span>
+                    </span>
+                  ) : null}
                   원본 영상 열기
                 </Link>
               ) : null}
