@@ -338,7 +338,7 @@
           ]
         },
         {
-          "name": "MIBR.LOS", "shortName": "MIBR.LOS", "region": "Brazil", "league": "EWC", "leaguepediaPage": "MIBR.LOS",
+          "name": "LOS", "shortName": "LOS", "region": "Brazil", "league": "EWC", "leaguepediaPage": "MIBR.LOS",
           "players": [
             { "name": "Zest", "realName": "Kim Dong-min", "position": "TOP", "leaguepediaPage": "Zest" },
             { "name": "Curse", "realName": "Raí Yamada", "position": "JGL", "leaguepediaPage": "Curse" },
