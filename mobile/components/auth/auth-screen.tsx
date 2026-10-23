@@ -4,7 +4,7 @@ import Check from 'lucide-react-native/icons/check';
 import ChevronLeft from 'lucide-react-native/icons/chevron-left';
 import Mail from 'lucide-react-native/icons/mail';
 import { useState } from 'react';
-import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
@@ -120,6 +120,7 @@ export function AuthScreen({ mode }: { mode: Mode }) {
                 <View style={[styles.rule, { backgroundColor: theme.border }]} />
               </View>
               <View style={styles.socialList}>
+                {Platform.OS === 'ios' ? <SocialButton compact disabled={Boolean(pending)} icon={<AppleIcon />} label="Apple로 계속하기" onPress={() => void run('apple', () => signInWithOAuth('apple', returnTo))} pending={pending === 'apple'} text="#ffffff" tone="#000000" /> : null}
                 <SocialButton border={colorScheme === 'dark' ? '#8e918f' : '#747775'} compact disabled={Boolean(pending)} icon={<GoogleIcon />} label="구글로 계속하기" onPress={() => void run('google', () => signInWithOAuth('google', returnTo))} pending={pending === 'google'} text={colorScheme === 'dark' ? '#e3e3e3' : '#1f1f1f'} tone={colorScheme === 'dark' ? '#131314' : '#ffffff'} />
                 <SocialButton compact disabled={Boolean(pending)} icon={<KakaoIcon />} label="카카오로 계속하기" onPress={() => void run('kakao', () => signInWithOAuth('kakao', returnTo))} pending={pending === 'kakao'} text="#191600" tone="#fee500" />
                 <SocialButton compact disabled={Boolean(pending)} icon={<NaverIcon />} label="네이버로 계속하기" onPress={() => void run('naver', () => signInWithOAuth('naver', returnTo))} pending={pending === 'naver'} text="#ffffff" tone="#03c75a" />
@@ -174,6 +175,7 @@ export function AuthScreen({ mode }: { mode: Mode }) {
               <>
                 <View style={styles.or}><View style={[styles.rule, { backgroundColor: theme.border }]} /><Text style={[styles.dividerText, { color: theme.muted, ...fonts.medium }]}>또는</Text><View style={[styles.rule, { backgroundColor: theme.border }]} /></View>
                 <View style={styles.socialList}>
+                  {Platform.OS === 'ios' ? <SocialButton compact disabled={Boolean(pending)} icon={<AppleIcon />} label="Apple로 회원가입" onPress={() => void run('apple', () => signInWithOAuth('apple', favoriteTeamReturnTo))} pending={pending === 'apple'} text="#ffffff" tone="#000000" /> : null}
                   <SocialButton border={colorScheme === 'dark' ? '#8e918f' : '#747775'} compact disabled={Boolean(pending)} icon={<GoogleIcon />} label="구글로 회원가입" onPress={() => void run('google', () => signInWithOAuth('google', favoriteTeamReturnTo))} pending={pending === 'google'} text={colorScheme === 'dark' ? '#e3e3e3' : '#1f1f1f'} tone={colorScheme === 'dark' ? '#131314' : '#ffffff'} />
                   <SocialButton compact disabled={Boolean(pending)} icon={<KakaoIcon />} label="카카오로 회원가입" onPress={() => void run('kakao', () => signInWithOAuth('kakao', favoriteTeamReturnTo))} pending={pending === 'kakao'} text="#191600" tone="#fee500" />
                   <SocialButton compact disabled={Boolean(pending)} icon={<NaverIcon />} label="네이버로 회원가입" onPress={() => void run('naver', () => signInWithOAuth('naver', favoriteTeamReturnTo))} pending={pending === 'naver'} text="#ffffff" tone="#03c75a" />
@@ -213,6 +215,7 @@ function ConsentCheck({ checked, label, link, onLinkPress, onPress }: { checked:
 }
 
 function GoogleIcon() { return <Svg height={16} viewBox="0 0 18 18" width={16}><Path d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.57 2.68-3.87 2.68-6.62Z" fill="#4285F4" /><Path d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.83.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.95v2.33A9 9 0 0 0 9 18Z" fill="#34A853" /><Path d="M3.95 10.7A5.4 5.4 0 0 1 3.66 9c0-.59.1-1.17.29-1.7V4.97H.95A9 9 0 0 0 0 9c0 1.45.35 2.83.95 4.03l3-2.33Z" fill="#FBBC05" /><Path d="M9 3.58c1.32 0 2.51.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .95 4.97l3 2.33C4.66 5.17 6.65 3.58 9 3.58Z" fill="#EA4335" /></Svg>; }
+function AppleIcon() { return <Svg height={16} viewBox="0 0 17 20" width={14}><Path d="M14.13 10.6c-.02-2.05 1.68-3.03 1.75-3.08-.96-1.4-2.45-1.6-2.98-1.62-1.27-.13-2.48.75-3.12.75-.65 0-1.63-.73-2.68-.71-1.38.02-2.65.8-3.35 2.03-1.43 2.48-.36 6.14 1.02 8.15.68.98 1.48 2.08 2.54 2.04 1.02-.04 1.4-.66 2.64-.66 1.22 0 1.58.66 2.66.63 1.1-.02 1.79-1 2.46-1.99.78-1.13 1.1-2.24 1.11-2.29-.02-.01-2.13-.82-2.05-3.25ZM12.06 3.98c.56-.68.93-1.62.83-2.56-.8.03-1.78.53-2.36 1.2-.52.6-.97 1.56-.85 2.48.9.07 1.82-.46 2.38-1.12Z" fill="#ffffff" /></Svg>; }
 function KakaoIcon() { return <Svg height={16} viewBox="0 0 18 18" width={16}><Path d="M9 2C4.58 2 1 4.77 1 8.2c0 2.19 1.47 4.11 3.68 5.22-.16.58-.6 2.16-.69 2.5-.11.42.15.42.32.3.13-.09 2.1-1.42 2.95-2 .89.13 1.8.2 2.74.2 4.42 0 8-2.77 8-6.22C18 4.77 14.42 2 9 2Z" fill="#191600" /></Svg>; }
 function NaverIcon() { return <Svg height={12} viewBox="0 0 14 14" width={12}><Path d="M8.24 0v6.4L4.09 0H0v14h4.09V7.6L8.24 14H12.33V0H8.24Z" fill="#ffffff" /></Svg>; }
 
