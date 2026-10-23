@@ -1,7 +1,7 @@
 "use client";
 
 import { ThumbsDown, ThumbsUp } from "lucide-react";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 
 import { reactAction } from "@/lib/community/actions";
 import type { BoardScope } from "@/lib/community/boards";
@@ -13,39 +13,41 @@ export function ReactionButtons({ target, targetId, postId, scope, teamSlug, ini
   const [dislikeCount, setDislikeCount] = useState(initialDislikeCount);
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const inFlight = useRef(false);
 
   const press = (kind: ReactionKind) => {
-    const previous = { state, honorCount, dislikeCount };
-    const optimisticState: ReactionState = state === kind ? null : kind;
-    const adjustCount = (count: number, current: ReactionState, next: ReactionState, reaction: ReactionKind) =>
-      Math.max(0, count + (next === reaction ? 1 : 0) - (current === reaction ? 1 : 0));
-
-    setState(optimisticState);
-    setHonorCount((count) => adjustCount(count, state, optimisticState, "honor"));
-    setDislikeCount((count) => adjustCount(count, state, optimisticState, "dislike"));
+    if (inFlight.current) return;
+    inFlight.current = true;
+    const previousState = state;
+    const previousHonorCount = honorCount;
+    const previousDislikeCount = dislikeCount;
+    const next = state === kind ? null : kind;
+    const applyState = (nextState: ReactionState) => {
+      setHonorCount(Math.max(0, previousHonorCount + (nextState === "honor" ? 1 : 0) - (previousState === "honor" ? 1 : 0)));
+      setDislikeCount(Math.max(0, previousDislikeCount + (nextState === "dislike" ? 1 : 0) - (previousState === "dislike" ? 1 : 0)));
+      setState(nextState);
+    };
+    const rollback = () => {
+      setState(previousState);
+      setHonorCount(previousHonorCount);
+      setDislikeCount(previousDislikeCount);
+    };
+    applyState(next);
     setMessage(null);
-
     startTransition(async () => {
       try {
         const result = await reactAction({ target, targetId, kind, postId, scope, teamSlug });
         if (!result.ok) {
-          setState(previous.state);
-          setHonorCount(previous.honorCount);
-          setDislikeCount(previous.dislikeCount);
+          rollback();
           setMessage(result.error);
           return;
         }
-
-        if (result.state !== optimisticState) {
-          setState(result.state);
-          setHonorCount(adjustCount(previous.honorCount, previous.state, result.state, "honor"));
-          setDislikeCount(adjustCount(previous.dislikeCount, previous.state, result.state, "dislike"));
-        }
-      } catch (error) {
-        setState(previous.state);
-        setHonorCount(previous.honorCount);
-        setDislikeCount(previous.dislikeCount);
-        throw error;
+        applyState(result.state);
+      } catch {
+        rollback();
+        setMessage("반응을 처리하지 못했습니다. 잠시 후 다시 시도해주세요.");
+      } finally {
+        inFlight.current = false;
       }
     });
   };
