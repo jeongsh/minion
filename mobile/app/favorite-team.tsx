@@ -78,7 +78,12 @@ export default function FavoriteTeamScreen() {
 
   const pickImage = async () => {
     Keyboard.dismiss();
-    const picked = await ImagePicker.launchImageLibraryAsync({ allowsEditing: false, mediaTypes: ['images'], quality: 1 });
+    const picked = await ImagePicker.launchImageLibraryAsync({
+      allowsEditing: false,
+      mediaTypes: ['images'],
+      preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible,
+      quality: 1,
+    });
     if (picked.canceled || !picked.assets[0]) return;
     const asset = picked.assets[0];
     const mimeType = imageMimeType(asset);

@@ -23,7 +23,12 @@ export function ProfileForm({
   const [pending, setPending] = useState(false);
   const [result, setResult] = useState<{ status: 'error' | 'success'; message: string } | null>(null);
   const pickImage = async () => {
-    const picked = await ImagePicker.launchImageLibraryAsync({ allowsEditing: false, mediaTypes: ['images'], quality: 1 });
+    const picked = await ImagePicker.launchImageLibraryAsync({
+      allowsEditing: false,
+      mediaTypes: ['images'],
+      preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible,
+      quality: 1,
+    });
     if (picked.canceled || !picked.assets[0]) return;
     const asset = picked.assets[0];
     if (!asset.mimeType || !PROFILE_IMAGE_TYPES.has(asset.mimeType)) {
