@@ -62,14 +62,19 @@ export function StatRadar({
       })}
       {axes.map((axis, index) => {
         const angle = -Math.PI / 2 + (index * Math.PI * 2) / axes.length;
-        const x = center + Math.cos(angle) * (maxRadius + 20);
+        const labelX = center + Math.cos(angle) * (maxRadius + 20);
+        const x = showComparisonValues ? Math.max(32, Math.min(248, labelX + Math.cos(angle) * 14)) : labelX;
         const y = center + Math.sin(angle) * (maxRadius + 16);
         const visibleSeries = showComparisonValues ? series : series.slice(0, 1);
         return (
-          <text key={axis.label} x={x} y={y} textAnchor="middle" className="fill-[var(--ui-ink)] text-[13px] font-medium">
-            <tspan x={x}>{axis.label}</tspan>
-            <tspan x={x} dy="17" className="fill-[var(--ui-muted)]">{visibleSeries.map((item) => item.scores[index] == null ? "-" : Math.round(item.scores[index]!)).join("  ")}</tspan>
-          </text>
+          <g key={axis.label} className="text-[13px] font-medium">
+            <text x={x} y={y} textAnchor="middle" fill="var(--ui-ink)">{axis.label}</text>
+            {visibleSeries.map((item, i) => (
+              <text key={item.label} x={x + (i - (visibleSeries.length - 1) / 2) * 30} y={y + 17} textAnchor="middle" fill={item.color}>
+                {item.scores[index] == null ? "-" : Math.round(item.scores[index]!)}
+              </text>
+            ))}
+          </g>
         );
       })}
     </svg>

@@ -13,6 +13,7 @@ import {
 import type { MatchPreviewAccuracy } from "@/lib/match-preview-accuracy";
 import { teamPowerRanking, type MatchPowerRankings } from "@/lib/power-rankings";
 import { KST_TIMEZONE, matchHref, teamLabel } from "@/lib/view-data";
+import { previewTeamColor } from "../../../packages/contracts/src/preview-colors";
 import {
   AccuracySummary, CARD_SURFACE, ChampionPriorityMap, ChartCard, FirstDragonChart, LaneGoldChart, Legend, LeagueRecordBar, META,
   SideWinRates, WinProbabilityGauge,
@@ -23,24 +24,11 @@ function formatDate(value: string) {
   return new Intl.DateTimeFormat("ko-KR", { timeZone: KST_TIMEZONE, month: "numeric", day: "numeric" }).format(new Date(value));
 }
 
-function luminance(hex: string) {
-  const [r, g, b] = [1, 3, 5].map((index) => {
-    const channel = parseInt(hex.slice(index, index + 2), 16) / 255;
-    return channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
-  });
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-}
-
-/**
- * 막대와 점에 쓰는 팀 색. 검증된 primaryColor를 그대로 쓰되, 검정·흰색에 가까워
- * 한쪽 테마에서 사라지는 색과 두 팀이 겹치는 색은 중립 잉크와 보조색으로 바꾼다.
- */
 function chartColors(teams: Array<Team | undefined>) {
   const colors = teams.map((team) => {
-    const color = team?.primaryColor;
-    if (!color || !/^#[\da-f]{6}$/i.test(color)) return "var(--ui-ink)";
-    const value = luminance(color);
-    return value < 0.04 || value > 0.85 ? "var(--ui-ink)" : color;
+    const light = previewTeamColor(team?.primaryColor, "var(--ui-ink)");
+    const dark = previewTeamColor(team?.primaryColor, "var(--ui-ink)", true);
+    return light === dark ? light : `light-dark(${light}, ${dark})`;
   });
   if (colors[0] === colors[1]) colors[1] = "var(--ui-muted)";
   return colors;
@@ -101,10 +89,7 @@ export function MatchPreview({
   const teamB = teams.find((team) => team.id === match.teamBId);
   const names = [teamLabel(teams, match.teamAId), teamLabel(teams, match.teamBId)];
   const colors = chartColors([teamA, teamB]);
-  // 선 차트는 기존 레이더·파워랭킹과 같은 가독성 보정 색을 유지한다.
-  const lineColors = [teamA, teamB].map((team) => team?.primaryColor
-    ? `light-dark(color-mix(in srgb, ${team.primaryColor} 85%, var(--ui-ink)), color-mix(in srgb, ${team.primaryColor} 60%, var(--ui-ink)))`
-    : "var(--ui-ink)");
+  const lineColors = colors;
   const rankings = [teamA, teamB].map((team) => teamPowerRanking(team, powerRankings.teams, match.matchDate));
   const ranks = rankings.map((ranking) => ranking?.history.at(-1)?.rank ?? null);
   const leagues = [teamA, teamB].map((team) => {

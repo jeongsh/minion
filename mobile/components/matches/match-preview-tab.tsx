@@ -6,18 +6,10 @@ import { PowerRankingChart } from '@/components/charts/power-ranking-chart';
 import { TeamLogo } from '@/components/data/team-logo';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import type { MobileMatchDetailDto, MobileTeamSummary } from '@/lib/api-client';
+import { previewTeamColor } from '../../../packages/contracts/src/preview-colors';
 import { Accuracy, Card, ChampionMap, Copy, FirstDragon, Gauge, LaneGold, LeagueRecord, Legend, SideRates } from './match-preview-charts';
 
 const day = (value: string) => new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', month: 'numeric', day: 'numeric' }).format(new Date(value));
-
-function teamColor(team: MobileTeamSummary | null, fallback: string) {
-  return team?.primaryColor && /^#[\da-f]{6}$/i.test(team.primaryColor) ? team.primaryColor : fallback;
-}
-
-function mixColor(color: string, ink: string, weight: number) {
-  if (!/^#[\da-f]{6}$/i.test(color) || !/^#[\da-f]{6}$/i.test(ink)) return color;
-  return '#' + [1, 3, 5].map((i) => Math.round(parseInt(color.slice(i, i + 2), 16) * weight + parseInt(ink.slice(i, i + 2), 16) * (1 - weight)).toString(16).padStart(2, '0')).join('');
-}
 
 function PredictionChoice({ percent, reverse, team }: { percent: number; reverse?: boolean; team: MobileTeamSummary | null }) {
   const { fonts, theme } = useMinionTheme();
@@ -44,16 +36,8 @@ function PredictionBar({ data }: { data: MobileMatchDetailDto }) {
 }
 
 
-function chartColors(teams: (MobileTeamSummary | null)[], ink: string, muted: string) {
-  const colors = teams.map((team) => {
-    const color = teamColor(team, ink);
-    const [r, g, b] = [1, 3, 5].map((i) => {
-      const channel = parseInt(color.slice(i, i + 2), 16) / 255;
-      return channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
-    });
-    const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-    return luminance < 0.04 || luminance > 0.85 ? ink : color;
-  });
+function chartColors(teams: (MobileTeamSummary | null)[], ink: string, muted: string, dark: boolean) {
+  const colors = teams.map((team) => previewTeamColor(team?.primaryColor, ink, dark));
   if (colors[0] === colors[1]) colors[1] = muted;
   return colors;
 }
@@ -87,8 +71,8 @@ export function MatchPreviewTab({ data }: { data: MobileMatchDetailDto }) {
   const charts = briefing?.charts;
   const teams = [data.match.teamA, data.match.teamB];
   const names = teams.map((team) => team?.shortName ?? team?.name ?? 'TBD');
-  const colors = chartColors(teams, theme.ink, theme.muted);
-  const lineColors = teams.map((team) => mixColor(teamColor(team, theme.ink), theme.ink, colorScheme === 'dark' ? 0.6 : 0.85));
+  const colors = chartColors(teams, theme.ink, theme.muted, colorScheme === 'dark');
+  const lineColors = colors;
   const series = briefing?.teams.map((stats, i) => ({ label: names[i], color: lineColors[i], scores: charts?.teams[i]?.scores ?? stats.scores, values: charts?.teams[i]?.values ?? stats.values, history: stats.history, dashed: i === 1 })) ?? [];
   const latestDate = briefing?.teams.flatMap((stats) => stats.history.at(-1)?.date ?? []).sort().at(-1);
   const sample = charts ? `${names[0]} ${charts.teams[0].sets}세트, ${names[1]} ${charts.teams[1].sets}세트 기준` : '';

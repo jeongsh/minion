@@ -42,8 +42,8 @@ export function Gauge({ names, colors, probability }: { names: string[]; colors:
   return <Svg width={200} height={116} viewBox="0 0 200 116" style={{ alignSelf: 'center' }} accessibilityRole="image" accessibilityLabel={`AI 예상 승률 ${names[0]} ${probability}%, ${names[1]} ${100 - probability}%`}>
     <Path d="M20 100 A80 80 0 0 1 180 100" fill="none" stroke={colors[1]} strokeWidth={16} />
     <Path d="M20 100 A80 80 0 0 1 180 100" fill="none" stroke={colors[0]} strokeWidth={16} strokeDasharray={[length, length]} strokeDashoffset={length * (1 - probability / 100)} />
-    <SvgText x={100} y={84} textAnchor="middle" fill={theme.ink} fontFamily={fonts.black.fontFamily} fontWeight={fonts.black.fontWeight} fontSize={28} fontFeatureSettings="'tnum'">{favored ? 100 - probability : probability}%</SvgText>
-    <SvgText x={100} y={108} textAnchor="middle" fill={theme.muted} fontFamily={fonts.medium.fontFamily} fontWeight={fonts.medium.fontWeight} fontSize={13}>{names[favored]} 승리 확률</SvgText>
+    <SvgText x={100} y={84} textAnchor="middle" fill={theme.ink} fontFamily={fonts.black.fontFamily} fontWeight={fonts.black.fontWeight} fontSize={28} fontFeatureSettings="'tnum'">{`${favored ? 100 - probability : probability}%`}</SvgText>
+    <SvgText x={100} y={108} textAnchor="middle" fill={theme.muted} fontFamily={fonts.medium.fontFamily} fontWeight={fonts.medium.fontWeight} fontSize={13}>{`${names[favored]} 승리 확률`}</SvgText>
   </Svg>;
 }
 
