@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import { Analytics } from "@vercel/analytics/next";
 import { AdDocumentBoundary } from "@/components/ads/ad-runtime";
 import { AppShell, type AppShellUser } from "@/components/layout/app-shell";
@@ -100,7 +101,9 @@ export default async function RootLayout({
         <meta name="color-scheme" content="light dark" />
         <meta name="theme-color" content="#ffffff" suppressHydrationWarning />
         {adsenseClient ? <meta name="google-adsense-account" content={adsenseClient} /> : null}
-        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+        <Script id="minion-theme-init" strategy="beforeInteractive">
+          {themeInitScript}
+        </Script>
       </head>
       <body>
         <AdDocumentBoundary />
