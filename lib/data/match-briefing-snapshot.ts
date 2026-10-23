@@ -12,7 +12,10 @@ export async function backfillMatchBriefingSnapshot(snapshot: MatchBriefingSnaps
   const lockToken = randomUUID();
   const { data: claimed, error: claimError } = await admin.rpc("claim_match_ai_preview_generation", {
     p_match_id: snapshot.matchId, p_lock_token: lockToken,
-    p_input_hash: cached.input_hash, p_generation_phase: cached.generation_phase,
+    p_input_hash: cached.input_hash,
+    // 구버전 프리뷰의 legacy 값은 생성 lease의 허용 단계가 아니다.
+    // 자료만 보충하므로 기존 프리뷰 단계는 변경하지 않는다.
+    p_generation_phase: cached.generation_phase === "story" ? "story" : "final",
   });
   if (claimError) throw new Error(claimError.message);
   if (claimed !== true) return false;
