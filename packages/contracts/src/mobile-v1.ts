@@ -1069,6 +1069,9 @@ export type MobileChampionBuild = {
 };
 
 export type MobileChampionMatchup = {
+  csDiffAt15?: number | null;
+  goldRecordedGames?: number;
+  csRecordedGames?: number;
   champion: MobileChampionSummary | null;
   games: number;
   wins: number;
@@ -1078,6 +1081,9 @@ export type MobileChampionMatchup = {
 };
 
 export type MobileChampionDuo = {
+  goldRecordedGames?: number;
+  playerPairs?: Array<{ botPlayer: MobilePlayerSummary | null; supPlayer: MobilePlayerSummary | null; games: number; winRate: number }>;
+  opponentDuos?: Array<{ botChampion: MobileChampionSummary | null; supChampion: MobileChampionSummary | null; games: number; winRate: number }>;
   champion: MobileChampionSummary | null;
   games: number;
   wins: number;
@@ -1097,6 +1103,7 @@ export type MobileChampionPro = {
 };
 
 export type MobileChampionGame = {
+  itemSlots?: Array<MobileImage | null>;
   setId: EntityId;
   matchId: EntityId;
   href: string | null;
