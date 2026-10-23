@@ -26,13 +26,12 @@ export async function POST(request: Request) {
   const email = userResult.user?.email;
   if (!email) return mobileError("UNAUTHENTICATED", "연결된 계정을 찾을 수 없습니다.", 401);
   const { data: link, error: linkError } = await admin.auth.admin.generateLink({ type: "magiclink", email });
-  if (linkError || !link.properties?.hashed_token) return mobileError("INTERNAL", "로그인 세션을 만들지 못했습니다.", 500);
+  if (linkError || !link.properties?.hashed_token || link.user?.id !== consumed.user_id) return mobileError("INTERNAL", "로그인 세션을 만들지 못했습니다.", 500);
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   if (!url || !key) return mobileError("INTERNAL", "인증 서버 설정이 필요합니다.", 500);
   const client = createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } });
   const { data, error } = await client.auth.verifyOtp({ type: "magiclink", token_hash: link.properties.hashed_token });
-  if (error || !data.session) return mobileError("INTERNAL", "로그인 세션을 만들지 못했습니다.", 500);
-  await admin.auth.admin.updateUserById(consumed.user_id, { app_metadata: { provider: "custom:naver", providers: ["custom:naver"] } });
+  if (error || !data.session || data.user?.id !== consumed.user_id) return mobileError("INTERNAL", "로그인 세션을 만들지 못했습니다.", 500);
   return mobileSuccess({ accessToken: data.session.access_token, refreshToken: data.session.refresh_token }, { headers: { "Cache-Control": "no-store" } });
 }

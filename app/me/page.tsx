@@ -6,6 +6,9 @@ import { DeleteAccountForm } from "@/components/auth/delete-account-form";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { PasswordForm } from "@/components/auth/password-form";
 import { ProfileForm } from "@/components/auth/profile-form";
+import { LinkedAccountsForm } from "@/components/auth/linked-accounts-form";
+import { LINK_PROVIDERS, isLinkedProvider } from "@/lib/auth/linked-accounts";
+import { getVerifiedAuth } from "@/lib/auth/verified-user";
 import { BlockedUserList } from "@/components/community/blocked-user-list";
 import { NotificationSettingsForm } from "@/components/notifications/notification-settings-form";
 import { CheckInButton } from "@/components/rank/check-in-button";
@@ -48,8 +51,8 @@ function accountLabel(user: CurrentUser) {
   return `${(user.authProvider ? SOCIAL_PROVIDER_LABELS[user.authProvider] : undefined) ?? "소셜"} 로그인`;
 }
 
-export default async function MePage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
-  const { tab } = await searchParams;
+export default async function MePage({ searchParams }: { searchParams: Promise<{ tab?: string; linked?: string; linkError?: string }> }) {
+  const { tab, linked, linkError } = await searchParams;
   if (tab === "account") redirect("/me#account");
   if (tab === "blocks") redirect("/me#blocks");
 
@@ -76,6 +79,8 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
   ]);
   const progress = tierProgress(summary.tier, summary.lp);
   const initials = (user.nickname ?? "MY").slice(0, 2).toUpperCase();
+  const auth = await getVerifiedAuth();
+  const linkedProviders = auth ? LINK_PROVIDERS.filter(({ value }) => isLinkedProvider(auth.user, value)).map(({ value }) => value) : [];
 
   return (
     <main className="layout-wide me-page max-w-6xl pb-6 pt-3 sm:py-8">
@@ -152,6 +157,7 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
           <div className="space-y-2.5 sm:space-y-5">
             <AccountSection id="profile" icon={UserRound} title="프로필">
               <ProfileForm initialNickname={user.nickname ?? ""} initialProfileImageUrl={user.profileImageUrl} tier={summary.tier} />
+              <LinkedAccountsForm linked={linkedProviders} message={linked === "1" ? "SNS 계정이 연동되었습니다." : undefined} error={linkError} />
             </AccountSection>
 
             <AccountSection id="notifications" icon={Bell} title="알림">

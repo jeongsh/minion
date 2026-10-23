@@ -4,6 +4,9 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
 import { siteBaseUrl } from "@/lib/site";
+import { safeOnboardingNext } from "@/lib/auth/onboarding";
+import { ACCOUNT_LINK_COOKIE } from "@/lib/auth/linked-accounts";
+import { createSupabaseAuthClient } from "@/lib/supabase/auth-server";
 
 // Supabase의 내장 커스텀 OIDC 연동이 네이버의 비표준 userinfo 응답(email이 최상위가
 // 아니라 response.email 안에 중첩됨)을 못 읽어서, 네이버 로그인만 이 앱이 직접
@@ -27,6 +30,18 @@ export async function GET(request: Request) {
   const state = randomBytes(16).toString("hex");
 
   const cookieStore = await cookies();
+  const linking = url.searchParams.get("link") === "1";
+  if (linking) {
+    let intent: { userId?: string; provider?: string } = {};
+    try { intent = JSON.parse(cookieStore.get(ACCOUNT_LINK_COOKIE)?.value ?? "{}"); } catch { /* Reject invalid intent below. */ }
+    const supabase = await createSupabaseAuthClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user || intent.userId !== user.id || intent.provider !== "naver") {
+      return NextResponse.redirect(new URL(`/me?linkError=${encodeURIComponent("연동 요청이 만료되었습니다. 다시 시도해주세요.")}#profile`, siteBaseUrl()));
+    }
+  } else {
+    cookieStore.delete(ACCOUNT_LINK_COOKIE);
+  }
   const cookieOptions = {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
@@ -35,7 +50,7 @@ export async function GET(request: Request) {
     path: "/",
   };
   cookieStore.set(STATE_COOKIE, state, cookieOptions);
-  cookieStore.set(NEXT_COOKIE, next.startsWith("/") ? next : "/", cookieOptions);
+  cookieStore.set(NEXT_COOKIE, linking ? "/me#profile" : safeOnboardingNext(next, "/"), cookieOptions);
 
   const authorizeUrl = new URL("https://nid.naver.com/oauth2.0/authorize");
   authorizeUrl.searchParams.set("response_type", "code");

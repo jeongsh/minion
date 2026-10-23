@@ -4,10 +4,10 @@
 
 import { cache } from "react";
 import { getVerifiedAuth } from "@/lib/auth/verified-user";
+import { hasEmailPassword } from "@/lib/auth/linked-accounts";
 
-// 소셜 로그인(구글/카카오/네이버)은 비밀번호가 없다. app_metadata.providers 에
-// "email"이 있는지로 비밀번호 보유 여부를, provider(최초 가입 provider)로 어떤
-// 소셜 계정인지 판별해 비밀번호 변경/회원 탈퇴 화면 분기에 쓴다.
+// 네이버의 세션 발급용 email identity를 비밀번호 로그인과 구분한다.
+// provider(최초 가입 수단)는 비밀번호 변경/회원 탈퇴 화면 분기에 사용한다.
 export type CurrentUser = {
   id: string;
   email: string | null;
@@ -41,7 +41,7 @@ export const getCurrentUser = cache(async function getCurrentUser(): Promise<Cur
     email: user.email ?? null,
     nickname: profile?.nickname ?? null,
     profileImageUrl: profile?.profile_image_url ?? null,
-    hasPassword: providers.includes("email"),
+    hasPassword: hasEmailPassword(user),
     authProvider: (user.app_metadata?.provider as string | undefined) ?? providers[0] ?? null,
     lastSignInAt: user.last_sign_in_at ?? null,
   };

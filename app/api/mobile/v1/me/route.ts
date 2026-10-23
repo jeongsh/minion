@@ -1,4 +1,5 @@
 import type { MobileMeDto, MobileNotificationPreferences, MobileTeamNotificationSettings } from "@/packages/contracts/src/mobile-v1";
+import { hasEmailPassword } from "@/lib/auth/linked-accounts";
 import { getMobileAuth } from "@/lib/mobile/auth";
 import { mobileError, mobileSuccess } from "@/lib/mobile/api-response";
 import { prepareProfileImage } from "@/lib/images/prepare-profile-image";
@@ -84,7 +85,7 @@ async function readMe(request: Request): Promise<MobileMeDto | null> {
   const tier = asTier(ranked?.effective_tier ?? profile?.tier);
   const lp = ranked?.lp ?? profile?.lp ?? 0;
   const progress = tierProgress(tier, lp);
-  const hasPassword = providers.includes("email");
+  const hasPassword = hasEmailPassword(user);
   const lastSignInAt = user.last_sign_in_at ? new Date(user.last_sign_in_at).getTime() : 0;
   return {
     profile: {
@@ -218,8 +219,7 @@ export async function PATCH(request: Request) {
     if (result !== "checked_in") return mobileError("INTERNAL", "출석체크에 실패했습니다.", 500);
   }
   if (input.passwordChange) {
-    const providers = Array.isArray(user.app_metadata?.providers) ? user.app_metadata.providers as string[] : [];
-    if (!providers.includes("email")) return mobileError("BAD_REQUEST", "소셜 로그인 계정은 비밀번호 변경을 지원하지 않습니다.", 400);
+    if (!hasEmailPassword(user)) return mobileError("BAD_REQUEST", "소셜 로그인 계정은 비밀번호 변경을 지원하지 않습니다.", 400);
     if (!user.email) return mobileError("BAD_REQUEST", "이메일 정보가 없어 비밀번호를 변경할 수 없습니다.", 400);
     const currentPassword = input.passwordChange.currentPassword ?? "";
     const newPassword = input.passwordChange.newPassword ?? "";
@@ -384,8 +384,7 @@ export async function DELETE(request: Request) {
   if (!auth) return mobileError("UNAUTHENTICATED", "로그인이 필요합니다.", 401);
   const input = await request.json().catch(() => null) as { confirmText?: string; password?: string } | null;
   if (input?.confirmText?.trim() !== DELETE_ACCOUNT_CONFIRM_TEXT) return mobileError("BAD_REQUEST", `확인 문구를 정확히 입력해주세요. ("${DELETE_ACCOUNT_CONFIRM_TEXT}")`, 400);
-  const providers = Array.isArray(auth.user.app_metadata?.providers) ? auth.user.app_metadata.providers as string[] : [];
-  const hasPassword = providers.includes("email");
+  const hasPassword = hasEmailPassword(auth.user);
   if (hasPassword) {
     if (!auth.user.email) return mobileError("BAD_REQUEST", "이메일 정보가 없어 탈퇴를 진행할 수 없습니다.", 400);
     if (!input?.password) return mobileError("BAD_REQUEST", "비밀번호를 입력해주세요.", 400);

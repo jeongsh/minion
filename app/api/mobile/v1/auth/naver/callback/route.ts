@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { resolveNaverAccount } from "@/lib/auth/naver-account";
 
 export const runtime = "nodejs";
 
@@ -46,22 +47,13 @@ export async function GET(request: Request) {
   if (!profileResponse.ok || naverProfile.resultcode !== "00" || !naver?.id || !naver.email) return fail("네이버 계정의 이메일 제공 동의가 필요합니다.");
 
   const admin = createSupabaseAdminClient();
-  const { data: linked } = await admin.from("profiles").select("id").eq("naver_id", naver.id).maybeSingle();
-  let userId = linked?.id as string | undefined;
-  if (!userId) {
-    const { data: created, error } = await admin.auth.admin.createUser({
-      email: naver.email,
-      email_confirm: true,
-      app_metadata: { provider: "custom:naver", providers: ["custom:naver"] },
-      user_metadata: { nickname: naver.nickname, naver_id: naver.id },
-    });
-    if (error || !created.user) {
-      return fail(/already.*(registered|exists)/i.test(error?.message ?? "") ? "같은 이메일의 기존 계정으로 먼저 로그인해주세요." : "네이버 계정을 연결하지 못했습니다.");
-    }
-    userId = created.user.id;
-    await admin.from("profiles").update({ naver_id: naver.id }).eq("id", userId);
+  let userId: string;
+  try {
+    const account = await resolveNaverAccount({ id: naver.id, email: naver.email, nickname: naver.nickname });
+    userId = account.id;
+  } catch (error) {
+    return fail(error instanceof Error ? error.message : "네이버 계정을 연결하지 못했습니다.");
   }
-  await admin.auth.admin.updateUserById(userId, { app_metadata: { provider: "custom:naver", providers: ["custom:naver"] } });
   const rawCode = randomBytes(32).toString("base64url");
   const codeHash = createHash("sha256").update(rawCode).digest("hex");
   const { error: insertError } = await admin.from("mobile_auth_exchange_codes").insert({

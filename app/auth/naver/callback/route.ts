@@ -4,6 +4,9 @@ import { cookies } from "next/headers";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseAuthClient } from "@/lib/supabase/auth-server";
 import { siteBaseUrl } from "@/lib/site";
+import { resolveNaverAccount } from "@/lib/auth/naver-account";
+import { ACCOUNT_LINK_COOKIE } from "@/lib/auth/linked-accounts";
+import { safeOnboardingNext } from "@/lib/auth/onboarding";
 
 // Naver 로그인 전용 콜백. Supabase의 내장 커스텀 OIDC 연동은 네이버 userinfo가
 // {resultcode, response:{email,...}} 형태로 중첩돼 있어 이메일을 못 읽는 문제가 있어서,
@@ -42,20 +45,34 @@ export async function GET(request: Request) {
   const cookieStore = await cookies();
   const savedState = cookieStore.get(STATE_COOKIE)?.value;
   const next = cookieStore.get(NEXT_COOKIE)?.value || "/";
+  const rawIntent = cookieStore.get(ACCOUNT_LINK_COOKIE)?.value;
+  cookieStore.delete(ACCOUNT_LINK_COOKIE);
+  let linkIntent: { userId?: string; provider?: string } = {};
+  try { linkIntent = JSON.parse(rawIntent ?? "{}"); } catch {
+    return errorRedirect("연동 요청이 올바르지 않습니다. 다시 시도해주세요.");
+  }
+  const linking = next === "/me#profile";
+  const fail = (message: string) => linking
+    ? NextResponse.redirect(new URL(`/me?linkError=${encodeURIComponent(message)}#profile`, siteBaseUrl()))
+    : errorRedirect(message);
   cookieStore.delete(STATE_COOKIE);
   cookieStore.delete(NEXT_COOKIE);
 
+  if (linking && (linkIntent.provider !== "naver" || !linkIntent.userId)) {
+    return fail("연동 요청이 만료되었습니다. 다시 시도해주세요.");
+  }
+
   if (providerError) {
-    return errorRedirect("네이버 로그인이 취소되었습니다.");
+    return fail("네이버 로그인이 취소되었습니다.");
   }
   if (!code || !state || !savedState || state !== savedState) {
-    return errorRedirect("네이버 로그인 요청이 올바르지 않습니다. 다시 시도해주세요.");
+    return fail("네이버 로그인 요청이 올바르지 않습니다. 다시 시도해주세요.");
   }
 
   const clientId = process.env.NAVER_LOGIN_CLIENT_ID;
   const clientSecret = process.env.NAVER_LOGIN_CLIENT_SECRET;
   if (!clientId || !clientSecret) {
-    return errorRedirect("네이버 로그인이 아직 설정되지 않았습니다.");
+    return fail("네이버 로그인이 아직 설정되지 않았습니다.");
   }
 
   const tokenUrl = new URL("https://nid.naver.com/oauth2.0/token");
@@ -68,7 +85,7 @@ export async function GET(request: Request) {
   const tokenRes = await fetch(tokenUrl, { method: "GET" });
   const token = (await tokenRes.json()) as NaverTokenResponse;
   if (!tokenRes.ok || !token.access_token) {
-    return errorRedirect("네이버 인증에 실패했습니다. 다시 시도해주세요.");
+    return fail("네이버 인증에 실패했습니다. 다시 시도해주세요.");
   }
 
   const profileRes = await fetch("https://openapi.naver.com/v1/nid/me", {
@@ -76,59 +93,31 @@ export async function GET(request: Request) {
   });
   const profile = (await profileRes.json()) as NaverProfileResponse;
   if (!profileRes.ok || profile.resultcode !== "00" || !profile.response) {
-    return errorRedirect("네이버 프로필 조회에 실패했습니다. 다시 시도해주세요.");
+    return fail("네이버 프로필 조회에 실패했습니다. 다시 시도해주세요.");
   }
 
-  const naverId = profile.response.id;
-  const email = profile.response.email;
-  const nickname = profile.response.nickname;
-
-  if (!email) {
-    return errorRedirect(
-      "네이버 계정에서 이메일 제공에 동의해야 로그인할 수 있습니다. 네이버 로그인을 다시 시도해주세요.",
-    );
+  const naver = profile.response;
+  if (!naver.id || !naver.email) {
+    return fail("네이버 계정에서 이메일 제공에 동의해야 로그인할 수 있습니다.");
   }
-
+  const supabase = await createSupabaseAuthClient();
+  if (linking) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user || user.id !== linkIntent.userId) return fail("로그인 계정이 변경되었습니다. 다시 연동해주세요.");
+  }
+  let account;
+  try {
+    account = await resolveNaverAccount({ id: naver.id, email: naver.email, nickname: naver.nickname }, linking ? linkIntent.userId : undefined);
+  } catch (error) {
+    return fail(error instanceof Error ? error.message : "네이버 계정을 연결하지 못했습니다.");
+  }
+  if (linking) {
+    return NextResponse.redirect(new URL("/me?linked=1#profile", siteBaseUrl()));
+  }
+  const userId = account.id;
+  const email = account.email;
+  if (!email) return fail("연결된 계정의 이메일을 확인하지 못했습니다.");
   const admin = createSupabaseAdminClient();
-
-  const { data: linkedProfile } = await admin
-    .from("profiles")
-    .select("id")
-    .eq("naver_id", naverId)
-    .maybeSingle();
-
-  let userId = linkedProfile?.id as string | undefined;
-
-  if (!userId) {
-    const { data: created, error: createError } = await admin.auth.admin.createUser({
-      email,
-      email_confirm: true,
-      app_metadata: { provider: "custom:naver", providers: ["custom:naver"] },
-      user_metadata: { nickname, naver_id: naverId },
-    });
-
-    if (createError || !created?.user) {
-      if (createError && /already.*(registered|exists)/i.test(createError.message)) {
-        return errorRedirect("이미 같은 이메일로 가입된 계정이 있습니다. 기존 로그인 방법을 이용해주세요.");
-      }
-      console.error("네이버 계정 생성 실패", createError);
-      return errorRedirect("네이버 계정으로 로그인하지 못했습니다. 잠시 후 다시 시도해주세요.");
-    }
-
-    userId = created.user.id;
-
-    const { error: linkError } = await admin.from("profiles").update({ naver_id: naverId }).eq("id", userId);
-    if (linkError) {
-      console.error("naver_id 연결 실패", linkError);
-    }
-  } else {
-    // 매직링크로 세션을 발급하는 과정에서 Supabase가 providers에 "email"을 끼워
-    // 넣는 경우가 있어, 재로그인 때마다 provider 메타데이터를 네이버로 다시 맞춰
-    // 프로필 화면의 로그인수단 표시/재인증 매칭이 흐트러지지 않게 한다.
-    await admin.auth.admin.updateUserById(userId, {
-      app_metadata: { provider: "custom:naver", providers: ["custom:naver"] },
-    });
-  }
 
   const { data: linkData, error: linkGenError } = await admin.auth.admin.generateLink({
     type: "magiclink",
@@ -136,20 +125,23 @@ export async function GET(request: Request) {
   });
 
   const hashedToken = linkData?.properties?.hashed_token;
-  if (linkGenError || !hashedToken) {
+  if (linkGenError || !hashedToken || linkData.user?.id !== userId) {
     console.error("로그인 링크 생성 실패", linkGenError);
-    return errorRedirect("로그인 세션을 만들지 못했습니다. 잠시 후 다시 시도해주세요.");
+    return fail("로그인 세션을 만들지 못했습니다. 잠시 후 다시 시도해주세요.");
   }
 
-  const supabase = await createSupabaseAuthClient();
-  const { error: verifyError } = await supabase.auth.verifyOtp({
+  const { data: verified, error: verifyError } = await supabase.auth.verifyOtp({
     type: "magiclink",
     token_hash: hashedToken,
   });
 
   if (verifyError) {
     console.error("네이버 로그인 세션 발급 실패", verifyError);
-    return errorRedirect("로그인 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+    return fail("로그인 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+  }
+  if (verified.user?.id !== userId) {
+    await supabase.auth.signOut({ scope: "local" });
+    return fail("연결된 계정을 확인하지 못했습니다. 다시 로그인해주세요.");
   }
 
   const { data: onboardingProfile, error: onboardingError } = await supabase
@@ -163,5 +155,5 @@ export async function GET(request: Request) {
     return NextResponse.redirect(new URL(`/onboarding/favorite-team${suffix}`, siteBaseUrl()));
   }
 
-  return NextResponse.redirect(new URL(next.startsWith("/") ? next : "/", siteBaseUrl()));
+  return NextResponse.redirect(new URL(safeOnboardingNext(next, "/"), siteBaseUrl()));
 }
