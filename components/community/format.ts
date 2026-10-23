@@ -1,4 +1,13 @@
-// 게시판 UI 공용 포맷 헬퍼.
+// 게시판 날짜는 서버와 브라우저의 기본 시간대에 관계없이 한국 시간으로 표시한다.
+const TIME_ZONE = "Asia/Seoul";
+
+export function formatCommunityDate(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  return date.toLocaleDateString("ko-KR", {
+    timeZone: TIME_ZONE, year: "numeric", month: "2-digit", day: "2-digit",
+  });
+}
 
 export function formatRelativeOrDate(iso: string): string {
   const date = new Date(iso);
@@ -13,11 +22,7 @@ export function formatRelativeOrDate(iso: string): string {
   const diffDay = Math.floor(diffHour / 24);
   if (diffDay < 7) return `${diffDay}일 전`;
 
-  return date.toLocaleDateString("ko-KR", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
+  return formatCommunityDate(iso);
 }
 
 export function formatListDate(iso: string): string {
@@ -25,13 +30,10 @@ export function formatListDate(iso: string): string {
   if (Number.isNaN(date.getTime())) return iso;
 
   const now = new Date();
-  const isToday =
-    date.getFullYear() === now.getFullYear() &&
-    date.getMonth() === now.getMonth() &&
-    date.getDate() === now.getDate();
+  const isToday = formatCommunityDate(iso) === formatCommunityDate(now.toISOString());
 
   if (isToday) {
-    return date.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", hour12: false });
+    return date.toLocaleTimeString("ko-KR", { timeZone: TIME_ZONE, hour: "2-digit", minute: "2-digit", hour12: false });
   }
-  return date.toLocaleDateString("ko-KR", { year: "numeric", month: "2-digit", day: "2-digit" });
+  return formatCommunityDate(iso);
 }

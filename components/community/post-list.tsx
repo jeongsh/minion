@@ -4,7 +4,7 @@ import Image from "next/image";
 
 import cleansingBotWarning from "@/assets/characters/pen-warning-blocked-red.png";
 import { AuthorMenu } from "@/components/community/author-menu";
-import { formatRelativeOrDate } from "@/components/community/format";
+import { RelativeDate } from "@/components/community/relative-date";
 import { boardLabel, type BoardScope } from "@/lib/community/boards";
 import { isHotPost } from "@/lib/community/hot";
 import { blindLabel } from "@/lib/community/moderation-labels";
@@ -92,7 +92,7 @@ export function PostList({
               <span className="pointer-events-auto relative z-10 inline-flex min-w-0">
                 <AuthorMenu authorId={post.authorId} authorName={post.authorName} authorImageUrl={post.authorImageUrl} authorTier={post.authorTier} authorTeam={post.authorTeam} guestKey={post.guestKey} viewerId={viewerId} variant="feed" evidencePostId={post.id} scope={scope} teamSlug={teamSlug} />
               </span>
-              <span className="shrink-0">{formatRelativeOrDate(post.createdAt)}</span>
+              <span className="shrink-0"><RelativeDate value={post.createdAt} /></span>
               <span className="hidden shrink-0 items-center gap-1 sm:inline-flex"><Eye size={13} strokeWidth={1.8} />{post.viewCount}</span>
               <span className="inline-flex shrink-0 items-center gap-0.5 min-[390px]:gap-1"><MessageCircle size={11} strokeWidth={1.8} className="sm:h-[13px] sm:w-[13px]" />{post.commentCount}</span>
               <span className="inline-flex shrink-0 items-center gap-0.5 min-[390px]:gap-1"><ThumbsUp size={11} strokeWidth={1.8} className="sm:h-[13px] sm:w-[13px]" />{post.likeCount}</span>

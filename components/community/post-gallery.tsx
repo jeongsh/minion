@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { formatRelativeOrDate } from "@/components/community/format";
+import { RelativeDate } from "@/components/community/relative-date";
 import { boardLabel, type BoardScope } from "@/lib/community/boards";
 import { isHotPost } from "@/lib/community/hot";
 import type { CommunityPostDetail } from "@/lib/community/types";
@@ -65,7 +65,7 @@ export function PostGallery({
               </div>
               <h3 className="h-5 truncate text-[15px] font-extrabold leading-5 text-[var(--ui-ink)]">{post.title}</h3>
               <div className="flex h-[16px] items-center gap-x-2 overflow-hidden whitespace-nowrap text-[13px] font-semibold leading-[16px] text-[var(--ui-muted)]">
-                <span>{formatRelativeOrDate(post.createdAt)}</span>
+                <RelativeDate value={post.createdAt} />
                 <span aria-hidden>·</span>
                 <span>명예 {post.likeCount}</span>
                 <span aria-hidden>·</span>

@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { BlindedContent } from "@/components/community/blinded-content";
 import { AuthorMenu } from "@/components/community/author-menu";
 import { CommentForm } from "@/components/community/comment-form";
-import { formatRelativeOrDate } from "@/components/community/format";
+import { RelativeDate } from "@/components/community/relative-date";
 import { ReactionButtons } from "@/components/community/reaction-buttons";
 import { ReportButton } from "@/components/community/report-button";
 import { RankAvatar } from "@/components/rank/rank-avatar";
@@ -167,7 +167,7 @@ export function CommentList({ comments, commentReactions, scope, teamSlug, viewe
             teamSlug={teamSlug}
             hideAvatar
           />
-          <span className="shrink-0 text-xs leading-[18px] text-[var(--ui-muted)]">{formatRelativeOrDate(comment.createdAt)}</span>
+          <span className="shrink-0 text-[13px] leading-[18px] text-[var(--ui-muted)]"><RelativeDate value={comment.createdAt} /></span>
           <span className="absolute -top-1.5 right-0">
             {ownsComment(comment) ? (
               <button type="button" disabled={pending} onClick={() => removeComment(comment)} aria-label={pending ? "댓글 삭제 중" : "댓글 삭제"} className="grid h-8 w-8 place-items-center rounded-full text-red-500 transition-colors hover:bg-red-50 disabled:opacity-50 dark:hover:bg-red-950/30"><Trash2 size={17} strokeWidth={1.8} /></button>
