@@ -1,4 +1,4 @@
-import * as ImagePicker from 'expo-image-picker';
+import type * as ImagePicker from 'expo-image-picker';
 import Camera from 'lucide-react-native/icons/camera';
 import UserRound from 'lucide-react-native/icons/user-round';
 import { useState } from 'react';
@@ -6,9 +6,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 
 
 import type { MobileMeDto } from '../../../packages/contracts/src/mobile-v1';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
-
-const MAX_PROFILE_IMAGE_BYTES = 5 * 1024 * 1024;
-const PROFILE_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
+import { pickProfileImage } from '@/lib/profile-image';
 
 export function ProfileForm({
   initialProfile,
@@ -21,21 +19,20 @@ export function ProfileForm({
   const [nickname, setNickname] = useState(initialProfile.nickname ?? '');
   const [selectedImage, setSelectedImage] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [pending, setPending] = useState(false);
+  const [picking, setPicking] = useState(false);
   const [result, setResult] = useState<{ status: 'error' | 'success'; message: string } | null>(null);
   const pickImage = async () => {
-    const picked = await ImagePicker.launchImageLibraryAsync({ allowsEditing: false, mediaTypes: ['images'], quality: 1 });
-    if (picked.canceled || !picked.assets[0]) return;
-    const asset = picked.assets[0];
-    if (!asset.mimeType || !PROFILE_IMAGE_TYPES.has(asset.mimeType)) {
-      setResult({ status: 'error', message: '프로필 이미지는 PNG, JPG, WEBP만 업로드할 수 있습니다.' });
-      return;
+    setPicking(true);
+    try {
+      const asset = await pickProfileImage();
+      if (!asset) return;
+      setSelectedImage(asset);
+      setResult(null);
+    } catch (error) {
+      setResult({ status: 'error', message: error instanceof Error ? error.message : '사진을 처리하지 못했습니다.' });
+    } finally {
+      setPicking(false);
     }
-    if ((asset.fileSize ?? 0) > MAX_PROFILE_IMAGE_BYTES) {
-      setResult({ status: 'error', message: '프로필 이미지는 5MB 이하만 업로드할 수 있습니다.' });
-      return;
-    }
-    setSelectedImage(asset);
-    setResult(null);
   };
 
   const submit = async () => {
@@ -76,11 +73,11 @@ export function ProfileForm({
 
       <View style={styles.form}>
         <View style={styles.imageActions}>
-            <Pressable accessibilityRole="button" disabled={pending} hitSlop={4} onPress={() => void pickImage()} style={[styles.imageButton, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <Pressable accessibilityRole="button" disabled={pending || picking} hitSlop={4} onPress={() => void pickImage()} style={[styles.imageButton, { backgroundColor: theme.surface, borderColor: theme.border }]}>
               <Camera color={theme.ink} size={14} />
               <Text style={[styles.imageButtonText, { color: theme.ink, ...fonts.medium }]}>프로필 이미지 변경</Text>
             </Pressable>
-            <Text style={[styles.imageHint, { color: theme.muted, ...fonts.medium }]}>PNG, JPG, WEBP · 최대 5MB</Text>
+            <Text style={[styles.imageHint, { color: theme.muted, ...fonts.medium }]}>사진은 프로필 크기에 맞춰 변환됩니다.</Text>
         </View>
 
         <View style={styles.field}>
@@ -91,7 +88,7 @@ export function ProfileForm({
 
         {result ? <Text accessibilityLiveRegion="polite" style={[styles.result, { color: result.status === 'error' ? '#dc2626' : '#16a34a', ...fonts.regular }]}>{result.message}</Text> : null}
 
-        <Pressable accessibilityRole="button" disabled={pending} hitSlop={4} onPress={() => void submit()} style={[styles.submit, { backgroundColor: theme.accent, opacity: pending ? 0.65 : 1 }]}>
+        <Pressable accessibilityRole="button" disabled={pending || picking} hitSlop={4} onPress={() => void submit()} style={[styles.submit, { backgroundColor: theme.accent, opacity: pending || picking ? 0.65 : 1 }]}>
           {pending ? <ActivityIndicator color={theme.accentForeground} size="small" /> : <Text style={[styles.submitText, { color: theme.accentForeground, ...fonts.medium }]}>프로필 저장</Text>}
         </Pressable>
       </View>

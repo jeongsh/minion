@@ -13,14 +13,13 @@ import type {
 import { DELETE_ACCOUNT_CONFIRM_TEXT } from "@/lib/auth/action-state";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { safeOnboardingNext } from "@/lib/auth/onboarding";
-import { resizeImageForWeb } from "@/lib/images/resize-for-web";
+import { prepareProfileImage } from "@/lib/images/prepare-profile-image";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseAuthClient } from "@/lib/supabase/auth-server";
 import { POLICY_VERSION, siteBaseUrl } from "@/lib/site";
 
 const PROFILE_AVATAR_BUCKET = "profile-avatars";
 const MAX_PROFILE_IMAGE_BYTES = 5 * 1024 * 1024;
-const PROFILE_IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
 
 // Supabase Auth가 영어로 내려주는 에러 메시지를 사용자에게 보여줄 한국어로 옮긴다.
 // 매칭되는 게 없으면 원문을 그대로 보여준다.
@@ -35,14 +34,6 @@ function translateAuthError(message: string): string {
     return "유효하지 않은 이메일 주소입니다.";
   }
   return message;
-}
-
-function profileImageExtension(type: string, name: string): string {
-  if (type === "image/png") return "png";
-  if (type === "image/webp") return "webp";
-  if (type === "image/jpeg") return "jpg";
-  const fromName = name.split(".").pop()?.toLowerCase();
-  return fromName && /^[a-z0-9]+$/.test(fromName) ? fromName : "jpg";
 }
 
 export async function signUpAction(
@@ -240,9 +231,6 @@ export async function updateNicknameAction(
   let profileImageUrl: string | null | undefined;
 
   if (image instanceof File && image.size > 0) {
-    if (!PROFILE_IMAGE_TYPES.has(image.type)) {
-      return { status: "error", message: "프로필 이미지는 PNG, JPG, WEBP만 업로드할 수 있습니다." };
-    }
     if (image.size > MAX_PROFILE_IMAGE_BYTES) {
       return { status: "error", message: "프로필 이미지는 5MB 이하만 업로드할 수 있습니다." };
     }
@@ -254,10 +242,13 @@ export async function updateNicknameAction(
       return { status: "error", message: "프로필 이미지 업로드 설정이 필요합니다." };
     }
 
-    const arrayBuffer = await image.arrayBuffer();
-    // 아바타는 화면에 작게(수십~백여 px) 표시되므로 원본을 그대로 저장하지 않고 줄인다.
-    const resized = await resizeImageForWeb(Buffer.from(arrayBuffer), image.type, { maxEdge: 512 });
-    const objectPath = `${user.id}/${crypto.randomUUID()}.${resized.transformed ? resized.extension : profileImageExtension(image.type, image.name)}`;
+    let resized;
+    try {
+      resized = await prepareProfileImage(Buffer.from(await image.arrayBuffer()));
+    } catch {
+      return { status: "error", message: "이미지를 처리하지 못했습니다. 다른 사진을 선택해주세요." };
+    }
+    const objectPath = `${user.id}/${crypto.randomUUID()}.${resized.extension}`;
     const { error: uploadError } = await admin.storage
       .from(PROFILE_AVATAR_BUCKET)
       .upload(objectPath, resized.bytes, {

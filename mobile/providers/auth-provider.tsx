@@ -44,7 +44,7 @@ async function readViewerFromSupabase(): Promise<Viewer | null> {
   if (userError) throw userError;
   if (!user) return null;
 
-  const [profileResult, subscriptionsResult] = await Promise.all([
+  const [profileResult, subscriptionsResult, rankResult] = await Promise.all([
     supabase
       .from('profiles')
       .select('nickname, profile_image_url, tier, lp, favorite_team_id')
@@ -54,9 +54,17 @@ async function readViewerFromSupabase(): Promise<Viewer | null> {
       .from('fan_notification_subscriptions')
       .select('team_id')
       .eq('user_id', user.id),
+    supabase
+      .from('ranked_profiles')
+      .select('effective_tier')
+      .eq('id', user.id)
+      .maybeSingle(),
   ]);
   if (profileResult.error) throw profileResult.error;
+  if (!profileResult.data) throw new Error('프로필을 불러오지 못했습니다.');
   if (subscriptionsResult.error) throw subscriptionsResult.error;
+  if (rankResult.error) throw rankResult.error;
+  if (!rankResult.data) throw new Error('등급을 불러오지 못했습니다.');
 
   const favoriteTeamId = profileResult.data?.favorite_team_id ?? null;
   let favoriteTeamSlug: string | null = null;
@@ -74,7 +82,7 @@ async function readViewerFromSupabase(): Promise<Viewer | null> {
     id: user.id,
     nickname: profileResult.data?.nickname ?? null,
     profileImage: profileResult.data?.profile_image_url ? { url: profileResult.data.profile_image_url } : null,
-    tier: profileResult.data?.tier ?? 'bronze',
+    tier: rankResult.data.effective_tier,
     lp: profileResult.data?.lp ?? 0,
     favoriteTeamId,
     favoriteTeamSlug,
@@ -89,13 +97,15 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const [viewer, setViewer] = useState<Viewer | null>(null);
   const handledUrls = useRef(new Set<string>());
   const cacheUserId = useRef<string | null>(null);
+  const viewerRevision = useRef(0);
 
   const refreshViewer = useCallback(async () => {
+    const revision = ++viewerRevision.current;
     const requestedUserId = cacheUserId.current;
     if (!requestedUserId) return;
     try {
-      const bootstrap = await fetchMobileApi<MobileBootstrapDto>('/api/mobile/v1/bootstrap');
-      if (cacheUserId.current !== requestedUserId) return;
+      const bootstrap = await fetchMobileApi<MobileBootstrapDto>('/api/mobile/v1/bootstrap', undefined, { fresh: true });
+      if (cacheUserId.current !== requestedUserId || viewerRevision.current !== revision) return;
       if (bootstrap.viewer?.id === requestedUserId) {
         setViewer(bootstrap.viewer);
         return;
@@ -107,11 +117,18 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
     try {
       const directViewer = await readViewerFromSupabase();
-      if (directViewer?.id === requestedUserId && cacheUserId.current === requestedUserId) setViewer(directViewer);
+      if (directViewer?.id === requestedUserId && cacheUserId.current === requestedUserId && viewerRevision.current === revision) setViewer(directViewer);
     } catch {
       // Keep the last known profile during a transient network failure.
     }
   }, []);
+
+  // Session establishment can happen after the initial getSession (OAuth,
+  // restored session). Fetch outside onAuthStateChange's auth lock.
+  const sessionUserId = session?.user.id;
+  useEffect(() => {
+    if (sessionUserId) void refreshViewer();
+  }, [refreshViewer, sessionUserId]);
 
   const finishLogin = useCallback(async () => {
     await refreshViewer();
@@ -159,6 +176,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       resetApiSessionRead();
       const nextUserId = nextSession?.user.id ?? null;
       if (cacheUserId.current !== nextUserId) {
+        viewerRevision.current += 1;
         cacheUserId.current = nextUserId;
         setViewer(null);
         clearApiMemoryCache();

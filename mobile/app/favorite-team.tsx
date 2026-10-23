@@ -1,6 +1,6 @@
 import * as Crypto from 'expo-crypto';
 import { Image } from 'expo-image';
-import * as ImagePicker from 'expo-image-picker';
+import type * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import Camera from 'lucide-react-native/icons/camera';
 import Check from 'lucide-react-native/icons/check';
@@ -15,23 +15,12 @@ import { minionTeams } from '@/constants/teams';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import { mutateMobileApi, uploadMobileApi } from '@/lib/api-client';
 import { getInstallationId } from '@/lib/secure-storage';
+import { pickProfileImage } from '@/lib/profile-image';
 import { useAuth } from '@/providers/auth-provider';
 import { favoriteTeamConfirmationMessage } from '../../lib/fan/favorite-team-cooldown';
 
-const MAX_PROFILE_IMAGE_BYTES = 5 * 1024 * 1024;
-const PROFILE_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
-
 function safeNext(value: string | undefined) {
   return value?.startsWith('/') && !value.startsWith('//') && !value.startsWith('/favorite-team') ? value : '/me';
-}
-
-function imageMimeType(asset: ImagePicker.ImagePickerAsset) {
-  if (asset.mimeType) return asset.mimeType;
-  const extension = (asset.fileName ?? asset.uri).split('.').pop()?.toLowerCase();
-  if (extension === 'png') return 'image/png';
-  if (extension === 'webp') return 'image/webp';
-  if (extension === 'jpg' || extension === 'jpeg') return 'image/jpeg';
-  return null;
 }
 
 export default function FavoriteTeamScreen() {
@@ -44,6 +33,7 @@ export default function FavoriteTeamScreen() {
   const [nicknameReady, setNicknameReady] = useState(false);
   const [selectedImage, setSelectedImage] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [profilePending, setProfilePending] = useState(false);
+  const [picking, setPicking] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [pendingTeamId, setPendingTeamId] = useState<string | null>(null);
@@ -78,25 +68,22 @@ export default function FavoriteTeamScreen() {
 
   const pickImage = async () => {
     Keyboard.dismiss();
-    const picked = await ImagePicker.launchImageLibraryAsync({ allowsEditing: false, mediaTypes: ['images'], quality: 1 });
-    if (picked.canceled || !picked.assets[0]) return;
-    const asset = picked.assets[0];
-    const mimeType = imageMimeType(asset);
-    if (!mimeType || !PROFILE_IMAGE_TYPES.has(mimeType)) {
-      setProfileError('프로필 이미지는 PNG, JPG, WEBP만 업로드할 수 있습니다.');
-      return;
+    setPicking(true);
+    try {
+      const asset = await pickProfileImage();
+      if (!asset) return;
+      setSelectedImage(asset);
+      setProfileError(null);
+    } catch (error) {
+      setProfileError(error instanceof Error ? error.message : '사진을 처리하지 못했습니다.');
+    } finally {
+      setPicking(false);
     }
-    if ((asset.fileSize ?? 0) > MAX_PROFILE_IMAGE_BYTES) {
-      setProfileError('프로필 이미지는 5MB 이하만 업로드할 수 있습니다.');
-      return;
-    }
-    setSelectedImage({ ...asset, mimeType });
-    setProfileError(null);
   };
 
   const saveProfile = async () => {
     const trimmed = nickname.trim();
-    if (trimmed.length < 2 || trimmed.length > 16 || profilePending) return;
+    if (trimmed.length < 2 || trimmed.length > 16 || profilePending || picking) return;
     Keyboard.dismiss();
     setProfilePending(true);
     setProfileError(null);
@@ -166,7 +153,7 @@ export default function FavoriteTeamScreen() {
         {step === 1 ? (
           <View style={styles.profileContent}>
             <Text style={[styles.title, { color: theme.ink, ...fonts.display }]}>MINION에서 사용할 이름</Text>
-            <Pressable accessibilityLabel="프로필 사진 선택" accessibilityRole="button" disabled={profilePending} onPress={() => void pickImage()} style={styles.avatarButton}>
+            <Pressable accessibilityLabel="프로필 사진 선택" accessibilityRole="button" disabled={profilePending || picking} onPress={() => void pickImage()} style={styles.avatarButton}>
               <RankAvatar fallback={initials} profileImageUrl={profileImageUrl} reserveMedalSpace size="mobile" tier={viewer?.tier ?? 'bronze'} />
               <View style={[styles.cameraButton, { backgroundColor: theme.ink, borderColor: theme.surface }]}><Camera color={theme.surface} size={14} /></View>
             </Pressable>
@@ -192,7 +179,7 @@ export default function FavoriteTeamScreen() {
             </View>
 
             {profileError ? <Text accessibilityLiveRegion="polite" style={styles.error}>{profileError}</Text> : null}
-            <Pressable disabled={profilePending || nickname.trim().length < 2} onPress={() => void saveProfile()} style={[styles.primary, { backgroundColor: theme.accent, opacity: profilePending || nickname.trim().length < 2 ? 0.45 : 1 }]}>
+            <Pressable disabled={profilePending || picking || nickname.trim().length < 2} onPress={() => void saveProfile()} style={[styles.primary, { backgroundColor: theme.accent, opacity: profilePending || picking || nickname.trim().length < 2 ? 0.45 : 1 }]}>
               {profilePending ? <ActivityIndicator color={theme.accentForeground} size="small" /> : <Text style={[styles.primaryText, { color: theme.accentForeground, ...fonts.medium }]}>계속하기</Text>}
             </Pressable>
           </View>

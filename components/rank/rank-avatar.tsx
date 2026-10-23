@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 
 import { TIER_LABELS, type Tier } from "@/lib/rank/config";
+import { AvatarImage } from "@/components/rank/avatar-image";
 
 const TIER_FINISHES: Record<
   Tier,
@@ -129,19 +130,14 @@ export function RankAvatar({
         className="absolute overflow-hidden rounded-full border border-black/45 bg-[var(--ui-surface-muted)]"
         style={{ inset: "var(--rank-ring-width)" }}
       >
-        {src ? (
-          // Profile images may be freshly selected blob URLs, so next/image cannot safely optimize them.
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={src} alt={alt} className="h-full w-full object-cover" />
-        ) : (
           <span
             aria-hidden="true"
             className="grid h-full w-full place-items-center font-medium text-[var(--ui-muted)]"
-            style={{ fontSize: Math.max(10, Math.round(dimensions.avatar * 0.28)) }}
+            style={{ fontSize: Math.max(13, Math.round(dimensions.avatar * 0.28)) }}
           >
             {fallback.slice(0, 2).toUpperCase()}
           </span>
-        )}
+        {src ? <AvatarImage key={src} src={src} alt={alt} /> : null}
       </span>
       <span
         aria-hidden="true"
