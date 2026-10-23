@@ -2,6 +2,8 @@
 
 현재 실행 문서는 [`docs/native-mobile/README.md`](./native-mobile/README.md)다.
 
+2026-10-23 사용자 지시에 따라 iOS도 작업 대상으로 포함한다. Android는 사업자 문제로 배포를 보류하며, 사용자가 Android 빌드를 명시적으로 요청하거나 재개를 지시하기 전까지 로컬 빌드와 EAS Build를 실행하지 않는다. 아래 로드맵의 Android 빌드와 배포 항목에도 이 방침을 우선 적용한다.
+
 ## 목표
 
 Expo + React Native 앱에서 기존 웹 모바일의 디자인·정보·동작을 **1px 단위로 동일하게 재현**한다. 앱용 재해석이나 리디자인은 하지 않는다.
