@@ -281,11 +281,12 @@ function RuneColumn({ icon, name, rows, primary = false }: { icon?: string; name
 
 function RuneGridView({ grid }: { grid: RuneBuildGrid }) {
   return (
-    <div className="mx-auto mt-1 grid w-full max-w-[440px] flex-1 grid-cols-[minmax(max-content,1.2fr)_minmax(max-content,1fr)] items-start gap-2">
+    <div className="mt-1 flex justify-center gap-4 sm:gap-7">
       <RuneColumn icon={grid.primaryTreeIcon} name={grid.primaryTreeName} rows={grid.primaryRows} primary />
-      <div className="min-w-0">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:gap-7">
         <RuneColumn icon={grid.secondaryTreeIcon} name={grid.secondaryTreeName} rows={grid.secondaryRows} />
-        <div className="mt-2 min-w-0" aria-label="능력치 파편">
+        <div className="min-w-0" aria-label="능력치 파편">
+          <div className="hidden h-8 sm:block" />
           {grid.shardRows.map((row, index) => <RuneRow key={`능력치 파편-${index}`} row={row} shard />)}
         </div>
       </div>

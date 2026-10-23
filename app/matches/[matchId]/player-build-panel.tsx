@@ -188,7 +188,8 @@ function RuneColumn({
 
 function ShardColumn({ rows }: { rows: RuneGridOption[][] }) {
   return (
-    <div className="mt-2 min-w-0" aria-label="능력치 파편">
+    <div className="min-w-0" aria-label="능력치 파편">
+      <div className="hidden h-8 sm:block" />
       {rows.map((row, index) => (
         <RuneRow key={`능력치 파편-${index}`} row={row} shard />
       ))}
@@ -200,34 +201,54 @@ function Runes({ entry }: { entry: PlayerBuildPanelEntry }) {
   const grid = entry.runeGrid;
 
   if (!grid) {
+    const headerSkeleton = (
+      <div className="flex h-8 items-center justify-center">
+        <span className="h-[18px] w-[18px] rounded-full bg-[#d9dce2] dark:bg-[#24272d]" />
+      </div>
+    );
+    const rowSkeleton = (sizeClass: string, minHeight: string) => (
+      <div className={`flex items-center justify-center gap-1 sm:gap-2 ${minHeight}`}>
+        {Array.from({ length: 3 }, (_, optionIndex) => (
+          <span key={optionIndex} className={`rounded-full bg-[#d9dce2] dark:bg-[#24272d] ${sizeClass}`} />
+        ))}
+      </div>
+    );
+
     return (
-      <div
-        className="mx-auto mt-1 grid w-full max-w-[440px] grid-cols-[minmax(max-content,1.2fr)_minmax(max-content,1fr)] items-start gap-2"
-        aria-label="룬 데이터 없음"
-      >
-        {[0, 1].map((column) => (
-          <div key={column} className="min-w-0">
-            <div className="flex h-8 items-center justify-center"><span className="h-[18px] w-[18px] rounded-full bg-[#d9dce2] dark:bg-[#24272d]" /></div>
-            {Array.from({ length: column === 0 ? 4 : 6 }, (_, rowIndex) => (
-              <div key={rowIndex} className={`flex items-center justify-center gap-1 sm:gap-2 ${column === 0 && rowIndex === 0 ? "min-h-[44px] sm:min-h-12" : column === 1 && rowIndex >= 3 ? "min-h-[34px] sm:min-h-[38px]" : "min-h-[38px] sm:min-h-[42px]"}`}>
-                {Array.from({ length: 3 }, (_, optionIndex) => (
-                  <span
-                    key={optionIndex}
-                    className={`rounded-full bg-[#d9dce2] dark:bg-[#24272d] ${
-                      column === 0 && rowIndex === 0 ? "h-9 w-9 sm:h-10 sm:w-10" : column === 1 && rowIndex >= 3 ? "h-7 w-7 sm:h-8 sm:w-8" : "h-[30px] w-[30px] sm:h-[34px] sm:w-[34px]"
-                    }`}
-                  />
-                ))}
-              </div>
+      <div className="mt-1 flex justify-center gap-4 sm:gap-6" aria-label="룬 데이터 없음">
+        <div className="min-w-0">
+          {headerSkeleton}
+          <div className="mt-1">
+            {Array.from({ length: 4 }, (_, rowIndex) =>
+              rowIndex === 0
+                ? <div key={rowIndex}>{rowSkeleton("h-9 w-9 sm:h-10 sm:w-10", "min-h-[44px] sm:min-h-12")}</div>
+                : <div key={rowIndex}>{rowSkeleton("h-[30px] w-[30px] sm:h-[34px] sm:w-[34px]", "min-h-[38px] sm:min-h-[42px]")}</div>,
+            )}
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:gap-6">
+          <div className="min-w-0">
+            {headerSkeleton}
+            <div className="mt-1">
+              {Array.from({ length: 2 }, (_, rowIndex) => (
+                <div key={rowIndex}>{rowSkeleton("h-[30px] w-[30px] sm:h-[34px] sm:w-[34px]", "min-h-[38px] sm:min-h-[42px]")}</div>
+              ))}
+            </div>
+          </div>
+          <div className="min-w-0">
+            <div className="hidden h-8 sm:block" />
+            {Array.from({ length: 3 }, (_, rowIndex) => (
+              <div key={rowIndex}>{rowSkeleton("h-7 w-7 sm:h-8 sm:w-8", "min-h-[34px] sm:min-h-[38px]")}</div>
             ))}
           </div>
-        ))}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto mt-1 grid w-full max-w-[440px] flex-1 grid-cols-[minmax(max-content,1.2fr)_minmax(max-content,1fr)] items-start gap-2">
+    <div className="mt-1 flex justify-center gap-4 sm:gap-6">
       <RuneColumn
         icon={grid.primaryTreeIcon}
         name={grid.primaryTreeName}
@@ -235,7 +256,7 @@ function Runes({ entry }: { entry: PlayerBuildPanelEntry }) {
         primary
         muted={grid.empty}
       />
-      <div className="min-w-0">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:gap-6">
         <RuneColumn
           icon={grid.secondaryTreeIcon}
           name={grid.secondaryTreeName}
