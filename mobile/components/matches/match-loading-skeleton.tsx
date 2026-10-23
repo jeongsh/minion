@@ -25,8 +25,7 @@ export function MatchLoadingSkeleton() {
   return (
     <Animated.View accessibilityLabel="경기 상세 불러오는 중" accessibilityRole="progressbar" style={[styles.root, { opacity }]}>
       <Bone style={{ borderRadius: 8, height: 130, marginHorizontal: -16 }} />
-      <Bone style={{ borderRadius: 10, height: 38 }} />
-      <Bone style={{ borderRadius: 10, height: 38, width: 130 }} />
+      <View style={{ flexDirection: 'row', gap: 8, paddingVertical: 8 }}><Bone style={{ borderRadius: 10, height: 40, flex: 1 }} /><Bone style={{ borderRadius: 8, height: 40, width: 85 }} /></View>
       <Bone style={{ height: 238 }} />
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}><Bone style={{ height: 22, width: 80 }} /><Bone style={{ height: 38, width: 112 }} /></View>
       <View style={styles.rows}>{[0, 1].map((team) => <View key={team}><Bone style={{ height: 40 }} />{Array.from({ length: 5 }, (_, index) => <Bone key={index} style={{ borderRadius: 0, height: index ? 59 : 58 }} />)}</View>)}</View>

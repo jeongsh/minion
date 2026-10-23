@@ -16,6 +16,7 @@ export function FilterSelect({
   options,
   value,
   variant = 'default',
+  matchTab = false,
 }: {
   accessibilityLabel?: string;
   compact?: boolean;
@@ -25,6 +26,7 @@ export function FilterSelect({
   options: FilterSelectOption[];
   value: string;
   variant?: 'default' | 'web';
+  matchTab?: boolean;
 }) {
   const { fonts, theme } = useMinionTheme();
   const [open, setOpen] = useState(false);
@@ -41,7 +43,7 @@ export function FilterSelect({
         accessibilityState={{ disabled, expanded: open }}
         disabled={disabled}
         onPress={() => setOpen((current) => !current)}
-        style={[styles.selectTrigger, compact && styles.compactTrigger, { backgroundColor: compact || web ? theme.surface : theme.card, borderColor: theme.border }, web && { borderRadius: 8 }]}>
+        style={[styles.selectTrigger, compact && styles.compactTrigger, { backgroundColor: compact || web ? theme.surface : theme.card, borderColor: theme.border }, web && { borderRadius: 8 }, matchTab && { backgroundColor: theme.card, borderColor: theme.card, height: 40, paddingHorizontal: 12 }]}>
         <Text style={[styles.selectValue, web && { lineHeight: 20 }, { color: theme.ink, ...fonts.medium }]}>{selectedLabel}</Text>
         <ChevronDown color={theme.muted} size={web ? 20 : 16} strokeWidth={web ? 2.5 : 2} style={open ? styles.chevronOpen : null} />
       </Pressable>
@@ -50,7 +52,7 @@ export function FilterSelect({
           accessibilityLabel={`${label} 선택 목록`}
           contentContainerStyle={styles.selectListContent}
           nestedScrollEnabled
-          style={[styles.selectList, { backgroundColor: theme.surface, borderColor: theme.border }, web && { marginTop: 8, minWidth: 176, maxHeight: Math.min(height * 0.7, 448) }]}>
+          style={[styles.selectList, { backgroundColor: theme.surface, borderColor: theme.border }, web && { marginTop: 8, minWidth: 176, maxHeight: Math.min(height * 0.7, 448) }, matchTab && { minWidth: 0 }]}>
           {options.map((option) => {
             const selected = option.value === value;
             return (
@@ -62,7 +64,7 @@ export function FilterSelect({
                   setOpen(false);
                   if (option.value !== value) onChange(option.value);
                 }}
-                style={[styles.selectOption, selected && { backgroundColor: web ? theme.surfaceMuted : theme.ink }, web && { paddingVertical: 10 }]}>
+                style={[styles.selectOption, selected && { backgroundColor: web ? theme.surfaceMuted : theme.ink }, web && { paddingVertical: 10 }, matchTab && { paddingHorizontal: 4 }]}>
                 <Text style={[styles.selectOptionText, web && { fontSize: 14, lineHeight: 20 }, { color: selected && !web ? theme.surface : theme.ink, ...fonts.medium }]}>{option.label}</Text>
                 {selected ? <Check color={web ? theme.ink : theme.surface} size={web ? 16 : 15} strokeWidth={web ? 3 : 2} /> : null}
               </Pressable>

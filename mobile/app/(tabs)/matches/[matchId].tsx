@@ -66,11 +66,10 @@ function MatchDetailContent({ matchId, requestedSet, requestedTab, requestedPlay
 
   const handleScrollYChange = useCallback((scrollY: number, headerVisible: boolean) => {
     latestScroll.current = { headerVisible, y: scrollY };
-    const selectorTabActive = currentTab === 'data' || currentTab === 'rating';
     const stickyThreshold = setSelectorLayout
       ? setSelectorLayout.threshold + (headerVisible ? 0 : COLLAPSIBLE_HEADER_HEIGHT)
       : null;
-    const nextStuck = selectorTabActive && setSelectorLayout?.tab === currentTab && stickyThreshold !== null && scrollY >= stickyThreshold;
+    const nextStuck = setSelectorLayout?.tab === currentTab && stickyThreshold !== null && scrollY >= stickyThreshold;
     updateSetSelectorStuck(nextStuck);
   }, [currentTab, setSelectorLayout, updateSetSelectorStuck]);
 
@@ -96,12 +95,20 @@ function MatchDetailContent({ matchId, requestedSet, requestedTab, requestedPlay
   const availableTabs: MatchTabKey[] = ['preview', ...(data.match.status !== 'completed' ? ['live' as const] : []), ...(data.sets.length > 0 ? ['data' as const] : []), 'rating', 'video'];
   const setSelectorVisible = data.sets.length > 0 && (currentTab === 'data' || currentTab === 'rating');
   const stickySetSelectorVisible = setSelectorStuck && setSelectorLayout?.tab === currentTab;
+  const navigation = (
+    <MatchTabNav
+      activeTab={currentTab}
+      availableTabs={availableTabs}
+      onSelect={setActiveTab}
+      setSelector={setSelectorVisible ? <MatchSetSelector activeSetId={activeSetId} onSelect={setSelectedSetId} sets={data.sets} /> : undefined}
+    />
+  );
 
   return (
     <MinionScreen
       contentStyle={styles.content}
       onScrollYChange={handleScrollYChange}
-      stickyHeader={setSelectorVisible ? <MatchSetSelector activeSetId={activeSetId} onSelect={setSelectedSetId} sets={data.sets} /> : undefined}
+      stickyHeader={stickySetSelectorVisible ? navigation : undefined}
       stickyHeaderReserveSpace={false}
       stickyHeaderVisible={stickySetSelectorVisible}>
       {/*
@@ -110,7 +117,14 @@ function MatchDetailContent({ matchId, requestedSet, requestedTab, requestedPlay
       */}
       <View style={styles.topBlock}>
         <MatchHeader header={data.header} match={data.match} />
-        <MatchTabNav activeTab={currentTab} availableTabs={availableTabs} onSelect={setActiveTab} />
+      </View>
+      <View
+        onLayout={handleSetSelectorLayout}
+        pointerEvents={stickySetSelectorVisible ? 'none' : 'auto'}
+        accessibilityElementsHidden={stickySetSelectorVisible}
+        importantForAccessibility={stickySetSelectorVisible ? 'no-hide-descendants' : 'auto'}
+        style={styles.navigation}>
+        {stickySetSelectorVisible ? <View style={{ height: 56 }} /> : navigation}
       </View>
 
       {currentTab === 'preview' && data.preview ? <MatchPreviewTab data={{ ...data, preview: data.preview }} /> : null}
@@ -118,10 +132,7 @@ function MatchDetailContent({ matchId, requestedSet, requestedTab, requestedPlay
       {currentTab === 'live' ? <LiveMatchFeed matchId={data.match.id} teamA={data.match.teamA} teamB={data.match.teamB} /> : null}
 
       {currentTab === 'data' ? (
-        <View onLayout={handleSetSelectorLayout} style={styles.dataTab}>
-          <View accessibilityElementsHidden={stickySetSelectorVisible} importantForAccessibility={stickySetSelectorVisible ? 'no-hide-descendants' : 'auto'}>
-            <MatchSetSelector activeSetId={activeSetId} onSelect={setSelectedSetId} sets={data.sets} />
-          </View>
+        <View style={styles.dataTab}>
           {data.activeSet ? (
             <View style={styles.setDetailBlock}>
               <CompactScoreboard set={data.activeSet} />
@@ -139,10 +150,7 @@ function MatchDetailContent({ matchId, requestedSet, requestedTab, requestedPlay
       ) : null}
 
       {currentTab === 'rating' ? (
-        <View onLayout={handleSetSelectorLayout} style={styles.ratingTab}>
-          <View accessibilityElementsHidden={stickySetSelectorVisible} importantForAccessibility={stickySetSelectorVisible ? 'no-hide-descendants' : 'auto'}>
-            <MatchSetSelector activeSetId={activeSetId} onSelect={setSelectedSetId} sets={data.sets} />
-          </View>
+        <View style={styles.ratingTab}>
           <MatchRatingTab key={activeSetId} matchId={data.match.id} panel={data.fanRating} setId={activeSetId} />
         </View>
       ) : null}
@@ -159,4 +167,5 @@ const styles = StyleSheet.create({
   ratingTab: { gap: 16, marginTop: -20 },
   setDetailBlock: { gap: 20 },
   topBlock: { gap: 8 },
+  navigation: { marginTop: -12, zIndex: 30 },
 });
