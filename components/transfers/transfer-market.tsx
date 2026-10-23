@@ -13,7 +13,7 @@ import { useSwiperResize } from "@/components/ui/use-swiper-resize";
 import "swiper/css";
 import { SegmentedToggle } from "@/components/ui/tabs";
 import type { Player, Team } from "@/lib/types";
-import { departuresForTeam, resolveTransferRosters } from "@/lib/transfers/view";
+import { departuresForTeam, resolveTransferRosters, transferEventsInStorageOrder } from "@/lib/transfers/view";
 import { transferArticleUrl, latestPlayerEvents, lckTeamCode, marketEvents, movementCategory, normalizeTransferName, TRANSFER_KIND_LABELS, TRANSFER_ROLES, type TransferEvent, type TransferMarket, type TransferPerson, type TransferRole } from "@/lib/transfers/types";
 
 const ROLE_ICONS: Record<string, string> = { TOP: "top", JGL: "jungle", MID: "middle", BOT: "bottom", SUP: "utility" };
@@ -72,14 +72,10 @@ export function TransferMarketView({ market, teams, followedTeamIds = [] }: { ma
     return <span className="inline-flex min-w-0 items-center gap-1.5">{team && <TeamLogo team={team} size="size-5" plain themeAware />}<span className="break-words">{team?.shortName ?? name}</span></span>;
   }
   function movementSummary(label: string, moves: TransferEvent[], incoming: boolean, team: string) {
-    return <section className="@container/movement min-w-0 bg-[var(--ui-surface)] dark:bg-[var(--ui-card-bg)]" aria-label={`${team} ${label}`}>
-      <h3 className={`flex h-12 items-center gap-2 border-b border-[var(--ui-card-divider)] bg-[var(--ui-card-bg)] px-3 text-[16px] font-bold ${incoming ? "text-[var(--accent)]" : "text-[var(--ui-ink)]"}`}>{label}<span className="text-[13px] font-normal text-[var(--ui-muted)]">{moves.length}</span></h3>
-      <div className="divide-y divide-[var(--ui-card-divider)] dark:divide-transparent" aria-label={`${team} ${label} 선수 목록`}>
-        {[...TRANSFER_ROLES, "COACH" as const].map((position) => {
-          const positionMoves = moves.filter((event) => event.role === position);
-          return <div key={position} className="grid min-h-14 min-w-0 grid-cols-[20px_minmax(0,1fr)] items-center gap-x-2 px-2 py-1.5 @[220px]/movement:px-3 dark:odd:bg-[var(--ui-card-hover)]" aria-label={`${ROLE_LABELS[position]} ${label}`}>
-          <RoleIcon role={position} />
-          <div className="min-w-0 space-y-1.5">
+    function rows(groups: { key: string; position: TransferRole; positionMoves: TransferEvent[] }[]) {
+      return groups.map(({ key, position, positionMoves }) => <div key={key} className="grid min-h-14 min-w-0 grid-cols-[20px_minmax(0,1fr)] items-center gap-x-2 px-2 py-1.5 @[220px]/movement:px-3 dark:odd:bg-[var(--ui-card-hover)]" aria-label={`${ROLE_LABELS[position]} ${label}`}>
+        <RoleIcon role={position} />
+        <div className="min-w-0 space-y-1.5">
           {positionMoves.length ? positionMoves.map((event) => <div key={event.id} className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1" aria-label={`${event.player} ${event.from || "이전 팀 미정"}에서 ${destination(event)}`}>
             {playerName({ name: event.player }, false, event)}
             {event.provenance === "report" && <span className="shrink-0 whitespace-nowrap rounded bg-[var(--ui-surface)] px-1.5 py-0.5 text-[13px] font-medium text-[var(--accent)] ring-1 ring-inset ring-[var(--ui-border)] dark:ring-0">거피셜</span>}
@@ -89,9 +85,16 @@ export function TransferMarketView({ market, teams, followedTeamIds = [] }: { ma
               {teamName(destination(event), true, "movement")}
             </div>
           </div>) : <span className="text-[13px] font-normal text-[var(--ui-muted)]" aria-label={`${ROLE_LABELS[position]} ${label} 없음`}>—</span>}
-          </div>
-        </div>;
-        })}
+        </div>
+      </div>);
+    }
+    return <section className="@container/movement min-w-0 bg-[var(--ui-surface)] dark:bg-[var(--ui-card-bg)]" aria-label={`${team} ${label}`}>
+      <h3 className={`flex h-12 items-center gap-2 border-b border-[var(--ui-card-divider)] bg-[var(--ui-card-bg)] px-3 text-[16px] font-bold ${incoming ? "text-[var(--accent)]" : "text-[var(--ui-ink)]"}`}>{label}<span className="text-[13px] font-normal text-[var(--ui-muted)]">{moves.length}</span></h3>
+      <div className="divide-y divide-[var(--ui-card-divider)] dark:divide-transparent md:hidden" aria-label={`${team} ${label} 선수 목록`}>
+        {rows(transferEventsInStorageOrder(moves, market).map((event) => ({ key: event.id, position: event.role, positionMoves: [event] })))}
+      </div>
+      <div className="hidden divide-y divide-[var(--ui-card-divider)] dark:divide-transparent md:block" aria-label={`${team} ${label} 선수 목록`}>
+        {rows([...TRANSFER_ROLES, "COACH" as const].map((position) => ({ key: position, position, positionMoves: moves.filter((event) => event.role === position) })))}
       </div>
     </section>;
   }
@@ -129,8 +132,8 @@ export function TransferMarketView({ market, teams, followedTeamIds = [] }: { ma
         const arrivalNames = new Set(confirmedArrivals.map((event) => normalizeTransferName(event.player)));
         const arrivals = [...confirmedArrivals, ...reported.filter((event) => lckTeamCode(event.to) === roster.team && ["transfer", "loan", "promote"].includes(event.kind) && (event.kind === "promote" || lckTeamCode(event.from) !== roster.team) && !arrivalNames.has(normalizeTransferName(event.player)))];
         const renewalReports = reported.filter((event) => event.kind === "renew" && lckTeamCode(event.to) === roster.team && (!event.contractUntil || Number(event.contractUntil.slice(0, 4)) > market.season) && (!event.date || event.date >= `${market.season}-09-01` || Boolean(event.contractUntil && Number(event.contractUntil.slice(0, 4)) > market.season)));
-        return <article key={roster.team} className="grid min-w-0 grid-cols-2 gap-px overflow-hidden rounded-md bg-[var(--ui-border)] p-px md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)]">
-          <section className="col-span-2 min-w-0 bg-[var(--ui-surface)] dark:bg-[var(--ui-card-bg)] md:col-span-1" aria-label={`${roster.team} 포지션별 로스터`}>
+        return <article key={roster.team} className="grid min-w-0 grid-cols-1 gap-px overflow-hidden rounded-md bg-[var(--ui-border)] p-px md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)]">
+          <section className="min-w-0 bg-[var(--ui-surface)] dark:bg-[var(--ui-card-bg)]" aria-label={`${roster.team} 포지션별 로스터`}>
           <header className="relative flex h-12 items-center gap-2.5 border-b border-[var(--ui-card-divider)] bg-[var(--ui-card-bg)] px-3">
             <TeamLogo team={team} size="size-7" plain themeAware />
             <h2 className="max-w-40 break-keep text-[16px] font-bold leading-5">{roster.team === "DNS" ? "DN SOOPers" : team?.name ?? roster.team}</h2>
