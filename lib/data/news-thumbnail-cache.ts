@@ -2,6 +2,7 @@ import "server-only";
 
 import { createHash } from "node:crypto";
 import { load } from "cheerio";
+import { decodeNewsText } from "@/lib/data/news-text";
 import type { NewsArticle } from "@/lib/data/news";
 import { isSafePublicNewsUrl, newsThumbnailProxyUrl } from "@/lib/data/news-thumbnail";
 import { resizeImageForWeb } from "@/lib/images/resize-for-web";
@@ -23,19 +24,6 @@ type StoredNewsThumbnail = {
   width?: number;
   height?: number;
 };
-
-function decodeNewsText(value = "") {
-  return value
-    .replace(/<[^>]*>/g, "")
-    .replace(/&quot;/g, "\"")
-    .replace(/&apos;|&#39;/g, "'")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/\s+/g, " ")
-    .trim();
-}
 
 function metaAttribute(tag: string, attribute: string) {
   const quoted = tag.match(new RegExp(`${attribute}\\s*=\\s*(["'])(.*?)\\1`, "i"));
@@ -100,7 +88,7 @@ export async function resolveNewsTitle(articleUrl: string): Promise<string | nul
     for (const tag of page.html.match(/<meta\s[^>]*>/gi) ?? []) {
       const property = (metaAttribute(tag, "property") || metaAttribute(tag, "name")).toLowerCase();
       if (property !== key) continue;
-      const title = load(tag)("meta").attr("content")?.replace(/\s+/g, " ").trim();
+      const title = decodeNewsText(load(tag)("meta").attr("content"));
       if (title) return title;
     }
   }
