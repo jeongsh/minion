@@ -203,10 +203,12 @@ export function PredictionBoard({ matches, teams, tournaments, bets, currentUser
                   {dayMatches.map((match) => {
                     const teamA = teamMap.get(match.teamAId);
                     const teamB = teamMap.get(match.teamBId);
-                    const matchBets = bets.filter((item) => item.matchId === match.id && item.status === "open");
+                    // 종료 후에는 환불 정산을 포함한 최종 비율과 내 선택을 보존한다.
+                    const completed = match.status === "completed";
+                    const matchBets = bets.filter((item) => item.matchId === match.id && (completed || item.status !== "refunded"));
                     const myBet = currentUserId ? matchBets.find((item) => item.userId === currentUserId) : undefined;
                     const myVote = myBet?.teamId;
-                    const market = predictionMarketForMatch(matchBets, match.id, match.teamAId, match.teamBId);
+                    const market = predictionMarketForMatch(matchBets, match.id, match.teamAId, match.teamBId, completed);
                     const closed = new Date(match.matchDate).getTime() <= now || match.status !== "scheduled";
                     const cardStyle = {
                       "--prediction-team-left-color": teamColor(teamA),
@@ -228,7 +230,7 @@ export function PredictionBoard({ matches, teams, tournaments, bets, currentUser
                         </div>
                         <div
                           className={`prediction-match-card grid min-h-[76px] grid-cols-[minmax(0,1fr)_34px_minmax(0,1fr)] overflow-hidden rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] dark:bg-[var(--ui-surface-muted)] sm:grid-cols-[minmax(0,1fr)_48px_minmax(0,1fr)] xl:h-[76px] ${myVote === match.teamAId ? "prediction-match-card--selected-left" : myVote === match.teamBId ? "prediction-match-card--selected-right" : ""}`}
-                          style={cardStyle}
+                          style={{ ...cardStyle, opacity: completed ? 0.8 : undefined }}
                         >
                           <TeamChoice team={teamA} percent={market.teamAPercent} odds={market.teamAOdds} selected={myVote === match.teamAId} disabled={closed || isPending} onClick={() => openBetDialog(match, teamA)} />
                           <div className="grid place-items-center text-[13px] font-black text-[var(--ui-muted)] sm:text-sm">VS</div>

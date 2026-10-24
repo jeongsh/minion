@@ -24,9 +24,9 @@ export function predictionMaxStake(balance: number) {
   return Math.min(5_000, Math.max(100, Math.floor((Math.max(0, balance) * 0.2) / 100) * 100));
 }
 
-export function predictionMarketForMatch(bets: PredictionBet[], matchId: string, teamAId: string, teamBId: string) {
+export function predictionMarketForMatch(bets: PredictionBet[], matchId: string, teamAId: string, teamBId: string, includeRefunded = false) {
   const marketBets = bets.filter(
-    (bet) => bet.matchId === matchId && bet.status !== "refunded",
+    (bet) => bet.matchId === matchId && (includeRefunded || bet.status !== "refunded"),
   );
   const teamAStake = marketBets
     .filter((bet) => bet.teamId === teamAId)

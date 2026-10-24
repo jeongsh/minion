@@ -84,12 +84,15 @@ export function PredictionMatchBar({
   className?: string;
 }) {
   const { open, pending, modal } = usePredictionBetDialog({ currentUserId, balance, bets });
-  const matchBets = bets.filter((item) => item.matchId === match.id && item.status === "open");
+  // 종료 후에는 환불 정산을 포함한 최종 비율과 내 선택을 보존한다.
+  const completed = match.status === "completed";
+  const matchBets = bets.filter((item) => item.matchId === match.id && (completed || item.status !== "refunded"));
   const myBet = currentUserId ? matchBets.find((item) => item.userId === currentUserId) : undefined;
   const myVote = myBet?.teamId;
-  const market = predictionMarketForMatch(matchBets, match.id, match.teamAId, match.teamBId);
+  const market = predictionMarketForMatch(matchBets, match.id, match.teamAId, match.teamBId, completed);
   const closed = match.status !== "scheduled" || new Date(match.matchDate).getTime() <= now;
   const cardStyle = {
+    opacity: completed ? 0.8 : undefined,
     "--prediction-team-left-color": teamColor(teamA),
     "--prediction-team-right-color": teamColor(teamB),
     ...(myVote ? { "--prediction-team-color": teamColor(myVote === match.teamAId ? teamA : teamB) } : {}),
