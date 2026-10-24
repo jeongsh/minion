@@ -380,7 +380,6 @@ function CommunityPostSidebarSkeleton() {
           {Array.from({ length: 5 }, (_, index) => <div key={index} className="grid grid-cols-[20px_minmax(0,1fr)_auto] items-center gap-2 py-3"><Skeleton className="h-4 w-3" /><Skeleton className="h-4 w-full" /><Skeleton className="h-[13px] w-4" /></div>)}
         </div>
       </section>
-      <Skeleton className="h-[250px] w-full rounded-[var(--ui-card-radius)]" />
     </aside>
   );
 }
@@ -392,6 +391,7 @@ export function CommunityPostLoadingSkeleton({ scope = "hub" }: { scope?: "hub" 
       <div className="min-w-0">
         <Skeleton className="community-mobile-ad h-[60px] w-full !rounded-none md:mb-4 xl:hidden" />
         <CommunityPostArticleSkeleton fullWidth={team} />
+        <Skeleton className="mt-6 h-[100px] w-full rounded-[var(--ui-card-radius)] md:h-[60px] xl:h-[90px]" />
       </div>
       <CommunityPostSidebarSkeleton />
     </div>

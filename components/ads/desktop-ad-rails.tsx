@@ -6,7 +6,7 @@ import { AdSlot } from "@/components/ui/ad-slot";
 import { hasReadyAdContent } from "@/components/ads/ad-runtime";
 import { isAutoAdContentPath, isRailAdContentPath } from "@/lib/ads-policy";
 
-/** One placement sticks: left on the schedule, right on other pages. */
+/** Only the right placement follows scrolling. */
 export function DesktopAdRails() {
   const pathname = usePathname();
   const [contentPath, setContentPath] = useState<string | null>(null);

@@ -22,6 +22,7 @@ export function CommunityContentLayout({ children, posts, scope, teamSlug, curre
       <div className="min-w-0">
         <AdSlot enabled={adsEnabled} placement="community" format="horizontal" className="community-mobile-ad h-[60px] w-full !rounded-none md:mb-4 xl:hidden" />
         {children}
+        {currentPostId ? <AdSlot enabled={adsEnabled} placement="horizontal" className="mt-6 h-[60px] xl:h-[90px]" /> : null}
       </div>
       <aside className="hidden w-full max-w-[300px] flex-col gap-4 xl:sticky xl:top-[88px] xl:flex" aria-label="커뮤니티 보조 정보">
         <section className="overflow-hidden rounded-[var(--ui-card-radius)] border border-[var(--ui-border)] bg-[var(--ui-surface)]">
@@ -44,7 +45,7 @@ export function CommunityContentLayout({ children, posts, scope, teamSlug, curre
             </div>
           )}
         </section>
-        <AdSlot enabled={adsEnabled} placement="community" format="rectangle" className="h-[250px] w-full max-w-[300px]" />
+        {!currentPostId ? <AdSlot enabled={adsEnabled} placement="community" format="rectangle" className="h-[250px] w-full max-w-[300px]" /> : null}
       </aside>
     </div>
   );
