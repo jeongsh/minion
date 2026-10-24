@@ -515,6 +515,7 @@ export default async function MatchDetailPage({
     && [teamA, teamB].every((team) =>
       !/^(?:TBD|TBA|미정|미정 팀|Unknown|-)$/i.test(team.shortName.trim())
       && !/^(?:TBD|TBA|미정|미정 팀|Unknown|-)$/i.test(team.name.trim())));
+  const hasAdContent = hasResolvedPreviewTeams || matchPlayerStatLines.length > 0;
   const teamAName = teamLabel(teams, match.teamAId);
   const teamBName = teamLabel(teams, match.teamBId);
   const teamAResult: "WIN" | "LOSS" | null = match.winnerTeamId
@@ -597,7 +598,7 @@ export default async function MatchDetailPage({
   const videoId = match.vodUrl ? youtubeVideoIdFromUrl(match.vodUrl) : null;
   return (
     <main className="layout-wide match-detail-page flex flex-col gap-5 pb-12 pt-5 text-[var(--ui-text)]">
-      <AutoAdContent enabled={hasResolvedPreviewTeams || matchPlayerStatLines.length > 0} />
+      <AutoAdContent enabled={hasAdContent} />
       <MatchResultSeen matchId={match.id} finished={isMatchFinished(match)} />
       {/*
         스포일러 게이트는 목록/홈처럼 무심코 점수를 보게 되는 화면용이다. 특정 매치 상세로
@@ -752,9 +753,9 @@ export default async function MatchDetailPage({
       ) : null}
 
       <AdSlot
-        enabled={Boolean(activeSet?.winnerTeamId) && (activeTab === "data" || (activeTab === "rating" && matchPlayerStatLines.some((line) => line.setId === activeSet?.id) && fanRatings.some((rating) => rating.setId === activeSet?.id)))}
+        enabled={hasAdContent}
         placement="horizontal"
-        className={activeTab === "rating" ? "h-[60px] xl:h-[90px]" : "hidden h-[60px] md:block xl:h-[90px]"}
+        className="h-[60px] xl:h-[90px]"
       />
     </main>
   );

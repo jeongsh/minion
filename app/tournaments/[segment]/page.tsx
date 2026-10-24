@@ -7,6 +7,7 @@ import { Fragment } from "react";
 import { SlidersHorizontal } from "lucide-react";
 import { AdaptiveDialog } from "@/components/responsive/adaptive-dialog";
 import { RailAdContent } from "@/components/ads/rail-ad-content";
+import { AdSlot } from "@/components/ui/ad-slot";
 
 import { EventFilterBar } from "@/components/ui/event-filter-bar";
 import { DataTable } from "@/components/ui/data-table";
@@ -1212,7 +1213,10 @@ export default async function TournamentBracketPage({
           <TournamentFilters filters={filters} layout="sheet" />
         </AdaptiveDialog>
       </div>
-      <div className="layout-wide mt-6">{contentSection}</div>
+      <div className="layout-wide mt-6">
+        {contentSection}
+        <AdSlot enabled={hasAdContent} placement="horizontal" className="my-6 h-[60px] xl:h-[90px]" />
+      </div>
     </main>
     </TournamentContentCache>
   );
