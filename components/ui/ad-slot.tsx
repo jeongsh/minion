@@ -46,7 +46,6 @@ export function AdSlot({
   enabled?: boolean;
 }) {
   const containerRef = useRef<HTMLElement>(null);
-  const adRef = useRef<HTMLModElement>(null);
   const initializedRef = useRef(false);
   const [unfilled, setUnfilled] = useState(false);
   const pathname = usePathname();
@@ -60,11 +59,14 @@ export function AdSlot({
 
   useEffect(() => {
     const container = containerRef.current;
-    const ad = adRef.current;
-    if (!configured || !container || !ad || initializedRef.current) return;
+    if (!configured || !container || initializedRef.current) return;
 
     let disposed = false;
     let pending = false;
+    const statusObserver = new MutationObserver(() => {
+      setUnfilled(container.querySelector("ins")?.dataset.adStatus === "unfilled");
+    });
+    statusObserver.observe(container, { subtree: true, attributes: true, attributeFilter: ["data-ad-status"] });
     const requestAd = async () => {
       const { width, height } = container.getBoundingClientRect();
       if (disposed || pending || initializedRef.current || width < 120 || height < 50 || !canRequestAd(container)) return;
@@ -74,10 +76,22 @@ export function AdSlot({
         await loadAdScript(AD_CLIENT!);
         const currentSize = container.getBoundingClientRect();
         if (disposed || !canRequestAd(container) || currentSize.width < 120 || currentSize.height < 50) return;
-        // Request the reserved height instead of letting Auto sizing expand it.
-        ad.style.height = `${currentSize.height}px`;
+        // push({}) consumes the first unprocessed ins in the document. Keep
+        // hidden placements out of that queue, then insert and request together.
+        const ad = document.createElement("ins");
+        ad.className = "adsbygoogle block h-full w-full";
+        ad.style.cssText = `display: block; width: 100%; height: ${currentSize.height}px;`;
+        ad.dataset.adClient = AD_CLIENT!;
+        ad.dataset.adSlot = slot!;
+        container.appendChild(ad);
         window.adsbygoogle = window.adsbygoogle || [];
-        window.adsbygoogle.push({});
+        try {
+          window.adsbygoogle.push({});
+        } catch (error) {
+          if (!ad.dataset.adsbygoogleStatus) ad.remove();
+          else initializedRef.current = true;
+          throw error;
+        }
         initializedRef.current = true;
       } catch {
         // Ad blockers and preview environments may reject the request.
@@ -86,15 +100,14 @@ export function AdSlot({
       }
     };
 
-    const statusObserver = new MutationObserver(() => {
-      setUnfilled(ad.dataset.adStatus === "unfilled");
-    });
-    statusObserver.observe(ad, { attributes: true, attributeFilter: ["data-ad-status"] });
     requestAd();
     const observer = new ResizeObserver(requestAd);
     observer.observe(container);
-    return () => { disposed = true; observer.disconnect(); statusObserver.disconnect(); };
-  }, [configured, pathname]);
+    // Content can become ready after this slot's first effect without resizing.
+    const contentObserver = new MutationObserver(requestAd);
+    contentObserver.observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ["data-ad-ready", "data-ads-blocked"] });
+    return () => { disposed = true; observer.disconnect(); statusObserver.disconnect(); contentObserver.disconnect(); };
+  }, [configured, pathname, slot]);
 
   if (!allowed) return null;
   // Rails follow the page's own content marker; they must never opt themselves in.
@@ -113,17 +126,7 @@ export function AdSlot({
         style={unfilled ? { display: "none" } : undefined}
         className={`min-w-0 ${resolvedFormat !== "rectangle" && !isRail ? "max-md:!h-[100px]" : ""} ${configured ? "" : "grid place-items-center rounded-[var(--ui-card-radius)] bg-[var(--ui-ad-surface)] text-[12px] font-medium tracking-[.18em] text-[#96999f]"} ${className}`}
       >
-        {configured ? (
-          <ins
-            ref={adRef}
-            className="adsbygoogle block h-full w-full"
-            style={{ display: "block", width: "100%", height: "100%" }}
-            data-ad-client={AD_CLIENT}
-            data-ad-slot={slot}
-          />
-        ) : (
-          "ADVERTISEMENT"
-        )}
+        {configured ? null : "ADVERTISEMENT"}
       </aside>
     </>
   );
