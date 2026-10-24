@@ -59,7 +59,7 @@ export function FanFeedTabs({
           <button
             key={tab.key}
             type="button"
-            disabled={isPending || isActive}
+            disabled={isActive}
             onClick={() => onChange(tab.key)}
             aria-pressed={isActive}
             className={`shrink-0 rounded-full px-3 py-2 text-[13px] font-bold transition disabled:cursor-default sm:px-4 sm:text-sm ${

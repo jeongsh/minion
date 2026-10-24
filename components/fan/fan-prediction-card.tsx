@@ -6,8 +6,9 @@ import { TicketCheck } from "lucide-react";
 import { usePredictionBetDialog } from "@/components/domain/prediction-bet-dialog";
 import { predictionMarketForMatch, type PredictionBet } from "@/lib/predictions";
 
-export function FanPredictionCard({ matchId, teamId, teamName, opponentId, opponentName, teamColor, bets, currentUserId, balance, canVote, showDetailsLink = true, glass = false }: { matchId?: string; teamId: string; teamName: string; opponentId?: string; opponentName: string; teamColor: string; bets: PredictionBet[]; currentUserId?: string; balance: number | null; canVote: boolean; showDetailsLink?: boolean; glass?: boolean }) {
-  const { open, pending, modal } = usePredictionBetDialog({ currentUserId, balance, bets });
+export function FanPredictionCard({ matchId, teamId, teamName, opponentId, opponentName, teamColor, bets: initialBets, currentUserId, balance: initialBalance, canVote, showDetailsLink = true, glass = false }: { matchId?: string; teamId: string; teamName: string; opponentId?: string; opponentName: string; teamColor: string; bets: PredictionBet[]; currentUserId?: string; balance: number | null; canVote: boolean; showDetailsLink?: boolean; glass?: boolean }) {
+  const { open, pending, modal, effectiveBets } = usePredictionBetDialog({ currentUserId, balance: initialBalance, bets: initialBets });
+  const bets = effectiveBets;
   const market = matchId && opponentId ? predictionMarketForMatch(bets, matchId, teamId, opponentId) : null;
   const teamPct = market?.teamAPercent ?? 0;
   const oppPct = market?.teamBPercent ?? 0;

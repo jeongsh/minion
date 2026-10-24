@@ -1,3 +1,5 @@
+import { after } from "next/server";
+import { getCurrentIpKey } from "@/lib/community/guest-identity";
 import { hasAdPostContent } from "@/lib/ads-policy";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -12,7 +14,8 @@ import {
   getPostReactionState,
 } from "@/lib/community/actions";
 import {
-  getPostByIdAndIncrementView,
+  getPostById,
+  recordPostView,
   getBoardPosts,
   getPostComments,
 } from "@/lib/data/community";
@@ -32,11 +35,14 @@ export default async function FanPostDetailPage({
   if (!team) notFound();
 
   const [post, comments, user] = await Promise.all([
-    getPostByIdAndIncrementView(postId),
+    getPostById(postId),
     getPostComments(postId),
     getCurrentUser(),
   ]);
   if (!post || post.siteScope !== "team" || post.teamId !== team.id) notFound();
+
+  const viewerIpKey = await getCurrentIpKey().catch(() => null);
+  after(() => recordPostView(postId, viewerIpKey));
 
   const [reaction, commentReactions, posts, canSetNotice, currentGuestKey, miniconPacks] = await Promise.all([
     getPostReactionState(postId),

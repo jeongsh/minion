@@ -1,3 +1,4 @@
+import { getFanVideoByRouteId } from "@/lib/data/lck";
 import { Play } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -55,18 +56,24 @@ export default async function FanVideoDetailPage({
   if (!team) notFound();
 
   const players = (await getPlayers()).filter((player) => player.teamId === team.id);
-  const feed = await getFanVideoFeed(team.id, players.map((player) => player.id));
+  const playerIds = players.map(player => player.id);
+  const [feed, currentFeed] = await Promise.all([
+    getFanVideoFeed(team.id, playerIds, 17),
+    getFanVideoByRouteId(team.id, playerIds, videoId),
+  ]);
   const videos = buildFanVideoItems({
     team,
     players,
     teamVideos: feed.teamVideos,
     playerVideos: feed.playerVideos,
   });
-  const video = videos.find((item) => item.routeId === videoId || item.id === videoId);
+  const video = buildFanVideoItems({ team, players, ...currentFeed }).find(item => item.routeId === videoId || item.id === videoId);
   if (!video) notFound();
 
   const embedUrl = video.embedUrl ?? (video.youtubeVideoId ? `https://www.youtube.com/embed/${video.youtubeVideoId}` : undefined);
-  const related = videos
+  const ownerFeed = video.ownerType === "team" ? await getFanVideoFeed(team.id, [], 17) : await getFanVideoFeed(team.id, playerIds, 17, { team: 0, player: 0 }, players.find(player => player.name === video.ownerName)?.id);
+  const ownerVideos = buildFanVideoItems({ team, players, ...ownerFeed });
+  const related = [...new Map([...ownerVideos, ...videos].map(item => [item.id, item])).values()]
     .filter((item) => item.id !== video.id)
     .sort((first, second) => Number(second.ownerName === video.ownerName) - Number(first.ownerName === video.ownerName))
     .slice(0, 16);

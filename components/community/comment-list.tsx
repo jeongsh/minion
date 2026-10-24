@@ -17,21 +17,28 @@ import type { BoardScope } from "@/lib/community/boards";
 import { blindLabel } from "@/lib/community/moderation-labels";
 import type { CommunityCommentItem, ReactionState } from "@/lib/community/types";
 import type { MiniconPack } from "@/lib/minicons/types";
+import { useCommentState } from "@/components/community/comment-state";
 import { useCommentMaxLength } from "@/components/community/use-comment-max-length";
 import { selectBestComments } from "@/lib/community/best-comments";
 
-export function CommentList({ comments, commentReactions, scope, teamSlug, viewerId, currentGuestKey, miniconPacks = [], managedAiCommentIds = [] }: { comments: CommunityCommentItem[]; commentReactions: Record<string, ReactionState>; scope: BoardScope; teamSlug?: string; viewerId?: string | null; currentGuestKey?: string | null; miniconPacks?: MiniconPack[]; managedAiCommentIds?: string[] }) {
+export function CommentList({ comments: initialComments, commentReactions, scope, teamSlug, viewerId, currentGuestKey, miniconPacks = [], managedAiCommentIds = [] }: { comments: CommunityCommentItem[]; commentReactions: Record<string, ReactionState>; scope: BoardScope; teamSlug?: string; viewerId?: string | null; currentGuestKey?: string | null; miniconPacks?: MiniconPack[]; managedAiCommentIds?: string[] }) {
+  const commentState = useCommentState();
+  const comments = commentState?.comments ?? initialComments;
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingContent, setEditingContent] = useState("");
   const [expandedReplies, setExpandedReplies] = useState<Set<string>>(() => new Set());
+  const pendingParents = comments.filter(comment => comment.parentId && commentState?.pendingIds.has(comment.id)).map(comment => comment.parentId!);
+  if (pendingParents.some(id => !expandedReplies.has(id))) {
+    setExpandedReplies(previous => new Set([...previous, ...pendingParents]));
+  }
   const [pending, startTransition] = useTransition();
   const router = useRouter();
   const { showToast } = useToast();
   const maxLength = useCommentMaxLength();
   const editLimit = (comment: CommunityCommentItem) => managedAiCommentIds.includes(comment.id) ? Math.max(620, maxLength) : maxLength;
   const roots = comments.filter((comment) => !comment.parentId);
-  const bestComments = selectBestComments(roots);
+  const bestComments = selectBestComments(roots.filter(comment => !comment.id.startsWith("pending:")));
   const bestCommentIds = new Set(bestComments.map((comment) => comment.id));
   const orderedRoots = [...bestComments, ...roots.filter((comment) => !bestCommentIds.has(comment.id))];
   const repliesByParent = new Map<string, CommunityCommentItem[]>();
@@ -52,7 +59,9 @@ export function CommentList({ comments, commentReactions, scope, teamSlug, viewe
 
   const removeComment = (comment: CommunityCommentItem) => {
     if (!window.confirm("이 댓글을 삭제할까요?")) return;
+    commentState?.patch({ ...comment, content: "", deletedAt: new Date().toISOString() });
     startTransition(async () => {
+      try {
       const result = await deleteCommentAction({
         commentId: comment.id,
         postId: comment.postId,
@@ -64,13 +73,15 @@ export function CommentList({ comments, commentReactions, scope, teamSlug, viewe
         description: result.ok ? result.message : result.error,
         tone: result.ok ? "success" : "error",
       });
-      if (result.ok) router.refresh();
+      if (result.ok) { commentState?.settle(comment.id); router.refresh(); }
+      else commentState?.rollback(comment.id);
+      } catch { commentState?.rollback(comment.id); showToast({ title: "삭제 실패", description: "다시 시도해 주세요.", tone: "error" }); }
     });
   };
 
-  const ownsComment = (comment: CommunityCommentItem) => managedAiCommentIds.includes(comment.id) || (comment.authorId
+  const ownsComment = (comment: CommunityCommentItem) => !comment.id.startsWith("pending:") && (managedAiCommentIds.includes(comment.id) || (comment.authorId
     ? comment.authorId === viewerId
-    : Boolean(comment.guestKey && comment.guestKey === currentGuestKey));
+    : Boolean(comment.guestKey && comment.guestKey === currentGuestKey)));
 
   const beginGuestEdit = (comment: CommunityCommentItem) => {
     setEditingId(comment.id);
@@ -79,11 +90,15 @@ export function CommentList({ comments, commentReactions, scope, teamSlug, viewe
   };
 
   const saveGuestEdit = (comment: CommunityCommentItem) => {
+    const nextContent = editingContent.trim();
+    commentState?.patch({ ...comment, content: nextContent });
+    setEditingId(null);
     startTransition(async () => {
+      try {
       const result = await updateGuestCommentAction({
         commentId: comment.id,
         postId: comment.postId,
-        content: editingContent,
+        content: nextContent,
         scope,
         teamSlug,
       });
@@ -95,8 +110,10 @@ export function CommentList({ comments, commentReactions, scope, teamSlug, viewe
       if (result.ok) {
         setEditingId(null);
         setEditingContent("");
+        commentState?.settle(comment.id);
         router.refresh();
-      }
+      } else { commentState?.rollback(comment.id); setEditingId(comment.id); setEditingContent(nextContent); }
+      } catch { commentState?.rollback(comment.id); setEditingId(comment.id); setEditingContent(nextContent); showToast({ title: "수정 실패", description: "다시 시도해 주세요.", tone: "error" }); }
     });
   };
 
@@ -146,7 +163,7 @@ export function CommentList({ comments, commentReactions, scope, teamSlug, viewe
   );
 
   const item = (comment: CommunityCommentItem, reply = false, continued = false, best = false) => (
-    <div key={comment.id} className={`relative grid min-h-[78px] min-w-0 gap-4 ${reply ? "grid-cols-[24px_minmax(0,1fr)]" : "grid-cols-[36px_minmax(0,1fr)]"}`}>
+    <div key={comment.id} aria-busy={commentState?.pendingIds.has(comment.id) || undefined} className={`relative grid min-h-[78px] min-w-0 gap-4 ${reply ? "grid-cols-[24px_minmax(0,1fr)]" : "grid-cols-[36px_minmax(0,1fr)]"}`}>
       {continued ? <span className="absolute bottom-0 left-[18px] top-10 border-l border-[var(--ui-border)]" aria-hidden="true" /> : null}
       {commentAvatar(comment, reply)}
       <div className="relative min-w-0">
@@ -168,7 +185,7 @@ export function CommentList({ comments, commentReactions, scope, teamSlug, viewe
             hideAvatar
           />
           <span className="shrink-0 text-[13px] leading-[18px] text-[var(--ui-muted)]"><RelativeDate value={comment.createdAt} /></span>
-          <span className="absolute -top-1.5 right-0">
+          <span hidden={comment.id.startsWith("pending:")} className="absolute -top-1.5 right-0">
             {ownsComment(comment) ? (
               <button type="button" disabled={pending} onClick={() => removeComment(comment)} aria-label={pending ? "댓글 삭제 중" : "댓글 삭제"} className="grid h-8 w-8 place-items-center rounded-full text-red-500 transition-colors hover:bg-red-50 disabled:opacity-50 dark:hover:bg-red-950/30"><Trash2 size={17} strokeWidth={1.8} /></button>
             ) : (
@@ -192,7 +209,7 @@ export function CommentList({ comments, commentReactions, scope, teamSlug, viewe
         ) : (
           commentBody(comment)
         )}
-        <div className="-ml-2 mt-1 flex h-8 items-center gap-2">
+        <div className={`-ml-2 mt-1 flex h-8 items-center gap-2 ${comment.id.startsWith("pending:") ? "pointer-events-none opacity-50" : ""}`} inert={comment.id.startsWith("pending:")}>
           <ReactionButtons target="comment" targetId={comment.id} postId={comment.postId} scope={scope} teamSlug={teamSlug} initialState={commentReactions[comment.id] ?? null} initialHonorCount={comment.likeCount} initialDislikeCount={comment.dislikeCount} size="sm" />
           {!reply ? <button type="button" onClick={() => setReplyTo((current) => current === comment.id ? null : comment.id)} className="h-8 rounded-[var(--ui-control-radius)] px-2 text-[13px] font-medium text-[var(--ui-text)] hover:bg-[var(--ui-surface-muted)]">답글</button> : null}
           {guestEditButton(comment)}
@@ -206,7 +223,7 @@ export function CommentList({ comments, commentReactions, scope, teamSlug, viewe
     <ul className="min-w-0 px-[14px] md:px-8">
       {orderedRoots.map((comment, index) => {
         const replyItems = repliesByParent.get(comment.id) ?? [];
-        const expanded = expandedReplies.has(comment.id);
+        const expanded = expandedReplies.has(comment.id) || replyItems.some(reply => commentState?.pendingIds.has(reply.id));
         const best = bestCommentIds.has(comment.id);
         const firstRegular = bestComments.length > 0 && index === bestComments.length;
         return (

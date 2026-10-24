@@ -324,7 +324,7 @@ export async function GET(request: Request, context: { params: Promise<{ matchId
       ratingOpen,
       snapshotAvailable: isSetRatingSnapshotReady(defaultSet),
       statusNote: ratingOpen && ratingStartedAt !== null
-        ? "평점 입력이 열렸습니다. 종료 기한은 없습니다."
+        ? ""
         : "세트 상태가 경기종료 또는 상세데이터 동기화일 때 투표가 열립니다.",
     };
   }

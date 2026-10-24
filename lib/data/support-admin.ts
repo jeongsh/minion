@@ -1,5 +1,6 @@
 import "server-only";
 
+import { readAdminPage, ADMIN_PAGE_SIZE } from "@/lib/data/admin-pagination";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export type SupportInquiryStatus = "open" | "answered" | "closed";
@@ -31,18 +32,13 @@ export async function countOpenSupportInquiries(): Promise<number> {
 
 const SUPPORT_INQUIRY_COLUMNS = "id, user_id, contact_email, subject, message, status, admin_note, reply, is_private, created_at, answered_at";
 
-export async function listSupportInquiries(): Promise<AdminSupportInquiry[]> {
+export async function listSupportInquiries(requestedPage?: string) {
   const supabase = createSupabaseAdminClient();
 
-  // 미처리 큐는 절대 잘리면 안 되니 전부 가져오고(보통 소수), 처리된 건만 최근 200개로
-  // 제한한다. created_at desc로만 자르면 오래 방치된 미처리 문의가 목록 밖으로 밀려나
-  // 어드민 화면에서 아예 사라져 버린다.
-  const [{ data: openRows }, { data: recentRows }] = await Promise.all([
-    supabase
-      .from("support_inquiries")
-      .select(SUPPORT_INQUIRY_COLUMNS)
-      .eq("status", "open")
-      .order("created_at", { ascending: true }),
+  // 미처리는 오래된 순서의 별도 페이지로 모두 접근 가능하게 유지한다.
+  // 처리된 문의는 기존처럼 최근 200개를 함께 표시한다.
+  const [openPage, { data: recentRows, error: recentError }] = await Promise.all([
+    readAdminPage(requestedPage, ADMIN_PAGE_SIZE, (from, to) => supabase.from("support_inquiries").select(SUPPORT_INQUIRY_COLUMNS, { count: "exact" }).eq("status", "open").order("created_at", { ascending: true }).order("id").range(from, to)),
     supabase
       .from("support_inquiries")
       .select(SUPPORT_INQUIRY_COLUMNS)
@@ -51,7 +47,8 @@ export async function listSupportInquiries(): Promise<AdminSupportInquiry[]> {
       .limit(200),
   ]);
 
-  const inquiries = [...(openRows ?? []), ...(recentRows ?? [])];
+  if (recentError) throw recentError;
+  const inquiries = [...openPage.rows, ...(recentRows ?? [])];
 
   const nicknames = new Map<string, string | null>();
   const userIds = [...new Set(inquiries.map((row) => row.user_id).filter((id): id is string => Boolean(id)))];
@@ -60,7 +57,7 @@ export async function listSupportInquiries(): Promise<AdminSupportInquiry[]> {
     for (const profile of profiles ?? []) nicknames.set(profile.id, profile.nickname);
   }
 
-  return inquiries.map((row) => ({
+  const rows: AdminSupportInquiry[] = inquiries.map((row) => ({
     id: row.id,
     userId: row.user_id,
     contactEmail: row.contact_email,
@@ -74,4 +71,5 @@ export async function listSupportInquiries(): Promise<AdminSupportInquiry[]> {
     answeredAt: row.answered_at,
     authorNickname: row.user_id ? (nicknames.get(row.user_id) ?? null) : null,
   }));
+  return { ...openPage, rows };
 }

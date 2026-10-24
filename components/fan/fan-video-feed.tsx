@@ -6,6 +6,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { FanFeedTabs, buildOwnerTabs } from "@/components/fan/fan-feed-tabs";
 import { fanVideoMetaLabel, type FanVideoItem } from "@/lib/fan-video-items";
+import { useMediaPages, type MediaPagination } from "@/components/fan/use-media-pages";
+import type { MediaPage, MediaTab } from "@/lib/fan/media-feed";
 import { preloadImage } from "@/lib/preload-image";
 
 const INITIAL_LIMIT = 12;
@@ -15,7 +17,7 @@ function preloadVideoImages(videos: FanVideoItem[]) {
   const urls = videos.flatMap((video) =>
     video.thumbnailUrl ? [video.thumbnailUrl] : [],
   );
-  return Promise.all(urls.map(preloadImage));
+  return Promise.all(urls.map((url) => preloadImage(url)));
 }
 
 function VideoOwnerAvatar({ video }: { video: FanVideoItem }) {
@@ -35,20 +37,21 @@ export function FanVideoFeed({
   teamSlug,
   teamName,
   videos,
+  pagination,
 }: {
   teamSlug: string;
   teamName: string;
   videos: FanVideoItem[];
+  pagination?: MediaPagination;
 }) {
-  const [activeKey, setActiveKey] = useState("all");
+  const [localActiveKey, setActiveKey] = useState("all");
+  const activeKey = pagination?.owner ?? localActiveKey;
   const [visibleCount, setVisibleCount] = useState(INITIAL_LIMIT);
-  const [isTabPending, setIsTabPending] = useState(false);
-  const [isBatchLoading, setIsBatchLoading] = useState(false);
+  const isTabPending = Boolean(pagination?.loading);
+  const isBatchLoading = Boolean(pagination?.loading);
   const sentinelRef = useRef<HTMLDivElement>(null);
-  const tabLockRef = useRef(false);
-  const tabUnlockTimerRef = useRef<number | null>(null);
 
-  const tabs = buildOwnerTabs(videos, teamName);
+  const tabs = pagination?.tabs ?? buildOwnerTabs(videos, teamName);
   const filteredVideos = useMemo(
     () =>
       activeKey === "all"
@@ -57,54 +60,37 @@ export function FanVideoFeed({
     [videos, activeKey],
   );
 
-  // 다음 탭의 첫 화면 썸네일을 먼저 받은 뒤 완성된 화면으로 교체한다.
-  const handleTabChange = async (key: string) => {
-    if (key === activeKey || tabLockRef.current) return;
+  // 선택은 즉시 바꾸고 이미지는 각 자리에서 불러온다.
+  const handleTabChange = (key: string) => {
+    if (key === activeKey) return;
+    if (pagination) { pagination.select(key); setVisibleCount(INITIAL_LIMIT); return; }
 
-    tabLockRef.current = true;
-    setIsTabPending(true);
     const nextVideos =
       key === "all" ? videos : videos.filter((video) => video.ownerName === key);
-    await preloadVideoImages(nextVideos.slice(0, INITIAL_LIMIT));
     setActiveKey(key);
     setVisibleCount(INITIAL_LIMIT);
 
-    tabUnlockTimerRef.current = window.setTimeout(() => {
-      tabLockRef.current = false;
-      setIsTabPending(false);
-      tabUnlockTimerRef.current = null;
-    }, 0);
+    void preloadVideoImages(nextVideos.slice(0, INITIAL_LIMIT));
   };
 
   useEffect(() => {
-    return () => {
-      if (tabUnlockTimerRef.current !== null) {
-        window.clearTimeout(tabUnlockTimerRef.current);
-      }
-    };
-  }, []);
+    if (visibleCount >= filteredVideos.length && !pagination?.hasMore) return;
 
-  useEffect(() => {
-    if (visibleCount >= filteredVideos.length) return;
-
+    if (pagination?.loading || pagination?.error) return;
     const target = sentinelRef.current;
     if (!target) return;
 
-    // cancelled: 탭 전환 등으로 effect가 정리되면 진행 중이던 배치 결과를 버린다.
     // loading: 같은 화면에서 옵저버가 연속 발화해도 한 번만 불러온다.
-    let cancelled = false;
     let loading = false;
 
-    const loadNextBatch = async () => {
+    const loadNextBatch = () => {
       if (loading) return;
       loading = true;
-      setIsBatchLoading(true);
+      if (visibleCount >= filteredVideos.length && pagination?.hasMore) { void pagination.loadMore(); return; }
 
       const nextCount = Math.min(filteredVideos.length, visibleCount + BATCH_SIZE);
-      await preloadVideoImages(filteredVideos.slice(visibleCount, nextCount));
-      if (cancelled) return;
+      void preloadVideoImages(filteredVideos.slice(visibleCount, nextCount));
 
-      setIsBatchLoading(false);
       setVisibleCount(nextCount);
     };
 
@@ -118,13 +104,11 @@ export function FanVideoFeed({
 
     observer.observe(target);
     return () => {
-      cancelled = true;
       observer.disconnect();
-      setIsBatchLoading(false);
     };
-  }, [filteredVideos, visibleCount]);
+  }, [filteredVideos, visibleCount, pagination]);
 
-  if (videos.length === 0) {
+  if (videos.length === 0 && !pagination?.loading && !pagination?.error) {
     return (
       <div className="fan-card grid min-h-64 place-items-center p-8 text-center">
         <div>
@@ -139,6 +123,8 @@ export function FanVideoFeed({
 
   return (
     <>
+      {pagination?.loading && videos.length === 0 ? <div className="h-64 animate-pulse bg-[var(--ui-surface-muted)]" role="status" aria-label="영상 불러오는 중" /> : null}
+      {pagination?.error ? <button type="button" onClick={pagination.loadMore} className="min-h-11 text-sm font-medium text-[var(--ui-text)]">{pagination.error}</button> : null}
       <FanFeedTabs
         tabs={tabs}
         activeKey={activeKey}
@@ -205,4 +191,9 @@ export function FanVideoFeed({
       ) : null}
     </>
   );
+}
+
+export function PagedFanVideoFeed({ teamSlug, teamName, initialPage, tabs }: { teamSlug: string; teamName: string; initialPage: MediaPage; tabs: MediaTab[] }) {
+  const { page, pagination } = useMediaPages(teamSlug, "videos", initialPage, tabs);
+  return <FanVideoFeed teamSlug={teamSlug} teamName={teamName} videos={page.videos} pagination={pagination} />;
 }

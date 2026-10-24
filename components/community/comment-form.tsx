@@ -11,6 +11,7 @@ import { MiniconPickerPanel, rememberMiniconUse } from "@/components/community/m
 import { createCommentAction, createMiniconCommentAction } from "@/lib/community/actions";
 import type { BoardScope } from "@/lib/community/boards";
 import type { MiniconItem, MiniconPack } from "@/lib/minicons/types";
+import { useCommentState } from "@/components/community/comment-state";
 import { useCommentMaxLength } from "@/components/community/use-comment-max-length";
 
 export function CommentForm({
@@ -34,6 +35,8 @@ export function CommentForm({
 }) {
   const { showToast } = useToast();
   const router = useRouter();
+  const commentState = useCommentState();
+  const inFlight = useRef(false);
   const [content, setContent] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [miniconOpen, setMiniconOpen] = useState(false);
@@ -48,31 +51,39 @@ export function CommentForm({
     setMiniconOpen((open) => !open);
   };
 
-  const submitMinicons = (items: MiniconItem[]) => {
-    if (pending) return;
-    setContent("");
-    setMiniconOpen(false);
-    setSelectedMinicons([]);
+  const send = (text: string, items: MiniconItem[] = []) => {
+    if (inFlight.current) return;
+    inFlight.current = true;
+    const temporaryId = commentState?.begin(parentId, text, items);
+    setMessage(null);
+    if (items.length) setMiniconOpen(false);
     startTransition(async () => {
-      const result = await createMiniconCommentAction({
-        postId,
-        miniconItemIds: items.map((item) => item.id),
-        parentId,
-        scope,
-        teamSlug,
-      });
-      if (result.ok) {
-        items.forEach((item) => rememberMiniconUse(item.id));
-        setMessage(null);
+      try {
+        const input = { postId, parentId, scope, teamSlug };
+        const result = items.length
+          ? await createMiniconCommentAction({ ...input, miniconItemIds: items.map(item => item.id) })
+          : await createCommentAction({ ...input, content: text });
+        if (!result.ok) throw new Error(result.error);
+        if (temporaryId) {
+          if (result.comment) commentState?.settle(temporaryId, result.comment);
+          else commentState?.rollback(temporaryId);
+        }
+        items.forEach(item => rememberMiniconUse(item.id));
+        setContent(current => current === text ? "" : current);
+        setSelectedMinicons([]);
         showToast({ title: parentId ? "답글 등록 완료" : "댓글 등록 완료", tone: "success" });
         onSubmitted?.();
+        // Moderation, LP and other readers still refresh in the background.
         window.setTimeout(() => router.refresh(), 0);
-      } else {
-        setMessage(result.error);
-        showToast({ title: "등록 실패", description: result.error, tone: "error" });
-      }
+      } catch (error) {
+        if (temporaryId) commentState?.rollback(temporaryId);
+        const message = error instanceof Error ? error.message : "댓글을 등록하지 못했습니다. 다시 시도해 주세요.";
+        setMessage(message);
+        showToast({ title: "등록 실패", description: message, tone: "error" });
+      } finally { inFlight.current = false; }
     });
   };
+  const submitMinicons = (items: MiniconItem[]) => send(content, items);
 
   const selectMinicon = (item: MiniconItem) => {
     if (doubleMode) {
@@ -95,29 +106,7 @@ export function CommentForm({
 
   const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    startTransition(async () => {
-      const result = await createCommentAction({
-        postId,
-        content,
-        parentId,
-        scope,
-        teamSlug,
-      });
-      if (result.ok) {
-        setContent("");
-        setMessage(null);
-        showToast({
-          title: parentId ? "답글 등록 완료" : "댓글 등록 완료",
-          description: isGuest ? "비회원 댓글이 등록됐어요." : "+20 LP가 적립됐어요.",
-          tone: "success",
-        });
-        onSubmitted?.();
-        window.setTimeout(() => router.refresh(), 0);
-      } else {
-        setMessage(result.error);
-        showToast({ title: "등록 실패", description: result.error, tone: "error" });
-      }
-    });
+    if (content.trim()) send(content);
   };
 
   if (variant === "mobileDock") {

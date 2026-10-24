@@ -113,10 +113,6 @@ export function NavigationTransitionProvider({ children }: { children: React.Rea
         return false;
       }
 
-      if (navigatingRef.current) {
-        return false;
-      }
-
       readinessRunRef.current += 1;
       navigatingRef.current = true;
       document.documentElement.setAttribute("data-navigation-pending", "true");
@@ -165,12 +161,6 @@ export function NavigationTransitionProvider({ children }: { children: React.Rea
       const destination = new URL(anchor.href, window.location.href);
       if (destination.origin !== window.location.origin) return;
       if (isSameDocumentDestination(destination.href)) return;
-
-      if (navigatingRef.current) {
-        event.preventDefault();
-        event.stopPropagation();
-        return;
-      }
 
       startNavigation(destination.href);
     }

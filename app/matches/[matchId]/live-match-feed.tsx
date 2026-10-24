@@ -1,5 +1,7 @@
 "use client";
 
+import { readLiveMatch } from "@/lib/matches/live-client";
+
 import { useEffect, useState } from "react";
 import { RefreshCw, Sword } from "lucide-react";
 
@@ -190,11 +192,15 @@ export function LiveMatchFeed({ matchId, teamA, teamB }: { matchId: string; team
 
   useEffect(() => {
     let cancelled = false;
+    let inFlight = false;
+    let force = refreshKey > 0;
 
     async function poll() {
+      if (inFlight || document.visibilityState === "hidden") return;
+      inFlight = true;
       try {
-        const res = await fetch(`/api/matches/${matchId}/live`, { cache: "no-store" });
-        const data = (await res.json()) as LiveMatchResponse;
+        const data = await readLiveMatch(matchId, force);
+        force = false;
         if (cancelled) return;
 
         setStatus(data.status);
@@ -209,6 +215,7 @@ export function LiveMatchFeed({ matchId, teamA, teamB }: { matchId: string; team
       } catch {
         if (!cancelled) setStatus("unavailable");
       } finally {
+        inFlight = false;
         if (!cancelled) setIsRefreshing(false);
       }
     }

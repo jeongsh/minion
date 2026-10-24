@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 
 
 import { cancelPredictionBetAction, placePredictionBetAction } from "@/app/predictions/actions";
+import { usePredictionMarket } from "@/components/domain/use-prediction-market";
 import flag from "@/assets/characters/flag-2.png";
 import { ControlledDialog, DialogSheetHeader } from "@/components/responsive/adaptive-dialog";
 import { useToast } from "@/components/ui/toast";
@@ -13,7 +14,9 @@ import { predictionMaxStake } from "@/lib/predictions";
 
 type DialogState = { matchId: string; teamId: string; teamName: string; existingBet?: PredictionBet };
 
-export function usePredictionBetDialog({ currentUserId, balance, bets }: { currentUserId?: string; balance: number | null; bets: PredictionBet[] }) {
+export function usePredictionBetDialog({ currentUserId, balance: initialBalance, bets: initialBets }: { currentUserId?: string; balance: number | null; bets: PredictionBet[] }) {
+  const marketState = usePredictionMarket(initialBets, initialBalance, currentUserId);
+  const { bets, balance } = marketState;
   const router = useRouter();
   const pathname = usePathname();
   const { showToast } = useToast();
@@ -40,7 +43,8 @@ export function usePredictionBetDialog({ currentUserId, balance, bets }: { curre
         data.set("matchId", dialog.matchId);
         data.set("teamId", dialog.teamId);
         data.set("stake", stake);
-        await placePredictionBetAction(data);
+        const result = await placePredictionBetAction(data);
+        marketState.placed(dialog.matchId, dialog.teamId, Number(stake), result);
         setDialog(null);
         showToast({
           title: `${dialog.teamName} 승리 예측 확정`,
@@ -64,7 +68,8 @@ export function usePredictionBetDialog({ currentUserId, balance, bets }: { curre
       try {
         const data = new FormData();
         data.set("matchId", dialog.matchId);
-        await cancelPredictionBetAction(data);
+        const result = await cancelPredictionBetAction(data);
+        marketState.cancelled(dialog.matchId, result);
         setDialog(null);
         showToast({
           title: "예측 취소 완료",
@@ -84,6 +89,8 @@ export function usePredictionBetDialog({ currentUserId, balance, bets }: { curre
   return {
     open,
     pending,
+    effectiveBets: bets,
+    effectiveBalance: balance,
     modal: typeof document !== "undefined" && dialog
       ? <PredictionBetDialog dialog={dialog} balance={balance ?? 0} stake={stake} pending={pending} error={error} onStakeChange={setStake} onClose={() => setDialog(null)} onSubmit={submit} onCancel={cancel} />
       : null,

@@ -287,7 +287,7 @@ export async function PlayerDetailView({
   const [segmentData, versionedAssets] = await Promise.all([
     getPlayerPageSegmentData(segmentSetIds),
     Promise.all(itemVersions.map(async (version) => {
-      const [spells, runeCatalog] = await Promise.all([fetchSpellCatalog(version), fetchRuneCatalog(version)]);
+      const [spells, runeCatalog] = await Promise.all([fetchSpellCatalog(version).catch(error => { console.warn("Player spells unavailable", error); return []; }), fetchRuneCatalog(version).catch(error => { console.warn("Player runes unavailable", error); return { trees: [], keystones: [] }; })]);
       return [version, { spells, runeCatalog }] as const;
     })),
   ]);

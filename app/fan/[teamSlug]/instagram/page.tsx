@@ -1,14 +1,14 @@
+import { getMediaPage, getMediaTabs } from "@/lib/fan/media-feed";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { FanInstagramFeed } from "@/components/fan/fan-instagram-feed";
+import { PagedFanInstagramFeed } from "@/components/fan/fan-instagram-feed";
 import { FanPageShell } from "@/components/fan/fan-page-shell";
 import {
   getInstagramStories,
   getPlayers,
   getTeamByFanSiteHost,
   getTeamBySlug,
-  getTeamInstagramFeed,
 } from "@/lib/data/lck";
 
 export const dynamic = "force-dynamic";
@@ -28,21 +28,23 @@ export default async function FanInstagramPage({
 
   const teamPlayers = (await getPlayers()).filter((player) => player.teamId === team.id);
   const playerIds = teamPlayers.map((player) => player.id);
-  const [instagramFeed, stories] = await Promise.all([
-    getTeamInstagramFeed(team.id, playerIds),
+  const [initialPage, tabs, stories] = await Promise.all([
+    getMediaPage(teamSlug, "instagram"),
+    getMediaTabs(teamSlug, "instagram"),
     getInstagramStories(team.id, playerIds),
   ]);
 
   return (
     <FanPageShell>
       <h1 className="sr-only">인스타그램</h1>
-      <FanInstagramFeed
-        teamSlug={team.fanSiteHost}
+      <PagedFanInstagramFeed
+        key={team.id}
+        teamSlug={team.fanSiteHost || teamSlug}
         teamName={team.shortName}
         teamLogoUrl={team.logoUrl}
         teamInstagramUrl={team.officialInstagramUrl}
-        teamPosts={instagramFeed.teamPosts}
-        playerPosts={instagramFeed.playerPosts}
+        initialPage={initialPage}
+        tabs={tabs}
         stories={stories}
         players={teamPlayers}
       />

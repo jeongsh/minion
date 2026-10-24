@@ -36,7 +36,7 @@ export async function placePredictionBetAction(formData: FormData) {
 
   revalidatePath("/predictions");
   revalidatePath("/");
-  return { balance: Number(data?.[0]?.balance ?? 0) };
+  return { balance: Number(data?.[0]?.balance ?? 0), betId: data?.[0]?.bet_id as string | undefined };
 }
 
 export async function cancelPredictionBetAction(formData: FormData) {

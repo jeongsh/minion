@@ -83,7 +83,7 @@ export function filterRunes(options: GameRuneOption[], query: string, limit = 40
 
 export async function fetchRuneCatalog(version = "16.12.1"): Promise<RuneCatalog> {
   const response = await fetch(`https://ddragon.leagueoflegends.com/cdn/${version}/data/ko_KR/runesReforged.json`, {
-    next: { revalidate: 60 * 60 * 24 },
+    signal: AbortSignal.timeout(3000), next: { revalidate: 60 * 60 * 24 },
   });
 
   if (!response.ok) {
@@ -120,7 +120,7 @@ export async function fetchRuneNameToIdMap(version = "16.12.1"): Promise<Map<str
   try {
     const response = await fetch(
       `https://ddragon.leagueoflegends.com/cdn/${version}/data/en_US/runesReforged.json`,
-      { next: { revalidate: 60 * 60 * 24 } },
+      { signal: AbortSignal.timeout(3000), next: { revalidate: 60 * 60 * 24 } },
     );
     if (!response.ok) return new Map();
     const json = (await response.json()) as DdragonRuneTree[];
@@ -164,10 +164,10 @@ export async function fetchFullRuneTrees(version = "16.12.1"): Promise<DdragonRu
   try {
     const [englishResponse, koreanResponse] = await Promise.all([
       fetch(`https://ddragon.leagueoflegends.com/cdn/${version}/data/en_US/runesReforged.json`, {
-        next: { revalidate: 60 * 60 * 24 },
+        signal: AbortSignal.timeout(3000), next: { revalidate: 60 * 60 * 24 },
       }),
       fetch(`https://ddragon.leagueoflegends.com/cdn/${version}/data/ko_KR/runesReforged.json`, {
-        next: { revalidate: 60 * 60 * 24 },
+        signal: AbortSignal.timeout(3000), next: { revalidate: 60 * 60 * 24 },
       }),
     ]);
     if (!englishResponse.ok) return [];
@@ -367,7 +367,7 @@ export async function fetchRuneImages(version = "16.12.1"): Promise<Record<strin
   try {
     const response = await fetch(
       `https://ddragon.leagueoflegends.com/cdn/${version}/data/ko_KR/runesReforged.json`,
-      { next: { revalidate: 60 * 60 * 24 } },
+      { signal: AbortSignal.timeout(3000), next: { revalidate: 60 * 60 * 24 } },
     );
     if (!response.ok) return {};
     const data = (await response.json()) as DdragonRuneTree[];

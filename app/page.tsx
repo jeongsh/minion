@@ -1,3 +1,6 @@
+import { Suspense } from "react";
+import { HomeNewsSection } from "@/components/news/home-news-section";
+import { HomeMetaSection, HomeBuildSection } from "@/components/domain/home-insights";
 import type { Metadata } from "next";
 import { getStages, getBracketStages } from "@/lib/data/lck";
 import { buildHomeTournamentOverview } from "@/lib/tournaments/home-overview";
@@ -46,6 +49,26 @@ function yearMonthKeyKST(value: string) {
   return dateKeyKST(value).slice(0, 7);
 }
 
+function selectHomeMatches(matches: Match[], todayKey: string) {
+  const byDateAsc = (a: Match, b: Match) => new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime();
+  const byDateDesc = (a: Match, b: Match) => -byDateAsc(a, b);
+  const notCompleted = matches.filter((match) => match.status !== "completed").sort(byDateAsc);
+  const liveMatches = notCompleted.filter((match) => isMatchLive(match));
+  const scheduledMatches = notCompleted.filter((match) => !isMatchLive(match));
+  const todayFinished = matches
+    .filter((match) => match.status === "completed" && dateKeyKST(match.matchDate) === todayKey)
+    .sort(byDateDesc);
+
+  let sectionMatches = [...liveMatches, ...scheduledMatches, ...todayFinished].slice(0, 12);
+  // 시즌 사이처럼 예정 경기도 오늘 경기도 없는 기간에는 섹션이 통째로 비어버리므로,
+  // 가장 최근에 끝난 경기들로 대신 채운다.
+  if (sectionMatches.length === 0) {
+    sectionMatches = matches.filter((match) => match.status === "completed").sort(byDateDesc).slice(0, 6);
+  }
+
+  return sectionMatches;
+}
+
 export default async function HomePage({
   searchParams,
 }: {
@@ -56,22 +79,19 @@ export default async function HomePage({
   const showOnboarding = onboardingMode === "1" || onboardingMode === "debug";
   const forceOnboarding = onboardingMode === "debug";
   const onboardingNext = safeOnboardingNext(params.next);
-  const [homeData, popularCommunityPosts, latestCommunityPosts, predictionMarket, pomPlayers, insights, stages, bracketStages, homeNewsFeed] = await Promise.all([
-    getMobileHomePublicData(),
+  const homeDataPromise = getMobileHomePublicData();
+  const newsPromise = getHomeNewsFeed(6);
+  const insightsPromise = getHomeInsights().catch(error => { console.error("Home insights unavailable", error); return null; });
+  const marketPromise = homeDataPromise.then(data => getPredictionMarketData(undefined, undefined, selectHomeMatches(data.matches, dateKeyKST(new Date())).map(match => match.id), false));
+  const [homeData, popularCommunityPosts, latestCommunityPosts, predictionMarket, pomPlayers, stages, bracketStages] = await Promise.all([
+    homeDataPromise,
     getBoardPosts({ scope: "hub", hotOnly: true, limit: COMMUNITY_HOME_HOT_CANDIDATE_LIMIT }),
     getBoardPosts({ scope: "hub", limit: COMMUNITY_HOME_LATEST_CANDIDATE_LIMIT }),
-    getPredictionMarketData(),
+    marketPromise,
     getHomePomPlayers(),
-    getHomeInsights().catch((error) => {
-      console.error("Home insights unavailable", error);
-      return null;
-    }),
     getStages(),
     getBracketStages(),
-    getHomeNewsFeed(6),
   ]);
-  const newsItems = homeNewsFeed.isFallback ? [] : homeNewsFeed.articles;
-  scheduleNewsThumbnailWarmup(newsItems);
   const { teams, matches, tournaments, calendarEvents } = homeData;
   const pomEntries = buildHomePomEntries({ matches, players: pomPlayers, teams, tournaments });
 
@@ -89,25 +109,12 @@ export default async function HomePage({
 
   const todayKey = dateKeyKST(new Date());
   const byDateAsc = (a: Match, b: Match) => new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime();
-  const byDateDesc = (a: Match, b: Match) => new Date(b.matchDate).getTime() - new Date(a.matchDate).getTime();
 
   // 홈 매치 섹션. 예전에는 "오늘의 매치"와 "다가오는 매치"를 따로 뽑았는데, 오늘 예정
   // 경기가 양쪽 조건에 모두 걸려 같은 경기가 한 화면에 두 번 나왔다. 하나로 합치고
   // LIVE → 예정(시간순) → 오늘 끝난 경기(최신순) 순으로 늘어놓는다.
   // 세 묶음은 서로 겹치지 않으므로 별도 중복 제거가 필요 없다.
-  const notCompleted = matches.filter((match) => match.status !== "completed").sort(byDateAsc);
-  const liveMatches = notCompleted.filter((match) => isMatchLive(match));
-  const scheduledMatches = notCompleted.filter((match) => !isMatchLive(match));
-  const todayFinished = matches
-    .filter((match) => match.status === "completed" && dateKeyKST(match.matchDate) === todayKey)
-    .sort(byDateDesc);
-
-  let sectionMatches = [...liveMatches, ...scheduledMatches, ...todayFinished].slice(0, 12);
-  // 시즌 사이처럼 예정 경기도 오늘 경기도 없는 기간에는 섹션이 통째로 비어버리므로,
-  // 가장 최근에 끝난 경기들로 대신 채운다.
-  if (sectionMatches.length === 0) {
-    sectionMatches = matches.filter((match) => match.status === "completed").sort(byDateDesc).slice(0, 6);
-  }
+  const sectionMatches = selectHomeMatches(matches, todayKey);
 
   const predictionBetsByMatchId = new Map<string, typeof predictionMarket.bets>();
   for (const bet of predictionMarket.bets) {
@@ -224,14 +231,25 @@ export default async function HomePage({
       communityPosts={homeCommunityPosts}
       communityTitle={homeCommunityTitle}
       pomEntries={pomEntries}
-      newsItems={newsItems}
+      newsSection={<Suspense fallback={<div className="mt-10 h-64 animate-pulse bg-[var(--ui-surface-muted)]" />}><DeferredHomeNews data={newsPromise} /></Suspense>}
       /* 기존 뉴스/영상 props
       latestVideos={homeVideos}
       newsItems={homeNewsFeed.articles}
       */
-      insights={insights}
+      insightsSection={<Suspense fallback={<div className="mt-10 h-64 animate-pulse bg-[var(--ui-surface-muted)]" />}><DeferredHomeInsights data={insightsPromise} /></Suspense>}
       />
       {onboarding}
     </>
   );
+}
+
+async function DeferredHomeNews({ data }: { data: ReturnType<typeof getHomeNewsFeed> }) {
+  const feed = await data;
+  const articles = feed.isFallback ? [] : feed.articles;
+  scheduleNewsThumbnailWarmup(articles);
+  return <HomeNewsSection articles={articles} />;
+}
+async function DeferredHomeInsights({ data }: { data: Promise<Awaited<ReturnType<typeof getHomeInsights>> | null> }) {
+  const insights = await data;
+  return <><div className="mt-6 sm:mt-8 lg:mt-10"><HomeMetaSection data={insights} /></div><HomeBuildSection data={insights} /></>;
 }

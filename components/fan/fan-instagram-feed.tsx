@@ -11,6 +11,8 @@ import {
   proxyUrl,
   relativeTime,
 } from "@/components/fan/instagram-post-modal";
+import { useMediaPages, type MediaPagination } from "@/components/fan/use-media-pages";
+import type { MediaPage, MediaTab } from "@/lib/fan/media-feed";
 import { preloadImage } from "@/lib/preload-image";
 import type { InstagramStory, Player, PlayerSocialPost, TeamSocialPost } from "@/lib/types";
 
@@ -61,7 +63,7 @@ function preloadPostImages(posts: PostItem[]) {
     const url = proxyUrl(post.imageUrl);
     return url ? [url] : [];
   });
-  return Promise.all(urls.map(preloadImage));
+  return Promise.all(urls.map((url) => preloadImage(url)));
 }
 
 // ─── 스토리 뷰어 (모달) ─────────────────────────────────────────
@@ -276,6 +278,7 @@ export function FanInstagramFeed({
   stories,
   players,
   variant = "full",
+  pagination,
 }: {
   teamSlug: string;
   teamName: string;
@@ -286,20 +289,20 @@ export function FanInstagramFeed({
   stories: InstagramStory[];
   players: Player[];
   variant?: "preview" | "full";
+  pagination?: MediaPagination;
 }) {
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const [embedPostIndex, setEmbedPostIndex] = useState<number | null>(null);
-  const [activeKey, setActiveKey] = useState("all");
+  const [localActiveKey, setActiveKey] = useState("all");
+  const activeKey = pagination?.owner ?? localActiveKey;
   const gridColumns = useGridColumns();
   const pageSize = variant === "preview" ? PREVIEW_LIMIT : gridColumns;
   const [visibleCount, setVisibleCount] = useState(
     variant === "preview" ? PREVIEW_LIMIT : MOBILE_GRID_COLUMNS,
   );
-  const [isTabPending, setIsTabPending] = useState(false);
-  const [isBatchLoading, setIsBatchLoading] = useState(false);
+  const isTabPending = Boolean(pagination?.loading);
+  const isBatchLoading = Boolean(pagination?.loading);
   const sentinelRef = useRef<HTMLDivElement>(null);
-  const tabLockRef = useRef(false);
-  const tabUnlockTimerRef = useRef<number | null>(null);
 
   const playersById = useMemo(
     () => new Map(players.map((p) => [p.id, p])),
@@ -348,7 +351,7 @@ export function FanInstagramFeed({
   }));
 
   // 탭 필터링 (전체 / 구단 / 선수 개개인) — 전체 보기에서만 노출
-  const tabs = buildOwnerTabs(posts, teamName);
+  const tabs = pagination?.tabs ?? buildOwnerTabs(posts, teamName);
 
   const filteredPosts = useMemo(
     () =>
@@ -366,53 +369,36 @@ export function FanInstagramFeed({
       : visibleCount;
   const visiblePosts = filteredPosts.slice(0, alignedVisibleCount);
 
-  // 다음 탭의 첫 화면 이미지를 먼저 받은 뒤 완성된 화면으로 교체한다.
-  const handleTabChange = async (key: string) => {
-    if (key === activeKey || tabLockRef.current) return;
+  // 선택은 즉시 바꾸고 이미지는 각 자리에서 불러온다.
+  const handleTabChange = (key: string) => {
+    if (key === activeKey) return;
+    if (pagination) { pagination.select(key); setVisibleCount(pageSize); return; }
 
-    tabLockRef.current = true;
-    setIsTabPending(true);
     const nextPosts = key === "all" ? posts : posts.filter((post) => post.ownerName === key);
-    await preloadPostImages(nextPosts.slice(0, pageSize));
     setActiveKey(key);
     setVisibleCount(pageSize);
 
-    tabUnlockTimerRef.current = window.setTimeout(() => {
-      tabLockRef.current = false;
-      setIsTabPending(false);
-      tabUnlockTimerRef.current = null;
-    }, 0);
+    void preloadPostImages(nextPosts.slice(0, pageSize));
   };
 
   useEffect(() => {
-    return () => {
-      if (tabUnlockTimerRef.current !== null) {
-        window.clearTimeout(tabUnlockTimerRef.current);
-      }
-    };
-  }, []);
+    if (variant !== "full" || (alignedVisibleCount >= filteredPosts.length && !pagination?.hasMore)) return;
 
-  useEffect(() => {
-    if (variant !== "full" || alignedVisibleCount >= filteredPosts.length) return;
-
+    if (pagination?.loading || pagination?.error) return;
     const target = sentinelRef.current;
     if (!target) return;
 
-    // cancelled: 탭 전환 등으로 effect가 정리되면 진행 중이던 배치 결과를 버린다.
     // loading: 같은 화면에서 옵저버가 연속 발화해도 한 번만 불러온다.
-    let cancelled = false;
     let loading = false;
 
-    const loadNextBatch = async () => {
+    const loadNextBatch = () => {
       if (loading) return;
       loading = true;
-      setIsBatchLoading(true);
+      if (alignedVisibleCount >= filteredPosts.length && pagination?.hasMore) { void pagination.loadMore(); return; }
 
       const nextCount = Math.min(filteredPosts.length, alignedVisibleCount + pageSize);
-      await preloadPostImages(filteredPosts.slice(alignedVisibleCount, nextCount));
-      if (cancelled) return;
+      void preloadPostImages(filteredPosts.slice(alignedVisibleCount, nextCount));
 
-      setIsBatchLoading(false);
       setVisibleCount(nextCount);
     };
 
@@ -426,11 +412,9 @@ export function FanInstagramFeed({
 
     observer.observe(target);
     return () => {
-      cancelled = true;
       observer.disconnect();
-      setIsBatchLoading(false);
     };
-  }, [alignedVisibleCount, filteredPosts, pageSize, variant]);
+  }, [alignedVisibleCount, filteredPosts, pageSize, variant, pagination]);
 
   return (
     <section className={variant === "full" ? "" : "fan-card rounded-3xl"}>
@@ -486,7 +470,7 @@ export function FanInstagramFeed({
         aria-busy={isTabPending || isBatchLoading}
         className={variant === "full" ? "" : `border-t border-[#eceef2] p-5 md:p-6 ${hasStories ? "border-t" : ""}`}
       >
-        {hasPosts ? (
+        {pagination?.loading && !hasPosts ? <div className="h-64 animate-pulse bg-[var(--ui-surface-muted)]" role="status" aria-label="게시물 불러오는 중" /> : pagination?.error && !hasPosts ? null : hasPosts ? (
           <>
             {variant === "preview" ? (
               <p className="mb-3 text-[13px] font-bold text-muted uppercase tracking-wide">게시물</p>
@@ -506,7 +490,7 @@ export function FanInstagramFeed({
                 />
               ))}
             </div>
-            {variant === "full" && filteredPosts.length > alignedVisibleCount ? (
+            {variant === "full" && (filteredPosts.length > alignedVisibleCount || pagination?.hasMore) ? (
               <div
                 ref={sentinelRef}
                 data-testid="instagram-infinite-sentinel"
@@ -527,6 +511,7 @@ export function FanInstagramFeed({
         ) : null}
       </div>
 
+      {pagination?.error ? <button type="button" onClick={pagination.loadMore} className="min-h-11 text-sm font-medium text-[var(--ui-text)]">{pagination.error}</button> : null}
       {/* 스토리 뷰어 모달 */}
       {viewerIndex !== null && (
         <StoryViewer
@@ -542,8 +527,16 @@ export function FanInstagramFeed({
           items={filteredPosts}
           startIndex={embedPostIndex}
           onClose={() => setEmbedPostIndex(null)}
+          hasMore={pagination?.hasMore}
+          onLoadMore={pagination?.loadMore}
+          loadingMore={pagination?.loading}
         />
       )}
     </section>
   );
+}
+
+export function PagedFanInstagramFeed({ initialPage, tabs, ...props }: Omit<React.ComponentProps<typeof FanInstagramFeed>, "teamPosts" | "playerPosts" | "pagination"> & { initialPage: MediaPage; tabs: MediaTab[] }) {
+  const { page, pagination } = useMediaPages(props.teamSlug, "instagram", initialPage, tabs);
+  return <FanInstagramFeed {...props} teamPosts={page.teamPosts} playerPosts={page.playerPosts} pagination={pagination} />;
 }

@@ -1,3 +1,5 @@
+import { after } from "next/server";
+import { getCurrentIpKey } from "@/lib/community/guest-identity";
 import { hasAdPostContent } from "@/lib/ads-policy";
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
@@ -13,7 +15,7 @@ import {
 } from "@/lib/community/actions";
 import {
   getPostById,
-  getPostByIdAndIncrementView,
+  recordPostView,
   getBoardPosts,
   getPostComments,
 } from "@/lib/data/community";
@@ -39,11 +41,14 @@ export default async function HubPostDetailPage({
   if (existingPost.siteScope !== "hub") notFound();
 
   const [post, comments, user] = await Promise.all([
-    getPostByIdAndIncrementView(postId),
+    getPostById(postId),
     getPostComments(postId),
     getCurrentUser(),
   ]);
   if (!post || post.siteScope !== "hub") notFound();
+
+  const viewerIpKey = await getCurrentIpKey().catch(() => null);
+  after(() => recordPostView(postId, viewerIpKey));
 
   const [reaction, commentReactions, posts, canSetNotice, currentGuestKey, miniconPacks] = await Promise.all([
     getPostReactionState(postId),

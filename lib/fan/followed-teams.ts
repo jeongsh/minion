@@ -1,3 +1,5 @@
+import { cache } from "react";
+import { getAllTeams } from "@/lib/data/lck";
 import { createHash } from "crypto";
 import { cookies } from "next/headers";
 
@@ -22,16 +24,11 @@ async function getFollowedTeamKeys(filters: string[]): Promise<string[]> {
       .filter((teamId): teamId is string => typeof teamId === "string");
     if (teamIds.length === 0) return [];
 
-    const { data: teamRows, error: teamsError } = await supabase
-      .from("teams")
-      .select("id, fan_site_host")
-      .in("id", teamIds);
-
-    if (teamsError) throw teamsError;
+    const teamRows = await getAllTeams();
 
     const keys = new Set(teamIds);
     for (const team of teamRows ?? []) {
-      if (typeof team.fan_site_host === "string") keys.add(team.fan_site_host);
+      if (teamIds.includes(team.id) && typeof team.fanSiteHost === "string") keys.add(team.fanSiteHost);
     }
 
     return [...keys];
@@ -45,7 +42,7 @@ export async function getUserFollowedTeamIds(userId: string): Promise<string[]> 
   return getFollowedTeamKeys([`user_id.eq.${userId}`]);
 }
 
-export async function getFollowedTeamIds(): Promise<string[]> {
+export const getFollowedTeamIds = cache(async function getFollowedTeamIds(): Promise<string[]> {
   const [user, cookieStore] = await Promise.all([getCurrentUser(), cookies()]);
   const raw = cookieStore.get(FAN_VOTER_COOKIE)?.value;
   if (!user && !raw) return [];
@@ -58,4 +55,4 @@ export async function getFollowedTeamIds(): Promise<string[]> {
   if (user) filters.push(`user_id.eq.${user.id}`);
   if (voterKey) filters.push(`voter_key.eq.${voterKey}`);
   return getFollowedTeamKeys(filters);
-}
+});

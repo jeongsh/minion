@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { DialogSheetHandle } from "@/components/responsive/adaptive-dialog";
 
@@ -57,22 +57,39 @@ export function InstagramPostModal({
   items,
   startIndex,
   onClose,
+  hasMore = false,
+  onLoadMore,
+  loadingMore = false,
 }: {
   items: InstagramPostItem[];
   startIndex: number;
   onClose: () => void;
+  hasMore?: boolean;
+  onLoadMore?: () => Promise<void>;
+  loadingMore?: boolean;
 }) {
   const [index, setIndex] = useState(startIndex);
   const [isLoading, setIsLoading] = useState(true);
+  const [requestedIndex, setRequestedIndex] = useState<number | null>(null);
+  if (requestedIndex !== null && requestedIndex < items.length) {
+    setIndex(requestedIndex);
+    setRequestedIndex(null);
+    setIsLoading(true);
+  }
   const item = items[index];
   const embedUrl = item ? instagramEmbedUrl(item.sourceUrl) : null;
   const hasPrevious = index > 0;
-  const hasNext = index < items.length - 1;
+  const hasNext = index < items.length - 1 || hasMore;
 
-  const moveTo = (nextIndex: number) => {
+  const moveTo = useCallback((nextIndex: number) => {
+    if (nextIndex >= items.length) {
+      if (hasMore && onLoadMore && !loadingMore) { setRequestedIndex(nextIndex); void onLoadMore(); }
+      return;
+    }
+    if (nextIndex < 0) return;
     setIsLoading(true);
     setIndex(nextIndex);
-  };
+  }, [items.length, hasMore, onLoadMore, loadingMore]);
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
@@ -81,12 +98,10 @@ export function InstagramPostModal({
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
       if (event.key === "ArrowLeft") {
-        setIsLoading(true);
-        setIndex((current) => Math.max(0, current - 1));
+        moveTo(index - 1);
       }
       if (event.key === "ArrowRight") {
-        setIsLoading(true);
-        setIndex((current) => Math.min(items.length - 1, current + 1));
+        moveTo(index + 1);
       }
     };
 
@@ -95,7 +110,7 @@ export function InstagramPostModal({
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [items.length, onClose]);
+  }, [index, moveTo, onClose]);
 
   if (!item) return null;
 

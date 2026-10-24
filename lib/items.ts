@@ -84,7 +84,7 @@ export function preferSummonersRiftItems(items: DdragonItemEntry[]): GameItem[] 
 export async function fetchItemCatalog(version = "16.12.1", locale = "ko_KR"): Promise<GameItem[]> {
   const response = await fetch(
     `https://ddragon.leagueoflegends.com/cdn/${version}/data/${locale}/item.json`,
-    { next: { revalidate: 60 * 60 * 24 } },
+    { signal: AbortSignal.timeout(3000), next: { revalidate: 60 * 60 * 24 } },
   );
 
   if (!response.ok) {
@@ -118,7 +118,7 @@ export async function fetchDetailedItemCatalog(
 ): Promise<DetailedGameItem[]> {
   const response = await fetch(
     `https://ddragon.leagueoflegends.com/cdn/${version}/data/${locale}/item.json`,
-    { next: { revalidate: 60 * 60 * 24 } },
+    { signal: AbortSignal.timeout(3000), next: { revalidate: 60 * 60 * 24 } },
   );
 
   if (!response.ok) {
