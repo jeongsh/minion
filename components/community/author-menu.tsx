@@ -2,7 +2,8 @@
 
 import { Ban, FileText, Flag, MessageSquareText, UserRound } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 
 import { RankAvatar } from "@/components/rank/rank-avatar";
@@ -33,6 +34,7 @@ type AuthorMenuProps = {
   teamSlug?: string;
   detailMeta?: React.ReactNode;
   hideAvatar?: boolean;
+  customTrigger?: React.ReactNode;
 };
 
 function TeamBadge({ team, size }: { team: CommunityAuthorTeam; size: "detail" | "profile" | "comment" }) {
@@ -76,10 +78,14 @@ export function AuthorMenu({
   teamSlug,
   detailMeta,
   hideAvatar = false,
+  customTrigger,
 }: AuthorMenuProps) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [menuStyle, setMenuStyle] = useState<React.CSSProperties>({ position: "fixed" });
   const router = useRouter();
   const { showToast } = useToast();
   const name = authorName ?? "알 수 없음";
@@ -89,13 +95,49 @@ export function AuthorMenu({
   useEffect(() => {
     if (!open) return;
     const close = (event: MouseEvent | TouchEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+      const target = event.target as Node;
+      if (!rootRef.current?.contains(target) && !menuRef.current?.contains(target)) setOpen(false);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpen(false);
+        triggerRef.current?.focus({ preventScroll: true });
+      }
     };
     document.addEventListener("mousedown", close);
     document.addEventListener("touchstart", close);
+    document.addEventListener("keydown", onKeyDown);
     return () => {
       document.removeEventListener("mousedown", close);
       document.removeEventListener("touchstart", close);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    const updatePosition = () => {
+      if (!triggerRef.current || !menuRef.current) return;
+      const rect = triggerRef.current.getBoundingClientRect();
+      const margin = 12;
+      const below = window.innerHeight - rect.bottom - margin - 8;
+      const above = rect.top - margin - 8;
+      const height = menuRef.current.scrollHeight + 2;
+      const placeAbove = height > below && above > below;
+      const maxHeight = Math.max(0, placeAbove ? above : below);
+      setMenuStyle({
+        position: "fixed",
+        left: Math.max(margin, Math.min(rect.left, window.innerWidth - Math.min(208, window.innerWidth - margin * 2) - margin)),
+        top: placeAbove ? Math.max(margin, rect.top - Math.min(height, maxHeight) - 8) : rect.bottom + 8,
+        maxHeight,
+      });
+    };
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
     };
   }, [open]);
 
@@ -154,7 +196,7 @@ export function AuthorMenu({
   };
 
   if (!authorId && !guestKey) {
-    return <span className="text-xs font-medium leading-[18px] text-[var(--ui-muted)]">{name}</span>;
+    return customTrigger ?? <span className="text-[13px] font-medium leading-[18px] text-[var(--ui-muted)]">{name}</span>;
   }
 
   const guestAvatar = (size: "detail" | "comment") => (
@@ -187,7 +229,7 @@ export function AuthorMenu({
   ) : isGuest ? (
     <span className="inline-flex min-w-0 items-center gap-2.5 text-left">
       {hideAvatar ? null : guestAvatar("comment")}
-      <span className="truncate text-xs font-medium leading-[18px] text-[var(--ui-ink)]">{name}</span>
+      <span className="truncate text-[13px] font-medium leading-[18px] text-[var(--ui-ink)]">{name}</span>
     </span>
   ) : (
     <span className="inline-flex min-w-0 items-center gap-2.5 text-left">
@@ -203,27 +245,32 @@ export function AuthorMenu({
       <span className="min-w-0">
         <span className="flex items-center gap-1.5">
           {authorTeam ? <TeamBadge team={authorTeam} size={variant === "profile" ? "profile" : "comment"} /> : null}
-          <span className={`truncate text-[var(--ui-ink)] ${variant === "profile" ? "font-paperozi text-[22px] font-semibold sm:text-[26px]" : "text-xs font-medium leading-[18px]"}`}>{name}</span>
+          <span className={`truncate text-[var(--ui-ink)] ${variant === "profile" ? "font-paperozi text-[22px] font-semibold sm:text-[26px]" : "text-[13px] font-medium leading-[18px]"}`}>{name}</span>
         </span>
       </span>
     </span>
   );
 
   return (
-    <div ref={rootRef} className="relative inline-flex min-w-0">
+    <div ref={rootRef} className="relative inline-flex min-w-0 self-start">
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setOpen((current) => !current)}
         className="min-w-0 inline-flex items-center rounded-lg text-left outline-none hover:opacity-75 focus-visible:ring-2 focus-visible:ring-[var(--tp)]"
         aria-haspopup="menu"
         aria-expanded={open}
+        aria-label={customTrigger ? `${name} 사용자 메뉴` : undefined}
       >
-        {trigger}
+        {customTrigger ?? trigger}
       </button>
-      {open ? (
+      {open ? createPortal(
         <div
+          ref={menuRef}
+          style={menuStyle}
           role="menu"
-          className="absolute left-0 top-[calc(100%+8px)] z-50 w-52 overflow-hidden rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-1.5 shadow-xl shadow-black/10"
+          aria-label={`${name} 사용자 메뉴`}
+          className="z-50 w-52 max-w-[calc(100vw-24px)] overflow-y-auto rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-1.5 shadow-xl shadow-black/10"
         >
           {authorId && variant !== "profile" ? <MenuLink href={`/community/user/${authorId}`} icon={<UserRound size={16} />} label="프로필 보기" onSelect={() => setOpen(false)} /> : null}
           {authorId ? <MenuLink href={`/community/user/${authorId}?tab=posts`} icon={<FileText size={16} />} label="작성글 보기" onSelect={() => setOpen(false)} /> : null}
@@ -235,7 +282,7 @@ export function AuthorMenu({
               <MenuButton icon={<Flag size={16} />} label="신고하기" onClick={reportUser} disabled={pending} danger />
             </>
           ) : null}
-        </div>
+        </div>, document.body
       ) : null}
     </div>
   );
@@ -243,7 +290,7 @@ export function AuthorMenu({
 
 function MenuLink({ href, icon, label, onSelect }: { href: string; icon: React.ReactNode; label: string; onSelect: () => void }) {
   return (
-    <Link href={href} onClick={onSelect} role="menuitem" className="flex h-10 items-center gap-2.5 rounded-lg px-3 text-sm font-semibold text-[var(--ui-text)] hover:bg-[var(--ui-surface-muted)]">
+    <Link href={href} onClick={onSelect} role="menuitem" className="flex h-10 items-center gap-2.5 rounded-lg px-3 text-sm font-medium text-[var(--ui-text)] hover:bg-[var(--ui-surface-muted)]">
       {icon}{label}
     </Link>
   );
@@ -251,7 +298,7 @@ function MenuLink({ href, icon, label, onSelect }: { href: string; icon: React.R
 
 function MenuButton({ icon, label, onClick, disabled, danger = false }: { icon: React.ReactNode; label: string; onClick: () => void; disabled: boolean; danger?: boolean }) {
   return (
-    <button type="button" role="menuitem" onClick={onClick} disabled={disabled} className={`flex h-10 w-full items-center gap-2.5 rounded-lg px-3 text-sm font-semibold hover:bg-[var(--ui-surface-muted)] disabled:opacity-50 ${danger ? "text-red-600" : "text-[var(--ui-text)]"}`}>
+    <button type="button" role="menuitem" onClick={onClick} disabled={disabled} className={`flex h-10 w-full items-center gap-2.5 rounded-lg px-3 text-sm font-medium hover:bg-[var(--ui-surface-muted)] disabled:opacity-50 ${danger ? "text-red-600" : "text-[var(--ui-text)]"}`}>
       {icon}{label}
     </button>
   );
