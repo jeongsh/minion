@@ -479,7 +479,7 @@ export async function createCommentAction(input: {
   });
 
   revalidateCommunityHome(input.scope, input.teamSlug);
-  return { ok: true, message: "댓글 톡 붙여뒀어요." };
+  return { ok: true, message: "댓글 톡 붙여뒀어요.", comment: await getCommentById(id).catch(error => { console.error("Saved comment hydration failed", error); return null; }) ?? undefined };
 }
 
 /** 미니콘 댓글 작성. 일반 댓글 LP 적립과 텍스트 AI 검수는 적용하지 않는다. */
@@ -550,7 +550,7 @@ export async function createMiniconCommentAction(input: {
   });
 
   revalidateCommunityHome(input.scope, input.teamSlug);
-  return { ok: true, message: miniconItemIds.length === 2 ? "더블 미니콘을 붙였어요." : "미니콘을 붙였어요." };
+  return { ok: true, message: miniconItemIds.length === 2 ? "더블 미니콘을 붙였어요." : "미니콘을 붙였어요.", comment: await getCommentById(id).catch(error => { console.error("Saved comment hydration failed", error); return null; }) ?? undefined };
 }
 
 export async function deleteGuestPostAction(input: {

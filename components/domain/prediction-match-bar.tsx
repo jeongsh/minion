@@ -68,9 +68,9 @@ export function PredictionMatchBar({
   match,
   teamA,
   teamB,
-  bets,
+  bets: initialBets,
   currentUserId,
-  balance,
+  balance: initialBalance,
   now,
   className = "",
 }: {
@@ -83,7 +83,8 @@ export function PredictionMatchBar({
   now: number;
   className?: string;
 }) {
-  const { open, pending, modal } = usePredictionBetDialog({ currentUserId, balance, bets });
+  const { open, pending, modal, effectiveBets } = usePredictionBetDialog({ currentUserId, balance: initialBalance, bets: initialBets });
+  const bets = effectiveBets;
   // 종료 후에는 환불 정산을 포함한 최종 비율과 내 선택을 보존한다.
   const completed = match.status === "completed";
   const matchBets = bets.filter((item) => item.matchId === match.id && (completed || item.status !== "refunded"));

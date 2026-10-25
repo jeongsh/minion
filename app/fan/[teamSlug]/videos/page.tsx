@@ -1,15 +1,13 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { FanVideoFeed } from "@/components/fan/fan-video-feed";
+import { PagedFanVideoFeed } from "@/components/fan/fan-video-feed";
 import { FanPageShell } from "@/components/fan/fan-page-shell";
 import {
-  getFanVideoFeed,
-  getPlayers,
   getTeamByFanSiteHost,
   getTeamBySlug,
 } from "@/lib/data/lck";
-import { buildFanVideoItems } from "@/lib/fan-video-items";
+import { getMediaPage, getMediaTabs } from "@/lib/fan/media-feed";
 
 export const dynamic = "force-dynamic";
 
@@ -26,21 +24,12 @@ export default async function FanVideosPage({
 
   if (!team) notFound();
 
-  const players = (await getPlayers())
-    .filter((player) => player.teamId === team.id)
-    .sort((first, second) => first.name.localeCompare(second.name));
-  const feed = await getFanVideoFeed(team.id, players.map((player) => player.id));
-  const videos = buildFanVideoItems({
-    team,
-    players,
-    teamVideos: feed.teamVideos,
-    playerVideos: feed.playerVideos,
-  });
+  const [initialPage, tabs] = await Promise.all([getMediaPage(teamSlug, "videos"), getMediaTabs(teamSlug, "videos")]);
 
   return (
     <FanPageShell>
       <h1 className="sr-only">영상</h1>
-      <FanVideoFeed teamSlug={team.fanSiteHost} teamName={team.shortName} videos={videos} />
+      <PagedFanVideoFeed key={team.id} teamSlug={team.fanSiteHost || teamSlug} teamName={team.shortName} initialPage={initialPage} tabs={tabs} />
     </FanPageShell>
   );
 }

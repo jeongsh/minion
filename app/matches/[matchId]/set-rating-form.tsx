@@ -93,8 +93,8 @@ function PlayerChip({
             aria-hidden="true"
             className={`h-2.5 w-2.5 ${player.averageRating == null ? "text-white/45" : "fill-amber-400 text-amber-400"}`}
           />
-          <span className="tabular-nums">{formatFanRating(player.averageRating)}</span>
-          <span className="hidden text-white/60 lg:inline">· {player.ratingCount}</span>
+          <span className="tabular-nums">{player.averageRating == null ? "0" : formatFanRating(player.averageRating)}</span>
+          <span className="hidden tabular-nums text-white/60 lg:inline">({player.ratingCount})</span>
         </span>
         {player.myRating != null ? (
           <span className="rounded-md bg-white/90 px-1.5 py-0.5 text-xs font-normal leading-4 text-black shadow-sm">

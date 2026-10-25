@@ -1631,7 +1631,35 @@ async function getTeamNewsBase(teamId: string) {
   }, { videos: [], socialPosts: [] });
 }
 
-async function getFanVideoFeedBase(teamId: string, playerIds: string[], limit?: number) {
+export type FanFeedOffsets = { team: number; player: number };
+
+/** Read an older deep link directly instead of downloading its entire channel. */
+export async function getFanVideoByRouteId(teamId: string, playerIds: string[], routeId: string) {
+  const supabase = createSupabaseServerClient();
+  const teamIdMatch = /^team-([0-9a-f-]{36})$/i.exec(routeId);
+  const playerIdMatch = /^player-([0-9a-f-]{36})$/i.exec(routeId);
+  const [teamResult, playerResult] = await Promise.all([
+    playerIdMatch ? Promise.resolve({ data: [], error: null }) : supabase.from("team_videos").select("*").eq("team_id", teamId).eq(teamIdMatch ? "id" : "youtube_video_id", teamIdMatch?.[1] ?? routeId).limit(1),
+    teamIdMatch || !playerIds.length ? Promise.resolve({ data: [], error: null }) : supabase.from("player_videos").select("*").eq("team_id", teamId).in("player_id", playerIds).eq(playerIdMatch ? "id" : "youtube_video_id", playerIdMatch?.[1] ?? routeId).limit(1),
+  ]);
+  if (teamResult.error) throw teamResult.error;
+  if (playerResult.error && playerResult.error.code !== "PGRST205") throw playerResult.error;
+  if (!teamResult.data?.length && !playerResult.data?.length && /^[\w-]{11}$/.test(routeId)) {
+    // Older imports can have a URL but no youtube_video_id. Preserve links
+    // produced by normalizeYoutubeVideo without reading the full feed.
+    const filter = `video_url.ilike.*${routeId}*,embed_url.ilike.*${routeId}*`;
+    const [legacyTeam, legacyPlayer] = await Promise.all([
+      supabase.from("team_videos").select("*").eq("team_id", teamId).or(filter).limit(1),
+      !playerIds.length ? Promise.resolve({ data: [], error: null }) : supabase.from("player_videos").select("*").eq("team_id", teamId).in("player_id", playerIds).or(filter).limit(1),
+    ]);
+    if (legacyTeam.error) throw legacyTeam.error;
+    if (legacyPlayer.error && legacyPlayer.error.code !== "PGRST205") throw legacyPlayer.error;
+    return { teamVideos: (legacyTeam.data as TeamVideoRow[]).map(mapTeamVideo), playerVideos: ((legacyPlayer.data ?? []) as PlayerVideoRow[]).map(mapPlayerVideo) };
+  }
+  return { teamVideos: (teamResult.data as TeamVideoRow[]).map(mapTeamVideo), playerVideos: ((playerResult.data ?? []) as PlayerVideoRow[]).map(mapPlayerVideo) };
+}
+
+async function getFanVideoFeedBase(teamId: string, playerIds: string[], limit?: number, offsets?: FanFeedOffsets, ownerId?: string) {
   return fromSupabase(async () => {
     const supabase = createSupabaseServerClient();
     const teamVideosQuery = supabase
@@ -1639,17 +1667,18 @@ async function getFanVideoFeedBase(teamId: string, playerIds: string[], limit?: 
       .select("*")
       .eq("team_id", teamId)
       .order("published_at", { ascending: false, nullsFirst: false });
-    const playerVideosQuery = supabase
+    let playerVideosQuery = supabase
       .from("player_videos")
       .select("*")
       .eq("team_id", teamId)
       .in("player_id", playerIds)
       .order("published_at", { ascending: false, nullsFirst: false });
+    if (ownerId && ownerId !== "team") playerVideosQuery = playerVideosQuery.eq("player_id", ownerId);
     const [teamVideosResult, playerVideosResult] = await Promise.all([
-      limit ? teamVideosQuery.limit(limit) : teamVideosQuery,
-      playerIds.length === 0
+      ownerId && ownerId !== "team" ? Promise.resolve({ data: [], error: null }) : offsets && limit ? teamVideosQuery.order("id").range(offsets.team, offsets.team + limit - 1) : limit ? teamVideosQuery.limit(limit) : teamVideosQuery,
+      playerIds.length === 0 || ownerId === "team"
         ? Promise.resolve({ data: [], error: null })
-        : limit ? playerVideosQuery.limit(limit) : playerVideosQuery,
+        : offsets && limit ? playerVideosQuery.order("id").range(offsets.player, offsets.player + limit - 1) : limit ? playerVideosQuery.limit(limit) : playerVideosQuery,
     ]);
 
     if (teamVideosResult.error) {
@@ -2075,6 +2104,8 @@ async function getTeamInstagramFeedBase(
   teamId: string,
   playerIds: string[],
   limit?: number,
+  offsets?: FanFeedOffsets,
+  ownerId?: string,
 ): Promise<{ teamPosts: TeamSocialPost[]; playerPosts: PlayerSocialPost[] }> {
   return fromSupabase(async () => {
     const supabase = createSupabaseServerClient();
@@ -2084,7 +2115,7 @@ async function getTeamInstagramFeedBase(
       .eq("team_id", teamId)
       .eq("platform", "instagram")
       .order("published_at", { ascending: false, nullsFirst: false });
-    const playerPostsQuery = supabase
+    let playerPostsQuery = supabase
       .from("player_social_posts")
       .select("*")
       .eq("team_id", teamId)
@@ -2092,11 +2123,12 @@ async function getTeamInstagramFeedBase(
       .eq("platform", "instagram")
       .order("posted_at", { ascending: false, nullsFirst: false });
 
+    if (ownerId && ownerId !== "team") playerPostsQuery = playerPostsQuery.eq("player_id", ownerId);
     const [teamResult, playerResult] = await Promise.all([
-      limit ? teamPostsQuery.limit(limit) : teamPostsQuery,
-      playerIds.length === 0
+      ownerId && ownerId !== "team" ? Promise.resolve({ data: [], error: null }) : offsets && limit ? teamPostsQuery.order("id").range(offsets.team, offsets.team + limit - 1) : limit ? teamPostsQuery.limit(limit) : teamPostsQuery,
+      playerIds.length === 0 || ownerId === "team"
         ? Promise.resolve({ data: [], error: null })
-        : limit ? playerPostsQuery.limit(limit) : playerPostsQuery,
+        : offsets && limit ? playerPostsQuery.order("id").range(offsets.player, offsets.player + limit - 1) : limit ? playerPostsQuery.limit(limit) : playerPostsQuery,
     ]);
 
     if (teamResult.error) throw teamResult.error;

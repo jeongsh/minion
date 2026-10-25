@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -208,7 +209,9 @@ export default async function FanHomePage({
   const teamPlayersPromise = getPlayersByTeamId(team.id).then((players) =>
     [...players].sort((a, b) => POSITION_ORDER.indexOf(a.position) - POSITION_ORDER.indexOf(b.position)),
   );
-  const [teamPlayers, teams, teamMatchesRaw, popularBoardPosts, latestBoardPosts, calendarEvents, instagramFeed, videoFeed] =
+  const instagramPromise = teamPlayersPromise.then(players => getTeamInstagramFeed(team.id, players.map(player => player.id), FEED_PREVIEW_LIMIT));
+  const videoPromise = teamPlayersPromise.then(players => getFanVideoFeed(team.id, players.map(player => player.id), FEED_PREVIEW_LIMIT));
+  const [teamPlayers, teams, teamMatchesRaw, popularBoardPosts, latestBoardPosts, calendarEvents] =
     await Promise.all([
       teamPlayersPromise,
       getAllTeams(),
@@ -216,8 +219,6 @@ export default async function FanHomePage({
       getBoardPosts({ scope: "team", teamId: team.id, hotOnly: true, limit: COMMUNITY_HOME_HOT_CANDIDATE_LIMIT }),
       getBoardPosts({ scope: "team", teamId: team.id, limit: COMMUNITY_HOME_LATEST_CANDIDATE_LIMIT }),
       getCalendarEvents({ teamId: team.id, includePastOneTime: true }),
-      teamPlayersPromise.then((players) => getTeamInstagramFeed(team.id, players.map((player) => player.id), FEED_PREVIEW_LIMIT)),
-      teamPlayersPromise.then((players) => getFanVideoFeed(team.id, players.map((player) => player.id), FEED_PREVIEW_LIMIT)),
     ]);
 
   const todayCelebrations = getTodayCelebrations(calendarEvents);
@@ -258,32 +259,6 @@ export default async function FanHomePage({
   // MATCHES 미니 리스트: 예정 3 + 결과 2
   const matchRows = [...upcomingMatches.slice(0, 3), ...completedMatches.slice(0, 2)];
   // FEED 데이터 준비 — 영상은 상세 페이지 라우팅용 routeId를 포함해 만든다.
-  const playersById = new Map(teamPlayers.map((player) => [player.id, player]));
-  const feedVideos: FeedVideoItem[] = buildFanVideoItems({
-    team,
-    players: teamPlayers,
-    teamVideos: videoFeed.teamVideos,
-    playerVideos: videoFeed.playerVideos,
-  }).slice(0, FEED_PREVIEW_LIMIT);
-  const feedInsta: FeedInstaItem[] = [
-    ...instagramFeed.teamPosts.map((p) => ({
-      id: `team-${p.id}`,
-      ownerName: team.shortName,
-      caption: p.content || p.title,
-      imageUrl: p.thumbnailUrl,
-      sourceUrl: p.sourceUrl,
-      postedAt: p.publishedAt,
-    })),
-    ...instagramFeed.playerPosts.map((p) => ({
-      id: `player-${p.id}`,
-      ownerName: playersById.get(p.playerId)?.name ?? "선수",
-      caption: p.caption,
-      imageUrl: p.imageUrl,
-      sourceUrl: p.sourceUrl,
-      postedAt: p.postedAt,
-      likesCount: p.likesCount,
-    })),
-  ].sort((a, b) => (b.postedAt ? new Date(b.postedAt).getTime() : 0) - (a.postedAt ? new Date(a.postedAt).getTime() : 0)).slice(0, FEED_PREVIEW_LIMIT);
   const featuredBoardPosts = selectCommunityHomePosts(popularBoardPosts, latestBoardPosts);
   const communityTitle = communityHomeSectionTitle(featuredBoardPosts);
 
@@ -341,13 +316,13 @@ export default async function FanHomePage({
         {/* 소셜 피드 */}
         <section>
           <SectionHeading href={`/fan/${fanSlug}/instagram`}>소셜 피드</SectionHeading>
-          <FanSocialPreview items={feedInsta} />
+          <Suspense fallback={<div className="h-64 animate-pulse bg-[var(--ui-surface-muted)]" />}><DeferredFanSocial team={team} teamPlayers={teamPlayers} data={instagramPromise} /></Suspense>
         </section>
 
         {/* 최신 영상 */}
         <section>
           <SectionHeading href={`/fan/${fanSlug}/videos`}>최신 영상</SectionHeading>
-          <FanHomeVideoSwiper teamSlug={fanSlug} videos={feedVideos} />
+          <Suspense fallback={<div className="h-64 animate-pulse bg-[var(--ui-surface-muted)]" />}><DeferredFanVideos team={team} teamPlayers={teamPlayers} fanSlug={fanSlug} data={videoPromise} /></Suspense>
         </section>
 
         {/* 선수단 — 자주 바뀌지 않는 정보라 첫 화면 대신 아래쪽에 둔다. */}
@@ -361,4 +336,40 @@ export default async function FanHomePage({
       </FanPageShell>
     </>
   );
+}
+
+async function DeferredFanSocial({ team, teamPlayers, data }: { team: Team; teamPlayers: Player[]; data: ReturnType<typeof getTeamInstagramFeed> }) {
+  const instagramFeed = await data;
+  const playersById = new Map(teamPlayers.map((player) => [player.id, player]));
+  const feedInsta: FeedInstaItem[] = [
+    ...instagramFeed.teamPosts.map((p) => ({
+      id: `team-${p.id}`,
+      ownerName: team.shortName,
+      caption: p.content || p.title,
+      imageUrl: p.thumbnailUrl,
+      sourceUrl: p.sourceUrl,
+      postedAt: p.publishedAt,
+    })),
+    ...instagramFeed.playerPosts.map((p) => ({
+      id: `player-${p.id}`,
+      ownerName: playersById.get(p.playerId)?.name ?? "선수",
+      caption: p.caption,
+      imageUrl: p.imageUrl,
+      sourceUrl: p.sourceUrl,
+      postedAt: p.postedAt,
+      likesCount: p.likesCount,
+    })),
+  ].sort((a, b) => (b.postedAt ? new Date(b.postedAt).getTime() : 0) - (a.postedAt ? new Date(a.postedAt).getTime() : 0)).slice(0, FEED_PREVIEW_LIMIT);
+  return <FanSocialPreview items={feedInsta} />;
+}
+
+async function DeferredFanVideos({ team, teamPlayers, fanSlug, data }: { team: Team; teamPlayers: Player[]; fanSlug: string; data: ReturnType<typeof getFanVideoFeed> }) {
+  const videoFeed = await data;
+  const feedVideos: FeedVideoItem[] = buildFanVideoItems({
+    team,
+    players: teamPlayers,
+    teamVideos: videoFeed.teamVideos,
+    playerVideos: videoFeed.playerVideos,
+  }).slice(0, FEED_PREVIEW_LIMIT);
+  return <FanHomeVideoSwiper teamSlug={fanSlug} videos={feedVideos} />;
 }

@@ -5,6 +5,7 @@ import { BlindedContent } from "@/components/community/blinded-content";
 import { AuthorMenu } from "@/components/community/author-menu";
 import { CommentForm } from "@/components/community/comment-form";
 import { CommentList } from "@/components/community/comment-list";
+import { CommentCount, CommentStateProvider } from "@/components/community/comment-state";
 import { PostContentViewer } from "@/components/community/editor/post-content-viewer";
 import { formatRelativeOrDate } from "@/components/community/format";
 import { PostOwnerActions } from "@/components/community/post-owner-actions";
@@ -50,6 +51,7 @@ export async function PostView({
   const isGuestOwner = Boolean(post.guestKey && post.guestKey === currentGuestKey);
 
   return (
+    <CommentStateProvider comments={comments} count={post.commentCount} postId={post.id}>
     <article className={`${scope === "team" ? "w-full" : "content-reading"} community-post-modal mobile-full-bleed pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:mx-auto md:pb-0`}>
       <PostMobileActions
         postId={post.id}
@@ -146,7 +148,7 @@ export async function PostView({
         <section aria-label="댓글">
           <div className="flex items-baseline gap-1 px-[14px] py-4 md:px-8 md:py-5">
             <h2 className="text-[15px] font-bold leading-[1.5] text-[var(--ui-ink)] md:text-lg">댓글</h2>
-            <span className="text-[13px] font-medium leading-[1.5] text-[var(--tp)] md:text-base">{post.commentCount}</span>
+            <span className="text-[13px] font-medium leading-[1.5] text-[var(--tp)] md:text-base"><CommentCount fallback={post.commentCount} /></span>
           </div>
           <div className="hidden px-4 pb-5 md:block md:px-8 md:pb-8">
             <CommentForm postId={post.id} scope={scope} teamSlug={teamSlug} isGuest={!viewerId} miniconPacks={miniconPacks} />
@@ -158,5 +160,6 @@ export async function PostView({
         <CommentForm postId={post.id} scope={scope} teamSlug={teamSlug} isGuest={!viewerId} variant="mobileDock" miniconPacks={miniconPacks} />
       </div>
     </article>
+    </CommentStateProvider>
   );
 }

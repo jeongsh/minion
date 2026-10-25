@@ -64,7 +64,7 @@ export const getPredictionMarketData = cache(async function getPredictionMarketD
   else if (matchIds) betsQuery = betsQuery.in("match_id", matchIds);
 
   const [betsResult, rankingsResult, walletResult] = await Promise.all([
-    betsQuery,
+    matchIds?.length === 0 ? Promise.resolve({ data: [], error: null }) : betsQuery,
     matchId || !includeRankings
       ? Promise.resolve({ data: [], error: null })
       : supabase

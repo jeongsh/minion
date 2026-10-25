@@ -406,44 +406,32 @@ export const getPostById = cache(async function getPostById(
 });
 
 /** 단건 조회 + 조회수 증가. 상세 페이지 진입 시 사용. */
-export async function getPostByIdAndIncrementView(
-  postId: string,
-  viewerIpKey?: string | null,
-): Promise<CommunityPostDetail | null> {
+async function incrementPostViewCount(postId: string, viewerIpKey?: string | null): Promise<number | null> {
+  if (!canQuerySupabase()) return null;
+  try {
+    const ipKey = viewerIpKey ?? await getCurrentIpKey().catch(() => null);
+    if (!ipKey) return null;
+    const admin = createSupabaseAdminClient();
+    const { data, error } = await admin.rpc("increment_community_post_view_count", { p_post_id: postId, p_viewer_ip_key: ipKey });
+    if (typeof data === "number") return data;
+    if (error?.code === "PGRST202") {
+      const legacy = await admin.rpc("increment_community_post_view_count", { p_post_id: postId });
+      if (typeof legacy.data === "number") return legacy.data;
+    }
+  } catch { /* View accounting is best-effort and must not hide a post. */ }
+  return null;
+}
+
+export async function getPostByIdAndIncrementView(postId: string, viewerIpKey?: string | null): Promise<CommunityPostDetail | null> {
   const post = await getPostById(postId);
   if (!post) return null;
+  const count = await incrementPostViewCount(postId, viewerIpKey);
+  return count === null ? post : { ...post, viewCount: count };
+}
 
-  if (canQuerySupabase()) {
-    // 카운트 갱신은 작성자 외 사용자도 수행하므로 RLS 우회(service-role).
-    // 조회수는 best-effort: 서비스 롤 키 미설정 등으로 실패해도 렌더는 막지 않는다.
-    try {
-      const ipKey = viewerIpKey ?? await getCurrentIpKey().catch(() => null);
-      if (!ipKey) return post;
-      const admin = createSupabaseAdminClient();
-      const { data, error } = await admin.rpc(
-        "increment_community_post_view_count",
-        { p_post_id: postId, p_viewer_ip_key: ipKey },
-      );
-      if (typeof data === "number") {
-        return { ...post, viewCount: data };
-      }
-      // 구버전 DB에는 IP 중복 방지 전의 단일 인자 RPC만 존재한다.
-      if (error?.code === "PGRST202") {
-        const legacy = await admin.rpc("increment_community_post_view_count", {
-          p_post_id: postId,
-        });
-        if (typeof legacy.data === "number") {
-          return { ...post, viewCount: legacy.data };
-        }
-      }
-    } catch {
-      return post;
-    }
-  } else {
-    return post;
-  }
-
-  return post;
+/** Web rendering must not wait for best-effort view accounting. */
+export async function recordPostView(postId: string, viewerIpKey: string | null) {
+  if (viewerIpKey) await incrementPostViewCount(postId, viewerIpKey);
 }
 
 /** 댓글 목록 조회(오래된 순). */

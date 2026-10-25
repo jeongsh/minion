@@ -7,8 +7,8 @@ import type { Match, Team } from "@/lib/types";
 import { formatDateTime } from "@/lib/view-data";
 
 export function HomeUpcomingPredictionCard({ match, teamA, teamB, tournament, bets, currentUserId, balance }: { match: Match; teamA?: Team; teamB?: Team; tournament?: string; bets: PredictionBet[]; currentUserId?: string; balance: number | null }) {
-  const { open, pending, modal } = usePredictionBetDialog({ currentUserId, balance, bets });
-  const market = predictionMarketForMatch(bets, match.id, match.teamAId, match.teamBId);
+  const { open, pending, modal, effectiveBets } = usePredictionBetDialog({ currentUserId, balance, bets });
+  const market = predictionMarketForMatch(effectiveBets, match.id, match.teamAId, match.teamBId);
   // status만 보면, 경기 시작 시각이 지났는데도 status가 아직 completed/live로 갱신되기
   // 전(동기화 지연 등)에는 예측이 계속 열려있는 것처럼 보인다. 승부예측 탭(prediction-board.tsx)과
   // 동일하게 경기 시작 시각도 함께 확인해야 마감 상태가 일치한다.

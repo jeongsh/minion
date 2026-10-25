@@ -31,10 +31,14 @@ export function LiveMatchScoreBox({
   useEffect(() => {
     if (!poll) return;
     let cancelled = false;
+    let inFlight = false;
+    const controller = new AbortController();
 
     async function tick() {
+      if (inFlight || document.visibilityState === "hidden") return;
+      inFlight = true;
       try {
-        const res = await fetch(`/api/matches/${matchId}/score`, { cache: "no-store" });
+        const res = await fetch(`/api/matches/${matchId}/score`, { cache: "no-store", signal: AbortSignal.any([controller.signal, AbortSignal.timeout(8000)]) });
         if (!res.ok) return;
         const data = (await res.json()) as MatchScoreResponse;
         if (cancelled) return;
@@ -44,13 +48,14 @@ export function LiveMatchScoreBox({
         if (data.status === "completed") window.clearInterval(timer);
       } catch {
         // 네트워크 흔들림은 무시하고 마지막 값을 유지한다.
-      }
+      } finally { inFlight = false; }
     }
 
     const timer = window.setInterval(tick, POLL_INTERVAL_MS);
     tick();
     return () => {
       cancelled = true;
+      controller.abort();
       window.clearInterval(timer);
     };
   }, [matchId, poll]);

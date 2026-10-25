@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, Loader2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export type PollOption = { id: string; label: string };
 
@@ -28,6 +28,8 @@ function pollStorageId(value: string, namespace: "option" | "poll") {
 export function PollVoter({ pollId, options, question }: { pollId: string; options: PollOption[]; question: string }) {
   const storagePollId = pollStorageId(pollId, "poll");
 
+  const initialRead = useRef<AbortController | null>(null);
+  const voting = useRef(false);
   const [tally, setTally] = useState<Tally | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,23 +55,32 @@ export function PollVoter({ pollId, options, question }: { pollId: string; optio
   useEffect(() => {
     // 언마운트 후 setState 하지 않도록 플래그로 끊는다.
     let cancelled = false;
+    const controller = new AbortController();
+    initialRead.current = controller;
     (async () => {
       try {
-        const response = await fetch(`/api/polls/${storagePollId}`, { cache: "no-store" });
-        if (!cancelled && response.ok) setTally(await response.json());
+        const response = await fetch(`/api/polls/${storagePollId}`, { cache: "no-store", signal: controller.signal });
+        if (!cancelled && !controller.signal.aborted && !voting.current && response.ok) {
+          const next = await response.json();
+          if (!cancelled && !controller.signal.aborted && !voting.current) setTally(next);
+        }
       } catch {
         // 집계 실패는 투표 UI를 막지 않는다.
       }
     })();
     return () => {
       cancelled = true;
+      controller.abort();
     };
   }, [storagePollId]);
 
   async function vote(optionId: string) {
+    if (voting.current) return;
+    voting.current = true;
+    initialRead.current?.abort();
     const storageOptionId = pollStorageId(optionId, "option");
     const previousTally = tally;
-    if (previousTally) setTally(optimisticTally(previousTally, storageOptionId));
+    setTally(optimisticTally(previousTally ?? { counts: {}, total: 0, myOptionId: null, signedIn: false }, storageOptionId));
     setBusy(true);
     setError(null);
     try {
@@ -89,6 +100,7 @@ export function PollVoter({ pollId, options, question }: { pollId: string; optio
       setTally(previousTally);
       setError(caught instanceof Error ? caught.message : "투표를 처리하지 못했어요.");
     } finally {
+      voting.current = false;
       setBusy(false);
     }
   }

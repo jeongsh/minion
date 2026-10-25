@@ -8,8 +8,6 @@ import { CalendarDays, ChevronRight } from "lucide-react";
 import { HomeCalendar, type HomeCalendarMatch } from "@/components/domain/home-calendar";
 import { HomeCalendarWorkspace } from "@/components/domain/home-calendar-workspace";
 import { HomeBoardCarousel } from "@/components/domain/home-board-carousel";
-import { HomeMetaSection, HomeBuildSection } from "@/components/domain/home-insights";
-import type { HomeInsights } from "@/lib/data/home-insights";
 import { HomeMatchSwiper } from "@/components/domain/home-match-swiper";
 import type { HomeMatchItem } from "@/components/domain/home-match-card";
 import { HomePomSwiper } from "@/components/domain/home-pom-swiper";
@@ -23,14 +21,10 @@ import { SectionHeading as Heading } from "@/components/ui/section-heading";
 import { AdSlot as Ad } from "@/components/ui/ad-slot";
 import { TeamLogo as Logo } from "@/components/ui/team-logo";
 import { AdaptiveDialog } from "@/components/responsive/adaptive-dialog";
-import { HomeNewsSection } from "@/components/news/home-news-section";
-import type { NewsArticle } from "@/lib/data/news";
 
 /* 홈 뉴스/영상 비활성화: 기존 import 보관
 import { HomeVideoSwiper } from "@/components/domain/home-video-swiper";
-import { HomeNewsSection } from "@/components/news/home-news-section";
 import type { HomeVideo } from "@/lib/data/lck-channel-videos";
-import type { NewsArticle } from "@/lib/data/news";
 */
 
 type Props = {
@@ -47,8 +41,8 @@ type Props = {
   communityTitle: "인기글" | "최신글";
   pomEntries: HomePomEntry[];
   // latestVideos: HomeVideo[];
-  newsItems: NewsArticle[];
-  insights: HomeInsights | null;
+  newsSection: React.ReactNode;
+  insightsSection: React.ReactNode;
 };
 
 const HOME_SECTION_SPACING = "mt-10";
@@ -74,8 +68,8 @@ export function HomeDashboard({
   communityTitle,
   pomEntries,
   // latestVideos,
-  newsItems,
-  insights,
+  newsSection,
+  insightsSection,
 }: Props) {
   const activeTeams = themeTeams
     .map(
@@ -150,7 +144,7 @@ export function HomeDashboard({
         <HomeBoardCarousel posts={communityPosts} />
       </section>
 
-      <HomeNewsSection articles={newsItems} />
+      {newsSection}
 
       {pomEntries.length > 0 ? (
         <section className={HOME_SECTION_SPACING}>
@@ -215,8 +209,7 @@ export function HomeDashboard({
       </section>
       */}
 
-      <div className="mt-6 sm:mt-8 lg:mt-10"><HomeMetaSection data={insights} /></div>
-      <HomeBuildSection data={insights} />
+      {insightsSection}
       <div>
         <Ad
           enabled={matchItems.length > 0}

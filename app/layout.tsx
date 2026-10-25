@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+import { RootLoadingSkeleton } from "@/components/navigation/root-loading-skeleton";
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import { Analytics } from "@vercel/analytics/next";
@@ -65,11 +67,41 @@ export const viewport: Viewport = {
   interactiveWidget: "resizes-content",
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const adsenseClient = process.env.NEXT_PUBLIC_GOOGLE_ADSENSE_CLIENT;
+
+  return (
+    <html lang="ko" suppressHydrationWarning>
+      <head>
+        <style dangerouslySetInnerHTML={{ __html: PRETENDARD_UNICODE_FALLBACK_CSS }} />
+        <meta name="color-scheme" content="light dark" />
+        <meta name="theme-color" content="#ffffff" suppressHydrationWarning />
+        {adsenseClient ? <meta name="google-adsense-account" content={adsenseClient} /> : null}
+        <Script id="minion-theme-init" strategy="beforeInteractive">
+          {themeInitScript}
+        </Script>
+      </head>
+      <body>
+        <ToastProvider>
+          <SpoilerFreeProvider>
+            <NavigationTransitionProvider>
+              <Suspense fallback={<RootLoadingSkeleton />}>
+                <ResolvedShell>{children}</ResolvedShell>
+              </Suspense>
+            </NavigationTransitionProvider>
+          </SpoilerFreeProvider>
+        </ToastProvider>
+        <Analytics />
+      </body>
+    </html>
+  );
+}
+
+async function ResolvedShell({ children }: { children: React.ReactNode }) {
   const userPromise = getCurrentUser();
   const adminPromise = isCurrentUserAdmin();
   const [user, isAdminUser, rankProfile, followedTeamIds, favoriteTeamId, shellTeams, notificationPreferences, pendingSupportInquiryCount] = await Promise.all([
@@ -92,41 +124,21 @@ export default async function RootLayout({
       lp: rankProfile.lp,
     }
     : null;
-  const adsenseClient = process.env.NEXT_PUBLIC_GOOGLE_ADSENSE_CLIENT;
-
   return (
-    <html lang="ko" suppressHydrationWarning>
-      <head>
-        <style dangerouslySetInnerHTML={{ __html: PRETENDARD_UNICODE_FALLBACK_CSS }} />
-        <meta name="color-scheme" content="light dark" />
-        <meta name="theme-color" content="#ffffff" suppressHydrationWarning />
-        {adsenseClient ? <meta name="google-adsense-account" content={adsenseClient} /> : null}
-        <Script id="minion-theme-init" strategy="beforeInteractive">
-          {themeInitScript}
-        </Script>
-      </head>
-      <body>
-        <AdDocumentBoundary />
-        <ToastProvider>
-          <SpoilerFreeProvider>
-            <NavigationTransitionProvider>
-              <AppShell
-                key={user?.id ?? "guest"}
-                currentUser={shellUser}
-                isAdminUser={isAdminUser}
-                pendingSupportInquiryCount={pendingSupportInquiryCount}
-                followedTeamIds={followedTeamIds}
-                favoriteTeamId={favoriteTeamId}
-                shellTeams={shellTeams}
-                notificationPreferences={notificationPreferences}
-              >
-                {children}
-              </AppShell>
-            </NavigationTransitionProvider>
-          </SpoilerFreeProvider>
-        </ToastProvider>
-        <Analytics />
-      </body>
-    </html>
+    <>
+      <AdDocumentBoundary prefetchDocuments={!user} />
+      <AppShell
+        key={user?.id ?? "guest"}
+        currentUser={shellUser}
+        isAdminUser={isAdminUser}
+        pendingSupportInquiryCount={pendingSupportInquiryCount}
+        followedTeamIds={followedTeamIds}
+        favoriteTeamId={favoriteTeamId}
+        shellTeams={shellTeams}
+        notificationPreferences={notificationPreferences}
+      >
+        {children}
+      </AppShell>
+    </>
   );
 }

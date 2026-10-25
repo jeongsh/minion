@@ -1,8 +1,9 @@
 "use client";
 
+import { readLiveMatch } from "@/lib/matches/live-client";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
-import type { LiveMatchEvent, LiveMatchResponse } from "@/app/api/matches/[matchId]/live/route";
+import type { LiveMatchEvent } from "@/app/api/matches/[matchId]/live/route";
 import { useToast } from "@/components/ui/toast";
 import { isRemoteNotificationId, useCommunityNotifications } from "@/components/notifications/use-community-notifications";
 import { championCatalogEntries, normalizeChampionKey } from "@/lib/champions";
@@ -376,9 +377,7 @@ export function useMatchActivity(
     const pollEvents = async () => {
       await Promise.all(alertLiveMatches.map(async (match) => {
         try {
-          const response = await fetch(`/api/matches/${encodeURIComponent(match.id)}/live`, { cache: "no-store" });
-          if (!response.ok) return;
-          const data = await response.json() as LiveMatchResponse;
+          const data = await readLiveMatch(match.id);
           if (!("events" in data)) return;
 
           const known = eventIdsByMatch.current.get(match.id);

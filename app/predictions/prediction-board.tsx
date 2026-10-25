@@ -6,6 +6,7 @@ import { useMemo, useState, useTransition } from "react";
 import { ChevronLeft, ChevronRight, Clock3, Coins } from "lucide-react";
 
 import { cancelPredictionBetAction, placePredictionBetAction } from "@/app/predictions/actions";
+import { usePredictionMarket } from "@/components/domain/use-prediction-market";
 import flag from "@/assets/characters/flag-2.png";
 import { ScheduleTodayScroll } from "@/components/domain/schedule-today-scroll";
 import { ControlledDialog, DialogSheetHeader } from "@/components/responsive/adaptive-dialog";
@@ -60,7 +61,9 @@ function teamColor(team: Team | undefined) {
   return color && /^#[\da-f]{6}$/i.test(color) ? color : "#3b3f46";
 }
 
-export function PredictionBoard({ matches, teams, tournaments, bets, currentUserId, balance, now, leaderboard }: PredictionBoardProps) {
+export function PredictionBoard({ matches, teams, tournaments, bets: initialBets, currentUserId, balance: initialBalance, now, leaderboard }: PredictionBoardProps) {
+  const marketState = usePredictionMarket(initialBets, initialBalance, currentUserId);
+  const { bets, balance } = marketState;
   const router = useRouter();
   const { showToast } = useToast();
   const [selectedWeek, setSelectedWeek] = useState(() => weekStartKey(new Date().toISOString()));
@@ -122,7 +125,8 @@ export function PredictionBoard({ matches, teams, tournaments, bets, currentUser
         formData.set("matchId", dialog.matchId);
         formData.set("teamId", dialog.teamId);
         formData.set("stake", stake);
-        await placePredictionBetAction(formData);
+        const result = await placePredictionBetAction(formData);
+        marketState.placed(dialog.matchId, dialog.teamId, Number(stake), result);
         setError(null);
         setDialog(null);
         showToast({
@@ -147,7 +151,8 @@ export function PredictionBoard({ matches, teams, tournaments, bets, currentUser
       try {
         const formData = new FormData();
         formData.set("matchId", dialog.matchId);
-        await cancelPredictionBetAction(formData);
+        const result = await cancelPredictionBetAction(formData);
+        marketState.cancelled(dialog.matchId, result);
         setError(null);
         setDialog(null);
         showToast({
