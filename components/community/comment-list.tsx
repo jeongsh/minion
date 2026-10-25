@@ -119,6 +119,25 @@ export function CommentList({ comments, commentReactions, scope, teamSlug, viewe
     <span className={`grid shrink-0 place-items-center rounded-full bg-[var(--ui-surface-muted)] text-[var(--ui-muted)] ${reply ? "h-6 w-6" : "h-9 w-9"}`} aria-hidden="true"><UserRound size={reply ? 14 : 20} strokeWidth={1.7} /></span>
   );
 
+  const authorMenu = (comment: CommunityCommentItem, avatar?: React.ReactNode) => (
+    <AuthorMenu
+      authorId={comment.authorId}
+      authorName={comment.authorName}
+      authorImageUrl={comment.authorImageUrl}
+      authorTier={comment.authorTier}
+      authorTeam={comment.authorTeam}
+      guestKey={comment.guestKey}
+      viewerId={viewerId}
+      variant="comment"
+      evidencePostId={comment.postId}
+      evidenceCommentId={comment.id}
+      scope={scope}
+      teamSlug={teamSlug}
+      customTrigger={avatar}
+      hideAvatar
+    />
+  );
+
   const commentBody = (comment: CommunityCommentItem) => comment.contentKind === "minicon" ? (
     comment.minicons.length > 0 ? (
       <figure className="mt-2 flex w-fit items-start gap-0">
@@ -148,25 +167,11 @@ export function CommentList({ comments, commentReactions, scope, teamSlug, viewe
   const item = (comment: CommunityCommentItem, reply = false, continued = false, best = false) => (
     <div key={comment.id} className={`relative grid min-h-[78px] min-w-0 gap-4 ${reply ? "grid-cols-[24px_minmax(0,1fr)]" : "grid-cols-[36px_minmax(0,1fr)]"}`}>
       {continued ? <span className="absolute bottom-0 left-[18px] top-10 border-l border-[var(--ui-border)]" aria-hidden="true" /> : null}
-      {commentAvatar(comment, reply)}
+      {authorMenu(comment, commentAvatar(comment, reply))}
       <div className="relative min-w-0">
         <div className="flex h-5 min-w-0 items-center gap-1 pr-8">
           {best ? <span className="inline-flex shrink-0 items-center rounded-full bg-[var(--palette-green-butter-main)] px-1.5 py-0.5 text-xs font-medium leading-none text-[#071a11]">BEST</span> : null}
-          <AuthorMenu
-            authorId={comment.authorId}
-            authorName={comment.authorName}
-            authorImageUrl={comment.authorImageUrl}
-            authorTier={comment.authorTier}
-            authorTeam={comment.authorTeam}
-            guestKey={comment.guestKey}
-            viewerId={viewerId}
-            variant="comment"
-            evidencePostId={comment.postId}
-            evidenceCommentId={comment.id}
-            scope={scope}
-            teamSlug={teamSlug}
-            hideAvatar
-          />
+          {authorMenu(comment)}
           <span className="shrink-0 text-[13px] leading-[18px] text-[var(--ui-muted)]"><RelativeDate value={comment.createdAt} /></span>
           <span className="absolute -top-1.5 right-0">
             {ownsComment(comment) ? (
