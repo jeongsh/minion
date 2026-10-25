@@ -1,13 +1,13 @@
 import { Image } from 'expo-image';
 import * as Linking from 'expo-linking';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import Check from 'lucide-react-native/icons/check';
 import ChevronDown from 'lucide-react-native/icons/chevron-down';
 import ListFilter from 'lucide-react-native/icons/list-filter';
 import Search from 'lucide-react-native/icons/search';
 import X from 'lucide-react-native/icons/x';
-import { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { AppState, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { BottomSheet } from '@/components/bottom-sheet';
 import { TeamLogo } from '@/components/data/team-logo';
@@ -40,6 +40,21 @@ export function NewsScreen() {
   if (query) apiParams.set('q', query);
   const path = `/api/mobile/v1/news?${apiParams.toString()}`;
   const { data, error, loading, refresh } = useCachedQuery<MobileNewsDto>(path);
+  const focusedOnce = useRef(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!focusedOnce.current) {
+        focusedOnce.current = true;
+      } else {
+        refresh();
+      }
+      const subscription = AppState.addEventListener('change', (state) => {
+        if (state === 'active') refresh();
+      });
+      return () => subscription.remove();
+    }, [refresh]),
+  );
 
   if (loading && !data) return <MinionScreen contentStyle={styles.screen}><NewsLoadingSkeleton /></MinionScreen>;
   if (error && !data) return <MinionScreen contentStyle={styles.screen}><ErrorState onRetry={refresh} title={error} /></MinionScreen>;

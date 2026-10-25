@@ -2,7 +2,7 @@ import CalendarDays from 'lucide-react-native/icons/calendar-days';
 import { useFocusEffect } from 'expo-router';
 import SlidersHorizontal from 'lucide-react-native/icons/sliders-horizontal';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { type LayoutChangeEvent, Pressable, StyleSheet, View } from 'react-native';
+import { AppState, type LayoutChangeEvent, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ContentBanner } from '@/components/ads/content-banner';
@@ -37,6 +37,8 @@ export default function ScheduleScreen() {
   const { theme } = useMinionTheme();
   const insets = useSafeAreaInsets();
   const defaults = useMemo(() => currentKSTMonthYear(), []);
+  const [todayKey, setTodayKey] = useState(() => dateKeyKST(new Date()));
+  const observedDateRef = useRef(todayKey);
   const [filter, setFilter] = useState<ScheduleFilterState>({ month: defaults.month, segment: 'all', teamId: 'all', year: defaults.year });
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
@@ -50,7 +52,7 @@ export default function ScheduleScreen() {
   const scheduleBasePath = `/api/mobile/v1/schedule?${query}`;
   const schedulePath = `${scheduleBasePath}&calendar=0`;
   const { data, error, loading, refresh } = useCachedQuery<MobileScheduleDto>(schedulePath, { staleTimeMs: 60_000 });
-  const { data: calendarData } = useCachedQuery<MobileScheduleDto>(`${scheduleBasePath}&calendar=1`, {
+  const { data: calendarData, refresh: refreshCalendar } = useCachedQuery<MobileScheduleDto>(`${scheduleBasePath}&calendar=1`, {
     cache: 'memory',
     enabled: calendarOpen,
     staleTimeMs: 5 * 60_000,
@@ -62,7 +64,6 @@ export default function ScheduleScreen() {
 
   const activeMonthDates = useMemo(() => monthDatesKST(filter.year, filter.month), [filter.month, filter.year]);
   const activeMonthDateKeys = useMemo(() => new Set(activeMonthDates.map((date) => date.key)), [activeMonthDates]);
-  const todayKey = dateKeyKST(new Date());
   const availableDateKeys = useMemo(
     () => Array.from(new Set((data?.matches ?? []).map((match) => dateKeyKST(match.startsAt))))
       .filter((dateKey) => activeMonthDateKeys.has(dateKey)),
@@ -76,6 +77,47 @@ export default function ScheduleScreen() {
   const activeDateKey = requestedActiveDateKey && availableDateKeys.includes(requestedActiveDateKey)
     ? requestedActiveDateKey
     : autoScrollTarget ?? activeMonthDates[0]?.key;
+
+  // 보관된 탭도 한국 시간 자정, 앱 복귀, 탭 재진입 때 날짜를 다시 확인한다.
+  useFocusEffect(
+    useCallback(() => {
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const syncDate = () => {
+        if (timer !== undefined) clearTimeout(timer);
+        if (AppState.currentState && AppState.currentState !== 'active') return;
+
+        const now = new Date();
+        const nextDateKey = dateKeyKST(now);
+        const previousDateKey = observedDateRef.current;
+        if (nextDateKey !== previousDateKey) {
+          observedDateRef.current = nextDateKey;
+          setTodayKey(nextDateKey);
+          setRequestedActiveDateKey(undefined);
+          autoScrolledRef.current = null;
+          setFilter((current) => {
+            const [previousYear, previousMonth] = previousDateKey.split('-').map(Number);
+            const [year, month] = nextDateKey.split('-').map(Number);
+            return current.year === previousYear && current.month === previousMonth
+              ? { ...current, year, month }
+              : current;
+          });
+          refresh();
+          refreshCalendar();
+        }
+
+        const midnight = Date.parse(`${nextDateKey}T00:00:00+09:00`) + 24 * 60 * 60_000;
+        // 자정에 갱신하고, 실행 중 기기 시각이 바뀌는 경우도 다시 확인한다.
+        timer = setTimeout(syncDate, Math.max(1, Math.min(60_000, midnight - now.getTime())));
+      };
+
+      const subscription = AppState.addEventListener('change', syncDate);
+      syncDate();
+      return () => {
+        if (timer !== undefined) clearTimeout(timer);
+        subscription.remove();
+      };
+    }, [refresh, refreshCalendar]),
+  );
 
   // 섹션 y좌표는 onLayout이 실제로 갱신할 때만 값이 바뀌므로 항상 최신값으로 신뢰한다.
   // 캐시 데이터 → 실제 데이터로 교체될 때 오늘 섹션의 위치가 우연히 동일하면
