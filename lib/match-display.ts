@@ -45,6 +45,10 @@ export function matchStatusLabel(status: Match["status"]) {
 export const tournamentTypeLabel = tournamentDisplayLabel;
 
 /** 스테이지명 조회 */
-export function stageName(stages: Stage[], stageId: string) {
-  return stages.find((stage) => stage.id === stageId)?.name ?? "-";
+export function stageName(stages: Stage[], stageId: string, tournament?: Parameters<typeof tournamentDisplayLabel>[0]) {
+  const name = stages.find((stage) => stage.id === stageId)?.name ?? "-";
+  if (tournamentDisplayLabel(tournament) === "Worlds") {
+    return name.replace(/^main\s+event\s*-\s*round\s+[1-5]\s*$/i, "스위스 스테이지");
+  }
+  return name;
 }

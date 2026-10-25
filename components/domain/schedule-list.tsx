@@ -150,7 +150,7 @@ export function ScheduleList({
                   </div>
                   <div className="pointer-events-none relative z-[1] hidden items-center justify-between gap-2 md:flex md:flex-col md:items-end md:justify-center md:gap-0.5">
                     <p className="truncate text-sm font-bold text-[var(--ui-text)]">{tournamentTypeLabel(tournament)}</p>
-                    <p className="truncate text-[13px] font-semibold text-[var(--ui-muted)]">{stageName(stages, match.stageId)}</p>
+                    <p className="truncate text-[13px] font-medium text-[var(--ui-muted)]">{stageName(stages, match.stageId, tournament)}</p>
                   </div>
                 </div>
               );
