@@ -37,8 +37,9 @@ async function applyConsent() {
   publish({ privacyOptionsRequired: info.privacyOptionsRequirementStatus === ads.AdsConsentPrivacyOptionsRequirementStatus.REQUIRED });
   if (!info.canRequestAds) { publish({ ready: false }); return; }
   if (!initialized) {
-    await ads.default().setAppMuted(true);
     await ads.default().initialize();
+    // Android throws a fatal native exception if muted before initialization.
+    await ads.default().setAppMuted(true);
     initialized = true;
   }
   publish({ ready: true, revision: state.revision + 1 });

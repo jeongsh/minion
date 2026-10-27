@@ -20,7 +20,7 @@
     },
     "android": {
       "package": "com.minion.app",
-      "versionCode": 29,
+      "versionCode": 30,
       "googleServicesFile": "./google-services.json",
       "blockedPermissions": [
         "android.permission.CAMERA",
