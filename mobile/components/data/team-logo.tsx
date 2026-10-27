@@ -1,9 +1,25 @@
 import { Image } from 'expo-image';
+import { useEffect, useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
-import { SvgUri } from 'react-native-svg';
+import { SvgXml } from 'react-native-svg';
 
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import { resolveApiAssetUrl, type MobileTeamSummary } from '@/lib/api-client';
+import { loadTeamLogoXml, readTeamLogoXml } from '@/lib/team-logo-cache';
+
+function CachedTeamSvg({ uri, size }: { uri: string; size: number }) {
+  const [xml, setXml] = useState(() => readTeamLogoXml(uri));
+  useEffect(() => {
+    let active = true;
+    void loadTeamLogoXml(uri).then((next) => {
+      if (active) setXml(next);
+    }).catch((error: unknown) => {
+      console.warn('Team logo could not be loaded', error);
+    });
+    return () => { active = false; };
+  }, [uri]);
+  return <SvgXml xml={xml} width={size} height={size} preserveAspectRatio="xMidYMid meet" />;
+}
 
 type Props = {
   plain?: boolean;
@@ -31,8 +47,8 @@ export function TeamLogo({ plain = false, size = 40, team, themeAware = false }:
   return (
     <View style={[styles.container, { backgroundColor: plain ? 'transparent' : theme.surfaceMuted, borderRadius: plain ? 0 : size / 2, height: size, width: size }]}>
       {nativeSvg
-        ? <SvgUri key={uri} uri={uri} width={imageSize} height={imageSize} preserveAspectRatio="xMidYMid meet" />
-        : <Image contentFit="contain" source={{ uri }} style={{ height: imageSize, width: imageSize }} transition={150} />}
+        ? <CachedTeamSvg key={uri} uri={uri} size={imageSize} />
+        : <Image cachePolicy="memory-disk" contentFit="contain" source={{ uri }} style={{ height: imageSize, width: imageSize }} transition={150} />}
     </View>
   );
 }
