@@ -309,7 +309,7 @@ create table public.fan_ratings (
   team_id uuid not null references public.teams(id) on delete cascade,
   author_id uuid references auth.users(id) on delete set null,
   voter_key text,
-  rating numeric(2, 1) not null check (rating >= 1 and rating <= 5),
+  rating numeric(3, 1) not null check (rating >= 1 and rating <= 10 and rating = trunc(rating)),
   review text,
   created_at timestamptz not null default now(),
   unique (set_id, player_id, voter_key)

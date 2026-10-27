@@ -242,13 +242,15 @@ function SetSelector({
   activeSet,
   tab = "data",
   snapshotHref,
+  matchSnapshotHref,
 }: {
   sets: SetResult[];
   activeSet?: SetResult;
   tab?: Extract<MatchTab, "data" | "rating">;
   snapshotHref?: string;
+  matchSnapshotHref?: string;
 }) {
-  if (sets.length === 0 && !snapshotHref) return null;
+  if (sets.length === 0 && !snapshotHref && !matchSnapshotHref) return null;
 
   return (
     <div className="sticky top-16 z-30 hidden items-center justify-between gap-2 bg-[var(--page-background)] py-1.5 md:flex">
@@ -265,6 +267,7 @@ function SetSelector({
           className="tab-scroll min-w-0 max-w-full overflow-x-auto [&>a]:text-sm [&>a]:font-medium"
         />
       ) : <span />}
+      <div className="flex shrink-0 items-center gap-2">
       {snapshotHref ? (
         <Link
           href={snapshotHref}
@@ -275,6 +278,17 @@ function SetSelector({
           <span>공유 스냅샷</span>
         </Link>
       ) : null}
+      {matchSnapshotHref ? (
+        <Link
+          href={matchSnapshotHref}
+          title="세트 평균 스냅샷 보기"
+          aria-label="세트 평균 스냅샷 보기"
+          className="hidden h-8 shrink-0 items-center justify-center gap-1 rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-2 text-[13px] font-medium text-[var(--ui-ink)] shadow-sm transition-opacity hover:opacity-85 sm:inline-flex sm:px-2.5"
+        >
+          <span>세트 평균</span>
+        </Link>
+      ) : null}
+      </div>
     </div>
   );
 }
@@ -327,6 +341,7 @@ function MatchRatingPanel({
   const ratingOpen = isSetRatingOpen(set);
   const snapshotReady = isSetRatingSnapshotReady(set);
   const snapshotHref = `/matches/${routeMatchId}/sets/${set.id}/snapshot`;
+  const matchSnapshotHref = `/matches/${routeMatchId}/snapshot`;
   const leader = set.winnerTeamId
     ? fanRatingLeader(
         setRatings.filter((rating) => rating.teamId === set.winnerTeamId),
@@ -354,6 +369,7 @@ function MatchRatingPanel({
         activeSet={set}
         tab="rating"
         snapshotHref={snapshotReady ? snapshotHref : undefined}
+        matchSnapshotHref={sets.length > 0 ? matchSnapshotHref : undefined}
       />
 
       <section>

@@ -2,29 +2,26 @@
 
 import { Download, LoaderCircle, Share2 } from "lucide-react";
 import { useState } from "react";
+import { toBlob } from "html-to-image";
 
 const SNAPSHOT_ID = "rating-share-card";
-const SHARE_IMAGE_WIDTH = 1080;
-const SHARE_IMAGE_HEIGHT = 1350;
+const DEFAULT_IMAGE_WIDTH = 1080;
+const DEFAULT_IMAGE_HEIGHT = 1350;
 
-async function makeSnapshot(filename: string) {
+async function makeSnapshot(filename: string, imageWidth: number, imageHeight: number) {
   const node = document.getElementById(SNAPSHOT_ID);
   if (!node) throw new Error("공유 이미지를 찾을 수 없습니다.");
-  const pixelRatio = SHARE_IMAGE_WIDTH / node.clientWidth;
+  const pixelRatio = imageWidth / node.clientWidth;
 
-  const { toBlob } = await import("html-to-image");
   const blob = await toBlob(node, {
     backgroundColor: "#07111f",
-    cacheBust: true,
     pixelRatio,
   });
 
   if (!blob) throw new Error("이미지를 만들지 못했습니다.");
-  if ("createImageBitmap" in window) {
-    const bitmap = await createImageBitmap(blob);
-    const hasExpectedSize = bitmap.width === SHARE_IMAGE_WIDTH && bitmap.height === SHARE_IMAGE_HEIGHT;
-    bitmap.close();
-    if (!hasExpectedSize) throw new Error("공유 이미지 크기가 올바르게 생성되지 않았습니다.");
+  const dimensions = new DataView(await blob.slice(16, 24).arrayBuffer());
+  if (dimensions.getUint32(0) !== imageWidth || dimensions.getUint32(4) !== imageHeight) {
+    throw new Error("공유 이미지 크기가 올바르게 생성되지 않았습니다.");
   }
   return new File([blob], filename, { type: "image/png" });
 }
@@ -41,7 +38,7 @@ function downloadFile(file: File, filename: string) {
   window.setTimeout(() => URL.revokeObjectURL(url), 1_000);
 }
 
-export function SnapshotActions({ filename }: { filename: string }) {
+export function SnapshotActions({ filename, imageWidth = DEFAULT_IMAGE_WIDTH, imageHeight = DEFAULT_IMAGE_HEIGHT }: { filename: string; imageWidth?: number; imageHeight?: number }) {
   const [working, setWorking] = useState<"save" | "share" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,7 +46,7 @@ export function SnapshotActions({ filename }: { filename: string }) {
     setWorking("save");
     setError(null);
     try {
-      const file = await makeSnapshot(filename);
+      const file = await makeSnapshot(filename, imageWidth, imageHeight);
       downloadFile(file, filename);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "이미지 저장에 실패했습니다.");
@@ -62,7 +59,7 @@ export function SnapshotActions({ filename }: { filename: string }) {
     setWorking("share");
     setError(null);
     try {
-      const file = await makeSnapshot(filename);
+      const file = await makeSnapshot(filename, imageWidth, imageHeight);
       if (navigator.share && navigator.canShare?.({ files: [file] })) {
         await navigator.share({
           files: [file],
@@ -93,7 +90,7 @@ export function SnapshotActions({ filename }: { filename: string }) {
         </button>
       </div>
       {error ? <p className="text-center text-[13px] font-semibold text-red-500">{error}</p> : null}
-      <p className="text-center text-[13px] text-[var(--ui-muted)]">SNS 피드에 최적화된 {SHARE_IMAGE_WIDTH} × {SHARE_IMAGE_HEIGHT}px PNG로 저장됩니다.</p>
+      <p className="text-center text-[13px] text-[var(--ui-muted)]">SNS 공유용 {imageWidth} × {imageHeight}px PNG로 저장됩니다.</p>
     </div>
   );
 }

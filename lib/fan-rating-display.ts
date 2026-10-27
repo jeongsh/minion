@@ -1,5 +1,5 @@
 export function fanRatingDisplayValue(value: number) {
-  return value * 2;
+  return value;
 }
 
 export function formatFanRating(value: number | null | undefined) {

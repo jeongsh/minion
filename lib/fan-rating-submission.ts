@@ -21,12 +21,12 @@ type SubmitFanRatingInput = {
 
 function parseRating(value: unknown) {
   const parsed = Number(value);
-  if (!Number.isFinite(parsed) || parsed < 1 || parsed > 5) {
-    throw new Error("평점은 1.0점부터 5.0점까지 입력해주세요.");
+  if (!Number.isFinite(parsed) || parsed < 1 || parsed > 10) {
+    throw new Error("평점은 1.0점부터 10.0점까지 입력해주세요.");
   }
-  const rounded = Math.round(parsed * 2) / 2;
+  const rounded = Math.round(parsed);
   if (Math.abs(rounded - parsed) > 0.001) {
-    throw new Error("평점은 0.5점 단위로 입력해주세요.");
+    throw new Error("평점은 1점 단위로 입력해주세요.");
   }
   return rounded;
 }

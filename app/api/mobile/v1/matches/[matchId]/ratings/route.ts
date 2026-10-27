@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 const CLIENT_ERRORS = [
   "평점을 제출할 세트와 선수를 확인해주세요.",
-  "평점은 1.0점부터 5.0점까지 입력해주세요.",
+  "평점은 0.5점부터 5.0점까지 입력해주세요.",
   "평점은 0.5점 단위로 입력해주세요.",
   "세트를 찾을 수 없습니다.",
   "세트 결과가 기록된 뒤부터 평점을 입력할 수 있습니다.",
@@ -29,7 +29,7 @@ export async function POST(request: Request, context: { params: Promise<{ matchI
     const saved = await submitFanRating({
       matchId,
       playerId: typeof body?.playerId === "string" ? body.playerId : "",
-      rating: body?.rating,
+      rating: typeof body?.rating === "number" ? body.rating * 2 : body?.rating,
       review: body?.review,
       setId: typeof body?.setId === "string" ? body.setId : "",
       userId: auth.user.id,
@@ -46,16 +46,21 @@ export async function POST(request: Request, context: { params: Promise<{ matchI
       });
     }
 
-    const data: MobileFanRatingMutationDto = { playerId: String(body?.playerId), rating: saved.rating };
+    const data: MobileFanRatingMutationDto = { playerId: String(body?.playerId), rating: saved.rating / 2 };
     return mobileSuccess(data, { headers: { "Cache-Control": "private, no-store" } });
   } catch (error) {
     const message = error instanceof Error ? error.message : "평점 제출에 실패했습니다.";
+    const clientMessage = message === "평점은 1.0점부터 10.0점까지 입력해주세요."
+      ? "평점은 0.5점부터 5.0점까지 입력해주세요."
+      : message === "평점은 1점 단위로 입력해주세요."
+        ? "평점은 0.5점 단위로 입력해주세요."
+        : message;
     if (message === "커뮤니티 이용이 영구 제한된 계정입니다.") {
       return mobileError("FORBIDDEN", message, 403);
     }
     // 욕설 필터 재활성화 시 message.startsWith("금칙어(") 조건도 복구한다.
-    if (message.startsWith("리뷰는 ") || CLIENT_ERRORS.includes(message)) {
-      return mobileError("BAD_REQUEST", message, 400);
+    if (clientMessage.startsWith("리뷰는 ") || CLIENT_ERRORS.includes(clientMessage)) {
+      return mobileError("BAD_REQUEST", clientMessage, 400);
     }
     console.error("[mobile-fan-rating] 평점 제출 실패", error);
     return mobileError("INTERNAL", "평점 제출에 실패했습니다.", 500);

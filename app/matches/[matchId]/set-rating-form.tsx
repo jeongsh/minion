@@ -97,7 +97,7 @@ function PlayerChip({
           <span className="hidden tabular-nums text-white/60 lg:inline">({player.ratingCount})</span>
         </span>
         {player.myRating != null ? (
-          <span className="rounded-md bg-white/90 px-1.5 py-0.5 text-xs font-normal leading-4 text-black shadow-sm">
+          <span className="rounded-md bg-white/90 px-1.5 py-0.5 text-[13px] font-normal leading-4 text-black shadow-sm">
             내 평점 {formatFanRating(player.myRating)}
           </span>
         ) : null}
@@ -131,7 +131,7 @@ function PlayerChip({
             <Star className={`h-3.5 w-3.5 ${player.averageRating == null ? "text-[var(--ui-border)]" : "fill-amber-400 text-amber-400"}`} />
             <b className="text-lg tabular-nums">{formatFanRating(player.averageRating)}</b>
           </span>
-          <span className="block text-xs font-normal text-[var(--ui-muted)]">{player.ratingCount}명 참여</span>
+          <span className="block text-[13px] font-normal text-[var(--ui-muted)]">{player.ratingCount}명 참여</span>
         </span>
       </span>
     </button>
@@ -189,8 +189,8 @@ function StarRatingPicker({
     <div className="flex h-6 items-center gap-2">
       <div className="flex items-center" role="radiogroup" aria-label="평점 선택">
         {[1, 2, 3, 4, 5].map((star) => {
-          const leftValue = star - 0.5;
-          const rightValue = star;
+          const leftValue = star * 2 - 1;
+          const rightValue = star * 2;
           const current = value ?? 0;
           const leftFilled = current >= leftValue;
           const rightFilled = current >= rightValue;
@@ -333,7 +333,7 @@ export function SetRatingForm({
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={teamPlayers[0].teamLogoUrl} alt="" className="h-7 w-7 object-contain sm:h-8 sm:w-8" />
                   ) : null}
-                  <h3 className="text-[14px] font-medium text-[var(--ui-ink)] sm:text-lg sm:font-black">{teamPlayers[0].teamName}</h3>
+                  <h3 className="text-[15px] font-bold text-[var(--ui-ink)] sm:text-lg sm:font-black">{teamPlayers[0].teamName}</h3>
                 </div>
                 <div className="grid gap-2 sm:grid-cols-5">
                   {teamPlayers.map((player) => (

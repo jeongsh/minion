@@ -298,7 +298,7 @@ export async function GET(request: Request, context: { params: Promise<{ matchId
             playerId: rating.playerId,
             playerImage: player?.profileImageUrl ? { url: player.profileImageUrl } : null,
             playerName: player?.name ?? "-",
-            rating: rating.rating,
+            rating: rating.rating / 2,
             review: rating.review,
           };
         }),
@@ -307,13 +307,14 @@ export async function GET(request: Request, context: { params: Promise<{ matchId
         const champion = champions.find((item) => item.id === line.championId);
         const ratings = setRatings.filter((rating) => rating.playerId === line.playerId);
         const total = ratings.reduce((sum, rating) => sum + rating.rating, 0);
+        const myRating = auth ? ratings.find((rating) => rating.authorId === auth.user.id)?.rating : null;
         return {
-          averageRating: ratings.length > 0 ? total / ratings.length : null,
+          averageRating: ratings.length > 0 ? total / ratings.length / 2 : null,
           champion: champion ? { id: champion.id, image: championImage(champion) ? { url: championImage(champion) } : null, name: champion.name } : null,
           id: line.playerId,
           isPog: leader?.playerId === line.playerId,
           name: player?.name ?? "-",
-          myRating: auth ? ratings.find((rating) => rating.authorId === auth.user.id)?.rating ?? null : null,
+          myRating: myRating == null ? null : myRating / 2,
           myReview: auth ? ratings.find((rating) => rating.authorId === auth.user.id)?.review ?? null : null,
           position: line.position,
           profileImage: player?.profileImageUrl ? { url: player.profileImageUrl } : null,

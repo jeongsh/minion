@@ -1,2 +1,9 @@
 // Share the web's display conversion; API payloads remain on the stored scale.
-export { fanRatingDisplayValue, formatFanRating } from '../../lib/fan-rating-display';
+export function fanRatingDisplayValue(value: number) {
+  return value * 2;
+}
+
+export function formatFanRating(value: number | null | undefined) {
+  if (value == null || Number.isNaN(value)) return '-';
+  return fanRatingDisplayValue(value).toFixed(1);
+}
