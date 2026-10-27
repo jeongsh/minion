@@ -4,15 +4,18 @@ import Bell from 'lucide-react-native/icons/bell';
 import ChevronDown from 'lucide-react-native/icons/chevron-down';
 import Moon from 'lucide-react-native/icons/moon';
 import Sun from 'lucide-react-native/icons/sun';
-import { type PropsWithChildren, type ReactNode, useEffect, useRef, useState } from 'react';
+import { cloneElement, type PropsWithChildren, type ReactNode, useEffect, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Animated,
   Easing,
   FlatList,
   type FlatListProps,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
+  type ScrollViewProps,
   Pressable,
+  Platform,
   ScrollView,
   type StyleProp,
   StyleSheet,
@@ -28,6 +31,7 @@ import { NotificationPanel } from '@/components/notifications/notification-panel
 import { RankAvatar } from '@/components/rank-avatar';
 import { getMinionTeam, type MinionTeam } from '@/constants/teams';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
+import { usePullRefreshIndicator } from '@/hooks/use-pull-refresh-indicator';
 import { resolveApiAssetUrl } from '@/lib/api-client';
 import { fanAccentText } from '@/lib/fan-colors';
 import { useAuth } from '@/providers/auth-provider';
@@ -63,6 +67,7 @@ function getFanItems(team: string): LocalItem[] {
 }
 
 type MinionScreenProps<T> = PropsWithChildren<{
+  refreshControl?: ScrollViewProps['refreshControl'];
   contentStyle?: StyleProp<ViewStyle>;
   onScrollYChange?: (y: number, headerVisible: boolean) => void;
   scrollRequest?: { animated: boolean; y: number } | null;
@@ -74,6 +79,7 @@ type MinionScreenProps<T> = PropsWithChildren<{
 }>;
 
 export function MinionScreen<T>({
+  refreshControl,
   children,
   contentStyle,
   onScrollYChange,
@@ -103,6 +109,8 @@ export function MinionScreen<T>({
   const localItems = fanTeam ? getFanItems(fanTeam.slug) : pathname === '/fan' ? [] : hubItems;
   const localNavHeight = localItems.length > 0 ? LOCAL_NAV_HEIGHT : 0;
   const contentChromeOffset = insets.top + HEADER_HEIGHT + localNavHeight;
+  const { onPullScroll, indicator: pullIndicator } = usePullRefreshIndicator(Boolean(refreshControl?.props.refreshing), contentChromeOffset + (stickyHeaderVisible ? stickyHeaderHeight : 0), accent);
+  const screenRefreshControl = refreshControl ? cloneElement(refreshControl, { progressViewOffset: contentChromeOffset + (stickyHeaderVisible ? stickyHeaderHeight : 0) }) : undefined;
   const contentFlowOffset = stickyHeader && stickyHeaderReserveSpace ? stickyHeaderHeight : 16;
   const headerIconColor = colorScheme === 'dark' ? '#a7acb5' : '#62666d';
   const headerBorder = colorScheme === 'dark' ? '#212224' : '#e8e8eb';
@@ -141,6 +149,7 @@ export function MinionScreen<T>({
     return () => cancelAnimationFrame(frame);
   }, [scrollRequest]);
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    onPullScroll(event);
     const currentY = Math.max(0, event.nativeEvent.contentOffset.y);
     const delta = currentY - lastScrollY.current;
     if (currentY < 16) setHeaderVisible(true);
@@ -263,6 +272,8 @@ export function MinionScreen<T>({
       ) : null}
 
       {virtualList ? <FlatList
+        refreshControl={screenRefreshControl}
+        alwaysBounceVertical={refreshControl ? true : undefined}
         accessibilityLabel={virtualList.accessibilityLabel}
         data={virtualList.data}
         initialNumToRender={virtualList.initialNumToRender}
@@ -283,6 +294,8 @@ export function MinionScreen<T>({
         showsVerticalScrollIndicator={false}
         windowSize={3}
       /> : <ScrollView
+        refreshControl={screenRefreshControl}
+        alwaysBounceVertical={refreshControl ? true : undefined}
         keyboardShouldPersistTaps="handled"
         onScroll={handleScroll}
         ref={scrollViewRef}
@@ -293,6 +306,10 @@ export function MinionScreen<T>({
         <View style={styles.footer}><MinionFooter accentColor={fanTeam?.primaryColor} /></View>
       </ScrollView>}
 
+      {refreshControl ? pullIndicator : null}
+      {Platform.OS === 'web' && refreshControl?.props.refreshing ? <View pointerEvents="none" style={{ position: 'absolute', top: contentChromeOffset + (stickyHeaderVisible ? stickyHeaderHeight : 0) + 8, alignSelf: 'center', zIndex: 40, padding: 8, borderRadius: 20, backgroundColor: theme.surface }}>
+        <ActivityIndicator accessibilityLabel="새로고침 중" color={accent} size="small" />
+      </View> : null}
       <NotificationPanel onClose={() => setNotificationOpen(false)} open={notificationOpen} />
     </View>
   );

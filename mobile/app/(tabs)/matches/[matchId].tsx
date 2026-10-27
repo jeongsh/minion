@@ -18,7 +18,7 @@ import { MatchTabNav, type MatchTabKey } from '@/components/matches/match-tab-na
 import { MatchVideoTab } from '@/components/matches/match-video-tab';
 import { SetTimelineSection } from '@/components/matches/set-timeline-section';
 import { MinionScreen } from '@/components/minion-screen';
-import { useCachedQuery } from '@/hooks/use-cached-query';
+import { useScreenQuery } from '@/hooks/use-screen-query';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import { type MobileMatchTabDto } from '@/lib/api-client';
 import { useAuth } from '@/providers/auth-provider';
@@ -47,7 +47,7 @@ function MatchDetailContent({ matchId, requestedSet, requestedTab, requestedPlay
     return `${base}?tab=${activeTab}${selectedSetId ? `&set=${encodeURIComponent(selectedSetId)}` : ''}`;
   }, [activeTab, matchId, selectedSetId]);
 
-  const { data, error, loading, refresh } = useCachedQuery<MobileMatchTabDto>(path, { cache: 'memory', cacheScope: session?.user.id ?? 'guest', enabled: Boolean(matchId) && !authLoading && isFocused });
+  const { data, error, loading, refresh, refreshControl } = useScreenQuery<MobileMatchTabDto>(path, { cache: 'memory', cacheScope: session?.user.id ?? 'guest', enabled: Boolean(matchId) && !authLoading && isFocused });
   const currentTab = data && data.sets.length === 0 && activeTab === 'data' ? 'preview' : activeTab;
 
   const updateSetSelectorStuck = useCallback((nextStuck: boolean) => {
@@ -75,7 +75,7 @@ function MatchDetailContent({ matchId, requestedSet, requestedTab, requestedPlay
 
   if ((authLoading || loading) && !data) {
     return (
-      <MinionScreen>
+      <MinionScreen refreshControl={refreshControl}>
         <MatchLoadingSkeleton preview={activeTab === 'preview'} />
       </MinionScreen>
     );
@@ -83,7 +83,7 @@ function MatchDetailContent({ matchId, requestedSet, requestedTab, requestedPlay
 
   if (error && !data) {
     return (
-      <MinionScreen>
+      <MinionScreen refreshControl={refreshControl}>
         <ErrorState onRetry={refresh} />
       </MinionScreen>
     );
@@ -105,7 +105,7 @@ function MatchDetailContent({ matchId, requestedSet, requestedTab, requestedPlay
   );
 
   return (
-    <MinionScreen
+    <MinionScreen refreshControl={refreshControl}
       contentStyle={styles.content}
       onScrollYChange={handleScrollYChange}
       stickyHeader={stickySetSelectorVisible ? navigation : undefined}

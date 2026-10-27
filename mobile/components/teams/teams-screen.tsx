@@ -11,7 +11,7 @@ import { ErrorState } from '@/components/feedback-states';
 import { FanInstagramModal } from '@/components/fan/fan-instagram-modal';
 import { FanVideoThumbnail, InstagramGlyph } from '@/components/fan/fan-shared';
 import { MinionScreen } from '@/components/minion-screen';
-import { useCachedQuery } from '@/hooks/use-cached-query';
+import { useScreenQuery } from '@/hooks/use-screen-query';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import { resolveApiAssetUrl, type MobileTeamsPageDto } from '@/lib/api-client';
 
@@ -19,13 +19,13 @@ export function TeamsScreen() {
   const params = useLocalSearchParams<{ team?: string | string[] }>();
   const selectedKey = Array.isArray(params.team) ? params.team[0] : params.team;
   const path = `/api/mobile/v1/teams?view=explorer${selectedKey ? `&team=${encodeURIComponent(selectedKey)}` : ''}`;
-  const { data, error, loading, refresh } = useCachedQuery<MobileTeamsPageDto>(path);
+  const { data, error, loading, refresh, refreshControl } = useScreenQuery<MobileTeamsPageDto>(path);
 
-  if (loading && !data) return <MinionScreen contentStyle={styles.screen}><TeamsLoadingSkeleton /></MinionScreen>;
-  if (error && !data) return <MinionScreen contentStyle={styles.screen}><View style={styles.error}><ErrorState onRetry={refresh} title={error} /></View></MinionScreen>;
-  if (!data?.selected) return <MinionScreen contentStyle={styles.screen}><View style={styles.error}><ErrorState onRetry={refresh} title="둘러볼 팀을 준비하고 있습니다." /></View></MinionScreen>;
+  if (loading && !data) return <MinionScreen refreshControl={refreshControl} contentStyle={styles.screen}><TeamsLoadingSkeleton /></MinionScreen>;
+  if (error && !data) return <MinionScreen refreshControl={refreshControl} contentStyle={styles.screen}><View style={styles.error}><ErrorState onRetry={refresh} title={error} /></View></MinionScreen>;
+  if (!data?.selected) return <MinionScreen refreshControl={refreshControl} contentStyle={styles.screen}><View style={styles.error}><ErrorState onRetry={refresh} title="둘러볼 팀을 준비하고 있습니다." /></View></MinionScreen>;
 
-  return <MinionScreen contentStyle={styles.screen}><TeamsContent data={data} /></MinionScreen>;
+  return <MinionScreen refreshControl={refreshControl} contentStyle={styles.screen}><TeamsContent data={data} /></MinionScreen>;
 }
 
 function TeamsContent({ data }: { data: MobileTeamsPageDto }) {

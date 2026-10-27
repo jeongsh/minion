@@ -21,7 +21,7 @@ import { HomeLoadingSkeleton } from '@/components/home/home-loading-skeleton';
 import { KitschEmptyState } from '@/components/kitsch-empty-state';
 import { MinionScreen } from '@/components/minion-screen';
 import { ContentBanner } from '@/components/ads/content-banner';
-import { useCachedQuery } from '@/hooks/use-cached-query';
+import { useScreenQuery } from '@/hooks/use-screen-query';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import { resolveApiAssetUrl, type MobileHomeDto, type MobileMatchSummary } from '@/lib/api-client';
 
@@ -47,7 +47,7 @@ function relativeDate(value: string) {
 
 export default function HomeScreen() {
   const { width } = useWindowDimensions();
-  const { data, error, loading, refresh } = useCachedQuery<MobileHomeDto>('/api/mobile/v1/home');
+  const { data, error, loading, refresh, refreshControl } = useScreenQuery<MobileHomeDto>('/api/mobile/v1/home', { refreshOnFocus: false });
   const focusedOnce = useRef(false);
 
   useFocusEffect(
@@ -64,8 +64,8 @@ export default function HomeScreen() {
     }, [refresh]),
   );
 
-  if (loading && !data) return <MinionScreen contentStyle={styles.homeContent}><HomeLoadingSkeleton /></MinionScreen>;
-  if (error && !data) return <MinionScreen><ErrorState onRetry={refresh} /></MinionScreen>;
+  if (loading && !data) return <MinionScreen refreshControl={refreshControl} contentStyle={styles.homeContent}><HomeLoadingSkeleton /></MinionScreen>;
+  if (error && !data) return <MinionScreen refreshControl={refreshControl}><ErrorState onRetry={refresh} /></MinionScreen>;
   if (!data) return null;
 
   const contentWidth = width - 32;
@@ -74,7 +74,7 @@ export default function HomeScreen() {
 
 
   return (
-    <MinionScreen contentStyle={styles.homeContent}>
+    <MinionScreen refreshControl={refreshControl} contentStyle={styles.homeContent}>
       <View style={styles.matchSection}>
         <MatchCarousel cardWidth={matchWidth} matches={data.matches} />
         <View style={styles.calendarTrigger}>

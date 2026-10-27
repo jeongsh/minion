@@ -12,7 +12,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ErrorState } from '@/components/feedback-states';
 import { KitschEmptyState } from '@/components/kitsch-empty-state';
 import { MinionScreen } from '@/components/minion-screen';
-import { useCachedQuery } from '@/hooks/use-cached-query';
+import { useScreenQuery } from '@/hooks/use-screen-query';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import type { MobileCommunityUserActivityPost, MobileCommunityUserDto } from '@/lib/api-client';
 import { CommunityAuthor } from './community-author';
@@ -27,13 +27,13 @@ export function CommunityUserScreen() {
   const tab = tabParam === 'comments' ? 'comments' : 'posts';
   const page = Math.max(1, Number.parseInt(pageParam ?? '1', 10) || 1);
   const path = useMemo(() => `/api/mobile/v1/community/users/${encodeURIComponent(userId ?? '')}?tab=${tab}&page=${page}`, [page, tab, userId]);
-  const { data, error, loading, refresh } = useCachedQuery<MobileCommunityUserDto>(path, { cache: false, enabled: Boolean(userId) });
+  const { data, error, loading, refresh, refreshControl } = useScreenQuery<MobileCommunityUserDto>(path, { cache: false, enabled: Boolean(userId) });
   const navigate = (nextTab: 'posts' | 'comments', nextPage = 1) => router.replace(`/community/user/${userId}?tab=${nextTab}&page=${nextPage}` as never);
   const openPost = (post: MobileCommunityUserActivityPost) => router.push(`/community/post/${post.id}` as never);
 
   return (
     <View style={[styles.root, { backgroundColor: theme.pageBackground }]}>
-      <MinionScreen contentStyle={styles.content}>
+      <MinionScreen refreshControl={refreshControl} contentStyle={styles.content}>
         <Text style={[styles.pageTitle, { color: theme.ink, ...fonts.display }]}>사용자 활동</Text>
         {loading && !data ? <UserActivitySkeleton /> : error && !data ? <ErrorState onRetry={refresh} title={error} /> : data ? <>
           <View style={[styles.profileCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>

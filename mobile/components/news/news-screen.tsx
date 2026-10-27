@@ -13,7 +13,7 @@ import { BottomSheet } from '@/components/bottom-sheet';
 import { TeamLogo } from '@/components/data/team-logo';
 import { ErrorState } from '@/components/feedback-states';
 import { MinionScreen } from '@/components/minion-screen';
-import { useCachedQuery } from '@/hooks/use-cached-query';
+import { useScreenQuery } from '@/hooks/use-screen-query';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import { mobileApiOrigin, resolveApiAssetUrl, type MobileNewsDto, type MobileNewsItem } from '@/lib/api-client';
 
@@ -39,7 +39,7 @@ export function NewsScreen() {
   if (selectedTeam) apiParams.set('team', selectedTeam);
   if (query) apiParams.set('q', query);
   const path = `/api/mobile/v1/news?${apiParams.toString()}`;
-  const { data, error, loading, refresh } = useCachedQuery<MobileNewsDto>(path);
+  const { data, error, loading, refresh, refreshControl } = useScreenQuery<MobileNewsDto>(path, { refreshOnFocus: false });
   const focusedOnce = useRef(false);
 
   useFocusEffect(
@@ -56,14 +56,14 @@ export function NewsScreen() {
     }, [refresh]),
   );
 
-  if (loading && !data) return <MinionScreen contentStyle={styles.screen}><NewsLoadingSkeleton /></MinionScreen>;
-  if (error && !data) return <MinionScreen contentStyle={styles.screen}><ErrorState onRetry={refresh} title={error} /></MinionScreen>;
-  if (!data) return <MinionScreen contentStyle={styles.screen}><ErrorState onRetry={refresh} title="뉴스를 불러오지 못했습니다." /></MinionScreen>;
+  if (loading && !data) return <MinionScreen refreshControl={refreshControl} contentStyle={styles.screen}><NewsLoadingSkeleton /></MinionScreen>;
+  if (error && !data) return <MinionScreen refreshControl={refreshControl} contentStyle={styles.screen}><ErrorState onRetry={refresh} title={error} /></MinionScreen>;
+  if (!data) return <MinionScreen refreshControl={refreshControl} contentStyle={styles.screen}><ErrorState onRetry={refresh} title="뉴스를 불러오지 못했습니다." /></MinionScreen>;
 
-  return <NewsContent data={data} />;
+  return <NewsContent data={data} refreshControl={refreshControl} />;
 }
 
-function NewsContent({ data }: { data: MobileNewsDto }) {
+function NewsContent({ data, refreshControl }: { data: MobileNewsDto; refreshControl: import('react-native').ScrollViewProps['refreshControl'] }) {
   const router = useRouter();
   const { fonts, showToast, theme } = useMinionTheme();
   const [draft, setDraft] = useState(data.query);
@@ -82,7 +82,7 @@ function NewsContent({ data }: { data: MobileNewsDto }) {
 
   return (
     <>
-    <MinionScreen contentStyle={styles.screen} scrollRequest={scrollRequest}>
+    <MinionScreen refreshControl={refreshControl} contentStyle={styles.screen} scrollRequest={scrollRequest}>
       <View accessibilityLabel="뉴스 필터" style={[styles.filter, { backgroundColor: theme.card }]}>
         <View style={styles.toolbar}>
           <Pressable accessibilityLabel="뉴스 팀 선택" accessibilityRole="button" accessibilityState={{ expanded: filterOpen }} onPress={() => setFilterOpen(true)} style={[styles.filterTrigger, { backgroundColor: theme.surface, borderColor: filterOpen ? theme.ink : theme.border }]}>

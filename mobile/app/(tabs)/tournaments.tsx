@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
+import { useLocalSearchParams } from 'expo-router';
 import SlidersHorizontal from 'lucide-react-native/icons/sliders-horizontal';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -11,7 +11,7 @@ import { TournamentSwissBracket } from '@/components/tournaments/tournament-swis
 import { TournamentFilterSheet, type TournamentFilterGroup } from '@/components/tournaments/tournament-filter-sheet';
 import { TournamentLoadingSkeleton } from '@/components/tournaments/tournament-loading-skeleton';
 import { TournamentEmptyNotice, TournamentPomList, TournamentStandingsGroups } from '@/components/tournaments/tournament-standings';
-import { useCachedQuery } from '@/hooks/use-cached-query';
+import { useScreenQuery } from '@/hooks/use-screen-query';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import type { MobileTournamentDetailDto } from '@/lib/api-client';
 import { readTournamentSelection, restoreTournamentSelection, saveTournamentSelection, type TournamentSelection } from '@/lib/tournament-selection-cache';
@@ -53,13 +53,8 @@ function TournamentsScreen({ initialSegment, initialSelection }: { initialSegmen
     if (phase) query.set('phase', phase);
   } else if (activeBracketStageId) query.set('bracketStage', activeBracketStageId);
   if (view) query.set('view', view);
-  const { data, error, loading, refresh } = useCachedQuery<MobileTournamentDetailDto>(`/api/mobile/v1/tournaments/${segmentKey}?${query}`, { keepPreviousData: true });
+  const { data, error, loading, refresh, refreshControl } = useScreenQuery<MobileTournamentDetailDto>(`/api/mobile/v1/tournaments/${segmentKey}?${query}`, { keepPreviousData: true });
 
-  const hasFocused = useRef(false);
-  useFocusEffect(useCallback(() => {
-    if (hasFocused.current) refresh();
-    hasFocused.current = true;
-  }, [refresh]));
   useEffect(() => {
     if (data && !loading && !error && appliedDefaultSegment.current) saveTournamentSelection({ segmentKey, year, split, phase, view, activeBracketStageId });
   }, [data, loading, error, segmentKey, year, split, phase, view, activeBracketStageId]);
@@ -82,9 +77,9 @@ function TournamentsScreen({ initialSegment, initialSelection }: { initialSegmen
     setActiveBracketStageId(null);
   }
 
-  if (loading && !data) return <MinionScreen contentStyle={styles.screenContent}><View style={styles.page}><TournamentLoadingSkeleton /></View></MinionScreen>;
-  if (error && !data) return <MinionScreen contentStyle={styles.screenContent}><View style={styles.page}><ErrorState onRetry={refresh} /></View></MinionScreen>;
-  if (!data) return <MinionScreen contentStyle={styles.screenContent}><View style={styles.page}><TournamentLoadingSkeleton /></View></MinionScreen>;
+  if (loading && !data) return <MinionScreen refreshControl={refreshControl} contentStyle={styles.screenContent}><View style={styles.page}><TournamentLoadingSkeleton /></View></MinionScreen>;
+  if (error && !data) return <MinionScreen refreshControl={refreshControl} contentStyle={styles.screenContent}><View style={styles.page}><ErrorState onRetry={refresh} /></View></MinionScreen>;
+  if (!data) return <MinionScreen refreshControl={refreshControl} contentStyle={styles.screenContent}><View style={styles.page}><TournamentLoadingSkeleton /></View></MinionScreen>;
 
   const groups: TournamentFilterGroup[] = [
     { label: '연도', selected: String(data.activeSeason), options: data.seasons.map(season => ({ value: String(season), label: String(season) })), onSelect: value => { setYear(Number(value)); resetStage(); } },
@@ -117,7 +112,7 @@ function TournamentsScreen({ initialSegment, initialSelection }: { initialSegmen
   }
 
   return <>
-    <MinionScreen contentStyle={styles.screenContent}>
+    <MinionScreen refreshControl={refreshControl} contentStyle={styles.screenContent}>
       <View style={[styles.page, data.isLck && styles.lckPage]}>
         <Text accessibilityRole="header" style={[styles.title, { color: theme.ink, ...fonts.display }]}>{title}</Text>
         <TournamentBody data={data} />

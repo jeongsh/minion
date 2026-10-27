@@ -26,6 +26,7 @@ import { FanVideos } from '@/components/fan/fan-videos';
 import { KitschEmptyState } from '@/components/kitsch-empty-state';
 import { MinionScreen } from '@/components/minion-screen';
 import { getMinionTeam } from '@/constants/teams';
+import { useScreenQuery } from '@/hooks/use-screen-query';
 import { useCachedQuery } from '@/hooks/use-cached-query';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import { mutateMobileApi, resolveApiAssetUrl, type MobileCommunityPostSummary, type MobileMatchSummary, type MobileTeamDetailDto, type MobileTeamFanDto, type MobileTeamFavoriteDto, type MobileTeamNotificationDto, type MobileTeamNotificationSelection } from '@/lib/api-client';
@@ -42,7 +43,7 @@ export function FanPage({ section }: { section: FanPageSection }) {
   const params = useLocalSearchParams<{ team?: string | string[] }>();
   const teamSlug = Array.isArray(params.team) ? params.team[0] : params.team;
   const path = teamSlug ? `/api/mobile/v1/teams/${encodeURIComponent(teamSlug)}?section=${section}` : '/api/mobile/v1/teams/__missing__';
-  const { data, error, loading, refresh } = useCachedQuery<MobileTeamDetailDto>(path, { enabled: Boolean(teamSlug) });
+  const { data, error, loading, refresh, refreshControl } = useScreenQuery<MobileTeamDetailDto>(path, { refreshOnFocus: false, enabled: Boolean(teamSlug) });
   const focusedOnce = useRef(false);
 
   useFocusEffect(
@@ -59,12 +60,12 @@ export function FanPage({ section }: { section: FanPageSection }) {
     }, [refresh]),
   );
 
-  if (loading && !data) return <MinionScreen contentStyle={styles.screenContent}><FanLoadingSkeleton section={section} /></MinionScreen>;
-  if (error && !data) return <MinionScreen contentStyle={styles.screenContent}><View style={styles.error}><ErrorState onRetry={refresh} title={error} /></View></MinionScreen>;
-  if (!data) return <MinionScreen contentStyle={styles.screenContent}><View style={styles.error}><ErrorState onRetry={refresh} title="팀 정보를 찾을 수 없습니다." /></View></MinionScreen>;
+  if (loading && !data) return <MinionScreen refreshControl={refreshControl} contentStyle={styles.screenContent}><FanLoadingSkeleton section={section} /></MinionScreen>;
+  if (error && !data) return <MinionScreen refreshControl={refreshControl} contentStyle={styles.screenContent}><View style={styles.error}><ErrorState onRetry={refresh} title={error} /></View></MinionScreen>;
+  if (!data) return <MinionScreen refreshControl={refreshControl} contentStyle={styles.screenContent}><View style={styles.error}><ErrorState onRetry={refresh} title="팀 정보를 찾을 수 없습니다." /></View></MinionScreen>;
 
   return (
-    <MinionScreen contentStyle={styles.screenContent}>
+    <MinionScreen refreshControl={refreshControl} contentStyle={styles.screenContent}>
       {section === 'home' ? <FanHome data={data} /> : null}
       {section === 'schedule' ? <><FanSchedule data={data} /><ContentBanner enabled={(data.matches?.length ?? 0) > 0} /></> : null}
       {section === 'players' ? <FanPlayers players={data.players} team={data.team} /> : null}

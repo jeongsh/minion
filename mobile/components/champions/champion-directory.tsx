@@ -9,7 +9,7 @@ import { Pressable, StyleSheet, Text, TextInput, useWindowDimensions, View } fro
 import { BottomSheet } from '@/components/bottom-sheet';
 import { ErrorState } from '@/components/feedback-states';
 import { MinionScreen } from '@/components/minion-screen';
-import { useCachedQuery } from '@/hooks/use-cached-query';
+import { useScreenQuery } from '@/hooks/use-screen-query';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import { resolveApiAssetUrl, type MobileChampionPosition, type MobileChampionsDto } from '@/lib/api-client';
 
@@ -86,7 +86,7 @@ export function ChampionDirectory() {
     return () => clearTimeout(timeout);
   }, [query]);
   const path = useMemo(() => qs({ season, tournament, patch }), [patch, season, tournament]);
-  const { data, error, loading, refresh } = useCachedQuery<MobileChampionsDto>(path, { staleTimeMs: 30_000, cancelOnUnused: true });
+  const { data, error, loading, refresh, refreshControl } = useScreenQuery<MobileChampionsDto>(path, { staleTimeMs: 30_000, cancelOnUnused: true });
   // The response already contains the default season's data. Keep it separate
   // from the requested filter so resolving that default does not fetch again.
   const effectiveSeason = season || String(data?.scope.season ?? '');
@@ -104,8 +104,8 @@ export function ChampionDirectory() {
       });
   }, [committedQuery, data?.items, position, sort]);
 
-  if (loading && !data) return <MinionScreen><DirectorySkeleton /></MinionScreen>;
-  if (error && !data) return <MinionScreen><ErrorState onRetry={refresh} title={error} /></MinionScreen>;
+  if (loading && !data) return <MinionScreen refreshControl={refreshControl}><DirectorySkeleton /></MinionScreen>;
+  if (error && !data) return <MinionScreen refreshControl={refreshControl}><ErrorState onRetry={refresh} title={error} /></MinionScreen>;
 
   const columns = width >= 360 ? 5 : 4;
   const contentWidth = Math.max(0, width - 32);
@@ -116,7 +116,7 @@ export function ChampionDirectory() {
   const rows = Array.from({ length: Math.ceil(items.length / columns) }, (_, index) => items.slice(index * columns, (index + 1) * columns));
 
   return (
-    <MinionScreen virtualList={rows.length ? {
+    <MinionScreen refreshControl={refreshControl} virtualList={rows.length ? {
       accessibilityLabel: '챔피언 목록',
       data: rows,
       initialNumToRender: 8,

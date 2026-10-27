@@ -7,7 +7,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { BottomSheet } from '@/components/bottom-sheet';
 import { ErrorState } from '@/components/feedback-states';
 import { MinionScreen } from '@/components/minion-screen';
-import { useCachedQuery } from '@/hooks/use-cached-query';
+import { useScreenQuery } from '@/hooks/use-screen-query';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import { resolveApiAssetUrl, type MobilePlayerDirectoryItem, type MobilePlayersDto, type MobileTeamSummary } from '@/lib/api-client';
 
@@ -119,7 +119,7 @@ function FilterSheet({ children, onClose, open }: { children: React.ReactNode; o
 }
 
 export function PlayerDirectory() {
-  const { data, error, loading, refresh } = useCachedQuery<MobilePlayersDto>('/api/mobile/v1/players', { staleTimeMs: 30_000 });
+  const { data, error, loading, refresh, refreshControl } = useScreenQuery<MobilePlayersDto>('/api/mobile/v1/players', { staleTimeMs: 30_000 });
   const { fonts, theme } = useMinionTheme();
   const [division, setDivision] = useState<Division>('first');
   const [teamId, setTeamId] = useState('all');
@@ -141,13 +141,13 @@ export function PlayerDirectory() {
     });
   }, [teams, visible]);
 
-  if (loading && !data) return <MinionScreen><DirectorySkeleton /></MinionScreen>;
-  if (error && !data) return <MinionScreen><ErrorState onRetry={refresh} title={error} /></MinionScreen>;
+  if (loading && !data) return <MinionScreen refreshControl={refreshControl}><DirectorySkeleton /></MinionScreen>;
+  if (error && !data) return <MinionScreen refreshControl={refreshControl}><ErrorState onRetry={refresh} title={error} /></MinionScreen>;
 
   const filters = <PlayerFilters position={position} setPosition={setPosition} setTeamId={setTeamId} teamId={teamId} teams={teams} />;
   const rows = Array.from({ length: Math.ceil(sortedVisible.length / 2) }, (_, index) => sortedVisible.slice(index * 2, index * 2 + 2));
   return (
-    <MinionScreen virtualList={rows.length ? {
+    <MinionScreen refreshControl={refreshControl} virtualList={rows.length ? {
       accessibilityLabel: '선수 목록',
       data: rows,
       initialNumToRender: 3,

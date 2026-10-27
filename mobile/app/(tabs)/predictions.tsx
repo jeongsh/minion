@@ -10,7 +10,7 @@ import { PredictionBetSheet, type PredictionBetDialogState } from '@/components/
 import { PredictionLoadingSkeleton } from '@/components/predictions/prediction-loading-skeleton';
 import { PredictionMatchCard } from '@/components/predictions/prediction-match-card';
 import { PredictionWeekBar } from '@/components/predictions/prediction-week-bar';
-import { useCachedQuery } from '@/hooks/use-cached-query';
+import { useScreenQuery } from '@/hooks/use-screen-query';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import { invalidateApiCache, mutateMobileApi, type MobilePredictionMutationDto, type MobilePredictionsDto } from '@/lib/api-client';
 import { predictionDateLabel, weekStartKey } from '@/lib/prediction-dates';
@@ -23,7 +23,7 @@ export default function PredictionsScreen() {
   const isFocused = useIsFocused();
   const { loading: authLoading, refreshViewer, session, viewer } = useAuth();
   const { fonts, showToast, theme } = useMinionTheme();
-  const { data, error, loading, refresh } = useCachedQuery<MobilePredictionsDto>('/api/mobile/v1/predictions', { cache: 'memory', cacheScope: session?.user.id ?? 'guest', enabled: !authLoading && isFocused });
+  const { data, error, loading, refresh, refreshControl } = useScreenQuery<MobilePredictionsDto>('/api/mobile/v1/predictions', { cache: 'memory', cacheScope: session?.user.id ?? 'guest', enabled: !authLoading && isFocused });
   const [selectedWeek, setSelectedWeek] = useState(() => weekStartKey(new Date().toISOString()));
   const [dialog, setDialog] = useState<PredictionBetDialogState | null>(null);
   const [stake, setStake] = useState('100');
@@ -122,7 +122,7 @@ export default function PredictionsScreen() {
 
   if ((authLoading || loading) && !data) {
     return (
-      <MinionScreen contentStyle={styles.content}>
+      <MinionScreen refreshControl={refreshControl} contentStyle={styles.content}>
         <PredictionLoadingSkeleton />
       </MinionScreen>
     );
@@ -130,7 +130,7 @@ export default function PredictionsScreen() {
 
   if (error && !data) {
     return (
-      <MinionScreen contentStyle={styles.content}>
+      <MinionScreen refreshControl={refreshControl} contentStyle={styles.content}>
         <ErrorState onRetry={refresh} title={error} />
       </MinionScreen>
     );
@@ -139,7 +139,7 @@ export default function PredictionsScreen() {
   if (!data) return null;
 
   return (
-    <MinionScreen contentStyle={styles.content}>
+    <MinionScreen refreshControl={refreshControl} contentStyle={styles.content}>
       <PredictionWeekBar
         authenticated={Boolean(session)}
         authLoading={authLoading}

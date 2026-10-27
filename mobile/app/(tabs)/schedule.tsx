@@ -14,6 +14,7 @@ import { ScheduleLoadingSkeleton } from '@/components/schedule/schedule-loading-
 import { ScheduleMatchList } from '@/components/schedule/schedule-match-list';
 import { SCHEDULE_WEEK_SCROLLER_HEIGHT, scheduleTargetForDate, ScheduleWeekScroller } from '@/components/schedule/schedule-week-scroller';
 import { SCHEDULE_SEGMENTS } from '@/constants/schedule-segments';
+import { useScreenQuery } from '@/hooks/use-screen-query';
 import { useCachedQuery } from '@/hooks/use-cached-query';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import type { MobileScheduleDto, MobileTeamsDto } from '@/lib/api-client';
@@ -51,7 +52,7 @@ export default function ScheduleScreen() {
   const query = buildQuery(filter);
   const scheduleBasePath = `/api/mobile/v1/schedule?${query}`;
   const schedulePath = `${scheduleBasePath}&calendar=0`;
-  const { data, error, loading, refresh } = useCachedQuery<MobileScheduleDto>(schedulePath, { staleTimeMs: 60_000 });
+  const { data, error, loading, refresh, refreshControl } = useScreenQuery<MobileScheduleDto>(schedulePath, { refreshOnFocus: false, staleTimeMs: 60_000 });
   const { data: calendarData, refresh: refreshCalendar } = useCachedQuery<MobileScheduleDto>(`${scheduleBasePath}&calendar=1`, {
     cache: 'memory',
     enabled: calendarOpen,
@@ -78,7 +79,7 @@ export default function ScheduleScreen() {
     ? requestedActiveDateKey
     : autoScrollTarget ?? activeMonthDates[0]?.key;
 
-  // 보관된 탭도 한국 시간 자정, 앱 복귀, 탭 재진입 때 날짜를 다시 확인한다.
+  // 보관된 탭도 앱 복귀, 탭 재진입과 1분 간격으로 날짜와 대진을 갱신한다.
   useFocusEffect(
     useCallback(() => {
       let timer: ReturnType<typeof setTimeout> | undefined;
@@ -101,9 +102,11 @@ export default function ScheduleScreen() {
               ? { ...current, year, month }
               : current;
           });
-          refresh();
-          refreshCalendar();
         }
+
+        // staleTime은 재조회 시 캐시 사용 여부만 결정하므로 직접 갱신해야 한다.
+        refresh();
+        refreshCalendar();
 
         const midnight = Date.parse(`${nextDateKey}T00:00:00+09:00`) + 24 * 60 * 60_000;
         // 자정에 갱신하고, 실행 중 기기 시각이 바뀌는 경우도 다시 확인한다.
@@ -196,7 +199,7 @@ export default function ScheduleScreen() {
 
   if (loading && !data) {
     return (
-      <MinionScreen contentStyle={styles.content}>
+      <MinionScreen refreshControl={refreshControl} contentStyle={styles.content}>
         <ScheduleLoadingSkeleton />
       </MinionScreen>
     );
@@ -204,7 +207,7 @@ export default function ScheduleScreen() {
 
   if (error && !data) {
     return (
-      <MinionScreen contentStyle={styles.content}>
+      <MinionScreen refreshControl={refreshControl} contentStyle={styles.content}>
         <ErrorState onRetry={refresh} />
       </MinionScreen>
     );
@@ -216,7 +219,7 @@ export default function ScheduleScreen() {
 
   return (
     <>
-      <MinionScreen
+      <MinionScreen refreshControl={refreshControl}
         contentStyle={styles.content}
         onScrollYChange={handleScrollYChange}
         scrollRequest={scrollRequest}

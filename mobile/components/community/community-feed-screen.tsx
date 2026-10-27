@@ -23,7 +23,7 @@ import { MinionScreen } from '@/components/minion-screen';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import type { MobileCommunityPostSummary, MobileCommunityPostsDto } from '@/lib/api-client';
 import { resolveApiAssetUrl } from '@/lib/api-client';
-import { useCachedQuery } from '@/hooks/use-cached-query';
+import { useScreenQuery } from '@/hooks/use-screen-query';
 import { CommunityDirectoryNav } from './community-directory-nav';
 import { boardLabel, boardsForScope, displayAuthor, formatCommunityDate, type CommunityScope } from './community-utils';
 
@@ -54,7 +54,7 @@ export function CommunityFeedScreen({ scope = 'hub' }: { scope?: CommunityScope 
     const suffix = params.toString();
     return `/api/mobile/v1/community/posts${suffix ? `?${suffix}` : ''}`;
   }, [category, committedQuery, page, scope, teamSlug, view]);
-  const { data, error, loading, refresh, refreshing } = useCachedQuery<MobileCommunityPostsDto>(path);
+  const { data, error, loading, refresh, refreshing, refreshControl } = useScreenQuery<MobileCommunityPostsDto>(path);
 
   const updateView = (next: 'all' | 'hot') => {
     setView(next);
@@ -72,7 +72,7 @@ export function CommunityFeedScreen({ scope = 'hub' }: { scope?: CommunityScope 
 
   return (
     <View style={[styles.root, { backgroundColor: theme.pageBackground }]}>
-      <MinionScreen contentStyle={styles.fullBleed}>
+      <MinionScreen refreshControl={refreshControl} contentStyle={styles.fullBleed}>
         <CommunityDirectoryNav accent={accent} scope={scope} teamSlug={teamSlug} />
         <View style={[styles.feed, { backgroundColor: theme.surface, borderBottomColor: theme.border, borderTopColor: theme.border }]}>
           <View style={[styles.toolbar, { borderBottomColor: theme.divider }]}>

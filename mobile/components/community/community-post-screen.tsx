@@ -28,7 +28,8 @@ import { useKeyboardLayout } from '@/hooks/use-keyboard-layout';
 import type { MobileCommunityActionDto, MobileCommunityAuthor, MobileCommunityComment, MobileCommunityCommentMutationDto, MobileCommunityPostDetailDto, MobileCommunityReactionDto, MobileMiniconItem } from '@/lib/api-client';
 import { invalidateApiCache, mutateMobileApi, resolveApiAssetUrl } from '@/lib/api-client';
 import { fanAccentText } from '@/lib/fan-colors';
-import { useCachedQuery } from '@/hooks/use-cached-query';
+import { useScreenQuery } from '@/hooks/use-screen-query';
+import { usePullRefreshIndicator } from '@/hooks/use-pull-refresh-indicator';
 import { useAuth } from '@/providers/auth-provider';
 import { CommunityPostContent } from './community-post-content';
 import { CommunityAuthor, GuestAvatar } from './community-author';
@@ -50,8 +51,9 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
   const accent = team ? fanAccentText(team.primaryColor) : theme.accent;
   const basePath = teamSlug && scope === 'team' ? `/fan/${teamSlug}/community` : '/community';
   const path = `/api/mobile/v1/community/posts/${encodeURIComponent(postId ?? '')}${teamSlug && scope === 'team' ? `?team=${encodeURIComponent(teamSlug)}` : ''}`;
-  const { data, error, loading, refresh } = useCachedQuery<MobileCommunityPostDetailDto>(path, { cache: 'memory', cacheScope: session?.user.id ?? 'guest', enabled: Boolean(postId) && !authLoading && isFocused });
+  const { data, error, loading, refresh, refreshControl } = useScreenQuery<MobileCommunityPostDetailDto>(path, { cache: 'memory', cacheScope: session?.user.id ?? 'guest', enabled: Boolean(postId) && !authLoading && isFocused });
   const scrollRef = useRef<ScrollView>(null);
+  const { onPullScroll, indicator: pullIndicator } = usePullRefreshIndicator(refreshControl.props.refreshing, insets.top + 48, accent);
   const [comment, setComment] = useState('');
   const [replyTo, setReplyTo] = useState<MobileCommunityComment | null>(null);
   const [miniconOpen, setMiniconOpen] = useState(false);
@@ -213,7 +215,9 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
           <Text numberOfLines={1} style={[styles.headerTitle, { color: theme.ink, ...fonts.display }]}>{team?.shortName ?? 'LCK'}</Text>
           {data.permissions.canEdit || data.permissions.canDelete ? <Pressable accessibilityLabel="게시글 관리" onPress={() => setOwnerMenuOpen(true)} style={styles.headerButton}><Ellipsis color={theme.text} size={21} strokeWidth={2} /></Pressable> : <View style={styles.headerButton} />}
         </View>
-        <ScrollView contentContainerStyle={{ paddingBottom: 56 + bottomInset }} keyboardShouldPersistTaps="handled" ref={scrollRef} showsVerticalScrollIndicator={false}>
+        {pullIndicator}
+        {Platform.OS === 'web' && refreshControl.props.refreshing ? <View pointerEvents="none" style={{ position: 'absolute', top: insets.top + 64, alignSelf: 'center', zIndex: 40, padding: 8, borderRadius: 20, backgroundColor: theme.surface }}><ActivityIndicator accessibilityLabel="새로고침 중" color={accent} size="small" /></View> : null}
+        <ScrollView onScroll={onPullScroll} scrollEventThrottle={16} refreshControl={refreshControl} alwaysBounceVertical contentContainerStyle={{ paddingBottom: 56 + bottomInset }} keyboardShouldPersistTaps="handled" ref={scrollRef} showsVerticalScrollIndicator={false}>
         <View style={[styles.article, { backgroundColor: theme.surface, borderTopColor: theme.border }]}>
           <View style={styles.postHeader}>
             <Text style={[styles.postTitle, { color: data.isBlinded ? theme.muted : theme.ink, ...(data.isBlinded ? fonts.medium : fonts.bold) }]}>{title}</Text>

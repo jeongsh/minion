@@ -12,15 +12,16 @@ import { BottomSheet } from '@/components/bottom-sheet';
 import { ErrorState } from '@/components/feedback-states';
 import { MinionScreen } from '@/components/minion-screen';
 import { useCachedQuery } from '@/hooks/use-cached-query';
+import { useScreenQuery } from '@/hooks/use-screen-query';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import { mutateMobileApi, resolveApiAssetUrl, type MobileCommunityActionDto, type MobileMiniconCatalogDto, type MobileMiniconPack, type MobileMiniconSettingsDto } from '@/lib/api-client';
 import { useAuth } from '@/providers/auth-provider';
 
 export function MiniconCatalogScreen() {
-  const { data, error, loading, refresh } = useCachedQuery<MobileMiniconCatalogDto>('/api/mobile/v1/minicons');
-  if (loading && !data) return <MinionScreen contentStyle={styles.screen}><Loading /></MinionScreen>;
-  if (error && !data) return <MinionScreen contentStyle={styles.screen}><ErrorState onRetry={refresh} title={error} /></MinionScreen>;
-  return <MinionScreen contentStyle={styles.screen}><Catalog packs={data?.packs ?? []} /></MinionScreen>;
+  const { data, error, loading, refresh, refreshControl } = useScreenQuery<MobileMiniconCatalogDto>('/api/mobile/v1/minicons');
+  if (loading && !data) return <MinionScreen refreshControl={refreshControl} contentStyle={styles.screen}><Loading /></MinionScreen>;
+  if (error && !data) return <MinionScreen refreshControl={refreshControl} contentStyle={styles.screen}><ErrorState onRetry={refresh} title={error} /></MinionScreen>;
+  return <MinionScreen refreshControl={refreshControl} contentStyle={styles.screen}><Catalog packs={data?.packs ?? []} /></MinionScreen>;
 }
 
 export function MyMiniconsScreen() {

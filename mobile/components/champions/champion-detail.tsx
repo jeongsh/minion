@@ -10,7 +10,7 @@ import { ChampionBuildView } from '@/components/champions/champion-build';
 import { DuoView, GamesView, MatchupView, ProView, StatsView } from '@/components/champions/champion-data-tabs';
 import { ErrorState } from '@/components/feedback-states';
 import { MinionScreen } from '@/components/minion-screen';
-import { useCachedQuery } from '@/hooks/use-cached-query';
+import { useScreenQuery } from '@/hooks/use-screen-query';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import { resolveApiAssetUrl, type MobileChampionDetailDto } from '@/lib/api-client';
 
@@ -145,12 +145,12 @@ export function ChampionDetail() {
   const [positionOpen, setPositionOpen] = useState(false);
   const [championOpen, setChampionOpen] = useState(false);
   const path = useMemo(() => buildPath(slug, { season, tournament, patch, position }), [patch, position, season, slug, tournament]);
-  const { data, error, loading, refresh } = useCachedQuery<MobileChampionDetailDto>(path, { enabled: Boolean(slug), staleTimeMs: 30_000 });
+  const { data, error, loading, refresh, refreshControl } = useScreenQuery<MobileChampionDetailDto>(path, { enabled: Boolean(slug), staleTimeMs: 30_000 });
   useEffect(() => { if (tab === 'duos' && data && data.selectedPosition !== 'BOT' && data.selectedPosition !== 'SUP') setTab('stats'); }, [data, tab]);
 
-  if (loading && !data) return <MinionScreen><Loading /></MinionScreen>;
-  if (error && !data) return <MinionScreen><ErrorState onRetry={refresh} title={error} /></MinionScreen>;
-  if (!data) return <MinionScreen><ErrorState onRetry={refresh} title="챔피언 정보를 찾을 수 없습니다." /></MinionScreen>;
+  if (loading && !data) return <MinionScreen refreshControl={refreshControl}><Loading /></MinionScreen>;
+  if (error && !data) return <MinionScreen refreshControl={refreshControl}><ErrorState onRetry={refresh} title={error} /></MinionScreen>;
+  if (!data) return <MinionScreen refreshControl={refreshControl}><ErrorState onRetry={refresh} title="챔피언 정보를 찾을 수 없습니다." /></MinionScreen>;
 
   const scope = data.scope;
   const effectiveSeason = season || String(scope.season);
@@ -174,7 +174,7 @@ export function ChampionDetail() {
   };
 
   return (
-    <MinionScreen>
+    <MinionScreen refreshControl={refreshControl}>
       <View style={styles.page}>
         <ProfileHeader data={data} onChampionOpen={() => setChampionOpen(true)} onPositionOpen={() => setPositionOpen(true)} />
         <ScopeControls data={data} onOpen={setScopeOpen} patch={patch} season={effectiveSeason} tournament={tournament} />

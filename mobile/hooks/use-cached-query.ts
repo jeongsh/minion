@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
+import { useIsFocused } from '@react-navigation/native';
+import { AppState } from 'react-native';
 
 import { type ApiCacheMode, discardApiMemoryCache, fetchMobileQuery, MobileApiRequestError, readApiCache, readApiMemoryCache, subscribeApiCacheInvalidation } from '@/lib/api-client';
 import { createQueryRefreshIntent } from '@/lib/query-refresh-intent';
@@ -11,8 +13,10 @@ function userFacingError(error: unknown) {
   return error.message;
 }
 
-export function useCachedQuery<T>(path: string, options: { enabled?: boolean; cache?: ApiCacheMode; cacheScope?: string; staleTimeMs?: number; cancelOnUnused?: boolean; keepPreviousData?: boolean } = {}) {
-  const enabled = options.enabled ?? true;
+export function useCachedQuery<T>(path: string, options: { enabled?: boolean; cache?: ApiCacheMode; cacheScope?: string; staleTimeMs?: number; cancelOnUnused?: boolean; keepPreviousData?: boolean; refreshOnFocus?: boolean } = {}) {
+  const isFocused = useIsFocused();
+  const refreshOnFocus = options.refreshOnFocus ?? false;
+  const enabled = (options.enabled ?? true) && (!refreshOnFocus || isFocused);
   const cache = options.cache ?? true;
   const staleTimeMs = options.staleTimeMs ?? 0;
   const cancelOnUnused = options.cancelOnUnused ?? false;
@@ -27,6 +31,21 @@ export function useCachedQuery<T>(path: string, options: { enabled?: boolean; ca
 
   useLayoutEffect(() => { refreshIntent.setKey(key); }, [key, refreshIntent]);
   const refresh = useCallback(() => setRequestVersion(refreshIntent.request()), [refreshIntent]);
+
+  // Mark the next load fresh before its effect runs, avoiding a second focus request.
+  useLayoutEffect(() => {
+    if (enabled && refreshOnFocus) refreshIntent.request();
+  }, [enabled, key, refreshIntent, refreshOnFocus]);
+
+  useEffect(() => {
+    if (!enabled || !refreshOnFocus) return;
+    let previous = AppState.currentState;
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active' && previous !== 'active') refresh();
+      previous = state;
+    });
+    return () => subscription.remove();
+  }, [enabled, refresh, refreshOnFocus]);
 
   useEffect(() => subscribeApiCacheInvalidation((pathPrefix) => {
     if (path.startsWith(pathPrefix)) refresh();

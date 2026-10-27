@@ -14,7 +14,7 @@ import { PlayerDetailRadar } from '@/components/players/player-detail-radar';
 import { PlayerFanReviews, type PlayerFanReviewsHandle } from '@/components/players/player-fan-reviews';
 import { PlayerRecentMatches } from '@/components/players/player-recent-matches';
 import { PlayerSegmentSelect } from '@/components/players/player-segment-select';
-import { useCachedQuery } from '@/hooks/use-cached-query';
+import { useScreenQuery } from '@/hooks/use-screen-query';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import { resolveApiAssetUrl, type MobilePlayerDetailDto } from '@/lib/api-client';
 
@@ -173,16 +173,16 @@ export function PlayerDetail() {
     const base = `/api/mobile/v1/players/${encodeURIComponent(playerSlug ?? '')}?view=${PLAYER_DETAIL_VIEW_VERSION}`;
     return selectedSegment ? `${base}&segment=${encodeURIComponent(selectedSegment)}` : base;
   }, [playerSlug, selectedSegment]);
-  const { data, error, loading, refresh } = useCachedQuery<MobilePlayerDetailDto>(path, { enabled: Boolean(playerSlug), staleTimeMs: 30_000 });
+  const { data, error, loading, refresh, refreshControl } = useScreenQuery<MobilePlayerDetailDto>(path, { enabled: Boolean(playerSlug), staleTimeMs: 30_000 });
   const playerData = isPlayerDetailDto(data) ? data : null;
 
-  if (error && !playerData) return <MinionScreen><ErrorState onRetry={refresh} title={error} /></MinionScreen>;
-  if (!playerData && (loading || data)) return <MinionScreen><PlayerDetailLoadingSkeleton /></MinionScreen>;
-  if (!playerData) return <MinionScreen><ErrorState onRetry={refresh} title="선수 정보를 찾을 수 없습니다." /></MinionScreen>;
+  if (error && !playerData) return <MinionScreen refreshControl={refreshControl}><ErrorState onRetry={refresh} title={error} /></MinionScreen>;
+  if (!playerData && (loading || data)) return <MinionScreen refreshControl={refreshControl}><PlayerDetailLoadingSkeleton /></MinionScreen>;
+  if (!playerData) return <MinionScreen refreshControl={refreshControl}><ErrorState onRetry={refresh} title="선수 정보를 찾을 수 없습니다." /></MinionScreen>;
 
   const accent = playerData.team?.primaryColor || theme.accent;
   return (
-    <MinionScreen onScrollYChange={() => fanReviewsRef.current?.checkViewport()}>
+    <MinionScreen refreshControl={refreshControl} onScrollYChange={() => fanReviewsRef.current?.checkViewport()}>
       <View style={styles.page}>
         <Profile accent={accent} data={playerData} />
         <PlayerSegmentSelect accent={accent} activeSegment={playerData.activeSegment} onClose={() => setSegmentOpen(false)} onOpen={() => setSegmentOpen(true)} onSelect={(value) => { setSegmentOpen(false); setSelectedSegment(value); }} open={segmentOpen} options={playerData.segments} />

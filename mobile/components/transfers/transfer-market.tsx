@@ -10,7 +10,7 @@ import { ErrorState } from '@/components/feedback-states';
 import { FilterSelect } from '@/components/filter-select';
 import { KeyboardAwareView } from '@/components/keyboard-aware-view';
 import { MinionScreen } from '@/components/minion-screen';
-import { useCachedQuery } from '@/hooks/use-cached-query';
+import { useScreenQuery } from '@/hooks/use-screen-query';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import { resolveApiAssetUrl, type MobileTeamsPageDto } from '@/lib/api-client';
 import { useAuth } from '@/providers/auth-provider';
@@ -26,12 +26,12 @@ const destination = (event: TransferEvent) => event.to || (event.kind === 'retir
 
 export function TransferMarketScreen({ season }: { season?: string }) {
   const path = `/api/mobile/v1/transfers${season ? `?season=${encodeURIComponent(season)}` : ''}`;
-  const query = useCachedQuery<MobileTransfersDto>(path);
+  const query = useScreenQuery<MobileTransfersDto>(path);
   const { session, loading: authLoading } = useAuth();
-  const followed = useCachedQuery<MobileTeamsPageDto>('/api/mobile/v1/teams?view=directory', { cache: 'memory', cacheScope: session?.user.id ?? 'guest', enabled: !authLoading });
+  const followed = useScreenQuery<MobileTeamsPageDto>('/api/mobile/v1/teams?view=directory', { cache: 'memory', cacheScope: session?.user.id ?? 'guest', enabled: !authLoading });
   const { fonts, theme } = useMinionTheme();
   const { width } = useWindowDimensions();
-  return <KeyboardAwareView style={{ flex: 1 }}><MinionScreen contentStyle={styles.content}>
+  return <KeyboardAwareView style={{ flex: 1 }}><MinionScreen refreshControl={query.refreshControl} contentStyle={styles.content}>
     <Text accessibilityRole="header" style={[styles.title, { color: theme.ink, ...fonts.display, fontSize: width >= 640 ? 28 : 20, lineHeight: width >= 640 ? 42 : 28 }]}>이적시장</Text>
     {query.loading && !query.data ? <TransferLoading /> : query.error && !query.data ? <ErrorState onRetry={query.refresh} /> : query.data?.market ? <TransferMarketView data={query.data} followedTeamIds={followed.data?.followedTeamIds ?? []} /> : <Text style={[styles.empty, { backgroundColor: theme.card, color: theme.muted, ...fonts.regular }]}>이적시장 소식을 준비하고 있습니다.</Text>}
   </MinionScreen></KeyboardAwareView>;

@@ -1,14 +1,14 @@
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import ChevronLeft from 'lucide-react-native/icons/chevron-left';
 import ChevronRight from 'lucide-react-native/icons/chevron-right';
 import Lock from 'lucide-react-native/icons/lock';
 import MessageSquarePlus from 'lucide-react-native/icons/message-square-plus';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { ErrorState } from '@/components/feedback-states';
 import { MinionScreen } from '@/components/minion-screen';
-import { useCachedQuery } from '@/hooks/use-cached-query';
+import { useScreenQuery } from '@/hooks/use-screen-query';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import type { MobileSupportBoardDto, MobileSupportBoardItem } from '@/lib/api-client';
 
@@ -32,22 +32,11 @@ export function SupportScreen() {
   const { fonts, theme } = useMinionTheme();
   const [page, setPage] = useState(1);
   const path = useMemo(() => `/api/mobile/v1/support/inquiries?page=${page}`, [page]);
-  const { data, error, loading, refresh } = useCachedQuery<MobileSupportBoardDto>(path, { cache: false });
-
-  // 문의하기 화면에 다녀오거나 관리자가 답변을 등록한 뒤 다시 이 탭으로 돌아왔을 때도
-  // 최신 상태를 보여줘야 한다. 네비게이션이 화면을 언마운트하지 않고 유지하는 경우가 있어
-  // 최초 마운트 시점의 fetch만으로는 갱신을 놓친다.
-  const hasFocusedOnce = useRef(false);
-  useFocusEffect(
-    useCallback(() => {
-      if (hasFocusedOnce.current) refresh();
-      hasFocusedOnce.current = true;
-    }, [refresh]),
-  );
+  const { data, error, loading, refresh, refreshControl } = useScreenQuery<MobileSupportBoardDto>(path, { cache: false });
 
   return (
     <View style={[styles.root, { backgroundColor: theme.pageBackground }]}>
-      <MinionScreen contentStyle={styles.content}>
+      <MinionScreen refreshControl={refreshControl} contentStyle={styles.content}>
         <View style={styles.headingRow}>
           <Text style={[styles.pageTitle, { color: theme.ink, ...fonts.display }]}>고객센터</Text>
           <Pressable
