@@ -46,6 +46,7 @@
     },
     "plugins": [
       "expo-router",
+      "./plugins/with-android-release-optimization",
       [
         "expo-web-browser",
         {
