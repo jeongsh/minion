@@ -271,21 +271,21 @@ function SetSelector({
       {snapshotHref ? (
         <Link
           href={snapshotHref}
-          title="공유 스냅샷 보기"
-          aria-label="공유 스냅샷 보기"
+          title="세트 스냅샷 보기"
+          aria-label="세트 스냅샷 보기"
           className="hidden h-8 shrink-0 items-center justify-center gap-1 rounded-lg bg-[var(--ui-ink)] px-2 text-[13px] font-normal text-[var(--ui-surface)] shadow-sm transition-opacity hover:opacity-85 sm:inline-flex sm:px-2.5"
         >
-          <span>공유 스냅샷</span>
+          <span>세트 스냅샷</span>
         </Link>
       ) : null}
       {matchSnapshotHref ? (
         <Link
           href={matchSnapshotHref}
-          title="세트 평균 스냅샷 보기"
-          aria-label="세트 평균 스냅샷 보기"
+          title="전체 스냅샷 보기"
+          aria-label="전체 스냅샷 보기"
           className="hidden h-8 shrink-0 items-center justify-center gap-1 rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-2 text-[13px] font-medium text-[var(--ui-ink)] shadow-sm transition-opacity hover:opacity-85 sm:inline-flex sm:px-2.5"
         >
-          <span>세트 평균</span>
+          <span>전체 스냅샷</span>
         </Link>
       ) : null}
       </div>
