@@ -257,7 +257,7 @@ export function AuthorMenu({
         ref={triggerRef}
         type="button"
         onClick={() => setOpen((current) => !current)}
-        className="min-w-0 inline-flex items-center rounded-lg text-left outline-none hover:opacity-75 focus-visible:ring-2 focus-visible:ring-[var(--tp)]"
+        className="min-w-0 inline-flex items-center rounded-lg text-left outline-none hover:opacity-75"
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label={customTrigger ? `${name} 사용자 메뉴` : undefined}

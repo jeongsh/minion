@@ -5,9 +5,11 @@ import Flag from 'lucide-react-native/icons/flag';
 import MessageSquareText from 'lucide-react-native/icons/message-square-text';
 import UserRound from 'lucide-react-native/icons/user-round';
 import { useRef, useState } from 'react';
-import { Alert, Modal, Pressable, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BottomSheet } from '@/components/bottom-sheet';
+import { KeyboardAwareView } from '@/components/keyboard-aware-view';
 import { RankAvatar } from '@/components/rank-avatar';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import type { MobileCommunityActionDto, MobileCommunityAuthor } from '@/lib/api-client';
@@ -17,8 +19,9 @@ import { displayAuthor } from './community-utils';
 
 type Evidence = { target: 'post' | 'comment'; targetId: string };
 
-export function CommunityAuthor({ author, detailMeta, evidence, hideAvatar = false, onBlocked, variant = 'comment' }: {
+export function CommunityAuthor({ author, customTrigger, detailMeta, evidence, hideAvatar = false, onBlocked, variant = 'comment' }: {
   author: MobileCommunityAuthor;
+  customTrigger?: React.ReactNode;
   detailMeta?: React.ReactNode;
   evidence?: Evidence;
   onBlocked?: () => void;
@@ -27,12 +30,13 @@ export function CommunityAuthor({ author, detailMeta, evidence, hideAvatar = fal
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { height: windowHeight, width: windowWidth } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const { session, viewer } = useAuth();
   const { fonts, theme } = useMinionTheme();
   const triggerRef = useRef<View>(null);
+  const menuRootRef = useRef<View>(null);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [menuPosition, setMenuPosition] = useState({ left: 14, top: 80 });
+  const [menuPosition, setMenuPosition] = useState<{ left: number; top: number; width: number; maxHeight: number } | null>(null);
   const [reportOpen, setReportOpen] = useState(false);
   const [reason, setReason] = useState('');
   const [pending, setPending] = useState(false);
@@ -50,12 +54,33 @@ export function CommunityAuthor({ author, detailMeta, evidence, hideAvatar = fal
     return false;
   };
   const openMenu = () => {
-    triggerRef.current?.measureInWindow((x, y, width, height) => {
-      setMenuPosition({
-        left: Math.max(8, Math.min(x, windowWidth - 216)),
-        top: Math.max(8, Math.min(y + height + 8, windowHeight - menuHeight - 12)),
+    setMenuPosition(null);
+    setMenuOpen(true);
+  };
+  const positionMenu = (bottomInset: number) => {
+    menuRootRef.current?.measureInWindow((rootX, rootY, width, height) => {
+      if (!width || !height) return;
+      triggerRef.current?.measureInWindow((x, y, _triggerWidth, triggerHeight) => {
+        // The activity and Android Modal can have different window origins.
+        const minLeft = insets.left + 12;
+        const minTop = Math.max(12, insets.top + 12 - rootY);
+        const right = width - insets.right - 12;
+        const bottom = height - bottomInset - 12;
+        const menuWidth = Math.min(208, Math.max(0, right - minLeft));
+        const triggerTop = y - rootY;
+        const triggerBottom = triggerTop + triggerHeight;
+        const below = Math.max(0, bottom - Math.max(minTop, triggerBottom + 8));
+        const above = Math.max(0, Math.min(bottom, triggerTop - 8) - minTop);
+        const placeAbove = menuHeight > below && above > below;
+        const maxHeight = placeAbove ? above : below;
+        const top = placeAbove ? Math.min(bottom, triggerTop - 8) - Math.min(menuHeight, maxHeight) : Math.max(minTop, triggerBottom + 8);
+        setMenuPosition({
+          left: Math.max(minLeft, Math.min(x - rootX, right - menuWidth)),
+          top,
+          width: menuWidth,
+          maxHeight,
+        });
       });
-      setMenuOpen(true);
     });
   };
   const navigate = (tab?: 'posts' | 'comments') => {
@@ -110,36 +135,42 @@ export function CommunityAuthor({ author, detailMeta, evidence, hideAvatar = fal
   };
 
   return (
-    <View style={[styles.root, variant === 'comment' ? styles.commentRoot : null]}>
+    <View style={[styles.root, variant === 'comment' && !customTrigger ? styles.commentRoot : null]}>
       <Pressable
-        accessibilityLabel={`${guest ? '비회원' : `${author.tier ?? '브론즈'} 티어 프로필`} ${name}${favoriteTeam ? `, ${favoriteTeam.name} 팬` : ''}`}
+        accessibilityLabel={customTrigger ? `${name} 사용자 메뉴` : `${guest ? '비회원' : `${author.tier ?? '브론즈'} 티어 프로필`} ${name}${favoriteTeam ? `, ${favoriteTeam.name} 팬` : ''}`}
         accessibilityRole="button"
         accessibilityState={{ expanded: menuOpen }}
         disabled={pending}
         onPress={openMenu}
         ref={triggerRef}
-        style={[styles.trigger, variant === 'comment' ? styles.commentTrigger : null, variant === 'detail' ? styles.detailTrigger : null, menuOpen ? { borderColor: theme.accent, borderWidth: 2, margin: -2 } : null]}
+        style={[styles.trigger, variant === 'comment' && !customTrigger ? styles.commentTrigger : null, variant === 'detail' ? styles.detailTrigger : null]}
       >
-        {hideAvatar ? null : guest ? <GuestAvatar size={variant === 'detail' ? 'detail' : 'comment'} /> : <RankAvatar fallback={name} profileImageUrl={author.profileImage?.url} size={variant === 'profile' ? 'large' : variant === 'detail' ? 'detail' : 'comment'} tier={author.tier} />}
-        <View style={styles.nameBlock}>
-          <View style={styles.nameRow}>
-            {favoriteTeam ? <TeamBadge primaryColor={favoriteTeam.primaryColor} shortName={favoriteTeam.shortName} teamName={favoriteTeam.name} /> : null}
-            <Text numberOfLines={1} style={[styles.name, { color: theme.ink, ...(variant === 'profile' ? fonts.bold : fonts.medium), fontSize: variant === 'profile' ? 16 : 13, lineHeight: variant === 'profile' ? 20 : 18 }]}>{name}</Text>
+        {customTrigger ?? <>
+          {hideAvatar ? null : guest ? <GuestAvatar size={variant === 'detail' ? 'detail' : 'comment'} /> : <RankAvatar fallback={name} profileImageUrl={author.profileImage?.url} size={variant === 'profile' ? 'large' : variant === 'detail' ? 'detail' : 'comment'} tier={author.tier} />}
+          <View style={styles.nameBlock}>
+            <View style={styles.nameRow}>
+              {favoriteTeam ? <TeamBadge primaryColor={favoriteTeam.primaryColor} shortName={favoriteTeam.shortName} teamName={favoriteTeam.name} /> : null}
+              <Text numberOfLines={1} style={[styles.name, { color: theme.ink, ...(variant === 'profile' ? fonts.bold : fonts.medium), fontSize: variant === 'profile' ? 16 : 13, lineHeight: variant === 'profile' ? 20 : 18 }]}>{name}</Text>
+            </View>
+            {detailMeta ? <View style={styles.detailMeta}>{detailMeta}</View> : null}
           </View>
-          {detailMeta ? <View style={styles.detailMeta}>{detailMeta}</View> : null}
-        </View>
+        </>}
       </Pressable>
 
-      <Modal animationType="none" onRequestClose={() => setMenuOpen(false)} transparent visible={menuOpen}>
-        <View style={StyleSheet.absoluteFill}>
-          <Pressable accessibilityLabel="작성자 메뉴 닫기" onPress={() => setMenuOpen(false)} style={StyleSheet.absoluteFill} />
-          <View accessibilityRole="menu" style={[styles.menu, { backgroundColor: theme.surface, borderColor: theme.border, left: menuPosition.left, top: menuPosition.top }]}>
-            {!guest && variant !== 'profile' ? <MenuItem icon={<UserRound color={theme.text} size={16} />} label="프로필 보기" onPress={() => navigate()} /> : null}
-            {!guest ? <MenuItem icon={<FileText color={theme.text} size={16} />} label="작성글 보기" onPress={() => navigate('posts')} /> : null}
-            {!guest ? <MenuItem icon={<MessageSquareText color={theme.text} size={16} />} label="작성 댓글 보기" onPress={() => navigate('comments')} /> : null}
-            {!self ? <>{!guest ? <View style={[styles.menuDivider, { backgroundColor: theme.border }]} /> : null}<MenuItem icon={<Ban color={theme.text} size={16} />} label={guest ? '이 비회원 차단' : '이 사용자 차단'} onPress={block} /><MenuItem danger icon={<Flag color="#dc2626" size={16} />} label="신고하기" onPress={startReport} /></> : null}
-          </View>
-        </View>
+      <Modal animationType="none" navigationBarTranslucent onRequestClose={() => setMenuOpen(false)} statusBarTranslucent transparent visible={menuOpen}>
+        <KeyboardAwareView style={styles.menuRoot}>
+          {({ bottomInset }) => <View collapsable={false} onLayout={() => positionMenu(bottomInset)} ref={menuRootRef} style={styles.menuRoot}>
+            <Pressable accessibilityLabel="작성자 메뉴 닫기" accessibilityRole="button" onPress={() => setMenuOpen(false)} style={StyleSheet.absoluteFill} />
+            {menuPosition ? <View accessibilityRole="menu" accessibilityViewIsModal style={[styles.menu, { backgroundColor: theme.surface, borderColor: theme.border }, menuPosition]}>
+              <ScrollView bounces={false} keyboardShouldPersistTaps="handled" style={styles.menuScroll}>
+                {!guest && variant !== 'profile' ? <MenuItem icon={<UserRound color={theme.text} size={16} />} label="프로필 보기" onPress={() => navigate()} /> : null}
+                {!guest ? <MenuItem icon={<FileText color={theme.text} size={16} />} label="작성글 보기" onPress={() => navigate('posts')} /> : null}
+                {!guest ? <MenuItem icon={<MessageSquareText color={theme.text} size={16} />} label="작성 댓글 보기" onPress={() => navigate('comments')} /> : null}
+                {!self ? <>{!guest ? <View style={[styles.menuDivider, { backgroundColor: theme.border }]} /> : null}<MenuItem icon={<Ban color={theme.text} size={16} />} label={guest ? '이 비회원 차단' : '이 사용자 차단'} onPress={block} /><MenuItem danger icon={<Flag color="#dc2626" size={16} />} label="신고하기" onPress={startReport} /></> : null}
+              </ScrollView>
+            </View> : null}
+          </View>}
+        </KeyboardAwareView>
       </Modal>
 
       <BottomSheet onClose={() => setReportOpen(false)} open={reportOpen} scrollable title="사용자 신고">
@@ -186,6 +217,8 @@ const styles = StyleSheet.create({
   name: { flexShrink: 1, minWidth: 0 },
   teamBadge: { borderRadius: 999, flexShrink: 0, justifyContent: 'center', minHeight: 20, paddingHorizontal: 6, paddingVertical: 2 },
   detailMeta: { marginTop: 0 },
+  menuRoot: { flex: 1 },
+  menuScroll: { flexGrow: 0, flexShrink: 1 },
   menu: { borderRadius: 12, borderWidth: 1, elevation: 12, padding: 6, position: 'absolute', shadowColor: '#000', shadowOffset: { height: 8, width: 0 }, shadowOpacity: 0.14, shadowRadius: 18, width: 208 },
   menuItem: { alignItems: 'center', borderRadius: 8, flexDirection: 'row', gap: 10, height: 40, paddingHorizontal: 12 },
   menuDivider: { height: 1, marginVertical: 4 },
