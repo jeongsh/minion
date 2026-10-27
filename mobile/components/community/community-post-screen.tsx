@@ -381,7 +381,7 @@ function CommentItem({ accent, best = false, comment, continued = false, onDelet
   return (
     <View style={styles.commentItem}>
       {continued ? <View style={[styles.commentContinuation, { backgroundColor: theme.border }]} /> : null}
-      <CommentAvatar author={comment.author} reply={reply} />
+      <CommunityAuthor author={comment.author} customTrigger={<CommentAvatar author={comment.author} reply={reply} />} evidence={{ target: 'comment', targetId: comment.id }} onBlocked={onDelete} />
       <View style={styles.commentInner}>
         <View style={styles.commentTop}>
           {best ? <View style={{ backgroundColor: theme.accent, borderRadius: 999, flexShrink: 0, justifyContent: 'center', minHeight: 20, paddingHorizontal: 6, paddingVertical: 2 }}><Text style={{ color: '#071a11', ...fonts.medium, fontSize: 13, lineHeight: 16 }}>BEST</Text></View> : null}
