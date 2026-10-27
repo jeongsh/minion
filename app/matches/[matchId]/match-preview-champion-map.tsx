@@ -22,13 +22,14 @@ export function ChampionPriorityPlot({ names, colors, items }: { names: string[]
       <span aria-hidden className="absolute inset-y-0 left-1/2 border-l border-dashed border-[var(--ui-border)]" />
       {placePreviewChampions(items, width).map((item, index) => {
         const share = item.picksB / (item.picksA + item.picksB);
-        const ring = share < 0.4 ? colors[0] : share > 0.6 ? colors[1] : "var(--ui-ink)";
+        const shared = share >= 0.4 && share <= 0.6;
+        const ring = share < 0.4 ? colors[0] : share > 0.6 ? colors[1] : "var(--ui-muted)";
         const size = max === min ? 44 : Math.round(28 + (Math.sqrt(item.picksA + item.picksB) - Math.sqrt(min)) / (Math.sqrt(max) - Math.sqrt(min)) * 32);
         return <div key={item.championId} data-pop className="absolute flex w-[72px] -translate-x-1/2 flex-col items-center gap-1"
           style={{ left: `${item.x}%`, top: item.lane * CHAMPION_MAP_ROW_HEIGHT, "--i": index } as CSSProperties}
           title={`${item.name} ${names[0]} ${item.picksA}회 ${names[1]} ${item.picksB}회`}>
           <span className="flex h-[60px] items-center justify-center">
-            <span className="block overflow-hidden rounded-full bg-[var(--ui-card-bg)] ring-2" style={{ width: size, height: size, "--tw-ring-color": ring } as CSSProperties}>
+            <span className={`block overflow-hidden rounded-full bg-[var(--ui-card-bg)] ${shared ? "outline-2 outline-dashed" : "ring-2"}`} style={{ width: size, height: size, "--tw-ring-color": ring, outlineColor: ring } as CSSProperties}>
               {/* eslint-disable-next-line @next/next/no-img-element -- 기존 챔피언 타일 자산 */}
               <img src={item.imageUrl} alt="" className="h-full w-full object-cover" loading="lazy" />
             </span>
