@@ -26,6 +26,7 @@ import { useKeyboardLayout } from '@/hooks/use-keyboard-layout';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import type { MobileCommunityUploadDto, MobileMiniconItem, MobileMiniconPack, TiptapDocument, TiptapNode } from '@/lib/api-client';
 import { resolveApiAssetUrl, uploadMobileApi } from '@/lib/api-client';
+import { prepareCommunityImageUpload } from '@/lib/community-image';
 import { MiniconPicker, rememberMiniconUse } from './minicon-picker';
 
 type Props = {
@@ -199,16 +200,16 @@ export const CommunityRichEditor = forwardRef<CommunityRichEditorHandle, Props>(
   const pickImage = async () => {
     const remaining = Math.max(0, maxImages - imageCount(value));
     if (remaining === 0) { Alert.alert('이미지 첨부', `이미지는 ${maxImages}장까지 첨부할 수 있습니다.`); return; }
-    const result = await ImagePicker.launchImageLibraryAsync({ allowsEditing: false, allowsMultipleSelection: remaining > 1, mediaTypes: ['images'], quality: 1, selectionLimit: remaining });
-    if (result.canceled || result.assets.length === 0) return;
-    if (result.assets.some((asset) => (asset.fileSize ?? 0) > 20 * 1024 * 1024)) { Alert.alert('이미지 첨부 실패', '이미지는 한 장당 20MB 이하만 선택할 수 있습니다.'); return; }
-    setUploading(true);
     try {
+      const result = await ImagePicker.launchImageLibraryAsync({ allowsEditing: false, allowsMultipleSelection: remaining > 1, mediaTypes: ['images'], preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible, quality: 1, selectionLimit: remaining });
+      if (result.canceled || result.assets.length === 0) return;
+      if (result.assets.some((asset) => (asset.fileSize ?? 0) > 20 * 1024 * 1024)) { Alert.alert('이미지 첨부 실패', '이미지는 한 장당 20MB 이하만 선택할 수 있습니다.'); return; }
+      setUploading(true);
       for (const asset of result.assets) {
-        if (!(asset.width > 0 && asset.height > 0)) throw new Error('이미지 크기를 확인하지 못했습니다.');
-        setImageSize({ width: Math.min(asset.width, 760), height: Math.min(asset.width, 760) * asset.height / asset.width });
+        const image = await prepareCommunityImageUpload(asset);
+        setImageSize({ width: Math.min(image.width, 760), height: Math.min(image.width, 760) * image.height / image.width });
         const formData = new FormData();
-        formData.append('file', { name: asset.fileName ?? `community-${Date.now()}.jpg`, type: asset.mimeType ?? 'image/jpeg', uri: asset.uri } as never);
+        formData.append('file', image.file as never);
         const uploaded = await uploadMobileApi<MobileCommunityUploadDto>('/api/mobile/v1/community/upload', formData);
         command('insertImage', { aspectRatio: uploaded.width > 0 && uploaded.height > 0 ? uploaded.width / uploaded.height : 0, src: uploaded.url, width: Math.min(uploaded.width || 760, 760) });
       }
