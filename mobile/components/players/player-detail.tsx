@@ -189,13 +189,14 @@ export function PlayerDetail() {
         <TeamMeta accent={accent} data={playerData} />
         <StatsSection accent={accent} data={playerData} />
         <SeasonSummary data={playerData} />
-        <ContentBanner enabled={playerData.season.setCount > 0 && !segmentOpen} />
+        <ContentBanner placement="player-detail-1" enabled={playerData.season.setCount > 0} suspended={segmentOpen} />
         <View>
           <SectionHeading caption={`전체 ${playerData.champions.length}개`}>챔피언</SectionHeading>
           <PlayerChampionUsageTable accent={accent} rows={playerData.champions} />
         </View>
         <PlayerRecentMatches matches={playerData.recentMatches} />
         <PlayerFanReviews averageRating={playerData.fan.averageRating} pogCount={playerData.fan.pogCount} ref={fanReviewsRef} reviews={playerData.fan.reviews} />
+        <ContentBanner placement="player-reviews" enabled={playerData.season.setCount > 0} suspended={segmentOpen} />
       </View>
     </MinionScreen>
   );

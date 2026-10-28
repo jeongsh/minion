@@ -49,6 +49,8 @@
 
 ### 승인된 통합 변경 기록
 
+- 2026-10-28 추가: 사용자가 광고 개수 불일치, 스크롤 시 소실 및 실패 동작의 전체 수정을 요청했다. 웹 `home-dashboard.tsx` 기준으로 잠금 홈 파일에 팀 채널 뒤와 빌드 뒤 광고를 추가해 3곳으로 맞춘다. 잠금 `minion-screen.tsx`의 일반 ScrollView에는 네이티브 광고 뷰의 화면 밖 분리를 방지하는 `removeClippedSubviews={false}`를 적용한다. 공용 배너는 100px 고정 지면의 inline adaptive 크기를 사용하고 별도 텍스트 라벨, 좌표 폴링과 투명도 제어를 제거한다. 상세 지면 및 검증은 `ad-banner-stability.md`를 따른다.
+
 - 2026-10-28: 사용자 요청으로 모바일웹 광고 지면을 앱에 맞춘다. 잠금 파일 `mobile/components/minion-screen.tsx`에는 가상 목록의 콘텐츠 뒤 광고를 위한 선택적 `listFooter`만 추가한다. 선수 및 챔피언 목록에서 사용하며 기존 헤더, 독바와 일반 스크롤 경로는 유지한다. 팬톡 앞뒤, 일정 앞뒤, 챔피언 상세 앞뒤, 이적시장 앞뒤 및 대회 콘텐츠 뒤 광고는 웹 원본 AdSlot 위치를 따른다. Android 공용 배너의 화면 판정은 실제 광고 크기와 safe area로 계산한다. 실기기 광고 및 캡처 비교는 미실행이다.
 
 - 2026-10-14: 사용자 요청으로 현재 웹의 이적시장과 홈 구성을 앱에 반영한다. 잠금 파일 `mobile/app/(tabs)/index.tsx`는 웹 `components/domain/home-dashboard.tsx`를 근거로 뉴스와 영상을 숨기고 스토브리그 배너, 대회 현황, 대회 메타와 선수 빌드를 같은 순서로 연결한다. `mobile/components/minion-screen.tsx`는 웹 `components/layout/app-shell.tsx`와 함께 이적시장 메뉴와 글자 너비에 따른 로컬 메뉴를 적용한다. 모바일 스토브리그 배너는 생일 배너의 36px 이미지, 12px 세로 패딩, 16px 가로 패딩, 16px/20px 줄 높이를 따르고 본문 14px은 이번 사용자 요청을 적용한다. 공개 이적시장 API는 웹 데이터 서비스를 재사용하고 순수 이적 계산은 contracts에 공유한다. 홈 API에는 웹 서비스가 만든 대회 요약과 메타/빌드를 추가하며 기존 v1 필드는 유지한다. 검증 결과와 미확인 실기기 조건은 `web-sync-2026-10-14.md`에 기록한다.

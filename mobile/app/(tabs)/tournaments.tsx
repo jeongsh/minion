@@ -117,7 +117,7 @@ function TournamentsScreen({ initialSegment, initialSelection }: { initialSegmen
       <View style={[styles.page, data.isLck && styles.lckPage]}>
         <Text accessibilityRole="header" style={[styles.title, { color: theme.ink, ...fonts.display }]}>{title}</Text>
         <TournamentBody data={data} />
-        <ContentBanner enabled={!filterOpen && (data.activeView === 'pom' ? Boolean(data.pomRows?.length) : data.activeView === 'standings' ? Boolean(data.standingsGroups?.some(group => group.rows.length > 0)) : data.bracketAvailable || Boolean(data.swissBracket?.groups.some(group => group.matches.length > 0)))} />
+        <ContentBanner placement="tournaments-1" suspended={filterOpen} enabled={(data.activeView === 'pom' ? Boolean(data.pomRows?.length) : data.activeView === 'standings' ? Boolean(data.standingsGroups?.some(group => group.rows.length > 0)) : data.bracketAvailable || Boolean(data.swissBracket?.groups.some(group => group.matches.length > 0)))} />
       </View>
     </MinionScreen>
     <View pointerEvents="box-none" style={StyleSheet.absoluteFillObject}>

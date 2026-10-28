@@ -82,15 +82,17 @@ export default function HomeScreen() {
         </View>
       </View>
       <HomeCelebrationCarousel events={data.celebrations} />
-      <ContentBanner enabled={data.matches.length > 0} />
+      <ContentBanner placement="home-top" enabled={data.matches.length > 0} />
       <StoveLeagueBanner />
       <View style={styles.section40}><CommunitySection items={data.community} /></View>
       <HomeNewsSection articles={data.news} />
       {(data.pom ?? []).length > 0 ? <View style={styles.section40}><PomSection cardWidth={pomWidth} items={data.pom ?? []} /></View> : null}
       <View style={styles.section40}><TeamChannels teams={data.teams} /></View>
+      <ContentBanner placement="home-teams" enabled={data.matches.length > 0} />
       <View style={styles.section40}><HomeTournamentOverview overview={data.tournamentOverview} /></View>
       <View style={styles.section24}><HomeMetaSection cardWidth={pomWidth} data={data.insights} /></View>
       <View style={styles.section24}><HomeBuildSection cardWidth={pomWidth} data={data.insights} /></View>
+      <ContentBanner placement="home-insights" enabled={data.matches.length > 0} />
     </MinionScreen>
   );
 }

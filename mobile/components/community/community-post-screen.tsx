@@ -217,7 +217,8 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
         </View>
         {pullIndicator}
         {Platform.OS === 'web' && refreshControl.props.refreshing ? <View pointerEvents="none" style={{ position: 'absolute', top: insets.top + 64, alignSelf: 'center', zIndex: 40, padding: 8, borderRadius: 20, backgroundColor: theme.surface }}><ActivityIndicator accessibilityLabel="새로고침 중" color={accent} size="small" /></View> : null}
-        <ScrollView onScroll={onPullScroll} scrollEventThrottle={16} refreshControl={refreshControl} alwaysBounceVertical contentContainerStyle={{ paddingBottom: 56 + bottomInset }} keyboardShouldPersistTaps="handled" ref={scrollRef} showsVerticalScrollIndicator={false}>
+        <ScrollView removeClippedSubviews={false} onScroll={onPullScroll} scrollEventThrottle={16} refreshControl={refreshControl} alwaysBounceVertical contentContainerStyle={{ paddingBottom: 56 + bottomInset }} keyboardShouldPersistTaps="handled" ref={scrollRef} showsVerticalScrollIndicator={false}>
+        <ContentBanner placement="post-top" enabled={!data.isBlinded} suspended={ownerMenuOpen || Boolean(reportTarget) || miniconOpen} />
         <View style={[styles.article, { backgroundColor: theme.surface, borderTopColor: theme.border }]}>
           <View style={styles.postHeader}>
             <Text style={[styles.postTitle, { color: data.isBlinded ? theme.muted : theme.ink, ...(data.isBlinded ? fonts.medium : fonts.bold) }]}>{title}</Text>
@@ -231,7 +232,6 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
             <ReactionButtons key={`${data.id}:${session?.user.id ?? 'guest'}`} accent={accent} item={data} onReact={react} target="post" />
             {data.permissions.canReport ? <Pressable onPress={() => startReport('post', data.id)} style={[styles.report, { backgroundColor: theme.surface, borderColor: theme.border }]}><Flag color={theme.muted} size={15} strokeWidth={1.8} /><Text style={{ color: theme.muted, ...fonts.medium, fontSize: 13, lineHeight: 19.5 }}>리폿</Text></Pressable> : null}
           </View>
-          <ContentBanner enabled={!data.isBlinded && !ownerMenuOpen && !reportTarget && !miniconOpen} />
           <View style={styles.commentTitle}><Text style={{ color: theme.ink, ...fonts.bold, fontSize: 15, lineHeight: 22.5 }}>댓글</Text><Text style={{ color: accent, ...fonts.medium, fontSize: 13, lineHeight: 19.5 }}>{data.commentCount}</Text></View>
           <View style={styles.comments}>{orderedRoots.map((item, index) => {
             const itemReplies = replies.get(item.id) ?? [];
@@ -259,6 +259,7 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
             );
           })}</View>
         </View>
+          <ContentBanner placement="community-post-screen-1" enabled={!data.isBlinded} suspended={ownerMenuOpen || Boolean(reportTarget) || miniconOpen} />
         </ScrollView>
         {miniconOpen ? <MiniconPicker bottom={64 + bottomInset} doubleMode={doubleMode} onDoubleModeChange={(enabled) => { setDoubleMode(enabled); setSelectedMinicons([]); }} onSelect={selectMinicon} onStartDouble={startDoubleMinicon} packs={data.miniconPacks} selectedIds={selectedMinicons.map((item) => item.id)} /> : null}
         <View style={[styles.commentDock, { backgroundColor: theme.pageBackground, borderTopColor: theme.divider, paddingBottom: 8 + bottomInset }]}>

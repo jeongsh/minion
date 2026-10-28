@@ -148,7 +148,7 @@ export function PlayerDirectory() {
   const filters = <PlayerFilters position={position} setPosition={setPosition} setTeamId={setTeamId} teamId={teamId} teams={teams} />;
   const rows = Array.from({ length: Math.ceil(sortedVisible.length / 2) }, (_, index) => sortedVisible.slice(index * 2, index * 2 + 2));
   return (
-    <MinionScreen listFooter={<ContentBanner enabled={sortedVisible.length > 0 && !filterOpen} />} refreshControl={refreshControl} virtualList={rows.length ? {
+    <MinionScreen listFooter={<ContentBanner placement="player-directory-1" enabled={sortedVisible.length > 0} suspended={filterOpen} />} refreshControl={refreshControl} virtualList={rows.length ? {
       accessibilityLabel: '선수 목록',
       data: rows,
       initialNumToRender: 3,

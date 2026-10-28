@@ -124,7 +124,7 @@ export function CommunityFeedScreen({ scope = 'hub' }: { scope?: CommunityScope 
 
           {loading && !data ? <CommunityFeedSkeleton /> : error && !data ? <ErrorState onRetry={refresh} title={error} /> : (
             <>
-              <ContentBanner enabled={!categoryOpen && !error && Boolean(data?.items.length || data?.notices.length)} />
+              <ContentBanner placement="community-feed-screen-1" enabled={Boolean(data?.items.length || data?.notices.length)} suspended={categoryOpen || Boolean(error)} />
               <View accessibilityRole="list">
                 {[...(data?.notices ?? []), ...(data?.items ?? [])].map((post, index, posts) => <View key={`${post.isNotice ? 'notice' : 'post'}:${post.id}`}><PostRow accent={accent} last={index === posts.length - 1} onPress={() => router.push(`${basePath}/post/${post.id}` as never)} post={post} scope={scope} /></View>)}
                 {(data?.items.length ?? 0) === 0 && (data?.notices.length ?? 0) === 0 ? (
@@ -136,7 +136,7 @@ export function CommunityFeedScreen({ scope = 'hub' }: { scope?: CommunityScope 
                   />
                 ) : null}
               </View>
-              <ContentBanner enabled={!categoryOpen && !error && !committedQuery && Boolean(data?.items.length || data?.notices.length)} />
+              <ContentBanner placement="community-feed-screen-2" enabled={!committedQuery && Boolean(data?.items.length || data?.notices.length)} suspended={categoryOpen || Boolean(error)} />
               <View style={[styles.pagination, { borderTopColor: theme.divider }]}>
                 <Pressable accessibilityLabel="이전 페이지" disabled={!data || data.page <= 1} onPress={() => setPage((value) => Math.max(1, value - 1))} style={styles.pageButton}><ChevronLeft color={!data || data.page <= 1 ? theme.border : theme.text} size={18} /></Pressable>
                 <Text style={{ color: theme.text, ...fonts.bold, fontSize: 13 }}>{data?.page ?? 1}</Text>

@@ -234,10 +234,10 @@ export default function ScheduleScreen() {
         }
         stickyHeaderHeight={SCHEDULE_WEEK_SCROLLER_HEIGHT}>
         <View onLayout={handleListLayout} style={styles.list}>
-          <ContentBanner enabled={data.matches.length > 0 && !calendarOpen && !filterOpen} />
+          <ContentBanner placement="schedule-1" enabled={data.matches.length > 0} suspended={calendarOpen || filterOpen} />
           <ScheduleMatchList emptyMessage={emptyMessage} matches={data.matches} onSectionLayout={handleSectionLayout} />
         </View>
-        <ContentBanner enabled={data.matches.length > 0 && !calendarOpen && !filterOpen} style={{ paddingBottom: 88 }} />
+        <ContentBanner placement="schedule-2" enabled={data.matches.length > 0} suspended={calendarOpen || filterOpen} style={{ marginBottom: 88 }} />
       </MinionScreen>
 
       <View pointerEvents="box-none" style={StyleSheet.absoluteFillObject}>

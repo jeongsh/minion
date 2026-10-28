@@ -296,6 +296,7 @@ export function MinionScreen<T>({
         showsVerticalScrollIndicator={false}
         windowSize={3}
       /> : <ScrollView
+        removeClippedSubviews={false}
         refreshControl={screenRefreshControl}
         alwaysBounceVertical={refreshControl ? true : undefined}
         keyboardShouldPersistTaps="handled"

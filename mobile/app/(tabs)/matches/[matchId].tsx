@@ -136,7 +136,6 @@ function MatchDetailContent({ matchId, requestedSet, requestedTab, requestedPlay
           {data.activeSet ? (
             <View style={styles.setDetailBlock}>
               <CompactScoreboard set={data.activeSet} />
-              <ContentBanner enabled={Boolean(data.activeSet.winnerTeamId)} />
               <MatchPlayerStatTable set={data.activeSet} />
               <MatchPlayerBuildPanel key={activeSetId} entries={data.activeSet.playerBuilds ?? []} requestedPlayerId={requestedPlayerId} />
               <SetTimelineSection players={data.players} set={data.activeSet} />
@@ -156,6 +155,7 @@ function MatchDetailContent({ matchId, requestedSet, requestedTab, requestedPlay
       ) : null}
 
       {currentTab === 'video' ? <MatchVideoTab matchName={data.match.name} matchVodUrl={data.matchVodUrl} vods={data.vods} /> : null}
+      <ContentBanner placement="match-bottom" enabled={Boolean(data.activeSet?.playerStats.length) || [data.match.teamA, data.match.teamB].every(team => team && !/^(?:TBD|TBA|미정|미정 팀|Unknown|-)$/i.test(team.shortName.trim()) && !/^(?:TBD|TBA|미정|미정 팀|Unknown|-)$/i.test(team.name.trim()))} />
     </MinionScreen>
   );
 }

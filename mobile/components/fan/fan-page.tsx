@@ -67,7 +67,7 @@ export function FanPage({ section }: { section: FanPageSection }) {
   return (
     <MinionScreen refreshControl={refreshControl} contentStyle={styles.screenContent}>
       {section === 'home' ? <FanHome data={data} /> : null}
-      {section === 'schedule' ? <><FanSchedule data={data} /><ContentBanner enabled={(data.matches?.length ?? 0) > 0} /></> : null}
+      {section === 'schedule' ? <><FanSchedule data={data} /><ContentBanner placement="fan-page-1" enabled={(data.matches?.length ?? 0) > 0} /></> : null}
       {section === 'players' ? <FanPlayers players={data.players} team={data.team} /> : null}
       {section === 'social' ? <FanSocial items={data.social} teamName={data.team.shortName} /> : null}
       {section === 'videos' ? <FanVideos items={data.videos} teamName={data.team.shortName} /> : null}
@@ -90,7 +90,7 @@ function FanHome({ data }: { data: MobileTeamDetailDto }) {
           <FanSectionHeading href={`/fan/${data.team.fanSiteHost}/schedule`}>다음 경기</FanSectionHeading>
           {nextMatch ? <FanMatchRow match={nextMatch} teamId={data.team.id} /> : <FanEmpty>등록된 경기가 없습니다.</FanEmpty>}
         </View>
-        <ContentBanner enabled={matches.length > 0} />
+        <ContentBanner placement="fan-page-2" enabled={matches.length > 0} />
         <HomeCommunityPreview items={data.community ?? []} teamColor={data.team.primaryColor} teamSlug={data.team.fanSiteHost} />
         <HomeSocialPreview items={data.social} teamSlug={data.team.fanSiteHost} />
         <HomeVideoPreview items={data.videos} teamSlug={data.team.fanSiteHost} />

@@ -180,10 +180,10 @@ export function ChampionDetail() {
         <ProfileHeader data={data} onChampionOpen={() => setChampionOpen(true)} onPositionOpen={() => setPositionOpen(true)} />
         <ScopeControls data={data} onOpen={setScopeOpen} patch={patch} season={effectiveSeason} tournament={tournament} />
         <Summary data={data} />
-        <ContentBanner enabled={!scopeOpen && !championOpen && !positionOpen} />
+        <ContentBanner placement="champion-detail-1" enabled={true} suspended={Boolean(scopeOpen) || championOpen || positionOpen} />
         <TabNav active={tab} data={data} onSelect={setTab} />
         {view}
-        <ContentBanner enabled={!scopeOpen && !championOpen && !positionOpen} />
+        <ContentBanner placement="champion-detail-2" enabled={true} suspended={Boolean(scopeOpen) || championOpen || positionOpen} />
       </View>
       <BottomSheet contentStyle={styles.sheet} onClose={() => setScopeOpen(null)} open={scopeOpen != null} scrollable title={scopeOpen === 'season' ? '시즌' : scopeOpen === 'tournament' ? '대회' : '패치'}>
         {scopeOpen === 'season' ? <FilterSection label="시즌">{scope.seasons.map((value) => <Choice active={effectiveSeason === String(value)} key={value} label={String(value)} onPress={() => { setSeason(String(value)); setScopeOpen(null); }} />)}</FilterSection> : null}
