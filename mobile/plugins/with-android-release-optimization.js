@@ -26,10 +26,11 @@ module.exports = function withAndroidReleaseOptimization(config) {
       throw new Error("Android release optimization requires the Expo Groovy ProGuard configuration.");
     }
 
-    // proguard-android.txt contains -dontoptimize; use the optimizing defaults.
+    // Expo SDK 54 converts SecureStore options through Kotlin reflection.
+    // R8 optimization breaks that conversion; retain shrinking/obfuscation only.
     config.modResults.contents = config.modResults.contents.replace(
       defaultRules,
-      'getDefaultProguardFile("proguard-android-optimize.txt")',
+      'getDefaultProguardFile("proguard-android.txt")',
     );
     return config;
   });
