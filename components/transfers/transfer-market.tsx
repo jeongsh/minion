@@ -61,7 +61,7 @@ export function TransferMarketView({ market, teams, followedTeamIds = [] }: { ma
 
   function playerName(person: TransferPerson | { name: string }, muted = false, event = playerEvents.get(normalizeTransferName(person.name))) {
     const url = transferArticleUrl(event);
-    const className = `inline-block max-w-full truncate align-middle text-[15px] leading-5 ${muted ? "font-medium text-[var(--ui-muted)]" : "font-bold text-[var(--ui-ink)]"}`;
+    const className = `inline-block max-w-full truncate align-middle text-sm leading-5 md:text-[15px] ${muted ? "font-medium text-[var(--ui-muted)]" : "font-medium text-[var(--ui-ink)] md:font-bold"}`;
     return url ? <a href={url} target="_blank" rel="noopener noreferrer" aria-label={`${person.name} 원문 뉴스`} title={person.name} className={`${className} hover:underline`}>{person.name}</a> : <span title={person.name} className={className}>{person.name}</span>;
   }
   function teamName(name: string, compact = false, adaptive: "movement" | "history" | false = false) {
@@ -73,7 +73,7 @@ export function TransferMarketView({ market, teams, followedTeamIds = [] }: { ma
   }
   function movementSummary(label: string, moves: TransferEvent[], incoming: boolean, team: string) {
     function rows(groups: { key: string; position: TransferRole; positionMoves: TransferEvent[] }[]) {
-      return groups.map(({ key, position, positionMoves }) => <div key={key} className="grid min-h-14 min-w-0 grid-cols-[20px_minmax(0,1fr)] items-center gap-x-2 px-2 py-1.5 @[220px]/movement:px-3 dark:odd:bg-[var(--ui-card-hover)]" aria-label={`${ROLE_LABELS[position]} ${label}`}>
+      return groups.map(({ key, position, positionMoves }) => <div key={key} className="grid min-h-10 md:min-h-14 min-w-0 grid-cols-[20px_minmax(0,1fr)] items-center gap-x-2 px-2 py-1.5 @[220px]/movement:px-3 dark:odd:bg-[var(--ui-card-hover)]" aria-label={`${ROLE_LABELS[position]} ${label}`}>
         <RoleIcon role={position} />
         <div className="min-w-0 space-y-1.5">
           {positionMoves.length ? positionMoves.map((event) => <div key={event.id} className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1" aria-label={`${event.player} ${event.from || "이전 팀 미정"}에서 ${destination(event)}`}>
@@ -89,7 +89,7 @@ export function TransferMarketView({ market, teams, followedTeamIds = [] }: { ma
       </div>);
     }
     return <section className="@container/movement min-w-0 bg-[var(--ui-surface)] dark:bg-[var(--ui-card-bg)]" aria-label={`${team} ${label}`}>
-      <h3 className={`flex h-12 items-center gap-2 border-b border-[var(--ui-card-divider)] bg-[var(--ui-card-bg)] px-3 text-[16px] font-bold ${incoming ? "text-[var(--accent)]" : "text-[var(--ui-ink)]"}`}>{label}<span className="text-[13px] font-normal text-[var(--ui-muted)]">{moves.length}</span></h3>
+      <h3 className={`flex h-10 md:h-12 items-center gap-2 border-b border-[var(--ui-card-divider)] bg-[var(--ui-card-bg)] px-3 text-sm font-medium md:text-[16px] md:font-bold ${incoming ? "text-[var(--accent)]" : "text-[var(--ui-ink)]"}`}>{label}<span className="text-[13px] font-normal text-[var(--ui-muted)]">{moves.length}</span></h3>
       <div className="divide-y divide-[var(--ui-card-divider)] dark:divide-transparent md:hidden" aria-label={`${team} ${label} 선수 목록`}>
         {rows(transferEventsInStorageOrder(moves, market).map((event) => ({ key: event.id, position: event.role, positionMoves: [event] })))}
       </div>
@@ -104,7 +104,7 @@ export function TransferMarketView({ market, teams, followedTeamIds = [] }: { ma
       {recentEvents.length ? <>
         <Swiper key={teamFilter} modules={[A11y]} onSwiper={setSwiper} slidesPerView="auto" spaceBetween={8} watchOverflow grabCursor>
           {recentEvents.map((event) => <SwiperSlide key={event.id} style={{ width: "auto", maxWidth: "100%", height: "auto" }}>
-            <article className="flex min-h-10 w-max max-w-full flex-wrap items-center gap-x-2 gap-y-1 rounded-lg bg-[var(--ui-card-bg)] px-2.5 py-1.5">
+            <article className="flex min-h-9 w-max flex-nowrap md:min-h-10 items-center gap-x-2 gap-y-1 rounded-lg bg-[var(--ui-card-bg)] px-2 py-1 md:px-2.5 md:py-1.5">
               <span className="shrink-0 rounded bg-[var(--ui-surface)] px-1.5 py-0.5 text-[13px] font-medium text-[var(--accent)]">{TRANSFER_KIND_LABELS[event.kind]}</span>
               {playerName({ name: event.player }, false, event)}
               <div className="flex min-w-0 items-center gap-1.5 text-[13px] font-normal text-[var(--ui-muted)]">{teamName(event.from || "미정", true)}{event.kind !== "renew" && <><ChevronsRight size={18} strokeWidth={1.75} className="mx-2 shrink-0" aria-hidden />{teamName(destination(event), true)}</>}</div>
@@ -134,15 +134,15 @@ export function TransferMarketView({ market, teams, followedTeamIds = [] }: { ma
         const renewalReports = reported.filter((event) => event.kind === "renew" && lckTeamCode(event.to) === roster.team && (!event.contractUntil || Number(event.contractUntil.slice(0, 4)) > market.season) && (!event.date || event.date >= `${market.season}-09-01` || Boolean(event.contractUntil && Number(event.contractUntil.slice(0, 4)) > market.season)));
         return <article key={roster.team} className="grid min-w-0 grid-cols-1 gap-px overflow-hidden rounded-md bg-[var(--ui-border)] p-px md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)]">
           <section className="min-w-0 bg-[var(--ui-surface)] dark:bg-[var(--ui-card-bg)]" aria-label={`${roster.team} 포지션별 로스터`}>
-          <header className="relative flex h-12 items-center gap-2.5 border-b border-[var(--ui-card-divider)] bg-[var(--ui-card-bg)] px-3">
-            <TeamLogo team={team} size="size-7" plain themeAware />
-            <h2 className="max-w-40 break-keep text-[16px] font-bold leading-5">{roster.team === "DNS" ? "DN SOOPers" : team?.name ?? roster.team}</h2>
+          <header className="relative flex h-10 md:h-12 items-center gap-2.5 border-b border-[var(--ui-card-divider)] bg-[var(--ui-card-bg)] px-3">
+            <TeamLogo team={team} size="size-5 md:size-7" plain themeAware />
+            <h2 className="max-w-40 break-keep text-sm font-medium md:text-[16px] md:font-bold leading-5">{roster.team === "DNS" ? "DN SOOPers" : team?.name ?? roster.team}</h2>
           </header>
           <div className="divide-y divide-[var(--ui-card-divider)] dark:divide-transparent">
             {[...roster.slots.filter((s) => s.role !== "COACH"), ...roster.slots.filter((s) => s.role === "COACH")].map((slot) => {
               const slotReports = renewalReports.filter((event) => event.role === slot.role);
               const next = [...slot.next, ...slotReports.filter((event) => !slot.next.some((person) => normalizeTransferName(person.name) === normalizeTransferName(event.player))).map((event) => ({ name: event.player }))];
-              return <div key={slot.role} className="grid min-h-14 grid-cols-[20px_minmax(0,1fr)_18px_minmax(0,1fr)] items-center gap-x-2 px-3 py-1.5 dark:odd:bg-[var(--ui-card-hover)]">
+              return <div key={slot.role} className="grid min-h-10 md:min-h-14 grid-cols-[20px_minmax(0,1fr)_18px_minmax(0,1fr)] items-center gap-x-2 px-3 py-1.5 dark:odd:bg-[var(--ui-card-hover)]">
               <RoleIcon role={slot.role} />
               <div className="min-w-0" aria-label="기존 선수">{slot.previous.map((p) => <div key={p.name}>
                 {playerName(p, true)}
@@ -160,7 +160,7 @@ export function TransferMarketView({ market, teams, followedTeamIds = [] }: { ma
         </article>;
       })}
     </div> : <div id="transfer-market-content" className="@container/history" aria-live="polite">
-      {visibleEvents.length ? <div className="divide-y divide-[var(--ui-card-divider)]">{visibleEvents.map((e) => <article key={e.id} className="grid min-h-14 min-w-0 grid-cols-[minmax(0,100px)_auto_minmax(64px,1fr)_auto] items-center gap-2 py-3 @[640px]/history:grid-cols-[90px_140px_auto_minmax(0,1fr)_104px] @[640px]/history:gap-3" aria-label={`${e.player} ${TRANSFER_KIND_LABELS[e.kind]} ${e.from || "이전 팀 미정"}에서 ${destination(e)}${e.date ? `, ${e.date}` : ""}`}>
+      {visibleEvents.length ? <div className="divide-y divide-[var(--ui-card-divider)]">{visibleEvents.map((e) => <article key={e.id} className="grid min-h-10 md:min-h-14 min-w-0 grid-cols-[minmax(0,100px)_auto_minmax(64px,1fr)_auto] items-center gap-2 py-2 md:py-3 @[640px]/history:grid-cols-[90px_140px_auto_minmax(0,1fr)_104px] @[640px]/history:gap-3" aria-label={`${e.player} ${TRANSFER_KIND_LABELS[e.kind]} ${e.from || "이전 팀 미정"}에서 ${destination(e)}${e.date ? `, ${e.date}` : ""}`}>
         <time className="hidden whitespace-nowrap text-[13px] font-normal text-[var(--ui-muted)] @[640px]/history:block">{e.date ?? "날짜 미상"}</time>
         <div className="flex min-w-0 items-center gap-2"><span className="hidden shrink-0 @[640px]/history:block"><RoleIcon role={e.role} /></span><span className="min-w-0">{playerName({ name: e.player }, false, e)}</span></div>
         <span className="w-fit whitespace-nowrap rounded bg-[var(--ui-card-bg)] px-2 py-0.5 text-[13px] font-medium">{TRANSFER_KIND_LABELS[e.kind]}</span>
