@@ -234,6 +234,7 @@ export default function ScheduleScreen() {
         }
         stickyHeaderHeight={SCHEDULE_WEEK_SCROLLER_HEIGHT}>
         <View onLayout={handleListLayout} style={styles.list}>
+          <ContentBanner enabled={data.matches.length > 0 && !calendarOpen && !filterOpen} />
           <ScheduleMatchList emptyMessage={emptyMessage} matches={data.matches} onSectionLayout={handleSectionLayout} />
         </View>
         <ContentBanner enabled={data.matches.length > 0 && !calendarOpen && !filterOpen} style={{ paddingBottom: 88 }} />

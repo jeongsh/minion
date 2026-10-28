@@ -1,3 +1,4 @@
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useIsFocused } from '@react-navigation/native';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { AppState, StyleSheet, Text, View, useWindowDimensions, type StyleProp, type ViewStyle } from 'react-native';
@@ -9,6 +10,7 @@ import { getMobileAdsSdk, getMobileAdsState, initializeMobileAds, subscribeMobil
 
 export function ContentBanner({ enabled = true, style }: { enabled?: boolean; style?: StyleProp<ViewStyle> }) {
   const focused = useIsFocused();
+  const insets = useSafeAreaInsets();
   const { keyboardVisible } = useKeyboardLayout();
   const { fonts, theme } = useMinionTheme();
   const state = useSyncExternalStore(subscribeMobileAds, getMobileAdsState, getMobileAdsState);
@@ -38,14 +40,15 @@ export function ContentBanner({ enabled = true, style }: { enabled?: boolean; st
     // Only request while the entire banner is clear of sticky headers, dock,
     // comment composer and floating calendar/filter buttons.
     const checkViewport = () => slotRef.current?.measureInWindow((_x, y, measuredWidth) => {
-      const safe = measuredWidth >= 320 && y >= 120 && y + 102 <= screenHeight - 160;
+      const bannerTop = y + 24 + 19.5 + 8;
+      const safe = measuredWidth >= 320 && bannerTop >= insets.top + 60 && bannerTop + 50 <= screenHeight - insets.bottom - 80;
       setVisible(safe);
       if (safe) setRequested(true);
     });
     checkViewport();
     const interval = setInterval(checkViewport, 350);
     return () => clearInterval(interval);
-  }, [ads, enabled, failed, focused, foreground, keyboardVisible, screenHeight, state.ready]);
+  }, [ads, enabled, failed, focused, foreground, keyboardVisible, screenHeight, insets.top, insets.bottom, state.ready]);
 
   if (!enabled || !focused || !foreground || keyboardVisible || !ads || !state.ready || failed) return null;
   const BannerAd = ads.BannerAd;

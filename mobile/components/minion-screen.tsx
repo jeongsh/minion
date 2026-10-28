@@ -67,6 +67,7 @@ function getFanItems(team: string): LocalItem[] {
 }
 
 type MinionScreenProps<T> = PropsWithChildren<{
+  listFooter?: ReactNode;
   refreshControl?: ScrollViewProps['refreshControl'];
   contentStyle?: StyleProp<ViewStyle>;
   onScrollYChange?: (y: number, headerVisible: boolean) => void;
@@ -79,6 +80,7 @@ type MinionScreenProps<T> = PropsWithChildren<{
 }>;
 
 export function MinionScreen<T>({
+  listFooter,
   refreshControl,
   children,
   contentStyle,
@@ -280,7 +282,7 @@ export function MinionScreen<T>({
         ItemSeparatorComponent={() => <View style={{ height: virtualList.rowGap }} />}
         keyboardShouldPersistTaps="handled"
         keyExtractor={virtualList.keyExtractor}
-        ListFooterComponent={<View style={styles.footer}><MinionFooter accentColor={fanTeam?.primaryColor} /></View>}
+        ListFooterComponent={<View>{listFooter}<View style={styles.footer}><MinionFooter accentColor={fanTeam?.primaryColor} /></View></View>}
         ListHeaderComponent={<>
           <View aria-hidden style={{ height: contentChromeOffset }} />
           <View style={[styles.content, { marginTop: contentFlowOffset }, contentStyle]}>{children}</View>

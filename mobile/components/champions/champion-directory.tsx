@@ -1,3 +1,4 @@
+import { ContentBanner } from '@/components/ads/content-banner';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import ChevronDown from 'lucide-react-native/icons/chevron-down';
@@ -116,7 +117,7 @@ export function ChampionDirectory() {
   const rows = Array.from({ length: Math.ceil(items.length / columns) }, (_, index) => items.slice(index * columns, (index + 1) * columns));
 
   return (
-    <MinionScreen refreshControl={refreshControl} virtualList={rows.length ? {
+    <MinionScreen listFooter={<ContentBanner enabled={items.length > 0 && !query && !filterOpen && !sortOpen} />} refreshControl={refreshControl} virtualList={rows.length ? {
       accessibilityLabel: '챔피언 목록',
       data: rows,
       initialNumToRender: 8,
