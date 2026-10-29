@@ -45,7 +45,7 @@ const fanHeaderTeams = FAN_HEADER_TEAM_ORDER.map((slug) => getMinionTeam(slug)).
 
 type LocalItem = { label: string; href: Href };
 
-const hubItems: LocalItem[] = [
+const hubItems: LocalItem[] = ([
   { label: '메인', href: '/' },
   { label: '이적시장', href: '/transfers' as Href },
   { label: '승부예측', href: '/predictions' },
@@ -53,7 +53,7 @@ const hubItems: LocalItem[] = [
   { label: '선수', href: '/players' },
   { label: '챔피언', href: '/champions' },
   { label: '뉴스', href: '/news' },
-];
+] satisfies LocalItem[]).filter((item) => Platform.OS !== 'ios' || item.href !== '/predictions');
 
 function getFanItems(team: string): LocalItem[] {
   return [
