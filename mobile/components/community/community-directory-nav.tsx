@@ -24,10 +24,12 @@ export function CommunityDirectoryNav({
   teamSlug?: string;
 }) {
   const router = useRouter();
-  const { viewer } = useAuth();
+  const { loading: authLoading, session, viewer } = useAuth();
   const { colorScheme, favoriteTeam, theme } = useMinionTheme();
   const { data } = useCachedQuery<MobileTeamsPageDto>('/api/mobile/v1/teams?view=directory', {
     cache: false,
+    cacheScope: session?.user.id ?? 'guest',
+    enabled: !authLoading,
   });
   const orderedTeams = useMemo(() => {
     const apiBySlug = new Map(data?.items.map((team) => [team.slug, team]) ?? []);

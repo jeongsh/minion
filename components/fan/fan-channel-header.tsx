@@ -90,6 +90,7 @@ export async function FanChannelHeader({ teamSlug, calendarSlot }: { teamSlug: s
               </h1>
               <div className="mt-1.5 flex items-center gap-2">
                 <FanFollowButton
+                  key={`${team.id}:${user?.id ?? "guest"}`}
                   teamId={team.id}
                   teamSlug={team.fanSiteHost}
                   teamName={team.shortName}

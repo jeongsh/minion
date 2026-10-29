@@ -9,6 +9,7 @@ import { getActiveFanOnions, getFanTemperatureSnapshot } from "@/lib/data/fan-pu
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseAuthClient } from "@/lib/supabase/auth-server";
 import { FAVORITE_TEAM_CHANGE_AVAILABLE_AT_COOKIE, FAVORITE_TEAM_COOKIE } from "@/lib/fan/favorite-team";
+import { insertTeamFan, teamFanIdentityFilters } from "@/lib/fan/identity";
 import type { FanNotificationSelection } from "@/lib/notifications";
 import {
   activeFavoriteTeamCooldown,
@@ -52,12 +53,8 @@ async function getOrCreateVoterKey() {
 // 로그인 유저의 팔로우는 계정(user_id)에 귀속시킨다. 헤더 업로드 자격이 "팔로우 N일 이상"이라
 // 기기·쿠키가 바뀌어도 유지되는 기준이 필요하기 때문이다.
 // 비로그인 방문자는 기존 쿠키(voter_key) 경로를 그대로 쓴다.
-// 같은 사람의 팔로우 행을 계정/쿠키 양쪽 기준으로 모두 찾는다.
-// 한쪽만 지우면 남은 행이 팔로워 수를 부풀리고, 재로그인 시 유령 팔로우로 남는다.
 async function findFanRows(teamId: string, userId: string | undefined, voterKey: string | null) {
-  const filters: string[] = [];
-  if (userId) filters.push(`user_id.eq.${userId}`);
-  if (voterKey) filters.push(`voter_key.eq.${voterKey}`);
+  const filters = teamFanIdentityFilters(userId, voterKey);
   if (filters.length === 0) return [];
 
   const { data } = await createSupabaseAdminClient()
@@ -123,11 +120,7 @@ export async function setFavoriteTeamAction(
     const voterKey = await getOrCreateVoterKey();
     const existing = await findFanRows(teamId, user?.id, voterKey);
     if (existing.length === 0) {
-      const { data: insertedFan, error } = await supabase
-        .from("team_fans")
-        .insert({ team_id: teamId, voter_key: voterKey, user_id: user?.id ?? null })
-        .select("id")
-        .single();
+      const { data: insertedFan, error } = await insertTeamFan(supabase, teamId, user?.id, voterKey);
       if (error) return { ok: false, favorite: false, error: error.message };
       if (user) {
         const { error: subscriptionError } = await supabase.from("fan_notification_subscriptions").upsert({
@@ -265,11 +258,7 @@ export async function toggleFanAction(
     return { ok: true, isFan: false };
   }
 
-  const { data: insertedFan, error } = await supabase
-    .from("team_fans")
-    .insert({ team_id: teamId, voter_key: voterKey, user_id: user?.id ?? null })
-    .select("id")
-    .single();
+  const { data: insertedFan, error } = await insertTeamFan(supabase, teamId, user?.id, voterKey);
   if (error) return { ok: false, isFan: false, error: error.message };
   if (user) {
     const { error: subscriptionError } = await supabase.from("fan_notification_subscriptions").upsert({

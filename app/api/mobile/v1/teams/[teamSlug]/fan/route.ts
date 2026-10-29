@@ -10,6 +10,7 @@ import {
   favoriteTeamCooldownMessage,
 } from "@/lib/fan/favorite-team-cooldown";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { insertTeamFan, teamFanIdentityFilters } from "@/lib/fan/identity";
 
 export const dynamic = "force-dynamic";
 
@@ -30,13 +31,9 @@ async function contextFor(request: Request, teamSlug: string) {
   return { auth, team, voterKey } as const;
 }
 
-function identityFilters(userId: string | undefined, voterKey: string | null) {
-  return [userId ? `user_id.eq.${userId}` : null, voterKey ? `voter_key.eq.${voterKey}` : null].filter((value): value is string => Boolean(value));
-}
-
 async function fanState(teamId: string, userId: string | undefined, voterKey: string | null): Promise<MobileTeamFanDto> {
   const supabase = createSupabaseAdminClient();
-  const filters = identityFilters(userId, voterKey);
+  const filters = teamFanIdentityFilters(userId, voterKey);
   const [{ count }, { data }] = await Promise.all([
     supabase.from("team_fans").select("id", { count: "exact", head: true }).eq("team_id", teamId),
     supabase.from("team_fans").select("id").eq("team_id", teamId).or(filters.join(",")).limit(1),
@@ -60,7 +57,7 @@ export async function POST(request: Request, context: { params: Promise<{ teamSl
   if ("error" in resolved) return resolved.error;
 
   const supabase = createSupabaseAdminClient();
-  const filters = identityFilters(resolved.auth?.user.id, resolved.voterKey);
+  const filters = teamFanIdentityFilters(resolved.auth?.user.id, resolved.voterKey);
   const { data: rows, error: findError } = await supabase
     .from("team_fans")
     .select("id")
@@ -69,11 +66,7 @@ export async function POST(request: Request, context: { params: Promise<{ teamSl
   if (findError) return mobileError("INTERNAL", "팬 상태를 확인하지 못했습니다.", 500);
 
   if (body.following && !rows?.length) {
-    const { data: insertedFan, error } = await supabase.from("team_fans").insert({
-      team_id: resolved.team.id,
-      user_id: resolved.auth?.user.id ?? null,
-      voter_key: resolved.voterKey,
-    }).select("id").single();
+    const { data: insertedFan, error } = await insertTeamFan(supabase, resolved.team.id, resolved.auth?.user.id, resolved.voterKey);
     if (error) return mobileError("INTERNAL", "팬 등록에 실패했습니다.", 500);
     if (resolved.auth) {
       const { error: subscriptionError } = await supabase.from("fan_notification_subscriptions").upsert({

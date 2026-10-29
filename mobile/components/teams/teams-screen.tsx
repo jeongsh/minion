@@ -14,12 +14,14 @@ import { MinionScreen } from '@/components/minion-screen';
 import { useScreenQuery } from '@/hooks/use-screen-query';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import { resolveApiAssetUrl, type MobileTeamsPageDto } from '@/lib/api-client';
+import { useAuth } from '@/providers/auth-provider';
 
 export function TeamsScreen() {
+  const { loading: authLoading, session } = useAuth();
   const params = useLocalSearchParams<{ team?: string | string[] }>();
   const selectedKey = Array.isArray(params.team) ? params.team[0] : params.team;
   const path = `/api/mobile/v1/teams?view=explorer${selectedKey ? `&team=${encodeURIComponent(selectedKey)}` : ''}`;
-  const { data, error, loading, refresh, refreshControl } = useScreenQuery<MobileTeamsPageDto>(path);
+  const { data, error, loading, refresh, refreshControl } = useScreenQuery<MobileTeamsPageDto>(path, { cache: 'memory', cacheScope: session?.user.id ?? 'guest', enabled: !authLoading });
 
   if (loading && !data) return <MinionScreen refreshControl={refreshControl} contentStyle={styles.screen}><TeamsLoadingSkeleton /></MinionScreen>;
   if (error && !data) return <MinionScreen refreshControl={refreshControl} contentStyle={styles.screen}><View style={styles.error}><ErrorState onRetry={refresh} title={error} /></View></MinionScreen>;

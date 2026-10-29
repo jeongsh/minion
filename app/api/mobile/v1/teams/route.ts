@@ -6,6 +6,7 @@ import { buildFanVideoItems } from "@/lib/fan-video-items";
 import { mobileSuccess, toMobileTeam } from "@/lib/mobile/api-response";
 import { getMobileAuth } from "@/lib/mobile/auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { teamFanIdentityFilters } from "@/lib/fan/identity";
 
 export const dynamic = "force-dynamic";
 const FEED_PREVIEW_LIMIT = 12;
@@ -19,8 +20,7 @@ function installationVoterKey(request: Request) {
 async function followedTeamIds(request: Request) {
   const auth = await getMobileAuth(request);
   const voterKey = installationVoterKey(request);
-  const filters = [auth ? `user_id.eq.${auth.user.id}` : null, voterKey ? `voter_key.eq.${voterKey}` : null]
-    .filter((value): value is string => Boolean(value));
+  const filters = teamFanIdentityFilters(auth?.user.id, voterKey);
   if (!filters.length) return [];
 
   try {

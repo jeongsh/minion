@@ -76,6 +76,7 @@ export function FanPage({ section }: { section: FanPageSection }) {
 }
 
 function FanHome({ data }: { data: MobileTeamDetailDto }) {
+  const { session } = useAuth();
   const sortedPlayers = useMemo(() => [...data.players].sort((a, b) => FAN_POSITION_ORDER.indexOf(a.position ?? '') - FAN_POSITION_ORDER.indexOf(b.position ?? '')), [data.players]);
   const now = Date.now();
   const matches = data.matches ?? [];
@@ -84,7 +85,7 @@ function FanHome({ data }: { data: MobileTeamDetailDto }) {
   const nextMatch = upcoming[0] ?? completed[0] ?? null;
   return (
     <View style={styles.home}>
-      <FanChannelHeader data={data} />
+      <FanChannelHeader key={`${data.team.id}:${session?.user.id ?? 'guest'}`} data={data} />
       <View style={styles.homeBody}>
         <View>
           <FanSectionHeading href={`/fan/${data.team.fanSiteHost}/schedule`}>다음 경기</FanSectionHeading>
@@ -162,8 +163,9 @@ function FanChannelHeader({ data }: { data: MobileTeamDetailDto }) {
   const headerUrl = resolveApiAssetUrl(data.headerImage?.url);
   const fanPath = `/api/mobile/v1/teams/${encodeURIComponent(data.team.fanSiteHost)}/fan`;
   const notificationPath = `/api/mobile/v1/teams/${encodeURIComponent(data.team.fanSiteHost)}/notifications`;
-  const { data: fanState, refresh: refreshFanState } = useCachedQuery<MobileTeamFanDto>(fanPath, { cache: false });
-  const { data: notificationState, refresh: refreshNotificationState } = useCachedQuery<MobileTeamNotificationDto>(notificationPath, { cache: false, enabled: Boolean(session) });
+  const cacheScope = session?.user.id ?? 'guest';
+  const { data: fanState, refresh: refreshFanState } = useCachedQuery<MobileTeamFanDto>(fanPath, { cache: false, cacheScope });
+  const { data: notificationState, refresh: refreshNotificationState } = useCachedQuery<MobileTeamNotificationDto>(notificationPath, { cache: false, cacheScope, enabled: Boolean(session) });
   const [followingOverride, setFollowingOverride] = useState<boolean | null>(null);
   const [countOverride, setCountOverride] = useState<number | null>(null);
   const [notificationOverride, setNotificationOverride] = useState<boolean | null>(null);

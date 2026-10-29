@@ -10,6 +10,7 @@ import {
   favoriteTeamCooldownMessage,
 } from "@/lib/fan/favorite-team-cooldown";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { insertTeamFan, teamFanIdentityFilters } from "@/lib/fan/identity";
 
 export const dynamic = "force-dynamic";
 
@@ -46,14 +47,11 @@ export async function POST(request: Request, context: { params: Promise<{ teamSl
   }
 
   if (body.favorite) {
-    const filters = [auth ? `user_id.eq.${auth.user.id}` : null, voterKey ? `voter_key.eq.${voterKey}` : null].filter((value): value is string => Boolean(value));
-    const { data: existing } = await supabase.from("team_fans").select("id").eq("team_id", team.id).or(filters.join(",")).limit(1);
+    const filters = teamFanIdentityFilters(auth?.user.id, voterKey);
+    const { data: existing, error: findError } = await supabase.from("team_fans").select("id").eq("team_id", team.id).or(filters.join(",")).limit(1);
+    if (findError) return mobileError("INTERNAL", "팬 상태를 확인하지 못했습니다.", 500);
     if (!existing?.length) {
-      const { data: insertedFan, error } = await supabase
-        .from("team_fans")
-        .insert({ team_id: team.id, user_id: auth?.user.id ?? null, voter_key: voterKey })
-        .select("id")
-        .single();
+      const { data: insertedFan, error } = await insertTeamFan(supabase, team.id, auth?.user.id, voterKey);
       if (error) return mobileError("INTERNAL", "최애팀 팔로우 등록에 실패했습니다.", 500);
       if (auth) {
         const { error: subscriptionError } = await supabase.from("fan_notification_subscriptions").upsert({
