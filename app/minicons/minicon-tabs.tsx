@@ -12,11 +12,11 @@ export function MiniconTabs({ active }: { active: MiniconTab }) {
   return (
     <nav
       aria-label="미니콘 메뉴"
-      className="mt-3 grid grid-cols-3 gap-0.5 rounded-[10px] bg-[var(--ui-card-bg)] p-[3px]"
+      className="mt-3 grid h-10 grid-cols-3 gap-0.5 rounded-[10px] bg-[var(--ui-card-bg)] p-[3px]"
     >
       {tabs.map((tab) => {
         const selected = tab.id === active;
-        const className = `flex h-8 min-w-0 items-center justify-center truncate rounded-lg border px-2 text-[14px] font-medium transition-colors ${
+        const className = `flex h-full min-w-0 items-center justify-center truncate rounded-lg border px-2 text-[14px] font-medium transition-colors ${
           selected
             ? "border-[var(--ui-border)] bg-[var(--ui-surface)] text-[var(--ui-ink)] dark:bg-[var(--ui-border)]"
             : "border-transparent text-[var(--ui-muted)] hover:text-[var(--ui-ink)]"

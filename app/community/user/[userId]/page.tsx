@@ -112,7 +112,7 @@ export default async function CommunityUserPage({
           </section>
 
           <section className="mobile-full-bleed overflow-hidden rounded-[var(--ui-card-radius)] border border-[var(--ui-border)] bg-[var(--ui-surface)]">
-            <nav className="grid grid-cols-2 gap-1 bg-[var(--ui-surface-muted)] p-1.5" aria-label="사용자 활동">
+            <nav className="grid h-10 grid-cols-2 gap-1 bg-[var(--ui-surface-muted)] p-1.5" aria-label="사용자 활동">
               <TabLink href={`/community/user/${userId}?tab=posts`} active={tab === "posts"} icon={<FileText size={16} />} label="작성글" count={postsPage.totalCount} />
               <TabLink href={`/community/user/${userId}?tab=comments`} active={tab === "comments"} icon={<MessageSquareText size={16} />} label="작성 댓글" count={commentsPage.totalCount} />
             </nav>
@@ -187,8 +187,8 @@ function ProfileStat({ label, value, bordered = false }: { label: string; value:
 
 function TabLink({ href, active, icon, label, count }: { href: string; active: boolean; icon: React.ReactNode; label: string; count: number }) {
   return (
-    <Link href={href} aria-current={active ? "page" : undefined} className={`flex h-11 items-center justify-center gap-2 rounded-lg px-3 text-sm font-bold transition ${active ? "bg-[var(--ui-surface)] text-[var(--ui-ink)] shadow-[0_1px_0_rgb(24_25_28_/_0.06)]" : "text-[var(--ui-muted)] hover:text-[var(--ui-text)]"}`}>
-      {icon}<span>{label}</span><span className="text-[12px] tabular-nums opacity-70">{count}</span>
+    <Link href={href} aria-current={active ? "page" : undefined} className={`flex h-full items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium transition ${active ? "bg-[var(--ui-surface)] text-[var(--ui-ink)] shadow-[0_1px_0_rgb(24_25_28_/_0.06)]" : "text-[var(--ui-muted)] hover:text-[var(--ui-text)]"}`}>
+      {icon}<span>{label}</span><span className="text-[13px] tabular-nums opacity-70">{count}</span>
     </Link>
   );
 }

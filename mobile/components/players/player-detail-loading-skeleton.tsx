@@ -1,6 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 
 import { useMinionTheme } from '@/hooks/use-minion-theme';
+import { minionSize } from '@/constants/minion-theme';
 
 function Bar({ height, width }: { height: number; width: number | `${number}%` }) {
   const { theme } = useMinionTheme();
@@ -40,7 +41,7 @@ const styles = StyleSheet.create({
   recent: { borderRadius: 8, height: 232 },
   review: { borderRadius: 12, height: 64 },
   sectionHeader: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
-  select: { alignItems: 'center', borderRadius: 12, borderWidth: 1, height: 44, justifyContent: 'center' },
+  select: { alignItems: 'center', borderRadius: 12, borderWidth: 1, height: minionSize.control, justifyContent: 'center' },
   summary: { borderRadius: 8, height: 84 },
   table: { borderRadius: 8, height: 257 },
   teamStrip: { alignItems: 'center', borderRadius: 16, borderWidth: 1, flexDirection: 'row', flexWrap: 'wrap', gap: 16, height: 100, paddingHorizontal: 20, paddingVertical: 14 },

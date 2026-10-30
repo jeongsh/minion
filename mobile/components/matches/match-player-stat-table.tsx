@@ -6,6 +6,7 @@ import { router } from 'expo-router';
 import { TeamLogo } from '@/components/data/team-logo';
 import { tournamentTokens } from '@/constants/tournament-theme';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
+import { minionSize } from '@/constants/minion-theme';
 import type { MobileSetDetail, MobileSetPlayerStat, MobileTeamSummary } from '@/lib/api-client';
 
 function hexToRgba(hex: string, alpha: number) {
@@ -168,7 +169,7 @@ export function MatchPlayerStatTable({ set }: { set: MobileSetDetail }) {
     <View style={styles.sectionGap}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
         <Text style={[styles.sectionHeading, { color: theme.ink, ...fonts.display }]}>선수 스탯</Text>
-        <View accessibilityLabel="선수 스탯 보기" style={{ flexDirection: 'row', gap: 2, borderRadius: 10, padding: 3, backgroundColor: theme.card }}>{[false, true].map((value) => <Pressable key={String(value)} accessibilityRole="button" accessibilityState={{ selected: stats === value }} onPress={() => setStats(value)} style={{ height: 32, justifyContent: 'center', paddingHorizontal: 14, borderRadius: 8, borderWidth: 1, borderColor: stats === value ? theme.border : 'transparent', backgroundColor: stats === value ? colorScheme === 'dark' ? theme.border : theme.surface : 'transparent' }}><Text style={{ ...fonts.medium, fontSize: 14, lineHeight: 20, color: stats === value ? theme.ink : theme.muted }}>{value ? '통계' : '기본'}</Text></Pressable>)}</View>
+        <View accessibilityLabel="선수 스탯 보기" style={{ height: minionSize.control, flexDirection: 'row', gap: 2, borderRadius: 10, padding: 3, backgroundColor: theme.card }}>{[false, true].map((value) => <Pressable key={String(value)} accessibilityRole="button" accessibilityState={{ selected: stats === value }} onPress={() => setStats(value)} style={{ height: minionSize.control - 6, justifyContent: 'center', paddingHorizontal: 14, borderRadius: 8, borderWidth: 1, borderColor: stats === value ? theme.border : 'transparent', backgroundColor: stats === value ? colorScheme === 'dark' ? theme.border : theme.surface : 'transparent' }}><Text style={{ ...fonts.medium, fontSize: 14, lineHeight: 20, color: stats === value ? theme.ink : theme.muted }}>{value ? '통계' : '기본'}</Text></Pressable>)}</View>
       </View>
       <View style={[styles.frame, { borderColor: theme.border }]}>
         <TeamGroup players={set.playerStats} set={set} side="blue" stats={stats} />

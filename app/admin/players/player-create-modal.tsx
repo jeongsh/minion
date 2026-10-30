@@ -87,7 +87,7 @@ export function PlayerCreateModal({ teams }: { teams: Team[] }) {
                 name="position"
                 required
                 defaultValue=""
-                className="rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent"
+                className="minion-native-select rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent"
               >
                 <option value="" disabled>— 선택 —</option>
                 {POSITIONS.map((pos) => (
@@ -101,7 +101,7 @@ export function PlayerCreateModal({ teams }: { teams: Team[] }) {
               <select
                 name="team_id"
                 defaultValue=""
-                className="rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent"
+                className="minion-native-select rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent"
               >
                 <option value="">— 없음 —</option>
                 {teams.map((t) => (

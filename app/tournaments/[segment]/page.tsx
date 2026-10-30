@@ -9,7 +9,7 @@ import { AdaptiveDialog } from "@/components/responsive/adaptive-dialog";
 import { RailAdContent } from "@/components/ads/rail-ad-content";
 import { AdSlot } from "@/components/ui/ad-slot";
 
-import { EventFilterBar } from "@/components/ui/event-filter-bar";
+import { EventFilterHeader } from "@/components/ui/event-filter-bar";
 import { DataTable } from "@/components/ui/data-table";
 import { TeamLogo } from "@/components/ui/team-logo";
 import { getAllPlayers, getAllTeams, getBracketStages, getMatches, getStages, getTournaments } from "@/lib/data/lck";
@@ -1201,13 +1201,9 @@ export default async function TournamentBracketPage({
     <main data-ads-blocked={!hasAdContent ? "true" : undefined}>
       <RailAdContent enabled={hasAdContent} />
       <h1 className="sr-only">{segmentTheme.name} 대회</h1>
-      <header data-ad-secondary-header className="mt-2 hidden border-b border-[var(--ui-border)] bg-[var(--page-background)] lg:sticky lg:top-[var(--ui-header-height)] lg:z-30 lg:block">
-        <div className="layout-wide py-2.5">
-          <EventFilterBar>
-            <TournamentFilters filters={filters} />
-          </EventFilterBar>
-        </div>
-      </header>
+      <EventFilterHeader>
+        <TournamentFilters filters={filters} />
+      </EventFilterHeader>
       <div className="fixed bottom-[calc(3.25rem+env(safe-area-inset-bottom)+18px)] right-4 z-40 md:bottom-6 lg:hidden">
         <AdaptiveDialog title="대회 필터" trigger={<SlidersHorizontal size={20} />} triggerAriaLabel="필터 열기" triggerClassName="grid h-12 w-12 place-items-center rounded-full border border-[var(--ui-border)] bg-[var(--ui-ink)] text-[var(--ui-surface)] shadow-[0_12px_34px_rgba(15,23,42,0.22)] transition-opacity hover:opacity-90">
           <TournamentFilters filters={filters} layout="sheet" />

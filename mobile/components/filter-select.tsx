@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
 import { useMinionTheme } from '@/hooks/use-minion-theme';
+import { minionSize } from '@/constants/minion-theme';
 
 export type FilterSelectOption = { label: string; value: string };
 
@@ -43,8 +44,8 @@ export function FilterSelect({
         accessibilityState={{ disabled, expanded: open }}
         disabled={disabled}
         onPress={() => setOpen((current) => !current)}
-        style={[styles.selectTrigger, compact && styles.compactTrigger, { backgroundColor: compact || web ? theme.surface : theme.card, borderColor: theme.border }, web && { borderRadius: 8 }, matchTab && { backgroundColor: theme.card, borderColor: theme.card, height: 40, paddingHorizontal: 12 }]}>
-        <Text style={[styles.selectValue, web && { lineHeight: 20 }, { color: theme.ink, ...fonts.medium }]}>{selectedLabel}</Text>
+        style={[styles.selectTrigger, compact && styles.compactTrigger, { backgroundColor: compact || web ? theme.surface : theme.card, borderColor: theme.border }, web && { borderRadius: 8 }, matchTab && { backgroundColor: theme.card, borderColor: theme.card, paddingHorizontal: 12 }]}>
+        <Text numberOfLines={1} style={[styles.selectValue, web && { lineHeight: 20 }, { color: theme.ink, ...fonts.medium }]}>{selectedLabel}</Text>
         <ChevronDown color={theme.muted} size={web ? 20 : 16} strokeWidth={web ? 2.5 : 2} style={open ? styles.chevronOpen : null} />
       </Pressable>
       {open ? (
@@ -77,7 +78,7 @@ export function FilterSelect({
 }
 
 const styles = StyleSheet.create({
-  compactTrigger: { borderRadius: 6, height: 32, paddingHorizontal: 8 },
+  compactTrigger: { borderRadius: 6, paddingHorizontal: 8 },
   chevronOpen: { transform: [{ rotate: '180deg' }] },
   select: { flex: 1, gap: 6, position: 'relative' },
   selectOpen: { zIndex: 30 },
@@ -98,6 +99,6 @@ const styles = StyleSheet.create({
   selectListContent: { padding: 6 },
   selectOption: { alignItems: 'center', borderRadius: 8, flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 12, paddingVertical: 8 },
   selectOptionText: { fontSize: 13, lineHeight: 19.5 },
-  selectTrigger: { alignItems: 'center', borderRadius: 12, borderWidth: 1, flexDirection: 'row', height: 40, justifyContent: 'space-between', paddingHorizontal: 12 },
-  selectValue: { fontSize: 14, lineHeight: 21 },
+  selectTrigger: { alignItems: 'center', borderRadius: 12, borderWidth: 1, flexDirection: 'row', height: minionSize.control, justifyContent: 'space-between', paddingHorizontal: 12 },
+  selectValue: { flexShrink: 1, fontSize: 14, lineHeight: 21 },
 });

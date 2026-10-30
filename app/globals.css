@@ -3,6 +3,13 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* 기존 관리자 폼의 네이티브 셀렉트도 공용 셀렉트와 같은 높이를 사용한다. */
+select.minion-native-select {
+  height: 40px;
+  min-height: 40px;
+  padding-block: 0;
+}
+
 @theme {
   --breakpoint-wide: 80rem;
   --breakpoint-ultrawide: 160rem;

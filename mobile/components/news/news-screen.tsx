@@ -15,6 +15,7 @@ import { ErrorState } from '@/components/feedback-states';
 import { MinionScreen } from '@/components/minion-screen';
 import { useScreenQuery } from '@/hooks/use-screen-query';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
+import { minionSize } from '@/constants/minion-theme';
 import { mobileApiOrigin, resolveApiAssetUrl, type MobileNewsDto, type MobileNewsItem } from '@/lib/api-client';
 
 function first(value: string | string[] | undefined) {
@@ -207,7 +208,7 @@ const styles = StyleSheet.create({
   filterOption: { alignItems: 'center', borderRadius: 10, flexDirection: 'row', gap: 10, minHeight: 48, paddingHorizontal: 10, paddingVertical: 6 },
   filterOptionCopy: { flex: 1, minWidth: 0 },
   filterOptions: { gap: 2, paddingBottom: 4 },
-  filterTrigger: { alignItems: 'center', borderRadius: 8, borderWidth: 1, flexDirection: 'row', gap: 6, height: 32, justifyContent: 'space-between', minWidth: 104, paddingHorizontal: 8 },
+  filterTrigger: { alignItems: 'center', borderRadius: 8, borderWidth: 1, flexDirection: 'row', gap: 6, height: minionSize.control, justifyContent: 'space-between', minWidth: 104, paddingHorizontal: 8 },
   filterTriggerIdentity: { alignItems: 'center', flexDirection: 'row', gap: 8, minWidth: 0 },
   firstNewsItem: { paddingTop: 0 },
   footnote: { fontSize: 13, lineHeight: 20, marginTop: 24 },
@@ -225,23 +226,23 @@ const styles = StyleSheet.create({
   pagination: { alignItems: 'center', flexDirection: 'row', gap: 4, justifyContent: 'center', marginTop: 24 },
   reset: { alignItems: 'center', minHeight: 40, justifyContent: 'center' },
   screen: { gap: 0, marginTop: 20, paddingBottom: 64 },
-  searchButton: { alignItems: 'center', borderRadius: 8, height: 32, justifyContent: 'center', paddingHorizontal: 12 },
-  searchIcon: { left: 12, position: 'absolute', top: 8, zIndex: 1 },
-  searchInput: { borderRadius: 8, borderWidth: 1, fontSize: 13, height: 32, lineHeight: 19.5, paddingBottom: 0, paddingLeft: 36, paddingRight: 12, paddingTop: 0 },
+  searchButton: { alignItems: 'center', borderRadius: 8, height: minionSize.control, justifyContent: 'center', paddingHorizontal: 12 },
+  searchIcon: { left: 12, position: 'absolute', top: 12, zIndex: 1 },
+  searchInput: { borderRadius: 8, borderWidth: 1, fontSize: 13, height: minionSize.control, lineHeight: 19.5, paddingBottom: 0, paddingLeft: 36, paddingRight: 12, paddingTop: 0 },
   searchInputWrap: { flex: 1, minWidth: 0, position: 'relative' },
   searchRow: { flex: 1, flexDirection: 'row', gap: 6, minWidth: 0 },
   sidePage: { alignItems: 'center', height: 40, justifyContent: 'center', paddingHorizontal: 8 },
   skeletonCopy: { flex: 1, gap: 7, justifyContent: 'center' },
   skeletonCount: { borderRadius: 5, height: 13, width: 48 },
-  skeletonFilter: { borderRadius: 8, height: 32, width: 104 },
+  skeletonFilter: { borderRadius: 8, height: minionSize.control, width: 104 },
   skeletonHeading: { borderRadius: 6, height: 22, width: 80 },
   skeletonHeadingRow: { alignItems: 'center', flexDirection: 'row', gap: 8, marginBottom: 4 },
-  skeletonInput: { borderRadius: 8, flex: 1, height: 32 },
+  skeletonInput: { borderRadius: 8, flex: 1, height: minionSize.control },
   skeletonLine: { borderRadius: 5, height: 13, width: '94%' },
   skeletonLineShort: { borderRadius: 5, height: 13, width: '74%' },
   skeletonMeta: { borderRadius: 5, height: 12, width: '48%' },
   skeletonNews: { flexDirection: 'row', gap: 12, paddingVertical: 12 },
-  skeletonSearch: { borderRadius: 8, height: 32, width: 54 },
+  skeletonSearch: { borderRadius: 8, height: minionSize.control, width: 54 },
   skeletonThumb: { borderRadius: 8, height: 58.5, width: 104 },
   thumbnail: { borderRadius: 8, height: 58.5, overflow: 'hidden', width: 104 },
   toolbar: { flexDirection: 'row', gap: 6, minWidth: 0 },

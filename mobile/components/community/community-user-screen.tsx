@@ -14,6 +14,7 @@ import { KitschEmptyState } from '@/components/kitsch-empty-state';
 import { MinionScreen } from '@/components/minion-screen';
 import { useScreenQuery } from '@/hooks/use-screen-query';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
+import { minionSize } from '@/constants/minion-theme';
 import type { MobileCommunityUserActivityPost, MobileCommunityUserDto } from '@/lib/api-client';
 import { CommunityAuthor } from './community-author';
 import { boardLabel, formatCommunityDate } from './community-utils';
@@ -76,8 +77,8 @@ const styles = StyleSheet.create({
   stat: { alignItems: 'center', flex: 1, paddingHorizontal: 16, paddingVertical: 14 },
   statDivider: { width: 1 },
   activityCard: { borderRadius: 14, borderWidth: 1, overflow: 'hidden' },
-  tabs: { flexDirection: 'row', gap: 4, padding: 6 },
-  tab: { alignItems: 'center', borderRadius: 8, flex: 1, flexDirection: 'row', gap: 8, height: 44, justifyContent: 'center', paddingHorizontal: 8 },
+  tabs: { height: minionSize.control, flexDirection: 'row', gap: 4, padding: 6 },
+  tab: { alignItems: 'center', borderRadius: 8, flex: 1, flexDirection: 'row', gap: 8, height: minionSize.control - 12, justifyContent: 'center', paddingHorizontal: 8 },
   activityHeading: { alignItems: 'center', borderBottomWidth: 1, flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14 },
   activityRow: { borderBottomWidth: 1, paddingHorizontal: 16, paddingVertical: 16 },
   postTitleRow: { alignItems: 'center', flexDirection: 'row', gap: 8 },

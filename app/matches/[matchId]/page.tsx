@@ -208,7 +208,7 @@ function TabNav({
       </div>
       <nav
         aria-label="매치 상세 탭"
-        className="tab-scroll hidden grid-flow-col auto-cols-fr overflow-x-auto md:grid md:max-w-full md:gap-0.5 md:rounded-[10px] md:bg-[var(--ui-card-bg)] md:p-[3px]"
+        className="tab-scroll hidden h-10 grid-flow-col auto-cols-fr overflow-x-auto md:grid md:max-w-full md:gap-0.5 md:rounded-[10px] md:bg-[var(--ui-card-bg)] md:p-[3px]"
       >
         {items.map((item) => {
           const isActive = item.key === activeTab;
@@ -218,7 +218,7 @@ function TabNav({
               key={item.key}
               href={item.href}
               aria-current={isActive ? "page" : undefined}
-              className={`flex h-9 min-w-[4.25rem] shrink-0 items-center justify-center whitespace-nowrap border-b-2 px-2 text-[14px] font-medium transition-colors md:h-8 md:rounded-lg ${
+              className={`flex h-full min-w-[4.25rem] shrink-0 items-center justify-center whitespace-nowrap border-b-2 px-2 text-[14px] font-medium transition-colors md:rounded-lg ${
                 isActive
                   ? "border-[var(--accent)] text-[var(--ui-ink)] md:border md:border-[var(--ui-border)] md:bg-[var(--ui-surface)] md:dark:bg-[var(--ui-border)]"
                   : "border-transparent text-[var(--ui-muted)] hover:text-[var(--ui-ink)]"

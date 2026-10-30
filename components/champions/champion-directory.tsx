@@ -111,7 +111,7 @@ export function ChampionDirectoryToolbar({
         )}
         {sort !== "presence" ? <input type="hidden" name="sort" value={sort} /> : null}
         <SearchInput aria-label="챔피언 검색" name="q" defaultValue={query} placeholder="챔피언 검색" />
-        <div className="flex h-10 min-w-0 items-center [&>div]:w-full">
+        <div className="flex min-w-0 items-center [&>div]:w-full">
           <ChampionUrlDropdown
             ariaLabel="정렬 선택"
             options={[
@@ -125,7 +125,7 @@ export function ChampionDirectoryToolbar({
             paramName="sort"
             resetKeys={["page"]}
             omitValues={["presence"]}
-            triggerClassName="h-10 w-full justify-between rounded-xl bg-[var(--ui-card-bg)] px-3 !font-medium transition-colors hover:bg-[var(--ui-card-hover)]"
+            triggerClassName="w-full hover:bg-[var(--ui-card-hover)]"
           />
         </div>
         <button type="submit" className="sr-only">검색</button>

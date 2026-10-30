@@ -70,7 +70,7 @@ export function ChampionPicker({
         ref={triggerRef}
         type="button"
         onClick={() => setOpen(true)}
-        className={`${compact ? "grid h-9 w-9 place-items-center px-0 sm:h-10 sm:w-10" : "h-10 px-3.5"} shrink-0 rounded-lg bg-[var(--ui-card-bg)] text-[14px] font-medium text-[var(--ui-ink)] transition-colors hover:bg-[var(--ui-card-hover)]`}
+        className={`h-10 ${compact ? "grid w-10 place-items-center px-0" : "px-3.5"} shrink-0 rounded-lg bg-[var(--ui-card-bg)] text-[14px] font-medium text-[var(--ui-ink)] transition-colors hover:bg-[var(--ui-card-hover)]`}
         aria-haspopup="dialog"
         aria-label={compact ? "챔피언 변경" : undefined}
         title={compact ? "챔피언 변경" : undefined}

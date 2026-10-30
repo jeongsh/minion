@@ -6,6 +6,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path, type SvgProps } from 'react-native-svg';
 
 import { useMinionTheme } from '@/hooks/use-minion-theme';
+import { minionSize } from '@/constants/minion-theme';
 import { resolveApiAssetUrl, type MobilePlayerDirectoryItem, type MobileVideoItem } from '@/lib/api-client';
 
 export const FAN_POSITION_ORDER = ['TOP', 'JGL', 'MID', 'BOT', 'SUP', 'COACH'];
@@ -89,8 +90,8 @@ export function FanOwnerTabs({ activeKey, onChange, tabs }: { activeKey: string;
             onPress={() => onChange(tab.key)}
             style={[styles.tab, active ? { backgroundColor: theme.ink, borderColor: theme.ink } : { backgroundColor: theme.surface, borderColor: theme.border }]}
           >
-            <Text style={{ color: active ? theme.surface : theme.text, ...fonts.bold, fontSize: 13, lineHeight: 19.5 }}>{tab.label}</Text>
-            <Text style={{ color: active ? theme.surface : theme.muted, ...fonts.bold, fontSize: 12, lineHeight: 18, opacity: active ? 0.7 : 1 }}>{tab.count}</Text>
+            <Text style={{ color: active ? theme.surface : theme.text, ...fonts.medium, fontSize: 13, lineHeight: 19.5 }}>{tab.label}</Text>
+            <Text style={{ color: active ? theme.surface : theme.muted, ...fonts.medium, fontSize: 13, lineHeight: 19.5, opacity: active ? 0.7 : 1 }}>{tab.count}</Text>
           </Pressable>
         );
       })}
@@ -131,7 +132,7 @@ const styles = StyleSheet.create({
   playerFallback: { alignItems: 'center', flex: 1, justifyContent: 'center' },
   playerImage: { aspectRatio: 4 / 5, overflow: 'hidden', position: 'relative', width: '100%' },
   positionBadge: { backgroundColor: 'rgba(0,0,0,0.65)', borderRadius: 8, left: 8, paddingHorizontal: 8, paddingVertical: 4, position: 'absolute', top: 8 },
-  tab: { alignItems: 'center', borderRadius: 999, borderWidth: 1, flexDirection: 'row', gap: 4, minHeight: 36, paddingHorizontal: 12, paddingVertical: 8 },
+  tab: { alignItems: 'center', borderRadius: 999, borderWidth: 1, flexDirection: 'row', gap: 4, height: minionSize.control, paddingHorizontal: 12 },
   tabs: { gap: 8, paddingBottom: 4 },
   videoCompactTitle: { fontSize: 13, lineHeight: 16, marginTop: 8 },
   videoImage: { aspectRatio: 16 / 9, borderRadius: 8, justifyContent: 'center', overflow: 'hidden', position: 'relative', width: '100%' },

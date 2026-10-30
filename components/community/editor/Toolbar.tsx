@@ -221,7 +221,7 @@ export default function Toolbar({ editor, allowMedia = true, allowEmbeds = allow
         <ColorPicker value={editor.getAttributes("textStyle").color || "#000000"} onChange={(color) => applyWithSelection(savedColorSelection, (chain) => chain.setColor(color).run())} onBeforeCustomPick={() => saveSelection(savedColorSelection)} icon={<Type size={16} />} quickSetLabel="기본 글자색" quickSetValue="#000000" />
         <ColorPicker value={editor.getAttributes("highlight").color || "transparent"} onChange={(color) => color === "transparent" ? applyWithSelection(savedHighlightSelection, (chain) => chain.unsetHighlight().run()) : applyWithSelection(savedHighlightSelection, (chain) => chain.setHighlight({ color }).run())} onBeforeCustomPick={() => saveSelection(savedHighlightSelection)} icon={<Highlighter size={16} />} quickSetLabel="배경색 제거" quickSetValue="transparent" />
         <div className="rounded-lg px-0.5">
-          <FilterDropdown ariaLabel="글자 크기" options={fontSizeOptions} selected={fontSize} onSelect={(value) => editor.chain().focus().setFontSize(value).run()} triggerClassName="min-h-9 px-1.5 text-[13px] font-medium sm:text-[13px]" />
+          <FilterDropdown ariaLabel="글자 크기" options={fontSizeOptions} selected={fontSize} onSelect={(value) => editor.chain().focus().setFontSize(value).run()} triggerClassName="px-1.5 text-[13px] font-medium sm:text-[13px]" />
         </div>
         <span className="mx-1 h-6 w-px shrink-0 bg-[var(--ui-border)]" aria-hidden="true" />
         <button type="button" onClick={() => editor.chain().focus().toggleBulletList().run()} className={formatButtonClass(editor.isActive("bulletList"))} aria-label="글머리 목록"><List size={18} /></button>

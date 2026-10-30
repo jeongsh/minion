@@ -10,6 +10,7 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { BottomSheet } from '@/components/bottom-sheet';
 import { TeamLogo } from '@/components/data/team-logo';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
+import { minionSize } from '@/constants/minion-theme';
 import { invalidateApiCache, mutateMobileApi, resolveApiAssetUrl, type MobileFanRatingComment, type MobileFanRatingMutationDto, type MobileFanRatingPanel, type MobileFanRatingPlayer } from '@/lib/api-client';
 import { formatFanRating } from '@/lib/fan-rating-display';
 import { useAuth } from '@/providers/auth-provider';
@@ -199,7 +200,7 @@ const styles = StyleSheet.create({
   composerPlayer: { alignItems: 'center', flexDirection: 'row', gap: 12 },
   empty: { borderRadius: 16, borderStyle: 'dashed', borderWidth: 1, padding: 16 },
   fill: { height: '100%', width: '100%' },
-  filter: { alignItems: 'center', borderRadius: 8, flexDirection: 'row', gap: 8, height: 36, maxWidth: '55%', paddingHorizontal: 12 },
+  filter: { alignItems: 'center', borderRadius: 8, flexDirection: 'row', gap: 8, height: minionSize.control, maxWidth: '55%', paddingHorizontal: 12 },
   filterItem: { justifyContent: 'center', minHeight: 48 },
   filterList: { paddingBottom: 8 },
   leftHalf: { bottom: 0, left: 0, position: 'absolute', top: 0, width: 10 },

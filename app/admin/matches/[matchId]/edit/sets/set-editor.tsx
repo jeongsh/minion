@@ -141,7 +141,7 @@ function TeamSelect({
       id={id}
       name={name}
       defaultValue={defaultValue ?? ""}
-      className={`w-full rounded border border-border bg-background px-2 py-1.5 text-sm font-semibold text-foreground ${className}`}
+      className={"minion-native-select " + (`w-full rounded border border-border bg-background px-2 py-1.5 text-sm font-semibold text-foreground ${className}`)}
     >
       <option value="">Select team</option>
       {teams.map((team) => (
@@ -168,7 +168,7 @@ function PlayerSelect({
     <select
       name={name}
       defaultValue={defaultValue ?? ""}
-      className={`w-full rounded border border-border bg-background px-2 py-1.5 text-sm font-semibold text-foreground ${className}`}
+      className={"minion-native-select " + (`w-full rounded border border-border bg-background px-2 py-1.5 text-sm font-semibold text-foreground ${className}`)}
     >
       <option value="">Select player</option>
       {players.map((player) => (
@@ -185,7 +185,7 @@ function PositionSelect({ name, defaultValue }: { name: string; defaultValue: Pl
     <select
       name={name}
       defaultValue={defaultValue}
-      className="w-full rounded border border-border bg-background px-2 py-1.5 text-sm font-semibold text-foreground"
+      className="minion-native-select w-full rounded border border-border bg-background px-2 py-1.5 text-sm font-semibold text-foreground"
     >
       {positions.map((position) => (
         <option key={position} value={position}>
@@ -907,7 +907,7 @@ export function AdminSetEditor({
                 <select
                   name="status"
                   defaultValue={activeSet.status}
-                  className="rounded-md border border-border bg-background px-3 py-2"
+                  className="minion-native-select rounded-md border border-border bg-background px-3 py-2"
                 >
                   {SET_STATUS_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>

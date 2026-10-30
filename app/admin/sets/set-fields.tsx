@@ -74,7 +74,7 @@ function TeamSelect({
       <select
         name={name}
         defaultValue={defaultValue ?? ""}
-        className="rounded-md border border-border bg-background px-3 py-2"
+        className="minion-native-select rounded-md border border-border bg-background px-3 py-2"
       >
         <option value="">선택 안 함</option>
         {teams.map((team) => (
@@ -94,7 +94,7 @@ function StatusSelect({ defaultValue }: { defaultValue?: string | null }) {
       <select
         name="status"
         defaultValue={defaultValue ?? "scheduled"}
-        className="rounded-md border border-border bg-background px-3 py-2"
+        className="minion-native-select rounded-md border border-border bg-background px-3 py-2"
       >
         {SET_STATUS_OPTIONS.map((option) => (
           <option key={option.value} value={option.value}>
@@ -131,7 +131,7 @@ export function SetFields({
             name="matchId"
             defaultValue={defaultMatchId}
             required
-            className="rounded-md border border-border bg-background px-3 py-2"
+            className="minion-native-select rounded-md border border-border bg-background px-3 py-2"
           >
             <option value="">선택</option>
             {matches.map((match) => (

@@ -184,7 +184,7 @@ function Card({
       <select
         value={match.advancesToMatchId ?? ""}
         onChange={(event) => onSetAdvancesTo(match.id, event.target.value || null)}
-        className="mt-1.5 w-full rounded border border-white/10 bg-[#0a0e1a] px-1 py-1 text-[13px] font-medium text-white/70"
+        className="minion-native-select mt-1.5 w-full rounded border border-white/10 bg-[#0a0e1a] px-1 py-1 text-[13px] font-medium text-white/70"
       >
         <option value="">다음 경기 지정 안 함</option>
         {matchOptions.map((group) => {
@@ -586,7 +586,7 @@ export function TournamentBracketEditor({
                   event.target.value = "";
                   void moveStageToBracket(stage.id, targetId);
                 }}
-                className="w-full rounded border border-white/10 bg-[#0a0e1a] px-2 py-1 text-[13px] font-medium text-white/60"
+                className="minion-native-select w-full rounded border border-white/10 bg-[#0a0e1a] px-2 py-1 text-[13px] font-medium text-white/60"
               >
                 <option value="">다른 브래킷으로 이동…</option>
                 {bracketStages

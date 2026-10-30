@@ -78,7 +78,7 @@ export function NewsSearchBar({
       </form>
 
       <select
-        className="h-9 rounded-md border border-border bg-surface pl-3 pr-7 text-sm text-foreground focus:outline-none"
+        className="minion-native-select rounded-md border border-border bg-surface pl-3 pr-7 text-sm text-foreground focus:outline-none"
         defaultValue={currentSort}
         disabled={isNavigating}
         onChange={handleSortChange}

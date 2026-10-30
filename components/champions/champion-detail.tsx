@@ -198,7 +198,7 @@ function ChampionHeader({
                 paramName="position"
                 resetKeys={["page"]}
                 omitValues={[]}
-                triggerClassName="h-8 min-h-8 px-0 !text-[13px] !font-medium [&_svg]:size-4 sm:h-9 sm:min-h-9 sm:!text-[14px] sm:[&_svg]:size-5"
+                triggerClassName="px-0 !text-[13px] !font-medium [&_svg]:size-4 sm:!text-[14px] sm:[&_svg]:size-5"
               /> : <span>포지션 기록 없음</span>}
             </div>
           </div>

@@ -143,11 +143,10 @@ export function PostForm({
         <div className="w-fit">
           <FilterDropdown
             ariaLabel="말머리 선택"
-            controlSize="compact"
             options={categoryOptions}
             selected={boardType}
             onSelect={setBoardType}
-            triggerClassName="min-h-9 px-2 text-[14px] font-medium sm:text-[14px]"
+            triggerClassName="px-2 text-[14px] font-medium sm:text-[14px]"
           />
           <input type="hidden" name="category" value={boardType} />
         </div>

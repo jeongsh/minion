@@ -139,7 +139,7 @@ export function FanCalendarSubmissionForm({
                   selected={eventType}
                   onSelect={(value) => setEventType(value as FanCalendarSubmissionType)}
                   disabled={pending}
-                  triggerClassName="h-10 min-h-10 !w-full justify-between rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 !text-[14px] !font-medium hover:bg-[var(--ui-card-hover)]"
+                  triggerClassName="!w-full justify-between rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 !text-[14px] !font-medium hover:bg-[var(--ui-card-hover)]"
                 />
               </div>
             </div>

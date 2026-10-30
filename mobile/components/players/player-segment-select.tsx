@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text } from 'react-native';
 
 import { BottomSheet } from '@/components/bottom-sheet';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
+import { minionSize } from '@/constants/minion-theme';
 
 export function PlayerSegmentSelect({ accent, activeSegment, onClose, onOpen, onSelect, open, options }: {
   accent: string;
@@ -48,7 +49,7 @@ export function PlayerSegmentSelect({ accent, activeSegment, onClose, onOpen, on
 }
 
 const styles = StyleSheet.create({
-  control: { alignItems: 'center', borderRadius: 12, borderWidth: 1, flexDirection: 'row', height: 44, paddingHorizontal: 12 },
+  control: { alignItems: 'center', borderRadius: 12, borderWidth: 1, flexDirection: 'row', height: minionSize.control, paddingHorizontal: 12 },
   option: { alignItems: 'center', borderRadius: 10, flexDirection: 'row', minHeight: 48, paddingHorizontal: 14 },
   options: { paddingBottom: 8, paddingHorizontal: 8 },
 });

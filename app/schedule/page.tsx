@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { CalendarDays, SlidersHorizontal } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
-import { EventFilterBar } from "@/components/ui/event-filter-bar";
+import { EventFilterHeader } from "@/components/ui/event-filter-bar";
 import { AdSlot } from "@/components/ui/ad-slot";
 import { RailAdContent } from "@/components/ads/rail-ad-content";
 
@@ -110,22 +110,18 @@ export default async function SchedulePage({
     <main className="schedule-page text-[var(--ui-text)]">
       <RailAdContent enabled={filtered.length > 0} />
       <h1 className="sr-only">경기 일정</h1>
-      <div data-ad-secondary-header className="mt-2 hidden border-b border-[var(--ui-border)] bg-[var(--page-background)] lg:sticky lg:top-[var(--ui-header-height)] lg:z-30 lg:block">
-        <div className="layout-wide py-2.5">
-          <EventFilterBar
-            actions={
-              <>
-                <SpoilerToggleButton className="inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2 text-[13px] font-medium text-[var(--ui-text)] hover:bg-[var(--ui-card-hover)]" />
-                <Link href="/schedule" className="inline-flex min-h-11 items-center px-1 text-[13px] font-medium text-[var(--ui-muted)] hover:text-[var(--ui-ink)]">초기화</Link>
-              </>
-            }
-          >
-            <Suspense fallback={null}>
-              <ScheduleFilters activeYear={activeYear} activeMonth={activeMonth} activeSegment={activeSegment} activeTeam={activeTeam} years={years} teams={teams} />
-            </Suspense>
-          </EventFilterBar>
-        </div>
-      </div>
+      <EventFilterHeader
+        actions={
+          <>
+            <SpoilerToggleButton className="inline-flex h-10 items-center gap-1.5 rounded-lg px-2 text-[13px] font-medium text-[var(--ui-text)] hover:bg-[var(--ui-card-hover)]" />
+            <Link href="/schedule" className="inline-flex h-10 items-center px-1 text-[13px] font-medium text-[var(--ui-muted)] hover:text-[var(--ui-ink)]">초기화</Link>
+          </>
+        }
+      >
+        <Suspense fallback={null}>
+          <ScheduleFilters activeYear={activeYear} activeMonth={activeMonth} activeSegment={activeSegment} activeTeam={activeTeam} years={years} teams={teams} />
+        </Suspense>
+      </EventFilterHeader>
       <div className="schedule-mobile-sticky sticky z-30 border-b border-[var(--ui-border)] bg-[var(--page-background)] lg:hidden">
         <div className="layout-wide py-2">
           <ScheduleWeekScroller dates={activeMonthDates} todayKey={todayKey} availableDateKeys={availableDateKeys} />

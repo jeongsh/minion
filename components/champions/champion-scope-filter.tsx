@@ -37,7 +37,7 @@ export function ChampionScopeFilter(props: ChampionScopeFilterProps) {
             preserve={props.hidden}
             resetKeys={["tournament", "patch", "page"]}
             omitValues={[]}
-            triggerClassName="min-h-11 w-full justify-between px-3 !font-medium hover:bg-[var(--ui-card-hover)]"
+            triggerClassName="w-full justify-between px-3 !font-medium hover:bg-[var(--ui-card-hover)]"
           />
           <ChampionUrlDropdown
             ariaLabel="대회 선택"
@@ -46,7 +46,7 @@ export function ChampionScopeFilter(props: ChampionScopeFilterProps) {
             paramName="tournament"
             preserve={props.hidden}
             resetKeys={["patch", "page"]}
-            triggerClassName="min-h-11 w-full justify-between px-3 !font-medium hover:bg-[var(--ui-card-hover)]"
+            triggerClassName="w-full justify-between px-3 !font-medium hover:bg-[var(--ui-card-hover)]"
           />
           <ChampionUrlDropdown
             ariaLabel="패치 선택"
@@ -55,7 +55,7 @@ export function ChampionScopeFilter(props: ChampionScopeFilterProps) {
             paramName="patch"
             preserve={props.hidden}
             resetKeys={["page"]}
-            triggerClassName="min-h-11 w-full justify-between px-3 !font-medium hover:bg-[var(--ui-card-hover)]"
+            triggerClassName="w-full justify-between px-3 !font-medium hover:bg-[var(--ui-card-hover)]"
           />
         </div>
       </fieldset>
@@ -72,7 +72,7 @@ export function ChampionScopeFilter(props: ChampionScopeFilterProps) {
           preserve={props.hidden}
           resetKeys={["tournament", "patch", "page"]}
           omitValues={[]}
-          triggerClassName="h-10 w-full justify-between whitespace-nowrap rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] px-2 !font-medium transition-colors hover:border-[var(--ui-ink)] sm:w-[8rem] sm:px-3"
+          triggerClassName="w-full justify-between whitespace-nowrap px-2 !font-medium transition-colors hover:border-[var(--ui-ink)] sm:w-[8rem] sm:px-3"
         />
         <ChampionUrlDropdown
           ariaLabel="대회 선택"
@@ -81,7 +81,7 @@ export function ChampionScopeFilter(props: ChampionScopeFilterProps) {
           paramName="tournament"
           preserve={props.hidden}
           resetKeys={["patch", "page"]}
-          triggerClassName="h-10 w-full justify-between whitespace-nowrap rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] px-2 !font-medium transition-colors hover:border-[var(--ui-ink)] sm:w-[11rem] sm:px-3"
+          triggerClassName="w-full justify-between whitespace-nowrap px-2 !font-medium transition-colors hover:border-[var(--ui-ink)] sm:w-[11rem] sm:px-3"
         />
         <ChampionUrlDropdown
           ariaLabel="패치 선택"
@@ -90,7 +90,7 @@ export function ChampionScopeFilter(props: ChampionScopeFilterProps) {
           paramName="patch"
           preserve={props.hidden}
           resetKeys={["page"]}
-          triggerClassName="h-10 w-full justify-between whitespace-nowrap rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] px-2 !font-medium transition-colors hover:border-[var(--ui-ink)] sm:w-[8rem] sm:px-3"
+          triggerClassName="w-full justify-between whitespace-nowrap px-2 !font-medium transition-colors hover:border-[var(--ui-ink)] sm:w-[8rem] sm:px-3"
         />
       {props.showSetCount === false ? null : (
         <span className="col-span-3 mt-1 shrink-0 px-2 text-right text-[13px] font-normal tabular-nums text-[var(--ui-muted)] sm:col-span-1 sm:mt-0 sm:self-center">

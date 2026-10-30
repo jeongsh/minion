@@ -4,6 +4,7 @@ import { Animated, Easing, Pressable, ScrollView, StyleSheet, Text } from 'react
 
 import { TOURNAMENT_LOGO_ASSETS } from '@/constants/tournament-segments';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
+import { minionSize } from '@/constants/minion-theme';
 import type { MobileTournamentSegmentNavItem } from '@/lib/api-client';
 
 export function TournamentSegmentSwitcher({ activeKey, items, onSelect }: { activeKey: string; items: MobileTournamentSegmentNavItem[]; onSelect: (key: string) => void }) {
@@ -29,7 +30,7 @@ function SegmentChip({ active, item, onPress }: { active: boolean; item: MobileT
       onPress={onPress}
       style={[styles.chip, active ? { backgroundColor: theme.ink, borderColor: theme.ink } : { backgroundColor: theme.surface, borderColor: theme.border }]}>
       {logo ? <Image contentFit="contain" source={logo} style={{ height: 14, width }} tintColor={iconColor} /> : null}
-      <Text style={[styles.chipText, { color: active ? theme.surface : theme.muted, ...fonts.black }]}>{item.name}</Text>
+      <Text style={[styles.chipText, { color: active ? theme.surface : theme.muted, ...fonts.medium }]}>{item.name}</Text>
       {item.isOngoing ? <OngoingDot /> : null}
     </Pressable>
   );
@@ -53,7 +54,7 @@ function OngoingDot() {
 }
 
 const styles = StyleSheet.create({
-  chip: { alignItems: 'center', borderRadius: 8, borderWidth: 1, flexDirection: 'row', gap: 6, height: 32, paddingHorizontal: 12 },
+  chip: { alignItems: 'center', borderRadius: 8, borderWidth: 1, flexDirection: 'row', gap: 6, height: minionSize.control, paddingHorizontal: 12 },
   chipText: { fontSize: 13, lineHeight: 19.5 },
   content: { gap: 6, paddingLeft: 16, paddingRight: 16 },
   dot: { backgroundColor: '#10b981', borderRadius: 3, height: 6, width: 6 },

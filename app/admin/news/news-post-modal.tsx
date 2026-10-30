@@ -106,7 +106,7 @@ export function PostFormModal({
                   name="board_type"
                   required
                   defaultValue={initial?.boardType ?? ""}
-                  className={INPUT}
+                  className={"minion-native-select " + (INPUT)}
                 >
                   <option value="" disabled>— 선택 —</option>
                   {BOARD_TYPES.map((b) => (
@@ -125,7 +125,7 @@ export function PostFormModal({
                   name="site_scope"
                   required
                   defaultValue={initial?.siteScope ?? "hub"}
-                  className={INPUT}
+                  className={"minion-native-select " + (INPUT)}
                 >
                   {SITE_SCOPES.map((s) => (
                     <option key={s.value} value={s.value}>
@@ -141,7 +141,7 @@ export function PostFormModal({
               <select
                 name="team_id"
                 defaultValue={initial?.teamId ?? ""}
-                className={INPUT}
+                className={"minion-native-select " + (INPUT)}
               >
                 <option value="">— 없음 (허브 공통) —</option>
                 {teams.map((t) => (

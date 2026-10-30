@@ -14,6 +14,7 @@ import { MinionScreen } from '@/components/minion-screen';
 import { useCachedQuery } from '@/hooks/use-cached-query';
 import { useScreenQuery } from '@/hooks/use-screen-query';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
+import { minionSize } from '@/constants/minion-theme';
 import { mutateMobileApi, resolveApiAssetUrl, type MobileCommunityActionDto, type MobileMiniconCatalogDto, type MobileMiniconPack, type MobileMiniconSettingsDto } from '@/lib/api-client';
 import { useAuth } from '@/providers/auth-provider';
 
@@ -116,8 +117,8 @@ function Loading() { const { theme } = useMinionTheme(); return <View style={sty
 
 const styles = StyleSheet.create({
   screen: { paddingBottom: 96 },
-  tabs: { borderRadius: 10, flexDirection: 'row', gap: 2, marginTop: 12, padding: 3 },
-  navTab: { alignItems: 'center', borderRadius: 8, borderWidth: 1, flex: 1, height: 32, justifyContent: 'center', minWidth: 0, paddingHorizontal: 8 },
+  tabs: { height: minionSize.control, borderRadius: 10, flexDirection: 'row', gap: 2, marginTop: 12, padding: 3 },
+  navTab: { alignItems: 'center', borderRadius: 8, borderWidth: 1, flex: 1, height: minionSize.control - 6, justifyContent: 'center', minWidth: 0, paddingHorizontal: 8 },
   packGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   packCard: { borderRadius: 8, padding: 6 },
   cover: { aspectRatio: 1, borderRadius: 6, overflow: 'hidden' },

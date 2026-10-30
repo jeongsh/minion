@@ -1,6 +1,7 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useMinionTheme } from '@/hooks/use-minion-theme';
+import { minionSize } from '@/constants/minion-theme';
 
 export type TournamentTabItem = { key: string; label: string };
 
@@ -18,7 +19,7 @@ export function TournamentSegmentedControl({ activeKey, items, onSelect }: { act
             key={item.key}
             onPress={() => onSelect(item.key)}
             style={[styles.pill, active && { backgroundColor: colorScheme === 'dark' ? theme.border : theme.surface, borderColor: theme.border, borderWidth: 1 }]}>
-            <Text style={[styles.pillText, { color: active ? theme.ink : theme.muted, ...(active ? fonts.black : fonts.bold) }]}>{item.label}</Text>
+            <Text style={[styles.pillText, { color: active ? theme.ink : theme.muted, ...fonts.medium }]}>{item.label}</Text>
           </Pressable>
         );
       })}
@@ -26,7 +27,7 @@ export function TournamentSegmentedControl({ activeKey, items, onSelect }: { act
   );
 }
 
-/** 웹 UnderlineNav(파페로치 볼드 + 3px 언더라인)를 그대로 옮김. POM/순위표/브래킷 같은 1차 뷰 전환에 쓴다. */
+/** 웹 UnderlineNav. POM/순위표/브래킷 같은 1차 뷰 전환에 쓴다. */
 export function TournamentUnderlineNav({ activeKey, bordered = true, items, onSelect }: { activeKey: string; bordered?: boolean; items: TournamentTabItem[]; onSelect: (key: string) => void }) {
   const { fonts, theme } = useMinionTheme();
   if (items.length === 0) return null;
@@ -37,7 +38,7 @@ export function TournamentUnderlineNav({ activeKey, bordered = true, items, onSe
         const active = item.key === activeKey;
         return (
           <Pressable key={item.key} onPress={() => onSelect(item.key)} style={[styles.underlineItem, { borderBottomColor: active ? theme.accent : 'transparent' }]}>
-            <Text style={[styles.underlineText, { color: active ? theme.ink : theme.muted, ...fonts.display }]}>{item.label}</Text>
+            <Text style={[styles.underlineText, { color: active ? theme.ink : theme.muted, ...fonts.medium }]}>{item.label}</Text>
           </Pressable>
         );
       })}
@@ -46,10 +47,10 @@ export function TournamentUnderlineNav({ activeKey, bordered = true, items, onSe
 }
 
 const styles = StyleSheet.create({
-  pill: { alignItems: 'center', borderRadius: 6, height: 28, justifyContent: 'center', paddingHorizontal: 10 },
-  pillText: { fontSize: 12, lineHeight: 18 },
-  track: { alignItems: 'center', alignSelf: 'flex-start', borderRadius: 8, flexDirection: 'row', gap: 2, padding: 2 },
-  underlineContent: { flexDirection: 'row', gap: 16 },
-  underlineItem: { alignItems: 'center', borderBottomWidth: 2, justifyContent: 'center', paddingVertical: 6 },
+  pill: { alignItems: 'center', borderRadius: 6, height: minionSize.control - 4, justifyContent: 'center', paddingHorizontal: 10 },
+  pillText: { fontSize: 14, lineHeight: 20 },
+  track: { alignItems: 'center', alignSelf: 'flex-start', borderRadius: 8, flexDirection: 'row', gap: 2, height: minionSize.control, padding: 2 },
+  underlineContent: { flexDirection: 'row', gap: 16, height: minionSize.control },
+  underlineItem: { alignItems: 'center', borderBottomWidth: 2, height: '100%', justifyContent: 'center' },
   underlineText: { fontSize: 14, lineHeight: 21 },
 });

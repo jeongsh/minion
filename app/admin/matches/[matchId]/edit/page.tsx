@@ -146,7 +146,7 @@ export default async function AdminMatchEditPage({
                 <select
                   name="status"
                   defaultValue={match.status}
-                  className="rounded-md border border-border bg-background px-3 py-2"
+                  className="minion-native-select rounded-md border border-border bg-background px-3 py-2"
                 >
                   <option value="scheduled">예정</option>
                   <option value="live">진행 중</option>
@@ -178,7 +178,7 @@ export default async function AdminMatchEditPage({
                 <select
                   name="winnerTeamId"
                   defaultValue={match.winnerTeamId ?? ""}
-                  className="rounded-md border border-border bg-background px-3 py-2"
+                  className="minion-native-select rounded-md border border-border bg-background px-3 py-2"
                 >
                   <option value="">없음</option>
                   {[match.teamAId, match.teamBId].filter(Boolean).map((teamId) => (

@@ -8,6 +8,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { useMinionTheme } from '@/hooks/use-minion-theme';
+import { minionSize } from '@/constants/minion-theme';
 import { resolveApiAssetUrl, type MobileMiniconItem, type MobileMiniconPack } from '@/lib/api-client';
 
 const RECENT_STORAGE_KEY = 'minion:minicon-recents';
@@ -128,9 +129,9 @@ const styles = StyleSheet.create({
   checkbox: { alignItems: 'center', borderWidth: 1, height: 16, justifyContent: 'center', width: 16 },
   toolbarActions: { alignItems: 'center', flexDirection: 'row', gap: 2 },
   iconButton: { alignItems: 'center', borderRadius: 999, height: 32, justifyContent: 'center', width: 32 },
-  tabs: { borderBottomWidth: 1, flexGrow: 0, minHeight: 48 },
+  tabs: { borderBottomWidth: 1, flexGrow: 0, minHeight: minionSize.control + 17 },
   tabsContent: { alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 8 },
-  tab: { alignItems: 'center', borderRadius: 999, height: 32, justifyContent: 'center', paddingHorizontal: 12 },
+  tab: { alignItems: 'center', borderRadius: 999, height: minionSize.control, justifyContent: 'center', paddingHorizontal: 12 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, padding: 10 },
   itemScroll: { flexShrink: 1 },
   emptyContent: { alignItems: 'center', justifyContent: 'center', minHeight: 100, paddingVertical: 32 },

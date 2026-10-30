@@ -10,12 +10,12 @@ export type TabItem = {
 };
 
 function segmentedTrackClassName(compact: boolean, stretch = false) {
-  return `inline-flex ${stretch ? "w-full" : "w-fit"} shrink-0 gap-0.5 bg-[var(--ui-card-bg)] ${compact ? "rounded-lg p-0.5" : "rounded-[10px] p-[3px]"}`;
+  return `inline-flex h-10 ${stretch ? "w-full" : "w-fit"} shrink-0 gap-0.5 bg-[var(--ui-card-bg)] ${compact ? "rounded-lg p-0.5" : "rounded-[10px] p-[3px]"}`;
 }
 
 function segmentedItemClassName(active: boolean, compact: boolean) {
   // 다크 모드의 활성 항목은 트랙보다 밝은 border 톤을 사용한다.
-  return `flex shrink-0 items-center whitespace-nowrap transition-colors ${compact ? "h-9 rounded-md px-3 text-sm" : "h-[34px] rounded-lg px-3.5 text-sm"} ${
+  return `flex h-full shrink-0 items-center whitespace-nowrap transition-colors ${compact ? "rounded-md px-3 text-sm" : "rounded-lg px-3.5 text-sm"} ${
     active
       ? "border border-[var(--ui-border)] bg-[var(--ui-surface)] font-medium text-[var(--ui-ink)] dark:bg-[var(--ui-border)]"
       : "font-medium text-[var(--ui-muted)] hover:text-[var(--ui-ink)]"
@@ -129,7 +129,7 @@ export function UnderlineNav({
   return (
     <nav
       aria-label={ariaLabel}
-      className={`tab-scroll flex max-w-full items-center overflow-x-auto ${compact ? "gap-4 sm:gap-5" : "gap-5 sm:gap-7"} ${
+      className={`tab-scroll flex h-10 max-w-full shrink-0 items-center overflow-x-auto ${compact ? "gap-4 sm:gap-5" : "gap-5 sm:gap-7"} ${
         bordered ? "border-b border-[var(--ui-border)]" : ""
       } ${className}`}
     >
@@ -142,7 +142,7 @@ export function UnderlineNav({
             href={item.href}
             scroll={item.scroll}
             aria-current={isActive ? "page" : undefined}
-            className={`flex shrink-0 items-center justify-center whitespace-nowrap font-medium transition-colors ${compact ? "border-b-2 py-1.5 text-[14px] sm:py-2" : "border-b-[3px] py-2.5 text-[16px] sm:py-3"} ${
+            className={`flex h-full shrink-0 items-center justify-center whitespace-nowrap font-medium transition-colors ${compact ? "border-b-2 text-[14px]" : "border-b-[3px] text-[16px]"} ${
               isActive
                 ? activeTone === "ink"
                   ? "border-[var(--ui-ink)] text-[var(--ui-ink)]"

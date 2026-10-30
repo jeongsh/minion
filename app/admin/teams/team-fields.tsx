@@ -16,7 +16,7 @@ export function TeamBasicFields({ team }: { team?: Team }) {
       <HiddenTeamId team={team} />
       <label className="flex flex-col gap-1.5">
         <span className="text-sm font-medium">고정 팬사이트 호스트</span>
-        <select name="fanSiteHost" defaultValue={team?.fanSiteHost ?? ""} required className={inputClassName()}>
+        <select name="fanSiteHost" defaultValue={team?.fanSiteHost ?? ""} required className={"minion-native-select " + (inputClassName())}>
           <option value="">선택</option>
           {fanSiteHosts.map((host) => (
             <option key={host} value={host}>

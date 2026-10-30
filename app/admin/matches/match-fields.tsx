@@ -21,7 +21,7 @@ function SelectFields({
         <select
           name="tournamentId"
           defaultValue={match?.tournamentId ?? tournaments[0]?.id ?? ""}
-          className="rounded-md border border-border bg-background px-3 py-2"
+          className="minion-native-select rounded-md border border-border bg-background px-3 py-2"
         >
           <option value="">선택 안 함</option>
           {tournaments.map((tournament) => (
@@ -36,7 +36,7 @@ function SelectFields({
         <select
           name="stageId"
           defaultValue={match?.stageId ?? stages[0]?.id ?? ""}
-          className="rounded-md border border-border bg-background px-3 py-2"
+          className="minion-native-select rounded-md border border-border bg-background px-3 py-2"
         >
           <option value="">선택 안 함</option>
           {stages.map((stage) => (
@@ -51,7 +51,7 @@ function SelectFields({
         <select
           name="teamAId"
           defaultValue={match?.teamAId ?? ""}
-          className="rounded-md border border-border bg-background px-3 py-2"
+          className="minion-native-select rounded-md border border-border bg-background px-3 py-2"
         >
           <option value="">선택 안 함</option>
           {teams.map((team) => (
@@ -66,7 +66,7 @@ function SelectFields({
         <select
           name="teamBId"
           defaultValue={match?.teamBId ?? ""}
-          className="rounded-md border border-border bg-background px-3 py-2"
+          className="minion-native-select rounded-md border border-border bg-background px-3 py-2"
         >
           <option value="">선택 안 함</option>
           {teams.map((team) => (
@@ -81,7 +81,7 @@ function SelectFields({
         <select
           name="officialPomPlayerId"
           defaultValue={match?.officialPomPlayerId ?? ""}
-          className="rounded-md border border-border bg-background px-3 py-2"
+          className="minion-native-select rounded-md border border-border bg-background px-3 py-2"
         >
           <option value="">선택 안 함</option>
           {players.map((player) => (

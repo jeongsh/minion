@@ -51,7 +51,7 @@ export function CalendarEventManager({
       >
         <label className="flex flex-col gap-1 text-[13px] font-bold text-[var(--ui-muted)]">
           종류
-          <select name="event_type" className={inputClass} defaultValue="debut">
+          <select name="event_type" className={"minion-native-select " + (inputClass)} defaultValue="debut">
             {TYPE_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>
                 {o.label}
@@ -69,7 +69,7 @@ export function CalendarEventManager({
           팀
           <select
             name="team_id"
-            className={inputClass}
+            className={"minion-native-select " + (inputClass)}
             value={teamId}
             onChange={(e) => setTeamId(e.target.value)}
           >
@@ -84,7 +84,7 @@ export function CalendarEventManager({
 
         <label className="flex flex-col gap-1 text-[13px] font-bold text-[var(--ui-muted)]">
           선수 (선택)
-          <select name="player_id" className={inputClass} defaultValue="">
+          <select name="player_id" className={"minion-native-select " + (inputClass)} defaultValue="">
             <option value="">선택 안 함</option>
             {filteredPlayers.map((p) => (
               <option key={p.id} value={p.id}>

@@ -3,12 +3,12 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent, ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { formControlClassName } from "@/components/ui/input";
 
 export type FilterOption = { value: string; label: string; icon?: ReactNode; indicator?: ReactNode };
 
 export function FilterDropdown({
   ariaLabel,
-  controlSize = "default",
   appearance = "default",
   options,
   selected,
@@ -22,7 +22,6 @@ export function FilterDropdown({
   matchTriggerWidth = false,
 }: {
   ariaLabel: string;
-  controlSize?: "default" | "compact";
   appearance?: "default" | "plain";
   options: FilterOption[];
   selected: string;
@@ -157,10 +156,10 @@ export function FilterDropdown({
           initialFocus.current = event.key === "ArrowUp" ? "last" : "selected";
           setOpen(true);
         }}
-        className={`inline-flex items-center rounded-lg text-sm font-medium text-[var(--ui-ink)] outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-wait disabled:opacity-60 ${appearance === "plain" ? "gap-1.5 px-1.5" : "justify-between gap-2 border border-[var(--ui-card-bg)] bg-[var(--ui-surface)] px-3"} ${controlSize === "compact" ? "min-h-9" : "min-h-10"} ${triggerClassName}`}
+        className={`inline-flex shrink-0 items-center whitespace-nowrap text-sm font-medium text-[var(--ui-ink)] disabled:cursor-wait disabled:opacity-60 ${appearance === "plain" ? "h-10 gap-1.5 rounded-lg px-1.5 outline-none focus-visible:ring-2 focus-visible:ring-accent" : `${formControlClassName} justify-between gap-2 px-3`} ${triggerClassName}`}
       >
         {selectedIcon ? <span aria-hidden="true" className="flex shrink-0 items-center">{selectedIcon}</span> : null}
-        {triggerLabel}
+        <span className="min-w-0 truncate">{triggerLabel}</span>
         {selectedOption?.indicator}
         <Chevron open={open} />
       </button>
@@ -248,7 +247,7 @@ function Chevron({ open }: { open: boolean }) {
     <svg
       aria-hidden="true"
       viewBox="0 0 24 24"
-      className={`size-5 text-[var(--ui-muted)] transition-transform ${open ? "rotate-180" : ""}`}
+      className={`size-5 shrink-0 text-[var(--ui-muted)] transition-transform ${open ? "rotate-180" : ""}`}
       fill="none"
       stroke="currentColor"
       strokeWidth="2.5"

@@ -77,7 +77,7 @@ export function PlayerEditForm({
             </label>
             <label className="flex flex-col gap-1.5">
               <span className="text-sm font-medium">팀</span>
-              <select name="team_id" defaultValue={player.teamId ?? ""} className={inputClassName()}>
+              <select name="team_id" defaultValue={player.teamId ?? ""} className={"minion-native-select " + (inputClassName())}>
                 <option value="">— 없음 —</option>
                 {teams.map((team) => (
                   <option key={team.id} value={team.id}>
@@ -88,7 +88,7 @@ export function PlayerEditForm({
             </label>
             <label className="flex flex-col gap-1.5">
               <span className="text-sm font-medium">포지션</span>
-              <select name="position" defaultValue={player.position} className={inputClassName()}>
+              <select name="position" defaultValue={player.position} className={"minion-native-select " + (inputClassName())}>
                 {Object.entries(POS_LABEL).map(([value, label]) => (
                   <option key={value} value={value}>
                     {label}

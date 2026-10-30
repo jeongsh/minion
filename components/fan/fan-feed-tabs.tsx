@@ -62,21 +62,23 @@ export function FanFeedTabs({
             disabled={isActive}
             onClick={() => onChange(tab.key)}
             aria-pressed={isActive}
-            className={`shrink-0 rounded-full px-3 py-2 text-[13px] font-bold transition disabled:cursor-default sm:px-4 sm:text-sm ${
+            className={`inline-flex h-10 shrink-0 items-center rounded-full border px-3 text-[13px] font-medium transition disabled:cursor-default sm:px-4 sm:text-sm ${
               isActive
-                ? "bg-[var(--ui-ink)] text-[var(--ui-surface)]"
-                : "border border-[var(--ui-border)] bg-[var(--ui-surface)] text-[var(--ui-text)] hover:border-[var(--ui-ink)] hover:text-[var(--ui-ink)]"
+                ? "border-transparent bg-[var(--ui-ink)] text-[var(--ui-surface)]"
+                : "border-[var(--ui-border)] bg-[var(--ui-surface)] text-[var(--ui-text)] hover:border-[var(--ui-ink)] hover:text-[var(--ui-ink)]"
             }`}
           >
-            {tab.label}
-            <span className={`ml-1 text-[12px] sm:ml-1.5 sm:text-[13px] ${isActive ? "opacity-70" : "text-[var(--ui-muted)]"}`}>
-              {tab.count}
+            <span className="inline-flex items-baseline gap-1 leading-5 sm:gap-1.5">
+              {tab.label}
+              <span className={`text-[13px] leading-5 ${isActive ? "opacity-70" : "text-[var(--ui-muted)]"}`}>
+                {tab.count}
+              </span>
             </span>
           </button>
         );
       })}
       {isPending ? (
-        <span className="inline-flex shrink-0 items-center gap-2 px-2 text-[13px] font-bold text-[var(--ui-muted)]" role="status">
+        <span className="inline-flex shrink-0 items-center gap-2 px-2 text-[13px] font-medium text-[var(--ui-muted)]" role="status">
           <span className="h-4 w-4 animate-spin rounded-full border-2 border-[var(--ui-border)] border-t-[var(--ui-ink)]" />
           전환 중
         </span>

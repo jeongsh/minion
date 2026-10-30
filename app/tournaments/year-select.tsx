@@ -30,7 +30,7 @@ export function YearSelect({
         options={seasons.map((season) => ({ value: String(season), label: String(season) }))}
         selected={String(activeSeason)}
         onSelect={(value) => router.push(`/tournaments/${segmentKey}?year=${value}`)}
-        triggerClassName="rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 text-[14px] transition-colors hover:border-[var(--ui-ink)] sm:text-[14px]"
+        triggerClassName="px-3 text-[14px] transition-colors hover:border-[var(--ui-ink)] sm:text-[14px]"
       />
     </div>
   );

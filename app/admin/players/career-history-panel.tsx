@@ -52,7 +52,7 @@ function CareerAddForm({ player, teams, onDone }: {
           className={inputCls()}
         />
       ) : (
-        <select name="team_id" className={inputCls()}>
+        <select name="team_id" className={"minion-native-select " + (inputCls())}>
           <option value="">— 팀 없음 —</option>
           {teams.map((t) => (
             <option key={t.id} value={t.id}>{t.name}</option>
@@ -61,7 +61,7 @@ function CareerAddForm({ player, teams, onDone }: {
       )}
 
       <div className="grid grid-cols-3 gap-2">
-        <select name="position" required defaultValue={player.position} className={inputCls()}>
+        <select name="position" required defaultValue={player.position} className={"minion-native-select " + (inputCls())}>
           {POSITIONS.map((p) => (
             <option key={p} value={p}>{POS_LABEL[p]} ({p})</option>
           ))}

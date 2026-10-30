@@ -17,9 +17,8 @@ export function MatchSetSelect({
   return (
     <FilterDropdown
       ariaLabel="세트 선택"
-      controlSize="compact"
       matchTriggerWidth
-      triggerClassName="!min-h-10 !bg-[var(--ui-card-bg)]"
+      triggerClassName="!bg-[var(--ui-card-bg)]"
       options={options}
       selected={selected}
       onSelect={(set) => {

@@ -225,7 +225,7 @@ function PlayerSegmentChips({
           <Link
             key={segment}
             href={segment === "all" ? `${basePath}?segment=all` : `${basePath}?segment=${segment}`}
-            className={`rounded-full px-3 py-1.5 text-sm font-semibold transition-colors ${
+            className={`inline-flex h-10 items-center whitespace-nowrap rounded-full px-3 text-sm font-medium transition-colors ${
               active
                 ? "bg-[var(--tp)] text-white"
                 : "border border-[var(--ui-border)] bg-[var(--ui-surface)] text-[var(--ui-text)] hover:bg-[var(--ui-card-hover)]"

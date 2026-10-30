@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useMinionTheme } from '@/hooks/use-minion-theme';
+import { minionSize } from '@/constants/minion-theme';
 
 export type MatchTabKey = 'preview' | 'live' | 'data' | 'rating' | 'video';
 
@@ -41,9 +42,9 @@ export function MatchTabNav({ activeTab, availableTabs, onSelect, setSelector }:
 }
 
 const styles = StyleSheet.create({
-  pill: { alignItems: 'center', borderWidth: 1, borderRadius: 8, flexBasis: 0, flexGrow: 1, flexShrink: 0, minWidth: 60, height: 34, justifyContent: 'center', outlineColor: 'transparent', outlineStyle: 'solid', outlineWidth: 0, paddingHorizontal: 10 },
+  pill: { alignItems: 'center', borderWidth: 1, borderRadius: 8, flexBasis: 0, flexGrow: 1, flexShrink: 0, minWidth: 60, height: minionSize.control - 6, justifyContent: 'center', outlineColor: 'transparent', outlineStyle: 'solid', outlineWidth: 0, paddingHorizontal: 10 },
   pillText: { fontSize: 14, lineHeight: 21, minWidth: 36, textAlign: 'center' },
-  track: { borderRadius: 10, flex: 1, minWidth: 0 },
+  track: { borderRadius: 10, flex: 1, height: minionSize.control, minWidth: 0 },
   trackContent: { flexGrow: 1, flexDirection: 'row', gap: 2, padding: 3 },
   wrap: { alignItems: 'center', flexDirection: 'row', gap: 8, marginHorizontal: -16, paddingHorizontal: 16, paddingVertical: 8, zIndex: 30 },
 });

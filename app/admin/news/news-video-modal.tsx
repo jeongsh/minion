@@ -99,7 +99,7 @@ export function VideoFormModal({
                   name="team_id"
                   required
                   defaultValue={initial?.teamId ?? ""}
-                  className={INPUT}
+                  className={"minion-native-select " + (INPUT)}
                 >
                   <option value="" disabled>— 선택 —</option>
                   {teams.map((t) => (
@@ -118,7 +118,7 @@ export function VideoFormModal({
                   name="platform"
                   required
                   defaultValue={initial?.platform ?? "youtube"}
-                  className={INPUT}
+                  className={"minion-native-select " + (INPUT)}
                 >
                   {PLATFORMS.map((p) => (
                     <option key={p} value={p}>

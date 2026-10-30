@@ -21,6 +21,7 @@ import { ErrorState } from '@/components/feedback-states';
 import { KitschEmptyState } from '@/components/kitsch-empty-state';
 import { MinionScreen } from '@/components/minion-screen';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
+import { minionSize } from '@/constants/minion-theme';
 import type { MobileCommunityPostSummary, MobileCommunityPostsDto } from '@/lib/api-client';
 import { resolveApiAssetUrl } from '@/lib/api-client';
 import { useScreenQuery } from '@/hooks/use-screen-query';
@@ -82,7 +83,7 @@ export function CommunityFeedScreen({ scope = 'hub' }: { scope?: CommunityScope 
                   const active = view === item;
                   return (
                     <Pressable accessibilityRole="tab" accessibilityState={{ selected: active }} key={item} onPress={() => updateView(item)} style={[styles.segmentButton, active ? { backgroundColor: theme.surface } : null]}>
-                      <Text style={{ color: active ? theme.ink : theme.muted, ...fonts.bold, fontSize: 13 }}>{item === 'all' ? '전체' : '인기글'}</Text>
+                      <Text style={{ color: active ? theme.ink : theme.muted, ...fonts.medium, fontSize: 13 }}>{item === 'all' ? '전체' : '인기글'}</Text>
                     </Pressable>
                   );
                 })}
@@ -204,14 +205,14 @@ const styles = StyleSheet.create({
   feed: { borderBottomWidth: 1, borderTopWidth: 1, width: '100%' },
   toolbar: { borderBottomWidth: 1, paddingHorizontal: 12, paddingVertical: 10 },
   toolbarRow: { alignItems: 'center', flexDirection: 'row', gap: 8 },
-  segment: { borderRadius: 8, flexDirection: 'row', height: 36, padding: 4 },
-  segmentButton: { alignItems: 'center', borderRadius: 4, height: 28, justifyContent: 'center', paddingHorizontal: 12 },
-  categoryButton: { alignItems: 'center', borderRadius: 8, borderWidth: 1, flexDirection: 'row', gap: 12, height: 36, justifyContent: 'space-between', paddingLeft: 12, paddingRight: 10, width: 112 },
-  searchToggle: { alignItems: 'center', borderRadius: 8, borderWidth: 1, height: 36, justifyContent: 'center', marginLeft: 'auto', width: 36 },
+  segment: { borderRadius: 8, flexDirection: 'row', height: minionSize.control, padding: 4 },
+  segmentButton: { alignItems: 'center', borderRadius: 4, height: minionSize.control - 8, justifyContent: 'center', paddingHorizontal: 12 },
+  categoryButton: { alignItems: 'center', borderRadius: 8, borderWidth: 1, flexDirection: 'row', gap: 12, height: minionSize.control, justifyContent: 'space-between', paddingLeft: 12, paddingRight: 10, width: 112 },
+  searchToggle: { alignItems: 'center', borderRadius: 8, borderWidth: 1, height: minionSize.control, justifyContent: 'center', marginLeft: 'auto', width: minionSize.control },
   searchBlock: { marginTop: 8 },
-  searchInputWrap: { alignItems: 'center', borderRadius: 8, borderWidth: 1, flexDirection: 'row', height: 36 },
-  searchInput: { flex: 1, fontSize: 14, height: 36, paddingHorizontal: 12, paddingVertical: 0 },
-  searchSubmit: { alignItems: 'center', height: 36, justifyContent: 'center', width: 36 },
+  searchInputWrap: { alignItems: 'center', borderRadius: 8, borderWidth: 1, flexDirection: 'row', height: minionSize.control },
+  searchInput: { flex: 1, fontSize: 14, height: minionSize.control, paddingHorizontal: 12, paddingVertical: 0 },
+  searchSubmit: { alignItems: 'center', height: minionSize.control, justifyContent: 'center', width: minionSize.control },
   searchStatus: { alignItems: 'center', flexDirection: 'row', gap: 8, marginTop: 8 },
   searchStatusText: { flex: 1, fontSize: 12 },
   refreshLine: { height: 0, left: 0, position: 'absolute', right: 0, top: 2 },

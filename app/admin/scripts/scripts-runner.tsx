@@ -346,7 +346,6 @@ function GroupPanel({ group }: { group: GroupDef }) {
               options={LEAGUE_OPTIONS}
               selected={segment}
               onSelect={setSegment}
-              controlSize="compact"
               triggerTypography="ui"
             />
           </div>

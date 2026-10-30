@@ -44,10 +44,10 @@ export function SegmentSwitcher({
             key={item.key}
             href={`/tournaments/${item.key}?year=${activeSeason}`}
             aria-current={isActive ? "page" : undefined}
-            className={`flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border px-3 text-[13px] transition-colors sm:h-10 sm:gap-2 sm:rounded-xl sm:px-4 sm:text-[14px] ${
+            className={`flex h-10 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border px-3 text-[13px] font-medium transition-colors sm:gap-2 sm:rounded-xl sm:px-4 sm:text-[14px] ${
               isActive
-                ? "border-[var(--ui-ink)] bg-[var(--ui-ink)] font-extrabold text-[var(--ui-surface)]"
-                : "border-[var(--ui-border)] bg-[var(--ui-surface)] font-bold text-[var(--ui-muted)] hover:border-[var(--ui-ink)] hover:text-[var(--ui-ink)]"
+                ? "border-[var(--ui-ink)] bg-[var(--ui-ink)] text-[var(--ui-surface)]"
+                : "border-[var(--ui-border)] bg-[var(--ui-surface)] text-[var(--ui-muted)] hover:border-[var(--ui-ink)] hover:text-[var(--ui-ink)]"
             }`}
           >
             {item.logo ? (

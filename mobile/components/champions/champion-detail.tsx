@@ -13,6 +13,7 @@ import { ErrorState } from '@/components/feedback-states';
 import { MinionScreen } from '@/components/minion-screen';
 import { useScreenQuery } from '@/hooks/use-screen-query';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
+import { minionSize } from '@/constants/minion-theme';
 import { resolveApiAssetUrl, type MobileChampionDetailDto } from '@/lib/api-client';
 
 type TabKey = 'overview' | 'matchups' | 'duos' | 'pros' | 'games' | 'stats';
@@ -209,18 +210,18 @@ const styles = StyleSheet.create({
   avatar: { borderRadius: 12, height: 56, width: 56 },
   profileCopy: { flex: 1, minWidth: 0 },
   nameRow: { alignItems: 'center', flexDirection: 'row', gap: 8 },
-  swap: { alignItems: 'center', borderRadius: 10, height: 36, justifyContent: 'center', width: 40 },
-  positionButton: { alignItems: 'center', alignSelf: 'flex-start', flexDirection: 'row', gap: 3, minHeight: 28 },
+  swap: { alignItems: 'center', borderRadius: 10, height: minionSize.control, justifyContent: 'center', width: 40 },
+  positionButton: { alignItems: 'center', alignSelf: 'flex-start', flexDirection: 'row', gap: 3, height: minionSize.control },
   scopeControls: { flexDirection: 'row', gap: 6 },
-  scopeControl: { alignItems: 'center', borderRadius: 12, borderWidth: 1, flex: 1, flexDirection: 'row', gap: 4, height: 40, minWidth: 0, paddingHorizontal: 8 },
+  scopeControl: { alignItems: 'center', borderRadius: 12, borderWidth: 1, flex: 1, flexDirection: 'row', gap: 4, height: minionSize.control, minWidth: 0, paddingHorizontal: 8 },
   summary: { borderRadius: 8, borderWidth: 1, overflow: 'hidden' },
   summaryHeader: { alignItems: 'center', flexDirection: 'row', height: 32 },
   summaryValues: { flexDirection: 'row', height: 44 },
   summaryValue: { alignItems: 'center', flex: 1, justifyContent: 'center', minWidth: 0, paddingHorizontal: 2 },
   tabRail: { paddingVertical: 8 },
-  tabShell: { borderRadius: 12, padding: 4 },
+  tabShell: { borderRadius: 12, height: minionSize.control, padding: 3 },
   tabs: { gap: 4, minWidth: '100%' },
-  tab: { alignItems: 'center', borderRadius: 8, borderWidth: 1, flex: 1, height: 36, justifyContent: 'center', minWidth: 62, paddingHorizontal: 8 },
+  tab: { alignItems: 'center', borderRadius: 8, borderWidth: 1, flex: 1, height: minionSize.control - 6, justifyContent: 'center', minWidth: 62, paddingHorizontal: 8 },
   sheet: { gap: 20, padding: 16 },
   filterSection: { gap: 8 },
   choiceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
@@ -233,6 +234,6 @@ const styles = StyleSheet.create({
   loadingTitle: { borderRadius: 5, height: 20, width: 96 },
   loadingMeta: { borderRadius: 4, height: 14, width: 72 },
   loadingSummary: { borderRadius: 8, height: 78 },
-  loadingTabs: { borderRadius: 12, height: 44 },
+  loadingTabs: { borderRadius: 12, height: minionSize.control },
   loadingPanel: { borderRadius: 8, height: 420 },
 });

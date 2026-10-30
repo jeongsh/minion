@@ -382,7 +382,7 @@ export default async function AdminTournamentsPage({
             <select
               name="afterStageId"
               defaultValue=""
-              className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+              className="minion-native-select rounded-md border border-border bg-background px-3 py-2 text-sm"
             >
               <option value="">맨 앞에 추가</option>
               {activeColumns.map(({ stage }) => (

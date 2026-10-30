@@ -532,7 +532,7 @@ function SetNavigation({
             key={item.id}
             href={setHref(match, item)}
             aria-current={active ? "page" : undefined}
-            className={`rounded-md border px-2 py-1 text-[13px] font-semibold sm:px-2.5 sm:py-1.5 sm:text-sm ${
+            className={`inline-flex h-10 items-center rounded-md border px-2 text-[13px] font-medium sm:px-2.5 sm:text-sm ${
               active
                 ? "border-accent bg-accent text-accent-foreground"
                 : "border-border bg-surface hover:bg-surface-muted"
