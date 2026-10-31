@@ -2,6 +2,11 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["127.0.0.1", "10.0.2.2"],
+  experimental: {
+    // On this Windows checkout the dev cache grew to 40 GB / 440k files,
+    // with multi-second compactions during edits. Keep dev caching in memory.
+    turbopackFileSystemCacheForDev: false,
+  },
   async redirects() {
     return [
       {
