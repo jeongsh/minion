@@ -1,10 +1,22 @@
 const {
   withAppBuildGradle,
+  withDangerousMod,
   withGradleProperties,
 } = require("expo/config-plugins");
+const fs = require("node:fs/promises");
+const path = require("node:path");
 
 // Keep release optimization enabled after Expo regenerates android/ locally or on EAS.
 module.exports = function withAndroidReleaseOptimization(config) {
+  config = withDangerousMod(config, ["android", async (config) => {
+    const file = path.join(config.modRequest.platformProjectRoot, "app", "proguard-rules.pro");
+    const contents = await fs.readFile(file, "utf8");
+    const rule = "-keep class com.google.android.gms.internal.consent_sdk.** { *; }";
+    if (!contents.includes(rule)) {
+      await fs.writeFile(file, `${contents}\n# Preserve UMP consent forms in release builds.\n${rule}\n`);
+    }
+    return config;
+  }]);
   config = withGradleProperties(config, (config) => {
     const properties = {
       "android.enableMinifyInReleaseBuilds": "true",

@@ -1,14 +1,18 @@
 import { useIsFocused } from '@react-navigation/native';
+import { usePathname } from 'expo-router';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { AppState, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
-import type { BannerAd as BannerAdHandle } from 'react-native-google-mobile-ads';
+import { AppState, StyleSheet, Text, useWindowDimensions, View, type StyleProp, type ViewStyle } from 'react-native';
 
-import { ANDROID_BANNER_AD_UNIT_ID, MOBILE_ADS_TEST_MODE } from '@/constants/mobile-ads';
+import { getAndroidBannerAdUnitId, MOBILE_ADS_TEST_MODE } from '@/constants/mobile-ads';
 import { useKeyboardLayout } from '@/hooks/use-keyboard-layout';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
-import { bannerRetryDelay, recordBannerFailure } from '@/lib/ad-banner-policy';
+import { bannerRequestDelay, isBannerUnfilled, recordBannerFailure, recordBannerLoaded, recordBannerRequest } from '@/lib/ad-banner-policy';
+import { getAdContentUrl } from '@/lib/ad-content-url';
+import { notifyAdViewportChanged, subscribeAdViewport } from '@/lib/ad-viewport';
 import { getMobileAdsSdk, getMobileAdsState, initializeMobileAds, subscribeMobileAds } from '@/lib/mobile-ads';
 
+// Matches the published Android privacy policy. UMP still applies any stricter
+// consent restrictions; do not turn this off as a workaround for no-fill.
 const REQUEST_OPTIONS = { requestNonPersonalizedAdsOnly: true };
 const PLACEHOLDER_HEIGHT = 100;
 type BannerDimensions = { width: number; height: number };
@@ -17,67 +21,100 @@ type Props = { enabled?: boolean; suspended?: boolean; placement: string; style?
 
 export function ContentBanner({ enabled = true, suspended = false, placement, style }: Props) {
   const focused = useIsFocused();
+  const pathname = usePathname();
   const { keyboardVisible } = useKeyboardLayout();
   const state = useSyncExternalStore(subscribeMobileAds, getMobileAdsState, getMobileAdsState);
   const [foreground, setForeground] = useState(AppState.currentState === 'active');
   const [width, setWidth] = useState(0);
+  const [reservedHeight, setReservedHeight] = useState(PLACEHOLDER_HEIGHT);
+  const [nearViewport, setNearViewport] = useState(false);
+  const [unfilled, setUnfilled] = useState(() => isBannerUnfilled(placement));
+  const slot = useRef<View>(null);
+  const window = useWindowDimensions();
   const ads = getMobileAdsSdk();
-  const active = enabled && focused && foreground && !keyboardVisible && !suspended;
+  const screenVisible = focused && foreground;
+  const active = enabled && screenVisible && !keyboardVisible && !suspended;
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', next => setForeground(next === 'active'));
     return () => subscription.remove();
   }, []);
+  // A removed placement returns on a later visit once its request cooldown ends.
   useEffect(() => {
-    if (active) void initializeMobileAds();
-  }, [active]);
+    if (screenVisible) setUnfilled(isBannerUnfilled(placement));
+  }, [placement, screenVisible]);
+  useEffect(() => {
+    if (!enabled || !screenVisible || unfilled) {
+      setNearViewport(false);
+      return;
+    }
+    if (!ads || nearViewport) return;
+    let current = true;
+    // Request one screen ahead so most loads and removals settle offscreen.
+    const measure = () => slot.current?.measureInWindow((_x, y, measuredWidth, height) => {
+      if (current && measuredWidth >= 320 && height > 0 && y + height > 0 && y < window.height * 2) setNearViewport(true);
+    });
+    const unsubscribe = subscribeAdViewport(measure);
+    measure();
+    notifyAdViewportChanged();
+    return () => { current = false; unsubscribe(); };
+  }, [ads, enabled, screenVisible, unfilled, nearViewport, window.height, window.width]);
+  useEffect(() => {
+    if (!active || !nearViewport) return;
+    const delay = state.retryAt === null ? 0 : Math.max(0, state.retryAt - Date.now());
+    if (!delay) { void initializeMobileAds(); return; }
+    const timer = setTimeout(() => { void initializeMobileAds(); }, delay);
+    return () => clearTimeout(timer);
+  }, [active, nearViewport, state.retryAt]);
 
-  if (!enabled || !ads) return null;
+  if (!enabled || !ads || unfilled) return null;
   // Keep measurement independent of the creative; its height follows SDK events.
-  return <View onLayout={event => setWidth(Math.floor(event.nativeEvent.layout.width))} style={[styles.slot, style]}>
-    {state.ready && width >= 320 ? <BannerSession key={`${state.revision}:${width}:${placement}`} active={active} ads={ads} placement={placement} width={width} /> : <BannerPlaceholder />}
+  return <View ref={slot} collapsable={false} onLayout={event => { setWidth(Math.floor(event.nativeEvent.layout.width)); notifyAdViewportChanged(); }} style={[styles.slot, style]}>
+    {state.ready && width >= 320 && nearViewport && screenVisible ? <BannerSession key={`${state.revision}:${width}:${placement}`} active={active} ads={ads} placement={placement} contentUrl={getAdContentUrl(pathname)} width={width} reservedHeight={reservedHeight} onHeightChange={setReservedHeight} onUnfilled={() => setUnfilled(true)} /> : <BannerPlaceholder height={reservedHeight} />}
   </View>;
 }
 
-function BannerSession({ active, ads, placement, width }: { active: boolean; ads: NonNullable<ReturnType<typeof getMobileAdsSdk>>; placement: string; width: number }) {
-  const banner = useRef<BannerAdHandle>(null);
-  const retries = useRef(0);
+function BannerSession({ active, ads, placement, contentUrl, width, reservedHeight, onHeightChange, onUnfilled }: { active: boolean; ads: NonNullable<ReturnType<typeof getMobileAdsSdk>>; placement: string; contentUrl?: string; width: number; reservedHeight: number; onHeightChange: (height: number) => void; onUnfilled: () => void }) {
   const [started, setStarted] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [height, setHeight] = useState<number | null>(null);
-  const [failure, setFailure] = useState<{ code: string; at: number } | null>(null);
-  useEffect(() => { if (active) setStarted(true); }, [active]);
+  // A changed request prop reloads the native view. Keep the page this session started on.
+  const [requestOptions] = useState(() => contentUrl ? { ...REQUEST_OPTIONS, contentUrl } : REQUEST_OPTIONS);
   useEffect(() => {
-    if (!active || !failure) return;
-    const delay = bannerRetryDelay(failure.code, retries.current);
-    if (delay == null) return;
-    const timer = setTimeout(() => {
-      if (!banner.current) return;
-      retries.current += 1;
-      setFailure(null);
-      banner.current.load();
-    }, Math.max(0, failure.at + delay - Date.now()));
+    if (!active || started) return;
+    let timer: ReturnType<typeof setTimeout>;
+    const start = () => {
+      const delay = bannerRequestDelay(placement);
+      if (delay > 0) { timer = setTimeout(start, delay); return; }
+      recordBannerRequest(placement);
+      console.info('[ads] banner request', { placement, width, nonPersonalized: true, contentMapped: requestOptions !== REQUEST_OPTIONS });
+      setStarted(true);
+    };
+    start();
     return () => clearTimeout(timer);
-  }, [active, failure]);
+  }, [active, placement, requestOptions, started, width]);
 
   const updateSize = (dimensions: BannerDimensions) => {
     if (Number.isFinite(dimensions.width) && Number.isFinite(dimensions.height) && dimensions.width > 0 && dimensions.height > 0) {
       setHeight(Math.ceil(dimensions.height));
+      onHeightChange(Math.ceil(dimensions.height));
     }
   };
 
-  if (!started) return <BannerPlaceholder />;
+  if (!started) return <BannerPlaceholder height={reservedHeight} />;
   const BannerAd = ads.BannerAd;
-  // Keep the loaded native view mounted through scrolling, sheets and app focus.
-  // The SDK owns successful-ad refresh. JS only retries transient failures twice.
-  // v15.8.3 starts BaseAd at 0x0. Give its native parent a real width and use
-  // the standard 320x100 size so initial layout does not depend on inline sizing.
-  return <View pointerEvents={active ? 'auto' : 'none'} style={[styles.creative, { width, height: loaded && height !== null ? height : PLACEHOLDER_HEIGHT }]}>
-    <BannerAd ref={banner} size={ads.BannerAdSize.LARGE_BANNER}
-      unitId={MOBILE_ADS_TEST_MODE ? ads.TestIds.BANNER : ANDROID_BANNER_AD_UNIT_ID} requestOptions={REQUEST_OPTIONS}
+  // Keep the loaded native view mounted through scrolling and sheets. The parent
+  // releases it when its screen loses focus or the app enters the background.
+  // AdMob automatic refresh owns later loads and keeps a loaded creative through
+  // refresh failures. A failed first load removes the slot instead, releasing
+  // this view so the SDK cannot keep retrying a placement nobody can see.
+  // v15.8.3 starts BaseAd at 0x0. Anchored adaptive emits a nonzero size before
+  // loading, unlike inline adaptive. Keep the parent sized while that event arrives.
+  return <View pointerEvents={active ? 'auto' : 'none'} style={[styles.creative, { width, height: loaded && height !== null ? height : reservedHeight }]}>
+    <BannerAd size={ads.BannerAdSize.ANCHORED_ADAPTIVE_BANNER} width={width}
+      unitId={MOBILE_ADS_TEST_MODE ? ads.TestIds.BANNER : getAndroidBannerAdUnitId(placement)} requestOptions={requestOptions}
       onAdLoaded={dimensions => {
-        retries.current = 0;
-        setFailure(null);
+        recordBannerLoaded(placement);
         updateSize(dimensions);
         setLoaded(true);
         console.info('[ads] banner loaded', { placement, ...dimensions });
@@ -85,16 +122,16 @@ function BannerSession({ active, ads, placement, width }: { active: boolean; ads
       onSizeChange={updateSize}
       onAdImpression={() => console.info('[ads] banner impression', { placement })}
       onAdFailedToLoad={error => {
-        const code = recordBannerFailure(placement, error, retries.current);
-        setFailure({ code, at: Date.now() });
+        recordBannerFailure(placement, error, !loaded);
+        if (!loaded) onUnfilled();
       }} />
     {!loaded || height === null ? <BannerPlaceholder overlay /> : null}
   </View>;
 }
 
-function BannerPlaceholder({ overlay = false }: { overlay?: boolean }) {
+function BannerPlaceholder({ overlay = false, height = PLACEHOLDER_HEIGHT }: { overlay?: boolean; height?: number }) {
   const { fonts, theme } = useMinionTheme();
-  return <View pointerEvents="none" style={[styles.placeholder, overlay ? StyleSheet.absoluteFillObject : { height: PLACEHOLDER_HEIGHT }, { backgroundColor: theme.surfaceMuted }]}>
+  return <View pointerEvents="none" style={[styles.placeholder, overlay ? StyleSheet.absoluteFillObject : { height }, { backgroundColor: theme.surfaceMuted }]}>
     <Text style={{ color: theme.muted, ...fonts.regular, fontSize: 13, lineHeight: 20 }}>광고영역</Text>
   </View>;
 }

@@ -20,6 +20,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BottomSheet } from '@/components/bottom-sheet';
 import { KeyboardAwareView } from '@/components/keyboard-aware-view';
 import { ContentBanner } from '@/components/ads/content-banner';
+import { notifyAdViewportChanged } from '@/lib/ad-viewport';
 import { getMinionTeam } from '@/constants/teams';
 import { ErrorState } from '@/components/feedback-states';
 import { RankAvatar } from '@/components/rank-avatar';
@@ -217,7 +218,7 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
         </View>
         {pullIndicator}
         {Platform.OS === 'web' && refreshControl.props.refreshing ? <View pointerEvents="none" style={{ position: 'absolute', top: insets.top + 64, alignSelf: 'center', zIndex: 40, padding: 8, borderRadius: 20, backgroundColor: theme.surface }}><ActivityIndicator accessibilityLabel="새로고침 중" color={accent} size="small" /></View> : null}
-        <ScrollView removeClippedSubviews={false} onScroll={onPullScroll} scrollEventThrottle={16} refreshControl={refreshControl} alwaysBounceVertical contentContainerStyle={{ paddingBottom: 56 + bottomInset }} keyboardShouldPersistTaps="handled" ref={scrollRef} showsVerticalScrollIndicator={false}>
+        <ScrollView removeClippedSubviews={false} onScroll={event => { onPullScroll(event); notifyAdViewportChanged(); }} onContentSizeChange={notifyAdViewportChanged} scrollEventThrottle={16} refreshControl={refreshControl} alwaysBounceVertical contentContainerStyle={{ paddingBottom: 56 + bottomInset }} keyboardShouldPersistTaps="handled" ref={scrollRef} showsVerticalScrollIndicator={false}>
         <ContentBanner placement="post-top" enabled={!data.isBlinded} suspended={ownerMenuOpen || Boolean(reportTarget) || miniconOpen} />
         <View style={[styles.article, { backgroundColor: theme.surface, borderTopColor: theme.border }]}>
           <View style={styles.postHeader}>

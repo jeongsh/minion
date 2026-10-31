@@ -33,6 +33,7 @@ import { getMinionTeam, type MinionTeam } from '@/constants/teams';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import { usePullRefreshIndicator } from '@/hooks/use-pull-refresh-indicator';
 import { resolveApiAssetUrl } from '@/lib/api-client';
+import { notifyAdViewportChanged } from '@/lib/ad-viewport';
 import { fanAccentText } from '@/lib/fan-colors';
 import { useAuth } from '@/providers/auth-provider';
 import { useInAppNotifications } from '@/providers/in-app-notifications-provider';
@@ -151,6 +152,7 @@ export function MinionScreen<T>({
     return () => cancelAnimationFrame(frame);
   }, [scrollRequest]);
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    notifyAdViewportChanged();
     onPullScroll(event);
     const currentY = Math.max(0, event.nativeEvent.contentOffset.y);
     const delta = currentY - lastScrollY.current;
@@ -289,6 +291,7 @@ export function MinionScreen<T>({
         </>}
         maxToRenderPerBatch={virtualList.maxToRenderPerBatch}
         onScroll={handleScroll}
+        onContentSizeChange={notifyAdViewportChanged}
         ref={listRef}
         removeClippedSubviews={false}
         renderItem={(info) => <View style={styles.virtualRow}>{virtualList.renderItem?.(info)}</View>}
@@ -301,6 +304,7 @@ export function MinionScreen<T>({
         alwaysBounceVertical={refreshControl ? true : undefined}
         keyboardShouldPersistTaps="handled"
         onScroll={handleScroll}
+        onContentSizeChange={notifyAdViewportChanged}
         ref={scrollViewRef}
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}>
