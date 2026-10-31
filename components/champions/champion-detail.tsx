@@ -687,7 +687,7 @@ function MatchupsTab({ rows }: { rows: ChampionMatchup[] }) {
   return (
     <SectionCard title="상대 전적">
       {rows.length ? (
-        <Table>
+        <Table framed={false}>
           <TableHeader>
             <TableRow>
               <TableHead scope="col">상대 챔피언</TableHead>
@@ -850,7 +850,7 @@ function DuosTab({
   return (
     <SectionCard title="바텀 조합" caption="동시 출전 기준">
       {rows.length ? (
-        <Table>
+        <Table framed={false}>
           <TableHeader>
             <TableRow>
               <TableHead scope="col">파트너</TableHead>
@@ -882,7 +882,7 @@ function PlayersTab({ players }: { players: ChampionPlayerPreference[] }) {
   return (
     <SectionCard title="선수">
       {players.length ? (
-        <Table>
+        <Table framed={false}>
           <TableHeader>
             <TableRow>
               <TableHead scope="col">선수</TableHead>
@@ -994,7 +994,7 @@ function GamesTab({
       caption={`${analysis.games.length.toLocaleString("ko-KR")}경기 · 최신순`}
     >
       {rows.length ? (
-        <Table>
+        <Table framed={false}>
           <TableHeader>
             <TableRow>
               <TableHead scope="col">결과</TableHead>

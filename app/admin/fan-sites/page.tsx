@@ -55,7 +55,7 @@ export default async function AdminFanSitesPage() {
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={row.logoUrl} alt="" className="h-6 w-6 object-contain" />
                   ) : null}
-                  <span className="font-semibold">{row.name}</span>
+                  <span className="font-medium">{row.name}</span>
                 </span>
               ),
             },
@@ -74,7 +74,7 @@ export default async function AdminFanSitesPage() {
               render: (row) => (
                 <Link
                   href={`/admin/fan-sites/${row.id}`}
-                  className="relative z-20 rounded-md border border-border px-3 py-1.5 text-[13px] font-semibold hover:bg-surface-muted"
+                  className="relative z-20 rounded-md border border-border px-3 py-1.5 text-[13px] font-medium hover:bg-surface-muted"
                 >
                   관리
                 </Link>

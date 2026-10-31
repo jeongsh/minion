@@ -116,7 +116,7 @@ export function HomeMatchCard({
             {live ? (
               <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full !bg-[#ff3158]" aria-hidden />
             ) : null}
-            {live ? <span className="sr-only">실시간 경기, </span> : null}
+            {live ? <span className="sr-only">라이브 경기, </span> : null}
             {centerLabel}
           </span>
           <span className="flex min-w-0 items-center gap-2">

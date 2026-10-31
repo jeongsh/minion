@@ -11,6 +11,7 @@ import { PredictionMatchBar } from "@/components/domain/prediction-match-bar";
 import { MatchResultSeen } from "@/components/domain/match-result-seen";
 import { SetVodPlayer } from "@/components/domain/set-vod-player";
 import { SegmentedControl, type TabItem } from "@/components/ui/tabs";
+import { buttonClassName } from "@/components/ui/button";
 import { AdSlot } from "@/components/ui/ad-slot";
 import { AutoAdContent } from "@/components/ads/auto-ad-content";
 import { MatchSetSkeleton } from "@/components/navigation/route-loading-skeleton";
@@ -72,7 +73,7 @@ const TAB_LABELS: Record<MatchTab, string> = {
   data: "세트",
   rating: "평가",
   video: "영상",
-  live: "실시간",
+  live: "라이브",
 };
 
 function setLabel(set: SetResult) {
@@ -267,13 +268,13 @@ function SetSelector({
           className="tab-scroll min-w-0 max-w-full overflow-x-auto [&>a]:text-sm [&>a]:font-medium"
         />
       ) : <span />}
-      <div className="flex shrink-0 items-center gap-2">
+      <div className="ml-auto flex shrink-0 items-center gap-2">
       {snapshotHref ? (
         <Link
           href={snapshotHref}
           title="세트 스냅샷 보기"
           aria-label="세트 스냅샷 보기"
-          className="hidden h-8 shrink-0 items-center justify-center gap-1 rounded-lg bg-[var(--ui-ink)] px-2 text-[13px] font-normal text-[var(--ui-surface)] shadow-sm transition-opacity hover:opacity-85 sm:inline-flex sm:px-2.5"
+          className={buttonClassName({ variant: "neutral", className: "hidden h-[34px]! sm:inline-flex" })}
         >
           <span>세트 스냅샷</span>
         </Link>
@@ -283,7 +284,7 @@ function SetSelector({
           href={matchSnapshotHref}
           title="전체 스냅샷 보기"
           aria-label="전체 스냅샷 보기"
-          className="hidden h-8 shrink-0 items-center justify-center gap-1 rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-2 text-[13px] font-medium text-[var(--ui-ink)] shadow-sm transition-opacity hover:opacity-85 sm:inline-flex sm:px-2.5"
+          className={buttonClassName({ variant: "secondary", className: "hidden h-[34px]! sm:inline-flex" })}
         >
           <span>전체 스냅샷</span>
         </Link>

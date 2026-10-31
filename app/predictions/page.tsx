@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { ChartNoAxesCombined, ChevronRight } from "lucide-react";
 
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { getAllTeams, getMatchesInRange, getTournaments } from "@/lib/data/lck";
@@ -46,6 +48,11 @@ export default async function PredictionsPage() {
     <main className="text-[var(--ui-text)]">
       <div className="layout-wide pt-6 sm:pt-8 xl:px-10">
         <h1 className="sr-only">승부예측</h1>
+        <div className="mb-4 flex justify-end">
+          <Link href="/predictions/report" className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-[var(--ui-ink)] hover:opacity-70">
+            <ChartNoAxesCombined size={17} aria-hidden="true" />내 예측 리포트<ChevronRight size={16} aria-hidden="true" />
+          </Link>
+        </div>
         <PredictionBoard
           matches={visibleMatches}
           teams={teams}

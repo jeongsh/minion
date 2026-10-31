@@ -8,7 +8,7 @@ export type MatchTabKey = 'preview' | 'live' | 'data' | 'rating' | 'video';
 
 const TAB_LABELS: Record<MatchTabKey, string> = {
   data: '세트',
-  live: '실시간',
+  live: '라이브',
   preview: '프리뷰',
   rating: '평가',
   video: '영상',

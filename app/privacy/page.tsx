@@ -18,7 +18,7 @@ export default function PrivacyPage() {
     <PolicyPage title="개인정보처리방침" description="MINION은 필요한 범위에서만 개인정보를 처리하고, 이용자의 권리를 존중합니다." effectiveDate={PRIVACY_POLICY_EFFECTIVE_DATE}>
       <section>
         <h2>1. 처리하는 개인정보와 이용 목적</h2>
-        <div className="overflow-x-auto">
+
           <Table>
             <TableHeader><TableRow><TableHead>구분</TableHead><TableHead>처리 항목</TableHead><TableHead>목적</TableHead></TableRow></TableHeader>
             <TableBody>
@@ -31,7 +31,7 @@ export default function PrivacyPage() {
               <TableRow><TableCell>문의</TableCell><TableCell>이메일 주소와 문의 내용, 첨부 자료</TableCell><TableCell>문의 확인과 답변, 분쟁 처리</TableCell></TableRow>
             </TableBody>
           </Table>
-        </div>
+
         <p>서비스는 만 14세 미만 아동을 대상으로 하지 않으며, 만 14세 미만 아동의 회원가입을 받지 않습니다.</p>
       </section>
 
@@ -56,7 +56,7 @@ export default function PrivacyPage() {
       <section>
         <h2>4. 처리 위탁 및 국외 이전</h2>
         <p>서비스 제공을 위해 다음 외부 서비스를 이용합니다. 외부 사업자는 각자의 개인정보처리방침과 계약에 따라 정보를 처리합니다.</p>
-        <div className="overflow-x-auto">
+
           <Table>
             <TableHeader><TableRow><TableHead>사업자·서비스</TableHead><TableHead>업무와 이전 항목</TableHead><TableHead>이전 국가·시점·기간</TableHead></TableRow></TableHeader>
             <TableBody>
@@ -67,7 +67,7 @@ export default function PrivacyPage() {
               <TableRow><TableCell>Meta Platforms, Inc.</TableCell><TableCell>Instagram 임베드 제공. 쿠키, IP 주소, 기기·이용 정보</TableCell><TableCell>미국 등 Meta가 처리하는 국가 / 임베드 로드 시 / Meta 정책에 따른 기간</TableCell></TableRow>
             </TableBody>
           </Table>
-        </div>
+
         <p>국외 이전을 원하지 않는 경우 외부 임베드가 포함된 페이지 이용을 중단하거나 브라우저에서 제3자 쿠키를 차단할 수 있습니다. 회원 인증·저장 인프라 이전을 거부하면 회원 기능 이용이 어려울 수 있습니다.</p>
       </section>
 

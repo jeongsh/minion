@@ -1,5 +1,5 @@
 "use client";
-import { Table, TableBody, TableRow, TableCell } from "@/components/ui/table";
+import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell } from "@/components/ui/table";
 
 
 import Link from "next/link";
@@ -151,12 +151,14 @@ export function PlayerList({
                 <span className="text-[13px] text-muted">({sorted.length}명)</span>
               </div>
 
-              <Table className="w-full">
+              <Table className="w-full" framed={false}>
+                <TableHeader><TableRow>
+                  {["포지션", "선수", "이름", "구분", "관리"].map((label) => <TableHead key={label}>{label}</TableHead>)}
+                </TableRow></TableHeader>
                 <TableBody>
                   {sorted.map((p) => (
                     <TableRow
                       key={p.id}
-                      className="border-b border-border/50 last:border-0"
                     >
                       <TableCell className="w-14 shrink-0 text-muted">
                         {POS_LABEL[p.position]}
@@ -178,7 +180,7 @@ export function PlayerList({
                       </TableCell>
                       <TableCell className="w-14 shrink-0">
                         {p.isStarter ? (
-                          <span className="rounded-full bg-accent/10 px-2 py-0.5 text-[13px] font-semibold text-accent">
+                          <span className="rounded-full bg-accent/10 px-2 py-0.5 text-[13px] font-medium text-accent">
                             주전
                           </span>
                         ) : (

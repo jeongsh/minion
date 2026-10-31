@@ -1,7 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type Entry = { xml: string; savedAt: number };
-const STORAGE_KEY = 'minion-team-svg-cache-v1';
+// v2 discards SVGs that still contain IG's repeating image pattern.
+const STORAGE_KEY = 'minion-team-svg-cache-v2';
 const MAX_AGE_MS = 24 * 60 * 60_000;
 const MAX_ENTRIES = 64;
 // Bound the whole serialized cache, including embedded raster images in SVGs.

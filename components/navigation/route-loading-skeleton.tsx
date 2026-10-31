@@ -1,4 +1,6 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { HomeRatingTickerSkeleton } from "@/components/domain/home-rating-ticker-skeleton";
+import { TableSkeleton } from "@/components/ui/table-skeleton";
 import { EventFilterHeader } from "@/components/ui/event-filter-bar";
 
 function LoadingMain({ children, className = "layout-wide flex flex-col" }: { children?: React.ReactNode; className?: string }) {
@@ -23,18 +25,6 @@ function MatchRowSkeleton() {
         <div className="flex items-center gap-1.5 md:gap-2.5"><Skeleton className="h-7 w-7 rounded-full sm:h-9 sm:w-9 md:h-11 md:w-11" /><Skeleton className="h-4 w-10 sm:w-14" /></div>
       </div>
       <div className="hidden space-y-2 md:block"><Skeleton className="ml-auto h-3.5 w-24" /><Skeleton className="ml-auto h-3 w-16" /></div>
-    </div>
-  );
-}
-
-function TableRows({ count = 7 }: { count?: number }) {
-  return (
-    <div className="divide-y divide-[var(--ui-border)]">
-      {Array.from({ length: count }, (_, index) => (
-        <div key={index} className="grid min-h-14 grid-cols-[2rem_2.25rem_minmax(0,1fr)_4rem_4rem] items-center gap-3 px-3 py-2.5 sm:px-4">
-          <Skeleton className="h-4 w-5" /><Skeleton className="h-9 w-9 rounded-full" /><Skeleton className="h-4 w-28 max-w-full" /><Skeleton className="h-4 w-12" /><Skeleton className="h-4 w-12" />
-        </div>
-      ))}
     </div>
   );
 }
@@ -107,25 +97,34 @@ export function NeutralLoadingSkeleton() {
 
 export function HomeLoadingSkeleton() {
   return (
-    <LoadingMain className="layout-wide flex flex-col gap-8 py-5 md:py-7">
+    <LoadingMain className="layout-wide flex flex-col gap-8 pb-16 pt-4 sm:pt-7">
       <section className="overflow-hidden">
         <div className="flex gap-3">
-          {Array.from({ length: 3 }, (_, index) => (
-            <div key={index} className="min-w-[min(86vw,340px)] flex-1 rounded-xl bg-[var(--ui-card-bg)] p-4 sm:min-w-0">
-              <div className="flex justify-between"><Skeleton className="h-3 w-28" /><Skeleton className="h-3 w-16" /></div>
-              <div className="mt-4 flex items-center justify-center gap-3"><Skeleton className="h-9 w-16" /><Skeleton className="h-8 w-12 rounded-lg" /><Skeleton className="h-9 w-16" /></div>
-              <Skeleton className="mt-4 h-1.5 w-full rounded-full" />
+          {Array.from({ length: 4 }, (_, index) => (
+            <div key={index} className="min-w-0 basis-[calc((100%-1.2px)/1.1)] shrink-0 rounded-xl bg-[var(--ui-card-bg)] p-3 sm:basis-[calc((100%-12px)/2)] lg:basis-[calc((100%-24px)/3)] xl:basis-[calc((100%-36px)/4)]">
+              <div className="flex h-[18px] justify-between"><Skeleton className="h-3 w-16" /><Skeleton className="h-3 w-14" /></div>
+              <div className="mt-2.5 flex items-center justify-center gap-3"><Skeleton className="h-7 w-16" /><Skeleton className="h-8 w-12 rounded-md" /><Skeleton className="h-7 w-16" /></div>
+              <div className="mt-2 flex justify-between"><Skeleton className="h-3 w-8" /><Skeleton className="h-3 w-8" /></div>
+              <Skeleton className="mt-1 h-1 w-full rounded-full" />
             </div>
           ))}
         </div>
-        <Skeleton className="mt-3 h-11 w-full rounded-xl" />
+        <Skeleton className="mt-3 h-11 w-full rounded-xl xl:hidden" />
       </section>
+      <HomeRatingTickerSkeleton />
       <Skeleton className="h-[60px] w-full rounded-2xl sm:h-[72px]" />
-      <Skeleton className="h-24 w-full rounded-2xl" />
-      <section>
+      <section className="mt-2">
         <SectionTitle width="w-40" />
-        <div className="flex gap-3 overflow-hidden">
-          {Array.from({ length: 6 }, (_, index) => <div key={index} className="min-w-[calc((100%-12px)/2.2)] overflow-hidden rounded-2xl bg-[var(--ui-card-bg)] min-[520px]:min-w-[calc((100%-24px)/3.2)] md:min-w-[calc((100%-42px)/4.2)] lg:min-w-[calc((100%-64px)/5.2)] xl:min-w-0 xl:flex-1"><div className="relative aspect-[3/4]"><Skeleton className="h-full w-full rounded-none" /><Skeleton className="absolute left-4 top-4 h-6 w-24" /><Skeleton className="absolute bottom-4 left-2 h-10 w-10" /><Skeleton className="absolute bottom-2 right-2 size-[60px] rounded-full" /></div></div>)}
+        <div className="mt-3 grid sm:gap-3 sm:rounded-2xl sm:bg-[var(--ui-card-bg)] sm:p-3 md:grid-cols-2">
+          {Array.from({ length: 6 }, (_, index) => (
+            <div key={index} className="flex min-h-[65px] min-w-0 items-center gap-3 border-b border-[var(--ui-card-divider)] py-2 last:border-b-0 sm:min-h-[82px] sm:rounded-xl sm:border-0 sm:bg-[var(--ui-surface)] sm:px-5 sm:py-3">
+              <div className="min-w-0 flex-1">
+                <Skeleton className="h-4 w-4/5" />
+                <div className="mt-2 flex gap-2"><Skeleton className="h-3 w-16" /><Skeleton className="h-3 w-12" /><Skeleton className="h-3 w-8" /></div>
+              </div>
+              {index % 3 !== 1 ? <Skeleton className="h-12 w-16 shrink-0 rounded-md" /> : null}
+            </div>
+          ))}
         </div>
       </section>
       <section>
@@ -144,6 +143,12 @@ export function HomeLoadingSkeleton() {
         </div>
       </section>
       <section><SectionTitle width="w-40" /><div className="flex gap-3 overflow-hidden">{Array.from({ length: 6 }, (_, index) => <Skeleton key={index} className="aspect-[3/4] min-w-[calc((100%-12px)/2.2)] flex-1 rounded-2xl min-[520px]:min-w-[calc((100%-24px)/3.2)] md:min-w-[calc((100%-42px)/4.2)] lg:min-w-[calc((100%-64px)/5.2)] xl:min-w-0" />)}</div></section>
+      <section>
+        <SectionTitle width="w-24" />
+        <div className="mt-3 grid grid-cols-5 gap-2 sm:grid-cols-10 sm:gap-3 xl:gap-4">
+          {Array.from({ length: 10 }, (_, index) => <Skeleton key={index} className="mx-auto size-11 rounded-full sm:size-12 xl:size-16" />)}
+        </div>
+      </section>
       <section className="grid gap-4 xl:grid-cols-3">
         <div className="min-w-0 xl:col-span-2">
           <SectionTitle width="w-40" />
@@ -212,6 +217,7 @@ export function TournamentLoadingSkeleton() {
 export function PredictionLoadingSkeleton() {
   return (
     <LoadingMain className="layout-wide flex flex-col pt-6 sm:pt-8 xl:px-10">
+      <div className="mb-4 flex h-11 items-center justify-end"><Skeleton className="h-5 w-36" /></div>
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_300px]">
         <div><div className="flex items-center justify-between rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-4"><Skeleton className="h-9 w-44 rounded-lg" /><Skeleton className="h-7 w-24 rounded-lg" /></div><div className="mt-9 space-y-10">{Array.from({ length: 2 }, (_, day) => <section key={day}><Skeleton className="mb-3 h-6 w-24" /><div className="space-y-5">{Array.from({ length: 3 }, (_, row) => <div key={row}><div className="mb-2 flex justify-between"><Skeleton className="h-4 w-32" /><Skeleton className="h-4 w-24" /></div><Skeleton className="h-[76px] w-full rounded-xl" /></div>)}</div></section>)}</div></div>
         <aside className="hidden overflow-hidden rounded-[var(--ui-card-radius)] border border-[var(--ui-border)] bg-[var(--ui-surface)] xl:block">
@@ -277,7 +283,7 @@ export function FanHomeLoadingSkeleton() {
   return (
     <LoadingMain className="fan-page-container flex flex-col gap-6 py-5 md:py-9">
       <section><SectionTitle width="w-20" /><div className="mt-3 overflow-hidden rounded-xl border border-[var(--ui-border)]"><MatchRowSkeleton /></div></section>
-      <section><SectionTitle width="w-16" /><div className="mt-3 overflow-hidden rounded-xl border border-[var(--ui-border)]"><TableRows count={5} /></div></section>
+      <section><SectionTitle width="w-16" /><TableSkeleton rows={5} columns={5} className="mt-3" /></section>
       <section><SectionTitle width="w-20" /><div className="mt-3 grid grid-cols-3 gap-1.5 sm:grid-cols-5">{Array.from({ length: 5 }, (_, index) => <Skeleton key={index} className="aspect-[3/4] w-full rounded-none" />)}</div></section>
       <section><SectionTitle width="w-20" /><div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-3">{Array.from({ length: 3 }, (_, index) => <div key={index}><Skeleton className="aspect-video w-full rounded-xl" /><Skeleton className="mt-2 h-4 w-4/5" /></div>)}</div></section>
       <section><SectionTitle width="w-16" /><div className="mt-3 flex gap-2.5 overflow-hidden">{Array.from({ length: 5 }, (_, index) => <div key={index} className="flex min-w-[106px] flex-col items-center gap-2 rounded-xl border border-[var(--ui-border)] p-3"><Skeleton className="h-11 w-11 rounded-full" /><Skeleton className="h-3 w-12" /></div>)}</div></section>
@@ -427,7 +433,7 @@ export function FanInfoLoadingSkeleton() {
   return (
     <LoadingMain className="fan-page-container flex flex-col gap-5 py-5 md:gap-6 md:py-9">
       <div className="space-y-2"><Skeleton className="h-3 w-28" /><Skeleton className="h-7 w-24" /></div>
-      <div className="overflow-hidden rounded-xl border border-[var(--ui-border)]"><div className="grid grid-cols-[160px_minmax(0,1fr)] gap-4 border-b border-[var(--ui-border)] p-4"><Skeleton className="h-4 w-16" /><Skeleton className="h-4 w-20" /></div>{Array.from({ length: 4 }, (_, index) => <div key={index} className="grid min-h-14 grid-cols-[160px_minmax(0,1fr)] items-center gap-4 border-b border-[var(--ui-border)] p-4 last:border-b-0"><Skeleton className="h-4 w-24" /><Skeleton className="h-4 w-3/5" /></div>)}</div>
+      <TableSkeleton rows={4} columns={2} />
     </LoadingMain>
   );
 }
@@ -446,7 +452,7 @@ export function DetailLoadingSkeleton() {
     <LoadingMain className="layout-wide flex flex-col gap-6 py-6 sm:py-9">
       <div className="flex items-center gap-4"><Skeleton className="h-20 w-20 rounded-2xl" /><div className="flex-1 space-y-3"><Skeleton className="h-3 w-24" /><Skeleton className="h-8 w-52 max-w-full" /><Skeleton className="h-4 w-36" /></div></div>
       <div className="flex gap-2 border-b border-[var(--ui-border)] pb-2">{Array.from({ length: 4 }, (_, index) => <Skeleton key={index} className="h-9 w-20 rounded-lg" />)}</div>
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]"><section className="space-y-4"><Skeleton className="h-56 w-full rounded-2xl" /><div className="overflow-hidden rounded-xl border border-[var(--ui-border)]"><TableRows count={6} /></div></section><aside className="space-y-4"><Skeleton className="h-40 w-full rounded-2xl" /><Skeleton className="h-64 w-full rounded-2xl" /></aside></div>
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]"><section className="space-y-4"><Skeleton className="h-56 w-full rounded-2xl" /><TableSkeleton rows={6} columns={5} /></section><aside className="space-y-4"><Skeleton className="h-40 w-full rounded-2xl" /><Skeleton className="h-64 w-full rounded-2xl" /></aside></div>
     </LoadingMain>
   );
 }
@@ -474,7 +480,7 @@ export function PlayerDetailLoadingSkeleton() {
           <Skeleton className="mx-auto h-[280px] w-[280px] rounded-full" />
         </section>
       </div>
-      <section><SectionTitle width="w-20" /><Skeleton className="mt-3 h-[86px] w-full rounded-lg" /></section>
+      <section><SectionTitle width="w-20" /><TableSkeleton rows={1} columns={5} className="mt-3" /></section>
     </LoadingMain>
   );
 }
@@ -483,7 +489,9 @@ export function MatchSetSkeleton() {
   return (
     <div className="flex w-full flex-col gap-5" aria-label="세트 데이터 불러오는 중" aria-busy="true">
       <section><div className="mb-3 flex items-end justify-between"><SectionTitle width="w-24" /><Skeleton className="h-3 w-20" /></div><div className="overflow-hidden rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)]"><div className="grid grid-cols-2 gap-2 p-2 sm:gap-3 sm:p-3">{Array.from({ length: 2 }, (_, index) => <div key={index} className="flex items-center gap-2 rounded-md bg-[var(--ui-card-bg)] px-2.5 py-2.5"><Skeleton className="h-8 w-8 rounded-full sm:h-10 sm:w-10" /><div className="min-w-0 flex-1 space-y-1.5"><Skeleton className="h-3 w-4/5" /><Skeleton className="h-2.5 w-8" /></div><Skeleton className="h-6 w-5" /></div>)}</div><div className="grid grid-cols-2 gap-2 bg-[var(--ui-surface-muted)]/20 px-2 py-3">{Array.from({ length: 2 }, (_, side) => <div key={side} className="grid grid-cols-5 gap-1">{Array.from({ length: 5 }, (_, index) => <Skeleton key={index} className="aspect-square w-full rounded" />)}</div>)}</div><div className="grid grid-cols-[minmax(0,1fr)_3.5rem_minmax(0,1fr)] items-center border-t border-[var(--ui-border)] px-2 py-3"><div className="grid grid-cols-3 gap-2">{Array.from({ length: 6 }, (_, index) => <Skeleton key={index} className="h-5 w-full" />)}</div><Skeleton className="mx-auto h-3 w-10" /><div className="grid grid-cols-3 gap-2">{Array.from({ length: 6 }, (_, index) => <Skeleton key={index} className="h-5 w-full" />)}</div></div><div className="grid grid-cols-[minmax(0,1fr)_2.5rem_minmax(0,1fr)] items-center border-t border-[var(--ui-border)] px-2 py-3"><Skeleton className="h-2 w-full" /><Skeleton className="mx-auto h-3 w-8" /><Skeleton className="h-2 w-full" /></div></div></section>
-      <section><SectionTitle width="w-20" /><div className="mt-4 overflow-hidden rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)]">{Array.from({ length: 10 }, (_, index) => <div key={index} className="grid grid-cols-[2rem_minmax(0,1fr)_3.5rem] items-center gap-2 border-b border-[var(--ui-border)] px-3 py-2 last:border-b-0 sm:grid-cols-[2rem_minmax(0,1fr)_4rem_4rem_5rem]"><Skeleton className="h-8 w-8 rounded-full" /><div className="space-y-1.5"><Skeleton className="h-3.5 w-3/4" /><Skeleton className="h-2.5 w-1/2" /></div><Skeleton className="h-3.5 w-full" /><Skeleton className="hidden h-3.5 w-full sm:block" /><Skeleton className="hidden h-5 w-full sm:block" /></div>)}</div></section>
+      <section><SectionTitle width="w-20" /><div className="mt-4 space-y-3">
+        {Array.from({ length: 2 }, (_, group) => <TableSkeleton key={group} rows={5} columns={7} rowClassName="h-[58px]" cellClassNames={["", "", "hidden min-[1280px]:table-cell", "hidden min-[1280px]:table-cell", "hidden min-[1280px]:table-cell", "hidden min-[1280px]:table-cell", ""]} />)}
+      </div></section>
       <Skeleton className="h-40 w-full rounded-xl" />
     </div>
   );

@@ -10,7 +10,7 @@ import { RailAdContent } from "@/components/ads/rail-ad-content";
 import { AdSlot } from "@/components/ui/ad-slot";
 
 import { EventFilterHeader } from "@/components/ui/event-filter-bar";
-import { DataTable } from "@/components/ui/data-table";
+import { DataTable, rankColumn } from "@/components/ui/data-table";
 import { TeamLogo } from "@/components/ui/team-logo";
 import { getAllPlayers, getAllTeams, getBracketStages, getMatches, getStages, getTournaments } from "@/lib/data/lck";
 import {
@@ -82,17 +82,10 @@ function GroupStandingsTable({
         <span className="font-paperozi text-[15px] leading-none text-[var(--ui-ink)]">{title}</span>
       </div>
       <DataTable
-        mobileSurface="flat"
         rows={rows}
         compact
         columns={[
-          {
-            key: "rank",
-            label: "순위",
-            headerClassName: "w-14",
-            cellClassName: "font-medium italic tabular-nums",
-            render: (row) => row.rank,
-          },
+          rankColumn(),
           {
             key: "team",
             label: "팀",
@@ -128,37 +121,32 @@ function GroupStandingsTable({
 function RegularStandingsTable({ rows }: { rows: ReturnType<typeof buildTeamStandingRows> }) {
   return (
     <DataTable
-      mobileSurface="flat"
-      mobileDense
       rows={rows}
-      dense
       emptyText="아직 등록된 경기가 없습니다."
       columns={[
+        rankColumn(),
         {
           key: "team",
-          label: "팀 순위",
-          headerClassName: "min-w-[18rem]",
-          cellClassName: "min-w-[18rem]",
+          label: "팀",
+          headerClassName: "min-w-48",
+          cellClassName: "min-w-48",
           render: (row) => (
-            <div className="flex items-center gap-2.5 md:gap-3">
-              <span className="w-6 shrink-0 text-center text-sm font-medium italic tabular-nums md:w-7 md:text-base">{row.rank}</span>
-              <Link
-                href={`/teams?team=${encodeURIComponent(row.team.fanSiteHost || row.team.slug)}`}
-                className="flex min-w-0 items-center gap-2 font-medium hover:text-accent"
-              >
-                {row.team.logoUrl ? (
-                  <TeamLogo team={row.team} size="h-6 w-6 md:h-7 md:w-7" plain themeAware />
-                ) : null}
-                <span className="truncate">{row.team.name}</span>
-              </Link>
-            </div>
+            <Link
+              href={`/teams?team=${encodeURIComponent(row.team.fanSiteHost || row.team.slug)}`}
+              className="flex min-w-0 items-center gap-2 font-medium hover:text-accent"
+            >
+              {row.team.logoUrl ? (
+                <TeamLogo team={row.team} size="h-6 w-6 md:h-7 md:w-7" plain themeAware />
+              ) : null}
+              <span className="truncate">{row.team.name}</span>
+            </Link>
           ),
         },
         { align: "center",
           key: "wins",
           label: "승",
           headerClassName: "",
-          cellClassName: "font-medium tabular-nums",
+          cellClassName: "tabular-nums",
           render: (row) => row.matchWins,
         },
         { align: "center",
@@ -190,34 +178,29 @@ function RegularStandingsTable({ rows }: { rows: ReturnType<typeof buildTeamStan
 function PomRankingTable({ rows }: { rows: PomRow[] }) {
   return (
     <DataTable
-      mobileSurface="flat"
-      mobileDense
       rows={rows}
-      dense
       emptyText="아직 선정된 POM이 없습니다."
       getRowHref={(row) => `/players/${row.player.slug}`}
       columns={[
+        rankColumn(),
         {
           key: "player",
           label: "선수",
-          headerClassName: "min-w-[18rem]",
-          cellClassName: "min-w-[18rem]",
+          headerClassName: "min-w-48",
+          cellClassName: "min-w-48",
           render: (row) => (
-            <div className="flex items-center gap-2 md:gap-3">
-              <span className="w-6 shrink-0 text-center text-sm font-medium italic tabular-nums md:w-7 md:text-base">{row.rank}</span>
-              <div className="flex min-w-0 items-center gap-2">
-                {row.player.profileImageUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={row.player.profileImageUrl}
-                    alt={row.player.name}
-                    className="h-6 w-6 shrink-0 rounded-full object-cover md:h-7 md:w-7"
-                  />
-                ) : null}
-                <div className="flex min-w-0 items-baseline gap-1 md:gap-1.5">
-                  <p className="truncate text-[13px] font-medium md:text-sm">{row.player.name}</p>
-                  <p className="truncate text-[13px] font-medium text-muted">{row.team?.shortName ?? "-"}</p>
-                </div>
+            <div className="flex min-w-0 items-center gap-2">
+              {row.player.profileImageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={row.player.profileImageUrl}
+                  alt={row.player.name}
+                  className="h-6 w-6 shrink-0 rounded-full object-cover md:h-7 md:w-7"
+                />
+              ) : null}
+              <div className="flex min-w-0 items-baseline gap-1 md:gap-1.5">
+                <p className="truncate text-[13px] font-medium md:text-sm">{row.player.name}</p>
+                <p className="truncate text-[13px] font-medium text-muted">{row.team?.shortName ?? "-"}</p>
               </div>
             </div>
           ),
@@ -226,7 +209,7 @@ function PomRankingTable({ rows }: { rows: PomRow[] }) {
           key: "points",
           label: "포인트",
           headerClassName: "",
-          cellClassName: "font-medium tabular-nums",
+          cellClassName: "tabular-nums",
           render: (row) => row.points,
         },
       ]}

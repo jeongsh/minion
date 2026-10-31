@@ -148,15 +148,14 @@ export function RecentMatchSetRows({
   );
 
   return (
-    <article className={variant === "embedded" ? "min-w-0 overflow-hidden rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)]" : "overflow-hidden rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)]"}>
+    <article className="min-w-0 overflow-hidden rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)]">
       {matchHeader}
 
       {tableRows.length === 0 ? (
         <div className={variant === "embedded" ? "py-4 text-sm text-[var(--ui-muted)]" : "px-4 py-4 text-sm text-[var(--ui-muted)]"}>이 매치에 연결된 선수 세트 기록이 없습니다.</div>
       ) : (
         <PlayerStatTable
-          className={variant === "embedded" ? "" : "p-2"}
-          framed={variant !== "embedded"}
+          framed={false}
           groups={[
             {
               id: match.id,

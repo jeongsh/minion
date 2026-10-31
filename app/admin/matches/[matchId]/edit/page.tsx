@@ -236,7 +236,7 @@ export default async function AdminMatchEditPage({
             {
               key: "set",
               label: "세트",
-              render: (row) => <span className="font-semibold text-foreground">{row.setNumber}세트</span>,
+              render: (row) => <span className="font-medium text-foreground">{row.setNumber}세트</span>,
             },
             { key: "status", label: "상태", render: (row) => setStatusLabel(row.status) },
             { key: "winner", label: "승리 팀", render: (row) => teamLabel(teams, row.winnerTeamId) },

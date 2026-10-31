@@ -8,6 +8,9 @@ import { ALL_SEGMENTS } from "@/lib/tournaments/segment-nav";
 import { matchesTournamentSegment } from "@/lib/tournaments/season-2026";
 
 import { HomeDashboard } from "@/components/domain/home-dashboard";
+import { HomeRatingTicker } from "@/components/domain/home-rating-ticker";
+import { HomeRatingTickerSkeleton } from "@/components/domain/home-rating-ticker-skeleton";
+import { getHomeRatingReviews } from "@/lib/data/home-rating-reviews";
 import { OnboardingDialog } from "@/components/auth/onboarding-dialog";
 import type { HomeCalendarMatch } from "@/components/domain/home-calendar";
 import type { HomeMatchItem } from "@/components/domain/home-match-card";
@@ -80,6 +83,7 @@ export default async function HomePage({
   const forceOnboarding = onboardingMode === "debug";
   const onboardingNext = safeOnboardingNext(params.next);
   const homeDataPromise = getMobileHomePublicData();
+  const ratingReviewsPromise = getHomeRatingReviews();
   const newsPromise = getHomeNewsFeed(6);
   const insightsPromise = getHomeInsights().catch(error => { console.error("Home insights unavailable", error); return null; });
   const marketPromise = homeDataPromise.then(data => getPredictionMarketData(undefined, undefined, selectHomeMatches(data.matches, dateKeyKST(new Date())).map(match => match.id), false));
@@ -223,6 +227,7 @@ export default async function HomePage({
       tournamentOverview={tournamentOverview}
       tournamentOptions={tournamentOptions}
       matchItems={matchItems}
+      ratingTicker={<Suspense fallback={<HomeRatingTickerSkeleton className="mt-3" />}><DeferredHomeRatingTicker data={ratingReviewsPromise} /></Suspense>}
       calendarMonthKey={calendarMonthKey}
       calendarTodayKey={todayKey}
       calendarMatches={calendarClientMatches}
@@ -248,6 +253,16 @@ async function DeferredHomeNews({ data }: { data: ReturnType<typeof getHomeNewsF
   const articles = feed.isFallback ? [] : feed.articles;
   scheduleNewsThumbnailWarmup(articles);
   return <HomeNewsSection articles={articles} />;
+}
+async function DeferredHomeRatingTicker({ data }: { data: ReturnType<typeof getHomeRatingReviews> }) {
+  let items;
+  try {
+    items = await data;
+  } catch (error) {
+    console.error("Home rating reviews unavailable", error);
+    return null;
+  }
+  return <HomeRatingTicker items={items} />;
 }
 async function DeferredHomeInsights({ data }: { data: Promise<Awaited<ReturnType<typeof getHomeInsights>> | null> }) {
   const insights = await data;

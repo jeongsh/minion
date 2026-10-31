@@ -120,7 +120,7 @@ function LiveMatchCard({ match, onOpen, onClose }: { match: LiveMatchActivity; o
         href={match.href}
         onClick={onOpen}
         className="flex min-w-0 flex-1 items-center gap-2 rounded-l-xl px-4 py-2.5 transition-colors hover:bg-[var(--ui-card-hover)]"
-        aria-label={`${match.teamA.shortName} 대 ${match.teamB.shortName} 실시간 경기 바로 보기`}
+        aria-label={`${match.teamA.shortName} 대 ${match.teamB.shortName} 라이브 경기 바로 보기`}
       >
         <span className="flex shrink-0 items-center gap-1 text-[12px] font-medium text-[#e51643]">
           <span className="h-1.5 w-1.5 animate-pulse rounded-full !bg-[#ff3158]" />

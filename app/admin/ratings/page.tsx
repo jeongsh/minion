@@ -19,7 +19,7 @@ export default async function AdminRatingsPage({ searchParams }: { searchParams:
         rows={listPage.rows}
         columns={[
           { key: "player", label: "선수", render: (row) => row.playerName },
-          { key: "rating", label: "평점", render: (row) => formatFanRating(row.rating) },
+          { key: "rating", label: "평점", align: "center", render: (row) => formatFanRating(row.rating) },
           { key: "review", label: "리뷰", render: (row) => row.review },
           { key: "created", label: "작성일", render: (row) => new Date(row.createdAt).toLocaleDateString("ko-KR") },
         ]}

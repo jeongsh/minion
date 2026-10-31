@@ -188,7 +188,7 @@ export function CareerHistoryPanel({
         type="button"
         ref={triggerRef}
         onClick={() => setOpen((v) => !v)}
-        className="flex shrink-0 items-center gap-1 whitespace-nowrap rounded border border-border px-2 py-1 text-[13px] font-semibold hover:bg-surface-muted"
+        className="flex shrink-0 items-center gap-1 whitespace-nowrap rounded border border-border px-2 py-1 text-[13px] font-medium hover:bg-surface-muted"
       >
         경력 {mine.length > 0 && <span className="text-accent">({mine.length})</span>}
         <span className="text-muted">{open ? "▲" : "▼"}</span>

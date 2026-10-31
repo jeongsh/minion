@@ -111,6 +111,7 @@ export default async function AdminMatchesPage({
             },
             {
               key: "score",
+              align: "center",
               label: "스코어",
               render: (row) => `${row.teamAScore ?? "-"} : ${row.teamBScore ?? "-"}`,
             },
@@ -122,13 +123,13 @@ export default async function AdminMatchesPage({
                 <div className="flex items-center gap-2">
                   <Link
                     href={matchHref(row)}
-                    className="rounded-md border border-border px-3 py-1.5 text-sm font-semibold hover:bg-surface-muted"
+                    className="rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-surface-muted"
                   >
                     상세
                   </Link>
                   <Link
                     href={`/admin/matches/${matchRouteId(row)}/edit`}
-                    className="rounded-md border border-border px-3 py-1.5 text-sm font-semibold hover:bg-surface-muted"
+                    className="rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-surface-muted"
                   >
                     수정
                   </Link>

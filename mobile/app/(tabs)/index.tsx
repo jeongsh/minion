@@ -158,9 +158,25 @@ function PomSection({ cardWidth, items }: { cardWidth: number; items: MobileHome
 
 function TeamChannels({ teams }: { teams: MobileHomeDto['teams'] }) {
   const router = useRouter();
-  const { width } = useWindowDimensions();
-  const ordered = HOME_TEAM_ORDER.map((key) => teams.find((team) => team.fanSiteHost === key || team.slug === key)).filter((team): team is NonNullable<typeof team> => Boolean(team));
-  return <View><SectionHeader action={() => router.navigate('/teams')} title="팀 채널" /><View style={styles.teamGrid}>{ordered.map((team) => <Pressable accessibilityLabel={`${team.shortName} 팬페이지`} key={team.id} onPress={() => router.navigate(`/fan/${team.fanSiteHost || team.slug}` as never)} style={[styles.teamButton, { width: (width - 64) / 5 }]}><TeamLogo size={44} team={team} themeAware /></Pressable>)}</View></View>;
+  return (
+    <View>
+      <SectionHeader action={() => router.navigate('/teams')} title="팀 채널" />
+      <View style={styles.teamGrid}>
+        {[0, 5].map((start) => (
+          <View key={start} style={styles.teamRow}>
+            {HOME_TEAM_ORDER.slice(start, start + 5).map((key) => {
+              const team = teams.find((entry) => entry.fanSiteHost === key || entry.slug === key);
+              return team ? (
+                <Pressable accessibilityLabel={`${team.shortName} 팬페이지`} key={team.id} onPress={() => router.navigate(`/fan/${team.fanSiteHost || team.slug}` as never)} style={styles.teamButton}>
+                  <TeamLogo size={44} team={team} themeAware />
+                </Pressable>
+              ) : <View key={key} style={styles.teamButton} />;
+            })}
+          </View>
+        ))}
+      </View>
+    </View>
+  );
 }
 
 function MediaImage({ height, radius, url, width = '100%' }: { height: number; radius: number; url?: string | null; width?: number | '100%' }) {
@@ -216,8 +232,9 @@ const styles = StyleSheet.create({
   postTitleRow: { alignItems: 'center', flexDirection: 'row', gap: 6 },
   section40: { marginTop: 40 },
   section24: { marginTop: 24 },
-  teamButton: { alignItems: 'center' },
-  teamGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  teamButton: { alignItems: 'center', flex: 1, minWidth: 0 },
+  teamGrid: { gap: 8 },
+  teamRow: { flexDirection: 'row', gap: 8 },
   timePill: { alignItems: 'center', backgroundColor: '#18191c', borderRadius: 6, flexDirection: 'row', gap: 6, paddingHorizontal: 10, paddingVertical: 6 },
   tournamentLogo: { height: 18, width: 18 },
   tournamentMeta: { alignItems: 'center', flex: 1, flexDirection: 'row', gap: 6, minWidth: 0 },

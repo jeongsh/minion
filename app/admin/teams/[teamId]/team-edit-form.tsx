@@ -164,10 +164,10 @@ export function TeamEditForm({
         {histories.length === 0 ? (
           <p className="mt-4 text-sm text-muted">등록된 변경 이력이 없습니다.</p>
         ) : (
-          <div className="mt-4 overflow-x-auto">
-            <Table className="w-full min-w-[36rem]">
+
+            <Table className="min-w-[36rem]" containerClassName="mt-4">
               <TableHeader>
-                <TableRow className="border-b border-border text-left text-muted">
+                <TableRow>
                   <TableHead >팀명</TableHead>
                   <TableHead >스폰서</TableHead>
                   <TableHead >slug</TableHead>
@@ -177,13 +177,13 @@ export function TeamEditForm({
               </TableHeader>
               <TableBody>
                 {histories.map((history) => (
-                  <TableRow key={history.id} className="border-b border-border/50 last:border-0">
+                  <TableRow key={history.id}>
                     <TableCell >
                       <p className="font-medium">{history.name}</p>
                       <p className="text-[13px] text-muted">{history.shortName}</p>
                     </TableCell>
                     <TableCell className="text-muted">{history.sponsorName ?? "-"}</TableCell>
-                    <TableCell className="font-mono">{history.slug}</TableCell>
+                    <TableCell>{history.slug}</TableCell>
                     <TableCell className="text-muted">
                       {history.effectiveFrom}
                       {" ~ "}
@@ -194,7 +194,7 @@ export function TeamEditForm({
                 ))}
               </TableBody>
             </Table>
-          </div>
+
         )}
 
         {showHistoryForm ? (

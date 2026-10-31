@@ -1,4 +1,4 @@
-import { Bell, ChevronRight, FileText, LockKeyhole, LogOut, ShieldBan, Sticker, UserRound } from "lucide-react";
+import { Bell, ChartNoAxesCombined, ChevronRight, FileText, LockKeyhole, LogOut, ShieldBan, Sticker, UserRound } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -35,6 +35,7 @@ const SOCIAL_PROVIDER_LABELS: Record<string, string> = {
 const MANAGE_LINKS = [
   { href: "#profile", label: "프로필", mobileLabel: "프로필", icon: UserRound },
   { href: "/me/minicons", label: "내 미니콘", mobileLabel: "미니콘", icon: Sticker },
+  { href: "/predictions/report", label: "내 예측 리포트", mobileLabel: "내 예측 리포트", icon: ChartNoAxesCombined },
   { href: "#notifications", label: "알림", mobileLabel: "알림", icon: Bell },
   { href: "#blocks", label: "차단 관리", mobileLabel: "차단 관리", icon: ShieldBan },
   { href: "#account", label: "계정 및 보안", mobileLabel: "계정·보안", icon: LockKeyhole },
