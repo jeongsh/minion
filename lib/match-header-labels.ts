@@ -1,4 +1,5 @@
-import { compactTournamentName } from "../packages/contracts/src/tournament-label.ts";
+import { compactTournamentName, tournamentDisplayLabel } from "../packages/contracts/src/tournament-label.ts";
+import { matchStageLabel } from "./match-display.ts";
 
 function normalizeSpaces(value: string) {
   return value.replace(/\s+/g, " ").trim();
@@ -8,7 +9,9 @@ export function compactMatchTournamentName(name: string) {
   return compactTournamentName(name);
 }
 
-export function compactMatchStageName(name: string) {
+export function compactMatchStageName(name: string, tournament?: Parameters<typeof matchStageLabel>[1]) {
+  const label = matchStageLabel(name, tournament);
+  if (tournamentDisplayLabel(tournament) === "Worlds") return label;
   return normalizeSpaces(
     name
       .replace(/\bGrand Finals?\b/gi, "Final")

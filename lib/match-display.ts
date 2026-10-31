@@ -1,5 +1,7 @@
 import { tournamentDisplayLabel } from "../packages/contracts/src/tournament-label.ts";
 import type { Match, Stage } from "@/lib/types";
+import { formatWorldsStageLabel } from "./tournaments/worlds.ts";
+import { formatBracketColumnLabel } from "./tournaments/bracket.ts";
 
 /**
  * 매치가 '경기중'인지 판단한다.
@@ -47,8 +49,13 @@ export const tournamentTypeLabel = tournamentDisplayLabel;
 /** 스테이지명 조회 */
 export function stageName(stages: Stage[], stageId: string, tournament?: Parameters<typeof tournamentDisplayLabel>[0]) {
   const name = stages.find((stage) => stage.id === stageId)?.name ?? "-";
+  return matchStageLabel(name, tournament);
+}
+
+/** 대회 페이지와 같은 월즈 단계 표기를 사용한다. */
+export function matchStageLabel(name: string, tournament?: Parameters<typeof tournamentDisplayLabel>[0]) {
   if (tournamentDisplayLabel(tournament) === "Worlds") {
-    return name.replace(/^main\s+event\s*-\s*round\s+[1-5]\s*$/i, "스위스 스테이지");
+    return formatWorldsStageLabel(formatBracketColumnLabel(name));
   }
   return name;
 }

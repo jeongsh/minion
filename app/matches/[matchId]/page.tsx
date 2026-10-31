@@ -34,7 +34,7 @@ import {
 } from "@/lib/data/lck";
 import { championImage, pickerChampions } from "@/lib/champions";
 import type { Champion, FanRating, Match, Player, PlayerStatLine, SetResult, Team } from "@/lib/types";
-import { isMatchFinished, isMatchLive, matchStatusLabel } from "@/lib/match-display";
+import { isMatchFinished, isMatchLive, matchStatusLabel, matchStageLabel } from "@/lib/match-display";
 import {
   getSetRatingStartedAt,
   isSetRatingOpen,
@@ -641,8 +641,8 @@ export default async function MatchDetailPage({
               </span>
             )}
             <span className="min-w-0 truncate text-right">
-              <span className="sm:hidden">{compactMatchStageName(stage?.name ?? "스테이지 미지정")}</span>
-              <span className="hidden sm:inline">{stage?.name ?? "스테이지 미지정"}</span>
+              <span className="sm:hidden">{compactMatchStageName(stage?.name ?? "스테이지 미지정", tournament)}</span>
+              <span className="hidden sm:inline">{matchStageLabel(stage?.name ?? "스테이지 미지정", tournament)}</span>
               {" · "}BO{match.bestOf ?? "-"}
             </span>
           </div>

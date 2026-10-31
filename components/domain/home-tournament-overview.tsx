@@ -8,15 +8,16 @@ import { DataTable, rankColumn } from "@/components/ui/data-table";
 import type { Match, Stage, Team } from "@/lib/types";
 import type { HomeTournamentOverview as Overview } from "@/lib/tournaments/home-overview";
 import { formatBracketColumnLabel } from "@/lib/tournaments/bracket";
+import { formatWorldsStageLabel } from "@/lib/tournaments/worlds";
 import { formatDateTime, matchHref } from "@/lib/view-data";
 
 import { summarizeHomeBracket } from "@/lib/tournaments/home-overview";
 
-function MatchSummary({ match, stage, teamMap }: { match: Match; stage: Stage; teamMap: Map<string, Team> }) {
+function MatchSummary({ match, stage, teamMap, worlds }: { match: Match; stage: Stage; teamMap: Map<string, Team>; worlds: boolean }) {
   return (
     <Link href={matchHref(match)} className="block min-w-0 rounded-lg px-3 py-2.5 transition-colors hover:bg-[var(--ui-card-hover)]">
       <div className="mb-2 flex min-w-0 items-center justify-between gap-2 text-[13px] font-medium text-[var(--ui-muted)]">
-        <span className="truncate">{formatBracketColumnLabel(stage.name)}</span>
+        <span className="truncate">{worlds ? formatWorldsStageLabel(formatBracketColumnLabel(stage.name)) : formatBracketColumnLabel(stage.name)}</span>
         <span className="shrink-0">{match.status === "live" ? "진행 중" : formatDateTime(match.matchDate)}</span>
       </div>
       <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
@@ -83,7 +84,7 @@ export function HomeTournamentOverview({ overview: initialOverview, options, tea
                 <TeamLogo team={champion} themeAware plain size="size-16" />
                 <div><p className="mb-1 text-[13px] font-medium text-[var(--ui-muted)]">{champion ? "우승" : "결승 종료"}</p><p className="text-2xl font-bold">{champion?.shortName ?? "결과 확인 중"}</p></div>
               </div>
-              <div className="rounded-xl bg-[var(--ui-surface)]"><MatchSummary {...summary.final} teamMap={teamMap} /></div>
+              <div className="rounded-xl bg-[var(--ui-surface)]"><MatchSummary {...summary.final} teamMap={teamMap} worlds={overview.href.startsWith("/tournaments/worlds?")} /></div>
             </div>
           ) : overview.columns.length > 0 ? (
             <div className="grid gap-4 sm:grid-cols-2">
@@ -91,7 +92,7 @@ export function HomeTournamentOverview({ overview: initialOverview, options, tea
                 <div key={panel.title} className="min-w-0">
                   <h3 className="mb-2 text-sm font-medium text-[var(--ui-muted)]">{panel.title}</h3>
                   <div className="min-h-[220px] rounded-xl bg-[var(--ui-surface)]">
-                    {panel.entries.length > 0 ? panel.entries.map((entry) => <MatchSummary key={entry.match.id} {...entry} teamMap={teamMap} />)
+                    {panel.entries.length > 0 ? panel.entries.map((entry) => <MatchSummary key={entry.match.id} {...entry} teamMap={teamMap} worlds={overview.href.startsWith("/tournaments/worlds?")} />)
                       : <p className="px-3 py-5 text-base text-[var(--ui-muted)]">{panel.title === "최근 결과" ? "아직 종료된 경기가 없습니다." : "등록된 경기가 없습니다."}</p>}
                   </div>
                 </div>

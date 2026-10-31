@@ -1,5 +1,6 @@
 import { buildHomeTournamentOverview, summarizeHomeBracket } from "@/lib/tournaments/home-overview";
 import { formatBracketColumnLabel } from "@/lib/tournaments/bracket";
+import { formatWorldsStageLabel } from "@/lib/tournaments/worlds";
 import { toMobileMatch, toMobileTeam } from "@/lib/mobile/api-response";
 import type { MobileHomeTournamentOverview } from "@/packages/contracts/src/mobile-v1";
 
@@ -9,7 +10,7 @@ export function mobileHomeOverview(input: Parameters<typeof buildHomeTournamentO
   const teams = new Map(input.teams.map((team) => [team.id, team]));
   const tournaments = new Map(input.tournaments.map((tournament) => [tournament.id, tournament]));
   const summary = summarizeHomeBracket(overview.columns);
-  const entry = ({ stage, match }: NonNullable<typeof summary.final>) => ({ stage: formatBracketColumnLabel(stage.name), match: toMobileMatch(match, teams, tournaments) });
+  const entry = ({ stage, match }: NonNullable<typeof summary.final>) => ({ stage: overview.href.startsWith("/tournaments/worlds?") ? formatWorldsStageLabel(formatBracketColumnLabel(stage.name)) : formatBracketColumnLabel(stage.name), match: toMobileMatch(match, teams, tournaments) });
   const groups = overview.groups.length === 1
     ? [0, 1].map((column) => ({ ...overview.groups[0], title: "", rows: overview.groups[0].rows.slice(column * 5, (column + 1) * 5) })).filter((group) => group.rows.length)
     : overview.groups.slice(0, 2).map((group) => ({ ...group, rows: group.rows.slice(0, 5) }));

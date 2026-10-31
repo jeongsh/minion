@@ -341,7 +341,7 @@ export async function GET(request: Request, context: { params: Promise<{ matchId
       pomPlayer: pomPlayer
         ? { id: pomPlayer.id, name: pomPlayer.name, position: pomPlayer.position, profileImage: pomPlayer.profileImageUrl ? { url: pomPlayer.profileImageUrl } : null, slug: pomPlayer.slug, teamId: pomPlayer.teamId }
         : null,
-      stageName: compactMatchStageName(stage?.name ?? "스테이지 미지정"),
+      stageName: compactMatchStageName(stage?.name ?? "스테이지 미지정", tournament),
       statusLabel: matchStatusLabel(isMatchLive(match) ? "live" : match.status),
       tournamentName: compactMatchTournamentName(tournament?.name ?? "대회 미지정"),
     },
