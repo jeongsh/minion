@@ -6,7 +6,7 @@ import { createContext, type PropsWithChildren, useCallback, useContext, useEffe
 import { AppState, Platform } from 'react-native';
 
 import type { MobileBootstrapDto } from '../../packages/contracts/src/mobile-v1';
-import { clearApiMemoryCache, fetchMobileApi, mobileApiOrigin, resetApiSessionRead } from '@/lib/api-client';
+import { clearApiMemoryCache, fetchMobileQuery, mobileApiOrigin, resetApiSessionRead } from '@/lib/api-client';
 import { syncPushTokenIfAuthorized, unregisterPushToken } from '@/lib/push-notifications';
 import { getInstallationId, setAuthReturnTo, takeAuthReturnTo } from '@/lib/secure-storage';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
@@ -98,40 +98,48 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const handledUrls = useRef(new Set<string>());
   const cacheUserId = useRef<string | null>(null);
   const viewerRevision = useRef(0);
+  const viewerRequest = useRef<{ userId: string; revision: number; promise: Promise<void> } | null>(null);
 
-  const refreshViewer = useCallback(async () => {
-    const revision = ++viewerRevision.current;
+  const refreshViewer = useCallback((reuseExisting = false) => {
     const requestedUserId = cacheUserId.current;
-    if (!requestedUserId) return;
-    try {
-      const bootstrap = await fetchMobileApi<MobileBootstrapDto>('/api/mobile/v1/bootstrap', undefined, { fresh: true });
-      if (cacheUserId.current !== requestedUserId || viewerRevision.current !== revision) return;
-      if (bootstrap.viewer?.id === requestedUserId) {
-        setViewer(bootstrap.viewer);
-        return;
+    if (!requestedUserId) return Promise.resolve();
+    if (reuseExisting && viewerRequest.current?.userId === requestedUserId && viewerRequest.current.revision === viewerRevision.current) return viewerRequest.current.promise;
+    const revision = ++viewerRevision.current;
+    const promise = (async () => {
+      try {
+        const path = '/api/mobile/v1/bootstrap';
+        const bootstrap = await fetchMobileQuery<MobileBootstrapDto>(path, `${path}#viewer=${requestedUserId}#refresh=${revision}`, false, true);
+        if (cacheUserId.current !== requestedUserId || viewerRevision.current !== revision) return;
+        if (bootstrap.viewer?.id === requestedUserId) {
+          setViewer(bootstrap.viewer);
+          return;
+        }
+      } catch {
+        // The account shell still works if the Next.js API is unreachable.
       }
-    } catch {
-      // Fall through to Supabase so the account shell is not coupled to the
-      // local Next.js API being reachable from the device.
-    }
 
-    try {
-      const directViewer = await readViewerFromSupabase();
-      if (directViewer?.id === requestedUserId && cacheUserId.current === requestedUserId && viewerRevision.current === revision) setViewer(directViewer);
-    } catch {
-      // Keep the last known profile during a transient network failure.
-    }
+      try {
+        const directViewer = await readViewerFromSupabase();
+        if (directViewer?.id === requestedUserId && cacheUserId.current === requestedUserId && viewerRevision.current === revision) setViewer(directViewer);
+      } catch {
+        // Keep the last known profile during a transient network failure.
+      }
+    })().finally(() => {
+      if (viewerRequest.current?.promise === promise) viewerRequest.current = null;
+    });
+    viewerRequest.current = { userId: requestedUserId, revision, promise };
+    return promise;
   }, []);
 
   // Session establishment can happen after the initial getSession (OAuth,
   // restored session). Fetch outside onAuthStateChange's auth lock.
   const sessionUserId = session?.user.id;
   useEffect(() => {
-    if (sessionUserId) void refreshViewer();
+    if (sessionUserId) void refreshViewer(true);
   }, [refreshViewer, sessionUserId]);
 
   const finishLogin = useCallback(async () => {
-    await refreshViewer();
+    await refreshViewer(true);
     void syncPushTokenIfAuthorized();
     const returnTo = await takeAuthReturnTo();
     router.replace(returnTo as never);
@@ -169,7 +177,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     const appState = AppState.addEventListener('change', (state) => {
       if (state === 'active') {
         supabase.auth.startAutoRefresh();
-        void refreshViewer();
+        void refreshViewer(true);
       } else supabase.auth.stopAutoRefresh();
     });
     const auth = supabase.auth.onAuthStateChange((_event, nextSession) => {
@@ -191,7 +199,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       // Route queries need the session; profile and push setup can finish later.
       setLoading(false);
       if (data.session) {
-        await refreshViewer();
+        await refreshViewer(true);
         void syncPushTokenIfAuthorized();
       }
     }).catch(() => { setLoading(false); });

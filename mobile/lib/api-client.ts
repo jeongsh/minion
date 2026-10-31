@@ -68,7 +68,11 @@ function subscribeRequest<T>(request: QueryRequest, { signal, cancelOnUnused }: 
     const release = () => {
       signal.removeEventListener('abort', release);
       request.subscribers.delete(signal);
-      if (!request.settled && !request.keepAlive && request.subscribers.size === 0) request.controller.abort();
+      // A focus/resume or StrictMode effect replacement can reattach to the
+      // same query in this flush. Abort only if it still has no consumer then.
+      if (!request.settled && !request.keepAlive && request.subscribers.size === 0) queueMicrotask(() => {
+        if (!request.settled && !request.keepAlive && request.subscribers.size === 0) request.controller.abort();
+      });
     };
     signal.addEventListener('abort', release, { once: true });
     void request.promise.then(release, release);

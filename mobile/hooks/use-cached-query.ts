@@ -31,21 +31,23 @@ export function useCachedQuery<T>(path: string, options: { enabled?: boolean; ca
 
   useLayoutEffect(() => { refreshIntent.setKey(key); }, [key, refreshIntent]);
   const refresh = useCallback(() => setRequestVersion(refreshIntent.request()), [refreshIntent]);
+  const revalidate = useCallback(() => setRequestVersion(refreshIntent.request(staleTimeMs <= 0)), [refreshIntent, staleTimeMs]);
 
-  // Mark the next load fresh before its effect runs, avoiding a second focus request.
+  // Focus respects an explicit cache lifetime. Pull-to-refresh and invalidation
+  // still request fresh data, including on screens that use a cache lifetime.
   useLayoutEffect(() => {
-    if (enabled && refreshOnFocus) refreshIntent.request();
-  }, [enabled, key, refreshIntent, refreshOnFocus]);
+    if (enabled && refreshOnFocus) refreshIntent.request(staleTimeMs <= 0);
+  }, [enabled, key, refreshIntent, refreshOnFocus, staleTimeMs]);
 
   useEffect(() => {
     if (!enabled || !refreshOnFocus) return;
     let previous = AppState.currentState;
     const subscription = AppState.addEventListener('change', (state) => {
-      if (state === 'active' && previous !== 'active') refresh();
+      if (state === 'active' && previous !== 'active') revalidate();
       previous = state;
     });
     return () => subscription.remove();
-  }, [enabled, refresh, refreshOnFocus]);
+  }, [enabled, refreshOnFocus, revalidate]);
 
   useEffect(() => subscribeApiCacheInvalidation((pathPrefix) => {
     if (path.startsWith(pathPrefix)) refresh();
@@ -105,5 +107,5 @@ export function useCachedQuery<T>(path: string, options: { enabled?: boolean; ca
   const awaitingCurrentPath = enabled && currentData === null && currentError === null;
 
   const displayedData = currentData ?? (options.keepPreviousData && dataPath !== key ? data : null);
-  return { data: displayedData, error: currentError, loading: awaitingCurrentPath, refresh, refreshing: enabled && refreshing };
+  return { data: displayedData, error: currentError, loading: awaitingCurrentPath, refresh, revalidate, refreshing: enabled && refreshing };
 }

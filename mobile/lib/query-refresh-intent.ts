@@ -2,18 +2,18 @@
 export function createQueryRefreshIntent(initialKey: string) {
   let currentKey = initialKey;
   let version = 0;
-  let pending: { key: string; version: number } | null = null;
+  let pending: { key: string; version: number; fresh: boolean } | null = null;
 
   return {
     setKey(key: string) { currentKey = key; },
-    request() {
-      pending = { key: currentKey, version: ++version };
+    request(fresh = true) {
+      pending = { key: currentKey, version: ++version, fresh: fresh || Boolean(pending?.key === currentKey && pending.fresh) };
       return version;
     },
     start(key: string) {
       const intent = pending?.key === key ? pending : null;
       return {
-        fresh: intent !== null,
+        fresh: intent?.fresh ?? false,
         finish(cancelled = false) {
           // StrictMode and obsolete-search cleanup can cancel a request before
           // it finishes. Its replacement must still bypass the HTTP cache.

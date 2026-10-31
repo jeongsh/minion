@@ -1,14 +1,14 @@
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import Bell from 'lucide-react-native/icons/bell';
 import ChevronRight from 'lucide-react-native/icons/chevron-right';
 import Heart from 'lucide-react-native/icons/heart';
 import MessageCircle from 'lucide-react-native/icons/message-circle';
 import Star from 'lucide-react-native/icons/star';
 import ThumbsUp from 'lucide-react-native/icons/thumbs-up';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, AppState, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
 import { ContentBanner } from '@/components/ads/content-banner';
 import { TeamLogo } from '@/components/data/team-logo';
@@ -43,22 +43,7 @@ export function FanPage({ section }: { section: FanPageSection }) {
   const params = useLocalSearchParams<{ team?: string | string[] }>();
   const teamSlug = Array.isArray(params.team) ? params.team[0] : params.team;
   const path = teamSlug ? `/api/mobile/v1/teams/${encodeURIComponent(teamSlug)}?section=${section}` : '/api/mobile/v1/teams/__missing__';
-  const { data, error, loading, refresh, refreshControl } = useScreenQuery<MobileTeamDetailDto>(path, { refreshOnFocus: false, enabled: Boolean(teamSlug) });
-  const focusedOnce = useRef(false);
-
-  useFocusEffect(
-    useCallback(() => {
-      if (!focusedOnce.current) {
-        focusedOnce.current = true;
-      } else {
-        refresh();
-      }
-      const subscription = AppState.addEventListener('change', (state) => {
-        if (state === 'active') refresh();
-      });
-      return () => subscription.remove();
-    }, [refresh]),
-  );
+  const { data, error, loading, refresh, refreshControl } = useScreenQuery<MobileTeamDetailDto>(path, { enabled: Boolean(teamSlug) });
 
   if (loading && !data) return <MinionScreen refreshControl={refreshControl} contentStyle={styles.screenContent}><FanLoadingSkeleton section={section} /></MinionScreen>;
   if (error && !data) return <MinionScreen refreshControl={refreshControl} contentStyle={styles.screenContent}><View style={styles.error}><ErrorState onRetry={refresh} title={error} /></View></MinionScreen>;
@@ -164,8 +149,8 @@ function FanChannelHeader({ data }: { data: MobileTeamDetailDto }) {
   const fanPath = `/api/mobile/v1/teams/${encodeURIComponent(data.team.fanSiteHost)}/fan`;
   const notificationPath = `/api/mobile/v1/teams/${encodeURIComponent(data.team.fanSiteHost)}/notifications`;
   const cacheScope = session?.user.id ?? 'guest';
-  const { data: fanState, refresh: refreshFanState } = useCachedQuery<MobileTeamFanDto>(fanPath, { cache: false, cacheScope });
-  const { data: notificationState, refresh: refreshNotificationState } = useCachedQuery<MobileTeamNotificationDto>(notificationPath, { cache: false, cacheScope, enabled: Boolean(session) });
+  const { data: fanState, refresh: refreshFanState } = useCachedQuery<MobileTeamFanDto>(fanPath, { cache: false, cacheScope, refreshOnFocus: true });
+  const { data: notificationState, refresh: refreshNotificationState } = useCachedQuery<MobileTeamNotificationDto>(notificationPath, { cache: false, cacheScope, enabled: Boolean(session), refreshOnFocus: true });
   const [followingOverride, setFollowingOverride] = useState<boolean | null>(null);
   const [countOverride, setCountOverride] = useState<number | null>(null);
   const [notificationOverride, setNotificationOverride] = useState<boolean | null>(null);

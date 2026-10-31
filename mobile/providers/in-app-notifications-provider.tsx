@@ -1,11 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
-import { createContext, type PropsWithChildren, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { createContext, type PropsWithChildren, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import {
-  fetchMobileApi,
+  fetchMobileQuery,
   mutateMobileApi,
   type MobileCommunityNotificationsDto,
   type MobileMatchActivityDto,
@@ -82,7 +82,7 @@ function notificationAllowed(type: unknown, preferences: MobileNotificationPrefe
 
 export function InAppNotificationsProvider({ children }: PropsWithChildren) {
   const router = useRouter();
-  const { session } = useAuth();
+  const { loading: authLoading, session } = useAuth();
   const { showMatchEventToast, showToast } = useMinionTheme();
   const [hydrated, setHydrated] = useState(false);
   const [notifications, setNotifications] = useState<InAppNotification[]>([]);
@@ -99,6 +99,8 @@ export function InAppNotificationsProvider({ children }: PropsWithChildren) {
   const handledPushResponseIds = useRef(new Set<string>());
   const userId = session?.user.id ?? null;
   const identityScope = userId ? `user:${userId}` : 'guest';
+  const currentIdentityScope = useRef(identityScope);
+  useLayoutEffect(() => { currentIdentityScope.current = identityScope; }, [identityScope]);
   const notificationStorageKey = userId ? `${NOTIFICATION_STORAGE_KEY_PREFIX}:${userId}` : null;
 
   useEffect(() => {
@@ -182,12 +184,17 @@ export function InAppNotificationsProvider({ children }: PropsWithChildren) {
     return () => { active = false; };
   }, [notificationStorageKey]);
 
+  const requestCommunityNotifications = useCallback(() => {
+    const path = '/api/mobile/v1/notifications';
+    return fetchMobileQuery<MobileCommunityNotificationsDto>(path, `${path}#viewer=${identityScope}`, false, true);
+  }, [identityScope]);
   const loadCommunityNotifications = useCallback(async () => {
-    const data = await fetchMobileApi<MobileCommunityNotificationsDto>('/api/mobile/v1/notifications');
-    setCommunityNotifications(data.notifications as InAppNotification[]);
-  }, []);
+    const data = await requestCommunityNotifications();
+    if (currentIdentityScope.current === identityScope) setCommunityNotifications(data.notifications as InAppNotification[]);
+  }, [identityScope, requestCommunityNotifications]);
 
   useEffect(() => {
+    if (authLoading) return;
     let active = true;
     queueMicrotask(() => {
       if (!active) return;
@@ -196,7 +203,7 @@ export function InAppNotificationsProvider({ children }: PropsWithChildren) {
     });
     const load = async () => {
       try {
-        const data = await fetchMobileApi<MobileCommunityNotificationsDto>('/api/mobile/v1/notifications');
+        const data = await requestCommunityNotifications();
         if (active) setCommunityNotifications(data.notifications as InAppNotification[]);
       } catch {
         // 알림 조회 실패가 앱 탐색을 막지 않게 하고 다음 폴링에서 다시 시도한다.
@@ -215,7 +222,7 @@ export function InAppNotificationsProvider({ children }: PropsWithChildren) {
       clearInterval(interval);
       appState.remove();
     };
-  }, [identityScope, userId]);
+  }, [authLoading, identityScope, requestCommunityNotifications, userId]);
 
   useEffect(() => {
     if (!hydrated || !userId) return;
@@ -293,7 +300,8 @@ export function InAppNotificationsProvider({ children }: PropsWithChildren) {
     let active = true;
     const loadActivity = async () => {
       try {
-        const next = await fetchMobileApi<MobileMatchActivityDto>('/api/mobile/v1/me/match-activity');
+        const path = '/api/mobile/v1/me/match-activity';
+        const next = await fetchMobileQuery<MobileMatchActivityDto>(path, `${path}#viewer=${userId}`, false, true);
         if (!active) return;
         const preferences = next.notificationPreferences;
         preferencesRef.current = preferences;

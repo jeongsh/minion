@@ -1,13 +1,13 @@
 import { Image } from 'expo-image';
 import * as Linking from 'expo-linking';
-import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import Check from 'lucide-react-native/icons/check';
 import ChevronDown from 'lucide-react-native/icons/chevron-down';
 import ListFilter from 'lucide-react-native/icons/list-filter';
 import Search from 'lucide-react-native/icons/search';
 import X from 'lucide-react-native/icons/x';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AppState, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { BottomSheet } from '@/components/bottom-sheet';
 import { TeamLogo } from '@/components/data/team-logo';
@@ -16,7 +16,8 @@ import { MinionScreen } from '@/components/minion-screen';
 import { useScreenQuery } from '@/hooks/use-screen-query';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import { minionSize } from '@/constants/minion-theme';
-import { mobileApiOrigin, resolveApiAssetUrl, type MobileNewsDto, type MobileNewsItem } from '@/lib/api-client';
+import { resolveApiAssetUrl, type MobileNewsDto, type MobileNewsItem } from '@/lib/api-client';
+import { resolveNewsMetadata } from '@/lib/news-metadata';
 
 function first(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] ?? '' : value ?? '';
@@ -40,22 +41,7 @@ export function NewsScreen() {
   if (selectedTeam) apiParams.set('team', selectedTeam);
   if (query) apiParams.set('q', query);
   const path = `/api/mobile/v1/news?${apiParams.toString()}`;
-  const { data, error, loading, refresh, refreshControl } = useScreenQuery<MobileNewsDto>(path, { refreshOnFocus: false });
-  const focusedOnce = useRef(false);
-
-  useFocusEffect(
-    useCallback(() => {
-      if (!focusedOnce.current) {
-        focusedOnce.current = true;
-      } else {
-        refresh();
-      }
-      const subscription = AppState.addEventListener('change', (state) => {
-        if (state === 'active') refresh();
-      });
-      return () => subscription.remove();
-    }, [refresh]),
-  );
+  const { data, error, loading, refresh, refreshControl } = useScreenQuery<MobileNewsDto>(path);
 
   if (loading && !data) return <MinionScreen refreshControl={refreshControl} contentStyle={styles.screen}><NewsLoadingSkeleton /></MinionScreen>;
   if (error && !data) return <MinionScreen refreshControl={refreshControl} contentStyle={styles.screen}><ErrorState onRetry={refresh} title={error} /></MinionScreen>;
@@ -148,9 +134,8 @@ function useResolvedThumbnail(article: MobileNewsItem) {
     if (!state.pending) return;
     let active = true;
     const controller = new AbortController();
-    fetch(`${mobileApiOrigin}/api/news/thumbnail/resolve?url=${encodeURIComponent(article.url)}`, { signal: controller.signal })
-      .then((response) => (response.ok ? response.json() : null))
-      .then((body: { thumbnail: string | null } | null) => { if (active) setState({ path: body?.thumbnail ?? null, pending: false }); })
+    resolveNewsMetadata('thumbnail', article.url, controller.signal)
+      .then((body) => { if (active) setState({ path: body.thumbnail ?? null, pending: false }); })
       .catch(() => { if (active) setState({ path: null, pending: false }); });
     return () => { active = false; controller.abort(); };
   }, [article.url, state.pending]);

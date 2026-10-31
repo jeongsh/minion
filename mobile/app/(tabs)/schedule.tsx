@@ -52,8 +52,8 @@ export default function ScheduleScreen() {
   const query = buildQuery(filter);
   const scheduleBasePath = `/api/mobile/v1/schedule?${query}`;
   const schedulePath = `${scheduleBasePath}&calendar=0`;
-  const { data, error, loading, refresh, refreshControl } = useScreenQuery<MobileScheduleDto>(schedulePath, { refreshOnFocus: false, staleTimeMs: 60_000 });
-  const { data: calendarData, refresh: refreshCalendar } = useCachedQuery<MobileScheduleDto>(`${scheduleBasePath}&calendar=1`, {
+  const { data, error, loading, refresh, revalidate, refreshControl } = useScreenQuery<MobileScheduleDto>(schedulePath, { refreshOnFocus: false, staleTimeMs: 60_000 });
+  const { data: calendarData, refresh: refreshCalendar, revalidate: revalidateCalendar } = useCachedQuery<MobileScheduleDto>(`${scheduleBasePath}&calendar=1`, {
     cache: 'memory',
     enabled: calendarOpen,
     staleTimeMs: 5 * 60_000,
@@ -83,14 +83,15 @@ export default function ScheduleScreen() {
   useFocusEffect(
     useCallback(() => {
       let timer: ReturnType<typeof setTimeout> | undefined;
-      const syncDate = () => {
+      const syncDate = (force = false) => {
         if (timer !== undefined) clearTimeout(timer);
         if (AppState.currentState && AppState.currentState !== 'active') return;
 
         const now = new Date();
         const nextDateKey = dateKeyKST(now);
         const previousDateKey = observedDateRef.current;
-        if (nextDateKey !== previousDateKey) {
+        const dateChanged = nextDateKey !== previousDateKey;
+        if (dateChanged) {
           observedDateRef.current = nextDateKey;
           setTodayKey(nextDateKey);
           setRequestedActiveDateKey(undefined);
@@ -105,21 +106,26 @@ export default function ScheduleScreen() {
         }
 
         // staleTime은 재조회 시 캐시 사용 여부만 결정하므로 직접 갱신해야 한다.
-        refresh();
-        refreshCalendar();
+        if (force || dateChanged) {
+          refresh();
+          refreshCalendar();
+        } else {
+          revalidate();
+          revalidateCalendar();
+        }
 
         const midnight = Date.parse(`${nextDateKey}T00:00:00+09:00`) + 24 * 60 * 60_000;
         // 자정에 갱신하고, 실행 중 기기 시각이 바뀌는 경우도 다시 확인한다.
-        timer = setTimeout(syncDate, Math.max(1, Math.min(60_000, midnight - now.getTime())));
+        timer = setTimeout(() => syncDate(true), Math.max(1, Math.min(60_000, midnight - now.getTime())));
       };
 
-      const subscription = AppState.addEventListener('change', syncDate);
+      const subscription = AppState.addEventListener('change', () => syncDate());
       syncDate();
       return () => {
         if (timer !== undefined) clearTimeout(timer);
         subscription.remove();
       };
-    }, [refresh, refreshCalendar]),
+    }, [refresh, refreshCalendar, revalidate, revalidateCalendar]),
   );
 
   // 섹션 y좌표는 onLayout이 실제로 갱신할 때만 값이 바뀌므로 항상 최신값으로 신뢰한다.

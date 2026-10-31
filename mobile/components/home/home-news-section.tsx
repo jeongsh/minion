@@ -4,7 +4,8 @@ import { Linking, Pressable, StyleSheet, Text, useWindowDimensions, View } from 
 
 import { HomeSectionHeading } from '@/components/home/home-section-heading';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
-import { mobileApiOrigin, resolveApiAssetUrl, type MobileNewsItem } from '@/lib/api-client';
+import { resolveApiAssetUrl, type MobileNewsItem } from '@/lib/api-client';
+import { resolveNewsMetadata } from '@/lib/news-metadata';
 
 function NewsRow({ article }: { article: MobileNewsItem }) {
   const { width } = useWindowDimensions();
@@ -16,21 +17,13 @@ function NewsRow({ article }: { article: MobileNewsItem }) {
   useEffect(() => {
     const controller = new AbortController();
     if (!article.thumbnail?.url) {
-      void fetch(`${mobileApiOrigin}/api/mobile/v1/news/article?kind=thumbnail&url=${encodeURIComponent(article.url)}`, { signal: controller.signal })
-        .then(async (response) => {
-          if (!response.ok) throw new Error(`News thumbnail request failed: ${response.status}`);
-          return response.json() as Promise<{ data: { thumbnail: string | null } }>;
-        })
-        .then((body) => { if (!controller.signal.aborted) { setThumbnail(body.data.thumbnail); setPending(false); } })
+      void resolveNewsMetadata('thumbnail', article.url, controller.signal)
+        .then((body) => { if (!controller.signal.aborted) { setThumbnail(body.thumbnail ?? null); setPending(false); } })
         .catch((error) => { if (!controller.signal.aborted) { console.error('[news-thumbnail]', error); setPending(false); } });
     }
     if (/(?:\.{3}|…)\s*$/.test(article.title)) {
-      void fetch(`${mobileApiOrigin}/api/mobile/v1/news/article?kind=title&url=${encodeURIComponent(article.url)}`, { signal: controller.signal })
-        .then(async (response) => {
-          if (!response.ok) throw new Error(`News title request failed: ${response.status}`);
-          return response.json() as Promise<{ data: { title: string | null } }>;
-        })
-        .then(({ data: body }) => { if (!controller.signal.aborted && body.title && body.title.length > article.title.replace(/(?:\.{3}|…)\s*$/, '').length) setTitle(body.title); })
+      void resolveNewsMetadata('title', article.url, controller.signal)
+        .then((body) => { if (!controller.signal.aborted && body.title && body.title.length > article.title.replace(/(?:\.{3}|…)\s*$/, '').length) setTitle(body.title); })
         .catch((error) => { if (!controller.signal.aborted) console.error('[news-title]', error); });
     }
     return () => controller.abort();
