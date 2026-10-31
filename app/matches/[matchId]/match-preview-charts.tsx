@@ -217,9 +217,9 @@ export function LeagueRecordBar({ record, colors }: { record: LeagueSetRecord; c
     <div className="grid gap-2.5">
       <div className="flex items-end justify-between gap-3">
         {[0, 1].map((index) => (
-          <span key={index} className={`flex flex-col ${index ? "items-end text-right" : ""}`}>
-            <span className={META}>{leagues[index]}</span>
-            <strong className="text-2xl font-black leading-8 tabular-nums text-[var(--ui-ink)]">{index ? 100 - rateA : rateA}%</strong>
+          <span key={index} className={`flex items-baseline gap-2 text-2xl font-black leading-8 text-[var(--ui-ink)] ${index ? "flex-row-reverse text-right" : ""}`}>
+            <span>{leagues[index]}</span>
+            <strong className="font-black tabular-nums">{index ? 100 - rateA : rateA}%</strong>
           </span>
         ))}
       </div>

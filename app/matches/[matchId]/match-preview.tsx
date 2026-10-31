@@ -97,7 +97,6 @@ export function MatchPreview({
     return region ? regionLeague(region) : null;
   });
   const chartSeries = rankings.map((ranking, index) => ({ label: names[index], color: lineColors[index], history: ranking?.history ?? [] }));
-  const latestDate = rankings.flatMap((ranking) => ranking?.history.at(-1)?.date ?? []).sort().at(-1);
   const visualTeams = [visuals.teamA, visuals.teamB];
   const styleTeams = [styles.teamA, styles.teamB];
   const dragonMinutes = visualTeams.map((team) => buildFirstDragonMinutes(team, dragonEvents));
@@ -107,7 +106,7 @@ export function MatchPreview({
   const priorMeetings = matches.filter((item) => item.id !== match.id && item.status === "completed" && new Date(item.matchDate) < new Date(match.matchDate)
     && ((item.teamAId === match.teamAId && item.teamBId === match.teamBId) || (item.teamAId === match.teamBId && item.teamBId === match.teamAId)))
     .sort((a, b) => new Date(b.matchDate).getTime() - new Date(a.matchDate).getTime());
-  const sampleCaption = `${names[0]} ${visualTeams[0].sets}세트, ${names[1]} ${visualTeams[1].sets}세트 기준`;
+  const sampleCaption = `${names[0]} ${visualTeams[0].sets}세트, ${names[1]} ${visualTeams[1].sets}세트`;
 
   return (
     <div className="flex flex-col gap-5">
@@ -134,7 +133,7 @@ export function MatchPreview({
           </div>
 
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <ChartCard title="팀 성향 레이더" caption={`수집 팀 내 백분위 ${names[0]} ${styleTeams[0].sets}세트, ${names[1]} ${styleTeams[1].sets}세트`}
+            <ChartCard title="팀 성향 레이더"
               legend={<Legend names={names} colors={lineColors} variant="line" />}>
               <div className="h-[280px] min-w-0" data-radar>
                 <StatRadar axes={TEAM_STYLE_AXES} label={`${names[0]}와 ${names[1]}의 팀 성향 비교`} showComparisonValues
@@ -142,33 +141,32 @@ export function MatchPreview({
               </div>
             </ChartCard>
             <ChartCard title="글로벌 파워랭킹 추이"
-              caption={<><a href={powerRankings.sourceUrl} target="_blank" rel="noopener noreferrer" className="hover:underline">LoL Esports</a>{latestDate ? ` ${formatDate(latestDate)} 기준` : ""}</>}
               legend={<Legend names={names} colors={lineColors} variant="line" />}>
               <div data-wipe><PowerRankingChart series={chartSeries} error={powerRankings.status === "error"} /></div>
             </ChartCard>
           </div>
 
-          <ChartCard title="라인별 15분 골드 격차" caption={`주전 선수 평균 ${sampleCaption}`} legend={<Legend names={names} colors={colors} />}>
+          <ChartCard title="라인별 15분 골드 격차" legend={<Legend names={names} colors={colors} />}>
             <LaneGoldChart lanes={visualTeams.map((team) => team.lanes)} colors={colors} playerName={playerName} />
           </ChartCard>
 
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <ChartCard title="첫 드래곤 시점" caption={`경기별 첫 드래곤 처치 시간 ${sampleCaption}`}>
+            <ChartCard title="첫 드래곤 시점">
               <FirstDragonChart names={names} colors={colors} minutes={dragonMinutes} />
             </ChartCard>
-            <ChartCard title="진영별 승률" caption={sampleCaption} legend={<Legend names={["블루", "레드"]} colors={["var(--team-blue)", "var(--team-red)"]} />}>
+            <ChartCard title="진영별 승률" legend={<Legend names={["블루", "레드"]} colors={["var(--team-blue)", "var(--team-red)"]} />}>
               <SideWinRates names={names} teams={visualTeams} logos={[teamA, teamB]} />
             </ChartCard>
           </div>
 
           {championPriority.some((item) => item.picksA) && championPriority.some((item) => item.picksB) ? (
-            <ChartCard title="챔피언 우선순위 맵" caption={`원 크기는 두 팀 합계 픽 수 ${sampleCaption}`} legend={<Legend names={names} colors={colors} />}>
+            <ChartCard title="챔피언 우선순위 맵" legend={<Legend names={names} colors={colors} />}>
               <ChampionPriorityMap names={names} colors={colors} items={championPriority} champions={champions} />
             </ChartCard>
           ) : null}
 
           {leagueRecord ? (
-            <ChartCard title="리그 간 전력 비교" caption={`${accuracy.season} 국제 대회 맞대결 ${leagueRecord.winsA + leagueRecord.winsB}세트`}>
+            <ChartCard title="리그 간 전력 비교">
               <LeagueRecordBar record={leagueRecord} colors={colors} />
             </ChartCard>
           ) : null}
@@ -192,8 +190,8 @@ export function MatchPreview({
           {priorMeetings.length ? (
             <section className={`rounded-xl ${CARD_SURFACE} p-4 sm:p-5`} aria-label="최근 맞대결">
               <h3 className="text-lg font-bold leading-7 text-[var(--ui-ink)]">최근 맞대결</h3>
-              <div className="mt-3 grid gap-2">
-                {priorMeetings.slice(0, 5).map((meeting) => (
+              <div className="mt-3 grid gap-2 md:grid-cols-2">
+                {priorMeetings.slice(0, 6).map((meeting) => (
                   <Link key={meeting.id} href={matchHref(meeting)} className="grid grid-cols-[48px_minmax(0,1fr)_40px] items-center gap-3 rounded-lg bg-[var(--ui-card-bg)] px-3 py-2.5 hover:bg-[var(--ui-card-hover)]">
                     <span className={META}>{formatDate(meeting.matchDate)}</span>
                     <span className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 text-[15px] font-medium text-[var(--ui-ink)]">
@@ -208,9 +206,10 @@ export function MatchPreview({
             </section>
           ) : null}
 
-          <ChartCard title="AI 예측 적중률" caption="경기 시작 전 승률이 50%를 넘긴 팀이 이기면 적중">
+          <ChartCard title="AI 예측 적중률">
             <AccuracySummary accuracy={accuracy} />
           </ChartCard>
+          <p className={META}>표본 수: {sampleCaption}</p>
         </div>
       </section>
     </div>
