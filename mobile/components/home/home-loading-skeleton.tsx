@@ -73,7 +73,7 @@ export function HomeLoadingSkeleton() {
       <View style={styles.section40}><SectionTitleSkeleton /><Bone style={{ height: (contentWidth - 14.4) / 2.2 * 4 / 3, borderRadius: 16 }} /></View>
       <View style={styles.section40}><SectionTitleSkeleton /><Bone style={{ height: 96 }} /></View>
       <View style={styles.section40}><SectionTitleSkeleton /><Bone style={{ height: 220, borderRadius: 16 }} /></View>
-      {[0, 1].map((key) => <View key={key} style={{ marginTop: 24 }}><SectionTitleSkeleton /><View style={{ flexDirection: 'row', gap: 12 }}>{[0, 1].map((column) => <Bone key={column} style={{ width: (contentWidth - 14.4) / 2.2, aspectRatio: 3 / 4, borderRadius: 16 }} />)}</View></View>)}
+      {[0, 1].map((key) => <View key={key} style={{ marginTop: 24 }}><SectionTitleSkeleton /><View style={{ flexDirection: 'row', gap: 12 }}>{[0, 1].map((column) => <Bone key={column} style={{ width: (contentWidth - 14.4) / 2.2, aspectRatio: 2 / 3, borderRadius: 16 }} />)}</View></View>)}
     </Animated.View>
   );
 }

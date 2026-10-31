@@ -8,6 +8,7 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import "swiper/css";
 import "swiper/css/navigation";
 import { SectionHeading } from "@/components/ui/section-heading";
+import { Skeleton } from "@/components/ui/skeleton";
 import { SwiperNav, useSwiperNav } from "@/components/ui/swiper-nav";
 import { useSwiperResize } from "@/components/ui/use-swiper-resize";
 import type { HomeInsights } from "@/lib/data/home-insights";
@@ -42,7 +43,11 @@ function PresenceRing({ value }: { value: number | null }) {
 }
 
 function ChampionArt({ src }: { src: string }) {
-  return src ? <Image src={src} alt="" fill sizes="(max-width: 519px) 45vw, (max-width: 767px) 31vw, (max-width: 1279px) 24vw, 220px" className="scale-110 object-cover object-[center_25%]" /> : null;
+  // Loading portraits include a dark frame in the bitmap. Crop that frame out
+  // while keeping the top of the actual artwork visible in the taller card.
+  return src ? <div className="absolute -inset-x-[6%] -top-[6%] bottom-0">
+    <Image src={src} alt="" fill sizes="(max-width: 519px) 50vw, (max-width: 767px) 35vw, (max-width: 1279px) 27vw, 246px" className="object-cover object-top" />
+  </div> : null;
 }
 
 export function HomeMetaSection({ data }: { data: HomeInsights | null }) {
@@ -50,7 +55,7 @@ export function HomeMetaSection({ data }: { data: HomeInsights | null }) {
     <SectionHeading href={data?.href ?? "/champions"}>대회 메타</SectionHeading>
     {data?.champions.length ? <CardCarousel cards={data.champions.map(champion => ({ id: champion.id, content:
       <Link href={champion.href} className={card}>
-        <div className="relative @container aspect-[3/4] overflow-hidden bg-[var(--ui-surface)]">
+        <div className="relative @container aspect-[2/3] overflow-hidden bg-[var(--ui-surface)]">
           <ChampionArt src={champion.artwork} />
           <div aria-hidden className="absolute inset-x-0 top-0 h-1/3 bg-gradient-to-b from-black/65 to-transparent" />
           <div aria-hidden className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/85 to-transparent" />
@@ -73,7 +78,7 @@ export function HomeBuildSection({ data }: { data: HomeInsights | null }) {
     <SectionHeading href="/schedule">프로 선수 빌드</SectionHeading>
     {data?.builds.length ? <CardCarousel cards={data.builds.map(build => ({ id: build.id, content:
       <Link href={build.href} className={card} aria-label={`${build.player} ${build.champion} 빌드`}>
-        <div className="relative @container aspect-[3/4] overflow-hidden bg-[var(--ui-surface)]">
+        <div className="relative @container aspect-[2/3] overflow-hidden bg-[var(--ui-surface)]">
           <ChampionArt src={build.artwork} />
           <div aria-hidden className="absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-black/90 to-transparent" />
           <div className="absolute inset-x-2 bottom-2 flex flex-col gap-2 @[180px]:inset-x-3 @[180px]:bottom-3 @[180px]:gap-3 @[220px]:inset-x-4 @[220px]:bottom-4">
@@ -93,4 +98,17 @@ export function HomeBuildSection({ data }: { data: HomeInsights | null }) {
 
 function EmptyState({ children }: { children: ReactNode }) {
   return <p className="py-6 text-[16px] font-normal leading-6 text-[var(--ui-muted)]">{children}</p>;
+}
+
+export function HomeInsightsSkeleton() {
+  return <div aria-hidden>
+    {Array.from({ length: 2 }, (_, section) => (
+      <div key={section} className="mt-6 sm:mt-8 lg:mt-10">
+        <div className="mb-3 flex h-11 items-center justify-between"><Skeleton className="h-5 w-28" /><Skeleton className="h-4 w-16" /></div>
+        <div className="flex gap-3 overflow-hidden md:gap-3.5 lg:gap-4">
+          {Array.from({ length: 6 }, (_, index) => <Skeleton key={index} className="aspect-[2/3] w-[calc((100%-14.4px)/2.2)] shrink-0 rounded-2xl min-[520px]:w-[calc((100%-26.4px)/3.2)] md:w-[calc((100%-44.8px)/4.2)] lg:w-[calc((100%-67.2px)/5.2)] xl:w-[calc((100%-80px)/6)]" />)}
+        </div>
+      </div>
+    ))}
+  </div>;
 }

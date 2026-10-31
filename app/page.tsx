@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { HomeNewsSection } from "@/components/news/home-news-section";
-import { HomeMetaSection, HomeBuildSection } from "@/components/domain/home-insights";
+import { HomeMetaSection, HomeBuildSection, HomeInsightsSkeleton } from "@/components/domain/home-insights";
 import type { Metadata } from "next";
 import { getStages, getBracketStages } from "@/lib/data/lck";
 import { buildHomeTournamentOverview } from "@/lib/tournaments/home-overview";
@@ -241,7 +241,7 @@ export default async function HomePage({
       latestVideos={homeVideos}
       newsItems={homeNewsFeed.articles}
       */
-      insightsSection={<Suspense fallback={<div className="mt-10 h-64 animate-pulse bg-[var(--ui-surface-muted)]" />}><DeferredHomeInsights data={insightsPromise} /></Suspense>}
+      insightsSection={<Suspense fallback={<HomeInsightsSkeleton />}><DeferredHomeInsights data={insightsPromise} /></Suspense>}
       />
       {onboarding}
     </>

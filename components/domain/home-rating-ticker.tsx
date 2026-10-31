@@ -46,15 +46,15 @@ export function HomeRatingTicker({ items }: { items: HomeRatingReview[] }) {
       onFocusCapture={() => setFocused(true)}
       onBlurCapture={event => { if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false); }}>
       <Link href={item.href} title={`${item.matchLabel} ${item.playerName}: ${item.review}`}
-        className="block rounded-xl bg-[var(--ui-card-bg)] px-4 transition-colors hover:bg-[var(--ui-card-hover)] focus-visible:bg-[var(--ui-card-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ui-ink)]">
-      <SectionHeading className="!mb-0 min-h-14 !gap-4"
+        className="flex min-h-14 items-center rounded-xl border border-[var(--ui-card-bg)] bg-[var(--ui-surface)] px-4 transition-colors hover:bg-[var(--ui-card-hover)] focus-visible:bg-[var(--ui-card-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ui-ink)]">
+      <SectionHeading className="!mb-0 min-h-11 w-full !gap-4"
         aside={<ChevronRight size={16} aria-hidden className="shrink-0 text-[var(--ui-muted)]" />}
         titleAccessory={
           <div className="min-w-0 flex-1 overflow-hidden">
               <span ref={reviewRef} className="flex min-h-11 min-w-0 items-center gap-3 text-base font-normal">
                 <span className="flex min-w-0 shrink-0 items-center gap-2 text-sm font-medium text-[var(--ui-muted)]">
                   <span className="shrink-0">{item.matchLabel}</span>
-                  <span className="truncate rounded bg-[var(--ui-surface)] px-2 py-0.5 text-[var(--ui-ink)]">{item.playerName}</span>
+                  <span className="truncate rounded bg-[var(--ui-card-bg)] px-2 py-0.5 text-[var(--ui-ink)] dark:bg-[var(--ui-surface)]">{item.playerName}</span>
                 </span>
                 <span className="min-w-0 truncate">{item.review}</span>
               </span>
