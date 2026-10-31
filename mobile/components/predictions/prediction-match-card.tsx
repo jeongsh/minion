@@ -1,5 +1,5 @@
 import Clock3 from 'lucide-react-native/icons/clock-3';
-import { useId, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Defs, LinearGradient, RadialGradient, Rect, Stop } from 'react-native-svg';
 
@@ -7,6 +7,7 @@ import { TeamLogo } from '@/components/data/team-logo';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import type { MobilePredictionMatch } from '@/lib/api-client';
 import { deadlineLabel, predictionTimeLabel } from '@/lib/prediction-dates';
+import { isBlackPredictionColor, predictionSelectionOpacity } from '../../../lib/prediction-colors';
 
 export function PredictionMatchCard({ match, now, onChooseTeam, pending = false }: { match: MobilePredictionMatch; now: number; onChooseTeam: (teamId: string) => void; pending?: boolean }) {
   const { colorScheme, fonts, theme } = useMinionTheme();
@@ -28,7 +29,7 @@ export function PredictionMatchCard({ match, now, onChooseTeam, pending = false 
         {selectedTeam ? <SelectionBackground color={selectedTeam.primaryColor} right={selectedTeam.id === match.teamB?.id} /> : null}
         <TeamChoice disabled={match.closed || pending} onPress={() => match.teamA && onChooseTeam(match.teamA.id)} percent={match.market.teamAPercent} selected={match.myBet?.teamId === match.teamA?.id} team={match.teamA} />
         <View style={styles.vsColumn}>
-          <Text style={[styles.vsText, { color: theme.muted, ...fonts.medium }]}>VS</Text>
+          <Text style={[styles.vsText, { color: colorScheme === 'light' ? theme.ink : theme.muted, ...fonts.medium }]}>VS</Text>
         </View>
         <TeamChoice disabled={match.closed || pending} onPress={() => match.teamB && onChooseTeam(match.teamB.id)} percent={match.market.teamBPercent} selected={match.myBet?.teamId === match.teamB?.id} team={match.teamB} right />
       </View>
@@ -44,6 +45,9 @@ function SelectionBackground({ color, right }: { color: string; right: boolean }
   const height = size.height + 2;
   const dark = colorScheme === 'dark';
   const teamColor = /^#[\da-f]{6}$/i.test(color) ? color : '#3b3f46';
+  const black = isBlackPredictionColor(teamColor);
+  const fill = black ? '#000000' : teamColor;
+  const opacity = parseInt(predictionSelectionOpacity(teamColor), 10) / 100;
   const origin = right ? width : 0;
 
   return (
@@ -52,14 +56,21 @@ function SelectionBackground({ color, right }: { color: string; right: boolean }
         <Svg width={width} height={height} style={styles.backgroundSvg}>
           <Defs>
             <LinearGradient id={`${id}-base`} gradientUnits="userSpaceOnUse" x1={origin} y1={0} x2={right ? 0 : width} y2={0}>
-              <Stop offset="0" stopColor={dark ? '#24272c' : '#eef0f2'} />
+              <Stop offset="0" stopColor={dark ? '#24272c' : '#ffffff'} />
               <Stop offset="1" stopColor={dark ? '#15161a' : '#ffffff'} />
             </LinearGradient>
-            {/* globals.css: circle at the selected edge, farthest-corner radius, transparent at 58%. */}
-            <RadialGradient id={`${id}-team`} gradientUnits="userSpaceOnUse" cx={origin} cy={height / 2} r={Math.hypot(width, height / 2)}>
-              <Stop offset="0" stopColor={teamColor} stopOpacity={dark ? 0.42 : 0.36} />
-              <Stop offset="0.58" stopColor={teamColor} stopOpacity={0} />
-            </RadialGradient>
+            {dark ? (
+              <RadialGradient id={`${id}-team`} gradientUnits="userSpaceOnUse" cx={origin} cy={height / 2} r={Math.hypot(width, height / 2)}>
+                <Stop offset="0" stopColor={teamColor} stopOpacity={0.42} />
+                <Stop offset="0.58" stopColor={teamColor} stopOpacity={0} />
+              </RadialGradient>
+            ) : (
+              <LinearGradient id={`${id}-team`} gradientUnits="userSpaceOnUse" x1={origin} y1={0} x2={right ? 0 : width} y2={0}>
+                <Stop offset="0" stopColor={fill} stopOpacity={opacity} />
+                <Stop offset="0.18" stopColor={fill} stopOpacity={opacity} />
+                <Stop offset={black ? '0.4' : '0.5'} stopColor={fill} stopOpacity={0} />
+              </LinearGradient>
+            )}
           </Defs>
           <Rect width={width} height={height} fill={`url(#${id}-base)`} />
           <Rect width={width} height={height} fill={`url(#${id}-team)`} />
@@ -84,17 +95,19 @@ function TeamChoice({
   selected: boolean;
   team: MobilePredictionMatch['teamA'];
 }) {
-  const { fonts, theme } = useMinionTheme();
+  const { colorScheme, fonts, theme } = useMinionTheme();
+  const blackSelection = colorScheme === 'light' && selected && isBlackPredictionColor(team?.primaryColor ?? '#3b3f46');
+  const logoTeam = useMemo(() => blackSelection && team?.logoDark ? { ...team, logo: team.logoDark } : team, [blackSelection, team]);
 
   return (
     <Pressable accessibilityRole="button" accessibilityState={{ disabled: disabled || !team, selected }} disabled={disabled || !team} onPress={onPress} style={({ pressed }) => [styles.choice, right && styles.choiceRight, pressed && !disabled && { transform: [{ scale: 0.99 }] }]}>
       <View style={[styles.choiceInfo, right && styles.choiceInfoRight]}>
-        <TeamLogo plain size={28} team={team} themeAware />
-        <Text numberOfLines={1} style={[styles.choiceName, { color: theme.ink, ...fonts.black }]}>{team?.shortName ?? 'TBD'}</Text>
+        <TeamLogo plain size={28} team={logoTeam} themeAware />
+        <Text numberOfLines={1} style={[styles.choiceName, { color: blackSelection ? '#ffffff' : theme.ink, ...fonts.black }]}>{team?.shortName ?? 'TBD'}</Text>
       </View>
       <View style={styles.percentGroup}>
         <Text style={[styles.choicePercent, { color: theme.ink, ...fonts.black }]}>{percent}</Text>
-        <Text style={[styles.choicePercentSign, { color: theme.muted, ...fonts.medium }]}>%</Text>
+        <Text style={[styles.choicePercentSign, { color: colorScheme === 'light' ? theme.ink : theme.muted, ...fonts.medium }]}>%</Text>
       </View>
     </Pressable>
   );

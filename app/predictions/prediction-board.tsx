@@ -16,6 +16,7 @@ import { TeamLogo } from "@/components/ui/team-logo";
 import { useToast } from "@/components/ui/toast";
 import { predictionMarketForMatch, predictionMaxStake, type PredictionBet, type PredictionRanking } from "@/lib/predictions";
 import type { Match, Team, Tournament } from "@/lib/types";
+import { isBlackPredictionColor, predictionSelectionOpacity } from "@/lib/prediction-colors";
 import { dateKeyKST } from "@/lib/view-data";
 
 const PREDICTION_DAY_SECTION_PREFIX = "prediction-day";
@@ -218,7 +219,10 @@ export function PredictionBoard({ matches, teams, tournaments, bets: initialBets
                     const cardStyle = {
                       "--prediction-team-left-color": teamColor(teamA),
                       "--prediction-team-right-color": teamColor(teamB),
-                      ...(myVote ? { "--prediction-team-color": teamColor(myVote === match.teamAId ? teamA : teamB) } : {}),
+                      ...(myVote ? {
+                        "--prediction-team-color": teamColor(myVote === match.teamAId ? teamA : teamB),
+                        "--prediction-selected-opacity": predictionSelectionOpacity(teamColor(myVote === match.teamAId ? teamA : teamB)),
+                      } : {}),
                     } as React.CSSProperties;
 
                     return (
@@ -235,7 +239,7 @@ export function PredictionBoard({ matches, teams, tournaments, bets: initialBets
                         </div>
                         <div
                           className={`prediction-match-card grid min-h-[76px] grid-cols-[minmax(0,1fr)_34px_minmax(0,1fr)] overflow-hidden rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] dark:bg-[var(--ui-surface-muted)] sm:grid-cols-[minmax(0,1fr)_48px_minmax(0,1fr)] xl:h-[76px] ${myVote === match.teamAId ? "prediction-match-card--selected-left" : myVote === match.teamBId ? "prediction-match-card--selected-right" : ""}`}
-                          style={{ ...cardStyle, opacity: completed ? 0.8 : undefined }}
+                          style={{ ...cardStyle, opacity: completed ? "var(--prediction-completed-opacity)" : undefined }}
                         >
                           <TeamChoice team={teamA} percent={market.teamAPercent} odds={market.teamAOdds} selected={myVote === match.teamAId} disabled={closed || isPending} onClick={() => openBetDialog(match, teamA)} />
                           <div className="grid place-items-center text-[13px] font-black text-[var(--ui-muted)] sm:text-sm">VS</div>
@@ -286,18 +290,19 @@ function FilterButton({ active, onClick, children }: { active: boolean; onClick:
 
 function TeamChoice({ team, percent, odds, selected, disabled, onClick, right = false }: { team?: Team; percent: number; odds: number | null; selected: boolean; disabled: boolean; onClick: () => void; right?: boolean }) {
   const color = teamColor(team);
+  const blackSelection = selected && isBlackPredictionColor(color);
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled || !team}
-      className={`prediction-match-choice ${right ? "prediction-match-choice--right" : "prediction-match-choice--left"} relative flex min-w-0 items-center gap-1.5 px-2 py-0 text-left transition active:scale-[0.99] disabled:cursor-default disabled:active:scale-100 sm:gap-3 sm:px-5 xl:gap-3 ${right ? "flex-row-reverse text-right" : ""}`}
+      className={`prediction-match-choice ${blackSelection ? "prediction-match-choice--black" : ""} ${right ? "prediction-match-choice--right" : "prediction-match-choice--left"} relative flex min-w-0 items-center gap-1.5 px-2 py-0 text-left transition active:scale-[0.99] disabled:cursor-default disabled:active:scale-100 sm:gap-3 sm:px-5 xl:gap-3 ${right ? "flex-row-reverse text-right" : ""}`}
       style={{ "--prediction-choice-color": color } as React.CSSProperties}
       aria-pressed={selected}
       title={selected ? "다시 누르면 선택을 바꿀 수 있어요" : undefined}
     >
-      <span className={`flex min-w-0 flex-1 items-center gap-1.5 sm:gap-3 ${right ? "flex-row-reverse" : ""}`}>
-        <TeamLogo team={team} size="h-7 w-7 sm:h-10 sm:w-10" plain themeAware />
+      <span className={`prediction-match-choice__team flex min-w-0 flex-1 items-center gap-1.5 sm:gap-3 ${right ? "flex-row-reverse" : ""}`}>
+        <TeamLogo team={team} size="h-7 w-7 sm:h-10 sm:w-10" plain themeAware darkSurface={blackSelection} />
         <span className={`flex min-w-0 items-baseline gap-1 ${right ? "flex-row-reverse" : ""}`}>
           <span className="min-w-0 truncate text-[15px] font-black text-[var(--ui-ink)] sm:text-xl">{team?.shortName ?? "TBD"}</span>
           <span className="hidden shrink-0 text-[13px] font-medium text-[var(--ui-muted)] sm:inline">{odds === null ? "1.00" : odds.toFixed(2)}<span className="text-[12px]">{"\u00a0배"}</span></span>

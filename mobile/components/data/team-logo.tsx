@@ -7,17 +7,19 @@ import { useMinionTheme } from '@/hooks/use-minion-theme';
 import { resolveApiAssetUrl, type MobileTeamSummary } from '@/lib/api-client';
 import { loadTeamLogoXml, readTeamLogoXml } from '@/lib/team-logo-cache';
 
-function CachedTeamSvg({ uri, size }: { uri: string; size: number }) {
+function CachedTeamSvg({ uri, size, team }: { uri: string; size: number; team?: MobileTeamSummary | null }) {
   const [xml, setXml] = useState(() => readTeamLogoXml(uri));
+  // A refreshed API response retries failed images even when the URL is unchanged.
+  // Successful images still reuse the shared memory/disk cache.
   useEffect(() => {
     let active = true;
     void loadTeamLogoXml(uri).then((next) => {
       if (active) setXml(next);
     }).catch((error: unknown) => {
-      console.warn('Team logo could not be loaded', error);
+      console.warn('Team logo could not be loaded', uri, error);
     });
     return () => { active = false; };
-  }, [uri]);
+  }, [uri, team]);
   return <SvgXml xml={xml} width={size} height={size} preserveAspectRatio="xMidYMid meet" />;
 }
 
@@ -47,7 +49,7 @@ export function TeamLogo({ plain = false, size = 40, team, themeAware = false }:
   return (
     <View style={[styles.container, { backgroundColor: plain ? 'transparent' : theme.surfaceMuted, borderRadius: plain ? 0 : size / 2, height: size, width: size }]}>
       {nativeSvg
-        ? <CachedTeamSvg key={uri} uri={uri} size={imageSize} />
+        ? <CachedTeamSvg key={uri} uri={uri} size={imageSize} team={team} />
         : <Image cachePolicy="memory-disk" contentFit="contain" source={{ uri }} style={{ height: imageSize, width: imageSize }} transition={150} />}
     </View>
   );

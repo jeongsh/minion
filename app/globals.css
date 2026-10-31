@@ -1783,45 +1783,64 @@ html[class~="dark"] .hub-home .home-calendar-shell {
 }
 
 .prediction-match-card {
+  --prediction-completed-opacity: 1;
   transition: background 150ms ease;
+}
+
+html:not(.dark) .prediction-match-card {
+  --ui-muted: var(--ui-ink);
+}
+
+html:not(.dark) .prediction-match-card:has(.prediction-match-choice--black) {
+  --prediction-selected-fill: #000000;
+  --prediction-selected-fade: 40%;
+}
+
+html:not(.dark) .prediction-match-choice--black .prediction-match-choice__team {
+  --ui-ink: #ffffff;
+  --ui-muted: #ffffff;
+}
+
+.dark .prediction-match-card {
+  --prediction-completed-opacity: 0.8;
 }
 
 .prediction-match-card:not(.prediction-match-card--selected-left):not(.prediction-match-card--selected-right):has(.prediction-match-choice--left:not(:disabled):hover) {
   background:
-    radial-gradient(circle at left center, color-mix(in srgb, var(--prediction-team-left-color) 36%, transparent) 0%, transparent 58%),
+    radial-gradient(circle at left center, color-mix(in srgb, var(--prediction-team-left-color) 42%, transparent) 0%, transparent 58%),
     linear-gradient(90deg, #eef0f2 0%, #ffffff 100%);
 }
 
 .prediction-match-card:not(.prediction-match-card--selected-left):not(.prediction-match-card--selected-right):has(.prediction-match-choice--right:not(:disabled):hover) {
   background:
-    radial-gradient(circle at right center, color-mix(in srgb, var(--prediction-team-right-color) 36%, transparent) 0%, transparent 58%),
+    radial-gradient(circle at right center, color-mix(in srgb, var(--prediction-team-right-color) 42%, transparent) 0%, transparent 58%),
     linear-gradient(270deg, #eef0f2 0%, #ffffff 100%);
 }
 
 .prediction-match-card--selected-left {
   background:
-    radial-gradient(circle at left center, color-mix(in srgb, var(--prediction-team-color) 36%, transparent) 0%, transparent 58%),
-    linear-gradient(90deg, #eef0f2 0%, #ffffff 100%);
+    linear-gradient(90deg, color-mix(in srgb, var(--prediction-selected-fill, var(--prediction-team-color)) var(--prediction-selected-opacity, 68%), transparent) 0% 18%, transparent var(--prediction-selected-fade, 50%)),
+    linear-gradient(#ffffff, #ffffff);
 }
 
 .prediction-match-card--selected-right {
   background:
-    radial-gradient(circle at right center, color-mix(in srgb, var(--prediction-team-color) 36%, transparent) 0%, transparent 58%),
-    linear-gradient(270deg, #eef0f2 0%, #ffffff 100%);
+    linear-gradient(270deg, color-mix(in srgb, var(--prediction-selected-fill, var(--prediction-team-color)) var(--prediction-selected-opacity, 68%), transparent) 0% 18%, transparent var(--prediction-selected-fade, 50%)),
+    linear-gradient(#ffffff, #ffffff);
 }
 
 .prediction-match-card--selected-left:has(.prediction-match-choice--right:not(:disabled):hover) {
   background:
-    radial-gradient(circle at left center, color-mix(in srgb, var(--prediction-team-left-color) 36%, transparent) 0%, transparent 58%),
-    radial-gradient(circle at right center, color-mix(in srgb, var(--prediction-team-right-color) 36%, transparent) 0%, transparent 58%),
-    linear-gradient(90deg, #eef0f2 0%, #ffffff 100%);
+    linear-gradient(90deg, color-mix(in srgb, var(--prediction-selected-fill, var(--prediction-team-color)) var(--prediction-selected-opacity, 68%), transparent) 0% 18%, transparent var(--prediction-selected-fade, 50%)),
+    radial-gradient(circle at right center, color-mix(in srgb, var(--prediction-team-right-color) 42%, transparent) 0%, transparent 58%),
+    linear-gradient(#ffffff, #ffffff);
 }
 
 .prediction-match-card--selected-right:has(.prediction-match-choice--left:not(:disabled):hover) {
   background:
-    radial-gradient(circle at right center, color-mix(in srgb, var(--prediction-team-right-color) 36%, transparent) 0%, transparent 58%),
-    radial-gradient(circle at left center, color-mix(in srgb, var(--prediction-team-left-color) 36%, transparent) 0%, transparent 58%),
-    linear-gradient(270deg, #eef0f2 0%, #ffffff 100%);
+    linear-gradient(270deg, color-mix(in srgb, var(--prediction-selected-fill, var(--prediction-team-color)) var(--prediction-selected-opacity, 68%), transparent) 0% 18%, transparent var(--prediction-selected-fade, 50%)),
+    radial-gradient(circle at left center, color-mix(in srgb, var(--prediction-team-left-color) 42%, transparent) 0%, transparent 58%),
+    linear-gradient(#ffffff, #ffffff);
 }
 
 .dark .prediction-match-card--selected-left {

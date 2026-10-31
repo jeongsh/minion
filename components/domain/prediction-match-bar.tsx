@@ -6,6 +6,7 @@ import { TeamLogo } from "@/components/ui/team-logo";
 import { usePredictionBetDialog } from "@/components/domain/prediction-bet-dialog";
 import { predictionMarketForMatch, type PredictionBet } from "@/lib/predictions";
 import type { Match, Team } from "@/lib/types";
+import { isBlackPredictionColor, predictionSelectionOpacity } from "@/lib/prediction-colors";
 
 function teamColor(team: Team | undefined) {
   const color = team?.primaryColor;
@@ -30,13 +31,14 @@ function TeamChoice({
   right?: boolean;
 }) {
   const color = teamColor(team);
+  const blackSelection = selected && isBlackPredictionColor(color);
 
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled || !team}
-      className={`prediction-match-choice ${
+      className={`prediction-match-choice ${blackSelection ? "prediction-match-choice--black" : ""} ${
         right ? "prediction-match-choice--right" : "prediction-match-choice--left"
       } relative flex min-w-0 items-center gap-1.5 px-2 py-0 text-left transition active:scale-[0.99] disabled:cursor-default disabled:active:scale-100 sm:gap-3 sm:px-5 xl:gap-3 ${
         right ? "flex-row-reverse text-right" : ""
@@ -44,8 +46,8 @@ function TeamChoice({
       style={{ "--prediction-choice-color": color } as CSSProperties}
       aria-pressed={selected}
     >
-      <span className={`flex min-w-0 flex-1 items-center gap-1.5 sm:gap-3 ${right ? "flex-row-reverse" : ""}`}>
-        <TeamLogo team={team} size="h-7 w-7 sm:h-10 sm:w-10" plain themeAware />
+      <span className={`prediction-match-choice__team flex min-w-0 flex-1 items-center gap-1.5 sm:gap-3 ${right ? "flex-row-reverse" : ""}`}>
+        <TeamLogo team={team} size="h-7 w-7 sm:h-10 sm:w-10" plain themeAware darkSurface={blackSelection} />
         <span className={`flex min-w-0 items-baseline gap-1 ${right ? "flex-row-reverse" : ""}`}>
           <span className="min-w-0 truncate text-[15px] font-black text-[var(--ui-ink)] sm:text-xl">
             {team?.shortName ?? "TBD"}
@@ -93,10 +95,13 @@ export function PredictionMatchBar({
   const market = predictionMarketForMatch(matchBets, match.id, match.teamAId, match.teamBId, completed);
   const closed = match.status !== "scheduled" || new Date(match.matchDate).getTime() <= now;
   const cardStyle = {
-    opacity: completed ? 0.8 : undefined,
+    opacity: completed ? "var(--prediction-completed-opacity)" : undefined,
     "--prediction-team-left-color": teamColor(teamA),
     "--prediction-team-right-color": teamColor(teamB),
-    ...(myVote ? { "--prediction-team-color": teamColor(myVote === match.teamAId ? teamA : teamB) } : {}),
+    ...(myVote ? {
+      "--prediction-team-color": teamColor(myVote === match.teamAId ? teamA : teamB),
+      "--prediction-selected-opacity": predictionSelectionOpacity(teamColor(myVote === match.teamAId ? teamA : teamB)),
+    } : {}),
   } as CSSProperties;
 
   return (
