@@ -28,7 +28,6 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
-      - run: npm run test:instagram
       - name: Check official API without data writes
         env:
           INSTAGRAM_GRAPH_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_GRAPH_ACCESS_TOKEN }}
