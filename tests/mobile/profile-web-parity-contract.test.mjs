@@ -14,10 +14,12 @@ test('native account page keeps the web mobile navigation and content structure'
     read('app/me/page.tsx'),
   ]);
 
-  for (const label of ['프로필', '미니콘', '알림', '차단 관리', '계정·보안']) {
+  for (const label of ['프로필', '알림', '차단 관리', '계정·보안']) {
     assert.match(me, new RegExp(`label: '${label}'`));
   }
   assert.match(me, /router\.push\('\/me\/minicons'/);
+  assert.match(me, />내 미니콘</);
+  assert.match(web, /href="\/me\/minicons"[\s\S]*>내 미니콘</);
   assert.match(me, /router\.push\(`\/community\/user\/\$\{data\.profile\.id\}`/);
   assert.match(account, />공통 알림</);
   assert.match(account, />팀별 알림</);

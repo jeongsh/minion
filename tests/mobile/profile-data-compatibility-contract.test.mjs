@@ -15,9 +15,9 @@ test('profile sections tolerate the previous mobile me response shape', async ()
   assert.match(source, /team\.teamShortName \|\| team\.teamName \|\| '\?'/);
 });
 
-test('profile section layout snapshots the synthetic event before updating state', async () => {
+test('profile section layout stores coordinates synchronously without re-rendering', async () => {
   const source = await fs.readFile(screenPath, 'utf8');
 
-  assert.match(source, /const y = event\.nativeEvent\.layout\.y;\s*setSectionPositions\(\(current\) => \(\{ \.\.\.current, \[key\]: y \}\)\)/);
+  assert.match(source, /sectionPositionsRef\.current\[key\] = event\.nativeEvent\.layout\.y;/);
   assert.doesNotMatch(source, /setSectionPositions\([^\n]*event\.nativeEvent/);
 });

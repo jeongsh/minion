@@ -16,7 +16,7 @@ test("mobile API authentication follows the shared web access boundaries", () =>
   }
   assert.equal(mobileApiAuthForRequest("GET", "/api/mobile/v1/home"), "public");
   assert.equal(mobileApiAuthForRequest("GET", "/api/mobile/v1/tournaments/lck?year=2026"), "public");
-  assert.equal(mobileApiAuthForRequest("GET", "/api/mobile/v1/matches/match-1"), "public");
+  assert.equal(mobileApiAuthForRequest("GET", "/api/mobile/v1/matches/match-1"), "optional");
   assert.equal(mobileApiAuthForRequest("GET", "/api/mobile/v1/matches/match-1/live"), "public");
   assert.equal(mobileApiAuthForRequest("GET", "/api/mobile/v1/bootstrap"), "optional");
   assert.equal(mobileApiAuthForRequest("GET", "/api/mobile/v1/minicons/picker"), "optional");

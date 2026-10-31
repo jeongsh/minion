@@ -57,6 +57,7 @@ test('web retries a transient profile error and never treats persistent failure 
     const { getCurrentUser } = loadSource('../../lib/auth/current-user.ts', {
       react: { cache: (fn) => fn },
       '@/lib/auth/verified-user': { getVerifiedAuth: async () => ({ supabase: db, user: { id: 'member' } }) },
+      '@/lib/auth/linked-accounts': { hasEmailPassword: () => false },
     });
     if (persistent) await assert.rejects(getCurrentUser(), /프로필을 불러오지 못했습니다/);
     else assert.equal((await getCurrentUser()).profileImageUrl, 'https://example.test/avatar.webp');

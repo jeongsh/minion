@@ -30,7 +30,7 @@ test('native rating composer uses the shared bottom sheet and authenticated API 
 
   assert.match(component, /<BottomSheet[\s\S]*title=\{selectedPlayer \? `\$\{selectedPlayer\.name\} 평가`/);
   assert.match(component, /mutateMobileApi<MobileFanRatingMutationDto>/);
-  assert.match(component, /0\.5\)\.toFixed\(1\)/);
+  assert.match(component, /formatFanRating/);
   assert.match(component, /maxLength=\{MAX_REVIEW_LENGTH\}/);
   assert.match(contracts, /matchRating:\s*\{ method: "POST"[\s\S]*auth: "required"/);
 });

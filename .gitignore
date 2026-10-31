@@ -31,6 +31,13 @@ tests/*
 tests/mobile/*
 !tests/mobile/profile-image.test.mjs
 !tests/mobile/profile-viewer.test.mjs
+!tests/mobile/app-performance.test.mjs
+!tests/mobile/ad-consent-recovery.test.mjs
+!tests/mobile/query-cache.test.mjs
+!tests/mobile/match-tab-loading.test.mjs
+!tests/mobile/fan-rating-contract.test.mjs
+!tests/mobile/profile-data-compatibility-contract.test.mjs
+!tests/mobile/profile-web-parity-contract.test.mjs
 coverage/
 test-results/
 playwright-report/
