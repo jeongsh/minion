@@ -6,7 +6,6 @@ import {
   getAllTeams,
   getMatchById,
   getMatches,
-  getPlayerCareerHistories,
   getPlayerStatLines,
   getAllPlayers,
   getSets,
@@ -17,19 +16,12 @@ import {
   buildMatchPreviewFacts,
   type MatchPreviewFacts,
 } from "@/lib/match-preview-facts";
-import { bindUrlCitationsToClaims } from "@/lib/match-preview-citations";
 import {
   isPremiumMatchPreview,
   matchPreviewFailureRetryAllowed,
   matchPreviewGenerationPhase,
-  matchPreviewNeedsRefresh,
-  matchPreviewResearchRetryDue,
   type MatchPreviewGenerationPhase,
 } from "@/lib/match-preview-policy";
-import {
-  buildMatchPreviewStoryContext,
-  type MatchPreviewStoryContext,
-} from "@/lib/match-preview-story";
 import {
   combineOpenAiUsage,
   measureOpenAiResponseUsage,
@@ -44,6 +36,7 @@ import { supplementMatchBriefingData } from "@/lib/data/match-briefing";
 import { getStoredMatchAiPreview, type MatchAiPreviewCacheRow } from "@/lib/data/match-ai-preview-cache";
 import { createMatchBriefingSnapshot, type LeaguepediaBriefingRows } from "@/lib/match-briefing-data";
 import { getPowerRankings } from "@/lib/data/power-rankings";
+import { getTeamBriefingSourceRows } from "@/lib/data/team-briefing-sources";
 import { backfillMatchBriefingSnapshot } from "@/lib/data/match-briefing-snapshot";
 import type {
   Match,
@@ -56,126 +49,24 @@ import type {
   Tournament,
 } from "@/lib/types";
 
-const RESEARCH_SCHEMA = {
-  type: "object",
-  additionalProperties: false,
-  required: ["claims"],
-  properties: {
-    claims: {
-      type: "array",
-      minItems: 0,
-      maxItems: 5,
-      items: {
-        type: "object",
-        additionalProperties: false,
-        required: ["kind", "claim", "attribution", "publishedAt", "sourceUrls"],
-        properties: {
-          kind: { type: "string", enum: ["fact", "assessment", "statement"] },
-          claim: { type: "string" },
-          attribution: { type: "string" },
-          publishedAt: { type: "string" },
-          sourceUrls: {
-            type: "array",
-            minItems: 1,
-            maxItems: 3,
-            items: { type: "string" },
-          },
-        },
-      },
-    },
-  },
-} as const;
-
 const WRITER_SCHEMA = {
   type: "object",
   additionalProperties: false,
-  required: [
-    "headline",
-    "oneLiner",
-    "watchPoints",
-    "summary",
-    "narrativeTitle",
-    "narrativeBody",
-    "narrativeTags",
-    "narrativeClaimIndexes",
-    "matchMeaning",
-    "meaningClaimIndexes",
-    "recentViewTitle",
-    "recentViewBody",
-    "recentViewClaimIndexes",
-    "teamAWinCondition",
-    "teamAWinConditionCandidateId",
-    "teamBWinCondition",
-    "teamBWinConditionCandidateId",
-    "liveCheck",
-    "winProbabilityA",
-    "confidence",
-    "evidenceIds",
-  ],
+  required: ["oneLiner", "watchPoints"],
   properties: {
-    headline: { type: "string" },
-    oneLiner: { type: "string" },
+    oneLiner: { type: "string", maxLength: 160, pattern: "^[^\\u00b7]*$" },
     watchPoints: {
-      type: "array",
-      minItems: 3,
-      maxItems: 3,
-      items: { type: "string" },
-    },
-    summary: { type: "string" },
-    narrativeTitle: { type: "string" },
-    narrativeBody: { type: "string" },
-    narrativeTags: {
-      type: "array",
-      minItems: 0,
-      maxItems: 3,
-      items: { type: "string" },
-    },
-    narrativeClaimIndexes: {
-      type: "array",
-      minItems: 0,
-      maxItems: 5,
-      items: { type: "integer", minimum: 0, maximum: 4 },
-    },
-    matchMeaning: { type: "string" },
-    meaningClaimIndexes: {
-      type: "array",
-      minItems: 0,
-      maxItems: 5,
-      items: { type: "integer", minimum: 0, maximum: 4 },
-    },
-    recentViewTitle: { type: "string" },
-    recentViewBody: { type: "string" },
-    recentViewClaimIndexes: {
-      type: "array",
-      minItems: 0,
-      maxItems: 5,
-      items: { type: "integer", minimum: 0, maximum: 4 },
-    },
-    teamAWinCondition: { type: "string" },
-    teamAWinConditionCandidateId: { type: "string" },
-    teamBWinCondition: { type: "string" },
-    teamBWinConditionCandidateId: { type: "string" },
-    liveCheck: { type: "string" },
-    winProbabilityA: { type: "integer", minimum: 5, maximum: 95 },
-    confidence: { type: "string", enum: ["low", "medium", "high"] },
-    evidenceIds: {
-      type: "array",
-      minItems: 1,
-      maxItems: 4,
-      items: { type: "string" },
+      type: "array", minItems: 3, maxItems: 3, items: { type: "string", maxLength: 120, pattern: "^[^\\u00b7]*$" },
     },
   },
 } as const;
 
-const MATCH_PREVIEW_PROMPT_VERSION = 18;
-const MATCH_PREVIEW_CONTENT_VERSION = 3;
-const DEFAULT_RESEARCH_MODEL = "gpt-5.4-mini";
+const MATCH_PREVIEW_PROMPT_VERSION = 19;
+const MATCH_PREVIEW_CONTENT_VERSION = 4;
 const DEFAULT_STANDARD_MODEL = "gpt-5.4-mini";
 const DEFAULT_PREMIUM_MODEL = "gpt-5.6-sol";
-// Responses API output limits include both visible JSON and reasoning tokens.
-// Leave enough headroom for reasoning models to finish the strict schemas.
-const MATCH_PREVIEW_RESEARCH_MAX_OUTPUT_TOKENS = 4_000;
-const MATCH_PREVIEW_WRITER_MAX_OUTPUT_TOKENS = 12_000;
+// 두줄평과 관전 포인트만 생성하며 추론을 포함한 출력량도 제한한다.
+const MATCH_PREVIEW_WRITER_MAX_OUTPUT_TOKENS = 3_000;
 const MATCH_PREVIEW_STEP_TIMEOUT_MS = 55_000;
 const MATCH_PREVIEW_LEASE_MS = 6 * 60 * 1_000;
 
@@ -280,28 +171,7 @@ type OpenAiResponseJson = {
   }>;
 };
 
-type ResearchClaimKind = "fact" | "assessment" | "statement";
-
-type ResearchClaim = {
-  kind: ResearchClaimKind;
-  claim: string;
-  attribution: string | null;
-  publishedAt: string | null;
-  sources: MatchAiPreviewSource[];
-};
-
-type InternalEvidence = {
-  id: string;
-  text: string;
-};
-
 type NormalizedWriterPreview = Omit<MatchAiPreview, "source" | "generatedAt" | "generationPhase">;
-
-type ResearchResult = {
-  claims: ResearchClaim[];
-  responseId: string | null;
-  usage: MeasuredOpenAiUsage;
-};
 
 class MeasuredOpenAiStepError extends Error {
   readonly responseId: string | null;
@@ -324,11 +194,8 @@ type WriterResult = {
 type PreviewGenerationPlan = {
   context: ReturnType<typeof previewContext>;
   facts: MatchPreviewFacts;
-  storyContext: MatchPreviewStoryContext;
-  evidenceCatalog: InternalEvidence[];
   inputHash: string;
   writerModel: string;
-  researchModel: string;
   phase: MatchPreviewGenerationPhase;
 };
 
@@ -413,7 +280,7 @@ function normalizedText(value: unknown, maxLength: number) {
 
 function normalizedWatchPoints(value: unknown) {
   return Array.isArray(value)
-    ? value.flatMap((item) => normalizedText(item, 120) || []).slice(0, 3)
+    ? value.flatMap((item) => typeof item === "string" && item.trim() ? [item.trim()] : []).slice(0, 3)
     : [];
 }
 
@@ -451,28 +318,6 @@ function sourcePublisher(url: string) {
   }
 }
 
-function isBlockedResearchSource(url: string) {
-  try {
-    const parsed = new URL(url);
-    const hostname = parsed.hostname.replace(/^www\./, "").toLowerCase();
-    const blockedHost = [
-      "reddit.com",
-      "dcinside.com",
-      "fmkorea.com",
-      "theqoo.net",
-      "namu.wiki",
-      "blog.naver.com",
-      "cafe.naver.com",
-      "x.com",
-      "twitter.com",
-    ].some((domain) => hostname === domain || hostname.endsWith(`.${domain}`));
-    const blockedForumPath = hostname.endsWith("inven.co.kr") && parsed.pathname.startsWith("/board/");
-    return blockedHost || blockedForumPath;
-  } catch {
-    return true;
-  }
-}
-
 function normalizedSources(value: unknown): MatchAiPreviewSource[] {
   if (!Array.isArray(value)) return [];
   const seen = new Set<string>();
@@ -497,30 +342,6 @@ function normalizedSources(value: unknown): MatchAiPreviewSource[] {
       return [];
     }
   }).slice(0, 8);
-}
-
-function citedSourcesByClaim(
-  outputText: string,
-  annotations: WebSearchSource[],
-  searchedSources: WebSearchSource[],
-) {
-  const searchedByUrl = new Map(
-    normalizedSources(searchedSources).map((source) => [canonicalSourceUrl(source.url), source]),
-  );
-  return bindUrlCitationsToClaims(outputText, annotations).map((claimAnnotations) =>
-    normalizedSources(
-      claimAnnotations.flatMap((annotation) => {
-        if (!annotation.url) return [];
-        const searched = searchedByUrl.get(canonicalSourceUrl(annotation.url));
-        return [{
-          title: searched?.title ?? annotation.title,
-          url: annotation.url,
-          publisher: searched?.publisher,
-          publishedAt: searched?.publishedAt,
-        }];
-      }),
-    ),
-  );
 }
 
 function parseStoredEvidence(value: unknown): StoredEvidence {
@@ -577,28 +398,6 @@ function parseStoredRecentView(value: unknown): MatchAiPreviewRecentView | null 
     asOf: normalizedOptionalDate(row.asOf),
     sources,
   };
-}
-
-function parseStoredResearchState(value: unknown) {
-  if (!value || typeof value !== "object") {
-    return { researchFailed: false, researchFailureCount: 0 };
-  }
-  const content = value as { researchFailed?: unknown; researchFailureCount?: unknown };
-  return {
-    researchFailed: content.researchFailed === true,
-    researchFailureCount: typeof content.researchFailureCount === "number" &&
-        Number.isFinite(content.researchFailureCount)
-      ? Math.max(0, Math.trunc(content.researchFailureCount))
-      : content.researchFailed === true ? 1 : 0,
-  };
-}
-
-function isResearchRetryDue(row: { content?: unknown; generated_at?: string }) {
-  const state = parseStoredResearchState(row.content);
-  return matchPreviewResearchRetryDue({
-    ...state,
-    generatedAt: row.generated_at ?? null,
-  });
 }
 
 function generationFailureState(rows: MatchAiPreviewRunRetryRow[], nowMs = Date.now()) {
@@ -723,53 +522,6 @@ function upgradedCachedWinConditions(
   };
 }
 
-function buildInternalEvidenceCatalog(
-  facts: MatchPreviewFacts,
-  storyContext: MatchPreviewStoryContext,
-): InternalEvidence[] {
-  const entries: InternalEvidence[] = [
-    { id: "team-a-recent", text: `${facts.teamA.team} 최근 전적 ${facts.teamA.recentRecord}, 세트 ${facts.teamA.setRecord}` },
-    { id: "team-b-recent", text: `${facts.teamB.team} 최근 전적 ${facts.teamB.recentRecord}, 세트 ${facts.teamB.setRecord}` },
-    {
-      id: "team-a-series",
-      text: `${facts.teamA.team} 최근 ${facts.teamA.statSetCount}세트 평균 킬 ${facts.teamA.averageKills ?? "-"}, 평균 골드 차이 ${facts.teamA.averageGoldDiff ?? "-"}`,
-    },
-    {
-      id: "team-b-series",
-      text: `${facts.teamB.team} 최근 ${facts.teamB.statSetCount}세트 평균 킬 ${facts.teamB.averageKills ?? "-"}, 평균 골드 차이 ${facts.teamB.averageGoldDiff ?? "-"}`,
-    },
-    {
-      id: "team-a-objectives",
-      text: `${facts.teamA.team} 세트 평균 드래곤 ${facts.teamA.averageDragons ?? "-"}, 바론 ${facts.teamA.averageBarons ?? "-"}, 타워 ${facts.teamA.averageTowers ?? "-"}`,
-    },
-    {
-      id: "team-b-objectives",
-      text: `${facts.teamB.team} 세트 평균 드래곤 ${facts.teamB.averageDragons ?? "-"}, 바론 ${facts.teamB.averageBarons ?? "-"}, 타워 ${facts.teamB.averageTowers ?? "-"}`,
-    },
-    {
-      id: "schedule-strength",
-      text: `최근 상대 평균 레이팅 ${facts.teamA.team} ${facts.teamA.averageOpponentRating ?? "-"}, ${facts.teamB.team} ${facts.teamB.averageOpponentRating ?? "-"}`,
-    },
-  ];
-  for (const matchup of facts.roleMatchups) {
-    if (!matchup.teamA && !matchup.teamB) continue;
-    const describe = (side: typeof matchup.teamA) => side
-      ? `${side.player} ${side.games}세트 KDA ${side.kda ?? "-"}, DPM ${side.dpm ?? "-"}, 15분 골드 차이 ${side.goldDiffAt15 ?? "-"}`
-      : "데이터 없음";
-    entries.push({
-      id: `role-${matchup.position.toLowerCase()}`,
-      text: `${matchup.position}: ${describe(matchup.teamA)} / ${describe(matchup.teamB)}`,
-    });
-  }
-  if (storyContext.recentMeeting) {
-    entries.push({
-      id: "recent-meeting",
-      text: `최근 맞대결 ${storyContext.recentMeeting.date}, ${storyContext.recentMeeting.winner} ${storyContext.recentMeeting.score} 승리`,
-    });
-  }
-  return entries;
-}
-
 function responseOutputText(json: OpenAiResponseJson) {
   const messages = (json.output ?? []).filter((item) => item.type === "message");
   const message = messages[messages.length - 1];
@@ -803,403 +555,74 @@ async function createOpenAiResponse(body: Record<string, unknown>, model: string
   return json;
 }
 
-function normalizeResearchClaims(
-  value: unknown,
-  sourcesByClaim: MatchAiPreviewSource[][],
-  searchedSources: WebSearchSource[],
-): ResearchClaim[] {
-  if (!value || typeof value !== "object") return [];
-  const rows = (value as { claims?: unknown }).claims;
-  if (!Array.isArray(rows)) return [];
-  return rows.flatMap<ResearchClaim>((item, claimIndex) => {
-    if (!item || typeof item !== "object") return [];
-    const row = item as {
-      kind?: unknown;
-      claim?: unknown;
-      attribution?: unknown;
-      publishedAt?: unknown;
-      sourceUrls?: unknown;
-    };
-    const kind = row.kind === "fact" || row.kind === "assessment" || row.kind === "statement"
-      ? row.kind
-      : null;
-    const claim = normalizedText(row.claim, 320);
-    const attribution = normalizedText(row.attribution, 100) || null;
-    const publishedAt = normalizedOptionalDate(row.publishedAt);
-    const selectedUrls = Array.isArray(row.sourceUrls)
-      ? row.sourceUrls.flatMap((url) => typeof url === "string" ? [canonicalSourceUrl(url)] : [])
-      : [];
-    // Structured JSON responses do not always carry output_text annotations.
-    // A URL explicitly declared inside this claim is still acceptable when it
-    // exactly matches the Responses API's web-search source inventory.
-    const actualByUrl = new Map(
-      normalizedSources([
-        ...searchedSources,
-        ...(sourcesByClaim[claimIndex] ?? []),
-      ])
-        .filter((source) => !isBlockedResearchSource(source.url))
-        .map((source) => [canonicalSourceUrl(source.url), source]),
-    );
-    const sources = selectedUrls.flatMap((url) => {
-      const source = actualByUrl.get(url);
-      return source ? [{ ...source, publishedAt: publishedAt ?? source.publishedAt }] : [];
-    });
-    const uniqueSources = normalizedSources(sources);
-    if (!kind || !claim || uniqueSources.length === 0) return [];
-    if ((kind === "assessment" || kind === "statement") && !attribution) return [];
-    return [{ kind, claim, attribution, publishedAt, sources: uniqueSources }];
-  }).slice(0, 5);
+function dataWinProbability(facts: MatchPreviewFacts) {
+  const { teamA, teamB } = facts;
+  if (!teamA.recentSeries.length && !teamB.recentSeries.length) return null;
+  return normalizedWinProbability(100 / (1 + 10 ** ((teamB.rating - teamA.rating) / 400)));
 }
 
-async function researchMatch({
-  context,
-  storyContext,
-  phase,
-  model,
-}: {
-  context: ReturnType<typeof previewContext>;
-  storyContext: MatchPreviewStoryContext;
-  phase: MatchPreviewGenerationPhase;
-  model: string;
-}): Promise<ResearchResult> {
-  const json = await createOpenAiResponse({
-    model,
-    reasoning: { effort: "low" },
-    tools: [{ type: "web_search", search_context_size: "medium" }],
-    tool_choice: "auto",
-    max_tool_calls: 2,
-    include: ["web_search_call.action.sources"],
-    max_output_tokens: MATCH_PREVIEW_RESEARCH_MAX_OUTPUT_TOKENS,
-    prompt_cache_key: `match-preview-research-v${MATCH_PREVIEW_PROMPT_VERSION}`,
-    input: [
-      {
-        role: "system",
-        content: [
-          "역할: 리그 오브 레전드 e스포츠 경기의 서사와 최근 평가를 검증하는 한국어 리서처다.",
-          "검색 목표 1: 두 팀 사이의 최근 이적·맞트레이드·친정팀 재회·직전 중요한 리매치·선수나 팀의 직접 발언을 찾는다.",
-          "검색 목표 2: 같은 경기 주간의 공식 파워랭킹, 기명 기사, 공식 인터뷰처럼 귀속 가능한 최근 평가를 찾는다.",
-          "rosterLinks는 내부 경력 DB가 만든 검색 힌트일 뿐이다. 이 항목만으로 이적, 트레이드, 시점, 감정, 동기를 사실로 쓰지 말고 반드시 검색 출처로 확인한다.",
-          "출처 우선순위: 리그·팀·선수 공식 발표, 공식 경기/로스터 페이지, Riot 파워랭킹, 직접 인터뷰, 기명된 신뢰도 높은 e스포츠 매체 순이다.",
-          "커뮤니티 게시물·댓글·위키·검색 스니펫만 있는 결과는 근거로 쓰지 않는다. 출처가 약하면 claims를 비워 둔다.",
-          "fact는 이적·대진·결과처럼 확인 가능한 사실, assessment는 매체·공식 지표의 평가, statement는 당사자 발언의 충실한 요약이다.",
-          "assessment와 statement는 attribution에 평가 주체나 발언자를 반드시 적는다. 긴 직접 인용은 피하고 한국어로 요약한다.",
-          "최근 평가는 원칙적으로 14일 이내, 해당 경기 프리뷰는 72시간 이내 자료를 우선한다. 날짜를 확인하지 못하면 publishedAt을 빈 문자열로 둔다.",
-          "'세간의 평가', '대체로', '중론' 같은 합의 표현의 후보는 서로 독립적인 출처가 2개 이상일 때만 만든다.",
-          "복수심, 앙금, 각오 같은 내면은 선수·팀의 직접 발언 없이는 만들지 않는다. stage 이름만 보고 탈락이나 진출 조건을 추론하지 않는다.",
-          "각 claim의 sourceUrls에는 실제 검색에서 확인한 원문 URL만 넣고, 그 claim 객체 안의 claim 또는 URL에 해당 원문을 직접 인용한다. 출력은 지정된 JSON 스키마만 따른다.",
-        ].join("\n"),
-      },
-      {
-        role: "user",
-        content: JSON.stringify({
-          currentDate: new Date().toISOString(),
-          generationPhase: phase,
-          match: context,
-          storyCandidates: storyContext,
-        }),
-      },
-    ],
-    text: {
-      verbosity: "low",
-      format: {
-        type: "json_schema",
-        name: "match_preview_research",
-        strict: true,
-        schema: RESEARCH_SCHEMA,
-      },
-    },
-  }, model);
-  const usage = measureOpenAiResponseUsage(json, model);
-  try {
-    const outputText = responseOutputText(json);
-    if (!outputText?.text) throw new Error("OpenAI 리서치 응답 본문이 없습니다.");
-    const parsed = JSON.parse(outputText.text) as { claims?: unknown };
-    const searchedSources = (json.output ?? []).flatMap((item) => item.action?.sources ?? []);
-    const sourcesByClaim = citedSourcesByClaim(
-      outputText.text,
-      outputText.annotations ?? [],
-      searchedSources,
-    );
-    const claims = normalizeResearchClaims(parsed, sourcesByClaim, searchedSources);
-    if (Array.isArray(parsed.claims) && parsed.claims.length > 0 && claims.length === 0) {
-      throw new Error("검색 주장의 인용 위치와 원문 URL을 검증하지 못했습니다.");
-    }
-    return {
-      claims,
-      responseId: json.id ?? null,
-      usage,
-    };
-  } catch (error) {
-    throw new MeasuredOpenAiStepError(
-      error instanceof Error ? error.message : String(error),
-      json.id ?? null,
-      usage,
-    );
-  }
-}
-
-function claimIndexes(value: unknown, claims: ResearchClaim[]) {
-  if (!Array.isArray(value)) return [];
-  return [...new Set(value.flatMap((item) =>
-    Number.isInteger(item) && (item as number) >= 0 && (item as number) < claims.length
-      ? [item as number]
-      : [],
-  ))];
-}
-
-function sourcesForClaims(claims: ResearchClaim[], indexes: number[]) {
-  return normalizedSources(indexes.flatMap((index) => claims[index]?.sources ?? []));
-}
-
-function sourceDomainCount(sources: MatchAiPreviewSource[]) {
-  return new Set(sources.flatMap((source) => sourcePublisher(source.url) ?? [])).size;
-}
-
-function isRecentAttributedClaim(claim: ResearchClaim | undefined, nowMs = Date.now()) {
-  if (!claim || (claim.kind !== "assessment" && claim.kind !== "statement")) return false;
-  if (!claim.attribution || !claim.publishedAt) return false;
-  const publishedAt = new Date(claim.publishedAt).getTime();
-  const age = nowMs - publishedAt;
-  return Number.isFinite(publishedAt) && age >= 0 && age <= 14 * 86_400_000;
-}
-
-function cappedConfidence(
-  requested: MatchAiPreviewConfidence,
-  sourceCount: number,
-  evidenceCount: number,
-): MatchAiPreviewConfidence {
-  const max: MatchAiPreviewConfidence = sourceCount >= 2 && evidenceCount >= 2
-    ? "high"
-    : sourceCount >= 1 || evidenceCount >= 2 ? "medium" : "low";
-  const rank: Record<MatchAiPreviewConfidence, number> = { low: 0, medium: 1, high: 2 };
-  return rank[requested] <= rank[max] ? requested : max;
-}
-
-function normalizeWriterPreview({
-  value,
-  claims,
-  evidenceCatalog,
-  facts,
-}: {
-  value: unknown;
-  claims: ResearchClaim[];
-  evidenceCatalog: InternalEvidence[];
-  facts: MatchPreviewFacts;
-}): NormalizedWriterPreview {
-  if (!value || typeof value !== "object") throw new Error("AI 프리뷰 응답이 객체가 아닙니다.");
-  const row = value as Record<string, unknown>;
-  const headline = normalizedText(row.headline, 80);
-  const summary = normalizedText(row.summary, 420);
-  const liveCheck = normalizedText(row.liveCheck, 180);
-  if (!headline || !summary || !liveCheck) throw new Error("AI 프리뷰의 필수 문장이 없습니다.");
-
-  const evidenceById = new Map(evidenceCatalog.map((item) => [item.id, item.text]));
-  const winConditionCandidates = buildMatchPreviewWinConditionCandidates(facts);
-  const winConditions = resolveMatchPreviewWinConditions({
-    candidates: winConditionCandidates,
-    teamACandidateId: row.teamAWinConditionCandidateId,
-    teamBCandidateId: row.teamBWinConditionCandidateId,
-    teamAText: normalizedText(row.teamAWinCondition, 220) || null,
-    teamBText: normalizedText(row.teamBWinCondition, 220) || null,
-  });
-  const writerEvidenceIds = Array.isArray(row.evidenceIds)
-    ? [...new Set(row.evidenceIds.flatMap((item) =>
-        typeof item === "string" && evidenceById.has(item) ? [item] : [],
-      ))]
-    : [];
-  const evidenceIds = [...new Set([
-    ...winConditions.evidenceIds,
-    ...writerEvidenceIds,
-  ])].filter((id) => evidenceById.has(id)).slice(0, 6);
-  const fallbackEvidenceIds = evidenceCatalog.slice(0, 2).map((item) => item.id);
-  const evidence = (evidenceIds.length > 0 ? evidenceIds : fallbackEvidenceIds)
-    .flatMap((id) => evidenceById.get(id) ?? []);
-
-  const narrativeIndexes = claimIndexes(row.narrativeClaimIndexes, claims);
-  const narrativeSources = sourcesForClaims(claims, narrativeIndexes);
-  const narrativeTitle = normalizedText(row.narrativeTitle, 80);
-  const narrativeBody = normalizedText(row.narrativeBody, 420);
-  const narrativeConsensusLanguage = /세간|대체로|중론|공통된 평가|전반적인 평가/.test(narrativeBody);
-  const narrativeConsensusSupported =
-    !narrativeConsensusLanguage || sourceDomainCount(narrativeSources) >= 2;
-  const narrative =
-    narrativeTitle && narrativeBody && narrativeSources.length > 0 && narrativeConsensusSupported
-    ? {
-        title: narrativeTitle,
-        body: narrativeBody,
-        tags: Array.isArray(row.narrativeTags)
-          ? row.narrativeTags.flatMap((item) => {
-              const tag = normalizedText(item, 20);
-              return tag ? [tag] : [];
-            }).slice(0, 3)
-          : [],
-        sources: narrativeSources,
-      }
-    : null;
-
-  const recentViewIndexes = claimIndexes(row.recentViewClaimIndexes, claims);
-  const recentViewSources = sourcesForClaims(claims, recentViewIndexes);
-  const hasOnlyRecentAttributedAssessments =
-    recentViewIndexes.length > 0 &&
-    recentViewIndexes.every((index) => isRecentAttributedClaim(claims[index]));
-  const recentViewTitle = normalizedText(row.recentViewTitle, 80);
-  const recentViewBody = normalizedText(row.recentViewBody, 360);
-  const mentionsAttribution = recentViewIndexes.some((index) => {
-    const attribution = claims[index]?.attribution?.toLowerCase();
-    return attribution ? recentViewBody.toLowerCase().includes(attribution) : false;
-  });
-  const consensusLanguage = /세간|대체로|중론|공통된 평가|전반적인 평가/.test(recentViewBody);
-  const consensusSupported = !consensusLanguage || sourceDomainCount(recentViewSources) >= 2;
-  const recentDates = recentViewSources
-    .flatMap((source) => source.publishedAt ?? [])
-    .sort((left, right) => right.localeCompare(left));
-  const recentView =
-    recentViewTitle && recentViewBody && recentViewSources.length > 0 &&
-    hasOnlyRecentAttributedAssessments && mentionsAttribution && consensusSupported
-      ? {
-          title: recentViewTitle,
-          body: recentViewBody,
-          asOf: recentDates[0] ?? null,
-          sources: recentViewSources,
-        }
-      : null;
-
-  const meaningIndexes = claimIndexes(row.meaningClaimIndexes, claims);
-  const meaningSources = sourcesForClaims(claims, meaningIndexes);
-  const matchMeaning = meaningSources.length > 0
-    ? normalizedText(row.matchMeaning, 240) || null
-    : null;
-  const sources = normalizedSources([
-    ...(narrative?.sources ?? []),
-    ...(recentView?.sources ?? []),
-    ...meaningSources,
-  ]);
-  const requestedConfidence = parseConfidence(row.confidence);
-  const winProbabilityA = normalizedWinProbability(row.winProbabilityA);
-  if (winProbabilityA === null) throw new Error("AI 프리뷰의 예상 승률이 없습니다.");
+function normalizeWriterPreview(value: unknown, facts: MatchPreviewFacts): NormalizedWriterPreview {
+  if (!value || typeof value !== "object") throw new Error("AI 프리뷰 응답이 올바르지 않습니다.");
+  const row = value as { oneLiner?: unknown; watchPoints?: unknown };
   const oneLiner = normalizedText(row.oneLiner, 160);
   const watchPoints = normalizedWatchPoints(row.watchPoints);
+  if ([row.oneLiner, ...(Array.isArray(row.watchPoints) ? row.watchPoints : [])]
+    .some((text) => typeof text === "string" && /\u00b7/u.test(text))) {
+    throw new Error("AI 프리뷰에 금지된 가운데점 기호가 포함되어 있습니다.");
+  }
   if (!oneLiner) throw new Error("AI 프리뷰의 두줄평이 없습니다.");
   if (!Array.isArray(row.watchPoints) || row.watchPoints.length !== 3 || new Set(watchPoints).size !== 3) {
     throw new Error("AI 프리뷰의 관전 포인트는 서로 다른 내용으로 정확히 3개가 필요합니다.");
   }
+  // 저장 스키마와 이전 소비자는 유지하고, 별도 문구는 생성하지 않는다.
   return {
-    headline,
+    ...fallbackPreview(facts),
     oneLiner,
     watchPoints,
-    summary,
-    narrative,
-    matchMeaning,
-    recentView,
-    teamAWinCondition: winConditions.teamA,
-    teamBWinCondition: winConditions.teamB,
-    liveCheck,
-    watchPoint: liveCheck,
-    winProbabilityA,
-    confidence: cappedConfidence(requestedConfidence, sourceDomainCount(sources), evidence.length),
-    evidence,
-    sources,
+    summary: oneLiner,
+    liveCheck: watchPoints[0],
+    watchPoint: watchPoints[0],
+    winProbabilityA: dataWinProbability(facts),
   };
 }
 
-async function writeMatchPreview({
-  context,
-  facts,
-  storyContext,
-  evidenceCatalog,
-  claims,
-  phase,
-  model,
-}: {
-  context: ReturnType<typeof previewContext>;
-  facts: MatchPreviewFacts;
-  storyContext: MatchPreviewStoryContext;
-  evidenceCatalog: InternalEvidence[];
-  claims: ResearchClaim[];
-  phase: MatchPreviewGenerationPhase;
-  model: string;
-}): Promise<WriterResult> {
-  const winConditionCandidates = buildMatchPreviewWinConditionCandidates(facts);
+async function writeMatchPreview(plan: PreviewGenerationPlan): Promise<WriterResult> {
+  const { context, facts, writerModel: model } = plan;
   const json = await createOpenAiResponse({
     model,
-    reasoning: { effort: "medium" },
+    reasoning: { effort: "low" },
     max_output_tokens: MATCH_PREVIEW_WRITER_MAX_OUTPUT_TOKENS,
     prompt_cache_key: `match-preview-writer-v${MATCH_PREVIEW_PROMPT_VERSION}`,
     input: [
       {
         role: "system",
         content: [
-          "역할: 검증된 자료와 경기 데이터로 한국어 LoL e스포츠 프리뷰를 쓰는 에디터다.",
-          "중요한 사실부터 짧게 제공한다. 독자에게 가르치거나 자명한 내용을 해설하지 않고, 도입문·상투적 해설·중복 요약·반복 결론은 쓰지 않는다.",
-          "externalClaims만 외부 사실로 사용할 수 있다. claim에 없는 이적 시점·트레이드 관계·부상·감정·동기·탈락 조건을 만들지 않는다.",
-          "narrativeTitle/body를 썼다면 실제로 사용한 externalClaims의 0부터 시작하는 인덱스를 narrativeClaimIndexes에 넣는다. 근거가 없으면 제목·본문·태그·인덱스를 모두 비운다.",
-          "recentView는 평가 주체를 문장 안에 명시하고 assessment 또는 statement claim만 사용한다. 합의 표현은 독립 출처 2개 이상일 때만 쓴다. 근거가 없으면 관련 필드를 비운다.",
-          "matchMeaning은 stage·bracket 정보나 검증된 claim에 명시된 범위만 쓴다. stage 이름만으로 '패자 탈락', 진출권, 시드를 추정하지 않는다.",
-          "summary는 정확히 2문장이다. 최근 팀·선수 지표를 비교해 한 팀의 강점과 상대의 반격 경로를 구체적으로 설명한다.",
-          "teamAWinCondition/teamBWinCondition은 각각 70자 이내 1문장이다. 판단에 필요한 핵심 수치와 조건만 유지한다. winConditionCandidates에서 팀별로 후보 하나를 골라 그 id를 각 CandidateId에 그대로 넣고, 해당 후보의 근거 범위 안에서 구체화한다.",
-          "두 팀의 CandidateId는 axis가 반드시 달라야 한다. 같은 경기에서 양 팀을 모두 DPM·화력으로 설명하거나 같은 오브젝트 문장을 대칭 복제하지 않는다.",
-          "후보 우선순위는 팀 운영(economy/objectives), 라인 주도권(laning), 교전 화력(damage), 접전 대응(resilience) 순이다. damage는 다른 축이 더 뚜렷하지 않을 때 한 팀에만 사용한다.",
-          "liveCheck는 정확히 1문장이다. 팀명 또는 선수명을 넣고 시청 중 확인 가능한 기준 하나만 쓴다.",
-          "oneLiner는 차트 위에 놓는 두줄평이다. 전체 60~100자 안팎의 짧은 두 문장을 쓰고 문장 사이에 줄바꿈 하나를 넣는다. 첫 문장은 뉴스 헤드라인이나 중계 캐치프레이즈처럼 팀명 또는 선수명과 핵심 대결 구도를 선명하게 잡고, 둘째 문장은 상대의 반격 경로나 승부를 가를 변수를 구체적으로 덧붙인다. 리듬감 있는 표현을 쓰되 두 문장이 같은 내용을 반복하지 않는다. 수치 나열, '치열한 승부' 같은 상투어, 근거 없는 과장, 확정적 승패, 비하 표현은 피하고 headline을 그대로 반복하지 않는다.",
-          "watchPoints는 반드시 정확히 3개다. 항목마다 50~100자 안팎의 짧은 1~2문장으로, 한두 줄 분량을 목표로 쓴다. 별도 제목이나 줄바꿈 없이 핵심 장면부터 바로 설명한다.",
-          "각 관전 포인트에는 어느 팀 또는 선수를 볼지, 어떤 시간대나 상황에서 무엇을 확인할지, 그것이 상대와의 승부에 왜 중요한지를 담는다. internalFacts에서 확인되는 핵심 수치 하나를 근거로 연결하되, 통계만 나열하거나 '주목해야 한다', '관건이다'로 두루뭉술하게 끝내지 않는다. 실제 경기에서 비교할 행동이나 결과를 구체적으로 제시한다.",
-          "관전 포인트 3개는 라인 주도권, 오브젝트 운영, 교전이나 접전 대응 등 데이터가 뒷받침하는 서로 다른 축으로 고른다. 수치가 부족한 축은 확인 가능한 기록이나 대결 구도로 설명하고, 개수를 채우려고 사실이나 전술을 만들지 않는다. summary, 승리 조건, liveCheck의 문장을 그대로 반복하지 않는다.",
-          "선수 수치는 roleMatchups에서 games가 1 이상일 때만 쓴다. 밴픽 성향, 컨디션, 집중력처럼 데이터에 없는 내용을 만들지 않는다.",
-          "winProbabilityA는 internalFacts.teamA의 승률을 5~95 정수로 쓴다. 확정적 승패 표현은 금지한다.",
-          "evidenceIds에는 최종 데이터 문장에 실제로 쓴 internalEvidenceCatalog의 id만 넣는다. 숫자를 새로 작성한 evidence 문장은 출력하지 않는다.",
-          "headline과 narrativeTitle은 서사가 있으면 트레이드·전 소속팀 대결처럼 두 팀 사이의 가장 강한 검증 이슈를 1문장 45자 이내로 쓴다. 서사가 없으면 headline에 데이터상 가장 선명한 대결 구도만 쓴다.",
-          "confidence는 출처 수·최신성·내부 표본을 함께 보고 low/medium/high 중 고른다. 출력은 지정된 JSON 스키마만 따른다.",
+          "역할: 제공된 경기 데이터만으로 한국어 LoL e스포츠 프리뷰를 쓰는 에디터다.",
+          "출력은 oneLiner(두줄평)와 watchPoints(관전 포인트 3개)뿐이다. 제목, 별도 요약, 서사, 평가, 승리 조건, 승률, 출처를 추가하지 않는다.",
+          "핵심부터 짧게 쓴다. 도입문, 상투적 해설, 중복 요약과 반복 결론은 생략한다.",
+          "oneLiner는 전체 60~100자 안팎의 짧은 두 문장으로 쓰고, 문장 사이에 줄바꿈 하나를 넣는다. 첫 문장은 팀명 또는 선수명과 핵심 대결 구도, 둘째 문장은 반격 경로나 승부 변수를 담는다.",
+          "watchPoints는 서로 다른 관전 포인트 정확히 3개다. 항목마다 50~100자 안팎의 1~2문장으로, 어느 팀이나 선수의 어떤 상황과 행동을 볼지, 상대와의 승부에 왜 중요한지 설명한다.",
+          "관전 포인트에 TOP: 같은 별도 제목이나 포지션 라벨을 붙이지 않는다. 가운데점 기호는 사용하지 않고 자연스러운 한국어 문장으로 쓴다.",
+          "관전 포인트는 라인 주도권, 오브젝트 운영, 교전이나 접전 대응 등 서로 다른 축을 사용하고, 데이터에 있는 핵심 수치를 근거로 연결한다. 통계 나열이나 두줄평 반복은 피한다.",
+          "한 번 작성한 문구는 경기 전까지 유지된다. '오늘', '현재', '직전 경기' 같은 상대적 시점 표현을 피하고, 수치의 표본과 기준을 분명하게 쓴다.",
+          "제공된 사실만 사용한다. 이적, 부상, 인터뷰, 감정, 탈락 조건, 밴픽 성향처럼 데이터에 없는 내용을 만들지 않는다. 선수 수치는 games가 1 이상인 경우에만 사용한다.",
+          "근거 없는 과장, 확정적 승패, 비하 표현, '치열한 승부' 같은 상투어는 피한다. 지정된 JSON 스키마만 출력한다.",
         ].join("\n"),
       },
-      {
-        role: "user",
-        content: JSON.stringify({
-          generationPhase: phase,
-          match: context,
-          internalFacts: facts,
-          storyCandidates: storyContext,
-          internalEvidenceCatalog: evidenceCatalog,
-          winConditionCandidates,
-          externalClaims: claims.map((claim) => ({
-            kind: claim.kind,
-            claim: claim.claim,
-            attribution: claim.attribution,
-            publishedAt: claim.publishedAt,
-            sourceUrls: claim.sources.map((source) => source.url),
-          })),
-        }),
-      },
+      { role: "user", content: JSON.stringify({ match: context, internalFacts: facts }) },
     ],
     text: {
       verbosity: "low",
-      format: {
-        type: "json_schema",
-        name: "match_preview",
-        strict: true,
-        schema: WRITER_SCHEMA,
-      },
+      format: { type: "json_schema", name: "match_preview", strict: true, schema: WRITER_SCHEMA },
     },
   }, model);
   const usage = measureOpenAiResponseUsage(json, model);
   try {
     const outputText = responseOutputText(json);
     if (!outputText?.text) throw new Error("OpenAI 프리뷰 응답 본문이 없습니다.");
-    return {
-      preview: normalizeWriterPreview({
-        value: JSON.parse(outputText.text),
-        claims,
-        evidenceCatalog,
-        facts,
-      }),
-      responseId: json.id ?? null,
-      usage,
-    };
+    return { preview: normalizeWriterPreview(JSON.parse(outputText.text), facts), responseId: json.id ?? null, usage };
   } catch (error) {
-    throw new MeasuredOpenAiStepError(
-      error instanceof Error ? error.message : String(error),
-      json.id ?? null,
-      usage,
-    );
+    throw new MeasuredOpenAiStepError(error instanceof Error ? error.message : String(error), json.id ?? null, usage);
   }
 }
 
@@ -1217,7 +640,6 @@ function previewGenerationPlan(
     tournaments,
     players,
     playerStats,
-    careerHistories,
   } = inputs;
   const facts = buildMatchPreviewFacts({
     match,
@@ -1228,56 +650,29 @@ function previewGenerationPlan(
     players,
     playerStats,
   });
-  const storyContext = buildMatchPreviewStoryContext({
-    match,
-    tournament,
-    stage,
-    teams,
-    matches,
-    players,
-    careerHistories,
-  });
   const premium = isPremiumMatchPreview({ match, tournament, stage });
   const writerModel = process.env.OPENAI_MATCH_PREVIEW_MODEL ??
     (premium
       ? process.env.OPENAI_MATCH_PREVIEW_PREMIUM_MODEL ?? DEFAULT_PREMIUM_MODEL
       : process.env.OPENAI_MATCH_PREVIEW_STANDARD_MODEL ?? DEFAULT_STANDARD_MODEL);
-  const researchModel = process.env.OPENAI_MATCH_PREVIEW_RESEARCH_MODEL ?? DEFAULT_RESEARCH_MODEL;
   const context = previewContext(match, tournament, stage);
-  const evidenceCatalog = buildInternalEvidenceCatalog(facts, storyContext);
+  // 데이터나 프롬프트가 바뀌어도 자동 재시도 횟수를 초기화하지 않는다.
   const inputHash = createHash("sha256")
-    .update(JSON.stringify({
-      version: MATCH_PREVIEW_PROMPT_VERSION,
-      phase,
-      writerModel,
-      researchModel,
-      context,
-      facts,
-      storyContext,
-      evidenceCatalog,
-    }))
+    .update(JSON.stringify({ matchId: match.id, teamAId: match.teamAId, teamBId: match.teamBId }))
     .digest("hex");
   return {
     context,
     facts,
-    storyContext,
-    evidenceCatalog,
     inputHash,
     writerModel,
-    researchModel,
     phase,
   };
-}
-
-function phaseRank(value: string | undefined) {
-  if (value === "final") return 2;
-  if (value === "story") return 1;
-  return 0;
 }
 
 async function generateAndStoreMatchAiPreview(
   inputs: MatchAiPreviewInputs,
   plan: PreviewGenerationPlan,
+  { force = false }: RefreshMatchAiPreviewOptions = {},
 ): Promise<GenerateAndStoreResult> {
   const admin = createSupabaseAdminClient();
   const lockToken = randomUUID();
@@ -1309,10 +704,7 @@ async function generateAndStoreMatchAiPreview(
   }
 
   let runId: string | null = null;
-  let research: ResearchResult | null = null;
-  let researchResponseId: string | null = null;
   let writerResponseId: string | null = null;
-  let researchErrorMessage: string | null = null;
   let usageComplete = true;
   const measuredUsage: MeasuredOpenAiUsage[] = [];
 
@@ -1322,7 +714,7 @@ async function generateAndStoreMatchAiPreview(
       usage,
       fields: {
         response_id: writerResponseId,
-        research_response_id: researchResponseId,
+        research_response_id: null,
         input_tokens: usage.inputTokens,
         cached_input_tokens: usage.cachedInputTokens,
         output_tokens: usage.outputTokens,
@@ -1337,6 +729,10 @@ async function generateAndStoreMatchAiPreview(
   };
 
   try {
+    const existing = await getStoredMatchAiPreview(inputs.match.id);
+    if (existing && !force) {
+      return { preview: previewFromCacheRow(existing), estimatedCostUsd: 0, stored: false };
+    }
     const staleRunCutoff = new Date(Date.now() - MATCH_PREVIEW_LEASE_MS).toISOString();
     const { error: staleRunError } = await admin
       .from("match_ai_preview_runs")
@@ -1358,7 +754,8 @@ async function generateAndStoreMatchAiPreview(
         generation_phase: plan.phase,
         status: "running",
         model: plan.writerModel,
-        research_model: plan.researchModel,
+        // 원장 컬럼은 NOT NULL이다. 검색 미사용을 명시하고 호출 비용은 0으로 기록한다.
+        research_model: "none",
       })
       .select("id")
       .single();
@@ -1367,38 +764,9 @@ async function generateAndStoreMatchAiPreview(
     }
     runId = run.id as string;
 
-    try {
-      research = await researchMatch({
-        context: plan.context,
-        storyContext: plan.storyContext,
-        phase: plan.phase,
-        model: plan.researchModel,
-      });
-      researchResponseId = research.responseId;
-      measuredUsage.push(research.usage);
-    } catch (error) {
-      researchErrorMessage = error instanceof Error ? error.message : String(error);
-      if (error instanceof MeasuredOpenAiStepError) {
-        researchResponseId = error.responseId;
-        measuredUsage.push(error.usage);
-      } else {
-        usageComplete = false;
-      }
-      console.warn(`[match-ai-preview] research failed for ${inputs.match.id}`, error);
-    }
-
-    const claims = research?.claims ?? [];
     let writer: WriterResult;
     try {
-      writer = await writeMatchPreview({
-        context: plan.context,
-        facts: plan.facts,
-        storyContext: plan.storyContext,
-        evidenceCatalog: plan.evidenceCatalog,
-        claims,
-        phase: plan.phase,
-        model: plan.writerModel,
-      });
+      writer = await writeMatchPreview(plan);
       writerResponseId = writer.responseId;
       measuredUsage.push(writer.usage);
     } catch (error) {
@@ -1431,7 +799,7 @@ async function generateAndStoreMatchAiPreview(
       .eq("match_id", inputs.match.id)
       .maybeSingle();
     if (latestError) throw new Error(latestError.message);
-    if (latest && phaseRank(latest.generation_phase as string) > phaseRank(plan.phase)) {
+    if (latest && !force) {
       const { error: supersededError } = await admin
         .from("match_ai_preview_runs")
         .update({ status: "superseded", completed_at: generatedAt })
@@ -1444,24 +812,17 @@ async function generateAndStoreMatchAiPreview(
       };
     }
 
-    const priorResearch = latest &&
-        latest.input_hash === plan.inputHash && latest.generation_phase === plan.phase
-      ? parseStoredResearchState(latest.content)
-      : { researchFailed: false, researchFailureCount: 0 };
-    const researchFailureCount = research
-      ? 0
-      : priorResearch.researchFailureCount + 1;
     const { data: storedRow, error: storeError } = await admin
       .from("match_ai_previews")
       .upsert({
         match_id: inputs.match.id,
         input_hash: plan.inputHash,
         model: plan.writerModel,
-        research_model: plan.researchModel,
+        research_model: null,
         generation_phase: plan.phase,
         generation_lock_token: lockToken,
         response_id: writer.responseId,
-        research_response_id: researchResponseId,
+        research_response_id: null,
         summary: preview.summary,
         watch_point: preview.watchPoint,
         evidence: {
@@ -1474,19 +835,8 @@ async function generateAndStoreMatchAiPreview(
           version: MATCH_PREVIEW_CONTENT_VERSION,
           briefingData: createMatchBriefingSnapshot(inputs.match, inputs.briefingRows ?? [],
             await getPowerRankings(new Date(inputs.match.matchDate).getUTCFullYear())),
-          headline: preview.headline,
           oneLiner: preview.oneLiner,
           watchPoints: preview.watchPoints,
-          narrative: preview.narrative,
-          matchMeaning: preview.matchMeaning,
-          recentView: preview.recentView,
-          teamAWinCondition: preview.teamAWinCondition,
-          teamBWinCondition: preview.teamBWinCondition,
-          liveCheck: preview.liveCheck,
-          confidence: preview.confidence,
-          researchClaims: claims,
-          researchFailed: research === null,
-          researchFailureCount,
         },
         input_tokens: usage.inputTokens,
         cached_input_tokens: usage.cachedInputTokens,
@@ -1506,12 +856,12 @@ async function generateAndStoreMatchAiPreview(
 
     const writeAccepted = storedRow?.generation_lock_token === lockToken;
     const superseded = !writeAccepted;
-    const status = superseded ? "superseded" : research ? "success" : "research_failed";
+    const status = superseded ? "superseded" : "success";
     const { error: completeError } = await admin
       .from("match_ai_preview_runs")
       .update({
         status,
-        error_message: researchErrorMessage?.slice(0, 1_000) ?? null,
+        error_message: null,
         completed_at: generatedAt,
       })
       .eq("id", runId);
@@ -1580,11 +930,10 @@ export async function getMatchAiPreview({
     // null은 조회 결과가 없다는 뜻이므로 다시 조회하지 않는다.
     const data = storedPreview === undefined ? await getStoredMatchAiPreview(match.id) : storedPreview;
     if (data) {
-      return upgradedCachedWinConditions(
-        previewFromCacheRow(data as MatchAiPreviewCacheRow),
-        facts,
-        data.content,
-      );
+      return {
+        ...upgradedCachedWinConditions(previewFromCacheRow(data), facts, data.content),
+        winProbabilityA: dataWinProbability(facts),
+      };
     }
   } catch (error) {
     console.warn("[match-ai-preview] cache lookup failed", error);
@@ -1594,8 +943,10 @@ export async function getMatchAiPreview({
 
 export async function refreshMatchAiPreviewCache(
   inputs: MatchAiPreviewInputs,
-  phase = matchPreviewGenerationPhase(inputs.match.matchDate, Date.now()) ?? "story",
+  phase: MatchPreviewGenerationPhase = "story",
 ): Promise<MatchAiPreview> {
+  const cached = await getStoredMatchAiPreview(inputs.match.id);
+  if (cached) return previewFromCacheRow(cached);
   inputs = { ...inputs, ...await supplementMatchBriefingData(inputs.match, inputs.teams, inputs.players ?? [], {
     matches: inputs.matches, sets: inputs.sets, playerStats: inputs.playerStats ?? [],
   }) };
@@ -1622,13 +973,17 @@ export async function refreshMatchAiPreviewCacheForMatchId(
     return cached ? previewFromCacheRow(cached as MatchAiPreviewCacheRow) : null;
   }
 
-  const phase = matchPreviewGenerationPhase(match.matchDate, Date.now());
+  const phase = options.force && cached?.generation_phase === "final"
+    ? "final" : matchPreviewGenerationPhase(match.matchDate, Date.now()) ? "story" : null;
   // 경기 시작 후에는 새 프리뷰를 만들지 않되, 시작 전에 생성한 브리핑은
   // 실시간 세트 동기화가 실행되어도 보존해 경기 중·종료 후에도 보여준다.
   if (!isUpcomingMatch(match)) {
     return cached ? previewFromCacheRow(cached as MatchAiPreviewCacheRow) : null;
   }
   if (!phase) return cached ? previewFromCacheRow(cached as MatchAiPreviewCacheRow) : null;
+
+  // 저장된 문구는 통계, 생성 단계, 프롬프트가 바뀌어도 재생성하지 않는다.
+  if (cached && !options.force) return previewFromCacheRow(cached as MatchAiPreviewCacheRow);
 
   const [matches, sets, tournaments, players, playerStats, stages] = await Promise.all([
     getMatches(),
@@ -1638,10 +993,6 @@ export async function refreshMatchAiPreviewCacheForMatchId(
     getPlayerStatLines(),
     getStages(),
   ]);
-  const relevantPlayers = players.filter(
-    (player) => player.teamId === match.teamAId || player.teamId === match.teamBId,
-  );
-  const careerHistories = await getPlayerCareerHistories(relevantPlayers.map((player) => player.id));
   const tournament = tournaments.find((item) => item.id === match.tournamentId);
   const stage = stages.find((item) => item.id === match.stageId);
   const inputs: MatchAiPreviewInputs = {
@@ -1654,23 +1005,9 @@ export async function refreshMatchAiPreviewCacheForMatchId(
     tournaments,
     players,
     playerStats,
-    careerHistories,
   };
   Object.assign(inputs, await supplementMatchBriefingData(match, teams, players, { matches, sets, playerStats }));
   const plan = previewGenerationPlan(inputs, phase);
-  const needsGeneration = !cached || matchPreviewNeedsRefresh({
-      cachedHash: cached.input_hash as string | null,
-      expectedHash: plan.inputHash,
-      cachedPhase: cached.generation_phase as string | null,
-      expectedPhase: phase,
-    }) || isResearchRetryDue(cached);
-  if (!options.force && !needsGeneration) {
-    if (!(cached.content as { briefingData?: unknown } | null)?.briefingData) {
-      await backfillMatchBriefingSnapshot(createMatchBriefingSnapshot(match, inputs.briefingRows ?? [],
-        await getPowerRankings(new Date(match.matchDate).getUTCFullYear())));
-    }
-    return previewFromCacheRow(cached as MatchAiPreviewCacheRow);
-  }
   if (!options.force) {
     const { data: recentRuns, error: runsError } = await admin
       .from("match_ai_preview_runs")
@@ -1690,13 +1027,13 @@ export async function refreshMatchAiPreviewCacheForMatchId(
         : fallbackPreview(plan.facts);
     }
   }
-  return (await generateAndStoreMatchAiPreview(inputs, plan)).preview;
+  return (await generateAndStoreMatchAiPreview(inputs, plan, options)).preview;
 }
 
 /**
- * 참가 팀이 확정됐고 24시간 안에 시작하는 경기만 자동 생성한다.
- * 각 경기는 story(24시간)와 final(2시간) phase에서 생성된다.
- * 같은 phase는 입력이 바뀌거나 실패 후 30분이 지난 경우에만 한 번 재시도한다.
+ * 참가 팀이 확정된 예정 경기는 최초 한 번만 생성한다.
+ * 저장된 문구는 유지하고 그래프용 스냅샷만 최신 수집 자료로 갱신한다.
+ * 미생성 경기의 실패만 30분 뒤 한 번 재시도한다.
  */
 export async function refreshMissingUpcomingMatchAiPreviews(
   options: RefreshMissingMatchAiPreviewsOptions = {},
@@ -1713,7 +1050,7 @@ export async function refreshMissingUpcomingMatchAiPreviews(
   const now = Date.now();
   const eligible = matches
     .flatMap((match) => {
-      const phase = matchPreviewGenerationPhase(match.matchDate, now);
+      const phase = matchPreviewGenerationPhase(match.matchDate, now) ? "story" as const : null;
       return phase && hasResolvedParticipants(match, teams) ? [{ match, phase }] : [];
     })
     .sort(
@@ -1733,9 +1070,6 @@ export async function refreshMissingUpcomingMatchAiPreviews(
     };
   }
 
-  const participatingTeamIds = new Set(eligible.flatMap(({ match }) => [match.teamAId, match.teamBId]));
-  const relevantPlayers = players.filter((player) => participatingTeamIds.has(player.teamId));
-  const careerHistories = await getPlayerCareerHistories(relevantPlayers.map((player) => player.id));
   const admin = createSupabaseAdminClient();
   const { data: cachedRows, error: cacheError } = await admin
     .from("match_ai_previews")
@@ -1743,27 +1077,25 @@ export async function refreshMissingUpcomingMatchAiPreviews(
     .in("match_id", eligible.map(({ match }) => match.id));
   if (cacheError) throw new Error(cacheError.message);
   const cachedByMatchId = new Map((cachedRows ?? []).map((row) => [row.match_id as string, row]));
-  const planned = await Promise.all(eligible.map(async ({ match, phase }) => {
-    const tournament = tournaments.find((item) => item.id === match.tournamentId);
-    const stage = stages.find((item) => item.id === match.stageId);
+  const storedSources = await getTeamBriefingSourceRows([...new Set(eligible.flatMap(({ match }) => [match.teamAId, match.teamBId]))]);
+  const rankingsByYear = new Map<number, ReturnType<typeof getPowerRankings>>();
+  for (const { match } of eligible) {
+    if (!cachedByMatchId.has(match.id)) continue;
+    const year = new Date(match.matchDate).getUTCFullYear();
+    if (!rankingsByYear.has(year)) rankingsByYear.set(year, getPowerRankings(year));
+    const rankings = await rankingsByYear.get(year)!;
+    const cached = cachedByMatchId.get(match.id)!;
+    const prior = (cached.content as { briefingData?: { rows?: LeaguepediaBriefingRows[]; powerRankings?: typeof rankings } } | null)?.briefingData;
+    await backfillMatchBriefingSnapshot(createMatchBriefingSnapshot(match,
+      prior?.rows ?? [match.teamAId, match.teamBId].flatMap((id) => storedSources.get(id) ? [storedSources.get(id)!] : []),
+      rankings.status === "ready" ? rankings : prior?.powerRankings ?? rankings), { replaceExisting: true });
+  }
+  const planned = await Promise.all(eligible.filter(({ match }) => !cachedByMatchId.has(match.id)).map(async ({ match, phase }) => {
     const inputs: MatchAiPreviewInputs = {
-      match,
-      tournament,
-      stage,
-      teams,
-      matches,
-      sets,
-      tournaments,
-      players,
-      playerStats,
-      careerHistories,
+      match, tournament: tournaments.find((item) => item.id === match.tournamentId),
+      stage: stages.find((item) => item.id === match.stageId), teams, matches, sets, tournaments, players, playerStats,
     };
     Object.assign(inputs, await supplementMatchBriefingData(match, teams, players, { matches, sets, playerStats }));
-    const cached = cachedByMatchId.get(match.id);
-    if (cached && !(cached.content as { briefingData?: unknown } | null)?.briefingData) {
-      await backfillMatchBriefingSnapshot(createMatchBriefingSnapshot(match, inputs.briefingRows ?? [],
-        await getPowerRankings(new Date(match.matchDate).getUTCFullYear())));
-    }
     return { inputs, plan: previewGenerationPlan(inputs, phase) };
   }));
   const { data: recentRunRows, error: runRowsError } = await admin
@@ -1779,18 +1111,8 @@ export async function refreshMissingUpcomingMatchAiPreviews(
     group.push(row);
     runsByGeneration.set(key, group);
   }
-  const allMissing = planned.filter(({ inputs }) => !cachedByMatchId.has(inputs.match.id));
-  const allStale = planned.filter(({ inputs, plan }) => {
-    const cached = cachedByMatchId.get(inputs.match.id);
-    if (!cached) return false;
-    return matchPreviewNeedsRefresh({
-      cachedHash: cached.input_hash as string | null,
-      expectedHash: plan.inputHash,
-      cachedPhase: cached.generation_phase as string | null,
-      expectedPhase: plan.phase,
-    }) || isResearchRetryDue(cached);
-  });
-  const allCandidates = [...allMissing, ...allStale];
+  const allMissing = planned;
+  const allCandidates = allMissing;
   const allPending = allCandidates.filter(({ inputs, plan }) => {
     const key = generationRunKey(inputs.match.id, plan.inputHash, plan.phase);
     const failureState = generationFailureState(runsByGeneration.get(key) ?? [], now);
@@ -1834,7 +1156,7 @@ export async function refreshMissingUpcomingMatchAiPreviews(
   return {
     eligible: eligible.length,
     missing: allMissing.length,
-    stale: allStale.length,
+    stale: 0,
     deferred: allCandidates.length - allPending.length,
     generated,
     estimatedCostUsd,
