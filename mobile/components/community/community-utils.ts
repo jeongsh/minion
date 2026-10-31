@@ -1,7 +1,7 @@
 import type { MobileCommunityPostSummary, TiptapDocument, TiptapNode } from '@/lib/api-client';
 
 export const HUB_BOARDS = [
-  { label: '실시간', slug: 'live' },
+  { label: '중계', slug: 'live' },
   { label: '분석', slug: 'analysis' },
   { label: '토론', slug: 'discussion' },
   { label: '소식', slug: 'news' },
@@ -11,7 +11,7 @@ export const HUB_BOARDS = [
 ] as const;
 
 export const TEAM_BOARDS = [
-  { label: '실시간', slug: 'live' },
+  { label: '중계', slug: 'live' },
   { label: '토론', slug: 'discussion' },
   { label: '소식', slug: 'news' },
   { label: '팬아트', slug: 'fanart' },

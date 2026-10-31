@@ -104,10 +104,7 @@ export function PlayerStatTable({
             key={group.id}
             rows={group.rows}
             compact
-            dense
-            className={
-              framed ? "rounded-lg border border-[var(--ui-border)]" : ""
-            }
+            framed={framed}
             columns={[
               {
                 key: "player",

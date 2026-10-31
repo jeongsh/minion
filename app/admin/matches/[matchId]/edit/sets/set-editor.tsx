@@ -943,7 +943,7 @@ export function AdminSetEditor({
             rows={relatedRatings}
             columns={[
               { key: "player", label: "Player", render: (row) => playerLabel(players, row.playerId) },
-              { key: "rating", label: "Rating", render: (row) => formatFanRating(row.rating) },
+              { key: "rating", label: "평점", align: "center", render: (row) => formatFanRating(row.rating) },
               { key: "review", label: "Review", render: (row) => row.review },
             ]}
           />

@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from "react";
+import type { CSSProperties } from "react";
 import { championImage } from "@/lib/champions";
 import { TeamLogo } from "@/components/ui/team-logo";
 import type { Champion, PlayerPosition, Team } from "@/lib/types";
@@ -7,10 +7,12 @@ import { LANE_POSITIONS, regionLeague } from "@/lib/match-preview-visuals";
 import { ACCURACY_MIN_GRADED, ACCURACY_MIN_SEGMENT, accuracyRate, type AccuracyBucket, type MatchPreviewAccuracy } from "@/lib/match-preview-accuracy";
 import { ChartReveal } from "./match-preview-reveal";
 import { ChampionPriorityPlot } from "./match-preview-champion-map";
+import { CHART_CARD_SURFACE } from "@/components/charts/chart-card";
+export { ChartCard } from "@/components/charts/chart-card";
 
 // 같은 페이지 승부예측 바(prediction-match-bar)와 동일한 카드 표면: 라이트는 흰
 // 표면 + 테두리로 흰 배경에서 또렷하게, 다크는 한 단계 밝은 표면으로 뜬다.
-export const CARD_SURFACE = "border border-[var(--ui-border)] bg-[var(--ui-surface)] dark:bg-[var(--ui-surface-muted)]";
+export const CARD_SURFACE = CHART_CARD_SURFACE;
 
 // 프리뷰의 모든 가로 막대는 같은 두께와 트랙을 쓴다.
 const BAR = "h-2.5 rounded-full";
@@ -45,27 +47,6 @@ export function Legend({ names, colors, variant = "dot" }: { names: string[]; co
         </span>
       ))}
     </span>
-  );
-}
-
-export function ChartCard({ title, caption, legend, children, className = "" }: {
-  title: string;
-  caption?: ReactNode;
-  legend?: ReactNode;
-  children: ReactNode;
-  className?: string;
-}) {
-  return (
-    <figure className={`flex min-w-0 flex-col rounded-xl ${CARD_SURFACE} p-4 sm:p-5 ${className}`}>
-      <figcaption className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h3 className="text-lg font-bold leading-7 text-[var(--ui-ink)]">{title}</h3>
-          {caption ? <p className={`mt-0.5 ${META}`}>{caption}</p> : null}
-        </div>
-        {legend ? <div className="pt-1">{legend}</div> : null}
-      </figcaption>
-      <ChartReveal className="mt-4 flex min-w-0 flex-1 flex-col justify-center">{children}</ChartReveal>
-    </figure>
   );
 }
 

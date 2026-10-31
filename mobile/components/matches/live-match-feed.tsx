@@ -104,7 +104,7 @@ export function LiveMatchFeed({ matchId, teamA, teamB }: { matchId: string; team
   const status = loading && !data.events ? 'loading' : data.status;
   const events = data.events ?? [];
   return (
-    <View accessibilityLabel="실시간 경기 피드">
+    <View accessibilityLabel="라이브 경기 피드">
       <View style={styles.header}>
         {status === 'live' ? <View style={styles.liveLabel}><View style={[styles.liveDot, { backgroundColor: theme.accent }]} /><Text style={{ color: theme.ink, ...fonts.medium, fontSize: 12 }}>LIVE</Text></View> : <Text style={{ color: theme.muted, ...fonts.medium, fontSize: 13 }}>{statusText(status)}</Text>}
         <View style={styles.headerActions}>{status === 'live' ? <Text style={{ color: theme.muted, ...fonts.medium, fontSize: 12 }}>{clock(data.durationSeconds)}</Text> : null}<Pressable accessibilityLabel="새로고침" disabled={loading} onPress={() => void subscription.current?.refresh()} style={styles.refresh}><RefreshCw color={theme.muted} size={16} /></Pressable></View>

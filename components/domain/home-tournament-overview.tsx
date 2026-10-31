@@ -4,6 +4,7 @@
 import Link from "next/link";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { TeamLogo } from "@/components/ui/team-logo";
+import { DataTable, rankColumn } from "@/components/ui/data-table";
 import type { Match, Stage, Team } from "@/lib/types";
 import type { HomeTournamentOverview as Overview } from "@/lib/tournaments/home-overview";
 import { formatBracketColumnLabel } from "@/lib/tournaments/bracket";
@@ -62,21 +63,17 @@ export function HomeTournamentOverview({ overview: initialOverview, options, tea
               {standingColumns.map((group) => (
                 <div key={group.rows[0]?.team.id ?? group.title} className="min-w-0">
                   {group.title ? <h3 className="mb-2 text-lg font-bold">{group.title}</h3> : null}
-                  <div className="grid grid-cols-[24px_minmax(0,1fr)_64px_48px] gap-2 px-2 pb-2 text-[13px] font-medium text-[var(--ui-muted)]">
-                    <span className="col-span-2">팀 순위</span><span className="text-right">승패</span><span className="text-right">득실차</span>
-                  </div>
-                  <ol className="space-y-1">
-                    {group.rows.map((row) => (
-                      <li key={row.team.id}>
-                        <Link href={`/teams?team=${encodeURIComponent(row.team.fanSiteHost || row.team.slug)}`} className="grid min-h-11 grid-cols-[24px_minmax(0,1fr)_64px_48px] items-center gap-2 rounded-lg bg-[var(--ui-surface)] px-2 py-2 hover:bg-[var(--ui-card-hover)]">
-                          <span className="text-center text-sm font-medium tabular-nums">{row.rank}</span>
-                          <span className="flex min-w-0 items-center gap-2"><TeamLogo team={row.team} themeAware plain size="size-6" /><span className="truncate text-[15px] font-bold">{row.team.shortName}</span></span>
-                          <span className="text-right text-sm font-medium tabular-nums">{row.matchWins}승 {row.matchLosses}패</span>
-                          <span className="text-right text-sm font-medium tabular-nums text-[var(--ui-muted)]">{row.setDiff > 0 ? "+" : ""}{row.setDiff}</span>
-                        </Link>
-                      </li>
-                    ))}
-                  </ol>
+                  <DataTable
+                    compact
+                    rows={group.rows}
+                    getRowHref={(row) => `/teams?team=${encodeURIComponent(row.team.fanSiteHost || row.team.slug)}`}
+                    columns={[
+                      rankColumn(),
+                      { key: "team", label: "팀", render: (row) => <span className="flex items-center gap-2 whitespace-nowrap font-medium"><TeamLogo team={row.team} themeAware plain size="size-6" />{row.team.shortName}</span> },
+                      { key: "record", label: "승패", align: "center", cellClassName: "whitespace-nowrap", render: (row) => `${row.matchWins}승 ${row.matchLosses}패` },
+                      { key: "diff", label: "득실차", align: "center", render: (row) => `${row.setDiff > 0 ? "+" : ""}${row.setDiff}` },
+                    ]}
+                  />
                 </div>
               ))}
             </div>

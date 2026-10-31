@@ -247,7 +247,7 @@ export function LiveMatchFeed({ matchId, teamA, teamB }: { matchId: string; team
   const seriesStarted = Boolean(series && series.teamAWins + series.teamBWins > 0);
 
   return (
-    <section aria-label="실시간 경기 피드">
+    <section aria-label="라이브 경기 피드">
       <div className="mb-3 flex min-h-8 items-center justify-between px-1">
         {status === "live" ? (
           <span className="flex items-center gap-2 text-xs font-medium text-[var(--ui-ink)]">

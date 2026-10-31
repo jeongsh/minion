@@ -145,7 +145,6 @@ export function TeamMatchHistory({ teamId, matches, sets, teams, players, tourna
 
       {/* 테이블 */}
       <DataTable
-        mobileSurface="flat"
         rows={filtered}
         emptyText="해당 조건의 경기가 없습니다."
         columns={[
@@ -168,6 +167,7 @@ export function TeamMatchHistory({ teamId, matches, sets, teams, players, tourna
           },
           {
             key: "result",
+            align: "center",
             label: "결과",
             render: (row) => {
               const myScore = row.teamAId === teamId ? row.teamAScore : row.teamBScore;
@@ -175,7 +175,7 @@ export function TeamMatchHistory({ teamId, matches, sets, teams, players, tourna
               if (myScore == null || opScore == null) return "-";
               const win = myScore > opScore;
               return (
-                <span className={`font-bold ${win ? "text-blue-600" : "text-red-500"}`}>
+                <span className={win ? "text-blue-600" : "text-red-500"}>
                   {win ? "승" : "패"}
                 </span>
               );
@@ -183,11 +183,13 @@ export function TeamMatchHistory({ teamId, matches, sets, teams, players, tourna
           },
           {
             key: "score",
+            align: "center",
             label: "스코어",
             render: (row) => `${row.teamAScore ?? "-"}:${row.teamBScore ?? "-"}`,
           },
           {
             key: "sets",
+            align: "center",
             label: "세트",
             render: (row) => {
               const relatedSets = sets
@@ -195,12 +197,12 @@ export function TeamMatchHistory({ teamId, matches, sets, teams, players, tourna
                 .sort((a, b) => a.setNumber - b.setNumber);
               if (relatedSets.length === 0) return "-";
               return (
-                <span className="flex gap-0.5">
+                <span className="inline-flex gap-0.5">
                   {relatedSets.map((s) =>
                     s.winnerTeamId === teamId ? (
-                      <span key={s.id} className="font-bold text-blue-600">승</span>
+                      <span key={s.id} className="text-blue-600">승</span>
                     ) : (
-                      <span key={s.id} className="font-bold text-red-500">패</span>
+                      <span key={s.id} className="text-red-500">패</span>
                     ),
                   )}
                 </span>
@@ -209,6 +211,7 @@ export function TeamMatchHistory({ teamId, matches, sets, teams, players, tourna
           },
           {
             key: "duration",
+            align: "center",
             label: "세트 시간",
             render: (row) => durationLabel(sets.find((s) => s.matchId === row.id)?.durationSeconds),
           },

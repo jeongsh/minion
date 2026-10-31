@@ -37,7 +37,6 @@ export default async function FanInfoPage({
         breadcrumbs={[{ label: team?.shortName ?? teamSlug.toUpperCase(), href: `/fan/${teamSlug}` }, { label: "팀 정보" }]}
       />
       <DataTable
-        mobileSurface="flat"
         rows={rows}
         columns={[
           { key: "label", label: "항목", render: (row) => row.label },

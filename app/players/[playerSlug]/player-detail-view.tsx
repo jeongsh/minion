@@ -543,15 +543,13 @@ export async function PlayerDetailView({
         {/* 5. 시즌 요약 */}
         <section>
           <SectionHeading caption={playerSegmentLabel(activeSegment)}>시즌 요약</SectionHeading>
-          <div className="overflow-hidden rounded-lg border border-[var(--ui-border)]">
             <Table><TableHeader><TableRow><TableHead scope="col" className="text-center">출전 세트</TableHead><TableHead scope="col" className="text-center">승률</TableHead><TableHead scope="col" className="text-center">KDA</TableHead><TableHead scope="col" className="text-center">최근 폼</TableHead><TableHead scope="col" className="text-center">공식 POM</TableHead></TableRow></TableHeader><TableBody><TableRow><TableCell className="text-center whitespace-nowrap"><strong className="px-1 text-base tabular-nums text-[var(--ui-ink)] sm:text-lg">{playerLines.length}</strong></TableCell><TableCell className="text-center whitespace-nowrap"><div className="min-w-0 px-1">
                   <strong className="text-base tabular-nums text-[var(--ui-ink)] sm:text-lg">{percentValue(playerLines.length ? (wins / playerLines.length) * 100 : null)}</strong>
-                  <span className="ml-1.5 hidden whitespace-nowrap text-xs text-[var(--ui-muted)] lg:inline">{wins}W {losses}L</span>
+                  <span className="ml-1.5 hidden whitespace-nowrap text-[13px] text-[var(--ui-muted)] lg:inline">{wins}W {losses}L</span>
                 </div></TableCell><TableCell className="text-center whitespace-nowrap"><div className="min-w-0 px-1">
                   <strong className="text-base tabular-nums text-[var(--ui-ink)] sm:text-lg">{statValue(aggregateStats?.kda, 2)}</strong>
-                  <span className="ml-1.5 hidden whitespace-nowrap text-xs text-[var(--ui-muted)] xl:inline">{playerKdaLine}</span>
+                  <span className="ml-1.5 hidden whitespace-nowrap text-[13px] text-[var(--ui-muted)] xl:inline">{playerKdaLine}</span>
                 </div></TableCell><TableCell className="text-center whitespace-nowrap"><strong className="px-1 text-base tabular-nums text-[var(--ui-ink)] sm:text-lg">{statValue(recentStats?.formScore)}</strong></TableCell><TableCell className="text-center whitespace-nowrap"><strong className="px-1 text-base tabular-nums text-[var(--ui-ink)] sm:text-lg">{pomCount}</strong></TableCell></TableRow></TableBody></Table>
-          </div>
         </section>
 
         <AdSlot enabled={playerLines.length > 0} placement="horizontal" className="h-[60px] xl:h-[90px]" />

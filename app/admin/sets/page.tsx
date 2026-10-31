@@ -55,19 +55,19 @@ export default async function AdminSetsPage({ searchParams }: { searchParams: Pr
           rows={listPage.rows}
           columns={[
             { key: "match", label: "경기", render: (row) => matchName(matches, row.matchId) },
-            { key: "set", label: "세트", render: (row) => `${row.setNumber}세트` },
+            { key: "set", label: "세트", align: "center", render: (row) => `${row.setNumber}세트` },
             { key: "status", label: "상태", render: (row) => setStatusLabel(row.status) },
             { key: "winner", label: "승리 팀", render: (row) => teamName(teams, row.winnerTeamId) },
             { key: "side", label: "진영", render: (row) => `${teamName(teams, row.blueTeamId)} / ${teamName(teams, row.redTeamId)}` },
-            { key: "kills", label: "킬", render: (row) => `${row.blueKills ?? "-"} : ${row.redKills ?? "-"}` },
-            { key: "gold", label: "골드", render: (row) => `${row.blueGold ?? "-"} : ${row.redGold ?? "-"}` },
+            { key: "kills", label: "킬", align: "center", render: (row) => `${row.blueKills ?? "-"} : ${row.redKills ?? "-"}` },
+            { key: "gold", label: "골드", align: "center", render: (row) => `${row.blueGold ?? "-"} : ${row.redGold ?? "-"}` },
             {
               key: "actions",
               label: "",
               render: (row) => (
                 <Link
                   href={`${matchAdminPath(matches, row.matchId)}/sets/${row.id}/edit`}
-                  className="rounded-md border border-border px-3 py-1.5 text-sm font-semibold hover:bg-surface-muted"
+                  className="rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-surface-muted"
                 >
                   수정
                 </Link>

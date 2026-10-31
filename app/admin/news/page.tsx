@@ -182,13 +182,13 @@ export default async function AdminNewsPage({
       </p>
 
       {/* ── 테이블 ────────────────────────────────────────────── */}
-      <div className="overflow-hidden rounded-xl border border-border bg-surface">
+      <div className="overflow-hidden rounded-lg border border-border bg-surface">
         {pageRows.length === 0 ? (
           <p className="py-16 text-center text-sm text-muted">결과가 없습니다.</p>
         ) : (
-          <Table className="w-full">
+          <Table className="w-full" framed={false}>
             <TableHeader>
-              <TableRow className="border-b border-border text-left text-muted">
+              <TableRow>
                 {type === "video" ? (
                   <>
                     <TableHead className="w-12">#</TableHead>
@@ -250,7 +250,7 @@ export default async function AdminNewsPage({
                             href={row.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="rounded-md border border-border px-2.5 py-1 text-[13px] font-semibold hover:bg-surface-muted"
+                            className="rounded-md border border-border px-2.5 py-1 text-[13px] font-medium hover:bg-surface-muted"
                           >
                             보기
                           </a>
@@ -283,7 +283,7 @@ export default async function AdminNewsPage({
                     <TableCell className="text-muted">{row.boardType}</TableCell>
                     <TableCell >
                       <span
-                        className={`rounded-full px-2 py-0.5 text-[13px] font-semibold ${
+                        className={`rounded-full px-2 py-0.5 text-[13px] font-medium ${
                           row.siteScope === "hub"
                             ? "bg-accent/10 text-accent"
                             : "bg-surface-muted text-muted"
@@ -302,7 +302,7 @@ export default async function AdminNewsPage({
                       <div className="flex items-center gap-1.5">
                         <Link
                           href={row.url}
-                          className="rounded-md border border-border px-2.5 py-1 text-[13px] font-semibold hover:bg-surface-muted"
+                          className="rounded-md border border-border px-2.5 py-1 text-[13px] font-medium hover:bg-surface-muted"
                         >
                           보기
                         </Link>

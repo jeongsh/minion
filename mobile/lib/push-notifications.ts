@@ -72,7 +72,7 @@ async function prepareAndroidChannels(Notifications: NotificationsModule) {
       sound: 'default',
     }),
     Notifications.setNotificationChannelAsync('live', {
-      description: '킬과 주요 오브젝트 등 실시간 경기 알림',
+      description: '킬과 주요 오브젝트 등 라이브 경기 알림',
       importance: Notifications.AndroidImportance.DEFAULT,
       name: '라이브 경기 알림',
       showBadge: false,

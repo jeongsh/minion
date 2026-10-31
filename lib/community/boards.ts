@@ -14,7 +14,7 @@ export type BoardDef = {
 
 // 허브 커뮤니티 (app/community)
 export const hubBoards: BoardDef[] = [
-  { slug: "live", label: "실시간", scope: "hub" },
+  { slug: "live", label: "중계", scope: "hub" },
   { slug: "analysis", label: "분석", scope: "hub" },
   { slug: "discussion", label: "토론", scope: "hub" },
   { slug: "news", label: "소식", scope: "hub" },
@@ -25,7 +25,7 @@ export const hubBoards: BoardDef[] = [
 
 // 팀 팬사이트 커뮤니티 (app/fan/[teamSlug]/community)
 export const teamBoards: BoardDef[] = [
-  { slug: "live", label: "실시간", scope: "team" },
+  { slug: "live", label: "중계", scope: "team" },
   { slug: "discussion", label: "토론", scope: "team" },
   { slug: "news", label: "소식", scope: "team" },
   { slug: "fanart", label: "팬아트", scope: "team" },

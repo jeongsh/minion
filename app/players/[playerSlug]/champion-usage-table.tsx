@@ -59,10 +59,10 @@ function ChampionCell({ row }: { row: ChampionUsageRow }) {
   if (!row.champion) return <span className="text-[var(--ui-muted)]">-</span>;
 
   return (
-    <Link href={`/champions/${row.champion.slug}`} className="flex min-w-0 items-center justify-center gap-2 transition hover:opacity-75 sm:justify-start">
+    <Link href={`/champions/${row.champion.slug}`} className="flex min-w-0 items-center gap-2 transition hover:opacity-75">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={championImageUrl(row.champion)} alt="" className="h-7 w-7 shrink-0 rounded-md object-cover sm:h-8 sm:w-8 lg:h-9 lg:w-9" />
-      <span className="hidden truncate font-medium text-[var(--ui-ink)] sm:inline">{championLabel(row.champion)}</span>
+      <span className="truncate font-medium text-[var(--ui-ink)]">{championLabel(row.champion)}</span>
     </Link>
   );
 }
@@ -82,51 +82,47 @@ export function ChampionUsageTable({ rows, initialRows = 5 }: { rows: ChampionUs
 
   return (
     <div>
-      <div className="overflow-hidden rounded-lg border border-[var(--ui-border)]">
-        <div className="overflow-hidden bg-[var(--ui-surface)]">
-          <Table className="min-w-[44rem]">
-            <TableHeader>
-              <TableRow className="h-10 leading-tight text-[var(--ui-muted)]">
-                <TableHead scope="col" >챔피언</TableHead>
-                <TableHead scope="col" className="text-center">세트</TableHead>
-                <TableHead scope="col" className="text-center">승률</TableHead>
-                <TableHead scope="col" className="text-center">KDA</TableHead>
-                <TableHead scope="col" className="text-center">대미지</TableHead>
-                <TableHead scope="col" className="text-center">DPM</TableHead>
-                <TableHead scope="col" className="text-center">CSM</TableHead>
-                <TableHead scope="col" className="hidden text-center sm:table-cell">팬평점</TableHead>
-                <TableHead scope="col" className="text-center">
-                  <span className="sm:hidden">POG</span>
-                  <span className="hidden sm:inline">팬 POG</span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody >
-              {visibleRows.map((row, index) => (
-                <TableRow key={row.champion?.id ?? index} className="align-middle transition-colors">
-                  <TableCell ><ChampionCell row={row} /></TableCell>
-                  <TableCell className="text-center tabular-nums text-[var(--ui-ink)]">{row.lines.length}</TableCell>
-                  <TableCell className="text-center tabular-nums text-[var(--tp)]">{percentValue(row.winRate)}</TableCell>
-                  <TableCell className="text-center tabular-nums text-[var(--ui-ink)]">{statValue(row.stats?.kda, 2)}</TableCell>
-                  <TableCell className="text-center tabular-nums text-[var(--ui-text)]">
-                    <span className="sm:hidden">{compactNumberValue(row.avgDamage)}</span>
-                    <span className="hidden sm:inline">{numberValue(row.avgDamage)}</span>
-                  </TableCell>
-                  <TableCell className="text-center tabular-nums text-[var(--ui-text)]">{statValue(row.stats?.dpm, 1)}</TableCell>
-                  <TableCell className="text-center tabular-nums text-[var(--ui-text)]">{statValue(row.stats?.csm, 1)}</TableCell>
-                  <TableCell className="hidden text-center tabular-nums text-[var(--ui-text)] sm:table-cell">{row.avgRating}</TableCell>
-                  <TableCell className="text-center tabular-nums text-[var(--ui-text)]">{row.fanPogCount}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      </div>
+      <Table className="min-w-[44rem]">
+        <TableHeader>
+          <TableRow>
+            <TableHead scope="col" >챔피언</TableHead>
+            <TableHead scope="col" className="text-center">세트</TableHead>
+            <TableHead scope="col" className="text-center">승률</TableHead>
+            <TableHead scope="col" className="text-center">KDA</TableHead>
+            <TableHead scope="col" className="text-center">대미지</TableHead>
+            <TableHead scope="col" className="text-center">DPM</TableHead>
+            <TableHead scope="col" className="text-center">CSM</TableHead>
+            <TableHead scope="col" className="hidden text-center sm:table-cell">팬평점</TableHead>
+            <TableHead scope="col" className="text-center">
+              <span className="sm:hidden">POG</span>
+              <span className="hidden sm:inline">팬 POG</span>
+            </TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody >
+          {visibleRows.map((row, index) => (
+            <TableRow key={row.champion?.id ?? index} className="align-middle transition-colors">
+              <TableCell ><ChampionCell row={row} /></TableCell>
+              <TableCell className="text-center tabular-nums text-[var(--ui-ink)]">{row.lines.length}</TableCell>
+              <TableCell className="text-center tabular-nums text-[var(--tp)]">{percentValue(row.winRate)}</TableCell>
+              <TableCell className="text-center tabular-nums text-[var(--ui-ink)]">{statValue(row.stats?.kda, 2)}</TableCell>
+              <TableCell className="text-center tabular-nums text-[var(--ui-text)]">
+                <span className="sm:hidden">{compactNumberValue(row.avgDamage)}</span>
+                <span className="hidden sm:inline">{numberValue(row.avgDamage)}</span>
+              </TableCell>
+              <TableCell className="text-center tabular-nums text-[var(--ui-text)]">{statValue(row.stats?.dpm, 1)}</TableCell>
+              <TableCell className="text-center tabular-nums text-[var(--ui-text)]">{statValue(row.stats?.csm, 1)}</TableCell>
+              <TableCell className="hidden text-center tabular-nums text-[var(--ui-text)] sm:table-cell">{row.avgRating}</TableCell>
+              <TableCell className="text-center tabular-nums text-[var(--ui-text)]">{row.fanPogCount}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
       {remainingCount > 0 ? (
         <button
           type="button"
           onClick={() => setVisibleCount(rows.length)}
-          className="mt-3 flex h-10 w-full items-center justify-center gap-1.5 rounded-xl bg-[var(--ui-card-bg)] text-sm font-bold text-[var(--ui-ink)] transition-colors hover:bg-[var(--ui-card-hover)]"
+          className="mt-3 flex h-10 w-full items-center justify-center gap-1.5 rounded-xl bg-[var(--ui-card-bg)] text-sm font-medium text-[var(--ui-ink)] transition-colors hover:bg-[var(--ui-card-hover)]"
         >
           전체보기
           <ChevronDown aria-hidden="true" className="h-4 w-4" />

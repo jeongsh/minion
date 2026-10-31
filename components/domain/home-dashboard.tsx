@@ -43,6 +43,7 @@ type Props = {
   // latestVideos: HomeVideo[];
   newsSection: React.ReactNode;
   insightsSection: React.ReactNode;
+  ratingTicker: React.ReactNode;
 };
 
 const HOME_SECTION_SPACING = "mt-10";
@@ -70,6 +71,7 @@ export function HomeDashboard({
   // latestVideos,
   newsSection,
   insightsSection,
+  ratingTicker,
 }: Props) {
   const activeTeams = themeTeams
     .map(
@@ -107,6 +109,8 @@ export function HomeDashboard({
           </AdaptiveDialog>
         </div>
       </section>
+
+      {ratingTicker}
 
       {celebrationEvents.length > 0 ? (
         <section className="my-8">
