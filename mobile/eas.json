@@ -29,6 +29,13 @@
     }
   },
   "submit": {
+    "store-release": {
+      "android": {
+        "track": "production",
+        "releaseStatus": "completed",
+        "changesNotSentForReview": false
+      }
+    },
     "admob-release": {
       "android": {
         "track": "production",
