@@ -3,7 +3,8 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import Check from 'lucide-react-native/icons/check';
 import ChevronLeft from 'lucide-react-native/icons/chevron-left';
 import Mail from 'lucide-react-native/icons/mail';
-import { useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
@@ -16,6 +17,8 @@ import { useAuth } from '@/providers/auth-provider';
 type Mode = 'login' | 'signup';
 const loginCharacter = require('@/assets/characters/pen-4.png');
 const signupCharacter = require('@/assets/characters/flag-3.png');
+// iOS는 App Store 1.2 대응으로 가입·로그인 전에 약관 동의를 받고, 한 번 동의하면 기기에 저장한다.
+const AUTH_CONSENT_KEY = 'minion-auth-consent-v1';
 
 export function AuthScreen({ mode }: { mode: Mode }) {
   const router = useRouter();
@@ -60,6 +63,26 @@ export function AuthScreen({ mode }: { mode: Mode }) {
   const consentsAccepted = ageConfirmed && termsAccepted && privacyAccepted;
   // iOS만 소셜 가입 전 명시적 동의를 받는다. Android는 기존 동의 간주 안내를 유지한다.
   const requiresSocialConsent = Platform.OS === 'ios';
+  const loginDisabled = Boolean(pending) || (requiresSocialConsent && !consentsAccepted);
+
+  useEffect(() => {
+    if (!requiresSocialConsent) return;
+    let active = true;
+    void AsyncStorage.getItem(AUTH_CONSENT_KEY).then((value) => {
+      if (!active || value !== 'true') return;
+      setAgeConfirmed(true); setTermsAccepted(true); setPrivacyAccepted(true);
+    }).catch(() => undefined);
+    return () => { active = false; };
+  }, [requiresSocialConsent]);
+
+  useEffect(() => {
+    if (requiresSocialConsent && consentsAccepted) void AsyncStorage.setItem(AUTH_CONSENT_KEY, 'true').catch(() => undefined);
+  }, [consentsAccepted, requiresSocialConsent]);
+
+  const startLogin = (task: () => void) => {
+    if (requiresSocialConsent && !consentsAccepted) return setError('만 14세 이상 확인과 필수 약관에 동의해주세요.');
+    task();
+  };
   const socialSignupDisabled = Boolean(pending) || (requiresSocialConsent && !consentsAccepted);
 
   const startSocialSignup = (provider: 'apple' | 'google' | 'kakao' | 'naver') => {
@@ -99,6 +122,7 @@ export function AuthScreen({ mode }: { mode: Mode }) {
               <Image contentFit="contain" contentPosition="bottom" source={loginCharacter} style={styles.loginCharacter} />
             </View>
             <View style={styles.loginFormWrap}>
+              {requiresSocialConsent ? consentGroup : null}
               <View style={styles.emailForm}>
                 <Field label="이메일">
                   <TextInput
@@ -122,7 +146,7 @@ export function AuthScreen({ mode }: { mode: Mode }) {
                 </Field>
                 {error ? <Text accessibilityRole="alert" style={styles.loginError}>{error}</Text> : null}
                 {message ? <Text style={[styles.loginMessage, { color: theme.text, ...fonts.regular }]}>{message}</Text> : null}
-                <Pressable disabled={Boolean(pending)} onPress={submit} style={[styles.loginPrimary, { opacity: pending ? 0.5 : 1 }]}>
+                <Pressable disabled={loginDisabled} onPress={() => startLogin(submit)} style={[styles.loginPrimary, { opacity: loginDisabled ? 0.5 : 1 }]}>
                   {pending === 'email' ? <ActivityIndicator color="#ffffff" /> : <Text style={[styles.loginPrimaryText, { ...fonts.black }]}>로그인</Text>}
                 </Pressable>
                 <Text style={[styles.accountLinks, { color: formMuted, ...fonts.regular }]}>
@@ -138,10 +162,10 @@ export function AuthScreen({ mode }: { mode: Mode }) {
                 <View style={[styles.rule, { backgroundColor: theme.border }]} />
               </View>
               <View style={styles.socialList}>
-                {Platform.OS === 'ios' ? <SocialButton compact disabled={Boolean(pending)} icon={<AppleIcon />} label="Apple로 계속하기" onPress={() => void run('apple', () => signInWithOAuth('apple', returnTo))} pending={pending === 'apple'} text="#ffffff" tone="#000000" /> : null}
-                <SocialButton border={colorScheme === 'dark' ? '#8e918f' : '#747775'} compact disabled={Boolean(pending)} icon={<GoogleIcon />} label="구글로 계속하기" onPress={() => void run('google', () => signInWithOAuth('google', returnTo))} pending={pending === 'google'} text={colorScheme === 'dark' ? '#e3e3e3' : '#1f1f1f'} tone={colorScheme === 'dark' ? '#131314' : '#ffffff'} />
-                <SocialButton compact disabled={Boolean(pending)} icon={<KakaoIcon />} label="카카오로 계속하기" onPress={() => void run('kakao', () => signInWithOAuth('kakao', returnTo))} pending={pending === 'kakao'} text="#191600" tone="#fee500" />
-                <SocialButton compact disabled={Boolean(pending)} icon={<NaverIcon />} label="네이버로 계속하기" onPress={() => void run('naver', () => signInWithOAuth('naver', returnTo))} pending={pending === 'naver'} text="#ffffff" tone="#03c75a" />
+                {Platform.OS === 'ios' ? <SocialButton compact disabled={loginDisabled} icon={<AppleIcon />} label="Apple로 계속하기" onPress={() => startLogin(() => void run('apple', () => signInWithOAuth('apple', returnTo)))} pending={pending === 'apple'} text="#ffffff" tone="#000000" /> : null}
+                <SocialButton border={colorScheme === 'dark' ? '#8e918f' : '#747775'} compact disabled={loginDisabled} icon={<GoogleIcon />} label="구글로 계속하기" onPress={() => startLogin(() => void run('google', () => signInWithOAuth('google', returnTo)))} pending={pending === 'google'} text={colorScheme === 'dark' ? '#e3e3e3' : '#1f1f1f'} tone={colorScheme === 'dark' ? '#131314' : '#ffffff'} />
+                <SocialButton compact disabled={loginDisabled} icon={<KakaoIcon />} label="카카오로 계속하기" onPress={() => startLogin(() => void run('kakao', () => signInWithOAuth('kakao', returnTo)))} pending={pending === 'kakao'} text="#191600" tone="#fee500" />
+                <SocialButton compact disabled={loginDisabled} icon={<NaverIcon />} label="네이버로 계속하기" onPress={() => startLogin(() => void run('naver', () => signInWithOAuth('naver', returnTo)))} pending={pending === 'naver'} text="#ffffff" tone="#03c75a" />
               </View>
             </View>
           </View>

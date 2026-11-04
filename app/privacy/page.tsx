@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 import { PolicyPage } from "@/components/policy/policy-page";
 import { siteContactEmail } from "@/lib/site";
 
-const PRIVACY_POLICY_EFFECTIVE_DATE = "2026년 10월 9일";
+const PRIVACY_POLICY_EFFECTIVE_DATE = "2026년 11월 4일";
 
 export const metadata: Metadata = {
   title: "개인정보처리방침",
@@ -23,6 +23,7 @@ export default function PrivacyPage() {
             <TableHeader><TableRow><TableHead>구분</TableHead><TableHead>처리 항목</TableHead><TableHead>목적</TableHead></TableRow></TableHeader>
             <TableBody>
               <TableRow><TableCell>회원가입·인증</TableCell><TableCell>이메일 주소, 암호화된 비밀번호, 회원 식별자, 인증·세션 정보</TableCell><TableCell>회원 식별, 로그인, 계정 보안, 문의 대응</TableCell></TableRow>
+              <TableRow><TableCell>소셜 로그인</TableCell><TableCell>Apple, Google, Kakao, Naver에서 이용자 동의를 거쳐 전달받는 소셜 계정 식별자, 이메일 주소(Apple의 비공개 릴레이 주소 포함), 이름 또는 닉네임, 프로필 이미지</TableCell><TableCell>회원가입과 로그인, 계정 연결, 탈퇴 시 연결 해지</TableCell></TableRow>
               <TableRow><TableCell>프로필</TableCell><TableCell>닉네임, 선택 입력한 프로필 이미지, LP·티어</TableCell><TableCell>프로필 표시, 커뮤니티와 랭킹 기능 제공</TableCell></TableRow>
               <TableRow><TableCell>서비스 활동</TableCell><TableCell>게시글·댓글·업로드 이미지, 평가·투표·신고·예측·팔로우·출석 기록 및 관련 시각</TableCell><TableCell>커뮤니티, 팬 평가, 승부예측, 개인화 기능과 부정 이용 방지</TableCell></TableRow>
               <TableRow><TableCell>모바일 앱·알림</TableCell><TableCell>앱 설치 식별자, 기기 운영체제, Expo push token, 알림 허용 상태와 알림 종류별 설정</TableCell><TableCell>앱 요청 식별과 부정 이용 방지, 로그인 중계, 이용자가 선택한 푸시 알림 전송</TableCell></TableRow>
@@ -64,6 +65,8 @@ export default function PrivacyPage() {
               <TableRow><TableCell>Vercel Inc.</TableCell><TableCell>웹사이트 호스팅, 전송, 보안 로그. IP 주소, 요청 정보와 브라우저 정보</TableCell><TableCell>미국 등 서비스 제공 국가 / 페이지 요청 시 / 계약 및 로그 보관 정책에 따른 기간</TableCell></TableRow>
               <TableRow><TableCell>Expo(650 Industries, Inc.), Apple Inc., Google LLC</TableCell><TableCell>모바일 푸시 알림 전송. 푸시 토큰, 기기 운영체제와 알림 제목·내용·이동 경로</TableCell><TableCell>미국 등 각 사업자가 처리하는 국가 / 이용자가 푸시 알림을 허용하고 알림을 전송할 때 / 알림 전송 및 각 사업자 정책에 따른 기간</TableCell></TableRow>
               <TableRow><TableCell>Google LLC</TableCell><TableCell>YouTube 임베드, 웹 AdSense 및 모바일 앱 AdMob 광고 제공과 측정. 쿠키, IP 주소, 기기 및 광고 식별 정보, 광고 상호작용과 진단 정보</TableCell><TableCell>미국 등 Google이 처리하는 국가 / 콘텐츠 및 광고 SDK 로드 시 / Google 정책에 따른 기간</TableCell></TableRow>
+              <TableRow><TableCell>OpenAI, L.L.C.</TableCell><TableCell>커뮤니티 게시글·댓글의 유해 콘텐츠 자동 검수. 검수 대상 글의 제목과 본문(작성자 닉네임, 이메일 등 계정 정보는 전송하지 않음)</TableCell><TableCell>미국 / 게시글·댓글 작성 및 수정 시 / OpenAI API 정책에 따른 기간(서비스 개선 학습에 사용되지 않으며 오남용 모니터링을 위해 최대 30일 보관)</TableCell></TableRow>
+              <TableRow><TableCell>Apple Inc., Google LLC, Kakao Corp., NAVER Corp.</TableCell><TableCell>소셜 로그인 인증. 로그인 요청과 인증 결과, 소셜 계정 식별자와 이용자가 동의한 프로필 정보</TableCell><TableCell>미국·대한민국 등 각 사업자가 처리하는 국가 / 소셜 로그인 및 탈퇴 시 / 각 사업자 정책에 따른 기간</TableCell></TableRow>
               <TableRow><TableCell>Meta Platforms, Inc.</TableCell><TableCell>Instagram 임베드 제공. 쿠키, IP 주소, 기기·이용 정보</TableCell><TableCell>미국 등 Meta가 처리하는 국가 / 임베드 로드 시 / Meta 정책에 따른 기간</TableCell></TableRow>
             </TableBody>
           </Table>
@@ -86,7 +89,7 @@ export default function PrivacyPage() {
 
       <section>
         <h2>6. 이용자의 권리와 행사 방법</h2>
-        <p>이용자는 자신의 개인정보에 대한 열람, 정정, 삭제, 처리 정지, 동의 철회 및 회원 탈퇴를 요청할 수 있습니다. 프로필 정보는 로그인 후 직접 수정할 수 있으며, 그 밖의 요청은 <a href={`mailto:${email}`}>{email}</a>로 보내주세요. 본인 확인 후 관계 법령이 정한 기간 안에 처리합니다.</p>
+        <p>이용자는 자신의 개인정보에 대한 열람, 정정, 삭제, 처리 정지, 동의 철회 및 회원 탈퇴를 요청할 수 있습니다. 프로필 정보는 로그인 후 직접 수정할 수 있고, 회원 탈퇴는 웹 또는 앱의 내 정보 &gt; 회원 탈퇴에서 직접 진행할 수 있습니다. 탈퇴하면 계정 정보가 즉시 삭제되며 Apple 계정으로 가입한 경우 Apple 로그인 연결도 함께 해지됩니다. 그 밖의 요청은 <a href={`mailto:${email}`}>{email}</a>로 보내주세요. 본인 확인 후 관계 법령이 정한 기간 안에 처리합니다.</p>
       </section>
 
       <section>

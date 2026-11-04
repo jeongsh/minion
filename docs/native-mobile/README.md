@@ -50,6 +50,8 @@
 
 ### 승인된 통합 변경 기록
 
+- 2026-11-04: App Store 1.2 재심사 대응으로 사용자가 차단한 작성자의 글을 홈 최신글에서도 즉시 숨기도록 요청했다. 홈 API는 공개 CDN 캐시라 사용자별 차단을 반영할 수 없으므로, 잠금 파일 `mobile/app/(tabs)/index.tsx`의 `CommunitySection`에는 `useVisibleHomePosts` 연결 두 줄만 추가한다. 로그인 사용자만 `GET /api/mobile/v1/community/hidden-posts?ids=`로 차단 작성자 글 ID를 받아 제외하고, 차단 성공 시 `community`/`home` 캐시 무효화로 다시 불러온다. 레이아웃, 문구, 비로그인 동작과 홈 API 계약은 유지한다. iOS 로그인 화면에는 가입 화면과 같은 필수 동의를 표시하고 동의 전 로그인 버튼을 비활성화하며, 동의는 기기에 저장한다. 실기기 검증은 미실행이다.
+
 - 2026-10-31: 사용자가 광고 유지, 화면 밖 광고 지연 로딩과 앱 전반 성능 점검을 요청했다. 잠금 `mobile/components/minion-screen.tsx`에는 기존 스크롤 및 콘텐츠 크기 이벤트의 광고 위치 확인 알림만 연결한다. 홈 지면, 헤더, 독바, clipping과 레이아웃은 유지한다. 같은 화면의 스크롤에서는 광고를 보존하고, 화면 이탈 및 앱 배경 전환에서는 네이티브 광고를 해제한다. 범위와 검증 결과는 `app-performance-2026-10-31.md`에 기록한다.
 
 - 2026-10-29: 사용자 요청으로 iOS에서만 승부예측 메뉴와 참여 화면을 제외한다. 웹 원본 `components/layout/app-shell.tsx`의 `/predictions` 메뉴와 기존 앱 `mobile/app/(tabs)/predictions.tsx`의 참여 흐름은 웹 및 Android에서 유지한다. 잠금 파일 `mobile/components/minion-screen.tsx`는 iOS의 허브 메뉴에서 `/predictions` 항목만 제외하는 통합 변경으로 한정한다. iOS 전용 `predictions.ios.tsx`는 예측 데이터 조회 및 참여 컴포넌트를 불러오지 않고, 경로 또는 딥링크 접근 시 시스템 알림으로 미제공 사실을 안내한 뒤 확인을 누르면 홈으로 이동한다. 프로필 LP와 등급, 홈 및 경기 상세의 조회용 비율은 유지한다.

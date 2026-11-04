@@ -13,7 +13,7 @@ import { KeyboardAwareView } from '@/components/keyboard-aware-view';
 import { RankAvatar } from '@/components/rank-avatar';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import type { MobileCommunityActionDto, MobileCommunityAuthor } from '@/lib/api-client';
-import { mutateMobileApi } from '@/lib/api-client';
+import { invalidateApiCache, mutateMobileApi } from '@/lib/api-client';
 import { useAuth } from '@/providers/auth-provider';
 import { displayAuthor } from './community-utils';
 
@@ -103,7 +103,9 @@ export function CommunityAuthor({ author, customTrigger, detailMeta, evidence, h
             target: evidence?.target,
             targetId: evidence?.targetId,
             targetUserId: author.id,
-          }).then((result) => {
+          }).then(async (result) => {
+            // 차단한 작성자의 글·댓글이 목록과 홈에서 바로 사라지도록 캐시를 비우고 다시 불러온다.
+            await Promise.all([invalidateApiCache('/api/mobile/v1/community'), invalidateApiCache('/api/mobile/v1/home')]);
             Alert.alert('사용자 차단 완료', result.message);
             onBlocked?.();
           }).catch((caught) => Alert.alert('차단 실패', caught instanceof Error ? caught.message : '사용자를 차단하지 못했습니다.')).finally(() => setPending(false));

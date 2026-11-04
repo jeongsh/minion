@@ -24,6 +24,7 @@ import { ContentBanner } from '@/components/ads/content-banner';
 import { useScreenQuery } from '@/hooks/use-screen-query';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import { resolveApiAssetUrl, type MobileHomeDto, type MobileMatchSummary } from '@/lib/api-client';
+import { useVisibleHomePosts } from '@/components/home/use-visible-home-posts';
 
 const CARD_GAP = 12;
 const HOME_TEAM_ORDER = ['t1', 'geng', 'hle', 'dk', 'kt', 'drx', 'ns', 'bro', 'fox', 'soop'];
@@ -138,7 +139,8 @@ function StoveLeagueBanner() {
   </Pressable>;
 }
 
-function CommunitySection({ items }: { items: MobileHomeDto['community'] }) {
+function CommunitySection({ items: allItems }: { items: MobileHomeDto['community'] }) {
+  const items = useVisibleHomePosts(allItems);
   const router = useRouter();
   const { width } = useWindowDimensions();
   const { fonts, theme } = useMinionTheme();

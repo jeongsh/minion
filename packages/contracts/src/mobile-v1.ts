@@ -1328,6 +1328,7 @@ export const mobileApiRoutes = {
   newsArticle: { method: "GET", path: `${MOBILE_API_PREFIX}/news/article`, owner: "news title and thumbnail resolvers", auth: "public", cache: "21600s" },
   search: { method: "GET", path: `${MOBILE_API_PREFIX}/search`, owner: "search service", auth: "public", cache: "30s" },
   communityPosts: { method: "GET", path: `${MOBILE_API_PREFIX}/community/posts`, owner: "lib/data/community", auth: "optional", cache: "10s" },
+  communityHiddenPosts: { method: "GET", path: `${MOBILE_API_PREFIX}/community/hidden-posts`, owner: "community block filter", auth: "required", cache: "no-store" },
   communityPostCreate: { method: "POST", path: `${MOBILE_API_PREFIX}/community/posts`, owner: "community service", auth: "optional", cache: "no-store" },
   communityPost: { method: "GET", path: `${MOBILE_API_PREFIX}/community/posts/{postId}`, owner: "lib/data/community", auth: "optional", cache: "10s" },
   communityPostUpdate: { method: "PATCH", path: `${MOBILE_API_PREFIX}/community/posts/{postId}`, owner: "community service", auth: "optional", cache: "no-store" },
