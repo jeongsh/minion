@@ -35,6 +35,7 @@ import { useAuth } from '@/providers/auth-provider';
 import { CommunityPostContent } from './community-post-content';
 import { CommunityAuthor, GuestAvatar } from './community-author';
 import { COMMENT_MAX_LENGTH, displayAuthor, formatCommunityDate, type CommunityScope } from './community-utils';
+import { useGuestWriteConsent } from './use-guest-write-consent';
 import { MiniconPicker, rememberMiniconUse } from './minicon-picker';
 
 type ReportTarget = { target: 'post' | 'comment'; targetId: string };
@@ -44,6 +45,7 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
   const { postId } = params;
   const isFocused = useIsFocused();
   const { loading: authLoading, session } = useAuth();
+  const guestConsent = useGuestWriteConsent();
   const teamSlug = Array.isArray(params.team) ? params.team[0] : params.team;
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -131,9 +133,10 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
       setReportPending(false);
     }
   };
-  const submitComment = async () => {
+  const submitComment = async (consented = false) => {
     const content = comment.trim();
     if (!content || submitting || !data) return;
+    if (!consented && !guestConsent.ensureConsent(() => void submitComment(true))) return;
     setSubmitting(true);
     try {
       await mutateMobileApi<MobileCommunityCommentMutationDto>('/api/mobile/v1/community/comments', 'POST', { content, parentId: replyTo?.id ?? null, postId: data.id });
@@ -141,8 +144,9 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
     } catch (caught) { Alert.alert('등록 실패', caught instanceof Error ? caught.message : '댓글을 등록하지 못했습니다.'); }
     finally { setSubmitting(false); }
   };
-  const submitMinicons = async (items: MobileMiniconItem[]) => {
+  const submitMinicons = async (items: MobileMiniconItem[], consented = false) => {
     if (submitting || !data) return;
+    if (!consented && !guestConsent.ensureConsent(() => void submitMinicons(items, true))) return;
     setSubmitting(true);
     setComment('');
     setMiniconOpen(false);
