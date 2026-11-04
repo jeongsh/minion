@@ -3,8 +3,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import Check from 'lucide-react-native/icons/check';
 import ChevronLeft from 'lucide-react-native/icons/chevron-left';
 import Mail from 'lucide-react-native/icons/mail';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { ActivityIndicator, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
@@ -17,8 +16,6 @@ import { useAuth } from '@/providers/auth-provider';
 type Mode = 'login' | 'signup';
 const loginCharacter = require('@/assets/characters/pen-4.png');
 const signupCharacter = require('@/assets/characters/flag-3.png');
-// iOS는 App Store 1.2 대응으로 가입·로그인 전에 약관 동의를 받고, 한 번 동의하면 기기에 저장한다.
-const AUTH_CONSENT_KEY = 'minion-auth-consent-v1';
 
 export function AuthScreen({ mode }: { mode: Mode }) {
   const router = useRouter();
@@ -60,33 +57,11 @@ export function AuthScreen({ mode }: { mode: Mode }) {
     void run('email', () => mode === 'login' ? signInWithEmail(email, password, returnTo) : signUpWithEmail(email, password, favoriteTeamReturnTo));
   };
 
-  const consentsAccepted = ageConfirmed && termsAccepted && privacyAccepted;
-  // iOS만 소셜 가입 전 명시적 동의를 받는다. Android는 기존 동의 간주 안내를 유지한다.
-  const requiresSocialConsent = Platform.OS === 'ios';
-  const loginDisabled = Boolean(pending) || (requiresSocialConsent && !consentsAccepted);
-
-  useEffect(() => {
-    if (!requiresSocialConsent) return;
-    let active = true;
-    void AsyncStorage.getItem(AUTH_CONSENT_KEY).then((value) => {
-      if (!active || value !== 'true') return;
-      setAgeConfirmed(true); setTermsAccepted(true); setPrivacyAccepted(true);
-    }).catch(() => undefined);
-    return () => { active = false; };
-  }, [requiresSocialConsent]);
-
-  useEffect(() => {
-    if (requiresSocialConsent && consentsAccepted) void AsyncStorage.setItem(AUTH_CONSENT_KEY, 'true').catch(() => undefined);
-  }, [consentsAccepted, requiresSocialConsent]);
-
-  const startLogin = (task: () => void) => {
-    if (requiresSocialConsent && !consentsAccepted) return setError('만 14세 이상 확인과 필수 약관에 동의해주세요.');
-    task();
-  };
-  const socialSignupDisabled = Boolean(pending) || (requiresSocialConsent && !consentsAccepted);
-
+  // iOS는 첫 실행 약관 동의(ios-terms-gate)로 로그인·소셜 가입 전 동의를 받는다.
+  const loginDisabled = Boolean(pending);
+  const startLogin = (task: () => void) => task();
+  const socialSignupDisabled = Boolean(pending);
   const startSocialSignup = (provider: 'apple' | 'google' | 'kakao' | 'naver') => {
-    if (requiresSocialConsent && !consentsAccepted) return setError('만 14세 이상 확인과 필수 약관에 동의해주세요.');
     void run(provider, () => signInWithOAuth(provider, favoriteTeamReturnTo));
   };
 
@@ -122,7 +97,6 @@ export function AuthScreen({ mode }: { mode: Mode }) {
               <Image contentFit="contain" contentPosition="bottom" source={loginCharacter} style={styles.loginCharacter} />
             </View>
             <View style={styles.loginFormWrap}>
-              {requiresSocialConsent ? consentGroup : null}
               <View style={styles.emailForm}>
                 <Field label="이메일">
                   <TextInput
@@ -212,14 +186,13 @@ export function AuthScreen({ mode }: { mode: Mode }) {
             {!showEmailForm ? (
               <>
                 <View style={styles.or}><View style={[styles.rule, { backgroundColor: theme.border }]} /><Text style={[styles.dividerText, { color: theme.muted, ...fonts.medium }]}>또는</Text><View style={[styles.rule, { backgroundColor: theme.border }]} /></View>
-                {requiresSocialConsent ? consentGroup : null}
                 <View style={styles.socialList}>
                   {Platform.OS === 'ios' ? <SocialButton compact disabled={socialSignupDisabled} icon={<AppleIcon />} label="Apple로 회원가입" onPress={() => startSocialSignup('apple')} pending={pending === 'apple'} text="#ffffff" tone="#000000" /> : null}
                   <SocialButton border={colorScheme === 'dark' ? '#8e918f' : '#747775'} compact disabled={socialSignupDisabled} icon={<GoogleIcon />} label="구글로 회원가입" onPress={() => startSocialSignup('google')} pending={pending === 'google'} text={colorScheme === 'dark' ? '#e3e3e3' : '#1f1f1f'} tone={colorScheme === 'dark' ? '#131314' : '#ffffff'} />
                   <SocialButton compact disabled={socialSignupDisabled} icon={<KakaoIcon />} label="카카오로 회원가입" onPress={() => startSocialSignup('kakao')} pending={pending === 'kakao'} text="#191600" tone="#fee500" />
                   <SocialButton compact disabled={socialSignupDisabled} icon={<NaverIcon />} label="네이버로 회원가입" onPress={() => startSocialSignup('naver')} pending={pending === 'naver'} text="#ffffff" tone="#03c75a" />
                 </View>
-                {requiresSocialConsent ? null : <Text style={[styles.consentNotice, { color: theme.muted, ...fonts.regular }]}>계속 진행하면 만 14세 이상이며 <Text onPress={() => void Linking.openURL(`${mobileApiOrigin}/terms`)} style={styles.noticeLink}>이용약관</Text> 및 <Text onPress={() => void Linking.openURL(`${mobileApiOrigin}/privacy`)} style={styles.noticeLink}>개인정보처리방침</Text>에 동의하는 것으로 간주합니다.</Text>}
+                <Text style={[styles.consentNotice, { color: theme.muted, ...fonts.regular }]}>계속 진행하면 만 14세 이상이며 <Text onPress={() => void Linking.openURL(`${mobileApiOrigin}/terms`)} style={styles.noticeLink}>이용약관</Text> 및 <Text onPress={() => void Linking.openURL(`${mobileApiOrigin}/privacy`)} style={styles.noticeLink}>개인정보처리방침</Text>에 동의하는 것으로 간주합니다.</Text>
               </>
             ) : null}
           </View>

@@ -16,7 +16,6 @@ import { fanAccentText } from '@/lib/fan-colors';
 import { useCachedQuery } from '@/hooks/use-cached-query';
 import { useAuth } from '@/providers/auth-provider';
 import { CommunityRichEditor, type CommunityRichEditorHandle } from './community-rich-editor';
-import { useGuestWriteConsent } from './use-guest-write-consent';
 import { boardLabel, boardsForScope, emptyTiptapDocument, isTiptapEmpty, POST_TEXT_MAX_LENGTH, POST_TITLE_MAX_LENGTH, tiptapTextLength, type CommunityScope } from './community-utils';
 
 export function CommunityComposeScreen({ edit = false, scope = 'hub' }: { edit?: boolean; scope?: CommunityScope }) {
@@ -27,7 +26,6 @@ export function CommunityComposeScreen({ edit = false, scope = 'hub' }: { edit?:
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { session } = useAuth();
-  const guestConsent = useGuestWriteConsent();
   const { fonts, theme } = useMinionTheme();
   const team = scope === 'team' ? getMinionTeam(teamSlug) : null;
   const accent = team ? fanAccentText(team.primaryColor) : theme.accent;
@@ -71,9 +69,8 @@ export function CommunityComposeScreen({ edit = false, scope = 'hub' }: { edit?:
 
   const close = () => edit && postId ? router.replace(`${basePath}/post/${postId}` as never) : router.replace(basePath as never);
 
-  const submit = async (consented = false) => {
+  const submit = async () => {
     if (!title.trim()) { Alert.alert('제목을 입력하세요.'); return; }
-    if (!consented && !guestConsent.ensureConsent(() => void submit(true))) return;
     setSubmitting(true);
     try {
       const latestDocument = await editorRef.current?.flush() ?? document;
@@ -102,12 +99,6 @@ export function CommunityComposeScreen({ edit = false, scope = 'hub' }: { edit?:
       <View style={[styles.header, { borderBottomColor: theme.divider, marginTop: insets.top }]}>
         <Pressable accessibilityLabel="이전 화면" onPress={close} style={styles.headerButton}><ChevronLeft color={theme.text} size={22} /></Pressable>
         <Text numberOfLines={1} style={[styles.headerTitle, { color: theme.ink, ...fonts.display }]}>{edit ? '글 수정' : '글쓰기'}</Text>
-        {guestConsent.required && !edit ? (
-          <Pressable accessibilityLabel="이용약관 동의" accessibilityRole="checkbox" accessibilityState={{ checked: guestConsent.accepted }} hitSlop={6} onPress={() => guestConsent.setAccepted(!guestConsent.accepted)} style={styles.consent}>
-            <View style={[styles.checkbox, { backgroundColor: guestConsent.accepted ? theme.ink : 'transparent', borderColor: guestConsent.accepted ? theme.ink : theme.border }]}>{guestConsent.accepted ? <Check color={theme.surface} size={12} strokeWidth={3} /> : null}</View>
-            <Text style={{ color: theme.text, ...fonts.regular, fontSize: 13, lineHeight: 19 }}>약관 동의</Text>
-          </Pressable>
-        ) : null}
         <Pressable accessibilityLabel={submitting ? '등록 중' : edit ? '수정' : '등록'} disabled={submitting || length > POST_TEXT_MAX_LENGTH} onPress={() => void submit()} style={({ pressed }) => [styles.headerSubmit, { backgroundColor: accent, opacity: submitting || length > POST_TEXT_MAX_LENGTH ? 0.4 : pressed ? 0.78 : 1 }]}>
           {submitting ? <ActivityIndicator color="#ffffff" size="small" /> : <Text style={{ color: '#ffffff', ...fonts.medium, fontSize: 14 }}>{edit ? '수정' : '등록'}</Text>}
         </Pressable>
@@ -136,4 +127,4 @@ function colorWithAlpha(hex: string, alpha: number) {
   return `${hex}${Math.round(alpha * 255).toString(16).padStart(2, '0')}`;
 }
 
-const styles = StyleSheet.create({ root: { flex: 1 }, safeTop: { left: 0, position: 'absolute', right: 0, top: 0 }, header: { alignItems: 'center', borderBottomWidth: 1, flexDirection: 'row', height: 48, paddingHorizontal: 12, position: 'relative' }, headerButton: { alignItems: 'center', height: 44, justifyContent: 'center', width: 44 }, headerTitle: { fontSize: 16, left: 56, lineHeight: 24, position: 'absolute', right: 56, textAlign: 'center' }, headerSubmit: { alignItems: 'center', borderRadius: 10, height: 36, justifyContent: 'center', minWidth: 58, paddingHorizontal: 12, position: 'absolute', right: 12 }, consent: { alignItems: 'center', flexDirection: 'row', gap: 6, height: 36, position: 'absolute', right: 78 }, checkbox: { alignItems: 'center', borderRadius: 3, borderWidth: 1, height: 16, justifyContent: 'center', width: 16 }, content: { flex: 1, paddingHorizontal: 16 }, heading: { borderBottomWidth: 1, gap: 8, paddingBottom: 12, paddingTop: 14, zIndex: 20 }, categoryWrap: { alignSelf: 'flex-start', position: 'relative', zIndex: 21 }, category: { alignItems: 'center', borderRadius: 10, borderWidth: 1, flexDirection: 'row', gap: 8, height: 40, paddingHorizontal: 12 }, categoryMenu: { borderRadius: 12, borderWidth: 1, left: 12, padding: 6, position: 'absolute', top: 48, width: 164, zIndex: 22 }, categoryOption: { alignItems: 'center', borderRadius: 8, flexDirection: 'row', minHeight: 38, paddingHorizontal: 10 }, titleInput: { fontSize: 16, letterSpacing: -0.4, lineHeight: 23.2, minHeight: 32, paddingHorizontal: 0, paddingVertical: 3 }, editor: { flex: 1, marginTop: 12 }, state: { alignItems: 'center', flex: 1, justifyContent: 'center' } });
+const styles = StyleSheet.create({ root: { flex: 1 }, safeTop: { left: 0, position: 'absolute', right: 0, top: 0 }, header: { alignItems: 'center', borderBottomWidth: 1, flexDirection: 'row', height: 48, paddingHorizontal: 12, position: 'relative' }, headerButton: { alignItems: 'center', height: 44, justifyContent: 'center', width: 44 }, headerTitle: { fontSize: 16, left: 56, lineHeight: 24, position: 'absolute', right: 56, textAlign: 'center' }, headerSubmit: { alignItems: 'center', borderRadius: 10, height: 36, justifyContent: 'center', minWidth: 58, paddingHorizontal: 12, position: 'absolute', right: 12 }, content: { flex: 1, paddingHorizontal: 16 }, heading: { borderBottomWidth: 1, gap: 8, paddingBottom: 12, paddingTop: 14, zIndex: 20 }, categoryWrap: { alignSelf: 'flex-start', position: 'relative', zIndex: 21 }, category: { alignItems: 'center', borderRadius: 10, borderWidth: 1, flexDirection: 'row', gap: 8, height: 40, paddingHorizontal: 12 }, categoryMenu: { borderRadius: 12, borderWidth: 1, left: 12, padding: 6, position: 'absolute', top: 48, width: 164, zIndex: 22 }, categoryOption: { alignItems: 'center', borderRadius: 8, flexDirection: 'row', minHeight: 38, paddingHorizontal: 10 }, titleInput: { fontSize: 16, letterSpacing: -0.4, lineHeight: 23.2, minHeight: 32, paddingHorizontal: 0, paddingVertical: 3 }, editor: { flex: 1, marginTop: 12 }, state: { alignItems: 'center', flex: 1, justifyContent: 'center' } });

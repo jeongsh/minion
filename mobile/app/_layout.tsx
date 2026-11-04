@@ -8,6 +8,7 @@ import { AppState, Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useEffect } from 'react';
 
+import { IosTermsGate, useIosTermsAccepted } from '@/components/ios-terms-gate';
 import { TeamPickerSheet } from '@/components/team-picker-sheet';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import { MinionShellProvider } from '@/providers/minion-shell-provider';
@@ -75,20 +76,23 @@ function RootNavigator() {
       <TeamPickerSheet />
       <AccountShellSync />
       <InitialPushPermissionRequest />
+      <IosTermsGate />
     </ThemeProvider>
   );
 }
 
 function InitialPushPermissionRequest() {
   const { loading, session } = useAuth();
+  // iOS는 첫 실행 약관 동의 뒤에 알림 권한을 묻는다.
+  const termsAccepted = useIosTermsAccepted();
   useEffect(() => {
-    if (loading) return;
+    if (loading || !termsAccepted) return;
     void requestInitialPushPermission()
       .then((permission) => {
         if (permission.status === 'granted' && session) void syncPushTokenIfAuthorized();
       })
       .catch((error) => console.log('[push] initial permission request failed:', error));
-  }, [loading, session]);
+  }, [loading, session, termsAccepted]);
   return null;
 }
 
