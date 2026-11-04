@@ -13,6 +13,7 @@
 | Instagram | 팀별 `Instagram` | 꺼짐 | ✅ 구현됨(팀·현재 소속 선수 게시물) |
 | 동영상 | 팀별 `동영상` | 꺼짐 | ✅ 구현됨(팀·현재 소속 선수 영상) |
 | 솔랭 | 팀별 `솔랭` | 꺼짐 | 설정 저장 구현됨, 시작 감지 소스 연결 전 |
+| 운영자 신고·차단 | 없음(운영자 전용) | 항상 | ✅ 구현됨(웹·앱의 글/댓글/사용자 신고와 사용자/비회원 차단 매건, 앱 알림함 + iOS 푸시, 웹 알림함 제외) |
 
 - 전체 마스터와 커뮤니티 설정은 `user_notification_preferences.in_app_enabled`, `community_enabled`를 쓰고, 팀별 종류는 `fan_notification_subscriptions`의 알림 컬럼을 쓴다. 팔로우 팀마다 한 행만 유지한다.
 - 토큰 저장은 `push_tokens` 테이블(user_id, expo_push_token, platform). 발송 헬퍼는 `lib/notify/push.ts`의 `sendExpoPushNotifications`.

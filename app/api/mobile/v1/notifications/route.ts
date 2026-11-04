@@ -15,6 +15,8 @@ import {
 
 export const dynamic = "force-dynamic";
 
+// 운영자 신고·차단 알림은 앱 알림함에서만 노출한다.
+const ADMIN_INBOX = { includeAdmin: true };
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 async function currentRecipient(request: Request): Promise<NotificationRecipient> {
@@ -34,7 +36,7 @@ export async function GET(request: Request) {
   try {
     const recipient = await currentRecipient(request);
     const notifications = (await Promise.all([
-      listCommunityNotifications(recipient),
+      listCommunityNotifications(recipient, ADMIN_INBOX),
       recipient.userId ? listTeamContentNotifications(recipient.userId) : Promise.resolve([]),
     ])).flat().sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 100);
     return mobileSuccess<MobileCommunityNotificationsDto>({ notifications }, { headers: { "Cache-Control": "private, no-store" } });
@@ -51,11 +53,11 @@ export async function PATCH(request: Request) {
     const recipient = await currentRecipient(request);
     if (!parsedId) {
       await Promise.all([
-        markCommunityNotificationRead(recipient),
+        markCommunityNotificationRead(recipient, undefined, ADMIN_INBOX),
         recipient.userId ? markTeamContentNotificationRead(recipient.userId) : Promise.resolve(),
       ]);
     } else if (parsedId.scope === "community") {
-      await markCommunityNotificationRead(recipient, parsedId.id);
+      await markCommunityNotificationRead(recipient, parsedId.id, ADMIN_INBOX);
     } else if (recipient.userId) {
       await markTeamContentNotificationRead(recipient.userId, parsedId.id);
     } else {
@@ -76,11 +78,11 @@ export async function DELETE(request: Request) {
     const recipient = await currentRecipient(request);
     if (clearAll) {
       await Promise.all([
-        deleteCommunityNotifications(recipient),
+        deleteCommunityNotifications(recipient, undefined, ADMIN_INBOX),
         recipient.userId ? deleteTeamContentNotifications(recipient.userId) : Promise.resolve(),
       ]);
     } else if (parsedId!.scope === "community") {
-      await deleteCommunityNotifications(recipient, parsedId!.id);
+      await deleteCommunityNotifications(recipient, parsedId!.id, ADMIN_INBOX);
     } else if (recipient.userId) {
       await deleteTeamContentNotifications(recipient.userId, parsedId!.id);
     } else {

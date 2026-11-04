@@ -58,8 +58,7 @@ export async function POST(request: Request, context: { params: Promise<{ matchI
     if (message === "커뮤니티 이용이 영구 제한된 계정입니다.") {
       return mobileError("FORBIDDEN", message, 403);
     }
-    // 욕설 필터 재활성화 시 message.startsWith("금칙어(") 조건도 복구한다.
-    if (clientMessage.startsWith("리뷰는 ") || CLIENT_ERRORS.includes(clientMessage)) {
+    if (clientMessage.startsWith("리뷰는 ") || clientMessage.startsWith("금칙어(") || CLIENT_ERRORS.includes(clientMessage)) {
       return mobileError("BAD_REQUEST", clientMessage, 400);
     }
     console.error("[mobile-fan-rating] 평점 제출 실패", error);

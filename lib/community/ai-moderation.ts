@@ -1,8 +1,9 @@
 // 커뮤니티 AI 검수 — 순수 판정 로직(외부 의존 없음: fetch 만 사용).
 // 글쓰기 응답을 막지 않도록 서버 액션의 after() 안에서 호출된다(lib/community/actions.ts).
 //
-// 소형 모델로 도박 및 사기·불법 서비스 홍보만 분류한다.
-// 욕설, 비속어, 모욕, 거친 비평은 자동 차단 대상이 아니다.
+// 2단 검사:
+// 1) OpenAI Moderation API(무료) — 욕설·모욕·혐오·성적·폭력 등 정책 위반.
+// 2) 소형 모델 분류 — 도박 및 사기·불법 서비스 홍보(모더레이션 API 가 못 잡는 영역).
 //
 // 실패 정책: fail-open. API 오류/타임아웃/키 미설정이면 "정상"으로 통과시킨다 —
 // 검수 장애가 글쓰기를 막으면 안 되고, 놓친 글은 신고 누적 블라인드가 받아준다.
@@ -14,8 +15,7 @@ export type AiScreenVerdict =
 
 const NOT_FLAGGED: AiScreenVerdict = { flagged: false };
 
-// 광범위 모더레이션은 2026-09-16 정책 변경으로 호출만 비활성화했다.
-// 욕설·모욕·혐오 자동 차단을 되살릴 때 screenCommunityText의 보관된 호출 블록을 복구한다.
+/** Moderation API 카테고리 → 한국어 라벨(신고함 노출용). 접두 매칭. */
 export const MODERATION_CATEGORY_LABELS: [prefix: string, label: string][] = [
   ["harassment", "괴롭힘·모욕"],
   ["hate", "혐오 표현"],
@@ -151,13 +151,13 @@ export async function screenCommunityText(input: {
   const combined = [input.title ?? "", input.text].join("\n").trim();
   if (!combined) return NOT_FLAGGED;
 
-  // 광범위 모더레이션 비활성화(2026-09-16). 재활성화 시 아래 블록의 주석을 해제한다.
-  // try {
-  //   const verdict = await screenWithModerationApi(combined, apiKey);
-  //   if (verdict.flagged) return verdict;
-  // } catch (error) {
-  //   console.warn("[ai-moderation] 모더레이션 API 실패", error);
-  // }
+  // 1단계: 무료 모더레이션(욕설·모욕·혐오·성적·폭력). 걸리면 2단계 비용을 아낀다.
+  try {
+    const verdict = await screenWithModerationApi(combined, apiKey);
+    if (verdict.flagged) return verdict;
+  } catch (error) {
+    console.warn("[ai-moderation] 모더레이션 API 실패", error);
+  }
 
   try {
     return await screenForSpam(combined, apiKey);

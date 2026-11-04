@@ -94,16 +94,17 @@ export async function createCommunityUserReport(params: {
   reason: string;
   evidencePostId?: string | null;
   evidenceCommentId?: string | null;
-}): Promise<void> {
+}): Promise<{ id: string }> {
   const supabase = await createSupabaseAuthClient();
-  const { error } = await supabase.from("community_user_reports").insert({
+  const { data, error } = await supabase.from("community_user_reports").insert({
     reporter_id: params.reporterId,
     target_user_id: params.targetUserId,
     reason: params.reason,
     evidence_post_id: params.evidencePostId ?? null,
     evidence_comment_id: params.evidenceCommentId ?? null,
-  });
+  }).select("id").single();
   if (error) throw error;
+  return data;
 }
 
 export async function isCommunityUserSanctioned(userId: string): Promise<boolean> {

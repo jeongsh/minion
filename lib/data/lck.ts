@@ -32,7 +32,7 @@ import type {
   Tournament,
 } from "@/lib/types";
 import { normalizeSetStatus } from "@/lib/set-status";
-// 욕설 필터 비활성화(2026-09-16): import { findProfanity } from "@/lib/community/content-filter";
+import { findProfanity } from "@/lib/community/content-filter";
 import { DEFAULT_TIER, type Tier } from "@/lib/rank/config";
 import { getPublicRankProfiles } from "@/lib/rank/public-profile";
 import { normalizeYoutubeVideo } from "@/lib/youtube";
@@ -685,8 +685,7 @@ function mapFanRating(
     playerId: row.player_id,
     teamId: row.team_id,
     rating: Number(row.rating),
-    // 재활성화 시: row.blinded_at || findProfanity(row.review ?? "") ? "" : row.review ?? ""
-    review: row.blinded_at ? "" : row.review ?? "",
+    review: row.blinded_at || findProfanity(row.review ?? "") ? "" : row.review ?? "",
     createdAt: row.created_at,
     authorId: row.author_id,
     authorNickname,

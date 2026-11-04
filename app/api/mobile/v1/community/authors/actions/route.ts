@@ -3,6 +3,7 @@ import { getCommentById, getPostById } from "@/lib/data/community";
 import { getCommunityUserSummary, isCommunityUserSanctioned } from "@/lib/data/community-users";
 import { mobileError, mobileSuccess } from "@/lib/mobile/api-response";
 import { getMobileAuth } from "@/lib/mobile/auth";
+import { scheduleAdminModerationNotifications } from "@/lib/notifications/admin-moderation";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
@@ -40,6 +41,13 @@ export async function POST(request: Request) {
         if (!(await getCommunityUserSummary(targetUserId))) return mobileError("NOT_FOUND", "사용자를 찾을 수 없습니다.", 404);
         const result = await admin.from("community_user_blocks").insert({ blocked_id: targetUserId, blocker_id: auth.user.id });
         if (result.error && !uniqueViolation(result.error)) throw result.error;
+        scheduleAdminModerationNotifications({
+          kind: "admin_block",
+          target: "user",
+          actor: { userId: auth.user.id },
+          dedupeKey: `user_block:${auth.user.id}:${targetUserId}`,
+          targetUserId,
+        });
       } else {
         if (!related?.guestKey) return mobileError("NOT_FOUND", "비회원 작성자를 찾을 수 없습니다.", 404);
         const result = await admin.from("community_guest_blocks").insert({
@@ -48,6 +56,14 @@ export async function POST(request: Request) {
           guest_nickname: related.authorName ?? "비회원",
         });
         if (result.error && !uniqueViolation(result.error)) throw result.error;
+        scheduleAdminModerationNotifications({
+          kind: "admin_block",
+          target: "guest",
+          actor: { userId: auth.user.id },
+          dedupeKey: `guest_block:${auth.user.id}:${related.guestKey}`,
+          postId: body?.target === "post" ? related.id : null,
+          commentId: body?.target === "comment" ? related.id : null,
+        });
       }
       const data: MobileCommunityActionDto = { message: targetUserId ? "이 사용자의 글과 댓글을 숨겼습니다." : "이 비회원의 글과 댓글을 내 화면에서 숨겼습니다." };
       return mobileSuccess(data, { headers: { "Cache-Control": "private, no-store" } });
@@ -68,9 +84,19 @@ export async function POST(request: Request) {
     reason,
     reporter_id: auth.user.id,
     target_user_id: targetUserId,
-  });
+  }).select("id").single();
   if (uniqueViolation(report.error)) return mobileError("CONFLICT", "이미 처리 대기 중인 사용자 신고가 있습니다.", 409);
   if (report.error) return mobileError("INTERNAL", "사용자 신고를 접수하지 못했습니다.", 500);
+  scheduleAdminModerationNotifications({
+    kind: "admin_report",
+    target: "user",
+    actor: { userId: auth.user.id },
+    dedupeKey: `user_report:${report.data.id}`,
+    targetUserId,
+    postId: body?.target === "post" ? related?.id : null,
+    commentId: body?.target === "comment" ? related?.id : null,
+    reason,
+  });
   const data: MobileCommunityActionDto = { message: "사용자 신고가 접수됐습니다." };
   return mobileSuccess(data, { headers: { "Cache-Control": "private, no-store" } });
 }

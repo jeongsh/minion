@@ -57,6 +57,22 @@ export function AuthScreen({ mode }: { mode: Mode }) {
     void run('email', () => mode === 'login' ? signInWithEmail(email, password, returnTo) : signUpWithEmail(email, password, favoriteTeamReturnTo));
   };
 
+  const consentsAccepted = ageConfirmed && termsAccepted && privacyAccepted;
+  const socialSignupDisabled = Boolean(pending) || !consentsAccepted;
+
+  const startSocialSignup = (provider: 'apple' | 'google' | 'kakao' | 'naver') => {
+    if (!consentsAccepted) return setError('만 14세 이상 확인과 필수 약관에 동의해주세요.');
+    void run(provider, () => signInWithOAuth(provider, favoriteTeamReturnTo));
+  };
+
+  const consentGroup = (
+    <View style={[styles.consentGroup, { backgroundColor: theme.surfaceMuted, borderColor: theme.border }]}>
+      <ConsentCheck checked={ageConfirmed} label="만 14세 이상" onPress={() => setAgeConfirmed((value) => !value)} />
+      <ConsentCheck checked={termsAccepted} label="이용약관 동의" link="보기" onLinkPress={() => void Linking.openURL(`${mobileApiOrigin}/terms`)} onPress={() => setTermsAccepted((value) => !value)} />
+      <ConsentCheck checked={privacyAccepted} label="개인정보 수집·이용 동의" link="보기" onLinkPress={() => void Linking.openURL(`${mobileApiOrigin}/privacy`)} onPress={() => setPrivacyAccepted((value) => !value)} />
+    </View>
+  );
+
   if (mode === 'login') {
     return (
       <KeyboardAwareView style={[styles.screen, { backgroundColor: theme.pageBackground }]}>
@@ -152,11 +168,7 @@ export function AuthScreen({ mode }: { mode: Mode }) {
                 </Pressable>
                 <Field label="이메일"><TextInput autoCapitalize="none" autoComplete="email" keyboardType="email-address" onChangeText={setEmail} placeholder="fan@minion.gg" placeholderTextColor={theme.muted} style={[styles.input, { borderColor: theme.border, color: theme.ink, ...fonts.regular }]} value={email} /></Field>
                 <Field label="비밀번호"><TextInput autoCapitalize="none" autoComplete="new-password" onChangeText={setPassword} placeholder="6자 이상" placeholderTextColor={theme.muted} secureTextEntry style={[styles.input, { borderColor: theme.border, color: theme.ink, ...fonts.regular }]} value={password} /></Field>
-                <View style={[styles.consentGroup, { backgroundColor: theme.surfaceMuted, borderColor: theme.border }]}>
-                  <ConsentCheck checked={ageConfirmed} label="만 14세 이상" onPress={() => setAgeConfirmed((value) => !value)} />
-                  <ConsentCheck checked={termsAccepted} label="이용약관 동의" link="보기" onLinkPress={() => void Linking.openURL(`${mobileApiOrigin}/terms`)} onPress={() => setTermsAccepted((value) => !value)} />
-                  <ConsentCheck checked={privacyAccepted} label="개인정보 수집·이용 동의" link="보기" onLinkPress={() => void Linking.openURL(`${mobileApiOrigin}/privacy`)} onPress={() => setPrivacyAccepted((value) => !value)} />
-                </View>
+                {consentGroup}
                 <Pressable disabled={Boolean(pending)} onPress={submit} style={[styles.primary, { backgroundColor: theme.accent, opacity: pending ? 0.65 : 1 }]}>{pending === 'email' ? <ActivityIndicator color="#061018" /> : <Text style={[styles.primaryText, { ...fonts.medium }]}>회원가입</Text>}</Pressable>
               </View>
             ) : (
@@ -174,13 +186,13 @@ export function AuthScreen({ mode }: { mode: Mode }) {
             {!showEmailForm ? (
               <>
                 <View style={styles.or}><View style={[styles.rule, { backgroundColor: theme.border }]} /><Text style={[styles.dividerText, { color: theme.muted, ...fonts.medium }]}>또는</Text><View style={[styles.rule, { backgroundColor: theme.border }]} /></View>
+                {consentGroup}
                 <View style={styles.socialList}>
-                  {Platform.OS === 'ios' ? <SocialButton compact disabled={Boolean(pending)} icon={<AppleIcon />} label="Apple로 회원가입" onPress={() => void run('apple', () => signInWithOAuth('apple', favoriteTeamReturnTo))} pending={pending === 'apple'} text="#ffffff" tone="#000000" /> : null}
-                  <SocialButton border={colorScheme === 'dark' ? '#8e918f' : '#747775'} compact disabled={Boolean(pending)} icon={<GoogleIcon />} label="구글로 회원가입" onPress={() => void run('google', () => signInWithOAuth('google', favoriteTeamReturnTo))} pending={pending === 'google'} text={colorScheme === 'dark' ? '#e3e3e3' : '#1f1f1f'} tone={colorScheme === 'dark' ? '#131314' : '#ffffff'} />
-                  <SocialButton compact disabled={Boolean(pending)} icon={<KakaoIcon />} label="카카오로 회원가입" onPress={() => void run('kakao', () => signInWithOAuth('kakao', favoriteTeamReturnTo))} pending={pending === 'kakao'} text="#191600" tone="#fee500" />
-                  <SocialButton compact disabled={Boolean(pending)} icon={<NaverIcon />} label="네이버로 회원가입" onPress={() => void run('naver', () => signInWithOAuth('naver', favoriteTeamReturnTo))} pending={pending === 'naver'} text="#ffffff" tone="#03c75a" />
+                  {Platform.OS === 'ios' ? <SocialButton compact disabled={socialSignupDisabled} icon={<AppleIcon />} label="Apple로 회원가입" onPress={() => startSocialSignup('apple')} pending={pending === 'apple'} text="#ffffff" tone="#000000" /> : null}
+                  <SocialButton border={colorScheme === 'dark' ? '#8e918f' : '#747775'} compact disabled={socialSignupDisabled} icon={<GoogleIcon />} label="구글로 회원가입" onPress={() => startSocialSignup('google')} pending={pending === 'google'} text={colorScheme === 'dark' ? '#e3e3e3' : '#1f1f1f'} tone={colorScheme === 'dark' ? '#131314' : '#ffffff'} />
+                  <SocialButton compact disabled={socialSignupDisabled} icon={<KakaoIcon />} label="카카오로 회원가입" onPress={() => startSocialSignup('kakao')} pending={pending === 'kakao'} text="#191600" tone="#fee500" />
+                  <SocialButton compact disabled={socialSignupDisabled} icon={<NaverIcon />} label="네이버로 회원가입" onPress={() => startSocialSignup('naver')} pending={pending === 'naver'} text="#ffffff" tone="#03c75a" />
                 </View>
-                <Text style={[styles.consentNotice, { color: theme.muted, ...fonts.regular }]}>계속 진행하면 만 14세 이상이며 <Text onPress={() => void Linking.openURL(`${mobileApiOrigin}/terms`)} style={styles.noticeLink}>이용약관</Text> 및 <Text onPress={() => void Linking.openURL(`${mobileApiOrigin}/privacy`)} style={styles.noticeLink}>개인정보처리방침</Text>에 동의하는 것으로 간주합니다.</Text>
               </>
             ) : null}
           </View>
@@ -247,5 +259,5 @@ const styles = StyleSheet.create({
   socialList: { gap: 8 },
   socialContent: { alignItems: 'center', flexDirection: 'row', gap: 8 },
   socialCompact: { borderRadius: 12, minHeight: 48 },
-  page: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 16 }, back: { alignItems: 'center', height: 44, justifyContent: 'center', marginBottom: 8, width: 44 }, shell: { borderRadius: 16, borderWidth: 1, overflow: 'hidden' }, intro: { backgroundColor: '#8ed646', flexDirection: 'row', minHeight: 140, overflow: 'hidden', paddingLeft: 20, paddingTop: 20 }, introCopy: { flex: 1, zIndex: 1 }, brand: { color: '#234017', fontSize: 13 }, title: { color: '#ffffff', fontSize: 22, lineHeight: 28, marginTop: 8 }, description: { color: 'rgba(255,255,255,0.82)', fontSize: 13, lineHeight: 20, marginTop: 6, maxWidth: 235 }, character: { alignSelf: 'flex-end', height: 104, width: 108 }, form: { gap: 14, padding: 24 }, field: { gap: 6 }, input: { borderRadius: 12, borderWidth: 1, fontSize: 16, minHeight: 48, paddingHorizontal: 14 }, expandedEmailForm: { gap: 14 }, collapseEmail: { fontSize: 13, lineHeight: 19, textDecorationLine: 'underline' }, emailChoice: { alignItems: 'center', borderRadius: 12, borderWidth: 1, flexDirection: 'row', gap: 8, justifyContent: 'center', minHeight: 48 }, emailChoiceText: { fontSize: 13 }, consentGroup: { borderRadius: 12, borderWidth: 1, gap: 8, padding: 12 }, consentRow: { alignItems: 'center', flexDirection: 'row', gap: 8, minHeight: 20 }, checkbox: { alignItems: 'center', borderRadius: 3, borderWidth: 1, height: 16, justifyContent: 'center', width: 16 }, consentLabelPressable: { flex: 1 }, consentLabel: { fontSize: 14, lineHeight: 20 }, requiredText: { color: '#ef4444' }, consentLink: { fontSize: 13, lineHeight: 19, textDecorationLine: 'underline' }, error: { color: '#dc2626', fontSize: 13, lineHeight: 19 }, message: { fontSize: 13, lineHeight: 19 }, primary: { alignItems: 'center', borderRadius: 12, justifyContent: 'center', minHeight: 48 }, primaryText: { color: '#061018', fontSize: 14 }, switchMode: { fontSize: 13, textAlign: 'center' }, or: { alignItems: 'center', flexDirection: 'row', gap: 12 }, consentNotice: { fontSize: 13, lineHeight: 20, textAlign: 'center' }, noticeLink: { textDecorationLine: 'underline' }, rule: { flex: 1, height: 1 }, social: { alignItems: 'center', borderRadius: 12, borderWidth: 1, justifyContent: 'center', minHeight: 46 },
+  page: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 16 }, back: { alignItems: 'center', height: 44, justifyContent: 'center', marginBottom: 8, width: 44 }, shell: { borderRadius: 16, borderWidth: 1, overflow: 'hidden' }, intro: { backgroundColor: '#8ed646', flexDirection: 'row', minHeight: 140, overflow: 'hidden', paddingLeft: 20, paddingTop: 20 }, introCopy: { flex: 1, zIndex: 1 }, brand: { color: '#234017', fontSize: 13 }, title: { color: '#ffffff', fontSize: 22, lineHeight: 28, marginTop: 8 }, description: { color: 'rgba(255,255,255,0.82)', fontSize: 13, lineHeight: 20, marginTop: 6, maxWidth: 235 }, character: { alignSelf: 'flex-end', height: 104, width: 108 }, form: { gap: 14, padding: 24 }, field: { gap: 6 }, input: { borderRadius: 12, borderWidth: 1, fontSize: 16, minHeight: 48, paddingHorizontal: 14 }, expandedEmailForm: { gap: 14 }, collapseEmail: { fontSize: 13, lineHeight: 19, textDecorationLine: 'underline' }, emailChoice: { alignItems: 'center', borderRadius: 12, borderWidth: 1, flexDirection: 'row', gap: 8, justifyContent: 'center', minHeight: 48 }, emailChoiceText: { fontSize: 13 }, consentGroup: { borderRadius: 12, borderWidth: 1, gap: 8, padding: 12 }, consentRow: { alignItems: 'center', flexDirection: 'row', gap: 8, minHeight: 20 }, checkbox: { alignItems: 'center', borderRadius: 3, borderWidth: 1, height: 16, justifyContent: 'center', width: 16 }, consentLabelPressable: { flex: 1 }, consentLabel: { fontSize: 14, lineHeight: 20 }, requiredText: { color: '#ef4444' }, consentLink: { fontSize: 13, lineHeight: 19, textDecorationLine: 'underline' }, error: { color: '#dc2626', fontSize: 13, lineHeight: 19 }, message: { fontSize: 13, lineHeight: 19 }, primary: { alignItems: 'center', borderRadius: 12, justifyContent: 'center', minHeight: 48 }, primaryText: { color: '#061018', fontSize: 14 }, switchMode: { fontSize: 13, textAlign: 'center' }, or: { alignItems: 'center', flexDirection: 'row', gap: 12 }, rule: { flex: 1, height: 1 }, social: { alignItems: 'center', borderRadius: 12, borderWidth: 1, justifyContent: 'center', minHeight: 46 },
 });

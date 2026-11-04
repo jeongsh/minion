@@ -12,6 +12,7 @@ import {
   setCommunityUserBlocked,
 } from "@/lib/data/community-users";
 import { setCommunityGuestBlocked } from "@/lib/data/community-guests";
+import { scheduleAdminModerationNotifications } from "@/lib/notifications/admin-moderation";
 
 const LOGIN_REQUIRED: ActionResult = {
   ok: false,
@@ -37,6 +38,15 @@ export async function setCommunityUserBlockedAction(input: {
     blockedId: input.targetUserId,
     blocked: input.blocked,
   });
+  if (input.blocked) {
+    scheduleAdminModerationNotifications({
+      kind: "admin_block",
+      target: "user",
+      actor: { userId: user.id },
+      dedupeKey: `user_block:${user.id}:${input.targetUserId}`,
+      targetUserId: input.targetUserId,
+    });
+  }
   revalidatePath("/community", "layout");
   revalidatePath("/me", "layout");
   return {
@@ -82,12 +92,22 @@ export async function reportCommunityUserAction(input: {
   }
 
   try {
-    await createCommunityUserReport({
+    const report = await createCommunityUserReport({
       reporterId: user.id,
       targetUserId: input.targetUserId,
       reason,
       evidencePostId: input.evidencePostId,
       evidenceCommentId: input.evidenceCommentId,
+    });
+    scheduleAdminModerationNotifications({
+      kind: "admin_report",
+      target: "user",
+      actor: { userId: user.id },
+      dedupeKey: `user_report:${report.id}`,
+      targetUserId: input.targetUserId,
+      postId: input.evidencePostId,
+      commentId: input.evidenceCommentId,
+      reason,
     });
   } catch (error) {
     if (isUniqueViolation(error)) {
@@ -130,6 +150,16 @@ export async function setCommunityGuestBlockedAction(input: {
     nickname: guestNickname,
     blocked: input.blocked,
   });
+  if (input.blocked) {
+    scheduleAdminModerationNotifications({
+      kind: "admin_block",
+      target: "guest",
+      actor: { userId: user.id },
+      dedupeKey: `guest_block:${user.id}:${guestKey}`,
+      postId: input.evidencePostId,
+      commentId: input.evidenceCommentId,
+    });
+  }
   revalidatePath("/community", "layout");
   revalidatePath("/me", "layout");
   return {

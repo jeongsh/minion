@@ -33,6 +33,8 @@ type CreatedCommunityNotificationRow = {
 
 export type CommunityAppNotification = AppNotification & { kind: "post_activity" };
 
+const USER_NOTIFICATION_KINDS = ["post_comment", "comment_reply"];
+
 function recipientKey(recipient: NotificationRecipient) {
   return notificationOwnerKey(recipient);
 }
@@ -62,36 +64,66 @@ function toAppNotification(row: NotificationRow): CommunityAppNotification {
   };
 }
 
-export async function listCommunityNotifications(recipient: NotificationRecipient): Promise<CommunityAppNotification[]> {
-  const query = createSupabaseAdminClient()
+/** 운영자용 신고·차단 알림은 iOS 앱 알림함에서만 보여준다. 웹 알림함은 기본값으로 제외한다. */
+export async function listCommunityNotifications(
+  recipient: NotificationRecipient,
+  options: { includeAdmin?: boolean } = {},
+): Promise<CommunityAppNotification[]> {
+  let query = createSupabaseAdminClient()
     .from("community_notifications")
     .select("id, title, description, href, created_at, read_at")
     .order("created_at", { ascending: false })
     .limit(100);
+  if (!options.includeAdmin) query = query.in("kind", USER_NOTIFICATION_KINDS);
   const { data, error } = await applyRecipientFilter(query, recipient);
   if (error) throw error;
   return ((data ?? []) as NotificationRow[]).map(toAppNotification);
 }
 
-export async function markCommunityNotificationRead(recipient: NotificationRecipient, notificationId?: string) {
+export async function markCommunityNotificationRead(
+  recipient: NotificationRecipient,
+  notificationId?: string,
+  options: { includeAdmin?: boolean } = {},
+) {
   let query = createSupabaseAdminClient()
     .from("community_notifications")
     .update({ read_at: new Date().toISOString() });
   query = applyRecipientFilter(query, recipient);
+  if (!options.includeAdmin) query = query.in("kind", USER_NOTIFICATION_KINDS);
   if (notificationId) query = query.eq("id", notificationId);
   else query = query.is("read_at", null);
   const { error } = await query;
   if (error) throw error;
 }
 
-export async function deleteCommunityNotifications(recipient: NotificationRecipient, notificationId?: string) {
+export async function deleteCommunityNotifications(
+  recipient: NotificationRecipient,
+  notificationId?: string,
+  options: { includeAdmin?: boolean } = {},
+) {
   let query = applyRecipientFilter(
     createSupabaseAdminClient().from("community_notifications").delete(),
     recipient,
   );
+  if (!options.includeAdmin) query = query.in("kind", USER_NOTIFICATION_KINDS);
   if (notificationId) query = query.eq("id", notificationId);
   const { error } = await query;
   if (error) throw error;
+}
+
+export async function communityPostHref(
+  postId: string,
+  post: { site_scope: BoardScope; team_id: string | null },
+): Promise<string> {
+  if (post.site_scope !== "team" || !post.team_id) return `/community/post/${postId}`;
+  const { data: team, error } = await createSupabaseAdminClient()
+    .from("teams")
+    .select("fan_site_host, slug")
+    .eq("id", post.team_id)
+    .maybeSingle();
+  if (error) throw error;
+  const teamSlug = team?.fan_site_host || team?.slug;
+  return teamSlug ? `/fan/${teamSlug}/community/post/${postId}` : `/community/post/${postId}`;
 }
 
 async function createCommunityCommentNotifications(input: {
@@ -119,13 +151,7 @@ async function createCommunityCommentNotifications(input: {
   const post = postResult.data as { author_id: string | null; guest_key: string | null; site_scope: BoardScope; team_id: string | null };
   const parent = parentResult.data as { author_id: string | null; guest_key: string | null } | null;
   const actorName = input.actorName ?? actorProfileResult.data?.nickname ?? "회원";
-  let href = `/community/post/${input.postId}`;
-  if (post.site_scope === "team" && post.team_id) {
-    const { data: team, error } = await admin.from("teams").select("fan_site_host, slug").eq("id", post.team_id).maybeSingle();
-    if (error) throw error;
-    const teamSlug = team?.fan_site_host || team?.slug;
-    if (teamSlug) href = `/fan/${teamSlug}/community/post/${input.postId}`;
-  }
+  const href = await communityPostHref(input.postId, post);
 
   const recipients = communityNotificationRecipients({
     actor: input.actor,

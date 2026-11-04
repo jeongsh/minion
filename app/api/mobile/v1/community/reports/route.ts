@@ -4,6 +4,7 @@ import { isCommunityGuestSanctioned } from "@/lib/data/community-guests";
 import { isCommunityUserSanctioned } from "@/lib/data/community-users";
 import { mobileError, mobileSuccess } from "@/lib/mobile/api-response";
 import { getMobileCommunityActor } from "@/lib/mobile/community";
+import { scheduleAdminModerationNotifications } from "@/lib/notifications/admin-moderation";
 
 export const dynamic = "force-dynamic";
 
@@ -30,11 +31,20 @@ export async function POST(request: Request) {
     || (item.guestKey && item.guestKey === actor.guest.key)
   ) return mobileError("FORBIDDEN", `자기 ${target === "post" ? "글" : "댓글"}은 리폿할 수 없습니다.`, 403);
   try {
-    await createReport({
+    const report = await createReport({
       commentId: target === "comment" ? targetId : null,
       postId: target === "post" ? targetId : null,
       reason,
       ...(actor.auth ? { reporterId: actor.auth.user.id } : { reporterGuestKey: actor.guest.key }),
+    });
+    scheduleAdminModerationNotifications({
+      kind: "admin_report",
+      target,
+      actor: actor.auth ? { userId: actor.auth.user.id } : { guestKey: actor.guest.key },
+      dedupeKey: `post_report:${report.id}`,
+      postId: target === "post" ? targetId : null,
+      commentId: target === "comment" ? targetId : null,
+      reason,
     });
     await blindTargetIfReported({
       commentId: target === "comment" ? targetId : null,
