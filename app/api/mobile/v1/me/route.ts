@@ -1,5 +1,4 @@
 import type { MobileMeDto, MobileNotificationPreferences, MobileTeamNotificationSettings } from "@/packages/contracts/src/mobile-v1";
-import { appleRevokeTokenFrom, isAppleUser, revokeAppleToken } from "@/lib/auth/apple-revoke";
 import { hasEmailPassword } from "@/lib/auth/linked-accounts";
 import { getMobileAuth } from "@/lib/mobile/auth";
 import { mobileError, mobileSuccess } from "@/lib/mobile/api-response";
@@ -383,7 +382,7 @@ export async function PATCH(request: Request) {
 export async function DELETE(request: Request) {
   const auth = await getMobileAuth(request);
   if (!auth) return mobileError("UNAUTHENTICATED", "로그인이 필요합니다.", 401);
-  const input = await request.json().catch(() => null) as { confirmText?: string; password?: string; providerRefreshToken?: string | null; providerToken?: string | null } | null;
+  const input = await request.json().catch(() => null) as { confirmText?: string; password?: string } | null;
   if (input?.confirmText?.trim() !== DELETE_ACCOUNT_CONFIRM_TEXT) return mobileError("BAD_REQUEST", `확인 문구를 정확히 입력해주세요. ("${DELETE_ACCOUNT_CONFIRM_TEXT}")`, 400);
   const hasPassword = hasEmailPassword(auth.user);
   if (hasPassword) {
@@ -400,11 +399,6 @@ export async function DELETE(request: Request) {
     admin = createSupabaseAdminClient();
   } catch {
     return mobileError("INTERNAL", "탈퇴 처리 설정이 필요합니다. 관리자에게 문의해주세요.", 500);
-  }
-  if (isAppleUser(auth.user)) {
-    const appleToken = appleRevokeTokenFrom(input);
-    const revoked = appleToken ? await revokeAppleToken(appleToken) : { ok: false, reason: "missing_token" };
-    if (!revoked.ok) console.warn("[account-delete] Apple token revoke failed", { reason: revoked.reason, userId: auth.user.id });
   }
   const { error } = await admin.auth.admin.deleteUser(auth.user.id);
   if (error) return mobileError("INTERNAL", error.message || "회원 탈퇴에 실패했습니다.", 500);

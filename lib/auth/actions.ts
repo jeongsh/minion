@@ -11,7 +11,6 @@ import type {
   ProfileActionState,
 } from "@/lib/auth/action-state";
 import { DELETE_ACCOUNT_CONFIRM_TEXT } from "@/lib/auth/action-state";
-import { appleRevokeTokenFrom, isAppleUser, revokeAppleToken } from "@/lib/auth/apple-revoke";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { safeOnboardingNext } from "@/lib/auth/onboarding";
 import { prepareProfileImage } from "@/lib/images/prepare-profile-image";
@@ -409,18 +408,6 @@ export async function deleteAccountAction(
     admin = createSupabaseAdminClient();
   } catch {
     return { status: "error", message: "탈퇴 처리 설정이 필요합니다. 관리자에게 문의해주세요." };
-  }
-
-  // Apple 계정은 재인증 직후 세션의 provider 토큰으로 Apple 쪽 연결도 해지한다.
-  const { data: authData } = await supabase.auth.getUser();
-  if (authData.user && isAppleUser(authData.user)) {
-    const { data: sessionData } = await supabase.auth.getSession();
-    const appleToken = appleRevokeTokenFrom({
-      providerRefreshToken: sessionData.session?.provider_refresh_token,
-      providerToken: sessionData.session?.provider_token,
-    });
-    const revoked = appleToken ? await revokeAppleToken(appleToken) : { ok: false, reason: "missing_token" };
-    if (!revoked.ok) console.warn("[account-delete] Apple token revoke failed", { reason: revoked.reason, userId: user.id });
   }
 
   const { error } = await admin.auth.admin.deleteUser(user.id);
