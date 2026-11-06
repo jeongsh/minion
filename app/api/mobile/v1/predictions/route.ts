@@ -60,8 +60,10 @@ export async function GET(request: Request) {
     matches: visibleMatches
       .sort((a, b) => new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime())
       .map((match) => {
-        const matchBets = market.bets.filter((bet) => bet.matchId === match.id && bet.status === "open");
-        const marketData = predictionMarketForMatch(matchBets, match.id, match.teamAId, match.teamBId);
+        // 종료 후에는 환불 정산을 포함한 최종 비율과 내 선택을 보존한다.
+        const completed = match.status === "completed";
+        const matchBets = market.bets.filter((bet) => bet.matchId === match.id && (completed || bet.status !== "refunded"));
+        const marketData = predictionMarketForMatch(matchBets, match.id, match.teamAId, match.teamBId, completed);
         const myBet = auth ? matchBets.find((bet) => bet.userId === auth.user.id) : null;
         return {
           closed: new Date(match.matchDate).getTime() <= now || match.status !== "scheduled",

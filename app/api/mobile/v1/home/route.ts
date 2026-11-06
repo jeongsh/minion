@@ -54,7 +54,7 @@ async function buildMobileHomeData(): Promise<MobileHomeDto> {
   ].slice(0, 12);
   if (sectionMatches.length === 0) sectionMatches = matches.filter((match) => match.status === "completed").sort(byDateDesc).slice(0, 6);
   const orderedMatches = sectionMatches.map((match) => {
-    const { teamAPercent, teamBPercent } = predictionMarketForMatch(predictionMarket.bets, match.id, match.teamAId, match.teamBId);
+    const { teamAPercent, teamBPercent } = predictionMarketForMatch(predictionMarket.bets, match.id, match.teamAId, match.teamBId, match.status === "completed");
     return { ...toMobileMatch(match, teamMap, tournamentMap), tournamentLogo: tournamentLogos.get(match.tournamentId) ? { url: tournamentLogos.get(match.tournamentId)! } : null, prediction: { teamAPercent, teamBPercent } };
   });
   const lckTeams = teams.filter((team) => team.isLckTeam);

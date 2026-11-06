@@ -195,7 +195,7 @@ export async function GET(request: Request, context: { params: Promise<{ matchId
       powerRankings: { status: rankings.status, sourceUrl: rankings.sourceUrl },
       issue: ai.narrative?.title ?? (ai.source === "ai" ? ai.headline : null), issueSource: ai.narrative?.sources[0]?.url ?? null } };
   })() : Promise.resolve(null);
-  const prediction = predictionMarketForMatch(predictionData.bets, match.id, match.teamAId, match.teamBId);
+  const prediction = predictionMarketForMatch(predictionData.bets, match.id, match.teamAId, match.teamBId, match.status === "completed");
 
   let activeSet: MobileSetDetail | null = null;
   let fanRating: MobileMatchDetailDto["fanRating"] = null;
