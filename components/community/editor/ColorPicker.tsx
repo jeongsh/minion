@@ -1,6 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+
+const PANEL_WIDTH = 172;
+const VIEWPORT_GAP = 12;
 
 const PRESET_COLORS = [
   // 회색 계열
@@ -29,6 +33,36 @@ export function ColorPicker({ value, onChange, onBeforeCustomPick, icon, quickSe
   const panelRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const customInputRef = useRef<HTMLInputElement>(null);
+  const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
+
+  // 툴바의 overflow 영역에 잘리지 않도록 패널을 body에 portal로 띄우고 트리거 기준으로 배치한다.
+  useLayoutEffect(() => {
+    if (!open) return;
+    const update = () => {
+      const trigger = triggerRef.current;
+      if (!trigger) return;
+      if (!window.matchMedia("(min-width: 768px)").matches) {
+        setPosition(null);
+        return;
+      }
+      const rect = trigger.getBoundingClientRect();
+      const panelHeight = panelRef.current?.offsetHeight ?? 0;
+      const maxLeft = window.innerWidth - PANEL_WIDTH - VIEWPORT_GAP;
+      const left = Math.max(VIEWPORT_GAP, Math.min(rect.left, maxLeft));
+      const below = rect.bottom + 4;
+      const top = panelHeight && below + panelHeight > window.innerHeight - VIEWPORT_GAP
+        ? Math.max(VIEWPORT_GAP, rect.top - 4 - panelHeight)
+        : below;
+      setPosition({ top, left });
+    };
+    update();
+    window.addEventListener("resize", update);
+    window.addEventListener("scroll", update, true);
+    return () => {
+      window.removeEventListener("resize", update);
+      window.removeEventListener("scroll", update, true);
+    };
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -73,11 +107,11 @@ export function ColorPicker({ value, onChange, onBeforeCustomPick, icon, quickSe
         />
       </button>
 
-      {open && (
+      {open && typeof document !== "undefined" && createPortal(
         <div
           ref={panelRef}
-          className="fixed left-1/2 top-1/2 z-[70] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-border bg-surface p-2 md:absolute md:left-0 md:top-full md:z-50 md:translate-x-0 md:translate-y-0 md:rounded-md"
-          style={{ width: 172, maxWidth: "calc(100vw - 24px)" }}
+          className={`fixed z-[70] rounded-xl border border-border bg-surface p-2 md:rounded-md ${position ? "" : "left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"}`}
+          style={{ width: PANEL_WIDTH, maxWidth: "calc(100vw - 24px)", ...(position ?? {}) }}
         >
           {/* 빠른 초기화 */}
           <button
@@ -128,7 +162,8 @@ export function ColorPicker({ value, onChange, onBeforeCustomPick, icon, quickSe
               onInput={(e) => onChange((e.target as HTMLInputElement).value)}
             />
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );
