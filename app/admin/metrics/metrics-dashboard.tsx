@@ -157,8 +157,8 @@ export function MetricsDashboard({
         </ul>
       ) : null}
 
-      <section className="overflow-hidden rounded-[var(--ui-card-radius)] bg-[var(--ui-surface)]">
-        <div role="tablist" aria-label="지표" className="flex overflow-x-auto">
+      <section className="overflow-hidden rounded-[var(--ui-card-radius)] bg-[var(--ui-card-bg)]">
+        <div role="tablist" aria-label="지표" className="flex overflow-x-auto border-b border-[var(--ui-card-divider)]">
           {summaries.map((metric) => {
             const selected = metric.key === active;
             return (
@@ -168,10 +168,10 @@ export function MetricsDashboard({
                 role="tab"
                 aria-selected={selected}
                 onClick={() => setActive(metric.key)}
-                className={`flex min-w-[148px] flex-1 flex-col items-start gap-2 border-b-2 px-4 py-4 text-left transition-colors sm:px-5 ${
+                className={`-mb-px flex min-w-[148px] flex-1 flex-col items-start gap-2 border-b-2 px-4 py-4 text-left transition-colors sm:px-5 ${
                   selected
-                    ? "border-[var(--ui-ink)] bg-[var(--ui-surface)]"
-                    : "border-transparent bg-[var(--ui-card-bg)] hover:bg-[var(--ui-card-hover)]"
+                    ? "border-[var(--ui-ink)] bg-[var(--ui-card-hover)]"
+                    : "border-transparent hover:bg-[var(--ui-card-hover)]"
                 }`}
               >
                 <span className="text-sm font-medium text-[var(--ui-muted)]">{metric.label}</span>
