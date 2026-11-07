@@ -50,6 +50,8 @@
 
 ### 승인된 통합 변경 기록
 
+- 2026-11-08: 사용자가 태블릿 가로·세로에서 선수·챔피언 목록과 홈 슬라이드가 비거나 지나치게 커 보이는 문제의 수정을 요청했다. 앱은 웹의 모바일 값만 고정 복제하고 있었으므로 웹 원본의 반응형 기준을 그대로 옮긴다. 홈 매치 스와이퍼는 웹 `home-match-swiper.tsx`, POM·대회 메타·선수 빌드는 `home-pom-swiper.tsx`·`home-insights.tsx`의 `slidesPerView`·`spaceBetween`·window 폭 `breakpoints`를 `mobile/lib/swiper-layout.ts`로 계산한다. 잠금 파일 `mobile/app/(tabs)/index.tsx`에는 카드 폭·간격 계산식과 간격 전달만 바꾸고 카드 구조·문구·순서는 유지한다. 선수 목록은 웹 `grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5`·간격 10px, 챔피언 목록은 웹 `repeat(auto-fill, minmax(clamp(3.5rem, 15vw, 4rem), 1fr))`와 `sm:` 이상 이미지 56px·세로 패딩 8px·행 간격 12px을 따른다. 390px 폭의 값은 기존과 같다. 웹 md 이상의 좌측 필터 사이드바는 옮기지 않고 기존 필터 시트를 유지한다. Expo Web 390·834·1194px에서 열 수와 카드 폭을 확인했고, iPad 실기기와 캡처 비교는 미실행이다.
+
 - 2026-11-04: App Store 1.2 재심사 대응으로 사용자가 차단한 작성자의 글을 홈 최신글에서도 즉시 숨기도록 요청했다. 홈 API는 공개 CDN 캐시라 사용자별 차단을 반영할 수 없으므로, 잠금 파일 `mobile/app/(tabs)/index.tsx`의 `CommunitySection`에는 `useVisibleHomePosts` 연결 두 줄만 추가한다. 로그인 사용자만 `GET /api/mobile/v1/community/hidden-posts?ids=`로 차단 작성자 글 ID를 받아 제외하고, 차단 성공 시 `community`/`home` 캐시 무효화로 다시 불러온다. 레이아웃, 문구, 비로그인 동작과 홈 API 계약은 유지한다. iOS 로그인 약관 동의는 이후 첫 실행 동의(`ios-terms-gate.tsx`)로 옮겼다. 실기기 검증은 미실행이다.
 
 - 2026-10-31: 사용자가 광고 유지, 화면 밖 광고 지연 로딩과 앱 전반 성능 점검을 요청했다. 잠금 `mobile/components/minion-screen.tsx`에는 기존 스크롤 및 콘텐츠 크기 이벤트의 광고 위치 확인 알림만 연결한다. 홈 지면, 헤더, 독바, clipping과 레이아웃은 유지한다. 같은 화면의 스크롤에서는 광고를 보존하고, 화면 이탈 및 앱 배경 전환에서는 네이티브 광고를 해제한다. 범위와 검증 결과는 `app-performance-2026-10-31.md`에 기록한다.

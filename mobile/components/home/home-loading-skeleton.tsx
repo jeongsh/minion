@@ -2,8 +2,8 @@ import { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, useWindowDimensions, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { useMinionTheme } from '@/hooks/use-minion-theme';
+import { HOME_CARD_SWIPER, HOME_MATCH_SWIPER, swiperLayout } from '@/lib/swiper-layout';
 
-const CARD_GAP = 12;
 
 function Bone({ style }: { style?: StyleProp<ViewStyle> }) {
   const { theme } = useMinionTheme();
@@ -24,7 +24,8 @@ export function HomeLoadingSkeleton() {
   const { theme } = useMinionTheme();
   const opacity = useRef(new Animated.Value(0.5)).current;
   const contentWidth = width - 32;
-  const matchWidth = (contentWidth - CARD_GAP * 0.1) / 1.1;
+  const matchWidth = swiperLayout(HOME_MATCH_SWIPER, width, contentWidth).slideWidth;
+  const cardWidth = swiperLayout(HOME_CARD_SWIPER, width, contentWidth).slideWidth;
 
   useEffect(() => {
     const pulse = Animated.loop(
@@ -70,10 +71,10 @@ export function HomeLoadingSkeleton() {
         ))}
       </View>
       <View style={styles.section40}><SectionTitleSkeleton />{Array.from({ length: 6 }, (_, index) => <View key={index} style={{ flexDirection: 'row', gap: 12, paddingVertical: 8, minHeight: 76 }}><Bone style={{ width: 80, height: 60 }} /><View style={{ flex: 1, justifyContent: 'center', gap: 4 }}><Bone style={{ width: '95%', height: 22 }} /><Bone style={{ width: '70%', height: 20 }} /></View></View>)}</View>
-      <View style={styles.section40}><SectionTitleSkeleton /><Bone style={{ height: (contentWidth - 14.4) / 2.2 * 4 / 3, borderRadius: 16 }} /></View>
+      <View style={styles.section40}><SectionTitleSkeleton /><Bone style={{ height: cardWidth * 4 / 3, borderRadius: 16 }} /></View>
       <View style={styles.section40}><SectionTitleSkeleton /><Bone style={{ height: 96 }} /></View>
       <View style={styles.section40}><SectionTitleSkeleton /><Bone style={{ height: 220, borderRadius: 16 }} /></View>
-      {[0, 1].map((key) => <View key={key} style={{ marginTop: 24 }}><SectionTitleSkeleton /><View style={{ flexDirection: 'row', gap: 12 }}>{[0, 1].map((column) => <Bone key={column} style={{ width: (contentWidth - 14.4) / 2.2, aspectRatio: 2 / 3, borderRadius: 16 }} />)}</View></View>)}
+      {[0, 1].map((key) => <View key={key} style={{ marginTop: 24 }}><SectionTitleSkeleton /><View style={{ flexDirection: 'row', gap: 12 }}>{[0, 1].map((column) => <Bone key={column} style={{ width: cardWidth, aspectRatio: 2 / 3, borderRadius: 16 }} />)}</View></View>)}
     </Animated.View>
   );
 }

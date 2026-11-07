@@ -13,6 +13,7 @@ import { MinionScreen } from '@/components/minion-screen';
 import { useScreenQuery } from '@/hooks/use-screen-query';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import { resolveApiAssetUrl, type MobileChampionPosition, type MobileChampionsDto } from '@/lib/api-client';
+import { gridAutoFill } from '@/lib/grid-auto-fill';
 
 const POSITION_OPTIONS: { value: MobileChampionPosition | 'all'; label: string }[] = [
   { value: 'all', label: '전체' }, { value: 'TOP', label: 'TOP' }, { value: 'JGL', label: 'JGL' },
@@ -57,13 +58,20 @@ function FilterSection({ label, children }: { label: string; children: React.Rea
 
 function DirectorySkeleton() {
   const { theme } = useMinionTheme();
+  const { columns, cellWidth, wide } = championGrid(useWindowDimensions().width);
   return (
     <View style={styles.page}>
       <View style={styles.topRow}><View style={[styles.skeletonCount, { backgroundColor: theme.surfaceMuted }]} /><View style={[styles.skeletonFilter, { backgroundColor: theme.surfaceMuted }]} /></View>
       <View style={styles.toolbar}><View style={[styles.skeletonToolbar, { backgroundColor: theme.surfaceMuted, flex: 1 }]} /><View style={[styles.skeletonToolbar, { backgroundColor: theme.surfaceMuted, width: 128 }]} /></View>
-      <View style={styles.grid}>{Array.from({ length: 20 }, (_, index) => <View key={index} style={styles.skeletonItem}><View style={[styles.face, { backgroundColor: theme.surfaceMuted }]} /><View style={[styles.skeletonName, { backgroundColor: theme.surfaceMuted }]} /></View>)}</View>
+      <View style={styles.grid}>{Array.from({ length: columns * 4 }, (_, index) => <View key={index} style={[styles.skeletonItem, { width: cellWidth }]}><View style={[styles.face, wide && styles.faceWide, { backgroundColor: theme.surfaceMuted }]} /><View style={[styles.skeletonName, { backgroundColor: theme.surfaceMuted }]} /></View>)}</View>
     </View>
   );
+}
+
+function championGrid(width: number) {
+  const wide = width >= 640;
+  const { columns, itemWidth } = gridAutoFill(Math.max(0, width - 32), Math.min(64, Math.max(56, width * 0.15)), 8);
+  return { columns, cellWidth: itemWidth, wide };
 }
 
 export function ChampionDirectory() {
@@ -108,9 +116,8 @@ export function ChampionDirectory() {
   if (loading && !data) return <MinionScreen refreshControl={refreshControl}><DirectorySkeleton /></MinionScreen>;
   if (error && !data) return <MinionScreen refreshControl={refreshControl}><ErrorState onRetry={refresh} title={error} /></MinionScreen>;
 
-  const columns = width >= 360 ? 5 : 4;
-  const contentWidth = Math.max(0, width - 32);
-  const cellWidth = Math.floor((contentWidth - (columns - 1) * 8) / columns);
+  // 웹: repeat(auto-fill, minmax(clamp(3.5rem, 15vw, 4rem), 1fr)), gap-x-2, gap-y-2 sm:gap-y-3
+  const { columns, cellWidth, wide } = championGrid(width);
   const sortLabel = SORT_OPTIONS.find((option) => option.value === sort)?.label ?? '픽밴률순';
   const scope = data?.scope;
   const detailQuery = qs({ season: effectiveSeason, tournament, patch }).replace('/api/mobile/v1/champions', '');
@@ -123,10 +130,10 @@ export function ChampionDirectory() {
       initialNumToRender: 8,
       keyExtractor: (row) => row.map((champion) => champion.id).join(':'),
       maxToRenderPerBatch: 6,
-      rowGap: 8,
+      rowGap: wide ? 12 : 8,
       renderItem: ({ item: row }) => <View style={styles.virtualRow}>{row.map((champion) => (
-        <Pressable accessibilityRole="link" key={champion.id} onPress={() => router.push(`/champions/${champion.slug}${detailQuery}` as never)} style={({ pressed }) => [styles.champion, { width: cellWidth, backgroundColor: pressed ? theme.cardHover : 'transparent' }]}>
-          {champion.image?.url ? <Image accessibilityLabel={champion.name} contentFit="cover" source={{ uri: resolveApiAssetUrl(champion.image.url) ?? champion.image.url }} style={styles.face} transition={100} /> : <View style={[styles.face, { backgroundColor: theme.card }]} />}
+        <Pressable accessibilityRole="link" key={champion.id} onPress={() => router.push(`/champions/${champion.slug}${detailQuery}` as never)} style={({ pressed }) => [styles.champion, wide && styles.championWide, { width: cellWidth, backgroundColor: pressed ? theme.cardHover : 'transparent' }]}>
+          {champion.image?.url ? <Image accessibilityLabel={champion.name} contentFit="cover" source={{ uri: resolveApiAssetUrl(champion.image.url) ?? champion.image.url }} style={[styles.face, wide && styles.faceWide]} transition={100} /> : <View style={[styles.face, wide && styles.faceWide, { backgroundColor: theme.card }]} />}
           <Text numberOfLines={1} style={{ color: theme.ink, ...fonts.medium, fontSize: 13, lineHeight: 18, maxWidth: cellWidth }}>{champion.name}</Text>
         </Pressable>
       ))}</View>,
@@ -180,7 +187,9 @@ const styles = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   virtualRow: { flexDirection: 'row', gap: 8 },
   champion: { alignItems: 'center', borderRadius: 12, gap: 4, paddingBottom: 5, paddingTop: 4 },
+  championWide: { gap: 6, paddingBottom: 8, paddingTop: 8 },
   face: { borderRadius: 8, height: 48, width: 48 },
+  faceWide: { height: 56, width: 56 },
   empty: { alignItems: 'center', justifyContent: 'center', minHeight: 256, paddingHorizontal: 20 },
   sheet: { gap: 20, padding: 16 },
   filterSection: { gap: 8 },
@@ -192,6 +201,6 @@ const styles = StyleSheet.create({
   skeletonCount: { borderRadius: 4, height: 14, width: 40 },
   skeletonFilter: { borderRadius: 12, height: 44, width: 76 },
   skeletonToolbar: { borderRadius: 12, height: 40 },
-  skeletonItem: { alignItems: 'center', gap: 5, paddingVertical: 4, width: '18%' },
+  skeletonItem: { alignItems: 'center', gap: 5, paddingVertical: 4 },
   skeletonName: { borderRadius: 4, height: 12, width: 46 },
 });

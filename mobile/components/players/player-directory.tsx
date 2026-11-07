@@ -3,7 +3,7 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import SlidersHorizontal from 'lucide-react-native/icons/sliders-horizontal';
 import { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { BottomSheet } from '@/components/bottom-sheet';
 import { ErrorState } from '@/components/feedback-states';
@@ -15,9 +15,19 @@ import { resolveApiAssetUrl, type MobilePlayerDirectoryItem, type MobilePlayersD
 const POSITIONS = ['TOP', 'JGL', 'MID', 'BOT', 'SUP'] as const;
 const POS_ORDER = ['TOP', 'JGL', 'MID', 'BOT', 'SUP'];
 type Division = 'first' | 'challengers';
+const CARD_GAP = 10;
+
+/** 웹 `components/domain/player-directory.tsx`의 `grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5` */
+function useCardLayout() {
+  const { width } = useWindowDimensions();
+  const columns = width >= 1280 ? 5 : width >= 1024 ? 4 : width >= 640 ? 3 : 2;
+  const cardWidth = (Math.max(0, width - 32) - (columns - 1) * CARD_GAP) / columns;
+  return { cardWidth, columns };
+}
 
 function DirectorySkeleton() {
   const { theme } = useMinionTheme();
+  const { cardWidth } = useCardLayout();
   return (
     <View accessibilityLabel="선수 목록을 불러오는 중입니다" style={styles.page}>
       <View style={[styles.divisionShell, { backgroundColor: theme.card }]}>
@@ -30,7 +40,7 @@ function DirectorySkeleton() {
       </View>
       <View style={styles.grid}>
         {Array.from({ length: 10 }, (_, index) => (
-          <View key={index} style={[styles.card, { borderColor: theme.border, backgroundColor: theme.surface }]}>
+          <View key={index} style={[styles.card, { borderColor: theme.border, backgroundColor: theme.surface, width: cardWidth }]}>
             <View style={[styles.cardImage, { backgroundColor: theme.card }]} />
             <View style={styles.cardBody}>
               <View style={[styles.skeletonName, { backgroundColor: theme.surfaceMuted }]} />
@@ -43,7 +53,7 @@ function DirectorySkeleton() {
   );
 }
 
-function PlayerCard({ player, team }: { player: MobilePlayerDirectoryItem; team?: MobileTeamSummary }) {
+function PlayerCard({ player, team, width }: { player: MobilePlayerDirectoryItem; team?: MobileTeamSummary; width: number }) {
   const router = useRouter();
   const { fonts, theme } = useMinionTheme();
   const imageUrl = resolveApiAssetUrl(player.profileImage?.url);
@@ -54,7 +64,7 @@ function PlayerCard({ player, team }: { player: MobilePlayerDirectoryItem; team?
       accessibilityLabel={`${player.name} ${player.position ?? ''} ${meta}`}
       accessibilityRole="link"
       onPress={() => router.push(`/players/${player.slug}`)}
-      style={({ pressed }) => [styles.card, { backgroundColor: theme.surface, borderColor: theme.border, opacity: pressed ? 0.82 : 1 }]}
+      style={({ pressed }) => [styles.card, { backgroundColor: theme.surface, borderColor: theme.border, opacity: pressed ? 0.82 : 1, width }]}
     >
       <View style={[styles.cardImage, { backgroundColor: theme.card }]}>
         {imageUrl ? (
@@ -122,6 +132,7 @@ function FilterSheet({ children, onClose, open }: { children: React.ReactNode; o
 export function PlayerDirectory() {
   const { data, error, loading, refresh, refreshControl } = useScreenQuery<MobilePlayersDto>('/api/mobile/v1/players', { staleTimeMs: 30_000 });
   const { fonts, theme } = useMinionTheme();
+  const { cardWidth, columns } = useCardLayout();
   const [division, setDivision] = useState<Division>('first');
   const [teamId, setTeamId] = useState('all');
   const [position, setPosition] = useState('all');
@@ -146,7 +157,7 @@ export function PlayerDirectory() {
   if (error && !data) return <MinionScreen refreshControl={refreshControl}><ErrorState onRetry={refresh} title={error} /></MinionScreen>;
 
   const filters = <PlayerFilters position={position} setPosition={setPosition} setTeamId={setTeamId} teamId={teamId} teams={teams} />;
-  const rows = Array.from({ length: Math.ceil(sortedVisible.length / 2) }, (_, index) => sortedVisible.slice(index * 2, index * 2 + 2));
+  const rows = Array.from({ length: Math.ceil(sortedVisible.length / columns) }, (_, index) => sortedVisible.slice(index * columns, (index + 1) * columns));
   return (
     <MinionScreen listFooter={<ContentBanner placement="player-directory-1" enabled={sortedVisible.length > 0} suspended={filterOpen} />} refreshControl={refreshControl} virtualList={rows.length ? {
       accessibilityLabel: '선수 목록',
@@ -154,8 +165,8 @@ export function PlayerDirectory() {
       initialNumToRender: 3,
       keyExtractor: (row) => row.map((player) => player.id).join(':'),
       maxToRenderPerBatch: 3,
-      rowGap: 10,
-      renderItem: ({ item: row }) => <View style={styles.virtualRow}>{row.map((player) => <PlayerCard key={player.id} player={player} team={player.teamId ? teamMap.get(player.teamId) : undefined} />)}</View>,
+      rowGap: CARD_GAP,
+      renderItem: ({ item: row }) => <View style={styles.virtualRow}>{row.map((player) => <PlayerCard key={player.id} player={player} team={player.teamId ? teamMap.get(player.teamId) : undefined} width={cardWidth} />)}</View>,
     } : undefined}>
       <View style={styles.page}>
         <View style={[styles.divisionShell, { backgroundColor: theme.card }]}>
@@ -192,7 +203,7 @@ const styles = StyleSheet.create({
   filterTrigger: { alignItems: 'center', borderRadius: 12, borderWidth: 1, flexDirection: 'row', gap: 8, minHeight: 44, paddingHorizontal: 12 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   virtualRow: { flexDirection: 'row', gap: 10 },
-  card: { borderRadius: 16, borderWidth: 1, overflow: 'hidden', width: '48.6%' },
+  card: { borderRadius: 16, borderWidth: 1, overflow: 'hidden' },
   cardImage: { aspectRatio: 4 / 5, overflow: 'hidden', position: 'relative', width: '100%' },
   fallback: { alignItems: 'center', flex: 1, justifyContent: 'center' },
   positionBadge: { backgroundColor: 'rgba(0,0,0,0.65)', borderRadius: 8, left: 8, paddingHorizontal: 8, paddingVertical: 4, position: 'absolute', top: 8 },

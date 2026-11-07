@@ -25,6 +25,7 @@ import { useScreenQuery } from '@/hooks/use-screen-query';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import { resolveApiAssetUrl, type MobileHomeDto, type MobileMatchSummary } from '@/lib/api-client';
 import { useVisibleHomePosts } from '@/components/home/use-visible-home-posts';
+import { HOME_CARD_SWIPER, HOME_MATCH_SWIPER, swiperLayout } from '@/lib/swiper-layout';
 
 const CARD_GAP = 12;
 const HOME_TEAM_ORDER = ['t1', 'geng', 'hle', 'dk', 'kt', 'drx', 'ns', 'bro', 'fox', 'soop'];
@@ -70,14 +71,14 @@ export default function HomeScreen() {
   if (!data) return null;
 
   const contentWidth = width - 32;
-  const matchWidth = (contentWidth - CARD_GAP * 0.1) / 1.1;
-  const pomWidth = (contentWidth - CARD_GAP * 1.2) / 2.2;
+  const matchLayout = swiperLayout(HOME_MATCH_SWIPER, width, contentWidth);
+  const cardLayout = swiperLayout(HOME_CARD_SWIPER, width, contentWidth);
 
 
   return (
     <MinionScreen refreshControl={refreshControl} contentStyle={styles.homeContent}>
       <View style={styles.matchSection}>
-        <MatchCarousel cardWidth={matchWidth} matches={data.matches} />
+        <MatchCarousel cardWidth={matchLayout.slideWidth} gap={matchLayout.spaceBetween} matches={data.matches} />
         <View style={styles.calendarTrigger}>
           <HomeCalendarDialog calendar={data.calendar} events={data.calendarEvents ?? []} />
         </View>
@@ -87,20 +88,20 @@ export default function HomeScreen() {
       <StoveLeagueBanner />
       <View style={styles.section40}><CommunitySection items={data.community} /></View>
       <HomeNewsSection articles={data.news} />
-      {(data.pom ?? []).length > 0 ? <View style={styles.section40}><PomSection cardWidth={pomWidth} items={data.pom ?? []} /></View> : null}
+      {(data.pom ?? []).length > 0 ? <View style={styles.section40}><PomSection cardWidth={cardLayout.slideWidth} gap={cardLayout.spaceBetween} items={data.pom ?? []} /></View> : null}
       <View style={styles.section40}><TeamChannels teams={data.teams} /></View>
       <ContentBanner placement="home-teams" enabled={data.matches.length > 0} />
       <View style={styles.section40}><HomeTournamentOverview overview={data.tournamentOverview} /></View>
-      <View style={styles.section24}><HomeMetaSection cardWidth={pomWidth} data={data.insights} /></View>
-      <View style={styles.section24}><HomeBuildSection cardWidth={pomWidth} data={data.insights} /></View>
+      <View style={styles.section24}><HomeMetaSection cardWidth={cardLayout.slideWidth} gap={cardLayout.spaceBetween} data={data.insights} /></View>
+      <View style={styles.section24}><HomeBuildSection cardWidth={cardLayout.slideWidth} gap={cardLayout.spaceBetween} data={data.insights} /></View>
       <ContentBanner placement="home-insights" enabled={data.matches.length > 0} />
     </MinionScreen>
   );
 }
 
-function MatchCarousel({ cardWidth, matches }: { cardWidth: number; matches: MobileMatchSummary[] }) {
+function MatchCarousel({ cardWidth, gap, matches }: { cardWidth: number; gap: number; matches: MobileMatchSummary[] }) {
   return (
-    <ScrollView accessibilityLabel="매치 스와이퍼" contentContainerStyle={styles.horizontalContent} decelerationRate="fast" horizontal showsHorizontalScrollIndicator={false} snapToAlignment="start" snapToInterval={cardWidth + CARD_GAP}>
+    <ScrollView accessibilityLabel="매치 스와이퍼" contentContainerStyle={[styles.horizontalContent, { gap }]} decelerationRate="fast" horizontal showsHorizontalScrollIndicator={false} snapToAlignment="start" snapToInterval={cardWidth + gap}>
       {matches.map((match) => <HomeMatchCard cardWidth={cardWidth} key={match.id} match={match} />)}
     </ScrollView>
   );
@@ -152,10 +153,10 @@ function CommunitySection({ items: allItems }: { items: MobileHomeDto['community
   return <View><SectionHeader action={() => router.navigate((title === '인기글' ? '/community?view=hot' : '/community') as never)} title={title} />{items.map((post) => <Pressable key={post.id} onPress={() => router.push(`/community/post/${post.id}` as never)} style={[styles.postRow, { borderBottomColor: theme.divider, borderBottomWidth: post === items.at(-1) ? 0 : 1, gap: wideMobile ? 12 : 10, minHeight: (wideMobile ? 65 : 58) + (post === items.at(-1) ? 0 : 1) }]}><View style={styles.flex}><View style={styles.postTitleRow}><Text style={{ color: theme.accent, ...fonts.medium, fontSize: detailSize }}>{boardLabel(post.boardType)}</Text>{post.isHot ? <Text style={[styles.hotLabel, { backgroundColor: `${theme.accent}1f`, color: theme.accent, ...fonts.medium, fontSize: detailSize, lineHeight: detailSize }]}>인기</Text> : null}<Text numberOfLines={1} style={[styles.postTitle, { color: theme.ink, ...fonts.medium }]}>{post.title}</Text></View><View style={[styles.postMeta, { gap: wideMobile ? 8 : 6 }]}><Text numberOfLines={1} style={[styles.postMetaText, { maxWidth: 112, flexShrink: 1, color: theme.text, ...fonts.medium, fontSize: detailSize }]}>{post.author.nickname ?? post.author.guestIpLabel ?? '작성자 없음'}</Text><Text style={[styles.postMetaText, { color: theme.muted, ...fonts.regular, fontSize: detailSize }]}>{relativeDate(post.createdAt)}</Text><MessageCircle color={theme.muted} size={11} strokeWidth={1.8} /><Text style={[styles.postMetaText, { color: theme.muted, fontSize: detailSize }]}>{post.commentCount}</Text><ThumbsUp color={theme.muted} size={11} strokeWidth={1.8} /><Text style={[styles.postMetaText, { color: theme.muted, fontSize: detailSize }]}>{post.likeCount}</Text></View></View>{post.thumbnail ? <MediaImage height={thumbnail.height} radius={thumbnail.radius} url={post.thumbnail.url} width={thumbnail.width} /> : null}</Pressable>)}</View>;
 }
 
-function PomSection({ cardWidth, items }: { cardWidth: number; items: MobileHomeDto['pom'] }) {
+function PomSection({ cardWidth, gap, items }: { cardWidth: number; gap: number; items: MobileHomeDto['pom'] }) {
   const router = useRouter();
   const { fonts, theme } = useMinionTheme();
-  return <View><SectionHeader action={() => router.navigate('/players')} title="최근 POM" /><ScrollView contentContainerStyle={styles.horizontalContent} decelerationRate="fast" horizontal showsHorizontalScrollIndicator={false} snapToInterval={cardWidth + CARD_GAP}>{items.map((entry) => <Pressable key={entry.matchId} onPress={() => router.navigate(`/matches/${entry.matchId}` as never)} style={[styles.pomCard, { backgroundColor: entry.teamPrimaryColor ? `${entry.teamPrimaryColor}1f` : theme.surfaceMuted, width: cardWidth }]}><Text numberOfLines={1} style={[styles.pomTournament, { ...fonts.medium }]}>{entry.tournamentName}</Text><Image contentFit="cover" contentPosition="top" source={{ uri: resolveApiAssetUrl(entry.playerImage?.url) ?? undefined }} style={styles.pomImage} /><LinearGradient colors={['transparent', 'rgba(0,0,0,0.45)', 'rgba(0,0,0,0.85)']} locations={[0, 0.5, 1]} pointerEvents="none" style={styles.pomGradient} /><View style={styles.pomCopy}><View style={styles.pomNameRow}><Text numberOfLines={1} style={[styles.pomName, { ...fonts.bold }]}>{entry.playerName}</Text><Text style={[styles.pomPosition, { ...fonts.medium }]}>{entry.position}</Text></View><View style={styles.pomTeamRow}><RemoteImage radius={0} size={18} url={entry.teamLogo?.url} /><Text style={[styles.pomTeam, { ...fonts.medium }]}>{entry.teamShortName}</Text>{entry.scoreLabel ? <Text style={[styles.pomScore, { ...fonts.medium }]}>{entry.scoreLabel}</Text> : null}<Text numberOfLines={1} style={[styles.pomOpponent, { ...fonts.medium }]}>{entry.opponentShortName}</Text></View></View></Pressable>)}</ScrollView></View>;
+  return <View><SectionHeader action={() => router.navigate('/players')} title="최근 POM" /><ScrollView contentContainerStyle={[styles.horizontalContent, { gap }]} decelerationRate="fast" horizontal showsHorizontalScrollIndicator={false} snapToInterval={cardWidth + gap}>{items.map((entry) => <Pressable key={entry.matchId} onPress={() => router.navigate(`/matches/${entry.matchId}` as never)} style={[styles.pomCard, { backgroundColor: entry.teamPrimaryColor ? `${entry.teamPrimaryColor}1f` : theme.surfaceMuted, width: cardWidth }]}><Text numberOfLines={1} style={[styles.pomTournament, { ...fonts.medium }]}>{entry.tournamentName}</Text><Image contentFit="cover" contentPosition="top" source={{ uri: resolveApiAssetUrl(entry.playerImage?.url) ?? undefined }} style={styles.pomImage} /><LinearGradient colors={['transparent', 'rgba(0,0,0,0.45)', 'rgba(0,0,0,0.85)']} locations={[0, 0.5, 1]} pointerEvents="none" style={styles.pomGradient} /><View style={styles.pomCopy}><View style={styles.pomNameRow}><Text numberOfLines={1} style={[styles.pomName, { ...fonts.bold }]}>{entry.playerName}</Text><Text style={[styles.pomPosition, { ...fonts.medium }]}>{entry.position}</Text></View><View style={styles.pomTeamRow}><RemoteImage radius={0} size={18} url={entry.teamLogo?.url} /><Text style={[styles.pomTeam, { ...fonts.medium }]}>{entry.teamShortName}</Text>{entry.scoreLabel ? <Text style={[styles.pomScore, { ...fonts.medium }]}>{entry.scoreLabel}</Text> : null}<Text numberOfLines={1} style={[styles.pomOpponent, { ...fonts.medium }]}>{entry.opponentShortName}</Text></View></View></Pressable>)}</ScrollView></View>;
 }
 
 function TeamChannels({ teams }: { teams: MobileHomeDto['teams'] }) {
