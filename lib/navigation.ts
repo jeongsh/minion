@@ -23,6 +23,7 @@ export const communityNavItems: NavItem[] = hubBoards.map((board) => ({
 }));
 
 export const adminNavItems: NavItem[] = [
+  { href: "/admin/metrics", label: "사이트 지표" },
   { href: "/admin/matches", label: "경기 관리" },
   { href: "/admin/tournaments", label: "대회 관리" },
   { href: "/admin/sets", label: "세트 관리" },
