@@ -11,8 +11,9 @@ import { PredictionBoard } from "./prediction-board";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "승부예측 | MINION",
-  description: "LCK 경기 승부를 예측하고 LP를 획득하세요.",
+  title: "LCK 승부예측 - 경기 결과 맞히고 LP 받기 | MINION",
+  description: "LCK 경기 승부와 세트 스코어를 예측하고 LP를 모아 보세요. 팬들의 예측 비율과 적중률, 예측 랭킹을 경기마다 확인할 수 있습니다.",
+  alternates: { canonical: "/predictions" },
 };
 
 export default async function PredictionsPage() {

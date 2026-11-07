@@ -8,7 +8,19 @@ import { getFollowedTeamIds } from "@/lib/fan/followed-teams";
 import { isCurrentUserAdmin } from "@/lib/auth/admin";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "LCK 이적시장 | MINION", description: "LCK 팀별 다음 시즌 로스터, 선수 이적과 해외 진출, 재계약 및 FA 현황을 확인하세요." };
+// 검색 유입 키워드(LCK 이적시장·스토브리그·로스터·FA·찌라시)를 시즌 연도와 함께 노출한다.
+export function generateMetadata(): Metadata {
+  const season = transferSeason();
+  const title = `LCK 이적시장 ${season} 스토브리그 - ${season + 1} 로스터·FA·찌라시 정리 | MINION`;
+  const description = `${season} LCK 스토브리그 이적시장을 실시간으로 정리합니다. 팀별 ${season + 1} 로스터, 오피셜 이적·재계약·FA 현황과 보도·찌라시(거피셜) 소식을 한눈에 확인하세요.`;
+  return {
+    title,
+    description,
+    keywords: ["LCK 이적시장", "LCK 스토브리그", `${season + 1} LCK 로스터`, "LCK 찌라시", "LCK 이적 루머", "LCK FA", "롤 이적시장"],
+    alternates: { canonical: "/transfers" },
+    openGraph: { title, description, url: "/transfers", type: "website", images: ["/images/minion-og-20260829.png"] },
+  };
+}
 
 export default async function TransfersPage({ searchParams }: { searchParams: Promise<{ season?: string }> }) {
   const params = await searchParams;

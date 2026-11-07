@@ -22,8 +22,31 @@ import {
 import { getUserMiniconPacks } from "@/lib/data/minicons";
 import { getTeamByFanSiteHost, getTeamBySlug } from "@/lib/data/lck";
 
-// 사용자 생성 게시글이라 검색 색인 대상에서 제외한다.
-export const metadata: Metadata = { title: "게시글", robots: { index: false } };
+// 팬 반응이 확인된 팬톡 게시글(인기글 또는 좋아요+댓글 3개 이상)만 색인한다.
+// 반응 없는 짧은 글과 블라인드·삭제 글은 저품질 페이지로 보지 않도록 noindex로 둔다.
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ teamSlug: string; postId: string }>;
+}): Promise<Metadata> {
+  const { teamSlug, postId } = await params;
+  const [team, post] = await Promise.all([
+    getTeamByFanSiteHost(teamSlug).then((found) => found ?? getTeamBySlug(teamSlug)),
+    getPostById(postId),
+  ]);
+  if (!team || !post || post.siteScope !== "team" || post.teamId !== team.id) return { title: "게시글", robots: { index: false } };
+  if (post.blindedAt || post.deletedAt) return { title: "게시글", robots: { index: false } };
+  const indexable = Boolean(post.hotAt) || post.likeCount + post.commentCount >= 3;
+  const fanSlug = team.fanSiteHost || teamSlug;
+  const description = (post.excerpt || `${team.name} 팬톡 게시글`).replace(/\s+/g, " ").trim().slice(0, 150);
+  return {
+    title: `${post.title} - 팬톡`,
+    description,
+    alternates: { canonical: `/fan/${fanSlug}/community/post/${post.id}` },
+    robots: indexable ? undefined : { index: false, follow: true },
+    openGraph: { title: post.title, description, type: "article", images: post.thumbnailUrl ? [post.thumbnailUrl] : ["/images/minion-og-20260829.png"] },
+  };
+}
 
 export default async function FanPostDetailPage({
   params,

@@ -222,6 +222,7 @@ export default async function HomePage({
 
   return (
     <>
+      <h1 className="sr-only">MINION - LCK 경기 일정·결과, 승부예측과 팬톡</h1>
       <HomeDashboard
       teams={teams}
       tournamentOverview={tournamentOverview}

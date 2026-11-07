@@ -458,8 +458,12 @@ export async function generateMetadata({ params }: { params: Promise<{ matchId: 
   const tournament = tournaments.find((item) => item.id === match.tournamentId);
   const hasScore = match.teamAScore !== null || match.teamBScore !== null;
   const scoreLabel = hasScore ? ` ${match.teamAScore ?? 0}:${match.teamBScore ?? 0} ` : " vs ";
-  const title = `${teamAName}${scoreLabel}${teamBName} - ${tournament?.name ?? "LCK"} | MINION`;
-  const description = `${tournament?.name ?? "LCK"} ${teamAName} vs ${teamBName} 경기 결과, 세트별 스코어, 선수 스탯, 밴픽을 확인하세요.`;
+  const tournamentName = tournament?.name ?? "LCK";
+  const dateLabel = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", year: "numeric", month: "long", day: "numeric" }).format(new Date(match.matchDate));
+  const title = `${teamAName}${scoreLabel}${teamBName} ${hasScore ? "경기 결과" : "승부예측"} - ${tournamentName} | MINION`;
+  const description = hasScore
+    ? `${dateLabel} ${tournamentName} ${teamAName} vs ${teamBName} 경기 결과. 세트별 스코어, 선수 스탯, 밴픽과 팬 평가, 승부예측 결과를 확인하세요.`
+    : `${dateLabel} ${tournamentName} ${teamAName} vs ${teamBName} 승부예측. 팬들의 예측 비율과 양 팀 최근 전적, 세트별 일정을 확인하세요.`;
   const canonicalPath = matchHref(match);
 
   return {

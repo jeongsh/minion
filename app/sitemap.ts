@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { getBoardPosts } from "@/lib/data/community";
 import { getMatches, getPlayers, getTeams, getTournaments } from "@/lib/data/lck";
 import { siteBaseUrl } from "@/lib/site";
 import { canQuerySupabase } from "@/lib/supabase/server";
@@ -11,10 +12,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // 실제 콘텐츠 수정 시각을 알 수 없는 URL은 lastModified를 생략한다.
   // 생성 시각이나 경기 예정일은 페이지의 최종 수정일이 아니다.
   const staticChangeFrequency = (route: string): MetadataRoute.Sitemap[number]["changeFrequency"] =>
-    route === "" ? "daily" : "weekly";
+    route === "" || route === "/transfers" ? "daily" : "weekly";
   const routes = [
     "",
     "/schedule",
+    "/transfers",
     "/teams",
     "/players",
     "/champions",
@@ -51,6 +53,26 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         priority: 0.8,
       }));
 
+    // 팀 팬톡 첫 화면과 팀별 인기글(블라인드 제외)만 제출한다. 일반 글은 링크로 발견되게 둔다.
+    const fanTalkRoutes = teams.map((team) => ({
+      url: `${baseUrl}/fan/${team.fanSiteHost}/community`,
+      changeFrequency: "daily" as const,
+      priority: 0.7,
+    }));
+    const hotPostsByTeam = await Promise.all(
+      teams.map((team) => getBoardPosts({ scope: "team", teamId: team.id, hotOnly: true, limit: 30 }).catch(() => [])),
+    );
+    const fanTalkPostRoutes = teams.flatMap((team, index) =>
+      hotPostsByTeam[index]
+        .filter((post) => !post.blindedAt && !post.deletedAt)
+        .map((post) => ({
+          url: `${baseUrl}/fan/${team.fanSiteHost}/community/post/${post.id}`,
+          lastModified: post.createdAt,
+          changeFrequency: "weekly" as const,
+          priority: 0.5,
+        })),
+    );
+
     const playerRoutes = players.map((player) => ({
       url: `${baseUrl}/players/${player.slug}`,
       changeFrequency: "weekly" as const,
@@ -80,7 +102,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         priority: 0.75,
       }));
 
-    return [...staticRoutes, ...teamRoutes, ...playerRoutes, ...matchRoutes, ...tournamentRoutes];
+    return [...staticRoutes, ...teamRoutes, ...fanTalkRoutes, ...fanTalkPostRoutes, ...playerRoutes, ...matchRoutes, ...tournamentRoutes];
   } catch {
     return staticRoutes;
   }
