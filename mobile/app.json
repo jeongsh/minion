@@ -11,9 +11,16 @@
       "enforceContrast": false
     },
     "newArchEnabled": true,
+    "locales": {
+      "ko": "./locales/ko.json"
+    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.minion.app",
+      "infoPlist": {
+        "CFBundleDevelopmentRegion": "ko",
+        "CFBundleLocalizations": ["ko"]
+      },
       "config": {
         "usesNonExemptEncryption": false
       }
