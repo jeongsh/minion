@@ -65,14 +65,18 @@ export function HomeMatchCard({
   const matchDate = `${monthDay} ${weekday}`;
   const fullTournamentName = tournament ?? match.name;
   const tournamentName = /demacia|데마시아/i.test(fullTournamentName) ? "데마시아컵" : fullTournamentName;
-  const centerLabel = match.status === "completed"
+  const completed = match.status === "completed";
+  const centerLabel = completed
     ? `${match.teamAScore ?? 0} : ${match.teamBScore ?? 0}`
     : formatTimeKST(match.matchDate);
   const href = matchHref(match);
   const matchLabel = `${teamA?.shortName ?? "TBD"} vs ${teamB?.shortName ?? "TBD"} 경기 상세`;
 
   return (
-    <article className="group relative flex h-full min-h-[100px] min-w-0 flex-col rounded-xl bg-[var(--ui-card-bg)] p-3 transition-colors hover:bg-[var(--ui-card-hover)]">
+    <article
+      data-match-status={completed ? "completed" : undefined}
+      className="group relative flex h-full min-h-[100px] min-w-0 flex-col rounded-xl bg-[var(--ui-card-bg)] p-3 transition-colors hover:bg-[var(--ui-card-hover)]"
+    >
       <Link
         href={href}
         aria-label={matchLabel}
@@ -90,7 +94,12 @@ export function HomeMatchCard({
         className="absolute inset-0 z-10 rounded-xl"
       />
 
-      <div className="pointer-events-none relative z-20 flex h-full min-w-0 flex-col">
+      {/* 끝난 경기는 예정 경기와 한 줄에 섞일 수 있어 내용을 흐리게 해 구분한다. */}
+      <div
+        className={`pointer-events-none relative z-20 flex h-full min-w-0 flex-col transition-opacity ${
+          completed ? "opacity-60 group-hover:opacity-100" : ""
+        }`}
+      >
         <div className="flex min-w-0 items-center gap-2 text-[13px] font-medium text-[var(--ui-muted)]">
           <span className="flex min-w-0 items-center gap-1.5">
             {tournamentLogo ? <Image

@@ -113,19 +113,22 @@ function HomeMatchCard({ cardWidth, match }: { cardWidth: number; match: MobileM
   const live = match.status === 'live';
   const fullTournamentName = match.tournament?.name ?? match.name;
   const tournamentName = /demacia|데마시아/i.test(fullTournamentName) ? '데마시아컵' : fullTournamentName;
-  const centerLabel = match.status === 'completed' ? `${match.teamAScore ?? 0} : ${match.teamBScore ?? 0}` : timeOnly(match.startsAt);
+  // 웹 home-match-card.tsx와 같이 끝난 경기는 카드 내용만 60% 투명도로 흐리게 한다.
+  const completed = match.status === 'completed';
+  const contentOpacity = completed ? styles.completedContent : null;
+  const centerLabel = completed ? `${match.teamAScore ?? 0} : ${match.teamBScore ?? 0}` : timeOnly(match.startsAt);
   return (
     <Pressable onPress={() => router.navigate(`/matches/${encodeURIComponent(match.id)}` as never)} style={[styles.matchCard, { backgroundColor: theme.card, width: cardWidth }]}>
-      <View style={styles.matchMetaRow}>
+      <View style={[styles.matchMetaRow, contentOpacity]}>
         <View style={styles.tournamentMeta}>{match.tournamentLogo?.url ? <Image contentFit="contain" source={{ uri: resolveApiAssetUrl(match.tournamentLogo.url) ?? undefined }} tintColor={colorScheme === 'dark' ? '#fff' : '#000'} style={styles.tournamentLogo} /> : null}<Text numberOfLines={1} style={[styles.matchMeta, styles.flex, { color: theme.muted, ...fonts.medium }]}>{tournamentName}</Text></View>
         <Text style={[styles.matchMeta, styles.matchDate, { color: theme.muted, ...fonts.medium }]}>{matchDate(match.startsAt)}</Text>
       </View>
-      <View style={styles.matchTeams}>
+      <View style={[styles.matchTeams, contentOpacity]}>
         <View style={styles.matchSideLeft}><Text numberOfLines={1} style={[styles.matchTeamName, { color: theme.ink, ...fonts.black }]}>{match.teamA?.shortName ?? 'TBD'}</Text><TeamLogo plain size={28} team={match.teamA} themeAware /></View>
         <View style={styles.timePill}>{live ? <View style={styles.liveDot} /> : null}<Text style={{ color: '#fff', ...fonts.medium, fontSize: 12, fontVariant: ['tabular-nums'], lineHeight: 18 }}>{centerLabel}</Text></View>
         <View style={styles.matchSideRight}><TeamLogo plain size={28} team={match.teamB} themeAware /><Text numberOfLines={1} style={[styles.matchTeamName, { color: theme.ink, ...fonts.black }]}>{match.teamB?.shortName ?? 'TBD'}</Text></View>
       </View>
-      <View style={styles.oddsArea}><View style={styles.oddsLabels}><Text style={[styles.oddsText, { color: theme.muted, ...fonts.medium }]}>{match.prediction?.teamAPercent ?? 50}%</Text><Text style={[styles.oddsText, { color: theme.muted, ...fonts.medium }]}>{match.prediction?.teamBPercent ?? 50}%</Text></View><View style={[styles.oddsTrack, { backgroundColor: theme.surface }]}><View style={[styles.oddsHalf, { width: `${match.prediction?.teamAPercent ?? 50}%`, backgroundColor: match.teamA?.primaryColor ?? theme.ink }]} /><View style={[styles.oddsHalf, { flex: 1, width: undefined, backgroundColor: match.teamB?.primaryColor ?? theme.muted }]} /></View></View>
+      <View style={[styles.oddsArea, contentOpacity]}><View style={styles.oddsLabels}><Text style={[styles.oddsText, { color: theme.muted, ...fonts.medium }]}>{match.prediction?.teamAPercent ?? 50}%</Text><Text style={[styles.oddsText, { color: theme.muted, ...fonts.medium }]}>{match.prediction?.teamBPercent ?? 50}%</Text></View><View style={[styles.oddsTrack, { backgroundColor: theme.surface }]}><View style={[styles.oddsHalf, { width: `${match.prediction?.teamAPercent ?? 50}%`, backgroundColor: match.teamA?.primaryColor ?? theme.ink }]} /><View style={[styles.oddsHalf, { flex: 1, width: undefined, backgroundColor: match.teamB?.primaryColor ?? theme.muted }]} /></View></View>
     </Pressable>
   );
 }
@@ -203,6 +206,7 @@ const styles = StyleSheet.create({
   hotLabel: { borderRadius: 999, overflow: 'hidden', paddingHorizontal: 6, paddingVertical: 2 },
   liveDot: { backgroundColor: '#ff3158', borderRadius: 3, height: 6, width: 6 },
   matchCard: { borderRadius: 12, minHeight: 100, padding: 12 },
+  completedContent: { opacity: 0.6 },
   matchDate: { marginLeft: 'auto', opacity: 0.75 },
   matchMeta: { fontSize: 13, lineHeight: 19.5 },
   matchMetaRow: { alignItems: 'center', flexDirection: 'row', gap: 8 },
