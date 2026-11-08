@@ -1,6 +1,9 @@
 import Link from "next/link";
 import Image from "next/image";
 import marker from "@/assets/characters/pen-1.png";
+import megaphone from "@/assets/characters/megapon-1.png";
+import { AndroidLogo, AppleLogo } from "@/components/layout/store-logos";
+import { ANDROID_PLAY_STORE_URL, IOS_APP_STORE_URL } from "@/lib/app-store-links";
 import { KITSCH_PALETTES } from "@/lib/theme/palettes";
 import { HomeTournamentOverview, type HomeTournamentOption } from "@/components/domain/home-tournament-overview";
 import type { HomeTournamentOverview as Overview } from "@/lib/tournaments/home-overview";
@@ -79,6 +82,34 @@ function StoveLeagueBanner() {
   );
 }
 
+function AppLaunchBanner() {
+  const storeButtonClass = "flex h-9 shrink-0 items-center gap-1.5 rounded-lg bg-white px-2.5 text-[13px] font-medium transition hover:brightness-95 sm:px-3";
+  return (
+    <div
+      className="flex items-center gap-3 rounded-2xl px-4 py-3 sm:justify-center sm:gap-5 sm:px-6 sm:py-3.5"
+      style={{ backgroundColor: KITSCH_PALETTES.greenButter.deep }}
+    >
+      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white sm:h-10 sm:w-10">
+        <Image src={megaphone} alt="" className="h-8 w-8 object-contain sm:h-9 sm:w-9" />
+      </span>
+      <span className="min-w-0 flex-1 sm:flex-initial">
+        <span className="block truncate text-[13px] font-normal leading-4 sm:text-sm sm:leading-5" style={{ color: KITSCH_PALETTES.greenButter.point }}>MINION 앱 출시</span>
+        <span className="block truncate font-paperozi text-sm text-white sm:text-base">이제 앱으로 만나요!</span>
+      </span>
+      <span className="flex shrink-0 items-center gap-1.5">
+        <a href={IOS_APP_STORE_URL} target="_blank" rel="noopener noreferrer" className={storeButtonClass} style={{ color: KITSCH_PALETTES.greenButter.deep }} aria-label="App Store에서 MINION 앱 받기">
+          <AppleLogo size={15} />
+          <span className="hidden sm:inline">App Store</span>
+        </a>
+        <a href={ANDROID_PLAY_STORE_URL} target="_blank" rel="noopener noreferrer" className={storeButtonClass} style={{ color: KITSCH_PALETTES.greenButter.deep }} aria-label="Google Play에서 MINION 앱 받기">
+          <AndroidLogo size={15} />
+          <span className="hidden sm:inline">Google Play</span>
+        </a>
+      </span>
+    </div>
+  );
+}
+
 export function HomeDashboard({
   teams,
   tournamentOverview,
@@ -140,7 +171,7 @@ export function HomeDashboard({
       <section>
         <CelebrationBanner
           events={celebrationEvents}
-          extraSlides={[<StoveLeagueBanner key="stove-league" />]}
+          extraSlides={[<StoveLeagueBanner key="stove-league" />, <AppLaunchBanner key="app-launch" />]}
         />
       </section>
 
