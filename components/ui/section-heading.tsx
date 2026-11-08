@@ -17,7 +17,7 @@ export function SectionHeading({
   className?: string;
 }) {
   const trailing = aside ?? (href ? (
-    <Link href={href} className="ml-auto flex min-h-11 shrink-0 items-center text-sm font-medium text-[var(--ui-muted)]">
+    <Link href={href} className="section-heading-more ml-auto flex min-h-11 shrink-0 items-center text-sm font-medium text-[var(--ui-muted)]">
       전체보기
       <ChevronRight size={16} />
     </Link>

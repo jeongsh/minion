@@ -46,13 +46,36 @@ type Props = {
   ratingTicker: React.ReactNode;
 };
 
-const HOME_SECTION_SPACING = "mt-10";
+const HOME_SECTION_SPACING = "mt-8 sm:mt-10";
+
 
 function HeadingSpacer() {
   return (
     <div className="invisible h-11 shrink-0" aria-hidden>
       <Heading>&nbsp;</Heading>
     </div>
+  );
+}
+
+function StoveLeagueBanner() {
+  return (
+    <Link
+      href="/transfers"
+      className="group flex items-center gap-3 rounded-2xl px-4 py-3 transition hover:brightness-105 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-white sm:justify-center sm:gap-5 sm:px-6 sm:py-3.5"
+      style={{ backgroundColor: KITSCH_PALETTES.grapeLime.main }}
+    >
+      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white sm:h-10 sm:w-10">
+        <Image src={marker} alt="" className="h-8 w-8 object-contain sm:h-9 sm:w-9" />
+      </span>
+      <span className="min-w-0 flex-1 sm:flex-initial">
+        <span className="block truncate text-[13px] font-normal leading-4 sm:text-sm sm:leading-5" style={{ color: KITSCH_PALETTES.grapeLime.point }}>2026 LCK 스토브리그</span>
+        <span className="block truncate font-paperozi text-sm text-white sm:text-base">이적 확정부터 FA 소식까지, 한눈에!</span>
+      </span>
+      <span className="flex shrink-0 items-center gap-0.5 rounded-lg bg-white px-2.5 py-2 text-[13px] font-medium sm:px-3.5" style={{ color: KITSCH_PALETTES.grapeLime.main }}>
+        <span className="hidden sm:inline">이적시장 보기</span>
+        <ChevronRight size={14} strokeWidth={2.5} aria-hidden className="transition group-hover:translate-x-0.5" />
+      </span>
+    </Link>
   );
 }
 
@@ -86,9 +109,11 @@ export function HomeDashboard({
     .slice(0, 10);
   return (
     <main className="layout-wide hub-home pb-16 pt-4 text-[var(--ui-ink)] sm:pt-7">
-      <section aria-label="매치" className="mb-8">
+      {/* 상단 묶음(매치, 한줄평, 이벤트 배너 슬라이드, 광고)은 한 리듬의 gap으로만 띄운다. 자식에 개별 margin을 주지 않는다. */}
+      <div className="flex flex-col gap-4 sm:gap-5">
+      <section aria-label="매치">
         <HomeMatchSwiper items={matchItems} />
-        <div className="mt-3 xl:hidden">
+        <div className="mt-2 xl:hidden">
           <AdaptiveDialog
             title="LCK 캘린더"
             trigger={
@@ -112,38 +137,22 @@ export function HomeDashboard({
 
       {ratingTicker}
 
-      {celebrationEvents.length > 0 ? (
-        <section className="my-8">
-          <CelebrationBanner events={celebrationEvents} />
-        </section>
-      ) : null}
+      <section>
+        <CelebrationBanner
+          events={celebrationEvents}
+          extraSlides={[<StoveLeagueBanner key="stove-league" />]}
+        />
+      </section>
 
       <Ad
         enabled={matchItems.length > 0}
         placement="horizontal"
         format="auto"
-        className="mt-8 h-[100px] sm:mt-10 md:h-[60px] xl:h-[90px]"
+        className="h-[100px] md:h-[60px] xl:h-[90px]"
       />
+      </div>
 
-      <Link
-        href="/transfers"
-        className="mt-8 group relative flex items-center gap-3 overflow-hidden rounded-2xl px-4 py-3 transition hover:brightness-105 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--ui-ink)] sm:justify-center sm:gap-5 sm:px-6 sm:py-3.5"
-        style={{ backgroundColor: KITSCH_PALETTES.grapeLime.main }}
-      >
-        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white sm:h-10 sm:w-10">
-          <Image src={marker} alt="" className="h-8 w-8 object-contain sm:h-9 sm:w-9" />
-        </span>
-        <span className="min-w-0 flex-1 sm:flex-initial">
-          <span className="block truncate text-[13px] font-normal leading-4 sm:text-sm sm:leading-5" style={{ color: KITSCH_PALETTES.grapeLime.point }}>2026 LCK 스토브리그</span>
-          <span className="block truncate font-paperozi text-base text-white">이적 확정부터 FA 소식까지, 한눈에!</span>
-        </span>
-        <span className="flex shrink-0 items-center gap-0.5 rounded-lg bg-white px-2.5 py-2 text-[13px] font-medium sm:px-3.5" style={{ color: KITSCH_PALETTES.grapeLime.main }}>
-          <span className="hidden sm:inline">이적시장 보기</span>
-          <ChevronRight size={14} strokeWidth={2.5} aria-hidden className="transition group-hover:translate-x-0.5" />
-        </span>
-      </Link>
-
-      <section className="mt-10">
+      <section className={HOME_SECTION_SPACING}>
         <Heading href={communityTitle === "인기글" ? "/community?view=hot" : "/community"}>{communityTitle}</Heading>
         <HomeBoardCarousel posts={communityPosts} />
       </section>
@@ -181,7 +190,7 @@ export function HomeDashboard({
         </div>
       </section>
 
-      <Ad enabled={matchItems.length > 0} placement="horizontal" className="mt-10 h-[100px] md:h-[60px] xl:h-[90px]" />
+      <Ad enabled={matchItems.length > 0} placement="horizontal" className="mt-8 h-[100px] sm:mt-10 md:h-[60px] xl:h-[90px]" />
 
       <section className={`${HOME_SECTION_SPACING} grid gap-4 xl:grid-cols-3`}>
         <div className="flex min-w-0 flex-col xl:col-span-2">
@@ -208,7 +217,7 @@ export function HomeDashboard({
           enabled={matchItems.length > 0}
         placement="horizontal"
           format="auto"
-          className="mt-10 h-[100px] md:h-[60px] xl:h-[90px]"
+          className="mt-8 h-[100px] sm:mt-10 md:h-[60px] xl:h-[90px]"
         />
       </section>
       */}
@@ -219,7 +228,7 @@ export function HomeDashboard({
           enabled={matchItems.length > 0}
         placement="horizontal"
           format="auto"
-          className="mt-10 h-[100px] md:h-[60px] xl:h-[90px]"
+          className="mt-8 h-[100px] sm:mt-10 md:h-[60px] xl:h-[90px]"
         />
       </div>
     </main>

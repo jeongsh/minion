@@ -26,6 +26,9 @@ export function HomeLoadingSkeleton() {
   const contentWidth = width - 32;
   const matchWidth = swiperLayout(HOME_MATCH_SWIPER, width, contentWidth).slideWidth;
   const cardWidth = swiperLayout(HOME_CARD_SWIPER, width, contentWidth).slideWidth;
+  // 실제 홈과 같은 간격: 상단 묶음 gap 16/20, 섹션 32/40, 인사이트 32/40(1024 기준).
+  const wide = width >= 640;
+  const section = { marginTop: wide ? 40 : 32 };
 
   useEffect(() => {
     const pulse = Animated.loop(
@@ -56,9 +59,9 @@ export function HomeLoadingSkeleton() {
       </View>
       <Bone style={styles.calendar} />
 
-      <Bone style={{ borderRadius: 16, height: 60, marginTop: 32, width: contentWidth }} />
+      <Bone style={{ borderRadius: 16, height: 60, marginTop: wide ? 20 : 16, width: contentWidth }} />
 
-      <View style={styles.section40}>
+      <View style={section}>
         <SectionTitleSkeleton />
         {Array.from({ length: 6 }, (_, index) => (
           <View key={index} style={[styles.postRow, { borderBottomColor: theme.divider }]}>
@@ -70,11 +73,11 @@ export function HomeLoadingSkeleton() {
           </View>
         ))}
       </View>
-      <View style={styles.section40}><SectionTitleSkeleton />{Array.from({ length: 6 }, (_, index) => <View key={index} style={{ flexDirection: 'row', gap: 12, paddingVertical: 8, minHeight: 76 }}><Bone style={{ width: 80, height: 60 }} /><View style={{ flex: 1, justifyContent: 'center', gap: 4 }}><Bone style={{ width: '95%', height: 22 }} /><Bone style={{ width: '70%', height: 20 }} /></View></View>)}</View>
-      <View style={styles.section40}><SectionTitleSkeleton /><Bone style={{ height: cardWidth * 4 / 3, borderRadius: 16 }} /></View>
-      <View style={styles.section40}><SectionTitleSkeleton /><Bone style={{ height: 96 }} /></View>
-      <View style={styles.section40}><SectionTitleSkeleton /><Bone style={{ height: 220, borderRadius: 16 }} /></View>
-      {[0, 1].map((key) => <View key={key} style={{ marginTop: 24 }}><SectionTitleSkeleton /><View style={{ flexDirection: 'row', gap: 12 }}>{[0, 1].map((column) => <Bone key={column} style={{ width: cardWidth, aspectRatio: 2 / 3, borderRadius: 16 }} />)}</View></View>)}
+      <View style={section}><SectionTitleSkeleton />{Array.from({ length: 6 }, (_, index) => <View key={index} style={{ flexDirection: 'row', gap: 12, paddingVertical: 8, minHeight: 76 }}><Bone style={{ width: 80, height: 60 }} /><View style={{ flex: 1, justifyContent: 'center', gap: 4 }}><Bone style={{ width: '95%', height: 22 }} /><Bone style={{ width: '70%', height: 20 }} /></View></View>)}</View>
+      <View style={section}><SectionTitleSkeleton /><Bone style={{ height: cardWidth * 4 / 3, borderRadius: 16 }} /></View>
+      <View style={section}><SectionTitleSkeleton /><Bone style={{ height: 96 }} /></View>
+      <View style={section}><SectionTitleSkeleton /><Bone style={{ height: 220, borderRadius: 16 }} /></View>
+      {[0, 1].map((key) => <View key={key} style={{ marginTop: width >= 1024 ? 40 : 32 }}><SectionTitleSkeleton /><View style={{ flexDirection: 'row', gap: 12 }}>{[0, 1].map((column) => <Bone key={column} style={{ width: cardWidth, aspectRatio: 2 / 3, borderRadius: 16 }} />)}</View></View>)}
     </Animated.View>
   );
 }
@@ -82,7 +85,7 @@ export function HomeLoadingSkeleton() {
 const styles = StyleSheet.create({
   between: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
   bone: { borderRadius: 6 },
-  calendar: { borderRadius: 10, height: 44, marginTop: 12, width: '100%' },
+  calendar: { borderRadius: 10, height: 44, marginTop: 8, width: '100%' },
   flex: { flex: 1, minWidth: 0 },
   matchCard: { borderRadius: 12, minHeight: 119, padding: 12 },
   matchDate: { height: 10, width: 54 },
@@ -95,7 +98,6 @@ const styles = StyleSheet.create({
   postTitle: { height: 13, width: '82%' },
   root: { paddingBottom: 20 },
   score: { borderRadius: 6, height: 30, width: 54 },
-  section40: { marginTop: 40 },
   sectionAction: { height: 12, width: 52 },
   sectionTitle: { height: 18, width: 76 },
   sectionTitleRow: { alignItems: 'flex-end', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },

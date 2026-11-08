@@ -149,7 +149,7 @@ export function HomeNewsSection({ articles }: { articles: NewsArticle[] }) {
   if (articles.length === 0) return null;
 
   return (
-    <section aria-labelledby="home-news-heading" className="mt-10">
+    <section aria-labelledby="home-news-heading" className="mt-8 sm:mt-10">
       <SectionHeading href="/news">
         <span id="home-news-heading">LCK 뉴스</span>
       </SectionHeading>

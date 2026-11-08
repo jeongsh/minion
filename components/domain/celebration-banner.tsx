@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactElement } from "react";
 import { CelebrationSlides } from "@/components/domain/celebration-slides";
 import { ChevronRight } from "lucide-react";
 
@@ -84,7 +85,7 @@ function CelebrationCard({ event, action }: { event: CalendarEvent; action: Cele
         >
           {eyebrow(event)}
         </span>
-        <span className="block truncate font-paperozi text-base" style={{ color: theme.foreground }}>
+        <span className="block truncate font-paperozi text-sm sm:text-base" style={{ color: theme.foreground }}>
           {headline(event, action)}
         </span>
       </span>
@@ -107,17 +108,22 @@ function CelebrationCard({ event, action }: { event: CalendarEvent; action: Cele
 export function CelebrationBanner({
   events,
   action = "board",
+  extraSlides = [],
 }: {
   events: CalendarEvent[];
   action?: CelebrationAction;
+  /** 축하 카드 뒤에 이어 붙일 상시 배너. 각 요소에 key가 있어야 한다. */
+  extraSlides?: ReactElement[];
 }) {
-  if (events.length === 0) return null;
-  if (events.length === 1) return <CelebrationCard event={events[0]} action={action} />;
+  const slides = [
+    ...events.map((event) => <CelebrationCard key={event.key} event={event} action={action} />),
+    ...extraSlides,
+  ];
+  if (slides.length === 0) return null;
+  if (slides.length === 1) return slides[0];
   return (
-    <CelebrationSlides>
-      {events.map((event) => (
-        <CelebrationCard key={event.key} event={event} action={action} />
-      ))}
+    <CelebrationSlides label={extraSlides.length > 0 ? "이벤트 배너" : "축하 배너"}>
+      {slides}
     </CelebrationSlides>
   );
 }

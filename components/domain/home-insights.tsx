@@ -74,7 +74,7 @@ export function HomeMetaSection({ data }: { data: HomeInsights | null }) {
 }
 
 export function HomeBuildSection({ data }: { data: HomeInsights | null }) {
-  return <section aria-label="프로 선수 빌드" className="mt-6 sm:mt-8 lg:mt-10">
+  return <section aria-label="프로 선수 빌드" className="mt-8 lg:mt-10">
     <SectionHeading href="/schedule">프로 선수 빌드</SectionHeading>
     {data?.builds.length ? <CardCarousel cards={data.builds.map(build => ({ id: build.id, content:
       <Link href={build.href} className={card} aria-label={`${build.player} ${build.champion} 빌드`}>
@@ -103,7 +103,7 @@ function EmptyState({ children }: { children: ReactNode }) {
 export function HomeInsightsSkeleton() {
   return <div aria-hidden>
     {Array.from({ length: 2 }, (_, section) => (
-      <div key={section} className="mt-6 sm:mt-8 lg:mt-10">
+      <div key={section} className="mt-8 lg:mt-10">
         <div className="mb-3 flex h-11 items-center justify-between"><Skeleton className="h-5 w-28" /><Skeleton className="h-4 w-16" /></div>
         <div className="flex gap-3 overflow-hidden md:gap-3.5 lg:gap-4">
           {Array.from({ length: 6 }, (_, index) => <Skeleton key={index} className="aspect-[2/3] w-[calc((100%-14.4px)/2.2)] shrink-0 rounded-2xl min-[520px]:w-[calc((100%-26.4px)/3.2)] md:w-[calc((100%-44.8px)/4.2)] lg:w-[calc((100%-67.2px)/5.2)] xl:w-[calc((100%-80px)/6)]" />)}

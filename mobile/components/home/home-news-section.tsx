@@ -38,7 +38,7 @@ function NewsRow({ article }: { article: MobileNewsItem }) {
 export function HomeNewsSection({ articles }: { articles: MobileNewsItem[] }) {
   const { width } = useWindowDimensions();
   if (!articles.length) return null;
-  return <View style={{ marginTop: 40 }}><HomeSectionHeading title="LCK 뉴스" href="/news" /><View style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: 32 }}>{articles.slice(0, 6).map((article) => <View key={article.id} style={{ width: width >= 768 ? (width - 64) / 2 : '100%' }}><NewsRow article={article} /></View>)}</View></View>;
+  return <View style={{ marginTop: width >= 640 ? 40 : 32 }}><HomeSectionHeading title="LCK 뉴스" href="/news" /><View style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: 32 }}>{articles.slice(0, 6).map((article) => <View key={article.id} style={{ width: width >= 768 ? (width - 64) / 2 : '100%' }}><NewsRow article={article} /></View>)}</View></View>;
 }
 
 const styles = StyleSheet.create({ row: { minHeight: 76, flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 }, thumbnail: { width: 80, height: 60, borderRadius: 6 }, copy: { flex: 1, minWidth: 0 }, meta: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 } });

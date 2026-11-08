@@ -8,7 +8,7 @@ import "swiper/css";
 
 import { useSwiperResize } from "@/components/ui/use-swiper-resize";
 
-export function CelebrationSlides({ children }: { children: ReactNode }) {
+export function CelebrationSlides({ children, label = "축하 배너" }: { children: ReactNode; label?: string }) {
   const swiperRef = useRef<SwiperInstance | null>(null);
   const setSwiper = useSwiperResize();
 
@@ -16,7 +16,7 @@ export function CelebrationSlides({ children }: { children: ReactNode }) {
     <div
       className="min-w-0"
       role="region"
-      aria-label="축하 배너"
+      aria-label={label}
       aria-roledescription="슬라이드"
       onFocusCapture={() => swiperRef.current?.autoplay.stop()}
       onBlurCapture={(event) => {

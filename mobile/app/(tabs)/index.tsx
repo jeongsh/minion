@@ -73,27 +73,33 @@ export default function HomeScreen() {
   const contentWidth = width - 32;
   const matchLayout = swiperLayout(HOME_MATCH_SWIPER, width, contentWidth);
   const cardLayout = swiperLayout(HOME_CARD_SWIPER, width, contentWidth);
+  // 웹 HOME_SECTION_SPACING(mt-8 sm:mt-10), 인사이트(mt-8 lg:mt-10).
+  const wide = width >= 640;
+  const sectionSpacing = { marginTop: wide ? 40 : 32 };
+  const insightSpacing = { marginTop: width >= 1024 ? 40 : 32 };
 
 
   return (
     <MinionScreen refreshControl={refreshControl} contentStyle={styles.homeContent}>
-      <View style={styles.matchSection}>
-        <MatchCarousel cardWidth={matchLayout.slideWidth} gap={matchLayout.spaceBetween} matches={data.matches} />
-        <View style={styles.calendarTrigger}>
-          <HomeCalendarDialog calendar={data.calendar} events={data.calendarEvents ?? []} />
+      {/* 웹 home-dashboard 상단 묶음: 매치, 이벤트 배너 슬라이드, 광고를 gap 하나(640 미만 16, 이상 20)로만 띄운다. */}
+      <View style={{ gap: wide ? 20 : 16 }}>
+        <View>
+          <MatchCarousel cardWidth={matchLayout.slideWidth} gap={matchLayout.spaceBetween} matches={data.matches} />
+          <View style={styles.calendarTrigger}>
+            <HomeCalendarDialog calendar={data.calendar} events={data.calendarEvents ?? []} />
+          </View>
         </View>
+        <HomeCelebrationCarousel events={data.celebrations} extraSlides={[{ key: 'stove-league', render: () => <StoveLeagueBanner /> }]} />
+        <ContentBanner placement="home-top" enabled={data.matches.length > 0} style={styles.topAd} />
       </View>
-      <HomeCelebrationCarousel events={data.celebrations} />
-      <ContentBanner placement="home-top" enabled={data.matches.length > 0} />
-      <StoveLeagueBanner />
-      <View style={styles.section40}><CommunitySection items={data.community} /></View>
+      <View style={sectionSpacing}><CommunitySection items={data.community} /></View>
       <HomeNewsSection articles={data.news} />
-      {(data.pom ?? []).length > 0 ? <View style={styles.section40}><PomSection cardWidth={cardLayout.slideWidth} gap={cardLayout.spaceBetween} items={data.pom ?? []} /></View> : null}
-      <View style={styles.section40}><TeamChannels teams={data.teams} /></View>
+      {(data.pom ?? []).length > 0 ? <View style={sectionSpacing}><PomSection cardWidth={cardLayout.slideWidth} gap={cardLayout.spaceBetween} items={data.pom ?? []} /></View> : null}
+      <View style={sectionSpacing}><TeamChannels teams={data.teams} /></View>
       <ContentBanner placement="home-teams" enabled={data.matches.length > 0} />
-      <View style={styles.section40}><HomeTournamentOverview overview={data.tournamentOverview} /></View>
-      <View style={styles.section24}><HomeMetaSection cardWidth={cardLayout.slideWidth} gap={cardLayout.spaceBetween} data={data.insights} /></View>
-      <View style={styles.section24}><HomeBuildSection cardWidth={cardLayout.slideWidth} gap={cardLayout.spaceBetween} data={data.insights} /></View>
+      <View style={sectionSpacing}><HomeTournamentOverview overview={data.tournamentOverview} /></View>
+      <View style={insightSpacing}><HomeMetaSection cardWidth={cardLayout.slideWidth} gap={cardLayout.spaceBetween} data={data.insights} /></View>
+      <View style={insightSpacing}><HomeBuildSection cardWidth={cardLayout.slideWidth} gap={cardLayout.spaceBetween} data={data.insights} /></View>
       <ContentBanner placement="home-insights" enabled={data.matches.length > 0} />
     </MinionScreen>
   );
@@ -136,10 +142,12 @@ function HomeMatchCard({ cardWidth, match }: { cardWidth: number; match: MobileM
 function StoveLeagueBanner() {
   const router = useRouter();
   const { fonts } = useMinionTheme();
-  return <Pressable accessibilityRole="link" onPress={() => router.navigate('/transfers' as never)} style={[styles.celebration, { backgroundColor: '#4b22c9' }]}>
-    <View style={[styles.celebrationAvatar, { backgroundColor: '#fff' }]}><Image source={require('../../../assets/characters/pen-1.png')} contentFit="contain" style={{ width: 32, height: 32 }} /></View>
-    <View style={styles.flex}><Text numberOfLines={1} style={[styles.celebrationTop, { color: '#b9ff66', ...fonts.regular }]}>2026 LCK 스토브리그</Text><Text numberOfLines={1} style={[styles.celebrationTitle, { color: '#fff', ...fonts.display }]}>이적 확정부터 FA 소식까지, 한눈에!</Text></View>
-    <View style={styles.celebrationCta}><ChevronRight color="#4b22c9" size={14} strokeWidth={2.5} /></View>
+  // 웹 home-dashboard StoveLeagueBanner: 640 미만 본문 14px, 이상은 가운데 정렬·16px·CTA 문구 표시.
+  const wide = useWindowDimensions().width >= 640;
+  return <Pressable accessibilityRole="link" onPress={() => router.navigate('/transfers' as never)} style={[styles.celebration, { backgroundColor: '#4b22c9' }, wide && { gap: 20, justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 14 }]}>
+    <View style={[styles.celebrationAvatar, { backgroundColor: '#fff' }, wide && { borderRadius: 20, height: 40, width: 40 }]}><Image source={require('../../../assets/characters/pen-1.png')} contentFit="contain" style={{ width: wide ? 36 : 32, height: wide ? 36 : 32 }} /></View>
+    <View style={wide ? { flexShrink: 1, minWidth: 0 } : styles.flex}><Text numberOfLines={1} style={[styles.celebrationTop, { color: '#b9ff66', ...fonts.regular }, wide && { fontSize: 14, lineHeight: 20 }]}>2026 LCK 스토브리그</Text><Text numberOfLines={1} style={[styles.celebrationTitle, { color: '#fff', ...fonts.display }, !wide && { fontSize: 14, lineHeight: 20 }]}>이적 확정부터 FA 소식까지, 한눈에!</Text></View>
+    <View style={[styles.celebrationCta, wide && { flexDirection: 'row', gap: 2, paddingHorizontal: 14, width: 'auto' }]}>{wide ? <Text style={{ color: '#4b22c9', ...fonts.medium, fontSize: 13, lineHeight: 20 }}>이적시장 보기</Text> : null}<ChevronRight color="#4b22c9" size={14} strokeWidth={2.5} /></View>
   </Pressable>;
 }
 
@@ -192,7 +200,7 @@ function MediaImage({ height, radius, url, width = '100%' }: { height: number; r
 }
 
 const styles = StyleSheet.create({
-  calendarTrigger: { marginTop: 12 },
+  calendarTrigger: { marginTop: 8 },
   celebration: { alignItems: 'center', borderRadius: 16, flexDirection: 'row', gap: 12, minHeight: 60, paddingHorizontal: 16, paddingVertical: 12 },
   celebrationAvatar: { alignItems: 'center', borderRadius: 18, height: 36, justifyContent: 'center', overflow: 'hidden', width: 36 },
   celebrationCta: { alignItems: 'center', backgroundColor: '#fff', borderRadius: 8, height: 30, justifyContent: 'center', width: 34 },
@@ -210,7 +218,6 @@ const styles = StyleSheet.create({
   matchDate: { marginLeft: 'auto', opacity: 0.75 },
   matchMeta: { fontSize: 13, lineHeight: 19.5 },
   matchMetaRow: { alignItems: 'center', flexDirection: 'row', gap: 8 },
-  matchSection: { marginBottom: 32 },
   matchSideLeft: { alignItems: 'center', flex: 1, flexDirection: 'row', gap: 8, justifyContent: 'flex-end', minWidth: 0 },
   matchSideRight: { alignItems: 'center', flex: 1, flexDirection: 'row', gap: 8, minWidth: 0 },
   matchTeamName: { flexShrink: 1, fontSize: 15, lineHeight: 22.5 },
@@ -237,8 +244,7 @@ const styles = StyleSheet.create({
   postRow: { alignItems: 'center', borderBottomWidth: 1, flexDirection: 'row', paddingVertical: 8 },
   postTitle: { flex: 1, fontSize: 14 },
   postTitleRow: { alignItems: 'center', flexDirection: 'row', gap: 6 },
-  section40: { marginTop: 40 },
-  section24: { marginTop: 24 },
+  topAd: { marginVertical: 0 },
   teamButton: { alignItems: 'center', flex: 1, minWidth: 0 },
   teamGrid: { gap: 8 },
   teamRow: { flexDirection: 'row', gap: 8 },

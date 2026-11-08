@@ -322,6 +322,15 @@ html[class~="dark"] .navigation-progress-bar {
   font-weight: normal;
   line-height: 1.35;
 }
+/* 모바일 홈은 섹션 제목을 한 단계 줄이고, 전체보기 터치 영역(44px)이 제목 줄 높이를 늘리지 않게 한다. */
+@media (max-width: 639px) {
+  .hub-home {
+    --ui-title-size: 18px;
+  }
+  .hub-home .section-heading-more {
+    margin-block: -8.5px;
+  }
+}
 .font-paperozi{
   font-family: "Paperozi", "Pretendard", sans-serif;
   font-weight: normal;

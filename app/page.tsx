@@ -228,7 +228,7 @@ export default async function HomePage({
       tournamentOverview={tournamentOverview}
       tournamentOptions={tournamentOptions}
       matchItems={matchItems}
-      ratingTicker={<Suspense fallback={<HomeRatingTickerSkeleton className="mt-3" />}><DeferredHomeRatingTicker data={ratingReviewsPromise} /></Suspense>}
+      ratingTicker={<Suspense fallback={<HomeRatingTickerSkeleton />}><DeferredHomeRatingTicker data={ratingReviewsPromise} /></Suspense>}
       calendarMonthKey={calendarMonthKey}
       calendarTodayKey={todayKey}
       calendarMatches={calendarClientMatches}
@@ -237,7 +237,7 @@ export default async function HomePage({
       communityPosts={homeCommunityPosts}
       communityTitle={homeCommunityTitle}
       pomEntries={pomEntries}
-      newsSection={<Suspense fallback={<div className="mt-10 h-64 animate-pulse bg-[var(--ui-surface-muted)]" />}><DeferredHomeNews data={newsPromise} /></Suspense>}
+      newsSection={<Suspense fallback={<div className="mt-8 h-64 animate-pulse sm:mt-10 bg-[var(--ui-surface-muted)]" />}><DeferredHomeNews data={newsPromise} /></Suspense>}
       /* 기존 뉴스/영상 props
       latestVideos={homeVideos}
       newsItems={homeNewsFeed.articles}
@@ -267,5 +267,5 @@ async function DeferredHomeRatingTicker({ data }: { data: ReturnType<typeof getH
 }
 async function DeferredHomeInsights({ data }: { data: Promise<Awaited<ReturnType<typeof getHomeInsights>> | null> }) {
   const insights = await data;
-  return <><div className="mt-6 sm:mt-8 lg:mt-10"><HomeMetaSection data={insights} /></div><HomeBuildSection data={insights} /></>;
+  return <><div className="mt-8 lg:mt-10"><HomeMetaSection data={insights} /></div><HomeBuildSection data={insights} /></>;
 }
