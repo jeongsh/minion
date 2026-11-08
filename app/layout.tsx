@@ -18,6 +18,7 @@ import { getFavoriteTeamId } from "@/lib/fan/favorite-team";
 import { getNotificationPreferences } from "@/lib/notifications/preferences";
 import { getRankProfile } from "@/lib/rank/queries";
 import { siteBaseUrl } from "@/lib/site";
+import { appBannerInitScript, IOS_APP_STORE_ID } from "@/lib/app-store-links";
 import { PRETENDARD_UNICODE_FALLBACK_CSS } from "@/packages/fonts/pretendard";
 import "./globals.css";
 
@@ -44,6 +45,7 @@ export const metadata: Metadata = {
   title: defaultTitle,
   description: defaultDescription,
   metadataBase: new URL(siteBaseUrl()),
+  itunes: { appId: IOS_APP_STORE_ID },
   openGraph: {
     title: defaultTitle,
     description: defaultDescription,
@@ -83,6 +85,9 @@ export default function RootLayout({
         {adsenseClient ? <meta name="google-adsense-account" content={adsenseClient} /> : null}
         <Script id="minion-theme-init" strategy="beforeInteractive">
           {themeInitScript}
+        </Script>
+        <Script id="minion-app-banner-init" strategy="beforeInteractive">
+          {appBannerInitScript}
         </Script>
       </head>
       <body>

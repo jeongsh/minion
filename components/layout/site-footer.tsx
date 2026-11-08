@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { BrandLogo } from "@/components/layout/brand-logo";
+import { AndroidLogo, AppleLogo } from "@/components/layout/store-logos";
+import { ANDROID_PLAY_STORE_URL, IOS_APP_STORE_URL } from "@/lib/app-store-links";
 
 export function SiteFooter({ accentColor }: { accentColor?: string }) {
   return <footer className="bg-[var(--page-background)] text-[#18191c] dark:text-[#f8f8f8]">
@@ -14,6 +16,14 @@ export function SiteFooter({ accentColor }: { accentColor?: string }) {
           <Link href="/advertising" className="hover:text-[#18191c] dark:hover:text-white">광고·제휴 문의</Link>
           <Link href="/support" className="hover:text-[#18191c] dark:hover:text-white">고객센터</Link>
         </nav>
+        <div className="flex items-center gap-1 sm:ml-auto" aria-label="MINION 앱 다운로드">
+          <a href={IOS_APP_STORE_URL} target="_blank" rel="noopener noreferrer" aria-label="App Store에서 MINION 앱 받기" title="App Store" className="grid h-10 w-10 place-items-center rounded-xl text-[#666a71] transition hover:bg-[var(--ui-card-hover)] hover:text-[#18191c] dark:text-[#a0a7b2] dark:hover:text-white">
+            <AppleLogo size={20} />
+          </a>
+          <a href={ANDROID_PLAY_STORE_URL} target="_blank" rel="noopener noreferrer" aria-label="Google Play에서 MINION 앱 받기" title="Google Play" className="grid h-10 w-10 place-items-center rounded-xl text-[#666a71] transition hover:bg-[var(--ui-card-hover)] hover:text-[#18191c] dark:text-[#a0a7b2] dark:hover:text-white">
+            <AndroidLogo size={20} />
+          </a>
+        </div>
       </div>
       <p className="mt-2 max-w-[1100px] text-[13px] leading-5 text-[#777b82] dark:text-[#8f98a8]">
         MINION isn&apos;t endorsed by Riot Games and doesn&apos;t reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties. Riot Games and all associated properties are trademarks or registered trademarks of Riot Games, Inc.

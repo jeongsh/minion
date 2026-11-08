@@ -23,6 +23,7 @@ import {
   UserRound,
   X,
 } from "lucide-react";
+import { AppLaunchBanner } from "@/components/layout/app-launch-banner";
 import { BrandLogo } from "@/components/layout/brand-logo";
 import { FanTeamPicker } from "@/components/layout/fan-team-picker";
 import { HeaderSearch } from "@/components/layout/header-search";
@@ -312,6 +313,7 @@ export function AppShell({
       data-app-shell
       style={{ "--shell-mobile-header-offset": primaryHeaderVisible ? "56px" : "0px" } as React.CSSProperties}
     >
+      {!focusRoute && !communityPostDetail ? <AppLaunchBanner /> : null}
       {focus ? (
         <header className="fixed inset-x-0 top-0 z-50 grid h-12 grid-cols-[44px_minmax(0,1fr)_44px] items-center border-b border-[#e8e8eb] bg-[var(--page-background)] px-3 md:h-16 dark:border-[var(--ui-border)]">
           <Link
@@ -343,7 +345,7 @@ export function AppShell({
           <span aria-hidden="true" />
         </header>
       ) : (
-      <header className={`fixed inset-x-0 top-0 z-50 flex items-center border-b border-[#e8e8eb] bg-[var(--page-background)] px-3 transition-transform duration-200 sm:px-4 md:h-16 md:translate-y-0 dark:border-[var(--ui-border)] ${communityPostDetail ? "h-12" : "h-14 sm:h-16"} ${communityPostDetail || primaryHeaderVisible ? "translate-y-0" : "-translate-y-full"}`}>
+      <header className={`app-banner-offset-top fixed inset-x-0 z-50 flex items-center border-b border-[#e8e8eb] bg-[var(--page-background)] px-3 transition-transform duration-200 sm:px-4 md:h-16 md:translate-y-0 dark:border-[var(--ui-border)] ${communityPostDetail ? "h-12" : "h-14 sm:h-16"} ${communityPostDetail || primaryHeaderVisible ? "translate-y-0" : "-translate-y-full"}`}>
         {communityPostDetail ? (
           <div className="relative flex w-full items-center justify-center md:hidden">
             <Link
@@ -439,7 +441,7 @@ export function AppShell({
       </header>
       )}
 
-      {!focusRoute ? <aside className="app-lnb fixed bottom-0 left-0 top-16 z-40 hidden w-14 border-r border-[#ececef] bg-[var(--page-background)] min-[1200px]:block dark:border-[var(--ui-border)]">
+      {!focusRoute ? <aside className="app-lnb app-banner-offset-lnb fixed bottom-0 left-0 z-40 hidden w-14 border-r border-[#ececef] bg-[var(--page-background)] min-[1200px]:block dark:border-[var(--ui-border)]">
         <div className="app-lnb-scrollbar flex h-full flex-col items-center overflow-y-auto px-1.5 py-2">
           <nav className="space-y-1" aria-label="데스크톱 주요 메뉴">
             {desktopNav.map(({ href, label, icon: Icon, prefetch }) => {
@@ -483,7 +485,7 @@ export function AppShell({
       </aside> : null}
 
       {!focusRoute ? (
-        <aside className="app-lnb app-lnb-scrollbar fixed bottom-0 left-0 top-16 z-40 hidden w-14 flex-col items-center gap-1 overflow-y-auto border-r border-[#ececef] bg-[var(--page-background)] px-1.5 py-2 dark:border-[var(--ui-border)] md:max-[1199px]:flex" aria-label="태블릿 주요 메뉴">
+        <aside className="app-lnb app-lnb-scrollbar app-banner-offset-lnb fixed bottom-0 left-0 z-40 hidden w-14 flex-col items-center gap-1 overflow-y-auto border-r border-[#ececef] bg-[var(--page-background)] px-1.5 py-2 dark:border-[var(--ui-border)] md:max-[1199px]:flex" aria-label="태블릿 주요 메뉴">
           {tabletNav.map(({ href, label, icon: Icon, prefetch }) => {
             const active = isGlobalNavActive(pathname, href);
             return <Link key={href} href={href} prefetch={prefetch} aria-label={label} aria-current={active ? "page" : undefined} data-active={active ? "true" : undefined} title={label} className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl transition ${active ? "bg-[var(--ui-card-bg)] text-[var(--ui-ink)]" : "text-[var(--ui-muted)] hover:bg-[var(--ui-card-hover)] hover:text-[var(--ui-ink)]"}`}><Icon size={20} /><span className="sr-only">{label}</span></Link>;

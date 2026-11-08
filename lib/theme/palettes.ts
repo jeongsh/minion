@@ -6,6 +6,7 @@ export const KITSCH_PALETTES = {
   greenButter: {
     main: "var(--palette-green-butter-main)",
     point: "var(--palette-green-butter-point)",
+    deep: "var(--palette-green-butter-deep)",
   },
   grapeLime: {
     main: "var(--palette-grape-lime-main)",
