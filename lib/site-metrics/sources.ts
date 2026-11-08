@@ -25,11 +25,6 @@ export function kstDate(offsetDays = 0, now = Date.now()) {
   return new Date(now + KST_OFFSET_MS + offsetDays * DAY_MS).toISOString().slice(0, 10);
 }
 
-/** KST 날짜의 자정을 UTC 밀리초로 바꾼다. */
-function kstMidnightMs(date: string) {
-  return Date.parse(`${date}T00:00:00.000Z`) - KST_OFFSET_MS;
-}
-
 async function readJson<T>(response: Response, label: string): Promise<T> {
   if (!response.ok) {
     const body = await response.text().catch(() => "");
@@ -41,7 +36,14 @@ async function readJson<T>(response: Response, label: string): Promise<T> {
 // ---------------------------------------------------------------------------
 // Vercel Web Analytics
 
-const DAILY_CONCURRENCY = 6;
+type VercelAggregateResponse = {
+  data: Array<{ timestamp: string; pageviews?: number; visitors?: number }>;
+};
+
+/** UTC 기준 날짜 문자열(YYYY-MM-DD). Vercel 일별 집계의 날짜 단위다. */
+function utcDate(offsetDays = 0) {
+  return new Date(Date.now() + offsetDays * DAY_MS).toISOString().slice(0, 10);
+}
 
 type VercelCountResponse = {
   data: { pageviews?: number; visitors?: number };
@@ -75,48 +77,33 @@ async function vercelQuery<T>(path: string, params: Record<string, string>) {
 export async function collectVercelAnalytics(days: number): Promise<SiteMetricRow[]> {
   vercelConfig();
   const today = kstDate();
-  const nowMs = Date.now();
 
-  // 일별 집계(by=day)는 UTC 날짜로 잘려 시간대를 바꿀 수 없다. KST 하루씩 범위를 지정해 따로 센다.
-  const dates = Array.from({ length: days }, (_, index) => kstDate(index - (days - 1), nowMs));
-  const daily: Array<{ date: string; count: VercelCountResponse }> = [];
-  for (let index = 0; index < dates.length; index += DAILY_CONCURRENCY) {
-    const batch = dates.slice(index, index + DAILY_CONCURRENCY);
-    const counts = await Promise.all(
-      batch.map((date) => {
-        const since = kstMidnightMs(date);
-        return vercelQuery<VercelCountResponse>("visits/count", {
-          since: String(since),
-          until: String(Math.min(since + DAY_MS - 1, nowMs)),
-        });
-      }),
-    );
-    counts.forEach((count, offset) => daily.push({ date: batch[offset], count }));
-  }
+  // Vercel은 조회 범위를 UTC 날짜 단위로 맞추고 시간대를 바꿀 수 없다. 그래서 Vercel 지표는 UTC 날짜로 저장한다.
+  // 한국 오전 9시 전에는 오늘(UTC)이 아직 시작 전이라 범위 끝을 UTC 오늘로 둬서 빈 날을 만들지 않는다.
+  const utcToday = utcDate();
+  const aggregate = await vercelQuery<VercelAggregateResponse>("visits/aggregate", {
+    by: "day",
+    since: utcDate(-(days - 1)),
+    until: utcToday,
+    limit: "100",
+  });
 
-  const rows: SiteMetricRow[] = daily.flatMap(({ date, count }) => [
-    { metric_date: date, metric: "visitors", value: count.data?.visitors ?? 0, unit: null },
-    { metric_date: date, metric: "pageviews", value: count.data?.pageviews ?? 0, unit: null },
-  ]);
+  const rows: SiteMetricRow[] = (aggregate.data ?? []).flatMap((point) => {
+    const date = point.timestamp.slice(0, 10);
+    return [
+      { metric_date: date, metric: "visitors", value: point.visitors ?? 0, unit: null },
+      { metric_date: date, metric: "pageviews", value: point.pageviews ?? 0, unit: null },
+    ];
+  });
 
-  // 기간 방문자는 일별 합이 아니라 고유 방문자 수라 기간마다 따로 센다. 경계는 KST 자정이다.
-  const todayStart = kstMidnightMs(today);
+  // 기간 방문자는 일별 합이 아니라 고유 방문자 수라 기간마다 따로 센다. 경계는 일별과 같은 UTC 날짜다.
   const periods = [7, 30].flatMap((length) => [
-    { metric: `visitors_period_${length}`, since: todayStart - (length - 1) * DAY_MS, until: nowMs },
-    {
-      metric: `visitors_period_${length}_prev`,
-      since: todayStart - (2 * length - 1) * DAY_MS,
-      until: todayStart - (length - 1) * DAY_MS - 1,
-    },
+    { metric: `visitors_period_${length}`, since: utcDate(-(length - 1)), until: utcToday },
+    { metric: `visitors_period_${length}_prev`, since: utcDate(-(2 * length - 1)), until: utcDate(-length) },
   ]);
 
   const counts = await Promise.all(
-    periods.map((period) =>
-      vercelQuery<VercelCountResponse>("visits/count", {
-        since: String(period.since),
-        until: String(period.until),
-      }),
-    ),
+    periods.map((period) => vercelQuery<VercelCountResponse>("visits/count", { since: period.since, until: period.until })),
   );
   counts.forEach((count, index) => {
     rows.push({ metric_date: today, metric: periods[index].metric, value: count.data?.visitors ?? 0, unit: null });

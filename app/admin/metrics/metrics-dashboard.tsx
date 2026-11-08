@@ -208,6 +208,7 @@ export function MetricsDashboard({
                 {formatCount(dashboard.totalMembers)}명
               </span>
             </span>
+            {activeMetric.source === "vercel" ? <span>Vercel 지표는 오전 9시에 날짜가 바뀝니다</span> : null}
             <a
               href="https://searchadvisor.naver.com/console/board"
               target="_blank"
