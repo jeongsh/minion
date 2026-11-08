@@ -111,3 +111,11 @@ UMP 오류 후 영구 대기, 동시 초기화와 개인정보 옵션 호출을 
 - EAS Submit `430ce4b3-d2ee-4701-8f85-55b6b0c47f89`로 Google Play 프로덕션 초안 업로드 성공. Play에서 34 AAB와 지원 기기 감소 0, 한국어 출시 노트 및 전체 출시 100%를 확인하고 저장했다. 기존 활성 아티팩트에 대한 AD_ID 경고 1개는 남지만 신규 34 AAB의 권한은 확인했다.
 - Play Console의 최종 검토 전송이 미제출 상태로 되돌아오는 현상이 반복됐다. 공식 Google Play API에서 프로덕션 버전 34의 `completed` 설정과 서버 검증 성공을 확인하고, `changesNotSentForReview=false`, `changesInReviewBehavior=ERROR_IF_IN_REVIEW`로 edit `01286144351170277224`를 commit했다. 다른 트랙과 계정 설정은 변경하지 않았다.
 - 이후 Play Console 게시 개요의 `검토 중인 변경사항`에 `1.0.2 (34)`와 `전체 출시 시작`이 표시되는 것을 확인했다. 관리형 게시가 꺼져 있어 Google 승인 후 자동 전체 출시된다. 확인 당시 사전 검사가 91%로 다시 표시되어 아직 사용자 제공 완료 상태는 아니다. 증거 화면은 `.tmp/android-34-review-submitted.png`에 저장했다.
+
+## 2026-11-08 iOS 24·Android 40 배포
+
+- 사용자가 iOS·Android 빌드와 배포를 명시적으로 요청했다. 대상 커밋은 `5784ece6`(앱 출시 배너, 끝난 경기 흐림, 홈 간격·스토브리그 슬라이드 통합)이다.
+- iOS: EAS Build `8ef975ac-975d-4b0b-9f37-28c7c3eac2d1`로 1.0.3(24)를 빌드하고 자동 제출 `f8e8ad6a-2965-4b01-82b7-e5479d4558ab`로 App Store Connect 업로드를 마쳤다. 심사 제출은 별도로 진행한다.
+- Android: `C:\Users\panda\AppData\Local\Android\Sdk`가 원인 미상으로 삭제되어 있어 sdkmanager로 platform 36, build-tools 35·36, NDK 27.1.12297006, CMake 3.22.1, platform-tools를 다시 설치했다. 셸에는 `ANDROID_HOME`이 상속되지 않으므로 빌드 시 직접 지정한다.
+- 로컬 Gradle `:app:bundleRelease`로 1.0.3(40)을 빌드했다(5분 7초). AAB `mobile/store-assets/minion-1.0.3-40.aab`, 82,955,434 bytes, SHA-256 `6e1758e91c4d006727015ebe11a4d0dc3352fbfed53cc051ede0b69be0ef55f2`. 업로드 인증서 SHA-256이 기존과 같고(`A3:4D:…:A0:00`), JAR 서명 검증, 병합 매니페스트의 package `com.minion.app`·versionCode 40·versionName 1.0.3, Hermes 번들의 운영 API 포함과 LAN 주소 미포함을 확인했다.
+- EAS Submit `3df21d3f-741d-41bb-8fd8-749cbff9357b`(store-release, 프로덕션·completed)로 Google Play 제출에 성공했다. Play Console의 검토 전송 상태는 확인하지 않았다. EAS 원격 versionCode는 대화형 입력이 필요해 39로 남아 있어 다음 EAS Android 빌드 전에 40 이상으로 맞춰야 한다. 실기기 검증은 미실행이다.
