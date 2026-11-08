@@ -41,9 +41,7 @@ async function readJson<T>(response: Response, label: string): Promise<T> {
 // ---------------------------------------------------------------------------
 // Vercel Web Analytics
 
-type VercelAggregateResponse = {
-  data: Array<{ timestamp: string; pageviews?: number; visitors?: number }>;
-};
+const DAILY_CONCURRENCY = 6;
 
 type VercelCountResponse = {
   data: { pageviews?: number; visitors?: number };
@@ -79,20 +77,27 @@ export async function collectVercelAnalytics(days: number): Promise<SiteMetricRo
   const today = kstDate();
   const nowMs = Date.now();
 
-  // 일별 집계는 Vercel이 UTC 날짜 단위로 맞춘다.
-  const aggregate = await vercelQuery<VercelAggregateResponse>("visits/aggregate", {
-    by: "day",
-    since: kstDate(-(days - 1)),
-    until: today,
-    limit: "100",
-  });
-
-  const rows: SiteMetricRow[] = [];
-  for (const point of aggregate.data ?? []) {
-    const date = point.timestamp.slice(0, 10);
-    rows.push({ metric_date: date, metric: "visitors", value: point.visitors ?? 0, unit: null });
-    rows.push({ metric_date: date, metric: "pageviews", value: point.pageviews ?? 0, unit: null });
+  // 일별 집계(by=day)는 UTC 날짜로 잘려 시간대를 바꿀 수 없다. KST 하루씩 범위를 지정해 따로 센다.
+  const dates = Array.from({ length: days }, (_, index) => kstDate(index - (days - 1), nowMs));
+  const daily: Array<{ date: string; count: VercelCountResponse }> = [];
+  for (let index = 0; index < dates.length; index += DAILY_CONCURRENCY) {
+    const batch = dates.slice(index, index + DAILY_CONCURRENCY);
+    const counts = await Promise.all(
+      batch.map((date) => {
+        const since = kstMidnightMs(date);
+        return vercelQuery<VercelCountResponse>("visits/count", {
+          since: String(since),
+          until: String(Math.min(since + DAY_MS - 1, nowMs)),
+        });
+      }),
+    );
+    counts.forEach((count, offset) => daily.push({ date: batch[offset], count }));
   }
+
+  const rows: SiteMetricRow[] = daily.flatMap(({ date, count }) => [
+    { metric_date: date, metric: "visitors", value: count.data?.visitors ?? 0, unit: null },
+    { metric_date: date, metric: "pageviews", value: count.data?.pageviews ?? 0, unit: null },
+  ]);
 
   // 기간 방문자는 일별 합이 아니라 고유 방문자 수라 기간마다 따로 센다. 경계는 KST 자정이다.
   const todayStart = kstMidnightMs(today);
