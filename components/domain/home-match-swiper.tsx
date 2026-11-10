@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, type MouseEvent, type PointerEvent, type ReactNode, type RefObject } from "react";
+import { useRef } from "react";
 import { Pagination } from "swiper/modules";
 import { Swiper, SwiperSlide } from "swiper/react";
 import "swiper/css";
@@ -9,52 +9,8 @@ import "swiper/css/pagination";
 
 import { HomeMatchCard, type HomeMatchItem } from "@/components/domain/home-match-card";
 import { KitschEmptyState } from "@/components/ui/kitsch-empty-state";
+import { SwipeNavigationGuard } from "@/components/ui/swipe-navigation-guard";
 import { useSwiperResize } from "@/components/ui/use-swiper-resize";
-
-function SwipeNavigationGuard({
-  children,
-  suppressClickRef,
-}: {
-  children: ReactNode;
-  suppressClickRef: RefObject<boolean>;
-}) {
-  const pointerStartRef = useRef<{ x: number; y: number } | null>(null);
-
-  const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
-    if (event.pointerType !== "mouse" || event.button !== 0) return;
-
-    pointerStartRef.current = { x: event.clientX, y: event.clientY };
-    suppressClickRef.current = false;
-  };
-
-  const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {
-    const start = pointerStartRef.current;
-    if (!start || event.pointerType !== "mouse") return;
-
-    if (Math.hypot(event.clientX - start.x, event.clientY - start.y) > 8) {
-      suppressClickRef.current = true;
-    }
-  };
-
-  const handleClick = (event: MouseEvent<HTMLDivElement>) => {
-    pointerStartRef.current = null;
-    if (!suppressClickRef.current) return;
-
-    event.preventDefault();
-    event.stopPropagation();
-    suppressClickRef.current = false;
-  };
-
-  return (
-    <div
-      onPointerDownCapture={handlePointerDown}
-      onPointerMoveCapture={handlePointerMove}
-      onClickCapture={handleClick}
-    >
-      {children}
-    </div>
-  );
-}
 
 /**
  * 홈 매치 섹션. 예전에는 "오늘의 매치"(가로 2열 그리드)와 "다가오는 매치"(세로 스크롤
