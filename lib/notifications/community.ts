@@ -33,7 +33,8 @@ type CreatedCommunityNotificationRow = {
 
 export type CommunityAppNotification = AppNotification & { kind: "post_activity" };
 
-const USER_NOTIFICATION_KINDS = ["post_comment", "comment_reply"];
+// prediction_result는 lib/notifications/prediction-results.ts가 같은 알림함에 넣는 예측 정산 결과다.
+const USER_NOTIFICATION_KINDS = ["post_comment", "comment_reply", "prediction_result"];
 
 function recipientKey(recipient: NotificationRecipient) {
   return notificationOwnerKey(recipient);

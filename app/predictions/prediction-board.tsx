@@ -233,7 +233,7 @@ export function PredictionBoard({ matches, teams, tournaments, bets: initialBets
                             <span className="hidden truncate text-[var(--ui-muted)] sm:inline">{tournamentMap.get(match.tournamentId)?.name ?? "LEAGUE"}</span>
                           </div>
                           <div className="flex shrink-0 items-center gap-3 text-[13px] text-[var(--ui-muted)]">
-                            {myBet ? <span className="font-black text-[var(--ui-ink)]">내 예측 {myBet.stake.toLocaleString("ko-KR")} LP</span> : null}
+                            {myBet ? <MyBetStatus bet={myBet} /> : null}
                             <span className="flex items-center gap-1.5"><Clock3 size={13} />{deadlineLabel(match.matchDate, closed, now)}</span>
                           </div>
                         </div>
@@ -277,6 +277,18 @@ export function PredictionBoard({ matches, teams, tournaments, bets: initialBets
       </div>
     </div>
   );
+}
+
+/** 정산이 끝난 내 예측은 사용한 LP 대신 결과와 손익을 보여준다. */
+function MyBetStatus({ bet }: { bet: PredictionBet }) {
+  const stake = bet.stake.toLocaleString("ko-KR");
+  if (bet.status === "won") {
+    const profit = Math.max(0, (bet.payout ?? bet.stake) - bet.stake);
+    return <span className="font-medium text-emerald-600 dark:text-emerald-400">적중 +{profit.toLocaleString("ko-KR")} LP</span>;
+  }
+  if (bet.status === "lost") return <span className="font-medium text-red-500 dark:text-red-400">미적중 -{stake} LP</span>;
+  if (bet.status === "refunded") return <span className="font-medium text-[var(--ui-muted)]">환급 {stake} LP</span>;
+  return <span className="font-black text-[var(--ui-ink)]">내 예측 {stake} LP</span>;
 }
 
 function PredictionAdSlot({ className = "", hasContent }: { className?: string; hasContent: boolean }) {

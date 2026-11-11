@@ -7,6 +7,8 @@ export type PredictionBet = {
   matchId: string;
   teamId: string;
   stake: number;
+  /** 정산 지급액. 적중이면 원금 포함 지급액, 환불이면 원금, 그 외에는 0이다. */
+  payout?: number;
   status: "open" | "won" | "lost" | "refunded";
 };
 
@@ -59,7 +61,7 @@ export const getPredictionMarketData = cache(async function getPredictionMarketD
   const supabase = createSupabaseServerClient();
   let betsQuery = supabase
     .from("prediction_bets")
-    .select("id, user_id, match_id, team_id, stake, status");
+    .select("id, user_id, match_id, team_id, stake, payout, status");
   if (matchId) betsQuery = betsQuery.eq("match_id", matchId);
   else if (matchIds) betsQuery = betsQuery.in("match_id", matchIds);
 
@@ -83,6 +85,7 @@ export const getPredictionMarketData = cache(async function getPredictionMarketD
     matchId: row.match_id,
     teamId: row.team_id,
     stake: Number(row.stake),
+    payout: Number(row.payout ?? 0),
     status: row.status,
   }));
   const rankings: PredictionRanking[] = (rankingsResult.data ?? []).map((row) => ({
