@@ -3,12 +3,13 @@ import Link from "next/link";
 import { TeamLogo } from "@/components/ui/team-logo";
 import type { Match, Team } from "@/lib/types";
 import {
-  recordRate, type MatchPreviewRecords, type PreviewHeadToHead, type PreviewTeamRecord, type RateRecord,
+  FIRST_OBJECTIVE_KEYS, recordRate, type FirstObjectiveKey, type MatchPreviewRecords, type PreviewHeadToHead, type PreviewTeamRecord, type RateRecord,
 } from "@/lib/match-preview-records";
 import { matchHref, teamLabel } from "@/lib/view-data";
 import { Bar, CARD_SURFACE, ChartCard, Legend, META } from "./match-preview-charts";
 
 const VALUE = "shrink-0 text-[15px] font-bold tabular-nums text-[var(--ui-ink)]";
+const FIRST_OBJECTIVE_LABELS: Record<FirstObjectiveKey, string> = { kill: "첫 킬", tower: "첫 타워", herald: "첫 전령", baron: "첫 바론" };
 
 /** 왼쪽 팀 값, 가운데 항목명, 오른쪽 팀 값. 막대는 가운데에서 바깥으로 자란다. */
 function CompareRow({ label, left, right, labelClassName = "w-28" }: {
@@ -27,7 +28,7 @@ function CompareRow({ label, left, right, labelClassName = "w-28" }: {
 function RateSide({ record, color, side, index }: { record: RateRecord; color: string; side: "left" | "right"; index: number }) {
   const rate = recordRate(record);
   const text = rate == null
-    ? <span className={`shrink-0 tabular-nums ${META}`}>{record.wins}/{record.games}</span>
+    ? <span className={`shrink-0 tabular-nums ${META}`}>{record.games ? `${record.wins}/${record.games}` : "-"}</span>
     : <span className={VALUE}>{rate}%</span>;
   const track = (
     <span className={`flex min-w-0 flex-1 ${side === "left" ? "justify-end" : "justify-start"}`}>
@@ -78,6 +79,10 @@ function RecentFlow({ names, colors, records }: { names: string[]; colors: strin
         <RateRow label="세트 승률" records={records.map((record) => record.recentSets)} colors={colors} index={0} />
         <TextRow label="평균 경기 시간" values={records.map((record) => minuteLabel(record.averageMinutes))} />
         <TextRow label="세트당 킬 합계" values={records.map((record) => record.averageTotalKills == null ? "-" : record.averageTotalKills.toFixed(1))} />
+        {/* 타임라인이 없는 해외팀 보충 표본만 있으면 행 자체를 내지 않는다. */}
+        {FIRST_OBJECTIVE_KEYS.filter((key) => records.some((record) => record.firsts[key].games)).map((key, index) => (
+          <RateRow key={key} label={FIRST_OBJECTIVE_LABELS[key]} records={records.map((record) => record.firsts[key])} colors={colors} index={index + 1} />
+        ))}
       </div>
     </ChartCard>
   );
@@ -108,7 +113,7 @@ function Meetings({ teams, names, meetings, headToHead, formatDate }: {
       <div className="mt-3 flex items-center justify-between gap-3">
         {[0, 1].map((index) => (
           <span key={index} className={`flex min-w-0 items-baseline gap-2 ${index ? "flex-row-reverse text-right" : ""}`}>
-            <strong className="truncate text-2xl font-black leading-8 tabular-nums text-[var(--ui-ink)]">
+            <strong className="truncate text-base font-bold leading-6 tabular-nums text-[var(--ui-ink)]">
               {names[index]} {index ? headToHead.winsB : headToHead.winsA}승
             </strong>
             <span className={`shrink-0 tabular-nums ${META}`}>세트 {index ? headToHead.setWinsB : headToHead.setWinsA}승</span>

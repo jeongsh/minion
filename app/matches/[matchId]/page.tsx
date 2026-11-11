@@ -54,8 +54,8 @@ import { getMatchAiPreview } from "@/lib/match-preview-ai";
 import { getStoredMatchBriefingData } from "@/lib/data/match-briefing";
 import { matchBriefingSample } from "@/lib/match-briefing-stats";
 import { buildChampionPriority, buildLeagueSetRecord, buildMatchBriefingVisuals, buildTeamStyles, type BriefingTeamVisuals, type DragonEvent } from "@/lib/match-preview-visuals";
-import { buildMatchPreviewRecords } from "@/lib/match-preview-records";
-import { getDragonEvents } from "@/lib/data/match-preview-timeline";
+import { buildMatchPreviewRecords, type SetFirstObjectives } from "@/lib/match-preview-records";
+import { getDragonEvents, getSetFirstObjectives } from "@/lib/data/match-preview-timeline";
 import { buildMatchPreviewAccuracy, type StoredPreviewPrediction } from "@/lib/match-preview-accuracy";
 import { getStoredPreviewPredictions } from "@/lib/data/match-preview-accuracy";
 import type { MatchPowerRankings } from "@/lib/power-rankings";
@@ -585,6 +585,7 @@ export default async function MatchDetailPage({
   let previewVisuals: { teamA: BriefingTeamVisuals; teamB: BriefingTeamVisuals } | null = null;
   let previewChampions: Champion[] = [];
   let previewDragonEvents: DragonEvent[] = [];
+  let previewFirstObjectives: SetFirstObjectives[] = [];
   if (activeTab === "preview" && hasResolvedPreviewTeams) {
     [previewMatches, previewSets, previewPredictions] = await Promise.all([getMatches(), getSets(), getStoredPreviewPredictions().catch((error) => {
       console.warn("[match-ai-preview] 적중률 조회 실패", error);
@@ -601,8 +602,12 @@ export default async function MatchDetailPage({
     powerRankings = supplemented.powerRankings;
     const visuals = buildMatchBriefingVisuals(match, previewMatches, previewSets, previewPlayerStats);
     previewVisuals = visuals;
-    [previewChampions, previewDragonEvents] = await Promise.all([
+    [previewChampions, previewFirstObjectives, previewDragonEvents] = await Promise.all([
       getChampions().then(pickerChampions),
+      getSetFirstObjectives([...visuals.teamA.setIds, ...visuals.teamB.setIds]).catch((error) => {
+        console.warn("[match-ai-preview] 첫 오브젝트 조회 실패", error);
+        return [];
+      }),
       getDragonEvents([...visuals.teamA.setIds, ...visuals.teamB.setIds], previewSets).catch((error) => {
         console.warn("[match-ai-preview] 드래곤 이벤트 조회 실패", error);
         return [];
@@ -724,7 +729,7 @@ export default async function MatchDetailPage({
           leagueRecord={buildLeagueSetRecord({ match, teams, matches: previewMatches, sets: previewSets, tournaments })}
           accuracy={buildMatchPreviewAccuracy(previewPredictions, previewMatches, tournaments, tournament?.season ?? new Date(match.matchDate).getUTCFullYear())}
           powerRankings={powerRankings}
-          records={buildMatchPreviewRecords({ match, matches: previewMatches, sets: previewSets, tournaments })}
+          records={buildMatchPreviewRecords({ match, matches: previewMatches, sets: previewSets, tournaments, firstObjectives: previewFirstObjectives })}
           poll={poll}
           aiPreview={aiPreview}
         />

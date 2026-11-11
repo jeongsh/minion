@@ -10,6 +10,12 @@ export type RateRecord = { wins: number; games: number };
 /** 팀 기준 시리즈 스코어 한 종류. label은 "2:0"처럼 자기 팀 점수가 앞이다. */
 export type SeriesOutcome = { label: string; win: boolean; count: number };
 
+export const FIRST_OBJECTIVE_KEYS = ["kill", "tower", "herald", "baron"] as const;
+export type FirstObjectiveKey = typeof FIRST_OBJECTIVE_KEYS[number];
+
+/** 세트에서 각 오브젝트를 처음 가져간 팀. 아무도 못 가져갔으면 null이다. */
+export type SetFirstObjectives = { setId: string } & Record<FirstObjectiveKey, string | null>;
+
 export type PreviewTeamRecord = {
   teamId: string;
   /** 최근 매치 승패. 오래된 경기부터 최신 순이다. */
@@ -27,6 +33,8 @@ export type PreviewTeamRecord = {
   averageMinutes: number | null;
   averageTotalKills: number | null;
   sampleSets: number;
+  /** 같은 표본에서 오브젝트를 먼저 가져간 비율. 분모는 누군가 그 오브젝트를 가져간 세트다. */
+  firsts: Record<FirstObjectiveKey, RateRecord>;
 };
 
 export type PreviewHeadToHead = { matches: number; winsA: number; winsB: number; setWinsA: number; setWinsB: number };
@@ -59,14 +67,25 @@ function seriesOutcomes(bestOf: number | null): SeriesOutcome[] {
 
 function teamRecord(
   teamId: string,
-  { bestOf, seasonMatches, recentMatches, sampleSets, firstSetByMatch }: {
+  { bestOf, seasonMatches, recentMatches, sampleSets, firstSetByMatch, firstsBySet }: {
     bestOf: number | null;
     seasonMatches: Match[];
     recentMatches: Match[];
     sampleSets: SetResult[];
     firstSetByMatch: Map<string, SetResult>;
+    firstsBySet: Map<string, SetFirstObjectives>;
   },
 ): PreviewTeamRecord {
+  const firsts = Object.fromEntries(FIRST_OBJECTIVE_KEYS.map((key) => [key, { wins: 0, games: 0 }])) as Record<FirstObjectiveKey, RateRecord>;
+  for (const set of sampleSets) {
+    const row = firstsBySet.get(set.id);
+    if (!row) continue;
+    for (const key of FIRST_OBJECTIVE_KEYS) {
+      if (!row[key]) continue;
+      firsts[key].games += 1;
+      if (row[key] === teamId) firsts[key].wins += 1;
+    }
+  }
   const score = (item: Match) => item.teamAId === teamId
     ? [item.teamAScore, item.teamBScore]
     : [item.teamBScore, item.teamAScore];
@@ -114,6 +133,7 @@ function teamRecord(
     averageMinutes: average(sampleSets.map((set) => set.durationSeconds == null ? null : set.durationSeconds / 60)),
     averageTotalKills: average(sampleSets.map((set) => set.blueKills == null || set.redKills == null ? null : set.blueKills + set.redKills)),
     sampleSets: sampleSets.length,
+    firsts,
   };
 }
 
@@ -121,12 +141,14 @@ function teamRecord(
  * 프리뷰 "전적 비교"의 팀별 기록. 최근 흐름은 브리핑 차트와 같은 표본을, 시리즈 분포와
  * 1세트 기록은 표본이 너무 작아지지 않도록 같은 시즌 전체를 쓴다.
  */
-export function buildMatchPreviewRecords({ match, matches, sets, tournaments }: {
+export function buildMatchPreviewRecords({ match, matches, sets, tournaments, firstObjectives = [] }: {
   match: Match;
   matches: Match[];
   sets: SetResult[];
   tournaments: Tournament[];
+  firstObjectives?: SetFirstObjectives[];
 }): MatchPreviewRecords {
+  const firstsBySet = new Map(firstObjectives.map((row) => [row.setId, row]));
   const seasonByTournament = new Map(tournaments.map((item) => [item.id, item.season]));
   const seasonOf = (item: Match) => seasonByTournament.get(item.tournamentId) ?? new Date(item.matchDate).getUTCFullYear();
   const season = seasonOf(match);
@@ -147,6 +169,7 @@ export function buildMatchPreviewRecords({ match, matches, sets, tournaments }: 
       recentMatches: own,
       sampleSets: sample.sets.filter((set) => sampleIds.has(set.matchId) && [set.blueTeamId, set.redTeamId].includes(teamId)),
       firstSetByMatch,
+      firstsBySet,
     });
   };
   return { season, bestOf, teamA: forTeam(match.teamAId), teamB: forTeam(match.teamBId) };
