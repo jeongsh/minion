@@ -7,6 +7,7 @@ import {
   collectSearchConsole,
   collectVercelAnalytics,
   kstDate,
+  REFERRER_METRIC_PREFIX,
   SiteMetricSourceNotConfiguredError,
   type SiteMetricRow,
 } from "./sources";
@@ -80,6 +81,8 @@ export type SiteMetricsDashboard = {
   visitorPeriods: Record<7 | 30, { current: number; previous: number } | null>;
   adsenseTotal: { value: number; currency: string | null } | null;
   adsenseCurrency: string | null;
+  /** 기간별 유입 경로 상위(방문자 많은 순). 가장 최근 수집분만 담는다. */
+  referrers: Record<7 | 30, Array<{ host: string; visitors: number }>>;
   totalMembers: number;
   lastFetchedAt: Record<SiteMetricSource, string | null>;
 };
@@ -105,16 +108,25 @@ export async function getSiteMetricsDashboard(): Promise<SiteMetricsDashboard> {
   const firstDate = dates[0];
   const firstDateStartIso = new Date(Date.parse(`${firstDate}T00:00:00+09:00`)).toISOString();
 
-  const [metricsResult, signupsResult, membersResult] = await Promise.all([
+  const [metricsResult, referrersResult, signupsResult, membersResult] = await Promise.all([
+    // 유입 경로 행은 하루에 수십 개씩 쌓여 기본 조회 한도를 넘길 수 있으므로 일별 지표와 따로 읽는다.
     supabase
       .from("site_metrics_daily")
       .select("metric_date, metric, value, unit, fetched_at")
       .gte("metric_date", firstDate)
+      .not("metric", "like", `${REFERRER_METRIC_PREFIX}%`)
       .order("metric_date", { ascending: true }),
+    supabase
+      .from("site_metrics_daily")
+      .select("metric, value, fetched_at")
+      .like("metric", `${REFERRER_METRIC_PREFIX}%`)
+      .order("fetched_at", { ascending: false })
+      .limit(200),
     supabase.from("profiles").select("created_at").gte("created_at", firstDateStartIso),
     supabase.from("profiles").select("id", { count: "exact", head: true }),
   ]);
   if (metricsResult.error) throw new Error(metricsResult.error.message);
+  if (referrersResult.error) throw new Error(referrersResult.error.message);
   if (signupsResult.error) throw new Error(signupsResult.error.message);
   if (membersResult.error) throw new Error(membersResult.error.message);
 
@@ -164,12 +176,26 @@ export async function getSiteMetricsDashboard(): Promise<SiteMetricsDashboard> {
   };
   const adsenseTotal = latestByMetric.get("adsense_total");
 
+  // 한 번의 수집은 같은 fetched_at을 공유한다. 가장 최근 수집분만 써서 순위에서 빠진 경로가 남지 않게 한다.
+  const latestReferrerFetch = referrersResult.data?.[0]?.fetched_at ?? null;
+  const referrers: SiteMetricsDashboard["referrers"] = { 7: [], 30: [] };
+  for (const row of referrersResult.data ?? []) {
+    if (row.fetched_at !== latestReferrerFetch) continue;
+    const [length, ...hostParts] = row.metric.slice(REFERRER_METRIC_PREFIX.length).split(":");
+    const host = hostParts.join(":");
+    if ((length !== "7" && length !== "30") || !host) continue;
+    referrers[Number(length) as 7 | 30].push({ host, visitors: Number(row.value) });
+  }
+  referrers[7].sort((a, b) => b.visitors - a.visitors);
+  referrers[30].sort((a, b) => b.visitors - a.visitors);
+
   return {
     dates,
     series,
     visitorPeriods: { 7: period(7), 30: period(30) },
     adsenseTotal: adsenseTotal ? { value: adsenseTotal.value, currency: adsenseTotal.unit } : null,
     adsenseCurrency: adsenseCurrency ?? adsenseTotal?.unit ?? null,
+    referrers,
     totalMembers: membersResult.count ?? 0,
     lastFetchedAt,
   };

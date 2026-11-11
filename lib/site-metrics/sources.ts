@@ -49,6 +49,17 @@ type VercelCountResponse = {
   data: { pageviews?: number; visitors?: number };
 };
 
+type VercelBreakdownResponse = {
+  data: Array<{ referrerHostname?: string | null; pageviews?: number; visitors?: number }>;
+};
+
+/** 유입 경로 행의 metric 접두사. `referrer:<기간>:<호스트>` 형태로 수집일 행에 저장한다. */
+export const REFERRER_METRIC_PREFIX = "referrer:";
+/** 리퍼러가 없는 방문(주소 직접 입력, 앱 내 브라우저 등)을 묶는 이름. */
+export const DIRECT_REFERRER = "(direct)";
+const REFERRER_PERIODS = [7, 30] as const;
+const REFERRER_LIMIT = 20;
+
 function vercelConfig() {
   const token = process.env.VERCEL_ANALYTICS_TOKEN;
   const projectId = process.env.VERCEL_ANALYTICS_PROJECT_ID;
@@ -109,7 +120,42 @@ export async function collectVercelAnalytics(days: number): Promise<SiteMetricRo
     rows.push({ metric_date: today, metric: periods[index].metric, value: count.data?.visitors ?? 0, unit: null });
   });
 
+  // 유입 경로는 부가 지표다. 조회가 실패해도 방문자 지표 저장은 막지 않는다.
+  const referrerRows = await collectVercelReferrers(today, utcToday).catch((error) => {
+    console.error("[site-metrics] vercel referrer breakdown failed", error);
+    return [];
+  });
+  rows.push(...referrerRows);
+
   return rows;
+}
+
+/** 최근 7일과 30일의 리퍼러 호스트별 방문자 상위를 받는다. 경계는 방문자 지표와 같은 UTC 날짜다. */
+async function collectVercelReferrers(today: string, utcToday: string): Promise<SiteMetricRow[]> {
+  const breakdowns = await Promise.all(
+    REFERRER_PERIODS.map((length) =>
+      vercelQuery<VercelBreakdownResponse>("visits/aggregate", {
+        by: "referrerHostname",
+        since: utcDate(-(length - 1)),
+        until: utcToday,
+        limit: String(REFERRER_LIMIT),
+      }),
+    ),
+  );
+
+  // 같은 upsert 묶음에 같은 키가 두 번 들어가면 Postgres가 거부하므로 metric 기준으로 합친다.
+  const rows = new Map<string, SiteMetricRow>();
+  breakdowns.forEach((breakdown, index) => {
+    for (const item of Array.isArray(breakdown.data) ? breakdown.data : []) {
+      const visitors = Number(item.visitors ?? 0);
+      if (!Number.isFinite(visitors) || visitors <= 0) continue;
+      const host = (typeof item.referrerHostname === "string" ? item.referrerHostname.trim() : "") || DIRECT_REFERRER;
+      const metric = `${REFERRER_METRIC_PREFIX}${REFERRER_PERIODS[index]}:${host}`.slice(0, 64);
+      const previous = rows.get(metric);
+      rows.set(metric, { metric_date: today, metric, value: (previous?.value ?? 0) + visitors, unit: null });
+    }
+  });
+  return [...rows.values()];
 }
 
 // ---------------------------------------------------------------------------

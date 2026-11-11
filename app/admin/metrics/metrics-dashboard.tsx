@@ -36,6 +36,9 @@ const SOURCE_LABELS: Record<SiteMetricSource, string> = {
   searchConsole: "Search Console",
 };
 
+// lib/site-metrics/sources.ts의 DIRECT_REFERRER와 같은 값이다. 그 모듈은 server-only라 여기서 가져올 수 없다.
+const DIRECT_REFERRER_LABEL = "(direct)";
+
 function formatCount(value: number) {
   return Math.round(value).toLocaleString("ko-KR");
 }
@@ -122,6 +125,7 @@ export function MetricsDashboard({
   const fetchedTimes = Object.values(dashboard.lastFetchedAt).filter((value): value is string => Boolean(value));
   const lastFetchedAt = fetchedTimes.sort().at(-1) ?? null;
   const failed = results?.filter((result) => result.status === "error") ?? [];
+  const referrers = dashboard.referrers[length];
 
   function refresh() {
     startTransition(async () => {
@@ -233,6 +237,27 @@ export function MetricsDashboard({
             />
           )}
         </div>
+      </section>
+
+      <section aria-labelledby="metrics-referrers-title" className="rounded-[var(--ui-card-radius)] bg-[var(--ui-card-bg)] p-4 sm:p-5">
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 id="metrics-referrers-title" className="home-section-title text-xl text-[var(--ui-ink)]">유입 경로</h2>
+          <span className="text-[13px] font-medium text-[var(--ui-muted)]">방문자</span>
+        </div>
+        {referrers.length > 0 ? (
+          <ol className="mt-2 divide-y divide-[var(--ui-card-divider)]">
+            {referrers.map((referrer) => (
+              <li key={referrer.host} className="flex items-center justify-between gap-3 py-2.5 text-sm">
+                <span className="min-w-0 truncate text-[var(--ui-text)]">{referrer.host === DIRECT_REFERRER_LABEL ? "직접 방문" : referrer.host}</span>
+                <span className="shrink-0 font-medium tabular-nums text-[var(--ui-ink)]">{formatCount(referrer.visitors)}</span>
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <p className="py-8 text-center text-base text-[var(--ui-muted)]">
+            {configured.vercel ? "업데이트하면 유입 경로가 표시됩니다." : "Vercel 환경변수를 설정하면 유입 경로가 표시됩니다."}
+          </p>
+        )}
       </section>
     </div>
   );
