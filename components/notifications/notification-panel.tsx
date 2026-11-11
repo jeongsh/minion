@@ -5,6 +5,7 @@ import { useEffect, useRef } from "react";
 import { Bell, CheckCheck, MessageCircle, Radio, Star, Trash2, UserRound, Video, X } from "lucide-react";
 
 import { DialogSheetHeader } from "@/components/responsive/adaptive-dialog";
+import { useDismissOnOutside } from "@/components/ui/use-dismiss-on-outside";
 import type { AppNotification, NotificationKind } from "@/lib/notifications";
 
 function NotificationTypeIcon({ kind }: { kind: NotificationKind }) {
@@ -114,6 +115,10 @@ export function NotificationPanel({
     // Auto ads can use the maximum z-index; the top layer stays above them.
     if (open) panelRef.current?.showPopover?.();
   }, [open]);
+
+  // 데스크톱(1200px+)은 배경막 없이 루트가 pointer-events-none이라 바깥 클릭을 직접 감지한다.
+  // 모바일은 배경막이 루트 안에 있어 여기서 무시되고 배경막 onClick이 닫는다.
+  useDismissOnOutside(open, [panelRef], onClose, "[data-notification-trigger]");
 
   if (!open) return null;
 

@@ -23,6 +23,7 @@ import { useLayoutEffect, useRef, useState } from "react";
 
 import { FilterDropdown } from "@/components/match-filter-dropdown";
 import { MiniconPickerPanel, rememberMiniconUse } from "@/components/community/minicon-picker";
+import { useDismissOnOutside } from "@/components/ui/use-dismiss-on-outside";
 import type { MiniconItem, MiniconPack } from "@/lib/minicons/types";
 
 import { ColorPicker } from "./ColorPicker";
@@ -77,6 +78,12 @@ export default function Toolbar({ editor, allowMedia = true, allowEmbeds = allow
       window.removeEventListener("scroll", updatePosition, true);
     };
   }, [openPanel]);
+
+  // 툴바 밖을 누르면 서식·임베드·미니콘 패널을 닫는다. 포털로 뜬 색상 패널 안쪽은 제외한다.
+  useDismissOnOutside(openPanel !== null, [toolbarRef], () => {
+    setOpenPanel(null);
+    setEmbedUrl("");
+  }, "[data-editor-popover]");
 
   if (!editor) return null;
 

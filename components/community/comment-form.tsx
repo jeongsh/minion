@@ -13,6 +13,7 @@ import type { BoardScope } from "@/lib/community/boards";
 import type { MiniconItem, MiniconPack } from "@/lib/minicons/types";
 import { useCommentState } from "@/components/community/comment-state";
 import { useCommentMaxLength } from "@/components/community/use-comment-max-length";
+import { useDismissOnOutside } from "@/components/ui/use-dismiss-on-outside";
 
 export function CommentForm({
   postId,
@@ -44,7 +45,10 @@ export function CommentForm({
   const [doubleMode, setDoubleMode] = useState(false);
   const [pending, startTransition] = useTransition();
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const miniconAreaRef = useRef<HTMLDivElement>(null);
   const maxLength = useCommentMaxLength();
+
+  useDismissOnOutside(miniconOpen, [miniconAreaRef], () => setMiniconOpen(false));
 
   const toggleMiniconPanel = () => {
     if (!miniconOpen) inputRef.current?.blur();
@@ -141,7 +145,7 @@ export function CommentForm({
                 className="max-h-20 min-h-6 min-w-0 flex-1 resize-none border-0 bg-transparent py-0 text-[14px] leading-6 text-[var(--ui-text)] outline-none placeholder:text-[var(--ui-muted)]"
               />
             )}
-            <div className="relative shrink-0">
+            <div ref={miniconAreaRef} className="relative shrink-0">
               <button type="button" onClick={toggleMiniconPanel} className={`grid h-7 w-7 place-items-center rounded-full ${miniconOpen || selectedMinicons.length > 0 ? "text-[var(--tp)]" : "text-[var(--ui-muted)]"}`} aria-label="미니콘 선택" aria-expanded={miniconOpen}>
                 <Sticker size={19} strokeWidth={1.7} />
               </button>
@@ -203,7 +207,7 @@ export function CommentForm({
           />
         )}
         <div className="mt-3 flex items-center gap-3">
-          <div className="relative">
+          <div ref={miniconAreaRef} className="relative">
             <button
               type="button"
               onClick={toggleMiniconPanel}

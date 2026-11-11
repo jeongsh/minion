@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+
+import { useDismissOnOutside } from "@/components/ui/use-dismiss-on-outside";
 
 const PANEL_WIDTH = 172;
 const VIEWPORT_GAP = 12;
@@ -64,19 +66,7 @@ export function ColorPicker({ value, onChange, onBeforeCustomPick, icon, quickSe
     };
   }, [open]);
 
-  useEffect(() => {
-    if (!open) return;
-    const handleDown = (e: MouseEvent) => {
-      if (
-        !panelRef.current?.contains(e.target as Node) &&
-        !triggerRef.current?.contains(e.target as Node)
-      ) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleDown);
-    return () => document.removeEventListener("mousedown", handleDown);
-  }, [open]);
+  useDismissOnOutside(open, [panelRef, triggerRef], () => setOpen(false));
 
   const applyPreset = (color: string, e: React.MouseEvent) => {
     e.preventDefault();
@@ -110,6 +100,7 @@ export function ColorPicker({ value, onChange, onBeforeCustomPick, icon, quickSe
       {open && typeof document !== "undefined" && createPortal(
         <div
           ref={panelRef}
+          data-editor-popover=""
           className={`fixed z-[70] rounded-xl border border-border bg-surface p-2 md:rounded-md ${position ? "" : "left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"}`}
           style={{ width: PANEL_WIDTH, maxWidth: "calc(100vw - 24px)", ...(position ?? {}) }}
         >
