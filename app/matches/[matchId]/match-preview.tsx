@@ -1,5 +1,4 @@
 import type { CSSProperties, ReactNode } from "react";
-import Link from "next/link";
 import { StatRadar } from "@/components/charts/stat-radar";
 import { PowerRankingChart } from "@/components/charts/power-ranking-chart";
 import { SectionHeading } from "@/components/ui/section-heading";
@@ -12,7 +11,9 @@ import {
 } from "@/lib/match-preview-visuals";
 import type { MatchPreviewAccuracy } from "@/lib/match-preview-accuracy";
 import { teamPowerRanking, type MatchPowerRankings } from "@/lib/power-rankings";
-import { KST_TIMEZONE, matchHref, teamLabel } from "@/lib/view-data";
+import { buildHeadToHead, type MatchPreviewRecords } from "@/lib/match-preview-records";
+import { KST_TIMEZONE, teamLabel } from "@/lib/view-data";
+import { MatchRecordCards } from "./match-preview-records";
 import { previewTeamColor } from "../../../packages/contracts/src/preview-colors";
 import {
   AccuracySummary, CARD_SURFACE, ChampionPriorityMap, ChartCard, FirstDragonChart, LaneGoldChart, Legend, LeagueRecordBar, META,
@@ -68,8 +69,9 @@ function HeroTeam({ team, league, rank, align }: { team?: Team; league: string |
 
 export function MatchPreview({
   match, teams, players, champions, matches, poll, aiPreview, styles, visuals, championPriority, dragonEvents,
-  leagueRecord, accuracy, powerRankings,
+  leagueRecord, accuracy, powerRankings, records,
 }: {
+  records: MatchPreviewRecords;
   match: Match;
   teams: Team[];
   players: Player[];
@@ -111,6 +113,11 @@ export function MatchPreview({
   return (
     <div className="flex flex-col gap-5">
       {poll}
+      <section className="mobile-full-bleed mobile-gutter md:mx-0" aria-labelledby="match-records">
+        <SectionHeading><span id="match-records">전적 비교</span></SectionHeading>
+        <MatchRecordCards teams={teams} names={names} colors={colors} records={records}
+          meetings={priorMeetings} headToHead={buildHeadToHead(match, priorMeetings)} formatDate={formatDate} />
+      </section>
       <section className="mobile-full-bleed mobile-gutter md:mx-0" aria-labelledby="ai-match-preview">
         <SectionHeading aside={aiPreview.generatedAt ? <span className={META}>{formatDate(aiPreview.generatedAt)} 기준</span> : null}>
           <span id="ai-match-preview">AI 브리핑</span>
@@ -184,25 +191,6 @@ export function MatchPreview({
                   ))}
                 </ol>
               </ChartReveal>
-            </section>
-          ) : null}
-
-          {priorMeetings.length ? (
-            <section className={`rounded-xl ${CARD_SURFACE} p-4 sm:p-5`} aria-label="최근 맞대결">
-              <h3 className="text-lg font-bold leading-7 text-[var(--ui-ink)]">최근 맞대결</h3>
-              <div className="mt-3 grid gap-2 md:grid-cols-2">
-                {priorMeetings.slice(0, 6).map((meeting) => (
-                  <Link key={meeting.id} href={matchHref(meeting)} className="grid grid-cols-[48px_minmax(0,1fr)_40px] items-center gap-3 rounded-lg bg-[var(--ui-card-bg)] px-3 py-2.5 hover:bg-[var(--ui-card-hover)]">
-                    <span className={META}>{formatDate(meeting.matchDate)}</span>
-                    <span className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 text-[15px] font-medium text-[var(--ui-ink)]">
-                      <span className="flex min-w-0 items-center justify-end gap-2"><span className="truncate">{teamLabel(teams, meeting.teamAId)}</span><TeamLogo team={teams.find((team) => team.id === meeting.teamAId)} size="h-5 w-5" plain themeAware /></span>
-                      <strong className="text-[15px] font-black tabular-nums">{meeting.teamAScore} : {meeting.teamBScore}</strong>
-                      <span className="flex min-w-0 items-center gap-2"><TeamLogo team={teams.find((team) => team.id === meeting.teamBId)} size="h-5 w-5" plain themeAware /><span className="truncate">{teamLabel(teams, meeting.teamBId)}</span></span>
-                    </span>
-                    <span className="text-right text-xs font-medium text-[var(--ui-muted)]">BO{meeting.bestOf}</span>
-                  </Link>
-                ))}
-              </div>
             </section>
           ) : null}
 

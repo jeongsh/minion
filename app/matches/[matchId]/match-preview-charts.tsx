@@ -26,7 +26,7 @@ const POSITION_LABELS: Record<PlayerPosition, string> = { TOP: "탑", JGL: "정�
 
 type Style = CSSProperties & Record<`--${string}`, string | number>;
 
-function Bar({ percent, color, origin = "left", index = 0, className = "" }: {
+export function Bar({ percent, color, origin = "left", index = 0, className = "" }: {
   percent: number; color: string; origin?: "left" | "right"; index?: number; className?: string;
 }) {
   return (

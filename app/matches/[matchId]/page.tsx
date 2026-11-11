@@ -54,6 +54,7 @@ import { getMatchAiPreview } from "@/lib/match-preview-ai";
 import { getStoredMatchBriefingData } from "@/lib/data/match-briefing";
 import { matchBriefingSample } from "@/lib/match-briefing-stats";
 import { buildChampionPriority, buildLeagueSetRecord, buildMatchBriefingVisuals, buildTeamStyles, type BriefingTeamVisuals, type DragonEvent } from "@/lib/match-preview-visuals";
+import { buildMatchPreviewRecords } from "@/lib/match-preview-records";
 import { getDragonEvents } from "@/lib/data/match-preview-timeline";
 import { buildMatchPreviewAccuracy, type StoredPreviewPrediction } from "@/lib/match-preview-accuracy";
 import { getStoredPreviewPredictions } from "@/lib/data/match-preview-accuracy";
@@ -462,10 +463,10 @@ export async function generateMetadata({ params }: { params: Promise<{ matchId: 
   const scoreLabel = hasScore ? ` ${match.teamAScore ?? 0}:${match.teamBScore ?? 0} ` : " vs ";
   const tournamentName = tournament?.name ?? "LCK";
   const dateLabel = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", year: "numeric", month: "long", day: "numeric" }).format(new Date(match.matchDate));
-  const title = `${teamAName}${scoreLabel}${teamBName} ${hasScore ? "경기 결과" : "승부예측"} - ${tournamentName} | MINION`;
+  const title = `${teamAName}${scoreLabel}${teamBName} ${hasScore ? "경기 결과" : "프리뷰와 승부예측"} - ${tournamentName} | MINION`;
   const description = hasScore
     ? `${dateLabel} ${tournamentName} ${teamAName} vs ${teamBName} 경기 결과. 세트별 스코어, 선수 스탯, 밴픽과 팬 평가, 승부예측 결과를 확인하세요.`
-    : `${dateLabel} ${tournamentName} ${teamAName} vs ${teamBName} 승부예측. 팬들의 예측 비율과 양 팀 최근 전적, 세트별 일정을 확인하세요.`;
+    : `${dateLabel} ${tournamentName} ${teamAName} vs ${teamBName} 프리뷰. 맞대결 전적과 최근 흐름, 세트 스코어 분포, 진영별 승률, 팬 예측 비율을 확인하세요.`;
   const canonicalPath = matchHref(match);
 
   return {
@@ -723,6 +724,7 @@ export default async function MatchDetailPage({
           leagueRecord={buildLeagueSetRecord({ match, teams, matches: previewMatches, sets: previewSets, tournaments })}
           accuracy={buildMatchPreviewAccuracy(previewPredictions, previewMatches, tournaments, tournament?.season ?? new Date(match.matchDate).getUTCFullYear())}
           powerRankings={powerRankings}
+          records={buildMatchPreviewRecords({ match, matches: previewMatches, sets: previewSets, tournaments })}
           poll={poll}
           aiPreview={aiPreview}
         />
