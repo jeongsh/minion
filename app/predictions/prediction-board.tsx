@@ -234,7 +234,10 @@ export function PredictionBoard({ matches, teams, tournaments, bets: initialBets
                             <span className="hidden truncate text-[var(--ui-muted)] sm:inline">{tournamentMap.get(match.tournamentId)?.name ?? "LEAGUE"}</span>
                             {/* 팀이 정해지지 않은 경기는 프리뷰가 없어 링크를 내지 않는다. */}
                             {teamA && teamB ? (
-                              <Link href={matchHref(match)} className="-my-1.5 flex shrink-0 items-center gap-0.5 py-1.5 text-[13px] font-medium text-[var(--ui-muted)] transition hover:text-[var(--ui-ink)]">
+                              <Link href={matchHref(match)} className={`-my-1.5 flex shrink-0 items-center gap-0.5 py-1.5 text-[13px] font-medium transition hover:text-[var(--ui-ink)] ${
+                                // 예정 경기의 프리뷰만 포인트 색으로 강조한다. 라이트에서는 --accent가 흰 배경에 묻혀 진한 녹색을 쓴다.
+                                completed ? "text-[var(--ui-muted)]" : "text-emerald-600 dark:text-[var(--accent)]"
+                              }`}>
                                 {completed ? "경기 결과" : "프리뷰"}<ChevronRight size={14} aria-hidden />
                               </Link>
                             ) : null}
