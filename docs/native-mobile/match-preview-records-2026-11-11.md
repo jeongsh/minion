@@ -20,3 +20,12 @@
 - 앱 타입 검사 통과, 린트 오류 없음(기존 경고 2건). 웹 타입 검사와 변경 파일 ESLint 통과.
 - 로컬 API 응답에서 `records` 값 확인. Expo Web 390×844 다크에서 카드 순서, 전적 행의 값과 막대, 예측 화면 링크 색을 DOM으로 확인했다.
 - 미실행: 라이트 확인, 웹과의 1px 캡처 비교, iPhone과 Android 실기기, 공유 시트 실제 동작. 잠금 파일 변경 없음.
+
+## 2026-11-11 웹·iOS 25·Android 41 배포
+
+- 사용자가 빌드와 배포를 요청했고, 범위를 물어 웹 main 반영, iOS와 Android 빌드, Google Play 프로덕션 전체 출시를 각각 확인받았다. 대상 커밋은 `f153340c`다.
+- 웹: `dev`를 푸시하고 `main`을 fast-forward했다. 운영 `https://minion.fan`의 경기 API에서 `records` 필드와 승부예측 보드의 프리뷰 링크를 확인했다.
+- iOS: EAS Build `2ff8e2e4-cb3f-46c7-95d1-85e3b58ec41b`로 1.0.3(25)를 빌드하고 자동 제출 `615f101c-b738-4862-9d2f-c0a6b386e386`로 App Store Connect 업로드를 마쳤다. App Store 심사 제출은 하지 않았다.
+- Android: 로컬 Gradle `:app:bundleRelease`로 1.0.3(41)을 빌드했다(2분 32초). AAB `mobile/store-assets/minion-1.0.3-41.aab`, 82,959,848 bytes, SHA-256 `724d4546053e592fff76a33dcb572d371680f1a1af410363eebaf502be7c9542`. JAR 서명 검증, 업로드 인증서 SHA-256이 기존과 같음(`A3:4D:…:A0:00`), Hermes 번들의 운영 API 포함과 LAN 주소 미포함, 새 화면 문구 포함을 확인했다.
+- EAS Submit `eaed382f-8a2c-41a0-885c-7905909284d5`(store-release, 프로덕션, completed)로 Google Play 제출에 성공했다. Play Console의 검토 상태는 확인하지 않았다. EAS 원격 versionCode는 맞추지 않았다.
+- 미실행: iPhone과 Android 실기기 확인, 라이트 모드와 웹 1px 캡처 비교.
