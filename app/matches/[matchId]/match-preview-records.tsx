@@ -150,13 +150,13 @@ export function MatchRecordCards({ teams, names, colors, records, meetings, head
   const teamRecords = [records.teamA, records.teamB];
   return (
     <div className="flex flex-col gap-3">
+      {meetings.length ? (
+        <Meetings teams={teams} names={names} meetings={meetings} headToHead={headToHead} formatDate={formatDate} />
+      ) : null}
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         <RecentFlow names={names} colors={colors} records={teamRecords} />
         <SeriesFlow names={names} colors={colors} records={teamRecords} />
       </div>
-      {meetings.length ? (
-        <Meetings teams={teams} names={names} meetings={meetings} headToHead={headToHead} formatDate={formatDate} />
-      ) : null}
     </div>
   );
 }

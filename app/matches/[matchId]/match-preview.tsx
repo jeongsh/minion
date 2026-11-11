@@ -16,7 +16,7 @@ import { KST_TIMEZONE, teamLabel } from "@/lib/view-data";
 import { MatchRecordCards } from "./match-preview-records";
 import { previewTeamColor } from "../../../packages/contracts/src/preview-colors";
 import {
-  AccuracySummary, CARD_SURFACE, ChampionPriorityMap, ChartCard, FirstDragonChart, LaneGoldChart, Legend, LeagueRecordBar, META,
+  AccuracySummary, CARD_SURFACE, ChampionPriorityMap, ChartCard, FirstDragonChart, LaneGoldChart, Legend, LeagueRecordBar,
   SideWinRates, WinProbabilityGauge,
 } from "./match-preview-charts";
 import { ChartReveal } from "./match-preview-reveal";
@@ -68,7 +68,7 @@ function HeroTeam({ team, league, rank, align }: { team?: Team; league: string |
 }
 
 export function MatchPreview({
-  match, teams, players, champions, matches, poll, aiPreview, styles, visuals, championPriority, dragonEvents,
+  match, teams, players, champions, matches, poll, share, aiPreview, styles, visuals, championPriority, dragonEvents,
   leagueRecord, accuracy, powerRankings, records,
 }: {
   records: MatchPreviewRecords;
@@ -78,6 +78,7 @@ export function MatchPreview({
   champions: Champion[];
   matches: Match[];
   poll: ReactNode;
+  share: ReactNode;
   aiPreview: MatchAiPreview;
   styles: { teamA: TeamStyle; teamB: TeamStyle };
   visuals: { teamA: BriefingTeamVisuals; teamB: BriefingTeamVisuals };
@@ -113,7 +114,7 @@ export function MatchPreview({
     <div className="flex flex-col gap-5">
       {poll}
       <section className="mobile-full-bleed mobile-gutter md:mx-0" aria-labelledby="ai-match-preview">
-        <SectionHeading aside={aiPreview.generatedAt ? <span className={META}>{formatDate(aiPreview.generatedAt)} 기준</span> : null}>
+        <SectionHeading aside={share}>
           <span id="ai-match-preview">AI 브리핑</span>
         </SectionHeading>
         <div className="flex flex-col gap-3">
@@ -133,7 +134,23 @@ export function MatchPreview({
             ) : null}
           </div>
 
-          {/* 승리 확률과 한 줄 평을 먼저 읽고, 그 근거가 되는 전적을 바로 아래에서 본다. */}
+          {watchPoints.length ? (
+            <section className={`rounded-xl ${CARD_SURFACE} p-4 sm:p-5`} aria-labelledby="match-watch-points">
+              <h3 id="match-watch-points" className="text-lg font-bold leading-7 text-[var(--ui-ink)]">관전 포인트</h3>
+              <ChartReveal>
+                <ol className="mt-3 grid gap-3">
+                  {watchPoints.map((point, index) => (
+                    <li key={index} data-pop className="grid grid-cols-[28px_minmax(0,1fr)] items-start gap-3" style={{ "--i": index } as CSSProperties}>
+                      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--ui-card-bg)] text-sm font-medium tabular-nums text-[var(--ui-ink)]">{index + 1}</span>
+                      <span className="pt-0.5 text-sm leading-6 text-[var(--ui-text)] sm:text-base">{point}</span>
+                    </li>
+                  ))}
+                </ol>
+              </ChartReveal>
+            </section>
+          ) : null}
+
+          {/* 결론(승리 확률, 관전 포인트) 다음에 전적, 팀 단위 지표, 선수와 밴픽, 배경 순으로 내려간다. */}
           <MatchRecordCards teams={teams} names={names} colors={colors} records={records}
             meetings={priorMeetings} headToHead={buildHeadToHead(match, priorMeetings)} formatDate={formatDate} />
 
@@ -151,10 +168,6 @@ export function MatchPreview({
             </ChartCard>
           </div>
 
-          <ChartCard title="라인별 15분 골드 격차" legend={<Legend names={names} colors={colors} />}>
-            <LaneGoldChart lanes={visualTeams.map((team) => team.lanes)} colors={colors} playerName={playerName} />
-          </ChartCard>
-
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <ChartCard title="첫 드래곤 시점">
               <FirstDragonChart names={names} colors={colors} minutes={dragonMinutes} />
@@ -163,6 +176,10 @@ export function MatchPreview({
               <SideWinRates names={names} teams={visualTeams} logos={[teamA, teamB]} />
             </ChartCard>
           </div>
+
+          <ChartCard title="라인별 15분 골드 격차" legend={<Legend names={names} colors={colors} />}>
+            <LaneGoldChart lanes={visualTeams.map((team) => team.lanes)} colors={colors} playerName={playerName} />
+          </ChartCard>
 
           {championPriority.some((item) => item.picksA) && championPriority.some((item) => item.picksB) ? (
             <ChartCard title="챔피언 우선순위 맵" legend={<Legend names={names} colors={colors} />}>
@@ -174,22 +191,6 @@ export function MatchPreview({
             <ChartCard title="리그 간 전력 비교">
               <LeagueRecordBar record={leagueRecord} colors={colors} />
             </ChartCard>
-          ) : null}
-
-          {watchPoints.length ? (
-            <section className={`rounded-xl ${CARD_SURFACE} p-4 sm:p-5`} aria-labelledby="match-watch-points">
-              <h3 id="match-watch-points" className="text-lg font-bold leading-7 text-[var(--ui-ink)]">관전 포인트</h3>
-              <ChartReveal>
-                <ol className="mt-3 grid gap-3">
-                  {watchPoints.map((point, index) => (
-                    <li key={index} data-pop className="grid grid-cols-[28px_minmax(0,1fr)] items-start gap-3" style={{ "--i": index } as CSSProperties}>
-                      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--ui-card-bg)] text-sm font-medium tabular-nums text-[var(--ui-ink)]">{index + 1}</span>
-                      <span className="pt-0.5 text-sm leading-6 text-[var(--ui-text)] sm:text-base">{point}</span>
-                    </li>
-                  ))}
-                </ol>
-              </ChartReveal>
-            </section>
           ) : null}
 
           <ChartCard title="AI 예측 적중률">

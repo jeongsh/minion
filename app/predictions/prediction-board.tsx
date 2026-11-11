@@ -1,6 +1,7 @@
 "use client";
 import { Button } from "@/components/ui/button";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import { ChevronLeft, ChevronRight, Clock3, Coins } from "lucide-react";
@@ -17,7 +18,7 @@ import { useToast } from "@/components/ui/toast";
 import { predictionMarketForMatch, predictionMaxStake, type PredictionBet, type PredictionRanking } from "@/lib/predictions";
 import type { Match, Team, Tournament } from "@/lib/types";
 import { isBlackPredictionColor, predictionSelectionOpacity } from "@/lib/prediction-colors";
-import { dateKeyKST } from "@/lib/view-data";
+import { dateKeyKST, matchHref } from "@/lib/view-data";
 
 const PREDICTION_DAY_SECTION_PREFIX = "prediction-day";
 const KST_OFFSET = 9 * 60 * 60 * 1000;
@@ -231,6 +232,12 @@ export function PredictionBoard({ matches, teams, tournaments, bets: initialBets
                           <div className="flex min-w-0 items-center gap-2">
                             <time className="shrink-0 text-[var(--ui-ink)]">{timeLabel(match.matchDate)}</time>
                             <span className="hidden truncate text-[var(--ui-muted)] sm:inline">{tournamentMap.get(match.tournamentId)?.name ?? "LEAGUE"}</span>
+                            {/* 팀이 정해지지 않은 경기는 프리뷰가 없어 링크를 내지 않는다. */}
+                            {teamA && teamB ? (
+                              <Link href={matchHref(match)} className="-my-1.5 flex shrink-0 items-center gap-0.5 py-1.5 text-[13px] font-medium text-[var(--ui-muted)] transition hover:text-[var(--ui-ink)]">
+                                {completed ? "경기 결과" : "프리뷰"}<ChevronRight size={14} aria-hidden />
+                              </Link>
+                            ) : null}
                           </div>
                           <div className="flex shrink-0 items-center gap-3 text-[13px] text-[var(--ui-muted)]">
                             {myBet ? <MyBetStatus bet={myBet} /> : null}

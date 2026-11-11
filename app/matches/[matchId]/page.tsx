@@ -570,9 +570,6 @@ export default async function MatchDetailPage({
   const poll = (
     <section aria-label="LP 승부예측">
       <PredictionMatchBar match={match} teamA={teamA} teamB={teamB} bets={predictionMarket.bets} currentUserId={currentUser?.id} balance={predictionMarket.balance} now={now} />
-      <div className="mt-2 flex justify-end">
-        <ShareButton title={`${teamAName} vs ${teamBName} 승부예측`} path={matchHref(match)} />
-      </div>
     </section>
   );
   // "preview" 탭에서만 필요한 전체 매치/세트 히스토리는 그 탭일 때만 조회한다.
@@ -731,6 +728,7 @@ export default async function MatchDetailPage({
           powerRankings={powerRankings}
           records={buildMatchPreviewRecords({ match, matches: previewMatches, sets: previewSets, tournaments, firstObjectives: previewFirstObjectives })}
           poll={poll}
+          share={<ShareButton title={`${teamAName} vs ${teamBName} 승부예측`} path={matchHref(match)} />}
           aiPreview={aiPreview}
         />
       ) : null}
