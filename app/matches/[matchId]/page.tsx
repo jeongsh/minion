@@ -8,6 +8,8 @@ import { siteBaseUrl } from "@/lib/site";
 import { youtubeThumbnailUrl, youtubeVideoIdFromUrl } from "@/lib/youtube";
 
 import { PredictionMatchBar } from "@/components/domain/prediction-match-bar";
+import { JsonLd } from "@/components/seo/json-ld";
+import { ShareButton } from "@/components/ui/share-button";
 import { MatchResultSeen } from "@/components/domain/match-result-seen";
 import { SetVodPlayer } from "@/components/domain/set-vod-player";
 import { SegmentedControl, type TabItem } from "@/components/ui/tabs";
@@ -470,7 +472,9 @@ export async function generateMetadata({ params }: { params: Promise<{ matchId: 
     title,
     description,
     alternates: { canonical: canonicalPath },
-    openGraph: { title, description, url: `${siteBaseUrl()}${canonicalPath}`, type: "article", images: ["/images/minion-og-20260829.png"] },
+    // 이미지는 같은 폴더의 opengraph-image, twitter-image가 매치별 카드로 만든다.
+    openGraph: { title, description, url: `${siteBaseUrl()}${canonicalPath}`, type: "article" },
+    twitter: { card: "summary_large_image", title, description },
   };
 }
 
@@ -565,6 +569,9 @@ export default async function MatchDetailPage({
   const poll = (
     <section aria-label="LP 승부예측">
       <PredictionMatchBar match={match} teamA={teamA} teamB={teamB} bets={predictionMarket.bets} currentUserId={currentUser?.id} balance={predictionMarket.balance} now={now} />
+      <div className="mt-2 flex justify-end">
+        <ShareButton title={`${teamAName} vs ${teamBName} 승부예측`} path={matchHref(match)} />
+      </div>
     </section>
   );
   // "preview" 탭에서만 필요한 전체 매치/세트 히스토리는 그 탭일 때만 조회한다.
@@ -619,6 +626,23 @@ export default async function MatchDetailPage({
   const videoId = match.vodUrl ? youtubeVideoIdFromUrl(match.vodUrl) : null;
   return (
     <main className="layout-wide match-detail-page flex flex-col gap-5 pb-12 pt-5 text-[var(--ui-text)]">
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "SportsEvent",
+          name: `${teamAName} vs ${teamBName}`,
+          sport: "League of Legends",
+          startDate: match.matchDate,
+          eventStatus: "https://schema.org/EventScheduled",
+          url: `${siteBaseUrl()}${matchHref(match)}`,
+          ...(match.venue ? { location: { "@type": "Place", name: match.venue } } : {}),
+          ...(tournament ? { superEvent: { "@type": "SportsEvent", name: tournament.name } } : {}),
+          competitor: [
+            { "@type": "SportsTeam", name: teamAName },
+            { "@type": "SportsTeam", name: teamBName },
+          ],
+        }}
+      />
       <AutoAdContent enabled={hasAdContent} />
       <MatchResultSeen matchId={match.id} finished={isMatchFinished(match)} />
       {/*

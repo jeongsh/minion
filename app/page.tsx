@@ -17,7 +17,9 @@ import type { HomeMatchItem } from "@/components/domain/home-match-card";
 import { getMobileHomePublicData } from "@/lib/data/home-cache";
 import { buildHomePomEntries, getHomePomPlayers } from "@/lib/data/home-pom";
 import type { Match } from "@/lib/types";
+import { JsonLd } from "@/components/seo/json-ld";
 import { getBoardPosts } from "@/lib/data/community";
+import { siteBaseUrl } from "@/lib/site";
 import { dateKeyKST, formatTimeKST, matchHref } from "@/lib/view-data";
 import { isMatchLive } from "@/lib/match-display";
 import { getPredictionMarketData } from "@/lib/predictions";
@@ -222,6 +224,17 @@ export default async function HomePage({
 
   return (
     <>
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          name: "MINION",
+          alternateName: "미니언",
+          url: siteBaseUrl(),
+          inLanguage: "ko",
+          publisher: { "@type": "Organization", name: "MINION", url: siteBaseUrl(), logo: `${siteBaseUrl()}/icon.png` },
+        }}
+      />
       <h1 className="sr-only">MINION - LCK 경기 일정·결과, 승부예측과 팬톡</h1>
       <HomeDashboard
       teams={teams}

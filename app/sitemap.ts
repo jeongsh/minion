@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 import { getBoardPosts } from "@/lib/data/community";
-import { getMatches, getPlayers, getTeams, getTournaments } from "@/lib/data/lck";
+import { getChampions, getMatches, getPlayers, getTeams, getTournaments } from "@/lib/data/lck";
 import { siteBaseUrl } from "@/lib/site";
 import { canQuerySupabase } from "@/lib/supabase/server";
 import { DOMESTIC_SEGMENTS, INTERNATIONAL_SEGMENTS } from "@/lib/tournaments/international-segments";
@@ -40,11 +40,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   if (!canQuerySupabase()) return staticRoutes;
 
   try {
-    const [teams, players, matches, tournaments] = await Promise.all([
+    const [teams, players, matches, tournaments, champions] = await Promise.all([
       getTeams(),
       getPlayers(),
       getMatches(),
       getTournaments(),
+      // 챔피언 목록을 못 읽어도 나머지 사이트맵은 그대로 낸다.
+      getChampions().catch(() => []),
     ]);
 
     const teamRoutes = teams.map((team) => ({
@@ -102,7 +104,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         priority: 0.75,
       }));
 
-    return [...staticRoutes, ...teamRoutes, ...fanTalkRoutes, ...fanTalkPostRoutes, ...playerRoutes, ...matchRoutes, ...tournamentRoutes];
+    // 챔피언 상세의 canonical과 같은 주소를 제출한다.
+    const championRoutes = champions.map((champion) => ({
+      url: `${baseUrl}/champions/${champion.slug}`,
+      changeFrequency: "weekly" as const,
+      priority: 0.6,
+    }));
+
+    return [...staticRoutes, ...teamRoutes, ...fanTalkRoutes, ...fanTalkPostRoutes, ...playerRoutes, ...championRoutes, ...matchRoutes, ...tournamentRoutes];
   } catch {
     return staticRoutes;
   }

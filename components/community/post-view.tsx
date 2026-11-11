@@ -12,6 +12,7 @@ import { PostOwnerActions } from "@/components/community/post-owner-actions";
 import { PostMobileActions } from "@/components/community/post-mobile-actions";
 import { ReactionButtons } from "@/components/community/reaction-buttons";
 import { ReportButton } from "@/components/community/report-button";
+import { ShareButton } from "@/components/ui/share-button";
 import { setPostNoticeInlineAction } from "@/lib/community/admin-actions";
 import type { BoardScope } from "@/lib/community/boards";
 import { blindDescription, blindLabel } from "@/lib/community/moderation-labels";
@@ -142,7 +143,10 @@ export async function PostView({
             initialHonorCount={post.likeCount}
             initialDislikeCount={post.dislikeCount}
           />
-          {!canManage && !isGuestOwner ? <ReportButton target="post" postId={post.id} scope={scope} teamSlug={teamSlug} /> : null}
+          <div className="flex items-center gap-2">
+            {!post.blindedAt ? <ShareButton title={post.title} /> : null}
+            {!canManage && !isGuestOwner ? <ReportButton target="post" postId={post.id} scope={scope} teamSlug={teamSlug} /> : null}
+          </div>
         </div>
 
         <section aria-label="댓글">
