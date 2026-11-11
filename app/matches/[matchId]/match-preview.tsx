@@ -108,7 +108,6 @@ export function MatchPreview({
   const priorMeetings = matches.filter((item) => item.id !== match.id && item.status === "completed" && new Date(item.matchDate) < new Date(match.matchDate)
     && ((item.teamAId === match.teamAId && item.teamBId === match.teamBId) || (item.teamAId === match.teamBId && item.teamBId === match.teamAId)))
     .sort((a, b) => new Date(b.matchDate).getTime() - new Date(a.matchDate).getTime());
-  const sampleCaption = `${names[0]} ${visualTeams[0].sets}세트, ${names[1]} ${visualTeams[1].sets}세트`;
 
   return (
     <div className="flex flex-col gap-5">
@@ -130,7 +129,7 @@ export function MatchPreview({
               <HeroTeam team={teamB} league={leagues[1]} rank={ranks[1]} align="right" />
             </div>
             {oneLiner ? (
-              <p className={`mt-4 whitespace-pre-line rounded-lg bg-[var(--ui-card-bg)] px-4 py-3 text-sm leading-6 text-[var(--ui-ink)] sm:text-base sm:leading-7 ${aiPreview.oneLiner ? "font-medium" : "font-normal"}`}>{oneLiner}</p>
+              <p className={`mt-4 whitespace-pre-line rounded-lg bg-[var(--ui-card-bg)] px-4 py-3 text-sm leading-6 text-[var(--ui-ink)] sm:text-center sm:text-base sm:leading-7 ${aiPreview.oneLiner ? "font-medium" : "font-normal"}`}>{oneLiner}</p>
             ) : null}
           </div>
 
@@ -196,7 +195,6 @@ export function MatchPreview({
           <ChartCard title="AI 예측 적중률">
             <AccuracySummary accuracy={accuracy} />
           </ChartCard>
-          <p className={META}>표본 수: {sampleCaption}</p>
         </div>
       </section>
     </div>

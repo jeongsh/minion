@@ -70,8 +70,7 @@ function TextRow({ label, values }: { label: string; values: string[] }) {
 
 function RecentFlow({ names, colors, records }: { names: string[]; colors: string[]; records: PreviewTeamRecord[] }) {
   return (
-    <ChartCard title="최근 흐름" legend={<Legend names={names} colors={colors} />}
-      caption={`경기 시간과 킬 표본: ${names[0]} ${records[0].sampleSets}세트, ${names[1]} ${records[1].sampleSets}세트`}>
+    <ChartCard title="최근 흐름" legend={<Legend names={names} colors={colors} />}>
       <div className="grid gap-3.5" role="list">
         <CompareRow label="최근 5경기" labelClassName=""
           left={<FormChips form={records[0].form} name={names[0]} />}
@@ -84,15 +83,10 @@ function RecentFlow({ names, colors, records }: { names: string[]; colors: strin
   );
 }
 
-function SeriesFlow({ names, colors, season, bestOf, records }: {
-  names: string[]; colors: string[]; season: number; bestOf: number | null; records: PreviewTeamRecord[];
-}) {
+function SeriesFlow({ names, colors, records }: { names: string[]; colors: string[]; records: PreviewTeamRecord[] }) {
   const outcomes = records[0].outcomes;
   return (
-    <ChartCard title="시리즈 흐름" legend={<Legend names={names} colors={colors} />}
-      caption={outcomes.length
-        ? `${season} 시즌 BO${bestOf} 표본: ${names[0]} ${records[0].seriesMatches}경기, ${names[1]} ${records[1].seriesMatches}경기`
-        : `${season} 시즌 다전제 기준`}>
+    <ChartCard title="시리즈 흐름" legend={<Legend names={names} colors={colors} />}>
       <div className="grid gap-3.5" role="list">
         {outcomes.map((outcome, index) => (
           <RateRow key={outcome.label} label={`${outcome.label} ${outcome.win ? "승" : "패"}`} colors={colors} index={index}
@@ -153,7 +147,7 @@ export function MatchRecordCards({ teams, names, colors, records, meetings, head
     <div className="flex flex-col gap-3">
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         <RecentFlow names={names} colors={colors} records={teamRecords} />
-        <SeriesFlow names={names} colors={colors} season={records.season} bestOf={records.bestOf} records={teamRecords} />
+        <SeriesFlow names={names} colors={colors} records={teamRecords} />
       </div>
       {meetings.length ? (
         <Meetings teams={teams} names={names} meetings={meetings} headToHead={headToHead} formatDate={formatDate} />
