@@ -113,11 +113,6 @@ export function MatchPreview({
   return (
     <div className="flex flex-col gap-5">
       {poll}
-      <section className="mobile-full-bleed mobile-gutter md:mx-0" aria-labelledby="match-records">
-        <SectionHeading><span id="match-records">전적 비교</span></SectionHeading>
-        <MatchRecordCards teams={teams} names={names} colors={colors} records={records}
-          meetings={priorMeetings} headToHead={buildHeadToHead(match, priorMeetings)} formatDate={formatDate} />
-      </section>
       <section className="mobile-full-bleed mobile-gutter md:mx-0" aria-labelledby="ai-match-preview">
         <SectionHeading aside={aiPreview.generatedAt ? <span className={META}>{formatDate(aiPreview.generatedAt)} 기준</span> : null}>
           <span id="ai-match-preview">AI 브리핑</span>
@@ -138,6 +133,10 @@ export function MatchPreview({
               <p className={`mt-4 whitespace-pre-line rounded-lg bg-[var(--ui-card-bg)] px-4 py-3 text-sm leading-6 text-[var(--ui-ink)] sm:text-base sm:leading-7 ${aiPreview.oneLiner ? "font-medium" : "font-normal"}`}>{oneLiner}</p>
             ) : null}
           </div>
+
+          {/* 승리 확률과 한 줄 평을 먼저 읽고, 그 근거가 되는 전적을 바로 아래에서 본다. */}
+          <MatchRecordCards teams={teams} names={names} colors={colors} records={records}
+            meetings={priorMeetings} headToHead={buildHeadToHead(match, priorMeetings)} formatDate={formatDate} />
 
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <ChartCard title="팀 성향 레이더"

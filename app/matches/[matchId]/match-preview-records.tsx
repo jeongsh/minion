@@ -138,7 +138,7 @@ function Meetings({ teams, names, meetings, headToHead, formatDate }: {
   );
 }
 
-/** 프리뷰 탭의 "전적 비교" 카드 묶음. 섹션 제목은 호출부가 둔다. */
+/** AI 브리핑 안에서 승리 확률 카드 바로 아래에 놓는 전적 카드 묶음. */
 export function MatchRecordCards({ teams, names, colors, records, meetings, headToHead, formatDate }: {
   teams: Team[];
   names: string[];
