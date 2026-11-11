@@ -5,6 +5,8 @@
  * server and the Expo application can consume the exact same definitions.
  */
 
+import type { PreviewHeadToHead, PreviewTeamRecord } from "./preview-records.ts";
+
 export const MOBILE_API_VERSION = "v1" as const;
 export const MOBILE_API_PREFIX = `/api/mobile/${MOBILE_API_VERSION}` as const;
 
@@ -728,6 +730,8 @@ export type MobileMatchPreviewCharts = {
   oneLiner: string | null;
   oneLinerStrong: boolean;
   watchPoints: string[];
+  /** 맞대결 합계와 팀별 전적. 이 필드가 없던 캐시 응답을 위해 선택 필드로 둔다. */
+  records?: { headToHead: PreviewHeadToHead; teams: PreviewTeamRecord[] };
 };
 
 export type MobileMatchPreview = {

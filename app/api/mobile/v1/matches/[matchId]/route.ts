@@ -47,7 +47,8 @@ import { compactMatchStageName, compactMatchTournamentName } from "@/lib/match-h
 import { buildMatchBriefingStats, matchBriefingSample, TEAM_RADAR_AXES, formatTeamMetric } from "@/lib/match-briefing-stats";
 import { teamPowerRanking } from "@/lib/power-rankings";
 import { buildChampionPriority, buildFirstDragonMinutes, buildLeagueSetRecord, buildMatchBriefingVisuals, buildTeamStyles, formatTeamStyle, regionLeague, TEAM_STYLE_AXES, teamRegion } from "@/lib/match-preview-visuals";
-import { getDragonEvents } from "@/lib/data/match-preview-timeline";
+import { getDragonEvents, getSetFirstObjectives } from "@/lib/data/match-preview-timeline";
+import { buildHeadToHead, buildMatchPreviewRecords } from "@/lib/match-preview-records";
 import { buildMatchPreviewAccuracy } from "@/lib/match-preview-accuracy";
 import { getStoredPreviewPredictions } from "@/lib/data/match-preview-accuracy";
 
@@ -127,12 +128,12 @@ export async function GET(request: Request, context: { params: Promise<{ matchId
   const defaultSet = requestedSet ?? sets.find((set) => set.setNumber === 1) ?? sets[0];
 
   const priorMatches = completedBefore(allMatches, match);
-  const h2h = priorMatches
-    .filter((item) =>
-      (item.teamAId === match.teamAId && item.teamBId === match.teamBId) ||
-      (item.teamAId === match.teamBId && item.teamBId === match.teamAId),
-    )
-    .slice(0, 5);
+  // 웹 프리뷰와 같이 합계는 전체 맞대결로 내고 목록은 최근 6경기만 보낸다.
+  const allMeetings = priorMatches.filter((item) =>
+    (item.teamAId === match.teamAId && item.teamBId === match.teamBId) ||
+    (item.teamAId === match.teamBId && item.teamBId === match.teamAId),
+  );
+  const h2h = allMeetings.slice(0, 6);
   const resolvedTeams = [teamMap.get(match.teamAId), teamMap.get(match.teamBId)];
   const hasResolvedTeams = match.teamAId !== match.teamBId && resolvedTeams.every((team) => team
     && !/^(?:TBD|TBA|미정|미정 팀|Unknown|-)$/i.test(team.shortName.trim())
@@ -160,10 +161,18 @@ export async function GET(request: Request, context: { params: Promise<{ matchId
     const visuals = buildMatchBriefingVisuals(match, supplemented.matches, supplemented.sets, supplemented.playerStats);
     const styles = buildTeamStyles(match, supplemented.matches, supplemented.sets, supplemented.playerStats);
     const visualTeams = [visuals.teamA, visuals.teamB];
-    const dragons = await getDragonEvents(visualTeams.flatMap((team) => team.setIds), supplemented.sets).catch((error) => {
-      console.warn("[mobile-match-preview] 드래곤 이벤트 조회 실패", error);
-      return [];
-    });
+    const visualSetIds = visualTeams.flatMap((team) => team.setIds);
+    const [dragons, firstObjectives] = await Promise.all([
+      getDragonEvents(visualSetIds, supplemented.sets).catch((error) => {
+        console.warn("[mobile-match-preview] 드래곤 이벤트 조회 실패", error);
+        return [];
+      }),
+      getSetFirstObjectives(visualSetIds).catch((error) => {
+        console.warn("[mobile-match-preview] 첫 오브젝트 조회 실패", error);
+        return [];
+      }),
+    ]);
+    const records = buildMatchPreviewRecords({ match, matches: supplemented.matches, sets: supplemented.sets, tournaments, firstObjectives });
     const leagueRecord = buildLeagueSetRecord({ match, teams, matches: supplemented.matches, sets: supplemented.sets, tournaments });
     const charts = {
       axes: TEAM_STYLE_AXES.map(({ label, title }) => ({ label, title })),
@@ -184,6 +193,7 @@ export async function GET(request: Request, context: { params: Promise<{ matchId
       oneLiner: ai.oneLiner ?? (ai.source === "ai" ? ai.summary : null),
       oneLinerStrong: Boolean(ai.oneLiner),
       watchPoints: ai.watchPoints.length ? ai.watchPoints : [ai.liveCheck].filter(Boolean),
+      records: { headToHead: buildHeadToHead(match, allMeetings), teams: [records.teamA, records.teamB] },
     };
     const supplementedHistory = completedBefore(supplemented.matches, match);
     const teamAMetrics = recentSetMetrics(supplemented.sets, supplementedHistory, match.teamAId);

@@ -1,3 +1,5 @@
+import { useRouter } from 'expo-router';
+import ChevronRight from 'lucide-react-native/icons/chevron-right';
 import Clock3 from 'lucide-react-native/icons/clock-3';
 import { useId, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -10,13 +12,26 @@ import { deadlineLabel, predictionTimeLabel } from '@/lib/prediction-dates';
 import { isBlackPredictionColor, predictionSelectionOpacity } from '../../../lib/prediction-colors';
 
 export function PredictionMatchCard({ match, now, onChooseTeam, pending = false }: { match: MobilePredictionMatch; now: number; onChooseTeam: (teamId: string) => void; pending?: boolean }) {
+  const router = useRouter();
   const { colorScheme, fonts, theme } = useMinionTheme();
+  const completed = match.status === 'completed';
+  // 예정 경기의 프리뷰만 포인트 색으로 강조한다. 라이트에서는 브랜드 녹색이 흰 배경에 묻혀 진한 녹색을 쓴다.
+  const linkColor = completed ? theme.muted : colorScheme === 'dark' ? '#03DE8A' : '#059669';
   const selectedTeam = match.myBet?.teamId === match.teamA?.id ? match.teamA : match.myBet?.teamId === match.teamB?.id ? match.teamB : null;
 
   return (
     <View>
       <View style={styles.metaRow}>
-        <Text style={[styles.metaTime, { color: theme.ink, ...fonts.medium }]}>{predictionTimeLabel(match.startsAt)}</Text>
+        <View style={styles.metaLeft}>
+          <Text style={[styles.metaTime, { color: theme.ink, ...fonts.medium }]}>{predictionTimeLabel(match.startsAt)}</Text>
+          {/* 팀이 정해지지 않은 경기는 프리뷰가 없어 링크를 내지 않는다. */}
+          {match.teamA && match.teamB ? (
+            <Pressable accessibilityRole="link" hitSlop={6} onPress={() => router.push(`/matches/${encodeURIComponent(match.id)}` as never)} style={styles.previewLink}>
+              <Text style={[styles.metaDeadline, { color: linkColor, ...fonts.medium }]}>{completed ? '경기 결과' : '프리뷰'}</Text>
+              <ChevronRight color={linkColor} size={14} />
+            </Pressable>
+          ) : null}
+        </View>
         <View style={styles.metaRight}>
           {match.myBet ? <Text style={[styles.metaDeadline, { color: theme.ink, ...fonts.medium }]}>내 예측 {match.myBet.stake.toLocaleString('ko-KR')} LP</Text> : null}
           <View style={styles.deadline}>
@@ -126,6 +141,8 @@ const styles = StyleSheet.create({
   choiceRight: { flexDirection: 'row-reverse' },
   deadline: { alignItems: 'center', flexDirection: 'row', gap: 6 },
   metaDeadline: { fontSize: 13, includeFontPadding: false, lineHeight: 19.5 },
+  metaLeft: { alignItems: 'center', flexDirection: 'row', flexShrink: 1, gap: 8, minWidth: 0 },
+  previewLink: { alignItems: 'center', flexDirection: 'row', flexShrink: 0, gap: 2 },
   metaRight: { alignItems: 'center', flexDirection: 'row', gap: 12 },
   metaRow: { alignItems: 'center', flexDirection: 'row', gap: 12, justifyContent: 'space-between', marginBottom: 8, paddingHorizontal: 4 },
   metaTime: { fontSize: 14, includeFontPadding: false, lineHeight: 20 },

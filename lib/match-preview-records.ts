@@ -1,43 +1,20 @@
 import type { Match, SetResult, Tournament } from "./types.ts";
 import { matchBriefingSample } from "./match-briefing-stats.ts";
 
-/** 비율을 공개하는 최소 표본. 이보다 적으면 화면은 비율 대신 건수만 보여준다. */
-export const RECORD_MIN_SAMPLE = 5;
+import {
+  FIRST_OBJECTIVE_KEYS, type FirstObjectiveKey, type PreviewHeadToHead, type PreviewTeamRecord, type RateRecord, type SeriesOutcome,
+} from "../packages/contracts/src/preview-records.ts";
+
+// 앱과 같은 기준을 쓰도록 표본 기준과 타입은 contracts에 둔다.
+export {
+  FIRST_OBJECTIVE_KEYS, FIRST_OBJECTIVE_LABELS, RECORD_MIN_SAMPLE, recordMinuteLabel, recordRate,
+  type FirstObjectiveKey, type PreviewHeadToHead, type PreviewTeamRecord, type RateRecord, type SeriesOutcome,
+} from "../packages/contracts/src/preview-records.ts";
+
 const FORM_MATCHES = 5;
-
-export type RateRecord = { wins: number; games: number };
-
-/** 팀 기준 시리즈 스코어 한 종류. label은 "2:0"처럼 자기 팀 점수가 앞이다. */
-export type SeriesOutcome = { label: string; win: boolean; count: number };
-
-export const FIRST_OBJECTIVE_KEYS = ["kill", "tower", "herald", "baron"] as const;
-export type FirstObjectiveKey = typeof FIRST_OBJECTIVE_KEYS[number];
 
 /** 세트에서 각 오브젝트를 처음 가져간 팀. 아무도 못 가져갔으면 null이다. */
 export type SetFirstObjectives = { setId: string } & Record<FirstObjectiveKey, string | null>;
-
-export type PreviewTeamRecord = {
-  teamId: string;
-  /** 최근 매치 승패. 오래된 경기부터 최신 순이다. */
-  form: Array<"W" | "L">;
-  /** form과 같은 최근 매치의 세트 득실. */
-  recentSets: RateRecord;
-  /** 이번 경기와 같은 BO로 치른 시즌 매치 수. outcomes의 분모다. */
-  seriesMatches: number;
-  outcomes: SeriesOutcome[];
-  /** 시즌 다전제의 1세트 승패. */
-  firstSet: RateRecord;
-  /** 1세트를 이긴 시즌 다전제의 시리즈 승패. */
-  afterFirstSetWin: RateRecord;
-  /** 아래 두 평균은 브리핑 차트와 같은 최근 세트 표본을 쓴다. */
-  averageMinutes: number | null;
-  averageTotalKills: number | null;
-  sampleSets: number;
-  /** 같은 표본에서 오브젝트를 먼저 가져간 비율. 분모는 누군가 그 오브젝트를 가져간 세트다. */
-  firsts: Record<FirstObjectiveKey, RateRecord>;
-};
-
-export type PreviewHeadToHead = { matches: number; winsA: number; winsB: number; setWinsA: number; setWinsB: number };
 
 export type MatchPreviewRecords = {
   season: number;
@@ -45,10 +22,6 @@ export type MatchPreviewRecords = {
   teamA: PreviewTeamRecord;
   teamB: PreviewTeamRecord;
 };
-
-export function recordRate(record: RateRecord, minimum = RECORD_MIN_SAMPLE) {
-  return record.games >= minimum ? Math.round(record.wins / record.games * 100) : null;
-}
 
 function average(values: Array<number | null>) {
   const present = values.filter((value): value is number => value != null && Number.isFinite(value));

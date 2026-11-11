@@ -3,13 +3,12 @@ import Link from "next/link";
 import { TeamLogo } from "@/components/ui/team-logo";
 import type { Match, Team } from "@/lib/types";
 import {
-  FIRST_OBJECTIVE_KEYS, recordRate, type FirstObjectiveKey, type MatchPreviewRecords, type PreviewHeadToHead, type PreviewTeamRecord, type RateRecord,
+  FIRST_OBJECTIVE_KEYS, FIRST_OBJECTIVE_LABELS, recordMinuteLabel, recordRate, type MatchPreviewRecords, type PreviewHeadToHead, type PreviewTeamRecord, type RateRecord,
 } from "@/lib/match-preview-records";
 import { matchHref, teamLabel } from "@/lib/view-data";
 import { Bar, CARD_SURFACE, ChartCard, Legend, META } from "./match-preview-charts";
 
 const VALUE = "shrink-0 text-[15px] font-bold tabular-nums text-[var(--ui-ink)]";
-const FIRST_OBJECTIVE_LABELS: Record<FirstObjectiveKey, string> = { kill: "첫 킬", tower: "첫 타워", herald: "첫 전령", baron: "첫 바론" };
 
 /** 왼쪽 팀 값, 가운데 항목명, 오른쪽 팀 값. 막대는 가운데에서 바깥으로 자란다. */
 function CompareRow({ label, left, right, labelClassName = "w-28" }: {
@@ -59,12 +58,6 @@ function FormChips({ form, name }: { form: Array<"W" | "L">; name: string }) {
   );
 }
 
-function minuteLabel(value: number | null) {
-  if (value == null) return "-";
-  const seconds = Math.round(value * 60);
-  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
-}
-
 function TextRow({ label, values }: { label: string; values: string[] }) {
   return <CompareRow label={label} left={<span className={VALUE}>{values[0]}</span>} right={<span className={VALUE}>{values[1]}</span>} />;
 }
@@ -77,7 +70,7 @@ function RecentFlow({ names, colors, records }: { names: string[]; colors: strin
           left={<FormChips form={records[0].form} name={names[0]} />}
           right={<FormChips form={records[1].form} name={names[1]} />} />
         <RateRow label="세트 승률" records={records.map((record) => record.recentSets)} colors={colors} index={0} />
-        <TextRow label="평균 경기 시간" values={records.map((record) => minuteLabel(record.averageMinutes))} />
+        <TextRow label="평균 경기 시간" values={records.map((record) => recordMinuteLabel(record.averageMinutes))} />
         <TextRow label="세트당 킬 합계" values={records.map((record) => record.averageTotalKills == null ? "-" : record.averageTotalKills.toFixed(1))} />
         {/* 타임라인이 없는 해외팀 보충 표본만 있으면 행 자체를 내지 않는다. */}
         {FIRST_OBJECTIVE_KEYS.filter((key) => records.some((record) => record.firsts[key].games)).map((key, index) => (
