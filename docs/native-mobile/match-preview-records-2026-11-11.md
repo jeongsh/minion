@@ -29,3 +29,4 @@
 - Android: 로컬 Gradle `:app:bundleRelease`로 1.0.3(41)을 빌드했다(2분 32초). AAB `mobile/store-assets/minion-1.0.3-41.aab`, 82,959,848 bytes, SHA-256 `724d4546053e592fff76a33dcb572d371680f1a1af410363eebaf502be7c9542`. JAR 서명 검증, 업로드 인증서 SHA-256이 기존과 같음(`A3:4D:…:A0:00`), Hermes 번들의 운영 API 포함과 LAN 주소 미포함, 새 화면 문구 포함을 확인했다.
 - EAS Submit `eaed382f-8a2c-41a0-885c-7905909284d5`(store-release, 프로덕션, completed)로 Google Play 제출에 성공했다. Play Console의 검토 상태는 확인하지 않았다. EAS 원격 versionCode는 맞추지 않았다.
 - 미실행: iPhone과 Android 실기기 확인, 라이트 모드와 웹 1px 캡처 비교.
+- iOS 심사 제출: 사용자가 상용 배포와 업데이트 문구를 확인한 뒤, App Store Connect에서 1.0.3에 빌드 25를 붙이고 "이 버전에서 업그레이드된 사항"을 입력해 심사에 제출했다. 상태는 "심사 대기 중"이다. 출시 설정은 기존 값(승인 후 자동 출시, 모든 사용자 즉시, 평가 유지)을 유지했다.
