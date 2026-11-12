@@ -14,7 +14,7 @@ import "swiper/css";
 import { SegmentedToggle } from "@/components/ui/tabs";
 import type { Player, Team } from "@/lib/types";
 import { departuresForTeam, resolveTransferRosters, transferEventsInStorageOrder } from "@/lib/transfers/view";
-import { transferArticleUrl, latestPlayerEvents, lckTeamCode, marketEvents, movementCategory, normalizeTransferName, TRANSFER_KIND_LABELS, TRANSFER_ROLES, type TransferEvent, type TransferMarket, type TransferPerson, type TransferRole } from "@/lib/transfers/types";
+import { isUnconfirmedTransfer, transferArticleUrl, latestPlayerEvents, lckTeamCode, marketEvents, movementCategory, normalizeTransferName, TRANSFER_KIND_LABELS, TRANSFER_ROLES, type TransferEvent, type TransferMarket, type TransferPerson, type TransferRole } from "@/lib/transfers/types";
 
 const ROLE_ICONS: Record<string, string> = { TOP: "top", JGL: "jungle", MID: "middle", BOT: "bottom", SUP: "utility" };
 const ROLE_LABELS: Record<TransferRole, string> = { TOP: "탑", JGL: "정글", MID: "미드", BOT: "원딜", SUP: "서포터", COACH: "감독" };
@@ -24,6 +24,11 @@ const filterTrigger = "w-full whitespace-nowrap";
 
 function RoleIcon({ role, small = false }: { role: TransferRole; small?: boolean }) {
   return <span className={`flex shrink-0 items-center justify-center ${small ? "w-4" : "w-5"}`} title={ROLE_LABELS[role]}>{role === "COACH" ? <UserRound size={small ? 14 : 18} className="text-[var(--ui-muted)]" aria-label="감독" /> : <span role="img" aria-label={ROLE_LABELS[role]} className={`block bg-[var(--ui-muted)] ${small ? "size-4" : "size-5"}`} style={{ maskImage: `url(/objectives/position-${ROLE_ICONS[role]}.svg)`, maskSize: "contain", maskRepeat: "no-repeat", maskPosition: "center" }} />}</span>;
+}
+
+function UnconfirmedBadge({ event }: { event: TransferEvent }) {
+  const rumor = event.provenance === "rumor";
+  return <span className={`shrink-0 whitespace-nowrap rounded bg-[var(--ui-surface)] px-1 text-[13px] leading-4 font-medium ring-1 ring-inset ring-[var(--ui-border)] dark:ring-0 ${rumor ? "text-[var(--transfer-rumor)]" : "text-[var(--accent)]"}`}>{rumor ? "루머" : "거피셜"}</span>;
 }
 
 function destination(event: TransferEvent) {
@@ -39,19 +44,19 @@ export function TransferMarketView({ market, teams, followedTeamIds = [] }: { ma
   const [query, setQuery] = useState("");
   const [reports, setReports] = useState(true);
   const allEvents = useMemo(() => marketEvents(market), [market]);
-  const events = allEvents.filter((e) => reports || e.provenance !== "report");
+  const events = allEvents.filter((e) => reports || !isUnconfirmedTransfer(e));
   const rosters = useMemo(() => resolveTransferRosters(market.snapshot.rosters, allEvents, market.season), [market, allEvents]);
   const teamByCode = new Map(teams.flatMap((t) => { const code = lckTeamCode(t.shortName); return code ? [[code, t] as const] : []; }));
   const teamByName = new Map(teams.flatMap((t) => [t.name, t.shortName, t.slug].map((name) => [normalizeTransferName(name), t] as const)));
   const isFollowed = (code: string) => { const team = teamByCode.get(code); return team && (followedTeamIds.includes(team.id) || followedTeamIds.includes(team.fanSiteHost)); };
   const ordered = [...rosters].sort((a, b) => Number(Boolean(isFollowed(b.team))) - Number(Boolean(isFollowed(a.team))));
-  const latest = latestPlayerEvents(events.filter((e) => e.provenance !== "report"));
-  const reported = latestPlayerEvents(allEvents.filter((e) => e.provenance === "report")).filter((report) => !latest.some((confirmed) => normalizeTransferName(confirmed.player) === normalizeTransferName(report.player) && (confirmed.date ?? "") >= (report.date ?? "")));
+  const latest = latestPlayerEvents(events.filter((e) => !isUnconfirmedTransfer(e)));
+  const reported = latestPlayerEvents(allEvents.filter((e) => isUnconfirmedTransfer(e))).filter((report) => !latest.some((confirmed) => normalizeTransferName(confirmed.player) === normalizeTransferName(report.player) && (confirmed.date ?? "") >= (report.date ?? "")));
   const freeAgents = latest.filter((e) => e.kind === "leave" && !e.to);
   const keyword = normalizeTransferName(query);
   const matchesTeam = (e: TransferEvent) => teamFilter === "all" || lckTeamCode(e.from) === teamFilter || lckTeamCode(e.to) === teamFilter || market.snapshot.rosters.find((r) => r.team === teamFilter)?.slots.some((s) => s.previous.some((p) => normalizeTransferName(p.name) === normalizeTransferName(e.player)));
   const matching = (e: TransferEvent) => matchesTeam(e) && (role === "all" || role === e.role) && (!keyword || normalizeTransferName(`${e.player} ${e.realName}`).includes(keyword));
-  const recentEvents = allEvents.filter((e) => e.provenance !== "report" && matchesTeam(e));
+  const recentEvents = allEvents.filter((e) => !isUnconfirmedTransfer(e) && matchesTeam(e));
   const visibleEvents = (tab === "fa" ? freeAgents : events).filter((e) => matching(e) && (tab === "fa" || movement === "all" || movementCategory(e) === movement || (movement === "outgoing" && movementCategory(e) === "tracked")));
   const hasAdContent = recentEvents.length > 0 || (tab === "rosters"
     ? ordered.some((roster) => (teamFilter === "all" || teamFilter === roster.team) && roster.slots.some((slot) => slot.previous.length > 0 || slot.next.length > 0))
@@ -78,7 +83,7 @@ export function TransferMarketView({ market, teams, followedTeamIds = [] }: { ma
         <div className="min-w-0 space-y-0.5">
           {positionMoves.length ? positionMoves.map((event) => <div key={event.id} className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5" aria-label={`${event.player} ${event.from || "이전 팀 미정"}에서 ${destination(event)}`}>
             {playerName({ name: event.player }, false, event, true)}
-            {event.provenance === "report" && <span className="shrink-0 whitespace-nowrap rounded bg-[var(--ui-surface)] px-1 text-[12px] leading-4 font-medium text-[var(--accent)] ring-1 ring-inset ring-[var(--ui-border)] dark:ring-0">거피셜</span>}
+            {isUnconfirmedTransfer(event) && <UnconfirmedBadge event={event} />}
             <div className="flex min-w-0 max-w-full items-center gap-1" title={`${event.from || "이전 팀 미정"} → ${destination(event)}`}>
               {teamName(event.from || "미정", true, "movement")}
               <ChevronsRight size={14} strokeWidth={1.75} className="shrink-0 text-[var(--ui-muted)]" aria-hidden />
@@ -120,7 +125,7 @@ export function TransferMarketView({ market, teams, followedTeamIds = [] }: { ma
         {tab !== "rosters" && <>
         {tab === "moves" && <FilterDropdown ariaLabel="변동 종류" selected={movement} onSelect={setMovement} options={MOVEMENT_OPTIONS} rootClassName="min-w-[128px]" triggerClassName={filterTrigger} triggerTypography="ui" />}
         <FilterDropdown ariaLabel="포지션" selected={role} onSelect={setRole} options={[{ value: "all", label: "전체 포지션" }, ...[...TRANSFER_ROLES, "COACH" as const].map((r) => ({ value: r, label: ROLE_LABELS[r] }))]} rootClassName="min-w-[128px]" triggerClassName={filterTrigger} triggerTypography="ui" />
-        {tab === "moves" && <label className="flex h-8 items-center gap-1.5 text-[13px] font-medium text-[var(--ui-text)]"><input type="checkbox" checked={reports} onChange={(e) => setReports(e.target.checked)} className="size-3.5 accent-[var(--accent)]" />거피셜 포함</label>}
+        {tab === "moves" && <label className="flex h-8 items-center gap-1.5 text-[13px] font-medium text-[var(--ui-text)]"><input type="checkbox" checked={reports} onChange={(e) => setReports(e.target.checked)} className="size-3.5 accent-[var(--accent)]" />거피셜·루머 포함</label>}
         <SearchInput aria-label="선수 검색" value={query} onChange={event=>setQuery(event.target.value)} placeholder="선수 검색" containerClassName="basis-full sm:ml-auto sm:max-w-60 sm:basis-auto" />
         </>}
     </div>
@@ -150,7 +155,7 @@ export function TransferMarketView({ market, teams, followedTeamIds = [] }: { ma
               </div>)}</div>
               <ChevronsRight size={14} strokeWidth={1.75} className="text-[var(--ui-muted)]" aria-hidden />
               <div className="min-w-0 text-right" aria-label="새 로스터">{next.length ? next.map((p) => <div key={p.name}>
-                <div className="flex min-w-0 flex-wrap items-center justify-end gap-1.5">{slotReports.some((event) => normalizeTransferName(event.player) === normalizeTransferName(p.name)) ? <span className="shrink-0 whitespace-nowrap rounded bg-[var(--ui-surface)] px-1 text-[12px] leading-4 font-medium text-[var(--accent)] ring-1 ring-inset ring-[var(--ui-border)] dark:ring-0">거피셜</span> : arrivalNames.has(normalizeTransferName(p.name)) ? <span className="shrink-0 text-[12px] leading-4 font-medium text-[var(--accent)]">합류</span> : renewedNames.has(normalizeTransferName(p.name)) && <span className="shrink-0 text-[12px] leading-4 font-medium text-[var(--accent)]">재계약</span>}{playerName(p, false, undefined, true)}</div>
+                <div className="flex min-w-0 flex-wrap items-center justify-end gap-1.5">{slotReports.some((event) => normalizeTransferName(event.player) === normalizeTransferName(p.name)) ? <UnconfirmedBadge event={slotReports.find((event) => normalizeTransferName(event.player) === normalizeTransferName(p.name))!} /> : arrivalNames.has(normalizeTransferName(p.name)) ? <span className="shrink-0 text-[12px] leading-4 font-medium text-[var(--accent)]">합류</span> : renewedNames.has(normalizeTransferName(p.name)) && <span className="shrink-0 text-[12px] leading-4 font-medium text-[var(--accent)]">재계약</span>}{playerName(p, false, undefined, true)}</div>
               </div>) : <span aria-label="미발표" className="text-[13px] font-medium text-[var(--ui-muted)]">—</span>}</div>
             </div>;
             })}
@@ -163,7 +168,7 @@ export function TransferMarketView({ market, teams, followedTeamIds = [] }: { ma
     </div> : <div id="transfer-market-content" className="@container/history" aria-live="polite">
       {visibleEvents.length ? <div className="divide-y divide-[var(--ui-card-divider)]">{visibleEvents.map((e) => <article key={e.id} className="grid min-h-10 md:min-h-14 min-w-0 grid-cols-[minmax(0,100px)_auto_minmax(64px,1fr)_auto] items-center gap-2 py-2 md:py-3 @[640px]/history:grid-cols-[90px_140px_auto_minmax(0,1fr)_104px] @[640px]/history:gap-3" aria-label={`${e.player} ${TRANSFER_KIND_LABELS[e.kind]} ${e.from || "이전 팀 미정"}에서 ${destination(e)}${e.date ? `, ${e.date}` : ""}`}>
         <time className="hidden whitespace-nowrap text-[13px] font-normal text-[var(--ui-muted)] @[640px]/history:block">{e.date ?? "날짜 미상"}</time>
-        <div className="flex min-w-0 items-center gap-2"><span className="hidden shrink-0 @[640px]/history:block"><RoleIcon role={e.role} /></span><span className="min-w-0">{playerName({ name: e.player }, false, e)}</span></div>
+        <div className="flex min-w-0 items-center gap-2"><span className="hidden shrink-0 @[640px]/history:block"><RoleIcon role={e.role} /></span><span className="min-w-0">{playerName({ name: e.player }, false, e)}</span>{isUnconfirmedTransfer(e) && <UnconfirmedBadge event={e} />}</div>
         <span className="w-fit whitespace-nowrap rounded bg-[var(--ui-card-bg)] px-2 py-0.5 text-[13px] font-medium">{TRANSFER_KIND_LABELS[e.kind]}</span>
         <div className="flex min-w-0 items-center gap-1.5" title={`${e.from || "이전 팀 미정"}${e.kind !== "renew" ? ` → ${destination(e)}` : ""}`}>{teamName(e.from || "미정", true, "history")}{e.kind !== "renew" && <><ChevronsRight size={18} strokeWidth={1.75} className="shrink-0 text-[var(--ui-muted)]" aria-hidden />{teamName(destination(e), true, "history")}</>}</div>
         <span className="whitespace-nowrap text-right text-[13px] font-normal text-[var(--ui-muted)]" title={e.contractUntil ? `${e.player} 계약 종료일` : undefined}>{e.contractUntil?.replaceAll("-", ".")}</span>

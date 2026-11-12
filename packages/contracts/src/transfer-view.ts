@@ -1,4 +1,4 @@
-import { latestPlayerEvents, lckTeamCode, normalizeTransferName, type TransferEvent, type TransferMarket, type TransferRoster } from "./transfers.ts";
+import { isUnconfirmedTransfer, latestPlayerEvents, lckTeamCode, normalizeTransferName, type TransferEvent, type TransferMarket, type TransferRoster } from "./transfers.ts";
 
 export function transferEventsInStorageOrder(moves: TransferEvent[], market: TransferMarket) {
   const order = new Map([...market.snapshot.events, ...market.manual_events].map((event, index) => [event.id, index]));
@@ -7,7 +7,7 @@ export function transferEventsInStorageOrder(moves: TransferEvent[], market: Tra
 
 export function transferContract(playerName: string, team: string, events: TransferEvent[], registered?: { team: string | null; until: string | null }) {
   const name = normalizeTransferName(playerName);
-  const latest = latestPlayerEvents(events.filter((e) => e.provenance !== "report" && normalizeTransferName(e.player) === name))[0];
+  const latest = latestPlayerEvents(events.filter((e) => !isUnconfirmedTransfer(e) && normalizeTransferName(e.player) === name))[0];
   if (latest) {
     if (["leave", "retire", "inactive"].includes(latest.kind) && lckTeamCode(latest.from) === team) return { until: null, source: latest.sourceUrl, ended: latest.kind !== "inactive" };
     if (lckTeamCode(latest.to) === team) return { until: latest.contractUntil, source: latest.sourceUrl, ended: false };
@@ -20,7 +20,7 @@ export function transferContract(playerName: string, team: string, events: Trans
 
 export function resolveTransferRosters(rosters: TransferRoster[], events: TransferEvent[], season?: number) {
   const result = rosters.map((roster) => ({ ...roster, slots: roster.slots.map((slot) => ({ ...slot, previous: slot.previous.map((person) => ({ ...person })), next: slot.next.map((person) => ({ ...person })) })) }));
-  for (const event of latestPlayerEvents(events.filter((e) => e.provenance !== "report"))) {
+  for (const event of latestPlayerEvents(events.filter((e) => !isUnconfirmedTransfer(e)))) {
     const key = normalizeTransferName(event.player);
     const destination = lckTeamCode(event.to);
     // Early-season moves concern the current lineup, not necessarily next year's roster.
@@ -46,6 +46,6 @@ export function resolveTransferRosters(rosters: TransferRoster[], events: Transf
 export function departuresForTeam(team: string, rosters: TransferRoster[], events: TransferEvent[]) {
   const origin = rosters.find((r) => r.team === team);
   const names = new Set(origin?.slots.flatMap((s) => s.previous.map((p) => normalizeTransferName(p.name))) ?? []);
-  return latestPlayerEvents(events.filter((e) => e.provenance !== "report"))
+  return latestPlayerEvents(events.filter((e) => !isUnconfirmedTransfer(e)))
     .filter((e) => e.kind !== "renew" && lckTeamCode(e.to) !== team && (lckTeamCode(e.from) === team || names.has(normalizeTransferName(e.player))));
 }

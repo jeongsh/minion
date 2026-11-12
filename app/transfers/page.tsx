@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 export function generateMetadata(): Metadata {
   const season = transferSeason();
   const title = `LCK 이적시장 ${season} 스토브리그 - ${season + 1} 로스터·FA·찌라시 정리 | MINION`;
-  const description = `${season} LCK 스토브리그 이적시장을 실시간으로 정리합니다. 팀별 ${season + 1} 로스터, 오피셜 이적·재계약·FA 현황과 보도·찌라시(거피셜) 소식을 한눈에 확인하세요.`;
+  const description = `${season} LCK 스토브리그 이적시장을 실시간으로 정리합니다. 팀별 ${season + 1} 로스터, 오피셜 이적·재계약·FA 현황과 보도(거피셜)·루머 소식을 한눈에 확인하세요.`;
   return {
     title,
     description,

@@ -64,6 +64,7 @@ select.minion-native-select {
   --ui-card-divider: #e8e8ed;
   --ui-border: #dedfe2;
   --ui-ad-surface: #e7e8ea;
+  --transfer-rumor: #b45309;
   --ui-card-radius: 16px;
   --ui-control-radius: 8px;
   --ui-title-size: var(--type-section);
@@ -625,6 +626,7 @@ html[class~="dark"] {
   --ui-card-divider: #212224;
   --ui-border: #383c44;
   --ui-ad-surface: #1c1e22;
+  --transfer-rumor: #fbbf24;
   --page-background: #141517;
   --background: #141517;
   --foreground: #f8f8f8;

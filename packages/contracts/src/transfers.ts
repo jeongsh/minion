@@ -10,8 +10,11 @@ export type TransferRoster = { team: string; slots: TransferSlot[] };
 export type TransferEvent = {
   id: string; player: string; realName: string; role: TransferRole; kind: TransferKind;
   from: string; to: string; date: string | null; contractUntil: string | null;
-  sourceUrl: string; references: string[]; provenance: "namuwiki" | "official" | "report";
+  sourceUrl: string; references: string[]; provenance: "namuwiki" | "official" | "report" | "rumor";
 };
+export function isUnconfirmedTransfer(event: Pick<TransferEvent, "provenance">) {
+  return event.provenance === "report" || event.provenance === "rumor";
+}
 export type TransferFaCandidate = { player: string; team: string; role: TransferRole };
 export type TransferSnapshot = {
   version: 1; season: number; rosters: TransferRoster[]; events: TransferEvent[];
