@@ -62,14 +62,14 @@ const desktopNav = [
   { href: "/", label: "홈", icon: Home },
   { href: "/community", label: "팬톡", icon: MessagesSquare },
   { href: "/schedule", label: "일정 및 매치", icon: CalendarDays },
+  { href: "/predictions", label: "승부예측", icon: Sparkles },
   // /tournaments는 매번 오늘 날짜 기준으로 목적지가 바뀌는 완전 동적 리다이렉트라
   // 프리페치가 무의미하고, 프리페치 응답과 클릭 시 실제 응답이 같은 URL로 중복
   // 도착하면서 라우터 완료 감지(usePathname 기반)가 첫 응답만 보고 로딩을 조기
   // 종료시켜 "블랭크 후 뒤늦게 렌더링"으로 보이는 문제가 있었다.
   { href: "/tournaments", label: "대회", icon: Swords, prefetch: false },
-  { href: "/predictions", label: "승부예측", icon: Sparkles },
-  { href: "/players", label: "선수", icon: UserRound },
   { href: "/transfers", label: "이적시장", icon: ArrowLeftRight },
+  { href: "/players", label: "선수", icon: UserRound },
   { href: "/champions", label: "챔피언", icon: Crown },
   { href: "/news", label: "뉴스", icon: Rss },
 ];
