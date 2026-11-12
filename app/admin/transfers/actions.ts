@@ -52,7 +52,7 @@ export async function saveTransferEventAction(form: FormData) {
   if (!Number.isInteger(season) || season < 2026 || season > transferSeason() || !Object.hasOwn(TRANSFER_KIND_LABELS, kind) || ![...TRANSFER_ROLES, "COACH"].includes(role) || !["official", "report", "rumor", "namuwiki"].includes(provenance)) return { error: "입력 항목을 확인해 주세요." };
   if (!player || player.length > 50 || from.length > 100 || to.length > 100 || !from || (["transfer", "loan", "renew", "promote", "demote"].includes(kind) && !to)) return { error: "선수와 이전 팀, 새 팀을 확인해 주세요." };
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(Date.parse(date)) || new Date(date).toISOString().slice(0, 10) !== date || Number(date.slice(0, 4)) < season - 1 || Number(date.slice(0, 4)) > season + 1) return { error: "발표일을 확인해 주세요." };
-  try { const url = new URL(sourceUrl); if (url.protocol !== "https:" || url.username || url.password) throw new Error(); } catch { return { error: "출처의 HTTPS 링크가 필요합니다." }; }
+  if (sourceUrl) try { const url = new URL(sourceUrl); if (url.protocol !== "https:" || url.username || url.password) throw new Error(); } catch { return { error: "출처는 HTTPS 링크로 입력해 주세요." }; }
   const { data, error } = await client.from("lck_transfer_markets").select("*").eq("season", season).single();
   if (error) return { error: "먼저 문서를 동기화해 주세요." };
   const market = data as TransferMarket;

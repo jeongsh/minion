@@ -28,7 +28,7 @@ function RoleIcon({ role, small = false }: { role: TransferRole; small?: boolean
 
 function UnconfirmedBadge({ event }: { event: TransferEvent }) {
   const rumor = event.provenance === "rumor";
-  return <span className={`shrink-0 whitespace-nowrap rounded bg-[var(--ui-surface)] px-1 text-[13px] leading-4 font-medium ring-1 ring-inset ring-[var(--ui-border)] dark:ring-0 ${rumor ? "text-[var(--transfer-rumor)]" : "text-[var(--accent)]"}`}>{rumor ? "루머" : "거피셜"}</span>;
+  return <span className={`shrink-0 whitespace-nowrap rounded bg-[var(--ui-surface)] px-1 text-[12px] leading-4 font-medium ring-1 ring-inset ring-[var(--ui-border)] dark:ring-0 ${rumor ? "text-[var(--transfer-rumor)]" : "text-[var(--accent)]"}`}>{rumor ? "루머" : "거피셜"}</span>;
 }
 
 function destination(event: TransferEvent) {
