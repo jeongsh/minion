@@ -7,7 +7,7 @@ import { syncTransferMarket } from "@/lib/transfers/sync";
 import { syncTransferTeams } from "@/lib/transfers/teams";
 import { lckTeamCode, normalizeTransferName, TRANSFER_KIND_LABELS, TRANSFER_ROLES, transferSeason, type TransferEvent, type TransferMarket } from "@/lib/transfers/types";
 
-function refresh() { revalidatePath("/transfers"); revalidatePath("/admin/transfers"); }
+function refresh() { revalidatePath("/transfers"); revalidatePath("/transfers/feed.xml"); revalidatePath("/sitemap.xml"); revalidatePath("/admin/transfers"); }
 
 export async function syncTransfersAction(season: number) {
   const client = await createSupabaseAdminActionClient();
@@ -66,7 +66,7 @@ export async function saveTransferEventAction(form: FormData) {
   if (contractUntil && (!/^\d{4}-\d{2}-\d{2}$/.test(contractUntil) || !Number.isFinite(Date.parse(contractUntil)) || new Date(contractUntil).toISOString().slice(0, 10) !== contractUntil || contractUntil < date)) return { error: "계약 종료일을 확인해 주세요." };
   if (["leave", "retire", "inactive"].includes(kind) && to) return { error: "계약 종료, 은퇴, 휴식은 새 팀을 비워 주세요." };
   if (kind === "renew" && (lckTeamCode(from) ?? normalizeTransferName(from)) !== (lckTeamCode(to) ?? normalizeTransferName(to))) return { error: "재계약은 이전 팀과 새 팀이 같아야 합니다." };
-  const event: TransferEvent = { id, player, realName: original?.realName ?? "", role, kind, from, to, date, contractUntil, sourceUrl, references: [], provenance };
+  const event: TransferEvent = { id, player, realName: original?.realName ?? "", role, kind, from, to, date, contractUntil, sourceUrl, references: [], provenance, updatedAt: new Date().toISOString() };
   const events = [...market.manual_events.filter((e) => e.id !== id), event];
   const { data: updated, error: updateError } = await client.from("lck_transfer_markets").update({ manual_events: events }).eq("season", season).eq("manual_events", JSON.stringify(market.manual_events)).select("season");
   if (updateError || !updated?.length) return { error: "다른 관리 작업과 겹쳤습니다. 새로고침 후 다시 저장해 주세요." };

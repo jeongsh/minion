@@ -2,6 +2,9 @@ import type { MetadataRoute } from "next";
 import { getBoardPosts } from "@/lib/data/community";
 import { getChampions, getMatches, getPlayers, getTeams, getTournaments } from "@/lib/data/lck";
 import { siteBaseUrl } from "@/lib/site";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { getTransferMarket } from "@/lib/transfers/data";
+import { transferMarketUpdatedAt } from "@/lib/transfers/types";
 import { canQuerySupabase } from "@/lib/supabase/server";
 import { DOMESTIC_SEGMENTS, INTERNATIONAL_SEGMENTS } from "@/lib/tournaments/international-segments";
 import { matchesTournamentSegment } from "@/lib/tournaments/season-2026";
@@ -38,6 +41,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }));
 
   if (!canQuerySupabase()) return staticRoutes;
+
+  // 이적시장은 루머·오피셜이 수시로 바뀌므로 실제 마지막 변경 시각을 알린다.
+  const transferMarket = await getTransferMarket().catch(() => null);
+  if (transferMarket) {
+    const transfersRoute = staticRoutes.find((route) => route.url === `${baseUrl}/transfers`);
+    if (transfersRoute) Object.assign(transfersRoute, { lastModified: transferMarketUpdatedAt(transferMarket) });
+  }
 
   try {
     const [teams, players, matches, tournaments, champions] = await Promise.all([
@@ -81,8 +91,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.7,
     }));
 
+    // 예정 경기는 AI 프리뷰가 생성·갱신된 시각을 최종 수정일로 쓴다.
+    const scheduledIds = matches.filter((match) => match.status === "scheduled").map((match) => match.id);
+    const previewUpdatedAt = await scheduledPreviewTimes(scheduledIds);
     const matchRoutes = matches.map((match) => ({
       url: `${baseUrl}${matchHref(match)}`,
+      ...(previewUpdatedAt.has(match.id) ? { lastModified: previewUpdatedAt.get(match.id) } : {}),
       changeFrequency: match.status === "scheduled" ? ("daily" as const) : ("monthly" as const),
       priority: match.status === "scheduled" ? 0.75 : 0.55,
     }));
@@ -115,4 +129,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   } catch {
     return staticRoutes;
   }
+}
+
+async function scheduledPreviewTimes(matchIds: string[]) {
+  const times = new Map<string, string>();
+  if (!matchIds.length) return times;
+  try {
+    const { data, error } = await createSupabaseAdminClient()
+      .from("match_ai_previews")
+      .select("match_id,generated_at")
+      .in("match_id", matchIds)
+      .not("generated_at", "is", null);
+    if (error) return times;
+    for (const row of data ?? []) times.set(row.match_id as string, row.generated_at as string);
+  } catch {
+    // 서비스 키가 없는 환경에서는 수정일 없이 제출한다.
+  }
+  return times;
 }

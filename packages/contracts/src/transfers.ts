@@ -11,6 +11,8 @@ export type TransferEvent = {
   id: string; player: string; realName: string; role: TransferRole; kind: TransferKind;
   from: string; to: string; date: string | null; contractUntil: string | null;
   sourceUrl: string; references: string[]; provenance: "namuwiki" | "official" | "report" | "rumor";
+  /** 관리자가 수동 기록을 마지막으로 저장한 시각(ISO). 예전 기록에는 없다. */
+  updatedAt?: string;
 };
 export function isUnconfirmedTransfer(event: Pick<TransferEvent, "provenance">) {
   return event.provenance === "report" || event.provenance === "rumor";
@@ -76,6 +78,14 @@ export function marketEvents(market: TransferMarket): TransferEvent[] {
   const confirmed = new Set(market.manual_events.filter((e) => e.provenance === "official").map(identity));
   return [...market.snapshot.events.filter((e) => !manual.has(e.id) && !confirmed.has(identity(e))), ...manual.values()]
     .sort((a, b) => (b.date ?? "").localeCompare(a.date ?? "") || a.player.localeCompare(b.player));
+}
+
+/** 이적시장 내용이 마지막으로 바뀐 시각. 원문 동기화 변경과 수동 기록 저장 중 가장 늦은 값을 쓴다. */
+export function transferMarketUpdatedAt(market: TransferMarket): string {
+  const times = [market.synced_at, ...market.manual_events.map((e) => e.updatedAt ?? (e.date ? `${e.date}T00:00:00+09:00` : null))]
+    .map((value) => (value ? Date.parse(value) : NaN))
+    .filter(Number.isFinite);
+  return new Date(Math.max(...times)).toISOString();
 }
 
 export function movementCategory(event: TransferEvent) {
