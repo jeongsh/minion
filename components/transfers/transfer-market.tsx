@@ -13,7 +13,7 @@ import { useSwiperResize } from "@/components/ui/use-swiper-resize";
 import "swiper/css";
 import { SegmentedToggle } from "@/components/ui/tabs";
 import type { Player, Team } from "@/lib/types";
-import { departuresForTeam, resolveTransferRosters, transferEventsInStorageOrder } from "@/lib/transfers/view";
+import { departuresForTeam, reportedRosterChanges, resolveTransferRosters, transferEventsInStorageOrder } from "@/lib/transfers/view";
 import { isUnconfirmedTransfer, transferArticleUrl, latestPlayerEvents, lckTeamCode, marketEvents, movementCategory, normalizeTransferName, TRANSFER_KIND_LABELS, TRANSFER_ROLES, type TransferEvent, type TransferMarket, type TransferPerson, type TransferRole } from "@/lib/transfers/types";
 
 const ROLE_ICONS: Record<string, string> = { TOP: "top", JGL: "jungle", MID: "middle", BOT: "bottom", SUP: "utility" };
@@ -132,12 +132,14 @@ export function TransferMarketView({ market, teams, followedTeamIds = [] }: { ma
     {tab === "rosters" ? <div id="transfer-market-content" className="space-y-3" aria-label="팀별 로스터">
       {ordered.filter((r) => teamFilter === "all" || teamFilter === r.team).map((roster) => {
         const team = teamByCode.get(roster.team);
-        const departures = departuresForTeam(roster.team, market.snapshot.rosters, allEvents);
+        const reportedChanges = reportedRosterChanges(roster.team, reported, market.season);
+        const confirmedDepartures = departuresForTeam(roster.team, market.snapshot.rosters, allEvents);
+        const departures = [...confirmedDepartures, ...reportedChanges.departures.filter((event) => !confirmedDepartures.some((confirmed) => normalizeTransferName(confirmed.player) === normalizeTransferName(event.player)))];
         const confirmedArrivals = latest.filter((event) => lckTeamCode(event.to) === roster.team && ["transfer", "loan", "promote"].includes(event.kind) && (event.kind === "promote" || lckTeamCode(event.from) !== roster.team) && roster.slots.some((slot) => slot.next.some((person) => normalizeTransferName(person.name) === normalizeTransferName(event.player))));
         const arrivalNames = new Set(confirmedArrivals.map((event) => normalizeTransferName(event.player)));
         const renewedNames = new Set(latest.filter((event) => event.kind === "renew" && lckTeamCode(event.to || event.from) === roster.team).map((event) => normalizeTransferName(event.player)));
-        const arrivals = [...confirmedArrivals, ...reported.filter((event) => lckTeamCode(event.to) === roster.team && ["transfer", "loan", "promote"].includes(event.kind) && (event.kind === "promote" || lckTeamCode(event.from) !== roster.team) && !arrivalNames.has(normalizeTransferName(event.player)))];
-        const renewalReports = reported.filter((event) => event.kind === "renew" && lckTeamCode(event.to) === roster.team && (!event.contractUntil || Number(event.contractUntil.slice(0, 4)) > market.season) && (!event.date || event.date >= `${market.season}-09-01` || Boolean(event.contractUntil && Number(event.contractUntil.slice(0, 4)) > market.season)));
+        const arrivals = [...confirmedArrivals, ...reportedChanges.arrivals.filter((event) => event.kind !== "renew" && !arrivalNames.has(normalizeTransferName(event.player)))];
+        const rosterReports = reportedChanges.arrivals.filter((event) => !arrivalNames.has(normalizeTransferName(event.player)));
         return <article key={roster.team} className="grid min-w-0 grid-cols-1 gap-px overflow-hidden rounded-md bg-[var(--ui-border)] p-px md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)]">
           <section className="min-w-0 bg-[var(--ui-surface)] dark:bg-[var(--ui-card-bg)]" aria-label={`${roster.team} 포지션별 로스터`}>
           <header className="relative flex h-8 items-center gap-2 border-b border-[var(--ui-card-divider)] bg-[var(--ui-card-bg)] px-3">
@@ -146,8 +148,8 @@ export function TransferMarketView({ market, teams, followedTeamIds = [] }: { ma
           </header>
           <div className="divide-y divide-[var(--ui-card-divider)] dark:divide-transparent">
             {[...roster.slots.filter((s) => s.role !== "COACH"), ...roster.slots.filter((s) => s.role === "COACH")].map((slot) => {
-              const slotReports = renewalReports.filter((event) => event.role === slot.role);
-              const next = [...slot.next, ...slotReports.filter((event) => !slot.next.some((person) => normalizeTransferName(person.name) === normalizeTransferName(event.player))).map((event) => ({ name: event.player }))];
+              const slotReports = rosterReports.filter((event) => event.role === slot.role);
+              const next = [...slot.next.filter((person) => !reportedChanges.leaving.has(normalizeTransferName(person.name))),...slotReports.filter((event) => !slot.next.some((person) => normalizeTransferName(person.name) === normalizeTransferName(event.player))).map((event) => ({ name: event.player }))];
               return <div key={slot.role} className="grid min-h-8 grid-cols-[16px_minmax(0,1fr)_14px_minmax(0,1fr)] items-center gap-x-2 px-3 py-0.5 dark:odd:bg-[var(--ui-card-hover)]">
               <RoleIcon role={slot.role} small />
               <div className="min-w-0" aria-label="기존 선수">{slot.previous.map((p) => <div key={p.name}>

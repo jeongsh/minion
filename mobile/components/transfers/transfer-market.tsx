@@ -17,7 +17,7 @@ import { minionSize } from '@/constants/minion-theme';
 import { resolveApiAssetUrl, type MobileTeamsPageDto } from '@/lib/api-client';
 import { useAuth } from '@/providers/auth-provider';
 import type { MobileTransfersDto } from '../../../packages/contracts/src/mobile-v1';
-import { departuresForTeam, resolveTransferRosters, transferEventsInStorageOrder } from '../../../packages/contracts/src/transfer-view';
+import { departuresForTeam, reportedRosterChanges, resolveTransferRosters, transferEventsInStorageOrder } from '../../../packages/contracts/src/transfer-view';
 import { isUnconfirmedTransfer, transferArticleUrl, latestPlayerEvents, lckTeamCode, marketEvents, movementCategory, normalizeTransferName, TRANSFER_KIND_LABELS, TRANSFER_ROLES, type TransferEvent, type TransferRole } from '../../../packages/contracts/src/transfers';
 
 const ROLE_ICONS: Record<string, string> = { TOP: 'top', JGL: 'jungle', MID: 'middle', BOT: 'bottom', SUP: 'utility' };
@@ -104,15 +104,17 @@ function TransferMarketView({ data, followedTeamIds }: { data: MobileTransfersDt
     </View></View>
     {tab === 'rosters' ? <View style={{ gap: 20 }}>{ordered.filter((roster) => teamFilter === 'all' || teamFilter === roster.team).map((roster) => {
       const team = teams.get(roster.team);
-      const departures = departuresForTeam(roster.team, market.snapshot.rosters, allEvents);
+      const reportedChanges = reportedRosterChanges(roster.team, reported, market.season);
+      const confirmedDepartures = departuresForTeam(roster.team, market.snapshot.rosters, allEvents);
+      const departures = [...confirmedDepartures, ...reportedChanges.departures.filter((event) => !confirmedDepartures.some((confirmed) => normalizeTransferName(confirmed.player) === normalizeTransferName(event.player)))];
       const confirmedArrivals = latest.filter((event) => lckTeamCode(event.to) === roster.team && ['transfer', 'loan', 'promote'].includes(event.kind) && (event.kind === 'promote' || lckTeamCode(event.from) !== roster.team) && roster.slots.some((slot) => slot.next.some((person) => normalizeTransferName(person.name) === normalizeTransferName(event.player))));
       const arrivalNames = new Set(confirmedArrivals.map((event) => normalizeTransferName(event.player)));
-      const arrivals = [...confirmedArrivals, ...reported.filter((event) => lckTeamCode(event.to) === roster.team && ['transfer', 'loan', 'promote'].includes(event.kind) && (event.kind === 'promote' || lckTeamCode(event.from) !== roster.team) && !arrivalNames.has(normalizeTransferName(event.player)))];
-      const renewalReports = reported.filter((event) => event.kind === 'renew' && lckTeamCode(event.to) === roster.team && (!event.contractUntil || Number(event.contractUntil.slice(0, 4)) > market.season) && (!event.date || event.date >= `${market.season}-09-01` || Boolean(event.contractUntil && Number(event.contractUntil.slice(0, 4)) > market.season)));
+      const arrivals = [...confirmedArrivals, ...reportedChanges.arrivals.filter((event) => event.kind !== 'renew' && !arrivalNames.has(normalizeTransferName(event.player)))];
+      const rosterReports = reportedChanges.arrivals.filter((event) => !arrivalNames.has(normalizeTransferName(event.player)));
       return <View key={roster.team} style={[styles.roster, { backgroundColor: theme.border }]}><View style={{ backgroundColor: colorScheme === 'dark' ? theme.card : theme.surface }}><View style={[styles.rosterHeader, width < 768 && { height: 40 }, { backgroundColor: theme.card, borderBottomColor: theme.divider }]}><TeamLogo plain size={width < 768 ? 20 : 28} team={team} themeAware /><Text style={{ color: theme.ink, ...(width < 768 ? fonts.medium : fonts.bold), fontSize: width < 768 ? 14 : 16, lineHeight: 20 }}>{roster.team === 'DNS' ? 'DN SOOPers' : team?.name ?? roster.team}</Text></View>
         {[...roster.slots.filter((slot) => slot.role !== 'COACH'), ...roster.slots.filter((slot) => slot.role === 'COACH')].map((slot, index) => {
-          const slotReports = renewalReports.filter((event) => event.role === slot.role);
-          const next = [...slot.next, ...slotReports.filter((event) => !slot.next.some((person) => normalizeTransferName(person.name) === normalizeTransferName(event.player))).map((event) => ({ name: event.player }))];
+          const slotReports = rosterReports.filter((event) => event.role === slot.role);
+          const next = [...slot.next.filter((person) => !reportedChanges.leaving.has(normalizeTransferName(person.name))), ...slotReports.filter((event) => !slot.next.some((person) => normalizeTransferName(person.name) === normalizeTransferName(event.player))).map((event) => ({ name: event.player }))];
           return <View key={slot.role} style={[styles.slot, width < 768 && { minHeight: 40 }, { borderBottomColor: theme.divider, borderBottomWidth: colorScheme === 'dark' ? 0 : 1, backgroundColor: colorScheme === 'dark' && index % 2 === 0 ? theme.cardHover : undefined }]}><RoleIcon role={slot.role} /><View style={styles.flex}>{slot.previous.map((person) => <View key={person.name}>{playerName(person.name, true)}</View>)}</View>{arrow()}<View style={[styles.flex, { alignItems: 'flex-end' }]}>{next.length ? next.map((person) => <View key={person.name} style={styles.teamName}>{slotReports.some((event) => normalizeTransferName(event.player) === normalizeTransferName(person.name)) ? reportBadge(slotReports.find((event) => normalizeTransferName(event.player) === normalizeTransferName(person.name))!) : arrivalNames.has(normalizeTransferName(person.name)) ? <Text style={{ color: theme.accent, ...fonts.medium, fontSize: 13 }}>합류</Text> : null}{playerName(person.name)}</View>) : <Text accessibilityLabel="미발표" style={{ color: theme.muted, ...fonts.medium, fontSize: 16 }}>—</Text>}</View></View>; })}
       </View><View style={{ gap: 1 }}>{movementSummary('합류', arrivals, true, roster.team)}{movementSummary('이탈', departures, false, roster.team)}</View></View>;
     })}</View> : <View>

@@ -43,6 +43,16 @@ export function resolveTransferRosters(rosters: TransferRoster[], events: Transf
   return result;
 }
 
+// Unconfirmed reports stay out of the resolved roster; this projects them onto one team's view with a badge.
+export function reportedRosterChanges(team: string, reported: TransferEvent[], season: number) {
+  const arrivals = reported.filter((e) => lckTeamCode(e.to) === team && (e.kind === "renew"
+    ? (!e.contractUntil || Number(e.contractUntil.slice(0, 4)) > season) && (!e.date || e.date >= `${season}-09-01` || Boolean(e.contractUntil && Number(e.contractUntil.slice(0, 4)) > season))
+    : ["transfer", "loan", "promote"].includes(e.kind) && (e.kind === "promote" || lckTeamCode(e.from) !== team)));
+  const departures = reported.filter((e) => e.kind !== "renew" && lckTeamCode(e.from) === team && lckTeamCode(e.to) !== team);
+  const leaving = new Set(reported.filter((e) => e.kind !== "renew" && lckTeamCode(e.to) !== team).map((e) => normalizeTransferName(e.player)));
+  return { arrivals, departures, leaving };
+}
+
 export function departuresForTeam(team: string, rosters: TransferRoster[], events: TransferEvent[]) {
   const origin = rosters.find((r) => r.team === team);
   const names = new Set(origin?.slots.flatMap((s) => s.previous.map((p) => normalizeTransferName(p.name))) ?? []);
