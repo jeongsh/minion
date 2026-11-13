@@ -35,3 +35,4 @@
 - iOS: EAS Build `e2ee4e14-2121-4233-bd5b-1e98d20c6a36`로 1.0.4(28) 빌드 완료, 자동 제출 `b3a2982a-35dd-4187-9c0b-897b74456045`로 App Store Connect 업로드를 예약했다. 업로드 완료 여부와 심사 제출은 확인하지 않았다.
 - Android: 로컬 Gradle `:app:bundleRelease`로 1.0.4(43) 빌드(2분 36초). AAB `mobile/store-assets/minion-1.0.4-43.aab`, 82,962,662 bytes, SHA-256 `e991fa8ccfc22eb7f86df7cea93258ba8e13d08fc15604dd491a21e55d60356b`. JAR 서명 검증, 업로드 인증서 SHA-256이 기존과 같음(`A3:4D:…:A0:00`), Hermes 번들의 운영 API 포함과 LAN 주소 미포함, 동영상 업로드 경로와 에디터 명령 포함을 확인했다.
 - EAS Submit `4c385d61-29a0-44b2-b268-9904eec2657b`(store-release, 프로덕션, completed)로 Google Play 제출에 성공했다. Play Console 검토 상태는 확인하지 않았다. EAS 원격 versionCode는 맞추지 않았다.
+- iOS 심사 제출: 사용자 요청으로 App Store Connect에서 새 버전 1.0.4를 만들고 빌드 28을 붙인 뒤 "이 버전에서 업그레이드된 사항"에 "팬톡 글쓰기에서 동영상을 첨부할 수 있어요. 업로드 진행률도 함께 보여드려요."를 입력해 심사에 제출했다("1개의 항목 제출됨"). 출시 설정은 기존 값(승인 후 자동 출시, 모든 사용자 즉시, 평가 유지)을 유지했다. 같은 버전의 이전 빌드 27은 선택하지 않았다.
