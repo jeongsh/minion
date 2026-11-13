@@ -5,7 +5,11 @@ import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent, ReactNode } fr
 import { createPortal } from "react-dom";
 import { formControlClassName } from "@/components/ui/input";
 
-export type FilterOption = { value: string; label: string; icon?: ReactNode; indicator?: ReactNode };
+export type FilterOption = { value: string; label: string; icon?: ReactNode; indicator?: ReactNode; keywords?: string[] };
+
+function normalizeSearch(value: string) {
+  return value.toLowerCase().replace(/[\s.\-_]/g, "");
+}
 
 export function FilterDropdown({
   ariaLabel,
@@ -20,6 +24,8 @@ export function FilterDropdown({
   triggerClassName = "",
   placeholder = "-",
   matchTriggerWidth = false,
+  searchable = false,
+  searchPlaceholder = "검색",
 }: {
   ariaLabel: string;
   appearance?: "default" | "plain";
@@ -34,6 +40,8 @@ export function FilterDropdown({
   triggerTypography?: "default" | "ui";
   placeholder?: string;
   matchTriggerWidth?: boolean;
+  searchable?: boolean;
+  searchPlaceholder?: string;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -42,14 +50,20 @@ export function FilterDropdown({
   const popupId = useId();
   const initialFocus = useRef<"selected" | "last">("selected");
   const [popupStyle, setPopupStyle] = useState<CSSProperties>({ position: "fixed" });
+  const [query, setQuery] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
 
   useLayoutEffect(() => {
     if (!open) return;
+    if (searchable) {
+      searchRef.current?.focus({ preventScroll: true });
+      return;
+    }
     const items = popupRef.current?.querySelectorAll<HTMLButtonElement>('[role="option"]:not([disabled])');
     const selectedItem = popupRef.current?.querySelector<HTMLButtonElement>('[aria-selected="true"]:not([disabled])');
     const target = initialFocus.current === "last" ? items?.[items.length - 1] : selectedItem ?? items?.[0];
     target?.focus({ preventScroll: true });
-  }, [open]);
+  }, [open, searchable]);
 
   useEffect(() => {
     if (!open) {
@@ -83,6 +97,10 @@ export function FilterDropdown({
   const selectedOption = options.find((option) => option.value === selected);
   const triggerLabel = selectedOption?.label ?? placeholder;
   const selectedIcon = triggerIcon ?? selectedOption?.icon;
+  const searchKey = searchable ? normalizeSearch(query) : "";
+  const visibleOptions = searchKey
+    ? options.filter((option) => [option.label, option.value, ...(option.keywords ?? [])].some((text) => normalizeSearch(text).includes(searchKey)))
+    : options;
 
   useLayoutEffect(() => {
     if (!open || !triggerRef.current) return;
@@ -124,6 +142,21 @@ export function FilterDropdown({
       return;
     }
     const items = Array.from(popupRef.current?.querySelectorAll<HTMLButtonElement>('[role="option"]:not([disabled])') ?? []);
+    if (event.target === searchRef.current) {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        items[0]?.click();
+      } else if (event.key === "ArrowDown") {
+        event.preventDefault();
+        items[0]?.focus();
+      }
+      return;
+    }
+    if (searchable && event.key === "ArrowUp" && items.indexOf(document.activeElement as HTMLButtonElement) === 0) {
+      event.preventDefault();
+      searchRef.current?.focus();
+      return;
+    }
     const index = items.indexOf(document.activeElement as HTMLButtonElement);
     const step = variant === "grid" ? 3 : 1;
     const offsets: Record<string, number> = { ArrowDown: step, ArrowUp: -step, ArrowRight: 1, ArrowLeft: -1 };
@@ -148,12 +181,14 @@ export function FilterDropdown({
         disabled={disabled}
         onClick={() => {
           initialFocus.current = "selected";
+          setQuery("");
           setOpen((value) => !value);
         }}
         onKeyDown={(event) => {
           if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
           event.preventDefault();
           initialFocus.current = event.key === "ArrowUp" ? "last" : "selected";
+          if (!open) setQuery("");
           setOpen(true);
         }}
         className={`inline-flex shrink-0 items-center whitespace-nowrap text-sm font-medium text-[var(--ui-ink)] disabled:cursor-wait disabled:opacity-60 ${appearance === "plain" ? "h-10 gap-1.5 rounded-lg px-1.5 outline-none focus-visible:ring-2 focus-visible:ring-accent" : `${formControlClassName} justify-between gap-2 px-3`} ${triggerClassName}`}
@@ -177,9 +212,26 @@ export function FilterDropdown({
           }}
           className="z-[1100] max-h-[min(70vh,28rem)] overflow-y-auto rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-1.5 shadow-lg"
         >
+          {searchable ? (
+            <div className="sticky -top-1.5 z-10 -mx-1.5 -mt-1.5 mb-1 bg-[var(--ui-surface)] p-1.5">
+              <input
+                ref={searchRef}
+                type="search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder={searchPlaceholder}
+                aria-label={`${ariaLabel} 검색`}
+                autoComplete="off"
+                className={`${formControlClassName} w-full min-w-0 px-3 text-sm font-normal text-[var(--ui-ink)] placeholder:text-[var(--ui-muted)]`}
+              />
+            </div>
+          ) : null}
+          {searchable && !visibleOptions.length ? (
+            <p className="px-3 py-2.5 text-sm font-normal text-[var(--ui-muted)]">검색 결과가 없습니다.</p>
+          ) : null}
           {variant === "grid" ? (
             <div className="grid grid-cols-3 gap-1">
-              {options.map((option) => {
+              {visibleOptions.map((option) => {
                 const isSelected = option.value === selected;
 
                 return (
@@ -207,7 +259,7 @@ export function FilterDropdown({
               })}
             </div>
           ) : (
-            options.map((option) => {
+            visibleOptions.map((option) => {
               const isSelected = option.value === selected;
 
               return (

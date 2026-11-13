@@ -11,7 +11,9 @@ import { removeTransferOverrideAction, saveTransferEventAction, setTransferAutoS
 const inputClass = "mt-1 min-h-11 w-full rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 py-2 text-base font-normal";
 const buttonClass = "min-h-10 rounded-lg bg-[var(--ui-card-bg)] px-3 py-2 text-sm font-medium disabled:opacity-50";
 
-export function TransferManager({ market, season, teams, players }: { market: TransferMarket | null; season: number; teams: TransferTeam[]; players: Pick<Player, "name" | "position">[] }) {
+type TransferPlayerOption = Pick<Player, "name" | "position"> & { keywords: string[] };
+
+export function TransferManager({ market, season, teams, players }: { market: TransferMarket | null; season: number; teams: TransferTeam[]; players: TransferPlayerOption[] }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState("");
@@ -29,17 +31,24 @@ export function TransferManager({ market, season, teams, players }: { market: Tr
   const legacyDestination = toTeamId === "legacy" ? editing?.to ?? "" : "";
   const teamOptions = [{ value: "", label: "선택 안 함" },
     ...(legacyDestination ? [{ value: "legacy", label: legacyDestination }] : []),
-    ...teams.map((team) => ({ value: team.id, label: team.name })),
+    ...teams.map((team) => ({ value: team.id, label: team.name, keywords: [team.short_name, ...team.aliases] })),
   ];
   const fromOptions = [{ value: "", label: "선택 안 함" },
-    ...teams.map((team) => ({ value: team.id, label: team.name })),
+    ...teams.map((team) => ({ value: team.id, label: team.name, keywords: [team.short_name, ...team.aliases] })),
     { value: "custom", label: "직접 입력" },
   ];
   const fromTeam = teams.find((team) => team.id === fromTeamId);
   const playerOptions = [{ value: "", label: "선수 선택" },
     ...(editing && !players.some((player) => normalizeTransferName(player.name) === normalizeTransferName(editing.player)) ? [{ value: editing.player, label: editing.player }] : []),
-    ...players.map((player) => ({ value: player.name, label: player.name })),
+    ...players.filter((player) => role === "COACH" || player.position === role).map((player) => ({ value: player.name, label: player.name, keywords: player.keywords })),
   ];
+
+  function selectRole(next: string) {
+    setRole(next);
+    if (next === "COACH") return;
+    const current = players.find((player) => player.name === playerName);
+    if (current && current.position !== next) setPlayerName("");
+  }
 
   function run(task: () => Promise<string>) {
     setMessage(""); setFailed(false);
@@ -82,12 +91,12 @@ export function TransferManager({ market, season, teams, players }: { market: Tr
         <input type="hidden" name="kind" value={kind} /><input type="hidden" name="role" value={role} /><input type="hidden" name="provenance" value={provenance} />
         <input type="hidden" name="toTeamId" value={noDestination ? "" : selectedTeam?.id ?? ""} /><input type="hidden" name="to" value={noDestination ? "" : selectedTeam?.name ?? legacyDestination} />
         {fromTeamId !== "custom" && <input type="hidden" name="from" value={fromTeam?.name ?? ""} />}
-        <div className="flex flex-wrap gap-3"><FilterDropdown ariaLabel="변동 종류" selected={kind} onSelect={setKind} options={Object.entries(TRANSFER_KIND_LABELS).map(([value, label]) => ({ value, label }))} triggerTypography="ui" /><FilterDropdown ariaLabel="포지션" selected={role} onSelect={setRole} options={[...TRANSFER_ROLES, "COACH"].map((value) => ({ value, label: value === "COACH" ? "감독 / 코치" : value }))} triggerTypography="ui" /><FilterDropdown ariaLabel="확인 상태" selected={provenance} onSelect={setProvenance} options={[{ value: "official", label: "공식 발표" }, { value: "report", label: "거피셜" }, { value: "rumor", label: "루머" }, { value: "namuwiki", label: "나무위키" }]} triggerTypography="ui" /></div>
+        <div className="flex flex-wrap gap-3"><FilterDropdown ariaLabel="변동 종류" selected={kind} onSelect={setKind} options={Object.entries(TRANSFER_KIND_LABELS).map(([value, label]) => ({ value, label }))} triggerTypography="ui" /><FilterDropdown ariaLabel="포지션" selected={role} onSelect={selectRole} options={[...TRANSFER_ROLES, "COACH"].map((value) => ({ value, label: value === "COACH" ? "감독 / 코치" : value }))} triggerTypography="ui" /><FilterDropdown ariaLabel="확인 상태" selected={provenance} onSelect={setProvenance} options={[{ value: "official", label: "공식 발표" }, { value: "report", label: "거피셜" }, { value: "rumor", label: "루머" }, { value: "namuwiki", label: "나무위키" }]} triggerTypography="ui" /></div>
         <div className="grid gap-4 sm:grid-cols-2">
-          <div className="min-w-0 text-sm font-medium"><span>선수 닉네임</span><FilterDropdown ariaLabel="선수 선택" selected={playerName} onSelect={(name) => { setPlayerName(name); const player = players.find((player) => player.name === name); if (player) setRole(player.position); }} options={playerOptions} disabled={pending} triggerTypography="ui" rootClassName="mt-1" triggerClassName="w-full justify-between bg-[var(--ui-surface)] px-3 py-2" /></div>
+          <div className="min-w-0 text-sm font-medium"><span>선수 닉네임</span><FilterDropdown ariaLabel="선수 선택" selected={playerName} onSelect={setPlayerName} options={playerOptions} searchable searchPlaceholder="닉네임 또는 이름 검색" disabled={pending} triggerTypography="ui" rootClassName="mt-1" triggerClassName="w-full justify-between bg-[var(--ui-surface)] px-3 py-2" /></div>
           <label className="text-sm font-medium">발표일<input name="date" type="date" required defaultValue={editing?.date ?? new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul" }).format(new Date())} className={inputClass} /></label>
-          <div className="min-w-0 text-sm font-medium"><span>이전 팀</span><FilterDropdown ariaLabel="이전 팀" selected={fromTeamId} onSelect={setFromTeamId} options={fromOptions} disabled={pending} triggerTypography="ui" rootClassName="mt-1" triggerClassName="w-full justify-between bg-[var(--ui-surface)] px-3 py-2" />{fromTeamId === "custom" && <input name="from" aria-label="이전 팀 직접 입력" required maxLength={100} placeholder="팀명 또는 FA" value={customFrom} onChange={(event) => setCustomFrom(event.target.value)} disabled={pending} className={inputClass} />}</div>
-          <div className="min-w-0 text-sm font-medium"><span>새 팀</span><FilterDropdown ariaLabel="새 팀" selected={noDestination ? "" : toTeamId} onSelect={setToTeamId} options={teamOptions} disabled={pending || noDestination} triggerTypography="ui" rootClassName="mt-1" triggerClassName="w-full justify-between bg-[var(--ui-surface)] px-3 py-2" /></div>
+          <div className="min-w-0 text-sm font-medium"><span>이전 팀</span><FilterDropdown ariaLabel="이전 팀" selected={fromTeamId} onSelect={setFromTeamId} options={fromOptions} searchable searchPlaceholder="팀 검색" disabled={pending} triggerTypography="ui" rootClassName="mt-1" triggerClassName="w-full justify-between bg-[var(--ui-surface)] px-3 py-2" />{fromTeamId === "custom" && <input name="from" aria-label="이전 팀 직접 입력" required maxLength={100} placeholder="팀명 또는 FA" value={customFrom} onChange={(event) => setCustomFrom(event.target.value)} disabled={pending} className={inputClass} />}</div>
+          <div className="min-w-0 text-sm font-medium"><span>새 팀</span><FilterDropdown ariaLabel="새 팀" selected={noDestination ? "" : toTeamId} onSelect={setToTeamId} options={teamOptions} searchable searchPlaceholder="팀 검색" disabled={pending || noDestination} triggerTypography="ui" rootClassName="mt-1" triggerClassName="w-full justify-between bg-[var(--ui-surface)] px-3 py-2" /></div>
           <label className="text-sm font-medium">출처 링크 (선택)<input name="sourceUrl" type="url" placeholder="https://" defaultValue={editing?.references[0] ?? editing?.sourceUrl} className={inputClass} /></label>
           <label className="text-sm font-medium">계약 종료일 (선택)<input name="contractUntil" type="date" defaultValue={editing?.contractUntil ?? ""} className={inputClass} /></label>
         </div>
