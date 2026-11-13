@@ -105,7 +105,7 @@ export default function CommunityEditor({ content, onChange, allowMedia = true, 
   return (
     <div ref={containerRef} className="community-editor relative flex flex-col bg-transparent md:bg-[var(--ui-surface)]">
       {uploadingImage && imageSize ? (
-        <div className="community-media-placeholder pointer-events-none my-3 max-w-full rounded-lg" style={{ width: imageSize.width, aspectRatio: imageSize.width / imageSize.height }} role="status" aria-label="이미지 업로드 중"><span className="community-media-spinner" aria-hidden="true" /></div>
+        <div className="community-media-placeholder pointer-events-none my-3 max-w-full rounded-lg" style={{ width: imageSize.width, aspectRatio: imageSize.width / imageSize.height }} role="status" aria-label="업로드 중"><span className="community-media-spinner" aria-hidden="true" /></div>
       ) : null}
       <EditorContent editor={editor} />
       <Toolbar editor={editor} allowEmbeds={allowEmbeds} allowMedia={allowMedia} maxImages={maxImages} miniconPacks={miniconPacks} onImageSize={setImageSize} onUploadingChange={(uploading) => { setUploadingToolbarImage(uploading); if (!uploading) setImageSize(null); }} />

@@ -27,13 +27,14 @@ import { useDismissOnOutside } from "@/components/ui/use-dismiss-on-outside";
 import type { MiniconItem, MiniconPack } from "@/lib/minicons/types";
 
 import { ColorPicker } from "./ColorPicker";
-import { getImageUploadErrorMessage, uploadAndInsertEditorImage } from "./editor-image-upload";
+import { EDITOR_MEDIA_ACCEPT, MAX_EDITOR_VIDEOS, getImageUploadErrorMessage, isEditorVideoFile, uploadAndInsertEditorImage, uploadAndInsertEditorVideo } from "./editor-image-upload";
 
 interface Props {
   editor: Editor | null;
   allowMedia?: boolean;
   allowEmbeds?: boolean;
   maxImages?: number;
+  allowVideos?: boolean;
   miniconPacks?: MiniconPack[];
   onUploadingChange?: (uploading: boolean) => void;
   onImageSize?: (size: { width: number; height: number }) => void;
@@ -42,7 +43,7 @@ interface Props {
 type OpenPanel = "format" | "youtube" | "sns" | "minicon" | null;
 type SavedSelection = { from: number; to: number } | null;
 
-export default function Toolbar({ editor, allowMedia = true, allowEmbeds = allowMedia, maxImages = 10, miniconPacks = [], onUploadingChange, onImageSize }: Props) {
+export default function Toolbar({ editor, allowMedia = true, allowEmbeds = allowMedia, maxImages = 10, allowVideos = allowEmbeds, miniconPacks = [], onUploadingChange, onImageSize }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
   const embedPanelRef = useRef<HTMLDivElement>(null);
@@ -110,26 +111,43 @@ export default function Toolbar({ editor, allowMedia = true, allowEmbeds = allow
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files ?? []);
     if (files.length === 0) return;
+    const resetInput = () => { if (fileInputRef.current) fileInputRef.current.value = ""; };
+    const videoFiles = files.filter(isEditorVideoFile);
+    const imageFiles = files.filter((file) => !isEditorVideoFile(file));
+    if (videoFiles.length > 0 && !allowVideos) {
+      alert("동영상은 로그인 후 첨부할 수 있습니다.");
+      resetInput();
+      return;
+    }
     let imageCount = 0;
+    let videoCount = 0;
     editor.state.doc.descendants((node) => {
       if (node.type.name === "image" || node.type.name === "imageResize") imageCount += 1;
+      if (node.type.name === "video") videoCount += 1;
     });
-    const remaining = Math.max(0, maxImages - imageCount);
-    if (remaining === 0) {
-      alert(`이미지는 ${maxImages}장까지 첨부할 수 있습니다.`);
-      if (fileInputRef.current) fileInputRef.current.value = "";
+    const remainingImages = Math.max(0, maxImages - imageCount);
+    const remainingVideos = Math.max(0, MAX_EDITOR_VIDEOS - videoCount);
+    if (imageFiles.length > remainingImages) alert(`이미지는 ${maxImages}장까지 첨부할 수 있습니다.`);
+    if (videoFiles.length > remainingVideos) alert(`동영상은 ${MAX_EDITOR_VIDEOS}개까지 첨부할 수 있습니다.`);
+    const queue = [...imageFiles.slice(0, remainingImages), ...videoFiles.slice(0, remainingVideos)];
+    if (queue.length === 0) {
+      resetInput();
       return;
     }
     setUploadingImage(true);
     onUploadingChange?.(true);
     try {
-      for (const file of files.slice(0, remaining)) await uploadAndInsertEditorImage({ editor, file, onSize: onImageSize });
+      for (const file of files) {
+        if (!queue.includes(file)) continue;
+        if (isEditorVideoFile(file)) await uploadAndInsertEditorVideo({ editor, file, onSize: onImageSize });
+        else await uploadAndInsertEditorImage({ editor, file, onSize: onImageSize });
+      }
     } catch (error) {
-      alert("이미지 업로드 실패: " + getImageUploadErrorMessage(error, "알 수 없는 오류"));
+      alert("업로드 실패: " + getImageUploadErrorMessage(error, "알 수 없는 오류"));
     } finally {
       setUploadingImage(false);
       onUploadingChange?.(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
+      resetInput();
     }
   };
 
@@ -235,8 +253,8 @@ export default function Toolbar({ editor, allowMedia = true, allowEmbeds = allow
       <div className="flex min-h-12 items-center justify-center overflow-x-auto px-1.5 py-1 [scrollbar-width:none] md:hidden [&::-webkit-scrollbar]:hidden">
         {allowMedia ? (
           <>
-            <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploadingImage} className={primaryButtonClass()} aria-label={uploadingImage ? "이미지 업로드 중" : "이미지 첨부"}><ImageIcon size={18} /></button>
-            <input type="file" ref={fileInputRef} onChange={handleImageUpload} className="hidden" accept="image/png,image/jpeg,image/webp,image/gif" multiple={maxImages > 1} />
+            <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploadingImage} className={primaryButtonClass()} aria-label={uploadingImage ? "업로드 중" : allowVideos ? "사진·동영상 첨부" : "이미지 첨부"}><ImageIcon size={18} /></button>
+            <input type="file" ref={fileInputRef} onChange={handleImageUpload} className="hidden" accept={allowVideos ? EDITOR_MEDIA_ACCEPT : "image/png,image/jpeg,image/webp,image/gif"} multiple={maxImages > 1 || allowVideos} />
             {allowEmbeds ? <><button type="button" data-embed-trigger="youtube" aria-expanded={openPanel === "youtube"} onClick={() => togglePanel("youtube")} className={primaryButtonClass(openPanel === "youtube")} aria-label="YouTube 영상 첨부"><Video size={18} /></button><button type="button" data-embed-trigger="sns" aria-expanded={openPanel === "sns"} onClick={() => togglePanel("sns")} className={primaryButtonClass(openPanel === "sns")} aria-label="SNS 게시물 첨부"><Share2 size={18} /></button></> : null}
             <button type="button" onClick={() => editor.chain().focus().insertPoll().run()} className={primaryButtonClass()} aria-label="투표 추가"><BarChart3 size={18} /></button>
           </>
@@ -266,7 +284,7 @@ export default function Toolbar({ editor, allowMedia = true, allowEmbeds = allow
         {allowMedia ? (
           <>
             <span className="mx-1 h-6 w-px shrink-0 bg-[var(--ui-border)]" aria-hidden="true" />
-            <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploadingImage} className={formatButtonClass()} aria-label="이미지 첨부"><ImageIcon size={18} /></button>
+            <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploadingImage} className={formatButtonClass()} aria-label={allowVideos ? "사진·동영상 첨부" : "이미지 첨부"}><ImageIcon size={18} /></button>
             {allowEmbeds ? <><button type="button" data-embed-trigger="youtube" aria-expanded={openPanel === "youtube"} onClick={() => togglePanel("youtube")} className={formatButtonClass(openPanel === "youtube")} aria-label="YouTube 영상 첨부"><Video size={18} /></button><button type="button" data-embed-trigger="sns" aria-expanded={openPanel === "sns"} onClick={() => togglePanel("sns")} className={formatButtonClass(openPanel === "sns")} aria-label="SNS 게시물 첨부"><Share2 size={18} /></button></> : null}
             <button type="button" onClick={() => editor.chain().focus().insertPoll().run()} className={formatButtonClass()} aria-label="투표 추가"><BarChart3 size={18} /></button>
           </>

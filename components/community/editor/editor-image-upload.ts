@@ -133,3 +133,66 @@ export async function uploadAndInsertEditorImage(params: { editor: Editor; file:
     })
     .run();
 }
+
+const MAX_VIDEO_MB = 50;
+const MAX_VIDEO_BYTES = MAX_VIDEO_MB * 1024 * 1024;
+const ALLOWED_VIDEO_TYPES = new Set(["video/mp4", "video/webm", "video/quicktime"]);
+
+export const EDITOR_MEDIA_ACCEPT = "image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm,video/quicktime";
+export const MAX_EDITOR_VIDEOS = 3;
+
+export function isEditorVideoFile(file: File) {
+  return file.type.startsWith("video/");
+}
+
+function getVideoSize(file: File) {
+  return new Promise<{ width: number; height: number }>((resolve) => {
+    const video = document.createElement("video");
+    const objectUrl = URL.createObjectURL(file);
+    const done = (size: { width: number; height: number }) => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(size);
+    };
+    video.preload = "metadata";
+    video.onloadedmetadata = () => done({ width: video.videoWidth, height: video.videoHeight });
+    video.onerror = () => done({ width: 0, height: 0 });
+    video.src = objectUrl;
+  });
+}
+
+// 동영상은 서버 요청 본문 한도를 넘기 쉬워 서명 URL로 Storage에 바로 올린 뒤 서버가 파일을 검증한다.
+export async function uploadAndInsertEditorVideo(params: { editor: Editor; file: File; onSize?: (size: { width: number; height: number }) => void }): Promise<void> {
+  const { editor, file } = params;
+  if (!ALLOWED_VIDEO_TYPES.has(file.type)) throw new Error("MP4, WEBM, MOV 동영상만 첨부할 수 있습니다.");
+  if (file.size <= 0 || file.size > MAX_VIDEO_BYTES) throw new Error(`동영상은 ${MAX_VIDEO_MB}MB 이하만 첨부할 수 있습니다.`);
+
+  const { width, height } = await getVideoSize(file);
+  const previewWidth = width > 0 ? Math.min(width, 760) : 760;
+  params.onSize?.({ width: previewWidth, height: width > 0 && height > 0 ? previewWidth * height / width : previewWidth * 9 / 16 });
+  const request = async (body: Record<string, unknown>) => {
+    const response = await fetch("/api/community/upload/video", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const json = (await response.json().catch(() => null)) as { url?: string; path?: string; signedUrl?: string; error?: string } | null;
+    if (!response.ok || !json?.url) throw new Error(json?.error ?? "동영상 업로드에 실패했습니다.");
+    return json;
+  };
+
+  const signed = await request({ action: "sign", contentType: file.type, size: file.size, width, height });
+  if (!signed.signedUrl || !signed.path) throw new Error("동영상 업로드에 실패했습니다.");
+  const uploaded = await fetch(signed.signedUrl, {
+    method: "PUT",
+    headers: { "Content-Type": file.type, "cache-control": "max-age=31536000", "x-upsert": "false" },
+    body: file,
+  });
+  if (!uploaded.ok) throw new Error("동영상 업로드에 실패했습니다.");
+  const { url } = await request({ action: "confirm", path: signed.path });
+
+  editor
+    .chain()
+    .focus()
+    .insertContentAt(editor.state.selection.to, { type: "video", attrs: { src: url } })
+    .run();
+}

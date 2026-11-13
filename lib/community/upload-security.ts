@@ -224,3 +224,25 @@ export function checkUploadRateLimit(
 export function communityUploadPrefix(userId: string, now = new Date()) {
   return `${userId}/${now.toISOString().slice(0, 10)}`;
 }
+
+export const COMMUNITY_VIDEO_MAX_BYTES = 50 * 1024 * 1024;
+export const COMMUNITY_VIDEO_TYPES = {
+  "video/mp4": "mp4",
+  "video/webm": "webm",
+  "video/quicktime": "mov",
+} as const;
+export type CommunityVideoType = keyof typeof COMMUNITY_VIDEO_TYPES;
+
+export function isCommunityVideoType(value: unknown): value is CommunityVideoType {
+  return typeof value === "string" && Object.prototype.hasOwnProperty.call(COMMUNITY_VIDEO_TYPES, value);
+}
+
+const QUICKTIME_ATOMS = new Set(["ftyp", "moov", "mdat", "wide", "free", "skip"]);
+
+/** Checks the container signature so a mislabeled upload can't pass as video. */
+export function matchesCommunityVideoSignature(bytes: Uint8Array, contentType: CommunityVideoType) {
+  if (contentType === "video/webm") return bytes.length >= 4 && matches(bytes, [0x1a, 0x45, 0xdf, 0xa3]);
+  if (bytes.length < 8) return false;
+  const atom = ascii(bytes, 4, 4);
+  return contentType === "video/mp4" ? atom === "ftyp" : QUICKTIME_ATOMS.has(atom);
+}
