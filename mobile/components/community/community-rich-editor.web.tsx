@@ -70,6 +70,7 @@ function blockHtml(node: TiptapNode): string {
     const height = Number(node.attrs?.height ?? 0);
     return `<img src="${escapeHtml(String(node.attrs?.src ?? ''))}" alt="${escapeHtml(String(node.attrs?.alt ?? ''))}"${width > 0 ? ` data-width="${width}" style="width:${width}px"` : ''}${height > 0 ? ` data-height="${height}"` : ''}>`;
   }
+  if (node.type === 'video') { const src = escapeHtml(String(node.attrs?.src ?? '')); return `<div class="mobile-media" contenteditable="false" data-video-src="${src}"><video src="${src}" controls playsinline preload="metadata" style="display:block;max-height:640px;width:100%"></video></div>`; }
   if (node.type === 'youtube') { const src = escapeHtml(String(node.attrs?.src ?? '')); return `<div class="mobile-media mobile-youtube" contenteditable="false" data-youtube-url="${src}"><iframe src="${src}" title="YouTube 영상"></iframe><span>YouTube</span></div>`; }
   if (node.type === 'embed') { const url = escapeHtml(String(node.attrs?.url ?? '')); const type = escapeHtml(String(node.attrs?.type ?? 'generic')); return `<div class="mobile-media mobile-sns" contenteditable="false" data-embed-url="${url}" data-embed-type="${type}"><b>${type === 'instagram' ? 'Instagram' : type === 'twitter' ? 'X 게시물' : 'SNS 게시물'}</b><span>${url}</span></div>`; }
   if (node.type === 'poll') return pollMarkup(String(node.attrs?.pollId ?? ''), String(node.attrs?.question ?? ''), Array.isArray(node.attrs?.options) ? node.attrs.options as PollOption[] : []);
@@ -79,7 +80,7 @@ function blockHtml(node: TiptapNode): string {
 function documentHtml(document: TiptapDocument) { return document.content?.map(blockHtml).join('') || '<p><br></p>'; }
 
 function syncEditorEmpty(editor: HTMLElement) {
-  const hasMedia = Boolean(editor.querySelector('img,[data-youtube-url],[data-embed-url],[data-poll-id]'));
+  const hasMedia = Boolean(editor.querySelector('img,[data-video-src],[data-youtube-url],[data-embed-url],[data-poll-id]'));
   editor.dataset.empty = String(!hasMedia && !editor.textContent?.trim());
 }
 
@@ -99,6 +100,7 @@ function inlineNodes(node: Node, marks: NonNullable<TiptapNode['marks']> = []): 
 
 function blockNode(element: HTMLElement): TiptapNode {
   if (element.dataset.pollId) { let options: PollOption[] = []; try { options = JSON.parse(element.dataset.pollOptions ?? '[]') as PollOption[]; } catch { /* Keep empty. */ } return { type: 'poll', attrs: { pollId: element.dataset.pollId, question: element.dataset.pollQuestion ?? '', options } }; }
+  if (element.dataset.videoSrc) return { type: 'video', attrs: { src: element.dataset.videoSrc } };
   if (element.dataset.youtubeUrl) return { type: 'youtube', attrs: { src: element.dataset.youtubeUrl } };
   if (element.dataset.embedUrl) return { type: 'embed', attrs: { url: element.dataset.embedUrl, type: element.dataset.embedType ?? 'generic' } };
   if (element.tagName === 'IMG') {

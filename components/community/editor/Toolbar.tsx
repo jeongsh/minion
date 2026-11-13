@@ -257,7 +257,7 @@ export default function Toolbar({ editor, allowMedia = true, allowEmbeds = allow
       <div className="flex min-h-12 items-center justify-center overflow-x-auto px-1.5 py-1 [scrollbar-width:none] md:hidden [&::-webkit-scrollbar]:hidden">
         {allowMedia ? (
           <>
-            <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploadingImage} className={primaryButtonClass()} aria-label={uploadingImage ? "업로드 중" : allowVideos ? "사진·동영상 첨부" : "이미지 첨부"}><ImageIcon size={18} /></button>
+            <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploadingImage} className={primaryButtonClass()} aria-label={uploadingImage ? "업로드 중" : allowVideos ? "사진, 동영상 첨부" : "이미지 첨부"}><ImageIcon size={18} /></button>
             <input type="file" ref={fileInputRef} onChange={handleImageUpload} className="hidden" accept={allowVideos ? EDITOR_MEDIA_ACCEPT : "image/png,image/jpeg,image/webp,image/gif"} multiple={maxImages > 1 || allowVideos} />
             {allowEmbeds ? <><button type="button" data-embed-trigger="youtube" aria-expanded={openPanel === "youtube"} onClick={() => togglePanel("youtube")} className={primaryButtonClass(openPanel === "youtube")} aria-label="YouTube 영상 첨부"><Video size={18} /></button><button type="button" data-embed-trigger="sns" aria-expanded={openPanel === "sns"} onClick={() => togglePanel("sns")} className={primaryButtonClass(openPanel === "sns")} aria-label="SNS 게시물 첨부"><Share2 size={18} /></button></> : null}
             <button type="button" onClick={() => editor.chain().focus().insertPoll().run()} className={primaryButtonClass()} aria-label="투표 추가"><BarChart3 size={18} /></button>
@@ -288,7 +288,7 @@ export default function Toolbar({ editor, allowMedia = true, allowEmbeds = allow
         {allowMedia ? (
           <>
             <span className="mx-1 h-6 w-px shrink-0 bg-[var(--ui-border)]" aria-hidden="true" />
-            <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploadingImage} className={formatButtonClass()} aria-label={allowVideos ? "사진·동영상 첨부" : "이미지 첨부"}><ImageIcon size={18} /></button>
+            <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploadingImage} className={formatButtonClass()} aria-label={allowVideos ? "사진, 동영상 첨부" : "이미지 첨부"}><ImageIcon size={18} /></button>
             {allowEmbeds ? <><button type="button" data-embed-trigger="youtube" aria-expanded={openPanel === "youtube"} onClick={() => togglePanel("youtube")} className={formatButtonClass(openPanel === "youtube")} aria-label="YouTube 영상 첨부"><Video size={18} /></button><button type="button" data-embed-trigger="sns" aria-expanded={openPanel === "sns"} onClick={() => togglePanel("sns")} className={formatButtonClass(openPanel === "sns")} aria-label="SNS 게시물 첨부"><Share2 size={18} /></button></> : null}
             <button type="button" onClick={() => editor.chain().focus().insertPoll().run()} className={formatButtonClass()} aria-label="투표 추가"><BarChart3 size={18} /></button>
           </>

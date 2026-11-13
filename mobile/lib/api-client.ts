@@ -299,6 +299,8 @@ export type {
   MobileCommunityPostsDto,
   MobileCommunityReactionDto,
   MobileCommunityUploadDto,
+  MobileCommunityVideoConfirmDto,
+  MobileCommunityVideoSignDto,
   MobileMiniconItem,
   MobileMiniconCatalogDto,
   MobileMiniconPack,

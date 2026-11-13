@@ -33,6 +33,11 @@ function BlockNode({ node, depth = 0 }: { node: TiptapNode; depth?: number }) {
     if (!src) return null;
     return <PostImage node={node} src={src} />;
   }
+  if (node.type === 'video') {
+    const src = typeof node.attrs?.src === 'string' ? resolveApiAssetUrl(node.attrs.src) : null;
+    if (!src || !/^https?:\/\//i.test(src)) return null;
+    return <PostVideo src={src} />;
+  }
   if (node.type === 'youtube') {
     const href = String(node.attrs?.src ?? node.attrs?.url ?? '');
     if (!href) return null;
@@ -112,6 +117,41 @@ function YoutubeEmbed({ href }: { href: string }) {
         domStorageEnabled
         javaScriptEnabled
         mediaPlaybackRequiresUserAction
+        originWhitelist={['https://*', 'http://*']}
+        scrollEnabled={false}
+        source={{ baseUrl: `${mobileApiOrigin}/`, html }}
+        startInLoadingState
+        renderLoading={() => <View style={[StyleSheet.absoluteFill, styles.youtubeLoading, { backgroundColor: theme.surfaceMuted }]}><ActivityIndicator color={theme.accent} /></View>}
+        style={styles.youtubeWebView}
+      />
+    </View>
+  );
+}
+
+const VIDEO_MAX_HEIGHT = 640;
+
+// 웹 뷰어와 같은 <video controls playsinline preload="metadata">를 WebView로 재생한다.
+// 메타데이터로 받은 원본 비율에 맞춰 높이를 정하고 웹처럼 최대 640px로 제한한다.
+function PostVideo({ src }: { src: string }) {
+  const { theme } = useMinionTheme();
+  const [aspectRatio, setAspectRatio] = useState(16 / 9);
+  const [width, setWidth] = useState(0);
+  const html = `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><style>*{box-sizing:border-box}html,body{background:#000;height:100%;margin:0;overflow:hidden;width:100%}video{display:block;height:100%;object-fit:contain;width:100%}</style></head><body><video src="${escapeHtmlAttribute(src)}" controls playsinline preload="metadata"></video><script>const v=document.querySelector('video');v.addEventListener('loadedmetadata',()=>{if(v.videoWidth&&v.videoHeight)window.ReactNativeWebView.postMessage(JSON.stringify({type:'size',width:v.videoWidth,height:v.videoHeight}))});</script></body></html>`;
+  const onMessage = (event: WebViewMessageEvent) => {
+    try {
+      const message = JSON.parse(event.nativeEvent.data) as { type?: string; width?: number; height?: number };
+      if (message.type === 'size' && Number(message.width) > 0 && Number(message.height) > 0) setAspectRatio(Number(message.width) / Number(message.height));
+    } catch { /* Ignore unrelated messages. */ }
+  };
+  const height = width > 0 ? Math.min(width / aspectRatio, VIDEO_MAX_HEIGHT) : undefined;
+  return (
+    <View accessibilityLabel="동영상" onLayout={(event) => setWidth(event.nativeEvent.layout.width)} style={[styles.video, { backgroundColor: theme.surfaceMuted, height, aspectRatio: height ? undefined : aspectRatio }]}>
+      <WebView
+        allowsFullscreenVideo
+        allowsInlineMediaPlayback
+        javaScriptEnabled
+        mediaPlaybackRequiresUserAction
+        onMessage={onMessage}
         originWhitelist={['https://*', 'http://*']}
         scrollEnabled={false}
         source={{ baseUrl: `${mobileApiOrigin}/`, html }}
@@ -361,6 +401,7 @@ const styles = StyleSheet.create({
   imageRow: { width: '100%' },
   youtube: { aspectRatio: 16 / 9, borderRadius: 10, marginVertical: 8, overflow: 'hidden', width: '100%' },
   youtubeLoading: { alignItems: 'center', justifyContent: 'center' },
+  video: { borderRadius: 4, marginVertical: 16, overflow: 'hidden', width: '100%' },
   youtubeWebView: { backgroundColor: '#000', flex: 1 },
   socialEmbed: { marginVertical: 8, overflow: 'hidden', width: '100%' },
   socialStatus: { alignItems: 'center', gap: 10, justifyContent: 'center', paddingHorizontal: 16 },

@@ -925,6 +925,17 @@ export type MobileCommunityUploadDto = {
   width: number;
   height: number;
 };
+/** POST {action:"sign"} returns a signed Storage upload URL; {action:"confirm"} verifies the uploaded file. */
+export type MobileCommunityVideoSignDto = {
+  url: string;
+  path: string;
+  token: string;
+  signedUrl: string;
+};
+export type MobileCommunityVideoConfirmDto = {
+  url: string;
+  path: string;
+};
 
 export type MobileCommunityUserActivityPost = MobileCommunityPostSummary & {
   teamSlug: string | null;
@@ -1348,6 +1359,7 @@ export const mobileApiRoutes = {
   communityPoll: { method: "GET", path: `${MOBILE_API_PREFIX}/community/polls/{pollId}`, owner: "community poll service", auth: "optional", cache: "no-store" },
   communityPollVote: { method: "POST", path: `${MOBILE_API_PREFIX}/community/polls/{pollId}`, owner: "community poll service", auth: "optional", cache: "no-store" },
   communityUpload: { method: "POST", path: `${MOBILE_API_PREFIX}/community/upload`, owner: "community upload service", auth: "optional", cache: "no-store" },
+  communityVideoUpload: { method: "POST", path: `${MOBILE_API_PREFIX}/community/upload/video`, owner: "community upload service", auth: "required", cache: "no-store" },
   communityUser: { method: "GET", path: `${MOBILE_API_PREFIX}/community/users/{userId}`, owner: "community user activity service", auth: "optional", cache: "no-store" },
   communityAuthorAction: { method: "POST", path: `${MOBILE_API_PREFIX}/community/authors/actions`, owner: "community user actions service", auth: "required", cache: "no-store" },
   minicons: { method: "GET", path: `${MOBILE_API_PREFIX}/minicons`, owner: "minicon catalog service", auth: "public", cache: "60s" },
