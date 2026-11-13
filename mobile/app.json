@@ -2,7 +2,7 @@
   "expo": {
     "name": "MINION",
     "slug": "minion",
-    "version": "1.0.3",
+    "version": "1.0.4",
     "orientation": "portrait",
     "icon": "./assets/images/app-icon.png",
     "scheme": "minion",
@@ -27,7 +27,7 @@
     },
     "android": {
       "package": "com.minion.app",
-      "versionCode": 41,
+      "versionCode": 42,
       "googleServicesFile": "./google-services.json",
       "blockedPermissions": [
         "android.permission.CAMERA",
