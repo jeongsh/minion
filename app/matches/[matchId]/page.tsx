@@ -627,6 +627,10 @@ export default async function MatchDetailPage({
         })
     : null;
   const videoId = match.vodUrl ? youtubeVideoIdFromUrl(match.vodUrl) : null;
+  // 예정 경기의 프리뷰를 검색과 답변 엔진이 분석 글로 읽도록 구조화 데이터에 싣는다.
+  const previewLine = aiPreview && match.status !== "completed"
+    ? (aiPreview.oneLiner ?? (aiPreview.source === "ai" ? aiPreview.summary : null))?.replace(/\s+/g, " ").trim() || null
+    : null;
   return (
     <main className="layout-wide match-detail-page flex flex-col gap-5 pb-12 pt-5 text-[var(--ui-text)]">
       <JsonLd
@@ -644,6 +648,20 @@ export default async function MatchDetailPage({
             { "@type": "SportsTeam", name: teamAName },
             { "@type": "SportsTeam", name: teamBName },
           ],
+          ...(previewLine ? {
+            description: previewLine,
+            subjectOf: {
+              "@type": "AnalysisNewsArticle",
+              headline: `${teamAName} vs ${teamBName} 프리뷰`,
+              description: previewLine,
+              ...(aiPreview?.watchPoints.length ? { articleBody: aiPreview.watchPoints.join(" ") } : {}),
+              ...(aiPreview?.generatedAt ? { datePublished: aiPreview.generatedAt, dateModified: aiPreview.generatedAt } : {}),
+              inLanguage: "ko",
+              url: `${siteBaseUrl()}${matchHref(match)}`,
+              author: { "@type": "Organization", name: "MINION", url: siteBaseUrl() },
+              publisher: { "@type": "Organization", name: "MINION", url: siteBaseUrl(), logo: `${siteBaseUrl()}/icon.png` },
+            },
+          } : {}),
         }}
       />
       <AutoAdContent enabled={hasAdContent} />

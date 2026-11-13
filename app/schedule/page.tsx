@@ -22,8 +22,8 @@ import { dateKeyKST, formatTimeKST, getMonthKST, getYearKST, KST_TIMEZONE, match
 import { ScheduleFilters } from "./schedule-filters";
 
 export const metadata: Metadata = {
-  title: "경기 일정 | MINION",
-  description: "LCK 경기 일정과 결과를 한눈에 확인하세요.",
+  title: "LCK 경기 일정과 결과, 경기별 프리뷰 | MINION",
+  description: "LCK와 국제 대회 경기 일정과 결과를 월별로 확인하세요. 예정 경기는 맞대결 전적과 최근 흐름을 담은 프리뷰와 승부예측으로, 끝난 경기는 세트별 기록으로 이어집니다.",
 };
 
 function currentKSTMonthYear() {
