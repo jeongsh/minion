@@ -25,6 +25,7 @@ export default function CommunityEditor({ content, onChange, allowMedia = true, 
   const [uploadingToolbarImage, setUploadingToolbarImage] = useState(false);
   const uploadingImage = uploadingDropImage || uploadingToolbarImage;
   const [imageSize, setImageSize] = useState<{ width: number; height: number } | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -105,10 +106,10 @@ export default function CommunityEditor({ content, onChange, allowMedia = true, 
   return (
     <div ref={containerRef} className="community-editor relative flex flex-col bg-transparent md:bg-[var(--ui-surface)]">
       {uploadingImage && imageSize ? (
-        <div className="community-media-placeholder pointer-events-none my-3 max-w-full rounded-lg" style={{ width: imageSize.width, aspectRatio: imageSize.width / imageSize.height }} role="status" aria-label="업로드 중"><span className="community-media-spinner" aria-hidden="true" /></div>
+        <div className="community-media-placeholder pointer-events-none my-3 max-w-full rounded-lg" style={{ width: imageSize.width, aspectRatio: imageSize.width / imageSize.height }} role="status" aria-label={uploadProgress === null ? "업로드 중" : `업로드 ${uploadProgress}%`}><span className="community-media-spinner" aria-hidden="true" />{uploadProgress !== null ? <span className="absolute inset-x-0 top-[calc(50%+22px)] text-center text-[13px] font-medium tabular-nums text-[var(--ui-text)]" aria-hidden="true">{uploadProgress}%</span> : null}</div>
       ) : null}
       <EditorContent editor={editor} />
-      <Toolbar editor={editor} allowEmbeds={allowEmbeds} allowMedia={allowMedia} maxImages={maxImages} miniconPacks={miniconPacks} onImageSize={setImageSize} onUploadingChange={(uploading) => { setUploadingToolbarImage(uploading); if (!uploading) setImageSize(null); }} />
+      <Toolbar editor={editor} allowEmbeds={allowEmbeds} allowMedia={allowMedia} maxImages={maxImages} miniconPacks={miniconPacks} onImageSize={setImageSize} onUploadProgress={setUploadProgress} onUploadingChange={(uploading) => { setUploadingToolbarImage(uploading); if (!uploading) setImageSize(null); }} />
     </div>
   );
 }

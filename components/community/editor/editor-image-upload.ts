@@ -161,7 +161,29 @@ function getVideoSize(file: File) {
 }
 
 // 동영상은 서버 요청 본문 한도를 넘기 쉬워 서명 URL로 Storage에 바로 올린 뒤 서버가 파일을 검증한다.
-export async function uploadAndInsertEditorVideo(params: { editor: Editor; file: File; onSize?: (size: { width: number; height: number }) => void }): Promise<void> {
+// fetch는 업로드 진행률을 주지 않아 XHR로 올린다.
+function putWithProgress(url: string, file: File, onProgress?: (percent: number) => void) {
+  return new Promise<void>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", url);
+    xhr.setRequestHeader("Content-Type", file.type);
+    xhr.setRequestHeader("cache-control", "max-age=31536000");
+    xhr.setRequestHeader("x-upsert", "false");
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) onProgress?.(Math.min(99, Math.floor((event.loaded / event.total) * 100)));
+    };
+    xhr.onload = () => (xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error("동영상 업로드에 실패했습니다.")));
+    xhr.onerror = () => reject(new Error("동영상 업로드에 실패했습니다."));
+    xhr.send(file);
+  });
+}
+
+export async function uploadAndInsertEditorVideo(params: {
+  editor: Editor;
+  file: File;
+  onSize?: (size: { width: number; height: number }) => void;
+  onProgress?: (percent: number) => void;
+}): Promise<void> {
   const { editor, file } = params;
   if (!ALLOWED_VIDEO_TYPES.has(file.type)) throw new Error("MP4, WEBM, MOV 동영상만 첨부할 수 있습니다.");
   if (file.size <= 0 || file.size > MAX_VIDEO_BYTES) throw new Error(`동영상은 ${MAX_VIDEO_MB}MB 이하만 첨부할 수 있습니다.`);
@@ -182,12 +204,8 @@ export async function uploadAndInsertEditorVideo(params: { editor: Editor; file:
 
   const signed = await request({ action: "sign", contentType: file.type, size: file.size, width, height });
   if (!signed.signedUrl || !signed.path) throw new Error("동영상 업로드에 실패했습니다.");
-  const uploaded = await fetch(signed.signedUrl, {
-    method: "PUT",
-    headers: { "Content-Type": file.type, "cache-control": "max-age=31536000", "x-upsert": "false" },
-    body: file,
-  });
-  if (!uploaded.ok) throw new Error("동영상 업로드에 실패했습니다.");
+  params.onProgress?.(0);
+  await putWithProgress(signed.signedUrl, file, params.onProgress);
   const { url } = await request({ action: "confirm", path: signed.path });
 
   editor

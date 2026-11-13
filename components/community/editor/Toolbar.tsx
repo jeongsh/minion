@@ -38,12 +38,13 @@ interface Props {
   miniconPacks?: MiniconPack[];
   onUploadingChange?: (uploading: boolean) => void;
   onImageSize?: (size: { width: number; height: number }) => void;
+  onUploadProgress?: (percent: number | null) => void;
 }
 
 type OpenPanel = "format" | "youtube" | "sns" | "minicon" | null;
 type SavedSelection = { from: number; to: number } | null;
 
-export default function Toolbar({ editor, allowMedia = true, allowEmbeds = allowMedia, maxImages = 10, allowVideos = allowEmbeds, miniconPacks = [], onUploadingChange, onImageSize }: Props) {
+export default function Toolbar({ editor, allowMedia = true, allowEmbeds = allowMedia, maxImages = 10, allowVideos = allowEmbeds, miniconPacks = [], onUploadingChange, onImageSize, onUploadProgress }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
   const embedPanelRef = useRef<HTMLDivElement>(null);
@@ -139,13 +140,16 @@ export default function Toolbar({ editor, allowMedia = true, allowEmbeds = allow
     try {
       for (const file of files) {
         if (!queue.includes(file)) continue;
-        if (isEditorVideoFile(file)) await uploadAndInsertEditorVideo({ editor, file, onSize: onImageSize });
-        else await uploadAndInsertEditorImage({ editor, file, onSize: onImageSize });
+        if (isEditorVideoFile(file)) {
+          await uploadAndInsertEditorVideo({ editor, file, onSize: onImageSize, onProgress: onUploadProgress });
+          onUploadProgress?.(null);
+        } else await uploadAndInsertEditorImage({ editor, file, onSize: onImageSize });
       }
     } catch (error) {
       alert("업로드 실패: " + getImageUploadErrorMessage(error, "알 수 없는 오류"));
     } finally {
       setUploadingImage(false);
+      onUploadProgress?.(null);
       onUploadingChange?.(false);
       resetInput();
     }
