@@ -28,3 +28,10 @@
 - 웹·앱 타입 검사 통과, 앱 린트 오류 없음(기존 경고 2건), 변경 파일 ESLint 통과.
 - 로컬 서버에서 앱 경로의 비로그인 요청이 `UNAUTHENTICATED`로 거절되는 것을 확인했다. Storage 서명 업로드, Range 검증과 MIME 차단은 웹 작업 때 실제 버킷으로 확인했다.
 - 미실행: iPhone과 Android 실기기의 선택, 업로드, 재생. 로그인 상태 업로드. 라이트·다크 1px 캡처 비교.
+
+## 2026-11-13 iOS 28·Android 43 배포
+
+- 사용자가 빌드와 배포를 요청했고, Google Play 프로덕션 전체 출시를 따로 확인받았다. 대상 커밋은 `e2cb360d`, 서버 변경은 같은 커밋을 `dev`에 푸시해 운영에 반영했다(운영 `/api/mobile/v1/community/upload/video` 401 확인).
+- iOS: EAS Build `e2ee4e14-2121-4233-bd5b-1e98d20c6a36`로 1.0.4(28) 빌드 완료, 자동 제출 `b3a2982a-35dd-4187-9c0b-897b74456045`로 App Store Connect 업로드를 예약했다. 업로드 완료 여부와 심사 제출은 확인하지 않았다.
+- Android: 로컬 Gradle `:app:bundleRelease`로 1.0.4(43) 빌드(2분 36초). AAB `mobile/store-assets/minion-1.0.4-43.aab`, 82,962,662 bytes, SHA-256 `e991fa8ccfc22eb7f86df7cea93258ba8e13d08fc15604dd491a21e55d60356b`. JAR 서명 검증, 업로드 인증서 SHA-256이 기존과 같음(`A3:4D:…:A0:00`), Hermes 번들의 운영 API 포함과 LAN 주소 미포함, 동영상 업로드 경로와 에디터 명령 포함을 확인했다.
+- EAS Submit `4c385d61-29a0-44b2-b268-9904eec2657b`(store-release, 프로덕션, completed)로 Google Play 제출에 성공했다. Play Console 검토 상태는 확인하지 않았다. EAS 원격 versionCode는 맞추지 않았다.
