@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition, type FormEvent, type FormEventHandler } from "react";
+import { useEffect, useRef, useState, type FormEvent, type FormEventHandler } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Star } from "lucide-react";
@@ -232,7 +232,10 @@ export function SetRatingForm({
   const formRef = useRef<HTMLFormElement>(null);
   const router = useRouter();
   const { showToast } = useToast();
-  const [isPending, startTransition] = useTransition();
+  // useTransition 의 isPending 은 제출 직후 router.refresh() transition 과 한 배치로 묶여
+  // 매치 페이지 재렌더가 끝날 때까지 풀리지 않는다. 입력 잠금은 서버 액션 시간만 막도록 일반 state 로 둔다.
+  const [isPending, setIsPending] = useState(false);
+  const submittingRef = useRef(false);
   const [selectedPlayerId, setSelectedPlayerId] = useState("");
   const [selectedRating, setSelectedRating] = useState<number | null>(null);
   const [review, setReview] = useState("");
@@ -269,16 +272,18 @@ export function SetRatingForm({
   const disabled = !ratingOpen || !isLoggedIn || playerOptions.length === 0 || isPending;
   const canSubmit = !disabled && selectedPlayerId !== "" && selectedRating != null;
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!canSubmit) return;
+    if (!canSubmit || submittingRef.current) return;
+    submittingRef.current = true;
     const formData = new FormData(event.currentTarget);
 
     const submittedPlayerId = selectedPlayerId;
     const submittedRating = selectedRating;
     const submittedReview = review.trim();
 
-    startTransition(async () => {
+    setIsPending(true);
+    try {
       const result = await submitSetPlayerRatingAction(formData);
       if (result.ok) {
         showToast({ title: "평점이 제출되었습니다!", tone: "success" });
@@ -297,7 +302,12 @@ export function SetRatingForm({
       } else {
         showToast({ title: result.error ?? "평점 제출에 실패했습니다.", tone: "error" });
       }
-    });
+    } catch {
+      showToast({ title: "평점 제출에 실패했습니다.", tone: "error" });
+    } finally {
+      submittingRef.current = false;
+      setIsPending(false);
+    }
   }
 
   return (

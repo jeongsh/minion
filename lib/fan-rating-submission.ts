@@ -54,28 +54,35 @@ export async function submitFanRating(input: SubmitFanRatingInput) {
 
   const rating = parseRating(input.rating);
   const review = normalizedReview(input.review);
-  if (await isCommunityUserSanctioned(input.userId)) {
+
+  // 제재·세트·선수 라인 확인은 서로 독립이라 동시에 조회한다. 오류 판정 순서는 기존과 같다.
+  const supabase = createSupabaseAdminClient();
+  const [sanctioned, setResult, lineResult] = await Promise.all([
+    isCommunityUserSanctioned(input.userId),
+    supabase
+      .from("sets")
+      .select("id, match_id, status, result_recorded_at")
+      .eq("id", setId)
+      .maybeSingle(),
+    supabase
+      .from("set_player_stats")
+      .select("player_id, team_id")
+      .eq("set_id", setId)
+      .eq("player_id", playerId)
+      .maybeSingle(),
+  ]);
+  if (sanctioned) {
     throw new Error("커뮤니티 이용이 영구 제한된 계정입니다.");
   }
 
-  const supabase = createSupabaseAdminClient();
-  const { data: set, error: setError } = await supabase
-    .from("sets")
-    .select("id, match_id, status, result_recorded_at")
-    .eq("id", setId)
-    .maybeSingle();
+  const { data: set, error: setError } = setResult;
   if (setError) throw new Error(setError.message);
   if (!set || set.match_id !== matchId) throw new Error("세트를 찾을 수 없습니다.");
   if (!isSetRatingOpen({ status: normalizeSetStatus(set.status), resultRecordedAt: set.result_recorded_at })) {
     throw new Error("세트 결과가 기록된 뒤부터 평점을 입력할 수 있습니다.");
   }
 
-  const { data: line, error: lineError } = await supabase
-    .from("set_player_stats")
-    .select("player_id, team_id")
-    .eq("set_id", set.id)
-    .eq("player_id", playerId)
-    .maybeSingle();
+  const { data: line, error: lineError } = lineResult;
   if (lineError) throw new Error(lineError.message);
   if (!line) throw new Error("해당 세트의 평점 대상 선수가 아닙니다.");
 
