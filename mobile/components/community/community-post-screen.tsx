@@ -260,7 +260,6 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
             );
           })}</View>
         </View>
-          <ContentBanner placement="community-post-screen-1" enabled={!data.isBlinded} suspended={ownerMenuOpen || Boolean(reportTarget) || miniconOpen} />
         </ScrollView>
         {miniconOpen ? <MiniconPicker bottom={64 + bottomInset} doubleMode={doubleMode} onDoubleModeChange={(enabled) => { setDoubleMode(enabled); setSelectedMinicons([]); }} onSelect={selectMinicon} onStartDouble={startDoubleMinicon} packs={data.miniconPacks} selectedIds={selectedMinicons.map((item) => item.id)} /> : null}
         <View style={[styles.commentDock, { backgroundColor: theme.pageBackground, borderTopColor: theme.divider, paddingBottom: 8 + bottomInset }]}>

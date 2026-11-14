@@ -4,8 +4,8 @@ import type * as MobileAdsSdk from 'react-native-google-mobile-ads';
 
 import { MOBILE_ADS_ENABLED } from '@/constants/mobile-ads';
 
-export type MobileAdsState = { ready: boolean; privacyOptionsRequired: boolean; revision: number; retryAt: number | null };
-let state: MobileAdsState = { ready: false, privacyOptionsRequired: false, revision: 0, retryAt: null };
+export type MobileAdsState = { ready: boolean; privacyOptionsRequired: boolean; revision: number; retryAt: number | null; eligible: boolean | null };
+let state: MobileAdsState = { ready: false, privacyOptionsRequired: false, revision: 0, retryAt: null, eligible: null };
 let sdk: typeof MobileAdsSdk | null = null;
 let initialization: Promise<void> | null = null;
 let privacyUpdate: Promise<void> | null = null;
@@ -40,14 +40,14 @@ async function applyConsent() {
   // Log eligibility, never the TC string, user choices or device identifiers.
   console.info('[ads] consent checked', { status: info.status, canRequestAds: info.canRequestAds, privacyOptions: info.privacyOptionsRequirementStatus });
   publish({ privacyOptionsRequired: info.privacyOptionsRequirementStatus === ads.AdsConsentPrivacyOptionsRequirementStatus.REQUIRED });
-  if (!info.canRequestAds) { publish({ ready: false }); return false; }
+  if (!info.canRequestAds) { publish({ ready: false, eligible: false }); return false; }
   if (!initialized) {
     await ads.default().initialize();
     initialized = true;
   }
   // Android throws a fatal native exception if muted before initialization.
   await ads.default().setAppMuted(true);
-  publish({ ready: true, retryAt: null, revision: state.revision + 1 });
+  publish({ ready: true, eligible: true, retryAt: null, revision: state.revision + 1 });
   return true;
 }
 
@@ -73,7 +73,7 @@ export function initializeMobileAds(): Promise<void> {
     // Retry transient errors, but never repeatedly reopen a successfully dismissed form.
     if (!ready) publish({ retryAt: updateFailed ? Date.now() + CONSENT_RETRY_MS : null });
   })().catch((error) => {
-    publish({ ready: false, retryAt: Date.now() + CONSENT_RETRY_MS });
+    publish({ ready: false, eligible: false, retryAt: Date.now() + CONSENT_RETRY_MS });
     reportConsentError('initialize', error);
   }).finally(() => {
     // Cache in-flight work only. An ineligible/failed attempt must be recoverable.

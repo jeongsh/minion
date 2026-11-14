@@ -1,7 +1,9 @@
 import { useIsFocused } from '@react-navigation/native';
 import { usePathname } from 'expo-router';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { AppState, StyleSheet, Text, useWindowDimensions, View, type StyleProp, type ViewStyle } from 'react-native';
+import { ActivityIndicator, AppState, StyleSheet, useWindowDimensions, View, type StyleProp, type ViewStyle } from 'react-native';
+
+import { HouseAd } from '@/components/ads/house-ad';
 
 import { getAndroidBannerAdUnitId, MOBILE_ADS_TEST_MODE } from '@/constants/mobile-ads';
 import { useKeyboardLayout } from '@/hooks/use-keyboard-layout';
@@ -14,7 +16,9 @@ import { getMobileAdsSdk, getMobileAdsState, initializeMobileAds, subscribeMobil
 // Matches the published Android privacy policy. UMP still applies any stricter
 // consent restrictions; do not turn this off as a workaround for no-fill.
 const REQUEST_OPTIONS = { requestNonPersonalizedAdsOnly: true };
-const PLACEHOLDER_HEIGHT = 100;
+// Fixed slot height: loading, the AdMob creative and the house fallback share it
+// so the page never shifts when a request settles.
+const SLOT_HEIGHT = 100;
 type BannerDimensions = { width: number; height: number };
 
 type Props = { enabled?: boolean; suspended?: boolean; placement: string; style?: StyleProp<ViewStyle> };
@@ -26,7 +30,6 @@ export function ContentBanner({ enabled = true, suspended = false, placement, st
   const state = useSyncExternalStore(subscribeMobileAds, getMobileAdsState, getMobileAdsState);
   const [foreground, setForeground] = useState(AppState.currentState === 'active');
   const [width, setWidth] = useState(0);
-  const [reservedHeight, setReservedHeight] = useState(PLACEHOLDER_HEIGHT);
   const [nearViewport, setNearViewport] = useState(false);
   const [unfilled, setUnfilled] = useState(() => isBannerUnfilled(placement));
   const slot = useRef<View>(null);
@@ -67,17 +70,22 @@ export function ContentBanner({ enabled = true, suspended = false, placement, st
     return () => clearTimeout(timer);
   }, [active, nearViewport, state.retryAt]);
 
-  if (!enabled || !ads || unfilled) return null;
-  // Keep measurement independent of the creative; its height follows SDK events.
+  if (!enabled || !ads) return null;
+  // No fill or no ad consent: keep the slot and show an internal promotion.
+  const fallback = unfilled || (!state.ready && state.eligible === false);
   return <View ref={slot} collapsable={false} onLayout={event => { setWidth(Math.floor(event.nativeEvent.layout.width)); notifyAdViewportChanged(); }} style={[styles.slot, style]}>
-    {state.ready && width >= 320 && nearViewport && screenVisible ? <BannerSession key={`${state.revision}:${width}:${placement}`} active={active} ads={ads} placement={placement} contentUrl={getAdContentUrl(pathname)} width={width} reservedHeight={reservedHeight} onHeightChange={setReservedHeight} onUnfilled={() => setUnfilled(true)} /> : <BannerPlaceholder height={reservedHeight} />}
+    {fallback ? <HouseAd placement={placement} height={SLOT_HEIGHT} />
+      : state.ready && width >= 320 && nearViewport && screenVisible ? <BannerSession key={`${state.revision}:${width}:${placement}`} active={active} ads={ads} placement={placement} contentUrl={getAdContentUrl(pathname)} width={width} onUnfilled={() => setUnfilled(true)} />
+      : <BannerPlaceholder />}
   </View>;
 }
 
-function BannerSession({ active, ads, placement, contentUrl, width, reservedHeight, onHeightChange, onUnfilled }: { active: boolean; ads: NonNullable<ReturnType<typeof getMobileAdsSdk>>; placement: string; contentUrl?: string; width: number; reservedHeight: number; onHeightChange: (height: number) => void; onUnfilled: () => void }) {
+function BannerSession({ active, ads, placement, contentUrl, width, onUnfilled }: { active: boolean; ads: NonNullable<ReturnType<typeof getMobileAdsSdk>>; placement: string; contentUrl?: string; width: number; onUnfilled: () => void }) {
   const [started, setStarted] = useState(false);
   const [loaded, setLoaded] = useState(false);
-  const [height, setHeight] = useState<number | null>(null);
+  const [sized, setSized] = useState(false);
+  // While request pacing holds this placement, show the house promotion instead of a long spinner.
+  const [paced] = useState(() => bannerRequestDelay(placement) > 0);
   // A changed request prop reloads the native view. Keep the page this session started on.
   const [requestOptions] = useState(() => contentUrl ? { ...REQUEST_OPTIONS, contentUrl } : REQUEST_OPTIONS);
   useEffect(() => {
@@ -96,21 +104,19 @@ function BannerSession({ active, ads, placement, contentUrl, width, reservedHeig
 
   const updateSize = (dimensions: BannerDimensions) => {
     if (Number.isFinite(dimensions.width) && Number.isFinite(dimensions.height) && dimensions.width > 0 && dimensions.height > 0) {
-      setHeight(Math.ceil(dimensions.height));
-      onHeightChange(Math.ceil(dimensions.height));
+      setSized(true);
     }
   };
 
-  if (!started) return <BannerPlaceholder height={reservedHeight} />;
+  if (!started) return paced ? <HouseAd placement={placement} height={SLOT_HEIGHT} /> : <BannerPlaceholder />;
   const BannerAd = ads.BannerAd;
   // Keep the loaded native view mounted through scrolling and sheets. The parent
   // releases it when its screen loses focus or the app enters the background.
   // AdMob automatic refresh owns later loads and keeps a loaded creative through
   // refresh failures. A failed first load removes the slot instead, releasing
   // this view so the SDK cannot keep retrying a placement nobody can see.
-  // v15.8.3 starts BaseAd at 0x0. Anchored adaptive emits a nonzero size before
-  // loading, unlike inline adaptive. Keep the parent sized while that event arrives.
-  return <View pointerEvents={active ? 'auto' : 'none'} style={[styles.creative, { width, height: loaded && height !== null ? height : reservedHeight }]}>
+  // v15.8.3 starts BaseAd at 0x0. The creative is centered inside the fixed slot.
+  return <View pointerEvents={active ? 'auto' : 'none'} style={[styles.creative, { width, height: SLOT_HEIGHT }]}>
     <BannerAd size={ads.BannerAdSize.ANCHORED_ADAPTIVE_BANNER} width={width}
       unitId={MOBILE_ADS_TEST_MODE ? ads.TestIds.BANNER : getAndroidBannerAdUnitId(placement)} requestOptions={requestOptions}
       onAdLoaded={dimensions => {
@@ -125,19 +131,19 @@ function BannerSession({ active, ads, placement, contentUrl, width, reservedHeig
         recordBannerFailure(placement, error, !loaded);
         if (!loaded) onUnfilled();
       }} />
-    {!loaded || height === null ? <BannerPlaceholder overlay /> : null}
+    {!loaded || !sized ? <View pointerEvents="none" style={StyleSheet.absoluteFill}>{paced ? <HouseAd placement={placement} height={SLOT_HEIGHT} /> : <BannerPlaceholder />}</View> : null}
   </View>;
 }
 
-function BannerPlaceholder({ overlay = false, height = PLACEHOLDER_HEIGHT }: { overlay?: boolean; height?: number }) {
-  const { fonts, theme } = useMinionTheme();
-  return <View pointerEvents="none" style={[styles.placeholder, overlay ? StyleSheet.absoluteFillObject : { height }, { backgroundColor: theme.surfaceMuted }]}>
-    <Text style={{ color: theme.muted, ...fonts.regular, fontSize: 13, lineHeight: 20 }}>광고영역</Text>
+function BannerPlaceholder() {
+  const { theme } = useMinionTheme();
+  return <View accessibilityLabel="광고 불러오는 중" pointerEvents="none" style={[styles.placeholder, { backgroundColor: theme.surfaceMuted }]}>
+    <ActivityIndicator color={theme.muted} size="small" />
   </View>;
 }
 
 const styles = StyleSheet.create({
-  slot: { alignItems: 'center', alignSelf: 'stretch', marginVertical: 12 },
+  slot: { alignItems: 'center', alignSelf: 'stretch', height: SLOT_HEIGHT, marginVertical: 12, overflow: 'hidden' },
   creative: { alignItems: 'center', justifyContent: 'center' },
-  placeholder: { alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center' },
+  placeholder: { alignSelf: 'stretch', alignItems: 'center', height: SLOT_HEIGHT, justifyContent: 'center' },
 });
