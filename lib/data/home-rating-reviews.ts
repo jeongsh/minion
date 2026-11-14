@@ -31,7 +31,7 @@ export const getHomeRatingReviews = unstable_cache(async (): Promise<HomeRatingR
   const client = createSupabaseServerClient();
   const { data: matches, error: matchError } = await client.from("matches")
     .select("id, team_a_id, team_b_id")
-    .eq("status", "completed")
+    .in("status", ["live", "completed"])
     .order("match_date", { ascending: false })
     .order("id")
     .limit(12);
