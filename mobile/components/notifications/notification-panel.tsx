@@ -79,7 +79,7 @@ function NotificationRow({ notification, onClose }: { notification: InAppNotific
 }
 
 export function NotificationPanel({ onClose, open }: { onClose: () => void; open: boolean }) {
-  const { colorScheme, fonts, theme } = useMinionTheme();
+  const { fonts, theme } = useMinionTheme();
   const { clearNotifications, markAllNotificationsRead, notifications, unreadCount } = useInAppNotifications();
   const actions = (
     <>
@@ -101,15 +101,10 @@ export function NotificationPanel({ onClose, open }: { onClose: () => void; open
   return (
     <BottomSheet
       actions={actions}
-      backdropColor={colorScheme === 'dark' ? 'rgba(0,0,0,0.65)' : 'rgba(0,0,0,0.45)'}
       contentStyle={styles.content}
-      headingStyle={styles.heading}
       onClose={onClose}
       open={open}
-      panelStyle={{ backgroundColor: theme.pageBackground }}
-      placement="center"
       scrollable={notifications.length > 0}
-      showHandle={false}
       title="알림">
       {notifications.length > 0 ? (
         <View style={styles.list}>
@@ -128,11 +123,10 @@ export function NotificationPanel({ onClose, open }: { onClose: () => void; open
 
 const styles = StyleSheet.create({
   actionButton: { alignItems: 'center', flexDirection: 'row', gap: 4, minHeight: 36, paddingHorizontal: 7 },
-  content: { paddingHorizontal: 10, paddingTop: 4 },
+  content: { paddingTop: 4 },
   copy: { flex: 1, justifyContent: 'center', minHeight: 36, minWidth: 0 },
   description: { fontSize: 13, lineHeight: 18 },
   empty: { alignItems: 'center', justifyContent: 'center', minHeight: 180, paddingHorizontal: 12 },
-  heading: { paddingHorizontal: 12 },
   iconBox: { alignItems: 'center', borderRadius: 8, height: 36, justifyContent: 'center', position: 'relative', width: 36 },
   imageContain: { height: 20, width: 20 },
   imageFill: { height: 36, width: 36 },
