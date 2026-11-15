@@ -53,7 +53,7 @@ export function ScheduleFilterSheet({
   }
 
   return (
-    <ScheduleDialogChrome onClose={onClose} open={open} title="일정 필터">
+    <ScheduleDialogChrome contentStyle={styles.sheetBody} onClose={onClose} open={open} title="일정 필터">
       <View style={styles.yearMonthRow}>
         <FilterSelect
           variant="web"
@@ -189,6 +189,7 @@ function TeamFilterChip({ active, onPress, team, width }: { active: boolean; onP
 
 const styles = StyleSheet.create({
   filterGroup: { marginTop: 16 },
+  sheetBody: { paddingBottom: 24 },
   filterGroupTitle: { fontSize: 13, lineHeight: 19.5, marginBottom: 8 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   iconChip: { alignItems: 'center', borderRadius: 12, borderWidth: 1, height: 40, justifyContent: 'center' },

@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
   commentsSection: { marginTop: 12 },
   composerActions: { alignItems: 'center', flexDirection: 'row', justifyContent: 'flex-end', gap: 12 },
   composerAvatar: { borderRadius: 24, height: 48, overflow: 'hidden', width: 48 },
-  composerBody: { gap: 16, paddingBottom: 16, paddingTop: 4 },
+  composerBody: { gap: 16, paddingBottom: 6, paddingTop: 4 },
   composerIdentity: { flex: 1, gap: 5 },
   composerPlayer: { alignItems: 'center', flexDirection: 'row', gap: 12 },
   empty: { borderRadius: 16, borderStyle: 'dashed', borderWidth: 1, padding: 16 },
