@@ -4,9 +4,11 @@ import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { RefreshCw } from "lucide-react";
 import { FilterDropdown } from "@/components/match-filter-dropdown";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import type { Player } from "@/lib/types";
 import { findTransferTeam, marketEvents, namuTransferUrl, normalizeTransferName, TRANSFER_KIND_LABELS, TRANSFER_ROLES, type TransferEvent, type TransferMarket, type TransferTeam } from "@/lib/transfers/types";
-import { removeTransferOverrideAction, saveTransferEventAction, setTransferAutoSyncAction, syncTransfersAction } from "./actions";
+import { importTransferPlayerAction, removeTransferOverrideAction, saveTransferEventAction, setTransferAutoSyncAction, syncTransfersAction } from "./actions";
 
 const inputClass = "mt-1 min-h-11 w-full rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 py-2 text-base font-normal";
 const buttonClass = "min-h-10 rounded-lg bg-[var(--ui-card-bg)] px-3 py-2 text-sm font-medium disabled:opacity-50";
@@ -20,6 +22,10 @@ export function TransferManager({ market, season, teams, players }: { market: Tr
   const [failed, setFailed] = useState(false);
   const [editing, setEditing] = useState<TransferEvent | null>(null);
   const [playerName, setPlayerName] = useState("");
+  const [addedPlayers, setAddedPlayers] = useState<TransferPlayerOption[]>([]);
+  const [addingPlayer, setAddingPlayer] = useState(false);
+  const [leaguepediaInput, setLeaguepediaInput] = useState("");
+  const availablePlayers = [...players.filter((player) => !addedPlayers.some((added) => normalizeTransferName(added.name) === normalizeTransferName(player.name))), ...addedPlayers];
   const [toTeamId, setToTeamId] = useState("");
   const [fromTeamId, setFromTeamId] = useState("");
   const [customFrom, setCustomFrom] = useState("");
@@ -39,15 +45,14 @@ export function TransferManager({ market, season, teams, players }: { market: Tr
   ];
   const fromTeam = teams.find((team) => team.id === fromTeamId);
   const playerOptions = [{ value: "", label: "선수 선택" },
-    ...(editing && !players.some((player) => normalizeTransferName(player.name) === normalizeTransferName(editing.player)) ? [{ value: editing.player, label: editing.player }] : []),
-    ...players.filter((player) => role === "COACH" || player.position === role).map((player) => ({ value: player.name, label: player.name, keywords: player.keywords })),
+    ...(editing && editing.role === role && !availablePlayers.some((player) => normalizeTransferName(player.name) === normalizeTransferName(editing.player)) ? [{ value: editing.player, label: editing.player }] : []),
+    ...availablePlayers.filter((player) => player.position === role).map((player) => ({ value: player.name, label: player.name, keywords: player.keywords })),
   ];
 
   function selectRole(next: string) {
     setRole(next);
-    if (next === "COACH") return;
-    const current = players.find((player) => player.name === playerName);
-    if (current && current.position !== next) setPlayerName("");
+    if (next !== role) setPlayerName("");
+    setAddingPlayer(false);
   }
 
   function run(task: () => Promise<string>) {
@@ -58,8 +63,9 @@ export function TransferManager({ market, season, teams, players }: { market: Tr
     });
   }
   function edit(event: TransferEvent | null) {
+    setAddingPlayer(false); setLeaguepediaInput("");
     setEditing(event); setKind(event?.kind ?? "transfer"); setRole(event?.role ?? "TOP"); setProvenance(event?.provenance ?? "official");
-    setPlayerName(event ? players.find((player) => normalizeTransferName(player.name) === normalizeTransferName(event.player))?.name ?? event.player : "");
+    setPlayerName(event ? availablePlayers.find((player) => normalizeTransferName(player.name) === normalizeTransferName(event.player))?.name ?? event.player : "");
     setToTeamId(event?.to ? findTransferTeam(event.to, teams)?.id ?? "legacy" : "");
     setFromTeamId(event?.from ? findTransferTeam(event.from, teams)?.id ?? "custom" : "");
     setCustomFrom(event?.from ?? "");
@@ -93,14 +99,33 @@ export function TransferManager({ market, season, teams, players }: { market: Tr
         {fromTeamId !== "custom" && <input type="hidden" name="from" value={fromTeam?.name ?? ""} />}
         <div className="flex flex-wrap gap-3"><FilterDropdown ariaLabel="변동 종류" selected={kind} onSelect={setKind} options={Object.entries(TRANSFER_KIND_LABELS).map(([value, label]) => ({ value, label }))} triggerTypography="ui" /><FilterDropdown ariaLabel="포지션" selected={role} onSelect={selectRole} options={[...TRANSFER_ROLES, "COACH"].map((value) => ({ value, label: value === "COACH" ? "감독 / 코치" : value }))} triggerTypography="ui" /><FilterDropdown ariaLabel="확인 상태" selected={provenance} onSelect={setProvenance} options={[{ value: "official", label: "공식 발표" }, { value: "report", label: "거피셜" }, { value: "rumor", label: "루머" }, { value: "namuwiki", label: "나무위키" }]} triggerTypography="ui" /></div>
         <div className="grid gap-4 sm:grid-cols-2">
-          <div className="min-w-0 text-sm font-medium"><span>선수 닉네임</span><FilterDropdown ariaLabel="선수 선택" selected={playerName} onSelect={setPlayerName} options={playerOptions} searchable searchPlaceholder="닉네임 또는 이름 검색" disabled={pending} triggerTypography="ui" rootClassName="mt-1" triggerClassName="w-full justify-between bg-[var(--ui-surface)] px-3 py-2" /></div>
+          <div className="min-w-0 text-sm font-medium">
+            {role === "COACH" ? <label>감독 / 코치 이름<Input aria-label="감독 / 코치 이름" value={playerName} onChange={(event) => setPlayerName(event.target.value)} required maxLength={50} disabled={pending} className="mt-1" /></label> : <>
+              <span>선수 닉네임</span>
+              <div className="mt-1 flex items-center gap-2">
+                <FilterDropdown ariaLabel="선수 선택" selected={playerName} onSelect={setPlayerName} options={playerOptions} searchable searchPlaceholder="닉네임 또는 이름 검색" disabled={pending} triggerTypography="ui" rootClassName="min-w-0 flex-1" triggerClassName="w-full justify-between bg-[var(--ui-surface)] px-3 py-2" />
+                <button type="button" aria-expanded={addingPlayer} aria-controls="transfer-player-import" disabled={pending} onClick={() => setAddingPlayer(!addingPlayer)} className="min-h-10 shrink-0 text-sm font-medium underline underline-offset-4">{addingPlayer ? "추가 취소" : "새 선수 추가"}</button>
+              </div>
+              {addingPlayer && <div id="transfer-player-import" className="mt-3 space-y-2">
+                <label className="block">리그피디아 닉네임 또는 문서 링크<Input value={leaguepediaInput} onChange={(event) => setLeaguepediaInput(event.target.value)} maxLength={1000} disabled={pending} className="mt-1" onKeyDown={(event) => { if (event.key === "Enter") event.preventDefault(); }} /></label>
+                <Button disabled={pending || !leaguepediaInput.trim()} onClick={() => run(async () => {
+                  const result = await importTransferPlayerAction(leaguepediaInput);
+                  if (!result.player) throw new Error(result.error);
+                  const player = result.player;
+                  setAddedPlayers((previous) => [...previous.filter((entry) => normalizeTransferName(entry.name) !== normalizeTransferName(player.name)), player]);
+                  setRole(player.position); setPlayerName(player.name); setAddingPlayer(false); setLeaguepediaInput("");
+                  return `${player.name} 선수 정보를 가져왔습니다.`;
+                })}>{pending ? "가져오는 중…" : "가져와 추가"}</Button>
+              </div>}
+            </>}
+          </div>
           <label className="text-sm font-medium">발표일<input name="date" type="date" required defaultValue={editing?.date ?? new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul" }).format(new Date())} className={inputClass} /></label>
           <div className="min-w-0 text-sm font-medium"><span>이전 팀</span><FilterDropdown ariaLabel="이전 팀" selected={fromTeamId} onSelect={setFromTeamId} options={fromOptions} searchable searchPlaceholder="팀 검색" disabled={pending} triggerTypography="ui" rootClassName="mt-1" triggerClassName="w-full justify-between bg-[var(--ui-surface)] px-3 py-2" />{fromTeamId === "custom" && <input name="from" aria-label="이전 팀 직접 입력" required maxLength={100} placeholder="팀명 또는 FA" value={customFrom} onChange={(event) => setCustomFrom(event.target.value)} disabled={pending} className={inputClass} />}</div>
           <div className="min-w-0 text-sm font-medium"><span>새 팀</span><FilterDropdown ariaLabel="새 팀" selected={noDestination ? "" : toTeamId} onSelect={setToTeamId} options={teamOptions} searchable searchPlaceholder="팀 검색" disabled={pending || noDestination} triggerTypography="ui" rootClassName="mt-1" triggerClassName="w-full justify-between bg-[var(--ui-surface)] px-3 py-2" /></div>
           <label className="text-sm font-medium">출처 링크 (선택)<input name="sourceUrl" type="url" placeholder="https://" defaultValue={editing?.references[0] ?? editing?.sourceUrl} className={inputClass} /></label>
           <label className="text-sm font-medium">계약 종료일 (선택)<input name="contractUntil" type="date" defaultValue={editing?.contractUntil ?? ""} className={inputClass} /></label>
         </div>
-        <button type="submit" disabled={pending || !playerName} className={buttonClass}>변동 기록 저장</button>
+        <button type="submit" disabled={pending || !playerName.trim()} className={buttonClass}>변동 기록 저장</button>
       </form>
       <section><h2 className="home-section-title mb-3 text-xl font-normal">등록된 변동</h2><div className="divide-y divide-[var(--ui-card-divider)]">{events.map((event) => <article key={event.id} className="flex flex-wrap items-center justify-between gap-3 py-4"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><span className="text-base font-bold">{event.player}</span><span className="text-sm font-medium">{TRANSFER_KIND_LABELS[event.kind]}</span><span className="text-[13px] font-normal text-[var(--ui-muted)]">{event.provenance === "official" ? "공식" : event.provenance === "report" ? "거피셜" : event.provenance === "rumor" ? "루머" : "나무위키"}</span></div><p className="mt-1 text-sm font-normal text-[var(--ui-muted)]">{event.date ?? "날짜 미상"} / {event.from}{event.to && event.from !== event.to ? ` → ${event.to}` : ""}</p></div><div className="flex flex-wrap gap-2"><button type="button" className={buttonClass} disabled={pending} onClick={() => edit(event)}>수정</button>{market.manual_events.some((e) => e.id === event.id) && <button type="button" className={buttonClass} disabled={pending} onClick={() => run(async () => { await removeTransferOverrideAction(season, event.id); if (editing?.id === event.id) edit(null); return "수동 기록을 제거했습니다. 원문 기록이 있으면 다시 표시됩니다."; })}>{event.id.startsWith("wiki:") ? "원문으로 복원" : "삭제"}</button>}</div></article>)}</div>{!events.length && <p className="text-base font-normal text-[var(--ui-muted)]">등록된 변동이 없습니다.</p>}</section>
     </>}
