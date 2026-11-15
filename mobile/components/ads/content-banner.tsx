@@ -3,7 +3,7 @@ import { usePathname } from 'expo-router';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { ActivityIndicator, AppState, StyleSheet, useWindowDimensions, View, type StyleProp, type ViewStyle } from 'react-native';
 
-import { HouseAd } from '@/components/ads/house-ad';
+import { HouseAd, useHousePromo } from '@/components/ads/house-ad';
 
 import { getAndroidBannerAdUnitId, MOBILE_ADS_TEST_MODE } from '@/constants/mobile-ads';
 import { useKeyboardLayout } from '@/hooks/use-keyboard-layout';
@@ -16,9 +16,13 @@ import { getMobileAdsSdk, getMobileAdsState, initializeMobileAds, subscribeMobil
 // Matches the published Android privacy policy. UMP still applies any stricter
 // consent restrictions; do not turn this off as a workaround for no-fill.
 const REQUEST_OPTIONS = { requestNonPersonalizedAdsOnly: true };
-// Fixed slot height: loading, the AdMob creative and the house fallback share it
-// so the page never shifts when a request settles.
-const SLOT_HEIGHT = 100;
+// Slot height matches the phone anchored adaptive banner (about 60dp at 360-400dp
+// widths), so loading, the AdMob creative and the house fallback share one size and
+// the page does not shift when a request settles. A taller creative (tablets) grows it.
+const SLOT_HEIGHT = 60;
+// House banners are 1170x180. Size the slot by that ratio so they never crop;
+// 390dp phones get 60dp, close to the anchored adaptive banner at every width.
+const slotHeightFor = (width: number) => width > 0 ? Math.min(90, Math.max(50, Math.round(width * 180 / 1170))) : SLOT_HEIGHT;
 type BannerDimensions = { width: number; height: number };
 
 type Props = { enabled?: boolean; suspended?: boolean; placement: string; style?: StyleProp<ViewStyle> };
@@ -34,6 +38,8 @@ export function ContentBanner({ enabled = true, suspended = false, placement, st
   const [unfilled, setUnfilled] = useState(() => isBannerUnfilled(placement));
   const slot = useRef<View>(null);
   const window = useWindowDimensions();
+  // Before the first layout, assume the common 16dp page gutters so the slot rarely resizes.
+  const slotHeight = slotHeightFor(width || window.width - 32);
   const ads = getMobileAdsSdk();
   const screenVisible = focused && foreground;
   const active = enabled && screenVisible && !keyboardVisible && !suspended;
@@ -70,22 +76,24 @@ export function ContentBanner({ enabled = true, suspended = false, placement, st
     return () => clearTimeout(timer);
   }, [active, nearViewport, state.retryAt]);
 
-  if (!enabled || !ads) return null;
   // No fill or no ad consent: keep the slot and show an internal promotion.
   const fallback = unfilled || (!state.ready && state.eligible === false);
-  return <View ref={slot} collapsable={false} onLayout={event => { setWidth(Math.floor(event.nativeEvent.layout.width)); notifyAdViewportChanged(); }} style={[styles.slot, style]}>
-    {fallback ? <HouseAd placement={placement} height={SLOT_HEIGHT} />
-      : state.ready && width >= 320 && nearViewport && screenVisible ? <BannerSession key={`${state.revision}:${width}:${placement}`} active={active} ads={ads} placement={placement} contentUrl={getAdContentUrl(pathname)} width={width} onUnfilled={() => setUnfilled(true)} />
-      : <BannerPlaceholder />}
+  const housePromo = useHousePromo(placement, enabled && Boolean(ads) && fallback);
+
+  if (!enabled || !ads) return null;
+  // A page with more house slots than distinct promos drops the extra slot instead of repeating one.
+  if (fallback && !housePromo) return null;
+  return <View ref={slot} collapsable={false} onLayout={event => { setWidth(Math.floor(event.nativeEvent.layout.width)); notifyAdViewportChanged(); }} style={[styles.slot, { minHeight: slotHeight }, style]}>
+    {fallback && housePromo ? <HouseAd promo={housePromo} height={slotHeight} />
+      : state.ready && width >= 320 && nearViewport && screenVisible ? <BannerSession key={`${state.revision}:${width}:${placement}`} active={active} ads={ads} placement={placement} contentUrl={getAdContentUrl(pathname)} width={width} slotHeight={slotHeight} onUnfilled={() => setUnfilled(true)} />
+      : <BannerPlaceholder height={slotHeight} />}
   </View>;
 }
 
-function BannerSession({ active, ads, placement, contentUrl, width, onUnfilled }: { active: boolean; ads: NonNullable<ReturnType<typeof getMobileAdsSdk>>; placement: string; contentUrl?: string; width: number; onUnfilled: () => void }) {
+function BannerSession({ active, ads, placement, contentUrl, width, slotHeight, onUnfilled }: { active: boolean; ads: NonNullable<ReturnType<typeof getMobileAdsSdk>>; placement: string; contentUrl?: string; width: number; slotHeight: number; onUnfilled: () => void }) {
   const [started, setStarted] = useState(false);
   const [loaded, setLoaded] = useState(false);
-  const [sized, setSized] = useState(false);
-  // While request pacing holds this placement, show the house promotion instead of a long spinner.
-  const [paced] = useState(() => bannerRequestDelay(placement) > 0);
+  const [height, setHeight] = useState<number | null>(null);
   // A changed request prop reloads the native view. Keep the page this session started on.
   const [requestOptions] = useState(() => contentUrl ? { ...REQUEST_OPTIONS, contentUrl } : REQUEST_OPTIONS);
   useEffect(() => {
@@ -104,11 +112,11 @@ function BannerSession({ active, ads, placement, contentUrl, width, onUnfilled }
 
   const updateSize = (dimensions: BannerDimensions) => {
     if (Number.isFinite(dimensions.width) && Number.isFinite(dimensions.height) && dimensions.width > 0 && dimensions.height > 0) {
-      setSized(true);
+      setHeight(Math.ceil(dimensions.height));
     }
   };
 
-  if (!started) return paced ? <HouseAd placement={placement} height={SLOT_HEIGHT} /> : <BannerPlaceholder />;
+  if (!started) return <BannerPlaceholder height={slotHeight} />;
   const BannerAd = ads.BannerAd;
   // Keep the loaded native view mounted through scrolling and sheets. The parent
   // releases it when its screen loses focus or the app enters the background.
@@ -116,7 +124,7 @@ function BannerSession({ active, ads, placement, contentUrl, width, onUnfilled }
   // refresh failures. A failed first load removes the slot instead, releasing
   // this view so the SDK cannot keep retrying a placement nobody can see.
   // v15.8.3 starts BaseAd at 0x0. The creative is centered inside the fixed slot.
-  return <View pointerEvents={active ? 'auto' : 'none'} style={[styles.creative, { width, height: SLOT_HEIGHT }]}>
+  return <View pointerEvents={active ? 'auto' : 'none'} style={[styles.creative, { width, height: loaded && height !== null ? Math.max(slotHeight, height) : slotHeight }]}>
     <BannerAd size={ads.BannerAdSize.ANCHORED_ADAPTIVE_BANNER} width={width}
       unitId={MOBILE_ADS_TEST_MODE ? ads.TestIds.BANNER : getAndroidBannerAdUnitId(placement)} requestOptions={requestOptions}
       onAdLoaded={dimensions => {
@@ -131,19 +139,19 @@ function BannerSession({ active, ads, placement, contentUrl, width, onUnfilled }
         recordBannerFailure(placement, error, !loaded);
         if (!loaded) onUnfilled();
       }} />
-    {!loaded || !sized ? <View pointerEvents="none" style={StyleSheet.absoluteFill}>{paced ? <HouseAd placement={placement} height={SLOT_HEIGHT} /> : <BannerPlaceholder />}</View> : null}
+    {!loaded || height === null ? <View pointerEvents="none" style={StyleSheet.absoluteFill}><BannerPlaceholder height={slotHeight} /></View> : null}
   </View>;
 }
 
-function BannerPlaceholder() {
+function BannerPlaceholder({ height }: { height: number }) {
   const { theme } = useMinionTheme();
-  return <View accessibilityLabel="광고 불러오는 중" pointerEvents="none" style={[styles.placeholder, { backgroundColor: theme.surfaceMuted }]}>
+  return <View accessibilityLabel="광고 불러오는 중" pointerEvents="none" style={[styles.placeholder, { backgroundColor: theme.surfaceMuted, height }]}>
     <ActivityIndicator color={theme.muted} size="small" />
   </View>;
 }
 
 const styles = StyleSheet.create({
-  slot: { alignItems: 'center', alignSelf: 'stretch', height: SLOT_HEIGHT, marginVertical: 12, overflow: 'hidden' },
+  slot: { alignItems: 'center', alignSelf: 'stretch', marginVertical: 12, overflow: 'hidden' },
   creative: { alignItems: 'center', justifyContent: 'center' },
-  placeholder: { alignSelf: 'stretch', alignItems: 'center', height: SLOT_HEIGHT, justifyContent: 'center' },
+  placeholder: { alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center' },
 });
