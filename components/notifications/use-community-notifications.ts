@@ -1,17 +1,21 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 
 import type { AppNotification } from "@/lib/notifications";
 
 const MEMBER_POLL_MS = 60_000;
 const GUEST_POLL_MS = 5 * 60_000;
+const COMMUNITY_POLL_MS = 5_000;
 
 export function isRemoteNotificationId(id: string) {
   return id.startsWith("community:") || id.startsWith("content:");
 }
 
 export function useCommunityNotifications(identityScope: string, onNewNotification?: (notification: AppNotification) => void) {
+  const pathname = usePathname();
+  const communityPage = pathname === "/community" || pathname.startsWith("/community/") || /^\/fan\/[^/]+\/community(?:\/|$)/.test(pathname);
   const [state, setState] = useState<{ identityScope: string; notifications: AppNotification[] }>({
     identityScope: "",
     notifications: [],
@@ -44,22 +48,27 @@ export function useCommunityNotifications(identityScope: string, onNewNotificati
   useEffect(() => {
     knownNotificationIds.current = null;
     const controller = new AbortController();
-    const pollMs = identityScope === "guest" ? GUEST_POLL_MS : MEMBER_POLL_MS;
-    const initialLoad = window.setTimeout(() => void refresh(controller.signal).catch(() => undefined), 0);
-    const interval = window.setInterval(() => {
-      if (document.visibilityState === "visible") void refresh().catch(() => undefined);
-    }, pollMs);
-    const onVisibilityChange = () => {
-      if (document.visibilityState === "visible") void refresh().catch(() => undefined);
+    const pollMs = communityPage ? COMMUNITY_POLL_MS : identityScope === "guest" ? GUEST_POLL_MS : MEMBER_POLL_MS;
+    let polling = false;
+    const refreshWhenVisible = () => {
+      if (document.visibilityState !== "visible" || polling) return;
+      polling = true;
+      void refresh(controller.signal).catch(() => undefined).finally(() => { polling = false; });
     };
-    document.addEventListener("visibilitychange", onVisibilityChange);
+    const initialLoad = window.setTimeout(refreshWhenVisible, 0);
+    const interval = window.setInterval(refreshWhenVisible, pollMs);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    window.addEventListener("focus", refreshWhenVisible);
+    window.addEventListener("online", refreshWhenVisible);
     return () => {
       controller.abort();
       window.clearTimeout(initialLoad);
       window.clearInterval(interval);
-      document.removeEventListener("visibilitychange", onVisibilityChange);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+      window.removeEventListener("focus", refreshWhenVisible);
+      window.removeEventListener("online", refreshWhenVisible);
     };
-  }, [identityScope, refresh]);
+  }, [identityScope, refresh, communityPage]);
 
   const markRead = useCallback((id: string) => {
     const readAt = new Date().toISOString();
@@ -101,5 +110,21 @@ export function useCommunityNotifications(identityScope: string, onNewNotificati
       .catch(() => refresh());
   }, [identityScope, refresh]);
 
-  return { notifications, markRead, markAllRead, remove, clear, refresh };
+  const mutateActivity = useCallback((method: "PATCH" | "DELETE") => {
+    const readAt = new Date().toISOString();
+    setState(current => current.identityScope === identityScope ? {
+      ...current,
+      notifications: current.notifications.flatMap(item => {
+        if (item.activityKind !== "post_comment" && item.activityKind !== "comment_reply") return [item];
+        return method === "DELETE" ? [] : [{ ...item, readAt: item.readAt ?? readAt }];
+      }),
+    } : current);
+    void fetch(method === "DELETE" ? "/api/notifications?all=true&activityOnly=true" : "/api/notifications", {
+      method,
+      headers: { "Content-Type": "application/json" },
+      ...(method === "PATCH" ? { body: JSON.stringify({ all: true, activityOnly: true }) } : {}),
+    }).then(response => { if (!response.ok) return refresh(); }).catch(() => refresh());
+  }, [identityScope, refresh]);
+
+  return { notifications, markRead, markAllRead, remove, clear, refresh, mutateActivity };
 }

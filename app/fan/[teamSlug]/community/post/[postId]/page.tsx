@@ -16,8 +16,7 @@ import {
 import {
   getPostById,
   recordPostView,
-  getBoardPosts,
-  getPostComments,
+  getPostCommentThread,
 } from "@/lib/data/community";
 import { getUserMiniconPacks } from "@/lib/data/minicons";
 import { getTeamByFanSiteHost, getTeamBySlug } from "@/lib/data/lck";
@@ -57,20 +56,20 @@ export default async function FanPostDetailPage({
   const team = (await getTeamByFanSiteHost(teamSlug)) ?? (await getTeamBySlug(teamSlug));
   if (!team) notFound();
 
-  const [post, comments, user] = await Promise.all([
+  const [post, thread, user] = await Promise.all([
     getPostById(postId),
-    getPostComments(postId),
+    getPostCommentThread(postId),
     getCurrentUser(),
   ]);
   if (!post || post.siteScope !== "team" || post.teamId !== team.id) notFound();
+  const { comments, deletedCommentIds } = thread;
 
   const viewerIpKey = await getCurrentIpKey().catch(() => null);
   after(() => recordPostView(postId, viewerIpKey));
 
-  const [reaction, commentReactions, posts, canSetNotice, currentGuestKey, miniconPacks] = await Promise.all([
+  const [reaction, commentReactions, canSetNotice, currentGuestKey, miniconPacks] = await Promise.all([
     getPostReactionState(postId),
     getCommentReactionStates(comments.map((c) => c.id)),
-    getBoardPosts({ scope: "team", teamId: team.id, hotOnly: true, limit: 30 }),
     isCurrentUserAdmin(),
     getExistingGuestKey(),
     getUserMiniconPacks(user?.id),
@@ -79,10 +78,11 @@ export default async function FanPostDetailPage({
   return (
     <main className="community-neutral fan-page-container flex flex-col gap-0 py-0 md:gap-5 md:py-9">
       <h1 className="sr-only">게시글</h1>
-      <CommunityContentLayout adsEnabled={!post.blindedAt && !post.deletedAt && hasAdPostContent(post.content)} posts={posts} scope="team" teamSlug={teamSlug} currentPostId={post.id}>
+      <CommunityContentLayout adsEnabled={!post.blindedAt && !post.deletedAt && hasAdPostContent(post.content)} currentPostId={post.id}>
         <PostView
           post={post}
           comments={comments}
+          deletedCommentIds={deletedCommentIds}
           reaction={reaction}
           commentReactions={commentReactions}
           scope="team"

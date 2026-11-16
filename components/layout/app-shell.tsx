@@ -32,6 +32,7 @@ import { TournamentEntryFallback } from "@/components/navigation/tournament-cont
 import { useMatchActivity } from "@/components/match-activity/use-match-activity";
 import { RatingOpenCard } from "@/components/match-activity/rating-open-card";
 import { NotificationPanel } from "@/components/notifications/notification-panel";
+import { NotificationContext } from "@/components/notifications/notification-context";
 import { RankAvatar } from "@/components/rank/rank-avatar";
 import { TeamLogo } from "@/components/ui/team-logo";
 import { teams as fallbackTeams } from "@/lib/team-themes";
@@ -226,6 +227,7 @@ export function AppShell({
     markAllNotificationsRead,
     removeNotification,
     clearNotifications,
+    mutateCommunityActivity,
   } = useMatchActivity(Boolean(currentUser), notificationPreferences, currentUser?.id ?? "guest");
   const closeLiveActivity = () => {
     if (!liveCard) return;
@@ -509,7 +511,7 @@ export function AppShell({
               <TournamentEntryFallback />
               <div className="tournament-entry-content">{children}</div>
             </div>
-          ) : children}
+          ) : <NotificationContext value={{ notifications, onRead: markNotificationRead, onRemove: removeNotification, onReadAll: () => mutateCommunityActivity("PATCH"), onClear: () => mutateCommunityActivity("DELETE") }}>{children}</NotificationContext>}
         </div>
         {focusRoute ? (
           <div className="hidden md:block"><SiteFooter accentColor={currentFanTeam?.primaryColor} /></div>

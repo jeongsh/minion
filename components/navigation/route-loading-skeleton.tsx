@@ -254,7 +254,7 @@ export function NewsLoadingSkeleton() {
 export function CommunityLoadingSkeleton() {
   return (
     <LoadingMain className="layout-wide flex flex-col gap-5 pb-6 sm:py-8">
-      <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_300px] xl:items-start xl:gap-6"><section><Skeleton className="community-mobile-ad h-[60px] w-full !rounded-none md:mb-4 xl:hidden" /><div className="flex flex-col"><CommunityDirectorySkeleton /><CommunityFeedSkeleton /></div></section><aside className="hidden space-y-4 xl:block"><div className="overflow-hidden rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)]"><div className="border-b border-[var(--ui-border)] p-4"><SectionTitle width="w-20" /></div><CommunityPostRows count={5} /></div><Skeleton className="h-[250px] w-full rounded-xl" /></aside></div>
+      <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_300px] xl:items-start xl:gap-6"><section><Skeleton className="community-mobile-ad h-[60px] w-full !rounded-none md:mb-4 xl:hidden" /><div className="flex flex-col"><CommunityDirectorySkeleton /><CommunityFeedSkeleton /></div></section><aside className="hidden space-y-4 xl:block"><CommunityNotificationSkeleton /><Skeleton className="h-[250px] w-full rounded-xl" /></aside></div>
     </LoadingMain>
   );
 }
@@ -312,7 +312,7 @@ export function FanPlayersLoadingSkeleton() {
 export function FanCommunityLoadingSkeleton() {
   return (
     <LoadingMain className="fan-page-container flex flex-col gap-5 py-7 md:py-9">
-      <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_300px] xl:items-start xl:gap-6"><section><Skeleton className="community-mobile-ad h-[60px] w-full !rounded-none md:mb-4 xl:hidden" /><div className="flex flex-col"><CommunityDirectorySkeleton /><CommunityFeedSkeleton /></div></section><aside className="hidden space-y-4 xl:block"><div className="overflow-hidden rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)]"><div className="border-b border-[var(--ui-border)] p-4"><SectionTitle width="w-16" /></div><CommunityPostRows count={5} /></div><Skeleton className="h-[250px] w-full rounded-xl" /></aside></div>
+      <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_300px] xl:items-start xl:gap-6"><section><Skeleton className="community-mobile-ad h-[60px] w-full !rounded-none md:mb-4 xl:hidden" /><div className="flex flex-col"><CommunityDirectorySkeleton /><CommunityFeedSkeleton /></div></section><aside className="hidden space-y-4 xl:block"><CommunityNotificationSkeleton /><Skeleton className="h-[250px] w-full rounded-xl" /></aside></div>
     </LoadingMain>
   );
 }
@@ -376,17 +376,18 @@ function CommunityPostArticleSkeleton({ fullWidth = false }: { fullWidth?: boole
   );
 }
 
+function CommunityNotificationSkeleton() {
+  return <section className="overflow-hidden rounded-[var(--ui-card-radius)] border border-[var(--ui-border)] bg-[var(--ui-surface)]">
+    <div className="flex h-10 items-center justify-between border-b border-[var(--ui-border)] px-4"><Skeleton className="h-4 w-16" /><Skeleton className="h-3 w-12" /></div>
+    <div className="divide-y divide-[var(--ui-border)] px-4">
+      {Array.from({ length: 5 }, (_, index) => <div key={index} className="flex h-12 items-center gap-2"><Skeleton className="h-4 min-w-0 flex-1" /><Skeleton className="h-4 w-12 shrink-0" /></div>)}
+    </div>
+    <div className="flex h-[41px] items-center justify-between border-t border-[var(--ui-border)] px-4"><Skeleton className="h-4 w-10" /><Skeleton className="h-4 w-8" /><Skeleton className="h-4 w-10" /></div>
+  </section>;
+}
+
 function CommunityPostSidebarSkeleton() {
-  return (
-    <aside className="hidden w-full max-w-[300px] flex-col gap-4 xl:flex">
-      <section className="overflow-hidden rounded-[var(--ui-card-radius)] border border-[var(--ui-border)] bg-[var(--ui-surface)]">
-        <div className="border-b border-[var(--ui-border)] px-4 py-3.5"><SectionTitle width="w-16" /></div>
-        <div className="divide-y divide-[var(--ui-border)] px-4">
-          {Array.from({ length: 5 }, (_, index) => <div key={index} className="grid grid-cols-[20px_minmax(0,1fr)_auto] items-center gap-2 py-3"><Skeleton className="h-4 w-3" /><Skeleton className="h-4 w-full" /><Skeleton className="h-[13px] w-4" /></div>)}
-        </div>
-      </section>
-    </aside>
-  );
+  return <aside className="hidden w-full max-w-[300px] flex-col gap-4 xl:flex"><CommunityNotificationSkeleton /></aside>;
 }
 
 export function CommunityPostLoadingSkeleton({ scope = "hub" }: { scope?: "hub" | "team" }) {

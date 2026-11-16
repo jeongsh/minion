@@ -47,13 +47,13 @@ export async function GET() {
 export async function PATCH(request: Request) {
   const recipient = await currentRecipient();
   if (!recipient) return NextResponse.json({ error: "Notification identity is unavailable" }, { status: 401 });
-  const body = await request.json().catch(() => null) as { id?: unknown; all?: unknown } | null;
+  const body = await request.json().catch(() => null) as { id?: unknown; all?: unknown; activityOnly?: unknown } | null;
   const parsedId = body?.all === true ? undefined : notificationId(body?.id);
   if (body?.all !== true && !parsedId) return NextResponse.json({ error: "Invalid notification id" }, { status: 400 });
   if (!parsedId) {
     await Promise.all([
-      markCommunityNotificationRead(recipient),
-      recipient.userId ? markTeamContentNotificationRead(recipient.userId) : Promise.resolve(),
+      markCommunityNotificationRead(recipient, undefined, { activityOnly: body?.activityOnly === true }),
+      recipient.userId && body?.activityOnly !== true ? markTeamContentNotificationRead(recipient.userId) : Promise.resolve(),
     ]);
   } else if (parsedId.scope === "community") {
     await markCommunityNotificationRead(recipient, parsedId.id);
@@ -70,11 +70,12 @@ export async function DELETE(request: Request) {
   if (!recipient) return NextResponse.json({ error: "Notification identity is unavailable" }, { status: 401 });
   const parsedId = notificationId(new URL(request.url).searchParams.get("id"));
   const clearAll = new URL(request.url).searchParams.get("all") === "true";
+  const activityOnly = new URL(request.url).searchParams.get("activityOnly") === "true";
   if (!clearAll && !parsedId) return NextResponse.json({ error: "Invalid notification id" }, { status: 400 });
   if (clearAll) {
     await Promise.all([
-      deleteCommunityNotifications(recipient),
-      recipient.userId ? deleteTeamContentNotifications(recipient.userId) : Promise.resolve(),
+      deleteCommunityNotifications(recipient, undefined, { activityOnly }),
+      recipient.userId && !activityOnly ? deleteTeamContentNotifications(recipient.userId) : Promise.resolve(),
     ]);
   } else if (parsedId!.scope === "community") {
     await deleteCommunityNotifications(recipient, parsedId!.id);

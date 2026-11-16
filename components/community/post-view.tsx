@@ -23,6 +23,7 @@ import { canManageStudioContent } from "@/lib/community/ai-studio-management";
 export async function PostView({
   post,
   comments,
+  deletedCommentIds,
   reaction,
   commentReactions,
   scope,
@@ -35,6 +36,7 @@ export async function PostView({
 }: {
   post: CommunityPostDetail;
   comments: CommunityCommentItem[];
+  deletedCommentIds?: string[];
   reaction: ReactionState;
   commentReactions: Record<string, ReactionState>;
   scope: BoardScope;
@@ -157,7 +159,7 @@ export async function PostView({
           <div className="hidden px-4 pb-5 md:block md:px-8 md:pb-8">
             <CommentForm postId={post.id} scope={scope} teamSlug={teamSlug} isGuest={!viewerId} miniconPacks={miniconPacks} />
           </div>
-        <CommentList comments={comments} commentReactions={commentReactions} scope={scope} teamSlug={teamSlug} viewerId={viewerId} currentGuestKey={currentGuestKey} miniconPacks={miniconPacks} managedAiCommentIds={managedAiCommentIds} />
+        <CommentList comments={comments} deletedCommentIds={deletedCommentIds} commentReactions={commentReactions} scope={scope} teamSlug={teamSlug} viewerId={viewerId} currentGuestKey={currentGuestKey} miniconPacks={miniconPacks} managedAiCommentIds={managedAiCommentIds} />
         </section>
       </section>
       <div className="fixed inset-x-0 bottom-0 z-50 md:hidden">

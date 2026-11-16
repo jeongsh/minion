@@ -427,6 +427,7 @@ export function useMatchActivity(
     markAllNotificationsRead,
     removeNotification,
     clearNotifications,
+    mutateCommunityActivity: communityNotifications.mutateActivity,
     refresh: loadActivity,
   };
 }

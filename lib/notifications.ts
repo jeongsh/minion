@@ -57,6 +57,7 @@ export type MatchEventPresentation = {
  * 이후 서버 알림 테이블을 붙일 때도 이 형태로 내려주면 UI를 그대로 재사용할 수 있다.
  */
 export type AppNotification = {
+  activityKind?: "post_comment" | "comment_reply";
   id: string;
   kind: NotificationKind;
   title: string;
