@@ -23,7 +23,7 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
     to && to !== user.id ? getCommunityUserSummary(to) : null,
   ]);
   return (
-    <main className="layout-form space-y-5 py-5 sm:py-8">
+    <main className="layout-wide space-y-5 py-5 sm:py-8">
       <PageHeader title="쪽지함" breadcrumbs={[{ label: "내 계정", href: "/me" }, { label: "쪽지함" }]} />
       <UnderlineNav ariaLabel="쪽지함" activeKey={box} items={[
         { key: "inbox", label: `받은 쪽지${mailbox.unread ? ` (${mailbox.unread})` : ""}`, href: "/me/messages" },

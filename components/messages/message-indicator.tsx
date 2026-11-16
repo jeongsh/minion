@@ -33,7 +33,7 @@ export function MessageIndicator() {
   return (
     <Link href="/me/messages" className="relative grid h-11 w-11 shrink-0 place-items-center rounded-xl text-[var(--ui-muted)] hover:bg-[var(--ui-card-hover)]" aria-label={`쪽지함${count ? `, 읽지 않은 쪽지 ${count}개` : ""}`}>
       <Mail size={20} />
-      {count ? <span aria-hidden className="absolute right-0.5 top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-[var(--accent)] px-0.5 text-[12px] font-medium leading-none text-[var(--accent-foreground)]">{count > 9 ? "9+" : count}</span> : null}
+      {count ? <span aria-hidden className="absolute right-0.5 top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-[var(--accent)] px-0.5 text-[12px] font-medium leading-none text-white">{count > 9 ? "9+" : count}</span> : null}
     </Link>
   );
 }
