@@ -341,6 +341,7 @@ export type {
   MobilePlayerRecentMatch,
   MobilePlayerRecentSet,
   MobilePlayerReview,
+  MobilePlayerReviewPage,
   MobilePlayerSummary,
   MobilePomRow,
   MobilePredictionMatch,

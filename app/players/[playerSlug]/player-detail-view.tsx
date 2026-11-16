@@ -14,10 +14,13 @@ import { fetchSpellCatalog } from "@/lib/spells";
 import {
   getPlayerBySlug,
   getPlayerStatLines,
+  getPlayerSetRatingMetrics,
+  getPlayerReviewPage,
 } from "@/lib/data/lck";
 import {
   getPlayerPageSegmentData,
   getPlayerPageSharedData,
+  getPlayerFanPogSetIds,
 } from "@/lib/data/player-cache";
 import { aggregatePlayerStatLine, calculatePlayerStats, type PlayerRadarBenchmark } from "@/lib/stats";
 import type { FanRating, Match, PlayerStatLine, SetResult, Tournament } from "@/lib/types";
@@ -28,9 +31,9 @@ import {
   segmentLabel,
   type SeasonSegmentKey,
 } from "@/lib/tournament-filters";
-import { fanPogPlayerIdForSet, setRatingHref } from "@/lib/view-data";
+import { playerReviewItems } from "@/lib/player-reviews";
 import { ChampionUsageTable } from "./champion-usage-table";
-import { FanReviewList, type FanReviewItem } from "./fan-review-list";
+import { FanReviewList } from "./fan-review-list";
 import { RecentMatchHistoryModal, RecentMatchSetRows } from "./recent-match-history-modal";
 import { PlayerSegmentSelect } from "./player-segment-select";
 import type { Crumb } from "@/components/layout/breadcrumb";
@@ -110,21 +113,9 @@ function enrichLines(lines: PlayerStatLine[], sets: SetResult[], matches: Match[
   });
 }
 
-function averageRating(ratings: FanRating[]) {
+function averageRating(ratings: Pick<FanRating, "rating">[]) {
   if (ratings.length === 0) return "-";
   return formatFanRating(ratings.reduce((sum, rating) => sum + rating.rating, 0) / ratings.length);
-}
-
-function formatReviewDate(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-
-  return new Intl.DateTimeFormat("ko-KR", {
-    timeZone: "Asia/Seoul",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(date);
 }
 
 function PlayerImage({
@@ -264,9 +255,7 @@ export async function PlayerDetailView({
     // 이 선수 본인의 전체 스탯라인. 구간 탭 표시 여부 판단 + 아래 구간 필터의 소스로 재사용한다.
     getPlayerStatLines(undefined, player.id),
   ]);
-  const { teams, players, matches, sets, fanRatings, tournaments, champions, standings } = sharedData;
-  const matchById = new Map(matches.map((match) => [match.id, match]));
-  const setById = new Map(sets.map((set) => [set.id, set]));
+  const { teams, players, matches, sets, tournaments, champions, standings } = sharedData;
   const visibleSegments = PLAYER_PAGE_SEGMENTS.filter((segment) =>
     segmentHasPlayerData(segment, playerOwnLines, matches, tournaments, sets),
   );
@@ -284,12 +273,16 @@ export async function PlayerDetailView({
   const playerLines = enrichLines(playerSegmentLines, segmentSets, segmentMatches);
   const itemVersions = uniqueDdragonVersionsForPatches(playerLines.map((line) => line.set.patch));
   // Catalogs depend on the selected games, not on the league benchmark query.
-  const [segmentData, versionedAssets] = await Promise.all([
+  const playerSetIds = playerLines.map((line) => line.setId);
+  const [segmentData, versionedAssets, playerRatings, fanPogSetIds, reviewPage] = await Promise.all([
     getPlayerPageSegmentData(segmentSetIds),
     Promise.all(itemVersions.map(async (version) => {
       const [spells, runeCatalog] = await Promise.all([fetchSpellCatalog(version).catch(error => { console.warn("Player spells unavailable", error); return []; }), fetchRuneCatalog(version).catch(error => { console.warn("Player runes unavailable", error); return { trees: [], keystones: [] }; })]);
       return [version, { spells, runeCatalog }] as const;
     })),
+    getPlayerSetRatingMetrics(player.id, playerSetIds),
+    getPlayerFanPogSetIds(player.id, playerSetIds),
+    getPlayerReviewPage(player.id, playerSetIds),
   ]);
   const radarBenchmark = segmentData.radarBenchmarkByPosition[player.position];
   const aggregateStats = aggregateLines(playerLines, radarBenchmark);
@@ -302,16 +295,7 @@ export async function PlayerDetailView({
     .slice(0, 5)
     .map((match) => (match.winnerTeamId === player.teamId ? "W" : "L"))
     .join("-");
-  const playerRatings = fanRatings.filter((rating) => playerLines.some((line) => line.setId === rating.setId) && rating.playerId === player.id);
-  const playerFanPogSetIds = new Set(
-    playerLines
-      .filter(
-        (line) =>
-          fanPogPlayerIdForSet(line.setId, line.set.winnerTeamId, fanRatings) ===
-          player.id,
-      )
-      .map((line) => line.setId),
-  );
+  const playerFanPogSetIds = new Set(fanPogSetIds);
   const completedPlayerMatches = [...new Map(playerLines.map((line) => [line.match.id, line.match])).values()]
     .sort((a, b) => new Date(b.matchDate).getTime() - new Date(a.matchDate).getTime());
   const recentMatchIds = new Set(completedPlayerMatches.slice(0, 3).map((match) => match.id));
@@ -323,7 +307,7 @@ export async function PlayerDetailView({
       const lines = playerLines.filter((line) => line.championId === championId);
       const stats = aggregateLines(lines);
       const wins = lines.filter((line) => line.set.winnerTeamId === line.teamId).length;
-      const championRatings = fanRatings.filter((rating) => rating.playerId === player.id && lines.some((line) => line.setId === rating.setId));
+      const championRatings = playerRatings.filter((rating) => lines.some((line) => line.setId === rating.setId));
       const championPogCount = lines.filter((line) => playerFanPogSetIds.has(line.setId)).length;
       const pickBan = segmentData.pickBanByChampion[championId] ?? { pickCount: 0, banCount: 0 };
       const pickCount = pickBan.pickCount;
@@ -356,7 +340,7 @@ export async function PlayerDetailView({
     const lines = playerLines
       .filter((line) => line.match.id === match.id)
       .sort((a, b) => a.set.setNumber - b.set.setNumber);
-    const matchRatings = fanRatings.filter((rating) => rating.matchId === match.id && rating.playerId === player.id);
+    const matchRatings = playerRatings.filter((rating) => rating.matchId === match.id);
     const matchPogCount = lines.filter((line) => playerFanPogSetIds.has(line.setId)).length;
     const officialPomName = players.find((item) => item.id === match.officialPomPlayerId)?.name ?? "-";
 
@@ -379,23 +363,7 @@ export async function PlayerDetailView({
   const runeCatalogByVersion = Object.fromEntries(versionedAssets.map(([version, assets]) => [version, assets.runeCatalog]));
 
   const fanRatingValue = averageRating(playerRatings);
-  const playerReviews = playerRatings
-    .filter((rating) => rating.review.trim())
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  const fanReviewItems: FanReviewItem[] = playerReviews.map((rating) => {
-    const match = matchById.get(rating.matchId);
-    const set = setById.get(rating.setId);
-
-    return {
-      rating,
-      href: match && set ? setRatingHref(match, set) : null,
-      meta: [
-        formatReviewDate(rating.createdAt),
-        match?.name,
-        set ? `${set.setNumber}세트` : null,
-      ].filter(Boolean).join(" · "),
-    };
-  });
+  const reviewItems = playerReviewItems(reviewPage.ratings, matches, sets);
   const segmentOptions = visibleSegments.map((segment) => ({
     href: segment === "all" ? `${linkBase}/${player.slug}?segment=all` : `${linkBase}/${player.slug}?segment=${segment}`,
     label: playerSegmentLabel(segment),
@@ -611,8 +579,9 @@ export async function PlayerDetailView({
             </span>
           </div>
 
-          {playerReviews.length > 0 ? (
-            <FanReviewList items={fanReviewItems} />
+          {reviewItems.length > 0 ? (
+            <FanReviewList key={`${player.id}:${activeSegment}`} playerSlug={player.slug} segment={activeSegment}
+              initialPage={{ items: reviewItems, nextCursor: reviewPage.nextCursor }} />
           ) : (
             <div className="rounded-xl bg-[var(--ui-card-bg)] p-4 text-base leading-7 text-[var(--ui-muted)]">
               작성된 선수 리뷰가 아직 없습니다.

@@ -144,7 +144,7 @@ function SeasonSummary({ data }: { data: MobilePlayerDetailDto }) {
   );
 }
 
-const PLAYER_DETAIL_VIEW_VERSION = 'web-parity-v2';
+const PLAYER_DETAIL_VIEW_VERSION = 'web-parity-v3';
 
 function isPlayerDetailDto(value: unknown): value is MobilePlayerDetailDto {
   if (!value || typeof value !== 'object') return false;
@@ -195,7 +195,10 @@ export function PlayerDetail() {
           <PlayerChampionUsageTable accent={accent} rows={playerData.champions} />
         </View>
         <PlayerRecentMatches matches={playerData.recentMatches} />
-        <PlayerFanReviews averageRating={playerData.fan.averageRating} pogCount={playerData.fan.pogCount} ref={fanReviewsRef} reviews={playerData.fan.reviews} />
+        <PlayerFanReviews key={`${playerData.player.id}:${playerData.activeSegment}:${JSON.stringify(playerData.fan)}`}
+          playerSlug={playerData.player.slug} segment={playerData.activeSegment}
+          initialCursor={playerData.fan.reviewNextCursor ?? null}
+          averageRating={playerData.fan.averageRating} pogCount={playerData.fan.pogCount} ref={fanReviewsRef} reviews={playerData.fan.reviews} />
         <ContentBanner placement="player-reviews" enabled={playerData.season.setCount > 0} suspended={segmentOpen} />
       </View>
     </MinionScreen>

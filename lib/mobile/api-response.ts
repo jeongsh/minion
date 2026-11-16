@@ -10,6 +10,7 @@ import type {
   MobileObjectiveCounts,
   MobilePlayerLoadout,
   MobilePlayerSummary,
+  MobilePlayerReview,
   MobileSetDraftSide,
   MobileSetPlayerStat,
   MobileStandingRow,
@@ -33,6 +34,16 @@ import {
 import { spellImageUrlById, type GameSpell } from "@/lib/spells";
 import { resolveRunePairUrls, type RuneCatalog } from "@/lib/runes";
 import { calculatePlayerStats } from "@/lib/stats";
+import type { FanReviewItem } from "@/lib/player-reviews";
+
+export function toMobilePlayerReview({ rating, meta, href }: FanReviewItem): MobilePlayerReview {
+  return {
+    id: rating.id, rating: rating.rating, review: rating.review,
+    authorId: rating.authorId, authorName: rating.authorNickname ?? "익명",
+    authorImage: rating.authorProfileImageUrl ? { url: rating.authorProfileImageUrl } : null,
+    authorTier: rating.authorTier, meta: meta.join(" "), metaParts: meta, href,
+  };
+}
 
 export function mobileSuccess<T>(data: T, init?: ResponseInit) {
   const body: MobileApiSuccess<T> = {

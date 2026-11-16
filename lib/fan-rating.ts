@@ -1,5 +1,7 @@
 import type { FanRating } from "@/lib/types";
 
+export const PLAYER_FAN_POG_CACHE_TAG = "player-fan-pog";
+
 type FanRatingForPog = Pick<
   FanRating,
   "setId" | "playerId" | "teamId" | "rating" | "createdAt"

@@ -1,10 +1,13 @@
 import { createHash } from "crypto";
+import { revalidateTag } from "next/cache";
+import { after } from "next/server";
 
 import { screenCommunityText } from "@/lib/community/ai-moderation";
 import { findProfanity, maskProfanity } from "@/lib/community/content-filter";
 import { isCommunityUserSanctioned } from "@/lib/data/community-users";
 import { isSetRatingOpen, normalizeSetStatus } from "@/lib/set-status";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { PLAYER_FAN_POG_CACHE_TAG } from "@/lib/fan-rating";
 
 export const FAN_RATING_MAX_REVIEW_LENGTH = 240;
 
@@ -101,6 +104,9 @@ export async function submitFanRating(input: SubmitFanRatingInput) {
     { onConflict: "set_id,player_id,author_id" },
   ).select("id").single();
   if (error) throw new Error(error.message);
+
+  // 투표 응답의 전체 재렌더 없이 웹과 앱의 제출 모두 집계 캐시를 갱신한다.
+  after(() => revalidateTag(PLAYER_FAN_POG_CACHE_TAG, { expire: 0 }));
 
   return { rating, ratingId: savedRating.id, review };
 }

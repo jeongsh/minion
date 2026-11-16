@@ -3,10 +3,10 @@ import {
   getAllPlayers,
   getAllTeams,
   getChampions,
-  getFanRatings,
   getLeagueAverageStatsBase,
   getMatches,
   getPlayerBenchmarkStatLines,
+  getPlayerFanPogSetIdsBase,
   getSetPicksBans,
   getSets,
   getTeamStandings,
@@ -14,6 +14,7 @@ import {
 } from "@/lib/data/lck";
 import { createPlayerRadarBenchmark, type PlayerRadarBenchmark } from "@/lib/stats";
 import type { Player } from "@/lib/types";
+import { PLAYER_FAN_POG_CACHE_TAG } from "@/lib/fan-rating";
 
 /**
  * 선수 상세 화면이 쓰는 리그 전체(로그인 무관) 공개 데이터 캐시 태그.
@@ -24,25 +25,31 @@ export const PLAYER_PUBLIC_DATA_TAG = "player-public-data";
 
 const POSITIONS: Player["position"][] = ["TOP", "JGL", "MID", "BOT", "SUP"];
 
+/** 집계 결과만 캐시하며 평점 변경 시 공용 태그로 무효화한다. */
+export const getPlayerFanPogSetIds = unstable_cache(
+  getPlayerFanPogSetIdsBase,
+  ["player-fan-pog-set-ids"],
+  { revalidate: 300, tags: [PLAYER_PUBLIC_DATA_TAG, PLAYER_FAN_POG_CACHE_TAG] },
+);
+
 /**
- * 선수 상세는 모든 선수(147명)가 팀/선수/경기/세트/대회/챔피언/순위/팬평점이라는
+ * 선수 상세는 모든 선수(147명)가 팀/선수/경기/세트/대회/챔피언/순위라는
  * 동일한 리그 전체 데이터를 공유한다. 요청마다 매번 풀스캔하지 않고 캐시해서 공유한다.
  */
 export const getPlayerPageSharedData = unstable_cache(
   async () => {
-    const [teams, players, matches, sets, fanRatings, tournaments, champions, standings] =
+    const [teams, players, matches, sets, tournaments, champions, standings] =
       await Promise.all([
         getAllTeams(),
         getAllPlayers(),
         getMatches(),
         getSets(),
-        getFanRatings(),
         getTournaments(),
         getChampions(),
         getTeamStandings(),
       ]);
 
-    return { teams, players, matches, sets, fanRatings, tournaments, champions, standings };
+    return { teams, players, matches, sets, tournaments, champions, standings };
   },
   ["player-page-shared-data"],
   { revalidate: 300, tags: [PLAYER_PUBLIC_DATA_TAG] },

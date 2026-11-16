@@ -720,19 +720,32 @@ export async function getFanRatingReactionStates(
 async function mapFanRatingsWithAuthors(rows: FanRatingRow[]): Promise<FanRating[]> {
   const authorIds = [...new Set(rows.flatMap((row) => (row.author_id ? [row.author_id] : [])))];
   const ratingIds = rows.map((row) => row.id);
-  const [profiles, reactionResult] = await Promise.all([
+  // Large IN filters overflow HTTP headers (606 IDs already make a 24KB URL).
+  const ratingIdChunks: string[][] = [];
+  for (let index = 0; index < ratingIds.length; index += 100) {
+    ratingIdChunks.push(ratingIds.slice(index, index + 100));
+  }
+  const [profiles, reactionPages] = await Promise.all([
     authorIds.length > 0 ? getPublicRankProfiles(authorIds) : Promise.resolve(new Map()),
-    ratingIds.length > 0
-      ? createSupabaseAdminClient()
+    mapWithConcurrency(ratingIdChunks, 4, async (ids) => {
+      const supabase = createSupabaseAdminClient();
+      return collectCountedKeysetPages<{ id: string; rating_id: string; kind: "honor" | "dislike" }>(async (afterId) => {
+        let query = supabase
           .from("fan_rating_reactions")
-          .select("rating_id, kind")
-          .in("rating_id", ratingIds)
-      : Promise.resolve({ data: [], error: null }),
+          .select("id, rating_id, kind", { count: "exact" })
+          .in("rating_id", ids)
+          .order("id", { ascending: true })
+          .limit(1000);
+        if (afterId) query = query.gt("id", afterId);
+        const { data, error, count } = await query;
+        if (error) throw error;
+        return { rows: data ?? [], count };
+      });
+    }),
   ]);
-  if (reactionResult.error) throw reactionResult.error;
 
   const counts = new Map<string, { honor: number; dislike: number }>();
-  for (const reaction of (reactionResult.data ?? []) as { rating_id: string; kind: "honor" | "dislike" }[]) {
+  for (const reaction of reactionPages.flat()) {
     const count = counts.get(reaction.rating_id) ?? { honor: 0, dislike: 0 };
     count[reaction.kind] += 1;
     counts.set(reaction.rating_id, count);
@@ -1851,6 +1864,114 @@ async function getFanRatingsBase() {
 
     return mapFanRatingsWithAuthors(data as FanRatingRow[]);
   }, []);
+}
+
+export type PlayerRatingMetric = Pick<FanRating,
+  "id" | "setId" | "matchId" | "playerId" | "teamId" | "rating" | "createdAt"
+>;
+
+export async function getPlayerStatSetIds(playerId: string): Promise<string[]> {
+  if (!canQuerySupabase()) return [];
+  const supabase = createSupabaseServerClient();
+  const rows = await collectCountedKeysetPages<{ id: string }>(async (afterId) => {
+    let query = supabase.from("set_player_stats").select("id:set_id", { count: "exact" })
+      .eq("player_id", playerId).order("set_id", { ascending: true }).limit(1000);
+    if (afterId) query = query.gt("set_id", afterId);
+    const { data, error, count } = await query;
+    if (error) throw error;
+    return { rows: data ?? [], count };
+  });
+  return rows.map((row) => row.id);
+}
+
+/** 본인 평균 계산용 점수만 조회한다. POG는 DB 집계 결과를 따로 받는다. */
+export async function getPlayerSetRatingMetrics(
+  playerId: string,
+  setIds: string[],
+): Promise<PlayerRatingMetric[]> {
+  if (setIds.length === 0 || !canQuerySupabase()) return [];
+  const supabase = createSupabaseServerClient();
+  type Row = Pick<FanRatingRow, "id" | "set_id" | "match_id" | "player_id" | "team_id" | "rating" | "created_at">;
+  const rows = (await mapWithConcurrency(setIdChunks([...new Set(setIds)]), 4, async (ids) =>
+    collectCountedKeysetPages<Row>(async (afterId) => {
+      let query = supabase.from("fan_ratings")
+        .select("id, set_id, match_id, player_id, team_id, rating, created_at", { count: "exact" })
+        .in("set_id", ids as string[])
+        .eq("player_id", playerId)
+        .order("id", { ascending: true }).limit(1000);
+      if (afterId) query = query.gt("id", afterId);
+      const { data, error, count } = await query;
+      if (error) throw error;
+      return { rows: (data ?? []) as Row[], count };
+    }),
+  )).flat();
+  return rows.map((row) => ({
+    id: row.id, setId: row.set_id, matchId: row.match_id,
+    playerId: row.player_id, teamId: row.team_id,
+    rating: Number(row.rating), createdAt: row.created_at,
+  })).sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.id.localeCompare(a.id));
+}
+
+export async function getPlayerFanPogSetIdsBase(playerId: string, setIds: string[]): Promise<string[]> {
+  if (setIds.length === 0 || !canQuerySupabase()) return [];
+  const supabase = createSupabaseServerClient();
+  const pages = await mapWithConcurrency(setIdChunks([...new Set(setIds)]), 4, async (ids) => {
+    const { data, error } = await supabase.rpc("get_player_fan_pog_set_ids", {
+      p_player_id: playerId, p_set_ids: ids,
+    });
+    if (error) throw error;
+    return ((data ?? []) as { set_id: string }[]).map((row) => row.set_id);
+  });
+  return pages.flat();
+}
+
+export type PlayerReviewCursor = { createdAt: string; id: string };
+export type PlayerReviewPage = { ratings: FanRating[]; nextCursor: PlayerReviewCursor | null };
+const PLAYER_REVIEW_PAGE_SIZE = 5;
+
+/** 각 세트 청크에서 다음 6개만 읽어 병합한다. 숨김/금칙어 리뷰는 페이지를 채울 때 건너뛴다. */
+export async function getPlayerReviewPage(
+  playerId: string,
+  setIds: string[],
+  cursor: PlayerReviewCursor | null = null,
+): Promise<PlayerReviewPage> {
+  if (setIds.length === 0 || !canQuerySupabase()) return { ratings: [], nextCursor: null };
+  const supabase = createSupabaseServerClient();
+  const pages = await mapWithConcurrency(setIdChunks([...new Set(setIds)]), 4, async (ids) => {
+    const visible: FanRatingRow[] = [];
+    let after = cursor;
+    while (visible.length <= PLAYER_REVIEW_PAGE_SIZE) {
+      let query = supabase.from("fan_ratings")
+        .select("id, set_id, match_id, player_id, team_id, rating, review, created_at, author_id, blinded_at")
+        .eq("player_id", playerId).in("set_id", ids as string[])
+        .is("blinded_at", null).not("review", "is", null).neq("review", "")
+        .order("created_at", { ascending: false }).order("id", { ascending: false })
+        .limit(PLAYER_REVIEW_PAGE_SIZE + 1);
+      if (after) query = query.or(`created_at.lt.${after.createdAt},and(created_at.eq.${after.createdAt},id.lt.${after.id})`);
+      const { data, error } = await query;
+      if (error) throw error;
+      const rows = (data ?? []) as FanRatingRow[];
+      if (rows.length === 0) break;
+      visible.push(...rows.filter((row) => mapFanRating(row).review.trim()));
+      const last = rows.at(-1)!;
+      after = { createdAt: last.created_at, id: last.id };
+    }
+    return visible.slice(0, PLAYER_REVIEW_PAGE_SIZE + 1);
+  });
+  const rows = pages.flat().sort((a, b) => b.created_at.localeCompare(a.created_at) || b.id.localeCompare(a.id));
+  const selected = rows.slice(0, PLAYER_REVIEW_PAGE_SIZE);
+  // 이 목록에는 반응 버튼이 없으므로 표시할 작성자만 조회한다.
+  const authorIds = [...new Set(selected.flatMap((row) => row.author_id ? [row.author_id] : []))];
+  const profiles = await getPublicRankProfiles(authorIds);
+  const ratings = selected.map((row) => {
+    const profile = row.author_id ? profiles.get(row.author_id) : undefined;
+    return mapFanRating(row, profile?.nickname, profile?.profileImageUrl, profile?.tier);
+  });
+  const last = selected.at(-1);
+  return {
+    ratings,
+    nextCursor: rows.length > PLAYER_REVIEW_PAGE_SIZE && last ? { createdAt: last.created_at, id: last.id } : null,
+  };
 }
 
 async function getFanRatingsByMatchIdBase(matchId: string) {

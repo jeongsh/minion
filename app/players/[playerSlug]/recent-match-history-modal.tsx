@@ -33,7 +33,7 @@ type EnrichedLine = PlayerStatLine & {
 export type RecentMatchRow = {
   match: Match;
   lines: EnrichedLine[];
-  ratings: FanRating[];
+  ratings: Pick<FanRating, "setId" | "rating">[];
   fanPog: boolean;
   officialPomName: string;
 };
@@ -82,7 +82,7 @@ export function RecentMatchSetRows({
   match: Match;
   lines: EnrichedLine[];
   champions: ChampionLike[];
-  ratings: FanRating[];
+  ratings: Pick<FanRating, "setId" | "rating">[];
   fanPog: boolean;
   officialPomName: string;
   spellsByVersion: Record<string, GameSpell[]>;

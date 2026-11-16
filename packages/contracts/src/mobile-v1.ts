@@ -1251,8 +1251,11 @@ export type MobilePlayerReview = {
   authorImage: MobileImage | null;
   authorTier: string;
   meta: string;
+  metaParts?: string[];
   href: string | null;
 };
+
+export type MobilePlayerReviewPage = CursorPage<MobilePlayerReview>;
 
 export type MobilePlayerDetailDto = {
   schemaVersion: 2;
@@ -1282,6 +1285,7 @@ export type MobilePlayerDetailDto = {
     averageRating: number | null;
     pogCount: number;
     reviews: MobilePlayerReview[];
+    reviewNextCursor?: Cursor | null;
   };
 };
 export type MobileTournamentsDto = { items: MobileTournamentSummary[]; matches: MobileMatchSummary[] };
@@ -1337,6 +1341,7 @@ export const mobileApiRoutes = {
   teamNotification: { method: "POST", path: `${MOBILE_API_PREFIX}/teams/{teamSlug}/notifications`, owner: "fan notification service", auth: "required", cache: "no-store" },
   players: { method: "GET", path: `${MOBILE_API_PREFIX}/players`, owner: "lib/data/lck", auth: "public", cache: "21600s" },
   player: { method: "GET", path: `${MOBILE_API_PREFIX}/players/{playerSlug}`, owner: "player aggregation service", auth: "public", cache: "300s" },
+  playerReviews: { method: "GET", path: `${MOBILE_API_PREFIX}/players/{playerSlug}/reviews`, owner: "player review service", auth: "public", cache: "no-store" },
   champions: { method: "GET", path: `${MOBILE_API_PREFIX}/champions`, owner: "champion aggregation service", auth: "public", cache: "300s" },
   champion: { method: "GET", path: `${MOBILE_API_PREFIX}/champions/{championSlug}`, owner: "champion aggregation service", auth: "public", cache: "300s" },
   news: { method: "GET", path: `${MOBILE_API_PREFIX}/news`, owner: "lib/data/news + lib/data/naver-news", auth: "public", cache: "60s" },
