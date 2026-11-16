@@ -720,19 +720,32 @@ export async function getFanRatingReactionStates(
 async function mapFanRatingsWithAuthors(rows: FanRatingRow[]): Promise<FanRating[]> {
   const authorIds = [...new Set(rows.flatMap((row) => (row.author_id ? [row.author_id] : [])))];
   const ratingIds = rows.map((row) => row.id);
-  const [profiles, reactionResult] = await Promise.all([
+  // Large IN filters overflow HTTP headers (606 IDs already make a 24KB URL).
+  const ratingIdChunks: string[][] = [];
+  for (let index = 0; index < ratingIds.length; index += 100) {
+    ratingIdChunks.push(ratingIds.slice(index, index + 100));
+  }
+  const [profiles, reactionPages] = await Promise.all([
     authorIds.length > 0 ? getPublicRankProfiles(authorIds) : Promise.resolve(new Map()),
-    ratingIds.length > 0
-      ? createSupabaseAdminClient()
+    mapWithConcurrency(ratingIdChunks, 4, async (ids) => {
+      const supabase = createSupabaseAdminClient();
+      return collectCountedKeysetPages<{ id: string; rating_id: string; kind: "honor" | "dislike" }>(async (afterId) => {
+        let query = supabase
           .from("fan_rating_reactions")
-          .select("rating_id, kind")
-          .in("rating_id", ratingIds)
-      : Promise.resolve({ data: [], error: null }),
+          .select("id, rating_id, kind", { count: "exact" })
+          .in("rating_id", ids)
+          .order("id", { ascending: true })
+          .limit(1000);
+        if (afterId) query = query.gt("id", afterId);
+        const { data, error, count } = await query;
+        if (error) throw error;
+        return { rows: data ?? [], count };
+      });
+    }),
   ]);
-  if (reactionResult.error) throw reactionResult.error;
 
   const counts = new Map<string, { honor: number; dislike: number }>();
-  for (const reaction of (reactionResult.data ?? []) as { rating_id: string; kind: "honor" | "dislike" }[]) {
+  for (const reaction of reactionPages.flat()) {
     const count = counts.get(reaction.rating_id) ?? { honor: 0, dislike: 0 };
     count[reaction.kind] += 1;
     counts.set(reaction.rating_id, count);
@@ -2426,3 +2439,4 @@ export async function getAdminSetRatings(setId: string) {
   });
   return rows.map((row) => mapFanRating(row));
 }
+
