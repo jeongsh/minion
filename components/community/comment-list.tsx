@@ -36,14 +36,14 @@ export function CommentList({ comments: initialComments, deletedCommentIds = EMP
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingContent, setEditingContent] = useState("");
-  const [expandedReplies, setExpandedReplies] = useState<Set<string>>(() => new Set());
+  const [collapsedReplies, setCollapsedReplies] = useState<Set<string>>(() => new Set());
   const [commentTarget, setCommentTarget] = useState<{ id: string | null; revision: number }>({ id: null, revision: 0 });
   const targetId = commentTarget.id;
   const targetComment = comments.find(comment => comment.id === targetId);
   const targetAvailable = Boolean(targetComment);
   const targetDeleted = Boolean(targetComment?.deletedAt || (targetId && deletedCommentIds.includes(targetId)));
   const targetParentId = targetComment?.parentId;
-  const targetExpanded = !targetParentId || expandedReplies.has(targetParentId);
+  const targetExpanded = !targetParentId || !collapsedReplies.has(targetParentId);
   useEffect(() => {
     const followComment = (event?: Event) => {
       const hashId = window.location.hash.startsWith("#comment-") ? window.location.hash.slice(9) : null;
@@ -65,7 +65,12 @@ export function CommentList({ comments: initialComments, deletedCommentIds = EMP
       } else {
         refreshRequestedFor.current = null;
       }
-      if (target?.parentId) setExpandedReplies(current => current.has(target.parentId!) ? current : new Set([...current, target.parentId!]));
+      if (target?.parentId) setCollapsedReplies(current => {
+        if (!current.has(target.parentId!)) return current;
+        const next = new Set(current);
+        next.delete(target.parentId!);
+        return next;
+      });
     };
     followComment();
     window.addEventListener("hashchange", followComment);
@@ -104,8 +109,8 @@ export function CommentList({ comments: initialComments, deletedCommentIds = EMP
     };
   }, [targetId, targetAvailable, targetDeleted, targetExpanded, commentTarget.revision, waitingForRefresh, showToast]);
   const pendingParents = comments.filter(comment => comment.parentId && commentState?.pendingIds.has(comment.id)).map(comment => comment.parentId!);
-  if (pendingParents.some(id => !expandedReplies.has(id))) {
-    setExpandedReplies(previous => new Set([...previous, ...pendingParents]));
+  if (pendingParents.some(id => collapsedReplies.has(id))) {
+    setCollapsedReplies(previous => new Set([...previous].filter(id => !pendingParents.includes(id))));
   }
   const [pending, startTransition] = useTransition();
   const maxLength = useCommentMaxLength();
@@ -122,7 +127,7 @@ export function CommentList({ comments: initialComments, deletedCommentIds = EMP
   });
 
   const toggleReplies = (commentId: string) => {
-    setExpandedReplies((current) => {
+    setCollapsedReplies((current) => {
       const next = new Set(current);
       if (next.has(commentId)) next.delete(commentId);
       else next.add(commentId);
@@ -301,7 +306,7 @@ export function CommentList({ comments: initialComments, deletedCommentIds = EMP
     <ul className="min-w-0 px-[14px] md:px-8">
       {orderedRoots.map((comment, index) => {
         const replyItems = repliesByParent.get(comment.id) ?? [];
-        const expanded = expandedReplies.has(comment.id) || replyItems.some(reply => commentState?.pendingIds.has(reply.id));
+        const expanded = !collapsedReplies.has(comment.id) || replyItems.some(reply => commentState?.pendingIds.has(reply.id));
         const best = bestCommentIds.has(comment.id);
         const firstRegular = bestComments.length > 0 && index === bestComments.length;
         return (

@@ -66,7 +66,7 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
   const [reportReason, setReportReason] = useState('');
   const [reportTarget, setReportTarget] = useState<ReportTarget | null>(null);
   const [revealed, setRevealed] = useState(false);
-  const [expandedReplies, setExpandedReplies] = useState<Set<string>>(() => new Set());
+  const [collapsedReplies, setCollapsedReplies] = useState<Set<string>>(() => new Set());
 
   useEffect(() => {
     setComment('');
@@ -79,7 +79,7 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
     setReportReason('');
     setReportTarget(null);
     setRevealed(false);
-    setExpandedReplies(new Set());
+    setCollapsedReplies(new Set());
     scrollRef.current?.scrollTo({ animated: false, y: 0 });
   }, [postId]);
   const roots = useMemo(() => data?.comments.filter((item) => !item.parentId) ?? [], [data?.comments]);
@@ -95,7 +95,7 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
     return map;
   }, [data?.comments]);
   const toggleReplies = (commentId: string) => {
-    setExpandedReplies((current) => {
+    setCollapsedReplies((current) => {
       const next = new Set(current);
       if (next.has(commentId)) next.delete(commentId);
       else next.add(commentId);
@@ -236,7 +236,7 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
           <View style={styles.commentTitle}><Text style={{ color: theme.ink, ...fonts.bold, fontSize: 15, lineHeight: 22.5 }}>댓글</Text><Text style={{ color: accent, ...fonts.medium, fontSize: 13, lineHeight: 19.5 }}>{data.commentCount}</Text></View>
           <View style={styles.comments}>{orderedRoots.map((item, index) => {
             const itemReplies = replies.get(item.id) ?? [];
-            const repliesExpanded = expandedReplies.has(item.id);
+            const repliesExpanded = !collapsedReplies.has(item.id);
             const firstRegular = !item.isBest && index > 0 && orderedRoots[index - 1]?.isBest;
             return (
               <View key={item.id} style={[styles.commentThread, firstRegular ? { borderTopColor: theme.border, borderTopWidth: 1, paddingTop: 20 } : null]}>
