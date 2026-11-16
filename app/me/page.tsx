@@ -1,4 +1,4 @@
-import { Bell, ChartNoAxesCombined, ChevronRight, FileText, LockKeyhole, LogOut, ShieldBan, Sticker, UserRound } from "lucide-react";
+import { Bell, ChartNoAxesCombined, ChevronRight, FileText, LockKeyhole, LogOut, Mail, ShieldBan, Sticker, UserRound } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -33,6 +33,7 @@ const SOCIAL_PROVIDER_LABELS: Record<string, string> = {
 };
 
 const MANAGE_LINKS = [
+  { href: "/me/messages", label: "쪽지함", mobileLabel: "쪽지함", icon: Mail },
   { href: "#profile", label: "프로필", mobileLabel: "프로필", icon: UserRound },
   { href: "/me/minicons", label: "내 미니콘", mobileLabel: "미니콘", icon: Sticker },
   { href: "/predictions/report", label: "내 예측 리포트", mobileLabel: "내 예측 리포트", icon: ChartNoAxesCombined },
@@ -86,6 +87,11 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
   return (
     <main className="layout-wide me-page max-w-6xl pb-6 pt-3 sm:py-8">
       <MobileAccountSummary user={user} summary={summary} progress={progress} initials={initials} />
+
+      <Link href="/me/messages" className="mt-2.5 flex min-h-11 items-center gap-2 rounded-xl bg-[var(--ui-surface)] px-3 text-sm font-medium text-[var(--ui-text)] lg:hidden">
+        <Mail size={16} className="shrink-0 text-[var(--ui-muted)]" />
+        <span className="min-w-0 flex-1">쪽지함</span><ChevronRight size={16} />
+      </Link>
 
       <Link href="/me/minicons" className="mt-2.5 flex min-h-11 items-center gap-2 rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 text-sm font-medium text-[var(--ui-text)] lg:hidden">
         <Sticker size={16} className="shrink-0 text-[var(--ui-muted)]" />

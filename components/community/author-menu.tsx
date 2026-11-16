@@ -1,6 +1,6 @@
 "use client";
 
-import { Ban, FileText, Flag, MessageSquareText, UserRound } from "lucide-react";
+import { Ban, FileText, Flag, Mail, MessageSquareText, UserRound } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useLayoutEffect, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
@@ -275,6 +275,7 @@ export function AuthorMenu({
           {authorId && variant !== "profile" ? <MenuLink href={`/community/user/${authorId}`} icon={<UserRound size={16} />} label="프로필 보기" onSelect={() => setOpen(false)} /> : null}
           {authorId ? <MenuLink href={`/community/user/${authorId}?tab=posts`} icon={<FileText size={16} />} label="작성글 보기" onSelect={() => setOpen(false)} /> : null}
           {authorId ? <MenuLink href={`/community/user/${authorId}?tab=comments`} icon={<MessageSquareText size={16} />} label="작성 댓글 보기" onSelect={() => setOpen(false)} /> : null}
+          {authorId && !isSelf ? <MenuLink href={`/me/messages?to=${authorId}`} icon={<Mail size={16} />} label="쪽지 보내기" onSelect={() => setOpen(false)} /> : null}
           {!isSelf ? (
             <>
               {authorId ? <div className="my-1 border-t border-[var(--ui-border)]" /> : null}
