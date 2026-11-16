@@ -52,7 +52,7 @@ export function SupportComposeScreen() {
         subject,
       });
       await invalidateApiCache('/api/mobile/v1/support/inquiries');
-      showToast(result.message, 'success');
+      showToast({ title: '문의 접수 완료', description: '게시판에서 답변을 확인할 수 있어요.' }, 'success');
       router.replace(`/support/${result.id}` as never);
     } catch (caught) {
       const text = caught instanceof Error ? caught.message : '문의 접수에 실패했어요.';

@@ -46,7 +46,7 @@ export function SupportWriteForm({ defaultEmail, isGuest }: { defaultEmail?: str
         router.push(`/support/${result.id}`);
       } else {
         setError(result.error ?? "문의 접수에 실패했어요.");
-        showToast({ title: "접수 실패", description: result.error, tone: "error" });
+        showToast({ title: result.error ?? "문의를 접수하지 못했습니다.", tone: "error" });
       }
     });
   };

@@ -214,7 +214,7 @@ function FanChannelHeader({ data }: { data: MobileTeamDetailDto }) {
         setFavoriteTeam(null);
         if (!session) await recordLocalFavoriteTeamChange();
       }
-      showToast(result.following ? '팬 등록을 완료했습니다.' : '팬 등록을 해제했습니다.', 'success');
+      showToast(result.following ? '팬 등록 완료' : '팬 등록 해제', 'success');
       if (result.following) setNotificationSheetOpen(true);
       refreshFanState();
     } catch (caught) {
@@ -237,7 +237,10 @@ function FanChannelHeader({ data }: { data: MobileTeamDetailDto }) {
       }
       await refreshViewer();
       refreshFanState();
-      showToast(result.favorite ? `${data.team.shortName}, 내 최애팀 · 7일 후 변경 가능` : '최애팀 해제 · 7일 후 다시 선택 가능', 'success');
+      showToast({
+        title: result.favorite ? `${data.team.name}, 내 최애팀` : '최애팀 설정 해제',
+        description: result.favorite ? '자동으로 팔로우했습니다. 7일 후 다시 변경할 수 있습니다.' : '7일 후 다른 최애팀을 선택할 수 있습니다.',
+      }, 'success');
     } catch (caught) { showToast(caught instanceof Error ? caught.message : '최애팀을 설정하지 못했습니다.', 'error'); }
     finally { setPending(null); }
   }
@@ -311,7 +314,7 @@ function FanChannelHeader({ data }: { data: MobileTeamDetailDto }) {
       setNotificationOverride(result.enabled);
       refreshNotificationState();
       await refreshViewer();
-      showToast(result.enabled ? '팀 경기 알림을 켰습니다.' : '팀 알림을 껐습니다.', 'success');
+      showToast(result.enabled ? '새 소식이 오면 알려드릴게요.' : '새 소식 알림을 보내지 않을게요.', 'success');
       if (result.enabled) void offerDevicePushAfterEnabling();
     } catch (caught) {
       setNotificationOverride(null);
@@ -328,7 +331,7 @@ function FanChannelHeader({ data }: { data: MobileTeamDetailDto }) {
       setNotificationSheetOpen(false);
       refreshNotificationState();
       await refreshViewer();
-      showToast(result.enabled ? '선택한 팀 알림을 켰습니다.' : '알림 없이 팀을 팔로우합니다.', 'success');
+      showToast(result.enabled ? '알림 설정 완료' : '알림 없이 팔로우', 'success');
       if (result.enabled) void offerDevicePushAfterEnabling();
     } catch (caught) {
       showToast(caught instanceof Error ? caught.message : '알림 설정을 저장하지 못했습니다.', 'error');

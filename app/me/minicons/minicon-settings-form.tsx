@@ -29,8 +29,7 @@ export function MiniconSettingsForm({
     if (selectedIds.has(pack.id)) {
       if (selectedPackIds.length === 1) {
         showToast({
-          title: "한 개는 남겨 주세요",
-          description: "미니콘 선택기에는 최소 한 개의 패키지가 필요합니다.",
+          title: "미니콘 선택기에는 최소 한 개의 패키지가 필요합니다.",
           tone: "error",
         });
         return;
@@ -44,15 +43,14 @@ export function MiniconSettingsForm({
 
   const save = () => {
     if (selectedPackIds.length === 0) {
-      showToast({ title: "선택이 필요해요", description: "사용할 미니콘 패키지를 한 개 이상 선택해 주세요.", tone: "error" });
+      showToast({ title: "사용할 미니콘 패키지를 한 개 이상 선택해 주세요.", tone: "error" });
       return;
     }
 
     startTransition(async () => {
       const result = await saveMiniconSettingsAction({ packIds: selectedPackIds });
       showToast({
-        title: result.ok ? "미니콘 설정 저장" : "저장 실패",
-        description: result.ok ? result.message : result.error,
+        title: result.ok ? result.message : result.error,
         tone: result.ok ? "success" : "error",
       });
       if (result.ok) {

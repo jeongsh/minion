@@ -45,7 +45,7 @@ export function MiniconPackForm() {
     const data = new FormData(form);
     const files = Array.from((form.elements.namedItem("items") as HTMLInputElement).files ?? []);
     if (files.length < MINICON_MIN_PACK_ITEMS || files.length > MINICON_MAX_PACK_ITEMS) {
-      showToast({ title: "등록할 수 없어요", description: `200×200 미니콘을 ${MINICON_MIN_PACK_ITEMS}~${MINICON_MAX_PACK_ITEMS}개 선택하세요.`, tone: "error" });
+      showToast({ title: `200×200 미니콘을 ${MINICON_MIN_PACK_ITEMS}~${MINICON_MAX_PACK_ITEMS}개 선택하세요.`, tone: "error" });
       return;
     }
 
@@ -67,8 +67,7 @@ export function MiniconPackForm() {
         items: uploaded,
       });
       showToast({
-        title: result.ok ? "미니콘 공개 완료" : "등록 실패",
-        description: result.ok ? result.message : result.error,
+        title: result.ok ? result.message : result.error,
         tone: result.ok ? "success" : "error",
       });
       if (result.ok) {
@@ -77,7 +76,7 @@ export function MiniconPackForm() {
         setProgress(0);
       }
     } catch (error) {
-      showToast({ title: "업로드 실패", description: error instanceof Error ? error.message : "파일을 업로드하지 못했습니다.", tone: "error" });
+      showToast({ title: error instanceof Error ? error.message : "파일을 업로드하지 못했습니다.", tone: "error" });
     } finally {
       setPending(false);
     }

@@ -62,12 +62,11 @@ export function FanFollowButton({
       if (!result.ok) {
         setFollowing(!nextFollowing);
         setCount((c) => Math.max(0, c + (nextFollowing ? -1 : 1)));
-        showToast({ title: "팔로우 실패", description: result.error ?? "잠시 뒤 다시 시도해 주세요.", tone: "error" });
+        showToast({ title: result.error ?? "잠시 뒤 다시 시도해 주세요.", tone: "error" });
       } else {
         setFollowing(result.isFan);
         showToast({
           title: result.isFan ? "팬 등록 완료" : "팬 등록 해제",
-          description: result.isFan ? "팀 소식을 더 빠르게 볼 수 있어요." : "언제든 다시 팔로우할 수 있어요.",
           tone: "success",
         });
         if (result.isFan) setNotificationDialogOpen(true);

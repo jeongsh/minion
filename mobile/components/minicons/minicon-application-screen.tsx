@@ -128,10 +128,10 @@ function ApplicationContent({ data, refresh }: { data: MobileMiniconApplications
     const trimmedDescription = description.trim();
     if (textLength(trimmedName) < 1 || textLength(trimmedName) > 30) { showToast('패키지 이름은 1~30자로 입력하세요.', 'error'); return; }
     if (textLength(trimmedDescription) > 300) { showToast('설명은 300자까지 입력할 수 있습니다.', 'error'); return; }
-    if (!rightsConfirmed) { showToast('등록·배포할 권리가 있는 이미지인지 확인해 주세요.', 'error'); return; }
+    if (!rightsConfirmed) { showToast('등록하고 배포할 권리가 있는 이미지인지 확인해 주세요.', 'error'); return; }
     if (assets.length < MIN_ITEMS || assets.length > MAX_ITEMS) { showToast(`200×200 미니콘을 ${MIN_ITEMS}~${MAX_ITEMS}개 선택하세요.`, 'error'); return; }
     const invalid = assets.find((asset) => !mimeType(asset) || !ALLOWED_TYPES.has(mimeType(asset)!) || (asset.fileSize ?? 0) <= 0 || (asset.fileSize ?? 0) > MAX_BYTES || asset.width !== 200 || asset.height !== 200);
-    if (invalid) { showToast(`${invalid.fileName ?? '선택한 파일'}: 200×200px JPG·PNG·GIF, 파일당 2MB 이하만 등록할 수 있습니다.`, 'error'); return; }
+    if (invalid) { showToast(`${invalid.fileName ?? '선택한 파일'}: JPG, PNG, GIF 형식, 파일당 2MB 이하만 등록할 수 있습니다.`, 'error'); return; }
     setPending(true);
     setProgress(0);
     const uploaded: UploadedMinicon[] = [];

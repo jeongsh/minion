@@ -219,17 +219,17 @@ export const CommunityRichEditor = forwardRef<CommunityRichEditorHandle, Props>(
   const pickImage = async () => {
     const remainingImages = Math.max(0, maxImages - imageCount(value));
     const remainingVideos = allowEmbeds ? Math.max(0, MAX_COMMUNITY_VIDEOS - videoCount(value)) : 0;
-    if (remainingImages === 0 && remainingVideos === 0) { Alert.alert('이미지 첨부', `이미지는 ${maxImages}장까지 첨부할 수 있습니다.`); return; }
+    if (remainingImages === 0 && remainingVideos === 0) { Alert.alert(`이미지는 ${maxImages}장까지 첨부할 수 있습니다.`); return; }
     const selectionLimit = remainingImages + remainingVideos;
     try {
       const result = await ImagePicker.launchImageLibraryAsync({ allowsEditing: false, allowsMultipleSelection: selectionLimit > 1, mediaTypes: allowEmbeds ? ['images', 'videos'] : ['images'], preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible, quality: 1, selectionLimit, videoExportPreset: ImagePicker.VideoExportPreset.H264_1920x1080 });
       if (result.canceled || result.assets.length === 0) return;
       const videos = result.assets.filter((asset) => asset.type === 'video');
       const images = result.assets.filter((asset) => asset.type !== 'video');
-      if (images.some((asset) => (asset.fileSize ?? 0) > 20 * 1024 * 1024)) { Alert.alert('이미지 첨부 실패', '이미지는 한 장당 20MB 이하만 선택할 수 있습니다.'); return; }
-      if (videos.some((asset) => (asset.fileSize ?? 0) > MAX_COMMUNITY_VIDEO_MB * 1024 * 1024)) { Alert.alert('동영상 첨부 실패', `동영상은 ${MAX_COMMUNITY_VIDEO_MB}MB 이하만 첨부할 수 있습니다.`); return; }
-      if (images.length > remainingImages) Alert.alert('이미지 첨부', `이미지는 ${maxImages}장까지 첨부할 수 있습니다.`);
-      if (videos.length > remainingVideos) Alert.alert('동영상 첨부', `동영상은 ${MAX_COMMUNITY_VIDEOS}개까지 첨부할 수 있습니다.`);
+      if (images.some((asset) => (asset.fileSize ?? 0) > 20 * 1024 * 1024)) { Alert.alert('이미지는 한 장당 20MB 이하만 선택할 수 있습니다.'); return; }
+      if (videos.some((asset) => (asset.fileSize ?? 0) > MAX_COMMUNITY_VIDEO_MB * 1024 * 1024)) { Alert.alert(`동영상은 ${MAX_COMMUNITY_VIDEO_MB}MB 이하만 첨부할 수 있습니다.`); return; }
+      if (images.length > remainingImages) Alert.alert(`이미지는 ${maxImages}장까지 첨부할 수 있습니다.`);
+      if (videos.length > remainingVideos) Alert.alert(`동영상은 ${MAX_COMMUNITY_VIDEOS}개까지 첨부할 수 있습니다.`);
       const queue = new Set([...images.slice(0, remainingImages), ...videos.slice(0, remainingVideos)]);
       if (queue.size === 0) return;
       setUploading(true);
@@ -250,7 +250,7 @@ export const CommunityRichEditor = forwardRef<CommunityRichEditorHandle, Props>(
         const uploaded = await uploadMobileApi<MobileCommunityUploadDto>('/api/mobile/v1/community/upload', formData);
         command('insertImage', { aspectRatio: uploaded.width > 0 && uploaded.height > 0 ? uploaded.width / uploaded.height : 0, src: uploaded.url, width: Math.min(uploaded.width || 760, 760) });
       }
-    } catch (caught) { Alert.alert('업로드 실패', caught instanceof Error ? caught.message : '파일을 업로드하지 못했습니다.'); }
+    } catch (caught) { Alert.alert(caught instanceof Error ? caught.message : '파일을 업로드하지 못했습니다.'); }
     finally { setUploading(false); setImageSize(null); setUploadProgress(null); }
   };
 
@@ -278,7 +278,7 @@ export const CommunityRichEditor = forwardRef<CommunityRichEditorHandle, Props>(
     if (linkMode === 'youtube') {
       const match = value.match(/(?:youtube\.com\/(?:[^/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?/\s]{11})/i);
       const videoId = match?.[1] ?? (value.length === 11 && !value.includes('/') ? value : '');
-      if (!videoId) { Alert.alert('YouTube 영상', '유효한 YouTube URL을 입력해 주세요.'); return; }
+      if (!videoId) { Alert.alert('유효한 YouTube URL을 입력해 주세요.'); return; }
       command('insertYoutube', `https://www.youtube.com/embed/${videoId}`);
     } else {
       try {
@@ -286,7 +286,7 @@ export const CommunityRichEditor = forwardRef<CommunityRichEditorHandle, Props>(
         if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error();
         const type = parsed.hostname.includes('instagram.com') ? 'instagram' : parsed.hostname.includes('twitter.com') || parsed.hostname.includes('x.com') ? 'twitter' : 'generic';
         command('insertEmbed', { type, url: parsed.toString() });
-      } catch { Alert.alert('SNS 게시물', '유효한 URL을 입력해 주세요.'); return; }
+      } catch { Alert.alert('유효한 URL을 입력해 주세요.'); return; }
     }
     closeLink();
   };
@@ -294,7 +294,7 @@ export const CommunityRichEditor = forwardRef<CommunityRichEditorHandle, Props>(
   const openNewPoll = () => { setFormatOpen(false); setPoll(emptyPoll()); setPollOpen(true); };
   const insertMinicon = (item: MobileMiniconItem) => {
     if (imageCount(valueRef.current) >= maxImages) {
-      Alert.alert('미니콘 넣기', `이미지와 미니콘은 합쳐서 ${maxImages}장까지 넣을 수 있습니다.`);
+      Alert.alert(`이미지와 미니콘은 합쳐서 ${maxImages}장까지 넣을 수 있습니다.`);
       return;
     }
     const src = resolveApiAssetUrl(item.imageUrl) ?? item.imageUrl;
@@ -305,8 +305,8 @@ export const CommunityRichEditor = forwardRef<CommunityRichEditorHandle, Props>(
   const savePoll = () => {
     const question = poll.question.trim();
     const options = poll.options.map((option) => ({ ...option, label: option.label.trim() })).filter((option) => Boolean(option.label));
-    if (!question) { Alert.alert('투표 만들기', '질문을 입력해 주세요.'); return; }
-    if (options.length < 2) { Alert.alert('투표 만들기', '선택지를 2개 이상 입력해 주세요.'); return; }
+    if (!question) { Alert.alert('질문을 입력해 주세요.'); return; }
+    if (options.length < 2) { Alert.alert('선택지를 2개 이상 입력해 주세요.'); return; }
     const pollId = poll.id ?? newId();
     command(poll.id ? 'updatePoll' : 'insertPoll', { pollId, question, options });
     setPollOpen(false); setPoll(emptyPoll());

@@ -43,8 +43,7 @@ export function FanAlarmButton({
             if (result.ok) {
               setEnabled(result.enabled);
               showToast({
-                title: result.enabled ? "알림 켬" : "알림 끔",
-                description: result.enabled ? "새 소식이 오면 알려드릴게요." : "팬 채널에서 직접 확인할 수 있어요.",
+                title: result.enabled ? "새 소식이 오면 알려드릴게요." : "새 소식 알림을 보내지 않을게요.",
                 tone: "success",
               });
               return;
@@ -52,7 +51,7 @@ export function FanAlarmButton({
 
             const message = result.error ?? "알림 설정에 실패했습니다.";
             setError(message);
-            showToast({ title: "알림 설정 실패", description: message, tone: "error" });
+            showToast({ title: message, tone: "error" });
           });
         }}
         className={iconOnly ? fanHeaderIconButtonClass : `inline-flex min-w-0 items-center justify-center gap-2 rounded-full border font-extrabold transition duration-200 focus-visible:outline-none focus-visible:ring-2 active:scale-[0.98] disabled:opacity-60 ${

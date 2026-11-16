@@ -137,8 +137,9 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
     setSubmitting(true);
     try {
       await mutateMobileApi<MobileCommunityCommentMutationDto>('/api/mobile/v1/community/comments', 'POST', { content, parentId: replyTo?.id ?? null, postId: data.id });
+      showToast(replyTo ? '답글 등록 완료' : '댓글 등록 완료', 'success');
       setComment(''); setReplyTo(null); setMiniconOpen(false); refreshCommunityData();
-    } catch (caught) { Alert.alert('등록 실패', caught instanceof Error ? caught.message : '댓글을 등록하지 못했습니다.'); }
+    } catch (caught) { showToast(caught instanceof Error ? caught.message : '댓글을 등록하지 못했습니다. 다시 시도해 주세요.', 'error'); }
     finally { setSubmitting(false); }
   };
   const submitMinicons = async (items: MobileMiniconItem[]) => {
@@ -188,9 +189,10 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
     .then(async () => {
       await invalidateApiCache('/api/mobile/v1/community/posts');
       await invalidateApiCache('/api/mobile/v1/home');
+      showToast('게시글 삭제 완료', 'success');
       router.replace(basePath as never);
     })
-    .catch((caught) => Alert.alert('삭제 실패', caught instanceof Error ? caught.message : '게시글을 삭제하지 못했습니다.'));
+    .catch((caught) => showToast(caught instanceof Error ? caught.message : '게시글을 삭제하지 못했습니다.', 'error'));
   const deletePost = () => {
     if (Platform.OS === 'web') {
       if (window.confirm('이 게시글을 삭제할까요?')) performDeletePost();
@@ -330,6 +332,7 @@ function Bone({ height, radius = 5, width }: { height: number; radius?: number; 
 type ReactToCommunity = (target: 'post' | 'comment', targetId: string, kind: 'honor' | 'dislike') => Promise<MobileCommunityReactionDto>;
 
 function ReactionButtons({ accent, item, onReact, target, small = false }: { accent: string; item: { id: string; reaction: MobileCommunityReactionDto['state']; likeCount: number; dislikeCount: number }; onReact: ReactToCommunity; target: 'post' | 'comment'; small?: boolean }) {
+  const { showToast } = useMinionTheme();
   const source = `${target}:${item.id}:${item.reaction}:${item.likeCount}:${item.dislikeCount}`;
   const incoming = { state: item.reaction, honorCount: item.likeCount, dislikeCount: item.dislikeCount };
   const [local, setLocal] = useState({ source, value: incoming });
@@ -355,7 +358,7 @@ function ReactionButtons({ accent, item, onReact, target, small = false }: { acc
       setLocal({ source, value: result });
     } catch (caught) {
       setLocal({ source, value: previous });
-      Alert.alert('반응 실패', caught instanceof Error ? caught.message : '잠시 후 다시 시도해주세요.');
+      showToast(caught instanceof Error ? caught.message : '잠시 후 다시 시도해주세요.', 'error');
     } finally {
       inFlight.current = false;
       setPending(false);
@@ -380,9 +383,9 @@ function CommentAvatar({ author, reply }: { author: MobileCommunityAuthor; reply
 }
 
 function CommentItem({ accent, best = false, comment, continued = false, onDelete, onReact, onReply, onReport, reply = false }: { accent: string; best?: boolean; comment: MobileCommunityComment; continued?: boolean; onDelete: () => void; onReact: ReactToCommunity; onReply?: (comment: MobileCommunityComment) => void; onReport: (target: 'comment', id: string) => void; reply?: boolean }) {
-  const { fonts, theme } = useMinionTheme(); const [editing, setEditing] = useState(false); const [content, setContent] = useState(typeof comment.content === 'string' ? comment.content : ''); const [busy, setBusy] = useState(false);
-  const save = async () => { setBusy(true); try { await mutateMobileApi<MobileCommunityCommentMutationDto>(`/api/mobile/v1/community/comments/${comment.id}`, 'PATCH', { content }); setEditing(false); onDelete(); } catch (caught) { Alert.alert('수정 실패', caught instanceof Error ? caught.message : '댓글을 수정하지 못했습니다.'); } finally { setBusy(false); } };
-  const remove = () => Alert.alert('댓글 삭제', '이 댓글을 삭제할까요?', [{ text: '취소', style: 'cancel' }, { text: '삭제', style: 'destructive', onPress: () => void mutateMobileApi<MobileCommunityActionDto>(`/api/mobile/v1/community/comments/${comment.id}`, 'DELETE').then(onDelete).catch((caught) => Alert.alert('삭제 실패', caught instanceof Error ? caught.message : '댓글을 삭제하지 못했습니다.')) }]);
+  const { fonts, showToast, theme } = useMinionTheme(); const [editing, setEditing] = useState(false); const [content, setContent] = useState(typeof comment.content === 'string' ? comment.content : ''); const [busy, setBusy] = useState(false);
+  const save = async () => { setBusy(true); try { const result = await mutateMobileApi<MobileCommunityCommentMutationDto>(`/api/mobile/v1/community/comments/${comment.id}`, 'PATCH', { content }); showToast(result.message, 'success'); setEditing(false); onDelete(); } catch (caught) { showToast(caught instanceof Error ? caught.message : '댓글을 수정하지 못했습니다. 다시 시도해 주세요.', 'error'); } finally { setBusy(false); } };
+  const remove = () => Alert.alert('댓글 삭제', '이 댓글을 삭제할까요?', [{ text: '취소', style: 'cancel' }, { text: '삭제', style: 'destructive', onPress: () => void mutateMobileApi<MobileCommunityActionDto>(`/api/mobile/v1/community/comments/${comment.id}`, 'DELETE').then((result) => { showToast(result.message, 'success'); onDelete(); }).catch((caught) => showToast(caught instanceof Error ? caught.message : '댓글을 삭제하지 못했습니다. 다시 시도해 주세요.', 'error')) }]);
   return (
     <View style={styles.commentItem}>
       {continued ? <View style={[styles.commentContinuation, { backgroundColor: theme.border }]} /> : null}

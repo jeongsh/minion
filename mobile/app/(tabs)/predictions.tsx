@@ -87,7 +87,7 @@ export default function PredictionsScreen() {
       });
       setBalanceOverride(result.balance);
       setDialog(null);
-      showToast(`${dialog.teamName} 승리 예측이 확정됐습니다.`, 'success', 'prediction');
+      showToast({ title: `${dialog.teamName} 승리 예측 확정`, description: '티켓 발권 완료. LP는 경기 결과에 따라 정산돼요.' }, 'success', 'prediction');
       void invalidateApiCache('/api/mobile/v1/predictions');
       await refreshViewer();
     } catch (caught) {
@@ -108,7 +108,7 @@ export default function PredictionsScreen() {
       const result = await mutateMobileApi<MobilePredictionMutationDto>('/api/mobile/v1/predictions', 'DELETE', { matchId: dialog.matchId });
       setBalanceOverride(result.balance);
       setDialog(null);
-      showToast(`${refundedStake.toLocaleString('ko-KR')} LP가 반환됐습니다.`, 'success', 'prediction');
+      showToast({ title: '예측 취소 완료', description: `${refundedStake.toLocaleString('ko-KR')} LP가 반환됐어요.` }, 'success', 'prediction');
       void invalidateApiCache('/api/mobile/v1/predictions');
       await refreshViewer();
     } catch (caught) {

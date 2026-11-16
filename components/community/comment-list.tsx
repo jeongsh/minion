@@ -147,13 +147,12 @@ export function CommentList({ comments: initialComments, deletedCommentIds = EMP
         teamSlug,
       });
       showToast({
-        title: result.ok ? "댓글 삭제 완료" : "삭제 실패",
-        description: result.ok ? result.message : result.error,
+        title: result.ok ? (result.message ?? "댓글을 삭제했습니다.") : result.error,
         tone: result.ok ? "success" : "error",
       });
       if (result.ok) { commentState?.settle(comment.id); router.refresh(); }
       else commentState?.rollback(comment.id);
-      } catch { commentState?.rollback(comment.id); showToast({ title: "삭제 실패", description: "다시 시도해 주세요.", tone: "error" }); }
+      } catch { commentState?.rollback(comment.id); showToast({ title: "댓글을 삭제하지 못했습니다. 다시 시도해 주세요.", tone: "error" }); }
     });
   };
 
@@ -181,8 +180,7 @@ export function CommentList({ comments: initialComments, deletedCommentIds = EMP
         teamSlug,
       });
       showToast({
-        title: result.ok ? "댓글 수정 완료" : "수정 실패",
-        description: result.ok ? result.message : result.error,
+        title: result.ok ? (result.message ?? "댓글을 수정했습니다.") : result.error,
         tone: result.ok ? "success" : "error",
       });
       if (result.ok) {
@@ -191,7 +189,7 @@ export function CommentList({ comments: initialComments, deletedCommentIds = EMP
         commentState?.settle(comment.id);
         router.refresh();
       } else { commentState?.rollback(comment.id); setEditingId(comment.id); setEditingContent(nextContent); }
-      } catch { commentState?.rollback(comment.id); setEditingId(comment.id); setEditingContent(nextContent); showToast({ title: "수정 실패", description: "다시 시도해 주세요.", tone: "error" }); }
+      } catch { commentState?.rollback(comment.id); setEditingId(comment.id); setEditingContent(nextContent); showToast({ title: "댓글을 수정하지 못했습니다. 다시 시도해 주세요.", tone: "error" }); }
     });
   };
 

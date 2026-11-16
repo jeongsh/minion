@@ -261,8 +261,8 @@ function ToastCopy({ description, title }: { description?: string; title: string
   const { fonts, theme } = useMinionShell();
   return (
     <View style={styles.toastCopy}>
-      <Text numberOfLines={1} style={{ color: theme.ink, ...fonts.display, fontSize: 14, lineHeight: 20 }}>{title}</Text>
-      {description ? <Text numberOfLines={1} style={{ color: theme.muted, ...fonts.regular, fontSize: 13, lineHeight: 20 }}>{description}</Text> : null}
+      <Text style={{ color: theme.ink, ...fonts.medium, fontSize: 14, lineHeight: 20 }}>{title}</Text>
+      {description ? <Text style={{ color: theme.muted, ...fonts.regular, fontSize: 13, lineHeight: 20 }}>{description}</Text> : null}
     </View>
   );
 }

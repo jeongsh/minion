@@ -141,7 +141,7 @@ export function PredictionBoard({ matches, teams, tournaments, bets: initialBets
       } catch (cause) {
         const message = cause instanceof Error ? cause.message : "예측을 등록하지 못했습니다.";
         setError(message);
-        showToast({ title: "예측 실패", description: message, tone: "error" });
+        showToast({ title: message, tone: "error" });
       }
     });
   }
@@ -167,7 +167,7 @@ export function PredictionBoard({ matches, teams, tournaments, bets: initialBets
       } catch (cause) {
         const message = cause instanceof Error ? cause.message : "예측을 취소하지 못했습니다.";
         setError(message);
-        showToast({ title: "취소 실패", description: message, tone: "error" });
+        showToast({ title: message, tone: "error" });
       }
     });
   }

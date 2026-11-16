@@ -30,11 +30,11 @@ export function BlockedUserList({ users, guests = [] }: { users: CommunityUserSu
     try {
       const result = await task();
       if (!result.ok) throw new Error(result.error);
-      showToast({ title: "차단 해제", description: result.message, tone: "success" });
+      showToast({ title: result.message ?? "차단을 해제했습니다.", tone: "success" });
       router.refresh();
     } catch (error) {
       setRemoved(previous => { const next = new Set(previous); next.delete(key); return next; });
-      showToast({ title: "해제 실패", description: error instanceof Error ? error.message : "다시 시도해 주세요.", tone: "error" });
+      showToast({ title: error instanceof Error ? error.message : "다시 시도해 주세요.", tone: "error" });
     } finally { inFlight.current.delete(key); }
   };
 

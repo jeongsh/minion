@@ -45,7 +45,7 @@ function CommentActions({ item }: { item: RatingCommentItem }) {
     startTransition(async () => {
       const result = await reactFanRatingAction({ ratingId: item.id, matchId: item.matchId, kind });
       if (!result.ok) {
-        showToast({ title: "반응 저장 실패", description: result.error, tone: "error" });
+        showToast({ title: result.error, tone: "error" });
         return;
       }
       setReaction(result.state);
@@ -59,11 +59,11 @@ function CommentActions({ item }: { item: RatingCommentItem }) {
     startTransition(async () => {
       const result = await reportFanRatingAction({ ratingId: item.id, matchId: item.matchId });
       if (!result.ok) {
-        showToast({ title: "신고 실패", description: result.error ?? "신고를 접수하지 못했습니다.", tone: "error" });
+        showToast({ title: result.error ?? "신고를 접수하지 못했습니다.", tone: "error" });
         return;
       }
       setReported(true);
-      showToast({ title: "신고 접수 완료", description: result.message, tone: "success" });
+      showToast({ title: result.message ?? "신고가 접수되었습니다.", tone: "success" });
     });
   };
 

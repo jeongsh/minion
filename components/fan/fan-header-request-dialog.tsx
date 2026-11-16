@@ -92,7 +92,7 @@ export function FanHeaderRequestDialog({
       if (!response.ok) {
         const message = payload.error ?? "업로드에 실패했어요.";
         setError(message);
-        showToast({ title: "업로드 실패", description: message, tone: "error" });
+        showToast({ title: message, tone: "error" });
         return;
       }
       setPicked({ url: payload.url, path: payload.path, width: payload.width, height: payload.height });
@@ -116,7 +116,7 @@ export function FanHeaderRequestDialog({
       if (!result.ok) {
         const message = result.error ?? "요청에 실패했어요.";
         setError(message);
-        showToast({ title: "대문 요청 실패", description: message, tone: "error" });
+        showToast({ title: message, tone: "error" });
         return;
       }
       setDone(true);

@@ -26,7 +26,7 @@ export function CommunityComposeScreen({ edit = false, scope = 'hub' }: { edit?:
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { session } = useAuth();
-  const { fonts, theme } = useMinionTheme();
+  const { fonts, showToast, theme } = useMinionTheme();
   const team = scope === 'team' ? getMinionTeam(teamSlug) : null;
   const accent = team ? fanAccentText(team.primaryColor) : theme.accent;
   const boards = boardsForScope(scope);
@@ -85,7 +85,7 @@ export function CommunityComposeScreen({ edit = false, scope = 'hub' }: { edit?:
       await invalidateApiCache('/api/mobile/v1/home');
       if (!edit) resetDraft();
       router.replace(`${basePath}/post/${result.id}` as never);
-    } catch (caught) { Alert.alert(edit ? '수정 실패' : '등록 실패', caught instanceof Error ? caught.message : '게시글을 저장하지 못했습니다.'); }
+    } catch (caught) { showToast(caught instanceof Error ? caught.message : '게시글을 저장하지 못했습니다.', 'error'); }
     finally { setSubmitting(false); }
   };
 

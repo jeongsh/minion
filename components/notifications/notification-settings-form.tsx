@@ -116,8 +116,7 @@ export function NotificationSettingsForm({ initialPreferences, initialTeams }: {
           onClick={() => startTransition(async () => {
             const result = await updateNotificationPreferencesAction(preferences, teams);
             showToast({
-              title: result.ok ? "알림 설정 저장" : "저장 실패",
-              description: result.ok ? "변경한 설정을 적용했어요." : result.error,
+              title: result.ok ? "알림 설정을 저장했습니다." : result.error,
               tone: result.ok ? "success" : "error",
             });
           })}

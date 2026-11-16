@@ -27,10 +27,10 @@ export function PostOwnerActions({ postId, scope, teamSlug, guest = false, varia
         : await deletePostAction({ postId, scope, teamSlug });
       if (!result.ok) {
         setMessage(result.error);
-        showToast({ title: "삭제 실패", description: result.error, tone: "error" });
+        showToast({ title: result.error, tone: "error" });
         return;
       }
-      showToast({ title: "게시글 삭제 완료", description: "목록으로 이동합니다.", tone: "success" });
+      showToast({ title: "게시글 삭제 완료", tone: "success" });
       router.push(basePath);
       router.refresh();
     });
