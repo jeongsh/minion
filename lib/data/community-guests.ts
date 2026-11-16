@@ -87,7 +87,7 @@ export async function guestRateLimitError(
   const table = kind === "post"
     ? "community_guest_post_credentials"
     : "community_guest_comment_credentials";
-  const recentSeconds = kind === "post" ? 30 : 10;
+  const recentSeconds = kind === "post" ? 30 : 5;
   const windowMinutes = 10;
   const windowLimit = kind === "post" ? 5 : 20;
   const sinceRecent = new Date(Date.now() - recentSeconds * 1000).toISOString();
