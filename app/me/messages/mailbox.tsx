@@ -4,13 +4,14 @@ import Link from "next/link";
 import { Reply, Send, Trash2, UserRound } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { Button, buttonClassName } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { formControlClassName } from "@/components/ui/input";
 import { useToast } from "@/components/ui/toast";
 import { sendMessageAction, updateMessageAction } from "@/lib/messages/actions";
 import type { DirectMessage } from "@/lib/messages/queries";
 
 type Recipient = { id: string; nickname: string };
+const iconActionClassName = "grid h-10 w-10 shrink-0 place-items-center transition-opacity hover:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50";
 const date = (value: string) => new Intl.DateTimeFormat("ko-KR", { dateStyle: "short", timeStyle: "short", timeZone: "Asia/Seoul" }).format(new Date(value));
 
 export function Mailbox({ box, messages, recipient }: { box: "inbox" | "sent"; messages: DirectMessage[]; recipient: Recipient | null }) {
@@ -89,21 +90,20 @@ export function Mailbox({ box, messages, recipient }: { box: "inbox" | "sent"; m
             const personId = box === "inbox" ? message.sender_id : message.recipient_id;
             return (
               <li key={message.id} data-message-id={message.id} data-unread={box === "inbox" && !message.read_at ? "" : undefined} className="min-w-0 space-y-3 py-5">
-                  <span className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-                    <span className="min-w-0 break-all text-base font-bold text-[var(--ui-ink)]">{person?.nickname ?? "알 수 없는 사용자"}</span>
-                    <span className="flex shrink-0 items-center gap-2 text-[13px] font-normal text-[var(--ui-muted)]">
-                      {box === "inbox" && !message.read_at ? <span className="text-[var(--accent)]">안 읽음</span> : null}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="break-all text-base font-bold text-[var(--ui-ink)]">{person?.nickname ?? "알 수 없는 사용자"}</p>
+                    <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] font-normal text-[var(--ui-muted)]">
                       <time dateTime={message.created_at}>{date(message.created_at)}</time>
-                    </span>
-                  </span>
-                <div className="space-y-4">
-                  <p className="whitespace-pre-wrap break-words text-base font-normal leading-relaxed text-[var(--ui-ink)] [overflow-wrap:anywhere]">{message.body}</p>
-                  <div className="flex items-center gap-2">
-                    <Button variant="neutral" className="w-10 !px-0" aria-label={box === "inbox" ? "답장" : "쪽지 보내기"} title={box === "inbox" ? "답장" : "쪽지 보내기"} disabled={pending} onClick={() => { setDraftRecipient({ id: personId, nickname: person?.nickname ?? "사용자" }); setBody(""); setError(null); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
+                      {box === "inbox" && !message.read_at ? <span className="text-[var(--accent)]">안 읽음</span> : null}
+                    </div>
+                  </div>
+                  <div className="flex shrink-0 items-center">
+                    <button type="button" className={`${iconActionClassName} text-[var(--accent)]`} aria-label={box === "inbox" ? "답장" : "쪽지 보내기"} title={box === "inbox" ? "답장" : "쪽지 보내기"} disabled={pending} onClick={() => { setDraftRecipient({ id: personId, nickname: person?.nickname ?? "사용자" }); setBody(""); setError(null); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
                       {box === "inbox" ? <Reply size={16} aria-hidden="true" /> : <Send size={16} aria-hidden="true" />}
-                    </Button>
-                    <Link href={`/community/user/${personId}`} aria-label="프로필 보기" title="프로필 보기" className={buttonClassName({ variant: "secondary", className: "w-10 !px-0" })}><UserRound size={16} aria-hidden="true" /></Link>
-                    <button type="button" aria-label="쪽지 삭제" title="쪽지 삭제" className="ml-auto grid h-10 w-10 shrink-0 place-items-center rounded-md text-[var(--ui-muted)] transition hover:bg-[var(--ui-card-hover)] hover:text-red-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50" disabled={pending} onClick={() => {
+                    </button>
+                    <Link href={`/community/user/${personId}`} aria-label="프로필 보기" title="프로필 보기" className={`${iconActionClassName} text-[var(--ui-muted)]`}><UserRound size={16} aria-hidden="true" /></Link>
+                    <button type="button" aria-label="쪽지 삭제" title="쪽지 삭제" className={`${iconActionClassName} text-red-500 dark:text-red-400`} disabled={pending} onClick={() => {
                       if (!window.confirm("내 쪽지함에서 삭제할까요? 상대방의 쪽지는 유지됩니다.")) return;
                       startTransition(async () => {
                         try {
@@ -117,6 +117,7 @@ export function Mailbox({ box, messages, recipient }: { box: "inbox" | "sent"; m
                     }}><Trash2 size={18} aria-hidden="true" /></button>
                   </div>
                 </div>
+                <p className="whitespace-pre-wrap break-words text-base font-normal leading-relaxed text-[var(--ui-ink)] [overflow-wrap:anywhere]">{message.body}</p>
               </li>
             );
           })}
