@@ -1,3 +1,5 @@
 {
-  "CFBundleDisplayName": "MINION"
+  "ios": {
+    "CFBundleDisplayName": "MINION"
+  }
 }
