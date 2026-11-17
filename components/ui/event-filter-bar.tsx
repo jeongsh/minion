@@ -4,7 +4,7 @@ type EventFilterBarProps = { children: ReactNode; actions?: ReactNode };
 
 export function EventFilterHeader(props: EventFilterBarProps) {
   return (
-    <header data-ad-secondary-header className="mt-2 hidden border-b border-[var(--ui-border)] bg-[var(--page-background)] lg:sticky lg:top-[var(--ui-header-height)] lg:z-30 lg:block">
+    <header data-ad-secondary-header className="hidden border-b border-[var(--ui-border)] bg-[var(--page-background)] lg:sticky lg:top-[var(--ui-header-height)] lg:z-30 lg:block">
       <div className="layout-wide flex items-center py-2.5">
         <EventFilterBar {...props} />
       </div>

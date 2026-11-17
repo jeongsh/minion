@@ -6,6 +6,17 @@ import { AdSlot } from "@/components/ui/ad-slot";
 import { hasReadyAdContent } from "@/components/ads/ad-runtime";
 import { isAutoAdContentPath, isRailAdContentPath } from "@/lib/ads-policy";
 
+// Temporary local preview uses the real rail geometry without requesting ads.
+const PREVIEW_RAILS = process.env.NODE_ENV === "development";
+
+function RailPreview({ className }: { className: string }) {
+  return <aside aria-label="임시 광고 영역" className={`${className} flex flex-col items-center justify-center gap-2 border border-dashed border-[var(--ui-muted)] bg-[var(--ui-card-bg)] text-[13px] font-medium text-[var(--ui-ink)]`}>
+    <span>임시 광고 영역</span>
+    <span className="min-[2080px]:hidden">160 × 600</span>
+    <span className="hidden min-[2080px]:inline">300 × 600</span>
+  </aside>;
+}
+
 /** Only the right placement follows scrolling. */
 export function DesktopAdRails() {
   const pathname = usePathname();
@@ -13,7 +24,7 @@ export function DesktopAdRails() {
   const [secondaryHeaderHeight, setSecondaryHeaderHeight] = useState(0);
   const [railStart, setRailStart] = useState(0);
   const [stickyFits, setStickyFits] = useState(false);
-  const allowed = isAutoAdContentPath(pathname) || isRailAdContentPath(pathname);
+  const allowed = PREVIEW_RAILS || isAutoAdContentPath(pathname) || isRailAdContentPath(pathname);
 
   useEffect(() => {
     if (!allowed) return;
@@ -43,8 +54,8 @@ export function DesktopAdRails() {
       }
       setSecondaryHeaderHeight(headerHeight);
       setStickyFits(window.innerHeight >= 700 + headerHeight);
-      const hasContent = hasReadyAdContent();
-      setContentPath(hasContent && !document.querySelector('[data-ads-blocked="true"]') ? pathname : null);
+      const hasContent = PREVIEW_RAILS || hasReadyAdContent();
+      setContentPath(hasContent && (PREVIEW_RAILS || !document.querySelector('[data-ads-blocked="true"]')) ? pathname : null);
     };
     const resizeObserver = new ResizeObserver(update);
     update();
@@ -75,10 +86,10 @@ export function DesktopAdRails() {
       } as CSSProperties}
     >
       <div className="desktop-ad-rail-left-track">
-        <AdSlot key={`${pathname}-left`} enabled placement="rail-left" className="desktop-ad-rail desktop-ad-rail-left" />
+        {PREVIEW_RAILS ? <RailPreview className="desktop-ad-rail desktop-ad-rail-left" /> : <AdSlot key={`${pathname}-left`} enabled placement="rail-left" className="desktop-ad-rail desktop-ad-rail-left" />}
       </div>
       <div className="desktop-ad-rail-track">
-        <AdSlot key={`${pathname}-right`} enabled placement="rail-right" className="desktop-ad-rail desktop-ad-rail-right" />
+        {PREVIEW_RAILS ? <RailPreview className="desktop-ad-rail desktop-ad-rail-right" /> : <AdSlot key={`${pathname}-right`} enabled placement="rail-right" className="desktop-ad-rail desktop-ad-rail-right" />}
       </div>
     </div>
   );
