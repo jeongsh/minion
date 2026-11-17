@@ -4,7 +4,8 @@ import { MinionDock } from '@/components/minion-dock';
 
 export default function TabLayout() {
   const pathname = usePathname();
-  const hideDock = /^\/community\/(?:new|post\/[^/]+(?:\/edit)?)\/?$/.test(pathname)
+  const hideDock = /^\/(?:about|terms|privacy|advertising|community\/rules)\/?$/.test(pathname)
+    || /^\/community\/(?:new|post\/[^/]+(?:\/edit)?)\/?$/.test(pathname)
     || /^\/fan\/[^/]+\/community\/(?:new|[^/]+\/new|post\/[^/]+(?:\/edit)?)\/?$/.test(pathname)
     || /^\/support\/(?:new|[^/]+)\/?$/.test(pathname);
   return (
@@ -29,6 +30,11 @@ export default function TabLayout() {
       <Tabs.Screen name="search" options={{ href: null }} />
       <Tabs.Screen name="matches/[matchId]" options={{ href: null }} />
       <Tabs.Screen name="minicons" options={{ href: null }} />
+      <Tabs.Screen name="about" options={{ href: null }} />
+      <Tabs.Screen name="terms" options={{ href: null }} />
+      <Tabs.Screen name="privacy" options={{ href: null }} />
+      <Tabs.Screen name="advertising" options={{ href: null }} />
+      <Tabs.Screen name="community/rules" options={{ href: null }} />
     </Tabs>
   );
 }
