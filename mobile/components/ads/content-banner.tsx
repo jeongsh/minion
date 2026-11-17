@@ -1,11 +1,11 @@
 import { useIsFocused } from '@react-navigation/native';
 import { usePathname } from 'expo-router';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { ActivityIndicator, AppState, StyleSheet, useWindowDimensions, View, type StyleProp, type ViewStyle } from 'react-native';
+import { ActivityIndicator, AppState, Platform, StyleSheet, useWindowDimensions, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { HouseAd, useHousePromo } from '@/components/ads/house-ad';
 
-import { getAndroidBannerAdUnitId, MOBILE_ADS_TEST_MODE } from '@/constants/mobile-ads';
+import { getMobileBannerAdUnitId, MOBILE_ADS_TEST_MODE } from '@/constants/mobile-ads';
 import { useKeyboardLayout } from '@/hooks/use-keyboard-layout';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import { bannerRequestDelay, isBannerUnfilled, recordBannerFailure, recordBannerLoaded, recordBannerRequest } from '@/lib/ad-banner-policy';
@@ -126,7 +126,7 @@ function BannerSession({ active, ads, placement, contentUrl, width, slotHeight, 
   // v15.8.3 starts BaseAd at 0x0. The creative is centered inside the fixed slot.
   return <View pointerEvents={active ? 'auto' : 'none'} style={[styles.creative, { width, height: loaded && height !== null ? Math.max(slotHeight, height) : slotHeight }]}>
     <BannerAd size={ads.BannerAdSize.ANCHORED_ADAPTIVE_BANNER} width={width}
-      unitId={MOBILE_ADS_TEST_MODE ? ads.TestIds.BANNER : getAndroidBannerAdUnitId(placement)} requestOptions={requestOptions}
+      unitId={MOBILE_ADS_TEST_MODE ? ads.TestIds.BANNER : getMobileBannerAdUnitId(Platform.OS as 'android' | 'ios', placement)} requestOptions={requestOptions}
       onAdLoaded={dimensions => {
         recordBannerLoaded(placement);
         updateSize(dimensions);
