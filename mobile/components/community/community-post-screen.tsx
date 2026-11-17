@@ -366,7 +366,7 @@ function ReactionButtons({ accent, item, onReact, target, small = false }: { acc
   };
 
   return <View style={small ? styles.commentReactions : styles.reactions}>
-    <ReactionButton accent={accent} active={value.state === 'honor'} count={value.honorCount} disabled={pending} icon="honor" label="와드" onPress={() => void press('honor')} small={small} />
+    <ReactionButton accent={accent} active={value.state === 'honor'} count={value.honorCount} disabled={pending} icon="honor" label="명예" onPress={() => void press('honor')} small={small} />
     <ReactionButton accent={accent} active={value.state === 'dislike'} count={value.dislikeCount} disabled={pending} icon="dislike" label="비추천" onPress={() => void press('dislike')} small={small} />
   </View>;
 }
