@@ -200,17 +200,17 @@ body:has([data-tournament-cached="true"]:not([hidden] *)) [data-testid="navigati
 }
 
 .schedule-mobile-sticky {
-  top: calc(var(--shell-mobile-header-offset, 56px) + 48px);
+  top: calc(var(--shell-mobile-header-offset, 56px) + var(--shell-local-nav-height, 48px));
   transition: top 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .me-mobile-sticky-nav {
-  top: calc(var(--shell-mobile-header-offset, 56px) + 48px);
+  top: calc(var(--shell-mobile-header-offset, 56px) + var(--shell-local-nav-height, 48px));
   transition: top 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .champion-mobile-sticky-tabs {
-  top: calc(var(--shell-mobile-header-offset, 56px) + 48px);
+  top: calc(var(--shell-mobile-header-offset, 56px) + var(--shell-local-nav-height, 48px));
   transition: top 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -659,7 +659,7 @@ html[class~="dark"] .app-lnb :is(a, button) {
 html[class~="dark"] .app-lnb :is(a, button):hover {
   background-color: #282c31 !important;
 }
-html[class~="dark"] .app-lnb a[data-active="true"] {
+html[class~="dark"] .app-lnb :is(a, button)[data-active="true"] {
   background-color: #31363d !important;
 }
 
@@ -983,7 +983,7 @@ html[class~="dark"] .app-lnb-scrollbar:hover::-webkit-scrollbar-thumb {
     position: absolute;
     top: max(calc(96px + var(--ad-secondary-header-height, 0px)), var(--ad-rail-start, 0px));
     bottom: 0;
-    left: 56px;
+    left: 152px;
     right: 0;
     pointer-events: none;
   }
@@ -1973,4 +1973,8 @@ html[class~="dark"] .me-page {
 .preview-reveal[data-instant] *,
 .preview-reveal[data-instant] svg > g {
   transition: none !important;
+}
+
+@media (min-width: 768px) {
+  :root { --shell-lnb-width: 152px; }
 }
