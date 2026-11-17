@@ -22,18 +22,9 @@ async function pollIdentity() {
 }
 
 async function readTally(pollId: string, voterKey: string) {
-  const supabase = createSupabaseAdminClient();
-  const { data, error } = await supabase.from("post_poll_votes").select("option_id, voter_key").eq("poll_id", pollId);
+  const { data, error } = await createSupabaseAdminClient().rpc("read_poll_tally", { p_poll_id: pollId, p_voter_key: voterKey });
   if (error) throw error;
-
-  const counts: Record<string, number> = {};
-  let myOptionId: string | null = null;
-  for (const row of data ?? []) {
-    counts[row.option_id] = (counts[row.option_id] ?? 0) + 1;
-    if (row.voter_key === voterKey) myOptionId = row.option_id;
-  }
-
-  return { counts, total: data?.length ?? 0, myOptionId };
+  return data as { counts: Record<string, number>; total: number; myOptionId: string | null };
 }
 
 export async function GET(_request: Request, context: { params: Promise<{ pollId: string }> }) {

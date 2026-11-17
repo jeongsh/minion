@@ -3,6 +3,7 @@
 // 하나의 CalendarEvent로 정규화하고, KST 기준 D-day / n주년을 계산한다.
 
 import { cache } from "react";
+import { calendarMonthRange } from "@/lib/calendar/range";
 import { normalizeFanCalendarSourceUrl } from "@/lib/calendar/submissions";
 import { canQuerySupabase, createSupabaseServerClient } from "@/lib/supabase/server";
 import { getAllTeams } from "@/lib/data/lck";
@@ -148,6 +149,7 @@ function calendarSourceKind(value?: string): Exclude<CalendarEventSourceKind, "b
 }
 
 export type CalendarEventQueryOptions = {
+  dateRange?: { from: string; to: string };
   teamId?: string;
   /** 기본값 false. true면 이미 지난 일회성 일정도 실제 날짜와 음수 dday로 반환한다. */
   includePastOneTime?: boolean;
@@ -169,6 +171,14 @@ export const getCalendarEvents = cache(async function getCalendarEvents(
   const teamById = new Map(teams.map((t) => [t.id, t]));
 
   const supabase = createSupabaseServerClient();
+  let scoped: { playerIds: string[]; eventIds: string[] } | null = null;
+  if (opts?.dateRange) {
+    const { data, error } = await supabase.rpc("read_calendar_scope", {
+      p_team_id: teamId ?? null, p_from: opts.dateRange.from, p_to: opts.dateRange.to,
+    });
+    if (error) throw error;
+    scoped = data;
+  }
 
   // 생일 소스: 활성 LCK 선수 중 birth_date 보유.
   let playerQuery = supabase
@@ -178,33 +188,38 @@ export const getCalendarEvents = cache(async function getCalendarEvents(
     .neq("is_active", false)
     .not("birth_date", "is", null);
   if (teamId) playerQuery = playerQuery.eq("team_id", teamId);
+  if (scoped) playerQuery = playerQuery.in("id", scoped.playerIds);
 
-  // 관리자 입력 기념일.
-  const eventQuery = supabase
-    .from("fan_calendar_events")
-    .select(
-      "id, event_type, team_id, player_id, title, event_date, event_time, is_recurring, description, source_url, source_kind",
-    );
-
-  const [{ data: playerRows }, eventResult, { data: allPlayerRows }] = await Promise.all([
+  const { data: teamPlayerRows, error: teamPlayerError } = teamId
+    ? await supabase.from("players").select("id").eq("team_id", teamId)
+    : { data: [], error: null };
+  if (teamPlayerError) throw teamPlayerError;
+  const teamPlayerIds = (teamPlayerRows ?? []).map(player => player.id);
+  const readEvents = (columns: string) => {
+    let query = supabase.from("fan_calendar_events").select(columns);
+    if (scoped) query = query.in("id", scoped.eventIds);
+    if (teamId) query = teamPlayerIds.length
+      ? query.or(`team_id.eq.${teamId},and(team_id.is.null,player_id.in.(${teamPlayerIds.join(",")}))`)
+      : query.eq("team_id", teamId);
+    return query;
+  };
+  const [{ data: playerRows, error: playerError }, eventResult] = await Promise.all([
     playerQuery,
-    eventQuery,
-    // 기념일이 player_id를 참조할 때 이름/이미지를 붙이기 위한 조회.
-    supabase.from("players").select("id, slug, name, team_id, birth_date, profile_image_url"),
+    readEvents("id, event_type, team_id, player_id, title, event_date, event_time, is_recurring, description, source_url, source_kind"),
   ]);
-
-  // 새 제보 워크플로 마이그레이션이 아직 적용되지 않은 환경에서도 기존
-  // 생일·데뷔·우승 일정을 계속 보여 준다. 확장 컬럼 조회가 실패하면 기존
-  // 스키마 컬럼만으로 한 번 더 조회하고 신규 메타데이터는 null로 처리한다.
-  let eventRows = eventResult.data as FanCalendarRow[] | null;
+  if (playerError) throw playerError;
+  let eventRows = eventResult.data as unknown as FanCalendarRow[] | null;
   if (eventResult.error) {
-    const legacyResult = await supabase
-      .from("fan_calendar_events")
-      .select("id, event_type, team_id, player_id, title, event_date, is_recurring");
-    eventRows = legacyResult.data as FanCalendarRow[] | null;
+    const legacyResult = await readEvents("id, event_type, team_id, player_id, title, event_date, is_recurring");
+    if (legacyResult.error) throw legacyResult.error;
+    eventRows = legacyResult.data as unknown as FanCalendarRow[] | null;
   }
-
-  const playerById = new Map((allPlayerRows as PlayerBirthRow[] | null ?? []).map((p) => [p.id, p]));
+  const referencedIds = [...new Set((eventRows ?? []).flatMap(row => row.player_id ? [row.player_id] : []))];
+  const { data: referencedPlayers, error: referenceError } = referencedIds.length
+    ? await supabase.from("players").select("id, slug, name, team_id, birth_date, profile_image_url").in("id", referencedIds)
+    : { data: [], error: null };
+  if (referenceError) throw referenceError;
+  const playerById = new Map(((referencedPlayers ?? []) as PlayerBirthRow[]).map(player => [player.id, player]));
 
   const events: CalendarEvent[] = [];
 
@@ -328,7 +343,7 @@ export async function findTodayCelebration(
   opts?: { teamId?: string },
 ): Promise<CalendarEvent | null> {
   if (!eventKey) return null;
-  const events = await getCalendarEvents(opts);
+  const events = await getCalendarEvents({ ...opts, dateRange: calendarMonthRange().eventRange });
   return getTodayCelebrations(events).find((event) => event.key === eventKey) ?? null;
 }
 

@@ -8,9 +8,9 @@ import ChampionDetailLoading from "./loading";
 import { ChampionDetail, type ChampionCatalogs } from "@/components/champions/champion-detail";
 import type { ChampionDetailTab } from "@/components/champions/champion-navigation";
 import { ChampionScopeFilter } from "@/components/champions/champion-scope-filter";
-import { buildChampionAnalysis, buildChampionDirectoryFromAggregates, buildChampionOverview } from "@/lib/champion-analysis";
+import { buildChampionAnalysis, buildChampionDirectoryFromAggregates } from "@/lib/champion-analysis";
 import { championImage, championSearchText, fetchChampionAbilityIcons, normalizedDdragonId } from "@/lib/champions";
-import { getChampionBySlug, getChampionDetailData, getChampionDirectoryStats, getChampionPageReferenceData, resolveChampionScope } from "@/lib/data/champion-page";
+import { getChampionBySlug, getChampionDetailData, getChampionGamesPage, getChampionDirectoryStats, getChampionPageReferenceData, resolveChampionScope } from "@/lib/data/champion-page";
 import { DEFAULT_DDRAGON_VERSION, ddragonVersionFromPatch, uniqueDdragonVersionsForPatches } from "@/lib/ddragon";
 import { fetchDetailedItemCatalog, type DetailedGameItem, type GameItem } from "@/lib/items";
 import { fetchFullRuneTrees, fetchRuneCatalog } from "@/lib/runes";
@@ -114,7 +114,7 @@ async function ChampionDetailContent({ championSlug, query }: {
   championSlug: string;
   query: ChampionDetailSearchParams;
 }) {
-  const references = await getChampionPageReferenceData();
+  const references = await getChampionPageReferenceData(query);
   const champion = await getChampionBySlug(championSlug, references.champions);
   if (!champion) notFound();
 
@@ -122,25 +122,26 @@ async function ChampionDetailContent({ championSlug, query }: {
   const requestedTab = TABS.has(query.tab as ChampionDetailTab)
     ? query.tab as ChampionDetailTab
     : "overview";
-  const [data, directoryStats] = await Promise.all([
-    getChampionDetailData(champion.id, scope.setIds, requestedTab === "overview", references,
-      requestedTab === "stats" || requestedTab === "duos"),
-    getChampionDirectoryStats(scope.setIds),
-  ]);
-  const defaultOverview = buildChampionOverview(data, champion.id);
-  const requestedPosition = POSITIONS.has(query.position as PlayerPosition)
-    ? query.position as PlayerPosition
-    : null;
-  const requestedPositionHasData = requestedPosition
-    ? defaultOverview.positions.some((row) => row.position === requestedPosition && row.picks > 0)
-    : false;
-  const position = requestedPositionHasData ? requestedPosition! : defaultOverview.selectedPosition;
-  const analysis = buildChampionAnalysis(data, champion.id, position);
+  const directoryStats = await getChampionDirectoryStats(scope.setIds);
   const directory = buildChampionDirectoryFromAggregates(references.champions, directoryStats);
-  // This summary includes absent/banned games and incomplete-draft coverage, just
-  // like the full raw-draft calculation retained for the statistics tab.
-  const championDraft = directory.find((row) => row.champion.id === champion.id)?.draft;
-  if (championDraft) analysis.overview.draft = championDraft;
+  const summary = directory.find(row => row.champion.id === champion.id)!;
+  const requestedPosition = POSITIONS.has(query.position as PlayerPosition) ? query.position as PlayerPosition : null;
+  const position = requestedPosition && summary.positions.some(row => row.position === requestedPosition && row.picks > 0)
+    ? requestedPosition : [...summary.positions].sort((a, b) => b.picks - a.picks)[0].position;
+  const parsedPage = Number(query.page);
+  const requestedPage = Number.isInteger(parsedPage) && parsedPage > 0 ? Math.min(parsedPage, 2_000_000_000) : 1;
+  const gamesPage = requestedTab === "games" ? await getChampionGamesPage(champion.id, scope.setIds, position, requestedPage) : null;
+  const detailSetIds = gamesPage ? [...new Set(gamesPage.pairs.map(pair => pair.setId))] : scope.setIds;
+  const data = await getChampionDetailData(champion.id, detailSetIds, requestedTab === "overview", references,
+    requestedTab === "stats" || requestedTab === "duos");
+  const analysis = buildChampionAnalysis(data, champion.id, position);
+  analysis.overview.draft = summary.draft;
+  if (gamesPage) {
+    analysis.games = analysis.games.filter(game => gamesPage.pairs.some(pair => pair.setId === game.setId && pair.playerId === game.playerId));
+    analysis.overview.overall = summary.record;
+    analysis.overview.positions = summary.positions;
+    analysis.overview.selected = summary.positions.find(row => row.position === position)!;
+  }
 
   let activeTab = requestedTab;
   if (activeTab === "duos" && position !== "BOT" && position !== "SUP") activeTab = "stats";
@@ -151,8 +152,7 @@ async function ChampionDetailContent({ championSlug, query }: {
   if (scope.patch !== "all") paramsForLinks.set("patch", scope.patch);
   paramsForLinks.set("position", position);
   if (activeTab !== "overview") paramsForLinks.set("tab", activeTab);
-  const requestedPage = Number(query.page);
-  const gamePage = Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+  const gamePage = gamesPage?.page ?? 1;
   if (activeTab === "games" && gamePage > 1) paramsForLinks.set("page", String(gamePage));
 
   const pickerOptions = directory.filter((row) => row.draft.picks > 0 || row.draft.bans > 0).map((row) => ({
@@ -220,6 +220,7 @@ async function ChampionDetailContent({ championSlug, query }: {
           params={paramsForLinks}
           catalogs={catalogs}
           gamePage={gamePage}
+          gameTotal={gamesPage?.total ?? analysis.games.length}
           scopeControl={(
             <ChampionScopeFilter
               action={`/champions/${champion.slug}`}

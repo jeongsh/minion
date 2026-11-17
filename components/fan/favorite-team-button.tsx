@@ -41,7 +41,7 @@ export function FavoriteTeamButton({
       const result = await setFavoriteTeamAction(teamId, teamSlug, nextFavorite);
       if (!result.ok) {
         setFavorite(!nextFavorite);
-        showToast({ title: "최애팀 설정 실패", description: result.error ?? "잠시 뒤 다시 시도해 주세요.", tone: "error" });
+        showToast({ title: result.error ?? "잠시 뒤 다시 시도해 주세요.", tone: "error" });
         return;
       }
       setFavorite(result.favorite);

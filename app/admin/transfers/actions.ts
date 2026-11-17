@@ -5,9 +5,22 @@ import { revalidatePath } from "next/cache";
 import { createSupabaseAdminActionClient } from "@/lib/auth/admin";
 import { syncTransferMarket } from "@/lib/transfers/sync";
 import { syncTransferTeams } from "@/lib/transfers/teams";
+import { importTransferPlayer } from "@/lib/transfers/players";
 import { lckTeamCode, normalizeTransferName, TRANSFER_KIND_LABELS, TRANSFER_ROLES, transferSeason, type TransferEvent, type TransferMarket } from "@/lib/transfers/types";
 
 function refresh() { revalidatePath("/transfers"); revalidatePath("/transfers/feed.xml"); revalidatePath("/sitemap.xml"); revalidatePath("/admin/transfers"); }
+
+export async function importTransferPlayerAction(input: string) {
+  const client = await createSupabaseAdminActionClient();
+  if (typeof input !== "string" || input.length > 1000) return { error: "선수 닉네임 또는 리그피디아 문서 링크를 확인해 주세요.", player: null };
+  try {
+    const player = await importTransferPlayer(client, input);
+    refresh(); revalidatePath("/players"); revalidatePath("/admin/players");
+    return { error: null, player };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "선수 정보를 가져오지 못했습니다. 다시 시도해 주세요.", player: null };
+  }
+}
 
 export async function syncTransfersAction(season: number) {
   const client = await createSupabaseAdminActionClient();
@@ -50,7 +63,7 @@ export async function saveTransferEventAction(form: FormData) {
     to = team.name;
   }
   if (!Number.isInteger(season) || season < 2026 || season > transferSeason() || !Object.hasOwn(TRANSFER_KIND_LABELS, kind) || ![...TRANSFER_ROLES, "COACH"].includes(role) || !["official", "report", "rumor", "namuwiki"].includes(provenance)) return { error: "입력 항목을 확인해 주세요." };
-  if (!player || player.length > 50 || from.length > 100 || to.length > 100 || !from || (["transfer", "loan", "renew", "promote", "demote"].includes(kind) && !to)) return { error: "선수와 이전 팀, 새 팀을 확인해 주세요." };
+  if (!player || player.length > 50 || from.length > 100 || to.length > 100 || !from || (["transfer", "loan", "renew", "promote", "demote"].includes(kind) && !to)) return { error: "이름과 이전 팀, 새 팀을 확인해 주세요." };
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(Date.parse(date)) || new Date(date).toISOString().slice(0, 10) !== date || Number(date.slice(0, 4)) < season - 1 || Number(date.slice(0, 4)) > season + 1) return { error: "발표일을 확인해 주세요." };
   if (sourceUrl) try { const url = new URL(sourceUrl); if (url.protocol !== "https:" || url.username || url.password) throw new Error(); } catch { return { error: "출처는 HTTPS 링크로 입력해 주세요." }; }
   const { data, error } = await client.from("lck_transfer_markets").select("*").eq("season", season).single();

@@ -26,7 +26,7 @@ import { buildTeamStandingRows, dateKeyKST } from "@/lib/view-data";
 export const revalidate = 30;
 
 async function buildMobileHomeData(): Promise<MobileHomeDto> {
-  const [{ teams, matches, tournaments, calendarEvents }, popularCommunityPosts, latestCommunityPosts, pomPlayers, stages, bracketStages, insights, predictionMarket, newsFeed] = await Promise.all([
+  const [{ teams, matches, tournaments, calendarEvents }, popularCommunityPosts, latestCommunityPosts, pomPlayers, stages, bracketStages, insights, newsFeed] = await Promise.all([
     getMobileHomePublicData(),
     getBoardPosts({ scope: "hub", hotOnly: true, limit: COMMUNITY_HOME_HOT_CANDIDATE_LIMIT }),
     getBoardPosts({ scope: "hub", limit: COMMUNITY_HOME_LATEST_CANDIDATE_LIMIT }),
@@ -34,7 +34,6 @@ async function buildMobileHomeData(): Promise<MobileHomeDto> {
     getStages(),
     getBracketStages(),
     getHomeInsights().catch((error) => { console.error("Home insights unavailable", error); return null; }),
-    getPredictionMarketData(),
     getHomeNewsFeed(6),
   ]);
   scheduleNewsThumbnailWarmup(newsFeed.articles);
@@ -53,8 +52,9 @@ async function buildMobileHomeData(): Promise<MobileHomeDto> {
     ...matches.filter((match) => match.status === "completed" && dateKeyKST(match.matchDate) === todayKey).sort(byDateDesc),
   ].slice(0, 12);
   if (sectionMatches.length === 0) sectionMatches = matches.filter((match) => match.status === "completed").sort(byDateDesc).slice(0, 6);
+  const predictionMarket = await getPredictionMarketData(undefined, undefined, sectionMatches.map(match => match.id), false);
   const orderedMatches = sectionMatches.map((match) => {
-    const { teamAPercent, teamBPercent } = predictionMarketForMatch(predictionMarket.bets, match.id, match.teamAId, match.teamBId, match.status === "completed");
+    const { teamAPercent, teamBPercent } = predictionMarketForMatch(predictionMarket.bets, match.id, match.teamAId, match.teamBId, match.status === "completed", predictionMarket.markets);
     return { ...toMobileMatch(match, teamMap, tournamentMap), tournamentLogo: tournamentLogos.get(match.tournamentId) ? { url: tournamentLogos.get(match.tournamentId)! } : null, prediction: { teamAPercent, teamBPercent } };
   });
   const lckTeams = teams.filter((team) => team.isLckTeam);

@@ -62,8 +62,7 @@ export function MiniconSubmissionForm({ pendingApplicationCount }: { pendingAppl
 
     if (isAtLimit) {
       showToast({
-        title: "신청 대기 한도",
-        description: "검토 중인 신청이 끝난 뒤 새 미니콘을 신청할 수 있습니다.",
+        title: "검토 중인 신청이 끝난 뒤 새 미니콘을 신청할 수 있습니다.",
         tone: "info",
       });
       return;
@@ -77,21 +76,20 @@ export function MiniconSubmissionForm({ pendingApplicationCount }: { pendingAppl
     const files = Array.from((form.elements.namedItem("items") as HTMLInputElement).files ?? []);
 
     if (textLength(name) < 1 || textLength(name) > 30) {
-      showToast({ title: "신청할 수 없어요", description: "패키지 이름은 1~30자로 입력하세요.", tone: "error" });
+      showToast({ title: "패키지 이름은 1~30자로 입력하세요.", tone: "error" });
       return;
     }
     if (textLength(description) > 300) {
-      showToast({ title: "신청할 수 없어요", description: "설명은 300자까지 입력할 수 있습니다.", tone: "error" });
+      showToast({ title: "설명은 300자까지 입력할 수 있습니다.", tone: "error" });
       return;
     }
     if (!rightsConfirmed) {
-      showToast({ title: "권리 확인이 필요해요", description: "등록·배포할 권리가 있는 이미지인지 확인해 주세요.", tone: "error" });
+      showToast({ title: "등록하고 배포할 권리가 있는 이미지인지 확인해 주세요.", tone: "error" });
       return;
     }
     if (files.length < MINICON_MIN_PACK_ITEMS || files.length > MINICON_MAX_PACK_ITEMS) {
       showToast({
-        title: "신청할 수 없어요",
-        description: `200×200 미니콘을 ${MINICON_MIN_PACK_ITEMS}~${MINICON_MAX_PACK_ITEMS}개 선택하세요.`,
+        title: `200×200 미니콘을 ${MINICON_MIN_PACK_ITEMS}~${MINICON_MAX_PACK_ITEMS}개 선택하세요.`,
         tone: "error",
       });
       return;
@@ -104,8 +102,7 @@ export function MiniconSubmissionForm({ pendingApplicationCount }: { pendingAppl
     ));
     if (invalidFile) {
       showToast({
-        title: "파일을 확인해 주세요",
-        description: `${invalidFile.name}: JPG·PNG·GIF 형식, 파일당 2MB 이하만 등록할 수 있습니다.`,
+        title: `${invalidFile.name}: JPG, PNG, GIF 형식, 파일당 2MB 이하만 등록할 수 있습니다.`,
         tone: "error",
       });
       return;
@@ -140,11 +137,11 @@ export function MiniconSubmissionForm({ pendingApplicationCount }: { pendingAppl
 
       if (!result.ok) {
         await cleanupMiniconUploadsAction(uploaded.map((item) => item.receiptId)).catch(() => undefined);
-        showToast({ title: "신청하지 못했어요", description: result.error, tone: "error" });
+        showToast({ title: result.error, tone: "error" });
         return;
       }
 
-      showToast({ title: "검토 신청 완료", description: result.message, tone: "success" });
+      showToast({ title: result.message, tone: "success" });
       formRef.current?.reset();
       setFileNames([]);
       setProgress(0);
@@ -152,8 +149,7 @@ export function MiniconSubmissionForm({ pendingApplicationCount }: { pendingAppl
     } catch (error) {
       await cleanupMiniconUploadsAction(uploaded.map((item) => item.receiptId)).catch(() => undefined);
       showToast({
-        title: "업로드하지 못했어요",
-        description: error instanceof Error ? error.message : "미니콘 파일을 업로드하지 못했습니다.",
+        title: error instanceof Error ? error.message : "미니콘 파일을 업로드하지 못했습니다.",
         tone: "error",
       });
     } finally {

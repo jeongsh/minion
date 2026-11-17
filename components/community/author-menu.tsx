@@ -1,6 +1,6 @@
 "use client";
 
-import { Ban, FileText, Flag, MessageSquareText, UserRound } from "lucide-react";
+import { Ban, FileText, Flag, Mail, MessageSquareText, UserRound } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useLayoutEffect, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
@@ -155,8 +155,7 @@ export function AuthorMenu({
           })
         : await setCommunityUserBlockedAction({ targetUserId: authorId!, blocked: true });
       showToast({
-        title: result.ok ? "사용자 차단 완료" : "차단 실패",
-        description: result.ok ? result.message : result.error,
+        title: result.ok ? (result.message ?? "사용자를 차단했습니다.") : result.error,
         tone: result.ok ? "success" : "error",
       });
       if (result.ok) {
@@ -170,7 +169,7 @@ export function AuthorMenu({
     const reason = window.prompt("신고 사유를 입력해주세요. 운영자가 관련 활동과 함께 확인합니다.");
     if (reason === null) return;
     if (!reason.trim()) {
-      showToast({ title: "신고 사유 필요", description: "신고 사유를 입력해주세요.", tone: "error" });
+      showToast({ title: "신고 사유를 입력해주세요.", tone: "error" });
       return;
     }
     setOpen(false);
@@ -188,8 +187,7 @@ export function AuthorMenu({
             evidenceCommentId,
           });
       showToast({
-        title: result.ok ? "사용자 신고 접수" : "신고 실패",
-        description: result.ok ? result.message : result.error,
+        title: result.ok ? (result.message ?? "사용자 신고가 접수되었습니다.") : result.error,
         tone: result.ok ? "success" : "error",
       });
     });
@@ -275,6 +273,7 @@ export function AuthorMenu({
           {authorId && variant !== "profile" ? <MenuLink href={`/community/user/${authorId}`} icon={<UserRound size={16} />} label="프로필 보기" onSelect={() => setOpen(false)} /> : null}
           {authorId ? <MenuLink href={`/community/user/${authorId}?tab=posts`} icon={<FileText size={16} />} label="작성글 보기" onSelect={() => setOpen(false)} /> : null}
           {authorId ? <MenuLink href={`/community/user/${authorId}?tab=comments`} icon={<MessageSquareText size={16} />} label="작성 댓글 보기" onSelect={() => setOpen(false)} /> : null}
+          {authorId && !isSelf ? <MenuLink href={`/me/messages?to=${authorId}`} icon={<Mail size={16} />} label="쪽지 보내기" onSelect={() => setOpen(false)} /> : null}
           {!isSelf ? (
             <>
               {authorId ? <div className="my-1 border-t border-[var(--ui-border)]" /> : null}

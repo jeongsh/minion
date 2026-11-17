@@ -150,7 +150,7 @@ function containsRenderableNode(content: string) {
       if (found || !value || typeof value !== "object") return;
       const node = value as { type?: string; text?: string; content?: unknown[] };
       if (node.type === "text" && node.text?.trim()) found = true;
-      if (["image", "imageResize", "youtube", "embed", "poll"].includes(node.type ?? "")) found = true;
+      if (["image", "imageResize", "video", "youtube", "embed", "poll"].includes(node.type ?? "")) found = true;
       node.content?.forEach(walk);
     };
     walk(doc);

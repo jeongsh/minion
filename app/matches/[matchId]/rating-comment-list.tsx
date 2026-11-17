@@ -4,17 +4,17 @@ import { ChevronDown } from "lucide-react";
 import { FilterDropdown } from "@/components/match-filter-dropdown";
 
 import { Flag, LoaderCircle, Star, ThumbsDown, ThumbsUp } from "lucide-react";
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 
 import { AuthorMenu } from "@/components/community/author-menu";
 import { useToast } from "@/components/ui/toast";
 import { formatFanRating } from "@/lib/fan-rating-display";
 import type { Tier } from "@/lib/rank/config";
 
-import { reactFanRatingAction, reportFanRatingAction } from "./actions";
+import { loadMatchRatingCommentsAction, reactFanRatingAction, reportFanRatingAction } from "./actions";
+import type { PlayerReviewCursor } from "@/lib/data/lck";
 
 type ReactionState = "honor" | "dislike" | null;
-const PAGE_SIZE = 5;
 
 export type RatingCommentItem = {
   id: string;
@@ -45,7 +45,7 @@ function CommentActions({ item }: { item: RatingCommentItem }) {
     startTransition(async () => {
       const result = await reactFanRatingAction({ ratingId: item.id, matchId: item.matchId, kind });
       if (!result.ok) {
-        showToast({ title: "반응 저장 실패", description: result.error, tone: "error" });
+        showToast({ title: result.error, tone: "error" });
         return;
       }
       setReaction(result.state);
@@ -59,11 +59,11 @@ function CommentActions({ item }: { item: RatingCommentItem }) {
     startTransition(async () => {
       const result = await reportFanRatingAction({ ratingId: item.id, matchId: item.matchId });
       if (!result.ok) {
-        showToast({ title: "신고 실패", description: result.error ?? "신고를 접수하지 못했습니다.", tone: "error" });
+        showToast({ title: result.error ?? "신고를 접수하지 못했습니다.", tone: "error" });
         return;
       }
       setReported(true);
-      showToast({ title: "신고 접수 완료", description: result.message, tone: "success" });
+      showToast({ title: result.message ?? "신고가 접수되었습니다.", tone: "success" });
     });
   };
 
@@ -85,51 +85,58 @@ function CommentActions({ item }: { item: RatingCommentItem }) {
 }
 
 export function RatingCommentList({
-  items,
+  initialPage,
+  matchId,
+  setId,
+  players,
   viewerId,
 }: {
-  items: RatingCommentItem[];
+  initialPage: { items: RatingCommentItem[]; nextCursor: PlayerReviewCursor | null };
+  matchId: string;
+  setId: string;
+  players: { id: string; name: string; count: number }[];
   viewerId?: string;
 }) {
   const [playerId, setPlayerId] = useState<string | null>(null);
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [page, setPage] = useState(initialPage);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const players = useMemo(() => {
-    const unique = new Map<string, { id: string; name: string; imageUrl: string | null; count: number }>();
-    for (const item of items) {
-      const current = unique.get(item.playerId);
-      unique.set(item.playerId, {
-        id: item.playerId,
-        name: item.playerName,
-        imageUrl: item.playerImageUrl,
-        count: (current?.count ?? 0) + 1,
-      });
+  const requestId = useRef(0);
+  const busy = useRef(false);
+  const total = players.reduce((sum, player) => sum + player.count, 0);
+  const hasMore = Boolean(page.nextCursor);
+  async function load(selected: string | null, append: boolean) {
+    if (append && busy.current) return;
+    const id = ++requestId.current;
+    busy.current = true;
+    setLoading(true);
+    setError(null);
+    try {
+      const next = await loadMatchRatingCommentsAction(matchId, setId, selected, append ? page.nextCursor : null);
+      if (id !== requestId.current) return;
+      setPage(current => ({ ...next, items: append ? [...current.items, ...next.items.filter(item => !current.items.some(old => old.id === item.id))] : next.items }));
+      setPlayerId(selected);
+    } catch (caught) {
+      if (id === requestId.current) setError(caught instanceof Error ? caught.message : "코멘트를 불러오지 못했습니다.");
+    } finally {
+      if (id === requestId.current) { busy.current = false; setLoading(false); }
     }
-    return [...unique.values()];
-  }, [items]);
-  const filteredItems = playerId ? items.filter((item) => item.playerId === playerId) : items;
-  const visibleItems = filteredItems.slice(0, visibleCount);
-  const hasMore = visibleCount < filteredItems.length;
+  }
 
   useEffect(() => () => {
-    if (timerRef.current) clearTimeout(timerRef.current);
+    requestId.current += 1;
   }, []);
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
-    if (!sentinel || !hasMore || loading) return;
+    if (!sentinel || !hasMore || loading || error) return;
 
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
           observer.disconnect();
-          setLoading(true);
-          timerRef.current = setTimeout(() => {
-            setVisibleCount((count) => Math.min(count + PAGE_SIZE, filteredItems.length));
-            setLoading(false);
-          }, 450);
+          void load(playerId, true);
         }
       },
       { rootMargin: "120px 0px" },
@@ -137,9 +144,11 @@ export function RatingCommentList({
 
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [filteredItems.length, hasMore, loading, visibleCount]);
+  // load uses the current cursor and selection.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page.nextCursor, hasMore, loading, error, playerId]);
 
-  if (items.length === 0) {
+  if (total === 0 && page.items.length === 0) {
     return (
       <>
         <h3 className="text-[14px] font-medium text-[var(--ui-ink)] sm:text-base sm:font-black">평가 코멘트</h3>
@@ -152,16 +161,11 @@ export function RatingCommentList({
     <>
       <div className="flex items-center justify-between gap-3">
         <h3 className="text-[14px] font-medium text-[var(--ui-ink)] sm:text-base sm:font-black">평가 코멘트</h3>
-        <FilterDropdown ariaLabel="선수별 코멘트 필터" selected={playerId ?? "all"} options={[{value:"all",label:"전체 선수 ("+items.length+")"},...players.map(player=>({value:player.id,label:player.name+" ("+player.count+")"}))]} onSelect={value=>{
-          if(timerRef.current) clearTimeout(timerRef.current);
-          setLoading(false);
-          setVisibleCount(PAGE_SIZE);
-          setPlayerId(value === "all" ? null : value);
-        }} rootClassName="min-w-40 max-w-[55vw]" triggerClassName="w-full" />
+        <FilterDropdown ariaLabel="선수별 코멘트 필터" selected={playerId ?? "all"} options={[{value:"all",label:"전체 선수 ("+total+")"},...players.map(player=>({value:player.id,label:player.name+" ("+player.count+")"}))]} onSelect={value => void load(value === "all" ? null : value, false)} rootClassName="min-w-40 max-w-[55vw]" triggerClassName="w-full" />
       </div>
 
       <div className="mt-2 grid gap-3">
-        {visibleItems.map((item) => (
+        {page.items.map((item) => (
           <article key={item.id} className="flex min-w-0 gap-3 rounded-xl bg-[var(--ui-card-bg)] p-3.5 sm:p-4">
             <div className="min-w-0 flex-1">
               <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
@@ -191,6 +195,7 @@ export function RatingCommentList({
           </article>
         ))}
       </div>
+      {error ? <button type="button" onClick={() => void load(playerId, true)} className="mt-3 text-sm text-[var(--ui-muted)]">{error} 다시 시도</button> : null}
       {hasMore ? (
         <div ref={sentinelRef} className="flex min-h-11 items-center justify-center gap-1.5 text-xs font-medium text-[var(--ui-muted)]" aria-live="polite">
           {loading ? (

@@ -63,7 +63,7 @@ export async function GET(request: Request) {
         // 종료 후에는 환불 정산을 포함한 최종 비율과 내 선택을 보존한다.
         const completed = match.status === "completed";
         const matchBets = market.bets.filter((bet) => bet.matchId === match.id && (completed || bet.status !== "refunded"));
-        const marketData = predictionMarketForMatch(matchBets, match.id, match.teamAId, match.teamBId, completed);
+        const marketData = predictionMarketForMatch(matchBets, match.id, match.teamAId, match.teamBId, completed, market.markets);
         const myBet = auth ? matchBets.find((bet) => bet.userId === auth.user.id) : null;
         return {
           closed: new Date(match.matchDate).getTime() <= now || match.status !== "scheduled",

@@ -2,6 +2,12 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["127.0.0.1", "10.0.2.2"],
+  // Next streams metadata into <body> for Googlebot by default, and Google
+  // ignores rel=canonical / robots outside <head>. Keep Next's default list
+  // (next/dist/shared/lib/router/utils/html-bots.js) and add Googlebot so
+  // search crawlers always receive metadata inside <head>.
+  htmlLimitedBots:
+    /Googlebot|[\w-]+-Google|Google-[\w-]+|Chrome-Lighthouse|Slurp|DuckDuckBot|baiduspider|yandex|sogou|bitlybot|tumblr|vkShare|quora link preview|redditbot|ia_archiver|Bingbot|BingPreview|applebot|facebookexternalhit|facebookcatalog|Twitterbot|LinkedInBot|Slackbot|Discordbot|WhatsApp|SkypeUriPreview|Yeti|googleweblight/i,
   experimental: {
     // On this Windows checkout the dev cache grew to 40 GB / 440k files,
     // with multi-second compactions during edits. Keep dev caching in memory.

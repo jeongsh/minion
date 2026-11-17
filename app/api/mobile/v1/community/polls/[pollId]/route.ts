@@ -16,15 +16,9 @@ async function pollIdentity(request: Request) {
 }
 
 async function tally(pollId: string, voterKey: string, signedIn: boolean): Promise<MobileCommunityPollDto> {
-  const { data, error } = await createSupabaseAdminClient().from("post_poll_votes").select("option_id, voter_key").eq("poll_id", pollId);
+  const { data, error } = await createSupabaseAdminClient().rpc("read_poll_tally", { p_poll_id: pollId, p_voter_key: voterKey });
   if (error) throw error;
-  const counts: Record<string, number> = {};
-  let myOptionId: string | null = null;
-  for (const row of data ?? []) {
-    counts[row.option_id] = (counts[row.option_id] ?? 0) + 1;
-    if (row.voter_key === voterKey) myOptionId = row.option_id;
-  }
-  return { counts, myOptionId, signedIn, total: data?.length ?? 0 };
+  return { ...data, signedIn };
 }
 
 export async function GET(request: Request, context: Context) {

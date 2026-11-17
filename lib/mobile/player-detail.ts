@@ -2,17 +2,21 @@ import type { MobilePlayerDetailDto } from "@/packages/contracts/src/mobile-v1";
 import { championImage, championLabel } from "@/lib/champions";
 import {
   getPlayerBySlug,
-  getPlayerStatLines,
+  getPlayerMetricStatLines,
+  getTeamRecentResults,
+  getCompletedSetIdsForTournaments,
+  getPlayerSetRatingMetrics,
+  getPlayerReviewPage,
 } from "@/lib/data/lck";
 import {
   getPlayerPageSegmentData,
   getPlayerPageSharedData,
+  getPlayerFanPogSetIds,
 } from "@/lib/data/player-cache";
-import { ddragonVersionFromPatch, uniqueDdragonVersionsForPatches } from "@/lib/ddragon";
-import { toMobilePlayerLoadout, toMobileTeam } from "@/lib/mobile/api-response";
+import { getPlayerHistoryPage, mobilePlayerHistory } from "@/lib/data/player-history";
+import { toMobileTeam, toMobilePlayerReview } from "@/lib/mobile/api-response";
+import { playerReviewItems } from "@/lib/player-reviews";
 import { getPlayerSocialLinks } from "@/lib/player-social";
-import { fetchRuneCatalog } from "@/lib/runes";
-import { fetchSpellCatalog } from "@/lib/spells";
 import {
   aggregatePlayerStatLine,
   calculatePlayerStats,
@@ -24,9 +28,9 @@ import {
   parseSeasonSegment,
   segmentLabel,
   type SeasonSegmentKey,
+  tournamentsInSegment,
 } from "@/lib/tournament-filters";
 import type { FanRating, Match, PlayerStatLine, SetResult, Tournament } from "@/lib/types";
-import { fanPogPlayerIdForSet, setRatingHref } from "@/lib/view-data";
 
 const PLAYER_PAGE_SEGMENTS: Array<SeasonSegmentKey | "all"> = [
   "all",
@@ -92,35 +96,40 @@ function aggregateLines(lines: PlayerStatLine[], radarBenchmark?: PlayerRadarBen
   return line ? calculatePlayerStats(line, radarBenchmark) : null;
 }
 
-function averageRating(ratings: FanRating[]) {
+function averageRating(ratings: Pick<FanRating, "rating">[]) {
   if (ratings.length === 0) return null;
   return ratings.reduce((sum, rating) => sum + rating.rating, 0) / ratings.length;
 }
 
-function formatReviewDate(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat("ko-KR", {
-    timeZone: "Asia/Seoul",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(date);
+async function getDetailReviews(playerId: string, setIds: string[], paginated: boolean) {
+  const first = await getPlayerReviewPage(playerId, setIds);
+  if (paginated) return first;
+  // 기존 설치 앱에는 리뷰 전체를 유지하되 해당 선수의 공개 리뷰만 읽는다.
+  const ratings = [...first.ratings];
+  let cursor = first.nextCursor;
+  while (cursor) {
+    const page = await getPlayerReviewPage(playerId, setIds, cursor);
+    ratings.push(...page.ratings);
+    cursor = page.nextCursor;
+  }
+  return { ratings, nextCursor: null };
 }
 
 export async function getMobilePlayerDetail(
   playerSlug: string,
   requestedSegmentValue?: string | null,
+  paginatedReviews = false,
+  paginatedHistory = false,
 ): Promise<MobilePlayerDetailDto | null> {
   const player = await getPlayerBySlug(playerSlug);
   if (!player) return null;
 
   const [sharedData, playerOwnLines] = await Promise.all([
-    getPlayerPageSharedData(),
+    getPlayerPageSharedData(player.id),
     // 이 선수 전체 스탯라인. 구간 탭 판단 + 아래 구간 필터 소스로 재사용한다.
-    getPlayerStatLines(undefined, player.id),
+    getPlayerMetricStatLines(player.id),
   ]);
-  const { teams, players, matches, sets, fanRatings, tournaments, champions, standings } = sharedData;
+  const { teams, matches, sets, tournaments, champions, standings } = sharedData;
   // POM 횟수는 이미 로드된 matches 로 센다(별도 count 쿼리 불필요).
   const pomCount = matches.filter((match) => match.officialPomPlayerId === player.id).length;
   const visibleSegments = PLAYER_PAGE_SEGMENTS.filter((segment) =>
@@ -131,40 +140,28 @@ export async function getMobilePlayerDetail(
     ? requestedSegment
     : (visibleSegments[0] ?? "all");
   const segmentMatches = filterMatchesBySegment(matches, tournaments, activeSegment);
-  const segmentSets = filterSetsByMatches(sets, segmentMatches);
-  const segmentSetIds = segmentSets.map((set) => set.id);
+  const segmentSets = filterSetsByMatches(sets, segmentMatches).filter((set) => set.winnerTeamId);
+  const segmentSetIds = await getCompletedSetIdsForTournaments(tournamentsInSegment(tournaments, activeSegment).map(tournament => tournament.id));
   // 이 선수의 구간 스탯라인은 이미 받아온 playerOwnLines 에서 걸러 쓴다(중복 쿼리 제거).
   const segmentSetIdSet = new Set(segmentSetIds);
   const playerSegmentLines = playerOwnLines.filter((line) => segmentSetIdSet.has(line.setId));
   const playerLines = enrichLines(playerSegmentLines, segmentSets, segmentMatches);
-  const itemVersions = uniqueDdragonVersionsForPatches(playerLines.map((line) => line.set.patch));
   // Catalogs depend on the selected games, not on the league benchmark query.
-  const [segmentData, versionedAssets] = await Promise.all([
-    getPlayerPageSegmentData(segmentSetIds),
-    Promise.all(itemVersions.map(async (version) => {
-      const [spells, runeCatalog] = await Promise.all([fetchSpellCatalog(version), fetchRuneCatalog(version)]);
-      return [version, { spells, runeCatalog }] as const;
-    })),
+  const playerSetIds = playerLines.map((line) => line.setId);
+  const [segmentData, historyPage, playerRatings, fanPogSetIds, reviewPage] = await Promise.all([
+    getPlayerPageSegmentData(segmentSetIds, player.position),
+    getPlayerHistoryPage(player.slug, activeSegment, null, paginatedHistory ? 1 : 50),
+    getPlayerSetRatingMetrics(player.id, playerSetIds),
+    getPlayerFanPogSetIds(player.id, playerSetIds),
+    getDetailReviews(player.id, playerSetIds, paginatedReviews),
   ]);
   const radarBenchmark = segmentData.radarBenchmarkByPosition[player.position];
   const aggregateStats = aggregateLines(playerLines, radarBenchmark);
   const playerTeam = teams.find((team) => team.id === player.teamId);
   const teamStanding = standings.find((standing) => standing.teamId === player.teamId);
-  const teamRecent = segmentMatches
-    .filter((match) => match.teamAId === player.teamId || match.teamBId === player.teamId)
-    .filter((match) => match.status === "completed")
-    .sort((a, b) => new Date(b.matchDate).getTime() - new Date(a.matchDate).getTime())
-    .slice(0, 5)
-    .map((match) => (match.winnerTeamId === player.teamId ? "W" : "L"))
-    .join("-");
-  const playerRatings = fanRatings.filter(
-    (rating) => playerLines.some((line) => line.setId === rating.setId) && rating.playerId === player.id,
-  );
-  const playerFanPogSetIds = new Set(
-    playerLines
-      .filter((line) => fanPogPlayerIdForSet(line.setId, line.set.winnerTeamId, fanRatings) === player.id)
-      .map((line) => line.setId),
-  );
+  const teamRecent = await getTeamRecentResults(player.teamId, tournamentsInSegment(tournaments, activeSegment).map(tournament => tournament.id));
+
+  const playerFanPogSetIds = new Set(fanPogSetIds);
   const completedPlayerMatches = [...new Map(playerLines.map((line) => [line.match.id, line.match])).values()]
     .sort((a, b) => new Date(b.matchDate).getTime() - new Date(a.matchDate).getTime());
   const recentMatchIds = new Set(completedPlayerMatches.slice(0, 3).map((match) => match.id));
@@ -178,7 +175,6 @@ export async function getMobilePlayerDetail(
     ? "-"
     : `${playerLines.reduce((sum, line) => sum + line.kills, 0)} / ${playerLines.reduce((sum, line) => sum + line.deaths, 0)} / ${playerLines.reduce((sum, line) => sum + line.assists, 0)}`;
 
-  const assetsByVersion = Object.fromEntries(versionedAssets);
 
   const championRows = [...new Set(playerLines.map((line) => line.championId).filter(Boolean) as string[])]
     .map((championId) => {
@@ -186,8 +182,8 @@ export async function getMobilePlayerDetail(
       const lines = playerLines.filter((line) => line.championId === championId);
       const stats = aggregateLines(lines);
       const championWins = lines.filter((line) => line.set.winnerTeamId === player.teamId).length;
-      const championRatings = fanRatings.filter(
-        (rating) => rating.playerId === player.id && lines.some((line) => line.setId === rating.setId),
+      const championRatings = playerRatings.filter(
+        (rating) => lines.some((line) => line.setId === rating.setId),
       );
       const image = championImage(champion);
       return {
@@ -209,80 +205,18 @@ export async function getMobilePlayerDetail(
     })
     .sort((a, b) => b.setCount - a.setCount);
 
-  const teamById = new Map(teams.map((team) => [team.id, team]));
-  const recentMatches = completedPlayerMatches.map((match) => {
-    const lines = playerLines
-      .filter((line) => line.match.id === match.id)
-      .sort((a, b) => a.set.setNumber - b.set.setNumber);
-    const playerTeamId = lines[0]?.teamId ?? player.teamId;
-    const opponentId = match.teamAId === playerTeamId ? match.teamBId : match.teamAId;
-    const opponent = teamById.get(opponentId);
-    const matchRatings = fanRatings.filter(
-      (rating) => rating.matchId === match.id && rating.playerId === player.id,
-    );
-    const officialPomName = players.find((item) => item.id === match.officialPomPlayerId)?.name ?? "-";
-    return {
-      id: match.id,
-      name: match.name,
-      startsAt: match.matchDate,
-      playerTeamId,
-      opponent: opponent ? toMobileTeam(opponent) : null,
-      winnerTeamId: match.winnerTeamId ?? null,
-      teamAScore: match.teamAScore,
-      teamBScore: match.teamBScore,
-      teamAId: match.teamAId,
-      teamBId: match.teamBId,
-      fanPog: lines.some((line) => playerFanPogSetIds.has(line.setId)),
-      officialPomName,
-      sets: lines.map((line) => {
-        const version = ddragonVersionFromPatch(line.set.patch);
-        const assets = assetsByVersion[version] ?? { spells: [], runeCatalog: { keystones: [], trees: [] } };
-        const rating = matchRatings.find((item) => item.setId === line.setId);
-        return {
-          id: line.setId,
-          setNumber: line.set.setNumber,
-          rating: rating?.rating ?? null,
-          championLevel: line.championLevel ?? null,
-          kills: line.kills,
-          deaths: line.deaths,
-          assists: line.assists,
-          kda: line.stats.kda,
-          damage: line.damageToChampions,
-          dpm: line.stats.dpm,
-          visionScore: line.visionScore,
-          cs: line.cs,
-          csm: line.stats.csm,
-          gold: line.gold,
-          loadout: toMobilePlayerLoadout(line, champions, assets.spells, version, assets.runeCatalog),
-        };
-      }),
-    };
-  });
+  const recentMatches = historyPage ? mobilePlayerHistory(historyPage) : [];
+  if (!paginatedHistory && historyPage) {
+    let cursor = historyPage.nextCursor;
+    while (cursor) {
+      const page = await getPlayerHistoryPage(player.slug, activeSegment, cursor, 50);
+      if (!page) break;
+      recentMatches.push(...mobilePlayerHistory(page));
+      cursor = page.nextCursor;
+    }
+  }
 
-  const matchById = new Map(matches.map((match) => [match.id, match]));
-  const setById = new Map(sets.map((set) => [set.id, set]));
-  const reviews = playerRatings
-    .filter((rating) => rating.review.trim())
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    .map((rating) => {
-      const match = matchById.get(rating.matchId);
-      const set = setById.get(rating.setId);
-      return {
-        id: rating.id,
-        rating: rating.rating,
-        review: rating.review,
-        authorId: rating.authorId,
-        authorName: rating.authorNickname ?? "익명",
-        authorImage: rating.authorProfileImageUrl ? { url: rating.authorProfileImageUrl } : null,
-        authorTier: rating.authorTier,
-        meta: [
-          formatReviewDate(rating.createdAt),
-          match?.name,
-          set ? `${set.setNumber}세트` : null,
-        ].filter(Boolean).join(" · "),
-        href: match && set ? setRatingHref(match, set) : null,
-      };
-    });
+  const reviews = playerReviewItems(reviewPage.ratings, matches, sets).map(toMobilePlayerReview);
 
   const averageStats = radarBenchmark?.average;
   const axes: MobilePlayerDetailDto["axes"] = aggregateStats ? [
@@ -330,6 +264,7 @@ export async function getMobilePlayerDetail(
       averageRating: averageRating(playerRatings),
       pogCount: playerFanPogSetIds.size,
       reviews,
+      ...(paginatedReviews ? { reviewNextCursor: reviewPage.nextCursor ? JSON.stringify(reviewPage.nextCursor) : null } : {}),
     },
   };
 }

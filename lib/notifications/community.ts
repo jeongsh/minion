@@ -15,6 +15,8 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 export type NotificationRecipient = NotificationOwner;
 
 type NotificationRow = {
+  kind: string;
+  comment_id: string | null;
   id: string;
   title: string;
   description: string;
@@ -57,9 +59,10 @@ function toAppNotification(row: NotificationRow): CommunityAppNotification {
   return {
     id: `community:${row.id}`,
     kind: "post_activity",
+    activityKind: row.kind === "post_comment" || row.kind === "comment_reply" ? row.kind : undefined,
     title: row.title,
     description: row.description,
-    href: row.href,
+    href: row.comment_id && (row.kind === "post_comment" || row.kind === "comment_reply") ? `${row.href.split("#")[0]}#comment-${row.comment_id}` : row.href,
     createdAt: row.created_at,
     readAt: row.read_at,
   };
@@ -68,14 +71,15 @@ function toAppNotification(row: NotificationRow): CommunityAppNotification {
 /** 운영자용 신고·차단 알림은 iOS 앱 알림함에서만 보여준다. 웹 알림함은 기본값으로 제외한다. */
 export async function listCommunityNotifications(
   recipient: NotificationRecipient,
-  options: { includeAdmin?: boolean } = {},
+  options: { includeAdmin?: boolean; activityOnly?: boolean } = {},
 ): Promise<CommunityAppNotification[]> {
   let query = createSupabaseAdminClient()
     .from("community_notifications")
-    .select("id, title, description, href, created_at, read_at")
+    .select("id, kind, comment_id, title, description, href, created_at, read_at")
     .order("created_at", { ascending: false })
     .limit(100);
-  if (!options.includeAdmin) query = query.in("kind", USER_NOTIFICATION_KINDS);
+  if (options.activityOnly) query = query.in("kind", ["post_comment", "comment_reply"]);
+  else if (!options.includeAdmin) query = query.in("kind", USER_NOTIFICATION_KINDS);
   const { data, error } = await applyRecipientFilter(query, recipient);
   if (error) throw error;
   return ((data ?? []) as NotificationRow[]).map(toAppNotification);
@@ -84,13 +88,14 @@ export async function listCommunityNotifications(
 export async function markCommunityNotificationRead(
   recipient: NotificationRecipient,
   notificationId?: string,
-  options: { includeAdmin?: boolean } = {},
+  options: { includeAdmin?: boolean; activityOnly?: boolean } = {},
 ) {
   let query = createSupabaseAdminClient()
     .from("community_notifications")
     .update({ read_at: new Date().toISOString() });
   query = applyRecipientFilter(query, recipient);
-  if (!options.includeAdmin) query = query.in("kind", USER_NOTIFICATION_KINDS);
+  if (options.activityOnly) query = query.in("kind", ["post_comment", "comment_reply"]);
+  else if (!options.includeAdmin) query = query.in("kind", USER_NOTIFICATION_KINDS);
   if (notificationId) query = query.eq("id", notificationId);
   else query = query.is("read_at", null);
   const { error } = await query;
@@ -100,13 +105,14 @@ export async function markCommunityNotificationRead(
 export async function deleteCommunityNotifications(
   recipient: NotificationRecipient,
   notificationId?: string,
-  options: { includeAdmin?: boolean } = {},
+  options: { includeAdmin?: boolean; activityOnly?: boolean } = {},
 ) {
   let query = applyRecipientFilter(
     createSupabaseAdminClient().from("community_notifications").delete(),
     recipient,
   );
-  if (!options.includeAdmin) query = query.in("kind", USER_NOTIFICATION_KINDS);
+  if (options.activityOnly) query = query.in("kind", ["post_comment", "comment_reply"]);
+  else if (!options.includeAdmin) query = query.in("kind", USER_NOTIFICATION_KINDS);
   if (notificationId) query = query.eq("id", notificationId);
   const { error } = await query;
   if (error) throw error;
@@ -135,7 +141,7 @@ async function createCommunityCommentNotifications(input: {
   postId: string;
 }) {
   const admin = createSupabaseAdminClient();
-  const [postResult, parentResult, actorProfileResult] = await Promise.all([
+  const [postResult, parentResult, actorProfileResult, commentResult] = await Promise.all([
     admin.from("community_posts").select("author_id, guest_key, site_scope, team_id").eq("id", input.postId).maybeSingle(),
     input.parentId
       ? admin.from("community_comments").select("author_id, guest_key").eq("id", input.parentId).maybeSingle()
@@ -143,16 +149,18 @@ async function createCommunityCommentNotifications(input: {
     input.actor.userId
       ? admin.from("profiles").select("nickname").eq("id", input.actor.userId).maybeSingle()
       : Promise.resolve({ data: null, error: null }),
+    admin.from("community_comments").select("content").eq("id", input.commentId).eq("post_id", input.postId).maybeSingle(),
   ]);
   if (postResult.error) throw postResult.error;
   if (parentResult.error) throw parentResult.error;
   if (actorProfileResult.error) throw actorProfileResult.error;
-  if (!postResult.data) return;
+  if (commentResult.error) throw commentResult.error;
+  if (!postResult.data || !commentResult.data) return;
 
   const post = postResult.data as { author_id: string | null; guest_key: string | null; site_scope: BoardScope; team_id: string | null };
   const parent = parentResult.data as { author_id: string | null; guest_key: string | null } | null;
   const actorName = input.actorName ?? actorProfileResult.data?.nickname ?? "회원";
-  const href = await communityPostHref(input.postId, post);
+  const href = `${await communityPostHref(input.postId, post)}#comment-${input.commentId}`;
 
   const recipients = communityNotificationRecipients({
     actor: input.actor,
@@ -186,7 +194,7 @@ async function createCommunityCommentNotifications(input: {
     post_id: input.postId,
     comment_id: input.commentId,
     title: kind === "comment_reply" ? "내 댓글에 새 답글" : "내 글에 새 댓글",
-    description: `${actorName}님이 ${kind === "comment_reply" ? "답글" : "댓글"}을 남겼어요.`,
+    description: `${actorName}님: ${commentResult.data?.content?.replace(/\s+/g, " ").trim().slice(0, 120) || "미니콘"}`,
     href,
     dedupe_key: `${input.commentId}:${recipientKey(recipient)}`,
   }));

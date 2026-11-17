@@ -1,5 +1,5 @@
 import type { MobileStandingsGroup, MobileTournamentDetailDto } from "@/packages/contracts/src/mobile-v1";
-import { getAllPlayers, getAllTeams, getBracketStages, getMatches, getStages, getTournaments } from "@/lib/data/lck";
+import { getPlayersByIds, getAllTeams, getBracketStages, getMatchesForScope, getMatchNavIndex, getStages, getTournaments } from "@/lib/data/lck";
 import { mobileError, mobileSuccess, toMobilePlayer, toMobileStandingRow, toMobileTeam } from "@/lib/mobile/api-response";
 import { isGroupBracketStage, isWeekStage, buildStageColumns } from "@/lib/tournaments/bracket";
 import { buildBracketData } from "@/lib/tournaments/bracket-view";
@@ -33,14 +33,7 @@ export async function GET(request: Request, context: { params: Promise<{ segment
   if (!segmentTheme) return mobileError("NOT_FOUND", "대회를 찾을 수 없습니다.", 404);
 
   const search = new URL(request.url).searchParams;
-  const [tournaments, stages, matches, teams, bracketStages, players] = await Promise.all([
-    getTournaments(),
-    getStages(),
-    getMatches(),
-    getAllTeams(),
-    getBracketStages(),
-    getAllPlayers(), // POM 순위 조회용 — 은퇴/이적 선수도 포함해야 하므로 전체 선수.
-  ]);
+  const [tournaments, teams] = await Promise.all([getTournaments(), getAllTeams()]);
 
   const segmentTournaments = tournaments.filter((tournament) => matchesTournamentSegment(tournament, segmentTheme.key));
   if (segmentTournaments.length === 0) return mobileError("NOT_FOUND", "대회를 찾을 수 없습니다.", 404);
@@ -52,9 +45,10 @@ export async function GET(request: Request, context: { params: Promise<{ segment
 
   const seasonTournaments = segmentTournaments.filter((tournament) => tournament.season === activeSeason);
 
+  const navMatches = await getMatchNavIndex(tournaments.filter(tournament => tournament.season === activeSeason).map(tournament => tournament.id));
   // 같은 대회가 두 소스(gol.gg/Leaguepedia)에서 중복 수집된 경우, 실제 경기가 채워진 쪽만 쓴다.
   const matchCountByTournament = new Map<string, number>();
-  for (const match of matches) matchCountByTournament.set(match.tournamentId, (matchCountByTournament.get(match.tournamentId) ?? 0) + 1);
+  for (const match of navMatches) matchCountByTournament.set(match.tournamentId, (matchCountByTournament.get(match.tournamentId) ?? 0) + 1);
   const bestBySplit = new Map<string, Tournament>();
   for (const tournament of seasonTournaments) {
     const key = tournament.split ?? tournament.id;
@@ -64,12 +58,14 @@ export async function GET(request: Request, context: { params: Promise<{ segment
   const activeTournaments = [...bestBySplit.values()];
   const tournamentIds = new Set(activeTournaments.map((tournament) => tournament.id));
 
-  const segmentStages = stages.filter((stage) => tournamentIds.has(stage.tournamentId));
-  const segmentMatches = matches.filter((match) => tournamentIds.has(match.tournamentId));
+  const [segmentStages, segmentMatches, bracketStages] = await Promise.all([
+    getStages([...tournamentIds]), getMatchesForScope({ tournamentIds: [...tournamentIds] }), getBracketStages([...tournamentIds]),
+  ]);
+  const players = await getPlayersByIds([...new Set(segmentMatches.flatMap(match => match.officialPomPlayerId ? [match.officialPomPlayerId] : []))]);
   const teamMap = new Map(teams.map((team) => [team.id, team]));
 
   const isLck = segmentTheme.key === "lck";
-  const segmentNav = buildSegmentNav(tournaments.filter((tournament) => tournament.season === activeSeason), matches).map((item) => ({
+  const segmentNav = buildSegmentNav(tournaments.filter((tournament) => tournament.season === activeSeason), navMatches).map((item) => ({
     isOngoing: item.isOngoing,
     key: item.key,
     logo: item.logo ?? null,

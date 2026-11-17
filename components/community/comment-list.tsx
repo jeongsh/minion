@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronDown, ChevronUp, Trash2, UserRound } from "lucide-react";
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import { BlindedContent } from "@/components/community/blinded-content";
@@ -21,20 +21,98 @@ import { useCommentState } from "@/components/community/comment-state";
 import { useCommentMaxLength } from "@/components/community/use-comment-max-length";
 import { selectBestComments } from "@/lib/community/best-comments";
 
-export function CommentList({ comments: initialComments, commentReactions, scope, teamSlug, viewerId, currentGuestKey, miniconPacks = [], managedAiCommentIds = [] }: { comments: CommunityCommentItem[]; commentReactions: Record<string, ReactionState>; scope: BoardScope; teamSlug?: string; viewerId?: string | null; currentGuestKey?: string | null; miniconPacks?: MiniconPack[]; managedAiCommentIds?: string[] }) {
+const EMPTY_DELETED_COMMENT_IDS: string[] = [];
+
+export function CommentList({ comments: initialComments, deletedCommentIds = EMPTY_DELETED_COMMENT_IDS, commentReactions, scope, teamSlug, viewerId, currentGuestKey, miniconPacks = [], managedAiCommentIds = [] }: { comments: CommunityCommentItem[]; deletedCommentIds?: string[]; commentReactions: Record<string, ReactionState>; scope: BoardScope; teamSlug?: string; viewerId?: string | null; currentGuestKey?: string | null; miniconPacks?: MiniconPack[]; managedAiCommentIds?: string[] }) {
   const commentState = useCommentState();
   const comments = commentState?.comments ?? initialComments;
+  const router = useRouter();
+  const { showToast } = useToast();
+  const deletedToastTarget = useRef<string | null>(null);
+  const [refreshSnapshot, setRefreshSnapshot] = useState<CommunityCommentItem[] | null>(null);
+  const waitingForRefresh = refreshSnapshot === initialComments;
+  const refreshRequestedFor = useRef<string | null>(null);
+  const requestedTarget = useRef<{ pathname: string; id: string | null } | null>(null);
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingContent, setEditingContent] = useState("");
-  const [expandedReplies, setExpandedReplies] = useState<Set<string>>(() => new Set());
+  const [collapsedReplies, setCollapsedReplies] = useState<Set<string>>(() => new Set());
+  const [commentTarget, setCommentTarget] = useState<{ id: string | null; revision: number }>({ id: null, revision: 0 });
+  const targetId = commentTarget.id;
+  const targetComment = comments.find(comment => comment.id === targetId);
+  const targetAvailable = Boolean(targetComment);
+  const targetDeleted = Boolean(targetComment?.deletedAt || (targetId && deletedCommentIds.includes(targetId)));
+  const targetParentId = targetComment?.parentId;
+  const targetExpanded = !targetParentId || !collapsedReplies.has(targetParentId);
+  useEffect(() => {
+    const followComment = (event?: Event) => {
+      const hashId = window.location.hash.startsWith("#comment-") ? window.location.hash.slice(9) : null;
+      const pendingId = requestedTarget.current?.pathname === window.location.pathname ? requestedTarget.current.id : null;
+      const id = event instanceof CustomEvent ? event.detail as string : event ? hashId : pendingId ?? hashId;
+      requestedTarget.current = { pathname: window.location.pathname, id };
+      const target = comments.find(comment => comment.id === id);
+      // Keep the requested id while refreshed server comments are still loading.
+      const nextId = id;
+      setCommentTarget(current => current.id === nextId && !event ? current : { id: nextId, revision: current.revision + 1 });
+      const deleted = Boolean(target?.deletedAt || (id && deletedCommentIds.includes(id)));
+      if (id && !deleted && (!target || event instanceof CustomEvent)) {
+        const requestKey = `${window.location.pathname}#${id}`;
+        if (event || refreshRequestedFor.current !== requestKey) {
+          refreshRequestedFor.current = requestKey;
+          setRefreshSnapshot(initialComments);
+          router.refresh();
+        }
+      } else {
+        refreshRequestedFor.current = null;
+      }
+      if (target?.parentId) setCollapsedReplies(current => {
+        if (!current.has(target.parentId!)) return current;
+        const next = new Set(current);
+        next.delete(target.parentId!);
+        return next;
+      });
+    };
+    followComment();
+    window.addEventListener("hashchange", followComment);
+    window.addEventListener("community:comment-target", followComment);
+    return () => {
+      window.removeEventListener("hashchange", followComment);
+      window.removeEventListener("community:comment-target", followComment);
+    };
+  }, [comments, deletedCommentIds, initialComments, router]);
+  useEffect(() => {
+    if (!targetId || waitingForRefresh) return;
+    if (targetDeleted) {
+      const toastKey = `${window.location.pathname}:${targetId}:${commentTarget.revision}`;
+      if (deletedToastTarget.current !== toastKey) {
+        deletedToastTarget.current = toastKey;
+        if (window.location.hash !== `#comment-${targetId}`) window.history.pushState(null, "", `#comment-${targetId}`);
+        showToast({ title: "이미 삭제된 댓글입니다.", tone: "info" });
+      }
+      return;
+    }
+    if (!targetAvailable) return;
+    let highlight: Animation | undefined;
+    const frame = window.requestAnimationFrame(() => {
+      const target = document.getElementById(`comment-${targetId}`);
+      if (target && window.location.hash !== `#comment-${targetId}`) window.history.pushState(null, "", `#comment-${targetId}`);
+      target?.scrollIntoView({ block: "center" });
+      target?.focus({ preventScroll: true });
+      highlight = target?.querySelector("[data-comment-text]")?.animate([
+        { backgroundColor: "var(--palette-green-butter-point)" },
+        { backgroundColor: "transparent" },
+      ], { duration: 2000, easing: "ease-out" });
+    });
+    return () => {
+      window.cancelAnimationFrame(frame);
+      highlight?.cancel();
+    };
+  }, [targetId, targetAvailable, targetDeleted, targetExpanded, commentTarget.revision, waitingForRefresh, showToast]);
   const pendingParents = comments.filter(comment => comment.parentId && commentState?.pendingIds.has(comment.id)).map(comment => comment.parentId!);
-  if (pendingParents.some(id => !expandedReplies.has(id))) {
-    setExpandedReplies(previous => new Set([...previous, ...pendingParents]));
+  if (pendingParents.some(id => collapsedReplies.has(id))) {
+    setCollapsedReplies(previous => new Set([...previous].filter(id => !pendingParents.includes(id))));
   }
   const [pending, startTransition] = useTransition();
-  const router = useRouter();
-  const { showToast } = useToast();
   const maxLength = useCommentMaxLength();
   const editLimit = (comment: CommunityCommentItem) => managedAiCommentIds.includes(comment.id) ? Math.max(620, maxLength) : maxLength;
   const roots = comments.filter((comment) => !comment.parentId);
@@ -49,7 +127,7 @@ export function CommentList({ comments: initialComments, commentReactions, scope
   });
 
   const toggleReplies = (commentId: string) => {
-    setExpandedReplies((current) => {
+    setCollapsedReplies((current) => {
       const next = new Set(current);
       if (next.has(commentId)) next.delete(commentId);
       else next.add(commentId);
@@ -69,13 +147,12 @@ export function CommentList({ comments: initialComments, commentReactions, scope
         teamSlug,
       });
       showToast({
-        title: result.ok ? "댓글 삭제 완료" : "삭제 실패",
-        description: result.ok ? result.message : result.error,
+        title: result.ok ? (result.message ?? "댓글을 삭제했습니다.") : result.error,
         tone: result.ok ? "success" : "error",
       });
       if (result.ok) { commentState?.settle(comment.id); router.refresh(); }
       else commentState?.rollback(comment.id);
-      } catch { commentState?.rollback(comment.id); showToast({ title: "삭제 실패", description: "다시 시도해 주세요.", tone: "error" }); }
+      } catch { commentState?.rollback(comment.id); showToast({ title: "댓글을 삭제하지 못했습니다. 다시 시도해 주세요.", tone: "error" }); }
     });
   };
 
@@ -103,8 +180,7 @@ export function CommentList({ comments: initialComments, commentReactions, scope
         teamSlug,
       });
       showToast({
-        title: result.ok ? "댓글 수정 완료" : "수정 실패",
-        description: result.ok ? result.message : result.error,
+        title: result.ok ? (result.message ?? "댓글을 수정했습니다.") : result.error,
         tone: result.ok ? "success" : "error",
       });
       if (result.ok) {
@@ -113,7 +189,7 @@ export function CommentList({ comments: initialComments, commentReactions, scope
         commentState?.settle(comment.id);
         router.refresh();
       } else { commentState?.rollback(comment.id); setEditingId(comment.id); setEditingContent(nextContent); }
-      } catch { commentState?.rollback(comment.id); setEditingId(comment.id); setEditingContent(nextContent); showToast({ title: "수정 실패", description: "다시 시도해 주세요.", tone: "error" }); }
+      } catch { commentState?.rollback(comment.id); setEditingId(comment.id); setEditingContent(nextContent); showToast({ title: "댓글을 수정하지 못했습니다. 다시 시도해 주세요.", tone: "error" }); }
     });
   };
 
@@ -125,7 +201,7 @@ export function CommentList({ comments: initialComments, commentReactions, scope
 
   // 삭제된 댓글: 답글 유지를 위한 자리표시만 남긴다(본문은 서버에서 이미 비워짐).
   const deletedItem = (comment: CommunityCommentItem) => (
-    <div key={comment.id} className="py-3.5">
+    <div key={comment.id} id={`comment-${comment.id}`} tabIndex={-1} className="scroll-mt-24 py-3.5">
       <p className="text-sm text-[var(--ui-muted)]">삭제된 댓글입니다.</p>
     </div>
   );
@@ -178,11 +254,11 @@ export function CommentList({ comments: initialComments, commentReactions, scope
       </div>
     )
   ) : (
-    <p className="mt-0.5 whitespace-pre-wrap break-words text-sm leading-5 text-[var(--ui-text)] [overflow-wrap:anywhere]">{comment.content}</p>
+    <p className="mt-0.5 whitespace-pre-wrap break-words text-sm leading-5 text-[var(--ui-text)] [overflow-wrap:anywhere]"><span data-comment-text="">{comment.content}</span></p>
   );
 
   const item = (comment: CommunityCommentItem, reply = false, continued = false, best = false) => (
-    <div key={comment.id} aria-busy={commentState?.pendingIds.has(comment.id) || undefined} className={`relative grid min-h-[78px] min-w-0 gap-4 ${reply ? "grid-cols-[24px_minmax(0,1fr)]" : "grid-cols-[36px_minmax(0,1fr)]"}`}>
+    <div key={comment.id} id={`comment-${comment.id}`} tabIndex={-1} aria-busy={commentState?.pendingIds.has(comment.id) || undefined} className={`relative grid min-h-[78px] min-w-0 scroll-mt-24 gap-4 outline-none ${reply ? "grid-cols-[24px_minmax(0,1fr)]" : "grid-cols-[36px_minmax(0,1fr)]"}`}>
       {continued ? <span className="absolute bottom-0 left-[18px] top-10 border-l border-[var(--ui-border)]" aria-hidden="true" /> : null}
       {authorMenu(comment, commentAvatar(comment, reply))}
       <div className="relative min-w-0">
@@ -228,7 +304,7 @@ export function CommentList({ comments: initialComments, commentReactions, scope
     <ul className="min-w-0 px-[14px] md:px-8">
       {orderedRoots.map((comment, index) => {
         const replyItems = repliesByParent.get(comment.id) ?? [];
-        const expanded = expandedReplies.has(comment.id) || replyItems.some(reply => commentState?.pendingIds.has(reply.id));
+        const expanded = !collapsedReplies.has(comment.id) || replyItems.some(reply => commentState?.pendingIds.has(reply.id));
         const best = bestCommentIds.has(comment.id);
         const firstRegular = bestComments.length > 0 && index === bestComments.length;
         return (

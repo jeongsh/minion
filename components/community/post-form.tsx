@@ -25,7 +25,7 @@ function isEmptyDoc(json: string): boolean {
       const record = node as Record<string, unknown>;
       if (
         typeof record.type === "string"
-        && ["image", "imageResize", "youtube", "embed", "poll"].includes(record.type)
+        && ["image", "imageResize", "video", "youtube", "embed", "poll"].includes(record.type)
       ) {
         hasContent = true;
         return;

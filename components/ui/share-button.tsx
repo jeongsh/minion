@@ -22,7 +22,7 @@ export function ShareButton({ title, path, className = "" }: { title?: string; p
       await navigator.clipboard.writeText(url);
       showToast({ title: "링크를 복사했어요", tone: "success" });
     } catch {
-      showToast({ title: "링크를 복사하지 못했어요", description: "주소창의 주소를 직접 복사해 주세요.", tone: "error" });
+      showToast({ title: "주소창의 주소를 직접 복사해 주세요.", tone: "error" });
     }
   };
 

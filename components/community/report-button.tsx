@@ -37,11 +37,11 @@ export function ReportButton({ target, postId, commentId, scope, teamSlug }: { t
         const nextMessage = result.message ?? "신고가 접수됐습니다.";
         setDone(true);
         setOpen(false);
-        showToast({ title: "신고 접수 완료", description: nextMessage, tone: "success" });
+        showToast({ title: nextMessage, tone: "success" });
         return;
       }
 
-      showToast({ title: "신고 실패", description: result.error, tone: "error" });
+      showToast({ title: result.error, tone: "error" });
     });
   };
 

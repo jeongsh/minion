@@ -7,6 +7,7 @@ import { createPortal } from "react-dom";
 
 import type { CalendarEvent, CalendarEventType } from "@/lib/calendar/events";
 import { CALENDAR_EVENT_COLORS } from "@/lib/calendar/theme";
+import { useCalendarMonth } from "@/components/fan/use-calendar-month";
 import { AdSlot } from "@/components/ui/ad-slot";
 
 export type FanScheduleMatch = {
@@ -296,15 +297,20 @@ function MobileCalendarPopup({
 
 export function FanScheduleCalendar({
   initialMonthKey,
-  matches,
-  events,
+  matches: initialMatches,
+  events: initialEvents,
+  teamId,
   action,
 }: {
   initialMonthKey: string;
+  teamId: string;
   matches: FanScheduleMatch[];
   events: CalendarEvent[];
   action?: ReactNode;
 }) {
+  const calendar = useCalendarMonth({ fanMatches: initialMatches, events: initialEvents }, teamId);
+  const matches = calendar.data.fanMatches ?? initialMatches;
+  const events = calendar.data.events;
   const todayDateKey = useMemo(() => {
     return new Intl.DateTimeFormat("en-CA", {
       timeZone: "Asia/Seoul",
@@ -360,13 +366,16 @@ export function FanScheduleCalendar({
     ].sort(itemSort);
   }
 
-  function moveMonth(offset: number) {
-    setVisibleMonth((month) => new Date(month.getFullYear(), month.getMonth() + offset, 1));
+  async function changeMonth(next: Date) {
+    const key = `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2,"0")}`;
+    if (await calendar.load(key)) { setVisibleMonth(next); setSelectedMobileDateKey(null); }
   }
-
+  function moveMonth(offset: number) {
+    void changeMonth(new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() + offset, 1));
+  }
   function showToday() {
     const today = dateFromKey(todayDateKey);
-    setVisibleMonth(new Date(today.getFullYear(), today.getMonth(), 1));
+    void changeMonth(new Date(today.getFullYear(), today.getMonth(), 1));
   }
 
   const monthLabel = `${visibleMonth.getFullYear()}년 ${visibleMonth.getMonth() + 1}월`;
@@ -374,7 +383,7 @@ export function FanScheduleCalendar({
   const hasAdContent = weeks.some((week) => week.some((day) => itemsForDate(dateKey(day)).length > 0));
 
   return (
-    <div className="min-w-0">
+    <div className="min-w-0" aria-busy={calendar.loading}>
       <div className="mb-1 flex h-9 items-center justify-between gap-2">
         <div className="flex items-center gap-0.5">
           <button

@@ -2,7 +2,6 @@ import "server-only";
 
 import { unstable_cache } from "next/cache";
 import { isAdminUser } from "@/lib/auth/admin";
-import { collectCountedKeysetPages, mapWithConcurrency } from "@/lib/data/paged-read";
 import { canQuerySupabase, createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -31,7 +30,7 @@ export const getHomeRatingReviews = unstable_cache(async (): Promise<HomeRatingR
   const client = createSupabaseServerClient();
   const { data: matches, error: matchError } = await client.from("matches")
     .select("id, team_a_id, team_b_id")
-    .eq("status", "completed")
+    .in("status", ["live", "completed"])
     .order("match_date", { ascending: false })
     .order("id")
     .limit(12);
@@ -39,50 +38,47 @@ export const getHomeRatingReviews = unstable_cache(async (): Promise<HomeRatingR
   if (!matches?.length) return [];
 
   const teamIds = [...new Set(matches.flatMap(match => [match.team_a_id, match.team_b_id]))];
-  const [rows, teamResult] = await Promise.all([
-    collectCountedKeysetPages<ReviewRow>(async afterId => {
-      let query = client.from("fan_ratings")
-        .select("id, match_id, set_id, author_id, rating, review, created_at, players(name), fan_rating_reactions(count)", { count: "exact" })
-        .in("match_id", matches.map(match => match.id))
-        .is("blinded_at", null)
-        .not("review", "is", null)
-        .neq("review", "")
-        .eq("fan_rating_reactions.kind", "honor")
-        .order("id")
-        .limit(200);
-      if (afterId) query = query.gt("id", afterId);
-      const { data, error, count } = await query;
-      if (error) throw error;
-      return { rows: data as unknown as ReviewRow[], count };
-    }),
-    client.from("teams").select("id, short_name").in("id", teamIds),
-  ]);
+  const teamResult = await client.from("teams").select("id, short_name").in("id", teamIds);
   if (teamResult.error) throw teamResult.error;
-
-  const hasCommunityApproval = (row: ReviewRow) => Number(row.rating) >= 6
-    && (row.fan_rating_reactions[0]?.count ?? 0) >= 5;
-  // 관리자 여부는 변경 가능한 프로필이 아니라 기존 서버 권한 판별을 공유한다.
-  const authorIds = [...new Set(rows.filter(row => !hasCommunityApproval(row))
-    .flatMap(row => row.author_id ? [row.author_id] : []))];
-  const admin = authorIds.length ? createSupabaseAdminClient() : null;
-  const adminIds = new Set(await mapWithConcurrency(authorIds, 4, async id => {
-    const { data, error } = await admin!.auth.admin.getUserById(id);
-    if (error) {
-      if (error.status === 404) return null;
-      throw error;
+  const rows: ReviewRow[] = [];
+  const adminChecks = new Map<string, boolean>();
+  const snapshot = new Date().toISOString();
+  for (const match of matches) {
+    let after: { created_at: string; id: string } | null = null;
+    while (rows.length < 12) {
+      let query = client.from("fan_ratings")
+        .select("id, match_id, set_id, author_id, rating, review, created_at, players(name), fan_rating_reactions(count)")
+        .eq("match_id", match.id).is("blinded_at", null).not("review", "is", null).neq("review", "")
+        .eq("fan_rating_reactions.kind", "honor").lte("created_at", snapshot)
+        .order("created_at", { ascending: false }).order("id").limit(25);
+      if (after) query = query.or(`created_at.lt.${after.created_at},and(created_at.eq.${after.created_at},id.gt.${after.id})`);
+      const { data, error } = await query;
+      if (error) throw error;
+      const page = (data ?? []) as unknown as ReviewRow[];
+      if (!page.length) break;
+      for (const row of page) {
+        if (!row.review.trim() || !row.players) continue;
+        let approved = Number(row.rating) >= 6 && (row.fan_rating_reactions[0]?.count ?? 0) >= 5;
+        if (!approved && row.author_id) {
+          if (!adminChecks.has(row.author_id)) {
+            const result = await createSupabaseAdminClient().auth.admin.getUserById(row.author_id);
+            if (result.error && result.error.status !== 404) throw result.error;
+            adminChecks.set(row.author_id, Boolean(result.data.user && isAdminUser(result.data.user)));
+          }
+          approved = adminChecks.get(row.author_id)!;
+        }
+        if (approved) rows.push(row);
+        if (rows.length === 12) break;
+      }
+      after = page.at(-1)!;
     }
-    return data.user && isAdminUser(data.user) ? id : null;
-  }));
+    if (rows.length === 12) break;
+  }
   const teams = new Map(teamResult.data?.map(team => [team.id, team.short_name]));
-  const matchOrder = new Map(matches.map((match, index) => [match.id, index]));
   const labels = new Map(matches.map(match => [match.id,
     `${teams.get(match.team_a_id) ?? "TBD"} vs ${teams.get(match.team_b_id) ?? "TBD"}`]));
 
-  return rows.filter(row => row.review.trim() && row.players
-    && (hasCommunityApproval(row) || (row.author_id !== null && adminIds.has(row.author_id))))
-    .sort((a, b) => (matchOrder.get(a.match_id)! - matchOrder.get(b.match_id)!)
-      || b.created_at.localeCompare(a.created_at) || a.id.localeCompare(b.id))
-    .slice(0, 12)
+  return rows
     .map(row => ({
       id: row.id,
       href: `/matches/${encodeURIComponent(row.match_id)}?tab=rating&set=${encodeURIComponent(row.set_id)}`,

@@ -8,6 +8,7 @@ import { ko } from "react-day-picker/locale";
 import "react-day-picker/style.css";
 
 import type { CalendarEvent, CalendarEventType } from "@/lib/calendar/events";
+import { useCalendarMonth } from "@/components/fan/use-calendar-month";
 import { CALENDAR_EVENT_COLORS } from "@/lib/calendar/theme";
 
 export type HomeCalendarMatch = {
@@ -147,13 +148,15 @@ function CalendarDetailList({
 /** 홈 메인 캘린더 — 경기 일정과 선수 생일/데뷔/기념일을 한 달력에 색 점으로 함께 보여준다. */
 export function HomeCalendar({
   initialMonthKey,
-  matches,
-  events,
+  matches: initialMatches,
+  events: initialEvents,
+  teamId,
   heightClassName = "h-[400px] sm:h-[410px]",
   detailMode = "inline",
   onSelectedDateKeyChange,
 }: {
   initialMonthKey: string;
+  teamId?: string;
   matches: HomeCalendarMatch[];
   events: CalendarEvent[];
   /**
@@ -167,6 +170,9 @@ export function HomeCalendar({
   detailMode?: "popover" | "inline" | "external";
   onSelectedDateKeyChange?: (dateKey: string | null) => void;
 }) {
+  const calendar = useCalendarMonth({ homeMatches: initialMatches, events: initialEvents }, teamId);
+  const matches = calendar.data.homeMatches ?? initialMatches;
+  const events = calendar.data.events;
   const containerRef = useRef<HTMLElement>(null);
   const popupRef = useRef<HTMLDivElement>(null);
   const popupAnchorRef = useRef<{ top: number; bottom: number } | null>(null);
@@ -205,6 +211,7 @@ export function HomeCalendar({
   }, [events]);
 
   const initialMonth = localDateFromKey(`${initialMonthKey}-01`);
+  const [visibleMonth, setVisibleMonth] = useState(initialMonth);
   const [selected, setSelected] = useState<Date | undefined>();
   const [popupPosition, setPopupPosition] = useState<{ left: number; top: number } | null>(null);
 
@@ -342,7 +349,11 @@ export function HomeCalendar({
           setSelected(day);
           onSelectedDateKeyChange?.(key);
         }}
-        defaultMonth={initialMonth}
+        month={visibleMonth}
+          onMonthChange={async month => {
+            const key = `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2,"0")}`;
+            if (await calendar.load(key)) { setVisibleMonth(month); closeDetail(); }
+          }}
         locale={ko}
         showOutsideDays
         fixedWeeks

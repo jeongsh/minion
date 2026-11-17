@@ -82,13 +82,12 @@ export function FanNotificationPreferenceDialog({
     startTransition(async () => {
       const result = await updateFanNotificationSelectionAction(teamId, teamSlug, selection);
       if (!result.ok) {
-        showToast({ title: "알림 설정 실패", description: result.error ?? "잠시 뒤 다시 시도해 주세요.", tone: "error" });
+        showToast({ title: result.error ?? "잠시 뒤 다시 시도해 주세요.", tone: "error" });
         return;
       }
       onSaved?.(selection);
       showToast({
         title: Object.values(selection).some(Boolean) ? "알림 설정 완료" : "알림 없이 팔로우",
-        description: Object.values(selection).some(Boolean) ? "선택한 팀 소식만 알려드릴게요." : "알림은 나중에 내 정보에서 켤 수 있어요.",
         tone: "success",
       });
       onClose();

@@ -79,7 +79,7 @@ function TransferMarketView({ data, followedTeamIds }: { data: MobileTransfersDt
   function playerName(name: string, muted = false, event = playerEvents.get(normalizeTransferName(name))) {
     const url = transferArticleUrl(event);
     const text = <Text numberOfLines={1} style={{ color: muted ? theme.muted : theme.ink, ...(muted || width < 768 ? fonts.medium : fonts.bold), fontSize: width < 768 ? 14 : 15, lineHeight: 20 }}>{name}</Text>;
-    return url ? <Pressable accessibilityRole="link" accessibilityLabel={`${name} 원문 뉴스`} onPress={() => { void Linking.openURL(url).catch(() => Alert.alert("원문 뉴스를 열지 못했습니다.", "잠시 후 다시 시도해 주세요.")); }} style={{ maxWidth: '100%' }}>{text}</Pressable> : text;
+    return url ? <Pressable accessibilityRole="link" accessibilityLabel={`${name} 원문 뉴스`} onPress={() => { void Linking.openURL(url).catch(() => Alert.alert("원문 뉴스를 열지 못했습니다.")); }} style={{ maxWidth: '100%' }}>{text}</Pressable> : text;
   }
   function teamName(name: string, compact = false, hideLabel = false) {
     const code = lckTeamCode(name);

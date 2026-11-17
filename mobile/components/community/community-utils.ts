@@ -65,7 +65,7 @@ export function isTiptapEmpty(document: TiptapDocument) {
   let content = false;
   const visit = (node: TiptapNode) => {
     if (node.type === 'text' && node.text?.trim()) content = true;
-    if (['image', 'imageResize', 'youtube', 'embed', 'poll'].includes(node.type)) content = true;
+    if (['image', 'imageResize', 'video', 'youtube', 'embed', 'poll'].includes(node.type)) content = true;
     node.content?.forEach(visit);
   };
   document.content?.forEach(visit);

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { getMatches, getTournaments } from "@/lib/data/lck";
+import { getMatchNavIndex, getTournaments } from "@/lib/data/lck";
 import { buildSegmentNav, defaultSegmentKey } from "@/lib/tournaments/segment-nav";
 import { isSupportedSeasonYear } from "@/lib/tournaments/season-2026";
 
@@ -14,7 +14,7 @@ export default async function TournamentsPage({
 }) {
   const params = await searchParams;
   const now = new Date();
-  const [tournaments, matches] = await Promise.all([getTournaments(), getMatches()]);
+  const tournaments = await getTournaments();
 
   const seasons = [...new Set(tournaments.map((tournament) => tournament.season).filter(isSupportedSeasonYear))].sort((a, b) => b - a);
   const latestSeason = seasons[0] ?? now.getFullYear();
@@ -22,6 +22,7 @@ export default async function TournamentsPage({
   const activeSeason = seasons.includes(requestedSeason) ? requestedSeason : latestSeason;
 
   const seasonTournaments = tournaments.filter((tournament) => tournament.season === activeSeason);
+  const matches = await getMatchNavIndex(seasonTournaments.map(tournament => tournament.id));
   const items = buildSegmentNav(seasonTournaments, matches, now);
 
   redirect(`/tournaments/${defaultSegmentKey(items)}?year=${activeSeason}`);

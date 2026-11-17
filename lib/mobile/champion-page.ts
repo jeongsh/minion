@@ -15,7 +15,6 @@ import type {
 import {
   buildChampionAnalysis,
   buildChampionDirectoryFromAggregates,
-  buildChampionOverview,
   buildCompletedItemSequenceSummaries,
   type ChampionAnalysis,
   type CompletedItemSequenceSummary,
@@ -29,6 +28,7 @@ import {
 import {
   getChampionBySlug,
   getChampionDetailData,
+  getChampionGamesPage,
   getChampionDirectoryStats,
   getChampionPageReferenceData,
   resolveChampionScope,
@@ -99,7 +99,7 @@ function scopeInput(searchParams: URLSearchParams): ChampionScopeInput {
 }
 
 export async function getMobileChampions(searchParams: URLSearchParams): Promise<MobileChampionsDto> {
-  const references = await getChampionPageReferenceData();
+  const references = await getChampionPageReferenceData(scopeInput(searchParams));
   const scope = resolveChampionScope(references, scopeInput(searchParams));
   const directoryStats = await getChampionDirectoryStats(scope.setIds);
   const requestedPosition = searchParams.get("position");
@@ -335,25 +335,41 @@ async function buildMobileBuild(analysis: ChampionAnalysis, champion: Champion, 
 }
 
 export async function getMobileChampionDetail(championSlug: string, searchParams: URLSearchParams): Promise<MobileChampionDetailDto | null> {
-  const references = await getChampionPageReferenceData();
+  const references = await getChampionPageReferenceData(scopeInput(searchParams));
   const champion = await getChampionBySlug(championSlug, references.champions);
   if (!champion) return null;
   const scope = resolveChampionScope(references, scopeInput(searchParams));
-  const [data, directoryStats] = await Promise.all([
-    getChampionDetailData(champion.id, scope.setIds, true, references),
-    getChampionDirectoryStats(scope.setIds),
-  ]);
-  const defaultOverview = buildChampionOverview(data, champion.id);
+  const tab = searchParams.get("view") === "paged" ? searchParams.get("tab") ?? "overview" : "all";
+  const directoryStats = await getChampionDirectoryStats(scope.setIds);
+  const directory = buildChampionDirectoryFromAggregates(references.champions, directoryStats);
+  const summary = directory.find(row => row.champion.id === champion.id)!;
   const requested = searchParams.get("position");
   const requestedPosition = POSITIONS.has(requested as MobileChampionPosition) ? requested as MobileChampionPosition : null;
-  const position = requestedPosition && defaultOverview.positions.some((row) => row.position === requestedPosition && row.picks > 0)
-    ? requestedPosition
-    : defaultOverview.selectedPosition;
+  const position = requestedPosition && summary.positions.some(row => row.position === requestedPosition && row.picks > 0)
+    ? requestedPosition : [...summary.positions].sort((a,b) => b.picks - a.picks)[0].position;
+  const requestedPage = Number(searchParams.get("page"));
+  const page = Number.isInteger(requestedPage) && requestedPage > 0 ? Math.min(requestedPage, 2_000_000_000) : 1;
+  const gamesPage = tab === "games" ? await getChampionGamesPage(champion.id, scope.setIds, position, page) : null;
+  const data = await getChampionDetailData(champion.id,
+    gamesPage ? [...new Set(gamesPage.pairs.map(pair => pair.setId))] : scope.setIds,
+    tab === "all" || tab === "overview", references, tab === "all" || tab === "stats" || tab === "duos");
   const analysis = buildChampionAnalysis(data, champion.id, position as PlayerPosition);
-  const directory = buildChampionDirectoryFromAggregates(references.champions, directoryStats)
-    .filter((row) => row.draft.picks > 0 || row.draft.bans > 0);
+  analysis.overview.draft = summary.draft;
+  if (gamesPage) {
+    analysis.games = analysis.games.filter(game => gamesPage.pairs.some(pair => pair.setId === game.setId && pair.playerId === game.playerId));
+    analysis.overview.positions = summary.positions;
+    analysis.overview.overall = summary.record;
+    analysis.overview.selected = summary.positions.find(row => row.position === position)!;
+  }
   const representativePatch = scope.patch !== "all" ? scope.patch : analysis.games[0]?.patch ?? data.sets.find((set) => set.patch)?.patch;
-  const build = await buildMobileBuild(analysis, champion, representativePatch);
+  const build: MobileChampionBuild = tab === "all" || tab === "overview" ? await buildMobileBuild(analysis, champion, representativePatch) : {
+    runes: { primary: null, secondary: null, shards: [] }, spells: [], skill: null,
+    startingItems: [], boots: [], trinkets: [], core3: [], core4: [], core5: [], core6: [],
+  };
+  if (tab !== "all" && tab !== "matchups") analysis.matchups = [];
+  if (tab !== "all" && tab !== "duos") analysis.duos = [];
+  if (tab !== "all" && tab !== "pros") analysis.players = [];
+  if (tab !== "all" && tab !== "games") analysis.games = [];
 
   return {
     schemaVersion: 1,
@@ -395,6 +411,7 @@ export async function getMobileChampionDetail(championSlug: string, searchParams
       dpm: row.dpm.value,
       goldDiffAt15: row.goldDiffAt15.value,
     })),
+    gamesPagination: gamesPage ? { page: gamesPage.page, total: gamesPage.total, pageSize: 20 } : undefined,
     games: analysis.games.map((row) => {
       const ids = [...row.finalItemIds.slice(0, 6), ...(row.trinketId ? [row.trinketId] : [])];
       const version = ddragonVersionFromPatch(row.patch);
@@ -415,8 +432,8 @@ export async function getMobileChampionDetail(championSlug: string, searchParams
       };
     }),
     stats: {
-      patches: analysis.overview.patches.map((row) => ({ patch: row.patch, games: row.games, wins: row.wins, losses: row.losses, winRate: row.winRate })),
-      sides: analysis.overview.sides.map((row) => ({ side: row.side, games: row.games, wins: row.wins, losses: row.losses, winRate: row.winRate })),
+      patches: (tab === "all" || tab === "stats" ? analysis.overview.patches : []).map((row) => ({ patch: row.patch, games: row.games, wins: row.wins, losses: row.losses, winRate: row.winRate })),
+      sides: (tab === "all" || tab === "stats" ? analysis.overview.sides : []).map((row) => ({ side: row.side, games: row.games, wins: row.wins, losses: row.losses, winRate: row.winRate })),
       pickPhases: analysis.overview.draftDistribution.pickPhases,
       banPhases: analysis.overview.draftDistribution.banPhases,
     },

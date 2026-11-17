@@ -3,17 +3,18 @@ import {
   getAllPlayers,
   getAllTeams,
   getChampions,
-  getFanRatings,
   getLeagueAverageStatsBase,
-  getMatches,
-  getPlayerBenchmarkStatLines,
-  getSetPicksBans,
-  getSets,
+  getMatchesForScope,
+  getPlayerStatSetIds,
+  getSetsByIds,
+  getPlayerFanPogSetIdsBase,
   getTeamStandings,
   getTournaments,
 } from "@/lib/data/lck";
-import { createPlayerRadarBenchmark, type PlayerRadarBenchmark } from "@/lib/stats";
-import type { Player } from "@/lib/types";
+import { createSupabaseServerClient, canQuerySupabase } from "@/lib/supabase/server";
+import { createPlayerRadarBenchmarkFromAggregates, type PlayerRadarBenchmark } from "@/lib/stats";
+import type { Player, PlayerStatLine } from "@/lib/types";
+import { PLAYER_FAN_POG_CACHE_TAG } from "@/lib/fan-rating";
 
 /**
  * 선수 상세 화면이 쓰는 리그 전체(로그인 무관) 공개 데이터 캐시 태그.
@@ -22,29 +23,36 @@ import type { Player } from "@/lib/types";
  */
 export const PLAYER_PUBLIC_DATA_TAG = "player-public-data";
 
-const POSITIONS: Player["position"][] = ["TOP", "JGL", "MID", "BOT", "SUP"];
 
-/**
- * 선수 상세는 모든 선수(147명)가 팀/선수/경기/세트/대회/챔피언/순위/팬평점이라는
- * 동일한 리그 전체 데이터를 공유한다. 요청마다 매번 풀스캔하지 않고 캐시해서 공유한다.
- */
+/** 집계 결과만 캐시하며 평점 변경 시 공용 태그로 무효화한다. */
+export const getPlayerFanPogSetIds = unstable_cache(
+  getPlayerFanPogSetIdsBase,
+  ["player-fan-pog-set-ids"],
+  { revalidate: 300, tags: [PLAYER_PUBLIC_DATA_TAG, PLAYER_FAN_POG_CACHE_TAG] },
+);
+
+/** 선수의 출전 경기와 POM 경기만 공유 참조 정보에 포함한다. */
 export const getPlayerPageSharedData = unstable_cache(
-  async () => {
-    const [teams, players, matches, sets, fanRatings, tournaments, champions, standings] =
+  async (playerId: string) => {
+    const [teams, players, playedSetIds, tournaments, champions, standings] =
       await Promise.all([
         getAllTeams(),
         getAllPlayers(),
-        getMatches(),
-        getSets(),
-        getFanRatings(),
+        getPlayerStatSetIds(playerId),
         getTournaments(),
         getChampions(),
         getTeamStandings(),
       ]);
 
-    return { teams, players, matches, sets, fanRatings, tournaments, champions, standings };
+    const sets = await getSetsByIds(playedSetIds);
+    const [playedMatches, pomMatches] = await Promise.all([
+      getMatchesForScope({ ids: [...new Set(sets.map(set => set.matchId))] }),
+      getMatchesForScope({ pomPlayerId: playerId }),
+    ]);
+    const matches = [...new Map([...playedMatches, ...pomMatches].map(match => [match.id, match])).values()];
+    return { teams, players, matches, sets, tournaments, champions, standings };
   },
-  ["player-page-shared-data"],
+  ["player-page-scoped-data-v2"],
   { revalidate: 300, tags: [PLAYER_PUBLIC_DATA_TAG] },
 );
 
@@ -67,59 +75,16 @@ export type PlayerPageSegmentData = {
   mainUserIdsByChampion: Record<string, string[]>;
 };
 
-/**
- * 활성 시즌 구간 세트들의 "리그 전체" 집계.
- * 원본 행 전체는 캐시 항목 크기 제한을 넘을 수 있다. 집계 전용 열만 읽고 세트 청크를
- * 제한된 수로 병렬 처리한 뒤 화면에 쓰는 작은 집계 결과만 저장한다.
- * 그래서 화면에 실제로 쓰이는 값(포지션 벤치마크·챔피언 픽밴 수·사용 선수)만 미리 집계해
- * 작게 캐시한다. 이 결과는 선수와 무관하게 구간(세트 집합)에만 의존하므로 전 선수가 공유한다.
- */
+/** 같은 포지션의 선수별 합계와 챔피언별 집계만 DB에서 읽어 공용 캐시에 저장한다. */
 export const getPlayerPageSegmentData = unstable_cache(
-  async (segmentSetIds: string[]): Promise<PlayerPageSegmentData> => {
-    if (segmentSetIds.length === 0) {
-      return { radarBenchmarkByPosition: {}, pickBanByChampion: {}, mainUserIdsByChampion: {} };
-    }
-
-    const [scopedLines, scopedPicksBans] = await Promise.all([
-      getPlayerBenchmarkStatLines(segmentSetIds),
-      getSetPicksBans(segmentSetIds),
-    ]);
-
-    const radarBenchmarkByPosition: Partial<Record<Player["position"], PlayerRadarBenchmark>> = {};
-    for (const position of POSITIONS) {
-      const benchmark = createPlayerRadarBenchmark(
-        scopedLines.filter((line) => line.position === position),
-      );
-      if (benchmark) {
-        radarBenchmarkByPosition[position] = benchmark;
-      }
-    }
-
-    const pickBanByChampion: Record<string, { pickCount: number; banCount: number }> = {};
-    for (const item of scopedPicksBans) {
-      if (!item.championId) continue;
-      const entry = (pickBanByChampion[item.championId] ??= { pickCount: 0, banCount: 0 });
-      if (item.actionType === "pick") entry.pickCount += 1;
-      else if (item.actionType === "ban") entry.banCount += 1;
-    }
-
-    // scopedLines 는 (position, set_id) 순으로 정렬돼 있어 첫 등장 순서를 그대로 보존한다.
-    const mainUserIdsByChampion: Record<string, string[]> = {};
-    const seenByChampion = new Map<string, Set<string>>();
-    for (const line of scopedLines) {
-      if (!line.championId) continue;
-      let seen = seenByChampion.get(line.championId);
-      if (!seen) {
-        seen = new Set<string>();
-        seenByChampion.set(line.championId, seen);
-      }
-      if (seen.has(line.playerId)) continue;
-      seen.add(line.playerId);
-      (mainUserIdsByChampion[line.championId] ??= []).push(line.playerId);
-    }
-
-    return { radarBenchmarkByPosition, pickBanByChampion, mainUserIdsByChampion };
+  async (segmentSetIds: string[], position: Player["position"]): Promise<PlayerPageSegmentData> => {
+    if (!segmentSetIds.length || !canQuerySupabase()) return { radarBenchmarkByPosition: {}, pickBanByChampion: {}, mainUserIdsByChampion: {} };
+    const { data, error } = await createSupabaseServerClient().rpc("read_player_segment_context", { p_set_ids: segmentSetIds, p_position: position });
+    if (error) throw error;
+    const result = data as Pick<PlayerPageSegmentData, "pickBanByChampion" | "mainUserIdsByChampion"> & { benchmarks: PlayerStatLine[] };
+    const benchmark = createPlayerRadarBenchmarkFromAggregates(result.benchmarks);
+    return { radarBenchmarkByPosition: benchmark ? { [position]: benchmark } : {}, pickBanByChampion: result.pickBanByChampion, mainUserIdsByChampion: result.mainUserIdsByChampion };
   },
-  ["player-page-segment-data"],
+  ["player-page-segment-aggregates-v2"],
   { revalidate: 300, tags: [PLAYER_PUBLIC_DATA_TAG] },
 );

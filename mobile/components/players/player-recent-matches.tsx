@@ -11,7 +11,7 @@ import {
 
 import { BottomSheet } from '@/components/bottom-sheet';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
-import { resolveApiAssetUrl, type MobilePlayerRecentMatch, type MobilePlayerRecentSet } from '@/lib/api-client';
+import { fetchMobileQuery, resolveApiAssetUrl, type MobilePlayerRecentMatch, type MobilePlayerRecentSet } from '@/lib/api-client';
 
 function compactDate(value: string) {
   const date = new Date(value);
@@ -109,36 +109,43 @@ function MatchSetTable({ match }: { match: MobilePlayerRecentMatch }) {
   );
 }
 
-function MatchHistoryModal({ matches, onClose, open }: { matches: MobilePlayerRecentMatch[]; onClose: () => void; open: boolean }) {
+function MatchHistoryModal({ playerSlug, segment, onClose, open }: { playerSlug: string; segment: string; onClose: () => void; open: boolean }) {
   const { fonts, theme } = useMinionTheme();
-  const [visibleCount, setVisibleCount] = useState(3);
+  const [matches, setMatches] = useState<MobilePlayerRecentMatch[]>([]);
   const [loading, setLoading] = useState(false);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
+  const cursor = useRef<{ createdAt: string; id: string } | null>(null);
+  const versionRef = useRef(0);
   const loadingRef = useRef(false);
   const metrics = useRef({ contentHeight: 0, offsetY: 0, viewportHeight: 0 });
-
-  useEffect(() => () => {
-    if (timer.current) clearTimeout(timer.current);
-  }, []);
-
-  useEffect(() => {
-    if (!open) return;
-    if (timer.current) clearTimeout(timer.current);
-    loadingRef.current = false;
-    setLoading(false);
-    setVisibleCount(3);
-  }, [open]);
-
-  const loadNext = useCallback(() => {
-    if (loadingRef.current || visibleCount >= matches.length) return;
+  const loadNext = useCallback(async (append = true) => {
+    if (append && (loadingRef.current || !cursor.current)) return;
+    const version = ++versionRef.current;
     loadingRef.current = true;
     setLoading(true);
-    timer.current = setTimeout(() => {
-      setVisibleCount((count) => Math.min(count + 3, matches.length));
-      loadingRef.current = false;
-      setLoading(false);
-    }, 0);
-  }, [matches.length, visibleCount]);
+    setError(null);
+    try {
+      const params = new URLSearchParams({ segment });
+      if (append && cursor.current) params.set('cursor', JSON.stringify(cursor.current));
+      const path = `/api/mobile/v1/players/${encodeURIComponent(playerSlug)}/history?${params}`;
+      const next = await fetchMobileQuery<{ matches: MobilePlayerRecentMatch[]; nextCursor: typeof cursor.current }>(path, path, true, false);
+      if (version !== versionRef.current) return;
+      setMatches(current => append ? [...new Map([...current, ...next.matches].map(match => [match.id, match])).values()] : next.matches);
+      cursor.current = next.nextCursor;
+      setHasMore(Boolean(next.nextCursor));
+    } catch (caught) {
+      if (version === versionRef.current) setError(caught instanceof Error ? caught.message : '경기 기록을 불러오지 못했습니다.');
+    } finally {
+      if (version === versionRef.current) { loadingRef.current = false; setLoading(false); }
+    }
+  }, [playerSlug, segment]);
+  useEffect(() => {
+    if (open) void loadNext(false);
+    // Invalidate requests that finish after this modal closes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => { versionRef.current++; loadingRef.current = false; };
+  }, [open, loadNext]);
 
   const loadIfNearEnd = useCallback(() => {
     const { contentHeight, offsetY, viewportHeight } = metrics.current;
@@ -167,12 +174,13 @@ function MatchHistoryModal({ matches, onClose, open }: { matches: MobilePlayerRe
         scrollEventThrottle: 16,
       }}
       title="최근 경기 기록">
-      {matches.length === 0 ? (
+      {loading && matches.length === 0 ? <Text style={{ color: theme.muted, ...fonts.medium, fontSize: 13 }}>불러오는 중</Text> : matches.length === 0 ? (
         <View style={[styles.modalEmpty, { backgroundColor: theme.card }]}>
           <Text style={{ color: theme.muted, ...fonts.medium, fontSize: 14 }}>경기 기록이 없습니다.</Text>
         </View>
-      ) : matches.slice(0, visibleCount).map((match) => <MatchSetTable key={match.id} match={match} />)}
-      {visibleCount < matches.length ? (
+      ) : matches.map((match) => <MatchSetTable key={match.id} match={match} />)}
+      {error ? <Pressable onPress={() => void loadNext(Boolean(cursor.current))}><Text style={{ color: theme.muted, ...fonts.medium, fontSize: 13 }}>{error} 다시 시도</Text></Pressable> : null}
+      {hasMore ? (
         <View style={styles.loadMore}>
           <Text style={{ color: theme.muted, ...fonts.medium, fontSize: 13 }}>{loading ? '불러오는 중' : '아래로 스크롤해 더 보기'}</Text>
         </View>
@@ -181,7 +189,7 @@ function MatchHistoryModal({ matches, onClose, open }: { matches: MobilePlayerRe
   );
 }
 
-export function PlayerRecentMatches({ matches }: { matches: MobilePlayerRecentMatch[] }) {
+export function PlayerRecentMatches({ matches, playerSlug, segment }: { matches: MobilePlayerRecentMatch[]; playerSlug: string; segment: string }) {
   const { fonts, theme } = useMinionTheme();
   const [open, setOpen] = useState(false);
   return (
@@ -197,7 +205,7 @@ export function PlayerRecentMatches({ matches }: { matches: MobilePlayerRecentMa
           <Text style={{ color: theme.muted, ...fonts.medium, fontSize: 14 }}>최근 경기 데이터가 없습니다.</Text>
         </View>
       ) : <MatchSetTable match={matches[0]} />}
-      <MatchHistoryModal matches={matches} onClose={() => setOpen(false)} open={open} />
+      <MatchHistoryModal playerSlug={playerSlug} segment={segment} onClose={() => setOpen(false)} open={open} />
     </View>
   );
 }

@@ -1,5 +1,12 @@
 import type { FanRating } from "@/lib/types";
 
+export const PLAYER_FAN_POG_CACHE_TAG = "player-fan-pog";
+
+export function fanRatingSummaryLeader<T extends { playerId: string; teamId: string; total: number; count: number; latestAt: string }>(rows: T[], winnerTeamId: string | null | undefined) {
+  return rows.filter(row => row.teamId === winnerTeamId)
+    .sort((a, b) => b.total / b.count - a.total / a.count || b.count - a.count || Date.parse(b.latestAt) - Date.parse(a.latestAt))[0] ?? null;
+}
+
 type FanRatingForPog = Pick<
   FanRating,
   "setId" | "playerId" | "teamId" | "rating" | "createdAt"

@@ -6,7 +6,7 @@ import { useSwiper } from "swiper/react";
 import { useNavigationTransition } from "@/components/navigation/navigation-transition-provider";
 import { TeamLogo } from "@/components/ui/team-logo";
 import { isMatchLive } from "@/lib/match-display";
-import { predictionMarketForMatch, type PredictionBet } from "@/lib/predictions";
+import { predictionMarketForMatch, type PredictionBet, type PredictionMarketAggregate } from "@/lib/predictions";
 import type { Match, Team } from "@/lib/types";
 import { formatTimeKST, matchHref } from "@/lib/view-data";
 
@@ -17,6 +17,7 @@ export type HomeMatchItem = {
   tournament?: string;
   tournamentLogo?: string;
   bets: PredictionBet[];
+  markets?: PredictionMarketAggregate[];
 };
 
 function MatchTeamLogo({ team }: { team?: Team }) {
@@ -46,11 +47,12 @@ export function HomeMatchCard({
   tournament,
   tournamentLogo,
   bets,
+  markets,
 }: HomeMatchItem) {
   const swiper = useSwiper();
   const swiperClickState = swiper as typeof swiper & { allowClick?: boolean };
   const { startNavigation } = useNavigationTransition();
-  const market = predictionMarketForMatch(bets, match.id, match.teamAId, match.teamBId);
+  const market = predictionMarketForMatch(bets, match.id, match.teamAId, match.teamBId, false, markets);
   const live = isMatchLive(match);
   const matchDateValue = new Date(match.matchDate);
   const monthDay = new Intl.DateTimeFormat("ko-KR", {

@@ -58,7 +58,7 @@ export default async function PredictionsPage() {
           matches={visibleMatches}
           teams={teams}
           tournaments={tournaments}
-          bets={market.bets}
+          bets={market.bets} markets={market.markets}
           currentUserId={user?.id}
           balance={market.balance}
           now={now}

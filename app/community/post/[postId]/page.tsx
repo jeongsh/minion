@@ -16,8 +16,7 @@ import {
 import {
   getPostById,
   recordPostView,
-  getBoardPosts,
-  getPostComments,
+  getPostCommentThread,
 } from "@/lib/data/community";
 import { getUserMiniconPacks } from "@/lib/data/minicons";
 import { getTeamById } from "@/lib/data/lck";
@@ -40,20 +39,20 @@ export default async function HubPostDetailPage({
   }
   if (existingPost.siteScope !== "hub") notFound();
 
-  const [post, comments, user] = await Promise.all([
+  const [post, thread, user] = await Promise.all([
     getPostById(postId),
-    getPostComments(postId),
+    getPostCommentThread(postId),
     getCurrentUser(),
   ]);
   if (!post || post.siteScope !== "hub") notFound();
+  const { comments, deletedCommentIds } = thread;
 
   const viewerIpKey = await getCurrentIpKey().catch(() => null);
   after(() => recordPostView(postId, viewerIpKey));
 
-  const [reaction, commentReactions, posts, canSetNotice, currentGuestKey, miniconPacks] = await Promise.all([
+  const [reaction, commentReactions, canSetNotice, currentGuestKey, miniconPacks] = await Promise.all([
     getPostReactionState(postId),
     getCommentReactionStates(comments.map((c) => c.id)),
-    getBoardPosts({ scope: "hub", hotOnly: true, limit: 30 }),
     isCurrentUserAdmin(),
     getExistingGuestKey(),
     getUserMiniconPacks(user?.id),
@@ -63,10 +62,11 @@ export default async function HubPostDetailPage({
     <main className="subpage min-h-screen">
       <div className="layout-wide flex flex-col gap-0 py-0 sm:gap-5 sm:py-8">
         <h1 className="sr-only">게시글</h1>
-        <CommunityContentLayout adsEnabled={!post.blindedAt && !post.deletedAt && hasAdPostContent(post.content)} posts={posts} scope="hub" currentPostId={post.id}>
+        <CommunityContentLayout adsEnabled={!post.blindedAt && !post.deletedAt && hasAdPostContent(post.content)} currentPostId={post.id}>
           <PostView
             post={post}
             comments={comments}
+            deletedCommentIds={deletedCommentIds}
             reaction={reaction}
             commentReactions={commentReactions}
             scope="hub"

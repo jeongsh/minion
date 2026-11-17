@@ -435,10 +435,10 @@ export async function recordPostView(postId: string, viewerIpKey: string | null)
 }
 
 /** 댓글 목록 조회(오래된 순). */
-export const getPostComments = cache(async function getPostComments(
+export const getPostCommentThread = cache(async function getPostCommentThread(
   postId: string,
-): Promise<CommunityCommentItem[]> {
-  if (!canQuerySupabase()) return [];
+): Promise<{ comments: CommunityCommentItem[]; deletedCommentIds: string[] }> {
+  if (!canQuerySupabase()) return { comments: [], deletedCommentIds: [] };
 
   const { data, error } = await createSupabaseServerClient()
     .from("community_comments")
@@ -459,7 +459,14 @@ export const getPostComments = cache(async function getPostComments(
   const visible = rows.filter(
     (row) => !row.deleted_at || (!row.parent_id && parentIdsWithReplies.has(row.id)),
   );
-  return mapCommentsWithAuthors(visible);
+  return {
+    comments: await mapCommentsWithAuthors(visible),
+    deletedCommentIds: rows.filter(row => row.deleted_at).map(row => row.id),
+  };
+});
+
+export const getPostComments = cache(async function getPostComments(postId: string): Promise<CommunityCommentItem[]> {
+  return (await getPostCommentThread(postId)).comments;
 });
 
 export type CommunityAuthorPage<T> = {

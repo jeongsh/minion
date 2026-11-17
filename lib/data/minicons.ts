@@ -1,6 +1,7 @@
 import "server-only";
 
 import { cache } from "react";
+import { collectCountedKeysetPages, mapWithConcurrency } from "@/lib/data/paged-read";
 
 import type { CommentMinicon, MiniconItem, MiniconPack } from "@/lib/minicons/types";
 import {
@@ -87,33 +88,31 @@ export const DEFAULT_MINICON_PACK: MiniconPack = {
   })),
 };
 
-export const getPublishedMiniconPacks = cache(async function getPublishedMiniconPacks(): Promise<MiniconPack[]> {
+export const getPublishedMiniconPacks = cache(async function getPublishedMiniconPacks(packIds?: string[]): Promise<MiniconPack[]> {
   if (!canQuerySupabase()) return [DEFAULT_MINICON_PACK];
 
   const supabase = createSupabaseServerClient();
-  const [{ data: packData, error: packError }, { data: itemData, error: itemError }] = await Promise.all([
-    supabase
-      .from("minicon_packs")
-      .select("id, slug, name, description, cover_url, is_official, sort_order, published_at")
-      .eq("status", "published")
-      .order("is_official", { ascending: false })
-      .order("sort_order", { ascending: true }),
-    supabase
-      .from("minicon_items")
-      .select("id, pack_id, name, image_url, sort_order")
-      .eq("is_active", true)
-      .order("sort_order", { ascending: true }),
-  ]);
-
-  if (packError || itemError) {
-    console.warn("[minicons] published catalog lookup failed", packError?.message ?? itemError?.message);
-    // Supabase가 연결된 환경에서는 DB에 없는 정적 UUID를 댓글 제출에 노출하지 않는다.
-    return [];
-  }
-
+  if (packIds?.length === 0) return [];
+  let packQuery = supabase.from("minicon_packs")
+    .select("id, slug, name, description, cover_url, is_official, sort_order, published_at")
+    .eq("status", "published").order("is_official", { ascending: false }).order("sort_order");
+  if (packIds) packQuery = packQuery.in("id", packIds);
+  const { data: packData, error: packError } = await packQuery;
+  if (packError) throw packError;
   const packs = (packData ?? []) as MiniconPackRow[];
-  const items = (itemData ?? []) as MiniconItemRow[];
-  if (packs.length === 0) return [];
+  if (!packs.length) return [];
+  const packChunks: string[][] = [];
+  for (let index = 0; index < packs.length; index += 80) packChunks.push(packs.slice(index, index + 80).map(pack => pack.id));
+  const itemPages = await mapWithConcurrency(packChunks, 4, ids => collectCountedKeysetPages<MiniconItemRow>(async after => {
+    let query = supabase.from("minicon_items").select("id, pack_id, name, image_url, sort_order", { count: "exact" })
+      .in("pack_id", ids).eq("is_active", true).order("id").limit(1000);
+    if (after) query = query.gt("id", after);
+    const { data, error, count } = await query;
+    if (error) throw error;
+    return { rows: (data ?? []) as MiniconItemRow[], count };
+  }));
+  const items = itemPages.flat().sort((a,b) => a.sort_order - b.sort_order || a.id.localeCompare(b.id));
+
 
   const creatorNames = new Map<string, string>();
   try {
@@ -176,13 +175,6 @@ export const getPublishedMiniconPacks = cache(async function getPublishedMinicon
   });
 });
 
-function defaultSelectedPacks(packs: MiniconPack[]) {
-  const defaultPack = packs.find((pack) => pack.slug === DEFAULT_MINICON_PACK.slug)
-    ?? packs.find((pack) => pack.isOfficial)
-    ?? packs[0];
-  return defaultPack ? [defaultPack] : [];
-}
-
 /**
  * 댓글 선택기에 노출할 사용자별 패키지를 반환한다.
  *
@@ -190,33 +182,31 @@ function defaultSelectedPacks(packs: MiniconPack[]) {
  * 패키지가 모두 공개 종료된 경우에도 선택기가 비지 않도록 같은 기본값을 쓴다.
  */
 export async function getUserMiniconPacks(userId: string | null | undefined): Promise<MiniconPack[]> {
-  const publishedPacks = await getPublishedMiniconPacks();
-  const fallback = defaultSelectedPacks(publishedPacks);
-  if (!userId || publishedPacks.length === 0) return fallback;
-
-  try {
-    const admin = createSupabaseAdminClient();
-    const { data, error } = await admin
-      .from("user_minicon_packs")
-      .select("pack_id, sort_order")
-      .eq("user_id", userId)
-      .order("sort_order", { ascending: true })
-      .order("created_at", { ascending: true });
-
+  if (!canQuerySupabase()) return [DEFAULT_MINICON_PACK];
+  if (userId) {
+    const { data, error } = await createSupabaseAdminClient().from("user_minicon_packs")
+      .select("pack_id").eq("user_id", userId).order("sort_order").order("created_at");
     if (error) throw error;
-    const selectedIds = (data ?? []).map((row: { pack_id: string }) => row.pack_id);
-    if (selectedIds.length === 0) return fallback;
-
-    const packById = new Map(publishedPacks.map((pack) => [pack.id, pack]));
-    const selected = selectedIds.flatMap((packId) => {
-      const pack = packById.get(packId);
-      return pack ? [pack] : [];
-    });
-    return selected.length > 0 ? selected : fallback;
-  } catch (error) {
-    console.warn("[minicons] user selection lookup failed", error instanceof Error ? error.message : error);
-    return fallback;
+    const selectedIds = (data ?? []).map(row => row.pack_id as string);
+    if (selectedIds.length) {
+      const packs = await getPublishedMiniconPacks(selectedIds);
+      const byId = new Map(packs.map(pack => [pack.id, pack]));
+      const selected = selectedIds.flatMap(id => byId.has(id) ? [byId.get(id)!] : []);
+      if (selected.length) return selected;
+    }
   }
+  // Only metadata is needed to choose a default; do not hydrate every pack's items.
+  const { data, error } = await createSupabaseServerClient().from("minicon_packs")
+    .select("id, slug, is_official").eq("status", "published")
+    .order("is_official", { ascending: false }).order("sort_order");
+  if (error) throw error;
+  const ordered = [...(data ?? [])].sort((a, b) =>
+    Number(b.slug === DEFAULT_MINICON_PACK.slug) - Number(a.slug === DEFAULT_MINICON_PACK.slug));
+  for (const pack of ordered) {
+    const hydrated = await getPublishedMiniconPacks([pack.id]);
+    if (hydrated.length) return hydrated;
+  }
+  return [];
 }
 
 export async function getPublishedMiniconItem(itemId: string): Promise<CommentMinicon | null> {

@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import {
   getAllPlayers,
   getAllTeams,
-  getFanRatingsByMatchId,
+  getSetRatingSummary,
   getMatchById,
   getPlayerStatLines,
   getSetsByMatchId,
@@ -61,7 +61,7 @@ export default async function MatchRatingSnapshotPage({ params }: { params: Prom
   const [teams, players, ratings, tournaments, statLineGroups] = await Promise.all([
     getAllTeams(),
     getAllPlayers(),
-    getFanRatingsByMatchId(match.id),
+    Promise.all(sets.map(set => getSetRatingSummary(set.id))),
     getTournaments(),
     Promise.all(sets.map((set) => getPlayerStatLines(set.id))),
   ]);
@@ -79,16 +79,10 @@ export default async function MatchRatingSnapshotPage({ params }: { params: Prom
     right: rosterLines.find((line) => line.teamId === redTeamId && line.position === position),
   }));
   const avgFor = (playerId: string) => {
-    const ratingsBySet = new Map<string, number[]>();
-    for (const rating of ratings) {
-      if (rating.playerId !== playerId) continue;
-      const setRatings = ratingsBySet.get(rating.setId) ?? [];
-      setRatings.push(rating.rating);
-      ratingsBySet.set(rating.setId, setRatings);
-    }
-    const setAverages = [...ratingsBySet.values()].map((setRatings) =>
-      setRatings.reduce((sum, rating) => sum + rating, 0) / setRatings.length,
-    );
+    const setAverages = ratings.flatMap(group => {
+      const row = group.find(rating => rating.playerId === playerId);
+      return row ? [row.total / row.count] : [];
+    });
     return setAverages.length
       ? setAverages.reduce((sum, rating) => sum + rating, 0) / setAverages.length
       : null;

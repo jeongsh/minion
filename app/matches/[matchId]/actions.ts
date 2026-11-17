@@ -9,6 +9,17 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { isCommunityUserSanctioned } from "@/lib/data/community-users";
 import { moderateFanRatingReview, submitFanRating } from "@/lib/fan-rating-submission";
+import { getMatchRatingComments } from "@/lib/data/match-rating-comments";
+import type { PlayerReviewCursor } from "@/lib/data/lck";
+import { parsePlayerReviewCursor } from "@/lib/player-reviews";
+
+export async function loadMatchRatingCommentsAction(matchId: string, setId: string, playerId: string | null, cursor: PlayerReviewCursor | null) {
+  const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (![matchId, setId, ...(playerId ? [playerId] : []), ...(cursor ? [cursor.id] : [])].every(value => uuid.test(value))
+    || (cursor && !Number.isFinite(Date.parse(cursor.createdAt)))) throw new Error("잘못된 조회 요청입니다.");
+  const user = await getCurrentUser();
+  return getMatchRatingComments(matchId, setId, playerId, parsePlayerReviewCursor(cursor ? JSON.stringify(cursor) : null), user?.id);
+}
 
 const VOTER_COOKIE = "lckhub_match_prediction_voter";
 const RATING_VOTER_COOKIE = "lckhub_fan_rating_voter";

@@ -7,7 +7,7 @@ import {
   getAllPlayers,
   getAllTeams,
   getChampions,
-  getFanRatingsByMatchId,
+  getSetRatingSummary, type SetRatingSummary,
   getMatchById,
   getPlayerStatLines,
   getSetById,
@@ -15,7 +15,7 @@ import {
 } from "@/lib/data/lck";
 import { formatFanRating } from "@/lib/fan-rating-display";
 import { isSetRatingSnapshotReady } from "@/lib/set-status";
-import type { Champion, FanRating, Player, PlayerPosition, Team } from "@/lib/types";
+import type { Champion, Player, PlayerPosition, Team } from "@/lib/types";
 import { formatDateTime, setHref } from "@/lib/view-data";
 
 import { SnapshotActions } from "./snapshot-actions";
@@ -37,9 +37,9 @@ const POSITION_ICON_SRC: Record<PlayerPosition, string> = {
   SUP: "/objectives/position-utility.svg",
 };
 
-function averageRating(ratings: FanRating[]) {
+function averageRating(ratings: SetRatingSummary[]) {
   if (ratings.length === 0) return null;
-  return ratings.reduce((sum, rating) => sum + rating.rating, 0) / ratings.length;
+  return ratings.reduce((sum, rating) => sum + rating.total, 0) / ratings.reduce((sum, rating) => sum + rating.count, 0);
 }
 
 function TeamLogo({ team, large = false }: { team?: Team; large?: boolean }) {
@@ -125,7 +125,7 @@ function PlayerRatingRow({
   right?: { playerId: string; championId?: string | null; position: PlayerPosition };
   players: Player[];
   champions: Champion[];
-  ratingsForPlayer: (playerId: string) => FanRating[];
+  ratingsForPlayer: (playerId: string) => SetRatingSummary[];
   leftIsWinner: boolean;
   rightIsWinner: boolean;
 }) {
@@ -165,7 +165,7 @@ export default async function SetRatingSnapshotPage({ params }: { params: Promis
     getAllTeams(),
     getAllPlayers(),
     getPlayerStatLines(set.id),
-    getFanRatingsByMatchId(match.id),
+    getSetRatingSummary(set.id),
     getTournaments(),
     getChampions(),
   ]);
@@ -192,7 +192,7 @@ export default async function SetRatingSnapshotPage({ params }: { params: Promis
     .sort((a, b) => (POSITION_ORDER.get(a.position) ?? 99) - (POSITION_ORDER.get(b.position) ?? 99));
   const blueLines = orderLines(set.blueTeamId);
   const redLines = orderLines(set.redTeamId);
-  const setRatings = fanRatings.filter((rating) => rating.setId === set.id);
+  const setRatings = fanRatings;
   const ratingsForPlayer = (playerId: string) => setRatings.filter((rating) => rating.playerId === playerId);
   const blueIsWinner = set.winnerTeamId === set.blueTeamId
     || (set.winnerTeamId == null && (set.blueKills ?? 0) > (set.redKills ?? 0));

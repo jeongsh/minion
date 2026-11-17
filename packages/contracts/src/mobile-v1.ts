@@ -823,6 +823,8 @@ export type MobileFanRatingComment = {
 };
 
 export type MobileFanRatingPanel = {
+  commentsNextCursor?: { createdAt: string; id: string } | null;
+  commentPlayers?: { id: string; name: string; count: number }[];
   ratingOpen: boolean;
   snapshotAvailable: boolean;
   statusNote: string;
@@ -925,6 +927,17 @@ export type MobileCommunityUploadDto = {
   width: number;
   height: number;
 };
+/** POST {action:"sign"} returns a signed Storage upload URL; {action:"confirm"} verifies the uploaded file. */
+export type MobileCommunityVideoSignDto = {
+  url: string;
+  path: string;
+  token: string;
+  signedUrl: string;
+};
+export type MobileCommunityVideoConfirmDto = {
+  url: string;
+  path: string;
+};
 
 export type MobileCommunityUserActivityPost = MobileCommunityPostSummary & {
   teamSlug: string | null;
@@ -976,6 +989,7 @@ export type MobileVideoItem = {
 };
 
 export type MobileTeamDetailDto = {
+  media?: { tabs: Array<{ key: string; label: string; count: number }>; nextCursor: string | null };
   calendarEvents: MobileHomeDto["calendarEvents"];
   team: MobileTeamSummary;
   headerImage: MobileImage | null;
@@ -1146,6 +1160,7 @@ export type MobileChampionGame = {
 };
 
 export type MobileChampionDetailDto = {
+  gamesPagination?: { page: number; total: number; pageSize: number };
   schemaVersion: 1;
   champion: MobileChampionSummary;
   champions: MobileChampionSummary[];
@@ -1240,8 +1255,11 @@ export type MobilePlayerReview = {
   authorImage: MobileImage | null;
   authorTier: string;
   meta: string;
+  metaParts?: string[];
   href: string | null;
 };
+
+export type MobilePlayerReviewPage = CursorPage<MobilePlayerReview>;
 
 export type MobilePlayerDetailDto = {
   schemaVersion: 2;
@@ -1271,6 +1289,7 @@ export type MobilePlayerDetailDto = {
     averageRating: number | null;
     pogCount: number;
     reviews: MobilePlayerReview[];
+    reviewNextCursor?: Cursor | null;
   };
 };
 export type MobileTournamentsDto = { items: MobileTournamentSummary[]; matches: MobileMatchSummary[] };
@@ -1315,9 +1334,11 @@ export const mobileApiRoutes = {
   predictionCancel: { method: "DELETE", path: `${MOBILE_API_PREFIX}/predictions`, owner: "lib/predictions", auth: "required", cache: "no-store" },
   match: { method: "GET", path: `${MOBILE_API_PREFIX}/matches/{matchId}`, owner: "match aggregation service", auth: "optional", cache: "30s" },
   matchRating: { method: "POST", path: `${MOBILE_API_PREFIX}/matches/{matchId}/ratings`, owner: "fan rating service", auth: "required", cache: "no-store" },
+  matchReviews: { method: "GET", path: `${MOBILE_API_PREFIX}/matches/{matchId}/reviews`, owner: "match rating comment service", auth: "public", cache: "no-store" },
   matchLive: { method: "GET", path: `${MOBILE_API_PREFIX}/matches/{matchId}/live`, owner: "lib/lolesports-game-data", auth: "public", cache: "no-store" },
   teams: { method: "GET", path: `${MOBILE_API_PREFIX}/teams`, owner: "lib/data/lck + fan service", auth: "optional", cache: "no-store" },
   team: { method: "GET", path: `${MOBILE_API_PREFIX}/teams/{teamSlug}`, owner: "team aggregation service", auth: "public", cache: "60s" },
+  teamCalendar: { method: "GET", path: `${MOBILE_API_PREFIX}/teams/{teamSlug}/calendar`, owner: "fan calendar service", auth: "public", cache: "30s" },
   teamCalendarSubmission: { method: "POST", path: `${MOBILE_API_PREFIX}/teams/{teamSlug}/calendar-submissions`, owner: "fan calendar submission service", auth: "required", cache: "no-store" },
   teamFan: { method: "GET", path: `${MOBILE_API_PREFIX}/teams/{teamSlug}/fan`, owner: "fan service", auth: "optional", cache: "no-store" },
   teamFanToggle: { method: "POST", path: `${MOBILE_API_PREFIX}/teams/{teamSlug}/fan`, owner: "fan service", auth: "optional", cache: "no-store" },
@@ -1326,6 +1347,8 @@ export const mobileApiRoutes = {
   teamNotification: { method: "POST", path: `${MOBILE_API_PREFIX}/teams/{teamSlug}/notifications`, owner: "fan notification service", auth: "required", cache: "no-store" },
   players: { method: "GET", path: `${MOBILE_API_PREFIX}/players`, owner: "lib/data/lck", auth: "public", cache: "21600s" },
   player: { method: "GET", path: `${MOBILE_API_PREFIX}/players/{playerSlug}`, owner: "player aggregation service", auth: "public", cache: "300s" },
+  playerReviews: { method: "GET", path: `${MOBILE_API_PREFIX}/players/{playerSlug}/reviews`, owner: "player review service", auth: "public", cache: "no-store" },
+  playerHistory: { method: "GET", path: `${MOBILE_API_PREFIX}/players/{playerSlug}/history`, owner: "player history service", auth: "public", cache: "no-store" },
   champions: { method: "GET", path: `${MOBILE_API_PREFIX}/champions`, owner: "champion aggregation service", auth: "public", cache: "300s" },
   champion: { method: "GET", path: `${MOBILE_API_PREFIX}/champions/{championSlug}`, owner: "champion aggregation service", auth: "public", cache: "300s" },
   news: { method: "GET", path: `${MOBILE_API_PREFIX}/news`, owner: "lib/data/news + lib/data/naver-news", auth: "public", cache: "60s" },
@@ -1348,6 +1371,7 @@ export const mobileApiRoutes = {
   communityPoll: { method: "GET", path: `${MOBILE_API_PREFIX}/community/polls/{pollId}`, owner: "community poll service", auth: "optional", cache: "no-store" },
   communityPollVote: { method: "POST", path: `${MOBILE_API_PREFIX}/community/polls/{pollId}`, owner: "community poll service", auth: "optional", cache: "no-store" },
   communityUpload: { method: "POST", path: `${MOBILE_API_PREFIX}/community/upload`, owner: "community upload service", auth: "optional", cache: "no-store" },
+  communityVideoUpload: { method: "POST", path: `${MOBILE_API_PREFIX}/community/upload/video`, owner: "community upload service", auth: "required", cache: "no-store" },
   communityUser: { method: "GET", path: `${MOBILE_API_PREFIX}/community/users/{userId}`, owner: "community user activity service", auth: "optional", cache: "no-store" },
   communityAuthorAction: { method: "POST", path: `${MOBILE_API_PREFIX}/community/authors/actions`, owner: "community user actions service", auth: "required", cache: "no-store" },
   minicons: { method: "GET", path: `${MOBILE_API_PREFIX}/minicons`, owner: "minicon catalog service", auth: "public", cache: "60s" },

@@ -22,7 +22,8 @@ export type SegmentNavItem = InternationalSegmentTheme & {
 // 판단한다.
 const ONGOING_WINDOW_MS = 3 * 24 * 60 * 60 * 1000;
 
-function isSegmentOngoing(matches: Match[], tournamentIds: Set<string>, now: Date) {
+type NavMatch = Pick<Match, "tournamentId" | "status" | "matchDate">;
+function isSegmentOngoing(matches: NavMatch[], tournamentIds: Set<string>, now: Date) {
   const nowMs = now.getTime();
   const segmentMatches = matches.filter((match) => tournamentIds.has(match.tournamentId));
   // 아직 안 끝난(완료되지 않은) 경기가 하나도 없으면 그 세그먼트는 완전히 종료된 것이다.
@@ -45,7 +46,7 @@ function isSegmentOngoing(matches: Match[], tournamentIds: Set<string>, now: Dat
  */
 export function buildSegmentNav(
   tournaments: Tournament[],
-  matches: Match[],
+  matches: NavMatch[],
   now: Date = new Date(),
 ): SegmentNavItem[] {
   return ALL_SEGMENTS.map((segment): SegmentNavItem | null => {

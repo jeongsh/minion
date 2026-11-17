@@ -6,6 +6,7 @@ import { Bell, CheckCheck, MessageCircle, Radio, Star, Trash2, UserRound, Video,
 
 import { DialogSheetHeader } from "@/components/responsive/adaptive-dialog";
 import { useDismissOnOutside } from "@/components/ui/use-dismiss-on-outside";
+import { focusNotificationComment } from "@/components/notifications/notification-context";
 import type { AppNotification, NotificationKind } from "@/lib/notifications";
 
 function NotificationTypeIcon({ kind }: { kind: NotificationKind }) {
@@ -81,7 +82,7 @@ function NotificationRow({
   return (
     <div className={`flex items-start gap-1.5 rounded-xl border border-[var(--ui-border)] px-2.5 py-2.5 transition ${notification.readAt ? "bg-transparent" : "bg-[var(--ui-surface)]"}`}>
       {notification.href ? (
-        <Link href={notification.href} onClick={() => { onRead(notification.id); onClose(); }} className="flex min-w-0 flex-1 items-start gap-2.5 rounded-md">{content}</Link>
+        <Link href={notification.href} onClick={(event) => { onRead(notification.id); if (!event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey && focusNotificationComment(notification.href)) event.preventDefault(); onClose(); }} className="flex min-w-0 flex-1 items-start gap-2.5 rounded-md">{content}</Link>
       ) : (
         <button type="button" onClick={() => onRead(notification.id)} className="flex min-w-0 flex-1 items-start gap-2.5 rounded-md text-left">{content}</button>
       )}

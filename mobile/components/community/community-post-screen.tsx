@@ -66,7 +66,7 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
   const [reportReason, setReportReason] = useState('');
   const [reportTarget, setReportTarget] = useState<ReportTarget | null>(null);
   const [revealed, setRevealed] = useState(false);
-  const [expandedReplies, setExpandedReplies] = useState<Set<string>>(() => new Set());
+  const [collapsedReplies, setCollapsedReplies] = useState<Set<string>>(() => new Set());
 
   useEffect(() => {
     setComment('');
@@ -79,7 +79,7 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
     setReportReason('');
     setReportTarget(null);
     setRevealed(false);
-    setExpandedReplies(new Set());
+    setCollapsedReplies(new Set());
     scrollRef.current?.scrollTo({ animated: false, y: 0 });
   }, [postId]);
   const roots = useMemo(() => data?.comments.filter((item) => !item.parentId) ?? [], [data?.comments]);
@@ -95,7 +95,7 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
     return map;
   }, [data?.comments]);
   const toggleReplies = (commentId: string) => {
-    setExpandedReplies((current) => {
+    setCollapsedReplies((current) => {
       const next = new Set(current);
       if (next.has(commentId)) next.delete(commentId);
       else next.add(commentId);
@@ -137,8 +137,9 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
     setSubmitting(true);
     try {
       await mutateMobileApi<MobileCommunityCommentMutationDto>('/api/mobile/v1/community/comments', 'POST', { content, parentId: replyTo?.id ?? null, postId: data.id });
+      showToast(replyTo ? '답글 등록 완료' : '댓글 등록 완료', 'success');
       setComment(''); setReplyTo(null); setMiniconOpen(false); refreshCommunityData();
-    } catch (caught) { Alert.alert('등록 실패', caught instanceof Error ? caught.message : '댓글을 등록하지 못했습니다.'); }
+    } catch (caught) { showToast(caught instanceof Error ? caught.message : '댓글을 등록하지 못했습니다. 다시 시도해 주세요.', 'error'); }
     finally { setSubmitting(false); }
   };
   const submitMinicons = async (items: MobileMiniconItem[]) => {
@@ -188,9 +189,10 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
     .then(async () => {
       await invalidateApiCache('/api/mobile/v1/community/posts');
       await invalidateApiCache('/api/mobile/v1/home');
+      showToast('게시글 삭제 완료', 'success');
       router.replace(basePath as never);
     })
-    .catch((caught) => Alert.alert('삭제 실패', caught instanceof Error ? caught.message : '게시글을 삭제하지 못했습니다.'));
+    .catch((caught) => showToast(caught instanceof Error ? caught.message : '게시글을 삭제하지 못했습니다.', 'error'));
   const deletePost = () => {
     if (Platform.OS === 'web') {
       if (window.confirm('이 게시글을 삭제할까요?')) performDeletePost();
@@ -219,7 +221,7 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
         {pullIndicator}
         {Platform.OS === 'web' && refreshControl.props.refreshing ? <View pointerEvents="none" style={{ position: 'absolute', top: insets.top + 64, alignSelf: 'center', zIndex: 40, padding: 8, borderRadius: 20, backgroundColor: theme.surface }}><ActivityIndicator accessibilityLabel="새로고침 중" color={accent} size="small" /></View> : null}
         <ScrollView removeClippedSubviews={false} onScroll={event => { onPullScroll(event); notifyAdViewportChanged(); }} onContentSizeChange={notifyAdViewportChanged} scrollEventThrottle={16} refreshControl={refreshControl} alwaysBounceVertical contentContainerStyle={{ paddingBottom: 56 + bottomInset }} keyboardShouldPersistTaps="handled" ref={scrollRef} showsVerticalScrollIndicator={false}>
-        <ContentBanner placement="post-top" enabled={!data.isBlinded} suspended={ownerMenuOpen || Boolean(reportTarget) || miniconOpen} />
+        <ContentBanner placement="post-top" enabled={!data.isBlinded} suspended={ownerMenuOpen || Boolean(reportTarget) || miniconOpen} style={styles.topAd} />
         <View style={[styles.article, { backgroundColor: theme.surface, borderTopColor: theme.border }]}>
           <View style={styles.postHeader}>
             <Text style={[styles.postTitle, { color: data.isBlinded ? theme.muted : theme.ink, ...(data.isBlinded ? fonts.medium : fonts.bold) }]}>{title}</Text>
@@ -236,7 +238,7 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
           <View style={styles.commentTitle}><Text style={{ color: theme.ink, ...fonts.bold, fontSize: 15, lineHeight: 22.5 }}>댓글</Text><Text style={{ color: accent, ...fonts.medium, fontSize: 13, lineHeight: 19.5 }}>{data.commentCount}</Text></View>
           <View style={styles.comments}>{orderedRoots.map((item, index) => {
             const itemReplies = replies.get(item.id) ?? [];
-            const repliesExpanded = expandedReplies.has(item.id);
+            const repliesExpanded = !collapsedReplies.has(item.id);
             const firstRegular = !item.isBest && index > 0 && orderedRoots[index - 1]?.isBest;
             return (
               <View key={item.id} style={[styles.commentThread, firstRegular ? { borderTopColor: theme.border, borderTopWidth: 1, paddingTop: 20 } : null]}>
@@ -260,7 +262,6 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
             );
           })}</View>
         </View>
-          <ContentBanner placement="community-post-screen-1" enabled={!data.isBlinded} suspended={ownerMenuOpen || Boolean(reportTarget) || miniconOpen} />
         </ScrollView>
         {miniconOpen ? <MiniconPicker bottom={64 + bottomInset} doubleMode={doubleMode} onDoubleModeChange={(enabled) => { setDoubleMode(enabled); setSelectedMinicons([]); }} onSelect={selectMinicon} onStartDouble={startDoubleMinicon} packs={data.miniconPacks} selectedIds={selectedMinicons.map((item) => item.id)} /> : null}
         <View style={[styles.commentDock, { backgroundColor: theme.pageBackground, borderTopColor: theme.divider, paddingBottom: 8 + bottomInset }]}>
@@ -331,6 +332,7 @@ function Bone({ height, radius = 5, width }: { height: number; radius?: number; 
 type ReactToCommunity = (target: 'post' | 'comment', targetId: string, kind: 'honor' | 'dislike') => Promise<MobileCommunityReactionDto>;
 
 function ReactionButtons({ accent, item, onReact, target, small = false }: { accent: string; item: { id: string; reaction: MobileCommunityReactionDto['state']; likeCount: number; dislikeCount: number }; onReact: ReactToCommunity; target: 'post' | 'comment'; small?: boolean }) {
+  const { showToast } = useMinionTheme();
   const source = `${target}:${item.id}:${item.reaction}:${item.likeCount}:${item.dislikeCount}`;
   const incoming = { state: item.reaction, honorCount: item.likeCount, dislikeCount: item.dislikeCount };
   const [local, setLocal] = useState({ source, value: incoming });
@@ -356,7 +358,7 @@ function ReactionButtons({ accent, item, onReact, target, small = false }: { acc
       setLocal({ source, value: result });
     } catch (caught) {
       setLocal({ source, value: previous });
-      Alert.alert('반응 실패', caught instanceof Error ? caught.message : '잠시 후 다시 시도해주세요.');
+      showToast(caught instanceof Error ? caught.message : '잠시 후 다시 시도해주세요.', 'error');
     } finally {
       inFlight.current = false;
       setPending(false);
@@ -381,9 +383,9 @@ function CommentAvatar({ author, reply }: { author: MobileCommunityAuthor; reply
 }
 
 function CommentItem({ accent, best = false, comment, continued = false, onDelete, onReact, onReply, onReport, reply = false }: { accent: string; best?: boolean; comment: MobileCommunityComment; continued?: boolean; onDelete: () => void; onReact: ReactToCommunity; onReply?: (comment: MobileCommunityComment) => void; onReport: (target: 'comment', id: string) => void; reply?: boolean }) {
-  const { fonts, theme } = useMinionTheme(); const [editing, setEditing] = useState(false); const [content, setContent] = useState(typeof comment.content === 'string' ? comment.content : ''); const [busy, setBusy] = useState(false);
-  const save = async () => { setBusy(true); try { await mutateMobileApi<MobileCommunityCommentMutationDto>(`/api/mobile/v1/community/comments/${comment.id}`, 'PATCH', { content }); setEditing(false); onDelete(); } catch (caught) { Alert.alert('수정 실패', caught instanceof Error ? caught.message : '댓글을 수정하지 못했습니다.'); } finally { setBusy(false); } };
-  const remove = () => Alert.alert('댓글 삭제', '이 댓글을 삭제할까요?', [{ text: '취소', style: 'cancel' }, { text: '삭제', style: 'destructive', onPress: () => void mutateMobileApi<MobileCommunityActionDto>(`/api/mobile/v1/community/comments/${comment.id}`, 'DELETE').then(onDelete).catch((caught) => Alert.alert('삭제 실패', caught instanceof Error ? caught.message : '댓글을 삭제하지 못했습니다.')) }]);
+  const { fonts, showToast, theme } = useMinionTheme(); const [editing, setEditing] = useState(false); const [content, setContent] = useState(typeof comment.content === 'string' ? comment.content : ''); const [busy, setBusy] = useState(false);
+  const save = async () => { setBusy(true); try { const result = await mutateMobileApi<MobileCommunityCommentMutationDto>(`/api/mobile/v1/community/comments/${comment.id}`, 'PATCH', { content }); showToast(result.message, 'success'); setEditing(false); onDelete(); } catch (caught) { showToast(caught instanceof Error ? caught.message : '댓글을 수정하지 못했습니다. 다시 시도해 주세요.', 'error'); } finally { setBusy(false); } };
+  const remove = () => Alert.alert('댓글 삭제', '이 댓글을 삭제할까요?', [{ text: '취소', style: 'cancel' }, { text: '삭제', style: 'destructive', onPress: () => void mutateMobileApi<MobileCommunityActionDto>(`/api/mobile/v1/community/comments/${comment.id}`, 'DELETE').then((result) => { showToast(result.message, 'success'); onDelete(); }).catch((caught) => showToast(caught instanceof Error ? caught.message : '댓글을 삭제하지 못했습니다. 다시 시도해 주세요.', 'error')) }]);
   return (
     <View style={styles.commentItem}>
       {continued ? <View style={[styles.commentContinuation, { backgroundColor: theme.border }]} /> : null}
@@ -433,5 +435,6 @@ function commentLinkText(color: string, font: TextStyle) {
 function OwnerAction({ destructive = false, label, onPress }: { destructive?: boolean; label: string; onPress: () => void }) { const { fonts, theme } = useMinionTheme(); return <Pressable onPress={onPress} style={styles.ownerAction}><Text style={{ color: destructive ? '#ef4444' : theme.text, ...fonts.bold, fontSize: 15 }}>{label}</Text></Pressable>; }
 
 const styles = StyleSheet.create({
+  topAd: { marginVertical: 0 },
   root: { flex: 1 }, safeTop: { left: 0, position: 'absolute', right: 0, top: 0 }, header: { alignItems: 'center', borderBottomWidth: 1, flexDirection: 'row', height: 48, paddingHorizontal: 12 }, headerButton: { alignItems: 'center', height: 44, justifyContent: 'center', width: 44 }, headerTitle: { flex: 1, fontSize: 16, lineHeight: 24, textAlign: 'center' }, ad: { alignItems: 'center', height: 60, justifyContent: 'center' }, adText: { fontSize: 13, letterSpacing: 2.2, lineHeight: 19.5 }, article: { borderTopWidth: 1, minHeight: 500 }, postHeader: { paddingBottom: 20, paddingHorizontal: 14, paddingTop: 16 }, postTitle: { fontSize: 16, lineHeight: 23.2 }, authorRow: { alignItems: 'center', flexDirection: 'row', marginTop: 12 }, detailMeta: { alignItems: 'center', flexDirection: 'row', gap: 5 }, divider: { height: 1, marginHorizontal: 14 }, body: { minHeight: 180, paddingHorizontal: 14, paddingVertical: 24 }, blinded: { alignItems: 'center', borderRadius: 12, gap: 7, justifyContent: 'center', minHeight: 150, padding: 20 }, blindedCharacter: { height: 112, width: 112 }, blindedComment: { alignItems: 'center', alignSelf: 'flex-start', borderRadius: 8, flexDirection: 'row', gap: 8, marginTop: 2, paddingHorizontal: 10, paddingVertical: 6 }, blindedCommentCharacter: { height: 32, width: 32 }, postActions: { alignItems: 'center', borderBottomWidth: 1, borderTopWidth: 1, flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 16 }, reactions: { flexDirection: 'row', gap: 8 }, reaction: { alignItems: 'center', borderRadius: 8, borderWidth: 1, flexDirection: 'row', gap: 6, height: 36, paddingHorizontal: 12 }, smallReaction: { alignItems: 'center', borderRadius: 8, flexDirection: 'row', gap: 4, height: 32, justifyContent: 'center', paddingHorizontal: 8 }, report: { alignItems: 'center', borderRadius: 8, borderWidth: 1, flexDirection: 'row', gap: 6, height: 36, paddingHorizontal: 12 }, commentTitle: { alignItems: 'baseline', flexDirection: 'row', gap: 4, paddingHorizontal: 14, paddingVertical: 16 }, comments: { paddingHorizontal: 14 }, commentThread: { marginBottom: 16 }, bestThread: { borderRadius: 8, marginHorizontal: -8, paddingHorizontal: 8, paddingTop: 12 }, bestBadge: { borderRadius: 2, color: '#ffffff', fontSize: 12, lineHeight: 16, overflow: 'hidden', paddingHorizontal: 5 }, commentItem: { alignItems: 'flex-start', flexDirection: 'row', gap: 16, minHeight: 78 }, commentContinuation: { bottom: 0, left: 18, position: 'absolute', top: 40, width: 1 }, commentInner: { flex: 1, minWidth: 0, position: 'relative' }, commentTop: { alignItems: 'center', flexDirection: 'row', gap: 4, height: 20, paddingRight: 30 }, commentAuthor: { flexShrink: 1, minWidth: 0 }, commentMenu: { alignItems: 'center', height: 32, justifyContent: 'center', position: 'absolute', right: 0, top: -6, width: 32 }, commentReactions: { flexDirection: 'row', gap: 4 }, commentBody: { fontSize: 14, lineHeight: 20, marginTop: 2 }, miniconComment: { flexDirection: 'row', marginTop: 8 }, miniconCommentImage: { height: 100, width: 100 }, unavailableMinicon: { alignItems: 'center', borderRadius: 18, borderWidth: 1, height: 100, justifyContent: 'center', marginTop: 8, paddingHorizontal: 12, width: 100 }, commentLinks: { alignItems: 'center', flexDirection: 'row', gap: 8, height: 32, marginLeft: -8, marginTop: 4 }, threadToggleRow: { height: 52, position: 'relative' }, threadConnection: { borderBottomLeftRadius: 16, borderBottomWidth: 1, borderLeftWidth: 1, height: 30, left: 18, position: 'absolute', top: 0, width: 18 }, threadToggleButton: { alignItems: 'center', borderRadius: 20, flexDirection: 'row', gap: 6, height: 40, left: 36, paddingHorizontal: 16, position: 'absolute', top: 12 }, replyThreadRow: { minHeight: 90, position: 'relative' }, replyThreadStem: { bottom: 0, left: 18, position: 'absolute', top: 0, width: 1 }, replyThreadElbow: { borderBottomLeftRadius: 16, borderBottomWidth: 1, borderLeftWidth: 1, height: 24, left: 18, position: 'absolute', top: 0, width: 30 }, replyThreadContent: { marginLeft: 48, paddingTop: 12 }, editBox: { borderRadius: 8, borderWidth: 1, marginTop: 4, padding: 10 }, editActions: { alignItems: 'center', flexDirection: 'row', gap: 18, justifyContent: 'flex-end', marginTop: 7 }, reasonInput: { borderRadius: 10, borderWidth: 1, fontSize: 16, lineHeight: 24, marginTop: 14, minHeight: 112, padding: 12 }, reportSubmit: { alignItems: 'center', borderRadius: 8, height: 44, justifyContent: 'center', marginBottom: 4, marginTop: 12 }, commentDock: { borderTopWidth: 1, bottom: 0, left: 0, paddingHorizontal: 10, paddingTop: 8, position: 'absolute', right: 0 }, replying: { alignItems: 'center', flexDirection: 'row', paddingBottom: 6, paddingHorizontal: 8 }, commentComposer: { alignItems: 'center', flexDirection: 'row', gap: 6, minHeight: 40 }, commentInputWrap: { alignItems: 'center', borderRadius: 20, flex: 1, flexDirection: 'row', minHeight: 40, paddingHorizontal: 14, paddingVertical: 6 }, commentInput: { flex: 1, fontSize: 14, lineHeight: Platform.OS === 'ios' ? undefined : 24, maxHeight: 80, minHeight: Platform.OS === 'ios' ? undefined : 24, paddingVertical: 0 }, miniconButton: { alignItems: 'center', height: 28, justifyContent: 'center', width: 28 }, selectedPreview: { height: 40, marginVertical: -6, position: 'relative', width: 40 }, selectedPreviewImage: { height: 40, width: 40 }, selectedPreviewClose: { alignItems: 'center', borderRadius: 999, height: 20, justifyContent: 'center', position: 'absolute', right: -6, top: -6, width: 20 }, send: { alignItems: 'center', height: 36, justifyContent: 'center', width: 36 }, ownerAction: { justifyContent: 'center', minHeight: 48, paddingHorizontal: 14 }, focusState: { alignItems: 'center', flex: 1, justifyContent: 'center' }, loadingAuthor: { alignItems: 'center', flexDirection: 'row', gap: 10, marginTop: 12 }, loadingAuthorCopy: { flex: 1, gap: 6 }, loadingMeta: { flexDirection: 'row', gap: 6 }, loadingBody: { gap: 10, minHeight: 180, paddingHorizontal: 14, paddingVertical: 24 }, loadingComment: { gap: 8, paddingVertical: 14 }, loadingCommentTop: { alignItems: 'center', flexDirection: 'row', gap: 8 }, loadingCommentReactions: { flexDirection: 'row', gap: 12, marginLeft: 'auto' }, loadingLinks: { flexDirection: 'row', gap: 12 },
 });

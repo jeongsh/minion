@@ -6,7 +6,7 @@ import { CalendarDays, ChevronRight } from "lucide-react";
 
 import type { FeedInstaItem, FeedVideoItem } from "@/components/fan/fan-feed-mosaic";
 import { HomeBoardCarousel } from "@/components/domain/home-board-carousel";
-import { HomeCalendar, type HomeCalendarMatch } from "@/components/domain/home-calendar";
+import { HomeCalendar } from "@/components/domain/home-calendar";
 import { FanChannelHeader } from "@/components/fan/fan-channel-header";
 import { FanHeaderTooltip, fanHeaderIconButtonClass } from "@/components/fan/fan-header-control-styles";
 import { FanHomeVideoSwiper } from "@/components/fan/fan-home-video-swiper";
@@ -19,7 +19,7 @@ import { TeamLogo } from "@/components/ui/team-logo";
 import {
   getAllTeams,
   getFanVideoFeed,
-  getMatchesByTeamId,
+  getFanHomeMatches,
   getPlayersByTeamId,
   getTeamByFanSiteHost,
   getTeamBySlug,
@@ -33,9 +33,9 @@ import {
   selectCommunityHomePosts,
 } from "@/lib/community/hot";
 import { buildFanVideoItems } from "@/lib/fan-video-items";
-import { getCalendarEvents, getTodayCelebrations } from "@/lib/calendar/events";
-import { shouldUseWhiteLogoOnDark } from "@/lib/team-logos";
-import { dateKeyKST, formatTimeKST, matchHref } from "@/lib/view-data";
+import { getTodayCelebrations } from "@/lib/calendar/events";
+import { getCalendarPageData } from "@/lib/calendar/page-data";
+import { dateKeyKST } from "@/lib/view-data";
 import { CelebrationBanner } from "@/components/domain/celebration-banner";
 import { siteBaseUrl } from "@/lib/site";
 import type { Match, Player, Team } from "@/lib/types";
@@ -76,10 +76,6 @@ function formatMatchDay(value: string) {
 
 function byMatchDate(a: Match, b: Match) {
   return new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime();
-}
-
-function yearMonthKeyKST(value: string) {
-  return dateKeyKST(value).slice(0, 7);
 }
 
 function teamForMatch(match: Match, team: Team, teams: Team[]) {
@@ -211,40 +207,22 @@ export default async function FanHomePage({
   );
   const instagramPromise = teamPlayersPromise.then(players => getTeamInstagramFeed(team.id, players.map(player => player.id), FEED_PREVIEW_LIMIT));
   const videoPromise = teamPlayersPromise.then(players => getFanVideoFeed(team.id, players.map(player => player.id), FEED_PREVIEW_LIMIT));
-  const [teamPlayers, teams, teamMatchesRaw, popularBoardPosts, latestBoardPosts, calendarEvents] =
+  const [teamPlayers, teams, teamMatchesRaw, popularBoardPosts, latestBoardPosts, calendarData] =
     await Promise.all([
       teamPlayersPromise,
       getAllTeams(),
-      getMatchesByTeamId(team.id),
+      getFanHomeMatches(team.id),
       getBoardPosts({ scope: "team", teamId: team.id, hotOnly: true, limit: COMMUNITY_HOME_HOT_CANDIDATE_LIMIT }),
       getBoardPosts({ scope: "team", teamId: team.id, limit: COMMUNITY_HOME_LATEST_CANDIDATE_LIMIT }),
-      getCalendarEvents({ teamId: team.id, includePastOneTime: true }),
+      getCalendarPageData(undefined, team.id),
     ]);
 
+  const calendarEvents = calendarData.events;
   const todayCelebrations = getTodayCelebrations(calendarEvents);
   const calendarMonthKey = dateKeyKST(new Date()).slice(0, 7);
 
   const teamMatches = [...teamMatchesRaw].sort(byMatchDate);
-  const teamsById = new Map(teams.map((item) => [item.id, item]));
-  const calendarMatches = teamMatches.filter((match) => yearMonthKeyKST(match.matchDate) === calendarMonthKey);
-  const calendarClientMatches: HomeCalendarMatch[] = calendarMatches.map((match) => {
-    const teamA = teamsById.get(match.teamAId);
-    const teamB = teamsById.get(match.teamBId);
-
-    return {
-      id: match.id,
-      dateKey: dateKeyKST(match.matchDate),
-      href: matchHref(match),
-      time: formatTimeKST(match.matchDate),
-      league: "",
-      teamAName: teamA?.shortName ?? "TBD",
-      teamBName: teamB?.shortName ?? "TBD",
-      teamALogoUrl: teamA?.logoUrl ?? null,
-      teamBLogoUrl: teamB?.logoUrl ?? null,
-      teamALogoDarkUrl: shouldUseWhiteLogoOnDark(teamA) ? teamA?.logoWhiteUrl : null,
-      teamBLogoDarkUrl: shouldUseWhiteLogoOnDark(teamB) ? teamB?.logoWhiteUrl : null,
-    };
-  });
+  const calendarClientMatches = calendarData.homeMatches;
 
   // 이 페이지는 force-dynamic이라 요청 시각으로 지난 예정 경기를 걸러낸다.
   // eslint-disable-next-line react-hooks/purity
@@ -279,7 +257,7 @@ export default async function FanHomePage({
             triggerAriaLabel="캘린더"
             panelClassName="sm:max-w-[380px]"
           >
-            <HomeCalendar initialMonthKey={calendarMonthKey} matches={calendarClientMatches} events={calendarEvents} />
+            <HomeCalendar teamId={team.id} initialMonthKey={calendarMonthKey} matches={calendarClientMatches} events={calendarEvents} />
           </AdaptiveDialog>
         }
       />

@@ -178,7 +178,7 @@ export function FanVideoFeed({
         ))}
       </section>
 
-      {visibleCount < filteredVideos.length ? (
+      {visibleCount < filteredVideos.length || pagination?.hasMore ? (
         <div ref={sentinelRef} data-testid="video-infinite-sentinel" className="grid h-28 place-items-center">
           {isBatchLoading ? (
             <span className="h-8 w-8 animate-spin rounded-full border-2 border-[#d9d9d9] border-t-[#0f0f0f]" />

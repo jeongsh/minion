@@ -1,6 +1,6 @@
 import "server-only";
 
-import { getAllTeams, getMatches, getSets, getTournaments } from "@/lib/data/lck";
+import { getAllTeams, getMatchesForScope, getSetsForMatches, getActivitySets, getTournaments } from "@/lib/data/lck";
 import { isMatchLive } from "@/lib/match-display";
 import type { MatchActivityResponse, MatchActivityTeam } from "@/lib/match-activity";
 import {
@@ -22,13 +22,27 @@ function activityTeam(team: Team | undefined, fallbackId: string): MatchActivity
 
 /** 웹과 네이티브가 같은 경기 활동 계산을 사용하도록 인증별 팀 키만 주입받는다. */
 export async function getMatchActivityForTeamKeys(followedKeys: string[]): Promise<MatchActivityResponse> {
-  const [teams, matches, sets, tournaments] = await Promise.all([getAllTeams(), getMatches(), getSets(), getTournaments()]);
+  if (!followedKeys.length) return { liveMatches: [], ratings: [] };
+  const teams = await getAllTeams();
   const followedKeySet = new Set(followedKeys);
   const followedTeamIds = new Set(
     teams
       .filter((team) => followedKeySet.has(team.id) || followedKeySet.has(team.fanSiteHost))
       .map((team) => team.id),
   );
+  if (!followedTeamIds.size) return { liveMatches: [], ratings: [] };
+  const snapshot = Date.now();
+  const [live, recentSets, tournaments] = await Promise.all([
+    getMatchesForScope({ teamIds: [...followedTeamIds], status: "live" }),
+    getActivitySets([...followedTeamIds], new Date(snapshot - SET_RATING_CARD_DISPLAY_WINDOW_MS).toISOString(), new Date(snapshot).toISOString()),
+    getTournaments(),
+  ]);
+  const [recentMatches, liveSets] = await Promise.all([
+    getMatchesForScope({ ids: [...new Set(recentSets.map(set => set.matchId))] }),
+    getSetsForMatches(live.map(match => match.id)),
+  ]);
+  const matches = [...new Map([...live, ...recentMatches].map(match => [match.id, match])).values()];
+  const sets = [...new Map([...liveSets, ...recentSets].map(set => [set.id, set])).values()];
   const teamById = new Map(teams.map((team) => [team.id, team]));
   const tournamentById = new Map(tournaments.map((tournament) => [tournament.id, tournament]));
   const competitionLabel = (match: (typeof matches)[number]) => {
@@ -45,7 +59,7 @@ export async function getMatchActivityForTeamKeys(followedKeys: string[]): Promi
     setsByMatch.set(set.matchId, [...(setsByMatch.get(set.matchId) ?? []), set]);
   }
 
-  const now = Date.now();
+  const now = snapshot;
   const liveMatches = followedMatches
     .filter((match) => isMatchLive(match))
     .sort((a, b) => new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime())

@@ -83,7 +83,7 @@ export function CommentForm({
         if (temporaryId) commentState?.rollback(temporaryId);
         const message = error instanceof Error ? error.message : "댓글을 등록하지 못했습니다. 다시 시도해 주세요.";
         setMessage(message);
-        showToast({ title: "등록 실패", description: message, tone: "error" });
+        showToast({ title: message, tone: "error" });
       } finally { inFlight.current = false; }
     });
   };

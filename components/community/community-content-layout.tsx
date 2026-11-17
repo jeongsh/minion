@@ -1,22 +1,9 @@
-import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { AdSlot } from "@/components/ui/ad-slot";
-import type { BoardScope } from "@/lib/community/boards";
-import { compareHotPostsByRecentHype, isHotPost } from "@/lib/community/hot";
-import type { CommunityPostDetail } from "@/lib/community/types";
-import { KitschEmptyState } from "@/components/ui/kitsch-empty-state";
+import { CommunityNotificationRail } from "@/components/community/community-notification-rail";
 
-export function CommunityContentLayout({ children, posts, scope, teamSlug, currentPostId, adsEnabled = false }: { children: ReactNode; posts: CommunityPostDetail[]; scope: BoardScope; teamSlug?: string; currentPostId?: string; adsEnabled?: boolean }) {
-  // Right rail mirrors the hot tab: only promoted posts, ranked by recent hype.
-  const popular = [...posts]
-    .filter((post) => post.id !== currentPostId && !post.blindedAt && !post.isNotice && isHotPost(post))
-    .sort(compareHotPostsByRecentHype)
-    .slice(0, 5);
-  const href = (postId: string) => scope === "team" && teamSlug
-    ? `/fan/${teamSlug}/community/post/${postId}`
-    : `/community/post/${postId}`;
-
+export function CommunityContentLayout({ children, currentPostId, adsEnabled = false }: { children: ReactNode; currentPostId?: string; adsEnabled?: boolean }) {
   return (
     <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_300px] xl:items-start xl:gap-6">
       <div className="min-w-0">
@@ -25,26 +12,7 @@ export function CommunityContentLayout({ children, posts, scope, teamSlug, curre
         {currentPostId ? <AdSlot enabled={adsEnabled} placement="horizontal" className="mt-6 h-[60px] xl:h-[90px]" /> : null}
       </div>
       <aside className="hidden w-full max-w-[300px] flex-col gap-4 xl:sticky xl:top-[88px] xl:flex" aria-label="커뮤니티 보조 정보">
-        <section className="overflow-hidden rounded-[var(--ui-card-radius)] border border-[var(--ui-border)] bg-[var(--ui-surface)]">
-          <h2 className="home-section-title border-b border-[var(--ui-border)] px-4 py-3.5 text-[length:var(--ui-title-size)] text-[var(--ui-ink)]">인기글</h2>
-          {popular.length > 0 ? (
-            <ol className="divide-y divide-[var(--ui-border)] px-4">
-              {popular.map((post, index) => (
-                <li key={post.id}>
-                  <Link href={href(post.id)} className="grid grid-cols-[20px_minmax(0,1fr)_auto] items-center gap-2 py-3 text-sm hover:text-[var(--tp)]">
-                    <span className="font-bold tabular-nums text-[var(--tp)]">{index + 1}</span>
-                    <span className="truncate font-medium text-[var(--ui-text)]">{post.title}</span>
-                    <span className="text-[13px] tabular-nums text-[var(--ui-muted)]">{post.commentCount}</span>
-                  </Link>
-                </li>
-              ))}
-            </ol>
-          ) : (
-            <div className="py-4">
-              <KitschEmptyState character="megapon" title="인기글 충전 중" body="화력 좋은 글이 생기면 바로 꽂아둘게요." compact plain />
-            </div>
-          )}
-        </section>
+        <CommunityNotificationRail />
         {!currentPostId ? <AdSlot enabled={adsEnabled} placement="community" format="rectangle" className="h-[250px] w-full max-w-[300px]" /> : null}
       </aside>
     </div>

@@ -6,11 +6,15 @@ import { formatCommunityDate, formatRelativeOrDate } from "@/components/communit
 const subscribe = () => () => {};
 
 /** Hydrate with a deterministic date before computing time-dependent relative text. */
-export function RelativeDate({ value }: { value: string }) {
-  const label = useSyncExternalStore(
+export function useRelativeDateLabel(value: string) {
+  return useSyncExternalStore(
     subscribe,
     () => formatRelativeOrDate(value),
     () => formatCommunityDate(value),
   );
+}
+
+export function RelativeDate({ value }: { value: string }) {
+  const label = useRelativeDateLabel(value);
   return <time dateTime={value}>{label}</time>;
 }

@@ -1,3 +1,4 @@
+import { useFanMedia } from '@/components/fan/use-fan-media';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -42,7 +43,7 @@ export type FanPageSection = 'home' | 'players' | 'schedule' | 'social' | 'video
 export function FanPage({ section }: { section: FanPageSection }) {
   const params = useLocalSearchParams<{ team?: string | string[] }>();
   const teamSlug = Array.isArray(params.team) ? params.team[0] : params.team;
-  const path = teamSlug ? `/api/mobile/v1/teams/${encodeURIComponent(teamSlug)}?section=${section}` : '/api/mobile/v1/teams/__missing__';
+  const path = teamSlug ? `/api/mobile/v1/teams/${encodeURIComponent(teamSlug)}?section=${section}&view=paged` : '/api/mobile/v1/teams/__missing__';
   const { data, error, loading, refresh, refreshControl } = useScreenQuery<MobileTeamDetailDto>(path, { enabled: Boolean(teamSlug) });
 
   if (loading && !data) return <MinionScreen refreshControl={refreshControl} contentStyle={styles.screenContent}><FanLoadingSkeleton section={section} /></MinionScreen>;
@@ -54,10 +55,17 @@ export function FanPage({ section }: { section: FanPageSection }) {
       {section === 'home' ? <FanHome data={data} /> : null}
       {section === 'schedule' ? <><FanSchedule data={data} /><ContentBanner placement="fan-page-1" enabled={(data.matches?.length ?? 0) > 0} /></> : null}
       {section === 'players' ? <FanPlayers players={data.players} team={data.team} /> : null}
-      {section === 'social' ? <FanSocial items={data.social} teamName={data.team.shortName} /> : null}
-      {section === 'videos' ? <FanVideos items={data.videos} teamName={data.team.shortName} /> : null}
+      {section === 'social' ? <PagedMedia key={`${teamSlug}:${data.social[0]?.id ?? "empty"}`} initial={data} teamSlug={teamSlug!} section="social" /> : null}
+      {section === 'videos' ? <PagedMedia key={`${teamSlug}:${data.videos[0]?.id ?? "empty"}`} initial={data} teamSlug={teamSlug!} section="videos" /> : null}
     </MinionScreen>
   );
+}
+
+function PagedMedia({ initial, teamSlug, section }: { initial: MobileTeamDetailDto; teamSlug: string; section: 'social' | 'videos' }) {
+  const { page, paging } = useFanMedia(initial, teamSlug, section);
+  return section === 'social'
+    ? <FanSocial items={page.social} teamName={page.team.shortName} paging={paging} />
+    : <FanVideos items={page.videos} teamName={page.team.shortName} paging={paging} />;
 }
 
 function FanHome({ data }: { data: MobileTeamDetailDto }) {
@@ -214,7 +222,7 @@ function FanChannelHeader({ data }: { data: MobileTeamDetailDto }) {
         setFavoriteTeam(null);
         if (!session) await recordLocalFavoriteTeamChange();
       }
-      showToast(result.following ? '팬 등록을 완료했습니다.' : '팬 등록을 해제했습니다.', 'success');
+      showToast(result.following ? '팬 등록 완료' : '팬 등록 해제', 'success');
       if (result.following) setNotificationSheetOpen(true);
       refreshFanState();
     } catch (caught) {
@@ -237,7 +245,10 @@ function FanChannelHeader({ data }: { data: MobileTeamDetailDto }) {
       }
       await refreshViewer();
       refreshFanState();
-      showToast(result.favorite ? `${data.team.shortName}, 내 최애팀 · 7일 후 변경 가능` : '최애팀 해제 · 7일 후 다시 선택 가능', 'success');
+      showToast({
+        title: result.favorite ? `${data.team.name}, 내 최애팀` : '최애팀 설정 해제',
+        description: result.favorite ? '자동으로 팔로우했습니다. 7일 후 다시 변경할 수 있습니다.' : '7일 후 다른 최애팀을 선택할 수 있습니다.',
+      }, 'success');
     } catch (caught) { showToast(caught instanceof Error ? caught.message : '최애팀을 설정하지 못했습니다.', 'error'); }
     finally { setPending(null); }
   }
@@ -311,7 +322,7 @@ function FanChannelHeader({ data }: { data: MobileTeamDetailDto }) {
       setNotificationOverride(result.enabled);
       refreshNotificationState();
       await refreshViewer();
-      showToast(result.enabled ? '팀 경기 알림을 켰습니다.' : '팀 알림을 껐습니다.', 'success');
+      showToast(result.enabled ? '새 소식이 오면 알려드릴게요.' : '새 소식 알림을 보내지 않을게요.', 'success');
       if (result.enabled) void offerDevicePushAfterEnabling();
     } catch (caught) {
       setNotificationOverride(null);
@@ -328,7 +339,7 @@ function FanChannelHeader({ data }: { data: MobileTeamDetailDto }) {
       setNotificationSheetOpen(false);
       refreshNotificationState();
       await refreshViewer();
-      showToast(result.enabled ? '선택한 팀 알림을 켰습니다.' : '알림 없이 팀을 팔로우합니다.', 'success');
+      showToast(result.enabled ? '알림 설정 완료' : '알림 없이 팔로우', 'success');
       if (result.enabled) void offerDevicePushAfterEnabling();
     } catch (caught) {
       showToast(caught instanceof Error ? caught.message : '알림 설정을 저장하지 못했습니다.', 'error');
@@ -353,7 +364,7 @@ function FanChannelHeader({ data }: { data: MobileTeamDetailDto }) {
             </HeaderControl>
             <HeaderControl accessibilityLabel={favorite ? `${data.team.shortName} 최애팀 해제` : `${data.team.shortName} 최애팀 설정`} background={controlBackground} border={controlBorder} disabled={!staticTeam || Boolean(pending)} onPress={() => void toggleFavorite()}><Star color={favorite ? teamAccent : controlForeground} fill={favorite ? teamAccent : 'none'} size={17} strokeWidth={2.3} /></HeaderControl>
             <HeaderControl accessibilityLabel={notificationEnabled ? '팬 채널 알림 끄기' : '팬 채널 알림 켜기'} background={controlBackground} border={controlBorder} disabled={Boolean(pending)} onPress={() => void toggleNotification()}><Bell color={notificationEnabled ? data.team.primaryColor : controlForeground} fill={notificationEnabled ? data.team.primaryColor : 'none'} size={16} /></HeaderControl>
-            <FanCalendarDialog background={controlBackground} border={controlBorder} events={data.calendarEvents} iconColor={controlForeground} matches={data.matches} teamShort={data.team.shortName} />
+            <FanCalendarDialog teamSlug={data.team.fanSiteHost} background={controlBackground} border={controlBorder} events={data.calendarEvents} iconColor={controlForeground} matches={data.matches} teamShort={data.team.shortName} />
           </View>
         </View>
       </View>

@@ -32,7 +32,7 @@ export function CommunityAuthor({ author, customTrigger, detailMeta, evidence, h
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
   const { session, viewer } = useAuth();
-  const { fonts, theme } = useMinionTheme();
+  const { fonts, showToast, theme } = useMinionTheme();
   const triggerRef = useRef<View>(null);
   const menuRootRef = useRef<View>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -106,9 +106,9 @@ export function CommunityAuthor({ author, customTrigger, detailMeta, evidence, h
           }).then(async (result) => {
             // 차단한 작성자의 글·댓글이 목록과 홈에서 바로 사라지도록 캐시를 비우고 다시 불러온다.
             await Promise.all([invalidateApiCache('/api/mobile/v1/community'), invalidateApiCache('/api/mobile/v1/home')]);
-            Alert.alert('사용자 차단 완료', result.message);
+            showToast(result.message, 'success');
             onBlocked?.();
-          }).catch((caught) => Alert.alert('차단 실패', caught instanceof Error ? caught.message : '사용자를 차단하지 못했습니다.')).finally(() => setPending(false));
+          }).catch((caught) => showToast(caught instanceof Error ? caught.message : '사용자를 차단하지 못했습니다.', 'error')).finally(() => setPending(false));
         },
       },
     ]);
@@ -128,9 +128,9 @@ export function CommunityAuthor({ author, customTrigger, detailMeta, evidence, h
         ? await mutateMobileApi<MobileCommunityActionDto>('/api/mobile/v1/community/reports', 'POST', { ...evidence!, reason: value })
         : await mutateMobileApi<MobileCommunityActionDto>('/api/mobile/v1/community/authors/actions', 'POST', { action: 'report', ...evidence, reason: value, targetUserId: author.id });
       setReportOpen(false);
-      Alert.alert('사용자 신고 접수', result.message);
+      showToast(result.message, 'success');
     } catch (caught) {
-      Alert.alert('신고 실패', caught instanceof Error ? caught.message : '신고를 접수하지 못했습니다.');
+      showToast(caught instanceof Error ? caught.message : '신고를 접수하지 못했습니다.', 'error');
     } finally {
       setPending(false);
     }

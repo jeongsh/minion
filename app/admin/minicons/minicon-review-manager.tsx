@@ -113,8 +113,7 @@ function MiniconPackCard({ pack }: { pack: AdminMiniconPack }) {
       }
 
       showToast({
-        title: nextStatus === "published" ? "미니콘 승인 완료" : "미니콘 반려 완료",
-        description: result.message,
+        title: result.message,
         tone: nextStatus === "published" ? "success" : "info",
       });
       router.refresh();

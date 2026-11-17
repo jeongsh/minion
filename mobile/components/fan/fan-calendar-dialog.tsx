@@ -8,6 +8,7 @@ import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { BottomSheet } from '@/components/bottom-sheet';
+import { useTeamCalendar } from '@/components/fan/use-team-calendar';
 import { TeamLogo } from '@/components/data/team-logo';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import { resolveApiAssetUrl, type MobileTeamDetailDto } from '@/lib/api-client';
@@ -34,6 +35,7 @@ function matchTime(value: string) {
 }
 
 type Props = {
+  teamSlug: string;
   background: string;
   border: string;
   events: MobileTeamDetailDto['calendarEvents'];
@@ -42,7 +44,10 @@ type Props = {
   teamShort: string;
 };
 
-export function FanCalendarDialog({ background, border, events = [], iconColor, matches, teamShort }: Props) {
+export function FanCalendarDialog({ background, border, events: initialEvents = [], iconColor, matches: initialMatches, teamShort, teamSlug }: Props) {
+  const calendar = useTeamCalendar(teamSlug, { matches: initialMatches, events: initialEvents });
+  const matches = calendar.data.matches;
+  const events = calendar.data.events;
   const today = new Date();
   const { colorScheme, fonts, theme } = useMinionTheme();
   const [open, setOpen] = useState(false);
@@ -61,15 +66,16 @@ export function FanCalendarDialog({ background, border, events = [], iconColor, 
   const selectedMatches = selectedKey ? matchesByDate.get(selectedKey) ?? [] : [];
   const selectedEvents = selectedKey ? events.filter((event) => event.isRecurring ? event.monthDay === selectedKey.slice(5) : event.date === selectedKey) : [];
 
-  const moveMonth = (delta: number) => {
-    const next = new Date(year, month + delta, 1, 12);
-    setYear(next.getFullYear());
-    setMonth(next.getMonth());
-    setSelectedKey(null);
-  };
+  async function loadMonth(next: Date) {
+    if (await calendar.load(`${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2,'0')}`)) {
+      setYear(next.getFullYear()); setMonth(next.getMonth()); setSelectedKey(null);
+    }
+  }
+  const moveMonth = (delta: number) => void loadMonth(new Date(year, month + delta, 1, 12));
+
 
   return <>
-    <Pressable accessibilityLabel="캘린더" onPress={() => setOpen(true)} style={({ pressed }) => [styles.trigger, { backgroundColor: background, borderColor: border, opacity: pressed ? 0.8 : 1 }]}>
+    <Pressable accessibilityLabel="캘린더" onPress={() => { setOpen(true); void loadMonth(new Date(year, month, 1, 12)); }} style={({ pressed }) => [styles.trigger, { backgroundColor: background, borderColor: border, opacity: pressed ? 0.8 : 1 }]}>
       <CalendarDays color={iconColor} size={16} />
     </Pressable>
     <BottomSheet contentStyle={styles.body} maxHeight="92%" onClose={() => setOpen(false)} open={open} title={`${teamShort} 캘린더`}>

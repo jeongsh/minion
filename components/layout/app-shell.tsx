@@ -1,5 +1,7 @@
 "use client";
 
+import { MessageIndicator } from "@/components/messages/message-indicator";
+
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -32,6 +34,7 @@ import { TournamentEntryFallback } from "@/components/navigation/tournament-cont
 import { useMatchActivity } from "@/components/match-activity/use-match-activity";
 import { RatingOpenCard } from "@/components/match-activity/rating-open-card";
 import { NotificationPanel } from "@/components/notifications/notification-panel";
+import { NotificationContext } from "@/components/notifications/notification-context";
 import { RankAvatar } from "@/components/rank/rank-avatar";
 import { TeamLogo } from "@/components/ui/team-logo";
 import { teams as fallbackTeams } from "@/lib/team-themes";
@@ -226,6 +229,7 @@ export function AppShell({
     markAllNotificationsRead,
     removeNotification,
     clearNotifications,
+    mutateCommunityActivity,
   } = useMatchActivity(Boolean(currentUser), notificationPreferences, currentUser?.id ?? "guest");
   const closeLiveActivity = () => {
     if (!liveCard) return;
@@ -391,6 +395,7 @@ export function AppShell({
           <Bell size={20} />
           {unreadNotificationCount > 0 ? <span className="absolute right-0.5 top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-[var(--accent)] px-0.5 text-[12px] font-medium leading-none text-white" aria-hidden>{unreadNotificationCount > 9 ? "9+" : unreadNotificationCount}</span> : null}
         </button>
+        {currentUser ? <MessageIndicator /> : null}
         {process.env.NODE_ENV !== "production" && currentUser ? (
           <Link
             href="/?onboarding=debug&next=%2Fme"
@@ -509,7 +514,7 @@ export function AppShell({
               <TournamentEntryFallback />
               <div className="tournament-entry-content">{children}</div>
             </div>
-          ) : children}
+          ) : <NotificationContext value={{ notifications, onRead: markNotificationRead, onRemove: removeNotification, onReadAll: () => mutateCommunityActivity("PATCH"), onClear: () => mutateCommunityActivity("DELETE") }}>{children}</NotificationContext>}
         </div>
         {focusRoute ? (
           <div className="hidden md:block"><SiteFooter accentColor={currentFanTeam?.primaryColor} /></div>

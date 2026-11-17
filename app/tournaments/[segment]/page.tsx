@@ -12,7 +12,7 @@ import { AdSlot } from "@/components/ui/ad-slot";
 import { EventFilterHeader } from "@/components/ui/event-filter-bar";
 import { DataTable, rankColumn } from "@/components/ui/data-table";
 import { TeamLogo } from "@/components/ui/team-logo";
-import { getAllPlayers, getAllTeams, getBracketStages, getMatches, getStages, getTournaments } from "@/lib/data/lck";
+import { getPlayersByIds, getAllTeams, getBracketStages, getMatchesForScope, getMatchNavIndex, getStages, getTournaments } from "@/lib/data/lck";
 import {
   buildStageColumns,
   formatBracketColumnLabel,
@@ -748,14 +748,7 @@ export default async function TournamentBracketPage({
   const search = await searchParams;
   // POM 순위표 조회에만 쓴다. 은퇴/이적/벤치(is_active=false, is_lck_player=false)한
   // POM 수상자도 집계에 포함돼야 하므로 현역 로스터(getPlayers)가 아닌 전체 선수를 쓴다.
-  const [tournaments, stages, matches, teams, bracketStages, players] = await Promise.all([
-    getTournaments(),
-    getStages(),
-    getMatches(),
-    getAllTeams(),
-    getBracketStages(),
-    getAllPlayers(),
-  ]);
+  const [tournaments, teams] = await Promise.all([getTournaments(), getAllTeams()]);
 
   const segmentTournaments = tournaments.filter((tournament) =>
     matchesTournamentSegment(tournament, segmentTheme.key),
@@ -781,9 +774,10 @@ export default async function TournamentBracketPage({
     (tournament) => tournament.season === activeSeason,
   );
 
+  const navMatches = await getMatchNavIndex(tournaments.filter(tournament => tournament.season === activeSeason).map(tournament => tournament.id));
   // 같은 대회가 두 소스(gol.gg/Leaguepedia)에서 중복 수집된 경우, 실제 경기가 채워진 쪽만 쓴다.
   const matchCountByTournament = new Map<string, number>();
-  for (const match of matches) {
+  for (const match of navMatches) {
     matchCountByTournament.set(match.tournamentId, (matchCountByTournament.get(match.tournamentId) ?? 0) + 1);
   }
   const bestBySplit = new Map<string, Tournament>();
@@ -797,8 +791,10 @@ export default async function TournamentBracketPage({
   const activeTournaments = [...bestBySplit.values()];
   const tournamentIds = new Set(activeTournaments.map((tournament) => tournament.id));
 
-  const segmentStages = stages.filter((stage) => tournamentIds.has(stage.tournamentId));
-  const segmentMatches = matches.filter((match) => tournamentIds.has(match.tournamentId));
+  const [segmentStages, segmentMatches, bracketStages] = await Promise.all([
+    getStages([...tournamentIds]), getMatchesForScope({ tournamentIds: [...tournamentIds] }), getBracketStages([...tournamentIds]),
+  ]);
+  const players = await getPlayersByIds([...new Set(segmentMatches.flatMap(match => match.officialPomPlayerId ? [match.officialPomPlayerId] : []))]);
   const teamMap = new Map(teams.map((team) => [team.id, team]));
 
   const isLck = segmentTheme.key === "lck";
@@ -806,7 +802,7 @@ export default async function TournamentBracketPage({
   // 대회 목록 페이지 대신 상단 스위처로 전환하므로, 같은 시즌의 모든 대회를 함께 계산한다.
   const segmentNav = buildSegmentNav(
     tournaments.filter((tournament) => tournament.season === activeSeason),
-    matches,
+    navMatches,
   );
 
   const filters: TournamentFilter[] = [

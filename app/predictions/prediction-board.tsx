@@ -15,7 +15,7 @@ import { AdSlot } from "@/components/ui/ad-slot";
 import { KitschEmptyState } from "@/components/ui/kitsch-empty-state";
 import { TeamLogo } from "@/components/ui/team-logo";
 import { useToast } from "@/components/ui/toast";
-import { predictionMarketForMatch, predictionMaxStake, type PredictionBet, type PredictionRanking } from "@/lib/predictions";
+import { predictionMarketForMatch, predictionMaxStake, type PredictionBet, type PredictionRanking, type PredictionMarketAggregate } from "@/lib/predictions";
 import type { Match, Team, Tournament } from "@/lib/types";
 import { isBlackPredictionColor, predictionSelectionOpacity } from "@/lib/prediction-colors";
 import { dateKeyKST, matchHref } from "@/lib/view-data";
@@ -28,6 +28,7 @@ type PredictionBoardProps = {
   teams: Team[];
   tournaments: Tournament[];
   bets: PredictionBet[];
+  markets?: PredictionMarketAggregate[];
   currentUserId?: string;
   balance: number | null;
   now: number;
@@ -63,7 +64,7 @@ function teamColor(team: Team | undefined) {
   return color && /^#[\da-f]{6}$/i.test(color) ? color : "#3b3f46";
 }
 
-export function PredictionBoard({ matches, teams, tournaments, bets: initialBets, currentUserId, balance: initialBalance, now, leaderboard }: PredictionBoardProps) {
+export function PredictionBoard({ matches, teams, tournaments, bets: initialBets, markets, currentUserId, balance: initialBalance, now, leaderboard }: PredictionBoardProps) {
   const marketState = usePredictionMarket(initialBets, initialBalance, currentUserId);
   const { bets, balance } = marketState;
   const router = useRouter();
@@ -141,7 +142,7 @@ export function PredictionBoard({ matches, teams, tournaments, bets: initialBets
       } catch (cause) {
         const message = cause instanceof Error ? cause.message : "예측을 등록하지 못했습니다.";
         setError(message);
-        showToast({ title: "예측 실패", description: message, tone: "error" });
+        showToast({ title: message, tone: "error" });
       }
     });
   }
@@ -167,7 +168,7 @@ export function PredictionBoard({ matches, teams, tournaments, bets: initialBets
       } catch (cause) {
         const message = cause instanceof Error ? cause.message : "예측을 취소하지 못했습니다.";
         setError(message);
-        showToast({ title: "취소 실패", description: message, tone: "error" });
+        showToast({ title: message, tone: "error" });
       }
     });
   }
@@ -215,7 +216,7 @@ export function PredictionBoard({ matches, teams, tournaments, bets: initialBets
                     const matchBets = bets.filter((item) => item.matchId === match.id && (completed || item.status !== "refunded"));
                     const myBet = currentUserId ? matchBets.find((item) => item.userId === currentUserId) : undefined;
                     const myVote = myBet?.teamId;
-                    const market = predictionMarketForMatch(matchBets, match.id, match.teamAId, match.teamBId, completed);
+                    const market = predictionMarketForMatch(matchBets, match.id, match.teamAId, match.teamBId, completed, markets, initialBets);
                     const closed = new Date(match.matchDate).getTime() <= now || match.status !== "scheduled";
                     const cardStyle = {
                       "--prediction-team-left-color": teamColor(teamA),

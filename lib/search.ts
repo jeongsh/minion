@@ -1,5 +1,6 @@
+import { createSupabaseServerClient, canQuerySupabase } from "@/lib/supabase/server";
 import { championImage } from "@/lib/champions";
-import { getAllTeams, getChampions, getMatches, getPlayers, getTeamsSortedByRank, getTournaments } from "@/lib/data/lck";
+import { getAllTeams, getChampions, getMatchesForScope, getPlayers, getTeamsSortedByRank, getTournaments } from "@/lib/data/lck";
 import {
   DOMESTIC_SEGMENTS,
   INTERNATIONAL_SEGMENTS,
@@ -24,17 +25,6 @@ function normalize(value: string) {
   return value.toLowerCase().replace(/\s+/g, "");
 }
 
-function matchesFields(fields: Array<string | null | undefined>, rawQuery: string) {
-  const normalizedFields = fields.map((field) => normalize(field ?? "")).filter(Boolean);
-  const normalizedQuery = normalize(rawQuery);
-  if (normalizedFields.some((field) => field.includes(normalizedQuery))) return true;
-
-  const tokens = rawQuery.split(/\s+/).map(normalize).filter(Boolean);
-  return tokens.length > 1 && tokens.every((token) =>
-    normalizedFields.some((field) => field.includes(token)),
-  );
-}
-
 function normalizeChampionSearch(value: string) {
   return normalize(value).replace(/[.'’_-]/g, "");
 }
@@ -48,14 +38,17 @@ export async function getSearchResults(rawQuery: string): Promise<SearchResult[]
 
   const query = normalize(raw);
 
-  const [teams, allTeams, players, champions, tournaments, matches] = await Promise.all([
+  const [teams, allTeams, players, champions, tournaments, matchedIds] = await Promise.all([
     getTeamsSortedByRank(),
     getAllTeams(),
     getPlayers(),
     getChampions(),
     getTournaments(),
-    getMatches(),
+    canQuerySupabase() ? createSupabaseServerClient().rpc("search_match_ids", { p_query: query, p_tokens: raw.split(/\s+/).map(normalize).filter(Boolean) }).then(({ data, error }) => { if (error) throw error; return (data ?? []) as { id: string }[]; }) : [],
   ]);
+
+  const matchIds = matchedIds.map(row => row.id);
+  const matches = await getMatchesForScope({ ids: matchIds });
 
   const teamById = new Map(teams.map((team) => [team.id, team]));
   const allTeamById = new Map(allTeams.map((team) => [team.id, team]));
@@ -135,37 +128,8 @@ export async function getSearchResults(rawQuery: string): Promise<SearchResult[]
     }
   }
 
-  const matchStatusOrder = { live: 0, scheduled: 1, completed: 2 } as const;
   const matchResults: SearchResult[] = matches
-    .filter((match) => {
-      const teamA = allTeamById.get(match.teamAId);
-      const teamB = allTeamById.get(match.teamBId);
-      const tournament = tournamentById.get(match.tournamentId);
-      return matchesFields([
-        match.name,
-        match.matchDate,
-        formatDateTime(match.matchDate),
-        teamA?.name,
-        teamA?.shortName,
-        teamA?.slug,
-        ...(teamA?.searchAliases ?? []),
-        teamB?.name,
-        teamB?.shortName,
-        teamB?.slug,
-        ...(teamB?.searchAliases ?? []),
-        tournament?.name,
-        tournament?.category,
-        tournament?.split,
-        tournament?.league,
-      ], raw);
-    })
-    .sort((a, b) => {
-      const statusDifference = matchStatusOrder[a.status] - matchStatusOrder[b.status];
-      if (statusDifference !== 0) return statusDifference;
-      const dateDifference = new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime();
-      return a.status === "completed" ? -dateDifference : dateDifference;
-    })
-    .slice(0, 6)
+    .sort((a, b) => matchIds.indexOf(a.id) - matchIds.indexOf(b.id))
     .map((match) => {
       const teamA = allTeamById.get(match.teamAId);
       const teamB = allTeamById.get(match.teamBId);

@@ -1,3 +1,4 @@
+import type { FanMediaPaging } from '@/components/fan/use-fan-media';
 import { Image } from 'expo-image';
 import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -9,19 +10,20 @@ import { resolveApiAssetUrl, type MobileTeamDetailDto } from '@/lib/api-client';
 
 type SocialItem = MobileTeamDetailDto['social'][number];
 
-export function FanSocial({ items, teamName }: { items: SocialItem[]; teamName: string }) {
+export function FanSocial({ items, teamName, paging }: { items: SocialItem[]; teamName: string; paging?: FanMediaPaging }) {
   const { fonts, theme } = useMinionTheme();
-  const [activeKey, setActiveKey] = useState('all');
+  const [localActiveKey, setActiveKey] = useState('all');
+  const activeKey = paging?.owner ?? localActiveKey;
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [visibleCount, setVisibleCount] = useState(15);
   const tabs = useMemo(() => buildFanOwnerTabs(items, teamName), [items, teamName]);
-  const filtered = activeKey === 'all' ? items : items.filter((item) => item.ownerName === activeKey);
-  const visible = filtered.slice(0, visibleCount);
+  const filtered = paging || activeKey === 'all' ? items : items.filter((item) => item.ownerName === activeKey);
+  const visible = paging ? filtered : filtered.slice(0, visibleCount);
   const rows = Array.from({ length: Math.ceil(visible.length / 3) }, (_, rowIndex) => visible.slice(rowIndex * 3, rowIndex * 3 + 3));
 
   return (
     <View style={styles.page}>
-      <View style={styles.tabsWrap}><FanOwnerTabs activeKey={activeKey} onChange={(key) => { setActiveKey(key); setVisibleCount(15); }} tabs={tabs} /></View>
+      <View style={styles.tabsWrap}><FanOwnerTabs activeKey={activeKey} onChange={(key) => { if (paging) paging.onOwner(key); else setActiveKey(key); setVisibleCount(15); }} tabs={paging?.tabs ?? tabs} /></View>
       {filtered.length ? (
         <>
         <View accessibilityLabel="소셜 피드" style={[styles.grid, { backgroundColor: '#000000' }]}>
@@ -41,7 +43,7 @@ export function FanSocial({ items, teamName }: { items: SocialItem[]; teamName: 
             </View>
           ))}
         </View>
-        {visibleCount < filtered.length ? <Pressable onPress={() => setVisibleCount((count) => Math.min(filtered.length, count + 15))} style={[styles.moreButton, { borderColor: theme.border }]}><Text style={{ color: theme.text, ...fonts.bold, fontSize: 13 }}>게시물 더 보기</Text></Pressable> : filtered.length > 15 ? <Text style={[styles.complete, { color: theme.muted, ...fonts.medium }]}>모든 게시물을 확인했습니다.</Text> : null}
+        {(paging ? paging.hasMore : visibleCount < filtered.length) ? <Pressable disabled={paging?.loading} onPress={() => paging ? paging.onMore() : setVisibleCount((count) => Math.min(filtered.length, count + 15))} style={[styles.moreButton, { borderColor: theme.border }]}><Text style={{ color: theme.text, ...fonts.medium, fontSize: 13 }}>게시물 더 보기</Text></Pressable> : filtered.length > 15 ? <Text style={[styles.complete, { color: theme.muted, ...fonts.medium }]}>모든 게시물을 확인했습니다.</Text> : null}
         </>
       ) : <FanEmpty>아직 새 게시물이 없습니다.</FanEmpty>}
       {openIndex !== null ? <FanInstagramModal items={filtered} onClose={() => setOpenIndex(null)} startIndex={openIndex} /> : null}

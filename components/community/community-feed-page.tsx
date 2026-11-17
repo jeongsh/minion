@@ -1,3 +1,4 @@
+import { calendarMonthRange } from "@/lib/calendar/range";
 import { CommunityFeed } from "@/components/community/community-feed";
 import { CommunityContentLayout } from "@/components/community/community-content-layout";
 import { CommunityDirectoryNav } from "@/components/community/community-directory-nav";
@@ -35,7 +36,7 @@ export async function CommunityFeedPage({
   const [postPage, todayCelebrations, viewer, teams, favoriteTeamId, followedTeamIds] = await Promise.all([
     getBoardPostPage({ scope, teamId, page, boardType: category, search, hotOnly }),
     scope === "team" && teamId
-      ? getCalendarEvents({ teamId }).then(getTodayCelebrations)
+      ? getCalendarEvents({ teamId, dateRange: calendarMonthRange().eventRange }).then(getTodayCelebrations)
       : Promise.resolve([]),
     getCurrentUser(),
     getTeamsSortedByRank(),
@@ -54,7 +55,7 @@ export async function CommunityFeedPage({
       <main className="community-neutral fan-page-container flex flex-col gap-5 pb-7 pt-0 md:py-9" style={{ ["--tp" as string]: "var(--team-primary, #6158ff)" }}>
         <h1 className="sr-only">{title ?? "커뮤니티"}</h1>
         <CelebrationBanner events={todayCelebrations} action="write" />
-        <CommunityContentLayout adsEnabled={!search && [...postPage.posts, ...postPage.notices].some((post) => !post.blindedAt)} posts={postPage.popularPosts} scope={scope} teamSlug={teamSlug}>
+        <CommunityContentLayout adsEnabled={!search && [...postPage.posts, ...postPage.notices].some((post) => !post.blindedAt)}>
           <div className="flex min-w-0 flex-col">
             <CommunityDirectoryNav favoriteTeamId={favoriteTeamId} followedTeamIds={followedTeamIds} scope={scope} teamSlug={teamSlug} teams={communityTeams} />
             <CommunityFeed key={`${category ?? "all"}:${search ?? ""}:${hotOnly}:${postPage.page}`} postPage={postPage} scope={scope} teamSlug={teamSlug} newPath={newPath} viewerId={viewer?.id} activeCategory={category} searchQuery={search} hotOnly={hotOnly} />
@@ -68,7 +69,7 @@ export async function CommunityFeedPage({
     <main className="subpage community-neutral min-h-screen">
       <div className="layout-wide flex flex-col gap-5 pb-6 sm:py-8">
         <h1 className="sr-only">{title ?? "커뮤니티"}</h1>
-        <CommunityContentLayout adsEnabled={!search && [...postPage.posts, ...postPage.notices].some((post) => !post.blindedAt)} posts={postPage.popularPosts} scope={scope} teamSlug={teamSlug}>
+        <CommunityContentLayout adsEnabled={!search && [...postPage.posts, ...postPage.notices].some((post) => !post.blindedAt)}>
           <div className="flex min-w-0 flex-col">
             <CommunityDirectoryNav favoriteTeamId={favoriteTeamId} followedTeamIds={followedTeamIds} scope={scope} teamSlug={teamSlug} teams={communityTeams} />
             <CommunityFeed key={`${category ?? "all"}:${search ?? ""}:${hotOnly}:${postPage.page}`} postPage={postPage} scope={scope} teamSlug={teamSlug} newPath={newPath} viewerId={viewer?.id} activeCategory={category} searchQuery={search} hotOnly={hotOnly} />

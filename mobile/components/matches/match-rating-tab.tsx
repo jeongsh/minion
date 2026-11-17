@@ -4,14 +4,14 @@ import ChevronDown from 'lucide-react-native/icons/chevron-down';
 import Star from 'lucide-react-native/icons/star';
 import ThumbsDown from 'lucide-react-native/icons/thumbs-down';
 import ThumbsUp from 'lucide-react-native/icons/thumbs-up';
-import { useMemo, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { BottomSheet } from '@/components/bottom-sheet';
 import { TeamLogo } from '@/components/data/team-logo';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import { minionSize } from '@/constants/minion-theme';
-import { invalidateApiCache, mutateMobileApi, resolveApiAssetUrl, type MobileFanRatingComment, type MobileFanRatingMutationDto, type MobileFanRatingPanel, type MobileFanRatingPlayer } from '@/lib/api-client';
+import { fetchMobileQuery, invalidateApiCache, mutateMobileApi, resolveApiAssetUrl, type MobileFanRatingComment, type MobileFanRatingMutationDto, type MobileFanRatingPanel, type MobileFanRatingPlayer } from '@/lib/api-client';
 import { formatFanRating } from '@/lib/fan-rating-display';
 import { useAuth } from '@/providers/auth-provider';
 
@@ -112,10 +112,36 @@ export function MatchRatingTab({ matchId, panel, setId }: { matchId: string; pan
   const [mutationError, setMutationError] = useState<string | null>(null);
   const [localRatings, setLocalRatings] = useState<Record<string, number>>({});
   const [localReviews, setLocalReviews] = useState<Record<string, string>>({});
-  const comments = useMemo(() => playerId ? panel?.comments.filter((item) => item.playerId === playerId) ?? [] : panel?.comments ?? [], [panel, playerId]);
+  const [commentPage, setCommentPage] = useState({ comments: panel?.comments ?? [], nextCursor: panel?.commentsNextCursor ?? null });
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const commentRequest = useRef(0);
+  const commentBusy = useRef(false);
+  useEffect(() => () => { commentRequest.current++; }, []);
+  const comments = commentPage.comments;
+  async function loadComments(selected: string | null, append: boolean) {
+    if (append && (commentBusy.current || !commentPage.nextCursor)) return;
+    const version = ++commentRequest.current;
+    commentBusy.current = true;
+    setCommentsLoading(true);
+    try {
+      const query = new URLSearchParams({ set: setId });
+      if (selected) query.set('player', selected);
+      if (append && commentPage.nextCursor) query.set('cursor', JSON.stringify(commentPage.nextCursor));
+      const path = `/api/mobile/v1/matches/${encodeURIComponent(matchId)}/reviews?${query}`;
+      const next = await fetchMobileQuery<typeof commentPage>(path, path, true, false);
+      if (version !== commentRequest.current) return;
+      setCommentPage(current => ({ ...next, comments: append ? [...new Map([...current.comments, ...next.comments].map(item => [item.id, item])).values()] : next.comments }));
+      setPlayerId(selected);
+    } catch (error) {
+      if (version === commentRequest.current) showToast(error instanceof Error ? error.message : '코멘트를 불러오지 못했습니다.', 'error');
+    } finally {
+      if (version === commentRequest.current) { commentBusy.current = false; setCommentsLoading(false); }
+    }
+  }
   if (!panel) return <View style={[styles.empty, { borderColor: theme.border }]}><Text style={{ color: theme.muted, ...fonts.regular, fontSize: 14, lineHeight: 22 }}>투표할 세트가 없습니다.</Text></View>;
   const teams = [...new Set(panel.players.map((player) => player.team?.id).filter(Boolean))];
-  const filterPlayers = [...new Map(panel.comments.map((item) => [item.playerId, { id: item.playerId, name: item.playerName }])).values()];
+  const filterPlayers = panel.commentPlayers ?? [];
+  const commentCount = filterPlayers.reduce((sum, player) => sum + player.count, 0);
   const ratingDisabled = authLoading || !session || !panel.ratingOpen || pending;
 
   function openComposer(player: MobileFanRatingPlayer) {
@@ -162,10 +188,11 @@ export function MatchRatingTab({ matchId, panel, setId }: { matchId: string; pan
       {teams.map((teamId) => <TeamRatingGroup disabled={ratingDisabled} key={teamId} localRatings={localRatings} onSelect={openComposer} players={panel.players.filter((player) => player.team?.id === teamId)} selectedPlayerId={selectedPlayer?.id ?? null} />)}
       <Text style={{ color: theme.muted, ...fonts.regular, fontSize: 14, lineHeight: 22 }}>{panel.statusNote}</Text>
       <View style={styles.commentsSection}>
-        <View style={styles.commentsHead}><Text style={{ color: theme.ink, ...fonts.black, fontSize: 18 }}>평가 코멘트</Text>{panel.comments.length > 0 ? <Pressable onPress={() => setFilterOpen(true)} style={[styles.filter, { backgroundColor: theme.card }]}><Text numberOfLines={1} style={{ color: theme.ink, ...fonts.medium, fontSize: 14 }}>{playerId ? `${filterPlayers.find((item) => item.id === playerId)?.name} (${comments.length})` : `전체 선수 (${panel.comments.length})`}</Text><ChevronDown color={theme.muted} size={16} /></Pressable> : null}</View>
+        <View style={styles.commentsHead}><Text style={{ color: theme.ink, ...fonts.black, fontSize: 18 }}>평가 코멘트</Text>{commentCount > 0 ? <Pressable onPress={() => setFilterOpen(true)} style={[styles.filter, { backgroundColor: theme.card }]}><Text numberOfLines={1} style={{ color: theme.ink, ...fonts.medium, fontSize: 14 }}>{playerId ? `${filterPlayers.find((item) => item.id === playerId)?.name} (${filterPlayers.find(item => item.id === playerId)?.count ?? 0})` : `전체 선수 (${commentCount})`}</Text><ChevronDown color={theme.muted} size={16} /></Pressable> : null}</View>
         {comments.length === 0 ? <Text style={{ color: theme.muted, ...fonts.regular, fontSize: 14, lineHeight: 22, marginTop: 8 }}>아직 작성된 평가 코멘트가 없습니다.</Text> : <View style={styles.commentList}>{comments.map((item) => <RatingComment item={item} key={item.id} />)}</View>}
+        {commentPage.nextCursor ? <Pressable disabled={commentsLoading} onPress={() => void loadComments(playerId, true)} style={{ alignItems: 'center', padding: 12 }}><Text style={{ color: theme.muted, ...fonts.medium, fontSize: 13 }}>{commentsLoading ? '불러오는 중' : '더 보기'}</Text></Pressable> : null}
       </View>
-      <BottomSheet onClose={() => setFilterOpen(false)} open={filterOpen} title="선수별 코멘트 필터" titleStyle={styles.sheetTitle}><View style={styles.filterList}><Pressable onPress={() => { setPlayerId(null); setFilterOpen(false); }} style={styles.filterItem}><Text style={{ color: theme.ink, ...fonts.medium, fontSize: 14 }}>전체 선수 ({panel.comments.length})</Text></Pressable>{filterPlayers.map((player) => <Pressable key={player.id} onPress={() => { setPlayerId(player.id); setFilterOpen(false); }} style={styles.filterItem}><Text style={{ color: theme.ink, ...fonts.medium, fontSize: 14 }}>{player.name} ({panel.comments.filter((item) => item.playerId === player.id).length})</Text></Pressable>)}</View></BottomSheet>
+      <BottomSheet onClose={() => setFilterOpen(false)} open={filterOpen} title="선수별 코멘트 필터" titleStyle={styles.sheetTitle}><View style={styles.filterList}><Pressable onPress={() => { void loadComments(null, false); setFilterOpen(false); }} style={styles.filterItem}><Text style={{ color: theme.ink, ...fonts.medium, fontSize: 14 }}>전체 선수 ({panel.comments.length})</Text></Pressable>{filterPlayers.map((player) => <Pressable key={player.id} onPress={() => { void loadComments(player.id, false); setFilterOpen(false); }} style={styles.filterItem}><Text style={{ color: theme.ink, ...fonts.medium, fontSize: 14 }}>{player.name} ({player.count})</Text></Pressable>)}</View></BottomSheet>
       <BottomSheet contentStyle={styles.composerBody} onClose={closeComposer} open={composerOpen && Boolean(selectedPlayer)} scrollable title={selectedPlayer ? `${selectedPlayer.name} 평가` : '선수 평가'} titleStyle={styles.sheetTitle}>
         {selectedPlayer ? <>
           <View style={styles.composerPlayer}>
@@ -195,7 +222,7 @@ const styles = StyleSheet.create({
   commentsSection: { marginTop: 12 },
   composerActions: { alignItems: 'center', flexDirection: 'row', justifyContent: 'flex-end', gap: 12 },
   composerAvatar: { borderRadius: 24, height: 48, overflow: 'hidden', width: 48 },
-  composerBody: { gap: 16, paddingTop: 4 },
+  composerBody: { gap: 16, paddingBottom: 6, paddingTop: 4 },
   composerIdentity: { flex: 1, gap: 5 },
   composerPlayer: { alignItems: 'center', flexDirection: 'row', gap: 12 },
   empty: { borderRadius: 16, borderStyle: 'dashed', borderWidth: 1, padding: 16 },

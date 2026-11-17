@@ -7,17 +7,20 @@ import { AdSlot } from "@/components/ui/ad-slot";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { StatRadar } from "@/components/charts/stat-radar";
 
-import { uniqueDdragonVersionsForPatches } from "@/lib/ddragon";
+import { getPlayerHistoryPage } from "@/lib/data/player-history";
 import { formatFanRating } from "@/lib/fan-rating-display";
-import { fetchRuneCatalog } from "@/lib/runes";
-import { fetchSpellCatalog } from "@/lib/spells";
 import {
   getPlayerBySlug,
-  getPlayerStatLines,
+  getPlayerMetricStatLines,
+  getTeamRecentResults,
+  getCompletedSetIdsForTournaments,
+  getPlayerSetRatingMetrics,
+  getPlayerReviewPage,
 } from "@/lib/data/lck";
 import {
   getPlayerPageSegmentData,
   getPlayerPageSharedData,
+  getPlayerFanPogSetIds,
 } from "@/lib/data/player-cache";
 import { aggregatePlayerStatLine, calculatePlayerStats, type PlayerRadarBenchmark } from "@/lib/stats";
 import type { FanRating, Match, PlayerStatLine, SetResult, Tournament } from "@/lib/types";
@@ -27,10 +30,11 @@ import {
   parseSeasonSegment,
   segmentLabel,
   type SeasonSegmentKey,
+  tournamentsInSegment,
 } from "@/lib/tournament-filters";
-import { fanPogPlayerIdForSet, setRatingHref } from "@/lib/view-data";
+import { playerReviewItems } from "@/lib/player-reviews";
 import { ChampionUsageTable } from "./champion-usage-table";
-import { FanReviewList, type FanReviewItem } from "./fan-review-list";
+import { FanReviewList } from "./fan-review-list";
 import { RecentMatchHistoryModal, RecentMatchSetRows } from "./recent-match-history-modal";
 import { PlayerSegmentSelect } from "./player-segment-select";
 import type { Crumb } from "@/components/layout/breadcrumb";
@@ -110,21 +114,9 @@ function enrichLines(lines: PlayerStatLine[], sets: SetResult[], matches: Match[
   });
 }
 
-function averageRating(ratings: FanRating[]) {
+function averageRating(ratings: Pick<FanRating, "rating">[]) {
   if (ratings.length === 0) return "-";
   return formatFanRating(ratings.reduce((sum, rating) => sum + rating.rating, 0) / ratings.length);
-}
-
-function formatReviewDate(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-
-  return new Intl.DateTimeFormat("ko-KR", {
-    timeZone: "Asia/Seoul",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(date);
 }
 
 function PlayerImage({
@@ -260,13 +252,11 @@ export async function PlayerDetailView({
   }
 
   const [sharedData, playerOwnLines] = await Promise.all([
-    getPlayerPageSharedData(),
+    getPlayerPageSharedData(player.id),
     // 이 선수 본인의 전체 스탯라인. 구간 탭 표시 여부 판단 + 아래 구간 필터의 소스로 재사용한다.
-    getPlayerStatLines(undefined, player.id),
+    getPlayerMetricStatLines(player.id),
   ]);
-  const { teams, players, matches, sets, fanRatings, tournaments, champions, standings } = sharedData;
-  const matchById = new Map(matches.map((match) => [match.id, match]));
-  const setById = new Map(sets.map((set) => [set.id, set]));
+  const { teams, players, matches, sets, tournaments, champions, standings } = sharedData;
   const visibleSegments = PLAYER_PAGE_SEGMENTS.filter((segment) =>
     segmentHasPlayerData(segment, playerOwnLines, matches, tournaments, sets),
   );
@@ -277,41 +267,27 @@ export async function PlayerDetailView({
   const segmentMatches = filterMatchesBySegment(matches, tournaments, activeSegment);
   const segmentSets = filterSetsByMatches(sets, segmentMatches).filter((set) => set.winnerTeamId);
   const pomCount = segmentMatches.filter((match) => match.status === "completed" && match.officialPomPlayerId === player.id).length;
-  const segmentSetIds = segmentSets.map((set) => set.id);
+  const segmentSetIds = await getCompletedSetIdsForTournaments(tournamentsInSegment(tournaments, activeSegment).map(tournament => tournament.id));
   // 이 선수의 구간 스탯라인은 이미 받아온 playerOwnLines 에서 걸러 쓴다(중복 쿼리 제거).
   const segmentSetIdSet = new Set(segmentSetIds);
   const playerSegmentLines = playerOwnLines.filter((line) => segmentSetIdSet.has(line.setId));
   const playerLines = enrichLines(playerSegmentLines, segmentSets, segmentMatches);
-  const itemVersions = uniqueDdragonVersionsForPatches(playerLines.map((line) => line.set.patch));
   // Catalogs depend on the selected games, not on the league benchmark query.
-  const [segmentData, versionedAssets] = await Promise.all([
-    getPlayerPageSegmentData(segmentSetIds),
-    Promise.all(itemVersions.map(async (version) => {
-      const [spells, runeCatalog] = await Promise.all([fetchSpellCatalog(version).catch(error => { console.warn("Player spells unavailable", error); return []; }), fetchRuneCatalog(version).catch(error => { console.warn("Player runes unavailable", error); return { trees: [], keystones: [] }; })]);
-      return [version, { spells, runeCatalog }] as const;
-    })),
+  const playerSetIds = playerLines.map((line) => line.setId);
+  const [segmentData, historyPage, playerRatings, fanPogSetIds, reviewPage] = await Promise.all([
+    getPlayerPageSegmentData(segmentSetIds, player.position),
+    getPlayerHistoryPage(player.slug, activeSegment, null, 1),
+    getPlayerSetRatingMetrics(player.id, playerSetIds),
+    getPlayerFanPogSetIds(player.id, playerSetIds),
+    getPlayerReviewPage(player.id, playerSetIds),
   ]);
   const radarBenchmark = segmentData.radarBenchmarkByPosition[player.position];
   const aggregateStats = aggregateLines(playerLines, radarBenchmark);
   const playerTeam = teams.find((team) => team.id === player.teamId);
   const teamStanding = standings.find((standing) => standing.teamId === player.teamId);
-  const teamRecent = segmentMatches
-    .filter((match) => match.teamAId === player.teamId || match.teamBId === player.teamId)
-    .filter((match) => match.status === "completed")
-    .sort((a, b) => new Date(b.matchDate).getTime() - new Date(a.matchDate).getTime())
-    .slice(0, 5)
-    .map((match) => (match.winnerTeamId === player.teamId ? "W" : "L"))
-    .join("-");
-  const playerRatings = fanRatings.filter((rating) => playerLines.some((line) => line.setId === rating.setId) && rating.playerId === player.id);
-  const playerFanPogSetIds = new Set(
-    playerLines
-      .filter(
-        (line) =>
-          fanPogPlayerIdForSet(line.setId, line.set.winnerTeamId, fanRatings) ===
-          player.id,
-      )
-      .map((line) => line.setId),
-  );
+  const teamRecent = await getTeamRecentResults(player.teamId, tournamentsInSegment(tournaments, activeSegment).map(tournament => tournament.id));
+
+  const playerFanPogSetIds = new Set(fanPogSetIds);
   const completedPlayerMatches = [...new Map(playerLines.map((line) => [line.match.id, line.match])).values()]
     .sort((a, b) => new Date(b.matchDate).getTime() - new Date(a.matchDate).getTime());
   const recentMatchIds = new Set(completedPlayerMatches.slice(0, 3).map((match) => match.id));
@@ -323,7 +299,7 @@ export async function PlayerDetailView({
       const lines = playerLines.filter((line) => line.championId === championId);
       const stats = aggregateLines(lines);
       const wins = lines.filter((line) => line.set.winnerTeamId === line.teamId).length;
-      const championRatings = fanRatings.filter((rating) => rating.playerId === player.id && lines.some((line) => line.setId === rating.setId));
+      const championRatings = playerRatings.filter((rating) => lines.some((line) => line.setId === rating.setId));
       const championPogCount = lines.filter((line) => playerFanPogSetIds.has(line.setId)).length;
       const pickBan = segmentData.pickBanByChampion[championId] ?? { pickCount: 0, banCount: 0 };
       const pickCount = pickBan.pickCount;
@@ -346,28 +322,13 @@ export async function PlayerDetailView({
         fanPogCount: championPogCount,
         pickCount,
         banCount,
-        pickBanRate: segmentSets.length === 0 ? null : ((pickCount + banCount) / segmentSets.length) * 100,
+        pickBanRate: segmentSetIds.length === 0 ? null : ((pickCount + banCount) / segmentSetIds.length) * 100,
         mainUsers,
       };
     })
     .sort((a, b) => b.lines.length - a.lines.length);
 
-  const recentMatchRows = completedPlayerMatches.map((match) => {
-    const lines = playerLines
-      .filter((line) => line.match.id === match.id)
-      .sort((a, b) => a.set.setNumber - b.set.setNumber);
-    const matchRatings = fanRatings.filter((rating) => rating.matchId === match.id && rating.playerId === player.id);
-    const matchPogCount = lines.filter((line) => playerFanPogSetIds.has(line.setId)).length;
-    const officialPomName = players.find((item) => item.id === match.officialPomPlayerId)?.name ?? "-";
-
-    return {
-      match,
-      lines,
-      ratings: matchRatings,
-      fanPog: matchPogCount > 0,
-      officialPomName,
-    };
-  });
+  const recentMatchRows = historyPage?.rows ?? [];
 
   const wins = playerLines.filter((line) => line.set.winnerTeamId === line.teamId).length;
   const losses = Math.max(playerLines.length - wins, 0);
@@ -375,27 +336,11 @@ export async function PlayerDetailView({
     playerLines.length === 0
       ? "-"
       : `${playerLines.reduce((sum, line) => sum + line.kills, 0)} / ${playerLines.reduce((sum, line) => sum + line.deaths, 0)} / ${playerLines.reduce((sum, line) => sum + line.assists, 0)}`;
-  const spellsByVersion = Object.fromEntries(versionedAssets.map(([version, assets]) => [version, assets.spells]));
-  const runeCatalogByVersion = Object.fromEntries(versionedAssets.map(([version, assets]) => [version, assets.runeCatalog]));
+  const spellsByVersion = historyPage?.spellsByVersion ?? {};
+  const runeCatalogByVersion = historyPage?.runeCatalogByVersion ?? {};
 
   const fanRatingValue = averageRating(playerRatings);
-  const playerReviews = playerRatings
-    .filter((rating) => rating.review.trim())
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  const fanReviewItems: FanReviewItem[] = playerReviews.map((rating) => {
-    const match = matchById.get(rating.matchId);
-    const set = setById.get(rating.setId);
-
-    return {
-      rating,
-      href: match && set ? setRatingHref(match, set) : null,
-      meta: [
-        formatReviewDate(rating.createdAt),
-        match?.name,
-        set ? `${set.setNumber}세트` : null,
-      ].filter(Boolean).join(" · "),
-    };
-  });
+  const reviewItems = playerReviewItems(reviewPage.ratings, matches, sets);
   const segmentOptions = visibleSegments.map((segment) => ({
     href: segment === "all" ? `${linkBase}/${player.slug}?segment=all` : `${linkBase}/${player.slug}?segment=${segment}`,
     label: playerSegmentLabel(segment),
@@ -567,10 +512,8 @@ export async function PlayerDetailView({
               <RecentMatchHistoryModal
                 player={player}
                 teams={teams}
-                rows={recentMatchRows}
+                segment={activeSegment}
                 champions={champions}
-                spellsByVersion={spellsByVersion}
-                runeCatalogByVersion={runeCatalogByVersion}
               />
             }
           >최근 경기</SectionHeading>
@@ -579,7 +522,7 @@ export async function PlayerDetailView({
               최근 경기 데이터가 없습니다.
             </div>
           ) : (
-            recentMatchRows.slice(0, 1).map((row) => (
+            recentMatchRows.map((row) => (
               <RecentMatchSetRows
                 key={row.match.id}
                 player={player}
@@ -611,8 +554,9 @@ export async function PlayerDetailView({
             </span>
           </div>
 
-          {playerReviews.length > 0 ? (
-            <FanReviewList items={fanReviewItems} />
+          {reviewItems.length > 0 ? (
+            <FanReviewList key={`${player.id}:${activeSegment}`} playerSlug={player.slug} segment={activeSegment}
+              initialPage={{ items: reviewItems, nextCursor: reviewPage.nextCursor }} />
           ) : (
             <div className="rounded-xl bg-[var(--ui-card-bg)] p-4 text-base leading-7 text-[var(--ui-muted)]">
               작성된 선수 리뷰가 아직 없습니다.

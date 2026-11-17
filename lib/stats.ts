@@ -174,10 +174,13 @@ export function createPlayerRadarBenchmark(lines: PlayerStatLine[]): PlayerRadar
     grouped.set(line.playerId, list);
   }
 
-  const playerStats = Array.from(grouped.values())
-    .map((playerLines) => aggregatePlayerStatLine(playerLines))
-    .filter((line): line is PlayerStatLine => Boolean(line))
-    .map((line) => calculatePlayerStats(line));
+  return createPlayerRadarBenchmarkFromAggregates(Array.from(grouped.values())
+    .map(playerLines => aggregatePlayerStatLine(playerLines))
+    .filter((line): line is PlayerStatLine => Boolean(line)));
+}
+
+export function createPlayerRadarBenchmarkFromAggregates(lines: PlayerStatLine[]): PlayerRadarBenchmark | undefined {
+  const playerStats = lines.map(line => calculatePlayerStats(line));
 
   if (playerStats.length < 2) {
     return undefined;

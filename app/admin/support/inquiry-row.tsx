@@ -33,7 +33,7 @@ export function SupportInquiryRow({ inquiry }: { inquiry: AdminSupportInquiry })
   function copyEmail(email: string) {
     navigator.clipboard.writeText(email)
       .then(() => showToast({ title: "이메일 복사됨", description: email, tone: "success" }))
-      .catch(() => showToast({ title: "복사 실패", description: "클립보드에 접근하지 못했어요.", tone: "error" }));
+      .catch(() => showToast({ title: "클립보드에 접근하지 못했어요.", tone: "error" }));
   }
 
   function submitReply() {
