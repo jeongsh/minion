@@ -63,8 +63,8 @@ export function ReactionButtons({ target, targetId, postId, scope, teamSlug, ini
         <button type="button" onClick={() => press("honor")} disabled={pending} aria-label={`와드 ${honorCount}`} aria-pressed={state === "honor"} className={`${buttonClass} ${state === "honor" ? "text-[var(--tp)]" : compact ? "text-[var(--ui-muted)]" : "text-[var(--ui-text)]"}`}>
           <ThumbsUp className={compact ? "h-4 w-4" : "h-4 w-4 md:h-[18px] md:w-[18px]"} strokeWidth={1.8} />{compact ? <span>{honorCount}</span> : <span>와드 {honorCount}</span>}
         </button>
-        <button type="button" onClick={() => press("dislike")} disabled={pending} aria-label={`비추천 ${dislikeCount}`} aria-pressed={state === "dislike"} className={`${buttonClass} ${state === "dislike" ? "text-[var(--tp)]" : compact ? "text-[var(--ui-muted)]" : "text-[var(--ui-text)]"}`}>
-          <ThumbsDown className={compact ? "h-4 w-4" : "h-4 w-4 md:h-[18px] md:w-[18px]"} strokeWidth={1.8} />{compact ? <span>{dislikeCount}</span> : <span>비추천 {dislikeCount}</span>}
+        <button type="button" onClick={() => press("dislike")} disabled={pending} aria-label={`트롤 ${dislikeCount}`} aria-pressed={state === "dislike"} className={`${buttonClass} ${state === "dislike" ? "text-[var(--tp)]" : compact ? "text-[var(--ui-muted)]" : "text-[var(--ui-text)]"}`}>
+          <ThumbsDown className={compact ? "h-4 w-4" : "h-4 w-4 md:h-[18px] md:w-[18px]"} strokeWidth={1.8} />{compact ? <span>{dislikeCount}</span> : <span>트롤 {dislikeCount}</span>}
         </button>
       </div>
       {message ? <p className="text-[13px] text-[var(--ui-muted)]">{message}</p> : null}
