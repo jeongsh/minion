@@ -13,6 +13,7 @@ import { BlockedUserList } from "@/components/community/blocked-user-list";
 import { NotificationSettingsForm } from "@/components/notifications/notification-settings-form";
 import { CheckInButton } from "@/components/rank/check-in-button";
 import { RankAvatar } from "@/components/rank/rank-avatar";
+import { LpHistoryDialog } from "@/components/rank/lp-history-dialog";
 import { getCurrentUser, type CurrentUser } from "@/lib/auth/current-user";
 import { listBlockedCommunityGuests } from "@/lib/data/community-guests";
 import { listBlockedCommunityUsers } from "@/lib/data/community-users";
@@ -124,7 +125,7 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
               <div className="mt-5 rounded-2xl bg-[var(--ui-surface-muted)] p-4">
                 <div className="flex items-center justify-between gap-3 text-sm">
                   <span className="font-bold text-[var(--ui-ink)]">{progress.label}</span>
-                  <span className="font-black tabular-nums text-[var(--ui-ink)]">{summary.lp.toLocaleString("ko-KR")} LP</span>
+                  <LpHistoryDialog lp={summary.lp} entries={summary.recentLedger} />
                 </div>
                 <div className="mt-3 h-2 overflow-hidden rounded-full bg-[var(--ui-border)]">
                   <div className="h-full rounded-full bg-[var(--accent)]" style={{ width: `${Math.round(progress.progressRatio * 100)}%` }} />
@@ -238,7 +239,7 @@ function MobileAccountSummary({ user, summary, progress, initials }: {
           <p className="truncate text-[13px] font-medium leading-[18px] text-[var(--ui-muted)]">{accountLabel(user)}</p>
           <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[13px] font-medium leading-[18px]">
             <span className="text-[var(--ui-ink)]">{progress.label}</span>
-            <span className="text-[var(--ui-muted)]">{summary.lp.toLocaleString("ko-KR")} LP</span>
+            <LpHistoryDialog lp={summary.lp} entries={summary.recentLedger} compact />
             {summary.overallRank ? <span className="text-[var(--ui-muted)]">전체 {summary.overallRank.toLocaleString("ko-KR")}위</span> : null}
           </div>
         </div>
