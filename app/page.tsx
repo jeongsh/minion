@@ -140,6 +140,7 @@ export default async function HomePage({
     tournament: tournamentNamesById.get(match.tournamentId),
     tournamentLogo: tournamentLogosById.get(match.tournamentId),
     bets: predictionBetsByMatchId.get(match.id) ?? [],
+    markets: predictionMarket.markets.filter(row => row.matchId === match.id),
   }));
 
   const calendarMonthKey = todayKey.slice(0, 7);

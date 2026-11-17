@@ -95,6 +95,7 @@ export default async function Image({ params }: { params: Promise<{ matchId: str
         match.teamAId,
         match.teamBId,
         match.status === "completed",
+        market.markets,
       )
     : null;
   const showPrediction = Boolean(prediction && prediction.totalStake > 0);

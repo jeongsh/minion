@@ -9,6 +9,7 @@ import { useMemo, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { TeamLogo } from '@/components/data/team-logo';
+import { useTeamCalendar } from '@/components/fan/use-team-calendar';
 import { FanCalendarSubmissionSheet } from '@/components/fan/fan-calendar-submission-sheet';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import { resolveApiAssetUrl, type MobileMatchSummary, type MobileTeamDetailDto } from '@/lib/api-client';
@@ -102,6 +103,7 @@ function CalendarPreview({ item, outside, teamId }: { item: CalendarItem; outsid
 
 export function FanSchedule({ data }: { data: MobileTeamDetailDto }) {
   const todayKey = useMemo(() => new Intl.DateTimeFormat('en-CA', { day: '2-digit', month: '2-digit', timeZone: 'Asia/Seoul', year: 'numeric' }).format(new Date()), []);
+  const calendar = useTeamCalendar(data.team.fanSiteHost, { matches: data.matches, events: data.calendarEvents });
   const [visibleMonth, setVisibleMonth] = useState(() => monthFromKey(todayKey));
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [submissionOpen, setSubmissionOpen] = useState(false);
@@ -109,34 +111,38 @@ export function FanSchedule({ data }: { data: MobileTeamDetailDto }) {
   const days = useMemo(() => calendarDays(visibleMonth), [visibleMonth]);
   const matchesByDate = useMemo(() => {
     const result = new Map<string, MobileMatchSummary[]>();
-    for (const match of data.matches) {
+    for (const match of calendar.data.matches) {
       const key = matchDateKey(match.startsAt);
       result.set(key, [...(result.get(key) ?? []), match]);
     }
     return result;
-  }, [data.matches]);
+  }, [calendar.data.matches]);
   const recurringByMonthDay = useMemo(() => {
     const result = new Map<string, CalendarEvent[]>();
-    for (const event of data.calendarEvents) {
+    for (const event of calendar.data.events) {
       if (!event.isRecurring) continue;
       result.set(event.monthDay, [...(result.get(event.monthDay) ?? []), event]);
     }
     return result;
-  }, [data.calendarEvents]);
+  }, [calendar.data.events]);
   const oneTimeByDate = useMemo(() => {
     const result = new Map<string, CalendarEvent[]>();
-    for (const event of data.calendarEvents) {
+    for (const event of calendar.data.events) {
       if (event.isRecurring) continue;
       result.set(event.date, [...(result.get(event.date) ?? []), event]);
     }
     return result;
-  }, [data.calendarEvents]);
+  }, [calendar.data.events]);
   const itemsForDate = (key: string): CalendarItem[] => [
     ...(matchesByDate.get(key) ?? []).map((match): CalendarItem => ({ kind: 'match', match })),
     ...(recurringByMonthDay.get(key.slice(5)) ?? []).map((event): CalendarItem => ({ kind: 'event', event })),
     ...(oneTimeByDate.get(key) ?? []).map((event): CalendarItem => ({ kind: 'event', event })),
   ].sort((a, b) => itemTime(a).localeCompare(itemTime(b)) || itemTitle(a, data.team.id).localeCompare(itemTitle(b, data.team.id), 'ko'));
-  const moveMonth = (offset: number) => setVisibleMonth((month) => new Date(month.getFullYear(), month.getMonth() + offset, 1, 12));
+  async function changeMonth(next: Date) {
+    const month = `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2,'0')}`;
+    if (await calendar.load(month)) { setVisibleMonth(next); setSelectedKey(null); }
+  }
+  const moveMonth = (offset: number) => void changeMonth(new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() + offset, 1, 12));
   const selectedItems = selectedKey ? itemsForDate(selectedKey) : [];
 
   return (
@@ -146,7 +152,7 @@ export function FanSchedule({ data }: { data: MobileTeamDetailDto }) {
           <Pressable accessibilityLabel="이전 달로 이동" onPress={() => moveMonth(-1)} style={styles.toolbarIcon}><ChevronLeft color={theme.muted} size={20} /></Pressable>
           <Text style={[styles.monthLabel, { color: theme.ink, ...fonts.medium }]}>{visibleMonth.getFullYear()}년 {visibleMonth.getMonth() + 1}월</Text>
           <Pressable accessibilityLabel="다음 달로 이동" onPress={() => moveMonth(1)} style={styles.toolbarIcon}><ChevronRight color={theme.muted} size={20} /></Pressable>
-          <Pressable onPress={() => setVisibleMonth(monthFromKey(todayKey))} style={styles.todayButton}><Text style={[styles.todayText, { color: theme.muted, ...fonts.medium }]}>오늘</Text></Pressable>
+          <Pressable onPress={() => void changeMonth(monthFromKey(todayKey))} style={styles.todayButton}><Text style={[styles.todayText, { color: theme.muted, ...fonts.medium }]}>오늘</Text></Pressable>
         </View>
         <Pressable accessibilityLabel={`${data.team.shortName} 일정 제보하기`} onPress={() => setSubmissionOpen(true)} style={styles.submitTrigger}><CalendarPlus color={theme.muted} size={14} /><Text style={[styles.submitTriggerText, { color: theme.muted, ...fonts.medium }]}>일정 제보</Text></Pressable>
       </View>

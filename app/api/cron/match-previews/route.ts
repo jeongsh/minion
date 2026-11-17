@@ -1,6 +1,7 @@
+import { matchBriefingSample } from "@/lib/match-briefing-stats";
 import { refreshMissingUpcomingMatchAiPreviews } from "@/lib/match-preview-ai";
 import { cleanupStaleMiniconUploads } from "@/lib/minicons/cleanup";
-import { getAllTeams, getMatches, getPlayerStatLines, getSets } from "@/lib/data/lck";
+import { getAllTeams, getMatches, getPlayerBenchmarkStatLines, getSets } from "@/lib/data/lck";
 import { refreshTeamBriefingSources } from "@/lib/data/team-briefing-sources";
 
 export const dynamic = "force-dynamic";
@@ -20,8 +21,15 @@ export async function GET(request: Request) {
         limit: 3,
       }),
       cleanupStaleMiniconUploads(),
-      Promise.all([getAllTeams(), getMatches(), getSets(), getPlayerStatLines()])
-        .then(([teams, matches, sets, playerStats]) => refreshTeamBriefingSources({ teams, matches, sets, playerStats })),
+      Promise.all([getAllTeams(), getMatches(), getSets()])
+        .then(async ([teams, matches, sets]) => {
+          const now = Date.now();
+          const upcoming = matches.filter(match => match.status !== "completed" && Date.parse(match.matchDate) > now - 6 * 3_600_000 && Date.parse(match.matchDate) < now + 14 * 86_400_000);
+          if (!upcoming.length) return { candidates: 0, refreshed: [], failed: [] };
+          const ids = [...new Set(upcoming.flatMap(match => matchBriefingSample(match, matches, sets).setIds))];
+          const playerStats = await getPlayerBenchmarkStatLines(ids);
+          return refreshTeamBriefingSources({ teams, matches, sets, playerStats });
+        }),
     ]);
 
     if (previewResult.status === "rejected") throw previewResult.reason;

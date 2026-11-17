@@ -3,7 +3,8 @@ import {
   getAllTeams,
   getAllPlayers,
   getChampions,
-  getFanRatingsByMatchId,
+  getOwnSetRatings,
+  getSetRatingSummary,
   getMatchById,
   getMatches,
   getMatchVodsByMatchId,
@@ -25,7 +26,8 @@ import { isMatchLive, matchStatusLabel } from "@/lib/match-display";
 import { getMatchAiPreview } from "@/lib/match-preview-ai";
 import { getStoredMatchBriefingData, getStoredMatchBriefingSources } from "@/lib/data/match-briefing";
 import { getPredictionMarketData, predictionMarketForMatch } from "@/lib/predictions";
-import { fanRatingLeader } from "@/lib/view-data";
+import { fanRatingSummaryLeader } from "@/lib/fan-rating";
+import { getMatchRatingComments } from "@/lib/data/match-rating-comments";
 import { getSetRatingStartedAt, isSetRatingOpen, isSetRatingSnapshotReady } from "@/lib/set-status";
 import {
   mobileError,
@@ -111,12 +113,11 @@ export async function GET(request: Request, context: { params: Promise<{ matchId
   const includeRating = full || requestedTab === "rating";
   const includeVideo = full || requestedTab === "video";
 
-  const [vods, fanRatings, [predictionData, allMatches, allSets]] = await Promise.all([
+  const [vods, [predictionData, allMatches, allSets]] = await Promise.all([
     includeVideo ? getMatchVodsByMatchId(match.id) : [],
-    includeRating ? getFanRatingsByMatchId(match.id) : [],
     initialPreviewData ?? (includePreview
       ? Promise.all([getPredictionMarketData(undefined, match.id), getMatches(), getSets()])
-      : [{ bets: [] }, [], []] as [Pick<Awaited<ReturnType<typeof getPredictionMarketData>>, "bets">, Awaited<ReturnType<typeof getMatches>>, Awaited<ReturnType<typeof getSets>>]),
+      : [{ bets: [], markets: [] }, [], []] as [Pick<Awaited<ReturnType<typeof getPredictionMarketData>>, "bets" | "markets">, Awaited<ReturnType<typeof getMatches>>, Awaited<ReturnType<typeof getSets>>]),
   ]);
   const teamMap = new Map(teams.map((team) => [team.id, team]));
   const tournamentMap = new Map(tournaments.map((tournament) => [tournament.id, tournament]));
@@ -205,7 +206,7 @@ export async function GET(request: Request, context: { params: Promise<{ matchId
       powerRankings: { status: rankings.status, sourceUrl: rankings.sourceUrl },
       issue: ai.narrative?.title ?? (ai.source === "ai" ? ai.headline : null), issueSource: ai.narrative?.sources[0]?.url ?? null } };
   })() : Promise.resolve(null);
-  const prediction = predictionMarketForMatch(predictionData.bets, match.id, match.teamAId, match.teamBId, match.status === "completed");
+  const prediction = predictionMarketForMatch(predictionData.bets, match.id, match.teamAId, match.teamBId, match.status === "completed", predictionData.markets);
 
   let activeSet: MobileSetDetail | null = null;
   let fanRating: MobileMatchDetailDto["fanRating"] = null;
@@ -281,10 +282,11 @@ export async function GET(request: Request, context: { params: Promise<{ matchId
       winnerTeamId: defaultSet.winnerTeamId,
     };
 
-    const setRatings = fanRatings.filter((rating) => rating.setId === defaultSet.id);
-    const leader = defaultSet.winnerTeamId
-      ? fanRatingLeader(setRatings.filter((rating) => rating.teamId === defaultSet.winnerTeamId))
-      : null;
+    const [ratingSummary, ownRatings, reviewPage] = includeRating ? await Promise.all([
+      getSetRatingSummary(defaultSet.id), getOwnSetRatings(defaultSet.id, auth?.user.id),
+      getMatchRatingComments(match.id, defaultSet.id, null, null, auth?.user.id, query.get("view") === "paged" ? 5 : 100),
+    ]) : [[], [], { items: [], nextCursor: null }];
+    const leader = fanRatingSummaryLeader(ratingSummary, defaultSet.winnerTeamId);
     const ratingOpen = isSetRatingOpen(defaultSet);
     const ratingStartedAt = getSetRatingStartedAt(defaultSet);
     const sortedLines = [...statLines].sort((a, b) => {
@@ -292,22 +294,20 @@ export async function GET(request: Request, context: { params: Promise<{ matchId
       return (POSITION_ORDER.get(a.position) ?? 99) - (POSITION_ORDER.get(b.position) ?? 99);
     });
     if (includeRating) fanRating = {
-      comments: setRatings
-        .filter((rating) => rating.review)
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-        .slice(0, 100)
+      commentsNextCursor: reviewPage.nextCursor,
+      commentPlayers: ratingSummary.filter(row => row.reviewCount > 0).map(row => ({ id: row.playerId, name: players.find(player => player.id === row.playerId)?.name ?? "-", count: row.reviewCount })),
+      comments: reviewPage.items
         .map((rating) => {
-          const player = players.find((item) => item.id === rating.playerId);
           return {
-            authorImage: rating.authorProfileImageUrl ? { url: rating.authorProfileImageUrl } : null,
-            authorName: rating.authorNickname ?? "익명",
+            authorImage: rating.authorImageUrl ? { url: rating.authorImageUrl } : null,
+            authorName: rating.authorName,
             authorTier: rating.authorTier,
             dislikeCount: rating.dislikeCount,
             honorCount: rating.honorCount,
             id: rating.id,
             playerId: rating.playerId,
-            playerImage: player?.profileImageUrl ? { url: player.profileImageUrl } : null,
-            playerName: player?.name ?? "-",
+            playerImage: rating.playerImageUrl ? { url: rating.playerImageUrl } : null,
+            playerName: rating.playerName,
             rating: rating.rating / 2,
             review: rating.review,
           };
@@ -315,20 +315,20 @@ export async function GET(request: Request, context: { params: Promise<{ matchId
       players: sortedLines.map((line) => {
         const player = players.find((item) => item.id === line.playerId);
         const champion = champions.find((item) => item.id === line.championId);
-        const ratings = setRatings.filter((rating) => rating.playerId === line.playerId);
-        const total = ratings.reduce((sum, rating) => sum + rating.rating, 0);
-        const myRating = auth ? ratings.find((rating) => rating.authorId === auth.user.id)?.rating : null;
+        const summary = ratingSummary.find(rating => rating.playerId === line.playerId);
+        const own = ownRatings.find(rating => rating.playerId === line.playerId);
+        const myRating = own?.rating;
         return {
-          averageRating: ratings.length > 0 ? total / ratings.length / 2 : null,
+          averageRating: summary ? summary.total / summary.count / 2 : null,
           champion: champion ? { id: champion.id, image: championImage(champion) ? { url: championImage(champion) } : null, name: champion.name } : null,
           id: line.playerId,
           isPog: leader?.playerId === line.playerId,
           name: player?.name ?? "-",
           myRating: myRating == null ? null : myRating / 2,
-          myReview: auth ? ratings.find((rating) => rating.authorId === auth.user.id)?.review ?? null : null,
+          myReview: own?.review ?? null,
           position: line.position,
           profileImage: player?.profileImageUrl ? { url: player.profileImageUrl } : null,
-          ratingCount: ratings.length,
+          ratingCount: summary?.count ?? 0,
           team: teamMap.get(line.teamId) ? toMobileTeam(teamMap.get(line.teamId)!) : null,
         };
       }),

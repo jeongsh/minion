@@ -1,3 +1,4 @@
+import type { FanMediaPaging } from '@/components/fan/use-fan-media';
 import * as Linking from 'expo-linking';
 import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -6,14 +7,15 @@ import { FanEmpty, FanOwnerTabs, FanVideoThumbnail, buildFanOwnerTabs } from '@/
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import type { MobileVideoItem } from '@/lib/api-client';
 
-export function FanVideos({ items, teamName }: { items: MobileVideoItem[]; teamName: string }) {
+export function FanVideos({ items, teamName, paging }: { items: MobileVideoItem[]; teamName: string; paging?: FanMediaPaging }) {
   const { fonts, showToast, theme } = useMinionTheme();
-  const [activeKey, setActiveKey] = useState('all');
+  const [localActiveKey, setActiveKey] = useState('all');
+  const activeKey = paging?.owner ?? localActiveKey;
   const [visibleCount, setVisibleCount] = useState(12);
   const normalized = useMemo(() => items.map((item) => ({ ...item, ownerName: item.channelName ?? teamName })), [items, teamName]);
   const tabs = useMemo(() => buildFanOwnerTabs(normalized, teamName), [normalized, teamName]);
-  const filtered = activeKey === 'all' ? normalized : normalized.filter((item) => item.ownerName === activeKey);
-  const visible = filtered.slice(0, visibleCount);
+  const filtered = paging || activeKey === 'all' ? normalized : normalized.filter((item) => item.ownerName === activeKey);
+  const visible = paging ? filtered : filtered.slice(0, visibleCount);
 
   async function openVideo(item: MobileVideoItem) {
     try { await Linking.openURL(item.url); } catch { showToast('영상을 열지 못했습니다.', 'error'); }
@@ -21,13 +23,13 @@ export function FanVideos({ items, teamName }: { items: MobileVideoItem[]; teamN
 
   return (
     <View style={styles.page}>
-      <FanOwnerTabs activeKey={activeKey} onChange={(key) => { setActiveKey(key); setVisibleCount(12); }} tabs={tabs} />
+      <FanOwnerTabs activeKey={activeKey} onChange={(key) => { if (paging) paging.onOwner(key); else setActiveKey(key); setVisibleCount(12); }} tabs={paging?.tabs ?? tabs} />
       {filtered.length ? (
         <>
         <View accessibilityLabel="영상 목록" style={styles.grid}>
           {visible.map((item) => <Pressable accessibilityLabel={`${item.title} 영상 열기`} accessibilityRole="link" key={item.id} onPress={() => void openVideo(item)} style={styles.card}><FanVideoThumbnail item={item} /></Pressable>)}
         </View>
-        {visibleCount < filtered.length ? <Pressable onPress={() => setVisibleCount((count) => Math.min(filtered.length, count + 12))} style={[styles.moreButton, { borderColor: theme.border }]}><Text style={{ color: theme.text, ...fonts.bold, fontSize: 13 }}>영상 더 보기</Text></Pressable> : filtered.length > 12 ? <Text style={[styles.complete, { color: theme.muted, ...fonts.medium }]}>모든 영상을 확인했습니다.</Text> : null}
+        {(paging ? paging.hasMore : visibleCount < filtered.length) ? <Pressable disabled={paging?.loading} onPress={() => paging ? paging.onMore() : setVisibleCount((count) => Math.min(filtered.length, count + 12))} style={[styles.moreButton, { borderColor: theme.border }]}><Text style={{ color: theme.text, ...fonts.medium, fontSize: 13 }}>영상 더 보기</Text></Pressable> : filtered.length > 12 ? <Text style={[styles.complete, { color: theme.muted, ...fonts.medium }]}>모든 영상을 확인했습니다.</Text> : null}
         </>
       ) : <FanEmpty>아직 동기화된 YouTube 영상이 없습니다.</FanEmpty>}
     </View>

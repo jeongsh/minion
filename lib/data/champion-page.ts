@@ -3,11 +3,11 @@ import "server-only";
 
 import { unstable_cache } from "next/cache";
 import { cache } from "react";
+import { getMatchesForScope, getSetsForMatches } from "@/lib/data/lck";
 
 import { createSupabaseServerClient, canQuerySupabase } from "@/lib/supabase/server";
-import { normalizeSetStatus } from "@/lib/set-status";
 import type { ChampionDirectoryAggregate } from "@/lib/champion-analysis";
-import { collectCountedKeysetPages, collectUuidPartitions, mapWithConcurrency, type CountedPage } from "@/lib/data/paged-read";
+import { collectCountedKeysetPages, mapWithConcurrency, type CountedPage } from "@/lib/data/paged-read";
 import {
   SEASON_2026_SEGMENTS,
   segmentForTournament,
@@ -54,10 +54,6 @@ const CHAMPION_COLUMNS =
   "id, slug, name, image_url, ddragon_id, ddragon_key, ddragon_version";
 const TOURNAMENT_COLUMNS =
   "id, name, season, category, split, region, league, start_date, end_date, source, source_tournament_id";
-const MATCH_COLUMNS =
-  "id, tournament_id, stage_id, name, match_date, status, team_a_id, team_b_id, team_a_score, team_b_score, best_of, winner_team_id";
-const SET_COLUMNS =
-  "id, match_id, set_number, status, winner_team_id, result_recorded_at, blue_team_id, red_team_id, duration_seconds, patch";
 const PICK_BAN_COLUMNS =
   "id, set_id, phase, action_type, order_index, team_id, champion_id, side";
 const PLAYER_STAT_COLUMNS =
@@ -148,34 +144,6 @@ type TournamentRow = {
   end_date: string | null;
   source: string | null;
   source_tournament_id: string | null;
-};
-
-type MatchRow = {
-  id: string;
-  tournament_id: string | null;
-  stage_id: string | null;
-  name: string;
-  match_date: string;
-  status: Match["status"];
-  team_a_id: string | null;
-  team_b_id: string | null;
-  team_a_score: number | null;
-  team_b_score: number | null;
-  best_of: number | null;
-  winner_team_id: string | null;
-};
-
-type SetRow = {
-  id: string;
-  match_id: string;
-  set_number: number;
-  status: SetResult["status"] | null;
-  winner_team_id: string | null;
-  result_recorded_at: string | null;
-  blue_team_id: string | null;
-  red_team_id: string | null;
-  duration_seconds: number | null;
-  patch: string | null;
 };
 
 type PickBanRow = {
@@ -399,78 +367,6 @@ function mapTournament(row: TournamentRow): Tournament {
   };
 }
 
-function mapMatch(row: MatchRow): Match {
-  return {
-    id: row.id,
-    tournamentId: row.tournament_id ?? "",
-    stageId: row.stage_id ?? "",
-    name: row.name,
-    matchDate: row.match_date,
-    status: row.status,
-    teamAId: row.team_a_id ?? "",
-    teamBId: row.team_b_id ?? "",
-    teamAScore: row.team_a_score,
-    teamBScore: row.team_b_score,
-    bestOf: row.best_of,
-    winnerTeamId: row.winner_team_id,
-    officialPomPlayerId: null,
-    leaguepediaMatchId: null,
-    lolesportsMatchId: null,
-    venue: null,
-    vodUrl: null,
-    bracketSide: null,
-    bracketOrder: null,
-    advancesToMatchId: null,
-    groupIndex: 0,
-  };
-}
-
-function mapSet(row: SetRow): SetResult {
-  return {
-    id: row.id,
-    matchId: row.match_id,
-    setNumber: row.set_number,
-    status: normalizeSetStatus(row.status),
-    winnerTeamId: row.winner_team_id,
-    resultRecordedAt: row.result_recorded_at,
-    blueTeamId: row.blue_team_id ?? "",
-    redTeamId: row.red_team_id ?? "",
-    durationSeconds: row.duration_seconds,
-    blueKills: null,
-    redKills: null,
-    blueGold: null,
-    redGold: null,
-    blueDragons: null,
-    redDragons: null,
-    blueClouds: null,
-    redClouds: null,
-    blueInfernals: null,
-    redInfernals: null,
-    blueMountains: null,
-    redMountains: null,
-    blueOceans: null,
-    redOceans: null,
-    blueHextechs: null,
-    redHextechs: null,
-    blueChemtechs: null,
-    redChemtechs: null,
-    blueElders: null,
-    redElders: null,
-    blueRiftHeralds: null,
-    redRiftHeralds: null,
-    blueVoidGrubs: null,
-    redVoidGrubs: null,
-    blueBarons: null,
-    redBarons: null,
-    blueTowers: null,
-    redTowers: null,
-    patch: row.patch,
-    leaguepediaGameId: null,
-    riotMatchId: null,
-    riotPlatformGameId: null,
-  };
-}
-
 type AnalyzablePickBanRow = PickBanRow & {
   champion_id: string;
   side: SetPickBan["side"];
@@ -570,76 +466,6 @@ async function queryTournamentsPage(afterId: string | null): Promise<CountedPage
   return { rows: (data ?? []) as unknown as TournamentRow[], count };
 }
 
-async function queryMatchesPage(afterId: string | null): Promise<CountedPage<MatchRow>> {
-  if (!canQuerySupabase()) return { rows: [], count: 0 };
-  let query = createSupabaseServerClient()
-    .from("matches")
-    .select(MATCH_COLUMNS, { count: "exact" })
-    .order("id", { ascending: true })
-    .limit(PAGE_SIZE);
-  if (afterId) query = query.gt("id", afterId);
-  const { data, error, count } = await query;
-  if (error) throw error;
-  return { rows: (data ?? []) as unknown as MatchRow[], count };
-}
-
-async function querySetsPage(afterId: string | null): Promise<CountedPage<SetRow>> {
-  if (!canQuerySupabase()) return { rows: [], count: 0 };
-  let query = createSupabaseServerClient()
-    .from("sets")
-    .select(SET_COLUMNS, { count: "exact" })
-    .order("id", { ascending: true })
-    .limit(PAGE_SIZE);
-  if (afterId) query = query.gt("id", afterId);
-  const { data, error, count } = await query;
-  if (error) throw error;
-  return { rows: (data ?? []) as unknown as SetRow[], count };
-}
-
-// Whole-table facts remain shared across scopes. Four independent UUID ranges remove
-// the long serial scan while keyset cursors preserve ordering and avoid offset shifts.
-async function queryAllPickBansPage(
-  lowerId: string, upperId: string | null, afterId: string | null,
-): Promise<CountedPage<PickBanRow>> {
-  if (!canQuerySupabase()) return { rows: [], count: 0 };
-  let query = createSupabaseServerClient()
-    .from("set_picks_bans")
-    .select(PICK_BAN_COLUMNS, { count: "exact" })
-    .gte("id", lowerId)
-    .order("id", { ascending: true })
-    .limit(PAGE_SIZE);
-  if (upperId) query = query.lt("id", upperId);
-  if (afterId) query = query.gt("id", afterId);
-  const { data, error, count } = await query;
-  if (error) throw error;
-  return { rows: (data ?? []) as unknown as PickBanRow[], count };
-}
-
-async function queryAllPlayerStatsPage(
-  lowerId: string, upperId: string | null, afterId: string | null,
-): Promise<CountedPage<PlayerStatRow>> {
-  if (!canQuerySupabase()) return { rows: [], count: 0 };
-
-  async function readPage(columns: string) {
-    let query = createSupabaseServerClient()
-      .from("set_player_stats")
-      .select(columns, { count: "exact" })
-      .gte("id", lowerId)
-      .order("id", { ascending: true })
-      .limit(PAGE_SIZE);
-    if (upperId) query = query.lt("id", upperId);
-    if (afterId) query = query.gt("id", afterId);
-    return query;
-  }
-
-  let { data, error, count } = await readPage(PLAYER_STAT_COLUMNS);
-  if (reportsMissingColumn(error, "role_bound_item")) {
-    ({ data, error, count } = await readPage(PLAYER_STAT_COLUMNS_WITHOUT_ROLE_BOUND_ITEM));
-  }
-  if (error) throw error;
-  return { rows: (data ?? []) as unknown as PlayerStatRow[], count };
-}
-
 async function queryBuildEventsPage(
   setIds: string[],
   playerIds: string[],
@@ -666,11 +492,11 @@ async function queryBuildEventsPage(
 
 type ChampionAppearanceRow = { id: string; set_id: string; player_id: string };
 
-async function queryChampionAppearancesPage(championId: string, afterId: string | null): Promise<CountedPage<ChampionAppearanceRow>> {
+async function queryChampionAppearancesPage(championId: string, setIds: string[], afterId: string | null): Promise<CountedPage<ChampionAppearanceRow>> {
   if (!canQuerySupabase()) return { rows: [], count: 0 };
   let query = createSupabaseServerClient().from("set_player_stats")
     .select("id,set_id,player_id", { count: "exact" })
-    .eq("champion_id", championId).order("id").limit(PAGE_SIZE);
+    .eq("champion_id", championId).in("set_id", setIds).order("id").limit(PAGE_SIZE);
   if (afterId) query = query.gt("id", afterId);
   const { data, error, count } = await query;
   if (error) throw error;
@@ -733,26 +559,6 @@ const queryChampionsPageCached = unstable_cache(
 const queryTournamentsPageCached = unstable_cache(
   queryTournamentsPage,
   ["champion-page-tournaments-counted-page-v2"],
-  CACHE_OPTIONS,
-);
-const queryMatchesPageCached = unstable_cache(
-  queryMatchesPage,
-  ["champion-page-matches-counted-page-v2"],
-  CACHE_OPTIONS,
-);
-const querySetsPageCached = unstable_cache(
-  querySetsPage,
-  ["champion-page-sets-counted-page-v2"],
-  CACHE_OPTIONS,
-);
-const queryAllPickBansPageCached = unstable_cache(
-  queryAllPickBansPage,
-  ["champion-page-all-pick-bans-partition-v2"],
-  CACHE_OPTIONS,
-);
-const queryAllPlayerStatsPageCached = unstable_cache(
-  queryAllPlayerStatsPage,
-  ["champion-page-all-player-stats-partition-v2"],
   CACHE_OPTIONS,
 );
 const queryBuildEventsPageCached = unstable_cache(
@@ -824,28 +630,26 @@ const queryChampionDirectoryStatsCached = unstable_cache(
 /** Compact list-only aggregates; detailed pages retain the raw fact loaders below. */
 export const getChampionDirectoryStats = cache(queryChampionDirectoryStatsCached);
 
-async function getChampionPageReferenceDataBase(): Promise<ChampionPageReferenceData> {
-  const [teamRows, playerRows, championRows, tournamentRows, matchRows, setRows] =
+async function getChampionPageReferenceDataBase(input: ChampionScopeInput = {}): Promise<ChampionPageReferenceData> {
+  const [teamRows, playerRows, championRows, tournamentRows] =
     await Promise.all([
       collectCountedKeysetPages(queryTeamsPageCached),
       collectCountedKeysetPages(queryPlayersPageCached),
       collectCountedKeysetPages(queryChampionsPageCached),
       collectCountedKeysetPages(queryTournamentsPageCached),
-      collectCountedKeysetPages(queryMatchesPageCached),
-      collectCountedKeysetPages(querySetsPageCached),
     ]);
 
+  const tournaments = tournamentRows.map(mapTournament).sort((a, b) => (a.startDate ?? "9999").localeCompare(b.startDate ?? "9999"));
+  const scope = resolveChampionScope({ tournaments, matches: [], sets: [] }, input);
+  const matches = await getMatchesForScope({ tournamentIds: scope.tournamentIds });
+  const sets = await getSetsForMatches(matches.map(match => match.id));
   return {
     teams: teamRows.map(mapTeam).sort((a, b) => a.name.localeCompare(b.name, "ko")),
     players: playerRows.map(mapPlayer).sort((a, b) => a.name.localeCompare(b.name, "ko")),
     champions: championRows
       .map(mapChampion)
       .sort((a, b) => a.name.localeCompare(b.name, "ko")),
-    tournaments: tournamentRows
-      .map(mapTournament)
-      .sort((a, b) => (a.startDate ?? "9999").localeCompare(b.startDate ?? "9999")),
-    matches: matchRows.map(mapMatch),
-    sets: setRows.map(mapSet),
+    tournaments, matches, sets,
   };
 }
 
@@ -875,22 +679,23 @@ async function getChampionBySlugBase(slug: string, knownChampions?: readonly Cha
 
 export const getChampionBySlug = cache(getChampionBySlugBase);
 
-async function getAllPickBansBase(): Promise<PickBanRow[]> {
-  return collectUuidPartitions(queryAllPickBansPageCached);
-}
-
-/** Whole-table pick/ban rows, shared across every scope filter combination. */
-const getAllPickBans = cache(getAllPickBansBase);
+const getScopedPickBans = unstable_cache(async (setIds: string[]) => {
+  const groups = await mapWithConcurrency(chunksOf(setIds, DETAIL_SET_CHUNK_SIZE), MAX_PARALLEL_CHUNKS,
+    (ids) => collectCountedKeysetPages<PickBanRow>(async (afterId) => {
+      let query = createSupabaseServerClient().from("set_picks_bans")
+        .select(PICK_BAN_COLUMNS, { count: "exact" }).in("set_id", ids).order("id").limit(PAGE_SIZE);
+      if (afterId) query = query.gt("id", afterId);
+      const { data, error, count } = await query;
+      if (error) throw error;
+      return { rows: (data ?? []) as PickBanRow[], count };
+    }));
+  return groups.flat().sort((a, b) => a.id.localeCompare(b.id));
+}, ["champion-scoped-drafts-v1"], CACHE_OPTIONS);
 
 async function getPickBansForSets(setIds: readonly string[]): Promise<SetPickBan[]> {
-  const scopedSetIds = new Set(setIds);
-  const rows = await getAllPickBans();
-  // Missing champion/side identities must make the containing set incomplete instead
-  // of being fabricated as a blue-side action. A team id is not required when side exists.
-  return rows
-    .filter((row) => scopedSetIds.has(row.set_id))
-    .filter(hasCompletePickBanFields)
-    .map(mapPickBan);
+  if (!setIds.length) return [];
+  const rows = await getScopedPickBans(uniqueSorted(setIds));
+  return rows.filter(hasCompletePickBanFields).map(mapPickBan);
 }
 
 function mapPlayerStats(rows: PlayerStatRow[], sets: readonly SetResult[]) {
@@ -959,20 +764,14 @@ function mapPlayerStats(rows: PlayerStatRow[], sets: readonly SetResult[]) {
   });
 }
 
-async function getAllPlayerStatRowsBase(): Promise<PlayerStatRow[]> {
-  return collectUuidPartitions(queryAllPlayerStatsPageCached);
-}
-
-/** Whole-table player-stat rows, shared across every scope filter combination. */
-const getAllPlayerStatRows = cache(getAllPlayerStatRowsBase);
-
 async function getPlayerStatsForSets(
   setIds: readonly string[],
   sets: readonly SetResult[],
 ): Promise<ChampionPagePlayerStatLine[]> {
   const scopedSetIds = new Set(setIds);
-  const rows = await getAllPlayerStatRows();
-  return mapPlayerStats(rows.filter((row) => scopedSetIds.has(row.set_id)), sets);
+  const groups = await mapWithConcurrency(chunksOf(uniqueSorted(setIds), DETAIL_SET_CHUNK_SIZE), MAX_PARALLEL_CHUNKS,
+    ids => collectCountedKeysetPages(after => queryDetailStatsPageCached(ids, after)));
+  return mapPlayerStats(groups.flat().filter(row => scopedSetIds.has(row.set_id)), sets);
 }
 
 /**
@@ -1078,11 +877,12 @@ async function getChampionDetailDataBase(
 ): Promise<ChampionPageData> {
   const [references, appearances] = await Promise.all([
     referenceData ?? getChampionPageReferenceData(),
-    collectCountedKeysetPages((afterId) => queryChampionAppearancesPageCached(championId, afterId)),
+    mapWithConcurrency(chunksOf(uniqueSorted(setIds), DETAIL_SET_CHUNK_SIZE), MAX_PARALLEL_CHUNKS, ids =>
+      collectCountedKeysetPages((afterId) => queryChampionAppearancesPageCached(championId, ids, afterId))),
   ]);
   const scopeIds = new Set(setIds);
   const sets = references.sets.filter((set) => scopeIds.has(set.id));
-  const targetRows = appearances.filter((row) => scopeIds.has(row.set_id));
+  const targetRows = appearances.flat().filter((row) => scopeIds.has(row.set_id));
   const targetSetIds = uniqueSorted(targetRows.map((row) => row.set_id));
   const targetPairs = uniqueSorted(targetRows.map((row) => `${row.set_id}:${row.player_id}`));
 
@@ -1116,6 +916,15 @@ async function getChampionDetailDataBase(
 }
 
 export const getChampionDetailData = cache(getChampionDetailDataBase);
+
+export async function getChampionGamesPage(championId: string, setIds: string[], position: PlayerPosition, page: number) {
+  if (!setIds.length || !canQuerySupabase()) return { total: 0, page: 1, pairs: [] as { setId: string; playerId: string }[] };
+  const { data, error } = await createSupabaseServerClient().rpc("read_champion_games_page", {
+    p_champion_id: championId, p_set_ids: setIds, p_position: position, p_page: page,
+  });
+  if (error) throw error;
+  return data as { total: number; page: number; pairs: { setId: string; playerId: string }[] };
+}
 
 export type ChampionScopeInput = {
   season?: number | string | null;

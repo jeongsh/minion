@@ -122,7 +122,7 @@ export async function getSiteMetricsDashboard(): Promise<SiteMetricsDashboard> {
       .like("metric", `${REFERRER_METRIC_PREFIX}%`)
       .order("fetched_at", { ascending: false })
       .limit(200),
-    supabase.from("profiles").select("created_at").gte("created_at", firstDateStartIso),
+    supabase.rpc("read_signup_counts", { p_since: firstDateStartIso }),
     supabase.from("profiles").select("id", { count: "exact", head: true }),
   ]);
   if (metricsResult.error) throw new Error(metricsResult.error.message);
@@ -163,10 +163,10 @@ export async function getSiteMetricsDashboard(): Promise<SiteMetricsDashboard> {
     }
   }
 
-  for (const row of signupsResult.data ?? []) {
-    const date = kstDate(0, Date.parse(row.created_at));
+  for (const row of (signupsResult.data ?? []) as { signup_date: string; signups: number }[]) {
+    const date = row.signup_date;
     const index = dateIndex.get(date);
-    if (index !== undefined) series.signups[index] = (series.signups[index] ?? 0) + 1;
+    if (index !== undefined) series.signups[index] = (series.signups[index] ?? 0) + Number(row.signups);
   }
 
   const period = (length: 7 | 30) => {

@@ -4,7 +4,7 @@ import type { CSSProperties } from "react";
 
 import { TeamLogo } from "@/components/ui/team-logo";
 import { usePredictionBetDialog } from "@/components/domain/prediction-bet-dialog";
-import { predictionMarketForMatch, type PredictionBet } from "@/lib/predictions";
+import { predictionMarketForMatch, type PredictionBet, type PredictionMarketAggregate } from "@/lib/predictions";
 import type { Match, Team } from "@/lib/types";
 import { isBlackPredictionColor, predictionSelectionOpacity } from "@/lib/prediction-colors";
 
@@ -71,6 +71,7 @@ export function PredictionMatchBar({
   teamA,
   teamB,
   bets: initialBets,
+  markets,
   currentUserId,
   balance: initialBalance,
   now,
@@ -80,6 +81,7 @@ export function PredictionMatchBar({
   teamA?: Team;
   teamB?: Team;
   bets: PredictionBet[];
+  markets?: PredictionMarketAggregate[];
   currentUserId?: string;
   balance: number | null;
   now: number;
@@ -92,7 +94,7 @@ export function PredictionMatchBar({
   const matchBets = bets.filter((item) => item.matchId === match.id && (completed || item.status !== "refunded"));
   const myBet = currentUserId ? matchBets.find((item) => item.userId === currentUserId) : undefined;
   const myVote = myBet?.teamId;
-  const market = predictionMarketForMatch(matchBets, match.id, match.teamAId, match.teamBId, completed);
+  const market = predictionMarketForMatch(matchBets, match.id, match.teamAId, match.teamBId, completed, markets, initialBets);
   const closed = match.status !== "scheduled" || new Date(match.matchDate).getTime() <= now;
   const cardStyle = {
     opacity: completed ? "var(--prediction-completed-opacity)" : undefined,

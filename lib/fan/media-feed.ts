@@ -1,6 +1,6 @@
 import "server-only";
 import { unstable_cache } from "next/cache";
-import { getFanVideoFeed, getTeamInstagramFeed, getPlayers, getTeamByFanSiteHost, getTeamBySlug } from "@/lib/data/lck";
+import { getFanVideoFeed, getTeamInstagramFeed, getPlayersByTeamId, getTeamByFanSiteHost, getTeamBySlug } from "@/lib/data/lck";
 import { buildFanVideoItems, type FanVideoItem } from "@/lib/fan-video-items";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { TeamSocialPost, PlayerSocialPost } from "@/lib/types";
@@ -14,7 +14,7 @@ const PAGE_SIZE = 12;
 async function context(teamSlug: string) {
   const team = await getTeamByFanSiteHost(teamSlug) ?? await getTeamBySlug(teamSlug);
   if (!team) throw new Error("팀을 찾을 수 없습니다.");
-  return { team, players: (await getPlayers()).filter(player => player.teamId === team.id) };
+  return { team, players: await getPlayersByTeamId(team.id) };
 }
 
 export const getMediaTabs = unstable_cache(async (teamSlug: string, kind: MediaKind): Promise<MediaTab[]> => {
@@ -37,7 +37,7 @@ export const getMediaTabs = unstable_cache(async (teamSlug: string, kind: MediaK
   return [{ key: "all", label: "전체", count: tabs.reduce((sum, tab) => sum + tab.count, 0) }, ...tabs];
 }, ["fan-media-tab-counts"], { revalidate: 60 });
 
-export async function getMediaPage(teamSlug: string, kind: MediaKind, owner = "all", cursor: MediaCursor = { team: 0, player: 0 }): Promise<MediaPage> {
+export async function getMediaPage(teamSlug: string, kind: MediaKind, owner = "all", cursor: MediaCursor = { team: 0, player: 0 }, pageSize = PAGE_SIZE): Promise<MediaPage> {
   const { team, players } = await context(teamSlug);
   const player = players.find(item => item.name === owner);
   if (owner !== "all" && owner !== team.shortName && !player) throw new Error("선수를 찾을 수 없습니다.");
@@ -45,16 +45,16 @@ export async function getMediaPage(teamSlug: string, kind: MediaKind, owner = "a
   const playerIds = players.map(item => item.id);
   const empty = { videos: [], teamPosts: [], playerPosts: [] };
   if (kind === "videos") {
-    const feed = await getFanVideoFeed(team.id, playerIds, PAGE_SIZE + 1, cursor, ownerId);
+    const feed = await getFanVideoFeed(team.id, playerIds, pageSize + 1, cursor, ownerId);
     const all = buildFanVideoItems({ team, players, ...feed });
-    const videos = all.slice(0, PAGE_SIZE);
-    const next = all.length > PAGE_SIZE ? { team: cursor.team + videos.filter(item => item.ownerType === "team").length, player: cursor.player + videos.filter(item => item.ownerType === "player").length } : null;
+    const videos = all.slice(0, pageSize);
+    const next = all.length > pageSize ? { team: cursor.team + videos.filter(item => item.ownerType === "team").length, player: cursor.player + videos.filter(item => item.ownerType === "player").length } : null;
     return { ...empty, videos, next };
   }
-  const feed = await getTeamInstagramFeed(team.id, playerIds, PAGE_SIZE + 1, cursor, ownerId);
+  const feed = await getTeamInstagramFeed(team.id, playerIds, pageSize + 1, cursor, ownerId);
   const all = [...feed.teamPosts.map(item => ({ id: item.id, owner: "team", date: item.publishedAt })), ...feed.playerPosts.map(item => ({ id: item.id, owner: "player", date: item.postedAt }))].sort((a, b) => (b.date ?? "").localeCompare(a.date ?? ""));
-  const selected = all.slice(0, PAGE_SIZE);
+  const selected = all.slice(0, pageSize);
   const teamIds = new Set(selected.filter(item => item.owner === "team").map(item => item.id));
   const playerPostIds = new Set(selected.filter(item => item.owner === "player").map(item => item.id));
-  return { ...empty, teamPosts: feed.teamPosts.filter(item => teamIds.has(item.id)), playerPosts: feed.playerPosts.filter(item => playerPostIds.has(item.id)), next: all.length > PAGE_SIZE ? { team: cursor.team + teamIds.size, player: cursor.player + playerPostIds.size } : null };
+  return { ...empty, teamPosts: feed.teamPosts.filter(item => teamIds.has(item.id)), playerPosts: feed.playerPosts.filter(item => playerPostIds.has(item.id)), next: all.length > pageSize ? { team: cursor.team + teamIds.size, player: cursor.player + playerPostIds.size } : null };
 }

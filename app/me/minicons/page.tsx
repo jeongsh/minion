@@ -45,8 +45,9 @@ async function loadMiniconSettings(userId: string) {
       .order("sort_order", { ascending: true }),
     admin
       .from("minicon_items")
-      .select("id, pack_id, name, image_url, sort_order")
+      .select("id, pack_id, name, image_url, sort_order, minicon_packs!inner(status)")
       .eq("is_active", true)
+      .eq("minicon_packs.status", "published")
       .order("sort_order", { ascending: true }),
     admin
       .from("user_minicon_packs")

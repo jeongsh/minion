@@ -27,7 +27,7 @@ const POSITIONS = new Set<PlayerPosition>(["TOP", "JGL", "MID", "BOT", "SUP"]);
 
 export default async function ChampionsPage({ searchParams }: { searchParams: Promise<DirectorySearchParams> }) {
   const query = await searchParams;
-  const references = await getChampionPageReferenceData();
+  const references = await getChampionPageReferenceData(query);
   const scope = resolveChampionScope(references, query);
   const directoryStats = await getChampionDirectoryStats(scope.setIds);
   const position = POSITIONS.has(query.position as PlayerPosition) ? query.position as PlayerPosition : "all";

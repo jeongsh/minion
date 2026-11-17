@@ -44,7 +44,7 @@ function MatchDetailContent({ matchId, requestedSet, requestedTab, requestedPlay
 
   const path = useMemo(() => {
     const base = `/api/mobile/v1/matches/${encodeURIComponent(matchId ?? '')}`;
-    return `${base}?tab=${activeTab}${selectedSetId ? `&set=${encodeURIComponent(selectedSetId)}` : ''}`;
+    return `${base}?view=paged&tab=${activeTab}${selectedSetId ? `&set=${encodeURIComponent(selectedSetId)}` : ''}`;
   }, [activeTab, matchId, selectedSetId]);
 
   const { data, error, loading, refresh, refreshControl } = useScreenQuery<MobileMatchTabDto>(path, { cache: 'memory', cacheScope: session?.user.id ?? 'guest', enabled: Boolean(matchId) && !authLoading && isFocused });

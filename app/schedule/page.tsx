@@ -1,3 +1,4 @@
+import { calendarMonthRange } from "@/lib/calendar/range";
 import type { Metadata } from "next";
 import { CalendarDays, SlidersHorizontal } from "lucide-react";
 import Link from "next/link";
@@ -75,7 +76,7 @@ export default async function SchedulePage({
     getMatchesByMonth(activeYear, activeMonth),
     getAllTeams(),
     getStages(),
-    getCalendarEvents({ includePastOneTime: true }),
+    getCalendarEvents({ includePastOneTime: true, dateRange: calendarMonthRange(`${activeYear}-${String(activeMonth).padStart(2,"0")}`).eventRange }),
   ]);
   const selectedTeam = teams.find((team) => team.id === activeTeam);
   const filteredCalendarEvents = selectedTeam
@@ -134,6 +135,7 @@ export default async function SchedulePage({
           triggerClassName="grid h-12 w-12 place-items-center rounded-full border border-[var(--ui-border)] bg-[var(--ui-surface)] text-[var(--ui-ink)] shadow-[0_12px_34px_rgba(15,23,42,0.18)] transition-colors hover:bg-[var(--ui-card-hover)]"
         >
           <HomeCalendar
+            teamId={selectedTeam?.id}
             initialMonthKey={`${activeYear}-${String(activeMonth).padStart(2, "0")}`}
             matches={calendarMatches}
             events={filteredCalendarEvents}

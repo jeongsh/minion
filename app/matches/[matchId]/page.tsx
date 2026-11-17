@@ -22,8 +22,9 @@ import {
   getAllPlayers,
   getAllTeams,
   getChampions,
-  getFanRatingsByMatchId,
-  getFanRatingReactionStates,
+  getOwnSetRatings,
+  getSetRatingSummary,
+  type SetRatingSummary,
   getMatchById,
   getMatches,
   getPlayerBenchmarkStatLines,
@@ -43,7 +44,6 @@ import {
   isSetRatingSnapshotReady,
 } from "@/lib/set-status";
 import {
-  fanRatingLeader,
   formatDateTime,
   matchHref,
   teamLabel,
@@ -67,6 +67,8 @@ import { MatchPreview } from "./match-preview";
 import { SetDetailContent } from "./set-detail-content";
 import { SetRatingForm } from "./set-rating-form";
 import { RatingCommentList } from "./rating-comment-list";
+import { getMatchRatingComments } from "@/lib/data/match-rating-comments";
+import { fanRatingSummaryLeader } from "@/lib/fan-rating";
 import { MatchSetSelect } from "./match-set-select";
 
 type MatchTab = "preview" | "data" | "rating" | "video" | "live";
@@ -312,11 +314,12 @@ function MatchRatingPanel({
   teams,
   players,
   playerStatLines,
-  fanRatings,
+  ownRatings,
+  ratingSummary,
+  reviewPage,
   champions,
   isLoggedIn,
   currentUserId,
-  reactionStates,
 }: {
   matchId: string;
   routeMatchId: string;
@@ -325,11 +328,12 @@ function MatchRatingPanel({
   teams: Team[];
   players: Player[];
   playerStatLines: PlayerStatLine[];
-  fanRatings: FanRating[];
+  ownRatings: FanRating[];
+  ratingSummary: SetRatingSummary[];
+  reviewPage: Awaited<ReturnType<typeof getMatchRatingComments>>;
   champions: Champion[];
   isLoggedIn: boolean;
   currentUserId?: string;
-  reactionStates: Record<string, "honor" | "dislike">;
 }) {
   if (!set) {
     return (
@@ -340,24 +344,12 @@ function MatchRatingPanel({
   }
 
   const setLines = playerStatLines.filter((line) => line.setId === set.id);
-  const setRatings = fanRatings.filter((rating) => rating.setId === set.id);
   const ratingStartedAt = getSetRatingStartedAt(set);
   const ratingOpen = isSetRatingOpen(set);
   const snapshotReady = isSetRatingSnapshotReady(set);
   const snapshotHref = `/matches/${routeMatchId}/sets/${set.id}/snapshot`;
   const matchSnapshotHref = `/matches/${routeMatchId}/snapshot`;
-  const leader = set.winnerTeamId
-    ? fanRatingLeader(
-        setRatings.filter((rating) => rating.teamId === set.winnerTeamId),
-      )
-    : null;
-  const reviewRows = setRatings
-    .filter((rating) => rating.review)
-    .sort(
-      (a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-    )
-    .slice(0, 100);
+  const leader = fanRatingSummaryLeader(ratingSummary, set.winnerTeamId);
   const selectableLines = [...setLines].sort((a, b) => {
     if (a.teamId !== b.teamId) return a.teamId === set.blueTeamId ? -1 : 1;
     return (
@@ -395,10 +387,9 @@ function MatchRatingPanel({
               const player = players.find((item) => item.id === line.playerId);
               const champion = champions.find((item) => item.id === line.championId);
               const team = teams.find((item) => item.id === line.teamId);
-              const playerRatings = setRatings.filter((rating) => rating.playerId === line.playerId);
-              const ratingTotal = playerRatings.reduce((sum, rating) => sum + rating.rating, 0);
+              const summary = ratingSummary.find(rating => rating.playerId === line.playerId);
               const myRating = currentUserId
-                ? playerRatings.find((rating) => rating.authorId === currentUserId)
+                ? ownRatings.find((rating) => rating.playerId === line.playerId)
                 : undefined;
               return {
                 value: line.playerId,
@@ -411,8 +402,8 @@ function MatchRatingPanel({
                 profileImageUrl: player?.profileImageUrl || undefined,
                 championImageUrl: championImage(champion) || undefined,
                 championName: champion?.name,
-                averageRating: playerRatings.length > 0 ? ratingTotal / playerRatings.length : undefined,
-                ratingCount: playerRatings.length,
+                averageRating: summary ? summary.total / summary.count : undefined,
+                ratingCount: summary?.count ?? 0,
                 myRating: myRating?.rating,
                 myReview: myRating?.review,
                 isPog: leader?.playerId === line.playerId,
@@ -424,26 +415,12 @@ function MatchRatingPanel({
 
       <section className="mt-3 sm:mt-5">
         <RatingCommentList
+          key={set.id + (reviewPage.items[0]?.id ?? "")}
+          matchId={matchId}
+          setId={set.id}
           viewerId={currentUserId}
-          items={reviewRows.map((rating) => {
-            const player = players.find((item) => item.id === rating.playerId);
-            return {
-              id: rating.id,
-              matchId: rating.matchId,
-              playerId: rating.playerId,
-              playerName: player?.name ?? "-",
-              playerImageUrl: player?.profileImageUrl ?? null,
-              rating: rating.rating,
-              review: rating.review,
-              authorId: rating.authorId,
-              authorName: rating.authorNickname ?? "익명",
-              authorImageUrl: rating.authorProfileImageUrl,
-              authorTier: rating.authorTier,
-              honorCount: rating.honorCount,
-              dislikeCount: rating.dislikeCount,
-              initialReaction: reactionStates[rating.id] ?? null,
-            };
-          })}
+          initialPage={reviewPage}
+          players={ratingSummary.filter(row => row.reviewCount > 0).map(row => ({ id: row.playerId, name: players.find(player => player.id === row.playerId)?.name ?? "-", count: row.reviewCount }))}
         />
       </section>
     </div>
@@ -499,7 +476,6 @@ export default async function MatchDetailPage({
     teams,
     players,
     matchSets,
-    fanRatings,
     predictionMarket,
     tournaments,
     stages,
@@ -508,7 +484,6 @@ export default async function MatchDetailPage({
     getAllTeams(),
     getAllPlayers(),
     getSetsByMatchId(match.id),
-    getFanRatingsByMatchId(match.id),
     getPredictionMarketData(currentUser?.id, match.id),
     getTournaments(),
     getStages(),
@@ -524,14 +499,13 @@ export default async function MatchDetailPage({
   const activeTab = normalizeTab(query.tab, defaultTab);
   const activeSet = requestedSet ?? defaultSet;
   // 아래 둘은 "rating" 탭에서만 쓰인다(MatchRatingPanel). 다른 탭에선 조회하지 않는다.
-  const matchPlayerStatLines =
-    activeTab === "rating" && matchSets.length > 0
-      ? await getPlayerStatLines(matchSets.map((set) => set.id))
-      : [];
-  const fanRatingReactionStates =
-    activeTab === "rating" && currentUser
-      ? await getFanRatingReactionStates(fanRatings.map((rating) => rating.id), currentUser.id)
-      : {};
+  const [matchPlayerStatLines, ratingSummary, ownRatings, reviewPage] = activeTab === "rating" && activeSet
+    ? await Promise.all([
+      getPlayerStatLines(activeSet.id), getSetRatingSummary(activeSet.id),
+      getOwnSetRatings(activeSet.id, currentUser?.id),
+      getMatchRatingComments(match.id, activeSet.id, null, null, currentUser?.id),
+    ])
+    : [[], [], [], { items: [], nextCursor: null }];
   const tournament = tournaments.find((item) => item.id === match.tournamentId);
   const stage = stages.find((item) => item.id === match.stageId);
   const teamA = teams.find((team) => team.id === match.teamAId);
@@ -569,7 +543,7 @@ export default async function MatchDetailPage({
 
   const poll = (
     <section aria-label="LP 승부예측">
-      <PredictionMatchBar match={match} teamA={teamA} teamB={teamB} bets={predictionMarket.bets} currentUserId={currentUser?.id} balance={predictionMarket.balance} now={now} />
+      <PredictionMatchBar match={match} teamA={teamA} teamB={teamB} bets={predictionMarket.bets} markets={predictionMarket.markets} currentUserId={currentUser?.id} balance={predictionMarket.balance} now={now} />
     </section>
   );
   // "preview" 탭에서만 필요한 전체 매치/세트 히스토리는 그 탭일 때만 조회한다.
@@ -772,11 +746,12 @@ export default async function MatchDetailPage({
             teams={teams}
             players={players}
             playerStatLines={matchPlayerStatLines}
-            fanRatings={fanRatings}
+            ownRatings={ownRatings}
+            ratingSummary={ratingSummary}
+            reviewPage={reviewPage}
             champions={ratingChampions}
             isLoggedIn={Boolean(currentUser)}
             currentUserId={currentUser?.id}
-            reactionStates={fanRatingReactionStates}
           />
         </div>
       ) : null}

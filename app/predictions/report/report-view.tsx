@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import type { getMyPredictionReport } from "@/lib/data/prediction-report";
 import { useMemo, useState } from "react";
 import { ArrowRight } from "lucide-react";
 
@@ -15,7 +17,7 @@ import { SectionHeading } from "@/components/ui/section-heading";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { SegmentedToggle } from "@/components/ui/tabs";
 import { TeamLogo } from "@/components/ui/team-logo";
-import { buildPredictionReport, filterPredictionRecords, predictionProfit, type PredictionRecord, type PredictionReport, type ReportPeriod, type ReportTeam } from "@/lib/prediction-report";
+import { predictionProfit, type PredictionRecord, type PredictionReport } from "@/lib/prediction-report";
 
 const number = (value: number) => value.toLocaleString("ko-KR");
 const signed = (value: number) => `${value > 0 ? "+" : ""}${number(value)}`;
@@ -28,18 +30,15 @@ const shortDate = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", mon
 const periodOptions = [{ key: "all", label: "전체" }, { key: "30", label: "최근 30일" }, { key: "90", label: "최근 90일" }] as const;
 const statusOptions = [{ value: "all", label: "모든 결과" }, ...Object.entries(statusLabels).map(([value, label]) => ({ value, label }))];
 
-export function PredictionReportView({ records, teams, now }: { records: PredictionRecord[]; teams: ReportTeam[]; now: number }) {
-  const [period, setPeriod] = useState<ReportPeriod>("all");
-  const [tournamentId, setTournamentId] = useState("all");
-  const [status, setStatus] = useState("all");
-  const [page, setPage] = useState(1);
-  const teamMap = useMemo(() => new Map(teams.map((team) => [team.id, team])), [teams]);
-  const tournaments = useMemo(() => [{ value: "all", label: "모든 대회" }, ...[...new Map(records.map((record) => [record.tournamentId, record.tournamentName])).entries()].sort((a, b) => b[1].localeCompare(a[1])).map(([value, label]) => ({ value, label }))], [records]);
-  const filtered = useMemo(() => filterPredictionRecords(records, period, tournamentId, now), [records, period, tournamentId, now]);
-  const report = useMemo(() => buildPredictionReport(filtered), [filtered]);
-  const history = useMemo(() => filtered.filter((record) => status === "all" || record.status === status).sort((a, b) => Date.parse(b.matchDate) - Date.parse(a.matchDate) || b.id.localeCompare(a.id)), [filtered, status]);
-  const totalPages = Math.max(1, Math.ceil(history.length / 12));
-  const currentPage = Math.min(page, totalPages);
+export function PredictionReportView({ report, history, teams, tournaments, period, tournamentId, status, page: currentPage, totalPages, totalCount, hasRecords }: NonNullable<Awaited<ReturnType<typeof getMyPredictionReport>>>) {
+  const router = useRouter();
+  const search = useSearchParams();
+  const teamMap = useMemo(() => new Map(teams.map(team => [team.id, team])), [teams]);
+  const update = (values: Record<string, string | number>) => {
+    const query = new URLSearchParams(search.toString());
+    for (const [key, value] of Object.entries(values)) query.set(key, String(value));
+    router.replace(`/predictions/report?${query}`, { scroll: false });
+  };
 
   const columns: DataTableColumn<PredictionRecord>[] = [
     { key: "date", label: "경기일", cellClassName: "whitespace-nowrap tabular-nums", render: (record) => <time dateTime={record.matchDate} title={dateFormat.format(new Date(record.matchDate))}>{historyDateFormat.format(new Date(record.matchDate)).replace(/\s/g, "").replace(/\.$/, "")}</time> },
@@ -59,7 +58,7 @@ export function PredictionReportView({ records, teams, now }: { records: Predict
     { key: "profit", label: "순손익 LP", align: "center", render: (record) => <span className={`whitespace-nowrap font-medium tabular-nums ${profitTone(predictionProfit(record))}`}>{record.status === "open" ? "—" : signed(predictionProfit(record))}</span> },
   ];
 
-  if (!records.length) return (
+  if (!hasRecords) return (
     <div className="flex flex-col items-center gap-4 py-10 text-center">
       <p className="text-base text-[var(--ui-muted)]">아직 참여한 승부예측이 없어요.</p>
       <Link href="/predictions" className={buttonClassName()}>승부예측 참여하기<ArrowRight size={16} className="ml-2" aria-hidden="true" /></Link>
@@ -69,14 +68,14 @@ export function PredictionReportView({ records, teams, now }: { records: Predict
   return (
     <div className="mt-4 space-y-5">
       <EventFilterBar>
-          <SegmentedToggle items={periodOptions} activeKey={period} ariaLabel="리포트 기간" onSelect={(value) => { setPeriod(value); setPage(1); }} />
-          <EventFilterField options={tournaments} selected={tournamentId} label="대회" onSelect={(value) => { setTournamentId(value); setPage(1); }} />
+          <SegmentedToggle items={periodOptions} activeKey={period} ariaLabel="리포트 기간" onSelect={(value) => { update({ period: value, page: 1 }); }} />
+          <EventFilterField options={tournaments} selected={tournamentId} label="대회" onSelect={(value) => { update({ tournament: value, page: 1 }); }} />
       </EventFilterBar>
 
-      {!filtered.length ? (
+      {!report.count ? (
         <div className="flex flex-col items-center gap-4 py-10 text-center">
           <p className="text-base text-[var(--ui-muted)]">선택한 기간과 대회에 예측 기록이 없어요.</p>
-          <Button variant="secondary" onClick={() => { setPeriod("all"); setTournamentId("all"); setPage(1); }}>전체 기록 보기</Button>
+          <Button variant="secondary" onClick={() => { update({ period: "all", tournament: "all", page: 1 }); }}>전체 기록 보기</Button>
         </div>
       ) : <>
         <section aria-label="예측 성과 요약">
@@ -122,9 +121,9 @@ export function PredictionReportView({ records, teams, now }: { records: Predict
         </section> : null}
 
         <section className="min-w-0" aria-labelledby="prediction-history-heading">
-          <SectionHeading aside={<div className="flex items-center gap-2"><span className="text-[13px] text-[var(--ui-muted)]" aria-live="polite">{number(history.length)}건</span><EventFilterField options={statusOptions} selected={status} label="예측 결과" onSelect={(value) => { setStatus(value); setPage(1); }} /></div>}><span id="prediction-history-heading">예측 이력</span></SectionHeading>
-          {history.length ? <DataTable compact columns={columns} rows={history.slice((currentPage - 1) * 12, currentPage * 12)} /> : <p className="py-8 text-center text-base text-[var(--ui-muted)]">선택한 결과에 해당하는 예측이 없어요.</p>}
-          {totalPages > 1 ? <Pagination page={currentPage} totalPages={totalPages} onChange={setPage} className="mt-2" /> : null}
+          <SectionHeading aside={<div className="flex items-center gap-2"><span className="text-[13px] text-[var(--ui-muted)]" aria-live="polite">{number(totalCount)}건</span><EventFilterField options={statusOptions} selected={status} label="예측 결과" onSelect={(value) => { update({ status: value, page: 1 }); }} /></div>}><span id="prediction-history-heading">예측 이력</span></SectionHeading>
+          {history.length ? <DataTable compact columns={columns} rows={history} /> : <p className="py-8 text-center text-base text-[var(--ui-muted)]">선택한 결과에 해당하는 예측이 없어요.</p>}
+          {totalPages > 1 ? <Pagination page={currentPage} totalPages={totalPages} onChange={value => update({ page: value })} className="mt-2" /> : null}
         </section>
       </>}
     </div>

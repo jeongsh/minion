@@ -138,6 +138,7 @@ export function ChampionDetail() {
   const { fonts, theme } = useMinionTheme();
   const slug = first(params.championSlug) ?? '';
   const initialTab = TABS.some((tab) => tab.key === first(params.tab)) ? first(params.tab) as TabKey : 'overview';
+  const [gamePage, setGamePage] = useState(1);
   const [tab, setTab] = useState<TabKey>(initialTab);
   const [season, setSeason] = useState(first(params.season) ?? '');
   const [tournament, setTournament] = useState(first(params.tournament) ?? 'all');
@@ -146,7 +147,7 @@ export function ChampionDetail() {
   const [scopeOpen, setScopeOpen] = useState<ScopeKey | null>(null);
   const [positionOpen, setPositionOpen] = useState(false);
   const [championOpen, setChampionOpen] = useState(false);
-  const path = useMemo(() => buildPath(slug, { season, tournament, patch, position }), [patch, position, season, slug, tournament]);
+  const path = useMemo(() => buildPath(slug, { season, tournament, patch, position, tab, view: 'paged', page: String(gamePage) }), [patch, position, season, slug, tournament, tab, gamePage]);
   const { data, error, loading, refresh, refreshControl } = useScreenQuery<MobileChampionDetailDto>(path, { enabled: Boolean(slug), staleTimeMs: 30_000 });
   useEffect(() => { if (tab === 'duos' && data && data.selectedPosition !== 'BOT' && data.selectedPosition !== 'SUP') setTab('stats'); }, [data, tab]);
 
@@ -161,7 +162,7 @@ export function ChampionDetail() {
     : tab === 'matchups' ? <MatchupView rows={data.matchups} />
       : tab === 'duos' ? <DuoView rows={data.duos} />
         : tab === 'pros' ? <ProView rows={data.pros} />
-          : tab === 'games' ? <GamesView rows={data.games} />
+          : tab === 'games' ? <GamesView rows={data.games} pagination={data.gamesPagination} onPage={setGamePage} />
             : <StatsView stats={data.stats} totalGames={data.summary.picks} />;
 
   const navigateChampion = (nextSlug: string) => {
@@ -182,7 +183,7 @@ export function ChampionDetail() {
         <ScopeControls data={data} onOpen={setScopeOpen} patch={patch} season={effectiveSeason} tournament={tournament} />
         <Summary data={data} />
         <ContentBanner placement="champion-detail-1" enabled={true} suspended={Boolean(scopeOpen) || championOpen || positionOpen} />
-        <TabNav active={tab} data={data} onSelect={setTab} />
+        <TabNav active={tab} data={data} onSelect={next => { setGamePage(1); setTab(next); }} />
         {view}
         <ContentBanner placement="champion-detail-2" enabled={true} suspended={Boolean(scopeOpen) || championOpen || positionOpen} />
       </View>

@@ -1,3 +1,4 @@
+import { calendarMonthRange } from "@/lib/calendar/range";
 import { unstable_cache } from "next/cache";
 import {
   getAllTeams,
@@ -23,7 +24,7 @@ export const getMobileHomePublicData = unstable_cache(
       getAllTeams(),
       getMatches(),
       getTournaments(),
-      getCalendarEvents({ includePastOneTime: true }),
+      getCalendarEvents({ includePastOneTime: true, dateRange: calendarMonthRange().eventRange }),
     ]);
 
     return { teams, matches, tournaments, calendarEvents };

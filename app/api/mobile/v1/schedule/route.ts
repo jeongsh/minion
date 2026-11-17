@@ -1,3 +1,4 @@
+import { calendarMonthRange } from "@/lib/calendar/range";
 import type { MobileScheduleDto } from "@/packages/contracts/src/mobile-v1";
 import { getCalendarEvents } from "@/lib/calendar/events";
 import { getAllTeams, getMatchesByMonth, getTournaments } from "@/lib/data/lck";
@@ -27,7 +28,7 @@ export async function GET(request: Request) {
     getMatchesByMonth(queryYear, activeMonth),
     getAllTeams(),
     getTournaments(),
-    includeCalendar ? getCalendarEvents({ includePastOneTime: true }) : Promise.resolve([]),
+    includeCalendar ? getCalendarEvents({ includePastOneTime: true, dateRange: calendarMonthRange(`${queryYear}-${String(activeMonth).padStart(2,"0")}`).eventRange }) : Promise.resolve([]),
   ]);
   const years = Array.from(new Set(tournaments.map((item) => item.season))).sort((a, b) => b - a);
   const activeYear = years.includes(queryYear) ? queryYear : (years.includes(currentYear) ? currentYear : years[0] ?? currentYear);

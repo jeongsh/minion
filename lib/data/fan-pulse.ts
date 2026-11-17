@@ -79,12 +79,8 @@ export const getFanTemperatureSnapshot = cache(async function getFanTemperatureS
   const supabase = createSupabaseAdminClient();
   const now = new Date().toISOString();
 
-  const [heat, onions, checkins, fans] = await Promise.all([
-    supabase
-      .from("fan_temperature_events")
-      .select("weight", { count: "exact", head: false })
-      .eq("team_id", teamId)
-      .gte("created_at", sinceHours(24)),
+  const [totals, onions, checkins] = await Promise.all([
+    supabase.rpc("read_fan_totals", { p_team_id: teamId, p_since: sinceHours(24) }),
     supabase
       .from("fan_onions")
       .select("id", { count: "exact", head: true })
@@ -95,21 +91,10 @@ export const getFanTemperatureSnapshot = cache(async function getFanTemperatureS
       .select("id", { count: "exact", head: true })
       .eq("team_id", teamId)
       .eq("checkin_date", todayKST()),
-    // 팔로워는 행이 아니라 신원(계정 우선, 없으면 쿠키) 단위로 센다. lck.ts getTeamFanCount와 동일 규칙.
-    supabase
-      .from("team_fans")
-      .select("user_id, voter_key")
-      .eq("team_id", teamId),
   ]);
+  if (totals.error) throw totals.error;
+  const fanCountDistinct = Number(totals.data.fanCount);
 
-  const fanCountDistinct = new Set(
-    (fans.data ?? []).map((row) => (row.user_id ? `u:${row.user_id}` : `v:${row.voter_key}`)),
-  ).size;
-
-  if (heat.error) {
-    if (isMissingTableError(heat.error)) return emptySnapshot();
-    throw heat.error;
-  }
   if (onions.error) {
     if (isMissingTableError(onions.error)) {
       return {
@@ -121,11 +106,9 @@ export const getFanTemperatureSnapshot = cache(async function getFanTemperatureS
     throw onions.error;
   }
   if (checkins.error) throw checkins.error;
-  if (fans.error) throw fans.error;
 
-  const heatRows = (heat.data ?? []) as { weight: number | null }[];
-  const heatWeight = heatRows.reduce((sum, row) => sum + (row.weight ?? 1), 0);
-  const heatCount24h = heatRows.length;
+  const heatWeight = Number(totals.data.heatWeight);
+  const heatCount24h = Number(totals.data.heatCount);
   const onionCountActive = onions.count ?? 0;
   const checkinCountToday = checkins.count ?? 0;
   const fanCount = fanCountDistinct;

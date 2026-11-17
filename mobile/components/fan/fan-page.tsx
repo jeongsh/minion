@@ -1,3 +1,4 @@
+import { useFanMedia } from '@/components/fan/use-fan-media';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -42,7 +43,7 @@ export type FanPageSection = 'home' | 'players' | 'schedule' | 'social' | 'video
 export function FanPage({ section }: { section: FanPageSection }) {
   const params = useLocalSearchParams<{ team?: string | string[] }>();
   const teamSlug = Array.isArray(params.team) ? params.team[0] : params.team;
-  const path = teamSlug ? `/api/mobile/v1/teams/${encodeURIComponent(teamSlug)}?section=${section}` : '/api/mobile/v1/teams/__missing__';
+  const path = teamSlug ? `/api/mobile/v1/teams/${encodeURIComponent(teamSlug)}?section=${section}&view=paged` : '/api/mobile/v1/teams/__missing__';
   const { data, error, loading, refresh, refreshControl } = useScreenQuery<MobileTeamDetailDto>(path, { enabled: Boolean(teamSlug) });
 
   if (loading && !data) return <MinionScreen refreshControl={refreshControl} contentStyle={styles.screenContent}><FanLoadingSkeleton section={section} /></MinionScreen>;
@@ -54,10 +55,17 @@ export function FanPage({ section }: { section: FanPageSection }) {
       {section === 'home' ? <FanHome data={data} /> : null}
       {section === 'schedule' ? <><FanSchedule data={data} /><ContentBanner placement="fan-page-1" enabled={(data.matches?.length ?? 0) > 0} /></> : null}
       {section === 'players' ? <FanPlayers players={data.players} team={data.team} /> : null}
-      {section === 'social' ? <FanSocial items={data.social} teamName={data.team.shortName} /> : null}
-      {section === 'videos' ? <FanVideos items={data.videos} teamName={data.team.shortName} /> : null}
+      {section === 'social' ? <PagedMedia key={`${teamSlug}:${data.social[0]?.id ?? "empty"}`} initial={data} teamSlug={teamSlug!} section="social" /> : null}
+      {section === 'videos' ? <PagedMedia key={`${teamSlug}:${data.videos[0]?.id ?? "empty"}`} initial={data} teamSlug={teamSlug!} section="videos" /> : null}
     </MinionScreen>
   );
+}
+
+function PagedMedia({ initial, teamSlug, section }: { initial: MobileTeamDetailDto; teamSlug: string; section: 'social' | 'videos' }) {
+  const { page, paging } = useFanMedia(initial, teamSlug, section);
+  return section === 'social'
+    ? <FanSocial items={page.social} teamName={page.team.shortName} paging={paging} />
+    : <FanVideos items={page.videos} teamName={page.team.shortName} paging={paging} />;
 }
 
 function FanHome({ data }: { data: MobileTeamDetailDto }) {
@@ -356,7 +364,7 @@ function FanChannelHeader({ data }: { data: MobileTeamDetailDto }) {
             </HeaderControl>
             <HeaderControl accessibilityLabel={favorite ? `${data.team.shortName} 최애팀 해제` : `${data.team.shortName} 최애팀 설정`} background={controlBackground} border={controlBorder} disabled={!staticTeam || Boolean(pending)} onPress={() => void toggleFavorite()}><Star color={favorite ? teamAccent : controlForeground} fill={favorite ? teamAccent : 'none'} size={17} strokeWidth={2.3} /></HeaderControl>
             <HeaderControl accessibilityLabel={notificationEnabled ? '팬 채널 알림 끄기' : '팬 채널 알림 켜기'} background={controlBackground} border={controlBorder} disabled={Boolean(pending)} onPress={() => void toggleNotification()}><Bell color={notificationEnabled ? data.team.primaryColor : controlForeground} fill={notificationEnabled ? data.team.primaryColor : 'none'} size={16} /></HeaderControl>
-            <FanCalendarDialog background={controlBackground} border={controlBorder} events={data.calendarEvents} iconColor={controlForeground} matches={data.matches} teamShort={data.team.shortName} />
+            <FanCalendarDialog teamSlug={data.team.fanSiteHost} background={controlBackground} border={controlBorder} events={data.calendarEvents} iconColor={controlForeground} matches={data.matches} teamShort={data.team.shortName} />
           </View>
         </View>
       </View>

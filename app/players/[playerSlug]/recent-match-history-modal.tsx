@@ -3,6 +3,7 @@
 import { ChevronDown, LoaderCircle } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { loadPlayerHistory } from "./history-actions";
 import { PlayerStatTable } from "@/components/domain/player-stat-table";
 import { DialogSheetHeader } from "@/components/responsive/adaptive-dialog";
 import { DEFAULT_DDRAGON_VERSION, ddragonVersionFromPatch } from "@/lib/ddragon";
@@ -174,26 +175,43 @@ export function RecentMatchSetRows({
 export function RecentMatchHistoryModal({
   player,
   teams,
-  rows,
+  segment,
   champions,
-  spellsByVersion,
-  runeCatalogByVersion,
 }: {
   player: Player;
   teams: Team[];
-  rows: RecentMatchRow[];
+  segment: string;
   champions: ChampionLike[];
-  spellsByVersion: Record<string, GameSpell[]>;
-  runeCatalogByVersion: Record<string, RuneCatalog>;
 }) {
   const [open, setOpen] = useState(false);
-  const [visibleCount, setVisibleCount] = useState(3);
+  const [page, setPage] = useState<Awaited<ReturnType<typeof loadPlayerHistory>>>({ rows: [], nextCursor: null, spellsByVersion: {}, runeCatalogByVersion: {} });
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const visibleRows = rows.slice(0, visibleCount);
-  const hasMore = visibleCount < rows.length;
+  const versionRef = useRef(0);
+  const busy = useRef(false);
+  const visibleRows = page.rows;
+  const hasMore = Boolean(page.nextCursor);
+  const spellsByVersion = page.spellsByVersion;
+  const runeCatalogByVersion = page.runeCatalogByVersion;
+  async function load(append: boolean) {
+    if (append && busy.current) return;
+    const version = ++versionRef.current;
+    busy.current = true;
+    setLoading(true);
+    setError(null);
+    try {
+      const next = await loadPlayerHistory(player.slug, segment, append && page.nextCursor ? JSON.stringify(page.nextCursor) : null);
+      if (version !== versionRef.current) return;
+      setPage(current => append ? { ...next, rows: [...current.rows, ...next.rows.filter(row => !current.rows.some(old => old.match.id === row.match.id))], spellsByVersion: { ...current.spellsByVersion, ...next.spellsByVersion }, runeCatalogByVersion: { ...current.runeCatalogByVersion, ...next.runeCatalogByVersion } } : next);
+    } catch (caught) {
+      if (version === versionRef.current) setError(caught instanceof Error ? caught.message : "경기 기록을 불러오지 못했습니다.");
+    } finally {
+      if (version === versionRef.current) { busy.current = false; setLoading(false); }
+    }
+  }
+  useEffect(() => () => { versionRef.current++; }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -206,14 +224,13 @@ export function RecentMatchHistoryModal({
     window.addEventListener("keydown", closeOnEscape);
 
     return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", closeOnEscape);
     };
   }, [open]);
 
   useEffect(() => {
-    if (!open || !hasMore || loading) return;
+    if (!open || !hasMore || loading || error) return;
     const root = scrollRef.current;
     const sentinel = sentinelRef.current;
     if (!root || !sentinel) return;
@@ -222,11 +239,7 @@ export function RecentMatchHistoryModal({
       ([entry]) => {
         if (entry.isIntersecting) {
           observer.disconnect();
-          setLoading(true);
-          timerRef.current = setTimeout(() => {
-            setVisibleCount((count) => Math.min(count + 3, rows.length));
-            setLoading(false);
-          }, 0);
+          void load(true);
         }
       },
       { root, rootMargin: "120px 0px" },
@@ -234,17 +247,16 @@ export function RecentMatchHistoryModal({
 
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [hasMore, loading, open, rows.length, visibleCount]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasMore, loading, open, page.nextCursor, error]);
 
   return (
     <>
       <button
         type="button"
         onClick={() => {
-          if (timerRef.current) clearTimeout(timerRef.current);
-          setLoading(false);
-          setVisibleCount(3);
-          setOpen(true);
+              setOpen(true);
+          void load(false);
         }}
         className="rounded-full bg-[var(--ui-ink)] px-4 py-2 text-sm font-semibold text-[var(--ui-surface)] transition-opacity hover:opacity-90"
       >
@@ -271,7 +283,7 @@ export function RecentMatchHistoryModal({
               ref={scrollRef}
               className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 sm:p-5"
             >
-              {visibleRows.length === 0 ? (
+              {loading && visibleRows.length === 0 ? <p className="p-5 text-sm text-[var(--ui-muted)]">불러오는 중</p> : visibleRows.length === 0 ? (
                 <div className="rounded-xl bg-[var(--ui-card-bg)] p-5 text-sm text-[var(--ui-muted)]">
                   경기 기록이 없습니다.
                 </div>
@@ -305,6 +317,7 @@ export function RecentMatchHistoryModal({
                   ) : null}
                 </div>
               )}
+              {error ? <button type="button" onClick={() => void load(Boolean(page.nextCursor))} className="p-3 text-sm">{error} 다시 시도</button> : null}
             </div>
           </div>
         </div>,

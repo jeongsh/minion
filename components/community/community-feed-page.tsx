@@ -1,3 +1,4 @@
+import { calendarMonthRange } from "@/lib/calendar/range";
 import { CommunityFeed } from "@/components/community/community-feed";
 import { CommunityContentLayout } from "@/components/community/community-content-layout";
 import { CommunityDirectoryNav } from "@/components/community/community-directory-nav";
@@ -35,7 +36,7 @@ export async function CommunityFeedPage({
   const [postPage, todayCelebrations, viewer, teams, favoriteTeamId, followedTeamIds] = await Promise.all([
     getBoardPostPage({ scope, teamId, page, boardType: category, search, hotOnly }),
     scope === "team" && teamId
-      ? getCalendarEvents({ teamId }).then(getTodayCelebrations)
+      ? getCalendarEvents({ teamId, dateRange: calendarMonthRange().eventRange }).then(getTodayCelebrations)
       : Promise.resolve([]),
     getCurrentUser(),
     getTeamsSortedByRank(),

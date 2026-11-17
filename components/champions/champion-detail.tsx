@@ -975,23 +975,22 @@ function GamesTab({
   params,
   basePath,
   page,
+  total,
 }: {
   analysis: ChampionAnalysis;
   params: URLSearchParams;
   basePath: string;
   page: number;
+  total: number;
 }) {
   const pageSize = 20;
-  const pageCount = Math.max(1, Math.ceil(analysis.games.length / pageSize));
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
   const activePage = Math.max(1, Math.min(pageCount, page));
-  const rows = analysis.games.slice(
-    (activePage - 1) * pageSize,
-    activePage * pageSize,
-  );
+  const rows = analysis.games;
   return (
     <SectionCard
       title="경기"
-      caption={`${analysis.games.length.toLocaleString("ko-KR")}경기 · 최신순`}
+      caption={`${total.toLocaleString("ko-KR")}경기 · 최신순`}
     >
       {rows.length ? (
         <Table framed={false}>
@@ -1223,6 +1222,7 @@ export function ChampionDetail({
   params,
   catalogs,
   gamePage,
+  gameTotal,
   scopeControl,
 }: {
   champion: Champion;
@@ -1232,6 +1232,7 @@ export function ChampionDetail({
   params: URLSearchParams;
   catalogs: ChampionCatalogs;
   gamePage: number;
+  gameTotal: number;
   scopeControl: ReactNode;
 }) {
   const basePath = `/champions/${champion.slug}`;
@@ -1263,7 +1264,7 @@ export function ChampionDetail({
       {activeTab === "matchups" ? <MatchupsTab rows={analysis.matchups} /> : null}
       {activeTab === "duos" ? <DuosTab rows={analysis.duos} position={analysis.overview.selectedPosition} /> : null}
       {activeTab === "pros" ? <PlayersTab players={analysis.players} /> : null}
-      {activeTab === "games" ? <GamesTab analysis={analysis} params={params} basePath={basePath} page={gamePage} /> : null}
+      {activeTab === "games" ? <GamesTab analysis={analysis} params={params} basePath={basePath} page={gamePage} total={gameTotal} /> : null}
       {activeTab === "stats" ? <StatsTab analysis={analysis} /> : null}
       <AdSlot enabled placement="horizontal" className="h-[60px] xl:h-[90px]" />
       </>}
