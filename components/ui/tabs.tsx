@@ -6,6 +6,7 @@ export type TabItem = {
   label: ReactNode;
   href: string;
   scroll?: boolean;
+  prefetch?: boolean;
   disabled?: boolean;
 };
 
@@ -113,6 +114,7 @@ export function UnderlineNav({
   bordered = true,
   activeTone = "accent",
   compact = false,
+  spread = false,
 }: {
   items: TabItem[];
   activeKey: string;
@@ -123,13 +125,15 @@ export function UnderlineNav({
   /** 승패 상태색과 내비게이션 활성색을 분리해야 하는 화면에서는 ink를 쓴다. */
   activeTone?: "accent" | "ink";
   compact?: boolean;
+  /** Header navigation: equal-width links with a label-width active indicator. */
+  spread?: boolean;
 }) {
   if (items.length === 0) return null;
 
   return (
     <nav
       aria-label={ariaLabel}
-      className={`tab-scroll flex h-10 max-w-full shrink-0 items-center overflow-x-auto ${compact ? "gap-4 sm:gap-5" : "gap-5 sm:gap-7"} ${
+      className={`tab-scroll flex max-w-full shrink-0 overflow-x-auto ${spread ? "h-12 items-stretch gap-0 px-2" : `h-10 items-center ${compact ? "gap-4 sm:gap-5" : "gap-5 sm:gap-7"}`} ${
         bordered ? "border-b border-[var(--ui-border)]" : ""
       } ${className}`}
     >
@@ -141,16 +145,19 @@ export function UnderlineNav({
             key={item.key}
             href={item.href}
             scroll={item.scroll}
+            prefetch={item.prefetch}
             aria-current={isActive ? "page" : undefined}
-            className={`flex h-full shrink-0 items-center justify-center whitespace-nowrap font-medium transition-colors ${compact ? "border-b-2 text-[14px]" : "border-b-[3px] text-[16px]"} ${
+            className={`flex h-full items-center justify-center whitespace-nowrap font-medium transition-colors focus-visible:outline-2 focus-visible:outline-[var(--accent)] ${spread ? "min-w-0 flex-1 px-1 text-[16px]" : `shrink-0 ${compact ? "border-b-2 text-[14px]" : "border-b-[3px] text-[16px]"}`} ${
               isActive
-                ? activeTone === "ink"
+                ? spread
+                  ? activeTone === "ink" ? "text-[var(--ui-ink)]" : "text-[var(--accent)]"
+                  : activeTone === "ink"
                   ? "border-[var(--ui-ink)] text-[var(--ui-ink)]"
                   : "border-[var(--accent)] text-[var(--ui-ink)]"
                 : "border-transparent text-[var(--ui-muted)] hover:text-[var(--ui-ink)]"
             }`}
           >
-            {item.label}
+            {spread ? <span className={`relative flex h-full items-center ${isActive ? "after:absolute after:-inset-x-1 after:bottom-0 after:h-[3px] after:rounded-full after:bg-current" : ""}`}>{item.label}</span> : item.label}
           </Link>
         );
       })}

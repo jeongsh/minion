@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { PagedFanInstagramFeed } from "@/components/fan/fan-instagram-feed";
+import { FanMediaSwitch } from "@/components/fan/fan-media-switch";
 import { FanPageShell } from "@/components/fan/fan-page-shell";
 import {
   getInstagramStories,
@@ -37,6 +38,7 @@ export default async function FanInstagramPage({
   return (
     <FanPageShell>
       <h1 className="sr-only">인스타그램</h1>
+      <FanMediaSwitch teamSlug={team.fanSiteHost || teamSlug} active="instagram" />
       <PagedFanInstagramFeed
         key={team.id}
         teamSlug={team.fanSiteHost || teamSlug}

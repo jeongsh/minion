@@ -1,14 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronRight, Heart, Shield } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { Heart, Shield } from "lucide-react";
+import { useMemo } from "react";
 
 import { AdaptiveDialog } from "@/components/responsive/adaptive-dialog";
 import { TeamLogo } from "@/components/ui/team-logo";
 import type { Team } from "@/lib/types";
-
-const RECENT_FAN_TEAM_KEY = "minion-recent-fan-team";
 
 function TeamGrid({ teams, followedIds }: { teams: Team[]; followedIds?: Set<string> }) {
   return (
@@ -42,19 +40,25 @@ function TeamGrid({ teams, followedIds }: { teams: Team[]; followedIds?: Set<str
 export function TeamPicker({
   teams,
   followedTeams,
+  favoriteTeam,
   active,
   className,
 }: {
   teams: Team[];
   followedTeams: Team[];
+  favoriteTeam?: Team | null;
   active: boolean;
   className: string;
 }) {
   const followedIds = useMemo(() => new Set(followedTeams.map((team) => team.id)), [followedTeams]);
-  const orderedTeams = useMemo(
-    () => [...followedTeams, ...teams.filter((team) => !followedIds.has(team.id))],
-    [followedIds, followedTeams, teams],
-  );
+  const orderedTeams = useMemo(() => {
+    const seen = new Set<string>();
+    return [favoriteTeam, ...followedTeams, ...teams].filter((team): team is Team => {
+      if (!team || seen.has(team.id)) return false;
+      seen.add(team.id);
+      return true;
+    });
+  }, [favoriteTeam, followedTeams, teams]);
 
   return (
     <AdaptiveDialog
@@ -65,8 +69,8 @@ export function TeamPicker({
       panelClassName="sm:max-w-[420px]"
       trigger={
         <>
-          <span className="relative grid h-5 w-5 place-items-center">
-            <Shield size={20} strokeWidth={active ? 2.5 : 2} />
+          <span className={`relative grid place-items-center ${favoriteTeam ? "-mt-5 h-10 w-10 overflow-hidden rounded-full border-[3px] border-[var(--page-background)] bg-[var(--ui-surface-muted)]" : "h-5 w-5"}`}>
+            {favoriteTeam ? <TeamLogo team={favoriteTeam} size="h-7 w-7" themeAware plain /> : <Shield size={20} strokeWidth={active ? 2.5 : 2} />}
           </span>
           <span className="max-w-full truncate">팀</span>
         </>
@@ -75,72 +79,6 @@ export function TeamPicker({
       <section aria-label="팀 선택" className="pb-2">
         <TeamGrid teams={orderedTeams} followedIds={followedIds} />
       </section>
-    </AdaptiveDialog>
-  );
-}
-
-export function FanTeamPicker({
-  teams,
-  followedTeams,
-  currentTeam,
-  active,
-  className,
-}: {
-  teams: Team[];
-  followedTeams: Team[];
-  currentTeam?: Team | null;
-  active: boolean;
-  className: string;
-}) {
-  const [recentTeamId, setRecentTeamId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (currentTeam) {
-      localStorage.setItem(RECENT_FAN_TEAM_KEY, currentTeam.id);
-      return;
-    }
-    const frame = window.requestAnimationFrame(() => {
-      setRecentTeamId(localStorage.getItem(RECENT_FAN_TEAM_KEY));
-    });
-    return () => window.cancelAnimationFrame(frame);
-  }, [currentTeam]);
-
-  const recentTeam = useMemo(
-    () => currentTeam ?? teams.find((team) => team.id === recentTeamId) ?? null,
-    [currentTeam, recentTeamId, teams],
-  );
-  const orderedTeams = useMemo(() => {
-    const seen = new Set<string>();
-    return [recentTeam, ...followedTeams, ...teams].filter((team): team is Team => {
-      if (!team || seen.has(team.id)) return false;
-      seen.add(team.id);
-      return true;
-    });
-  }, [followedTeams, recentTeam, teams]);
-
-  return (
-    <AdaptiveDialog
-      title="팬페이지 바로가기"
-      triggerAriaLabel="팬페이지 팀 선택"
-      triggerAriaCurrent={active ? "page" : undefined}
-      triggerClassName={className}
-      panelClassName="sm:max-w-[420px]"
-      trigger={
-        <>
-          <span className="relative grid h-5 w-5 place-items-center">
-            <Heart size={20} strokeWidth={active ? 2.5 : 2} />
-          </span>
-          <span className="max-w-full truncate">팬</span>
-        </>
-      }
-    >
-      <section aria-label="팀 선택">
-        <TeamGrid teams={orderedTeams} />
-      </section>
-
-      <Link href="/teams" className="mt-2 flex min-h-11 items-center justify-center gap-1 border-t border-[var(--ui-border)] pt-2 text-[13px] font-medium text-[var(--ui-muted)]">
-        소셜과 영상까지 둘러보기 <ChevronRight size={15} />
-      </Link>
     </AdaptiveDialog>
   );
 }

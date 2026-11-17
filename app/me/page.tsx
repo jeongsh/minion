@@ -1,9 +1,10 @@
-import { Bell, ChartNoAxesCombined, ChevronRight, FileText, LockKeyhole, LogOut, Mail, ShieldBan, Sticker, UserRound } from "lucide-react";
+import { Bell, ChartNoAxesCombined, ChevronRight, FileText, LockKeyhole, LogOut, Mail, Moon, ShieldBan, Sticker, UserRound } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { DeleteAccountForm } from "@/components/auth/delete-account-form";
 import { LogoutButton } from "@/components/auth/logout-button";
+import { ThemeModeToggle } from "@/components/layout/theme-toggle";
 import { PasswordForm } from "@/components/auth/password-form";
 import { ProfileForm } from "@/components/auth/profile-form";
 import { LinkedAccountsForm } from "@/components/auth/linked-accounts-form";
@@ -168,6 +169,10 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
               <LinkedAccountsForm linked={linkedProviders} message={linked === "1" ? "SNS 계정이 연동되었습니다." : undefined} error={linkError} />
             </AccountSection>
 
+            <AccountSection id="display" icon={Moon} title="화면" className="md:hidden">
+              <ThemeModeToggle />
+            </AccountSection>
+
             <AccountSection id="notifications" icon={Bell} title="알림">
               <NotificationSettingsForm initialPreferences={preferences} initialTeams={teamNotificationPreferences} />
             </AccountSection>
@@ -207,14 +212,15 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
   );
 }
 
-function AccountSection({ id, icon: Icon, title, children }: {
+function AccountSection({ id, icon: Icon, title, className = "", children }: {
   id: string;
   icon: typeof UserRound;
   title: string;
+  className?: string;
   children: React.ReactNode;
 }) {
   return (
-    <section id={id} className="me-card scroll-mt-28 rounded-xl border p-4 sm:scroll-mt-24 sm:rounded-2xl sm:p-6">
+    <section id={id} className={`${className} me-card scroll-mt-28 rounded-xl border p-4 sm:scroll-mt-24 sm:rounded-2xl sm:p-6`}>
       <div className="mb-4 flex items-start gap-2 sm:mb-5 sm:gap-3">
         <span className="grid h-[30px] w-[30px] shrink-0 place-items-center rounded-lg bg-[var(--ui-surface-muted)] text-[var(--ui-muted)] sm:h-10 sm:w-10 sm:rounded-xl"><Icon size={16} /></span>
         <h3 className="min-w-0 text-[15px] font-black leading-[30px] tracking-[-0.02em] text-[var(--ui-ink)] sm:text-lg sm:leading-10">{title}</h3>

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { PagedFanVideoFeed } from "@/components/fan/fan-video-feed";
+import { FanMediaSwitch } from "@/components/fan/fan-media-switch";
 import { FanPageShell } from "@/components/fan/fan-page-shell";
 import {
   getTeamByFanSiteHost,
@@ -29,6 +30,7 @@ export default async function FanVideosPage({
   return (
     <FanPageShell>
       <h1 className="sr-only">영상</h1>
+      <FanMediaSwitch teamSlug={team.fanSiteHost || teamSlug} active="videos" />
       <PagedFanVideoFeed key={team.id} teamSlug={team.fanSiteHost || teamSlug} teamName={team.shortName} initialPage={initialPage} tabs={tabs} />
     </FanPageShell>
   );

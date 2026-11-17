@@ -1,6 +1,6 @@
 "use client";
 
-import { MobileNavigation, MobileLocalNavigation } from "@/components/layout/mobile-navigation";
+import { MobileNavigation, MobileLocalNavigation, hasMobileLocalNavigation } from "@/components/layout/mobile-navigation";
 import { DesktopNavigation } from "@/components/layout/desktop-navigation";
 
 import { MessageIndicator } from "@/components/messages/message-indicator";
@@ -18,6 +18,7 @@ import {
   X,
 } from "lucide-react";
 import { BrandLogo } from "@/components/layout/brand-logo";
+import { THEME_STORAGE_KEY, applyTheme, saveTheme } from "@/components/layout/theme-toggle";
 import { HeaderSearch } from "@/components/layout/header-search";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { DesktopAdRails } from "@/components/ads/desktop-ad-rails";
@@ -42,15 +43,6 @@ export type AppShellUser = {
   lp: number;
 } | null;
 
-const THEME_STORAGE_KEY = "minion-theme";
-
-function applyTheme(theme: "dark" | "light") {
-  document.documentElement.classList.toggle("dark", theme === "dark");
-  document.documentElement.style.colorScheme = theme;
-  document.querySelector('meta[name="theme-color"]')?.setAttribute(
-    "content", theme === "dark" ? "#141517" : "#ffffff",
-  );
-}
 
 function LiveMatchCard({ match, onOpen, onClose }: { match: LiveMatchActivity; onOpen: () => void; onClose: () => void }) {
   return (
@@ -110,6 +102,30 @@ function focusRouteMeta(pathname: string) {
   return null;
 }
 
+// 모바일 웹에서 로컬 탭 대신 뒤로가기 헤더를 쓰는 상세·기타 페이지. 데스크톱 헤더는 그대로 둔다.
+function mobileBackRouteMeta(pathname: string) {
+  if (/^\/community\/post\/[^/]+$/.test(pathname)) return { title: "LCK", backHref: "/community", close: true };
+  if (/^\/matches\/[^/]+$/.test(pathname)) return { title: "경기", backHref: "/schedule" };
+  if (/^\/players\/[^/]+$/.test(pathname)) return { title: "선수", backHref: "/players" };
+  if (/^\/champions\/[^/]+$/.test(pathname)) return { title: "챔피언", backHref: "/champions" };
+  if (pathname === "/predictions/report") return { title: "내 예측 리포트", backHref: "/predictions" };
+  if (pathname === "/me") return { title: "마이", backHref: "/" };
+  if (pathname === "/me/messages") return { title: "쪽지함", backHref: "/me" };
+  if (pathname === "/teams") return { title: "팀", backHref: "/" };
+  if (pathname === "/minicons") return { title: "미니콘", backHref: "/" };
+  if (/^\/community\/user\/[^/]+$/.test(pathname)) return { title: "활동", backHref: "/community" };
+  if (pathname === "/community/rules") return { title: "커뮤니티 이용 규칙", backHref: "/community" };
+  if (pathname === "/support") return { title: "고객센터", backHref: "/" };
+  if (pathname === "/support/new") return { title: "문의하기", backHref: "/support" };
+  if (/^\/support\/[^/]+$/.test(pathname)) return { title: "문의 상세", backHref: "/support" };
+  if (pathname === "/about") return { title: "서비스 소개", backHref: "/" };
+  if (pathname === "/policies") return { title: "정책 안내", backHref: "/" };
+  if (pathname === "/privacy") return { title: "개인정보처리방침", backHref: "/policies" };
+  if (pathname === "/terms") return { title: "이용약관", backHref: "/policies" };
+  if (pathname === "/advertising") return { title: "광고 및 제휴 문의", backHref: "/policies" };
+  return null;
+}
+
 export function AppShell({
   children,
   currentUser = null,
@@ -145,12 +161,11 @@ export function AppShell({
   const followedTeamIdSet = new Set(followedTeamIds);
   const followedTeams = shellTeams.filter((team) => followedTeamIdSet.has(team.id) || followedTeamIdSet.has(team.fanSiteHost));
   const currentFanTeam = fanKey ? shellTeams.find((team) => team.fanSiteHost === fanKey || team.slug === fanKey) : null;
-  const showHubLocalNavigation = !fanRoute && !focusRoute && !communityPostDetail
-    && pathname !== "/fan" && !pathname.startsWith("/admin")
-    && !/^\/teams(\/|$)/.test(pathname);
+  const mobileBack = focusRoute ? null : fanPostDetail
+    ? { title: currentFanTeam?.shortName ?? fanPostDetail[1].toUpperCase(), backHref: `/fan/${fanPostDetail[1]}/community`, close: true }
+    : fanRoute ? null : mobileBackRouteMeta(pathname);
+  const showHubLocalNavigation = !fanRoute && !focusRoute && !mobileBack && hasMobileLocalNavigation(pathname);
   const favoriteTeam = favoriteTeamId ? shellTeams.find((team) => team.id === favoriteTeamId) : null;
-  const communityPostTitle = fanPostDetail ? (currentFanTeam?.shortName ?? fanPostDetail[1].toUpperCase()) : "LCK";
-  const communityPostBackHref = fanPostDetail ? `/fan/${fanPostDetail[1]}/community` : "/community";
   const {
     liveCard,
     dismissLiveCard,
@@ -228,8 +243,7 @@ export function AppShell({
 
   const toggleDarkMode = () => {
     const nextTheme = document.documentElement.classList.contains("dark") ? "light" : "dark";
-    applyTheme(nextTheme);
-    localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
+    saveTheme(nextTheme);
   };
 
 
@@ -237,7 +251,7 @@ export function AppShell({
     <div
       className="text-[#141517]"
       data-app-shell
-      style={{ "--shell-mobile-header-offset": primaryHeaderVisible ? "56px" : "0px", "--shell-local-nav-height": fanRoute || showHubLocalNavigation ? "48px" : "0px" } as React.CSSProperties}
+      style={{ "--shell-mobile-header-offset": mobileBack ? "48px" : primaryHeaderVisible ? "56px" : "0px","--shell-local-nav-height": fanRoute || showHubLocalNavigation ? "48px" : "0px" } as React.CSSProperties}
     >
       {focus ? (
         <header className="fixed inset-x-0 top-0 z-50 grid h-12 grid-cols-[44px_minmax(0,1fr)_44px] items-center border-b border-[#e8e8eb] bg-[var(--page-background)] px-3 md:h-16 dark:border-[var(--ui-border)]">
@@ -270,11 +284,11 @@ export function AppShell({
           <span aria-hidden="true" />
         </header>
       ) : (
-      <header className={`fixed inset-x-0 top-0 z-50 flex items-center border-b border-[#e8e8eb] bg-[var(--page-background)] px-3 transition-transform duration-200 sm:px-4 md:h-16 md:translate-y-0 dark:border-[var(--ui-border)] ${communityPostDetail ? "h-12" : "h-14 sm:h-16"} ${communityPostDetail || primaryHeaderVisible ? "translate-y-0" : "-translate-y-full"}`}>
-        {communityPostDetail ? (
+      <header className={`fixed inset-x-0 top-0 z-50 flex items-center border-b border-[#e8e8eb] bg-[var(--page-background)] px-3 transition-transform duration-200 sm:px-4 md:h-16 md:translate-y-0 dark:border-[var(--ui-border)] ${mobileBack ? "h-12" : "h-14 sm:h-16"} ${mobileBack || primaryHeaderVisible ? "translate-y-0" : "-translate-y-full"}`}>
+        {mobileBack ? (
           <div className="relative flex w-full items-center justify-center md:hidden">
             <Link
-              href={communityPostBackHref}
+              href={mobileBack.backHref}
               onClick={(event) => {
                 if (window.history.length > 1) {
                   event.preventDefault();
@@ -282,20 +296,18 @@ export function AppShell({
                 }
               }}
               className="absolute left-0 grid h-11 w-11 place-items-center rounded-xl hover:bg-[var(--ui-card-hover)]"
-              aria-label="게시글 닫기"
+              aria-label={mobileBack.close ? "게시글 닫기" : "이전 화면"}
             >
-              <X size={22} strokeWidth={1.8} />
+              {mobileBack.close ? <X size={22} strokeWidth={1.8} /> : <ChevronLeft size={22} />}
             </Link>
-            <p className="font-paperozi max-w-[70vw] truncate text-center text-[16px] font-bold text-[var(--ui-ink)]">{communityPostTitle}</p>
+            <p className="font-paperozi max-w-[70vw] truncate text-center text-[16px] font-bold text-[var(--ui-ink)]">{mobileBack.title}</p>
           </div>
         ) : null}
-        <div className={communityPostDetail ? "hidden md:contents" : "contents"}>
+        <div className={mobileBack ? "hidden md:contents" : "contents"}>
         {fanRoute ? (
           <div className="relative flex min-w-0 flex-1 items-center md:hidden">
-            <Link href="/" className="flex h-11 shrink-0 items-center" aria-label="MINION 메인으로 이동">
-              <BrandLogo accentColor={currentFanTeam?.primaryColor} className="w-16" priority />
-            </Link>
-            <button type="button" onClick={() => setTeamSwitcherOpen((value) => !value)} className="flex min-w-0 items-center gap-1 rounded-xl px-2 py-2 text-[14px] font-black" aria-expanded={teamSwitcherOpen} aria-haspopup="menu">
+            <button type="button" onClick={() => setTeamSwitcherOpen((value) => !value)} className="flex min-h-11 min-w-0 items-center gap-2 rounded-xl px-1.5 text-[16px] font-bold text-[var(--ui-ink)]" aria-expanded={teamSwitcherOpen} aria-haspopup="menu" aria-label="팀 전환">
+              {currentFanTeam ? <TeamLogo team={currentFanTeam} size="h-7 w-7" themeAware /> : null}
               <span className="truncate">{currentFanTeam?.shortName ?? fanKey?.toUpperCase()}</span><ChevronDown size={16} className={`shrink-0 transition ${teamSwitcherOpen ? "rotate-180" : ""}`} />
             </button>
             {teamSwitcherOpen ? (
@@ -330,7 +342,7 @@ export function AppShell({
             <span className="hidden sm:inline">온보딩 테스트</span>
           </Link>
         ) : null}
-        <button type="button" onClick={toggleDarkMode} className="mr-2 grid h-11 w-11 shrink-0 place-items-center rounded-xl text-[#62666d] transition hover:bg-[var(--ui-card-hover)] sm:mr-2 dark:bg-[rgba(0,0,0,0)] dark:text-[#a7acb5]" aria-label="색상 모드 전환" title="색상 모드 전환">
+        <button type="button" onClick={toggleDarkMode} className="mr-2 hidden h-11 w-11 shrink-0 place-items-center md:grid rounded-xl text-[#62666d] transition hover:bg-[var(--ui-card-hover)] sm:mr-2 dark:bg-[rgba(0,0,0,0)] dark:text-[#a7acb5]" aria-label="색상 모드 전환" title="색상 모드 전환">
           <Moon size={20} className="dark:hidden" />
           <Sun size={20} className="hidden dark:block" />
         </button>
@@ -369,7 +381,7 @@ export function AppShell({
 
       {!focusRoute ? <DesktopNavigation pathname={pathname} favoriteTeam={favoriteTeam} followedTeams={followedTeams} teams={shellTeams} /> : null}
 
-      <div className={`ad-rail-layout flex flex-col md:pt-16 ${focusRoute || communityPostDetail ? "pt-12" : "pt-14 sm:pt-16"} ${focusRoute ? "" : "md:pl-[152px]"}`}>
+      <div className={`ad-rail-layout flex flex-col md:pt-16 ${focusRoute || mobileBack ? "pt-12" : "pt-14 sm:pt-16"} ${focusRoute ? "" : "md:pl-[152px]"}`}>
         {!focusRoute ? <DesktopAdRails /> : null}
         <div className={`${!focusRoute && !communityPostDetail ? "compact-hub-content pb-0" : "pb-0"}`} data-shell-content={!focusRoute && !communityPostDetail ? "compact-hub" : undefined}>
           {showHubLocalNavigation ? <MobileLocalNavigation pathname={pathname} /> : null}
@@ -387,7 +399,7 @@ export function AppShell({
         )}
       </div>
 
-      {!focusRoute && !communityPostDetail ? <MobileNavigation key={pathname} pathname={pathname} favoriteTeam={favoriteTeam} followedTeams={followedTeams} teams={shellTeams} currentTeam={currentFanTeam} /> : null}
+      {!focusRoute && !communityPostDetail ? <MobileNavigation key={pathname} pathname={pathname} favoriteTeam={favoriteTeam} followedTeams={followedTeams} teams={shellTeams} /> : null}
 
       <NotificationPanel
         open={notificationPanelOpen}
