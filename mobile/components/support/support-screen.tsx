@@ -130,7 +130,7 @@ const styles = StyleSheet.create({
   content: { gap: 20, paddingBottom: 40, paddingTop: 24 },
   empty: { fontSize: 13, paddingVertical: 40, textAlign: 'center' },
   headingRow: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
-  pageButton: { alignItems: 'center', height: 40, justifyContent: 'center', width: 40 },
+  pageButton: { alignItems: 'center', height: 36, justifyContent: 'center', width: 36 },
   pageTitle: { fontSize: 20, lineHeight: 25 },
   pagination: { alignItems: 'center', flexDirection: 'row', gap: 6, justifyContent: 'center' },
   root: { flex: 1 },

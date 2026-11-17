@@ -85,7 +85,7 @@ const styles = StyleSheet.create({
   postMeta: { alignItems: 'center', flexDirection: 'row', gap: 12, marginTop: 8 },
   metaItem: { alignItems: 'center', flexDirection: 'row', gap: 4 },
   pagination: { alignItems: 'center', flexDirection: 'row', justifyContent: 'center', padding: 10 },
-  pageButton: { alignItems: 'center', height: 40, justifyContent: 'center', width: 48 },
+  pageButton: { alignItems: 'center', height: 36, justifyContent: 'center', width: 44 },
   skeleton: { gap: 20 },
   skeletonProfile: { borderRadius: 14, height: 314 },
   skeletonList: { borderRadius: 14, height: 420 },

@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
   meta: { fontSize: 12, lineHeight: 18 },
   thumbnail: { borderRadius: 8, height: 57, width: 76 },
   pagination: { alignItems: 'center', borderTopWidth: 1, flexDirection: 'row', gap: 6, height: 57, justifyContent: 'center' },
-  pageButton: { alignItems: 'center', height: 40, justifyContent: 'center', width: 40 },
+  pageButton: { alignItems: 'center', height: 36, justifyContent: 'center', width: 36 },
   compose: { alignItems: 'center', borderRadius: 24, height: 48, justifyContent: 'center', position: 'absolute', right: 16, width: 48, zIndex: 80 },
   categoryList: { gap: 2, paddingBottom: 8 },
   categoryOption: { borderRadius: 10, justifyContent: 'center', minHeight: 44, paddingHorizontal: 14 },

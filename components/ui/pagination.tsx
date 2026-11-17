@@ -8,8 +8,8 @@ type PaginationProps = {
   className?: string;
 };
 
-const sideClassName = "min-h-10 px-2 text-sm font-medium text-[var(--ui-muted)]";
-const pageClassName = "grid min-h-10 min-w-10 place-items-center rounded-[var(--ui-control-radius)] px-2 text-sm font-medium";
+const sideClassName = "min-h-9 sm:min-h-10 px-2 text-sm font-medium text-[var(--ui-muted)]";
+const pageClassName = "grid min-h-9 min-w-9 sm:min-h-10 sm:min-w-10 place-items-center rounded-[var(--ui-control-radius)] px-2 text-sm font-medium";
 
 export function Pagination({
   page,
