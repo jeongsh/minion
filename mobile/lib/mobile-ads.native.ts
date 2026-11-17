@@ -19,7 +19,7 @@ const publish = (next: Partial<MobileAdsState>) => {
 };
 
 export function getMobileAdsSdk(): typeof MobileAdsSdk | null {
-  if (!MOBILE_ADS_ENABLED || Platform.OS !== 'android' || Constants.executionEnvironment === ExecutionEnvironment.StoreClient) return null;
+  if (!MOBILE_ADS_ENABLED || (Platform.OS !== 'android' && Platform.OS !== 'ios') || Constants.executionEnvironment === ExecutionEnvironment.StoreClient) return null;
   if (!TurboModuleRegistry.get('RNGoogleMobileAdsModule')) return null;
   // Keep Expo Go and old installed binaries usable until the native SDK is rebuilt.
   // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -45,7 +45,7 @@ async function applyConsent() {
     await ads.default().initialize();
     initialized = true;
   }
-  // Android throws a fatal native exception if muted before initialization.
+  // Keep requests muted by default on both supported native platforms.
   await ads.default().setAppMuted(true);
   publish({ ready: true, retryAt: null, revision: state.revision + 1 });
   return true;
