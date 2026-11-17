@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronRight, Heart } from "lucide-react";
+import { ChevronRight, Heart, Shield } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { AdaptiveDialog } from "@/components/responsive/adaptive-dialog";
@@ -10,23 +10,72 @@ import type { Team } from "@/lib/types";
 
 const RECENT_FAN_TEAM_KEY = "minion-recent-fan-team";
 
-function TeamGrid({ teams }: { teams: Team[] }) {
+function TeamGrid({ teams, followedIds }: { teams: Team[]; followedIds?: Set<string> }) {
   return (
     <div className="grid grid-cols-5 gap-x-1 gap-y-2">
-      {teams.map((team) => (
-        <Link
-          key={team.id}
-          href={`/fan/${team.fanSiteHost}`}
-          className="flex min-h-16 min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 py-1.5 text-center transition active:scale-[0.96] hover:bg-[var(--ui-card-hover)]"
-          aria-label={`${team.name} 팬페이지로 이동`}
-        >
-          <span className="grid h-10 w-10 place-items-center rounded-full bg-white">
-            <TeamLogo team={team} size="h-7 w-7" plain />
-          </span>
-          <span className="w-full truncate text-[11px] font-medium text-[var(--ui-ink)]">{team.shortName}</span>
-        </Link>
-      ))}
+      {teams.map((team) => {
+        const following = followedIds?.has(team.id) ?? false;
+        return (
+          <Link
+            key={team.id}
+            href={`/fan/${team.fanSiteHost}`}
+            data-following={following ? "true" : undefined}
+            className={`flex min-h-16 min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 py-1.5 text-center transition active:scale-[0.96] hover:bg-[var(--ui-card-hover)]`}
+            aria-label={`${team.name}${following ? " (팔로잉)" : ""} 팬페이지로 이동`}
+          >
+            <span className={`relative grid h-10 w-10 place-items-center rounded-full bg-white ring-2 ring-offset-2 ring-offset-[var(--ui-surface)] ${following ? "ring-[var(--accent)]" : "ring-[var(--ui-border)]"}`}>
+              <TeamLogo team={team} size="h-8 w-8" plain />
+              {following ? (
+                <span aria-hidden className="absolute -bottom-1 -right-1 grid h-4 w-4 place-items-center rounded-full bg-[var(--accent)] text-[var(--accent-foreground)]">
+                  <Heart size={9} fill="currentColor" strokeWidth={0} />
+                </span>
+              ) : null}
+            </span>
+            <span className="w-full truncate text-[13px] font-medium text-[var(--ui-ink)]">{team.shortName}</span>
+          </Link>
+        );
+      })}
     </div>
+  );
+}
+
+export function TeamPicker({
+  teams,
+  followedTeams,
+  active,
+  className,
+}: {
+  teams: Team[];
+  followedTeams: Team[];
+  active: boolean;
+  className: string;
+}) {
+  const followedIds = useMemo(() => new Set(followedTeams.map((team) => team.id)), [followedTeams]);
+  const orderedTeams = useMemo(
+    () => [...followedTeams, ...teams.filter((team) => !followedIds.has(team.id))],
+    [followedIds, followedTeams, teams],
+  );
+
+  return (
+    <AdaptiveDialog
+      title="팀"
+      triggerAriaLabel="팀 선택"
+      triggerAriaCurrent={active ? "page" : undefined}
+      triggerClassName={className}
+      panelClassName="sm:max-w-[420px]"
+      trigger={
+        <>
+          <span className="relative grid h-5 w-5 place-items-center">
+            <Shield size={20} strokeWidth={active ? 2.5 : 2} />
+          </span>
+          <span className="max-w-full truncate">팀</span>
+        </>
+      }
+    >
+      <section aria-label="팀 선택" className="pb-2">
+        <TeamGrid teams={orderedTeams} followedIds={followedIds} />
+      </section>
+    </AdaptiveDialog>
   );
 }
 
@@ -89,7 +138,7 @@ export function FanTeamPicker({
         <TeamGrid teams={orderedTeams} />
       </section>
 
-      <Link href="/teams" className="mt-2 flex min-h-11 items-center justify-center gap-1 border-t border-[var(--ui-border)] pt-2 text-[13px] font-bold text-[var(--ui-muted)]">
+      <Link href="/teams" className="mt-2 flex min-h-11 items-center justify-center gap-1 border-t border-[var(--ui-border)] pt-2 text-[13px] font-medium text-[var(--ui-muted)]">
         소셜과 영상까지 둘러보기 <ChevronRight size={15} />
       </Link>
     </AdaptiveDialog>
