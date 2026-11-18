@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useRef } from "react";
 import { Bell, CheckCheck, MessageCircle, Radio, Star, Trash2, UserRound, Video, X } from "lucide-react";
 
+import { navigateFromAdDocument } from "@/components/ads/ad-runtime";
 import { ControlledDialog, dialogBodyClassName, DialogSheetHeader } from "@/components/responsive/adaptive-dialog";
 import { useDismissOnOutside } from "@/components/ui/use-dismiss-on-outside";
 import { focusNotificationComment } from "@/components/notifications/notification-context";
@@ -88,7 +89,7 @@ function NotificationRow({
       {href ? (
         <Link
           href={href}
-          data-defer-ad-navigation={isComment ? "" : undefined}
+          data-defer-ad-navigation={isComment && !notification.readAt ? "" : undefined}
           onClick={(event) => {
             const read = notification.readAt ? undefined : onRead(notification.id);
             onClose();
@@ -101,7 +102,9 @@ function NotificationRow({
             if (isComment && read && destination.origin === window.location.origin) {
               // The destination can initialize its own inbox. Save before it loads.
               event.preventDefault();
-              void read.then(() => router.push(href));
+              void read.then(() => {
+                if (!navigateFromAdDocument(href)) router.push(href);
+              });
             }
           }}
           className="flex min-w-0 flex-1 items-start gap-2.5 rounded-md"

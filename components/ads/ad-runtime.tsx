@@ -33,6 +33,15 @@ function reloadDocument() {
   window.location.reload();
 }
 
+export function navigateFromAdDocument(href: string): boolean {
+  if (!adDocumentUrl) return false;
+  const url = new URL(href, window.location.href);
+  if (url.origin !== window.location.origin || url.pathname === window.location.pathname) return false;
+  leavingDocument = true;
+  window.location.assign(url.href);
+  return true;
+}
+
 export function canRequestAd(element: HTMLElement): boolean {
   return element.isConnected
     && !leavingDocument
@@ -78,14 +87,11 @@ export function AdDocumentBoundary({ prefetchDocuments = false }: { prefetchDocu
       if (!adDocumentUrl || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
       const anchor = event.target instanceof Element ? event.target.closest("a[href]") : null;
       if (!(anchor instanceof HTMLAnchorElement) || anchor.hasAttribute("download") || (anchor.target && anchor.target !== "_self")) return;
-      // These links save state before navigation; the pathname effect still resets ads.
+      // These links call navigateFromAdDocument after saving their state.
       if (anchor.hasAttribute("data-defer-ad-navigation")) return;
-      const url = new URL(anchor.href);
-      if (url.origin !== window.location.origin || url.pathname === location.pathname) return;
+      if (!navigateFromAdDocument(anchor.href)) return;
       event.preventDefault();
       event.stopPropagation();
-      leavingDocument = true;
-      window.location.assign(url.href);
     };
     const checkDocument = () => {
       if (!adDocumentUrl || leavingDocument) return;
