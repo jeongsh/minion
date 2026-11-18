@@ -1,7 +1,39 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createHash } from "node:crypto";
 import { fetchAuthenticatedLeaguepediaApi } from "../sync/leaguepedia-api.ts";
-import { TRANSFER_ROLES, type TransferRole } from "./types.ts";
+import { normalizeTransferName, TRANSFER_ROLES, type TransferRole } from "./types.ts";
+import { collectCountedKeysetPages } from "../data/paged-read.ts";
+
+const SCOPE_ORDER: Record<string, number> = { lck: 0, challengers: 1, manual: 2, international_event: 3 };
+type TransferPlayerRow = {
+  id: string; name: string; position: PlayerRole; real_name: string | null;
+  search_aliases: string[] | null; imported_scope: string | null;
+};
+
+// 공개 선수 목록의 스코프 필터와 캐시를 사용하지 않고 2군까지 최신 목록을 읽는다.
+export async function getTransferPlayers(client: SupabaseClient) {
+  const players = await collectCountedKeysetPages(async (afterId) => {
+    let query = client.from("players")
+      .select("id, name, position, real_name, search_aliases, imported_scope", { count: "exact" })
+      .order("id").limit(1000);
+    if (afterId) query = query.gt("id", afterId);
+    const { data, error, count } = await query.returns<TransferPlayerRow[]>();
+    if (error) throw new Error("선수 목록을 불러오지 못했습니다.");
+    return { rows: data, count };
+  });
+  const byName = new Map<string, (typeof players)[number]>();
+  for (const player of players.sort((a, b) => (SCOPE_ORDER[a.imported_scope ?? "lck"] ?? 9) - (SCOPE_ORDER[b.imported_scope ?? "lck"] ?? 9))) {
+    const key = normalizeTransferName(player.name);
+    if (key && !byName.has(key)) byName.set(key, player);
+  }
+  return [...byName.values()]
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map(({ name, position, real_name, search_aliases }) => ({
+      name,
+      position,
+      keywords: [real_name, ...(search_aliases ?? [])].filter((value): value is string => typeof value === "string" && Boolean(value)),
+    }));
+}
 
 type PlayerRole = Exclude<TransferRole, "COACH">;
 const ROLE_MAP: Record<string, PlayerRole> = { top: "TOP", jungle: "JGL", jgl: "JGL", mid: "MID", middle: "MID", bot: "BOT", bottom: "BOT", adc: "BOT", support: "SUP", sup: "SUP" };
