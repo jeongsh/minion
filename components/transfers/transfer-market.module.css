@@ -1,4 +1,5 @@
-.delightTag {
+.delightTag,
+.onerTag {
   position: relative;
   color: transparent;
   background-image:
@@ -9,14 +10,16 @@
   animation: delight-shimmer 3s linear infinite;
 }
 
-:global(.dark) .delightTag {
+:global(.dark) .delightTag,
+:global(.dark) .onerTag {
   background-image:
     linear-gradient(110deg, transparent 40%, #fff 48%, #fff 50%, transparent 58%),
     linear-gradient(90deg, #f87171, #fb923c, #facc15, #4ade80, #38bdf8, #818cf8, #c084fc, #f87171);
   filter: drop-shadow(0 0 3px rgb(196 181 253 / 45%));
 }
 
-.delightTag::after {
+.delightTag::after,
+.onerTag::after {
   position: absolute;
   top: -2px;
   right: 0;
@@ -29,9 +32,26 @@
   animation: delight-sparkle 3s ease-in-out infinite;
 }
 
-:global(.dark) .delightTag::after {
+:global(.dark) .delightTag::after,
+:global(.dark) .onerTag::after {
   background: #fef3c7;
 }
+
+.onerTag {
+  background-image:
+    linear-gradient(110deg, transparent 40%, #fff 48%, #fff 50%, transparent 58%),
+    linear-gradient(90deg, #991b1b, #dc2626, #be123c, #e11d48, #991b1b);
+}
+
+:global(.dark) .onerTag {
+  background-image:
+    linear-gradient(110deg, transparent 40%, #fff 48%, #fff 50%, transparent 58%),
+    linear-gradient(90deg, #f87171, #ef4444, #fb7185, #f43f5e, #f87171);
+  filter: drop-shadow(0 0 3px rgb(248 113 113 / 45%));
+}
+
+.onerTag::after { background: #dc2626; }
+:global(.dark) .onerTag::after { background: #fecaca; }
 
 @keyframes delight-shimmer {
   from { background-position: 150% 0, 100% 0; }
@@ -44,6 +64,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .delightTag { animation: none; background-position: 0 0; }
-  .delightTag::after { animation: none; opacity: 0; }
+  .delightTag, .onerTag { animation: none; background-position: 0 0; }
+  .delightTag::after, .onerTag::after { animation: none; opacity: 0; }
 }

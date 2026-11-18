@@ -69,9 +69,13 @@ export function TransferMarketView({ market, teams, followedTeamIds = [] }: { ma
     const url = transferArticleUrl(event);
     const className = `inline-block max-w-full truncate align-middle ${dense ? "text-[13px] leading-4" : "text-sm leading-5"} ${muted ? "font-medium text-[var(--ui-muted)]" : "font-medium text-[var(--ui-ink)] md:font-bold"}`;
     const name = url ? <a href={url} target="_blank" rel="noopener noreferrer" aria-label={`${person.name} 원문 뉴스`} title={person.name} className={`${className} hover:underline`}>{person.name}</a> : <span title={person.name} className={className}>{person.name}</span>;
-    if (muted || !["delight", "딜라이트"].includes(normalizeTransferName(person.name))) return name;
+    const player = normalizeTransferName(person.name);
+    const tag = ["delight", "딜라이트"].includes(player)
+      ? { label: "죽음을 각오한", className: styles.delightTag }
+      : ["oner", "오너"].includes(player) ? { label: "의욕에 가득찬", className: styles.onerTag } : null;
+    if (muted || !tag) return name;
     return <span className="inline-flex max-w-full flex-wrap items-center gap-x-1 gap-y-0.5 align-middle">
-      <span className={`${styles.delightTag} text-[13px] leading-4 font-medium break-keep`}>죽음을 각오한</span>
+      <span className={`${tag.className} text-[13px] leading-4 font-medium break-keep`}>{tag.label}</span>
       {name}
     </span>;
   }
