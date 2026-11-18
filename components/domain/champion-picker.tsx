@@ -1,5 +1,7 @@
 "use client";
 
+import { ControlledDialog, dialogBodyClassName, DialogSheetHeader } from "@/components/responsive/adaptive-dialog";
+
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 
@@ -57,29 +59,12 @@ function ChampionPickerModal({
     inputRef.current?.focus();
   }, []);
 
-  useEffect(() => {
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") onClose();
-    }
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center" role="presentation">
-      <button
-        type="button"
-        aria-label="닫기"
-        className="modal-backdrop absolute inset-0 bg-black/60 [--modal-backdrop-dark-mobile:0.75]"
-        onClick={onClose}
-      />
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label="챔피언 선택"
-        className="relative z-10 flex max-h-[min(80vh,42rem)] w-full max-w-3xl flex-col overflow-hidden rounded-md border border-border bg-surface shadow-xl"
-      >
-        <div className="border-b border-border p-4">
+    <ControlledDialog open onClose={onClose} ariaLabel="챔피언 선택" panelClassName="sm:max-w-3xl">
+      <DialogSheetHeader onClose={onClose} title="챔피언 선택" />
+      <div className={dialogBodyClassName}>
+        <div className="mb-4">
           <div className="flex items-center gap-3">
             <input
               ref={inputRef}
@@ -98,7 +83,7 @@ function ChampionPickerModal({
             </button>
           </div>
         </div>
-        <div className="overflow-y-auto p-4">
+        <div>
           {filtered.length === 0 ? (
             <p className="py-8 text-center text-sm text-muted">검색 결과가 없습니다.</p>
           ) : (
@@ -133,7 +118,7 @@ function ChampionPickerModal({
           )}
         </div>
       </div>
-    </div>
+    </ControlledDialog>
   );
 }
 

@@ -225,5 +225,5 @@ const styles = StyleSheet.create({
   menuItem: { alignItems: 'center', borderRadius: 8, flexDirection: 'row', gap: 10, height: 40, paddingHorizontal: 12 },
   menuDivider: { height: 1, marginVertical: 4 },
   reasonInput: { borderRadius: 10, borderWidth: 1, fontSize: 16, lineHeight: 24, marginTop: 14, minHeight: 112, padding: 12 },
-  reportSubmit: { alignItems: 'center', borderRadius: 8, height: 44, justifyContent: 'center', marginBottom: 4, marginTop: 12 },
+  reportSubmit: { alignItems: 'center', borderRadius: 8, height: 44, justifyContent: 'center', marginTop: 12 },
 });

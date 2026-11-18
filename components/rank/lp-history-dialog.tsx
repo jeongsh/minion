@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { ControlledDialog, DialogSheetHeader } from "@/components/responsive/adaptive-dialog";
+import { dialogBodyClassName, ControlledDialog, DialogSheetHeader } from "@/components/responsive/adaptive-dialog";
 import type { LedgerEntry } from "@/lib/rank/queries";
 
 function reasonLabel(reason: string) {
@@ -55,7 +55,7 @@ export function LpHistoryDialog({ lp, entries, compact = false }: {
     </button>
     <ControlledDialog open={open} onClose={() => setOpen(false)} labelledBy="lp-history-title" panelClassName="sm:max-w-lg">
       <DialogSheetHeader onClose={() => setOpen(false)} title="최근 LP 이력" titleId="lp-history-title" />
-      <div className="min-h-0 overflow-y-auto px-4 pb-5 sm:px-5">
+      <div className={dialogBodyClassName}>
         <p className="mb-3 text-sm text-[var(--ui-muted)]">현재 보유 LP {lp.toLocaleString("ko-KR")} · 최근 10건</p>
         {entries.length > 0 ? <ul className="divide-y divide-[var(--ui-border)] rounded-xl border border-[var(--ui-border)]">
           {entries.map((entry) => <li key={entry.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3">

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Star } from "lucide-react";
 
-import { DialogSheetHeader } from "@/components/responsive/adaptive-dialog";
+import { ControlledDialog, dialogBodyClassName, DialogSheetHeader } from "@/components/responsive/adaptive-dialog";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { fanRatingDisplayValue, formatFanRating } from "@/lib/fan-rating-display";
@@ -394,21 +394,14 @@ export function SetRatingForm({
       </div>
 
       {selectedPlayer && mobileComposerOpen && isSmallScreen ? (
-        <div className="fixed inset-x-0 top-0 bottom-[var(--shell-bottom-nav-height)] z-50 flex items-end sm:hidden">
-          <button
-            type="button"
-            aria-label="평가 입력 닫기"
-            className="modal-backdrop absolute inset-0 bg-black/45 [--modal-backdrop-dark-mobile:0.65]"
-            onClick={() => setMobileComposerOpen(false)}
-          />
-          <div className="relative z-10 w-full overflow-hidden rounded-t-[24px] bg-[var(--ui-surface)] shadow-2xl">
+        <ControlledDialog open portal={false} onClose={() => setMobileComposerOpen(false)} labelledBy="rating-composer-title" backdropClassName="!bottom-[var(--shell-bottom-nav-height)] sm:hidden">
             <DialogSheetHeader
               closeLabel="평가 입력 닫기"
               onClose={() => setMobileComposerOpen(false)}
               title={`${selectedPlayer.name} 평가`}
-              titleClassName="!text-[14px]"
+              titleId="rating-composer-title"
             />
-            <div className="px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-2">
+            <div className={dialogBodyClassName}>
               <div className="flex items-center gap-3">
                 <div className="h-12 w-12 shrink-0 overflow-hidden rounded-full bg-[var(--ui-surface-muted)]">
                   {selectedPlayer.profileImageUrl ? (
@@ -445,8 +438,7 @@ export function SetRatingForm({
                 </Button>
               </div>
             </div>
-          </div>
-        </div>
+        </ControlledDialog>
       ) : null}
 
       {ratingStatusNote ? (

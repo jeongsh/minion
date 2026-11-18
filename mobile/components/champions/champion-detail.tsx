@@ -195,7 +195,7 @@ export function ChampionDetail() {
       <BottomSheet contentStyle={styles.sheet} onClose={() => setPositionOpen(false)} open={positionOpen} title="포지션">
         <View style={styles.choiceGrid}>{data.positions.map((option) => <Choice active={data.selectedPosition === option.value} key={option.value} label={`${option.label} · ${option.picks}픽`} onPress={() => { setPosition(option.value); setPositionOpen(false); }} />)}</View>
       </BottomSheet>
-      <BottomSheet contentStyle={styles.championSheet} onClose={() => setChampionOpen(false)} open={championOpen} scrollable title="챔피언 선택">
+      <BottomSheet onClose={() => setChampionOpen(false)} open={championOpen} scrollable title="챔피언 선택">
         <View style={styles.championGrid}>{data.champions.map((champion) => {
           const uri = resolveApiAssetUrl(champion.image?.url) ?? champion.image?.url;
           return <Pressable key={champion.id} onPress={() => navigateChampion(champion.slug)} style={styles.championChoice}>{uri ? <Image contentFit="cover" source={{ uri }} style={styles.championFace} /> : null}<Text numberOfLines={1} style={{ color: theme.ink, ...fonts.medium, fontSize: 13, lineHeight: 18 }}>{champion.name}</Text></Pressable>;
@@ -223,11 +223,10 @@ const styles = StyleSheet.create({
   tabShell: { borderRadius: 12, height: minionSize.control, padding: 3 },
   tabs: { gap: 4, minWidth: '100%' },
   tab: { alignItems: 'center', borderRadius: 8, borderWidth: 1, flex: 1, height: minionSize.control - 6, justifyContent: 'center', minWidth: 62, paddingHorizontal: 8 },
-  sheet: { gap: 20, padding: 16 },
+  sheet: { gap: 20 },
   filterSection: { gap: 8 },
   choiceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   choice: { alignItems: 'center', borderRadius: 12, justifyContent: 'center', minHeight: 40, minWidth: '30%', paddingHorizontal: 12 },
-  championSheet: { padding: 12 },
   championGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   championChoice: { alignItems: 'center', gap: 4, paddingVertical: 4, width: '18%' },
   championFace: { borderRadius: 7, height: 40, width: 40 },

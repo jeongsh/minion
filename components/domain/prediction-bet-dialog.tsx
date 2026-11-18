@@ -7,7 +7,7 @@ import { useState, useTransition } from "react";
 import { cancelPredictionBetAction, placePredictionBetAction } from "@/app/predictions/actions";
 import { usePredictionMarket } from "@/components/domain/use-prediction-market";
 import flag from "@/assets/characters/flag-2.png";
-import { ControlledDialog, DialogSheetHeader } from "@/components/responsive/adaptive-dialog";
+import { dialogBodyClassName, ControlledDialog, DialogSheetHeader } from "@/components/responsive/adaptive-dialog";
 import { useToast } from "@/components/ui/toast";
 import type { PredictionBet } from "@/lib/predictions";
 import { predictionMaxStake } from "@/lib/predictions";
@@ -106,7 +106,7 @@ function PredictionBetDialog({ dialog, balance, stake, pending, error, onStakeCh
     <ControlledDialog open onClose={onClose} labelledBy="quick-bet-title" panelClassName="sm:max-w-md">
         <DialogSheetHeader onClose={onClose} title="승부예측" titleId="quick-bet-title" />
 
-        <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
+        <div className={dialogBodyClassName}>
             {dialog.existingBet ? (
               <div className="rounded-xl bg-[var(--ui-card-bg)] p-4">
                 <p className="text-[13px] font-bold text-[var(--ui-ink)]">이미 이 경기에 {dialog.existingBet.stake.toLocaleString("ko-KR")} LP를 사용했습니다.</p>

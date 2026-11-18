@@ -63,6 +63,6 @@ const styles = StyleSheet.create({
   summary: { borderRadius: 10, borderWidth: 1, marginTop: 14, padding: 12 },
   agreement: { fontSize: 14, lineHeight: 20, marginTop: 14 },
   link: { textDecorationLine: 'underline' },
-  primary: { alignItems: 'center', borderRadius: 8, height: 44, justifyContent: 'center', marginBottom: 4, marginTop: 16 },
+  primary: { alignItems: 'center', borderRadius: 8, height: 44, justifyContent: 'center', marginTop: 16 },
   buttonText: { fontSize: 14, lineHeight: 20 },
 });

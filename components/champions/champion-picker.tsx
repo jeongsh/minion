@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ArrowLeftRight, Search, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { DialogSheetHeader } from "@/components/responsive/adaptive-dialog";
+import { ControlledDialog, dialogBodyClassName, DialogSheetHeader } from "@/components/responsive/adaptive-dialog";
 
 export type ChampionPickerOption = {
   id: string;
@@ -34,7 +34,6 @@ export function ChampionPicker({
   const [query, setQuery] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const dialogRef = useRef<HTMLElement>(null);
   const openedOnceRef = useRef(false);
 
   const filtered = useMemo(() => {
@@ -55,13 +54,6 @@ export function ChampionPicker({
     }
   }, [open]);
 
-  useEffect(() => {
-    document.body.style.overflow = open ? "hidden" : "";
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [open]);
-
   const suffix = preservedQuery ? `?${preservedQuery}` : "";
 
   return (
@@ -79,44 +71,11 @@ export function ChampionPicker({
       </button>
 
       {open ? (
-        <div
-          className="modal-backdrop fixed inset-0 z-[1100] flex items-end bg-black/45 [--modal-backdrop-dark-mobile:0.65] sm:items-center sm:justify-center sm:p-6"
-          role="presentation"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) setOpen(false);
-          }}
-        >
-          <section
-            ref={dialogRef}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="champion-picker-title"
-            className="adaptive-dialog-panel flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-[24px] bg-[var(--ui-surface)] shadow-2xl sm:max-h-[78vh] sm:max-w-3xl sm:rounded-[24px]"
-            onKeyDown={(event) => {
-              if (event.key === "Escape") {
-                event.preventDefault();
-                setOpen(false);
-                return;
-              }
-              if (event.key !== "Tab") return;
-              const focusable = [...(dialogRef.current?.querySelectorAll<HTMLElement>(
-                'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])',
-              ) ?? [])];
-              if (!focusable.length) return;
-              const first = focusable[0];
-              const last = focusable.at(-1)!;
-              if (event.shiftKey && document.activeElement === first) {
-                event.preventDefault();
-                last.focus();
-              } else if (!event.shiftKey && document.activeElement === last) {
-                event.preventDefault();
-                first.focus();
-              }
-            }}
-          >
+        <ControlledDialog open={open} onClose={() => setOpen(false)} labelledBy="champion-picker-title" panelClassName="sm:max-h-[78vh] sm:max-w-3xl">
             <DialogSheetHeader closeLabel="챔피언 선택 닫기" onClose={() => setOpen(false)} title="챔피언 선택" titleId="champion-picker-title" />
 
-            <div className="px-5 pb-4 sm:px-6">
+            <div className={dialogBodyClassName}>
+            <div className="pb-4">
               <label className="flex h-11 items-center gap-2.5 rounded-xl bg-[var(--ui-card-bg)] px-3.5 text-[var(--ui-muted)] focus-within:ring-2 focus-within:ring-[var(--accent)]">
                 <Search size={18} />
                 <span className="sr-only">챔피언 검색</span>
@@ -135,7 +94,7 @@ export function ChampionPicker({
               </label>
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-6 sm:px-6">
+            <div>
               {filtered.length ? (
                 <div className="grid grid-cols-5 gap-x-2 gap-y-4 sm:grid-cols-7 md:grid-cols-9">
                   {filtered.map((champion) => {
@@ -166,8 +125,8 @@ export function ChampionPicker({
                 </div>
               )}
             </div>
-          </section>
-        </div>
+            </div>
+        </ControlledDialog>
       ) : null}
     </>
   );

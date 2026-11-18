@@ -6,7 +6,7 @@ import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-na
 
 import { TeamLogo } from '@/components/data/team-logo';
 import { FilterSelect } from '@/components/filter-select';
-import { ScheduleDialogChrome } from '@/components/schedule/schedule-dialog-chrome';
+import { BottomSheet } from '@/components/bottom-sheet';
 import { SCHEDULE_SEGMENTS, type ScheduleSegmentKey } from '@/constants/schedule-segments';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import { resolveApiAssetUrl, type MobileTeamSummary } from '@/lib/api-client';
@@ -53,7 +53,7 @@ export function ScheduleFilterSheet({
   }
 
   return (
-    <ScheduleDialogChrome contentStyle={styles.sheetBody} onClose={onClose} open={open} title="일정 필터">
+    <BottomSheet onClose={onClose} open={open} title="일정 필터">
       <View style={styles.yearMonthRow}>
         <FilterSelect
           variant="web"
@@ -128,7 +128,7 @@ export function ScheduleFilterSheet({
         style={[styles.resetButton, { backgroundColor: theme.ink }]}>
         <Text style={[styles.resetButtonText, { color: theme.surface, ...fonts.medium }]}>필터 초기화</Text>
       </Pressable>
-    </ScheduleDialogChrome>
+    </BottomSheet>
   );
 }
 
@@ -189,7 +189,6 @@ function TeamFilterChip({ active, onPress, team, width }: { active: boolean; onP
 
 const styles = StyleSheet.create({
   filterGroup: { marginTop: 16 },
-  sheetBody: { paddingBottom: 24 },
   filterGroupTitle: { fontSize: 13, lineHeight: 19.5, marginBottom: 8 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   iconChip: { alignItems: 'center', borderRadius: 12, borderWidth: 1, height: 40, justifyContent: 'center' },

@@ -89,7 +89,7 @@ function PackDetail({ onClose, pack }: { onClose: () => void; pack: MobileMinico
   const publishedDate = formatPublishedDate(pack.publishedAt);
   const tags = pack.tags ?? [pack.isOfficial ? '공식' : '사용자 제작', '미니콘'];
   const itemWidth = (width - 48) / 3;
-  return <BottomSheet contentStyle={styles.detailSheetBody} onClose={onClose} open scrollable title={`${pack.name} 정보`}>
+  return <BottomSheet onClose={onClose} open scrollable title={`${pack.name} 정보`}>
     <View>
       <Image accessibilityLabel={`${pack.name} 대표 미니콘`} alt={`${pack.name} 대표 미니콘`} contentFit="cover" source={{ uri: resolveApiAssetUrl(pack.coverUrl) ?? pack.coverUrl }} style={[styles.detailCover, { backgroundColor: theme.surfaceMuted }]} />
       <Text style={{ color: theme.ink, ...fonts.bold, fontSize: 18, lineHeight: 27, marginTop: 16 }}>{pack.name}</Text>
@@ -131,13 +131,12 @@ const styles = StyleSheet.create({
   settingsEmpty: { marginTop: 20 },
   save: { alignItems: 'center', borderRadius: 8, justifyContent: 'center', minHeight: 40, paddingHorizontal: 16 },
   detailCover: { alignSelf: 'center', borderRadius: 12, height: 180, width: 180 },
-  detailSheetBody: { paddingHorizontal: 16 },
   detailMeta: { gap: 10, marginTop: 16 },
   metaRow: { alignItems: 'center', flexDirection: 'row', gap: 8, minHeight: 21 },
   tags: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   tag: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
   detailTitleRow: { alignItems: 'flex-end', borderBottomWidth: 1, flexDirection: 'row', justifyContent: 'space-between', marginTop: 24, paddingBottom: 8 },
-  detailGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 24, marginTop: 12 },
+  detailGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
   detailTile: { minWidth: 0 },
   detailItem: { borderRadius: 8 },
 });

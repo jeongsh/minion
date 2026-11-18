@@ -28,7 +28,7 @@ export function PlayerSegmentSelect({ accent, activeSegment, onClose, onOpen, on
         <Text numberOfLines={1} style={{ color: theme.ink, flex: 1, ...fonts.medium, fontSize: 14, lineHeight: 20 }}>{selected?.label ?? '-'}</Text>
         <ChevronDown color={theme.muted} size={16} />
       </Pressable>
-      <BottomSheet contentStyle={styles.options} onClose={onClose} open={open} title="대회 구간">
+      <BottomSheet onClose={onClose} open={open} title="대회 구간">
         {options.map((option) => {
           const active = option.value === activeSegment;
           return (
@@ -51,5 +51,4 @@ export function PlayerSegmentSelect({ accent, activeSegment, onClose, onOpen, on
 const styles = StyleSheet.create({
   control: { alignItems: 'center', borderRadius: 12, borderWidth: 1, flexDirection: 'row', height: minionSize.control, paddingHorizontal: 12 },
   option: { alignItems: 'center', borderRadius: 10, flexDirection: 'row', minHeight: 48, paddingHorizontal: 14 },
-  options: { paddingBottom: 8, paddingHorizontal: 8 },
 });

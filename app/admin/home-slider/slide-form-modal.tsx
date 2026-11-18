@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { ControlledDialog, dialogBodyClassName, DialogSheetHeader } from "@/components/responsive/adaptive-dialog";
+
+import { useState } from "react";
 import type { HomeHeroSlide } from "@/lib/types";
 import { createHomeHeroSlideAction, updateHomeHeroSlideAction } from "./actions";
 
@@ -68,14 +70,7 @@ export function SlideFormModal({ mode, slide }: { mode: "create" | "edit"; slide
   const [open, setOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState(slide?.imageUrl ?? "");
   const [error, setError] = useState("");
-  const dialogRef = useRef<HTMLDialogElement>(null);
 
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-    if (open) dialog.showModal();
-    else dialog.close();
-  }, [open]);
 
   function handleClose() {
     setOpen(false);
@@ -97,26 +92,10 @@ export function SlideFormModal({ mode, slide }: { mode: "create" | "edit"; slide
         {mode === "create" ? "슬라이드 등록" : "수정"}
       </button>
 
-      {open ? <dialog
-        ref={dialogRef}
-        className="modal-native fixed inset-0 m-auto w-[min(100%,40rem)] rounded-2xl border border-border bg-surface p-0 shadow-xl backdrop:bg-black/50"
-        onClose={handleClose}
-      >
-        <div className="p-6">
-          <div className="mb-5 flex items-center justify-between gap-3">
-            <h3 className="text-base font-black text-foreground">
-              {mode === "create" ? "슬라이드 등록" : "슬라이드 수정"}
-            </h3>
-            <button
-              type="button"
-              onClick={handleClose}
-              className="rounded-lg border border-border px-3 py-1.5 text-sm font-bold text-muted transition hover:text-foreground"
-            >
-              닫기
-            </button>
-          </div>
-
-          <form
+      <ControlledDialog open={open} onClose={handleClose} ariaLabel={mode === "create" ? "슬라이드 등록" : "슬라이드 수정"} panelClassName="sm:max-w-[40rem]">
+        <DialogSheetHeader onClose={handleClose} title={mode === "create" ? "슬라이드 등록" : "슬라이드 수정"} />
+        <div className={dialogBodyClassName}>
+                    <form
             onKeyDown={preventEnterSubmit}
             action={async (formData) => {
               setError("");
@@ -216,7 +195,7 @@ export function SlideFormModal({ mode, slide }: { mode: "create" | "edit"; slide
             </div>
           </form>
         </div>
-      </dialog> : null}
+      </ControlledDialog>
     </>
   );
 }

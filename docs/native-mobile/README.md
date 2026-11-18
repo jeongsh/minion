@@ -50,6 +50,8 @@
 
 ### 승인된 통합 변경 기록
 
+- 2026-11-18: 사용자 요청으로 웹과 앱의 모든 모달을 모바일 웹 선수평가의 좌우 16px, 본문 상단 8px, 하단 16px + 안전 영역 기준으로 공용화한다. 잠금 home-calendar-dialog.tsx와 team-picker-sheet.tsx는 본문 및 마지막 콘텐츠의 중복 여백을 제거하고 팀 선택의 중첩 스크롤은 공용 시트로 모은다. 공용 BottomSheet는 모달 내부 SafeAreaProvider로 안전 영역을 측정하고 하단 공간을 축소되지 않는 별도 영역으로 확보한다. 데이터, 자산, 홈 구성과 제출 로직은 유지한다.
+
 - 2026-11-16: 사용자가 앱의 토스트와 알럿 문구를 웹과 모두 맞추도록 요청했다. 웹 `components/ui/toast.tsx`를 근거로 잠금 파일 `mobile/providers/minion-shell-provider.tsx`의 `ToastCopy`에만 Pretendard medium 제목과 줄바꿈을 적용한다. 중복 제목은 호출부에서 제거하고, LP 금액과 최애팀 변경 제한은 웹과 같은 제목 및 설명으로 표시한다. 테마, 상태, 자산, 위치와 나머지 잠금 영역은 유지한다.
 
 - 2026-11-08: 사용자가 웹 홈 상단 간격·모바일 제목 크기 조정과 스토브리그 배너의 슬라이드 통합을 앱에도 반영하도록 요청했다. 웹 `home-dashboard.tsx`는 매치·한줄평·이벤트 배너 슬라이드·광고를 `gap-4 sm:gap-5` 한 묶음으로 두고, 스토브리그를 `CelebrationBanner`의 `extraSlides`로 축하 카드 뒤에 붙인다. 섹션 간격은 `mt-8 sm:mt-10`, 인사이트는 `mt-8 lg:mt-10`, 캘린더 버튼은 `mt-2`다. `globals.css`는 640px 미만 `.hub-home`에서 섹션 제목 18px, 전체보기 링크 위아래 -8.5px로 제목 줄을 27px로 맞춘다. 배너 아랫줄 Paperozi는 `text-sm sm:text-base`다. 잠금 파일 `mobile/app/(tabs)/index.tsx`에는 상단 묶음 gap(640 미만 16, 이상 20), 스토브리그 슬라이드 전달과 640 이상 가운데 정렬 변형, 섹션·인사이트 간격과 캘린더 8px만 바꾸고 카드 구조·문구·순서는 유지한다. `home-celebration-carousel.tsx`는 `extraSlides`를 받고, `home-section-heading.tsx`·`home-news-section.tsx`·`home-loading-skeleton.tsx`는 같은 수치를 따른다. 앱 타입 검사·린트(기존 경고 2건, 오류 없음)와 Expo Web 390×844 다크에서 웹과 위치 일치를 확인했다. 라이트 캡처, 실기기와 1px 캡처 비교는 미실행이다.

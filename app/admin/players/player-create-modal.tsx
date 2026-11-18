@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
+import { ControlledDialog, dialogBodyClassName, DialogSheetHeader } from "@/components/responsive/adaptive-dialog";
 import { Button } from "@/components/ui/button";
 import type { Team } from "@/lib/types";
 import { createPlayerAction } from "./actions";
@@ -13,14 +14,7 @@ const POS_LABEL: Record<string, string> = {
 export function PlayerCreateModal({ teams }: { teams: Team[] }) {
   const [open, setOpen] = useState(false);
   const [isStarter, setIsStarter] = useState(false);
-  const dialogRef = useRef<HTMLDialogElement>(null);
 
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-    if (open) dialog.showModal();
-    else dialog.close();
-  }, [open]);
 
   function handleClose() {
     setOpen(false);
@@ -36,24 +30,10 @@ export function PlayerCreateModal({ teams }: { teams: Team[] }) {
         + 선수 추가
       </Button>
 
-      {open ? <dialog
-        ref={dialogRef}
-        className="modal-native fixed inset-0 m-auto w-[min(100%,28rem)] rounded-md border border-border bg-surface p-0 shadow-xl backdrop:bg-black/50"
-        onClose={handleClose}
-      >
-        <div className="p-5">
-          <div className="mb-5 flex items-center justify-between gap-3">
-            <h3 className="font-semibold">선수 추가</h3>
-            <Button
-              type="button"
-              onClick={handleClose}
-              variant="secondary"
-            >
-              닫기
-            </Button>
-          </div>
-
-          <form
+      <ControlledDialog open={open} onClose={handleClose} ariaLabel={"선수 추가"} panelClassName="sm:max-w-[28rem]">
+        <DialogSheetHeader onClose={handleClose} title={"선수 추가"} />
+        <div className={dialogBodyClassName}>
+                    <form
             action={async (fd) => {
               await createPlayerAction(fd);
               handleClose();
@@ -133,7 +113,7 @@ export function PlayerCreateModal({ teams }: { teams: Team[] }) {
               </Button>
           </form>
         </div>
-      </dialog> : null}
+      </ControlledDialog>
     </>
   );
 }

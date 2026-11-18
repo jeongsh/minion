@@ -16,10 +16,10 @@ export function CommunityPostContent({ document }: { document: TiptapDocument })
 function BlockNode({ node, depth = 0 }: { node: TiptapNode; depth?: number }) {
   const { colorScheme, fonts, theme } = useMinionTheme();
   const foreground = colorScheme === 'dark' ? '#f8f8f8' : '#111827';
-  if (node.type === 'paragraph') return <Text style={[styles.paragraph, { color: foreground, ...fonts.regular }]}>{inlineContent(node)}</Text>;
+  if (node.type === 'paragraph') return <Text style={[styles.paragraph, { color: foreground, ...fonts.regular }]}>{inlineContent(node, theme.accent)}</Text>;
   if (node.type === 'heading') {
     const level = Number(node.attrs?.level ?? 2);
-    return <Text style={[styles.heading, level === 1 ? styles.headingOne : level === 2 ? styles.headingTwo : styles.headingThree, { color: foreground, ...fonts.bold }]}>{inlineContent(node)}</Text>;
+    return <Text style={[styles.heading, level === 1 ? styles.headingOne : level === 2 ? styles.headingTwo : styles.headingThree, { color: foreground, ...fonts.bold }]}>{inlineContent(node, theme.accent)}</Text>;
   }
   if (node.type === 'blockquote') return <View style={[styles.blockquote, { borderLeftColor: theme.border }]}>{node.content?.map((child, index) => <BlockNode depth={depth + 1} key={index} node={child} />)}</View>;
   if (node.type === 'bulletList' || node.type === 'orderedList') {
@@ -272,13 +272,13 @@ function SocialEmbed({ href, provider }: { href: string; provider: SocialEmbedPr
   );
 }
 
-function inlineContent(node: TiptapNode) {
-  return node.content?.map((child, index) => <Fragment key={index}>{inlineNode(child)}</Fragment>);
+function inlineContent(node: TiptapNode, linkColor: string) {
+  return node.content?.map((child, index) => <Fragment key={index}>{inlineNode(child, linkColor)}</Fragment>);
 }
 
-function inlineNode(node: TiptapNode): React.ReactNode {
+function inlineNode(node: TiptapNode, linkColor: string): React.ReactNode {
   if (node.type === 'hardBreak') return '\n';
-  if (node.type !== 'text') return node.content?.map((child, index) => <Fragment key={index}>{inlineNode(child)}</Fragment>);
+  if (node.type !== 'text') return node.content?.map((child, index) => <Fragment key={index}>{inlineNode(child, linkColor)}</Fragment>);
   const style: Record<string, string | number> = {};
   let href: string | null = null;
   for (const mark of node.marks ?? []) {
@@ -292,7 +292,13 @@ function inlineNode(node: TiptapNode): React.ReactNode {
     if (mark.type === 'textStyle' && typeof mark.attrs?.fontSize === 'string') style.fontSize = Number.parseInt(mark.attrs.fontSize, 10) || 16;
     if (mark.type === 'link' && typeof mark.attrs?.href === 'string') href = mark.attrs.href;
   }
-  return <Text onPress={href ? () => void Linking.openURL(href!) : undefined} style={style}>{node.text ?? ''}</Text>;
+  if (href) {
+    style.color ??= linkColor;
+    if (!String(style.textDecorationLine ?? '').includes('underline')) {
+      style.textDecorationLine = style.textDecorationLine ? `${style.textDecorationLine} underline` : 'underline';
+    }
+  }
+  return <Text accessibilityRole={href ? 'link' : undefined} onPress={href ? () => void Linking.openURL(href!) : undefined} style={style}>{node.text ?? ''}</Text>;
 }
 
 function plainText(node: TiptapNode): string {

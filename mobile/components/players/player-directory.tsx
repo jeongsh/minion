@@ -126,7 +126,7 @@ function PlayerFilters({ position, setPosition, setTeamId, teamId, teams }: {
 }
 
 function FilterSheet({ children, onClose, open }: { children: React.ReactNode; onClose: () => void; open: boolean }) {
-  return <BottomSheet contentStyle={styles.modalBody} maxHeight="92%" onClose={onClose} open={open} scrollable title="선수 필터">{children}</BottomSheet>;
+  return <BottomSheet maxHeight="92%" onClose={onClose} open={open} scrollable title="선수 필터">{children}</BottomSheet>;
 }
 
 export function PlayerDirectory() {
@@ -216,7 +216,6 @@ const styles = StyleSheet.create({
   teamGrid: { gap: 6 },
   teamFilter: { alignItems: 'center', borderRadius: 12, flexDirection: 'row', gap: 8, minHeight: 44, paddingHorizontal: 12 },
   teamLogo: { height: 28, width: 28 },
-  modalBody: { padding: 16 },
   skeletonDivision: { borderRadius: 8, height: 36, width: 58 },
   skeletonCount: { borderRadius: 4, height: 14, width: 40 },
   skeletonFilter: { borderRadius: 12, height: 44, width: 76 },

@@ -1,7 +1,7 @@
 import { Image } from 'expo-image';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { ScheduleDialogChrome } from '@/components/schedule/schedule-dialog-chrome';
+import { BottomSheet } from '@/components/bottom-sheet';
 import { TOURNAMENT_LOGO_ASSETS } from '@/constants/tournament-segments';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import { resolveApiAssetUrl } from '@/lib/api-client';
@@ -15,7 +15,7 @@ export type TournamentFilterGroup = {
 
 export function TournamentFilterSheet({ groups, onClose, open }: { groups: TournamentFilterGroup[]; onClose: () => void; open: boolean }) {
   const { fonts, theme } = useMinionTheme();
-  return <ScheduleDialogChrome title="대회 필터" open={open} onClose={onClose}>
+  return <BottomSheet title="대회 필터" open={open} onClose={onClose}>
     <View style={styles.groups}>{groups.map(group => <View key={group.label}>
       <Text style={[styles.label, { color: theme.muted, ...fonts.medium }]}>{group.label}</Text>
       <View style={styles.options}>{group.options.map(option => {
@@ -29,7 +29,7 @@ export function TournamentFilterSheet({ groups, onClose, open }: { groups: Tourn
         </Pressable>;
       })}</View>
     </View>)}</View>
-  </ScheduleDialogChrome>;
+  </BottomSheet>;
 }
 
 const styles = StyleSheet.create({

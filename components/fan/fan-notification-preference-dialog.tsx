@@ -1,12 +1,11 @@
 "use client";
 
-import { Bell, Camera, Radio, Video, X } from "lucide-react";
+import { Bell, Camera, Radio, Video } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useId, useRef, useState, useTransition } from "react";
-import { createPortal } from "react-dom";
+import { useId, useState, useTransition } from "react";
 
 import { updateFanNotificationSelectionAction } from "@/app/fan/[teamSlug]/actions";
-import { DialogSheetHandle } from "@/components/responsive/adaptive-dialog";
+import { ControlledDialog, dialogBodyClassName, DialogSheetHeader } from "@/components/responsive/adaptive-dialog";
 import { useToast } from "@/components/ui/toast";
 import type { FanNotificationSelection } from "@/lib/notifications";
 
@@ -44,37 +43,9 @@ export function FanNotificationPreferenceDialog({
   teamSlug: string;
 }) {
   const titleId = useId();
-  const dialogRef = useRef<HTMLElement>(null);
   const [selection, setSelection] = useState<FanNotificationSelection>(EMPTY_SELECTION);
   const [pending, startTransition] = useTransition();
   const { showToast } = useToast();
-
-  useEffect(() => {
-    if (!open) return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-      if (event.key !== "Tab") return;
-      const focusables = dialogRef.current?.querySelectorAll<HTMLElement>('button:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])');
-      if (!focusables?.length) return;
-      const first = focusables[0];
-      const last = focusables[focusables.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-    window.addEventListener("keydown", onKeyDown);
-    window.setTimeout(() => dialogRef.current?.querySelector<HTMLElement>("button, a")?.focus(), 0);
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener("keydown", onKeyDown);
-    };
-  }, [onClose, open]);
 
   if (!open || typeof document === "undefined") return null;
 
@@ -94,27 +65,10 @@ export function FanNotificationPreferenceDialog({
     });
   };
 
-  return createPortal(
-    <div
-      className="modal-backdrop fixed inset-0 z-[1100] flex items-end justify-center bg-black/55 sm:items-center sm:p-6"
-      role="presentation"
-      onMouseDown={(event) => { if (event.currentTarget === event.target && !pending) onClose(); }}
-    >
-      <section
-        ref={dialogRef}
-        aria-labelledby={titleId}
-        aria-modal="true"
-        className="flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-[24px] bg-[var(--ui-surface)] shadow-2xl sm:max-w-[460px] sm:rounded-[24px]"
-        role="dialog"
-        style={{ "--fan-notification-color": teamColor } as React.CSSProperties}
-      >
-        <DialogSheetHandle />
-        <header className="flex min-h-12 items-center gap-2 px-4 sm:px-5">
-          <h2 id={titleId} className="min-w-0 flex-1 truncate text-[18px] font-extrabold leading-7 text-[var(--ui-ink)]">{teamName} 알림 설정</h2>
-          <button type="button" aria-label="알림 설정 닫기" className="grid h-11 w-11 place-items-center rounded-xl text-[var(--ui-muted)] hover:bg-[var(--ui-surface-muted)]" disabled={pending} onClick={onClose}><X size={19} /></button>
-        </header>
-
-        <div className="min-h-0 overflow-y-auto px-4 pb-[max(20px,env(safe-area-inset-bottom))] pt-1 sm:px-5 sm:pb-5">
+  return (
+    <ControlledDialog open={open} onClose={onClose} dismissible={!pending} labelledBy={titleId} panelClassName="sm:max-w-[460px]" panelStyle={{ "--fan-notification-color": teamColor } as React.CSSProperties}>
+      <DialogSheetHeader onClose={() => { if (!pending) onClose(); }} title={teamName + " 알림 설정"} titleId={titleId} />
+      <div className={dialogBodyClassName}>
           {canConfigure ? (
             <>
               <p className="text-base font-normal leading-6 text-[var(--ui-muted)]">받고 싶은 소식만 골라주세요. 선택하지 않아도 팔로우는 유지됩니다.</p>
@@ -154,8 +108,6 @@ export function FanNotificationPreferenceDialog({
             </>
           )}
         </div>
-      </section>
-    </div>,
-    document.body,
+    </ControlledDialog>
   );
 }

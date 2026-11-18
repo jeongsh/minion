@@ -65,7 +65,7 @@ export function HomeCalendarDialog({ calendar, events }: Props) {
       <CalendarDays color={theme.ink} size={16} strokeWidth={2} />
       <Text style={[styles.triggerText, { color: theme.ink, ...fonts.bold }]}>월간 캘린더 보기</Text>
     </Pressable>
-    <BottomSheet contentStyle={styles.dialogBody} maxHeight="92%" onClose={() => setOpen(false)} open={open} title="LCK 캘린더">
+    <BottomSheet maxHeight="92%" onClose={() => setOpen(false)} open={open} title="LCK 캘린더">
             <View style={[styles.calendarShell, { backgroundColor: colorScheme === 'dark' ? '#1c1e22' : '#ffffff', borderColor: theme.border }]}>
               {selectedKey && (selectedMatches.length || selectedEvents.length) ? (
                 <CalendarDetail dateKey={selectedKey} events={selectedEvents} matches={selectedMatches} onBack={() => setSelectedKey(null)} />
@@ -120,7 +120,6 @@ const styles = StyleSheet.create({
   detailHeader: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8, paddingHorizontal: 4, paddingVertical: 2 },
   detailList: { gap: 6 },
   detailTeams: { alignItems: 'center', flex: 1, flexDirection: 'row', gap: 6, justifyContent: 'flex-end' },
-  dialogBody: { padding: 16 },
   dot: { borderRadius: 2, height: 4, width: 4 },
   dots: { alignItems: 'center', flexDirection: 'row', gap: 2, height: 4, justifyContent: 'center' },
   eventDetail: { alignItems: 'center', borderRadius: 12, flexDirection: 'row', gap: 10, paddingHorizontal: 12, paddingVertical: 8 },

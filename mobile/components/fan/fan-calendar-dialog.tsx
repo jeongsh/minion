@@ -78,7 +78,7 @@ export function FanCalendarDialog({ background, border, events: initialEvents = 
     <Pressable accessibilityLabel="캘린더" onPress={() => { setOpen(true); void loadMonth(new Date(year, month, 1, 12)); }} style={({ pressed }) => [styles.trigger, { backgroundColor: background, borderColor: border, opacity: pressed ? 0.8 : 1 }]}>
       <CalendarDays color={iconColor} size={16} />
     </Pressable>
-    <BottomSheet contentStyle={styles.body} maxHeight="92%" onClose={() => setOpen(false)} open={open} title={`${teamShort} 캘린더`}>
+    <BottomSheet maxHeight="92%" onClose={() => setOpen(false)} open={open} title={`${teamShort} 캘린더`}>
             <View style={[styles.calendar, { backgroundColor: colorScheme === 'dark' ? '#1c1e22' : '#ffffff', borderColor: theme.border }]}>
               {selectedKey && (selectedMatches.length || selectedEvents.length) ? (
                 <CalendarDetail dateKey={selectedKey} events={selectedEvents} matches={selectedMatches} onBack={() => setSelectedKey(null)} />
@@ -121,7 +121,6 @@ function Legend({ color, label }: { color: string; label: string }) {
 }
 
 const styles = StyleSheet.create({
-  body: { padding: 16 },
   calendar: { borderRadius: 16, borderWidth: 1, height: 400, padding: 16 },
   caption: { fontSize: 16, letterSpacing: -0.4, lineHeight: 24, textAlign: 'center' },
   captionNav: { flexDirection: 'row', justifyContent: 'space-between', position: 'absolute', top: 1, width: 168 },

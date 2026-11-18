@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
+import { ControlledDialog, dialogBodyClassName, DialogSheetHeader } from "@/components/responsive/adaptive-dialog";
 import { Button } from "@/components/ui/button";
 import type { Team } from "@/lib/types";
 import { createPostAction, updatePostAction } from "./actions";
@@ -42,14 +43,7 @@ export function PostFormModal({
   initial?: PostInitial;
 }) {
   const [open, setOpen] = useState(false);
-  const dialogRef = useRef<HTMLDialogElement>(null);
 
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-    if (open) dialog.showModal();
-    else dialog.close();
-  }, [open]);
 
   function handleClose() {
     setOpen(false);
@@ -69,24 +63,10 @@ export function PostFormModal({
         {mode === "create" ? "+ 글 추가" : "수정"}
       </button>
 
-      {open ? <dialog
-        ref={dialogRef}
-        className="modal-native fixed inset-0 m-auto w-[min(100%,34rem)] rounded-xl border border-border bg-surface p-0 shadow-xl backdrop:bg-black/50"
-        onClose={handleClose}
-      >
-        <div className="p-6">
-          <div className="mb-5 flex items-center justify-between gap-3">
-            <h3 className="font-semibold">{mode === "create" ? "글 추가" : "글 수정"}</h3>
-            <Button
-              type="button"
-              onClick={handleClose}
-              variant="secondary"
-            >
-              닫기
-            </Button>
-          </div>
-
-          <form
+      <ControlledDialog open={open} onClose={handleClose} ariaLabel={mode === "create" ? "글 추가" : "글 수정"} panelClassName="sm:max-w-[34rem]">
+        <DialogSheetHeader onClose={handleClose} title={mode === "create" ? "글 추가" : "글 수정"} />
+        <div className={dialogBodyClassName}>
+                    <form
             action={async (fd) => {
               await (mode === "create" ? createPostAction : updatePostAction)(fd);
               handleClose();
@@ -184,7 +164,7 @@ export function PostFormModal({
             </Button>
           </form>
         </div>
-      </dialog> : null}
+      </ControlledDialog>
     </>
   );
 }

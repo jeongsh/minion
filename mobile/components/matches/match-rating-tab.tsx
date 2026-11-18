@@ -192,7 +192,7 @@ export function MatchRatingTab({ matchId, panel, setId }: { matchId: string; pan
         {comments.length === 0 ? <Text style={{ color: theme.muted, ...fonts.regular, fontSize: 14, lineHeight: 22, marginTop: 8 }}>아직 작성된 평가 코멘트가 없습니다.</Text> : <View style={styles.commentList}>{comments.map((item) => <RatingComment item={item} key={item.id} />)}</View>}
         {commentPage.nextCursor ? <Pressable disabled={commentsLoading} onPress={() => void loadComments(playerId, true)} style={{ alignItems: 'center', padding: 12 }}><Text style={{ color: theme.muted, ...fonts.medium, fontSize: 13 }}>{commentsLoading ? '불러오는 중' : '더 보기'}</Text></Pressable> : null}
       </View>
-      <BottomSheet onClose={() => setFilterOpen(false)} open={filterOpen} title="선수별 코멘트 필터" titleStyle={styles.sheetTitle}><View style={styles.filterList}><Pressable onPress={() => { void loadComments(null, false); setFilterOpen(false); }} style={styles.filterItem}><Text style={{ color: theme.ink, ...fonts.medium, fontSize: 14 }}>전체 선수 ({panel.comments.length})</Text></Pressable>{filterPlayers.map((player) => <Pressable key={player.id} onPress={() => { void loadComments(player.id, false); setFilterOpen(false); }} style={styles.filterItem}><Text style={{ color: theme.ink, ...fonts.medium, fontSize: 14 }}>{player.name} ({player.count})</Text></Pressable>)}</View></BottomSheet>
+      <BottomSheet onClose={() => setFilterOpen(false)} open={filterOpen} title="선수별 코멘트 필터" titleStyle={styles.sheetTitle}><View><Pressable onPress={() => { void loadComments(null, false); setFilterOpen(false); }} style={styles.filterItem}><Text style={{ color: theme.ink, ...fonts.medium, fontSize: 14 }}>전체 선수 ({panel.comments.length})</Text></Pressable>{filterPlayers.map((player) => <Pressable key={player.id} onPress={() => { void loadComments(player.id, false); setFilterOpen(false); }} style={styles.filterItem}><Text style={{ color: theme.ink, ...fonts.medium, fontSize: 14 }}>{player.name} ({player.count})</Text></Pressable>)}</View></BottomSheet>
       <BottomSheet contentStyle={styles.composerBody} onClose={closeComposer} open={composerOpen && Boolean(selectedPlayer)} scrollable title={selectedPlayer ? `${selectedPlayer.name} 평가` : '선수 평가'} titleStyle={styles.sheetTitle}>
         {selectedPlayer ? <>
           <View style={styles.composerPlayer}>
@@ -222,14 +222,13 @@ const styles = StyleSheet.create({
   commentsSection: { marginTop: 12 },
   composerActions: { alignItems: 'center', flexDirection: 'row', justifyContent: 'flex-end', gap: 12 },
   composerAvatar: { borderRadius: 24, height: 48, overflow: 'hidden', width: 48 },
-  composerBody: { gap: 16, paddingBottom: 6, paddingTop: 4 },
+  composerBody: { gap: 16 },
   composerIdentity: { flex: 1, gap: 5 },
   composerPlayer: { alignItems: 'center', flexDirection: 'row', gap: 12 },
   empty: { borderRadius: 16, borderStyle: 'dashed', borderWidth: 1, padding: 16 },
   fill: { height: '100%', width: '100%' },
   filter: { alignItems: 'center', borderRadius: 8, flexDirection: 'row', gap: 8, height: minionSize.control, maxWidth: '55%', paddingHorizontal: 12 },
   filterItem: { justifyContent: 'center', minHeight: 48 },
-  filterList: { paddingBottom: 8 },
   leftHalf: { bottom: 0, left: 0, position: 'absolute', top: 0, width: 10 },
   loginBanner: { alignItems: 'center', borderRadius: 8, flexDirection: 'row', gap: 8, paddingHorizontal: 12, paddingVertical: 10 },
   loginButton: { borderRadius: 8, paddingHorizontal: 12, paddingVertical: 7 },

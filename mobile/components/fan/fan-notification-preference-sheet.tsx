@@ -63,13 +63,11 @@ export function FanNotificationPreferenceSheet({
 
   return (
     <BottomSheet
-      contentStyle={styles.content}
       dismissible={!pending}
       maxHeight="92%"
       onClose={onClose}
       open={open}
       title={`${teamName} 알림 설정`}
-      titleStyle={{ ...fonts.black, fontSize: 18, lineHeight: 28 }}
     >
       {canConfigure ? (
         <>
@@ -125,7 +123,6 @@ export function FanNotificationPreferenceSheet({
 }
 
 const styles = StyleSheet.create({
-  content: { paddingBottom: 2, paddingTop: 4 },
   description: { fontSize: 16, lineHeight: 24 },
   options: { gap: 8, marginTop: 16 },
   option: { alignItems: 'center', borderRadius: 12, borderWidth: 1, flexDirection: 'row', gap: 12, minHeight: 68, paddingHorizontal: 12 },

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { RefreshCw } from "lucide-react";
 import { FilterDropdown } from "@/components/match-filter-dropdown";
 import { Input } from "@/components/ui/input";
-import { ControlledDialog, DialogSheetHeader } from "@/components/responsive/adaptive-dialog";
+import { dialogBodyClassName, ControlledDialog, DialogSheetHeader } from "@/components/responsive/adaptive-dialog";
 import { SearchInput } from "@/components/ui/search-input";
 import { Button } from "@/components/ui/button";
 import type { Player } from "@/lib/types";
@@ -55,8 +55,8 @@ export function TransferManager({ market, season, teams, players }: { market: Tr
     {market && <>
       <TransferEventForm season={season} teams={teams} players={players} />
       <ControlledDialog open={!!editing} onClose={() => setEditing(null)} labelledBy={editTitleId}>
-        <DialogSheetHeader title="변동 기록 수정" titleId={editTitleId} titleClassName="!text-xl" onClose={() => setEditing(null)} />
-        <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
+        <DialogSheetHeader title="변동 기록 수정" titleId={editTitleId} onClose={() => setEditing(null)} />
+        <div className={dialogBodyClassName}>
           {editing && <TransferEventForm key={editing.id} editing={editing} season={season} teams={teams} players={players} onSaved={() => { setEditing(null); setFailed(false); setMessage("변동 기록을 저장했습니다."); }} />}
         </div>
       </ControlledDialog>

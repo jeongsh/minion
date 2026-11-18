@@ -226,7 +226,7 @@ const styles = StyleSheet.create({
   loadMore: { alignItems: 'center', justifyContent: 'center', minHeight: 44 },
   loadout: { alignItems: 'center', flex: 1, flexDirection: 'row', gap: 6, minWidth: 0 },
   loadoutCopy: { flex: 1, minWidth: 0 },
-  modalContent: { gap: 12, padding: 12 },
+  modalContent: { gap: 12, },
   modalEmpty: { borderRadius: 12, padding: 20 },
   modalPanel: { height: '92%' },
   noRecent: { borderRadius: 16, borderWidth: 1, padding: 24 },

@@ -133,26 +133,16 @@ select.minion-native-select {
  * lock belongs at the document level instead of being repeated per component.
  */
 html[aria-busy="true"],
-html:has(.modal-backdrop:not(.notification-panel-backdrop)),
-html:has([aria-modal="true"]:not(.notification-panel-dialog)),
+html:has(.modal-backdrop:not(.dialog-desktop-popover)),
+html:has([aria-modal="true"]),
 html:has(dialog[open]),
 html:has([data-scroll-lock="true"]),
-body:has(.modal-backdrop:not(.notification-panel-backdrop)),
-body:has([aria-modal="true"]:not(.notification-panel-dialog)),
+body:has(.modal-backdrop:not(.dialog-desktop-popover)),
+body:has([aria-modal="true"]),
 body:has(dialog[open]),
 body:has([data-scroll-lock="true"]) {
   overflow: hidden;
   overscroll-behavior: none;
-}
-
-/* The notification sheet blocks the page on mobile, but is a scroll-through
- * popover on desktop. Other blocking dialogs still take precedence above. */
-@media (max-width: 1199px) {
-  html:has(.notification-panel-root),
-  body:has(.notification-panel-root) {
-    overflow: hidden;
-    overscroll-behavior: none;
-  }
 }
 
 html:has(.schedule-page) {
@@ -421,6 +411,25 @@ html[class~="dark"] .navigation-progress-bar {
 
 .adaptive-dialog-panel {
   animation: adaptive-dialog-enter 0.2s cubic-bezier(.2, .9, .25, 1) both;
+}
+
+.dialog-body {
+  padding: 8px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+}
+
+@media (min-width: 640px) {
+  .dialog-body { padding: 20px; }
+}
+
+/* 알림은 넓은 화면에서 기존 헤더 팝오버 동작을 유지한다. */
+.dialog-desktop-popover { padding: 0; align-items: flex-end; }
+.dialog-desktop-popover .adaptive-dialog-panel { max-height: 82dvh; border-radius: 24px 24px 0 0; }
+@media (min-width: 1200px) {
+  .dialog-desktop-popover { pointer-events: none; background: transparent; }
+  .dialog-desktop-popover .adaptive-dialog-panel {
+    position: absolute; top: 80px; right: 16px; width: 390px;
+    max-height: calc(100dvh - 96px); border-radius: 16px; pointer-events: auto;
+  }
 }
 
 @media (max-width: 639px) {

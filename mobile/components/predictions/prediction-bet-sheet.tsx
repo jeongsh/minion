@@ -1,6 +1,6 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { ScheduleDialogChrome } from '@/components/schedule/schedule-dialog-chrome';
+import { BottomSheet } from '@/components/bottom-sheet';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import type { MobilePredictionBet } from '../../../packages/contracts/src/mobile-v1';
 import { predictionMaxStake } from '@/lib/predictions';
@@ -35,7 +35,7 @@ export function PredictionBetSheet({ balance, dialog, error, onCancelBet, onClos
   }
 
   return (
-    <ScheduleDialogChrome onClose={pending ? () => undefined : onClose} open={Boolean(dialog)} title="승부예측">
+    <BottomSheet onClose={pending ? () => undefined : onClose} open={Boolean(dialog)} title="승부예측">
       {dialog ? (
         <View style={styles.content}>
           {dialog.existingBet ? (
@@ -85,7 +85,7 @@ export function PredictionBetSheet({ balance, dialog, error, onCancelBet, onClos
           {error ? <Text accessibilityLiveRegion="polite" style={[styles.error, { ...fonts.medium }]}>{error}</Text> : null}
         </View>
       ) : null}
-    </ScheduleDialogChrome>
+    </BottomSheet>
   );
 }
 

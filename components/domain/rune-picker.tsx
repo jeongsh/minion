@@ -1,5 +1,7 @@
 "use client";
 
+import { ControlledDialog, dialogBodyClassName, DialogSheetHeader } from "@/components/responsive/adaptive-dialog";
+
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 
@@ -42,17 +44,6 @@ export function RunePicker({
     }
   }, [open]);
 
-  useEffect(() => {
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setOpen(false);
-        setQuery("");
-      }
-    }
-
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
 
   function selectRune(runeId: number | null) {
     onValueChange(runeId);
@@ -88,23 +79,10 @@ export function RunePicker({
 
       {open ? (
         <div id={dialogId}>
-          <div className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center" role="presentation">
-            <button
-              type="button"
-              aria-label="닫기"
-              className="modal-backdrop absolute inset-0 bg-black/60 [--modal-backdrop-dark-mobile:0.75]"
-              onClick={() => {
-                setOpen(false);
-                setQuery("");
-              }}
-            />
-            <div
-              role="dialog"
-              aria-modal="true"
-              aria-label={dialogLabel}
-              className="relative z-10 flex max-h-[min(80vh,32rem)] w-full max-w-md flex-col overflow-hidden rounded-md border border-border bg-surface shadow-xl"
-            >
-              <div className="border-b border-border p-4">
+          <ControlledDialog open={open} onClose={() => { setOpen(false); setQuery(""); }} ariaLabel={dialogLabel} panelClassName="sm:max-w-md">
+            <DialogSheetHeader onClose={() => { setOpen(false); setQuery(""); }} title={dialogLabel} />
+            <div className={dialogBodyClassName}>
+              <div className="mb-4">
                 <div className="flex items-center gap-3">
                   <input
                     ref={inputRef}
@@ -123,7 +101,7 @@ export function RunePicker({
                   </button>
                 </div>
               </div>
-              <div className="overflow-y-auto p-2">
+              <div>
                 {filtered.length === 0 ? (
                   <p className="py-8 text-center text-sm text-muted">검색 결과가 없습니다.</p>
                 ) : (
@@ -148,7 +126,7 @@ export function RunePicker({
                 )}
               </div>
             </div>
-          </div>
+          </ControlledDialog>
         </div>
       ) : null}
     </>

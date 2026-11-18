@@ -231,7 +231,7 @@ const styles = StyleSheet.create({
   pagination: { alignItems: 'center', borderTopWidth: 1, flexDirection: 'row', gap: 6, height: 57, justifyContent: 'center' },
   pageButton: { alignItems: 'center', height: 36, justifyContent: 'center', width: 36 },
   compose: { alignItems: 'center', borderRadius: 24, height: 48, justifyContent: 'center', position: 'absolute', right: 16, width: 48, zIndex: 80 },
-  categoryList: { gap: 2, paddingBottom: 8 },
+  categoryList: { gap: 2, },
   categoryOption: { borderRadius: 10, justifyContent: 'center', minHeight: 44, paddingHorizontal: 14 },
   skeletonRow: { alignItems: 'center', borderBottomWidth: 1, flexDirection: 'row', gap: 12, height: 65, paddingHorizontal: 12 },
   skeletonText: { flex: 1, gap: 8 },

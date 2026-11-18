@@ -76,7 +76,7 @@ export function TeamPicker({
         </>
       }
     >
-      <section aria-label="팀 선택" className="pb-2">
+      <section aria-label="팀 선택">
         <TeamGrid teams={orderedTeams} followedIds={followedIds} />
       </section>
     </AdaptiveDialog>

@@ -4,10 +4,10 @@ import { useRouter } from 'expo-router';
 import ChevronLeft from 'lucide-react-native/icons/chevron-left';
 import ChevronRight from 'lucide-react-native/icons/chevron-right';
 import CalendarPlus from 'lucide-react-native/icons/calendar-plus';
-import X from 'lucide-react-native/icons/x';
 import { useMemo, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { BottomSheet } from '@/components/bottom-sheet';
 import { TeamLogo } from '@/components/data/team-logo';
 import { useTeamCalendar } from '@/components/fan/use-team-calendar';
 import { FanCalendarSubmissionSheet } from '@/components/fan/fan-calendar-submission-sheet';
@@ -194,12 +194,7 @@ function CalendarPopup({ dateKeyValue, items, onClose, teamId }: { dateKeyValue:
   if (!dateKeyValue || items.length === 0) return null;
   const date = dateFromKey(dateKeyValue);
   return (
-    <Modal animationType="fade" onRequestClose={onClose} transparent visible>
-      <View style={styles.modalRoot}>
-        <Pressable accessibilityLabel="날짜 상세 닫기" onPress={onClose} style={styles.modalBackdrop} />
-        <View accessibilityViewIsModal style={[styles.popup, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          <View style={styles.popupHeader}><Text style={[styles.popupTitle, { color: theme.ink, ...fonts.medium }]}>{date.getMonth() + 1}월 {date.getDate()}일</Text><Pressable accessibilityLabel="날짜 상세 닫기" onPress={onClose} style={styles.popupClose}><X color={theme.muted} size={14} strokeWidth={2.5} /></Pressable></View>
-          <ScrollView contentContainerStyle={styles.popupList} showsVerticalScrollIndicator={false}>
+    <BottomSheet open onClose={onClose} title={date.getMonth() + 1 + '월 ' + date.getDate() + '일'} contentStyle={styles.popupList}>
             {items.map((item) => item.kind === 'match' ? (
               <Pressable key={`popup-match-${item.match.id}`} onPress={() => { onClose(); router.navigate(`/matches/${encodeURIComponent(item.match.id)}` as never); }} style={[styles.popupItem, { backgroundColor: theme.card }]}>
                 <TeamLogo plain size={24} team={opponentFor(item.match, teamId)} themeAware />
@@ -213,10 +208,7 @@ function CalendarPopup({ dateKeyValue, items, onClose, teamId }: { dateKeyValue:
                 <Text style={[styles.popupItemTime, { color: ITEM_META[item.event.type].color, ...fonts.medium }]}>{item.event.eventTime ?? '종일'}</Text>
               </Pressable>
             ))}
-          </ScrollView>
-        </View>
-      </View>
-    </Modal>
+    </BottomSheet>
   );
 }
 
@@ -231,19 +223,13 @@ const styles = StyleSheet.create({
   legendDot: { borderRadius: 3, height: 6, width: 6 },
   legendItem: { alignItems: 'center', flexDirection: 'row', gap: 4 },
   legendText: { fontSize: 13, lineHeight: 16 },
-  modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.35)' },
-  modalRoot: { alignItems: 'center', flex: 1, justifyContent: 'center', padding: 16 },
   monthControls: { alignItems: 'center', flexDirection: 'row', gap: 2 },
   monthLabel: { fontSize: 15, lineHeight: 22.5, textAlign: 'center' },
   page: { paddingHorizontal: 16, paddingVertical: 8 },
-  popup: { borderRadius: 16, borderWidth: 1, maxHeight: '60%', padding: 10, width: 300 },
-  popupClose: { alignItems: 'center', borderRadius: 12, height: 24, justifyContent: 'center', width: 24 },
-  popupHeader: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8, paddingHorizontal: 4, paddingVertical: 2 },
   popupItem: { alignItems: 'center', borderRadius: 12, flexDirection: 'row', gap: 10, minHeight: 48, paddingHorizontal: 12, paddingVertical: 8 },
   popupItemTime: { flexShrink: 0, fontSize: 13, lineHeight: 19 },
   popupItemTitle: { flex: 1, fontSize: 13, lineHeight: 19, minWidth: 0 },
   popupList: { gap: 6 },
-  popupTitle: { fontSize: 14, lineHeight: 20 },
   preview: { alignItems: 'center', flexDirection: 'row', gap: 2, minWidth: 0, width: '100%' },
   previewDot: { borderRadius: 3, flexShrink: 0, height: 6, width: 6 },
   previewText: { flex: 1, fontSize: 12, lineHeight: 16, minWidth: 0 },

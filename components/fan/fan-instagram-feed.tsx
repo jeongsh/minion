@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ControlledDialog, dialogBodyClassName, DialogSheetHeader } from "@/components/responsive/adaptive-dialog";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
@@ -85,14 +86,9 @@ function StoryViewer({
   const next = () => setIndex((i) => Math.min(stories.length - 1, i + 1));
 
   return (
-    <div
-      className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/90 [--modal-backdrop-dark-mobile:0.95]"
-      onClick={onClose}
-    >
-      <div
-        className="relative flex max-h-[90dvh] max-w-sm w-full flex-col"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <ControlledDialog open onClose={onClose} ariaLabel={story.ownerName + ' Instagram 스토리'} panelClassName="sm:max-w-sm">
+      <DialogSheetHeader onClose={onClose} title={story.ownerName} />
+      <div className={dialogBodyClassName}>
         {/* 진행 바 */}
         <div className="flex gap-1 px-2 pt-2">
           {stories.map((_, i) => (
@@ -103,17 +99,12 @@ function StoryViewer({
           ))}
         </div>
 
-        {/* 헤더 */}
-        <div className="flex items-center gap-2 px-3 py-2">
-          <div className="h-8 w-8 rounded-full bg-white/20 overflow-hidden">
-            {story.ownerImageUrl && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={proxyUrl(story.ownerImageUrl)} alt="" className="h-full w-full object-cover" />
-            )}
-          </div>
-          <span className="text-sm font-bold text-white">{story.ownerName}</span>
-          <span className="ml-auto text-[13px] text-white/60" suppressHydrationWarning>{relativeTime(story.takenAt)}</span>
-          <button type="button" onClick={onClose} className="ml-2 text-white/80 hover:text-white text-xl leading-none">✕</button>
+        <div className="mb-2 flex items-center gap-2">
+          {story.ownerImageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={proxyUrl(story.ownerImageUrl)} alt="" className="h-8 w-8 rounded-full object-cover" />
+          ) : null}
+          <p className="text-[13px] text-[var(--ui-muted)]" suppressHydrationWarning>{relativeTime(story.takenAt)}</p>
         </div>
 
         {/* 미디어 */}
@@ -153,7 +144,7 @@ function StoryViewer({
           )}
         </div>
       </div>
-    </div>
+    </ControlledDialog>
   );
 }
 

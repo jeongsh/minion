@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 
-import { ControlledDialog, DialogSheetHeader } from "@/components/responsive/adaptive-dialog";
+import { dialogBodyClassName, ControlledDialog, DialogSheetHeader } from "@/components/responsive/adaptive-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { deleteUserCommentAction, deleteUserPostAction, getUserCommentsPageAction, getUserPostsPageAction } from "../actions";
 
@@ -109,7 +109,7 @@ export function UserContentLists({
     <ControlledDialog open={Boolean(selectedContent)} onClose={() => setSelectedContent(null)} labelledBy="user-content-detail-title" panelClassName="sm:max-w-2xl">
       {selectedContent ? <>
         <DialogSheetHeader onClose={() => setSelectedContent(null)} title={selectedContent.title} titleId="user-content-detail-title" />
-        <div className="min-h-0 overflow-y-auto px-5 pb-6 sm:px-6">
+        <div className={dialogBodyClassName}>
           <p className="mb-4 text-sm text-muted">{formatDate(selectedContent.createdAt)}</p>
           <p className="whitespace-pre-wrap break-words text-base leading-7 text-[var(--ui-text)]">{selectedContent.content}</p>
         </div>

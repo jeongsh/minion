@@ -101,7 +101,6 @@ export function NotificationPanel({ onClose, open }: { onClose: () => void; open
   return (
     <BottomSheet
       actions={actions}
-      contentStyle={styles.content}
       onClose={onClose}
       open={open}
       scrollable={notifications.length > 0}
@@ -123,14 +122,13 @@ export function NotificationPanel({ onClose, open }: { onClose: () => void; open
 
 const styles = StyleSheet.create({
   actionButton: { alignItems: 'center', flexDirection: 'row', gap: 4, minHeight: 36, paddingHorizontal: 7 },
-  content: { paddingTop: 4 },
   copy: { flex: 1, justifyContent: 'center', minHeight: 36, minWidth: 0 },
   description: { fontSize: 13, lineHeight: 18 },
   empty: { alignItems: 'center', justifyContent: 'center', minHeight: 180, paddingHorizontal: 12 },
   iconBox: { alignItems: 'center', borderRadius: 8, height: 36, justifyContent: 'center', position: 'relative', width: 36 },
   imageContain: { height: 20, width: 20 },
   imageFill: { height: 36, width: 36 },
-  list: { gap: 4, paddingBottom: 4 },
+  list: { gap: 4 },
   removeButton: { alignItems: 'center', alignSelf: 'center', height: 32, justifyContent: 'center', width: 32 },
   row: { alignItems: 'flex-start', borderRadius: 12, borderWidth: 1, flexDirection: 'row', gap: 6, paddingHorizontal: 10, paddingVertical: 10 },
   rowMain: { alignItems: 'flex-start', flex: 1, flexDirection: 'row', gap: 10, minWidth: 0 },

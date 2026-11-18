@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
-import { DialogSheetHandle } from "@/components/responsive/adaptive-dialog";
+import { ControlledDialog, dialogBodyClassName, DialogSheetHeader } from "@/components/responsive/adaptive-dialog";
 
 // 인스타그램 게시물 임베드 모달. 팬 인스타 피드와 홈 FEED에서 공용으로 쓴다.
 
@@ -92,73 +92,22 @@ export function InstagramPostModal({
   }, [items.length, hasMore, onLoadMore, loadingMore]);
 
   useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-      if (event.key === "ArrowLeft") {
-        moveTo(index - 1);
-      }
-      if (event.key === "ArrowRight") {
-        moveTo(index + 1);
-      }
+    const handleArrow = (event: KeyboardEvent) => {
+      if (event.key === "ArrowLeft") moveTo(index - 1);
+      if (event.key === "ArrowRight") moveTo(index + 1);
     };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [index, moveTo, onClose]);
+    window.addEventListener("keydown", handleArrow);
+    return () => window.removeEventListener("keydown", handleArrow);
+  }, [index, moveTo]);
 
   if (!item) return null;
 
   return (
-    <div
-      className="modal-backdrop fixed inset-0 z-[70] flex items-end justify-center bg-black/60 [--modal-backdrop-dark-mobile:0.72] p-0 sm:items-center sm:p-6"
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-label={`${item.ownerName} Instagram 게시물`}
-    >
-      <div
-        className="relative flex h-[calc(100dvh-env(safe-area-inset-top))] w-full max-w-[620px] flex-col overflow-hidden rounded-t-[24px] bg-[var(--ui-surface)] sm:h-auto sm:rounded-[24px]"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <DialogSheetHandle />
-        <div className="flex h-12 shrink-0 items-center gap-3 bg-[var(--ui-surface)] px-4 text-[var(--ui-ink)]">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--ui-surface-muted)]">
-            <InstagramIcon className="h-4 w-4" />
-          </div>
-          <div className="min-w-0 sm:hidden">
-            <p className="truncate text-sm font-black">@{item.ownerName}</p>
-            <p className="text-[13px] text-[var(--ui-muted)]" suppressHydrationWarning>{relativeTime(item.postedAt)}</p>
-          </div>
-          <p className="hidden text-sm font-black sm:block">Instagram</p>
-          <span className="ml-auto hidden text-[13px] font-bold tabular-nums text-[var(--ui-muted)] sm:block">
-            {index + 1} / {items.length}
-          </span>
-          <Link
-            href={item.sourceUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="ml-auto rounded-full bg-[var(--ui-surface-muted)] px-3 py-2 text-[13px] font-bold transition hover:bg-[var(--ui-card-hover)] sm:hidden"
-          >
-            원문 ↗
-          </Link>
-          <button
-            type="button"
-            onClick={onClose}
-            autoFocus
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--ui-surface-muted)] text-lg font-bold transition hover:bg-[var(--ui-card-hover)]"
-            aria-label="게시물 닫기"
-          >
-            ✕
-          </button>
-        </div>
-
-        <div className="relative min-h-0 flex-1 overflow-visible sm:h-[min(720px,calc(100dvh-112px))] sm:flex-none">
+    <ControlledDialog open onClose={onClose} ariaLabel={item.ownerName + ' Instagram 게시물'} panelClassName="h-[92dvh] sm:max-w-[620px]">
+      <DialogSheetHeader onClose={onClose} title={'@' + item.ownerName} actions={<Link href={item.sourceUrl} target="_blank" rel="noopener noreferrer" className="rounded-lg px-3 py-2 text-[13px] font-medium text-[var(--ui-muted)]">원문 ↗</Link>} />
+      <div className={dialogBodyClassName + " flex flex-col"}>
+        {item.postedAt ? <p className="mb-2 shrink-0 text-[13px] text-[var(--ui-muted)]" suppressHydrationWarning>{relativeTime(item.postedAt)}</p> : null}
+        <div className="relative min-h-0 flex-1">
           <div className="relative h-full min-h-0 overflow-hidden bg-surface sm:rounded-b-2xl">
             {isLoading && embedUrl ? (
               <div className="absolute inset-0 z-0 grid place-items-center bg-surface">
@@ -175,7 +124,7 @@ export function InstagramPostModal({
                 src={embedUrl}
                 width="100%"
                 height="720"
-                className="relative z-10 h-[calc(100dvh-108px)] w-full border-0 bg-surface sm:h-[min(720px,calc(100dvh-112px))]"
+                className="relative z-10 h-full w-full border-0 bg-surface"
                 scrolling="yes"
                 allow="encrypted-media; picture-in-picture; web-share"
                 allowFullScreen
@@ -183,7 +132,7 @@ export function InstagramPostModal({
                 title={`Instagram post by ${item.ownerName}`}
               />
             ) : (
-              <div className="grid h-[calc(100dvh-108px)] place-items-center bg-surface p-8 text-center sm:h-96">
+              <div className="grid h-full place-items-center bg-surface p-8 text-center">
                 <div>
                   <p className="text-sm font-bold text-[#344054]">이 게시물은 임베드로 표시할 수 없습니다.</p>
                   <Link
@@ -199,27 +148,9 @@ export function InstagramPostModal({
             )}
           </div>
 
-          <button
-            type="button"
-            onClick={() => moveTo(index - 1)}
-            disabled={!hasPrevious}
-            className="absolute left-2 top-1/2 z-20 hidden h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-[var(--ui-border)] bg-[var(--ui-card-bg)] text-[28px] text-[var(--ui-ink)] shadow-lg transition hover:bg-[var(--ui-card-hover)] disabled:pointer-events-none disabled:opacity-20 sm:-left-16 sm:flex"
-            aria-label="이전 Instagram 게시물"
-          >
-            <ChevronLeft className="size-7" strokeWidth={2.25} />
-          </button>
-          <button
-            type="button"
-            onClick={() => moveTo(index + 1)}
-            disabled={!hasNext}
-            className="absolute right-2 top-1/2 z-20 hidden h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-[var(--ui-border)] bg-[var(--ui-card-bg)] text-[28px] text-[var(--ui-ink)] shadow-lg transition hover:bg-[var(--ui-card-hover)] disabled:pointer-events-none disabled:opacity-20 sm:-right-16 sm:flex"
-            aria-label="다음 Instagram 게시물"
-          >
-            <ChevronRight className="size-7" strokeWidth={2.25} />
-          </button>
         </div>
 
-        <div className="flex h-11 shrink-0 items-center border-t border-[var(--ui-border)] bg-[var(--ui-surface)] px-2 text-[var(--ui-ink)] sm:hidden">
+        <div className="flex h-11 shrink-0 items-center border-t border-[var(--ui-border)] bg-[var(--ui-surface)] px-2 text-[var(--ui-ink)]">
           <button
             type="button"
             onClick={() => moveTo(index - 1)}
@@ -245,6 +176,6 @@ export function InstagramPostModal({
           </button>
         </div>
       </div>
-    </div>
+    </ControlledDialog>
   );
 }

@@ -4,7 +4,7 @@ import { Flag } from "lucide-react";
 import { useId, useState, useTransition } from "react";
 
 
-import { ControlledDialog, DialogSheetHeader } from "@/components/responsive/adaptive-dialog";
+import { dialogBodyClassName, ControlledDialog, DialogSheetHeader } from "@/components/responsive/adaptive-dialog";
 import { useToast } from "@/components/ui/toast";
 import { reportCommentAction, reportPostAction } from "@/lib/community/actions";
 import type { BoardScope } from "@/lib/community/boards";
@@ -65,7 +65,7 @@ export function ReportButton({ target, postId, commentId, scope, teamSlug }: { t
       </button>
       {<ControlledDialog open={open} onClose={close} labelledBy={titleId} panelClassName="sm:max-w-md">
                 <DialogSheetHeader onClose={close} title={`${postButton ? "게시글" : "댓글"} 리폿`} titleId={titleId} />
-                <form className="px-5 pb-5 pt-2" onSubmit={(event) => { event.preventDefault(); submit(); }}>
+                <form className={dialogBodyClassName} onSubmit={(event) => { event.preventDefault(); submit(); }}>
                   <p className="text-base font-normal leading-6 text-[var(--ui-text)]">리폿 사유를 입력해주세요. 운영자가 해당 내용을 확인합니다.</p>
                   <textarea autoFocus value={reason} onChange={(event) => setReason(event.target.value)} maxLength={1000} rows={5} placeholder="리폿 사유" className="mt-4 block min-h-28 w-full resize-none rounded-[var(--ui-control-radius)] border border-[var(--ui-border)] bg-[var(--ui-surface)] p-3 text-base font-normal leading-6 text-[var(--ui-text)] outline-none placeholder:text-[var(--ui-muted)] focus:border-[var(--ui-ink)] dark:bg-[var(--ui-surface-muted)]" />
                   <div className="mt-3 flex items-center justify-between gap-3">

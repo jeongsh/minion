@@ -7,7 +7,7 @@ import X from 'lucide-react-native/icons/x';
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
-import { ScheduleDialogChrome } from '@/components/schedule/schedule-dialog-chrome';
+import { BottomSheet } from '@/components/bottom-sheet';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import { resolveApiAssetUrl, type MobileHomeDto, type MobileMatchSummary, type MobileTeamSummary } from '@/lib/api-client';
 import { dateKeyKST, formatTimeKST } from '@/lib/schedule-dates';
@@ -98,7 +98,7 @@ export function ScheduleCalendarDialog({
   }
 
   return (
-    <ScheduleDialogChrome onClose={onClose} open={open} title={`${activeYear}년 ${activeMonth}월 캘린더`}>
+    <BottomSheet onClose={onClose} open={open} title={`${activeYear}년 ${activeMonth}월 캘린더`}>
       <View style={[styles.shell, { backgroundColor: colorScheme === 'dark' ? '#1c1e22' : '#ffffff', borderColor: theme.border }]}>
         {selectedKey && (selectedMatches.length > 0 || selectedEvents.length > 0) ? (
           <View style={styles.detail}>
@@ -208,7 +208,7 @@ export function ScheduleCalendarDialog({
           ))}
         </View>
       </View>
-    </ScheduleDialogChrome>
+    </BottomSheet>
   );
 }
 

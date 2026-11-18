@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, X } from "lucide-react";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { createPortal } from "react-dom";
+import { ControlledDialog, dialogBodyClassName, DialogSheetHeader } from "@/components/responsive/adaptive-dialog";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useMemo, useState, type ReactNode } from "react";
 
 import type { CalendarEvent, CalendarEventType } from "@/lib/calendar/events";
 import { CALENDAR_EVENT_COLORS } from "@/lib/calendar/theme";
@@ -202,47 +202,11 @@ function MobileCalendarPopup({
   const selectedDate = dateFromKey(dateKeyValue);
   const title = `${selectedDate.getMonth() + 1}월 ${selectedDate.getDate()}일`;
 
-  useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", closeOnEscape);
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener("keydown", closeOnEscape);
-    };
-  }, [onClose]);
-
-  if (typeof document === "undefined") return null;
-
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/35 p-4 lg:hidden"
-      role="presentation"
-      onMouseDown={(event) => {
-        if (event.currentTarget === event.target) onClose();
-      }}
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={`${title} 일정`}
-        className="w-full max-w-[300px] rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-2.5 text-left shadow-[0_20px_55px_rgba(0,0,0,0.18)]"
-      >
-        <div className="mb-2 flex items-center justify-between gap-2 px-1 py-0.5">
-          <p className="text-[14px] font-medium text-[var(--ui-ink)]">{title}</p>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="날짜 상세 닫기"
-            className="grid h-6 w-6 shrink-0 place-items-center rounded-full text-[var(--ui-muted)] hover:bg-[var(--ui-card-hover)] hover:text-[var(--ui-ink)]"
-          >
-            <X size={14} strokeWidth={2.5} />
-          </button>
-        </div>
-        <div className="flex max-h-[60svh] flex-col gap-1.5 overflow-y-auto">
+  return (
+    <ControlledDialog open onClose={onClose} ariaLabel={title + ' 일정'} panelClassName="sm:max-w-[420px]" backdropClassName="lg:hidden">
+      <DialogSheetHeader onClose={onClose} title={title} />
+      <div className={dialogBodyClassName}>
+        <div className="flex flex-col gap-1.5">
           {items.map((item) => {
             if (item.kind === "match") {
               return (
@@ -290,8 +254,7 @@ function MobileCalendarPopup({
           })}
         </div>
       </div>
-    </div>,
-    document.body,
+    </ControlledDialog>
   );
 }
 

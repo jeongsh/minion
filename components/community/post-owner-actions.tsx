@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 
-import { ControlledDialog, DialogSheetHeader } from "@/components/responsive/adaptive-dialog";
+import { dialogBodyClassName, ControlledDialog, DialogSheetHeader } from "@/components/responsive/adaptive-dialog";
 import { useToast } from "@/components/ui/toast";
 import { deleteGuestPostAction, deletePostAction } from "@/lib/community/actions";
 import type { BoardScope } from "@/lib/community/boards";
@@ -46,7 +46,7 @@ export function PostOwnerActions({ postId, scope, teamSlug, guest = false, varia
       {<ControlledDialog open={confirmOpen} onClose={() => { if (!pending) setConfirmOpen(false); }} labelledBy={"delete-post-title"} panelClassName="sm:max-w-sm">
               <div data-community-owner-dialog className="contents">
                 <DialogSheetHeader onClose={() => setConfirmOpen(false)} title="게시글 삭제" titleId="delete-post-title" />
-                <div className="px-5 pb-5 pt-2">
+                <div className={dialogBodyClassName}>
                   <h3 className="text-lg font-black text-[var(--ui-ink)]">게시글을 삭제할까요?</h3>
                   <p className="mt-3 text-sm font-medium leading-6 text-[var(--ui-muted)]">삭제한 게시글은 복구할 수 없습니다.</p>
                   <div className="mt-5 grid grid-cols-2 gap-2">

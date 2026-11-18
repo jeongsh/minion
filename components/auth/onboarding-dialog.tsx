@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 
 import { completeOnboardingAction, saveOnboardingProfileAction } from "@/app/onboarding/actions";
 import { RankAvatar } from "@/components/rank/rank-avatar";
-import { DialogSheetHandle } from "@/components/responsive/adaptive-dialog";
+import { ControlledDialog, dialogBodyClassName, DialogSheetHandle } from "@/components/responsive/adaptive-dialog";
 import { TeamLogo } from "@/components/ui/team-logo";
 import { INITIAL_PROFILE_STATE } from "@/lib/auth/action-state";
 import { getGuestNicknameAction } from "@/lib/community/actions";
@@ -86,16 +86,7 @@ export function OnboardingDialog({
   }
 
   return (
-    <div
-      className="fixed inset-0 flex items-end justify-center overflow-hidden bg-black/70 backdrop-blur-[3px] sm:items-center sm:overflow-y-auto sm:px-4 sm:py-6"
-      style={{ zIndex: 9999 }}
-    >
-      <section
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="onboarding-title"
-        className={`flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-[24px] border border-b-0 border-[var(--ui-border)] bg-[var(--ui-surface)] shadow-[0_24px_80px_rgba(0,0,0,0.42)] transition-[max-width] sm:my-auto sm:rounded-2xl sm:border-b ${step === 1 ? "sm:max-w-[480px]" : "sm:max-w-[680px]"}`}
-      >
+    <ControlledDialog open dismissible={false} onClose={() => undefined} labelledBy="onboarding-title" panelClassName={step === 1 ? "sm:max-w-[480px]" : "sm:max-w-[680px]"}>
         <DialogSheetHandle />
         <div className="px-4 pb-3 pt-1 sm:px-6 sm:pt-4">
           <div className="flex items-center justify-between gap-4 text-[13px] font-medium text-[var(--ui-muted)]">
@@ -109,7 +100,7 @@ export function OnboardingDialog({
         </div>
 
         {step === 1 ? (
-          <form action={profileAction} className="min-h-0 overflow-y-auto px-4 pb-5 pt-4 sm:px-6 sm:pb-6 sm:pt-6">
+          <form action={profileAction} className={dialogBodyClassName}>
             <h1 id="onboarding-title" className="font-paperozi text-center text-[20px] leading-7 text-[var(--ui-ink)] sm:text-[24px] sm:leading-[1.35]">
               MINION에서 사용할 이름
             </h1>
@@ -166,7 +157,7 @@ export function OnboardingDialog({
             </button>
           </form>
         ) : (
-          <div className="min-h-0 overflow-y-auto px-4 pb-5 pt-4 sm:px-6 sm:py-5">
+          <div className={dialogBodyClassName}>
             <div className="text-center">
               <h1 id="onboarding-title" className="font-paperozi text-[20px] leading-7 text-[var(--ui-ink)] sm:text-[24px] sm:leading-[1.35]">응원할 팀을 골라주세요</h1>
               <p className="mx-auto mt-2 max-w-[600px] text-base font-normal leading-6 text-[var(--ui-muted)] text-balance">최애팀 소식과 팬페이지를 더 빠르게 만날 수 있어요. 아직 없다면 건너뛰어도 괜찮아요.</p>
@@ -217,7 +208,6 @@ export function OnboardingDialog({
             </div>
           </div>
         )}
-      </section>
-    </div>
+    </ControlledDialog>
   );
 }

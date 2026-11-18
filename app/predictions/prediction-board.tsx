@@ -10,7 +10,7 @@ import { cancelPredictionBetAction, placePredictionBetAction } from "@/app/predi
 import { usePredictionMarket } from "@/components/domain/use-prediction-market";
 import flag from "@/assets/characters/flag-2.png";
 import { ScheduleTodayScroll } from "@/components/domain/schedule-today-scroll";
-import { ControlledDialog, DialogSheetHeader } from "@/components/responsive/adaptive-dialog";
+import { dialogBodyClassName, ControlledDialog, DialogSheetHeader } from "@/components/responsive/adaptive-dialog";
 import { AdSlot } from "@/components/ui/ad-slot";
 import { KitschEmptyState } from "@/components/ui/kitsch-empty-state";
 import { TeamLogo } from "@/components/ui/team-logo";
@@ -394,7 +394,7 @@ function BetAmountDialog({
     <ControlledDialog open onClose={onClose} labelledBy="bet-dialog-title" panelClassName="sm:max-w-md">
         <DialogSheetHeader onClose={onClose} title="승부예측" titleId="bet-dialog-title" />
 
-        <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
+        <div className={dialogBodyClassName}>
             {dialog.existingBet ? (
               <div className="rounded-xl bg-[var(--ui-surface-muted)] p-4">
                 <p className="text-[13px] font-bold text-[var(--ui-ink)]">이미 이 경기에 {dialog.existingBet.stake.toLocaleString("ko-KR")} LP를 사용했습니다.</p>

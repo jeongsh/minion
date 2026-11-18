@@ -2,10 +2,9 @@
 
 import { ChevronDown, LoaderCircle } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import { loadPlayerHistory } from "./history-actions";
 import { PlayerStatTable } from "@/components/domain/player-stat-table";
-import { DialogSheetHeader } from "@/components/responsive/adaptive-dialog";
+import { ControlledDialog, dialogBodyClassName, DialogSheetHeader } from "@/components/responsive/adaptive-dialog";
 import { DEFAULT_DDRAGON_VERSION, ddragonVersionFromPatch } from "@/lib/ddragon";
 import { formatFanRating } from "@/lib/fan-rating-display";
 import type { RuneCatalog } from "@/lib/runes";
@@ -214,22 +213,6 @@ export function RecentMatchHistoryModal({
   useEffect(() => () => { versionRef.current++; }, []);
 
   useEffect(() => {
-    if (!open) return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
-    };
-    window.addEventListener("keydown", closeOnEscape);
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener("keydown", closeOnEscape);
-    };
-  }, [open]);
-
-  useEffect(() => {
     if (!open || !hasMore || loading || error) return;
     const root = scrollRef.current;
     const sentinel = sentinelRef.current;
@@ -263,25 +246,12 @@ export function RecentMatchHistoryModal({
         전체 기록 보기
       </button>
 
-      {open && typeof document !== "undefined" ? createPortal(
-        <div
-          className="modal-backdrop fixed inset-0 z-[1000] flex items-end justify-center bg-black/45 [--modal-backdrop-dark-mobile:0.65] sm:items-center sm:p-6"
-          role="presentation"
-          onMouseDown={(event) => {
-            if (event.currentTarget === event.target) setOpen(false);
-          }}
-        >
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-label="최근 경기 기록"
-            className="flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-[24px] bg-[var(--ui-surface)] text-[var(--ui-ink)] shadow-2xl sm:max-w-7xl sm:rounded-[24px]"
-          >
+      <ControlledDialog open={open} onClose={() => setOpen(false)} ariaLabel="최근 경기 기록" panelClassName="sm:max-w-7xl text-[var(--ui-ink)]">
             <DialogSheetHeader onClose={() => setOpen(false)} title="최근 경기 기록" />
 
             <div
               ref={scrollRef}
-              className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 sm:p-5"
+              className={dialogBodyClassName}
             >
               {loading && visibleRows.length === 0 ? <p className="p-5 text-sm text-[var(--ui-muted)]">불러오는 중</p> : visibleRows.length === 0 ? (
                 <div className="rounded-xl bg-[var(--ui-card-bg)] p-5 text-sm text-[var(--ui-muted)]">
@@ -319,10 +289,7 @@ export function RecentMatchHistoryModal({
               )}
               {error ? <button type="button" onClick={() => void load(Boolean(page.nextCursor))} className="p-3 text-sm">{error} 다시 시도</button> : null}
             </div>
-          </div>
-        </div>,
-        document.body,
-      ) : null}
+      </ControlledDialog>
     </>
   );
 }

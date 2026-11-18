@@ -192,7 +192,7 @@ const styles = StyleSheet.create({
   filter: { borderRadius: 8, marginBottom: 16, padding: 6 },
   filterOption: { alignItems: 'center', borderRadius: 10, flexDirection: 'row', gap: 10, minHeight: 48, paddingHorizontal: 10, paddingVertical: 6 },
   filterOptionCopy: { flex: 1, minWidth: 0 },
-  filterOptions: { gap: 2, paddingBottom: 4 },
+  filterOptions: { gap: 2, },
   filterTrigger: { alignItems: 'center', borderRadius: 8, borderWidth: 1, flexDirection: 'row', gap: 6, height: minionSize.control, justifyContent: 'space-between', minWidth: 104, paddingHorizontal: 8 },
   filterTriggerIdentity: { alignItems: 'center', flexDirection: 'row', gap: 8, minWidth: 0 },
   firstNewsItem: { paddingTop: 0 },

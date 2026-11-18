@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import { Bell, CheckCheck, MessageCircle, Radio, Star, Trash2, UserRound, Video, X } from "lucide-react";
 
-import { DialogSheetHeader } from "@/components/responsive/adaptive-dialog";
+import { ControlledDialog, dialogBodyClassName, DialogSheetHeader } from "@/components/responsive/adaptive-dialog";
 import { useDismissOnOutside } from "@/components/ui/use-dismiss-on-outside";
 import { focusNotificationComment } from "@/components/notifications/notification-context";
 import type { AppNotification, NotificationKind } from "@/lib/notifications";
@@ -112,11 +112,6 @@ export function NotificationPanel({
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    // Auto ads can use the maximum z-index; the top layer stays above them.
-    if (open) panelRef.current?.showPopover?.();
-  }, [open]);
-
   // 데스크톱(1200px+)은 배경막 없이 루트가 pointer-events-none이라 바깥 클릭을 직접 감지한다.
   // 모바일은 배경막이 루트 안에 있어 여기서 무시되고 배경막 onClick이 닫는다.
   useDismissOnOutside(open, [panelRef], onClose, "[data-notification-trigger]");
@@ -124,22 +119,20 @@ export function NotificationPanel({
   if (!open) return null;
 
   return (
-    <div ref={panelRef} popover="manual" className="notification-panel-root fixed inset-0 z-[2147483647] m-0 h-auto w-auto border-0 bg-transparent p-0 text-inherit min-[1200px]:pointer-events-none" role="presentation">
-      <button type="button" className="notification-panel-backdrop modal-backdrop absolute inset-0 bg-black/45 [--modal-backdrop-dark-mobile:0.65] min-[1200px]:hidden" onClick={onClose} aria-label="알림 닫기" />
-      <section role="dialog" aria-modal="true" aria-labelledby="notification-panel-title" className="notification-panel-dialog absolute inset-x-0 bottom-0 flex max-h-[82dvh] flex-col overflow-hidden rounded-t-[24px] bg-[var(--page-background)] shadow-2xl min-[1200px]:pointer-events-auto min-[1200px]:left-auto min-[1200px]:right-4 min-[1200px]:top-20 min-[1200px]:bottom-auto min-[1200px]:w-[390px] min-[1200px]:max-h-[calc(100vh-6rem)] min-[1200px]:rounded-2xl min-[1200px]:border min-[1200px]:border-[var(--ui-border)]">
+    <ControlledDialog open={open} onClose={onClose} labelledBy="notification-panel-title" desktopPopover panelClassName="notification-panel-dialog">
+      <div ref={panelRef} className="flex min-h-0 flex-col">
         <DialogSheetHeader
           actions={<>
             {unreadCount > 0 ? <button type="button" onClick={onReadAll} className="flex min-h-9 items-center gap-1 rounded-lg px-2 text-[13px] font-medium text-[var(--ui-muted)] hover:bg-[var(--ui-card-hover)] hover:text-[var(--ui-ink)]"><CheckCheck size={15} />모두 읽음</button> : null}
             {notifications.length > 0 ? <button type="button" onClick={onClear} className="flex min-h-9 items-center gap-1 rounded-lg px-2 text-[13px] font-medium text-[var(--ui-muted)] hover:bg-[var(--ui-card-hover)] hover:text-[var(--ui-ink)]"><Trash2 size={15} />비우기</button> : null}
           </>}
           handleClassName="min-[1200px]:hidden"
-          headerClassName="px-3 min-[1200px]:px-4"
           onClose={onClose}
           title="알림"
           titleId="notification-panel-title"
         />
 
-        <div className="min-h-0 flex-1 overflow-y-auto p-2.5 md:p-3 min-[1200px]:p-4">
+        <div className={dialogBodyClassName}>
           {notifications.length > 0 ? (
             <div className="space-y-1 min-[1200px]:space-y-1.5">
               {notifications.map((notification) => <NotificationRow key={notification.id} notification={notification} onRead={onRead} onRemove={onRemove} onClose={onClose} />)}
@@ -152,7 +145,7 @@ export function NotificationPanel({
             </div>
           )}
         </div>
-      </section>
-    </div>
+      </div>
+    </ControlledDialog>
   );
 }

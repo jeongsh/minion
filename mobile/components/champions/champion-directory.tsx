@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
   face: { borderRadius: 8, height: 48, width: 48 },
   faceWide: { height: 56, width: 56 },
   empty: { alignItems: 'center', justifyContent: 'center', minHeight: 256, paddingHorizontal: 20 },
-  sheet: { gap: 20, padding: 16 },
+  sheet: { gap: 20 },
   filterSection: { gap: 8 },
   choiceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   choice: { alignItems: 'center', borderRadius: 12, justifyContent: 'center', minHeight: 40, minWidth: '30%', paddingHorizontal: 12 },
