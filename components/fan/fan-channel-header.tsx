@@ -35,7 +35,6 @@ export async function FanChannelHeader({ teamSlug, calendarSlot }: { teamSlug: s
 
   return (
     <header
-      data-ad-rail-start
       className={
         hasHeaderBackground
           ? "relative isolate overflow-hidden border-b border-[var(--ui-border)] bg-black text-white"
@@ -62,8 +61,8 @@ export async function FanChannelHeader({ teamSlug, calendarSlot }: { teamSlug: s
       <div
         className={
           hasHeaderBackground
-            ? "fan-page-container flex min-h-[220px] items-end py-5 sm:min-h-[260px] sm:py-6 lg:min-h-[clamp(360px,20vw,480px)] lg:py-7"
-            : "fan-page-container flex min-h-[132px] items-end py-5 sm:min-h-[148px] sm:py-6 lg:min-h-0 lg:py-7"
+            ? "flex min-h-[200px] items-end px-4 py-5 sm:px-6 sm:min-h-[240px] sm:py-6 lg:min-h-[clamp(320px,18vw,420px)] lg:py-7"
+            : "flex min-h-[132px] items-end px-4 py-5 sm:px-6 sm:min-h-[148px] sm:py-6 lg:min-h-0 lg:py-7"
         }
       >
         <div className="flex w-full min-w-0 items-end lg:justify-between lg:gap-8">

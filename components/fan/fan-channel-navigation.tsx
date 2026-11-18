@@ -34,7 +34,7 @@ export function FanChannelNavigation({ teamSlug }: { teamSlug: string }) {
   if (focusMode) return null;
 
   return (
-    <div className={`fan-local-navigation sticky z-30 border-[var(--ui-border)] bg-[var(--page-background)] transition-[top] duration-200 lg:border-b ${mobilePostDetail ? "hidden md:block" : ""}`}>
+    <div data-ad-secondary-header className={`fan-local-navigation sticky z-30 border-[var(--ui-border)] bg-[var(--page-background)] transition-[top] duration-200 lg:border-b ${mobilePostDetail ? "hidden md:block" : ""}`}>
       <UnderlineNav
         items={mobileTabs.map((tab) => ({ key: tab.segment, label: tab.label, href: hrefFor(tab.segment) }))}
         activeKey={mobileTabs.find((tab) => isActive(tab.segment) || (tab.alsoActive ? isActive(tab.alsoActive) : false))?.segment ?? "__none__"}

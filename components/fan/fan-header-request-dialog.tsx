@@ -23,22 +23,23 @@ function PreviewFrame({
   src,
   aspect,
   objectPosition,
+  className = "",
   children,
 }: {
   label: string;
   src: string;
   aspect: string;
   objectPosition: string;
+  className?: string;
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-w-0 flex-col gap-1.5">
-      <span className="text-[11px] font-medium uppercase tracking-[0.1em] text-[var(--ui-muted)]">{label}</span>
+    <div className={`flex min-w-0 flex-col gap-1.5 ${className}`}>
+      <span className="text-[13px] font-medium uppercase tracking-[0.1em] text-[var(--ui-muted)]">{label}</span>
       <div className={`relative w-full overflow-hidden rounded-xl border border-[var(--ui-border)] ${aspect}`}>
         <img src={src} alt="" className="h-full w-full object-cover" style={{ objectPosition }} />
-        <div className="absolute inset-0 bg-black/25" />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/75 from-10% to-transparent to-65%" />
-        <div className="absolute inset-0 flex flex-col justify-center gap-1 px-3">{children}</div>
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.18)_0%,rgba(0,0,0,0.34)_48%,rgba(0,0,0,0.68)_100%)]" />
+        <div className="absolute inset-0 flex flex-col justify-end gap-1 p-3">{children}</div>
       </div>
     </div>
   );
@@ -158,17 +159,17 @@ export function FanHeaderRequestDialog({
             {picked ? (
               <>
                 <div className="flex flex-col gap-3">
-                  <PreviewFrame label="desktop" src={picked.url} aspect="aspect-[24/5]" objectPosition="center 35%">
+                  <PreviewFrame label="desktop" src={picked.url} aspect="aspect-[15/4]" objectPosition="center 34%">
                     <span className="text-sm font-medium leading-none" style={{ color: teamColor }}>
                       {teamName}
                     </span>
-                    <span className="text-[10px] font-medium text-white/85">팬 채널 대문 미리보기</span>
+                    <span className="text-[13px] font-medium text-white/85">팬 채널 대문 미리보기</span>
                   </PreviewFrame>
-                  <PreviewFrame label="mobile" src={picked.url} aspect="aspect-[9/4]" objectPosition="center 30%">
+                  <PreviewFrame label="mobile" src={picked.url} aspect="aspect-[179/100]" objectPosition="center 34%" className="w-full max-w-[320px]">
                     <span className="text-[15px] font-black leading-none" style={{ color: teamColor }}>
                       {teamName}
                     </span>
-                    <span className="text-[10px] font-medium text-white">모바일 헤더 미리보기</span>
+                    <span className="text-[13px] font-medium text-white">모바일 헤더 미리보기</span>
                   </PreviewFrame>
                 </div>
 

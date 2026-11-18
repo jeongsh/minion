@@ -282,6 +282,8 @@ export function MatchLoadingSkeleton() {
 export function FanHomeLoadingSkeleton() {
   return (
     <LoadingMain className="fan-page-container flex flex-col gap-6 py-5 md:py-9">
+      <Skeleton className="h-[100px] w-full md:h-[60px] xl:h-[90px]" />
+      <Skeleton className="h-[200px] w-full sm:h-[240px] lg:h-[clamp(320px,18vw,420px)]" />
       <section><SectionTitle width="w-20" /><div className="mt-3 overflow-hidden rounded-xl border border-[var(--ui-border)]"><MatchRowSkeleton /></div></section>
       <section><SectionTitle width="w-16" /><TableSkeleton rows={5} columns={5} className="mt-3" /></section>
       <section><SectionTitle width="w-20" /><div className="mt-3 grid grid-cols-3 gap-1.5 sm:grid-cols-5">{Array.from({ length: 5 }, (_, index) => <Skeleton key={index} className="aspect-[3/4] w-full rounded-none" />)}</div></section>

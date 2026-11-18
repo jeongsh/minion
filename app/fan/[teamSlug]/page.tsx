@@ -241,31 +241,33 @@ export default async function FanHomePage({
   const communityTitle = communityHomeSectionTitle(featuredBoardPosts);
 
   return (
-    <>
-      <FanChannelHeader
-        teamSlug={teamSlug}
-        calendarSlot={
-          <AdaptiveDialog
-            title={`${team.shortName} 캘린더`}
-            trigger={
-              <>
-                <CalendarDays size={16} aria-hidden="true" />
-                <FanHeaderTooltip>캘린더</FanHeaderTooltip>
-              </>
-            }
-            triggerClassName={fanHeaderIconButtonClass}
-            triggerAriaLabel="캘린더"
-            panelClassName="sm:max-w-[380px]"
-          >
-            <HomeCalendar teamId={team.id} initialMonthKey={calendarMonthKey} matches={calendarClientMatches} events={calendarEvents} />
-          </AdaptiveDialog>
-        }
-      />
-      <FanPageShell contentClassName="">
+    <FanPageShell contentClassName="">
       <div
         className="fan-home-page flex flex-col gap-5 text-[var(--ui-ink)] md:gap-8"
         style={{ "--tp": team.primaryColor } as React.CSSProperties}
       >
+        <AdSlot enabled={matchRows.length > 0} placement="horizontal" className="h-[60px] xl:h-[90px]" />
+
+        <FanChannelHeader
+          teamSlug={teamSlug}
+          calendarSlot={
+            <AdaptiveDialog
+              title={`${team.shortName} 캘린더`}
+              trigger={
+                <>
+                  <CalendarDays size={16} aria-hidden="true" />
+                  <FanHeaderTooltip>캘린더</FanHeaderTooltip>
+                </>
+              }
+              triggerClassName={fanHeaderIconButtonClass}
+              triggerAriaLabel="캘린더"
+              panelClassName="sm:max-w-[380px]"
+            >
+              <HomeCalendar teamId={team.id} initialMonthKey={calendarMonthKey} matches={calendarClientMatches} events={calendarEvents} />
+            </AdaptiveDialog>
+          }
+        />
+
         {/* 오늘의 기념일 배너 → 팀 게시판으로 이동 */}
         {todayCelebrations.length > 0 ? (
           <CelebrationBanner events={todayCelebrations} />
@@ -307,12 +309,8 @@ export default async function FanHomePage({
         <section>
           <Roster players={teamPlayers} teamSlug={fanSlug} />
         </section>
-
-        <AdSlot enabled={matchRows.length > 0} placement="horizontal" className="h-[60px] xl:h-[90px]" />
-
       </div>
-      </FanPageShell>
-    </>
+    </FanPageShell>
   );
 }
 
