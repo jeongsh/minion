@@ -1,7 +1,8 @@
 .delightTag,
 .onerTag,
 .peyzTag,
-.kanaviTag {
+.kanaviTag,
+.fakerTag {
   position: relative;
   color: transparent;
   background-image:
@@ -26,7 +27,8 @@
 .delightTag::after,
 .onerTag::after,
 .peyzTag::after,
-.kanaviTag::after {
+.kanaviTag::after,
+.fakerTag::after {
   position: absolute;
   top: -2px;
   right: 0;
@@ -44,6 +46,20 @@
 :global(.dark) .peyzTag::after,
 :global(.dark) .kanaviTag::after {
   background: #fef3c7;
+}
+
+.delightTag,
+.onerTag,
+.peyzTag,
+.kanaviTag {
+  margin-right: 3px;
+}
+
+.delightTag::after,
+.onerTag::after,
+.peyzTag::after,
+.kanaviTag::after {
+  right: -7px;
 }
 
 .onerTag {
@@ -94,6 +110,47 @@
 .kanaviTag::after { background: #e4007f; }
 :global(.dark) .kanaviTag::after { background: #fbcfe8; }
 
+.fakerTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 5px;
+  border: 1px solid #b7791f;
+  border-radius: 4px;
+  color: #fde68a;
+  background-image:
+    linear-gradient(110deg, transparent 40%, rgb(255 245 194 / 65%) 48%, rgb(255 255 255 / 85%) 50%, transparent 58%),
+    linear-gradient(90deg, #75400c, #3b2007, #956018, #3b2007, #75400c);
+  background-clip: padding-box;
+  box-shadow: 0 0 5px rgb(217 153 25 / 35%), inset 0 0 3px rgb(253 230 138 / 25%);
+  text-shadow: 0 1px 2px #211007;
+  animation-duration: 2.6s;
+}
+
+:global(.dark) .fakerTag {
+  border-color: #e9b94f;
+  color: #fff0b3;
+  background-image:
+    linear-gradient(110deg, transparent 40%, rgb(255 245 194 / 65%) 48%, rgb(255 255 255 / 85%) 50%, transparent 58%),
+    linear-gradient(90deg, #542507, #211007, #713d0b, #211007, #542507);
+  box-shadow: 0 0 8px rgb(251 191 36 / 50%), inset 0 0 4px rgb(253 230 138 / 30%);
+}
+
+.fakerTag::after { background: #fde68a; animation-duration: 2.6s; }
+
+.fakerTag::before {
+  position: absolute;
+  bottom: -2px;
+  left: 3px;
+  width: 5px;
+  height: 5px;
+  background: #fbbf24;
+  clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+  content: "";
+  pointer-events: none;
+  animation: delight-sparkle 2.6s ease-in-out -1.3s infinite;
+}
+
 @keyframes delight-shimmer {
   from { background-position: 100% 0, 100% 0; }
   to { background-position: -100% 0, -100% 0; }
@@ -105,6 +162,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .delightTag, .onerTag, .peyzTag, .kanaviTag { animation: none; background-position: 0 0; }
-  .delightTag::after, .onerTag::after, .peyzTag::after, .kanaviTag::after { animation: none; opacity: 0; }
+  .delightTag, .onerTag, .peyzTag, .kanaviTag, .fakerTag { animation: none; background-position: 0 0; }
+  .delightTag::after, .onerTag::after, .peyzTag::after, .kanaviTag::after, .fakerTag::after, .fakerTag::before { animation: none; opacity: 0; }
 }

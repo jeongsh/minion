@@ -3,7 +3,7 @@ import { SearchInput } from "@/components/ui/search-input";
 
 
 import { useMemo, useState } from "react";
-import { ChevronsRight, UserRound } from "lucide-react";
+import { ChevronsRight, Crown, UserRound } from "lucide-react";
 import { FilterDropdown } from "@/components/match-filter-dropdown";
 import { TeamLogo } from "@/components/ui/team-logo";
 import { AdSlot } from "@/components/ui/ad-slot";
@@ -23,6 +23,7 @@ const MOVEMENT_OPTIONS = [ { value: "all", label: "전체 변동" }, { value: "d
 const VIEW_OPTIONS = [{ key: "rosters", label: "팀별 로스터" }, { key: "moves", label: "선수 이동" }, { key: "fa", label: "FA" }];
 const filterTrigger = "w-full whitespace-nowrap";
 const PLAYER_TAGS = [
+  { names: ["faker", "페이커"], label: "GOAT", className: styles.fakerTag },
   { names: ["delight", "딜라이트"], label: "죽음을 각오한", className: styles.delightTag },
   { names: ["oner", "오너"], label: "의욕에 가득찬", className: styles.onerTag },
   { names: ["peyz", "페이즈"], label: "예의바른", className: styles.peyzTag },
@@ -79,7 +80,7 @@ export function TransferMarketView({ market, teams, followedTeamIds = [] }: { ma
     const tag = PLAYER_TAGS.find((tag) => tag.names.includes(player));
     if (!showTag || muted || !tag) return name;
     return <span className="inline-flex max-w-full flex-wrap items-center gap-x-1 gap-y-0.5 align-middle">
-      <span className={`${tag.className} text-[13px] leading-4 font-medium break-keep`}>{tag.label}</span>
+      <span className={`${tag.className} text-[13px] leading-4 font-medium break-keep`}>{tag.label === "GOAT" && <Crown size={14} strokeWidth={1.75} aria-hidden className="shrink-0" />}{tag.label}</span>
       {name}
     </span>;
   }
