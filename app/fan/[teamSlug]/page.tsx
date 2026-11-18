@@ -246,8 +246,6 @@ export default async function FanHomePage({
         className="fan-home-page flex flex-col gap-5 text-[var(--ui-ink)] md:gap-8"
         style={{ "--tp": team.primaryColor } as React.CSSProperties}
       >
-        <AdSlot enabled={matchRows.length > 0} placement="horizontal" className="h-[60px] xl:h-[90px]" />
-
         <FanChannelHeader
           teamSlug={teamSlug}
           calendarSlot={
@@ -267,6 +265,8 @@ export default async function FanHomePage({
             </AdaptiveDialog>
           }
         />
+
+        <AdSlot enabled={matchRows.length > 0} placement="horizontal" className="h-[60px] xl:h-[90px]" />
 
         {/* 오늘의 기념일 배너 → 팀 게시판으로 이동 */}
         {todayCelebrations.length > 0 ? (
