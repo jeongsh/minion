@@ -31,9 +31,7 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 import { safeOnboardingNext } from "@/lib/auth/onboarding";
 import { createSupabaseAuthClient } from "@/lib/supabase/auth-server";
 import {
-  COMMUNITY_HOME_HOT_CANDIDATE_LIMIT,
   COMMUNITY_HOME_LATEST_CANDIDATE_LIMIT,
-  communityHomeSectionTitle,
   selectCommunityHomePosts,
 } from "@/lib/community/hot";
 
@@ -89,9 +87,8 @@ export default async function HomePage({
   const newsPromise = getHomeNewsFeed(6);
   const insightsPromise = getHomeInsights().catch(error => { console.error("Home insights unavailable", error); return null; });
   const marketPromise = homeDataPromise.then(data => getPredictionMarketData(undefined, undefined, selectHomeMatches(data.matches, dateKeyKST(new Date())).map(match => match.id), false));
-  const [homeData, popularCommunityPosts, latestCommunityPosts, predictionMarket, pomPlayers, stages, bracketStages] = await Promise.all([
+  const [homeData, latestCommunityPosts, predictionMarket, pomPlayers, stages, bracketStages] = await Promise.all([
     homeDataPromise,
-    getBoardPosts({ scope: "hub", hotOnly: true, limit: COMMUNITY_HOME_HOT_CANDIDATE_LIMIT }),
     getBoardPosts({ scope: "hub", limit: COMMUNITY_HOME_LATEST_CANDIDATE_LIMIT }),
     marketPromise,
     getHomePomPlayers(),
@@ -194,9 +191,8 @@ export default async function HomePage({
 
   */
 
-  // 인기글을 우선 노출하고, 6개에 못 미치면 중복 없이 최신글로 채운다.
-  const homeCommunityPosts = selectCommunityHomePosts(popularCommunityPosts, latestCommunityPosts);
-  const homeCommunityTitle = communityHomeSectionTitle(homeCommunityPosts);
+  // 당분간 메인은 인기글 우선 노출 없이 최신글만 표시한다.
+  const homeCommunityPosts = selectCommunityHomePosts([], latestCommunityPosts);
 
   let onboarding: React.ReactNode = null;
   if (showOnboarding) {
@@ -249,7 +245,7 @@ export default async function HomePage({
       calendarEvents={calendarEvents}
       celebrationEvents={todayCelebrations}
       communityPosts={homeCommunityPosts}
-      communityTitle={homeCommunityTitle}
+      communityTitle="최신글"
       pomEntries={pomEntries}
       newsSection={<Suspense fallback={<div className="mt-8 h-64 animate-pulse sm:mt-10 bg-[var(--ui-surface-muted)]" />}><DeferredHomeNews data={newsPromise} /></Suspense>}
       /* 기존 뉴스/영상 props

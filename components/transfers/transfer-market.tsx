@@ -3,7 +3,7 @@ import { SearchInput } from "@/components/ui/search-input";
 
 
 import { useMemo, useState } from "react";
-import { ChevronsRight, UserRound } from "lucide-react";
+import { ChevronsRight, Crown, DollarSign, UserRound } from "lucide-react";
 import { FilterDropdown } from "@/components/match-filter-dropdown";
 import { TeamLogo } from "@/components/ui/team-logo";
 import { AdSlot } from "@/components/ui/ad-slot";
@@ -11,6 +11,7 @@ import { A11y } from "swiper/modules";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { useSwiperResize } from "@/components/ui/use-swiper-resize";
 import "swiper/css";
+import styles from "./transfer-market.module.css";
 import { SegmentedToggle } from "@/components/ui/tabs";
 import type { Player, Team } from "@/lib/types";
 import { departuresForTeam, reportedRosterChanges, resolveTransferRosters, transferEventsInStorageOrder } from "@/lib/transfers/view";
@@ -21,6 +22,14 @@ const ROLE_LABELS: Record<TransferRole, string> = { TOP: "탑", JGL: "정글", M
 const MOVEMENT_OPTIONS = [ { value: "all", label: "전체 변동" }, { value: "domestic", label: "LCK 내 이동" }, { value: "outgoing", label: "LCK 이탈" }, { value: "incoming", label: "LCK 합류" }, { value: "renew", label: "재계약" }, { value: "leave", label: "계약 종료" }, { value: "retire", label: "은퇴" }, { value: "inactive", label: "휴식 / 군 복무" } ];
 const VIEW_OPTIONS = [{ key: "rosters", label: "팀별 로스터" }, { key: "moves", label: "선수 이동" }, { key: "fa", label: "FA" }];
 const filterTrigger = "w-full whitespace-nowrap";
+const PLAYER_TAGS = [
+  { names: ["faker", "페이커"], label: "GOAT", className: styles.fakerTag },
+  { names: ["delight", "딜라이트"], label: "죽음을 각오한", className: styles.delightTag },
+  { names: ["oner", "오너"], label: "의욕에 가득찬", className: styles.onerTag },
+  { names: ["peyz", "페이즈"], label: "예의바른", className: styles.peyzTag },
+  { names: ["kanavi", "카나비"], label: "피가 끓어오르는", className: styles.kanaviTag },
+  { names: ["ruler", "룰러"], label: "모범납세자", className: styles.rulerTag },
+];
 
 function RoleIcon({ role, small = false }: { role: TransferRole; small?: boolean }) {
   return <span className={`flex shrink-0 items-center justify-center ${small ? "w-4" : "w-5"}`} title={ROLE_LABELS[role]}>{role === "COACH" ? <UserRound size={small ? 14 : 18} className="text-[var(--ui-muted)]" aria-label="감독" /> : <span role="img" aria-label={ROLE_LABELS[role]} className={`block bg-[var(--ui-muted)] ${small ? "size-4" : "size-5"}`} style={{ maskImage: `url(/objectives/position-${ROLE_ICONS[role]}.svg)`, maskSize: "contain", maskRepeat: "no-repeat", maskPosition: "center" }} />}</span>;
@@ -64,10 +73,17 @@ export function TransferMarketView({ market, teams, followedTeamIds = [] }: { ma
 
   const playerEvents = new Map(latestPlayerEvents(events).map((event) => [normalizeTransferName(event.player), event]));
 
-  function playerName(person: TransferPerson | { name: string }, muted = false, event = playerEvents.get(normalizeTransferName(person.name)), dense = false) {
+  function playerName(person: TransferPerson | { name: string }, muted = false, event = playerEvents.get(normalizeTransferName(person.name)), dense = false, showTag = false) {
     const url = transferArticleUrl(event);
     const className = `inline-block max-w-full truncate align-middle ${dense ? "text-[13px] leading-4" : "text-sm leading-5"} ${muted ? "font-medium text-[var(--ui-muted)]" : "font-medium text-[var(--ui-ink)] md:font-bold"}`;
-    return url ? <a href={url} target="_blank" rel="noopener noreferrer" aria-label={`${person.name} 원문 뉴스`} title={person.name} className={`${className} hover:underline`}>{person.name}</a> : <span title={person.name} className={className}>{person.name}</span>;
+    const name = url ? <a href={url} target="_blank" rel="noopener noreferrer" aria-label={`${person.name} 원문 뉴스`} title={person.name} className={`${className} hover:underline`}>{person.name}</a> : <span title={person.name} className={className}>{person.name}</span>;
+    const player = normalizeTransferName(person.name);
+    const tag = PLAYER_TAGS.find((tag) => tag.names.includes(player));
+    if (!showTag || muted || !tag) return name;
+    return <span className="inline-flex max-w-full flex-wrap items-center gap-x-1 gap-y-0.5 align-middle">
+      <span className={`${tag.className} ${tag.label === "GOAT" ? "text-[12px]" : "text-[13px]"} leading-4 font-medium break-keep`}>{tag.label === "GOAT" && <Crown size={12} strokeWidth={1.75} aria-hidden className="shrink-0" />}{tag.label}{tag.className === styles.rulerTag && <DollarSign size={8} strokeWidth={2.5} aria-hidden className={styles.rulerCurrency} />}</span>
+      {name}
+    </span>;
   }
   function teamName(name: string, compact = false, adaptive: "movement" | "history" | false = false, small = adaptive === "movement") {
     const code = lckTeamCode(name);
@@ -157,7 +173,7 @@ export function TransferMarketView({ market, teams, followedTeamIds = [] }: { ma
               </div>)}</div>
               <ChevronsRight size={14} strokeWidth={1.75} className="text-[var(--ui-muted)]" aria-hidden />
               <div className="min-w-0 text-right" aria-label="새 로스터">{next.length ? next.map((p) => <div key={p.name}>
-                <div className="flex min-w-0 flex-wrap items-center justify-end gap-1.5">{slotReports.some((event) => normalizeTransferName(event.player) === normalizeTransferName(p.name)) ? <UnconfirmedBadge event={slotReports.find((event) => normalizeTransferName(event.player) === normalizeTransferName(p.name))!} /> : arrivalNames.has(normalizeTransferName(p.name)) ? <span className="shrink-0 text-[12px] leading-4 font-medium text-[var(--accent)]">합류</span> : renewedNames.has(normalizeTransferName(p.name)) && <span className="shrink-0 text-[12px] leading-4 font-medium text-[var(--accent)]">재계약</span>}{playerName(p, false, undefined, true)}</div>
+                <div className="flex min-w-0 flex-wrap items-center justify-end gap-1.5">{slotReports.some((event) => normalizeTransferName(event.player) === normalizeTransferName(p.name)) ? <UnconfirmedBadge event={slotReports.find((event) => normalizeTransferName(event.player) === normalizeTransferName(p.name))!} /> : arrivalNames.has(normalizeTransferName(p.name)) ? <span className="shrink-0 text-[12px] leading-4 font-medium text-[var(--accent)]">합류</span> : renewedNames.has(normalizeTransferName(p.name)) && <span className="shrink-0 text-[12px] leading-4 font-medium text-[var(--accent)]">재계약</span>}{playerName(p, false, undefined, true, true)}</div>
               </div>) : <span aria-label="미발표" className="text-[13px] font-medium text-[var(--ui-muted)]">—</span>}</div>
             </div>;
             })}

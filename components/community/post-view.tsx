@@ -152,9 +152,10 @@ export async function PostView({
         </div>
 
         <section aria-label="댓글">
-          <div className="flex items-baseline gap-1 px-[14px] py-4 md:px-8 md:py-5">
+          <div className="flex items-baseline gap-1 px-[14px] py-4 md:px-8 md:py-4">
             <h2 className="text-[15px] font-bold leading-[1.5] text-[var(--ui-ink)] md:text-lg">댓글</h2>
             <span className="text-[13px] font-medium leading-[1.5] text-[var(--tp)] md:text-base"><CommentCount fallback={post.commentCount} /></span>
+            <span className="ml-auto hidden text-[13px] font-normal text-[var(--ui-muted)] md:block">Ctrl + Enter로 등록</span>
           </div>
           <div className="hidden px-4 pb-5 md:block md:px-8 md:pb-8">
             <CommentForm postId={post.id} scope={scope} teamSlug={teamSlug} isGuest={!viewerId} miniconPacks={miniconPacks} />

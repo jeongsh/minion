@@ -133,7 +133,7 @@ export function UnderlineNav({
   return (
     <nav
       aria-label={ariaLabel}
-      className={`tab-scroll flex max-w-full shrink-0 overflow-x-auto ${spread ? "h-12 items-stretch gap-0 px-2" : `h-10 items-center ${compact ? "gap-4 sm:gap-5" : "gap-5 sm:gap-7"}`} ${
+      className={`tab-scroll flex max-w-full shrink-0 overflow-x-auto ${spread ? "h-11 items-stretch gap-0 px-2" : `h-10 items-center ${compact ? "gap-4 sm:gap-5" : "gap-5 sm:gap-7"}`} ${
         bordered ? "border-b border-[var(--ui-border)]" : ""
       } ${className}`}
     >
@@ -147,7 +147,7 @@ export function UnderlineNav({
             scroll={item.scroll}
             prefetch={item.prefetch}
             aria-current={isActive ? "page" : undefined}
-            className={`flex h-full items-center justify-center whitespace-nowrap font-medium transition-colors focus-visible:outline-2 focus-visible:outline-[var(--accent)] ${spread ? "min-w-0 flex-1 px-1 text-[16px]" : `shrink-0 ${compact ? "border-b-2 text-[14px]" : "border-b-[3px] text-[16px]"}`} ${
+            className={`flex h-full items-center justify-center whitespace-nowrap font-medium transition-colors focus-visible:outline-2 focus-visible:outline-[var(--accent)] ${spread ? "min-w-0 flex-1 px-1 text-[15px]" : `shrink-0 ${compact ? "border-b-2 text-[14px]" : "border-b-[3px] text-[16px]"}`} ${
               isActive
                 ? spread
                   ? activeTone === "ink" ? "text-[var(--ui-ink)]" : "text-[var(--accent)]"

@@ -1,0 +1,208 @@
+.delightTag,
+.onerTag,
+.peyzTag,
+.kanaviTag,
+.rulerTag,
+.fakerTag {
+  position: relative;
+  color: transparent;
+  background-image:
+    linear-gradient(110deg, transparent 40%, #fff 48%, #fff 50%, transparent 58%),
+    linear-gradient(90deg, #dc2626, #c2410c, #a16207, #15803d, #0369a1, #4338ca, #7e22ce, #dc2626);
+  background-size: 250% 100%, 200% 100%;
+  background-repeat: no-repeat, repeat;
+  background-clip: text;
+  animation: delight-shimmer 3s linear infinite;
+}
+
+:global(.dark) .delightTag,
+:global(.dark) .onerTag,
+:global(.dark) .peyzTag,
+:global(.dark) .kanaviTag,
+:global(.dark) .rulerTag {
+  background-image:
+    linear-gradient(110deg, transparent 40%, #fff 48%, #fff 50%, transparent 58%),
+    linear-gradient(90deg, #f87171, #fb923c, #facc15, #4ade80, #38bdf8, #818cf8, #c084fc, #f87171);
+  filter: drop-shadow(0 0 3px rgb(196 181 253 / 45%));
+}
+
+.delightTag::after,
+.onerTag::after,
+.peyzTag::after,
+.kanaviTag::after,
+.rulerTag::after,
+.fakerTag::after {
+  position: absolute;
+  top: -2px;
+  right: 0;
+  width: 7px;
+  height: 7px;
+  background: #a16207;
+  clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+  content: "";
+  pointer-events: none;
+  animation: delight-sparkle 3s ease-in-out infinite;
+}
+
+:global(.dark) .delightTag::after,
+:global(.dark) .onerTag::after,
+:global(.dark) .peyzTag::after,
+:global(.dark) .kanaviTag::after,
+:global(.dark) .rulerTag::after {
+  background: #fef3c7;
+}
+
+.delightTag,
+.onerTag,
+.peyzTag,
+.kanaviTag,
+.rulerTag {
+  margin-right: 3px;
+}
+
+.delightTag::after,
+.onerTag::after,
+.peyzTag::after,
+.kanaviTag::after,
+.rulerTag::after {
+  right: -7px;
+}
+
+.onerTag {
+  background-image:
+    linear-gradient(110deg, transparent 40%, #fff 48%, #fff 50%, transparent 58%),
+    linear-gradient(90deg, #991b1b, #dc2626, #be123c, #e11d48, #991b1b);
+}
+
+:global(.dark) .onerTag {
+  background-image:
+    linear-gradient(110deg, transparent 40%, #fff 48%, #fff 50%, transparent 58%),
+    linear-gradient(90deg, #f87171, #ef4444, #fb7185, #f43f5e, #f87171);
+  filter: drop-shadow(0 0 3px rgb(248 113 113 / 45%));
+}
+
+.onerTag::after { background: #dc2626; }
+:global(.dark) .onerTag::after { background: #fecaca; }
+
+.peyzTag {
+  background-image:
+    linear-gradient(110deg, transparent 40%, #fff 48%, #fff 50%, transparent 58%),
+    linear-gradient(90deg, #0f766e, #0369a1, #0e7490, #047857, #0f766e);
+}
+
+:global(.dark) .peyzTag {
+  background-image:
+    linear-gradient(110deg, transparent 40%, #fff 48%, #fff 50%, transparent 58%),
+    linear-gradient(90deg, #2dd4bf, #38bdf8, #22d3ee, #34d399, #2dd4bf);
+  filter: drop-shadow(0 0 3px rgb(45 212 191 / 45%));
+}
+
+.peyzTag::after { background: #0f766e; }
+:global(.dark) .peyzTag::after { background: #99f6e4; }
+
+.kanaviTag {
+  background-image:
+    linear-gradient(110deg, transparent 40%, #fff 48%, #fff 50%, transparent 58%),
+    linear-gradient(90deg, #1e2c5d, #b80067, #e4007f, #a21c72, #1e2c5d);
+}
+
+:global(.dark) .kanaviTag {
+  background-image:
+    linear-gradient(110deg, transparent 40%, #fff 48%, #fff 50%, transparent 58%),
+    linear-gradient(90deg, #8d9ed8, #f472b6, #ff399c, #e879c5, #8d9ed8);
+  filter: drop-shadow(0 0 3px rgb(228 0 127 / 45%));
+}
+
+.kanaviTag::after { background: #e4007f; }
+:global(.dark) .kanaviTag::after { background: #fbcfe8; }
+
+.rulerTag {
+  background-image:
+    linear-gradient(110deg, transparent 40%, #fff 48%, #fff 50%, transparent 58%),
+    linear-gradient(90deg, #846014, #c29c16, #d6a522, #a87520, #cbb04c, #846014);
+}
+
+:global(.dark) .rulerTag {
+  background-image:
+    linear-gradient(110deg, transparent 40%, #fff 48%, #fff 50%, transparent 58%),
+    linear-gradient(90deg, #d2a447, #ffe99c, #ebc652, #d7aa62, #fff3c4, #d2a447);
+  filter: drop-shadow(0 0 3px rgb(170 138 0 / 45%));
+}
+
+.rulerTag::after { content: none; }
+
+.rulerCurrency {
+  position: absolute;
+  top: -2px;
+  right: -7px;
+  color: #bd9614;
+  pointer-events: none;
+  animation: ruler-currency-glint 3s ease-in-out infinite;
+}
+
+:global(.dark) .rulerCurrency { color: #fff0b3; }
+
+@keyframes ruler-currency-glint {
+  0%, 35%, 75%, 100% { opacity: 0.55; transform: scale(0.85); }
+  55% { opacity: 1; transform: scale(1); }
+}
+
+.fakerTag {
+  display: inline-flex;
+  align-items: center;
+  box-sizing: border-box;
+  height: 16px;
+  gap: 2px;
+  padding: 0 3px;
+  border: 1px solid #b7791f;
+  border-radius: 4px;
+  color: #fde68a;
+  background-image:
+    linear-gradient(110deg, transparent 40%, rgb(255 245 194 / 65%) 48%, rgb(255 255 255 / 85%) 50%, transparent 58%),
+    linear-gradient(90deg, #75400c, #3b2007, #956018, #3b2007, #75400c);
+  background-clip: padding-box;
+  box-shadow: 0 0 5px rgb(217 153 25 / 35%), inset 0 0 3px rgb(253 230 138 / 25%);
+  text-shadow: 0 1px 2px #211007;
+  line-height: 14px;
+  animation-duration: 2.6s;
+}
+
+:global(.dark) .fakerTag {
+  border-color: #e9b94f;
+  color: #fff0b3;
+  background-image:
+    linear-gradient(110deg, transparent 40%, rgb(255 245 194 / 65%) 48%, rgb(255 255 255 / 85%) 50%, transparent 58%),
+    linear-gradient(90deg, #542507, #211007, #713d0b, #211007, #542507);
+  box-shadow: 0 0 8px rgb(251 191 36 / 50%), inset 0 0 4px rgb(253 230 138 / 30%);
+}
+
+.fakerTag::after { background: #fde68a; animation-duration: 2.6s; }
+
+.fakerTag::before {
+  position: absolute;
+  bottom: -2px;
+  left: 3px;
+  width: 5px;
+  height: 5px;
+  background: #fbbf24;
+  clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+  content: "";
+  pointer-events: none;
+  animation: delight-sparkle 2.6s ease-in-out -1.3s infinite;
+}
+
+@keyframes delight-shimmer {
+  from { background-position: 100% 0, 100% 0; }
+  to { background-position: -100% 0, -100% 0; }
+}
+
+@keyframes delight-sparkle {
+  0%, 35%, 75%, 100% { opacity: 0; transform: scale(0.4) rotate(0deg); }
+  55% { opacity: 1; transform: scale(1) rotate(90deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rulerCurrency { animation: none; }
+  .delightTag, .onerTag, .peyzTag, .kanaviTag, .rulerTag, .fakerTag { animation: none; background-position: 0 0; }
+  .delightTag::after, .onerTag::after, .peyzTag::after, .kanaviTag::after, .rulerTag::after, .fakerTag::after, .fakerTag::before { animation: none; opacity: 0; }
+}

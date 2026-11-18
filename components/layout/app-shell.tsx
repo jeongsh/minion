@@ -251,7 +251,7 @@ export function AppShell({
     <div
       className="text-[#141517]"
       data-app-shell
-      style={{ "--shell-mobile-header-offset": mobileBack ? "48px" : primaryHeaderVisible ? "56px" : "0px","--shell-local-nav-height": fanRoute || showHubLocalNavigation ? "48px" : "0px" } as React.CSSProperties}
+      style={{ "--shell-mobile-header-offset": mobileBack ? "48px" : primaryHeaderVisible ? "56px" : "0px","--shell-local-nav-height": fanRoute || showHubLocalNavigation ? "44px" : "0px" } as React.CSSProperties}
     >
       {focus ? (
         <header className="fixed inset-x-0 top-0 z-50 grid h-12 grid-cols-[44px_minmax(0,1fr)_44px] items-center border-b border-[#e8e8eb] bg-[var(--page-background)] px-3 md:h-16 dark:border-[var(--ui-border)]">

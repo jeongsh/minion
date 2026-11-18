@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { CalendarDays, ChartNoAxesColumn, Heart, Home, MessagesSquare } from "lucide-react";
 import { TeamPicker } from "@/components/layout/fan-team-picker";
-import { TeamLogo } from "@/components/ui/team-logo";
 import { UnderlineNav } from "@/components/ui/tabs";
 import type { Team } from "@/lib/types";
 
@@ -79,12 +78,7 @@ export function MobileNavigation({ pathname, favoriteTeam, followedTeams, teams 
   return <nav aria-label="모바일 주요 메뉴" className="fixed inset-x-0 bottom-0 z-50 grid grid-cols-5 h-[calc(52px+env(safe-area-inset-bottom))] items-start border-t border-[#e8e8eb] bg-[var(--page-background)] pt-1 backdrop-blur md:hidden dark:border-[var(--ui-border)]">
     {items.map(({ href, label, icon: Icon, active }) => {
       const className = `${dockItemClass} ${colorClass(active)}`;
-      // 최애팀이 있으면 바로 그 팀 채널로 간다. 팀 전환은 팀 채널 헤더의 스위처에서 한다.
-      if (href === "/fan" && !favoriteTeam) return <TeamPicker key={href} teams={teams} followedTeams={followedTeams} favoriteTeam={favoriteTeam} active={active} className={className} />;
-      if (href === "/fan" && favoriteTeam) return <Link key={href} href={`/fan/${favoriteTeam.fanSiteHost}`} aria-current={active ? "page" : undefined} className={className}>
-        <span className="relative -mt-5 grid h-10 w-10 place-items-center overflow-hidden rounded-full border-[3px] border-[var(--page-background)] bg-[var(--ui-surface-muted)]"><TeamLogo team={favoriteTeam} size="h-7 w-7" themeAware plain /></span>
-        <span className="max-w-full truncate">{label}</span>
-      </Link>;
+      if (href === "/fan") return <TeamPicker key={href} teams={teams} followedTeams={followedTeams} favoriteTeam={favoriteTeam} active={active} className={className} />;
       const destination = href === "/community" && favoriteTeam ? `/fan/${favoriteTeam.fanSiteHost}/community` : href;
       return <Link key={href} href={destination} aria-current={active ? "page" : undefined} className={className}>
         <span className="relative grid h-5 w-5 place-items-center"><Icon size={20} strokeWidth={active ? 2.5 : 2} aria-hidden /></span>

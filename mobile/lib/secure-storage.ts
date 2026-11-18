@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { randomUUID } from 'expo-crypto';
+import { getRandomValues, randomUUID } from 'expo-crypto';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
@@ -39,6 +39,17 @@ export const secureSessionStorage = {
 
 let installationIdPromise: Promise<string> | undefined;
 
+function createInstallationId() {
+  if (Platform.OS !== 'web' || typeof globalThis.crypto?.randomUUID === 'function') return randomUUID();
+
+  // LAN HTTP supports getRandomValues, but randomUUID requires HTTPS/localhost.
+  const bytes = getRandomValues(new Uint8Array(16));
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
 export function getInstallationId(): Promise<string> {
   installationIdPromise ??= readOrCreateInstallationId().catch((error) => {
     installationIdPromise = undefined;
@@ -53,7 +64,7 @@ async function readOrCreateInstallationId() {
     ? await AsyncStorage.getItem(INSTALLATION_ID_KEY)
     : await SecureStore.getItemAsync(INSTALLATION_ID_KEY);
   if (existing) return existing;
-  const created = randomUUID();
+  const created = createInstallationId();
   if (Platform.OS === 'web') await AsyncStorage.setItem(INSTALLATION_ID_KEY, created);
   else await SecureStore.setItemAsync(INSTALLATION_ID_KEY, created);
   return created;
