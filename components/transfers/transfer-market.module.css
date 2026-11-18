@@ -129,23 +129,8 @@
   filter: drop-shadow(0 0 3px rgb(170 138 0 / 45%));
 }
 
-.rulerTag::after { content: none; }
-
-.rulerCurrency {
-  position: absolute;
-  top: -2px;
-  right: -7px;
-  color: #bd9614;
-  pointer-events: none;
-  animation: ruler-currency-glint 3s ease-in-out infinite;
-}
-
-:global(.dark) .rulerCurrency { color: #fff0b3; }
-
-@keyframes ruler-currency-glint {
-  0%, 35%, 75%, 100% { opacity: 0.55; transform: scale(0.85); }
-  55% { opacity: 1; transform: scale(1); }
-}
+.rulerTag::after { background: #bd9614; }
+:global(.dark) .rulerTag::after { background: #fff0b3; }
 
 .fakerTag {
   display: inline-flex;
@@ -202,7 +187,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .rulerCurrency { animation: none; }
   .delightTag, .onerTag, .peyzTag, .kanaviTag, .rulerTag, .fakerTag { animation: none; background-position: 0 0; }
   .delightTag::after, .onerTag::after, .peyzTag::after, .kanaviTag::after, .rulerTag::after, .fakerTag::after, .fakerTag::before { animation: none; opacity: 0; }
 }
