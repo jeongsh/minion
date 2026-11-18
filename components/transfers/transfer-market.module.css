@@ -1,5 +1,7 @@
 .delightTag,
-.onerTag {
+.onerTag,
+.peyzTag,
+.kanaviTag {
   position: relative;
   color: transparent;
   background-image:
@@ -11,7 +13,9 @@
 }
 
 :global(.dark) .delightTag,
-:global(.dark) .onerTag {
+:global(.dark) .onerTag,
+:global(.dark) .peyzTag,
+:global(.dark) .kanaviTag {
   background-image:
     linear-gradient(110deg, transparent 40%, #fff 48%, #fff 50%, transparent 58%),
     linear-gradient(90deg, #f87171, #fb923c, #facc15, #4ade80, #38bdf8, #818cf8, #c084fc, #f87171);
@@ -19,7 +23,9 @@
 }
 
 .delightTag::after,
-.onerTag::after {
+.onerTag::after,
+.peyzTag::after,
+.kanaviTag::after {
   position: absolute;
   top: -2px;
   right: 0;
@@ -33,7 +39,9 @@
 }
 
 :global(.dark) .delightTag::after,
-:global(.dark) .onerTag::after {
+:global(.dark) .onerTag::after,
+:global(.dark) .peyzTag::after,
+:global(.dark) .kanaviTag::after {
   background: #fef3c7;
 }
 
@@ -53,6 +61,38 @@
 .onerTag::after { background: #dc2626; }
 :global(.dark) .onerTag::after { background: #fecaca; }
 
+.peyzTag {
+  background-image:
+    linear-gradient(110deg, transparent 40%, #fff 48%, #fff 50%, transparent 58%),
+    linear-gradient(90deg, #0f766e, #0369a1, #0e7490, #047857, #0f766e);
+}
+
+:global(.dark) .peyzTag {
+  background-image:
+    linear-gradient(110deg, transparent 40%, #fff 48%, #fff 50%, transparent 58%),
+    linear-gradient(90deg, #2dd4bf, #38bdf8, #22d3ee, #34d399, #2dd4bf);
+  filter: drop-shadow(0 0 3px rgb(45 212 191 / 45%));
+}
+
+.peyzTag::after { background: #0f766e; }
+:global(.dark) .peyzTag::after { background: #99f6e4; }
+
+.kanaviTag {
+  background-image:
+    linear-gradient(110deg, transparent 40%, #fff 48%, #fff 50%, transparent 58%),
+    linear-gradient(90deg, #1e2c5d, #b80067, #e4007f, #a21c72, #1e2c5d);
+}
+
+:global(.dark) .kanaviTag {
+  background-image:
+    linear-gradient(110deg, transparent 40%, #fff 48%, #fff 50%, transparent 58%),
+    linear-gradient(90deg, #8d9ed8, #f472b6, #ff399c, #e879c5, #8d9ed8);
+  filter: drop-shadow(0 0 3px rgb(228 0 127 / 45%));
+}
+
+.kanaviTag::after { background: #e4007f; }
+:global(.dark) .kanaviTag::after { background: #fbcfe8; }
+
 @keyframes delight-shimmer {
   from { background-position: 150% 0, 100% 0; }
   to { background-position: -100% 0, -100% 0; }
@@ -64,6 +104,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .delightTag, .onerTag { animation: none; background-position: 0 0; }
-  .delightTag::after, .onerTag::after { animation: none; opacity: 0; }
+  .delightTag, .onerTag, .peyzTag, .kanaviTag { animation: none; background-position: 0 0; }
+  .delightTag::after, .onerTag::after, .peyzTag::after, .kanaviTag::after { animation: none; opacity: 0; }
 }
