@@ -7,6 +7,6 @@ export const VideoExtension = Node.create({
   addAttributes() { return { src: { default: null, parseHTML: element => contentUrl(element.getAttribute("src")) } }; },
   parseHTML() { return [{ tag: "video[src]" }]; },
   renderHTML({ HTMLAttributes }) {
-    return ["video", { src: contentUrl(HTMLAttributes.src) ?? "", controls: "", playsinline: "", preload: "metadata", class: "my-4 max-h-[640px] w-full rounded" }];
+    return ["video", { src: contentUrl(HTMLAttributes.src) ?? "", controls: "", playsinline: "", preload: "metadata", class: "my-4 h-auto max-h-[640px] w-auto max-w-full rounded" }];
   },
 });
