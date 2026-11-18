@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import Toolbar from "./Toolbar";
 import { buildCommunityExtensions } from "./community-extensions";
 import { useEmbedHydration } from "./use-embed-hydration";
-import { getImageUploadErrorMessage, uploadAndInsertEditorImage } from "./editor-image-upload";
+import { MAX_EDITOR_VIDEOS, getImageUploadErrorMessage, isEditorVideoFile, uploadAndInsertEditorImage, uploadAndInsertEditorVideo } from "./editor-image-upload";
 import type { MiniconPack } from "@/lib/minicons/types";
 
 interface Props {
@@ -21,6 +21,7 @@ interface Props {
 
 export default function CommunityEditor({ content, onChange, allowMedia = true, allowEmbeds = allowMedia, maxImages = 10, placeholder, miniconPacks = [] }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const dropUploadRef = useRef(false);
   const [uploadingDropImage, setUploadingDropImage] = useState(false);
   const [uploadingToolbarImage, setUploadingToolbarImage] = useState(false);
   const uploadingImage = uploadingDropImage || uploadingToolbarImage;
@@ -44,43 +45,62 @@ export default function CommunityEditor({ content, onChange, allowMedia = true, 
         if (files.length === 0) return false;
 
         event.preventDefault();
-        void uploadEditorImages(files);
+        void uploadEditorMedia(files);
         return true;
       },
       handleDrop: (_view, event) => {
         if (!allowMedia || !editor) return false;
-        const files = Array.from(event.dataTransfer?.files ?? []).filter((file) => file.type.startsWith("image/"));
+        const files = Array.from(event.dataTransfer?.files ?? []).filter((file) => file.type.startsWith("image/") || isEditorVideoFile(file));
         if (files.length === 0) return false;
 
         event.preventDefault();
-        void uploadEditorImages(files);
+        void uploadEditorMedia(files);
         return true;
       },
     },
   });
 
-  const uploadEditorImages = async (files: File[]) => {
-    if (!editor || files.length === 0) return;
-    let imageCount = 0;
-    editor.state.doc.descendants((node) => {
-      if (node.type.name === "image" || node.type.name === "imageResize") imageCount += 1;
-    });
-    const remaining = Math.max(0, maxImages - imageCount);
-    if (remaining === 0) {
-      alert(`이미지는 ${maxImages}장까지 첨부할 수 있습니다.`);
+  const uploadEditorMedia = async (files: File[]) => {
+    if (!editor || files.length === 0 || dropUploadRef.current || uploadingToolbarImage) return;
+    if (!allowEmbeds && files.some(isEditorVideoFile)) {
+      alert("동영상은 로그인 후 첨부할 수 있습니다.");
       return;
     }
+    let imageCount = 0;
+    let videoCount = 0;
+    editor.state.doc.descendants((node) => {
+      if (node.type.name === "image" || node.type.name === "imageResize") imageCount += 1;
+      if (node.type.name === "video") videoCount += 1;
+    });
+    const remainingImages = Math.max(0, maxImages - imageCount);
+    const remainingVideos = Math.max(0, MAX_EDITOR_VIDEOS - videoCount);
+    const imageFiles = files.filter((file) => !isEditorVideoFile(file));
+    const videoFiles = files.filter(isEditorVideoFile);
+    if (imageFiles.length > remainingImages) alert(`이미지는 ${maxImages}장까지 첨부할 수 있습니다.`);
+    if (videoFiles.length > remainingVideos) alert(`동영상은 ${MAX_EDITOR_VIDEOS}개까지 첨부할 수 있습니다.`);
+    const queue = new Set([...imageFiles.slice(0, remainingImages), ...videoFiles.slice(0, remainingVideos)]);
+    if (queue.size === 0) return;
+    dropUploadRef.current = true;
     setUploadingDropImage(true);
     setImageSize(null);
+    setUploadProgress(null);
     try {
-      for (const file of files.slice(0, remaining)) {
-        await uploadAndInsertEditorImage({ editor, file, onSize: setImageSize });
+      for (const file of files) {
+        if (!queue.has(file)) continue;
+        if (isEditorVideoFile(file)) {
+          await uploadAndInsertEditorVideo({ editor, file, onSize: setImageSize, onProgress: setUploadProgress });
+          setUploadProgress(null);
+        } else {
+          await uploadAndInsertEditorImage({ editor, file, onSize: setImageSize });
+        }
       }
     } catch (error) {
-      alert("이미지 업로드 실패: " + getImageUploadErrorMessage(error, "알 수 없는 오류"));
+      alert("업로드 실패: " + getImageUploadErrorMessage(error, "알 수 없는 오류"));
     } finally {
+      dropUploadRef.current = false;
       setUploadingDropImage(false);
       setImageSize(null);
+      setUploadProgress(null);
     }
   };
 
