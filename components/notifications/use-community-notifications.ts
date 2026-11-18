@@ -22,6 +22,7 @@ export function useCommunityNotifications(identityScope: string, onNewNotificati
   });
   const knownNotificationIds = useRef<{ identityScope: string; ids: Set<string> } | null>(null);
   const onNewNotificationRef = useRef(onNewNotification);
+  const mutations = useRef({ revision: 0, pending: 0 });
   const notifications = state.identityScope === identityScope ? state.notifications : [];
 
   useEffect(() => {
@@ -29,9 +30,13 @@ export function useCommunityNotifications(identityScope: string, onNewNotificati
   }, [onNewNotification]);
 
   const refresh = useCallback(async (signal?: AbortSignal) => {
+    if (mutations.current.pending > 0 || signal?.aborted) return;
+    const revision = mutations.current.revision;
     const response = await fetch("/api/notifications", { cache: "no-store", signal });
     if (!response.ok) return;
     const body = await response.json() as { notifications?: AppNotification[] };
+    // A response started before a read/delete must not restore stale inbox state.
+    if (signal?.aborted || mutations.current.revision !== revision) return;
     const next = Array.isArray(body.notifications) ? body.notifications : [];
     const previous = knownNotificationIds.current;
     knownNotificationIds.current = { identityScope, ids: new Set(next.map((notification) => notification.id)) };
@@ -70,45 +75,56 @@ export function useCommunityNotifications(identityScope: string, onNewNotificati
     };
   }, [identityScope, refresh, communityPage]);
 
+  const mutate = useCallback(async (url: string, options: RequestInit) => {
+    mutations.current.revision += 1;
+    mutations.current.pending += 1;
+    try {
+      const response = await fetch(url, { ...options, keepalive: true });
+      if (!response.ok) throw new Error("Notification update failed");
+    } catch {
+      // Reconcile failed optimistic updates once all outstanding writes settle.
+    } finally {
+      mutations.current.revision += 1;
+      mutations.current.pending -= 1;
+      if (mutations.current.pending === 0) await refresh().catch(() => undefined);
+    }
+  }, [refresh]);
+
   const markRead = useCallback((id: string) => {
     const readAt = new Date().toISOString();
     setState((current) => current.identityScope === identityScope
       ? { ...current, notifications: current.notifications.map((item) => item.id === id && !item.readAt ? { ...item, readAt } : item) }
       : current);
-    void fetch("/api/notifications", {
+    void mutate("/api/notifications", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id }),
-    }).then((response) => { if (!response.ok) return refresh(); }).catch(() => refresh());
-  }, [identityScope, refresh]);
+    });
+  }, [identityScope, mutate]);
 
   const markAllRead = useCallback(() => {
     const readAt = new Date().toISOString();
     setState((current) => current.identityScope === identityScope
       ? { ...current, notifications: current.notifications.map((item) => item.readAt ? item : { ...item, readAt }) }
       : current);
-    void fetch("/api/notifications", {
+    void mutate("/api/notifications", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ all: true }),
-    }).then((response) => { if (!response.ok) return refresh(); }).catch(() => refresh());
-  }, [identityScope, refresh]);
+    });
+  }, [identityScope, mutate]);
 
   const remove = useCallback((id: string) => {
     setState((current) => current.identityScope === identityScope
       ? { ...current, notifications: current.notifications.filter((item) => item.id !== id) }
       : current);
-    void fetch(`/api/notifications?id=${encodeURIComponent(id)}`, { method: "DELETE" })
-      .then((response) => { if (!response.ok) return refresh(); })
-      .catch(() => refresh());
-  }, [identityScope, refresh]);
+    void mutate(`/api/notifications?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+  }, [identityScope, mutate]);
 
   const clear = useCallback(() => {
     setState((current) => current.identityScope === identityScope ? { ...current, notifications: [] } : current);
-    void fetch("/api/notifications?all=true", { method: "DELETE" })
-      .then((response) => { if (!response.ok) return refresh(); })
-      .catch(() => refresh());
-  }, [identityScope, refresh]);
+    void mutate("/api/notifications?all=true", { method: "DELETE" });
+  }, [identityScope, mutate]);
 
   const mutateActivity = useCallback((method: "PATCH" | "DELETE") => {
     const readAt = new Date().toISOString();
@@ -119,12 +135,12 @@ export function useCommunityNotifications(identityScope: string, onNewNotificati
         return method === "DELETE" ? [] : [{ ...item, readAt: item.readAt ?? readAt }];
       }),
     } : current);
-    void fetch(method === "DELETE" ? "/api/notifications?all=true&activityOnly=true" : "/api/notifications", {
+    void mutate(method === "DELETE" ? "/api/notifications?all=true&activityOnly=true" : "/api/notifications", {
       method,
       headers: { "Content-Type": "application/json" },
       ...(method === "PATCH" ? { body: JSON.stringify({ all: true, activityOnly: true }) } : {}),
-    }).then(response => { if (!response.ok) return refresh(); }).catch(() => refresh());
-  }, [identityScope, refresh]);
+    });
+  }, [identityScope, mutate]);
 
   return { notifications, markRead, markAllRead, remove, clear, refresh, mutateActivity };
 }
