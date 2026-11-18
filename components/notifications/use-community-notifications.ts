@@ -88,7 +88,7 @@ export function useCommunityNotifications(identityScope: string, canReceiveNotif
     } finally {
       mutations.current.revision += 1;
       mutations.current.pending -= 1;
-      if (mutations.current.pending === 0) await refresh().catch(() => undefined);
+      if (mutations.current.pending === 0) void refresh().catch(() => undefined);
     }
   }, [refresh]);
 
@@ -97,10 +97,11 @@ export function useCommunityNotifications(identityScope: string, canReceiveNotif
     setState((current) => current.identityScope === identityScope
       ? { ...current, notifications: current.notifications.map((item) => item.id === id && !item.readAt ? { ...item, readAt } : item) }
       : current);
-    void mutate("/api/notifications", {
+    return mutate("/api/notifications", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id }),
+      signal: AbortSignal.timeout(5_000),
     });
   }, [identityScope, mutate]);
 

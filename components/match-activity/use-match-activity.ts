@@ -247,10 +247,9 @@ export function useMatchActivity(
     });
   }, [dismissedLiveStorageKey]);
 
-  const markNotificationRead = useCallback((id: string) => {
+  const markNotificationRead = useCallback(async (id: string) => {
     if (isRemoteNotificationId(id)) {
-      communityNotifications.markRead(id);
-      return;
+      return communityNotifications.markRead(id);
     }
     const readAt = new Date().toISOString();
     updateStoredNotifications(notificationStorageKey, (current) => current.map((item) => item.id === id && !item.readAt ? { ...item, readAt } : item));

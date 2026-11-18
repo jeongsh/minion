@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useRef } from "react";
 import { Bell, CheckCheck, MessageCircle, Radio, Star, Trash2, UserRound, Video, X } from "lucide-react";
 
@@ -35,10 +36,13 @@ function NotificationRow({
   onClose,
 }: {
   notification: AppNotification;
-  onRead: (id: string) => void;
+  onRead: (id: string) => Promise<void>;
   onRemove: (id: string) => void;
   onClose: () => void;
 }) {
+  const router = useRouter();
+  const { href } = notification;
+  const isComment = notification.activityKind === "post_comment" || notification.activityKind === "comment_reply";
   const eventImage = notification.matchEvent?.rightImageSrc ?? notification.matchEvent?.leftImageSrc;
   const imageUrl = notification.imageUrl ?? eventImage;
   const useObjectiveMask = Boolean(
@@ -81,8 +85,26 @@ function NotificationRow({
 
   return (
     <div className={`flex items-start gap-1.5 rounded-xl border border-[var(--ui-border)] px-2.5 py-2.5 transition ${notification.readAt ? "bg-transparent" : "bg-[var(--ui-surface)]"}`}>
-      {notification.href ? (
-        <Link href={notification.href} onClick={(event) => { onRead(notification.id); if (!event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey && focusNotificationComment(notification.href)) event.preventDefault(); onClose(); }} className="flex min-w-0 flex-1 items-start gap-2.5 rounded-md">{content}</Link>
+      {href ? (
+        <Link
+          href={href}
+          onClick={(event) => {
+            const read = notification.readAt ? undefined : onRead(notification.id);
+            onClose();
+            if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
+            if (focusNotificationComment(href)) {
+              event.preventDefault();
+              return;
+            }
+            const destination = event.currentTarget;
+            if (isComment && read && destination.origin === window.location.origin) {
+              // The destination can initialize its own inbox. Save before it loads.
+              event.preventDefault();
+              void read.then(() => router.push(href));
+            }
+          }}
+          className="flex min-w-0 flex-1 items-start gap-2.5 rounded-md"
+        >{content}</Link>
       ) : (
         <button type="button" onClick={() => onRead(notification.id)} className="flex min-w-0 flex-1 items-start gap-2.5 rounded-md text-left">{content}</button>
       )}
@@ -105,7 +127,7 @@ export function NotificationPanel({
   onClose: () => void;
   notifications: AppNotification[];
   unreadCount: number;
-  onRead: (id: string) => void;
+  onRead: (id: string) => Promise<void>;
   onReadAll: () => void;
   onRemove: (id: string) => void;
   onClear: () => void;
