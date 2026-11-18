@@ -1,0 +1,49 @@
+.delightTag {
+  position: relative;
+  color: transparent;
+  background-image:
+    linear-gradient(110deg, transparent 40%, #fff 48%, #fff 50%, transparent 58%),
+    linear-gradient(90deg, #dc2626, #c2410c, #a16207, #15803d, #0369a1, #4338ca, #7e22ce, #dc2626);
+  background-size: 250% 100%, 200% 100%;
+  background-clip: text;
+  animation: delight-shimmer 3s linear infinite;
+}
+
+:global(.dark) .delightTag {
+  background-image:
+    linear-gradient(110deg, transparent 40%, #fff 48%, #fff 50%, transparent 58%),
+    linear-gradient(90deg, #f87171, #fb923c, #facc15, #4ade80, #38bdf8, #818cf8, #c084fc, #f87171);
+  filter: drop-shadow(0 0 3px rgb(196 181 253 / 45%));
+}
+
+.delightTag::after {
+  position: absolute;
+  top: -2px;
+  right: 0;
+  width: 7px;
+  height: 7px;
+  background: #a16207;
+  clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+  content: "";
+  pointer-events: none;
+  animation: delight-sparkle 3s ease-in-out infinite;
+}
+
+:global(.dark) .delightTag::after {
+  background: #fef3c7;
+}
+
+@keyframes delight-shimmer {
+  from { background-position: 150% 0, 100% 0; }
+  to { background-position: -100% 0, -100% 0; }
+}
+
+@keyframes delight-sparkle {
+  0%, 35%, 75%, 100% { opacity: 0; transform: scale(0.4) rotate(0deg); }
+  55% { opacity: 1; transform: scale(1) rotate(90deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .delightTag { animation: none; background-position: 0 0; }
+  .delightTag::after { animation: none; opacity: 0; }
+}

@@ -11,6 +11,7 @@ import { A11y } from "swiper/modules";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { useSwiperResize } from "@/components/ui/use-swiper-resize";
 import "swiper/css";
+import styles from "./transfer-market.module.css";
 import { SegmentedToggle } from "@/components/ui/tabs";
 import type { Player, Team } from "@/lib/types";
 import { departuresForTeam, reportedRosterChanges, resolveTransferRosters, transferEventsInStorageOrder } from "@/lib/transfers/view";
@@ -67,7 +68,12 @@ export function TransferMarketView({ market, teams, followedTeamIds = [] }: { ma
   function playerName(person: TransferPerson | { name: string }, muted = false, event = playerEvents.get(normalizeTransferName(person.name)), dense = false) {
     const url = transferArticleUrl(event);
     const className = `inline-block max-w-full truncate align-middle ${dense ? "text-[13px] leading-4" : "text-sm leading-5"} ${muted ? "font-medium text-[var(--ui-muted)]" : "font-medium text-[var(--ui-ink)] md:font-bold"}`;
-    return url ? <a href={url} target="_blank" rel="noopener noreferrer" aria-label={`${person.name} 원문 뉴스`} title={person.name} className={`${className} hover:underline`}>{person.name}</a> : <span title={person.name} className={className}>{person.name}</span>;
+    const name = url ? <a href={url} target="_blank" rel="noopener noreferrer" aria-label={`${person.name} 원문 뉴스`} title={person.name} className={`${className} hover:underline`}>{person.name}</a> : <span title={person.name} className={className}>{person.name}</span>;
+    if (muted || !["delight", "딜라이트"].includes(normalizeTransferName(person.name))) return name;
+    return <span className="inline-flex max-w-full flex-wrap items-center gap-x-1 gap-y-0.5 align-middle">
+      <span className={`${styles.delightTag} text-[13px] leading-4 font-medium break-keep`}>죽음을 각오한</span>
+      {name}
+    </span>;
   }
   function teamName(name: string, compact = false, adaptive: "movement" | "history" | false = false, small = adaptive === "movement") {
     const code = lckTeamCode(name);
