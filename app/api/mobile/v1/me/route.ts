@@ -9,6 +9,7 @@ import {
   favoriteTeamCooldownMessage,
 } from "@/lib/fan/favorite-team-cooldown";
 import { tierProgress, type Tier } from "@/lib/rank/config";
+import { attendanceDate } from "@/lib/rank/attendance-date";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
@@ -56,7 +57,7 @@ async function readMe(request: Request): Promise<MobileMeDto | null> {
   const [profileResult, rankedResult, attendanceResult, preferencesResult, subscriptionsResult, postsResult, commentsResult, postCountResult, commentCountResult, blocksResult, guestBlocksResult] = await Promise.all([
     supabase.from("profiles").select("nickname, profile_image_url, tier, lp, favorite_team_id").eq("id", user.id).maybeSingle(),
     supabase.from("ranked_profiles").select("effective_tier, lp, overall_rank").eq("id", user.id).maybeSingle(),
-    supabase.from("attendance_checks").select("id").eq("user_id", user.id).eq("check_date", new Date().toISOString().slice(0, 10)).maybeSingle(),
+    supabase.from("attendance_checks").select("id").eq("user_id", user.id).eq("check_date", attendanceDate()).maybeSingle(),
     supabase.from("user_notification_preferences").select("in_app_enabled, community_enabled, match_start_enabled, match_events_enabled, rating_open_enabled, team_content_enabled").eq("user_id", user.id).maybeSingle(),
     supabase.from("fan_notification_subscriptions").select("team_id, match_alerts, live_match_alerts, instagram_alerts, video_alerts, solo_queue_alerts").eq("user_id", user.id).order("created_at", { ascending: true }),
     supabase.from("community_posts").select("id, title, created_at").eq("author_id", user.id).order("created_at", { ascending: false }).limit(5),

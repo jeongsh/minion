@@ -18,6 +18,7 @@ import { getFollowedTeamIds } from "@/lib/fan/followed-teams";
 import { getFavoriteTeamId } from "@/lib/fan/favorite-team";
 import { getNotificationPreferences } from "@/lib/notifications/preferences";
 import { getRankProfile } from "@/lib/rank/queries";
+import { AutoCheckIn } from "@/components/rank/auto-check-in";
 import { siteBaseUrl } from "@/lib/site";
 import { IOS_APP_STORE_ID } from "@/lib/app-store-links";
 import { PRETENDARD_UNICODE_FALLBACK_CSS } from "@/packages/fonts/pretendard";
@@ -131,6 +132,7 @@ async function ResolvedShell({ children }: { children: React.ReactNode }) {
   return (
     <>
       <AdDocumentBoundary prefetchDocuments={!user} />
+      {user ? <AutoCheckIn key={user.id} userId={user.id} /> : null}
       <AppShell
         key={user?.id ?? "guest"}
         currentUser={shellUser}
