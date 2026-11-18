@@ -1,14 +1,21 @@
 "use server";
 
 import { randomUUID } from "node:crypto";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { createSupabaseAdminActionClient } from "@/lib/auth/admin";
 import { syncTransferMarket } from "@/lib/transfers/sync";
 import { syncTransferTeams } from "@/lib/transfers/teams";
 import { importTransferPlayer } from "@/lib/transfers/players";
+import { TRANSFER_MARKET_TAG } from "@/lib/transfers/data";
 import { lckTeamCode, normalizeTransferName, TRANSFER_KIND_LABELS, TRANSFER_ROLES, transferSeason, type TransferEvent, type TransferMarket } from "@/lib/transfers/types";
 
-function refresh() { revalidatePath("/transfers"); revalidatePath("/transfers/feed.xml"); revalidatePath("/sitemap.xml"); revalidatePath("/admin/transfers"); }
+function refresh() {
+  updateTag(TRANSFER_MARKET_TAG);
+  revalidatePath("/transfers");
+  revalidatePath("/transfers/feed.xml");
+  revalidatePath("/sitemap.xml");
+  revalidatePath("/admin/transfers");
+}
 
 export async function importTransferPlayerAction(input: string) {
   const client = await createSupabaseAdminActionClient();

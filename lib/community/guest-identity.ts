@@ -76,9 +76,18 @@ export async function getCurrentIpKey(): Promise<string> {
   return digest("ip", await currentIp());
 }
 
-export async function getExistingGuestKey(): Promise<string | null> {
+async function getExistingGuestToken(): Promise<string | null> {
   const token = (await cookies()).get(GUEST_COOKIE_NAME)?.value;
-  return token && GUEST_TOKEN_PATTERN.test(token) ? digest("guest", token) : null;
+  return token && GUEST_TOKEN_PATTERN.test(token) ? token : null;
+}
+
+export async function hasExistingGuestIdentity(): Promise<boolean> {
+  return Boolean(await getExistingGuestToken());
+}
+
+export async function getExistingGuestKey(): Promise<string | null> {
+  const token = await getExistingGuestToken();
+  return token ? digest("guest", token) : null;
 }
 
 export async function getGuestIdentity(): Promise<GuestIdentity> {

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { TransferMarketView } from "@/components/transfers/transfer-market";
 import { getPlayers, getAllTeams } from "@/lib/data/lck";
-import { getTransferMarket } from "@/lib/transfers/data";
+import { getCachedTransferMarket } from "@/lib/transfers/data";
 import { marketEvents, transferMarketUpdatedAt, transferSeason, type TransferMarket } from "@/lib/transfers/types";
 import { recentTransferEvents, transferEventHeadline } from "@/lib/transfers/seo";
 import { JsonLd } from "@/components/seo/json-ld";
@@ -10,7 +10,6 @@ import { siteBaseUrl } from "@/lib/site";
 import { getFollowedTeamIds } from "@/lib/fan/followed-teams";
 import { isCurrentUserAdmin } from "@/lib/auth/admin";
 
-export const dynamic = "force-dynamic";
 // 두 검색어와 스토브리그 연도, 다음 시즌 로스터를 함께 설명한다.
 export function generateMetadata(): Metadata {
   const season = transferSeason();
@@ -30,7 +29,7 @@ export default async function TransfersPage({ searchParams }: { searchParams: Pr
   const params = await searchParams;
   const requested = Number(params.season);
   const season = Number.isInteger(requested) && requested >= 2026 && requested <= transferSeason() ? requested : transferSeason();
-  const [market, teams, players, followedTeamIds, admin] = await Promise.all([getTransferMarket(season), getAllTeams(), getPlayers(), getFollowedTeamIds(), isCurrentUserAdmin()]);
+  const [market, teams, players, followedTeamIds, admin] = await Promise.all([getCachedTransferMarket(season), getAllTeams(), getPlayers(), getFollowedTeamIds(), isCurrentUserAdmin()]);
   return <main className="layout-wide min-w-0 pb-16 pt-5 sm:pt-7 text-[var(--ui-ink)]">
     <header className="mb-3 flex flex-wrap items-center justify-between gap-3"><h1 className="home-section-title text-[20px] leading-7 font-normal sm:text-[28px] sm:leading-[42px]">LCK 이적시장과 스토브리그</h1>{admin && <Link href={`/admin/transfers?season=${season}`} className="rounded-lg bg-[var(--ui-card-bg)] px-3 py-2 text-sm font-medium">이적시장 관리</Link>}</header>
     {market && <JsonLd data={transferMarketJsonLd(market)} />}

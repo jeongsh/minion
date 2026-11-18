@@ -13,7 +13,7 @@ export function isRemoteNotificationId(id: string) {
   return id.startsWith("community:") || id.startsWith("content:");
 }
 
-export function useCommunityNotifications(identityScope: string, onNewNotification?: (notification: AppNotification) => void) {
+export function useCommunityNotifications(identityScope: string, canReceiveNotifications: boolean, onNewNotification?: (notification: AppNotification) => void) {
   const pathname = usePathname();
   const communityPage = pathname === "/community" || pathname.startsWith("/community/") || /^\/fan\/[^/]+\/community(?:\/|$)/.test(pathname);
   const [state, setState] = useState<{ identityScope: string; notifications: AppNotification[] }>({
@@ -53,15 +53,17 @@ export function useCommunityNotifications(identityScope: string, onNewNotificati
   useEffect(() => {
     knownNotificationIds.current = null;
     const controller = new AbortController();
-    const pollMs = communityPage ? COMMUNITY_POLL_MS : identityScope === "guest" ? GUEST_POLL_MS : MEMBER_POLL_MS;
+    const pollMs = communityPage && canReceiveNotifications
+      ? COMMUNITY_POLL_MS
+      : identityScope === "guest" ? GUEST_POLL_MS : MEMBER_POLL_MS;
     let polling = false;
     const refreshWhenVisible = () => {
       if (document.visibilityState !== "visible" || polling) return;
       polling = true;
       void refresh(controller.signal).catch(() => undefined).finally(() => { polling = false; });
     };
-    const initialLoad = window.setTimeout(refreshWhenVisible, 0);
-    const interval = window.setInterval(refreshWhenVisible, pollMs);
+    const initialLoad = canReceiveNotifications ? window.setTimeout(refreshWhenVisible, 0) : undefined;
+    const interval = canReceiveNotifications ? window.setInterval(refreshWhenVisible, pollMs) : undefined;
     document.addEventListener("visibilitychange", refreshWhenVisible);
     window.addEventListener("focus", refreshWhenVisible);
     window.addEventListener("online", refreshWhenVisible);
@@ -73,7 +75,7 @@ export function useCommunityNotifications(identityScope: string, onNewNotificati
       window.removeEventListener("focus", refreshWhenVisible);
       window.removeEventListener("online", refreshWhenVisible);
     };
-  }, [identityScope, refresh, communityPage]);
+  }, [identityScope, refresh, communityPage, canReceiveNotifications]);
 
   const mutate = useCallback(async (url: string, options: RequestInit) => {
     mutations.current.revision += 1;
