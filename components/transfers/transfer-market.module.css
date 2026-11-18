@@ -8,6 +8,7 @@
     linear-gradient(110deg, transparent 40%, #fff 48%, #fff 50%, transparent 58%),
     linear-gradient(90deg, #dc2626, #c2410c, #a16207, #15803d, #0369a1, #4338ca, #7e22ce, #dc2626);
   background-size: 250% 100%, 200% 100%;
+  background-repeat: no-repeat, repeat;
   background-clip: text;
   animation: delight-shimmer 3s linear infinite;
 }
@@ -94,7 +95,7 @@
 :global(.dark) .kanaviTag::after { background: #fbcfe8; }
 
 @keyframes delight-shimmer {
-  from { background-position: 150% 0, 100% 0; }
+  from { background-position: 100% 0, 100% 0; }
   to { background-position: -100% 0, -100% 0; }
 }
 
