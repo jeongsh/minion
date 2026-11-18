@@ -80,7 +80,7 @@ export function TransferMarketView({ market, teams, followedTeamIds = [] }: { ma
     const tag = PLAYER_TAGS.find((tag) => tag.names.includes(player));
     if (!showTag || muted || !tag) return name;
     return <span className="inline-flex max-w-full flex-wrap items-center gap-x-1 gap-y-0.5 align-middle">
-      <span className={`${tag.className} text-[13px] leading-4 font-medium break-keep`}>{tag.label === "GOAT" && <Crown size={14} strokeWidth={1.75} aria-hidden className="shrink-0" />}{tag.label}</span>
+      <span className={`${tag.className} ${tag.label === "GOAT" ? "text-[12px]" : "text-[13px]"} leading-4 font-medium break-keep`}>{tag.label === "GOAT" && <Crown size={12} strokeWidth={1.75} aria-hidden className="shrink-0" />}{tag.label}</span>
       {name}
     </span>;
   }
