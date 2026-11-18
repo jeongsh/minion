@@ -29,7 +29,7 @@ export function useCommunityNotifications(identityScope: string, canReceiveNotif
     onNewNotificationRef.current = onNewNotification;
   }, [onNewNotification]);
 
-  const refresh = useCallback(async (signal?: AbortSignal) => {
+  const refresh = useCallback(async (signal?: AbortSignal, confirmReadId?: string) => {
     if (mutations.current.pending > 0 || signal?.aborted) return;
     const revision = mutations.current.revision;
     const response = await fetch("/api/notifications", { cache: "no-store", signal });
@@ -38,6 +38,8 @@ export function useCommunityNotifications(identityScope: string, canReceiveNotif
     // A response started before a read/delete must not restore stale inbox state.
     if (signal?.aborted || mutations.current.revision !== revision) return;
     const next = Array.isArray(body.notifications) ? body.notifications : [];
+    // Let the click handler retry before showing a contradictory unread state.
+    if (confirmReadId && next.some((item) => item.id === confirmReadId && !item.readAt)) return false;
     const previous = knownNotificationIds.current;
     knownNotificationIds.current = { identityScope, ids: new Set(next.map((notification) => notification.id)) };
     if (previous?.identityScope === identityScope) {
@@ -48,6 +50,7 @@ export function useCommunityNotifications(identityScope: string, canReceiveNotif
       }
     }
     setState({ identityScope, notifications: next });
+    return true;
   }, [identityScope]);
 
   useEffect(() => {
@@ -77,32 +80,43 @@ export function useCommunityNotifications(identityScope: string, canReceiveNotif
     };
   }, [identityScope, refresh, communityPage, canReceiveNotifications]);
 
-  const mutate = useCallback(async (url: string, options: RequestInit) => {
+  const mutate = useCallback(async (url: string, options: RequestInit, confirmReadId?: string) => {
     mutations.current.revision += 1;
     mutations.current.pending += 1;
+    let saved = false;
     try {
       const response = await fetch(url, { ...options, keepalive: true });
-      if (!response.ok) throw new Error("Notification update failed");
+      saved = response.ok;
     } catch {
       // Reconcile failed optimistic updates once all outstanding writes settle.
     } finally {
       mutations.current.revision += 1;
       mutations.current.pending -= 1;
-      if (mutations.current.pending === 0) void refresh().catch(() => undefined);
     }
+    if (confirmReadId && !saved) return false;
+    if (mutations.current.pending > 0) return saved;
+    if (confirmReadId) {
+      const confirmed = await refresh(AbortSignal.timeout(3_000), confirmReadId).catch(() => undefined);
+      return confirmed !== false;
+    }
+    void refresh().catch(() => undefined);
+    return saved;
   }, [refresh]);
 
-  const markRead = useCallback((id: string) => {
+  const markRead = useCallback(async (id: string) => {
     const readAt = new Date().toISOString();
     setState((current) => current.identityScope === identityScope
       ? { ...current, notifications: current.notifications.map((item) => item.id === id && !item.readAt ? { ...item, readAt } : item) }
       : current);
-    return mutate("/api/notifications", {
+    const request = () => ({
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id }),
       signal: AbortSignal.timeout(5_000),
     });
+    if (!(await mutate("/api/notifications", request(), id))) {
+      await mutate("/api/notifications", request());
+    }
   }, [identityScope, mutate]);
 
   const markAllRead = useCallback(() => {
