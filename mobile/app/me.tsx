@@ -4,6 +4,7 @@ import ChevronRight from 'lucide-react-native/icons/chevron-right';
 import FileText from 'lucide-react-native/icons/file-text';
 import LockKeyhole from 'lucide-react-native/icons/lock-keyhole';
 import LogOut from 'lucide-react-native/icons/log-out';
+import Moon from 'lucide-react-native/icons/moon';
 import ShieldBan from 'lucide-react-native/icons/shield-ban';
 import Sticker from 'lucide-react-native/icons/sticker';
 import UserRound from 'lucide-react-native/icons/user-round';
@@ -11,8 +12,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 
 import type { MobileMeDto, MobileNotificationPreferences, MobileTeamNotificationSettings } from '../../packages/contracts/src/mobile-v1';
-import { AccountSecuritySection, BlockedSection, NotificationSection } from '@/components/account/account-sections';
+import { AccountSection, AccountSecuritySection, BlockedSection, NotificationSection } from '@/components/account/account-sections';
 import { ProfileForm } from '@/components/account/profile-form';
+import { ShellSegmentedControl } from '@/components/shell-segmented-control';
 import { MinionDock } from '@/components/minion-dock';
 import { MinionScreen } from '@/components/minion-screen';
 import { RankAvatar } from '@/components/rank-avatar';
@@ -29,7 +31,7 @@ const providerLabels: Record<string, string> = { google: '구글', kakao: '카�
 
 export default function MeScreen() {
   const router = useRouter();
-  const { fonts, showToast, theme } = useMinionTheme();
+  const { colorScheme, fonts, isThemeChanging, showToast, theme, toggleTheme } = useMinionTheme();
   const { loading: authLoading, refreshViewer, session, signInWithOAuth, signOut } = useAuth();
   const [data, setData] = useState<MobileMeDto | null>(null); const [error, setError] = useState<string | null>(null); const [checkingIn, setCheckingIn] = useState(false);
   const sectionPositionsRef = useRef<Partial<Record<SectionKey, number>>>({}); const [scrollRequest, setScrollRequest] = useState<{ animated: boolean; y: number } | null>(null);
@@ -40,7 +42,7 @@ export default function MeScreen() {
   const updateData = async (payload: unknown, success?: string | { title: string; description?: string }, successCharacter?: 'attendance') => { const next = await mutateMobileApi<MobileMeDto>('/api/mobile/v1/me', 'PATCH', payload); setData(next); await refreshViewer(); if (success) showToast(success, 'success', successCharacter); return next; };
   const saveProfile = async (formData: FormData) => { const next = await uploadMobileApi<MobileMeDto>('/api/mobile/v1/me', formData); setData(next); await refreshViewer(); return next; };
   const checkIn = async () => { if (!data || data.rank.checkedInToday || checkingIn) return; setCheckingIn(true); try { await updateData({ checkIn: true }, { title: '출석 도장 쾅!', description: '+100 LP 적립 완료' }, 'attendance'); } catch (caught) { showToast(caught instanceof Error ? caught.message : '출석체크에 실패했습니다.', 'error'); await load(); } finally { setCheckingIn(false); } };
-  const navigateSection = (key: SectionKey) => { const y = sectionPositionsRef.current[key]; if (y !== undefined) setScrollRequest({ animated: true, y: Math.max(0, y + 105) }); };
+  const navigateSection = (key: SectionKey) => { const y = sectionPositionsRef.current[key]; if (y !== undefined) setScrollRequest({ animated: true, y: Math.max(0, y + 48) }); };
   const sectionLayout = (key: SectionKey) => (event: LayoutChangeEvent) => {
     sectionPositionsRef.current[key] = event.nativeEvent.layout.y;
   };
@@ -51,6 +53,7 @@ export default function MeScreen() {
       <Pressable accessibilityRole="button" onPress={() => router.push('/me/minicons' as never)} style={[styles.miniconLink, { backgroundColor: theme.surface, borderColor: theme.border }]}><Sticker color={theme.muted} size={16} /><Text numberOfLines={1} style={[styles.miniconLabel, { color: theme.text, ...fonts.medium }]}>내 미니콘</Text><ChevronRight color={theme.muted} size={15} /></Pressable>
       <View accessibilityRole="tablist" style={[styles.menuGrid, { backgroundColor: theme.surface, borderColor: theme.border }]}>{menuItems.map(({ icon: Icon, key, label }) => <Pressable accessibilityRole="tab" hitSlop={4} key={key} onPress={() => navigateSection(key)} style={[styles.menuItem, { backgroundColor: theme.surfaceMuted }]}><Icon color={theme.muted} size={13} /><Text numberOfLines={1} style={{ color: theme.text, ...fonts.medium, fontSize: 13, lineHeight: 18 }}>{label}</Text></Pressable>)}</View>
       <View onLayout={sectionLayout('profile')}><ProfileForm initialProfile={data.profile} onSave={saveProfile} /></View>
+      <AccountSection icon={Moon} title="화면"><ShellSegmentedControl items={[{ value: 'light', label: '라이트' }, { value: 'dark', label: '다크' }]} selected={colorScheme} disabled={isThemeChanging} onSelect={(next) => { if (next !== colorScheme) toggleTheme(); }} label="색상 모드" /></AccountSection>
       <View onLayout={sectionLayout('notifications')}><NotificationSection initialPreferences={data.notificationPreferences} initialTeams={data.teamNotificationSettings} onSave={async (preferences: MobileNotificationPreferences, teamNotificationSettings: MobileTeamNotificationSettings[]) => { await updateData({ notificationPreferences: preferences, teamNotificationSettings }, '알림 설정을 저장했습니다.'); }} /></View>
       <View onLayout={sectionLayout('blocks')}><BlockedSection blockedGuests={data.blockedGuests} blockedUsers={data.blockedUsers} onUnblockGuest={async (guestKey) => { await updateData({ unblockGuestKey: guestKey }, '비회원 차단을 해제했습니다.'); }} onUnblockUser={async (userId) => { await updateData({ unblockUserId: userId }, '차단을 해제했습니다.'); }} /></View>
       <View onLayout={sectionLayout('account')}><AccountSecuritySection account={data.account} authProvider={data.profile.authProvider} email={data.profile.email} onChangePassword={async (input) => { await updateData({ passwordChange: input }); }} onDelete={async (input) => { await mutateMobileApi<{ deleted: boolean }>('/api/mobile/v1/me', 'DELETE', input); await signOut(); }} onReauthenticate={async () => { const provider = data.profile.authProvider === 'custom:naver' ? 'naver' : data.profile.authProvider; if (!provider || !['google', 'kakao', 'apple', 'naver'].includes(provider)) throw new Error('연결된 로그인 방식을 확인할 수 없습니다.'); const result = await signInWithOAuth(provider as 'google' | 'kakao' | 'apple' | 'naver', '/me'); if (result.error) throw new Error(result.error); }} /></View>

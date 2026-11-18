@@ -2,8 +2,7 @@ import { Image } from 'expo-image';
 import { usePathname, useRouter, type Href } from 'expo-router';
 import Bell from 'lucide-react-native/icons/bell';
 import ChevronDown from 'lucide-react-native/icons/chevron-down';
-import Moon from 'lucide-react-native/icons/moon';
-import Sun from 'lucide-react-native/icons/sun';
+import ChevronLeft from 'lucide-react-native/icons/chevron-left';
 import { cloneElement, type PropsWithChildren, type ReactNode, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -34,38 +33,16 @@ import { useMinionTheme } from '@/hooks/use-minion-theme';
 import { usePullRefreshIndicator } from '@/hooks/use-pull-refresh-indicator';
 import { resolveApiAssetUrl } from '@/lib/api-client';
 import { notifyAdViewportChanged } from '@/lib/ad-viewport';
+import { shellBackRoute, shellItemActive, shellLocalItems } from '@/lib/shell-navigation';
 import { fanAccentText } from '@/lib/fan-colors';
 import { useAuth } from '@/providers/auth-provider';
 import { useInAppNotifications } from '@/providers/in-app-notifications-provider';
 
 const HEADER_HEIGHT = 56;
-const LOCAL_NAV_HEIGHT = 49;
+const LOCAL_NAV_HEIGHT = 44;
 const FAN_HEADER_TEAM_ORDER = ['fox', 'soop', 'dk', 'geng', 'drx', 'kt', 't1', 'ns', 'bro', 'hle'];
 const FAN_DARK_LOGO_TEAMS = new Set(['dk', 'kt', 'drx', 'bro', 'fox']);
 const fanHeaderTeams = FAN_HEADER_TEAM_ORDER.map((slug) => getMinionTeam(slug)).filter((team): team is MinionTeam => Boolean(team));
-
-type LocalItem = { label: string; href: Href };
-
-const hubItems: LocalItem[] = ([
-  { label: '메인', href: '/' },
-  { label: '이적시장', href: '/transfers' as Href },
-  { label: '승부예측', href: '/predictions' },
-  { label: '대회', href: '/tournaments' },
-  { label: '선수', href: '/players' },
-  { label: '챔피언', href: '/champions' },
-  { label: '뉴스', href: '/news' },
-] satisfies LocalItem[]).filter((item) => Platform.OS !== 'ios' || item.href !== '/predictions');
-
-function getFanItems(team: string): LocalItem[] {
-  return [
-    { label: '홈', href: `/fan/${team}` },
-    { label: '팬톡', href: `/fan/${team}/community` },
-    { label: '캘린더', href: `/fan/${team}/schedule` },
-    { label: '선수', href: `/fan/${team}/players` },
-    { label: '소셜', href: `/fan/${team}/social` },
-    { label: '영상', href: `/fan/${team}/videos` },
-  ];
-}
 
 type MinionScreenProps<T> = PropsWithChildren<{
   listFooter?: ReactNode;
@@ -96,7 +73,7 @@ export function MinionScreen<T>({
   const pathname = usePathname();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { colorScheme, fonts, isThemeChanging, theme, toggleTheme } = useMinionTheme();
+  const { colorScheme, fonts, theme } = useMinionTheme();
   const { loading: authLoading, session, viewer } = useAuth();
   const { unreadCount } = useInAppNotifications();
   const [notificationOpen, setNotificationOpen] = useState(false);
@@ -109,16 +86,19 @@ export function MinionScreen<T>({
   const fanMatch = pathname.match(/^\/fan\/([^/]+)/);
   const fanTeam = getMinionTeam(fanMatch?.[1]);
   const accent = fanTeam ? fanAccentText(fanTeam.primaryColor) : theme.accent;
-  const localItems = fanTeam ? getFanItems(fanTeam.slug) : pathname === '/fan' ? [] : hubItems;
+  const backRoute = shellBackRoute(pathname);
+  const headerHeight = backRoute ? 48 : HEADER_HEIGHT;
+  const localItems = backRoute ? [] : shellLocalItems(pathname, Platform.OS);
   const localNavHeight = localItems.length > 0 ? LOCAL_NAV_HEIGHT : 0;
-  const contentChromeOffset = insets.top + HEADER_HEIGHT + localNavHeight;
+  const contentChromeOffset = insets.top + headerHeight + localNavHeight;
   const { onPullScroll, indicator: pullIndicator } = usePullRefreshIndicator(Boolean(refreshControl?.props.refreshing), contentChromeOffset + (stickyHeaderVisible ? stickyHeaderHeight : 0), accent);
   const screenRefreshControl = refreshControl ? cloneElement(refreshControl, { progressViewOffset: contentChromeOffset + (stickyHeaderVisible ? stickyHeaderHeight : 0) }) : undefined;
   const contentFlowOffset = stickyHeader && stickyHeaderReserveSpace ? stickyHeaderHeight : 16;
   const headerIconColor = colorScheme === 'dark' ? '#a7acb5' : '#62666d';
-  const headerBorder = colorScheme === 'dark' ? '#212224' : '#e8e8eb';
+  const headerBorder = colorScheme === 'dark' ? theme.border : '#e8e8eb';
 
   const setHeaderVisible = (visible: boolean, animated = true) => {
+    if (backRoute) return;
     if (headerVisible.current === visible && animated) return;
     headerVisible.current = visible;
     const toValue = visible ? 0 : -HEADER_HEIGHT;
@@ -174,18 +154,22 @@ export function MinionScreen<T>({
           {
             backgroundColor: theme.pageBackground,
             borderBottomColor: headerBorder,
+            height: headerHeight,
             top: insets.top,
             transform: [{ translateY: headerOffset }],
           },
         ]}>
+        {backRoute ? <View style={styles.backHeader}>
+          <Pressable accessibilityLabel="이전 화면" accessibilityRole="button" onPress={() => router.canGoBack() ? router.back() : router.replace(backRoute.href as Href)} style={[styles.iconButton, styles.backButton]}><ChevronLeft color={theme.ink} size={22} /></Pressable>
+          <Text numberOfLines={1} style={{ color: theme.ink, ...fonts.display, fontSize: 16, lineHeight: 24 }}>{backRoute.title}</Text>
+        </View> : <>
         <View style={[styles.brandArea, fanTeam ? styles.fanBrandArea : null]}>
-          <Pressable accessibilityLabel="MINION 메인으로 이동" onPress={() => router.navigate('/')} style={[styles.brandButton, fanTeam ? null : styles.brandButtonDefault]}>
-            <MinionBrandLogo color={fanTeam?.primaryColor} />
-          </Pressable>
+          {!fanTeam ? <Pressable accessibilityLabel="MINION 메인으로 이동" onPress={() => router.navigate('/')} style={[styles.brandButton, styles.brandButtonDefault]}><MinionBrandLogo /></Pressable> : null}
           {fanTeam ? (
             <>
-              <Pressable accessibilityLabel={`현재 ${fanTeam.name} 팬페이지, 팀 전환`} accessibilityRole="button" accessibilityState={{ expanded: teamSwitcherOpen }} onPress={() => setTeamSwitcherOpen((open) => !open)} style={styles.teamSwitch}>
-                <Text numberOfLines={1} style={{ color: theme.ink, ...fonts.black, fontSize: 14, lineHeight: 21 }}>{fanTeam.shortName}</Text>
+              <Pressable accessibilityLabel="팀 전환" accessibilityRole="button" accessibilityState={{ expanded: teamSwitcherOpen }} onPress={() => setTeamSwitcherOpen((open) => !open)} style={styles.teamSwitch}>
+                <View style={[styles.teamMenuLogo, { backgroundColor: theme.surfaceMuted }]}><Image contentFit="contain" source={{ uri: resolveApiAssetUrl(`/logos/${fanTeam.slug}${colorScheme === 'dark' && FAN_DARK_LOGO_TEAMS.has(fanTeam.slug) ? '-white' : ''}.svg`)! }} style={styles.teamMenuLogoImage} /></View>
+                <Text numberOfLines={1} style={{ color: theme.ink, ...fonts.bold, fontSize: 16, lineHeight: 24 }}>{fanTeam.shortName}</Text>
                 <ChevronDown color={theme.ink} size={16} style={teamSwitcherOpen ? styles.teamSwitchChevronOpen : null} />
               </Pressable>
               {teamSwitcherOpen ? (
@@ -196,7 +180,7 @@ export function MinionScreen<T>({
                     return (
                       <Pressable accessibilityLabel={`${team.name} 팬페이지로 이동`} accessibilityRole="menuitem" key={team.id} onPress={() => { setTeamSwitcherOpen(false); router.navigate(`/fan/${team.slug}` as never); }} style={({ pressed }) => [styles.teamMenuItem, pressed && { backgroundColor: theme.cardHover }]}>
                         <View style={[styles.teamMenuLogo, { backgroundColor: theme.surfaceMuted }]}><Image contentFit="contain" source={logoUri ? { uri: logoUri } : team.logo} style={styles.teamMenuLogoImage} /></View>
-                        <Text numberOfLines={1} style={{ color: theme.ink, ...fonts.bold, fontSize: 14, lineHeight: 21 }}>{team.shortName}</Text>
+                        <Text numberOfLines={1} style={{ color: theme.ink, ...fonts.medium, fontSize: 14, lineHeight: 21 }}>{team.shortName}</Text>
                       </Pressable>
                     );
                   })}
@@ -214,48 +198,46 @@ export function MinionScreen<T>({
               </View>
             ) : null}
           </Pressable>
-          <Pressable accessibilityLabel={colorScheme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'} accessibilityRole="button" accessibilityState={{ busy: isThemeChanging, disabled: isThemeChanging }} disabled={isThemeChanging} onPress={toggleTheme} style={[styles.iconButton, styles.themeButton]}>
-            {colorScheme === 'dark' ? <Sun color={headerIconColor} size={20} /> : <Moon color={headerIconColor} size={20} />}
-          </Pressable>
           <Pressable disabled={authLoading} onPress={() => session ? pathname !== '/me' && router.push('/me') : router.navigate(`/login?next=${encodeURIComponent(pathname)}` as never)} style={session ? styles.profileButton : styles.loginButton}>
             {session ? <RankAvatar fallback={viewer?.nickname ?? 'MY'} profileImageUrl={viewer?.profileImage?.url} tier={viewer?.tier} /> : <Text style={[styles.loginText, { ...fonts.bold }]}>로그인</Text>}
           </Pressable>
         </View>
+        </>}
       </Animated.View>
 
       {localItems.length > 0 ? (
         <Animated.View
+          accessibilityRole="tablist"
+          accessibilityLabel={fanTeam ? "팬페이지 로컬 메뉴" : "허브 로컬 메뉴"}
           style={[
             styles.localBar,
             {
               backgroundColor: theme.pageBackground,
               borderBottomColor: theme.border,
-              borderBottomWidth: pathname === '/schedule' ? 0 : 1,
-              top: Animated.add(headerOffset, insets.top + HEADER_HEIGHT),
+              borderBottomWidth: 1,
+              top: Animated.add(headerOffset, insets.top + headerHeight),
             },
           ]}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.localContent}>
+          <View style={styles.localContent}>
             {localItems.map((item) => {
               const href = String(item.href);
-              const fanHomeHref = fanTeam ? `/fan/${fanTeam.slug}` : null;
-              const active = href === '/'
-                ? pathname === '/' || pathname === '/index'
-                : href === fanHomeHref
-                  ? pathname === href
-                  : pathname === href || pathname.startsWith(`${href}/`);
+              const active = shellItemActive(pathname, item);
               return (
                 <Pressable
                   accessibilityRole="tab"
                   accessibilityState={{ selected: active }}
+                  aria-selected={active}
                   key={href}
-                  onPress={() => router.navigate(item.href)}
+                  onPress={() => router.navigate(item.href as Href)}
                   style={styles.localItem}>
-                  <Text style={{ color: active ? accent : theme.muted, ...fonts.display, fontSize: 14, lineHeight: 21 }}>{item.label}</Text>
-                  {active ? <View style={[styles.activeLine, { backgroundColor: accent }]} /> : null}
+                  <View style={styles.localLabel}>
+                    <Text style={{ color: active ? accent : theme.muted, ...fonts.display, fontSize: 15, lineHeight: 22.5 }}>{item.label}</Text>
+                    {active ? <View style={[styles.activeLine, { backgroundColor: accent }]} /> : null}
+                  </View>
                 </Pressable>
               );
             })}
-          </ScrollView>
+          </View>
         </Animated.View>
       ) : null}
 
@@ -268,7 +250,7 @@ export function MinionScreen<T>({
             styles.stickyHeader,
             {
               opacity: stickyHeaderVisible ? 1 : 0,
-              top: Animated.add(headerOffset, insets.top + HEADER_HEIGHT + localNavHeight),
+              top: Animated.add(headerOffset, insets.top + headerHeight + localNavHeight),
             },
           ]}>
           {stickyHeader}
@@ -330,24 +312,26 @@ const styles = StyleSheet.create({
   fanBrandArea: { flex: 1, minWidth: 0 },
   brandButton: { alignItems: 'center', height: 44, justifyContent: 'center' },
   brandButtonDefault: { marginLeft: 6 },
-  teamMenu: { borderRadius: 16, borderWidth: 1, left: 0, overflow: 'hidden', padding: 8, position: 'absolute', top: 48, width: 216, zIndex: 52 },
+  teamMenu: { borderRadius: 16, borderWidth: 1, left: 0, overflow: 'hidden', padding: 8, position: 'absolute', top: 48, width: 224, zIndex: 52 },
   teamMenuBackdrop: { ...StyleSheet.absoluteFillObject, zIndex: 45 },
   teamMenuItem: { alignItems: 'center', borderRadius: 12, flexDirection: 'row', gap: 12, minHeight: 44, paddingHorizontal: 12 },
   teamMenuLogo: { alignItems: 'center', borderRadius: 14, height: 28, justifyContent: 'center', overflow: 'hidden', width: 28 },
   teamMenuLogoImage: { height: 20, width: 20 },
-  teamSwitch: { alignItems: 'center', flexDirection: 'row', gap: 4, height: 37, marginLeft: 0, maxWidth: 76, paddingHorizontal: 8 },
+  teamSwitch: { alignItems: 'center', flexDirection: 'row', gap: 8, minHeight: 44, paddingHorizontal: 6 },
   teamSwitchChevronOpen: { transform: [{ rotate: '180deg' }] },
   headerActions: { alignItems: 'center', flexDirection: 'row', marginLeft: 'auto' },
   iconButton: { alignItems: 'center', height: 44, justifyContent: 'center', width: 44 },
   notificationBadge: { alignItems: 'center', borderRadius: 8, height: 16, justifyContent: 'center', minWidth: 16, paddingHorizontal: 2, position: 'absolute', right: 1, top: 1 },
-  themeButton: { marginRight: 8 },
   profileButton: { alignItems: 'center', height: 44, justifyContent: 'center', width: 32 },
   loginButton: { alignItems: 'center', backgroundColor: '#141517', borderRadius: 12, justifyContent: 'center', maxWidth: 76, minHeight: 44, paddingHorizontal: 12, paddingVertical: 8 },
   loginText: { color: '#ffffff', fontSize: 13, lineHeight: 19.5, maxWidth: 52 },
-  localBar: { height: 49, left: 0, position: 'absolute', right: 0, zIndex: 40 },
-  localContent: { minWidth: '100%' },
-  localItem: { alignItems: 'center', flexShrink: 0, height: 48, justifyContent: 'center', paddingHorizontal: 16, paddingBottom: 3, paddingTop: 2, position: 'relative' },
-  activeLine: { bottom: 0, height: 3, left: 0, position: 'absolute', right: 0 },
+  backHeader: { alignItems: 'center', flex: 1, justifyContent: 'center' },
+  backButton: { left: 0, position: 'absolute' },
+  localBar: { height: LOCAL_NAV_HEIGHT, left: 0, position: 'absolute', right: 0, zIndex: 40 },
+  localContent: { flex: 1, flexDirection: 'row', paddingHorizontal: 8 },
+  localItem: { alignItems: 'center', flex: 1, minWidth: 0, height: LOCAL_NAV_HEIGHT - 1, justifyContent: 'center' },
+  localLabel: { alignItems: 'center', height: LOCAL_NAV_HEIGHT - 1, justifyContent: 'center', position: 'relative' },
+  activeLine: { borderRadius: 999, bottom: 0, height: 3, left: -4, position: 'absolute', right: -4 },
   footer: { paddingHorizontal: 16 },
   stickyHeader: { left: 0, paddingHorizontal: 16, position: 'absolute', right: 0, zIndex: 30 },
   content: { gap: 16, paddingBottom: 0, paddingHorizontal: 16 },

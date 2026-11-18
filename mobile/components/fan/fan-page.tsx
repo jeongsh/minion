@@ -25,6 +25,7 @@ import { FAN_POSITION_ORDER, FanEmpty, FanSectionHeading, FanVideoThumbnail, Ins
 import { FanSocial } from '@/components/fan/fan-social';
 import { FanVideos } from '@/components/fan/fan-videos';
 import { KitschEmptyState } from '@/components/kitsch-empty-state';
+import { ShellSegmentedControl } from '@/components/shell-segmented-control';
 import { MinionScreen } from '@/components/minion-screen';
 import { getMinionTeam } from '@/constants/teams';
 import { useScreenQuery } from '@/hooks/use-screen-query';
@@ -46,12 +47,15 @@ export function FanPage({ section }: { section: FanPageSection }) {
   const path = teamSlug ? `/api/mobile/v1/teams/${encodeURIComponent(teamSlug)}?section=${section}&view=paged` : '/api/mobile/v1/teams/__missing__';
   const { data, error, loading, refresh, refreshControl } = useScreenQuery<MobileTeamDetailDto>(path, { enabled: Boolean(teamSlug) });
 
-  if (loading && !data) return <MinionScreen refreshControl={refreshControl} contentStyle={styles.screenContent}><FanLoadingSkeleton section={section} /></MinionScreen>;
-  if (error && !data) return <MinionScreen refreshControl={refreshControl} contentStyle={styles.screenContent}><View style={styles.error}><ErrorState onRetry={refresh} title={error} /></View></MinionScreen>;
-  if (!data) return <MinionScreen refreshControl={refreshControl} contentStyle={styles.screenContent}><View style={styles.error}><ErrorState onRetry={refresh} title="팀 정보를 찾을 수 없습니다." /></View></MinionScreen>;
+  const mediaNavigation = teamSlug && (section === 'social' || section === 'videos') ? <FanMediaNavigation teamSlug={teamSlug} section={section} /> : null;
+
+  if (loading && !data) return <MinionScreen refreshControl={refreshControl} contentStyle={styles.screenContent}>{mediaNavigation}<FanLoadingSkeleton section={section} /></MinionScreen>;
+  if (error && !data) return <MinionScreen refreshControl={refreshControl} contentStyle={styles.screenContent}>{mediaNavigation}<View style={styles.error}><ErrorState onRetry={refresh} title={error} /></View></MinionScreen>;
+  if (!data) return <MinionScreen refreshControl={refreshControl} contentStyle={styles.screenContent}>{mediaNavigation}<View style={styles.error}><ErrorState onRetry={refresh} title="팀 정보를 찾을 수 없습니다." /></View></MinionScreen>;
 
   return (
     <MinionScreen refreshControl={refreshControl} contentStyle={styles.screenContent}>
+      {mediaNavigation}
       {section === 'home' ? <FanHome data={data} /> : null}
       {section === 'schedule' ? <><FanSchedule data={data} /><ContentBanner placement="fan-page-1" enabled={(data.matches?.length ?? 0) > 0} /></> : null}
       {section === 'players' ? <FanPlayers players={data.players} team={data.team} /> : null}
@@ -61,11 +65,14 @@ export function FanPage({ section }: { section: FanPageSection }) {
   );
 }
 
+function FanMediaNavigation({ teamSlug, section }: { teamSlug: string; section: 'social' | 'videos' }) {
+  const router = useRouter();
+  return <View style={{ paddingHorizontal: 16, paddingTop: 20, marginBottom: 4 }}><ShellSegmentedControl items={[{ value: 'social', label: '소셜' }, { value: 'videos', label: '영상' }]} selected={section} onSelect={(value) => router.navigate(`/fan/${teamSlug}/${value}` as never)} label="미디어 종류" stretch /></View>;
+}
+
 function PagedMedia({ initial, teamSlug, section }: { initial: MobileTeamDetailDto; teamSlug: string; section: 'social' | 'videos' }) {
   const { page, paging } = useFanMedia(initial, teamSlug, section);
-  return section === 'social'
-    ? <FanSocial items={page.social} teamName={page.team.shortName} paging={paging} />
-    : <FanVideos items={page.videos} teamName={page.team.shortName} paging={paging} />;
+  return section === 'social' ? <FanSocial items={page.social} teamName={page.team.shortName} paging={paging} /> : <FanVideos items={page.videos} teamName={page.team.shortName} paging={paging} />;
 }
 
 function FanHome({ data }: { data: MobileTeamDetailDto }) {

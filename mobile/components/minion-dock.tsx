@@ -5,30 +5,22 @@ import CalendarDays from 'lucide-react-native/icons/calendar-days';
 import Heart from 'lucide-react-native/icons/heart';
 import Home from 'lucide-react-native/icons/house';
 import MessagesSquare from 'lucide-react-native/icons/messages-square';
-import Shield from 'lucide-react-native/icons/shield';
+import ChartNoAxesColumn from 'lucide-react-native/icons/chart-no-axes-column';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { shellDockActive } from '@/lib/shell-navigation';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 
-type DockItem = { href: '/' | '/schedule' | '/fan' | '/teams' | '/community'; label: string; icon: LucideIcon };
+type DockItem = { href: '/' | '/schedule' | '/fan' | '/players' | '/community'; label: string; icon: LucideIcon };
 
 const items: DockItem[] = [
   { href: '/', label: '홈', icon: Home },
   { href: '/schedule', label: '매치', icon: CalendarDays },
-  { href: '/fan', label: '팬', icon: Heart },
-  { href: '/teams', label: '팀', icon: Shield },
+  { href: '/fan', label: '팀', icon: Heart },
+  { href: '/players', label: '기록실', icon: ChartNoAxesColumn },
   { href: '/community', label: '팬톡', icon: MessagesSquare },
 ];
-
-function isActive(pathname: string, href: DockItem['href']) {
-  if (href === '/') return pathname === '/' || pathname === '/index';
-  const fanTalkRoute = pathname === '/community' || pathname.startsWith('/community/') || /^\/fan\/[^/]+\/community(?:\/|$)/.test(pathname);
-  if (href === '/fan') return !fanTalkRoute && (pathname === '/fan' || pathname.startsWith('/fan/'));
-  if (href === '/community') return fanTalkRoute;
-  if (href === '/schedule') return ['/schedule', '/matches'].some((path) => pathname.startsWith(path));
-  return pathname === href || pathname.startsWith(`${href}/`);
-}
 
 export function MinionDock() {
   const pathname = usePathname();
@@ -36,23 +28,23 @@ export function MinionDock() {
   const insets = useSafeAreaInsets();
   const { colorScheme, favoriteTeam, fonts, openTeamPicker, theme } = useMinionTheme();
 
-  const dockBorder = colorScheme === 'dark' ? '#343840' : '#e8e8eb';
-  const inactiveColor = colorScheme === 'dark' ? '#a7acb5' : '#777b82';
+  const dockBorder = colorScheme === 'dark' ? theme.border : '#e8e8eb';
+  const inactiveColor = '#777b82';
 
   return (
-    <View accessibilityRole="tablist" style={[styles.dock, { backgroundColor: theme.pageBackground, borderTopColor: dockBorder, height: theme.size.dock + insets.bottom, paddingBottom: insets.bottom }]}>
+    <View accessibilityRole="tablist" accessibilityLabel="모바일 주요 메뉴" style={[styles.dock, { backgroundColor: theme.pageBackground, borderTopColor: dockBorder, height: theme.size.dock + insets.bottom, paddingBottom: insets.bottom }]}>
       {items.map(({ href, icon: Icon, label }) => {
-        const active = isActive(pathname, href);
+        const active = shellDockActive(pathname, href);
         const fanLogo = href === '/fan' && favoriteTeam;
         return (
           <Pressable
             accessibilityRole="tab"
             accessibilityState={{ selected: active }}
+            aria-selected={active}
             key={href}
             onPress={() => {
               if (href === '/fan') {
-                if (!favoriteTeam) openTeamPicker();
-                else router.navigate(`/fan/${favoriteTeam.slug}`);
+                openTeamPicker();
                 return;
               }
               if (href === '/community') {
