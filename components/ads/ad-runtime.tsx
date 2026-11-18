@@ -78,6 +78,8 @@ export function AdDocumentBoundary({ prefetchDocuments = false }: { prefetchDocu
       if (!adDocumentUrl || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
       const anchor = event.target instanceof Element ? event.target.closest("a[href]") : null;
       if (!(anchor instanceof HTMLAnchorElement) || anchor.hasAttribute("download") || (anchor.target && anchor.target !== "_self")) return;
+      // These links save state before navigation; the pathname effect still resets ads.
+      if (anchor.hasAttribute("data-defer-ad-navigation")) return;
       const url = new URL(anchor.href);
       if (url.origin !== window.location.origin || url.pathname === location.pathname) return;
       event.preventDefault();

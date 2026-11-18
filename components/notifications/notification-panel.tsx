@@ -88,6 +88,7 @@ function NotificationRow({
       {href ? (
         <Link
           href={href}
+          data-defer-ad-navigation={isComment ? "" : undefined}
           onClick={(event) => {
             const read = notification.readAt ? undefined : onRead(notification.id);
             onClose();
