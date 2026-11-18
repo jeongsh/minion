@@ -6,6 +6,7 @@ import { createSupabaseAuthClient } from "@/lib/supabase/auth-server";
 import { DEFAULT_TIER, type Tier } from "@/lib/rank/config";
 import type { LpReason } from "@/lib/rank/record-lp";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { attendanceDate } from "@/lib/rank/attendance-date";
 
 export type LedgerEntry = {
   id: string;
@@ -102,7 +103,7 @@ export const getRankSummary = cache(async function getRankSummary(userId: string
       .from("attendance_checks")
       .select("id")
       .eq("user_id", userId)
-      .eq("check_date", new Date().toISOString().slice(0, 10))
+      .eq("check_date", attendanceDate())
       .maybeSingle(),
   ]);
 

@@ -436,6 +436,15 @@ html[class~="dark"] .navigation-progress-bar {
     position: absolute; top: 80px; right: 16px; width: 390px;
     max-height: calc(100dvh - 96px); border-radius: 16px; pointer-events: auto;
   }
+  .notification-panel-dialog {
+    border: 1px solid var(--ui-border);
+    animation: none;
+  }
+  .notification-panel-dialog > div > header {
+    min-height: 48px;
+    padding-inline: 16px;
+  }
+  .notification-panel-dialog .dialog-body { padding: 16px; }
 }
 
 @media (max-width: 639px) {
