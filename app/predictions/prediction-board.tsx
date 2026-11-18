@@ -408,7 +408,7 @@ function BetAmountDialog({
                   <span className="text-[12px] font-medium text-[var(--ui-muted)]">1회 한도 {maxStake.toLocaleString("ko-KR")} LP</span>
                 </div>
                 <div className="mt-2 flex h-14 items-center rounded-xl border border-[var(--ui-border)] px-4 focus-within:border-[var(--ui-ink)]">
-                  <input id="prediction-stake" type="number" min={100} max={maxStake} step={100} value={stake} onChange={(event) => onStakeChange(event.target.value)} className="min-w-0 flex-1 bg-transparent text-lg font-black tabular-nums text-[var(--ui-ink)] outline-none" />
+                  <input id="prediction-stake" type="number" min={100} max={maxStake} step={100} value={stake} onChange={(event) => onStakeChange(event.target.value)} className="min-w-0 flex-1 bg-transparent text-sm font-medium tabular-nums text-[var(--ui-ink)] outline-none" />
                   <span className="text-[13px] font-black text-[var(--ui-muted)]">LP</span>
                 </div>
                 <div className="mt-3 grid grid-cols-4 gap-2">

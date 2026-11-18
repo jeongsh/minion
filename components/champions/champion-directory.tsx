@@ -114,6 +114,7 @@ export function ChampionDirectoryToolbar({
         <div className="flex min-w-0 items-center [&>div]:w-full">
           <ChampionUrlDropdown
             ariaLabel="정렬 선택"
+            mobileSheet={{ title: "정렬", rows: "highlight" }}
             options={[
               { value: "presence", label: "픽밴률순" },
               { value: "picks", label: "픽순" },

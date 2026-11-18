@@ -111,7 +111,7 @@ export function UserContentLists({
         <DialogSheetHeader onClose={() => setSelectedContent(null)} title={selectedContent.title} titleId="user-content-detail-title" />
         <div className={dialogBodyClassName}>
           <p className="mb-4 text-sm text-muted">{formatDate(selectedContent.createdAt)}</p>
-          <p className="whitespace-pre-wrap break-words text-base leading-7 text-[var(--ui-text)]">{selectedContent.content}</p>
+          <p className="whitespace-pre-wrap break-words text-sm leading-5 text-[var(--ui-text)]">{selectedContent.content}</p>
         </div>
       </> : null}
     </ControlledDialog>

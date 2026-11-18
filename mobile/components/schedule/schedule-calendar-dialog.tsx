@@ -161,7 +161,7 @@ export function ScheduleCalendarDialog({
                   <ChevronRight color={theme.muted} size={14} strokeWidth={2.25} />
                 </Pressable>
               </View>
-              <Text style={[styles.caption, { color: theme.ink, ...fonts.black }]}>{year}년 {month + 1}월</Text>
+              <Text style={[styles.caption, { color: theme.ink, ...fonts.medium }]}>{year}년 {month + 1}월</Text>
             </View>
             <View style={styles.weekRow}>
               {WEEKDAYS.map((weekday) => (
@@ -222,7 +222,7 @@ function CalendarTeamLogo({ team }: { team: MobileTeamSummary | null }) {
 }
 
 const styles = StyleSheet.create({
-  caption: { fontSize: 16, letterSpacing: -0.4, lineHeight: 24, textAlign: 'center' },
+  caption: { fontSize: 14, letterSpacing: -0.4, lineHeight: 24, textAlign: 'center' },
   captionNav: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', position: 'absolute', top: 1, width: 168 },
   captionRow: { alignItems: 'center', height: 27.2, justifyContent: 'center', marginBottom: 9.6 },
   dayButton: { alignItems: 'center', borderRadius: 10, height: 42, justifyContent: 'center', width: 42 },

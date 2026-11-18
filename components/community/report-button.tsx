@@ -5,6 +5,7 @@ import { useId, useState, useTransition } from "react";
 
 
 import { dialogBodyClassName, ControlledDialog, DialogSheetHeader } from "@/components/responsive/adaptive-dialog";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { reportCommentAction, reportPostAction } from "@/lib/community/actions";
 import type { BoardScope } from "@/lib/community/boards";
@@ -66,12 +67,9 @@ export function ReportButton({ target, postId, commentId, scope, teamSlug }: { t
       {<ControlledDialog open={open} onClose={close} labelledBy={titleId} panelClassName="sm:max-w-md">
                 <DialogSheetHeader onClose={close} title={`${postButton ? "게시글" : "댓글"} 리폿`} titleId={titleId} />
                 <form className={dialogBodyClassName} onSubmit={(event) => { event.preventDefault(); submit(); }}>
-                  <p className="text-base font-normal leading-6 text-[var(--ui-text)]">리폿 사유를 입력해주세요. 운영자가 해당 내용을 확인합니다.</p>
-                  <textarea autoFocus value={reason} onChange={(event) => setReason(event.target.value)} maxLength={1000} rows={5} placeholder="리폿 사유" className="mt-4 block min-h-28 w-full resize-none rounded-[var(--ui-control-radius)] border border-[var(--ui-border)] bg-[var(--ui-surface)] p-3 text-base font-normal leading-6 text-[var(--ui-text)] outline-none placeholder:text-[var(--ui-muted)] focus:border-[var(--ui-ink)] dark:bg-[var(--ui-surface-muted)]" />
-                  <div className="mt-3 flex items-center justify-between gap-3">
-                    <span className="text-[13px] font-normal tabular-nums text-[var(--ui-muted)]">{reason.length.toLocaleString("ko-KR")}/1,000자</span>
-                    <button type="submit" disabled={!reason.trim() || pending} className="h-10 rounded-[var(--ui-control-radius)] bg-red-600 px-5 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40">{pending ? "접수 중" : "리폿하기"}</button>
-                  </div>
+                  <p className="text-sm font-normal leading-[21px] text-[var(--ui-text)]">리폿 사유를 입력해주세요. 운영자가 해당 내용을 확인합니다.</p>
+                  <textarea value={reason} onChange={(event) => setReason(event.target.value)} maxLength={1000} placeholder="리폿 사유" className="mt-3.5 block h-28 w-full resize-none rounded-[10px] border border-[var(--ui-border)] bg-[var(--ui-surface)] p-3 text-sm font-normal leading-[21px] text-[var(--ui-text)] outline-none placeholder:text-[var(--ui-muted)] focus-visible:border-[var(--ui-muted)]" />
+                  <Button type="submit" disabled={!reason.trim() || pending} className="mt-3 w-full" style={{ backgroundColor: reason.trim() && !pending ? "#dc2626" : "var(--ui-border)", color: "#fff", opacity: 1 }}>{pending ? "접수 중" : "리폿하기"}</Button>
                 </form>
               </ControlledDialog>}
     </>

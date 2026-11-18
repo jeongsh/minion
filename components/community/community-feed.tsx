@@ -74,7 +74,7 @@ export function CommunityFeed({
         <div className="border-b border-[var(--ui-border)] px-3 py-2.5 sm:px-4 sm:py-3">
           <div className="flex flex-wrap items-start gap-2">
             <SegmentedToggle items={[{key:"all",label:"전체"},{key:"hot",label:"인기글"}]} activeKey={hotOnly ? "hot" : "all"} ariaLabel="게시글 보기" onSelect={(key) => navigateWith({view:key === "hot" ? "hot" : null,cat:null})} />
-            <FilterDropdown ariaLabel="말머리 선택" placeholder="말머리" selected={categoryValue} options={categories.map(category=>({value:category.slug,label:category.label}))} onSelect={value=>navigateWith({cat:value,view:null})} rootClassName="min-w-28" triggerClassName="w-full" />
+            <FilterDropdown ariaLabel="말머리 선택" mobileSheet={{ title: "말머리", rows: "category" }} placeholder="말머리" selected={categoryValue} options={[{ value: "", label: "전체 말머리" }, ...categories.map(category=>({value:category.slug,label:category.label}))]} onSelect={value=>navigateWith({cat:value || null,view:null})} rootClassName="min-w-28" triggerClassName="w-full" />
 
             <button type="button" onClick={() => setMobileSearchOpen((open) => !open)} className="ml-auto grid h-10 w-10 place-items-center rounded-[var(--ui-control-radius)] border border-[var(--ui-border)] text-[var(--ui-muted)] md:hidden" aria-label={mobileSearchOpen ? "검색 닫기" : "게시글 검색"} aria-expanded={mobileSearchOpen}>
               {mobileSearchOpen ? <X size={17} /> : <Search size={17} />}

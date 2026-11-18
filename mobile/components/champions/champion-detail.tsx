@@ -2,11 +2,11 @@ import { ContentBanner } from '@/components/ads/content-banner';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import ArrowLeftRight from 'lucide-react-native/icons/arrow-left-right';
-import ChevronDown from 'lucide-react-native/icons/chevron-down';
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { BottomSheet } from '@/components/bottom-sheet';
+import { FilterSelect } from '@/components/filter-select';
 import { ChampionBuildView } from '@/components/champions/champion-build';
 import { DuoView, GamesView, MatchupView, ProView, StatsView } from '@/components/champions/champion-data-tabs';
 import { ErrorState } from '@/components/feedback-states';
@@ -39,54 +39,39 @@ function buildPath(slug: string, values: Record<string, string>) {
   return `/api/mobile/v1/champions/${encodeURIComponent(slug)}${query ? `?${query}` : ''}`;
 }
 
-function Choice({ active, label, onPress }: { active: boolean; label: string; onPress: () => void }) {
-  const { fonts, theme } = useMinionTheme();
-  return <Pressable onPress={onPress} style={[styles.choice, { backgroundColor: active ? theme.ink : theme.card }]}><Text numberOfLines={1} style={{ color: active ? theme.surface : theme.muted, ...fonts.medium, fontSize: 13, lineHeight: 20 }}>{label}</Text></Pressable>;
-}
-
-function FilterSection({ label, children }: { label: string; children: React.ReactNode }) {
-  const { fonts, theme } = useMinionTheme();
-  return <View style={styles.filterSection}><Text style={{ color: theme.muted, ...fonts.medium, fontSize: 13, lineHeight: 20 }}>{label}</Text><View style={styles.choiceGrid}>{children}</View></View>;
-}
-
 function Loading() {
   const { theme } = useMinionTheme();
   return <View style={styles.page}><View style={styles.profile}><View style={[styles.avatar, { backgroundColor: theme.surfaceMuted }]} /><View style={styles.loadingCopy}><View style={[styles.loadingTitle, { backgroundColor: theme.surfaceMuted }]} /><View style={[styles.loadingMeta, { backgroundColor: theme.surfaceMuted }]} /></View></View><View style={[styles.loadingSummary, { backgroundColor: theme.surfaceMuted }]} /><View style={[styles.loadingTabs, { backgroundColor: theme.surfaceMuted }]} /><View style={[styles.loadingPanel, { backgroundColor: theme.surfaceMuted }]} /></View>;
 }
 
-function ProfileHeader({ data, onChampionOpen, onPositionOpen }: { data: MobileChampionDetailDto; onChampionOpen: () => void; onPositionOpen: () => void }) {
+function ProfileHeader({ data, onChampionOpen, onPositionChange }: { data: MobileChampionDetailDto; onChampionOpen: () => void; onPositionChange: (value: string) => void }) {
   const { fonts, theme } = useMinionTheme();
   const uri = resolveApiAssetUrl(data.champion.image?.url) ?? data.champion.image?.url;
-  const position = data.positions.find((item) => item.value === data.selectedPosition);
   return (
     <View style={styles.profile}>
         {uri ? <Image accessibilityLabel={data.champion.name} contentFit="cover" source={{ uri }} style={styles.avatar} /> : <View style={[styles.avatar, { backgroundColor: theme.card }]} />}
         <View style={styles.profileCopy}>
           <View style={styles.nameRow}><Text numberOfLines={1} style={{ color: theme.ink, ...fonts.display, fontSize: 18, lineHeight: 25 }}>{data.champion.name}</Text><Pressable accessibilityLabel="챔피언 변경" onPress={onChampionOpen} style={[styles.swap, { backgroundColor: theme.card }]}><ArrowLeftRight color={theme.ink} size={18} /></Pressable></View>
-          <Pressable onPress={onPositionOpen} style={styles.positionButton}><Text style={{ color: theme.ink, ...fonts.medium, fontSize: 13, lineHeight: 20 }}>{position?.label ?? data.selectedPosition} · {position?.picks ?? 0}픽</Text><ChevronDown color={theme.muted} size={16} /></Pressable>
+          <FilterSelect compact variant="web" label="포지션" value={data.selectedPosition} options={data.positions.map((item) => ({ value: item.value, label: `${item.label} (${item.picks}픽)` }))} onChange={onPositionChange} />
         </View>
     </View>
   );
 }
 
-type ScopeKey = 'season' | 'tournament' | 'patch';
-
-function ScopeControls({ data, onOpen, patch, season, tournament }: { data: MobileChampionDetailDto; onOpen: (key: ScopeKey) => void; patch: string; season: string; tournament: string }) {
-  const { fonts, theme } = useMinionTheme();
-  const tournamentLabel = tournament === 'all' ? '전체 대회' : data.scope.tournaments.find((option) => option.value === tournament)?.label ?? '전체 대회';
-  const controls: { key: ScopeKey; label: string }[] = [
-    { key: 'season', label: `${season || data.scope.season} 시즌` },
-    { key: 'tournament', label: tournamentLabel },
-    { key: 'patch', label: patch === 'all' ? '전체 패치' : `${patch} 패치` },
-  ];
+function ScopeControls({ data, patch, season, tournament, setPatch, setSeason, setTournament }: {
+  data: MobileChampionDetailDto;
+  patch: string;
+  season: string;
+  tournament: string;
+  setPatch: (value: string) => void;
+  setSeason: (value: string) => void;
+  setTournament: (value: string) => void;
+}) {
   return (
     <View style={styles.scopeControls}>
-      {controls.map((control) => (
-        <Pressable key={control.key} onPress={() => onOpen(control.key)} style={[styles.scopeControl, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          <Text numberOfLines={1} style={{ color: theme.ink, flex: 1, ...fonts.medium, fontSize: 13, lineHeight: 20 }}>{control.label}</Text>
-          <ChevronDown color={theme.muted} size={16} />
-        </Pressable>
-      ))}
+      <FilterSelect compact variant="web" label="시즌" value={season} options={data.scope.seasons.map((value) => ({ value: String(value), label: `${value} 시즌` }))} onChange={setSeason} />
+      <FilterSelect compact variant="web" label="대회" value={tournament} options={[{ value: 'all', label: '전체 대회' }, ...data.scope.tournaments]} onChange={setTournament} />
+      <FilterSelect compact variant="web" alignOptions="end" label="패치" value={patch} options={[{ value: 'all', label: '전체 패치' }, ...data.scope.patches.map((value) => ({ value, label: `${value} 패치` }))]} onChange={setPatch} />
     </View>
   );
 }
@@ -144,8 +129,6 @@ export function ChampionDetail() {
   const [tournament, setTournament] = useState(first(params.tournament) ?? 'all');
   const [patch, setPatch] = useState(first(params.patch) ?? 'all');
   const [position, setPosition] = useState(first(params.position) ?? '');
-  const [scopeOpen, setScopeOpen] = useState<ScopeKey | null>(null);
-  const [positionOpen, setPositionOpen] = useState(false);
   const [championOpen, setChampionOpen] = useState(false);
   const path = useMemo(() => buildPath(slug, { season, tournament, patch, position, tab, view: 'paged', page: String(gamePage) }), [patch, position, season, slug, tournament, tab, gamePage]);
   const { data, error, loading, refresh, refreshControl } = useScreenQuery<MobileChampionDetailDto>(path, { enabled: Boolean(slug), staleTimeMs: 30_000 });
@@ -179,22 +162,14 @@ export function ChampionDetail() {
   return (
     <MinionScreen refreshControl={refreshControl}>
       <View style={styles.page}>
-        <ProfileHeader data={data} onChampionOpen={() => setChampionOpen(true)} onPositionOpen={() => setPositionOpen(true)} />
-        <ScopeControls data={data} onOpen={setScopeOpen} patch={patch} season={effectiveSeason} tournament={tournament} />
+        <ProfileHeader data={data} onChampionOpen={() => setChampionOpen(true)} onPositionChange={setPosition} />
+        <ScopeControls data={data} patch={patch} season={effectiveSeason} tournament={tournament} setPatch={setPatch} setSeason={setSeason} setTournament={setTournament} />
         <Summary data={data} />
-        <ContentBanner placement="champion-detail-1" enabled={true} suspended={Boolean(scopeOpen) || championOpen || positionOpen} />
+        <ContentBanner placement="champion-detail-1" enabled={true} suspended={championOpen} />
         <TabNav active={tab} data={data} onSelect={next => { setGamePage(1); setTab(next); }} />
         {view}
-        <ContentBanner placement="champion-detail-2" enabled={true} suspended={Boolean(scopeOpen) || championOpen || positionOpen} />
+        <ContentBanner placement="champion-detail-2" enabled={true} suspended={championOpen} />
       </View>
-      <BottomSheet contentStyle={styles.sheet} onClose={() => setScopeOpen(null)} open={scopeOpen != null} scrollable title={scopeOpen === 'season' ? '시즌' : scopeOpen === 'tournament' ? '대회' : '패치'}>
-        {scopeOpen === 'season' ? <FilterSection label="시즌">{scope.seasons.map((value) => <Choice active={effectiveSeason === String(value)} key={value} label={String(value)} onPress={() => { setSeason(String(value)); setScopeOpen(null); }} />)}</FilterSection> : null}
-        {scopeOpen === 'tournament' ? <FilterSection label="대회"><Choice active={tournament === 'all'} label="전체" onPress={() => { setTournament('all'); setScopeOpen(null); }} />{scope.tournaments.map((option) => <Choice active={tournament === option.value} key={option.value} label={option.label} onPress={() => { setTournament(option.value); setScopeOpen(null); }} />)}</FilterSection> : null}
-        {scopeOpen === 'patch' ? <FilterSection label="패치"><Choice active={patch === 'all'} label="전체" onPress={() => { setPatch('all'); setScopeOpen(null); }} />{scope.patches.map((value) => <Choice active={patch === value} key={value} label={value} onPress={() => { setPatch(value); setScopeOpen(null); }} />)}</FilterSection> : null}
-      </BottomSheet>
-      <BottomSheet contentStyle={styles.sheet} onClose={() => setPositionOpen(false)} open={positionOpen} title="포지션">
-        <View style={styles.choiceGrid}>{data.positions.map((option) => <Choice active={data.selectedPosition === option.value} key={option.value} label={`${option.label} · ${option.picks}픽`} onPress={() => { setPosition(option.value); setPositionOpen(false); }} />)}</View>
-      </BottomSheet>
       <BottomSheet onClose={() => setChampionOpen(false)} open={championOpen} scrollable title="챔피언 선택">
         <View style={styles.championGrid}>{data.champions.map((champion) => {
           const uri = resolveApiAssetUrl(champion.image?.url) ?? champion.image?.url;
@@ -212,9 +187,7 @@ const styles = StyleSheet.create({
   profileCopy: { flex: 1, minWidth: 0 },
   nameRow: { alignItems: 'center', flexDirection: 'row', gap: 8 },
   swap: { alignItems: 'center', borderRadius: 10, height: minionSize.control, justifyContent: 'center', width: 40 },
-  positionButton: { alignItems: 'center', alignSelf: 'flex-start', flexDirection: 'row', gap: 3, height: minionSize.control },
   scopeControls: { flexDirection: 'row', gap: 6 },
-  scopeControl: { alignItems: 'center', borderRadius: 12, borderWidth: 1, flex: 1, flexDirection: 'row', gap: 4, height: minionSize.control, minWidth: 0, paddingHorizontal: 8 },
   summary: { borderRadius: 8, borderWidth: 1, overflow: 'hidden' },
   summaryHeader: { alignItems: 'center', flexDirection: 'row', height: 32 },
   summaryValues: { flexDirection: 'row', height: 44 },
@@ -223,10 +196,6 @@ const styles = StyleSheet.create({
   tabShell: { borderRadius: 12, height: minionSize.control, padding: 3 },
   tabs: { gap: 4, minWidth: '100%' },
   tab: { alignItems: 'center', borderRadius: 8, borderWidth: 1, flex: 1, height: minionSize.control - 6, justifyContent: 'center', minWidth: 62, paddingHorizontal: 8 },
-  sheet: { gap: 20 },
-  filterSection: { gap: 8 },
-  choiceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  choice: { alignItems: 'center', borderRadius: 12, justifyContent: 'center', minHeight: 40, minWidth: '30%', paddingHorizontal: 12 },
   championGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   championChoice: { alignItems: 'center', gap: 4, paddingVertical: 4, width: '18%' },
   championFace: { borderRadius: 7, height: 40, width: 40 },

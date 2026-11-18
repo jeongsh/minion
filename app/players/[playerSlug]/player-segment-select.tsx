@@ -17,7 +17,7 @@ export function PlayerSegmentSelect({
     setServerSegment(activeSegment);
     setSelected(activeSegment);
   }
-  return <div className="md:hidden"><FilterDropdown ariaLabel="대회 구간" selected={selected} options={options} onSelect={value=>{
+  return <div className="md:hidden"><FilterDropdown ariaLabel="대회 구간" mobileSheet={{ title: "대회 구간", rows: "check" }} selected={selected} options={options} onSelect={value=>{
     const next=options.find(option=>option.value===value);
     if(next) { setSelected(value); router.push(next.href, { scroll: false }); }
   }} triggerClassName="w-full" /></div>;

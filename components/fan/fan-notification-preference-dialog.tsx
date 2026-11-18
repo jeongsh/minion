@@ -71,7 +71,7 @@ export function FanNotificationPreferenceDialog({
       <div className={dialogBodyClassName}>
           {canConfigure ? (
             <>
-              <p className="text-base font-normal leading-6 text-[var(--ui-muted)]">받고 싶은 소식만 골라주세요. 선택하지 않아도 팔로우는 유지됩니다.</p>
+              <p className="text-sm font-normal leading-5 text-[var(--ui-muted)]">받고 싶은 소식만 골라주세요. 선택하지 않아도 팔로우는 유지됩니다.</p>
               <div className="mt-4 space-y-2" aria-label={`${teamName} 알림 종류`}>
                 {OPTIONS.map(({ key, title, description, icon: Icon }) => {
                   const checked = selection[key];
@@ -100,7 +100,7 @@ export function FanNotificationPreferenceDialog({
             </>
           ) : (
             <>
-              <p className="text-base font-normal leading-6 text-[var(--ui-muted)]">로그인하면 경기, Instagram, 동영상 등 받고 싶은 팀 소식만 선택할 수 있어요.</p>
+              <p className="text-sm font-normal leading-5 text-[var(--ui-muted)]">로그인하면 경기, Instagram, 동영상 등 받고 싶은 팀 소식만 선택할 수 있어요.</p>
               <div className="mt-5 flex gap-2">
                 <button type="button" className="min-h-11 flex-1 rounded-xl border border-[var(--ui-border)] px-4 text-[14px] font-medium text-[var(--ui-muted)]" onClick={onClose}>나중에</button>
                 <Link className="flex min-h-11 flex-[1.4] items-center justify-center rounded-xl bg-[var(--fan-notification-color)] px-4 text-[14px] font-medium text-white" href={`/login?next=${encodeURIComponent(`/fan/${teamSlug}`)}`}>로그인하고 설정</Link>

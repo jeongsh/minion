@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
   existing: { borderRadius: 12, padding: 16 },
   existingTitle: { fontSize: 13, lineHeight: 19.5 },
   help: { fontSize: 12, lineHeight: 18 },
-  input: { flex: 1, fontSize: 18, height: 54, padding: 0 },
+  input: { flex: 1, fontSize: 14, height: 54, padding: 0 },
   inputWrap: { alignItems: 'center', borderRadius: 12, borderWidth: 1, flexDirection: 'row', height: 56, paddingHorizontal: 16 },
   label: { fontSize: 13, lineHeight: 19.5 },
   labelRow: { alignItems: 'flex-end', flexDirection: 'row', justifyContent: 'space-between' },

@@ -88,7 +88,7 @@ function FilterButton({ active, children, onPress, team = false }: { active: boo
   const { fonts, theme } = useMinionTheme();
   return (
     <Pressable onPress={onPress} style={[team ? styles.teamFilter : styles.positionFilter, { backgroundColor: active ? theme.ink : team ? 'transparent' : theme.card }]}>
-      <Text numberOfLines={1} style={{ color: active ? theme.surface : theme.muted, ...fonts.black, fontSize: team ? 14 : 13 }}>{children}</Text>
+      <Text numberOfLines={1} style={{ color: active ? theme.surface : theme.muted, ...fonts.medium, fontSize: team ? 14 : 13 }}>{children}</Text>
     </Pressable>
   );
 }
@@ -104,19 +104,19 @@ function PlayerFilters({ position, setPosition, setTeamId, teamId, teams }: {
   return (
     <View style={styles.filters}>
       <View>
-        <Text style={{ color: theme.muted, ...fonts.medium, fontSize: 12, letterSpacing: 1.2, lineHeight: 18, marginBottom: 8 }}>포지션</Text>
+        <Text style={{ color: theme.muted, ...fonts.medium, fontSize: 13, letterSpacing: 1.2, lineHeight: 19.5, marginBottom: 8 }}>포지션</Text>
         <View style={styles.positionGrid}>
           {['all', ...POSITIONS].map((item) => <FilterButton active={position === item} key={item} onPress={() => setPosition(item)}>{item === 'all' ? '전체' : item}</FilterButton>)}
         </View>
       </View>
       <View>
-        <Text style={{ color: theme.muted, ...fonts.medium, fontSize: 12, letterSpacing: 1.2, lineHeight: 18, marginBottom: 8 }}>팀</Text>
+        <Text style={{ color: theme.muted, ...fonts.medium, fontSize: 13, letterSpacing: 1.2, lineHeight: 19.5, marginBottom: 8 }}>팀</Text>
         <View style={styles.teamGrid}>
           <FilterButton active={teamId === 'all'} onPress={() => setTeamId('all')} team>전체 팀</FilterButton>
           {teams.map((team) => (
             <Pressable key={team.id} onPress={() => setTeamId(team.id)} style={[styles.teamFilter, { backgroundColor: teamId === team.id ? theme.ink : 'transparent' }]}>
               {team.logo?.url ? <Image accessibilityLabel={team.name} contentFit="contain" source={resolveApiAssetUrl(team.logo.url)} style={styles.teamLogo} /> : null}
-              <Text numberOfLines={1} style={{ color: teamId === team.id ? theme.surface : theme.ink, flex: 1, ...fonts.bold, fontSize: 14 }}>{team.shortName}</Text>
+              <Text numberOfLines={1} style={{ color: teamId === team.id ? theme.surface : theme.ink, flex: 1, ...fonts.medium, fontSize: 14 }}>{team.shortName}</Text>
             </Pressable>
           ))}
         </View>

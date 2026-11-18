@@ -47,7 +47,7 @@ export function PostOwnerActions({ postId, scope, teamSlug, guest = false, varia
               <div data-community-owner-dialog className="contents">
                 <DialogSheetHeader onClose={() => setConfirmOpen(false)} title="게시글 삭제" titleId="delete-post-title" />
                 <div className={dialogBodyClassName}>
-                  <h3 className="text-lg font-black text-[var(--ui-ink)]">게시글을 삭제할까요?</h3>
+                  <h3 className="text-sm font-medium text-[var(--ui-ink)]">게시글을 삭제할까요?</h3>
                   <p className="mt-3 text-sm font-medium leading-6 text-[var(--ui-muted)]">삭제한 게시글은 복구할 수 없습니다.</p>
                   <div className="mt-5 grid grid-cols-2 gap-2">
                     <button type="button" onClick={() => setConfirmOpen(false)} className="h-10 rounded-lg bg-[var(--ui-surface-muted)] text-sm font-medium text-[var(--ui-ink)]">취소</button>

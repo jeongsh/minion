@@ -414,7 +414,13 @@ html[class~="dark"] .navigation-progress-bar {
 }
 
 .dialog-body {
+  font-size: 14px;
   padding: 8px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+}
+
+.adaptive-dialog-panel .dialog-body .home-match-calendar .rdp-month_caption {
+  font-size: 14px;
+  font-weight: 500;
 }
 
 @media (min-width: 640px) {

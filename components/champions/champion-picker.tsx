@@ -119,8 +119,8 @@ export function ChampionPicker({
               ) : (
                 <div className="grid min-h-48 place-items-center text-center">
                   <div>
-                    <p className="text-[18px] font-bold text-[var(--ui-ink)]">검색 결과가 없습니다.</p>
-                    <p className="mt-2 text-[16px] font-normal text-[var(--ui-muted)]">다른 이름으로 검색해 보세요.</p>
+                    <p className="text-sm font-medium text-[var(--ui-ink)]">검색 결과가 없습니다.</p>
+                    <p className="mt-2 text-sm font-normal text-[var(--ui-muted)]">다른 이름으로 검색해 보세요.</p>
                   </div>
                 </div>
               )}

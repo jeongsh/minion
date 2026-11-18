@@ -159,7 +159,7 @@ export function FanHeaderRequestDialog({
               <>
                 <div className="flex flex-col gap-3">
                   <PreviewFrame label="desktop" src={picked.url} aspect="aspect-[24/5]" objectPosition="center 35%">
-                    <span className="text-[18px] font-black leading-none" style={{ color: teamColor }}>
+                    <span className="text-sm font-medium leading-none" style={{ color: teamColor }}>
                       {teamName}
                     </span>
                     <span className="text-[10px] font-medium text-white/85">팬 채널 대문 미리보기</span>

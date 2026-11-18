@@ -101,7 +101,7 @@ export function OnboardingDialog({
 
         {step === 1 ? (
           <form action={profileAction} className={dialogBodyClassName}>
-            <h1 id="onboarding-title" className="font-paperozi text-center text-[20px] leading-7 text-[var(--ui-ink)] sm:text-[24px] sm:leading-[1.35]">
+            <h1 id="onboarding-title" className="font-paperozi text-center text-sm leading-5 text-[var(--ui-ink)] sm:leading-[1.35]">
               MINION에서 사용할 이름
             </h1>
 
@@ -145,7 +145,7 @@ export function OnboardingDialog({
                 maxLength={16}
                 required
                 placeholder="닉네임을 입력해주세요"
-                className="min-h-11 rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface-muted)] px-3.5 text-base text-[var(--ui-ink)] outline-none transition placeholder:text-[var(--ui-muted)] focus:border-[var(--accent)] focus:bg-[var(--ui-surface)] focus:ring-[3px] focus:ring-[color-mix(in_srgb,var(--accent)_18%,transparent)] sm:min-h-12 sm:px-4"
+                className="min-h-11 rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface-muted)] px-3.5 text-sm text-[var(--ui-ink)] outline-none transition placeholder:text-[var(--ui-muted)] focus:border-[var(--accent)] focus:bg-[var(--ui-surface)] focus:ring-[3px] focus:ring-[color-mix(in_srgb,var(--accent)_18%,transparent)] sm:min-h-12 sm:px-4"
               />
               <p className="text-[13px] font-normal text-[var(--ui-muted)]">2~16자 · 중복 닉네임은 사용할 수 없어요.</p>
             </div>
@@ -159,8 +159,8 @@ export function OnboardingDialog({
         ) : (
           <div className={dialogBodyClassName}>
             <div className="text-center">
-              <h1 id="onboarding-title" className="font-paperozi text-[20px] leading-7 text-[var(--ui-ink)] sm:text-[24px] sm:leading-[1.35]">응원할 팀을 골라주세요</h1>
-              <p className="mx-auto mt-2 max-w-[600px] text-base font-normal leading-6 text-[var(--ui-muted)] text-balance">최애팀 소식과 팬페이지를 더 빠르게 만날 수 있어요. 아직 없다면 건너뛰어도 괜찮아요.</p>
+              <h1 id="onboarding-title" className="font-paperozi text-sm leading-5 text-[var(--ui-ink)] sm:leading-[1.35]">응원할 팀을 골라주세요</h1>
+              <p className="mx-auto mt-2 max-w-[600px] text-sm font-normal leading-5 text-[var(--ui-muted)] text-balance">최애팀 소식과 팬페이지를 더 빠르게 만날 수 있어요. 아직 없다면 건너뛰어도 괜찮아요.</p>
             </div>
 
             <ul className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5" aria-label="최애팀 선택">

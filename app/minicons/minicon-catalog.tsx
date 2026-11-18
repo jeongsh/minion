@@ -31,8 +31,8 @@ function PackDetail({ pack }: { pack: MiniconPack }) {
         </div>
 
         <div className="min-w-0">
-          <h3 className="text-[18px] font-bold text-[var(--ui-ink)]">{pack.name}</h3>
-          <p className="mt-2 text-[16px] font-normal leading-6 text-[var(--ui-text)]">
+          <h3 className="text-sm font-medium text-[var(--ui-ink)]">{pack.name}</h3>
+          <p className="mt-2 text-sm font-normal text-[var(--ui-text)]">
             {pack.description || "미니콘 패키지입니다."}
           </p>
 
@@ -71,7 +71,7 @@ function PackDetail({ pack }: { pack: MiniconPack }) {
 
       <section aria-labelledby={`minicon-items-${pack.id}`}>
         <div className="mb-3 flex items-end justify-between gap-3 border-b border-[var(--ui-border)] pb-2">
-          <h3 id={`minicon-items-${pack.id}`} className="text-[18px] font-bold text-[var(--ui-ink)]">포함된 미니콘</h3>
+          <h3 id={`minicon-items-${pack.id}`} className="text-sm font-medium text-[var(--ui-ink)]">포함된 미니콘</h3>
           <span className="text-[13px] font-normal text-[var(--ui-muted)]">총 {pack.items.length}개</span>
         </div>
         <ul className="grid grid-cols-3 gap-2 sm:grid-cols-5" aria-label={`${pack.name} 미니콘 전체 목록`}>

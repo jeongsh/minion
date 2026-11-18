@@ -12,7 +12,6 @@ import type { Player } from "@/lib/types";
 import { findTransferTeam, marketEvents, namuTransferUrl, normalizeTransferName, TRANSFER_KIND_LABELS, TRANSFER_ROLES, type TransferEvent, type TransferMarket, type TransferTeam } from "@/lib/transfers/types";
 import { importTransferPlayerAction, removeTransferOverrideAction, saveTransferEventAction, setTransferAutoSyncAction, syncTransfersAction } from "./actions";
 
-const inputClass = "mt-1 min-h-11 w-full rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 py-2 text-base font-normal";
 const buttonClass = "min-h-10 rounded-lg bg-[var(--ui-card-bg)] px-3 py-2 text-sm font-medium disabled:opacity-50";
 
 type TransferPlayerOption = Pick<Player, "name" | "position"> & { keywords: string[] };
@@ -72,6 +71,7 @@ function TransferEventForm({ editing = null, season, teams, players, onSaved }: 
   players: TransferPlayerOption[];
   onSaved?: () => void;
 }) {
+  const inputClass = `mt-1 min-h-11 w-full rounded-lg border border-[var(--ui-border)] bg-[var(--ui-surface)] px-3 py-2 font-normal ${editing ? "text-sm" : "text-base"}`;
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState("");
@@ -130,7 +130,7 @@ function TransferEventForm({ editing = null, season, teams, players, onSaved }: 
         });
       }}>
         {!editing && <h2 className="home-section-title text-xl font-normal">변동 기록 추가</h2>}
-        {message && <p role={failed ? "alert" : "status"} className={`text-base font-normal ${failed ? "text-red-700 dark:text-red-300" : "text-[var(--ui-muted)]"}`}>{message}</p>}
+        {message && <p role={failed ? "alert" : "status"} className={`font-normal ${editing ? "text-sm" : "text-base"} ${failed ? "text-red-700 dark:text-red-300" : "text-[var(--ui-muted)]"}`}>{message}</p>}
         <input type="hidden" name="season" value={season} /><input type="hidden" name="id" value={editing?.id ?? ""} />
         <input type="hidden" name="player" value={playerName} />
         <input type="hidden" name="kind" value={kind} /><input type="hidden" name="role" value={role} /><input type="hidden" name="provenance" value={provenance} />

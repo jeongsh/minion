@@ -38,7 +38,7 @@ export function PlayerSegmentSelect({ accent, activeSegment, onClose, onOpen, on
               key={option.value}
               onPress={() => onSelect(option.value)}
               style={({ pressed }) => [styles.option, pressed && { backgroundColor: theme.cardHover }]}>
-              <Text style={{ color: active ? accent : theme.text, flex: 1, ...fonts.medium, fontSize: 16, lineHeight: 24 }}>{option.label}</Text>
+              <Text style={{ color: active ? accent : theme.text, flex: 1, ...fonts.medium, fontSize: 14, lineHeight: 21 }}>{option.label}</Text>
               {active ? <Check color={accent} size={19} strokeWidth={2.4} /> : null}
             </Pressable>
           );

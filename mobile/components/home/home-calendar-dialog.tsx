@@ -75,7 +75,7 @@ export function HomeCalendarDialog({ calendar, events }: Props) {
                     <Pressable accessibilityLabel="이전 달" onPress={() => moveMonth(-1)} style={[styles.navButton, width <= 420 && styles.navButtonCompact, { backgroundColor: theme.card }]}><ChevronLeft color={theme.muted} size={14} strokeWidth={2.25} /></Pressable>
                     <Pressable accessibilityLabel="다음 달" onPress={() => moveMonth(1)} style={[styles.navButton, width <= 420 && styles.navButtonCompact, { backgroundColor: theme.card }]}><ChevronRight color={theme.muted} size={14} strokeWidth={2.25} /></Pressable>
                   </View>
-                  <Text style={[styles.caption, { color: theme.ink, ...fonts.black }]}>{year}년 {month + 1}월</Text>
+                  <Text style={[styles.caption, { color: theme.ink, ...fonts.medium }]}>{year}년 {month + 1}월</Text>
                 </View>
                 <View style={styles.weekRow}>{WEEKDAYS.map((weekday) => <Text key={weekday} style={[styles.weekday, { color: theme.muted, ...fonts.medium }]}>{weekday}</Text>)}</View>
                 <View>{Array.from({ length: 6 }, (_, week) => <View key={week} style={styles.weekRow}>{days.slice(week * 7, week * 7 + 7).map((day) => {
@@ -108,7 +108,7 @@ function Legend({ color, label }: { color: string; label: string }) {
 
 const styles = StyleSheet.create({
   calendarShell: { borderRadius: 16, borderWidth: 1, height: 400, padding: 16 },
-  caption: { fontSize: 16, letterSpacing: -0.4, lineHeight: 24, textAlign: 'center' },
+  caption: { fontSize: 14, letterSpacing: -0.4, lineHeight: 24, textAlign: 'center' },
   captionNav: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', position: 'absolute', top: 1, width: 168 },
   captionRow: { alignItems: 'center', height: 27.2, justifyContent: 'center', marginBottom: 9.6 },
   dayButton: { alignItems: 'center', borderRadius: 10, height: 42, justifyContent: 'center', width: 42 },

@@ -10,9 +10,11 @@ export type FilterSelectOption = { label: string; value: string };
 
 export function FilterSelect({
   accessibilityLabel,
+  alignOptions = 'start',
   compact = false,
   disabled,
   label,
+  inlineOptions = false,
   onChange,
   options,
   value,
@@ -20,9 +22,11 @@ export function FilterSelect({
   matchTab = false,
 }: {
   accessibilityLabel?: string;
+  alignOptions?: 'start' | 'end';
   compact?: boolean;
   disabled?: boolean;
   label: string;
+  inlineOptions?: boolean;
   onChange: (value: string) => void;
   options: FilterSelectOption[];
   value: string;
@@ -53,7 +57,7 @@ export function FilterSelect({
           accessibilityLabel={`${label} 선택 목록`}
           contentContainerStyle={styles.selectListContent}
           nestedScrollEnabled
-          style={[styles.selectList, { backgroundColor: theme.surface, borderColor: theme.border }, web && { marginTop: 8, minWidth: 176, maxHeight: Math.min(height * 0.7, 448) }, matchTab && { minWidth: 0 }]}>
+          style={[styles.selectList, { backgroundColor: theme.surface, borderColor: theme.border }, web && { marginTop: 8, minWidth: 176, maxHeight: Math.min(height * 0.7, 448) }, matchTab && { minWidth: 0 }, inlineOptions && styles.inlineOptions, alignOptions === 'end' && styles.endAlignedOptions]}>
           {options.map((option) => {
             const selected = option.value === value;
             return (
@@ -96,6 +100,8 @@ const styles = StyleSheet.create({
     top: '100%',
     zIndex: 20,
   },
+  endAlignedOptions: { left: 'auto', right: 0 },
+  inlineOptions: { position: 'relative', top: 0, marginTop: 0, maxHeight: 224 },
   selectListContent: { padding: 6 },
   selectOption: { alignItems: 'center', borderRadius: 8, flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 12, paddingVertical: 8 },
   selectOptionText: { fontSize: 13, lineHeight: 19.5 },

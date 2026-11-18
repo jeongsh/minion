@@ -112,8 +112,8 @@ export function NotificationPanel({ onClose, open }: { onClose: () => void; open
       ) : (
         <View style={styles.empty}>
           <Bell color={theme.muted} size={23} />
-          <Text style={{ color: theme.ink, ...fonts.bold, fontSize: 15, lineHeight: 22 }}>새 알림이 없습니다</Text>
-          <Text style={{ color: theme.muted, ...fonts.regular, fontSize: 13, lineHeight: 18 }}>새 소식이 도착하면 여기에 표시됩니다.</Text>
+          <Text style={{ color: theme.ink, ...fonts.bold, fontSize: 15, lineHeight: 22.5, marginTop: 8 }}>새 알림이 없습니다</Text>
+          <Text style={{ color: theme.muted, ...fonts.regular, fontSize: 13, lineHeight: 19.5, marginTop: 4 }}>새 소식이 도착하면 여기에 표시됩니다.</Text>
         </View>
       )}
     </BottomSheet>
@@ -121,10 +121,10 @@ export function NotificationPanel({ onClose, open }: { onClose: () => void; open
 }
 
 const styles = StyleSheet.create({
-  actionButton: { alignItems: 'center', flexDirection: 'row', gap: 4, minHeight: 36, paddingHorizontal: 7 },
+  actionButton: { alignItems: 'center', flexDirection: 'row', gap: 4, minHeight: 36, paddingHorizontal: 8 },
   copy: { flex: 1, justifyContent: 'center', minHeight: 36, minWidth: 0 },
   description: { fontSize: 13, lineHeight: 18 },
-  empty: { alignItems: 'center', justifyContent: 'center', minHeight: 180, paddingHorizontal: 12 },
+  empty: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12, paddingVertical: 48 },
   iconBox: { alignItems: 'center', borderRadius: 8, height: 36, justifyContent: 'center', position: 'relative', width: 36 },
   imageContain: { height: 20, width: 20 },
   imageFill: { height: 36, width: 36 },

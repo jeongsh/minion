@@ -9,6 +9,7 @@ import { Pressable, StyleSheet, Text, TextInput, useWindowDimensions, View } fro
 
 import { BottomSheet } from '@/components/bottom-sheet';
 import { ErrorState } from '@/components/feedback-states';
+import { FilterSelect } from '@/components/filter-select';
 import { MinionScreen } from '@/components/minion-screen';
 import { useScreenQuery } from '@/hooks/use-screen-query';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
@@ -163,11 +164,13 @@ export function ChampionDirectory() {
       <BottomSheet contentStyle={styles.sheet} onClose={() => setFilterOpen(false)} open={filterOpen} scrollable title="챔피언 필터">
         <FilterSection label="포지션">{POSITION_OPTIONS.map((option) => <Choice active={position === option.value} key={option.value} label={option.label} onPress={() => setPosition(option.value)} />)}</FilterSection>
         {scope ? <>
-          <FilterSection label="시즌">{scope.seasons.map((value) => <Choice active={effectiveSeason === String(value)} key={value} label={String(value)} onPress={() => setSeason(String(value))} />)}</FilterSection>
-          <FilterSection label="대회"><Choice active={tournament === 'all'} label="전체" onPress={() => setTournament('all')} />{scope.tournaments.map((option) => <Choice active={tournament === option.value} key={option.value} label={option.label} onPress={() => setTournament(option.value)} />)}</FilterSection>
-          <FilterSection label="패치"><Choice active={patch === 'all'} label="전체" onPress={() => setPatch('all')} />{scope.patches.map((value) => <Choice active={patch === value} key={value} label={value} onPress={() => setPatch(value)} />)}</FilterSection>
+          <View style={styles.filterSection}>
+            <Text style={{ color: theme.muted, ...fonts.medium, fontSize: 13, lineHeight: 20 }}>통계 범위</Text>
+            <FilterSelect compact inlineOptions variant="web" label="시즌" value={effectiveSeason} options={scope.seasons.map((value) => ({ value: String(value), label: `${value} 시즌` }))} onChange={setSeason} />
+            <FilterSelect compact inlineOptions variant="web" label="대회" value={tournament} options={[{ value: 'all', label: '전체 대회' }, ...scope.tournaments]} onChange={setTournament} />
+            <FilterSelect compact inlineOptions variant="web" label="패치" value={patch} options={[{ value: 'all', label: '전체 패치' }, ...scope.patches.map((value) => ({ value, label: `${value} 패치` }))]} onChange={setPatch} />
+          </View>
         </> : null}
-        <Pressable onPress={() => setFilterOpen(false)} style={[styles.apply, { backgroundColor: theme.ink }]}><Text style={{ color: theme.surface, ...fonts.medium, fontSize: 14, lineHeight: 20 }}>적용</Text></Pressable>
       </BottomSheet>
       <BottomSheet contentStyle={styles.sheet} onClose={() => setSortOpen(false)} open={sortOpen} title="정렬">
         <View style={styles.sortList}>{SORT_OPTIONS.map((option) => <Pressable key={option.value} onPress={() => { setSort(option.value); setSortOpen(false); }} style={[styles.sortOption, { backgroundColor: sort === option.value ? theme.card : 'transparent' }]}><Text style={{ color: theme.ink, ...fonts.medium, fontSize: 14, lineHeight: 21 }}>{option.label}</Text></Pressable>)}</View>
@@ -195,7 +198,6 @@ const styles = StyleSheet.create({
   filterSection: { gap: 8 },
   choiceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   choice: { alignItems: 'center', borderRadius: 12, justifyContent: 'center', minHeight: 40, minWidth: '30%', paddingHorizontal: 12 },
-  apply: { alignItems: 'center', borderRadius: 12, justifyContent: 'center', minHeight: 44 },
   sortList: { gap: 4 },
   sortOption: { borderRadius: 10, justifyContent: 'center', minHeight: 44, paddingHorizontal: 12 },
   skeletonCount: { borderRadius: 4, height: 14, width: 40 },

@@ -92,15 +92,15 @@ function PackDetail({ onClose, pack }: { onClose: () => void; pack: MobileMinico
   return <BottomSheet onClose={onClose} open scrollable title={`${pack.name} 정보`}>
     <View>
       <Image accessibilityLabel={`${pack.name} 대표 미니콘`} alt={`${pack.name} 대표 미니콘`} contentFit="cover" source={{ uri: resolveApiAssetUrl(pack.coverUrl) ?? pack.coverUrl }} style={[styles.detailCover, { backgroundColor: theme.surfaceMuted }]} />
-      <Text style={{ color: theme.ink, ...fonts.bold, fontSize: 18, lineHeight: 27, marginTop: 16 }}>{pack.name}</Text>
-      <Text style={{ color: theme.text, ...fonts.regular, fontSize: 16, lineHeight: 24, marginTop: 8 }}>{pack.description || '미니콘 패키지입니다.'}</Text>
+      <Text style={{ color: theme.ink, ...fonts.medium, fontSize: 14, lineHeight: 21, marginTop: 16 }}>{pack.name}</Text>
+      <Text style={{ color: theme.text, ...fonts.regular, fontSize: 14, lineHeight: 21, marginTop: 8 }}>{pack.description || '미니콘 패키지입니다.'}</Text>
       <View style={styles.detailMeta}>
         <MetaRow icon={<UserRound color={theme.muted} size={16} />} label="제작자" value={creatorName} />
         {publishedDate ? <MetaRow icon={<CalendarDays color={theme.muted} size={16} />} label="공개일" value={publishedDate} /> : null}
         <MetaRow icon={<Images color={theme.muted} size={16} />} label="구성" value={`미니콘 ${pack.items.length}개`} />
         <View style={styles.metaRow}><Tags color={theme.muted} size={16} /><Text style={{ color: theme.muted, ...fonts.regular, fontSize: 14, lineHeight: 21 }}>태그</Text><View style={styles.tags}>{tags.map((tag) => <View key={tag} style={[styles.tag, { backgroundColor: theme.surfaceMuted }]}><Text style={{ color: theme.text, ...fonts.medium, fontSize: 13, lineHeight: 19.5 }}>{tag}</Text></View>)}</View></View>
       </View>
-      <View style={[styles.detailTitleRow, { borderBottomColor: theme.border }]}><Text style={{ color: theme.ink, ...fonts.bold, fontSize: 18, lineHeight: 27 }}>포함된 미니콘</Text><Text style={{ color: theme.muted, ...fonts.regular, fontSize: 13, lineHeight: 19.5 }}>총 {pack.items.length}개</Text></View>
+      <View style={[styles.detailTitleRow, { borderBottomColor: theme.border }]}><Text style={{ color: theme.ink, ...fonts.medium, fontSize: 14, lineHeight: 21 }}>포함된 미니콘</Text><Text style={{ color: theme.muted, ...fonts.regular, fontSize: 13, lineHeight: 19.5 }}>총 {pack.items.length}개</Text></View>
       <View style={styles.detailGrid}>{pack.items.map((item) => <View key={item.id} style={[styles.detailTile, { width: itemWidth }]}><Image accessibilityLabel={item.name} alt={item.name} contentFit="cover" source={{ uri: resolveApiAssetUrl(item.imageUrl) ?? item.imageUrl }} style={[styles.detailItem, { backgroundColor: theme.surfaceMuted, height: itemWidth, width: itemWidth }]} /><Text numberOfLines={1} style={{ color: theme.muted, ...fonts.regular, fontSize: 13, lineHeight: 19.5, marginTop: 4, textAlign: 'center' }}>{item.name}</Text></View>)}</View>
     </View>
   </BottomSheet>;

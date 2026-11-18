@@ -123,7 +123,7 @@ export function FanNotificationPreferenceSheet({
 }
 
 const styles = StyleSheet.create({
-  description: { fontSize: 16, lineHeight: 24 },
+  description: { fontSize: 14, lineHeight: 21 },
   options: { gap: 8, marginTop: 16 },
   option: { alignItems: 'center', borderRadius: 12, borderWidth: 1, flexDirection: 'row', gap: 12, minHeight: 68, paddingHorizontal: 12 },
   icon: { alignItems: 'center', borderRadius: 12, height: 40, justifyContent: 'center', width: 40 },

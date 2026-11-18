@@ -176,7 +176,7 @@ export function CommunityAuthor({ author, customTrigger, detailMeta, evidence, h
       </Modal>
 
       <BottomSheet onClose={() => setReportOpen(false)} open={reportOpen} scrollable title="사용자 신고">
-        <Text style={{ color: theme.text, ...fonts.regular, fontSize: 16, lineHeight: 24 }}>신고 사유를 입력해주세요. 운영자가 관련 활동과 함께 확인합니다.</Text>
+        <Text style={{ color: theme.text, ...fonts.regular, fontSize: 14, lineHeight: 21 }}>신고 사유를 입력해주세요. 운영자가 관련 활동과 함께 확인합니다.</Text>
         <TextInput maxLength={1000} multiline onChangeText={setReason} placeholder="신고 사유" placeholderTextColor={theme.muted} style={[styles.reasonInput, { borderColor: theme.border, color: theme.text, ...fonts.regular }]} textAlignVertical="top" value={reason} />
         <Pressable disabled={!reason.trim() || pending} onPress={() => void submitReport()} style={[styles.reportSubmit, { backgroundColor: reason.trim() && !pending ? '#dc2626' : theme.border }]}><Text style={{ color: '#fff', ...fonts.medium, fontSize: 14 }}>{pending ? '접수 중' : '신고하기'}</Text></Pressable>
       </BottomSheet>
@@ -224,6 +224,6 @@ const styles = StyleSheet.create({
   menu: { borderRadius: 12, borderWidth: 1, elevation: 12, padding: 6, position: 'absolute', shadowColor: '#000', shadowOffset: { height: 8, width: 0 }, shadowOpacity: 0.14, shadowRadius: 18, width: 208 },
   menuItem: { alignItems: 'center', borderRadius: 8, flexDirection: 'row', gap: 10, height: 40, paddingHorizontal: 12 },
   menuDivider: { height: 1, marginVertical: 4 },
-  reasonInput: { borderRadius: 10, borderWidth: 1, fontSize: 16, lineHeight: 24, marginTop: 14, minHeight: 112, padding: 12 },
-  reportSubmit: { alignItems: 'center', borderRadius: 8, height: 44, justifyContent: 'center', marginTop: 12 },
+  reasonInput: { borderRadius: 10, borderWidth: 1, fontSize: 14, lineHeight: 21, marginTop: 14, minHeight: 112, padding: 12 },
+  reportSubmit: { alignItems: 'center', borderRadius: 8, height: 40, justifyContent: 'center', marginTop: 12, paddingHorizontal: 16 },
 });

@@ -59,7 +59,7 @@ export function IosTermsGate() {
 }
 
 const styles = StyleSheet.create({
-  body: { fontSize: 16, lineHeight: 24 },
+  body: { fontSize: 14, lineHeight: 21 },
   summary: { borderRadius: 10, borderWidth: 1, marginTop: 14, padding: 12 },
   agreement: { fontSize: 14, lineHeight: 20, marginTop: 14 },
   link: { textDecorationLine: 'underline' },

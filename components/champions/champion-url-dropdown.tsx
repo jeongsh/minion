@@ -13,6 +13,7 @@ export function ChampionUrlDropdown({
   resetKeys = [],
   omitValues = ["all"],
   triggerClassName = "",
+  mobileSheet,
 }: {
   ariaLabel: string;
   options: FilterOption[];
@@ -22,6 +23,7 @@ export function ChampionUrlDropdown({
   resetKeys?: string[];
   omitValues?: string[];
   triggerClassName?: string;
+  mobileSheet?: React.ComponentProps<typeof FilterDropdown>["mobileSheet"];
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -46,6 +48,7 @@ export function ChampionUrlDropdown({
       options={options}
       selected={selected}
       onSelect={select}
+      mobileSheet={mobileSheet}
       triggerClassName={`${triggerClassName} !text-[13px] sm:!text-[14px]`}
     />
   );

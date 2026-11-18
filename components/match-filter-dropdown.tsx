@@ -4,8 +4,21 @@ import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent, ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { formControlClassName } from "@/components/ui/input";
+import { ControlledDialog, dialogBodyClassName, DialogSheetHeader } from "@/components/responsive/adaptive-dialog";
 
 export type FilterOption = { value: string; label: string; icon?: ReactNode; indicator?: ReactNode; keywords?: string[] };
+
+const sheetRowClasses = {
+  check: "min-h-12 px-3.5 text-sm",
+  highlight: "min-h-11 px-3 text-sm",
+  category: "min-h-11 px-3.5 text-[15px]",
+};
+
+const selectedSheetRowClasses = {
+  check: "text-accent",
+  highlight: "bg-[var(--ui-card-bg)] text-[var(--ui-ink)]",
+  category: "bg-[var(--ui-surface-muted)] font-bold text-[var(--ui-ink)]",
+};
 
 function normalizeSearch(value: string) {
   return value.toLowerCase().replace(/[\s.\-_]/g, "");
@@ -26,6 +39,7 @@ export function FilterDropdown({
   matchTriggerWidth = false,
   searchable = false,
   searchPlaceholder = "검색",
+  mobileSheet,
 }: {
   ariaLabel: string;
   appearance?: "default" | "plain";
@@ -42,8 +56,11 @@ export function FilterDropdown({
   matchTriggerWidth?: boolean;
   searchable?: boolean;
   searchPlaceholder?: string;
+  mobileSheet?: { title: string; rows: "check" | "highlight" | "category" };
 }) {
   const [open, setOpen] = useState(false);
+  const [sheet, setSheet] = useState(false);
+  const [parentDialog, setParentDialog] = useState<HTMLElement | null>(null);
   const ref = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popupRef = useRef<HTMLDivElement>(null);
@@ -54,7 +71,9 @@ export function FilterDropdown({
   const searchRef = useRef<HTMLInputElement>(null);
 
   useLayoutEffect(() => {
-    if (!open) return;
+    if (!open || sheet) return;
+    const popup = popupRef.current;
+    if (popup?.hasAttribute("popover") && !popup.matches(":popover-open")) popup.showPopover?.();
     if (searchable) {
       searchRef.current?.focus({ preventScroll: true });
       return;
@@ -63,10 +82,10 @@ export function FilterDropdown({
     const selectedItem = popupRef.current?.querySelector<HTMLButtonElement>('[aria-selected="true"]:not([disabled])');
     const target = initialFocus.current === "last" ? items?.[items.length - 1] : selectedItem ?? items?.[0];
     target?.focus({ preventScroll: true });
-  }, [open, searchable]);
+  }, [open, searchable, sheet]);
 
   useEffect(() => {
-    if (!open) {
+    if (!open || sheet) {
       return;
     }
 
@@ -92,10 +111,10 @@ export function FilterDropdown({
       document.removeEventListener("pointerdown", onPointerDown);
       document.removeEventListener("keydown", onKeyDown);
     };
-  }, [open]);
+  }, [open, sheet]);
 
   const selectedOption = options.find((option) => option.value === selected);
-  const triggerLabel = selectedOption?.label ?? placeholder;
+  const triggerLabel = mobileSheet?.rows === "category" && !selected ? placeholder : selectedOption?.label ?? placeholder;
   const selectedIcon = triggerIcon ?? selectedOption?.icon;
   const searchKey = searchable ? normalizeSearch(query) : "";
   const visibleOptions = searchKey
@@ -103,17 +122,23 @@ export function FilterDropdown({
     : options;
 
   useLayoutEffect(() => {
-    if (!open || !triggerRef.current) return;
+    if (!open || sheet || !triggerRef.current) return;
 
     function updatePosition() {
       if (!triggerRef.current) return;
       const rect = triggerRef.current.getBoundingClientRect();
       const width = matchTriggerWidth ? rect.width : variant === "grid" ? 224 : Math.max(176, rect.width);
       const left = Math.min(Math.max(12, rect.left), window.innerWidth - width - 12);
+      const below = window.innerHeight - rect.bottom - 20;
+      const above = rect.top - 20;
+      const naturalHeight = Math.min(popupRef.current?.scrollHeight ?? 0, window.innerHeight * 0.7, 448);
+      const openAbove = below < naturalHeight && above > below;
       setPopupStyle({
         position: "fixed",
         left,
-        top: rect.bottom + 8,
+        top: openAbove ? undefined : rect.bottom + 8,
+        bottom: openAbove ? window.innerHeight - rect.top + 8 : undefined,
+        maxHeight: Math.min(window.innerHeight * 0.7, 448, Math.max(0, openAbove ? above : below)),
         width,
       });
     }
@@ -126,7 +151,7 @@ export function FilterDropdown({
       window.removeEventListener("resize", updatePosition);
       window.removeEventListener("scroll", updatePosition, true);
     };
-  }, [open, variant, matchTriggerWidth]);
+  }, [open, sheet, variant, matchTriggerWidth]);
 
   function choose(value: string) {
     if (disabled) return;
@@ -137,6 +162,7 @@ export function FilterDropdown({
 
   function onOptionKeyDown(event: ReactKeyboardEvent<HTMLDivElement>) {
     if (event.key === "Tab") {
+      if (sheet) return;
       setOpen(false);
       triggerRef.current?.focus({ preventScroll: true });
       return;
@@ -169,27 +195,33 @@ export function FilterDropdown({
     items[next]?.focus();
   }
 
+  function openOptions() {
+    setSheet(Boolean(mobileSheet && window.matchMedia("(width < 640px)").matches));
+    setParentDialog(triggerRef.current?.closest<HTMLElement>('[role="dialog"]') ?? null);
+    setQuery("");
+    setOpen(true);
+  }
+
   return (
     <div className={`relative shrink-0 ${rootClassName}`} ref={ref}>
       <button
         type="button"
         ref={triggerRef}
-        aria-haspopup="listbox"
+        aria-haspopup={sheet ? "dialog" : "listbox"}
         aria-expanded={open}
         aria-label={ariaLabel}
         aria-controls={open ? popupId : undefined}
         disabled={disabled}
         onClick={() => {
           initialFocus.current = "selected";
-          setQuery("");
-          setOpen((value) => !value);
+          if (open) setOpen(false);
+          else openOptions();
         }}
         onKeyDown={(event) => {
           if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
           event.preventDefault();
           initialFocus.current = event.key === "ArrowUp" ? "last" : "selected";
-          if (!open) setQuery("");
-          setOpen(true);
+          if (!open) openOptions();
         }}
         className={`inline-flex shrink-0 items-center whitespace-nowrap text-sm font-medium text-[var(--ui-ink)] disabled:cursor-wait disabled:opacity-60 ${appearance === "plain" ? "h-10 gap-1.5 rounded-lg px-1.5 outline-none focus-visible:ring-2 focus-visible:ring-accent" : `${formControlClassName} justify-between gap-2 px-3`} ${triggerClassName}`}
       >
@@ -199,9 +231,27 @@ export function FilterDropdown({
         <Chevron open={open} />
       </button>
 
-      {open && typeof document !== "undefined" ? createPortal(
+      {open && sheet && mobileSheet ? (
+        <ControlledDialog open onClose={() => setOpen(false)} labelledBy={`${popupId}-title`}>
+          <DialogSheetHeader onClose={() => setOpen(false)} title={mobileSheet.title} titleId={`${popupId}-title`} />
+          <div ref={popupRef} id={popupId} role="listbox" aria-label={ariaLabel} onKeyDown={onOptionKeyDown} className={`${dialogBodyClassName} ${mobileSheet.rows === "check" ? "" : "space-y-1"}`}>
+            {options.map((option) => {
+              const active = option.value === selected;
+              const rows = mobileSheet.rows;
+              return (
+                <button key={option.value} type="button" role="option" aria-selected={active} onClick={() => choose(option.value)}
+                  className={`flex w-full items-center justify-between rounded-[10px] text-left hover:bg-[var(--ui-card-hover)] focus-visible:outline-offset-[-2px] ${sheetRowClasses[rows]} ${active ? selectedSheetRowClasses[rows] : "text-[var(--ui-text)]"} ${active && rows === "category" ? "" : "font-medium"}`}>
+                  <span>{option.label}</span>
+                  {rows === "check" && active ? <CheckIcon /> : null}
+                </button>
+              );
+            })}
+          </div>
+        </ControlledDialog>
+      ) : open && typeof document !== "undefined" ? createPortal(
         <div
           ref={popupRef}
+          popover={parentDialog && typeof HTMLElement.prototype.showPopover === "function" ? "manual" : undefined}
           id={popupId}
           role="listbox"
           aria-label={ariaLabel}
@@ -210,7 +260,7 @@ export function FilterDropdown({
           onBlur={(event) => {
             if (!event.currentTarget.contains(event.relatedTarget) && !ref.current?.contains(event.relatedTarget)) setOpen(false);
           }}
-          className="z-[1100] max-h-[min(70vh,28rem)] overflow-y-auto rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-1.5 shadow-lg"
+          className="inset-auto z-[1100] m-0 max-h-[min(70vh,28rem)] overflow-y-auto rounded-xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-1.5 shadow-lg"
         >
           {searchable ? (
             <div className="sticky -top-1.5 z-10 -mx-1.5 -mt-1.5 mb-1 bg-[var(--ui-surface)] p-1.5">
@@ -288,7 +338,7 @@ export function FilterDropdown({
             })
           )}
         </div>,
-        document.body,
+        parentDialog ?? document.body,
       ) : null}
     </div>
   );
