@@ -11,7 +11,7 @@ export function CommunityContentLayout({ children, currentPostId, adsEnabled = f
         {children}
         {currentPostId ? <AdSlot enabled={adsEnabled} placement="horizontal" className="mt-6 h-[60px] xl:h-[90px]" /> : null}
       </div>
-      <aside className="hidden w-full max-w-[300px] flex-col gap-4 xl:sticky xl:top-[88px] xl:flex" aria-label="커뮤니티 보조 정보">
+      <aside className="hidden w-full max-w-[300px] flex-col gap-4 xl:sticky xl:top-[calc(var(--ui-header-height)+var(--fan-desktop-nav-height,0px)+1.5rem)] xl:flex" aria-label="커뮤니티 보조 정보">
         <CommunityNotificationRail />
         {!currentPostId ? <AdSlot enabled={adsEnabled} placement="community" format="rectangle" className="h-[250px] w-full max-w-[300px]" /> : null}
       </aside>

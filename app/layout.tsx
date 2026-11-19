@@ -9,7 +9,8 @@ import { NavigationTransitionProvider } from "@/components/navigation/navigation
 import { ToastProvider } from "@/components/ui/toast";
 import { SpoilerFreeProvider } from "@/lib/spoiler-free/spoiler-free-context";
 import { getCurrentUser } from "@/lib/auth/current-user";
-import { hasExistingGuestIdentity } from "@/lib/community/guest-identity";
+import { getExistingGuestKey } from "@/lib/community/guest-identity";
+import { inboxTopic } from "@/lib/notifications/inbox-signal";
 import { isCurrentUserAdmin } from "@/lib/auth/admin";
 import { getVerifiedAuth } from "@/lib/auth/verified-user";
 import { countOpenSupportInquiries } from "@/lib/data/support-admin";
@@ -108,7 +109,7 @@ export default function RootLayout({
 async function ResolvedShell({ children }: { children: React.ReactNode }) {
   const userPromise = getCurrentUser();
   const adminPromise = isCurrentUserAdmin();
-  const [user, isAdminUser, rankProfile, followedTeamIds, favoriteTeamId, shellTeams, notificationPreferences, pendingSupportInquiryCount, canReceiveCommunityNotifications] = await Promise.all([
+  const [user, isAdminUser, rankProfile, followedTeamIds, favoriteTeamId, shellTeams, notificationPreferences, pendingSupportInquiryCount, guestKey] = await Promise.all([
     userPromise,
     adminPromise,
     getVerifiedAuth().then((auth) => auth ? getRankProfile(auth.user.id) : null),
@@ -118,7 +119,7 @@ async function ResolvedShell({ children }: { children: React.ReactNode }) {
     getTeams(),
     getNotificationPreferences(),
     adminPromise.then((admin) => admin ? countOpenSupportInquiries() : 0),
-    userPromise.then((current) => current ? true : hasExistingGuestIdentity()),
+    userPromise.then((current) => current ? null : getExistingGuestKey()),
   ]);
   const shellUser: AppShellUser = user && rankProfile
     ? {
@@ -142,7 +143,7 @@ async function ResolvedShell({ children }: { children: React.ReactNode }) {
         favoriteTeamId={favoriteTeamId}
         shellTeams={shellTeams}
         notificationPreferences={notificationPreferences}
-        canReceiveCommunityNotifications={canReceiveCommunityNotifications}
+        notificationTopic={user ? inboxTopic({ userId: user.id }) : guestKey ? inboxTopic({ guestKey }) : null}
       >
         {children}
       </AppShell>

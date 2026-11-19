@@ -136,7 +136,7 @@ export function AppShell({
   favoriteTeamId = null,
   shellTeams = fallbackTeams,
   notificationPreferences,
-  canReceiveCommunityNotifications,
+  notificationTopic,
 }: {
   children: React.ReactNode;
   currentUser?: AppShellUser;
@@ -146,7 +146,7 @@ export function AppShell({
   favoriteTeamId?: string | null;
   shellTeams?: Team[];
   notificationPreferences: NotificationPreferences;
-  canReceiveCommunityNotifications: boolean;
+  notificationTopic: string | null;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -181,7 +181,7 @@ export function AppShell({
     removeNotification,
     clearNotifications,
     mutateCommunityActivity,
-  } = useMatchActivity(Boolean(currentUser), notificationPreferences, currentUser?.id ?? "guest", canReceiveCommunityNotifications);
+  } = useMatchActivity(Boolean(currentUser), notificationPreferences, currentUser?.id ?? "guest", notificationTopic);
   const closeLiveActivity = () => {
     if (!liveCard) return;
     markNotificationRead(`match-live:${liveCard.id}`);

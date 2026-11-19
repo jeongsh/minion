@@ -148,7 +148,7 @@ export function useMatchActivity(
   enabled: boolean,
   preferences: NotificationPreferences = DEFAULT_NOTIFICATION_PREFERENCES,
   notificationOwnerId?: string | null,
-  canReceiveCommunityNotifications = enabled,
+  notificationTopic: string | null = null,
 ) {
   const { showToast } = useToast();
   const [activity, setActivity] = useState<MatchActivityNotificationResponse>(EMPTY_ACTIVITY);
@@ -177,7 +177,7 @@ export function useMatchActivity(
       matchEvent: notification.matchEvent,
     });
   }, [preferences.inAppEnabled, showToast]);
-  const communityNotifications = useCommunityNotifications(notificationOwnerId ?? "guest", canReceiveCommunityNotifications, presentNotification);
+  const communityNotifications = useCommunityNotifications(notificationTopic);
   const notifications = useMemo(
     () => [...communityNotifications.notifications, ...localNotifications]
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())

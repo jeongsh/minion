@@ -34,7 +34,7 @@ export function FanChannelNavigation({ teamSlug }: { teamSlug: string }) {
   if (focusMode) return null;
 
   return (
-    <div data-ad-secondary-header className={`fan-local-navigation sticky z-30 border-[var(--ui-border)] bg-[var(--page-background)] transition-[top] duration-200 lg:border-b ${mobilePostDetail ? "hidden md:block" : ""}`}>
+    <div data-ad-secondary-header className={`fan-local-navigation sticky z-30 border-[var(--ui-border)] bg-[var(--page-background)] transition-[top] duration-200 lg:h-[var(--fan-desktop-nav-height)] lg:border-b ${mobilePostDetail ? "hidden md:block" : ""}`}>
       <UnderlineNav
         items={mobileTabs.map((tab) => ({ key: tab.segment, label: tab.label, href: hrefFor(tab.segment), prefetch: false }))}
         activeKey={mobileTabs.find((tab) => isActive(tab.segment) || (tab.alsoActive ? isActive(tab.alsoActive) : false))?.segment ?? "__none__"}
@@ -43,7 +43,7 @@ export function FanChannelNavigation({ teamSlug }: { teamSlug: string }) {
         spread
       />
 
-      <nav aria-label="팬페이지 로컬 메뉴" className="fan-page-container fan-nav-scroll hidden gap-5 overflow-x-auto lg:flex lg:gap-7">
+      <nav aria-label="팬페이지 로컬 메뉴" className="fan-page-container fan-nav-scroll hidden h-full gap-5 overflow-x-auto lg:flex lg:gap-7">
         {desktopTabs.map((tab) => {
           const href = hrefFor(tab.segment);
           const active = isActive(tab.segment);
