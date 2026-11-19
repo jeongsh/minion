@@ -48,6 +48,7 @@ function LiveMatchCard({ match, onOpen, onClose }: { match: LiveMatchActivity; o
   return (
     <aside className="dismissible-activity-card match-activity-card relative flex min-h-[52px] w-full items-stretch rounded-xl border border-[var(--accent)] bg-[var(--ui-surface)] shadow-[0_8px_24px_rgba(15,23,42,0.14)] dark:bg-[var(--ui-surface-muted)]">
       <Link
+        prefetch={false}
         href={match.href}
         onClick={onOpen}
         className="flex min-w-0 flex-1 items-center gap-2 rounded-l-xl px-4 py-2.5 transition-colors hover:bg-[var(--ui-card-hover)]"
@@ -258,6 +259,7 @@ export function AppShell({
       {focus ? (
         <header className="fixed inset-x-0 top-0 z-50 grid h-12 grid-cols-[44px_minmax(0,1fr)_44px] items-center border-b border-[#e8e8eb] bg-[var(--page-background)] px-3 md:h-16 dark:border-[var(--ui-border)]">
           <Link
+            prefetch={false}
             href={focus.backHref}
             onClick={
               focus.preferHistoryBack
@@ -290,6 +292,7 @@ export function AppShell({
         {mobileBack ? (
           <div className="relative flex w-full items-center justify-center md:hidden">
             <Link
+              prefetch={false}
               href={mobileBack.backHref}
               onClick={(event) => {
                 if (window.history.length > 1) {
@@ -314,12 +317,12 @@ export function AppShell({
             </button>
             {teamSwitcherOpen ? (
               <div role="menu" className="absolute left-0 top-[48px] z-50 w-56 overflow-hidden rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-2 shadow-xl">
-                {shellTeams.map((team) => <Link key={team.id} role="menuitem" href={`/fan/${team.fanSiteHost}`} onClick={() => setTeamSwitcherOpen(false)} className="flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-bold hover:bg-[var(--ui-card-hover)]"><TeamLogo team={team} size="h-7 w-7" themeAware /><span className="truncate">{team.shortName}</span></Link>)}
+                {shellTeams.map((team) => <Link prefetch={false} key={team.id} role="menuitem" href={`/fan/${team.fanSiteHost}`} onClick={() => setTeamSwitcherOpen(false)} className="flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-bold hover:bg-[var(--ui-card-hover)]"><TeamLogo team={team} size="h-7 w-7" themeAware /><span className="truncate">{team.shortName}</span></Link>)}
               </div>
             ) : null}
           </div>
         ) : null}
-        <Link href="/" className={`ml-1.5 shrink-0 text-[22px] font-black tracking-[-0.06em] text-[#18191c] sm:ml-2 sm:text-[25px] dark:text-white ${fanRoute ? "hidden md:block" : "block"}`}>
+        <Link prefetch={false} href="/" className={`ml-1.5 shrink-0 text-[22px] font-black tracking-[-0.06em] text-[#18191c] sm:ml-2 sm:text-[25px] dark:text-white ${fanRoute ? "hidden md:block" : "block"}`}>
           <BrandLogo accentColor={currentFanTeam?.primaryColor} className="w-16 sm:w-24" priority />
         </Link>
         <div
@@ -335,6 +338,7 @@ export function AppShell({
         {currentUser ? <MessageIndicator /> : null}
         {process.env.NODE_ENV !== "production" && currentUser ? (
           <Link
+            prefetch={false}
             href="/?onboarding=debug&next=%2Fme"
             className="ml-1 flex h-10 shrink-0 items-center gap-1.5 rounded-xl border border-dashed border-[var(--accent)] px-2.5 text-[13px] font-medium text-[var(--accent)] transition hover:bg-[color-mix(in_srgb,var(--accent)_10%,transparent)]"
             aria-label="온보딩 테스트 열기"
@@ -350,6 +354,7 @@ export function AppShell({
         </button>
         {isAdminUser ? (
           <Link
+            prefetch={false}
             href="/admin"
             className={`relative mr-2 hidden h-11 items-center rounded-xl border bg-white px-3 text-[13px] font-bold text-[#18191c] transition hover:bg-[var(--ui-card-hover)] sm:inline-flex dark:bg-[#30343b] dark:text-white ${
               pendingSupportInquiryCount > 0 ? "border-red-500" : "border-[#d9dce1] dark:border-[var(--ui-border)]"
@@ -365,7 +370,7 @@ export function AppShell({
         ) : null}
         {currentUser ? (
           <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
-            <Link href="/me" prefetch={true} className="flex min-h-11 min-w-0 max-w-[126px] items-center gap-1.5 text-[13px] font-bold sm:max-w-none sm:gap-2 sm:text-sm">
+            <Link prefetch={false} href="/me" className="flex min-h-11 min-w-0 max-w-[126px] items-center gap-1.5 text-[13px] font-bold sm:max-w-none sm:gap-2 sm:text-sm">
               <RankAvatar
                 tier={currentUser.tier}
                 src={currentUser.profileImageUrl}
@@ -375,7 +380,7 @@ export function AppShell({
             </Link>
           </div>
         ) : (
-          <Link href="/login" className="flex min-h-11 items-center rounded-xl bg-[#141517] px-3 py-2 text-[13px] font-bold text-white sm:px-4 sm:text-sm">로그인</Link>
+          <Link prefetch={false} href="/login" className="flex min-h-11 items-center rounded-xl bg-[#141517] px-3 py-2 text-[13px] font-bold text-white sm:px-4 sm:text-sm">로그인</Link>
         )}
         </div>
       </header>

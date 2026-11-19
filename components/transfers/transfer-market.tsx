@@ -13,7 +13,7 @@ import { useSwiperResize } from "@/components/ui/use-swiper-resize";
 import "swiper/css";
 import styles from "./transfer-market.module.css";
 import { SegmentedToggle } from "@/components/ui/tabs";
-import type { Player, Team } from "@/lib/types";
+import type { Team } from "@/lib/types";
 import { departuresForTeam, reportedRosterChanges, resolveTransferRosters, transferEventsInStorageOrder } from "@/lib/transfers/view";
 import { isUnconfirmedTransfer, transferArticleUrl, latestPlayerEvents, lckTeamCode, marketEvents, movementCategory, normalizeTransferName, TRANSFER_KIND_LABELS, TRANSFER_ROLES, type TransferEvent, type TransferMarket, type TransferPerson, type TransferRole } from "@/lib/transfers/types";
 
@@ -44,7 +44,7 @@ function destination(event: TransferEvent) {
   return event.to || (event.kind === "retire" ? "은퇴" : event.kind === "inactive" ? "휴식 / 군 복무" : "행선지 미정");
 }
 
-export function TransferMarketView({ market, teams, followedTeamIds = [] }: { market: TransferMarket; teams: Team[]; players: Player[]; followedTeamIds?: string[] }) {
+export function TransferMarketView({ market, teams, followedTeamIds = [] }: { market: TransferMarket; teams: Team[]; followedTeamIds?: string[] }) {
   const setSwiper = useSwiperResize();
   const [tab, setTab] = useState("rosters");
   const [teamFilter, setTeamFilter] = useState("all");

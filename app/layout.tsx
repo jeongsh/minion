@@ -131,10 +131,10 @@ async function ResolvedShell({ children }: { children: React.ReactNode }) {
     : null;
   return (
     <>
-      <AdDocumentBoundary prefetchDocuments={!user} />
-      {user ? <AutoCheckIn key={user.id} userId={user.id} /> : null}
+      <AdDocumentBoundary />
+      {user ? <AutoCheckIn key={`check-in:${user.id}`} userId={user.id} /> : null}
       <AppShell
-        key={user?.id ?? "guest"}
+        key={`shell:${user?.id ?? "guest"}`}
         currentUser={shellUser}
         isAdminUser={isAdminUser}
         pendingSupportInquiryCount={pendingSupportInquiryCount}

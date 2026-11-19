@@ -1,5 +1,3 @@
-import { revalidatePath, revalidateTag } from "next/cache";
-
 import type {
   MobileCommunityActionDto,
   MobileCommunityPostDetailDto,
@@ -18,10 +16,10 @@ import {
   getUserReactionsForComments,
   updatePost,
 } from "@/lib/data/community";
-import { HOME_PUBLIC_DATA_TAG } from "@/lib/data/home-cache";
+import { revalidateCommunityHomeByTeamId } from "@/lib/community/revalidate";
 import { isCommunityGuestSanctioned } from "@/lib/data/community-guests";
 import { isCommunityUserSanctioned } from "@/lib/data/community-users";
-import { getTeamByFanSiteHost, getTeamById, getTeamBySlug } from "@/lib/data/lck";
+import { getTeamByFanSiteHost, getTeamBySlug } from "@/lib/data/lck";
 import { getUserMiniconPacks } from "@/lib/data/minicons";
 import { mobileError, mobileSuccess } from "@/lib/mobile/api-response";
 import {
@@ -36,15 +34,6 @@ import {
 } from "@/lib/mobile/community";
 
 export const dynamic = "force-dynamic";
-
-async function revalidateCommunityHome(teamId?: string | null) {
-  revalidatePath("/");
-  if (teamId) {
-    const team = await getTeamById(teamId);
-    if (team) revalidatePath(`/fan/${team.fanSiteHost || team.slug}`);
-  }
-  revalidateTag(HOME_PUBLIC_DATA_TAG, "max");
-}
 
 type Context = { params: Promise<{ postId: string }> };
 
@@ -131,7 +120,7 @@ export async function PATCH(request: Request, context: Context) {
   }
   await updatePost({ boardType, content: validated.content, postId, title: validated.title });
   scheduleMobileCommunityModeration({ postId, text: extractPlainText(validated.content, 1_000_000), title: validated.title });
-  await revalidateCommunityHome(post.teamId);
+  await revalidateCommunityHomeByTeamId(post.teamId);
   const data: MobileCommunityPostMutationDto = { id: postId, message: "수정 완료. 문장 결 살짝 정돈했어요." };
   return mobileSuccess(data, { headers: { "Cache-Control": "private, no-store" } });
 }
@@ -146,7 +135,7 @@ export async function DELETE(request: Request, context: Context) {
     : Boolean(post?.guestKey && post.guestKey === actor.guest.key);
   if (!post || !canManage) return mobileError("FORBIDDEN", "게시글을 삭제할 권한이 없습니다.", 403);
   await deletePost(postId);
-  await revalidateCommunityHome(post.teamId);
+  await revalidateCommunityHomeByTeamId(post.teamId);
   const data: MobileCommunityActionDto = { message: "게시글을 삭제했습니다." };
   return mobileSuccess(data, { headers: { "Cache-Control": "private, no-store" } });
 }

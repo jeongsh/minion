@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
-import { ADS_ENABLED, isAdContentPath, isAutoAdContentPath, isRailAdContentPath } from "@/lib/ads-policy";
+import { ADS_ENABLED, isAutoAdContentPath, isRailAdContentPath } from "@/lib/ads-policy";
 
 let scriptPromise: Promise<void> | undefined;
 let adDocumentUrl: string | undefined;
@@ -71,7 +71,7 @@ export function loadAdScript(client: string): Promise<void> {
 }
 
 /** Removing a script tag cannot unload Auto ads. Leave its document instead. */
-export function AdDocumentBoundary({ prefetchDocuments = false }: { prefetchDocuments?: boolean }) {
+export function AdDocumentBoundary() {
   const pathname = usePathname();
   useEffect(() => {
     if (adDocumentUrl && adDocumentUrl !== documentUrl()) reloadDocument();
@@ -130,32 +130,5 @@ export function AdDocumentBoundary({ prefetchDocuments = false }: { prefetchDocu
     };
   }, []);
 
-  useEffect(() => {
-    if (!ADS_ENABLED || !prefetchDocuments || !HTMLScriptElement.supports?.("speculationrules")) return;
-    const connection = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
-    if (connection?.saveData || connection?.effectiveType?.includes("2g")) return;
-    const scripts = new Map<string, HTMLScriptElement>();
-    const prepare = (event: Event) => {
-      if (!adDocumentUrl || scripts.size >= 2) return;
-      const anchor = event.target instanceof Element ? event.target.closest<HTMLAnchorElement>("a[href]") : null;
-      if (!anchor || anchor.hasAttribute("download") || (anchor.target && anchor.target !== "_self")) return;
-      const url = new URL(anchor.href);
-      if (url.origin !== location.origin || url.pathname === location.pathname || !isAdContentPath(url.pathname) || scripts.has(url.href)) return;
-      const script = document.createElement("script");
-      script.type = "speculationrules";
-      script.textContent = JSON.stringify({ prefetch: [{ urls: [url.href], eagerness: "moderate" }] });
-      scripts.set(url.href, script);
-      document.head.appendChild(script);
-    };
-    document.addEventListener("pointerover", prepare);
-    document.addEventListener("pointerdown", prepare);
-    document.addEventListener("focusin", prepare);
-    return () => {
-      document.removeEventListener("pointerover", prepare);
-      document.removeEventListener("pointerdown", prepare);
-      document.removeEventListener("focusin", prepare);
-      for (const script of scripts.values()) script.remove();
-    };
-  }, [prefetchDocuments]);
   return null;
 }

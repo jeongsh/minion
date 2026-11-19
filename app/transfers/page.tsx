@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { TransferMarketView } from "@/components/transfers/transfer-market";
-import { getPlayers, getAllTeams } from "@/lib/data/lck";
+import { getAllTeams } from "@/lib/data/lck";
 import { getCachedTransferMarket } from "@/lib/transfers/data";
 import { marketEvents, transferMarketUpdatedAt, transferSeason, type TransferMarket } from "@/lib/transfers/types";
 import { recentTransferEvents, transferEventHeadline } from "@/lib/transfers/seo";
@@ -29,11 +29,11 @@ export default async function TransfersPage({ searchParams }: { searchParams: Pr
   const params = await searchParams;
   const requested = Number(params.season);
   const season = Number.isInteger(requested) && requested >= 2026 && requested <= transferSeason() ? requested : transferSeason();
-  const [market, teams, players, followedTeamIds, admin] = await Promise.all([getCachedTransferMarket(season), getAllTeams(), getPlayers(), getFollowedTeamIds(), isCurrentUserAdmin()]);
+  const [market, teams, followedTeamIds, admin] = await Promise.all([getCachedTransferMarket(season), getAllTeams(), getFollowedTeamIds(), isCurrentUserAdmin()]);
   return <main className="layout-wide min-w-0 pb-16 pt-5 sm:pt-7 text-[var(--ui-ink)]">
     <header className="mb-3 flex flex-wrap items-center justify-between gap-3"><h1 className="home-section-title text-[20px] leading-7 font-normal sm:text-[28px] sm:leading-[42px]">LCK 이적시장과 스토브리그</h1>{admin && <Link href={`/admin/transfers?season=${season}`} className="rounded-lg bg-[var(--ui-card-bg)] px-3 py-2 text-sm font-medium">이적시장 관리</Link>}</header>
     {market && <JsonLd data={transferMarketJsonLd(market)} />}
-    {market ? <TransferMarketView market={market} teams={teams} players={players} followedTeamIds={followedTeamIds} /> : <p className="rounded-xl bg-[var(--ui-card-bg)] p-8 text-center text-base font-normal text-[var(--ui-muted)]">이적시장 소식을 준비하고 있습니다.</p>}
+    {market ? <TransferMarketView market={market} teams={teams} followedTeamIds={followedTeamIds} /> : <p className="rounded-xl bg-[var(--ui-card-bg)] p-8 text-center text-base font-normal text-[var(--ui-muted)]">이적시장 소식을 준비하고 있습니다.</p>}
   </main>;
 }
 

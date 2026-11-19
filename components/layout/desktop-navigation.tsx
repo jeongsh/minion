@@ -40,13 +40,13 @@ export function DesktopNavigation({ pathname, favoriteTeam, followedTeams, teams
   const teamChannel = otherTeams.some((team) => pathname === `/fan/${team.fanSiteHost}` || pathname.startsWith(`/fan/${team.fanSiteHost}/`));
   const records = /^\/(players|champions|news)(\/|$)/.test(pathname);
   function itemLink({ href, label, icon: Icon }: NavigationItem, active = pathname === href || pathname.startsWith(`${href}/`), nested = false) {
-    return <Link key={href} href={href} prefetch={href === "/tournaments" ? false : undefined} aria-current={active ? "page" : undefined} data-active={active ? "true" : undefined} className={`${nested ? subRowClass : rowClass} ${stateClass(active)}`}>{nested ? null : <Icon size={18} className="shrink-0" aria-hidden />}<span className="truncate">{label}</span></Link>;
+    return <Link prefetch={false} key={href} href={href} aria-current={active ? "page" : undefined} data-active={active ? "true" : undefined} className={`${nested ? subRowClass : rowClass} ${stateClass(active)}`}>{nested ? null : <Icon size={18} className="shrink-0" aria-hidden />}<span className="truncate">{label}</span></Link>;
   }
   function teamLinks(items: Team[]) {
     return items.map((team) => {
       const href = `/fan/${team.fanSiteHost}`;
       const active = pathname === href || pathname.startsWith(`${href}/`);
-      return <Link key={team.id} href={href} title={team.name} aria-label={`${team.name} 팀 채널`} aria-current={active ? "page" : undefined} data-active={active ? "true" : undefined} className={`${teamRowClass} ${stateClass(active)}`}><TeamLogo team={team} size="h-[18px] w-[18px]" themeAware plain /><span className="truncate">{team.shortName}</span></Link>;
+      return <Link prefetch={false} key={team.id} href={href} title={team.name} aria-label={`${team.name} 팀 채널`} aria-current={active ? "page" : undefined} data-active={active ? "true" : undefined} className={`${teamRowClass} ${stateClass(active)}`}><TeamLogo team={team} size="h-[18px] w-[18px]" themeAware plain /><span className="truncate">{team.shortName}</span></Link>;
     });
   }
   return <aside className="app-lnb app-lnb-scrollbar fixed bottom-0 left-0 top-16 z-40 hidden w-[152px] overflow-y-auto border-r border-[var(--ui-border)] bg-[var(--page-background)] px-2 py-2 md:block" style={{ fontFamily: '"Pretendard", sans-serif' }}>

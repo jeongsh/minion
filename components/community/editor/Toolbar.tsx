@@ -1,6 +1,7 @@
 "use client";
 
 import { type Editor } from "@tiptap/react";
+import { NodeSelection } from "@tiptap/pm/state";
 import {
   BarChart3,
   Bold,
@@ -19,7 +20,8 @@ import {
   Video,
   X,
 } from "lucide-react";
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { FilterDropdown } from "@/components/match-filter-dropdown";
 import { MiniconPickerPanel, rememberMiniconUse } from "@/components/community/minicon-picker";
@@ -54,6 +56,27 @@ export default function Toolbar({ editor, allowMedia = true, allowEmbeds = allow
   const [openPanel, setOpenPanel] = useState<OpenPanel>(null);
   const [embedUrl, setEmbedUrl] = useState("");
   const [embedPanelLeft, setEmbedPanelLeft] = useState(8);
+  const [tooltip, setTooltip] = useState<{ label: string; left: number; top: number; above: boolean } | null>(null);
+  const tooltipOpen = tooltip !== null;
+
+  const showTooltip = (target: EventTarget | null) => {
+    const button = target instanceof Element ? target.closest<HTMLElement>("[data-tooltip]") : null;
+    if (!button) { setTooltip(null); return; }
+    const rect = button.getBoundingClientRect();
+    const above = rect.top > 48;
+    setTooltip({ label: button.dataset.tooltip!, left: Math.max(64, Math.min(window.innerWidth - 64, rect.left + rect.width / 2)), top: above ? rect.top - 6 : rect.bottom + 6, above });
+  };
+
+  useEffect(() => {
+    if (!tooltipOpen) return;
+    const dismiss = () => setTooltip(null);
+    window.addEventListener("scroll", dismiss, true);
+    window.addEventListener("resize", dismiss);
+    return () => {
+      window.removeEventListener("scroll", dismiss, true);
+      window.removeEventListener("resize", dismiss);
+    };
+  }, [tooltipOpen]);
 
   useLayoutEffect(() => {
     if (openPanel !== "youtube" && openPanel !== "sns") return;
@@ -88,6 +111,13 @@ export default function Toolbar({ editor, allowMedia = true, allowEmbeds = allow
   }, "[data-editor-popover]");
 
   if (!editor) return null;
+
+  const insertPoll = () => {
+    const chain = editor.chain().focus();
+    // A selected atomic block would otherwise be replaced by insertContent.
+    if (editor.state.selection instanceof NodeSelection && editor.state.selection.node.isBlock) chain.createParagraphNear();
+    chain.insertPoll().run();
+  };
 
   const saveSelection = (ref: React.MutableRefObject<SavedSelection>) => {
     const { from, to } = editor.state.selection;
@@ -222,7 +252,15 @@ export default function Toolbar({ editor, allowMedia = true, allowEmbeds = allow
   };
 
   return (
-    <div ref={toolbarRef} className="fixed inset-x-0 bottom-0 z-40 border-y border-[var(--ui-border)] bg-[var(--ui-surface)] pb-[env(safe-area-inset-bottom)] md:relative md:inset-auto md:order-first md:mb-2 md:rounded-lg md:border md:border-[var(--ui-border)] md:pb-0">
+    <div ref={toolbarRef}
+      onPointerOver={event => { if (event.pointerType !== "touch") showTooltip(event.target); }}
+      onPointerLeave={() => setTooltip(null)}
+      onPointerDown={() => setTooltip(null)}
+      onFocusCapture={event => showTooltip(event.target)}
+      onBlurCapture={() => setTooltip(null)}
+      onKeyDown={event => { if (event.key === "Escape") setTooltip(null); }}
+      className="fixed inset-x-0 bottom-0 z-40 border-y border-[var(--ui-border)] bg-[var(--ui-surface)] pb-[env(safe-area-inset-bottom)] md:relative md:inset-auto md:order-first md:mb-2 md:rounded-lg md:border md:border-[var(--ui-border)] md:pb-0">
+      {tooltip ? createPortal(<span role="tooltip" className="pointer-events-none fixed z-[1200] -translate-x-1/2 whitespace-nowrap rounded-md bg-[var(--ui-ink)] px-2 py-1 text-[13px] font-normal leading-5 text-[var(--ui-surface)]" style={{ left: tooltip.left, top: tooltip.top, transform: tooltip.above ? "translateY(-100%)" : undefined }}>{tooltip.label}</span>, document.body) : null}
       {openPanel === "format" ? (
         <div className="absolute inset-x-2 bottom-[calc(100%+10px)] flex flex-wrap items-center gap-1 rounded-2xl border border-[var(--ui-border)] bg-[var(--ui-surface)] p-2 sm:left-auto sm:right-2 sm:w-auto">
           <button type="button" onClick={() => editor.chain().focus().toggleBold().run()} className={formatButtonClass(editor.isActive("bold"))} aria-label="굵게"><Bold size={18} /></button>
@@ -257,13 +295,13 @@ export default function Toolbar({ editor, allowMedia = true, allowEmbeds = allow
       <div className="flex min-h-12 items-center justify-center overflow-x-auto px-1.5 py-1 [scrollbar-width:none] md:hidden [&::-webkit-scrollbar]:hidden">
         {allowMedia ? (
           <>
-            <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploadingImage} className={primaryButtonClass()} aria-label={uploadingImage ? "업로드 중" : allowVideos ? "사진, 동영상 첨부" : "이미지 첨부"}><ImageIcon size={18} /></button>
+            <button type="button" onClick={() => fileInputRef.current?.click()} data-tooltip="이미지 업로드" disabled={uploadingImage} className={primaryButtonClass()} aria-label={uploadingImage ? "업로드 중" : allowVideos ? "사진, 동영상 첨부" : "이미지 첨부"}><ImageIcon size={18} /></button>
             <input type="file" ref={fileInputRef} onChange={handleImageUpload} className="hidden" accept={allowVideos ? EDITOR_MEDIA_ACCEPT : "image/png,image/jpeg,image/webp,image/gif"} multiple={maxImages > 1 || allowVideos} />
-            {allowEmbeds ? <><button type="button" data-embed-trigger="youtube" aria-expanded={openPanel === "youtube"} onClick={() => togglePanel("youtube")} className={primaryButtonClass(openPanel === "youtube")} aria-label="YouTube 영상 첨부"><Video size={18} /></button><button type="button" data-embed-trigger="sns" aria-expanded={openPanel === "sns"} onClick={() => togglePanel("sns")} className={primaryButtonClass(openPanel === "sns")} aria-label="SNS 게시물 첨부"><Share2 size={18} /></button></> : null}
-            <button type="button" onClick={() => editor.chain().focus().insertPoll().run()} className={primaryButtonClass()} aria-label="투표 추가"><BarChart3 size={18} /></button>
+            {allowEmbeds ? <><button type="button" data-embed-trigger="youtube" aria-expanded={openPanel === "youtube"} onClick={() => togglePanel("youtube")} className={primaryButtonClass(openPanel === "youtube")} aria-label="YouTube 영상 첨부" data-tooltip="유튜브"><Video size={18} /></button><button type="button" data-embed-trigger="sns" aria-expanded={openPanel === "sns"} onClick={() => togglePanel("sns")} className={primaryButtonClass(openPanel === "sns")} aria-label="SNS 게시물 첨부" data-tooltip="SNS"><Share2 size={18} /></button></> : null}
+            <button type="button" onClick={insertPoll} className={primaryButtonClass()} aria-label="투표 추가" data-tooltip="투표"><BarChart3 size={18} /></button>
           </>
         ) : null}
-        {miniconPacks.length > 0 ? <button type="button" onClick={() => togglePanel("minicon")} className={primaryButtonClass(openPanel === "minicon")} aria-label="미니콘 넣기"><Sticker size={18} /></button> : null}
+        {miniconPacks.length > 0 ? <button type="button" onClick={() => togglePanel("minicon")} className={primaryButtonClass(openPanel === "minicon")} aria-label="미니콘 넣기" data-tooltip="미니콘"><Sticker size={18} /></button> : null}
         <button type="button" onClick={() => togglePanel("format")} className={primaryButtonClass(openPanel === "format")} aria-label="텍스트 서식"><span className="text-[16px] font-medium leading-none">Aa</span></button>
         <span className="mx-1 h-6 w-px shrink-0 bg-[var(--ui-border)]" aria-hidden="true" />
         <button type="button" onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()} className={`${primaryButtonClass()} disabled:opacity-30`} aria-label="실행 취소"><Undo size={18} /></button>
@@ -288,12 +326,12 @@ export default function Toolbar({ editor, allowMedia = true, allowEmbeds = allow
         {allowMedia ? (
           <>
             <span className="mx-1 h-6 w-px shrink-0 bg-[var(--ui-border)]" aria-hidden="true" />
-            <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploadingImage} className={formatButtonClass()} aria-label={allowVideos ? "사진, 동영상 첨부" : "이미지 첨부"}><ImageIcon size={18} /></button>
-            {allowEmbeds ? <><button type="button" data-embed-trigger="youtube" aria-expanded={openPanel === "youtube"} onClick={() => togglePanel("youtube")} className={formatButtonClass(openPanel === "youtube")} aria-label="YouTube 영상 첨부"><Video size={18} /></button><button type="button" data-embed-trigger="sns" aria-expanded={openPanel === "sns"} onClick={() => togglePanel("sns")} className={formatButtonClass(openPanel === "sns")} aria-label="SNS 게시물 첨부"><Share2 size={18} /></button></> : null}
-            <button type="button" onClick={() => editor.chain().focus().insertPoll().run()} className={formatButtonClass()} aria-label="투표 추가"><BarChart3 size={18} /></button>
+            <button type="button" onClick={() => fileInputRef.current?.click()} data-tooltip="이미지 업로드" disabled={uploadingImage} className={formatButtonClass()} aria-label={allowVideos ? "사진, 동영상 첨부" : "이미지 첨부"}><ImageIcon size={18} /></button>
+            {allowEmbeds ? <><button type="button" data-embed-trigger="youtube" aria-expanded={openPanel === "youtube"} onClick={() => togglePanel("youtube")} className={formatButtonClass(openPanel === "youtube")} aria-label="YouTube 영상 첨부" data-tooltip="유튜브"><Video size={18} /></button><button type="button" data-embed-trigger="sns" aria-expanded={openPanel === "sns"} onClick={() => togglePanel("sns")} className={formatButtonClass(openPanel === "sns")} aria-label="SNS 게시물 첨부" data-tooltip="SNS"><Share2 size={18} /></button></> : null}
+            <button type="button" onClick={insertPoll} className={formatButtonClass()} aria-label="투표 추가" data-tooltip="투표"><BarChart3 size={18} /></button>
           </>
         ) : null}
-        {miniconPacks.length > 0 ? <button type="button" onClick={() => togglePanel("minicon")} className={formatButtonClass(openPanel === "minicon")} aria-label="미니콘 넣기"><Sticker size={18} /></button> : null}
+        {miniconPacks.length > 0 ? <button type="button" onClick={() => togglePanel("minicon")} className={formatButtonClass(openPanel === "minicon")} aria-label="미니콘 넣기" data-tooltip="미니콘"><Sticker size={18} /></button> : null}
 
         <div className="ml-auto flex shrink-0 items-center gap-1 pl-2">
           <button type="button" onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()} className={`${formatButtonClass()} disabled:opacity-30`} aria-label="실행 취소"><Undo size={18} /></button>

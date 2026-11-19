@@ -7,6 +7,7 @@ import { getStages, getBracketStages } from "@/lib/data/lck";
 import { getHomeInsights } from "@/lib/data/home-insights";
 import { mobileHomeOverview } from "@/lib/mobile/home-overview";
 import { getPredictionMarketData, predictionMarketForMatch } from "@/lib/predictions";
+import { HOME_COMMUNITY_TAG } from "@/lib/community/revalidate";
 import { getBoardPosts } from "@/lib/data/community";
 import {
   COMMUNITY_HOME_HOT_CANDIDATE_LIMIT,
@@ -25,11 +26,11 @@ import { buildTeamStandingRows, dateKeyKST } from "@/lib/view-data";
 
 export const revalidate = 30;
 
-async function buildMobileHomeData(): Promise<MobileHomeDto> {
-  const [{ teams, matches, tournaments, calendarEvents }, popularCommunityPosts, latestCommunityPosts, pomPlayers, stages, bracketStages, insights, newsFeed] = await Promise.all([
+type MobileHomeContent = Omit<MobileHomeDto, "community">;
+
+async function buildMobileHomeData(): Promise<MobileHomeContent> {
+  const [{ teams, matches, tournaments, calendarEvents }, pomPlayers, stages, bracketStages, insights, newsFeed] = await Promise.all([
     getMobileHomePublicData(),
-    getBoardPosts({ scope: "hub", hotOnly: true, limit: COMMUNITY_HOME_HOT_CANDIDATE_LIMIT }),
-    getBoardPosts({ scope: "hub", limit: COMMUNITY_HOME_LATEST_CANDIDATE_LIMIT }),
     getHomePomPlayers(),
     getStages(),
     getBracketStages(),
@@ -39,7 +40,6 @@ async function buildMobileHomeData(): Promise<MobileHomeDto> {
   scheduleNewsThumbnailWarmup(newsFeed.articles);
   const tournamentLogos = new Map(tournaments.map((t) => [t.id, ALL_SEGMENTS.find((segment) => matchesTournamentSegment(t, segment.key))?.logo]));
   const pomEntries = buildHomePomEntries({ matches, players: pomPlayers, teams, tournaments });
-  const communityPosts = selectCommunityHomePosts(popularCommunityPosts, latestCommunityPosts);
   const teamMap = new Map(teams.map((team) => [team.id, team]));
   const tournamentMap = new Map(tournaments.map((tournament) => [tournament.id, tournament]));
   const byDateAsc = (a: (typeof matches)[number], b: (typeof matches)[number]) => new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime();
@@ -78,7 +78,7 @@ async function buildMobileHomeData(): Promise<MobileHomeDto> {
   const calendar = [...calendarByDate.entries()]
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([date, dateMatches]) => ({ date, matches: dateMatches }));
-  const data: MobileHomeDto = {
+  const data: MobileHomeContent = {
     insights,
     tournamentOverview: mobileHomeOverview({ teams, matches, tournaments, stages, bracketStages }),
     calendar,
@@ -122,37 +122,6 @@ async function buildMobileHomeData(): Promise<MobileHomeDto> {
       type: event.type,
       yearsCount: event.yearsCount,
     })),
-    community: communityPosts.map((post) => ({
-      author: {
-        favoriteTeam: post.authorTeam ? {
-          id: post.authorTeam.id,
-          name: post.authorTeam.name,
-          primaryColor: post.authorTeam.primaryColor,
-          shortName: post.authorTeam.shortName,
-          slug: post.authorTeam.slug,
-        } : null,
-        guestIpLabel: post.guestIpLabel,
-        id: post.authorId,
-        nickname: post.authorName,
-        profileImage: post.authorImageUrl ? { url: post.authorImageUrl } : null,
-        tier: post.authorTier,
-      },
-      boardType: post.boardType,
-      commentCount: post.commentCount,
-      createdAt: post.createdAt,
-      dislikeCount: post.dislikeCount,
-      excerpt: post.excerpt,
-      id: post.id,
-      isBlinded: Boolean(post.blindedAt),
-      isHot: Boolean(post.hotAt),
-      isNotice: post.isNotice,
-      likeCount: post.likeCount,
-      scope: "hub",
-      teamId: post.teamId,
-      thumbnail: post.thumbnailUrl ? { url: post.thumbnailUrl } : null,
-      title: post.title,
-      viewCount: post.viewCount,
-    })),
     matches: orderedMatches,
     news: (newsFeed.isFallback ? [] : newsFeed.articles).map((article) => ({ id: article.id, title: article.title, source: article.source, publishedAt: article.publishedAt, url: article.url, thumbnail: article.thumbnailUrl ? { url: article.thumbnailUrl, width: article.thumbnailWidth, height: article.thumbnailHeight } : null })),
     standings: standingRows.slice(0, 10).map((row) => ({ losses: row.matchLosses, rank: row.rank, setDiff: row.setDiff, teamId: row.team.id, wins: row.matchWins })),
@@ -177,15 +146,56 @@ async function buildMobileHomeData(): Promise<MobileHomeDto> {
 
 const getMobileHomeData = unstable_cache(
   buildMobileHomeData,
-  ["mobile-home-v1-response-web-sync-20261023"],
+  ["mobile-home-v1-content"],
   { revalidate: 30, tags: [HOME_PUBLIC_DATA_TAG, HOME_POM_TAG] },
 );
 
-export async function GET() {
-  const data = await getMobileHomeData();
-  return mobileSuccess(data, {
-    headers: {
-      "Cache-Control": "public, max-age=0, s-maxage=30, stale-while-revalidate=120",
+async function buildMobileHomeCommunity(): Promise<MobileHomeDto["community"]> {
+  const [popularCommunityPosts, latestCommunityPosts] = await Promise.all([
+    getBoardPosts({ scope: "hub", hotOnly: true, limit: COMMUNITY_HOME_HOT_CANDIDATE_LIMIT }),
+    getBoardPosts({ scope: "hub", limit: COMMUNITY_HOME_LATEST_CANDIDATE_LIMIT }),
+  ]);
+  return selectCommunityHomePosts(popularCommunityPosts, latestCommunityPosts).map((post) => ({
+    author: {
+      favoriteTeam: post.authorTeam ? {
+        id: post.authorTeam.id,
+        name: post.authorTeam.name,
+        primaryColor: post.authorTeam.primaryColor,
+        shortName: post.authorTeam.shortName,
+        slug: post.authorTeam.slug,
+      } : null,
+      guestIpLabel: post.guestIpLabel,
+      id: post.authorId,
+      nickname: post.authorName,
+      profileImage: post.authorImageUrl ? { url: post.authorImageUrl } : null,
+      tier: post.authorTier,
     },
+    boardType: post.boardType,
+    commentCount: post.commentCount,
+    createdAt: post.createdAt,
+    dislikeCount: post.dislikeCount,
+    excerpt: post.excerpt,
+    id: post.id,
+    isBlinded: Boolean(post.blindedAt),
+    isHot: Boolean(post.hotAt),
+    isNotice: post.isNotice,
+    likeCount: post.likeCount,
+    scope: "hub",
+    teamId: post.teamId,
+    thumbnail: post.thumbnailUrl ? { url: post.thumbnailUrl } : null,
+    title: post.title,
+    viewCount: post.viewCount,
+  }));
+}
+
+const getMobileHomeCommunity = unstable_cache(buildMobileHomeCommunity, ["mobile-home-v1-community"], {
+  revalidate: 30,
+  tags: [HOME_COMMUNITY_TAG],
+});
+
+export async function GET() {
+  const [content, community] = await Promise.all([getMobileHomeData(), getMobileHomeCommunity()]);
+  return mobileSuccess<MobileHomeDto>({ ...content, community }, {
+    headers: { "Cache-Control": "public, max-age=0, s-maxage=30, stale-while-revalidate=120" },
   });
 }
